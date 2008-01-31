@@ -1,4 +1,5 @@
 #include "interleave.h"
+#include "adx.h"
 
 void render_vgmstream_interleave(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstream) {
     int samples_written=0;

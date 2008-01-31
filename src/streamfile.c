@@ -39,15 +39,8 @@ void close_streamfile(STREAMFILE * streamfile) {
     free(streamfile);
 }
 
-size_t read_streamfile(uint8_t * dest, off_t offset, size_t length, STREAMFILE * streamfile) {
+size_t read_the_rest(uint8_t * dest, off_t offset, size_t length, STREAMFILE * streamfile) {
     size_t length_read_total=0;
-    if (!streamfile || !dest || length<=0) return 0;
-
-    /* if entire request is within the buffer */
-    if (offset >= streamfile->offset && offset+length <= streamfile->offset+streamfile->validsize) {
-        memcpy(dest,streamfile->buffer+(offset-streamfile->offset),length);
-        return length;
-    }
 
     /* is the beginning at least there? */
     if (offset >= streamfile->offset && offset < streamfile->offset+streamfile->validsize) {
@@ -106,36 +99,4 @@ size_t read_streamfile(uint8_t * dest, off_t offset, size_t length, STREAMFILE *
 size_t get_streamfile_size(STREAMFILE * streamfile) {
     fseeko(streamfile->infile,0,SEEK_END);
     return ftello(streamfile->infile);
-}
-
-int16_t read_16bitLE(off_t offset, STREAMFILE * streamfile) {
-    uint8_t buf[2];
-
-    if (read_streamfile(buf,offset,2,streamfile)!=2) return -1;
-    return get_16bitLE(buf);
-}
-int16_t read_16bitBE(off_t offset, STREAMFILE * streamfile) {
-    uint8_t buf[2];
-
-    if (read_streamfile(buf,offset,2,streamfile)!=2) return -1;
-    return get_16bitBE(buf);
-}
-int32_t read_32bitLE(off_t offset, STREAMFILE * streamfile) {
-    uint8_t buf[4];
-
-    if (read_streamfile(buf,offset,4,streamfile)!=4) return -1;
-    return get_32bitLE(buf);
-}
-int32_t read_32bitBE(off_t offset, STREAMFILE * streamfile) {
-    uint8_t buf[4];
-
-    if (read_streamfile(buf,offset,4,streamfile)!=4) return -1;
-    return get_32bitBE(buf);
-}
-
-int8_t read_8bit(off_t offset, STREAMFILE * streamfile) {
-    uint8_t buf[1];
-
-    if (read_streamfile(buf,offset,1,streamfile)!=1) return -1;
-    return buf[0];
 }

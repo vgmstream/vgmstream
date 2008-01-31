@@ -100,7 +100,7 @@ VGMSTREAM * init_vgmstream_adx(const char * const filename) {
     {
         int i;
         for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = open_streamfile(filename);
+            vgmstream->ch[i].streamfile = open_streamfile_buffer(filename,18*0x400);
             if (!vgmstream->ch[i].streamfile) goto fail;
 
             vgmstream->ch[i].channel_start_offset=
@@ -149,4 +149,3 @@ void decode_adx(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, 
     stream->adpcm_history1_32 = hist1;
     stream->adpcm_history2_32 = hist2;
 }
-

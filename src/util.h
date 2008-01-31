@@ -26,13 +26,16 @@ static inline int32_t get_32bitLE(uint8_t * p) {
 }
 
 /* signed nibbles come up a lot */
+static int nibble_to_int[16] = {0,1,2,3,4,5,6,7,-8,-7,-6,-5,-4,-3,-2,-1};
 
 static inline int get_high_nibble_signed(int n) {
-    return ((n&0x70)-(n&0x80))>>4;
+    /*return ((n&0x70)-(n&0x80))>>4;*/
+    return nibble_to_int[n>>4];
 }
 
 static inline int get_low_nibble_signed(int n) {
-    return (n&7)-(n&8);
+    /*return (n&7)-(n&8);*/
+    return nibble_to_int[n&0xf];
 }
 
 /* return true for a good sample rate */
@@ -43,7 +46,7 @@ int check_sample_rate(int32_t sr);
  */
 const char * filename_extension(const char * filename);
 
-static inline int16_t clamp16(int32_t val) {
+static inline int clamp16(int32_t val) {
         if (val>32767) return 32767;
             if (val<-32768) return -32768;
                 return val;
