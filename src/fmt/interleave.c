@@ -25,7 +25,22 @@ void render_vgmstream_interleave(sample * buffer, int32_t sample_count, VGMSTREA
         if (vgmstream->loop_flag) {
             /* is this the loop end? */
             if (vgmstream->current_sample==vgmstream->loop_end_sample) {
-                /* TODO: depending on the codec we may not want to copy all of the state */
+                /* depending on the codec we may not want to copy all of the state */
+                /*
+                switch (vgmstream->coding_type) {
+                    case coding_CRI_ADX:
+                        {
+                            int i;
+                            for (i=0;i<vgmstream->channels;i++) {
+                                vgmstream->loop_ch[i].adpcm_history1_32 = vgmstream->ch[i].adpcm_history1_32;
+                                vgmstream->loop_ch[i].adpcm_history2_32 = vgmstream->ch[i].adpcm_history2_32;
+                            }
+                        }
+                        break;
+                    default:
+                        break;
+                }
+                */
                 /* restore! */
                 memcpy(vgmstream->ch,vgmstream->loop_ch,sizeof(VGMSTREAMCHANNEL)*vgmstream->channels);
                 vgmstream->current_sample=vgmstream->loop_sample;
