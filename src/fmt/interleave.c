@@ -1,20 +1,35 @@
 #include "interleave.h"
 #include "adx.h"
+#include "gcdsp.h"
 
 void render_vgmstream_interleave(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstream) {
     int samples_written=0;
 
+    int frame_size;
+    int samples_per_frame;
+    int samples_this_block;
+    switch (vgmstream->coding_type) {
+        case coding_CRI_ADX:
+            frame_size=18;
+            samples_per_frame=32;
+            break;
+        case coding_NGC_DSP:
+            frame_size=8;
+            samples_per_frame=14;
+            break;
+    }
+
+    samples_this_block = vgmstream->interleave_block_size / frame_size * samples_per_frame;
+
+    if (vgmstream->layout_type == layout_interleave_shortblock &&
+        vgmstream->current_sample - vgmstream->samples_into_block + samples_this_block> vgmstream->num_samples) {
+            samples_this_block = vgmstream->interleave_smallblock_size / frame_size * samples_per_frame;
+    }
+
     while (samples_written<sample_count) {
         int samples_to_do;
         int chan;
-        int samples_this_block;
         int samples_left_this_block;
-
-        switch (vgmstream->coding_type) {
-            case coding_CRI_ADX:
-                samples_this_block = vgmstream->interleave_block_size / 18 * 32;
-                break;
-        }
 
         /*samples_this_block -= vgmstream->samples_into_block;*/
         samples_left_this_block = samples_this_block - vgmstream->samples_into_block;
@@ -29,6 +44,7 @@ void render_vgmstream_interleave(sample * buffer, int32_t sample_count, VGMSTREA
                 /*
                 switch (vgmstream->coding_type) {
                     case coding_CRI_ADX:
+                    case coding_NGC_DSP:
                         {
                             int i;
                             for (i=0;i<vgmstream->channels;i++) {
@@ -45,6 +61,8 @@ void render_vgmstream_interleave(sample * buffer, int32_t sample_count, VGMSTREA
                 memcpy(vgmstream->ch,vgmstream->loop_ch,sizeof(VGMSTREAMCHANNEL)*vgmstream->channels);
                 vgmstream->current_sample=vgmstream->loop_sample;
                 vgmstream->samples_into_block=vgmstream->loop_samples_into_block;
+
+                samples_this_block = vgmstream->interleave_block_size / frame_size * samples_per_frame;
                 continue;   /* recalculate stuff */
             }
 
@@ -73,6 +91,8 @@ void render_vgmstream_interleave(sample * buffer, int32_t sample_count, VGMSTREA
 
         }
 
+        if ((vgmstream->samples_into_block%samples_per_frame)+samples_to_do>samples_per_frame) samples_to_do=samples_per_frame-(vgmstream->samples_into_block%samples_per_frame);
+
         if (samples_written+samples_to_do > sample_count)
             samples_to_do=sample_count-samples_written;
 
@@ -85,16 +105,33 @@ void render_vgmstream_interleave(sample * buffer, int32_t sample_count, VGMSTREA
                 }
 
                 break;
-        }
-
-        vgmstream->samples_into_block+=samples_to_do;
-        if (vgmstream->samples_into_block==samples_this_block) {
-            for (chan=0;chan<vgmstream->channels;chan++)
-                vgmstream->ch[chan].offset+=vgmstream->interleave_block_size*vgmstream->channels;
-            vgmstream->samples_into_block=0;
+            case coding_NGC_DSP:
+                for (chan=0;chan<vgmstream->channels;chan++) {
+                    decode_gcdsp(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                            vgmstream->channels,vgmstream->samples_into_block,
+                            samples_to_do);
+                }
+                break;
         }
 
         samples_written += samples_to_do;
         vgmstream->current_sample += samples_to_do;
+        vgmstream->samples_into_block+=samples_to_do;
+
+        if (vgmstream->samples_into_block==samples_this_block) {
+            if (vgmstream->layout_type == layout_interleave_shortblock &&
+                vgmstream->current_sample + samples_this_block > vgmstream->num_samples) {
+
+                samples_this_block = vgmstream->interleave_smallblock_size / frame_size * samples_per_frame;
+                for (chan=0;chan<vgmstream->channels;chan++)
+                    vgmstream->ch[chan].offset+=vgmstream->interleave_block_size*(vgmstream->channels-chan)+vgmstream->interleave_smallblock_size*chan;
+            } else {
+
+                for (chan=0;chan<vgmstream->channels;chan++)
+                    vgmstream->ch[chan].offset+=vgmstream->interleave_block_size*vgmstream->channels;
+            }
+            vgmstream->samples_into_block=0;
+        }
+
     }
 }

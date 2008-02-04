@@ -1,14 +1,16 @@
 #include "vgmstream.h"
 #include "fmt/adx.h"
+#include "fmt/brstm.h"
 #include "fmt/interleave.h"
 
 /*
  * List of functions that will recognize files. These should correspond pretty
  * directly to the metadata types
  */
-#define INIT_VGMSTREAM_FCNS 1
+#define INIT_VGMSTREAM_FCNS 2
 VGMSTREAM * (*init_vgmstream_fcns[INIT_VGMSTREAM_FCNS])(const char * const) = {
     init_vgmstream_adx,
+    init_vgmstream_brstm,
 };
 
 /* format detection and VGMSTREAM setup */
@@ -100,6 +102,7 @@ int32_t get_vgmstream_play_samples(double looptimes, double fadetime, VGMSTREAM 
 void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstream) {
     switch (vgmstream->layout_type) {
         case layout_interleave:
+        case layout_interleave_shortblock:
             render_vgmstream_interleave(buffer,sample_count,vgmstream);
             break;
     }

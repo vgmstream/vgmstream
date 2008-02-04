@@ -71,6 +71,7 @@ int main(int argc, char ** argv) {
         }
     }
 
+    printf("decoding %s\n",argv[optind]);
     printf("sample rate %d Hz\n",s->sample_rate);
     printf("channels: %d\n",s->channels);
     if (s->loop_flag) {
