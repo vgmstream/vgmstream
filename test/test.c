@@ -38,7 +38,7 @@ int main(int argc, char ** argv) {
         int toget=BUFSIZE;
         if (i+BUFSIZE>len) toget=len-i;
         render_vgmstream(buf,toget,s);
-        fwrite(buf,sizeof(sample)*2,toget,outfile);
+        fwrite(buf,sizeof(sample)*s->channels,toget,outfile);
     }
     
     close_vgmstream(s);
