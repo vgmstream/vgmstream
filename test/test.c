@@ -8,7 +8,7 @@ int main(int argc, char ** argv) {
     sample buf[BUFSIZE*2];
     int32_t len;
     int i;
-    FILE * outfile = fopen("dump.bin","wb");
+    FILE * outfile = fopen("dump.wav","wb");
 
     if (argc!=2) {printf("1 arg\n"); return 1;}
 
@@ -18,7 +18,6 @@ int main(int argc, char ** argv) {
         printf("open failed\n");
         return 1;
     }
-
 
     printf("samplerate %d Hz\n",s->sample_rate);
     printf("channels: %d\n",s->channels);
@@ -30,6 +29,10 @@ int main(int argc, char ** argv) {
 
     len = get_vgmstream_play_samples(2.0,10.0,s);
     printf("samples to play %d (%lf seconds)\n",len,(double)len/s->sample_rate);
+
+    /* slap on a .wav header */
+    make_wav_header((uint8_t*)buf, len, s->sample_rate, s->channels);
+    fwrite(buf,1,0x2c,outfile);
 
     for (i=0;i<len;i+=BUFSIZE) {
         int toget=BUFSIZE;
