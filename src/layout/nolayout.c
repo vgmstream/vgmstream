@@ -1,6 +1,7 @@
 #include "nolayout.h"
-#include "adx.h"
-#include "gcdsp_decoder.h"
+#include "../coding/adx_decoder.h"
+#include "../coding/gcdsp_decoder.h"
+#include "../coding/pcm_decoder.h"
 
 void render_vgmstream_nolayout(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstream) {
     int samples_written=0;
@@ -14,6 +15,11 @@ void render_vgmstream_nolayout(sample * buffer, int32_t sample_count, VGMSTREAM 
             break;
         case coding_NGC_DSP:
             samples_per_frame = 14;
+            break;
+        case coding_PCM16LE:
+        case coding_PCM16BE:
+        case coding_PCM8:
+            samples_per_frame = 1;
             break;
     }
 
@@ -63,7 +69,7 @@ void render_vgmstream_nolayout(sample * buffer, int32_t sample_count, VGMSTREAM 
 
         }
 
-        if ((vgmstream->samples_into_block%samples_per_frame)+samples_to_do>samples_per_frame) samples_to_do=samples_per_frame-(vgmstream->samples_into_block%samples_per_frame);
+        if (samples_per_frame > 1 && (vgmstream->samples_into_block%samples_per_frame)+samples_to_do>samples_per_frame) samples_to_do=samples_per_frame-(vgmstream->samples_into_block%samples_per_frame);
 
         if (samples_written+samples_to_do > sample_count)
             samples_to_do=sample_count-samples_written;

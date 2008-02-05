@@ -1,5 +1,5 @@
 #include <math.h>
-#include "adx.h"
+#include "adx_header.h"
 #include "../util.h"
 
 VGMSTREAM * init_vgmstream_adx(const char * const filename) {

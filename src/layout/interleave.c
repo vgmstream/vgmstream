@@ -1,7 +1,7 @@
 #include "interleave.h"
-#include "adx.h"
-#include "gcdsp_decoder.h"
-#include "pcm_decoder.h"
+#include "../coding/adx_decoder.h"
+#include "../coding/gcdsp_decoder.h"
+#include "../coding/pcm_decoder.h"
 
 void render_vgmstream_interleave(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstream) {
     int samples_written=0;

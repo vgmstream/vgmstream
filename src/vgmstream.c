@@ -1,8 +1,8 @@
 #include "vgmstream.h"
-#include "fmt/adx.h"
-#include "fmt/brstm.h"
-#include "fmt/interleave.h"
-#include "fmt/nolayout.h"
+#include "meta/adx_header.h"
+#include "meta/brstm.h"
+#include "layout/interleave.h"
+#include "layout/nolayout.h"
 
 /*
  * List of functions that will recognize files. These should correspond pretty
