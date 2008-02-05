@@ -1,27 +1,11 @@
 #include "nolayout.h"
-#include "../coding/adx_decoder.h"
-#include "../coding/gcdsp_decoder.h"
-#include "../coding/pcm_decoder.h"
+#include "../vgmstream.h"
 
 void render_vgmstream_nolayout(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstream) {
     int samples_written=0;
 
     const int samples_this_block = vgmstream->num_samples;
-    int samples_per_frame;
-
-    switch(vgmstream->coding_type) {
-        case coding_CRI_ADX:
-            samples_per_frame = 32;
-            break;
-        case coding_NGC_DSP:
-            samples_per_frame = 14;
-            break;
-        case coding_PCM16LE:
-        case coding_PCM16BE:
-        case coding_PCM8:
-            samples_per_frame = 1;
-            break;
-    }
+    int samples_per_frame = get_vgmstream_samples_per_frame(vgmstream);
 
     while (samples_written<sample_count) {
         int samples_to_do;
@@ -74,23 +58,7 @@ void render_vgmstream_nolayout(sample * buffer, int32_t sample_count, VGMSTREAM 
         if (samples_written+samples_to_do > sample_count)
             samples_to_do=sample_count-samples_written;
 
-        switch (vgmstream->coding_type) {
-            case coding_CRI_ADX:
-                for (chan=0;chan<vgmstream->channels;chan++) {
-                    decode_adx(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
-                            vgmstream->channels,vgmstream->samples_into_block,
-                            samples_to_do);
-                }
-
-                break;
-            case coding_NGC_DSP:
-                for (chan=0;chan<vgmstream->channels;chan++) {
-                    decode_gcdsp(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
-                            vgmstream->channels,vgmstream->samples_into_block,
-                            samples_to_do);
-                }
-                break;
-        }
+        decode_vgmstream(vgmstream, samples_written, samples_to_do, buffer);
 
         samples_written += samples_to_do;
         vgmstream->current_sample += samples_to_do;

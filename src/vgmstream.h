@@ -144,4 +144,9 @@ int32_t get_vgmstream_play_samples(double looptimes, double fadetime, VGMSTREAM 
 /* render! */
 void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstream);
 
+int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream);
+int get_vgmstream_frame_size(VGMSTREAM * vgmstream);
+
+void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to_do, sample * buffer);
+
 #endif
