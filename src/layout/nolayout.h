@@ -1,5 +1,4 @@
 /*
- * interleave.h - interleaved layouts
  */
 #include "../streamtypes.h"
 #include "../vgmstream.h"

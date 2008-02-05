@@ -127,8 +127,19 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_PCM16BE:
         case coding_PCM8:
             return 1;
+        case coding_NDS_IMA:
+            return (vgmstream->interleave_block_size-4)*2;
         default:
             return 0;
+    }
+}
+
+int get_vgmstream_samples_per_shortframe(VGMSTREAM * vgmstream) {
+    switch (vgmstream->coding_type) {
+        case coding_NDS_IMA:
+            return (vgmstream->interleave_smallblock_size-4)*2;
+        default:
+            return get_vgmstream_samples_per_frame(vgmstream);
     }
 }
 
@@ -143,8 +154,19 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
             return 2;
         case coding_PCM8:
             return 1;
+        case coding_NDS_IMA:
+            return vgmstream->interleave_block_size;
         default:
             return 0;
+    }
+}
+
+int get_vgmstream_shortframe_size(VGMSTREAM * vgmstream) {
+    switch (vgmstream->coding_type) {
+        case coding_NDS_IMA:
+            return vgmstream->interleave_smallblock_size;
+        default:
+            return get_vgmstream_frame_size(vgmstream);
     }
 }
 
@@ -184,6 +206,13 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
         case coding_PCM8:
             for (chan=0;chan<vgmstream->channels;chan++) {
                 decode_pcm8(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                        vgmstream->channels,vgmstream->samples_into_block,
+                        samples_to_do);
+            }
+            break;
+        case coding_NDS_IMA:
+            for (chan=0;chan<vgmstream->channels;chan++) {
+                decode_nds_ima(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
                         samples_to_do);
             }
@@ -296,6 +325,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream) {
             break;
         case coding_CRI_ADX:
             printf("CRI ADX 4-bit ADPCM");
+            break;
+        case coding_NDS_IMA:
+            printf("NDS-style 4-bit IMA ADPCM");
             break;
         default:
             printf("CANNOT DECODE");

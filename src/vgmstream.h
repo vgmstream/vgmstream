@@ -80,6 +80,8 @@ typedef struct {
         int16_t adpcm_history2_16;  /* previous previous sample */
         int32_t adpcm_history2_32;
     };
+
+    int adpcm_step_index;     /* for IMA */
 } VGMSTREAMCHANNEL;
 
 typedef struct {
@@ -149,6 +151,9 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
 int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream);
 /* number of bytes per frame */
 int get_vgmstream_frame_size(VGMSTREAM * vgmstream);
+/* in NDS IMA the frame size is the block size, so the last one is short */
+int get_vgmstream_samples_per_shortframe(VGMSTREAM * vgmstream);
+int get_vgmstream_shortframe_size(VGMSTREAM * vgmstream);
 
 /* Assume that we have written samples_written into the buffer already, and we have samples_to_do consecutive
  * samples ahead of us. Decode those samples into the buffer. */

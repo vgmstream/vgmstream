@@ -70,7 +70,7 @@ VGMSTREAM * init_vgmstream_nds_strm(const char * const filename) {
     vgmstream->interleave_block_size = read_32bitLE(0x30,infile);
     vgmstream->interleave_smallblock_size = read_32bitLE(0x38,infile);
 
-    if (channel_count==1 || coding_type==coding_PCM8 || coding_type==coding_PCM16LE)
+    if (coding_type==coding_PCM8 || coding_type==coding_PCM16LE)
         vgmstream->layout_type = layout_none;
     else
         vgmstream->layout_type = layout_interleave_shortblock;
