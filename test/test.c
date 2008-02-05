@@ -72,6 +72,7 @@ int main(int argc, char ** argv) {
     }
 
     printf("decoding %s\n",argv[optind]);
+    /*
     printf("sample rate %d Hz\n",s->sample_rate);
     printf("channels: %d\n",s->channels);
     if (s->loop_flag) {
@@ -79,6 +80,8 @@ int main(int argc, char ** argv) {
         printf("loop end: %d samples (%.2lf seconds)\n",s->loop_end_sample,(double)s->loop_end_sample/s->sample_rate);
     }
     printf("file total samples: %d (%.2lf seconds)\n",s->num_samples,(double)s->num_samples/s->sample_rate);
+    */
+    describe_vgmstream(s);
 
     len = get_vgmstream_play_samples(loop_count,fade_time,s);
     printf("samples to play: %d (%.2lf seconds)\n",len,(double)len/s->sample_rate);

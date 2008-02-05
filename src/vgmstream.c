@@ -245,3 +245,80 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream) {
     /*}*/
     return 0;
 }
+
+void describe_vgmstream(VGMSTREAM * vgmstream) {
+    if (!vgmstream) {
+        printf("NULL VGMSTREAM\n");
+        return;
+    }
+    printf("sample rate %d Hz\n",vgmstream->sample_rate);
+    printf("channels: %d\n",vgmstream->channels);
+    if (vgmstream->loop_flag) {
+        printf("loop start: %d samples (%.2lf seconds)\n",vgmstream->loop_start_sample,(double)vgmstream->loop_start_sample/vgmstream->sample_rate);
+        printf("loop end: %d samples (%.2lf seconds)\n",vgmstream->loop_end_sample,(double)vgmstream->loop_end_sample/vgmstream->sample_rate);
+    }
+    printf("stream total samples: %d (%.2lf seconds)\n",vgmstream->num_samples,(double)vgmstream->num_samples/vgmstream->sample_rate);
+
+    printf("metadata from: ");
+    switch (vgmstream->meta_type) {
+        case meta_RSTM:
+            printf("RSTM header");
+            break;
+        case meta_ADX_03:
+            printf("ADX header type 03");
+            break;
+        case meta_ADX_04:
+            printf("ADX header type 04");
+            break;
+        default:
+            printf("THEY SHOULD HAVE SENT A POET");
+    }
+    printf("\n");
+
+    printf("encoding: ");
+    switch (vgmstream->coding_type) {
+        case coding_PCM16BE:
+            printf("Big Endian 16-bit PCM");
+            break;
+        case coding_PCM16LE:
+            printf("Little Endian 16-bit PCM");
+            break;
+        case coding_PCM8:
+            printf("8-bit PCM");
+            break;
+        case coding_NGC_DSP:
+            printf("Gamecube \"DSP\" 4-bit ADPCM");
+            break;
+        case coding_CRI_ADX:
+            printf("CRI ADX 4-bit ADPCM");
+            break;
+        default:
+            printf("CANNOT DECODE");
+    }
+    printf("\n");
+
+    printf("layout: ");
+    switch (vgmstream->layout_type) {
+        case layout_none:
+            printf("flat (no layout)");
+            break;
+        case layout_interleave:
+            printf("interleave");
+            break;
+        case layout_interleave_shortblock:
+            printf("interleave with short last block");
+            break;
+        default:
+            printf("INCONCEIVABLE");
+    }
+    printf("\n");
+
+    if (vgmstream->layout_type == layout_interleave || vgmstream->layout_type == layout_interleave_shortblock) {
+        printf("interleave: %#x bytes\n",vgmstream->interleave_block_size);
+        if (vgmstream->layout_type == layout_interleave_shortblock) {
+            printf("last block interleave: %#x bytes\n",vgmstream->interleave_smallblock_size);
+        }
+    }
+
+    printf("\n");
+}
