@@ -73,11 +73,13 @@ VGMSTREAM * init_vgmstream_adx(const char * const filename) {
     vgmstream->loop_end_sample = loop_end_sample;
 
     vgmstream->coding_type = coding_CRI_ADX;
-    vgmstream->layout_type = layout_interleave;
+    if (channel_count==1)
+        vgmstream->layout_type = layout_none;
+    else
+        vgmstream->layout_type = layout_interleave;
     vgmstream->meta_type = header_type;
 
     vgmstream->interleave_block_size=18;
-
 
     close_streamfile(infile); infile=NULL;
 

@@ -2,6 +2,7 @@
 #include "fmt/adx.h"
 #include "fmt/brstm.h"
 #include "fmt/interleave.h"
+#include "fmt/nolayout.h"
 
 /*
  * List of functions that will recognize files. These should correspond pretty
@@ -104,6 +105,9 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
         case layout_interleave:
         case layout_interleave_shortblock:
             render_vgmstream_interleave(buffer,sample_count,vgmstream);
+            break;
+        case layout_none:
+            render_vgmstream_nolayout(buffer,sample_count,vgmstream);
             break;
     }
 }

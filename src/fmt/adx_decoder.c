@@ -2,17 +2,21 @@
 #include "../util.h"
 
 void decode_adx(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
-    int i=first_sample;
+    int i;
     int32_t sample_count;
 
-    int32_t scale = read_16bitBE(stream->offset,stream->streamfile) + 1;
+    int framesin = first_sample/32;
+
+    int32_t scale = read_16bitBE(stream->offset+framesin*18,stream->streamfile) + 1;
     int32_t hist1 = stream->adpcm_history1_32;
     int32_t hist2 = stream->adpcm_history2_32;
     int coef1 = stream->adpcm_coef[0];
     int coef2 = stream->adpcm_coef[1];
 
+    first_sample = first_sample%32;
+
     for (i=first_sample,sample_count=0; i<first_sample+samples_to_do; i++,sample_count+=channelspacing) {
-        int sample_byte = read_8bit(stream->offset+2+i/2,stream->streamfile);
+        int sample_byte = read_8bit(stream->offset+framesin*18+2+i/2,stream->streamfile);
 
         outbuf[sample_count] = clamp16(
                 (i&1?

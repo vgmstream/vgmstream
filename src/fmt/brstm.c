@@ -71,7 +71,10 @@ VGMSTREAM * init_vgmstream_brstm(const char * const filename) {
     vgmstream->loop_end_sample = vgmstream->num_samples;
 
     vgmstream->coding_type = coding_type;
-    vgmstream->layout_type = layout_interleave_shortblock;
+    if (channel_count==1)
+        vgmstream->layout_type = layout_none;
+    else
+        vgmstream->layout_type = layout_interleave_shortblock;
     vgmstream->meta_type = meta_RSTM;
 
     vgmstream->interleave_block_size = read_32bitBE(head_offset+0x38,infile);
