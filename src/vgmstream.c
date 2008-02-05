@@ -188,3 +188,60 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
             break;
     }
 }
+
+int vgmstream_samples_to_do(int samples_this_block, int samples_per_frame, VGMSTREAM * vgmstream) {
+    int samples_to_do;
+    int samples_left_this_block;
+
+    samples_left_this_block = samples_this_block - vgmstream->samples_into_block;
+    samples_to_do = samples_left_this_block;
+
+    /* fun loopy crap */
+    /* Why did I think this would be any simpler? */
+    if (vgmstream->loop_flag) {
+        /* are we going to hit the loop end during this block? */
+        if (vgmstream->current_sample+samples_left_this_block > vgmstream->loop_end_sample) {
+            /* only do to just before it */
+            samples_to_do = vgmstream->loop_end_sample-vgmstream->current_sample;
+        }
+
+        /* are we going to hit the loop start during this block? */
+        if (!vgmstream->hit_loop && vgmstream->current_sample+samples_left_this_block > vgmstream->loop_start_sample) {
+            /* only do to just before it */
+            samples_to_do = vgmstream->loop_start_sample-vgmstream->current_sample;
+        }
+
+    }
+
+    /* if it's a framed encoding don't do more than one frame */
+    if (samples_per_frame>1 && (vgmstream->samples_into_block%samples_per_frame)+samples_to_do>samples_per_frame) samples_to_do=samples_per_frame-(vgmstream->samples_into_block%samples_per_frame);
+
+    return samples_to_do;
+}
+
+/* return 1 if we just looped */
+int vgmstream_do_loop(VGMSTREAM * vgmstream) {
+/*    if (vgmstream->loop_flag) {*/
+        /* is this the loop end? */
+        if (vgmstream->current_sample==vgmstream->loop_end_sample) {
+            /* restore! */
+            memcpy(vgmstream->ch,vgmstream->loop_ch,sizeof(VGMSTREAMCHANNEL)*vgmstream->channels);
+            vgmstream->current_sample=vgmstream->loop_sample;
+            vgmstream->samples_into_block=vgmstream->loop_samples_into_block;
+
+            return 1;
+        }
+
+
+        /* is this the loop start? */
+        if (!vgmstream->hit_loop && vgmstream->current_sample==vgmstream->loop_start_sample) {
+            /* save! */
+            memcpy(vgmstream->loop_ch,vgmstream->ch,sizeof(VGMSTREAMCHANNEL)*vgmstream->channels);
+
+            vgmstream->loop_sample=vgmstream->current_sample;
+            vgmstream->loop_samples_into_block=vgmstream->samples_into_block;
+            vgmstream->hit_loop=1;
+        }
+    /*}*/
+    return 0;
+}

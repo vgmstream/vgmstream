@@ -139,14 +139,26 @@ VGMSTREAM * allocate_vgmstream(int channel_count, int looped);
 /* deallocate, close, etc. */
 void close_vgmstream(VGMSTREAM * vgmstream);
 
+/* calculate the number of samples to be played based on looping parameters */
 int32_t get_vgmstream_play_samples(double looptimes, double fadetime, VGMSTREAM * vgmstream);
 
 /* render! */
 void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstream);
 
+/* smallest self-contained group of samples is a frame */
 int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream);
+/* number of bytes per frame */
 int get_vgmstream_frame_size(VGMSTREAM * vgmstream);
 
+/* Assume that we have written samples_written into the buffer already, and we have samples_to_do consecutive
+ * samples ahead of us. Decode those samples into the buffer. */
 void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to_do, sample * buffer);
+
+/* calculate number of consecutive samples to do (taking into account stopping for loop start and end)  */
+int vgmstream_samples_to_do(int samples_this_block, int samples_per_frame, VGMSTREAM * vgmstream);
+
+/* Detect start and save values, also detect end and restore values. Only works on exact sample values.
+ * Returns 1 if loop was done. */
+int vgmstream_do_loop(VGMSTREAM * vgmstream);
 
 #endif
