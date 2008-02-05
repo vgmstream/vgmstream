@@ -1,6 +1,6 @@
 #include "nolayout.h"
 #include "adx.h"
-#include "gcdsp.h"
+#include "gcdsp_decoder.h"
 
 void render_vgmstream_nolayout(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstream) {
     int samples_written=0;

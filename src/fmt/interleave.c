@@ -1,6 +1,7 @@
 #include "interleave.h"
 #include "adx.h"
-#include "gcdsp.h"
+#include "gcdsp_decoder.h"
+#include "pcm_decoder.h"
 
 void render_vgmstream_interleave(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstream) {
     int samples_written=0;
@@ -16,6 +17,15 @@ void render_vgmstream_interleave(sample * buffer, int32_t sample_count, VGMSTREA
         case coding_NGC_DSP:
             frame_size=8;
             samples_per_frame=14;
+            break;
+        case coding_PCM16LE:
+        case coding_PCM16BE:
+            frame_size=2;
+            samples_per_frame=1;
+            break;
+        case coding_PCM8:
+            frame_size=1;
+            samples_per_frame=1;
             break;
     }
 
@@ -91,7 +101,7 @@ void render_vgmstream_interleave(sample * buffer, int32_t sample_count, VGMSTREA
 
         }
 
-        if ((vgmstream->samples_into_block%samples_per_frame)+samples_to_do>samples_per_frame) samples_to_do=samples_per_frame-(vgmstream->samples_into_block%samples_per_frame);
+        if (samples_per_frame>1 && (vgmstream->samples_into_block%samples_per_frame)+samples_to_do>samples_per_frame) samples_to_do=samples_per_frame-(vgmstream->samples_into_block%samples_per_frame);
 
         if (samples_written+samples_to_do > sample_count)
             samples_to_do=sample_count-samples_written;
@@ -108,6 +118,27 @@ void render_vgmstream_interleave(sample * buffer, int32_t sample_count, VGMSTREA
             case coding_NGC_DSP:
                 for (chan=0;chan<vgmstream->channels;chan++) {
                     decode_gcdsp(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                            vgmstream->channels,vgmstream->samples_into_block,
+                            samples_to_do);
+                }
+                break;
+            case coding_PCM16LE:
+                for (chan=0;chan<vgmstream->channels;chan++) {
+                    decode_pcm16LE(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                            vgmstream->channels,vgmstream->samples_into_block,
+                            samples_to_do);
+                }
+                break;
+            case coding_PCM16BE:
+                for (chan=0;chan<vgmstream->channels;chan++) {
+                    decode_pcm16BE(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                            vgmstream->channels,vgmstream->samples_into_block,
+                            samples_to_do);
+                }
+                break;
+            case coding_PCM8:
+                for (chan=0;chan<vgmstream->channels;chan++) {
+                    decode_pcm8(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                             vgmstream->channels,vgmstream->samples_into_block,
                             samples_to_do);
                 }
