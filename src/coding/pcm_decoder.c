@@ -24,6 +24,6 @@ void decode_pcm8(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing,
     int32_t sample_count;
 
     for (i=first_sample,sample_count=0; i<first_sample+samples_to_do; i++,sample_count+=channelspacing) {
-        outbuf[sample_count]=read_8bit(stream->offset+i,stream->streamfile);
+        outbuf[sample_count]=read_8bit(stream->offset+i,stream->streamfile)*0x100;
     }
 }

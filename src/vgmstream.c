@@ -1,6 +1,7 @@
 #include "vgmstream.h"
 #include "meta/adx_header.h"
 #include "meta/brstm.h"
+#include "meta/nds_strm.h"
 #include "layout/interleave.h"
 #include "layout/nolayout.h"
 #include "coding/adx_decoder.h"
@@ -11,10 +12,11 @@
  * List of functions that will recognize files. These should correspond pretty
  * directly to the metadata types
  */
-#define INIT_VGMSTREAM_FCNS 2
+#define INIT_VGMSTREAM_FCNS 3
 VGMSTREAM * (*init_vgmstream_fcns[INIT_VGMSTREAM_FCNS])(const char * const) = {
     init_vgmstream_adx,
     init_vgmstream_brstm,
+    init_vgmstream_nds_strm,
 };
 
 /* format detection and VGMSTREAM setup */
@@ -263,6 +265,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream) {
     switch (vgmstream->meta_type) {
         case meta_RSTM:
             printf("RSTM header");
+            break;
+        case meta_STRM:
+            printf("NDS STRM header");
             break;
         case meta_ADX_03:
             printf("ADX header type 03");
