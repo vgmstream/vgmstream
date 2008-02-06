@@ -13,6 +13,11 @@
 #ifndef _STREAMFILE_H
 #define _STREAMFILE_H
 
+#ifdef __MSVCRT__
+#define fseeko fseek
+#define ftello ftell
+#endif
+
 #define STREAMFILE_DEFAULT_BUFFER_SIZE 0x400
 
 typedef struct {
