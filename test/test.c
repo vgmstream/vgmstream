@@ -9,7 +9,7 @@ extern char * optarg;
 extern int optind, opterr, optopt;
 
 void usage(const char * name) {
-    fprintf(stderr,"Usage: %s [-o outfile.wav] [-l loop count] [-f fade time] [-i] infile\n\t-i: ignore loop\n",name);
+    fprintf(stderr,"Usage: %s [-o outfile.wav] [-l loop count] [-f fade time] [-i] [-p] [-c] infile\n\t-i: ignore loop\n\t-p: output to stdout\n\t-c: loop forever\n",name);
 }
 
 int main(int argc, char ** argv) {
@@ -21,10 +21,12 @@ int main(int argc, char ** argv) {
     FILE * outfile = NULL;
     int opt;
     int ignore_loop = 0;
+    int play = 0;
+    int forever = 0;
     double loop_count = 2.0;
     double fade_time = 10.0;
     
-    while ((opt = getopt(argc, argv, "o:l:f:i")) != -1) {
+    while ((opt = getopt(argc, argv, "o:l:f:ipc")) != -1) {
         switch (opt) {
             case 'o':
                 outfile = fopen(optarg,"wb");
@@ -42,6 +44,12 @@ int main(int argc, char ** argv) {
             case 'i':
                 ignore_loop = 1;
                 break;
+            case 'p':
+                play = 1;
+                break;
+            case 'c':
+                forever = 1;
+                break;
             default:
                 usage(argv[0]);
                 return 1;
@@ -51,6 +59,11 @@ int main(int argc, char ** argv) {
 
     if (optind!=argc-1) {
         usage(argv[0]);
+        return 1;
+    }
+
+    if (forever && !play) {
+        fprintf(stderr,"A file of infinite size? Not likely.\n");
         return 1;
     }
    
@@ -63,7 +76,14 @@ int main(int argc, char ** argv) {
 
     if (ignore_loop) s->loop_flag=0;
 
-    if (!outfile) {
+    if (play) {
+        if (outfile) {
+            fprintf(stderr,"either -p or -o, make up your mind\n");
+            return 1;
+        }
+        outfile = stdout;
+    }
+    else if (!outfile) {
         outfile = fopen("dump.wav","wb");
         if (!outfile) {
             fprintf(stderr,"failed to open dump.wav for output\n");
@@ -71,7 +91,12 @@ int main(int argc, char ** argv) {
         }
     }
 
-    printf("decoding %s\n",argv[optind]);
+    if (forever && !s->loop_flag) {
+        fprintf(stderr,"I could play a nonlooped track forever, but it wouldn't end well.");
+        return 1;
+    }
+
+    if (!play) printf("decoding %s\n",argv[optind]);
     /*
     printf("sample rate %d Hz\n",s->sample_rate);
     printf("channels: %d\n",s->channels);
@@ -81,15 +106,20 @@ int main(int argc, char ** argv) {
     }
     printf("file total samples: %d (%.2lf seconds)\n",s->num_samples,(double)s->num_samples/s->sample_rate);
     */
-    describe_vgmstream(s);
+    if (!play) describe_vgmstream(s);
 
     len = get_vgmstream_play_samples(loop_count,fade_time,s);
-    printf("samples to play: %d (%.2lf seconds)\n",len,(double)len/s->sample_rate);
+    if (!play) printf("samples to play: %d (%.2lf seconds)\n",len,(double)len/s->sample_rate);
     fade_samples = fade_time * s->sample_rate;
 
     /* slap on a .wav header */
     make_wav_header((uint8_t*)buf, len, s->sample_rate, s->channels);
     fwrite(buf,1,0x2c,outfile);
+
+    while (forever) {
+        render_vgmstream(buf,BUFSIZE,s);
+        fwrite(buf,sizeof(sample)*s->channels,BUFSIZE,outfile);
+    }
 
     for (i=0;i<len;i+=BUFSIZE) {
         int toget=BUFSIZE;
