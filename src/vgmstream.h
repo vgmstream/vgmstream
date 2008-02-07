@@ -50,6 +50,7 @@ typedef enum {
     meta_DSP_RS03,          /* Metroid Prime 2 "RS03" */
     meta_DSP_STM,           /* Paper Mario 2 STM */
     meta_DSP_HALP,          /* SSB:M "HALPST" */
+    meta_DSP_AGSC,
     /* Nintendo */
     meta_AST,               /* AST */
     meta_STRM,              /* STRM */

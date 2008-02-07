@@ -2,6 +2,7 @@
 #include "meta/adx_header.h"
 #include "meta/brstm.h"
 #include "meta/nds_strm.h"
+#include "meta/agsc.h"
 #include "layout/interleave.h"
 #include "layout/nolayout.h"
 #include "coding/adx_decoder.h"
@@ -12,11 +13,12 @@
  * List of functions that will recognize files. These should correspond pretty
  * directly to the metadata types
  */
-#define INIT_VGMSTREAM_FCNS 3
+#define INIT_VGMSTREAM_FCNS 4
 VGMSTREAM * (*init_vgmstream_fcns[INIT_VGMSTREAM_FCNS])(const char * const) = {
     init_vgmstream_adx,
     init_vgmstream_brstm,
     init_vgmstream_nds_strm,
+    init_vgmstream_agsc,
 };
 
 /* format detection and VGMSTREAM setup */
@@ -255,6 +257,13 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream) {
 /*    if (vgmstream->loop_flag) {*/
         /* is this the loop end? */
         if (vgmstream->current_sample==vgmstream->loop_end_sample) {
+            int i;
+            /*
+            for (i=0;i<vgmstream->channels;i++) {
+                vgmstream->loop_ch[i].adpcm_history1_32 = vgmstream->ch[i].adpcm_history1_32;
+                vgmstream->loop_ch[i].adpcm_history2_32 = vgmstream->ch[i].adpcm_history2_32;
+            }
+            */
             /* restore! */
             memcpy(vgmstream->ch,vgmstream->loop_ch,sizeof(VGMSTREAMCHANNEL)*vgmstream->channels);
             vgmstream->current_sample=vgmstream->loop_sample;
@@ -303,6 +312,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream) {
             break;
         case meta_ADX_04:
             printf("ADX header type 04");
+            break;
+        case meta_DSP_AGSC:
+            printf("AGSC header");
             break;
         default:
             printf("THEY SHOULD HAVE SENT A POET");
