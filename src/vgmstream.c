@@ -3,22 +3,25 @@
 #include "meta/brstm.h"
 #include "meta/nds_strm.h"
 #include "meta/agsc.h"
+#include "meta/ngc_adpdtk.h"
 #include "layout/interleave.h"
 #include "layout/nolayout.h"
 #include "coding/adx_decoder.h"
 #include "coding/gcdsp_decoder.h"
 #include "coding/pcm_decoder.h"
+#include "coding/ngc_dtk_decoder.h"
 
 /*
  * List of functions that will recognize files. These should correspond pretty
  * directly to the metadata types
  */
-#define INIT_VGMSTREAM_FCNS 4
+#define INIT_VGMSTREAM_FCNS 5
 VGMSTREAM * (*init_vgmstream_fcns[INIT_VGMSTREAM_FCNS])(const char * const) = {
     init_vgmstream_adx,
     init_vgmstream_brstm,
     init_vgmstream_nds_strm,
     init_vgmstream_agsc,
+    init_vgmstream_ngc_adpdtk,
 };
 
 /* format detection and VGMSTREAM setup */
@@ -113,6 +116,7 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
         case layout_interleave_shortblock:
             render_vgmstream_interleave(buffer,sample_count,vgmstream);
             break;
+        case layout_dtk_interleave:
         case layout_none:
             render_vgmstream_nolayout(buffer,sample_count,vgmstream);
             break;
@@ -131,6 +135,8 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
             return 1;
         case coding_NDS_IMA:
             return (vgmstream->interleave_block_size-4)*2;
+        case coding_NGC_DTK:
+            return 28;
         default:
             return 0;
     }
@@ -158,6 +164,8 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
             return 1;
         case coding_NDS_IMA:
             return vgmstream->interleave_block_size;
+        case coding_NGC_DTK:
+            return 32;
         default:
             return 0;
     }
@@ -217,6 +225,13 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                 decode_nds_ima(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
                         samples_to_do);
+            }
+            break;
+        case coding_NGC_DTK:
+            for (chan=0;chan<vgmstream->channels;chan++) {
+                decode_ngc_dtk(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                        vgmstream->channels,vgmstream->samples_into_block,
+                        samples_to_do,chan);
             }
             break;
     }
@@ -316,6 +331,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream) {
         case meta_DSP_AGSC:
             printf("AGSC header");
             break;
+        case meta_NGC_ADPDTK:
+            printf("assumed NGC DTK by .adp extension and valid first frame");
+            break;
         default:
             printf("THEY SHOULD HAVE SENT A POET");
     }
@@ -341,6 +359,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream) {
         case coding_NDS_IMA:
             printf("NDS-style 4-bit IMA ADPCM");
             break;
+        case coding_NGC_DTK:
+            printf("Gamecube \"ADP\"/\"DTK\" 4-bit ADPCM");
+            break;
         default:
             printf("CANNOT DECODE");
     }
@@ -356,6 +377,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream) {
             break;
         case layout_interleave_shortblock:
             printf("interleave with short last block");
+            break;
+        case layout_dtk_interleave:
+            printf("nibble interleave");
             break;
         default:
             printf("INCONCEIVABLE");
