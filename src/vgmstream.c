@@ -412,6 +412,4 @@ void describe_vgmstream(VGMSTREAM * vgmstream) {
             printf("last block interleave: %#x bytes\n",vgmstream->interleave_smallblock_size);
         }
     }
-
-    printf("\n");
 }

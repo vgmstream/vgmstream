@@ -9,7 +9,16 @@ extern char * optarg;
 extern int optind, opterr, optopt;
 
 void usage(const char * name) {
-    fprintf(stderr,"Usage: %s [-o outfile.wav] [-l loop count] [-f fade time] [-i] [-p] [-c] infile\n\t-i: ignore loop\n\t-p: output to stdout\n\t-c: loop forever\n",name);
+    fprintf(stderr,"Usage: %s [-o outfile.wav] [-l loop count]\n"
+            "\t[-f fade time] [-i] [-p] [-c] [-m] infile\n"
+            "Options:\n"
+            "\t-o outfile.wav: name of output .wav file, default is dump.wav\n"
+            "\t-l loop count: loop count, default 2.0\n"
+            "\t-f fade time: fade time (seconds), default 10.0\n"
+            "\t-i: ignore looping information and play the whole stream once\n"
+            "\t-p: output to stdout (for piping into another program)\n"
+            "\t-c: loop forever (continuously)\n"
+            "\t-m: print metadata only, don't decode\n",name);
 }
 
 int main(int argc, char ** argv) {
@@ -19,27 +28,25 @@ int main(int argc, char ** argv) {
     int32_t fade_samples;
     int i;
     FILE * outfile = NULL;
+    char * outfilename = NULL;
     int opt;
     int ignore_loop = 0;
     int play = 0;
     int forever = 0;
+    int metaonly = 0;
     double loop_count = 2.0;
     double fade_time = 10.0;
     
-    while ((opt = getopt(argc, argv, "o:l:f:ipc")) != -1) {
+    while ((opt = getopt(argc, argv, "o:l:f:ipcm")) != -1) {
         switch (opt) {
             case 'o':
-                outfile = fopen(optarg,"wb");
-                if (!outfile) {
-                    fprintf(stderr,"failed to open %s for output\n",optarg);
-                    return 1;
-                }
+                outfilename = optarg;
                 break;
             case 'l':
-                loop_count = atoi(optarg);
+                loop_count = atof(optarg);
                 break;
             case 'f':
-                fade_time = atoi(optarg);
+                fade_time = atof(optarg);
                 break;
             case 'i':
                 ignore_loop = 1;
@@ -49,6 +56,9 @@ int main(int argc, char ** argv) {
                 break;
             case 'c':
                 forever = 1;
+                break;
+            case 'm':
+                metaonly = 1;
                 break;
             default:
                 usage(argv[0]);
@@ -77,16 +87,16 @@ int main(int argc, char ** argv) {
     if (ignore_loop) s->loop_flag=0;
 
     if (play) {
-        if (outfile) {
+        if (outfilename) {
             fprintf(stderr,"either -p or -o, make up your mind\n");
             return 1;
         }
         outfile = stdout;
-    }
-    else if (!outfile) {
-        outfile = fopen("dump.wav","wb");
+    } else if (!metaonly) {
+        if (!outfilename) outfilename = "dump.wav";
+        outfile = fopen(outfilename,"wb");
         if (!outfile) {
-            fprintf(stderr,"failed to open dump.wav for output\n");
+            fprintf(stderr,"failed to open %s for output\n",optarg);
             return 1;
         }
     }
@@ -96,17 +106,15 @@ int main(int argc, char ** argv) {
         return 1;
     }
 
-    if (!play) printf("decoding %s\n",argv[optind]);
-    /*
-    printf("sample rate %d Hz\n",s->sample_rate);
-    printf("channels: %d\n",s->channels);
-    if (s->loop_flag) {
-        printf("loop start: %d samples (%.2lf seconds)\n",s->loop_start_sample,(double)s->loop_start_sample/s->sample_rate);
-        printf("loop end: %d samples (%.2lf seconds)\n",s->loop_end_sample,(double)s->loop_end_sample/s->sample_rate);
+    if (!play) {
+        if (metaonly) printf("metadata for %s\n",argv[optind]);
+        else printf("decoding %s\n",argv[optind]);
     }
-    printf("file total samples: %d (%.2lf seconds)\n",s->num_samples,(double)s->num_samples/s->sample_rate);
-    */
     if (!play) describe_vgmstream(s);
+    if (metaonly) {
+        close_vgmstream(s);
+        return 0;
+    }
 
     len = get_vgmstream_play_samples(loop_count,fade_time,s);
     if (!play) printf("samples to play: %d (%.2lf seconds)\n",len,(double)len/s->sample_rate);
