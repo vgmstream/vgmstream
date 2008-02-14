@@ -7,8 +7,6 @@ VGMSTREAM * init_vgmstream_agsc(const char * const filename) {
     VGMSTREAM * vgmstream = NULL;
     STREAMFILE * infile = NULL;
 
-    coding_t coding_type;
-
     off_t header_offset;
     off_t start_offset;
     int channel_count;
