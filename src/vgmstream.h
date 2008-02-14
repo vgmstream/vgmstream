@@ -4,6 +4,7 @@
 
 #include <inttypes.h>
 #include "streamfile.h"
+#include "coding/g721_decoder.h"
 
 #ifndef _VGMSTREAM_H
 #define _VGMSTREAM_H
@@ -25,7 +26,7 @@ typedef enum {
     coding_PS2ADPCM,        /* PS2 ADPCM, sometimes called "VAG" */
     coding_EA_XA,           /* Electronic Arts XA */
     coding_CD_XA,           /* CD-XA */
-    coding_RSF,             /* Retro Studios RSF */
+    coding_G721,            /* CCITT G.721 ADPCM */
 } coding_t;
 
 /* The layout type specifies how the sound data is laid out in the file */
@@ -61,8 +62,9 @@ typedef enum {
     meta_ADX_03,            /* ADX "type 03" */
     meta_ADX_04,            /* ADX "type 04" */
     /* etc */
-    meta_NGC_ADPDTK,        /* NGC DTK/ADP, no header */
+    meta_NGC_ADPDTK,        /* NGC DTK/ADP, no header (.adp) */
     meta_kRAW,              /* almost headerless PCM */
+    meta_RSF,               /* Retro Studios RSF, no header (.rsf) */
 
 } meta_t;
 
@@ -85,6 +87,9 @@ typedef struct {
     };
 
     int adpcm_step_index;     /* for IMA */
+
+    struct g72x_state g72x_state; /* state for G.721 decoder, sort of big but we
+                               might as well keep it around */
 } VGMSTREAMCHANNEL;
 
 typedef struct {
