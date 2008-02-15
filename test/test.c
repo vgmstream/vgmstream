@@ -152,4 +152,6 @@ int main(int argc, char ** argv) {
     }
     
     close_vgmstream(s);
+
+    return 0;
 }

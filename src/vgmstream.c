@@ -10,6 +10,7 @@
 #include "coding/adx_decoder.h"
 #include "coding/gcdsp_decoder.h"
 #include "coding/pcm_decoder.h"
+#include "coding/ima_decoder.h"
 #include "coding/ngc_dtk_decoder.h"
 #include "coding/g721_decoder.h"
 
@@ -286,8 +287,8 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream) {
 /*    if (vgmstream->loop_flag) {*/
         /* is this the loop end? */
         if (vgmstream->current_sample==vgmstream->loop_end_sample) {
-            int i;
             /*
+            int i;
             for (i=0;i<vgmstream->channels;i++) {
                 vgmstream->loop_ch[i].adpcm_history1_32 = vgmstream->ch[i].adpcm_history1_32;
                 vgmstream->loop_ch[i].adpcm_history2_32 = vgmstream->ch[i].adpcm_history2_32;

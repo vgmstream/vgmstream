@@ -18,14 +18,9 @@ typedef enum {
     coding_PCM8,            /* 8-bit PCM */
     /* 4-bit ADPCM */
     coding_NDS_IMA,         /* IMA ADPCM w/ NDS layout */
-    coding_XBOX_IMA,        /* IMA ADPCM w/ XBOX layout */
     coding_CRI_ADX,         /* CRI ADX */
     coding_NGC_DSP,         /* NGC ADPCM, called DSP */
-    coding_NGC_AFC,         /* other NGC ADPCM, called AFC */
     coding_NGC_DTK,         /* NGC hardware disc ADPCM, called DTK, TRK or ADP */
-    coding_PS2ADPCM,        /* PS2 ADPCM, sometimes called "VAG" */
-    coding_EA_XA,           /* Electronic Arts XA */
-    coding_CD_XA,           /* CD-XA */
     coding_G721,            /* CCITT G.721 ADPCM */
 } coding_t;
 
@@ -36,11 +31,13 @@ typedef enum {
     /* interleave */
     layout_interleave,      /* equal interleave throughout the stream */
     layout_interleave_shortblock, /* interleave with a short last block */
+#if 0
     layout_interleave_byte,  /* full byte interleave */
     /* headered blocks */
     layout_halp_blocked,    /* blocks with HALP-format header */
     layout_ast_blocked,     /* */
     layout_strm_blocked,    /* */
+#endif
     /* otherwise odd */
     layout_dtk_interleave,  /* dtk interleaves channels by nibble */
 } layout_t;

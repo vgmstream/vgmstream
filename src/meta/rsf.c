@@ -8,7 +8,6 @@ VGMSTREAM * init_vgmstream_rsf(const char * const filename) {
     VGMSTREAM * vgmstream = NULL;
     STREAMFILE * infile = NULL;
 
-    int i;
     size_t file_size;
 
     /* check extension, case insensitive */

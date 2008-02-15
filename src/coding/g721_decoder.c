@@ -69,7 +69,7 @@ fmult(
 	int		srn)
 {
 	short		anmag, anexp, anmant;
-	short		wanexp, wanmag, wanmant;
+	short		wanexp, wanmant;
 	short		retval;
 
 	anmag = (an > 0) ? an : ((-an) & 0x1FFF);
@@ -275,12 +275,11 @@ update(
 	struct g72x_state *state_ptr)	/* coder state pointer */
 {
 	int		cnt;
-	short		mag, exp, mant;	/* Adaptive predictor, FLOAT A */
+	short		mag, exp;	/* Adaptive predictor, FLOAT A */
 	short		a2p;		/* LIMC */
 	short		a1ul;		/* UPA1 */
-	short		ua2, pks1;	/* UPA2 */
-	short		uga2a, fa1;
-	short		uga2b;
+	short		pks1;	/* UPA2 */
+	short		fa1;
 	char		tr;		/* tone/transition detector */
 	short		ylint, thr2, dqthr;
 	short  		ylfrac, thr1;
@@ -368,11 +367,12 @@ update(
 		/* UPA1 */
 		/* update predictor pole a[0] */
 		state_ptr->a[0] -= state_ptr->a[0] >> 8;
-		if (dqsez != 0)
+		if (dqsez != 0) {
 			if (pks1 == 0)
 				state_ptr->a[0] += 192;
 			else
 				state_ptr->a[0] -= 192;
+        }
 
 		/* LIMD */
 		a1ul = 15360 - a2p;
@@ -453,7 +453,6 @@ update(
 		state_ptr->ap += (-state_ptr->ap) >> 4;
 }
 
-static short qtab_721[7] = {-124, 80, 178, 246, 300, 349, 400};
 /*
  * Maps G.721 code word to reconstructed scale factor normalized log
  * magnitude values.
