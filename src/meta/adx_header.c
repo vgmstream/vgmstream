@@ -10,10 +10,10 @@ VGMSTREAM * init_vgmstream_adx(const char * const filename) {
     uint32_t version_signature;
     int loop_flag=0;
     int channel_count;
-    int32_t loop_start_offset;
-    int32_t loop_end_offset;
-    int32_t loop_start_sample;
-    int32_t loop_end_sample;
+    int32_t loop_start_offset=0;
+    int32_t loop_end_offset=0;
+    int32_t loop_start_sample=0;
+    int32_t loop_end_sample=0;
     meta_t header_type;
     int16_t coef1, coef2;
 

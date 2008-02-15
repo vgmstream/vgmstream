@@ -65,7 +65,7 @@ size_t read_the_rest(uint8_t * dest, off_t offset, size_t length, STREAMFILE * s
     /* read as much of the beginning of the request as possible, proceed */
     while (length>0) {
         size_t length_to_read;
-        size_t length_read;
+        size_t length_read=0;
         streamfile->validsize=0;
         if (fseeko(streamfile->infile,offset,SEEK_SET)) return length_read;
         streamfile->offset=offset;

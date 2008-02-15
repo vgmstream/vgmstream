@@ -278,6 +278,7 @@ update(
 		state_ptr->b[3] = 0;
 		state_ptr->b[4] = 0;
 		state_ptr->b[5] = 0;
+        a2p=0;          /* won't be used, clear warning */
 	} else {			/* update a's and b's */
 		pks1 = pk0 ^ state_ptr->pk[0];		/* UPA2 */
 

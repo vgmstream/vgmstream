@@ -16,7 +16,7 @@ void decode_ngc_dtk(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspaci
     for (i=first_sample,sample_count=0; i<first_sample+samples_to_do; i++,sample_count+=channelspacing) {
         int sample_byte = read_8bit(framesin*32+stream->offset+4+i,stream->streamfile);
 
-        int32_t hist;
+        int32_t hist=0;
 
         switch (q>>4)
         {
