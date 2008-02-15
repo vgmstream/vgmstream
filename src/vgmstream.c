@@ -399,7 +399,7 @@ void describe_vgmstream(VGMSTREAM * vgmstream) {
             printf("interleave with short last block");
             break;
         case layout_dtk_interleave:
-            printf("nibble interleave");
+            printf("DTK nibble interleave");
             break;
         default:
             printf("INCONCEIVABLE");
