@@ -175,59 +175,6 @@ step_size(
 }
 
 /*
- * quantize()
- *
- * Given a raw sample, 'd', of the difference signal and a
- * quantization step size scale factor, 'y', this routine returns the
- * ADPCM codeword to which that sample gets quantized.  The step
- * size scale factor division operation is done in the log base 2 domain
- * as a subtraction.
- */
-int
-quantize(
-	int		d,	/* Raw difference signal sample */
-	int		y,	/* Step size multiplier */
-	short		*table,	/* quantization table */
-	int		size)	/* table size of short integers */
-{
-	short		dqm;	/* Magnitude of 'd' */
-	short		exp;	/* Integer part of base 2 log of 'd' */
-	short		mant;	/* Fractional part of base 2 log */
-	short		dl;	/* Log of magnitude of 'd' */
-	short		dln;	/* Step size scale factor normalized log */
-	int		i;
-
-	/*
-	 * LOG
-	 *
-	 * Compute base 2 log of 'd', and store in 'dl'.
-	 */
-	dqm = abs(d);
-	exp = quan(dqm >> 1, power2, 15);
-	mant = ((dqm << 7) >> exp) & 0x7F;	/* Fractional portion. */
-	dl = (exp << 7) + mant;
-
-	/*
-	 * SUBTB
-	 *
-	 * "Divide" by step size multiplier.
-	 */
-	dln = dl - (y >> 2);
-
-	/*
-	 * QUAN
-	 *
-	 * Obtain codword i for 'd'.
-	 */
-	i = quan(dln, table, size);
-	if (d < 0)			/* take 1's complement of i */
-		return ((size << 1) + 1 - i);
-	else if (i == 0)		/* take 1's complement of 0 */
-		return ((size << 1) + 1); /* new in 1988 */
-	else
-		return (i);
-}
-/*
  * reconstruct()
  *
  * Returns reconstructed difference signal 'dq' obtained from
