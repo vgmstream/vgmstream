@@ -17,13 +17,14 @@ Options:
 Typical usage would be:
 test -o happy.wav happy.adx
 
-Formats supported by this version of vgmstream (r30):
+Formats supported by this version of vgmstream ($Revision$):
 - .adx (CRI ADX ADPCM)
 - .brstm (RSTM: GC/Wii ADPCM, 8/16 bit PCM)
 - .strm (STRM: NDS IMA ADPCM, 8/16 bit PCM)
 - .adp (GC DTK ADPCM)
 - .agsc (GC ADPCM)
 - .rsf (CCITT G.721 ADPCM)
+- .afc (GC AFC ADPCM)
 
 Enjoy!
 -hcs

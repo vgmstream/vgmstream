@@ -9,7 +9,8 @@ extern char * optarg;
 extern int optind, opterr, optopt;
 
 void usage(const char * name) {
-    fprintf(stderr,"Usage: %s [-o outfile.wav] [-l loop count]\n"
+    fprintf(stderr,"vgmstream test decoder $Revision$\n"
+            "Usage: %s [-o outfile.wav] [-l loop count]\n"
             "\t[-f fade time] [-i] [-p] [-c] [-m] infile\n"
             "Options:\n"
             "\t-o outfile.wav: name of output .wav file, default is dump.wav\n"
