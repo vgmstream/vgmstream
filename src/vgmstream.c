@@ -5,20 +5,22 @@
 #include "meta/agsc.h"
 #include "meta/ngc_adpdtk.h"
 #include "meta/rsf.h"
+#include "meta/afc_header.h"
 #include "layout/interleave.h"
 #include "layout/nolayout.h"
 #include "coding/adx_decoder.h"
-#include "coding/gcdsp_decoder.h"
+#include "coding/ngc_dsp_decoder.h"
 #include "coding/pcm_decoder.h"
 #include "coding/ima_decoder.h"
 #include "coding/ngc_dtk_decoder.h"
 #include "coding/g721_decoder.h"
+#include "coding/ngc_afc_decoder.h"
 
 /*
  * List of functions that will recognize files. These should correspond pretty
  * directly to the metadata types
  */
-#define INIT_VGMSTREAM_FCNS 6
+#define INIT_VGMSTREAM_FCNS 7
 VGMSTREAM * (*init_vgmstream_fcns[INIT_VGMSTREAM_FCNS])(const char * const) = {
     init_vgmstream_adx,
     init_vgmstream_brstm,
@@ -26,6 +28,7 @@ VGMSTREAM * (*init_vgmstream_fcns[INIT_VGMSTREAM_FCNS])(const char * const) = {
     init_vgmstream_agsc,
     init_vgmstream_ngc_adpdtk,
     init_vgmstream_rsf,
+    init_vgmstream_afc,
 };
 
 /* format detection and VGMSTREAM setup */
@@ -143,6 +146,8 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
             return 28;
         case coding_G721:
             return 1;
+        case coding_NGC_AFC:
+            return 16;
         default:
             return 0;
     }
@@ -174,6 +179,8 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
             return 32;
         case coding_G721:
             return 0;
+        case coding_NGC_AFC:
+            return 9;
         default:
             return 0;
     }
@@ -202,7 +209,7 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
             break;
         case coding_NGC_DSP:
             for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_gcdsp(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                decode_ngc_dsp(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
                         samples_to_do);
             }
@@ -245,6 +252,13 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
         case coding_G721:
             for (chan=0;chan<vgmstream->channels;chan++) {
                 decode_g721(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                        vgmstream->channels,vgmstream->samples_into_block,
+                        samples_to_do);
+            }
+            break;
+        case coding_NGC_AFC:
+            for (chan=0;chan<vgmstream->channels;chan++) {
+                decode_ngc_afc(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
                         samples_to_do);
             }
@@ -329,34 +343,6 @@ void describe_vgmstream(VGMSTREAM * vgmstream) {
     }
     printf("stream total samples: %d (%.2lf seconds)\n",vgmstream->num_samples,(double)vgmstream->num_samples/vgmstream->sample_rate);
 
-    printf("metadata from: ");
-    switch (vgmstream->meta_type) {
-        case meta_RSTM:
-            printf("RSTM header");
-            break;
-        case meta_STRM:
-            printf("NDS STRM header");
-            break;
-        case meta_ADX_03:
-            printf("ADX header type 03");
-            break;
-        case meta_ADX_04:
-            printf("ADX header type 04");
-            break;
-        case meta_DSP_AGSC:
-            printf("AGSC header");
-            break;
-        case meta_NGC_ADPDTK:
-            printf("assumed NGC DTK by .adp extension and valid first frame");
-            break;
-        case meta_RSF:
-            printf("assumed Retro Studios RSF by .rsf extension");
-            break;
-        default:
-            printf("THEY SHOULD HAVE SENT A POET");
-    }
-    printf("\n");
-
     printf("encoding: ");
     switch (vgmstream->coding_type) {
         case coding_PCM16BE:
@@ -382,6 +368,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream) {
             break;
         case coding_G721:
             printf("CCITT G.721 4-bit ADPCM");
+            break;
+        case coding_NGC_AFC:
+            printf("Gamecube \"AFC\" 4-bit ADPCM");
             break;
         default:
             printf("CANNOT DECODE");
@@ -413,4 +402,36 @@ void describe_vgmstream(VGMSTREAM * vgmstream) {
             printf("last block interleave: %#x bytes\n",vgmstream->interleave_smallblock_size);
         }
     }
+
+    printf("metadata from: ");
+    switch (vgmstream->meta_type) {
+        case meta_RSTM:
+            printf("RSTM header");
+            break;
+        case meta_STRM:
+            printf("NDS STRM header");
+            break;
+        case meta_ADX_03:
+            printf("ADX header type 03");
+            break;
+        case meta_ADX_04:
+            printf("ADX header type 04");
+            break;
+        case meta_DSP_AGSC:
+            printf("AGSC header");
+            break;
+        case meta_NGC_ADPDTK:
+            printf("assumed NGC DTK by .adp extension and valid first frame");
+            break;
+        case meta_RSF:
+            printf("assumed Retro Studios RSF by .rsf extension");
+            break;
+        case meta_AFC:
+            printf("AFC header");
+            break;
+        default:
+            printf("THEY SHOULD HAVE SENT A POET");
+    }
+    printf("\n");
+
 }

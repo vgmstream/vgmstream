@@ -22,6 +22,7 @@ typedef enum {
     coding_NGC_DSP,         /* NGC ADPCM, called DSP */
     coding_NGC_DTK,         /* NGC hardware disc ADPCM, called DTK, TRK or ADP */
     coding_G721,            /* CCITT G.721 ADPCM */
+    coding_NGC_AFC,         /* NGC ADPCM, called AFC */
 } coding_t;
 
 /* The layout type specifies how the sound data is laid out in the file */
@@ -55,6 +56,7 @@ typedef enum {
     meta_AST,               /* AST */
     meta_STRM,              /* STRM */
     meta_RSTM,              /* RSTM (similar to STRM) */
+    meta_AFC,               /* AFC */
     /* CRI ADX */
     meta_ADX_03,            /* ADX "type 03" */
     meta_ADX_04,            /* ADX "type 04" */
