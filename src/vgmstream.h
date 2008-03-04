@@ -37,8 +37,8 @@ typedef enum {
 #endif
     /* headered blocks */
     layout_ast_blocked,     /* .ast STRM with BLCK blocks*/
+    layout_halpst_blocked,    /* blocks with HALPST-format header */
 #if 0
-    layout_halp_blocked,    /* blocks with HALP-format header */
     layout_strm_blocked,    /* */
 #endif
     /* otherwise odd */
@@ -66,7 +66,7 @@ typedef enum {
     meta_NGC_ADPDTK,        /* NGC DTK/ADP, no header (.adp) */
     meta_kRAW,              /* almost headerless PCM */
     meta_RSF,               /* Retro Studios RSF, no header (.rsf) */
-
+    meta_HALPST,            /* HAL Labs HALPST */
 } meta_t;
 
 typedef struct {

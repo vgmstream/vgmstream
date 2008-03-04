@@ -7,9 +7,10 @@
 #include "meta/rsf.h"
 #include "meta/afc_header.h"
 #include "meta/ast.h"
+#include "meta/halpst.h"
 #include "layout/interleave.h"
 #include "layout/nolayout.h"
-#include "layout/ast_blocked.h"
+#include "layout/blocked.h"
 #include "coding/adx_decoder.h"
 #include "coding/ngc_dsp_decoder.h"
 #include "coding/pcm_decoder.h"
@@ -22,7 +23,7 @@
  * List of functions that will recognize files. These should correspond pretty
  * directly to the metadata types
  */
-#define INIT_VGMSTREAM_FCNS 8
+#define INIT_VGMSTREAM_FCNS 9
 VGMSTREAM * (*init_vgmstream_fcns[INIT_VGMSTREAM_FCNS])(const char * const) = {
     init_vgmstream_adx,
     init_vgmstream_brstm,
@@ -32,6 +33,7 @@ VGMSTREAM * (*init_vgmstream_fcns[INIT_VGMSTREAM_FCNS])(const char * const) = {
     init_vgmstream_rsf,
     init_vgmstream_afc,
     init_vgmstream_ast,
+    init_vgmstream_halpst,
 };
 
 /* format detection and VGMSTREAM setup */
@@ -131,7 +133,8 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
             render_vgmstream_nolayout(buffer,sample_count,vgmstream);
             break;
         case layout_ast_blocked:
-            render_vgmstream_ast_blocked(buffer,sample_count,vgmstream);
+        case layout_halpst_blocked:
+            render_vgmstream_blocked(buffer,sample_count,vgmstream);
             break;
     }
 }
@@ -406,6 +409,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream) {
         case layout_ast_blocked:
             printf("AST blocked");
             break;
+        case layout_halpst_blocked:
+            printf("HALPST blocked");
+            break;
         default:
             printf("INCONCEIVABLE");
     }
@@ -446,6 +452,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream) {
             break;
         case meta_AST:
             printf("AST header");
+            break;
+        case meta_HALPST:
+            printf("HALPST header");
             break;
         default:
             printf("THEY SHOULD HAVE SENT A POET");

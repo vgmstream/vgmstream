@@ -22,10 +22,11 @@ Formats supported by this version of vgmstream ($Revision$):
 - .brstm (RSTM: GC/Wii DSP ADPCM, 8/16 bit PCM)
 - .strm (STRM: NDS IMA ADPCM, 8/16 bit PCM)
 - .adp (GC DTK ADPCM)
-- .agsc (GC ADPCM)
+- .agsc (GC DSP ADPCM)
 - .rsf (CCITT G.721 ADPCM)
 - .afc (GC AFC ADPCM)
 - .ast (GC/Wii AFC ADPCM, 16 bit PCM)
+- .hps (GC DSP ADPCM)
 
 Enjoy!
 -hcs
