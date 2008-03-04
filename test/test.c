@@ -19,7 +19,10 @@ void usage(const char * name) {
             "\t-i: ignore looping information and play the whole stream once\n"
             "\t-p: output to stdout (for piping into another program)\n"
             "\t-c: loop forever (continuously)\n"
-            "\t-m: print metadata only, don't decode\n",name);
+            "\t-m: print metadata only, don't decode\n"
+            "\t-x: decode and print adxencd command line to encode as ADX\n"
+            ,name);
+    
 }
 
 int main(int argc, char ** argv) {
@@ -35,10 +38,11 @@ int main(int argc, char ** argv) {
     int play = 0;
     int forever = 0;
     int metaonly = 0;
+    int adxencd = 0;
     double loop_count = 2.0;
     double fade_time = 10.0;
     
-    while ((opt = getopt(argc, argv, "o:l:f:ipcm")) != -1) {
+    while ((opt = getopt(argc, argv, "o:l:f:ipcmx")) != -1) {
         switch (opt) {
             case 'o':
                 outfilename = optarg;
@@ -60,6 +64,9 @@ int main(int argc, char ** argv) {
                 break;
             case 'm':
                 metaonly = 1;
+                break;
+            case 'x':
+                adxencd = 1;
                 break;
             default:
                 usage(argv[0]);
@@ -109,16 +116,21 @@ int main(int argc, char ** argv) {
 
     if (!play) {
         if (metaonly) printf("metadata for %s\n",argv[optind]);
+        else if (adxencd) {
+            printf("adxencd %s",outfilename);
+            if (s->loop_flag) printf(" -lps%d -lpe%d",s->loop_start_sample,s->loop_end_sample);
+            printf("\n");
+        }
         else printf("decoding %s\n",argv[optind]);
     }
-    if (!play) describe_vgmstream(s);
+    if (!play && !adxencd) describe_vgmstream(s);
     if (metaonly) {
         close_vgmstream(s);
         return 0;
     }
 
     len = get_vgmstream_play_samples(loop_count,fade_time,s);
-    if (!play) printf("samples to play: %d (%.2lf seconds)\n",len,(double)len/s->sample_rate);
+    if (!play && !adxencd) printf("samples to play: %d (%.2lf seconds)\n",len,(double)len/s->sample_rate);
     fade_samples = fade_time * s->sample_rate;
 
     /* slap on a .wav header */

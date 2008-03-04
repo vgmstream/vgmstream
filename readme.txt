@@ -13,9 +13,11 @@ Options:
         -p: output to stdout (for piping into another program)
         -c: loop forever (continuously)
         -m: print metadata only, don't decode
+        -x: decode and print adxencd command line to encode as ADX
 
 Typical usage would be:
 test -o happy.wav happy.adx
+to decode happy.adx to happy.wav.
 
 Formats supported by this version of vgmstream ($Revision$):
 - .adx (CRI ADX ADPCM)
