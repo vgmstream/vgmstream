@@ -34,9 +34,11 @@ typedef enum {
     layout_interleave_shortblock, /* interleave with a short last block */
 #if 0
     layout_interleave_byte,  /* full byte interleave */
+#endif
     /* headered blocks */
+    layout_ast_blocked,     /* .ast STRM with BLCK blocks*/
+#if 0
     layout_halp_blocked,    /* blocks with HALP-format header */
-    layout_ast_blocked,     /* */
     layout_strm_blocked,    /* */
 #endif
     /* otherwise odd */
@@ -53,10 +55,10 @@ typedef enum {
     meta_DSP_HALP,          /* SSB:M "HALPST" */
     meta_DSP_AGSC,
     /* Nintendo */
-    meta_AST,               /* AST */
     meta_STRM,              /* STRM */
     meta_RSTM,              /* RSTM (similar to STRM) */
     meta_AFC,               /* AFC */
+    meta_AST,               /* AST */
     /* CRI ADX */
     meta_ADX_03,            /* ADX "type 03" */
     meta_ADX_04,            /* ADX "type 04" */

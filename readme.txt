@@ -19,12 +19,13 @@ test -o happy.wav happy.adx
 
 Formats supported by this version of vgmstream ($Revision$):
 - .adx (CRI ADX ADPCM)
-- .brstm (RSTM: GC/Wii ADPCM, 8/16 bit PCM)
+- .brstm (RSTM: GC/Wii DSP ADPCM, 8/16 bit PCM)
 - .strm (STRM: NDS IMA ADPCM, 8/16 bit PCM)
 - .adp (GC DTK ADPCM)
 - .agsc (GC ADPCM)
 - .rsf (CCITT G.721 ADPCM)
 - .afc (GC AFC ADPCM)
+- .ast (GC/Wii AFC ADPCM, 16 bit PCM)
 
 Enjoy!
 -hcs

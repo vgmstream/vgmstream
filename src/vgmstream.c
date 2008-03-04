@@ -6,8 +6,10 @@
 #include "meta/ngc_adpdtk.h"
 #include "meta/rsf.h"
 #include "meta/afc_header.h"
+#include "meta/ast.h"
 #include "layout/interleave.h"
 #include "layout/nolayout.h"
+#include "layout/ast_blocked.h"
 #include "coding/adx_decoder.h"
 #include "coding/ngc_dsp_decoder.h"
 #include "coding/pcm_decoder.h"
@@ -20,7 +22,7 @@
  * List of functions that will recognize files. These should correspond pretty
  * directly to the metadata types
  */
-#define INIT_VGMSTREAM_FCNS 7
+#define INIT_VGMSTREAM_FCNS 8
 VGMSTREAM * (*init_vgmstream_fcns[INIT_VGMSTREAM_FCNS])(const char * const) = {
     init_vgmstream_adx,
     init_vgmstream_brstm,
@@ -29,6 +31,7 @@ VGMSTREAM * (*init_vgmstream_fcns[INIT_VGMSTREAM_FCNS])(const char * const) = {
     init_vgmstream_ngc_adpdtk,
     init_vgmstream_rsf,
     init_vgmstream_afc,
+    init_vgmstream_ast,
 };
 
 /* format detection and VGMSTREAM setup */
@@ -126,6 +129,9 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
         case layout_dtk_interleave:
         case layout_none:
             render_vgmstream_nolayout(buffer,sample_count,vgmstream);
+            break;
+        case layout_ast_blocked:
+            render_vgmstream_ast_blocked(buffer,sample_count,vgmstream);
             break;
     }
 }
@@ -312,6 +318,9 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream) {
             memcpy(vgmstream->ch,vgmstream->loop_ch,sizeof(VGMSTREAMCHANNEL)*vgmstream->channels);
             vgmstream->current_sample=vgmstream->loop_sample;
             vgmstream->samples_into_block=vgmstream->loop_samples_into_block;
+            vgmstream->current_block_size=vgmstream->loop_block_size;
+            vgmstream->current_block_offset=vgmstream->loop_block_offset;
+            vgmstream->next_block_offset=vgmstream->loop_next_block_offset;
 
             return 1;
         }
@@ -324,6 +333,9 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream) {
 
             vgmstream->loop_sample=vgmstream->current_sample;
             vgmstream->loop_samples_into_block=vgmstream->samples_into_block;
+            vgmstream->loop_block_size=vgmstream->current_block_size;
+            vgmstream->loop_block_offset=vgmstream->current_block_offset;
+            vgmstream->loop_next_block_offset=vgmstream->next_block_offset;
             vgmstream->hit_loop=1;
         }
     /*}*/
@@ -391,6 +403,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream) {
         case layout_dtk_interleave:
             printf("DTK nibble interleave");
             break;
+        case layout_ast_blocked:
+            printf("AST blocked");
+            break;
         default:
             printf("INCONCEIVABLE");
     }
@@ -428,6 +443,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream) {
             break;
         case meta_AFC:
             printf("AFC header");
+            break;
+        case meta_AST:
+            printf("AST header");
             break;
         default:
             printf("THEY SHOULD HAVE SENT A POET");
