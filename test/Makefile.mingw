@@ -1,14 +1,16 @@
 export SHELL = /bin/sh
 export CFLAGS=-Wall -O3
 export LDFLAGS=-lm -L../src -lvgmstream
+export CC=i586-mingw32msvc-gcc
+export AR=i586-mingw32msvc-ar
 
 .PHONY: libvgmstream.a
 
-test: libvgmstream.a
-	$(CC) $(CFLAGS) test.c $(LDFLAGS) -o test
+test.exe: libvgmstream.a
+	$(CC) $(CFLAGS) test.c $(LDFLAGS) -o test.exe
 
 libvgmstream.a:
 	$(MAKE) -C ../src libvgmstream.a
 
 clean:
-	rm -f test
+	rm -f test.exe
