@@ -83,7 +83,7 @@ int play(char *fn)
 
     /* Set info display */
     /* TODO: actual bitrate */
-    input_module.SetInfo(100,vgmstream->sample_rate,vgmstream->channels,1);
+    input_module.SetInfo(100,vgmstream->sample_rate/1000,vgmstream->channels,1);
 
     /* setup visualization */
     input_module.SAVSAInit(max_latency,vgmstream->sample_rate);
@@ -137,7 +137,7 @@ void stop() {
 
 /* get current stream length */
 int getlength() {
-    return stream_length_samples*1000L/vgmstream->sample_rate;
+    return stream_length_samples*1000LL/vgmstream->sample_rate;
 }
 
 /* get current output time */
@@ -162,7 +162,37 @@ int infoDlg(char *fn, HWND hwnd) {
 
 /* retrieve information on this or possibly another file */
 void getfileinfo(char *filename, char *title, int *length_in_ms) {
-    /* TODO */
+    if (!filename || !*filename)  // currently playing file
+    {
+        if (length_in_ms) *length_in_ms=getlength();
+        if (title) 
+        {
+            char *p=lastfn+strlen(lastfn);
+            while (*p != '\\' && p >= lastfn) p--;
+            strcpy(title,++p);
+        }
+    }
+    else // some other file
+    {
+        VGMSTREAM * infostream;
+        if (length_in_ms) 
+        {
+            *length_in_ms=-1000;
+            if ((infostream=init_vgmstream(filename)))
+            {
+                // these are only second-accurate, but how accurate does this need to be anyway?
+                *length_in_ms = get_vgmstream_play_samples(loop_count,fade_seconds,infostream)*1000LL/infostream->sample_rate;
+                close_vgmstream(infostream);
+                infostream=NULL;
+            }
+        }
+        if (title) 
+        {
+            char *p=filename+strlen(filename);
+            while (*p != '\\' && p >= filename) p--;
+            strcpy(title,++p);
+        }
+    }
 }
 
 /* nothin' */
@@ -215,7 +245,7 @@ DWORD WINAPI __stdcall decode(void *arg) {
             input_module.SAAddPCMData((char*)sample_buffer,vgmstream->channels,16,decode_pos_ms);
             input_module.VSAAddPCMData((char*)sample_buffer,vgmstream->channels,16,decode_pos_ms);
             decode_pos_samples+=samples_to_do;
-            decode_pos_ms=decode_pos_samples*1000L/vgmstream->sample_rate;
+            decode_pos_ms=decode_pos_samples*1000LL/vgmstream->sample_rate;
             if (input_module.dsp_isactive())
                 l =input_module.dsp_dosamples(sample_buffer,samples_to_do,16,vgmstream->channels,vgmstream->sample_rate) * 
                     2 * vgmstream->channels;
