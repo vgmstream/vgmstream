@@ -3,11 +3,13 @@ export CFLAGS=-Wall -O3
 export LDFLAGS=-lm -L../src -lvgmstream
 export CC=i586-mingw32msvc-gcc
 export AR=i586-mingw32msvc-ar
+export STRIP=i586-mingw32msvc-strip
 
 .PHONY: libvgmstream.a
 
 test.exe: libvgmstream.a
 	$(CC) $(CFLAGS) test.c $(LDFLAGS) -o test.exe
+	$(STRIP) test.exe
 
 libvgmstream.a:
 	$(MAKE) -C ../src libvgmstream.a

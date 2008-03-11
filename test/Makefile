@@ -6,6 +6,7 @@ export LDFLAGS=-lm -L../src -lvgmstream
 
 test: libvgmstream.a
 	$(CC) $(CFLAGS) test.c $(LDFLAGS) -o test
+	$(STRIP) test
 
 libvgmstream.a:
 	$(MAKE) -C ../src libvgmstream.a
