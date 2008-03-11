@@ -59,7 +59,7 @@ VGMSTREAM * init_vgmstream_nds_strm(const char * const filename) {
 
     /* fill in the vital statistics */
     vgmstream->num_samples = read_32bitLE(0x24,infile);
-    vgmstream->sample_rate = read_16bitLE(0x1c,infile);
+    vgmstream->sample_rate = (uint16_t)read_16bitLE(0x1c,infile);
     /* channels and loop flag are set by allocate_vgmstream */
     vgmstream->loop_start_sample = read_32bitLE(0x20,infile);
     vgmstream->loop_end_sample = vgmstream->num_samples;
