@@ -60,4 +60,6 @@ static inline int clamp16(int32_t val) {
 /* buffer must be 0x2c bytes */
 void make_wav_header(uint8_t * buf, int32_t sample_count, int32_t sample_rate, int channels);
 
+void concatn(int length, char * dst, const char * src);
+
 #endif

@@ -156,7 +156,22 @@ void setpan(int pan) { input_module.outMod->SetPan(pan); }
 
 /* display information */
 int infoDlg(char *fn, HWND hwnd) {
-    /* TODO: info box */
+    VGMSTREAM * infostream = NULL;
+    char description[1024];
+    description[0]='\0';
+    
+    if (!fn || !*fn) {
+        if (!vgmstream) return 0;
+        describe_vgmstream(vgmstream,description,1024);
+    } else {
+        infostream = init_vgmstream(fn);
+        if (!infostream) return 0;
+        describe_vgmstream(infostream,description,1024);
+        close_vgmstream(infostream);
+        infostream=NULL;
+    }
+
+    MessageBox(hwnd,description,"Stream info",MB_OK);
     return 0;
 }
 
@@ -164,6 +179,7 @@ int infoDlg(char *fn, HWND hwnd) {
 void getfileinfo(char *filename, char *title, int *length_in_ms) {
     if (!filename || !*filename)  // currently playing file
     {
+        if (!vgmstream) return;
         if (length_in_ms) *length_in_ms=getlength();
         if (title) 
         {

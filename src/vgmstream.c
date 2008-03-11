@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include "vgmstream.h"
 #include "meta/adx_header.h"
 #include "meta/brstm.h"
@@ -345,120 +346,151 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream) {
     return 0;
 }
 
-void describe_vgmstream(VGMSTREAM * vgmstream) {
+/* build a descriptive string */
+void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
+#define TEMPSIZE 256
+    char temp[TEMPSIZE];
+
     if (!vgmstream) {
-        printf("NULL VGMSTREAM\n");
+        snprintf(temp,TEMPSIZE,"NULL VGMSTREAM");
+        concatn(length,desc,temp);
         return;
     }
-    printf("sample rate %d Hz\n",vgmstream->sample_rate);
-    printf("channels: %d\n",vgmstream->channels);
-    if (vgmstream->loop_flag) {
-        printf("loop start: %d samples (%.2lf seconds)\n",vgmstream->loop_start_sample,(double)vgmstream->loop_start_sample/vgmstream->sample_rate);
-        printf("loop end: %d samples (%.2lf seconds)\n",vgmstream->loop_end_sample,(double)vgmstream->loop_end_sample/vgmstream->sample_rate);
-    }
-    printf("stream total samples: %d (%.2lf seconds)\n",vgmstream->num_samples,(double)vgmstream->num_samples/vgmstream->sample_rate);
 
-    printf("encoding: ");
+    snprintf(temp,TEMPSIZE,"sample rate %d Hz\n"
+            "channels: %d\n",
+            vgmstream->sample_rate,vgmstream->channels);
+    concatn(length,desc,temp);
+
+    if (vgmstream->loop_flag) {
+        snprintf(temp,TEMPSIZE,"loop start: %d samples (%.2lf seconds)\n"
+                "loop end: %d samples (%.2lf seconds)\n",
+                vgmstream->loop_start_sample,
+                (double)vgmstream->loop_start_sample/vgmstream->sample_rate,
+                vgmstream->loop_end_sample,
+                (double)vgmstream->loop_end_sample/vgmstream->sample_rate);
+        concatn(length,desc,temp);
+    }
+
+    snprintf(temp,TEMPSIZE,"stream total samples: %d (%.2lf seconds)\n",
+            vgmstream->num_samples,
+            (double)vgmstream->num_samples/vgmstream->sample_rate);
+    concatn(length,desc,temp);
+
+    snprintf(temp,TEMPSIZE,"encoding: ");
+    concatn(length,desc,temp);
+
     switch (vgmstream->coding_type) {
         case coding_PCM16BE:
-            printf("Big Endian 16-bit PCM");
+            snprintf(temp,TEMPSIZE,"Big Endian 16-bit PCM");
             break;
         case coding_PCM16LE:
-            printf("Little Endian 16-bit PCM");
+            snprintf(temp,TEMPSIZE,"Little Endian 16-bit PCM");
             break;
         case coding_PCM8:
-            printf("8-bit PCM");
+            snprintf(temp,TEMPSIZE,"8-bit PCM");
             break;
         case coding_NGC_DSP:
-            printf("Gamecube \"DSP\" 4-bit ADPCM");
+            snprintf(temp,TEMPSIZE,"Gamecube \"DSP\" 4-bit ADPCM");
             break;
         case coding_CRI_ADX:
-            printf("CRI ADX 4-bit ADPCM");
+            snprintf(temp,TEMPSIZE,"CRI ADX 4-bit ADPCM");
             break;
         case coding_NDS_IMA:
-            printf("NDS-style 4-bit IMA ADPCM");
+            snprintf(temp,TEMPSIZE,"NDS-style 4-bit IMA ADPCM");
             break;
         case coding_NGC_DTK:
-            printf("Gamecube \"ADP\"/\"DTK\" 4-bit ADPCM");
+            snprintf(temp,TEMPSIZE,"Gamecube \"ADP\"/\"DTK\" 4-bit ADPCM");
             break;
         case coding_G721:
-            printf("CCITT G.721 4-bit ADPCM");
+            snprintf(temp,TEMPSIZE,"CCITT G.721 4-bit ADPCM");
             break;
         case coding_NGC_AFC:
-            printf("Gamecube \"AFC\" 4-bit ADPCM");
+            snprintf(temp,TEMPSIZE,"Gamecube \"AFC\" 4-bit ADPCM");
             break;
         default:
-            printf("CANNOT DECODE");
+            snprintf(temp,TEMPSIZE,"CANNOT DECODE");
     }
-    printf("\n");
+    concatn(length,desc,temp);
 
-    printf("layout: ");
+    snprintf(temp,TEMPSIZE,"\nlayout: ");
+    concatn(length,desc,temp);
+
     switch (vgmstream->layout_type) {
         case layout_none:
-            printf("flat (no layout)");
+            snprintf(temp,TEMPSIZE,"flat (no layout)");
             break;
         case layout_interleave:
-            printf("interleave");
+            snprintf(temp,TEMPSIZE,"interleave");
             break;
         case layout_interleave_shortblock:
-            printf("interleave with short last block");
+            snprintf(temp,TEMPSIZE,"interleave with short last block");
             break;
         case layout_dtk_interleave:
-            printf("DTK nibble interleave");
+            snprintf(temp,TEMPSIZE,"DTK nibble interleave");
             break;
         case layout_ast_blocked:
-            printf("AST blocked");
+            snprintf(temp,TEMPSIZE,"AST blocked");
             break;
         case layout_halpst_blocked:
-            printf("HALPST blocked");
+            snprintf(temp,TEMPSIZE,"HALPST blocked");
             break;
         default:
-            printf("INCONCEIVABLE");
+            snprintf(temp,TEMPSIZE,"INCONCEIVABLE");
     }
-    printf("\n");
+    concatn(length,desc,temp);
+
+    snprintf(temp,TEMPSIZE,"\n");
+    concatn(length,desc,temp);
 
     if (vgmstream->layout_type == layout_interleave || vgmstream->layout_type == layout_interleave_shortblock) {
-        printf("interleave: %#x bytes\n",vgmstream->interleave_block_size);
+        snprintf(temp,TEMPSIZE,"interleave: %#x bytes\n",
+                vgmstream->interleave_block_size);
+        concatn(length,desc,temp);
+
         if (vgmstream->layout_type == layout_interleave_shortblock) {
-            printf("last block interleave: %#x bytes\n",vgmstream->interleave_smallblock_size);
+            snprintf(temp,TEMPSIZE,"last block interleave: %#x bytes\n",
+                    vgmstream->interleave_smallblock_size);
+            concatn(length,desc,temp);
         }
     }
 
-    printf("metadata from: ");
+    snprintf(temp,TEMPSIZE,"metadata from: ");
+    concatn(length,desc,temp);
+
     switch (vgmstream->meta_type) {
         case meta_RSTM:
-            printf("RSTM header");
+            snprintf(temp,TEMPSIZE,"RSTM header");
             break;
         case meta_STRM:
-            printf("NDS STRM header");
+            snprintf(temp,TEMPSIZE,"NDS STRM header");
             break;
         case meta_ADX_03:
-            printf("ADX header type 03");
+            snprintf(temp,TEMPSIZE,"ADX header type 03");
             break;
         case meta_ADX_04:
-            printf("ADX header type 04");
+            snprintf(temp,TEMPSIZE,"ADX header type 04");
             break;
         case meta_DSP_AGSC:
-            printf("AGSC header");
+            snprintf(temp,TEMPSIZE,"AGSC header");
             break;
         case meta_NGC_ADPDTK:
-            printf("assumed NGC DTK by .adp extension and valid first frame");
+            snprintf(temp,TEMPSIZE,"assumed NGC DTK by .adp extension and valid first frame");
             break;
         case meta_RSF:
-            printf("assumed Retro Studios RSF by .rsf extension");
+            snprintf(temp,TEMPSIZE,"assumed Retro Studios RSF by .rsf extension");
             break;
         case meta_AFC:
-            printf("AFC header");
+            snprintf(temp,TEMPSIZE,"AFC header");
             break;
         case meta_AST:
-            printf("AST header");
+            snprintf(temp,TEMPSIZE,"AST header");
             break;
         case meta_HALPST:
-            printf("HALPST header");
+            snprintf(temp,TEMPSIZE,"HALPST header");
             break;
         default:
-            printf("THEY SHOULD HAVE SENT A POET");
+            snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");
     }
-    printf("\n");
-
+    concatn(length,desc,temp);
 }

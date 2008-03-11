@@ -175,6 +175,6 @@ int vgmstream_samples_to_do(int samples_this_block, int samples_per_frame, VGMST
  * Returns 1 if loop was done. */
 int vgmstream_do_loop(VGMSTREAM * vgmstream);
 
-void describe_vgmstream(VGMSTREAM * vgmstream);
+void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length);
 
 #endif

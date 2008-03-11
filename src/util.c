@@ -114,3 +114,14 @@ void make_wav_header(uint8_t * buf, int32_t sample_count, int32_t sample_rate, i
     /* size of WAVE data chunk */
     put_32bitLE(buf+0x28, bytecount);
 }
+
+/* length is maximum length of dst. dst will always be null-terminated if
+ * length > 0 */
+void concatn(int length, char * dst, const char * src) {
+    int i,j;
+    if (length <= 0) return;
+    for (i=0;i<length-1 && dst[i];i++);   /* find end of dst */
+    for (j=0;i<length-1 && src[j];i++,j++)
+        dst[i]=src[j];
+    dst[i]='\0';
+}

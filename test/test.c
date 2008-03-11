@@ -123,7 +123,12 @@ int main(int argc, char ** argv) {
         }
         else printf("decoding %s\n",argv[optind]);
     }
-    if (!play && !adxencd) describe_vgmstream(s);
+    if (!play && !adxencd) {
+        char description[1024];
+        description[0]='\0';
+        describe_vgmstream(s,description,1024);
+        printf("%s\n",description);
+    }
     if (metaonly) {
         close_vgmstream(s);
         return 0;
