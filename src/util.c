@@ -125,3 +125,20 @@ void concatn(int length, char * dst, const char * src) {
         dst[i]=src[j];
     dst[i]='\0';
 }
+
+/* length is maximum length of dst. dst will always be double-null-terminated if
+ * length > 1 */
+void concatn_doublenull(int length, char * dst, const char * src) {
+    int i,j;
+    if (length <= 1) return;
+    for (i=0;i<length-2 && (dst[i] || dst[i+1]);i++);   /* find end of dst */
+    if (i==length-2) {
+        dst[i]='\0';
+        dst[i+1]='\0';
+        return;
+    }
+    if (i>0) i++;
+    for (j=0;i<length-2 && (src[j] || src[j+1]);i++,j++) dst[i]=src[j];
+    dst[i]='\0';
+    dst[i+1]='\0';
+}

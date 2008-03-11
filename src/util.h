@@ -61,5 +61,6 @@ static inline int clamp16(int32_t val) {
 void make_wav_header(uint8_t * buf, int32_t sample_count, int32_t sample_rate, int channels);
 
 void concatn(int length, char * dst, const char * src);
+void concatn_doublenull(int length, char * dst, const char * src);
 
 #endif

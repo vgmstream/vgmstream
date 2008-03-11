@@ -9,6 +9,7 @@
 #include <stdio.h>
 
 #include "../src/vgmstream.h"
+#include "../src/util.h"
 #include "in2.h"
 
 #define PLUGIN_DESCRIPTION "vgmstream plugin ($Revision$, $Date$)"
@@ -35,11 +36,40 @@ int decode_pos_samples = 0;
 int stream_length_samples = 0;
 int fade_samples = 0;
 
+#define EXTENSION_LIST_SIZE 1024
+char working_extension_list[EXTENSION_LIST_SIZE] = {0};
+#define EXTENSION_COUNT 9
+char * extension_list[EXTENSION_COUNT] = {
+    "adx\0ADX Audio File (*.ADX)\0",
+    "afc\0AFC Audio File (*.AFC)\0",
+    "agsc\0AGSC Audio File (*.AGSC)\0",
+    "ast\0AST Audio File (*.AST)\0",
+    "brstm\0BRSTM Audio File (*.BRSTM)\0",
+    "hps\0HALPST Audio File (*.HPS)\0",
+    "strm\0STRM Audio File (*.STRM)\0",
+    "adp\0ADP Audio File (*.ADP)\0",
+    "rsf\0RSF Audio File (*.RSF)\0",
+};
+
 /* stubs, we don't do anything fancy yet */
 void config(HWND hwndParent) {}
 void about(HWND hwndParent) {}
-void init() {}
 void quit() {}
+
+void build_extension_list() {
+    int i;
+    working_extension_list[0]='\0';
+    working_extension_list[1]='\0';
+
+    for (i=0;i<EXTENSION_COUNT;i++) {
+        concatn_doublenull(EXTENSION_LIST_SIZE,working_extension_list,
+                extension_list[i]);
+    }
+}
+
+void init() {
+    build_extension_list();
+}
 
 /* we don't recognize protocols */
 int isourfile(char *fn) { return 0; }
@@ -159,7 +189,7 @@ int infoDlg(char *fn, HWND hwnd) {
     VGMSTREAM * infostream = NULL;
     char description[1024];
     description[0]='\0';
-    
+
     if (!fn || !*fn) {
         if (!vgmstream) return 0;
         describe_vgmstream(vgmstream,description,1024);
@@ -176,40 +206,40 @@ int infoDlg(char *fn, HWND hwnd) {
 }
 
 /* retrieve information on this or possibly another file */
-void getfileinfo(char *filename, char *title, int *length_in_ms) {
-    if (!filename || !*filename)  // currently playing file
-    {
-        if (!vgmstream) return;
-        if (length_in_ms) *length_in_ms=getlength();
-        if (title) 
+    void getfileinfo(char *filename, char *title, int *length_in_ms) {
+        if (!filename || !*filename)  // currently playing file
         {
-            char *p=lastfn+strlen(lastfn);
-            while (*p != '\\' && p >= lastfn) p--;
-            strcpy(title,++p);
-        }
-    }
-    else // some other file
-    {
-        VGMSTREAM * infostream;
-        if (length_in_ms) 
-        {
-            *length_in_ms=-1000;
-            if ((infostream=init_vgmstream(filename)))
+            if (!vgmstream) return;
+            if (length_in_ms) *length_in_ms=getlength();
+            if (title) 
             {
-                // these are only second-accurate, but how accurate does this need to be anyway?
-                *length_in_ms = get_vgmstream_play_samples(loop_count,fade_seconds,infostream)*1000LL/infostream->sample_rate;
-                close_vgmstream(infostream);
-                infostream=NULL;
+                char *p=lastfn+strlen(lastfn);
+                while (*p != '\\' && p >= lastfn) p--;
+                strcpy(title,++p);
             }
         }
-        if (title) 
+        else // some other file
         {
-            char *p=filename+strlen(filename);
-            while (*p != '\\' && p >= filename) p--;
-            strcpy(title,++p);
+            VGMSTREAM * infostream;
+            if (length_in_ms) 
+            {
+                *length_in_ms=-1000;
+                if ((infostream=init_vgmstream(filename)))
+                {
+                    // these are only second-accurate, but how accurate does this need to be anyway?
+                    *length_in_ms = get_vgmstream_play_samples(loop_count,fade_seconds,infostream)*1000LL/infostream->sample_rate;
+                    close_vgmstream(infostream);
+                    infostream=NULL;
+                }
+            }
+            if (title) 
+            {
+                char *p=filename+strlen(filename);
+                while (*p != '\\' && p >= filename) p--;
+                strcpy(title,++p);
+            }
         }
     }
-}
 
 /* nothin' */
 void eq_set(int on, char data[10], int preamp) {}
@@ -251,7 +281,7 @@ DWORD WINAPI __stdcall decode(void *arg) {
                             double fadedness = (double)(fade_samples-samples_into_fade)/fade_samples;
                             for (k=0;k<vgmstream->channels;k++) {
                                 sample_buffer[j*vgmstream->channels+k] =
-                                sample_buffer[j*vgmstream->channels+k]*fadedness;
+                                    sample_buffer[j*vgmstream->channels+k]*fadedness;
                             }
                         }
                     }
@@ -279,7 +309,7 @@ In_Module input_module =
     PLUGIN_DESCRIPTION,
     0,  // hMainWindow
     0,  // hDllInstance
-    "ADX\0ADX Audio File\0",
+    working_extension_list,
     1, // is_seekable
     1, // uses output
     config,
