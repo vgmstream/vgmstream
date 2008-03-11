@@ -1,8 +1,10 @@
 vgmstream
 
 This is vgmstream, a library for playing streamed audio from video games.
-It is very much under development. The only end-user part right now is the test program, simply called "test" (test.exe for Windows), which decodes a file to a standard .wav output file.
+It is very much under development. There are two end-user bits, a command
+line decoder called "test", and a simple Winamp plugin called "in_vgmstream".
 
+--- test ---
 Usage: test [-o outfile.wav] [-l loop count]
         [-f fade time] [-i] [-p] [-c] [-m] infile
 Options:
@@ -19,6 +21,11 @@ Typical usage would be:
 test -o happy.wav happy.adx
 to decode happy.adx to happy.wav.
 
+--- in_vgmstream ---
+Drop the in_vgmstream.dll in your Winamp plugins directory. There is no
+configuration or seeking yet.
+
+---
 Formats supported by this version of vgmstream ($Revision$):
 - .adx (CRI ADX ADPCM)
 - .brstm (RSTM: GC/Wii DSP ADPCM, 8/16 bit PCM)
