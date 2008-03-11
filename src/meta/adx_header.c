@@ -30,7 +30,7 @@ VGMSTREAM * init_vgmstream_adx(const char * const filename) {
     if ((uint16_t)read_16bitBE(0,infile)!=0x8000) goto fail;
 
     /* get copyright/stream offset, check */
-    copyright_offset = read_16bitBE(2,infile);
+    copyright_offset = (uint16_t)read_16bitBE(2,infile);
     if ((uint32_t)read_32bitBE(copyright_offset,infile)!=0x29435249 || /* ")CRI" */
             (uint16_t)read_16bitBE(copyright_offset-2,infile)!=0x2863) /* "(c" */
         goto fail;

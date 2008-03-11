@@ -37,7 +37,7 @@ VGMSTREAM * init_vgmstream_agsc(const char * const filename) {
 
     /* fill in the vital statistics */
     vgmstream->num_samples = read_32bitBE(header_offset+0xda,infile);
-    vgmstream->sample_rate = read_16bitBE(header_offset+0xd8,infile);
+    vgmstream->sample_rate = (uint16_t)read_16bitBE(header_offset+0xd8,infile);
 
     vgmstream->loop_start_sample = read_32bitBE(header_offset+0xde,infile);
     /* this is cute, we actually have a "loop length" */

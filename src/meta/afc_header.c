@@ -27,7 +27,7 @@ VGMSTREAM * init_vgmstream_afc(const char * const filename) {
 
     /* fill in the vital statistics */
     vgmstream->num_samples = read_32bitBE(0x04,infile);
-    vgmstream->sample_rate = read_16bitBE(0x08,infile);
+    vgmstream->sample_rate = (uint16_t)read_16bitBE(0x08,infile);
     /* channels and loop flag are set by allocate_vgmstream */
     vgmstream->loop_start_sample = read_32bitBE(0x14,infile);
     vgmstream->loop_end_sample = vgmstream->num_samples;
