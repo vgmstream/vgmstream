@@ -8,7 +8,7 @@ export STRIP=i586-mingw32msvc-strip
 .PHONY: libvgmstream.a
 
 in_vgmstream.dll: libvgmstream.a
-	$(CC) -shared $(CFLAGS) in_vgmstream.c $(LDFLAGS) -o in_vgmstream.dll
+	$(CC) -shared $(CFLAGS) "-DVERSION=\"`../version.sh`\"" in_vgmstream.c $(LDFLAGS) -o in_vgmstream.dll
 	$(STRIP) in_vgmstream.dll
 
 libvgmstream.a:

@@ -26,7 +26,7 @@ Drop the in_vgmstream.dll in your Winamp plugins directory. There is no
 configuration or seeking yet.
 
 ---
-Formats supported by this version of vgmstream ($Revision$):
+Formats supported by this version of vgmstream:
 - .adx (CRI ADX ADPCM)
 - .brstm (RSTM: GC/Wii DSP ADPCM, 8/16 bit PCM)
 - .strm (STRM: NDS IMA ADPCM, 8/16 bit PCM)

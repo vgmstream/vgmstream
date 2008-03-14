@@ -12,7 +12,7 @@
 #include "../src/util.h"
 #include "in2.h"
 
-#define PLUGIN_DESCRIPTION "vgmstream plugin ($Revision$, $Date$)"
+#define PLUGIN_DESCRIPTION "vgmstream plugin " VERSION
 
 /* post when playback stops */
 #define WM_WA_MPEG_EOF WM_USER+2

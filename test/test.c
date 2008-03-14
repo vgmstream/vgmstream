@@ -9,7 +9,7 @@ extern char * optarg;
 extern int optind, opterr, optopt;
 
 void usage(const char * name) {
-    fprintf(stderr,"vgmstream test decoder $Revision$, $Date$\n"
+    fprintf(stderr,"vgmstream test decoder " VERSION "\n"
             "Usage: %s [-o outfile.wav] [-l loop count]\n"
             "\t[-f fade time] [-i] [-p] [-c] [-m] infile\n"
             "Options:\n"
