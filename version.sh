@@ -1,1 +1,1 @@
-echo "revision `svnversion`"
+echo "r`svnversion | tr : _`"
