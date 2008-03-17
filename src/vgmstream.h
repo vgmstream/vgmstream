@@ -2,12 +2,20 @@
  * vgmstream.h - definitions for VGMSTREAM, encapsulating a multi-channel, looped audio stream
  */
 
-#include <inttypes.h>
+
+
 #include "streamfile.h"
 #include "coding/g721_decoder.h"
 
 #ifndef _VGMSTREAM_H
 #define _VGMSTREAM_H
+
+/* Fix for Visual C++ 2005: will not compile otherwise */
+#ifdef _MSC_VER
+	#if _MSC_VER == 1400
+	#define snprintf _snprintf
+	#endif
+#endif
 
 /* The encoding type specifies the format the sound data itself takes */
 typedef enum {
@@ -176,5 +184,6 @@ int vgmstream_samples_to_do(int samples_this_block, int samples_per_frame, VGMST
 int vgmstream_do_loop(VGMSTREAM * vgmstream);
 
 void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length);
+
 
 #endif
