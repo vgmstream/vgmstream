@@ -1,4 +1,6 @@
 #include <stdio.h>
+#include <string.h>
+#include <math.h>
 #include "vgmstream.h"
 #include "meta/adx_header.h"
 #include "meta/brstm.h"
@@ -9,6 +11,8 @@
 #include "meta/afc_header.h"
 #include "meta/ast.h"
 #include "meta/halpst.h"
+#include "meta/rs03.h"
+#include "meta/ngc_dsp_std.h"
 #include "layout/interleave.h"
 #include "layout/nolayout.h"
 #include "layout/blocked.h"
@@ -24,7 +28,7 @@
  * List of functions that will recognize files. These should correspond pretty
  * directly to the metadata types
  */
-#define INIT_VGMSTREAM_FCNS 9
+#define INIT_VGMSTREAM_FCNS 11
 VGMSTREAM * (*init_vgmstream_fcns[INIT_VGMSTREAM_FCNS])(const char * const) = {
     init_vgmstream_adx,
     init_vgmstream_brstm,
@@ -35,22 +39,42 @@ VGMSTREAM * (*init_vgmstream_fcns[INIT_VGMSTREAM_FCNS])(const char * const) = {
     init_vgmstream_afc,
     init_vgmstream_ast,
     init_vgmstream_halpst,
+    init_vgmstream_rs03,
+    init_vgmstream_ngc_dsp_std,
 };
 
-/* format detection and VGMSTREAM setup */
+
+/* format detection and VGMSTREAM setup, uses default parameters */
 VGMSTREAM * init_vgmstream(const char * const filename) {
+    return init_vgmstream_internal(filename,
+            1   /* do dual file detection */
+            );
+}
+
+/* internal version with all parameters */
+VGMSTREAM * init_vgmstream_internal(const char * const filename, int do_dfs) {
     int i;
 
     /* try a series of formats, see which works */
     for (i=0;i<INIT_VGMSTREAM_FCNS;i++) {
         VGMSTREAM * vgmstream = (init_vgmstream_fcns[i])(filename);
         if (vgmstream) {
-            /* everything should have a reasonable sample rate */
+            /* these are little hacky checks */
+
+            /* everything should have a reasonable sample rate
+             * (a verification of the metadata) */
             if (!check_sample_rate(vgmstream->sample_rate)) {
                 close_vgmstream(vgmstream);
                 continue;
             }
+
+            /* dual file stereo */
+            if (do_dfs && vgmstream->meta_type == meta_DSP_STD && vgmstream->channels == 1) {
+                try_dual_file_stereo(vgmstream, filename);
+            }
+
             /* save start things so we can restart for seeking */
+            /* TODO: we may need to save other things here */
             memcpy(vgmstream->start_ch,vgmstream->ch,sizeof(VGMSTREAMCHANNEL)*vgmstream->channels);
             vgmstream->start_block_offset = vgmstream->current_block_offset;
             return vgmstream;
@@ -318,6 +342,12 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream) {
                 vgmstream->loop_ch[i].adpcm_history2_32 = vgmstream->ch[i].adpcm_history2_32;
             }
             */
+            int i;
+            for (i=0;i<vgmstream->channels;i++) {
+                fprintf(stderr,"ch%d hist: %04x %04x loop hist: %04x %04x\n",i,
+                        vgmstream->ch[i].adpcm_history1_16,vgmstream->ch[i].adpcm_history2_16,
+                        vgmstream->loop_ch[i].adpcm_history1_16,vgmstream->loop_ch[i].adpcm_history2_16);
+            }
             /* restore! */
             memcpy(vgmstream->ch,vgmstream->loop_ch,sizeof(VGMSTREAMCHANNEL)*vgmstream->channels);
             vgmstream->current_sample=vgmstream->loop_sample;
@@ -489,8 +519,165 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         case meta_HALPST:
             snprintf(temp,TEMPSIZE,"HALPST header");
             break;
+        case meta_DSP_RS03:
+            snprintf(temp,TEMPSIZE,"Retro Studios RS03 header");
+            break;
+        case meta_DSP_STD:
+            snprintf(temp,TEMPSIZE,"Standard NGC DSP header");
+            break;
         default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");
     }
     concatn(length,desc,temp);
+}
+
+/* */
+#define DFS_PAIR_COUNT 4
+const char * const dfs_pairs[DFS_PAIR_COUNT][2] = {
+    {"L","R"},
+    {"l","r"},
+    {"_0","_1"},
+    {"left","right"},
+};
+
+void try_dual_file_stereo(VGMSTREAM * opened_stream, const char * const filename) {
+    char * filename2;
+    char * ext;
+    int dfs_name= -1; /*-1=no stereo, 0=opened_stream is left, 1=opened_stream is right */
+    VGMSTREAM * new_stream = NULL;
+    int i,j;
+
+    if (opened_stream->channels != 1) return;
+
+    /* we need at least a base and a name ending to replace */
+    if (strlen(filename)<2) return;
+
+    /* one extra for terminator, one for possible extra character (left>=right) */
+    filename2 = malloc(strlen(filename)+2); 
+
+    if (!filename2) return;
+
+    strcpy(filename2,filename);
+
+    /* look relative to the extension; */
+    ext = (char *)filename_extension(filename2);
+
+    /* we treat the . as part of the extension */
+    if (ext-filename2 >= 1 && ext[-1]=='.') ext--;
+
+    for (i=0; dfs_name==-1 && i<DFS_PAIR_COUNT; i++) {
+        for (j=0; dfs_name==-1 && j<2; j++) {
+            /* find a postfix on the name */
+            if (!memcmp(ext-strlen(dfs_pairs[i][j]),
+                        dfs_pairs[i][j],
+                        strlen(dfs_pairs[i][j]))) {
+                int other_name=j^1;
+                int moveby;
+                dfs_name=j;
+
+                /* move the extension */
+                moveby = strlen(dfs_pairs[i][other_name]) -
+                    strlen(dfs_pairs[i][dfs_name]);
+                memmove(ext+moveby,ext,strlen(ext)+1); /* terminator, too */
+
+                /* make the new name */
+                memcpy(ext+moveby-strlen(dfs_pairs[i][other_name]),dfs_pairs[i][other_name],strlen(dfs_pairs[i][other_name]));
+            }
+        }
+    }
+
+    /* did we find a name for the other file? */
+    if (dfs_name==-1) goto fail;
+
+#if 0
+    printf("input is:            %s\n"
+           "other file would be: %s\n",
+           filename,filename2);
+#endif
+
+    new_stream = init_vgmstream_internal(filename2,
+            0   /* don't do dual file on this, to prevent recursion */
+            );
+
+    /* see if we were able to open the file, and if everything matched nicely */
+    if (new_stream &&
+            new_stream->channels == 1 &&
+            /* we have seen legitimate pairs where these are off by one... */
+            /* but leaving it commented out until I can find those and recheck */
+            /* abs(new_stream->num_samples-opened_stream->num_samples <= 1) && */
+            new_stream->num_samples == opened_stream->num_samples &&
+            new_stream->sample_rate == opened_stream->sample_rate &&
+            new_stream->meta_type == opened_stream->meta_type &&
+            new_stream->coding_type == opened_stream->coding_type &&
+            new_stream->layout_type == opened_stream->layout_type &&
+            new_stream->loop_flag == opened_stream->loop_flag &&
+            /* check these even if there is no loop, because they should then
+             * be zero in both */
+            new_stream->loop_start_sample == opened_stream->loop_start_sample &&
+            new_stream->loop_end_sample == opened_stream->loop_end_sample &&
+            /* check even if the layout doesn't use them, because it is
+             * difficult to determine when it does, and they should be zero
+             * otherwise, anyway */
+            new_stream->interleave_block_size == opened_stream->interleave_block_size &&
+            new_stream->interleave_smallblock_size == opened_stream->interleave_smallblock_size &&
+            new_stream->start_block_offset == opened_stream->start_block_offset) {
+        /* We seem to have a usable, matching file. Merge in the second channel. */
+        VGMSTREAMCHANNEL * new_chans;
+        VGMSTREAMCHANNEL * new_loop_chans = NULL;
+        VGMSTREAMCHANNEL * new_start_chans = NULL;
+
+        /* build the channels */
+        new_chans = calloc(2,sizeof(VGMSTREAMCHANNEL));
+        if (!new_chans) goto fail;
+
+        memcpy(&new_chans[dfs_name],&opened_stream->ch[0],sizeof(VGMSTREAMCHANNEL));
+        memcpy(&new_chans[dfs_name^1],&new_stream->ch[0],sizeof(VGMSTREAMCHANNEL));
+
+        /* loop and start will be initialized later, we just need to
+         * allocate them here */
+        new_start_chans = calloc(2,sizeof(VGMSTREAMCHANNEL));
+        if (!new_start_chans) {
+            free(new_chans);
+            goto fail;
+        }
+
+        if (opened_stream->loop_ch) {
+            new_loop_chans = calloc(2,sizeof(VGMSTREAMCHANNEL));
+            if (!new_loop_chans) {
+                free(new_chans);
+                free(new_start_chans);
+                goto fail;
+            }
+        }
+
+        /* remove the existing structures */
+        /* not using close_vgmstream as that would close the file */
+        free(opened_stream->ch);
+        free(new_stream->ch);
+
+        free(opened_stream->start_ch);
+        free(new_stream->start_ch);
+
+        if (opened_stream->loop_ch) {
+            free(opened_stream->loop_ch);
+            free(new_stream->loop_ch);
+        }
+
+        /* fill in the new structures */
+        opened_stream->ch = new_chans;
+        opened_stream->start_ch = new_start_chans;
+        opened_stream->loop_ch = new_loop_chans;
+
+        /* stereo! */
+        opened_stream->channels = 2;
+
+        /* discard the second VGMSTREAM */
+        free(new_stream);
+    }
+    
+    if (filename2) free(filename2);
+    return;
+
+fail:
+    if (filename2) free(filename2);
 }

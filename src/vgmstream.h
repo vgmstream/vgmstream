@@ -123,7 +123,7 @@ typedef struct {
      * isn't closed twice, but also that everything is deallocated. Generally
      * a channel should only have one STREAMFILE in its lifetime.
      */
-    VGMSTREAMCHANNEL * start_ch;    /* coptes of channel status as they were at the beginning of the stream */
+    VGMSTREAMCHANNEL * start_ch;    /* copies of channel status as they were at the beginning of the stream */
     VGMSTREAMCHANNEL * loop_ch;     /* copies of channel status as they were at the loop point */
 
     /* layout-specific */
@@ -151,6 +151,10 @@ typedef struct {
 
 /* do format detection, return pointer to a usable VGMSTREAM, or NULL on failure */
 VGMSTREAM * init_vgmstream(const char * const filename);
+
+/* internal vgmstream that takes parameters the library user shouldn't have to know
+ * about */
+VGMSTREAM * init_vgmstream_internal(const char * const filename, int do_dfs);
 
 /* allocate a VGMSTREAM and channel stuff */
 VGMSTREAM * allocate_vgmstream(int channel_count, int looped);
@@ -183,7 +187,15 @@ int vgmstream_samples_to_do(int samples_this_block, int samples_per_frame, VGMST
  * Returns 1 if loop was done. */
 int vgmstream_do_loop(VGMSTREAM * vgmstream);
 
+/* Write a description of the stream into array pointed by desc,
+ * which must be length bytes long. Will always be null-terminated if length > 0
+ */
 void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length);
 
+/* See if there is a second file which may be the second channel, given
+ * already opened mono opened_stream which was opened from filename.
+ * If a suitable file is found, open it and change opened_stream to a
+ * stereo stream. */
+void try_dual_file_stereo(VGMSTREAM * opened_stream, const char * const filename);
 
 #endif

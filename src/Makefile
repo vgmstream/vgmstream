@@ -20,7 +20,9 @@ META_OBJS=meta/adx_header.o \
 		  meta/halpst.o \
 		  meta/nds_strm.o \
 		  meta/ngc_adpdtk.o \
-		  meta/rsf.o
+		  meta/rsf.o \
+		  meta/rs03.o \
+		  meta/ngc_dsp_std.o 
 
 OBJECTS=vgmstream.o streamfile.o util.o $(CODING_OBJS) $(LAYOUT_OBJS) $(META_OBJS)
 
