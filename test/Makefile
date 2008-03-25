@@ -5,9 +5,12 @@ export STRIP=strip
 
 .PHONY: libvgmstream.a
 
-test: libvgmstream.a
-	$(CC) $(CFLAGS) "-DVERSION=\"`../version.sh`\"" test.c $(LDFLAGS) -o test
+test: libvgmstream.a test.o
+	$(CC) test.o $(LDFLAGS) -o test
 	$(STRIP) test
+
+test.o:
+	$(CC) $(CFLAGS) -c "-DVERSION=\"`../version.sh`\"" test.c -o test.o
 
 libvgmstream.a:
 	$(MAKE) -C ../src libvgmstream.a
