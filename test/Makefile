@@ -16,4 +16,4 @@ libvgmstream.a:
 	$(MAKE) -C ../src libvgmstream.a
 
 clean:
-	rm -f test
+	rm -f test test.o
