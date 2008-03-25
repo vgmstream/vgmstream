@@ -35,8 +35,8 @@ VGMSTREAM * init_vgmstream_halpst(const char * const filename) {
     if (channel_count!=2) goto fail;
 
     /* yay for redundancy, gives us something to test */
-    samples_l = dsp_nibbles_to_samples(read_32bitBE(0x18,infile));
-    samples_r = dsp_nibbles_to_samples(read_32bitBE(0x50,infile));
+    samples_l = dsp_nibbles_to_samples(read_32bitBE(0x18,infile))+2;
+    samples_r = dsp_nibbles_to_samples(read_32bitBE(0x50,infile))+2;
 
     if (samples_l != samples_r) goto fail;
 
@@ -66,7 +66,7 @@ VGMSTREAM * init_vgmstream_halpst(const char * const filename) {
                 offset = read_32bitBE(offset+8,infile);
             }
 
-            start_sample = dsp_nibbles_to_samples(start_nibble);
+            start_sample = dsp_nibbles_to_samples(start_nibble)+2;
         }
 
     }
