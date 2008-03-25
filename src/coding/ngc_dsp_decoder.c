@@ -38,16 +38,21 @@ void decode_ngc_dsp(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspaci
 
 /*
  * The original DSP spec uses nibble counts for loop points, and some
- * variants don't have a proper sample count, so all we (who are interested
+ * variants don't have a proper sample count, so we (who are interested
  * in sample counts) need to do this conversion occasionally.
  */
 int32_t dsp_nibbles_to_samples(int32_t nibbles) {
     int32_t whole_frames = nibbles/16;
     int32_t remainder = nibbles%16;
 
+    fprintf(stderr,"%d (%#x) nibbles => %x bytes and %d samples\n",nibbles,nibbles,whole_frames*8,remainder);
+
+#if 0
     if (remainder > 0 && remainder < 14)
         return whole_frames*14 + remainder;
     else if (remainder >= 14)
-        fprintf(stderr,"last frame %d leftover nibbles makes no sense\n",remainder);
-    return whole_frames*14;
+        fprintf(stderr,"***** last frame %d leftover nibbles makes no sense\n",remainder);
+#endif
+    if (remainder>0) return whole_frames*14+remainder-2;
+    else return whole_frames*14;
 }
