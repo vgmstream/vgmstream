@@ -335,19 +335,26 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream) {
 /*    if (vgmstream->loop_flag) {*/
         /* is this the loop end? */
         if (vgmstream->current_sample==vgmstream->loop_end_sample) {
+            /* RS03 and the Metroid Prime standard DSP files are
+             * apparently built with the assumption that the history
+             * is preserved through looping
+             */
+            if (vgmstream->meta_type == meta_DSP_STD ||
+                    vgmstream->meta_type == meta_DSP_RS03) {
+                int i;
+                for (i=0;i<vgmstream->channels;i++) {
+                    vgmstream->loop_ch[i].adpcm_history1_16 = vgmstream->ch[i].adpcm_history1_16;
+                    vgmstream->loop_ch[i].adpcm_history2_16 = vgmstream->ch[i].adpcm_history2_16;
+                }
+            }
             /*
-            int i;
-            for (i=0;i<vgmstream->channels;i++) {
-                vgmstream->loop_ch[i].adpcm_history1_32 = vgmstream->ch[i].adpcm_history1_32;
-                vgmstream->loop_ch[i].adpcm_history2_32 = vgmstream->ch[i].adpcm_history2_32;
-            }
-            */
-            int i;
-            for (i=0;i<vgmstream->channels;i++) {
-                fprintf(stderr,"ch%d hist: %04x %04x loop hist: %04x %04x\n",i,
-                        vgmstream->ch[i].adpcm_history1_16,vgmstream->ch[i].adpcm_history2_16,
-                        vgmstream->loop_ch[i].adpcm_history1_16,vgmstream->loop_ch[i].adpcm_history2_16);
-            }
+               int i;
+               for (i=0;i<vgmstream->channels;i++) {
+               fprintf(stderr,"ch%d hist: %04x %04x loop hist: %04x %04x\n",i,
+               vgmstream->ch[i].adpcm_history1_16,vgmstream->ch[i].adpcm_history2_16,
+               vgmstream->loop_ch[i].adpcm_history1_16,vgmstream->loop_ch[i].adpcm_history2_16);
+               }
+               */
             /* restore! */
             memcpy(vgmstream->ch,vgmstream->loop_ch,sizeof(VGMSTREAMCHANNEL)*vgmstream->channels);
             vgmstream->current_sample=vgmstream->loop_sample;
@@ -372,8 +379,8 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream) {
             vgmstream->loop_next_block_offset=vgmstream->next_block_offset;
             vgmstream->hit_loop=1;
         }
-    /*}*/
-    return 0;
+        /*}*/
+        return 0;
 }
 
 /* build a descriptive string */
@@ -591,8 +598,8 @@ void try_dual_file_stereo(VGMSTREAM * opened_stream, const char * const filename
 
 #if 0
     printf("input is:            %s\n"
-           "other file would be: %s\n",
-           filename,filename2);
+            "other file would be: %s\n",
+            filename,filename2);
 #endif
 
     new_stream = init_vgmstream_internal(filename2,
@@ -674,7 +681,7 @@ void try_dual_file_stereo(VGMSTREAM * opened_stream, const char * const filename
         /* discard the second VGMSTREAM */
         free(new_stream);
     }
-    
+
     if (filename2) free(filename2);
     return;
 

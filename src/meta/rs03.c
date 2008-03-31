@@ -25,7 +25,7 @@ VGMSTREAM * init_vgmstream_rs03(const char * const filename) {
         goto fail;
 
     channel_count = read_32bitBE(4,infile);
-    if (channel_count != 2) goto fail;
+    if (channel_count != 1 && channel_count != 2) goto fail;
 
     /* build the VGMSTREAM */
 

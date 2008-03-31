@@ -39,8 +39,10 @@ VGMSTREAM * init_vgmstream_ngc_dsp_std(const char * const filename) {
     }
 
     /* compare num_samples with nibble count */
+    /*
     fprintf(stderr,"num samples (literal): %d\n",read_32bitBE(0,infile));
     fprintf(stderr,"num samples (nibbles): %d\n",dsp_nibbles_to_samples(read_32bitBE(4,infile)));
+    */
 
     /* build the VGMSTREAM */
 

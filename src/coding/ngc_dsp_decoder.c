@@ -45,7 +45,9 @@ int32_t dsp_nibbles_to_samples(int32_t nibbles) {
     int32_t whole_frames = nibbles/16;
     int32_t remainder = nibbles%16;
 
+    /*
     fprintf(stderr,"%d (%#x) nibbles => %x bytes and %d samples\n",nibbles,nibbles,whole_frames*8,remainder);
+    */
 
 #if 0
     if (remainder > 0 && remainder < 14)
