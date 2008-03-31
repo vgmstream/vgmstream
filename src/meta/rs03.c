@@ -21,7 +21,7 @@ VGMSTREAM * init_vgmstream_rs03(const char * const filename) {
     if (!infile) goto fail;
 
     /* check header */
-    if ((uint32_t)read_32bitBE(0,infile)!=0x52530003)
+    if ((uint32_t)read_32bitBE(0,infile)!=0x52530003)   /* "RS03" */
         goto fail;
 
     channel_count = read_32bitBE(4,infile);
