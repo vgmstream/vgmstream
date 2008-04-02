@@ -14,6 +14,7 @@
 #include "meta/rs03.h"
 #include "meta/ngc_dsp_std.h"
 #include "meta/Cstr.h"
+#include "meta/gcsw.h"
 #include "layout/interleave.h"
 #include "layout/nolayout.h"
 #include "layout/blocked.h"
@@ -29,7 +30,7 @@
  * List of functions that will recognize files. These should correspond pretty
  * directly to the metadata types
  */
-#define INIT_VGMSTREAM_FCNS 12
+#define INIT_VGMSTREAM_FCNS 13
 VGMSTREAM * (*init_vgmstream_fcns[INIT_VGMSTREAM_FCNS])(const char * const) = {
     init_vgmstream_adx,
     init_vgmstream_brstm,
@@ -43,6 +44,7 @@ VGMSTREAM * (*init_vgmstream_fcns[INIT_VGMSTREAM_FCNS])(const char * const) = {
     init_vgmstream_rs03,
     init_vgmstream_ngc_dsp_std,
     init_vgmstream_Cstr,
+    init_vgmstream_gcsw,
 };
 
 
@@ -92,6 +94,8 @@ VGMSTREAM * allocate_vgmstream(int channel_count, int looped) {
     VGMSTREAMCHANNEL * channels;
     VGMSTREAMCHANNEL * start_channels;
     VGMSTREAMCHANNEL * loop_channels;
+
+    if (channel_count <= 0) return NULL;
 
     vgmstream = calloc(1,sizeof(VGMSTREAM));
     if (!vgmstream) return NULL;
@@ -540,6 +544,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case meta_DSP_CSTR:
             snprintf(temp,TEMPSIZE,"Namco Cstr header");
+            break;
+        case meta_GCSW:
+            snprintf(temp,TEMPSIZE,"GCSW header");
             break;
         default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

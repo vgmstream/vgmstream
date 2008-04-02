@@ -75,6 +75,7 @@ typedef enum {
     meta_kRAW,              /* almost headerless PCM */
     meta_RSF,               /* Retro Studios RSF, no header (.rsf) */
     meta_HALPST,            /* HAL Labs HALPST */
+    meta_GCSW,              /* GCSW (PCM) */
 } meta_t;
 
 typedef struct {

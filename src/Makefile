@@ -23,7 +23,8 @@ META_OBJS=meta/adx_header.o \
 		  meta/rsf.o \
 		  meta/rs03.o \
 		  meta/ngc_dsp_std.o \
-		  meta/Cstr.o
+		  meta/Cstr.o \
+		  meta/gcsw.o
 
 OBJECTS=vgmstream.o streamfile.o util.o $(CODING_OBJS) $(LAYOUT_OBJS) $(META_OBJS)
 
