@@ -36,6 +36,10 @@ Formats supported by this version of vgmstream:
 - .afc (GC AFC ADPCM)
 - .ast (GC/Wii AFC ADPCM, 16 bit PCM)
 - .hps (GC DSP ADPCM)
+- .dsp (GC DSP ADPCM)
+  - standard, with dual file stereo
+  - RS03
+  - Cstr
 
 Enjoy!
 -hcs
