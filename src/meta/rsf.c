@@ -20,6 +20,23 @@ VGMSTREAM * init_vgmstream_rsf(const char * const filename) {
 
     file_size = get_streamfile_size(infile);
 
+    {
+        /* extra check: G.721 has no zero nibbles, so we look at
+         * the first few bytes*/
+        int8_t test_byte;
+        off_t i;
+        /* 0x20 is arbitrary, all files are much larger */
+        for (i=0;i<0x20;i++) {
+            test_byte = read_8bit(i,infile);
+            if (!(test_byte&0xf) || !(test_byte&0xf0)) goto fail;
+        }
+        /* and also check start of second channel */
+        for (i=(file_size+1)/2;i<(file_size+1)/2+0x20;i++) {
+            test_byte = read_8bit(i,infile);
+            if (!(test_byte&0xf) || !(test_byte&0xf0)) goto fail;
+        }
+    }
+
     close_streamfile(infile);
     infile = NULL;
 
@@ -29,7 +46,7 @@ VGMSTREAM * init_vgmstream_rsf(const char * const filename) {
     if (!vgmstream) goto fail;
 
     /* fill in the vital statistics */
-    vgmstream->num_samples = file_size/2*2;
+    vgmstream->num_samples = file_size;
     vgmstream->sample_rate = 32000;
 
     vgmstream->coding_type = coding_G721;
@@ -46,7 +63,7 @@ VGMSTREAM * init_vgmstream_rsf(const char * const filename) {
 
             vgmstream->ch[i].channel_start_offset=
                 vgmstream->ch[i].offset=
-                file_size/2*i;
+                (file_size+1)/2*i;
 
 
             g72x_init_state(&(vgmstream->ch[i].g72x_state));
