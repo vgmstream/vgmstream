@@ -13,6 +13,7 @@
 #include "meta/halpst.h"
 #include "meta/rs03.h"
 #include "meta/ngc_dsp_std.h"
+#include "meta/Cstr.h"
 #include "layout/interleave.h"
 #include "layout/nolayout.h"
 #include "layout/blocked.h"
@@ -28,7 +29,7 @@
  * List of functions that will recognize files. These should correspond pretty
  * directly to the metadata types
  */
-#define INIT_VGMSTREAM_FCNS 11
+#define INIT_VGMSTREAM_FCNS 12
 VGMSTREAM * (*init_vgmstream_fcns[INIT_VGMSTREAM_FCNS])(const char * const) = {
     init_vgmstream_adx,
     init_vgmstream_brstm,
@@ -41,6 +42,7 @@ VGMSTREAM * (*init_vgmstream_fcns[INIT_VGMSTREAM_FCNS])(const char * const) = {
     init_vgmstream_halpst,
     init_vgmstream_rs03,
     init_vgmstream_ngc_dsp_std,
+    init_vgmstream_Cstr,
 };
 
 
@@ -335,26 +337,30 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream) {
 /*    if (vgmstream->loop_flag) {*/
         /* is this the loop end? */
         if (vgmstream->current_sample==vgmstream->loop_end_sample) {
-            /* RS03 and the Metroid Prime standard DSP files are
-             * apparently built with the assumption that the history
-             * is preserved through looping
-             */
+            /* against everything I hold sacred, preserve adpcm
+             * history through loop for certain types */
             if (vgmstream->meta_type == meta_DSP_STD ||
-                    vgmstream->meta_type == meta_DSP_RS03) {
+                    vgmstream->meta_type == meta_DSP_RS03 ||
+                    vgmstream->meta_type == meta_DSP_CSTR) {
                 int i;
                 for (i=0;i<vgmstream->channels;i++) {
                     vgmstream->loop_ch[i].adpcm_history1_16 = vgmstream->ch[i].adpcm_history1_16;
                     vgmstream->loop_ch[i].adpcm_history2_16 = vgmstream->ch[i].adpcm_history2_16;
                 }
             }
-            /*
+#if DEBUG
+            {
                int i;
                for (i=0;i<vgmstream->channels;i++) {
-               fprintf(stderr,"ch%d hist: %04x %04x loop hist: %04x %04x\n",i,
-               vgmstream->ch[i].adpcm_history1_16,vgmstream->ch[i].adpcm_history2_16,
-               vgmstream->loop_ch[i].adpcm_history1_16,vgmstream->loop_ch[i].adpcm_history2_16);
+                   fprintf(stderr,"ch%d hist: %04x %04x loop hist: %04x %04x\n",i,
+                           vgmstream->ch[i].adpcm_history1_16,vgmstream->ch[i].adpcm_history2_16,
+                           vgmstream->loop_ch[i].adpcm_history1_16,vgmstream->loop_ch[i].adpcm_history2_16);
+                   fprintf(stderr,"ch%d offset: %x loop offset: %x\n",i,
+                           vgmstream->ch[i].offset,
+                           vgmstream->loop_ch[i].offset);
                }
-               */
+            }
+#endif
             /* restore! */
             memcpy(vgmstream->ch,vgmstream->loop_ch,sizeof(VGMSTREAMCHANNEL)*vgmstream->channels);
             vgmstream->current_sample=vgmstream->loop_sample;
@@ -464,7 +470,7 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             snprintf(temp,TEMPSIZE,"interleave with short last block");
             break;
         case layout_dtk_interleave:
-            snprintf(temp,TEMPSIZE,"DTK nibble interleave");
+            snprintf(temp,TEMPSIZE,"ADP/DTK nibble interleave");
             break;
         case layout_ast_blocked:
             snprintf(temp,TEMPSIZE,"AST blocked");
@@ -497,40 +503,43 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
 
     switch (vgmstream->meta_type) {
         case meta_RSTM:
-            snprintf(temp,TEMPSIZE,"RSTM header");
+            snprintf(temp,TEMPSIZE,"Nintendo RSTM header");
             break;
         case meta_STRM:
-            snprintf(temp,TEMPSIZE,"NDS STRM header");
+            snprintf(temp,TEMPSIZE,"Nintendo STRM header");
             break;
         case meta_ADX_03:
-            snprintf(temp,TEMPSIZE,"ADX header type 03");
+            snprintf(temp,TEMPSIZE,"CRI ADX header type 03");
             break;
         case meta_ADX_04:
-            snprintf(temp,TEMPSIZE,"ADX header type 04");
+            snprintf(temp,TEMPSIZE,"CRI ADX header type 04");
             break;
         case meta_DSP_AGSC:
-            snprintf(temp,TEMPSIZE,"AGSC header");
+            snprintf(temp,TEMPSIZE,"Retro Studios AGSC header");
             break;
         case meta_NGC_ADPDTK:
-            snprintf(temp,TEMPSIZE,"assumed NGC DTK by .adp extension and valid first frame");
+            snprintf(temp,TEMPSIZE,"assumed Nintendo ADP by .adp extension and valid first frame");
             break;
         case meta_RSF:
-            snprintf(temp,TEMPSIZE,"assumed Retro Studios RSF by .rsf extension");
+            snprintf(temp,TEMPSIZE,"assumed Retro Studios RSF by .rsf extension and valid first bytes");
             break;
         case meta_AFC:
-            snprintf(temp,TEMPSIZE,"AFC header");
+            snprintf(temp,TEMPSIZE,"Nintendo AFC header");
             break;
         case meta_AST:
-            snprintf(temp,TEMPSIZE,"AST header");
+            snprintf(temp,TEMPSIZE,"Nintendo AST header");
             break;
         case meta_HALPST:
-            snprintf(temp,TEMPSIZE,"HALPST header");
+            snprintf(temp,TEMPSIZE,"HAL Laboratory HALPST header");
             break;
         case meta_DSP_RS03:
             snprintf(temp,TEMPSIZE,"Retro Studios RS03 header");
             break;
         case meta_DSP_STD:
-            snprintf(temp,TEMPSIZE,"Standard NGC DSP header");
+            snprintf(temp,TEMPSIZE,"Standard Nintendo DSP header");
+            break;
+        case meta_DSP_CSTR:
+            snprintf(temp,TEMPSIZE,"Namco Cstr header");
             break;
         default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

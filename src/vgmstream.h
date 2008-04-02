@@ -99,6 +99,11 @@ typedef struct {
 
     struct g72x_state g72x_state; /* state for G.721 decoder, sort of big but we
                                might as well keep it around */
+
+#ifdef DEBUG
+    int samples_done;
+    int16_t loop_history1,loop_history2;
+#endif
 } VGMSTREAMCHANNEL;
 
 typedef struct {

@@ -22,12 +22,13 @@ META_OBJS=meta/adx_header.o \
 		  meta/ngc_adpdtk.o \
 		  meta/rsf.o \
 		  meta/rs03.o \
-		  meta/ngc_dsp_std.o 
+		  meta/ngc_dsp_std.o \
+		  meta/Cstr.o
 
 OBJECTS=vgmstream.o streamfile.o util.o $(CODING_OBJS) $(LAYOUT_OBJS) $(META_OBJS)
 
 libvgmstream.a: $(OBJECTS)
-	$(AR) crsv libvgmstream.a $(OBJECTS)
+	$(AR) crs libvgmstream.a $(OBJECTS)
 
 vgmstream-deps:
 	$(CC) $(CFLAGS) -M -o vgmstream-deps
