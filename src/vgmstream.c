@@ -561,10 +561,10 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
 /* */
 #define DFS_PAIR_COUNT 4
 const char * const dfs_pairs[DFS_PAIR_COUNT][2] = {
-    {"L","R"},
-    {"l","r"},
+    {"_L","_R"},
+    {"_l","_r"},
     {"_0","_1"},
-    {"left","right"},
+    {"_left","_right"},
 };
 
 void try_dual_file_stereo(VGMSTREAM * opened_stream, const char * const filename) {

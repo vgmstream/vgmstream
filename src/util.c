@@ -142,3 +142,27 @@ void concatn_doublenull(int length, char * dst, const char * src) {
     dst[i]='\0';
     dst[i+1]='\0';
 }
+
+/* 
+* The following block of code is used for stuff like Winamp, etc.
+* If you aren't building a plugin, disregard this.
+*/
+
+#define SUPPORTED_FORMATS 11
+
+char * Supported_Format_List[] = {
+	"adx\0",
+    "afc\0",
+    "agsc\0",
+    "ast\0",
+    "brstm\0",
+    "hps\0",
+    "strm\0",
+    "adp\0",
+    "rsf\0",
+    "dsp\0",
+    "gcw\0",
+};
+
+int GetSupportedFormats(void) { return SUPPORTED_FORMATS; }
+char * GetSupportedFormatById (int id) { return &Supported_Format_List[id]; }

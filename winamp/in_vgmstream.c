@@ -15,6 +15,7 @@
 #include "../src/util.h"
 #include "in2.h"
 
+
 #ifndef VERSION
 #define VERSION
 #endif
@@ -33,6 +34,7 @@ short sample_buffer[576*2*2]; /* 576 16-bit samples, stereo, possibly doubled in
 /* hardcode these now, TODO will be configurable later */
 const double fade_seconds = 10.0;
 const double loop_count = 2.0;
+int loop_inf=1; /* Loop infinitely */
 
 VGMSTREAM * vgmstream = NULL;
 HANDLE decode_thread_handle = INVALID_HANDLE_VALUE;
@@ -43,22 +45,9 @@ int decode_pos_samples = 0;
 int stream_length_samples = 0;
 int fade_samples = 0;
 
+/* TODO: Get vgmstream to make this list for us. */
 #define EXTENSION_LIST_SIZE 1024
 char working_extension_list[EXTENSION_LIST_SIZE] = {0};
-#define EXTENSION_COUNT 11
-char * extension_list[EXTENSION_COUNT] = {
-    "adx\0ADX Audio File (*.ADX)\0",
-    "afc\0AFC Audio File (*.AFC)\0",
-    "agsc\0AGSC Audio File (*.AGSC)\0",
-    "ast\0AST Audio File (*.AST)\0",
-    "brstm\0BRSTM Audio File (*.BRSTM)\0",
-    "hps\0HALPST Audio File (*.HPS)\0",
-    "strm\0STRM Audio File (*.STRM)\0",
-    "adp\0ADP Audio File (*.ADP)\0",
-    "rsf\0RSF Audio File (*.RSF)\0",
-    "dsp\0DSP Audio File (*.DSP)\0",
-    "gcw\0GCW Audio File (*.GCW)\0",
-};
 
 /* stubs, we don't do anything fancy yet */
 void config(HWND hwndParent) {}
@@ -66,13 +55,17 @@ void about(HWND hwndParent) {}
 void quit() {}
 
 void build_extension_list() {
-    int i;
-    working_extension_list[0]='\0';
+    int i, ext_cnt=0;
+	char BUFFAR[9];
+	working_extension_list[0]='\0';
     working_extension_list[1]='\0';
 
-    for (i=0;i<EXTENSION_COUNT;i++) {
-        concatn_doublenull(EXTENSION_LIST_SIZE,working_extension_list,
-                extension_list[i]);
+	// Get stuff.
+	ext_cnt = GetSupportedFormats();
+
+    for (i=0;i<ext_cnt;i++) {
+		strcpy(BUFFAR,GetSupportedFormatById(i));
+		sprintf(working_extension_list[i],"%s\0%s Audio File (*.%s)\0",BUFFAR,BUFFAR,BUFFAR);
     }
 }
 
@@ -259,7 +252,7 @@ DWORD WINAPI __stdcall decode(void *arg) {
 
         int samples_to_do;
         int l;
-        if (decode_pos_samples+576>stream_length_samples)
+        if ((decode_pos_samples+576>stream_length_samples) && (!vgmstream->loop_flag && loop_inf))
             samples_to_do=stream_length_samples-decode_pos_samples;
         else
             samples_to_do=576;
@@ -281,7 +274,7 @@ DWORD WINAPI __stdcall decode(void *arg) {
             render_vgmstream(sample_buffer,samples_to_do,vgmstream);
 
             /* fade! */
-            if (vgmstream->loop_flag && fade_samples > 0) {
+            if (vgmstream->loop_flag && fade_samples > 0 && !loop_inf) {
                 int samples_into_fade = decode_pos_samples - (stream_length_samples - fade_samples);
                 if (samples_into_fade + samples_to_do > 0) {
                     int j,k;

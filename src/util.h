@@ -7,6 +7,8 @@
 #ifndef _UTIL_H
 #define _UTIL_H
 
+#define strcasecmp strcmp
+
 /* host endian independent multi-byte integer reading */
 
 static inline int16_t get_16bitBE(uint8_t * p) {
@@ -62,5 +64,9 @@ void make_wav_header(uint8_t * buf, int32_t sample_count, int32_t sample_rate, i
 
 void concatn(int length, char * dst, const char * src);
 void concatn_doublenull(int length, char * dst, const char * src);
+
+
+int GetSupportedFormats(void);
+char * GetSupportedFormatById (int id);
 
 #endif
