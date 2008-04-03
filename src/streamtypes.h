@@ -2,16 +2,17 @@
  * streamtypes.h - widely used type definitions
  */
 
-#include "pstdint.h"
 
 #ifndef _STREAMTYPES_H
 #define _STREAMTYPES_H
 
-/* Fix for Visual C++ 2005: will not compile otherwise */
 #ifdef _MSC_VER
-	#define inline _inline
-	#define strcasecmp _stricmp
-	#define snprintf _snprintf
+#include "pstdint.h"
+#define inline _inline
+#define strcasecmp _stricmp
+#define snprintf _snprintf
+#else
+#include <stdint.h>
 #endif
 
 typedef int16_t sample;
