@@ -2,18 +2,21 @@
  * streamfile.h - definitions for buffered file reading with STREAMFILE
  */
 
+#ifdef _MSC_VER
+	#define _CRT_SECURE_NO_DEPRECATE
+#endif
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/types.h>
-#include <inttypes.h>
 #include "streamtypes.h"
 #include "util.h"
 
 #ifndef _STREAMFILE_H
 #define _STREAMFILE_H
 
-#ifdef __MSVCRT__
+#if defined(__MSVCRT__) || defined(_MSC_VER)
 #define fseeko fseek
 #define ftello ftell
 #endif

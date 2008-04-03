@@ -5,12 +5,8 @@ VGMSTREAM * init_vgmstream_gcsw(const char * const filename) {
     VGMSTREAM * vgmstream = NULL;
     STREAMFILE * infile = NULL;
 
-    coding_t coding_type;
-
     int channel_count;
     int loop_flag;
-
-    size_t max_block;
 
     /* check extension, case insensitive */
     if (strcasecmp("gcw",filename_extension(filename))) goto fail;

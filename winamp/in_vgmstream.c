@@ -5,6 +5,9 @@
 ** Copyright (c) 1998, Justin Frankel/Nullsoft Inc.
 */
 
+#ifdef _MSC_VER
+#define _CRT_SECURE_NO_DEPRECATE
+#endif
 #include <windows.h>
 #include <stdio.h>
 
@@ -12,7 +15,11 @@
 #include "../src/util.h"
 #include "in2.h"
 
-#define PLUGIN_DESCRIPTION "vgmstream plugin " VERSION
+#ifndef VERSION
+#define VERSION
+#endif
+
+#define PLUGIN_DESCRIPTION "vgmstream plugin " VERSION " " __DATE__
 
 /* post when playback stops */
 #define WM_WA_MPEG_EOF WM_USER+2
@@ -178,7 +185,7 @@ int getoutputtime() {
 }
 
 /* seek */
-void setoutputtime() {
+void setoutputtime(int t) {
     /* TODO: seeking */
 }
 
