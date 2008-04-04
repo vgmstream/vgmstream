@@ -67,7 +67,7 @@ size_t read_the_rest(uint8_t * dest, off_t offset, size_t length, STREAMFILE * s
         size_t length_to_read;
         size_t length_read=0;
         streamfile->validsize=0;
-        if (fseek(streamfile->infile,offset,SEEK_SET)) return length_read;
+        if (fseeko(streamfile->infile,offset,SEEK_SET)) return length_read;
         streamfile->offset=offset;
 
         /* decide how much must be read this time */
@@ -97,6 +97,6 @@ size_t read_the_rest(uint8_t * dest, off_t offset, size_t length, STREAMFILE * s
 }
 
 size_t get_streamfile_size(STREAMFILE * streamfile) {
-    fseek(streamfile->infile,0,SEEK_END);
-    return ftell(streamfile->infile);
+    fseeko(streamfile->infile,0,SEEK_END);
+    return ftello(streamfile->infile);
 }
