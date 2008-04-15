@@ -40,6 +40,7 @@ Formats supported by this version of vgmstream:
   - standard, with dual file stereo
   - RS03
   - Cstr
+- .gcsw (16 bit PCM)
 
 Enjoy!
 -hcs
