@@ -27,7 +27,7 @@ void usage(const char * name) {
 
 int main(int argc, char ** argv) {
     VGMSTREAM * s;
-    sample buf[BUFSIZE*2];
+    sample * buf = NULL;
     int32_t len;
     int32_t fade_samples;
     int i;
@@ -133,6 +133,8 @@ int main(int argc, char ** argv) {
         close_vgmstream(s);
         return 0;
     }
+
+    buf = malloc(BUFSIZE*sizeof(sample)*s->channels);
 
     len = get_vgmstream_play_samples(loop_count,fade_time,s);
     if (!play && !adxencd) printf("samples to play: %d (%.2lf seconds)\n",len,(double)len/s->sample_rate);
