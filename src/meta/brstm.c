@@ -52,8 +52,7 @@ VGMSTREAM * init_vgmstream_brstm(const char * const filename) {
             goto fail;
     }
 
-    /* TODO: only mono and stereo supported */
-    if (channel_count < 1 || channel_count > 2) goto fail;
+    if (channel_count < 1) goto fail;
 
     /* build the VGMSTREAM */
 
@@ -81,19 +80,15 @@ VGMSTREAM * init_vgmstream_brstm(const char * const filename) {
         off_t coef_offset;
         off_t coef_offset1;
         off_t coef_offset2;
-        int i;
+        int i,j;
 
         coef_offset1=read_32bitBE(head_offset+0x1c,infile);
         coef_offset2=read_32bitBE(head_offset+0x10+coef_offset1,infile);
         coef_offset=coef_offset2+0x10;
 
-        for (i=0;i<16;i++) {
-            vgmstream->ch[0].adpcm_coef[i]=read_16bitBE(head_offset+coef_offset+i*2,infile);
-        }
-
-        if (vgmstream->channels==2) {
+        for (j=0;j<vgmstream->channels;j++) {
             for (i=0;i<16;i++) {
-                vgmstream->ch[1].adpcm_coef[i]=read_16bitBE(head_offset+coef_offset+0x38+i*2,infile);
+                vgmstream->ch[j].adpcm_coef[i]=read_16bitBE(head_offset+coef_offset+j*0x38+i*2,infile);
             }
         }
     }
