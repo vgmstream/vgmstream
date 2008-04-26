@@ -118,6 +118,7 @@ int play(char *fn)
     if (max_latency < 0) {
         close_vgmstream(vgmstream);
         vgmstream=NULL;
+        return 1;
     }
 
     /* Set info display */
