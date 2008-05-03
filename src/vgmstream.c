@@ -522,6 +522,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         case meta_ADX_04:
             snprintf(temp,TEMPSIZE,"CRI ADX header type 04");
             break;
+        case meta_ADX_05:
+            snprintf(temp,TEMPSIZE,"CRI ADX header type 05");
+            break;
         case meta_DSP_AGSC:
             snprintf(temp,TEMPSIZE,"Retro Studios AGSC header");
             break;
