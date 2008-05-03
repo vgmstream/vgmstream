@@ -51,14 +51,22 @@ VGMSTREAM * init_vgmstream_adx(const char * const filename) {
             loop_end_offset = read_32bitBE(0x28,infile);
         }
     } else if (version_signature == 0x01F40400) {
-        header_type = meta_ADX_04;
-        if (copyright_offset-2 >= 0x38) {   /* enough space for loop info? */
+
+		off_t	ainf_info_length=0;
+
+		if((uint32_t)read_32bitBE(0x24,infile)==0x41494E46) /* AINF Header */
+			ainf_info_length = (off_t)read_32bitBE(0x28,infile);
+
+		header_type = meta_ADX_04;
+        if (copyright_offset-ainf_info_length-2 >= 0x38) {   /* enough space for loop info? */
             loop_flag = (read_32bitBE(0x24,infile) != 0);
             loop_start_sample = read_32bitBE(0x28,infile);
             loop_start_offset = read_32bitBE(0x2c,infile);
             loop_end_sample = read_32bitBE(0x30,infile);
             loop_end_offset = read_32bitBE(0x34,infile);
         }
+	} else if (version_signature == 0x01F40500) {			 /* found in some SFD : Buggy Heat */
+		header_type = meta_ADX_05;
     } else goto fail;   /* not a known/supported version signature */
 
     /* At this point we almost certainly have an ADX file,
