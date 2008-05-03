@@ -61,6 +61,8 @@ typedef enum {
     /* CRI ADX */
     meta_ADX_03,            /* ADX "type 03" */
     meta_ADX_04,            /* ADX "type 04" */
+	meta_ADX_05,            /* ADX "type 05" */
+
     /* etc */
     meta_NGC_ADPDTK,        /* NGC DTK/ADP, no header (.adp) */
     meta_kRAW,              /* almost headerless PCM */
