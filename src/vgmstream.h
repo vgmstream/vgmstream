@@ -22,6 +22,7 @@ typedef enum {
     coding_NGC_DTK,         /* NGC hardware disc ADPCM, called DTK, TRK or ADP */
     coding_G721,            /* CCITT G.721 ADPCM */
     coding_NGC_AFC,         /* NGC ADPCM, called AFC */
+	coding_PSX,				/* PSX & PS2 ADPCM */
 } coding_t;
 
 /* The layout type specifies how the sound data is laid out in the file */
@@ -69,6 +70,8 @@ typedef enum {
     meta_RSF,               /* Retro Studios RSF, no header (.rsf) */
     meta_HALPST,            /* HAL Labs HALPST */
     meta_GCSW,              /* GCSW (PCM) */
+
+	meta_PS2_SShd,				/* .ADS with SShd header */
 } meta_t;
 
 typedef struct {

@@ -19,6 +19,7 @@
 #include "meta/ngc_dsp_std.h"
 #include "meta/Cstr.h"
 #include "meta/gcsw.h"
+#include "meta/ps2_ads.h"
 #include "layout/interleave.h"
 #include "layout/nolayout.h"
 #include "layout/blocked.h"
@@ -29,12 +30,14 @@
 #include "coding/ngc_dtk_decoder.h"
 #include "coding/g721_decoder.h"
 #include "coding/ngc_afc_decoder.h"
+#include "coding/psx_decoder.h"
+
 
 /*
  * List of functions that will recognize files. These should correspond pretty
  * directly to the metadata types
  */
-#define INIT_VGMSTREAM_FCNS 13
+#define INIT_VGMSTREAM_FCNS 14
 VGMSTREAM * (*init_vgmstream_fcns[INIT_VGMSTREAM_FCNS])(const char * const) = {
     init_vgmstream_adx,
     init_vgmstream_brstm,
@@ -49,6 +52,7 @@ VGMSTREAM * (*init_vgmstream_fcns[INIT_VGMSTREAM_FCNS])(const char * const) = {
     init_vgmstream_ngc_dsp_std,
     init_vgmstream_Cstr,
     init_vgmstream_gcsw,
+	init_vgmstream_ps2_ads,
 };
 
 
@@ -192,6 +196,8 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
             return 1;
         case coding_NGC_AFC:
             return 16;
+		case coding_PSX:
+			return 28;
         default:
             return 0;
     }
@@ -225,6 +231,8 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
             return 0;
         case coding_NGC_AFC:
             return 9;
+		case coding_PSX:
+			return 16;
         default:
             return 0;
     }
@@ -303,6 +311,13 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
         case coding_NGC_AFC:
             for (chan=0;chan<vgmstream->channels;chan++) {
                 decode_ngc_afc(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                        vgmstream->channels,vgmstream->samples_into_block,
+                        samples_to_do);
+            }
+            break;
+        case coding_PSX:
+            for (chan=0;chan<vgmstream->channels;chan++) {
+                decode_psx(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
                         samples_to_do);
             }
@@ -459,6 +474,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         case coding_NGC_AFC:
             snprintf(temp,TEMPSIZE,"Gamecube \"AFC\" 4-bit ADPCM");
             break;
+        case coding_PSX:
+            snprintf(temp,TEMPSIZE,"Playstation 4-bit ADPCM");
+            break;
         default:
             snprintf(temp,TEMPSIZE,"CANNOT DECODE");
     }
@@ -554,6 +572,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case meta_GCSW:
             snprintf(temp,TEMPSIZE,"GCSW header");
+            break;
+        case meta_PS2_SShd:
+            snprintf(temp,TEMPSIZE,"ADS File (with SShd header)");
             break;
         default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

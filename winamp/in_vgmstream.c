@@ -45,7 +45,7 @@ int fade_samples = 0;
 
 #define EXTENSION_LIST_SIZE 1024
 char working_extension_list[EXTENSION_LIST_SIZE] = {0};
-#define EXTENSION_COUNT 11
+#define EXTENSION_COUNT 13
 char * extension_list[EXTENSION_COUNT] = {
     "adx\0ADX Audio File (*.ADX)\0",
     "afc\0AFC Audio File (*.AFC)\0",
@@ -58,6 +58,8 @@ char * extension_list[EXTENSION_COUNT] = {
     "rsf\0RSF Audio File (*.RSF)\0",
     "dsp\0DSP Audio File (*.DSP)\0",
     "gcw\0GCW Audio File (*.GCW)\0",
+	"ads\0PS2 ADS Audio File (*.ADS)\0",
+	"ss2\0PS2 SS2 Audio File (*.SS2)\0",
 };
 
 /* stubs, we don't do anything fancy yet */
