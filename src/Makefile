@@ -4,7 +4,8 @@ CODING_OBJS=coding/adx_decoder.o \
 			coding/ngc_afc_decoder.o \
 			coding/ngc_dsp_decoder.o \
 			coding/ngc_dtk_decoder.o \
-			coding/pcm_decoder.o
+			coding/pcm_decoder.o \
+			coding/psx_decoder.o
 
 LAYOUT_OBJS=layout/ast_blocked.o \
 			layout/blocked.o \
@@ -24,7 +25,8 @@ META_OBJS=meta/adx_header.o \
 		  meta/rs03.o \
 		  meta/ngc_dsp_std.o \
 		  meta/Cstr.o \
-		  meta/gcsw.o
+		  meta/gcsw.o \
+		  meta/ps2_ads.o \
 
 OBJECTS=vgmstream.o streamfile.o util.o $(CODING_OBJS) $(LAYOUT_OBJS) $(META_OBJS)
 
