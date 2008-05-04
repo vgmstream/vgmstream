@@ -1,9 +1,10 @@
 ﻿<?xml version="1.0" encoding="UTF-8"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="8.00"
+	Version="8,00"
 	Name="libvgmstream"
 	ProjectGUID="{54A6AD11-5369-4895-A06F-E255ABB99B11}"
+	RootNamespace="libvgmstream"
 	Keyword="Win32Proj"
 	>
 	<Platforms>
@@ -234,6 +235,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\ps2_ads.h"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\rs03.h"
 					>
 				</File>
@@ -290,6 +295,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\ps2_ads.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\rs03.c"
 					>
 				</File>
@@ -333,6 +342,10 @@
 					RelativePath=".\coding\pcm_decoder.h"
 					>
 				</File>
+				<File
+					RelativePath=".\coding\psx_decoder.h"
+					>
+				</File>
 			</Filter>
 			<Filter
 				Name="Source Files"
@@ -363,6 +376,10 @@
 				</File>
 				<File
 					RelativePath=".\coding\pcm_decoder.c"
+					>
+				</File>
+				<File
+					RelativePath=".\coding\psx_decoder.c"
 					>
 				</File>
 			</Filter>
