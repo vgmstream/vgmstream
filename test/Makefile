@@ -9,7 +9,7 @@ test: libvgmstream.a test.o
 	$(CC) test.o $(LDFLAGS) -o test
 	$(STRIP) test
 
-test.o:
+test.o: test.c
 	$(CC) $(CFLAGS) -c "-DVERSION=\"`../version.sh`\"" test.c -o test.o
 
 libvgmstream.a:
