@@ -52,7 +52,7 @@ VGMSTREAM * (*init_vgmstream_fcns[INIT_VGMSTREAM_FCNS])(const char * const) = {
     init_vgmstream_ngc_dsp_std,
     init_vgmstream_Cstr,
     init_vgmstream_gcsw,
-	init_vgmstream_ps2_ads,
+    init_vgmstream_ps2_ads,
 };
 
 
@@ -196,8 +196,8 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
             return 1;
         case coding_NGC_AFC:
             return 16;
-		case coding_PSX:
-			return 28;
+        case coding_PSX:
+            return 28;
         default:
             return 0;
     }
@@ -231,8 +231,8 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
             return 0;
         case coding_NGC_AFC:
             return 9;
-		case coding_PSX:
-			return 16;
+        case coding_PSX:
+            return 16;
         default:
             return 0;
     }
