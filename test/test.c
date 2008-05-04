@@ -11,7 +11,7 @@ extern int optind, opterr, optopt;
 void usage(const char * name) {
     fprintf(stderr,"vgmstream test decoder " VERSION "\n"
             "Usage: %s [-o outfile.wav] [-l loop count]\n"
-            "\t[-f fade time] [-i] [-p] [-c] [-m] infile\n"
+            "\t[-f fade time] [-ipcmxeE] infile\n"
             "Options:\n"
             "\t-o outfile.wav: name of output .wav file, default is dump.wav\n"
             "\t-l loop count: loop count, default 2.0\n"
@@ -21,6 +21,8 @@ void usage(const char * name) {
             "\t-c: loop forever (continuously)\n"
             "\t-m: print metadata only, don't decode\n"
             "\t-x: decode and print adxencd command line to encode as ADX\n"
+            "\t-e: force end-to-end looping\n"
+            "\t-E: force end-to-end looping even if file has real loop points\n"
             ,name);
     
 }
@@ -35,6 +37,8 @@ int main(int argc, char ** argv) {
     char * outfilename = NULL;
     int opt;
     int ignore_loop = 0;
+    int force_loop = 0;
+    int really_force_loop = 0;
     int play = 0;
     int forever = 0;
     int metaonly = 0;
@@ -42,7 +46,7 @@ int main(int argc, char ** argv) {
     double loop_count = 2.0;
     double fade_time = 10.0;
     
-    while ((opt = getopt(argc, argv, "o:l:f:ipcmx")) != -1) {
+    while ((opt = getopt(argc, argv, "o:l:f:ipcmxeE")) != -1) {
         switch (opt) {
             case 'o':
                 outfilename = optarg;
@@ -68,6 +72,12 @@ int main(int argc, char ** argv) {
             case 'x':
                 adxencd = 1;
                 break;
+            case 'e':
+                force_loop = 1;
+                break;
+            case 'E':
+                really_force_loop = 1;
+                break;
             default:
                 usage(argv[0]);
                 return 1;
@@ -84,12 +94,43 @@ int main(int argc, char ** argv) {
         fprintf(stderr,"A file of infinite size? Not likely.\n");
         return 1;
     }
-   
+
+    if (ignore_loop && force_loop) {
+        fprintf(stderr,"-e and -i are incompatible\n");
+        return 1;
+    }
+    if (ignore_loop && really_force_loop) {
+        fprintf(stderr,"-E and -i are incompatible\n");
+        return 1;
+    }
+    if (force_loop && really_force_loop) {
+        fprintf(stderr,"-E and -e are somewhat redundant, are you confused?\n");
+        return 1;
+    }
+
     s = init_vgmstream(argv[optind]);
 
     if (!s) {
         fprintf(stderr,"failed opening %s\n",argv[optind]);
         return 1;
+    }
+
+    /* force only if there aren't already loop points */
+    if (force_loop && !s->loop_flag) {
+        /* this requires a bit more messing with the VGMSTREAM than I'm
+         * comfortable with... */
+        s->loop_flag=1;
+        s->loop_start_sample=0;
+        s->loop_end_sample=s->num_samples;
+        s->loop_ch=calloc(s->channels,sizeof(VGMSTREAMCHANNEL));
+    }
+
+    /* force even if there are loop points */
+    if (really_force_loop) {
+        if (!s->loop_flag) s->loop_ch=calloc(s->channels,sizeof(VGMSTREAMCHANNEL));
+        s->loop_flag=1;
+        s->loop_start_sample=0;
+        s->loop_end_sample=s->num_samples;
     }
 
     if (ignore_loop) s->loop_flag=0;
@@ -144,11 +185,13 @@ int main(int argc, char ** argv) {
     make_wav_header((uint8_t*)buf, len, s->sample_rate, s->channels);
     fwrite(buf,1,0x2c,outfile);
 
+    /* decode forever */
     while (forever) {
         render_vgmstream(buf,BUFSIZE,s);
         fwrite(buf,sizeof(sample)*s->channels,BUFSIZE,outfile);
     }
 
+    /* decode */
     for (i=0;i<len;i+=BUFSIZE) {
         int toget=BUFSIZE;
         if (i+BUFSIZE>len) toget=len-i;
