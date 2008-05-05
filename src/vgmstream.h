@@ -71,7 +71,8 @@ typedef enum {
     meta_HALPST,            /* HAL Labs HALPST */
     meta_GCSW,              /* GCSW (PCM) */
 
-	meta_PS2_SShd,				/* .ADS with SShd header */
+	meta_PS2_SShd,			/* .ADS with SShd header */
+	meta_PS2_NPSF,			/* Namco Production Sound File */
 } meta_t;
 
 typedef struct {

@@ -239,6 +239,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\ps2_npsf.h"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\rs03.h"
 					>
 				</File>
@@ -296,6 +300,10 @@
 				</File>
 				<File
 					RelativePath=".\meta\ps2_ads.c"
+					>
+				</File>
+				<File
+					RelativePath=".\meta\ps2_npsf.c"
 					>
 				</File>
 				<File

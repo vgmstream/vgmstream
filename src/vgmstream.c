@@ -20,6 +20,7 @@
 #include "meta/Cstr.h"
 #include "meta/gcsw.h"
 #include "meta/ps2_ads.h"
+#include "meta/ps2_npsf.h"
 #include "layout/interleave.h"
 #include "layout/nolayout.h"
 #include "layout/blocked.h"
@@ -37,7 +38,7 @@
  * List of functions that will recognize files. These should correspond pretty
  * directly to the metadata types
  */
-#define INIT_VGMSTREAM_FCNS 14
+#define INIT_VGMSTREAM_FCNS 15
 VGMSTREAM * (*init_vgmstream_fcns[INIT_VGMSTREAM_FCNS])(const char * const) = {
     init_vgmstream_adx,
     init_vgmstream_brstm,
@@ -53,6 +54,7 @@ VGMSTREAM * (*init_vgmstream_fcns[INIT_VGMSTREAM_FCNS])(const char * const) = {
     init_vgmstream_Cstr,
     init_vgmstream_gcsw,
     init_vgmstream_ps2_ads,
+	init_vgmstream_ps2_npsf,
 };
 
 
@@ -364,7 +366,8 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream) {
              * history through loop for certain types */
             if (vgmstream->meta_type == meta_DSP_STD ||
                     vgmstream->meta_type == meta_DSP_RS03 ||
-                    vgmstream->meta_type == meta_DSP_CSTR) {
+                    vgmstream->meta_type == meta_DSP_CSTR || 
+					vgmstream->coding_type == coding_PSX) {
                 int i;
                 for (i=0;i<vgmstream->channels;i++) {
                     vgmstream->loop_ch[i].adpcm_history1_16 = vgmstream->ch[i].adpcm_history1_16;
@@ -575,6 +578,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case meta_PS2_SShd:
             snprintf(temp,TEMPSIZE,"ADS File (with SShd header)");
+            break;
+		case meta_PS2_NPSF:
+            snprintf(temp,TEMPSIZE,"Namco Production Sound File (NPSF)");
             break;
         default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");
