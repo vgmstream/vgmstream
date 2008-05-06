@@ -191,63 +191,7 @@
 				Name="Header Files"
 				>
 				<File
-					RelativePath=".\meta\adx_header.h"
-					>
-				</File>
-				<File
-					RelativePath=".\meta\afc_header.h"
-					>
-				</File>
-				<File
-					RelativePath=".\meta\agsc.h"
-					>
-				</File>
-				<File
-					RelativePath=".\meta\ast.h"
-					>
-				</File>
-				<File
-					RelativePath=".\meta\brstm.h"
-					>
-				</File>
-				<File
-					RelativePath=".\meta\Cstr.h"
-					>
-				</File>
-				<File
-					RelativePath=".\meta\gcsw.h"
-					>
-				</File>
-				<File
-					RelativePath=".\meta\halpst.h"
-					>
-				</File>
-				<File
-					RelativePath=".\meta\nds_strm.h"
-					>
-				</File>
-				<File
-					RelativePath=".\meta\ngc_adpdtk.h"
-					>
-				</File>
-				<File
-					RelativePath=".\meta\ngc_dsp_std.h"
-					>
-				</File>
-				<File
-					RelativePath=".\meta\ps2_ads.h"
-					>
-				</File>
-				<File
-					RelativePath=".\meta\ps2_npsf.h"
-					>
-				</File>
-				<File
-					RelativePath=".\meta\rs03.h"
-					>
-				</File>
-				<File
-					RelativePath=".\meta\rsf.h"
+					RelativePath=".\meta\meta.h"
 					>
 				</File>
 			</Filter>
@@ -314,6 +258,10 @@
 					RelativePath=".\meta\rsf.c"
 					>
 				</File>
+				<File
+					RelativePath=".\meta\rwsd.c"
+					>
+				</File>
 			</Filter>
 		</Filter>
 		<Filter
@@ -323,35 +271,11 @@
 				Name="Header Files"
 				>
 				<File
-					RelativePath=".\coding\adx_decoder.h"
+					RelativePath=".\coding\coding.h"
 					>
 				</File>
 				<File
-					RelativePath=".\coding\g721_decoder.h"
-					>
-				</File>
-				<File
-					RelativePath=".\coding\ima_decoder.h"
-					>
-				</File>
-				<File
-					RelativePath=".\coding\ngc_afc_decoder.h"
-					>
-				</File>
-				<File
-					RelativePath=".\coding\ngc_dsp_decoder.h"
-					>
-				</File>
-				<File
-					RelativePath=".\coding\ngc_dtk_decoder.h"
-					>
-				</File>
-				<File
-					RelativePath=".\coding\pcm_decoder.h"
-					>
-				</File>
-				<File
-					RelativePath=".\coding\psx_decoder.h"
+					RelativePath=".\coding\g72x_state.h"
 					>
 				</File>
 			</Filter>
@@ -399,23 +323,7 @@
 				Name="Header Files"
 				>
 				<File
-					RelativePath=".\layout\ast_blocked.h"
-					>
-				</File>
-				<File
-					RelativePath=".\layout\blocked.h"
-					>
-				</File>
-				<File
-					RelativePath=".\layout\halpst_blocked.h"
-					>
-				</File>
-				<File
-					RelativePath=".\layout\interleave.h"
-					>
-				</File>
-				<File
-					RelativePath=".\layout\nolayout.h"
+					RelativePath=".\layout\layout.h"
 					>
 				</File>
 			</Filter>
