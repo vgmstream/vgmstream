@@ -1,4 +1,5 @@
 #include "meta.h"
+#include "../coding/coding.h"
 #include "../util.h"
 
 /* RWSD is quite similar to BRSTM, but can contain several streams.
@@ -73,10 +74,10 @@ VGMSTREAM * init_vgmstream_rwsd(const char * const filename) {
     if (!vgmstream) goto fail;
 
     /* fill in the vital statistics */
-    vgmstream->num_samples = read_32bitBE(wave_offset+0x1c,infile);
+    vgmstream->num_samples = dsp_nibbles_to_samples(read_32bitBE(wave_offset+0x1c,infile));
     vgmstream->sample_rate = (uint16_t)read_16bitBE(wave_offset+0x14,infile);
     /* channels and loop flag are set by allocate_vgmstream */
-    vgmstream->loop_start_sample = read_32bitBE(wave_offset+0x18,infile);
+    vgmstream->loop_start_sample = dsp_nibbles_to_samples(read_32bitBE(wave_offset+0x18,infile));
     vgmstream->loop_end_sample = vgmstream->num_samples;
 
     vgmstream->coding_type = coding_type;
