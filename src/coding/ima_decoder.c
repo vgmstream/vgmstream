@@ -1,5 +1,5 @@
 #include "../util.h"
-#include "ima_decoder.h"
+#include "coding.h"
 
 const int32_t ADPCMTable[89] = 
 

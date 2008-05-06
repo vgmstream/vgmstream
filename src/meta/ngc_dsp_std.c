@@ -1,5 +1,5 @@
-#include "ngc_dsp_std.h"
-#include "../coding/ngc_dsp_decoder.h"
+#include "meta.h"
+#include "../coding/coding.h"
 #include "../util.h"
 
 /* The standard .dsp */

@@ -1,4 +1,4 @@
-#include "agsc.h"
+#include "meta.h"
 #include "../util.h"
 
 /* .agsc - from Metroid Prime 2 */

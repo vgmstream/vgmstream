@@ -1,5 +1,5 @@
-#include "rs03.h"
-#include "../coding/ngc_dsp_decoder.h"
+#include "meta.h"
+#include "../coding/coding.h"
 #include "../util.h"
 
 /* .dsp w/ RS03 header - from Metroid Prime 2 */

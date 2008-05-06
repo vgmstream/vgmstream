@@ -2,6 +2,9 @@
  * streamfile.h - definitions for buffered file reading with STREAMFILE
  */
 
+#ifndef _STREAMFILE_H
+#define _STREAMFILE_H
+
 #ifdef _MSC_VER
 #define _CRT_SECURE_NO_DEPRECATE
 #endif
@@ -12,9 +15,6 @@
 #include <sys/types.h>
 #include "streamtypes.h"
 #include "util.h"
-
-#ifndef _STREAMFILE_H
-#define _STREAMFILE_H
 
 #if defined(__MSVCRT__) || defined(_MSC_VER)
 #define fseeko fseek

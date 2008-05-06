@@ -1,4 +1,4 @@
-#include "brstm.h"
+#include "meta.h"
 #include "../util.h"
 
 VGMSTREAM * init_vgmstream_brstm(const char * const filename) {

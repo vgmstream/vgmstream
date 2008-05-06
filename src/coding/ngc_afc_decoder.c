@@ -1,4 +1,4 @@
-#include "ngc_afc_decoder.h"
+#include "coding.h"
 #include "../util.h"
 
 const short afc_coef[16][2] =

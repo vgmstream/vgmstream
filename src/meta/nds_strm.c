@@ -1,4 +1,4 @@
-#include "nds_strm.h"
+#include "meta.h"
 #include "../util.h"
 
 VGMSTREAM * init_vgmstream_nds_strm(const char * const filename) {

@@ -1,4 +1,4 @@
-#include "afc_header.h"
+#include "meta.h"
 #include "../util.h"
 
 VGMSTREAM * init_vgmstream_afc(const char * const filename) {

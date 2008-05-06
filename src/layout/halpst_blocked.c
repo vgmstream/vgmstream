@@ -1,4 +1,4 @@
-#include "halpst_blocked.h"
+#include "layout.h"
 #include "../vgmstream.h"
 
 /* set up for the block at the given offset */

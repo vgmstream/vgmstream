@@ -1,4 +1,4 @@
-#include "gcsw.h"
+#include "meta.h"
 #include "../util.h"
 
 VGMSTREAM * init_vgmstream_gcsw(const char * const filename) {

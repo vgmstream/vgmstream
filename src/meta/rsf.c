@@ -1,6 +1,6 @@
-#include "rsf.h"
+#include "meta.h"
 #include "../util.h"
-#include "../coding/g721_decoder.h"
+#include "../coding/coding.h"
 
 /* .rsf - from Metroid Prime */
 

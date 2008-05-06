@@ -1,4 +1,4 @@
-#include "interleave.h"
+#include "layout.h"
 #include "../vgmstream.h"
 
 void render_vgmstream_interleave(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstream) {

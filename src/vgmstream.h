@@ -2,11 +2,11 @@
  * vgmstream.h - definitions for VGMSTREAM, encapsulating a multi-channel, looped audio stream
  */
 
-#include "streamfile.h"
-#include "coding/g721_decoder.h"
-
 #ifndef _VGMSTREAM_H
 #define _VGMSTREAM_H
+
+#include "streamfile.h"
+#include "coding/g72x_state.h"
 
 /* The encoding type specifies the format the sound data itself takes */
 typedef enum {

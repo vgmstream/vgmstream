@@ -1,5 +1,5 @@
-#include "Cstr.h"
-#include "../coding/ngc_dsp_decoder.h"
+#include "meta.h"
+#include "../coding/coding.h"
 #include "../util.h"
 
 /* .dsp w/ Cstr header, seen in Star Fox Assault and Donkey Konga */

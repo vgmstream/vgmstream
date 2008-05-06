@@ -1,5 +1,4 @@
-#include "ast_blocked.h"
-#include "halpst_blocked.h"
+#include "layout.h"
 #include "../vgmstream.h"
 
 void render_vgmstream_blocked(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstream) {

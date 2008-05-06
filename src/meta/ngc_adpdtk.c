@@ -1,5 +1,5 @@
 #include <math.h>
-#include "ngc_adpdtk.h"
+#include "meta.h"
 #include "../util.h"
 
 VGMSTREAM * init_vgmstream_ngc_adpdtk(const char * const filename) {

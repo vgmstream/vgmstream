@@ -2,7 +2,7 @@
 #define _USE_MATH_DEFINES
 #endif
 #include <math.h>
-#include "adx_header.h"
+#include "meta.h"
 #include "../util.h"
 
 VGMSTREAM * init_vgmstream_adx(const char * const filename) {

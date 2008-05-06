@@ -1,4 +1,4 @@
-#include "nolayout.h"
+#include "layout.h"
 #include "../vgmstream.h"
 
 void render_vgmstream_nolayout(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstream) {

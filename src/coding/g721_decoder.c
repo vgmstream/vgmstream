@@ -29,7 +29,7 @@
  *
  */
 
-#include "g721_decoder.h"
+#include "coding.h"
 #include "../util.h"
 
 static short power2[15] = {1, 2, 4, 8, 0x10, 0x20, 0x40, 0x80,

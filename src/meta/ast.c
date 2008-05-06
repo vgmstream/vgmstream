@@ -1,5 +1,5 @@
-#include "ast.h"
-#include "../layout/ast_blocked.h"
+#include "meta.h"
+#include "../layout/layout.h"
 #include "../util.h"
 
 VGMSTREAM * init_vgmstream_ast(const char * const filename) {

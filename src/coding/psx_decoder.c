@@ -1,4 +1,4 @@
-#include "psx_decoder.h"
+#include "coding.h"
 #include "../util.h"
 
 double VAG_f[5][2] = { { 0.0          ,   0.0        },

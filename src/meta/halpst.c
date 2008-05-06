@@ -1,6 +1,6 @@
-#include "halpst.h"
-#include "../coding/ngc_dsp_decoder.h"
-#include "../layout/halpst_blocked.h"
+#include "meta.h"
+#include "../coding/coding.h"
+#include "../layout/layout.h"
 #include "../util.h"
 
 VGMSTREAM * init_vgmstream_halpst(const char * const filename) {

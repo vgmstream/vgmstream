@@ -1,4 +1,4 @@
-#include "ps2_npsf.h"
+#include "meta.h"
 #include "../util.h"
 
 /* Sony .ADS with SShd & SSbd Headers */

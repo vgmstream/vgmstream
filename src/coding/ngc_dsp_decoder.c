@@ -1,4 +1,4 @@
-#include "ngc_dsp_decoder.h"
+#include "coding.h"
 #include "../util.h"
 
 void decode_ngc_dsp(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
