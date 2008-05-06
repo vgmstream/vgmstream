@@ -6,7 +6,7 @@ export STRIP=strip
 .PHONY: libvgmstream.a
 
 test: libvgmstream.a test.o
-	$(CC) test.o $(LDFLAGS) -o test
+	$(CC) test.o $(LDFLAGS) $(CFLAGS) -o test
 	$(STRIP) test
 
 test.o: test.c
