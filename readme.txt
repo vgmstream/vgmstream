@@ -16,6 +16,8 @@ Options:
         -c: loop forever (continuously)
         -m: print metadata only, don't decode
         -x: decode and print adxencd command line to encode as ADX
+        -e: force end-to-end looping
+        -E: force end-to-end looping even if there is already loop info
 
 Typical usage would be:
 test -o happy.wav happy.adx
@@ -41,6 +43,9 @@ Formats supported by this version of vgmstream:
   - RS03
   - Cstr
 - .gcsw (16 bit PCM)
+- .ads/.ss2 (PSX ADPCM)
+- .npsf (PSX ADPCM)
+- .rwsd (Wii DSP ADPCM, 8/16 bit PCM)
 
 Enjoy!
 -hcs
