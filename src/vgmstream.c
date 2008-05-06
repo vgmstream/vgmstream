@@ -21,6 +21,7 @@
 #include "meta/gcsw.h"
 #include "meta/ps2_ads.h"
 #include "meta/ps2_npsf.h"
+#include "meta/rwsd.h"
 #include "layout/interleave.h"
 #include "layout/nolayout.h"
 #include "layout/blocked.h"
@@ -38,7 +39,7 @@
  * List of functions that will recognize files. These should correspond pretty
  * directly to the metadata types
  */
-#define INIT_VGMSTREAM_FCNS 15
+#define INIT_VGMSTREAM_FCNS 16
 VGMSTREAM * (*init_vgmstream_fcns[INIT_VGMSTREAM_FCNS])(const char * const) = {
     init_vgmstream_adx,
     init_vgmstream_brstm,
@@ -55,6 +56,7 @@ VGMSTREAM * (*init_vgmstream_fcns[INIT_VGMSTREAM_FCNS])(const char * const) = {
     init_vgmstream_gcsw,
     init_vgmstream_ps2_ads,
 	init_vgmstream_ps2_npsf,
+    init_vgmstream_rwsd,
 };
 
 
@@ -581,6 +583,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
 		case meta_PS2_NPSF:
             snprintf(temp,TEMPSIZE,"Namco Production Sound File (NPSF)");
+            break;
+        case meta_RWSD:
+            snprintf(temp,TEMPSIZE,"Nintendo RWSD header (single stream)");
             break;
         default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

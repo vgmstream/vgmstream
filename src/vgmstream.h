@@ -59,6 +59,7 @@ typedef enum {
     meta_RSTM,              /* RSTM (similar to STRM) */
     meta_AFC,               /* AFC */
     meta_AST,               /* AST */
+    meta_RWSD,              /* single-stream RWSD */
     /* CRI ADX */
     meta_ADX_03,            /* ADX "type 03" */
     meta_ADX_04,            /* ADX "type 04" */
