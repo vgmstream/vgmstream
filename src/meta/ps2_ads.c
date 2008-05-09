@@ -48,8 +48,8 @@ VGMSTREAM * init_vgmstream_ps2_ads(const char * const filename) {
     vgmstream->coding_type = coding_PSX;
     vgmstream->num_samples = read_32bitLE(0x24,infile)/16*28/vgmstream->channels;
 
-    /* SS2 container with RAW Interleaved PCM */
-    if (read_32bitLE(0x08,infile)==0x01) {
+	/* SS2 container with RAW Interleaved PCM */
+    if (read_32bitLE(0x08,infile)!=0x10) {
         vgmstream->coding_type=coding_PCM16LE;
         vgmstream->num_samples = read_32bitLE(0x24,infile)/2/vgmstream->channels;
     }

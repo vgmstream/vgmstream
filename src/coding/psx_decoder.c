@@ -13,7 +13,7 @@ void decode_psx(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, 
 	int16_t hist1=stream->adpcm_history1_16;
 	int16_t hist2=stream->adpcm_history2_16;
 
-	int scale;
+	short scale;
 	int i;
 	int32_t sample_count;
 
@@ -25,9 +25,9 @@ void decode_psx(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, 
 	first_sample=first_sample % 28;
 
 	for (i=first_sample,sample_count=0; i<first_sample+samples_to_do; i++,sample_count+=channelspacing) {
-        int sample_byte = (short)read_8bit(stream->offset+(framesin*16)+2+i/2,stream->streamfile);
+        short sample_byte = (short)read_8bit(stream->offset+(framesin*16)+2+i/2,stream->streamfile);
 
-		scale = (short)((i&1 ?
+		scale = ((i&1 ?
 			     sample_byte >> 4 :
 				 sample_byte & 0x0f)<<12);
 
@@ -35,7 +35,7 @@ void decode_psx(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, 
         outbuf[sample_count] = clamp16(sample);
 
 		hist2=hist1;
-		hist1=sample;
+		hist1=clamp16(sample);
 	}
 	stream->adpcm_history1_16=hist1;
 	stream->adpcm_history2_16=hist2;
