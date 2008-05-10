@@ -18,6 +18,7 @@ void usage(const char * name) {
             "\t-f fade time: fade time (seconds), default 10.0\n"
             "\t-i: ignore looping information and play the whole stream once\n"
             "\t-p: output to stdout (for piping into another program)\n"
+            "\t-P: output to stdout even if stdout is a terminal\n"
             "\t-c: loop forever (continuously)\n"
             "\t-m: print metadata only, don't decode\n"
             "\t-x: decode and print adxencd command line to encode as ADX\n"
@@ -40,13 +41,14 @@ int main(int argc, char ** argv) {
     int force_loop = 0;
     int really_force_loop = 0;
     int play = 0;
+    int play_wreckless = 0;
     int forever = 0;
     int metaonly = 0;
     int adxencd = 0;
     double loop_count = 2.0;
     double fade_time = 10.0;
     
-    while ((opt = getopt(argc, argv, "o:l:f:ipcmxeE")) != -1) {
+    while ((opt = getopt(argc, argv, "o:l:f:ipPcmxeE")) != -1) {
         switch (opt) {
             case 'o':
                 outfilename = optarg;
@@ -61,6 +63,10 @@ int main(int argc, char ** argv) {
                 ignore_loop = 1;
                 break;
             case 'p':
+                play = 1;
+                break;
+            case 'P':
+                play_wreckless = 1;
                 play = 1;
                 break;
             case 'c':
@@ -92,6 +98,11 @@ int main(int argc, char ** argv) {
 
     if (forever && !play) {
         fprintf(stderr,"A file of infinite size? Not likely.\n");
+        return 1;
+    }
+
+    if (play && (!play_wreckless &&isatty(STDOUT_FILENO))) {
+        fprintf(stderr,"Are you sure you want to output wave data to the terminal?\nIf so use -P instead of -p.\n");
         return 1;
     }
 
