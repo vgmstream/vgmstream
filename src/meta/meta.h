@@ -35,4 +35,6 @@ VGMSTREAM * init_vgmstream_rsf(const char * const filename);
 
 VGMSTREAM * init_vgmstream_rwsd(const char * const filename);
 
+VGMSTREAM * init_vgmstream_cdxa(const char * const filename);
+
 #endif

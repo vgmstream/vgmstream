@@ -251,6 +251,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\psx_cdxa.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\rs03.c"
 					>
 				</File>
@@ -314,6 +318,10 @@
 					RelativePath=".\coding\psx_decoder.c"
 					>
 				</File>
+				<File
+					RelativePath=".\coding\xa_decoder.c"
+					>
+				</File>
 			</Filter>
 		</Filter>
 		<Filter
@@ -348,6 +356,10 @@
 				</File>
 				<File
 					RelativePath=".\layout\nolayout.c"
+					>
+				</File>
+				<File
+					RelativePath=".\layout\xa_blocked.c"
 					>
 				</File>
 			</Filter>

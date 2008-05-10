@@ -23,6 +23,7 @@ typedef enum {
     coding_G721,            /* CCITT G.721 ADPCM */
     coding_NGC_AFC,         /* NGC ADPCM, called AFC */
 	coding_PSX,				/* PSX & PS2 ADPCM */
+	coding_XA,				/* PSX CD-XA */
 } coding_t;
 
 /* The layout type specifies how the sound data is laid out in the file */
@@ -38,6 +39,7 @@ typedef enum {
     /* headered blocks */
     layout_ast_blocked,     /* .ast STRM with BLCK blocks*/
     layout_halpst_blocked,    /* blocks with HALPST-format header */
+	layout_xa_blocked,
 #if 0
     layout_strm_blocked,    /* */
 #endif
@@ -74,6 +76,8 @@ typedef enum {
 
 	meta_PS2_SShd,			/* .ADS with SShd header */
 	meta_PS2_NPSF,			/* Namco Production Sound File */
+
+	meta_PSX_XA,
 } meta_t;
 
 typedef struct {
@@ -151,6 +155,7 @@ typedef struct {
     size_t loop_block_size;         /* saved from current_block_size */
     off_t loop_next_block_offset;   /* saved from next_block_offset */
 
+	uint8_t xa_channel;				/* Selected XA Channel */
 } VGMSTREAM;
 
 /* do format detection, return pointer to a usable VGMSTREAM, or NULL on failure */

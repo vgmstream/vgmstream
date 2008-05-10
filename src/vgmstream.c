@@ -15,7 +15,7 @@
  * List of functions that will recognize files. These should correspond pretty
  * directly to the metadata types
  */
-#define INIT_VGMSTREAM_FCNS 16
+#define INIT_VGMSTREAM_FCNS 17
 VGMSTREAM * (*init_vgmstream_fcns[INIT_VGMSTREAM_FCNS])(const char * const) = {
     init_vgmstream_adx,
     init_vgmstream_brstm,
@@ -33,6 +33,7 @@ VGMSTREAM * (*init_vgmstream_fcns[INIT_VGMSTREAM_FCNS])(const char * const) = {
     init_vgmstream_ps2_ads,
 	init_vgmstream_ps2_npsf,
     init_vgmstream_rwsd,
+	init_vgmstream_cdxa,
 };
 
 
@@ -153,6 +154,7 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
             break;
         case layout_ast_blocked:
         case layout_halpst_blocked:
+		case layout_xa_blocked:
             render_vgmstream_blocked(buffer,sample_count,vgmstream);
             break;
     }
@@ -177,6 +179,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_NGC_AFC:
             return 16;
         case coding_PSX:
+		case coding_XA:
             return 28;
         default:
             return 0;
@@ -213,6 +216,8 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
             return 9;
         case coding_PSX:
             return 16;
+		case coding_XA:
+			return 28;
         default:
             return 0;
     }
@@ -298,6 +303,13 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
         case coding_PSX:
             for (chan=0;chan<vgmstream->channels;chan++) {
                 decode_psx(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                        vgmstream->channels,vgmstream->samples_into_block,
+                        samples_to_do);
+            }
+            break;
+		case coding_XA:
+            for (chan=0;chan<vgmstream->channels;chan++) {
+                decode_xa(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
                         samples_to_do);
             }
@@ -456,6 +468,7 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             snprintf(temp,TEMPSIZE,"Gamecube \"AFC\" 4-bit ADPCM");
             break;
         case coding_PSX:
+        case coding_XA:
             snprintf(temp,TEMPSIZE,"Playstation 4-bit ADPCM");
             break;
         default:
@@ -484,6 +497,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case layout_halpst_blocked:
             snprintf(temp,TEMPSIZE,"HALPST blocked");
+            break;
+		case layout_xa_blocked:
+            snprintf(temp,TEMPSIZE,"CD-XA");
             break;
         default:
             snprintf(temp,TEMPSIZE,"INCONCEIVABLE");
@@ -562,6 +578,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case meta_RWSD:
             snprintf(temp,TEMPSIZE,"Nintendo RWSD header (single stream)");
+            break;
+        case meta_PSX_XA:
+            snprintf(temp,TEMPSIZE,"RIFF/CDXA Header");
             break;
         default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

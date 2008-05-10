@@ -48,6 +48,9 @@ void render_vgmstream_blocked(sample * buffer, int32_t sample_count, VGMSTREAM *
                     else
                         vgmstream->current_block_offset=-1;
                     break;
+				case layout_xa_blocked:
+					xa_block_update(vgmstream->next_block_offset,vgmstream);
+					break;
                 default:
                     break;
             }
