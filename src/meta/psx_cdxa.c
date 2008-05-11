@@ -1,8 +1,11 @@
 #include "meta.h"
+#include "../layout/layout.h"
 #include "../util.h"
 
 /* Sony PSX CD-XA */
 /* No looped file ! */
+
+off_t init_xa_channel(int channel,VGMSTREAM* vgmstream);
 
 uint8_t AUDIO_CODING_GET_STEREO(uint8_t value) {
 	return (uint8_t)(value & 3);
@@ -73,7 +76,7 @@ VGMSTREAM * init_vgmstream_cdxa(const char * const filename) {
         }
     }
 
-	xa_block_update(init_xa_channel(0),vgmstream);
+	xa_block_update(init_xa_channel(0,vgmstream),vgmstream);
 
 	return vgmstream;
 
