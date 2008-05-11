@@ -37,4 +37,6 @@ VGMSTREAM * init_vgmstream_rwsd(const char * const filename);
 
 VGMSTREAM * init_vgmstream_cdxa(const char * const filename);
 
+VGMSTREAM * init_vgmstream_ps2_rxw(const char * const filename);
+
 #endif

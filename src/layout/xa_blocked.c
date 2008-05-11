@@ -8,14 +8,13 @@ void xa_block_update(off_t block_offset, VGMSTREAM * vgmstream) {
 	uint8_t currentChannel=0;
 	uint8_t subAudio=0;
 
-	// i used interleave_block_size to check sector read length
 	if(vgmstream->samples_into_block!=0)
 		// don't change this variable in the init process
-		vgmstream->interleave_block_size+=128;
+		vgmstream->xa_sector_length+=128;
 
 	// We get to the end of a sector ?
-	if(vgmstream->interleave_block_size==(18*128)) {
-		vgmstream->interleave_block_size=0;
+	if(vgmstream->xa_sector_length==(18*128)) {
+		vgmstream->xa_sector_length=0;
 
 		// 0x30 of unused bytes/sector :(
 		block_offset+=0x30;

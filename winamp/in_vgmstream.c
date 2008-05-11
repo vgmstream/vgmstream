@@ -45,7 +45,7 @@ int fade_samples = 0;
 
 #define EXTENSION_LIST_SIZE 1024
 char working_extension_list[EXTENSION_LIST_SIZE] = {0};
-#define EXTENSION_COUNT 16
+#define EXTENSION_COUNT 17
 char * extension_list[EXTENSION_COUNT] = {
     "adx\0ADX Audio File (*.ADX)\0",
     "afc\0AFC Audio File (*.AFC)\0",
@@ -63,6 +63,7 @@ char * extension_list[EXTENSION_COUNT] = {
 	"npsf\0PS2 NPSF Audio File (*.NPSF)\0",
     "rwsd\0RWSD Audio File (*.RWSD)\0",
 	"xa\0PSX CD-XA File (*.XA)\0",
+	"rxw\0PS2 RXWS File (*.RXW)\0",
 };
 
 /* stubs, we don't do anything fancy yet */
@@ -139,7 +140,7 @@ int play(char *fn)
     decode_pos_samples = 0;
     paused = 0;
     stream_length_samples = get_vgmstream_play_samples(loop_count,fade_seconds,vgmstream);
-    fade_samples = fade_seconds * vgmstream->sample_rate;
+    fade_samples = (int)(fade_seconds * vgmstream->sample_rate);
 
     decode_thread_handle = CreateThread(
             NULL,   /* handle cannot be inherited */
@@ -296,7 +297,7 @@ DWORD WINAPI __stdcall decode(void *arg) {
                             double fadedness = (double)(fade_samples-samples_into_fade)/fade_samples;
                             for (k=0;k<vgmstream->channels;k++) {
                                 sample_buffer[j*vgmstream->channels+k] =
-                                    sample_buffer[j*vgmstream->channels+k]*fadedness;
+                                    (short)(sample_buffer[j*vgmstream->channels+k]*fadedness);
                             }
                         }
                     }

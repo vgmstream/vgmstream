@@ -15,7 +15,7 @@
  * List of functions that will recognize files. These should correspond pretty
  * directly to the metadata types
  */
-#define INIT_VGMSTREAM_FCNS 17
+#define INIT_VGMSTREAM_FCNS 18
 VGMSTREAM * (*init_vgmstream_fcns[INIT_VGMSTREAM_FCNS])(const char * const) = {
     init_vgmstream_adx,
     init_vgmstream_brstm,
@@ -34,6 +34,7 @@ VGMSTREAM * (*init_vgmstream_fcns[INIT_VGMSTREAM_FCNS])(const char * const) = {
 	init_vgmstream_ps2_npsf,
     init_vgmstream_rwsd,
 	init_vgmstream_cdxa,
+	init_vgmstream_ps2_rxw,
 };
 
 
@@ -217,7 +218,7 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
         case coding_PSX:
             return 16;
 		case coding_XA:
-			return 28;
+			return 14*vgmstream->channels;
         default:
             return 0;
     }
@@ -362,6 +363,8 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream) {
                 for (i=0;i<vgmstream->channels;i++) {
                     vgmstream->loop_ch[i].adpcm_history1_16 = vgmstream->ch[i].adpcm_history1_16;
                     vgmstream->loop_ch[i].adpcm_history2_16 = vgmstream->ch[i].adpcm_history2_16;
+                    vgmstream->loop_ch[i].adpcm_history1_32 = vgmstream->ch[i].adpcm_history1_32;
+                    vgmstream->loop_ch[i].adpcm_history2_32 = vgmstream->ch[i].adpcm_history2_32;
                 }
             }
 #if DEBUG
@@ -583,6 +586,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case meta_PSX_XA:
             snprintf(temp,TEMPSIZE,"RIFF/CDXA Header");
+            break;
+		case meta_PS2_RXW:
+            snprintf(temp,TEMPSIZE,"RXWS File (Arc The Lad)");
             break;
         default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

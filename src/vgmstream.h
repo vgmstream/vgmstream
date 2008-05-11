@@ -76,8 +76,10 @@ typedef enum {
 
 	meta_PS2_SShd,			/* .ADS with SShd header */
 	meta_PS2_NPSF,			/* Namco Production Sound File */
+	meta_PS2_RXW,			/* Sony Arc The Lad Sound File */
 
-	meta_PSX_XA,
+	meta_PSX_XA,			/* CD-XA with RIFF header */
+
 } meta_t;
 
 typedef struct {
@@ -156,6 +158,7 @@ typedef struct {
     off_t loop_next_block_offset;   /* saved from next_block_offset */
 
 	uint8_t xa_channel;				/* Selected XA Channel */
+	int32_t xa_sector_length;		/* XA block */
 } VGMSTREAM;
 
 /* do format detection, return pointer to a usable VGMSTREAM, or NULL on failure */

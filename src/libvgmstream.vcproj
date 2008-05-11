@@ -251,6 +251,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\ps2_rxw.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\psx_cdxa.c"
 					>
 				</File>
