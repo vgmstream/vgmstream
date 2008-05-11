@@ -5,8 +5,8 @@
 void xa_block_update(off_t block_offset, VGMSTREAM * vgmstream) {
 
 	int i;
-	uint8_t currentChannel=0;
-	uint8_t subAudio=0;
+	int8_t currentChannel=0;
+	int8_t subAudio=0;
 
 	if(vgmstream->samples_into_block!=0)
 		// don't change this variable in the init process

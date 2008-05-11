@@ -77,6 +77,7 @@ typedef enum {
 	meta_PS2_SShd,			/* .ADS with SShd header */
 	meta_PS2_NPSF,			/* Namco Production Sound File */
 	meta_PS2_RXW,			/* Sony Arc The Lad Sound File */
+	meta_PS2_RAW,			/* RAW Interleaved Format */
 
 	meta_PSX_XA,			/* CD-XA with RIFF header */
 

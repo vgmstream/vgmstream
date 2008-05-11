@@ -15,7 +15,7 @@
  * List of functions that will recognize files. These should correspond pretty
  * directly to the metadata types
  */
-#define INIT_VGMSTREAM_FCNS 18
+#define INIT_VGMSTREAM_FCNS 19
 VGMSTREAM * (*init_vgmstream_fcns[INIT_VGMSTREAM_FCNS])(const char * const) = {
     init_vgmstream_adx,
     init_vgmstream_brstm,
@@ -35,6 +35,7 @@ VGMSTREAM * (*init_vgmstream_fcns[INIT_VGMSTREAM_FCNS])(const char * const) = {
     init_vgmstream_rwsd,
 	init_vgmstream_cdxa,
 	init_vgmstream_ps2_rxw,
+	init_vgmstream_ps2_int,
 };
 
 
@@ -589,6 +590,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
 		case meta_PS2_RXW:
             snprintf(temp,TEMPSIZE,"RXWS File (Arc The Lad)");
+            break;
+		case meta_PS2_RAW:
+            snprintf(temp,TEMPSIZE,"RAW Interleaved PCM");
             break;
         default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

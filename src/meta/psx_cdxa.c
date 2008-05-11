@@ -93,8 +93,8 @@ off_t init_xa_channel(int channel,VGMSTREAM* vgmstream) {
 	
 	off_t block_offset=0x44;
 
-	uint8_t currentChannel;
-	uint8_t subAudio;
+	int8_t currentChannel;
+	int8_t subAudio;
 
 	vgmstream->xa_channel=channel;
 

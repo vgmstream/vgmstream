@@ -247,6 +247,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\ps2_int.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\ps2_npsf.c"
 					>
 				</File>

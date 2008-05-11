@@ -19,7 +19,7 @@ VGMSTREAM * init_vgmstream_ps2_rxw(const char * const filename) {
     infile = open_streamfile(filename);
     if (!infile) goto fail;
 
-    /* check NPSF Header */
+    /* check RXWS/FORM Header */
     if (!((read_32bitBE(0x00,infile) == 0x52585753) && 
 	      (read_32bitBE(0x10,infile) == 0x464F524D)))
         goto fail;
@@ -38,7 +38,6 @@ VGMSTREAM * init_vgmstream_ps2_rxw(const char * const filename) {
 	vgmstream->channels = channel_count;
     vgmstream->sample_rate = read_32bitLE(0x2E,infile);
 
-	/* Check for Compression Scheme */
 	vgmstream->coding_type = coding_PSX;
     vgmstream->num_samples = (read_32bitLE(0x38,infile)*28/16)/2;
 
