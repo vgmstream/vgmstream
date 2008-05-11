@@ -468,8 +468,10 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             snprintf(temp,TEMPSIZE,"Gamecube \"AFC\" 4-bit ADPCM");
             break;
         case coding_PSX:
-        case coding_XA:
             snprintf(temp,TEMPSIZE,"Playstation 4-bit ADPCM");
+            break;
+        case coding_XA:
+            snprintf(temp,TEMPSIZE,"CD-ROM XA 4-bit ADPCM");
             break;
         default:
             snprintf(temp,TEMPSIZE,"CANNOT DECODE");
@@ -499,7 +501,7 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             snprintf(temp,TEMPSIZE,"HALPST blocked");
             break;
 		case layout_xa_blocked:
-            snprintf(temp,TEMPSIZE,"CD-XA");
+            snprintf(temp,TEMPSIZE,"CD-ROM XA");
             break;
         default:
             snprintf(temp,TEMPSIZE,"INCONCEIVABLE");
