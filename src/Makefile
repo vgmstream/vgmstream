@@ -32,7 +32,8 @@ META_OBJS=meta/adx_header.o \
 		  meta/ps2_npsf.o \
 		  meta/rwsd.o \
 		  meta/psx_cdxa.o \
-		  meta/ps2_rxw.o
+		  meta/ps2_rxw.o \
+		  meta/ps2_int.o
 
 OBJECTS=vgmstream.o streamfile.o util.o $(CODING_OBJS) $(LAYOUT_OBJS) $(META_OBJS)
 
