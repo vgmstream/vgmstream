@@ -324,7 +324,7 @@ VGMSTREAM * init_vgmstream_ngc_dsp_stm(const char * const filename) {
         if (!vgmstream->ch[1].streamfile) goto fail;
 
         vgmstream->ch[1].channel_start_offset=
-            vgmstream->ch[1].offset=start_offset+second_channel_start;
+            vgmstream->ch[1].offset=second_channel_start;
     }
 
     return vgmstream;
