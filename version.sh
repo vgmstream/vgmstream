@@ -1,1 +1,2 @@
-echo "r`svnversion | tr : _`"
+DIR="`dirname "$0"`"
+echo "r`svnversion $DIR | tr : _`"
