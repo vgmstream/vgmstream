@@ -5,7 +5,7 @@ It is very much under development. There are two end-user bits, a command
 line decoder called "test", and a simple Winamp plugin called "in_vgmstream".
 
 --- test ---
-Usage: ./test [-o outfile.wav] [-l loop count]
+Usage: test.exe [-o outfile.wav] [-l loop count]
     [-f fade time] [-ipcmxeE] infile
 Options:
     -o outfile.wav: name of output .wav file, default is dump.wav
