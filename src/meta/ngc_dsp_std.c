@@ -152,9 +152,187 @@ VGMSTREAM * init_vgmstream_ngc_dsp_std(const char * const filename) {
 
     return vgmstream;
 
-    /* clean up anything we may have opened */
 fail:
+    /* clean up anything we may have opened */
     if (infile) close_streamfile(infile);
     if (vgmstream) close_vgmstream(vgmstream);
     return NULL;
 }
+
+/* Some very simple stereo variants of standard dsp just use the standard header
+ * twice and add interleave, or just concatenate the channels. We'll support
+ * them all here.
+ * Note that Cstr isn't here, despite using the form of the standard header,
+ * because its loop values are wacky. */
+
+/* .stm
+ * Used in Paper Mario 2, Fire Emblem: Path of Radiance, Cubivore
+ * I suspected that this was an Intelligent Systems format, but its use in
+ * Cubivore calls that into question. */
+VGMSTREAM * init_vgmstream_ngc_dsp_stm(const char * const filename) {
+    VGMSTREAM * vgmstream = NULL;
+    STREAMFILE * infile = NULL;
+
+    struct dsp_header ch0_header, ch1_header;
+    int i;
+    int stm_header_sample_rate;
+    int channel_count;
+    const off_t start_offset = 0x100;
+    off_t first_channel_size;
+    off_t second_channel_start;
+
+    /* check extension, case insensitive */
+    /* to avoid collision with Scream Tracker 2 Modules, also ending in .stm
+     * and supported by default in Winamp, it was policy in the old days to
+     * rename these files to .dsp */
+    if (strcasecmp("stm",filename_extension(filename)) &&
+            strcasecmp("dsp",filename_extension(filename))) goto fail;
+
+    /* try to open the file for header reading */
+    infile = open_streamfile(filename);
+    if (!infile) goto fail;
+
+    /* check intro magic */
+    if (read_16bitBE(0, infile) != 0x0200) goto fail;
+
+    channel_count = read_32bitBE(4, infile);
+    /* only stereo and mono are known */
+    if (channel_count != 1 && channel_count != 2) goto fail;
+
+    first_channel_size = read_32bitBE(8, infile);
+    /* this is bad rounding, wastes space, but it looks like that's what's
+     * used */
+    second_channel_start = ((start_offset+first_channel_size)+0x20)/0x20*0x20;
+
+    /* an additional check */
+    stm_header_sample_rate = (uint16_t)read_16bitBE(2, infile);
+
+    /* read the DSP headers */
+    if (read_dsp_header(&ch0_header, 0x40, infile)) goto fail;
+    if (channel_count == 2) {
+        if (read_dsp_header(&ch1_header, 0xa0, infile)) goto fail;
+    }
+
+    /* checks for fist channel */
+    {
+        if (ch0_header.sample_rate != stm_header_sample_rate) goto fail;
+
+        /* check initial predictor/scale */
+        if (ch0_header.initial_ps != (uint8_t)read_8bit(start_offset, infile))
+            goto fail;
+
+        /* check type==0 and gain==0 */
+        if (ch0_header.format || ch0_header.gain)
+            goto fail;
+
+        if (ch0_header.loop_flag) {
+            off_t loop_off;
+            /* check loop predictor/scale */
+            loop_off = ch0_header.loop_start_offset/16*8;
+            if (ch0_header.loop_ps != (uint8_t)read_8bit(start_offset+loop_off,infile))
+                goto fail;
+        }
+    }
+
+
+    /* checks for second channel */
+    if (channel_count == 2) {
+        if (ch1_header.sample_rate != stm_header_sample_rate) goto fail;
+
+        /* check for agreement with first channel header */
+        if (
+            ch0_header.sample_count != ch1_header.sample_count ||
+            ch0_header.nibble_count != ch1_header.nibble_count ||
+            ch0_header.loop_flag != ch1_header.loop_flag ||
+            ch0_header.loop_start_offset != ch1_header.loop_start_offset ||
+            ch0_header.loop_end_offset != ch1_header.loop_end_offset
+           ) goto fail;
+
+        /* check initial predictor/scale */
+        if (ch1_header.initial_ps != (uint8_t)read_8bit(second_channel_start, infile))
+            goto fail;
+
+        /* check type==0 and gain==0 */
+        if (ch1_header.format || ch1_header.gain)
+            goto fail;
+
+        if (ch1_header.loop_flag) {
+            off_t loop_off;
+            /* check loop predictor/scale */
+            loop_off = ch1_header.loop_start_offset/16*8;
+            /*printf("loop_start_offset=%x\nloop_ps=%x\nloop_off=%x\n",ch1_header.loop_start_offset,ch1_header.loop_ps,second_channel_start+loop_off);*/
+            if (ch1_header.loop_ps != (uint8_t)read_8bit(second_channel_start+loop_off,infile))
+                goto fail;
+        }
+    }
+
+    /* build the VGMSTREAM */
+
+    vgmstream = allocate_vgmstream(channel_count, ch0_header.loop_flag);
+    if (!vgmstream) goto fail;
+
+    /* fill in the vital statistics */
+    vgmstream->num_samples = ch0_header.sample_count;
+    vgmstream->sample_rate = ch0_header.sample_rate;
+
+    vgmstream->loop_start_sample = dsp_nibbles_to_samples(
+            ch0_header.loop_start_offset);
+    vgmstream->loop_end_sample =  dsp_nibbles_to_samples(
+            ch0_header.loop_end_offset)+1;
+
+    /* don't know why, but it does happen*/
+    if (vgmstream->loop_end_sample > vgmstream->num_samples)
+        vgmstream->loop_end_sample = vgmstream->num_samples;
+
+    vgmstream->coding_type = coding_NGC_DSP;
+    vgmstream->layout_type = layout_none;
+    vgmstream->meta_type = meta_DSP_STM;
+
+    /* coeffs */
+    for (i=0;i<16;i++)
+        vgmstream->ch[0].adpcm_coef[i] = ch0_header.coef[i];
+
+    /* initial history */
+    /* always 0 that I've ever seen, but for completeness... */
+    vgmstream->ch[0].adpcm_history1_16 = ch0_header.initial_hist1;
+    vgmstream->ch[0].adpcm_history2_16 = ch0_header.initial_hist2;
+
+    if (channel_count == 2) {
+        /* coeffs */
+        for (i=0;i<16;i++)
+            vgmstream->ch[1].adpcm_coef[i] = ch1_header.coef[i];
+
+        /* initial history */
+        /* always 0 that I've ever seen, but for completeness... */
+        vgmstream->ch[1].adpcm_history1_16 = ch1_header.initial_hist1;
+        vgmstream->ch[1].adpcm_history2_16 = ch1_header.initial_hist2;
+    }
+
+    close_streamfile(infile); infile=NULL;
+
+    /* open the file for reading */
+    vgmstream->ch[0].streamfile = open_streamfile(filename);
+
+    if (!vgmstream->ch[0].streamfile) goto fail;
+
+    vgmstream->ch[0].channel_start_offset=
+        vgmstream->ch[0].offset=start_offset;
+
+    if (channel_count == 2) {
+        vgmstream->ch[1].streamfile = open_streamfile(filename);
+
+        if (!vgmstream->ch[1].streamfile) goto fail;
+
+        vgmstream->ch[1].channel_start_offset=
+            vgmstream->ch[1].offset=start_offset+second_channel_start;
+    }
+
+    return vgmstream;
+
+fail:
+    /* clean up anything we may have opened */
+    if (infile) close_streamfile(infile);
+    if (vgmstream) close_vgmstream(vgmstream);
+    return NULL;
+}
+

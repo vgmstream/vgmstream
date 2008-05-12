@@ -25,6 +25,8 @@ VGMSTREAM * init_vgmstream_ngc_adpdtk(const char * const filename);
 
 VGMSTREAM * init_vgmstream_ngc_dsp_std(const char * const filename);
 
+VGMSTREAM * init_vgmstream_ngc_dsp_stm(const char * const filename);
+
 VGMSTREAM * init_vgmstream_ps2_ads(const char * const filename);
 
 VGMSTREAM * init_vgmstream_ps2_npsf(const char * const filename);

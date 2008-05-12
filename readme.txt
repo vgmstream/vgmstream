@@ -43,6 +43,7 @@ File types supported by this version of vgmstream:
   - standard, with dual file stereo
   - RS03
   - Cstr
+  - .stm
 - .gcsw (16 bit PCM)
 - .ads/.ss2 (PSX ADPCM)
 - .npsf (PSX ADPCM)

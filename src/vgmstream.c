@@ -15,27 +15,28 @@
  * List of functions that will recognize files. These should correspond pretty
  * directly to the metadata types
  */
-#define INIT_VGMSTREAM_FCNS 19
+#define INIT_VGMSTREAM_FCNS 20
 VGMSTREAM * (*init_vgmstream_fcns[INIT_VGMSTREAM_FCNS])(const char * const) = {
-    init_vgmstream_adx,
-    init_vgmstream_brstm,
-    init_vgmstream_nds_strm,
-    init_vgmstream_agsc,
-    init_vgmstream_ngc_adpdtk,
-    init_vgmstream_rsf,
-    init_vgmstream_afc,
-    init_vgmstream_ast,
-    init_vgmstream_halpst,
-    init_vgmstream_rs03,
-    init_vgmstream_ngc_dsp_std,
-    init_vgmstream_Cstr,
-    init_vgmstream_gcsw,
-    init_vgmstream_ps2_ads,
-	init_vgmstream_ps2_npsf,
-    init_vgmstream_rwsd,
-	init_vgmstream_cdxa,
-	init_vgmstream_ps2_rxw,
-	init_vgmstream_ps2_int,
+    init_vgmstream_adx,             /* 0 */
+    init_vgmstream_brstm,           /* 1 */
+    init_vgmstream_nds_strm,        /* 2 */
+    init_vgmstream_agsc,            /* 3 */
+    init_vgmstream_ngc_adpdtk,      /* 4 */
+    init_vgmstream_rsf,             /* 5 */
+    init_vgmstream_afc,             /* 6 */
+    init_vgmstream_ast,             /* 7 */
+    init_vgmstream_halpst,          /* 8 */
+    init_vgmstream_rs03,            /* 9 */
+    init_vgmstream_ngc_dsp_std,     /* 10 */
+    init_vgmstream_Cstr,            /* 11 */
+    init_vgmstream_gcsw,            /* 12 */
+    init_vgmstream_ps2_ads,         /* 13 */
+	init_vgmstream_ps2_npsf,        /* 14 */
+    init_vgmstream_rwsd,            /* 15 */
+	init_vgmstream_cdxa,            /* 16 */
+	init_vgmstream_ps2_rxw,         /* 17 */
+	init_vgmstream_ps2_int,         /* 18 */
+    init_vgmstream_ngc_dsp_stm,     /* 19 */
 };
 
 
@@ -592,7 +593,10 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             snprintf(temp,TEMPSIZE,"RXWS File (Arc The Lad)");
             break;
 		case meta_PS2_RAW:
-            snprintf(temp,TEMPSIZE,"RAW Interleaved PCM");
+            snprintf(temp,TEMPSIZE,"assumed RAW Interleaved PCM by .int extension");
+            break;
+        case meta_DSP_STM:
+            snprintf(temp,TEMPSIZE,"Nintendo STM header");
             break;
         default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");
