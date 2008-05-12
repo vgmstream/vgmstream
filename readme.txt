@@ -5,19 +5,20 @@ It is very much under development. There are two end-user bits, a command
 line decoder called "test", and a simple Winamp plugin called "in_vgmstream".
 
 --- test ---
-Usage: test [-o outfile.wav] [-l loop count]
-        [-f fade time] [-i] [-p] [-c] [-m] infile
+Usage: ./test [-o outfile.wav] [-l loop count]
+    [-f fade time] [-ipcmxeE] infile
 Options:
-        -o outfile.wav: name of output .wav file, default is dump.wav
-        -l loop count: loop count, default 2.0
-        -f fade time: fade time (seconds), default 10.0
-        -i: ignore looping information and play the whole stream once
-        -p: output to stdout (for piping into another program)
-        -c: loop forever (continuously)
-        -m: print metadata only, don't decode
-        -x: decode and print adxencd command line to encode as ADX
-        -e: force end-to-end looping
-        -E: force end-to-end looping even if there is already loop info
+    -o outfile.wav: name of output .wav file, default is dump.wav
+    -l loop count: loop count, default 2.0
+    -f fade time: fade time (seconds), default 10.0
+    -i: ignore looping information and play the whole stream once
+    -p: output to stdout (for piping into another program)
+    -P: output to stdout even if stdout is a terminal
+    -c: loop forever (continuously)
+    -m: print metadata only, don't decode
+    -x: decode and print adxencd command line to encode as ADX
+    -e: force end-to-end looping
+    -E: force end-to-end looping even if file has real loop points
 
 Typical usage would be:
 test -o happy.wav happy.adx
@@ -28,7 +29,7 @@ Drop the in_vgmstream.dll in your Winamp plugins directory. There is no
 configuration or seeking yet.
 
 ---
-Formats supported by this version of vgmstream:
+File types supported by this version of vgmstream:
 - .adx (CRI ADX ADPCM)
 - .brstm (RSTM: GC/Wii DSP ADPCM, 8/16 bit PCM)
 - .strm (STRM: NDS IMA ADPCM, 8/16 bit PCM)
@@ -46,6 +47,9 @@ Formats supported by this version of vgmstream:
 - .ads/.ss2 (PSX ADPCM)
 - .npsf (PSX ADPCM)
 - .rwsd (Wii DSP ADPCM, 8/16 bit PCM)
+- .xa (CD-ROM XA audio)
+- .rxw (PSX ADPCM)
+- .int (16 bit PCM)
 
 Enjoy!
 -hcs
