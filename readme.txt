@@ -51,6 +51,8 @@ File types supported by this version of vgmstream:
 - .xa (CD-ROM XA audio)
 - .rxw (PSX ADPCM)
 - .int (16 bit PCM)
+- .sts (PSX ADPCM)
+- .svag (PSX ADPCM)
 
 Enjoy!
 -hcs

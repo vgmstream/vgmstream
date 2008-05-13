@@ -79,7 +79,7 @@ VGMSTREAM * init_vgmstream_ps2_ads(const char * const filename) {
 
             vgmstream->ch[i].channel_start_offset=
                 vgmstream->ch[i].offset=
-                0x28+vgmstream->interleave_block_size*i;
+                (off_t)(0x28+vgmstream->interleave_block_size*i);
         }
     }
 

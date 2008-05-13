@@ -34,7 +34,7 @@ VGMSTREAM * init_vgmstream_ps2_int(const char * const filename) {
     vgmstream->channels = 2;
     vgmstream->sample_rate = 48000;
     vgmstream->coding_type = coding_PCM16LE;
-    vgmstream->num_samples = get_streamfile_size(infile)/4;
+    vgmstream->num_samples = (int32_t)(get_streamfile_size(infile)/4);
     vgmstream->interleave_block_size = 0x200;
     vgmstream->layout_type = layout_interleave;
     vgmstream->meta_type = meta_PS2_RAW;

@@ -64,7 +64,7 @@ VGMSTREAM * init_vgmstream_ps2_rxw(const char * const filename) {
 
             vgmstream->ch[i].channel_start_offset=
                 vgmstream->ch[i].offset=
-                start_offset+vgmstream->interleave_block_size*i;
+                (off_t)(start_offset+vgmstream->interleave_block_size*i);
         }
     }
 
