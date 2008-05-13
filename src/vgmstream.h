@@ -78,7 +78,7 @@ typedef enum {
 	meta_PS2_NPSF,			/* Namco Production Sound File */
 	meta_PS2_RXW,			/* Sony Arc The Lad Sound File */
 	meta_PS2_RAW,			/* RAW Interleaved Format */
-
+	meta_PS2_EXST,			/* Shadow of Colossus EXST */
 	meta_PSX_XA,			/* CD-XA with RIFF header */
 
 } meta_t;

@@ -598,6 +598,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         case meta_DSP_STM:
             snprintf(temp,TEMPSIZE,"Nintendo STM header");
             break;
+        case meta_PS2_EXST:
+            snprintf(temp,TEMPSIZE,"EXST File (Shadow of the Colossus)");
+            break;
         default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");
     }
