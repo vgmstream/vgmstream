@@ -14,7 +14,7 @@
    2008-05-13 - Fastelbja : First version ...
 */
 
-VGMSTREAM * init_vgmstream_ps2_ads(const char * const filename) {
+VGMSTREAM * init_vgmstream_ps2_exst(const char * const filename) {
     VGMSTREAM * vgmstream = NULL;
     STREAMFILE * infile = NULL;
 

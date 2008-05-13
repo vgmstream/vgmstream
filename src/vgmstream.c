@@ -15,7 +15,7 @@
  * List of functions that will recognize files. These should correspond pretty
  * directly to the metadata types
  */
-#define INIT_VGMSTREAM_FCNS 20
+#define INIT_VGMSTREAM_FCNS 21
 VGMSTREAM * (*init_vgmstream_fcns[INIT_VGMSTREAM_FCNS])(const char * const) = {
     init_vgmstream_adx,             /* 0 */
     init_vgmstream_brstm,           /* 1 */
@@ -37,6 +37,7 @@ VGMSTREAM * (*init_vgmstream_fcns[INIT_VGMSTREAM_FCNS])(const char * const) = {
 	init_vgmstream_ps2_rxw,         /* 17 */
 	init_vgmstream_ps2_int,         /* 18 */
     init_vgmstream_ngc_dsp_stm,     /* 19 */
+    init_vgmstream_ps2_exst,        /* 20 */
 };
 
 
