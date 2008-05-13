@@ -580,19 +580,19 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             snprintf(temp,TEMPSIZE,"GCSW header");
             break;
         case meta_PS2_SShd:
-            snprintf(temp,TEMPSIZE,"ADS File (with SShd header)");
+            snprintf(temp,TEMPSIZE,"SShd header");
             break;
 		case meta_PS2_NPSF:
-            snprintf(temp,TEMPSIZE,"Namco Production Sound File (NPSF)");
+            snprintf(temp,TEMPSIZE,"Namco Production Sound File (NPSF) header");
             break;
         case meta_RWSD:
             snprintf(temp,TEMPSIZE,"Nintendo RWSD header (single stream)");
             break;
         case meta_PSX_XA:
-            snprintf(temp,TEMPSIZE,"RIFF/CDXA Header");
+            snprintf(temp,TEMPSIZE,"RIFF/CDXA header");
             break;
 		case meta_PS2_RXW:
-            snprintf(temp,TEMPSIZE,"RXWS File (Arc The Lad)");
+            snprintf(temp,TEMPSIZE,"RXWS header)");
             break;
 		case meta_PS2_RAW:
             snprintf(temp,TEMPSIZE,"assumed RAW Interleaved PCM by .int extension");
@@ -601,10 +601,10 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             snprintf(temp,TEMPSIZE,"Nintendo STM header");
             break;
         case meta_PS2_EXST:
-            snprintf(temp,TEMPSIZE,"EXST File (Shadow of the Colossus)");
+            snprintf(temp,TEMPSIZE,"EXST header");
             break;
         case meta_PS2_SVAG:
-            snprintf(temp,TEMPSIZE,"Konami SVAG Audio File");
+            snprintf(temp,TEMPSIZE,"Konami SVAG header");
             break;
         default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");
