@@ -87,8 +87,8 @@ VGMSTREAM * init_vgmstream_ps2_mib(const char * const filename) {
 			if(interleave==0) interleave=readOffset-0x10;
 
 			// be sure to point to an interleave value
-			if((((readOffset-0x10)%interleave)==interleave) || ((readOffset-0x10)==interleave)) {
-				if (channel_count<6) channel_count++;
+			if(((readOffset-0x10)==channel_count*interleave)) {
+				channel_count++;
 			}
 		}
 
