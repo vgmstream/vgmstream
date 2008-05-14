@@ -39,7 +39,6 @@ VGMSTREAM * init_vgmstream_ps2_mib(const char * const filename) {
 	uint8_t mibBuffer[0x10];
 	uint8_t	testBuffer[0x10];
 
-	size_t  readLength;
 	size_t	fileLength;
 	
 	off_t	loopStart = 0;
@@ -49,18 +48,18 @@ VGMSTREAM * init_vgmstream_ps2_mib(const char * const filename) {
 
 	size_t	bufOffset;
 
-	char * filenameMIH;
+	char * filenameMIH = NULL;
 
 	uint8_t gotMIH=0;
 
-	int i, loop_flag, channel_count=1;
+	int i, channel_count=1;
 
     /* check extension, case insensitive */
     if (strcasecmp("mib",filename_extension(filename)) && 
 		strcasecmp("mi4",filename_extension(filename))) goto fail;
 
 	/* check for .MIH file */
-	filenameMIH=(char *)malloc(strlen(filename));
+	filenameMIH=(char *)malloc(strlen(filename)+1);
 
 	if (!filenameMIH) goto fail;
 
@@ -69,6 +68,8 @@ VGMSTREAM * init_vgmstream_ps2_mib(const char * const filename) {
 
 	infileMIH = open_streamfile(filenameMIH);
 	if (infileMIH) gotMIH = 1;
+
+    free(filenameMIH); filenameMIH = NULL;
 
 	/* Search for interleave value & loop points */
 	/* Get the first 16 values */
@@ -127,7 +128,7 @@ VGMSTREAM * init_vgmstream_ps2_mib(const char * const filename) {
 		if(!strcasecmp("mi4",filename_extension(filename)))
 			vgmstream->sample_rate = 48000;
 
-		vgmstream->num_samples = fileLength/16*14;
+		vgmstream->num_samples = fileLength/16/channel_count*28;
 	}
 
 	if(loopStart!=0) {
@@ -166,6 +167,7 @@ VGMSTREAM * init_vgmstream_ps2_mib(const char * const filename) {
 fail:
     if (infile) close_streamfile(infile);
     if (infileMIH) close_streamfile(infileMIH);
+    if (filenameMIH) {free(filenameMIH); filenameMIH=NULL;}
     if (vgmstream) close_vgmstream(vgmstream);
     return NULL;
 }
