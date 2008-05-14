@@ -46,8 +46,6 @@ VGMSTREAM * init_vgmstream_ps2_mib(const char * const filename) {
 	off_t	interleave = 0;
 	off_t	readOffset = 0;
 
-	size_t	bufOffset;
-
 	char * filenameMIH = NULL;
 
 	uint8_t gotMIH=0;
