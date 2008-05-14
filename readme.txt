@@ -54,7 +54,7 @@ File types supported by this version of vgmstream:
 - .stm/.dsp (GC DSP ADPCM)
 - .sts (PSX ADPCM)
 - .svag (PSX ADPCM)
-- .mib (PSX ADPCM)
+- .mib, .mi4 (w/ or w/o .mih) (PSX ADPCM)
 - .mpdsp (GC DSP ADPCM)
 
 Enjoy!
