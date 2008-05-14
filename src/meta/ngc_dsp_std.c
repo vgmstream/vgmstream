@@ -336,3 +336,89 @@ fail:
     return NULL;
 }
 
+/* mpdsp: looks like a standard .dsp header, but the data is actually
+ * interleaved stereo 
+ * The files originally had a .dsp extension, we rename them to .mpdsp so we
+ * can catch this.
+ */
+
+VGMSTREAM * init_vgmstream_ngc_mpdsp(const char * const filename) {
+    VGMSTREAM * vgmstream = NULL;
+    STREAMFILE * infile = NULL;
+
+    struct dsp_header header;
+    const off_t start_offset = 0x60;
+    int i;
+
+    /* check extension, case insensitive */
+    if (strcasecmp("mpdsp",filename_extension(filename))) goto fail;
+
+    /* try to open the file for header reading */
+    infile = open_streamfile(filename);
+    if (!infile) goto fail;
+
+    if (read_dsp_header(&header, 0, infile)) goto fail;
+
+    /* none have loop flag set, save us from loop code that involves them */
+    if (header.loop_flag) goto fail;
+
+    /* check initial predictor/scale */
+    if (header.initial_ps != (uint8_t)read_8bit(start_offset,infile))
+        goto fail;
+
+    /* check type==0 and gain==0 */
+    if (header.format || header.gain)
+        goto fail;
+        
+    /* build the VGMSTREAM */
+
+
+    /* no loop flag, but they do loop */
+    vgmstream = allocate_vgmstream(2,0);
+    if (!vgmstream) goto fail;
+
+    /* fill in the vital statistics */
+    vgmstream->num_samples = header.sample_count/2;
+    vgmstream->sample_rate = header.sample_rate;
+
+    vgmstream->coding_type = coding_NGC_DSP;
+    vgmstream->layout_type = layout_interleave;
+    vgmstream->interleave_block_size = 0xf000;
+    vgmstream->meta_type = meta_DSP_MPDSP;
+
+    /* coeffs */
+    for (i=0;i<16;i++) {
+        vgmstream->ch[0].adpcm_coef[i] = header.coef[i];
+        vgmstream->ch[1].adpcm_coef[i] = header.coef[i];
+    }
+    
+    /* initial history */
+    /* always 0 that I've ever seen, but for completeness... */
+    vgmstream->ch[0].adpcm_history1_16 = header.initial_hist1;
+    vgmstream->ch[0].adpcm_history2_16 = header.initial_hist2;
+    vgmstream->ch[1].adpcm_history1_16 = header.initial_hist1;
+    vgmstream->ch[1].adpcm_history2_16 = header.initial_hist2;
+
+    close_streamfile(infile); infile=NULL;
+
+    /* open the file for reading */
+    for (i=0;i<2;i++) {
+        vgmstream->ch[i].streamfile = open_streamfile_buffer(filename,
+                vgmstream->interleave_block_size);
+
+        if (!vgmstream->ch[i].streamfile) goto fail;
+
+        vgmstream->ch[i].channel_start_offset=
+            vgmstream->ch[i].offset=start_offset+
+            vgmstream->interleave_block_size*i;
+    }
+
+    return vgmstream;
+
+fail:
+    /* clean up anything we may have opened */
+    if (infile) close_streamfile(infile);
+    if (vgmstream) close_vgmstream(vgmstream);
+    return NULL;
+}
+
