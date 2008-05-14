@@ -255,6 +255,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\ps2_mib.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\ps2_npsf.c"
 					>
 				</File>

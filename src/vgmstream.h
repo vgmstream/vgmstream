@@ -80,7 +80,9 @@ typedef enum {
 	meta_PS2_RAW,			/* RAW Interleaved Format */
 	meta_PS2_EXST,			/* Shadow of Colossus EXST */
 	meta_PS2_SVAG,			/* Konami SVAG */
-
+	meta_PS2_MIB,			/* MIB File */
+	meta_PS2_MIB_MIH,		/* MIB File + MIH Header*/
+	
 	meta_PSX_XA,			/* CD-XA with RIFF header */
 
 } meta_t;
