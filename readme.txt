@@ -44,6 +44,7 @@ File types supported by this version of vgmstream:
   - RS03
   - Cstr
   - .stm
+  - _lr.dsp
 - .gcsw (16 bit PCM)
 - .ads/.ss2 (PSX ADPCM)
 - .npsf (PSX ADPCM)
@@ -56,6 +57,9 @@ File types supported by this version of vgmstream:
 - .svag (PSX ADPCM)
 - .mib, .mi4 (w/ or w/o .mih) (PSX ADPCM)
 - .mpdsp (GC DSP ADPCM)
+- .mic (PSX ADPCM)
+- .mss (GC DSP ADPCM)
+- .gcm (GC DSP ADPCM)
 
 Enjoy!
 -hcs

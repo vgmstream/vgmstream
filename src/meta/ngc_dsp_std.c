@@ -93,6 +93,21 @@ VGMSTREAM * init_vgmstream_ngc_dsp_std(const char * const filename) {
     /* check type==0 and gain==0 */
     if (header.format || header.gain)
         goto fail;
+
+    /* Check for a matching second header. If we find one and it checks
+     * out thoroughly, we're probably not dealing with a genuine mono DSP.
+     * In many cases these will pass all the other checks, including the
+     * predictor/scale check if the first byte is 0 */
+    {
+        struct dsp_header header2;
+
+        read_dsp_header(&header2, 0x60, infile);
+
+        if (header.sample_count == header2.sample_count &&
+            header.nibble_count == header2.nibble_count &&
+            header.sample_rate == header2.sample_rate &&
+            header.loop_flag == header2.loop_flag) goto fail;
+    }
         
     if (header.loop_flag) {
         off_t loop_off;
@@ -411,6 +426,127 @@ VGMSTREAM * init_vgmstream_ngc_mpdsp(const char * const filename) {
         vgmstream->ch[i].channel_start_offset=
             vgmstream->ch[i].offset=start_offset+
             vgmstream->interleave_block_size*i;
+    }
+
+    return vgmstream;
+
+fail:
+    /* clean up anything we may have opened */
+    if (infile) close_streamfile(infile);
+    if (vgmstream) close_vgmstream(vgmstream);
+    return NULL;
+}
+
+/* a bunch of formats that are identical except for file extension,
+ * but have different interleaves */
+
+VGMSTREAM * init_vgmstream_ngc_dsp_std_int(const char * const filename) {
+    VGMSTREAM * vgmstream = NULL;
+    STREAMFILE * infile = NULL;
+
+    const off_t start_offset = 0xc0;
+    off_t interleave;
+    int meta_type;
+
+    struct dsp_header ch0_header,ch1_header;
+    int i;
+
+    /* check extension, case insensitive */
+    if (strlen(filename) > 7 && !strcasecmp("_lr.dsp",filename+strlen(filename)-7)) {
+        /* Bomberman Jetters */
+        interleave = 0x14180;
+        meta_type = meta_DSP_JETTERS;
+    } else if (!strcasecmp("mss",filename_extension(filename))) {
+        interleave = 0x1000;
+        meta_type = meta_DSP_MSS;
+    } else if (!strcasecmp("gcm",filename_extension(filename))) {
+        interleave = 0x8000;
+        meta_type = meta_DSP_GCM;
+    } else goto fail;
+
+
+    /* try to open the file for header reading */
+    infile = open_streamfile(filename);
+    if (!infile) goto fail;
+
+    if (read_dsp_header(&ch0_header, 0, infile)) goto fail;
+    if (read_dsp_header(&ch1_header, 0x60, infile)) goto fail;
+
+    /* check initial predictor/scale */
+    if (ch0_header.initial_ps != (uint8_t)read_8bit(start_offset,infile))
+        goto fail;
+    if (ch1_header.initial_ps != (uint8_t)read_8bit(start_offset+interleave,infile))
+        goto fail;
+
+    /* check type==0 and gain==0 */
+    if (ch0_header.format || ch0_header.gain ||
+        ch1_header.format || ch1_header.gain)
+        goto fail;
+
+    /* check for agreement */
+    if (
+            ch0_header.sample_count != ch1_header.sample_count ||
+            ch0_header.nibble_count != ch1_header.nibble_count ||
+            ch0_header.sample_rate != ch1_header.sample_rate ||
+            ch0_header.loop_flag != ch1_header.loop_flag ||
+            ch0_header.loop_start_offset != ch1_header.loop_start_offset ||
+            ch0_header.loop_end_offset != ch1_header.loop_end_offset
+       ) goto fail;
+
+    if (ch0_header.loop_flag) {
+        off_t loop_off;
+        /* check loop predictor/scale */
+        loop_off = ch0_header.loop_start_offset/16*8;
+        loop_off = (loop_off/interleave*interleave*2) + (loop_off%interleave);
+        if (ch0_header.loop_ps != (uint8_t)read_8bit(start_offset+loop_off,infile))
+            goto fail;
+        if (ch1_header.loop_ps != (uint8_t)read_8bit(start_offset+loop_off+interleave,infile))
+            goto fail;
+    }
+
+    /* build the VGMSTREAM */
+
+    vgmstream = allocate_vgmstream(2,ch0_header.loop_flag);
+    if (!vgmstream) goto fail;
+
+    /* fill in the vital statistics */
+    vgmstream->num_samples = ch0_header.sample_count;
+    vgmstream->sample_rate = ch0_header.sample_rate;
+
+    /* TODO: adjust for interleave? */
+    vgmstream->loop_start_sample = dsp_nibbles_to_samples(
+            ch0_header.loop_start_offset);
+    vgmstream->loop_end_sample =  dsp_nibbles_to_samples(
+            ch0_header.loop_end_offset)+1;
+
+    vgmstream->coding_type = coding_NGC_DSP;
+    vgmstream->layout_type = layout_interleave;
+    vgmstream->interleave_block_size = interleave;
+    vgmstream->meta_type = meta_type;
+
+    /* coeffs */
+    for (i=0;i<16;i++) {
+        vgmstream->ch[0].adpcm_coef[i] = ch0_header.coef[i];
+        vgmstream->ch[1].adpcm_coef[i] = ch1_header.coef[i];
+    }
+    
+    /* initial history */
+    /* always 0 that I've ever seen, but for completeness... */
+    vgmstream->ch[0].adpcm_history1_16 = ch0_header.initial_hist1;
+    vgmstream->ch[0].adpcm_history2_16 = ch0_header.initial_hist2;
+    vgmstream->ch[1].adpcm_history1_16 = ch1_header.initial_hist1;
+    vgmstream->ch[1].adpcm_history2_16 = ch1_header.initial_hist2;
+
+    close_streamfile(infile); infile=NULL;
+
+    /* open the file for reading */
+    for (i=0;i<2;i++) {
+        vgmstream->ch[i].streamfile = open_streamfile(filename);
+
+        if (!vgmstream->ch[i].streamfile) goto fail;
+
+        vgmstream->ch[i].channel_start_offset=
+            vgmstream->ch[i].offset=start_offset+i*interleave;
     }
 
     return vgmstream;

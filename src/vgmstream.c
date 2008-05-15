@@ -15,7 +15,7 @@
  * List of functions that will recognize files. These should correspond pretty
  * directly to the metadata types
  */
-#define INIT_VGMSTREAM_FCNS 25
+#define INIT_VGMSTREAM_FCNS 26
 VGMSTREAM * (*init_vgmstream_fcns[INIT_VGMSTREAM_FCNS])(const char * const) = {
     init_vgmstream_adx,             /* 0 */
     init_vgmstream_brstm,           /* 1 */
@@ -42,6 +42,7 @@ VGMSTREAM * (*init_vgmstream_fcns[INIT_VGMSTREAM_FCNS])(const char * const) = {
 	init_vgmstream_ps2_mib,			/* 22 */
     init_vgmstream_ngc_mpdsp,       /* 23 */
 	init_vgmstream_ps2_mic,			/* 24 */
+    init_vgmstream_ngc_dsp_std_int, /* 25 */
 };
 
 
@@ -620,6 +621,15 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case meta_PS2_MIC:
             snprintf(temp,TEMPSIZE,"assume KOEI MIC file by .mic extension");
+            break;
+        case meta_DSP_JETTERS:
+            snprintf(temp,TEMPSIZE,"Double DSP header stereo by _lr.dsp extension");
+            break;
+        case meta_DSP_MSS:
+            snprintf(temp,TEMPSIZE,"Double DSP header stereo by .mss extension");
+            break;
+        case meta_DSP_GCM:
+            snprintf(temp,TEMPSIZE,"Double DSP header stereo by .gcm extension");
             break;
         default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

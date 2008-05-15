@@ -57,6 +57,9 @@ typedef enum {
     meta_DSP_HALP,          /* SSB:M "HALPST" */
     meta_DSP_AGSC,          /* Metroid Prime 2 title */
     meta_DSP_MPDSP,         /* Monopoly Party single header stereo */
+    meta_DSP_JETTERS,       /* Bomberman Jetters .dsp */
+    meta_DSP_MSS,
+    meta_DSP_GCM,
     /* Nintendo */
     meta_STRM,              /* STRM */
     meta_RSTM,              /* RSTM (similar to STRM) */
