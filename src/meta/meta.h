@@ -51,4 +51,6 @@ VGMSTREAM * init_vgmstream_ps2_svag(const char * const filename);
 
 VGMSTREAM * init_vgmstream_ps2_mib(const char * const filename);
 
+VGMSTREAM * init_vgmstream_ps2_mic(const char * const filename);
+
 #endif

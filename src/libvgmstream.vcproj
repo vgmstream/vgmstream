@@ -259,6 +259,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\ps2_mic.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\ps2_npsf.c"
 					>
 				</File>

@@ -1,18 +1,16 @@
 #include "meta.h"
 #include "../util.h"
 
-/* SVAG
+/* MIC
 
-   PS2 SVAG format is an interleaved format found in many konami Games                
-   The header start with a Svag id and have the sentence :
-		"ALL RIGHTS RESERVED.KONAMITYO Sound Design Dept. "
-	or  "ALL RIGHTS RESERVED.KCE-Tokyo Sound Design Dept. "
+   PS2 MIC format is an interleaved format found in most of KOEI Games                
+   The header always start the long value 0x800 which is the start
+   of the BGM datas.
 
-   2008-05-13 - Fastelbja : First version ...
-							Thx to HCS for his awesome work on shortblock interleave
+   2008-05-15 - Fastelbja : First version ...
 */
 
-VGMSTREAM * init_vgmstream_ps2_svag(const char * const filename) {
+VGMSTREAM * init_vgmstream_ps2_mic(const char * const filename) {
     VGMSTREAM * vgmstream = NULL;
     STREAMFILE * infile = NULL;
 
@@ -21,43 +19,42 @@ VGMSTREAM * init_vgmstream_ps2_svag(const char * const filename) {
     int i;
 
     /* check extension, case insensitive */
-    if (strcasecmp("svag",filename_extension(filename))) goto fail;
+    if (strcasecmp("mic",filename_extension(filename))) goto fail;
 
     /* try to open the file for header reading */
     infile = open_streamfile(filename);
     if (!infile) goto fail;
 
-    /* check SVAG Header */
-    if (read_32bitBE(0x00,infile) != 0x53766167)
+    /* check EXST Header */
+    if (read_32bitLE(0x00,infile) != 0x800)
         goto fail;
 
     /* check loop */
-    loop_flag = (read_32bitLE(0x14,infile)==1);
+    loop_flag = (read_32bitLE(0x14,infile)!=1);
 
-    channel_count=read_16bitLE(0x0C,infile);
+    channel_count=read_32bitLE(0x08,infile);
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
     /* fill in the vital statistics */
-    vgmstream->channels = read_16bitLE(0x0C,infile);
-    vgmstream->sample_rate = read_32bitLE(0x08,infile);
+    vgmstream->channels = channel_count;
+    vgmstream->sample_rate = read_32bitLE(0x04,infile);
 
     /* Compression Scheme */
     vgmstream->coding_type = coding_PSX;
-    vgmstream->num_samples = read_32bitLE(0x04,infile)/16*28/vgmstream->channels;
+    vgmstream->num_samples = read_32bitLE(0x10,infile)*14*channel_count;
 
     /* Get loop point values */
     if(vgmstream->loop_flag) {
-        vgmstream->loop_start_sample = read_32bitLE(0x18,infile)/16*28;
-        vgmstream->loop_end_sample = read_32bitLE(0x04,infile)/16*28/vgmstream->channels;
+        vgmstream->loop_start_sample = read_32bitLE(0x14,infile)*14*channel_count;
+        vgmstream->loop_end_sample = read_32bitLE(0x10,infile)*14*channel_count;
     }
 
-    vgmstream->interleave_block_size = read_32bitLE(0x10,infile);
-	vgmstream->interleave_smallblock_size = (read_32bitLE(0x04,infile)%(2*vgmstream->interleave_block_size))/2;
-    vgmstream->layout_type = layout_interleave_shortblock;
-    vgmstream->meta_type = meta_PS2_SVAG;
+    vgmstream->interleave_block_size = read_32bitLE(0x0C,infile);
+    vgmstream->layout_type = layout_interleave;
+    vgmstream->meta_type = meta_PS2_MIC;
 
     close_streamfile(infile); infile=NULL;
 

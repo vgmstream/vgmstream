@@ -83,7 +83,8 @@ typedef enum {
 	meta_PS2_SVAG,			/* Konami SVAG */
 	meta_PS2_MIB,			/* MIB File */
 	meta_PS2_MIB_MIH,		/* MIB File + MIH Header*/
-	
+	meta_PS2_MIC,			/* KOEI MIC File */
+
 	meta_PSX_XA,			/* CD-XA with RIFF header */
 
 } meta_t;
