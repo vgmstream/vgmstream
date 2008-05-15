@@ -212,6 +212,8 @@ int infoDlg(char *fn, HWND hwnd) {
     char description[1024];
     description[0]='\0';
 
+    concatn(1024,description,PLUGIN_DESCRIPTION "\n\n");
+
     if (!fn || !*fn) {
         if (!vgmstream) return 0;
         describe_vgmstream(vgmstream,description,1024);
