@@ -361,13 +361,21 @@ DWORD WINAPI __stdcall decode(void *arg) {
         if (seek_needed_samples != -1) {
             /* reset if we need to seek backwards */
             if (seek_needed_samples < decode_pos_samples) {
-                VGMSTREAM * temp;
-                temp = vgmstream;
-                vgmstream = NULL;
-                close_vgmstream(temp);
+                VGMSTREAM * new_temp;
+                VGMSTREAM * old_temp;
 
-                temp = init_vgmstream(lastfn);
-                vgmstream = temp;
+                new_temp = init_vgmstream(lastfn);
+                if (!new_temp) {
+                    PostMessage(input_module.hMainWindow,   /* message dest */
+                            WM_WA_MPEG_EOF,     /* message id */
+                            0,0);   /* no parameters */
+                    return 0;
+                }
+
+                old_temp = vgmstream;
+                vgmstream = new_temp;
+
+                close_vgmstream(old_temp);
 
                 decode_pos_samples = 0;
                 decode_pos_ms = 0;
