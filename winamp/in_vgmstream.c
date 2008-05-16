@@ -9,16 +9,21 @@
 #define _CRT_SECURE_NO_DEPRECATE
 #endif
 #include <windows.h>
+#include <windowsx.h>
+#include <commctrl.h>
 #include <stdio.h>
 
 #include "../src/vgmstream.h"
 #include "../src/util.h"
 #include "in2.h"
+#include "resource.h"
 
 #ifndef VERSION
 #define VERSION
 #endif
 
+#define BINARY_NAME "in_vgmstream.dll"
+#define APP_NAME "vgmstream plugin"
 #define PLUGIN_DESCRIPTION "vgmstream plugin " VERSION " " __DATE__
 
 /* post when playback stops */
@@ -30,9 +35,23 @@ DWORD WINAPI __stdcall decode(void *arg);
 char lastfn[MAX_PATH+1] = {0}; /* name of the currently playing file */
 short sample_buffer[576*2*2]; /* 576 16-bit samples, stereo, possibly doubled in size for DSP */
 
-/* hardcode these now, TODO will be configurable later */
-const double fade_seconds = 10.0;
-const double loop_count = 2.0;
+#define DEFAULT_FADE_SECONDS "10"
+#define DEFAULT_LOOP_COUNT "2"
+#define DEFAULT_THREAD_PRIORITY 3
+#define DEFAULT_LOOP_FOREVER 0
+
+#define FADE_SECONDS_INI_ENTRY "fade_seconds"
+#define LOOP_COUNT_INI_ENTRY "loop_count"
+#define THREAD_PRIORITY_INI_ENTRY "thread_priority"
+#define LOOP_FOREVER_INI_ENTRY "loop_forever"
+
+double fade_seconds;
+double loop_count;
+int thread_priority;
+int loop_forever;
+
+char *priority_strings[] = {"Idle","Lowest","Below Normal","Normal","Above Normal","Highest (not recommended)","Time Critical (not recommended)"};
+int priority_values[] = {THREAD_PRIORITY_IDLE,THREAD_PRIORITY_LOWEST,THREAD_PRIORITY_BELOW_NORMAL,THREAD_PRIORITY_NORMAL,THREAD_PRIORITY_ABOVE_NORMAL,THREAD_PRIORITY_HIGHEST,THREAD_PRIORITY_TIME_CRITICAL};
 
 VGMSTREAM * vgmstream = NULL;
 HANDLE decode_thread_handle = INVALID_HANDLE_VALUE;
@@ -60,24 +79,28 @@ char * extension_list[EXTENSION_COUNT] = {
     "gcw\0GCW Audio File (*.GCW)\0",
     "ads\0PS2 ADS Audio File (*.ADS)\0",
     "ss2\0PS2 SS2 Audio File (*.SS2)\0",
-	"npsf\0PS2 NPSF Audio File (*.NPSF)\0",
+    "npsf\0PS2 NPSF Audio File (*.NPSF)\0",
     "rwsd\0RWSD Audio File (*.RWSD)\0",
-	"xa\0PSX CD-XA File (*.XA)\0",
-	"rxw\0PS2 RXWS File (*.RXW)\0",
-	"int\0PS2 RAW Interleaved PCM (*.INT)\0",
-	"sts\0PS2 EXST Audio File (*.STS)\0",
-	"svag\0PS2 SVAG Audio File (*.SVAG)\0",
-	"mib\0PS2 MIB Audio File (*.MIB)\0",
-	"mi4\0PS2 MI4 Audio File (*.MI4)\0",
+    "xa\0PSX CD-XA File (*.XA)\0",
+    "rxw\0PS2 RXWS File (*.RXW)\0",
+    "int\0PS2 RAW Interleaved PCM (*.INT)\0",
+    "sts\0PS2 EXST Audio File (*.STS)\0",
+    "svag\0PS2 SVAG Audio File (*.SVAG)\0",
+    "mib\0PS2 MIB Audio File (*.MIB)\0",
+    "mi4\0PS2 MI4 Audio File (*.MI4)\0",
     "mpdsp\0MPDSP Audio File (*.MPDSP)\0",
-	"mic\0PS2 MIC Audio File (*.MIC)\0",
+    "mic\0PS2 MIC Audio File (*.MIC)\0",
     "gcm\0GCM Audio File (*.GCM)\0",
     "mss\0MSS Audio File (*.MSS)\0",
 };
 
-/* stubs, we don't do anything fancy yet */
-void config(HWND hwndParent) {}
-void about(HWND hwndParent) {}
+void about(HWND hwndParent) {
+    MessageBox(hwndParent,
+            PLUGIN_DESCRIPTION "\n"
+            "by hcs and FastElbja\n\n"
+            "http://sourceforge.net/projects/vgmstream"
+            ,"about in_vgmstream",MB_OK);
+}
 void quit() {}
 
 void build_extension_list() {
@@ -91,7 +114,32 @@ void build_extension_list() {
     }
 }
 
+/* uses the configuration file plugin.ini in the same dir as the DLL (a la HE) */
+void GetINIFileName(char * iniFile) {
+    if (GetModuleFileName(GetModuleHandle(BINARY_NAME), iniFile, MAX_PATH)) {
+        char * lastSlash = strrchr(iniFile, '\\');
+
+        *(lastSlash + 1) = 0;
+        strcat(iniFile, "plugin.ini");
+    }
+}
+
 void init() {
+    char iniFile[MAX_PATH+1];
+    char buf[256];
+
+    GetINIFileName(iniFile);
+
+    thread_priority=GetPrivateProfileInt(APP_NAME,THREAD_PRIORITY_INI_ENTRY,DEFAULT_THREAD_PRIORITY,iniFile);
+
+    GetPrivateProfileString(APP_NAME,FADE_SECONDS_INI_ENTRY,DEFAULT_FADE_SECONDS,buf,sizeof(buf),iniFile);
+    sscanf(buf,"%lf",&fade_seconds);
+
+    GetPrivateProfileString(APP_NAME,LOOP_COUNT_INI_ENTRY,DEFAULT_LOOP_COUNT,buf,sizeof(buf),iniFile);
+    sscanf(buf,"%lf",&loop_count);
+
+    loop_forever=GetPrivateProfileInt(APP_NAME,LOOP_FOREVER_INI_ENTRY,DEFAULT_LOOP_FOREVER,iniFile);
+
     build_extension_list();
 }
 
@@ -149,6 +197,7 @@ int play(char *fn)
     decode_pos_samples = 0;
     paused = 0;
     stream_length_samples = get_vgmstream_play_samples(loop_count,fade_seconds,vgmstream);
+
     fade_samples = (int)(fade_seconds * vgmstream->sample_rate);
 
     decode_thread_handle = CreateThread(
@@ -158,6 +207,8 @@ int play(char *fn)
             NULL,   /* no parameter to start routine */
             0,      /* run thread immediately */
             NULL);  /* don't keep track of the thread id */
+
+    SetThreadPriority(decode_thread_handle,priority_values[thread_priority]);
 
     return 0;
 }
@@ -215,15 +266,15 @@ int infoDlg(char *fn, HWND hwnd) {
     char description[1024];
     description[0]='\0';
 
-    concatn(1024,description,PLUGIN_DESCRIPTION "\n\n");
+    concatn(sizeof(description),description,PLUGIN_DESCRIPTION "\n\n");
 
     if (!fn || !*fn) {
         if (!vgmstream) return 0;
-        describe_vgmstream(vgmstream,description,1024);
+        describe_vgmstream(vgmstream,description,sizeof(description));
     } else {
         infostream = init_vgmstream(fn);
         if (!infostream) return 0;
-        describe_vgmstream(infostream,description,1024);
+        describe_vgmstream(infostream,description,sizeof(description));
         close_vgmstream(infostream);
         infostream=NULL;
     }
@@ -234,7 +285,7 @@ int infoDlg(char *fn, HWND hwnd) {
 
 /* retrieve information on this or possibly another file */
     void getfileinfo(char *filename, char *title, int *length_in_ms) {
-        if (!filename || !*filename)  // currently playing file
+        if (!filename || !*filename)  /* currently playing file*/
         {
             if (!vgmstream) return;
             if (length_in_ms) *length_in_ms=getlength();
@@ -245,7 +296,7 @@ int infoDlg(char *fn, HWND hwnd) {
                 strcpy(title,++p);
             }
         }
-        else // some other file
+        else /* some other file */
         {
             VGMSTREAM * infostream;
             if (length_in_ms) 
@@ -253,8 +304,8 @@ int infoDlg(char *fn, HWND hwnd) {
                 *length_in_ms=-1000;
                 if ((infostream=init_vgmstream(filename)))
                 {
-                    // these are only second-accurate, but how accurate does this need to be anyway?
                     *length_in_ms = get_vgmstream_play_samples(loop_count,fade_seconds,infostream)*1000LL/infostream->sample_rate;
+
                     close_vgmstream(infostream);
                     infostream=NULL;
                 }
@@ -277,7 +328,7 @@ DWORD WINAPI __stdcall decode(void *arg) {
 
         int samples_to_do;
         int l;
-        if (decode_pos_samples+576>stream_length_samples)
+        if (decode_pos_samples+576>stream_length_samples && !loop_forever)
             samples_to_do=stream_length_samples-decode_pos_samples;
         else
             samples_to_do=576;
@@ -299,7 +350,7 @@ DWORD WINAPI __stdcall decode(void *arg) {
             render_vgmstream(sample_buffer,samples_to_do,vgmstream);
 
             /* fade! */
-            if (vgmstream->loop_flag && fade_samples > 0) {
+            if (vgmstream->loop_flag && fade_samples > 0 && !loop_forever) {
                 int samples_into_fade = decode_pos_samples - (stream_length_samples - fade_samples);
                 if (samples_into_fade + samples_to_do > 0) {
                     int j,k;
@@ -330,15 +381,95 @@ DWORD WINAPI __stdcall decode(void *arg) {
     return 0;
 }
 
+BOOL CALLBACK configDlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+    char buf[256];
+    char iniFile[MAX_PATH+1];
+    static int mypri;
+    HANDLE hSlider;
+
+    switch (uMsg) { 
+    case WM_CLOSE:
+        EndDialog(hDlg,TRUE);
+        return 0;
+    case WM_INITDIALOG:
+        GetINIFileName(iniFile);
+        
+        /* set CPU Priority slider */
+        hSlider=GetDlgItem(hDlg,IDC_THREAD_PRIORITY_SLIDER);
+        SendMessage(hSlider, TBM_SETRANGE,
+            (WPARAM) TRUE,                  /* redraw flag */
+            (LPARAM) MAKELONG(1, 7));       /* min. & max. positions */
+        SendMessage(hSlider, TBM_SETPOS, 
+            (WPARAM) TRUE,                  /* redraw flag */
+            (LPARAM) thread_priority+1);
+        mypri=thread_priority;
+        SetDlgItemText(hDlg,IDC_THREAD_PRIORITY_TEXT,priority_strings[thread_priority]);
+
+        sprintf(buf,"%.1lf",fade_seconds);
+        SetDlgItemText(hDlg,IDC_FADE_SECONDS,buf);
+        sprintf(buf,"%.1lf",loop_count);
+        SetDlgItemText(hDlg,IDC_LOOP_COUNT,buf);
+
+        CheckDlgButton(hDlg,IDC_LOOP_FOREVER,(loop_forever?BST_CHECKED:BST_UNCHECKED));
+        
+        break;
+    case WM_COMMAND:
+        switch (GET_WM_COMMAND_ID(wParam, lParam)) {
+        case IDOK:
+            {
+                /* verify before we do anything */
+            }
+            GetINIFileName(iniFile);
+
+            thread_priority=mypri;
+            sprintf(buf,"%d",thread_priority);
+            WritePrivateProfileString(APP_NAME,THREAD_PRIORITY_INI_ENTRY,buf,iniFile);
+            
+            GetDlgItemText(hDlg,IDC_FADE_SECONDS,buf,sizeof(buf));
+            sscanf(buf,"%lf",&fade_seconds);
+            WritePrivateProfileString(APP_NAME,FADE_SECONDS_INI_ENTRY,buf,iniFile);
+
+            GetDlgItemText(hDlg,IDC_LOOP_COUNT,buf,sizeof(buf));
+            sscanf(buf,"%lf",&loop_count);
+            WritePrivateProfileString(APP_NAME,LOOP_COUNT_INI_ENTRY,buf,iniFile);
+
+            loop_forever = (IsDlgButtonChecked(hDlg,IDC_LOOP_FOREVER) == BST_CHECKED);
+            sprintf(buf,"%d",loop_forever);
+            WritePrivateProfileString(APP_NAME,LOOP_FOREVER_INI_ENTRY,buf,iniFile);
+
+            EndDialog(hDlg,TRUE);
+            break;
+        case IDCANCEL:
+            EndDialog(hDlg,TRUE);
+            break;
+        }
+    case WM_HSCROLL:
+        if ((struct HWND__ *)lParam==GetDlgItem(hDlg,IDC_THREAD_PRIORITY_SLIDER)) {
+            if (LOWORD(wParam)==TB_THUMBPOSITION || LOWORD(wParam)==TB_THUMBTRACK) mypri=HIWORD(wParam)-1;
+            else mypri=SendMessage(GetDlgItem(hDlg,IDC_THREAD_PRIORITY_SLIDER),TBM_GETPOS,0,0)-1;
+            SetDlgItemText(hDlg,IDC_THREAD_PRIORITY_TEXT,priority_strings[mypri]);
+        }
+        break;
+    default:
+        return 0;
+    }
+
+    return 1;
+}
+
+void config(HWND hwndParent) {
+    DialogBox(input_module.hDllInstance, (const char *)IDD_CONFIG, hwndParent, configDlgProc);
+}
+
 In_Module input_module = 
 {
     IN_VER,
     PLUGIN_DESCRIPTION,
-    0,  // hMainWindow
-    0,  // hDllInstance
+    0,  /* hMainWindow */
+    0,  /* hDllInstance */
     working_extension_list,
-    1, // is_seekable
-    1, // uses output
+    1, /* is_seekable  */
+    1, /* uses output */
     config,
     about,
     init,
