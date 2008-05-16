@@ -60,6 +60,7 @@ VGMSTREAM * vgmstream = NULL;
 HANDLE decode_thread_handle = INVALID_HANDLE_VALUE;
 int paused = 0;
 int decode_abort = 0;
+int seek_needed_samples = -1;
 int decode_pos_ms = 0;
 int decode_pos_samples = 0;
 int stream_length_samples = 0;
@@ -172,7 +173,6 @@ int play(char *fn)
 {
     int max_latency;
 
-
     /* don't lose a pointer! */
     if (vgmstream) {
         /* TODO: this should either pop up an error box or close the file */
@@ -214,6 +214,7 @@ int play(char *fn)
     input_module.VSASetInfo(vgmstream->sample_rate,vgmstream->channels);
 
     decode_abort = 0;
+    seek_needed_samples = -1;
     decode_pos_ms = 0;
     decode_pos_samples = 0;
     paused = 0;
@@ -274,7 +275,8 @@ int getoutputtime() {
 
 /* seek */
 void setoutputtime(int t) {
-    /* TODO: seeking */
+    if (vgmstream)
+        seek_needed_samples = (long long)t * vgmstream->sample_rate / 1000LL;
 }
 
 /* pass these commands through */
@@ -349,10 +351,33 @@ DWORD WINAPI __stdcall decode(void *arg) {
 
         int samples_to_do;
         int l;
+
         if (decode_pos_samples+576>stream_length_samples && !loop_forever)
             samples_to_do=stream_length_samples-decode_pos_samples;
         else
             samples_to_do=576;
+
+        /* play 'till the end of this seek, or note if we're done seeking */
+        if (seek_needed_samples != -1) {
+            /* reset if we need to seek backwards */
+            if (seek_needed_samples < decode_pos_samples) {
+                VGMSTREAM * temp;
+                temp = vgmstream;
+                vgmstream = NULL;
+                close_vgmstream(temp);
+
+                temp = init_vgmstream(lastfn);
+                vgmstream = temp;
+
+                decode_pos_samples = 0;
+                decode_pos_ms = 0;
+            }
+            if (decode_pos_samples < seek_needed_samples) {
+                samples_to_do=seek_needed_samples-decode_pos_samples;
+                if (samples_to_do>576) samples_to_do=576;
+            } else
+                seek_needed_samples = -1;
+        }
 
         l = (samples_to_do*vgmstream->channels*2)<<(input_module.dsp_isactive()?1:0);
 
@@ -365,6 +390,13 @@ DWORD WINAPI __stdcall decode(void *arg) {
                 return 0;
             }
             Sleep(10);
+        }
+        else if (seek_needed_samples != -1) {
+            render_vgmstream(sample_buffer,samples_to_do,vgmstream);
+            input_module.outMod->Flush((int)decode_pos_ms);
+
+            decode_pos_samples+=samples_to_do;
+            decode_pos_ms=decode_pos_samples*1000LL/vgmstream->sample_rate;
         }
         else if (input_module.outMod->CanWrite() >= l) {
             /* let vgmstream do its thing */

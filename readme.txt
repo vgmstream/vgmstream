@@ -6,11 +6,12 @@ line decoder called "test", and a simple Winamp plugin called "in_vgmstream".
 
 --- test ---
 Usage: test.exe [-o outfile.wav] [-l loop count]
-    [-f fade time] [-ipcmxeE] infile
+    [-f fade time] [-d fade delay] [-ipPcmxeE] infile
 Options:
     -o outfile.wav: name of output .wav file, default is dump.wav
     -l loop count: loop count, default 2.0
     -f fade time: fade time (seconds), default 10.0
+    -d fade delay: fade delay (seconds, default 0.0
     -i: ignore looping information and play the whole stream once
     -p: output to stdout (for piping into another program)
     -P: output to stdout even if stdout is a terminal
@@ -25,8 +26,7 @@ test -o happy.wav happy.adx
 to decode happy.adx to happy.wav.
 
 --- in_vgmstream ---
-Drop the in_vgmstream.dll in your Winamp plugins directory. There is no
-configuration or seeking yet.
+Drop the in_vgmstream.dll in your Winamp plugins directory.
 
 ---
 File types supported by this version of vgmstream:
