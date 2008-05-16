@@ -74,7 +74,7 @@ char * extension_list[EXTENSION_COUNT] = {
     "afc\0AFC Audio File (*.AFC)\0",
     "agsc\0AGSC Audio File (*.AGSC)\0",
     "ast\0AST Audio File (*.AST)\0",
-    "brstm\0BRSTM Audio File (*.BRSTM)\0",
+    "brstm;brstmspm\0BRSTM Audio File (*.BRSTM)\0",
     "hps\0HALPST Audio File (*.HPS)\0",
     "strm\0STRM Audio File (*.STRM)\0",
     "adp\0ADP Audio File (*.ADP)\0",

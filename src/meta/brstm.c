@@ -12,11 +12,18 @@ VGMSTREAM * init_vgmstream_brstm(const char * const filename) {
     int codec_number;
     int channel_count;
     int loop_flag;
+    /* Certain Super Paper Mario tracks have a 44.1KHz sample rate in the
+     * header, but they should be played at 22.05KHz. We will make this
+     * correction if we see a file with a .brstmspm extension. */
+    int spm_flag = 0;
 
     off_t start_offset;
 
     /* check extension, case insensitive */
-    if (strcasecmp("brstm",filename_extension(filename))) goto fail;
+    if (strcasecmp("brstm",filename_extension(filename))) {
+        if (strcasecmp("brstmspm",filename_extension(filename))) goto fail;
+        else spm_flag = 1;
+    }
 
     /* try to open the file for header reading */
     infile = open_streamfile(filename);
@@ -72,6 +79,11 @@ VGMSTREAM * init_vgmstream_brstm(const char * const filename) {
     else
         vgmstream->layout_type = layout_interleave_shortblock;
     vgmstream->meta_type = meta_RSTM;
+
+    if (spm_flag&& vgmstream->sample_rate == 44100) {
+        vgmstream->meta_type = meta_RSTM_SPM;
+        vgmstream->sample_rate = 22050;
+    }
 
     vgmstream->interleave_block_size = read_32bitBE(head_offset+0x38,infile);
     vgmstream->interleave_smallblock_size = read_32bitBE(head_offset+0x48,infile);

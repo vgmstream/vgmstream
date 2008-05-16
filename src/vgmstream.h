@@ -66,6 +66,7 @@ typedef enum {
     meta_AFC,               /* AFC */
     meta_AST,               /* AST */
     meta_RWSD,              /* single-stream RWSD */
+    meta_RSTM_SPM,          /* RSTM with 44->22khz hack */
     /* CRI ADX */
     meta_ADX_03,            /* ADX "type 03" */
     meta_ADX_04,            /* ADX "type 04" */

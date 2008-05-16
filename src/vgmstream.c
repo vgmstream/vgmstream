@@ -631,6 +631,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         case meta_DSP_GCM:
             snprintf(temp,TEMPSIZE,"Double DSP header stereo by .gcm extension");
             break;
+        case meta_RSTM_SPM:
+            snprintf(temp,TEMPSIZE,"Nintendo RSTM header and .brstmspm extension");
+            break;
         default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");
     }
