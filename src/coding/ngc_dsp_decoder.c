@@ -20,7 +20,7 @@ void decode_ngc_dsp(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspaci
     for (i=first_sample,sample_count=0; i<first_sample+samples_to_do; i++,sample_count+=channelspacing) {
         int sample_byte = read_8bit(framesin*8+stream->offset+1+i/2,stream->streamfile);
 
-#if DEBUG
+#ifdef DEBUG
         if (hist1==stream->loop_history1 && hist2==stream->loop_history2) fprintf(stderr,"yo! %#x (start %#x) %d\n",stream->offset+framesin*8+i/2,stream->channel_start_offset,stream->samples_done);
         stream->samples_done++;
 #endif
