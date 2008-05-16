@@ -284,40 +284,40 @@ int infoDlg(char *fn, HWND hwnd) {
 }
 
 /* retrieve information on this or possibly another file */
-    void getfileinfo(char *filename, char *title, int *length_in_ms) {
-        if (!filename || !*filename)  /* currently playing file*/
+void getfileinfo(char *filename, char *title, int *length_in_ms) {
+    if (!filename || !*filename)  /* currently playing file*/
+    {
+        if (!vgmstream) return;
+        if (length_in_ms) *length_in_ms=getlength();
+        if (title) 
         {
-            if (!vgmstream) return;
-            if (length_in_ms) *length_in_ms=getlength();
-            if (title) 
-            {
-                char *p=lastfn+strlen(lastfn);
-                while (*p != '\\' && p >= lastfn) p--;
-                strcpy(title,++p);
-            }
-        }
-        else /* some other file */
-        {
-            VGMSTREAM * infostream;
-            if (length_in_ms) 
-            {
-                *length_in_ms=-1000;
-                if ((infostream=init_vgmstream(filename)))
-                {
-                    *length_in_ms = get_vgmstream_play_samples(loop_count,fade_seconds,infostream)*1000LL/infostream->sample_rate;
-
-                    close_vgmstream(infostream);
-                    infostream=NULL;
-                }
-            }
-            if (title) 
-            {
-                char *p=filename+strlen(filename);
-                while (*p != '\\' && p >= filename) p--;
-                strcpy(title,++p);
-            }
+            char *p=lastfn+strlen(lastfn);
+            while (*p != '\\' && p >= lastfn) p--;
+            strcpy(title,++p);
         }
     }
+    else /* some other file */
+    {
+        VGMSTREAM * infostream;
+        if (length_in_ms) 
+        {
+            *length_in_ms=-1000;
+            if ((infostream=init_vgmstream(filename)))
+            {
+                *length_in_ms = get_vgmstream_play_samples(loop_count,fade_seconds,infostream)*1000LL/infostream->sample_rate;
+
+                close_vgmstream(infostream);
+                infostream=NULL;
+            }
+        }
+        if (title) 
+        {
+            char *p=filename+strlen(filename);
+            while (*p != '\\' && p >= filename) p--;
+            strcpy(title,++p);
+        }
+    }
+}
 
 /* nothin' */
 void eq_set(int on, char data[10], int preamp) {}
@@ -388,70 +388,70 @@ BOOL CALLBACK configDlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam) 
     HANDLE hSlider;
 
     switch (uMsg) { 
-    case WM_CLOSE:
-        EndDialog(hDlg,TRUE);
-        return 0;
-    case WM_INITDIALOG:
-        GetINIFileName(iniFile);
-        
-        /* set CPU Priority slider */
-        hSlider=GetDlgItem(hDlg,IDC_THREAD_PRIORITY_SLIDER);
-        SendMessage(hSlider, TBM_SETRANGE,
-            (WPARAM) TRUE,                  /* redraw flag */
-            (LPARAM) MAKELONG(1, 7));       /* min. & max. positions */
-        SendMessage(hSlider, TBM_SETPOS, 
-            (WPARAM) TRUE,                  /* redraw flag */
-            (LPARAM) thread_priority+1);
-        mypri=thread_priority;
-        SetDlgItemText(hDlg,IDC_THREAD_PRIORITY_TEXT,priority_strings[thread_priority]);
-
-        sprintf(buf,"%.1lf",fade_seconds);
-        SetDlgItemText(hDlg,IDC_FADE_SECONDS,buf);
-        sprintf(buf,"%.1lf",loop_count);
-        SetDlgItemText(hDlg,IDC_LOOP_COUNT,buf);
-
-        CheckDlgButton(hDlg,IDC_LOOP_FOREVER,(loop_forever?BST_CHECKED:BST_UNCHECKED));
-        
-        break;
-    case WM_COMMAND:
-        switch (GET_WM_COMMAND_ID(wParam, lParam)) {
-        case IDOK:
-            {
-                /* verify before we do anything */
-            }
+        case WM_CLOSE:
+            EndDialog(hDlg,TRUE);
+            return 0;
+        case WM_INITDIALOG:
             GetINIFileName(iniFile);
 
-            thread_priority=mypri;
-            sprintf(buf,"%d",thread_priority);
-            WritePrivateProfileString(APP_NAME,THREAD_PRIORITY_INI_ENTRY,buf,iniFile);
-            
-            GetDlgItemText(hDlg,IDC_FADE_SECONDS,buf,sizeof(buf));
-            sscanf(buf,"%lf",&fade_seconds);
-            WritePrivateProfileString(APP_NAME,FADE_SECONDS_INI_ENTRY,buf,iniFile);
+            /* set CPU Priority slider */
+            hSlider=GetDlgItem(hDlg,IDC_THREAD_PRIORITY_SLIDER);
+            SendMessage(hSlider, TBM_SETRANGE,
+                    (WPARAM) TRUE,                  /* redraw flag */
+                    (LPARAM) MAKELONG(1, 7));       /* min. & max. positions */
+            SendMessage(hSlider, TBM_SETPOS, 
+                    (WPARAM) TRUE,                  /* redraw flag */
+                    (LPARAM) thread_priority+1);
+            mypri=thread_priority;
+            SetDlgItemText(hDlg,IDC_THREAD_PRIORITY_TEXT,priority_strings[thread_priority]);
 
-            GetDlgItemText(hDlg,IDC_LOOP_COUNT,buf,sizeof(buf));
-            sscanf(buf,"%lf",&loop_count);
-            WritePrivateProfileString(APP_NAME,LOOP_COUNT_INI_ENTRY,buf,iniFile);
+            sprintf(buf,"%.1lf",fade_seconds);
+            SetDlgItemText(hDlg,IDC_FADE_SECONDS,buf);
+            sprintf(buf,"%.1lf",loop_count);
+            SetDlgItemText(hDlg,IDC_LOOP_COUNT,buf);
 
-            loop_forever = (IsDlgButtonChecked(hDlg,IDC_LOOP_FOREVER) == BST_CHECKED);
-            sprintf(buf,"%d",loop_forever);
-            WritePrivateProfileString(APP_NAME,LOOP_FOREVER_INI_ENTRY,buf,iniFile);
+            CheckDlgButton(hDlg,IDC_LOOP_FOREVER,(loop_forever?BST_CHECKED:BST_UNCHECKED));
 
-            EndDialog(hDlg,TRUE);
             break;
-        case IDCANCEL:
-            EndDialog(hDlg,TRUE);
+        case WM_COMMAND:
+            switch (GET_WM_COMMAND_ID(wParam, lParam)) {
+                case IDOK:
+                    {
+                        /* verify before we do anything */
+                    }
+                    GetINIFileName(iniFile);
+
+                    thread_priority=mypri;
+                    sprintf(buf,"%d",thread_priority);
+                    WritePrivateProfileString(APP_NAME,THREAD_PRIORITY_INI_ENTRY,buf,iniFile);
+
+                    GetDlgItemText(hDlg,IDC_FADE_SECONDS,buf,sizeof(buf));
+                    sscanf(buf,"%lf",&fade_seconds);
+                    WritePrivateProfileString(APP_NAME,FADE_SECONDS_INI_ENTRY,buf,iniFile);
+
+                    GetDlgItemText(hDlg,IDC_LOOP_COUNT,buf,sizeof(buf));
+                    sscanf(buf,"%lf",&loop_count);
+                    WritePrivateProfileString(APP_NAME,LOOP_COUNT_INI_ENTRY,buf,iniFile);
+
+                    loop_forever = (IsDlgButtonChecked(hDlg,IDC_LOOP_FOREVER) == BST_CHECKED);
+                    sprintf(buf,"%d",loop_forever);
+                    WritePrivateProfileString(APP_NAME,LOOP_FOREVER_INI_ENTRY,buf,iniFile);
+
+                    EndDialog(hDlg,TRUE);
+                    break;
+                case IDCANCEL:
+                    EndDialog(hDlg,TRUE);
+                    break;
+            }
+        case WM_HSCROLL:
+            if ((struct HWND__ *)lParam==GetDlgItem(hDlg,IDC_THREAD_PRIORITY_SLIDER)) {
+                if (LOWORD(wParam)==TB_THUMBPOSITION || LOWORD(wParam)==TB_THUMBTRACK) mypri=HIWORD(wParam)-1;
+                else mypri=SendMessage(GetDlgItem(hDlg,IDC_THREAD_PRIORITY_SLIDER),TBM_GETPOS,0,0)-1;
+                SetDlgItemText(hDlg,IDC_THREAD_PRIORITY_TEXT,priority_strings[mypri]);
+            }
             break;
-        }
-    case WM_HSCROLL:
-        if ((struct HWND__ *)lParam==GetDlgItem(hDlg,IDC_THREAD_PRIORITY_SLIDER)) {
-            if (LOWORD(wParam)==TB_THUMBPOSITION || LOWORD(wParam)==TB_THUMBTRACK) mypri=HIWORD(wParam)-1;
-            else mypri=SendMessage(GetDlgItem(hDlg,IDC_THREAD_PRIORITY_SLIDER),TBM_GETPOS,0,0)-1;
-            SetDlgItemText(hDlg,IDC_THREAD_PRIORITY_TEXT,priority_strings[mypri]);
-        }
-        break;
-    default:
-        return 0;
+        default:
+            return 0;
     }
 
     return 1;
