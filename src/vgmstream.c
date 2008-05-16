@@ -375,7 +375,7 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream) {
                     vgmstream->loop_ch[i].adpcm_history2_32 = vgmstream->ch[i].adpcm_history2_32;
                 }
             }
-#if DEBUG
+#ifdef DEBUG
             {
                int i;
                for (i=0;i<vgmstream->channels;i++) {
