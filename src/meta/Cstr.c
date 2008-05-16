@@ -29,6 +29,66 @@ VGMSTREAM * init_vgmstream_Cstr(const char * const filename) {
     fprintf(stderr,"header ok\n");
 #endif
 
+    if (read_8bit(0x1b,infile)==1) {
+        /* mono version, much simpler to handle */
+        /* Only seen in R Racing Evolution radio sfx */
+
+        start_offset = 0x80;
+        loop_flag = read_16bitBE(0x2c,infile);
+
+        /* check initial predictor/scale */
+        if (read_16bitBE(0x5e,infile) != (uint8_t)read_8bit(start_offset,infile))
+            goto fail;
+
+        /* check type==0 and gain==0 */
+        if (read_16bitBE(0x2e,infile) || read_16bitBE(0x5c,infile))
+            goto fail;
+
+        loop_offset = start_offset+read_32bitBE(0x10,infile);
+        if (loop_flag) {
+            if (read_16bitBE(0x64,infile) != (uint8_t)read_8bit(loop_offset,infile)) goto fail;
+        }
+
+        /* build the VGMSTREAM */
+
+        vgmstream = allocate_vgmstream(1,loop_flag);
+        if (!vgmstream) goto fail;
+
+        /* fill in the vital statistics */
+        vgmstream->sample_rate = read_32bitBE(0x28,infile);
+        vgmstream->num_samples = read_32bitBE(0x20,infile);
+
+        if (loop_flag) {
+        vgmstream->loop_start_sample = dsp_nibbles_to_samples(
+                read_32bitBE(0x30,infile));
+        vgmstream->loop_end_sample =  dsp_nibbles_to_samples(
+                read_32bitBE(0x34,infile))+1;
+        }
+
+        vgmstream->coding_type = coding_NGC_DSP;
+        vgmstream->layout_type = layout_none;
+        vgmstream->meta_type = meta_DSP_CSTR;
+
+        {
+            int i;
+            for (i=0;i<16;i++)
+                vgmstream->ch[0].adpcm_coef[i]=read_16bitBE(0x3c+i*2,infile);
+        }
+
+        close_streamfile(infile); infile=NULL;
+
+        /* open the file for reading by each channel */
+        vgmstream->ch[0].streamfile = open_streamfile(filename);
+
+        if (!vgmstream->ch[0].streamfile) goto fail;
+
+        vgmstream->ch[0].channel_start_offset=
+            vgmstream->ch[0].offset=
+            start_offset;
+
+        return vgmstream;
+    }
+
     interleave = read_16bitBE(0x06,infile);
     start_offset = 0xe0; 
     first_data = start_offset+read_32bitBE(0x0c,infile);
