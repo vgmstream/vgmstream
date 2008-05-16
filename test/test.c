@@ -10,20 +10,21 @@ extern int optind, opterr, optopt;
 
 void usage(const char * name) {
     fprintf(stderr,"vgmstream test decoder " VERSION " " __DATE__ "\n"
-            "Usage: %s [-o outfile.wav] [-l loop count]\n"
-            "\t[-f fade time] [-ipcmxeE] infile\n"
-            "Options:\n"
-            "\t-o outfile.wav: name of output .wav file, default is dump.wav\n"
-            "\t-l loop count: loop count, default 2.0\n"
-            "\t-f fade time: fade time (seconds), default 10.0\n"
-            "\t-i: ignore looping information and play the whole stream once\n"
-            "\t-p: output to stdout (for piping into another program)\n"
-            "\t-P: output to stdout even if stdout is a terminal\n"
-            "\t-c: loop forever (continuously)\n"
-            "\t-m: print metadata only, don't decode\n"
-            "\t-x: decode and print adxencd command line to encode as ADX\n"
-            "\t-e: force end-to-end looping\n"
-            "\t-E: force end-to-end looping even if file has real loop points\n"
+          "Usage: %s [-o outfile.wav] [-l loop count]\n"
+          "    [-f fade time] [-d fade delay] [-ipcmxeE] infile\n"
+          "Options:\n"
+          "    -o outfile.wav: name of output .wav file, default is dump.wav\n"
+          "    -l loop count: loop count, default 2.0\n"
+          "    -f fade time: fade time (seconds), default 10.0\n"
+          "    -d fade delay: fade delay (seconds, default 0.0\n"
+          "    -i: ignore looping information and play the whole stream once\n"
+          "    -p: output to stdout (for piping into another program)\n"
+          "    -P: output to stdout even if stdout is a terminal\n"
+          "    -c: loop forever (continuously)\n"
+          "    -m: print metadata only, don't decode\n"
+          "    -x: decode and print adxencd command line to encode as ADX\n"
+          "    -e: force end-to-end looping\n"
+          "    -E: force end-to-end looping even if file has real loop points\n"
             ,name);
     
 }
@@ -46,9 +47,10 @@ int main(int argc, char ** argv) {
     int metaonly = 0;
     int adxencd = 0;
     double loop_count = 2.0;
-    double fade_time = 10.0;
+    double fade_seconds = 10.0;
+    double fade_delay_seconds = 0.0;
     
-    while ((opt = getopt(argc, argv, "o:l:f:ipPcmxeE")) != -1) {
+    while ((opt = getopt(argc, argv, "o:l:f:d:ipPcmxeE")) != -1) {
         switch (opt) {
             case 'o':
                 outfilename = optarg;
@@ -57,7 +59,10 @@ int main(int argc, char ** argv) {
                 loop_count = atof(optarg);
                 break;
             case 'f':
-                fade_time = atof(optarg);
+                fade_seconds = atof(optarg);
+                break;
+            case 'd':
+                fade_delay_seconds = atof(optarg);
                 break;
             case 'i':
                 ignore_loop = 1;
@@ -188,9 +193,9 @@ int main(int argc, char ** argv) {
 
     buf = malloc(BUFSIZE*sizeof(sample)*s->channels);
 
-    len = get_vgmstream_play_samples(loop_count,fade_time,s);
+    len = get_vgmstream_play_samples(loop_count,fade_seconds,fade_delay_seconds,s);
     if (!play && !adxencd) printf("samples to play: %d (%.2lf seconds)\n",len,(double)len/s->sample_rate);
-    fade_samples = fade_time * s->sample_rate;
+    fade_samples = fade_seconds * s->sample_rate;
 
     /* slap on a .wav header */
     make_wav_header((uint8_t*)buf, len, s->sample_rate, s->channels);

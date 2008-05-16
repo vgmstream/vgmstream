@@ -145,9 +145,9 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
     free(vgmstream);
 }
 
-int32_t get_vgmstream_play_samples(double looptimes, double fadetime, VGMSTREAM * vgmstream) {
+int32_t get_vgmstream_play_samples(double looptimes, double fadeseconds, double fadedelayseconds, VGMSTREAM * vgmstream) {
     if (vgmstream->loop_flag) {
-        return vgmstream->loop_start_sample+(vgmstream->loop_end_sample-vgmstream->loop_start_sample)*looptimes+fadetime*vgmstream->sample_rate;
+        return vgmstream->loop_start_sample+(vgmstream->loop_end_sample-vgmstream->loop_start_sample)*looptimes+(fadedelayseconds+fadeseconds)*vgmstream->sample_rate;
     } else return vgmstream->num_samples;
 }
 

@@ -35,17 +35,20 @@ DWORD WINAPI __stdcall decode(void *arg);
 char lastfn[MAX_PATH+1] = {0}; /* name of the currently playing file */
 short sample_buffer[576*2*2]; /* 576 16-bit samples, stereo, possibly doubled in size for DSP */
 
-#define DEFAULT_FADE_SECONDS "10"
-#define DEFAULT_LOOP_COUNT "2"
+#define DEFAULT_FADE_SECONDS "10.00"
+#define DEFAULT_FADE_DELAY_SECONDS "0.00"
+#define DEFAULT_LOOP_COUNT "2.00"
 #define DEFAULT_THREAD_PRIORITY 3
 #define DEFAULT_LOOP_FOREVER 0
 
 #define FADE_SECONDS_INI_ENTRY "fade_seconds"
+#define FADE_DELAY_SECONDS_INI_ENTRY "fade_delay"
 #define LOOP_COUNT_INI_ENTRY "loop_count"
 #define THREAD_PRIORITY_INI_ENTRY "thread_priority"
 #define LOOP_FOREVER_INI_ENTRY "loop_forever"
 
 double fade_seconds;
+double fade_delay_seconds;
 double loop_count;
 int thread_priority;
 int loop_forever;
@@ -127,16 +130,34 @@ void GetINIFileName(char * iniFile) {
 void init() {
     char iniFile[MAX_PATH+1];
     char buf[256];
+    int consumed;
 
     GetINIFileName(iniFile);
 
     thread_priority=GetPrivateProfileInt(APP_NAME,THREAD_PRIORITY_INI_ENTRY,DEFAULT_THREAD_PRIORITY,iniFile);
+    if (thread_priority < 0 || thread_priority > 6) {
+        sprintf(buf,"%d",DEFAULT_THREAD_PRIORITY);
+        WritePrivateProfileString(APP_NAME,THREAD_PRIORITY_INI_ENTRY,buf,iniFile);
+        thread_priority = DEFAULT_THREAD_PRIORITY;
+    }
 
     GetPrivateProfileString(APP_NAME,FADE_SECONDS_INI_ENTRY,DEFAULT_FADE_SECONDS,buf,sizeof(buf),iniFile);
-    sscanf(buf,"%lf",&fade_seconds);
+    if (sscanf(buf,"%lf%n",&fade_seconds,&consumed)<1 || consumed!=strlen(buf) || fade_seconds < 0) {
+        WritePrivateProfileString(APP_NAME,FADE_SECONDS_INI_ENTRY,DEFAULT_FADE_SECONDS,iniFile);
+        sscanf(DEFAULT_FADE_SECONDS,"%lf",&fade_seconds);
+    }
+
+    GetPrivateProfileString(APP_NAME,FADE_DELAY_SECONDS_INI_ENTRY,DEFAULT_FADE_DELAY_SECONDS,buf,sizeof(buf),iniFile);
+    if (sscanf(buf,"%lf%n",&fade_delay_seconds,&consumed)<1 || consumed!=strlen(buf)) {
+        WritePrivateProfileString(APP_NAME,FADE_DELAY_SECONDS_INI_ENTRY,DEFAULT_FADE_DELAY_SECONDS,iniFile);
+        sscanf(DEFAULT_FADE_DELAY_SECONDS,"%lf",&fade_delay_seconds);
+    }
 
     GetPrivateProfileString(APP_NAME,LOOP_COUNT_INI_ENTRY,DEFAULT_LOOP_COUNT,buf,sizeof(buf),iniFile);
-    sscanf(buf,"%lf",&loop_count);
+    if (sscanf(buf,"%lf%n",&loop_count,&consumed)!=1 || consumed!=strlen(buf) || loop_count < 0) {
+        WritePrivateProfileString(APP_NAME,LOOP_COUNT_INI_ENTRY,DEFAULT_LOOP_COUNT,iniFile);
+        sscanf(DEFAULT_LOOP_COUNT,"%lf",&loop_count);
+    }
 
     loop_forever=GetPrivateProfileInt(APP_NAME,LOOP_FOREVER_INI_ENTRY,DEFAULT_LOOP_FOREVER,iniFile);
 
@@ -196,7 +217,7 @@ int play(char *fn)
     decode_pos_ms = 0;
     decode_pos_samples = 0;
     paused = 0;
-    stream_length_samples = get_vgmstream_play_samples(loop_count,fade_seconds,vgmstream);
+    stream_length_samples = get_vgmstream_play_samples(loop_count,fade_seconds,fade_delay_seconds,vgmstream);
 
     fade_samples = (int)(fade_seconds * vgmstream->sample_rate);
 
@@ -304,7 +325,7 @@ void getfileinfo(char *filename, char *title, int *length_in_ms) {
             *length_in_ms=-1000;
             if ((infostream=init_vgmstream(filename)))
             {
-                *length_in_ms = get_vgmstream_play_samples(loop_count,fade_seconds,infostream)*1000LL/infostream->sample_rate;
+                *length_in_ms = get_vgmstream_play_samples(loop_count,fade_seconds,fade_delay_seconds,infostream)*1000LL/infostream->sample_rate;
 
                 close_vgmstream(infostream);
                 infostream=NULL;
@@ -405,9 +426,11 @@ BOOL CALLBACK configDlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             mypri=thread_priority;
             SetDlgItemText(hDlg,IDC_THREAD_PRIORITY_TEXT,priority_strings[thread_priority]);
 
-            sprintf(buf,"%.1lf",fade_seconds);
+            sprintf(buf,"%.2lf",fade_seconds);
             SetDlgItemText(hDlg,IDC_FADE_SECONDS,buf);
-            sprintf(buf,"%.1lf",loop_count);
+            sprintf(buf,"%.2lf",fade_delay_seconds);
+            SetDlgItemText(hDlg,IDC_FADE_DELAY_SECONDS,buf);
+            sprintf(buf,"%.2lf",loop_count);
             SetDlgItemText(hDlg,IDC_LOOP_COUNT,buf);
 
             CheckDlgButton(hDlg,IDC_LOOP_FOREVER,(loop_forever?BST_CHECKED:BST_UNCHECKED));
@@ -417,31 +440,89 @@ BOOL CALLBACK configDlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             switch (GET_WM_COMMAND_ID(wParam, lParam)) {
                 case IDOK:
                     {
-                        /* verify before we do anything */
+                        double temp_fade_seconds;
+                        double temp_fade_delay_seconds;
+                        double temp_loop_count;
+                        int consumed;
+
+                        /* read and verify */
+                        GetDlgItemText(hDlg,IDC_FADE_SECONDS,buf,sizeof(buf));
+                        if (sscanf(buf,"%lf%n",&temp_fade_seconds,&consumed)<1
+                            || consumed!=strlen(buf) ||
+                            temp_fade_seconds<0) {
+                            MessageBox(hDlg,
+                                    "Invalid value for Fade Length\n"
+                                    "Must be a number greater than or equal to zero",
+                                    "Error",MB_OK|MB_ICONERROR);
+                            break;
+                        }
+
+                        GetDlgItemText(hDlg,IDC_FADE_DELAY_SECONDS,buf,sizeof(buf));
+                        if (sscanf(buf,"%lf%n",&temp_fade_delay_seconds,
+                            &consumed)<1 || consumed!=strlen(buf)) {
+                            MessageBox(hDlg,
+                                    "Invalid valid for Fade Delay\n"
+                                    "Must be a number",
+                                    "Error",MB_OK|MB_ICONERROR);
+                            break;
+                        }
+
+                        GetDlgItemText(hDlg,IDC_LOOP_COUNT,buf,sizeof(buf));
+                        if (sscanf(buf,"%lf%n",&temp_loop_count,&consumed)<1 ||
+                                consumed!=strlen(buf) ||
+                                temp_loop_count<0) {
+                            MessageBox(hDlg,
+                                    "Invalid value for Loop Count\n"
+                                    "Must be a number greater than or equal to zero",
+                                    "Error",MB_OK|MB_ICONERROR);
+                            break;
+                        }
+
+                        GetINIFileName(iniFile);
+
+                        thread_priority=mypri;
+                        sprintf(buf,"%d",thread_priority);
+                        WritePrivateProfileString(APP_NAME,THREAD_PRIORITY_INI_ENTRY,buf,iniFile);
+
+                        fade_seconds = temp_fade_seconds;
+                        sprintf(buf,"%.2lf",fade_seconds);
+                        WritePrivateProfileString(APP_NAME,FADE_SECONDS_INI_ENTRY,buf,iniFile);
+
+                        fade_delay_seconds = temp_fade_delay_seconds;
+                        sprintf(buf,"%.2lf",fade_delay_seconds);
+                        WritePrivateProfileString(APP_NAME,FADE_DELAY_SECONDS_INI_ENTRY,buf,iniFile);
+
+                        loop_count = temp_loop_count;
+                        sprintf(buf,"%.2lf",loop_count);
+                        WritePrivateProfileString(APP_NAME,LOOP_COUNT_INI_ENTRY,buf,iniFile);
+
+                        loop_forever = (IsDlgButtonChecked(hDlg,IDC_LOOP_FOREVER) == BST_CHECKED);
+                        sprintf(buf,"%d",loop_forever);
+                        WritePrivateProfileString(APP_NAME,LOOP_FOREVER_INI_ENTRY,buf,iniFile);
                     }
-                    GetINIFileName(iniFile);
-
-                    thread_priority=mypri;
-                    sprintf(buf,"%d",thread_priority);
-                    WritePrivateProfileString(APP_NAME,THREAD_PRIORITY_INI_ENTRY,buf,iniFile);
-
-                    GetDlgItemText(hDlg,IDC_FADE_SECONDS,buf,sizeof(buf));
-                    sscanf(buf,"%lf",&fade_seconds);
-                    WritePrivateProfileString(APP_NAME,FADE_SECONDS_INI_ENTRY,buf,iniFile);
-
-                    GetDlgItemText(hDlg,IDC_LOOP_COUNT,buf,sizeof(buf));
-                    sscanf(buf,"%lf",&loop_count);
-                    WritePrivateProfileString(APP_NAME,LOOP_COUNT_INI_ENTRY,buf,iniFile);
-
-                    loop_forever = (IsDlgButtonChecked(hDlg,IDC_LOOP_FOREVER) == BST_CHECKED);
-                    sprintf(buf,"%d",loop_forever);
-                    WritePrivateProfileString(APP_NAME,LOOP_FOREVER_INI_ENTRY,buf,iniFile);
 
                     EndDialog(hDlg,TRUE);
                     break;
                 case IDCANCEL:
                     EndDialog(hDlg,TRUE);
                     break;
+                case IDC_DEFAULT:
+                    /* set CPU Priority slider */
+                    hSlider=GetDlgItem(hDlg,IDC_THREAD_PRIORITY_SLIDER);
+                    SendMessage(hSlider, TBM_SETRANGE,
+                            (WPARAM) TRUE,                  /* redraw flag */
+                            (LPARAM) MAKELONG(1, 7));       /* min. & max. positions */
+                    SendMessage(hSlider, TBM_SETPOS, 
+                            (WPARAM) TRUE,                  /* redraw flag */
+                            (LPARAM) DEFAULT_THREAD_PRIORITY+1);
+                    mypri=DEFAULT_THREAD_PRIORITY;
+                    SetDlgItemText(hDlg,IDC_THREAD_PRIORITY_TEXT,priority_strings[mypri]);
+
+                    SetDlgItemText(hDlg,IDC_FADE_SECONDS,DEFAULT_FADE_SECONDS);
+                    SetDlgItemText(hDlg,IDC_FADE_DELAY_SECONDS,DEFAULT_FADE_DELAY_SECONDS);
+                    SetDlgItemText(hDlg,IDC_LOOP_COUNT,DEFAULT_LOOP_COUNT);
+
+                    CheckDlgButton(hDlg,IDC_LOOP_FOREVER,(DEFAULT_LOOP_FOREVER?BST_CHECKED:BST_UNCHECKED));
             }
         case WM_HSCROLL:
             if ((struct HWND__ *)lParam==GetDlgItem(hDlg,IDC_THREAD_PRIORITY_SLIDER)) {

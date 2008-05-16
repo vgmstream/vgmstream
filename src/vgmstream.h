@@ -185,7 +185,7 @@ VGMSTREAM * allocate_vgmstream(int channel_count, int looped);
 void close_vgmstream(VGMSTREAM * vgmstream);
 
 /* calculate the number of samples to be played based on looping parameters */
-int32_t get_vgmstream_play_samples(double looptimes, double fadetime, VGMSTREAM * vgmstream);
+int32_t get_vgmstream_play_samples(double looptimes, double fadeseconds, double fadedelayseconds, VGMSTREAM * vgmstream);
 
 /* render! */
 void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstream);
