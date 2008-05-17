@@ -25,7 +25,7 @@ VGMSTREAM * init_vgmstream_ps2_mic(const char * const filename) {
     infile = open_streamfile(filename);
     if (!infile) goto fail;
 
-    /* check EXST Header */
+    /* check Header */
     if (read_32bitLE(0x00,infile) != 0x800)
         goto fail;
 

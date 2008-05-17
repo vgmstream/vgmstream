@@ -103,6 +103,9 @@ VGMSTREAM * init_vgmstream_ps2_mib(const char * const filename) {
 
 	} while (infile->offset<fileLength);
 
+	if(gotMIH) 
+		channel_count=read_32bitLE(0x08,infileMIH);
+
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,(loopStart!=0));
     if (!vgmstream) goto fail;
