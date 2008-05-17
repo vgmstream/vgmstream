@@ -19,6 +19,7 @@ VGMSTREAM * init_vgmstream_ps2_svag(const char * const filename) {
     int loop_flag=0;
     int channel_count;
     int i;
+    off_t start_offset;
 
     /* check extension, case insensitive */
     if (strcasecmp("svag",filename_extension(filename))) goto fail;
@@ -59,6 +60,12 @@ VGMSTREAM * init_vgmstream_ps2_svag(const char * const filename) {
     vgmstream->layout_type = layout_interleave_shortblock;
     vgmstream->meta_type = meta_PS2_SVAG;
 
+    /* 2008-05-16 - hcs - use Fastelbja's check from in_cube to decide the start*/
+    if ((uint32_t)read_32bitBE(0x1c,infile)==0x20414c4c) /* " ALL" */
+        start_offset = 0x800;
+    else
+        start_offset = 0x400;
+
     close_streamfile(infile); infile=NULL;
 
     /* open the file for reading by each channel */
@@ -70,7 +77,7 @@ VGMSTREAM * init_vgmstream_ps2_svag(const char * const filename) {
 
             vgmstream->ch[i].channel_start_offset=
                 vgmstream->ch[i].offset=
-                (off_t)(0x800+vgmstream->interleave_block_size*i);
+                start_offset+(off_t)(vgmstream->interleave_block_size*i);
         }
     }
 
