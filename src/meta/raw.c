@@ -31,7 +31,7 @@ VGMSTREAM * init_vgmstream_raw(const char * const filename) {
     vgmstream->channels = 2;
     vgmstream->sample_rate = 44100;
     vgmstream->coding_type = coding_PCM16LE;
-    vgmstream->num_samples = (int32_t)(get_streamfile_size(infile)/2);
+    vgmstream->num_samples = (int32_t)(get_streamfile_size(infile)/4);
     vgmstream->layout_type = layout_interleave;
 	vgmstream->interleave_block_size = 2;
     vgmstream->meta_type = meta_RAW;
@@ -46,7 +46,7 @@ VGMSTREAM * init_vgmstream_raw(const char * const filename) {
             if (!vgmstream->ch[i].streamfile) goto fail;
 
             vgmstream->ch[i].channel_start_offset=
-                vgmstream->ch[i].offset=0;
+                vgmstream->ch[i].offset=(off_t)(i*vgmstream->interleave_block_size);
         }
     }
 
