@@ -1,5 +1,5 @@
 /* Winamp plugin interface for vgmstream */
-/* Largely copied from: */
+/* Based on: */
 /*
 ** Example Winamp .RAW input plug-in
 ** Copyright (c) 1998, Justin Frankel/Nullsoft Inc.
@@ -40,18 +40,21 @@ short sample_buffer[576*2*2]; /* 576 16-bit samples, stereo, possibly doubled in
 #define DEFAULT_LOOP_COUNT "2.00"
 #define DEFAULT_THREAD_PRIORITY 3
 #define DEFAULT_LOOP_FOREVER 0
+#define DEFAULT_IGNORE_LOOP 0
 
 #define FADE_SECONDS_INI_ENTRY "fade_seconds"
 #define FADE_DELAY_SECONDS_INI_ENTRY "fade_delay"
 #define LOOP_COUNT_INI_ENTRY "loop_count"
 #define THREAD_PRIORITY_INI_ENTRY "thread_priority"
 #define LOOP_FOREVER_INI_ENTRY "loop_forever"
+#define IGNORE_LOOP_INI_ENTRY "ignore_loop"
 
 double fade_seconds;
 double fade_delay_seconds;
 double loop_count;
 int thread_priority;
 int loop_forever;
+int ignore_loop;
 
 char *priority_strings[] = {"Idle","Lowest","Below Normal","Normal","Above Normal","Highest (not recommended)","Time Critical (not recommended)"};
 int priority_values[] = {THREAD_PRIORITY_IDLE,THREAD_PRIORITY_LOWEST,THREAD_PRIORITY_BELOW_NORMAL,THREAD_PRIORITY_NORMAL,THREAD_PRIORITY_ABOVE_NORMAL,THREAD_PRIORITY_HIGHEST,THREAD_PRIORITY_TIME_CRITICAL};
@@ -162,6 +165,16 @@ void init() {
     }
 
     loop_forever=GetPrivateProfileInt(APP_NAME,LOOP_FOREVER_INI_ENTRY,DEFAULT_LOOP_FOREVER,iniFile);
+    ignore_loop=GetPrivateProfileInt(APP_NAME,IGNORE_LOOP_INI_ENTRY,DEFAULT_IGNORE_LOOP,iniFile);
+
+    if (loop_forever && ignore_loop) {
+        sprintf(buf,"%d",DEFAULT_LOOP_FOREVER);
+        WritePrivateProfileString(APP_NAME,LOOP_FOREVER_INI_ENTRY,buf,iniFile);
+        loop_forever = DEFAULT_LOOP_FOREVER;
+        sprintf(buf,"%d",DEFAULT_IGNORE_LOOP);
+        WritePrivateProfileString(APP_NAME,IGNORE_LOOP_INI_ENTRY,buf,iniFile);
+        ignore_loop = DEFAULT_IGNORE_LOOP;
+    }
 
     build_extension_list();
 }
@@ -185,6 +198,7 @@ int play(char *fn)
     if (!vgmstream) {
         return 1;
     }
+    if (ignore_loop) vgmstream->loop_flag = 0;
     /* will we be able to play it? */
     if (vgmstream->channels <= 0 || vgmstream->channels > 2) {
         /* TODO: > 2 channels is not unheard of, we should probably complain */
@@ -372,6 +386,8 @@ DWORD WINAPI __stdcall decode(void *arg) {
                             0,0);   /* no parameters */
                     return 0;
                 }
+                if (ignore_loop)
+                    new_temp->loop_flag = 0;
 
                 old_temp = vgmstream;
                 vgmstream = new_temp;
@@ -474,7 +490,12 @@ BOOL CALLBACK configDlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             sprintf(buf,"%.2lf",loop_count);
             SetDlgItemText(hDlg,IDC_LOOP_COUNT,buf);
 
-            CheckDlgButton(hDlg,IDC_LOOP_FOREVER,(loop_forever?BST_CHECKED:BST_UNCHECKED));
+            if (loop_forever)
+                CheckDlgButton(hDlg,IDC_LOOP_FOREVER,BST_CHECKED);
+            else if (ignore_loop)
+                CheckDlgButton(hDlg,IDC_IGNORE_LOOP,BST_CHECKED);
+            else
+                CheckDlgButton(hDlg,IDC_LOOP_NORMALLY,BST_CHECKED);
 
             break;
         case WM_COMMAND:
@@ -540,6 +561,10 @@ BOOL CALLBACK configDlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam) 
                         loop_forever = (IsDlgButtonChecked(hDlg,IDC_LOOP_FOREVER) == BST_CHECKED);
                         sprintf(buf,"%d",loop_forever);
                         WritePrivateProfileString(APP_NAME,LOOP_FOREVER_INI_ENTRY,buf,iniFile);
+
+                        ignore_loop = (IsDlgButtonChecked(hDlg,IDC_IGNORE_LOOP) == BST_CHECKED);
+                        sprintf(buf,"%d",ignore_loop);
+                        WritePrivateProfileString(APP_NAME,IGNORE_LOOP_INI_ENTRY,buf,iniFile);
                     }
 
                     EndDialog(hDlg,TRUE);
@@ -547,7 +572,7 @@ BOOL CALLBACK configDlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam) 
                 case IDCANCEL:
                     EndDialog(hDlg,TRUE);
                     break;
-                case IDC_DEFAULT:
+                case IDC_DEFAULT_BUTTON:
                     /* set CPU Priority slider */
                     hSlider=GetDlgItem(hDlg,IDC_THREAD_PRIORITY_SLIDER);
                     SendMessage(hSlider, TBM_SETRANGE,
@@ -563,7 +588,7 @@ BOOL CALLBACK configDlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam) 
                     SetDlgItemText(hDlg,IDC_FADE_DELAY_SECONDS,DEFAULT_FADE_DELAY_SECONDS);
                     SetDlgItemText(hDlg,IDC_LOOP_COUNT,DEFAULT_LOOP_COUNT);
 
-                    CheckDlgButton(hDlg,IDC_LOOP_FOREVER,(DEFAULT_LOOP_FOREVER?BST_CHECKED:BST_UNCHECKED));
+                    CheckDlgButton(hDlg,IDC_LOOP_NORMALLY,BST_CHECKED);
             }
         case WM_HSCROLL:
             if ((struct HWND__ *)lParam==GetDlgItem(hDlg,IDC_THREAD_PRIORITY_SLIDER)) {

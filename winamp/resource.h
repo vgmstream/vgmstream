@@ -2,7 +2,9 @@
 #define IDC_LOOP_COUNT                  1000
 #define IDC_FADE_SECONDS                1001
 #define IDC_FADE_DELAY_SECONDS          1002
-#define IDC_LOOP_FOREVER                1003
-#define IDC_THREAD_PRIORITY_SLIDER      1004
-#define IDC_THREAD_PRIORITY_TEXT        1005
-#define IDC_DEFAULT                     1006
+#define IDC_LOOP_NORMALLY               1003
+#define IDC_LOOP_FOREVER                1004
+#define IDC_IGNORE_LOOP                 1005
+#define IDC_THREAD_PRIORITY_SLIDER      1006
+#define IDC_THREAD_PRIORITY_TEXT        1007
+#define IDC_DEFAULT_BUTTON              1008
