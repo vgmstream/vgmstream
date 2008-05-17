@@ -275,6 +275,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\ps2_vag.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\psx_cdxa.c"
 					>
 				</File>

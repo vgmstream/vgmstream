@@ -30,7 +30,7 @@ void decode_psx(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, 
 
 		sample=0;
 
-		if(flag!=0x07) {
+		if(flag<0x07) {
 		
 			short sample_byte = (short)read_8bit(stream->offset+(framesin*16)+2+i/2,stream->streamfile);
 

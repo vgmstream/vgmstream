@@ -15,7 +15,7 @@
  * List of functions that will recognize files. These should correspond pretty
  * directly to the metadata types
  */
-#define INIT_VGMSTREAM_FCNS 27
+#define INIT_VGMSTREAM_FCNS 28
 VGMSTREAM * (*init_vgmstream_fcns[INIT_VGMSTREAM_FCNS])(const char * const) = {
     init_vgmstream_adx,             /* 0 */
     init_vgmstream_brstm,           /* 1 */
@@ -44,6 +44,7 @@ VGMSTREAM * (*init_vgmstream_fcns[INIT_VGMSTREAM_FCNS])(const char * const) = {
 	init_vgmstream_ps2_mic,			/* 24 */
     init_vgmstream_ngc_dsp_std_int, /* 25 */
 	init_vgmstream_raw,				/* 26 */
+	init_vgmstream_ps2_vag,			/* 27 */
 };
 
 
@@ -72,7 +73,7 @@ VGMSTREAM * init_vgmstream_internal(const char * const filename, int do_dfs) {
             }
 
             /* dual file stereo */
-            if (do_dfs && vgmstream->meta_type == meta_DSP_STD && vgmstream->channels == 1) {
+            if (do_dfs && ((vgmstream->meta_type == meta_DSP_STD) || (vgmstream->meta_type == meta_PS2_VAGp)) && vgmstream->channels == 1) {
                 try_dual_file_stereo(vgmstream, filename);
             }
 
@@ -637,6 +638,15 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case meta_RAW:
             snprintf(temp,TEMPSIZE,"assumed RAW PCM file by .raw extension");
+            break;
+		case meta_PS2_VAGi:
+            snprintf(temp,TEMPSIZE,"Sony VAG Interleaved header (VAGi)");
+            break;
+		case meta_PS2_VAGp:
+            snprintf(temp,TEMPSIZE,"Sony VAG Mono header (VAGp)");
+            break;
+		case meta_PS2_pGAV:
+            snprintf(temp,TEMPSIZE,"Sony VAG Stereo Little Endian header (pGAV)");
             break;
         default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

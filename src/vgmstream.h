@@ -88,6 +88,9 @@ typedef enum {
 	meta_PS2_MIB,			/* MIB File */
 	meta_PS2_MIB_MIH,		/* MIB File + MIH Header*/
 	meta_PS2_MIC,			/* KOEI MIC File */
+	meta_PS2_VAGi,			/* VAGi Interleaved File */
+	meta_PS2_VAGp,			/* VAGp Mono File */
+	meta_PS2_pGAV,			/* VAGp with Little Endian Header */
 
 	meta_PSX_XA,			/* CD-XA with RIFF header */
 
