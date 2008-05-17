@@ -20,7 +20,11 @@ int CLAMP(int value, int Minim, int Maxim)
     return value;
 }
 
-static uint8_t get_high_nibble=1;
+static int get_high_nibble = 1;
+
+void init_get_high_nibble() {
+	get_high_nibble=1;
+}
 
 void decode_xa(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
 
@@ -33,15 +37,16 @@ void decode_xa(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, i
 	int i;
 	int32_t sample_count;
 
-	int framesin = first_sample / 28;
+	int framesin = first_sample / (56 / channelspacing);
 
-	get_high_nibble=!get_high_nibble;
+	first_sample = first_sample % 28;
+	
+	if(!first_sample)
+		get_high_nibble=!get_high_nibble;
 
 	predict_nr = read_8bit(stream->offset+HeadTable[framesin]+get_high_nibble,stream->streamfile) >> 4;
 	shift_factor = read_8bit(stream->offset+HeadTable[framesin]+get_high_nibble,stream->streamfile) & 0xf;
-	
-	first_sample = first_sample % 28;
-	
+
 	for (i=first_sample,sample_count=0; i<first_sample+samples_to_do; i++,sample_count+=channelspacing) {
         short sample_byte = (short)read_8bit(stream->offset+16+framesin+(i*4),stream->streamfile);
 

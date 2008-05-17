@@ -1,12 +1,16 @@
 #include "layout.h"
 #include "../vgmstream.h"
 
+extern void init_get_high_nibble();
+
 /* set up for the block at the given offset */
 void xa_block_update(off_t block_offset, VGMSTREAM * vgmstream) {
 
 	int i;
 	int8_t currentChannel=0;
 	int8_t subAudio=0;
+	
+	init_get_high_nibble();
 
 	if(vgmstream->samples_into_block!=0)
 		// don't change this variable in the init process
