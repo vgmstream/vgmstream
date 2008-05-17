@@ -5,7 +5,7 @@
 /* Sony PSX CD-XA */
 /* No looped file ! */
 
-off_t init_xa_channel(int channel,VGMSTREAM* vgmstream);
+off_t init_xa_channel(int channel,STREAMFILE *infile);
 
 uint8_t AUDIO_CODING_GET_STEREO(uint8_t value) {
 	return (uint8_t)(value & 3);
