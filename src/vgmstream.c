@@ -671,8 +671,10 @@ void try_dual_file_stereo(VGMSTREAM * opened_stream, const char * const filename
     int i,j;
 
     if (opened_stream->channels != 1) return;
-    /* vgmstream's layout stuff currently assumes a single file */
-    if (opened_stream->layout != layout_none) return;
+    
+	/* vgmstream's layout stuff currently assumes a single file */
+	// fastelbja : no need ... this one works ok with dual file
+    //if (opened_stream->layout != layout_none) return;
 
     /* we need at least a base and a name ending to replace */
     if (strlen(filename)<2) return;
