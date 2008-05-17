@@ -21,6 +21,7 @@ VGMSTREAM * init_vgmstream_cdxa(const char * const filename) {
 
 	int channel_count;
 	uint8_t bCoding;
+	off_t start_offset;
 
     int i;
 
@@ -37,7 +38,14 @@ VGMSTREAM * init_vgmstream_cdxa(const char * const filename) {
 		  (read_32bitBE(0x0C,infile) == 0x666D7420)))
         goto fail;
 
-	bCoding = read_8bit(0x3F,infile);
+	/* First init to have the correct info of the channel */
+	start_offset=init_xa_channel(0,infile);
+
+	/* No sound ? */
+	if(start_offset==0)
+		goto fail;
+
+	bCoding = read_8bit(start_offset-5,infile);
 
 	switch (AUDIO_CODING_GET_STEREO(bCoding)) {
 		case 0: channel_count = 1; break;
@@ -51,6 +59,7 @@ VGMSTREAM * init_vgmstream_cdxa(const char * const filename) {
 
 	/* fill in the vital statistics */
 	vgmstream->channels = channel_count;
+	vgmstream->xa_channel = 0;
 
 	switch (AUDIO_CODING_GET_FREQ(bCoding)) {
 		case 0: vgmstream->sample_rate = 37800; break;
@@ -75,8 +84,8 @@ VGMSTREAM * init_vgmstream_cdxa(const char * const filename) {
             if (!vgmstream->ch[i].streamfile) goto fail;
         }
     }
-
-	xa_block_update(init_xa_channel(0,vgmstream),vgmstream);
+	
+	xa_block_update(start_offset,vgmstream);
 
 	return vgmstream;
 
@@ -87,21 +96,23 @@ fail:
     return NULL;
 }
 
-// in extension, we can use this fonction to set the channel
-// we want to listen to ...
-off_t init_xa_channel(int channel,VGMSTREAM* vgmstream) {
+off_t init_xa_channel(int channel,STREAMFILE* infile) {
 	
 	off_t block_offset=0x44;
+	size_t filelength=get_streamfile_size(infile);
 
 	int8_t currentChannel;
 	int8_t subAudio;
 
-	vgmstream->xa_channel=channel;
-
 begin:
-	currentChannel=read_8bit(block_offset-7,vgmstream->ch[0].streamfile);
-	subAudio=read_8bit(block_offset-6,vgmstream->ch[0].streamfile);
-	if ((currentChannel!=channel) && (subAudio==0x64)) {
+
+	// 0 can't be a correct value
+	if(block_offset>=filelength)
+		return 0;
+
+	currentChannel=read_8bit(block_offset-7,infile);
+	subAudio=read_8bit(block_offset-6,infile);
+	if (!((currentChannel==channel) && (subAudio==0x64))) {
 		block_offset+=2352;
 		goto begin;
 	}

@@ -28,7 +28,7 @@ begin:
 		subAudio=read_8bit(block_offset-6,vgmstream->ch[0].streamfile);
 
 		// audio is coded as 0x64
-		if((subAudio!=0x64) || (currentChannel!=vgmstream->xa_channel)) {
+		if(!((subAudio==0x64) && (currentChannel==vgmstream->xa_channel))) {
 			// go to next sector
 			block_offset+=2352;
 			if(currentChannel!=-1) goto begin;

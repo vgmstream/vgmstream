@@ -41,7 +41,9 @@ void decode_xa(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, i
 
 	first_sample = first_sample % 28;
 	
-	if(!first_sample)
+	get_high_nibble=!get_high_nibble;
+
+	if((first_sample) && (channelspacing==1))
 		get_high_nibble=!get_high_nibble;
 
 	predict_nr = read_8bit(stream->offset+HeadTable[framesin]+get_high_nibble,stream->streamfile) >> 4;
