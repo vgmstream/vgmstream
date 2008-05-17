@@ -279,6 +279,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\raw.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\rs03.c"
 					>
 				</File>

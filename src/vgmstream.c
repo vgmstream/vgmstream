@@ -15,7 +15,7 @@
  * List of functions that will recognize files. These should correspond pretty
  * directly to the metadata types
  */
-#define INIT_VGMSTREAM_FCNS 26
+#define INIT_VGMSTREAM_FCNS 27
 VGMSTREAM * (*init_vgmstream_fcns[INIT_VGMSTREAM_FCNS])(const char * const) = {
     init_vgmstream_adx,             /* 0 */
     init_vgmstream_brstm,           /* 1 */
@@ -43,6 +43,7 @@ VGMSTREAM * (*init_vgmstream_fcns[INIT_VGMSTREAM_FCNS])(const char * const) = {
     init_vgmstream_ngc_mpdsp,       /* 23 */
 	init_vgmstream_ps2_mic,			/* 24 */
     init_vgmstream_ngc_dsp_std_int, /* 25 */
+	init_vgmstream_raw,				/* 26 */
 };
 
 
@@ -633,6 +634,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case meta_RSTM_SPM:
             snprintf(temp,TEMPSIZE,"Nintendo RSTM header and .brstmspm extension");
+            break;
+        case meta_RAW:
+            snprintf(temp,TEMPSIZE,"assumed RAW PCM file by .raw extension");
             break;
         default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

@@ -68,7 +68,7 @@ int fade_samples = 0;
 
 #define EXTENSION_LIST_SIZE 1024
 char working_extension_list[EXTENSION_LIST_SIZE] = {0};
-#define EXTENSION_COUNT 26
+#define EXTENSION_COUNT 27
 char * extension_list[EXTENSION_COUNT] = {
     "adx\0ADX Audio File (*.ADX)\0",
     "afc\0AFC Audio File (*.AFC)\0",
@@ -96,6 +96,7 @@ char * extension_list[EXTENSION_COUNT] = {
     "mic\0PS2 MIC Audio File (*.MIC)\0",
     "gcm\0GCM Audio File (*.GCM)\0",
     "mss\0MSS Audio File (*.MSS)\0",
+	"raw\0RAW Audio File (*.RAW)\0",
 };
 
 void about(HWND hwndParent) {

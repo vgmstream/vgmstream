@@ -91,6 +91,8 @@ typedef enum {
 
 	meta_PSX_XA,			/* CD-XA with RIFF header */
 
+	meta_RAW,				/* RAW PCM file */
+
 } meta_t;
 
 typedef struct {
