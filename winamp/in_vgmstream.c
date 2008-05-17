@@ -459,7 +459,7 @@ DWORD WINAPI __stdcall decode(void *arg) {
     return 0;
 }
 
-BOOL CALLBACK configDlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+INT_PTR CALLBACK configDlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     char buf[256];
     char iniFile[MAX_PATH+1];
     static int mypri;
@@ -468,7 +468,7 @@ BOOL CALLBACK configDlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam) 
     switch (uMsg) { 
         case WM_CLOSE:
             EndDialog(hDlg,TRUE);
-            return 0;
+            return TRUE;
         case WM_INITDIALOG:
             GetINIFileName(iniFile);
 
@@ -588,7 +588,12 @@ BOOL CALLBACK configDlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam) 
                     SetDlgItemText(hDlg,IDC_FADE_DELAY_SECONDS,DEFAULT_FADE_DELAY_SECONDS);
                     SetDlgItemText(hDlg,IDC_LOOP_COUNT,DEFAULT_LOOP_COUNT);
 
+					CheckDlgButton(hDlg,IDC_LOOP_FOREVER,BST_UNCHECKED);
+					CheckDlgButton(hDlg,IDC_IGNORE_LOOP,BST_UNCHECKED);
                     CheckDlgButton(hDlg,IDC_LOOP_NORMALLY,BST_CHECKED);
+					break;
+				default:
+					return FALSE;
             }
         case WM_HSCROLL:
             if ((struct HWND__ *)lParam==GetDlgItem(hDlg,IDC_THREAD_PRIORITY_SLIDER)) {
@@ -598,10 +603,10 @@ BOOL CALLBACK configDlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             }
             break;
         default:
-            return 0;
+            return FALSE;
     }
 
-    return 1;
+    return TRUE;
 }
 
 void config(HWND hwndParent) {
