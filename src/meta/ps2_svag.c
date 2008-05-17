@@ -60,16 +60,11 @@ VGMSTREAM * init_vgmstream_ps2_svag(const char * const filename) {
     vgmstream->layout_type = layout_interleave_shortblock;
     vgmstream->meta_type = meta_PS2_SVAG;
 
-    /* 2008-05-16 - hcs - use Fastelbja's check from in_cube to decide the start offset */
+    /* 2008-05-16 - hcs - use Fastelbja's check from in_cube to decide the start*/
     if ((uint32_t)read_32bitBE(0x1c,infile)==0x20414c4c) /* " ALL" */
         start_offset = 0x800;
-    else {
-        /* this form includes the header in the value at 0x04 */
+    else
         start_offset = 0x400;
-        vgmstream->interleave_smallblock_size = ((read_32bitLE(0x04,infile)-0x400)%(2*vgmstream->interleave_block_size))/2;
-        vgmstream->num_samples = (read_32bitLE(0x04,infile)-0x400)/16*28/vgmstream->channels;
-        vgmstream->loop_end_sample = vgmstream->num_samples;
-    }
 
     close_streamfile(infile); infile=NULL;
 
