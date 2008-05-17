@@ -352,7 +352,7 @@ DWORD WINAPI __stdcall decode(void *arg) {
         int samples_to_do;
         int l;
 
-        if (decode_pos_samples+576>stream_length_samples && !loop_forever)
+        if (decode_pos_samples+576>stream_length_samples && (!loop_forever || !vgmstream->loop_flag))
             samples_to_do=stream_length_samples-decode_pos_samples;
         else
             samples_to_do=576;
