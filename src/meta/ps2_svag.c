@@ -55,8 +55,12 @@ VGMSTREAM * init_vgmstream_ps2_svag(const char * const filename) {
     }
 
     vgmstream->interleave_block_size = read_32bitLE(0x10,infile);
-	vgmstream->interleave_smallblock_size = (read_32bitLE(0x04,infile)%(2*vgmstream->interleave_block_size))/2;
-    vgmstream->layout_type = layout_interleave_shortblock;
+    if (channel_count > 1) {
+        vgmstream->interleave_smallblock_size = (read_32bitLE(0x04,infile)%(vgmstream->channels*vgmstream->interleave_block_size))/vgmstream->channels;
+        vgmstream->layout_type = layout_interleave_shortblock;
+    } else {
+        vgmstream->layout_type = layout_none;
+    }
     vgmstream->meta_type = meta_PS2_SVAG;
 
     close_streamfile(infile); infile=NULL;
@@ -64,7 +68,10 @@ VGMSTREAM * init_vgmstream_ps2_svag(const char * const filename) {
     /* open the file for reading by each channel */
     {
         for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = open_streamfile_buffer(filename,vgmstream->interleave_block_size);
+            if (channel_count > 1)
+                vgmstream->ch[i].streamfile = open_streamfile_buffer(filename,vgmstream->interleave_block_size);
+            else
+                vgmstream->ch[i].streamfile = open_streamfile(filename);
 
             if (!vgmstream->ch[i].streamfile) goto fail;
 
