@@ -61,6 +61,7 @@ File types supported by this version of vgmstream:
 - .mss (GC DSP ADPCM)
 - .gcm (GC DSP ADPCM)
 - .raw (16 bit PCM)
+- .vag (PSX ADPCM)
 
 Enjoy!
 -hcs
