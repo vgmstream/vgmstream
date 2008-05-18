@@ -12,10 +12,12 @@
 #include <windowsx.h>
 #include <commctrl.h>
 #include <stdio.h>
+#include <io.h>
 
 #include "../src/vgmstream.h"
 #include "../src/util.h"
 #include "in2.h"
+#include "wa_ipc.h"
 #include "resource.h"
 
 #ifndef VERSION
@@ -25,6 +27,7 @@
 #define BINARY_NAME "in_vgmstream.dll"
 #define APP_NAME "vgmstream plugin"
 #define PLUGIN_DESCRIPTION "vgmstream plugin " VERSION " " __DATE__
+#define INI_NAME "plugin.ini"
 
 /* post when playback stops */
 #define WM_WA_MPEG_EOF WM_USER+2
@@ -123,13 +126,30 @@ void build_extension_list() {
     }
 }
 
-/* uses the configuration file plugin.ini in the same dir as the DLL (a la HE) */
 void GetINIFileName(char * iniFile) {
+    /* if we've got a valid hwnd then we're running on a newer winamp version 
+     * that better supports saving of settings to a per-user directory - if not
+     * then just revert to the old behaviour */
+
+    if(IsWindow(input_module.hMainWindow)) {
+        char * iniDir = (char*)SendMessage(input_module.hMainWindow, WM_WA_IPC, 0, IPC_GETINIDIRECTORY);
+        if (iniDir) {
+            strncpy(iniFile, iniDir, MAX_PATH);
+
+            strncat(iniFile, "\\Plugins\\", MAX_PATH);
+            /* can't be certain that \Plugins already exists in the user dir */
+            mkdir(iniFile);
+            strncat(iniFile, INI_NAME, MAX_PATH);
+
+            return;
+        }
+    }
+
     if (GetModuleFileName(GetModuleHandle(BINARY_NAME), iniFile, MAX_PATH)) {
         char * lastSlash = strrchr(iniFile, '\\');
 
         *(lastSlash + 1) = 0;
-        strcat(iniFile, "plugin.ini");
+        strcat(iniFile, INI_NAME);
     }
 }
 
