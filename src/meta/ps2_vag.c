@@ -57,6 +57,8 @@ VGMSTREAM * init_vgmstream_ps2_vag(const char * const filename) {
 		case 'V':
 			if(read_32bitBE(0x20,infile)==0x53746572) // vag Stereo
 				channel_count=2;
+            else
+                goto fail;
 			break;
 		case 'p':
 			channel_count=1;
@@ -93,6 +95,8 @@ VGMSTREAM * init_vgmstream_ps2_vag(const char * const filename) {
 			} while (infile->offset<(off_t)fileLength);
 			loop_flag = (loopEnd!=0);
 			break;
+        default:
+            goto fail;
 	}
 
 	/* build the VGMSTREAM */
@@ -132,6 +136,8 @@ VGMSTREAM * init_vgmstream_ps2_vag(const char * const filename) {
 			vgmstream->meta_type=meta_PS2_pGAV;
 			start_offset=0;
 			break;
+        default:
+            goto fail;
 	}
 
 	vgmstream->interleave_block_size=interleave;
