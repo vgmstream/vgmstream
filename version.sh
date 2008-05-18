@@ -1,2 +1,7 @@
 DIR="`dirname "$0"`"
-echo "r`svnversion $DIR | tr : _`"
+VERSION="`svnversion "$DIR" | tr : _`"
+if [[ "$VERSION" = "exported" ]] ; then
+echo "exported"
+else
+echo "r$VERSION"
+fi
