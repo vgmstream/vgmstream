@@ -38,7 +38,8 @@ META_OBJS=meta/adx_header.o \
     meta/ps2_svag.o \
     meta/ps2_mib.o \
     meta/ps2_mic.o \
-    meta/raw.o
+    meta/raw.o \
+    meta/ps2_vag.o
 OBJECTS=vgmstream.o streamfile.o util.o $(CODING_OBJS) $(LAYOUT_OBJS) $(META_OBJS)
 
 libvgmstream.a: $(OBJECTS)
