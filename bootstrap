@@ -1,0 +1,8 @@
+#!/bin/sh
+
+aclocal
+autoheader
+automake -a
+touch README AUTHORS NEWS ChangeLog
+autoconf
+libtoolize --copy --force

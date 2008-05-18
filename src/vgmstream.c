@@ -526,12 +526,12 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
 
     if (vgmstream->layout_type == layout_interleave || vgmstream->layout_type == layout_interleave_shortblock) {
         snprintf(temp,TEMPSIZE,"interleave: %#x bytes\n",
-                vgmstream->interleave_block_size);
+                (int32_t)vgmstream->interleave_block_size);
         concatn(length,desc,temp);
 
         if (vgmstream->layout_type == layout_interleave_shortblock) {
             snprintf(temp,TEMPSIZE,"last block interleave: %#x bytes\n",
-                    vgmstream->interleave_smallblock_size);
+                    (int32_t)vgmstream->interleave_smallblock_size);
             concatn(length,desc,temp);
         }
     }

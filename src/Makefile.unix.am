@@ -1,0 +1,11 @@
+noinst_LTLIBRARIES = libvgmstream.la
+
+AM_CFLAGS = -Wall @CFLAGS@ -I$(top_builddir) -I$(top_srcdir) 
+AM_MAKEFLAGS=-f Makefile.unix
+
+libvgmstream_la_LDFLAGS = coding/libcoding.la layout/liblayout.la meta/libmeta.la
+libvgmstream_la_SOURCES = vgmstream.c util.c streamfile.c 
+
+SUBDIRS = coding layout meta
+
+EXTRA_DIST = pstdint.h streamfile.h streamtypes.h util.h vgmstream.h
