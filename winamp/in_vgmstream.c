@@ -128,29 +128,26 @@ void build_extension_list() {
 }
 
 void GetINIFileName(char * iniFile) {
-    /* if we've got a valid hwnd then we're running on a newer winamp version 
-     * that better supports saving of settings to a per-user directory - if not
+    /* if we're running on a newer winamp version that better supports
+     * saving of settings to a per-user directory, use that directory - if not
      * then just revert to the old behaviour */
 
-    if(IsWindow(input_module.hMainWindow)) {
-        char * iniDir = (char*)SendMessage(input_module.hMainWindow, WM_WA_IPC, 0, IPC_GETINIDIRECTORY);
-        if (iniDir) {
-            strncpy(iniFile, iniDir, MAX_PATH);
+    if(IsWindow(input_module.hMainWindow) && SendMessage(input_module.hMainWindow, WM_WA_IPC,0,IPC_GETVERSION) >= 0x5000) {
+        char * iniDir = (char *)SendMessage(input_module.hMainWindow, WM_WA_IPC, 0, IPC_GETINIDIRECTORY);
+        strncpy(iniFile, iniDir, MAX_PATH);
 
-            strncat(iniFile, "\\Plugins\\", MAX_PATH);
-            /* can't be certain that \Plugins already exists in the user dir */
-            mkdir(iniFile);
-            strncat(iniFile, INI_NAME, MAX_PATH);
+        strncat(iniFile, "\\Plugins\\", MAX_PATH);
+        /* can't be certain that \Plugins already exists in the user dir */
+        mkdir(iniFile);
+        strncat(iniFile, INI_NAME, MAX_PATH);
 
-            return;
-        }
     }
-
-    if (GetModuleFileName(GetModuleHandle(BINARY_NAME), iniFile, MAX_PATH)) {
+    else {
+        GetModuleFileName(NULL, iniFile, MAX_PATH);
         char * lastSlash = strrchr(iniFile, '\\');
 
         *(lastSlash + 1) = 0;
-        strcat(iniFile, INI_NAME);
+        strncat(iniFile, "\\Plugins\\" INI_NAME,MAX_PATH);
     }
 }
 
