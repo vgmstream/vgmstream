@@ -397,32 +397,19 @@ DWORD WINAPI __stdcall decode(void *arg) {
         if (seek_needed_samples != -1) {
             /* reset if we need to seek backwards */
             if (seek_needed_samples < decode_pos_samples) {
-                VGMSTREAM * new_temp;
-                VGMSTREAM * old_temp;
-
-                new_temp = init_vgmstream(lastfn);
-                if (!new_temp) {
-                    PostMessage(input_module.hMainWindow,   /* message dest */
-                            WM_WA_MPEG_EOF,     /* message id */
-                            0,0);   /* no parameters */
-                    return 0;
-                }
-                if (ignore_loop)
-                    new_temp->loop_flag = 0;
-
-                old_temp = vgmstream;
-                vgmstream = new_temp;
-
-                close_vgmstream(old_temp);
+                reset_vgmstream(vgmstream);
 
                 decode_pos_samples = 0;
                 decode_pos_ms = 0;
             }
+
             if (decode_pos_samples < seek_needed_samples) {
                 samples_to_do=seek_needed_samples-decode_pos_samples;
                 if (samples_to_do>576) samples_to_do=576;
             } else
                 seek_needed_samples = -1;
+
+            input_module.outMod->Flush((int)decode_pos_ms);
         }
 
         l = (samples_to_do*vgmstream->channels*2)<<(input_module.dsp_isactive()?1:0);
@@ -439,7 +426,6 @@ DWORD WINAPI __stdcall decode(void *arg) {
         }
         else if (seek_needed_samples != -1) {
             render_vgmstream(sample_buffer,samples_to_do,vgmstream);
-            input_module.outMod->Flush((int)decode_pos_ms);
 
             decode_pos_samples+=samples_to_do;
             decode_pos_ms=decode_pos_samples*1000LL/vgmstream->sample_rate;

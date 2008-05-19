@@ -78,9 +78,11 @@ VGMSTREAM * init_vgmstream_internal(const char * const filename, int do_dfs) {
             }
 
             /* save start things so we can restart for seeking */
-            /* TODO: we may need to save other things here */
+            /* copy the channels */
             memcpy(vgmstream->start_ch,vgmstream->ch,sizeof(VGMSTREAMCHANNEL)*vgmstream->channels);
-            vgmstream->start_block_offset = vgmstream->current_block_offset;
+            /* copy the whole VGMSTREAM */
+            memcpy(vgmstream->start_vgmstream,vgmstream,sizeof(VGMSTREAM));
+
             return vgmstream;
         }
     }
@@ -88,9 +90,25 @@ VGMSTREAM * init_vgmstream_internal(const char * const filename, int do_dfs) {
     return NULL;
 }
 
+/* Reset a VGMSTREAM to its state at the start of playback.
+ * Note that this does not reset the constituent STREAMFILES. */
+void reset_vgmstream(VGMSTREAM * vgmstream) {
+    /* copy the vgmstream back into itself */
+    memcpy(vgmstream,vgmstream->start_vgmstream,sizeof(VGMSTREAM));
+
+    /* copy the initial channels */
+    memcpy(vgmstream->ch,vgmstream->start_ch,sizeof(VGMSTREAMCHANNEL)*vgmstream->channels);
+
+    /* loop_ch is not zeroed here because there is a possibility of the
+     * init_vgmstream_* function doing something tricky and precomputing it.
+     * Otherwise hit_loop will be 0 and it will be copied over anyway when we
+     * really hit the loop start. */
+}
+
 /* simply allocate memory for the VGMSTREAM and its channels */
 VGMSTREAM * allocate_vgmstream(int channel_count, int looped) {
     VGMSTREAM * vgmstream;
+    VGMSTREAM * start_vgmstream;
     VGMSTREAMCHANNEL * channels;
     VGMSTREAMCHANNEL * start_channels;
     VGMSTREAMCHANNEL * loop_channels;
@@ -100,9 +118,18 @@ VGMSTREAM * allocate_vgmstream(int channel_count, int looped) {
     vgmstream = calloc(1,sizeof(VGMSTREAM));
     if (!vgmstream) return NULL;
 
+    start_vgmstream = calloc(1,sizeof(VGMSTREAM));
+    if (!start_vgmstream) {
+        free(vgmstream);
+        return NULL;
+    }
+    vgmstream->start_vgmstream = start_vgmstream;
+    start_vgmstream->start_vgmstream = start_vgmstream;
+
     channels = calloc(channel_count,sizeof(VGMSTREAMCHANNEL));
     if (!channels) {
         free(vgmstream);
+        free(start_vgmstream);
         return NULL;
     }
     vgmstream->ch = channels;
@@ -111,6 +138,7 @@ VGMSTREAM * allocate_vgmstream(int channel_count, int looped) {
     start_channels = calloc(channel_count,sizeof(VGMSTREAMCHANNEL));
     if (!start_channels) {
         free(vgmstream);
+        free(start_vgmstream);
         free(channels);
         return NULL;
     }
@@ -120,6 +148,7 @@ VGMSTREAM * allocate_vgmstream(int channel_count, int looped) {
         loop_channels = calloc(channel_count,sizeof(VGMSTREAMCHANNEL));
         if (!loop_channels) {
             free(vgmstream);
+            free(start_vgmstream);
             free(channels);
             free(start_channels);
             return NULL;
@@ -143,6 +172,8 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
     if (vgmstream->loop_ch) free(vgmstream->loop_ch);
     if (vgmstream->start_ch) free(vgmstream->start_ch);
     if (vgmstream->ch) free(vgmstream->ch);
+    /* the start_vgmstream is considered just data */
+    if (vgmstream->start_vgmstream) free(vgmstream->start_vgmstream);
 
     free(vgmstream);
 }
@@ -746,8 +777,7 @@ void try_dual_file_stereo(VGMSTREAM * opened_stream, const char * const filename
              * difficult to determine when it does, and they should be zero
              * otherwise, anyway */
             new_stream->interleave_block_size == opened_stream->interleave_block_size &&
-            new_stream->interleave_smallblock_size == opened_stream->interleave_smallblock_size &&
-            new_stream->start_block_offset == opened_stream->start_block_offset) {
+            new_stream->interleave_smallblock_size == opened_stream->interleave_smallblock_size) {
         /* We seem to have a usable, matching file. Merge in the second channel. */
         VGMSTREAMCHANNEL * new_chans;
         VGMSTREAMCHANNEL * new_loop_chans = NULL;

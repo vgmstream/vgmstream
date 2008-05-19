@@ -25,6 +25,7 @@ void usage(const char * name) {
           "    -x: decode and print adxencd command line to encode as ADX\n"
           "    -e: force end-to-end looping\n"
           "    -E: force end-to-end looping even if file has real loop points\n"
+          "    -r outfile2.wav: output a second time after resetting\n"
             ,name);
     
 }
@@ -37,6 +38,7 @@ int main(int argc, char ** argv) {
     int i;
     FILE * outfile = NULL;
     char * outfilename = NULL;
+    char * reset_outfilename = NULL;
     int opt;
     int ignore_loop = 0;
     int force_loop = 0;
@@ -50,7 +52,7 @@ int main(int argc, char ** argv) {
     double fade_seconds = 10.0;
     double fade_delay_seconds = 0.0;
     
-    while ((opt = getopt(argc, argv, "o:l:f:d:ipPcmxeE")) != -1) {
+    while ((opt = getopt(argc, argv, "o:l:f:d:ipPcmxeEr:")) != -1) {
         switch (opt) {
             case 'o':
                 outfilename = optarg;
@@ -88,6 +90,9 @@ int main(int argc, char ** argv) {
                 break;
             case 'E':
                 really_force_loop = 1;
+                break;
+            case 'r':
+                reset_outfilename = optarg;
                 break;
             default:
                 usage(argv[0]);
@@ -161,7 +166,7 @@ int main(int argc, char ** argv) {
         if (!outfilename) outfilename = "dump.wav";
         outfile = fopen(outfilename,"wb");
         if (!outfile) {
-            fprintf(stderr,"failed to open %s for output\n",optarg);
+            fprintf(stderr,"failed to open %s for output\n",outfilename);
             return 1;
         }
     }
@@ -229,7 +234,45 @@ int main(int argc, char ** argv) {
         }
         fwrite(buf,sizeof(sample)*s->channels,toget,outfile);
     }
-    
+
+    fclose(outfile); outfile = NULL;
+
+    if (reset_outfilename) {
+        outfile = fopen(reset_outfilename,"wb");
+        if (!outfile) {
+            fprintf(stderr,"failed to open %s for output\n",reset_outfilename);
+            return 1;
+        }
+        /* slap on a .wav header */
+        make_wav_header((uint8_t*)buf, len, s->sample_rate, s->channels);
+        fwrite(buf,1,0x2c,outfile);
+
+        reset_vgmstream(s);
+        /* decode */
+        for (i=0;i<len;i+=BUFSIZE) {
+            int toget=BUFSIZE;
+            if (i+BUFSIZE>len) toget=len-i;
+            render_vgmstream(buf,toget,s);
+
+            if (s->loop_flag && fade_samples > 0) {
+                int samples_into_fade = i - (len - fade_samples);
+                if (samples_into_fade + toget > 0) {
+                    int j,k;
+                    for (j=0;j<toget;j++,samples_into_fade++) {
+                        if (samples_into_fade > 0) {
+                            double fadedness = (double)(fade_samples-samples_into_fade)/fade_samples;
+                            for (k=0;k<s->channels;k++) {
+                                buf[j*s->channels+k] = buf[j*s->channels+k]*fadedness;
+                            }
+                        }
+                    }
+                }
+            }
+            fwrite(buf,sizeof(sample)*s->channels,toget,outfile);
+        }
+        fclose(outfile); outfile = NULL;
+    }
+
     close_vgmstream(s);
 
     return 0;

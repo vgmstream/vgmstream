@@ -159,7 +159,6 @@ typedef struct {
     size_t interleave_block_size;   /* interleave for this file */
     size_t interleave_smallblock_size;  /* smaller interleave for last block */
     /* headered blocks */
-    off_t start_block_offset;       /* first block in the file */
     off_t current_block_offset;     /* start of this block (offset of block header) */
     size_t current_block_size;      /* size of the block we're in now */
     off_t next_block_offset;        /* offset of header of the next block */
@@ -175,6 +174,8 @@ typedef struct {
 
 	uint8_t xa_channel;				/* Selected XA Channel */
 	int32_t xa_sector_length;		/* XA block */
+
+    void * start_vgmstream;    /* a copy of the VGMSTREAM as it was at the beginning of the stream */
 } VGMSTREAM;
 
 /* do format detection, return pointer to a usable VGMSTREAM, or NULL on failure */
@@ -183,6 +184,9 @@ VGMSTREAM * init_vgmstream(const char * const filename);
 /* internal vgmstream that takes parameters the library user shouldn't have to know
  * about */
 VGMSTREAM * init_vgmstream_internal(const char * const filename, int do_dfs);
+
+/* reset a VGMSTREAM to start of stream */
+void reset_vgmstream(VGMSTREAM * vgmstream);
 
 /* allocate a VGMSTREAM and channel stuff */
 VGMSTREAM * allocate_vgmstream(int channel_count, int looped);
