@@ -36,7 +36,8 @@ VGMSTREAM * init_vgmstream_ps2_vag(const char * const filename) {
     int i;
 
     /* check extension, case insensitive */
-    if (strcasecmp("vag",filename_extension(filename))) goto fail;
+    if (strcasecmp("vag",filename_extension(filename)) &&
+        strcasecmp("svag",filename_extension(filename))) goto fail;
 
     /* try to open the file for header reading */
     infile = open_streamfile_buffer(filename,0x8000);
