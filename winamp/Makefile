@@ -19,4 +19,4 @@ libvgmstream.a:
 	$(MAKE) -C ../src libvgmstream.a
 
 clean:
-	rm -f in_vgmstream.dll
+	rm -f in_vgmstream.dll resource.o
