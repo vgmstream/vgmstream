@@ -43,6 +43,7 @@ gchar *vgmstream_exts [] = {
   "mss",
   "raw",
   "vag",
+  "gms",
   /* terminator */
   NULL
 };
