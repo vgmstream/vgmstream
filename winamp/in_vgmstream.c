@@ -400,6 +400,8 @@ DWORD WINAPI __stdcall decode(void *arg) {
             if (seek_needed_samples < decode_pos_samples) {
                 reset_vgmstream(vgmstream);
 
+                if (ignore_loop) vgmstream->loop_flag = 0;
+
                 decode_pos_samples = 0;
                 decode_pos_ms = 0;
             }

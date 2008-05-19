@@ -248,6 +248,29 @@ int main(int argc, char ** argv) {
         fwrite(buf,1,0x2c,outfile);
 
         reset_vgmstream(s);
+
+        /* these manipulations are undone by reset */
+
+        /* force only if there aren't already loop points */
+        if (force_loop && !s->loop_flag) {
+            /* this requires a bit more messing with the VGMSTREAM than I'm
+             * comfortable with... */
+            s->loop_flag=1;
+            s->loop_start_sample=0;
+            s->loop_end_sample=s->num_samples;
+            s->loop_ch=calloc(s->channels,sizeof(VGMSTREAMCHANNEL));
+        }
+
+        /* force even if there are loop points */
+        if (really_force_loop) {
+            if (!s->loop_flag) s->loop_ch=calloc(s->channels,sizeof(VGMSTREAMCHANNEL));
+            s->loop_flag=1;
+            s->loop_start_sample=0;
+            s->loop_end_sample=s->num_samples;
+        }
+
+        if (ignore_loop) s->loop_flag=0;
+
         /* decode */
         for (i=0;i<len;i+=BUFSIZE) {
             int toget=BUFSIZE;
