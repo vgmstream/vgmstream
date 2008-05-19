@@ -59,4 +59,6 @@ VGMSTREAM * init_vgmstream_raw(const char * const filename);
 
 VGMSTREAM * init_vgmstream_ps2_vag(const char * const filename);
 
+VGMSTREAM * init_vgmstream_psx_gms(const char * const filename);
+
 #endif

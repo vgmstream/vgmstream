@@ -283,6 +283,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\psx_gms.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\raw.c"
 					>
 				</File>

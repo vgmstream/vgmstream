@@ -15,7 +15,7 @@
  * List of functions that will recognize files. These should correspond pretty
  * directly to the metadata types
  */
-#define INIT_VGMSTREAM_FCNS 28
+#define INIT_VGMSTREAM_FCNS 29
 VGMSTREAM * (*init_vgmstream_fcns[INIT_VGMSTREAM_FCNS])(const char * const) = {
     init_vgmstream_adx,             /* 0 */
     init_vgmstream_brstm,           /* 1 */
@@ -45,6 +45,7 @@ VGMSTREAM * (*init_vgmstream_fcns[INIT_VGMSTREAM_FCNS])(const char * const) = {
     init_vgmstream_ngc_dsp_std_int, /* 25 */
 	init_vgmstream_raw,				/* 26 */
 	init_vgmstream_ps2_vag,			/* 27 */
+	init_vgmstream_psx_gms			/* 28 */
 };
 
 
@@ -678,6 +679,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
 		case meta_PS2_pGAV:
             snprintf(temp,TEMPSIZE,"Sony VAG Stereo Little Endian header (pGAV)");
+            break;
+		case meta_PSX_GMS:
+            snprintf(temp,TEMPSIZE,"assumed Grandia GMS file by .gms extension");
             break;
         default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");
