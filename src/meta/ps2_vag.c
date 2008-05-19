@@ -32,12 +32,11 @@ VGMSTREAM * init_vgmstream_ps2_vag(const char * const filename) {
 	size_t interleave;
 	
     int loop_flag=0;
-    int channel_count;
+    int channel_count=1;
     int i;
 
     /* check extension, case insensitive */
-    if (strcasecmp("vag",filename_extension(filename)) &&
-        strcasecmp("svag",filename_extension(filename))) goto fail;
+    if (strcasecmp("vag",filename_extension(filename))) goto fail;
 
     /* try to open the file for header reading */
     infile = open_streamfile_buffer(filename,0x8000);
@@ -58,12 +57,7 @@ VGMSTREAM * init_vgmstream_ps2_vag(const char * const filename) {
 		case 'V':
 			if(read_32bitBE(0x20,infile)==0x53746572) // vag Stereo
 				channel_count=2;
-            else
-                goto fail;
-			break;
 		case 'p':
-			channel_count=1;
-
 			/* Search for loop in VAG */
 			fileLength = get_streamfile_size(infile);
 
