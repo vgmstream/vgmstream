@@ -24,7 +24,6 @@
 #define VERSION
 #endif
 
-#define BINARY_NAME "in_vgmstream.dll"
 #define APP_NAME "vgmstream plugin"
 #define PLUGIN_DESCRIPTION "vgmstream plugin " VERSION " " __DATE__
 #define INI_NAME "plugin.ini"
