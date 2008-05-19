@@ -146,7 +146,7 @@ void GetINIFileName(char * iniFile) {
         char * lastSlash = strrchr(iniFile, '\\');
 
         *(lastSlash + 1) = 0;
-        strncat(iniFile, "\\Plugins\\" INI_NAME,MAX_PATH);
+        strncat(iniFile, "Plugins\\" INI_NAME,MAX_PATH);
     }
 }
 
