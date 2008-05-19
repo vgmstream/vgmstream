@@ -14,6 +14,7 @@ VGMSTREAM * init_vgmstream_Cstr(const char * const filename) {
     off_t loop_offset;
     size_t interleave;
     int loop_adjust;
+    int double_loop_end = 0;
 
     /* check extension, case insensitive */
     if (strcasecmp("dsp",filename_extension(filename))) goto fail;
@@ -87,7 +88,7 @@ VGMSTREAM * init_vgmstream_Cstr(const char * const filename) {
             start_offset;
 
         return vgmstream;
-    }
+    }   /* end mono */
 
     interleave = read_16bitBE(0x06,infile);
     start_offset = 0xe0; 
@@ -168,30 +169,47 @@ VGMSTREAM * init_vgmstream_Cstr(const char * const filename) {
         fprintf(stderr,"loop p/s ok (with %#4x adjust)\n",loop_adjust);
 #endif
 
-
         /* check for agreement */
         /* loop end (channel 1 & 2 headers) */
         if (read_32bitBE(0x34,infile) != read_32bitBE(0x94,infile))
             goto fail;
+        
+        /* Mr. Driller oddity */
+        if (dsp_nibbles_to_samples(read_32bitBE(0x34,infile)*2)+1 <= read_32bitBE(0x20,infile)) {
+#ifdef DEBUG
+            fprintf(stderr,"loop end <= half total samples, should be doubled\n");
+#endif
+            double_loop_end = 1;
+        }
+
         /* loop start (Cstr header and channel 1 header) */
         if (read_32bitBE(0x30,infile) != read_32bitBE(0x10,infile)
 #if 0
                 /* this particular glitch only true for SFA, though it
                  * seems like something similar happens in Donkey Konga */
                 /* loop start (Cstr, channel 1 & 2 headers) */
-                || (read_32bitBE(0x0c,infile)+read_32bitLE(0x30,infile)) != read_32bitBE(0x90,infile)
+                || (read_32bitBE(0x0c,infile)+read_32bitLE(0x30,infile)) !=
+                read_32bitBE(0x90,infile)
 #endif
            )
             /* alternatively (Donkey Konga) the header loop is 0x0c+0x10 */
             if (
                     /* loop start (Cstr header and channel 1 header) */
-                    read_32bitBE(0x30,infile) != read_32bitBE(0x10,infile)+read_32bitBE(0x0c,infile))
+                    read_32bitBE(0x30,infile) != read_32bitBE(0x10,infile)+
+                    read_32bitBE(0x0c,infile))
                 /* further alternatively (Donkey Konga), if we loop back to
                  * the very first frame 0x30 might be 0x00000002 (which
                  * is a *valid* std dsp loop start, imagine that) while 0x10
                  * is 0x00000000 */
-                if (read_32bitBE(0x30,infile) != 2 || read_32bitBE(0x10,infile) != 0)
-                    goto fail;
+                if (!(read_32bitBE(0x30,infile) == 2 &&
+                            read_32bitBE(0x10,infile) == 0))
+                    /* lest there be too few alternatives, in Mr. Driller we
+                     * find that [0x30] + [0x0c] + 8 = [0x10]*2 */
+                    if (!(double_loop_end &&
+                            read_32bitBE(0x30,infile) +
+                            read_32bitBE(0x0c,infile) + 8 ==
+                            read_32bitBE(0x10,infile)*2))
+                        goto fail;
 
 #ifdef DEBUG
         fprintf(stderr,"loop points agree\n");
@@ -235,6 +253,11 @@ VGMSTREAM * init_vgmstream_Cstr(const char * const filename) {
         /*dsp_nibbles_to_samples(read_32bitBE(0x30,infile)*2-inter);*/
         vgmstream->loop_end_sample =  dsp_nibbles_to_samples(
                 read_32bitBE(0x34,infile))+1;
+
+        if (double_loop_end)
+            vgmstream->loop_end_sample =
+                dsp_nibbles_to_samples(read_32bitBE(0x34,infile)*2)+1;
+
         if (vgmstream->loop_end_sample > vgmstream->num_samples) {
 #ifdef DEBUG
             fprintf(stderr,"loop_end_sample > num_samples, adjusting\n");
