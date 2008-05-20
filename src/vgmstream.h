@@ -182,9 +182,7 @@ typedef struct {
 /* do format detection, return pointer to a usable VGMSTREAM, or NULL on failure */
 VGMSTREAM * init_vgmstream(const char * const filename);
 
-/* internal vgmstream that takes parameters the library user shouldn't have to know
- * about */
-VGMSTREAM * init_vgmstream_internal(const char * const filename, int do_dfs);
+VGMSTREAM * init_vgmstream_from_STREAMFILE(STREAMFILE *streamFile);
 
 /* reset a VGMSTREAM to start of stream */
 void reset_vgmstream(VGMSTREAM * vgmstream);
@@ -229,6 +227,6 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length);
  * already opened mono opened_stream which was opened from filename.
  * If a suitable file is found, open it and change opened_stream to a
  * stereo stream. */
-void try_dual_file_stereo(VGMSTREAM * opened_stream, const char * const filename);
+void try_dual_file_stereo(VGMSTREAM * opened_stream, STREAMFILE *streamFile);
 
 #endif

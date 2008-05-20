@@ -73,8 +73,7 @@ int fade_samples = 0;
 
 #define EXTENSION_LIST_SIZE 1024
 char working_extension_list[EXTENSION_LIST_SIZE] = {0};
-#define EXTENSION_COUNT 29
-char * extension_list[EXTENSION_COUNT] = {
+char * extension_list[] = {
     "adx\0ADX Audio File (*.ADX)\0",
     "afc\0AFC Audio File (*.AFC)\0",
     "agsc\0AGSC Audio File (*.AGSC)\0",
@@ -120,7 +119,7 @@ void build_extension_list() {
     working_extension_list[0]='\0';
     working_extension_list[1]='\0';
 
-    for (i=0;i<EXTENSION_COUNT;i++) {
+    for (i=0;i<sizeof(extension_list)/sizeof(extension_list[0]);i++) {
         concatn_doublenull(EXTENSION_LIST_SIZE,working_extension_list,
                 extension_list[i]);
     }
@@ -137,13 +136,15 @@ void GetINIFileName(char * iniFile) {
 
         strncat(iniFile, "\\Plugins\\", MAX_PATH);
         /* can't be certain that \Plugins already exists in the user dir */
-        mkdir(iniFile);
+        CreateDirectory(iniFile,NULL);
         strncat(iniFile, INI_NAME, MAX_PATH);
 
     }
     else {
+        char * lastSlash;
+
         GetModuleFileName(NULL, iniFile, MAX_PATH);
-        char * lastSlash = strrchr(iniFile, '\\');
+        lastSlash = strrchr(iniFile, '\\');
 
         *(lastSlash + 1) = 0;
         strncat(iniFile, "Plugins\\" INI_NAME,MAX_PATH);

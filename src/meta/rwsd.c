@@ -5,9 +5,9 @@
 /* RWSD is quite similar to BRSTM, but can contain several streams.
  * Still, some games use it for single streams. We only support the
  * single stream form here */
-VGMSTREAM * init_vgmstream_rwsd(const char * const filename) {
+VGMSTREAM * init_vgmstream_rwsd(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    STREAMFILE * infile = NULL;
+    char filename[260];
 
     coding_t coding_type;
 
@@ -21,36 +21,33 @@ VGMSTREAM * init_vgmstream_rwsd(const char * const filename) {
     size_t stream_size;
 
     /* check extension, case insensitive */
+    streamFile->get_name(streamFile,filename,sizeof(filename));
     if (strcasecmp("rwsd",filename_extension(filename))) goto fail;
 
-    /* try to open the file for header reading */
-    infile = open_streamfile(filename);
-    if (!infile) goto fail;
-
     /* check header */
-    if ((uint32_t)read_32bitBE(0,infile)!=0x52575344 || /* "RWSD" */
-            (uint32_t)read_32bitBE(4,infile)!=0xFEFF0102)
+    if ((uint32_t)read_32bitBE(0,streamFile)!=0x52575344 || /* "RWSD" */
+            (uint32_t)read_32bitBE(4,streamFile)!=0xFEFF0102)
         goto fail;
 
     /* ideally we would look through the chunk list for a WAVE chunk,
      * but it's always in the same order */
     /* get WAVE offset, check */
-    wave_offset = read_32bitBE(0x18,infile);
-    if ((uint32_t)read_32bitBE(wave_offset,infile)!=0x57415645) /* "WAVE" */
+    wave_offset = read_32bitBE(0x18,streamFile);
+    if ((uint32_t)read_32bitBE(wave_offset,streamFile)!=0x57415645) /* "WAVE" */
         goto fail;
     /* get WAVE size, check */
-    wave_length = read_32bitBE(0x1c,infile);
-    if (read_32bitBE(wave_offset+4,infile)!=wave_length)
+    wave_length = read_32bitBE(0x1c,streamFile);
+    if (read_32bitBE(wave_offset+4,streamFile)!=wave_length)
         goto fail;
 
     /* check wave count */
-    if (read_32bitBE(wave_offset+8,infile) != 1)
+    if (read_32bitBE(wave_offset+8,streamFile) != 1)
         goto fail; /* only support 1 */
 
     /* get type details */
-    codec_number = read_8bit(wave_offset+0x10,infile);
-    loop_flag = read_8bit(wave_offset+0x11,infile);
-    channel_count = read_8bit(wave_offset+0x12,infile);
+    codec_number = read_8bit(wave_offset+0x10,streamFile);
+    loop_flag = read_8bit(wave_offset+0x11,streamFile);
+    channel_count = read_8bit(wave_offset+0x12,streamFile);
 
     switch (codec_number) {
         case 0:
@@ -74,10 +71,10 @@ VGMSTREAM * init_vgmstream_rwsd(const char * const filename) {
     if (!vgmstream) goto fail;
 
     /* fill in the vital statistics */
-    vgmstream->num_samples = dsp_nibbles_to_samples(read_32bitBE(wave_offset+0x1c,infile));
-    vgmstream->sample_rate = (uint16_t)read_16bitBE(wave_offset+0x14,infile);
+    vgmstream->num_samples = dsp_nibbles_to_samples(read_32bitBE(wave_offset+0x1c,streamFile));
+    vgmstream->sample_rate = (uint16_t)read_16bitBE(wave_offset+0x14,streamFile);
     /* channels and loop flag are set by allocate_vgmstream */
-    vgmstream->loop_start_sample = dsp_nibbles_to_samples(read_32bitBE(wave_offset+0x18,infile));
+    vgmstream->loop_start_sample = dsp_nibbles_to_samples(read_32bitBE(wave_offset+0x18,streamFile));
     vgmstream->loop_end_sample = vgmstream->num_samples;
 
     vgmstream->coding_type = coding_type;
@@ -93,21 +90,19 @@ VGMSTREAM * init_vgmstream_rwsd(const char * const filename) {
 
         for (j=0;j<vgmstream->channels;j++) {
             for (i=0;i<16;i++) {
-                vgmstream->ch[j].adpcm_coef[i]=read_16bitBE(wave_offset+coef_offset+j*0x30+i*2,infile);
+                vgmstream->ch[j].adpcm_coef[i]=read_16bitBE(wave_offset+coef_offset+j*0x30+i*2,streamFile);
             }
         }
     }
 
-    start_offset = read_32bitBE(8,infile);
-    stream_size = read_32bitBE(wave_offset+0x50,infile);
-
-    close_streamfile(infile); infile=NULL;
+    start_offset = read_32bitBE(8,streamFile);
+    stream_size = read_32bitBE(wave_offset+0x50,streamFile);
 
     /* open the file for reading by each channel */
     {
         int i;
         for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = open_streamfile_buffer(filename,
+            vgmstream->ch[i].streamfile = streamFile->open(streamFile,filename,
                     0x1000);
 
             if (!vgmstream->ch[i].streamfile) goto fail;
@@ -122,7 +117,6 @@ VGMSTREAM * init_vgmstream_rwsd(const char * const filename) {
 
     /* clean up anything we may have opened */
 fail:
-    if (infile) close_streamfile(infile);
     if (vgmstream) close_vgmstream(vgmstream);
     return NULL;
 }

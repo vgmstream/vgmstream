@@ -58,15 +58,15 @@ void interleave_stereo(sample * buffer, int32_t sample_count) {
 */
 
 void put_16bitLE(uint8_t * buf, int16_t i) {
-    buf[0] = i;
+    buf[0] = (i & 0xFF);
     buf[1] = i >> 8;
 }
 
 void put_32bitLE(uint8_t * buf, int32_t i) {
-    buf[0] = i;
-    buf[1] = i >> 8;
-    buf[2] = i >> 16;
-    buf[3] = i >> 24;
+    buf[0] = (uint8_t)(i & 0xFF);
+    buf[1] = (uint8_t)((i >> 8) & 0xFF);
+    buf[2] = (uint8_t)((i >> 16) & 0xFF);
+    buf[3] = (uint8_t)((i >> 24) & 0xFF);
 }
 
 /* make a header for PCM .wav */
@@ -79,7 +79,7 @@ void make_wav_header(uint8_t * buf, int32_t sample_count, int32_t sample_rate, i
     /* RIFF header */
     memcpy(buf+0, "RIFF", 4);
     /* size of RIFF */
-    put_32bitLE(buf+4, bytecount+0x2c-8);
+    put_32bitLE(buf+4, (int32_t)(bytecount+0x2c-8));
 
     /* WAVE header */
     memcpy(buf+8, "WAVE", 4);
@@ -102,7 +102,7 @@ void make_wav_header(uint8_t * buf, int32_t sample_count, int32_t sample_rate, i
     put_32bitLE(buf+0x1c, sample_rate*channels*sizeof(sample));
 
     /* block align */
-    put_16bitLE(buf+0x20, channels*sizeof(sample));
+    put_16bitLE(buf+0x20, (int16_t)(channels*sizeof(sample)));
 
     /* significant bits per sample */
     put_16bitLE(buf+0x22, sizeof(sample)*8);
@@ -112,7 +112,7 @@ void make_wav_header(uint8_t * buf, int32_t sample_count, int32_t sample_rate, i
     /* WAVE data chunk */
     memcpy(buf+0x24, "data", 4);
     /* size of WAVE data chunk */
-    put_32bitLE(buf+0x28, bytecount);
+    put_32bitLE(buf+0x28, (int32_t)bytecount);
 }
 
 /* length is maximum length of dst. dst will always be null-terminated if

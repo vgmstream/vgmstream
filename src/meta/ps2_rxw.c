@@ -3,9 +3,9 @@
 
 /* RXW file (Arc the Lad) */
 
-VGMSTREAM * init_vgmstream_ps2_rxw(const char * const filename) {
+VGMSTREAM * init_vgmstream_ps2_rxw(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    STREAMFILE * infile = NULL;
+    char filename[260];
 
     int loop_flag=0;
 	int channel_count;
@@ -13,19 +13,16 @@ VGMSTREAM * init_vgmstream_ps2_rxw(const char * const filename) {
     int i;
 
     /* check extension, case insensitive */
+    streamFile->get_name(streamFile,filename,sizeof(filename));
     if (strcasecmp("rxw",filename_extension(filename))) goto fail;
 
-    /* try to open the file for header reading */
-    infile = open_streamfile(filename);
-    if (!infile) goto fail;
-
     /* check RXWS/FORM Header */
-    if (!((read_32bitBE(0x00,infile) == 0x52585753) && 
-	      (read_32bitBE(0x10,infile) == 0x464F524D)))
+    if (!((read_32bitBE(0x00,streamFile) == 0x52585753) && 
+	      (read_32bitBE(0x10,streamFile) == 0x464F524D)))
         goto fail;
 
 	/* check loop */
-	loop_flag = (read_32bitLE(0x3C,infile)!=0xFFFFFFFF);
+	loop_flag = (read_32bitLE(0x3C,streamFile)!=0xFFFFFFFF);
     
 	/* Always stereo files */
 	channel_count=2;
@@ -36,29 +33,27 @@ VGMSTREAM * init_vgmstream_ps2_rxw(const char * const filename) {
 
 	/* fill in the vital statistics */
 	vgmstream->channels = channel_count;
-    vgmstream->sample_rate = read_32bitLE(0x2E,infile);
+    vgmstream->sample_rate = read_32bitLE(0x2E,streamFile);
 
 	vgmstream->coding_type = coding_PSX;
-    vgmstream->num_samples = (read_32bitLE(0x38,infile)*28/16)/2;
+    vgmstream->num_samples = (read_32bitLE(0x38,streamFile)*28/16)/2;
 
 	/* Get loop point values */
 	if(vgmstream->loop_flag) {
-		vgmstream->loop_start_sample = read_32bitLE(0x3C,infile)/16*14;
-		vgmstream->loop_end_sample = read_32bitLE(0x38,infile)/16*14;
+		vgmstream->loop_start_sample = read_32bitLE(0x3C,streamFile)/16*14;
+		vgmstream->loop_end_sample = read_32bitLE(0x38,streamFile)/16*14;
 	}
 
-	vgmstream->interleave_block_size = read_32bitLE(0x1c,infile)+0x10;
+	vgmstream->interleave_block_size = read_32bitLE(0x1c,streamFile)+0x10;
     vgmstream->layout_type = layout_interleave;
     vgmstream->meta_type = meta_PS2_RXW;
 
 	start_offset = 0x40;
 
-    close_streamfile(infile); infile=NULL;
-
     /* open the file for reading by each channel */
     {
         for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = open_streamfile_buffer(filename,0x8000);
+            vgmstream->ch[i].streamfile = streamFile->open(streamFile,filename,0x8000);
 
             if (!vgmstream->ch[i].streamfile) goto fail;
 
@@ -72,7 +67,6 @@ VGMSTREAM * init_vgmstream_ps2_rxw(const char * const filename) {
 
     /* clean up anything we may have opened */
 fail:
-    if (infile) close_streamfile(infile);
     if (vgmstream) close_vgmstream(vgmstream);
     return NULL;
 }

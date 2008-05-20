@@ -11,9 +11,9 @@
    2008-05-17 - Fastelbja : First version ...
 */
 
-VGMSTREAM * init_vgmstream_ps2_vag(const char * const filename) {
+VGMSTREAM * init_vgmstream_ps2_vag(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    STREAMFILE * infile = NULL;
+    char filename[260];
 	
 	// used for loop points ...
 	uint8_t eofVAG[16]={0x00,0x07,0x77,0x77,0x77,0x77,0x77,0x77,0x77,0x77,0x77,0x77,0x77,0x77,0x77,0x77};
@@ -36,49 +36,46 @@ VGMSTREAM * init_vgmstream_ps2_vag(const char * const filename) {
     int i;
 
     /* check extension, case insensitive */
+    streamFile->get_name(streamFile,filename,sizeof(filename));
     if (strcasecmp("vag",filename_extension(filename))) goto fail;
 
-    /* try to open the file for header reading */
-    infile = open_streamfile_buffer(filename,0x8000);
-    if (!infile) goto fail;
-
     /* check VAG Header */
-    if (((read_32bitBE(0x00,infile) & 0xFFFFFF00) != 0x56414700) && 
- 		((read_32bitLE(0x00,infile) & 0xFFFFFF00) != 0x56414700))
+    if (((read_32bitBE(0x00,streamFile) & 0xFFFFFF00) != 0x56414700) && 
+ 		((read_32bitLE(0x00,streamFile) & 0xFFFFFF00) != 0x56414700))
         goto fail;
 
 	/* Check for correct channel count */
-	vagID=read_8bit(0x03,infile);
+	vagID=read_8bit(0x03,streamFile);
 
 	switch(vagID) {
 		case 'i':
 			channel_count=2;
 			break;
 		case 'V':
-			if(read_32bitBE(0x20,infile)==0x53746572) // vag Stereo
+			if(read_32bitBE(0x20,streamFile)==0x53746572) // vag Stereo
 				channel_count=2;
 		case 'p':
 			/* Search for loop in VAG */
-			fileLength = get_streamfile_size(infile);
+			fileLength = get_streamfile_size(streamFile);
 
 			do {
 				readOffset+=0x10; 
 				
 				// Loop Start ...
-				if(read_8bit(readOffset+0x01,infile)==0x06) {
+				if(read_8bit(readOffset+0x01,streamFile)==0x06) {
 					if(loopStart==0) loopStart = readOffset;
 				}
 
 				// Loop End ...
-				if(read_8bit(readOffset+0x01,infile)==0x03) {
+				if(read_8bit(readOffset+0x01,streamFile)==0x03) {
 					if(loopEnd==0) loopEnd = readOffset;
 				}
 
 				// Loop from end to beginning ...
-				if((read_8bit(readOffset+0x01,infile)==0x01)) {
+				if((read_8bit(readOffset+0x01,streamFile)==0x01)) {
 					// Check if we have the eof tag after the loop point ...
 					// if so we don't loop, if not present, we loop from end to start ...
-					read_streamfile(readbuf,readOffset+0x10,0x10,infile);
+					read_streamfile(readbuf,readOffset+0x10,0x10,streamFile);
 					if((readbuf[0]!=0) && (readbuf[0]!=0x0c)) {
 						if(memcmp(readbuf,eofVAG,0x10) && (memcmp(readbuf,eofVAG2,0x10))) {
 							loopStart = 0x40;
@@ -87,7 +84,7 @@ VGMSTREAM * init_vgmstream_ps2_vag(const char * const filename) {
 					}
 				}
 
-			} while (infile->offset<(off_t)fileLength);
+			} while (streamFile->get_offset(streamFile)<(off_t)fileLength);
 			loop_flag = (loopEnd!=0);
 			break;
         default:
@@ -104,16 +101,16 @@ VGMSTREAM * init_vgmstream_ps2_vag(const char * const filename) {
 	switch(vagID) {
 		case 'i': // VAGi
 			vgmstream->layout_type=layout_interleave;
-			vgmstream->sample_rate = read_32bitBE(0x10,infile);
-			vgmstream->num_samples = read_32bitBE(0x0C,infile)/16*28;
-			interleave = read_32bitLE(0x08,infile);
+			vgmstream->sample_rate = read_32bitBE(0x10,streamFile);
+			vgmstream->num_samples = read_32bitBE(0x0C,streamFile)/16*28;
+			interleave = read_32bitLE(0x08,streamFile);
 			vgmstream->meta_type=meta_PS2_VAGi;
 			start_offset=0x800;
 			break;
 		case 'p': // VAGp
 			vgmstream->layout_type=layout_none;
-			vgmstream->sample_rate = read_32bitBE(0x10,infile);
-			vgmstream->num_samples = read_32bitBE(0x0C,infile)/16*28;
+			vgmstream->sample_rate = read_32bitBE(0x10,streamFile);
+			vgmstream->num_samples = read_32bitBE(0x0C,streamFile)/16*28;
 			vgmstream->meta_type=meta_PS2_VAGp;
 			interleave=0x10; // used for loop calc
 			start_offset=0x30;
@@ -123,11 +120,11 @@ VGMSTREAM * init_vgmstream_ps2_vag(const char * const filename) {
 			interleave=0x2000;
 
 			// Jak X hack ...
-			if(read_32bitLE(0x1000,infile)==0x56414770)
+			if(read_32bitLE(0x1000,streamFile)==0x56414770)
 				interleave=0x1000;
 
-			vgmstream->sample_rate = read_32bitLE(0x10,infile);
-			vgmstream->num_samples = read_32bitLE(0x0C,infile)/16*14;
+			vgmstream->sample_rate = read_32bitLE(0x10,streamFile);
+			vgmstream->num_samples = read_32bitLE(0x0C,streamFile)/16*14;
 			vgmstream->meta_type=meta_PS2_pGAV;
 			start_offset=0;
 			break;
@@ -151,12 +148,10 @@ VGMSTREAM * init_vgmstream_ps2_vag(const char * const filename) {
     /* Compression Scheme */
     vgmstream->coding_type = coding_PSX;
 
-    close_streamfile(infile); infile=NULL;
-
     /* open the file for reading by each channel */
     {
         for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = open_streamfile_buffer(filename,vgmstream->interleave_block_size);
+            vgmstream->ch[i].streamfile = streamFile->open(streamFile,filename,vgmstream->interleave_block_size);
 
             if (!vgmstream->ch[i].streamfile) goto fail;
 
@@ -170,7 +165,6 @@ VGMSTREAM * init_vgmstream_ps2_vag(const char * const filename) {
 
     /* clean up anything we may have opened */
 fail:
-    if (infile) close_streamfile(infile);
     if (vgmstream) close_vgmstream(vgmstream);
     return NULL;
 }

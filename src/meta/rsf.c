@@ -4,21 +4,18 @@
 
 /* .rsf - from Metroid Prime */
 
-VGMSTREAM * init_vgmstream_rsf(const char * const filename) {
+VGMSTREAM * init_vgmstream_rsf(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    STREAMFILE * infile = NULL;
+    char filename[260];
 
     size_t file_size;
 
     /* check extension, case insensitive */
     /* this is all we have to go on, rsf is completely headerless */
+    streamFile->get_name(streamFile,filename,sizeof(filename));
     if (strcasecmp("rsf",filename_extension(filename))) goto fail;
 
-    /* try to open the file so we can count the filesize */
-    infile = open_streamfile(filename);
-    if (!infile) goto fail;
-
-    file_size = get_streamfile_size(infile);
+    file_size = get_streamfile_size(streamFile);
 
     {
         /* extra check: G.721 has no zero nibbles, so we look at
@@ -27,18 +24,15 @@ VGMSTREAM * init_vgmstream_rsf(const char * const filename) {
         off_t i;
         /* 0x20 is arbitrary, all files are much larger */
         for (i=0;i<0x20;i++) {
-            test_byte = read_8bit(i,infile);
+            test_byte = read_8bit(i,streamFile);
             if (!(test_byte&0xf) || !(test_byte&0xf0)) goto fail;
         }
         /* and also check start of second channel */
         for (i=(file_size+1)/2;i<(file_size+1)/2+0x20;i++) {
-            test_byte = read_8bit(i,infile);
+            test_byte = read_8bit(i,streamFile);
             if (!(test_byte&0xf) || !(test_byte&0xf0)) goto fail;
         }
     }
-
-    close_streamfile(infile);
-    infile = NULL;
 
     /* build the VGMSTREAM */
 
@@ -57,7 +51,7 @@ VGMSTREAM * init_vgmstream_rsf(const char * const filename) {
     {
         int i;
         for (i=0;i<2;i++) {
-            vgmstream->ch[i].streamfile = open_streamfile(filename);
+            vgmstream->ch[i].streamfile = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
 
             if (!vgmstream->ch[i].streamfile) goto fail;
 
@@ -74,7 +68,6 @@ VGMSTREAM * init_vgmstream_rsf(const char * const filename) {
 
     /* clean up anything we may have opened */
 fail:
-    if (infile) close_streamfile(infile);
     if (vgmstream) close_vgmstream(vgmstream);
     return NULL;
 }

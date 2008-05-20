@@ -2,28 +2,22 @@
 #include "meta.h"
 #include "../util.h"
 
-VGMSTREAM * init_vgmstream_ngc_adpdtk(const char * const filename) {
+VGMSTREAM * init_vgmstream_ngc_adpdtk(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    STREAMFILE * infile = NULL;
+    char filename[260];
     
     size_t file_size;
     int i;
 
     /* check extension, case insensitive */
+    streamFile->get_name(streamFile,filename,sizeof(filename));
     if (strcasecmp("adp",filename_extension(filename))) goto fail;
 
-    /* try to open the file for checking */
-    infile = open_streamfile(filename);
-    if (!infile) goto fail;
-
     /* file size is the only way to determine sample count */
-    file_size = get_streamfile_size(infile);
+    file_size = get_streamfile_size(streamFile);
 
     /* .adp files have no header, so all we can do is look for a valid first frame */
-    if (read_8bit(0,infile)!=read_8bit(2,infile) || read_8bit(1,infile)!=read_8bit(3,infile)) goto fail;
-
-    /* done with checking */
-    close_streamfile(infile);
+    if (read_8bit(0,streamFile)!=read_8bit(2,streamFile) || read_8bit(1,streamFile)!=read_8bit(3,streamFile)) goto fail;
 
     /* Hopefully we haven't falsely detected something else... */
     /* build the VGMSTREAM */
@@ -40,14 +34,13 @@ VGMSTREAM * init_vgmstream_ngc_adpdtk(const char * const filename) {
         vgmstream->ch[i].channel_start_offset =
             vgmstream->ch[i].offset = 0;
 
-        vgmstream->ch[i].streamfile = open_streamfile_buffer(filename,32*0x400);
+        vgmstream->ch[i].streamfile = streamFile->open(streamFile,filename,32*0x400);
     }
 
     return vgmstream;
 
     /* clean up anything we may have opened */
 fail:
-    if (infile) close_streamfile(infile);
     if (vgmstream) close_vgmstream(vgmstream);
     return NULL;
 }

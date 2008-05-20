@@ -12,9 +12,9 @@
    2008-05-19 - Fastelbja : First version ...
 */
 
-VGMSTREAM * init_vgmstream_psx_gms(const char * const filename) {
+VGMSTREAM * init_vgmstream_psx_gms(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    STREAMFILE * infile = NULL;
+    char filename[260];
 
     int loop_flag=0;
 	int channel_count;
@@ -22,17 +22,14 @@ VGMSTREAM * init_vgmstream_psx_gms(const char * const filename) {
     int i;
 
     /* check extension, case insensitive */
+    streamFile->get_name(streamFile,filename,sizeof(filename));
     if (strcasecmp("gms",filename_extension(filename))) goto fail;
 
-    /* try to open the file for header reading */
-    infile = open_streamfile(filename);
-    if (!infile) goto fail;
-
-	/* check loop */
-	loop_flag = (read_32bitLE(0x20,infile)==0);
+    /* check loop */
+	loop_flag = (read_32bitLE(0x20,streamFile)==0);
     
 	/* Always stereo files */
-	channel_count=read_32bitLE(0x00,infile);
+	channel_count=read_32bitLE(0x00,streamFile);
     
 	/* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
@@ -40,15 +37,15 @@ VGMSTREAM * init_vgmstream_psx_gms(const char * const filename) {
 
 	/* fill in the vital statistics */
 	vgmstream->channels = channel_count;
-    vgmstream->sample_rate = read_32bitLE(0x04,infile);
+    vgmstream->sample_rate = read_32bitLE(0x04,streamFile);
 
 	vgmstream->coding_type = coding_PSX;
-    vgmstream->num_samples = read_32bitLE(0x1C,infile);
+    vgmstream->num_samples = read_32bitLE(0x1C,streamFile);
 
 	/* Get loop point values */
 	if(vgmstream->loop_flag) {
-		vgmstream->loop_start_sample = read_32bitLE(0x14,infile);
-		vgmstream->loop_end_sample = read_32bitLE(0x1C,infile);
+		vgmstream->loop_start_sample = read_32bitLE(0x14,streamFile);
+		vgmstream->loop_end_sample = read_32bitLE(0x1C,streamFile);
 	}
 
     vgmstream->layout_type = layout_interleave;
@@ -57,12 +54,10 @@ VGMSTREAM * init_vgmstream_psx_gms(const char * const filename) {
 
 	start_offset = 0x800;
 
-    close_streamfile(infile); infile=NULL;
-
     /* open the file for reading by each channel */
     {
         for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = open_streamfile_buffer(filename,vgmstream->interleave_block_size);
+            vgmstream->ch[i].streamfile = streamFile->open(streamFile,filename,vgmstream->interleave_block_size);
 
             if (!vgmstream->ch[i].streamfile) goto fail;
 
@@ -76,7 +71,6 @@ VGMSTREAM * init_vgmstream_psx_gms(const char * const filename) {
 
     /* clean up anything we may have opened */
 fail:
-    if (infile) close_streamfile(infile);
     if (vgmstream) close_vgmstream(vgmstream);
     return NULL;
 }

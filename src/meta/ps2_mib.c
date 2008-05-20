@@ -30,12 +30,12 @@
    2008-05-14 - Fastelbja : First version ...
 */
 
-VGMSTREAM * init_vgmstream_ps2_mib(const char * const filename) {
+VGMSTREAM * init_vgmstream_ps2_mib(STREAMFILE *streamFile) {
     
 	VGMSTREAM * vgmstream = NULL;
-    STREAMFILE * infile = NULL;
-	STREAMFILE * infileMIH = NULL;
-
+    STREAMFILE * streamFileMIH = NULL;
+    char filename[260];
+    
 	uint8_t mibBuffer[0x10];
 	uint8_t	testBuffer[0x10];
 
@@ -46,41 +46,32 @@ VGMSTREAM * init_vgmstream_ps2_mib(const char * const filename) {
 	off_t	interleave = 0;
 	off_t	readOffset = 0;
 
-	char * filenameMIH = NULL;
+	char   filenameMIH[260];
 
 	uint8_t gotMIH=0;
 
 	int i, channel_count=1;
 
     /* check extension, case insensitive */
+    streamFile->get_name(streamFile,filename,sizeof(filename));
     if (strcasecmp("mib",filename_extension(filename)) && 
 		strcasecmp("mi4",filename_extension(filename))) goto fail;
 
 	/* check for .MIH file */
-	filenameMIH=(char *)malloc(strlen(filename)+1);
-
-	if (!filenameMIH) goto fail;
-
 	strcpy(filenameMIH,filename);
 	strcpy(filenameMIH+strlen(filenameMIH)-3,"MIH");
 
-	infileMIH = open_streamfile(filenameMIH);
-	if (infileMIH) gotMIH = 1;
+	streamFileMIH = streamFile->open(streamFile,filenameMIH,STREAMFILE_DEFAULT_BUFFER_SIZE);
+	if (streamFileMIH) gotMIH = 1;
 
-    free(filenameMIH); filenameMIH = NULL;
-
-	/* Search for interleave value & loop points */
+    /* Search for interleave value & loop points */
 	/* Get the first 16 values */
-	infile=open_streamfile_buffer(filename,0x8000);
-
-	if(!infile) goto fail;
-
-	fileLength = get_streamfile_size(infile);
+	fileLength = get_streamfile_size(streamFile);
 	
-	readOffset+=read_streamfile(mibBuffer,0,0x10,infile); 
+	readOffset+=read_streamfile(mibBuffer,0,0x10,streamFile); 
 
 	do {
-		readOffset+=read_streamfile(testBuffer,readOffset,0x10,infile); 
+		readOffset+=read_streamfile(testBuffer,readOffset,0x10,streamFile); 
 		
 		if(!memcmp(testBuffer,mibBuffer,0x10)) {
 			if(interleave==0) interleave=readOffset-0x10;
@@ -101,10 +92,10 @@ VGMSTREAM * init_vgmstream_ps2_mib(const char * const filename) {
 			if(loopEnd==0) loopEnd = readOffset-0x10;
 		}
 
-	} while (infile->offset<fileLength);
+	} while (streamFile->get_offset(streamFile)<fileLength);
 
 	if(gotMIH) 
-		channel_count=read_32bitLE(0x08,infileMIH);
+		channel_count=read_32bitLE(0x08,streamFileMIH);
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,(loopStart!=0));
@@ -113,12 +104,12 @@ VGMSTREAM * init_vgmstream_ps2_mib(const char * const filename) {
     /* fill in the vital statistics */
 	if(gotMIH) {
 		// Read stuff from the MIH file 
-		vgmstream->channels = read_32bitLE(0x08,infileMIH);
-		vgmstream->sample_rate = read_32bitLE(0x0C,infileMIH);
-		vgmstream->interleave_block_size = read_32bitLE(0x10,infileMIH);
-		vgmstream->num_samples=((read_32bitLE(0x10,infileMIH)*
-								(read_32bitLE(0x14,infileMIH)-1)*2)+
-								((read_32bitLE(0x04,infileMIH)>>8)*2))/16*28/2;
+		vgmstream->channels = read_32bitLE(0x08,streamFileMIH);
+		vgmstream->sample_rate = read_32bitLE(0x0C,streamFileMIH);
+		vgmstream->interleave_block_size = read_32bitLE(0x10,streamFileMIH);
+		vgmstream->num_samples=((read_32bitLE(0x10,streamFileMIH)*
+								(read_32bitLE(0x14,streamFileMIH)-1)*2)+
+								((read_32bitLE(0x04,streamFileMIH)>>8)*2))/16*28/2;
 	} else {
 		vgmstream->channels = channel_count;
 		vgmstream->interleave_block_size = interleave;
@@ -143,17 +134,16 @@ VGMSTREAM * init_vgmstream_ps2_mib(const char * const filename) {
     vgmstream->layout_type = layout_interleave;
     
 	vgmstream->meta_type = meta_PS2_MIB;
-    close_streamfile(infile); infile=NULL;
-
+    
 	if (gotMIH) {
 		vgmstream->meta_type = meta_PS2_MIB_MIH;
-		close_streamfile(infileMIH); infileMIH=NULL;
+		close_streamfile(streamFileMIH); streamFileMIH=NULL;
 	}
 
     /* open the file for reading by each channel */
     {
         for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = open_streamfile_buffer(filename,0x8000);
+            vgmstream->ch[i].streamfile = streamFile->open(streamFile,filename,0x8000);
 
             if (!vgmstream->ch[i].streamfile) goto fail;
 
@@ -166,9 +156,7 @@ VGMSTREAM * init_vgmstream_ps2_mib(const char * const filename) {
 
     /* clean up anything we may have opened */
 fail:
-    if (infile) close_streamfile(infile);
-    if (infileMIH) close_streamfile(infileMIH);
-    if (filenameMIH) {free(filenameMIH); filenameMIH=NULL;}
+    if (streamFileMIH) close_streamfile(streamFileMIH);
     if (vgmstream) close_vgmstream(vgmstream);
     return NULL;
 }

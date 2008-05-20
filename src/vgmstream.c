@@ -16,7 +16,7 @@
  * directly to the metadata types
  */
 #define INIT_VGMSTREAM_FCNS 29
-VGMSTREAM * (*init_vgmstream_fcns[INIT_VGMSTREAM_FCNS])(const char * const) = {
+VGMSTREAM * (*init_vgmstream_fcns[INIT_VGMSTREAM_FCNS])(STREAMFILE *streamFile) = {
     init_vgmstream_adx,             /* 0 */
     init_vgmstream_brstm,           /* 1 */
     init_vgmstream_nds_strm,        /* 2 */
@@ -48,21 +48,16 @@ VGMSTREAM * (*init_vgmstream_fcns[INIT_VGMSTREAM_FCNS])(const char * const) = {
 	init_vgmstream_psx_gms			/* 28 */
 };
 
-
-/* format detection and VGMSTREAM setup, uses default parameters */
-VGMSTREAM * init_vgmstream(const char * const filename) {
-    return init_vgmstream_internal(filename,
-            1   /* do dual file detection */
-            );
-}
-
 /* internal version with all parameters */
-VGMSTREAM * init_vgmstream_internal(const char * const filename, int do_dfs) {
+VGMSTREAM * init_vgmstream_internal(STREAMFILE *streamFile, int do_dfs) {
     int i;
+    
+    if (!streamFile)
+        return NULL;
 
     /* try a series of formats, see which works */
     for (i=0;i<INIT_VGMSTREAM_FCNS;i++) {
-        VGMSTREAM * vgmstream = (init_vgmstream_fcns[i])(filename);
+        VGMSTREAM * vgmstream = (init_vgmstream_fcns[i])(streamFile);
         if (vgmstream) {
             /* these are little hacky checks */
 
@@ -75,7 +70,7 @@ VGMSTREAM * init_vgmstream_internal(const char * const filename, int do_dfs) {
 
             /* dual file stereo */
             if (do_dfs && ((vgmstream->meta_type == meta_DSP_STD) || (vgmstream->meta_type == meta_PS2_VAGp)) && vgmstream->channels == 1) {
-                try_dual_file_stereo(vgmstream, filename);
+                try_dual_file_stereo(vgmstream, streamFile);
             }
 
             /* save start things so we can restart for seeking */
@@ -89,6 +84,21 @@ VGMSTREAM * init_vgmstream_internal(const char * const filename, int do_dfs) {
     }
 
     return NULL;
+}
+
+/* format detection and VGMSTREAM setup, uses default parameters */
+VGMSTREAM * init_vgmstream(const char * const filename) {
+    VGMSTREAM *vgmstream = NULL;
+    STREAMFILE *streamFile = open_stdio_streamfile(filename);
+    if (streamFile) {
+        vgmstream = init_vgmstream_from_STREAMFILE(streamFile);
+        close_streamfile(streamFile);
+    }
+    return vgmstream;
+}
+
+VGMSTREAM * init_vgmstream_from_STREAMFILE(STREAMFILE *streamFile) {
+    return init_vgmstream_internal(streamFile,1);
 }
 
 /* Reset a VGMSTREAM to its state at the start of playback.
@@ -698,26 +708,25 @@ const char * const dfs_pairs[DFS_PAIR_COUNT][2] = {
     {"left","right"},
 };
 
-void try_dual_file_stereo(VGMSTREAM * opened_stream, const char * const filename) {
-    char * filename2;
+void try_dual_file_stereo(VGMSTREAM * opened_stream, STREAMFILE *streamFile) {
+    char filename[260];
+    char filename2[260];
     char * ext;
     int dfs_name= -1; /*-1=no stereo, 0=opened_stream is left, 1=opened_stream is right */
     VGMSTREAM * new_stream = NULL;
+    STREAMFILE *dual_stream = NULL;
     int i,j;
 
     if (opened_stream->channels != 1) return;
     
+    streamFile->get_name(streamFile,filename,sizeof(filename));
+
 	/* vgmstream's layout stuff currently assumes a single file */
 	// fastelbja : no need ... this one works ok with dual file
     //if (opened_stream->layout != layout_none) return;
 
     /* we need at least a base and a name ending to replace */
     if (strlen(filename)<2) return;
-
-    /* one extra for terminator, one for possible extra character (left>=right) */
-    filename2 = malloc(strlen(filename)+2); 
-
-    if (!filename2) return;
 
     strcpy(filename2,filename);
 
@@ -757,9 +766,12 @@ void try_dual_file_stereo(VGMSTREAM * opened_stream, const char * const filename
             filename,filename2);
 #endif
 
-    new_stream = init_vgmstream_internal(filename2,
+    dual_stream = streamFile->open(streamFile,filename2,STREAMFILE_DEFAULT_BUFFER_SIZE);
+    // no need to check NULL here since init_vgmstream_internal does it at its beginning
+    new_stream = init_vgmstream_internal(dual_stream,
             0   /* don't do dual file on this, to prevent recursion */
             );
+    close_streamfile(dual_stream);
 
     /* see if we were able to open the file, and if everything matched nicely */
     if (new_stream &&
@@ -835,10 +847,6 @@ void try_dual_file_stereo(VGMSTREAM * opened_stream, const char * const filename
         /* discard the second VGMSTREAM */
         free(new_stream);
     }
-
-    if (filename2) free(filename2);
-    return;
-
 fail:
-    if (filename2) free(filename2);
+    return;
 }

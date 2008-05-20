@@ -5,7 +5,7 @@
 /* Sony PSX CD-XA */
 /* No looped file ! */
 
-off_t init_xa_channel(int channel,STREAMFILE *infile);
+off_t init_xa_channel(int channel,STREAMFILE *streamFile);
 
 uint8_t AUDIO_CODING_GET_STEREO(uint8_t value) {
 	return (uint8_t)(value & 3);
@@ -15,9 +15,9 @@ uint8_t AUDIO_CODING_GET_FREQ(uint8_t value) {
 	return (uint8_t)((value >> 2) & 3);
 }
 
-VGMSTREAM * init_vgmstream_cdxa(const char * const filename) {
+VGMSTREAM * init_vgmstream_cdxa(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    STREAMFILE * infile = NULL;
+    char filename[260];
 
 	int channel_count;
 	uint8_t bCoding;
@@ -26,26 +26,23 @@ VGMSTREAM * init_vgmstream_cdxa(const char * const filename) {
     int i;
 
     /* check extension, case insensitive */
+    streamFile->get_name(streamFile,filename,sizeof(filename));
     if (strcasecmp("xa",filename_extension(filename))) goto fail;
 
-    /* try to open the file for header reading */
-    infile = open_streamfile(filename);
-    if (!infile) goto fail;
-
     /* check RIFF Header */
-    if (!((read_32bitBE(0x00,infile) == 0x52494646) && 
-	      (read_32bitBE(0x08,infile) == 0x43445841) && 
-		  (read_32bitBE(0x0C,infile) == 0x666D7420)))
+    if (!((read_32bitBE(0x00,streamFile) == 0x52494646) && 
+	      (read_32bitBE(0x08,streamFile) == 0x43445841) && 
+		  (read_32bitBE(0x0C,streamFile) == 0x666D7420)))
         goto fail;
 
 	/* First init to have the correct info of the channel */
-	start_offset=init_xa_channel(0,infile);
+	start_offset=init_xa_channel(0,streamFile);
 
 	/* No sound ? */
 	if(start_offset==0)
 		goto fail;
 
-	bCoding = read_8bit(start_offset-5,infile);
+	bCoding = read_8bit(start_offset-5,streamFile);
 
 	switch (AUDIO_CODING_GET_STEREO(bCoding)) {
 		case 0: channel_count = 1; break;
@@ -69,17 +66,15 @@ VGMSTREAM * init_vgmstream_cdxa(const char * const filename) {
 
 	/* Check for Compression Scheme */
 	vgmstream->coding_type = coding_XA;
-    vgmstream->num_samples = (int32_t)((((get_streamfile_size(infile) - 0x3C)/2352)*0x1F80)/(2*channel_count));
+    vgmstream->num_samples = (int32_t)((((get_streamfile_size(streamFile) - 0x3C)/2352)*0x1F80)/(2*channel_count));
 
     vgmstream->layout_type = layout_xa_blocked;
     vgmstream->meta_type = meta_PSX_XA;
 
-	close_streamfile(infile); infile=NULL;
-
-    /* open the file for reading by each channel */
+	/* open the file for reading by each channel */
     {
         for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = open_streamfile_buffer(filename,0x8000);
+            vgmstream->ch[i].streamfile = streamFile->open(streamFile,filename,0x8000);
 
             if (!vgmstream->ch[i].streamfile) goto fail;
         }
@@ -91,15 +86,14 @@ VGMSTREAM * init_vgmstream_cdxa(const char * const filename) {
 
     /* clean up anything we may have opened */
 fail:
-    if (infile) close_streamfile(infile);
     if (vgmstream) close_vgmstream(vgmstream);
     return NULL;
 }
 
-off_t init_xa_channel(int channel,STREAMFILE* infile) {
+off_t init_xa_channel(int channel,STREAMFILE* streamFile) {
 	
 	off_t block_offset=0x44;
-	size_t filelength=get_streamfile_size(infile);
+	size_t filelength=get_streamfile_size(streamFile);
 
 	int8_t currentChannel;
 	int8_t subAudio;
@@ -110,8 +104,8 @@ begin:
 	if(block_offset>=filelength)
 		return 0;
 
-	currentChannel=read_8bit(block_offset-7,infile);
-	subAudio=read_8bit(block_offset-6,infile);
+	currentChannel=read_8bit(block_offset-7,streamFile);
+	subAudio=read_8bit(block_offset-6,streamFile);
 	if (!((currentChannel==channel) && (subAudio==0x64))) {
 		block_offset+=2352;
 		goto begin;

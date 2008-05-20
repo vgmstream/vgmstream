@@ -12,17 +12,14 @@
    2008-05-11 - Fastelbja : First version ...
 */
 
-VGMSTREAM * init_vgmstream_ps2_int(const char * const filename) {
+VGMSTREAM * init_vgmstream_ps2_int(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    STREAMFILE * infile = NULL;
+    char filename[260];
 	int i;
 
     /* check extension, case insensitive */
+    streamFile->get_name(streamFile,filename,sizeof(filename));
     if (strcasecmp("int",filename_extension(filename))) goto fail;
-
-    /* try to open the file for header reading */
-    infile = open_streamfile(filename);
-    if (!infile) goto fail;
 
     /* No check to do as they are raw pcm */
 
@@ -34,17 +31,15 @@ VGMSTREAM * init_vgmstream_ps2_int(const char * const filename) {
     vgmstream->channels = 2;
     vgmstream->sample_rate = 48000;
     vgmstream->coding_type = coding_PCM16LE;
-    vgmstream->num_samples = (int32_t)(get_streamfile_size(infile)/4);
+    vgmstream->num_samples = (int32_t)(get_streamfile_size(streamFile)/4);
     vgmstream->interleave_block_size = 0x200;
     vgmstream->layout_type = layout_interleave;
     vgmstream->meta_type = meta_PS2_RAW;
 
-    close_streamfile(infile); infile=NULL;
-
     /* open the file for reading by each channel */
     {
         for (i=0;i<2;i++) {
-            vgmstream->ch[i].streamfile = open_streamfile_buffer(filename,0x8000);
+            vgmstream->ch[i].streamfile = streamFile->open(streamFile,filename,0x8000);
 
             if (!vgmstream->ch[i].streamfile) goto fail;
 
@@ -57,7 +52,6 @@ VGMSTREAM * init_vgmstream_ps2_int(const char * const filename) {
 
     /* clean up anything we may have opened */
 fail:
-    if (infile) close_streamfile(infile);
     if (vgmstream) close_vgmstream(vgmstream);
     return NULL;
 }

@@ -1,28 +1,25 @@
 #include "meta.h"
 #include "../util.h"
 
-VGMSTREAM * init_vgmstream_gcsw(const char * const filename) {
+VGMSTREAM * init_vgmstream_gcsw(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    STREAMFILE * infile = NULL;
+    char filename[260];
 
     int channel_count;
     int loop_flag;
 
     /* check extension, case insensitive */
+    streamFile->get_name(streamFile,filename,sizeof(filename));
     if (strcasecmp("gcw",filename_extension(filename))) goto fail;
 
-    /* try to open the file for header reading */
-    infile = open_streamfile(filename);
-    if (!infile) goto fail;
-
-   /* check header */
-    if ((uint32_t)read_32bitBE(0,infile)!=0x47435357) /* "GCSW" */
+    /* check header */
+    if ((uint32_t)read_32bitBE(0,streamFile)!=0x47435357) /* "GCSW" */
         goto fail;
 
     /* check type details */
     /* guess */
-    loop_flag = read_32bitBE(0x1c,infile);
-    channel_count = read_32bitBE(0xc,infile);
+    loop_flag = read_32bitBE(0x1c,streamFile);
+    channel_count = read_32bitBE(0xc,streamFile);
 
     /* build the VGMSTREAM */
 
@@ -30,11 +27,11 @@ VGMSTREAM * init_vgmstream_gcsw(const char * const filename) {
     if (!vgmstream) goto fail;
 
     /* fill in the vital statistics */
-    vgmstream->num_samples = read_32bitBE(0x10,infile);
-    vgmstream->sample_rate = read_32bitBE(0x8,infile);
+    vgmstream->num_samples = read_32bitBE(0x10,streamFile);
+    vgmstream->sample_rate = read_32bitBE(0x8,streamFile);
     /* channels and loop flag are set by allocate_vgmstream */
-    vgmstream->loop_start_sample = read_32bitBE(0x14,infile);
-    vgmstream->loop_end_sample = read_32bitBE(0x18,infile);
+    vgmstream->loop_start_sample = read_32bitBE(0x14,streamFile);
+    vgmstream->loop_end_sample = read_32bitBE(0x18,streamFile);
 
     vgmstream->coding_type = coding_PCM16BE;
     vgmstream->layout_type = layout_interleave;
@@ -42,14 +39,11 @@ VGMSTREAM * init_vgmstream_gcsw(const char * const filename) {
 
     vgmstream->interleave_block_size = 0x8000;
 
-    close_streamfile(infile); infile=NULL;
-
     /* open the file for reading by each channel */
     {
         int i;
         for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = open_streamfile_buffer(filename,0x8000
-                    );
+            vgmstream->ch[i].streamfile = streamFile->open(streamFile,filename,0x8000);
 
             if (!vgmstream->ch[i].streamfile) goto fail;
 
@@ -63,7 +57,6 @@ VGMSTREAM * init_vgmstream_gcsw(const char * const filename) {
 
     /* clean up anything we may have opened */
 fail:
-    if (infile) close_streamfile(infile);
     if (vgmstream) close_vgmstream(vgmstream);
     return NULL;
 }

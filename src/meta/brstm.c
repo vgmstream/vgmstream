@@ -1,9 +1,9 @@
 #include "meta.h"
 #include "../util.h"
 
-VGMSTREAM * init_vgmstream_brstm(const char * const filename) {
+VGMSTREAM * init_vgmstream_brstm(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    STREAMFILE * infile = NULL;
+    char filename[260];
 
     coding_t coding_type;
 
@@ -20,30 +20,27 @@ VGMSTREAM * init_vgmstream_brstm(const char * const filename) {
     off_t start_offset;
 
     /* check extension, case insensitive */
+    streamFile->get_name(streamFile,filename,sizeof(filename));
     if (strcasecmp("brstm",filename_extension(filename))) {
         if (strcasecmp("brstmspm",filename_extension(filename))) goto fail;
         else spm_flag = 1;
     }
 
-    /* try to open the file for header reading */
-    infile = open_streamfile(filename);
-    if (!infile) goto fail;
-
     /* check header */
-    if ((uint32_t)read_32bitBE(0,infile)!=0x5253544D || /* "RSTM" */
-            (uint32_t)read_32bitBE(4,infile)!=0xFEFF0100)
+    if ((uint32_t)read_32bitBE(0,streamFile)!=0x5253544D || /* "RSTM" */
+            (uint32_t)read_32bitBE(4,streamFile)!=0xFEFF0100)
         goto fail;
 
     /* get head offset, check */
-    head_offset = read_32bitBE(0x10,infile);
-    if ((uint32_t)read_32bitBE(head_offset,infile)!=0x48454144) /* "HEAD" */
+    head_offset = read_32bitBE(0x10,streamFile);
+    if ((uint32_t)read_32bitBE(head_offset,streamFile)!=0x48454144) /* "HEAD" */
         goto fail;
-    head_length = read_32bitBE(0x14,infile);
+    head_length = read_32bitBE(0x14,streamFile);
 
     /* check type details */
-    codec_number = read_8bit(head_offset+0x20,infile);
-    loop_flag = read_8bit(head_offset+0x21,infile);
-    channel_count = read_8bit(head_offset+0x22,infile);
+    codec_number = read_8bit(head_offset+0x20,streamFile);
+    loop_flag = read_8bit(head_offset+0x21,streamFile);
+    channel_count = read_8bit(head_offset+0x22,streamFile);
 
     switch (codec_number) {
         case 0:
@@ -67,10 +64,10 @@ VGMSTREAM * init_vgmstream_brstm(const char * const filename) {
     if (!vgmstream) goto fail;
 
     /* fill in the vital statistics */
-    vgmstream->num_samples = read_32bitBE(head_offset+0x2c,infile);
-    vgmstream->sample_rate = (uint16_t)read_16bitBE(head_offset+0x24,infile);
+    vgmstream->num_samples = read_32bitBE(head_offset+0x2c,streamFile);
+    vgmstream->sample_rate = (uint16_t)read_16bitBE(head_offset+0x24,streamFile);
     /* channels and loop flag are set by allocate_vgmstream */
-    vgmstream->loop_start_sample = read_32bitBE(head_offset+0x28,infile);
+    vgmstream->loop_start_sample = read_32bitBE(head_offset+0x28,streamFile);
     vgmstream->loop_end_sample = vgmstream->num_samples;
 
     vgmstream->coding_type = coding_type;
@@ -85,8 +82,8 @@ VGMSTREAM * init_vgmstream_brstm(const char * const filename) {
         vgmstream->sample_rate = 22050;
     }
 
-    vgmstream->interleave_block_size = read_32bitBE(head_offset+0x38,infile);
-    vgmstream->interleave_smallblock_size = read_32bitBE(head_offset+0x48,infile);
+    vgmstream->interleave_block_size = read_32bitBE(head_offset+0x38,streamFile);
+    vgmstream->interleave_smallblock_size = read_32bitBE(head_offset+0x48,streamFile);
 
     if (vgmstream->coding_type == coding_NGC_DSP) {
         off_t coef_offset;
@@ -94,30 +91,28 @@ VGMSTREAM * init_vgmstream_brstm(const char * const filename) {
         off_t coef_offset2;
         int i,j;
 
-        coef_offset1=read_32bitBE(head_offset+0x1c,infile);
-        coef_offset2=read_32bitBE(head_offset+0x10+coef_offset1,infile);
+        coef_offset1=read_32bitBE(head_offset+0x1c,streamFile);
+        coef_offset2=read_32bitBE(head_offset+0x10+coef_offset1,streamFile);
         coef_offset=coef_offset2+0x10;
 
         for (j=0;j<vgmstream->channels;j++) {
             for (i=0;i<16;i++) {
-                vgmstream->ch[j].adpcm_coef[i]=read_16bitBE(head_offset+coef_offset+j*0x38+i*2,infile);
+                vgmstream->ch[j].adpcm_coef[i]=read_16bitBE(head_offset+coef_offset+j*0x38+i*2,streamFile);
             }
         }
     }
 
-    start_offset = read_32bitBE(head_offset+0x30,infile);
-
-    close_streamfile(infile); infile=NULL;
+    start_offset = read_32bitBE(head_offset+0x30,streamFile);
 
     /* open the file for reading by each channel */
     {
         int i;
         for (i=0;i<channel_count;i++) {
             if (vgmstream->layout_type==layout_interleave_shortblock)
-                vgmstream->ch[i].streamfile = open_streamfile_buffer(filename,
+                vgmstream->ch[i].streamfile = streamFile->open(streamFile,filename,
                     vgmstream->interleave_block_size);
             else
-                vgmstream->ch[i].streamfile = open_streamfile_buffer(filename,
+                vgmstream->ch[i].streamfile = streamFile->open(streamFile,filename,
                     0x1000);
 
             if (!vgmstream->ch[i].streamfile) goto fail;
@@ -132,7 +127,6 @@ VGMSTREAM * init_vgmstream_brstm(const char * const filename) {
 
     /* clean up anything we may have opened */
 fail:
-    if (infile) close_streamfile(infile);
     if (vgmstream) close_vgmstream(vgmstream);
     return NULL;
 }
