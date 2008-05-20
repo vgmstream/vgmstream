@@ -1,4 +1,6 @@
+#ifndef _MSC_VER
 #include <unistd.h>
+#endif
 #include "streamfile.h"
 #include "util.h"
 
