@@ -9,7 +9,6 @@
 VGMSTREAM * init_vgmstream_ps2_str(STREAMFILE *streamFile) {
     
 	VGMSTREAM * vgmstream = NULL;
-    STREAMFILE * infile = NULL;
 	STREAMFILE * infileSTH = NULL;
 	char filename[260];
 
@@ -76,7 +75,6 @@ VGMSTREAM * init_vgmstream_ps2_str(STREAMFILE *streamFile) {
 
     /* clean up anything we may have opened */
 fail:
-    if (infile) close_streamfile(infile);
     if (infileSTH) close_streamfile(infileSTH);
     if (filenameSTH) {free(filenameSTH); filenameSTH=NULL;}
     if (vgmstream) close_vgmstream(vgmstream);
