@@ -177,12 +177,13 @@ int main(int argc, char ** argv) {
     }
 
     if (!play) {
-        if (metaonly) printf("metadata for %s\n",argv[optind]);
-        else if (adxencd) {
-            printf("adxencd \"%s\"",outfilename);
+        if (adxencd) {
+            printf("adxencd");
+            if (!metaonly) printf(" \"%s\"",outfilename);
             if (s->loop_flag) printf(" -lps%d -lpe%d",s->loop_start_sample,s->loop_end_sample);
             printf("\n");
         }
+        else if (metaonly) printf("metadata for %s\n",argv[optind]);
         else printf("decoding %s\n",argv[optind]);
     }
     if (!play && !adxencd) {
