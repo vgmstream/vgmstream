@@ -21,6 +21,9 @@
 #define fseeko fseek
 #define ftello ftell
 #define dup _dup
+#ifdef fileno
+#undef fileno
+#endif
 #define fileno _fileno
 #define fdopen _fdopen
 #endif

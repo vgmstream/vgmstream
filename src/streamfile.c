@@ -1,3 +1,4 @@
+#include <unistd.h>
 #include "streamfile.h"
 #include "util.h"
 
