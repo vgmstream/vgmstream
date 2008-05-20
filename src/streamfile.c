@@ -10,6 +10,9 @@ typedef struct {
     uint8_t * buffer;
     size_t buffersize;
     char name[260];
+#ifdef PROFILE_STREAMFILE
+    size_t bytes_read;
+#endif
 } STDIOSTREAMFILE;
 
 static STREAMFILE * open_stdio_streamfile_buffer_by_FILE(FILE *infile,const char * const filename, size_t buffersize);
@@ -52,6 +55,10 @@ static size_t read_the_rest(uint8_t * dest, off_t offset, size_t length, STDIOST
         /* always try to fill the buffer */
         length_read = fread(streamfile->buffer,1,streamfile->buffersize,streamfile->infile);
         streamfile->validsize=length_read;
+
+#ifdef PROFILE_STREAMFILE
+        streamfile->bytes_read += length_read;
+#endif
 
         /* if we can't get enough to satisfy the request we give up */
         if (length_read < length_to_read) {
@@ -104,6 +111,12 @@ static void get_name_stdio(STDIOSTREAMFILE *streamfile,char *buffer,size_t lengt
     strcpy(buffer,streamfile->name);
 }
 
+#ifdef PROFILE_STREAMFILE
+static size_t get_bytes_read_stdio(STDIOSTREAMFILE *streamFile) {
+    return streamFile->bytes_read;
+}
+#endif
+
 static STREAMFILE *open_stdio(STDIOSTREAMFILE *streamFile,const char * const filename,size_t buffersize) {
     int newfd;
     FILE *newfile;
@@ -149,6 +162,9 @@ static STREAMFILE * open_stdio_streamfile_buffer_by_FILE(FILE *infile,const char
     streamfile->sf.get_name = (void*)get_name_stdio;
     streamfile->sf.open = (void*)open_stdio;
     streamfile->sf.close = (void*)close_stdio;
+#ifdef PROFILE_STREAMFILE
+    streamfile->sf.get_bytes_read = (void*)get_bytes_read_stdio;
+#endif
 
     streamfile->infile = infile;
     streamfile->buffersize = buffersize;

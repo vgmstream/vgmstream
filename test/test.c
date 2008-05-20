@@ -237,6 +237,18 @@ int main(int argc, char ** argv) {
 
     fclose(outfile); outfile = NULL;
 
+#ifdef PROFILE_STREAMFILE
+    {
+        int i;
+        for (i=0;i<s->channels;i++) {
+            size_t bytes_read = get_streamfile_bytes_read(s->ch[i].streamfile);
+            size_t file_size = get_streamfile_size(s->ch[i].streamfile);
+            fprintf(stderr,"ch%d: %lf%% (%d bytes read, file is %d bytes)\n",i,
+                    bytes_read*100.0/file_size,bytes_read,file_size);
+        }
+    }
+#endif
+
     if (reset_outfilename) {
         outfile = fopen(reset_outfilename,"wb");
         if (!outfile) {

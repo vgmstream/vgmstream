@@ -39,6 +39,9 @@ typedef struct _STREAMFILE {
     struct _STREAMFILE * (*open)(struct _STREAMFILE *,const char * const filename,size_t buffersize);
 
     void (*close)(struct _STREAMFILE *);
+#ifdef PROFILE_STREAMFILE
+    size_t (*get_bytes_read)(struct _STREAMFILE *);
+#endif
 } STREAMFILE;
 
 /* close a file, destroy the STREAMFILE object */
@@ -58,6 +61,13 @@ static inline size_t read_streamfile(uint8_t * dest, off_t offset, size_t length
 static inline size_t get_streamfile_size(STREAMFILE * streamfile) {
     return streamfile->get_size(streamfile);
 }
+
+#ifdef PROFILE_STREAMFILE
+/* return how many bytes we read into buffers */
+static inline size_t get_streamfile_bytes_read(STREAMFILE * streamfile) {
+    return streamfile->get_bytes_read(streamfile);
+}
+#endif
 
 /* Sometimes you just need an int, and we're doing the buffering.
 * Note, however, that if these fail to read they'll return -1,
