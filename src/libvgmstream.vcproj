@@ -271,6 +271,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\ps2_str.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\ps2_svag.c"
 					>
 				</File>

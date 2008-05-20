@@ -61,4 +61,6 @@ VGMSTREAM * init_vgmstream_ps2_vag(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_psx_gms(STREAMFILE *streamFile);
 
+VGMSTREAM * init_vgmstream_ps2_str(STREAMFILE *streamFile);
+
 #endif

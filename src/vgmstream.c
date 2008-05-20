@@ -15,7 +15,7 @@
  * List of functions that will recognize files. These should correspond pretty
  * directly to the metadata types
  */
-#define INIT_VGMSTREAM_FCNS 29
+#define INIT_VGMSTREAM_FCNS 30
 VGMSTREAM * (*init_vgmstream_fcns[INIT_VGMSTREAM_FCNS])(STREAMFILE *streamFile) = {
     init_vgmstream_adx,             /* 0 */
     init_vgmstream_brstm,           /* 1 */
@@ -45,7 +45,8 @@ VGMSTREAM * (*init_vgmstream_fcns[INIT_VGMSTREAM_FCNS])(STREAMFILE *streamFile) 
     init_vgmstream_ngc_dsp_std_int, /* 25 */
 	init_vgmstream_raw,				/* 26 */
 	init_vgmstream_ps2_vag,			/* 27 */
-	init_vgmstream_psx_gms			/* 28 */
+	init_vgmstream_psx_gms,			/* 28 */
+	init_vgmstream_ps2_str			/* 29 */
 };
 
 /* internal version with all parameters */
@@ -687,11 +688,17 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
 		case meta_PS2_VAGp:
             snprintf(temp,TEMPSIZE,"Sony VAG Mono header (VAGp)");
             break;
+		case meta_PS2_VAGm:
+            snprintf(temp,TEMPSIZE,"Sony VAG Mono header (VAGm)");
+            break;
 		case meta_PS2_pGAV:
             snprintf(temp,TEMPSIZE,"Sony VAG Stereo Little Endian header (pGAV)");
             break;
 		case meta_PSX_GMS:
             snprintf(temp,TEMPSIZE,"assumed Grandia GMS file by .gms extension");
+            break;
+		case meta_PS2_STR:
+            snprintf(temp,TEMPSIZE,"assumed STR + STH File by .str & .sth extension");
             break;
         default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

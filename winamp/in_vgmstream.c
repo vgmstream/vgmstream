@@ -103,6 +103,7 @@ char * extension_list[] = {
 	"raw\0RAW Audio File (*.RAW)\0",
 	"vag\0VAG Audio File (*.VAG)\0",
 	"gms\0GMS Audio File (*.GMS)\0",
+	"str\0STR Audio File (*.STR)\0"
 };
 
 void about(HWND hwndParent) {

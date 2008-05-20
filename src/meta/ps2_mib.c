@@ -28,6 +28,7 @@
 							 another MIC format which can be found in Koei Games.
 
    2008-05-14 - Fastelbja : First version ...
+   2008-05-20 - Fastelbja : Fix loop value when loopEnd==0
 */
 
 VGMSTREAM * init_vgmstream_ps2_mib(STREAMFILE *streamFile) {
@@ -98,7 +99,7 @@ VGMSTREAM * init_vgmstream_ps2_mib(STREAMFILE *streamFile) {
 		channel_count=read_32bitLE(0x08,streamFileMIH);
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,(loopStart!=0));
+    vgmstream = allocate_vgmstream(channel_count,((loopStart!=0) && (loopEnd!=0)));
     if (!vgmstream) goto fail;
 
     /* fill in the vital statistics */
