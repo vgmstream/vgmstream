@@ -239,13 +239,27 @@ int main(int argc, char ** argv) {
 
 #ifdef PROFILE_STREAMFILE
     {
-        int i;
+        int i,j;
+        size_t total_bytes_read = 0;
         for (i=0;i<s->channels;i++) {
             size_t bytes_read = get_streamfile_bytes_read(s->ch[i].streamfile);
             size_t file_size = get_streamfile_size(s->ch[i].streamfile);
+            int already_reported = 0;
+
+            /* see if we've reported this STREAMFILE already */
+            for (j=i-1;!already_reported && j>=0;j--) {
+                if (s->ch[j].streamfile == s->ch[i].streamfile) {
+                    already_reported=1;
+                }
+            }
+
+            if (already_reported) continue;
+
+            total_bytes_read += bytes_read;
             fprintf(stderr,"ch%d: %lf%% (%d bytes read, file is %d bytes)\n",i,
                     bytes_read*100.0/file_size,bytes_read,file_size);
         }
+        fprintf(stderr,"total bytes read: %d\n",total_bytes_read);
     }
 #endif
 
