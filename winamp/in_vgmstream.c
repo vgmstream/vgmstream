@@ -220,8 +220,7 @@ int play(char *fn)
     }
     if (ignore_loop) vgmstream->loop_flag = 0;
     /* will we be able to play it? */
-    if (vgmstream->channels <= 0 || vgmstream->channels > 2) {
-        /* TODO: > 2 channels is not unheard of, we should probably complain */
+    if (vgmstream->channels <= 0) {
         close_vgmstream(vgmstream);
         vgmstream=NULL;
         return 1;
