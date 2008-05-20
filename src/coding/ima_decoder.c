@@ -34,8 +34,8 @@ void decode_nds_ima(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspaci
     int step_index = stream->adpcm_step_index;
 
     if (first_sample==0) {
-        step_index = read_16bitLE(stream->offset+2,stream->streamfile);
         hist1 = read_16bitLE(stream->offset,stream->streamfile);
+        step_index = read_16bitLE(stream->offset+2,stream->streamfile);
     }
 
     for (i=first_sample,sample_count=0; i<first_sample+samples_to_do; i++,sample_count+=channelspacing) {

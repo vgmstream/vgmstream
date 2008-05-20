@@ -121,9 +121,14 @@ VGMSTREAM * init_vgmstream_adx(STREAMFILE *streamFile) {
 
     {
         int i;
+        STREAMFILE * chstreamfile;
+       
+        /* ADX is so tightly interleaved that having two buffers is silly */
+        chstreamfile = streamFile->open(streamFile,filename,18*0x400);
+        if (!chstreamfile) goto fail;
+
         for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = streamFile->open(streamFile,filename,18*0x400);
-            if (!vgmstream->ch[i].streamfile) goto fail;
+            vgmstream->ch[i].streamfile = chstreamfile;
 
             vgmstream->ch[i].channel_start_offset=
                 vgmstream->ch[i].offset=

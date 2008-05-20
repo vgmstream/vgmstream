@@ -38,11 +38,15 @@ VGMSTREAM * init_vgmstream_afc(STREAMFILE *streamFile) {
 
     /* open the file for reading by each channel */
     {
+        STREAMFILE *chstreamfile;
         int i;
-        for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = streamFile->open(streamFile,filename,9*0x400);
 
-            if (!vgmstream->ch[i].streamfile) goto fail;
+        /* both channels use same buffer, as interleave is so small */
+        chstreamfile = streamFile->open(streamFile,filename,9*channel_count*0x100);
+        if (!chstreamfile) goto fail;
+
+        for (i=0;i<channel_count;i++) {
+            vgmstream->ch[i].streamfile = chstreamfile;
 
             vgmstream->ch[i].channel_start_offset=
                 vgmstream->ch[i].offset=

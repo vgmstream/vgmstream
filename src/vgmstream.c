@@ -174,12 +174,24 @@ VGMSTREAM * allocate_vgmstream(int channel_count, int looped) {
 }
 
 void close_vgmstream(VGMSTREAM * vgmstream) {
-    int i;
+    int i,j;
     if (!vgmstream) return;
 
-    for (i=0;i<vgmstream->channels;i++)
-        if (vgmstream->ch[i].streamfile)
+    for (i=0;i<vgmstream->channels;i++) {
+        if (vgmstream->ch[i].streamfile) {
             close_streamfile(vgmstream->ch[i].streamfile);
+            /* Multiple channels might have the same streamfile. Find the others
+             * that are the same as this and clear them so they won't be closed
+             * again. */
+            for (j=0;j<vgmstream->channels;j++) {
+                if (i!=j && vgmstream->ch[j].streamfile == 
+                            vgmstream->ch[i].streamfile) {
+                    vgmstream->ch[j].streamfile = NULL;
+                }
+            }
+            vgmstream->ch[i].streamfile = NULL;
+        }
+    }
 
     if (vgmstream->loop_ch) free(vgmstream->loop_ch);
     if (vgmstream->start_ch) free(vgmstream->start_ch);

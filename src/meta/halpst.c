@@ -26,7 +26,7 @@ VGMSTREAM * init_vgmstream_halpst(STREAMFILE *streamFile) {
     
     /* details */
     channel_count = read_32bitBE(0xc,streamFile);
-    max_block = read_32bitBE(0x10,streamFile);
+    max_block = read_32bitBE(0x10,streamFile)/channel_count;
 
     /* have I ever seen a mono .hps? */
     if (channel_count!=2) goto fail;

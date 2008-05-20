@@ -73,10 +73,13 @@ VGMSTREAM * init_vgmstream_cdxa(STREAMFILE *streamFile) {
 
 	/* open the file for reading by each channel */
     {
-        for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = streamFile->open(streamFile,filename,0x8000);
+        STREAMFILE *chstreamfile;
+        chstreamfile = streamFile->open(streamFile,filename,2352);
 
-            if (!vgmstream->ch[i].streamfile) goto fail;
+        if (!chstreamfile) goto fail;
+
+        for (i=0;i<channel_count;i++) {
+            vgmstream->ch[i].streamfile = chstreamfile;
         }
     }
 	

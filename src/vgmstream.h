@@ -147,11 +147,7 @@ typedef struct {
     /* channels */
     VGMSTREAMCHANNEL * ch;   /* pointer to array of channels */
 
-    /* channel copies
-     * NOTE: Care must be taken when deallocating that the same STREAMFILE
-     * isn't closed twice, but also that everything is deallocated. Generally
-     * a channel should only have one STREAMFILE in its lifetime.
-     */
+    /* channel copies */
     VGMSTREAMCHANNEL * start_ch;    /* copies of channel status as they were at the beginning of the stream */
     VGMSTREAMCHANNEL * loop_ch;     /* copies of channel status as they were at the loop point */
 

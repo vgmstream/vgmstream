@@ -4,6 +4,7 @@
 
 VGMSTREAM * init_vgmstream_ngc_adpdtk(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
+    STREAMFILE * chstreamfile;
     char filename[260];
     
     size_t file_size;
@@ -30,11 +31,15 @@ VGMSTREAM * init_vgmstream_ngc_adpdtk(STREAMFILE *streamFile) {
     vgmstream->layout_type = layout_dtk_interleave;
     vgmstream->meta_type = meta_NGC_ADPDTK;
 
+    /* locality is such that two streamfiles is silly */
+    chstreamfile = streamFile->open(streamFile,filename,32*0x400);
+    if (!chstreamfile) goto fail;
+
     for (i=0;i<2;i++) {
         vgmstream->ch[i].channel_start_offset =
             vgmstream->ch[i].offset = 0;
 
-        vgmstream->ch[i].streamfile = streamFile->open(streamFile,filename,32*0x400);
+        vgmstream->ch[i].streamfile = chstreamfile;
     }
 
     return vgmstream;
