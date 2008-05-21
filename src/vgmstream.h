@@ -94,6 +94,7 @@ typedef enum {
 	meta_PS2_pGAV,			/* VAGp with Little Endian Header */
 	meta_PSX_GMS,			/* GMS File (used in PS1 & PS2) */
 	meta_PS2_STR,			/* Pacman STR+STH files */
+	meta_PS2_ILD,			/* ILD File */
 
 	meta_PSX_XA,			/* CD-XA with RIFF header */
 
