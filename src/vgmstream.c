@@ -15,7 +15,7 @@
  * List of functions that will recognize files. These should correspond pretty
  * directly to the metadata types
  */
-#define INIT_VGMSTREAM_FCNS 31
+#define INIT_VGMSTREAM_FCNS 32
 VGMSTREAM * (*init_vgmstream_fcns[INIT_VGMSTREAM_FCNS])(STREAMFILE *streamFile) = {
     init_vgmstream_adx,             /* 0 */
     init_vgmstream_brstm,           /* 1 */
@@ -47,7 +47,8 @@ VGMSTREAM * (*init_vgmstream_fcns[INIT_VGMSTREAM_FCNS])(STREAMFILE *streamFile) 
 	init_vgmstream_ps2_vag,			/* 27 */
 	init_vgmstream_psx_gms,			/* 28 */
 	init_vgmstream_ps2_str,			/* 29 */
-	init_vgmstream_ps2_ild			/* 30 */
+	init_vgmstream_ps2_ild,			/* 30 */
+	init_vgmstream_ps2_pnb			/* 31 */
 };
 
 /* internal version with all parameters */
@@ -715,6 +716,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
 		case meta_PS2_ILD:
             snprintf(temp,TEMPSIZE,"ILD header");
+            break;
+		case meta_PS2_PNB:
+            snprintf(temp,TEMPSIZE,"assumed PNB (PsychoNauts Bgm File) by .pnb header");
             break;
         default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

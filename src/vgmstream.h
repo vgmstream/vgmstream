@@ -95,7 +95,7 @@ typedef enum {
 	meta_PSX_GMS,			/* GMS File (used in PS1 & PS2) */
 	meta_PS2_STR,			/* Pacman STR+STH files */
 	meta_PS2_ILD,			/* ILD File */
-
+	meta_PS2_PNB,			/* PsychoNauts Bgm File */
 	meta_PSX_XA,			/* CD-XA with RIFF header */
 
 	meta_RAW,				/* RAW PCM file */
