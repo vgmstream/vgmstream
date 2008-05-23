@@ -15,7 +15,7 @@
  * List of functions that will recognize files. These should correspond pretty
  * directly to the metadata types
  */
-#define INIT_VGMSTREAM_FCNS 32
+#define INIT_VGMSTREAM_FCNS 33
 VGMSTREAM * (*init_vgmstream_fcns[INIT_VGMSTREAM_FCNS])(STREAMFILE *streamFile) = {
     init_vgmstream_adx,             /* 0 */
     init_vgmstream_brstm,           /* 1 */
@@ -48,7 +48,8 @@ VGMSTREAM * (*init_vgmstream_fcns[INIT_VGMSTREAM_FCNS])(STREAMFILE *streamFile) 
 	init_vgmstream_psx_gms,			/* 28 */
 	init_vgmstream_ps2_str,			/* 29 */
 	init_vgmstream_ps2_ild,			/* 30 */
-	init_vgmstream_ps2_pnb			/* 31 */
+	init_vgmstream_ps2_pnb,			/* 31 */
+	init_vgmstream_xbox_wavm		/* 32 */
 };
 
 /* internal version with all parameters */
@@ -223,6 +224,7 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
         case layout_ast_blocked:
         case layout_halpst_blocked:
 		case layout_xa_blocked:
+		case layout_xbox_blocked:
             render_vgmstream_blocked(buffer,sample_count,vgmstream);
             break;
     }
@@ -249,6 +251,8 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_PSX:
 		case coding_XA:
             return 28;
+		case coding_XBOX:
+			return 64;
         default:
             return 0;
     }
@@ -286,6 +290,8 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
             return 16;
 		case coding_XA:
 			return 14*vgmstream->channels;
+		case coding_XBOX:
+			return 64+(4*vgmstream->channels);
         default:
             return 0;
     }
@@ -345,6 +351,13 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                 decode_nds_ima(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
                         samples_to_do);
+            }
+            break;
+		case coding_XBOX:
+            for (chan=0;chan<vgmstream->channels;chan++) {
+                decode_xbox_ima(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                        vgmstream->channels,vgmstream->samples_into_block,
+                        samples_to_do,chan);
             }
             break;
         case coding_NGC_DTK:
@@ -543,6 +556,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         case coding_XA:
             snprintf(temp,TEMPSIZE,"CD-ROM XA 4-bit ADPCM");
             break;
+		case coding_XBOX:
+            snprintf(temp,TEMPSIZE,"XBOX 4-bit IMA ADPCM");
+            break;
         default:
             snprintf(temp,TEMPSIZE,"CANNOT DECODE");
     }
@@ -572,6 +588,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
 		case layout_xa_blocked:
             snprintf(temp,TEMPSIZE,"CD-ROM XA");
+            break;
+		case layout_xbox_blocked:
+            snprintf(temp,TEMPSIZE,"XBOX blocked");
             break;
         default:
             snprintf(temp,TEMPSIZE,"INCONCEIVABLE");
@@ -718,7 +737,10 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             snprintf(temp,TEMPSIZE,"ILD header");
             break;
 		case meta_PS2_PNB:
-            snprintf(temp,TEMPSIZE,"assumed PNB (PsychoNauts Bgm File) by .pnb header");
+            snprintf(temp,TEMPSIZE,"assumed PNB (PsychoNauts Bgm File) by .pnb extension");
+            break;
+		case meta_XBOX_WAVM:
+            snprintf(temp,TEMPSIZE,"assumed Xbox WAVM file by .wavm extension");
             break;
         default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

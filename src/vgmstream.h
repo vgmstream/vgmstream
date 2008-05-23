@@ -24,6 +24,7 @@ typedef enum {
     coding_NGC_AFC,         /* NGC ADPCM, called AFC */
 	coding_PSX,				/* PSX & PS2 ADPCM */
 	coding_XA,				/* PSX CD-XA */
+	coding_XBOX,			/* XBOX IMA */
 } coding_t;
 
 /* The layout type specifies how the sound data is laid out in the file */
@@ -40,6 +41,7 @@ typedef enum {
     layout_ast_blocked,     /* .ast STRM with BLCK blocks*/
     layout_halpst_blocked,    /* blocks with HALPST-format header */
 	layout_xa_blocked,
+	layout_xbox_blocked,
 #if 0
     layout_strm_blocked,    /* */
 #endif
@@ -97,6 +99,8 @@ typedef enum {
 	meta_PS2_ILD,			/* ILD File */
 	meta_PS2_PNB,			/* PsychoNauts Bgm File */
 	meta_PSX_XA,			/* CD-XA with RIFF header */
+
+	meta_XBOX_WAVM,			/* XBOX WAVM File */
 
 	meta_RAW,				/* RAW PCM file */
 

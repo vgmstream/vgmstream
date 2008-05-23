@@ -314,6 +314,10 @@
 					RelativePath=".\meta\rwsd.c"
 					>
 				</File>
+				<File
+					RelativePath=".\meta\xbox_wavm.c"
+					>
+				</File>
 			</Filter>
 		</Filter>
 		<Filter
@@ -408,6 +412,10 @@
 				</File>
 				<File
 					RelativePath=".\layout\xa_blocked.c"
+					>
+				</File>
+				<File
+					RelativePath=".\layout\xbox_blocked.c"
 					>
 				</File>
 			</Filter>

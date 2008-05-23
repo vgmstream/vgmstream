@@ -105,7 +105,8 @@ char * extension_list[] = {
 	"gms\0GMS Audio File (*.GMS)\0",
 	"str\0STR Audio File (*.STR)\0",
 	"ild\0ILD Audio File (*.ILD)\0",
-	"pnb\0PNB Audio File (*.PNB)\0"
+	"pnb\0PNB Audio File (*.PNB)\0",
+	"wavm\0WAVM Audio File (*.WAVM)\0"
 };
 
 void about(HWND hwndParent) {
