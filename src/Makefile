@@ -13,7 +13,8 @@ LAYOUT_OBJS=layout/ast_blocked.o \
     layout/halpst_blocked.o \
     layout/interleave.o \
     layout/nolayout.o \
-    layout/xa_blocked.o
+    layout/xa_blocked.o \
+    layout/xbox_blocked.o 
 
 META_OBJS=meta/adx_header.o \
     meta/afc_header.o \
@@ -41,7 +42,11 @@ META_OBJS=meta/adx_header.o \
     meta/raw.o \
     meta/ps2_vag.o \
     meta/psx_gms.o \
-    meta/ps2_str.o
+    meta/ps2_str.o \
+    meta/ps2_ild.o \
+    meta/ps2_pnb.o \
+    meta/xbox_wavm.o \
+    meta/xbox_xwav.o
 
 OBJECTS=vgmstream.o streamfile.o util.o $(CODING_OBJS) $(LAYOUT_OBJS) $(META_OBJS)
 
