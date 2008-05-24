@@ -107,7 +107,8 @@ char * extension_list[] = {
 	"ild\0ILD Audio File (*.ILD)\0",
 	"pnb\0PNB Audio File (*.PNB)\0",
 	"wavm\0WAVM Audio File (*.WAVM)\0",
-	"xwav\0XWAV Audio File (*.XWAV)\0"
+	"xwav\0XWAV Audio File (*.XWAV)\0",
+	"wp2\0WP2 Audio File (*.WP2)\0"
 };
 
 void about(HWND hwndParent) {
