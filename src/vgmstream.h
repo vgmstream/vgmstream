@@ -101,6 +101,7 @@ typedef enum {
 	meta_PSX_XA,			/* CD-XA with RIFF header */
 
 	meta_XBOX_WAVM,			/* XBOX WAVM File */
+	meta_XBOX_RIFF,			/* XBOX RIFF/WAVE File */
 
 	meta_RAW,				/* RAW PCM file */
 

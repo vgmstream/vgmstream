@@ -15,7 +15,7 @@
  * List of functions that will recognize files. These should correspond pretty
  * directly to the metadata types
  */
-#define INIT_VGMSTREAM_FCNS 33
+#define INIT_VGMSTREAM_FCNS 34
 VGMSTREAM * (*init_vgmstream_fcns[INIT_VGMSTREAM_FCNS])(STREAMFILE *streamFile) = {
     init_vgmstream_adx,             /* 0 */
     init_vgmstream_brstm,           /* 1 */
@@ -49,7 +49,8 @@ VGMSTREAM * (*init_vgmstream_fcns[INIT_VGMSTREAM_FCNS])(STREAMFILE *streamFile) 
 	init_vgmstream_ps2_str,			/* 29 */
 	init_vgmstream_ps2_ild,			/* 30 */
 	init_vgmstream_ps2_pnb,			/* 31 */
-	init_vgmstream_xbox_wavm		/* 32 */
+	init_vgmstream_xbox_wavm,		/* 32 */
+	init_vgmstream_xbox_xwav		/* 33 */
 };
 
 /* internal version with all parameters */
@@ -741,6 +742,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
 		case meta_XBOX_WAVM:
             snprintf(temp,TEMPSIZE,"assumed Xbox WAVM file by .wavm extension");
+            break;
+		case meta_XBOX_RIFF:
+            snprintf(temp,TEMPSIZE,"Xbox RIFF/WAVE file with 0x0069 Codec ID");
             break;
         default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

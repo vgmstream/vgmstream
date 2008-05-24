@@ -318,6 +318,10 @@
 					RelativePath=".\meta\xbox_wavm.c"
 					>
 				</File>
+				<File
+					RelativePath=".\meta\xbox_xwav.c"
+					>
+				</File>
 			</Filter>
 		</Filter>
 		<Filter

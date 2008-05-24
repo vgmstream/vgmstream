@@ -69,4 +69,6 @@ VGMSTREAM * init_vgmstream_ps2_pnb(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_xbox_wavm(STREAMFILE *streamFile);
 
+VGMSTREAM * init_vgmstream_xbox_xwav(STREAMFILE *streamFile);
+
 #endif
