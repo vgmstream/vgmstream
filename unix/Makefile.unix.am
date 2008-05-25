@@ -7,4 +7,4 @@ AM_CFLAGS = -Wall @CFLAGS@ -I$(top_builddir) -I$(top_srcdir) -I$(top_builddir)/i
 AM_LIBS = 
 
 libvgmstream_la_LDFLAGS = -no-undefined -module -avoid-version -export-symbols-regex get_plugin_info ../src/libvgmstream.la
-libvgmstream_la_SOURCES =  main.c data.c gui.c
+libvgmstream_la_SOURCES =  main.c data.c gui.c vfs.c

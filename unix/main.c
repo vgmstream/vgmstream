@@ -11,6 +11,7 @@
 #include "version.h"
 #include "../src/vgmstream.h"
 #include "gui.h"
+#include "vfs.h"
 
 #define TM_QUIT 0
 #define TM_PLAY 1
@@ -44,27 +45,31 @@ static gint get_ms_position()
 }
 */
 
-/* TODO -
-
-Rewrite vgmstream/STREAMFILE so that you can open a VGMSTREAM* by providing
-a custom implementation of STREAMFILE.  Audacious wants you to use the 
-VFS functions to do I/O, but VGMSTREAM only supports fopen/fread/etc.
-*/
-
-/* Here's a function to convert file://<whatever> to the actual path */
-static void get_file_name(char *buffer,const char *pfile)
+static char *get_title(const char *uri,char *title,size_t sz)
 {
-  /* unconvert from file:// to regular path */
-  gchar *unescaped = g_uri_unescape_string(pfile,NULL);
-  if (strncmp(unescaped,"file://",7) == 0)
+  gchar *base = aud_uri_to_display_basename(uri);
+#ifdef INCLUDE_BASE_IN_TITLE
+  size_t len;
+  gchar *dir  = aud_uri_to_display_dirname(uri);
+  
+  /* first copy the dir */
+  len = strlen(dir);
+  strcpy(title,dir);
+  if (dir[len-1] != '/')
   {
-    strcpy(buffer,unescaped+7);
+    title[len++] = '/';
+    title[len] = 0;
   }
-  else
-  {
-    strcpy(buffer,unescaped);
-  }
-  g_free(unescaped);
+  /* then the basename */
+  strcat(title,base);
+  
+  g_free(dir);
+#else
+  strcpy(title,base);
+#endif
+  g_free(base);
+  
+  return title;
 }
 
 void vgmstream_mseek(InputPlayback *data,gulong ms);
@@ -106,19 +111,9 @@ void* vgmstream_play_loop(InputPlayback *playback)
       if (seek_needed_samples < decode_pos_samples)
       {
 	/* go back in time, reopen file */
-	CLOSE_STREAM();
+	reset_vgmstream(vgmstream);
 	decode_pos_samples = 0;
-	vgmstream = init_vgmstream(strPlaying);
-	if (vgmstream)
-	{
-	  samples_to_do = seek_needed_samples;
-	}
-	else
-	{
-	  samples_to_do = -1;
-          // trigger eof
-	  playback->eof = 1;
-	}
+	samples_to_do = seek_needed_samples;
       }
       else if (decode_pos_samples < seek_needed_samples)
       {
@@ -212,7 +207,6 @@ void vgmstream_destroy()
 
 gboolean vgmstream_is_our_file(char *pFile)
 {
-  char strFile[260];
   const char *pExt;
   gchar **exts;
   VGMSTREAM *stream;
@@ -227,13 +221,11 @@ gboolean vgmstream_is_our_file(char *pFile)
   /* skip past period */
   ++pExt;
 
-  get_file_name(strFile,pFile);
-  
   for (exts = vgmstream_iplug.vfs_extensions;*exts;++exts)
   {
     if (strcasecmp(pExt,*exts) == 0)
     {
-      if ((stream = init_vgmstream(strFile)))
+      if ((stream = init_vgmstream_from_STREAMFILE(open_vfs(pFile))))
       {
 	close_vgmstream(stream);
 	return TRUE;
@@ -257,12 +249,9 @@ void vgmstream_mseek(InputPlayback *data,gulong ms)
 
 void vgmstream_play(InputPlayback *context)
 {
-  // this is now called in a new thread context
   char title[260];
-  
-  get_file_name(title,context->filename);
-  
-  vgmstream = init_vgmstream(title);
+  // this is now called in a new thread context
+  vgmstream = init_vgmstream_from_STREAMFILE(open_vfs(context->filename));
   if (!vgmstream || vgmstream->channels <= 0 || vgmstream->channels > 2)
   {
     CLOSE_STREAM();
@@ -274,13 +263,14 @@ void vgmstream_play(InputPlayback *context)
     CLOSE_STREAM();
     return;
   }
+
   /* copy file name */
-  strcpy(strPlaying,title);
+  strcpy(strPlaying,context->filename);
   // set the info
   stream_length_samples = get_vgmstream_play_samples(loop_count,fade_seconds,fade_delay_seconds,vgmstream);
   gint ms = (stream_length_samples * 1000LL) / vgmstream->sample_rate;
   gint rate   = vgmstream->sample_rate * 2 * vgmstream->channels;
-  context->set_params(context,title,
+  context->set_params(context,get_title(context->filename,title,sizeof(title)),
 		      /* length */ ms,
 		      /* rate */rate,
 		      /* freq */vgmstream->sample_rate,
@@ -331,14 +321,12 @@ int vgmstream_get_time(InputPlayback *context)
 
 void vgmstream_get_song_info(gchar *pFile,gchar **title,gint *length)
 {
-  char strTitle[260];
   VGMSTREAM *infostream;
-
-  get_file_name(strTitle,pFile);
-
-  *title = g_strdup(strTitle);
-
-  if ((infostream = init_vgmstream(strTitle)))
+  char strTitle[260];
+  
+  *title = g_strdup(get_title(pFile,strTitle,sizeof(strTitle)));
+  
+  if ((infostream = init_vgmstream_from_STREAMFILE(open_vfs(pFile))))
   {
     *length = get_vgmstream_play_samples(loop_count,fade_seconds,fade_delay_seconds,infostream) * 1000LL / infostream->sample_rate;
     close_vgmstream(infostream);
@@ -352,18 +340,15 @@ void vgmstream_get_song_info(gchar *pFile,gchar **title,gint *length)
 void vgmstream_file_info_box(gchar *pFile)
 {
   char msg[512];
-  char strTitle[260];
   VGMSTREAM *stream;
   
-  get_file_name(strTitle,pFile);
-  
-  if ((stream = init_vgmstream(strTitle)))
+  if ((stream = init_vgmstream_from_STREAMFILE(open_vfs(pFile))))
   {
     gint sls = get_vgmstream_play_samples(loop_count,fade_seconds,fade_delay_seconds,stream);
     gint ms = (sls * 1000LL) / stream->sample_rate;
     gint rate   = stream->sample_rate * 2 * stream->channels;
     
-    sprintf(msg,"%s\nSample rate: %d\nStereo: %s\nTotal samples: %d\nBits per second: %d\nLength: %f seconds",strTitle,stream->sample_rate,(stream->channels >= 2) ? "yes" : "no",sls,rate,(double)ms / 1000.0);
+    sprintf(msg,"%s\nSample rate: %d\nStereo: %s\nTotal samples: %d\nBits per second: %d\nLength: %f seconds",pFile,stream->sample_rate,(stream->channels >= 2) ? "yes" : "no",sls,rate,(double)ms / 1000.0);
     
     close_vgmstream(stream);
 
