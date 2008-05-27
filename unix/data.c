@@ -20,6 +20,7 @@ gchar *vgmstream_exts [] = {
   "agsc",
   "ast",
   "brstm",
+  "brstmspm",
   "hps",
   "strm",
   "adp",
@@ -44,6 +45,12 @@ gchar *vgmstream_exts [] = {
   "raw",
   "vag",
   "gms",
+  "str",
+  "ild",
+  "pnb",
+  "wavm",
+  "xwav",
+  "wp2",
   /* terminator */
   NULL
 };

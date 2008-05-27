@@ -12,6 +12,7 @@
 #include "../src/vgmstream.h"
 #include "gui.h"
 #include "vfs.h"
+#include "settings.h"
 
 #define TM_QUIT 0
 #define TM_PLAY 1
@@ -26,9 +27,7 @@ extern InputPlugin vgmstream_iplug;
 static volatile long decode_seek;
 static GThread *decode_thread;
 static gint stream_length_samples;
-static gint loop_count = 1;
-static gint fade_seconds = 0;
-static gint fade_delay_seconds = 0;
+SETTINGS settings;
 static gint decode_pos_samples = 0;
 static VGMSTREAM *vgmstream = NULL;
 static gchar strPlaying[260];
@@ -192,12 +191,12 @@ void vgmstream_about()
 
 void vgmstream_configure()
 {
-  /* TODO */
+  vgmstream_gui_configure();
 }
 
 void vgmstream_init()
 {
-
+  LoadSettings(&settings);
 }
 
 void vgmstream_destroy()
@@ -267,7 +266,7 @@ void vgmstream_play(InputPlayback *context)
   /* copy file name */
   strcpy(strPlaying,context->filename);
   // set the info
-  stream_length_samples = get_vgmstream_play_samples(loop_count,fade_seconds,fade_delay_seconds,vgmstream);
+  stream_length_samples = get_vgmstream_play_samples(settings.loopcount,settings.fadeseconds,settings.fadedelayseconds,vgmstream);
   gint ms = (stream_length_samples * 1000LL) / vgmstream->sample_rate;
   gint rate   = vgmstream->sample_rate * 2 * vgmstream->channels;
   context->set_params(context,get_title(context->filename,title,sizeof(title)),
@@ -328,7 +327,7 @@ void vgmstream_get_song_info(gchar *pFile,gchar **title,gint *length)
   
   if ((infostream = init_vgmstream_from_STREAMFILE(open_vfs(pFile))))
   {
-    *length = get_vgmstream_play_samples(loop_count,fade_seconds,fade_delay_seconds,infostream) * 1000LL / infostream->sample_rate;
+    *length = get_vgmstream_play_samples(settings.loopcount,settings.fadeseconds,settings.fadedelayseconds,infostream) * 1000LL / infostream->sample_rate;
     close_vgmstream(infostream);
   }
   else
@@ -344,7 +343,7 @@ void vgmstream_file_info_box(gchar *pFile)
   
   if ((stream = init_vgmstream_from_STREAMFILE(open_vfs(pFile))))
   {
-    gint sls = get_vgmstream_play_samples(loop_count,fade_seconds,fade_delay_seconds,stream);
+    gint sls = get_vgmstream_play_samples(settings.loopcount,settings.fadeseconds,settings.fadedelayseconds,stream);
     gint ms = (sls * 1000LL) / stream->sample_rate;
     gint rate   = stream->sample_rate * 2 * stream->channels;
     
