@@ -750,6 +750,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
 		case meta_XBOX_RIFF:
             snprintf(temp,TEMPSIZE,"Xbox RIFF/WAVE file with 0x0069 Codec ID");
             break;
+		case meta_DSP_STR:
+            snprintf(temp,TEMPSIZE,"assumed Conan Gamecube STR File by .str extension");
+            break;
         default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");
     }
