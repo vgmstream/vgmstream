@@ -55,37 +55,42 @@ VGMSTREAM * init_vgmstream_ps2_vag(STREAMFILE *streamFile) {
 			if(read_32bitBE(0x20,streamFile)==0x53746572) // vag Stereo
 				channel_count=2;
 		case 'p':
-			/* Search for loop in VAG */
-			fileLength = get_streamfile_size(streamFile);
-
-			do {
-				readOffset+=0x10; 
+			if(read_32bitBE(0x04,streamFile)==0x00000004) {
+				loop_flag=(read_32bitBE(0x14,streamFile)!=0);
+				channel_count=2;
+			} else {
+				/* Search for loop in VAG */
+				fileLength = get_streamfile_size(streamFile);
 				
-				// Loop Start ...
-				if(read_8bit(readOffset+0x01,streamFile)==0x06) {
-					if(loopStart==0) loopStart = readOffset;
-				}
+				do {
+					readOffset+=0x10; 
+					
+					// Loop Start ...
+					if(read_8bit(readOffset+0x01,streamFile)==0x06) {
+						if(loopStart==0) loopStart = readOffset;
+					}
 
-				// Loop End ...
-				if(read_8bit(readOffset+0x01,streamFile)==0x03) {
-					if(loopEnd==0) loopEnd = readOffset;
-				}
+					// Loop End ...
+					if(read_8bit(readOffset+0x01,streamFile)==0x03) {
+						if(loopEnd==0) loopEnd = readOffset;
+					}
 
-				// Loop from end to beginning ...
-				if((read_8bit(readOffset+0x01,streamFile)==0x01)) {
-					// Check if we have the eof tag after the loop point ...
-					// if so we don't loop, if not present, we loop from end to start ...
-					read_streamfile(readbuf,readOffset+0x10,0x10,streamFile);
-					if((readbuf[0]!=0) && (readbuf[0]!=0x0c)) {
-						if(memcmp(readbuf,eofVAG,0x10) && (memcmp(readbuf,eofVAG2,0x10))) {
-							loopStart = 0x40;
-							loopEnd = readOffset;
+					// Loop from end to beginning ...
+					if((read_8bit(readOffset+0x01,streamFile)==0x01)) {
+						// Check if we have the eof tag after the loop point ...
+						// if so we don't loop, if not present, we loop from end to start ...
+						read_streamfile(readbuf,readOffset+0x10,0x10,streamFile);
+						if((readbuf[0]!=0) && (readbuf[0]!=0x0c)) {
+							if(memcmp(readbuf,eofVAG,0x10) && (memcmp(readbuf,eofVAG2,0x10))) {
+								loopStart = 0x40;
+								loopEnd = readOffset;
+							}
 						}
 					}
-				}
 
-			} while (streamFile->get_offset(streamFile)<(off_t)fileLength);
-			loop_flag = (loopEnd!=0);
+				} while (streamFile->get_offset(streamFile)<(off_t)fileLength);
+				loop_flag = (loopEnd!=0);
+			}
 			break;
         default:
             goto fail;
@@ -108,12 +113,27 @@ VGMSTREAM * init_vgmstream_ps2_vag(STREAMFILE *streamFile) {
 			start_offset=0x800;
 			break;
 		case 'p': // VAGp
-			vgmstream->layout_type=layout_none;
 			vgmstream->sample_rate = read_32bitBE(0x10,streamFile);
-			vgmstream->num_samples = read_32bitBE(0x0C,streamFile)/16*28;
-			vgmstream->meta_type=meta_PS2_VAGp;
 			interleave=0x10; // used for loop calc
-			start_offset=0x30;
+
+			if(read_32bitBE(0x04,streamFile)==0x00000004) {
+				vgmstream->channels=2;
+				vgmstream->num_samples = read_32bitBE(0x0C,streamFile);
+
+				if(loop_flag) {
+					vgmstream->loop_start_sample=read_32bitBE(0x14,streamFile);
+					vgmstream->loop_end_sample =read_32bitBE(0x18,streamFile);
+				}
+
+				start_offset=0x80;
+				vgmstream->layout_type=layout_interleave;
+				vgmstream->meta_type=meta_PS2_VAGs;
+			} else {
+				vgmstream->layout_type=layout_none;
+				vgmstream->num_samples = read_32bitBE(0x0C,streamFile)/16*28;
+				vgmstream->meta_type=meta_PS2_VAGp;
+				start_offset=0x30;
+			}
 			break;
 		case 'V': // pGAV
 			vgmstream->layout_type=layout_interleave;
@@ -135,14 +155,16 @@ VGMSTREAM * init_vgmstream_ps2_vag(STREAMFILE *streamFile) {
 	vgmstream->interleave_block_size=interleave;
 	
 	/* Don't add the header size to loop calc points */
-	loopStart-=start_offset;
-	loopEnd-=start_offset;
+	if(vgmstream->meta_type!=meta_PS2_VAGs) {
+		loopStart-=start_offset;
+		loopEnd-=start_offset;
 
-	if(loop_flag!=0) {
-		vgmstream->loop_start_sample = (int32_t)((loopStart/(interleave*channel_count))*interleave)/16*28;
-		vgmstream->loop_start_sample += (int32_t)(loopStart%(interleave*channel_count))/16*28;
-		vgmstream->loop_end_sample = (int32_t)((loopEnd/(interleave*channel_count))*interleave)/16*28;
-		vgmstream->loop_end_sample += (int32_t)(loopEnd%(interleave*channel_count))/16*28;
+		if(loop_flag!=0) {
+			vgmstream->loop_start_sample = (int32_t)((loopStart/(interleave*channel_count))*interleave)/16*28;
+			vgmstream->loop_start_sample += (int32_t)(loopStart%(interleave*channel_count))/16*28;
+			vgmstream->loop_end_sample = (int32_t)((loopEnd/(interleave*channel_count))*interleave)/16*28;
+			vgmstream->loop_end_sample += (int32_t)(loopEnd%(interleave*channel_count))/16*28;
+		}
 	}
 
     /* Compression Scheme */

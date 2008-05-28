@@ -15,7 +15,7 @@
  * List of functions that will recognize files. These should correspond pretty
  * directly to the metadata types
  */
-#define INIT_VGMSTREAM_FCNS 34
+#define INIT_VGMSTREAM_FCNS 35
 VGMSTREAM * (*init_vgmstream_fcns[INIT_VGMSTREAM_FCNS])(STREAMFILE *streamFile) = {
     init_vgmstream_adx,             /* 0 */
     init_vgmstream_brstm,           /* 1 */
@@ -50,7 +50,8 @@ VGMSTREAM * (*init_vgmstream_fcns[INIT_VGMSTREAM_FCNS])(STREAMFILE *streamFile) 
 	init_vgmstream_ps2_ild,			/* 30 */
 	init_vgmstream_ps2_pnb,			/* 31 */
 	init_vgmstream_xbox_wavm,		/* 32 */
-	init_vgmstream_xbox_xwav		/* 33 */
+	init_vgmstream_xbox_xwav,		/* 33 */
+	init_vgmstream_ngc_str			/* 34 */
 };
 
 /* internal version with all parameters */
@@ -721,6 +722,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
 		case meta_PS2_VAGp:
             snprintf(temp,TEMPSIZE,"Sony VAG Mono header (VAGp)");
+            break;
+		case meta_PS2_VAGs:
+            snprintf(temp,TEMPSIZE,"Sony VAG Stereo header (VAGp)");
             break;
 		case meta_PS2_VAGm:
             snprintf(temp,TEMPSIZE,"Sony VAG Mono header (VAGm)");
