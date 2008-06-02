@@ -73,4 +73,6 @@ VGMSTREAM * init_vgmstream_xbox_xwav(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_ngc_str(STREAMFILE *streamFile);
 
+VGMSTREAM * init_vgmstream_ea(STREAMFILE *streamFile);
+
 #endif

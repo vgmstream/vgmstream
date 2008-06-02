@@ -1,3 +1,4 @@
+#include <math.h>
 #include "coding.h"
 #include "../util.h"
 

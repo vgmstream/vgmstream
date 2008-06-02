@@ -15,7 +15,7 @@
  * List of functions that will recognize files. These should correspond pretty
  * directly to the metadata types
  */
-#define INIT_VGMSTREAM_FCNS 35
+#define INIT_VGMSTREAM_FCNS 36
 VGMSTREAM * (*init_vgmstream_fcns[INIT_VGMSTREAM_FCNS])(STREAMFILE *streamFile) = {
     init_vgmstream_adx,             /* 0 */
     init_vgmstream_brstm,           /* 1 */
@@ -51,7 +51,8 @@ VGMSTREAM * (*init_vgmstream_fcns[INIT_VGMSTREAM_FCNS])(STREAMFILE *streamFile) 
 	init_vgmstream_ps2_pnb,			/* 31 */
 	init_vgmstream_xbox_wavm,		/* 32 */
 	init_vgmstream_xbox_xwav,		/* 33 */
-	init_vgmstream_ngc_str			/* 34 */
+	init_vgmstream_ngc_str,			/* 34 */
+	init_vgmstream_ea				/* 35 */
 };
 
 /* internal version with all parameters */
@@ -227,6 +228,7 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
         case layout_halpst_blocked:
 		case layout_xa_blocked:
 		case layout_xbox_blocked:
+		case layout_ea_blocked:
             render_vgmstream_blocked(buffer,sample_count,vgmstream);
             break;
     }
@@ -255,6 +257,8 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
             return 28;
 		case coding_XBOX:
 			return 64;
+		case coding_EAXA:
+			return 28;
         default:
             return 0;
     }
@@ -294,6 +298,8 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
 			return 14*vgmstream->channels;
 		case coding_XBOX:
 			return 64+(4*vgmstream->channels);
+		case coding_EAXA:
+			return 1; // the frame is variant in size
         default:
             return 0;
     }
@@ -395,6 +401,13 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                 decode_xa(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
                         samples_to_do);
+            }
+            break;
+		case coding_EAXA:
+            for (chan=0;chan<vgmstream->channels;chan++) {
+                decode_eaxa(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                        vgmstream->channels,vgmstream->samples_into_block,
+                        samples_to_do,chan);
             }
             break;
     }
@@ -561,6 +574,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
 		case coding_XBOX:
             snprintf(temp,TEMPSIZE,"XBOX 4-bit IMA ADPCM");
             break;
+		case coding_EAXA:
+            snprintf(temp,TEMPSIZE,"Electronic Arts XA Based 4-bit ADPCM");
+            break;
         default:
             snprintf(temp,TEMPSIZE,"CANNOT DECODE");
     }
@@ -593,6 +609,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
 		case layout_xbox_blocked:
             snprintf(temp,TEMPSIZE,"XBOX blocked");
+            break;
+		case layout_ea_blocked:
+            snprintf(temp,TEMPSIZE,"Electronic Arts Audio Blocks");
             break;
         default:
             snprintf(temp,TEMPSIZE,"INCONCEIVABLE");
@@ -752,6 +771,15 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
 		case meta_DSP_STR:
             snprintf(temp,TEMPSIZE,"assumed Conan Gamecube STR File by .str extension");
+            break;
+		case meta_EAXA_R2:
+            snprintf(temp,TEMPSIZE,"Electronic Arts XA R2");
+            break;
+		case meta_EAXA_R3:
+            snprintf(temp,TEMPSIZE,"Electronic Arts XA R3");
+            break;
+		case meta_EAXA_PSX:
+            snprintf(temp,TEMPSIZE,"Electronic Arts With PSX ADPCM");
             break;
         default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

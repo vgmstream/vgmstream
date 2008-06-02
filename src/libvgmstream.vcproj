@@ -223,6 +223,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\ea_header.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\gcsw.c"
 					>
 				</File>
@@ -347,6 +351,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\coding\eaxa_decoder.c"
+					>
+				</File>
+				<File
 					RelativePath=".\coding\g721_decoder.c"
 					>
 				</File>
@@ -400,6 +408,10 @@
 				</File>
 				<File
 					RelativePath=".\layout\blocked.c"
+					>
+				</File>
+				<File
+					RelativePath=".\layout\ea_block.c"
 					>
 				</File>
 				<File

@@ -71,7 +71,7 @@ int decode_pos_samples = 0;
 int stream_length_samples = 0;
 int fade_samples = 0;
 
-#define EXTENSION_LIST_SIZE 1024
+#define EXTENSION_LIST_SIZE 2048
 char working_extension_list[EXTENSION_LIST_SIZE] = {0};
 char * extension_list[] = {
     "adx\0ADX Audio File (*.ADX)\0",
@@ -108,7 +108,10 @@ char * extension_list[] = {
 	"pnb\0PNB Audio File (*.PNB)\0",
 	"wavm\0WAVM Audio File (*.WAVM)\0",
 	"xwav\0XWAV Audio File (*.XWAV)\0",
-	"wp2\0WP2 Audio File (*.WP2)\0"
+	"wp2\0WP2 Audio File (*.WP2)\0",
+	"sng\0SNG Audio File (*.SNG)\0",
+	"asf\0ASF Audio File (*.ASF)\0",
+	"eam\0EAM Audio File (*.EAM)\0"
 };
 
 void about(HWND hwndParent) {

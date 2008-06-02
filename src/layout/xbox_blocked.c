@@ -6,7 +6,7 @@ void xbox_block_update(off_t block_offset, VGMSTREAM * vgmstream) {
     int i;
     vgmstream->current_block_offset = block_offset;
     vgmstream->current_block_size = 36*vgmstream->channels;
-    vgmstream->next_block_offset = vgmstream->current_block_offset+vgmstream->current_block_size;
+    vgmstream->next_block_offset = vgmstream->current_block_offset+(off_t)vgmstream->current_block_size;
 
     for (i=0;i<vgmstream->channels;i++) {
         vgmstream->ch[i].offset = vgmstream->current_block_offset +

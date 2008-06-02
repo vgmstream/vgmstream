@@ -25,6 +25,7 @@ typedef enum {
 	coding_PSX,				/* PSX & PS2 ADPCM */
 	coding_XA,				/* PSX CD-XA */
 	coding_XBOX,			/* XBOX IMA */
+	coding_EAXA,			/* EA/XA ADPCM */
 } coding_t;
 
 /* The layout type specifies how the sound data is laid out in the file */
@@ -42,6 +43,7 @@ typedef enum {
     layout_halpst_blocked,    /* blocks with HALPST-format header */
 	layout_xa_blocked,
 	layout_xbox_blocked,
+	layout_ea_blocked,
 #if 0
     layout_strm_blocked,    /* */
 #endif
@@ -105,6 +107,10 @@ typedef enum {
 
 	meta_XBOX_WAVM,			/* XBOX WAVM File */
 	meta_XBOX_RIFF,			/* XBOX RIFF/WAVE File */
+
+	meta_EAXA_R2,			/* EA XA Release 2 */
+	meta_EAXA_R3,			/* EA XA Release 3 */
+	meta_EAXA_PSX,			/* EA with PSX ADPCM */
 
 	meta_RAW,				/* RAW PCM file */
 
@@ -182,6 +188,11 @@ typedef struct {
 
 	uint8_t xa_channel;				/* Selected XA Channel */
 	int32_t xa_sector_length;		/* XA block */
+
+	uint8_t	ea_big_endian;			/* Big Endian ? */
+	uint8_t	ea_compression_type;		
+	uint8_t	ea_compression_version;	
+	uint8_t	ea_platform;
 
     void * start_vgmstream;    /* a copy of the VGMSTREAM as it was at the beginning of the stream */
 } VGMSTREAM;
