@@ -29,7 +29,7 @@ VGMSTREAM * init_vgmstream_ps2_ads(STREAMFILE *streamFile) {
         goto fail;
 
     /* check loop */
-    loop_flag = (read_32bitLE(0x18,streamFile)!=0xFFFFFFFF);
+    loop_flag = (read_32bitLE(0x1C,streamFile)!=0xFFFFFFFF);
 
     channel_count=read_32bitLE(0x10,streamFile);
 
