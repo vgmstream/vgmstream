@@ -39,7 +39,7 @@ VGMSTREAM * init_vgmstream_xbox_wavm(STREAMFILE *streamFile) {
     vgmstream->sample_rate = 44100;
 
 	vgmstream->coding_type = coding_XBOX;
-    vgmstream->num_samples = get_streamfile_size(streamFile) / 36 * 64 / vgmstream->channels;
+    vgmstream->num_samples = (int32_t)(get_streamfile_size(streamFile) / 36 * 64 / vgmstream->channels);
     vgmstream->layout_type = layout_xbox_blocked;
 	vgmstream->current_block_size=36*vgmstream->channels;
 	vgmstream->current_block_offset=0;

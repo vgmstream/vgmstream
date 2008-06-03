@@ -52,9 +52,9 @@ VGMSTREAM * init_vgmstream_xbox_xwav(STREAMFILE *streamFile) {
 		if(read_32bitBE(start_offset,streamFile)==0x64617461)
 			break;
 		start_offset+=4;
-	} while (start_offset<get_streamfile_size(streamFile));
+	} while (start_offset<(off_t)get_streamfile_size(streamFile));
 
-	if(start_offset>=get_streamfile_size(streamFile))
+	if(start_offset>=(off_t)get_streamfile_size(streamFile))
 		goto fail;
 
 	start_offset+=4;

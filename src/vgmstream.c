@@ -15,7 +15,7 @@
  * List of functions that will recognize files. These should correspond pretty
  * directly to the metadata types
  */
-#define INIT_VGMSTREAM_FCNS 36
+#define INIT_VGMSTREAM_FCNS 37
 VGMSTREAM * (*init_vgmstream_fcns[INIT_VGMSTREAM_FCNS])(STREAMFILE *streamFile) = {
     init_vgmstream_adx,             /* 0 */
     init_vgmstream_brstm,           /* 1 */
@@ -52,7 +52,8 @@ VGMSTREAM * (*init_vgmstream_fcns[INIT_VGMSTREAM_FCNS])(STREAMFILE *streamFile) 
 	init_vgmstream_xbox_wavm,		/* 32 */
 	init_vgmstream_xbox_xwav,		/* 33 */
 	init_vgmstream_ngc_str,			/* 34 */
-	init_vgmstream_ea				/* 35 */
+	init_vgmstream_ea,				/* 35 */
+	init_vgmstream_caf				/* 36 */
 };
 
 /* internal version with all parameters */
@@ -229,6 +230,7 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
 		case layout_xa_blocked:
 		case layout_xbox_blocked:
 		case layout_ea_blocked:
+		case layout_caf_blocked:
             render_vgmstream_blocked(buffer,sample_count,vgmstream);
             break;
     }
@@ -613,6 +615,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
 		case layout_ea_blocked:
             snprintf(temp,TEMPSIZE,"Electronic Arts Audio Blocks");
             break;
+		case layout_caf_blocked:
+            snprintf(temp,TEMPSIZE,"CAF blocked");
+            break;
         default:
             snprintf(temp,TEMPSIZE,"INCONCEIVABLE");
     }
@@ -780,6 +785,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
 		case meta_EAXA_PSX:
             snprintf(temp,TEMPSIZE,"Electronic Arts With PSX ADPCM");
+            break;
+		case meta_CFN:
+            snprintf(temp,TEMPSIZE,"Namco CAF Header");
             break;
         default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

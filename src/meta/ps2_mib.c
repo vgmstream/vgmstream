@@ -69,10 +69,10 @@ VGMSTREAM * init_vgmstream_ps2_mib(STREAMFILE *streamFile) {
 	/* Get the first 16 values */
 	fileLength = get_streamfile_size(streamFile);
 	
-	readOffset+=read_streamfile(mibBuffer,0,0x10,streamFile); 
+	readOffset+=(off_t)read_streamfile(mibBuffer,0,0x10,streamFile); 
 
 	do {
-		readOffset+=read_streamfile(testBuffer,readOffset,0x10,streamFile); 
+		readOffset+=(off_t)read_streamfile(testBuffer,readOffset,0x10,streamFile); 
 		
 		if(!memcmp(testBuffer,mibBuffer,0x10)) {
 			if(interleave==0) interleave=readOffset-0x10;
@@ -93,7 +93,7 @@ VGMSTREAM * init_vgmstream_ps2_mib(STREAMFILE *streamFile) {
 			if(loopEnd==0) loopEnd = readOffset-0x10;
 		}
 
-	} while (streamFile->get_offset(streamFile)<fileLength);
+	} while (streamFile->get_offset(streamFile)<(int32_t)fileLength);
 
 	if(gotMIH) 
 		channel_count=read_32bitLE(0x08,streamFileMIH);
@@ -121,7 +121,7 @@ VGMSTREAM * init_vgmstream_ps2_mib(STREAMFILE *streamFile) {
 		if(!strcasecmp("mi4",filename_extension(filename)))
 			vgmstream->sample_rate = 48000;
 
-		vgmstream->num_samples = fileLength/16/channel_count*28;
+		vgmstream->num_samples = (int32_t)(fileLength/16/channel_count*28);
 	}
 
 	if(loopStart!=0) {

@@ -75,4 +75,6 @@ VGMSTREAM * init_vgmstream_ngc_str(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_ea(STREAMFILE *streamFile);
 
+VGMSTREAM * init_vgmstream_caf(STREAMFILE *streamFile);
+
 #endif

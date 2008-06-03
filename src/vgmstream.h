@@ -44,6 +44,7 @@ typedef enum {
 	layout_xa_blocked,
 	layout_xbox_blocked,
 	layout_ea_blocked,
+	layout_caf_blocked,
 #if 0
     layout_strm_blocked,    /* */
 #endif
@@ -84,6 +85,7 @@ typedef enum {
     meta_RSF,               /* Retro Studios RSF, no header (.rsf) */
     meta_HALPST,            /* HAL Labs HALPST */
     meta_GCSW,              /* GCSW (PCM) */
+	meta_CFN,				/* Namco CAF Audio File */
 
 	meta_PS2_SShd,			/* .ADS with SShd header */
 	meta_PS2_NPSF,			/* Namco Production Sound File */

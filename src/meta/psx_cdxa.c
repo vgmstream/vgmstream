@@ -104,7 +104,7 @@ off_t init_xa_channel(int channel,STREAMFILE* streamFile) {
 begin:
 
 	// 0 can't be a correct value
-	if(block_offset>=filelength)
+	if(block_offset>=(off_t)filelength)
 		return 0;
 
 	currentChannel=read_8bit(block_offset-7,streamFile);

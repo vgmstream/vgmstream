@@ -226,8 +226,8 @@ VGMSTREAM * init_vgmstream_ea(STREAMFILE *streamFile) {
 
 		do {
 			ea_block_update(vgmstream->next_block_offset,vgmstream);
-			vgmstream->num_samples+=vgmstream->current_block_size*28;		
-		} while(vgmstream->next_block_offset<(file_length-block_length));
+			vgmstream->num_samples+=(int32_t)vgmstream->current_block_size*28;		
+		} while(vgmstream->next_block_offset<(off_t)(file_length-block_length));
 	}
 
 	ea_block_update(start_offset+header_length,vgmstream);
