@@ -15,7 +15,7 @@
  * List of functions that will recognize files. These should correspond pretty
  * directly to the metadata types
  */
-#define INIT_VGMSTREAM_FCNS 37
+#define INIT_VGMSTREAM_FCNS 38
 VGMSTREAM * (*init_vgmstream_fcns[INIT_VGMSTREAM_FCNS])(STREAMFILE *streamFile) = {
     init_vgmstream_adx,             /* 0 */
     init_vgmstream_brstm,           /* 1 */
@@ -53,7 +53,8 @@ VGMSTREAM * (*init_vgmstream_fcns[INIT_VGMSTREAM_FCNS])(STREAMFILE *streamFile) 
 	init_vgmstream_xbox_xwav,		/* 33 */
 	init_vgmstream_ngc_str,			/* 34 */
 	init_vgmstream_ea,				/* 35 */
-	init_vgmstream_caf				/* 36 */
+	init_vgmstream_caf,				/* 36 */
+	init_vgmstream_ps2_vpk			/* 37 */
 };
 
 /* internal version with all parameters */
@@ -788,6 +789,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
 		case meta_CFN:
             snprintf(temp,TEMPSIZE,"Namco CAF Header");
+            break;
+		case meta_PS2_VPK:
+            snprintf(temp,TEMPSIZE,"VPK Header");
             break;
         default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

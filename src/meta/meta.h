@@ -77,4 +77,6 @@ VGMSTREAM * init_vgmstream_ea(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_caf(STREAMFILE *streamFile);
 
+VGMSTREAM * init_vgmstream_ps2_vpk(STREAMFILE *streamFile);
+
 #endif

@@ -55,7 +55,7 @@ VGMSTREAM * init_vgmstream_ps2_vag(STREAMFILE *streamFile) {
 			if(read_32bitBE(0x20,streamFile)==0x53746572) // vag Stereo
 				channel_count=2;
 		case 'p':
-			if(read_32bitBE(0x04,streamFile)==0x00000004) {
+			if(read_32bitBE(0x04,streamFile)<=0x00000004) {
 				loop_flag=(read_32bitBE(0x14,streamFile)!=0);
 				channel_count=2;
 			} else {
@@ -128,6 +128,14 @@ VGMSTREAM * init_vgmstream_ps2_vag(STREAMFILE *streamFile) {
 				start_offset=0x80;
 				vgmstream->layout_type=layout_interleave;
 				vgmstream->meta_type=meta_PS2_VAGs;
+
+				// Double VAG Header @ 0x0000 & 0x1000
+				if(read_32bitBE(0,streamFile)==read_32bitBE(0x1000,streamFile)) {
+					vgmstream->num_samples = read_32bitBE(0x0C,streamFile)/16*28;
+					interleave=0x1000;
+					start_offset=0;
+				}
+
 			} else {
 				vgmstream->layout_type=layout_none;
 				vgmstream->num_samples = read_32bitBE(0x0C,streamFile)/16*28;

@@ -111,8 +111,9 @@ char * extension_list[] = {
 	"wp2\0WP2 Audio File (*.WP2)\0",
 	"sng\0SNG Audio File (*.SNG)\0",
 	"asf\0ASF Audio File (*.ASF)\0",
-	"eam\0EAM Audio File (*.EAM)\0"
-	"cfn\0CFN Audio File (*.CFN)\0"
+	"eam\0EAM Audio File (*.EAM)\0",
+	"cfn\0CFN Audio File (*.CFN)\0",
+	"vpk\0VPK Audio File (*.VPK)\0"
 };
 
 void about(HWND hwndParent) {

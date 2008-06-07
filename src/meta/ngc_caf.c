@@ -56,7 +56,6 @@ VGMSTREAM * init_vgmstream_caf(STREAMFILE *streamFile) {
     vgmstream->layout_type = layout_caf_blocked;
     vgmstream->meta_type = meta_CFN;
 
-
     /* open the file for reading by each channel */
     {
         for (i=0;i<2;i++) {
@@ -75,4 +74,3 @@ fail:
     if (vgmstream) close_vgmstream(vgmstream);
     return NULL;
 }
-
