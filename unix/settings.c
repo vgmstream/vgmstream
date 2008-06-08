@@ -18,6 +18,10 @@ void DefaultSettings(LPSETTINGS pSettings)
   pSettings->fadedelayseconds = 0;
 }
 
+#define LOOPCOUNT_NAME "loopcount"
+#define FADESECOND_NAME "fadeseconds"
+#define FADEDELAYSECOND_NAME "fadedelayseconds"
+
 int LoadSettings(LPSETTINGS pSettings)
 {
   ConfigDb *cfg = GetConfigFile();
@@ -27,9 +31,9 @@ int LoadSettings(LPSETTINGS pSettings)
   }
   else
   {  
-    int bRet = (aud_cfg_db_get_int(cfg,CUBE_CONFIG_TAG,"loopcount",&pSettings->loopcount) && 
-		aud_cfg_db_get_int(cfg,CUBE_CONFIG_TAG,"fadeseconds",&pSettings->fadeseconds) &&
-		aud_cfg_db_get_int(cfg,CUBE_CONFIG_TAG,"fadedelayseconds",&pSettings->fadedelayseconds));
+    int bRet = (aud_cfg_db_get_int(cfg,CUBE_CONFIG_TAG,LOOPCOUNT_NAME,&pSettings->loopcount) && 
+		aud_cfg_db_get_int(cfg,CUBE_CONFIG_TAG,FADESECOND_NAME,&pSettings->fadeseconds) &&
+		aud_cfg_db_get_int(cfg,CUBE_CONFIG_TAG,FADEDELAYSECOND_NAME,&pSettings->fadedelayseconds));
     
     aud_cfg_db_close(cfg); 
     
@@ -46,9 +50,9 @@ int SaveSettings(LPSETTINGS pSettings)
   if (!cfg)
     return 0;
 
-  aud_cfg_db_set_int(cfg,CUBE_CONFIG_TAG,"loopcount",pSettings->loopcount);
-  aud_cfg_db_set_int(cfg,CUBE_CONFIG_TAG,"fadeseconds",pSettings->fadeseconds);
-  aud_cfg_db_set_int(cfg,CUBE_CONFIG_TAG,"fadedelayseconds",pSettings->fadedelayseconds);
+  aud_cfg_db_set_int(cfg,CUBE_CONFIG_TAG,LOOPCOUNT_NAME,pSettings->loopcount);
+  aud_cfg_db_set_int(cfg,CUBE_CONFIG_TAG,FADESECOND_NAME,pSettings->fadeseconds);
+  aud_cfg_db_set_int(cfg,CUBE_CONFIG_TAG,FADEDELAYSECOND_NAME,pSettings->fadedelayseconds);
 
   aud_cfg_db_close(cfg);
   return 1;
