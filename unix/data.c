@@ -51,6 +51,11 @@ gchar *vgmstream_exts [] = {
   "wavm",
   "xwav",
   "wp2",
+  "sng",
+  "asf",
+  "eam",
+  "cfn",
+  "vpk",
   /* terminator */
   NULL
 };
