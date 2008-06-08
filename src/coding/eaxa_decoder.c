@@ -8,8 +8,6 @@ long EA_XA_TABLE[28] = {0,0,240,0,460,-208,0x0188,-220,
 					                  -208,-1,-220,-1,
 					      0x0000,0x0000,0x0000,0x3F70};
 
-static int samples;
-
 void decode_eaxa(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do,int channel) {
     uint8_t frame_info;
     int32_t sample_count;

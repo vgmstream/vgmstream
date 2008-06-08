@@ -426,7 +426,6 @@ VGMSTREAM * init_vgmstream_ngc_str(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[260];
 
-    struct dsp_header header;
     const off_t start_offset = 0x60;
     int i;
 

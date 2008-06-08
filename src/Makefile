@@ -6,7 +6,8 @@ CODING_OBJS=coding/adx_decoder.o \
     coding/ngc_dtk_decoder.o \
     coding/pcm_decoder.o \
     coding/psx_decoder.o \
-    coding/xa_decoder.o
+    coding/xa_decoder.o \
+    coding/eaxa_decoder.o
 
 LAYOUT_OBJS=layout/ast_blocked.o \
     layout/blocked.o \
@@ -14,7 +15,9 @@ LAYOUT_OBJS=layout/ast_blocked.o \
     layout/interleave.o \
     layout/nolayout.o \
     layout/xa_blocked.o \
-    layout/xbox_blocked.o 
+    layout/xbox_blocked.o \
+    layout/caf_blocked.o \
+    layout/ea_block.o
 
 META_OBJS=meta/adx_header.o \
     meta/afc_header.o \
@@ -46,7 +49,10 @@ META_OBJS=meta/adx_header.o \
     meta/ps2_ild.o \
     meta/ps2_pnb.o \
     meta/xbox_wavm.o \
-    meta/xbox_xwav.o
+    meta/xbox_xwav.o \
+    meta/ea_header.o \
+    meta/ngc_caf.o \
+    meta/ps2_vpk.o
 
 OBJECTS=vgmstream.o streamfile.o util.o $(CODING_OBJS) $(LAYOUT_OBJS) $(META_OBJS)
 

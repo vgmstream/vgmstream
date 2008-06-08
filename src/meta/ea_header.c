@@ -1,4 +1,5 @@
 #include "meta.h"
+#include "../layout/layout.h"
 #include "../util.h"
 
 // Platform constants
@@ -27,8 +28,6 @@ typedef struct {
 	uint8_t	compression_type;
 	uint8_t	compression_version;
 } EA_STRUCT;
-
-extern ea_block_update(off_t block_offset, VGMSTREAM * vgmstream);
 
 uint32_t readPatch(STREAMFILE* streamFile, off_t* offset) {
 	

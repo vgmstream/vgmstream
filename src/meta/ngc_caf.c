@@ -1,7 +1,6 @@
 #include "meta.h"
+#include "../layout/layout.h"
 #include "../util.h"
-
-extern caf_block_update(off_t block_offset, VGMSTREAM * vgmstream);
 
 VGMSTREAM * init_vgmstream_caf(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
