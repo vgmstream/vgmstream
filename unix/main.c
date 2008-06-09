@@ -27,11 +27,13 @@ extern InputPlugin vgmstream_iplug;
 static volatile long decode_seek;
 static GThread *decode_thread;
 static gint stream_length_samples;
+static gint fade_length_samples;
 SETTINGS settings;
 static gint decode_pos_samples = 0;
 static VGMSTREAM *vgmstream = NULL;
 static gchar strPlaying[260];
 static InputPlugin *vgmstream_iplist[] = { &vgmstream_iplug, NULL };
+static gint loop_forever = 0;
 
 /*
 static gint get_ms_position()
@@ -157,9 +159,27 @@ void* vgmstream_play_loop(InputPlayback *playback)
       }
       else
       {
-	// ok we read stuff , pass it on
+	// ok we read stuff
 	render_vgmstream(buffer,samples_to_do,vgmstream);
-	/* TODO fading */
+
+    // fade!
+    if (vgmstream->loop_flag && fade_length_samples > 0 && !loop_forever) {
+        int samples_into_fade = decode_pos_samples - (stream_length_samples - fade_length_samples);
+        if (samples_into_fade + samples_to_do > 0) {
+            int j,k;
+            for (j=0;j<samples_to_do;j++,samples_into_fade++) {
+                if (samples_into_fade > 0) {
+                    double fadedness = (double)(fade_length_samples-samples_into_fade)/fade_length_samples;
+                    for (k=0;k<vgmstream->channels;k++) {
+                        buffer[j*vgmstream->channels+k] =
+                            (short)(buffer[j*vgmstream->channels+k]*fadedness);
+                    }
+                }
+            }
+        }
+    }
+
+    // pass it on
 	playback->pass_audio(playback,FMT_S16_LE,vgmstream->channels , l , buffer , &playback->playing );
 
 	decode_pos_samples += samples_to_do;
@@ -267,6 +287,12 @@ void vgmstream_play(InputPlayback *context)
   strcpy(strPlaying,context->filename);
   // set the info
   stream_length_samples = get_vgmstream_play_samples(settings.loopcount,settings.fadeseconds,settings.fadedelayseconds,vgmstream);
+  if (vgmstream->loop_flag)
+  {
+      fade_length_samples = settings.fadeseconds * vgmstream->sample_rate;
+  } else {
+      fade_length_samples = -1;
+  }
   gint ms = (stream_length_samples * 1000LL) / vgmstream->sample_rate;
   gint rate   = vgmstream->sample_rate * 2 * vgmstream->channels;
   context->set_params(context,get_title(context->filename,title,sizeof(title)),
