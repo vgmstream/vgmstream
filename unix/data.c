@@ -56,6 +56,7 @@ gchar *vgmstream_exts [] = {
   "eam",
   "cfn",
   "vpk",
+  "genh",
   /* terminator */
   NULL
 };
