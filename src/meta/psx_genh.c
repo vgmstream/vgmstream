@@ -45,7 +45,12 @@ VGMSTREAM * init_vgmstream_psx_genh(STREAMFILE *streamFile) {
     vgmstream->loop_flag = (loop_start != -1);
 
 	vgmstream->coding_type = coding_PSX;
-    vgmstream->layout_type = layout_interleave;
+    if (channel_count > 1)
+    {
+        vgmstream->layout_type = layout_interleave;
+    } else {
+        vgmstream->layout_type = layout_none;
+    }
     
 	vgmstream->meta_type = meta_PSX_GENH;
     
