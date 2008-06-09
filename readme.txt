@@ -62,6 +62,18 @@ File types supported by this version of vgmstream:
 - .gcm (GC DSP ADPCM)
 - .raw (16 bit PCM)
 - .vag (PSX ADPCM)
+- .gms (PSX ADPCM)
+- .str+.sth (PSX ADPCM)
+- .ild (PSX APDCM)
+- .pnb (PSX ADPCM)
+- .wavm (XBOX IMA ADPCM)
+- .xwav (XBOX IMA ADPCM)
+- .wp2 (PSX ADPCM)
+- .str (GC DSP ADPCM)
+- .sng, .asf, .str, .eam (EA/XA ADPCM or PSX ADPCM)
+- .cfn (GC DSP ADPCM)
+- .vpk (PSX ADPCM)
+- .genh (PSX ADPCM)
 
 Enjoy!
 -hcs
