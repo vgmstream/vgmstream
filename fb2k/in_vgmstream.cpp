@@ -235,6 +235,19 @@ class input_vgmstream {
 			if(!stricmp_utf8(p_extension,"vag")) return 1;
 			if(!stricmp_utf8(p_extension,"gms")) return 1;
 			if(!stricmp_utf8(p_extension,"str")) return 1;
+			if(!stricmp_utf8(p_extension,"ild")) return 1;
+			if(!stricmp_utf8(p_extension,"pnb")) return 1;
+			if(!stricmp_utf8(p_extension,"wavm")) return 1;
+			if(!stricmp_utf8(p_extension,"xwav")) return 1;
+			if(!stricmp_utf8(p_extension,"wp2")) return 1;
+			if(!stricmp_utf8(p_extension,"pnb")) return 1;
+			if(!stricmp_utf8(p_extension,"str")) return 1;
+			if(!stricmp_utf8(p_extension,"sng")) return 1;
+			if(!stricmp_utf8(p_extension,"asf")) return 1;
+			if(!stricmp_utf8(p_extension,"eam")) return 1;
+			if(!stricmp_utf8(p_extension,"cfn")) return 1;
+			if(!stricmp_utf8(p_extension,"vpk")) return 1;
+			if(!stricmp_utf8(p_extension,"genh")) return 1;
 			return 0;
 		}
 
