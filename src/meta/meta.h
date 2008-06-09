@@ -79,4 +79,6 @@ VGMSTREAM * init_vgmstream_caf(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_ps2_vpk(STREAMFILE *streamFile);
 
+VGMSTREAM * init_vgmstream_psx_genh(STREAMFILE *streamFile);
+
 #endif

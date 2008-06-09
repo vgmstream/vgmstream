@@ -107,6 +107,7 @@ typedef enum {
 	meta_PSX_XA,			/* CD-XA with RIFF header */
 	meta_PS2_VAGs,			/* VAG Stereo from Kingdom Hearts */
 	meta_PS2_VPK,			/* VPK Audio File */
+    meta_PSX_GENH,          /* generic header for PSX ADPCM */
 
 	meta_XBOX_WAVM,			/* XBOX WAVM File */
 	meta_XBOX_RIFF,			/* XBOX RIFF/WAVE File */

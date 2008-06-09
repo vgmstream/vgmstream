@@ -52,7 +52,8 @@ META_OBJS=meta/adx_header.o \
     meta/xbox_xwav.o \
     meta/ea_header.o \
     meta/ngc_caf.o \
-    meta/ps2_vpk.o
+    meta/ps2_vpk.o \
+    meta/psx_genh.o
 
 OBJECTS=vgmstream.o streamfile.o util.o $(CODING_OBJS) $(LAYOUT_OBJS) $(META_OBJS)
 

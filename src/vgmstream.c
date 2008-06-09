@@ -15,47 +15,49 @@
  * List of functions that will recognize files. These should correspond pretty
  * directly to the metadata types
  */
-#define INIT_VGMSTREAM_FCNS 38
-VGMSTREAM * (*init_vgmstream_fcns[INIT_VGMSTREAM_FCNS])(STREAMFILE *streamFile) = {
-    init_vgmstream_adx,             /* 0 */
-    init_vgmstream_brstm,           /* 1 */
-    init_vgmstream_nds_strm,        /* 2 */
-    init_vgmstream_agsc,            /* 3 */
-    init_vgmstream_ngc_adpdtk,      /* 4 */
-    init_vgmstream_rsf,             /* 5 */
-    init_vgmstream_afc,             /* 6 */
-    init_vgmstream_ast,             /* 7 */
-    init_vgmstream_halpst,          /* 8 */
-    init_vgmstream_rs03,            /* 9 */
-    init_vgmstream_ngc_dsp_std,     /* 10 */
-    init_vgmstream_Cstr,            /* 11 */
-    init_vgmstream_gcsw,            /* 12 */
-    init_vgmstream_ps2_ads,         /* 13 */
-	init_vgmstream_ps2_npsf,        /* 14 */
-    init_vgmstream_rwsd,            /* 15 */
-	init_vgmstream_cdxa,            /* 16 */
-	init_vgmstream_ps2_rxw,         /* 17 */
-	init_vgmstream_ps2_int,         /* 18 */
-    init_vgmstream_ngc_dsp_stm,     /* 19 */
-    init_vgmstream_ps2_exst,        /* 20 */
-	init_vgmstream_ps2_svag,		/* 21 */
-	init_vgmstream_ps2_mib,			/* 22 */
-    init_vgmstream_ngc_mpdsp,       /* 23 */
-	init_vgmstream_ps2_mic,			/* 24 */
-    init_vgmstream_ngc_dsp_std_int, /* 25 */
-	init_vgmstream_raw,				/* 26 */
-	init_vgmstream_ps2_vag,			/* 27 */
-	init_vgmstream_psx_gms,			/* 28 */
-	init_vgmstream_ps2_str,			/* 29 */
-	init_vgmstream_ps2_ild,			/* 30 */
-	init_vgmstream_ps2_pnb,			/* 31 */
-	init_vgmstream_xbox_wavm,		/* 32 */
-	init_vgmstream_xbox_xwav,		/* 33 */
-	init_vgmstream_ngc_str,			/* 34 */
-	init_vgmstream_ea,				/* 35 */
-	init_vgmstream_caf,				/* 36 */
-	init_vgmstream_ps2_vpk			/* 37 */
+VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
+    init_vgmstream_adx,
+    init_vgmstream_brstm,
+    init_vgmstream_nds_strm,
+    init_vgmstream_agsc,
+    init_vgmstream_ngc_adpdtk,
+    init_vgmstream_rsf,
+    init_vgmstream_afc,
+    init_vgmstream_ast,
+    init_vgmstream_halpst,
+    init_vgmstream_rs03,
+    init_vgmstream_ngc_dsp_std,
+    init_vgmstream_Cstr,
+    init_vgmstream_gcsw,
+    init_vgmstream_ps2_ads,
+    init_vgmstream_ps2_npsf,
+    init_vgmstream_rwsd,
+    init_vgmstream_cdxa,
+    init_vgmstream_ps2_rxw,
+    init_vgmstream_ps2_int,
+    init_vgmstream_ngc_dsp_stm,
+    init_vgmstream_ps2_exst,
+    init_vgmstream_ps2_svag,
+    init_vgmstream_ps2_mib,
+    init_vgmstream_ngc_mpdsp,
+    init_vgmstream_ps2_mic,
+    init_vgmstream_ngc_dsp_std_int,
+    init_vgmstream_raw,
+    init_vgmstream_ps2_vag,
+    init_vgmstream_psx_gms,
+    init_vgmstream_ps2_str,
+    init_vgmstream_ps2_ild,
+    init_vgmstream_ps2_pnb,
+    init_vgmstream_xbox_wavm,
+    init_vgmstream_xbox_xwav,
+    init_vgmstream_ngc_str,
+    init_vgmstream_ea,
+    init_vgmstream_caf,
+    init_vgmstream_ps2_vpk,
+    init_vgmstream_psx_genh,
 };
+
+#define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
 
 /* internal version with all parameters */
 VGMSTREAM * init_vgmstream_internal(STREAMFILE *streamFile, int do_dfs) {
@@ -792,6 +794,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
 		case meta_PS2_VPK:
             snprintf(temp,TEMPSIZE,"VPK Header");
+            break;
+        case meta_PSX_GENH:
+            snprintf(temp,TEMPSIZE,"GENH Generic PSX ADPCM Header");
             break;
         default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");
