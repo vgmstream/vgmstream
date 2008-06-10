@@ -1,5 +1,4 @@
 #include "meta.h"
-#include "../layout/layout.h"
 #include "../util.h"
 
 /* WAVM
@@ -16,7 +15,6 @@ VGMSTREAM * init_vgmstream_xbox_wavm(STREAMFILE *streamFile) {
 
     int loop_flag=0;
 	int channel_count;
-    off_t start_offset;
     int i;
 
     /* check extension, case insensitive */
@@ -40,20 +38,16 @@ VGMSTREAM * init_vgmstream_xbox_wavm(STREAMFILE *streamFile) {
 
 	vgmstream->coding_type = coding_XBOX;
     vgmstream->num_samples = (int32_t)(get_streamfile_size(streamFile) / 36 * 64 / vgmstream->channels);
-    vgmstream->layout_type = layout_xbox_blocked;
-	vgmstream->current_block_size=36*vgmstream->channels;
-	vgmstream->current_block_offset=0;
+    vgmstream->layout_type = layout_interleave;
+	vgmstream->interleave_block_size=36;
 	
-	xbox_block_update(0,vgmstream);
-
     vgmstream->meta_type = meta_XBOX_WAVM;
-
-	start_offset = 0;
 
     /* open the file for reading by each channel */
     {
         for (i=0;i<channel_count;i++) {
             vgmstream->ch[i].streamfile = streamFile->open(streamFile,filename,36);
+            vgmstream->ch[i].offset = 0;
 
             if (!vgmstream->ch[i].streamfile) goto fail;
         }

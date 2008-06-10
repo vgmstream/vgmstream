@@ -51,9 +51,6 @@ void render_vgmstream_blocked(sample * buffer, int32_t sample_count, VGMSTREAM *
 				case layout_xa_blocked:
 					xa_block_update(vgmstream->next_block_offset,vgmstream);
 					break;
-				case layout_xbox_blocked:
-					xbox_block_update(vgmstream->next_block_offset,vgmstream);
-					break;
 				case layout_ea_blocked:
 					ea_block_update(vgmstream->next_block_offset,vgmstream);
 					break;

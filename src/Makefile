@@ -15,7 +15,6 @@ LAYOUT_OBJS=layout/ast_blocked.o \
     layout/interleave.o \
     layout/nolayout.o \
     layout/xa_blocked.o \
-    layout/xbox_blocked.o \
     layout/caf_blocked.o \
     layout/ea_block.o
 
@@ -53,7 +52,7 @@ META_OBJS=meta/adx_header.o \
     meta/ea_header.o \
     meta/ngc_caf.o \
     meta/ps2_vpk.o \
-    meta/psx_genh.o
+    meta/genh.o
 
 OBJECTS=vgmstream.o streamfile.o util.o $(CODING_OBJS) $(LAYOUT_OBJS) $(META_OBJS)
 

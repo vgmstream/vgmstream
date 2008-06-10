@@ -54,7 +54,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_ea,
     init_vgmstream_caf,
     init_vgmstream_ps2_vpk,
-    init_vgmstream_psx_genh,
+    init_vgmstream_genh,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -231,7 +231,6 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
         case layout_ast_blocked:
         case layout_halpst_blocked:
 		case layout_xa_blocked:
-		case layout_xbox_blocked:
 		case layout_ea_blocked:
 		case layout_caf_blocked:
             render_vgmstream_blocked(buffer,sample_count,vgmstream);
@@ -302,7 +301,7 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
 		case coding_XA:
 			return 14*vgmstream->channels;
 		case coding_XBOX:
-			return 64+(4*vgmstream->channels);
+			return 36;
 		case coding_EAXA:
 			return 1; // the frame is variant in size
         default:
@@ -612,9 +611,6 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
 		case layout_xa_blocked:
             snprintf(temp,TEMPSIZE,"CD-ROM XA");
             break;
-		case layout_xbox_blocked:
-            snprintf(temp,TEMPSIZE,"XBOX blocked");
-            break;
 		case layout_ea_blocked:
             snprintf(temp,TEMPSIZE,"Electronic Arts Audio Blocks");
             break;
@@ -795,8 +791,8 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
 		case meta_PS2_VPK:
             snprintf(temp,TEMPSIZE,"VPK Header");
             break;
-        case meta_PSX_GENH:
-            snprintf(temp,TEMPSIZE,"GENH Generic PSX ADPCM Header");
+        case meta_GENH:
+            snprintf(temp,TEMPSIZE,"GENH Generic Header");
             break;
         default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

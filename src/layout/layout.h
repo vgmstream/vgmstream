@@ -12,8 +12,6 @@ void halpst_block_update(off_t block_ofset, VGMSTREAM * vgmstream);
 
 void xa_block_update(off_t block_offset, VGMSTREAM * vgmstream);
 
-void xbox_block_update(off_t block_offset, VGMSTREAM * vgmstream);
-
 void ea_block_update(off_t block_offset, VGMSTREAM * vgmstream);
 
 void caf_block_update(off_t block_offset, VGMSTREAM * vgmstream);

@@ -42,7 +42,6 @@ typedef enum {
     layout_ast_blocked,     /* .ast STRM with BLCK blocks*/
     layout_halpst_blocked,    /* blocks with HALPST-format header */
 	layout_xa_blocked,
-	layout_xbox_blocked,
 	layout_ea_blocked,
 	layout_caf_blocked,
 #if 0
@@ -107,7 +106,6 @@ typedef enum {
 	meta_PSX_XA,			/* CD-XA with RIFF header */
 	meta_PS2_VAGs,			/* VAG Stereo from Kingdom Hearts */
 	meta_PS2_VPK,			/* VPK Audio File */
-    meta_PSX_GENH,          /* generic header for PSX ADPCM */
 
 	meta_XBOX_WAVM,			/* XBOX WAVM File */
 	meta_XBOX_RIFF,			/* XBOX RIFF/WAVE File */
@@ -118,6 +116,7 @@ typedef enum {
 
 	meta_RAW,				/* RAW PCM file */
 
+    meta_GENH,              /* generic header */
 } meta_t;
 
 typedef struct {
