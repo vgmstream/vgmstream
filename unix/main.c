@@ -85,7 +85,7 @@ SIMPLE_INPUT_PLUGIN(vgmstream,vgmstream_iplist);
 
 void* vgmstream_play_loop(InputPlayback *playback)
 {
-  int16_t buffer[576*2];
+  int16_t buffer[576*vgmstream->channels];
   long l;
   gint seek_needed_samples;
   gint samples_to_do;
@@ -271,7 +271,7 @@ void vgmstream_play(InputPlayback *context)
   char title[260];
   // this is now called in a new thread context
   vgmstream = init_vgmstream_from_STREAMFILE(open_vfs(context->filename));
-  if (!vgmstream || vgmstream->channels <= 0 || vgmstream->channels > 2)
+  if (!vgmstream || vgmstream->channels <= 0)
   {
     CLOSE_STREAM();
     return;

@@ -392,15 +392,18 @@ void eq_set(int on, char data[10], int preamp) {}
 
 /* the decode thread */
 DWORD WINAPI __stdcall decode(void *arg) {
+    /* channel count shouldn't change during decode */
+    int max_buffer_samples = sizeof(sample_buffer)/sizeof(sample_buffer[0])/2/vgmstream->channels;
+
     while (!decode_abort) {
 
         int samples_to_do;
         int l;
 
-        if (decode_pos_samples+576>stream_length_samples && (!loop_forever || !vgmstream->loop_flag))
+        if (decode_pos_samples+max_buffer_samples>stream_length_samples && (!loop_forever || !vgmstream->loop_flag))
             samples_to_do=stream_length_samples-decode_pos_samples;
         else
-            samples_to_do=576;
+            samples_to_do=max_buffer_samples;
 
         /* play 'till the end of this seek, or note if we're done seeking */
         if (seek_needed_samples != -1) {
@@ -416,7 +419,7 @@ DWORD WINAPI __stdcall decode(void *arg) {
 
             if (decode_pos_samples < seek_needed_samples) {
                 samples_to_do=seek_needed_samples-decode_pos_samples;
-                if (samples_to_do>576) samples_to_do=576;
+                if (samples_to_do>max_buffer_samples) samples_to_do=max_buffer_samples;
             } else
                 seek_needed_samples = -1;
 
