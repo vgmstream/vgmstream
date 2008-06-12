@@ -80,6 +80,8 @@ void decode_xbox_ima(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspac
     if (first_sample == 0) {
         hist1 = read_16bitLE(offset+channel*4,stream->streamfile);
         step_index = read_16bitLE(offset+channel*4+2,stream->streamfile);
+        if (step_index < 0) step_index=0;
+        if (step_index > 88) step_index=88;
     }
 
     for (i=first_sample,sample_count=0; i<first_sample+samples_to_do; i++,sample_count+=channelspacing) {
