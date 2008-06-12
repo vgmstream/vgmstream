@@ -25,6 +25,10 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
     /* check header magic */
     if (read_32bitBE(0x0,streamFile) != 0x47454e48) goto fail;
 
+    /* check channel count (needed for ADP/DTK check) */
+    channel_count = read_32bitLE(0x4,streamFile);
+    if (channel_count < 1) goto fail;
+
     /* check format */
     /* 0 = PSX ADPCM */
     /* 1 = XBOX IMA ADPCM */
@@ -45,8 +49,8 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
             goto fail;
     }
 
-    start_offset = read_32bitBE(0x1c,streamFile);
-    header_size = read_32bitBE(0x20,streamFile);
+    start_offset = read_32bitLE(0x1c,streamFile);
+    header_size = read_32bitLE(0x20,streamFile);
 
     /* HACK to support old genh */
     if (header_size == 0) {
@@ -57,7 +61,6 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
     /* check for audio data start past header end */
     if (header_size > start_offset) goto fail;
 
-    channel_count = read_32bitLE(0x4,streamFile);
     interleave = read_32bitLE(0x8,streamFile);
     sample_rate = read_32bitLE(0xc,streamFile);
     loop_start = read_32bitLE(0x10,streamFile);
