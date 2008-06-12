@@ -13,6 +13,8 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
     int32_t sample_rate;
     int32_t loop_start;
     int32_t loop_end;
+    int32_t start_offset;
+    int32_t header_size;
     char filename[260];
     int coding;
 
@@ -25,7 +27,8 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
 
     /* check format */
     /* 0 = PSX ADPCM */
-    /* 1 = XBOX IMA ADPCM (36 byte blocks) */
+    /* 1 = XBOX IMA ADPCM */
+    /* 2 = NGC ADP/DTK ADPCM */
     /* ... others to come */
     switch (read_32bitLE(0x18,streamFile)) {
         case 0:
@@ -34,9 +37,25 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
         case 1:
             coding = coding_XBOX;
             break;
+        case 2:
+            coding = coding_NGC_DTK;
+            if (channel_count != 2) goto fail;
+            break;
         default:
             goto fail;
     }
+
+    start_offset = read_32bitBE(0x1c,streamFile);
+    header_size = read_32bitBE(0x20,streamFile);
+
+    /* HACK to support old genh */
+    if (header_size == 0) {
+        start_offset = 0x800;
+        header_size = 0x800;
+    }
+
+    /* check for audio data start past header end */
+    if (header_size > start_offset) goto fail;
 
     channel_count = read_32bitLE(0x4,streamFile);
     interleave = read_32bitLE(0x8,streamFile);
@@ -75,6 +94,9 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
             vgmstream->interleave_block_size = 36;
 
             break;
+        case coding_NGC_DTK:
+            vgmstream->layout_type = layout_dtk_interleave;
+            break;
     }
     
 	vgmstream->meta_type = meta_GENH;
@@ -82,16 +104,44 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
     /* open the file for reading by each channel */
     {
         int i;
-        for (i=0;i<channel_count;i++) {
-            if (channel_count > 1 && vgmstream->layout_type == layout_interleave)
-                vgmstream->ch[i].streamfile = streamFile->open(streamFile,filename,interleave);
-            else
-                vgmstream->ch[i].streamfile = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
+        STREAMFILE * chstreamfile = NULL;
 
-            if (!vgmstream->ch[i].streamfile) goto fail;
+        for (i=0;i<channel_count;i++) {
+            off_t chstart_offset = start_offset;
+
+            switch (coding) {
+                case coding_PSX:
+                    if (vgmstream->layout_type == layout_interleave) {
+                        chstreamfile =
+                            streamFile->open(streamFile,filename,interleave);
+                        chstart_offset =
+                            start_offset+vgmstream->interleave_block_size*i;
+                    } else {
+                        chstreamfile =
+                            streamFile->open(streamFile,filename,
+                                    STREAMFILE_DEFAULT_BUFFER_SIZE);
+                    }
+                    break;
+                case coding_XBOX:
+                    /* xbox's "interleave" is a lie, all channels start at same
+                     * offset */
+                    chstreamfile =
+                        streamFile->open(streamFile,filename,
+                                STREAMFILE_DEFAULT_BUFFER_SIZE);
+                    break;
+                case coding_NGC_DTK:
+                    if (!chstreamfile) 
+                        chstreamfile =
+                            streamFile->open(streamFile,filename,32*0x400);
+                    break;
+            }
+
+            if (!chstreamfile) goto fail;
+
+            vgmstream->ch[i].streamfile = chstreamfile;
 
             vgmstream->ch[i].channel_start_offset=
-                vgmstream->ch[i].offset=0x800;
+                vgmstream->ch[i].offset=start_offset;
         }
     }
 
