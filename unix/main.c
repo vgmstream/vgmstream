@@ -364,16 +364,12 @@ void vgmstream_get_song_info(gchar *pFile,gchar **title,gint *length)
 
 void vgmstream_file_info_box(gchar *pFile)
 {
-  char msg[512];
+  char msg[1024] = {0};
   VGMSTREAM *stream;
   
   if ((stream = init_vgmstream_from_STREAMFILE(open_vfs(pFile))))
   {
-    gint sls = get_vgmstream_play_samples(settings.loopcount,settings.fadeseconds,settings.fadedelayseconds,stream);
-    gint ms = (sls * 1000LL) / stream->sample_rate;
-    gint rate   = stream->sample_rate * 2 * stream->channels;
-    
-    sprintf(msg,"%s\nSample rate: %d\nStereo: %s\nTotal samples: %d\nBits per second: %d\nLength: %f seconds",pFile,stream->sample_rate,(stream->channels >= 2) ? "yes" : "no",sls,rate,(double)ms / 1000.0);
+    describe_vgmstream(stream,msg,sizeof(msg));
     
     close_vgmstream(stream);
 
