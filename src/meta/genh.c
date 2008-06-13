@@ -144,7 +144,7 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
             vgmstream->ch[i].streamfile = chstreamfile;
 
             vgmstream->ch[i].channel_start_offset=
-                vgmstream->ch[i].offset=start_offset;
+                vgmstream->ch[i].offset=chstart_offset;
         }
     }
 
