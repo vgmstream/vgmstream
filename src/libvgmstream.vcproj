@@ -307,7 +307,7 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\psx_genh.c"
+					RelativePath=".\meta\genh.c"
 					>
 				</File>
 				<File
@@ -444,10 +444,6 @@
 				</File>
 				<File
 					RelativePath=".\layout\xa_blocked.c"
-					>
-				</File>
-				<File
-					RelativePath=".\layout\xbox_blocked.c"
 					>
 				</File>
 			</Filter>
