@@ -4,6 +4,7 @@
 	Version="8.00"
 	Name="in_vgmstream"
 	ProjectGUID="{42D86561-8CE4-40F5-86CE-58C986B77502}"
+	RootNamespace="in_vgmstream"
 	Keyword="Win32Proj"
 	>
 	<Platforms>
@@ -111,6 +112,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
+				AdditionalIncludeDirectories="../ext_includes"
 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;IN_VGMSTREAM_EXPORTS;"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"
@@ -129,7 +131,9 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
+				AdditionalDependencies="../ext_libs/libvorbis.lib"
 				LinkIncremental="2"
+				ModuleDefinitionFile=""
 				GenerateDebugInformation="true"
 				SubSystem="2"
 				OptimizeReferences="2"
@@ -170,14 +174,6 @@
 			Filter="h;hpp;hxx;hm;inl;inc;xsd"
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
-			<File
-				RelativePath=".\in2.h"
-				>
-			</File>
-			<File
-				RelativePath=".\out.h"
-				>
-			</File>
 			<File
 				RelativePath=".\resource.h"
 				>

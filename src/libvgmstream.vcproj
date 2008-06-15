@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="UTF-8"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="8,00"
+	Version="8.00"
 	Name="libvgmstream"
 	ProjectGUID="{54A6AD11-5369-4895-A06F-E255ABB99B11}"
 	RootNamespace="libvgmstream"
@@ -99,6 +99,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
+				AdditionalIncludeDirectories="../ext_includes"
 				PreprocessorDefinitions="WIN32;NDEBUG;_LIB;"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"
@@ -159,12 +160,6 @@
 				RelativePath=".\vgmstream.h"
 				>
 			</File>
-		</Filter>
-		<Filter
-			Name="Resource Files"
-			Filter="rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx"
-			UniqueIdentifier="{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}"
-			>
 		</Filter>
 		<Filter
 			Name="Source Files"
@@ -231,6 +226,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\genh.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\halpst.c"
 					>
 				</File>
@@ -248,6 +247,10 @@
 				</File>
 				<File
 					RelativePath=".\meta\ngc_dsp_std.c"
+					>
+				</File>
+				<File
+					RelativePath=".\meta\ogg_vorbis_file.c"
 					>
 				</File>
 				<File
@@ -304,10 +307,6 @@
 				</File>
 				<File
 					RelativePath=".\meta\psx_cdxa.c"
-					>
-				</File>
-				<File
-					RelativePath=".\meta\genh.c"
 					>
 				</File>
 				<File
@@ -384,6 +383,10 @@
 				</File>
 				<File
 					RelativePath=".\coding\ngc_dtk_decoder.c"
+					>
+				</File>
+				<File
+					RelativePath=".\coding\ogg_vorbis_decoder.c"
 					>
 				</File>
 				<File
