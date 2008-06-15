@@ -2,6 +2,7 @@
 
 #ifdef VGM_USE_VORBIS
 
+#include <string.h>
 #include "meta.h"
 #include "../util.h"
 #include <vorbis/vorbisfile.h>
@@ -81,6 +82,7 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
     vorbis_info *info;
 
     int loop_flag = 0;
+    int32_t loop_start;
 
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
@@ -132,16 +134,40 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
 
     info = ov_info(ovf,DEFAULT_BITSTREAM);
 
+    /* grab the comments */
+    {
+        int i;
+        vorbis_comment *comment;
+
+        comment = ov_comment(ovf,DEFAULT_BITSTREAM);
+
+        /* search for a "loop_start" comment */
+        for (i=0;i<comment->comments;i++) {
+            if (strstr(comment->user_comments[i],"loop_start=")==
+                    comment->user_comments[i]) {
+                loop_start=atol(strchr(comment->user_comments[i],'=')+1);
+                loop_flag=1;
+                break;
+            }
+        }
+    }
+
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(info->channels,loop_flag);
     if (!vgmstream) goto fail;
 
+    /* store our fun extra datas */
     vgmstream->codec_data = data;
 
     /* fill in the vital statistics */
     vgmstream->channels = info->channels;
     vgmstream->sample_rate = info->rate;
     vgmstream->num_samples = ov_pcm_total(ovf,DEFAULT_BITSTREAM);
+    if (loop_flag) {
+        vgmstream->loop_start_sample = loop_start;
+        vgmstream->loop_end_sample = vgmstream->num_samples;
+        vgmstream->loop_flag = loop_flag;
+    }
     vgmstream->coding_type = coding_ogg_vorbis;
     vgmstream->layout_type = layout_ogg_vorbis;
     vgmstream->meta_type = meta_ogg_vorbis;
