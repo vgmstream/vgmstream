@@ -25,3 +25,4 @@ clean:
 	$(MAKE) -C test -f Makefile.mingw clean
 	$(MAKE) -C winamp clean
 	$(MAKE) -C src clean
+	$(MAKE) -C ext_libs -f Makefile.mingw clean

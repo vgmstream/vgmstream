@@ -7,7 +7,7 @@
 #define _STREAMTYPES_H
 
 #ifdef _MSC_VER
-#include "pstdint.h"
+#include "../ext_includes/pstdint.h"
 #define inline _inline
 #define strcasecmp _stricmp
 #define snprintf _snprintf
