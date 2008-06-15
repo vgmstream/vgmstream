@@ -1,5 +1,5 @@
 export SHELL = /bin/sh
-export CFLAGS=-Wall -ggdb
+export CFLAGS=-Wall -O3
 export LDFLAGS=-lm -L../src -lvgmstream -lvorbisfile
 export STRIP=strip
 
@@ -7,6 +7,7 @@ export STRIP=strip
 
 test: libvgmstream.a test.o
 	$(CC) test.o $(LDFLAGS) $(CFLAGS) -o test
+	$(STRIP) test
 
 test.o: test.c
 	$(CC) $(CFLAGS) -c "-DVERSION=\"`../version.sh`\"" test.c -o test.o
