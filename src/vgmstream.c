@@ -628,6 +628,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
 		case coding_EAXA:
             snprintf(temp,TEMPSIZE,"Electronic Arts XA Based 4-bit ADPCM");
             break;
+        case coding_ogg_vorbis:
+            snprintf(temp,TEMPSIZE,"Vorbis");
+            break;
         default:
             snprintf(temp,TEMPSIZE,"CANNOT DECODE");
     }
@@ -663,6 +666,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
 		case layout_caf_blocked:
             snprintf(temp,TEMPSIZE,"CAF blocked");
+            break;
+        case layout_ogg_vorbis:
+            snprintf(temp,TEMPSIZE,"Ogg");
             break;
         default:
             snprintf(temp,TEMPSIZE,"INCONCEIVABLE");
@@ -840,6 +846,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case meta_GENH:
             snprintf(temp,TEMPSIZE,"GENH Generic Header");
+            break;
+        case meta_ogg_vorbis:
+            snprintf(temp,TEMPSIZE,"Ogg Vorbis");
             break;
         default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");
