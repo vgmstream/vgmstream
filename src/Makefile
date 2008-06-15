@@ -7,7 +7,8 @@ CODING_OBJS=coding/adx_decoder.o \
     coding/pcm_decoder.o \
     coding/psx_decoder.o \
     coding/xa_decoder.o \
-    coding/eaxa_decoder.o
+    coding/eaxa_decoder.o \
+    coding/ogg_vorbis_decoder.o
 
 LAYOUT_OBJS=layout/ast_blocked.o \
     layout/blocked.o \
@@ -52,7 +53,8 @@ META_OBJS=meta/adx_header.o \
     meta/ea_header.o \
     meta/ngc_caf.o \
     meta/ps2_vpk.o \
-    meta/genh.o
+    meta/genh.o \
+    meta/ogg_vorbis_file.o
 
 OBJECTS=vgmstream.o streamfile.o util.o $(CODING_OBJS) $(LAYOUT_OBJS) $(META_OBJS)
 

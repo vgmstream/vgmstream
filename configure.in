@@ -19,6 +19,10 @@ PKG_CHECK_MODULES(AUDACIOUS, [audacious >= 1.4.0],,
         [AC_MSG_ERROR([Cannot find Audacious, have you installed audacious yet?])]
 )
 
+PKG_CHECK_MODULES(VORBISFILE, [vorbisfile],,
+        [AC_MSG_ERROR([Cannot find libvorbisfile])]
+)
+
 dnl Check for GTK/GLib/GThread/Pango
 
 PKG_CHECK_MODULES(GTK, [glib-2.0 >= 2.6.0 gtk+-2.0 >= 2.6.0 gthread-2.0 pango],
@@ -26,7 +30,7 @@ PKG_CHECK_MODULES(GTK, [glib-2.0 >= 2.6.0 gtk+-2.0 >= 2.6.0 gthread-2.0 pango],
 )
 
 CFLAGS="$CFLAGS $AUDACIOUS_CFLAGS"
-LIBS="$LIBS $AUDACIOUS_LIBS $GTK_LIBS"
+LIBS="$LIBS $AUDACIOUS_LIBS $GTK_LIBS $VORBISFILE_LIBS"
 
 plugindir=`pkg-config audacious --variable=plugin_dir`
 AC_SUBST(plugindir)

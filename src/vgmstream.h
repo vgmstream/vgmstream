@@ -5,8 +5,13 @@
 #ifndef _VGMSTREAM_H
 #define _VGMSTREAM_H
 
+#define VGM_USE_VORBIS
+
 #include "streamfile.h"
 #include "coding/g72x_state.h"
+#ifdef VGM_USE_VORBIS
+#include <vorbis/vorbisfile.h>
+#endif
 
 /* The encoding type specifies the format the sound data itself takes */
 typedef enum {
@@ -26,6 +31,9 @@ typedef enum {
 	coding_XA,				/* PSX CD-XA */
 	coding_XBOX,			/* XBOX IMA */
 	coding_EAXA,			/* EA/XA ADPCM */
+#ifdef VGM_USE_VORBIS
+    coding_ogg_vorbis,      /* vorbis */
+#endif
 } coding_t;
 
 /* The layout type specifies how the sound data is laid out in the file */
@@ -49,6 +57,9 @@ typedef enum {
 #endif
     /* otherwise odd */
     layout_dtk_interleave,  /* dtk interleaves channels by nibble */
+#ifdef VGM_USE_VORBIS
+    layout_ogg_vorbis,      /* ogg vorbis file */
+#endif
 } layout_t;
 
 /* The meta type specifies how we know what we know about the file. We may know because of a header we read, some of it may have been guessed from filenames, etc. */
@@ -117,6 +128,10 @@ typedef enum {
 	meta_RAW,				/* RAW PCM file */
 
     meta_GENH,              /* generic header */
+
+#ifdef VGM_USE_VORBIS
+    meta_ogg_vorbis,        /* ogg vorbis */
+#endif
 } meta_t;
 
 typedef struct {
@@ -198,7 +213,30 @@ typedef struct {
 	uint8_t	ea_platform;
 
     void * start_vgmstream;    /* a copy of the VGMSTREAM as it was at the beginning of the stream */
+
+    /* Data the codec needs for the whole stream. This is for codecs too
+     * different from vgmstream's structure to be reasonably shoehorned into
+     * using the ch structures.
+     * Note also that support must be added for resetting, looping and
+     * closing for every codec that uses this, as it will not be handled. */
+    void * codec_data;
 } VGMSTREAM;
+
+#ifdef VGM_USE_VORBIS
+typedef struct {
+    STREAMFILE *streamfile;
+    ogg_int64_t offset;
+    ogg_int64_t size;
+} ogg_vorbis_streamfile;
+
+typedef struct {
+    OggVorbis_File ogg_vorbis_file;
+    int bitstream;
+
+    ogg_vorbis_streamfile ov_streamfile;
+} ogg_vorbis_codec_data;
+#endif
+
 
 /* do format detection, return pointer to a usable VGMSTREAM, or NULL on failure */
 VGMSTREAM * init_vgmstream(const char * const filename);

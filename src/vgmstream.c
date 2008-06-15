@@ -55,6 +55,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_caf,
     init_vgmstream_ps2_vpk,
     init_vgmstream_genh,
+    init_vgmstream_ogg_vorbis,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -125,6 +126,16 @@ void reset_vgmstream(VGMSTREAM * vgmstream) {
      * init_vgmstream_* function doing something tricky and precomputing it.
      * Otherwise hit_loop will be 0 and it will be copied over anyway when we
      * really hit the loop start. */
+
+#ifdef VGM_USE_VORBIS
+    if (vgmstream->meta_type==meta_ogg_vorbis) {
+        ogg_vorbis_codec_data *data =
+            (ogg_vorbis_codec_data *)(vgmstream->codec_data);
+        OggVorbis_File *ogg_vorbis_file = &(data->ogg_vorbis_file);
+
+        ov_pcm_seek(ogg_vorbis_file, 0);
+    }
+#endif
 }
 
 /* simply allocate memory for the VGMSTREAM and its channels */
@@ -209,6 +220,23 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
     /* the start_vgmstream is considered just data */
     if (vgmstream->start_vgmstream) free(vgmstream->start_vgmstream);
 
+#ifdef VGM_USE_VORBIS
+    if (vgmstream->meta_type==meta_ogg_vorbis) {
+        ogg_vorbis_codec_data *data =
+            (ogg_vorbis_codec_data *)(vgmstream->codec_data);
+        if (vgmstream->codec_data) {
+            OggVorbis_File *ogg_vorbis_file = &(data->ogg_vorbis_file);
+
+
+            ov_clear(ogg_vorbis_file);
+
+            close_streamfile(data->ov_streamfile.streamfile);
+            free(vgmstream->codec_data);
+            vgmstream->codec_data = NULL;
+        }
+    }
+#endif
+
     free(vgmstream);
 }
 
@@ -224,6 +252,7 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
         case layout_interleave_shortblock:
             render_vgmstream_interleave(buffer,sample_count,vgmstream);
             break;
+        case layout_ogg_vorbis:
         case layout_dtk_interleave:
         case layout_none:
             render_vgmstream_nolayout(buffer,sample_count,vgmstream);
@@ -247,6 +276,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_PCM16LE:
         case coding_PCM16BE:
         case coding_PCM8:
+        case coding_ogg_vorbis:
             return 1;
         case coding_NDS_IMA:
             return (vgmstream->interleave_block_size-4)*2;
@@ -414,6 +444,13 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                         samples_to_do,chan);
             }
             break;
+#ifdef VGM_USE_VORBIS
+        case coding_ogg_vorbis:
+            decode_ogg_vorbis(vgmstream->codec_data,
+                    buffer+samples_written*vgmstream->channels,samples_to_do,
+                    vgmstream->channels);
+            break;
+#endif
     }
 }
 
@@ -477,6 +514,16 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream) {
                            vgmstream->ch[i].offset,
                            vgmstream->loop_ch[i].offset);
                }
+            }
+#endif
+
+#ifdef VGM_USE_VORBIS
+            if (vgmstream->meta_type==meta_ogg_vorbis) {
+                ogg_vorbis_codec_data *data =
+                    (ogg_vorbis_codec_data *)(vgmstream->codec_data);
+                OggVorbis_File *ogg_vorbis_file = &(data->ogg_vorbis_file);
+                
+                ov_pcm_seek_lap(ogg_vorbis_file, vgmstream->loop_sample);
             }
 #endif
             /* restore! */
