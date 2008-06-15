@@ -128,8 +128,6 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
     ovf = &data->ogg_vorbis_file;
     inited_ovf = 1;
 
-    /* don't know how to deal with multiple logical streams yet */
-    if (ov_streams(ovf) != 1) goto fail;
     data->bitstream = DEFAULT_BITSTREAM;
 
     info = ov_info(ovf,DEFAULT_BITSTREAM);
@@ -162,7 +160,10 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
     /* fill in the vital statistics */
     vgmstream->channels = info->channels;
     vgmstream->sample_rate = info->rate;
-    vgmstream->num_samples = ov_pcm_total(ovf,DEFAULT_BITSTREAM);
+
+    /* let's play the whole file */
+    vgmstream->num_samples = ov_pcm_total(ovf,-1);
+
     if (loop_flag) {
         vgmstream->loop_start_sample = loop_start;
         vgmstream->loop_end_sample = vgmstream->num_samples;
