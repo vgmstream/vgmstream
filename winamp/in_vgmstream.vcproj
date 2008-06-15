@@ -39,6 +39,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
+				AdditionalIncludeDirectories="../ext_includes"
 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;IN_VGMSTREAM_EXPORTS;"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -59,6 +60,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
+				AdditionalDependencies="../ext_libs/libvorbis.lib"
 				LinkIncremental="2"
 				GenerateDebugInformation="true"
 				SubSystem="2"
