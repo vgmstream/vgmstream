@@ -2,7 +2,7 @@ export SHELL = /bin/sh
 export DLLTOOL=i586-mingw32msvc-dlltool
 
 libvorbis.a: libvorbis.def
-	$(DLLTOOL) -d libvorbis.def --dllname libvorbis.dll -l libvorbis.a
+	$(DLLTOOL) -d libvorbis.def -l libvorbis.a
 
 clean:
 	rm -f libvorbis.a

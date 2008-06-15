@@ -1,4 +1,4 @@
-LIBRARY
+LIBRARY libvorbis.dll
 EXPORTS
 _analysis_output_always
 _floor_P
