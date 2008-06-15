@@ -75,7 +75,8 @@ typedef enum {
     meta_DSP_JETTERS,       /* Bomberman Jetters .dsp */
     meta_DSP_MSS,
     meta_DSP_GCM,
-	meta_DSP_STR,			/* Conan .str files */
+    meta_DSP_STR,			/* Conan .str files */
+    meta_DSP_SADB,          /* .sad */
 
     /* Nintendo */
     meta_STRM,              /* STRM */

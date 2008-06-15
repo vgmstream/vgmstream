@@ -58,6 +58,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 #ifdef VGM_USE_VORBIS
     init_vgmstream_ogg_vorbis,
 #endif
+    init_vgmstream_sadb,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -862,6 +863,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             snprintf(temp,TEMPSIZE,"Ogg Vorbis");
             break;
 #endif
+        case meta_DSP_SADB:
+            snprintf(temp,TEMPSIZE,"sadb header");
+            break;
         default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");
     }

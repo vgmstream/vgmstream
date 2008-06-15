@@ -85,4 +85,6 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile);
 VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile);
 #endif
 
+VGMSTREAM * init_vgmstream_sadb(STREAMFILE *streamFile);
+
 #endif
