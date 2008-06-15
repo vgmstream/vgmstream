@@ -82,7 +82,7 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
     vorbis_info *info;
 
     int loop_flag = 0;
-    int32_t loop_start;
+    int32_t loop_start = 0;
 
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
