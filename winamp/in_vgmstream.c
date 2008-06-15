@@ -116,6 +116,7 @@ char * extension_list[] = {
     "vpk\0VPK Audio File (*.VPK)\0",
     "genh\0GENH Audio File (*.GENH)\0",
     "logg\0LOGG Audio File (*.LOGG)\0",
+    "sad\0SAD Audio File (*.SAD)\0",
 };
 
 void about(HWND hwndParent) {
