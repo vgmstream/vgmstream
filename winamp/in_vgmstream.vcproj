@@ -60,7 +60,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="../ext_libs/vorbisfile.lib"
+				AdditionalDependencies="../ext_libs/libvorbis.lib"
 				LinkIncremental="2"
 				GenerateDebugInformation="true"
 				SubSystem="2"
@@ -133,7 +133,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="../ext_libs/vorbisfile.lib"
+				AdditionalDependencies="../ext_libs/libvorbis.lib"
 				LinkIncremental="2"
 				ModuleDefinitionFile=""
 				GenerateDebugInformation="true"

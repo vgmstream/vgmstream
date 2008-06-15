@@ -3,7 +3,7 @@ export CFLAGS=-Wall -O3
 export LDFLAGS=-lm -L../src -lvgmstream -lvorbisfile
 export STRIP=strip
 
-.PHONY: libvgmstream.a libvorbisfile.a
+.PHONY: libvgmstream.a
 
 test: libvgmstream.a test.o
 	$(CC) test.o $(LDFLAGS) $(CFLAGS) -o test
