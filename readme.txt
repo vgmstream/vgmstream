@@ -4,7 +4,19 @@ This is vgmstream, a library for playing streamed audio from video games.
 It is very much under development. There are two end-user bits, a command
 line decoder called "test", and a simple Winamp plugin called "in_vgmstream".
 
---- test ---
+--- needed files (for Windows)  ---
+Since Ogg Vorbis is now supported, you will need to have libvorbis.dll.
+I suggest this one:
+http://www.rarewares.org/files/ogg/libvorbis1.2.0.zip
+and the companion Intel math dll, if you need it:
+http://www.rarewares.org/files/libmmd9.1.zip
+
+Put libvorbis.dll and libmmd.dll somewhere Windows can find them. For
+in_vgmstream this means in the directory with winamp.exe, or in a system
+directory. For test.exe that means in this means in the same directory as
+test.exe, or in a system directory.
+
+--- test.exe ---
 Usage: test.exe [-o outfile.wav] [-l loop count]
     [-f fade time] [-d fade delay] [-ipPcmxeE] infile
 Options:
@@ -74,6 +86,7 @@ File types supported by this version of vgmstream:
 - .cfn (GC DSP ADPCM)
 - .vpk (PSX ADPCM)
 - .genh (PSX ADPCM, XBOX IMA ADPCM)
+- .ogg, .logg (Ogg Vorbis)
 
 Enjoy!
 -hcs
