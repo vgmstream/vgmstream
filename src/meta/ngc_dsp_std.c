@@ -612,6 +612,9 @@ VGMSTREAM * init_vgmstream_sadb(STREAMFILE *streamFile) {
     if (read_dsp_header(&ch0_header, 0x80, streamFile)) goto fail;
     if (read_dsp_header(&ch1_header, 0xe0, streamFile)) goto fail;
 
+    /* check header magic */
+    if (read_32bitBE(0x0,streamFile) != 0x73616462) goto fail; /* "sadb" */
+
     start_offset = read_32bitBE(0x48,streamFile);
     interleave = 16;
 
