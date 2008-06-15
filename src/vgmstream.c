@@ -55,7 +55,9 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_caf,
     init_vgmstream_ps2_vpk,
     init_vgmstream_genh,
+#ifdef VGM_USE_VORBIS
     init_vgmstream_ogg_vorbis,
+#endif
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -252,7 +254,9 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
         case layout_interleave_shortblock:
             render_vgmstream_interleave(buffer,sample_count,vgmstream);
             break;
+#ifdef VGM_USE_VORBIS
         case layout_ogg_vorbis:
+#endif
         case layout_dtk_interleave:
         case layout_none:
             render_vgmstream_nolayout(buffer,sample_count,vgmstream);
@@ -276,7 +280,9 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_PCM16LE:
         case coding_PCM16BE:
         case coding_PCM8:
+#ifdef VGM_USE_VORBIS
         case coding_ogg_vorbis:
+#endif
             return 1;
         case coding_NDS_IMA:
             return (vgmstream->interleave_block_size-4)*2;
@@ -628,9 +634,11 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
 		case coding_EAXA:
             snprintf(temp,TEMPSIZE,"Electronic Arts XA Based 4-bit ADPCM");
             break;
+#ifdef VGM_USE_VORBIS
         case coding_ogg_vorbis:
             snprintf(temp,TEMPSIZE,"Vorbis");
             break;
+#endif
         default:
             snprintf(temp,TEMPSIZE,"CANNOT DECODE");
     }
@@ -667,9 +675,11 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
 		case layout_caf_blocked:
             snprintf(temp,TEMPSIZE,"CAF blocked");
             break;
+#ifdef VGM_USE_VORBIS
         case layout_ogg_vorbis:
             snprintf(temp,TEMPSIZE,"Ogg");
             break;
+#endif
         default:
             snprintf(temp,TEMPSIZE,"INCONCEIVABLE");
     }
@@ -847,9 +857,11 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         case meta_GENH:
             snprintf(temp,TEMPSIZE,"GENH Generic Header");
             break;
+#ifdef VGM_USE_VORBIS
         case meta_ogg_vorbis:
             snprintf(temp,TEMPSIZE,"Ogg Vorbis");
             break;
+#endif
         default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");
     }
