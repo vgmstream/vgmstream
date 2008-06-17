@@ -33,6 +33,8 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
     /* 0 = PSX ADPCM */
     /* 1 = XBOX IMA ADPCM */
     /* 2 = NGC ADP/DTK ADPCM */
+    /* 3 = 16bit big endian PCM */
+    /* 4 = 16bit little endian PCM */
     /* ... others to come */
     switch (read_32bitLE(0x18,streamFile)) {
         case 0:
@@ -44,6 +46,12 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
         case 2:
             coding = coding_NGC_DTK;
             if (channel_count != 2) goto fail;
+            break;
+        case 3:
+            coding = coding_PCM16BE;
+            break;
+        case 4:
+            coding = coding_PCM16LE;
             break;
         default:
             goto fail;
@@ -114,6 +122,8 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
 
             switch (coding) {
                 case coding_PSX:
+                case coding_PCM16BE:
+                case coding_PCM16LE:
                     if (vgmstream->layout_type == layout_interleave) {
                         chstreamfile =
                             streamFile->open(streamFile,filename,interleave);
