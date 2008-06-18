@@ -91,6 +91,8 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
 
 	vgmstream->coding_type = coding;
     switch (coding) {
+        case coding_PCM16LE:
+        case coding_PCM16BE:
         case coding_PSX:
             vgmstream->interleave_block_size = interleave;
             if (channel_count > 1)
@@ -125,8 +127,14 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
                 case coding_PCM16BE:
                 case coding_PCM16LE:
                     if (vgmstream->layout_type == layout_interleave) {
-                        chstreamfile =
-                            streamFile->open(streamFile,filename,interleave);
+                        if (interleave >= 512) {
+                            chstreamfile =
+                                streamFile->open(streamFile,filename,interleave);
+                        } else {
+                            if (!chstreamfile)
+                                chstreamfile =
+                                    streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
+                        }
                         chstart_offset =
                             start_offset+vgmstream->interleave_block_size*i;
                     } else {
