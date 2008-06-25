@@ -27,6 +27,7 @@ VGMSTREAM * init_vgmstream_ps2_bmdx(STREAMFILE *streamFile) {
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
+
 	/* fill in the vital statistics */
 	vgmstream->channels = channel_count;
     vgmstream->sample_rate = read_32bitLE(0x18,streamFile);
@@ -52,8 +53,8 @@ VGMSTREAM * init_vgmstream_ps2_bmdx(STREAMFILE *streamFile) {
         for (i=0;i<channel_count;i++) {
             if (!vgmstream->ch[0].streamfile) {
                 vgmstream->ch[0].streamfile = streamFile->open(streamFile,filename,0x8000);
-                vgmstream->ch[i].streamfile = vgmstream->ch[0].streamfile;
             }
+            vgmstream->ch[i].streamfile = vgmstream->ch[0].streamfile;
 
             if (!vgmstream->ch[i].streamfile) goto fail;
 
@@ -62,6 +63,7 @@ VGMSTREAM * init_vgmstream_ps2_bmdx(STREAMFILE *streamFile) {
                 (off_t)(start_offset+vgmstream->interleave_block_size*i);
         }
     }
+    
 
     return vgmstream;
 
