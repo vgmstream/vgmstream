@@ -59,6 +59,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_ogg_vorbis,
 #endif
     init_vgmstream_sadb,
+    init_vgmstream_ps2_bmdx,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
