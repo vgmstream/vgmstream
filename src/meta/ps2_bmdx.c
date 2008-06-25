@@ -34,11 +34,11 @@ VGMSTREAM * init_vgmstream_ps2_bmdx(STREAMFILE *streamFile) {
 
 	/* Check for Compression Scheme */
 	vgmstream->coding_type = coding_PSX;
-    vgmstream->num_samples = read_32bitLE(0x0c,streamFile)*28/16;
+    vgmstream->num_samples = read_32bitLE(0x0c,streamFile)*28/16/channel_count;
 
 	/* Get loop point values */
 	if(vgmstream->loop_flag) {
-		vgmstream->loop_start_sample = read_32bitLE(0x10,streamFile)*28/16;
+		vgmstream->loop_start_sample = read_32bitLE(0x10,streamFile)*28/16/channel_count;
 		vgmstream->loop_end_sample = vgmstream->num_samples;
 	}
 
