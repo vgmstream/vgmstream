@@ -88,6 +88,7 @@ File types supported by this version of vgmstream:
 - .genh (PSX ADPCM, XBOX IMA ADPCM, GC DTK ADPCM)
 - .ogg, .logg (Ogg Vorbis)
 - .sad (GC DSP ADPCM)
+- .bmdx (PSX ADPCM)
 
 Enjoy!
 -hcs
