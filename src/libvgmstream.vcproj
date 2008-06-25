@@ -331,6 +331,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\ps2_bmdx.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\xbox_wavm.c"
 					>
 				</File>

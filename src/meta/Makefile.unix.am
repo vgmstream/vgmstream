@@ -4,6 +4,6 @@ AM_CFLAGS = -Wall @CFLAGS@ -I$(top_builddir) -I$(top_srcdir)
 AM_MAKEFLAGS=-f Makefile.unix
 
 libmeta_la_LDFLAGS = 
-libmeta_la_SOURCES = Cstr.c adx_header.c afc_header.c agsc.c ast.c brstm.c ea_header.c gcsw.c halpst.c nds_strm.c ngc_adpdtk.c ngc_caf.c ngc_dsp_std.c ps2_ads.c ps2_exst.c ps2_ild.c ps2_int.c ps2_mib.c ps2_mic.c ps2_npsf.c ps2_pnb.c ps2_rxw.c ps2_str.c ps2_svag.c ps2_vag.c ps2_vpk.c psx_cdxa.c raw.c rs03.c rsf.c rwsd.c psx_gms.c xbox_xwav.c xbox_wavm.c genh.c ogg_vorbis_file.c
+libmeta_la_SOURCES = Cstr.c adx_header.c afc_header.c agsc.c ast.c brstm.c ea_header.c gcsw.c halpst.c nds_strm.c ngc_adpdtk.c ngc_caf.c ngc_dsp_std.c ps2_ads.c ps2_exst.c ps2_ild.c ps2_int.c ps2_mib.c ps2_mic.c ps2_npsf.c ps2_pnb.c ps2_rxw.c ps2_str.c ps2_svag.c ps2_vag.c ps2_vpk.c psx_cdxa.c raw.c rs03.c rsf.c rwsd.c psx_gms.c xbox_xwav.c xbox_wavm.c genh.c ogg_vorbis_file.c ps2_bmdx.c
 
 EXTRA_DIST = meta.h

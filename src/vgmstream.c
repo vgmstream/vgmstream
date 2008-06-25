@@ -866,6 +866,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         case meta_DSP_SADB:
             snprintf(temp,TEMPSIZE,"sadb header");
             break;
+        case meta_PS2_BMDX:
+            snprintf(temp,TEMPSIZE,"Beatmania .bmdx header");
+            break;
         default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");
     }

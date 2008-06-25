@@ -54,7 +54,8 @@ META_OBJS=meta/adx_header.o \
     meta/ngc_caf.o \
     meta/ps2_vpk.o \
     meta/genh.o \
-    meta/ogg_vorbis_file.o
+    meta/ogg_vorbis_file.o \
+    meta/ps2_bmdx.o
 
 OBJECTS=vgmstream.o streamfile.o util.o $(CODING_OBJS) $(LAYOUT_OBJS) $(META_OBJS)
 
