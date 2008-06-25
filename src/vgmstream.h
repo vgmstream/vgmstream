@@ -28,6 +28,7 @@ typedef enum {
     coding_G721,            /* CCITT G.721 ADPCM */
     coding_NGC_AFC,         /* NGC ADPCM, called AFC */
 	coding_PSX,				/* PSX & PS2 ADPCM */
+    coding_invert_PSX,      /* PSX ADPCM with first byte of frame inverted */
 	coding_XA,				/* PSX CD-XA */
 	coding_XBOX,			/* XBOX IMA */
 	coding_EAXA,			/* EA/XA ADPCM */
