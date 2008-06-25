@@ -46,7 +46,7 @@ VGMSTREAM * init_vgmstream_ps2_bmdx(STREAMFILE *streamFile) {
     vgmstream->layout_type = layout_interleave;
     vgmstream->meta_type = meta_PS2_BMDX;
 
-	start_offset = read_32bitLE(0x0c,streamFile);
+	start_offset = read_32bitLE(0x08,streamFile);
 
     /* open the file for reading by each channel */
     {
