@@ -957,7 +957,8 @@ void try_dual_file_stereo(VGMSTREAM * opened_stream, STREAMFILE *streamFile) {
 #endif
 
     dual_stream = streamFile->open(streamFile,filename2,STREAMFILE_DEFAULT_BUFFER_SIZE);
-    // no need to check NULL here since init_vgmstream_internal does it at its beginning
+    if (!dual_stream) goto fail;
+
     new_stream = init_vgmstream_internal(dual_stream,
             0   /* don't do dual file on this, to prevent recursion */
             );
