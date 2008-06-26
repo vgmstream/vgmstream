@@ -62,9 +62,12 @@ void decode_invert_psx(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelsp
 	uint8_t flag;
 
 	int framesin = first_sample/28;
+    //int head = 0xff - read_8bit(stream->offset+framesin*16,stream->streamfile);
+    int head = 0xff ^ read_8bit(stream->offset+framesin*16,stream->streamfile);
+    //int head = read_8bit(stream->offset+framesin*16,stream->streamfile);
 
-	predict_nr = (read_8bit(stream->offset+framesin*16,stream->streamfile) ^ 0xff) >> 4;
-	shift_factor = (read_8bit(stream->offset+framesin*16,stream->streamfile) ^ 0xff )& 0xf;
+	predict_nr = ((head >> 4) & 0xf);
+	shift_factor = (head & 0xf);
 	flag = read_8bit(stream->offset+framesin*16+1,stream->streamfile);
 
 	first_sample = first_sample % 28;
