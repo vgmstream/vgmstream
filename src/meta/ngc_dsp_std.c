@@ -840,12 +840,12 @@ VGMSTREAM * init_vgmstream_wsi(STREAMFILE *streamFile) {
             for (i=0;i<16;i++) {
                 vgmstream->ch[j].adpcm_coef[i] = header[j].coef[i];
             }
-        }
 
-        /* initial history */
-        /* always 0 that I've ever seen, but for completeness... */
-        vgmstream->ch[j].adpcm_history1_16 = header[j].initial_hist1;
-        vgmstream->ch[j].adpcm_history2_16 = header[j].initial_hist2;
+            /* initial history */
+            /* always 0 that I've ever seen, but for completeness... */
+            vgmstream->ch[j].adpcm_history1_16 = header[j].initial_hist1;
+            vgmstream->ch[j].adpcm_history2_16 = header[j].initial_hist2;
+        }
     }
 
 
