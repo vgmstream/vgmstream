@@ -53,6 +53,7 @@ typedef enum {
 	layout_xa_blocked,
 	layout_ea_blocked,
 	layout_caf_blocked,
+    layout_wsi_blocked,
 #if 0
     layout_strm_blocked,    /* */
 #endif
@@ -78,6 +79,7 @@ typedef enum {
     meta_DSP_GCM,
     meta_DSP_STR,			/* Conan .str files */
     meta_DSP_SADB,          /* .sad */
+    meta_DSP_WSI,           /* .wsi */
 
     /* Nintendo */
     meta_STRM,              /* STRM */

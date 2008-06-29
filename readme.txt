@@ -89,6 +89,7 @@ File types supported by this version of vgmstream:
 - .ogg, .logg (Ogg Vorbis)
 - .sad (GC DSP ADPCM)
 - .bmdx (PSX ADPCM)
+- .wsi (Wii DSP ADPCM)
 
 Enjoy!
 -hcs

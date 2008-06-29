@@ -117,7 +117,8 @@ char * extension_list[] = {
     "genh\0GENH Audio File (*.GENH)\0",
     "logg\0LOGG Audio File (*.LOGG)\0",
     "sad\0SAD Audio File (*.SAD)\0",
-    "bmdx\0BMDX Audio File (*.BMDX)\n",
+    "bmdx\0BMDX Audio File (*.BMDX)\0",
+    "wsi\0WSI Audio File (*.WSI)\0",
 };
 
 void about(HWND hwndParent) {

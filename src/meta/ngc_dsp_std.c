@@ -1,4 +1,5 @@
 #include "meta.h"
+#include "../layout/layout.h"
 #include "../coding/coding.h"
 #include "../util.h"
 
@@ -692,6 +693,182 @@ VGMSTREAM * init_vgmstream_sadb(STREAMFILE *streamFile) {
         vgmstream->ch[i].channel_start_offset=
             vgmstream->ch[i].offset=start_offset+i*interleave;
     }
+
+    return vgmstream;
+
+fail:
+    /* clean up anything we may have opened */
+    if (vgmstream) close_vgmstream(vgmstream);
+    return NULL;
+}
+
+/* .wsi as found in Alone in the Dark for Wii */
+/* These appear to be standard .dsp, but interleaved in a blocked format */
+
+VGMSTREAM * init_vgmstream_wsi(STREAMFILE *streamFile) {
+    VGMSTREAM * vgmstream = NULL;
+    char filename[260];
+    struct dsp_header header[2];
+    off_t start_offset[2];
+
+    int channel_count;
+    size_t est_block_size = 0;
+
+    /* check extension, case insensitive */
+    streamFile->get_name(streamFile,filename,sizeof(filename));
+    if (strcasecmp("wsi",filename_extension(filename))) goto fail;
+
+    /* I don't know if this is actually the channel count, or a block type
+       for the first block. Won't know until I see a mono .wsi */
+    channel_count = read_32bitBE(0x04,streamFile);
+
+    /* I've only allocated two headers, and I want to be alerted if a mono
+      .wsi shows up */
+    if (channel_count != 2) goto fail;
+
+    /* check for consistent block headers */
+    {
+        off_t check_offset;
+        off_t block_size_has_been;
+        int i;
+       
+        check_offset = read_32bitBE(0x0,streamFile);
+        if (check_offset < 8) goto fail;
+
+        block_size_has_been = check_offset;
+
+        /* check 4 blocks, to get an idea */
+        for (i=0;i<4*channel_count;i++) {
+            off_t block_size;
+            block_size = read_32bitBE(check_offset,streamFile);
+
+            /* expect at least the block header */
+            if (block_size < 0x10) goto fail;
+
+            /* expect the channel numbers to alternate */
+            if (i%channel_count+1 != read_32bitBE(check_offset+8,streamFile)) goto fail;
+
+            /* expect every block in a set of channels to have the same size */
+            if (i%channel_count==0) block_size_has_been = block_size;
+            else if (block_size != block_size_has_been) goto fail;
+
+            /* get an estimate of block size for buffer sizing */
+            if (block_size > est_block_size) est_block_size = block_size;
+
+            check_offset += block_size;
+        }
+    }
+
+    /* look at DSP headers */
+
+    {
+        off_t check_offset;
+        int i;
+
+        check_offset = read_32bitBE(0x0,streamFile);
+
+        for (i=0;i<channel_count;i++) {
+            off_t block_size;
+
+            block_size = read_32bitBE(check_offset,streamFile);
+
+            /* make sure block is actually big enough to hold the dsp header
+               and beginning of first frame */
+            if (block_size < 0x61+0x10) goto fail;
+            if (read_dsp_header(&header[i], check_offset+0x10, streamFile)) goto fail;
+
+            start_offset[i] = check_offset + 0x60+0x10;
+
+            /* check initial predictor/scale */
+            if (header[i].initial_ps != (uint8_t)read_8bit(check_offset+0x60+0x10,streamFile))
+                goto fail;
+
+            /* check type==0 and gain==0 */
+            if (header[i].format || header[i].gain)
+                goto fail;
+
+#if 0
+            /* difficult to use this with blocks, but might be worth doing */
+            if (header[i].loop_flag) {
+                off_t loop_off;
+                /* check loop predictor/scale */
+                loop_off = header[i].loop_start_offset/16*8;
+                if (header[i].loop_ps != (uint8_t)read_8bit(start_offset+loop_off,streamFile))
+                    goto fail;
+            }
+#endif
+
+            check_offset += block_size;
+        }
+    } /* done looking at headers */
+
+    /* check for agreement (two channels only) */
+    if (
+            header[0].sample_count != header[1].sample_count ||
+            header[0].nibble_count != header[1].nibble_count ||
+            header[0].sample_rate != header[1].sample_rate ||
+            header[0].loop_flag != header[1].loop_flag ||
+            header[0].loop_start_offset != header[1].loop_start_offset ||
+            header[0].loop_end_offset != header[1].loop_end_offset
+       ) goto fail;
+
+
+    vgmstream = allocate_vgmstream(channel_count,header[0].loop_flag);
+    if (!vgmstream) goto fail;
+
+    /* fill in the vital statistics */
+    vgmstream->num_samples = header[0].sample_count;
+    vgmstream->sample_rate = header[0].sample_rate;
+
+    vgmstream->loop_start_sample = dsp_nibbles_to_samples(
+            header[0].loop_start_offset);
+    vgmstream->loop_end_sample =  dsp_nibbles_to_samples(
+            header[0].loop_end_offset)+1;
+
+    /* don't know why, but it does happen*/
+    if (vgmstream->loop_end_sample > vgmstream->num_samples)
+        vgmstream->loop_end_sample = vgmstream->num_samples;
+
+    vgmstream->coding_type = coding_NGC_DSP;
+    vgmstream->layout_type = layout_wsi_blocked;
+    vgmstream->meta_type = meta_DSP_WSI;
+
+    /* coeffs */
+    {
+        int i,j;
+        for (j=0;j<channel_count;j++) {
+            for (i=0;i<16;i++) {
+                vgmstream->ch[j].adpcm_coef[i] = header[j].coef[i];
+            }
+        }
+
+        /* initial history */
+        /* always 0 that I've ever seen, but for completeness... */
+        vgmstream->ch[j].adpcm_history1_16 = header[j].initial_hist1;
+        vgmstream->ch[j].adpcm_history2_16 = header[j].initial_hist2;
+    }
+
+
+    /* open the file for reading */
+    vgmstream->ch[0].streamfile = streamFile->open(streamFile,filename,est_block_size*4);
+
+    if (!vgmstream->ch[0].streamfile) goto fail;
+
+    wsi_block_update(read_32bitBE(0,streamFile),vgmstream);
+
+    {
+        int i;
+
+        for (i=0;i<channel_count;i++) {
+            vgmstream->ch[i].streamfile = vgmstream->ch[0].streamfile;
+            vgmstream->ch[i].channel_start_offset=
+                vgmstream->ch[i].offset=start_offset[i];
+        }
+
+    }
+
+    /* first block isn't full of musics */
+    vgmstream->current_block_size -= 0x60;
 
     return vgmstream;
 

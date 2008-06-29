@@ -17,7 +17,8 @@ LAYOUT_OBJS=layout/ast_blocked.o \
     layout/nolayout.o \
     layout/xa_blocked.o \
     layout/caf_blocked.o \
-    layout/ea_block.o
+    layout/ea_block.o \
+    layout/wsi_blocked.o
 
 META_OBJS=meta/adx_header.o \
     meta/afc_header.o \

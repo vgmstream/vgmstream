@@ -454,6 +454,10 @@
 					RelativePath=".\layout\xa_blocked.c"
 					>
 				</File>
+				<File
+					RelativePath=".\layout\wsi_blocked.c"
+					>
+				</File>
 			</Filter>
 		</Filter>
 	</Files>

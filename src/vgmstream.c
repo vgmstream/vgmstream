@@ -60,6 +60,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 #endif
     init_vgmstream_sadb,
     init_vgmstream_ps2_bmdx,
+    init_vgmstream_wsi,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -268,6 +269,7 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
 		case layout_xa_blocked:
 		case layout_ea_blocked:
 		case layout_caf_blocked:
+        case layout_wsi_blocked:
             render_vgmstream_blocked(buffer,sample_count,vgmstream);
             break;
     }
@@ -690,6 +692,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
 		case layout_caf_blocked:
             snprintf(temp,TEMPSIZE,"CAF blocked");
             break;
+        case layout_wsi_blocked:
+            snprintf(temp,TEMPSIZE,".wsi blocked");
+            break;
 #ifdef VGM_USE_VORBIS
         case layout_ogg_vorbis:
             snprintf(temp,TEMPSIZE,"Ogg");
@@ -882,6 +887,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case meta_PS2_BMDX:
             snprintf(temp,TEMPSIZE,"Beatmania .bmdx header");
+            break;
+        case meta_DSP_WSI:
+            snprintf(temp,TEMPSIZE,".wsi header");
             break;
         default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");
