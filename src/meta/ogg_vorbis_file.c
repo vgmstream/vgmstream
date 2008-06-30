@@ -144,9 +144,11 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
             if (strstr(comment->user_comments[i],"loop_start=")==
                     comment->user_comments[i] ||
                 strstr(comment->user_comments[i],"LOOP_START=")==
+                    comment->user_comments[i] ||
+                strstr(comment->user_comments[i],"COMMENT=LOOPPOINT=")==
                     comment->user_comments[i]
                     ) {
-                loop_start=atol(strchr(comment->user_comments[i],'=')+1);
+                loop_start=atol(strrchr(comment->user_comments[i],'=')+1);
                 loop_flag=1;
                 break;
             }
