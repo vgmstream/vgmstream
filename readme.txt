@@ -90,6 +90,7 @@ File types supported by this version of vgmstream:
 - .sad (GC DSP ADPCM)
 - .bmdx (PSX ADPCM)
 - .wsi (Wii DSP ADPCM)
+- .aifc (SDX2 DPCM)
 
 Enjoy!
 -hcs
