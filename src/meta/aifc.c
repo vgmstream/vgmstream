@@ -246,7 +246,6 @@ VGMSTREAM * init_vgmstream_aifc(STREAMFILE *streamFile) {
                  * will become apparent.
                  * We shouldn't have a loop point that overflows an int32_t
                  * anyway. */
-                printf("%d %d\n",loop_start,loop_end);
                 if (loop_start >= 0 && loop_end >= 0) loop_flag = 1;
                 if (loop_start==loop_end) loop_flag = 0;
             }
