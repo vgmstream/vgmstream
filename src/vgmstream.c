@@ -61,6 +61,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_sadb,
     init_vgmstream_ps2_bmdx,
     init_vgmstream_wsi,
+    init_vgmstream_aifc,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -287,6 +288,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
 #ifdef VGM_USE_VORBIS
         case coding_ogg_vorbis:
 #endif
+        case coding_SDX2:
             return 1;
         case coding_NDS_IMA:
             return (vgmstream->interleave_block_size-4)*2;
@@ -328,6 +330,7 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
         case coding_PCM16BE:
             return 2;
         case coding_PCM8:
+        case coding_SDX2:
             return 1;
         case coding_NDS_IMA:
             return vgmstream->interleave_block_size;
@@ -470,6 +473,13 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                     vgmstream->channels);
             break;
 #endif
+        case coding_SDX2:
+            for (chan=0;chan<vgmstream->channels;chan++) {
+                decode_sdx2(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                        vgmstream->channels,vgmstream->samples_into_block,
+                        samples_to_do);
+            }
+            break;
     }
 }
 
@@ -656,6 +666,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             snprintf(temp,TEMPSIZE,"Vorbis");
             break;
 #endif
+        case coding_SDX2:
+            snprintf(temp,TEMPSIZE,"Squareroot-delta-exact (SDX2) 8-bit DPCM");
+            break;
         default:
             snprintf(temp,TEMPSIZE,"CANNOT DECODE");
     }
@@ -890,6 +903,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case meta_DSP_WSI:
             snprintf(temp,TEMPSIZE,".wsi header");
+            break;
+        case meta_AIFC:
+            snprintf(temp,TEMPSIZE,"Audio Interchange File Format AIFF-C");
             break;
         default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

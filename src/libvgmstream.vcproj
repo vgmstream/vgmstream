@@ -342,6 +342,10 @@
 					RelativePath=".\meta\xbox_xwav.c"
 					>
 				</File>
+				<File
+					RelativePath=".\meta\aifc.c"
+					>
+				</File>
 			</Filter>
 		</Filter>
 		<Filter
@@ -404,6 +408,10 @@
 				</File>
 				<File
 					RelativePath=".\coding\xa_decoder.c"
+					>
+				</File>
+				<File
+					RelativePath=".\coding\sdx2_decoder.c"
 					>
 				</File>
 			</Filter>

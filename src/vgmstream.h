@@ -35,6 +35,7 @@ typedef enum {
 #ifdef VGM_USE_VORBIS
     coding_ogg_vorbis,      /* vorbis */
 #endif
+    coding_SDX2,            /* SDX2 2:1 Squareroot-Delta-Exact compression */
 } coding_t;
 
 /* The layout type specifies how the sound data is laid out in the file */
@@ -137,6 +138,8 @@ typedef enum {
 #ifdef VGM_USE_VORBIS
     meta_ogg_vorbis,        /* ogg vorbis */
 #endif
+
+    meta_AIFC,              /* Audio Interchange File Format AIFF-C */
 } meta_t;
 
 typedef struct {

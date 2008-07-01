@@ -119,6 +119,7 @@ char * extension_list[] = {
     "sad\0SAD Audio File (*.SAD)\0",
     "bmdx\0BMDX Audio File (*.BMDX)\0",
     "wsi\0WSI Audio File (*.WSI)\0",
+    "aifc\0AIFC Audio File (*.AIFC)\0",
 };
 
 void about(HWND hwndParent) {
