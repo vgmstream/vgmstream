@@ -3,6 +3,9 @@
 #include "../util.h"
 
 /* Audio Interchange File Format AIFF-C */
+/* also plain AIFF, for good measure */
+
+/* Included primarily for 3DO */
 
 /* for reading integers inexplicably packed into 80 bit floats */
 uint32_t read80bitSANE(off_t offset, STREAMFILE *streamFile) {
@@ -28,6 +31,28 @@ uint32_t read80bitSANE(off_t offset, STREAMFILE *streamFile) {
     return mantissa*((buf[0]&0x80)?-1:1);
 }
 
+uint32_t find_marker(STREAMFILE *streamFile, off_t MarkerChunkOffset,
+        int marker_id) {
+    uint16_t marker_count;
+    int i;
+    off_t marker_offset;
+
+    marker_count = read_16bitBE(MarkerChunkOffset+8,streamFile);
+    marker_offset = MarkerChunkOffset+10;
+    for (i=0;i<marker_count;i++) {
+        int name_length;
+        
+        if (read_16bitBE(marker_offset,streamFile) == marker_id)
+            return read_32bitBE(marker_offset+2,streamFile);
+
+        name_length = (uint8_t)read_8bit(marker_offset+6,streamFile) + 1;
+        if (name_length % 2) name_length++;
+        marker_offset += 6 + name_length;
+    }
+
+    return -1;
+}
+
 VGMSTREAM * init_vgmstream_aifc(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[260];
@@ -41,20 +66,55 @@ VGMSTREAM * init_vgmstream_aifc(STREAMFILE *streamFile) {
     off_t start_offset = -1;
     int interleave = -1;
 
+    int loop_flag = 0;
+    int32_t loop_start = -1;
+    int32_t loop_end = -1;
+
+    int AIFFext = 0;
+    int AIFCext = 0;
+    int AIFF = 0;
+    int AIFC = 0;
     int FormatVersionChunkFound = 0;
     int CommonChunkFound = 0;
     int SoundDataChunkFound = 0;
+    int MarkerChunkFound = 0;
+    off_t MarkerChunkOffset = -1;
+    int InstrumentChunkFound =0;
+    off_t InstrumentChunkOffset = -1;
 
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("aifc",filename_extension(filename)) &&
-        strcasecmp("afc",filename_extension(filename))) goto fail;
+    if (!strcasecmp("aifc",filename_extension(filename)) ||
+        !strcasecmp("afc",filename_extension(filename)) ||
+        !strcasecmp("aifcl",filename_extension(filename)))
+    {
+        AIFCext = 1;
+    }
+    else if (!strcasecmp("aiff",filename_extension(filename)) ||
+        !strcasecmp("aif",filename_extension(filename)) ||
+        !strcasecmp("aiffl",filename_extension(filename)))
+    {
+        AIFFext = 1;
+    }
+    else goto fail;
 
     /* check header */
-    if ((uint32_t)read_32bitBE(0,streamFile)!=0x464F524D || /* "FORM" */
-        (uint32_t)read_32bitBE(8,streamFile)!=0x41494643 || /* "AIFC" */
+    if ((uint32_t)read_32bitBE(0,streamFile)==0x464F524D &&  /* "FORM" */
         /* check that file = header (8) + data */
-        read_32bitBE(4,streamFile)+8!=get_streamfile_size(streamFile)) goto fail;
+        (uint32_t)read_32bitBE(4,streamFile)+8==get_streamfile_size(streamFile))
+    {
+        if ((uint32_t)read_32bitBE(8,streamFile)==0x41494643) /* "AIFC" */
+        {
+            if (!AIFCext) goto fail;
+            AIFC = 1;
+        }
+        else if ((uint32_t)read_32bitBE(8,streamFile)==0x41494646) /* "AIFF" */
+        {
+            if (!AIFFext) goto fail;
+            AIFF = 1;
+        }
+        else goto fail;
+    } else goto fail;
     
     file_size = get_streamfile_size(streamFile);
 
@@ -76,6 +136,8 @@ VGMSTREAM * init_vgmstream_aifc(STREAMFILE *streamFile) {
                 case 0x46564552:    /* FVER */
                     /* only one per file */
                     if (FormatVersionChunkFound) goto fail;
+                    /* plain AIFF shouldn't have */
+                    if (AIFF) goto fail;
                     FormatVersionChunkFound = 1;
 
                     /* specific size */
@@ -99,17 +161,34 @@ VGMSTREAM * init_vgmstream_aifc(STREAMFILE *streamFile) {
 
                     sample_rate = read80bitSANE(current_chunk+0x10,streamFile);
 
-                    switch (read_32bitBE(current_chunk+0x1a,streamFile)) {
-                        case 0x53445832:    /* SDX2 */
-                            coding_type = coding_SDX2;
-                            interleave = 1;
-                            break;
-                        default:
-                            /* we should probably support uncompressed here */
-                            goto fail;
+                    if (AIFC) {
+                        switch (read_32bitBE(current_chunk+0x1a,streamFile)) {
+                            case 0x53445832:    /* SDX2 */
+                                coding_type = coding_SDX2;
+                                interleave = 1;
+                                break;
+                            default:
+                                /* we should probably support uncompressed here */
+                                goto fail;
+                        }
+                    } else if (AIFF) {
+                        switch (sample_size) {
+                            case 8:
+                                coding_type = coding_PCM8;
+                                interleave = 1;
+                                break;
+                            case 16:
+                                coding_type = coding_PCM16BE;
+                                interleave = 2;
+                                break;
+                            /* 32 is a possibility, but we don't see it and I
+                             * don't have a reader for it yet */
+                            default:
+                                goto fail;
+                        }
                     }
                     
-                    /* we don't check the human-readable portion */
+                    /* we don't check the human-readable portion of AIFF-C*/
 
                     break;
                 case 0x53534E44:    /* SSND */
@@ -118,6 +197,16 @@ VGMSTREAM * init_vgmstream_aifc(STREAMFILE *streamFile) {
                     SoundDataChunkFound = 1;
 
                     start_offset = current_chunk + 16 + read_32bitBE(current_chunk+8,streamFile);
+                    break;
+                case 0x4D41524B:    /* MARK */
+                    if (MarkerChunkFound) goto fail;
+                    MarkerChunkFound = 1;
+                    MarkerChunkOffset = current_chunk;
+                    break;
+                case 0x494E5354:    /* INST */
+                    if (InstrumentChunkFound) goto fail;
+                    InstrumentChunkFound = 1;
+                    InstrumentChunkOffset = current_chunk;
                     break;
                 default:
                     /* spec says we can skip unrecognized chunks */
@@ -128,13 +217,43 @@ VGMSTREAM * init_vgmstream_aifc(STREAMFILE *streamFile) {
         }
     }
 
-    /* we require at least these */
-    if (!FormatVersionChunkFound || !CommonChunkFound || !SoundDataChunkFound)
-        goto fail;
+    if (AIFC) {
+        if (!FormatVersionChunkFound || !CommonChunkFound || !SoundDataChunkFound)
+            goto fail;
+    } else if (AIFF) {
+        if (!CommonChunkFound || !SoundDataChunkFound)
+            goto fail;
+    }
+
+    /* read loop points */
+    if (InstrumentChunkFound && MarkerChunkFound) {
+        int start_marker;
+        int end_marker;
+        /* use the sustain loop */
+        start_marker = read_16bitBE(InstrumentChunkOffset+18,streamFile);
+        end_marker = read_16bitBE(InstrumentChunkOffset+20,streamFile);
+        /* check for sustain markers != 0 (invalid marker no) */
+        /* There is a PlayMode flag, but 3DO games don't seem to use it */
+        if (start_marker && end_marker) {
+            /* find start marker */
+            loop_start = find_marker(streamFile,MarkerChunkOffset,start_marker);
+            loop_end = find_marker(streamFile,MarkerChunkOffset,end_marker);
+
+            /* find_marker is type uint32_t as the spec says that's the type
+             * of the position value, but it returns a -1 on error, and the
+             * loop_start and loop_end variables are int32_t, so the error
+             * will become apparent.
+             * We shouldn't have a loop point that overflows an int32_t
+             * anyway. */
+            printf("%d %d\n",loop_start,loop_end);
+            if (loop_start >= 0 && loop_end >= 0) loop_flag = 1;
+            if (loop_start==loop_end) loop_flag = 0;
+        }
+    }
 
     /* build the VGMSTREAM */
 
-    vgmstream = allocate_vgmstream(channel_count,0);
+    vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
     /* fill in the vital statistics */
@@ -144,7 +263,13 @@ VGMSTREAM * init_vgmstream_aifc(STREAMFILE *streamFile) {
     vgmstream->coding_type = coding_type;
     vgmstream->layout_type = layout_interleave;
     vgmstream->interleave_block_size = interleave;
-    vgmstream->meta_type = meta_AIFC;
+    vgmstream->loop_start_sample = loop_start;
+    vgmstream->loop_end_sample = loop_end;
+
+    if (AIFC)
+        vgmstream->meta_type = meta_AIFC;
+    else if (AIFF)
+        vgmstream->meta_type = meta_AIFF;
 
     /* open the file, set up each channel */
     {

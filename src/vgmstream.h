@@ -140,6 +140,7 @@ typedef enum {
 #endif
 
     meta_AIFC,              /* Audio Interchange File Format AIFF-C */
+    meta_AIFF,              /* Audio Interchange File Format */
 } meta_t;
 
 typedef struct {

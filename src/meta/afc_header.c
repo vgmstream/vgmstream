@@ -12,6 +12,10 @@ VGMSTREAM * init_vgmstream_afc(STREAMFILE *streamFile) {
     streamFile->get_name(streamFile,filename,sizeof(filename));
     if (strcasecmp("afc",filename_extension(filename))) goto fail;
 
+    /* don't grab AIFF-C with .afc extension */
+    if ((uint32_t)read_32bitBE(0x0,streamFile)==0x464F524D) /* FORM */
+        goto fail;
+
     /* we will get a sample rate, that's as close to checking as I think
      * we can get */
 

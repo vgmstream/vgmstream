@@ -907,6 +907,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         case meta_AIFC:
             snprintf(temp,TEMPSIZE,"Audio Interchange File Format AIFF-C");
             break;
+        case meta_AIFF:
+            snprintf(temp,TEMPSIZE,"Audio Interchange File Format");
+            break;
         default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");
     }
