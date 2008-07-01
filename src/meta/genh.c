@@ -36,6 +36,7 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
     /* 3 = 16bit big endian PCM */
     /* 4 = 16bit little endian PCM */
     /* 5 - 8bit PCM */
+    /* 6 - SDX2 */
     /* ... others to come */
     switch (read_32bitLE(0x18,streamFile)) {
         case 0:
@@ -56,6 +57,9 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
             break;
         case 5:
             coding = coding_PCM8;
+            break;
+        case 6:
+            coding = coding_SDX2;
             break;
         default:
             goto fail;
@@ -98,6 +102,7 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
         case coding_PCM16LE:
         case coding_PCM16BE:
         case coding_PCM8:
+        case coding_SDX2:
         case coding_PSX:
             vgmstream->interleave_block_size = interleave;
             if (channel_count > 1)
@@ -131,6 +136,7 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
                 case coding_PSX:
                 case coding_PCM16BE:
                 case coding_PCM16LE:
+                case coding_SDX2:
                 case coding_PCM8:
                     if (vgmstream->layout_type == layout_interleave) {
                         if (interleave >= 512) {
