@@ -230,24 +230,26 @@ VGMSTREAM * init_vgmstream_aifc(STREAMFILE *streamFile) {
         int start_marker;
         int end_marker;
         /* use the sustain loop */
-        start_marker = read_16bitBE(InstrumentChunkOffset+18,streamFile);
-        end_marker = read_16bitBE(InstrumentChunkOffset+20,streamFile);
-        /* check for sustain markers != 0 (invalid marker no) */
-        /* There is a PlayMode flag, but 3DO games don't seem to use it */
-        if (start_marker && end_marker) {
-            /* find start marker */
-            loop_start = find_marker(streamFile,MarkerChunkOffset,start_marker);
-            loop_end = find_marker(streamFile,MarkerChunkOffset,end_marker);
+        /* if playMode=ForwardLooping */
+        if (read_16bitBE(InstrumentChunkOffset+16,streamFile) == 1) {
+            start_marker = read_16bitBE(InstrumentChunkOffset+18,streamFile);
+            end_marker = read_16bitBE(InstrumentChunkOffset+20,streamFile);
+            /* check for sustain markers != 0 (invalid marker no) */
+            if (start_marker && end_marker) {
+                /* find start marker */
+                loop_start = find_marker(streamFile,MarkerChunkOffset,start_marker);
+                loop_end = find_marker(streamFile,MarkerChunkOffset,end_marker);
 
-            /* find_marker is type uint32_t as the spec says that's the type
-             * of the position value, but it returns a -1 on error, and the
-             * loop_start and loop_end variables are int32_t, so the error
-             * will become apparent.
-             * We shouldn't have a loop point that overflows an int32_t
-             * anyway. */
-            printf("%d %d\n",loop_start,loop_end);
-            if (loop_start >= 0 && loop_end >= 0) loop_flag = 1;
-            if (loop_start==loop_end) loop_flag = 0;
+                /* find_marker is type uint32_t as the spec says that's the type
+                 * of the position value, but it returns a -1 on error, and the
+                 * loop_start and loop_end variables are int32_t, so the error
+                 * will become apparent.
+                 * We shouldn't have a loop point that overflows an int32_t
+                 * anyway. */
+                printf("%d %d\n",loop_start,loop_end);
+                if (loop_start >= 0 && loop_end >= 0) loop_flag = 1;
+                if (loop_start==loop_end) loop_flag = 0;
+            }
         }
     }
 
