@@ -2,6 +2,10 @@
 #include <unistd.h>
 #include "../src/vgmstream.h"
 #include "../src/util.h"
+#ifdef WIN32
+#include <io.h>
+#include <fcntl.h>
+#endif
 
 #define BUFSIZE 4000
 
@@ -115,6 +119,13 @@ int main(int argc, char ** argv) {
         fprintf(stderr,"Are you sure you want to output wave data to the terminal?\nIf so use -P instead of -p.\n");
         return 1;
     }
+
+#ifdef WIN32
+    /* make stdout output work with windows */
+    if (play) {
+        _setmode(fileno(stdout),_O_BINARY);
+    }
+#endif
 
     if (ignore_loop && force_loop) {
         fprintf(stderr,"-e and -i are incompatible\n");
