@@ -85,12 +85,13 @@ File types supported by this version of vgmstream:
 - .sng, .asf, .str, .eam (EA/XA ADPCM or PSX ADPCM)
 - .cfn (GC DSP ADPCM)
 - .vpk (PSX ADPCM)
-- .genh (PSX ADPCM, XBOX IMA ADPCM, GC DTK ADPCM)
+- .genh (PSX ADPCM, XBOX IMA ADPCM, GC DTK ADPCM, 8/16 bit PCM, SDX2, DVI)
 - .ogg, .logg (Ogg Vorbis)
 - .sad (GC DSP ADPCM)
 - .bmdx (PSX ADPCM)
 - .wsi (Wii DSP ADPCM)
-- .aifc (SDX2 DPCM)
+- .aifc (SDX2 DPCM, DVI IMA ADPCM)
+- .aiff (8/16 bit PCM)
 
 Enjoy!
 -hcs
