@@ -92,6 +92,7 @@ File types supported by this version of vgmstream:
 - .wsi (Wii DSP ADPCM)
 - .aifc (SDX2 DPCM, DVI IMA ADPCM)
 - .aiff (8/16 bit PCM)
+- .str (SDX2 DPCM)
 
 Enjoy!
 -hcs

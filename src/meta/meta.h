@@ -93,4 +93,6 @@ VGMSTREAM * init_vgmstream_wsi(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_aifc(STREAMFILE * streamFile);
 
+VGMSTREAM * init_vgmstream_str_ctrl(STREAMFILE * streamFile);
+
 #endif

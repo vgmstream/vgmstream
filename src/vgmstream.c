@@ -62,6 +62,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_ps2_bmdx,
     init_vgmstream_wsi,
     init_vgmstream_aifc,
+    init_vgmstream_str_ctrl,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -271,6 +272,7 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
 		case layout_ea_blocked:
 		case layout_caf_blocked:
         case layout_wsi_blocked:
+        case layout_str_ctrl_blocked:
             render_vgmstream_blocked(buffer,sample_count,vgmstream);
             break;
     }
@@ -725,6 +727,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             snprintf(temp,TEMPSIZE,"Ogg");
             break;
 #endif
+        case layout_str_ctrl_blocked:
+            snprintf(temp,TEMPSIZE,".str CTRL blocked");
+            break;
         default:
             snprintf(temp,TEMPSIZE,"INCONCEIVABLE");
     }
@@ -921,6 +926,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case meta_AIFF:
             snprintf(temp,TEMPSIZE,"Audio Interchange File Format");
+            break;
+        case meta_STR_CTRL:
+            snprintf(temp,TEMPSIZE,".str CTRL SHDR chunk");
             break;
         default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

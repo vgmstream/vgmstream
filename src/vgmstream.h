@@ -56,6 +56,7 @@ typedef enum {
 	layout_ea_blocked,
 	layout_caf_blocked,
     layout_wsi_blocked,
+    layout_str_ctrl_blocked,
 #if 0
     layout_strm_blocked,    /* */
 #endif
@@ -142,6 +143,7 @@ typedef enum {
 
     meta_AIFC,              /* Audio Interchange File Format AIFF-C */
     meta_AIFF,              /* Audio Interchange File Format */
+    meta_STR_CTRL,          /* .str with CTRL header */
 } meta_t;
 
 typedef struct {

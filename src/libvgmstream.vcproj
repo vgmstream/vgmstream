@@ -346,6 +346,10 @@
 					RelativePath=".\meta\aifc.c"
 					>
 				</File>
+				<File
+					RelativePath=".\meta\str_ctrl.c"
+					>
+				</File>
 			</Filter>
 		</Filter>
 		<Filter
@@ -464,6 +468,10 @@
 				</File>
 				<File
 					RelativePath=".\layout\wsi_blocked.c"
+					>
+				</File>
+				<File
+					RelativePath=".\layout\str_ctrl_blocked.c"
 					>
 				</File>
 			</Filter>
