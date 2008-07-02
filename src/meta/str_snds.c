@@ -3,10 +3,11 @@
 #include "../layout/layout.h"
 #include "../util.h"
 
-/* 3DO format, .str extension and CTRL header, blocks and AIFF-C style
- * format specifier. Blocks are not IFF-compliant. */
+/* 3DO format, .str extension and possibly a CTRL header, blocks and
+ * AIFF-C style format specifier. Blocks are not IFF-compliant. Interesting
+ * blocks are all SNDS */
 
-VGMSTREAM * init_vgmstream_str_ctrl(STREAMFILE *streamFile) {
+VGMSTREAM * init_vgmstream_str_snds(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[260];
 
@@ -21,8 +22,9 @@ VGMSTREAM * init_vgmstream_str_ctrl(STREAMFILE *streamFile) {
     streamFile->get_name(streamFile,filename,sizeof(filename));
     if (strcasecmp("str",filename_extension(filename))) goto fail;
 
-    /* check for opening CTRL chunk */
-    if (read_32bitBE(0x0,streamFile) != 0x4354524c) /* CTRL */
+    /* check for opening CTRL or SNDS chunk */
+    if (read_32bitBE(0x0,streamFile) != 0x4354524c &&   /* CTRL */
+        read_32bitBE(0x0,streamFile) != 0x534e4453)     /* SNDS */
         goto fail;
 
     file_size = get_streamfile_size(streamFile);
@@ -31,7 +33,7 @@ VGMSTREAM * init_vgmstream_str_ctrl(STREAMFILE *streamFile) {
     {
         off_t current_chunk;
 
-        current_chunk = read_32bitBE(0x4,streamFile) + 0;
+        current_chunk = 0;
 
         while (!FoundSHDR && current_chunk < file_size) {
             if (current_chunk < 0) goto fail;
@@ -89,8 +91,8 @@ VGMSTREAM * init_vgmstream_str_ctrl(STREAMFILE *streamFile) {
         default:
             goto fail;
     }
-    vgmstream->layout_type = layout_str_ctrl_blocked;
-    vgmstream->meta_type = meta_STR_CTRL;
+    vgmstream->layout_type = layout_str_snds_blocked;
+    vgmstream->meta_type = meta_STR_SNDS;
 
     /* open the file for reading by each channel */
     {
@@ -104,7 +106,7 @@ VGMSTREAM * init_vgmstream_str_ctrl(STREAMFILE *streamFile) {
     }
 
     /* start me up */
-    str_ctrl_block_update(0,vgmstream);
+    str_snds_block_update(0,vgmstream);
 
     return vgmstream;
 

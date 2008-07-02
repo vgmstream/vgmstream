@@ -2,7 +2,7 @@
 #include "../vgmstream.h"
 
 /* set up for the block at the given offset */
-void str_ctrl_block_update(off_t block_offset, VGMSTREAM * vgmstream) {
+void str_snds_block_update(off_t block_offset, VGMSTREAM * vgmstream) {
     off_t current_chunk;
     size_t file_size;
     int i;

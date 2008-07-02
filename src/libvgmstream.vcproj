@@ -347,7 +347,7 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\str_ctrl.c"
+					RelativePath=".\meta\str_snds.c"
 					>
 				</File>
 			</Filter>
@@ -471,7 +471,7 @@
 					>
 				</File>
 				<File
-					RelativePath=".\layout\str_ctrl_blocked.c"
+					RelativePath=".\layout\str_snds_blocked.c"
 					>
 				</File>
 			</Filter>
