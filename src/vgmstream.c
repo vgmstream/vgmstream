@@ -295,6 +295,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_NGC_DTK:
             return 28;
         case coding_G721:
+        case coding_DVI_IMA:
             return 1;
         case coding_NGC_AFC:
             return 16;
@@ -336,6 +337,7 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
             return vgmstream->interleave_block_size;
         case coding_NGC_DTK:
             return 32;
+        case coding_DVI_IMA:
         case coding_G721:
             return 0;
         case coding_NGC_AFC:
@@ -476,6 +478,13 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
         case coding_SDX2:
             for (chan=0;chan<vgmstream->channels;chan++) {
                 decode_sdx2(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                        vgmstream->channels,vgmstream->samples_into_block,
+                        samples_to_do);
+            }
+            break;
+		case coding_DVI_IMA:
+            for (chan=0;chan<vgmstream->channels;chan++) {
+                decode_dvi_ima(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
                         samples_to_do);
             }
@@ -668,6 +677,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
 #endif
         case coding_SDX2:
             snprintf(temp,TEMPSIZE,"Squareroot-delta-exact (SDX2) 8-bit DPCM");
+            break;
+        case coding_DVI_IMA:
+            snprintf(temp,TEMPSIZE,"Intel DVI 4-bit IMA ADPCM");
             break;
         default:
             snprintf(temp,TEMPSIZE,"CANNOT DECODE");

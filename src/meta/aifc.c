@@ -167,6 +167,11 @@ VGMSTREAM * init_vgmstream_aifc(STREAMFILE *streamFile) {
                                 coding_type = coding_SDX2;
                                 interleave = 1;
                                 break;
+                            case 0x41445034:    /* ADP4 */
+                                coding_type = coding_DVI_IMA;
+                                /* don't know how stereo DVI is laid out */
+                                if (channel_count != 1) break;
+                                break;
                             default:
                                 /* we should probably support uncompressed here */
                                 goto fail;
@@ -262,7 +267,10 @@ VGMSTREAM * init_vgmstream_aifc(STREAMFILE *streamFile) {
     vgmstream->sample_rate = sample_rate;
 
     vgmstream->coding_type = coding_type;
-    vgmstream->layout_type = layout_interleave;
+    if (channel_count > 1)
+        vgmstream->layout_type = layout_interleave;
+    else
+        vgmstream->layout_type = layout_none;
     vgmstream->interleave_block_size = interleave;
     vgmstream->loop_start_sample = loop_start;
     vgmstream->loop_end_sample = loop_end;

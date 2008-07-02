@@ -36,6 +36,7 @@ typedef enum {
     coding_ogg_vorbis,      /* vorbis */
 #endif
     coding_SDX2,            /* SDX2 2:1 Squareroot-Delta-Exact compression */
+    coding_DVI_IMA,         /* DVI IMA, aka ADP4 */
 } coding_t;
 
 /* The layout type specifies how the sound data is laid out in the file */
