@@ -225,7 +225,10 @@ VGMSTREAM * init_vgmstream_ea(STREAMFILE *streamFile) {
 
 		do {
 			ea_block_update(vgmstream->next_block_offset,vgmstream);
-			vgmstream->num_samples+=(int32_t)vgmstream->current_block_size*28;		
+			if(vgmstream->coding_type==coding_PSX) 
+				vgmstream->num_samples+=(int32_t)vgmstream->current_block_size/16*28;		
+			else
+				vgmstream->num_samples+=(int32_t)vgmstream->current_block_size*28;
 		} while(vgmstream->next_block_offset<(off_t)(file_length-block_length));
 	}
 

@@ -27,22 +27,24 @@ void ea_block_update(off_t block_offset, VGMSTREAM * vgmstream) {
 			vgmstream->ch[i].offset=read_32bitBE(block_offset+0x0C+(i*4),vgmstream->ch[0].streamfile)+(4*vgmstream->channels);
 			vgmstream->ch[i].offset+=vgmstream->current_block_offset+0x0C;
 		}
+		vgmstream->current_block_size /= 28;
+
 	} else {
 		if(vgmstream->coding_type==coding_PSX) {
 			vgmstream->ch[0].offset=vgmstream->current_block_offset+0x10;
-			vgmstream->ch[1].offset=(read_32bitLE(block_offset+0x04,vgmstream->ch[0].streamfile)-0x10)/2;
+			vgmstream->ch[1].offset=(read_32bitLE(block_offset+0x04,vgmstream->ch[0].streamfile)-0x10)/vgmstream->channels;
 			vgmstream->ch[1].offset+=vgmstream->ch[0].offset;
-			vgmstream->current_block_size=read_32bitLE(block_offset+0x0C,vgmstream->ch[0].streamfile)*0x10;
+			vgmstream->current_block_size=read_32bitLE(block_offset+0x04,vgmstream->ch[0].streamfile)-0x10;
+			vgmstream->current_block_size/=vgmstream->channels;
 		}  else {
 			vgmstream->current_block_size = read_32bitLE(block_offset+8,vgmstream->ch[0].streamfile);
 			for(i=0;i<vgmstream->channels;i++) {
 				vgmstream->ch[i].offset=read_32bitLE(block_offset+0x0C+(i*4),vgmstream->ch[0].streamfile)+(4*vgmstream->channels);
 				vgmstream->ch[i].offset+=vgmstream->current_block_offset+0x0C;
 			}
+			vgmstream->current_block_size /= 28;
 		}
 	}
-
-	vgmstream->current_block_size /= 28;
 
 	if((vgmstream->ea_compression_version<3) && (vgmstream->coding_type!=coding_PSX)) {
 		for(i=0;i<vgmstream->channels;i++) {
@@ -56,5 +58,4 @@ void ea_block_update(off_t block_offset, VGMSTREAM * vgmstream) {
 			vgmstream->ch[i].offset+=4;
 		}
 	}
-
 }
