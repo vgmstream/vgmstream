@@ -14,6 +14,7 @@ typedef struct {
     char name[260];
 #ifdef PROFILE_STREAMFILE
     size_t bytes_read;
+    int error_count;
 #endif
 } STDIOSTREAMFILE;
 
@@ -59,6 +60,11 @@ static size_t read_the_rest(uint8_t * dest, off_t offset, size_t length, STDIOST
         streamfile->validsize=length_read;
 
 #ifdef PROFILE_STREAMFILE
+        if (ferror(streamfile->infile)) {
+            clearerr(streamfile->infile);
+            streamfile->error_count++;
+        }
+
         streamfile->bytes_read += length_read;
 #endif
 
@@ -117,6 +123,9 @@ static void get_name_stdio(STDIOSTREAMFILE *streamfile,char *buffer,size_t lengt
 static size_t get_bytes_read_stdio(STDIOSTREAMFILE *streamFile) {
     return streamFile->bytes_read;
 }
+static size_t get_error_count_stdio(STDIOSTREAMFILE *streamFile) {
+    return streamFile->error_count;
+}
 #endif
 
 static STREAMFILE *open_stdio(STDIOSTREAMFILE *streamFile,const char * const filename,size_t buffersize) {
@@ -166,6 +175,7 @@ static STREAMFILE * open_stdio_streamfile_buffer_by_FILE(FILE *infile,const char
     streamfile->sf.close = (void*)close_stdio;
 #ifdef PROFILE_STREAMFILE
     streamfile->sf.get_bytes_read = (void*)get_bytes_read_stdio;
+    streamfile->sf.get_error_count = (void*)get_error_count_stdio;
 #endif
 
     streamfile->infile = infile;

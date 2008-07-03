@@ -41,6 +41,8 @@ typedef struct _STREAMFILE {
     void (*close)(struct _STREAMFILE *);
 #ifdef PROFILE_STREAMFILE
     size_t (*get_bytes_read)(struct _STREAMFILE *);
+    int (*get_error_count)(struct _STREAMFILE *);
+
 #endif
 } STREAMFILE;
 
@@ -65,7 +67,18 @@ static inline size_t get_streamfile_size(STREAMFILE * streamfile) {
 #ifdef PROFILE_STREAMFILE
 /* return how many bytes we read into buffers */
 static inline size_t get_streamfile_bytes_read(STREAMFILE * streamfile) {
-    return streamfile->get_bytes_read(streamfile);
+    if (streamfile->get_bytes_read)
+        return streamfile->get_bytes_read(streamfile);
+    else
+        return 0;
+}
+
+/* return how many times we encountered a read error */
+static inline int get_streamfile_error_count(STREAMFILE * streamfile) {
+    if (streamfile->get_error_count)
+        return streamfile->get_error_count(streamfile);
+    else
+        return 0;
 }
 #endif
 

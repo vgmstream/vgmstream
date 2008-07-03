@@ -256,6 +256,7 @@ int main(int argc, char ** argv) {
         for (i=0;i<s->channels;i++) {
             size_t bytes_read = get_streamfile_bytes_read(s->ch[i].streamfile);
             size_t file_size = get_streamfile_size(s->ch[i].streamfile);
+            int error_count = get_streamfile_error_count(s->ch[i].streamfile);
             int already_reported = 0;
 
             /* see if we've reported this STREAMFILE already */
@@ -268,8 +269,8 @@ int main(int argc, char ** argv) {
             if (already_reported) continue;
 
             total_bytes_read += bytes_read;
-            fprintf(stderr,"ch%d: %lf%% (%d bytes read, file is %d bytes)\n",i,
-                    bytes_read*100.0/file_size,bytes_read,file_size);
+            fprintf(stderr,"ch%d: %lf%% (%d bytes read, file is %d bytes) %d errors\n",i,
+                    bytes_read*100.0/file_size,bytes_read,file_size,error_count);
         }
         fprintf(stderr,"total bytes read: %d\n",total_bytes_read);
     }
