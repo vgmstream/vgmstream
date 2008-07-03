@@ -64,6 +64,7 @@ VGMSTREAM * init_vgmstream_ws_aud(STREAMFILE *streamFile) {
 
     /* fill in the vital statistics */
     vgmstream->num_samples = read_32bitLE(0x06,streamFile)/bytes_per_sample/channel_count;
+    if (vgmstream->num_samples & 1) vgmstream->num_samples--;
     vgmstream->sample_rate = (uint16_t)read_16bitLE(0x00,streamFile);
 
     vgmstream->coding_type = coding_type;
