@@ -422,6 +422,10 @@
 					RelativePath=".\coding\sdx2_decoder.c"
 					>
 				</File>
+				<File
+					RelativePath=".\coding\ws_decoder.c"
+					>
+				</File>
 			</Filter>
 		</Filter>
 		<Filter

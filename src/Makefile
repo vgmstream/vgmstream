@@ -9,7 +9,8 @@ CODING_OBJS=coding/adx_decoder.o \
     coding/xa_decoder.o \
     coding/eaxa_decoder.o \
     coding/ogg_vorbis_decoder.o \
-    coding/sdx2_decoder.o
+    coding/sdx2_decoder.o \
+    coding/ws_decoder.o
 
 LAYOUT_OBJS=layout/ast_blocked.o \
     layout/blocked.o \

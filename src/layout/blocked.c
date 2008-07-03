@@ -80,6 +80,10 @@ void render_vgmstream_blocked(sample * buffer, int32_t sample_count, VGMSTREAM *
                     break;
             }
 
+            /* for VBR these may change */
+            frame_size = get_vgmstream_frame_size(vgmstream);
+            samples_per_frame = get_vgmstream_samples_per_frame(vgmstream);
+
             if (frame_size == 0) {
                 samples_this_block = vgmstream->current_block_size * 2 * samples_per_frame;
             } else {

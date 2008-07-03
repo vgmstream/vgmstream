@@ -312,6 +312,8 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
 			return 64;
 		case coding_EAXA:
 			return 28;
+        case coding_WS:
+            return vgmstream->ws_output_samples;
         default:
             return 0;
     }
@@ -357,6 +359,8 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
 			return 36;
 		case coding_EAXA:
 			return 1; // the frame is variant in size
+        case coding_WS:
+            return vgmstream->current_block_size;
         default:
             return 0;
     }
@@ -498,6 +502,13 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
 		case coding_IMA:
             for (chan=0;chan<vgmstream->channels;chan++) {
                 decode_ima(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                        vgmstream->channels,vgmstream->samples_into_block,
+                        samples_to_do);
+            }
+            break;
+        case coding_WS:
+            for (chan=0;chan<vgmstream->channels;chan++) {
+                decode_ws(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
                         samples_to_do);
             }
@@ -696,6 +707,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case coding_IMA:
             snprintf(temp,TEMPSIZE,"4-bit IMA ADPCM");
+            break;
+        case coding_WS:
+            snprintf(temp,TEMPSIZE,"Westwood Studios ADPCM");
             break;
         default:
             snprintf(temp,TEMPSIZE,"CANNOT DECODE");

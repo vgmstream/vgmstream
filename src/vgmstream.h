@@ -38,6 +38,7 @@ typedef enum {
     coding_SDX2,            /* SDX2 2:1 Squareroot-Delta-Exact compression */
     coding_DVI_IMA,         /* DVI (bare IMA, high nibble first), aka ADP4 */
     coding_IMA,             /* bare IMA, low nibble first */
+    coding_WS,              /* Westwood Studios' custom VBR ADPCM */
 } coding_t;
 
 /* The layout type specifies how the sound data is laid out in the file */
@@ -227,6 +228,8 @@ typedef struct {
 	uint8_t	ea_compression_type;		
 	uint8_t	ea_compression_version;	
 	uint8_t	ea_platform;
+
+    int32_t ws_output_samples;      /* output samples for this block */
 
     void * start_vgmstream;    /* a copy of the VGMSTREAM as it was at the beginning of the stream */
 
