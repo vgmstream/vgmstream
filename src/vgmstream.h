@@ -36,7 +36,8 @@ typedef enum {
     coding_ogg_vorbis,      /* vorbis */
 #endif
     coding_SDX2,            /* SDX2 2:1 Squareroot-Delta-Exact compression */
-    coding_DVI_IMA,         /* DVI IMA, aka ADP4 */
+    coding_DVI_IMA,         /* DVI (bare IMA, high nibble first), aka ADP4 */
+    coding_IMA,             /* bare IMA, low nibble first */
 } coding_t;
 
 /* The layout type specifies how the sound data is laid out in the file */
@@ -57,6 +58,7 @@ typedef enum {
 	layout_caf_blocked,
     layout_wsi_blocked,
     layout_str_snds_blocked,
+    layout_ws_aud_blocked,
 #if 0
     layout_strm_blocked,    /* */
 #endif
@@ -144,6 +146,8 @@ typedef enum {
     meta_AIFC,              /* Audio Interchange File Format AIFF-C */
     meta_AIFF,              /* Audio Interchange File Format */
     meta_STR_SNDS,          /* .str with SNDS blocks and SHDR header */
+    meta_WS_AUD,            /* Westwood Studios .aud */
+    meta_WS_AUD_old,        /* Westwood Studios .aud, old style */
 } meta_t;
 
 typedef struct {

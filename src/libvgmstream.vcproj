@@ -350,6 +350,10 @@
 					RelativePath=".\meta\str_snds.c"
 					>
 				</File>
+				<File
+					RelativePath=".\meta\ws_aud.c"
+					>
+				</File>
 			</Filter>
 		</Filter>
 		<Filter
@@ -472,6 +476,10 @@
 				</File>
 				<File
 					RelativePath=".\layout\str_snds_blocked.c"
+					>
+				</File>
+				<File
+					RelativePath=".\layout\ws_aud_blocked.c"
 					>
 				</File>
 			</Filter>

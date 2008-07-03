@@ -20,7 +20,8 @@ LAYOUT_OBJS=layout/ast_blocked.o \
     layout/caf_blocked.o \
     layout/ea_block.o \
     layout/wsi_blocked.o \
-    layout/str_snds_blocked.o
+    layout/str_snds_blocked.o \
+    layout/ws_aud_blocked.o
 
 META_OBJS=meta/adx_header.o \
     meta/afc_header.o \
@@ -60,7 +61,8 @@ META_OBJS=meta/adx_header.o \
     meta/ogg_vorbis_file.o \
     meta/ps2_bmdx.o \
     meta/aifc.o \
-    meta/str_snds.o
+    meta/str_snds.o \
+    meta/ws_aud.o
 
 OBJECTS=vgmstream.o streamfile.o util.o $(CODING_OBJS) $(LAYOUT_OBJS) $(META_OBJS)
 

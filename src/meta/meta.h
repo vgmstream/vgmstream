@@ -95,4 +95,6 @@ VGMSTREAM * init_vgmstream_aifc(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_str_snds(STREAMFILE * streamFile);
 
+VGMSTREAM * init_vgmstream_ws_aud(STREAMFILE * streamFile);
+
 #endif

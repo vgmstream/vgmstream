@@ -8,13 +8,23 @@ void render_vgmstream_blocked(sample * buffer, int32_t sample_count, VGMSTREAM *
     int samples_per_frame = get_vgmstream_samples_per_frame(vgmstream);
     int samples_this_block;
 
-    samples_this_block = vgmstream->current_block_size / frame_size * samples_per_frame;
+    if (frame_size == 0) {
+        /* assume 4 bit */
+        /* TODO: get_vgmstream_frame_size() really should return bits... */
+        samples_this_block = vgmstream->current_block_size * 2 * samples_per_frame;
+    } else {
+        samples_this_block = vgmstream->current_block_size / frame_size * samples_per_frame;
+    }
 
     while (samples_written<sample_count) {
         int samples_to_do; 
 
         if (vgmstream->loop_flag && vgmstream_do_loop(vgmstream)) {
-            samples_this_block = vgmstream->current_block_size / frame_size * samples_per_frame;
+            if (frame_size == 0) {
+                samples_this_block = vgmstream->current_block_size * 2 * samples_per_frame;
+            } else {
+                samples_this_block = vgmstream->current_block_size / frame_size * samples_per_frame;
+            }
             continue;
         }
 
@@ -63,11 +73,18 @@ void render_vgmstream_blocked(sample * buffer, int32_t sample_count, VGMSTREAM *
                 case layout_str_snds_blocked:
                     str_snds_block_update(vgmstream->next_block_offset,vgmstream);
                     break;
+                case layout_ws_aud_blocked:
+                    ws_aud_block_update(vgmstream->next_block_offset,vgmstream);
+                    break;
                 default:
                     break;
             }
 
-            samples_this_block = vgmstream->current_block_size / frame_size * samples_per_frame;
+            if (frame_size == 0) {
+                samples_this_block = vgmstream->current_block_size * 2 * samples_per_frame;
+            } else {
+                samples_this_block = vgmstream->current_block_size / frame_size * samples_per_frame;
+            }
             vgmstream->samples_into_block=0;
         }
 

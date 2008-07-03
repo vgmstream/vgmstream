@@ -63,6 +63,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_wsi,
     init_vgmstream_aifc,
     init_vgmstream_str_snds,
+    init_vgmstream_ws_aud,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -273,6 +274,7 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
 		case layout_caf_blocked:
         case layout_wsi_blocked:
         case layout_str_snds_blocked:
+        case layout_ws_aud_blocked:
             render_vgmstream_blocked(buffer,sample_count,vgmstream);
             break;
     }
@@ -298,6 +300,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
             return 28;
         case coding_G721:
         case coding_DVI_IMA:
+        case coding_IMA:
             return 1;
         case coding_NGC_AFC:
             return 16;
@@ -340,6 +343,7 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
         case coding_NGC_DTK:
             return 32;
         case coding_DVI_IMA:
+        case coding_IMA:
         case coding_G721:
             return 0;
         case coding_NGC_AFC:
@@ -487,6 +491,13 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
 		case coding_DVI_IMA:
             for (chan=0;chan<vgmstream->channels;chan++) {
                 decode_dvi_ima(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                        vgmstream->channels,vgmstream->samples_into_block,
+                        samples_to_do);
+            }
+            break;
+		case coding_IMA:
+            for (chan=0;chan<vgmstream->channels;chan++) {
+                decode_ima(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
                         samples_to_do);
             }
@@ -683,6 +694,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         case coding_DVI_IMA:
             snprintf(temp,TEMPSIZE,"Intel DVI 4-bit IMA ADPCM");
             break;
+        case coding_IMA:
+            snprintf(temp,TEMPSIZE,"4-bit IMA ADPCM");
+            break;
         default:
             snprintf(temp,TEMPSIZE,"CANNOT DECODE");
     }
@@ -729,6 +743,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
 #endif
         case layout_str_snds_blocked:
             snprintf(temp,TEMPSIZE,".str SNDS blocked");
+            break;
+        case layout_ws_aud_blocked:
+            snprintf(temp,TEMPSIZE,"Westwood Studios .aud blocked");
             break;
         default:
             snprintf(temp,TEMPSIZE,"INCONCEIVABLE");
@@ -929,6 +946,12 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case meta_STR_SNDS:
             snprintf(temp,TEMPSIZE,".str SNDS SHDR chunk");
+            break;
+        case meta_WS_AUD:
+            snprintf(temp,TEMPSIZE,"Westwood Studios .aud header");
+            break;
+        case meta_WS_AUD_old:
+            snprintf(temp,TEMPSIZE,"Westwood Studios .aud (old) header");
             break;
         default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");
