@@ -15,6 +15,7 @@ VGMSTREAM * init_vgmstream_str_snds(STREAMFILE *streamFile) {
     int loop_flag = 0;
     off_t SHDR_offset = -1;
     int FoundSHDR = 0;
+    int CTRL_size = -1;
 
     size_t file_size;
 
@@ -42,6 +43,10 @@ VGMSTREAM * init_vgmstream_str_snds(STREAMFILE *streamFile) {
                     file_size) goto fail;
 
             switch (read_32bitBE(current_chunk,streamFile)) {
+                case 0x4354524C: /* CTRL */
+                    /* to distinguish between styles */
+                    CTRL_size = read_32bitBE(current_chunk+4,streamFile);
+                    break;
                 case 0x534e4453: /* SNDS */
                     switch (read_32bitBE(current_chunk+16,streamFile)) {
                         case 0x53484452: /* SHDR */
@@ -73,16 +78,16 @@ VGMSTREAM * init_vgmstream_str_snds(STREAMFILE *streamFile) {
     if (!vgmstream) goto fail;
 
     /* fill in the vital statistics */
-    vgmstream->num_samples =
-        read_32bitBE(SHDR_offset+0x2c,streamFile) * /* frame count? */
-        read_32bitBE(SHDR_offset+0x18,streamFile);  /* frame size? */
-    vgmstream->sample_rate = read_32bitBE(SHDR_offset+0x1c,streamFile);
-    /* channels and loop flag are set by allocate_vgmstream */
-    if (loop_flag) {
-        vgmstream->loop_start_sample = 0;
-        vgmstream->loop_end_sample = vgmstream->num_samples;
+    if (CTRL_size == 0x1C) {
+        vgmstream->num_samples =
+            read_32bitBE(SHDR_offset+0x2c,streamFile)-1; /* sample count? */
+    } else {
+        vgmstream->num_samples =
+            read_32bitBE(SHDR_offset+0x2c,streamFile)   /* frame count? */
+            * 0x10;
     }
 
+    vgmstream->sample_rate = read_32bitBE(SHDR_offset+0x1c,streamFile);
     switch (read_32bitBE(SHDR_offset+0x24,streamFile)) {
         case 0x53445832:    /* SDX2 */
             vgmstream->coding_type = coding_SDX2;
@@ -93,6 +98,13 @@ VGMSTREAM * init_vgmstream_str_snds(STREAMFILE *streamFile) {
     }
     vgmstream->layout_type = layout_str_snds_blocked;
     vgmstream->meta_type = meta_STR_SNDS;
+
+    /* channels and loop flag are set by allocate_vgmstream */
+    if (loop_flag) {
+        /* just guessin', no way to set loop flag anyway */
+        vgmstream->loop_start_sample = 0;
+        vgmstream->loop_end_sample = vgmstream->num_samples;
+    }
 
     /* open the file for reading by each channel */
     {
