@@ -93,7 +93,7 @@ File types supported by this version of vgmstream:
 - .aifc (SDX2 DPCM, DVI IMA ADPCM)
 - .aiff (8/16 bit PCM)
 - .str (SDX2 DPCM)
-- .aud (IMA ADPCM)
+- .aud (IMA ADPCM, WS DPCM)
 
 Enjoy!
 -hcs
