@@ -156,6 +156,9 @@ typedef struct {
     off_t channel_start_offset; /* where data for this channel begins */
     off_t offset;           /* current location in the file */
 
+    off_t frame_header_offset;  /* offset of the current frame header (for WS) */
+    int samples_left_in_frame;  /* for WS */
+
     /* format specific */
 
     /* adpcm */
@@ -229,7 +232,7 @@ typedef struct {
 	uint8_t	ea_compression_version;	
 	uint8_t	ea_platform;
 
-    int32_t ws_output_samples;      /* output samples for this block */
+    int32_t ws_output_size;         /* output bytes for this block */
 
     void * start_vgmstream;    /* a copy of the VGMSTREAM as it was at the beginning of the stream */
 

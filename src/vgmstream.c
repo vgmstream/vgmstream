@@ -313,7 +313,9 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
 		case coding_EAXA:
 			return 28;
         case coding_WS:
-            return vgmstream->ws_output_samples;
+            /* only works if output sample size is 8 bit, which is always
+               is for WS ADPCM */
+            return vgmstream->ws_output_size;
         default:
             return 0;
     }
@@ -508,7 +510,7 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
             break;
         case coding_WS:
             for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_ws(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                decode_ws(vgmstream,chan,buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
                         samples_to_do);
             }
@@ -709,7 +711,7 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             snprintf(temp,TEMPSIZE,"4-bit IMA ADPCM");
             break;
         case coding_WS:
-            snprintf(temp,TEMPSIZE,"Westwood Studios ADPCM");
+            snprintf(temp,TEMPSIZE,"Westwood Studios DPCM");
             break;
         default:
             snprintf(temp,TEMPSIZE,"CANNOT DECODE");

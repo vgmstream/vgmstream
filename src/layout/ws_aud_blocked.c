@@ -12,8 +12,7 @@ void ws_aud_block_update(off_t block_offset, VGMSTREAM * vgmstream) {
         vgmstream->current_block_size + 8;
 
     if (vgmstream->coding_type == coding_WS) {
-        /* this only works if the output sample size is 8 bit */
-        vgmstream->ws_output_samples = read_16bitLE(
+        vgmstream->ws_output_size = read_16bitLE(
                 vgmstream->current_block_offset+2,
                 vgmstream->ch[0].streamfile);
     }
