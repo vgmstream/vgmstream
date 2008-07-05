@@ -354,6 +354,10 @@
 					RelativePath=".\meta\ws_aud.c"
 					>
 				</File>
+				<File
+					RelativePath=".\meta\ahx.c"
+					>
+				</File>
 			</Filter>
 		</Filter>
 		<Filter
@@ -424,6 +428,10 @@
 				</File>
 				<File
 					RelativePath=".\coding\ws_decoder.c"
+					>
+				</File>
+				<File
+					RelativePath=".\coding\mpeg_decoder.c"
 					>
 				</File>
 			</Filter>
