@@ -60,7 +60,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="../ext_libs/libvorbis.lib"
+				AdditionalDependencies="../ext_libs/libvorbis.lib ../ext_libs/libmpg123-0.lib"
 				LinkIncremental="2"
 				GenerateDebugInformation="true"
 				SubSystem="2"

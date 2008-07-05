@@ -717,15 +717,6 @@ EXPORT int mpg123_replace_buffer(mpg123_handle *mh, unsigned char *data, size_t 
  *  Use that to determine an appropriate minimum buffer size for decoding one frame. */
 EXPORT size_t mpg123_outblock(mpg123_handle *mh);
 
-/** Replace low-level stream access functions; read and lseek as known in POSIX.
- *  You can use this to make any fancy file opening/closing yourself, 
- *  using open_fd to set the file descriptor for your read/lseek (doesn't need to be a "real" file descriptor...).
- *  Setting a function to NULL means that the default internal read is 
- *  used (active from next mpg123_open call on). */
-EXPORT int mpg123_replace_reader( mpg123_handle *mh,
-                                  ssize_t (*r_read) (int, void *, size_t),
-                                  off_t   (*r_lseek)(int, off_t, int) );
-
 /* @} */
 
 
