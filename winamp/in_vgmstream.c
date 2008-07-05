@@ -121,6 +121,7 @@ char * extension_list[] = {
     "wsi\0WSI Audio File (*.WSI)\0",
     "aifc\0AIFC Audio File (*.AIFC)\0",
     "aud\0AUD Audio File (*.AUD)\0",
+    "ahx\0AHX Audio File (*.AHX)\0",
 };
 
 void about(HWND hwndParent) {

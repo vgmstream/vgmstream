@@ -4,5 +4,8 @@ export DLLTOOL=i586-mingw32msvc-dlltool
 libvorbis.a: libvorbis.def
 	$(DLLTOOL) -d libvorbis.def -l libvorbis.a
 
+libmpg123-0.a: libmpg123-0.def
+	$(DLLTOOL) -d libmpg123-0.def -l libmpg123-0.a
+
 clean:
-	rm -f libvorbis.a
+	rm -f libvorbis.a libmpg123-0.a

@@ -1,20 +1,23 @@
 vgmstream
 
 This is vgmstream, a library for playing streamed audio from video games.
-It is very much under development. There are two end-user bits, a command
+It is very much under development. There are two end-user bits: a command
 line decoder called "test", and a simple Winamp plugin called "in_vgmstream".
 
 --- needed files (for Windows)  ---
-Since Ogg Vorbis is now supported, you will need to have libvorbis.dll.
-I suggest this one:
+Since Ogg Vorbis and MPEG audio are now supported, you will need to have
+libvorbis.dll and libmpg123-0.dll.
+I suggest getting libvorbis.dll here:
 http://www.rarewares.org/files/ogg/libvorbis1.2.0.zip
-and the companion Intel math dll, if you need it:
+and the companion Intel math dll:
 http://www.rarewares.org/files/libmmd9.1.zip
+And libmpg123-0.dll from this archive:
+http://www.mpg123.de/download/win32/mpg123-1.4.3-x86.zip
 
-Put libvorbis.dll and libmmd.dll somewhere Windows can find them. For
-in_vgmstream this means in the directory with winamp.exe, or in a system
-directory. For test.exe that means in this means in the same directory as
-test.exe, or in a system directory.
+Put libvorbis.dll, libmmd.dll, and libmpg123-0.dll somewhere Windows can find
+them. For in_vgmstream this means in the directory with winamp.exe, or in a
+system directory. For test.exe this means in the same directory as test.exe,
+or in a system directory.
 
 --- test.exe ---
 Usage: test.exe [-o outfile.wav] [-l loop count]
@@ -94,6 +97,7 @@ File types supported by this version of vgmstream:
 - .aiff (8/16 bit PCM)
 - .str (SDX2 DPCM)
 - .aud (IMA ADPCM, WS DPCM)
+- .ahx (MPEG-2 Layer II)
 
 Enjoy!
 -hcs

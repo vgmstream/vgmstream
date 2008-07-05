@@ -1,13 +1,13 @@
 export SHELL = /bin/sh
 export CFLAGS=-Wall -O3 -I../ext_includes
-export LDFLAGS=-lm -L../src -L../ext_libs -lvgmstream -lvorbis
+export LDFLAGS=-lm -L../src -L../ext_libs -lvgmstream -lvorbis -lmpg123-0
 export CC=i586-mingw32msvc-gcc
 export AR=i586-mingw32msvc-ar
 export STRIP=i586-mingw32msvc-strip
 
-.PHONY: libvgmstream.a libvorbis.a
+.PHONY: libvgmstream.a libvorbis.a libmpg123-0.a
 
-test.exe: libvgmstream.a libvorbis.a
+test.exe: libvgmstream.a libvorbis.a libmpg123-0.a
 	$(CC) $(CFLAGS) "-DVERSION=\"`../version.sh`\"" test.c $(LDFLAGS) -o test.exe
 	$(STRIP) test.exe
 
@@ -15,6 +15,9 @@ libvgmstream.a:
 	$(MAKE) -C ../src $@
 
 libvorbis.a:
+	$(MAKE) -C ../ext_libs -f Makefile.mingw $@
+
+libmpg123-0.a:
 	$(MAKE) -C ../ext_libs -f Makefile.mingw $@
 
 clean:

@@ -97,4 +97,8 @@ VGMSTREAM * init_vgmstream_str_snds(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_ws_aud(STREAMFILE * streamFile);
 
+#ifdef VGM_USE_MPEG
+VGMSTREAM * init_vgmstream_ahx(STREAMFILE * streamFile);
+#endif
+
 #endif

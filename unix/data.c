@@ -63,6 +63,7 @@ gchar *vgmstream_exts [] = {
   "wsi",
   "aifc",
   "aud",
+  "ahx",
   /* terminator */
   NULL
 };

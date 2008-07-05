@@ -10,7 +10,8 @@ CODING_OBJS=coding/adx_decoder.o \
     coding/eaxa_decoder.o \
     coding/ogg_vorbis_decoder.o \
     coding/sdx2_decoder.o \
-    coding/ws_decoder.o
+    coding/ws_decoder.o \
+    coding/mpeg_decoder.o
 
 LAYOUT_OBJS=layout/ast_blocked.o \
     layout/blocked.o \
@@ -63,7 +64,8 @@ META_OBJS=meta/adx_header.o \
     meta/ps2_bmdx.o \
     meta/aifc.o \
     meta/str_snds.o \
-    meta/ws_aud.o
+    meta/ws_aud.o \
+    meta/ahx.o
 
 OBJECTS=vgmstream.o streamfile.o util.o $(CODING_OBJS) $(LAYOUT_OBJS) $(META_OBJS)
 

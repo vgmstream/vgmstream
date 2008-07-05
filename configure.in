@@ -23,6 +23,10 @@ PKG_CHECK_MODULES(VORBISFILE, [vorbisfile],,
         [AC_MSG_ERROR([Cannot find libvorbisfile])]
 )
 
+PKG_CHECK_MODULES(MPG123, [libmpg123],,
+        [AC_MSG_ERROR([Cannot find libmpg123])]
+)
+
 dnl Check for GTK/GLib/GThread/Pango
 
 PKG_CHECK_MODULES(GTK, [glib-2.0 >= 2.6.0 gtk+-2.0 >= 2.6.0 gthread-2.0 pango],
@@ -30,7 +34,7 @@ PKG_CHECK_MODULES(GTK, [glib-2.0 >= 2.6.0 gtk+-2.0 >= 2.6.0 gthread-2.0 pango],
 )
 
 CFLAGS="$CFLAGS $AUDACIOUS_CFLAGS"
-LIBS="$LIBS $AUDACIOUS_LIBS $GTK_LIBS $VORBISFILE_LIBS"
+LIBS="$LIBS $AUDACIOUS_LIBS $GTK_LIBS $VORBISFILE_LIBS $MPG123_LIBS"
 
 plugindir=`pkg-config audacious --variable=plugin_dir`
 AC_SUBST(plugindir)

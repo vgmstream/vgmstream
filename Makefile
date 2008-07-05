@@ -20,7 +20,7 @@ mingw_winamp:
 	$(MAKE) -C winamp in_vgmstream.dll
 
 clean:
-	rm -f vgmstream-*
+	rm -rf vgmstream-*
 	$(MAKE) -C test clean
 	$(MAKE) -C test -f Makefile.mingw clean
 	$(MAKE) -C winamp clean

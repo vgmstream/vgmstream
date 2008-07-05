@@ -10,7 +10,6 @@
 #include "layout/layout.h"
 #include "coding/coding.h"
 
-
 /*
  * List of functions that will recognize files. These should correspond pretty
  * directly to the metadata types
@@ -64,6 +63,9 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_aifc,
     init_vgmstream_str_snds,
     init_vgmstream_ws_aud,
+#ifdef VGM_USE_MPEG
+    init_vgmstream_ahx,
+#endif
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -137,11 +139,21 @@ void reset_vgmstream(VGMSTREAM * vgmstream) {
 
 #ifdef VGM_USE_VORBIS
     if (vgmstream->meta_type==meta_ogg_vorbis) {
-        ogg_vorbis_codec_data *data =
-            (ogg_vorbis_codec_data *)(vgmstream->codec_data);
+        ogg_vorbis_codec_data *data = vgmstream->codec_data;
+
         OggVorbis_File *ogg_vorbis_file = &(data->ogg_vorbis_file);
 
         ov_pcm_seek(ogg_vorbis_file, 0);
+    }
+#endif
+#ifdef VGM_USE_MPEG
+    if (vgmstream->coding_type==coding_fake_MPEG2_L2) {
+        off_t input_offset;
+        fake_mpeg2_l2_codec_data *data = vgmstream->codec_data;
+
+        /* input_offset is ignored as we can assume it will be 0 for a seek
+         * to sample 0 */
+        mpg123_feedseek(data->m,0,SEEK_SET,&input_offset);
     }
 #endif
 }
@@ -230,17 +242,32 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
 
 #ifdef VGM_USE_VORBIS
     if (vgmstream->meta_type==meta_ogg_vorbis) {
-        ogg_vorbis_codec_data *data =
-            (ogg_vorbis_codec_data *)(vgmstream->codec_data);
+        ogg_vorbis_codec_data *data = vgmstream->codec_data;
         if (vgmstream->codec_data) {
             OggVorbis_File *ogg_vorbis_file = &(data->ogg_vorbis_file);
-
 
             ov_clear(ogg_vorbis_file);
 
             close_streamfile(data->ov_streamfile.streamfile);
             free(vgmstream->codec_data);
             vgmstream->codec_data = NULL;
+        }
+    }
+#endif
+
+#ifdef VGM_USE_MPEG
+    if (vgmstream->coding_type==coding_fake_MPEG2_L2) {
+        fake_mpeg2_l2_codec_data *data = vgmstream->codec_data;
+
+        if (data) {
+            mpg123_delete(data->m);
+            free(vgmstream->codec_data);
+            vgmstream->codec_data = NULL;
+            /* The astute reader will note that a call to mpg123_exit is never
+             * make. While is is evilly breaking our contract with mpg123, it
+             * doesn't actually do anything except set the "initialized" flag
+             * to 0. And if we exit we run the risk of turning it off when
+             * someone else in another thread is using it. */
         }
     }
 #endif
@@ -262,6 +289,9 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
             break;
 #ifdef VGM_USE_VORBIS
         case layout_ogg_vorbis:
+#endif
+#ifdef VGM_USE_MPEG
+        case layout_fake_mpeg:
 #endif
         case layout_dtk_interleave:
         case layout_none:
@@ -291,6 +321,9 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_PCM8:
 #ifdef VGM_USE_VORBIS
         case coding_ogg_vorbis:
+#endif
+#ifdef VGM_USE_MPEG
+        case coding_fake_MPEG2_L2:
 #endif
         case coding_SDX2:
             return 1;
@@ -515,6 +548,16 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                         samples_to_do);
             }
             break;
+#ifdef VGM_USE_MPEG
+        case coding_fake_MPEG2_L2:
+            for (chan=0;chan<vgmstream->channels;chan++) {
+                decode_fake_mpeg2_l2(
+                        &vgmstream->ch[chan],
+                        vgmstream->codec_data,
+                        buffer+samples_written*vgmstream->channels,samples_to_do);
+            }
+            break;
+#endif
     }
 }
 
@@ -713,6 +756,11 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         case coding_WS:
             snprintf(temp,TEMPSIZE,"Westwood Studios DPCM");
             break;
+#ifdef VGM_USE_MPEG
+        case coding_fake_MPEG2_L2:
+            snprintf(temp,TEMPSIZE,"MPEG-2 Layer II Audio");
+            break;
+#endif
         default:
             snprintf(temp,TEMPSIZE,"CANNOT DECODE");
     }
@@ -763,6 +811,12 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         case layout_ws_aud_blocked:
             snprintf(temp,TEMPSIZE,"Westwood Studios .aud blocked");
             break;
+#ifdef VGM_USE_MPEG
+        case layout_fake_mpeg:
+            snprintf(temp,TEMPSIZE,"MPEG Audio stream with incorrect frame headers");
+            break;
+#endif
+
         default:
             snprintf(temp,TEMPSIZE,"INCONCEIVABLE");
     }
@@ -969,6 +1023,11 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         case meta_WS_AUD_old:
             snprintf(temp,TEMPSIZE,"Westwood Studios .aud (old) header");
             break;
+#ifdef VGM_USE_MPEG
+        case meta_AHX:
+            snprintf(temp,TEMPSIZE,"CRI AHX header");
+            break;
+#endif
         default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");
     }

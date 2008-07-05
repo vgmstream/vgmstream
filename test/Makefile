@@ -1,6 +1,6 @@
 export SHELL = /bin/sh
 export CFLAGS=-Wall -O3
-export LDFLAGS=-lm -L../src -lvgmstream -lvorbisfile
+export LDFLAGS=-lm -L../src -lvgmstream -lvorbisfile -lmpg123
 export STRIP=strip
 
 .PHONY: libvgmstream.a

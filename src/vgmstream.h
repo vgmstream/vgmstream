@@ -5,12 +5,20 @@
 #ifndef _VGMSTREAM_H
 #define _VGMSTREAM_H
 
+/* Vorbis and MPEG decoding are done by external libraries.
+ * If someone wants to do a standalone build, they can do it by simply
+ * removing these defines (and the references to the libraries in the
+ * Makefile) */
 #define VGM_USE_VORBIS
+#define VGM_USE_MPEG
 
 #include "streamfile.h"
 #include "coding/g72x_state.h"
 #ifdef VGM_USE_VORBIS
 #include <vorbis/vorbisfile.h>
+#endif
+#ifdef VGM_USE_MPEG
+#include <mpg123.h>
 #endif
 
 /* The encoding type specifies the format the sound data itself takes */
@@ -39,6 +47,9 @@ typedef enum {
     coding_DVI_IMA,         /* DVI (bare IMA, high nibble first), aka ADP4 */
     coding_IMA,             /* bare IMA, low nibble first */
     coding_WS,              /* Westwood Studios' custom VBR ADPCM */
+#ifdef VGM_USE_MPEG
+    coding_fake_MPEG2_L2,   /* MPEG-2 Level 2 (AHX), with lying headers */
+#endif
 } coding_t;
 
 /* The layout type specifies how the sound data is laid out in the file */
@@ -67,6 +78,9 @@ typedef enum {
     layout_dtk_interleave,  /* dtk interleaves channels by nibble */
 #ifdef VGM_USE_VORBIS
     layout_ogg_vorbis,      /* ogg vorbis file */
+#endif
+#ifdef VGM_USE_MPEG
+    layout_fake_mpeg,       /* MPEG audio stream with bad frame headers (AHX) */
 #endif
 } layout_t;
 
@@ -149,6 +163,9 @@ typedef enum {
     meta_STR_SNDS,          /* .str with SNDS blocks and SHDR header */
     meta_WS_AUD,            /* Westwood Studios .aud */
     meta_WS_AUD_old,        /* Westwood Studios .aud, old style */
+#ifdef VGM_USE_MPEG
+    meta_AHX,               /* CRI AHX header (same structure as ADX) */
+#endif
 } meta_t;
 
 typedef struct {
@@ -259,6 +276,15 @@ typedef struct {
 } ogg_vorbis_codec_data;
 #endif
 
+#ifdef VGM_USE_MPEG
+#define AHX_EXPECTED_FRAME_SIZE 0x414
+typedef struct {
+    uint8_t buffer[AHX_EXPECTED_FRAME_SIZE];
+    int buffer_used;
+    int buffer_full;
+    mpg123_handle *m;
+} fake_mpeg2_l2_codec_data;
+#endif
 
 /* do format detection, return pointer to a usable VGMSTREAM, or NULL on failure */
 VGMSTREAM * init_vgmstream(const char * const filename);

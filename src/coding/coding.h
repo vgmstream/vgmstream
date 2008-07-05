@@ -41,4 +41,10 @@ void decode_sdx2(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing,
 
 void decode_ws(VGMSTREAM * vgmstream, int channel, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
 
+#ifdef VGM_USE_MPEG
+void decode_fake_mpeg2_l2(VGMSTREAMCHANNEL * stream,
+        fake_mpeg2_l2_codec_data * data,
+        sample * outbuf, int32_t samples_to_do);
+#endif
+
 #endif
