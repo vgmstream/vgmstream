@@ -15,7 +15,7 @@ VGMSTREAM * init_vgmstream_ahx(STREAMFILE *streamFile) {
     char filename[260];
     int channel_count = 1;
     int loop_flag = 0;
-    fake_mpeg2_l2_codec_data *data = NULL;
+    mpeg_codec_data *data = NULL;
 
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
@@ -83,7 +83,7 @@ VGMSTREAM * init_vgmstream_ahx(STREAMFILE *streamFile) {
     /* ooh, fun part, set up mpg123 */
     {
         int rc;
-        data = calloc(1,sizeof(fake_mpeg2_l2_codec_data));
+        data = calloc(1,sizeof(mpeg_codec_data));
         if (!data) goto fail;
 
         data->m = mpg123_new(NULL,&rc);

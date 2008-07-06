@@ -9,7 +9,7 @@
 /* mono, mpg123 expects frames of 0x414 (160kbps, 22050Hz) but they
  * actually vary and are much shorter */
 void decode_fake_mpeg2_l2(VGMSTREAMCHANNEL *stream,
-        fake_mpeg2_l2_codec_data * data,
+        mpeg_codec_data * data,
         sample * outbuf, int32_t samples_to_do) {
     int samples_done = 0;
 
@@ -82,6 +82,47 @@ void decode_fake_mpeg2_l2(VGMSTREAMCHANNEL *stream,
         if (rc == MPG123_NEED_MORE) data->buffer_full = 0;
 
         samples_done += bytes_done/sizeof(sample);
+    }
+}
+
+/* decode anything mpg123 can */
+void decode_mpeg(VGMSTREAMCHANNEL *stream,
+        mpeg_codec_data * data,
+        sample * outbuf, int32_t samples_to_do, int channels) {
+    int samples_done = 0;
+
+    while (samples_done < samples_to_do) {
+        size_t bytes_done;
+        int rc;
+
+        if (!data->buffer_full) {
+            data->bytes_in_buffer = read_streamfile(data->buffer,
+                    stream->offset,MPEG_BUFFER_SIZE,stream->streamfile);
+
+            data->buffer_full = 1;
+            data->buffer_used = 0;
+
+            stream->offset += data->bytes_in_buffer;
+        }
+
+        if (!data->buffer_used) {
+            rc = mpg123_decode(data->m,
+                    data->buffer,data->bytes_in_buffer,
+                    (unsigned char *)(outbuf+samples_done*channels),
+                    (samples_to_do-samples_done)*sizeof(sample)*channels,
+                    &bytes_done);
+            data->buffer_used = 1;
+        } else {
+            rc = mpg123_decode(data->m,
+                    NULL,0,
+                    (unsigned char *)(outbuf+samples_done*channels),
+                    (samples_to_do-samples_done)*sizeof(sample)*channels,
+                    &bytes_done);
+        }
+
+        if (rc == MPG123_NEED_MORE) data->buffer_full = 0;
+
+        samples_done += bytes_done/sizeof(sample)/channels;
     }
 }
 

@@ -43,8 +43,11 @@ void decode_ws(VGMSTREAM * vgmstream, int channel, sample * outbuf, int channels
 
 #ifdef VGM_USE_MPEG
 void decode_fake_mpeg2_l2(VGMSTREAMCHANNEL * stream,
-        fake_mpeg2_l2_codec_data * data,
+        mpeg_codec_data * data,
         sample * outbuf, int32_t samples_to_do);
+void decode_mpeg(VGMSTREAMCHANNEL * stream,
+        mpeg_codec_data * data,
+        sample * outbuf, int32_t samples_to_do, int channels);
 #endif
 
 #endif

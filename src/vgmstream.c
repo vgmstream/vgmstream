@@ -150,9 +150,10 @@ void reset_vgmstream(VGMSTREAM * vgmstream) {
     }
 #endif
 #ifdef VGM_USE_MPEG
-    if (vgmstream->coding_type==coding_fake_MPEG2_L2) {
+    if (vgmstream->layout_type==layout_mpeg ||
+        vgmstream->layout_type==layout_fake_mpeg) {
         off_t input_offset;
-        fake_mpeg2_l2_codec_data *data = vgmstream->codec_data;
+        mpeg_codec_data *data = vgmstream->codec_data;
 
         /* input_offset is ignored as we can assume it will be 0 for a seek
          * to sample 0 */
@@ -260,15 +261,16 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
 #endif
 
 #ifdef VGM_USE_MPEG
-    if (vgmstream->coding_type==coding_fake_MPEG2_L2) {
-        fake_mpeg2_l2_codec_data *data = vgmstream->codec_data;
+    if (vgmstream->layout_type==layout_fake_mpeg||
+        vgmstream->layout_type==layout_mpeg) {
+        mpeg_codec_data *data = vgmstream->codec_data;
 
         if (data) {
             mpg123_delete(data->m);
             free(vgmstream->codec_data);
             vgmstream->codec_data = NULL;
             /* The astute reader will note that a call to mpg123_exit is never
-             * make. While is is evilly breaking our contract with mpg123, it
+             * made. While is is evilly breaking our contract with mpg123, it
              * doesn't actually do anything except set the "initialized" flag
              * to 0. And if we exit we run the risk of turning it off when
              * someone else in another thread is using it. */
@@ -296,6 +298,7 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
 #endif
 #ifdef VGM_USE_MPEG
         case layout_fake_mpeg:
+        case layout_mpeg:
 #endif
         case layout_dtk_interleave:
         case layout_none:
@@ -328,6 +331,15 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
 #endif
 #ifdef VGM_USE_MPEG
         case coding_fake_MPEG2_L2:
+        case coding_MPEG1_L1:
+        case coding_MPEG1_L2:
+        case coding_MPEG1_L3:
+        case coding_MPEG2_L1:
+        case coding_MPEG2_L2:
+        case coding_MPEG2_L3:
+        case coding_MPEG25_L1:
+        case coding_MPEG25_L2:
+        case coding_MPEG25_L3:
 #endif
         case coding_SDX2:
             return 1;
@@ -554,12 +566,25 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
             break;
 #ifdef VGM_USE_MPEG
         case coding_fake_MPEG2_L2:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_fake_mpeg2_l2(
-                        &vgmstream->ch[chan],
-                        vgmstream->codec_data,
-                        buffer+samples_written*vgmstream->channels,samples_to_do);
-            }
+            decode_fake_mpeg2_l2(
+                    &vgmstream->ch[0],
+                    vgmstream->codec_data,
+                    buffer+samples_written*vgmstream->channels,samples_to_do);
+            break;
+        case coding_MPEG1_L1:
+        case coding_MPEG1_L2:
+        case coding_MPEG1_L3:
+        case coding_MPEG2_L1:
+        case coding_MPEG2_L2:
+        case coding_MPEG2_L3:
+        case coding_MPEG25_L1:
+        case coding_MPEG25_L2:
+        case coding_MPEG25_L3:
+            decode_mpeg(
+                    &vgmstream->ch[0],
+                    vgmstream->codec_data,
+                    buffer+samples_written*vgmstream->channels,samples_to_do,
+                    vgmstream->channels);
             break;
 #endif
     }
@@ -636,6 +661,19 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream) {
                 OggVorbis_File *ogg_vorbis_file = &(data->ogg_vorbis_file);
                 
                 ov_pcm_seek_lap(ogg_vorbis_file, vgmstream->loop_sample);
+            }
+#endif
+#ifdef VGM_USE_MPEG
+            /* won't work for fake MPEG */
+            if (vgmstream->layout_type==layout_mpeg) {
+                off_t input_offset;
+                mpeg_codec_data *data = vgmstream->codec_data;
+
+                mpg123_feedseek(data->m,vgmstream->loop_sample,
+                        SEEK_SET,&input_offset);
+                vgmstream->ch[0].offset =
+                    vgmstream->ch[0].channel_start_offset + input_offset;
+                data->buffer_full = data->buffer_used = 0;
             }
 #endif
             /* restore! */
@@ -764,6 +802,33 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         case coding_fake_MPEG2_L2:
             snprintf(temp,TEMPSIZE,"MPEG-2 Layer II Audio");
             break;
+        case coding_MPEG1_L1:
+            snprintf(temp,TEMPSIZE,"MPEG-1 Layer I Audio");
+            break;
+        case coding_MPEG1_L2:
+            snprintf(temp,TEMPSIZE,"MPEG-1 Layer II Audio");
+            break;
+        case coding_MPEG1_L3:
+            snprintf(temp,TEMPSIZE,"MPEG-1 Layer III Audio (MP3)");
+            break;
+        case coding_MPEG2_L1:
+            snprintf(temp,TEMPSIZE,"MPEG-2 Layer I Audio");
+            break;
+        case coding_MPEG2_L2:
+            snprintf(temp,TEMPSIZE,"MPEG-2 Layer II Audio");
+            break;
+        case coding_MPEG2_L3:
+            snprintf(temp,TEMPSIZE,"MPEG-2 Layer III Audio (MP3)");
+            break;
+        case coding_MPEG25_L1:
+            snprintf(temp,TEMPSIZE,"MPEG-2.5 Layer I Audio");
+            break;
+        case coding_MPEG25_L2:
+            snprintf(temp,TEMPSIZE,"MPEG-2.5 Layer II Audio");
+            break;
+        case coding_MPEG25_L3:
+            snprintf(temp,TEMPSIZE,"MPEG-2.5 Layer III Audio (MP3)");
+            break;
 #endif
         default:
             snprintf(temp,TEMPSIZE,"CANNOT DECODE");
@@ -818,6 +883,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
 #ifdef VGM_USE_MPEG
         case layout_fake_mpeg:
             snprintf(temp,TEMPSIZE,"MPEG Audio stream with incorrect frame headers");
+            break;
+        case layout_mpeg:
+            snprintf(temp,TEMPSIZE,"MPEG Audio stream");
             break;
 #endif
 

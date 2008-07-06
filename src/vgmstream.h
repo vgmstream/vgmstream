@@ -48,7 +48,17 @@ typedef enum {
     coding_IMA,             /* bare IMA, low nibble first */
     coding_WS,              /* Westwood Studios' custom VBR ADPCM */
 #ifdef VGM_USE_MPEG
-    coding_fake_MPEG2_L2,   /* MPEG-2 Level 2 (AHX), with lying headers */
+    coding_fake_MPEG2_L2,   /* MPEG-2 Layer 2 (AHX), with lying headers */
+    /* I don't even know offhand if all these combinations exist... */
+    coding_MPEG1_L1,
+    coding_MPEG1_L2,
+    coding_MPEG1_L3,        /* good ol' MPEG-1 Layer 3 (MP3) */
+    coding_MPEG2_L1,
+    coding_MPEG2_L2,
+    coding_MPEG2_L3,
+    coding_MPEG25_L1,
+    coding_MPEG25_L2,
+    coding_MPEG25_L3,
 #endif
 } coding_t;
 
@@ -81,6 +91,7 @@ typedef enum {
 #endif
 #ifdef VGM_USE_MPEG
     layout_fake_mpeg,       /* MPEG audio stream with bad frame headers (AHX) */
+    layout_mpeg,            /* proper MPEG audio stream */
 #endif
 } layout_t;
 
@@ -281,12 +292,15 @@ typedef struct {
 
 #ifdef VGM_USE_MPEG
 #define AHX_EXPECTED_FRAME_SIZE 0x414
+/* MPEG_BUFFER_SIZE should be >= AHX_EXPECTED_FRAME_SIZE */
+#define MPEG_BUFFER_SIZE 0x1000
 typedef struct {
-    uint8_t buffer[AHX_EXPECTED_FRAME_SIZE];
+    uint8_t buffer[MPEG_BUFFER_SIZE];
     int buffer_used;
     int buffer_full;
+    size_t bytes_in_buffer;
     mpg123_handle *m;
-} fake_mpeg2_l2_codec_data;
+} mpeg_codec_data;
 #endif
 
 /* do format detection, return pointer to a usable VGMSTREAM, or NULL on failure */
