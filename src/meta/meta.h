@@ -81,6 +81,8 @@ VGMSTREAM * init_vgmstream_ps2_vpk(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile);
 
+VGMSTREAM * init_vgmstream_amts(STREAMFILE *streamFile);
+
 #ifdef VGM_USE_VORBIS
 VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile);
 #endif

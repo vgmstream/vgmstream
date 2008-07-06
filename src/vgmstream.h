@@ -100,6 +100,7 @@ typedef enum {
     meta_DSP_STR,			/* Conan .str files */
     meta_DSP_SADB,          /* .sad */
     meta_DSP_WSI,           /* .wsi */
+	meta_DSP_AMTS,			/* .amts */
 
     /* Nintendo */
     meta_STRM,              /* STRM */
