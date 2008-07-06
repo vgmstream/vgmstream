@@ -41,6 +41,9 @@ VGMSTREAM * init_vgmstream_pos(STREAMFILE *streamFile) {
     vgmstream = init_vgmstream_riff(streamFileWAV);
     if (!vgmstream) goto fail;
 
+    close_streamfile(streamFileWAV);
+    streamFileWAV = NULL;
+
     /* install loops */
     if (!vgmstream->loop_flag) {
         vgmstream->loop_flag = 1;
