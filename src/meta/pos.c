@@ -26,11 +26,16 @@ VGMSTREAM * init_vgmstream_pos(STREAMFILE *streamFile) {
 	/* check for .WAV file */
 	strcpy(filenameWAV,filename);
 	strcpy(filenameWAV+strlen(filenameWAV)-3,"wav");
-    for (i=strlen(filenameWAV);i>=0&&filenameWAV[i]!=DIRSEP;i--)
-        filenameWAV[i]=toupper(filenameWAV[i]);
 
 	streamFileWAV = streamFile->open(streamFile,filenameWAV,STREAMFILE_DEFAULT_BUFFER_SIZE);
-	if (!streamFileWAV) goto fail;
+	if (!streamFileWAV) {
+        /* try again, ucase */
+        for (i=strlen(filenameWAV);i>=0&&filenameWAV[i]!=DIRSEP;i--)
+            filenameWAV[i]=toupper(filenameWAV[i]);
+
+        streamFileWAV = streamFile->open(streamFile,filenameWAV,STREAMFILE_DEFAULT_BUFFER_SIZE);
+        if (!streamFileWAV) goto fail;
+    }
 
     /* let the real initer do the parsing */
     vgmstream = init_vgmstream_riff(streamFileWAV);
