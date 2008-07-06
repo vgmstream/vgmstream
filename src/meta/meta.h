@@ -105,4 +105,6 @@ VGMSTREAM * init_vgmstream_ahx(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_ivb(STREAMFILE * streamFile);
 
+VGMSTREAM * init_vgmstream_svs(STREAMFILE * streamFile);
+
 #endif

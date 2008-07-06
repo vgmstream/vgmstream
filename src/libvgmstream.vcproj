@@ -362,6 +362,10 @@
 					RelativePath=".\meta\ivb.c"
 					>
 				</File>
+				<File
+					RelativePath=".\meta\svs.c"
+					>
+				</File>
 			</Filter>
 		</Filter>
 		<Filter

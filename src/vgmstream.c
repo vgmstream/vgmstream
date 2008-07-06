@@ -68,6 +68,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 #endif
     init_vgmstream_ivb,
 	init_vgmstream_amts,
+    init_vgmstream_svs,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -1033,6 +1034,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
 #endif
         case meta_PS2_IVB:
             snprintf(temp,TEMPSIZE,"IVB/BVII header");
+            break;
+        case meta_PS2_SVS:
+            snprintf(temp,TEMPSIZE,"Square SVS header");
             break;
         default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

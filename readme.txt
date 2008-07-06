@@ -99,6 +99,8 @@ File types supported by this version of vgmstream:
 - .aud (IMA ADPCM, WS DPCM)
 - .ahx (MPEG-2 Layer II)
 - .ivb (PS2 ADPCM)
+- .amts (GC DSP ADPCM)
+- .svs (PS2 ADPCM)
 
 Enjoy!
 -hcs
