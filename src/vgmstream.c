@@ -154,6 +154,7 @@ void reset_vgmstream(VGMSTREAM * vgmstream) {
         /* input_offset is ignored as we can assume it will be 0 for a seek
          * to sample 0 */
         mpg123_feedseek(data->m,0,SEEK_SET,&input_offset);
+        data->buffer_full = data->buffer_used = 0;
     }
 #endif
 }
