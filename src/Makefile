@@ -67,7 +67,9 @@ META_OBJS=meta/adx_header.o \
     meta/ws_aud.o \
     meta/ahx.o \
     meta/ivb.o \
-    meta/svs.o
+    meta/svs.o \
+    meta/riff.o \
+    meta/pos.o
 
 OBJECTS=vgmstream.o streamfile.o util.o $(CODING_OBJS) $(LAYOUT_OBJS) $(META_OBJS)
 

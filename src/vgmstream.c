@@ -69,6 +69,8 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_ivb,
 	init_vgmstream_amts,
     init_vgmstream_svs,
+    init_vgmstream_riff,
+    init_vgmstream_pos,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -1105,6 +1107,12 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case meta_PS2_SVS:
             snprintf(temp,TEMPSIZE,"Square SVS header");
+            break;
+        case meta_RIFF_WAVE:
+            snprintf(temp,TEMPSIZE,"RIFF WAVE header");
+            break;
+        case meta_RIFF_WAVE_POS:
+            snprintf(temp,TEMPSIZE,"RIFF WAVE header and .pos for looping");
             break;
         default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

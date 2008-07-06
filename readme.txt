@@ -101,6 +101,8 @@ File types supported by this version of vgmstream:
 - .ivb (PS2 ADPCM)
 - .amts (GC DSP ADPCM)
 - .svs (PS2 ADPCM)
+- .wav (8/16 bit PCM)
+- .pos (8/16 bit PCM)
 
 Enjoy!
 -hcs

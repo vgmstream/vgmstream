@@ -180,6 +180,8 @@ typedef enum {
 #ifdef VGM_USE_MPEG
     meta_AHX,               /* CRI AHX header (same structure as ADX) */
 #endif
+    meta_RIFF_WAVE,         /* RIFF, for WAVs */
+    meta_RIFF_WAVE_POS,     /* .wav + .pos for looping */
 } meta_t;
 
 typedef struct {

@@ -366,6 +366,14 @@
 					RelativePath=".\meta\svs.c"
 					>
 				</File>
+				<File
+					RelativePath=".\meta\riff.c"
+					>
+				</File>
+				<File
+					RelativePath=".\meta\pos.c"
+					>
+				</File>
 			</Filter>
 		</Filter>
 		<Filter
