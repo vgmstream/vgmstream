@@ -101,4 +101,6 @@ VGMSTREAM * init_vgmstream_ws_aud(STREAMFILE * streamFile);
 VGMSTREAM * init_vgmstream_ahx(STREAMFILE * streamFile);
 #endif
 
+VGMSTREAM * init_vgmstream_ivb(STREAMFILE * streamFile);
+
 #endif

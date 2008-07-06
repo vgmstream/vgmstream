@@ -358,6 +358,10 @@
 					RelativePath=".\meta\ahx.c"
 					>
 				</File>
+				<File
+					RelativePath=".\meta\ivb.c"
+					>
+				</File>
 			</Filter>
 		</Filter>
 		<Filter

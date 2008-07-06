@@ -66,6 +66,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 #ifdef VGM_USE_MPEG
     init_vgmstream_ahx,
 #endif
+    init_vgmstream_ivb,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -1029,6 +1030,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             snprintf(temp,TEMPSIZE,"CRI AHX header");
             break;
 #endif
+        case meta_PS2_IVB:
+            snprintf(temp,TEMPSIZE,"IVB/BVII header");
+            break;
         default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");
     }
