@@ -33,8 +33,8 @@ VGMSTREAM * init_vgmstream_svs(STREAMFILE *streamFile) {
     vgmstream->coding_type = coding_PSX;
     vgmstream->num_samples = (get_streamfile_size(streamFile)-0x40)*28/16/channel_count;
     if (loop_flag) {
-        vgmstream->loop_start_sample = (read_32bitLE(0x08,streamFile)-2)*28;
-        vgmstream->loop_end_sample = (read_32bitLE(0x0c,streamFile)-2)*28;
+        vgmstream->loop_start_sample = (read_32bitLE(0x08,streamFile)-1)*28;
+        vgmstream->loop_end_sample = (read_32bitLE(0x0c,streamFile)-1)*28;
     }
 
     vgmstream->layout_type = layout_interleave;
