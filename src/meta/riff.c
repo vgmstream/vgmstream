@@ -111,7 +111,6 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
 
     /* build the VGMSTREAM */
 
-    printf("channel_count = %d, loop_flag = %d\n",channel_count,loop_flag);
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
