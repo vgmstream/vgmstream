@@ -83,6 +83,8 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
 
     int loop_flag = 0;
     int32_t loop_start = 0;
+    int loop_length_found = 0;
+    int32_t loop_length = 0;
 
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
@@ -146,10 +148,18 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
                 strstr(comment->user_comments[i],"LOOP_START=")==
                     comment->user_comments[i] ||
                 strstr(comment->user_comments[i],"COMMENT=LOOPPOINT=")==
+                    comment->user_comments[i] ||
+                strstr(comment->user_comments[i],"LOOPSTART=")==
                     comment->user_comments[i]
                     ) {
                 loop_start=atol(strrchr(comment->user_comments[i],'=')+1);
                 loop_flag=1;
+                break;
+            }
+            else if (strstr(comment->user_comments[i],"LOOPLENGTH=")==
+                    comment->user_comments[i]) {
+                loop_length=atol(strrchr(comment->user_comments[i],'=')+1);
+                loop_length_found=1;
                 break;
             }
         }
@@ -171,7 +181,10 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
 
     if (loop_flag) {
         vgmstream->loop_start_sample = loop_start;
-        vgmstream->loop_end_sample = vgmstream->num_samples;
+        if (loop_length_found)
+            vgmstream->loop_end_sample = loop_start+loop_length;
+        else
+            vgmstream->loop_end_sample = vgmstream->num_samples;
         vgmstream->loop_flag = loop_flag;
     }
     vgmstream->coding_type = coding_ogg_vorbis;
