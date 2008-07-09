@@ -154,13 +154,11 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
                     ) {
                 loop_start=atol(strrchr(comment->user_comments[i],'=')+1);
                 loop_flag=1;
-                break;
             }
             else if (strstr(comment->user_comments[i],"LOOPLENGTH=")==
                     comment->user_comments[i]) {
                 loop_length=atol(strrchr(comment->user_comments[i],'=')+1);
                 loop_length_found=1;
-                break;
             }
         }
     }
