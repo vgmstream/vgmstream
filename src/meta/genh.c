@@ -226,6 +226,8 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
             goto mpeg_fail;
         }
 
+        mpg123_param(data->m,MPG123_REMOVE_FLAGS,MPG123_GAPLESS,0.0);
+
         if (mpg123_open_feed(data->m)!=MPG123_OK) {
             goto mpeg_fail;
         }

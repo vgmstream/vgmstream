@@ -673,8 +673,8 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream) {
 
                 mpg123_feedseek(data->m,vgmstream->loop_sample,
                         SEEK_SET,&input_offset);
-                vgmstream->ch[0].offset =
-                    vgmstream->ch[0].channel_start_offset + input_offset;
+                vgmstream->loop_ch[0].offset =
+                    vgmstream->loop_ch[0].channel_start_offset + input_offset;
                 data->buffer_full = data->buffer_used = 0;
             }
 #endif
