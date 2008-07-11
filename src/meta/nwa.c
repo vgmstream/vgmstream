@@ -159,7 +159,7 @@ VGMSTREAM * init_vgmstream_nwa(STREAMFILE *streamFile) {
 
         if (!chstreamfile) goto fail;
 
-        for (i=0;i<2;i++) {
+        for (i=0;i<channel_count;i++) {
             vgmstream->ch[i].streamfile = chstreamfile;
 
             vgmstream->ch[i].channel_start_offset=
