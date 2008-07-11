@@ -1,5 +1,12 @@
 #include "meta.h"
 #include "../util.h"
+#include <string.h>
+
+#ifdef WIN32
+#define DIRSEP '\\'
+#else
+#define DIRSEP '/'
+#endif
 
 /* NWA - Visual Arts streams
  *
@@ -15,6 +22,9 @@ VGMSTREAM * init_vgmstream_nwa(STREAMFILE *streamFile) {
     char filename[260];
 	int i;
     int channel_count;
+    int loop_flag = 0;
+    int32_t loop_start_sample;
+    int ini_found = 0;
 
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
@@ -29,10 +39,82 @@ VGMSTREAM * init_vgmstream_nwa(STREAMFILE *streamFile) {
             read_32bitLE(0x24,streamFile)!=0     /* restsize */
        ) goto fail;
 
+    /* try to locate NWAINFO.INI in the same directory */
+    {
+        char ininame[260];
+        char * ini_lastslash;
+        char * namebase;
+        STREAMFILE *inistreamfile;
+
+        strncpy(ininame,filename,sizeof(ininame));
+        ininame[sizeof(ininame)-1]='\0';    /* a pox on the stdlib! */
+
+        ini_lastslash = strrchr(ininame,DIRSEP);
+        if (!ini_lastslash) {
+            strncpy(ininame,"NWAINFO.INI",sizeof(ininame));
+            namebase = filename;
+        } else {
+            strncpy(ini_lastslash+1,"NWAINFO.INI",
+                    sizeof(ininame)-(ini_lastslash+1-ininame));
+            namebase = ini_lastslash+1-ininame+filename;
+        }
+        ininame[sizeof(ininame)-1]='\0';    /* curse you, strncpy! */
+
+        inistreamfile = streamFile->open(streamFile,ininame,4096);
+
+        if (inistreamfile) {
+            /* ini found, try to find our name */
+            const char * ext;
+            int length;
+            int found;
+            off_t offset;
+            off_t file_size;
+            off_t found_off;
+
+            ini_found = 1;
+
+            ext = filename_extension(namebase);
+            length = ext-1-namebase;
+            file_size = get_streamfile_size(inistreamfile);
+
+            for (found = 0, offset = 0; !found && offset<file_size; offset++) {
+                off_t suboffset;
+                /* Go for an n*m search 'cause it's easier than building an
+                 * FSA for the search string. Just wanted to make the point that
+                 * I'm not ignorant, just lazy. */
+                for (suboffset = offset;
+                        suboffset<file_size &&
+                        suboffset-offset<length &&
+                        read_8bit(suboffset,inistreamfile)==
+                            namebase[suboffset-offset];
+                        suboffset++) {}
+
+                if (suboffset-offset==length &&
+                        read_8bit(suboffset,inistreamfile)==0x09) { /* tab */
+                    found=1;
+                    found_off = suboffset+1;
+                }
+            }
+
+            if (found) {
+                char loopstring[9]={0};
+
+                if (read_streamfile((uint8_t*)loopstring,found_off,8,
+                            inistreamfile)==8)
+                {
+                    loop_start_sample = atol(loopstring);
+                    if (loop_start_sample > 0) loop_flag = 1;
+                }
+            }   /* if found file name in INI */
+
+            close_streamfile(inistreamfile);
+        } /* if opened INI ok */
+    } /* INI block */
+
     channel_count = read_16bitLE(0x00,streamFile);
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,0);
+    vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
     /* fill in the vital statistics */
@@ -56,7 +138,17 @@ VGMSTREAM * init_vgmstream_nwa(STREAMFILE *streamFile) {
     } else {
         vgmstream->layout_type = layout_none;
     }
-    vgmstream->meta_type = meta_NWA;
+
+    if (ini_found) {
+        vgmstream->meta_type = meta_NWA_INI;
+    } else {
+        vgmstream->meta_type = meta_NWA;
+    }
+
+    if (loop_flag) {
+        vgmstream->loop_start_sample = loop_start_sample;
+        vgmstream->loop_end_sample = vgmstream->num_samples;
+    }
 
     /* open the file for reading by each channel */
     {
@@ -64,7 +156,7 @@ VGMSTREAM * init_vgmstream_nwa(STREAMFILE *streamFile) {
 
         /* have both channels use the same buffer, as interleave is so small */
         chstreamfile = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-        
+
         if (!chstreamfile) goto fail;
 
         for (i=0;i<2;i++) {

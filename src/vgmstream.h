@@ -183,6 +183,7 @@ typedef enum {
     meta_RIFF_WAVE,         /* RIFF, for WAVs */
     meta_RIFF_WAVE_POS,     /* .wav + .pos for looping */
     meta_NWA,               /* Visual Art's NWA */
+    meta_NWA_INI,           /* NWA w/ NWAINFO.INI for looping */
 } meta_t;
 
 typedef struct {
