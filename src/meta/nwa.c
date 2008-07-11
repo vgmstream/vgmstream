@@ -24,7 +24,9 @@ VGMSTREAM * init_vgmstream_nwa(STREAMFILE *streamFile) {
     int channel_count;
     int loop_flag = 0;
     int32_t loop_start_sample;
-    int ini_found = 0;
+    int32_t loop_end_sample;
+    int nwainfo_ini_found = 0;
+    int gameexe_ini_found = 0;
 
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
@@ -71,7 +73,7 @@ VGMSTREAM * init_vgmstream_nwa(STREAMFILE *streamFile) {
             off_t file_size;
             off_t found_off;
 
-            ini_found = 1;
+            nwainfo_ini_found = 1;
 
             ext = filename_extension(namebase);
             length = ext-1-namebase;
@@ -111,6 +113,100 @@ VGMSTREAM * init_vgmstream_nwa(STREAMFILE *streamFile) {
         } /* if opened INI ok */
     } /* INI block */
 
+    /* try to locate Gameexe.ini in the same directory */
+    {
+        char ininame[260];
+        char * ini_lastslash;
+        char * namebase;
+        STREAMFILE *inistreamfile;
+
+        strncpy(ininame,filename,sizeof(ininame));
+        ininame[sizeof(ininame)-1]='\0';    /* a pox on the stdlib! */
+
+        ini_lastslash = strrchr(ininame,DIRSEP);
+        if (!ini_lastslash) {
+            strncpy(ininame,"Gameexe.ini",sizeof(ininame));
+            namebase = filename;
+        } else {
+            strncpy(ini_lastslash+1,"Gameexe.ini",
+                    sizeof(ininame)-(ini_lastslash+1-ininame));
+            namebase = ini_lastslash+1-ininame+filename;
+        }
+        ininame[sizeof(ininame)-1]='\0';    /* curse you, strncpy! */
+
+        inistreamfile = streamFile->open(streamFile,ininame,4096);
+
+        if (inistreamfile) {
+            /* ini found, try to find our name */
+            const char * ext;
+            int length;
+            int found;
+            off_t offset;
+            off_t file_size;
+            off_t found_off;
+
+            gameexe_ini_found = 1;
+
+            ext = filename_extension(namebase);
+            length = ext-1-namebase;
+            file_size = get_streamfile_size(inistreamfile);
+
+            /* format of line is:
+             * #DSTRACK = 00000000 - eeeeeeee - ssssssss = "name"    = "name2?"
+             *                       ^22        ^33         ^45         ^57
+             */
+
+            for (found = 0, offset = 0; !found && offset<file_size; offset++) {
+                off_t suboffset;
+                uint8_t buf[10];
+
+                if (read_8bit(offset,inistreamfile)!='#') continue;
+                if (read_streamfile(buf,offset+1,10,inistreamfile)!=10) break;
+                if (memcmp("DSTRACK = ",buf,10)) continue;
+                if (read_8bit(offset+44,inistreamfile)!='\"') continue;
+
+                for (suboffset = offset+45;
+                        suboffset<file_size &&
+                        suboffset-offset-45<length &&
+                        read_8bit(suboffset,inistreamfile)==
+                            namebase[suboffset-offset-45];
+                        suboffset++) {}
+
+                if (suboffset-offset-45==length &&
+                        read_8bit(suboffset,inistreamfile)=='\"') { /* tab */
+                    found=1;
+                    found_off = offset+22; /* loop end */
+                }
+            }
+
+            if (found) {
+                char loopstring[9]={0};
+                int start_ok = 0, end_ok = 0;
+
+                printf("found!\n");
+
+                if (read_streamfile((uint8_t*)loopstring,found_off,8,
+                            inistreamfile)==8 &&
+                    memcmp("99999999",loopstring,8))
+                {
+                    loop_end_sample = atol(loopstring);
+                    end_ok = 1;
+                }
+                if (read_streamfile((uint8_t*)loopstring,found_off+11,8,
+                            inistreamfile)==8 &&
+                    memcmp("99999999",loopstring,8))
+                {
+                    loop_start_sample = atol(loopstring);
+                    start_ok = 1;
+                }
+
+                if (start_ok && end_ok) loop_flag = 1;
+            }   /* if found file name in INI */
+
+            close_streamfile(inistreamfile);
+        } /* if opened INI ok */
+    } /* INI block */
+
     channel_count = read_16bitLE(0x00,streamFile);
 
     /* build the VGMSTREAM */
@@ -139,16 +235,22 @@ VGMSTREAM * init_vgmstream_nwa(STREAMFILE *streamFile) {
         vgmstream->layout_type = layout_none;
     }
 
-    if (ini_found) {
-        vgmstream->meta_type = meta_NWA_INI;
+    if (nwainfo_ini_found) {
+        vgmstream->meta_type = meta_NWA_NWAINFOINI;
+        if (loop_flag) {
+            vgmstream->loop_start_sample = loop_start_sample;
+            vgmstream->loop_end_sample = vgmstream->num_samples;
+        }
+    } else if (gameexe_ini_found) {
+        vgmstream->meta_type = meta_NWA_GAMEEXEINI;
+        if (loop_flag) {
+            vgmstream->loop_start_sample = loop_start_sample;
+            vgmstream->loop_end_sample = loop_end_sample;
+        }
     } else {
         vgmstream->meta_type = meta_NWA;
     }
 
-    if (loop_flag) {
-        vgmstream->loop_start_sample = loop_start_sample;
-        vgmstream->loop_end_sample = vgmstream->num_samples;
-    }
 
     /* open the file for reading by each channel */
     {

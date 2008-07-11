@@ -1118,8 +1118,11 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         case meta_NWA:
             snprintf(temp,TEMPSIZE,"Visual Art's NWA header");
             break;
-        case meta_NWA_INI:
+        case meta_NWA_NWAINFOINI:
             snprintf(temp,TEMPSIZE,"Visual Art's NWA header and NWAINFO.INI for looping");
+            break;
+        case meta_NWA_GAMEEXEINI:
+            snprintf(temp,TEMPSIZE,"Visual Art's NWA header and Gameexe.ini for looping");
             break;
         default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");
