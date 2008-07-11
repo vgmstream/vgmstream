@@ -103,6 +103,7 @@ File types supported by this version of vgmstream:
 - .svs (PS2 ADPCM)
 - .wav (8/16 bit PCM)
 - .pos (8/16 bit PCM)
+- .nwa (16 bit PCM)
 
 Enjoy!
 -hcs

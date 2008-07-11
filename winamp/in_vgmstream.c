@@ -126,6 +126,7 @@ char * extension_list[] = {
 	"amts\0AMTS Audio File (*.AMTS)\0",
     "svs\0SVS Audio File (*.SVS)\0",
     "pos\0POS Audio File (*.POS)\0",
+    "nwa\0NWA Audio File (*.NWA)\0",
 };
 
 void about(HWND hwndParent) {

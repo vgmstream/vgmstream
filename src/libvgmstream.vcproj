@@ -374,6 +374,10 @@
 					RelativePath=".\meta\pos.c"
 					>
 				</File>
+				<File
+					RelativePath=".\meta\nwa.c"
+					>
+				</File>
 			</Filter>
 		</Filter>
 		<Filter

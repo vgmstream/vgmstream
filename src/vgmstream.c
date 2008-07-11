@@ -71,6 +71,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_svs,
     init_vgmstream_riff,
     init_vgmstream_pos,
+    init_vgmstream_nwa,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -1113,6 +1114,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case meta_RIFF_WAVE_POS:
             snprintf(temp,TEMPSIZE,"RIFF WAVE header and .pos for looping");
+            break;
+        case meta_NWA:
+            snprintf(temp,TEMPSIZE,"Visual Art's NWA header");
             break;
         default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

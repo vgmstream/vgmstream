@@ -111,4 +111,6 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_pos(STREAMFILE * streamFile);
 
+VGMSTREAM * init_vgmstream_nwa(STREAMFILE * streamFile);
+
 #endif
