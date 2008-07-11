@@ -171,6 +171,7 @@ static STREAMFILE * open_stdio_streamfile_buffer_by_FILE(FILE *infile,const char
     streamfile->sf.get_size = (void*)get_size_stdio;
     streamfile->sf.get_offset = (void*)get_offset_stdio;
     streamfile->sf.get_name = (void*)get_name_stdio;
+    streamfile->sf.get_realname = (void*)get_name_stdio;
     streamfile->sf.open = (void*)open_stdio;
     streamfile->sf.close = (void*)close_stdio;
 #ifdef PROFILE_STREAMFILE

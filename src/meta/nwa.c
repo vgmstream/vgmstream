@@ -45,20 +45,25 @@ VGMSTREAM * init_vgmstream_nwa(STREAMFILE *streamFile) {
     {
         char ininame[260];
         char * ini_lastslash;
-        char * namebase;
+        char namebase_array[260];
+        char *namebase;
         STREAMFILE *inistreamfile;
 
+        /* here we assume that the "special encoding" does not affect
+         * the directory separator */
         strncpy(ininame,filename,sizeof(ininame));
         ininame[sizeof(ininame)-1]='\0';    /* a pox on the stdlib! */
+
+        streamFile->get_realname(streamFile,namebase_array,sizeof(namebase_array));
 
         ini_lastslash = strrchr(ininame,DIRSEP);
         if (!ini_lastslash) {
             strncpy(ininame,"NWAINFO.INI",sizeof(ininame));
-            namebase = filename;
+            namebase = namebase_array;
         } else {
             strncpy(ini_lastslash+1,"NWAINFO.INI",
                     sizeof(ininame)-(ini_lastslash+1-ininame));
-            namebase = ini_lastslash+1-ininame+filename;
+            namebase = strrchr(namebase_array,DIRSEP)+1;
         }
         ininame[sizeof(ininame)-1]='\0';    /* curse you, strncpy! */
 
@@ -117,20 +122,23 @@ VGMSTREAM * init_vgmstream_nwa(STREAMFILE *streamFile) {
     {
         char ininame[260];
         char * ini_lastslash;
+        char namebase_array[260];
         char * namebase;
         STREAMFILE *inistreamfile;
 
         strncpy(ininame,filename,sizeof(ininame));
         ininame[sizeof(ininame)-1]='\0';    /* a pox on the stdlib! */
 
+        streamFile->get_realname(streamFile,namebase_array,sizeof(namebase_array));
+
         ini_lastslash = strrchr(ininame,DIRSEP);
         if (!ini_lastslash) {
             strncpy(ininame,"Gameexe.ini",sizeof(ininame));
-            namebase = filename;
+            namebase = namebase_array;
         } else {
             strncpy(ini_lastslash+1,"Gameexe.ini",
                     sizeof(ininame)-(ini_lastslash+1-ininame));
-            namebase = ini_lastslash+1-ininame+filename;
+            namebase = strrchr(namebase_array,DIRSEP)+1;
         }
         ininame[sizeof(ininame)-1]='\0';    /* curse you, strncpy! */
 
@@ -182,8 +190,6 @@ VGMSTREAM * init_vgmstream_nwa(STREAMFILE *streamFile) {
             if (found) {
                 char loopstring[9]={0};
                 int start_ok = 0, end_ok = 0;
-
-                printf("found!\n");
 
                 if (read_streamfile((uint8_t*)loopstring,found_off,8,
                             inistreamfile)==8 &&

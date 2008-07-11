@@ -36,6 +36,9 @@ typedef struct _STREAMFILE {
     off_t (*get_offset)(struct _STREAMFILE *);    
     // for dual-file support
     void (*get_name)(struct _STREAMFILE *,char *name,size_t length);
+    // for when the "name" is encoded specially, this is the actual user
+    // visible name
+    void (*get_realname)(struct _STREAMFILE *,char *name,size_t length);
     struct _STREAMFILE * (*open)(struct _STREAMFILE *,const char * const filename,size_t buffersize);
 
     void (*close)(struct _STREAMFILE *);

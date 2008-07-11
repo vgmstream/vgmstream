@@ -4,6 +4,7 @@
 #include <audacious/output.h>
 #include <audacious/i18n.h>
 #include <audacious/strings.h>
+#include <glib.h>
 
 #include <unistd.h>
 #include <pthread.h>
@@ -25,6 +26,7 @@ typedef struct _VFSSTREAMFILE
   VFSFile *vfsFile;
   off_t offset;
   char name[260];
+  char realname[260];
 } VFSSTREAMFILE;
 
 static size_t read_vfs(VFSSTREAMFILE *streamfile,uint8_t *dest,off_t offset,size_t length)
@@ -67,6 +69,11 @@ static void get_name_vfs(VFSSTREAMFILE *streamfile,char *buffer,size_t length)
   strcpy(buffer,streamfile->name);
 }
 
+static void get_realname_vfs(VFSSTREAMFILE *streamfile,char *buffer,size_t length)
+{
+    strcpy(buffer,streamfile->realname);
+}
+
 static STREAMFILE *open_vfs_by_VFSFILE(VFSFile *file,const char *path);
 
 static STREAMFILE *open_vfs_impl(VFSSTREAMFILE *streamfile,const char * const filename,size_t buffersize) 
@@ -107,12 +114,18 @@ static STREAMFILE *open_vfs_by_VFSFILE(VFSFile *file,const char *path)
   streamfile->sf.get_size = (void*)get_size_vfs;
   streamfile->sf.get_offset = (void*)get_offset_vfs;
   streamfile->sf.get_name = (void*)get_name_vfs;
+  streamfile->sf.get_realname = (void*)get_realname_vfs;
   streamfile->sf.open = (void*)open_vfs_impl;
   streamfile->sf.close = (void*)close_vfs;
 
   streamfile->vfsFile = file;
   streamfile->offset = 0;
   strcpy(streamfile->name,path);
+  {
+      gchar* realname = g_filename_from_uri(path,NULL,NULL);
+      strcpy(streamfile->realname,realname);
+      g_free(realname);
+  }
   
   return &streamfile->sf;
 }
