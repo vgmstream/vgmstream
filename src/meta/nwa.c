@@ -23,8 +23,8 @@ VGMSTREAM * init_vgmstream_nwa(STREAMFILE *streamFile) {
 	int i;
     int channel_count;
     int loop_flag = 0;
-    int32_t loop_start_sample;
-    int32_t loop_end_sample;
+    int32_t loop_start_sample = 0;
+    int32_t loop_end_sample = 0;
     int nwainfo_ini_found = 0;
     int gameexe_ini_found = 0;
 
