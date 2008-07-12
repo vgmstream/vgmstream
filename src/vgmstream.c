@@ -67,11 +67,16 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_ahx,
 #endif
     init_vgmstream_ivb,
-	init_vgmstream_amts,
+    init_vgmstream_amts,
     init_vgmstream_svs,
     init_vgmstream_riff,
     init_vgmstream_pos,
     init_vgmstream_nwa,
+    init_vgmstream_xss,
+    init_vgmstream_sl3,
+    init_vgmstream_hgc1,
+    init_vgmstream_aus,
+    init_vgmstream_rws,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -1123,6 +1128,18 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case meta_NWA_GAMEEXEINI:
             snprintf(temp,TEMPSIZE,"Visual Art's NWA header and Gameexe.ini for looping");
+            break;
+        case meta_XSS:
+            snprintf(temp,TEMPSIZE,"Dino Crisis 3 XSS File");
+            break;
+        case meta_HGC1:
+            snprintf(temp,TEMPSIZE,"Knights of the Temple 2 hgC1 Header");
+            break;
+        case meta_AUS:
+            snprintf(temp,TEMPSIZE,"Capcom AUS Header");
+            break;
+        case meta_RWS:
+            snprintf(temp,TEMPSIZE,"RWS Header");
             break;
         default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

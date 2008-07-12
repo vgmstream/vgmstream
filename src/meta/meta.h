@@ -113,4 +113,14 @@ VGMSTREAM * init_vgmstream_pos(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_nwa(STREAMFILE * streamFile);
 
+VGMSTREAM * init_vgmstream_xss(STREAMFILE * streamFile);
+
+VGMSTREAM * init_vgmstream_sl3(STREAMFILE * streamFile);
+
+VGMSTREAM * init_vgmstream_hgc1(STREAMFILE * streamFile);
+
+VGMSTREAM * init_vgmstream_aus(STREAMFILE * streamFile);
+
+VGMSTREAM * init_vgmstream_rws(STREAMFILE * streamFile);
+
 #endif

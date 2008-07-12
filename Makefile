@@ -11,7 +11,7 @@ sourceball:
 	rm -rf vgmstream-`./version.sh`
 
 mingwbin: mingw_test mingw_winamp
-	zip -j "vgmstream-`./version.sh`-test.zip" readme.txt LICENSE test/test.exe winamp/in_vgmstream.dll 
+	zip -j "vgmstream-`./version.sh`-test.zip" readme.txt COPYING test/test.exe winamp/in_vgmstream.dll 
 
 mingw_test:
 	$(MAKE) -C test -f Makefile.mingw test.exe

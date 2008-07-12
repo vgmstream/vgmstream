@@ -156,6 +156,11 @@ typedef enum {
     meta_PS2_BMDX,          /* Beatmania thing */
     meta_PS2_IVB,           /* Langrisser 3 IVB */
     meta_PS2_SVS,           /* Square SVS */
+    meta_XSS,				/* Dino Crisis 3 */
+    meta_SL3,				/* Test Drive Unlimited */
+    meta_HGC1,				/* Knights of the Temple 2 */
+    meta_AUS,				/* Variuos Capcom Games */
+    meta_RWS,				/* Variuos Konami Games */
 
 	meta_XBOX_WAVM,			/* XBOX WAVM File */
 	meta_XBOX_RIFF,			/* XBOX RIFF/WAVE File */

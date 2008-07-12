@@ -378,6 +378,26 @@
 					RelativePath=".\meta\nwa.c"
 					>
 				</File>
+				<File
+					RelativePath=".\meta\ps2_rws.c"
+					>
+				</File>
+				<File
+					RelativePath=".\meta\ps2_hgc1.c"
+					>
+				</File>
+				<File
+					RelativePath=".\meta\xss.c"
+					>
+				</File>
+				<File
+					RelativePath=".\meta\ps2_sl3.c"
+					>
+				</File>
+				<File
+					RelativePath=".\meta\ps2_aus.c"
+					>
+				</File>
 			</Filter>
 		</Filter>
 		<Filter

@@ -123,10 +123,15 @@ char * extension_list[] = {
     "aud\0AUD Audio File (*.AUD)\0",
     "ahx\0AHX Audio File (*.AHX)\0",
     "ivb\0IVB Audio File (*.IVB)\0",
-	"amts\0AMTS Audio File (*.AMTS)\0",
+    "amts\0AMTS Audio File (*.AMTS)\0",
     "svs\0SVS Audio File (*.SVS)\0",
     "pos\0POS Audio File (*.POS)\0",
     "nwa\0NWA Audio File (*.NWA)\0",
+    "xss\0XSS Audio File (*.XSS)\0",
+    "sl3\0SL3 Audio File (*.SL3)\0",
+    "hgc1\0HGC1 Audio File (*.HGC1)\0",
+    "aus\0AUS Audio File (*.AUS)\0",
+    "rws\0RWS Audio File (*.RWS)\0",
 };
 
 void about(HWND hwndParent) {
