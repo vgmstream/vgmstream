@@ -877,6 +877,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         case layout_interleave_shortblock:
             snprintf(temp,TEMPSIZE,"interleave with short last block");
             break;
+        case layout_interleave_byte:
+            snprintf(temp,TEMPSIZE,"sub-frame interleave");
+            break;
         case layout_dtk_interleave:
             snprintf(temp,TEMPSIZE,"ADP/DTK nibble interleave");
             break;
@@ -926,7 +929,7 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
     snprintf(temp,TEMPSIZE,"\n");
     concatn(length,desc,temp);
 
-    if (vgmstream->layout_type == layout_interleave || vgmstream->layout_type == layout_interleave_shortblock) {
+    if (vgmstream->layout_type == layout_interleave || vgmstream->layout_type == layout_interleave_shortblock || vgmstream->layout_type == layout_interleave_byte) {
         snprintf(temp,TEMPSIZE,"interleave: %#x bytes\n",
                 (int32_t)vgmstream->interleave_block_size);
         concatn(length,desc,temp);
@@ -1165,8 +1168,8 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
 		case meta_RSD:
             snprintf(temp,TEMPSIZE,"RSD4 or RSD6 Header");
             break;
-		case meta_FSB:
-            snprintf(temp,TEMPSIZE,"FSB Header");
+		case meta_FSB3:
+            snprintf(temp,TEMPSIZE,"FMOD Sample Bank (FSB3) Header");
             break;
 		case meta_RWX:
             snprintf(temp,TEMPSIZE,"RWX Header");

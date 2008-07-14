@@ -162,7 +162,7 @@ typedef enum {
     meta_AUS,				/* Variuos Capcom Games */
     meta_RWS,				/* Variuos Konami Games */
 	meta_RSD,				/* Crash Bandicoot Games */
-	meta_FSB,				/* FSB File (Various Games) */
+	meta_FSB3,              /* FMOD Sample Bank, version 3 */
 	meta_RWX,				/* Air Force Delta Storm (XBOX) */
 	meta_XWB,				/* King of Fighters (XBOX) */
 

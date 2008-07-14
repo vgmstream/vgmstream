@@ -76,7 +76,7 @@ VGMSTREAM * init_vgmstream_fsb(STREAMFILE *streamFile) {
     start_offset = (read_32bitLE(0x08,streamFile))+fsb3_headerlen;
 	vgmstream->channels = read_16bitLE(0x56,streamFile);
     vgmstream->sample_rate = read_32bitLE(0x4C,streamFile);
-    vgmstream->meta_type = meta_FSB;
+    vgmstream->meta_type = meta_FSB3;
 
     if (vgmstream->coding_type == coding_NGC_DSP) {
         int i;
