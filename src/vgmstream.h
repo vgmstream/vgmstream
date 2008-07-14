@@ -69,9 +69,9 @@ typedef enum {
     /* interleave */
     layout_interleave,      /* equal interleave throughout the stream */
     layout_interleave_shortblock, /* interleave with a short last block */
-#if 0
-    layout_interleave_byte,  /* full byte interleave */
-#endif
+
+    layout_interleave_byte,  /* full byte interleave  */
+
     /* headered blocks */
     layout_ast_blocked,     /* .ast STRM with BLCK blocks*/
     layout_halpst_blocked,    /* blocks with HALPST-format header */
