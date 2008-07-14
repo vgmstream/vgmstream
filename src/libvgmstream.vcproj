@@ -383,6 +383,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\rwx.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\str_snds.c"
 					>
 				</File>
@@ -404,6 +408,10 @@
 				</File>
 				<File
 					RelativePath=".\meta\xss.c"
+					>
+				</File>
+				<File
+					RelativePath=".\meta\xwb.c"
 					>
 				</File>
 			</Filter>

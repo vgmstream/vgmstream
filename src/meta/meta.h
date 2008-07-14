@@ -127,4 +127,8 @@ VGMSTREAM * init_vgmstream_rsd(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_fsb(STREAMFILE * streamFile);
 
+VGMSTREAM * init_vgmstream_rwx(STREAMFILE * streamFile);
+
+VGMSTREAM * init_vgmstream_xwb(STREAMFILE * streamFile);
+
 #endif

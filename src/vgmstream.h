@@ -163,6 +163,8 @@ typedef enum {
     meta_RWS,				/* Variuos Konami Games */
 	meta_RSD,				/* Crash Bandicoot Games */
 	meta_FSB,				/* FSB File (Various Games) */
+	meta_RWX,				/* Air Force Delta Storm (XBOX) */
+	meta_XWB,				/* King of Fighters (XBOX) */
 
 	meta_XBOX_WAVM,			/* XBOX WAVM File */
 	meta_XBOX_RIFF,			/* XBOX RIFF/WAVE File */
