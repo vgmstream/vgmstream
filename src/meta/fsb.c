@@ -107,7 +107,7 @@ VGMSTREAM * init_vgmstream_fsb(STREAMFILE *streamFile) {
                 vgmstream->ch[i].channel_start_offset=
                     start_offset+vgmstream->interleave_block_size*i;
             }
-            vgmstream->ch[0].offset = vgmstream->ch[i].channel_start_offset;
+            vgmstream->ch[i].offset = vgmstream->ch[i].channel_start_offset;
 
         }
     }
