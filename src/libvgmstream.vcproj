@@ -231,6 +231,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\fsb.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\gcsw.c"
 					>
 				</File>
@@ -291,10 +295,6 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\ps2_fsb.c"
-					>
-				</File>
-				<File
 					RelativePath=".\meta\ps2_hgc1.c"
 					>
 				</File>
@@ -320,10 +320,6 @@
 				</File>
 				<File
 					RelativePath=".\meta\ps2_pnb.c"
-					>
-				</File>
-				<File
-					RelativePath=".\meta\ps2_rsd.c"
 					>
 				</File>
 				<File
@@ -372,6 +368,10 @@
 				</File>
 				<File
 					RelativePath=".\meta\rs03.c"
+					>
+				</File>
+				<File
+					RelativePath=".\meta\rsd.c"
 					>
 				</File>
 				<File

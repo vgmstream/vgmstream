@@ -77,8 +77,10 @@ META_OBJS=meta/adx_header.o \
     meta/xss.o \
     meta/ps2_sl3.o \
     meta/ps2_aus.o \
-    meta/ps2_fsb.o \
-    meta/ps2_rsd.o
+    meta/fsb.o \
+    meta/rsd.o \
+    meta/rwx.o \
+    meta/xwb.o
 
 OBJECTS=vgmstream.o streamfile.o util.o $(CODING_OBJS) $(LAYOUT_OBJS) $(META_OBJS)
 
