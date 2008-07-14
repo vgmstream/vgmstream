@@ -76,7 +76,7 @@ VGMSTREAM * init_vgmstream_nwa(STREAMFILE *streamFile) {
             int found;
             off_t offset;
             off_t file_size;
-            off_t found_off;
+            off_t found_off = -1;
 
             nwainfo_ini_found = 1;
 
@@ -151,7 +151,7 @@ VGMSTREAM * init_vgmstream_nwa(STREAMFILE *streamFile) {
             int found;
             off_t offset;
             off_t file_size;
-            off_t found_off;
+            off_t found_off = -1;
 
             gameexe_ini_found = 1;
 
