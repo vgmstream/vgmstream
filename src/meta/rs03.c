@@ -35,10 +35,10 @@ VGMSTREAM * init_vgmstream_rs03(STREAMFILE *streamFile) {
     vgmstream->num_samples = read_32bitBE(8,streamFile);
     vgmstream->sample_rate = read_32bitBE(0xc,streamFile);
 
-    vgmstream->loop_start_sample = dsp_nibbles_to_samples(
-            read_32bitBE(0x18,streamFile));
-    vgmstream->loop_end_sample =  + dsp_nibbles_to_samples(
-            read_32bitBE(0x1c,streamFile)*2+16);
+    if (loop_flag) {
+        vgmstream->loop_start_sample = read_32bitBE(0x18,streamFile)/8*14;
+        vgmstream->loop_end_sample = read_32bitBE(0x1c,streamFile)/8*14;
+    }
 
     start_offset = 0x60;
 
