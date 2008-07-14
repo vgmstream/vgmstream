@@ -349,6 +349,10 @@ int get_vgmstream_shortframe_size(VGMSTREAM * vgmstream);
  * samples ahead of us. Decode those samples into the buffer. */
 void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to_do, sample * buffer);
 
+/* Assume additionally that we have samples_to_do consecutive samples in "data",
+ * and this this is for channel number "channel" */
+void decode_vgmstream_mem(VGMSTREAM * vgmstream, int samples_written, int samples_to_do, sample * buffer, uint8_t * data, int channel);
+
 /* calculate number of consecutive samples to do (taking into account stopping for loop start and end)  */
 int vgmstream_samples_to_do(int samples_this_block, int samples_per_frame, VGMSTREAM * vgmstream);
 

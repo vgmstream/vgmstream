@@ -326,6 +326,9 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
         case layout_ws_aud_blocked:
             render_vgmstream_blocked(buffer,sample_count,vgmstream);
             break;
+        case layout_interleave_byte:
+            render_vgmstream_interleave_byte(buffer,sample_count,vgmstream);
+            break;
     }
 }
 
@@ -435,6 +438,20 @@ int get_vgmstream_shortframe_size(VGMSTREAM * vgmstream) {
             return vgmstream->interleave_smallblock_size;
         default:
             return get_vgmstream_frame_size(vgmstream);
+    }
+}
+
+void decode_vgmstream_mem(VGMSTREAM * vgmstream, int samples_written, int samples_to_do, sample * buffer, uint8_t * data, int channel) {
+
+    switch (vgmstream->coding_type) {
+        case coding_NGC_DSP:
+            decode_ngc_dsp_mem(&vgmstream->ch[channel],
+                    buffer+samples_written*vgmstream->channels+channel,
+                    vgmstream->channels,vgmstream->samples_into_block,
+                    samples_to_do, data);
+            break;
+        default:
+            break;
     }
 }
 

@@ -20,7 +20,11 @@ VGMSTREAM * init_vgmstream_fsb(STREAMFILE *streamFile) {
     if (read_32bitBE(0x00,streamFile) != 0x46534233) /* "FSB3\0" */
         goto fail;
 
-    loop_flag = 0; /* (read_32bitLE(0x08,streamFile)!=0); */
+    if (read_32bitBE(0x48,streamFile) == 0x02000806) {
+        loop_flag = 1;
+    } else {
+        loop_flag = 0; /* (read_32bitLE(0x08,streamFile)!=0); */
+    }
     channel_count = 2;
     
 	/* build the VGMSTREAM */
@@ -33,6 +37,7 @@ VGMSTREAM * init_vgmstream_fsb(STREAMFILE *streamFile) {
 		case 0x40008800: /* PS2 (Agent Hugo, Flat Out 2) */
 		vgmstream->coding_type = coding_PSX;
 		vgmstream->layout_type = layout_interleave;
+        vgmstream->interleave_block_size = 0x10;
 		vgmstream->num_samples = (read_32bitLE(0x0C,streamFile))*28/16/channel_count;
     if (loop_flag) {
         vgmstream->loop_start_sample = 0;
@@ -42,6 +47,7 @@ VGMSTREAM * init_vgmstream_fsb(STREAMFILE *streamFile) {
 		case 0x41008800: /* PS2 (Flat Out) */
 		vgmstream->coding_type = coding_PSX;
 		vgmstream->layout_type = layout_interleave;
+        vgmstream->interleave_block_size = 0x10;
 		vgmstream->num_samples = (read_32bitLE(0x0C,streamFile))*28/16/channel_count;
     if (loop_flag) {
         vgmstream->loop_start_sample = 0;
@@ -50,31 +56,48 @@ VGMSTREAM * init_vgmstream_fsb(STREAMFILE *streamFile) {
 
 	break;
 		case 0x02000806: /* WII (Metroid Prime) */
+		case 0x01000806: /* WII (Metroid Prime) */
+		vgmstream->num_samples = (read_32bitLE(0x0C,streamFile))*14/8/channel_count;
+    if (loop_flag) {
+        vgmstream->loop_start_sample = read_32bitLE(0x40,streamFile);
+        vgmstream->loop_end_sample = read_32bitLE(0x44,streamFile);
+    }
 		vgmstream->coding_type = coding_NGC_DSP;
 		vgmstream->layout_type = layout_interleave_byte;
+        vgmstream->interleave_block_size = 2;
+
 	break;
 		case 0x40000802: /* WII () */
 		vgmstream->coding_type = coding_NGC_DSP;
 		vgmstream->layout_type = layout_interleave;
+        vgmstream->interleave_block_size = 0x10;
 		vgmstream->num_samples = (read_32bitLE(0x0C,streamFile));
     if (loop_flag) {
-        vgmstream->loop_start_sample = 0;
-        vgmstream->loop_end_sample = (read_32bitLE(0x0C,streamFile));
+        vgmstream->loop_start_sample = read_32bitLE(0x40,streamFile);
+        vgmstream->loop_end_sample = read_32bitLE(0x44,streamFile);
     }
 	break;
         default:
 			goto fail;
 	}
 	/* fill in the vital statistics */
-  start_offset = (read_32bitLE(0x08,streamFile))+fsb3_headerlen;
+    start_offset = (read_32bitLE(0x08,streamFile))+fsb3_headerlen;
 	vgmstream->channels = read_16bitLE(0x56,streamFile);
     vgmstream->sample_rate = read_32bitLE(0x4C,streamFile);
     
-
-
-    
-    vgmstream->interleave_block_size = 0x10;
     vgmstream->meta_type = meta_FSB;
+
+    if (vgmstream->coding_type == coding_NGC_DSP) {
+        int i;
+        for (i=0;i<16;i++) {
+            vgmstream->ch[0].adpcm_coef[i] = read_16bitBE(0x68+i*2,streamFile);
+        }
+        if (vgmstream->channels) {
+            for (i=0;i<16;i++) {
+                vgmstream->ch[1].adpcm_coef[i] = read_16bitBE(0x96+i*2,streamFile);
+            }
+        }
+    }
 
     /* open the file for reading */
     {

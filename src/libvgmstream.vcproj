@@ -531,6 +531,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\layout\interleave_byte.c"
+					>
+				</File>
+				<File
 					RelativePath=".\layout\nolayout.c"
 					>
 				</File>
