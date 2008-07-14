@@ -1,14 +1,12 @@
 #include "layout.h"
+#include "../coding/coding.h"
 #include "../vgmstream.h"
-
-extern void init_eacs_high_nibble();
-extern void init_ea_adpcm_nibble();
 
 /* set up for the block at the given offset */
 void ea_block_update(off_t block_offset, VGMSTREAM * vgmstream) {
     int i;
 
-	init_ea_adpcm_nibble();
+	init_get_high_nibble(vgmstream);
 
 	// Search for next SCDL or SCEl block ...
 	do {
@@ -48,10 +46,10 @@ void ea_block_update(off_t block_offset, VGMSTREAM * vgmstream) {
 				for(i=0;i<vgmstream->channels;i++) {
 					vgmstream->ch[i].offset=vgmstream->current_block_offset+0x0C+(4*vgmstream->channels);
 					vgmstream->ch[i].adpcm_history1_32=(uint32_t)read_16bitLE(vgmstream->current_block_offset+0x0c+(i*4),vgmstream->ch[0].streamfile);
-					vgmstream->ch[i].adpcm_history2_32=(uint32_t)read_16bitLE(vgmstream->current_block_offset+0x0e+(i*4),vgmstream->ch[0].streamfile);
+					vgmstream->ch[i].adpcm_history2_32=(uint32_t)read_16bitLE(vgmstream->current_block_offset+0x0e +(i*4),vgmstream->ch[0].streamfile);
 				}
 			} else {
-				if(vgmstream->coding_type==coding_PCM16LE_NI) {
+				if(vgmstream->coding_type==coding_PCM16LE_int) {
 					vgmstream->current_block_size = read_32bitLE(block_offset+4,vgmstream->ch[0].streamfile)-0x0C;
 					for(i=0;i<vgmstream->channels;i++) {
 						vgmstream->ch[i].offset=block_offset+0x0C+(i*2);
@@ -108,7 +106,7 @@ void eacs_block_update(off_t block_offset, VGMSTREAM * vgmstream) {
 	vgmstream->current_block_size=block_size-8;
 
 	if(vgmstream->coding_type==coding_EACS_IMA) {
-		init_eacs_high_nibble();
+		init_get_high_nibble(vgmstream);
 		vgmstream->current_block_size=read_32bitLE(block_offset,vgmstream->ch[0].streamfile);
 
 		for(i=0;i<vgmstream->channels;i++) {
@@ -123,7 +121,7 @@ void eacs_block_update(off_t block_offset, VGMSTREAM * vgmstream) {
 		} else {
 
 			for (i=0;i<vgmstream->channels;i++) {
-				if(vgmstream->coding_type==coding_PCM16LE_NI) 
+				if(vgmstream->coding_type==coding_PCM16LE_int) 
 					vgmstream->ch[i].offset = block_offset+(i*2); 
 				else
 					vgmstream->ch[i].offset = block_offset+i; 

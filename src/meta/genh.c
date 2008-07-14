@@ -126,6 +126,10 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
             vgmstream->interleave_block_size = interleave;
             if (channel_count > 1)
             {
+                if (coding == coding_SDX2) {
+                    coding = coding_SDX2_int;
+                    vgmstream->coding_type = coding_SDX2_int;
+                }
                 vgmstream->layout_type = layout_interleave;
             } else {
                 vgmstream->layout_type = layout_none;
@@ -161,6 +165,7 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
                 case coding_PCM16BE:
                 case coding_PCM16LE:
                 case coding_SDX2:
+                case coding_SDX2_int:
                 case coding_DVI_IMA:
                 case coding_PCM8:
                     if (vgmstream->layout_type == layout_interleave) {

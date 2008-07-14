@@ -27,8 +27,6 @@ const int IMA_IndexTable[16] =
     -1, -1, -1, -1, 2, 4, 6, 8 
 };
 
-static int get_eacs_high_nibble=1;
-
 void decode_nds_ima(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
     int i=first_sample;
     int32_t sample_count;
@@ -158,21 +156,19 @@ void decode_dvi_ima(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspaci
     stream->adpcm_step_index=step_index;
 }
 
-void init_eacs_high_nibble() {
-	get_eacs_high_nibble=1;
-}
 
-void decode_eacs_ima(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
+void decode_eacs_ima(VGMSTREAM * vgmstream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
     int i;
+    VGMSTREAMCHANNEL * stream = &(vgmstream->ch[channel]);
 
     int32_t sample_count=0;
     int32_t hist1=stream->adpcm_history1_32;
     int step_index = stream->adpcm_step_index;
 
-	get_eacs_high_nibble=!get_eacs_high_nibble;
+	vgmstream->get_high_nibble=!vgmstream->get_high_nibble;
 
 	if((first_sample) && (channelspacing==1))
-		get_eacs_high_nibble=!get_eacs_high_nibble;
+		vgmstream->get_high_nibble=!vgmstream->get_high_nibble;
 
     for (i=first_sample,sample_count=0; i<first_sample+samples_to_do; i++,sample_count+=channelspacing) {
         int step = ADPCMTable[step_index];
@@ -183,7 +179,7 @@ void decode_eacs_ima(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspac
 
         sample_byte = read_8bit(stream->offset+i,stream->streamfile);
         /* old-style DVI takes high nibble first */
-        sample_nibble = (sample_byte >> (get_eacs_high_nibble?0:4))&0xf;
+        sample_nibble = (sample_byte >> (vgmstream->get_high_nibble?0:4))&0xf;
 
         sample_decoded = hist1;
         delta = step >> 3;

@@ -26,11 +26,13 @@ typedef enum {
     /* 16-bit PCM */
     coding_PCM16BE,         /* big endian 16-bit PCM */
     coding_PCM16LE,         /* little endian 16-bit PCM */
-	coding_PCM16LE_NI,		/* little endian 16-bit non interleaved */
+	coding_PCM16LE_int,		/* little endian 16-bit PCM with sample-level
+                               interleave handled by the decoder */
 
     /* 8-bit PCM */
     coding_PCM8,            /* 8-bit PCM */
-	coding_PCM8_NI,			/* Signed 8-Bit PCM */
+	coding_PCM8_int,		/* 8-Bit PCM with sample-level interleave handled
+                               by the decoder */
 
     /* 4-bit ADPCM */
     coding_NDS_IMA,         /* IMA ADPCM w/ NDS layout */
@@ -50,6 +52,9 @@ typedef enum {
     coding_ogg_vorbis,      /* vorbis */
 #endif
     coding_SDX2,            /* SDX2 2:1 Squareroot-Delta-Exact compression */
+    coding_SDX2_int,        /* SDX2 2:1 Squareroot-Delta-Exact compression,
+                               with smaple-level interleave handled by the
+                               decoder */
     coding_DVI_IMA,         /* DVI (bare IMA, high nibble first), aka ADP4 */
 	coding_EACS_IMA,
     coding_IMA,             /* bare IMA, low nibble first */
@@ -284,6 +289,7 @@ typedef struct {
 
 	uint8_t xa_channel;				/* Selected XA Channel */
 	int32_t xa_sector_length;		/* XA block */
+    int8_t get_high_nibble;
 
 	uint8_t	ea_big_endian;			/* Big Endian ? */
 	uint8_t	ea_compression_type;		

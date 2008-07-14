@@ -341,10 +341,10 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_NGC_DSP:
             return 14;
         case coding_PCM16LE:
-		case coding_PCM16LE_NI:
+		case coding_PCM16LE_int:
         case coding_PCM16BE:
         case coding_PCM8:
-		case coding_PCM8_NI:
+		case coding_PCM8_int:
 #ifdef VGM_USE_VORBIS
         case coding_ogg_vorbis:
 #endif
@@ -361,6 +361,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_MPEG25_L3:
 #endif
         case coding_SDX2:
+        case coding_SDX2_int:
             return 1;
         case coding_NDS_IMA:
             return (vgmstream->interleave_block_size-4)*2;
@@ -408,12 +409,13 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
         case coding_NGC_DSP:
             return 8;
         case coding_PCM16LE:
-		case coding_PCM16LE_NI:
+		case coding_PCM16LE_int:
         case coding_PCM16BE:
             return 2;
         case coding_PCM8:
-		case coding_PCM8_NI:
+		case coding_PCM8_int:
         case coding_SDX2:
+        case coding_SDX2_int:
             return 1;
         case coding_NDS_IMA:
             return vgmstream->interleave_block_size;
@@ -494,9 +496,9 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                         samples_to_do);
             }
             break;
-        case coding_PCM16LE_NI:
+        case coding_PCM16LE_int:
             for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_pcm16LE_noninterleaved(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                decode_pcm16LE_int(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
                         samples_to_do);
             }
@@ -515,9 +517,9 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                         samples_to_do);
             }
             break;
-        case coding_PCM8_NI:
+        case coding_PCM8_int:
             for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_pcm8_noninterleaved(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                decode_pcm8_int(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
                         samples_to_do);
             }
@@ -573,9 +575,9 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
             break;
 		case coding_XA:
             for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_xa(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                decode_xa(vgmstream,buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do);
+                        samples_to_do,chan);
             }
             break;
 		case coding_EAXA:
@@ -587,7 +589,7 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
             break;
 		case coding_EA_ADPCM:
             for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_ea_adpcm(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                decode_ea_adpcm(vgmstream,buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
                         samples_to_do,chan);
             }
@@ -606,6 +608,13 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                         samples_to_do);
             }
             break;
+        case coding_SDX2_int:
+            for (chan=0;chan<vgmstream->channels;chan++) {
+                decode_sdx2_int(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                        vgmstream->channels,vgmstream->samples_into_block,
+                        samples_to_do);
+            }
+            break;
 		case coding_DVI_IMA:
             for (chan=0;chan<vgmstream->channels;chan++) {
                 decode_dvi_ima(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
@@ -615,9 +624,9 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
             break;
 		case coding_EACS_IMA:
             for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_eacs_ima(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                decode_eacs_ima(vgmstream,buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do);
+                        samples_to_do,chan);
             }
             break;
 		case coding_IMA:
@@ -815,14 +824,14 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         case coding_PCM16LE:
             snprintf(temp,TEMPSIZE,"Little Endian 16-bit PCM");
             break;
-        case coding_PCM16LE_NI:
-            snprintf(temp,TEMPSIZE,"Non Interleaved Little Endian 16-bit PCM");
+        case coding_PCM16LE_int:
+            snprintf(temp,TEMPSIZE,"Little Endian 16-bit PCM with 2 byte interleave");
             break;
         case coding_PCM8:
             snprintf(temp,TEMPSIZE,"8-bit PCM");
             break;
-        case coding_PCM8_NI:
-            snprintf(temp,TEMPSIZE,"Non Interleaved 8-bit PCM");
+        case coding_PCM8_int:
+            snprintf(temp,TEMPSIZE,"8-bit PCM with 1 byte interleave");
             break;
         case coding_NGC_DSP:
             snprintf(temp,TEMPSIZE,"Gamecube \"DSP\" 4-bit ADPCM");
@@ -867,6 +876,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
 #endif
         case coding_SDX2:
             snprintf(temp,TEMPSIZE,"Squareroot-delta-exact (SDX2) 8-bit DPCM");
+            break;
+        case coding_SDX2_int:
+            snprintf(temp,TEMPSIZE,"Squareroot-delta-exact (SDX2) 8-bit DPCM with 1 byte interleave");
             break;
         case coding_DVI_IMA:
             snprintf(temp,TEMPSIZE,"Intel DVI 4-bit IMA ADPCM");

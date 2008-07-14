@@ -1,5 +1,6 @@
 #include "meta.h"
 #include "../layout/layout.h"
+#include "../coding/coding.h"
 #include "../util.h"
 
 // Platform constants
@@ -209,7 +210,7 @@ VGMSTREAM * init_vgmstream_ea(STREAMFILE *streamFile) {
 			break;
 		case EA_PCM_LE:
 		 	vgmstream->meta_type=meta_EA_PCM;
-			vgmstream->coding_type=coding_PCM16LE_NI;
+			vgmstream->coding_type=coding_PCM16LE_int;
 			vgmstream->layout_type=layout_ea_blocked;
 			break;
 		case EA_ADPCM:
@@ -249,7 +250,7 @@ VGMSTREAM * init_vgmstream_ea(STREAMFILE *streamFile) {
 				vgmstream->num_samples+=(int32_t)vgmstream->current_block_size/16*28;		
 			else if (vgmstream->coding_type==coding_EA_ADPCM)
 				vgmstream->num_samples+=(int32_t)vgmstream->current_block_size;
-			else if (vgmstream->coding_type==coding_PCM16LE_NI)
+			else if (vgmstream->coding_type==coding_PCM16LE_int)
 				vgmstream->num_samples+=(int32_t)vgmstream->current_block_size/vgmstream->channels;
 			else
 				vgmstream->num_samples+=(int32_t)vgmstream->current_block_size*28;
@@ -258,7 +259,7 @@ VGMSTREAM * init_vgmstream_ea(STREAMFILE *streamFile) {
 
 	ea_block_update(start_offset+header_length,vgmstream);
 
-	init_ea_adpcm_nibble();
+	init_get_high_nibble(vgmstream);
 	vgmstream->ch[0].adpcm_history1_32=0;
 	vgmstream->ch[1].adpcm_history1_32=0;
 

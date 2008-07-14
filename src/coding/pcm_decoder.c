@@ -28,7 +28,7 @@ void decode_pcm8(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing,
     }
 }
 
-void decode_pcm8_noninterleaved(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
+void decode_pcm8_int(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
     int i;
     int32_t sample_count;
 
@@ -37,7 +37,7 @@ void decode_pcm8_noninterleaved(VGMSTREAMCHANNEL * stream, sample * outbuf, int 
     }
 }
 
-void decode_pcm16LE_noninterleaved(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
+void decode_pcm16LE_int(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
     int i;
     int32_t sample_count;
 

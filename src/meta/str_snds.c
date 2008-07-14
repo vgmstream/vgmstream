@@ -92,8 +92,11 @@ VGMSTREAM * init_vgmstream_str_snds(STREAMFILE *streamFile) {
     vgmstream->sample_rate = read_32bitBE(SHDR_offset+0x1c,streamFile);
     switch (read_32bitBE(SHDR_offset+0x24,streamFile)) {
         case 0x53445832:    /* SDX2 */
-            vgmstream->coding_type = coding_SDX2;
-            vgmstream->interleave_block_size = 1;
+            if (channel_count > 1) {
+                vgmstream->coding_type = coding_SDX2_int;
+                vgmstream->interleave_block_size = 1;
+            } else
+                vgmstream->coding_type = coding_SDX2;
             break;
         default:
             goto fail;

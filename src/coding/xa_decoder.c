@@ -20,14 +20,13 @@ int CLAMP(int value, int Minim, int Maxim)
     return value;
 }
 
-static int get_high_nibble = 1;
-
-void init_get_high_nibble() {
-	get_high_nibble=1;
+void init_get_high_nibble(VGMSTREAM *vgmstream) {
+	vgmstream->get_high_nibble=1;
 }
 
-void decode_xa(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
+void decode_xa(VGMSTREAM * vgmstream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
 
+    VGMSTREAMCHANNEL * stream = &(vgmstream->ch[channel]);
 	int predict_nr, shift_factor, sample;
 	int32_t hist1=stream->adpcm_history1_32;
 	int32_t hist2=stream->adpcm_history2_32;
@@ -39,20 +38,21 @@ void decode_xa(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, i
 
 	int framesin = first_sample / (56 / channelspacing);
 
+
 	first_sample = first_sample % 28;
 	
-	get_high_nibble=!get_high_nibble;
+	vgmstream->get_high_nibble=!vgmstream->get_high_nibble;
 
 	if((first_sample) && (channelspacing==1))
-		get_high_nibble=!get_high_nibble;
+		vgmstream->get_high_nibble=!vgmstream->get_high_nibble;
 
-	predict_nr = read_8bit(stream->offset+HeadTable[framesin]+get_high_nibble,stream->streamfile) >> 4;
-	shift_factor = read_8bit(stream->offset+HeadTable[framesin]+get_high_nibble,stream->streamfile) & 0xf;
+	predict_nr = read_8bit(stream->offset+HeadTable[framesin]+vgmstream->get_high_nibble,stream->streamfile) >> 4;
+	shift_factor = read_8bit(stream->offset+HeadTable[framesin]+vgmstream->get_high_nibble,stream->streamfile) & 0xf;
 
 	for (i=first_sample,sample_count=0; i<first_sample+samples_to_do; i++,sample_count+=channelspacing) {
         short sample_byte = (short)read_8bit(stream->offset+16+framesin+(i*4),stream->streamfile);
 
-		scale = ((get_high_nibble ?
+		scale = ((vgmstream->get_high_nibble ?
 			     sample_byte >> 4 :
 				 sample_byte & 0x0f)<<12);
 

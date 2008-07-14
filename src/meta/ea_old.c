@@ -1,4 +1,6 @@
 #include "meta.h"
+#include "../coding/coding.h"
+#include "../layout/layout.h"
 #include "../util.h"
 
 typedef struct 
@@ -23,7 +25,7 @@ VGMSTREAM * init_vgmstream_eacs(STREAMFILE *streamFile) {
     int loop_flag;
 	char little_endian=0;
 	off_t	start_offset;
-	EACSHeader	*ea_header;
+	EACSHeader	*ea_header = NULL;
 	int32_t samples_count=0;
     int i;
 
@@ -56,14 +58,14 @@ VGMSTREAM * init_vgmstream_eacs(STREAMFILE *streamFile) {
 		if (!vgmstream) goto fail;
 
 		/* fill in the vital statistics */
-		init_eacs_high_nibble();
+		init_get_high_nibble(vgmstream);
 		
 		vgmstream->sample_rate = ea_header->dwSampleRate;
 		
 		if(ea_header->bCompression==0) {
-			vgmstream->coding_type = coding_PCM16LE_NI;
+			vgmstream->coding_type = coding_PCM16LE_int;
 			if(ea_header->bBits==1)
-				vgmstream->coding_type = coding_PCM8_NI;
+				vgmstream->coding_type = coding_PCM8_int;
 		}
 		else 
 			vgmstream->coding_type = coding_EACS_IMA;
