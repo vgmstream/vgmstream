@@ -72,6 +72,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_riff,
     init_vgmstream_pos,
     init_vgmstream_nwa,
+	init_vgmstream_eacs,
     init_vgmstream_xss,
     init_vgmstream_sl3,
     init_vgmstream_hgc1,
@@ -320,6 +321,7 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
         case layout_halpst_blocked:
 		case layout_xa_blocked:
 		case layout_ea_blocked:
+		case layout_eacs_blocked:
 		case layout_caf_blocked:
         case layout_wsi_blocked:
         case layout_str_snds_blocked:
@@ -339,8 +341,10 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_NGC_DSP:
             return 14;
         case coding_PCM16LE:
+		case coding_PCM16LE_NI:
         case coding_PCM16BE:
         case coding_PCM8:
+		case coding_PCM8_NI:
 #ifdef VGM_USE_VORBIS
         case coding_ogg_vorbis:
 #endif
@@ -364,6 +368,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
             return 28;
         case coding_G721:
         case coding_DVI_IMA:
+		case coding_EACS_IMA:
         case coding_IMA:
             return 1;
         case coding_NGC_AFC:
@@ -376,6 +381,8 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
 			return 64;
 		case coding_EAXA:
 			return 28;
+		case coding_EA_ADPCM:
+			return 14*vgmstream->channels;
         case coding_WS:
             /* only works if output sample size is 8 bit, which is always
                is for WS ADPCM */
@@ -401,15 +408,19 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
         case coding_NGC_DSP:
             return 8;
         case coding_PCM16LE:
+		case coding_PCM16LE_NI:
         case coding_PCM16BE:
             return 2;
         case coding_PCM8:
+		case coding_PCM8_NI:
         case coding_SDX2:
             return 1;
         case coding_NDS_IMA:
             return vgmstream->interleave_block_size;
         case coding_NGC_DTK:
             return 32;
+		case coding_EACS_IMA:
+			return 1;
         case coding_DVI_IMA:
         case coding_IMA:
         case coding_G721:
@@ -423,6 +434,8 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
 			return 14*vgmstream->channels;
 		case coding_XBOX:
 			return 36;
+		case coding_EA_ADPCM:
+			return 30;
 		case coding_EAXA:
 			return 1; // the frame is variant in size
         case coding_WS:
@@ -481,6 +494,13 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                         samples_to_do);
             }
             break;
+        case coding_PCM16LE_NI:
+            for (chan=0;chan<vgmstream->channels;chan++) {
+                decode_pcm16LE_noninterleaved(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                        vgmstream->channels,vgmstream->samples_into_block,
+                        samples_to_do);
+            }
+            break;
         case coding_PCM16BE:
             for (chan=0;chan<vgmstream->channels;chan++) {
                 decode_pcm16BE(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
@@ -491,6 +511,13 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
         case coding_PCM8:
             for (chan=0;chan<vgmstream->channels;chan++) {
                 decode_pcm8(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                        vgmstream->channels,vgmstream->samples_into_block,
+                        samples_to_do);
+            }
+            break;
+        case coding_PCM8_NI:
+            for (chan=0;chan<vgmstream->channels;chan++) {
+                decode_pcm8_noninterleaved(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
                         samples_to_do);
             }
@@ -558,6 +585,13 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                         samples_to_do,chan);
             }
             break;
+		case coding_EA_ADPCM:
+            for (chan=0;chan<vgmstream->channels;chan++) {
+                decode_ea_adpcm(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                        vgmstream->channels,vgmstream->samples_into_block,
+                        samples_to_do,chan);
+            }
+            break;
 #ifdef VGM_USE_VORBIS
         case coding_ogg_vorbis:
             decode_ogg_vorbis(vgmstream->codec_data,
@@ -575,6 +609,13 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
 		case coding_DVI_IMA:
             for (chan=0;chan<vgmstream->channels;chan++) {
                 decode_dvi_ima(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                        vgmstream->channels,vgmstream->samples_into_block,
+                        samples_to_do);
+            }
+            break;
+		case coding_EACS_IMA:
+            for (chan=0;chan<vgmstream->channels;chan++) {
+                decode_eacs_ima(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
                         samples_to_do);
             }
@@ -774,8 +815,14 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         case coding_PCM16LE:
             snprintf(temp,TEMPSIZE,"Little Endian 16-bit PCM");
             break;
+        case coding_PCM16LE_NI:
+            snprintf(temp,TEMPSIZE,"Non Interleaved Little Endian 16-bit PCM");
+            break;
         case coding_PCM8:
             snprintf(temp,TEMPSIZE,"8-bit PCM");
+            break;
+        case coding_PCM8_NI:
+            snprintf(temp,TEMPSIZE,"Non Interleaved 8-bit PCM");
             break;
         case coding_NGC_DSP:
             snprintf(temp,TEMPSIZE,"Gamecube \"DSP\" 4-bit ADPCM");
@@ -810,6 +857,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
 		case coding_EAXA:
             snprintf(temp,TEMPSIZE,"Electronic Arts XA Based 4-bit ADPCM");
             break;
+		case coding_EA_ADPCM:
+            snprintf(temp,TEMPSIZE,"Electronic Arts XA Based (R1) 4-bit ADPCM");
+            break;
 #ifdef VGM_USE_VORBIS
         case coding_ogg_vorbis:
             snprintf(temp,TEMPSIZE,"Vorbis");
@@ -820,6 +870,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case coding_DVI_IMA:
             snprintf(temp,TEMPSIZE,"Intel DVI 4-bit IMA ADPCM");
+            break;
+		case coding_EACS_IMA:
+            snprintf(temp,TEMPSIZE,"EACS 4-bit IMA ADPCM");
             break;
         case coding_IMA:
             snprintf(temp,TEMPSIZE,"4-bit IMA ADPCM");
@@ -894,6 +947,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
 		case layout_ea_blocked:
             snprintf(temp,TEMPSIZE,"Electronic Arts Audio Blocks");
+            break;
+		case layout_eacs_blocked:
+            snprintf(temp,TEMPSIZE,"Electronic Arts (Old Version) Audio Blocks");
             break;
 		case layout_caf_blocked:
             snprintf(temp,TEMPSIZE,"CAF blocked");
@@ -1086,8 +1142,14 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
 		case meta_EAXA_R3:
             snprintf(temp,TEMPSIZE,"Electronic Arts XA R3");
             break;
+		case meta_EA_ADPCM:
+            snprintf(temp,TEMPSIZE,"Electronic Arts XA R1");
+            break;
 		case meta_EAXA_PSX:
             snprintf(temp,TEMPSIZE,"Electronic Arts With PSX ADPCM");
+            break;
+		case meta_EA_PCM:
+            snprintf(temp,TEMPSIZE,"Electronic Arts With PCM");
             break;
 		case meta_CFN:
             snprintf(temp,TEMPSIZE,"Namco CAF Header");
@@ -1164,6 +1226,12 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case meta_RWS:
             snprintf(temp,TEMPSIZE,"RWS Header");
+            break;
+        case meta_EACS_PC:
+            snprintf(temp,TEMPSIZE,"EACS Header (PC)");
+            break;
+        case meta_EACS_PSX:
+            snprintf(temp,TEMPSIZE,"EACS Header (PSX)");
             break;
 		case meta_RSD:
             snprintf(temp,TEMPSIZE,"RSD4 or RSD6 Header");

@@ -43,7 +43,7 @@ void str_snds_block_update(off_t block_offset, VGMSTREAM * vgmstream) {
     vgmstream->current_block_offset = SSMP_offset;
     vgmstream->current_block_size = (read_32bitBE(
             vgmstream->current_block_offset+4,
-            vgmstream->ch[0].streamfile) - 0x18) * vgmstream->channels;
+            vgmstream->ch[0].streamfile) - 0x18) / vgmstream->channels;
     vgmstream->next_block_offset = vgmstream->current_block_offset +
             read_32bitBE(vgmstream->current_block_offset+4,
                     vgmstream->ch[0].streamfile);

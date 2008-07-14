@@ -87,6 +87,8 @@ VGMSTREAM * init_vgmstream_str_snds(STREAMFILE *streamFile) {
             * 0x10;
     }
 
+	vgmstream->num_samples/=vgmstream->channels;
+
     vgmstream->sample_rate = read_32bitBE(SHDR_offset+0x1c,streamFile);
     switch (read_32bitBE(SHDR_offset+0x24,streamFile)) {
         case 0x53445832:    /* SDX2 */

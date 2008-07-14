@@ -16,8 +16,11 @@
 #define EAXA_R3	0x03
 
 // Compression Type
-#define EA_VAG	0x01
-#define EA_EAXA	0x0A
+#define EA_VAG		0x01
+#define EA_EAXA		0x0A
+#define EA_ADPCM	0x30
+#define EA_PCM_BE	0x07
+#define EA_PCM_LE	0x08
 
 typedef struct {
     int32_t num_samples;    
@@ -52,7 +55,7 @@ void Parse_Header(STREAMFILE* streamFile,EA_STRUCT* ea, off_t offset, int length
 
 	// default value ...
 	ea->channels=1;
-	ea->compression_type=EA_EAXA;
+	ea->compression_type=0;
 	ea->compression_version=0x01;
 	ea->platform=EA_GC;
 
@@ -85,12 +88,17 @@ void Parse_Header(STREAMFILE* streamFile,EA_STRUCT* ea, off_t offset, int length
 				break;
 			case 0x83: // compression type
 				ea->compression_type = (uint8_t)readPatch(streamFile, &offset);
+				if(ea->compression_type==0x07) ea->compression_type=0x30;
 				break;
 			case 0x84: // sample frequency
 				ea->sample_rate = readPatch(streamFile,&offset);
 				break;
 			case 0x85: // samples count
 				ea->num_samples = readPatch(streamFile, &offset);
+				break;
+			case 0x8A:
+				offset+=4;
+				if(ea->compression_type==0) ea->compression_type=EA_PCM_LE;
 				break;
 			case 0x86:
 			case 0x87:
@@ -111,6 +119,8 @@ void Parse_Header(STREAMFILE* streamFile,EA_STRUCT* ea, off_t offset, int length
 
 	if(ea->platform==EA_PSX)
 		ea->compression_type=EA_VAG;
+	if(ea->compression_type==0)
+		ea->compression_type=EA_EAXA;
 }
 
 VGMSTREAM * init_vgmstream_ea(STREAMFILE *streamFile) {
@@ -197,6 +207,16 @@ VGMSTREAM * init_vgmstream_ea(STREAMFILE *streamFile) {
 			vgmstream->coding_type=coding_PSX;
 			vgmstream->layout_type=layout_ea_blocked;
 			break;
+		case EA_PCM_LE:
+		 	vgmstream->meta_type=meta_EA_PCM;
+			vgmstream->coding_type=coding_PCM16LE_NI;
+			vgmstream->layout_type=layout_ea_blocked;
+			break;
+		case EA_ADPCM:
+		 	vgmstream->meta_type=meta_EA_ADPCM;
+			vgmstream->coding_type=coding_EA_ADPCM;
+			vgmstream->layout_type=layout_ea_blocked;
+			break;
 	}
 
 
@@ -227,12 +247,20 @@ VGMSTREAM * init_vgmstream_ea(STREAMFILE *streamFile) {
 			ea_block_update(vgmstream->next_block_offset,vgmstream);
 			if(vgmstream->coding_type==coding_PSX) 
 				vgmstream->num_samples+=(int32_t)vgmstream->current_block_size/16*28;		
+			else if (vgmstream->coding_type==coding_EA_ADPCM)
+				vgmstream->num_samples+=(int32_t)vgmstream->current_block_size;
+			else if (vgmstream->coding_type==coding_PCM16LE_NI)
+				vgmstream->num_samples+=(int32_t)vgmstream->current_block_size/vgmstream->channels;
 			else
 				vgmstream->num_samples+=(int32_t)vgmstream->current_block_size*28;
 		} while(vgmstream->next_block_offset<(off_t)(file_length-block_length));
 	}
 
 	ea_block_update(start_offset+header_length,vgmstream);
+
+	init_ea_adpcm_nibble();
+	vgmstream->ch[0].adpcm_history1_32=0;
+	vgmstream->ch[1].adpcm_history1_32=0;
 
     return vgmstream;
 

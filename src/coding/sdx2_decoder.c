@@ -40,7 +40,7 @@ void decode_sdx2(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing,
 	int32_t sample_count;
 	
 	for (i=first_sample,sample_count=0; i<first_sample+samples_to_do; i++,sample_count+=channelspacing) {
-        int8_t sample_byte = read_8bit(stream->offset+i,stream->streamfile);
+        int8_t sample_byte = read_8bit(stream->offset+i*channelspacing,stream->streamfile);
         int16_t sample;
 
         if (!(sample_byte & 1)) hist = 0;

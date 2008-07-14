@@ -14,6 +14,8 @@ void xa_block_update(off_t block_offset, VGMSTREAM * vgmstream);
 
 void ea_block_update(off_t block_offset, VGMSTREAM * vgmstream);
 
+void eacs_block_update(off_t block_offset, VGMSTREAM * vgmstream);
+
 void caf_block_update(off_t block_offset, VGMSTREAM * vgmstream);
 
 void wsi_block_update(off_t block_offset, VGMSTREAM * vgmstream);

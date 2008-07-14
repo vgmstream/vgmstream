@@ -26,8 +26,12 @@ typedef enum {
     /* 16-bit PCM */
     coding_PCM16BE,         /* big endian 16-bit PCM */
     coding_PCM16LE,         /* little endian 16-bit PCM */
+	coding_PCM16LE_NI,		/* little endian 16-bit non interleaved */
+
     /* 8-bit PCM */
     coding_PCM8,            /* 8-bit PCM */
+	coding_PCM8_NI,			/* Signed 8-Bit PCM */
+
     /* 4-bit ADPCM */
     coding_NDS_IMA,         /* IMA ADPCM w/ NDS layout */
     coding_CRI_ADX,         /* CRI ADX */
@@ -40,11 +44,14 @@ typedef enum {
 	coding_XA,				/* PSX CD-XA */
 	coding_XBOX,			/* XBOX IMA */
 	coding_EAXA,			/* EA/XA ADPCM */
+	coding_EA_ADPCM,		/* EA ADPCM */
+
 #ifdef VGM_USE_VORBIS
     coding_ogg_vorbis,      /* vorbis */
 #endif
     coding_SDX2,            /* SDX2 2:1 Squareroot-Delta-Exact compression */
     coding_DVI_IMA,         /* DVI (bare IMA, high nibble first), aka ADP4 */
+	coding_EACS_IMA,
     coding_IMA,             /* bare IMA, low nibble first */
     coding_WS,              /* Westwood Studios' custom VBR ADPCM */
 #ifdef VGM_USE_MPEG
@@ -77,6 +84,7 @@ typedef enum {
     layout_halpst_blocked,    /* blocks with HALPST-format header */
 	layout_xa_blocked,
 	layout_ea_blocked,
+	layout_eacs_blocked,
 	layout_caf_blocked,
     layout_wsi_blocked,
     layout_str_snds_blocked,
@@ -172,6 +180,11 @@ typedef enum {
 	meta_EAXA_R2,			/* EA XA Release 2 */
 	meta_EAXA_R3,			/* EA XA Release 3 */
 	meta_EAXA_PSX,			/* EA with PSX ADPCM */
+	meta_EACS_PC,			/* EACS PC */
+	meta_EACS_PSX,			/* EACS PSX */
+	meta_EACS_SAT,			/* EACS SATURN */
+	meta_EA_ADPCM,			/* EA XA ADPCM */
+	meta_EA_PCM,			/* EA PCM */
 
 	meta_RAW,				/* RAW PCM file */
 

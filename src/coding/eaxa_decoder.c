@@ -8,6 +8,14 @@ long EA_XA_TABLE[28] = {0,0,240,0,460,-208,0x0188,-220,
 					                  -208,-1,-220,-1,
 					      0x0000,0x0000,0x0000,0x3F70};
 
+long EA_TABLE[20]= { 0x00000000, 0x000000F0, 0x000001CC, 0x00000188,
+			   	    0x00000000, 0x00000000, 0xFFFFFF30, 0xFFFFFF24,
+				    0x00000000, 0x00000001, 0x00000003, 0x00000004,
+				    0x00000007, 0x00000008, 0x0000000A, 0x0000000B,
+				    0x00000000, 0xFFFFFFFF, 0xFFFFFFFD, 0xFFFFFFFC};
+
+static int ea_adpcm_get_high_nibble=1;
+
 void decode_eaxa(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do,int channel) {
     uint8_t frame_info;
     int32_t sample_count;
@@ -64,3 +72,51 @@ void decode_eaxa(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing,
 			stream->channel_start_offset+=0x0F;
 	}
 }
+
+
+void init_ea_adpcm_nibble() {
+	ea_adpcm_get_high_nibble=1;
+}
+
+void decode_ea_adpcm(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do,int channel) {
+    uint8_t frame_info;
+    int32_t sample_count;
+	long coef1,coef2;
+	int i,shift;
+	off_t channel_offset=stream->channel_start_offset;
+
+	ea_adpcm_get_high_nibble=!ea_adpcm_get_high_nibble;
+
+	first_sample = first_sample%28;
+	frame_info = read_8bit(stream->offset+channel_offset,stream->streamfile);
+
+	coef1 = EA_TABLE[(ea_adpcm_get_high_nibble? frame_info & 0x0F: frame_info >> 4)];
+	coef2 = EA_TABLE[(ea_adpcm_get_high_nibble? frame_info & 0x0F: frame_info >> 4) + 4];
+
+	channel_offset++;
+
+	frame_info = read_8bit(stream->offset+channel_offset,stream->streamfile);
+	shift = (ea_adpcm_get_high_nibble? frame_info & 0x0F : frame_info >> 4)+8;
+
+	channel_offset++;
+
+	for (i=first_sample,sample_count=0; i<first_sample+samples_to_do; i++,sample_count+=channelspacing) {
+		uint8_t sample_byte = (uint8_t)read_8bit(stream->offset+channel_offset+i,stream->streamfile);
+		int32_t sample = ((((ea_adpcm_get_high_nibble?
+					    sample_byte & 0x0F:
+						sample_byte >> 4
+					  ) << 0x1C) >> shift) +
+					  (coef1 * stream->adpcm_history1_32) + (coef2 * stream->adpcm_history2_32) + 0x80) >> 8;
+		
+		outbuf[sample_count] = clamp16(sample);
+		stream->adpcm_history2_32 = stream->adpcm_history1_32;
+		stream->adpcm_history1_32 = sample;
+	}
+		
+	channel_offset+=i;
+
+	// Only increment offset on complete frame
+	if(channel_offset-stream->channel_start_offset==0x1E)
+		stream->channel_start_offset+=0x1E;
+}
+

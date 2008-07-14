@@ -231,6 +231,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\ea_old.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\fsb.c"
 					>
 				</File>
