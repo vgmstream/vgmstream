@@ -74,6 +74,8 @@ gchar *vgmstream_exts [] = {
   "hgc1",
   "aus",
   "rws",
+  "rsd",
+  "fsb",
   /* terminator */
   NULL
 };
