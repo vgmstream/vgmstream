@@ -161,6 +161,8 @@ typedef enum {
     meta_HGC1,				/* Knights of the Temple 2 */
     meta_AUS,				/* Variuos Capcom Games */
     meta_RWS,				/* Variuos Konami Games */
+	meta_RSD,				/* Crash Bandicoot Games */
+	meta_FSB,				/* FSB File (Various Games) */
 
 	meta_XBOX_WAVM,			/* XBOX WAVM File */
 	meta_XBOX_RIFF,			/* XBOX RIFF/WAVE File */

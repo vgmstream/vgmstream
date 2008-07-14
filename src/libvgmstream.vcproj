@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="UTF-8"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="8.00"
+	Version="8,00"
 	Name="libvgmstream"
 	ProjectGUID="{54A6AD11-5369-4895-A06F-E255ABB99B11}"
 	RootNamespace="libvgmstream"
@@ -207,6 +207,14 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\ahx.c"
+					>
+				</File>
+				<File
+					RelativePath=".\meta\aifc.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\ast.c"
 					>
 				</File>
@@ -235,6 +243,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\ivb.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\nds_strm.c"
 					>
 				</File>
@@ -251,7 +263,15 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\nwa.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\ogg_vorbis_file.c"
+					>
+				</File>
+				<File
+					RelativePath=".\meta\pos.c"
 					>
 				</File>
 				<File
@@ -259,7 +279,23 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\ps2_aus.c"
+					>
+				</File>
+				<File
+					RelativePath=".\meta\ps2_bmdx.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\ps2_exst.c"
+					>
+				</File>
+				<File
+					RelativePath=".\meta\ps2_fsb.c"
+					>
+				</File>
+				<File
+					RelativePath=".\meta\ps2_hgc1.c"
 					>
 				</File>
 				<File
@@ -287,7 +323,19 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\ps2_rsd.c"
+					>
+				</File>
+				<File
+					RelativePath=".\meta\ps2_rws.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\ps2_rxw.c"
+					>
+				</File>
+				<File
+					RelativePath=".\meta\ps2_sl3.c"
 					>
 				</File>
 				<File
@@ -319,6 +367,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\riff.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\rs03.c"
 					>
 				</File>
@@ -331,7 +383,15 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\ps2_bmdx.c"
+					RelativePath=".\meta\str_snds.c"
+					>
+				</File>
+				<File
+					RelativePath=".\meta\svs.c"
+					>
+				</File>
+				<File
+					RelativePath=".\meta\ws_aud.c"
 					>
 				</File>
 				<File
@@ -343,59 +403,7 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\aifc.c"
-					>
-				</File>
-				<File
-					RelativePath=".\meta\str_snds.c"
-					>
-				</File>
-				<File
-					RelativePath=".\meta\ws_aud.c"
-					>
-				</File>
-				<File
-					RelativePath=".\meta\ahx.c"
-					>
-				</File>
-				<File
-					RelativePath=".\meta\ivb.c"
-					>
-				</File>
-				<File
-					RelativePath=".\meta\svs.c"
-					>
-				</File>
-				<File
-					RelativePath=".\meta\riff.c"
-					>
-				</File>
-				<File
-					RelativePath=".\meta\pos.c"
-					>
-				</File>
-				<File
-					RelativePath=".\meta\nwa.c"
-					>
-				</File>
-				<File
-					RelativePath=".\meta\ps2_rws.c"
-					>
-				</File>
-				<File
-					RelativePath=".\meta\ps2_hgc1.c"
-					>
-				</File>
-				<File
 					RelativePath=".\meta\xss.c"
-					>
-				</File>
-				<File
-					RelativePath=".\meta\ps2_sl3.c"
-					>
-				</File>
-				<File
-					RelativePath=".\meta\ps2_aus.c"
 					>
 				</File>
 			</Filter>
@@ -435,6 +443,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\coding\mpeg_decoder.c"
+					>
+				</File>
+				<File
 					RelativePath=".\coding\ngc_afc_decoder.c"
 					>
 				</File>
@@ -459,10 +471,6 @@
 					>
 				</File>
 				<File
-					RelativePath=".\coding\xa_decoder.c"
-					>
-				</File>
-				<File
 					RelativePath=".\coding\sdx2_decoder.c"
 					>
 				</File>
@@ -471,7 +479,7 @@
 					>
 				</File>
 				<File
-					RelativePath=".\coding\mpeg_decoder.c"
+					RelativePath=".\coding\xa_decoder.c"
 					>
 				</File>
 			</Filter>
@@ -519,7 +527,11 @@
 					>
 				</File>
 				<File
-					RelativePath=".\layout\xa_blocked.c"
+					RelativePath=".\layout\str_snds_blocked.c"
+					>
+				</File>
+				<File
+					RelativePath=".\layout\ws_aud_blocked.c"
 					>
 				</File>
 				<File
@@ -527,11 +539,7 @@
 					>
 				</File>
 				<File
-					RelativePath=".\layout\str_snds_blocked.c"
-					>
-				</File>
-				<File
-					RelativePath=".\layout\ws_aud_blocked.c"
+					RelativePath=".\layout\xa_blocked.c"
 					>
 				</File>
 			</Filter>

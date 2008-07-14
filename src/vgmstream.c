@@ -77,6 +77,8 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_hgc1,
     init_vgmstream_aus,
     init_vgmstream_rws,
+	init_vgmstream_rsd,
+	init_vgmstream_fsb,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -1140,6 +1142,12 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case meta_RWS:
             snprintf(temp,TEMPSIZE,"RWS Header");
+            break;
+		case meta_RSD:
+            snprintf(temp,TEMPSIZE,"RSD4 or RSD6 Header");
+            break;
+		case meta_FSB:
+            snprintf(temp,TEMPSIZE,"FSB Header");
             break;
         default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");
