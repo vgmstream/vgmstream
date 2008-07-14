@@ -99,9 +99,15 @@ VGMSTREAM * init_vgmstream_fsb(STREAMFILE *streamFile) {
         for (i=0;i<channel_count;i++) {
             vgmstream->ch[i].streamfile = file;
 
-            vgmstream->ch[i].channel_start_offset=
-                vgmstream->ch[i].offset=start_offset+
-                vgmstream->interleave_block_size*i;
+            
+            if (vgmstream->coding_type == coding_XBOX) {
+                /* xbox interleaving is a little odd */
+                vgmstream->ch[i].channel_start_offset=start_offset;
+            } else {
+                vgmstream->ch[i].channel_start_offset=
+                    start_offset+vgmstream->interleave_block_size*i;
+            }
+            vgmstream->ch[0].offset = vgmstream->ch[i].channel_start_offset;
 
         }
     }
