@@ -255,6 +255,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\musc.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\nds_strm.c"
 					>
 				</File>

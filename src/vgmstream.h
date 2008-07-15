@@ -179,6 +179,7 @@ typedef enum {
 	meta_RWX,				/* Air Force Delta Storm (XBOX) */
 	meta_XWB,				/* King of Fighters (XBOX) */
 	meta_XA30,				/* Driver - Parallel Lines (PS2) */
+	meta_MUSC,				/* DSpyro Games, possibly more */
 
 	meta_XBOX_WAVM,			/* XBOX WAVM File */
 	meta_XBOX_RIFF,			/* XBOX RIFF/WAVE File */

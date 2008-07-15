@@ -83,6 +83,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_rwx,
 	init_vgmstream_xwb,
 	init_vgmstream_xa30,
+	init_vgmstream_musc,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))

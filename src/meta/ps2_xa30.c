@@ -28,7 +28,7 @@ VGMSTREAM * init_vgmstream_xa30(STREAMFILE *streamFile) {
 	/* fill in the vital statistics */
     start_offset = read_32bitLE(0x0C,streamFile);
 	vgmstream->channels = channel_count;
-    vgmstream->sample_rate = 22050;
+    vgmstream->sample_rate = read_32bitLE(0x04,streamFile);
     vgmstream->coding_type = coding_PSX;
     vgmstream->num_samples = read_32bitLE(0x14,streamFile)*28/16/channel_count;
     if (loop_flag) {

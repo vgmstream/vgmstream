@@ -7,6 +7,7 @@ VGMSTREAM * init_vgmstream_fsb(STREAMFILE *streamFile) {
     char filename[260];
     off_t start_offset;
 
+	/* int fsb3_included_files; */
 	int fsb3_headerlen = 0x18;
 	int fsb3_format;
 	int loop_flag = 0;
@@ -19,14 +20,32 @@ VGMSTREAM * init_vgmstream_fsb(STREAMFILE *streamFile) {
     /* check header */
     if (read_32bitBE(0x00,streamFile) != 0x46534233) /* "FSB3" */
         goto fail;
+ 
+	/* "Check if the FSB is used as
+	conatiner or as single file" */
+	if (read_32bitBE(0x04,streamFile) != 0x01000000)
+		goto fail;
+    
 
-    if (read_32bitBE(0x48,streamFile) == 0x02000806) {
+
+	if (read_32bitBE(0x48,streamFile) == 0x02000806) {
         loop_flag = 1;
     } else {
         loop_flag = 0; /* (read_32bitLE(0x08,streamFile)!=0); */
     }
-    channel_count = 2;
     
+	/* Channel check
+	if (read_16bitLE(0x56,streamFile) == 2) {
+        channel_count = 2;
+    } else {
+        goto fail;
+    }
+	*/
+	
+	
+	channel_count = read_16bitLE(0x56,streamFile);
+
+
 	/* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
@@ -37,6 +56,7 @@ VGMSTREAM * init_vgmstream_fsb(STREAMFILE *streamFile) {
 		case 0x40008800: /* PS2 (Agent Hugo, Flat Out 2) */
 		case 0x41008800: /* PS2 (Flat Out) */
 		case 0x42008800: /* PS2 (Jackass - The Game) */
+		case 0x01008804: /* PS2 (Cold Fear) */
 		vgmstream->coding_type = coding_PSX;
 		vgmstream->layout_type = layout_interleave;
 		vgmstream->interleave_block_size = 0x10;
@@ -60,7 +80,7 @@ VGMSTREAM * init_vgmstream_fsb(STREAMFILE *streamFile) {
 	break;
 		case 0x40004020: /* WII (Guitar Hero III), uses Xbox-ish IMA */
 		case 0x400040A0: /* WII (Guitar Hero III), uses Xbox-ish IMA */
-		case 0x41004800: /* XBOX (FlatOut) */
+		case 0x41004800: /* XBOX (FlatOut, Rainbow Six - Lockdown) */
 		vgmstream->coding_type = coding_XBOX;
 		vgmstream->layout_type = layout_interleave;
         vgmstream->interleave_block_size = 36;
@@ -75,7 +95,7 @@ VGMSTREAM * init_vgmstream_fsb(STREAMFILE *streamFile) {
 	}
 	/* fill in the vital statistics */
     start_offset = (read_32bitLE(0x08,streamFile))+fsb3_headerlen;
-	vgmstream->channels = read_16bitLE(0x56,streamFile);
+	vgmstream->channels = channel_count;
     vgmstream->sample_rate = read_32bitLE(0x4C,streamFile);
     vgmstream->meta_type = meta_FSB3;
 
