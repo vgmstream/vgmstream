@@ -49,7 +49,6 @@ VGMSTREAM * init_vgmstream_fsb(STREAMFILE *streamFile) {
 		case 0x02000806: /* WII (Metroid Prime 3) */
 		case 0x01000806: /* WII (Metroid Prime 3) */
 		case 0x40000802: /* WII (WWE Smackdown Vs. Raw 2008) */
-		case 0x40004020: /* WII (Guitar Hero III) */
 		vgmstream->num_samples = (read_32bitLE(0x0C,streamFile))*14/8/channel_count;
     if (loop_flag) {
         vgmstream->loop_start_sample = read_32bitLE(0x40,streamFile);
@@ -59,6 +58,8 @@ VGMSTREAM * init_vgmstream_fsb(STREAMFILE *streamFile) {
 		vgmstream->layout_type = layout_interleave_byte;
         vgmstream->interleave_block_size = 2;
 	break;
+		case 0x40004020: /* WII (Guitar Hero III), uses Xbox-ish IMA */
+		case 0x400040A0: /* WII (Guitar Hero III), uses Xbox-ish IMA */
 		case 0x41004800: /* XBOX (FlatOut) */
 		vgmstream->num_samples = read_32bitLE(0x44,streamFile);
     if (loop_flag) {
