@@ -78,6 +78,7 @@ gchar *vgmstream_exts [] = {
   "fsb",
   "rwx",
   "xwb",
+  "xa30",
   /* terminator */
   NULL
 };
