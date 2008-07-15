@@ -138,6 +138,7 @@ char * extension_list[] = {
 	"fsb\0FSB Audio File (*.FSB)\0",
 	"rwx\0RWX Audio File (*.RWX)\0",
 	"xwb\0XWB Audio File (*.XWB)\0",
+	"xa30\0XA30 Audio File (*.XA30)\0",
 };
 
 void about(HWND hwndParent) {

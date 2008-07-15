@@ -133,4 +133,6 @@ VGMSTREAM * init_vgmstream_rwx(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_xwb(STREAMFILE * streamFile);
 
+VGMSTREAM * init_vgmstream_xa30(STREAMFILE * streamFile);
+
 #endif

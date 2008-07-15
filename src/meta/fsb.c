@@ -42,33 +42,33 @@ VGMSTREAM * init_vgmstream_fsb(STREAMFILE *streamFile) {
 		vgmstream->interleave_block_size = 0x10;
 		vgmstream->num_samples = (read_32bitLE(0x0C,streamFile))*28/16/channel_count;
     if (loop_flag) {
-        vgmstream->loop_start_sample = 0;
+        vgmstream->loop_start_sample = read_32bitLE(0x40,streamFile);
         vgmstream->loop_end_sample = (read_32bitLE(0x0C,streamFile))*28/16/channel_count;
     }
 	break;
 		case 0x02000806: /* WII (Metroid Prime 3) */
 		case 0x01000806: /* WII (Metroid Prime 3) */
 		case 0x40000802: /* WII (WWE Smackdown Vs. Raw 2008) */
-		vgmstream->num_samples = (read_32bitLE(0x0C,streamFile))*14/8/channel_count;
-    if (loop_flag) {
-        vgmstream->loop_start_sample = read_32bitLE(0x40,streamFile);
-        vgmstream->loop_end_sample = read_32bitLE(0x44,streamFile);
-    }
 		vgmstream->coding_type = coding_NGC_DSP;
 		vgmstream->layout_type = layout_interleave_byte;
         vgmstream->interleave_block_size = 2;
+		vgmstream->num_samples = (read_32bitLE(0x0C,streamFile))*14/8/channel_count;
+	if (loop_flag) {
+        vgmstream->loop_start_sample = read_32bitLE(0x40,streamFile);
+        vgmstream->loop_end_sample = (read_32bitLE(0x0C,streamFile))*14/8/channel_count;
+    }
 	break;
 		case 0x40004020: /* WII (Guitar Hero III), uses Xbox-ish IMA */
 		case 0x400040A0: /* WII (Guitar Hero III), uses Xbox-ish IMA */
 		case 0x41004800: /* XBOX (FlatOut) */
-		vgmstream->num_samples = read_32bitLE(0x44,streamFile);
-    if (loop_flag) {
-        vgmstream->loop_start_sample = read_32bitLE(0x40,streamFile)*64/36/channel_count;
-        vgmstream->loop_end_sample = read_32bitLE(0x44,streamFile);
-    }
 		vgmstream->coding_type = coding_XBOX;
 		vgmstream->layout_type = layout_interleave;
         vgmstream->interleave_block_size = 36;
+		vgmstream->num_samples = read_32bitLE(0x0C,streamFile)*64/36/channel_count;
+	if (loop_flag) {
+        vgmstream->loop_start_sample = read_32bitLE(0x40,streamFile);
+        vgmstream->loop_end_sample = read_32bitLE(0x0C,streamFile)*64/36/channel_count;
+    }
 	break;
 		default:
 			goto fail;

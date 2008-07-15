@@ -178,6 +178,7 @@ typedef enum {
 	meta_FSB3,              /* FMOD Sample Bank, version 3 */
 	meta_RWX,				/* Air Force Delta Storm (XBOX) */
 	meta_XWB,				/* King of Fighters (XBOX) */
+	meta_XA30,				/* Driver - Parallel Lines (PS2) */
 
 	meta_XBOX_WAVM,			/* XBOX WAVM File */
 	meta_XBOX_RIFF,			/* XBOX RIFF/WAVE File */
