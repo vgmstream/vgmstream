@@ -110,6 +110,14 @@ File types supported by this version of vgmstream:
 - .hgc1 (PS2 ADPCM)
 - .aus (PS2 ADPCM)
 - .rws (PS2 ADPCM)
+- .fsb (PS2 ADPCM, Wii DSP ADPCM, Xbox IMA ADPCM)
+- .rsd (PS2 ADPCM, 16 bit PCM)
+- .rwx (16 bit PCM)
+- .xwb (16 bit PCM)
+- .asf, .as4 (8/16 bit PCM, EACS IMA ADPCM)
+- .cnk (PS2 ADPCM)
+- .xa30 (PS2 ADPCM)
+- .musc (PS2 ADPCM)
 
 Enjoy!
 -hcs
