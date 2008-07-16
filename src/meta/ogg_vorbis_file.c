@@ -2,6 +2,7 @@
 
 #ifdef VGM_USE_VORBIS
 
+#include <stdio.h>
 #include <string.h>
 #include "meta.h"
 #include "../util.h"
@@ -85,6 +86,8 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
     int32_t loop_start = 0;
     int loop_length_found = 0;
     int32_t loop_length = 0;
+    int loop_end_found = 0;
+    int32_t loop_end = 0;
 
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
@@ -160,6 +163,13 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
                 loop_length=atol(strrchr(comment->user_comments[i],'=')+1);
                 loop_length_found=1;
             }
+            else if (strstr(comment->user_comments[i],"lp=")==
+                    comment->user_comments[i]) {
+                sscanf(strrchr(comment->user_comments[i],'=')+1,"%d,%d",
+                        &loop_start,&loop_end);
+                loop_flag=1;
+                loop_end_found=1;
+            }
         }
     }
 
@@ -181,6 +191,8 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
         vgmstream->loop_start_sample = loop_start;
         if (loop_length_found)
             vgmstream->loop_end_sample = loop_start+loop_length;
+        else if (loop_end_found)
+            vgmstream->loop_end_sample = loop_end;
         else
             vgmstream->loop_end_sample = vgmstream->num_samples;
         vgmstream->loop_flag = loop_flag;
