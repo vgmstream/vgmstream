@@ -355,6 +355,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\ps2_sfs.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\ps2_sl3.c"
 					>
 				</File>

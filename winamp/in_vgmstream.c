@@ -144,6 +144,7 @@ char * extension_list[] = {
 	"leg\0LEG Audio File (*.LEG)\0",
 	"filp\0FILP Audio File (*.FILP)\0",
 	"ikm\0IKM Audio File (*.IKM)\0",
+	"sfs\0SFS Audio File (*.SFS)\0",
 };
 
 void about(HWND hwndParent) {

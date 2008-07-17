@@ -88,6 +88,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_leg,
 	init_vgmstream_filp,
 	init_vgmstream_ikm,
+	init_vgmstream_sfs,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -1283,6 +1284,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
 		case meta_IKM:
             snprintf(temp,TEMPSIZE,"Zwei! IKM Header");
+            break;
+		case meta_SFS:
+            snprintf(temp,TEMPSIZE,"Baroque SFS Header");
             break;
         default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

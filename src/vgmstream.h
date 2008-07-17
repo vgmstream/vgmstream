@@ -184,6 +184,7 @@ typedef enum {
 	meta_LEG,				/* Legaia 2 */
 	meta_FILP,				/* Resident Evil - Dead Aim */
 	meta_IKM,				/* Zwei! */
+	meta_SFS,				/* Baroque */
 
 	meta_XBOX_WAVM,			/* XBOX WAVM File */
 	meta_XBOX_RIFF,			/* XBOX RIFF/WAVE File */
