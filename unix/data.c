@@ -80,6 +80,10 @@ gchar *vgmstream_exts [] = {
   "xwb",
   "xa30",
   "musc",
+  "leg",
+  "filp",
+  "ikm",
+  "musx",
   /* terminator */
   NULL
 };

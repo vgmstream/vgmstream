@@ -118,6 +118,10 @@ File types supported by this version of vgmstream:
 - .cnk (PS2 ADPCM)
 - .xa30 (PS2 ADPCM)
 - .musc (PS2 ADPCM)
+- .leg (PS2 ADPCM)
+- .filp (PS2 ADPCM)
+- .ikm (PS2 ADPCM)
+- .musx (PS2 ADPCM)
 
 Enjoy!
 -hcs
