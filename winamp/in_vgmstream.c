@@ -140,6 +140,10 @@ char * extension_list[] = {
 	"xwb\0XWB Audio File (*.XWB)\0",
 	"xa30\0XA30 Audio File (*.XA30)\0",
 	"musc\0MUSC Audio File (*.MUSC)\0",
+	"musx\0MUSX Audio File (*.MUSX)\0",
+	"leg\0LEG Audio File (*.LEG)\0",
+	"filp\0FILP Audio File (*.FILP)\0",
+	"ikm\0IKM Audio File (*.IKM)\0",
 };
 
 void about(HWND hwndParent) {

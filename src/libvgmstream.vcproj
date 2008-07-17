@@ -259,6 +259,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\musx.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\nds_strm.c"
 					>
 				</File>
@@ -303,7 +307,15 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\ps2_filp.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\ps2_hgc1.c"
+					>
+				</File>
+				<File
+					RelativePath=".\meta\ps2_ikm.c"
 					>
 				</File>
 				<File
@@ -312,6 +324,10 @@
 				</File>
 				<File
 					RelativePath=".\meta\ps2_int.c"
+					>
+				</File>
+				<File
+					RelativePath=".\meta\ps2_leg.c"
 					>
 				</File>
 				<File

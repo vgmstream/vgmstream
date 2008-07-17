@@ -81,6 +81,7 @@ VGMSTREAM * init_vgmstream_fsb(STREAMFILE *streamFile) {
 		case 0x40004020: /* WII (Guitar Hero III), uses Xbox-ish IMA */
 		case 0x400040A0: /* WII (Guitar Hero III), uses Xbox-ish IMA */
 		case 0x41004800: /* XBOX (FlatOut, Rainbow Six - Lockdown) */
+		case 0x01004804: /* XBOX (Cold Fear) <- maybe IMA??? */
 		vgmstream->coding_type = coding_XBOX;
 		vgmstream->layout_type = layout_interleave;
         vgmstream->interleave_block_size = 36;

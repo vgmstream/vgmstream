@@ -84,6 +84,10 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_xwb,
 	init_vgmstream_xa30,
 	init_vgmstream_musc,
+	init_vgmstream_musx,
+	init_vgmstream_leg,
+	init_vgmstream_filp,
+	init_vgmstream_ikm,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -1250,6 +1254,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
 		case meta_RSD:
             snprintf(temp,TEMPSIZE,"RSD4 or RSD6 Header");
             break;
+		case meta_SL3:
+            snprintf(temp,TEMPSIZE,"SL3 Header");
+            break;
 		case meta_FSB3:
             snprintf(temp,TEMPSIZE,"FMOD Sample Bank (FSB3) Header");
             break;
@@ -1261,6 +1268,21 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
 		case meta_XA30:
             snprintf(temp,TEMPSIZE,"XA30 Header");
+            break;
+		case meta_MUSC:
+            snprintf(temp,TEMPSIZE,"MUSC Header");
+            break;
+		case meta_MUSX:
+            snprintf(temp,TEMPSIZE,"MUSX Header");
+            break;
+		case meta_LEG:
+            snprintf(temp,TEMPSIZE,"Legaia 2 - Duel Saga LEG Header");
+            break;
+		case meta_FILP:
+            snprintf(temp,TEMPSIZE,"Bio Hazard - Gun Survivor FILp/GEMp Header");
+            break;
+		case meta_IKM:
+            snprintf(temp,TEMPSIZE,"Zwei! IKM Header");
             break;
         default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");
