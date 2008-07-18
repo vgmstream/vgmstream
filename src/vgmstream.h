@@ -223,6 +223,7 @@ typedef enum {
     meta_NWA_NWAINFOINI,    /* NWA w/ NWAINFO.INI for looping */
     meta_NWA_GAMEEXEINI,    /* NWA w/ Gameexe.ini for looping */
 	meta_DVI,				/* DVI Interleaved */
+	meta_KCEY,				/* KCEYCOMP */
 } meta_t;
 
 typedef struct {

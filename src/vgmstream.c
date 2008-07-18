@@ -90,6 +90,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_ikm,
 	init_vgmstream_sfs,
 	init_vgmstream_dvi,
+	init_vgmstream_kcey,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -1305,6 +1306,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
 		case meta_DVI:
             snprintf(temp,TEMPSIZE,"DVI Header");
+            break;
+		case meta_KCEY:
+            snprintf(temp,TEMPSIZE,"KCEYCOMP Header");
             break;
         default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

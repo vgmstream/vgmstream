@@ -1,8 +1,8 @@
 #include "meta.h"
+#include "../coding/coding.h"
 #include "../util.h"
 
-/* DVI (Castlevania Symphony of the Night) */
-VGMSTREAM * init_vgmstream_dvi(STREAMFILE *streamFile) {
+VGMSTREAM * init_vgmstream_kcey(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[260];
     off_t start_offset;
@@ -12,14 +12,14 @@ VGMSTREAM * init_vgmstream_dvi(STREAMFILE *streamFile) {
 
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("dvi",filename_extension(filename))) goto fail;
+    if (strcasecmp("kcey",filename_extension(filename))) goto fail;
 
     /* check header */
-    if (read_32bitBE(0x00,streamFile) != 0x4456492E) /* "DVI." */
+    if (read_32bitBE(0x00,streamFile) != 0x4B434559) /* "DVI." */
         goto fail;
 
-    loop_flag = (read_32bitBE(0x0C,streamFile)!=0xFFFFFFFF);
-    channel_count = 2;
+    loop_flag = (read_32bitBE(0x14,streamFile)!=0xFFFFFFFF);
+    channel_count = read_32bitBE(0x08,streamFile);
     
 	/* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
@@ -27,22 +27,20 @@ VGMSTREAM * init_vgmstream_dvi(STREAMFILE *streamFile) {
 
 	/* fill in the vital statistics */
 	vgmstream->channels = channel_count;
-    start_offset = read_32bitBE(0x04,streamFile);
-    vgmstream->sample_rate = 44100;
-    vgmstream->coding_type = coding_INT_DVI_IMA;
+    start_offset = read_32bitBE(0x10,streamFile);
+    vgmstream->sample_rate = 37800;
+    vgmstream->coding_type = coding_EACS_IMA;
 
-    vgmstream->num_samples = read_32bitBE(0x08,streamFile);
+    vgmstream->num_samples = read_32bitBE(0x0C,streamFile);
     
 	if (loop_flag) {
-        vgmstream->loop_start_sample = read_32bitBE(0x0C,streamFile);
-        vgmstream->loop_end_sample = read_32bitBE(0x08,streamFile);
+        vgmstream->loop_start_sample = read_32bitBE(0x14,streamFile);
+        vgmstream->loop_end_sample = read_32bitBE(0x0C,streamFile);
     }
 
-    vgmstream->layout_type = layout_interleave;
-	vgmstream->interleave_block_size = 4;
-    vgmstream->meta_type = meta_DVI;
+    vgmstream->layout_type = layout_none;
+    vgmstream->meta_type = meta_KCEY;
 	vgmstream->get_high_nibble=1;
-
 
 	/* open the file for reading */
     {
