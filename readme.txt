@@ -122,6 +122,9 @@ File types supported by this version of vgmstream:
 - .filp (PS2 ADPCM)
 - .ikm (PS2 ADPCM)
 - .musx (PS2 ADPCM)
+- .sfs (PS2 ADPCM)
+- .bg00 (PS2 ADPCM)
+- .dvi (DVI IMA ADPCM)
 
 Enjoy!
 -hcs

@@ -16,7 +16,7 @@ long EA_TABLE[20]= { 0x00000000, 0x000000F0, 0x000001CC, 0x00000188,
 
 void decode_eaxa(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do,int channel) {
     uint8_t frame_info;
-    int32_t sample_count,sample_pcm_count=0;
+    int32_t sample_count;
 	long coef1,coef2;
 	int i,shift;
 	off_t channel_offset=stream->channel_start_offset;

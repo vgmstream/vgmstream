@@ -8,7 +8,7 @@ VGMSTREAM * init_vgmstream_musx(STREAMFILE *streamFile) {
     char filename[260];
     off_t start_offset;
 
-	int musx_version; /* 0x08 provides a "version" byte??? */
+	/*int musx_version;*/ /* 0x08 provides a "version" byte??? */
 	int musx_type;
 	int loop_flag = 0;
 	int channel_count;

@@ -84,6 +84,9 @@ gchar *vgmstream_exts [] = {
   "filp",
   "ikm",
   "musx",
+  "dvi",
+  "bg0",
+  "bg00",
   /* terminator */
   NULL
 };
