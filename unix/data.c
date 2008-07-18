@@ -85,7 +85,6 @@ gchar *vgmstream_exts [] = {
   "ikm",
   "musx",
   "dvi",
-  "bg0",
   "bg00",
   "kcey",
   /* terminator */
