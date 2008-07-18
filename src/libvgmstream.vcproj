@@ -299,6 +299,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\ps2_bg00.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\ps2_bmdx.c"
 					>
 				</File>

@@ -187,6 +187,7 @@ typedef enum {
 	meta_FILP,				/* Resident Evil - Dead Aim */
 	meta_IKM,				/* Zwei! */
 	meta_SFS,				/* Baroque */
+	meta_BG0,				/* Ibara, Mushihimesama */
 
 	meta_XBOX_WAVM,			/* XBOX WAVM File */
 	meta_XBOX_RIFF,			/* XBOX RIFF/WAVE File */

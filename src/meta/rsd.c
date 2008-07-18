@@ -9,7 +9,7 @@ VGMSTREAM * init_vgmstream_rsd(STREAMFILE *streamFile) {
     
 	coding_t coding_type;
     
-	int loop_flag = 0;
+	int loop_flag;
 	int channel_count;
 	int rsd_ident;
     
@@ -24,8 +24,8 @@ VGMSTREAM * init_vgmstream_rsd(STREAMFILE *streamFile) {
         goto fail;
 
 
-    loop_flag = (read_16bitLE(0x12,streamFile));
-    channel_count = (read_16bitLE(0x8,streamFile));
+    loop_flag = (read_32bitLE(0x90,streamFile)!=0);
+    channel_count = (read_32bitLE(0x8,streamFile));
     
 
 	/* build the VGMSTREAM */
@@ -43,7 +43,7 @@ VGMSTREAM * init_vgmstream_rsd(STREAMFILE *streamFile) {
 		vgmstream->interleave_block_size = read_32bitLE(0x0C,streamFile);
 		vgmstream->num_samples = (get_streamfile_size(streamFile)-0x800)*28/16/channel_count;
 	if (loop_flag) {
-        vgmstream->loop_start_sample = (loop_flag)*28/2;
+        vgmstream->loop_start_sample = (read_32bitLE(0x94,streamFile))*28/16/channel_count;
         vgmstream->loop_end_sample = (get_streamfile_size(streamFile)-0x800)*28/16/channel_count;
 	}
 	break;
@@ -67,7 +67,7 @@ vgmstream->meta_type = meta_RSD;
 
 	start_offset = 0x800;
 	vgmstream->channels = channel_count;
-    vgmstream->sample_rate = read_16bitLE(0x10,streamFile);
+    vgmstream->sample_rate = read_32bitLE(0x10,streamFile);
 	vgmstream->coding_type = coding_type;
 
 
