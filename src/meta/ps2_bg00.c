@@ -2,7 +2,7 @@
 #include "../util.h"
 
 /* BG0 (from Ibara, Mushihimesama) */
-VGMSTREAM * init_vgmstream_bg0(STREAMFILE *streamFile) {
+VGMSTREAM * init_vgmstream_bg00(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[260];
     off_t start_offset;
@@ -12,7 +12,7 @@ VGMSTREAM * init_vgmstream_bg0(STREAMFILE *streamFile) {
 
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("bg0",filename_extension(filename))) goto fail;
+    if (strcasecmp("bg00",filename_extension(filename))) goto fail;
 
     /* check header */
     if (read_32bitBE(0x00,streamFile) != 0x42473030) /* "BG00" */
@@ -38,7 +38,7 @@ VGMSTREAM * init_vgmstream_bg0(STREAMFILE *streamFile) {
 
     vgmstream->layout_type = layout_interleave;
     vgmstream->interleave_block_size = read_32bitLE(0x10,streamFile);
-    vgmstream->meta_type = meta_BG0;
+    vgmstream->meta_type = meta_BG00;
 
     /* open the file for reading */
     {

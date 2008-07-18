@@ -89,6 +89,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_filp,
 	init_vgmstream_ikm,
 	init_vgmstream_sfs,
+	init_vgmstream_bg00,
 	init_vgmstream_dvi,
 	init_vgmstream_kcey,
 };
