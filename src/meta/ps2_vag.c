@@ -55,7 +55,7 @@ VGMSTREAM * init_vgmstream_ps2_vag(STREAMFILE *streamFile) {
 			if(read_32bitBE(0x20,streamFile)==0x53746572) // vag Stereo
 				channel_count=2;
 		case 'p':
-			if(read_32bitBE(0x04,streamFile)<=0x00000004) {
+			if((read_32bitBE(0x04,streamFile)<=0x00000004) && (read_32bitBE(0x0c,streamFile)<(get_streamfile_size(streamFile)/2))) {
 				loop_flag=(read_32bitBE(0x14,streamFile)!=0);
 				channel_count=2;
 			} else {
@@ -116,7 +116,7 @@ VGMSTREAM * init_vgmstream_ps2_vag(STREAMFILE *streamFile) {
 			vgmstream->sample_rate = read_32bitBE(0x10,streamFile);
 			interleave=0x10; // used for loop calc
 
-			if(read_32bitBE(0x04,streamFile)==0x00000004) {
+			if((read_32bitBE(0x04,streamFile)==0x00000004) && (read_32bitBE(0x0c,streamFile)<(get_streamfile_size(streamFile)/2))) {
 				vgmstream->channels=2;
 				vgmstream->num_samples = read_32bitBE(0x0C,streamFile);
 
