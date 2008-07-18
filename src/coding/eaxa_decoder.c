@@ -16,22 +16,22 @@ long EA_TABLE[20]= { 0x00000000, 0x000000F0, 0x000001CC, 0x00000188,
 
 void decode_eaxa(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do,int channel) {
     uint8_t frame_info;
-    int32_t sample_count;
+    int32_t sample_count,sample_pcm_count=0;
 	long coef1,coef2;
 	int i,shift;
 	off_t channel_offset=stream->channel_start_offset;
-
+	
 	first_sample = first_sample%28;
 	frame_info = (uint8_t)read_8bit(stream->offset+channel_offset,stream->streamfile);
 
 	if(frame_info==0xEE) {
 
 		channel_offset++;
-		stream->adpcm_history1_32 = read_16bitBE(stream->offset+channel_offset+(2*channel),stream->streamfile);
-		stream->adpcm_history2_32 = read_16bitBE(stream->offset+channel_offset+2+(2*channel),stream->streamfile);
+		stream->adpcm_history1_32 = read_16bitBE(stream->offset+channel_offset,stream->streamfile);
+		stream->adpcm_history2_32 = read_16bitBE(stream->offset+channel_offset+2,stream->streamfile);
 
-		channel_offset+=(2*channelspacing);
-
+		channel_offset+=4;
+		
 		for (i=first_sample,sample_count=0; i<first_sample+samples_to_do; i++,sample_count+=channelspacing) {
 			outbuf[sample_count]=read_16bitBE(stream->offset+channel_offset,stream->streamfile);
 			channel_offset+=2;

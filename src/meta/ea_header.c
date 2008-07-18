@@ -181,11 +181,17 @@ VGMSTREAM * init_vgmstream_ea(STREAMFILE *streamFile) {
 				break;
 			case EA_X360:
 				vgmstream->sample_rate=44100;
-				vgmstream->ea_compression_version=0x03;
 				break;
 			default:
 				vgmstream->sample_rate=22050;
 		}
+	}
+
+	// Set default compression scheme if not define in the header
+	switch(vgmstream->ea_platform) {
+		case EA_X360:
+			vgmstream->ea_compression_version=0x03;
+			break;
 	}
 
 	vgmstream->num_samples=ea.num_samples;
