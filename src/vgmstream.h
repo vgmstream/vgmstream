@@ -56,6 +56,7 @@ typedef enum {
                                with smaple-level interleave handled by the
                                decoder */
     coding_DVI_IMA,         /* DVI (bare IMA, high nibble first), aka ADP4 */
+	coding_INT_DVI_IMA,		/* Interlaved DVI */
 	coding_EACS_IMA,
     coding_IMA,             /* bare IMA, low nibble first */
     coding_WS,              /* Westwood Studios' custom VBR ADPCM */
@@ -125,6 +126,7 @@ typedef enum {
     meta_DSP_SADB,          /* .sad */
     meta_DSP_WSI,           /* .wsi */
 	meta_DSP_AMTS,			/* .amts */
+	meta_DSP_IDSP,			/* .gcm with IDSP header */
 
     /* Nintendo */
     meta_STRM,              /* STRM */
@@ -219,6 +221,7 @@ typedef enum {
     meta_NWA,               /* Visual Art's NWA */
     meta_NWA_NWAINFOINI,    /* NWA w/ NWAINFO.INI for looping */
     meta_NWA_GAMEEXEINI,    /* NWA w/ Gameexe.ini for looping */
+	meta_DVI,				/* DVI Interleaved */
 } meta_t;
 
 typedef struct {

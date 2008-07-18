@@ -419,6 +419,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\sat_dvi.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\str_snds.c"
 					>
 				</File>

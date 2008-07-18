@@ -89,6 +89,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_filp,
 	init_vgmstream_ikm,
 	init_vgmstream_sfs,
+	init_vgmstream_dvi,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -379,6 +380,8 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
 		case coding_EACS_IMA:
         case coding_IMA:
             return 1;
+		case coding_INT_DVI_IMA:
+			return 2;
         case coding_NGC_AFC:
             return 16;
         case coding_PSX:
@@ -449,6 +452,8 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
 			return 1; // the frame is variant in size
         case coding_WS:
             return vgmstream->current_block_size;
+        case coding_INT_DVI_IMA:
+			return 1; 
         default:
             return 0;
     }
@@ -623,6 +628,7 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
             }
             break;
 		case coding_DVI_IMA:
+		case coding_INT_DVI_IMA:
             for (chan=0;chan<vgmstream->channels;chan++) {
                 decode_dvi_ima(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
@@ -890,6 +896,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         case coding_DVI_IMA:
             snprintf(temp,TEMPSIZE,"Intel DVI 4-bit IMA ADPCM");
             break;
+        case coding_INT_DVI_IMA:
+            snprintf(temp,TEMPSIZE,"Interleaved Intel DVI 4-bit IMA ADPCM");
+            break;
 		case coding_EACS_IMA:
             snprintf(temp,TEMPSIZE,"EACS 4-bit IMA ADPCM");
             break;
@@ -1113,6 +1122,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         case meta_DSP_GCM:
             snprintf(temp,TEMPSIZE,"Double DSP header stereo by .gcm extension");
             break;
+		case meta_DSP_IDSP:
+            snprintf(temp,TEMPSIZE,"GCM file with IDSP Header");
+            break;
         case meta_RSTM_SPM:
             snprintf(temp,TEMPSIZE,"Nintendo RSTM header and .brstmspm extension");
             break;
@@ -1252,6 +1264,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         case meta_EACS_PSX:
             snprintf(temp,TEMPSIZE,"EACS Header (PSX)");
             break;
+        case meta_EACS_SAT:
+            snprintf(temp,TEMPSIZE,"EACS Header (SATURN)");
+            break;
 		case meta_RSD:
             snprintf(temp,TEMPSIZE,"RSD4 or RSD6 Header");
             break;
@@ -1287,6 +1302,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
 		case meta_SFS:
             snprintf(temp,TEMPSIZE,"Baroque SFS Header");
+            break;
+		case meta_DVI:
+            snprintf(temp,TEMPSIZE,"DVI Header");
             break;
         default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

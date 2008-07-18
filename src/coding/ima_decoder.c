@@ -178,7 +178,6 @@ void decode_eacs_ima(VGMSTREAM * vgmstream, sample * outbuf, int channelspacing,
         int delta;
 
         sample_byte = read_8bit(stream->offset+i,stream->streamfile);
-        /* old-style DVI takes high nibble first */
         sample_nibble = (sample_byte >> (vgmstream->get_high_nibble?0:4))&0xf;
 
         sample_decoded = hist1;
