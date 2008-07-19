@@ -131,6 +131,8 @@ VGMSTREAM * init_vgmstream_nwa(STREAMFILE *streamFile) {
 
         streamFile->get_realname(streamFile,namebase_array,sizeof(namebase_array));
 
+        channel_count = read_16bitLE(0x00,streamFile);
+
         ini_lastslash = strrchr(ininame,DIRSEP);
         if (!ini_lastslash) {
             strncpy(ininame,"Gameexe.ini",sizeof(ininame));
@@ -190,20 +192,35 @@ VGMSTREAM * init_vgmstream_nwa(STREAMFILE *streamFile) {
             if (found) {
                 char loopstring[9]={0};
                 int start_ok = 0, end_ok = 0;
+                int32_t total_samples =
+                    read_32bitLE(0x1c,streamFile)/channel_count;
 
                 if (read_streamfile((uint8_t*)loopstring,found_off,8,
-                            inistreamfile)==8 &&
-                    memcmp("99999999",loopstring,8))
+                            inistreamfile)==8)
                 {
-                    loop_end_sample = atol(loopstring);
+                    if (!memcmp("99999999",loopstring,8))
+                    {
+                        loop_end_sample = total_samples;
+                    }
+                    else
+                    {
+                        loop_end_sample = atol(loopstring);
+                    }
                     end_ok = 1;
                 }
                 if (read_streamfile((uint8_t*)loopstring,found_off+11,8,
-                            inistreamfile)==8 &&
-                    memcmp("99999999",loopstring,8))
+                            inistreamfile)==8)
                 {
-                    loop_start_sample = atol(loopstring);
-                    start_ok = 1;
+                    if (!memcmp("99999999",loopstring,8))
+                    {
+                        /* not ok to start at last sample,
+                         * don't set start_ok flag */
+                    }
+                    else
+                    {
+                        loop_start_sample = atol(loopstring);
+                        start_ok = 1;
+                    }
                 }
 
                 if (start_ok && end_ok) loop_flag = 1;
@@ -212,8 +229,6 @@ VGMSTREAM * init_vgmstream_nwa(STREAMFILE *streamFile) {
             close_streamfile(inistreamfile);
         } /* if opened INI ok */
     } /* INI block */
-
-    channel_count = read_16bitLE(0x00,streamFile);
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
