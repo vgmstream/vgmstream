@@ -92,6 +92,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_bg00,
 	init_vgmstream_dvi,
 	init_vgmstream_kcey,
+	init_vgmstream_ps2_rstm,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -1300,7 +1301,7 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             snprintf(temp,TEMPSIZE,"Bio Hazard - Gun Survivor FILp/GEMp Header");
             break;
 		case meta_IKM:
-            snprintf(temp,TEMPSIZE,"Zwei! IKM Header");
+            snprintf(temp,TEMPSIZE,"Zwei!! IKM Header");
             break;
 		case meta_SFS:
             snprintf(temp,TEMPSIZE,"Baroque SFS Header");
@@ -1310,6 +1311,12 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
 		case meta_KCEY:
             snprintf(temp,TEMPSIZE,"KCEYCOMP Header");
+            break;
+		case meta_BG00:
+            snprintf(temp,TEMPSIZE,"Falcom BG00 Header");
+            break;
+		case meta_PS2_RSTM:
+            snprintf(temp,TEMPSIZE,"Rockstar Games RSTM Header");
             break;
         default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

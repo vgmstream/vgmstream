@@ -148,6 +148,7 @@ char * extension_list[] = {
 	"bg00\0BG00 Audio File (*.BG00)\0",
 	"dvi\0DVI Audio File (*.DVI)\0",
 	"kcey\0KCEY Audio File (*.KCEY)\0",
+	"rstm\0RSTM Audio File (*.RSTM)\0",
 };
 
 void about(HWND hwndParent) {

@@ -188,6 +188,7 @@ typedef enum {
 	meta_IKM,				/* Zwei! */
 	meta_SFS,				/* Baroque */
 	meta_BG00,				/* Ibara, Mushihimesama */
+	meta_PS2_RSTM,			/* Midnight Club 3 */
 
 	meta_XBOX_WAVM,			/* XBOX WAVM File */
 	meta_XBOX_RIFF,			/* XBOX RIFF/WAVE File */
