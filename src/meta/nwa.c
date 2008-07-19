@@ -178,8 +178,8 @@ VGMSTREAM * init_vgmstream_nwa(STREAMFILE *streamFile) {
                 for (suboffset = offset+45;
                         suboffset<file_size &&
                         suboffset-offset-45<length &&
-                        read_8bit(suboffset,inistreamfile)==
-                            namebase[suboffset-offset-45];
+                        tolower(read_8bit(suboffset,inistreamfile))==
+                            tolower(namebase[suboffset-offset-45]);
                         suboffset++) {}
 
                 if (suboffset-offset-45==length &&
