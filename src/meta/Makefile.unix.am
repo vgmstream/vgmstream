@@ -70,5 +70,6 @@ libmeta_la_SOURCES += ps2_sfs.c
 libmeta_la_SOURCES += sat_dvi.c
 libmeta_la_SOURCES += ps2_bg00.c
 libmeta_la_SOURCES += dc_kcey.c
+libmeta_la_SOURCES += ps2_rstm.c
 
 EXTRA_DIST = meta.h

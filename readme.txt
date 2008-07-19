@@ -126,6 +126,7 @@ File types supported by this version of vgmstream:
 - .bg00 (PS2 ADPCM)
 - .dvi (DVI IMA ADPCM)
 - .kcey (EACS IMA ADPCM)
+- .rstm (PS2 ADPCM)
 
 Enjoy!
 -hcs
