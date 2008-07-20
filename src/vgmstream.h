@@ -193,6 +193,8 @@ typedef enum {
 	meta_SFS,				/* Baroque */
 	meta_BG00,				/* Ibara, Mushihimesama */
 	meta_PS2_RSTM,			/* Midnight Club 3 */
+	meta_PS2_KCES,			/* Dance Dance Revolution */
+	meta_PS2_DXH,			/* Tokobot Plus - Myteries of the Karakuri */
 
 	meta_XBOX_WAVM,			/* XBOX WAVM File */
 	meta_XBOX_RIFF,			/* XBOX RIFF/WAVE File */

@@ -94,6 +94,8 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_kcey,
 	init_vgmstream_ps2_rstm,
     init_vgmstream_acm,
+	init_vgmstream_ps2_kces,
+	init_vgmstream_ps2_dxh,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -1365,6 +1367,12 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case meta_ACM:
             snprintf(temp,TEMPSIZE,"InterPlay ACM Header");
+            break;
+		case meta_PS2_KCES:
+            snprintf(temp,TEMPSIZE,"Konami KCES Header");
+            break;
+        case meta_PS2_DXH:
+            snprintf(temp,TEMPSIZE,"Tokobot Plus DXH Header");
             break;
         default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

@@ -157,4 +157,8 @@ VGMSTREAM * init_vgmstream_ps2_rstm(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_acm(STREAMFILE * streamFile);
 
+VGMSTREAM * init_vgmstream_ps2_kces(STREAMFILE * streamFile);
+
+VGMSTREAM * init_vgmstream_ps2_dxh(STREAMFILE * streamFile);
+
 #endif

@@ -315,6 +315,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\ps2_dxh.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\ps2_exst.c"
 					>
 				</File>
@@ -336,6 +340,10 @@
 				</File>
 				<File
 					RelativePath=".\meta\ps2_int.c"
+					>
+				</File>
+				<File
+					RelativePath=".\meta\ps2_kces.c"
 					>
 				</File>
 				<File
