@@ -58,4 +58,7 @@ void decode_mpeg(VGMSTREAMCHANNEL * stream,
         sample * outbuf, int32_t samples_to_do, int channels);
 #endif
 
+void decode_acm(mus_acm_codec_data * data, sample * outbuf,
+        int32_t samples_to_do, int channelspacing);
+
 #endif

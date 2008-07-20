@@ -20,6 +20,7 @@
 #ifdef VGM_USE_MPEG
 #include <mpg123.h>
 #endif
+#include "coding/acm_decoder.h"
 
 /* The encoding type specifies the format the sound data itself takes */
 typedef enum {
@@ -73,6 +74,8 @@ typedef enum {
     coding_MPEG25_L2,
     coding_MPEG25_L3,
 #endif
+
+    coding_ACM,             /* InterPlay ACM */
 } coding_t;
 
 /* The layout type specifies how the sound data is laid out in the file */
@@ -107,6 +110,7 @@ typedef enum {
     layout_fake_mpeg,       /* MPEG audio stream with bad frame headers (AHX) */
     layout_mpeg,            /* proper MPEG audio stream */
 #endif
+    layout_acm,             /* dummy, let libacm handle layout */
 } layout_t;
 
 /* The meta type specifies how we know what we know about the file. We may know because of a header we read, some of it may have been guessed from filenames, etc. */
@@ -225,6 +229,8 @@ typedef enum {
     meta_NWA_GAMEEXEINI,    /* NWA w/ Gameexe.ini for looping */
 	meta_DVI,				/* DVI Interleaved */
 	meta_KCEY,				/* KCEYCOMP */
+    meta_ACM,               /* InterPlay ACM header */
+    meta_MUS_ACM,           /* MUS playlist of InterPlay ACM files */
 } meta_t;
 
 typedef struct {
@@ -348,6 +354,14 @@ typedef struct {
     mpg123_handle *m;
 } mpeg_codec_data;
 #endif
+
+/* with one file this is also used for just
+   ACM */
+typedef struct {
+    int file_count;
+    int current_file;
+    ACMStream **files;
+} mus_acm_codec_data;
 
 /* do format detection, return pointer to a usable VGMSTREAM, or NULL on failure */
 VGMSTREAM * init_vgmstream(const char * const filename);

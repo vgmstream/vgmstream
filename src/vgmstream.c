@@ -93,6 +93,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_dvi,
 	init_vgmstream_kcey,
 	init_vgmstream_ps2_rstm,
+    init_vgmstream_acm,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -185,6 +186,8 @@ void reset_vgmstream(VGMSTREAM * vgmstream) {
         data->buffer_full = data->buffer_used = 0;
     }
 #endif
+
+    /* TODO: reset ACM */
 }
 
 /* simply allocate memory for the VGMSTREAM and its channels */
@@ -302,6 +305,28 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
     }
 #endif
 
+    if (vgmstream->coding_type==coding_ACM) {
+        mus_acm_codec_data *data = vgmstream->codec_data;
+
+        if (data) {
+            if (data->files) {
+                int i;
+                for (i=0; i<data->file_count; i++) {
+                    /* shouldn't be duplicates */
+                    if (data->files[i]) {
+                        acm_close(data->files[i]);
+                        data->files[i] = NULL;
+                    }
+                }
+                free(data->files);
+                data->files = NULL;
+            }
+
+            free(vgmstream->codec_data);
+            vgmstream->codec_data = NULL;
+        }
+    }
+
     free(vgmstream);
 }
 
@@ -324,6 +349,7 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
         case layout_fake_mpeg:
         case layout_mpeg:
 #endif
+        case layout_acm:
         case layout_dtk_interleave:
         case layout_none:
             render_vgmstream_nolayout(buffer,sample_count,vgmstream);
@@ -373,6 +399,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
 #endif
         case coding_SDX2:
         case coding_SDX2_int:
+        case coding_ACM:
             return 1;
         case coding_NDS_IMA:
             return (vgmstream->interleave_block_size-4)*2;
@@ -681,6 +708,12 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                     buffer+samples_written*vgmstream->channels,samples_to_do,
                     vgmstream->channels);
             break;
+        case coding_ACM:
+            decode_acm(
+                    vgmstream->codec_data,
+                    buffer+samples_written*vgmstream->channels,samples_to_do,
+                    vgmstream->channels);
+            break;
 #endif
     }
 }
@@ -943,6 +976,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             snprintf(temp,TEMPSIZE,"MPEG-2.5 Layer III Audio (MP3)");
             break;
 #endif
+        case coding_ACM:
+            snprintf(temp,TEMPSIZE,"InterPlay ACM");
+            break;
         default:
             snprintf(temp,TEMPSIZE,"CANNOT DECODE");
     }
@@ -1007,7 +1043,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             snprintf(temp,TEMPSIZE,"MPEG Audio stream");
             break;
 #endif
-
+        case layout_acm:
+            snprintf(temp,TEMPSIZE,"However ACM Does That");
+            break;
         default:
             snprintf(temp,TEMPSIZE,"INCONCEIVABLE");
     }
@@ -1317,6 +1355,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
 		case meta_PS2_RSTM:
             snprintf(temp,TEMPSIZE,"Rockstar Games RSTM Header");
+            break;
+        case meta_ACM:
+            snprintf(temp,TEMPSIZE,"InterPlay ACM Header");
             break;
         default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

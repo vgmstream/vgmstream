@@ -11,7 +11,8 @@ CODING_OBJS=coding/adx_decoder.o \
     coding/ogg_vorbis_decoder.o \
     coding/sdx2_decoder.o \
     coding/ws_decoder.o \
-    coding/mpeg_decoder.o
+    coding/mpeg_decoder.o \
+    coding/acm_decoder.o
 
 LAYOUT_OBJS=layout/ast_blocked.o \
     layout/blocked.o \
@@ -92,7 +93,8 @@ META_OBJS=meta/adx_header.o \
     meta/sat_dvi.o \
     meta/ps2_bg00.o \
     meta/dc_kcey.o \
-    meta/ps2_rstm.o
+    meta/ps2_rstm.o \
+    meta/acm.o
 
 OBJECTS=vgmstream.o streamfile.o util.o $(CODING_OBJS) $(LAYOUT_OBJS) $(META_OBJS)
 

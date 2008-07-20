@@ -1,6 +1,7 @@
 #include "meta.h"
 #include "../util.h"
 #include <string.h>
+#include <ctype.h>
 
 #ifdef WIN32
 #define DIRSEP '\\'

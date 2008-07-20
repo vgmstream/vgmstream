@@ -4,6 +4,6 @@ AM_CFLAGS = -Wall @CFLAGS@ -I$(top_builddir) -I$(top_srcdir)
 AM_MAKEFLAGS=-f Makefile.unix
 
 libcoding_la_LDFLAGS = 
-libcoding_la_SOURCES = adx_decoder.c eaxa_decoder.c g721_decoder.c ima_decoder.c ngc_afc_decoder.c ngc_dsp_decoder.c ngc_dtk_decoder.c pcm_decoder.c psx_decoder.c xa_decoder.c ogg_vorbis_decoder.c sdx2_decoder.c ws_decoder.c mpeg_decoder.c
+libcoding_la_SOURCES = adx_decoder.c eaxa_decoder.c g721_decoder.c ima_decoder.c ngc_afc_decoder.c ngc_dsp_decoder.c ngc_dtk_decoder.c pcm_decoder.c psx_decoder.c xa_decoder.c ogg_vorbis_decoder.c sdx2_decoder.c ws_decoder.c mpeg_decoder.c acm_decoder.c
 
 EXTRA_DIST = coding.h g72x_state.h
