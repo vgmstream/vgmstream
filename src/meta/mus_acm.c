@@ -194,11 +194,21 @@ VGMSTREAM * init_vgmstream_mus_acm(STREAMFILE *streamFile) {
 
 
             if (fields_matched < 1) goto fail;
-            if (fields_matched == 3 && loop_name_base[0] != '@')
+            if (fields_matched == 3 && loop_name_base_temp[0] != '@' && loop_name_temp[0] != '@')
             {
                 int j;
                 memcpy(loop_name,loop_name_temp,sizeof(loop_name));
                 memcpy(loop_name_base,loop_name_base_temp,sizeof(loop_name_base));
+                for (j=0;loop_name[j];j++) loop_name[j]=toupper(loop_name[j]);
+                for (j=0;loop_name_base[j];j++) loop_name_base[j]=toupper(loop_name_base[j]);
+                /* loop back entry */
+                loop_end_index = i;
+            }
+            else if (fields_matched >= 2 && loop_name_base_temp[0] != '@')
+            {
+                int j;
+                memcpy(loop_name,loop_name_base_temp,sizeof(loop_name));
+                memcpy(loop_name_base,name_base,sizeof(loop_name_base));
                 for (j=0;loop_name[j];j++) loop_name[j]=toupper(loop_name[j]);
                 for (j=0;loop_name_base[j];j++) loop_name_base[j]=toupper(loop_name_base[j]);
                 /* loop back entry */
@@ -253,6 +263,7 @@ VGMSTREAM * init_vgmstream_mus_acm(STREAMFILE *streamFile) {
             concatn(sizeof(target_name),target_name,loop_name_base);
             concatn(sizeof(target_name),target_name,loop_name);
             concatn(sizeof(target_name),target_name,".ACM");
+            printf("looking for loop %s\n",target_name);
 
             for (i=0;i<file_count;i++) {
                 if (!strcmp(target_name,names[i]))
@@ -265,7 +276,7 @@ VGMSTREAM * init_vgmstream_mus_acm(STREAMFILE *streamFile) {
             if (loop_start_index != -1) {
                 /*printf("loop from %d to %d\n",loop_end_index,loop_start_index);*/
                 /*if (loop_start_index < file_count-1) loop_start_index++;*/
-                /*loop_end_index++;*/
+                loop_end_index++;
                 loop_flag = 1;
             }
 
