@@ -53,6 +53,7 @@ VGMSTREAM * init_vgmstream_acm(STREAMFILE *streamFile) {
     data->file_count = 1;
     data->current_file = 0;
     data->files[0] = acm_stream;
+    /*data->end_file = -1;*/
 
     vgmstream->codec_data = data;
 

@@ -25,6 +25,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "coding.h"
 #include "../vgmstream.h"
 #include "../streamtypes.h"
 #include "../streamfile.h"
@@ -754,29 +755,6 @@ int acm_read(ACMStream *acm, char *dst, int numbytes,
 	return gotbytes;
 }
 
-void decode_acm(mus_acm_codec_data * data, sample * outbuf,
-        int32_t samples_to_do, int channelspacing) {
-    int32_t samples_read = 0;
-    if (data->file_count == 1 && data->current_file == 0)
-    {
-        while (samples_read < samples_to_do) {
-            int32_t bytes_read_just_now;
-            bytes_read_just_now = 
-                acm_read(data->files[0],(char*)(
-                            outbuf+samples_read*channelspacing),
-                        (samples_to_do-samples_read)*sizeof(sample)*
-                        channelspacing,0,2,1);
-
-            if (bytes_read_just_now > 0) {
-                samples_read +=
-                    bytes_read_just_now/sizeof(sample)/channelspacing;
-            } else {
-                return;
-            }
-        }
-    }
-}
-
 void acm_close(ACMStream *acm)
 {
 	if (acm == NULL)
@@ -791,5 +769,39 @@ void acm_close(ACMStream *acm)
 	if (acm->ampbuf)
 		free(acm->ampbuf);
 	free(acm);
+}
+
+void acm_reset(ACMStream *acm)
+{
+    acm->bit_avail = 0;
+    acm->bit_data = 0;
+
+    acm->stream_pos = 0;
+    acm->block_pos = 0;
+    acm->block_ready = 0;
+    acm->buf_start_ofs = ACM_HEADER_LEN;
+
+    memset(acm->wrapbuf, 0, acm->wrapbuf_len * sizeof(int));
+}
+
+/* interface to vgmstream */
+void decode_acm(ACMStream * acm, sample * outbuf,
+        int32_t samples_to_do, int channelspacing) {
+    int32_t samples_read = 0;
+    while (samples_read < samples_to_do) {
+        int32_t bytes_read_just_now;
+        bytes_read_just_now = 
+            acm_read(acm,(char*)(
+                        outbuf+samples_read*channelspacing),
+                    (samples_to_do-samples_read)*sizeof(sample)*
+                    channelspacing,0,2,1);
+
+        if (bytes_read_just_now > 0) {
+            samples_read +=
+                bytes_read_just_now/sizeof(sample)/channelspacing;
+        } else {
+            return;
+        }
+    }
 }
 

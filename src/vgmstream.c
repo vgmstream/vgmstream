@@ -187,7 +187,15 @@ void reset_vgmstream(VGMSTREAM * vgmstream) {
     }
 #endif
 
-    /* TODO: reset ACM */
+    if (vgmstream->coding_type==coding_ACM) {
+        mus_acm_codec_data *data = vgmstream->codec_data;
+        int i;
+
+        data->current_file = 0;
+        for (i=0;i<data->file_count;i++) {
+            acm_reset(data->files[i]);
+        }
+    }
 }
 
 /* simply allocate memory for the VGMSTREAM and its channels */
@@ -349,7 +357,6 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
         case layout_fake_mpeg:
         case layout_mpeg:
 #endif
-        case layout_acm:
         case layout_dtk_interleave:
         case layout_none:
             render_vgmstream_nolayout(buffer,sample_count,vgmstream);
@@ -367,6 +374,9 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
             break;
         case layout_interleave_byte:
             render_vgmstream_interleave_byte(buffer,sample_count,vgmstream);
+            break;
+        case layout_acm:
+            render_vgmstream_mus_acm(buffer,sample_count,vgmstream);
             break;
     }
 }
@@ -709,10 +719,7 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                     vgmstream->channels);
             break;
         case coding_ACM:
-            decode_acm(
-                    vgmstream->codec_data,
-                    buffer+samples_written*vgmstream->channels,samples_to_do,
-                    vgmstream->channels);
+            /* handled in its own layout, here to quiet compiler */
             break;
 #endif
     }

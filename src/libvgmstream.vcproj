@@ -195,6 +195,10 @@
 				Name="Source Files"
 				>
 				<File
+					RelativePath=".\meta\acm.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\adx_header.c"
 					>
 				</File>
@@ -471,6 +475,10 @@
 				Name="Header Files"
 				>
 				<File
+					RelativePath=".\coding\acm_decoder.h"
+					>
+				</File>
+				<File
 					RelativePath=".\coding\coding.h"
 					>
 				</File>
@@ -482,6 +490,10 @@
 			<Filter
 				Name="Source Files"
 				>
+				<File
+					RelativePath=".\coding\acm_decoder.c"
+					>
+				</File>
 				<File
 					RelativePath=".\coding\adx_decoder.c"
 					>
@@ -580,6 +592,10 @@
 				</File>
 				<File
 					RelativePath=".\layout\interleave_byte.c"
+					>
+				</File>
+				<File
+					RelativePath=".\layout\mus_acm.c"
 					>
 				</File>
 				<File

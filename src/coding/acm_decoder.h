@@ -2,6 +2,7 @@
  * libacm - Interplay ACM audio decoder.
  *
  * Copyright (c) 2004-2008, Marko Kreen
+ * Copyright (c) 2008, Adam Gashlin
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -25,6 +26,8 @@
 
 #define ACM_ID		0x032897
 #define ACM_WORD	2
+
+#define ACM_HEADER_LEN 14
 
 #define ACM_OK			 0
 #define ACM_ERR_OTHER		-1
@@ -79,7 +82,9 @@ int acm_open_decoder(ACMStream **res, STREAMFILE *facilitator_file, const char *
 int acm_read(ACMStream *acm, char *buf, int nbytes,
 		int bigendianp, int wordlen, int sgned);
 void acm_close(ACMStream *acm);
+void acm_reset(ACMStream *acm);
 
+#if 0
 /* util.c */
 const ACMInfo *acm_info(ACMStream *acm);
 int acm_seekable(ACMStream *acm);
@@ -95,6 +100,7 @@ int acm_read_loop(ACMStream *acm, char *dst, int len,
 int acm_seek_pcm(ACMStream *acm, int pcm_pos);
 int acm_seek_time(ACMStream *acm, int pos_ms);
 const char *acm_strerror(int err);
+#endif
 
 #endif
 

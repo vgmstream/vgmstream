@@ -25,7 +25,8 @@ LAYOUT_OBJS=layout/ast_blocked.o \
     layout/wsi_blocked.o \
     layout/str_snds_blocked.o \
     layout/ws_aud_blocked.o \
-    layout/interleave_byte.o
+    layout/interleave_byte.o \
+	layout/mus_acm.o
 
 META_OBJS=meta/adx_header.o \
     meta/afc_header.o \

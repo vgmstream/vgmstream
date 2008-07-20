@@ -88,6 +88,7 @@ gchar *vgmstream_exts [] = {
   "bg00",
   "kcey",
   "rstm",
+  "acm",
   /* terminator */
   NULL
 };
