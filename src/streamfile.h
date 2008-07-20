@@ -134,4 +134,7 @@ static inline STREAMFILE * open_stdio_streamfile(const char * const filename) {
     return open_stdio_streamfile_buffer(filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
 }
 
+size_t get_streamfile_dos_line(int dst_length, char * dst, off_t offset,
+                STREAMFILE * infile, int *line_done_ptr);
+
 #endif

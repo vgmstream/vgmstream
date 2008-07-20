@@ -94,6 +94,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_kcey,
 	init_vgmstream_ps2_rstm,
     init_vgmstream_acm,
+    init_vgmstream_mus_acm,
 	init_vgmstream_ps2_kces,
 	init_vgmstream_ps2_dxh,
 	init_vgmstream_ps2_psh,
@@ -379,6 +380,7 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
             render_vgmstream_interleave_byte(buffer,sample_count,vgmstream);
             break;
         case layout_acm:
+        case layout_mus_acm:
             render_vgmstream_mus_acm(buffer,sample_count,vgmstream);
             break;
     }
@@ -1054,7 +1056,10 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
 #endif
         case layout_acm:
-            snprintf(temp,TEMPSIZE,"However ACM Does That");
+            snprintf(temp,TEMPSIZE,"ACM blocked");
+            break;
+        case layout_mus_acm:
+            snprintf(temp,TEMPSIZE,"multiple ACM files, ACM blocked");
             break;
         default:
             snprintf(temp,TEMPSIZE,"INCONCEIVABLE");
@@ -1368,6 +1373,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case meta_ACM:
             snprintf(temp,TEMPSIZE,"InterPlay ACM Header");
+            break;
+        case meta_MUS_ACM:
+            snprintf(temp,TEMPSIZE,"MUS playlist and multiple InterPlay ACM Headered files");
             break;
 		case meta_PS2_KCES:
             snprintf(temp,TEMPSIZE,"Konami KCES Header");

@@ -202,3 +202,62 @@ STREAMFILE * open_stdio_streamfile_buffer(const char * const filename, size_t bu
 
     return streamFile;
 }
+
+/* Read a line into dst. The source files are MS-DOS style,
+ * separated (not terminated) by CRLF. Return 1 if the full line was
+ * retrieved (if it could fit in dst), 0 otherwise. In any case the result
+ * will be properly terminated. The CRLF will be removed if there is one.
+ * Return the number of bytes read (including CRLF line ending). Note that
+ * this is not the length of the string, and could be larger than the buffer.
+ * *line_done_ptr is set to 1 if the complete line was read into dst,
+ * otherwise it is set to 0. line_done_ptr can be NULL if you aren't
+ * interested in this info.
+ */
+size_t get_streamfile_dos_line(int dst_length, char * dst, off_t offset,
+        STREAMFILE * infile, int *line_done_ptr)
+{
+    int i;
+    off_t file_length = get_streamfile_size(infile);
+    /* how many bytes over those put in the buffer were read */
+    int extra_bytes = 0;
+
+    if (line_done_ptr) *line_done_ptr = 0;
+
+    for (i=0;i<dst_length-1 && offset+i < file_length;i++)
+    {
+        char in_char = read_8bit(offset+i,infile);
+        /* check for end of line */
+        if (in_char == 0x0d &&
+                read_8bit(offset+i+1,infile) == 0x0a)
+        {
+            extra_bytes = 2;
+            if (line_done_ptr) *line_done_ptr = 1;
+            break;
+        }
+
+        dst[i]=in_char;
+    }
+    
+    dst[i]='\0';
+
+    /* did we fill the buffer? */
+    if (i==dst_length) {
+        /* did the bytes we missed just happen to be the end of the line? */
+        if (read_8bit(offset+i,infile) == 0x0d &&
+                read_8bit(offset+i+1,infile) == 0x0a)
+        {
+            extra_bytes = 2;
+            /* if so be proud! */
+            if (line_done_ptr) *line_done_ptr = 1;
+        }
+    }
+
+    /* did we hit the file end? */
+    if (offset+i == file_length)
+    {
+        /* then we did in fact finish reading the last line */
+        if (line_done_ptr) *line_done_ptr = 1;
+    }
+
+    return i+extra_bytes;
+}

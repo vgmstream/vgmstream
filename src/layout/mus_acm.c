@@ -12,13 +12,16 @@ void render_vgmstream_mus_acm(sample * buffer, int32_t sample_count, VGMSTREAM *
         int samples_to_do;
         int samples_this_block = acm->total_values / acm->info.channels;
 
-#if 0
         if (vgmstream->loop_flag && vgmstream_do_loop(vgmstream)) {
+            data->current_file = data->loop_start_file;
+            acm_reset(data->files[data->current_file]);
+            vgmstream->samples_into_block = 0;
             continue;
         }
-#endif
 
         samples_to_do = vgmstream_samples_to_do(samples_this_block, 1, vgmstream);
+
+        /*printf("samples_to_do=%d,samples_this_block=%d,samples_written=%d,sample_count=%d\n",samples_to_do,samples_this_block,samples_written,sample_count);*/
 
         if (samples_written+samples_to_do > sample_count)
             samples_to_do=sample_count-samples_written;
@@ -26,17 +29,14 @@ void render_vgmstream_mus_acm(sample * buffer, int32_t sample_count, VGMSTREAM *
         if (samples_to_do == 0)
         {
             data->current_file++;
+            /*printf("next %d, %d samples\n",data->current_file,data->files[data->current_file]->total_values/data->files[data->current_file]->info.channels);*/
             /* check for loop */
-            if (vgmstream->loop_flag) {
-                if (data->current_file == data->loop_end_file)
-                    data->current_file = data->loop_start_file;
-            } else {
-                /* */
-            }
             acm_reset(data->files[data->current_file]);
+            vgmstream->samples_into_block = 0;
             continue;
         }
 
+        /*printf("decode %d samples file %d\n",samples_to_do,data->current_file);*/
         decode_acm(acm,
                 buffer+samples_written*vgmstream->channels,
                 samples_to_do, vgmstream->channels);

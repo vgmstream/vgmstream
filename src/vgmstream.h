@@ -111,6 +111,7 @@ typedef enum {
     layout_mpeg,            /* proper MPEG audio stream */
 #endif
     layout_acm,             /* dummy, let libacm handle layout */
+    layout_mus_acm,         /* mus has multi-files to deal with */
 } layout_t;
 
 /* The meta type specifies how we know what we know about the file. We may know because of a header we read, some of it may have been guessed from filenames, etc. */

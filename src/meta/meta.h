@@ -163,4 +163,6 @@ VGMSTREAM * init_vgmstream_ps2_dxh(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_ps2_psh(STREAMFILE * streamFile);
 
+VGMSTREAM * init_vgmstream_mus_acm(STREAMFILE * streamFile);
+
 #endif
