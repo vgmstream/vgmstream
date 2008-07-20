@@ -152,6 +152,7 @@ char * extension_list[] = {
     "acm\0ACM Audio File (*.ACM)\0",
 	"kces\0KCES Audio File (*.KCES)\0",
 	"dxh\0DXH Audio File (*.DXH)\0",
+	"psh\0PSH Audio File (*.PSH)\0",
 };
 
 void about(HWND hwndParent) {

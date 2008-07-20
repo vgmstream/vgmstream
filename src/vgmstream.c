@@ -96,6 +96,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_acm,
 	init_vgmstream_ps2_kces,
 	init_vgmstream_ps2_dxh,
+	init_vgmstream_ps2_psh,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -1373,6 +1374,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case meta_PS2_DXH:
             snprintf(temp,TEMPSIZE,"Tokobot Plus DXH Header");
+            break;
+        case meta_PS2_PSH:
+            snprintf(temp,TEMPSIZE,"Dawn of Mana - Seiken Densetsu 4 PSH Header");
             break;
         default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

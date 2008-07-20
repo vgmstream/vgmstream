@@ -367,6 +367,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\ps2_psh.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\ps2_rstm.c"
 					>
 				</File>
