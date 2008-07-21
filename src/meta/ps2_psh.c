@@ -19,7 +19,7 @@ VGMSTREAM * init_vgmstream_ps2_psh(STREAMFILE *streamFile) {
     if (read_16bitBE(0x02,streamFile) != 0x6400)
         goto fail;
 
-    loop_flag = (read_16bitLE(0x04,streamFile)!=0);
+    loop_flag = (read_16bitLE(0x06,streamFile)!=0);
     channel_count = 2;
     
 	/* build the VGMSTREAM */
@@ -27,14 +27,15 @@ VGMSTREAM * init_vgmstream_ps2_psh(STREAMFILE *streamFile) {
     if (!vgmstream) goto fail;
 
 	/* fill in the vital statistics */
-		start_offset = 0x800;
+		start_offset = 0x0;
 		vgmstream->channels = channel_count;
 		vgmstream->sample_rate = (uint16_t)read_16bitLE(0x08,streamFile);
 		vgmstream->coding_type = coding_PSX;
-		vgmstream->num_samples = (uint32_t)(read_16bitLE(0x0C,streamFile)*0x800)*28/16/channel_count;
+		vgmstream->num_samples = (uint16_t)read_16bitLE(0x0C,streamFile)*0x800*28/16/channel_count;
     if (loop_flag) {
-	vgmstream->loop_start_sample = (uint16_t)read_16bitLE(0x04,streamFile)*128;
-	vgmstream->loop_end_sample = (uint16_t)read_16bitLE(0x06,streamFile)*128;
+        vgmstream->loop_start_sample =
+            ((uint16_t)read_16bitLE(0x06,streamFile)-0x8000)*0x800*28/16/channel_count;
+        vgmstream->loop_end_sample = vgmstream->num_samples;
     }
 
     vgmstream->layout_type = layout_interleave;
