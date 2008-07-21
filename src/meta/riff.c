@@ -5,6 +5,82 @@
 /* Resource Interchange File Format */
 /* only the bare minimum needed to read PCM wavs */
 
+/* return milliseconds */
+long parse_marker(unsigned char * marker) {
+    long hh,mm,ss,ms;
+    if (memcmp("Marker ",marker,7)) return -1;
+
+    if (4 != sscanf((char*)marker+7,"%ld:%ld:%ld.%ld",&hh,&mm,&ss,&ms))
+        return -1;
+
+    return ((hh*60+mm)*60+ss)*1000+ms;
+}
+
+/* loop points have been found hiding here */
+void parse_adtl(off_t adtl_offset, off_t adtl_length, STREAMFILE  *streamFile,
+        long *loop_start, long *loop_end, int *loop_flag) {
+    int loop_start_found = 0;
+    int loop_end_found = 0;
+
+    off_t current_chunk = adtl_offset+4;
+
+    while (current_chunk < adtl_offset+adtl_length) {
+        uint32_t chunk_type = read_32bitBE(current_chunk,streamFile);
+        off_t chunk_size = read_32bitLE(current_chunk+4,streamFile);
+
+        if (current_chunk+8+chunk_size > adtl_offset+adtl_length) return;
+
+        switch(chunk_type) {
+            case 0x6c61626c:    /* labl */
+                {
+                    unsigned char *labelcontent;
+                    labelcontent = malloc(chunk_size-4);
+                    if (!labelcontent) return;
+                    if (read_streamfile(labelcontent,current_chunk+0xc,
+                                chunk_size-4,streamFile)!=chunk_size-4) {
+                        free(labelcontent);
+                        return;
+                    }
+
+                    switch (read_32bitLE(current_chunk+8,streamFile)) {
+                        case 1:
+                            if (!loop_start_found &&
+                                (*loop_start = parse_marker(labelcontent))>=0)
+                            {
+                                loop_start_found = 1;
+                            }
+                            break;
+                        case 2:
+                            if (!loop_end_found &&
+                                    (*loop_end = parse_marker(labelcontent))>=0)
+                            {
+                                loop_end_found = 1;
+                            }
+                            break;
+                        default:
+                            break;
+                    }
+
+                    free(labelcontent);
+                }
+                break;
+            default:
+                break;
+        }
+
+        current_chunk += 8 + chunk_size;
+    }
+
+    if (loop_start_found && loop_end_found) *loop_flag = 1;
+
+    /* labels don't seem to be consistently ordered */
+    if (*loop_start > *loop_end) {
+        long temp = *loop_start;
+        *loop_start = *loop_end;
+        *loop_end = temp;
+    }
+}
+
 VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[260];
@@ -18,8 +94,8 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
     int interleave = -1;
 
     int loop_flag = 0;
-    int32_t loop_start = -1;
-    int32_t loop_end = -1;
+    long loop_start_ms = -1;
+    long loop_end_ms = -1;
     uint32_t riff_size;
     uint32_t data_size = 0;
 
@@ -89,6 +165,19 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
                     start_offset = current_chunk + 8;
                     data_size = chunk_size;
                     break;
+                case 0x4C495354:    /* LIST */
+                    /* what lurks within?? */
+                    switch (read_32bitBE(current_chunk + 8, streamFile)) {
+                        case 0x6164746C:    /* adtl */
+                            /* yay, atdl is its own little world */
+                            parse_adtl(current_chunk + 8, chunk_size,
+                                    streamFile,
+                                    &loop_start_ms,&loop_end_ms,&loop_flag);
+                            break;
+                        default:
+                            break;
+                    }
+                    break;
                 default:
                     /* ignorance is bliss */
                     break;
@@ -124,10 +213,18 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
     else
         vgmstream->layout_type = layout_none;
     vgmstream->interleave_block_size = interleave;
-    vgmstream->loop_start_sample = loop_start;
-    vgmstream->loop_end_sample = loop_end;
 
-    vgmstream->meta_type = meta_RIFF_WAVE;
+    if (loop_flag) {
+        vgmstream->loop_start_sample =
+            (long long)loop_start_ms*sample_rate/1000;
+        vgmstream->loop_end_sample =
+            (long long)loop_end_ms*sample_rate/1000;
+        vgmstream->meta_type = meta_RIFF_WAVE_labl_Marker;
+    }
+    else
+    {
+        vgmstream->meta_type = meta_RIFF_WAVE;
+    }
 
     /* open the file, set up each channel */
     {
