@@ -104,7 +104,8 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
 
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("wav",filename_extension(filename))) goto fail;
+    if (strcasecmp("wav",filename_extension(filename)) &&
+        strcasecmp("lwav",filename_extension(filename))) goto fail;
 
     /* check header */
     if ((uint32_t)read_32bitBE(0,streamFile)!=0x52494646) /* "RIFF" */

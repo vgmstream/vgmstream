@@ -103,6 +103,7 @@ File types supported by this version of vgmstream:
 - .amts (GC DSP ADPCM)
 - .svs (PS2 ADPCM)
 - .wav (8/16 bit PCM)
+- .lwav (8/16 bit PCM)
 - .pos (loop info for .wav)
 - .nwa (16 bit PCM)
 - .xss (16 bit PCM)
@@ -129,6 +130,7 @@ File types supported by this version of vgmstream:
 - .rstm (PS2 ADPCM)
 - .acm (InterPlay ACM)
 - .sli (loop info for .ogg)
+- .psh (PS2 ADPCM)
 
 Enjoy!
 -hcs

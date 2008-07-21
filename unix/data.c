@@ -91,6 +91,7 @@ gchar *vgmstream_exts [] = {
   "acm",
   "mus",
   "sli",
+  "lwav",
   /* terminator */
   NULL
 };
