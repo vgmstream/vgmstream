@@ -675,6 +675,7 @@ int acm_open_decoder(ACMStream **res, STREAMFILE *facilitator_file,
 	GET_BITS_ERR_OUT(acm->info.channels, acm, 16);
 	if (acm->info.channels <  1)
 		goto err_out;
+    acm->info.channels = 2;
 	GET_BITS_ERR_OUT(acm->info.rate, acm, 16);
 	
 	GET_BITS_ERR_OUT(acm->info.acm_level, acm, 4);
