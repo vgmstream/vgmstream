@@ -7,6 +7,11 @@ VGMSTREAM * init_vgmstream_ps2_psh(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[260];
     off_t start_offset;
+	uint8_t	testBuffer[0x10];
+	off_t	loopStart = 0;
+	off_t	loopEnd = 0;
+	off_t	readOffset = 0;
+	size_t	fileLength;
 
 	int loop_flag;
 	int channel_count;
@@ -27,15 +32,29 @@ VGMSTREAM * init_vgmstream_ps2_psh(STREAMFILE *streamFile) {
     if (!vgmstream) goto fail;
 
 	/* fill in the vital statistics */
-		start_offset = 0x0;
-		vgmstream->channels = channel_count;
-		vgmstream->sample_rate = (uint16_t)read_16bitLE(0x08,streamFile);
-		vgmstream->coding_type = coding_PSX;
-		vgmstream->num_samples = (uint16_t)read_16bitLE(0x0C,streamFile)*0x800*28/16/channel_count;
-    if (loop_flag) {
+	start_offset = 0;
+	vgmstream->channels = channel_count;
+	vgmstream->sample_rate = (uint16_t)read_16bitLE(0x08,streamFile);
+	vgmstream->coding_type = coding_PSX;
+	vgmstream->num_samples = (uint16_t)read_16bitLE(0x0C,streamFile)*0x800*28/16/channel_count;
+    
+	if (loop_flag) {
         vgmstream->loop_start_sample =
-            ((uint16_t)read_16bitLE(0x06,streamFile)-0x8000)*0x800*28/16/channel_count;
-        vgmstream->loop_end_sample = vgmstream->num_samples;
+            ((uint16_t)read_16bitLE(0x06,streamFile)-0x8000)*0x400*28/16;
+        
+		// loop end is set by the loop marker which we need to find ...
+		fileLength = get_streamfile_size(streamFile);
+		do {
+			readOffset+=(off_t)read_streamfile(testBuffer,readOffset,0x10,streamFile); 
+			
+			// Loop End ...
+			if(testBuffer[0x01]==0x03) {
+				if(loopEnd==0) loopEnd = readOffset-0x10;
+				break;
+			}
+
+		} while (streamFile->get_offset(streamFile)<(int32_t)fileLength);
+		vgmstream->loop_end_sample = loopEnd*28/16/channel_count;
     }
 
     vgmstream->layout_type = layout_interleave;
