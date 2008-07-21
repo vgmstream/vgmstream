@@ -56,6 +56,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_genh,
 #ifdef VGM_USE_VORBIS
     init_vgmstream_ogg_vorbis,
+    init_vgmstream_sli_ogg,
 #endif
     init_vgmstream_sadb,
     init_vgmstream_ps2_bmdx,
@@ -170,7 +171,7 @@ void reset_vgmstream(VGMSTREAM * vgmstream) {
      * really hit the loop start. */
 
 #ifdef VGM_USE_VORBIS
-    if (vgmstream->meta_type==meta_ogg_vorbis) {
+    if (vgmstream->coding_type==coding_ogg_vorbis) {
         ogg_vorbis_codec_data *data = vgmstream->codec_data;
 
         OggVorbis_File *ogg_vorbis_file = &(data->ogg_vorbis_file);
@@ -285,7 +286,7 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
     if (vgmstream->start_vgmstream) free(vgmstream->start_vgmstream);
 
 #ifdef VGM_USE_VORBIS
-    if (vgmstream->meta_type==meta_ogg_vorbis) {
+    if (vgmstream->coding_type==coding_ogg_vorbis) {
         ogg_vorbis_codec_data *data = vgmstream->codec_data;
         if (vgmstream->codec_data) {
             OggVorbis_File *ogg_vorbis_file = &(data->ogg_vorbis_file);
@@ -795,7 +796,7 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream) {
 #endif
 
 #ifdef VGM_USE_VORBIS
-            if (vgmstream->meta_type==meta_ogg_vorbis) {
+            if (vgmstream->coding_type==coding_ogg_vorbis) {
                 ogg_vorbis_codec_data *data =
                     (ogg_vorbis_codec_data *)(vgmstream->codec_data);
                 OggVorbis_File *ogg_vorbis_file = &(data->ogg_vorbis_file);
@@ -1250,6 +1251,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
 #ifdef VGM_USE_VORBIS
         case meta_ogg_vorbis:
             snprintf(temp,TEMPSIZE,"Ogg Vorbis");
+            break;
+        case meta_OGG_SLI:
+            snprintf(temp,TEMPSIZE,"Ogg Vorbis with .sli for looping");
             break;
 #endif
         case meta_DSP_SADB:

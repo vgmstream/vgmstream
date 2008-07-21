@@ -455,6 +455,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\sli.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\str_snds.c"
 					>
 				</File>

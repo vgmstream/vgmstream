@@ -216,6 +216,7 @@ typedef enum {
 
 #ifdef VGM_USE_VORBIS
     meta_ogg_vorbis,        /* ogg vorbis */
+    meta_OGG_SLI,           /* Ogg Vorbis file w/ companion .sli for looping */
 #endif
 
     meta_AIFC,              /* Audio Interchange File Format AIFF-C */
