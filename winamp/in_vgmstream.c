@@ -156,6 +156,7 @@ char * extension_list[] = {
 	"psh\0PSH Audio File (*.PSH)\0",
     "sli\0SLI Audio File (*.SLI)\0",
     "lwav\0LWAV Audio File (*.LWAV)\0",
+    "vig\0VIG Audio File (*.VIG)\0",
 };
 
 void about(HWND hwndParent) {
