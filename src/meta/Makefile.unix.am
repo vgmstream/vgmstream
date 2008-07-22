@@ -77,5 +77,6 @@ libmeta_la_SOURCES += ps2_dxh.c
 libmeta_la_SOURCES += ps2_psh.c
 libmeta_la_SOURCES += mus_acm.c
 libmeta_la_SOURCES += sli.c
+libmeta_la_SOURCES += sfl.c
 
 EXTRA_DIST = meta.h

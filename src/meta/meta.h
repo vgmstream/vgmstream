@@ -87,6 +87,8 @@ VGMSTREAM * init_vgmstream_amts(STREAMFILE *streamFile);
 VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_sli_ogg(STREAMFILE * streamFile);
+
+VGMSTREAM * init_vgmstream_sfl(STREAMFILE * streamFile);
 #endif
 
 VGMSTREAM * init_vgmstream_sadb(STREAMFILE *streamFile);

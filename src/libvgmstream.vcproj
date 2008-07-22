@@ -455,6 +455,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\sfl.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\sli.c"
 					>
 				</File>

@@ -132,6 +132,7 @@ File types supported by this version of vgmstream:
 - .sli (loop info for .ogg)
 - .psh (PS2 ADPCM)
 - .vig (PS2 ADPCM)
+- .sfl (loop info for .ogg);
 
 Enjoy!
 -hcs
