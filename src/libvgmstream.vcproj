@@ -619,7 +619,7 @@
 					>
 				</File>
 				<File
-					RelativePath=".\layout\mus_acm.c"
+					RelativePath=".\layout\mus_acm_layout.c"
 					>
 				</File>
 				<File

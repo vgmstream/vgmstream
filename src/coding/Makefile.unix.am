@@ -4,6 +4,21 @@ AM_CFLAGS = -Wall @CFLAGS@ -I$(top_builddir) -I$(top_srcdir)
 AM_MAKEFLAGS=-f Makefile.unix
 
 libcoding_la_LDFLAGS = 
-libcoding_la_SOURCES = adx_decoder.c eaxa_decoder.c g721_decoder.c ima_decoder.c ngc_afc_decoder.c ngc_dsp_decoder.c ngc_dtk_decoder.c pcm_decoder.c psx_decoder.c xa_decoder.c ogg_vorbis_decoder.c sdx2_decoder.c ws_decoder.c mpeg_decoder.c acm_decoder.c
+libcoding_la_SOURCES = 
+libcoding_la_SOURCES += adx_decoder.c
+libcoding_la_SOURCES += eaxa_decoder.c
+libcoding_la_SOURCES += g721_decoder.c
+libcoding_la_SOURCES += ima_decoder.c
+libcoding_la_SOURCES += ngc_afc_decoder.c
+libcoding_la_SOURCES += ngc_dsp_decoder.c
+libcoding_la_SOURCES += ngc_dtk_decoder.c
+libcoding_la_SOURCES += pcm_decoder.c
+libcoding_la_SOURCES += psx_decoder.c
+libcoding_la_SOURCES += xa_decoder.c
+libcoding_la_SOURCES += ogg_vorbis_decoder.c
+libcoding_la_SOURCES += sdx2_decoder.c
+libcoding_la_SOURCES += ws_decoder.c
+libcoding_la_SOURCES += mpeg_decoder.c
+libcoding_la_SOURCES += acm_decoder.c
 
 EXTRA_DIST = coding.h g72x_state.h

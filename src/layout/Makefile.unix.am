@@ -4,6 +4,19 @@ AM_CFLAGS = -Wall @CFLAGS@ -I$(top_builddir) -I$(top_srcdir)
 AM_MAKEFLAGS=-f Makefile.unix
 
 liblayout_la_LDFLAGS = 
-liblayout_la_SOURCES = ast_blocked.c blocked.c caf_blocked.c ea_block.c halpst_blocked.c interleave.c nolayout.c xa_blocked.c wsi_blocked.c str_snds_blocked.c ws_aud_blocked.c interleave_byte.c mus_acm.c
+liblayout_la_SOURCES = 
+liblayout_la_SOURCES += ast_blocked.c
+liblayout_la_SOURCES += blocked.c
+liblayout_la_SOURCES += caf_blocked.c
+liblayout_la_SOURCES += ea_block.c
+liblayout_la_SOURCES += halpst_blocked.c
+liblayout_la_SOURCES += interleave.c
+liblayout_la_SOURCES += nolayout.c
+liblayout_la_SOURCES += xa_blocked.c
+liblayout_la_SOURCES += wsi_blocked.c
+liblayout_la_SOURCES += str_snds_blocked.c
+liblayout_la_SOURCES += ws_aud_blocked.c
+liblayout_la_SOURCES += interleave_byte.c
+liblayout_la_SOURCES += mus_acm_layout.c
 
 EXTRA_DIST = layout.h
