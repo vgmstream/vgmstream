@@ -1253,7 +1253,10 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             snprintf(temp,TEMPSIZE,"Ogg Vorbis");
             break;
         case meta_OGG_SLI:
-            snprintf(temp,TEMPSIZE,"Ogg Vorbis with .sli for looping");
+            snprintf(temp,TEMPSIZE,"Ogg Vorbis with .sli (start,length) for looping");
+            break;
+        case meta_OGG_SLI2:
+            snprintf(temp,TEMPSIZE,"Ogg Vorbis with .sli (from,to) for looping");
             break;
 #endif
         case meta_DSP_SADB:

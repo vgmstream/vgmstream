@@ -26,6 +26,8 @@ VGMSTREAM * init_vgmstream_sli_ogg(STREAMFILE *streamFile) {
     int done;
     int32_t loop_start = -1;
     int32_t loop_length = -1;
+    int32_t loop_from = -1;
+    int32_t loop_to = -1;
 
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
@@ -51,6 +53,7 @@ VGMSTREAM * init_vgmstream_sli_ogg(STREAMFILE *streamFile) {
     sli_offset = 0;
     while ((loop_start == -1 || loop_length == -1) && sli_offset < get_streamfile_size(streamFile)) {
         char *endptr;
+        char *foundptr;
         bytes_read=get_streamfile_dos_line(sizeof(linebuffer),linebuffer,sli_offset,streamFile,&done);
         if (!done) goto fail;
 
@@ -69,10 +72,25 @@ VGMSTREAM * init_vgmstream_sli_ogg(STREAMFILE *streamFile) {
             }
         }
 
+        /* a completely different format, also with .sli extension and can be handled similarly */
+        if ((foundptr=strstr(linebuffer,"To="))!=NULL && isdigit(foundptr[3])) {
+            loop_to = strtol(foundptr+3,&endptr,10);
+            if (*endptr != ';') {
+                loop_to = -1;
+            }
+        }
+        if ((foundptr=strstr(linebuffer,"From="))!=NULL && isdigit(foundptr[5])) {
+            loop_from = strtol(foundptr+5,&endptr,10);
+            if (*endptr != ';') {
+                loop_from = -1;
+            }
+        }
+
         sli_offset += bytes_read;
     }
 
-    if (loop_start != -1 && loop_length != -1) {
+    if ((loop_start != -1 && loop_length != -1) ||
+        (loop_to != -1 && loop_from != -1)) {
         /* install loops */
         if (!vgmstream->loop_flag) {
             vgmstream->loop_flag = 1;
@@ -81,11 +99,16 @@ VGMSTREAM * init_vgmstream_sli_ogg(STREAMFILE *streamFile) {
             if (!vgmstream->loop_ch) goto fail;
         }
 
-        vgmstream->loop_start_sample = loop_start;
-        vgmstream->loop_end_sample = loop_start+loop_length;
-    }
-
-    vgmstream->meta_type = meta_OGG_SLI;
+        if (loop_to != -1 && loop_from != -1) {
+            vgmstream->loop_start_sample = loop_to;
+            vgmstream->loop_end_sample = loop_from;
+            vgmstream->meta_type = meta_OGG_SLI2;
+        } else {
+            vgmstream->loop_start_sample = loop_start;
+            vgmstream->loop_end_sample = loop_start+loop_length;
+            vgmstream->meta_type = meta_OGG_SLI;
+        }
+    } else goto fail; /* if there's no loop points the .sli wasn't valid */
 
     return vgmstream;
 
