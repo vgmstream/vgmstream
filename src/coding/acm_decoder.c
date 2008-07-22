@@ -51,31 +51,37 @@ static int get_bits_reload(ACMStream *acm, unsigned bits)
 
     switch (acm->data_len - acm->buf_start_ofs) {
         case 0:
-            return ACM_ERR_UNEXPECTED_EOF;
+            b_data = 0;
+            b_avail = 8;
+            break;
         case 1:
-            b_data = read_8bit(acm->buf_start_ofs,acm->streamfile);
+            b_data = (uint8_t)read_8bit(acm->buf_start_ofs,acm->streamfile);
             b_avail = 8;
             acm->buf_start_ofs += 1;
             break;
         case 2:
-            b_data = read_16bitLE(acm->buf_start_ofs,acm->streamfile);
+            b_data = (uint16_t)read_16bitLE(acm->buf_start_ofs,acm->streamfile);
             b_avail = 16;
             acm->buf_start_ofs += 2;
             break;
         case 3:
-            b_data = read_8bit(acm->buf_start_ofs,acm->streamfile);
-            b_data |= (int32_t)read_16bitLE(acm->buf_start_ofs+1,acm->streamfile)<<8;
+            b_data = (uint8_t)read_8bit(acm->buf_start_ofs,acm->streamfile);
+            b_data |= (int32_t)(uint16_t)read_16bitLE(acm->buf_start_ofs+1,acm->streamfile)<<8;
             b_avail = 24;
             acm->buf_start_ofs += 3;
+            break;
         case 4:
         default:
-            /* shouldn't happen */
-            if (acm->data_len - acm->buf_start_ofs < 0)
-                return ACM_ERR_UNEXPECTED_EOF;
+            if (acm->data_len - acm->buf_start_ofs <= 0) {
+                b_data = 0;
+                b_avail = 8;
+                break;
+            }
 
             b_data = read_32bitLE(acm->buf_start_ofs,acm->streamfile);
             b_avail = 32;
             acm->buf_start_ofs += 4;
+            break;
     }
 
 	data |= (b_data & ((1 << bits) - 1)) << got;
