@@ -30,7 +30,9 @@ void render_vgmstream_mus_acm(sample * buffer, int32_t sample_count, VGMSTREAM *
         {
             data->current_file++;
             /*printf("next %d, %d samples\n",data->current_file,data->files[data->current_file]->total_values/data->files[data->current_file]->info.channels);*/
-            /* check for loop */
+            /* force loop back to first file in case we're still playing for some
+             * reason, prevent out of bounds stuff */
+            if (data->current_file >= data->file_count) data->current_file = 0;
             acm_reset(data->files[data->current_file]);
             vgmstream->samples_into_block = 0;
             continue;
