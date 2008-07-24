@@ -158,6 +158,7 @@ char * extension_list[] = {
     "lwav\0LWAV Audio File (*.LWAV)\0",
     "vig\0VIG Audio File (*.VIG)\0",
     "sfl\0SFL Audio File (*.SFL)\0",
+    "um3\0UM3 Audio File (*.UM3)\0",
 };
 
 void about(HWND hwndParent) {

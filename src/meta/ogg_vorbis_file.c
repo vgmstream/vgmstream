@@ -28,6 +28,33 @@ static size_t read_func(void *ptr, size_t size, size_t nmemb, void * datasource)
     return items_read;
 }
 
+static size_t read_func_um3(void *ptr, size_t size, size_t nmemb, void * datasource)
+{
+    ogg_vorbis_streamfile * const ov_streamfile = datasource;
+    size_t items_read;
+
+    size_t bytes_read;
+   
+    bytes_read = read_streamfile(ptr, ov_streamfile->offset, size * nmemb,
+            ov_streamfile->streamfile);
+
+    items_read = bytes_read / size;
+
+    /* first 0x800 bytes of um3 are xor'd with 0xff */
+    if (ov_streamfile->offset < 0x800) {
+        int num_crypt = 0x800-ov_streamfile->offset;
+        int i;
+
+        if (num_crypt > bytes_read) num_crypt=bytes_read;
+        for (i=0;i<num_crypt;i++)
+            ((uint8_t*)ptr)[i] ^= 0xff;
+    }
+
+    ov_streamfile->offset += items_read * size;
+
+    return items_read;
+}
+
 static int seek_func(void *datasource, ogg_int64_t offset, int whence) {
     ogg_vorbis_streamfile * const ov_streamfile = datasource;
     ogg_int64_t base_offset;
@@ -63,7 +90,7 @@ static long tell_func(void * datasource) {
 }
 
 /* setting close_func in ov_callbacks to NULL doesn't seem to work */
-int close_func(void * datasource) {
+static int close_func(void * datasource) {
     return 0;
 }
 
@@ -89,6 +116,8 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
     int loop_end_found = 0;
     int32_t loop_end = 0;
 
+    int um3_ogg = 0;
+
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
     
@@ -98,9 +127,20 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
        though. */
     if (strcasecmp("logg",filename_extension(filename)) &&
             strcasecmp("ogg",filename_extension(filename))
-       ) goto fail;
+       ) {
+        if(!strcasecmp("um3",filename_extension(filename))) {
+            um3_ogg = 1;
+        }
+        else goto fail;
+    }
 
-    callbacks.read_func = read_func;
+    /* not all um3-ogg are crypted */
+    if (um3_ogg && read_32bitBE(0x0,streamFile)==0x4f676753) um3_ogg = 0;
+
+    if (um3_ogg)
+        callbacks.read_func = read_func_um3;
+    else
+        callbacks.read_func = read_func;
     callbacks.seek_func = seek_func;
     callbacks.close_func = close_func;
     callbacks.tell_func = tell_func;
@@ -153,10 +193,13 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
                 strstr(comment->user_comments[i],"COMMENT=LOOPPOINT=")==
                     comment->user_comments[i] ||
                 strstr(comment->user_comments[i],"LOOPSTART=")==
+                    comment->user_comments[i] ||
+                strstr(comment->user_comments[i],"um3.stream.looppoint.start=")==
                     comment->user_comments[i]
                     ) {
                 loop_start=atol(strrchr(comment->user_comments[i],'=')+1);
-                loop_flag=1;
+                if (loop_start >= 0)
+                    loop_flag=1;
             }
             else if (strstr(comment->user_comments[i],"LOOPLENGTH=")==
                     comment->user_comments[i]) {
@@ -199,7 +242,10 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
     }
     vgmstream->coding_type = coding_ogg_vorbis;
     vgmstream->layout_type = layout_ogg_vorbis;
-    vgmstream->meta_type = meta_ogg_vorbis;
+    if (um3_ogg)
+        vgmstream->meta_type = meta_um3_ogg;
+    else
+        vgmstream->meta_type = meta_ogg_vorbis;
 
     return vgmstream;
 

@@ -1262,6 +1262,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         case meta_OGG_SFL:
             snprintf(temp,TEMPSIZE,"Ogg Vorbis with SFPL for looping");
             break;
+        case meta_um3_ogg:
+            snprintf(temp,TEMPSIZE,"Ogg Vorbis, Ultramarine3 \"encryption\"");
+            break;
 #endif
         case meta_DSP_SADB:
             snprintf(temp,TEMPSIZE,"sadb header");

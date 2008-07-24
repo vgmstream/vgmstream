@@ -94,6 +94,7 @@ gchar *vgmstream_exts [] = {
   "lwav",
   "vig",
   "sfl",
+  "um3",
   /* terminator */
   NULL
 };
