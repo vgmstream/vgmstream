@@ -44,6 +44,7 @@ typedef enum {
     coding_NGC_AFC,         /* NGC ADPCM, called AFC */
 	coding_PSX,				/* PSX & PS2 ADPCM */
     coding_invert_PSX,      /* PSX ADPCM with first byte of frame inverted */
+    coding_PSX_badflags,    /* with garbage in the flags byte */
 	coding_XA,				/* PSX CD-XA */
 	coding_XBOX,			/* XBOX IMA */
 	coding_EAXA,			/* EA/XA ADPCM */

@@ -436,6 +436,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_NGC_AFC:
             return 16;
         case coding_PSX:
+        case coding_PSX_badflags:
         case coding_invert_PSX:
 		case coding_XA:
             return 28;
@@ -491,6 +492,7 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
         case coding_NGC_AFC:
             return 9;
         case coding_PSX:
+        case coding_PSX_badflags:
         case coding_invert_PSX:
             return 16;
 		case coding_XA:
@@ -625,6 +627,13 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
         case coding_PSX:
             for (chan=0;chan<vgmstream->channels;chan++) {
                 decode_psx(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                        vgmstream->channels,vgmstream->samples_into_block,
+                        samples_to_do);
+            }
+            break;
+        case coding_PSX_badflags:
+            for (chan=0;chan<vgmstream->channels;chan++) {
+                decode_psx_badflags(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
                         samples_to_do);
             }
@@ -777,7 +786,8 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream) {
                     vgmstream->meta_type == meta_DSP_RS03 ||
                     vgmstream->meta_type == meta_DSP_CSTR || 
 					vgmstream->coding_type == coding_PSX ||
-                    vgmstream->coding_type == coding_invert_PSX) {
+                    vgmstream->coding_type == coding_invert_PSX ||
+                    vgmstream->coding_type == coding_PSX_badflags) {
                 int i;
                 for (i=0;i<vgmstream->channels;i++) {
                     vgmstream->loop_ch[i].adpcm_history1_16 = vgmstream->ch[i].adpcm_history1_16;
@@ -920,6 +930,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case coding_PSX:
             snprintf(temp,TEMPSIZE,"Playstation 4-bit ADPCM");
+            break;
+        case coding_PSX_badflags:
+            snprintf(temp,TEMPSIZE,"Playstation 4-bit ADPCM with bad flags");
             break;
         case coding_invert_PSX:
             snprintf(temp,TEMPSIZE,"Inverted (?) Playstation 4-bit ADPCM");
