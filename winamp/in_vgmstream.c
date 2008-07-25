@@ -159,6 +159,10 @@ char * extension_list[] = {
     "vig\0VIG Audio File (*.VIG)\0",
     "sfl\0SFL Audio File (*.SFL)\0",
     "um3\0UM3 Audio File (*.UM3)\0",
+	"pcm\0PCM Audio File (*.PCM)\0",
+	"rkv\0RKV Audio File (*.RKV)\0",
+	"psw\0PSW Audio File (*.PSW)\0",
+	"vas\0VAS Audio File (*.VAS)\0",
 };
 
 void about(HWND hwndParent) {

@@ -367,11 +367,23 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\ps2_pcm.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\ps2_pnb.c"
 					>
 				</File>
 				<File
 					RelativePath=".\meta\ps2_psh.c"
+					>
+				</File>
+				<File
+					RelativePath=".\meta\ps2_psw.c"
+					>
+				</File>
+				<File
+					RelativePath=".\meta\ps2_rkv.c"
 					>
 				</File>
 				<File
@@ -404,6 +416,10 @@
 				</File>
 				<File
 					RelativePath=".\meta\ps2_vag.c"
+					>
+				</File>
+				<File
+					RelativePath=".\meta\ps2_vas.c"
 					>
 				</File>
 				<File

@@ -1,7 +1,7 @@
 #include "meta.h"
 #include "../util.h"
 
-/* SL3 (from Test Drive Unlimited) */
+/* SL3 (from Test Drive Unlimited, Transformers) */
 VGMSTREAM * init_vgmstream_sl3(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[260];

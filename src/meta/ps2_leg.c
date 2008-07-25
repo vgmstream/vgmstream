@@ -1,6 +1,7 @@
 #include "meta.h"
 #include "../util.h"
 
+/* LEG (header format found in Legaia 2 - Duel Saga) */
 VGMSTREAM * init_vgmstream_leg(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[260];

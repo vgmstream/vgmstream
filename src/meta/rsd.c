@@ -24,7 +24,7 @@ VGMSTREAM * init_vgmstream_rsd(STREAMFILE *streamFile) {
         goto fail;
 
 
-    loop_flag = (read_32bitLE(0x90,streamFile)!=0);
+    loop_flag = (read_16bitLE(0x12,streamFile)!=0);
     channel_count = (read_32bitLE(0x8,streamFile));
     
 
@@ -43,31 +43,36 @@ VGMSTREAM * init_vgmstream_rsd(STREAMFILE *streamFile) {
 		vgmstream->interleave_block_size = read_32bitLE(0x0C,streamFile);
 		vgmstream->num_samples = (get_streamfile_size(streamFile)-0x800)*28/16/channel_count;
 	if (loop_flag) {
-        vgmstream->loop_start_sample = (read_32bitLE(0x94,streamFile))*28/16/channel_count;
+        vgmstream->loop_start_sample = (uint16_t)(read_32bitLE(0x12,streamFile))*28/16/channel_count;
         vgmstream->loop_end_sample = (get_streamfile_size(streamFile)-0x800)*28/16/channel_count;
 	}
 	break;
-        
+
 	case 0x50434D20: /* RSD4PCM */
 		coding_type = coding_PCM16LE;
 		vgmstream->interleave_block_size = 0x2;
 		vgmstream->num_samples = (get_streamfile_size(streamFile)-0x800)/2/channel_count;
 	if (loop_flag) {
-        vgmstream->loop_start_sample = loop_flag;
+        vgmstream->loop_start_sample = (uint16_t)(read_32bitLE(0x12,streamFile))/2/channel_count;;
         vgmstream->loop_end_sample = (get_streamfile_size(streamFile)-0x800)/2/channel_count;
     }
 	break;
-        default:
+    
+	case 0x584D4120: /* RSD6XMA */
+		goto fail;	
+		default:
 			goto fail;
+
 }
-	
+
+
 vgmstream->layout_type = layout_interleave;
 vgmstream->meta_type = meta_RSD;
 
 
 	start_offset = 0x800;
 	vgmstream->channels = channel_count;
-    vgmstream->sample_rate = read_32bitLE(0x10,streamFile);
+    vgmstream->sample_rate = (uint16_t)read_16bitLE(0x10,streamFile);
 	vgmstream->coding_type = coding_type;
 
 
