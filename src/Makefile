@@ -102,10 +102,10 @@ META_OBJS=meta/adx_header.o \
     meta/ps2_psh.o \
     meta/sli.o \
     meta/sfl.o \
-    meta/ps2_pcm.c \
-    meta/ps2_psw.c \
-    meta/ps2_rkv.c \
-    meta/ps2_vas.c
+    meta/ps2_pcm.o \
+    meta/ps2_psw.o \
+    meta/ps2_rkv.o \
+    meta/ps2_vas.o
 		
 OBJECTS=vgmstream.o streamfile.o util.o $(CODING_OBJS) $(LAYOUT_OBJS) $(META_OBJS)
 
