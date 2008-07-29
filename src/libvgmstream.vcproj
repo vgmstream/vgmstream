@@ -323,6 +323,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\ps2_enth.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\ps2_exst.c"
 					>
 				</File>
@@ -412,6 +416,10 @@
 				</File>
 				<File
 					RelativePath=".\meta\ps2_svag.c"
+					>
+				</File>
+				<File
+					RelativePath=".\meta\ps2_tec.c"
 					>
 				</File>
 				<File

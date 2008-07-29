@@ -104,6 +104,8 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_ps2_rkv,
 	init_vgmstream_ps2_psw,
 	init_vgmstream_ps2_vas,
+	init_vgmstream_ps2_tec,
+	init_vgmstream_ps2_enth,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -1431,6 +1433,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
 		case meta_PS2_VAS:
             snprintf(temp,TEMPSIZE,"Pro Baseball Spirits 5 VAS Header");
+            break;
+		case meta_PS2_TEC:
+            snprintf(temp,TEMPSIZE,"assumed TECMO badflagged stream by .tec extension");
             break;
         default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

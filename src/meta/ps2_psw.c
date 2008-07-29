@@ -7,6 +7,7 @@ VGMSTREAM * init_vgmstream_ps2_psw(STREAMFILE *streamFile) {
     char filename[260];
     off_t start_offset;
 
+	int CodecID;
     int loop_flag = 0;
 	int channel_count;
 
@@ -17,7 +18,7 @@ VGMSTREAM * init_vgmstream_ps2_psw(STREAMFILE *streamFile) {
     /* check header */
     if (read_32bitBE(0x00,streamFile) != 0x52494646 &&	/* "RIFF" */
 		read_32bitBE(0x08,streamFile) != 0x57415645 &&	/* "WAVE" */
-		read_16bitBE(0x14,streamFile) != 0xFFFF &&		/* "\FFFF" */
+		/* read_16bitBE(0x14,streamFile) != 0xFFFF &&		/* "\FFFF" */
 		read_32bitBE(0x26,streamFile) != 0x64617461)	/* "data" */
 	goto fail;
 
@@ -28,20 +29,47 @@ VGMSTREAM * init_vgmstream_ps2_psw(STREAMFILE *streamFile) {
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
-	/* fill in the vital statistics */
-   	start_offset = 0x2E;
-	vgmstream->channels = channel_count;
-    vgmstream->sample_rate = read_16bitLE(0x1C,streamFile);
-    vgmstream->coding_type = coding_PSX;
-    vgmstream->num_samples = read_32bitLE(0x2A,streamFile)*28/16/channel_count;
+
+	switch ((uint16_t)read_16bitBE(0x14,streamFile)) {
+		case 0xFFFF:
+		start_offset = 0x2E;
+		vgmstream->channels = channel_count;
+		vgmstream->sample_rate = read_16bitLE(0x1C,streamFile);
+	    vgmstream->coding_type = coding_PSX;
+		vgmstream->num_samples = read_32bitLE(0x2A,streamFile)*28/16/channel_count;
     if (loop_flag) {
         vgmstream->loop_start_sample = loop_flag;
         vgmstream->loop_end_sample = read_32bitLE(0x2A,streamFile)*28/16/channel_count;
     }
+		vgmstream->layout_type = layout_interleave;
+		vgmstream->interleave_block_size = 0x6400;
+		vgmstream->meta_type = meta_PS2_PSW;
+	
+	break;
+		case 0xFEFF:
+		start_offset = 0x2E;
+		vgmstream->channels = channel_count;
+		vgmstream->sample_rate = read_16bitLE(0x1C,streamFile);
+	    vgmstream->coding_type = coding_NGC_DSP;
+		vgmstream->num_samples = read_32bitLE(0x2A,streamFile)*28/16/channel_count;
+    if (loop_flag) {
+        vgmstream->loop_start_sample = loop_flag;
+        vgmstream->loop_end_sample = read_32bitLE(0x2A,streamFile)*28/16/channel_count;
+    }
+		vgmstream->layout_type = layout_interleave;
+		vgmstream->interleave_block_size = 0x12C00;
+		vgmstream->meta_type = meta_PS2_PSW;
+	
 
-    vgmstream->layout_type = layout_interleave;
-    vgmstream->interleave_block_size = 0x6400;
-    vgmstream->meta_type = meta_PS2_PSW;
+	
+
+	break;
+default:
+	goto fail;
+}
+	
+			/* fill in the vital statistics */
+
 
     /* open the file for reading */
     {

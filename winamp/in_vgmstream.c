@@ -163,6 +163,8 @@ char * extension_list[] = {
 	"rkv\0RKV Audio File (*.RKV)\0",
 	"psw\0PSW Audio File (*.PSW)\0",
 	"vas\0VAS Audio File (*.VAS)\0",
+	"tec\0TEC Audio File (*.TEC)\0",
+	"enth\0ENTH Audio File (*.ENTH)\0",
 };
 
 void about(HWND hwndParent) {

@@ -177,4 +177,8 @@ VGMSTREAM * init_vgmstream_ps2_psw(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_ps2_vas(STREAMFILE * streamFile);
 
+VGMSTREAM * init_vgmstream_ps2_tec(STREAMFILE * streamFile);
+
+VGMSTREAM * init_vgmstream_ps2_enth(STREAMFILE * streamFile);
+
 #endif
