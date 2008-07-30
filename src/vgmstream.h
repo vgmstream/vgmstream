@@ -34,6 +34,8 @@ typedef enum {
     coding_PCM8,            /* 8-bit PCM */
 	coding_PCM8_int,		/* 8-Bit PCM with sample-level interleave handled
                                by the decoder */
+    coding_PCM8_SB_int,     /* 8-bit PCM, sign bit (others are 2's complement),
+                               sample-level interleave */
 
     /* 4-bit ADPCM */
     coding_NDS_IMA,         /* IMA ADPCM w/ NDS layout */

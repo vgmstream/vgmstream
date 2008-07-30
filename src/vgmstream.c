@@ -405,6 +405,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_PCM16BE:
         case coding_PCM8:
 		case coding_PCM8_int:
+        case coding_PCM8_SB_int:
 #ifdef VGM_USE_VORBIS
         case coding_ogg_vorbis:
 #endif
@@ -478,6 +479,7 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
             return 2;
         case coding_PCM8:
 		case coding_PCM8_int:
+        case coding_PCM8_SB_int:
         case coding_SDX2:
         case coding_SDX2_int:
             return 1;
@@ -587,6 +589,13 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
         case coding_PCM8_int:
             for (chan=0;chan<vgmstream->channels;chan++) {
                 decode_pcm8_int(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                        vgmstream->channels,vgmstream->samples_into_block,
+                        samples_to_do);
+            }
+            break;
+        case coding_PCM8_SB_int:
+            for (chan=0;chan<vgmstream->channels;chan++) {
+                decode_pcm8_sb_int(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
                         samples_to_do);
             }
@@ -911,6 +920,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case coding_PCM8_int:
             snprintf(temp,TEMPSIZE,"8-bit PCM with 1 byte interleave");
+            break;
+        case coding_PCM8_SB_int:
+            snprintf(temp,TEMPSIZE,"8-bit PCM with sign bit, 1 byte interleave");
             break;
         case coding_NGC_DSP:
             snprintf(temp,TEMPSIZE,"Gamecube \"DSP\" 4-bit ADPCM");
