@@ -30,7 +30,7 @@ VGMSTREAM * init_vgmstream_pcm(STREAMFILE *streamFile) {
 		vgmstream->channels = channel_count;
 		vgmstream->sample_rate = 44100;
 		vgmstream->coding_type = coding_PCM8_SB_int;
-		vgmstream->num_samples = read_32bitLE(0x02,streamFile)/2/channel_count;
+		vgmstream->num_samples = read_32bitBE(0x06,streamFile)*2;
 
 		if(loop_flag) {
 			vgmstream->loop_start_sample = read_32bitBE(0x02,streamFile)*2;
@@ -54,7 +54,7 @@ VGMSTREAM * init_vgmstream_pcm(STREAMFILE *streamFile) {
 		vgmstream->channels = channel_count;
 		vgmstream->sample_rate = 22050;
 		vgmstream->coding_type = coding_PCM16LE;
-		vgmstream->num_samples = read_32bitLE(0xC,streamFile);
+		vgmstream->num_samples = read_32bitLE(0x4,streamFile);
 
         if(loop_flag == 1) {
 			vgmstream->loop_start_sample = read_32bitLE(0x08,streamFile);
