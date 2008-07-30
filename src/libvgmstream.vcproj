@@ -299,6 +299,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\pcm.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\pos.c"
 					>
 				</File>
@@ -368,10 +372,6 @@
 				</File>
 				<File
 					RelativePath=".\meta\ps2_npsf.c"
-					>
-				</File>
-				<File
-					RelativePath=".\meta\ps2_pcm.c"
 					>
 				</File>
 				<File

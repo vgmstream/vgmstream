@@ -100,7 +100,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_ps2_kces,
 	init_vgmstream_ps2_dxh,
 	init_vgmstream_ps2_psh,
-	init_vgmstream_ps2_pcm,
+	init_vgmstream_pcm,
 	init_vgmstream_ps2_rkv,
 	init_vgmstream_ps2_psw,
 	init_vgmstream_ps2_vas,
@@ -1434,8 +1434,8 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         case meta_RIFF_WAVE_labl_Marker:
             snprintf(temp,TEMPSIZE,"RIFF WAVE header with loop markers");
             break;
-		case meta_PS2_PCM:
-            snprintf(temp,TEMPSIZE,"Ephemeral Fantasia PCM Header");
+		case meta_PCM:
+            snprintf(temp,TEMPSIZE,"PCM file with custom header");
             break;
 		case meta_PS2_RKV:
             snprintf(temp,TEMPSIZE,"Legacy of Kain - Blood Omen 2 RKV Header");
