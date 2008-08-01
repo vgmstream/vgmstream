@@ -95,6 +95,13 @@ gchar *vgmstream_exts [] = {
   "vig",
   "sfl",
   "um3",
+  "pcm",
+  "rkv",
+  "psw",
+  "vas",
+  "tec",
+  "enth",
+  "sdt",
   /* terminator */
   NULL
 };
