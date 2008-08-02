@@ -1,8 +1,8 @@
 #include "meta.h"
 #include "../util.h"
 
-/* SDT (Baldur's Gate - Dark Alliance) */
-VGMSTREAM * init_vgmstream_sdt(STREAMFILE *streamFile) {
+/* TYDSP (Ty - The Tasmanian Tiger) */
+VGMSTREAM * init_vgmstream_ngc_tydsp(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[260];
     off_t start_offset;
@@ -12,13 +12,13 @@ VGMSTREAM * init_vgmstream_sdt(STREAMFILE *streamFile) {
 
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("sdt",filename_extension(filename))) goto fail;
+    if (strcasecmp("tydsp",filename_extension(filename))) goto fail;
 
     /* check header */
     /* if (read_32bitBE(0x00,streamFile) != 0x53565300) /* "SVS\0" */
         /* goto fail; */
 
-    loop_flag = (read_32bitBE(0x04,streamFile)!=0);
+    loop_flag = 1;
     channel_count = 2;
     
 	/* build the VGMSTREAM */
@@ -26,29 +26,29 @@ VGMSTREAM * init_vgmstream_sdt(STREAMFILE *streamFile) {
     if (!vgmstream) goto fail;
 
 	/* fill in the vital statistics */
-    start_offset = 0xA0;
-	vgmstream->channels = read_32bitBE(0x00,streamFile);
-    vgmstream->sample_rate = read_32bitBE(0x08,streamFile);
+    start_offset = read_32bitBE(0x08,streamFile);
+	vgmstream->channels = channel_count;
+    vgmstream->sample_rate = (uint16_t)(read_16bitBE(0x6C,streamFile));
     vgmstream->coding_type = coding_NGC_DSP;
-    vgmstream->num_samples = read_32bitBE(0x10,streamFile)/8*14/channel_count;
+    vgmstream->num_samples = read_32bitBE(0x00,streamFile);
     if (loop_flag) {
-        vgmstream->loop_start_sample = 0; /* (read_32bitLE(0x08,streamFile)-1)*28; */
-        vgmstream->loop_end_sample = read_32bitBE(0x10,streamFile)/8*14/channel_count;
+        vgmstream->loop_start_sample = 0;
+        vgmstream->loop_end_sample = read_32bitBE(0x00,streamFile);
     }
 
     vgmstream->layout_type = layout_interleave;
-    vgmstream->interleave_block_size = 0x8000;
-    vgmstream->meta_type = meta_SDT;
+    vgmstream->interleave_block_size = read_32bitBE(0x04,streamFile);
+    vgmstream->meta_type = meta_NGC_TYDSP;
 
 
 if (vgmstream->coding_type == coding_NGC_DSP) {
 	int i;
 		for (i=0;i<16;i++) {
-            vgmstream->ch[0].adpcm_coef[i] = read_16bitBE(0x3C+i*2,streamFile);
+            vgmstream->ch[0].adpcm_coef[i] = read_16bitBE(0x10+i*2,streamFile);
 			}
 		if (vgmstream->channels) {
 			for (i=0;i<16;i++) {
-            vgmstream->ch[1].adpcm_coef[i] = read_16bitBE(0x6A+i*2,streamFile);
+            vgmstream->ch[1].adpcm_coef[i] = read_16bitBE(0x3E+i*2,streamFile);
         }
     }
 }

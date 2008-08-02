@@ -167,6 +167,7 @@ char * extension_list[] = {
 	"enth\0ENTH Audio File (*.ENTH)\0",
 	"sdt\0SDT Audio File (*.SDT)\0",
     "aix\0AIX Audio File (*.AIX)\0",
+	"tydsp\0TYDSP Audio File (*.TYDSP)\0",
 };
 
 void about(HWND hwndParent) {

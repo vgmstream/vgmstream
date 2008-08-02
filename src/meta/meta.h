@@ -185,4 +185,6 @@ VGMSTREAM * init_vgmstream_sdt(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_aix(STREAMFILE * streamFile);
 
+VGMSTREAM * init_vgmstream_ngc_tydsp(STREAMFILE * streamFile);
+
 #endif

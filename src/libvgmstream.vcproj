@@ -295,6 +295,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\ngc_tydsp.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\nwa.c"
 					>
 				</File>

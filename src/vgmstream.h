@@ -208,7 +208,8 @@ typedef enum {
 	meta_PS2_VAS,			/* Pro Baseball Spirits 5 */
 	meta_PS2_TEC,			/* TECMO badflagged stream */
 	meta_PS2_ENTH,			/* Enthusia */
-	meta_SDT,			/* Enthusia */
+	meta_SDT,				/* Baldur's Gate - Dark Alliance */
+	meta_NGC_TYDSP,			/* Ty - The Tasmanian Tiger */
 
 	meta_XBOX_WAVM,			/* XBOX WAVM File */
 	meta_XBOX_RIFF,			/* XBOX RIFF/WAVE File */
