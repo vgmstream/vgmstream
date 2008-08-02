@@ -134,6 +134,13 @@ File types supported by this version of vgmstream:
 - .vig (PS2 ADPCM)
 - .sfl (loop info for .ogg);
 - .um3 (Ogg Vorbis)
+- .rkv (PS2 ADPCM)
+- .psw (PS2 ADPCM)
+- .vas (PS2 ADPCM)
+- .tec (PS2 ADPCM)
+- .enth (PS2 ADPCM)
+- .sdt (GC DSP ADPCM)
+- .aix (CRI ADX ADPCM)
 
 Enjoy!
 -hcs
