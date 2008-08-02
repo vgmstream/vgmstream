@@ -115,6 +115,7 @@ typedef enum {
 #endif
     layout_acm,             /* dummy, let libacm handle layout */
     layout_mus_acm,         /* mus has multi-files to deal with */
+    layout_aix,             /* CRI AIX's wheels within wheels */
 } layout_t;
 
 /* The meta type specifies how we know what we know about the file. We may know because of a header we read, some of it may have been guessed from filenames, etc. */
@@ -147,6 +148,7 @@ typedef enum {
     meta_ADX_03,            /* ADX "type 03" */
     meta_ADX_04,            /* ADX "type 04" */
 	meta_ADX_05,            /* ADX "type 05" */
+    meta_AIX,               /* CRI AIX */
 
     /* etc */
     meta_NGC_ADPDTK,        /* NGC DTK/ADP, no header (.adp) */
@@ -389,6 +391,20 @@ typedef struct {
     /*int end_file;*/
     ACMStream **files;
 } mus_acm_codec_data;
+
+#define AIX_BUFFER_SIZE 0x1000
+/* AIXery */
+typedef struct {
+    sample buffer[AIX_BUFFER_SIZE];
+    int segment_count;
+    int stream_count;
+    int current_segment;
+    /* one per segment */
+    int32_t *sample_counts;
+    /* organized like:
+     * segment1_stream1, segment1_stream2, segment2_stream1, segment2_stream2*/
+    VGMSTREAM **adxs;
+} aix_codec_data;
 
 /* do format detection, return pointer to a usable VGMSTREAM, or NULL on failure */
 VGMSTREAM * init_vgmstream(const char * const filename);

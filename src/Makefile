@@ -26,7 +26,8 @@ LAYOUT_OBJS=layout/ast_blocked.o \
     layout/str_snds_blocked.o \
     layout/ws_aud_blocked.o \
     layout/interleave_byte.o \
-	layout/mus_acm_layout.o
+	layout/mus_acm_layout.o \
+    layout/aix_layout.o
 
 META_OBJS=meta/adx_header.o \
     meta/afc_header.o \
@@ -108,7 +109,8 @@ META_OBJS=meta/adx_header.o \
     meta/ps2_vas.o \
     meta/ps2_tec.o \
     meta/ps2_enth.o \
-    meta/sdt.o
+    meta/sdt.o \
+    meta/aix.o
 		
 OBJECTS=vgmstream.o streamfile.o util.o $(CODING_OBJS) $(LAYOUT_OBJS) $(META_OBJS)
 

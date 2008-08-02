@@ -85,5 +85,6 @@ libmeta_la_SOURCES += ps2_vas.c
 libmeta_la_SOURCES += ps2_tec.c
 libmeta_la_SOURCES += ps2_enth.c
 libmeta_la_SOURCES += sdt.c
+libmeta_la_SOURCES += aix.c
 
 EXTRA_DIST = meta.h

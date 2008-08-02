@@ -107,6 +107,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_ps2_tec,
 	init_vgmstream_ps2_enth,
 	init_vgmstream_sdt,
+    init_vgmstream_aix,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -209,6 +210,17 @@ void reset_vgmstream(VGMSTREAM * vgmstream) {
             acm_reset(data->files[i]);
         }
     }
+
+    if (vgmstream->layout_type==layout_aix) {
+        aix_codec_data *data = vgmstream->codec_data;
+        int i;
+
+        data->current_segment = 0;
+        for (i=0;i<data->segment_count*data->stream_count;i++)
+        {
+            reset_vgmstream(data->adxs[i]);
+        }
+    }
 }
 
 /* simply allocate memory for the VGMSTREAM and its channels */
@@ -271,28 +283,6 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
     int i,j;
     if (!vgmstream) return;
 
-    for (i=0;i<vgmstream->channels;i++) {
-        if (vgmstream->ch[i].streamfile) {
-            close_streamfile(vgmstream->ch[i].streamfile);
-            /* Multiple channels might have the same streamfile. Find the others
-             * that are the same as this and clear them so they won't be closed
-             * again. */
-            for (j=0;j<vgmstream->channels;j++) {
-                if (i!=j && vgmstream->ch[j].streamfile == 
-                            vgmstream->ch[i].streamfile) {
-                    vgmstream->ch[j].streamfile = NULL;
-                }
-            }
-            vgmstream->ch[i].streamfile = NULL;
-        }
-    }
-
-    if (vgmstream->loop_ch) free(vgmstream->loop_ch);
-    if (vgmstream->start_ch) free(vgmstream->start_ch);
-    if (vgmstream->ch) free(vgmstream->ch);
-    /* the start_vgmstream is considered just data */
-    if (vgmstream->start_vgmstream) free(vgmstream->start_vgmstream);
-
 #ifdef VGM_USE_VORBIS
     if (vgmstream->coding_type==coding_ogg_vorbis) {
         ogg_vorbis_codec_data *data = vgmstream->codec_data;
@@ -348,6 +338,52 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
         }
     }
 
+    if (vgmstream->layout_type==layout_aix) {
+        aix_codec_data *data = vgmstream->codec_data;
+
+        if (data) {
+            if (data->adxs) {
+                int i;
+                for (i=0;i<data->segment_count*data->stream_count;i++) {
+
+                    /* note that the AIX close_streamfile won't do anything but
+                     * deallocate itself, there is only one open file and that
+                     * is in vgmstream->ch[0].streamfile  */
+                    close_vgmstream(data->adxs[i]);
+                }
+                free(data->adxs);
+            }
+            if (data->sample_counts) {
+                free(data->sample_counts);
+            }
+
+            free(data);
+        }
+    }
+
+    /* now that the special cases have had their chance, clean up the standard items */
+    for (i=0;i<vgmstream->channels;i++) {
+        if (vgmstream->ch[i].streamfile) {
+            close_streamfile(vgmstream->ch[i].streamfile);
+            /* Multiple channels might have the same streamfile. Find the others
+             * that are the same as this and clear them so they won't be closed
+             * again. */
+            for (j=0;j<vgmstream->channels;j++) {
+                if (i!=j && vgmstream->ch[j].streamfile == 
+                            vgmstream->ch[i].streamfile) {
+                    vgmstream->ch[j].streamfile = NULL;
+                }
+            }
+            vgmstream->ch[i].streamfile = NULL;
+        }
+    }
+
+    if (vgmstream->loop_ch) free(vgmstream->loop_ch);
+    if (vgmstream->start_ch) free(vgmstream->start_ch);
+    if (vgmstream->ch) free(vgmstream->ch);
+    /* the start_vgmstream is considered just data */
+    if (vgmstream->start_vgmstream) free(vgmstream->start_vgmstream);
+
     free(vgmstream);
 }
 
@@ -391,6 +427,9 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
         case layout_acm:
         case layout_mus_acm:
             render_vgmstream_mus_acm(buffer,sample_count,vgmstream);
+            break;
+        case layout_aix:
+            render_vgmstream_aix(buffer,sample_count,vgmstream);
             break;
     }
 }
@@ -750,10 +789,10 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                     buffer+samples_written*vgmstream->channels,samples_to_do,
                     vgmstream->channels);
             break;
+#endif
         case coding_ACM:
             /* handled in its own layout, here to quiet compiler */
             break;
-#endif
     }
 }
 
@@ -1095,6 +1134,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         case layout_mus_acm:
             snprintf(temp,TEMPSIZE,"multiple ACM files, ACM blocked");
             break;
+        case layout_aix:
+            snprintf(temp,TEMPSIZE,"AIX interleave, internally 18-byte interleaved");
+            break;
         default:
             snprintf(temp,TEMPSIZE,"INCONCEIVABLE");
     }
@@ -1133,6 +1175,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case meta_ADX_05:
             snprintf(temp,TEMPSIZE,"CRI ADX header type 05");
+            break;
+        case meta_AIX:
+            snprintf(temp,TEMPSIZE,"CRI AIX header");
             break;
         case meta_DSP_AGSC:
             snprintf(temp,TEMPSIZE,"Retro Studios AGSC header");

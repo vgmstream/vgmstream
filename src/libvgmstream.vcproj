@@ -219,6 +219,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\aix.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\ast.c"
 					>
 				</File>
@@ -618,6 +622,10 @@
 			<Filter
 				Name="Source Files"
 				>
+				<File
+					RelativePath=".\layout\aix_layout.c"
+					>
+				</File>
 				<File
 					RelativePath=".\layout\ast_blocked.c"
 					>

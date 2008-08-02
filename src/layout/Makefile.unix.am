@@ -18,5 +18,6 @@ liblayout_la_SOURCES += str_snds_blocked.c
 liblayout_la_SOURCES += ws_aud_blocked.c
 liblayout_la_SOURCES += interleave_byte.c
 liblayout_la_SOURCES += mus_acm_layout.c
+liblayout_la_SOURCES += aix_layout.c
 
 EXTRA_DIST = layout.h
