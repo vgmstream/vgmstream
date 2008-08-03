@@ -228,6 +228,10 @@ VGMSTREAM * init_vgmstream_nwa(STREAMFILE *streamFile) {
                         /* not ok to start at last sample,
                          * don't set start_ok flag */
                     }
+                    else if (!memcmp("00000000",loopstring,8))
+                    {
+                        /* loops from the start aren't really loops */
+                    }
                     else
                     {
                         loop_start_sample = atol(loopstring);
