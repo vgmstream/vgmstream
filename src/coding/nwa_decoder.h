@@ -62,5 +62,6 @@ typedef struct NWAData_s
 NWAData *open_nwa(STREAMFILE *streamFile, const char *filename);
 void close_nwa(NWAData *nwa);
 void reset_nwa(NWAData *nwa);
+void seek_nwa(NWAData *nwa, int32_t seekpos);
 
 #endif

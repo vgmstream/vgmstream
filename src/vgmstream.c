@@ -943,6 +943,19 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream) {
                 data->buffer_full = data->buffer_used = 0;
             }
 #endif
+
+            if (vgmstream->coding_type == coding_NWA0 ||
+                    vgmstream->coding_type == coding_NWA1 ||
+                    vgmstream->coding_type == coding_NWA2 ||
+                    vgmstream->coding_type == coding_NWA3 ||
+                    vgmstream->coding_type == coding_NWA4 ||
+                    vgmstream->coding_type == coding_NWA5)
+            {
+                nwa_codec_data *data = vgmstream->codec_data;
+
+                seek_nwa(data->nwa, vgmstream->loop_sample);
+            }
+
             /* restore! */
             memcpy(vgmstream->ch,vgmstream->loop_ch,sizeof(VGMSTREAMCHANNEL)*vgmstream->channels);
             vgmstream->current_sample=vgmstream->loop_sample;

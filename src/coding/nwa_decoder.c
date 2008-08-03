@@ -302,6 +302,20 @@ nwa_decode_block(NWAData *nwa)
     return;
 }
 
+void
+seek_nwa(NWAData *nwa, int32_t seekpos)
+{
+    int dest_block = seekpos/(nwa->blocksize/nwa->channels);
+    int32_t remainder = seekpos%(nwa->blocksize/nwa->channels);
+
+    nwa->curblock = dest_block;
+
+    nwa_decode_block(nwa);
+
+    nwa->buffer_readpos = nwa->buffer + remainder*nwa->channels;
+    nwa->samples_in_buffer -= remainder*nwa->channels;
+}
+
 /* interface to vgmstream */
 void
 decode_nwa(NWAData *nwa, sample *outbuf,
