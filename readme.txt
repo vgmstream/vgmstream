@@ -141,6 +141,7 @@ File types supported by this version of vgmstream:
 - .enth (PS2 ADPCM)
 - .sdt (GC DSP ADPCM)
 - .aix (CRI ADX ADPCM)
+- .tydsp (GC DSP ADPCM)
 
 Enjoy!
 -hcs

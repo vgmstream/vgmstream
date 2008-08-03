@@ -41,17 +41,17 @@ VGMSTREAM * init_vgmstream_ngc_tydsp(STREAMFILE *streamFile) {
     vgmstream->meta_type = meta_NGC_TYDSP;
 
 
-if (vgmstream->coding_type == coding_NGC_DSP) {
-	int i;
-		for (i=0;i<16;i++) {
+    if (vgmstream->coding_type == coding_NGC_DSP) {
+        int i;
+        for (i=0;i<16;i++) {
             vgmstream->ch[0].adpcm_coef[i] = read_16bitBE(0x10+i*2,streamFile);
-			}
-		if (vgmstream->channels) {
-			for (i=0;i<16;i++) {
-            vgmstream->ch[1].adpcm_coef[i] = read_16bitBE(0x3E+i*2,streamFile);
+        }
+        if (vgmstream->channels) {
+            for (i=0;i<16;i++) {
+                vgmstream->ch[1].adpcm_coef[i] = read_16bitBE(0x3E +i*2,streamFile);
+            }
         }
     }
-}
 
     /* open the file for reading */
     {
