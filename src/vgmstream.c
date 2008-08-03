@@ -222,6 +222,18 @@ void reset_vgmstream(VGMSTREAM * vgmstream) {
             reset_vgmstream(data->adxs[i]);
         }
     }
+
+    if (
+            vgmstream->coding_type == coding_NWA0 ||
+            vgmstream->coding_type == coding_NWA1 ||
+            vgmstream->coding_type == coding_NWA2 ||
+            vgmstream->coding_type == coding_NWA3 ||
+            vgmstream->coding_type == coding_NWA4 ||
+            vgmstream->coding_type == coding_NWA5
+       ) {
+        nwa_codec_data *data = vgmstream->codec_data;
+        reset_nwa(data->nwa);
+    }
 }
 
 /* simply allocate memory for the VGMSTREAM and its channels */
@@ -236,6 +248,12 @@ VGMSTREAM * allocate_vgmstream(int channel_count, int looped) {
 
     vgmstream = calloc(1,sizeof(VGMSTREAM));
     if (!vgmstream) return NULL;
+    
+    vgmstream->ch = NULL;
+    vgmstream->start_ch = NULL;
+    vgmstream->loop_ch = NULL;
+    vgmstream->start_vgmstream = NULL;
+    vgmstream->codec_data = NULL;
 
     start_vgmstream = calloc(1,sizeof(VGMSTREAM));
     if (!start_vgmstream) {
@@ -360,6 +378,24 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
 
             free(data);
         }
+        vgmstream->codec_data = NULL;
+    }
+
+    if (
+            vgmstream->coding_type == coding_NWA0 ||
+            vgmstream->coding_type == coding_NWA1 ||
+            vgmstream->coding_type == coding_NWA2 ||
+            vgmstream->coding_type == coding_NWA3 ||
+            vgmstream->coding_type == coding_NWA4 ||
+            vgmstream->coding_type == coding_NWA5
+       ) {
+        nwa_codec_data *data = vgmstream->codec_data;
+
+        close_nwa(data->nwa);
+        
+        free(data);
+
+        vgmstream->codec_data = NULL;
     }
 
     /* now that the special cases have had their chance, clean up the standard items */
@@ -465,6 +501,12 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_SDX2:
         case coding_SDX2_int:
         case coding_ACM:
+        case coding_NWA0:
+        case coding_NWA1:
+        case coding_NWA2:
+        case coding_NWA3:
+        case coding_NWA4:
+        case coding_NWA5:
             return 1;
         case coding_NDS_IMA:
             return (vgmstream->interleave_block_size-4)*2;
@@ -523,6 +565,12 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
         case coding_PCM8_SB_int:
         case coding_SDX2:
         case coding_SDX2_int:
+        case coding_NWA0:
+        case coding_NWA1:
+        case coding_NWA2:
+        case coding_NWA3:
+        case coding_NWA4:
+        case coding_NWA5:
             return 1;
         case coding_NDS_IMA:
             return vgmstream->interleave_block_size;
@@ -794,6 +842,17 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
         case coding_ACM:
             /* handled in its own layout, here to quiet compiler */
             break;
+        case coding_NWA0:
+        case coding_NWA1:
+        case coding_NWA2:
+        case coding_NWA3:
+        case coding_NWA4:
+        case coding_NWA5:
+            decode_nwa(((nwa_codec_data*)vgmstream->codec_data)->nwa,
+                    buffer+samples_written*vgmstream->channels,
+                    samples_to_do
+                    );
+            break;
     }
 }
 
@@ -1064,6 +1123,24 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
 #endif
         case coding_ACM:
             snprintf(temp,TEMPSIZE,"InterPlay ACM");
+            break;
+        case coding_NWA0:
+            snprintf(temp,TEMPSIZE,"NWA DPCM Level 0");
+            break;
+        case coding_NWA1:
+            snprintf(temp,TEMPSIZE,"NWA DPCM Level 1");
+            break;
+        case coding_NWA2:
+            snprintf(temp,TEMPSIZE,"NWA DPCM Level 2");
+            break;
+        case coding_NWA3:
+            snprintf(temp,TEMPSIZE,"NWA DPCM Level 3");
+            break;
+        case coding_NWA4:
+            snprintf(temp,TEMPSIZE,"NWA DPCM Level 4");
+            break;
+        case coding_NWA5:
+            snprintf(temp,TEMPSIZE,"NWA DPCM Level 5");
             break;
         default:
             snprintf(temp,TEMPSIZE,"CANNOT DECODE");

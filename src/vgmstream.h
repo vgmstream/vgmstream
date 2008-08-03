@@ -21,6 +21,7 @@
 #include <mpg123.h>
 #endif
 #include "coding/acm_decoder.h"
+#include "coding/nwa_decoder.h"
 
 /* The encoding type specifies the format the sound data itself takes */
 typedef enum {
@@ -79,6 +80,13 @@ typedef enum {
 #endif
 
     coding_ACM,             /* InterPlay ACM */
+    /* compressed NWA at various levels */
+    coding_NWA0,
+    coding_NWA1,
+    coding_NWA2,
+    coding_NWA3,
+    coding_NWA4,
+    coding_NWA5,
 } coding_t;
 
 /* The layout type specifies how the sound data is laid out in the file */
@@ -406,6 +414,11 @@ typedef struct {
      * segment1_stream1, segment1_stream2, segment2_stream1, segment2_stream2*/
     VGMSTREAM **adxs;
 } aix_codec_data;
+
+/* for compressed NWA */
+typedef struct {
+    NWAData *nwa;
+} nwa_codec_data;
 
 /* do format detection, return pointer to a usable VGMSTREAM, or NULL on failure */
 VGMSTREAM * init_vgmstream(const char * const filename);

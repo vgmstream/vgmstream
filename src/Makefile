@@ -12,7 +12,8 @@ CODING_OBJS=coding/adx_decoder.o \
     coding/sdx2_decoder.o \
     coding/ws_decoder.o \
     coding/mpeg_decoder.o \
-    coding/acm_decoder.o
+    coding/acm_decoder.o \
+    coding/nwa_decoder.o
 
 LAYOUT_OBJS=layout/ast_blocked.o \
     layout/blocked.o \

@@ -546,6 +546,10 @@
 					RelativePath=".\coding\g72x_state.h"
 					>
 				</File>
+				<File
+					RelativePath=".\coding\nwa_decoder.h"
+					>
+				</File>
 			</Filter>
 			<Filter
 				Name="Source Files"
@@ -584,6 +588,10 @@
 				</File>
 				<File
 					RelativePath=".\coding\ngc_dtk_decoder.c"
+					>
+				</File>
+				<File
+					RelativePath=".\coding\nwa_decoder.c"
 					>
 				</File>
 				<File

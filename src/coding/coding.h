@@ -64,4 +64,6 @@ void decode_mpeg(VGMSTREAMCHANNEL * stream,
 void decode_acm(ACMStream * acm, sample * outbuf,
         int32_t samples_to_do, int channelspacing);
 
+void decode_nwa(NWAData *nwa, sample *outbuf, int32_t samples_to_do);
+
 #endif
