@@ -17,8 +17,8 @@
 	<Configurations>
 		<Configuration
 			Name="Debug|Win32"
-			OutputDirectory="Debug"
-			IntermediateDirectory="Debug"
+			OutputDirectory="C:\Program Files\winamp\plugins"
+			IntermediateDirectory="$(ConfigurationName)"
 			ConfigurationType="4"
 			>
 			<Tool
@@ -269,6 +269,24 @@
 				<File
 					RelativePath=".\meta\mus_acm.c"
 					>
+					<FileConfiguration
+						Name="Debug|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							ObjectFile="$(IntDir)\$(InputName)1.obj"
+							XMLDocumentationFileName="$(IntDir)\$(InputName)1.xdc"
+						/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="Release|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							ObjectFile="$(IntDir)\$(InputName)1.obj"
+							XMLDocumentationFileName="$(IntDir)\$(InputName)1.xdc"
+						/>
+					</FileConfiguration>
 				</File>
 				<File
 					RelativePath=".\meta\musc.c"
@@ -520,6 +538,10 @@
 				</File>
 				<File
 					RelativePath=".\meta\xbox_wavm.c"
+					>
+				</File>
+				<File
+					RelativePath=".\meta\xbox_wvs.c"
 					>
 				</File>
 				<File

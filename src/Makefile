@@ -114,7 +114,8 @@ META_OBJS=meta/adx_header.o \
     meta/aix.o \
     meta/ngc_tydsp.o \
     meta/ngc_vjdsp.o \
-    meta/ngc_biodsp.o
+    meta/ngc_biodsp.o \
+    meta/xbox_wvs.o
 		
 OBJECTS=vgmstream.o streamfile.o util.o $(CODING_OBJS) $(LAYOUT_OBJS) $(META_OBJS)
 

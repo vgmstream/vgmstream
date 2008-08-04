@@ -171,6 +171,7 @@ char * extension_list[] = {
 	"swd\0SWD Audio File (*.SWD)\0",
 	"vjdsp\0VJDSP Audio File (*.VJDSP)\0",
 	"biodsp\0BIODSP Audio File (*.BIODSP)\0",
+	"wvs\0WVS Audio File (*.WVS)\0",
 };
 
 void about(HWND hwndParent) {

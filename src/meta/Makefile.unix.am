@@ -89,5 +89,6 @@ libmeta_la_SOURCES += aix.c
 libmeta_la_SOURCES += ngc_tydsp.c
 libmeta_la_SOURCES += ngc_swd.c
 libmeta_la_SOURCES += ngc_biodsp.c
+libmeta_la_SOURCES += xbox_wvs.c
 
 EXTRA_DIST = meta.h
