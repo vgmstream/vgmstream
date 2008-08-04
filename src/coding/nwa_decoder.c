@@ -37,12 +37,13 @@
 static int
 getbits (STREAMFILE *file, off_t *offset, int *shift, int bits)
 {
+	int ret;
     if (*shift > 8)
     {
         ++*offset;
         *shift -= 8;
     }
-    int ret = read_16bitLE(*offset,file) >> *shift;
+    ret = read_16bitLE(*offset,file) >> *shift;
     *shift += bits;
     return ret & ((1 << bits) - 1);	/* mask */
 }
@@ -231,13 +232,15 @@ nwa_decode_block(NWAData *nwa)
                             BITS = 8 - nwa->complevel;
                             SHIFT = 2 + 7 + nwa->complevel;
                         }
-                        const int MASK1 = (1 << (BITS - 1));
-                        const int MASK2 = (1 << (BITS - 1)) - 1;
-                        int b = getbits(nwa->file, &offset, &shift, BITS);
-                        if (b & MASK1)
-                            d[flip_flag] -= (b & MASK2) << SHIFT;
-                        else
-                            d[flip_flag] += (b & MASK2) << SHIFT;
+						{
+							const int MASK1 = (1 << (BITS - 1));
+							const int MASK2 = (1 << (BITS - 1)) - 1;
+							int b = getbits(nwa->file, &offset, &shift, BITS);
+							if (b & MASK1)
+								d[flip_flag] -= (b & MASK2) << SHIFT;
+							else
+								d[flip_flag] += (b & MASK2) << SHIFT;
+						}
                     }
                 }
                 else if (type != 0)
@@ -254,13 +257,15 @@ nwa_decode_block(NWAData *nwa)
                         BITS = 5 - nwa->complevel;
                         SHIFT = 2 + type + nwa->complevel;
                     }
-                    const int MASK1 = (1 << (BITS - 1));
-                    const int MASK2 = (1 << (BITS - 1)) - 1;
-                    int b = getbits(nwa->file, &offset, &shift, BITS);
-                    if (b & MASK1)
-                        d[flip_flag] -= (b & MASK2) << SHIFT;
-                    else
-                        d[flip_flag] += (b & MASK2) << SHIFT;
+					{
+						const int MASK1 = (1 << (BITS - 1));
+						const int MASK2 = (1 << (BITS - 1)) - 1;
+						int b = getbits(nwa->file, &offset, &shift, BITS);
+						if (b & MASK1)
+							d[flip_flag] -= (b & MASK2) << SHIFT;
+						else
+	                        d[flip_flag] += (b & MASK2) << SHIFT;
+					}
                 }
                 else
                 {					/* type == 0 */
