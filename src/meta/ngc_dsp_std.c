@@ -1014,15 +1014,15 @@ VGMSTREAM * init_vgmstream_ngc_swd(STREAMFILE *streamFile) {
     streamFile->get_name(streamFile,filename,sizeof(filename));
     if (strcasecmp("swd",filename_extension(filename))) goto fail;
 
-    if (read_dsp_header(&ch0_header, 0x24, streamFile)) goto fail;
-    if (read_dsp_header(&ch1_header, 0x84, streamFile)) goto fail;
+    if (read_dsp_header(&ch0_header, 0x08, streamFile)) goto fail;
+    if (read_dsp_header(&ch1_header, 0x68, streamFile)) goto fail;
 
     /* check header magic */
-    /*if (read_16bitBE(0x00,streamFile) != 0x5053 && /* PS */
-				/* (read_8bit(0x02,streamFile) != 0x46)) /* F */
-				/* goto fail; */
+    if (read_16bitBE(0x00,streamFile) != 0x5053 && /* PS */
+            (read_8bit(0x02,streamFile) != 0x46)) /* F */
+        goto fail;
 
-    start_offset = 0xA8;
+    start_offset = 0xC8;
     interleave = 0x8;
 
     /* check initial predictor/scale */
