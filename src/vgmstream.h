@@ -224,6 +224,7 @@ typedef enum {
 
 	meta_XBOX_WAVM,			/* XBOX WAVM File */
 	meta_XBOX_RIFF,			/* XBOX RIFF/WAVE File */
+	meta_XBOX_WVS,			/* XBOX WVS */
 
 	meta_EAXA_R2,			/* EA XA Release 2 */
 	meta_EAXA_R3,			/* EA XA Release 3 */

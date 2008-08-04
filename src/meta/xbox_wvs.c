@@ -18,6 +18,11 @@ VGMSTREAM * init_vgmstream_xbox_wvs(STREAMFILE *streamFile) {
     streamFile->get_name(streamFile,filename,sizeof(filename));
     if (strcasecmp("wvs",filename_extension(filename))) goto fail;
 
+	if((read_16bitLE(0x0C,streamFile)!=0x69) && 
+	   (read_16bitLE(0x08,streamFile)!=0x4400) && 
+	   (read_32bitLE(0x0,streamFile)!=get_streamfile_size(streamFile)+0x20))
+		goto fail;
+
     /* Loop seems to be set if offset(0x0A) == 0x472C */
 	loop_flag = (read_16bitLE(0x0A,streamFile)==0x472C);
     
@@ -37,7 +42,7 @@ VGMSTREAM * init_vgmstream_xbox_wvs(STREAMFILE *streamFile) {
     vgmstream->num_samples = read_32bitLE(0,streamFile) / 36 * 64 / vgmstream->channels;
     vgmstream->layout_type = layout_interleave;
 	vgmstream->interleave_block_size=36;
-    vgmstream->meta_type = meta_XBOX_WAVM;
+    vgmstream->meta_type = meta_XBOX_WVS;
 
 	if(loop_flag) {
 		vgmstream->loop_start_sample=0;
