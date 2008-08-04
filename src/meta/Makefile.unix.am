@@ -87,5 +87,7 @@ libmeta_la_SOURCES += ps2_enth.c
 libmeta_la_SOURCES += sdt.c
 libmeta_la_SOURCES += aix.c
 libmeta_la_SOURCES += ngc_tydsp.c
+libmeta_la_SOURCES += ngc_swd.c
+libmeta_la_SOURCES += ngc_biodsp.c
 
 EXTRA_DIST = meta.h

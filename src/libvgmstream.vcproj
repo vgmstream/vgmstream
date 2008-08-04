@@ -287,6 +287,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\ngc_biodsp.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\ngc_caf.c"
 					>
 				</File>
@@ -296,6 +300,10 @@
 				</File>
 				<File
 					RelativePath=".\meta\ngc_tydsp.c"
+					>
+				</File>
+				<File
+					RelativePath=".\meta\ngc_vjdsp.c"
 					>
 				</File>
 				<File

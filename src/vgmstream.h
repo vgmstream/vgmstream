@@ -218,6 +218,9 @@ typedef enum {
 	meta_PS2_ENTH,			/* Enthusia */
 	meta_SDT,				/* Baldur's Gate - Dark Alliance */
 	meta_NGC_TYDSP,			/* Ty - The Tasmanian Tiger */
+	meta_NGC_SWD,			/* Conflict - Desert Storm 1 & 2 */
+	meta_NGC_VJDSP,			/* Viewtiful Joe */
+	meta_NGC_BIODSP,			/* Bio Hazard */
 
 	meta_XBOX_WAVM,			/* XBOX WAVM File */
 	meta_XBOX_RIFF,			/* XBOX RIFF/WAVE File */

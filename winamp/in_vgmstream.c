@@ -168,6 +168,9 @@ char * extension_list[] = {
 	"sdt\0SDT Audio File (*.SDT)\0",
     "aix\0AIX Audio File (*.AIX)\0",
 	"tydsp\0TYDSP Audio File (*.TYDSP)\0",
+	"swd\0SWD Audio File (*.SWD)\0",
+	"vjdsp\0VJDSP Audio File (*.VJDSP)\0",
+	"biodsp\0BIODSP Audio File (*.BIODSP)\0",
 };
 
 void about(HWND hwndParent) {
