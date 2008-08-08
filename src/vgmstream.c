@@ -138,7 +138,7 @@ VGMSTREAM * init_vgmstream_internal(STREAMFILE *streamFile, int do_dfs) {
             }
 
             /* dual file stereo */
-            if (do_dfs && ((vgmstream->meta_type == meta_DSP_STD) || (vgmstream->meta_type == meta_PS2_VAGp)) && vgmstream->channels == 1) {
+            if (do_dfs && ((vgmstream->meta_type == meta_DSP_STD) || (vgmstream->meta_type == meta_PS2_VAGp) || (vgmstream->meta_type == meta_GENH)) && vgmstream->channels == 1) {
                 try_dual_file_stereo(vgmstream, streamFile);
             }
 
