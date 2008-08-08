@@ -83,6 +83,8 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_amts(STREAMFILE *streamFile);
 
+VGMSTREAM * init_vgmstream_xbox_stma(STREAMFILE *streamFile);
+
 #ifdef VGM_USE_VORBIS
 VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile);
 

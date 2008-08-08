@@ -537,6 +537,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\xbox_stma.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\xbox_wavm.c"
 					>
 				</File>

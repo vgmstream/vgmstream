@@ -113,6 +113,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_ngc_vjdsp,
 	init_vgmstream_ngc_biodsp,
 	init_vgmstream_xbox_wvs,
+	init_vgmstream_xbox_stma,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -1593,6 +1594,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
 		case meta_XBOX_WVS:
             snprintf(temp,TEMPSIZE,"Metal Arms WVS Header");
             break;
+		case meta_XBOX_STMA:
+			snprintf(temp,TEMPSIZE,"Midnight Club 2 STMA Header");
+			break;
         default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");
     }

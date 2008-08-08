@@ -61,7 +61,7 @@ typedef enum {
                                with smaple-level interleave handled by the
                                decoder */
     coding_DVI_IMA,         /* DVI (bare IMA, high nibble first), aka ADP4 */
-	coding_INT_DVI_IMA,		/* Interlaved DVI */
+	coding_INT_DVI_IMA,		/* Interleaved DVI */
 	coding_EACS_IMA,
     coding_IMA,             /* bare IMA, low nibble first */
     coding_WS,              /* Westwood Studios' custom VBR ADPCM */
@@ -225,6 +225,7 @@ typedef enum {
 	meta_XBOX_WAVM,			/* XBOX WAVM File */
 	meta_XBOX_RIFF,			/* XBOX RIFF/WAVE File */
 	meta_XBOX_WVS,			/* XBOX WVS */
+	meta_XBOX_STMA,			/* XBOX STMA */
 
 	meta_EAXA_R2,			/* EA XA Release 2 */
 	meta_EAXA_R3,			/* EA XA Release 3 */
