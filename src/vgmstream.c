@@ -111,7 +111,6 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_ngc_tydsp,
 	init_vgmstream_ngc_swd,
 	init_vgmstream_ngc_vjdsp,
-	init_vgmstream_ngc_biodsp,
 	init_vgmstream_xbox_wvs,
 	init_vgmstream_xbox_stma,
 };

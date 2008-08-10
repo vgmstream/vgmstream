@@ -103,6 +103,11 @@ gchar *vgmstream_exts [] = {
   "enth",
   "sdt",
   "aix",
+  "tydsp",
+  "sfs",
+  "as4",
+  "swd",
+  "cnk",
   /* terminator */
   NULL
 };
