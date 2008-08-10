@@ -199,4 +199,6 @@ VGMSTREAM * init_vgmstream_xbox_wvs(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_dc_str(STREAMFILE *streamFile);
 
+VGMSTREAM * init_vgmstream_xbox_matx(STREAMFILE *streamFile);
+
 #endif

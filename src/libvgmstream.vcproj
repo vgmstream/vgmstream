@@ -537,6 +537,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\xbox_ims.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\xbox_stma.c"
 					>
 				</File>
@@ -690,6 +694,10 @@
 				</File>
 				<File
 					RelativePath=".\layout\halpst_blocked.c"
+					>
+				</File>
+				<File
+					RelativePath=".\layout\ims_block.c"
 					>
 				</File>
 				<File

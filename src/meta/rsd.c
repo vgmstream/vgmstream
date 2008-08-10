@@ -84,7 +84,6 @@ VGMSTREAM * init_vgmstream_rsd(STREAMFILE *streamFile) {
 	case 0x58414450: /* RSD2XADP */
 		start_offset = 0x40;
 		coding_type = coding_XBOX;
-		vgmstream->interleave_block_size = 0x24;
 		vgmstream->num_samples = (get_streamfile_size(streamFile)-start_offset)*64/36/channel_count;
 
 
@@ -124,6 +123,7 @@ VGMSTREAM * init_vgmstream_rsd(STREAMFILE *streamFile) {
 
             
             if (vgmstream->coding_type == coding_XBOX) {
+				vgmstream->layout_type=layout_none;
                 vgmstream->ch[i].channel_start_offset=start_offset;
             } else {
                 vgmstream->ch[i].channel_start_offset=

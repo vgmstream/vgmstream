@@ -113,6 +113,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_ngc_vjdsp,
 	init_vgmstream_xbox_wvs,
 	init_vgmstream_xbox_stma,
+	init_vgmstream_xbox_matx,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -460,6 +461,7 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
         case layout_wsi_blocked:
         case layout_str_snds_blocked:
         case layout_ws_aud_blocked:
+		case layout_matx_blocked:
             render_vgmstream_blocked(buffer,sample_count,vgmstream);
             break;
         case layout_interleave_byte:
@@ -1215,6 +1217,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         case layout_ws_aud_blocked:
             snprintf(temp,TEMPSIZE,"Westwood Studios .aud blocked");
             break;
+        case layout_matx_blocked:
+            snprintf(temp,TEMPSIZE,"Matrix .matx blocked");
+            break;
 #ifdef VGM_USE_MPEG
         case layout_fake_mpeg:
             snprintf(temp,TEMPSIZE,"MPEG Audio stream with incorrect frame headers");
@@ -1595,6 +1600,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
 		case meta_XBOX_STMA:
 			snprintf(temp,TEMPSIZE,"Midnight Club 2 STMA Header");
+			break;
+		case meta_XBOX_MATX:
+			snprintf(temp,TEMPSIZE,"assumed Matrix file by .matx extension");
 			break;
         default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

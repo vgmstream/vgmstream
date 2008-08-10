@@ -172,6 +172,7 @@ char * extension_list[] = {
 	"vjdsp\0VJDSP Audio File (*.VJDSP)\0",
 	"wvs\0WVS Audio File (*.WVS)\0",
 	"stma\0STMA Audio File (*.STMA)\0",
+	"matx\0MATX Audio File (*.MATX)\0",
 };
 
 void about(HWND hwndParent) {
