@@ -9,7 +9,6 @@ VGMSTREAM * init_vgmstream_ps2_dxh(STREAMFILE *streamFile) {
 
     int loop_flag = 0;
 	int channel_count;
-	int illegal_loopend;
 
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));

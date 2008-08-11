@@ -26,6 +26,8 @@ void ws_aud_block_update(off_t block_offset, VGMSTREAM * vgmstream);
 
 void matx_block_update(off_t block_offset, VGMSTREAM * vgmstream);
 
+void de2_block_update(off_t block_offset, VGMSTREAM * vgmstream);
+
 void render_vgmstream_interleave(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstream);
 
 void render_vgmstream_nolayout(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstream);

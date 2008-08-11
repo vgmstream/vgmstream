@@ -20,5 +20,6 @@ liblayout_la_SOURCES += interleave_byte.c
 liblayout_la_SOURCES += mus_acm_layout.c
 liblayout_la_SOURCES += aix_layout.c
 liblayout_la_SOURCES += ims_block.c
+liblayout_la_SOURCES += de2_layout.c
 
 EXTRA_DIST = layout.h

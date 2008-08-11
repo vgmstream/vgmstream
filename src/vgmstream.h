@@ -87,6 +87,8 @@ typedef enum {
     coding_NWA3,
     coding_NWA4,
     coding_NWA5,
+
+    coding_MSADPCM          /* Microsoft ADPCM */
 } coding_t;
 
 /* The layout type specifies how the sound data is laid out in the file */
@@ -110,6 +112,7 @@ typedef enum {
     layout_str_snds_blocked,
     layout_ws_aud_blocked,
 	layout_matx_blocked,
+    layout_de2_blocked,
 #if 0
     layout_strm_blocked,    /* */
 #endif
@@ -268,6 +271,7 @@ typedef enum {
 	meta_KCEY,				/* KCEYCOMP */
     meta_ACM,               /* InterPlay ACM header */
     meta_MUS_ACM,           /* MUS playlist of InterPlay ACM files */
+    meta_DE2,               /* Falcom (Gurumin) .de2 */
 } meta_t;
 
 typedef struct {
@@ -291,7 +295,8 @@ typedef struct {
         int32_t adpcm_history2_32;
     };
 
-    int adpcm_step_index;     /* for IMA */
+    int adpcm_step_index;       /* for IMA */
+    int adpcm_scale;            /* for MS ADPCM */
 
     struct g72x_state g72x_state; /* state for G.721 decoder, sort of big but we
                                might as well keep it around */

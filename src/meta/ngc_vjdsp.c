@@ -14,9 +14,11 @@ VGMSTREAM * init_vgmstream_ngc_vjdsp(STREAMFILE *streamFile) {
     streamFile->get_name(streamFile,filename,sizeof(filename));
     if (strcasecmp("vjdsp",filename_extension(filename))) goto fail;
 
+#if 0
     /* check header */
-    /* if (read_32bitBE(0x00,streamFile) != 0x53565300) /* "SVS\0" */
-        /* goto fail; */
+    if (read_32bitBE(0x00,streamFile) != 0x53565300) /* "SVS\0" */
+        goto fail;
+#endif
 
     loop_flag = read_32bitBE(0x14,streamFile);
     channel_count = read_32bitBE(0x10,streamFile);

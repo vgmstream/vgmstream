@@ -114,6 +114,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_xbox_wvs,
 	init_vgmstream_xbox_stma,
 	init_vgmstream_xbox_matx,
+    init_vgmstream_de2,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -462,6 +463,7 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
         case layout_str_snds_blocked:
         case layout_ws_aud_blocked:
 		case layout_matx_blocked:
+        case layout_de2_blocked:
             render_vgmstream_blocked(buffer,sample_count,vgmstream);
             break;
         case layout_interleave_byte:
@@ -542,6 +544,8 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
             /* only works if output sample size is 8 bit, which is always
                is for WS ADPCM */
             return vgmstream->ws_output_size;
+        case coding_MSADPCM:
+            return (vgmstream->interleave_block_size-(7-1)*vgmstream->channels)*2;
         default:
             return 0;
     }
@@ -606,6 +610,8 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
             return vgmstream->current_block_size;
         case coding_INT_DVI_IMA:
 			return 1; 
+        case coding_MSADPCM:
+            return vgmstream->interleave_block_size;
         default:
             return 0;
     }
@@ -859,6 +865,13 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                     samples_to_do
                     );
             break;
+        case coding_MSADPCM:
+            if (vgmstream->channels == 2) {
+                decode_msadpcm_stereo(vgmstream,
+                        buffer+samples_written*vgmstream->channels,
+                        vgmstream->samples_into_block,
+                        samples_to_do);
+            }
     }
 }
 

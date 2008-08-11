@@ -7,7 +7,6 @@ VGMSTREAM * init_vgmstream_ps2_psw(STREAMFILE *streamFile) {
     char filename[260];
     off_t start_offset;
 
-	int CodecID;
     int loop_flag = 0;
 	int channel_count;
 
@@ -18,7 +17,6 @@ VGMSTREAM * init_vgmstream_ps2_psw(STREAMFILE *streamFile) {
     /* check header */
     if (read_32bitBE(0x00,streamFile) != 0x52494646 &&	/* "RIFF" */
 		read_32bitBE(0x08,streamFile) != 0x57415645 &&	/* "WAVE" */
-		/* read_16bitBE(0x14,streamFile) != 0xFFFF &&		/* "\FFFF" */
 		read_32bitBE(0x26,streamFile) != 0x64617461)	/* "data" */
 	goto fail;
 

@@ -91,5 +91,6 @@ libmeta_la_SOURCES += xbox_wvs.c
 libmeta_la_SOURCES += ngc_vjdsp.c
 libmeta_la_SOURCES += xbox_stma.c
 libmeta_la_SOURCES += xbox_ims.c
+libmeta_la_SOURCES += de2.c
 
 EXTRA_DIST = meta.h

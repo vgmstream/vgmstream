@@ -66,4 +66,6 @@ void decode_acm(ACMStream * acm, sample * outbuf,
 
 void decode_nwa(NWAData *nwa, sample *outbuf, int32_t samples_to_do);
 
+void decode_msadpcm_stereo(VGMSTREAM * vgmstream, sample * outbuf, int32_t first_sample, int32_t samples_to_do);
+
 #endif

@@ -15,8 +15,10 @@ VGMSTREAM * init_vgmstream_ps2_vas(STREAMFILE *streamFile) {
     if (strcasecmp("vas",filename_extension(filename))) goto fail;
 
     /* check header */
-    /* if (read_32bitBE(0x00,streamFile) != 0x53565300) /* "SVS\0" */
-    /*    goto fail; */
+#if 0
+    if (read_32bitBE(0x00,streamFile) != 0x53565300) /* "SVS\0" */
+       goto fail;
+#endif
 
     loop_flag = (read_32bitLE(0x10,streamFile)!=0);
     channel_count = 2;

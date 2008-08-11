@@ -243,6 +243,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\de2.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\ea_header.c"
 					>
 				</File>
@@ -617,6 +621,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\coding\msadpcm_decoder.c"
+					>
+				</File>
+				<File
 					RelativePath=".\coding\ngc_afc_decoder.c"
 					>
 				</File>
@@ -686,6 +694,10 @@
 				</File>
 				<File
 					RelativePath=".\layout\caf_blocked.c"
+					>
+				</File>
+				<File
+					RelativePath=".\layout\de2_blocked.c"
 					>
 				</File>
 				<File
