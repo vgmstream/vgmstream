@@ -21,6 +21,6 @@ libcoding_la_SOURCES += ws_decoder.c
 libcoding_la_SOURCES += mpeg_decoder.c
 libcoding_la_SOURCES += acm_decoder.c
 libcoding_la_SOURCES += nwa_decoder.c
-libcoding_la_SOURCES += msadpcm_decoder.
+libcoding_la_SOURCES += msadpcm_decoder.c
 
 EXTRA_DIST = coding.h g72x_state.h

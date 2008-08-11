@@ -142,6 +142,12 @@ File types supported by this version of vgmstream:
 - .sdt (GC DSP ADPCM)
 - .aix (CRI ADX ADPCM)
 - .tydsp (GC DSP ADPCM)
+- .swd (GC DSP ADPCM)
+- .vjdsp (GC DSP ADPCM)
+- .wvs (XBOX IMA ADPCM)
+- .stma (DVI IMA ADPCM)
+- .matx (XBOX IMA ADPCM)
+- .de2 (MS ADPCM)
 
 Enjoy!
 -hcs
