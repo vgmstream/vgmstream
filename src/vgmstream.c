@@ -545,7 +545,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
                is for WS ADPCM */
             return vgmstream->ws_output_size;
         case coding_MSADPCM:
-            return (vgmstream->interleave_block_size-(7-1)*vgmstream->channels)*2;
+            return (vgmstream->interleave_block_size-(7-1)*vgmstream->channels)*2/vgmstream->channels;
         default:
             return 0;
     }
@@ -872,6 +872,7 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                         vgmstream->samples_into_block,
                         samples_to_do);
             }
+            break;
     }
 }
 
@@ -1174,6 +1175,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         case coding_NWA5:
             snprintf(temp,TEMPSIZE,"NWA DPCM Level 5");
             break;
+        case coding_MSADPCM:
+            snprintf(temp,TEMPSIZE,"Microsoft 4-bit ADPCM");
+            break;
         default:
             snprintf(temp,TEMPSIZE,"CANNOT DECODE");
     }
@@ -1232,6 +1236,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case layout_matx_blocked:
             snprintf(temp,TEMPSIZE,"Matrix .matx blocked");
+            break;
+        case layout_de2_blocked:
+            snprintf(temp,TEMPSIZE,"de2 blocked");
             break;
 #ifdef VGM_USE_MPEG
         case layout_fake_mpeg:
@@ -1617,6 +1624,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
 		case meta_XBOX_MATX:
 			snprintf(temp,TEMPSIZE,"assumed Matrix file by .matx extension");
 			break;
+        case meta_DE2:
+            snprintf(temp,TEMPSIZE,"gurumin .de2 with embedded funky RIFF");
+            break;
         default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");
     }

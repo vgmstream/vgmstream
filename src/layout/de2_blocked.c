@@ -6,8 +6,8 @@ void de2_block_update(off_t block_offset, VGMSTREAM * vgmstream) {
     int i;
     vgmstream->current_block_offset = block_offset;
     vgmstream->current_block_size = read_32bitLE(
-            vgmstream->current_block_offset+4,
-            vgmstream->ch[0].streamfile)/2/vgmstream->channels;
+            vgmstream->current_block_offset,
+            vgmstream->ch[0].streamfile);
     vgmstream->next_block_offset = block_offset+8+read_32bitLE(
             vgmstream->current_block_offset,
             vgmstream->ch[0].streamfile);

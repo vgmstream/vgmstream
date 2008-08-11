@@ -112,6 +112,7 @@ gchar *vgmstream_exts [] = {
   "wvs",
   "stma",
   "matx",
+  "de2",
   /* terminator */
   NULL
 };
