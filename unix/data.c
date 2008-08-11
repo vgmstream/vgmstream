@@ -108,6 +108,10 @@ gchar *vgmstream_exts [] = {
   "as4",
   "swd",
   "cnk",
+  "vjdsp",
+  "wvs",
+  "stma",
+  "matx",
   /* terminator */
   NULL
 };
