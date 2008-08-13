@@ -88,7 +88,8 @@ typedef enum {
     coding_NWA4,
     coding_NWA5,
 
-    coding_MSADPCM          /* Microsoft ADPCM */
+    coding_MSADPCM,         /* Microsoft ADPCM */
+    coding_AICA,            /* Yamaha AICA ADPCM */
 } coding_t;
 
 /* The layout type specifies how the sound data is laid out in the file */

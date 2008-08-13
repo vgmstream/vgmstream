@@ -29,7 +29,7 @@ VGMSTREAM * init_vgmstream_dc_str(STREAMFILE *streamFile) {
 	vgmstream->channels = channel_count;
     start_offset = 0x800;
     vgmstream->sample_rate = read_32bitLE(0x04,streamFile);
-    vgmstream->coding_type = coding_DVI_IMA;
+    vgmstream->coding_type = coding_AICA;
 
     vgmstream->num_samples = read_32bitLE(0x14,streamFile);
     
@@ -56,6 +56,7 @@ VGMSTREAM * init_vgmstream_dc_str(STREAMFILE *streamFile) {
                 vgmstream->ch[i].offset=start_offset+
                 vgmstream->interleave_block_size*i;
 
+            vgmstream->ch[i].adpcm_step_index = 0x7f;   /* AICA */
         }
     }
 

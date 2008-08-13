@@ -605,6 +605,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\coding\aica_decoder.c"
+					>
+				</File>
+				<File
 					RelativePath=".\coding\eaxa_decoder.c"
 					>
 				</File>

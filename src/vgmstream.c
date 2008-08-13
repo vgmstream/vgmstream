@@ -115,6 +115,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_xbox_stma,
 	init_vgmstream_xbox_matx,
     init_vgmstream_de2,
+    init_vgmstream_dc_str,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -526,6 +527,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_IMA:
             return 1;
 		case coding_INT_DVI_IMA:
+        case coding_AICA:
 			return 2;
         case coding_NGC_AFC:
             return 16;
@@ -609,6 +611,7 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
         case coding_WS:
             return vgmstream->current_block_size;
         case coding_INT_DVI_IMA:
+        case coding_AICA:
 			return 1; 
         case coding_MSADPCM:
             return vgmstream->interleave_block_size;
@@ -870,6 +873,13 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                 decode_msadpcm_stereo(vgmstream,
                         buffer+samples_written*vgmstream->channels,
                         vgmstream->samples_into_block,
+                        samples_to_do);
+            }
+            break;
+		case coding_AICA:
+            for (chan=0;chan<vgmstream->channels;chan++) {
+                decode_aica(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                        vgmstream->channels,vgmstream->samples_into_block,
                         samples_to_do);
             }
             break;
@@ -1177,6 +1187,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case coding_MSADPCM:
             snprintf(temp,TEMPSIZE,"Microsoft 4-bit ADPCM");
+            break;
+        case coding_AICA:
+            snprintf(temp,TEMPSIZE,"Yamaha AICA 4-bit ADPCM");
             break;
         default:
             snprintf(temp,TEMPSIZE,"CANNOT DECODE");
@@ -1626,6 +1639,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
 			break;
         case meta_DE2:
             snprintf(temp,TEMPSIZE,"gurumin .de2 with embedded funky RIFF");
+            break;
+        case meta_DC_STR:
+            snprintf(temp,TEMPSIZE,"Sega Stream Asset Builder header");
             break;
         default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

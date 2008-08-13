@@ -14,7 +14,8 @@ CODING_OBJS=coding/adx_decoder.o \
     coding/mpeg_decoder.o \
     coding/acm_decoder.o \
     coding/nwa_decoder.o \
-    coding/msadpcm_decoder.o
+    coding/msadpcm_decoder.o \
+    coding/aica_decoder.o
 
 LAYOUT_OBJS=layout/ast_blocked.o \
     layout/blocked.o \
@@ -120,7 +121,8 @@ META_OBJS=meta/adx_header.o \
     meta/xbox_wvs.o \
     meta/xbox_ims.o \
     meta/xbox_stma.o \
-    meta/de2.o
+    meta/de2.o \
+    meta/dc_str.o
 		
 OBJECTS=vgmstream.o streamfile.o util.o $(CODING_OBJS) $(LAYOUT_OBJS) $(META_OBJS)
 
