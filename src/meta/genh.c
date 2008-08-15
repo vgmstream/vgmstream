@@ -47,6 +47,7 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
     /* 7 = DVI IMA */
     /* 8 = MPEG-1 Layer III, possibly also the MPEG-2 and 2.5 extensions */
     /* 9 = IMA */
+    /* 10 = AICA ADPCM */
     /* ... others to come */
     switch (read_32bitLE(0x18,streamFile)) {
         case 0:
@@ -82,6 +83,9 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
 #endif
         case 9:
             coding = coding_IMA;
+            break;
+        case 10:
+            coding = coding_AICA;
             break;
         default:
             goto fail;
@@ -128,6 +132,7 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
         case coding_PSX:
         case coding_DVI_IMA:
         case coding_IMA:
+        case coding_AICA:
             vgmstream->interleave_block_size = interleave;
             if (channel_count > 1)
             {
@@ -173,6 +178,7 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
                 case coding_DVI_IMA:
                 case coding_IMA:
                 case coding_PCM8:
+                case coding_AICA:
                     if (vgmstream->layout_type == layout_interleave) {
                         if (interleave >= 512) {
                             chstreamfile =
