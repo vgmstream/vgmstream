@@ -137,7 +137,6 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
         case coding_DVI_IMA:
         case coding_IMA:
         case coding_AICA:
-        case coding_MSADPCM:
             vgmstream->interleave_block_size = interleave;
             if (channel_count > 1)
             {
@@ -149,6 +148,11 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
             } else {
                 vgmstream->layout_type = layout_none;
             }
+            break;
+        case coding_MSADPCM:
+            if (channel_count != 2) goto fail;
+            vgmstream->interleave_block_size = interleave;
+            vgmstream->layout_type = layout_none;
             break;
         case coding_XBOX:
             vgmstream->layout_type = layout_none;
