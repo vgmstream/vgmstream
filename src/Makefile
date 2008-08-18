@@ -122,7 +122,8 @@ META_OBJS=meta/adx_header.o \
     meta/xbox_ims.o \
     meta/xbox_stma.o \
     meta/de2.o \
-    meta/dc_str.o
+    meta/dc_str.o \
+    meta/xbox_xmu.o
 		
 OBJECTS=vgmstream.o streamfile.o util.o $(CODING_OBJS) $(LAYOUT_OBJS) $(META_OBJS)
 

@@ -113,6 +113,7 @@ gchar *vgmstream_exts [] = {
   "stma",
   "matx",
   "de2",
+  "xmu",
   /* terminator */
   NULL
 };
