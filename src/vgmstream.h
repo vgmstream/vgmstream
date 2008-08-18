@@ -232,6 +232,7 @@ typedef enum {
 	meta_XBOX_WVS,			/* XBOX WVS */
 	meta_XBOX_STMA,			/* XBOX STMA */
 	meta_XBOX_MATX,			/* XBOX MATX */
+	meta_XBOX_XMU,			/* XBOX XMU */
 
 	meta_EAXA_R2,			/* EA XA Release 2 */
 	meta_EAXA_R3,			/* EA XA Release 3 */

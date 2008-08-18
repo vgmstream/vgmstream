@@ -11,8 +11,10 @@ void ea_block_update(off_t block_offset, VGMSTREAM * vgmstream) {
 	// Search for next SCDL or SCEl block ...
 	do {
 		block_offset+=4;
-		if(block_offset>(off_t)get_streamfile_size(vgmstream->ch[0].streamfile))
+		if(block_offset>=(off_t)get_streamfile_size(vgmstream->ch[0].streamfile)) {
+			vgmstream->next_block_offset=block_offset;
 			return;
+		}
 	} while (read_32bitBE(block_offset,vgmstream->ch[0].streamfile)!=0x5343446C);
 
 	// reset channel offset

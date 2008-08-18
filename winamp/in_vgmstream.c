@@ -174,6 +174,7 @@ char * extension_list[] = {
 	"stma\0STMA Audio File (*.STMA)\0",
 	"matx\0MATX Audio File (*.MATX)\0",
     "de2\0DE2 Audio File (*.DE2)\0",
+	"xmu\0XMU Audio File (*.XMU)\0",
 };
 
 void about(HWND hwndParent) {

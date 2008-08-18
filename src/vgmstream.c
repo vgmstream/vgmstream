@@ -116,6 +116,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_xbox_matx,
     init_vgmstream_de2,
     init_vgmstream_dc_str,
+	init_vgmstream_xbox_xmu,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -1642,6 +1643,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case meta_DC_STR:
             snprintf(temp,TEMPSIZE,"Sega Stream Asset Builder header");
+            break;
+        case meta_XBOX_XMU:
+            snprintf(temp,TEMPSIZE,"XMU header");
             break;
         default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

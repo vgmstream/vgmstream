@@ -557,6 +557,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\xbox_xmu.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\xbox_xwav.c"
 					>
 				</File>

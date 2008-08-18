@@ -203,4 +203,6 @@ VGMSTREAM * init_vgmstream_xbox_matx(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_de2(STREAMFILE *streamFile);
 
+VGMSTREAM * init_vgmstream_xbox_xmu(STREAMFILE *streamFile);
+
 #endif
