@@ -313,6 +313,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\ngc_bh2pcm.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\ngc_caf.c"
 					>
 				</File>

@@ -18,7 +18,7 @@ VGMSTREAM * init_vgmstream_dc_str(STREAMFILE *streamFile) {
     if (read_32bitBE(0xD5,streamFile) != 0x53656761) /* "Sega" */
         goto fail;
 
-    loop_flag = 0; /* (read_32bitBE(0x14,streamFile)!=0xFFFFFFFF); */
+    loop_flag = (read_32bitBE(0x00,streamFile)!=0x00000000);
     channel_count = read_32bitLE(0x18,streamFile);
     
 	/* build the VGMSTREAM */
@@ -30,17 +30,16 @@ VGMSTREAM * init_vgmstream_dc_str(STREAMFILE *streamFile) {
     start_offset = 0x800;
     vgmstream->sample_rate = read_32bitLE(0x04,streamFile);
     vgmstream->coding_type = coding_AICA;
-
-    vgmstream->num_samples = read_32bitLE(0x14,streamFile);
+	vgmstream->interleave_block_size = read_32bitLE(0x0C,streamFile);
+    vgmstream->num_samples = (read_32bitLE(0x1C,streamFile))*2*vgmstream->interleave_block_size;
     
 	if (loop_flag) {
-        vgmstream->loop_start_sample = 0; /* read_32bitBE(0x14,streamFile); */
-        vgmstream->loop_end_sample = read_32bitLE(0x14,streamFile);
+        vgmstream->loop_start_sample = 0; /* (read_32bitLE(0x18,streamFile))*2*vgmstream->interleave_block_size; */
+        vgmstream->loop_end_sample = (read_32bitLE(0x1C,streamFile))*2*vgmstream->interleave_block_size;
     }
 
     vgmstream->layout_type = layout_interleave;
-    vgmstream->interleave_block_size = read_32bitLE(0x0C,streamFile);
-	vgmstream->meta_type = meta_DC_STR;
+    vgmstream->meta_type = meta_DC_STR;
     
 
     /* open the file for reading */

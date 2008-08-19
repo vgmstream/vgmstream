@@ -112,12 +112,14 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_ngc_swd,
 	init_vgmstream_ngc_vjdsp,
 	init_vgmstream_xbox_wvs,
+	init_vgmstream_dc_str,
 	init_vgmstream_xbox_stma,
 	init_vgmstream_xbox_matx,
     init_vgmstream_de2,
     init_vgmstream_dc_str,
 	init_vgmstream_xbox_xmu,
 	init_vgmstream_xbox_xvas,
+	init_vgmstream_ngc_bh2pcm,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
