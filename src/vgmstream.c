@@ -117,6 +117,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_de2,
     init_vgmstream_dc_str,
 	init_vgmstream_xbox_xmu,
+	init_vgmstream_xbox_xvas,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -466,6 +467,7 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
         case layout_ws_aud_blocked:
 		case layout_matx_blocked:
         case layout_de2_blocked:
+		case layout_xvas_blocked:
             render_vgmstream_blocked(buffer,sample_count,vgmstream);
             break;
         case layout_interleave_byte:
@@ -1237,6 +1239,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         case layout_wsi_blocked:
             snprintf(temp,TEMPSIZE,".wsi blocked");
             break;
+        case layout_xvas_blocked:
+            snprintf(temp,TEMPSIZE,".xvas blocked");
+            break;
 #ifdef VGM_USE_VORBIS
         case layout_ogg_vorbis:
             snprintf(temp,TEMPSIZE,"Ogg");
@@ -1646,6 +1651,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case meta_XBOX_XMU:
             snprintf(temp,TEMPSIZE,"XMU header");
+            break;
+        case meta_XBOX_XVAS:
+            snprintf(temp,TEMPSIZE,"assumed TMNT file by .xvas extension");
             break;
         default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

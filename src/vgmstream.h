@@ -114,6 +114,7 @@ typedef enum {
     layout_ws_aud_blocked,
 	layout_matx_blocked,
     layout_de2_blocked,
+	layout_xvas_blocked,
 #if 0
     layout_strm_blocked,    /* */
 #endif
@@ -233,6 +234,7 @@ typedef enum {
 	meta_XBOX_STMA,			/* XBOX STMA */
 	meta_XBOX_MATX,			/* XBOX MATX */
 	meta_XBOX_XMU,			/* XBOX XMU */
+	meta_XBOX_XVAS,			/* XBOX VAS */
 
 	meta_EAXA_R2,			/* EA XA Release 2 */
 	meta_EAXA_R3,			/* EA XA Release 3 */
