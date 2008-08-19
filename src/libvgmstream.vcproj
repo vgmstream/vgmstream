@@ -521,6 +521,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\sat_sap.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\sdt.c"
 					>
 				</File>

@@ -209,4 +209,6 @@ VGMSTREAM * init_vgmstream_xbox_xvas(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_ngc_bh2pcm(STREAMFILE *streamFile);
 
+VGMSTREAM * init_vgmstream_sat_sap(STREAMFILE *streamFile);
+
 #endif

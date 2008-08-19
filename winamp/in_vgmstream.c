@@ -176,6 +176,8 @@ char * extension_list[] = {
     "de2\0DE2 Audio File (*.DE2)\0",
 	"xmu\0XMU Audio File (*.XMU)\0",
 	"xvas\0XVAS Audio File (*.XVAS)\0",
+	"bh2pcm\0BH2PCM Audio File (*.BH2PCM)\0",
+	"sap\0SAP Audio File (*.SAP)\0",
 };
 
 void about(HWND hwndParent) {

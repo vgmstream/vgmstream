@@ -94,6 +94,7 @@ libmeta_la_SOURCES += xbox_ims.c
 libmeta_la_SOURCES += de2.c
 libmeta_la_SOURCES += dc_str.c
 libmeta_la_SOURCES += xbox_xmu.c
-libmeta_la_SOURCES += ngc_bh2pcm.c.c
+libmeta_la_SOURCES += ngc_bh2pcm.c
+libmeta_la_SOURCES += sat_sap.c
 
 EXTRA_DIST = meta.h
