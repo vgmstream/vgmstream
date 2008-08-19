@@ -32,7 +32,8 @@ LAYOUT_OBJS=layout/ast_blocked.o \
 	layout/mus_acm_layout.o \
     layout/aix_layout.o \
     layout/ims_block.o \
-    layout/de2_blocked.o
+    layout/de2_blocked.o \
+    layout/xvas_block.o
 
 META_OBJS=meta/adx_header.o \
     meta/afc_header.o \
@@ -125,7 +126,8 @@ META_OBJS=meta/adx_header.o \
     meta/dc_str.o \
     meta/xbox_xmu.o \
     meta/ngc_bh2pcm.o \
-    meta/sat_sap.o
+    meta/sat_sap.o \
+    meta/xbox_xvas.o
 		
 OBJECTS=vgmstream.o streamfile.o util.o $(CODING_OBJS) $(LAYOUT_OBJS) $(META_OBJS)
 

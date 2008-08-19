@@ -114,6 +114,9 @@ gchar *vgmstream_exts [] = {
   "matx",
   "de2",
   "xmu",
+  "xvas",
+  "bh2pcm",
+  "sap",
   /* terminator */
   NULL
 };
