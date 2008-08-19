@@ -12,7 +12,8 @@ VGMSTREAM * init_vgmstream_ps2_kces(STREAMFILE *streamFile) {
 
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("kces",filename_extension(filename))) goto fail;
+    if (strcasecmp("kces",filename_extension(filename)) &&
+        strcasecmp("vig",filename_extension(filename))) goto fail;
 
     /* check header */
     if (read_32bitBE(0x00,streamFile) != 0x01006408)
