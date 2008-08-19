@@ -235,6 +235,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\dc_dvi.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\dc_kcey.c"
 					>
 				</File>

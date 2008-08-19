@@ -229,6 +229,7 @@ typedef enum {
 	meta_DC_STR,			/* Evil Dead */
 	meta_NGC_BH2PCM,		/* Bio hazard 2 */
 	meta_SAT_SAP,			/* Bubble Symphony */
+	meta_DC_IDVI,			/* Eldorado Gate Volume 3 */
 
 	meta_XBOX_WAVM,			/* XBOX WAVM File */
 	meta_XBOX_RIFF,			/* XBOX RIFF/WAVE File */

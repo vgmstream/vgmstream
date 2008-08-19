@@ -178,6 +178,7 @@ char * extension_list[] = {
 	"xvas\0XVAS Audio File (*.XVAS)\0",
 	"bh2pcm\0BH2PCM Audio File (*.BH2PCM)\0",
 	"sap\0SAP Audio File (*.SAP)\0",
+	"idvi\0IDVI Audio File (*.IDVI)\0",
 };
 
 void about(HWND hwndParent) {

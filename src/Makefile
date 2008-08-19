@@ -126,9 +126,11 @@ META_OBJS=meta/adx_header.o \
     meta/dc_str.o \
     meta/xbox_xmu.o \
     meta/ngc_bh2pcm.o \
+    meta/xbox_xvas.o \
     meta/sat_sap.o \
-    meta/xbox_xvas.o
-		
+    meta/sat_sap.o \
+    meta/dc_dvi.o
+
 OBJECTS=vgmstream.o streamfile.o util.o $(CODING_OBJS) $(LAYOUT_OBJS) $(META_OBJS)
 
 libvgmstream.a: $(OBJECTS)
