@@ -63,7 +63,7 @@ void Parse_Header(STREAMFILE* streamFile,EA_STRUCT* ea, off_t offset, int length
 	if(read_32bitBE(offset, streamFile)==0x47535452) { // GSTR
 		ea->compression_version=0x03;
 		offset+=8;
-		length-=4;
+		ea->platform=(uint8_t)read_8bit(offset,streamFile);
 	} else {
 		if(read_16bitBE(offset,streamFile)!=0x5054)  // PT
 			offset+=4;
