@@ -235,7 +235,7 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\dc_dvi.c"
+					RelativePath=".\meta\dc_idvi.c"
 					>
 				</File>
 				<File
