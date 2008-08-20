@@ -34,7 +34,7 @@ VGMSTREAM * init_vgmstream_dc_idvi(STREAMFILE *streamFile) {
     vgmstream->num_samples = (get_streamfile_size(streamFile)-start_offset);
     
 	if (loop_flag) {
-        vgmstream->loop_start_sample = (read_32bitLE(0x0C,streamFile)-start_offset);
+        vgmstream->loop_start_sample = read_32bitLE(0x0C,streamFile);
         vgmstream->loop_end_sample = (get_streamfile_size(streamFile)-start_offset);
     }
 
