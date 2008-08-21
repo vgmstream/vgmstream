@@ -9,6 +9,7 @@ VGMSTREAM * init_vgmstream_dc_str(STREAMFILE *streamFile) {
 
     int loop_flag = 0;
 	int channel_count;
+	int samples;
 
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
@@ -18,28 +19,52 @@ VGMSTREAM * init_vgmstream_dc_str(STREAMFILE *streamFile) {
     if (read_32bitBE(0xD5,streamFile) != 0x53656761) /* "Sega" */
         goto fail;
 
-    loop_flag = (read_32bitBE(0x00,streamFile)!=0x00000000);
+    loop_flag = (read_32bitLE(0x00,streamFile)!=0x00000000);
     channel_count = read_32bitLE(0x18,streamFile);
-    
-	/* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+	samples=read_32bitLE(0x08,streamFile);
+
+
+	vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
 	/* fill in the vital statistics */
+	switch (channel_count) {
+		case 1:
+			vgmstream->layout_type = layout_none;
+			break;
+		case 2:
+			vgmstream->layout_type = layout_interleave;
+			vgmstream->interleave_block_size = read_32bitLE(0x0C,streamFile);
+			break;
+		default:
+	goto fail;
+}
+
+	switch (samples) {
+		case 4:
+			vgmstream->coding_type = coding_AICA;
+		    vgmstream->num_samples = read_32bitLE(0x14,streamFile);
+		if (loop_flag) {
+			vgmstream->loop_start_sample = 0;
+			vgmstream->loop_end_sample = read_32bitLE(0x14,streamFile);
+		}
+			break;
+		case 16:
+			vgmstream->coding_type = coding_PCM16LE;
+		    vgmstream->num_samples = read_32bitLE(0x14,streamFile)/2/channel_count;
+		if (loop_flag) {
+			vgmstream->loop_start_sample = 0;
+			vgmstream->loop_end_sample = read_32bitLE(0x14,streamFile)/2/channel_count;
+		}
+			break;
+		default:
+	goto fail;
+}
+
 	vgmstream->channels = channel_count;
     start_offset = 0x800;
     vgmstream->sample_rate = read_32bitLE(0x04,streamFile);
-    vgmstream->coding_type = coding_AICA;
-	vgmstream->interleave_block_size = read_32bitLE(0x0C,streamFile);
-    vgmstream->num_samples = (read_32bitLE(0x1C,streamFile))*2*vgmstream->interleave_block_size;
-    
-	if (loop_flag) {
-        vgmstream->loop_start_sample = 0; /* (read_32bitLE(0x18,streamFile))*2*vgmstream->interleave_block_size; */
-        vgmstream->loop_end_sample = (read_32bitLE(0x1C,streamFile))*2*vgmstream->interleave_block_size;
-    }
-
-    vgmstream->layout_type = layout_interleave;
-    vgmstream->meta_type = meta_DC_STR;
+	vgmstream->meta_type = meta_DC_STR;
     
 
     /* open the file for reading */
