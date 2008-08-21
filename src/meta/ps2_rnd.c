@@ -1,8 +1,8 @@
 #include "meta.h"
 #include "../util.h"
 
-/* AUS (found in various Capcom games) */
-VGMSTREAM * init_vgmstream_aus(STREAMFILE *streamFile) {
+/* rnd (from Karaoke Revolution) */
+VGMSTREAM * init_vgmstream_ps2_rnd(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[260];
     off_t start_offset;
@@ -12,40 +12,24 @@ VGMSTREAM * init_vgmstream_aus(STREAMFILE *streamFile) {
 
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("aus",filename_extension(filename))) goto fail;
+    if (strcasecmp("rnd",filename_extension(filename))) goto fail;
 
-    /* check header */
-    if (read_32bitBE(0x00,streamFile) != 0x41555320) /* "AUS " */
-        goto fail;
-
-    loop_flag = (read_32bitLE(0x0c,streamFile)!=0);
-    channel_count = read_32bitLE(0xC,streamFile);
+    loop_flag = 0; 
+    channel_count = read_32bitLE(0x00,streamFile);
     
 	/* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
 	/* fill in the vital statistics */
-    start_offset = 0x800;
+    start_offset = 0x10;
 	vgmstream->channels = channel_count;
-    vgmstream->sample_rate = read_32bitLE(0x10,streamFile);
-	vgmstream->num_samples = read_32bitLE(0x08,streamFile);
-
-	if(read_16bitLE(0x06,streamFile)==0x02) {
-		vgmstream->coding_type = coding_XBOX;
-		vgmstream->layout_type=layout_none;
-	} else {
-		vgmstream->coding_type = coding_PSX;
-		vgmstream->layout_type = layout_interleave;
-		vgmstream->interleave_block_size = 0x800;
-	}
-
-	if (loop_flag) {
-		vgmstream->loop_start_sample = read_32bitLE(0x14,streamFile);
-		vgmstream->loop_end_sample = read_32bitLE(0x08,streamFile);
-	}
-
-	vgmstream->meta_type = meta_AUS;
+    vgmstream->sample_rate = read_32bitLE(0x04,streamFile);
+    vgmstream->coding_type = coding_PSX;
+    vgmstream->num_samples = (get_streamfile_size(streamFile)-0x10)/16*28/vgmstream->channels;
+    vgmstream->layout_type = layout_interleave;
+    vgmstream->interleave_block_size = 0x2000;
+    vgmstream->meta_type = meta_HGC1;
 
     /* open the file for reading */
     {

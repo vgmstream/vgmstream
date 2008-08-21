@@ -10,7 +10,6 @@ VGMSTREAM * init_vgmstream_ps2_ads(STREAMFILE *streamFile) {
     int loop_flag=0;
     int channel_count;
 	off_t start_offset,test_offset;
-	int ads_type_2=0;
     int i;
 
     /* check extension, case insensitive */
@@ -45,7 +44,7 @@ VGMSTREAM * init_vgmstream_ps2_ads(STREAMFILE *streamFile) {
 
     /* Check for Compression Scheme */
     vgmstream->coding_type = coding_PSX;
-    vgmstream->num_samples = read_32bitLE(0x24,streamFile)/16*28/vgmstream->channels;
+    vgmstream->num_samples = (read_32bitLE(0x24,streamFile)-0x40)/16*28/vgmstream->channels;
 
 	/* SS2 container with RAW Interleaved PCM */
     if (read_32bitLE(0x08,streamFile)!=0x10) {
@@ -61,7 +60,7 @@ VGMSTREAM * init_vgmstream_ps2_ads(STREAMFILE *streamFile) {
     if(vgmstream->loop_flag) {
 		if(vgmstream->interleave_block_size==0x10) {
 			vgmstream->loop_start_sample = read_32bitLE(0x18,streamFile);
-			vgmstream->loop_end_sample = read_32bitLE(0x1C,streamFile);
+			vgmstream->loop_end_sample = vgmstream->num_samples;
 		} else {
 			vgmstream->loop_start_sample = (read_32bitLE(0x18,streamFile)*0x10)/16*28;
 			vgmstream->loop_end_sample = (read_32bitLE(0x1C,streamFile)*0x10)/16*28;
@@ -75,16 +74,8 @@ VGMSTREAM * init_vgmstream_ps2_ads(STREAMFILE *streamFile) {
 	start_offset=0x28;
 
 	// Hack for files with start_offset = 0x800
-	ads_type_2=1;
-
-	for(test_offset=start_offset;test_offset<0x800;test_offset+=4) {
-		if (read_32bitLE(test_offset,streamFile)!=0)
-			ads_type_2=0;
-	}
-
-	if((ads_type_2==1)){
+	if(get_streamfile_size(streamFile)-read_32bitLE(0x24,streamFile)>=0x800)
 		start_offset=0x800;
-	}
 
     /* open the file for reading by each channel */
     {
