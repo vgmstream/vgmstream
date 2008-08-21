@@ -117,6 +117,7 @@ gchar *vgmstream_exts [] = {
   "xvas",
   "bh2pcm",
   "sap",
+  "rnd",
   /* terminator */
   NULL
 };
