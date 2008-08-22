@@ -98,5 +98,5 @@ libmeta_la_SOURCES += ngc_bh2pcm.c
 libmeta_la_SOURCES += sat_sap.c
 libmeta_la_SOURCES += dc_idvi.c
 libmeta_la_SOURCES += ps2_rnd.c
-
+libmeta_la_SOURCES += xbox_xvas.c
 EXTRA_DIST = meta.h
