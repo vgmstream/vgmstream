@@ -124,6 +124,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_dc_idvi,
     init_vgmstream_ps2_rnd,
     init_vgmstream_wii_idsp,
+	init_vgmstream_kraw,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))

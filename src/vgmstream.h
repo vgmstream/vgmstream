@@ -227,9 +227,10 @@ typedef enum {
 	meta_NGC_SWD,			/* Conflict - Desert Storm 1 & 2 */
 	meta_NGC_VJDSP,			/* Viewtiful Joe */
 	meta_DC_STR,			/* Evil Dead */
-	meta_NGC_BH2PCM,		/* Bio hazard 2 */
+	meta_NGC_BH2PCM,		/* Bio Hazard 2 */
 	meta_SAT_SAP,			/* Bubble Symphony */
-	meta_DC_IDVI,			/* Eldorado Gate Volume 3 */
+	meta_DC_IDVI,			/* Eldorado Gate */
+	meta_KRAW,				/* Geometry Wars - Galaxies */
 
 	meta_XBOX_WAVM,			/* XBOX WAVM File */
 	meta_XBOX_RIFF,			/* XBOX RIFF/WAVE File */

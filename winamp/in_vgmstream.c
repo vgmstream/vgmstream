@@ -180,6 +180,7 @@ char * extension_list[] = {
 	"sap\0SAP Audio File (*.SAP)\0",
 	"idvi\0IDVI Audio File (*.IDVI)\0",
 	"rnd\0RND Audio File (*.RND)\0",
+	"kraw\0KRAW Audio File (*.KRAW)\0",
 };
 
 void about(HWND hwndParent) {

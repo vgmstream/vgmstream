@@ -279,6 +279,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\kraw.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\mus_acm.c"
 					>
 					<FileConfiguration
