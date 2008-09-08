@@ -71,7 +71,7 @@ int decode_pos_samples = 0;
 int stream_length_samples = 0;
 int fade_samples = 0;
 
-#define EXTENSION_LIST_SIZE 3072
+#define EXTENSION_LIST_SIZE 4096
 char working_extension_list[EXTENSION_LIST_SIZE] = {0};
 char * extension_list[] = {
     "adx\0ADX Audio File (*.ADX)\0",
@@ -181,6 +181,8 @@ char * extension_list[] = {
 	"idvi\0IDVI Audio File (*.IDVI)\0",
 	"rnd\0RND Audio File (*.RND)\0",
 	"kraw\0KRAW Audio File (*.KRAW)\0",
+	"omu\0OMU Audio File (*.OMU)\0",
+	"xa2\0XA2 Audio File (*.XA2)\0",
 };
 
 void about(HWND hwndParent) {

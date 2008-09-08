@@ -1,5 +1,7 @@
 #include "resource.h"
-#include "afxres.h"
+//#include "afxres.h"
+#include <windows.h>
+#define IDC_STATIC -1
 
 IDD_CONFIG DIALOGEX 0, 0, 187, 144
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
