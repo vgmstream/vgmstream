@@ -1,7 +1,7 @@
 #include "meta.h"
 #include "../util.h"
 
-/* IDVI (Eldorado Gate Volume 3) */
+/* IDVI (Eldorado Gate Volume 1-7) */
 VGMSTREAM * init_vgmstream_dc_idvi(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[260];
@@ -38,12 +38,15 @@ VGMSTREAM * init_vgmstream_dc_idvi(STREAMFILE *streamFile) {
         vgmstream->loop_end_sample = (get_streamfile_size(streamFile)-start_offset);
     }
 
-    vgmstream->layout_type = layout_interleave;
-	vgmstream->interleave_block_size = 0x400;
+    vgmstream->interleave_block_size = 0x400;
+    if (channel_count > 1) {
+        vgmstream->interleave_smallblock_size = ((get_streamfile_size(streamFile)-start_offset)%(vgmstream->channels*vgmstream->interleave_block_size))/vgmstream->channels;
+        vgmstream->layout_type = layout_interleave_shortblock;
+    } else {
+        vgmstream->layout_type = layout_none;
+    }
+
     vgmstream->meta_type = meta_DC_IDVI;
-	/* vgmstream->get_high_nibble=1; */
-
-
 
     /* open the file for reading */
     {

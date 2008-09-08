@@ -1662,6 +1662,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         case meta_XBOX_XVAS:
             snprintf(temp,TEMPSIZE,"assumed TMNT file by .xvas extension");
             break;
+		case meta_DC_IDVI:
+            snprintf(temp,TEMPSIZE,"IDVI Header");
+            break;
         default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");
     }
