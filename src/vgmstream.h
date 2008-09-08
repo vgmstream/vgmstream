@@ -231,6 +231,8 @@ typedef enum {
 	meta_SAT_SAP,			/* Bubble Symphony */
 	meta_DC_IDVI,			/* Eldorado Gate */
 	meta_KRAW,				/* Geometry Wars - Galaxies */
+	meta_PS2_OMU,			/* PS2 Int file with Header */
+	meta_PS2_XA2,			/* XA2 XG3 file */
 
 	meta_XBOX_WAVM,			/* XBOX WAVM File */
 	meta_XBOX_RIFF,			/* XBOX RIFF/WAVE File */

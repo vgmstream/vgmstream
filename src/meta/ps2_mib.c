@@ -149,7 +149,7 @@ VGMSTREAM * init_vgmstream_ps2_mib(STREAMFILE *streamFile) {
             if (!vgmstream->ch[i].streamfile) goto fail;
 
             vgmstream->ch[i].channel_start_offset=
-                vgmstream->ch[i].offset=0;
+                vgmstream->ch[i].offset=i*vgmstream->interleave_block_size;
         }
     }
 

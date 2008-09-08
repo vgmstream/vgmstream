@@ -125,6 +125,8 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_ps2_rnd,
     init_vgmstream_wii_idsp,
 	init_vgmstream_kraw,
+	init_vgmstream_ps2_omu,
+	init_vgmstream_ps2_xa2,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -1373,6 +1375,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
 		case meta_PS2_RAW:
             snprintf(temp,TEMPSIZE,"assumed RAW Interleaved PCM by .int extension");
             break;
+		case meta_PS2_OMU:
+            snprintf(temp,TEMPSIZE,"Alter Echo OMU Header");
+            break;
         case meta_DSP_STM:
             snprintf(temp,TEMPSIZE,"Nintendo STM header");
             break;
@@ -1661,6 +1666,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case meta_XBOX_XVAS:
             snprintf(temp,TEMPSIZE,"assumed TMNT file by .xvas extension");
+            break;
+		case meta_PS2_XA2:
+            snprintf(temp,TEMPSIZE,"assumed XA2 file by .xa2 extension");
             break;
 		case meta_DC_IDVI:
             snprintf(temp,TEMPSIZE,"IDVI Header");
