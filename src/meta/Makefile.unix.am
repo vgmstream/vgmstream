@@ -100,4 +100,5 @@ libmeta_la_SOURCES += dc_idvi.c
 libmeta_la_SOURCES += ps2_rnd.c
 libmeta_la_SOURCES += xbox_xvas.c
 libmeta_la_SOURCES += kraw.c
+libmeta_la_SOURCES += ps2_xa2.c
 EXTRA_DIST = meta.h
