@@ -118,6 +118,9 @@ gchar *vgmstream_exts [] = {
   "bh2pcm",
   "sap",
   "rnd",
+  "idvi",
+  "omu",
+  "xa2",
   /* terminator */
   NULL
 };
