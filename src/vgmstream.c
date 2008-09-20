@@ -152,7 +152,12 @@ VGMSTREAM * init_vgmstream_internal(STREAMFILE *streamFile, int do_dfs) {
             }
 
             /* dual file stereo */
-            if (do_dfs && ((vgmstream->meta_type == meta_DSP_STD) || (vgmstream->meta_type == meta_PS2_VAGp) || (vgmstream->meta_type == meta_GENH)) && vgmstream->channels == 1) {
+            if (do_dfs && (
+                        (vgmstream->meta_type == meta_DSP_STD) ||
+                        (vgmstream->meta_type == meta_PS2_VAGp) ||
+                        (vgmstream->meta_type == meta_GENH) ||
+                        (vgmstream->meta_type == meta_KRAW)
+                        ) && vgmstream->channels == 1) {
                 try_dual_file_stereo(vgmstream, streamFile);
             }
 
@@ -1680,13 +1685,14 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
 }
 
 /* */
-#define DFS_PAIR_COUNT 4
-const char * const dfs_pairs[DFS_PAIR_COUNT][2] = {
+const char * const dfs_pairs[][2] = {
     {"L","R"},
     {"l","r"},
     {"_0","_1"},
     {"left","right"},
+    {"Left","Right"},
 };
+#define DFS_PAIR_COUNT (sizeof(dfs_pairs)/sizeof(dfs_pairs[0]))
 
 void try_dual_file_stereo(VGMSTREAM * opened_stream, STREAMFILE *streamFile) {
     char filename[260];

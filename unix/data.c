@@ -121,6 +121,7 @@ gchar *vgmstream_exts [] = {
   "idvi",
   "omu",
   "xa2",
+  "kraw",
   /* terminator */
   NULL
 };
