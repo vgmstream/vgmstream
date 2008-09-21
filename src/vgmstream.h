@@ -249,6 +249,7 @@ typedef enum {
 	meta_EACS_PSX,			/* EACS PSX */
 	meta_EACS_SAT,			/* EACS SATURN */
 	meta_EA_ADPCM,			/* EA XA ADPCM */
+	meta_EA_IMA,			/* EA IMA */
 	meta_EA_PCM,			/* EA PCM */
 
 	meta_RAW,				/* RAW PCM file */

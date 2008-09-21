@@ -22,6 +22,7 @@
 #define EA_ADPCM	0x30
 #define EA_PCM_BE	0x07
 #define EA_PCM_LE	0x08
+#define EA_IMA		0x14
 
 typedef struct {
     int32_t num_samples;    
@@ -142,6 +143,7 @@ VGMSTREAM * init_vgmstream_ea(STREAMFILE *streamFile) {
     if (strcasecmp("sng",filename_extension(filename)) && 
 		strcasecmp("asf",filename_extension(filename)) && 
 		strcasecmp("str",filename_extension(filename)) && 
+		strcasecmp("xsf",filename_extension(filename)) && 
 		strcasecmp("eam",filename_extension(filename))) goto fail;
 
     /* check Header */
@@ -232,6 +234,11 @@ VGMSTREAM * init_vgmstream_ea(STREAMFILE *streamFile) {
 		case EA_ADPCM:
 		 	vgmstream->meta_type=meta_EA_ADPCM;
 			vgmstream->coding_type=coding_EA_ADPCM;
+			vgmstream->layout_type=layout_ea_blocked;
+			break;
+		case EA_IMA:
+		 	vgmstream->meta_type=meta_EA_IMA;
+			vgmstream->coding_type=coding_XBOX;
 			vgmstream->layout_type=layout_ea_blocked;
 			break;
 	}

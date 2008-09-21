@@ -535,7 +535,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_NWA5:
             return 1;
         case coding_NDS_IMA:
-            return (vgmstream->interleave_block_size-4)*2;
+				return (vgmstream->interleave_block_size-4)*2;
         case coding_NGC_DTK:
             return 28;
         case coding_G721:
@@ -730,7 +730,7 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
             break;
 		case coding_XBOX:
             for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_xbox_ima(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                decode_xbox_ima(vgmstream,&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
                         samples_to_do,chan);
             }
@@ -1466,6 +1466,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
 		case meta_EA_ADPCM:
             snprintf(temp,TEMPSIZE,"Electronic Arts XA R1");
+            break;
+		case meta_EA_IMA:
+            snprintf(temp,TEMPSIZE,"Electronic Arts container with IMA blocks");
             break;
 		case meta_EAXA_PSX:
             snprintf(temp,TEMPSIZE,"Electronic Arts With PSX ADPCM");
