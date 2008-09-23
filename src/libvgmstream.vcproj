@@ -318,6 +318,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\nds_sad.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\nds_strm.c"
 					>
 				</File>

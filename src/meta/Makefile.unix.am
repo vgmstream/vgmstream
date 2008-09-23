@@ -103,4 +103,5 @@ libmeta_la_SOURCES += kraw.c
 libmeta_la_SOURCES += ps2_xa2.c
 libmeta_la_SOURCES += idsp.c
 libmeta_la_SOURCES += ngc_ymf.c
+libmeta_la_SOURCES += nds_sad.c
 EXTRA_DIST = meta.h

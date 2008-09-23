@@ -129,6 +129,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_ps2_xa2,
 	init_vgmstream_idsp,
 	init_vgmstream_ngc_ymf,
+    init_vgmstream_sadl,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -545,6 +546,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
 		case coding_EACS_IMA:
         case coding_IMA:
             return 1;
+        case coding_INT_IMA:
 		case coding_INT_DVI_IMA:
         case coding_AICA:
 			return 2;
@@ -629,6 +631,7 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
 			return 1; // the frame is variant in size
         case coding_WS:
             return vgmstream->current_block_size;
+        case coding_INT_IMA:
         case coding_INT_DVI_IMA:
         case coding_AICA:
 			return 1; 
@@ -837,6 +840,7 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
             }
             break;
 		case coding_IMA:
+        case coding_INT_IMA:
             for (chan=0;chan<vgmstream->channels;chan++) {
                 decode_ima(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
@@ -1144,6 +1148,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
 		case coding_EACS_IMA:
             snprintf(temp,TEMPSIZE,"EACS 4-bit IMA ADPCM");
+            break;
+        case coding_INT_IMA:
+            snprintf(temp,TEMPSIZE,"Interleaved 4-bit IMA ADPCM");
             break;
         case coding_IMA:
             snprintf(temp,TEMPSIZE,"4-bit IMA ADPCM");
@@ -1506,6 +1513,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
 #endif
         case meta_DSP_SADB:
             snprintf(temp,TEMPSIZE,"sadb header");
+            break;
+        case meta_SADL:
+            snprintf(temp,TEMPSIZE,"sadl header");
             break;
         case meta_PS2_BMDX:
             snprintf(temp,TEMPSIZE,"Beatmania .bmdx header");

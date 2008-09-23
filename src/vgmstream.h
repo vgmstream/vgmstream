@@ -64,6 +64,7 @@ typedef enum {
 	coding_INT_DVI_IMA,		/* Interleaved DVI */
 	coding_EACS_IMA,
     coding_IMA,             /* bare IMA, low nibble first */
+    coding_INT_IMA,         /* */
     coding_WS,              /* Westwood Studios' custom VBR ADPCM */
 #ifdef VGM_USE_MPEG
     coding_fake_MPEG2_L2,   /* MPEG-2 Layer 2 (AHX), with lying headers */
@@ -235,6 +236,7 @@ typedef enum {
 	meta_PS2_XA2,			/* XA2 XG3 file */
 	meta_IDSP,				/* Chronicles of Narnia */
 	meta_NGC_YMF,			/* WWE WrestleMania X8 */
+    meta_SADL,              /* .sad */
 
 	meta_XBOX_WAVM,			/* XBOX WAVM File */
 	meta_XBOX_RIFF,			/* XBOX RIFF/WAVE File */
