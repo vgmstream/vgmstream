@@ -223,4 +223,6 @@ VGMSTREAM * init_vgmstream_ps2_omu(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_ps2_xa2(STREAMFILE * streamFile);
 
+VGMSTREAM * init_vgmstream_idsp(STREAMFILE * streamFile);
+
 #endif

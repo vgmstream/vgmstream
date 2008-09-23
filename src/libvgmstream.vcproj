@@ -276,6 +276,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\idsp.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\ivb.c"
 					>
 				</File>
