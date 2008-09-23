@@ -234,6 +234,7 @@ typedef enum {
 	meta_PS2_OMU,			/* PS2 Int file with Header */
 	meta_PS2_XA2,			/* XA2 XG3 file */
 	meta_IDSP,				/* Chronicles of Narnia */
+	meta_NGC_YMF,			/* WWE WrestleMania X8 */
 
 	meta_XBOX_WAVM,			/* XBOX WAVM File */
 	meta_XBOX_RIFF,			/* XBOX RIFF/WAVE File */

@@ -1,8 +1,8 @@
 #include "meta.h"
 #include "../util.h"
 
-/* STR (Final Fantasy - Crystal Chronicles) */
-VGMSTREAM * init_vgmstream_ngc_ffcc(STREAMFILE *streamFile) {
+/* YMF (WWE WrestleMania X8) */
+VGMSTREAM * init_vgmstream_ngc_ymf(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[260];
     off_t start_offset;
@@ -12,43 +12,43 @@ VGMSTREAM * init_vgmstream_ngc_ffcc(STREAMFILE *streamFile) {
 
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("str",filename_extension(filename))) goto fail;
+    if (strcasecmp("ymf",filename_extension(filename))) goto fail;
 
     /* check header */
-    if (read_32bitBE(0x00,streamFile) != 0x53545200) /* "STR\0" */
+    if (read_32bitBE(0x00,streamFile) != 0x00000180)
         goto fail;
 
-    loop_flag = read_32bitBE(0x0C,streamFile);
-    channel_count = read_32bitBE(0x18,streamFile);
+    loop_flag = 0;
+    channel_count = 2;
     
 	/* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
 	/* fill in the vital statistics */
-    start_offset = 0x1000;
+    start_offset = 0x180; /* read_32bitBE(0x00,streamFile); */
 	vgmstream->channels = channel_count;
-    vgmstream->sample_rate = 44100;
+    vgmstream->sample_rate = read_32bitBE(0xA8,streamFile);
     vgmstream->coding_type = coding_NGC_DSP;
-    vgmstream->num_samples = (read_32bitBE(0x08,streamFile)-0x1000);
+    vgmstream->num_samples = read_32bitBE(0xDC,streamFile);
     if (loop_flag) {
-        vgmstream->loop_start_sample = (read_32bitBE(0x0C,streamFile)-0x1000);
-        vgmstream->loop_end_sample = (read_32bitBE(0x08,streamFile)-0x1000);
+        vgmstream->loop_start_sample = 0;
+        vgmstream->loop_end_sample = read_32bitBE(0xDC,streamFile);
     }
 
     vgmstream->layout_type = layout_interleave;
-    vgmstream->interleave_block_size = 0x1000;
-    vgmstream->meta_type = meta_NGC_FFCC;
+    vgmstream->interleave_block_size = 0x20000; /* read_32bitBE(0x04,streamFile); */
+    vgmstream->meta_type = meta_NGC_YMF;
 
 
     if (vgmstream->coding_type == coding_NGC_DSP) {
         int i;
         for (i=0;i<16;i++) {
-            vgmstream->ch[0].adpcm_coef[i] = read_16bitBE(0x20+i*2,streamFile);
+            vgmstream->ch[0].adpcm_coef[i] = read_16bitBE(0xAE +i*2,streamFile);
         }
         if (vgmstream->channels) {
             for (i=0;i<16;i++) {
-                vgmstream->ch[1].adpcm_coef[i] = read_16bitBE(0x4E +i*2,streamFile);
+                vgmstream->ch[1].adpcm_coef[i] = read_16bitBE(0x10E +i*2,streamFile);
             }
         }
     }
