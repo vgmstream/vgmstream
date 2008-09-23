@@ -36,7 +36,7 @@ VGMSTREAM * init_vgmstream_sadl(STREAMFILE *streamFile) {
 	/* fill in the vital statistics */
     start_offset = 0x100;
 	vgmstream->channels = channel_count;
-    vgmstream->sample_rate = 16000;
+    vgmstream->sample_rate = 16364;
     vgmstream->coding_type = coding_INT_IMA;
     vgmstream->num_samples = read_32bitLE(0x50,streamFile);;
     vgmstream->interleave_block_size=0x10;
