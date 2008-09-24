@@ -132,6 +132,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_sadl,
 	init_vgmstream_ps2_ccc,
 	init_vgmstream_psx_fag,
+	init_vgmstream_ps2_mihb,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -1703,6 +1704,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
 		case meta_PSX_FAG:
             snprintf(temp,TEMPSIZE,"FAG Header");
+            break;
+		case meta_PS2_MIHB:
+            snprintf(temp,TEMPSIZE,"Merged MIH+MIB");
             break;
         default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");
