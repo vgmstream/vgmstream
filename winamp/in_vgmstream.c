@@ -183,7 +183,11 @@ char * extension_list[] = {
 	"kraw\0KRAW Audio File (*.KRAW)\0",
 	"omu\0OMU Audio File (*.OMU)\0",
 	"xa2\0XA2 Audio File (*.XA2)\0",
+	"idsp\0IDSP Audio File (*.IDSP)\0",
 	"xsf\0XSF Audio File (*.XSF)\0",
+	"ymf\0YMF Audio File (*.YMF)\0",
+	"ccc\0CCC Audio File (*.CCC)\0",
+	"fag\0FAG Audio File (*.FAG)\0",
 };
 
 void about(HWND hwndParent) {

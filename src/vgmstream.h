@@ -237,6 +237,8 @@ typedef enum {
 	meta_IDSP,				/* Chronicles of Narnia */
 	meta_NGC_YMF,			/* WWE WrestleMania X8 */
     meta_SADL,              /* .sad */
+	meta_PS2_CCC,           /* Tokyo Xtreme Racer DRIFT 2 */
+	meta_PSX_FAG,           /* Jackie Chan - Stuntmaster */
 
 	meta_XBOX_WAVM,			/* XBOX WAVM File */
 	meta_XBOX_RIFF,			/* XBOX RIFF/WAVE File */

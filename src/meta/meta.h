@@ -229,4 +229,8 @@ VGMSTREAM * init_vgmstream_ngc_ymf(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_sadl(STREAMFILE * streamFile);
 
+VGMSTREAM * init_vgmstream_ps2_ccc(STREAMFILE * streamFile);
+
+VGMSTREAM * init_vgmstream_psx_fag(STREAMFILE * streamFile);
+
 #endif

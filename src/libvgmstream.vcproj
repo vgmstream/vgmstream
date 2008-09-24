@@ -386,6 +386,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\ps2_ccc.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\ps2_dxh.c"
 					>
 				</File>
@@ -511,6 +515,10 @@
 				</File>
 				<File
 					RelativePath=".\meta\psx_cdxa.c"
+					>
+				</File>
+				<File
+					RelativePath=".\meta\psx_fag.c"
 					>
 				</File>
 				<File
