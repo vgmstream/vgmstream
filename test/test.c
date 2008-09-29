@@ -27,6 +27,7 @@ void usage(const char * name) {
           "    -c: loop forever (continuously)\n"
           "    -m: print metadata only, don't decode\n"
           "    -x: decode and print adxencd command line to encode as ADX\n"
+          "    -g: decode and print oggenc command line to encode as OGG\n"
           "    -e: force end-to-end looping\n"
           "    -E: force end-to-end looping even if file has real loop points\n"
           "    -r outfile2.wav: output a second time after resetting\n"
@@ -52,11 +53,12 @@ int main(int argc, char ** argv) {
     int forever = 0;
     int metaonly = 0;
     int adxencd = 0;
+    int oggenc = 0;
     double loop_count = 2.0;
     double fade_seconds = 10.0;
     double fade_delay_seconds = 0.0;
     
-    while ((opt = getopt(argc, argv, "o:l:f:d:ipPcmxeEr:")) != -1) {
+    while ((opt = getopt(argc, argv, "o:l:f:d:ipPcmxeEr:g")) != -1) {
         switch (opt) {
             case 'o':
                 outfilename = optarg;
@@ -88,6 +90,9 @@ int main(int argc, char ** argv) {
                 break;
             case 'x':
                 adxencd = 1;
+                break;
+            case 'g':
+                oggenc = 1;
                 break;
             case 'e':
                 force_loop = 1;
@@ -193,11 +198,17 @@ int main(int argc, char ** argv) {
             if (!metaonly) printf(" \"%s\"",outfilename);
             if (s->loop_flag) printf(" -lps%d -lpe%d",s->loop_start_sample,s->loop_end_sample);
             printf("\n");
+        } else if (oggenc) {
+            printf("oggenc");
+            if (!metaonly) printf(" \"%s\"",outfilename);
+            if (s->loop_flag) printf(" -c LOOPSTART=%d -c LOOPLENGTH=%d",s->loop_start_sample,
+                    s->loop_end_sample-s->loop_start_sample);
+            printf("\n");
         }
         else if (metaonly) printf("metadata for %s\n",argv[optind]);
         else printf("decoding %s\n",argv[optind]);
     }
-    if (!play && !adxencd) {
+    if (!play && !adxencd && !oggenc) {
         char description[1024];
         description[0]='\0';
         describe_vgmstream(s,description,1024);
@@ -211,7 +222,7 @@ int main(int argc, char ** argv) {
     buf = malloc(BUFSIZE*sizeof(sample)*s->channels);
 
     len = get_vgmstream_play_samples(loop_count,fade_seconds,fade_delay_seconds,s);
-    if (!play && !adxencd) printf("samples to play: %d (%.2lf seconds)\n",len,(double)len/s->sample_rate);
+    if (!play && !adxencd && !oggenc) printf("samples to play: %d (%.2lf seconds)\n",len,(double)len/s->sample_rate);
     fade_samples = fade_seconds * s->sample_rate;
 
     /* slap on a .wav header */
