@@ -75,7 +75,10 @@ void decode_xbox_ima(VGMSTREAM * vgmstream,VGMSTREAMCHANNEL * stream, sample * o
     int step_index = stream->adpcm_step_index;
 	off_t offset=stream->offset;
 
-	first_sample = first_sample % (32*vgmstream->channels);
+	if(vgmstream->channels==1) 
+		first_sample = first_sample % 32;
+	else
+		first_sample = first_sample % (32*(vgmstream->channels&2));
 
     if (first_sample == 0) {
 
@@ -83,8 +86,8 @@ void decode_xbox_ima(VGMSTREAM * vgmstream,VGMSTREAMCHANNEL * stream, sample * o
 			hist1 = read_16bitLE(offset,stream->streamfile);
 			step_index = read_16bitLE(offset+2,stream->streamfile);
 		} else {
-			hist1 = read_16bitLE(offset+channel*4,stream->streamfile);
-			step_index = read_16bitLE(offset+channel*4+2,stream->streamfile);
+			hist1 = read_16bitLE(offset+(channel%2)*4,stream->streamfile);
+			step_index = read_16bitLE(offset+(channel%2)*4+2,stream->streamfile);
 		}
         if (step_index < 0) step_index=0;
         if (step_index > 88) step_index=88;
@@ -95,8 +98,12 @@ void decode_xbox_ima(VGMSTREAM * vgmstream,VGMSTREAMCHANNEL * stream, sample * o
 
 		if(vgmstream->layout_type==layout_ea_blocked) 
 			offset = stream->offset + (i/8*4+(i%8)/2+4);
-		else
-			offset = stream->offset + 4*channelspacing + (i/8*4*channelspacing+(i%8)/2+4*channel);
+		else {
+			if(channelspacing==1)
+				offset = stream->offset + 4 + (i/8*4+(i%8)/2+4*(channel%2));
+			else
+				offset = stream->offset + 4*2 + (i/8*4*2+(i%8)/2+4*(channel%2));
+		}
 
         sample_nibble = (read_8bit(offset,stream->streamfile) >> (i&1?4:0))&0xf;
 
@@ -125,8 +132,13 @@ void decode_xbox_ima(VGMSTREAM * vgmstream,VGMSTREAMCHANNEL * stream, sample * o
 		if(offset-stream->offset==32+3) // ??
 			stream->offset+=36;
 	} else {
-		if(offset-stream->offset==(32*channelspacing)+(4*channel)+3) // ??
-			stream->offset+=36*channelspacing;
+		if(channelspacing==1) {
+			if(offset-stream->offset==32+3) // ??
+				stream->offset+=36;
+		} else {
+			if(offset-stream->offset==64+(4*(channel%2))+3) // ??
+				stream->offset+=36*channelspacing;
+		}
 	}
 	stream->adpcm_history1_32=hist1;
 	stream->adpcm_step_index=step_index;
