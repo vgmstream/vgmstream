@@ -17,6 +17,10 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
     if (read_32bitBE(0x00,streamFile) != 0x57424E44) /* WBND */
 		goto fail;
 	
+	/* check if the file is been used as container */
+	if (read_32bitBE(0x2C,streamFile) != 0x01000000)
+		goto fail;
+	
 		
     loop_flag = read_32bitLE(0x60,streamFile);
     channel_count = 2;

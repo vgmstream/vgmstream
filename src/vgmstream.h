@@ -240,7 +240,7 @@ typedef enum {
 	meta_PS2_CCC,           /* Tokyo Xtreme Racer DRIFT 2 */
 	meta_PSX_FAG,           /* Jackie Chan - Stuntmaster */
 	meta_PS2_MIHB,          /* Merged MIH+MIB */
-
+	
 	meta_XBOX_WAVM,			/* XBOX WAVM File */
 	meta_XBOX_RIFF,			/* XBOX RIFF/WAVE File */
 	meta_XBOX_WVS,			/* XBOX WVS */
@@ -248,7 +248,7 @@ typedef enum {
 	meta_XBOX_MATX,			/* XBOX MATX */
 	meta_XBOX_XMU,			/* XBOX XMU */
 	meta_XBOX_XVAS,			/* XBOX VAS */
-
+	
 	meta_EAXA_R2,			/* EA XA Release 2 */
 	meta_EAXA_R3,			/* EA XA Release 3 */
 	meta_EAXA_PSX,			/* EA with PSX ADPCM */
