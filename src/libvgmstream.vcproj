@@ -342,6 +342,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\ngc_pdt.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\ngc_tydsp.c"
 					>
 				</File>

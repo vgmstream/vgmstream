@@ -107,4 +107,5 @@ libmeta_la_SOURCES += nds_sad.c
 libmeta_la_SOURCES += ps2_ccc.c
 libmeta_la_SOURCES += psx_fag.c
 libmeta_la_SOURCES += ps2_mihb.c
+libmeta_la_SOURCES += ngc_pdt.c
 EXTRA_DIST = meta.h

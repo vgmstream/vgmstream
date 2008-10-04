@@ -189,6 +189,7 @@ char * extension_list[] = {
 	"ccc\0CCC Audio File (*.CCC)\0",
 	"fag\0FAG Audio File (*.FAG)\0",
 	"mihb\0MIHB Audio File (*.MIHB)\0",
+	"pdt\0PDT Audio File (*.PDT)\0",
 };
 
 void about(HWND hwndParent) {

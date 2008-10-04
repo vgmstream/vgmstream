@@ -1018,8 +1018,7 @@ VGMSTREAM * init_vgmstream_ngc_swd(STREAMFILE *streamFile) {
     if (read_dsp_header(&ch1_header, 0x68, streamFile)) goto fail;
 
     /* check header magic */
-    if (read_16bitBE(0x00,streamFile) != 0x5053 && /* PS */
-            (read_8bit(0x02,streamFile) != 0x46)) /* F */
+    if (read_32bitBE(0x00,streamFile) != 0x505346D1) /* PSF\0xD1 */
         goto fail;
 
     start_offset = 0xC8;
