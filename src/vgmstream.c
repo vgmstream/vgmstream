@@ -1655,6 +1655,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         case meta_RIFF_WAVE_labl_Marker:
             snprintf(temp,TEMPSIZE,"RIFF WAVE header with loop markers");
             break;
+        case meta_RIFF_WAVE_smpl:
+            snprintf(temp,TEMPSIZE,"RIFF WAVE header with sample looping info");
+            break;
 		case meta_PCM:
             snprintf(temp,TEMPSIZE,"PCM file with custom header");
             break;

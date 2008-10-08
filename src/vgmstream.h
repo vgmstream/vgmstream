@@ -283,6 +283,7 @@ typedef enum {
     meta_RIFF_WAVE,         /* RIFF, for WAVs */
     meta_RIFF_WAVE_POS,     /* .wav + .pos for looping */
     meta_RIFF_WAVE_labl_Marker, /* RIFF w/ loop Markers in LIST-adtl-labl */
+    meta_RIFF_WAVE_smpl,    /* RIFF w/ loop data in smpl chunk */
     meta_NWA,               /* Visual Art's NWA */
     meta_NWA_NWAINFOINI,    /* NWA w/ NWAINFO.INI for looping */
     meta_NWA_GAMEEXEINI,    /* NWA w/ Gameexe.ini for looping */

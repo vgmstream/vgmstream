@@ -96,6 +96,8 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
     int loop_flag = 0;
     long loop_start_ms = -1;
     long loop_end_ms = -1;
+    off_t loop_start_offset = -1;
+    off_t loop_end_offset = -1;
     uint32_t riff_size;
     uint32_t data_size = 0;
 
@@ -179,6 +181,21 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
                             break;
                     }
                     break;
+                case 0x736D706C:    /* smpl */
+                    /* check loop count */
+                    if (read_32bitLE(current_chunk+0x24, streamFile)==1)
+                    {
+                        /* check loop info */
+                        if (read_32bitLE(current_chunk+0x2c+4, streamFile)==0)
+                        {
+                            loop_flag = 1;
+                            loop_start_offset =
+                                read_32bitLE(current_chunk+0x2c+8, streamFile);
+                            loop_end_offset =
+                                read_32bitLE(current_chunk+0x2c+0xc,streamFile);
+                        }
+                    }
+                    break;
                 default:
                     /* ignorance is bliss */
                     break;
@@ -216,11 +233,20 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
     vgmstream->interleave_block_size = interleave;
 
     if (loop_flag) {
-        vgmstream->loop_start_sample =
-            (long long)loop_start_ms*sample_rate/1000;
-        vgmstream->loop_end_sample =
-            (long long)loop_end_ms*sample_rate/1000;
-        vgmstream->meta_type = meta_RIFF_WAVE_labl_Marker;
+        if (loop_start_ms >= 0)
+        {
+            vgmstream->loop_start_sample =
+                (long long)loop_start_ms*sample_rate/1000;
+            vgmstream->loop_end_sample =
+                (long long)loop_end_ms*sample_rate/1000;
+            vgmstream->meta_type = meta_RIFF_WAVE_labl_Marker;
+        }
+        else if (loop_start_offset >= 0)
+        {
+            vgmstream->loop_start_sample = loop_start_offset;
+            vgmstream->loop_end_sample = loop_end_offset;
+            vgmstream->meta_type = meta_RIFF_WAVE_smpl;
+        }
     }
     else
     {
