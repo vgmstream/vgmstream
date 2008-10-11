@@ -1121,16 +1121,32 @@ VGMSTREAM * init_vgmstream_wii_idsp(STREAMFILE *streamFile) {
 
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("gcm",filename_extension(filename))) goto fail;
-
-    if (read_dsp_header(&ch0_header, 0x20, streamFile)) goto fail;
-    if (read_dsp_header(&ch1_header, 0x80, streamFile)) goto fail;
+    if (strcasecmp("gcm",filename_extension(filename)) &&
+            strcasecmp("dsp",filename_extension(filename))) goto fail;
 
     /* check header magic */
     if (read_32bitBE(0x0,streamFile) != 0x49445350) goto fail; /* "IDSP" */
 
-    start_offset = 0xe0;
-    interleave = 8;
+    /* different versions? */
+    if (read_32bitBE(0x4, streamFile) == 1 &&
+            read_32bitBE(0x8, streamFile) == 0xc8)
+    {
+        if (read_dsp_header(&ch0_header, 0x10, streamFile)) goto fail;
+        if (read_dsp_header(&ch1_header, 0x70, streamFile)) goto fail;
+
+        start_offset = 0xd0;
+    }
+    else if (read_32bitBE(0x4, streamFile) == 2 &&
+            read_32bitBE(0x8, streamFile) == 0xd2)
+    {
+        if (read_dsp_header(&ch0_header, 0x20, streamFile)) goto fail;
+        if (read_dsp_header(&ch1_header, 0x80, streamFile)) goto fail;
+
+        start_offset = 0xe0;
+    }
+    else goto fail;
+
+    interleave = read_32bitBE(0xc, streamFile);
 
     /* check initial predictor/scale */
     if (ch0_header.initial_ps != (uint8_t)read_8bit(start_offset,streamFile))
