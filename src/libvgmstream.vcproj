@@ -590,6 +590,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\wii_mus.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\ws_aud.c"
 					>
 				</File>

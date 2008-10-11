@@ -237,4 +237,6 @@ VGMSTREAM * init_vgmstream_ps2_mihb(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_ngc_pdt(STREAMFILE * streamFile);
 
+VGMSTREAM * init_vgmstream_wii_mus(STREAMFILE * streamFile);
+
 #endif

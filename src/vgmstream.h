@@ -151,6 +151,7 @@ typedef enum {
     meta_DSP_WSI,           /* .wsi */
 	meta_DSP_AMTS,			/* .amts */
 	meta_DSP_WII_IDSP,		/* .gcm with IDSP header */
+    meta_DSP_WII_MUS,       /* .mus */
 
     /* Nintendo */
     meta_STRM,              /* STRM */
