@@ -1121,8 +1121,7 @@ VGMSTREAM * init_vgmstream_wii_idsp(STREAMFILE *streamFile) {
 
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("gcm",filename_extension(filename)) &&
-            strcasecmp("dsp",filename_extension(filename))) goto fail;
+    if (strcasecmp("gcm",filename_extension(filename))) goto fail;
 
     /* check header magic */
     if (read_32bitBE(0x0,streamFile) != 0x49445350) goto fail; /* "IDSP" */
