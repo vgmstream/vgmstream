@@ -9,6 +9,7 @@ VGMSTREAM * init_vgmstream_rsd(STREAMFILE *streamFile) {
     
 	coding_t coding_type;
     
+	int j;
 	int loop_flag=0;
 	int channel_count;
 	int rsd_ident;
@@ -81,6 +82,18 @@ VGMSTREAM * init_vgmstream_rsd(STREAMFILE *streamFile) {
         vgmstream->loop_end_sample = (get_streamfile_size(streamFile)-start_offset)/2/channel_count;
     }
 	break;
+	case 0x57414450: /* RSD2WADP */
+		start_offset = 0x800;
+		coding_type = coding_NGC_DSP;
+				vgmstream->interleave_block_size = read_32bitLE(0xC,streamFile);
+		vgmstream->num_samples = (get_streamfile_size(streamFile)-start_offset);
+
+
+	if (loop_flag) {
+        vgmstream->loop_start_sample = 0;
+        vgmstream->loop_end_sample = (get_streamfile_size(streamFile)-start_offset)*64/36/channel_count;
+    }
+	break;
 	case 0x58414450: /* RSD2XADP */
 		start_offset = 0x40;
 		coding_type = coding_XBOX;
@@ -111,6 +124,17 @@ VGMSTREAM * init_vgmstream_rsd(STREAMFILE *streamFile) {
 	vgmstream->meta_type = meta_RSD;
 	
 
+    if (vgmstream->coding_type == coding_NGC_DSP) {
+        int i;
+        for (i=0;i<16;i++) {
+            vgmstream->ch[0].adpcm_coef[i] = read_16bitBE(0x1A4+i*2,streamFile);
+        }
+        if (vgmstream->channels) {
+            for (i=0;i<16;i++) {
+                vgmstream->ch[1].adpcm_coef[i] = read_16bitBE(0x1CC+i*2,streamFile);
+            }
+        }
+ }
 
     /* open the file for reading */
     {
@@ -121,8 +145,8 @@ VGMSTREAM * init_vgmstream_rsd(STREAMFILE *streamFile) {
         for (i=0;i<channel_count;i++) {
             vgmstream->ch[i].streamfile = file;
 
-            
-            if (vgmstream->coding_type == coding_XBOX) {
+   
+		if (vgmstream->coding_type == coding_XBOX) {
 				vgmstream->layout_type=layout_none;
                 vgmstream->ch[i].channel_start_offset=start_offset;
             } else {
