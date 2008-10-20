@@ -202,7 +202,6 @@ typedef enum {
     meta_HGC1,				/* Knights of the Temple 2 */
     meta_AUS,				/* Variuos Capcom Games */
     meta_RWS,				/* Variuos Konami Games */
-	meta_RSD,				/* Crash Bandicoot Games */
 	meta_FSB3,              /* FMOD Sample Bank, version 3 */
 	meta_RWX,				/* Air Force Delta Storm (XBOX) */
 	meta_XWB,				/* King of Fighters (XBOX) */
@@ -243,6 +242,12 @@ typedef enum {
 	meta_PS2_MIHB,          /* Merged MIH+MIB */
 	meta_NGC_PDT,           /* Mario Party 6 */
 	
+	meta_RSD2VAG,			/* RSD2VAG */
+	meta_RSD2XADP,			/* RSD2XADP */
+	meta_RSD4PCMB,			/* RSD4PCMB */
+	meta_RSD4VAG,			/* RSD4VAG */
+	meta_RSD6VAG,			/* RSD6VAG */
+
 	meta_XBOX_WAVM,			/* XBOX WAVM File */
 	meta_XBOX_RIFF,			/* XBOX RIFF/WAVE File */
 	meta_XBOX_WVS,			/* XBOX WVS */

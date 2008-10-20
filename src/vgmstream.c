@@ -80,7 +80,6 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_hgc1,
     init_vgmstream_aus,
     init_vgmstream_rws,
-    init_vgmstream_rsd,
     init_vgmstream_fsb,
     init_vgmstream_rwx,
     init_vgmstream_xwb,
@@ -135,6 +134,12 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_ps2_mihb,
 	init_vgmstream_ngc_pdt,
     init_vgmstream_wii_mus,
+
+	init_vgmstream_rsd2vag,
+	init_vgmstream_rsd2xadp,
+	init_vgmstream_rsd4pcmb,
+	init_vgmstream_rsd4vag,
+	init_vgmstream_rsd6vag,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -1590,9 +1595,6 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         case meta_EACS_SAT:
             snprintf(temp,TEMPSIZE,"EACS Header (SATURN)");
             break;
-		case meta_RSD:
-            snprintf(temp,TEMPSIZE,"RSD4 or RSD6 Header");
-            break;
 		case meta_SL3:
             snprintf(temp,TEMPSIZE,"SL3 Header");
             break;
@@ -1715,6 +1717,21 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case meta_DSP_WII_MUS:
             snprintf(temp,TEMPSIZE,"mus header");
+            break;
+		case meta_RSD2VAG:
+            snprintf(temp,TEMPSIZE,"RSD2/VAG Header");
+            break;
+		case meta_RSD2XADP:
+            snprintf(temp,TEMPSIZE,"RSD2/XADP Header");
+            break;
+		case meta_RSD4PCMB:
+            snprintf(temp,TEMPSIZE,"RSD4/PCMB Header");
+            break;
+		case meta_RSD4VAG:
+            snprintf(temp,TEMPSIZE,"RSD4/VAG Header");
+            break;
+		case meta_RSD6VAG:
+            snprintf(temp,TEMPSIZE,"RSD6/VAG Header");
             break;
         default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");
