@@ -69,6 +69,7 @@ VGMSTREAM * init_vgmstream_fsb(STREAMFILE *streamFile) {
 		case 0x02000806: /* WII (Metroid Prime 3) */
 		case 0x01000806: /* WII (Metroid Prime 3) */
 		case 0x40000802: /* WII (WWE Smackdown Vs. Raw 2008) */
+		case 0x41000802: /* GC (Dysney's Incredibles, The) */
 		vgmstream->coding_type = coding_NGC_DSP;
 		vgmstream->layout_type = layout_interleave_byte;
         vgmstream->interleave_block_size = 2;
