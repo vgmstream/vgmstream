@@ -236,6 +236,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\dc_asd.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\dc_idvi.c"
 					>
 				</File>

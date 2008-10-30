@@ -134,6 +134,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_ps2_mihb,
 	init_vgmstream_ngc_pdt,
     init_vgmstream_wii_mus,
+	init_vgmstream_dc_asd,
 
 	init_vgmstream_rsd2vag,
 	init_vgmstream_rsd2xadp,
@@ -1732,6 +1733,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
 		case meta_RSD6VAG:
             snprintf(temp,TEMPSIZE,"RSD6/VAG Header");
+            break;
+		case meta_DC_ASD:
+            snprintf(temp,TEMPSIZE,"ASD Header");
             break;
         default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

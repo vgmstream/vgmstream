@@ -241,7 +241,7 @@ typedef enum {
 	meta_PSX_FAG,           /* Jackie Chan - Stuntmaster */
 	meta_PS2_MIHB,          /* Merged MIH+MIB */
 	meta_NGC_PDT,           /* Mario Party 6 */
-	
+	meta_DC_ASD,			/* Miss Moonligh */
 	meta_RSD2VAG,			/* RSD2VAG */
 	meta_RSD2XADP,			/* RSD2XADP */
 	meta_RSD4PCMB,			/* RSD4PCMB */

@@ -247,4 +247,6 @@ VGMSTREAM * init_vgmstream_rsd4vag(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_rsd6vag(STREAMFILE * streamFile);
 
+VGMSTREAM * init_vgmstream_dc_asd(STREAMFILE * streamFile);
+
 #endif
