@@ -191,6 +191,7 @@ char * extension_list[] = {
 	"mihb\0MIHB Audio File (*.MIHB)\0",
 	"pdt\0PDT Audio File (*.PDT)\0",
 	"asd\0ASD Audio File (*.ASD)\0",
+	"spsd\0SPSD Audio File (*.SPSD)\0",
 };
 
 void about(HWND hwndParent) {

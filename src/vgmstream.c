@@ -135,12 +135,16 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_ngc_pdt,
     init_vgmstream_wii_mus,
 	init_vgmstream_dc_asd,
+	init_vgmstream_naomi_spsd,
 
 	init_vgmstream_rsd2vag,
 	init_vgmstream_rsd2xadp,
 	init_vgmstream_rsd4pcmb,
+	init_vgmstream_rsd4pcm,
 	init_vgmstream_rsd4vag,
 	init_vgmstream_rsd6vag,
+	init_vgmstream_rsd6wadp,
+	init_vgmstream_rsd6xadp,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -1728,14 +1732,23 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
 		case meta_RSD4PCMB:
             snprintf(temp,TEMPSIZE,"RSD4/PCMB Header");
             break;
+		case meta_RSD4PCM:
+            snprintf(temp,TEMPSIZE,"RSD4/PCM Header");
+            break;
 		case meta_RSD4VAG:
             snprintf(temp,TEMPSIZE,"RSD4/VAG Header");
+            break;
+		case meta_RSD6XADP:
+            snprintf(temp,TEMPSIZE,"RSD6/XADP Header");
             break;
 		case meta_RSD6VAG:
             snprintf(temp,TEMPSIZE,"RSD6/VAG Header");
             break;
 		case meta_DC_ASD:
             snprintf(temp,TEMPSIZE,"ASD Header");
+            break;
+		case meta_NAOMI_SPSD:
+            snprintf(temp,TEMPSIZE,"SPSD Header");
             break;
         default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

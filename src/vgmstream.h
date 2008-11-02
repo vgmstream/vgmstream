@@ -242,11 +242,16 @@ typedef enum {
 	meta_PS2_MIHB,          /* Merged MIH+MIB */
 	meta_NGC_PDT,           /* Mario Party 6 */
 	meta_DC_ASD,			/* Miss Moonligh */
+	meta_NAOMI_SPSD,			/* Guilty Gear X */
+	
 	meta_RSD2VAG,			/* RSD2VAG */
 	meta_RSD2XADP,			/* RSD2XADP */
 	meta_RSD4PCMB,			/* RSD4PCMB */
+	meta_RSD4PCM,			/* RSD4PCM */
 	meta_RSD4VAG,			/* RSD4VAG */
 	meta_RSD6VAG,			/* RSD6VAG */
+	meta_RSD6WADP,			/* RSD6WADP */
+	meta_RSD6XADP,			/* RSD6XADP */
 
 	meta_XBOX_WAVM,			/* XBOX WAVM File */
 	meta_XBOX_RIFF,			/* XBOX RIFF/WAVE File */

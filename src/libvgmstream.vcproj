@@ -322,6 +322,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\naomi_spsd.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\nds_sad.c"
 					>
 				</File>

@@ -110,4 +110,5 @@ libmeta_la_SOURCES += ps2_mihb.c
 libmeta_la_SOURCES += ngc_pdt.c
 libmeta_la_SOURCES += wii_mus.c
 libmeta_la_SOURCES += dc_asd.c
+libmeta_la_SOURCES += naomi_spsd.c
 EXTRA_DIST = meta.h
