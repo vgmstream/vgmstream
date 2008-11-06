@@ -28,7 +28,7 @@ VGMSTREAM * init_vgmstream_naomi_spsd(STREAMFILE *streamFile) {
 	/* fill in the vital statistics */
 	vgmstream->channels = channel_count;
     start_offset = 0x40;
-    vgmstream->sample_rate = read_32bitLE(0x2A,streamFile);
+    vgmstream->sample_rate = (uint16_t)read_16bitLE(0x2A,streamFile);
     vgmstream->coding_type = coding_AICA;
 
     vgmstream->num_samples = read_32bitLE(0x0C,streamFile);
