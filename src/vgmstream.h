@@ -48,6 +48,7 @@ typedef enum {
 	coding_PSX,				/* PSX & PS2 ADPCM */
     coding_invert_PSX,      /* PSX ADPCM with first byte of frame inverted */
     coding_PSX_badflags,    /* with garbage in the flags byte */
+    coding_FFXI,            /* FF XI PSX-ish ADPCM */
 	coding_XA,				/* PSX CD-XA */
 	coding_XBOX,			/* XBOX IMA */
 	coding_EAXA,			/* EA/XA ADPCM */
@@ -303,6 +304,7 @@ typedef enum {
     meta_ACM,               /* InterPlay ACM header */
     meta_MUS_ACM,           /* MUS playlist of InterPlay ACM files */
     meta_DE2,               /* Falcom (Gurumin) .de2 */
+    meta_FFXI_BGW,          /* FFXI BGW */
 } meta_t;
 
 typedef struct {

@@ -228,6 +228,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\bgw.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\brstm.c"
 					>
 				</File>

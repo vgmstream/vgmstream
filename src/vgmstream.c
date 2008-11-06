@@ -145,6 +145,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_rsd6vag,
 	init_vgmstream_rsd6wadp,
 	init_vgmstream_rsd6xadp,
+    init_vgmstream_bgw,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -566,6 +567,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_AICA:
 			return 2;
         case coding_NGC_AFC:
+        case coding_FFXI:
             return 16;
         case coding_PSX:
         case coding_PSX_badflags:
@@ -631,6 +633,7 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
         case coding_G721:
             return 0;
         case coding_NGC_AFC:
+        case coding_FFXI:
             return 9;
         case coding_PSX:
         case coding_PSX_badflags:
@@ -793,6 +796,13 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
         case coding_invert_PSX:
             for (chan=0;chan<vgmstream->channels;chan++) {
                 decode_invert_psx(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                        vgmstream->channels,vgmstream->samples_into_block,
+                        samples_to_do);
+            }
+            break;
+        case coding_FFXI:
+            for (chan=0;chan<vgmstream->channels;chan++) {
+                decode_ffxi_adpcm(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
                         samples_to_do);
             }
@@ -1131,6 +1141,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case coding_invert_PSX:
             snprintf(temp,TEMPSIZE,"Inverted (?) Playstation 4-bit ADPCM");
+            break;
+        case coding_FFXI:
+            snprintf(temp,TEMPSIZE,"FFXI Playstation-ish 4-bit ADPCM");
             break;
         case coding_XA:
             snprintf(temp,TEMPSIZE,"CD-ROM XA 4-bit ADPCM");
@@ -1749,6 +1762,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
 		case meta_NAOMI_SPSD:
             snprintf(temp,TEMPSIZE,"SPSD Header");
+            break;
+        case meta_FFXI_BGW:
+            snprintf(temp,TEMPSIZE,"BGW BGMStream header");
             break;
         default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");
