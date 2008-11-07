@@ -259,4 +259,6 @@ VGMSTREAM * init_vgmstream_naomi_spsd(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_bgw(STREAMFILE * streamFile);
 
+VGMSTREAM * init_vgmstream_spw(STREAMFILE * streamFile);
+
 #endif

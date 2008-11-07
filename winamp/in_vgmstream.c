@@ -193,6 +193,7 @@ char * extension_list[] = {
 	"asd\0ASD Audio File (*.ASD)\0",
 	"spsd\0SPSD Audio File (*.SPSD)\0",
     "bgw\0BGW Audio File (*.BGW)\0",
+    "spw\0SPW Audio File (*.SPW)\0",
 };
 
 void about(HWND hwndParent) {

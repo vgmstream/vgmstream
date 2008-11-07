@@ -305,6 +305,7 @@ typedef enum {
     meta_MUS_ACM,           /* MUS playlist of InterPlay ACM files */
     meta_DE2,               /* Falcom (Gurumin) .de2 */
     meta_FFXI_BGW,          /* FFXI BGW */
+    meta_FFXI_SPW,          /* FFXI SPW */
 } meta_t;
 
 typedef struct {
