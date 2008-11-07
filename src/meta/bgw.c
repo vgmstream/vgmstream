@@ -6,6 +6,7 @@ VGMSTREAM * init_vgmstream_bgw(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[260];
     off_t start_offset;
+    int32_t loop_start;
 
     int loop_flag = 0;
 	int channel_count;
@@ -25,7 +26,8 @@ VGMSTREAM * init_vgmstream_bgw(STREAMFILE *streamFile) {
         goto fail;
 
     channel_count = 2;
-    loop_flag = read_32bitLE(0x1c,streamFile) != 0;
+    loop_start = read_32bitLE(0x1c,streamFile);
+    loop_flag = (loop_start > 0);
     
 	/* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
@@ -38,7 +40,7 @@ VGMSTREAM * init_vgmstream_bgw(STREAMFILE *streamFile) {
     vgmstream->coding_type = coding_FFXI;
     vgmstream->num_samples = read_32bitLE(0x18,streamFile)*16;
     if (loop_flag) {
-        vgmstream->loop_start_sample = (read_32bitLE(0x1c,streamFile)-1)*16;
+        vgmstream->loop_start_sample = (loop_start-1)*16;
         vgmstream->loop_end_sample = vgmstream->num_samples;
     }
 
