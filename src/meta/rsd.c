@@ -444,18 +444,18 @@ VGMSTREAM * init_vgmstream_rsd6wadp(STREAMFILE *streamFile) {
         vgmstream->loop_end_sample = (get_streamfile_size(streamFile)-0x800)*28/16/channel_count;
     }
 
-    vgmstream->layout_type = layout_interleave;
-    vgmstream->interleave_block_size = read_32bitLE(0xC,streamFile);
+    vgmstream->layout_type = layout_interleave_byte; //layout_interleave;
+    vgmstream->interleave_block_size = 2; //read_32bitLE(0xC,streamFile);
     vgmstream->meta_type = meta_RSD6WADP;
 
     if (vgmstream->coding_type == coding_NGC_DSP) {
         int i;
         for (i=0;i<16;i++) {
-            vgmstream->ch[0].adpcm_coef[i] = read_16bitBE(0x1A2+i*2,streamFile);
+            vgmstream->ch[0].adpcm_coef[i] = read_16bitBE(0x1A4+i*2,streamFile);
         }
         if (vgmstream->channels) {
             for (i=0;i<16;i++) {
-                vgmstream->ch[1].adpcm_coef[i] = read_16bitBE(0x1CA+i*2,streamFile);
+                vgmstream->ch[1].adpcm_coef[i] = read_16bitBE(0x1CC+i*2,streamFile);
             }
         }
     }

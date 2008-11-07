@@ -1757,6 +1757,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
 		case meta_RSD6VAG:
             snprintf(temp,TEMPSIZE,"RSD6/VAG Header");
             break;
+        case meta_RSD6WADP:
+            snprintf(temp,TEMPSIZE,"RSD6/WADP Header");
+            break;
 		case meta_DC_ASD:
             snprintf(temp,TEMPSIZE,"ASD Header");
             break;
