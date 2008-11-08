@@ -85,7 +85,9 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_xwb,
     init_vgmstream_xa30,
     init_vgmstream_musc,
-    init_vgmstream_musx,
+    init_vgmstream_musx_v04,
+	init_vgmstream_musx_v06,
+	init_vgmstream_musx_v10,
     init_vgmstream_leg,
     init_vgmstream_filp,
     init_vgmstream_ikm,
@@ -1632,8 +1634,14 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
 		case meta_MUSC:
             snprintf(temp,TEMPSIZE,"MUSC Header");
             break;
-		case meta_MUSX:
-            snprintf(temp,TEMPSIZE,"MUSX Header");
+		case meta_MUSX_V04:
+            snprintf(temp,TEMPSIZE,"MUSX / Version 04 Header");
+            break;
+		case meta_MUSX_V06:
+            snprintf(temp,TEMPSIZE,"MUSX / Version 06 Header");
+            break;
+		case meta_MUSX_V10:
+            snprintf(temp,TEMPSIZE,"MUSX / Version 10 Header");
             break;
 		case meta_LEG:
             snprintf(temp,TEMPSIZE,"Legaia 2 - Duel Saga LEG Header");

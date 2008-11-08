@@ -208,7 +208,9 @@ typedef enum {
 	meta_XWB,				/* King of Fighters (XBOX) */
 	meta_XA30,				/* Driver - Parallel Lines (PS2) */
 	meta_MUSC,				/* Spyro Games, possibly more */
-	meta_MUSX,				/* Spyro Games, possibly more */
+	meta_MUSX_V04,			/* Spyro Games, possibly more */
+	meta_MUSX_V06,			/* Spyro Games, possibly more */
+	meta_MUSX_V10,			/* Spyro Games, possibly more */
 	meta_LEG,				/* Legaia 2 */
 	meta_FILP,				/* Resident Evil - Dead Aim */
 	meta_IKM,				/* Zwei! */
