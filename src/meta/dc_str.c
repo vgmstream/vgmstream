@@ -38,7 +38,7 @@ VGMSTREAM * init_vgmstream_dc_str(STREAMFILE *streamFile) {
 			break;
 		default:
 	goto fail;
-}
+	}
 
 	switch (samples) {
 		case 4:
