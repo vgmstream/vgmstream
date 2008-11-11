@@ -17,10 +17,11 @@ VGMSTREAM * init_vgmstream_rws(STREAMFILE *streamFile) {
     /* check header */
     if (read_32bitBE(0x00,streamFile) != 0x0D080000)
 		goto fail;
-	
+#if 0
 	/* check if is used as container file */
 	if (read_32bitBE(0x38,streamFile) != 0x01000000)
 		goto fail;
+#endif
 
     loop_flag = 0;
     channel_count = 2;

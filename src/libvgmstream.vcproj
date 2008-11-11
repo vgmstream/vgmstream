@@ -366,6 +366,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\ngc_waa_wac_wad_wam.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\ngc_ymf.c"
 					>
 				</File>

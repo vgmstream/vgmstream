@@ -14,12 +14,6 @@ VGMSTREAM * init_vgmstream_ngc_tydsp(STREAMFILE *streamFile) {
     streamFile->get_name(streamFile,filename,sizeof(filename));
     if (strcasecmp("tydsp",filename_extension(filename))) goto fail;
 
-#if 0
-    /* check header */
-    if (read_32bitBE(0x00,streamFile) != 0x53565300) /* "SVS\0" */
-        goto fail;
-#endif
-
     loop_flag = 1;
     channel_count = 2;
     

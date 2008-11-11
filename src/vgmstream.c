@@ -130,6 +130,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_ps2_omu,
 	init_vgmstream_ps2_xa2,
 	init_vgmstream_idsp,
+	init_vgmstream_idsp2,
 	init_vgmstream_ngc_ymf,
     init_vgmstream_sadl,
 	init_vgmstream_ps2_ccc,
@@ -151,6 +152,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_bgw,
     init_vgmstream_spw,
 	init_vgmstream_ps2_ass,
+	init_vgmstream_waa_wac_wad_wam,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -1787,7 +1789,16 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             snprintf(temp,TEMPSIZE,"SPW SeWave header");
             break;
         case meta_PS2_ASS:
-            snprintf(temp,TEMPSIZE,"ASS header");
+            snprintf(temp,TEMPSIZE,"ASS Header");
+            break;
+		case meta_IDSP:
+            snprintf(temp,TEMPSIZE,"IDSP Header");
+            break;
+		case meta_IDSP2:
+            snprintf(temp,TEMPSIZE,"IDSP Header");
+            break;
+		case meta_WAA_WAC_WAD_WAM:
+            snprintf(temp,TEMPSIZE,"WAA/WAC/WAD/WAM RIFF Header");
             break;
         default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");
