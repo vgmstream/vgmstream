@@ -23,7 +23,7 @@ VGMSTREAM * init_vgmstream_rws(STREAMFILE *streamFile) {
 		goto fail;
 #endif
 
-    loop_flag = 0;
+    loop_flag = 1; 
     channel_count = 2;
     
 	/* build the VGMSTREAM */
@@ -33,12 +33,12 @@ VGMSTREAM * init_vgmstream_rws(STREAMFILE *streamFile) {
 	/* fill in the vital statistics */
     start_offset = read_32bitLE(0x50,streamFile);
 	vgmstream->channels = channel_count;
-    vgmstream->sample_rate = 44100;
+    vgmstream->sample_rate = read_32bitLE(0xe4,streamFile);
     vgmstream->coding_type = coding_PSX;
-    vgmstream->num_samples = (read_32bitLE(0x04,streamFile)-0x800)*28/16/2;
+    vgmstream->num_samples = read_32bitLE(0x98,streamFile)/16*28/vgmstream->channels;
     if (loop_flag) {
         vgmstream->loop_start_sample = 0;
-        vgmstream->loop_end_sample = read_32bitLE(0x4,streamFile)*28/16/2;
+        vgmstream->loop_end_sample = read_32bitLE(0x98,streamFile)/16*28/vgmstream->channels;
     }
 
     vgmstream->layout_type = layout_interleave;
