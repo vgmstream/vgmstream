@@ -257,6 +257,8 @@ typedef enum {
 	meta_RSD6WADP,			/* RSD6WADP */
 	meta_RSD6XADP,			/* RSD6XADP */
 
+	meta_PS2_ASS,			/* RSD6XADP */
+
 	meta_XBOX_WAVM,			/* XBOX WAVM File */
 	meta_XBOX_RIFF,			/* XBOX RIFF/WAVE File */
 	meta_XBOX_WVS,			/* XBOX WVS */

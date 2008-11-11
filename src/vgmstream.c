@@ -150,6 +150,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_rsd6xadp,
     init_vgmstream_bgw,
     init_vgmstream_spw,
+	init_vgmstream_ps2_ass,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -1784,6 +1785,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case meta_FFXI_SPW:
             snprintf(temp,TEMPSIZE,"SPW SeWave header");
+            break;
+        case meta_PS2_ASS:
+            snprintf(temp,TEMPSIZE,"ASS header");
             break;
         default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

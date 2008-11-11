@@ -390,6 +390,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\ps2_ass.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\ps2_aus.c"
 					>
 				</File>

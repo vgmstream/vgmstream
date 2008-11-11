@@ -143,7 +143,8 @@ META_OBJS=meta/adx_header.o \
     meta/wii_mus.o \
     meta/dc_asd.o \
     meta/naomi_spsd.o \
-    meta/bgw.o
+    meta/bgw.o \
+    meta/ps2_ass.o
 
 OBJECTS=vgmstream.o streamfile.o util.o $(CODING_OBJS) $(LAYOUT_OBJS) $(META_OBJS)
 
