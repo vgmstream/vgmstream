@@ -241,7 +241,7 @@ typedef enum {
 	meta_IDSP,				/* Chronicles of Narnia */
 
 	meta_IDSP2,				/* Chronicles of Narnia */
-	meta_WAA_WAC_WAD_WAM,			/* Beyond Good & Evil */
+	meta_WAA_WAC_WAD_WAM,	/* Beyond Good & Evil */
 
 	meta_NGC_YMF,			/* WWE WrestleMania X8 */
     meta_SADL,              /* .sad */
