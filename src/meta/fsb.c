@@ -1,8 +1,85 @@
 #include "meta.h"
 #include "../util.h"
 
-/* FSB  - FlatOut (XBOX), Guitar Hero III (WII), FlatOut 1 & 2 (PS2) */
-VGMSTREAM * init_vgmstream_fsb(STREAMFILE *streamFile) {
+/* FSB1 */
+VGMSTREAM * init_vgmstream_fsb1(STREAMFILE *streamFile) {
+    VGMSTREAM * vgmstream = NULL;
+    char filename[260];
+    off_t start_offset;
+
+	/* int fsb1_included_files; */
+	int fsb1_format;
+	int loop_flag = 0;
+	int channel_count;
+
+    /* check extension, case insensitive */
+    streamFile->get_name(streamFile,filename,sizeof(filename));
+    if (strcasecmp("fsb",filename_extension(filename))) goto fail;
+
+    /* check header */
+    if (read_32bitBE(0x00,streamFile) != 0x46534231) /* "FSB1" */
+        goto fail;
+ 
+	/* "Check if the FSB is used as
+	conatiner or as single file" */
+	if (read_32bitBE(0x04,streamFile) != 0x01000000)
+		goto fail;
+
+	loop_flag = 0;
+	channel_count = 2;
+
+	/* build the VGMSTREAM */
+    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+    if (!vgmstream) goto fail;
+
+	/* This will be tricky ;o) */
+	fsb1_format = read_32bitBE(0x44,streamFile);
+	switch (fsb1_format) {
+		case 0x40008800: /* PS2 (Operation Genesis) */
+		case 0x41008800: /* PS2 (Operation Genesis) */
+		vgmstream->coding_type = coding_PSX;
+		vgmstream->layout_type = layout_interleave;
+		vgmstream->interleave_block_size = 0x10;
+		vgmstream->num_samples = (read_32bitLE(0x34,streamFile))*28/16/channel_count;
+    if (loop_flag) {
+        vgmstream->loop_start_sample = 0;
+        vgmstream->loop_end_sample = read_32bitLE(0x30,streamFile);
+    }
+	break;
+		default:
+			goto fail;
+
+	}
+	/* fill in the vital statistics */
+    start_offset = 0x50;
+	vgmstream->channels = channel_count;
+    vgmstream->sample_rate = read_32bitLE(0x38,streamFile);
+    vgmstream->meta_type = meta_FSB1;
+
+    
+    /* open the file for reading */
+	{
+        int i;
+        STREAMFILE * file;
+        file = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
+        if (!file) goto fail;
+        for (i=0;i<channel_count;i++) {
+            vgmstream->ch[i].streamfile = file;
+		}
+	}
+
+    return vgmstream;
+
+    /* clean up anything we may have opened */
+fail:
+    if (vgmstream) close_vgmstream(vgmstream);
+    return NULL;
+}
+
+
+
+/* FSB3 */
+VGMSTREAM * init_vgmstream_fsb3(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[260];
     off_t start_offset;

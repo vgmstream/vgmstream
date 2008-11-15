@@ -16,12 +16,12 @@ VGMSTREAM * init_vgmstream_ngc_pdt(STREAMFILE *streamFile) {
 
 #if 0
     /* check header */
-    if (read_32bitBE(0x00,streamFile) != 0x53565300) /* "SVS\0" */
+    if (read_32bitBE(0x00,streamFile) != 0x00000000) /* 0x0 */
         goto fail;
 #endif
 
     loop_flag = (read_32bitBE(0x0C,streamFile)!=2); /* not sure, but it seems unlooped = 2 */
-    channel_count = 2; /* read_32bitBE(0x0C,streamFile); */
+    channel_count = 2;
     
 	/* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
@@ -38,13 +38,10 @@ VGMSTREAM * init_vgmstream_ngc_pdt(STREAMFILE *streamFile) {
         vgmstream->loop_end_sample = read_32bitBE(0x08,streamFile)*14/8/channel_count;
     }
 
-	if (vgmstream->channels == 1) {
-		vgmstream->layout_type = layout_none;
-	} else {
-		vgmstream->layout_type = layout_interleave;
-		vgmstream->interleave_block_size = (get_streamfile_size(streamFile)-start_offset)/2;
-	}
 
+	/* dealing with no interleave, 'cause the interleave
+	for 2 channels is larger than the sample count */
+	vgmstream->layout_type = layout_none;
     vgmstream->meta_type = meta_NGC_PDT;
 
 
@@ -70,8 +67,7 @@ VGMSTREAM * init_vgmstream_ngc_pdt(STREAMFILE *streamFile) {
             vgmstream->ch[i].streamfile = file;
 
             vgmstream->ch[i].channel_start_offset=
-                vgmstream->ch[i].offset=start_offset+
-                vgmstream->interleave_block_size*i;
+                vgmstream->ch[i].offset=(get_streamfile_size(streamFile)+start_offset)/2*i;
 
         }
     }

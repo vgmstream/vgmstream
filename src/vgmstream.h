@@ -203,6 +203,7 @@ typedef enum {
     meta_HGC1,				/* Knights of the Temple 2 */
     meta_AUS,				/* Variuos Capcom Games */
     meta_RWS,				/* Variuos Konami Games */
+	meta_FSB1,              /* FMOD Sample Bank, version 1 */
 	meta_FSB3,              /* FMOD Sample Bank, version 3 */
 	meta_RWX,				/* Air Force Delta Storm (XBOX) */
 	meta_XWB,				/* King of Fighters (XBOX) */
