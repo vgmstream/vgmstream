@@ -502,6 +502,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\ps2_seg.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\ps2_sfs.c"
 					>
 				</File>

@@ -114,4 +114,5 @@ libmeta_la_SOURCES += naomi_spsd.c
 libmeta_la_SOURCES += bgw.c
 libmeta_la_SOURCES += ps2_ass.c
 libmeta_la_SOURCES += ngc_waa_wac_wad_wam.c
+libmeta_la_SOURCES += ps2_seg.c
 EXTRA_DIST = meta.h
