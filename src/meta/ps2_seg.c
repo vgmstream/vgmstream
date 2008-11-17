@@ -7,7 +7,7 @@ VGMSTREAM * init_vgmstream_ps2_seg(STREAMFILE *streamFile) {
     char filename[260];
     off_t start_offset;
 
-  int loop_flag;
+	int loop_flag;
 	int channel_count;
 
     /* check extension, case insensitive */
@@ -16,12 +16,12 @@ VGMSTREAM * init_vgmstream_ps2_seg(STREAMFILE *streamFile) {
 
 
     /* check header */
-    if (read_32bitBE(0x00,streamFile) != 0x73656700 &&  /* "sea\0" */
+    if (read_32bitBE(0x00,streamFile) != 0x73656700 &&  /* "seg\0" */
 		read_32bitBE(0x04,streamFile) != 0x70733200)	/* "ps2\0" */
 	goto fail;
 
     loop_flag = 0;
-    channel_count = read_32bitLE(0x08,streamFile);
+    channel_count = read_32bitLE(0x24,streamFile);
     
 	/* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
@@ -38,8 +38,13 @@ VGMSTREAM * init_vgmstream_ps2_seg(STREAMFILE *streamFile) {
         vgmstream->loop_end_sample = read_32bitLE(0x1C,streamFile);
     }
 
-    vgmstream->layout_type = layout_interleave;
-    vgmstream->interleave_block_size = 0x2000;
+	if (channel_count == 1) {
+		vgmstream->layout_type = layout_none;
+	} else if (channel_count == 2) {
+		vgmstream->layout_type = layout_interleave;
+		vgmstream->interleave_block_size = 0x2000;
+	}
+    
     vgmstream->meta_type = meta_PS2_SEG;
 
     /* open the file for reading */

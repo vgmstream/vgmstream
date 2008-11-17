@@ -19,6 +19,9 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
     int32_t loop_end;
     int32_t start_offset;
     int32_t header_size;
+	int32_t coef1;
+    int32_t coef2;
+
     char filename[260];
     int coding;
 #ifdef VGM_USE_MPEG
@@ -49,6 +52,7 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
     /* 9 = IMA */
     /* 10 = AICA ADPCM */
     /* 11 = MS ADPCM */
+    /* 12 = NGC DSP */
     /* ... others to come */
     switch (read_32bitLE(0x18,streamFile)) {
         case 0:
@@ -91,11 +95,14 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
         case 11:
             coding = coding_MSADPCM;
             break;
+        case 12:
+            coding = coding_NGC_DSP;
+            break;
         default:
             goto fail;
     }
 
-    start_offset = read_32bitLE(0x1c,streamFile);
+    start_offset = read_32bitLE(0x1C,streamFile);
     header_size = read_32bitLE(0x20,streamFile);
 
     /* HACK to support old genh */
@@ -111,7 +118,10 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
     sample_rate = read_32bitLE(0xc,streamFile);
     loop_start = read_32bitLE(0x10,streamFile);
     loop_end = read_32bitLE(0x14,streamFile);
-
+	
+	coef1 = read_32bitLE(0x24,streamFile);
+	coef2 = read_32bitLE(0x28,streamFile);
+	
     if (coding == coding_XBOX && channel_count != 2) goto fail;
 
     /* build the VGMSTREAM */
@@ -161,6 +171,14 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
         case coding_NGC_DTK:
             vgmstream->layout_type = layout_dtk_interleave;
             break;
+        case coding_NGC_DSP:
+			if (channel_count > 1) {
+			vgmstream->layout_type = layout_interleave;
+				} else {
+			vgmstream->layout_type = layout_none;
+			}
+			break;
+            
 #ifdef VGM_USE_MPEG
         case coding_MPEG1_L3:
             vgmstream->layout_type = layout_mpeg;
@@ -173,6 +191,8 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
     /* open the file for reading by each channel */
     {
         int i;
+		int j;
+
         STREAMFILE * chstreamfile = NULL;
 
         for (i=0;i<channel_count;i++) {
@@ -218,6 +238,17 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
                         chstreamfile =
                             streamFile->open(streamFile,filename,32*0x400);
                     break;
+                case coding_NGC_DSP:
+	    		for (j=0;j<16;j++) {
+            		vgmstream->ch[0].adpcm_coef[j] = read_16bitBE(coef1+j*2,streamFile);
+        		}
+        		if (vgmstream->channels == 2) {
+            			for (j=0;j<16;j++) {
+                	vgmstream->ch[1].adpcm_coef[j] = read_16bitBE(coef2+j*2,streamFile);
+				}
+			}
+break;
+
 #ifdef VGM_USE_MPEG
                 case coding_MPEG1_L3:
                     if (!chstreamfile)
