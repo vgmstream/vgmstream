@@ -19,8 +19,7 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
     int32_t loop_end;
     int32_t start_offset;
     int32_t header_size;
-	int32_t coef1;
-    int32_t coef2;
+	int32_t coef[2];
 
     char filename[260];
     int coding;
@@ -119,10 +118,10 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
     loop_start = read_32bitLE(0x10,streamFile);
     loop_end = read_32bitLE(0x14,streamFile);
 	
-	coef1 = read_32bitLE(0x24,streamFile);
-	coef2 = read_32bitLE(0x28,streamFile);
+	coef[0] = read_32bitLE(0x24,streamFile);
+	coef[1] = read_32bitLE(0x28,streamFile);
 	
-    if (coding == coding_XBOX && channel_count != 2) goto fail;
+    //if (coding == coding_XBOX && channel_count != 2) goto fail;
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,(loop_start!=-1));
@@ -137,7 +136,6 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
     vgmstream->loop_end_sample = loop_end;
     vgmstream->loop_flag = (loop_start != -1);
 
-	vgmstream->coding_type = coding;
     switch (coding) {
         case coding_PCM16LE:
         case coding_PCM16BE:
@@ -154,7 +152,15 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
                     coding = coding_SDX2_int;
                     vgmstream->coding_type = coding_SDX2_int;
                 }
-                vgmstream->layout_type = layout_interleave;
+				if(vgmstream->interleave_block_size==0xffffffff)
+					vgmstream->layout_type=layout_none;
+				else {
+					vgmstream->layout_type = layout_interleave;
+					if(coding==coding_DVI_IMA)
+						coding=coding_INT_DVI_IMA;
+					if(coding==coding_IMA)
+						coding=coding_INT_IMA;
+				}
             } else {
                 vgmstream->layout_type = layout_none;
             }
@@ -174,6 +180,7 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
         case coding_NGC_DSP:
 			if (channel_count > 1) {
 			vgmstream->layout_type = layout_interleave;
+            vgmstream->interleave_block_size = interleave;
 				} else {
 			vgmstream->layout_type = layout_none;
 			}
@@ -186,6 +193,7 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
 #endif
     }
     
+	vgmstream->coding_type = coding;
 	vgmstream->meta_type = meta_GENH;
     
     /* open the file for reading by each channel */
@@ -208,6 +216,8 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
                 case coding_IMA:
                 case coding_PCM8:
                 case coding_AICA:
+				case coding_INT_DVI_IMA:
+				case coding_INT_IMA:
                     if (vgmstream->layout_type == layout_interleave) {
                         if (interleave >= 512) {
                             chstreamfile =
@@ -239,15 +249,13 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
                             streamFile->open(streamFile,filename,32*0x400);
                     break;
                 case coding_NGC_DSP:
-	    		for (j=0;j<16;j++) {
-            		vgmstream->ch[0].adpcm_coef[j] = read_16bitBE(coef1+j*2,streamFile);
-        		}
-        		if (vgmstream->channels == 2) {
-            			for (j=0;j<16;j++) {
-                	vgmstream->ch[1].adpcm_coef[j] = read_16bitBE(coef2+j*2,streamFile);
-				}
-			}
-break;
+                    if (!chstreamfile) 
+                        chstreamfile =
+                            streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
+
+					for (j=0;j<16;j++) 
+            			vgmstream->ch[i].adpcm_coef[j] = read_16bitBE(coef[i]+j*2,streamFile);
+					break;
 
 #ifdef VGM_USE_MPEG
                 case coding_MPEG1_L3:
