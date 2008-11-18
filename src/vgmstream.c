@@ -156,6 +156,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_waa_wac_wad_wam,
 	init_vgmstream_ps2_seg,
 	init_vgmstream_nds_strm_ffta2,
+	init_vgmstream_str_asr,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -1811,6 +1812,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
 		case meta_NDS_STRM_FFTA2:
             snprintf(temp,TEMPSIZE,"Final Fantasy Tactics A2 RIFF Header");
+            break;
+		case meta_STR_ASR:
+            snprintf(temp,TEMPSIZE,"Donkey Kong Jet Race KNON/WII Header");
             break;
         default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

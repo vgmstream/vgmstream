@@ -264,7 +264,8 @@ typedef enum {
 
 	meta_PS2_ASS,			/* ASS */
 	meta_PS2_SEG,			/* Eragon */
-	meta_NDS_STRM_FFTA2,	/* FFTA2 */
+	meta_NDS_STRM_FFTA2,	/* Final Fantasy Tactics A2 */
+	meta_STR_ASR,			/* Donkey Kong Jet Race */
 
 	meta_XBOX_WAVM,			/* XBOX WAVM File */
 	meta_XBOX_RIFF,			/* XBOX RIFF/WAVE File */

@@ -279,4 +279,6 @@ VGMSTREAM * init_vgmstream_ps2_seg(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_nds_strm_ffta2(STREAMFILE * streamFile);
 
+VGMSTREAM * init_vgmstream_str_asr(STREAMFILE * streamFile);
+
 #endif

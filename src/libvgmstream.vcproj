@@ -606,6 +606,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\str_asr.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\str_snds.c"
 					>
 				</File>
