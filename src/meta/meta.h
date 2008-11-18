@@ -277,4 +277,6 @@ VGMSTREAM * init_vgmstream_waa_wac_wad_wam(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_ps2_seg(STREAMFILE * streamFile);
 
+VGMSTREAM * init_vgmstream_nds_strm_ffta2(STREAMFILE * streamFile);
+
 #endif
