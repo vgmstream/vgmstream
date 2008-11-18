@@ -17,10 +17,9 @@ VGMSTREAM * init_vgmstream_str_asr(STREAMFILE *streamFile) {
 	goto fail;
 		
     /* check header */
-    if (read_32bitBE(0x00,streamFile) != 0x4B4E4F4E &&	/* "KNON" */
-		read_32bitBE(0x08,streamFile) != 0x00000000 &&	/* "0x0" */
-		read_32bitBE(0xCC,streamFile) != 0x57494920)	/* "WII\0x20" */
-	goto fail;
+    if (read_32bitBE(0x00,streamFile) != 0x4B4E4F4E &&			/* "KNON" */
+		read_32bitBE(0x04,streamFile) != 0x00000000 &&			/* "0x0" */
+		read_32bitBE(0x08,streamFile) != 0x57494920) goto fail;	/* "WII\0x20" */
 
 
     loop_flag = (read_32bitBE(0x44,streamFile)!=0);
