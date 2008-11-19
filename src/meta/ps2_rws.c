@@ -36,7 +36,7 @@ VGMSTREAM * init_vgmstream_rws(STREAMFILE *streamFile) {
 
 
 switch (read_32bitLE(0x38,streamFile)) {
-			case 1:
+			case 0x01:
 				vgmstream->sample_rate = read_32bitLE(0xE4,streamFile);
 			    vgmstream->num_samples = read_32bitLE(0x98,streamFile)/16*28/vgmstream->channels;
 				if (loop_flag) {
@@ -44,7 +44,7 @@ switch (read_32bitLE(0x38,streamFile)) {
 					vgmstream->loop_end_sample = read_32bitLE(0x98,streamFile)/16*28/vgmstream->channels;
 				}
 			break;
-			case 2:
+			case 0x02:
 				vgmstream->sample_rate = read_32bitLE(0x178,streamFile);
 			    vgmstream->num_samples = read_32bitLE(0x150,streamFile)/16*28/vgmstream->channels;
 				if (loop_flag) {

@@ -179,10 +179,15 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
             break;
         case coding_NGC_DSP:
 			if (channel_count > 1) {
+				if (interleave < 9) {
+			vgmstream->layout_type = layout_interleave_byte;
+            vgmstream->interleave_block_size = interleave;
+			} else if (interleave > 8) {
 			vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = interleave;
 				} else {
 			vgmstream->layout_type = layout_none;
+			}
 			}
 			break;
             
