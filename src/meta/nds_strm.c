@@ -19,6 +19,7 @@ VGMSTREAM * init_vgmstream_nds_strm(STREAMFILE *streamFile) {
 
     /* check header */
     if ((uint32_t)read_32bitBE(0x00,streamFile)!=0x5354524D)	/* STRM */
+        goto fail;
 	if (read_32bitBE(0x04,streamFile)!=0xFFFE0001) { /* Old Header Check */
 		goto fail;
 	} else if (read_32bitBE(0x04,streamFile)!=0xFEFF0001) { /* Some newer games have a new flag */

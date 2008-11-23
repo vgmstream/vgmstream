@@ -19,11 +19,11 @@ VGMSTREAM * init_vgmstream_waa_wac_wad_wam(STREAMFILE *streamFile) {
 		strcasecmp("wam",filename_extension(filename))) goto fail;
 
     /* check header */
-    if (read_32bitBE(0x00,streamFile) != 0x52494646 &&	/* "RIFF" */
-		read_32bitBE(0x08,streamFile) != 0x57415645 &&	/* "WAVE" */
-		read_32bitBE(0xCC,streamFile) != 0x666D7420 &&	/* "fmt\0x20" */
-		read_32bitBE(0x10,streamFile) != 0x12000000 &&	/* "0x12000000" */
-		read_16bitBE(0x14,streamFile) != 0xFEFF)		/* "FEFF" */
+    if (read_32bitBE(0x00,streamFile) != 0x52494646 ||	/* "RIFF" */
+		read_32bitBE(0x08,streamFile) != 0x57415645 ||	/* "WAVE" */
+		read_32bitBE(0xCC,streamFile) != 0x666D7420 ||	/* "fmt\0x20" */
+		read_32bitBE(0x10,streamFile) != 0x12000000 ||	/* "0x12000000" */
+		read_16bitBE(0x14,streamFile) != (int16_t)0xFEFF)		/* "FEFF" */
 	goto fail;
 
     loop_flag = 1;
