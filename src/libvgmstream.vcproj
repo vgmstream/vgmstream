@@ -661,6 +661,10 @@
 					RelativePath=".\meta\xwb.c"
 					>
 				</File>
+				<File
+					RelativePath=".\meta\zwdsp.c"
+					>
+				</File>
 			</Filter>
 		</Filter>
 		<Filter

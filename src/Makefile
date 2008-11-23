@@ -147,7 +147,8 @@ META_OBJS=meta/adx_header.o \
     meta/ps2_ass.o \
     meta/ngc_waa_wac_wad_wam.o \
     meta/ps2_seg.o \
-    meta/str_asr.o
+    meta/str_asr.o \
+    meta/zwdsp.o
 
 OBJECTS=vgmstream.o streamfile.o util.o $(CODING_OBJS) $(LAYOUT_OBJS) $(META_OBJS)
 

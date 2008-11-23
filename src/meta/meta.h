@@ -281,4 +281,6 @@ VGMSTREAM * init_vgmstream_nds_strm_ffta2(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_str_asr(STREAMFILE * streamFile);
 
+VGMSTREAM * init_vgmstream_zwdsp(STREAMFILE * streamFile);
+
 #endif

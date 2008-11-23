@@ -201,6 +201,7 @@ char * extension_list[] = {
 	"wam\0WAM Audio File (*.WAM)\0",
 	"seg\0SEG Audio File (*.SEG)\0",
 	"asr\0ASR Audio File (*.ASR)\0",
+	"zwdsp\0ZWDSP Audio File (*.ZWDSP)\0",
 };
 
 void about(HWND hwndParent) {
