@@ -149,7 +149,7 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
                                     interleave = 2;
                                     break;
                                 case 8:
-                                    coding_type = coding_PCM8;
+                                    coding_type = coding_PCM8_U_int;
                                     interleave = 1;
                                     break;
                                 default:
@@ -211,7 +211,7 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
         case coding_PCM16LE:
             sample_count = data_size/2/channel_count;
             break;
-        case coding_PCM8:
+        case coding_PCM8_U_int:
             sample_count = data_size/channel_count;
             break;
     }
@@ -226,7 +226,7 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
     vgmstream->sample_rate = sample_rate;
 
     vgmstream->coding_type = coding_type;
-    if (channel_count > 1)
+    if (channel_count > 1 && coding_type != coding_PCM8_U_int)
         vgmstream->layout_type = layout_interleave;
     else
         vgmstream->layout_type = layout_none;
