@@ -11,6 +11,7 @@ VGMSTREAM * init_vgmstream_waa_wac_wad_wam(STREAMFILE *streamFile) {
 	int channel_count;
 	int coef1_start;
 	int coef2_start;
+	int second_channel_start;
 
     streamFile->get_name(streamFile,filename,sizeof(filename));
     if (strcasecmp("waa",filename_extension(filename)) && 
@@ -43,30 +44,21 @@ VGMSTREAM * init_vgmstream_waa_wac_wad_wam(STREAMFILE *streamFile) {
         vgmstream->loop_start_sample = 0;
         vgmstream->loop_end_sample = (read_32bitLE(0x2A,streamFile))*14/8/channel_count;
     }
-		
-	 
-	if (channel_count > 1) {
-	 vgmstream->interleave_block_size = (read_32bitLE(0x2A,streamFile)/2)+0x2E;	
-	 vgmstream->layout_type = layout_interleave;
-    } else {
-        vgmstream->layout_type = layout_none;
-    }
-		
-
+		vgmstream->layout_type = layout_none;
 		vgmstream->meta_type = meta_WAA_WAC_WAD_WAM;
 
-
-		/* Retrieveing the coef tables */
+		/* Retrieveing the coef tables and the start of the second channel*/
 		coef1_start = 0x2E;
-		coef2_start = ((read_32bitLE(0x2A,streamFile)/2)+0x5C);
-		
+		coef2_start = (read_32bitLE(0x2A,streamFile)/2)+0x5C;
+		second_channel_start = coef2_start+0x2E;
+
 		{
         int i;
         for (i=0;i<16;i++)
             vgmstream->ch[0].adpcm_coef[i] = read_16bitBE(coef1_start+i*2,streamFile);
 		if (channel_count == 2) {
 		for (i=0;i<16;i++)
-            vgmstream->ch[1].adpcm_coef[i] = read_16bitBE(coef1_start+i*2,streamFile);
+            vgmstream->ch[1].adpcm_coef[i] = read_16bitBE(coef2_start+i*2,streamFile);
     }
 		}
 
@@ -80,14 +72,24 @@ VGMSTREAM * init_vgmstream_waa_wac_wad_wam(STREAMFILE *streamFile) {
         for (i=0;i<channel_count;i++) {
             vgmstream->ch[i].streamfile = file;
 
-            vgmstream->ch[i].channel_start_offset=
-                vgmstream->ch[i].offset=start_offset+
-                vgmstream->interleave_block_size*i;
+	/* The first channel */
+    vgmstream->ch[0].channel_start_offset=
+        vgmstream->ch[0].offset=start_offset;
 
-        }
-    }
+	/* The second channel */
+    if (channel_count == 2) {
+        vgmstream->ch[1].streamfile = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
 
-    return vgmstream;
+        if (!vgmstream->ch[1].streamfile) goto fail;
+
+        vgmstream->ch[1].channel_start_offset=
+            vgmstream->ch[1].offset=second_channel_start;
+		}
+	}
+    
+}
+
+	return vgmstream;
 
     /* clean up anything we may have opened */
 fail:
