@@ -58,15 +58,20 @@ VGMSTREAM * init_vgmstream_fsb1(STREAMFILE *streamFile) {
 
     
     /* open the file for reading */
-	{
+    {
         int i;
         STREAMFILE * file;
         file = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
         if (!file) goto fail;
         for (i=0;i<channel_count;i++) {
             vgmstream->ch[i].streamfile = file;
-		}
-	}
+
+            vgmstream->ch[i].channel_start_offset=
+                vgmstream->ch[i].offset=start_offset+
+                vgmstream->interleave_block_size*i;
+
+        }
+    }
 
     return vgmstream;
 
@@ -219,3 +224,94 @@ fail:
     if (vgmstream) close_vgmstream(vgmstream);
     return NULL;
 }
+
+
+
+/* FSB4 */
+VGMSTREAM * init_vgmstream_fsb4(STREAMFILE *streamFile) {
+    VGMSTREAM * vgmstream = NULL;
+    char filename[260];
+    off_t start_offset;
+
+	/* int fsb1_included_files; */
+	int fsb4_format;
+	int loop_flag = 0;
+	int channel_count;
+
+    /* check extension, case insensitive */
+    streamFile->get_name(streamFile,filename,sizeof(filename));
+    if (strcasecmp("fsb",filename_extension(filename))) goto fail;
+
+    /* check header */
+    if (read_32bitBE(0x00,streamFile) != 0x46534234) /* "FSB4" */
+        goto fail;
+ 
+	/* "Check if the FSB is used as
+	conatiner or as single file" */
+	if (read_32bitBE(0x04,streamFile) != 0x01000000)
+		goto fail;
+	
+	
+	if (read_32bitBE(0x60,streamFile) == 0x40008800) {
+		loop_flag = 1;
+	} else {
+		loop_flag = 0;
+		}
+	
+
+	channel_count = 2;
+
+	/* build the VGMSTREAM */
+    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+    if (!vgmstream) goto fail;
+	
+	
+	/* fill in the vital statistics */
+    start_offset = 0x80;
+	vgmstream->channels = channel_count;
+    vgmstream->sample_rate = read_32bitLE(0x64,streamFile);
+	fsb4_format = read_32bitBE(0x60,streamFile);
+	switch (fsb4_format) {
+		/* PS2 (Spider Man - Web of Shadows), Speed Racer */		
+		case 0x40008800:
+		vgmstream->coding_type = coding_PSX;
+		vgmstream->layout_type = layout_interleave;
+		vgmstream->interleave_block_size = 0x10;
+		vgmstream->num_samples = (read_32bitLE(0x54,streamFile))*28/16/channel_count;
+    if (loop_flag) {
+        vgmstream->loop_start_sample = 0;
+        vgmstream->loop_end_sample = read_32bitLE(0x50,streamFile);
+    }
+	break;
+		default:
+			goto fail;
+
+	}
+
+    vgmstream->meta_type = meta_FSB4;
+
+    
+    /* open the file for reading */
+    {
+        int i;
+        STREAMFILE * file;
+        file = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
+        if (!file) goto fail;
+        for (i=0;i<channel_count;i++) {
+            vgmstream->ch[i].streamfile = file;
+
+            vgmstream->ch[i].channel_start_offset=
+                vgmstream->ch[i].offset=start_offset+
+                vgmstream->interleave_block_size*i;
+
+        }
+    }
+
+    return vgmstream;
+
+    /* clean up anything we may have opened */
+fail:
+    if (vgmstream) close_vgmstream(vgmstream);
+    return NULL;
+}
+

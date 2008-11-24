@@ -20,15 +20,14 @@ VGMSTREAM * init_vgmstream_nds_strm(STREAMFILE *streamFile) {
     /* check header */
     if ((uint32_t)read_32bitBE(0x00,streamFile)!=0x5354524D)	/* STRM */
         goto fail;
-	if (read_32bitBE(0x04,streamFile)!=0xFFFE0001) { /* Old Header Check */
+	if ((uint32_t)read_32bitBE(0x04,streamFile)!=0xFFFE0001 &&	/* Old Header Check */
+		((uint32_t)read_32bitBE(0x04,streamFile)!=0xFEFF0001))	/* Some newer games have a new flag */
 		goto fail;
-	} else if (read_32bitBE(0x04,streamFile)!=0xFEFF0001) { /* Some newer games have a new flag */
-		goto fail;
-	}
+
 
 
     /* check for HEAD section */
-    if ((uint32_t)read_32bitBE(0x10,streamFile)!=0x48454144 || /* "HEAD" */
+    if ((uint32_t)read_32bitBE(0x10,streamFile)!=0x48454144 && /* "HEAD" */
             (uint32_t)read_32bitLE(0x14,streamFile)!=0x50) /* 0x50-sized head is all I've seen */
         goto fail;
 

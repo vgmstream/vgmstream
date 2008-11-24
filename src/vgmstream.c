@@ -82,6 +82,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_rws,
     init_vgmstream_fsb1,
 	init_vgmstream_fsb3,
+	init_vgmstream_fsb4,
     init_vgmstream_rwx,
     init_vgmstream_xwb,
     init_vgmstream_xa30,
@@ -1645,6 +1646,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
 		case meta_FSB3:
             snprintf(temp,TEMPSIZE,"FMOD Sample Bank (FSB3) Header");
+            break;
+		case meta_FSB4:
+            snprintf(temp,TEMPSIZE,"FMOD Sample Bank (FSB4) Header");
             break;
 		case meta_RWX:
             snprintf(temp,TEMPSIZE,"RWX Header");
