@@ -285,6 +285,9 @@ VGMSTREAM * init_vgmstream_musx_v201(STREAMFILE *streamFile) {
 	loop_detect = read_32bitBE(0x800,streamFile);
 	
 	switch (loop_detect) {
+		case 0x02000000:
+		loop_offsets = 0x8E0;
+	break;
 		case 0x03000000:
 		loop_offsets = 0x880;
 	break;

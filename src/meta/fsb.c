@@ -139,6 +139,7 @@ VGMSTREAM * init_vgmstream_fsb3(STREAMFILE *streamFile) {
 		case 0x41008800: /* PS2 (Flat Out) */
 		case 0x42008800: /* PS2 (Jackass - The Game) */
 		case 0x01008804: /* PS2 (Cold Fear) */
+		case 0x02008804: /* PS2 (Shrek - Smash 'n Crash */
 		vgmstream->coding_type = coding_PSX;
 		vgmstream->layout_type = layout_interleave;
 		vgmstream->interleave_block_size = 0x10;

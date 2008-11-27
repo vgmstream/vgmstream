@@ -272,6 +272,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\gca.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\gcsw.c"
 					>
 				</File>
