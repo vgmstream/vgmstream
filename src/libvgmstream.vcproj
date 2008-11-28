@@ -292,6 +292,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\ish_isd.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\ivb.c"
 					>
 				</File>
@@ -610,6 +614,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\spt_spd.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\str_asr.c"
 					>
 				</File>
@@ -663,6 +671,10 @@
 				</File>
 				<File
 					RelativePath=".\meta\xwb.c"
+					>
+				</File>
+				<File
+					RelativePath=".\meta\ydsp.c"
 					>
 				</File>
 				<File

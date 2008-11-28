@@ -243,6 +243,9 @@ typedef enum {
 	meta_PS2_OMU,			/* PS2 Int file with Header */
 	meta_PS2_XA2,			/* XA2 XG3 file */
 	meta_IDSP,				/* Chronicles of Narnia */
+	meta_SPT_SPD,			/* Variouis */
+	meta_ISH_ISD,			/* Various */
+	meta_YDSP,				/* WWE Day of Reckoning */
 
 	meta_IDSP2,				/* Chronicles of Narnia */
 	meta_WAA_WAC_WAD_WAM,	/* Beyond Good & Evil */

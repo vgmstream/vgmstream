@@ -203,6 +203,9 @@ char * extension_list[] = {
 	"asr\0ASR Audio File (*.ASR)\0",
 	"zwdsp\0ZWDSP Audio File (*.ZWDSP)\0",
 	"gca\0GCA Audio File (*.GCA)\0",
+	"spd\0SPD Audio File (*.SPD)\0",
+	"isd\0ISD Audio File (*.ISD)\0",
+	"ydsp\0YDSP Audio File (*.YDSP)\0",
 };
 
 void about(HWND hwndParent) {

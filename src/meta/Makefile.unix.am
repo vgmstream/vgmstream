@@ -118,4 +118,7 @@ libmeta_la_SOURCES += ps2_seg.c
 libmeta_la_SOURCES += str_asr.c
 libmeta_la_SOURCES += zwdsp.c
 libmeta_la_SOURCES += gca.c
+libmeta_la_SOURCES += ish_isd.c
+libmeta_la_SOURCES += spt_spd.c
+libmeta_la_SOURCES += ydsp.c
 EXTRA_DIST = meta.h
