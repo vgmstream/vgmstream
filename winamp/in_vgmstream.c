@@ -206,6 +206,7 @@ char * extension_list[] = {
 	"spd\0SPD Audio File (*.SPD)\0",
 	"isd\0ISD Audio File (*.ISD)\0",
 	"ydsp\0YDSP Audio File (*.YDSP)\0",
+	"gsb\0GSB Audio File (*.GSB)\0",
 };
 
 void about(HWND hwndParent) {

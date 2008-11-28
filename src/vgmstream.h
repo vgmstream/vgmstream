@@ -119,6 +119,7 @@ typedef enum {
 	layout_matx_blocked,
     layout_de2_blocked,
 	layout_xvas_blocked,
+
 #if 0
     layout_strm_blocked,    /* */
 #endif
@@ -245,6 +246,7 @@ typedef enum {
 	meta_IDSP,				/* Chronicles of Narnia */
 	meta_SPT_SPD,			/* Variouis */
 	meta_ISH_ISD,			/* Various */
+	meta_GSP_GSB,			/* Various */
 	meta_YDSP,				/* WWE Day of Reckoning */
 
 	meta_IDSP2,				/* Chronicles of Narnia */

@@ -293,4 +293,6 @@ VGMSTREAM * init_vgmstream_ish_isd(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_ydsp(STREAMFILE * streamFile);
 
+VGMSTREAM * init_vgmstream_gsp_gsb(STREAMFILE * streamFile);
+
 #endif

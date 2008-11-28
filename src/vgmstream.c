@@ -162,6 +162,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_gca,
 	init_vgmstream_spt_spd,
 	init_vgmstream_ish_isd,
+	init_vgmstream_gsp_gsb,
 	init_vgmstream_ydsp,
 };
 

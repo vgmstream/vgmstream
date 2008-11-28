@@ -60,7 +60,8 @@ VGMSTREAM * init_vgmstream_naomi_spsd(STREAMFILE *streamFile) {
             vgmstream->ch[i].channel_start_offset=
                 vgmstream->ch[i].offset=start_offset+
                 vgmstream->interleave_block_size*i;
-
+            	
+            	vgmstream->ch[i].adpcm_step_index = 0x7f;   /* AICA */
         }
     }
 
