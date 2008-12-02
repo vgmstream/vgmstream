@@ -122,4 +122,6 @@ libmeta_la_SOURCES += ish_isd.c
 libmeta_la_SOURCES += spt_spd.c
 libmeta_la_SOURCES += ydsp.c
 libmeta_la_SOURCES += gsp_gsb.c
+libmeta_la_SOURCES += msvp.c
+libmeta_la_SOURCES += ngc_ssm.c
 EXTRA_DIST = meta.h

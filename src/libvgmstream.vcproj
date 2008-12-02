@@ -308,6 +308,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\msvp.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\mus_acm.c"
 					>
 					<FileConfiguration
@@ -367,6 +371,10 @@
 				</File>
 				<File
 					RelativePath=".\meta\ngc_pdt.c"
+					>
+				</File>
+				<File
+					RelativePath=".\meta\ngc_ssm.c"
 					>
 				</File>
 				<File

@@ -153,7 +153,9 @@ META_OBJS=meta/adx_header.o \
     meta/ish_isd.o \
     meta/spt_spd.o \
     meta/ydsp.o \
-	meta/gsp_gsb.o
+    meta/gsp_gsb.o \
+    meta/ngc_ssm.o \
+    meta/msvp.o
 
 OBJECTS=vgmstream.o streamfile.o util.o $(CODING_OBJS) $(LAYOUT_OBJS) $(META_OBJS)
 

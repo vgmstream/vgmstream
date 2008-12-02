@@ -164,6 +164,8 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_ish_isd,
 	init_vgmstream_gsp_gsb,
 	init_vgmstream_ydsp,
+	init_vgmstream_msvp,
+	init_vgmstream_ngc_ssm,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -1852,6 +1854,12 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
 		case meta_YDSP:
             snprintf(temp,TEMPSIZE,"YDSP Header");
+            break;
+		case meta_MSVP:
+            snprintf(temp,TEMPSIZE,"MSVP Header");
+            break;
+		case meta_NGC_SSM:
+            snprintf(temp,TEMPSIZE,"SSM DSP Header");
             break;
         default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");
