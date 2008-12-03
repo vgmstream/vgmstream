@@ -466,6 +466,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\ps2_joe.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\ps2_kces.c"
 					>
 				</File>

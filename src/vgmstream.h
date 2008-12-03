@@ -254,6 +254,7 @@ typedef enum {
 	meta_GCA,				/* Metal Slug Anthology */
 	meta_MSVP,				/* Popcap Hits */
 	meta_NGC_SSM,			/* Golden Gashbell Full Power */
+	meta_PS2_JOE,			/* Wall-E / Pixar games */
 
 	meta_NGC_YMF,			/* WWE WrestleMania X8 */
     meta_SADL,              /* .sad */
@@ -262,10 +263,12 @@ typedef enum {
 	meta_PS2_MIHB,          /* Merged MIH+MIB */
 	meta_NGC_PDT,           /* Mario Party 6 */
 	meta_DC_ASD,			/* Miss Moonligh */
-	meta_NAOMI_SPSD,			/* Guilty Gear X */
+	meta_NAOMI_SPSD,		/* Guilty Gear X */
 	
 	meta_RSD2VAG,			/* RSD2VAG */
+	meta_RSD2PCMB,			/* RSD2PCMB */
 	meta_RSD2XADP,			/* RSD2XADP */
+	meta_RSD3PCM,			/* RSD3PCM */
 	meta_RSD4PCMB,			/* RSD4PCMB */
 	meta_RSD4PCM,			/* RSD4PCM */
 	meta_RSD4VAG,			/* RSD4VAG */

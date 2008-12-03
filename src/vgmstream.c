@@ -144,7 +144,9 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_naomi_spsd,
 
 	init_vgmstream_rsd2vag,
+	init_vgmstream_rsd2pcmb,
 	init_vgmstream_rsd2xadp,
+	init_vgmstream_rsd3pcm,
 	init_vgmstream_rsd4pcmb,
 	init_vgmstream_rsd4pcm,
 	init_vgmstream_rsd4vag,
@@ -166,6 +168,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_ydsp,
 	init_vgmstream_msvp,
 	init_vgmstream_ngc_ssm,
+	init_vgmstream_ps2_joe,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -1786,8 +1789,14 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
 		case meta_RSD2VAG:
             snprintf(temp,TEMPSIZE,"RSD2/VAG Header");
             break;
+		case meta_RSD2PCMB:
+            snprintf(temp,TEMPSIZE,"RSD2/PCMB Header");
+            break;
 		case meta_RSD2XADP:
             snprintf(temp,TEMPSIZE,"RSD2/XADP Header");
+            break;
+		case meta_RSD3PCM:
+            snprintf(temp,TEMPSIZE,"RSD3/PCM Header");
             break;
 		case meta_RSD4PCMB:
             snprintf(temp,TEMPSIZE,"RSD4/PCMB Header");
@@ -1860,6 +1869,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
 		case meta_NGC_SSM:
             snprintf(temp,TEMPSIZE,"SSM DSP Header");
+            break;
+		case meta_PS2_JOE:
+            snprintf(temp,TEMPSIZE,"Disney/Pixar JOE Header");
             break;
         default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");
