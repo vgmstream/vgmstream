@@ -30,6 +30,7 @@ VGMSTREAM * init_vgmstream_vs(STREAMFILE *streamFile) {
 	/* fill in the vital statistics */
     start_offset = 0x08;
 	vgmstream->channels = channel_count;
+	vgmstream->interleave_block_size=0x10;
     vgmstream->sample_rate = read_32bitLE(0x04,streamFile);
     vgmstream->coding_type = coding_PSX;
     /* vgmstream->num_samples = (get_streamfile_size(streamFile)-start_offset); */
@@ -41,7 +42,6 @@ VGMSTREAM * init_vgmstream_vs(STREAMFILE *streamFile) {
 	
 	
 	vgmstream->layout_type = layout_vs_blocked;
-	vgmstream->interleave_block_size = 0x2000;
 	vgmstream->meta_type = meta_VS;
 
     /* open the file for reading */
