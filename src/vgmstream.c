@@ -120,6 +120,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_xbox_stma,
     init_vgmstream_xbox_matx,
     init_vgmstream_de2,
+	init_vgmstream_vs,
     init_vgmstream_dc_str,
     init_vgmstream_xbox_xmu,
     init_vgmstream_xbox_xvas,
@@ -169,6 +170,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_msvp,
 	init_vgmstream_ngc_ssm,
 	init_vgmstream_ps2_joe,
+	init_vgmstream_vgs,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -523,6 +525,7 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
         case layout_ws_aud_blocked:
 		case layout_matx_blocked:
         case layout_de2_blocked:
+		case layout_vs_blocked:
 		case layout_xvas_blocked:
             render_vgmstream_blocked(buffer,sample_count,vgmstream);
             break;
@@ -1345,6 +1348,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         case layout_de2_blocked:
             snprintf(temp,TEMPSIZE,"de2 blocked");
             break;
+		case layout_vs_blocked:
+            snprintf(temp,TEMPSIZE,"vs blocked");
+            break;
 #ifdef VGM_USE_MPEG
         case layout_fake_mpeg:
             snprintf(temp,TEMPSIZE,"MPEG Audio stream with incorrect frame headers");
@@ -1756,6 +1762,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         case meta_DE2:
             snprintf(temp,TEMPSIZE,"gurumin .de2 with embedded funky RIFF");
             break;
+		case meta_VS:
+            snprintf(temp,TEMPSIZE,"Men in Black VS Header");
+            break;
         case meta_DC_STR:
             snprintf(temp,TEMPSIZE,"Sega Stream Asset Builder header");
             break;
@@ -1873,7 +1882,10 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
 		case meta_PS2_JOE:
             snprintf(temp,TEMPSIZE,"Disney/Pixar JOE Header");
             break;
-        default:
+		case meta_VGS:
+            snprintf(temp,TEMPSIZE,"Guitar Hero Encore Rocks the 80's Header");
+            break;
+		default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");
     }
     concatn(length,desc,temp);

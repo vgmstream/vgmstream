@@ -646,6 +646,14 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\vgs.c"
+					>
+				</File>
+				<File
+					RelativePath=".\meta\vs.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\wii_mus.c"
 					>
 				</File>
@@ -863,6 +871,10 @@
 				</File>
 				<File
 					RelativePath=".\layout\str_snds_blocked.c"
+					>
+				</File>
+				<File
+					RelativePath=".\layout\vs_blocked.c"
 					>
 				</File>
 				<File

@@ -210,6 +210,8 @@ char * extension_list[] = {
 	"msvp\0MSVP Audio File (*.MSVP)\0",
 	"ssm\0SSM Audio File (*.SSM)\0",
 	"joe\0JOE Audio File (*.JOE)\0",
+	"vgs\0VGS Audio File (*.VGS)\0",
+	"vs\0VS Audio File (*.VS)\0",
 };
 
 void about(HWND hwndParent) {

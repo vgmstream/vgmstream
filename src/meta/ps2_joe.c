@@ -31,7 +31,7 @@ VGMSTREAM * init_vgmstream_ps2_joe(STREAMFILE *streamFile) {
     if (read_32bitBE(0x0C,streamFile) != 0xCCCCCCCC)
         goto fail;
 
-    loop_flag = 0;
+    loop_flag = 1;
     channel_count = 2;
 
 	/* build the VGMSTREAM */

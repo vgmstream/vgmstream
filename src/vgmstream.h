@@ -119,6 +119,7 @@ typedef enum {
 	layout_matx_blocked,
     layout_de2_blocked,
 	layout_xvas_blocked,
+	layout_vs_blocked,
 
 #if 0
     layout_strm_blocked,    /* */
@@ -281,6 +282,7 @@ typedef enum {
 	meta_NDS_STRM_FFTA2,	/* Final Fantasy Tactics A2 */
 	meta_STR_ASR,			/* Donkey Kong Jet Race */
 	meta_ZWDSP,				/* Zack and Wiki */
+	meta_VGS,				/* Guitar Hero Encore - Rocks the 80s */
 
 	meta_XBOX_WAVM,			/* XBOX WAVM File */
 	meta_XBOX_RIFF,			/* XBOX RIFF/WAVE File */
@@ -332,6 +334,7 @@ typedef enum {
     meta_ACM,               /* InterPlay ACM header */
     meta_MUS_ACM,           /* MUS playlist of InterPlay ACM files */
     meta_DE2,               /* Falcom (Gurumin) .de2 */
+	meta_VS,				/* Men in Black .vs */
     meta_FFXI_BGW,          /* FFXI BGW */
     meta_FFXI_SPW,          /* FFXI SPW */
 } meta_t;

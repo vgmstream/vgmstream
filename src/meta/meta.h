@@ -211,6 +211,8 @@ VGMSTREAM * init_vgmstream_xbox_matx(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_de2(STREAMFILE *streamFile);
 
+VGMSTREAM * init_vgmstream_vs(STREAMFILE *streamFile);
+
 VGMSTREAM * init_vgmstream_xbox_xmu(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_xbox_xvas(STREAMFILE *streamFile);
@@ -304,5 +306,7 @@ VGMSTREAM * init_vgmstream_msvp(STREAMFILE * streamFile);
 VGMSTREAM * init_vgmstream_ngc_ssm(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_ps2_joe(STREAMFILE * streamFile);
+
+VGMSTREAM * init_vgmstream_vgs(STREAMFILE * streamFile);
 
 #endif
