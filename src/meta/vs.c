@@ -33,33 +33,32 @@ VGMSTREAM * init_vgmstream_vs(STREAMFILE *streamFile) {
 	vgmstream->interleave_block_size=0x10;
     vgmstream->sample_rate = read_32bitLE(0x04,streamFile);
     vgmstream->coding_type = coding_PSX;
-    /* vgmstream->num_samples = (get_streamfile_size(streamFile)-start_offset); */
-    
+
+#if 0
 	if (loop_flag) {
         vgmstream->loop_start_sample = 0;
         vgmstream->loop_end_sample = (read_32bitLE(0x0c,streamFile)-start_offset);
     }
-	
-	
+#endif
+
 	vgmstream->layout_type = layout_vs_blocked;
 	vgmstream->meta_type = meta_VS;
 
-    /* open the file for reading */
-    {
+    
+	/* open the file for reading */
+	{
         for (i=0;i<channel_count;i++) {
             vgmstream->ch[i].streamfile = streamFile->open(streamFile,filename,0x2000);
             if (!vgmstream->ch[i].streamfile) goto fail;
         }
     }
 	
-	/* STREAMFILE_DEFAULT_BUFFER_SIZE */
-	
 	/* Calc num_samples */
 	vs_block_update(start_offset,vgmstream);
 	vgmstream->num_samples=0;
 
 	do {
-		vgmstream->num_samples += vgmstream->current_block_size*28/16/channel_count;
+		vgmstream->num_samples += vgmstream->current_block_size*28/16;
 		vs_block_update(vgmstream->next_block_offset,vgmstream);
 	} while (vgmstream->next_block_offset<get_streamfile_size(streamFile));
 
