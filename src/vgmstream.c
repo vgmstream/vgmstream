@@ -171,6 +171,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_ngc_ssm,
 	init_vgmstream_ps2_joe,
 	init_vgmstream_vgs,
+	init_vgmstream_dc_wav_dcs,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -1884,6 +1885,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
 		case meta_VGS:
             snprintf(temp,TEMPSIZE,"Guitar Hero Encore Rocks the 80's Header");
+            break;
+		case meta_DC_WAV_DCS:
+            snprintf(temp,TEMPSIZE,"Evil Twin WAV+DCS Header");
             break;
 		default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

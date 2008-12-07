@@ -156,7 +156,10 @@ META_OBJS=meta/adx_header.o \
     meta/gsp_gsb.o \
     meta/ngc_ssm.o \
     meta/msvp.o \
-    meta/ps2_joe.o
+    meta/ps2_joe.o \
+    meta/vgs.o \
+    meta/vs.o \
+    meta/dc_wav_dcs.o
 
 OBJECTS=vgmstream.o streamfile.o util.o $(CODING_OBJS) $(LAYOUT_OBJS) $(META_OBJS)
 

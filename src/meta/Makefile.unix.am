@@ -125,4 +125,8 @@ libmeta_la_SOURCES += gsp_gsb.c
 libmeta_la_SOURCES += ngc_ssm.c
 libmeta_la_SOURCES += msvp.c
 libmeta_la_SOURCES += ps2_joe.c
+libmeta_la_SOURCES += vs.c
+libmeta_la_SOURCES += vgs.c
+libmeta_la_SOURCES += dc_wav_dcs.c
+
 EXTRA_DIST = meta.h

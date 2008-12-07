@@ -256,6 +256,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\dc_wav_dcs.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\de2.c"
 					>
 				</File>

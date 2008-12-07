@@ -22,5 +22,6 @@ liblayout_la_SOURCES += aix_layout.c
 liblayout_la_SOURCES += ims_block.c
 liblayout_la_SOURCES += de2_blocked.c
 liblayout_la_SOURCES += xvas_block.c
+liblayout_la_SOURCES += vs_blocked.c
 
 EXTRA_DIST = layout.h
