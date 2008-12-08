@@ -284,6 +284,7 @@ typedef enum {
 	meta_ZWDSP,				/* Zack and Wiki */
 	meta_VGS,				/* Guitar Hero Encore - Rocks the 80s */
 	meta_DC_WAV_DCS,		/* Evil Twin - Cypriens Chronicles (DC) */
+	meta_WII_SMP,			/* Mushroom Men - The Spore Wars */
 
 	meta_XBOX_WAVM,			/* XBOX WAVM File */
 	meta_XBOX_RIFF,			/* XBOX RIFF/WAVE File */

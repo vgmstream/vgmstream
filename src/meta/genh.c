@@ -267,8 +267,7 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
 
 					for (j=0;j<16;j++) 
             			vgmstream->ch[i].adpcm_coef[j] = read_16bitBE(coef[i]+j*2,streamFile);
-					
-					chstart_offset =start_offset+vgmstream->interleave_block_size*i;
+							chstart_offset =start_offset+vgmstream->interleave_block_size*i;
 					break;
 
 #ifdef VGM_USE_MPEG

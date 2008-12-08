@@ -213,6 +213,7 @@ char * extension_list[] = {
 	"vgs\0VGS Audio File (*.VGS)\0",
 	"vs\0VS Audio File (*.VS)\0",
 	"dcs\0DCS Audio File (*.DCS)\0",
+	"smp\0SMP Audio File (*.SMP)\0",
 };
 
 void about(HWND hwndParent) {
