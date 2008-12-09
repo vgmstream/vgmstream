@@ -19,8 +19,8 @@ VGMSTREAM * init_vgmstream_test(STREAMFILE *streamFile) {
         goto fail;
 #endif
 
-loop_flag = 0;
-    channel_count = 1;
+	loop_flag = 0;
+    channel_count = read_32bitLE(0x0c,streamFile);;
     
 	/* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
@@ -38,7 +38,7 @@ loop_flag = 0;
     }
 
     vgmstream->layout_type = layout_test_blocked;
-    /* vgmstream->interleave_block_size = 0x10; */
+    vgmstream->interleave_block_size = 0x10; 
     vgmstream->meta_type = meta_TEST;
 
 	/* open the file for reading */
@@ -55,7 +55,7 @@ loop_flag = 0;
 	vgmstream->num_samples=0;
 
 	do {
-		vgmstream->num_samples += vgmstream->current_block_size*28/16/channel_count;
+		vgmstream->num_samples += vgmstream->current_block_size*28/16;
 		test_block_update(vgmstream->next_block_offset,vgmstream);
 	} while (vgmstream->next_block_offset<get_streamfile_size(streamFile));
 
