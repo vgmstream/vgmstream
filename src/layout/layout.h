@@ -30,6 +30,8 @@ void de2_block_update(off_t block_offset, VGMSTREAM * vgmstream);
 
 void vs_block_update(off_t block_offset, VGMSTREAM * vgmstream);
 
+void test_block_update(off_t block_offset, VGMSTREAM * vgmstream);
+
 void xvas_block_update(off_t block_offset, VGMSTREAM * vgmstream);
 
 void render_vgmstream_interleave(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstream);
