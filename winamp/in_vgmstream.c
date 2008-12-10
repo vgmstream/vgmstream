@@ -71,7 +71,7 @@ int decode_pos_samples = 0;
 int stream_length_samples = 0;
 int fade_samples = 0;
 
-#define EXTENSION_LIST_SIZE 4096
+#define EXTENSION_LIST_SIZE 8192
 char working_extension_list[EXTENSION_LIST_SIZE] = {0};
 char * extension_list[] = {
     "adx\0ADX Audio File (*.ADX)\0",
@@ -185,6 +185,7 @@ char * extension_list[] = {
 	"xa2\0XA2 Audio File (*.XA2)\0",
 	"idsp\0IDSP Audio File (*.IDSP)\0",
 	"xsf\0XSF Audio File (*.XSF)\0",
+	"ss7\0SS7 Audio File (*.SS7)\0",
 	"ymf\0YMF Audio File (*.YMF)\0",
 	"ccc\0CCC Audio File (*.CCC)\0",
 	"fag\0FAG Audio File (*.FAG)\0",

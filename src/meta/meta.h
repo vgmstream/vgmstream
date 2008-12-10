@@ -233,6 +233,8 @@ VGMSTREAM * init_vgmstream_ps2_omu(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_ps2_xa2(STREAMFILE * streamFile);
 
+VGMSTREAM * init_vgmstream_ss_stream(STREAMFILE * streamFile);
+
 VGMSTREAM * init_vgmstream_idsp(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_idsp2(STREAMFILE * streamFile);
@@ -246,7 +248,6 @@ VGMSTREAM * init_vgmstream_ps2_ccc(STREAMFILE * streamFile);
 VGMSTREAM * init_vgmstream_psx_fag(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_ps2_mihb(STREAMFILE * streamFile);
-
 VGMSTREAM * init_vgmstream_ngc_pdt(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_wii_mus(STREAMFILE * streamFile);

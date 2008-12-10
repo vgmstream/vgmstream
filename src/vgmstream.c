@@ -173,6 +173,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_vgs,
 	init_vgmstream_dc_wav_dcs,
 	init_vgmstream_wii_smp,
+	init_vgmstream_ss_stream,
 	init_vgmstream_test,
 };
 
