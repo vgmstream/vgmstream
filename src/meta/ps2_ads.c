@@ -77,6 +77,20 @@ VGMSTREAM * init_vgmstream_ps2_ads(STREAMFILE *streamFile) {
 	if(get_streamfile_size(streamFile)-read_32bitLE(0x24,streamFile)>=0x800)
 		start_offset=0x800;
 
+	if((vgmstream->coding_type == coding_PSX) && (start_offset==0x28)) {
+		start_offset=0x800;
+		for(i=0;i<4;i++) {
+			if(read_32bitLE(0x800+(i*4),streamFile)!=0) {
+				start_offset=0x28;
+				break;
+			}
+		}
+	} 
+
+	/* expect pcm format allways start @ 0x800, don't know if it's true :P */
+	if(vgmstream->coding_type == coding_PCM16LE)
+		start_offset=0x800;
+
     /* open the file for reading by each channel */
     {
         for (i=0;i<channel_count;i++) {

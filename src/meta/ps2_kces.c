@@ -37,8 +37,13 @@ VGMSTREAM * init_vgmstream_ps2_kces(STREAMFILE *streamFile) {
         vgmstream->loop_end_sample = read_32bitLE(0x0C,streamFile)*28/16/channel_count;
     }
 
-    vgmstream->layout_type = layout_interleave;
-    vgmstream->interleave_block_size = read_32bitLE(0x24,streamFile);
+
+	if(vgmstream->channels==1) {
+		vgmstream->layout_type=layout_none;
+	} else {
+		vgmstream->layout_type = layout_interleave;
+		vgmstream->interleave_block_size = read_32bitLE(0x24,streamFile);
+	}
     vgmstream->meta_type = meta_PS2_KCES;
 
     /* open the file for reading */
