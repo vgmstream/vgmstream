@@ -129,5 +129,6 @@ libmeta_la_SOURCES += vs.c
 libmeta_la_SOURCES += vgs.c
 libmeta_la_SOURCES += dc_wav_dcs.c
 libmeta_la_SOURCES += wii_smp.c
+libmeta_la_SOURCES += _test.c
 
 EXTRA_DIST = meta.h

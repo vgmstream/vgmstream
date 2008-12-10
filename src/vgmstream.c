@@ -132,7 +132,6 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_kraw,
 	init_vgmstream_ps2_omu,
 	init_vgmstream_ps2_xa2,
-	init_vgmstream_ss_stream,
 	init_vgmstream_idsp,
 	init_vgmstream_idsp2,
 	init_vgmstream_ngc_ymf,
