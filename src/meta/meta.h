@@ -314,6 +314,6 @@ VGMSTREAM * init_vgmstream_dc_wav_dcs(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_wii_smp(STREAMFILE * streamFile);
 
-VGMSTREAM * init_vgmstream_test(STREAMFILE * streamFile);
+VGMSTREAM * init_vgmstream_emff(STREAMFILE * streamFile);
 
 #endif

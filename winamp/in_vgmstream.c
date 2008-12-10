@@ -215,7 +215,7 @@ char * extension_list[] = {
 	"vs\0VS Audio File (*.VS)\0",
 	"dcs\0DCS Audio File (*.DCS)\0",
 	"smp\0SMP Audio File (*.SMP)\0",
-	"test\0TEST Audio File (*.TEST)\0",
+	"emff\0EMFF Audio File (*.EMFF)\0",
 };
 
 void about(HWND hwndParent) {
