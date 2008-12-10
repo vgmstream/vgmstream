@@ -35,7 +35,7 @@ LAYOUT_OBJS=layout/ast_blocked.o \
     layout/de2_blocked.o \
     layout/xvas_block.o \
     layout/vs_blocked.o \
-    layout/test_blocked.o
+    layout/emff_blocked.o
 
 META_OBJS=meta/adx_header.o \
     meta/afc_header.o \
@@ -163,7 +163,8 @@ META_OBJS=meta/adx_header.o \
     meta/vs.o \
     meta/dc_wav_dcs.o \
     meta/wii_smp.o \
-    meta/_test.o
+    meta/ss_stream.o \
+    meta/emff.o
 
 OBJECTS=vgmstream.o streamfile.o util.o $(CODING_OBJS) $(LAYOUT_OBJS) $(META_OBJS)
 
