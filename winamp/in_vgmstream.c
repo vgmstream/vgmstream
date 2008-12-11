@@ -71,7 +71,7 @@ int decode_pos_samples = 0;
 int stream_length_samples = 0;
 int fade_samples = 0;
 
-#define EXTENSION_LIST_SIZE 8192
+#define EXTENSION_LIST_SIZE 9216
 char working_extension_list[EXTENSION_LIST_SIZE] = {0};
 char * extension_list[] = {
     "adx\0ADX Audio File (*.ADX)\0",
@@ -216,6 +216,7 @@ char * extension_list[] = {
 	"dcs\0DCS Audio File (*.DCS)\0",
 	"smp\0SMP Audio File (*.SMP)\0",
 	"emff\0EMFF Audio File (*.EMFF)\0",
+	"thp\0THP Audio File (*.THP)\0",
 };
 
 void about(HWND hwndParent) {

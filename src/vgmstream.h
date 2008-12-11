@@ -121,6 +121,7 @@ typedef enum {
 	layout_xvas_blocked,
 	layout_vs_blocked,
 	layout_emff_blocked,
+	layout_thp_blocked,
 
 #if 0
     layout_strm_blocked,    /* */
@@ -166,6 +167,8 @@ typedef enum {
     meta_AST,               /* AST */
     meta_RWSD,              /* single-stream RWSD */
     meta_RSTM_SPM,          /* RSTM with 44->22khz hack */
+	meta_THP,
+
     /* CRI ADX */
     meta_ADX_03,            /* ADX "type 03" */
     meta_ADX_04,            /* ADX "type 04" */
@@ -429,6 +432,8 @@ typedef struct {
     int32_t ws_output_size;         /* output bytes for this block */
 
     void * start_vgmstream;    /* a copy of the VGMSTREAM as it was at the beginning of the stream */
+
+	int32_t thpNextFrameSize;
 
     /* Data the codec needs for the whole stream. This is for codecs too
      * different from vgmstream's structure to be reasonably shoehorned into

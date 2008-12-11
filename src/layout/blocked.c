@@ -94,6 +94,9 @@ void render_vgmstream_blocked(sample * buffer, int32_t sample_count, VGMSTREAM *
 				case layout_xvas_blocked:
 					xvas_block_update(vgmstream->next_block_offset,vgmstream);
 					break;
+				case layout_thp_blocked:
+					thp_block_update(vgmstream->next_block_offset,vgmstream);
+					break;
 				default:
                     break;
             }

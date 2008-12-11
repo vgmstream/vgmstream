@@ -175,6 +175,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_wii_smp,
 	init_vgmstream_emff,
 	init_vgmstream_ss_stream,
+	init_vgmstream_thp,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -532,6 +533,7 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
 		case layout_vs_blocked:
 		case layout_emff_blocked:
 		case layout_xvas_blocked:
+		case layout_thp_blocked:
             render_vgmstream_blocked(buffer,sample_count,vgmstream);
             break;
         case layout_interleave_byte:
@@ -1359,6 +1361,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         case layout_emff_blocked:
             snprintf(temp,TEMPSIZE,"EMFF blocked");
             break;
+        case layout_thp_blocked:
+            snprintf(temp,TEMPSIZE,"THP Movie Audio blocked");
+            break;
 #ifdef VGM_USE_MPEG
         case layout_fake_mpeg:
             snprintf(temp,TEMPSIZE,"MPEG Audio stream with incorrect frame headers");
@@ -1901,6 +1906,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
 		case meta_EMFF:
             snprintf(temp,TEMPSIZE,"Eidos Music File Format Header");
+            break;
+		case meta_THP:
+            snprintf(temp,TEMPSIZE,"THP Movie File Format Header");
             break;
 		default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

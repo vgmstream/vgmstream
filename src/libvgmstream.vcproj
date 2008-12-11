@@ -659,6 +659,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\thp.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\vgs.c"
 					>
 				</File>
@@ -892,6 +896,10 @@
 				</File>
 				<File
 					RelativePath=".\layout\str_snds_blocked.c"
+					>
+				</File>
+				<File
+					RelativePath=".\layout\thp_blocked.c"
 					>
 				</File>
 				<File
