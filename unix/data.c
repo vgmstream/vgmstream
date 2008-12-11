@@ -141,6 +141,20 @@ gchar *vgmstream_exts [] = {
   "seg",
   "asr",
   "zwdsp",
+  "gca",
+  "spd",
+  "isd",
+  "ydsp",
+  "gsb",
+  "msvp",
+  "ssm",
+  "joe",
+  "vgs",
+  "vs",
+  "dcs",
+  "smp",
+  "emff",
+  "thp",
   /* terminator */
   NULL
 };

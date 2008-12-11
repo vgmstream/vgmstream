@@ -1,4 +1,5 @@
 #include "meta.h"
+#include "../layout/layout.h"
 #include "../util.h"
 
 /* THP (Just play audio from .thp movie file) 
