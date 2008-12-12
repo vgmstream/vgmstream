@@ -57,7 +57,7 @@ VGMSTREAM * init_vgmstream_wii_sts(STREAMFILE *streamFile) {
 
 	// First channel
 	for(j=0;j<16;j++) {
-		vgmstream->ch[0].adpcm_coef[j]=read_16bitBE(0x1E+(j*2),streamFile);
+		vgmstream->ch[0].adpcm_coef[j]=read_16bitBE(0x1E + (j*2),streamFile);
 	}
 	
 	// Second channel ?

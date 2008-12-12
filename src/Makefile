@@ -166,7 +166,8 @@ META_OBJS=meta/adx_header.o \
     meta/wii_smp.o \
     meta/ss_stream.o \
     meta/emff.o \
-    meta/thp.o
+    meta/thp.o \
+    meta/wii_sts.o
 
 OBJECTS=vgmstream.o streamfile.o util.o $(CODING_OBJS) $(LAYOUT_OBJS) $(META_OBJS)
 
