@@ -17,7 +17,8 @@ VGMSTREAM * init_vgmstream_thp(STREAMFILE *streamFile) {
 	uint32_t		numComponents;
 	off_t			componentTypeOffset;
 	off_t			componentDataOffset;
-
+	
+	char			thpVersion;
 	char			componentTypes[16];
 
     int				loop_flag;
@@ -34,6 +35,7 @@ VGMSTREAM * init_vgmstream_thp(STREAMFILE *streamFile) {
         goto fail;
 
 	maxAudioSize = read_32bitBE(0x0C,streamFile);
+	thpVersion = read_8bit(0x06,streamFile);
 
 	if(maxAudioSize==0) // no sound
 		goto fail;
@@ -61,8 +63,12 @@ VGMSTREAM * init_vgmstream_thp(STREAMFILE *streamFile) {
 			vgmstream->sample_rate=read_32bitBE(componentDataOffset+4,streamFile);
 			vgmstream->num_samples=read_32bitBE(componentDataOffset+8,streamFile);
 			break;
-		} else
-			componentDataOffset+=0x0c;
+		} else {
+			if(thpVersion==0x10) 
+				componentDataOffset+=0x0c;
+			else
+				componentDataOffset+=0x08;
+		}
 	}
 
     /* open the file for reading */
