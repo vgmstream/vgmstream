@@ -679,6 +679,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\wii_sts.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\ws_aud.c"
 					>
 				</File>

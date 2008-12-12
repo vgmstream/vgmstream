@@ -318,4 +318,6 @@ VGMSTREAM * init_vgmstream_emff(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_thp(STREAMFILE *streamFile);
 
+VGMSTREAM * init_vgmstream_wii_sts(STREAMFILE *streamFile);
+
 #endif

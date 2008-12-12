@@ -344,6 +344,7 @@ typedef enum {
 	meta_VS,				/* Men in Black .vs */
     meta_FFXI_BGW,          /* FFXI BGW */
     meta_FFXI_SPW,          /* FFXI SPW */
+	meta_STS_WII,			/* Shikigami No Shiro 3 STS Audio File */
 } meta_t;
 
 typedef struct {

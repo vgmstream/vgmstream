@@ -176,6 +176,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_emff,
 	init_vgmstream_ss_stream,
 	init_vgmstream_thp,
+	init_vgmstream_wii_sts,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -1909,6 +1910,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
 		case meta_THP:
             snprintf(temp,TEMPSIZE,"THP Movie File Format Header");
+            break;
+		case meta_STS_WII:
+            snprintf(temp,TEMPSIZE,"Shikigami no Shiro (WII) Header");
             break;
 		default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");
