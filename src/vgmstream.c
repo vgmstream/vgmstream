@@ -173,7 +173,8 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_vgs,
 	init_vgmstream_dc_wav_dcs,
 	init_vgmstream_wii_smp,
-	init_vgmstream_emff,
+	init_vgmstream_emff_ps2,
+	init_vgmstream_emff_ngc,
 	init_vgmstream_ss_stream,
 	init_vgmstream_thp,
 	init_vgmstream_wii_sts,
@@ -532,7 +533,8 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
 		case layout_matx_blocked:
         case layout_de2_blocked:
 		case layout_vs_blocked:
-		case layout_emff_blocked:
+		case layout_emff_ps2_blocked:
+		case layout_emff_ngc_blocked:
 		case layout_xvas_blocked:
 		case layout_thp_blocked:
             render_vgmstream_blocked(buffer,sample_count,vgmstream);
@@ -1359,8 +1361,11 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
 		case layout_vs_blocked:
             snprintf(temp,TEMPSIZE,"vs blocked");
             break;
-        case layout_emff_blocked:
-            snprintf(temp,TEMPSIZE,"EMFF blocked");
+        case layout_emff_ps2_blocked:
+            snprintf(temp,TEMPSIZE,"EMFF (PS2) blocked");
+            break;
+        case layout_emff_ngc_blocked:
+            snprintf(temp,TEMPSIZE,"EMFF (NGC/WII) blocked");
             break;
         case layout_thp_blocked:
             snprintf(temp,TEMPSIZE,"THP Movie Audio blocked");
@@ -1905,7 +1910,8 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
 		case meta_WII_SMP:
             snprintf(temp,TEMPSIZE,"SMP DSP Header");
             break;
-		case meta_EMFF:
+		case meta_EMFF_PS2:
+		case meta_EMFF_NGC:
             snprintf(temp,TEMPSIZE,"Eidos Music File Format Header");
             break;
 		case meta_THP:
