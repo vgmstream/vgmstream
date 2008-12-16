@@ -36,7 +36,8 @@ LAYOUT_OBJS=layout/ast_blocked.o \
     layout/xvas_block.o \
     layout/vs_blocked.o \
     layout/emff_blocked.o \
-    layout/thp_blocked.o
+    layout/thp_blocked.o \
+    layout/gsb_blocked.o
 
 META_OBJS=meta/adx_header.o \
     meta/afc_header.o \
