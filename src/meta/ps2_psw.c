@@ -1,12 +1,12 @@
 #include "meta.h"
 #include "../util.h"
 
-/* PSW (from Rayman Raving Rabbids) */
+/* PSW (from Rayman Raving Rabbids)
+...coefs are missing for the dsp type... */
 VGMSTREAM * init_vgmstream_ps2_psw(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[260];
     off_t start_offset;
-
     int loop_flag = 0;
 	int channel_count;
 
@@ -27,7 +27,7 @@ VGMSTREAM * init_vgmstream_ps2_psw(STREAMFILE *streamFile) {
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
-
+	/* fill in the vital statistics */
 	switch ((uint16_t)read_16bitBE(0x14,streamFile)) {
 		case 0xFFFF:
 		start_offset = 0x2E;
@@ -57,17 +57,11 @@ VGMSTREAM * init_vgmstream_ps2_psw(STREAMFILE *streamFile) {
 		vgmstream->layout_type = layout_interleave;
 		vgmstream->interleave_block_size = 0x12C00;
 		vgmstream->meta_type = meta_PS2_PSW;
-	
-
-	
 
 	break;
 default:
 	goto fail;
 }
-	
-			/* fill in the vital statistics */
-
 
     /* open the file for reading */
     {

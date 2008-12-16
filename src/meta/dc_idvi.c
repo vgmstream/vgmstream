@@ -30,23 +30,21 @@ VGMSTREAM * init_vgmstream_dc_idvi(STREAMFILE *streamFile) {
     start_offset = 0x800;
     vgmstream->sample_rate = read_32bitLE(0x08,streamFile);
     vgmstream->coding_type = coding_INT_DVI_IMA;
-
     vgmstream->num_samples = (get_streamfile_size(streamFile)-start_offset);
-    
 	if (loop_flag) {
         vgmstream->loop_start_sample = read_32bitLE(0x0C,streamFile);
         vgmstream->loop_end_sample = (get_streamfile_size(streamFile)-start_offset);
     }
+    vgmstream->meta_type = meta_DC_IDVI;
 
-    vgmstream->interleave_block_size = 0x400;
-    if (channel_count > 1) {
-        vgmstream->interleave_smallblock_size = ((get_streamfile_size(streamFile)-start_offset)%(vgmstream->channels*vgmstream->interleave_block_size))/vgmstream->channels;
+	/* Calculating the short block... */
+	if (channel_count > 1) {
+		vgmstream->interleave_block_size = 0x400;
+		vgmstream->interleave_smallblock_size = ((get_streamfile_size(streamFile)-start_offset)%(vgmstream->channels*vgmstream->interleave_block_size))/vgmstream->channels;
         vgmstream->layout_type = layout_interleave_shortblock;
     } else {
         vgmstream->layout_type = layout_none;
     }
-
-    vgmstream->meta_type = meta_DC_IDVI;
 
     /* open the file for reading */
     {

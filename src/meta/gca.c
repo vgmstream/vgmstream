@@ -6,9 +6,8 @@ VGMSTREAM * init_vgmstream_gca(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[260];
     off_t start_offset;
-
     int loop_flag = 0;
-	int channel_count;
+	int channel_count = 1;
 
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
@@ -17,9 +16,6 @@ VGMSTREAM * init_vgmstream_gca(STREAMFILE *streamFile) {
     /* check header */
     if (read_32bitBE(0x00,streamFile) != 0x47434131) /* "GCA1" */
         goto fail;
-
-    loop_flag = 0;
-    channel_count = 1;
     
 	/* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
@@ -49,7 +45,7 @@ VGMSTREAM * init_vgmstream_gca(STREAMFILE *streamFile) {
         for (i=0;i<channel_count;i++) {
             vgmstream->ch[i].streamfile = file;
 
-            vgmstream->ch[i].channel_start_offset=
+			vgmstream->ch[i].channel_start_offset=
                 vgmstream->ch[i].offset=start_offset+
                 vgmstream->interleave_block_size*i;
 
@@ -63,7 +59,6 @@ VGMSTREAM * init_vgmstream_gca(STREAMFILE *streamFile) {
             vgmstream->ch[0].adpcm_coef[i] = read_16bitBE(0x04+i*2,streamFile);
         }
     }
-        
 
     return vgmstream;
 

@@ -1,15 +1,7 @@
 #include "meta.h"
 #include "../util.h"
 
-/*
-
-JOE (found in Wall-E and some more Pixar games)
-
-... 2008-12-03 misses loop searching for now...
-
-*/
-
-
+/* JOE (found in Wall-E and some more Pixar games) */
 VGMSTREAM * init_vgmstream_ps2_joe(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[260];
@@ -19,7 +11,6 @@ VGMSTREAM * init_vgmstream_ps2_joe(STREAMFILE *streamFile) {
 	off_t	loopEnd = 0;
 	off_t	readOffset = 0;
 	size_t	fileLength;
-
     int loop_flag;
 	int channel_count;
 
@@ -65,8 +56,6 @@ VGMSTREAM * init_vgmstream_ps2_joe(STREAMFILE *streamFile) {
 
 	} while (streamFile->get_offset(streamFile)<(int32_t)fileLength);
 	
-
-	
 	if(loopStart == 0) {
 		loop_flag = 0;
 		vgmstream->num_samples = read_32bitLE(0x4,streamFile)*28/16/channel_count;
@@ -76,11 +65,9 @@ VGMSTREAM * init_vgmstream_ps2_joe(STREAMFILE *streamFile) {
         	vgmstream->loop_end_sample = (loopEnd-start_offset+0x20)*28/16/channel_count;
     	}
 
-
-
-    vgmstream->layout_type = layout_interleave;
-    vgmstream->interleave_block_size = 0x10;
-    vgmstream->meta_type = meta_PS2_JOE;
+	vgmstream->layout_type = layout_interleave;
+	vgmstream->interleave_block_size = 0x10;
+	vgmstream->meta_type = meta_PS2_JOE;
 
     /* open the file for reading */
     {

@@ -23,7 +23,6 @@ VGMSTREAM * init_vgmstream_dc_str(STREAMFILE *streamFile) {
     channel_count = read_32bitLE(0x18,streamFile);
 	samples=read_32bitLE(0x08,streamFile);
 
-
 	vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
@@ -66,7 +65,6 @@ VGMSTREAM * init_vgmstream_dc_str(STREAMFILE *streamFile) {
     vgmstream->sample_rate = read_32bitLE(0x04,streamFile);
 	vgmstream->meta_type = meta_DC_STR;
     
-
     /* open the file for reading */
     {
         int i;

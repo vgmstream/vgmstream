@@ -6,7 +6,6 @@ VGMSTREAM * init_vgmstream_ngc_ymf(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[260];
     off_t start_offset;
-
     int loop_flag;
 	int channel_count;
 
@@ -26,7 +25,7 @@ VGMSTREAM * init_vgmstream_ngc_ymf(STREAMFILE *streamFile) {
     if (!vgmstream) goto fail;
 
 	/* fill in the vital statistics */
-    start_offset = 0x180; /* read_32bitBE(0x00,streamFile); */
+    start_offset = 0x180;
 	vgmstream->channels = channel_count;
     vgmstream->sample_rate = read_32bitBE(0xA8,streamFile);
     vgmstream->coding_type = coding_NGC_DSP;
@@ -37,7 +36,7 @@ VGMSTREAM * init_vgmstream_ngc_ymf(STREAMFILE *streamFile) {
     }
 
     vgmstream->layout_type = layout_interleave;
-    vgmstream->interleave_block_size = 0x20000; /* read_32bitBE(0x04,streamFile); */
+    vgmstream->interleave_block_size = 0x20000;
     vgmstream->meta_type = meta_NGC_YMF;
 
 

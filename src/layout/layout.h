@@ -34,6 +34,8 @@ void emff_ps2_block_update(off_t block_offset, VGMSTREAM * vgmstream);
 
 void emff_ngc_block_update(off_t block_offset, VGMSTREAM * vgmstream);
 
+void gsb_block_update(off_t block_offset, VGMSTREAM * vgmstream);
+
 void xvas_block_update(off_t block_offset, VGMSTREAM * vgmstream);
 
 void thp_block_update(off_t block_offset, VGMSTREAM * vgmstream);

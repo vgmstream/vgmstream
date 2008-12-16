@@ -6,7 +6,6 @@ VGMSTREAM * init_vgmstream_kraw(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[260];
     off_t start_offset;
-
     int loop_flag = 0;
 	int channel_count;
 
@@ -37,7 +36,6 @@ VGMSTREAM * init_vgmstream_kraw(STREAMFILE *streamFile) {
     }
 
     vgmstream->layout_type = layout_none;
-    /* vgmstream->interleave_block_size = 0x10; */
     vgmstream->meta_type = meta_KRAW;
 
     /* open the file for reading */

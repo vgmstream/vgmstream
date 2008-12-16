@@ -1,6 +1,10 @@
 #include "meta.h"
 #include "../util.h"
 
+/* comment from hcs:
+((uint8_t)read_8bit(offset, file))&0xf for the low nibble, 
+((uint8_t)read_8bit(offset, file)) >> 4 for the high one
+*/
 /* FSB1 */
 VGMSTREAM * init_vgmstream_fsb1(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;

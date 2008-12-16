@@ -122,6 +122,7 @@ typedef enum {
 	layout_vs_blocked,
 	layout_emff_ps2_blocked,
 	layout_emff_ngc_blocked,
+	layout_gsb_blocked,
 	layout_thp_blocked,
 
 #if 0
@@ -292,7 +293,7 @@ typedef enum {
 	meta_WII_SMP,			/* Mushroom Men - The Spore Wars */
 	meta_EMFF_PS2,			/* Eidos Music File Format for PS2*/
 	meta_EMFF_NGC,			/* Eidos Music File Format for NGC/WII */
-
+	
 	meta_XBOX_WAVM,			/* XBOX WAVM File */
 	meta_XBOX_RIFF,			/* XBOX RIFF/WAVE File */
 	meta_XBOX_WVS,			/* XBOX WVS */

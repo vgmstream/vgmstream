@@ -4,7 +4,6 @@
 VGMSTREAM * init_vgmstream_ps2_bmdx(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[260];
-
     int loop_flag=0;
 	int channel_count;
     off_t start_offset;

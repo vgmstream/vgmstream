@@ -535,6 +535,7 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
 		case layout_vs_blocked:
 		case layout_emff_ps2_blocked:
 		case layout_emff_ngc_blocked:
+		case layout_gsb_blocked:
 		case layout_xvas_blocked:
 		case layout_thp_blocked:
             render_vgmstream_blocked(buffer,sample_count,vgmstream);
@@ -1366,6 +1367,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case layout_emff_ngc_blocked:
             snprintf(temp,TEMPSIZE,"EMFF (NGC/WII) blocked");
+            break;
+        case layout_gsb_blocked:
+            snprintf(temp,TEMPSIZE,"GSB blocked");
             break;
         case layout_thp_blocked:
             snprintf(temp,TEMPSIZE,"THP Movie Audio blocked");

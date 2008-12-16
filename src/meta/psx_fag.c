@@ -6,7 +6,6 @@ VGMSTREAM * init_vgmstream_psx_fag(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[260];
     off_t start_offset;
-
     int loop_flag = 0;
 	int channel_count;
 
@@ -15,6 +14,8 @@ VGMSTREAM * init_vgmstream_psx_fag(STREAMFILE *streamFile) {
     if (strcasecmp("fag",filename_extension(filename))) goto fail;
 
     /* check header */
+
+	/* Look if there's more than 1 one file... */
     if (read_32bitBE(0x00,streamFile) != 0x01000000)
         goto fail;
 

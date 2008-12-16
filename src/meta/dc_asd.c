@@ -15,18 +15,16 @@ VGMSTREAM * init_vgmstream_dc_asd(STREAMFILE *streamFile) {
     if (strcasecmp("asd",filename_extension(filename))) goto fail;
 
 	/* check header */
-    if (read_32bitBE(0x20,streamFile) != 0x00000000)
-			goto fail;
-	if (read_32bitBE(0x24,streamFile) != 0x00000000)
-			goto fail;
+    if (read_32bitBE(0x20,streamFile) != 0x00000000 &&
+		read_32bitBE(0x24,streamFile) != 0x00000000)
+	goto fail;
 		
-    loop_flag = 0; /* (read_32bitLE(0x144,streamFile)!=0); */
+    loop_flag = 0;
     channel_count = read_16bitLE(0x0A,streamFile);
     
 	/* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
-
 
 	/* fill in the vital statistics */
     start_offset = 0x800;
@@ -35,11 +33,9 @@ VGMSTREAM * init_vgmstream_dc_asd(STREAMFILE *streamFile) {
     vgmstream->coding_type = coding_PCM16LE;
     vgmstream->num_samples = read_32bitLE(0x0,streamFile)/2/channel_count;
     if (loop_flag) {
-        vgmstream->loop_start_sample = 0; /* read_32bitLE(0x144,streamFile)/2/channel_count; */
+        vgmstream->loop_start_sample = 0;
         vgmstream->loop_end_sample = read_32bitLE(0x0,streamFile)/2/channel_count;
     }
-
-
 	
 	switch (channel_count) {
 		case 1:
@@ -52,7 +48,6 @@ VGMSTREAM * init_vgmstream_dc_asd(STREAMFILE *streamFile) {
 		default:
 			goto fail;
 	}
-
 
     vgmstream->meta_type = meta_DC_ASD;
 

@@ -6,7 +6,6 @@ VGMSTREAM * init_vgmstream_ps2_vas(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[260];
     off_t start_offset;
-
 	int loop_flag;
 	int channel_count;
 
@@ -16,7 +15,7 @@ VGMSTREAM * init_vgmstream_ps2_vas(STREAMFILE *streamFile) {
 
     /* check header */
 #if 0
-    if (read_32bitBE(0x00,streamFile) != 0x53565300) /* "SVS\0" */
+    if (read_32bitBE(0x00,streamFile) != 0x00000000) /* 0x0 */
        goto fail;
 #endif
 

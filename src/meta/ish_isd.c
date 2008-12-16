@@ -1,9 +1,8 @@
 #include "meta.h"
 #include "../util.h"
 
-/* SPT+SPT
-
-   2008-11-27 - manakoAT : First try for splitted files...
+/*
+ISH+ISD
 */
 
 VGMSTREAM * init_vgmstream_ish_isd(STREAMFILE *streamFile) {
@@ -12,7 +11,6 @@ VGMSTREAM * init_vgmstream_ish_isd(STREAMFILE *streamFile) {
     STREAMFILE * streamFileISH = NULL;
     char filename[260];
 	char filenameISH[260];
-	
 	int i;
 	int channel_count;
 	int loop_flag;
@@ -20,7 +18,6 @@ VGMSTREAM * init_vgmstream_ish_isd(STREAMFILE *streamFile) {
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
     if (strcasecmp("isd",filename_extension(filename))) goto fail;
-
 
 	strcpy(filenameISH,filename);
 	strcpy(filenameISH+strlen(filenameISH)-3,"ISH");
@@ -44,7 +41,6 @@ VGMSTREAM * init_vgmstream_ish_isd(STREAMFILE *streamFile) {
 	vgmstream->sample_rate = read_32bitBE(0x08,streamFileISH);
 	vgmstream->num_samples=read_32bitBE(0x0C,streamFileISH);
 	vgmstream->coding_type = coding_NGC_DSP;
-	
 	if(loop_flag) {
 		vgmstream->loop_start_sample = read_32bitBE(0x20,streamFileISH)*14/8/channel_count;
 		vgmstream->loop_end_sample = read_32bitBE(0x24,streamFileISH)*14/8/channel_count;
@@ -57,8 +53,6 @@ VGMSTREAM * init_vgmstream_ish_isd(STREAMFILE *streamFile) {
 		vgmstream->interleave_block_size = read_32bitBE(0x18,streamFileISH);
 	}
 
-
-
     vgmstream->meta_type = meta_ISH_ISD;
 	
     /* open the file for reading */
@@ -70,8 +64,6 @@ VGMSTREAM * init_vgmstream_ish_isd(STREAMFILE *streamFile) {
             if (!vgmstream->ch[i].streamfile) goto fail;
         }
     }
-
-
     
 	if (vgmstream->coding_type == coding_NGC_DSP) {
         int i;
@@ -84,7 +76,6 @@ VGMSTREAM * init_vgmstream_ish_isd(STREAMFILE *streamFile) {
             }
         }
     }
-
 
 	close_streamfile(streamFileISH); streamFileISH=NULL;
 	

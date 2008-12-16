@@ -1,12 +1,11 @@
 #include "meta.h"
 #include "../util.h"
 
-/* MSV (from Pocap Hits) */
+/* MSVP (from PoPcap Hits Vol. 1) */
 VGMSTREAM * init_vgmstream_msvp(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[260];
     off_t start_offset;
-
     int loop_flag = 0;
 	int channel_count;
 
@@ -36,7 +35,6 @@ VGMSTREAM * init_vgmstream_msvp(STREAMFILE *streamFile) {
         vgmstream->loop_end_sample = (read_32bitBE(0x0C,streamFile))*28/16/channel_count;
     }
 
-
 /* Just to be sure that there comes a 2 channel file */
 	if (channel_count == 1) {
 		vgmstream->layout_type = layout_none;
@@ -44,7 +42,6 @@ VGMSTREAM * init_vgmstream_msvp(STREAMFILE *streamFile) {
 		vgmstream->layout_type = layout_interleave;
 		vgmstream->interleave_block_size = 0x10; /* Unknown for now */
 	}
-
 
     vgmstream->meta_type = meta_MSVP;
 

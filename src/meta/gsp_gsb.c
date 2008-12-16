@@ -1,10 +1,10 @@
 #include "meta.h"
 #include "../util.h"
 
-/* GSP+GSB
+/* GSP+GSB - 2008-11-28 - manakoAT
 
-   2008-11-28 - manakoAT
-*/
+Super Swing Golf 1 & 2 (WII)
+Note: Block Format missing!!! */
 
 VGMSTREAM * init_vgmstream_gsp_gsb(STREAMFILE *streamFile) {
 
@@ -12,13 +12,13 @@ VGMSTREAM * init_vgmstream_gsp_gsb(STREAMFILE *streamFile) {
     STREAMFILE * streamFileGSP = NULL;
     char filename[260];
 	char filenameGSP[260];
-	
+    off_t start_offset;
 	int i;
 	int channel_count;
 	int loop_flag;
 	int header_len;
-	int coef1_start;
-	int coef2_start;
+	off_t coef1_start;
+	off_t coef2_start;
 	int dsp_blocks;
 	
     /* check extension, case insensitive */
@@ -37,11 +37,11 @@ VGMSTREAM * init_vgmstream_gsp_gsb(STREAMFILE *streamFile) {
 		goto fail;
 
 	channel_count = (uint16_t)read_16bitBE(0x3A,streamFileGSP);
-	loop_flag = 0; /* read_32bitBE(0x20,streamFileGSP); */
+	loop_flag = (read_32bitBE(0x64,streamFileGSP) !=0xFFFFFFFF);
 	header_len = read_32bitBE(0x1C,streamFileGSP);
 	
-	coef1_start = read_32bitBE(header_len-0x4C,streamFileGSP);
-	coef2_start = read_32bitBE(header_len-0x1C,streamFileGSP);
+	coef1_start = header_len-0x4C;
+	coef2_start = header_len-0x1C;
 	dsp_blocks = read_32bitBE(header_len-0x5C,streamFileGSP);
 	
     /* build the VGMSTREAM */
@@ -51,40 +51,30 @@ VGMSTREAM * init_vgmstream_gsp_gsb(STREAMFILE *streamFile) {
     /* fill in the vital statistics */
 	vgmstream->channels = channel_count;
 	vgmstream->sample_rate = read_32bitBE(0x34,streamFileGSP);
-	vgmstream->num_samples=read_32bitBE(0x2C,streamFileGSP)*14/8/channel_count;
 	vgmstream->coding_type = coding_NGC_DSP;
-	
 	if(loop_flag) {
-		vgmstream->loop_start_sample = 0; /* read_32bitBE(0x20,streamFileGSP)*14/8/channel_count; */
-		vgmstream->loop_end_sample = read_32bitBE(0x48,streamFileGSP)*14/8/channel_count;
+		vgmstream->loop_start_sample = read_32bitBE(0x64,streamFileGSP);
+		vgmstream->loop_end_sample = read_32bitBE(0x68,streamFileGSP);
 	}	
 
 	if (channel_count == 1) {
-		vgmstream->layout_type = layout_none;
-	} else if (channel_count == 2) {
-		vgmstream->layout_type = layout_interleave;
+		vgmstream->layout_type = layout_gsb_blocked;
+	} else if (channel_count > 1) {
+		vgmstream->layout_type = layout_gsb_blocked;
 		vgmstream->interleave_block_size = read_32bitBE(header_len-0x64,streamFileGSP);
 	}
-
-
 
     vgmstream->meta_type = meta_GSP_GSB;
 	
     /* open the file for reading */
     vgmstream->ch[0].streamfile = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-
     if (!vgmstream->ch[0].streamfile) goto fail;
-
-    vgmstream->ch[0].channel_start_offset=0;
-
+	    vgmstream->ch[0].channel_start_offset=0;
     if (channel_count == 2) {
         vgmstream->ch[1].streamfile = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-
         if (!vgmstream->ch[1].streamfile) goto fail;
-
         vgmstream->ch[1].channel_start_offset=vgmstream->interleave_block_size;
     }
-
 
 	if (vgmstream->coding_type == coding_NGC_DSP) {
         int i;
@@ -98,12 +88,24 @@ VGMSTREAM * init_vgmstream_gsp_gsb(STREAMFILE *streamFile) {
         }
     }
 
+	/* Calc num_samples */
+	start_offset = 0x0;
+	gsb_block_update(start_offset,vgmstream);
+	vgmstream->num_samples=0;
+
+	do {
+	
+	vgmstream->num_samples += vgmstream->current_block_size*14/8;
+		gsb_block_update(vgmstream->next_block_offset,vgmstream);
+	} while (vgmstream->next_block_offset<get_streamfile_size(streamFile));
+
+	gsb_block_update(start_offset,vgmstream);
 
 	close_streamfile(streamFileGSP); streamFileGSP=NULL;
 
     return vgmstream;
 
-    
+
     /* clean up anything we may have opened */
 fail:
     if (streamFileGSP) close_streamfile(streamFileGSP);

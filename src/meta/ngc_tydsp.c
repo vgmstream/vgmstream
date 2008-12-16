@@ -6,7 +6,6 @@ VGMSTREAM * init_vgmstream_ngc_tydsp(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[260];
     off_t start_offset;
-
     int loop_flag;
 	int channel_count;
 
@@ -35,7 +34,6 @@ VGMSTREAM * init_vgmstream_ngc_tydsp(STREAMFILE *streamFile) {
     vgmstream->layout_type = layout_interleave;
     vgmstream->interleave_block_size = read_32bitBE(0x04,streamFile);
     vgmstream->meta_type = meta_NGC_TYDSP;
-
 
     if (vgmstream->coding_type == coding_NGC_DSP) {
         int i;

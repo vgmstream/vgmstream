@@ -91,6 +91,9 @@ void render_vgmstream_blocked(sample * buffer, int32_t sample_count, VGMSTREAM *
                 case layout_emff_ngc_blocked:
                     emff_ngc_block_update(vgmstream->next_block_offset,vgmstream);
                     break;
+                case layout_gsb_blocked:
+                    gsb_block_update(vgmstream->next_block_offset,vgmstream);
+                    break;
                 case layout_vs_blocked:
                     vs_block_update(vgmstream->next_block_offset,vgmstream);
                     break;

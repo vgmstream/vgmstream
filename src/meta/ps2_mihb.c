@@ -6,10 +6,9 @@ VGMSTREAM * init_vgmstream_ps2_mihb(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[260];
     off_t start_offset;
-
-		int mib_blocks;
+	int mib_blocks;
     int loop_flag = 0;
-		int channel_count;
+	int channel_count;
 
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
@@ -19,7 +18,7 @@ VGMSTREAM * init_vgmstream_ps2_mihb(STREAMFILE *streamFile) {
     if (read_32bitBE(0x00,streamFile) != 0x40000000)
         goto fail;
 		
-		mib_blocks = read_32bitLE(0x14,streamFile);
+	mib_blocks = read_32bitLE(0x14,streamFile);
     loop_flag = 0;
     channel_count = read_32bitLE(0x08,streamFile);
     

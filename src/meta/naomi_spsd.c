@@ -6,9 +6,8 @@ VGMSTREAM * init_vgmstream_naomi_spsd(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[260];
     off_t start_offset;
-
     int loop_flag;
-		int channel_count;
+	int channel_count;
 
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
@@ -60,7 +59,6 @@ VGMSTREAM * init_vgmstream_naomi_spsd(STREAMFILE *streamFile) {
             vgmstream->ch[i].channel_start_offset=
                 vgmstream->ch[i].offset=start_offset+
                 vgmstream->interleave_block_size*i;
-            	
             	vgmstream->ch[i].adpcm_step_index = 0x7f;   /* AICA */
         }
     }

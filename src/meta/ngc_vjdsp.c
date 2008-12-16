@@ -36,7 +36,6 @@ VGMSTREAM * init_vgmstream_ngc_vjdsp(STREAMFILE *streamFile) {
     vgmstream->interleave_block_size = 0x2000;
     vgmstream->meta_type = meta_NGC_VJDSP;
 
-
     if (vgmstream->coding_type == coding_NGC_DSP) {
         int i;
         for (i=0;i<16;i++) {

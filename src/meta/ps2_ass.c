@@ -5,7 +5,6 @@
 
 VGMSTREAM * init_vgmstream_ps2_ass(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-	
 	char filename[260];
 	off_t start_offset;
 	uint8_t	testBuffer[0x10];
@@ -21,7 +20,7 @@ VGMSTREAM * init_vgmstream_ps2_ass(STREAMFILE *streamFile) {
     if (strcasecmp("ass",filename_extension(filename))) goto fail;
 
     /* check header */
-    if (read_32bitBE(0x00,streamFile) != 0x02000000) /* "00000000" */
+    if (read_32bitBE(0x00,streamFile) != 0x02000000) /* "0x02000000" */
         goto fail;
 
     loop_flag = 1;
@@ -37,15 +36,12 @@ VGMSTREAM * init_vgmstream_ps2_ass(STREAMFILE *streamFile) {
     vgmstream->sample_rate = read_32bitLE(0x04,streamFile);
     vgmstream->coding_type = coding_PSX;
     vgmstream->num_samples = (read_32bitLE(0x08,streamFile)*2)*28/16/channel_count;
-
-
 	
 	fileLength = get_streamfile_size(streamFile);
 		
 	do {
 		
 		readOffset+=(off_t)read_streamfile(testBuffer,readOffset,0x10,streamFile); 
-		
 		/* Loop Start */
 		if(testBuffer[0x01]==0x06) {
 			if(loopStart == 0) loopStart = readOffset-0x10;
@@ -56,10 +52,7 @@ VGMSTREAM * init_vgmstream_ps2_ass(STREAMFILE *streamFile) {
 			if(loopEnd == 0) loopEnd = readOffset-0x10;
 			/* break; */
 		}
-
 	} while (streamFile->get_offset(streamFile)<(int32_t)fileLength);
-	
-
 	
 	if(loopStart == 0) {
 		loop_flag = 0;
@@ -69,15 +62,6 @@ VGMSTREAM * init_vgmstream_ps2_ass(STREAMFILE *streamFile) {
 		vgmstream->loop_start_sample = (loopStart-start_offset)*28/16/channel_count;
         	vgmstream->loop_end_sample = (loopEnd-start_offset)*28/16/channel_count;
     	}
-
-
-
-
-
-
-
-
-
 
     vgmstream->layout_type = layout_interleave;
     vgmstream->interleave_block_size = read_32bitLE(0x0C,streamFile);

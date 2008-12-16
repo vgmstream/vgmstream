@@ -6,7 +6,6 @@ VGMSTREAM * init_vgmstream_leg(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[260];
     off_t start_offset;
-
     int loop_flag = 0;
 	int channel_count;
 
@@ -15,7 +14,7 @@ VGMSTREAM * init_vgmstream_leg(STREAMFILE *streamFile) {
     if (strcasecmp("leg",filename_extension(filename))) goto fail;
 
     /* check header */
-    if (read_32bitBE(0x10,streamFile) != 0x00000000) /* 0000" */
+    if (read_32bitBE(0x10,streamFile) != 0x00000000) /* 0x00000000" */
         goto fail;
 
     loop_flag = (read_32bitLE(0x44,streamFile)!=0);

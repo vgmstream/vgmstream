@@ -45,14 +45,10 @@ VGMSTREAM * init_vgmstream_dc_wav_dcs(STREAMFILE *streamFile) {
         read_32bitBE(0x3C,streamFileWAV) != 0x406E616D) /* "@nam" */
     goto fail;
 
-
     /* scan file until we find a "data" string */
     file_size = get_streamfile_size(streamFileWAV);
-	
 	{
-        
 		current_chunk = 0;
-
 		/* Start at 0 and loop until we reached the
 		file size, or until we found a "data string */
 		while (!Founddata && current_chunk < file_size) {
@@ -67,7 +63,6 @@ VGMSTREAM * init_vgmstream_dc_wav_dcs(STREAMFILE *streamFile) {
 			current_chunk = current_chunk + 1;
 		}
 	}
-
 	
 	if (Founddata == 0) {
 		goto fail;
@@ -77,9 +72,9 @@ VGMSTREAM * init_vgmstream_dc_wav_dcs(STREAMFILE *streamFile) {
 	}
 	
 	loop_flag = 0;
-		    
 
-    /* build the VGMSTREAM */
+    /* Seems we're dealing with a vaild file+header,
+	now we can finally build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
@@ -117,8 +112,6 @@ VGMSTREAM * init_vgmstream_dc_wav_dcs(STREAMFILE *streamFile) {
             if (!vgmstream->ch[i].streamfile) goto fail;
         }
     }
-
-
 
 	close_streamfile(streamFileWAV); streamFileWAV=NULL;
 	

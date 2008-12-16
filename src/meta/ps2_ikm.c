@@ -15,10 +15,9 @@ VGMSTREAM * init_vgmstream_ikm(STREAMFILE *streamFile) {
     if (strcasecmp("ikm",filename_extension(filename))) goto fail;
 
     /* check header */
-    if (read_32bitBE(0x00,streamFile) != 0x494B4D00) /* "IKM\0" */
-		goto fail;
-    if (read_32bitBE(0x40,streamFile) != 0x41535400) /* AST\0 */
-        goto fail;
+    if (read_32bitBE(0x00,streamFile) != 0x494B4D00 && /* "IKM\0" */
+		read_32bitBE(0x40,streamFile) != 0x41535400) /* AST\0 */
+	goto fail;
 
     loop_flag = (read_32bitLE(0x14,streamFile)!=0);
     channel_count = read_32bitLE(0x50,streamFile);

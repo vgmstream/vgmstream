@@ -6,7 +6,6 @@ VGMSTREAM * init_vgmstream_ngc_ssm(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[260];
     off_t start_offset;
-
     int loop_flag;
 	int channel_count;
 	int coef1_start;

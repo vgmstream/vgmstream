@@ -1,12 +1,11 @@
 #include "meta.h"
 #include "../util.h"
 
-/* PDT (Mario Party) */
+/* PDT - Custom Generated File (Mario Party) */
 VGMSTREAM * init_vgmstream_ngc_pdt(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[260];
     off_t start_offset;
-
     int loop_flag;
 	int channel_count;
 
@@ -38,9 +37,8 @@ VGMSTREAM * init_vgmstream_ngc_pdt(STREAMFILE *streamFile) {
         vgmstream->loop_end_sample = read_32bitBE(0x08,streamFile)*14/8/channel_count;
     }
 
-
 	/* dealing with no interleave, 'cause the interleave
-	for 2 channels is larger than the sample count */
+	for 2 channels is larger than the sample count/2 */
 	vgmstream->layout_type = layout_none;
     vgmstream->meta_type = meta_NGC_PDT;
 
