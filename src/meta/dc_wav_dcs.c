@@ -20,7 +20,6 @@ VGMSTREAM * init_vgmstream_dc_wav_dcs(STREAMFILE *streamFile) {
 	int channel_count;
 	int loop_flag;
 	int frequency;
-	int channels;
 	int dataBuffer = 0;
 	int Founddata = 0;
 	size_t file_size;

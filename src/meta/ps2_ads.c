@@ -9,7 +9,7 @@ VGMSTREAM * init_vgmstream_ps2_ads(STREAMFILE *streamFile) {
 
     int loop_flag=0;
     int channel_count;
-	off_t start_offset,test_offset;
+	off_t start_offset;
     int i;
 
     /* check extension, case insensitive */

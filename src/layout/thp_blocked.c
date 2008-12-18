@@ -6,7 +6,6 @@ void thp_block_update(off_t block_offset, VGMSTREAM * vgmstream) {
     int i,j;
 	STREAMFILE *streamFile=vgmstream->ch[0].streamfile;
 	off_t	start_offset;
-	off_t	interleave_offset;
 	int32_t	nextFrameSize;
 
 	vgmstream->current_block_offset = block_offset;

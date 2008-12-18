@@ -8,7 +8,7 @@ VGMSTREAM * init_vgmstream_musx_v004(STREAMFILE *streamFile) {
     char filename[260];
     off_t start_offset;
 	int musx_type; /* determining the decoder by strings like "PS2_", "GC__" and so on */
-	int musx_version; /* 0x08 provides a "version" byte */
+	//int musx_version; /* 0x08 provides a "version" byte */
 	int loop_flag = 0;
 	int channel_count;
 
@@ -108,7 +108,7 @@ VGMSTREAM * init_vgmstream_musx_v006(STREAMFILE *streamFile) {
     char filename[260];
     off_t start_offset;
 	int musx_type; /* determining the decoder by strings like "PS2_", "GC__" and so on */
-	int musx_version; /* 0x08 provides a "version" byte */
+	//int musx_version; /* 0x08 provides a "version" byte */
 	int loop_flag = 0;
 	int channel_count;
 
@@ -184,7 +184,7 @@ VGMSTREAM * init_vgmstream_musx_v010(STREAMFILE *streamFile) {
     char filename[260];
     off_t start_offset;
 	int musx_type; /* determining the decoder by strings like "PS2_", "GC__" and so on */
-	int musx_version; /* 0x08 provides a "version" byte */
+	//int musx_version; /* 0x08 provides a "version" byte */
 	int loop_flag = 0;
 	int channel_count;
 
@@ -258,7 +258,7 @@ VGMSTREAM * init_vgmstream_musx_v201(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[260];
     off_t start_offset;
-	int musx_version; /* 0x08 provides a "version" byte */
+	//int musx_version; /* 0x08 provides a "version" byte */
 	int loop_flag;
 	int channel_count;
 	int loop_detect;

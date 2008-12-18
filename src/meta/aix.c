@@ -26,7 +26,8 @@ VGMSTREAM * init_vgmstream_aix(STREAMFILE *streamFile) {
     int32_t sample_count;
 
     int loop_flag = 0;
-    int32_t loop_start_sample,loop_end_sample;
+    int32_t loop_start_sample=0;
+    int32_t loop_end_sample=0;
 
     aix_codec_data *data = NULL;
 

@@ -1,4 +1,5 @@
 #include "meta.h"
+#include "../layout/layout.h"
 #include "../util.h"
 
 /* GSP+GSB - 2008-11-28 - manakoAT
@@ -13,7 +14,6 @@ VGMSTREAM * init_vgmstream_gsp_gsb(STREAMFILE *streamFile) {
     char filename[260];
 	char filenameGSP[260];
     off_t start_offset;
-	int i;
 	int channel_count;
 	int loop_flag;
 	int header_len;

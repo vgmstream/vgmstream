@@ -19,10 +19,9 @@ VGMSTREAM * init_vgmstream_thp(STREAMFILE *streamFile) {
 	off_t			componentDataOffset;
 	
 	char			thpVersion;
-	char			componentTypes[16];
 
     int				loop_flag;
-	int				channel_count;
+	int				channel_count=-1;
 	int				i;
 
     /* check extension, case insensitive */
