@@ -538,6 +538,7 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
 		case layout_gsb_blocked:
 		case layout_xvas_blocked:
 		case layout_thp_blocked:
+		case layout_filp_blocked:
             render_vgmstream_blocked(buffer,sample_count,vgmstream);
             break;
         case layout_interleave_byte:
@@ -1374,6 +1375,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         case layout_thp_blocked:
             snprintf(temp,TEMPSIZE,"THP Movie Audio blocked");
             break;
+        case layout_filp_blocked:
+            snprintf(temp,TEMPSIZE,"FILp blocked");
+            break;
 #ifdef VGM_USE_MPEG
         case layout_fake_mpeg:
             snprintf(temp,TEMPSIZE,"MPEG Audio stream with incorrect frame headers");
@@ -1717,7 +1721,7 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             snprintf(temp,TEMPSIZE,"Legaia 2 - Duel Saga LEG Header");
             break;
 		case meta_FILP:
-            snprintf(temp,TEMPSIZE,"Bio Hazard - Gun Survivor FILp/GEMp Header");
+            snprintf(temp,TEMPSIZE,"Bio Hazard - Gun Survivor FILp Header");
             break;
 		case meta_IKM:
             snprintf(temp,TEMPSIZE,"Zwei!! IKM Header");

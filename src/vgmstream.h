@@ -124,6 +124,7 @@ typedef enum {
 	layout_emff_ngc_blocked,
 	layout_gsb_blocked,
 	layout_thp_blocked,
+	layout_filp_blocked,
 
 #if 0
     layout_strm_blocked,    /* */

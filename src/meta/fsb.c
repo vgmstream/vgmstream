@@ -4,6 +4,7 @@
 /* comment from hcs:
 ((uint8_t)read_8bit(offset, file))&0xf for the low nibble, 
 ((uint8_t)read_8bit(offset, file)) >> 4 for the high one
+((uint8_t)read_8bit(0x4B,streamFile) >> (1?0:4))&0xf;
 */
 /* FSB1 */
 VGMSTREAM * init_vgmstream_fsb1(STREAMFILE *streamFile) {
@@ -127,8 +128,7 @@ VGMSTREAM * init_vgmstream_fsb3(STREAMFILE *streamFile) {
         goto fail;
     }
 	*/
-	
-	
+
 	channel_count = read_16bitLE(0x56,streamFile);
 
 

@@ -17,9 +17,10 @@ VGMSTREAM * init_vgmstream_musx_v004(STREAMFILE *streamFile) {
     if (strcasecmp("musx",filename_extension(filename))) goto fail;
 
     /* check header */
-    if (read_32bitBE(0x00,streamFile) != 0x4D555358 && /* "MUSX" */
-		read_32bitBE(0x08,streamFile) != 0x04000000) /* "0x04000000" */
-	goto fail;
+    if (read_32bitBE(0x00,streamFile) != 0x4D555358) /* "MUSX" */
+		goto fail;
+	if (read_32bitBE(0x08,streamFile) != 0x04000000) /* "0x04000000" */
+		goto fail;
         
 	/* This is tricky, the header changes it's layout if the file is unlooped */
     loop_flag = (read_32bitLE(0x840,streamFile)!=0xFFFFFFFF);
@@ -48,6 +49,21 @@ VGMSTREAM * init_vgmstream_musx_v004(STREAMFILE *streamFile) {
 			vgmstream->loop_end_sample = (read_32bitLE(0x89C,streamFile))*28/16/channel_count;
 		}
 	break;
+	/* seems to not work for Spyro, maybe i find other games for testing
+	case 0x58425F5F: XB__
+			start_offset = read_32bitLE(0x28,streamFile);
+			vgmstream->channels = channel_count;
+			vgmstream->sample_rate = 32000;
+			vgmstream->coding_type = coding_XBOX;
+			vgmstream->num_samples = (read_32bitLE(0x0C,streamFile))*64/36/channel_count;
+			vgmstream->layout_type = layout_none;
+			vgmstream->meta_type = meta_MUSX_V004;
+		if (loop_flag) {
+			vgmstream->loop_start_sample = (read_32bitLE(0x890,streamFile))*64/36/channel_count;
+			vgmstream->loop_end_sample = (read_32bitLE(0x89C,streamFile))*64/36/channel_count;
+		}
+	break;
+	*/
 		default:
 			goto fail;
 
@@ -62,9 +78,15 @@ VGMSTREAM * init_vgmstream_musx_v004(STREAMFILE *streamFile) {
         for (i=0;i<channel_count;i++) {
             vgmstream->ch[i].streamfile = file;
 
-            vgmstream->ch[i].channel_start_offset=
-                vgmstream->ch[i].offset=start_offset+
-                vgmstream->interleave_block_size*i;
+            
+            if (vgmstream->coding_type == coding_XBOX) {
+                /* xbox interleaving is a little odd */
+                vgmstream->ch[i].channel_start_offset=start_offset;
+            } else {
+                vgmstream->ch[i].channel_start_offset=
+                    start_offset+vgmstream->interleave_block_size*i;
+            }
+            vgmstream->ch[i].offset = vgmstream->ch[i].channel_start_offset;
 
         }
     }
@@ -95,9 +117,10 @@ VGMSTREAM * init_vgmstream_musx_v006(STREAMFILE *streamFile) {
     if (strcasecmp("musx",filename_extension(filename))) goto fail;
 
     /* check header */
-    if (read_32bitBE(0x00,streamFile) != 0x4D555358 && /* "MUSX" */
-        read_32bitBE(0x08,streamFile) != 0x06000000) /* "0x06000000" */
-	goto fail;
+    if (read_32bitBE(0x00,streamFile) != 0x4D555358) /* "MUSX" */
+		goto fail;
+	if (read_32bitBE(0x08,streamFile) != 0x06000000) /* "0x06000000" */
+		goto fail;
 
     loop_flag = (read_32bitLE(0x840,streamFile)!=0xFFFFFFFF);
     channel_count = 2;
@@ -170,9 +193,10 @@ VGMSTREAM * init_vgmstream_musx_v010(STREAMFILE *streamFile) {
     if (strcasecmp("musx",filename_extension(filename))) goto fail;
 
     /* check header */
-    if (read_32bitBE(0x00,streamFile) != 0x4D555358 && /* "MUSX" */
-		read_32bitBE(0x08,streamFile) != 0x0A000000) /* "0x0A000000" */
-	goto fail;
+    if (read_32bitBE(0x00,streamFile) != 0x4D555358) /* "MUSX" */
+		goto fail;
+	if (read_32bitBE(0x08,streamFile) != 0x0A000000) /* "0x0A000000" */
+		goto fail;
 
 	loop_flag = (read_32bitLE(0x34,streamFile)!=0x00000000);
     channel_count = 2;
@@ -245,9 +269,10 @@ VGMSTREAM * init_vgmstream_musx_v201(STREAMFILE *streamFile) {
     if (strcasecmp("musx",filename_extension(filename))) goto fail;
 
     /* check header */
-    if (read_32bitBE(0x00,streamFile) != 0x4D555358 && /* "MUSX" */
-		read_32bitBE(0x08,streamFile) != 0xC9000000) /* "0xC9000000" */
-	goto fail;
+    if (read_32bitBE(0x00,streamFile) != 0x4D555358) /* "MUSX" */
+		goto fail;
+	if (read_32bitBE(0x08,streamFile) != 0xC9000000) /* "0xC9000000" */
+		goto fail;
 
     channel_count = 2;
 
