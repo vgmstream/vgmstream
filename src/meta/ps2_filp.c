@@ -25,7 +25,7 @@ VGMSTREAM * init_vgmstream_filp(STREAMFILE *streamFile) {
 	if (get_streamfile_size(streamFile) != read_32bitLE(0xC,streamFile))
 		goto fail;
 
-    loop_flag = 1;
+    loop_flag = (read_32bitLE(0x34,streamFile) == 0);
     channel_count = read_32bitLE(0x4,streamFile);
 
 	/* build the VGMSTREAM */
