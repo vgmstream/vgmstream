@@ -25,7 +25,7 @@ VGMSTREAM * init_vgmstream_filp(STREAMFILE *streamFile) {
 	if (get_streamfile_size(streamFile) != read_32bitLE(0xC,streamFile))
 		goto fail;
 
-    loop_flag = 0;
+    loop_flag = 1;
     channel_count = read_32bitLE(0x4,streamFile);
 
 	/* build the VGMSTREAM */
@@ -37,11 +37,6 @@ VGMSTREAM * init_vgmstream_filp(STREAMFILE *streamFile) {
 	vgmstream->channels = channel_count;
     vgmstream->sample_rate = read_32bitLE(0x110,streamFile);
     vgmstream->coding_type = coding_PSX;
-    if (loop_flag) {
-        vgmstream->loop_start_sample = 0;
-        vgmstream->loop_end_sample = read_32bitLE(0xC,streamFile);
-    }
-
     vgmstream->layout_type = layout_filp_blocked;
     vgmstream->meta_type = meta_FILP;
 
@@ -55,19 +50,15 @@ VGMSTREAM * init_vgmstream_filp(STREAMFILE *streamFile) {
 		}
 	}
 	
-	filp_block_update(start_offset,vgmstream);
-	vgmstream->num_samples=0;
+    filp_block_update(start_offset,vgmstream);
+    vgmstream->num_samples = read_32bitLE(0x10C,streamFile)/16*28;
+    if (loop_flag) {
+        vgmstream->loop_start_sample = 0;
+        vgmstream->loop_end_sample = vgmstream->num_samples;
+    }
 
 	
-	
-	/* vgmstream->num_samples += vgmstream->current_block_size*28/16; */
-	do {
-		filp_block_update(vgmstream->next_block_offset,vgmstream);
-	} while (vgmstream->current_block_offset<get_streamfile_size(streamFile));
-		filp_block_update(start_offset,vgmstream);
-		vgmstream->num_samples = read_32bitLE(0x10C,streamFile)/16*28;
-	
-		return vgmstream;
+    return vgmstream;
 
     /* clean up anything we may have opened */
 fail:
