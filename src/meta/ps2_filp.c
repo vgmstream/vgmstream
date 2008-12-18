@@ -9,7 +9,6 @@ VGMSTREAM * init_vgmstream_filp(STREAMFILE *streamFile) {
     off_t start_offset;
     int loop_flag = 0;
 	int channel_count;
-	int filp_blocks;
 	int i;
 
     /* check extension, case insensitive */
@@ -28,7 +27,6 @@ VGMSTREAM * init_vgmstream_filp(STREAMFILE *streamFile) {
 
     loop_flag = 0;
     channel_count = read_32bitLE(0x4,streamFile);
-    filp_blocks = read_32bitLE(0x10,streamFile);
 
 	/* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
@@ -45,7 +43,6 @@ VGMSTREAM * init_vgmstream_filp(STREAMFILE *streamFile) {
     }
 
     vgmstream->layout_type = layout_filp_blocked;
-    vgmstream->interleave_block_size = read_32bitLE(0x08,streamFile);
     vgmstream->meta_type = meta_FILP;
 
     /* open the file for reading */
@@ -61,15 +58,16 @@ VGMSTREAM * init_vgmstream_filp(STREAMFILE *streamFile) {
 	filp_block_update(start_offset,vgmstream);
 	vgmstream->num_samples=0;
 
-	do {
 	
-	vgmstream->num_samples += vgmstream->current_block_size*28/16/channel_count*2;
+	
+	/* vgmstream->num_samples += vgmstream->current_block_size*28/16; */
+	do {
 		filp_block_update(vgmstream->next_block_offset,vgmstream);
-	} while (vgmstream->next_block_offset<get_streamfile_size(streamFile));
-
-	filp_block_update(start_offset,vgmstream);
-
-    return vgmstream;
+	} while (vgmstream->current_block_offset<get_streamfile_size(streamFile));
+		filp_block_update(start_offset,vgmstream);
+		vgmstream->num_samples = read_32bitLE(0x10C,streamFile)/16*28;
+	
+		return vgmstream;
 
     /* clean up anything we may have opened */
 fail:

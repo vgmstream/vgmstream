@@ -32,15 +32,15 @@ VGMSTREAM * init_vgmstream_sdt(STREAMFILE *streamFile) {
 	vgmstream->channels = read_32bitBE(0x00,streamFile);
     vgmstream->sample_rate = read_32bitBE(0x08,streamFile);
     vgmstream->coding_type = coding_NGC_DSP;
-    vgmstream->num_samples = read_32bitBE(0x10,streamFile)/8*14/channel_count;
+    vgmstream->num_samples = read_32bitBE(0x14,streamFile)/8*14/channel_count;
     if (loop_flag) {
         vgmstream->loop_start_sample = 0; /* (read_32bitLE(0x08,streamFile)-1)*28; */
-        vgmstream->loop_end_sample = read_32bitBE(0x10,streamFile)/8*14/channel_count;
+        vgmstream->loop_end_sample = read_32bitBE(0x14,streamFile)/8*14/channel_count;
     }
 
-    vgmstream->layout_type = layout_interleave;
-    vgmstream->interleave_block_size = 0x8000;
-    vgmstream->meta_type = meta_SDT;
+		vgmstream->layout_type = layout_interleave;
+		vgmstream->interleave_block_size = 0x8000;
+		vgmstream->meta_type = meta_SDT;
 
 
 if (vgmstream->coding_type == coding_NGC_DSP) {

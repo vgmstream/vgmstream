@@ -3,10 +3,7 @@
 #include "../util.h"
 
 /* GSP+GSB - 2008-11-28 - manakoAT
-
-Super Swing Golf 1 & 2 (WII)
-Note: Block Format missing!!! */
-
+Super Swing Golf 1 & 2 (WII) */
 VGMSTREAM * init_vgmstream_gsp_gsb(STREAMFILE *streamFile) {
 
 	VGMSTREAM * vgmstream = NULL;

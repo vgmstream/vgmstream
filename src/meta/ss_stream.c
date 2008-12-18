@@ -11,7 +11,6 @@
 VGMSTREAM * init_vgmstream_ss_stream(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[260];
-
     int loop_flag=0;
 	int channel_count;
     int i;
@@ -20,9 +19,7 @@ VGMSTREAM * init_vgmstream_ss_stream(STREAMFILE *streamFile) {
     streamFile->get_name(streamFile,filename,sizeof(filename));
     if (strcasecmp("ss7",filename_extension(filename))) goto fail;
 
-    /* No loop on wavm */
 	loop_flag = 0;
-    
 	channel_count=read_8bit(0x0C,streamFile)+1;
     
 	/* build the VGMSTREAM */
@@ -31,8 +28,8 @@ VGMSTREAM * init_vgmstream_ss_stream(STREAMFILE *streamFile) {
 
 	/* fill in the vital statistics */
 	vgmstream->channels = channel_count;
-    vgmstream->sample_rate = 44000;
-
+	vgmstream->sample_rate = 44100;
+	
 	if(channel_count==1)
 		vgmstream->coding_type = coding_IMA;
 	else

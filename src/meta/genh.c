@@ -54,6 +54,7 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
     /* 11 = MS ADPCM */
     /* 12 = NGC DSP */
     /* 13 = 8bit unsingned PCM */
+	/* 14 = PSX ADPCM (bad flagged) */
     /* ... others to come */
     switch (read_32bitLE(0x18,streamFile)) {
         case 0:
@@ -99,8 +100,11 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
         case 12:
             coding = coding_NGC_DSP;
             break;
-	case 13:
+		case 13:
             coding = coding_PCM8_U_int;
+            break;
+		case 14:
+            coding = coding_PSX_badflags;
             break;
         default:
             goto fail;
@@ -151,6 +155,7 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
         case coding_PCM8:
         case coding_SDX2:
         case coding_PSX:
+		case coding_PSX_badflags:
         case coding_DVI_IMA:
         case coding_IMA:
         case coding_AICA:
@@ -219,6 +224,7 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
 
             switch (coding) {
                 case coding_PSX:
+				case coding_PSX_badflags:
                 case coding_PCM16BE:
                 case coding_PCM16LE:
                 case coding_SDX2:
