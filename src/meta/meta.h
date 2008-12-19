@@ -201,8 +201,6 @@ VGMSTREAM * init_vgmstream_ngc_swd(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_ngc_vjdsp(STREAMFILE * streamFile);
 
-VGMSTREAM * init_vgmstream_ngc_biodsp(STREAMFILE * streamFile);
-
 VGMSTREAM * init_vgmstream_xbox_wvs(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_dc_str(STREAMFILE *streamFile);
