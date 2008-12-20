@@ -1476,6 +1476,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         case meta_RWSD:
             snprintf(temp,TEMPSIZE,"Nintendo RWSD header (single stream)");
             break;
+        case meta_RWAR:
+            snprintf(temp,TEMPSIZE,"Nintendo RWAR header (single stream)");
+            break;
         case meta_PSX_XA:
             snprintf(temp,TEMPSIZE,"RIFF/CDXA header");
             break;

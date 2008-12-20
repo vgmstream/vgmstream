@@ -123,7 +123,6 @@ META_OBJS=meta/adx_header.o \
     meta/sdt.o \
     meta/aix.o \
     meta/ngc_tydsp.o \
-    meta/ngc_vjdsp.o \
     meta/xbox_wvs.o \
     meta/xbox_ims.o \
     meta/xbox_stma.o \

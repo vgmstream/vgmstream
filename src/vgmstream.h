@@ -169,6 +169,7 @@ typedef enum {
     meta_AFC,               /* AFC */
     meta_AST,               /* AST */
     meta_RWSD,              /* single-stream RWSD */
+    meta_RWAR,              /* single-stream RWAR */
     meta_RSTM_SPM,          /* RSTM with 44->22khz hack */
 	meta_THP,
 
