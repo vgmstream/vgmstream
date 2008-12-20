@@ -1,8 +1,8 @@
 #include "meta.h"
 #include "../util.h"
 
-/* VJDSP (found in Viewtiful Joe) */
-VGMSTREAM * init_vgmstream_ngc_vjdsp(STREAMFILE *streamFile) {
+/* CAPDSP (found in Capcom games) */
+VGMSTREAM * init_vgmstream_capdsp(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[260];
     off_t start_offset;
@@ -12,9 +12,9 @@ VGMSTREAM * init_vgmstream_ngc_vjdsp(STREAMFILE *streamFile) {
 
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("vjdsp",filename_extension(filename))) goto fail;
+    if (strcasecmp("capdsp",filename_extension(filename))) goto fail;
 
-    loop_flag = read_32bitBE(0x14,streamFile);
+    loop_flag = (read_32bitBE(0x14,streamFile) !=2);
     channel_count = read_32bitBE(0x10,streamFile);
     
 	/* build the VGMSTREAM */
@@ -26,25 +26,23 @@ VGMSTREAM * init_vgmstream_ngc_vjdsp(STREAMFILE *streamFile) {
 	vgmstream->channels = channel_count;
     vgmstream->sample_rate = read_32bitBE(0x0C,streamFile);
     vgmstream->coding_type = coding_NGC_DSP;
-    vgmstream->num_samples = read_32bitBE(0x18,streamFile);
+    vgmstream->num_samples = read_32bitBE(0x04,streamFile);
     if (loop_flag) {
-        vgmstream->loop_start_sample = read_32bitBE(0x14,streamFile);
-        vgmstream->loop_end_sample = read_32bitBE(0x18,streamFile);
+        vgmstream->loop_start_sample = read_32bitBE(0x14,streamFile)/8/channel_count*14;
+        vgmstream->loop_end_sample = read_32bitBE(0x18,streamFile)/8/channel_count*14;
     }
 
     vgmstream->layout_type = layout_interleave;
     vgmstream->interleave_block_size = 0x2000;
-    vgmstream->meta_type = meta_NGC_VJDSP;
+    vgmstream->meta_type = meta_CAPDSP;
 
     if (vgmstream->coding_type == coding_NGC_DSP) {
         int i;
-        for (i=0;i<16;i++) {
-            vgmstream->ch[0].adpcm_coef[i] = read_16bitBE(0x20+i*2,streamFile);
-        }
-        if (vgmstream->channels) {
-            for (i=0;i<16;i++) {
-                vgmstream->ch[1].adpcm_coef[i] = read_16bitBE(0x40+i*2,streamFile);
-            }
+        for (i=0;i<8;i++) {
+			vgmstream->ch[0].adpcm_coef[i*2]=read_16bitBE(0x20+i*2,streamFile);
+			vgmstream->ch[0].adpcm_coef[i*2+1]=read_16bitBE(0x30+i*2,streamFile);
+			vgmstream->ch[1].adpcm_coef[i*2]=read_16bitBE(0x40+i*2,streamFile);
+			vgmstream->ch[1].adpcm_coef[i*2+1]=read_16bitBE(0x50+i*2,streamFile);
         }
     }
 

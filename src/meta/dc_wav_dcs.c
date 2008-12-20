@@ -31,7 +31,7 @@ VGMSTREAM * init_vgmstream_dc_wav_dcs(STREAMFILE *streamFile) {
 
 	/* Getting the Header file name... */
 	strcpy(filenameWAV,filename);
-	strcpy(filenameWAV+strlen(filenameWAV)-3,"WAV");
+	strcpy(filenameWAV+strlen(filenameWAV)-3,"wav");
 	
 	/* Look if the Header file is present, else cancel vgmstream */
 	streamFileWAV = streamFile->open(streamFile,filenameWAV,STREAMFILE_DEFAULT_BUFFER_SIZE);

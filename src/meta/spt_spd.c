@@ -23,7 +23,7 @@ VGMSTREAM * init_vgmstream_spt_spd(STREAMFILE *streamFile) {
 
 
 	strcpy(filenameSPT,filename);
-	strcpy(filenameSPT+strlen(filenameSPT)-3,"SPT");
+	strcpy(filenameSPT+strlen(filenameSPT)-3,"spt");
 
 	streamFileSPT = streamFile->open(streamFile,filenameSPT,STREAMFILE_DEFAULT_BUFFER_SIZE);
 

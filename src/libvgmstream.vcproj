@@ -237,6 +237,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\capdsp.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\Cstr.c"
 					>
 				</File>
@@ -388,10 +392,6 @@
 				</File>
 				<File
 					RelativePath=".\meta\ngc_tydsp.c"
-					>
-				</File>
-				<File
-					RelativePath=".\meta\ngc_vjdsp.c"
 					>
 				</File>
 				<File

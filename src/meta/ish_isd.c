@@ -20,7 +20,7 @@ VGMSTREAM * init_vgmstream_ish_isd(STREAMFILE *streamFile) {
     if (strcasecmp("isd",filename_extension(filename))) goto fail;
 
 	strcpy(filenameISH,filename);
-	strcpy(filenameISH+strlen(filenameISH)-3,"ISH");
+	strcpy(filenameISH+strlen(filenameISH)-3,"ish");
 
 	streamFileISH = streamFile->open(streamFile,filenameISH,STREAMFILE_DEFAULT_BUFFER_SIZE);
 	if (!streamFileISH) goto fail;

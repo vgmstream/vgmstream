@@ -133,5 +133,6 @@ libmeta_la_SOURCES += ss_stream.c
 libmeta_la_SOURCES += emff.c
 libmeta_la_SOURCES += thp.c
 libmeta_la_SOURCES += wii_sts.c
+libmeta_la_SOURCES += capdsp.c
 
 EXTRA_DIST = meta.h

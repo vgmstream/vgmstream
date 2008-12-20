@@ -24,7 +24,7 @@ VGMSTREAM * init_vgmstream_gsp_gsb(STREAMFILE *streamFile) {
 
 
 	strcpy(filenameGSP,filename);
-	strcpy(filenameGSP+strlen(filenameGSP)-3,"GSP");
+	strcpy(filenameGSP+strlen(filenameGSP)-3,"gsp");
 
 	streamFileGSP = streamFile->open(streamFile,filenameGSP,STREAMFILE_DEFAULT_BUFFER_SIZE);
 	if (!streamFileGSP) goto fail;

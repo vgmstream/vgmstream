@@ -169,7 +169,7 @@ char * extension_list[] = {
     "aix\0AIX Audio File (*.AIX)\0",
 	"tydsp\0TYDSP Audio File (*.TYDSP)\0",
 	"swd\0SWD Audio File (*.SWD)\0",
-	"vjdsp\0VJDSP Audio File (*.VJDSP)\0",
+	"capdsp\0CAPDSP Audio File (*.CAPDSP)\0",
 	"wvs\0WVS Audio File (*.WVS)\0",
 	"stma\0STMA Audio File (*.STMA)\0",
 	"matx\0MATX Audio File (*.MATX)\0",

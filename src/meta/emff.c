@@ -43,10 +43,6 @@ VGMSTREAM * init_vgmstream_emff_ps2(STREAMFILE *streamFile) {
 	vgmstream->sample_rate = frequency;
 	vgmstream->channels = channel_count;
 	vgmstream->coding_type = coding_PSX;
-	if (loop_flag) {
-        vgmstream->loop_start_sample = (read_32bitLE(0x28,streamFile)-start_offset)*28/16/channel_count;
-        vgmstream->loop_end_sample = read_32bitLE(0x8,streamFile);
-    }
 
     vgmstream->layout_type = layout_emff_ps2_blocked;
     vgmstream->interleave_block_size = 0x10;
@@ -63,16 +59,12 @@ VGMSTREAM * init_vgmstream_emff_ps2(STREAMFILE *streamFile) {
 	}
 
 	/* Calc num_samples */
-	emff_ps2_block_update(start_offset,vgmstream);
-	vgmstream->num_samples=0;
-
-	do {
-	
-	vgmstream->num_samples += vgmstream->current_block_size*28/16;
-		emff_ps2_block_update(vgmstream->next_block_offset,vgmstream);
-	} while (vgmstream->next_block_offset<get_streamfile_size(streamFile));
-
-	emff_ps2_block_update(start_offset,vgmstream);
+    emff_ps2_block_update(start_offset,vgmstream);
+    vgmstream->num_samples = read_32bitLE(0x8,streamFile);;
+	if (loop_flag) {
+        vgmstream->loop_start_sample = (read_32bitLE(0x28,streamFile)-start_offset)*28/16/channel_count;
+        vgmstream->loop_end_sample = read_32bitLE(0x8,streamFile);
+    }
 
     return vgmstream;
 
@@ -143,10 +135,6 @@ VGMSTREAM * init_vgmstream_emff_ngc(STREAMFILE *streamFile) {
 		vgmstream->ch[j].adpcm_coef[i] = read_16bitBE(coef_table2[j]+i*2,streamFile);
 	}
 }
-	if (loop_flag) {
-        vgmstream->loop_start_sample = (read_32bitBE(0x28,streamFile))*14/8/channel_count;
-        vgmstream->loop_end_sample = read_32bitBE(0x8,streamFile);
-		}
 	} else if (read_32bitBE(0x2D0,streamFile) == 0x0 &&
 		read_32bitBE(0x2D4,streamFile) == 0x0 &&
 		read_32bitBE(0x2D8,streamFile) == 0x0 &&
@@ -161,10 +149,6 @@ VGMSTREAM * init_vgmstream_emff_ngc(STREAMFILE *streamFile) {
 		vgmstream->ch[j].adpcm_coef[i] = read_16bitBE(coef_table1[j]+i*2,streamFile);
 	}
 }
-	if (loop_flag) {
-        vgmstream->loop_start_sample = (read_32bitBE(0x28,streamFile)-start_offset)*14/8/channel_count;
-        vgmstream->loop_end_sample = read_32bitBE(0x8,streamFile);
-		}
 	} else {
 		goto fail;
 	}
@@ -185,15 +169,11 @@ VGMSTREAM * init_vgmstream_emff_ngc(STREAMFILE *streamFile) {
 
 	/* Calc num_samples */
 	emff_ngc_block_update(start_offset,vgmstream);
-	vgmstream->num_samples=0;
-
-	do {
-	
-	vgmstream->num_samples += vgmstream->current_block_size*14/8;
-		emff_ngc_block_update(vgmstream->next_block_offset,vgmstream);
-	} while (vgmstream->next_block_offset<get_streamfile_size(streamFile));
-
-	emff_ngc_block_update(start_offset,vgmstream);
+    vgmstream->num_samples = read_32bitBE(0x8,streamFile);;
+	if (loop_flag) {
+        vgmstream->loop_start_sample = (read_32bitBE(0x28,streamFile))*14/8/channel_count;
+        vgmstream->loop_end_sample = read_32bitBE(0x8,streamFile);
+	}
 
     return vgmstream;
 
