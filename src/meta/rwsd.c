@@ -16,6 +16,7 @@ VGMSTREAM * init_vgmstream_rwsd(STREAMFILE *streamFile) {
     int codec_number;
     int channel_count;
     int loop_flag;
+    int version = -1;
 
     off_t start_offset;
     size_t stream_size;
@@ -25,24 +26,43 @@ VGMSTREAM * init_vgmstream_rwsd(STREAMFILE *streamFile) {
     if (strcasecmp("rwsd",filename_extension(filename))) goto fail;
 
     /* check header */
-    if ((uint32_t)read_32bitBE(0,streamFile)!=0x52575344 || /* "RWSD" */
-            (uint32_t)read_32bitBE(4,streamFile)!=0xFEFF0102)
+    if ((uint32_t)read_32bitBE(0,streamFile)!=0x52575344) /* "RWSD" */
         goto fail;
 
-    /* ideally we would look through the chunk list for a WAVE chunk,
-     * but it's always in the same order */
-    /* get WAVE offset, check */
-    wave_offset = read_32bitBE(0x18,streamFile);
-    if ((uint32_t)read_32bitBE(wave_offset,streamFile)!=0x57415645) /* "WAVE" */
-        goto fail;
-    /* get WAVE size, check */
-    wave_length = read_32bitBE(0x1c,streamFile);
-    if (read_32bitBE(wave_offset+4,streamFile)!=wave_length)
-        goto fail;
+    switch (read_32bitBE(4,streamFile))
+    {
+        case 0xFEFF0102:
+            /* ideally we would look through the chunk list for a WAVE chunk,
+             * but it's always in the same order */
+            /* get WAVE offset, check */
+            wave_offset = read_32bitBE(0x18,streamFile);
+            if ((uint32_t)read_32bitBE(wave_offset,streamFile)!=0x57415645) /* "WAVE" */
+                goto fail;
+            /* get WAVE size, check */
+            wave_length = read_32bitBE(0x1c,streamFile);
+            if (read_32bitBE(wave_offset+4,streamFile)!=wave_length)
+                goto fail;
 
-    /* check wave count */
-    if (read_32bitBE(wave_offset+8,streamFile) != 1)
-        goto fail; /* only support 1 */
+            /* check wave count */
+            if (read_32bitBE(wave_offset+8,streamFile) != 1)
+                goto fail; /* only support 1 */
+
+            version = 2;
+
+            break;
+        case 0xFEFF0103:
+            {
+                if ((uint32_t)read_32bitBE(0x140,streamFile)!=0x52574156) /* "RWAV" */
+                    goto fail;
+
+                wave_offset = 0x158;
+
+                version = 3;
+            }
+            break;
+        default:
+            goto fail;
+    }
 
     /* get type details */
     codec_number = read_8bit(wave_offset+0x10,streamFile);
@@ -95,7 +115,10 @@ VGMSTREAM * init_vgmstream_rwsd(STREAMFILE *streamFile) {
         }
     }
 
-    start_offset = read_32bitBE(8,streamFile);
+    if (version == 2)
+        start_offset = read_32bitBE(8,streamFile);
+    else
+        start_offset = 0x248;
     stream_size = read_32bitBE(wave_offset+0x50,streamFile);
 
     /* open the file for reading by each channel */
