@@ -217,6 +217,7 @@ char * extension_list[] = {
 	"smp\0SMP Audio File (*.SMP)\0",
 	"emff\0EMFF Audio File (*.EMFF)\0",
 	"thp\0THP Audio File (*.THP)\0",
+    "rwar\0RWAR Audio File (*.RWSD)\0",
 };
 
 void about(HWND hwndParent) {
