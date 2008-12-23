@@ -20,8 +20,10 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
     int32_t start_offset;
     int32_t header_size;
 	int32_t coef[2];
+	int32_t coef_splitted[2];
 	int32_t dsp_interleave_type;
-	
+	int32_t coef_type;
+
     char filename[260];
     int coding;
 #ifdef VGM_USE_MPEG
@@ -130,7 +132,10 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
 	coef[0] = read_32bitLE(0x24,streamFile);
 	coef[1] = read_32bitLE(0x28,streamFile);
 	dsp_interleave_type = read_32bitLE(0x2C,streamFile);
-
+	coef_type = read_32bitLE(0x30,streamFile); /*	0 - normal coefs
+													1 - splitted coefs (16byte rows)  */
+	coef_splitted[0] = read_32bitLE(0x34,streamFile);
+	coef_splitted[1] = read_32bitLE(0x38,streamFile);
     //if (coding == coding_XBOX && channel_count != 2) goto fail;
 
     /* build the VGMSTREAM */
@@ -271,9 +276,21 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
                         chstreamfile =
                             streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
 
-					for (j=0;j<16;j++) 
+					if (coef_type == 0) {
+						for (j=0;j<16;j++) {
             			vgmstream->ch[i].adpcm_coef[j] = read_16bitBE(coef[i]+j*2,streamFile);
-							chstart_offset =start_offset+vgmstream->interleave_block_size*i;
+						chstart_offset =start_offset+vgmstream->interleave_block_size*i;
+						}
+					} else if (coef_type == 1) {
+						for (j=0;j<8;j++) {
+			vgmstream->ch[0].adpcm_coef[j*2]=read_16bitBE(coef[0]+j*2,streamFile);
+			vgmstream->ch[0].adpcm_coef[j*2+1]=read_16bitBE(coef_splitted[0]+j*2,streamFile);
+			vgmstream->ch[1].adpcm_coef[j*2]=read_16bitBE(coef[1]+j*2,streamFile);
+			vgmstream->ch[1].adpcm_coef[j*2+1]=read_16bitBE(coef_splitted[1]+j*2,streamFile);
+        }
+						}
+				chstart_offset =start_offset+vgmstream->interleave_block_size*i;
+					
 					break;
 
 #ifdef VGM_USE_MPEG
