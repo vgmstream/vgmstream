@@ -300,7 +300,7 @@ static int find_key(STREAMFILE *file, uint16_t *xor_start, uint16_t *xor_mult, u
         /* read in the scales */
         {
             int i;
-            for (i=0; i <= scales_to_do; i++) {
+            for (i=0; i < scales_to_do; i++) {
                 scales[i] = read_16bitBE(startoff+(bruteframe+i)*18, file);
             }
         }
