@@ -3,6 +3,7 @@
 #endif
 #include <math.h>
 #include "meta.h"
+#include "../coding/coding.h"
 #include "../util.h"
 
 VGMSTREAM * init_vgmstream_adx(STREAMFILE *streamFile) {
@@ -20,6 +21,8 @@ VGMSTREAM * init_vgmstream_adx(STREAMFILE *streamFile) {
     int16_t coef1, coef2;
     uint16_t cutoff;
     char filename[260];
+    int coding_type = coding_CRI_ADX;
+    uint16_t xor_start=0,xor_mult=0,xor_add=0;
 
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
@@ -49,6 +52,16 @@ VGMSTREAM * init_vgmstream_adx(STREAMFILE *streamFile) {
 
     /* check version signature, read loop info */
     version_signature = read_16bitBE(0x12,streamFile);
+    /* encryption */
+    if (version_signature == 0x0408) {
+        /* TODO: check key */
+        coding_type = coding_CRI_ADX_enc;
+        /* Clover Studio (GOD HAND, Okami), 2nd result from guessadx */
+        xor_start = 0x49e1;
+        xor_mult = 0x4a57;
+        xor_add = 0x553d;
+        version_signature = 0x0400;
+    }
     if (version_signature == 0x0300) {      /* type 03 */
         header_type = meta_ADX_03;
         if (stream_offset-6 >= 0x2c) {   /* enough space for loop info? */
@@ -94,7 +107,7 @@ VGMSTREAM * init_vgmstream_adx(STREAMFILE *streamFile) {
     vgmstream->loop_start_sample = loop_start_sample;
     vgmstream->loop_end_sample = loop_end_sample;
 
-    vgmstream->coding_type = coding_CRI_ADX;
+    vgmstream->coding_type = coding_type;
     if (channel_count==1)
         vgmstream->layout_type = layout_none;
     else
@@ -136,6 +149,18 @@ VGMSTREAM * init_vgmstream_adx(STREAMFILE *streamFile) {
 
             vgmstream->ch[i].adpcm_coef[0] = coef1;
             vgmstream->ch[i].adpcm_coef[1] = coef2;
+
+            if (coding_type == coding_CRI_ADX_enc)
+            {
+                int j;
+                vgmstream->ch[i].adx_channels = channel_count;
+                vgmstream->ch[i].adx_xor = xor_start;
+                vgmstream->ch[i].adx_mult = xor_mult;
+                vgmstream->ch[i].adx_add = xor_add;
+
+                for (j=0;j<i;j++)
+                    adx_next_key(&vgmstream->ch[i]);
+            }
         }
     }
 

@@ -43,6 +43,7 @@ typedef enum {
     /* 4-bit ADPCM */
     coding_NDS_IMA,         /* IMA ADPCM w/ NDS layout */
     coding_CRI_ADX,         /* CRI ADX */
+    coding_CRI_ADX_enc,     /* encrypted CRI ADX */
     coding_NGC_DSP,         /* NGC ADPCM, called DSP */
     coding_NGC_DTK,         /* NGC hardware disc ADPCM, called DTK, TRK or ADP */
     coding_G721,            /* CCITT G.721 ADPCM */
@@ -384,6 +385,12 @@ typedef struct {
     int samples_done;
     int16_t loop_history1,loop_history2;
 #endif
+
+    /* ADX encryption */
+    int adx_channels;
+    uint16_t adx_xor;
+    uint16_t adx_mult;
+    uint16_t adx_add;
 } VGMSTREAMCHANNEL;
 
 typedef struct {

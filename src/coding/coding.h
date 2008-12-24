@@ -4,6 +4,9 @@
 #include "../vgmstream.h"
 
 void decode_adx(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
+void decode_adx_enc(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
+
+void adx_next_key(VGMSTREAMCHANNEL * stream);
 
 void decode_g721(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
 void g72x_init_state(struct g72x_state *state_ptr);

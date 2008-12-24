@@ -558,6 +558,7 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
 int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
     switch (vgmstream->coding_type) {
         case coding_CRI_ADX:
+        case coding_CRI_ADX_enc:
             return 32;
         case coding_NGC_DSP:
             return 14;
@@ -643,6 +644,7 @@ int get_vgmstream_samples_per_shortframe(VGMSTREAM * vgmstream) {
 int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
     switch (vgmstream->coding_type) {
         case coding_CRI_ADX:
+        case coding_CRI_ADX_enc:
             return 18;
         case coding_NGC_DSP:
             return 8;
@@ -731,6 +733,14 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
         case coding_CRI_ADX:
             for (chan=0;chan<vgmstream->channels;chan++) {
                 decode_adx(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                        vgmstream->channels,vgmstream->samples_into_block,
+                        samples_to_do);
+            }
+
+            break;
+        case coding_CRI_ADX_enc:
+            for (chan=0;chan<vgmstream->channels;chan++) {
+                decode_adx_enc(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
                         samples_to_do);
             }
@@ -1171,6 +1181,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case coding_CRI_ADX:
             snprintf(temp,TEMPSIZE,"CRI ADX 4-bit ADPCM");
+            break;
+        case coding_CRI_ADX_enc:
+            snprintf(temp,TEMPSIZE,"encrypted CRI ADX 4-bit ADPCM");
             break;
         case coding_NDS_IMA:
             snprintf(temp,TEMPSIZE,"NDS-style 4-bit IMA ADPCM");
