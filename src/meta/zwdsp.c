@@ -8,7 +8,7 @@ VGMSTREAM * init_vgmstream_zwdsp(STREAMFILE *streamFile) {
     off_t start_offset;
 
     int loop_flag;
-	int channel_count;
+    int channel_count;
 
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
@@ -18,24 +18,26 @@ VGMSTREAM * init_vgmstream_zwdsp(STREAMFILE *streamFile) {
     if (read_32bitBE(0x00,streamFile) != 0x00000000) /* 0x0 */
         goto fail;
 
-	/* Retrieve the loop flag, some files have 0x0 and some 0x02 as "no loop" */
+    /* Retrieve the loop flag, some files have 0x0 and some 0x02 as "no loop" */
 
-	switch (read_32bitBE(0x10, streamFile)) {
-		case 0:
-		case 2:
-			loop_flag = 0;
-		break;
-	}
+    switch (read_32bitBE(0x10, streamFile)) {
+        case 0:
+        case 2:
+            loop_flag = 0;
+            break;
+        default:
+            loop_flag = 1;
+    }
 
-	channel_count = read_32bitBE(0x1C,streamFile);
-    
-	/* build the VGMSTREAM */
+    channel_count = read_32bitBE(0x1C,streamFile);
+
+    /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
-	/* fill in the vital statistics */
+    /* fill in the vital statistics */
     start_offset = 0x90;
-	vgmstream->channels = channel_count;
+    vgmstream->channels = channel_count;
     vgmstream->sample_rate = read_32bitBE(0x08,streamFile);
     vgmstream->coding_type = coding_NGC_DSP;
     vgmstream->num_samples = read_32bitBE(0x18,streamFile)*14/8/channel_count;
@@ -45,8 +47,8 @@ VGMSTREAM * init_vgmstream_zwdsp(STREAMFILE *streamFile) {
     }
 
 
-		vgmstream->layout_type = layout_none;
-    	vgmstream->meta_type = meta_ZWDSP;
+    vgmstream->layout_type = layout_none;
+    vgmstream->meta_type = meta_ZWDSP;
 
 
     if (vgmstream->coding_type == coding_NGC_DSP) {
