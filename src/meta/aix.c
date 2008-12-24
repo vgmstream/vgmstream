@@ -195,6 +195,7 @@ VGMSTREAM * init_vgmstream_aix(STREAMFILE *streamFile) {
 
     vgmstream->codec_data = data;
     free(segment_offset);
+    free(samples_in_segment);
 
     return vgmstream;
 

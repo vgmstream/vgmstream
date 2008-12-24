@@ -57,7 +57,7 @@ int main(int argc, char ** argv) {
     double loop_count = 2.0;
     double fade_seconds = 10.0;
     double fade_delay_seconds = 0.0;
-    
+
     while ((opt = getopt(argc, argv, "o:l:f:d:ipPcmxeEr:g")) != -1) {
         switch (opt) {
             case 'o':
@@ -347,6 +347,7 @@ int main(int argc, char ** argv) {
     }
 
     close_vgmstream(s);
+    free(buf);
 
     return 0;
 }
