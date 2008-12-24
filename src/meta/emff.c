@@ -3,7 +3,7 @@
 #include "../util.h"
 
 /* EMFF - Eidos Music File Format (PS2),
-found in Tomb Raider Legend/Anniversary, Legacy of Kain - Defiance, possibly more... */
+Legacy of Kain - Defiance, possibly more... */
 VGMSTREAM * init_vgmstream_emff_ps2(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[260];
@@ -76,7 +76,7 @@ fail:
 
 
 /* EMFF - Eidos Music File Format (NGC/WII),
-found in Tomb Raider Legend/Anniversary, Legacy of Kain - Defiance, possibly more... */
+found in Tomb Raider Legend/Anniversary/Underworld, possibly more... */
 VGMSTREAM * init_vgmstream_emff_ngc(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[260];
@@ -86,8 +86,7 @@ VGMSTREAM * init_vgmstream_emff_ngc(STREAMFILE *streamFile) {
 	int frequency;
 	int i;
 	int j;
-	off_t coef_table1[8] = {0xC8,0xF6,0x124,0x152,0x180,0x1AE,0x1DC,0x20A};
-	off_t coef_table2[8] = {0x2D0,0x2FE,0x32C,0x35A,0x388,0x3B6,0x3E4,0x412};
+	off_t coef_table[8];
 
 	/* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
@@ -121,37 +120,34 @@ VGMSTREAM * init_vgmstream_emff_ngc(STREAMFILE *streamFile) {
 	vgmstream->coding_type = coding_NGC_DSP;
 
 	/* Retrieving coefs and loops, depending on the file layout... */
-	if (read_32bitBE(0xC8,streamFile) == 0x0 &&
-		read_32bitBE(0xCC,streamFile) == 0x0 &&
-		read_32bitBE(0xD0,streamFile) == 0x0 &&
-		read_32bitBE(0xD4,streamFile) == 0x0 &&
-		read_32bitBE(0xD8,streamFile) == 0x0 &&
-		read_32bitBE(0xDC,streamFile) == 0x0 &&
-		read_32bitBE(0xE0,streamFile) == 0x0 &&
-		read_32bitBE(0xE4,streamFile) == 0x0) {
-	
-	for (j=0;j<vgmstream->channels;j++) {
-	for (i=0;i<16;i++) {
-		vgmstream->ch[j].adpcm_coef[i] = read_16bitBE(coef_table2[j]+i*2,streamFile);
-	}
+	/* Found in Tomb Raider - Legend for GameCube */
+    if (read_32bitBE(0xC8,streamFile) > 0x0) {
+        off_t coef_table[8] = {0xC8,0xF6,0x124,0x152,0x180,0x1AE,0x1DC,0x20A};
+		for (j=0;j<vgmstream->channels;j++) {
+	    for (i=0;i<16;i++) {
+		    vgmstream->ch[j].adpcm_coef[i] = read_16bitBE(coef_table[j]+i*2,streamFile);
+    }
 }
-	} else if (read_32bitBE(0x2D0,streamFile) == 0x0 &&
-		read_32bitBE(0x2D4,streamFile) == 0x0 &&
-		read_32bitBE(0x2D8,streamFile) == 0x0 &&
-		read_32bitBE(0x2DC,streamFile) == 0x0 &&
-		read_32bitBE(0x2E0,streamFile) == 0x0 &&
-		read_32bitBE(0x2E4,streamFile) == 0x0 &&
-		read_32bitBE(0x2E8,streamFile) == 0x0 &&
-		read_32bitBE(0x2EC,streamFile) == 0x0) {
-	
-	for (j=0;j<vgmstream->channels;j++) {
-	for (i=0;i<16;i++) {
-		vgmstream->ch[j].adpcm_coef[i] = read_16bitBE(coef_table1[j]+i*2,streamFile);
+    /* Found in Tomb Raider - Anniversary for WII */
+	} else if (read_32bitBE(0xCC,streamFile) > 0x0) {
+        off_t coef_table[8] = {0xCC,0xFA,0x128,0x156,0x184,0x1B2,0x1E0,0x20E};
+		for (j=0;j<vgmstream->channels;j++) {
+	    for (i=0;i<16;i++) {
+		    vgmstream->ch[j].adpcm_coef[i] = read_16bitBE(coef_table[j]+i*2,streamFile);
+    }
+}   
+    /* Found in Tomb Raider - Underworld for WII */
+    } else if (read_32bitBE(0x2D0,streamFile) > 0x0) {
+        off_t coef_table[8] = {0x2D0,0x2FE,0x32C,0x35A,0x388,0x3B6,0x3E4,0x412};
+	    for (j=0;j<vgmstream->channels;j++) {
+	    for (i=0;i<16;i++) {
+		    vgmstream->ch[j].adpcm_coef[i] = read_16bitBE(coef_table[j]+i*2,streamFile);
 	}
-}
-	} else {
-		goto fail;
-	}
+} 
+
+    } else {
+        goto fail;
+    }
 
     vgmstream->layout_type = layout_emff_ngc_blocked;
     vgmstream->interleave_block_size = 0x10;

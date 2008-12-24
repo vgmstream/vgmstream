@@ -183,46 +183,46 @@ static struct {
     /* Clover Studio (GOD HAND, Okami) */
     /* I'm pretty sure this is right, based on a decrypted version of some GOD HAND tracks. */
     /* Also it is the 2nd result from guessadx */
-    {.start=0x49e1,.mult=0x4a57,.add=0x553d},
+    {0x49e1,0x4a57,0x553d},
 
     /* Grasshopper Manufacture 0 (Blood+) */
     /* this is estimated */
-    {.start=0x5f5d,.mult=0x58bd,.add=0x55ed},
+    {0x5f5d,0x58bd,0x55ed},
 
     /* Grasshopper Manufacture 1 (Killer7) */
     /* this is estimated */
-    {.start=0x50fb,.mult=0x5803,.add=0x5701},
+    {0x50fb,0x5803,0x5701},
 
     /* Grasshopper Manufacture 2 (Samurai Champloo) */
     /* confirmed unique with guessadx */
-    {.start=0x4f3f,.mult=0x472f,.add=0x562f},
+    {0x4f3f,0x472f,0x562f},
 
     /* Moss Ltd (Raiden III) */
     /* this is estimated */
-    {.start=0x66f5,.mult=0x58bd,.add=0x4459},
+    {0x66f5,0x58bd,0x4459},
 
     /* Sonic Team 0 (Phantasy Star Universe) */
     /* this is estimated */
-    {.start=0x5deb,.mult=0x5f27,.add=0x673f},
+    {0x5deb,0x5f27,0x673f},
 
     /* G.dev (Senko no Ronde) */
     /* this is estimated */
-    {.start=0x46d3,.mult=0x5ced,.add=0x474d},
+    {0x46d3,0x5ced,0x474d},
 
     /* Sonic Team 1 (NiGHTS: Journey of Dreams) */
     /* this seems to be dead on, but still estimated */
-    {.start=0x440b,.mult=0x6539,.add=0x5723},
+    {0x440b,0x6539,0x5723},
 
     /* from guessadx (unique?), unknown source */
-    {.start=0x586d,.mult=0x5d65,.add=0x63eb},
+    {0x586d,0x5d65,0x63eb},
 
     /* Navel (Shuffle! On the Stage) */
     /* 2nd key from guessadx */
-    {.start=0x4969,.mult=0x5deb,.add=0x467f},
+    {0x4969,0x5deb,0x467f},
 
     /* Success (Aoishiro) */
     /* 1st key from guessadx */
-    {.start=0x4d65,.mult=0x5eb7,.add=0x5dfd},
+    {0x4d65,0x5eb7,0x5dfd},
 };
 
 static const int key_count = sizeof(keys)/sizeof(keys[0]);
