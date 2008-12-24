@@ -178,6 +178,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_ss_stream,
 	init_vgmstream_thp,
 	init_vgmstream_wii_sts,
+    init_vgmstream_wii_sng,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -1824,6 +1825,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case meta_DSP_WII_MUS:
             snprintf(temp,TEMPSIZE,"mus header");
+            break;
+        case meta_WII_SNG:
+            snprintf(temp,TEMPSIZE,"SNG DSP Header");
             break;
 		case meta_RSD2VAG:
             snprintf(temp,TEMPSIZE,"RSD2/VAG Header");

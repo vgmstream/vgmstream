@@ -679,6 +679,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\wii_sng.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\wii_sts.c"
 					>
 				</File>

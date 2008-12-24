@@ -293,6 +293,7 @@ typedef enum {
 	meta_VGS,				/* Guitar Hero Encore - Rocks the 80s */
 	meta_DC_WAV_DCS,		/* Evil Twin - Cypriens Chronicles (DC) */
 	meta_WII_SMP,			/* Mushroom Men - The Spore Wars */
+    meta_WII_SNG,           /* Excite Trucks */
 	meta_EMFF_PS2,			/* Eidos Music File Format for PS2*/
 	meta_EMFF_NGC,			/* Eidos Music File Format for NGC/WII */
 	
