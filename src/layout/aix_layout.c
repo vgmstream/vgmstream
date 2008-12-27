@@ -10,6 +10,7 @@ void render_vgmstream_aix(sample * buffer, int32_t sample_count, VGMSTREAM * vgm
         int samples_to_do;
         int samples_this_block = data->sample_counts[data->current_segment];
         int current_stream;
+        int channels_sofar = 0;
 
         if (vgmstream->loop_flag && vgmstream_do_loop(vgmstream)) {
             data->current_segment = 1;
@@ -66,7 +67,6 @@ void render_vgmstream_aix(sample * buffer, int32_t sample_count, VGMSTREAM * vgm
             samples_to_do = AIX_BUFFER_SIZE/2;
         }
 
-        int channels_sofar = 0;
         for (current_stream = 0; current_stream < data->stream_count; current_stream++)
         {
             int i,j;
