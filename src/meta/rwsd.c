@@ -44,7 +44,7 @@ VGMSTREAM * init_vgmstream_rwsd(STREAMFILE *streamFile) {
     int rwar = 0;
     int version = -1;
 
-    off_t start_offset;
+    off_t start_offset = 0;
     size_t stream_size;
 
     /* check extension, case insensitive */
