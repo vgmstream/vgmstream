@@ -797,6 +797,7 @@
 				<File
 					RelativePath=".\coding\nds_procyon_decoder.c"
 					>
+				</File>
 				<File
 					RelativePath=".\coding\ngc_afc_decoder.c"
 					>
