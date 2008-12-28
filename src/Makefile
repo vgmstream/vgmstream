@@ -15,7 +15,8 @@ CODING_OBJS=coding/adx_decoder.o \
     coding/acm_decoder.o \
     coding/nwa_decoder.o \
     coding/msadpcm_decoder.o \
-    coding/aica_decoder.o
+    coding/aica_decoder.o \
+    coding/nds_procyon_decoder.o
 
 LAYOUT_OBJS=layout/ast_blocked.o \
     layout/blocked.o \

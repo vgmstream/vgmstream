@@ -56,6 +56,7 @@ typedef enum {
 	coding_XBOX,			/* XBOX IMA */
 	coding_EAXA,			/* EA/XA ADPCM */
 	coding_EA_ADPCM,		/* EA ADPCM */
+    coding_NDS_PROCYON,     /* NDS Procyon Studio ADPCM */
 
 #ifdef VGM_USE_VORBIS
     coding_ogg_vorbis,      /* vorbis */

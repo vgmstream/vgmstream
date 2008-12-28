@@ -189,7 +189,7 @@ multi:
 - .rwar (GC DSP ADPCM, 8/16 bit PCM)
 - .rwsd (GC DSP ADPCM, 8/16 bit PCM)
 - .rsd (PSX ADPCM, 16 bit PCM, GC DSP ADPCM, Xbox IMA ADPCM)
-- .sad (GC DSP ADPCM, NDS IMA ADPCM)
+- .sad (GC DSP ADPCM, NDS IMA ADPCM, Procyon Studios NDS ADPCM)
 - .sng, .asf, .str, .eam (EA/XA ADPCM or PSX ADPCM)
 - .strm (STRM: NDS IMA ADPCM, 8/16 bit PCM)
 - .ss7 (EACS IMA ADPCM, IMA ADPCM)

@@ -76,4 +76,6 @@ void decode_msadpcm_stereo(VGMSTREAM * vgmstream, sample * outbuf, int32_t first
 
 void decode_aica(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
 
+void decode_nds_procyon(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
+
 #endif

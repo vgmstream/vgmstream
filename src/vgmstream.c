@@ -627,6 +627,8 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
             return vgmstream->ws_output_size;
         case coding_MSADPCM:
             return (vgmstream->interleave_block_size-(7-1)*vgmstream->channels)*2/vgmstream->channels;
+        case coding_NDS_PROCYON:
+            return 30;
         default:
             return 0;
     }
@@ -681,6 +683,7 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
         case coding_PSX:
         case coding_PSX_badflags:
         case coding_invert_PSX:
+        case coding_NDS_PROCYON:
             return 16;
 		case coding_XA:
 			return 14*vgmstream->channels;
@@ -985,6 +988,13 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
 		case coding_AICA:
             for (chan=0;chan<vgmstream->channels;chan++) {
                 decode_aica(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                        vgmstream->channels,vgmstream->samples_into_block,
+                        samples_to_do);
+            }
+            break;
+        case coding_NDS_PROCYON:
+            for (chan=0;chan<vgmstream->channels;chan++) {
+                decode_nds_procyon(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
                         samples_to_do);
             }
@@ -1308,6 +1318,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case coding_AICA:
             snprintf(temp,TEMPSIZE,"Yamaha AICA 4-bit ADPCM");
+            break;
+        case coding_NDS_PROCYON:
+            snprintf(temp,TEMPSIZE,"Procyon Studio Digital Sound Elements NDS 4-bit APDCM");
             break;
         default:
             snprintf(temp,TEMPSIZE,"CANNOT DECODE");

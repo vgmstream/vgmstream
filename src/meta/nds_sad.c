@@ -9,6 +9,7 @@ VGMSTREAM * init_vgmstream_sadl(STREAMFILE *streamFile) {
 
     int loop_flag;
 	int channel_count;
+    int coding_type;
 
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
@@ -22,12 +23,21 @@ VGMSTREAM * init_vgmstream_sadl(STREAMFILE *streamFile) {
     if (read_32bitLE(0x40,streamFile) != get_streamfile_size(streamFile) )
         goto fail;
 
-    /* check for the simple IMA type that we can handle */
-    if (read_8bit(0xc,streamFile) != 0x11)
-        goto fail;
+    /* check coding type */
+    switch (read_8bit(0x33,streamFile)&0xf0)
+    {
+        case 0x70:
+            coding_type = coding_INT_IMA;
+            break;
+        case 0xb0:
+            coding_type = coding_NDS_PROCYON;
+            break;
+        default:
+            goto fail;
+    }
 
-    loop_flag = 0;
-    channel_count = 2;
+    loop_flag = read_8bit(0x31,streamFile);
+    channel_count = read_8bit(0x32,streamFile);
     
 	/* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
@@ -36,12 +46,43 @@ VGMSTREAM * init_vgmstream_sadl(STREAMFILE *streamFile) {
 	/* fill in the vital statistics */
     start_offset = 0x100;
 	vgmstream->channels = channel_count;
-    vgmstream->sample_rate = 16364;
-    vgmstream->coding_type = coding_INT_IMA;
-    vgmstream->num_samples = read_32bitLE(0x50,streamFile);;
+
+    switch (read_8bit(0x33,streamFile) & 6)
+    {
+        case 4:
+            vgmstream->sample_rate = 32728;
+            break;
+        case 2:
+            vgmstream->sample_rate = 16364;
+            break;
+        default:
+            goto fail;
+    }
+
+    vgmstream->coding_type = coding_type;
+
+    if (coding_type == coding_INT_IMA)
+        vgmstream->num_samples = 
+            (read_32bitLE(0x40,streamFile)-start_offset)/channel_count*2;
+    else if (coding_type == coding_NDS_PROCYON)
+        vgmstream->num_samples = 
+            (read_32bitLE(0x40,streamFile)-start_offset)/channel_count/16*30;
+
     vgmstream->interleave_block_size=0x10;
 
-    vgmstream->layout_type = layout_interleave;
+    if (loop_flag)
+    {
+        if (coding_type == coding_INT_IMA)
+            vgmstream->loop_start_sample = (read_32bitLE(0x54,streamFile)-start_offset)/channel_count*2;
+        else
+            vgmstream->loop_start_sample = (read_32bitLE(0x54,streamFile)-start_offset)/channel_count/16*30;
+        vgmstream->loop_end_sample = vgmstream->num_samples;
+    }
+
+    if (channel_count > 1)
+        vgmstream->layout_type = layout_interleave;
+    else
+        vgmstream->layout_type = layout_none;
     vgmstream->meta_type = meta_SADL;
 
     /* open the file for reading */
