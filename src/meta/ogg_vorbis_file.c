@@ -208,6 +208,18 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
                 loop_length=atol(strrchr(comment->user_comments[i],'=')+1);
                 loop_length_found=1;
             }
+            else if (strstr(comment->user_comments[i],"title=-lps")==
+                    comment->user_comments[i]) {
+                loop_start=atol(comment->user_comments[i]+10);
+                if (loop_start >= 0)
+                    loop_flag=1;
+            }
+            else if (strstr(comment->user_comments[i],"album=-lpe")==
+                    comment->user_comments[i]) {
+                loop_end=atol(comment->user_comments[i]+10);
+                loop_flag=1;
+                loop_end_found=1;
+            }
             else if (strstr(comment->user_comments[i],"LoopEnd=")==
                     comment->user_comments[i]) {
 						if(loop_flag) {
@@ -248,6 +260,9 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
         else
             vgmstream->loop_end_sample = vgmstream->num_samples;
         vgmstream->loop_flag = loop_flag;
+
+        if (vgmstream->loop_end_sample > vgmstream->num_samples)
+            vgmstream->loop_end_sample = vgmstream->num_samples;
     }
     vgmstream->coding_type = coding_ogg_vorbis;
     vgmstream->layout_type = layout_ogg_vorbis;
