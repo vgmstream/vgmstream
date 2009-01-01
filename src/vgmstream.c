@@ -1961,6 +1961,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
 		case meta_STS_WII:
             snprintf(temp,TEMPSIZE,"Shikigami no Shiro (WII) Header");
             break;
+        case meta_RSTM_shrunken:
+            snprintf(temp,TEMPSIZE,"Nintendo RSTM header, corrupted by Atlus");
+            break;
 		default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");
     }

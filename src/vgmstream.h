@@ -174,6 +174,7 @@ typedef enum {
     meta_RWAR,              /* single-stream RWAR */
     meta_RSTM_SPM,          /* RSTM with 44->22khz hack */
 	meta_THP,
+    meta_RSTM_shrunken,     /* Atlus' mutant shortened RSTM */
 
     /* CRI ADX */
     meta_ADX_03,            /* ADX "type 03" */
