@@ -42,7 +42,7 @@ void render_vgmstream_aax(sample * buffer, int32_t sample_count, VGMSTREAM * vgm
         {
             int i;
             data->current_segment++;
-            /*printf("next %d, %d samples\n",data->current_file,data->files[data->current_file]->total_values/data->files[data->current_file]->info.channels);*/
+            /*printf("advance to %d at %d samples\n",data->current_segment,vgmstream->current_sample);*/
             reset_vgmstream(data->adxs[data->current_segment]);
 
             /* carry over the history from the previous segment */
