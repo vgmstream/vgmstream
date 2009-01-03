@@ -196,6 +196,7 @@ multi:
 - .xwb (16 bit PCM, Xbox IMA ADPCM)
 
 etc:
+- .aax (CRI ADX ADPCM)
 - .acm (InterPlay ACM)
 - .adp (GC DTK ADPCM)
 - .adx (CRI ADX ADPCM)
