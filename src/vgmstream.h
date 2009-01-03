@@ -143,6 +143,7 @@ typedef enum {
     layout_acm,             /* dummy, let libacm handle layout */
     layout_mus_acm,         /* mus has multi-files to deal with */
     layout_aix,             /* CRI AIX's wheels within wheels */
+    layout_aax,             /* CRI AAX's wheels within databases */
 } layout_t;
 
 /* The meta type specifies how we know what we know about the file. We may know because of a header we read, some of it may have been guessed from filenames, etc. */
@@ -181,6 +182,7 @@ typedef enum {
     meta_ADX_04,            /* ADX "type 04" */
 	meta_ADX_05,            /* ADX "type 05" */
     meta_AIX,               /* CRI AIX */
+    meta_AAX,               /* CRI AAX */
 
     /* etc */
     meta_NGC_ADPDTK,        /* NGC DTK/ADP, no header (.adp) */
@@ -516,6 +518,15 @@ typedef struct {
      * segment1_stream1, segment1_stream2, segment2_stream1, segment2_stream2*/
     VGMSTREAM **adxs;
 } aix_codec_data;
+
+typedef struct {
+    int segment_count;
+    int current_segment;
+    int loop_segment;
+    /* one per segment */
+    int32_t *sample_counts;
+    VGMSTREAM **adxs;
+} aax_codec_data;
 
 /* for compressed NWA */
 typedef struct {

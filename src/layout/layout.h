@@ -52,4 +52,6 @@ void render_vgmstream_mus_acm(sample * buffer, int32_t sample_count, VGMSTREAM *
 
 void render_vgmstream_aix(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstream);
 
+void render_vgmstream_aax(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstream);
+
 #endif

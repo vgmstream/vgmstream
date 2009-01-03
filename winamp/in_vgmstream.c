@@ -218,6 +218,7 @@ char * extension_list[] = {
 	"emff\0EMFF Audio File (*.EMFF)\0",
 	"thp\0THP Audio File (*.THP)\0",
     "rwar\0RWAR Audio File (*.RWSD)\0",
+    "aax\0AAX Audio File (*.AAX)\0",
 };
 
 void about(HWND hwndParent) {

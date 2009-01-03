@@ -179,6 +179,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_thp,
 	init_vgmstream_wii_sts,
     init_vgmstream_wii_sng,
+    init_vgmstream_aax,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -293,6 +294,17 @@ void reset_vgmstream(VGMSTREAM * vgmstream) {
 
         data->current_segment = 0;
         for (i=0;i<data->segment_count*data->stream_count;i++)
+        {
+            reset_vgmstream(data->adxs[i]);
+        }
+    }
+
+    if (vgmstream->layout_type==layout_aax) {
+        aax_codec_data *data = vgmstream->codec_data;
+        int i;
+
+        data->current_segment = 0;
+        for (i=0;i<data->segment_count;i++)
         {
             reset_vgmstream(data->adxs[i]);
         }
@@ -455,6 +467,29 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
         }
         vgmstream->codec_data = NULL;
     }
+    if (vgmstream->layout_type==layout_aax) {
+        aax_codec_data *data = vgmstream->codec_data;
+
+        if (data) {
+            if (data->adxs) {
+                int i;
+                for (i=0;i<data->segment_count;i++) {
+
+                    /* note that the AAX close_streamfile won't do anything but
+                     * deallocate itself, there is only one open file and that
+                     * is in vgmstream->ch[0].streamfile  */
+                    close_vgmstream(data->adxs[i]);
+                }
+                free(data->adxs);
+            }
+            if (data->sample_counts) {
+                free(data->sample_counts);
+            }
+
+            free(data);
+        }
+        vgmstream->codec_data = NULL;
+    }
 
     if (
             vgmstream->coding_type == coding_NWA0 ||
@@ -551,6 +586,8 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
             break;
         case layout_aix:
             render_vgmstream_aix(buffer,sample_count,vgmstream);
+        case layout_aax:
+            render_vgmstream_aax(buffer,sample_count,vgmstream);
             break;
     }
 }
@@ -1422,6 +1459,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         case layout_aix:
             snprintf(temp,TEMPSIZE,"AIX interleave, internally 18-byte interleaved");
             break;
+        case layout_aax:
+            snprintf(temp,TEMPSIZE,"AAX blocked, 18-byte interleaved");
+            break;
         default:
             snprintf(temp,TEMPSIZE,"INCONCEIVABLE");
     }
@@ -1463,6 +1503,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case meta_AIX:
             snprintf(temp,TEMPSIZE,"CRI AIX header");
+            break;
+        case meta_AAX:
+            snprintf(temp,TEMPSIZE,"CRI AAX header");
             break;
         case meta_DSP_AGSC:
             snprintf(temp,TEMPSIZE,"Retro Studios AGSC header");

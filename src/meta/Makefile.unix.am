@@ -134,5 +134,6 @@ libmeta_la_SOURCES += thp.c
 libmeta_la_SOURCES += wii_sts.c
 libmeta_la_SOURCES += capdsp.c
 libmeta_la_SOURCES += wii_sng.c
+libmeta_la_SOURCES += aax.c
 
 EXTRA_DIST = meta.h

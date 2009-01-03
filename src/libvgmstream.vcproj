@@ -197,6 +197,10 @@
 				Name="Source Files"
 				>
 				<File
+					RelativePath=".\meta\aax.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\acm.c"
 					>
 				</File>
@@ -854,6 +858,10 @@
 			<Filter
 				Name="Source Files"
 				>
+				<File
+					RelativePath=".\layout\aax_layout.c"
+					>
+				</File>
 				<File
 					RelativePath=".\layout\aix_layout.c"
 					>
