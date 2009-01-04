@@ -791,6 +791,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\coding\l5_555_decoder.c"
+					>
+				</File>
+				<File
 					RelativePath=".\coding\mpeg_decoder.c"
 					>
 				</File>

@@ -596,6 +596,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
     switch (vgmstream->coding_type) {
         case coding_CRI_ADX:
         case coding_CRI_ADX_enc:
+        case coding_L5_555:
             return 32;
         case coding_NGC_DSP:
             return 14;
@@ -684,6 +685,7 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
     switch (vgmstream->coding_type) {
         case coding_CRI_ADX:
         case coding_CRI_ADX_enc:
+        case coding_L5_555:
             return 18;
         case coding_NGC_DSP:
             return 8;
@@ -1036,6 +1038,14 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                         samples_to_do);
             }
             break;
+        case coding_L5_555:
+            for (chan=0;chan<vgmstream->channels;chan++) {
+                decode_l5_555(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                        vgmstream->channels,vgmstream->samples_into_block,
+                        samples_to_do);
+            }
+
+            break;
     }
 }
 
@@ -1358,6 +1368,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case coding_NDS_PROCYON:
             snprintf(temp,TEMPSIZE,"Procyon Studio Digital Sound Elements NDS 4-bit APDCM");
+            break;
+        case coding_L5_555:
+            snprintf(temp,TEMPSIZE,"Level-5 0x555 ADPCM");
             break;
         default:
             snprintf(temp,TEMPSIZE,"CANNOT DECODE");
@@ -2007,7 +2020,10 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         case meta_RSTM_shrunken:
             snprintf(temp,TEMPSIZE,"Nintendo RSTM header, corrupted by Atlus");
             break;
-		default:
+        case meta_RIFF_WAVE_MWV:
+            snprintf(temp,TEMPSIZE,"RIFF WAVE header with .mwv flavoring");
+            break;
+        default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");
     }
     concatn(length,desc,temp);

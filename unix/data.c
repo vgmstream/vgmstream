@@ -157,6 +157,7 @@ gchar *vgmstream_exts [] = {
   "thp",
   "rwar",
   "aax",
+  "mwv",
   /* terminator */
   NULL
 };

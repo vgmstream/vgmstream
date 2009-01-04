@@ -96,6 +96,7 @@ typedef enum {
 
     coding_MSADPCM,         /* Microsoft ADPCM */
     coding_AICA,            /* Yamaha AICA ADPCM */
+    coding_L5_555,          /* Level-5 0x555 */
 } coding_t;
 
 /* The layout type specifies how the sound data is laid out in the file */
@@ -344,6 +345,7 @@ typedef enum {
     meta_RIFF_WAVE_POS,     /* .wav + .pos for looping */
     meta_RIFF_WAVE_labl_Marker, /* RIFF w/ loop Markers in LIST-adtl-labl */
     meta_RIFF_WAVE_smpl,    /* RIFF w/ loop data in smpl chunk */
+    meta_RIFF_WAVE_MWV,     /* .mwv RIFF w/ loop data in ctrl chunk pflt */
     meta_NWA,               /* Visual Art's NWA */
     meta_NWA_NWAINFOINI,    /* NWA w/ NWAINFO.INI for looping */
     meta_NWA_GAMEEXEINI,    /* NWA w/ Gameexe.ini for looping */
@@ -370,6 +372,7 @@ typedef struct {
 
     /* adpcm */
     int16_t adpcm_coef[16]; /* for formats with decode coefficients built in */
+    int32_t adpcm_coef_3by32[0x60];     /* for Level-5 0x555 */
     union {
         int16_t adpcm_history1_16;  /* previous sample */
         int32_t adpcm_history1_32;
@@ -377,6 +380,10 @@ typedef struct {
     union {
         int16_t adpcm_history2_16;  /* previous previous sample */
         int32_t adpcm_history2_32;
+    };
+    union {
+        int16_t adpcm_history3_16;
+        int32_t adpcm_history3_32;
     };
 
     int adpcm_step_index;       /* for IMA */

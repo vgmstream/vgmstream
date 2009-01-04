@@ -78,4 +78,6 @@ void decode_aica(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing,
 
 void decode_nds_procyon(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
 
+void decode_l5_555(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
+
 #endif

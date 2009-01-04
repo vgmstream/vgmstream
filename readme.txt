@@ -206,6 +206,7 @@ etc:
 - .bgw (FFXI PS-like ADPCM)
 - .de2 (MS ADPCM)
 - .kcey (EACS IMA ADPCM)
+- .mwv (Level-5 0x555 ADPCM)
 - .ogg, .logg (Ogg Vorbis)
 - .rsf (CCITT G.721 ADPCM)
 - .spw (FFXI PS-like ADPCM)
