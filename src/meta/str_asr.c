@@ -50,7 +50,7 @@ VGMSTREAM * init_vgmstream_str_asr(STREAMFILE *streamFile) {
         vgmstream->loop_start_sample = (read_32bitBE(0x44,streamFile))/2/channel_count;
         vgmstream->loop_end_sample = (read_32bitBE(0x48,streamFile))/2/channel_count;
     }
-    vgmstream->interleave_block_size = 0x2;
+    vgmstream->interleave_block_size = 0x10;
 	break;
 		default:
 			goto fail;
