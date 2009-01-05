@@ -174,7 +174,9 @@ META_OBJS=meta/adx_header.o \
     meta/wii_sts.o \
     meta/capdsp.o \
     meta/wii_sng.o \
-    meta/aax.o
+    meta/aax.o \
+    meta/ps2_p2bt.o \
+    meta/ps2_gbts.o
 
 OBJECTS=vgmstream.o streamfile.o util.o $(CODING_OBJS) $(LAYOUT_OBJS) $(META_OBJS)
 
