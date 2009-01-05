@@ -217,7 +217,9 @@ char * extension_list[] = {
 	"smp\0SMP Audio File (*.SMP)\0",
 	"emff\0EMFF Audio File (*.EMFF)\0",
 	"thp\0THP Audio File (*.THP)\0",
+	"p2bt\0P2BT Audio File (*.P2BT)\0",
     "rwar\0RWAR Audio File (*.RWSD)\0",
+	"gbts\0GBTS Audio File (*.GBTS)\0",
     "aax\0AAX Audio File (*.AAX)\0",
     "mwv\0MWV Audio File (*.MWV)\0",
 };

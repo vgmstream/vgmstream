@@ -320,6 +320,9 @@ VGMSTREAM * init_vgmstream_thp(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_wii_sts(STREAMFILE *streamFile);
 
+VGMSTREAM * init_vgmstream_ps2_p2bt(STREAMFILE *streamFile);
+
+VGMSTREAM * init_vgmstream_ps2_gbts(STREAMFILE *streamFile);
 VGMSTREAM * init_vgmstream_wii_sng(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_aax(STREAMFILE *streamFile);

@@ -18,7 +18,7 @@
 	<Configurations>
 		<Configuration
 			Name="Debug|Win32"
-			OutputDirectory="C:\Program Files (x86)\Winamp\Plugins"
+			OutputDirectory="C:\Program Files\Winamp\Plugins"
 			IntermediateDirectory="$(ConfigurationName)"
 			ConfigurationType="4"
 			>
@@ -463,6 +463,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\ps2_gbts.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\ps2_hgc1.c"
 					>
 				</File>
@@ -504,6 +508,10 @@
 				</File>
 				<File
 					RelativePath=".\meta\ps2_npsf.c"
+					>
+				</File>
+				<File
+					RelativePath=".\meta\ps2_p2bt.c"
 					>
 				</File>
 				<File

@@ -178,7 +178,10 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_ss_stream,
 	init_vgmstream_thp,
 	init_vgmstream_wii_sts,
+	init_vgmstream_ps2_p2bt,
+	init_vgmstream_ps2_gbts,
     init_vgmstream_wii_sng,
+//	init_vgmstream_iadp,
     init_vgmstream_aax,
 };
 
@@ -2016,6 +2019,15 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
 		case meta_STS_WII:
             snprintf(temp,TEMPSIZE,"Shikigami no Shiro (WII) Header");
+            break;
+		case meta_PS2_P2BT:
+            snprintf(temp,TEMPSIZE,"Pop'n'Music 7 Header");
+            break;
+		case meta_PS2_GBTS:
+            snprintf(temp,TEMPSIZE,"Pop'n'Music 9 Header");
+            break;
+		case meta_NGC_IADP:
+            snprintf(temp,TEMPSIZE,"Dr MUTO Header");
             break;
         case meta_RSTM_shrunken:
             snprintf(temp,TEMPSIZE,"Nintendo RSTM header, corrupted by Atlus");
