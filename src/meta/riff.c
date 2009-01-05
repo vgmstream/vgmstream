@@ -294,21 +294,26 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
 
     if (mwv)
     {
-        int i;
+        int i, c;
         if (coding_type == coding_L5_555)
         {
+            const int filter_order = 3;
+            int filter_count = read_32bitLE(mwv_pflt_offset+12, streamFile);
+
             if (mwv_pflt_offset == -1 ||
-                    read_32bitLE(mwv_pflt_offset+8, streamFile) != 3 ||
-                    read_32bitLE(mwv_pflt_offset+12, streamFile) != 0x20)
+                    read_32bitLE(mwv_pflt_offset+8, streamFile) != filter_order ||
+                    read_32bitLE(mwv_pflt_offset+4, streamFile) < 8 + filter_count * 4 * filter_order)
                 goto fail;
-        }
-        for (i = 0; i < 0x60; i++)
-        {
-            int c;
+            if (filter_count > 0x20) goto fail;
             for (c = 0; c < channel_count; c++)
-                vgmstream->ch[c].adpcm_coef_3by32[i] = read_32bitLE(
-                        mwv_pflt_offset+16+i*4, streamFile
-                        );
+            {
+                for (i = 0; i < filter_count * filter_order; i++)
+                {
+                    vgmstream->ch[c].adpcm_coef_3by32[i] = read_32bitLE(
+                            mwv_pflt_offset+16+i*4, streamFile
+                            );
+                }
+            }
         }
         vgmstream->meta_type = meta_RIFF_WAVE_MWV;
     }
