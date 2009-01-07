@@ -55,6 +55,7 @@ void decode_psx(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, 
 	stream->adpcm_history2_32=hist2;
 }
 
+/* first byte is XOR 0xFF, third byte is -2 (so add 2) */
 void decode_invert_psx(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
 
 	int predict_nr, shift_factor, sample;
@@ -84,6 +85,8 @@ void decode_invert_psx(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelsp
 		if(flag<0x07) {
 		
 			short sample_byte = (short)read_8bit(stream->offset+(framesin*16)+2+i/2,stream->streamfile);
+            if (i/2 == 0)
+                sample_byte = (short)(int8_t)(sample_byte+2);
 
 			scale = ((i&1 ?
 				     sample_byte >> 4 :

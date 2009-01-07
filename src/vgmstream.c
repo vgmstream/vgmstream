@@ -1264,7 +1264,7 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             snprintf(temp,TEMPSIZE,"Playstation 4-bit ADPCM with bad flags");
             break;
         case coding_invert_PSX:
-            snprintf(temp,TEMPSIZE,"Inverted (?) Playstation 4-bit ADPCM");
+            snprintf(temp,TEMPSIZE,"BMDX \"encrypted\" Playstation 4-bit ADPCM");
             break;
         case coding_FFXI:
             snprintf(temp,TEMPSIZE,"FFXI Playstation-ish 4-bit ADPCM");
