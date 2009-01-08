@@ -263,6 +263,7 @@ typedef enum {
 	meta_ISH_ISD,			/* Various */
 	meta_GSP_GSB,			/* Various */
 	meta_YDSP,				/* WWE Day of Reckoning */
+    meta_FFCC_STR,          /* Final Fantasy: Crystal Chronicles */
 
 	meta_IDSP2,				/* Chronicles of Narnia */
 	meta_WAA_WAC_WAD_WAM,	/* Beyond Good & Evil */

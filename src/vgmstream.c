@@ -183,6 +183,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_wii_sng,
 //	init_vgmstream_iadp,
     init_vgmstream_aax,
+    init_vgmstream_ngc_ffcc_str,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -2034,6 +2035,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case meta_RIFF_WAVE_MWV:
             snprintf(temp,TEMPSIZE,"RIFF WAVE header with .mwv flavoring");
+            break;
+        case meta_FFCC_STR:
+            snprintf(temp,TEMPSIZE,"Final Fantasy: Crystal Chronicles STR header");
             break;
         default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

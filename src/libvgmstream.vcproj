@@ -387,6 +387,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\ngc_ffcc_str.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\ngc_pdt.c"
 					>
 				</File>
