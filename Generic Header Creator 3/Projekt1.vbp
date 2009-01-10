@@ -3,7 +3,6 @@ Form=Form1.frm
 Reference=*\G{00020430-0000-0000-C000-000000000046}#2.0#0#C:\WINDOWS\system32\stdole2.tlb#OLE Automation
 Object={49CBE90A-5F9F-4127-919C-0B74E18CB87E}#1.0#0; CK-Tools.ocx
 Form=frmABOUT.frm
-Form=Form2.frm
 IconForm="Form1"
 Startup="Form1"
 HelpFile=""

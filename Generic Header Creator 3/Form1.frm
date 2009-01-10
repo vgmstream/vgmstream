@@ -1750,6 +1750,8 @@ Dim TimeSecondsCutLoopEnd
 
 Dim MSADPCM_Frames
 Dim MSADPCM_LastFrame
+Dim RiffChannels As Integer
+Dim RiffBits As Integer
 
 'setting up needed GENH variables (ordered - all are 4 bytes long)
 Dim strGENHCheck As String * 4
@@ -2174,6 +2176,68 @@ COUNTER = 0
     
 End Sub
 
+Private Sub cmdFindLoopsPSX_Click()
+
+Close #1
+Dim CheckByte As Byte
+COUNTER = 0
+
+    If strInputFile = "" Then
+        lblINFO.Caption = ("No File selected!")
+        Exit Sub
+    ElseIf txtGENHChannels.Text = "" Then
+        lblINFO.Caption = ("Channel Value not set!")
+        Exit Sub
+    End If
+    
+GENHChannels = txtGENHChannels.Text
+Open strInputFile For Binary As #1
+
+    Do
+
+    Get #1, 2 + COUNTER, CheckByte
+    
+    If CheckByte = 0 Then
+        lblINFO.Caption = "File has no Loop Flages, using standard values...!"
+        txtGENHLoopStartSamples.Text = ""
+        cmdUSEFILEEND_Click
+        Close #1
+        Exit Sub
+    End If
+    
+    If CheckByte = 6 Then
+        txtGENHLoopStartSamples.Text = COUNTER / 16 / GENHChannels * 28
+        lblINFO.Caption = "Loop Start found (" & txtGENHLoopStartSamples.Text & ")"
+    End If
+    
+    COUNTER = COUNTER + 16
+    Loop Until CheckByte = 6
+
+COUNTER = 0
+    
+    Do
+
+    Get #1, (FileLen(strInputFile) - 14) - COUNTER, CheckByte
+    
+        If COUNTER = &H20000 Then
+            Close #1
+            Exit Sub
+        End If
+        
+    If CheckByte = 3 Then
+        txtGENHLoopEndSamples.Text = (FileLen(strInputFile) - COUNTER) / 16 / GENHChannels * 28
+        lblINFO.Caption = "Loop End found (" & txtGENHLoopEndSamples.Text & ")"
+    End If
+    
+    COUNTER = COUNTER + 16
+    Loop Until CheckByte = 3
+    
+    
+    Close #2
+    
+    
+End Sub
+
 Private Sub cmdUSEFILEEND_Click()
     
     Close #1
@@ -2403,19 +2467,24 @@ End Sub
 
 Private Sub File1_Click()
 
+Close #1 'Just to be sure, to prevent crashes
+
     If FolderBrowser1.Text = "" Then
-    txtInputFile.Text = File1.FileName
+        txtInputFile.Text = File1.FileName
     Else
-    txtInputFile.Text = FolderBrowser1.Text & "\" & File1.FileName
+        txtInputFile.Text = FolderBrowser1.Text & "\" & File1.FileName
     End If
     
-    strInputFile = txtInputFile.Text
-    
-    txtInputFileLength.Text = (FileLen(strInputFile))
-    
-    txtOutputFile.Text = txtInputFile.Text & ".GENH"
+        strInputFile = txtInputFile.Text
+        txtInputFileLength.Text = (FileLen(strInputFile))
+        txtOutputFile.Text = txtInputFile.Text & ".GENH"
     
     Open strInputFile For Binary As #1
+        
+'##############################################################################
+'#### Here we'll implement some checks and autogetting for varoius formats ####
+'##############################################################################
+    '"GENH" - the creator will be disabled if you select a "GENH" file
     Get #1, 1, strGENHCheck
     If strGENHCheck = "GENH" Then
         txtOutputFile.Text = ""
@@ -2424,39 +2493,77 @@ Private Sub File1_Click()
         Close #1
         Exit Sub
     Else
+    'Else, we'll remove the extension for further things
         cmdCreateGENH.Enabled = True
         lblCreateGenh.Enabled = True
-
-On Error Resume Next
-    NAMECUT = txtInputFile.Text
-    txtOutputFile.Text = Left(NAMECUT, InStrRev(txtInputFile.Text, ".") - 1) & ".GENH"
-    txtGetFileName.Text = File1.FileName
-
-
+        On Error Resume Next
+        NAMECUT = txtInputFile.Text
+        txtOutputFile.Text = Left(NAMECUT, InStrRev(txtInputFile.Text, ".") - 1) & ".GENH"
+        txtGetFileName.Text = File1.FileName
     End If
     
     
-        If strGENHCheck = "SPSD" Then 'NAOMI / NAOMI 2
-        
+    'SPSD - found in various NAOMI/NAOMI2 and DreamCast games
+    If strGENHCheck = "SPSD" Then 'NAOMI / NAOMI 2
         Get #1, 13, GENHLoopEnd
         Get #1, 45, GENHLoopStart
-        
             If GENHLoopStart > GENHLoopEnd Then
                 GENHLoopStart = -1
             Else
                 GENHLoopStart = GENHLoopStart
             End If
         
-        comboFileFormat.ListIndex = 10
+        comboFileFormat.ListIndex = 10 'Yamaha ADPCM
         txtGENHHeaderSkip.Text = "64"
         txtGENHLoopEndSamples.Text = GENHLoopEnd
         txtGENHLoopStartSamples.Text = GENHLoopStart
         
-            If chkHalfFileInterleave.Value = 1 Then
+        If chkHalfFileInterleave.Value = 1 Then
             GENHInterleave = GENHLoopEnd / 2
-            End If
-            
         End If
+    End If
+    
+    
+    'Riff WAVEfmt - no need to explain this...
+    If strGENHCheck = "RIFF" Then
+        Get #1, 9, strGENHCheck
+        If strGENHCheck = "WAVE" Then
+            Get #1, 13, strGENHCheck
+            If strGENHCheck = "fmt " Then
+
+                Get #1, 23, RiffChannels
+                Get #1, 25, GENHFrequency
+                Get #1, 35, RiffBits
+                COUNTER = 0
+                        
+                Do
+                        
+                Get #1, 1 + COUNTER, strGENHCheck
+                If strGENHCheck = "data" Then
+                    Get #1, COUNTER + 5, GENHLoopEnd
+                    If RiffBits = 8 Then
+                        txtGENHLoopEndSamples = GENHLoopEnd / RiffChannels
+                        txtGENHHeaderSkip.Text = COUNTER + 8
+                        txtGENHChannels.Text = RiffChannels
+                        txtGENHFrequency.Text = GENHFrequency
+                    ElseIf RiffBits = 16 Then
+                        txtGENHLoopEndSamples = GENHLoopEnd / RiffChannels / 2
+                        txtGENHHeaderSkip.Text = COUNTER + 8
+                        txtGENHChannels.Text = RiffChannels
+                        txtGENHFrequency.Text = GENHFrequency
+                    End If
+                End If
+                    COUNTER = COUNTER + 1
+                    Loop Until COUNTER = 2048
+            End If
+        End If
+    End If
+        
+        
+        
+        
+    
+    
     Close #1
 
 frmFileCreator.Caption = "File: " & strInputFile
