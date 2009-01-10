@@ -407,6 +407,10 @@ typedef struct {
     uint16_t adx_xor;
     uint16_t adx_mult;
     uint16_t adx_add;
+
+    /* BMDX encryption */
+    uint8_t bmdx_xor;
+    uint8_t bmdx_add;
 } VGMSTREAMCHANNEL;
 
 typedef struct {

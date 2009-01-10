@@ -50,6 +50,17 @@ VGMSTREAM * init_vgmstream_ps2_bmdx(STREAMFILE *streamFile) {
 
 	start_offset = read_32bitLE(0x08,streamFile);
 
+    if (vgmstream->coding_type == coding_invert_PSX)
+    {
+        uint8_t xor = read_8bit(start_offset,streamFile);
+        uint8_t add = (~(uint8_t)read_8bit(start_offset+2,streamFile))+1;
+        int c;
+        for (c=0;c<channel_count;c++) {
+            vgmstream->ch[c].bmdx_xor = xor;
+            vgmstream->ch[c].bmdx_add = add;
+        }
+    }
+
     /* open the file for reading by each channel */
     {
         for (i=0;i<channel_count;i++) {
