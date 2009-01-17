@@ -590,6 +590,7 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
             break;
         case layout_aix:
             render_vgmstream_aix(buffer,sample_count,vgmstream);
+            break;
         case layout_aax:
             render_vgmstream_aax(buffer,sample_count,vgmstream);
             break;
