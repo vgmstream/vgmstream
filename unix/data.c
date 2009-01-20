@@ -160,6 +160,7 @@ gchar *vgmstream_exts [] = {
   "mwv",
   "gbts",
   "p2bt",
+  "rwav",
   /* terminator */
   NULL
 };

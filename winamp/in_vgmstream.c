@@ -222,6 +222,7 @@ char * extension_list[] = {
 	"gbts\0GBTS Audio File (*.GBTS)\0",
     "aax\0AAX Audio File (*.AAX)\0",
     "mwv\0MWV Audio File (*.MWV)\0",
+    "rwav\0RWAV Audio File (*.RWAV)\0",
 };
 
 void about(HWND hwndParent) {

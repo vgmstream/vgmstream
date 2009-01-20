@@ -186,7 +186,7 @@ multi:
 - .genh (lots)
 - .nwa (16 bit PCM, NWA DPCM)
 - .psw (PSX ADPCM, GC DSP ADPCM)
-- .rwar (GC DSP ADPCM, 8/16 bit PCM)
+- .rwar,.rwav (GC DSP ADPCM, 8/16 bit PCM)
 - .rwsd (GC DSP ADPCM, 8/16 bit PCM)
 - .rsd (PSX ADPCM, 16 bit PCM, GC DSP ADPCM, Xbox IMA ADPCM)
 - .sad (GC DSP ADPCM, NDS IMA ADPCM, Procyon Studios NDS ADPCM)
