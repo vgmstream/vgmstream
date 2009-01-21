@@ -8,15 +8,10 @@ line decoder called "test", and a Winamp plugin called "in_vgmstream".
 --- needed files (for Windows)  ---
 Since Ogg Vorbis and MPEG audio are now supported, you will need to have
 libvorbis.dll and libmpg123-0.dll.
-I suggest getting libvorbis.dll here:
-http://www.rarewares.org/files/ogg/libvorbis1.2.0.zip
-and the companion Intel math dll:
-http://www.rarewares.org/files/libmmd9.1.zip
-And libmpg123-0.dll from this archive:
-http://www.mpg123.de/download/win32/mpg123-1.4.3-x86.zip
+You can get these from http://hcs64.com/files/vgmstream_external_dlls.zip
 
-Put libvorbis.dll, libmmd.dll, and libmpg123-0.dll somewhere Windows can find
-them. For in_vgmstream this means in the directory with winamp.exe, or in a
+Put libvorbis.dll and libmpg123-0.dll somewhere Windows can find them.
+For in_vgmstream this means in the directory with winamp.exe, or in a
 system directory. For test.exe this means in the same directory as test.exe,
 or in a system directory.
 
