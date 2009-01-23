@@ -4,17 +4,67 @@ Begin VB.Form Form1
    BackColor       =   &H00E0E0E0&
    BorderStyle     =   0  'Kein
    Caption         =   "Generic Header Creator 3.00 for vgmstream"
-   ClientHeight    =   8940
+   ClientHeight    =   8910
    ClientLeft      =   0
    ClientTop       =   0
    ClientWidth     =   13110
    LinkTopic       =   "Form1"
    MaxButton       =   0   'False
    MinButton       =   0   'False
-   ScaleHeight     =   596
+   ScaleHeight     =   594
    ScaleMode       =   3  'Pixel
    ScaleWidth      =   874
    StartUpPosition =   1  'Fenstermitte
+   Begin VB.PictureBox Picture5 
+      BorderStyle     =   0  'Kein
+      Height          =   495
+      Left            =   2520
+      ScaleHeight     =   495
+      ScaleWidth      =   495
+      TabIndex        =   127
+      Top             =   420
+      Width           =   495
+   End
+   Begin VB.PictureBox Picture4 
+      BorderStyle     =   0  'Kein
+      Height          =   495
+      Left            =   1920
+      ScaleHeight     =   495
+      ScaleWidth      =   495
+      TabIndex        =   126
+      Top             =   420
+      Width           =   495
+   End
+   Begin VB.PictureBox Picture3 
+      BorderStyle     =   0  'Kein
+      Height          =   495
+      Left            =   1320
+      ScaleHeight     =   495
+      ScaleWidth      =   495
+      TabIndex        =   125
+      Top             =   420
+      Width           =   495
+   End
+   Begin VB.PictureBox Picture2 
+      BorderStyle     =   0  'Kein
+      Height          =   495
+      Left            =   720
+      ScaleHeight     =   495
+      ScaleWidth      =   495
+      TabIndex        =   124
+      Top             =   420
+      Width           =   495
+   End
+   Begin VB.PictureBox Picture1 
+      BorderStyle     =   0  'Kein
+      Height          =   495
+      Left            =   120
+      ScaleHeight     =   495
+      ScaleWidth      =   495
+      TabIndex        =   123
+      Top             =   420
+      Width           =   495
+   End
    Begin VB.TextBox txtInputFile 
       Appearance      =   0  '2D
       BackColor       =   &H00C0C0C0&
@@ -811,10 +861,10 @@ Begin VB.Form Form1
          Strikethrough   =   0   'False
       EndProperty
       ForeColor       =   &H00800000&
-      Height          =   8295
+      Height          =   7815
       Left            =   120
       TabIndex        =   3
-      Top             =   480
+      Top             =   960
       Width           =   12855
       Begin VB.Frame frmSpecialOptionsPSX 
          BackColor       =   &H00B8B8B8&
@@ -832,7 +882,7 @@ Begin VB.Form Form1
          Height          =   1935
          Left            =   9720
          TabIndex        =   120
-         Top             =   1920
+         Top             =   240
          Visible         =   0   'False
          Width           =   3015
          Begin VB.CommandButton cmdFIndLoopsPSX 
@@ -857,9 +907,9 @@ Begin VB.Form Form1
          Caption         =   "Half File Interleave (SPSD only?)"
          ForeColor       =   &H00800000&
          Height          =   255
-         Left            =   9840
+         Left            =   9720
          TabIndex        =   116
-         Top             =   4440
+         Top             =   4800
          Visible         =   0   'False
          Width           =   2775
       End
@@ -876,10 +926,10 @@ Begin VB.Form Form1
             Strikethrough   =   0   'False
          EndProperty
          ForeColor       =   &H00800000&
-         Height          =   3135
+         Height          =   2775
          Left            =   4560
          TabIndex        =   104
-         Top             =   3960
+         Top             =   4200
          Width           =   5055
          Begin VB.TextBox txtGENHLoopStartSamples 
             Appearance      =   0  '2D
@@ -1051,7 +1101,7 @@ Begin VB.Form Form1
          Height          =   255
          Left            =   9960
          TabIndex        =   100
-         Top             =   7800
+         Top             =   7320
          Visible         =   0   'False
          Width           =   2655
       End
@@ -1071,7 +1121,7 @@ Begin VB.Form Form1
          Height          =   2415
          Left            =   9720
          TabIndex        =   99
-         Top             =   1920
+         Top             =   240
          Visible         =   0   'False
          Width           =   3015
          Begin VB.TextBox txtDSPCoef1 
@@ -1153,7 +1203,7 @@ Begin VB.Form Form1
          Height          =   615
          Left            =   120
          TabIndex        =   97
-         Top             =   7560
+         Top             =   7080
          Width           =   9495
          Begin VB.Label lblINFO 
             BackColor       =   &H00FFFFFF&
@@ -1187,10 +1237,10 @@ Begin VB.Form Form1
             Strikethrough   =   0   'False
          EndProperty
          ForeColor       =   &H00800000&
-         Height          =   1935
+         Height          =   2055
          Left            =   4560
          TabIndex        =   18
-         Top             =   1920
+         Top             =   2040
          Width           =   5055
          Begin VB.ComboBox txtGENHChannels 
             BackColor       =   &H00C0C0C0&
@@ -1295,7 +1345,7 @@ Begin VB.Form Form1
             Strikethrough   =   0   'False
          EndProperty
          ForeColor       =   &H00800000&
-         Height          =   7215
+         Height          =   6735
          Left            =   120
          TabIndex        =   9
          Top             =   240
@@ -1335,7 +1385,7 @@ Begin VB.Form Form1
             Height          =   255
             Left            =   120
             TabIndex        =   12
-            Top             =   6360
+            Top             =   5880
             Width           =   1695
          End
          Begin VB.CheckBox chkProcessWholeList 
@@ -1345,7 +1395,7 @@ Begin VB.Form Form1
             Height          =   255
             Left            =   120
             TabIndex        =   11
-            Top             =   6120
+            Top             =   5640
             Width           =   1815
          End
          Begin VB.TextBox txtFilter 
@@ -1396,13 +1446,13 @@ Begin VB.Form Form1
             Height          =   195
             Left            =   1080
             TabIndex        =   94
-            Top             =   6820
+            Top             =   6345
             Width           =   1965
          End
          Begin VB.Image cmdCreateGENH 
             Height          =   390
             Left            =   120
-            Top             =   6720
+            Top             =   6240
             Width           =   4095
          End
          Begin VB.Label lblFilterCreator 
@@ -1458,7 +1508,7 @@ Begin VB.Form Form1
          Left            =   4560
          TabIndex        =   4
          Top             =   240
-         Width           =   8175
+         Width           =   5055
          Begin VB.ComboBox comboFileFormat 
             BackColor       =   &H00C0C0C0&
             Height          =   315
@@ -1467,7 +1517,7 @@ Begin VB.Form Form1
             List            =   "Form1.frx":38CC
             TabIndex        =   6
             Top             =   480
-            Width           =   7935
+            Width           =   4815
          End
          Begin VB.ComboBox ComboPresets 
             BackColor       =   &H00C0C0C0&
@@ -1477,7 +1527,7 @@ Begin VB.Form Form1
             List            =   "Form1.frx":3AE7
             TabIndex        =   5
             Top             =   1080
-            Width           =   7935
+            Width           =   4815
          End
          Begin VB.Label Label1 
             AutoSize        =   -1  'True
@@ -1737,8 +1787,10 @@ Dim strOutputFileExtractor As String
 
 Dim ExportBytesLarge As Long
 Dim ExportBytesSmall As Long
-Dim SmallBuffer As Byte
-Dim LargeBuffer As String * 2048
+Dim SmallBuffer() As Byte
+Dim LargeBuffer() As Byte
+Dim SmallBufferSize As Long
+Dim LargeBufferSize As Long
 
 Dim END_BYTE As Byte
 Dim WholeListCounter
@@ -2010,11 +2062,15 @@ Private Sub cmdCreateGENH_Click()
         Exit Sub 'Interrupting the routine here, we'll not go further
     End If
 
-    'Calculating a variable dividable by the large buffer size, _
-    otherwise the loop funtion will freeze
-    ExportBytesLarge = (Int(FileLen(strInputFile) / 2048) * 2048)
-    'Calculating the remaing bytes
+    
+    'Calculate the exportbytes, the largebuffer size is variable
+    'doing a "ReDim" to match the buffersize in all calculations
+    LargeBufferSize = 2048
+    ExportBytesLarge = (Int(FileLen(strInputFile) / LargeBufferSize) * LargeBufferSize)
     ExportBytesSmall = (FileLen(strInputFile) - ExportBytesLarge)
+    SmallBufferSize = (FileLen(strInputFile) - ExportBytesLarge)
+    ReDim LargeBuffer(0 To LargeBufferSize - 1)
+    ReDim SmallBuffer(0 To SmallBufferSize - 1)
     
     Do
     
@@ -2030,15 +2086,10 @@ Private Sub cmdCreateGENH_Click()
         COUNTER = 0
     
     If ExportBytesSmall > 0 Then
-    
-    Do
-    
+
         Get #1, ExportBytesLarge + 1 + COUNTER, SmallBuffer
         Put #2, GENHFileStartOffset + ExportBytesLarge + 1 + COUNTER, SmallBuffer
         
-        COUNTER = COUNTER + 1
-        Loop Until COUNTER = ExportBytesSmall
-    
     End If
     
     Close #1
@@ -2683,6 +2734,8 @@ cmdUSEFILEEND = btnNormal.Picture
     chkProcessWholeList.BackColor = Form1.BackColor
     chkCreateOnlyHeader.BackColor = Form1.BackColor
     chkCapcomHack.BackColor = Form1.BackColor
+    
+    'SSTab1.BackColor = Form1.BackColor
     
     strGENH = "GENH"
     strGENHVersion = "3.00"

@@ -297,7 +297,7 @@ VGMSTREAM * init_vgmstream_musx_v201(STREAMFILE *streamFile) {
 			goto fail;
 	}
 
-	loop_flag = (read_32bitLE(loop_offsets+0x10,streamFile) !=0x00000000);
+	loop_flag = (read_32bitLE(loop_offsets+0x04,streamFile) !=0x00000000);
 
 	/* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);

@@ -117,11 +117,13 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_capdsp,
     init_vgmstream_xbox_wvs,
     init_vgmstream_dc_str,
+    init_vgmstream_dc_str_v2,
     init_vgmstream_xbox_stma,
     init_vgmstream_xbox_matx,
     init_vgmstream_de2,
 	init_vgmstream_vs,
     init_vgmstream_dc_str,
+    init_vgmstream_dc_str_v2,
     init_vgmstream_xbox_xmu,
     init_vgmstream_xbox_xvas,
     init_vgmstream_ngc_bh2pcm,
@@ -1888,6 +1890,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case meta_DC_STR:
             snprintf(temp,TEMPSIZE,"Sega Stream Asset Builder header");
+            break;
+        case meta_DC_STR_V2:
+            snprintf(temp,TEMPSIZE,"variant of Sega Stream Asset Builder header");
             break;
         case meta_XBOX_XMU:
             snprintf(temp,TEMPSIZE,"XMU header");

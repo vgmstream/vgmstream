@@ -205,6 +205,8 @@ VGMSTREAM * init_vgmstream_xbox_wvs(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_dc_str(STREAMFILE *streamFile);
 
+VGMSTREAM * init_vgmstream_dc_str_v2(STREAMFILE *streamFile);
+
 VGMSTREAM * init_vgmstream_xbox_matx(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_de2(STREAMFILE *streamFile);
@@ -323,6 +325,7 @@ VGMSTREAM * init_vgmstream_wii_sts(STREAMFILE *streamFile);
 VGMSTREAM * init_vgmstream_ps2_p2bt(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_ps2_gbts(STREAMFILE *streamFile);
+
 VGMSTREAM * init_vgmstream_wii_sng(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_aax(STREAMFILE *streamFile);
