@@ -28,6 +28,10 @@
 #define fdopen _fdopen
 #endif
 
+#if defined(XBMC)
+#define fseeko fseek
+#endif
+
 #define STREAMFILE_DEFAULT_BUFFER_SIZE 0x400
 
 typedef struct _STREAMFILE {
