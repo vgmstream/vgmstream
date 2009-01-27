@@ -22,7 +22,7 @@ VGMSTREAM * init_vgmstream_eacs(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[260];
     int channel_count;
-    int loop_flag;
+    int loop_flag=0;
 	char little_endian=0;
 	off_t	start_offset;
 	EACSHeader	*ea_header = NULL;
