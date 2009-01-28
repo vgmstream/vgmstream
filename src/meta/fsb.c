@@ -160,6 +160,7 @@ VGMSTREAM * init_vgmstream_fsb3(STREAMFILE *streamFile) {
 		case 0x41000802: /* GC (Dysney's Incredibles, The) */
 		case 0x00000886: /* WII (de Blob) */
 		case 0x00000806: /* WII (de Blob) */
+        case 0x20100002: /* WII (de Blob) */
 		vgmstream->coding_type = coding_NGC_DSP;
 		vgmstream->layout_type = layout_interleave_byte;
         vgmstream->interleave_block_size = 2;
