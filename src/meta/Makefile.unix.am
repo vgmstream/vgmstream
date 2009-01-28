@@ -138,5 +138,6 @@ libmeta_la_SOURCES += aax.c
 libmeta_la_SOURCES += ps2_p2bt.c
 libmeta_la_SOURCES += ps2_gbts.c
 libmeta_la_SOURCES += ngc_ffcc_str.c
+libmeta_la_SOURCES += sat_baka.c
 
 EXTRA_DIST = meta.h

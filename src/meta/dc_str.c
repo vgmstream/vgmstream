@@ -13,7 +13,6 @@ VGMSTREAM * init_vgmstream_dc_str(STREAMFILE *streamFile) {
     int interleave;
     int channel_count;
     int samples;
-    int i;
 
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
