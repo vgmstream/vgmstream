@@ -158,6 +158,8 @@ VGMSTREAM * init_vgmstream_fsb3(STREAMFILE *streamFile) {
 		case 0x40000802: /* WII (WWE Smackdown Vs. Raw 2008) */
 		case 0x40000882: /* WII (Bully) */
 		case 0x41000802: /* GC (Dysney's Incredibles, The) */
+		case 0x00000886: /* WII (de Blob) */
+		case 0x00000806: /* WII (de Blob) */
 		vgmstream->coding_type = coding_NGC_DSP;
 		vgmstream->layout_type = layout_interleave_byte;
         vgmstream->interleave_block_size = 2;
@@ -184,18 +186,15 @@ VGMSTREAM * init_vgmstream_fsb3(STREAMFILE *streamFile) {
 	}
 	/* fill in the vital statistics */
     start_offset = (read_32bitLE(0x08,streamFile))+fsb3_headerlen;
-	vgmstream->channels = channel_count;
     vgmstream->sample_rate = read_32bitLE(0x4C,streamFile);
     vgmstream->meta_type = meta_FSB3;
 
     if (vgmstream->coding_type == coding_NGC_DSP) {
-        int i;
-        for (i=0;i<16;i++) {
-            vgmstream->ch[0].adpcm_coef[i] = read_16bitBE(0x68+i*2,streamFile);
-        }
-        if (vgmstream->channels) {
+        int i,c;
+        for (c=0;c<channel_count;c++) {
             for (i=0;i<16;i++) {
-                vgmstream->ch[1].adpcm_coef[i] = read_16bitBE(0x96+i*2,streamFile);
+                vgmstream->ch[c].adpcm_coef[i] =
+                    read_16bitBE(0x68+c*0x2e +i*2,streamFile);
             }
         }
     }
@@ -257,7 +256,8 @@ VGMSTREAM * init_vgmstream_fsb4(STREAMFILE *streamFile) {
 		goto fail;
 	
 	
-	if (read_32bitBE(0x60,streamFile) == 0x40008800) {
+	if (read_32bitBE(0x60,streamFile) == 0x40008800 ||
+            read_32bitBE(0x60,streamFile) == 0x40000802) {
 		loop_flag = 1;
 	} else {
 		loop_flag = 0;
@@ -272,7 +272,6 @@ VGMSTREAM * init_vgmstream_fsb4(STREAMFILE *streamFile) {
 	
 	
 	/* fill in the vital statistics */
-    start_offset = 0x80;
 	vgmstream->channels = channel_count;
     vgmstream->sample_rate = read_32bitLE(0x64,streamFile);
 	fsb4_format = read_32bitBE(0x60,streamFile);
@@ -287,7 +286,20 @@ VGMSTREAM * init_vgmstream_fsb4(STREAMFILE *streamFile) {
         vgmstream->loop_start_sample = 0;
         vgmstream->loop_end_sample = read_32bitLE(0x50,streamFile);
     }
+    start_offset = 0x80;
 	break;
+    /* WII (de Blob) */
+        case 0x40000802:
+    vgmstream->coding_type = coding_NGC_DSP;
+    vgmstream->layout_type = layout_none;
+    vgmstream->interleave_block_size = read_32bitLE(0x54,streamFile)/channel_count;
+    vgmstream->num_samples = (read_32bitLE(0x54,streamFile)/8/channel_count*14);
+    start_offset = 0xe0;
+    if (loop_flag) {
+        vgmstream->loop_start_sample = 0;
+        vgmstream->loop_end_sample = read_32bitLE(0x50,streamFile);
+    }
+    break;
 		default:
 			goto fail;
 
@@ -295,6 +307,16 @@ VGMSTREAM * init_vgmstream_fsb4(STREAMFILE *streamFile) {
 
     vgmstream->meta_type = meta_FSB4;
 
+    if (vgmstream->coding_type == coding_NGC_DSP) {
+        int c,i;
+        for (c=0;c<channel_count;c++) {
+            for (i=0;i<16;i++)
+            {
+                vgmstream->ch[c].adpcm_coef[i] =
+                    read_16bitBE(0x80+c*0x2e + i*2,streamFile);
+            }
+        }
+    }
     
     /* open the file for reading */
     {
