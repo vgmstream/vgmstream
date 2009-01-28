@@ -635,6 +635,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\sat_baka.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\sat_dvi.c"
 					>
 				</File>

@@ -7,7 +7,6 @@
                         retrieving the channels/frequency, Frequency starts
                         always at a "data" chunk - 0x0C bytes, Channels
                         always - 0x0E bytes... */
-
 VGMSTREAM * init_vgmstream_dc_wav_dcs(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     STREAMFILE * streamFileWAV = NULL;
@@ -94,14 +93,16 @@ VGMSTREAM * init_vgmstream_dc_wav_dcs(STREAMFILE *streamFile) {
     vgmstream->coding_type = coding_AICA;
     vgmstream->meta_type = meta_DC_WAV_DCS;
     
-    /* open the file for reading */
+    /* open the file for reading by each channel */
     {
         for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = streamFile->open(streamFile,filename,0x8000);
-            vgmstream->ch[i].offset = 0;
+            vgmstream->ch[i].streamfile = streamFile->open(streamFile,filename,vgmstream->interleave_block_size);
+            
+        if (!vgmstream->ch[i].streamfile) goto fail;
+			vgmstream->ch[i].channel_start_offset=
+            vgmstream->ch[i].offset=i*vgmstream->interleave_block_size;
             vgmstream->ch[i].adpcm_step_index = 0x7f;   /* AICA */
-            if (!vgmstream->ch[i].streamfile) goto fail;
-        }
+		}
     }
 
     close_streamfile(streamFileWAV); streamFileWAV=NULL;

@@ -332,4 +332,6 @@ VGMSTREAM * init_vgmstream_aax(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_ngc_ffcc_str(STREAMFILE *streamFile);
 
+VGMSTREAM * init_vgmstream_sat_baka(STREAMFILE *streamFile);
+
 #endif

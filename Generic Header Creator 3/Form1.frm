@@ -1787,10 +1787,8 @@ Dim strOutputFileExtractor As String
 
 Dim ExportBytesLarge As Long
 Dim ExportBytesSmall As Long
-Dim SmallBuffer() As Byte
-Dim LargeBuffer() As Byte
-Dim SmallBufferSize As Long
-Dim LargeBufferSize As Long
+Dim SmallBuffer As String * 1
+Dim LargeBuffer As String * 2048
 
 Dim END_BYTE As Byte
 Dim WholeListCounter
@@ -1890,6 +1888,7 @@ Private Sub cmdCreateGENH_Click()
     DSPCoef2 = 0
     
     Close #1
+    Close #2
     
         '#####################################################
         '#####     Here we're creating the GENH file     #####
@@ -2065,12 +2064,9 @@ Private Sub cmdCreateGENH_Click()
     
     'Calculate the exportbytes, the largebuffer size is variable
     'doing a "ReDim" to match the buffersize in all calculations
-    LargeBufferSize = 2048
-    ExportBytesLarge = (Int(FileLen(strInputFile) / LargeBufferSize) * LargeBufferSize)
+    ExportBytesLarge = (Int(FileLen(strInputFile) / 2048) * 2048)
     ExportBytesSmall = (FileLen(strInputFile) - ExportBytesLarge)
-    SmallBufferSize = (FileLen(strInputFile) - ExportBytesLarge)
-    ReDim LargeBuffer(0 To LargeBufferSize - 1)
-    ReDim SmallBuffer(0 To SmallBufferSize - 1)
+    
     
     Do
     

@@ -186,6 +186,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 //	init_vgmstream_iadp,
     init_vgmstream_aax,
     init_vgmstream_ngc_ffcc_str,
+	init_vgmstream_sat_baka,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -2047,6 +2048,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case meta_FFCC_STR:
             snprintf(temp,TEMPSIZE,"Final Fantasy: Crystal Chronicles STR header");
+            break;
+        case meta_SAT_BAKA:
+            snprintf(temp,TEMPSIZE,"BAKA header from Crypt Killer");
             break;
         default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");
