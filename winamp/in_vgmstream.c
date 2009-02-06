@@ -224,6 +224,7 @@ char * extension_list[] = {
     "mwv\0MWV Audio File (*.MWV)\0",
     "rwav\0RWAV Audio File (*.RWAV)\0",
 	"baka\0BAKA Audio File (*.BAKA)\0",
+	"swav\0SWAV Audio File (*.SWAV)\0",
 };
 
 void about(HWND hwndParent) {

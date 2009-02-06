@@ -178,6 +178,7 @@ typedef enum {
     meta_RSTM_SPM,          /* RSTM with 44->22khz hack */
     meta_THP,
     meta_RSTM_shrunken,     /* Atlus' mutant shortened RSTM */
+	meta_NDS_SWAV,		    /* Asphalt Urban GT 1 & 2 */
 
     /* CRI ADX */
     meta_ADX_03,            /* ADX "type 03" */

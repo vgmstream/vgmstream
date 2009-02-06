@@ -371,6 +371,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\nds_swav.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\ngc_adpdtk.c"
 					>
 				</File>
