@@ -42,6 +42,12 @@
             this.txtInterleaveCreator = new System.Windows.Forms.TextBox();
             this.label5 = new System.Windows.Forms.Label();
             this.label6 = new System.Windows.Forms.Label();
+            this.comboFileFomat = new System.Windows.Forms.ComboBox();
+            this.label7 = new System.Windows.Forms.Label();
+            this.label8 = new System.Windows.Forms.Label();
+            this.label9 = new System.Windows.Forms.Label();
+            this.txtLoopStartCreator = new System.Windows.Forms.TextBox();
+            this.txtLoopEndCreator = new System.Windows.Forms.TextBox();
             this.SuspendLayout();
             // 
             // listBox1
@@ -99,7 +105,7 @@
             // label3
             // 
             this.label3.AutoSize = true;
-            this.label3.Location = new System.Drawing.Point(366, 74);
+            this.label3.Location = new System.Drawing.Point(366, 97);
             this.label3.Name = "label3";
             this.label3.Size = new System.Drawing.Size(54, 13);
             this.label3.TabIndex = 6;
@@ -108,7 +114,7 @@
             // label4
             // 
             this.label4.AutoSize = true;
-            this.label4.Location = new System.Drawing.Point(366, 25);
+            this.label4.Location = new System.Drawing.Point(366, 48);
             this.label4.Name = "label4";
             this.label4.Size = new System.Drawing.Size(69, 13);
             this.label4.TabIndex = 7;
@@ -116,28 +122,28 @@
             // 
             // txtHeaderSkipCreator
             // 
-            this.txtHeaderSkipCreator.Location = new System.Drawing.Point(369, 41);
+            this.txtHeaderSkipCreator.Location = new System.Drawing.Point(369, 64);
             this.txtHeaderSkipCreator.Name = "txtHeaderSkipCreator";
             this.txtHeaderSkipCreator.Size = new System.Drawing.Size(100, 20);
             this.txtHeaderSkipCreator.TabIndex = 8;
             // 
             // txtFrequencyCreator
             // 
-            this.txtFrequencyCreator.Location = new System.Drawing.Point(480, 90);
+            this.txtFrequencyCreator.Location = new System.Drawing.Point(480, 113);
             this.txtFrequencyCreator.Name = "txtFrequencyCreator";
             this.txtFrequencyCreator.Size = new System.Drawing.Size(100, 20);
             this.txtFrequencyCreator.TabIndex = 9;
             // 
             // txtChannelsCreator
             // 
-            this.txtChannelsCreator.Location = new System.Drawing.Point(369, 90);
+            this.txtChannelsCreator.Location = new System.Drawing.Point(369, 113);
             this.txtChannelsCreator.Name = "txtChannelsCreator";
             this.txtChannelsCreator.Size = new System.Drawing.Size(100, 20);
             this.txtChannelsCreator.TabIndex = 10;
             // 
             // txtInterleaveCreator
             // 
-            this.txtInterleaveCreator.Location = new System.Drawing.Point(480, 41);
+            this.txtInterleaveCreator.Location = new System.Drawing.Point(480, 64);
             this.txtInterleaveCreator.Name = "txtInterleaveCreator";
             this.txtInterleaveCreator.Size = new System.Drawing.Size(100, 20);
             this.txtInterleaveCreator.TabIndex = 11;
@@ -145,7 +151,7 @@
             // label5
             // 
             this.label5.AutoSize = true;
-            this.label5.Location = new System.Drawing.Point(477, 74);
+            this.label5.Location = new System.Drawing.Point(477, 97);
             this.label5.Name = "label5";
             this.label5.Size = new System.Drawing.Size(60, 13);
             this.label5.TabIndex = 12;
@@ -154,15 +160,86 @@
             // label6
             // 
             this.label6.AutoSize = true;
-            this.label6.Location = new System.Drawing.Point(477, 25);
+            this.label6.Location = new System.Drawing.Point(477, 48);
             this.label6.Name = "label6";
             this.label6.Size = new System.Drawing.Size(57, 13);
             this.label6.TabIndex = 13;
             this.label6.Text = "Interleave:";
             // 
+            // comboFileFomat
+            // 
+            this.comboFileFomat.FormattingEnabled = true;
+            this.comboFileFomat.Items.AddRange(new object[] {
+            "0x00 - PlayStation 4-bit ADPCM",
+            "0x01 - XBOX 4-bit IMA ADPCM",
+            "0x02 - GameCube ADP/DTK 4-bit ADPCM",
+            "0x03 - PCM RAW (Big Endian)",
+            "0x04 - PCM RAW (Little Endian)",
+            "0x05 - PCM RAW (8-Bit)",
+            "0x06 - Squareroot-delta-exact 8-bit DPCM",
+            "0x07 - Interleaved DVI 4-Bit IMA ADPCM",
+            "0x08 - MPEG Layer Audio File (MP1/2/3)",
+            "0x09 - 4-bit IMA ADPCM",
+            "0x0A - Yamaha AICA 4-bit ADPCM",
+            "0x0B - Microsoft 4-bit IMA ADPCM",
+            "0x0C - Nintendo GameCube DSP 4-bit ADPCM",
+            "0x0D - PCM RAW (8-Bit Unsigned)",
+            "0x0E - PlayStation 4-bit ADPCM (with bad flags)"});
+            this.comboFileFomat.Location = new System.Drawing.Point(338, 24);
+            this.comboFileFomat.Name = "comboFileFomat";
+            this.comboFileFomat.Size = new System.Drawing.Size(302, 21);
+            this.comboFileFomat.TabIndex = 15;
+            // 
+            // label7
+            // 
+            this.label7.AutoSize = true;
+            this.label7.Location = new System.Drawing.Point(338, 5);
+            this.label7.Name = "label7";
+            this.label7.Size = new System.Drawing.Size(61, 13);
+            this.label7.TabIndex = 16;
+            this.label7.Text = "File Format:";
+            // 
+            // label8
+            // 
+            this.label8.AutoSize = true;
+            this.label8.Location = new System.Drawing.Point(366, 151);
+            this.label8.Name = "label8";
+            this.label8.Size = new System.Drawing.Size(108, 13);
+            this.label8.TabIndex = 17;
+            this.label8.Text = "Loop Start (Samples):";
+            // 
+            // label9
+            // 
+            this.label9.AutoSize = true;
+            this.label9.Location = new System.Drawing.Point(477, 151);
+            this.label9.Name = "label9";
+            this.label9.Size = new System.Drawing.Size(105, 13);
+            this.label9.TabIndex = 18;
+            this.label9.Text = "Loop End (Samples):";
+            // 
+            // txtLoopStartCreator
+            // 
+            this.txtLoopStartCreator.Location = new System.Drawing.Point(369, 167);
+            this.txtLoopStartCreator.Name = "txtLoopStartCreator";
+            this.txtLoopStartCreator.Size = new System.Drawing.Size(100, 20);
+            this.txtLoopStartCreator.TabIndex = 19;
+            // 
+            // txtLoopEndCreator
+            // 
+            this.txtLoopEndCreator.Location = new System.Drawing.Point(480, 167);
+            this.txtLoopEndCreator.Name = "txtLoopEndCreator";
+            this.txtLoopEndCreator.Size = new System.Drawing.Size(100, 20);
+            this.txtLoopEndCreator.TabIndex = 20;
+            // 
             // Form1
             // 
             this.ClientSize = new System.Drawing.Size(652, 355);
+            this.Controls.Add(this.txtLoopEndCreator);
+            this.Controls.Add(this.txtLoopStartCreator);
+            this.Controls.Add(this.label9);
+            this.Controls.Add(this.label8);
+            this.Controls.Add(this.label7);
+            this.Controls.Add(this.comboFileFomat);
             this.Controls.Add(this.label6);
             this.Controls.Add(this.label5);
             this.Controls.Add(this.txtInterleaveCreator);
@@ -200,6 +277,12 @@
         private System.Windows.Forms.TextBox txtInterleaveCreator;
         private System.Windows.Forms.Label label5;
         private System.Windows.Forms.Label label6;
+        private System.Windows.Forms.ComboBox comboFileFomat;
+        private System.Windows.Forms.Label label7;
+        private System.Windows.Forms.Label label8;
+        private System.Windows.Forms.Label label9;
+        private System.Windows.Forms.TextBox txtLoopStartCreator;
+        private System.Windows.Forms.TextBox txtLoopEndCreator;
 
 
 

@@ -38,55 +38,66 @@ namespace Generic_Header_Creator_4
 
         private void cmdCreateGENH_Click(object sender, EventArgs e)
         {
-
-            // Call the Export Routine with given Values
-            // Name_Of_The_Function(Input_File,Start_Offset,Export_Length,File_To_Write_To)
             FileStream strInputFileCreator = new FileStream(Path.GetFullPath(this.txtInputFileCreator.Text), FileMode.Open, FileAccess.Read);
-            FileStream strOutputFileCreator = new FileStream(Path.GetFullPath(this.txtGENHOutputNameCreator.Text), FileMode.Create, FileAccess.Write);
 
             // Place checks for values and all needed stuff here
-            int GENHHeaderSkip = int.Parse(this.txtHeaderSkipCreator.Text);
+            int GENHToken = 0x484E4547; //HNEG (GENH)
             int GENHChannels = int.Parse(this.txtChannelsCreator.Text);
             int GENHInterleave = int.Parse(this.txtInterleaveCreator.Text);
             int GENHFrequency = int.Parse(this.txtFrequencyCreator.Text);
 
+            int GENHLoopStart = int.Parse(this.txtLoopStartCreator.Text);
+            int GENHLoopEnd = int.Parse(this.txtLoopEndCreator.Text);
+            int GENHIdentiferByte = (this.comboFileFomat.SelectedIndex);
+            int GENHHeaderSkip = int.Parse(this.txtHeaderSkipCreator.Text);
+            //int GENHFileStartOffset;
+            
+                
+            // Call the Export Routine with given Values
+            // Name_Of_The_Function(Input_File,Start_Offset,Export_Length,File_To_Write_To)
+            ExtractChunkToFile(strInputFileCreator, 0, (int)strInputFileCreator.Length, this.txtGENHOutputNameCreator.Text);
 
-
+            FileStream strOutputFileCreator = new FileStream(Path.GetFullPath(this.txtGENHOutputNameCreator.Text), FileMode.Open, FileAccess.Write);
             BinaryWriter bw = new BinaryWriter(strOutputFileCreator);
-            int strGENH = 0x484E4547; //HNEG (GENH)
-            bw.Write(strGENH);
-            bw.Write(GENHChannels);
-            bw.Write(GENHInterleave);
+            
+            bw.Write(GENHToken);            // 0x00
+            bw.Write(GENHChannels);         // 0x04
+            bw.Write(GENHInterleave);       // 0x08
+            bw.Write(GENHFrequency);        // 0x0C
+            bw.Write(GENHLoopStart);        // 0x10
+            bw.Write(GENHLoopEnd);          // 0x14
+            bw.Write(GENHIdentiferByte);    // 0x18
+
             // flush and close
             bw.Flush();
             bw.Close();
 
-            // Call the "Export Routine"
-            ExtractChunkToFile(strInputFileCreator, 0, (int)strInputFileCreator.Length, this.txtGENHOutputNameCreator.Text, 4096);
 
             // Close the Input File after processing
             strInputFileCreator.Close();
             strInputFileCreator.Dispose();
+
+            strOutputFileCreator.Close();
+            strOutputFileCreator.Dispose();
         }
 
 
-
         // This is the "Export Routine", all needed values were calculated earlier
-        private void ExtractChunkToFile(Stream strInputFileCreator, long pOffset, int pLength, string strOutputFileCreator, int headerSkip)
+        private void ExtractChunkToFile(Stream strInputFileCreator, long pOffset, int pLength, string strOutputFileCreator)
         {
             BinaryWriter bw = null;
 
             try
             {   // Open the Output File
                 bw = new BinaryWriter(File.Open(strOutputFileCreator, FileMode.Create, FileAccess.Write));
-
+                bw.BaseStream.Position = 0x1000;
                 int read = 0;
                 int totalBytes = 0;
                 byte[] bytes = new byte[2048];
                 strInputFileCreator.Seek((long)pOffset, SeekOrigin.Begin);
 
                 // write empty vals
-                bw.Write(new byte[headerSkip], 0, headerSkip);
+                //bw.Write(new byte[headerSkip], 0, headerSkip);
 
                 int maxread = pLength > bytes.Length ? bytes.Length : pLength;
 
@@ -107,4 +118,8 @@ namespace Generic_Header_Creator_4
             }
         }
     }
-}
+
+        }
+    
+
+    
