@@ -162,6 +162,7 @@ gchar *vgmstream_exts [] = {
   "p2bt",
   "rwav",
   "baka",
+  "vsf",
   /* terminator */
   NULL
 };

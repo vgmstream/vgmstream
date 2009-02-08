@@ -307,6 +307,7 @@ typedef enum {
     meta_EMFF_PS2,			/* Eidos Music File Format for PS2*/
     meta_EMFF_NGC,			/* Eidos Music File Format for NGC/WII */
     meta_SAT_BAKA,			/* Crypt Killer */
+    meta_PS2_VSF,           /* Musashi: Samurai Legend */
 
     meta_XBOX_WAVM,			/* XBOX WAVM File */
     meta_XBOX_RIFF,			/* XBOX RIFF/WAVE File */

@@ -695,6 +695,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\vsf.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\wii_mus.c"
 					>
 				</File>
