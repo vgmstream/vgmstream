@@ -223,6 +223,10 @@ static struct {
     /* Success (Aoishiro) */
     /* 1st key from guessadx */
     {0x4d65,0x5eb7,0x5dfd},
+
+    /* Sonic Team 2 (Sonic and the Black Knight) */
+    /* confirmed unique with guessadx */
+    {0x55b7,0x6191,0x5a77},
 };
 
 static const int key_count = sizeof(keys)/sizeof(keys[0]);
