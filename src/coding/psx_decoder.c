@@ -3,10 +3,11 @@
 #include "../util.h"
 
 double VAG_f[5][2] = { { 0.0          ,   0.0        },
-                       {  60.0 / 64.0 ,   0.0        },
+                       {  60.0/64.0   ,   0.0        },
 		               { 115.0 / 64.0 , -52.0 / 64.0 },
 		               {  98.0 / 64.0 , -55.0 / 64.0 } ,
 		               { 122.0 / 64.0 , -60.0 / 64.0 } } ;
+	
 long VAG_coefs[5][2] = { {   0 ,   0 },
                          {  60 ,   0 },
                          { 115 , -52 },
@@ -15,9 +16,10 @@ long VAG_coefs[5][2] = { {   0 ,   0 },
 
 void decode_psx(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
 
-	int predict_nr, shift_factor, sample;
-	int32_t hist1=stream->adpcm_history1_32;
-	int32_t hist2=stream->adpcm_history2_32;
+	int predict_nr, shift_factor;
+	double sample;
+	double hist1=stream->adpcm_history1_double;
+	double hist2=stream->adpcm_history2_double;
 
 	short scale;
 	int i;
@@ -44,15 +46,15 @@ void decode_psx(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, 
 				     sample_byte >> 4 :
 					 sample_byte & 0x0f)<<12);
 
-			sample=(int)((scale >> shift_factor)+hist1*VAG_f[predict_nr][0]+hist2*VAG_f[predict_nr][1]);
+			sample=(double)(scale >> shift_factor)+hist1*VAG_f[predict_nr][0]+hist2*VAG_f[predict_nr][1];
 		}
 
 		outbuf[sample_count] = clamp16(sample);
 		hist2=hist1;
 		hist1=sample;
 	}
-	stream->adpcm_history1_32=hist1;
-	stream->adpcm_history2_32=hist2;
+	stream->adpcm_history1_double=hist1;
+	stream->adpcm_history2_double=hist2;
 }
 
 void decode_invert_psx(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
