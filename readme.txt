@@ -88,6 +88,7 @@ PS2/PSX ADPCM:
 - .svag
 - .svs
 - .tec (w/ bad flags)
+- .tk5 (w/ bad flags)
 - .vas
 - .vag
 - .vgs (w/ bad flags)

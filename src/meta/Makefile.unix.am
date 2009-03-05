@@ -142,5 +142,6 @@ libmeta_la_SOURCES += sat_baka.c
 libmeta_la_SOURCES += nds_swav.c
 libmeta_la_SOURCES += vsf.c
 libmeta_la_SOURCES += nds_rrds.c
+libmeta_la_SOURCES += ps2_tk5.c
 
 EXTRA_DIST = meta.h

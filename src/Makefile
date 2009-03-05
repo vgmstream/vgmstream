@@ -181,7 +181,8 @@ META_OBJS=meta/adx_header.o \
     meta/sat_baka.o \
     meta/nds_swav.o \
     meta/vsf.o \
-    meta/nds_rrds.o
+    meta/nds_rrds.o \
+    meta/ps2_tk5.o
 
 OBJECTS=vgmstream.o streamfile.o util.o $(CODING_OBJS) $(LAYOUT_OBJS) $(META_OBJS)
 
