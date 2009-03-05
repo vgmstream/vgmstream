@@ -141,5 +141,6 @@ libmeta_la_SOURCES += ngc_ffcc_str.c
 libmeta_la_SOURCES += sat_baka.c
 libmeta_la_SOURCES += nds_swav.c
 libmeta_la_SOURCES += vsf.c
+libmeta_la_SOURCES += nds_rrds.c
 
 EXTRA_DIST = meta.h

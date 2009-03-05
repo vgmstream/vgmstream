@@ -226,6 +226,7 @@ char * extension_list[] = {
 	"baka\0BAKA Audio File (*.BAKA)\0",
 	"swav\0SWAV Audio File (*.SWAV)\0",
     "vsf\0VSF Audio File (*.VSF)\0",
+	"rrds\0RRDS Audio File (*.RRDS)\0",
 };
 
 void about(HWND hwndParent) {

@@ -34,11 +34,19 @@ namespace Generic_Header_Creator_4
             this.txtGENHOutputNameCreator.Text = (Path.GetFileNameWithoutExtension(this.txtInputFileCreator.Text) + ".GENH");
             // Open the Input File as "FileStream" from the previous first TextBox
             // FileStream strInputFileCreator = new FileStream(Path.GetFullPath(this.txtInputFileCreator.Text), FileMode.Open, FileAccess.Read);
+
+            FileInfo fi = new FileInfo(Path.GetFullPath(this.txtInputFileCreator.Text));
+            string InputFileLen = fi.Length.ToString();
+            this.txtInputFileLen.Text = InputFileLen;
         }
+
+
 
         private void cmdCreateGENH_Click(object sender, EventArgs e)
         {
             FileStream strInputFileCreator = new FileStream(Path.GetFullPath(this.txtInputFileCreator.Text), FileMode.Open, FileAccess.Read);
+
+
 
             // Place checks for values and all needed stuff here
             int GENHToken = 0x484E4547; //HNEG (GENH)
@@ -116,6 +124,32 @@ namespace Generic_Header_Creator_4
                     bw.Close();
                 }
             }
+        }
+
+        private void cmdUseFileEnd_Click(object sender, EventArgs e)
+        {
+            int GENHIdentiferByte = (this.comboFileFomat.SelectedIndex);
+            int GENHChannels = int.Parse(this.txtChannelsCreator.Text);
+            
+          
+            FileStream strInputFileCreator = new FileStream(Path.GetFullPath(this.txtInputFileCreator.Text), FileMode.Open, FileAccess.Read);
+
+
+
+            switch (GENHIdentiferByte) {
+                case 0:
+
+                    break;
+                case 1:
+
+                    break;
+                default:
+    // alles andere interessiert uns nicht
+    break;
+}
+
+
+               
         }
     }
 

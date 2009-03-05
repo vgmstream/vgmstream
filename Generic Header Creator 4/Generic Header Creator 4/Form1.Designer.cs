@@ -48,6 +48,9 @@
             this.label9 = new System.Windows.Forms.Label();
             this.txtLoopStartCreator = new System.Windows.Forms.TextBox();
             this.txtLoopEndCreator = new System.Windows.Forms.TextBox();
+            this.cmdUseFileEnd = new System.Windows.Forms.Button();
+            this.txtInputFileLen = new System.Windows.Forms.TextBox();
+            this.label10 = new System.Windows.Forms.Label();
             this.SuspendLayout();
             // 
             // listBox1
@@ -73,7 +76,7 @@
             this.txtInputFileCreator.Enabled = false;
             this.txtInputFileCreator.Location = new System.Drawing.Point(12, 25);
             this.txtInputFileCreator.Name = "txtInputFileCreator";
-            this.txtInputFileCreator.Size = new System.Drawing.Size(320, 20);
+            this.txtInputFileCreator.Size = new System.Drawing.Size(228, 20);
             this.txtInputFileCreator.TabIndex = 2;
             // 
             // label2
@@ -231,9 +234,38 @@
             this.txtLoopEndCreator.Size = new System.Drawing.Size(100, 20);
             this.txtLoopEndCreator.TabIndex = 20;
             // 
+            // cmdUseFileEnd
+            // 
+            this.cmdUseFileEnd.Location = new System.Drawing.Point(369, 200);
+            this.cmdUseFileEnd.Name = "cmdUseFileEnd";
+            this.cmdUseFileEnd.Size = new System.Drawing.Size(210, 23);
+            this.cmdUseFileEnd.TabIndex = 21;
+            this.cmdUseFileEnd.Text = "Use File End";
+            this.cmdUseFileEnd.UseVisualStyleBackColor = true;
+            this.cmdUseFileEnd.Click += new System.EventHandler(this.cmdUseFileEnd_Click);
+            // 
+            // txtInputFileLen
+            // 
+            this.txtInputFileLen.Location = new System.Drawing.Point(246, 24);
+            this.txtInputFileLen.Name = "txtInputFileLen";
+            this.txtInputFileLen.Size = new System.Drawing.Size(85, 20);
+            this.txtInputFileLen.TabIndex = 22;
+            // 
+            // label10
+            // 
+            this.label10.AutoSize = true;
+            this.label10.Location = new System.Drawing.Point(243, 9);
+            this.label10.Name = "label10";
+            this.label10.Size = new System.Drawing.Size(47, 13);
+            this.label10.TabIndex = 23;
+            this.label10.Text = "Fie Size:";
+            // 
             // Form1
             // 
             this.ClientSize = new System.Drawing.Size(652, 355);
+            this.Controls.Add(this.label10);
+            this.Controls.Add(this.txtInputFileLen);
+            this.Controls.Add(this.cmdUseFileEnd);
             this.Controls.Add(this.txtLoopEndCreator);
             this.Controls.Add(this.txtLoopStartCreator);
             this.Controls.Add(this.label9);
@@ -283,6 +315,9 @@
         private System.Windows.Forms.Label label9;
         private System.Windows.Forms.TextBox txtLoopStartCreator;
         private System.Windows.Forms.TextBox txtLoopEndCreator;
+        private System.Windows.Forms.Button cmdUseFileEnd;
+        private System.Windows.Forms.TextBox txtInputFileLen;
+        private System.Windows.Forms.Label label10;
 
 
 

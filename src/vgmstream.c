@@ -189,6 +189,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_sat_baka,
 	init_vgmstream_nds_swav,
     init_vgmstream_ps2_vsf,
+	init_vgmstream_nds_rrds,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -2059,6 +2060,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
        case meta_PS2_VSF:
            snprintf(temp,TEMPSIZE,"Musashi: Samurai Legend VSF Header");
+            break;
+       case meta_NDS_RRDS:
+           snprintf(temp,TEMPSIZE,"Ridger Racer DS Header");
             break;
         default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

@@ -363,6 +363,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\nds_rrds.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\nds_sad.c"
 					>
 				</File>

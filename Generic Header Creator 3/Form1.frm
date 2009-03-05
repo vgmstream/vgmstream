@@ -1102,7 +1102,6 @@ Begin VB.Form Form1
          Left            =   9960
          TabIndex        =   100
          Top             =   7320
-         Visible         =   0   'False
          Width           =   2655
       End
       Begin VB.Frame frmSpecialOptionsGameCube 
