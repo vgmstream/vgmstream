@@ -368,6 +368,7 @@ typedef enum {
     meta_PS2_P2BT,			/* Pop'n'Music 7 Audio File */
     meta_PS2_GBTS,			/* Pop'n'Music 9 Audio File */
     meta_NGC_IADP,			/* Gamecube Interleave DSP */
+	meta_PS2_TK5,			/* Tekken 5 Stream Files */
 
 } meta_t;
 
@@ -396,6 +397,9 @@ typedef struct {
         int16_t adpcm_history3_16;
         int32_t adpcm_history3_32;
     };
+
+	double adpcm_history1_double;
+	double adpcm_history2_double;
 
     int adpcm_step_index;       /* for IMA */
     int adpcm_scale;            /* for MS ADPCM */

@@ -56,7 +56,8 @@ VGMSTREAM * init_vgmstream_ps2_mib(STREAMFILE *streamFile) {
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
     if (strcasecmp("mib",filename_extension(filename)) && 
-		strcasecmp("mi4",filename_extension(filename))) goto fail;
+		strcasecmp("mi4",filename_extension(filename)) && 
+		strcasecmp("vb",filename_extension(filename))) goto fail;
 
 	/* check for .MIH file */
 	strcpy(filenameMIH,filename);
@@ -98,13 +99,20 @@ VGMSTREAM * init_vgmstream_ps2_mib(STREAMFILE *streamFile) {
 	if(gotMIH) 
 		channel_count=read_32bitLE(0x08,streamFileMIH);
 
-    /* build the VGMSTREAM */
+	// force no loop
+	if(!strcasecmp("vb",filename_extension(filename))) 
+		loopStart=0;
+
+	/* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,((loopStart!=0) && (loopEnd!=0)));
     if (!vgmstream) goto fail;
 
 	if(interleave==0) interleave=0x10;
 
     /* fill in the vital statistics */
+	vgmstream->coding_type = coding_PSX;
+    vgmstream->layout_type = layout_interleave;
+
 	if(gotMIH) {
 		// Read stuff from the MIH file 
 		vgmstream->channels = read_32bitLE(0x08,streamFileMIH);
@@ -117,11 +125,18 @@ VGMSTREAM * init_vgmstream_ps2_mib(STREAMFILE *streamFile) {
 		vgmstream->channels = channel_count;
 		vgmstream->interleave_block_size = interleave;
 
-		if(!strcasecmp("mib",filename_extension(filename)))
+		if(!strcasecmp("mib",filename_extension(filename))) 
 			vgmstream->sample_rate = 44100;
 
 		if(!strcasecmp("mi4",filename_extension(filename)))
 			vgmstream->sample_rate = 48000;
+
+		if(!strcasecmp("vb",filename_extension(filename))) 
+		{
+			vgmstream->layout_type = layout_none;
+			vgmstream->interleave_block_size=0;
+			vgmstream->sample_rate = 22050;
+		}
 
 		vgmstream->num_samples = (int32_t)(fileLength/16/channel_count*28);
 	}
@@ -138,9 +153,6 @@ VGMSTREAM * init_vgmstream_ps2_mib(STREAMFILE *streamFile) {
 		}
 	}
 
-	vgmstream->coding_type = coding_PSX;
-    vgmstream->layout_type = layout_interleave;
-    
 	vgmstream->meta_type = meta_PS2_MIB;
     
 	if (gotMIH) {

@@ -226,6 +226,8 @@ char * extension_list[] = {
 	"baka\0BAKA Audio File (*.BAKA)\0",
 	"swav\0SWAV Audio File (*.SWAV)\0",
     "vsf\0VSF Audio File (*.VSF)\0",
+	"vb\0VB Audio File (*.VB)\0",
+	"tk5\0TK5 Audio File (*.TK5)\0",
 	"rrds\0RRDS Audio File (*.RRDS)\0",
 };
 

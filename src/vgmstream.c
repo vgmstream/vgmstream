@@ -190,6 +190,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_nds_swav,
     init_vgmstream_ps2_vsf,
 	init_vgmstream_nds_rrds,
+	init_vgmstream_ps2_tk5,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -219,7 +220,8 @@ VGMSTREAM * init_vgmstream_internal(STREAMFILE *streamFile, int do_dfs) {
                         (vgmstream->meta_type == meta_DSP_STD) ||
                         (vgmstream->meta_type == meta_PS2_VAGp) ||
                         (vgmstream->meta_type == meta_GENH) ||
-                        (vgmstream->meta_type == meta_KRAW)
+                        (vgmstream->meta_type == meta_KRAW) ||
+						(vgmstream->meta_type == meta_PS2_MIB)
                         ) && vgmstream->channels == 1) {
                 try_dual_file_stereo(vgmstream, streamFile);
             }
@@ -2059,10 +2061,13 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             snprintf(temp,TEMPSIZE,"SWAV Header");
             break;
        case meta_PS2_VSF:
-           snprintf(temp,TEMPSIZE,"Musashi: Samurai Legend VSF Header");
+            snprintf(temp,TEMPSIZE,"Musashi: Samurai Legend VSF Header");
             break;
        case meta_NDS_RRDS:
            snprintf(temp,TEMPSIZE,"Ridger Racer DS Header");
+            break;
+       case meta_PS2_TK5:
+            snprintf(temp,TEMPSIZE,"Tekken 5 Stream Header");
             break;
         default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");
