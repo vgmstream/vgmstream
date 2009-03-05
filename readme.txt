@@ -94,6 +94,7 @@ PS2/PSX ADPCM:
 - .vig
 - .vpk
 - .vs
+- .vsf
 - .wp2
 - .xa2
 - .xa30
@@ -138,6 +139,7 @@ GC/Wii DSP ADPCM:
 PCM:
 - .aiff (8 bit, 16 bit)
 - .asd (16 bit)
+- .baka (16 bit)
 - .bh2pcm (16 bit)
 - .gcsw (16 bit)
 - .gcw (16 bit)
@@ -152,22 +154,23 @@ PCM:
 - .xss (16 bit)
 
 Xbox IMA ADPCM:
-- .matx (XBOX IMA ADPCM)
-- .wavm (XBOX IMA ADPCM)
-- .wvs (XBOX IMA ADPCM)
-- .xmu (Xbox IMA ADPCM)
-- .xvas (Xbox IMA ADPCM)
-- .xwav (XBOX IMA ADPCM)
+- .matx
+- .wavm
+- .wvs
+- .xmu
+- .xvas
+- .xwav
 
 Yamaha ADPCM:
-- .dcs+.wav (Yamaha ADPCM)
-- .str (Yamaha ADPCM)
-- .spsd (Yamaha ADPCM)
+- .dcs+.wav
+- .str
+- .spsd
 
-DVI IMA ADPCM:
+IMA ADPCM:
 - .dvi (DVI IMA ADPCM)
 - .idvi (DVI IMA ADPCM)
 - .stma (DVI IMA ADPCM)
+- .strm (IMA ADPCM)
 
 multi:
 - .aifc (SDX2 DPCM, DVI IMA ADPCM)
@@ -184,10 +187,12 @@ multi:
 - .rwar,.rwav (GC DSP ADPCM, 8/16 bit PCM)
 - .rwsd (GC DSP ADPCM, 8/16 bit PCM)
 - .rsd (PSX ADPCM, 16 bit PCM, GC DSP ADPCM, Xbox IMA ADPCM)
+- .rrds (NDS IMA ADPCM)
 - .sad (GC DSP ADPCM, NDS IMA ADPCM, Procyon Studios NDS ADPCM)
 - .sng, .asf, .str, .eam (EA/XA ADPCM or PSX ADPCM)
-- .strm (STRM: NDS IMA ADPCM, 8/16 bit PCM)
+- .strm (NDS IMA ADPCM, 8/16 bit PCM)
 - .ss7 (EACS IMA ADPCM, IMA ADPCM)
+- .swav (NDS IMA ADPCM, 8/16 bit PCM)
 - .xwb (16 bit PCM, Xbox IMA ADPCM)
 
 etc:

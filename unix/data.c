@@ -163,6 +163,8 @@ gchar *vgmstream_exts [] = {
   "rwav",
   "baka",
   "vsf",
+  "swav",
+  "rrds",
   /* terminator */
   NULL
 };
