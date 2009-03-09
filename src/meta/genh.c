@@ -108,6 +108,9 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
         case 14:
             coding = coding_PSX_badflags;
             break;
+        case 15:
+            coding = coding_MS_IMA;
+            break;
         default:
             goto fail;
     }
@@ -183,6 +186,10 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
             } else {
                 vgmstream->layout_type = layout_none;
             }
+            break;
+        case coding_MS_IMA:
+            vgmstream->interleave_block_size = interleave;
+            vgmstream->layout_type = layout_none;
             break;
         case coding_MSADPCM:
             if (channel_count != 2) goto fail;
@@ -260,6 +267,7 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
                     break;
                 case coding_XBOX:
                 case coding_MSADPCM:
+                case coding_MS_IMA:
                     /* xbox's "interleave" is a lie, all channels start at same
                      * offset */
                     chstreamfile =

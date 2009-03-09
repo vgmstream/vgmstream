@@ -64,6 +64,65 @@ void decode_nds_ima(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspaci
     stream->adpcm_step_index = step_index;
 }
 
+/* Xbox IMA is MS IMA, but I'll leave it alone for now (esp as it has > 2 channel support) */
+void decode_ms_ima(VGMSTREAM * vgmstream,VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do,int channel) {
+    int i=first_sample;
+	int sample_nibble;
+	int sample_decoded;
+    int delta;
+    int block_samples = (vgmstream->interleave_block_size - vgmstream->channels * 4) * 2 / vgmstream->channels;
+
+    int32_t sample_count=0;
+    int32_t hist1=stream->adpcm_history1_32;
+    int step_index = stream->adpcm_step_index;
+	off_t offset=stream->offset;
+
+    first_sample = first_sample % block_samples;
+
+    if (first_sample == 0) {
+
+        hist1 = read_16bitLE(offset+channel*4,stream->streamfile);
+        step_index = read_16bitLE(offset+channel*4+2,stream->streamfile);
+
+        if (step_index < 0) step_index=0;
+        if (step_index > 88) step_index=88;
+    }
+
+    for (i=first_sample,sample_count=0; i<first_sample+samples_to_do; i++,sample_count+=channelspacing) {
+        int step = ADPCMTable[step_index];
+
+        offset = stream->offset + 4*vgmstream->channels + (i/8*4*vgmstream->channels) + (i%8)/2 + 4*channel;
+
+        sample_nibble = (read_8bit(offset,stream->streamfile) >> (i&1?4:0))&0xf;
+
+		sample_decoded=hist1;
+
+        delta = step >> 3;
+        if (sample_nibble & 1) delta += step >> 2;
+        if (sample_nibble & 2) delta += step >> 1;
+        if (sample_nibble & 4) delta += step;
+        if (sample_nibble & 8)
+            sample_decoded -= delta;
+        else
+            sample_decoded += delta;
+
+		hist1=clamp16(sample_decoded);
+
+        step_index += IMA_IndexTable[sample_nibble];
+        if (step_index < 0) step_index=0;
+        if (step_index > 88) step_index=88;
+		
+        outbuf[sample_count]=(short)(hist1);
+
+    }
+
+	// Only increment offset on complete frame
+    if (i == block_samples) stream->offset += vgmstream->interleave_block_size;
+
+	stream->adpcm_history1_32=hist1;
+	stream->adpcm_step_index=step_index;
+}
+
 void decode_xbox_ima(VGMSTREAM * vgmstream,VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do,int channel) {
     int i=first_sample;
 	int sample_nibble;

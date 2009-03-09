@@ -70,6 +70,7 @@ typedef enum {
     coding_EACS_IMA,
     coding_IMA,             /* bare IMA, low nibble first */
     coding_INT_IMA,         /* */
+    coding_MS_IMA,          /* Microsoft IMA */
     coding_WS,              /* Westwood Studios' custom VBR ADPCM */
 #ifdef VGM_USE_MPEG
     coding_fake_MPEG2_L2,   /* MPEG-2 Layer 2 (AHX), with lying headers */

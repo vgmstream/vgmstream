@@ -680,6 +680,8 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
             return vgmstream->ws_output_size;
         case coding_MSADPCM:
             return (vgmstream->interleave_block_size-(7-1)*vgmstream->channels)*2/vgmstream->channels;
+        case coding_MS_IMA:
+            return (vgmstream->interleave_block_size-4*vgmstream->channels)*2/vgmstream->channels;
         case coding_NDS_PROCYON:
             return 30;
         default:
@@ -721,6 +723,7 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
         case coding_NWA4:
         case coding_NWA5:
             return 1;
+        case coding_MS_IMA:
         case coding_NDS_IMA:
             return vgmstream->interleave_block_size;
         case coding_NGC_DTK:
@@ -869,6 +872,13 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
 		case coding_XBOX:
             for (chan=0;chan<vgmstream->channels;chan++) {
                 decode_xbox_ima(vgmstream,&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                        vgmstream->channels,vgmstream->samples_into_block,
+                        samples_to_do,chan);
+            }
+            break;
+		case coding_MS_IMA:
+            for (chan=0;chan<vgmstream->channels;chan++) {
+                decode_ms_ima(vgmstream,&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
                         samples_to_do,chan);
             }
@@ -1318,6 +1328,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case coding_IMA:
             snprintf(temp,TEMPSIZE,"4-bit IMA ADPCM");
+            break;
+        case coding_MS_IMA:
+            snprintf(temp,TEMPSIZE,"Microsoft 4-bit IMA ADPCM");
             break;
         case coding_WS:
             snprintf(temp,TEMPSIZE,"Westwood Studios DPCM");

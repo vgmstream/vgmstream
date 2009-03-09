@@ -88,6 +88,7 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
     off_t file_size = -1;
     int channel_count = 0;
     int sample_count = 0;
+    int fact_sample_count = -1;
     int sample_rate = 0;
     int coding_type = -1;
     off_t start_offset = -1;
@@ -100,6 +101,7 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
     off_t loop_end_offset = -1;
     uint32_t riff_size;
     uint32_t data_size = 0;
+    uint32_t block_size = 0;
 
     int FormatChunkFound = 0;
     int DataChunkFound = 0;
@@ -151,6 +153,7 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
 
                     sample_rate = read_32bitLE(current_chunk+0x0c,streamFile);
                     channel_count = read_16bitLE(current_chunk+0x0a,streamFile);
+                    block_size = read_16bitLE(current_chunk+0x14,streamFile);
 
                     switch (read_16bitLE(current_chunk+0x8,streamFile)) {
                         case 1: /* PCM */
@@ -166,6 +169,13 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
                                 default:
                                     goto fail;
                             }
+                            break;
+                        case 0x11:  /* MS IMA ADCM */
+                            /* ensure 4bps */
+                            if (read_16bitLE(current_chunk+0x16,streamFile)!=4)
+                                goto fail;
+                            coding_type = coding_MS_IMA;
+                            interleave = 0;
                             break;
                         case 0x555: /* Level-5 0x555 ADPCM */
                             if (!mwv) goto fail;
@@ -226,6 +236,10 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
                     }
                     mwv_ctrl_offset = current_chunk;
                     break;
+                case 0x66616374:    /* fact */
+                    if (chunk_size != 4) break;
+                    fact_sample_count = read_32bitLE(current_chunk+8, streamFile);
+                    break;
                 default:
                     /* ignorance is bliss */
                     break;
@@ -247,6 +261,10 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
         case coding_L5_555:
             sample_count = data_size/0x12/channel_count*32;
             break;
+        case coding_MS_IMA:
+            sample_count = (data_size / block_size) * (block_size - 4 * channel_count) * 2 / channel_count +
+                ((data_size % block_size) ? (data_size % block_size - 4 * channel_count) * 2 / channel_count : 0);
+            break;
     }
 
     /* build the VGMSTREAM */
@@ -259,11 +277,14 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
     vgmstream->sample_rate = sample_rate;
 
     vgmstream->coding_type = coding_type;
-    if (channel_count > 1 && coding_type != coding_PCM8_U_int)
+    if (channel_count > 1 && coding_type != coding_PCM8_U_int && coding_type != coding_MS_IMA)
         vgmstream->layout_type = layout_interleave;
     else
         vgmstream->layout_type = layout_none;
     vgmstream->interleave_block_size = interleave;
+
+    if (coding_type == coding_MS_IMA)
+        vgmstream->interleave_block_size = block_size;
 
     if (loop_flag) {
         if (loop_start_ms >= 0)
