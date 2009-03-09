@@ -7,7 +7,6 @@
 VGMSTREAM * init_vgmstream_nds_rrds(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[260];
-    int codec_number;
     int channel_count;
     int loop_flag;
     off_t start_offset;

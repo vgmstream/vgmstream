@@ -344,4 +344,6 @@ VGMSTREAM * init_vgmstream_nds_rrds(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_ps2_tk5(STREAMFILE *streamFile);
 
+VGMSTREAM * init_vgmstream_ps2_vsf_tta(STREAMFILE *streamFile);
+
 #endif
