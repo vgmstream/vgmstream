@@ -28,7 +28,7 @@ VGMSTREAM * init_vgmstream_nds_rrds(STREAMFILE *streamFile) {
     if (!vgmstream) goto fail;
 
     /* fill in the vital statistics */
-    start_offset = 0x18;
+    start_offset = 0x1c;
 	vgmstream->num_samples = (read_32bitLE(0x0,streamFile)-start_offset) / channel_count * 2;
     vgmstream->sample_rate = read_32bitLE(0x8,streamFile);
 
@@ -44,17 +44,17 @@ VGMSTREAM * init_vgmstream_nds_rrds(STREAMFILE *streamFile) {
 
     /* open the file for reading */
     {
-        int i;
         STREAMFILE * file;
         file = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
         if (!file) goto fail;
-        for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = file;
+        vgmstream->ch[0].streamfile = file;
 
-            vgmstream->ch[i].channel_start_offset=
-                vgmstream->ch[i].offset=start_offset+
-                vgmstream->interleave_block_size*i;
-		}
+        vgmstream->ch[0].channel_start_offset=
+            vgmstream->ch[0].offset=start_offset;
+        /* one NDS IMA header for whole stream */
+        vgmstream->ch[0].adpcm_history1_16 = read_16bitLE(0x18,streamFile);
+        vgmstream->ch[0].adpcm_step_index = read_16bitLE(0x1a,streamFile);
+        if (vgmstream->ch[0].adpcm_step_index < 0 || vgmstream->ch[0].adpcm_step_index > 88) goto fail;
     }
     
     return vgmstream;
