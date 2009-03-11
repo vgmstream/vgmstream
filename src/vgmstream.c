@@ -194,6 +194,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_nds_rrds,
 	init_vgmstream_ps2_tk5,
 	init_vgmstream_ps2_vsf_tta,
+	init_vgmstream_ads,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -2093,6 +2094,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
        case meta_PS2_VSF_TTA:
 		   snprintf(temp,TEMPSIZE,"VSF with SMSS Header");
+            break;
+	   case meta_ADS:
+		   snprintf(temp,TEMPSIZE,"dhSS Header");
             break;
         default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

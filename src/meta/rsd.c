@@ -702,7 +702,8 @@ fail:
 }
 
 
-/* RSD6XMA *//*
+#if 0 
+/* RSD6XMA */
 VGMSTREAM * init_vgmstream_rsd6xma(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[260];
@@ -711,24 +712,24 @@ VGMSTREAM * init_vgmstream_rsd6xma(STREAMFILE *streamFile) {
 	int loop_flag;
 	int channel_count;
 
-    /* check extension, case insensitive *//*
+    /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
     if (strcasecmp("rsd",filename_extension(filename))) goto fail;
 
-    /* check header *//*
-    if (read_32bitBE(0x0,streamFile) != 0x52534436) /* RSD6 *//*
+    /* check header */
+    if (read_32bitBE(0x0,streamFile) != 0x52534436) /* RSD6 */
 		goto fail;
-	if (read_32bitBE(0x4,streamFile) != 0x584D4120)	/* XMA *//*
+	if (read_32bitBE(0x4,streamFile) != 0x584D4120)	/* XMA */
         goto fail;
 
     loop_flag = 0;
     channel_count = read_32bitLE(0x8,streamFile);
     
-	/* build the VGMSTREAM *//*
+	/* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
-	/* fill in the vital statistics *//*
+	/* fill in the vital statistics */
   start_offset = 0x800;
 	vgmstream->channels = channel_count;
     vgmstream->sample_rate = read_32bitLE(0x10,streamFile);
@@ -743,7 +744,7 @@ VGMSTREAM * init_vgmstream_rsd6xma(STREAMFILE *streamFile) {
     vgmstream->interleave_block_size = 0x10;
     vgmstream->meta_type = meta_RSD6XMA;
 
-    /* open the file for reading *//*
+    /* open the file for reading */
     {
         int i;
         STREAMFILE * file;
@@ -768,7 +769,9 @@ VGMSTREAM * init_vgmstream_rsd6xma(STREAMFILE *streamFile) {
 	return vgmstream;
 
 fail:
-    /* clean up anything we may have opened *//*
+    /* clean up anything we may have opened */
     if (vgmstream) close_vgmstream(vgmstream);
     return NULL;
-}*/
+} 
+
+#endif
