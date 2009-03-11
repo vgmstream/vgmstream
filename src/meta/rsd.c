@@ -630,9 +630,6 @@ fail:
     if (vgmstream) close_vgmstream(vgmstream);
     return NULL;
 }
-    
-    
-    
 /* RSD6XADP */
 VGMSTREAM * init_vgmstream_rsd6xadp(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
@@ -703,3 +700,75 @@ fail:
     if (vgmstream) close_vgmstream(vgmstream);
     return NULL;
 }
+
+
+/* RSD6XMA *//*
+VGMSTREAM * init_vgmstream_rsd6xma(STREAMFILE *streamFile) {
+    VGMSTREAM * vgmstream = NULL;
+    char filename[260];
+    off_t start_offset;
+
+	int loop_flag;
+	int channel_count;
+
+    /* check extension, case insensitive *//*
+    streamFile->get_name(streamFile,filename,sizeof(filename));
+    if (strcasecmp("rsd",filename_extension(filename))) goto fail;
+
+    /* check header *//*
+    if (read_32bitBE(0x0,streamFile) != 0x52534436) /* RSD6 *//*
+		goto fail;
+	if (read_32bitBE(0x4,streamFile) != 0x584D4120)	/* XMA *//*
+        goto fail;
+
+    loop_flag = 0;
+    channel_count = read_32bitLE(0x8,streamFile);
+    
+	/* build the VGMSTREAM *//*
+    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+    if (!vgmstream) goto fail;
+
+	/* fill in the vital statistics *//*
+  start_offset = 0x800;
+	vgmstream->channels = channel_count;
+    vgmstream->sample_rate = read_32bitLE(0x10,streamFile);
+    vgmstream->coding_type = coding_XMA;
+    vgmstream->num_samples = (get_streamfile_size(streamFile)-start_offset)*64/36/channel_count;
+    if (loop_flag) {
+        vgmstream->loop_start_sample = loop_flag;
+        vgmstream->loop_end_sample = (get_streamfile_size(streamFile)-start_offset)*28/16/channel_count;
+    }
+
+    vgmstream->layout_type = layout_interleave;
+    vgmstream->interleave_block_size = 0x10;
+    vgmstream->meta_type = meta_RSD6XMA;
+
+    /* open the file for reading *//*
+    {
+        int i;
+        STREAMFILE * file;
+        file = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
+        if (!file) goto fail;
+        for (i=0;i<channel_count;i++) {
+            vgmstream->ch[i].streamfile = file;
+
+   
+		if (vgmstream->coding_type == coding_XMA) {
+				vgmstream->layout_type=layout_none;
+                vgmstream->ch[i].channel_start_offset=start_offset;
+            } else {
+                vgmstream->ch[i].channel_start_offset=
+                    start_offset+vgmstream->interleave_block_size*i;
+            }
+            vgmstream->ch[i].offset = vgmstream->ch[i].channel_start_offset;
+
+        }
+    }
+    
+	return vgmstream;
+
+fail:
+    /* clean up anything we may have opened *//*
+    if (vgmstream) close_vgmstream(vgmstream);
+    return NULL;
+}*/
