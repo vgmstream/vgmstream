@@ -137,6 +137,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_ps2_xa2,
 	init_vgmstream_idsp,
 	init_vgmstream_idsp2,
+	init_vgmstream_idsp3,
 	init_vgmstream_ngc_ymf,
     init_vgmstream_sadl,
 	init_vgmstream_ps2_ccc,
@@ -1997,6 +1998,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             snprintf(temp,TEMPSIZE,"IDSP Header");
             break;
 		case meta_IDSP2:
+            snprintf(temp,TEMPSIZE,"IDSP Header");
+            break;
+		case meta_IDSP3:
             snprintf(temp,TEMPSIZE,"IDSP Header");
             break;
 		case meta_WAA_WAC_WAD_WAM:

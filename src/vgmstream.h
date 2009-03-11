@@ -265,13 +265,15 @@ typedef enum {
     meta_PS2_OMU,			/* PS2 Int file with Header */
     meta_PS2_XA2,			/* XA2 XG3 file */
     meta_IDSP,				/* Chronicles of Narnia */
-    meta_SPT_SPD,			/* Variouis */
+    meta_IDSP2,				/* Soul Calibur */
+	meta_IDSP3,				/* Mario Strikers Charged */
+	meta_SPT_SPD,			/* Variouis */
     meta_ISH_ISD,			/* Various */
     meta_GSP_GSB,			/* Various */
     meta_YDSP,				/* WWE Day of Reckoning */
     meta_FFCC_STR,          /* Final Fantasy: Crystal Chronicles */
 
-    meta_IDSP2,				/* Chronicles of Narnia */
+    
     meta_WAA_WAC_WAD_WAM,	/* Beyond Good & Evil */
     meta_GCA,				/* Metal Slug Anthology */
     meta_MSVP,				/* Popcap Hits */
