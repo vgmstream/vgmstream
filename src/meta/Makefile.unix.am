@@ -144,5 +144,6 @@ libmeta_la_SOURCES += vsf.c
 libmeta_la_SOURCES += nds_rrds.c
 libmeta_la_SOURCES += ps2_tk5.c
 libmeta_la_SOURCES += ads.c
+libmeta_la_SOURCES += wii_str.c
 
 EXTRA_DIST = meta.h
