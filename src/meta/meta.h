@@ -355,4 +355,6 @@ VGMSTREAM * init_vgmstream_ads(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_wii_str(STREAMFILE *streamFile);
 
+VGMSTREAM * init_vgmstream_zsd(STREAMFILE *streamFile);
+
 #endif

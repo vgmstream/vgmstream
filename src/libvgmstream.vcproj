@@ -775,6 +775,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\zsd.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\zwdsp.c"
 					>
 				</File>

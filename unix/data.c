@@ -166,6 +166,7 @@ gchar *vgmstream_exts [] = {
   "swav",
   "rrds",
   "tk5",
+  "zsd",
   /* terminator */
   NULL
 };

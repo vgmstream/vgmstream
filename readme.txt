@@ -126,6 +126,7 @@ GC/Wii DSP ADPCM:
 - .ssm
 - .stm/.dsp
 - .str
+- .str+.sth
 - .sts
 - .swd
 - .thp, .dsp
@@ -153,6 +154,7 @@ PCM:
 - .str (16 bit)
 - .wav, .lwav (unsigned 8 bit, 16 bit)
 - .xss (16 bit)
+- .zsd (8 bit)
 
 Xbox IMA ADPCM:
 - .matx

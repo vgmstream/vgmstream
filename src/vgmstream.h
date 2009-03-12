@@ -376,6 +376,7 @@ typedef enum {
     meta_NGC_IADP,			/* Gamecube Interleave DSP */
 	meta_PS2_TK5,			/* Tekken 5 Stream Files */
 	meta_WII_STR,			/* House of The Dead Overkill STR+STH */
+    meta_ZSD,               /* Dragon Booster ZSD */
 } meta_t;
 
 typedef struct {

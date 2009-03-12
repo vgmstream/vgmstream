@@ -197,6 +197,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_ps2_vsf_tta,
 	init_vgmstream_ads,
 	init_vgmstream_wii_str,
+    init_vgmstream_zsd,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -2089,21 +2090,24 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             snprintf(temp,TEMPSIZE,"Musashi: Samurai Legend VSF Header");
             break;
        case meta_NDS_RRDS:
-           snprintf(temp,TEMPSIZE,"Ridger Racer DS Header");
+            snprintf(temp,TEMPSIZE,"Ridger Racer DS Header");
             break;
        case meta_PS2_TK5:
             snprintf(temp,TEMPSIZE,"Tekken 5 Stream Header");
             break;
        case meta_PS2_VSF_TTA:
-		   snprintf(temp,TEMPSIZE,"VSF with SMSS Header");
+            snprintf(temp,TEMPSIZE,"VSF with SMSS Header");
             break;
 	   case meta_ADS:
-		   snprintf(temp,TEMPSIZE,"dhSS Header");
+            snprintf(temp,TEMPSIZE,"dhSS Header");
             break;
-	   case meta_WII_STR:
+       case meta_WII_STR:
 		   snprintf(temp,TEMPSIZE,"HOTD Overkill - STR+STH WII Header");
-            break;
-        default:
+           break;
+       case meta_ZSD:
+           snprintf(temp,TEMPSIZE,"ZSD Header");
+           break;
+       default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");
     }
     concatn(length,desc,temp);
