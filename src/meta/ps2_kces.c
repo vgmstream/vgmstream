@@ -19,7 +19,7 @@ VGMSTREAM * init_vgmstream_ps2_kces(STREAMFILE *streamFile) {
     if (read_32bitBE(0x00,streamFile) != 0x01006408)
         goto fail;
 
-    loop_flag = 0; /* (read_32bitLE(0x08,streamFile)!=0); */
+    loop_flag = (read_32bitLE(0x14,streamFile)!=0); 
     channel_count = read_32bitLE(0x1C,streamFile);
     
 	/* build the VGMSTREAM */
@@ -33,7 +33,7 @@ VGMSTREAM * init_vgmstream_ps2_kces(STREAMFILE *streamFile) {
     vgmstream->coding_type = coding_PSX;
     vgmstream->num_samples = read_32bitLE(0x0C,streamFile)*28/16/channel_count;
     if (loop_flag) {
-        vgmstream->loop_start_sample = 0;
+        vgmstream->loop_start_sample = (read_32bitLE(0x0C,streamFile)-read_32bitLE(0x14,streamFile))*28/16/channel_count;
         vgmstream->loop_end_sample = read_32bitLE(0x0C,streamFile)*28/16/channel_count;
     }
 

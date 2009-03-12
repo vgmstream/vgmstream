@@ -196,6 +196,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_ps2_tk5,
 	init_vgmstream_ps2_vsf_tta,
 	init_vgmstream_ads,
+	init_vgmstream_wii_str,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -2098,6 +2099,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
 	   case meta_ADS:
 		   snprintf(temp,TEMPSIZE,"dhSS Header");
+            break;
+	   case meta_WII_STR:
+		   snprintf(temp,TEMPSIZE,"HOTD Overkill - STR+STH WII Header");
             break;
         default:
             snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

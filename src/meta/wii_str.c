@@ -1,12 +1,7 @@
 #include "meta.h"
 #include "../util.h"
 
-/* STR
-
-   2008-05-19 - Fastelbja : Test version ...
-*/
-
-VGMSTREAM * init_vgmstream_ps2_str(STREAMFILE *streamFile) {
+VGMSTREAM * init_vgmstream_wii_str(STREAMFILE *streamFile) {
     
 	VGMSTREAM * vgmstream = NULL;
 	STREAMFILE * infileSTH = NULL;
@@ -14,7 +9,7 @@ VGMSTREAM * init_vgmstream_ps2_str(STREAMFILE *streamFile) {
 
 	char * filenameSTH = NULL;
 
-	int i, channel_count, loop_flag;
+	int i, j, channel_count, loop_flag;
 
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
@@ -34,16 +29,15 @@ VGMSTREAM * init_vgmstream_ps2_str(STREAMFILE *streamFile) {
 	/* with others .STR file as it is a very common extension */
 	if (!infileSTH) goto fail;
 
-	if(read_32bitLE(0x2C,infileSTH)==0)
+	if(read_32bitLE(0x2C,infileSTH)!=0) 
 		goto fail;
 
-	if((read_32bitLE(0x2C,infileSTH)==0x07) ||
-	   (read_32bitLE(0x2C,infileSTH)==0x06))
-		channel_count=2;
-	if(read_32bitLE(0x2C,infileSTH)==0x05)
-		channel_count=1;
+	channel_count = read_32bitBE(0x70,infileSTH);
 
-	loop_flag = read_32bitLE(0x2C,infileSTH) & 0x01;
+	if(channel_count==1)
+		loop_flag = (read_32bitBE(0xD4,infileSTH)==0x00740000);
+	else
+		loop_flag = (read_32bitBE(0x124,infileSTH)==0x00740000);
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
@@ -51,26 +45,21 @@ VGMSTREAM * init_vgmstream_ps2_str(STREAMFILE *streamFile) {
 
     /* fill in the vital statistics */
 	vgmstream->channels = channel_count;
-	vgmstream->sample_rate = read_32bitLE(0x24,infileSTH);
+	vgmstream->sample_rate = read_32bitBE(0x38,infileSTH);
 
-	vgmstream->interleave_block_size=0x4000;
+	vgmstream->interleave_block_size=0x8000;
+	vgmstream->num_samples=read_32bitBE(0x34,infileSTH);
 
-	if(read_32bitLE(0x40,infileSTH)==0x01) 
-		vgmstream->interleave_block_size = 0x8000; 
-
-	vgmstream->num_samples=read_32bitLE(0x20,infileSTH);
-
-	vgmstream->coding_type = coding_PSX;
+	vgmstream->coding_type = coding_NGC_DSP;
     vgmstream->layout_type = layout_interleave;
     
-	vgmstream->meta_type = meta_PS2_STR;
+	vgmstream->meta_type = meta_WII_STR;
 
 	if(loop_flag) {
 		vgmstream->loop_start_sample = 0;
-		vgmstream->loop_end_sample = read_32bitLE(0x20,infileSTH);
+		vgmstream->loop_end_sample = vgmstream->num_samples;
 	}
 
-	close_streamfile(infileSTH); infileSTH=NULL;
 
     /* open the file for reading by each channel */
     {
@@ -82,8 +71,13 @@ VGMSTREAM * init_vgmstream_ps2_str(STREAMFILE *streamFile) {
             vgmstream->ch[i].channel_start_offset=
                 vgmstream->ch[i].offset+=(off_t)(vgmstream->interleave_block_size*i);
 
+			for(j=0; j<16; j++) {
+				vgmstream->ch[i].adpcm_coef[j]=read_16bitBE(0xAC+(j*2)+(i*0x50),infileSTH);
+			}
         }
     }
+
+	close_streamfile(infileSTH); infileSTH=NULL;
 
     return vgmstream;
 
