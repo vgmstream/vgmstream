@@ -86,6 +86,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_fsb4_wav,
     init_vgmstream_rwx,
     init_vgmstream_xwb,
+    init_vgmstream_xwb2,
     init_vgmstream_xa30,
     init_vgmstream_musc,
     init_vgmstream_musx_v004,
