@@ -2103,7 +2103,6 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             snprintf(temp,TEMPSIZE,"dhSS Header");
             break;
 	   case meta_WII_STR:
-       case meta_WII_STR:
 		   snprintf(temp,TEMPSIZE,"HOTD Overkill - STR+STH WII Header");
             break;
 	   case meta_PS2_MCG:
