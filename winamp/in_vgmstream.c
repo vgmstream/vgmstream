@@ -229,6 +229,7 @@ char * extension_list[] = {
 	"vb\0VB Audio File (*.VB)\0",
 	"tk5\0TK5 Audio File (*.TK5)\0",
 	"rrds\0RRDS Audio File (*.RRDS)\0",
+	"mcg\0MCG Audio File (*.MCG)\0",
     "zsd\0ZSD Audio File (*.ZSD)\0",
 };
 

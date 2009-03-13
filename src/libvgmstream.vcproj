@@ -511,6 +511,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\ps2_mcg.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\ps2_mib.c"
 					>
 				</File>
