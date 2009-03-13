@@ -21,7 +21,7 @@ VGMSTREAM * init_vgmstream_wii_str(STREAMFILE *streamFile) {
 	if (!filenameSTH) goto fail;
 
 	strcpy(filenameSTH,filename);
-	strcpy(filenameSTH+strlen(filenameSTH)-3,"STH");
+	strcpy(filenameSTH+strlen(filenameSTH)-3,"sth");
 
 	infileSTH = streamFile->open(streamFile,filenameSTH,STREAMFILE_DEFAULT_BUFFER_SIZE);
 
