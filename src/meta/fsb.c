@@ -153,14 +153,16 @@ VGMSTREAM * init_vgmstream_fsb3(STREAMFILE *streamFile) {
         vgmstream->loop_end_sample = (read_32bitLE(0x0C,streamFile))*28/16/channel_count;
     }
 	break;
-		case 0x02000806: /* WII (Metroid Prime 3) */
+		case 0x00000806: /* WII (de Blob) */
+		case 0x00000886: /* WII (de Blob) */
 		case 0x01000806: /* WII (Metroid Prime 3) */
+		case 0x02000806: /* WII (Metroid Prime 3) */
+        case 0x20100002: /* WII (de Blob) */
+        case 0x21100002: /* NGC (The Incredibles: Rise of the Underminer */
 		case 0x40000802: /* WII (WWE Smackdown Vs. Raw 2008) */
 		case 0x40000882: /* WII (Bully) */
-		case 0x41000802: /* GC (Dysney's Incredibles, The) */
-		case 0x00000886: /* WII (de Blob) */
-		case 0x00000806: /* WII (de Blob) */
-        case 0x20100002: /* WII (de Blob) */
+		case 0x41000802: /* NGC (Dysney's Incredibles, The) */
+
 		vgmstream->coding_type = coding_NGC_DSP;
 		vgmstream->layout_type = layout_interleave_byte;
         vgmstream->interleave_block_size = 2;
