@@ -69,6 +69,9 @@ VGMSTREAM * init_vgmstream_RedSpark(STREAMFILE *streamFile) {
         start += channel_count*8;
         vgmstream->loop_start_sample = get_32bitBE(&buf[start+4])*14;
         vgmstream->loop_end_sample = (get_32bitBE(&buf[start+0xc])+1)*14;
+        if (vgmstream->loop_end_sample > vgmstream->num_samples) {
+            vgmstream->loop_end_sample = vgmstream->num_samples;
+        }
     }
 
     if (channel_count >= 2) {
