@@ -631,6 +631,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\redspark.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\riff.c"
 					>
 				</File>

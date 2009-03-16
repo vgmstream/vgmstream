@@ -199,6 +199,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_wii_str,
 	init_vgmstream_ps2_mcg,
     init_vgmstream_zsd,
+    init_vgmstream_RedSpark,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -2110,6 +2111,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
        case meta_ZSD:
            snprintf(temp,TEMPSIZE,"ZSD Header");
+           break;
+       case meta_RedSpark:
+           snprintf(temp,TEMPSIZE,"RedSpark Header");
            break;
        default:
            snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

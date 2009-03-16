@@ -378,6 +378,7 @@ typedef enum {
 	meta_WII_STR,			/* House of The Dead Overkill STR+STH */
 	meta_PS2_MCG,			/* Gunvari MCG  Files (was name .GCM on disk) */
     meta_ZSD,               /* Dragon Booster ZSD */
+    meta_RedSpark,          /* "RedSpark" RSD (MadWorld) */
 } meta_t;
 
 typedef struct {

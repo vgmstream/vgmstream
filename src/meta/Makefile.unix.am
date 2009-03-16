@@ -147,5 +147,6 @@ libmeta_la_SOURCES += ads.c
 libmeta_la_SOURCES += wii_str.c
 libmeta_la_SOURCES += zsd.c
 libmeta_la_SOURCES += ps2_mcg.c
+libmeta_la_SOURCES += redspark.c
 
 EXTRA_DIST = meta.h
