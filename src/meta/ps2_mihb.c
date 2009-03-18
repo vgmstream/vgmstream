@@ -37,9 +37,15 @@ VGMSTREAM * init_vgmstream_ps2_mihb(STREAMFILE *streamFile) {
         vgmstream->loop_end_sample = (read_32bitLE(0x10,streamFile))*mib_blocks*channel_count/32*28;
     }
 
-    vgmstream->layout_type = layout_interleave;
-    vgmstream->interleave_block_size = read_32bitLE(0x10,streamFile);
-    vgmstream->meta_type = meta_PS2_MIHB;
+    
+    if (vgmstream->channels > 1) {
+        vgmstream->layout_type = layout_interleave;
+        vgmstream->interleave_block_size = read_32bitLE(0x10,streamFile);
+    } else {
+        vgmstream->layout_type = layout_none;
+    }
+        
+        vgmstream->meta_type = meta_PS2_MIHB;
 
     /* open the file for reading */
     {
