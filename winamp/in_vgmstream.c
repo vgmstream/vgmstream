@@ -231,6 +231,7 @@ char * extension_list[] = {
 	"rrds\0RRDS Audio File (*.RRDS)\0",
 	"mcg\0MCG Audio File (*.MCG)\0",
     "zsd\0ZSD Audio File (*.ZSD)\0",
+	"ivaud\0IVAUD Audio File (*.IVAUD)\0",
 };
 
 void about(HWND hwndParent) {

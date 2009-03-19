@@ -321,6 +321,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\ivaud.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\ivb.c"
 					>
 				</File>
@@ -600,6 +604,10 @@
 				</File>
 				<File
 					RelativePath=".\meta\ps2_vas.c"
+					>
+				</File>
+				<File
+					RelativePath=".\meta\ps2_vgs.c"
 					>
 				</File>
 				<File
@@ -968,6 +976,10 @@
 				</File>
 				<File
 					RelativePath=".\layout\interleave_byte.c"
+					>
+				</File>
+				<File
+					RelativePath=".\layout\ivaud_layout.c"
 					>
 				</File>
 				<File

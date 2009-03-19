@@ -146,6 +146,7 @@ typedef enum {
     layout_mus_acm,         /* mus has multi-files to deal with */
     layout_aix,             /* CRI AIX's wheels within wheels */
     layout_aax,             /* CRI AAX's wheels within databases */
+	layout_ivaud_blocked,	/* GTA IV .ivaud blocks */
 } layout_t;
 
 /* The meta type specifies how we know what we know about the file. We may know because of a header we read, some of it may have been guessed from filenames, etc. */
@@ -379,6 +380,7 @@ typedef enum {
 	meta_PS2_MCG,			/* Gunvari MCG  Files (was name .GCM on disk) */
     meta_ZSD,               /* Dragon Booster ZSD */
     meta_RedSpark,          /* "RedSpark" RSD (MadWorld) */
+	meta_PC_IVAUD,			/* .ivaud GTA IV */
 } meta_t;
 
 typedef struct {
