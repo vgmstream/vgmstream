@@ -149,5 +149,6 @@ libmeta_la_SOURCES += zsd.c
 libmeta_la_SOURCES += ps2_mcg.c
 libmeta_la_SOURCES += redspark.c
 libmeta_la_SOURCES += ivaud.c
+libmeta_la_SOURCES += ps2_vgs.c
 
 EXTRA_DIST = meta.h

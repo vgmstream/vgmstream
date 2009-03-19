@@ -3,7 +3,7 @@
 
 /* set up for the block at the given offset */
 void ivaud_block_update(off_t block_offset, VGMSTREAM * vgmstream) {
-    int i,j;
+    int i;
 	off_t	start_offset;
 	off_t	interleave_size;
 	int32_t nextFrame=0;
