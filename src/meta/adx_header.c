@@ -227,6 +227,10 @@ static struct {
     /* Sonic Team 2 (Sonic and the Black Knight) */
     /* confirmed unique with guessadx */
     {0x55b7,0x6191,0x5a77},
+
+    /* (Enterbrain) Amagami */
+    /* one of 32 from guessadx */
+    {0x5a17,0x509f,0x5bfd},
 };
 
 static const int key_count = sizeof(keys)/sizeof(keys[0]);
