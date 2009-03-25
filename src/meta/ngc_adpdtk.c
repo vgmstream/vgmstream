@@ -12,7 +12,8 @@ VGMSTREAM * init_vgmstream_ngc_adpdtk(STREAMFILE *streamFile) {
 
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("adp",filename_extension(filename))) goto fail;
+    if (strcasecmp("adp",filename_extension(filename)) && 
+		strcasecmp("dtk",filename_extension(filename))) goto fail;
 
     /* file size is the only way to determine sample count */
     file_size = get_streamfile_size(streamFile);

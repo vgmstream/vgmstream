@@ -202,6 +202,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_ps2_vgs,
     init_vgmstream_RedSpark,
 	init_vgmstream_ivaud,
+    init_vgmstream_wii_wsd,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -2123,6 +2124,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
            break;
        case meta_PC_IVAUD:
            snprintf(temp,TEMPSIZE,"assumed GTA IV Audio file by .ivaud extension");
+           break;
+        case meta_WII_WSD:
+           snprintf(temp,TEMPSIZE,"Phantom Brave WSD Header");
            break;
        default:
            snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

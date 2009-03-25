@@ -82,6 +82,7 @@ char * extension_list[] = {
     "hps\0HALPST Audio File (*.HPS)\0",
     "strm\0STRM Audio File (*.STRM)\0",
     "adp\0ADP Audio File (*.ADP)\0",
+    "dtk\0DTK Audio File (*.DTK)\0",
     "rsf\0RSF Audio File (*.RSF)\0",
     "dsp\0DSP Audio File (*.DSP)\0",
     "gcw\0GCW Audio File (*.GCW)\0",
@@ -232,6 +233,7 @@ char * extension_list[] = {
 	"mcg\0MCG Audio File (*.MCG)\0",
     "zsd\0ZSD Audio File (*.ZSD)\0",
 	"ivaud\0IVAUD Audio File (*.IVAUD)\0",
+    "wsd\0WSD Audio File (*.WSD)\0",
 };
 
 void about(HWND hwndParent) {

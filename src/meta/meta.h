@@ -365,4 +365,6 @@ VGMSTREAM * init_vgmstream_RedSpark(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_ivaud(STREAMFILE *streamFile);
 
+VGMSTREAM * init_vgmstream_wii_wsd(STREAMFILE *streamFile);
+
 #endif
