@@ -1,7 +1,7 @@
 #include "meta.h"
 #include "../util.h"
 
-/* XA2 (XG3 Extreme-G Racing) */
+/* XA2 (XG3 Extreme-G Racing & RC Revenge Pro) */
 VGMSTREAM * init_vgmstream_ps2_xa2(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[260];
@@ -15,8 +15,11 @@ VGMSTREAM * init_vgmstream_ps2_xa2(STREAMFILE *streamFile) {
     if (strcasecmp("xa2",filename_extension(filename))) goto fail;
 
     loop_flag = (read_32bitLE(0x10,streamFile)!=0);
+	 if (read_32bitLE(0x4,streamFile)!=0xD1) {
+	   loop_flag = 0;
+    }
     channel_count = read_32bitLE(0x0,streamFile);
-    
+
 	/* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
@@ -27,13 +30,18 @@ VGMSTREAM * init_vgmstream_ps2_xa2(STREAMFILE *streamFile) {
     vgmstream->sample_rate = 44100;
     vgmstream->coding_type = coding_PSX;
     vgmstream->num_samples = read_32bitLE(0x0C,streamFile);
+	if (read_32bitLE(0x4,streamFile)!=0xD1) {
+			vgmstream->num_samples = get_streamfile_size(streamFile)*28/16/channel_count;
+    }
     if (loop_flag) {
         vgmstream->loop_start_sample = vgmstream->num_samples-read_32bitLE(0x08,streamFile);
         vgmstream->loop_end_sample = vgmstream->num_samples;
     }
-
     vgmstream->layout_type = layout_interleave;
     vgmstream->interleave_block_size = read_32bitLE(0x04,streamFile);
+    if (read_32bitLE(0x4,streamFile)!=0xD1) {
+		vgmstream->interleave_block_size = 0x1000;
+	}
     vgmstream->meta_type = meta_PS2_XA2;
 
     /* open the file for reading */
@@ -46,15 +54,15 @@ VGMSTREAM * init_vgmstream_ps2_xa2(STREAMFILE *streamFile) {
             vgmstream->ch[i].streamfile = file;
 
             vgmstream->ch[i].channel_start_offset=
-                vgmstream->ch[i].offset=start_offset;
-
+                vgmstream->ch[i].offset=start_offset+
+                vgmstream->interleave_block_size*i;
         }
     }
 
     return vgmstream;
 
-    /* clean up anything we may have opened */
 fail:
+    /* clean up anything we may have opened */
     if (vgmstream) close_vgmstream(vgmstream);
     return NULL;
 }
