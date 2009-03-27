@@ -22,6 +22,11 @@ VGMSTREAM * init_vgmstream_wii_wsd(STREAMFILE *streamFile) {
 
     loop_flag = (read_32bitBE(0x2C,streamFile) != 0x0);
     channel_count = read_32bitBE(0x38,streamFile);
+    
+    /* WSD contains always 2 files, one for the
+    left channel and one or the right channel */
+    if ((channel_count) !=2)
+        goto fail;
         
         coef1_start = 0x3C;
         coef2_start = (read_32bitBE(0x4,streamFile))+0x1C;
@@ -60,17 +65,20 @@ VGMSTREAM * init_vgmstream_wii_wsd(STREAMFILE *streamFile) {
 }
 
     /* open the file for reading */
-    {
-        int i;
-        STREAMFILE * file;
-        file = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-        if (!file) goto fail;
-        for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = file;
+    vgmstream->ch[0].streamfile = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
 
-            vgmstream->ch[i].channel_start_offset=
-                vgmstream->ch[i].offset=start_offset+second_channel_start;
-        }
+    if (!vgmstream->ch[0].streamfile) goto fail;
+
+    vgmstream->ch[0].channel_start_offset=
+        vgmstream->ch[0].offset=start_offset;
+
+    if (channel_count == 2) {
+        vgmstream->ch[1].streamfile = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
+
+        if (!vgmstream->ch[1].streamfile) goto fail;
+
+        vgmstream->ch[1].channel_start_offset=
+            vgmstream->ch[1].offset=second_channel_start;
     }
 
     return vgmstream;
