@@ -168,6 +168,7 @@ typedef enum {
     meta_DSP_AMTS,			/* .amts */
     meta_DSP_WII_IDSP,		/* .gcm with IDSP header */
     meta_DSP_WII_MUS,       /* .mus */
+    meta_DSP_WII_WSD,		/* Phantom Brave (WII) */
 
     /* Nintendo */
     meta_STRM,              /* STRM */
@@ -381,7 +382,6 @@ typedef enum {
     meta_ZSD,               /* Dragon Booster ZSD */
     meta_RedSpark,          /* "RedSpark" RSD (MadWorld) */
 	meta_PC_IVAUD,			/* .ivaud GTA IV */
-    meta_WII_WSD,			/* Phantom Brave (WII) */
 } meta_t;
 
 typedef struct {

@@ -2125,8 +2125,8 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
        case meta_PC_IVAUD:
            snprintf(temp,TEMPSIZE,"assumed GTA IV Audio file by .ivaud extension");
            break;
-        case meta_WII_WSD:
-           snprintf(temp,TEMPSIZE,"Phantom Brave WSD Header");
+        case meta_DSP_WII_WSD:
+           snprintf(temp,TEMPSIZE,"Standard Nintendo DSP headers in .wsd");
            break;
        default:
            snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

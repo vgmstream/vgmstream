@@ -133,6 +133,7 @@ GC/Wii DSP ADPCM:
 - .tydsp
 - .vjdsp
 - .waa, .wac, .wad, .wam
+- .wsd
 - .wsi
 - .ydsp
 - .ymf
@@ -172,6 +173,7 @@ Yamaha ADPCM:
 IMA ADPCM:
 - .dvi (DVI IMA ADPCM)
 - .idvi (DVI IMA ADPCM)
+- .ivaud (IMA ADPCM)
 - .stma (DVI IMA ADPCM)
 - .strm (IMA ADPCM)
 

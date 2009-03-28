@@ -190,8 +190,7 @@ META_OBJS=meta/adx_header.o \
     meta/ps2_mcg.o \
     meta/redspark.o \
     meta/ps2_vgs.o \
-    meta/ivaud.o \
-    meta/wii_wsd.o
+    meta/ivaud.o
 
 OBJECTS=vgmstream.o streamfile.o util.o $(CODING_OBJS) $(LAYOUT_OBJS) $(META_OBJS)
 
