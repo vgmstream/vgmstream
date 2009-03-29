@@ -346,42 +346,49 @@ fail:
 }
 
 
-/* FSB4 with "WAV" Header */
+/* FSB4 with "WAV" Header, found in "Deadly Creatures (WII)"
+    16 byte "WAV" header which holds the filesize...*/
 VGMSTREAM * init_vgmstream_fsb4_wav(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[260];
     off_t start_offset;
-	int loop_flag = 0;
+	int loop_flag;
 	int channel_count;
+    int fsb_headerlength;
 
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
     if (strcasecmp("fsb",filename_extension(filename))) goto fail;
 
     /* check header */
-    if (read_32bitBE(0x00,streamFile) != 0x57415600) /* "WAV\0x0" */
+    if (read_32bitBE(0x00,streamFile) != 0x00574156) /* 0x0\"WAV" */
         goto fail;
-    if (read_32bitBE(0x0F,streamFile) != 0x46534234) /* "FSB4" */
-        goto fail;
-    if (read_32bitBE(0x6F,streamFile) != 0x40000802) /* "0x40000802" */
+    if (read_32bitBE(0x10,streamFile) != 0x46534234) /* "FSB4" */
         goto fail;
 
-	channel_count = 2;
+	channel_count = (uint16_t)read_16bitLE(0x7E,streamFile);
+
+    if (channel_count > 2) {
+        goto fail;
+    }
+    
+    loop_flag = (read_32bitBE(0x70,streamFile) == 0x40000802);
+    fsb_headerlength = read_32bitLE(0x18,streamFile);
 
 	/* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
 	/* fill in the vital statistics */
-    start_offset = 0xEF;
-	vgmstream->sample_rate = read_32bitLE(0x73,streamFile);
+    start_offset = fsb_headerlength + 0x40;
+	vgmstream->sample_rate = read_32bitLE(0x74,streamFile);
 	vgmstream->coding_type = coding_NGC_DSP;
     vgmstream->layout_type = layout_interleave_byte;
     vgmstream->interleave_block_size = 0x2;
-    vgmstream->num_samples = (read_32bitLE(0x63,streamFile)/8/channel_count*14);
+    vgmstream->num_samples = (read_32bitLE(0x64,streamFile)/8/channel_count*14);
     if (loop_flag) {
         vgmstream->loop_start_sample = 0;
-        vgmstream->loop_end_sample = read_32bitLE(0x5F,streamFile);
+        vgmstream->loop_end_sample = read_32bitLE(0x60,streamFile);
 	}
 
     vgmstream->meta_type = meta_FSB4_WAV;
@@ -389,11 +396,11 @@ VGMSTREAM * init_vgmstream_fsb4_wav(STREAMFILE *streamFile) {
     if (vgmstream->coding_type == coding_NGC_DSP) {
         int i;
         for (i=0;i<16;i++) {
-            vgmstream->ch[0].adpcm_coef[i] = read_16bitBE(0x8F+i*2,streamFile);
+            vgmstream->ch[0].adpcm_coef[i] = read_16bitBE(0x90+i*2,streamFile);
         }
         if (vgmstream->channels == 2) {
             for (i=0;i<16;i++) {
-                vgmstream->ch[1].adpcm_coef[i] = read_16bitBE(0xBD+i*2,streamFile);
+                vgmstream->ch[1].adpcm_coef[i] = read_16bitBE(0xBE+i*2,streamFile);
             }
         }
     }
