@@ -203,6 +203,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_RedSpark,
 	init_vgmstream_ivaud,
     init_vgmstream_wii_wsd,
+	init_vgmstream_wii_ndp,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -2127,6 +2128,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
            break;
         case meta_DSP_WII_WSD:
            snprintf(temp,TEMPSIZE,"Standard Nintendo DSP headers in .wsd");
+           break;
+		case meta_WII_NDP:
+           snprintf(temp,TEMPSIZE,"Vertigo NDP Header");
            break;
        default:
            snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");
