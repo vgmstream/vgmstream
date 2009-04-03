@@ -400,7 +400,7 @@ VGMSTREAM * init_vgmstream_fsb4_wav(STREAMFILE *streamFile) {
         }
         if (vgmstream->channels == 2) {
             for (i=0;i<16;i++) {
-                vgmstream->ch[1].adpcm_coef[i] = read_16bitBE(0xBE+i*2,streamFile);
+                vgmstream->ch[1].adpcm_coef[i] = read_16bitBE(0xBE + i*2,streamFile);
             }
         }
     }
