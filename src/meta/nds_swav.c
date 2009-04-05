@@ -74,7 +74,7 @@ VGMSTREAM * init_vgmstream_nds_swav(STREAMFILE *streamFile) {
             vgmstream->loop_start_sample;
 	}
 
-    if (coding_type == coding_NDS_IMA) {
+    if (coding_type == coding_INT_IMA) {
         /* handle IMA frame header */
         vgmstream->loop_start_sample -= 32 / bits_per_sample;
         vgmstream->loop_end_sample -= 32 / bits_per_sample;
