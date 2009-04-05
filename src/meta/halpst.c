@@ -28,14 +28,15 @@ VGMSTREAM * init_vgmstream_halpst(STREAMFILE *streamFile) {
     channel_count = read_32bitBE(0xc,streamFile);
     max_block = read_32bitBE(0x10,streamFile)/channel_count;
 
-    /* have I ever seen a mono .hps? */
-    if (channel_count!=2) goto fail;
+    if (channel_count != 1 && channel_count != 2) goto fail;
 
     /* yay for redundancy, gives us something to test */
     samples_l = dsp_nibbles_to_samples(read_32bitBE(0x18,streamFile))+1;
-    samples_r = dsp_nibbles_to_samples(read_32bitBE(0x50,streamFile))+1;
+    if (channel_count == 2) {
+        samples_r = dsp_nibbles_to_samples(read_32bitBE(0x50,streamFile))+1;
 
-    if (samples_l != samples_r) goto fail;
+        if (samples_l != samples_r) goto fail;
+    }
 
     /*
      * looping info is implicit in the "next block" field of the final
@@ -91,8 +92,9 @@ VGMSTREAM * init_vgmstream_halpst(STREAMFILE *streamFile) {
         int i;
         for (i=0;i<16;i++)
             vgmstream->ch[0].adpcm_coef[i] = read_16bitBE(0x20+i*2,streamFile);
-        for (i=0;i<16;i++)
-            vgmstream->ch[1].adpcm_coef[i] = read_16bitBE(0x58+i*2,streamFile);
+        if (channel_count == 2)
+            for (i=0;i<16;i++)
+                vgmstream->ch[1].adpcm_coef[i] = read_16bitBE(0x58+i*2,streamFile);
     }
 
     /* open the file for reading by each channel */
