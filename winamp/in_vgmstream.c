@@ -235,6 +235,7 @@ char * extension_list[] = {
 	"ivaud\0IVAUD Audio File (*.IVAUD)\0",
     "wsd\0WSD Audio File (*.WSD)\0",
 	"ndp\0NDP Audio File (*.NDP)\0",
+	"sps\0SPS Audio File (*.SPS)\0",
 };
 
 void about(HWND hwndParent) {

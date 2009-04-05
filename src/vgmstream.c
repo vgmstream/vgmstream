@@ -204,6 +204,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_ivaud,
     init_vgmstream_wii_wsd,
 	init_vgmstream_wii_ndp,
+	init_vgmstream_ps2_sps,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -1940,7 +1941,7 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             snprintf(temp,TEMPSIZE,"assumed TMNT file by .xvas extension");
             break;
 		case meta_PS2_XA2:
-            snprintf(temp,TEMPSIZE,"assumed XA2 file by .xa2 extension");
+            snprintf(temp,TEMPSIZE,"XG3 & RC Revenge Pro XA2 Header");
             break;
 		case meta_DC_IDVI:
             snprintf(temp,TEMPSIZE,"IDVI Header");
@@ -2132,7 +2133,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
 		case meta_WII_NDP:
            snprintf(temp,TEMPSIZE,"Vertigo NDP Header");
            break;
-       default:
+		case meta_PS2_SPS:
+           snprintf(temp,TEMPSIZE,"Ape Escape 2 SPS Header");
+           break;
            snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");
            break;
     }

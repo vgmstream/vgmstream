@@ -151,5 +151,6 @@ libmeta_la_SOURCES += redspark.c
 libmeta_la_SOURCES += ivaud.c
 libmeta_la_SOURCES += ps2_vgs.c
 libmeta_la_SOURCES += wii_ndp.c
+libmeta_la_SOURCES += ps2_sps.c
 
 EXTRA_DIST = meta.h

@@ -583,6 +583,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\ps2_sps.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\ps2_str.c"
 					>
 				</File>

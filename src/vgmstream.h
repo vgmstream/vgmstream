@@ -266,7 +266,7 @@ typedef enum {
     meta_DC_IDVI,			/* Eldorado Gate */
     meta_KRAW,				/* Geometry Wars - Galaxies */
     meta_PS2_OMU,			/* PS2 Int file with Header */
-    meta_PS2_XA2,			/* XA2 XG3 file */
+    meta_PS2_XA2,			/* XG3 & RC Revenge Pro */
     meta_IDSP,				/* Chronicles of Narnia */
     meta_IDSP2,				/* Soul Calibur */
 	meta_IDSP3,				/* Mario Strikers Charged */
@@ -318,6 +318,7 @@ typedef enum {
     meta_PS2_VSF,           /* Musashi: Samurai Legend */
 	meta_PS2_VSF_TTA,       /* Tiny Toon Adventures: Defenders of the Universe */
 	meta_ADS,               /* Gauntlet Dark Legends (GC) */
+	meta_PS2_SPS,           /* Ape Escape 2 */
 
     meta_XBOX_WAVM,			/* XBOX WAVM File */
     meta_XBOX_RIFF,			/* XBOX RIFF/WAVE File */

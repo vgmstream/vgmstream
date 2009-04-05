@@ -369,4 +369,6 @@ VGMSTREAM * init_vgmstream_wii_wsd(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_wii_ndp(STREAMFILE *streamFile);
 
+VGMSTREAM * init_vgmstream_ps2_sps(STREAMFILE *streamFile);
+
 #endif
