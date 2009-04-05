@@ -27,9 +27,17 @@ VGMSTREAM * init_vgmstream_nds_swav(STREAMFILE *streamFile) {
 
     /* check type details */
     codec_number = read_8bit(0x18,streamFile);
-    loop_flag = read_32bitLE(0x19,streamFile);
-    channel_count = (uint16_t)read_16bitLE(0xE,streamFile);
-    
+    loop_flag = read_8bit(0x19,streamFile);
+
+    channel_count = 1;
+    if (get_streamfile_size(streamFile) != read_32bitLE(0x8,streamFile))
+    {
+        if (get_streamfile_size(streamFile) !=
+                (read_32bitLE(0x8,streamFile) - 0x24) * 2 + 0x24)
+            goto fail;
+
+        channel_count = 2;
+    }
 
 	switch (codec_number) {
         case 0:
@@ -41,7 +49,7 @@ VGMSTREAM * init_vgmstream_nds_swav(STREAMFILE *streamFile) {
             bits_per_sample = 16;
             break;
         case 2:
-            coding_type = coding_NDS_IMA;
+            coding_type = coding_INT_IMA;
             bits_per_sample = 4;
             break;
         default:
@@ -67,17 +75,32 @@ VGMSTREAM * init_vgmstream_nds_swav(STREAMFILE *streamFile) {
 	}
 
     if (coding_type == coding_NDS_IMA) {
-        /* don't count IMA frame header */
+        /* handle IMA frame header */
         vgmstream->loop_start_sample -= 32 / bits_per_sample;
         vgmstream->loop_end_sample -= 32 / bits_per_sample;
         vgmstream->num_samples -= 32 / bits_per_sample;
+
+        {
+            int i;
+            for (i=0; i<channel_count; i++) {
+                vgmstream->ch[i].adpcm_history1_32 =
+                    read_16bitLE(start_offset + 0 + 4*i, streamFile);
+                vgmstream->ch[i].adpcm_step_index =
+                    read_16bitLE(start_offset + 2 + 4*i, streamFile);
+            }
+        }
+
+        start_offset += 4 * channel_count;
     }
 	
 	vgmstream->coding_type = coding_type;
     vgmstream->meta_type = meta_NDS_SWAV;
-    vgmstream->layout_type = layout_none;
-
-
+    if (channel_count == 2) {
+        vgmstream->layout_type = layout_interleave;
+        vgmstream->interleave_block_size = 1;
+    } else {
+        vgmstream->layout_type = layout_none;
+    }
 
     /* open the file for reading by each channel */
       
@@ -92,7 +115,6 @@ VGMSTREAM * init_vgmstream_nds_swav(STREAMFILE *streamFile) {
             vgmstream->ch[i].channel_start_offset=
                 vgmstream->ch[i].offset=start_offset+
                 vgmstream->interleave_block_size*i;
-			vgmstream->ch[i].adpcm_step_index = read_8bit(0x1F,streamFile);
         }
     }
     
