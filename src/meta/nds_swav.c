@@ -11,6 +11,7 @@ VGMSTREAM * init_vgmstream_nds_swav(STREAMFILE *streamFile) {
     int loop_flag;
 	coding_t coding_type;
     off_t start_offset;
+    int bits_per_sample;
 
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
@@ -26,18 +27,22 @@ VGMSTREAM * init_vgmstream_nds_swav(STREAMFILE *streamFile) {
 
     /* check type details */
     codec_number = read_8bit(0x18,streamFile);
-    loop_flag = read_32bitLE(0x20,streamFile);
+    loop_flag = read_32bitLE(0x19,streamFile);
     channel_count = (uint16_t)read_16bitLE(0xE,streamFile);
     
+
 	switch (codec_number) {
         case 0:
             coding_type = coding_PCM8;
+            bits_per_sample = 8;
             break;
         case 1:
             coding_type = coding_PCM16LE;
+            bits_per_sample = 16;
             break;
         case 2:
             coding_type = coding_NDS_IMA;
+            bits_per_sample = 4;
             break;
         default:
             goto fail;
@@ -49,13 +54,24 @@ VGMSTREAM * init_vgmstream_nds_swav(STREAMFILE *streamFile) {
 
     /* fill in the vital statistics */
     start_offset = 0x24;
-	vgmstream->num_samples = (read_32bitLE(0x20,streamFile)*8)/channel_count;
+	vgmstream->num_samples =
+        (read_32bitLE(0x14,streamFile) - 0x14) * 8 / bits_per_sample;
     vgmstream->sample_rate = (uint16_t)read_16bitLE(0x1A,streamFile);
 
 	if (loop_flag) {
-		vgmstream->loop_start_sample = 0;
-		vgmstream->loop_end_sample = (read_32bitLE(0x20,streamFile)*8)/channel_count;
+		vgmstream->loop_start_sample =
+            (uint16_t)read_16bitLE(0x1E,streamFile) * 32 / bits_per_sample;
+		vgmstream->loop_end_sample =
+            read_32bitLE(0x20,streamFile) * 32 / bits_per_sample +
+            vgmstream->loop_start_sample;
 	}
+
+    if (coding_type == coding_NDS_IMA) {
+        /* don't count IMA frame header */
+        vgmstream->loop_start_sample -= 32 / bits_per_sample;
+        vgmstream->loop_end_sample -= 32 / bits_per_sample;
+        vgmstream->num_samples -= 32 / bits_per_sample;
+    }
 	
 	vgmstream->coding_type = coding_type;
     vgmstream->meta_type = meta_NDS_SWAV;
