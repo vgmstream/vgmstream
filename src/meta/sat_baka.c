@@ -37,10 +37,10 @@ VGMSTREAM * init_vgmstream_sat_baka(STREAMFILE *streamFile) {
     vgmstream->channels = channel_count;
     vgmstream->sample_rate = 44100;
     vgmstream->coding_type = coding_PCM16BE;
-    vgmstream->num_samples = (read_32bitBE(0x16,streamFile))/2/channel_count;
+    vgmstream->num_samples = read_32bitBE(0x16,streamFile);
     if (loop_flag) {
         vgmstream->loop_start_sample = 0;
-        vgmstream->loop_end_sample = (read_32bitBE(0x16,streamFile))/2/channel_count;
+        vgmstream->loop_end_sample = read_32bitBE(0x16,streamFile);
     }
 
     vgmstream->layout_type = layout_interleave;

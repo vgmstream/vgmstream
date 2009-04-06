@@ -88,7 +88,6 @@ VGMSTREAM * init_vgmstream_idsp2(STREAMFILE *streamFile) {
 
     int loop_flag;
 	int channel_count;
-	int identifer_byte;
 
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
@@ -98,7 +97,6 @@ VGMSTREAM * init_vgmstream_idsp2(STREAMFILE *streamFile) {
     if (read_32bitBE(0x00,streamFile) != 0x69647370 || /* "idsp" */
         read_32bitBE(0xBC,streamFile) != 0x49445350) /* IDSP */
         goto fail;
-
 
     loop_flag = read_32bitBE(0x20,streamFile);
     channel_count = read_32bitBE(0xC4,streamFile);
@@ -118,19 +116,22 @@ VGMSTREAM * init_vgmstream_idsp2(STREAMFILE *streamFile) {
         vgmstream->loop_end_sample = (read_32bitBE(0xD4,streamFile));
     }
 
-	    vgmstream->layout_type = layout_interleave;
-identifer_byte = read_32bitLE(0x07,streamFile);
-    switch (identifer_byte) {
-        case 0x00000000:
-		    vgmstream->interleave_block_size = 0x10;
+
+	    
+
+
+    switch (read_32bitBE(0xD8,streamFile)) {
+        case 0x00:
+		    vgmstream->layout_type = layout_none;
+            vgmstream->interleave_block_size = (get_streamfile_size(streamFile)-start_offset)/2;
 		  break;
-		case 0x00000001:
-			vgmstream->interleave_block_size = 0x1af68;
-		  break;
-		case 0x00000002:
-			vgmstream->interleave_block_size = 0x95cc0;
+		case 0x10:
+			vgmstream->layout_type = layout_interleave;
+            vgmstream->interleave_block_size = read_32bitBE(0xD8,streamFile);
 		  break;
 	}
+
+
 		vgmstream->meta_type = meta_IDSP2;
 
 
