@@ -314,7 +314,7 @@ static int find_key(STREAMFILE *file, uint16_t *xor_start, uint16_t *xor_mult, u
         }
 
         /* guess each of the keys */
-        for (key_id=0;key_id<=key_count;key_id++) {
+        for (key_id=0;key_id<key_count;key_id++) {
             /* test pre-scales */
             uint16_t xor = keys[key_id].start;
             uint16_t mult = keys[key_id].mult;
