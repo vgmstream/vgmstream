@@ -231,6 +231,10 @@ static struct {
     /* (Enterbrain) Amagami */
     /* one of 32 from guessadx */
     {0x5a17,0x509f,0x5bfd},
+
+    /* Yamasa (Yamasa Digi Portable: Matsuri no Tatsujin) */
+    /* confirmed unique with guessadx */
+    {0x4c01,0x549d676f},
 };
 
 static const int key_count = sizeof(keys)/sizeof(keys[0]);
