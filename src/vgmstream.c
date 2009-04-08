@@ -205,7 +205,6 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_wii_wsd,
 	init_vgmstream_wii_ndp,
 	init_vgmstream_ps2_sps,
-	init_vgmstream_ps2_xa2_xg3,
 	init_vgmstream_ps2_xa2_rrp,
 };
 
@@ -2137,9 +2136,6 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
            break;
 		case meta_PS2_SPS:
            snprintf(temp,TEMPSIZE,"Ape Escape 2 SPS Header");
-           break;
-		case meta_PS2_XA2_XG3:
-           snprintf(temp,TEMPSIZE,"Acclaim XA2 Header");
            break;
 		case meta_PS2_XA2_RRP:
            snprintf(temp,TEMPSIZE,"Acclaim XA2 Header");

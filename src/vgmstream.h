@@ -319,7 +319,6 @@ typedef enum {
 	meta_PS2_VSF_TTA,       /* Tiny Toon Adventures: Defenders of the Universe */
 	meta_ADS,               /* Gauntlet Dark Legends (GC) */
 	meta_PS2_SPS,           /* Ape Escape 2 */
-	meta_PS2_XA2_XG3,       /* XG3 Extreme-G Racing */
     meta_PS2_XA2_RRP,       /* RC Revenge Pro */
 
     meta_XBOX_WAVM,			/* XBOX WAVM File */
