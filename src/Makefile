@@ -192,8 +192,7 @@ META_OBJS=meta/adx_header.o \
     meta/ps2_vgs.o \
     meta/ivaud.o \
     meta/wii_ndp.o \
-    meta/ps2_sps.o \
-    meta/ps2_xa2_rrp.o
+    meta/ps2_sps.o
 
 OBJECTS=vgmstream.o streamfile.o util.o $(CODING_OBJS) $(LAYOUT_OBJS) $(META_OBJS)
 
