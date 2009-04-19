@@ -136,6 +136,7 @@ char * extension_list[] = {
 
     "hgc1\0HGC1 Audio File (*.HGC1)\0",
     "hps\0HALPST Audio File (*.HPS)\0",
+    "hwas\0HWAS Audio File (*.HWAS)\0",
 
     "idvi\0IDVI Audio File (*.IDVI)\0",
     "idsp\0IDSP Audio File (*.IDSP)\0",
@@ -212,6 +213,7 @@ char * extension_list[] = {
     "spsd\0SPSD Audio File (*.SPSD)\0",
     "spw\0SPW Audio File (*.SPW)\0",
     "ss2\0PS2 SS2 Audio File (*.SS2)\0",
+    "ss3\0SS3 Audio File (*.SS3)\0",
     "ss7\0SS7 Audio File (*.SS7)\0",
     "stma\0STMA Audio File (*.STMA)\0",
     "str\0STR Audio File (*.STR)\0",

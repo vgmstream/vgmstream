@@ -866,6 +866,14 @@ Begin VB.Form Form1
       TabIndex        =   3
       Top             =   960
       Width           =   12855
+      Begin VB.CommandButton Command1 
+         Caption         =   "Command1"
+         Height          =   495
+         Left            =   9720
+         TabIndex        =   128
+         Top             =   3000
+         Width           =   3015
+      End
       Begin VB.Frame frmSpecialOptionsPSX 
          BackColor       =   &H00B8B8B8&
          Caption         =   "Special Options (PSX/PS2):"
@@ -2507,6 +2515,17 @@ Private Sub comboFileFormat_Click()
     Else
         frmSpecialOptionsGameCube.Visible = False
     End If
+    
+    
+End Sub
+
+Private Sub Command1_Click()
+
+Dim NewLoop As Long
+NewLoop = txtGENHLoopStartSamples.Text
+NewLoop = NewLoop - 14336
+txtGENHLoopStartSamples.Text = NewLoop
+     '= (GENHLoopStart * 28 / 32) - 14336
     
     
 End Sub
