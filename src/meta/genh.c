@@ -248,7 +248,7 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
                 case coding_AICA:
                 case coding_INT_DVI_IMA:
                 case coding_INT_IMA:
-                    if (coding == CODING_AICA) {
+                    if (coding == coding_AICA) {
                         vgmstream->ch[i].adpcm_step_index = 0x7f;
                     }
                     if (vgmstream->layout_type == layout_interleave) {
