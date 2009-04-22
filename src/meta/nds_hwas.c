@@ -14,7 +14,7 @@ VGMSTREAM * init_vgmstream_nds_hwas(STREAMFILE *streamFile) {
     if (strcasecmp("hwas",filename_extension(filename))) goto fail;
 
     /* check header */
-    if (read_32bitBE(0x00,streamFile) != 0x73617768) /* "hwas" */
+    if (read_32bitBE(0x00,streamFile) != 0x73617768) /* "sawh" */
         goto fail;
 
     loop_flag = 0;
