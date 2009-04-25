@@ -295,6 +295,7 @@ typedef enum {
     meta_RSD2VAG,			/* RSD2VAG */
     meta_RSD2PCMB,			/* RSD2PCMB */
     meta_RSD2XADP,			/* RSD2XADP */
+	meta_RSD3VAG,			/* RSD3VAG */
     meta_RSD3PCM,			/* RSD3PCM */
     meta_RSD4PCMB,			/* RSD4PCMB */
     meta_RSD4PCM,			/* RSD4PCM */

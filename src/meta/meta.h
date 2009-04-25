@@ -375,4 +375,6 @@ VGMSTREAM * init_vgmstream_ps2_xa2_rrp(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_nds_hwas(STREAMFILE *streamFile);
 
+VGMSTREAM * init_vgmstream_rsd3vag(STREAMFILE * streamFile);
+
 #endif
