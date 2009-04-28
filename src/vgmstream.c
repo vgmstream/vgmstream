@@ -635,6 +635,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_PCM16LE_int:
         case coding_PCM16BE:
         case coding_PCM8:
+        case coding_PCM8_U:
         case coding_PCM8_int:
         case coding_PCM8_SB_int:
         case coding_PCM8_U_int:
@@ -727,6 +728,7 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
         case coding_PCM16BE:
             return 2;
         case coding_PCM8:
+        case coding_PCM8_U:
         case coding_PCM8_int:
         case coding_PCM8_SB_int:
         case coding_PCM8_U_int:
@@ -853,6 +855,13 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
         case coding_PCM8:
             for (chan=0;chan<vgmstream->channels;chan++) {
                 decode_pcm8(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                        vgmstream->channels,vgmstream->samples_into_block,
+                        samples_to_do);
+            }
+            break;
+        case coding_PCM8_U:
+            for (chan=0;chan<vgmstream->channels;chan++) {
+                decode_pcm8_unsigned(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
                         samples_to_do);
             }
@@ -1264,6 +1273,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case coding_PCM8:
             snprintf(temp,TEMPSIZE,"8-bit PCM");
+            break;
+        case coding_PCM8_U:
+            snprintf(temp,TEMPSIZE,"8-bit unsigned PCM");
             break;
         case coding_PCM8_U_int:
             snprintf(temp,TEMPSIZE,"8-bit unsigned PCM with 1 byte interleave");

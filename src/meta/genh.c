@@ -111,6 +111,9 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
         case 15:
             coding = coding_MS_IMA;
             break;
+        case 16:
+            coding = coding_PCM8_U;
+            break;
         default:
             goto fail;
     }
@@ -161,6 +164,7 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
         case coding_PCM16LE:
         case coding_PCM16BE:
         case coding_PCM8:
+        case coding_PCM8_U:
         case coding_SDX2:
         case coding_PSX:
         case coding_PSX_badflags:
@@ -244,6 +248,7 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
                 case coding_DVI_IMA:
                 case coding_IMA:
                 case coding_PCM8:
+                case coding_PCM8_U:
                 case coding_PCM8_U_int:
                 case coding_AICA:
                 case coding_INT_DVI_IMA:
