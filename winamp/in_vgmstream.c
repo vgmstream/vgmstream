@@ -143,6 +143,7 @@ char * extension_list[] = {
     "ikm\0IKM Audio File (*.IKM)\0",
     "ild\0ILD Audio File (*.ILD)\0",
     "int\0PS2 RAW Interleaved PCM (*.INT)\0",
+    "lps\0LPS Audio File (*.LPS)\0",
     "isd\0ISD Audio File (*.ISD)\0",
     "ivaud\0IVAUD Audio File (*.IVAUD)\0",
     "ivb\0IVB Audio File (*.IVB)\0",

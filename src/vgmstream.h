@@ -388,6 +388,7 @@ typedef enum {
     meta_RedSpark,          /* "RedSpark" RSD (MadWorld) */
 	meta_PC_IVAUD,			/* .ivaud GTA IV */
     meta_NDS_HWAS,			/* Spider-Man 3, Tony Hawk's Downhill Jam, possibly more... */
+	meta_NGC_LPS,			/* Rave Master (Groove Adventure Rave)(GC) */
 } meta_t;
 
 typedef struct {

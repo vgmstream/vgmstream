@@ -171,6 +171,7 @@ gchar *vgmstream_exts [] = {
   "wsd",
   "ndp",
   "sps",
+  "lps",
   /* terminator */
   NULL
 };
