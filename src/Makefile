@@ -194,7 +194,8 @@ META_OBJS=meta/adx_header.o \
     meta/wii_ndp.o \
     meta/ps2_sps.o \
     meta/nds_hwas.o \
-    meta/ngc_lps.o
+    meta/ngc_lps.o \
+    meta/ps2_snd.o
 
 OBJECTS=vgmstream.o streamfile.o util.o $(CODING_OBJS) $(LAYOUT_OBJS) $(META_OBJS)
 

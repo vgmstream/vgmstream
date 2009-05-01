@@ -209,6 +209,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_ps2_xa2_rrp,
     init_vgmstream_nds_hwas,
 	init_vgmstream_ngc_lps,
+    init_vgmstream_ps2_snd,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -2125,6 +2126,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case meta_PS2_TK5:
             snprintf(temp,TEMPSIZE,"Tekken 5 Stream Header");
+            break;
+        case meta_PS2_SND:
+            snprintf(temp,TEMPSIZE,"Might and Magic SSND Header");
             break;
         case meta_PS2_VSF_TTA:
             snprintf(temp,TEMPSIZE,"VSF with SMSS Header");

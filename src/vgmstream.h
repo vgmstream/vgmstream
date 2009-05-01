@@ -223,6 +223,7 @@ typedef enum {
     meta_PS2_VPK,			/* VPK Audio File */
     meta_PS2_BMDX,          /* Beatmania thing */
     meta_PS2_IVB,           /* Langrisser 3 IVB */
+    meta_PS2_SND,           /* some Might & Magics SSND header */
     meta_PS2_SVS,           /* Square SVS */
     meta_XSS,				/* Dino Crisis 3 */
     meta_SL3,				/* Test Drive Unlimited */
