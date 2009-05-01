@@ -179,8 +179,7 @@ VGMSTREAM * init_vgmstream_rsd2xadp(STREAMFILE *streamFile) {
         vgmstream->loop_end_sample = (get_streamfile_size(streamFile)-start_offset)*28/16/channel_count;
     }
 
-    vgmstream->layout_type = layout_interleave;
-    vgmstream->interleave_block_size = 0x24;
+    vgmstream->layout_type = layout_none;
     vgmstream->meta_type = meta_RSD2XADP;
 
     /* open the file for reading */
@@ -732,9 +731,7 @@ VGMSTREAM * init_vgmstream_rsd6xadp(STREAMFILE *streamFile) {
         vgmstream->loop_start_sample = loop_flag;
         vgmstream->loop_end_sample = (get_streamfile_size(streamFile)-start_offset)*28/16/channel_count;
     }
-
-    vgmstream->layout_type = layout_interleave;
-    vgmstream->interleave_block_size = 0x24;
+    vgmstream->layout_type = layout_none;
     vgmstream->meta_type = meta_RSD6XADP;
 
     /* open the file for reading */
