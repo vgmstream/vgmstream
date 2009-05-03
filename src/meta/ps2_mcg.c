@@ -31,7 +31,7 @@ VGMSTREAM * init_vgmstream_ps2_mcg(STREAMFILE *streamFile) {
 	vgmstream->channels = channel_count;
     vgmstream->sample_rate = read_32bitBE(0x30,streamFile);
     vgmstream->coding_type = coding_PSX;
-	vgmstream->num_samples = read_32bitBE(0x2C,streamFile)*2;
+	vgmstream->num_samples = read_32bitBE(0x2C,streamFile)/16*14*channel_count;
     vgmstream->layout_type = layout_interleave;
     vgmstream->interleave_block_size = read_32bitLE(0x14,streamFile);
     vgmstream->meta_type = meta_PS2_MCG;
