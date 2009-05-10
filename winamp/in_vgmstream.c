@@ -82,6 +82,7 @@ char * extension_list[] = {
 
     "aax\0AAX Audio File (*.AAX)\0",
     "acm\0ACM Audio File (*.ACM)\0",
+    "adpcm\0ADPCM Audio File (*.ADPCM)\0",
     "aix\0AIX Audio File (*.AIX)\0",
     "adp\0ADP Audio File (*.ADP)\0",
     "ads\0PS2 ADS Audio File (*.ADS)\0",

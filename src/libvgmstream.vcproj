@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="UTF-8"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="9.00"
+	Version="9,00"
 	Name="libvgmstream"
 	ProjectGUID="{54A6AD11-5369-4895-A06F-E255ABB99B11}"
 	RootNamespace="libvgmstream"
@@ -367,6 +367,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\naomi_adpcm.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\naomi_spsd.c"
 					>
 				</File>
@@ -579,10 +583,6 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\ps2_snd.c"
-					>
-				</File>
-				<File
 					RelativePath=".\meta\ps2_seg.c"
 					>
 				</File>
@@ -592,6 +592,10 @@
 				</File>
 				<File
 					RelativePath=".\meta\ps2_sl3.c"
+					>
+				</File>
+				<File
+					RelativePath=".\meta\ps2_snd.c"
 					>
 				</File>
 				<File

@@ -381,4 +381,6 @@ VGMSTREAM * init_vgmstream_ngc_lps(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_ps2_snd(STREAMFILE * streamFile);
 
+VGMSTREAM * init_vgmstream_naomi_adpcm(STREAMFILE * streamFile);
+
 #endif

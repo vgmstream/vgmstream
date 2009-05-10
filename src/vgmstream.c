@@ -210,6 +210,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_nds_hwas,
 	init_vgmstream_ngc_lps,
     init_vgmstream_ps2_snd,
+    init_vgmstream_naomi_adpcm,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -2169,8 +2170,11 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
 	    case meta_NGC_LPS:
            snprintf(temp,TEMPSIZE,"Rave Master LPS Header");
            break;
-           snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");
+        case meta_NAOMI_ADPCM:
+           snprintf(temp,TEMPSIZE,"NAOMI/NAOMI2 Arcade games ADPCM header");
            break;
+        default:
+           snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");
     }
     concatn(length,desc,temp);
 }
