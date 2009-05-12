@@ -269,6 +269,8 @@ VGMSTREAM * init_vgmstream_fsb4(STREAMFILE *streamFile) {
 
     if (read_32bitBE(0x60,streamFile) != 0x20000882 &&
         read_32bitBE(0x60,streamFile) != 0x20100002 &&
+        read_32bitBE(0x60,streamFile) != 0x20100802 &&
+        read_32bitBE(0x60,streamFile) != 0x20100082 &&
         read_32bitBE(0x60,streamFile) != 0x20000802) {
         channel_count = 2;
     } else {
@@ -326,6 +328,8 @@ VGMSTREAM * init_vgmstream_fsb4(STREAMFILE *streamFile) {
         case 0x20000882:
         case 0x20000802:
         case 0x20100002:
+        case 0x20100802:
+        case 0x20100082:
             vgmstream->coding_type = coding_NGC_DSP;
             vgmstream->layout_type = layout_none;
             vgmstream->num_samples = (read_32bitLE(0x54,streamFile)/8/channel_count*14);
