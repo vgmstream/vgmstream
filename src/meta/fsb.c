@@ -289,15 +289,25 @@ VGMSTREAM * init_vgmstream_fsb4(STREAMFILE *streamFile) {
         vgmstream->loop_start_sample = 0;
         vgmstream->loop_end_sample = read_32bitLE(0x50,streamFile);
     }
-    start_offset = 0x80;
 	break;
-    /* WII (de Blob) */
+    /* WII (de Blob, Night at the Museum) */
         case 0x40000802:
-    vgmstream->coding_type = coding_NGC_DSP;
-    vgmstream->layout_type = layout_none;
-    vgmstream->interleave_block_size = read_32bitLE(0x54,streamFile)/channel_count;
+    if (read_32bitLE(0x14,streamFile)==0x20)
+    {
+        /* Night at the Museum */
+		vgmstream->coding_type = coding_NGC_DSP;
+		vgmstream->layout_type = layout_interleave_byte;
+        vgmstream->interleave_block_size = 2;
+    }
+    else if (read_32bitLE(0x14,streamFile)==0x10)
+    {
+        /* de Blob */
+        vgmstream->coding_type = coding_NGC_DSP;
+        vgmstream->layout_type = layout_none;
+        vgmstream->interleave_block_size = read_32bitLE(0x54,streamFile)/channel_count;
+    }
+    else goto fail;
     vgmstream->num_samples = (read_32bitLE(0x54,streamFile)/8/channel_count*14);
-    start_offset = 0xe0;
     if (loop_flag) {
         vgmstream->loop_start_sample = 0;
         vgmstream->loop_end_sample = read_32bitLE(0x50,streamFile);
@@ -307,6 +317,8 @@ VGMSTREAM * init_vgmstream_fsb4(STREAMFILE *streamFile) {
 			goto fail;
 
 	}
+
+    start_offset = read_32bitLE(0x08,streamFile)+0x30;
 
     vgmstream->meta_type = meta_FSB4;
 
