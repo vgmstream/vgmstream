@@ -260,14 +260,19 @@ VGMSTREAM * init_vgmstream_fsb4(STREAMFILE *streamFile) {
 	
 	
 	if (read_32bitBE(0x60,streamFile) == 0x40008800 ||
-            read_32bitBE(0x60,streamFile) == 0x40000802) {
+        read_32bitBE(0x60,streamFile) == 0x40000802 ||
+        read_32bitBE(0x60,streamFile) == 0x40100802) {
 		loop_flag = 1;
 	} else {
 		loop_flag = 0;
 		}
-	
 
-	channel_count = 2;
+    if (read_32bitBE(0x60,streamFile) != 0x20000882 &&
+        read_32bitBE(0x60,streamFile) != 0x20100002) {
+        channel_count = 2;
+    } else {
+        channel_count = 1;
+    }
 
 	/* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
@@ -292,6 +297,7 @@ VGMSTREAM * init_vgmstream_fsb4(STREAMFILE *streamFile) {
 	break;
     /* WII (de Blob, Night at the Museum) */
         case 0x40000802:
+        case 0x40100802:
     if (read_32bitLE(0x14,streamFile)==0x20)
     {
         /* Night at the Museum */
@@ -299,9 +305,10 @@ VGMSTREAM * init_vgmstream_fsb4(STREAMFILE *streamFile) {
 		vgmstream->layout_type = layout_interleave_byte;
         vgmstream->interleave_block_size = 2;
     }
-    else if (read_32bitLE(0x14,streamFile)==0x10)
+    else if (read_32bitLE(0x14,streamFile)==0x10 ||
+             read_32bitLE(0x14,streamFile)==0x30)
     {
-        /* de Blob */
+        /* de Blob, NatM sfx */
         vgmstream->coding_type = coding_NGC_DSP;
         vgmstream->layout_type = layout_none;
         vgmstream->interleave_block_size = read_32bitLE(0x54,streamFile)/channel_count;
@@ -313,6 +320,17 @@ VGMSTREAM * init_vgmstream_fsb4(STREAMFILE *streamFile) {
         vgmstream->loop_end_sample = read_32bitLE(0x50,streamFile);
     }
     break;
+        /* Night at the Museum */
+        case 0x20000882:
+        case 0x20100002:
+            vgmstream->coding_type = coding_NGC_DSP;
+            vgmstream->layout_type = layout_none;
+            vgmstream->num_samples = (read_32bitLE(0x54,streamFile)/8/channel_count*14);
+            if (loop_flag) {
+                vgmstream->loop_start_sample = 0;
+                vgmstream->loop_end_sample = read_32bitLE(0x50,streamFile);
+            }
+            break;
 		default:
 			goto fail;
 
