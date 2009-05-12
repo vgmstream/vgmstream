@@ -269,6 +269,7 @@ VGMSTREAM * init_vgmstream_fsb4(STREAMFILE *streamFile) {
 
     if (read_32bitBE(0x60,streamFile) != 0x20000882 &&
         read_32bitBE(0x60,streamFile) != 0x20100002 &&
+        read_32bitBE(0x60,streamFile) != 0x20100882 &&
         read_32bitBE(0x60,streamFile) != 0x20100802 &&
         read_32bitBE(0x60,streamFile) != 0x20100082 &&
         read_32bitBE(0x60,streamFile) != 0x20000802) {
@@ -328,6 +329,7 @@ VGMSTREAM * init_vgmstream_fsb4(STREAMFILE *streamFile) {
         case 0x20000882:
         case 0x20000802:
         case 0x20100002:
+        case 0x20100882:
         case 0x20100802:
         case 0x20100082:
             vgmstream->coding_type = coding_NGC_DSP;
