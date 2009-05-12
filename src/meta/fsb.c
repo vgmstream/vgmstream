@@ -268,7 +268,8 @@ VGMSTREAM * init_vgmstream_fsb4(STREAMFILE *streamFile) {
 		}
 
     if (read_32bitBE(0x60,streamFile) != 0x20000882 &&
-        read_32bitBE(0x60,streamFile) != 0x20100002) {
+        read_32bitBE(0x60,streamFile) != 0x20100002 &&
+        read_32bitBE(0x60,streamFile) != 0x20000802) {
         channel_count = 2;
     } else {
         channel_count = 1;
@@ -297,6 +298,7 @@ VGMSTREAM * init_vgmstream_fsb4(STREAMFILE *streamFile) {
 	break;
     /* WII (de Blob, Night at the Museum) */
         case 0x40000802:
+        case 0x40000882:
         case 0x40100802:
     if (read_32bitLE(0x14,streamFile)==0x20)
     {
@@ -322,6 +324,7 @@ VGMSTREAM * init_vgmstream_fsb4(STREAMFILE *streamFile) {
     break;
         /* Night at the Museum */
         case 0x20000882:
+        case 0x20000802:
         case 0x20100002:
             vgmstream->coding_type = coding_NGC_DSP;
             vgmstream->layout_type = layout_none;
