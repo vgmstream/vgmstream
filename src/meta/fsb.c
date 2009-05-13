@@ -247,7 +247,8 @@ VGMSTREAM * init_vgmstream_fsb4(STREAMFILE *streamFile) {
 
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("fsb",filename_extension(filename))) goto fail;
+    if (strcasecmp("fsb",filename_extension(filename)) &&
+        strcasecmp("wii",filename_extension(filename))) goto fail;
 
     /* check header */
     if (read_32bitBE(0x00,streamFile) != 0x46534234) /* "FSB4" */
@@ -303,7 +304,8 @@ VGMSTREAM * init_vgmstream_fsb4(STREAMFILE *streamFile) {
         case 0x40000802:
         case 0x40000882:
         case 0x40100802:
-    if (read_32bitLE(0x14,streamFile)==0x20)
+    if (read_32bitLE(0x14,streamFile)==0x20 ||
+        read_32bitLE(0x14,streamFile)==0x00)
     {
         /* Night at the Museum */
 		vgmstream->coding_type = coding_NGC_DSP;
