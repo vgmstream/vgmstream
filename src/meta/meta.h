@@ -383,4 +383,8 @@ VGMSTREAM * init_vgmstream_ps2_snd(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_naomi_adpcm(STREAMFILE * streamFile);
 
+VGMSTREAM * init_vgmstream_rsd3pcmb(STREAMFILE * streamFile);
+
+VGMSTREAM * init_vgmstream_rsd3gadp(STREAMFILE * streamFile);
+
 #endif
