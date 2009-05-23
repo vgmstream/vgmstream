@@ -202,6 +202,7 @@ char * extension_list[] = {
 
     "sad\0SAD Audio File (*.SAD)\0",
     "sap\0SAP Audio File (*.SAP)\0",
+    "sd9\0SD9 Audio File (*.SD9)\0",
     "sdt\0SDT Audio File (*.SDT)\0",
     "seg\0SEG Audio File (*.SEG)\0",
     "sfl\0SFL Audio File (*.SFL)\0",

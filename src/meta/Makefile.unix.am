@@ -156,5 +156,6 @@ libmeta_la_SOURCES += nds_hwas.c
 libmeta_la_SOURCES += ngc_lps.c
 libmeta_la_SOURCES += ps2_snd.c
 libmeta_la_SOURCES += naomi_adpcm.c
+libmeta_la_SOURCES += sd9.c
 
 EXTRA_DIST = meta.h
