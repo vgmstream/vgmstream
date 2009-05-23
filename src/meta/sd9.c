@@ -27,7 +27,7 @@ VGMSTREAM * init_vgmstream_sd9(STREAMFILE *streamFile) {
 		goto fail;
 
     loop_flag = (read_16bitLE(0xe,streamFile)==0x1);
-    channel_count = read_16bitLE(0x34,streamFile);
+    channel_count = read_16bitLE(0x36,streamFile);
     
 	/* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
