@@ -8,7 +8,6 @@ VGMSTREAM * init_vgmstream_naomi_adpcm(STREAMFILE *streamFile) {
     off_t start_offset;
     int loop_flag = 0;
 	int channel_count;
-	int channel_1_start, channel_2_start;
 
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
