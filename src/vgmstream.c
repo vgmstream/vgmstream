@@ -72,6 +72,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_amts,
     init_vgmstream_svs,
     init_vgmstream_riff,
+    init_vgmstream_rifx,
     init_vgmstream_pos,
     init_vgmstream_nwa,
     init_vgmstream_eacs,
@@ -1919,6 +1920,12 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case meta_RIFF_WAVE_smpl:
             snprintf(temp,TEMPSIZE,"RIFF WAVE header with sample looping info");
+            break;
+        case meta_RIFX_WAVE:
+            snprintf(temp,TEMPSIZE,"RIFX WAVE header");
+            break;
+        case meta_RIFX_WAVE_smpl:
+            snprintf(temp,TEMPSIZE,"RIFX WAVE header with sample looping info");
             break;
         case meta_PCM:
             snprintf(temp,TEMPSIZE,"PCM file with custom header");
