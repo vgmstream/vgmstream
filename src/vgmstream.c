@@ -215,6 +215,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_ps2_snd,
     init_vgmstream_naomi_adpcm,
 	init_vgmstream_sd9,
+	init_vgmstream_2dx,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -2191,6 +2192,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
            break;
 		case meta_SD9:
            snprintf(temp,TEMPSIZE,"beatmaniaIIDX SD9 header");
+           break;
+		case meta_2DX:
+           snprintf(temp,TEMPSIZE,"beatmaniaIIDX 2DX9 header");
            break;
         default:
            snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

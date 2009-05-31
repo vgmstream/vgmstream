@@ -395,7 +395,8 @@ typedef enum {
     meta_NDS_HWAS,			/* Spider-Man 3, Tony Hawk's Downhill Jam, possibly more... */
 	meta_NGC_LPS,			/* Rave Master (Groove Adventure Rave)(GC) */
     meta_NAOMI_ADPCM,		/* NAOMI/NAOMI2 ARcade games */
-	meta_SD9                /* beatmaniaIIDX16 - EMPRESS (Arcade) */
+	meta_SD9,               /* beatmaniaIIDX16 - EMPRESS (Arcade) */
+	meta_2DX,               /* beatmaniaIIDX16 - EMPRESS (Arcade) */
 } meta_t;
 
 typedef struct {

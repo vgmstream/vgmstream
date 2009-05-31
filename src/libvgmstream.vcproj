@@ -197,6 +197,10 @@
 				Name="Source Files"
 				>
 				<File
+					RelativePath=".\meta\2dx.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\aax.c"
 					>
 				</File>

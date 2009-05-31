@@ -391,4 +391,6 @@ VGMSTREAM * init_vgmstream_rsd3gadp(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_sd9(STREAMFILE * streamFile);
 
+VGMSTREAM * init_vgmstream_2dx(STREAMFILE * streamFile);
+
 #endif

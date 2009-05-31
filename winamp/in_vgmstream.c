@@ -71,7 +71,7 @@ int decode_pos_samples = 0;
 int stream_length_samples = 0;
 int fade_samples = 0;
 
-#define EXTENSION_LIST_SIZE 9216
+#define EXTENSION_LIST_SIZE 10240
 char working_extension_list[EXTENSION_LIST_SIZE] = {0};
 char * extension_list[] = {
     /*WIP formats, enable on demand...! */
@@ -80,7 +80,9 @@ char * extension_list[] = {
     "pdt\0PDT Audio File (*.PDT)\0", /* Mario Party and some other games */
 #endif
 
-    "aax\0AAX Audio File (*.AAX)\0",
+	"2dx\0\02DX Audio File (*.2DX)\0",
+	
+	"aax\0AAX Audio File (*.AAX)\0",
     "acm\0ACM Audio File (*.ACM)\0",
     "adpcm\0ADPCM Audio File (*.ADPCM)\0",
     "aix\0AIX Audio File (*.AIX)\0",
