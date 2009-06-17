@@ -66,6 +66,7 @@ PS2/PSX ADPCM:
 - .joe
 - .kces
 - .leg
+- .mcg
 - .mib, .mi4 (w/ or w/o .mih)
 - .mic
 - .mihb (merged mih+mib)
@@ -80,6 +81,7 @@ PS2/PSX ADPCM:
 - .rstm
 - .rws
 - .rxw
+- .snd
 - .seg
 - .sfs
 - .sl3
@@ -116,9 +118,11 @@ GC/Wii DSP ADPCM:
 - .hps
 - .idsp
 - .ish+.isd
+- .lps
 - .mpdsp
 - .mss
 - .mus (not quite right)
+- .ndp
 - .pdt
 - .sdt
 - .smp
@@ -152,8 +156,9 @@ PCM:
 - .raw (16 bit)
 - .rwx (16 bit)
 - .sap (16 bit)
+- .snd (16 bit)
+- .sps (16 bit)
 - .str (16 bit)
-- .wav, .lwav (unsigned 8 bit, 16 bit)
 - .xss (16 bit)
 - .zsd (8 bit)
 
@@ -166,12 +171,14 @@ Xbox IMA ADPCM:
 - .xwav
 
 Yamaha ADPCM:
+- .adpcm
 - .dcs+.wav
 - .str
 - .spsd
 
 IMA ADPCM:
 - .dvi (DVI IMA ADPCM)
+- .hwas (IMA ADPCM)
 - .idvi (DVI IMA ADPCM)
 - .ivaud (IMA ADPCM)
 - .stma (DVI IMA ADPCM)
@@ -185,11 +192,11 @@ multi:
 - .aus (PSX ADPCM, Xbox IMA ADPCM)
 - .brstm (GC DSP ADPCM, 8/16 bit PCM)
 - .emff (PSX APDCM, GC DSP ADPCM)
-- .fsb (PSX ADPCM, GC DSP ADPCM, Xbox IMA ADPCM)
+- .fsb, .wii (PSX ADPCM, GC DSP ADPCM, Xbox IMA ADPCM)
 - .genh (lots)
 - .nwa (16 bit PCM, NWA DPCM)
 - .psw (PSX ADPCM, GC DSP ADPCM)
-- .rwar,.rwav (GC DSP ADPCM, 8/16 bit PCM)
+- .rwar, .rwav (GC DSP ADPCM, 8/16 bit PCM)
 - .rwsd (GC DSP ADPCM, 8/16 bit PCM)
 - .rsd (PSX ADPCM, 16 bit PCM, GC DSP ADPCM, Xbox IMA ADPCM)
 - .rrds (NDS IMA ADPCM)
@@ -199,8 +206,10 @@ multi:
 - .ss7 (EACS IMA ADPCM, IMA ADPCM)
 - .swav (NDS IMA ADPCM, 8/16 bit PCM)
 - .xwb (16 bit PCM, Xbox IMA ADPCM)
+- .wav, .lwav (unsigned 8 bit PCM, 16 bit PCM, GC DSP ADPCM, MS IMA ADPCM)
 
 etc:
+- .2dx (MS ADPCM)
 - .aax (CRI ADX ADPCM)
 - .acm (InterPlay ACM)
 - .adp (GC DTK ADPCM)
@@ -214,6 +223,7 @@ etc:
 - .mwv (Level-5 0x555 ADPCM)
 - .ogg, .logg (Ogg Vorbis)
 - .rsf (CCITT G.721 ADPCM)
+- .sd9 (MS ADPCM)
 - .spw (FFXI PS-like ADPCM)
 - .str (SDX2 DPCM)
 - .um3 (Ogg Vorbis)

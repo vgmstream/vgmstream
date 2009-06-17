@@ -177,6 +177,9 @@ gchar *vgmstream_exts [] = {
   "wii",
   "sd9",
   "dx9",
+  "2dx",
+  "adpcm",
+  "hwas",
   /* terminator */
   NULL
 };
