@@ -2,7 +2,7 @@ vgmstream
 
 This is vgmstream, a library for playing streamed audio from video games.
 It is very much under development. There are two end-user bits: a command
-line decoder called "test", and a Winamp plugin called "in_vgmstream".
+line decoder called "test.exe", and a Winamp plugin called "in_vgmstream".
 
 *********** IMPORTANT!! ***********
 --- needed files (for Windows)  ---
