@@ -216,6 +216,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_naomi_adpcm,
 	init_vgmstream_sd9,
 	init_vgmstream_2dx,
+	init_vgmstream_dsp_ygo,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -247,7 +248,8 @@ VGMSTREAM * init_vgmstream_internal(STREAMFILE *streamFile, int do_dfs) {
                         (vgmstream->meta_type == meta_GENH) ||
                         (vgmstream->meta_type == meta_KRAW) ||
                         (vgmstream->meta_type == meta_PS2_MIB) ||
-                        (vgmstream->meta_type == meta_NGC_LPS)
+                        (vgmstream->meta_type == meta_NGC_LPS) ||
+						(vgmstream->meta_type == meta_DSP_YGO)
                         ) && vgmstream->channels == 1) {
                 try_dual_file_stereo(vgmstream, streamFile);
             }
@@ -2195,6 +2197,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
            break;
 		case meta_2DX:
            snprintf(temp,TEMPSIZE,"beatmaniaIIDX 2DX9 header");
+           break;
+        case meta_DSP_YGO:
+           snprintf(temp,TEMPSIZE," Yu-Gi-Oh! The Falsebound Kingdom DSP Header");
            break;
         default:
            snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

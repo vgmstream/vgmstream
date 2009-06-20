@@ -171,6 +171,7 @@ typedef enum {
     meta_DSP_WII_MUS,       /* .mus */
     meta_DSP_WII_WSD,		/* Phantom Brave (WII) */
 	meta_WII_NDP,		    /* Vertigo (Wii) */
+	meta_DSP_YGO,           /*  Yu-Gi-Oh! The Falsebound Kingdom (GC) */
 
     /* Nintendo */
     meta_STRM,              /* STRM */
