@@ -1394,8 +1394,8 @@ VGMSTREAM * init_vgmstream_dsp_ygo(STREAMFILE *streamFile) {
     vgmstream->coding_type = coding_NGC_DSP;
     vgmstream->num_samples = read_32bitBE(0x20,streamFile);
     if (loop_flag) {
-        vgmstream->loop_start_sample = (read_32bitBE(0x30,streamFile))/2;
-        vgmstream->loop_end_sample = (read_32bitBE(0x34,streamFile))/2;
+        vgmstream->loop_start_sample = (read_32bitBE(0x30,streamFile));
+        vgmstream->loop_end_sample = (read_32bitBE(0x34,streamFile));
     }
 
     vgmstream->layout_type = layout_none;

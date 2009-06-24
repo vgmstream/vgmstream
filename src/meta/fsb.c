@@ -177,6 +177,8 @@ VGMSTREAM * init_vgmstream_fsb3(STREAMFILE *streamFile) {
 		case 0x41004800: /* XBOX (FlatOut, Rainbow Six - Lockdown) */
 		case 0x01004804: /* XBOX (Cold Fear) <- maybe IMA??? */
         case 0x40004000: /* PC (Bioshock) */
+        case 0x20004000: /* PC (Bioshock) */
+        case 0x20004080: /* PC (Bioshock) */
 		vgmstream->coding_type = coding_XBOX;
 		vgmstream->layout_type = layout_none;
 		vgmstream->num_samples = read_32bitLE(0x0C,streamFile)*64/36/channel_count;
