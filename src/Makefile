@@ -198,7 +198,8 @@ META_OBJS=meta/adx_header.o \
     meta/ps2_snd.o \
     meta/naomi_adpcm.o \
     meta/sd9.o \
-    meta/2dx.o
+    meta/2dx.o \
+    meta/ngc_dsp_ygo.o
 
 OBJECTS=vgmstream.o streamfile.o util.o $(CODING_OBJS) $(LAYOUT_OBJS) $(META_OBJS)
 

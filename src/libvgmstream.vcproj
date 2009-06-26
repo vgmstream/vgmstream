@@ -415,6 +415,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\ngc_dsp_ygo.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\ngc_ffcc_str.c"
 					>
 				</File>
