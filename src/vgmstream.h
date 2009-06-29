@@ -55,6 +55,7 @@ typedef enum {
     coding_FFXI,            /* FF XI PSX-ish ADPCM */
     coding_XA,				/* PSX CD-XA */
     coding_XBOX,			/* XBOX IMA */
+	coding_INT_XBOX,		/* XBOX 'real interleaved' IMA */
     coding_EAXA,			/* EA/XA ADPCM */
     coding_EA_ADPCM,		/* EA ADPCM */
     coding_NDS_PROCYON,     /* NDS Procyon Studio ADPCM */

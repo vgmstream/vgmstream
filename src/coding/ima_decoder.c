@@ -203,6 +203,70 @@ void decode_xbox_ima(VGMSTREAM * vgmstream,VGMSTREAMCHANNEL * stream, sample * o
 	stream->adpcm_step_index=step_index;
 }
 
+void decode_int_xbox_ima(VGMSTREAM * vgmstream,VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do,int channel) {
+    int i=first_sample;
+	int sample_nibble;
+	int sample_decoded;
+    int delta;
+
+    int32_t sample_count=0;
+    int32_t hist1=stream->adpcm_history1_32;
+    int step_index = stream->adpcm_step_index;
+	off_t offset=stream->offset;
+
+	if(vgmstream->channels==1) 
+		first_sample = first_sample % 32;
+	else
+		first_sample = first_sample % (32*(vgmstream->channels&2));
+
+    if (first_sample == 0) {
+
+		hist1 = read_16bitLE(offset,stream->streamfile);
+		step_index = read_16bitLE(offset+2,stream->streamfile);
+		
+        if (step_index < 0) step_index=0;
+        if (step_index > 88) step_index=88;
+    }
+
+    for (i=first_sample,sample_count=0; i<first_sample+samples_to_do; i++,sample_count+=channelspacing) {
+        int step = ADPCMTable[step_index];
+
+		offset = stream->offset + 4 + (i/8*4+(i%8)/2);
+
+        sample_nibble = (read_8bit(offset,stream->streamfile) >> (i&1?4:0))&0xf;
+
+		sample_decoded=hist1;
+
+        delta = step >> 3;
+        if (sample_nibble & 1) delta += step >> 2;
+        if (sample_nibble & 2) delta += step >> 1;
+        if (sample_nibble & 4) delta += step;
+        if (sample_nibble & 8)
+            sample_decoded -= delta;
+        else
+            sample_decoded += delta;
+
+		hist1=clamp16(sample_decoded);
+
+        step_index += IMA_IndexTable[sample_nibble];
+        if (step_index < 0) step_index=0;
+        if (step_index > 88) step_index=88;
+		
+        outbuf[sample_count]=(short)(hist1);
+    }
+
+	// Only increment offset on complete frame
+	if(channelspacing==1) {
+		if(offset-stream->offset==32+3) // ??
+			stream->offset+=36;
+	} else {
+		if(offset-stream->offset==64+(4*(channel%2))+3) // ??
+			stream->offset+=36*channelspacing;
+	}
+	stream->adpcm_history1_32=hist1;
+	stream->adpcm_step_index=step_index;
+}
+
 void decode_dvi_ima(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
     int i;
 

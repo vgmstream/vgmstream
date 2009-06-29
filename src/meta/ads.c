@@ -57,9 +57,9 @@ VGMSTREAM * init_vgmstream_ads(STREAMFILE *streamFile) {
             start_offset = 0x28;
             vgmstream->channels = channel_count;
             vgmstream->sample_rate = read_32bitBE(0x0c,streamFile);
-            vgmstream->coding_type = coding_XBOX;
-            vgmstream->num_samples = read_32bitBE(0x24,streamFile);
-            vgmstream->layout_type = layout_none;
+            vgmstream->coding_type = coding_INT_XBOX;
+            vgmstream->num_samples = (read_32bitBE(0x24,streamFile) / 36 *64 / vgmstream->channels)-64; // to avoid the "pop" at the loop point
+            vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = 0x24;
         if (loop_flag) {
             vgmstream->loop_start_sample = 0;
@@ -104,13 +104,8 @@ goto fail;
             vgmstream->ch[i].streamfile = file;
 
             
-            if (vgmstream->coding_type == coding_XBOX) {
-                /* xbox interleaving is a little odd */
-                vgmstream->ch[i].channel_start_offset=start_offset;
-            } else {
-                vgmstream->ch[i].channel_start_offset=
-                    start_offset+vgmstream->interleave_block_size*i;
-            }
+            vgmstream->ch[i].channel_start_offset=
+                start_offset+vgmstream->interleave_block_size*i;
             vgmstream->ch[i].offset = vgmstream->ch[i].channel_start_offset;
 
         }

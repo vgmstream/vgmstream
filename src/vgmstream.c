@@ -697,6 +697,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_XA:
             return 28;
         case coding_XBOX:
+		case coding_INT_XBOX:
             return 64;
         case coding_EAXA:
             return 28;
@@ -774,6 +775,7 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
         case coding_XA:
             return 14*vgmstream->channels;
         case coding_XBOX:
+		case coding_INT_XBOX:
             return 36;
         case coding_EA_ADPCM:
             return 30;
@@ -908,6 +910,13 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
         case coding_XBOX:
             for (chan=0;chan<vgmstream->channels;chan++) {
                 decode_xbox_ima(vgmstream,&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                        vgmstream->channels,vgmstream->samples_into_block,
+                        samples_to_do,chan);
+            }
+            break;
+        case coding_INT_XBOX:
+            for (chan=0;chan<vgmstream->channels;chan++) {
+                decode_int_xbox_ima(vgmstream,&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
                         samples_to_do,chan);
             }
@@ -1335,6 +1344,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case coding_XBOX:
             snprintf(temp,TEMPSIZE,"XBOX 4-bit IMA ADPCM");
+            break;
+        case coding_INT_XBOX:
+            snprintf(temp,TEMPSIZE,"XBOX Interleaved 4-bit IMA ADPCM");
             break;
         case coding_EAXA:
             snprintf(temp,TEMPSIZE,"Electronic Arts XA Based 4-bit ADPCM");
