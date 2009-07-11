@@ -399,6 +399,7 @@ typedef enum {
     meta_NAOMI_ADPCM,		/* NAOMI/NAOMI2 ARcade games */
 	meta_SD9,               /* beatmaniaIIDX16 - EMPRESS (Arcade) */
 	meta_2DX,               /* beatmaniaIIDX16 - EMPRESS (Arcade) */
+    meta_PS2_VGV,           /* Rune: Viking Warlord */
 } meta_t;
 
 typedef struct {

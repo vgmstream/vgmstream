@@ -217,6 +217,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_sd9,
 	init_vgmstream_2dx,
 	init_vgmstream_dsp_ygo,
+    init_vgmstream_ps2_vgv,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -2211,7 +2212,10 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
            snprintf(temp,TEMPSIZE,"beatmaniaIIDX 2DX9 header");
            break;
         case meta_DSP_YGO:
-           snprintf(temp,TEMPSIZE," Yu-Gi-Oh! The Falsebound Kingdom DSP Header");
+           snprintf(temp,TEMPSIZE,"Yu-Gi-Oh! The Falsebound Kingdom DSP Header");
+           break;
+        case meta_PS2_VGV:
+            snprintf(temp,TEMPSIZE,"Rune: Viking Warlord VGV Header");
            break;
         default:
            snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

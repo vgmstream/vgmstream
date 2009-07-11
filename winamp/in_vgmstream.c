@@ -247,6 +247,7 @@ char * extension_list[] = {
     "vpk\0VPK Audio File (*.VPK)\0",
     "vs\0VS Audio File (*.VS)\0",
     "vsf\0VSF Audio File (*.VSF)\0",
+    "vgv\0VGV Audio File (*.VGV)\0",
 
     "waa\0WAA Audio File (*.WAA)\0",
     "wac\0WAC Audio File (*.WAC)\0",
