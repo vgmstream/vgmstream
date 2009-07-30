@@ -250,7 +250,8 @@ VGMSTREAM * init_vgmstream_internal(STREAMFILE *streamFile, int do_dfs) {
                         (vgmstream->meta_type == meta_KRAW) ||
                         (vgmstream->meta_type == meta_PS2_MIB) ||
                         (vgmstream->meta_type == meta_NGC_LPS) ||
-						(vgmstream->meta_type == meta_DSP_YGO)
+						(vgmstream->meta_type == meta_DSP_YGO) ||
+                        (vgmstream->meta_type == meta_DSP_AGSC)
                         ) && vgmstream->channels == 1) {
                 try_dual_file_stereo(vgmstream, streamFile);
             }
