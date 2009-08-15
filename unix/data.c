@@ -29,6 +29,8 @@ gchar *vgmstream_exts [] = {
   "gcw",
   "ads",
   "ss2",
+  "ss3",
+  "ss7"
   "npsf",
   "rwsd",
   "xa",
