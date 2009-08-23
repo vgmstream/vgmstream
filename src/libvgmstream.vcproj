@@ -423,6 +423,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\ngc_gcub.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\ngc_lps.c"
 					>
 				</File>

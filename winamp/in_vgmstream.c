@@ -132,6 +132,7 @@ char * extension_list[] = {
     "gbts\0GBTS Audio File (*.GBTS)\0",
     "gca\0GCA Audio File (*.GCA)\0",
     "gcm\0GCM Audio File (*.GCM)\0",
+    "gcub\0GCUB Audio File (*.GCUB)\0",
     "gcw\0GCW Audio File (*.GCW)\0",
     "genh\0GENH Audio File (*.GENH)\0",
     "gms\0GMS Audio File (*.GMS)\0",

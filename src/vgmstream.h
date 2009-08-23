@@ -400,6 +400,7 @@ typedef enum {
 	meta_SD9,               /* beatmaniaIIDX16 - EMPRESS (Arcade) */
 	meta_2DX,               /* beatmaniaIIDX16 - EMPRESS (Arcade) */
     meta_PS2_VGV,           /* Rune: Viking Warlord */
+    meta_NGC_GCUB,          /* Rune: Viking Warlord */
 } meta_t;
 
 typedef struct {
