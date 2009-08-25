@@ -337,6 +337,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\maxis_xa.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\msvp.c"
 					>
 				</File>
@@ -432,6 +436,10 @@
 				</File>
 				<File
 					RelativePath=".\meta\ngc_pdt.c"
+					>
+				</File>
+				<File
+					RelativePath=".\meta\ngc_sck_dsp.c"
 					>
 				</File>
 				<File

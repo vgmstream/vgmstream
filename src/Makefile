@@ -201,7 +201,9 @@ META_OBJS=meta/adx_header.o \
     meta/2dx.o \
     meta/ngc_dsp_ygo.o \
     meta/ps2_vgv.o \
-    meta/ngc_gcub.o
+    meta/ngc_gcub.o \
+    meta/maxis_xa.o \
+    meta/ngc_sck_dsp.o
 
 OBJECTS=vgmstream.o streamfile.o util.o $(CODING_OBJS) $(LAYOUT_OBJS) $(META_OBJS)
 

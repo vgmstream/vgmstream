@@ -161,5 +161,7 @@ libmeta_la_SOURCES += 2dx.c
 libmeta_la_SOURCES += ngc_dsp_ygo.c
 libmeta_la_SOURCES += ps2_vgv.c
 libmeta_la_SOURCES += ngc_gcub.c
+libmeta_la_SOURCES += maxis_xa.c
+libmeta_la_SOURCES += ngc_sck_dsp.c
 
 EXTRA_DIST = meta.h
