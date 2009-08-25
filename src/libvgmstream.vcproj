@@ -795,6 +795,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\wvs.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\xbox_ims.c"
 					>
 				</File>
@@ -804,10 +808,6 @@
 				</File>
 				<File
 					RelativePath=".\meta\xbox_wavm.c"
-					>
-				</File>
-				<File
-					RelativePath=".\meta\xbox_wvs.c"
 					>
 				</File>
 				<File

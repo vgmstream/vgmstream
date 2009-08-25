@@ -331,6 +331,7 @@ typedef enum {
     meta_XBOX_WAVM,			/* XBOX WAVM File */
     meta_XBOX_RIFF,			/* XBOX RIFF/WAVE File */
     meta_XBOX_WVS,			/* XBOX WVS */
+    meta_NGC_WVS,			/* NGC WVS */
     meta_XBOX_STMA,			/* XBOX STMA */
     meta_XBOX_MATX,			/* XBOX MATX */
     meta_XBOX_XMU,			/* XBOX XMU */

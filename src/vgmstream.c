@@ -119,6 +119,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_ngc_swd,
     init_vgmstream_capdsp,
     init_vgmstream_xbox_wvs,
+    init_vgmstream_ngc_wvs,
     init_vgmstream_dc_str,
     init_vgmstream_dc_str_v2,
     init_vgmstream_xbox_stma,
@@ -1961,7 +1962,10 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             snprintf(temp,TEMPSIZE,"assumed TECMO badflagged stream by .tec extension");
             break;
         case meta_XBOX_WVS:
-            snprintf(temp,TEMPSIZE,"Metal Arms WVS Header");
+            snprintf(temp,TEMPSIZE,"Metal Arms WVS Header (XBOX)");
+            break;
+        case meta_NGC_WVS:
+            snprintf(temp,TEMPSIZE,"Metal Arms WVS Header (GameCube)");
             break;
         case meta_XBOX_STMA:
             snprintf(temp,TEMPSIZE,"Midnight Club 2 STMA Header");
