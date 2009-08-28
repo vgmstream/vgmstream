@@ -1033,11 +1033,13 @@ VGMSTREAM * init_vgmstream_ngc_swd(STREAMFILE *streamFile) {
     start_offset = 0xC8;
     interleave = 0x8;
 
+#if 0
     /* check initial predictor/scale */
     if (ch0_header.initial_ps != (uint8_t)read_8bit(start_offset,streamFile))
         goto fail;
     if (ch1_header.initial_ps != (uint8_t)read_8bit(start_offset+interleave,streamFile))
         goto fail;
+#endif
 
     /* check type==0 and gain==0 */
     if (ch0_header.format || ch0_header.gain ||
@@ -1054,6 +1056,7 @@ VGMSTREAM * init_vgmstream_ngc_swd(STREAMFILE *streamFile) {
             ch0_header.loop_end_offset != ch1_header.loop_end_offset
        ) goto fail;
 
+#if 0
     if (ch0_header.loop_flag) {
         off_t loop_off;
         /* check loop predictor/scale */
@@ -1064,6 +1067,7 @@ VGMSTREAM * init_vgmstream_ngc_swd(STREAMFILE *streamFile) {
         if (ch1_header.loop_ps != (uint8_t)read_8bit(start_offset+loop_off+interleave,streamFile))
             goto fail;
     }
+#endif
 
     /* build the VGMSTREAM */
 

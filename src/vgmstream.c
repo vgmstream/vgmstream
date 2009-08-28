@@ -2184,53 +2184,56 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             snprintf(temp,TEMPSIZE,"Gunvari MCG Header");
             break;
         case meta_ZSD:
-           snprintf(temp,TEMPSIZE,"ZSD Header");
-           break;
+            snprintf(temp,TEMPSIZE,"ZSD Header");
+            break;
         case meta_RedSpark:
-           snprintf(temp,TEMPSIZE,"RedSpark Header");
-           break;
+            snprintf(temp,TEMPSIZE,"RedSpark Header");
+            break;
         case meta_PC_IVAUD:
-           snprintf(temp,TEMPSIZE,"assumed GTA IV Audio file by .ivaud extension");
-           break;
+            snprintf(temp,TEMPSIZE,"assumed GTA IV Audio file by .ivaud extension");
+            break;
         case meta_DSP_WII_WSD:
-           snprintf(temp,TEMPSIZE,"Standard Nintendo DSP headers in .wsd");
-           break;
+            snprintf(temp,TEMPSIZE,"Standard Nintendo DSP headers in .wsd");
+            break;
         case meta_WII_NDP:
-           snprintf(temp,TEMPSIZE,"Vertigo NDP Header");
-           break;
+            snprintf(temp,TEMPSIZE,"Vertigo NDP Header");
+            break;
         case meta_PS2_SPS:
-           snprintf(temp,TEMPSIZE,"Ape Escape 2 SPS Header");
-           break;
+            snprintf(temp,TEMPSIZE,"Ape Escape 2 SPS Header");
+            break;
         case meta_PS2_XA2_RRP:
-           snprintf(temp,TEMPSIZE,"Acclaim XA2 Header");
-           break;
+            snprintf(temp,TEMPSIZE,"Acclaim XA2 Header");
+            break;
         case meta_NDS_HWAS:
-           snprintf(temp,TEMPSIZE,"NDS 'HWAS' Header");
-           break;
+            snprintf(temp,TEMPSIZE,"NDS 'HWAS' Header");
+            break;
 	    case meta_NGC_LPS:
-           snprintf(temp,TEMPSIZE,"Rave Master LPS Header");
-           break;
+            snprintf(temp,TEMPSIZE,"Rave Master LPS Header");
+            break;
         case meta_NAOMI_ADPCM:
-           snprintf(temp,TEMPSIZE,"NAOMI/NAOMI2 Arcade games ADPCM header");
-           break;
-		case meta_SD9:
-           snprintf(temp,TEMPSIZE,"beatmaniaIIDX SD9 header");
-           break;
+            snprintf(temp,TEMPSIZE,"NAOMI/NAOMI2 Arcade games ADPCM header");
+            break;
+        case meta_SD9:
+            snprintf(temp,TEMPSIZE,"beatmaniaIIDX SD9 header");
+            break;
 		case meta_2DX:
-           snprintf(temp,TEMPSIZE,"beatmaniaIIDX 2DX9 header");
-           break;
+            snprintf(temp,TEMPSIZE,"beatmaniaIIDX 2DX9 header");
+            break;
         case meta_DSP_YGO:
-           snprintf(temp,TEMPSIZE,"Yu-Gi-Oh! The Falsebound Kingdom DSP Header");
-           break;
+            snprintf(temp,TEMPSIZE,"Yu-Gi-Oh! The Falsebound Kingdom DSP Header");
+            break;
         case meta_PS2_VGV:
             snprintf(temp,TEMPSIZE,"Rune: Viking Warlord VGV Header");
-           break;
+            break;
         case meta_NGC_GCUB:
             snprintf(temp,TEMPSIZE,"Sega Soccer Slam GCub Header");
-           break;
+            break;
         case meta_NGC_SCK_DSP:
             snprintf(temp,TEMPSIZE,"The Scorpion King SCK Header");
-           break;
+            break;
+        case meta_NGC_SWD:
+            snprintf(temp,TEMPSIZE,"PSF + Standard DSP Headers");
+            break;
         default:
            snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");
     }
