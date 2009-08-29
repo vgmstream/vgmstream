@@ -39,25 +39,44 @@ VGMSTREAM * init_vgmstream_ps2_mib(STREAMFILE *streamFile) {
     
 	uint8_t mibBuffer[0x10];
 	uint8_t	testBuffer[0x10];
+	uint8_t doChannelUpdate=1;
+	uint8_t bDoUpdateInterleave=1;
 
 	size_t	fileLength;
 	
 	off_t	loopStart = 0;
 	off_t	loopEnd = 0;
+
 	off_t	interleave = 0;
+
 	off_t	readOffset = 0;
 
-	char   filenameMIH[260];
+	char	filenameMIH[260];
+	off_t	loopStartPoints[0x10];
+	int		loopStartPointsCount=0;
+
+	off_t	loopEndPoints[0x10];
+	int		loopEndPointsCount=0;
+
+	int		loopToEnd=0;
+	int		forceNoLoop=0;
 
 	uint8_t gotMIH=0;
 
-	int i, channel_count=1;
+	int i, channel_count=0;
+
+	// Initialize loop point to 0
+	for(i=0; i<0x10; i++) {
+		loopStartPoints[i]=0;
+		loopEndPoints[i]=0;
+	}
 
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
     if (strcasecmp("mib",filename_extension(filename)) && 
 		strcasecmp("mi4",filename_extension(filename)) && 
-		strcasecmp("vb",filename_extension(filename))) goto fail;
+		strcasecmp("vb",filename_extension(filename))  &&
+		strcasecmp("xag",filename_extension(filename))) goto fail;
 
 	/* check for .MIH file */
 	strcpy(filenameMIH,filename);
@@ -71,30 +90,75 @@ VGMSTREAM * init_vgmstream_ps2_mib(STREAMFILE *streamFile) {
 	fileLength = get_streamfile_size(streamFile);
 	
 	readOffset+=(off_t)read_streamfile(mibBuffer,0,0x10,streamFile); 
+	readOffset=0;
+	mibBuffer[0]=0;
 
 	do {
 		readOffset+=(off_t)read_streamfile(testBuffer,readOffset,0x10,streamFile); 
-		
-		if(!memcmp(testBuffer,mibBuffer,0x10)) {
-			if(interleave==0) interleave=readOffset-0x10;
+		// be sure to point to an interleave value
+		if(readOffset<(int32_t)(fileLength*0.5)) {
 
-			// be sure to point to an interleave value
-			if(((readOffset-0x10)==channel_count*interleave)) {
-				channel_count++;
+			if(memcmp(testBuffer+2, mibBuffer+2,0x0e)) {
+				bDoUpdateInterleave=1;
+				if(doChannelUpdate) {
+					doChannelUpdate=0;
+					channel_count++;
+				}
+			}
+
+			testBuffer[0]=0;
+			if(!memcmp(testBuffer,mibBuffer,0x10)) {
+
+				if(bDoUpdateInterleave) {
+					bDoUpdateInterleave=0;
+					interleave=readOffset-0x10;
+				}
+				if(((readOffset-0x10)==channel_count*interleave) && (channel_count!=1)) {
+					doChannelUpdate=1;
+				}
 			}
 		}
 
 		// Loop Start ...
-		if(testBuffer[0x01]==0x06) {
-			if(loopStart==0) loopStart = readOffset-0x10;
+		if(testBuffer[0x01]==0x06) 
+		{
+			if(loopStartPointsCount<0x10) 
+			{
+				loopStartPoints[loopStartPointsCount] = readOffset-0x10;
+				loopStartPointsCount++;
+			}
 		}
 
 		// Loop End ...
-		if(testBuffer[0x01]==0x03) {
-			if(loopEnd==0) loopEnd = readOffset-0x10;
+		if((testBuffer[0x01]==0x03) && (testBuffer[0x03]!=0x77)) {
+			if(loopEndPointsCount<0x10) 
+			{
+				loopEndPoints[loopEndPointsCount] = readOffset;
+				loopEndPointsCount++;
+			}
 		}
 
-	} while (streamFile->get_offset(streamFile)<(int32_t)fileLength);
+		if(testBuffer[0x01]==0x04) 
+		{
+			// 0x04 loop points flag can't be with a 0x03 loop points flag
+			if(loopStartPointsCount<0x10) 
+			{
+				loopStartPoints[loopStartPointsCount] = readOffset-0x10;
+				loopStartPointsCount++;
+
+				// Loop end value is not set by flags ...
+				// go until end of file
+				loopToEnd=1;
+			}
+		}
+
+	} while (streamFile->get_offset(streamFile)<((int32_t)fileLength));
+
+	if((testBuffer[0]==0x0c) && (testBuffer[1]==0))
+		forceNoLoop=1;
+
+	if(channel_count==0)
+		channel_count=1;
 
 	if(gotMIH) 
 		channel_count=read_32bitLE(0x08,streamFileMIH);
@@ -103,8 +167,54 @@ VGMSTREAM * init_vgmstream_ps2_mib(STREAMFILE *streamFile) {
 	if(!strcasecmp("vb",filename_extension(filename))) 
 		loopStart=0;
 
+	if(!strcasecmp("xag",filename_extension(filename))) 
+		channel_count=2;
+
+	// Calc Loop Points & Interleave ...
+	if(loopStartPointsCount>=2) 
+	{
+		// can't get more then 0x10 loop point !
+		if(loopStartPointsCount!=0x0F) {
+			if(loopStartPointsCount%2) 
+				interleave=loopStartPoints[loopStartPointsCount-1]-loopStartPoints[loopStartPointsCount-3];
+			else 
+				interleave=loopStartPoints[loopStartPointsCount-1]-loopStartPoints[loopStartPointsCount-2];
+
+			loopStart=loopStartPoints[loopStartPointsCount-1];
+
+			// Can't be one channel .mib with interleave values
+			if(channel_count==1) channel_count=2;
+		} else 
+			loopStart=0;
+	}
+
+	if(loopEndPointsCount>=2) 
+	{
+		// can't get more then 0x10 loop point !
+		if(loopStartPointsCount!=0x0F) {
+			// No need to recalculate interleave value ...
+			loopEnd=loopEndPoints[loopEndPointsCount-1];
+
+			// Can't be one channel .mib with interleave values
+			if(channel_count==1) channel_count=2;
+		} else {
+			loopToEnd=0;
+			loopEnd=0;
+		}
+	}
+
+	if (loopToEnd) 
+		loopEnd=fileLength;
+
+	// force no loop 
+	if(forceNoLoop) 
+		loopEnd=0;
+
+	if((interleave>0x10) && (channel_count==1))
+		channel_count=2;
+
 	/* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,((loopStart!=0) && (loopEnd!=0)));
+    vgmstream = allocate_vgmstream(channel_count,(loopEnd!=0));
     if (!vgmstream) goto fail;
 
 	if(interleave==0) interleave=0x10;
@@ -131,6 +241,12 @@ VGMSTREAM * init_vgmstream_ps2_mib(STREAMFILE *streamFile) {
 		if(!strcasecmp("mi4",filename_extension(filename)))
 			vgmstream->sample_rate = 48000;
 
+		if(!strcasecmp("xag",filename_extension(filename))) {
+			vgmstream->channels=2;
+			vgmstream->interleave_block_size=0x4000;
+			vgmstream->sample_rate = 44100;
+		}
+
 		if(!strcasecmp("vb",filename_extension(filename))) 
 		{
 			vgmstream->layout_type = layout_none;
@@ -146,10 +262,25 @@ VGMSTREAM * init_vgmstream_ps2_mib(STREAMFILE *streamFile) {
 			vgmstream->loop_start_sample = loopStart/16*18;
 			vgmstream->loop_end_sample = loopEnd/16*28;
 		} else {
-			vgmstream->loop_start_sample = ((loopStart/(interleave*channel_count))*interleave)/16*14*(2/channel_count);
-			vgmstream->loop_start_sample += (loopStart%(interleave*channel_count))/16*14*(2/channel_count);
-			vgmstream->loop_end_sample = ((loopEnd/(interleave*channel_count))*interleave)/16*28*(2/channel_count);
-			vgmstream->loop_end_sample += (loopEnd%(interleave*channel_count))/16*14*(2/channel_count);
+			//vgmstream->loop_start_sample = ((loopStart/(interleave*channel_count))*interleave)/16*14*(2/channel_count);
+			//vgmstream->loop_start_sample += (loopStart%(interleave*channel_count))/16*14*(2/channel_count);
+			//vgmstream->loop_start_sample=(loopStart/16*14*channel_count)/channel_count;
+			vgmstream->loop_start_sample = ((((loopStart/vgmstream->interleave_block_size)-1)*vgmstream->interleave_block_size)/16*14*channel_count)/channel_count;
+			if(loopStart%vgmstream->interleave_block_size) {
+				vgmstream->loop_start_sample += (((loopStart%vgmstream->interleave_block_size)-1)/16*14*channel_count);
+			}
+
+			if(loopEnd=fileLength) 
+			{
+				vgmstream->loop_end_sample=(loopEnd/16*14*channel_count)/channel_count;
+			} else {
+				vgmstream->loop_end_sample = ((((loopEnd/vgmstream->interleave_block_size)-1)*vgmstream->interleave_block_size)/16*14*channel_count)/channel_count;
+
+				if(loopEnd%vgmstream->interleave_block_size) {
+					vgmstream->loop_end_sample += (((loopEnd%vgmstream->interleave_block_size)-1)/16*14*channel_count);
+				}
+			}
+			//(((loopEnd/(interleave*channel_count)+1)*channel_count*interleave)-loopEnd)
 		}
 	}
 
