@@ -60,6 +60,7 @@ VGMSTREAM * init_vgmstream_ps2_mib(STREAMFILE *streamFile) {
 
 	int		loopToEnd=0;
 	int		forceNoLoop=0;
+	int		gotEmptyLine=0;
 
 	uint8_t gotMIH=0;
 
@@ -99,21 +100,24 @@ VGMSTREAM * init_vgmstream_ps2_mib(STREAMFILE *streamFile) {
 		if(readOffset<(int32_t)(fileLength*0.5)) {
 
 			if(memcmp(testBuffer+2, mibBuffer+2,0x0e)) {
-				bDoUpdateInterleave=1;
 				if(doChannelUpdate) {
 					doChannelUpdate=0;
 					channel_count++;
 				}
+				if(channel_count<2)
+					bDoUpdateInterleave=1;
 			}
 
 			testBuffer[0]=0;
 			if(!memcmp(testBuffer,mibBuffer,0x10)) {
 
+				gotEmptyLine=1;
+
 				if(bDoUpdateInterleave) {
 					bDoUpdateInterleave=0;
 					interleave=readOffset-0x10;
 				}
-				if(((readOffset-0x10)==channel_count*interleave) && (channel_count!=1)) {
+				if(((readOffset-0x10)==(channel_count*interleave))) {
 					doChannelUpdate=1;
 				}
 			}
@@ -213,11 +217,31 @@ VGMSTREAM * init_vgmstream_ps2_mib(STREAMFILE *streamFile) {
 	if((interleave>0x10) && (channel_count==1))
 		channel_count=2;
 
+	if(interleave==0) interleave=0x10;
+
+	// further check on channel_count ...
+	if(gotEmptyLine) 
+	{
+		int newChannelCount = 0;
+
+		readOffset=0;
+
+		do 
+		{
+			newChannelCount++;
+			read_streamfile(testBuffer,readOffset,0x10,streamFile); 
+			readOffset+=interleave;
+		} while(!memcmp(testBuffer,mibBuffer,16));
+
+		newChannelCount--;
+
+		if(newChannelCount>channel_count)
+			channel_count=newChannelCount;
+	}
+
 	/* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,(loopEnd!=0));
     if (!vgmstream) goto fail;
-
-	if(interleave==0) interleave=0x10;
 
     /* fill in the vital statistics */
 	vgmstream->coding_type = coding_PSX;
@@ -257,7 +281,7 @@ VGMSTREAM * init_vgmstream_ps2_mib(STREAMFILE *streamFile) {
 		vgmstream->num_samples = (int32_t)(fileLength/16/channel_count*28);
 	}
 
-	if(loopStart!=0) {
+	if(loopEnd!=0) {
 		if(vgmstream->channels==1) {
 			vgmstream->loop_start_sample = loopStart/16*18;
 			vgmstream->loop_end_sample = loopEnd/16*28;
@@ -272,7 +296,7 @@ VGMSTREAM * init_vgmstream_ps2_mib(STREAMFILE *streamFile) {
 
 			if(loopEnd=fileLength) 
 			{
-				vgmstream->loop_end_sample=(loopEnd/16*14*channel_count)/channel_count;
+				vgmstream->loop_end_sample=(loopEnd/16*28)/channel_count;
 			} else {
 				vgmstream->loop_end_sample = ((((loopEnd/vgmstream->interleave_block_size)-1)*vgmstream->interleave_block_size)/16*14*channel_count)/channel_count;
 
@@ -284,6 +308,28 @@ VGMSTREAM * init_vgmstream_ps2_mib(STREAMFILE *streamFile) {
 		}
 	}
 
+	if(loopToEnd) 
+	{
+		// try to find if there's no empty line ...
+		int emptySamples=0;
+
+		for(i=0; i<16;i++) {
+			mibBuffer[i]=0;
+		}
+
+		readOffset=fileLength-0x10;
+
+		do {
+			read_streamfile(testBuffer,readOffset,0x10,streamFile); 
+			if(!memcmp(mibBuffer,testBuffer,16)) 
+			{
+				emptySamples+=28;
+			}
+			readOffset-=0x10;
+		} while(!memcmp(testBuffer,mibBuffer,16));
+
+		vgmstream->loop_end_sample-=(emptySamples*channel_count);
+	}
 	vgmstream->meta_type = meta_PS2_MIB;
     
 	if (gotMIH) {
