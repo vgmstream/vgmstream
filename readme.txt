@@ -217,6 +217,7 @@ etc:
 - .afc (GC AFC ADPCM)
 - .ahx (MPEG-2 Layer II)
 - .aix (CRI ADX ADPCM)
+- .caf (Apple IMA4 ADPCM)
 - .bgw (FFXI PS-like ADPCM)
 - .de2 (MS ADPCM)
 - .kcey (EACS IMA ADPCM)

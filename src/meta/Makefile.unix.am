@@ -163,5 +163,6 @@ libmeta_la_SOURCES += ps2_vgv.c
 libmeta_la_SOURCES += ngc_gcub.c
 libmeta_la_SOURCES += maxis_xa.c
 libmeta_la_SOURCES += ngc_sck_dsp.c
+libmeta_la_SOURCES += apple_caff.c
 
 EXTRA_DIST = meta.h

@@ -237,6 +237,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\apple_caff.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\ast.c"
 					>
 				</File>

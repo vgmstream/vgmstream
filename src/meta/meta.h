@@ -405,4 +405,6 @@ VGMSTREAM * init_vgmstream_maxis_xa(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_ngc_sck_dsp(STREAMFILE * streamFile);
 
+VGMSTREAM * init_vgmstream_apple_caff(STREAMFILE * streamFile);
+
 #endif

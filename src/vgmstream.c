@@ -222,6 +222,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_ngc_gcub,
     init_vgmstream_maxis_xa,
     init_vgmstream_ngc_sck_dsp,
+    init_vgmstream_apple_caff,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -715,6 +716,8 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
             return vgmstream->ws_output_size;
         case coding_MSADPCM:
             return (vgmstream->interleave_block_size-(7-1)*vgmstream->channels)*2/vgmstream->channels;
+        case coding_APPLE_IMA4:
+            return 64;
         case coding_MS_IMA:
             return (vgmstream->interleave_block_size-4*vgmstream->channels)*2/vgmstream->channels;
         case coding_NDS_PROCYON:
@@ -793,6 +796,8 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
         case coding_INT_DVI_IMA:
         case coding_AICA:
             return 1; 
+        case coding_APPLE_IMA4:
+            return 34;
         case coding_MSADPCM:
             return vgmstream->interleave_block_size;
         default:
@@ -1044,6 +1049,13 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
         case coding_INT_IMA:
             for (chan=0;chan<vgmstream->channels;chan++) {
                 decode_ima(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                        vgmstream->channels,vgmstream->samples_into_block,
+                        samples_to_do);
+            }
+            break;
+        case coding_APPLE_IMA4:
+            for (chan=0;chan<vgmstream->channels;chan++) {
+                decode_apple_ima4(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
                         samples_to_do);
             }
@@ -1388,6 +1400,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case coding_MS_IMA:
             snprintf(temp,TEMPSIZE,"Microsoft 4-bit IMA ADPCM");
+            break;
+        case coding_APPLE_IMA4:
+            snprintf(temp,TEMPSIZE,"Apple Quicktime 4-bit IMA ADPCM");
             break;
         case coding_WS:
             snprintf(temp,TEMPSIZE,"Westwood Studios DPCM");
@@ -2233,6 +2248,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case meta_NGC_SWD:
             snprintf(temp,TEMPSIZE,"PSF + Standard DSP Headers");
+            break;
+        case meta_CAFF:
+            snprintf(temp,TEMPSIZE,"Apple Core Audio Format Header");
             break;
         default:
            snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

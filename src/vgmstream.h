@@ -73,6 +73,7 @@ typedef enum {
     coding_IMA,             /* bare IMA, low nibble first */
     coding_INT_IMA,         /* */
     coding_MS_IMA,          /* Microsoft IMA */
+    coding_APPLE_IMA4,      /* Apple Quicktime IMA4 */
     coding_WS,              /* Westwood Studios' custom VBR ADPCM */
 #ifdef VGM_USE_MPEG
     coding_fake_MPEG2_L2,   /* MPEG-2 Layer 2 (AHX), with lying headers */
@@ -404,6 +405,7 @@ typedef enum {
     meta_NGC_GCUB,          /* Sega Soccer Slam */
     meta_MAXIS_XA,          /* Sim City 3000 (PC) */
     meta_NGC_SCK_DSP,       /* Scorpion King (NGC) */
+    meta_CAFF,              /* iPhone .caf */
 } meta_t;
 
 typedef struct {
