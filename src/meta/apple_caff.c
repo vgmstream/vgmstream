@@ -55,16 +55,17 @@ VGMSTREAM * init_vgmstream_apple_caff(STREAMFILE *streamFile) {
                 }
 
                 {
+                    uint32_t bytes_per_packet, frames_per_packet, channels_per_frame, bits_per_channel;
                     uint32_t codec_4cc = read_32bitBE(chunk_offset+0x14, streamFile);
                     /* only supporting ima4 for now */
                     if (codec_4cc != 0x696d6134) goto fail;
 
                     /* format flags */
                     if (read_32bitBE(chunk_offset+0x18, streamFile) != 0) goto fail;
-                    uint32_t bytes_per_packet = read_32bitBE(chunk_offset+0x1c, streamFile);
-                    uint32_t frames_per_packet = read_32bitBE(chunk_offset+0x20, streamFile);
-                    uint32_t channels_per_frame = read_32bitBE(chunk_offset+0x24, streamFile);
-                    uint32_t bits_per_channel = read_32bitBE(chunk_offset+0x28, streamFile);
+                    bytes_per_packet = read_32bitBE(chunk_offset+0x1c, streamFile);
+                    frames_per_packet = read_32bitBE(chunk_offset+0x20, streamFile);
+                    channels_per_frame = read_32bitBE(chunk_offset+0x24, streamFile);
+                    bits_per_channel = read_32bitBE(chunk_offset+0x28, streamFile);
 
                     interleave = bytes_per_packet / channels_per_frame;
                     channel_count = channels_per_frame;
