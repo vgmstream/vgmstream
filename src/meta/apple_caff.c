@@ -14,6 +14,10 @@ VGMSTREAM * init_vgmstream_apple_caff(STREAMFILE *streamFile) {
     int sample_rate,unused_frames;
     int channel_count;
     
+    off_t file_length;
+    off_t chunk_offset = 8;
+    int found_desc = 0, found_pakt = 0, found_data = 0;
+
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
     if (strcasecmp("caf",filename_extension(filename))) goto fail;
@@ -23,10 +27,7 @@ VGMSTREAM * init_vgmstream_apple_caff(STREAMFILE *streamFile) {
     /* check version, flags */
     if (read_32bitBE(4,streamFile)!=0x00010000) goto fail;
 
-    off_t chunk_offset = 8;
-    off_t file_length = (off_t)get_streamfile_size(streamFile);
-
-    int found_desc = 0, found_pakt = 0, found_data = 0;
+    file_length = (off_t)get_streamfile_size(streamFile);
 
     while (chunk_offset < file_length)
     {
