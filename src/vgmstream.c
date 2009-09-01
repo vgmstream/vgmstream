@@ -709,7 +709,8 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_EAXA:
             return 28;
         case coding_EA_ADPCM:
-            return 14*vgmstream->channels;
+		case coding_MAXIS_ADPCM:
+			return 14*vgmstream->channels;
         case coding_WS:
             /* only works if output sample size is 8 bit, which is always
                is for WS ADPCM */
@@ -962,9 +963,19 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
             break;
         case coding_PSX:
             for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_psx(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+				if(vgmstream->skip_last_channel) 
+				{
+					if(chan!=vgmstream->channels-1) {
+						decode_psx(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+							vgmstream->channels,vgmstream->samples_into_block,
+							samples_to_do);
+					}
+
+				} else {
+					decode_psx(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
                         samples_to_do);
+				}
             }
             break;
         case coding_PSX_badflags:
@@ -1005,6 +1016,13 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
         case coding_EA_ADPCM:
             for (chan=0;chan<vgmstream->channels;chan++) {
                 decode_ea_adpcm(vgmstream,buffer+samples_written*vgmstream->channels+chan,
+                        vgmstream->channels,vgmstream->samples_into_block,
+                        samples_to_do,chan);
+            }
+            break;
+        case coding_MAXIS_ADPCM:
+            for (chan=0;chan<vgmstream->channels;chan++) {
+                decode_maxis_adpcm(vgmstream,buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
                         samples_to_do,chan);
             }
@@ -1391,6 +1409,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case coding_EACS_IMA:
             snprintf(temp,TEMPSIZE,"EACS 4-bit IMA ADPCM");
+            break;
+        case coding_MAXIS_ADPCM:
+            snprintf(temp,TEMPSIZE,"Maxis XA (EA ADPCM Variant)");
             break;
         case coding_INT_IMA:
             snprintf(temp,TEMPSIZE,"Interleaved 4-bit IMA ADPCM");
@@ -2251,6 +2272,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case meta_CAFF:
             snprintf(temp,TEMPSIZE,"Apple Core Audio Format Header");
+            break;
+        case meta_MAXIS_XA:
+            snprintf(temp,TEMPSIZE,"Maxis XAI Header");
             break;
         default:
            snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

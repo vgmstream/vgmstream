@@ -58,6 +58,7 @@ typedef enum {
 	coding_INT_XBOX,		/* XBOX 'real interleaved' IMA */
     coding_EAXA,			/* EA/XA ADPCM */
     coding_EA_ADPCM,		/* EA ADPCM */
+	coding_MAXIS_ADPCM,		/* MAXIS ADPCM */
     coding_NDS_PROCYON,     /* NDS Procyon Studio ADPCM */
 
 #ifdef VGM_USE_VORBIS
@@ -118,6 +119,7 @@ typedef enum {
     layout_halpst_blocked,    /* blocks with HALPST-format header */
     layout_xa_blocked,
     layout_ea_blocked,
+	layout_maxis_blocked,
     layout_eacs_blocked,
     layout_caf_blocked,
     layout_wsi_blocked,
@@ -514,6 +516,8 @@ typedef struct {
     void * start_vgmstream;    /* a copy of the VGMSTREAM as it was at the beginning of the stream */
 
     int32_t thpNextFrameSize;
+	
+	int skip_last_channel;
 
     /* Data the codec needs for the whole stream. This is for codecs too
      * different from vgmstream's structure to be reasonably shoehorned into

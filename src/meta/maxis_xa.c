@@ -1,7 +1,7 @@
 #include "meta.h"
 #include "../util.h"
 
-/* GCUB - found in 'Sega Soccer Slam' */
+/* Maxis XA - found in 'Sim City 3000' */
 VGMSTREAM * init_vgmstream_maxis_xa(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[260];
@@ -28,18 +28,11 @@ VGMSTREAM * init_vgmstream_maxis_xa(STREAMFILE *streamFile) {
     start_offset = 0x18;
 	vgmstream->channels = channel_count;
     vgmstream->sample_rate = read_32bitLE(0x0C,streamFile);
-    vgmstream->coding_type = coding_EA_ADPCM;
-    vgmstream->num_samples = vgmstream->num_samples = (int32_t)((get_streamfile_size(streamFile)-start_offset)* 2 / vgmstream->channels);
-
-    if (loop_flag) {
-        vgmstream->loop_start_sample = 0;
-        vgmstream->loop_end_sample = (read_32bitBE(0x0C,streamFile)-start_offset)/8/channel_count*14;
-    }
+    vgmstream->coding_type = coding_MAXIS_ADPCM;
+    vgmstream->num_samples = read_32bitLE(0x04,streamFile)/2/channel_count;
 
     vgmstream->layout_type = layout_none;
-    // vgmstream->interleave_block_size = 0x8000; // read_32bitBE(0x04,streamFile);
     vgmstream->meta_type = meta_MAXIS_XA;
-
 
     /* open the file for reading */
     {
@@ -49,11 +42,8 @@ VGMSTREAM * init_vgmstream_maxis_xa(STREAMFILE *streamFile) {
         if (!file) goto fail;
         for (i=0;i<channel_count;i++) {
             vgmstream->ch[i].streamfile = file;
-
-            vgmstream->ch[i].channel_start_offset=
-                vgmstream->ch[i].offset=start_offset+
-                vgmstream->interleave_block_size*i;
-
+            vgmstream->ch[i].channel_start_offset=start_offset+i;
+            vgmstream->ch[i].offset=0;
         }
     }
 
