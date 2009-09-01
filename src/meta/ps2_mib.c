@@ -178,16 +178,14 @@ VGMSTREAM * init_vgmstream_ps2_mib(STREAMFILE *streamFile) {
 	if(loopStartPointsCount>=2) 
 	{
 		// can't get more then 0x10 loop point !
-		if(loopStartPointsCount!=0x0F) {
-			if(loopStartPointsCount%2) 
-				interleave=loopStartPoints[loopStartPointsCount-1]-loopStartPoints[loopStartPointsCount-3];
-			else 
-				interleave=loopStartPoints[loopStartPointsCount-1]-loopStartPoints[loopStartPointsCount-2];
-
-			loopStart=loopStartPoints[loopStartPointsCount-1];
+		if(loopStartPointsCount<=0x0F) {
+			// Always took the first 2 loop points
+			interleave=loopStartPoints[1]-loopStartPoints[0];
+			loopStart=loopStartPoints[1];
 
 			// Can't be one channel .mib with interleave values
-			if(channel_count==1) channel_count=2;
+			if((interleave>0) && (channel_count==1)) 
+				channel_count=2;
 		} else 
 			loopStart=0;
 	}
@@ -195,7 +193,7 @@ VGMSTREAM * init_vgmstream_ps2_mib(STREAMFILE *streamFile) {
 	if(loopEndPointsCount>=2) 
 	{
 		// can't get more then 0x10 loop point !
-		if(loopStartPointsCount!=0x0F) {
+		if(loopEndPointsCount<=0x0F) {
 			// No need to recalculate interleave value ...
 			loopEnd=loopEndPoints[loopEndPointsCount-1];
 
@@ -267,7 +265,6 @@ VGMSTREAM * init_vgmstream_ps2_mib(STREAMFILE *streamFile) {
 
 		if(!strcasecmp("xag",filename_extension(filename))) {
 			vgmstream->channels=2;
-			vgmstream->interleave_block_size=0x4000;
 			vgmstream->sample_rate = 44100;
 		}
 
@@ -286,15 +283,12 @@ VGMSTREAM * init_vgmstream_ps2_mib(STREAMFILE *streamFile) {
 			vgmstream->loop_start_sample = loopStart/16*18;
 			vgmstream->loop_end_sample = loopEnd/16*28;
 		} else {
-			//vgmstream->loop_start_sample = ((loopStart/(interleave*channel_count))*interleave)/16*14*(2/channel_count);
-			//vgmstream->loop_start_sample += (loopStart%(interleave*channel_count))/16*14*(2/channel_count);
-			//vgmstream->loop_start_sample=(loopStart/16*14*channel_count)/channel_count;
 			vgmstream->loop_start_sample = ((((loopStart/vgmstream->interleave_block_size)-1)*vgmstream->interleave_block_size)/16*14*channel_count)/channel_count;
 			if(loopStart%vgmstream->interleave_block_size) {
 				vgmstream->loop_start_sample += (((loopStart%vgmstream->interleave_block_size)-1)/16*14*channel_count);
 			}
 
-			if(loopEnd=fileLength) 
+			if(loopEnd==fileLength) 
 			{
 				vgmstream->loop_end_sample=(loopEnd/16*28)/channel_count;
 			} else {
@@ -304,7 +298,6 @@ VGMSTREAM * init_vgmstream_ps2_mib(STREAMFILE *streamFile) {
 					vgmstream->loop_end_sample += (((loopEnd%vgmstream->interleave_block_size)-1)/16*14*channel_count);
 				}
 			}
-			//(((loopEnd/(interleave*channel_count)+1)*channel_count*interleave)-loopEnd)
 		}
 	}
 
