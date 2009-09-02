@@ -407,4 +407,8 @@ VGMSTREAM * init_vgmstream_ngc_sck_dsp(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_apple_caff(STREAMFILE * streamFile);
 
+VGMSTREAM * init_vgmstream_pc_mxst(STREAMFILE* streamFile);
+
+VGMSTREAM * init_vgmstream_sab(STREAMFILE* streamFile);
+
 #endif

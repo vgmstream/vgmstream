@@ -229,6 +229,7 @@ etc:
 - .str (SDX2 DPCM)
 - .um3 (Ogg Vorbis)
 - .xa (CD-ROM XA audio)
+- .sab (Worms 4 soundpacks)
 
 loop assists:
 - .mus (playlist for .acm)

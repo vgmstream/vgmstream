@@ -223,6 +223,9 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_maxis_xa,
     init_vgmstream_ngc_sck_dsp,
     init_vgmstream_apple_caff,
+	init_vgmstream_pc_mxst,
+	init_vgmstream_sab,
+
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -604,6 +607,7 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
         case layout_none:
             render_vgmstream_nolayout(buffer,sample_count,vgmstream);
             break;
+		case layout_mxch_blocked:
         case layout_ast_blocked:
         case layout_halpst_blocked:
         case layout_xa_blocked:
@@ -1517,6 +1521,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         case layout_dtk_interleave:
             snprintf(temp,TEMPSIZE,"ADP/DTK nibble interleave");
             break;
+		case layout_mxch_blocked:
+            snprintf(temp,TEMPSIZE,"MxCh blocked");
+            break;
         case layout_ast_blocked:
             snprintf(temp,TEMPSIZE,"AST blocked");
             break;
@@ -2273,8 +2280,14 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         case meta_CAFF:
             snprintf(temp,TEMPSIZE,"Apple Core Audio Format Header");
             break;
+		case meta_PC_MXST:
+			snprintf(temp,TEMPSIZE,"Lego Island MxSt Header");
+			break;
+		case meta_PC_SOB_SAB:
+			snprintf(temp,TEMPSIZE,"Worms 4: Mayhem SOB/SAB Header");
+			break;
         case meta_MAXIS_XA:
-            snprintf(temp,TEMPSIZE,"Maxis XAI Header");
+            snprintf(temp,TEMPSIZE,"Maxis XAI/XAJ Header");
             break;
         default:
            snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

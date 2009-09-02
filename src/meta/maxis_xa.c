@@ -14,7 +14,8 @@ VGMSTREAM * init_vgmstream_maxis_xa(STREAMFILE *streamFile) {
     if (strcasecmp("xa",filename_extension(filename))) goto fail;
 
     /* check header */
-    if (read_32bitBE(0x00,streamFile) != 0x58414900) /* "XAI\0" */
+    if ((read_32bitBE(0x00,streamFile) != 0x58414900)&& /* "XAI\0" */
+		(read_32bitBE(0x00,streamFile) != 0x58414A00)) /*  "XAJ\0" */
         goto fail;
         
     loop_flag = 0;
@@ -30,6 +31,12 @@ VGMSTREAM * init_vgmstream_maxis_xa(STREAMFILE *streamFile) {
     vgmstream->sample_rate = read_32bitLE(0x0C,streamFile);
     vgmstream->coding_type = coding_MAXIS_ADPCM;
     vgmstream->num_samples = read_32bitLE(0x04,streamFile)/2/channel_count;
+
+    if (loop_flag) {
+        vgmstream->loop_start_sample = 0;
+        vgmstream->loop_end_sample = (read_32bitBE(0x0C,streamFile)-start_offset)/8/channel_count*14;
+    }
+
 
     vgmstream->layout_type = layout_none;
     vgmstream->meta_type = meta_MAXIS_XA;

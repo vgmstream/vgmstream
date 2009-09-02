@@ -177,6 +177,8 @@ char * extension_list[] = {
     "musx\0MUSX Audio File (*.MUSX)\0",
     "mss\0MSS Audio File (*.MSS)\0",
 
+	"mxst\0MxSt Audio File (*.MxSt)\0",
+
     "ndp\0NDP Audio File (*.NDP)\0",
     "npsf\0PS2 NPSF Audio File (*.NPSF)\0",
     "nwa\0NWA Audio File (*.NWA)\0",
@@ -204,6 +206,7 @@ char * extension_list[] = {
     "rwx\0RWX Audio File (*.RWX)\0",
     "rxw\0PS2 RXWS File (*.RXW)\0",
 
+	"sab\0SAB Audio File (*.SAB)\0",
     "sad\0SAD Audio File (*.SAD)\0",
     "sap\0SAP Audio File (*.SAP)\0",
     "sck\0SCK Audio File (*.SCK)\0",

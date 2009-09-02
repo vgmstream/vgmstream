@@ -164,5 +164,7 @@ libmeta_la_SOURCES += ngc_gcub.c
 libmeta_la_SOURCES += maxis_xa.c
 libmeta_la_SOURCES += ngc_sck_dsp.c
 libmeta_la_SOURCES += apple_caff.c
+libmeta_la_SOURCES += pc_mxst.c
+libmeta_la_SOURCES += pc_sob.c
 
 EXTRA_DIST = meta.h

@@ -52,6 +52,9 @@ void render_vgmstream_blocked(sample * buffer, int32_t sample_count, VGMSTREAM *
                 case layout_ast_blocked:
                     ast_block_update(vgmstream->next_block_offset,vgmstream);
                     break;
+				case layout_mxch_blocked:
+                    mxch_block_update(vgmstream->next_block_offset,vgmstream);
+                    break;
                 case layout_halpst_blocked:
                     if (vgmstream->next_block_offset>=0)
                         halpst_block_update(vgmstream->next_block_offset,vgmstream);

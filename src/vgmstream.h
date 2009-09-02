@@ -134,6 +134,7 @@ typedef enum {
     layout_gsb_blocked,
     layout_thp_blocked,
     layout_filp_blocked,
+	layout_mxch_blocked,
 
 #if 0
     layout_strm_blocked,    /* */
@@ -377,6 +378,8 @@ typedef enum {
     meta_RIFF_WAVE_MWV,     /* .mwv RIFF w/ loop data in ctrl chunk pflt */
     meta_RIFX_WAVE,         /* RIFX, for big-endian WAVs */
     meta_RIFX_WAVE_smpl,    /* RIFX w/ loop data in smpl chunk */
+	meta_PC_MXST,           /* Lego Island MxSt */
+	meta_PC_SOB_SAB,		/* Worms 4 Mayhem SOB+SAB file */
     meta_NWA,               /* Visual Art's NWA */
     meta_NWA_NWAINFOINI,    /* NWA w/ NWAINFO.INI for looping */
     meta_NWA_GAMEEXEINI,    /* NWA w/ Gameexe.ini for looping */

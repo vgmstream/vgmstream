@@ -471,6 +471,14 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\pc_mxst.c"
+					>
+				</File>
+				<File
+					RelativePath=".\meta\pc_sob.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\pcm.c"
 					>
 				</File>
@@ -1040,6 +1048,10 @@
 				</File>
 				<File
 					RelativePath=".\layout\mus_acm_layout.c"
+					>
+				</File>
+				<File
+					RelativePath=".\layout\mxch_blocked.c"
 					>
 				</File>
 				<File
