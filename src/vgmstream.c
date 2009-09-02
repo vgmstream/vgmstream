@@ -712,8 +712,8 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
             return 64;
         case coding_EAXA:
             return 28;
-        case coding_EA_ADPCM:
 		case coding_MAXIS_ADPCM:
+        case coding_EA_ADPCM:
 			return 14*vgmstream->channels;
         case coding_WS:
             /* only works if output sample size is 8 bit, which is always
@@ -791,6 +791,8 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
         case coding_XBOX:
 		case coding_INT_XBOX:
             return 36;
+		case coding_MAXIS_ADPCM:
+			return 15*vgmstream->channels;
         case coding_EA_ADPCM:
             return 30;
         case coding_EAXA:

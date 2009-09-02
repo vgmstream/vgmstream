@@ -125,6 +125,7 @@ void decode_maxis_adpcm(VGMSTREAM * vgmstream, sample * outbuf, int channelspaci
     int32_t sample_count;
 	long coef1,coef2;
 	int i,shift;
+	int frameSize = channelspacing*15;//mono samples have a frame of 15, stereo files have frames of 30
     VGMSTREAMCHANNEL *stream = &(vgmstream->ch[channel]);
 	off_t channel_offset=stream->channel_start_offset;
 
@@ -135,13 +136,14 @@ void decode_maxis_adpcm(VGMSTREAM * vgmstream, sample * outbuf, int channelspaci
 	coef2 = EA_TABLE[(frame_info >> 4) + 4];
 	shift = (frame_info & 0x0F)+8;
 
-	channel_offset+=2;
+	channel_offset+=channelspacing;
+	//stream->offset = first_sample*channelspacing/2;
 
 	for (i=first_sample,sample_count=0; i<first_sample+samples_to_do; i++,sample_count+=channelspacing) {
 		uint8_t sample_byte;
 		int32_t sample;
 
-		sample_byte = (uint8_t)read_8bit(stream->offset+channel_offset+i/2,stream->streamfile);
+		sample_byte = (uint8_t)read_8bit(stream->offset+channel_offset,stream->streamfile);
 
 		sample = (((((i&1)?
 					    sample_byte & 0x0F:
@@ -154,14 +156,15 @@ void decode_maxis_adpcm(VGMSTREAM * vgmstream, sample * outbuf, int channelspaci
 		stream->adpcm_history1_32 = sample;
 
 		if(i&1)
-			stream->offset++;
+			stream->offset+=channelspacing;
 	}
 		
 	channel_offset+=i;
 
 	// Only increment offset on complete frame
-	if(channel_offset-stream->channel_start_offset==0x1E) {
-		stream->channel_start_offset+=0x1E;
+
+	if(channel_offset-stream->channel_start_offset==frameSize) {
+		stream->channel_start_offset+=frameSize;
 		stream->offset=0;
 	}
 }
