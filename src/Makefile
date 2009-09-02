@@ -31,7 +31,7 @@ LAYOUT_OBJS=layout/ast_blocked.o \
     layout/str_snds_blocked.o \
     layout/ws_aud_blocked.o \
     layout/interleave_byte.o \
-	layout/mus_acm_layout.o \
+    layout/mus_acm_layout.o \
     layout/aix_layout.o \
     layout/ims_block.o \
     layout/de2_blocked.o \
@@ -42,7 +42,8 @@ LAYOUT_OBJS=layout/ast_blocked.o \
     layout/gsb_blocked.o \
     layout/filp_blocked.o \
     layout/aax_layout.o \
-    layout/ivaud_layout.o
+    layout/ivaud_layout.o \
+    layout/mxch_blocked.o
 
 META_OBJS=meta/adx_header.o \
     meta/afc_header.o \

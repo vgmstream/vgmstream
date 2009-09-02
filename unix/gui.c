@@ -130,7 +130,7 @@ void vgmstream_gui_about()
     (gchar *) "[ VGMStream Decoder ]\n\n"
     "audacious-vgmstream version: " AUDACIOUSVGMSTREAM_VERSION "\n\n"
     "audacious-vgmstream written by Todd Jeffreys (http://voidpointer.org/)\n"
-    "vgmstream written by hcs, FastElbja, manakoAT (http://www.sf.net/projects/vgmstream)",
+    "vgmstream written by hcs, FastElbja, manakoAT, and bxaimc (http://www.sf.net/projects/vgmstream)",
     (gchar *) "OK",
     FALSE, NULL, NULL);
   gtk_signal_connect(GTK_OBJECT(about_box), "destroy",
