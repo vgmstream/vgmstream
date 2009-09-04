@@ -205,7 +205,9 @@ META_OBJS=meta/adx_header.o \
     meta/ngc_gcub.o \
     meta/maxis_xa.o \
     meta/ngc_sck_dsp.o \
-    meta/apple_caff.o
+    meta/apple_caff.o \
+    meta/pc_mxst.o \
+    meta/pc_sob.o
 
 OBJECTS=vgmstream.o streamfile.o util.o $(CODING_OBJS) $(LAYOUT_OBJS) $(META_OBJS)
 
