@@ -102,6 +102,7 @@ typedef enum {
     coding_MSADPCM,         /* Microsoft ADPCM */
     coding_AICA,            /* Yamaha AICA ADPCM */
     coding_L5_555,          /* Level-5 0x555 */
+    coding_SASSC,           /* Activision EXAKT SASSC DPCM */
 } coding_t;
 
 /* The layout type specifies how the sound data is laid out in the file */
@@ -411,6 +412,7 @@ typedef enum {
     meta_MAXIS_XA,          /* Sim City 3000 (PC) */
     meta_NGC_SCK_DSP,       /* Scorpion King (NGC) */
     meta_CAFF,              /* iPhone .caf */
+    meta_EXAKT_SC,          /* Activision EXAKT .SC (PS2) */
 } meta_t;
 
 typedef struct {

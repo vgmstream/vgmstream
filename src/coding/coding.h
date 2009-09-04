@@ -88,4 +88,6 @@ void decode_nds_procyon(VGMSTREAMCHANNEL * stream, sample * outbuf, int channels
 
 void decode_l5_555(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
 
+void decode_SASSC(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
+
 #endif

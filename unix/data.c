@@ -184,7 +184,8 @@ gchar *vgmstream_exts [] = {
   "hwas",
   "caf",
   "mxst",
-  "sab"
+  "sab",
+  "sc",
   /* terminator */
   NULL
 };

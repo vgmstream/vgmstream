@@ -17,7 +17,8 @@ CODING_OBJS=coding/adx_decoder.o \
     coding/msadpcm_decoder.o \
     coding/aica_decoder.o \
     coding/nds_procyon_decoder.o \
-    coding/l5_555_decoder.o
+    coding/l5_555_decoder.o \
+    coding/SASSC_decoder.o
 
 LAYOUT_OBJS=layout/ast_blocked.o \
     layout/blocked.o \
@@ -207,7 +208,8 @@ META_OBJS=meta/adx_header.o \
     meta/ngc_sck_dsp.o \
     meta/apple_caff.o \
     meta/pc_mxst.o \
-    meta/pc_sob.o
+    meta/pc_sob.o \
+    meta/exakt_sc.o
 
 OBJECTS=vgmstream.o streamfile.o util.o $(CODING_OBJS) $(LAYOUT_OBJS) $(META_OBJS)
 

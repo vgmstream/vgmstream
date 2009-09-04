@@ -224,6 +224,7 @@ etc:
 - .mwv (Level-5 0x555 ADPCM)
 - .ogg, .logg (Ogg Vorbis)
 - .rsf (CCITT G.721 ADPCM)
+- .sc (Activision EXAKT SASSC DPCM)
 - .sd9 (MS ADPCM)
 - .spw (FFXI PS-like ADPCM)
 - .str (SDX2 DPCM)

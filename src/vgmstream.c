@@ -225,7 +225,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_apple_caff,
 	init_vgmstream_pc_mxst,
 	init_vgmstream_sab,
-
+    init_vgmstream_exakt_sc,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -685,6 +685,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_NWA3:
         case coding_NWA4:
         case coding_NWA5:
+        case coding_SASSC:
             return 1;
         case coding_NDS_IMA:
                 return (vgmstream->interleave_block_size-4)*2;
@@ -766,6 +767,7 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
         case coding_NWA3:
         case coding_NWA4:
         case coding_NWA5:
+        case coding_SASSC:
             return 1;
         case coding_MS_IMA:
         case coding_NDS_IMA:
@@ -1158,6 +1160,14 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
             }
 
             break;
+        case coding_SASSC:
+            for (chan=0;chan<vgmstream->channels;chan++) {
+                decode_SASSC(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                        vgmstream->channels,vgmstream->samples_into_block,
+                        samples_to_do);
+            }
+
+            break;
     }
 }
 
@@ -1498,6 +1508,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case coding_L5_555:
             snprintf(temp,TEMPSIZE,"Level-5 0x555 ADPCM");
+            break;
+        case coding_SASSC:
+            snprintf(temp,TEMPSIZE,"Activision / EXAKT SASSC 8-bit DPCM");
             break;
         default:
             snprintf(temp,TEMPSIZE,"CANNOT DECODE");
@@ -2290,6 +2303,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
 			break;
         case meta_MAXIS_XA:
             snprintf(temp,TEMPSIZE,"Maxis XAI/XAJ Header");
+            break;
+        case meta_EXAKT_SC:
+            snprintf(temp,TEMPSIZE,"assumed Activision / EXAKT SC by extension");
             break;
         default:
            snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

@@ -297,6 +297,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\exakt_sc.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\fsb.c"
 					>
 				</File>
@@ -968,6 +972,10 @@
 				</File>
 				<File
 					RelativePath=".\coding\xa_decoder.c"
+					>
+				</File>
+				<File
+					RelativePath=".\coding\SASSC_decoder.c"
 					>
 				</File>
 			</Filter>

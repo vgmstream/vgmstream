@@ -411,4 +411,6 @@ VGMSTREAM * init_vgmstream_pc_mxst(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_sab(STREAMFILE* streamFile);
 
+VGMSTREAM * init_vgmstream_exakt_sc(STREAMFILE* streamFile);
+
 #endif
