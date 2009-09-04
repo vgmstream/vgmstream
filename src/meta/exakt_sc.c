@@ -23,7 +23,7 @@ VGMSTREAM * init_vgmstream_exakt_sc(STREAMFILE *streamFile) {
 
     /* fill in the vital statistics */
     vgmstream->num_samples = file_size / 2;
-    vgmstream->sample_rate = 44100;
+    vgmstream->sample_rate = 48000;
 
     vgmstream->coding_type = coding_SASSC;
     vgmstream->layout_type = layout_interleave;
