@@ -10,8 +10,9 @@ VGMSTREAM * init_vgmstream_wii_bns(STREAMFILE *streamFile) {
     uint32_t info_offset=0,data_offset=0;
     uint32_t channel_info_offset_list_offset;
 	int channel_count;
+    int loop_flag;
     uint16_t sample_rate;
-    uint32_t sample_count;
+    uint32_t sample_count, loop_start;
 
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
@@ -57,7 +58,9 @@ VGMSTREAM * init_vgmstream_wii_bns(STREAMFILE *streamFile) {
                 chunk_offset+chunk_size > BNS_offset+header_file_size) goto fail;
 
             // ensure chunk size in header matches that listed in chunk
-            if ((uint32_t)read_32bitBE(chunk_offset+4,streamFile) != chunk_size) goto fail;
+            // Note: disabled for now, as the Homebrew Channel BNS has a DATA
+            // chunk that doesn't include the header size
+            //if ((uint32_t)read_32bitBE(chunk_offset+4,streamFile) != chunk_size) goto fail;
 
             // handle each chunk type
             switch (read_32bitBE(chunk_offset,streamFile)) {
@@ -78,12 +81,13 @@ VGMSTREAM * init_vgmstream_wii_bns(STREAMFILE *streamFile) {
 
     /* parse out basic stuff in INFO */
     {
-        /* only seen this zero, possibly format, loop flag? */
-        if (read_16bitBE(info_offset+0x00,streamFile) != 0) goto fail;
+        /* only seen this zero, specifies DSP format? */
+        if (read_8bit(info_offset+0x00,streamFile) != 0) goto fail;
 
+        loop_flag = read_8bit(info_offset+0x01,streamFile);
         channel_count = read_8bit(info_offset+0x02,streamFile);
 
-        /* only seen zero, padding? loop flag? */
+        /* only seen zero, padding? */
         if (read_8bit(info_offset+0x03,streamFile) != 0) goto fail;
 
         sample_rate = (uint16_t)read_16bitBE(info_offset+0x04,streamFile);
@@ -91,8 +95,7 @@ VGMSTREAM * init_vgmstream_wii_bns(STREAMFILE *streamFile) {
         /* only seen this zero, padding? */
         if (read_16bitBE(info_offset+0x06,streamFile) != 0) goto fail;
 
-        /* only seen this zero, loop start? */
-        if (read_32bitBE(info_offset+0x08,streamFile) != 0) goto fail;
+        loop_start = read_32bitBE(info_offset+0x08,streamFile);
 
         sample_count = read_32bitBE(info_offset+0x0c,streamFile);
 
@@ -100,7 +103,7 @@ VGMSTREAM * init_vgmstream_wii_bns(STREAMFILE *streamFile) {
     }
 
 	/* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,0);
+    vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
 	/* fill in the vital statistics */
@@ -110,6 +113,12 @@ VGMSTREAM * init_vgmstream_wii_bns(STREAMFILE *streamFile) {
     vgmstream->num_samples = sample_count;
     vgmstream->layout_type = layout_none;
     vgmstream->meta_type = meta_WII_BNS;
+
+    if (loop_flag)
+    {
+        vgmstream->loop_start_sample = loop_start;
+        vgmstream->loop_end_sample = sample_count;
+    }
 
     /* open the file for reading */
     {
