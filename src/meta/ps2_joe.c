@@ -19,8 +19,8 @@ VGMSTREAM * init_vgmstream_ps2_joe(STREAMFILE *streamFile) {
     if (strcasecmp("joe",filename_extension(filename))) goto fail;
 
     /* check header */
-    if (read_32bitBE(0x0C,streamFile) != 0xCCCCCCCC)
-        goto fail;
+    // if (read_32bitBE(0x0C,streamFile) != 0xCCCCCCCC)
+    //    goto fail;
 
     loop_flag = 1;
     channel_count = 2;
@@ -38,7 +38,7 @@ VGMSTREAM * init_vgmstream_ps2_joe(STREAMFILE *streamFile) {
 		
 	
 	fileLength = get_streamfile_size(streamFile);
-		
+    readOffset = start_offset;
 	do {
 		
 		readOffset+=(off_t)read_streamfile(testBuffer,readOffset,0x10,streamFile); 
