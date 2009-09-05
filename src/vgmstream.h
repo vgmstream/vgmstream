@@ -192,6 +192,7 @@ typedef enum {
     meta_RSTM_shrunken,     /* Atlus' mutant shortened RSTM */
 	meta_NDS_SWAV,		    /* Asphalt Urban GT 1 & 2 */
 	meta_NDS_RRDS,		    /* Ridge Racer DS */
+    meta_WII_BNS,           /* Wii BNS Banner Sound (similar to RSTM) */
 
     /* CRI ADX */
     meta_ADX_03,            /* ADX "type 03" */

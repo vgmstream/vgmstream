@@ -167,5 +167,6 @@ libmeta_la_SOURCES += apple_caff.c
 libmeta_la_SOURCES += pc_mxst.c
 libmeta_la_SOURCES += pc_sob.c
 libmeta_la_SOURCES += exakt_sc.c
+libmeta_la_SOURCES += wii_bns.c
 
 EXTRA_DIST = meta.h

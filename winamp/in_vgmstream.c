@@ -80,7 +80,7 @@ char * extension_list[] = {
     "pdt\0PDT Audio File (*.PDT)\0", /* Mario Party and some other games */
 #endif
 
-	"2dx\0\2DX Audio File (*.2DX)\0",
+	"2dx\0""2DX Audio File (*.2DX)\0",
 	
 	"aax\0AAX Audio File (*.AAX)\0",
     "acm\0ACM Audio File (*.ACM)\0",
@@ -108,6 +108,7 @@ char * extension_list[] = {
     "bg00\0BG00 Audio File (*.BG00)\0",
     "bgw\0BGW Audio File (*.BGW)\0",
     "bmdx\0BMDX Audio File (*.BMDX)\0",
+    "bns\0BNS Audio File (*.BNS)\0",
     "brstm;brstmspm\0BRSTM Audio File (*.BRSTM)\0",
 
     "caf\0CAF Audio File (*.CAF)\0",

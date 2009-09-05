@@ -106,6 +106,7 @@ GC/Wii DSP ADPCM:
 - .agsc
 - .amts
 - .asr
+- .bns
 - .cfn
 - .dsp
   - standard, with dual file stereo

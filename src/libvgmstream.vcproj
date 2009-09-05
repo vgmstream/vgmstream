@@ -791,6 +791,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\wii_bns.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\wii_mus.c"
 					>
 				</File>
