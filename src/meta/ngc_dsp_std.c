@@ -1351,7 +1351,6 @@ VGMSTREAM * init_vgmstream_wii_wsd(STREAMFILE *streamFile) {
 
     vgmstream->ch[1].streamfile = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
     if (!vgmstream->ch[1].streamfile) goto fail;
-    vgmstream->ch[1].streamfile = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
 
     vgmstream->ch[0].channel_start_offset =
             vgmstream->ch[0].offset=channel_1_start+0x60;
