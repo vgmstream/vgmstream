@@ -10,8 +10,11 @@ VGMSTREAM * init_vgmstream_ps2_ads(STREAMFILE *streamFile) {
     int loop_flag=0;
     int channel_count;
 	off_t start_offset;
+	off_t check_offset;
 
 	uint8_t	testBuffer[0x10];
+	uint8_t isPCM = 0;
+
 	off_t	readOffset = 0;
 	off_t	loopEnd = 0;
 
@@ -53,6 +56,7 @@ VGMSTREAM * init_vgmstream_ps2_ads(STREAMFILE *streamFile) {
 
 	/* SS2 container with RAW Interleaved PCM */
     if (read_32bitLE(0x08,streamFile)!=0x10) {
+
         vgmstream->coding_type=coding_PCM16LE;
         vgmstream->num_samples = read_32bitLE(0x24,streamFile)/2/vgmstream->channels;
     }
@@ -114,6 +118,26 @@ VGMSTREAM * init_vgmstream_ps2_ads(STREAMFILE *streamFile) {
 			}
 		}
 	} 
+
+	// check if we got a real pcm (ex: Clock Tower 3)
+	if(vgmstream->coding_type==coding_PCM16LE) 
+	{
+		check_offset=start_offset;
+		do {
+			if(read_8bit(check_offset+1,streamFile)>7) 
+			{
+				isPCM=1;
+				break;
+			} else
+				check_offset+=0x10;
+			
+		} while (check_offset<get_streamfile_size(streamFile));
+
+		if(!isPCM) {
+			vgmstream->num_samples=(get_streamfile_size(streamFile)-start_offset)/16*28/vgmstream->channels;
+			vgmstream->coding_type=coding_PSX;
+		}
+	}
 
 	/* expect pcm format allways start @ 0x800, don't know if it's true :P */
 	/*if(vgmstream->coding_type == coding_PCM16LE)
