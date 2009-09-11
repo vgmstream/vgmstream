@@ -819,6 +819,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\wii_was.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\ws_aud.c"
 					>
 				</File>
@@ -967,6 +971,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\coding\SASSC_decoder.c"
+					>
+				</File>
+				<File
 					RelativePath=".\coding\sdx2_decoder.c"
 					>
 				</File>
@@ -976,10 +984,6 @@
 				</File>
 				<File
 					RelativePath=".\coding\xa_decoder.c"
-					>
-				</File>
-				<File
-					RelativePath=".\coding\SASSC_decoder.c"
 					>
 				</File>
 			</Filter>

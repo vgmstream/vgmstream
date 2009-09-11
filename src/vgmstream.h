@@ -414,6 +414,7 @@ typedef enum {
     meta_NGC_SCK_DSP,       /* Scorpion King (NGC) */
     meta_CAFF,              /* iPhone .caf */
     meta_EXAKT_SC,          /* Activision EXAKT .SC (PS2) */
+    meta_WII_WAS,           /* DiRT 2 (WII) */
 } meta_t;
 
 typedef struct {

@@ -415,4 +415,6 @@ VGMSTREAM * init_vgmstream_exakt_sc(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_wii_bns(STREAMFILE* streamFile);
 
+VGMSTREAM * init_vgmstream_wii_was(STREAMFILE* streamFile);
+
 #endif

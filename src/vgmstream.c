@@ -227,6 +227,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_sab,
     init_vgmstream_exakt_sc,
     init_vgmstream_wii_bns,
+    init_vgmstream_wii_was,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -2310,6 +2311,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case meta_WII_BNS:
             snprintf(temp,TEMPSIZE,"Nintendo BNS header");
+            break;
+        case meta_WII_WAS:
+            snprintf(temp,TEMPSIZE,"DiRT2 WAS header");
             break;
         default:
            snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");
