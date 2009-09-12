@@ -164,6 +164,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_rsd6vag,
     init_vgmstream_rsd6wadp,
     init_vgmstream_rsd6xadp,
+    init_vgmstream_rsd6radp,
     init_vgmstream_bgw,
     init_vgmstream_spw,
     init_vgmstream_ps2_ass,
@@ -727,6 +728,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_APPLE_IMA4:
             return 64;
         case coding_MS_IMA:
+        case coding_RAD_IMA:
             return (vgmstream->interleave_block_size-4*vgmstream->channels)*2/vgmstream->channels;
         case coding_NDS_PROCYON:
             return 30;
@@ -772,6 +774,7 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
         case coding_SASSC:
             return 1;
         case coding_MS_IMA:
+        case coding_RAD_IMA:
         case coding_NDS_IMA:
             return vgmstream->interleave_block_size;
         case coding_NGC_DTK:
@@ -946,6 +949,13 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
         case coding_MS_IMA:
             for (chan=0;chan<vgmstream->channels;chan++) {
                 decode_ms_ima(vgmstream,&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                        vgmstream->channels,vgmstream->samples_into_block,
+                        samples_to_do,chan);
+            }
+            break;
+        case coding_RAD_IMA:
+            for (chan=0;chan<vgmstream->channels;chan++) {
+                decode_rad_ima(vgmstream,&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
                         samples_to_do,chan);
             }
@@ -1439,6 +1449,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case coding_MS_IMA:
             snprintf(temp,TEMPSIZE,"Microsoft 4-bit IMA ADPCM");
+            break;
+        case coding_RAD_IMA:
+            snprintf(temp,TEMPSIZE,"\"Radical\" 4-bit IMA ADPCM");
             break;
         case coding_APPLE_IMA4:
             snprintf(temp,TEMPSIZE,"Apple Quicktime 4-bit IMA ADPCM");
@@ -2115,6 +2128,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case meta_RSD6WADP:
             snprintf(temp,TEMPSIZE,"RSD6/WADP Header");
+            break;
+        case meta_RSD6RADP:
+            snprintf(temp,TEMPSIZE,"RSD6/RADP Header");
             break;
         case meta_DC_ASD:
             snprintf(temp,TEMPSIZE,"ASD Header");

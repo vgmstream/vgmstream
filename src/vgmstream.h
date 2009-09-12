@@ -74,6 +74,7 @@ typedef enum {
     coding_IMA,             /* bare IMA, low nibble first */
     coding_INT_IMA,         /* */
     coding_MS_IMA,          /* Microsoft IMA */
+    coding_RAD_IMA,         /* "Radical ADPCM" IMA */
     coding_APPLE_IMA4,      /* Apple Quicktime IMA4 */
     coding_WS,              /* Westwood Studios' custom VBR ADPCM */
 #ifdef VGM_USE_MPEG
@@ -315,6 +316,7 @@ typedef enum {
     meta_RSD6VAG,			/* RSD6VAG */
     meta_RSD6WADP,			/* RSD6WADP */
     meta_RSD6XADP,			/* RSD6XADP */
+    meta_RSD6RADP,			/* RSD6RADP */
 
     meta_PS2_ASS,			/* ASS */
     meta_PS2_SEG,			/* Eragon */
