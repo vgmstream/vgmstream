@@ -211,8 +211,10 @@ META_OBJS=meta/adx_header.o \
     meta/pc_sob.o \
     meta/exakt_sc.o \
     meta/wii_bns.o \
-    meta/wii_was.o
-
+    meta/wii_was.o \
+    meta/pona.o \
+    meta/fsb_test.o
+    
 OBJECTS=vgmstream.o streamfile.o util.o $(CODING_OBJS) $(LAYOUT_OBJS) $(META_OBJS)
 
 libvgmstream.a: $(OBJECTS)

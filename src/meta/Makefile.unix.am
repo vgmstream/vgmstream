@@ -169,5 +169,7 @@ libmeta_la_SOURCES += pc_sob.c
 libmeta_la_SOURCES += exakt_sc.c
 libmeta_la_SOURCES += wii_bns.c
 libmeta_la_SOURCES += wii_was.c
+libmeta_la_SOURCES += pona.c
+libmeta_la_SOURCES += fsb_test.c
 
 EXTRA_DIST = meta.h

@@ -82,6 +82,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_aus,
     init_vgmstream_rws,
     init_vgmstream_fsb1,
+    // init_vgmstream_fsb2,
     init_vgmstream_fsb3,
     init_vgmstream_fsb4,
     init_vgmstream_fsb4_wav,
@@ -229,6 +230,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_exakt_sc,
     init_vgmstream_wii_bns,
     init_vgmstream_wii_was,
+    init_vgmstream_pona,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -1937,8 +1939,11 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         case meta_FSB1:
             snprintf(temp,TEMPSIZE,"FMOD Sample Bank (FSB1) Header");
             break;
-        case meta_FSB3:
-            snprintf(temp,TEMPSIZE,"FMOD Sample Bank (FSB3) Header");
+        case meta_FSB3_0:
+            snprintf(temp,TEMPSIZE,"FMOD Sample Bank (FSB3.0) Header");
+            break;
+        case meta_FSB3_1:
+            snprintf(temp,TEMPSIZE,"FMOD Sample Bank (FSB3.1) Header");
             break;
         case meta_FSB4:
             snprintf(temp,TEMPSIZE,"FMOD Sample Bank (FSB4) Header");

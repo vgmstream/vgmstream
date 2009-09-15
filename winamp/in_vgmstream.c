@@ -189,6 +189,7 @@ char * extension_list[] = {
     "pcm\0PCM Audio File (*.PCM)\0",
     "pdt\0PDT Audio File (*.PDT)\0",
     "pnb\0PNB Audio File (*.PNB)\0",
+    "pona\0PONA Audio File (*.PONA)\0",
     "pos\0POS Audio File (*.POS)\0",
     "psh\0PSH Audio File (*.PSH)\0",
     "psw\0PSW Audio File (*.PSW)\0",

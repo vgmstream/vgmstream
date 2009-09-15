@@ -419,4 +419,6 @@ VGMSTREAM * init_vgmstream_wii_bns(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_wii_was(STREAMFILE* streamFile);
 
+VGMSTREAM * init_vgmstream_pona(STREAMFILE* streamFile);
+
 #endif
