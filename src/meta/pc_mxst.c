@@ -14,7 +14,7 @@ VGMSTREAM * init_vgmstream_pc_mxst(STREAMFILE *streamFile) {
     long sample_count;
     int i;
     off_t file_size;
-    off_t chunk_list_size;
+    off_t chunk_list_size=-1;
     off_t start_offset;
 
     /* check extension, case insensitive */
@@ -77,7 +77,7 @@ VGMSTREAM * init_vgmstream_pc_mxst(STREAMFILE *streamFile) {
             if (chunk_offset > file_size) goto fail;
         }
 
-        if (MxDa == -1 || MxCh == -1) goto fail;
+        if (MxDa == -1 || MxCh == -1 || chunk_list_size == -1) goto fail;
         
         /* parse MxDa */
         {
@@ -130,7 +130,7 @@ VGMSTREAM * init_vgmstream_pc_mxst(STREAMFILE *streamFile) {
                         split_frames_seen ++;
                         if (split_frames_seen == 1)
                         {
-                            if (read_32bitLE(MxCh_offset+8+6,streamFile)!=(samples*1000l+sample_rate-1)/sample_rate)
+                            if (read_32bitLE(MxCh_offset+8+6,streamFile)!=(samples*UINT64_C(1000)+sample_rate-1)/sample_rate)
                                 goto fail;
                         }
                         else if (split_frames_seen == 2)
@@ -148,7 +148,7 @@ VGMSTREAM * init_vgmstream_pc_mxst(STREAMFILE *streamFile) {
                         {
                             goto fail;
                         }
-                        if (read_32bitLE(MxCh_offset+8+6,streamFile)!=(samples*1000l+sample_rate-1)/sample_rate)
+                        if (read_32bitLE(MxCh_offset+8+6,streamFile)!=(samples*UINT64_C(1000)+sample_rate-1)/sample_rate)
                             goto fail;
 
                         if ( read_32bitLE(MxCh_offset+8+0xa,streamFile)!=
