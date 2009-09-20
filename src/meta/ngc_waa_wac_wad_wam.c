@@ -72,6 +72,10 @@ VGMSTREAM * init_vgmstream_waa_wac_wad_wam(STREAMFILE *streamFile) {
 			vgmstream->loop_start_sample = 0;
 			vgmstream->loop_end_sample = (read_32bitLE(0x2A,streamFile))*14/8/channel_count;
 		}
+		if(read_16bitLE(0x24,streamFile)==0x00)//is a wii file with no coeff table
+		{
+			goto fail;
+		}
             second_channel_start = (read_32bitLE(0x2A,streamFile)/2)+0x8A;
             /* Retrieveing the coef tables */
 			coef1_start = 0x2E;
