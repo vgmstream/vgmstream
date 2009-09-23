@@ -47,14 +47,21 @@ VGMSTREAM * init_vgmstream_waa_wac_wad_wam(STREAMFILE *streamFile) {
 
 	vgmstream->channels = channel_count;
     vgmstream->sample_rate = read_32bitLE(0x18,streamFile);
-    vgmstream->layout_type = layout_none;
 	vgmstream->meta_type = meta_WAA_WAC_WAD_WAM;
+    vgmstream->layout_type = layout_none;
 
     switch((uint16_t)read_16bitLE(0x14,streamFile))	{
-		/* fill in the vital statistics */
-    case 0xFFFF: //PS2 adpcm
+    case 0x0069: // XBOX IMA ADPCM
 		start_offset = 0x2E;
-
+		vgmstream->coding_type = coding_XBOX;
+		vgmstream->num_samples = (read_32bitLE(0x2A,streamFile))/36/channel_count*64;
+		if (loop_flag) {
+			vgmstream->loop_start_sample = 0;
+			vgmstream->loop_end_sample = (read_32bitLE(0x2A,streamFile))/36/channel_count*64;
+		}
+    break;
+    case 0xFFFF: // PS2 ADPCM
+		start_offset = 0x2E;
 		vgmstream->coding_type = coding_PSX;
 		vgmstream->num_samples = (read_32bitLE(0x2A,streamFile))/16*28/channel_count;
 		if (loop_flag) {
@@ -62,9 +69,8 @@ VGMSTREAM * init_vgmstream_waa_wac_wad_wam(STREAMFILE *streamFile) {
 			vgmstream->loop_end_sample = (read_32bitLE(0x2A,streamFile))/16*28/channel_count;
 		}
             second_channel_start = (read_32bitLE(0x2A,streamFile)/2)+start_offset;
-        break;
-	    
-    case 0xFFFE: //game cube DSP
+    break;
+    case 0xFFFE: // GameCube DSP
 		start_offset = 0x5C;
 		vgmstream->coding_type = coding_NGC_DSP;
 		vgmstream->num_samples = (read_32bitLE(0x2A,streamFile))*14/8/channel_count;
@@ -95,25 +101,30 @@ VGMSTREAM * init_vgmstream_waa_wac_wad_wam(STREAMFILE *streamFile) {
 			    goto fail;
 	}
 
+
+
+
     /* open the file for reading */
     {
+        int i;
         STREAMFILE * file;
         file = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
         if (!file) goto fail;
         for (i=0;i<channel_count;i++) {
             vgmstream->ch[i].streamfile = file;
-            /* The first channel */
-            vgmstream->ch[0].channel_start_offset=
-            vgmstream->ch[0].offset=start_offset;
+            
+            if (vgmstream->coding_type == coding_XBOX) {
+                /* xbox interleaving is a little odd */
+                vgmstream->ch[i].channel_start_offset=start_offset;
+            } else {
+                vgmstream->ch[0].channel_start_offset=start_offset;
+            if (channel_count == 2) {
+                vgmstream->ch[1].channel_start_offset=second_channel_start;
+            }
+        }
+        vgmstream->ch[i].offset = vgmstream->ch[i].channel_start_offset;
     }
-	/* The second channel */
-        if (channel_count == 2) {
-        vgmstream->ch[1].streamfile = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-        if (!vgmstream->ch[1].streamfile) goto fail;
-        vgmstream->ch[1].channel_start_offset=
-            vgmstream->ch[1].offset=second_channel_start;
     }
-}
 
 
     return vgmstream;
