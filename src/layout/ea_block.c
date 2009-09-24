@@ -51,6 +51,13 @@ void ea_block_update(off_t block_offset, VGMSTREAM * vgmstream) {
 					vgmstream->ch[i].adpcm_history2_32=(uint32_t)read_16bitLE(vgmstream->current_block_offset+0x0e +(i*4),vgmstream->ch[0].streamfile);
 				}
 				break;
+			case coding_PCM16BE: 
+				vgmstream->current_block_size = read_32bitLE(block_offset+4,vgmstream->ch[0].streamfile)-0x14;
+				for(i=0;i<vgmstream->channels;i++) {
+					vgmstream->ch[i].offset=block_offset+0x14+vgmstream->current_block_size/vgmstream->channels*i;
+				}
+				vgmstream->current_block_size/=vgmstream->channels;
+                break;
 			case coding_PCM16LE_int: 
 				vgmstream->current_block_size = read_32bitLE(block_offset+4,vgmstream->ch[0].streamfile)-0x0C;
 				for(i=0;i<vgmstream->channels;i++) {
@@ -76,7 +83,7 @@ void ea_block_update(off_t block_offset, VGMSTREAM * vgmstream) {
 		}
 	}
 
-	if((vgmstream->ea_compression_version<3) && (vgmstream->coding_type!=coding_PSX) && (vgmstream->coding_type!=coding_EA_ADPCM) && (vgmstream->coding_type!=coding_XBOX)) {
+	if((vgmstream->ea_compression_version<3) && (vgmstream->coding_type!=coding_PSX) && (vgmstream->coding_type!=coding_EA_ADPCM) && (vgmstream->coding_type!=coding_XBOX) && (vgmstream->coding_type!=coding_PCM16BE)) {
 		for(i=0;i<vgmstream->channels;i++) {
 			if(vgmstream->ea_big_endian) {
 				vgmstream->ch[i].adpcm_history1_32=read_16bitBE(vgmstream->ch[i].offset,vgmstream->ch[0].streamfile);
