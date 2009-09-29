@@ -121,7 +121,6 @@ typedef enum {
     layout_halpst_blocked,    /* blocks with HALPST-format header */
     layout_xa_blocked,
     layout_ea_blocked,
-	layout_maxis_blocked,
     layout_eacs_blocked,
     layout_caf_blocked,
     layout_wsi_blocked,
