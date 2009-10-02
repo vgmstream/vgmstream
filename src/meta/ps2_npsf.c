@@ -43,10 +43,14 @@ VGMSTREAM * init_vgmstream_ps2_npsf(STREAMFILE *streamFile) {
 	}
 
 	vgmstream->interleave_block_size = read_32bitLE(0x04,streamFile)/2;
-    vgmstream->layout_type = layout_interleave;
     vgmstream->meta_type = meta_PS2_NPSF;
+    start_offset = (off_t)read_32bitLE(0x10,streamFile);
 
-	start_offset = (off_t)read_32bitLE(0x10,streamFile);
+    if (vgmstream->channels == 1) {
+        vgmstream->layout_type = layout_none;
+    } else {
+        vgmstream->layout_type = layout_interleave;
+    }
 
     /* open the file for reading by each channel */
     {
