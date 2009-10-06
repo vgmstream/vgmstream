@@ -31,7 +31,7 @@ VGMSTREAM * init_vgmstream_sfs(STREAMFILE *streamFile) {
     vgmstream->coding_type = coding_PSX;
     vgmstream->num_samples = (read_32bitLE(0x04,streamFile)*2)*28/16/channel_count;
     if (loop_flag) {
-        vgmstream->loop_start_sample = (read_32bitLE(0x08,streamFile)*2)*28/16/channel_count;
+        vgmstream->loop_start_sample = read_32bitLE(0x08,streamFile)*28/16/channel_count;
         vgmstream->loop_end_sample = (read_32bitLE(0x04,streamFile)*2)*28/16/channel_count;
     }
 

@@ -25,7 +25,12 @@ VGMSTREAM * init_vgmstream_fsb3(STREAMFILE *streamFile) {
         (read_32bitBE(0x10,streamFile) != 0x01000300))
     goto fail;
 
-        loop_flag = 0; // for now...
+    if (read_32bitBE(0x48,streamFile) == 0x02000806) { // Metroid Prime 3
+        loop_flag = 1;
+    } else {
+        loop_flag = 0; /* (read_32bitLE(0x08,streamFile)!=0); */
+    }
+
         channel_count = read_16bitLE(0x56,streamFile);
         fsb_headerlen = read_32bitLE(0x08,streamFile);
     
