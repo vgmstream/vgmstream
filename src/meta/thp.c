@@ -42,7 +42,10 @@ VGMSTREAM * init_vgmstream_thp(STREAMFILE *streamFile) {
     loop_flag = 0; // allways unloop
 
 	/* fill in the vital statistics */
-    start_offset = read_32bitBE(0x28,streamFile); 
+	if(thpVersion==0x10) 
+		start_offset = read_32bitBE(0x24,streamFile); 
+	else
+		start_offset = read_32bitBE(0x28,streamFile); 
 
 	// Get info from the first block
 	componentTypeOffset = read_32bitBE(0x20,streamFile);
@@ -81,6 +84,7 @@ VGMSTREAM * init_vgmstream_thp(STREAMFILE *streamFile) {
         }
     }
 
+	start_offset=read_32bitBE(0x28,streamFile);
 	vgmstream->thpNextFrameSize=read_32bitBE(0x18,streamFile);
 	thp_block_update(start_offset,vgmstream);
 
