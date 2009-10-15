@@ -418,6 +418,7 @@ typedef enum {
     meta_EXAKT_SC,          /* Activision EXAKT .SC (PS2) */
     meta_WII_WAS,           /* DiRT 2 (WII) */
     meta_PONA,              /* Policenauts (3DO + PSX) */
+    meta_XBOX_HLWAV,        /* Half Life 2 (XBOX) */
 } meta_t;
 
 typedef struct {

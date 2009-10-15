@@ -421,4 +421,6 @@ VGMSTREAM * init_vgmstream_wii_was(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_pona(STREAMFILE* streamFile);
 
+VGMSTREAM * init_vgmstream_xbox_hlwav(STREAMFILE* streamFile);
+
 #endif

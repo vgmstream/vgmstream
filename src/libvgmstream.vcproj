@@ -839,6 +839,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\xbox_hlwav.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\xbox_ims.c"
 					>
 				</File>
