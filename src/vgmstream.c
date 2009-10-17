@@ -161,6 +161,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_rsd3pcmb,
     init_vgmstream_rsd4pcmb,
     init_vgmstream_rsd4pcm,
+	init_vgmstream_rsd4radp,
     init_vgmstream_rsd4vag,
     init_vgmstream_rsd6vag,
     init_vgmstream_rsd6wadp,
@@ -2122,6 +2123,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case meta_RSD4PCM:
             snprintf(temp,TEMPSIZE,"RSD4/PCM Header");
+            break;
+		case meta_RSD4RADP:
+            snprintf(temp,TEMPSIZE,"RSD4/RADP Header");
             break;
         case meta_RSD4VAG:
             snprintf(temp,TEMPSIZE,"RSD4/VAG Header");
