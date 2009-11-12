@@ -21,6 +21,7 @@
 #endif
 
 VGMSTREAM * vgmstream = NULL;
+int Decoder_Is_Using_Lame_Hack = 0; 
 double timestamp=0;
 
 #define DECODE_SIZE		1024
@@ -49,24 +50,54 @@ int __stdcall XMP_CheckFile(char *filename, BYTE *buf, DWORD length) {
 	return ret;
 }
 
+// part of our hugeass hack to stop things from crashing
+static INT32 valid_freqs[5] = {
+	11025,
+	22050,
+	32000,
+	44100,
+	48000,
+};
+
 int __stdcall LoadVgmStream(char *filename, XMPFILE file) {
+	int i;
 	vgmstream = init_vgmstream(filename);
  
 	if (!vgmstream) return 0;
 	 // just loop forever till we have configuration done
 
+	Decoder_Is_Using_Lame_Hack = 0;
+
+	for (i = 0; i < 5; i ++) {
+		if (vgmstream->sample_rate == valid_freqs[i]) {
+			Decoder_Is_Using_Lame_Hack = 1;
+			break;
+		}
+	}
+
 	return 1;
 }
 
 int __stdcall XMP_Buffer(float* buffer, UINT32 bufsize) {
-	int i;
+	int i,x,y;
+	int adder = vgmstream->channels * (Decoder_Is_Using_Lame_Hack ? 2 : 1);
 
-	// Quick way of converting to float
-	for (i=0;i<bufsize;i+=vgmstream->channels) {
+	/*
+	** Algorithm for correct playback.
+	** This is in fact a huge-ass hack which is terrible and crashes tracks with sample rates
+	** it doesn't like. We'll need to fix this later
+	*/
+
+
+	for (i=0;i<bufsize;i+=adder) {
 		INT16 buf[16];
+		memset(buf,0,16 * 2);
+
 		render_vgmstream(buf,vgmstream->channels,vgmstream);
-		*(buffer + i) = buf[0];
-		if (vgmstream->channels == 2) *(buffer + i + 1) = buf[1];
+		for (x=0;x<adder;x++) {	
+			for (y=0;y<(Decoder_Is_Using_Lame_Hack ? 2 : 1);y++)
+				*(buffer + i + x + y) = (float)(buf[x]) / 22050; // This divide is required, audio is REALLY LOUD otherwise
+		}
 	}
 
 	return bufsize;
@@ -74,15 +105,17 @@ int __stdcall XMP_Buffer(float* buffer, UINT32 bufsize) {
 
 DWORD __stdcall XMP_GetFormat(DWORD *chan, DWORD *res) {
 	*(chan) = vgmstream->channels;
-	return vgmstream->sample_rate / 2;
+
+	if (Decoder_Is_Using_Lame_Hack) return vgmstream->sample_rate;
+	else return vgmstream->sample_rate / 2;
 }
 
-void __stdcall FormatPlayWindowText(char* txt) {
-	strcpy(txt,"vgmstream!");
+void __stdcall XMP_GetInfoText(char* txt, char* length) {
+	sprintf(txt,"vgmstream!");
 }
 
 void __stdcall GetAdditionalFields(char* blerp) {
-	strcpy(blerp,"oh god how did this get here i am not good with computers\n");
+	sprintf(blerp,"oh god how did this get here i am not good with computers\n");
 }
 
 
@@ -118,7 +151,7 @@ TRAP_FCN(20);
 TRAP_FCN(21);
 TRAP_FCN(22);
 
-int __stdcall Call22() {
+int __stdcall XMP_GetSubSongs() {
 	return 1; //
 }
 
@@ -135,7 +168,7 @@ XMPIN vgmstream_intf = {
 	XMP_GetFormat,
 	NULL,
 	NULL,
-	FormatPlayWindowText,
+	XMP_GetInfoText,
 	GetAdditionalFields,
 	NULL,
 	NULL,
@@ -144,7 +177,7 @@ XMPIN vgmstream_intf = {
 	XMP_Buffer,
 	NULL,
 	NULL,
-	Call22,
+	XMP_GetSubSongs,
 };
 
 
