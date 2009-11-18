@@ -170,6 +170,7 @@ gchar *vgmstream_exts [] = {
   "str",
   "strm",
   "sts",
+  "stx",
   "svag",
   "svs",
   "swav",

@@ -233,6 +233,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_wii_was,
     init_vgmstream_pona,
     init_vgmstream_xbox_hlwav,
+    init_vgmstream_stx,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -2343,6 +2344,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case meta_XBOX_HLWAV:
             snprintf(temp,TEMPSIZE,"Half Life 2 bgm header");
+            break;
+        case meta_STX:
+            snprintf(temp,TEMPSIZE,"Nintendo .stx header");
             break;
         default:
            snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

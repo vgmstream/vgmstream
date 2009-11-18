@@ -236,6 +236,7 @@ char * extension_list[] = {
     "str\0STR Audio File (*.STR)\0",
     "strm\0STRM Audio File (*.STRM)\0",
     "sts\0PS2 EXST Audio File (*.STS)\0",
+    "stx\0STX Audio File (*.STX)\0",
     "svag\0PS2 SVAG Audio File (*.SVAG)\0",
     "svs\0SVS Audio File (*.SVS)\0",
     "swav\0SWAV Audio File (*.SWAV)\0",

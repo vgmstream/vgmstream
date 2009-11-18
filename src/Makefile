@@ -214,7 +214,8 @@ META_OBJS=meta/adx_header.o \
     meta/wii_was.o \
     meta/pona.o \
     meta/fsb_test.o \
-    meta/xbox_hlwav.o
+    meta/xbox_hlwav.o \
+    meta/stx.o
     
 OBJECTS=vgmstream.o streamfile.o util.o $(CODING_OBJS) $(LAYOUT_OBJS) $(META_OBJS)
 

@@ -225,13 +225,14 @@ etc:
 - .mwv (Level-5 0x555 ADPCM)
 - .ogg, .logg (Ogg Vorbis)
 - .rsf (CCITT G.721 ADPCM)
+- .sab (Worms 4 soundpacks)
 - .sc (Activision EXAKT SASSC DPCM)
 - .sd9 (MS ADPCM)
 - .spw (FFXI PS-like ADPCM)
 - .str (SDX2 DPCM)
+- .stx (GC AFC ADPCM)
 - .um3 (Ogg Vorbis)
 - .xa (CD-ROM XA audio)
-- .sab (Worms 4 soundpacks)
 
 loop assists:
 - .mus (playlist for .acm)
