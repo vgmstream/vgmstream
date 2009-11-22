@@ -37,7 +37,8 @@ VGMSTREAM * init_vgmstream_ps2_stm(STREAMFILE *streamFile) {
 
     vgmstream->num_samples = read_32bitLE(0x18,streamFile);
 
-    vgmstream->interleave_block_size = read_32bitLE(0x8,streamFile) / channel_count;
+    //vgmstream->interleave_block_size = read_32bitLE(0x8,streamFile) / channel_count;
+    vgmstream->interleave_block_size = 0x40;
 
 	if(1 < channel_count)
 	{
@@ -49,7 +50,7 @@ VGMSTREAM * init_vgmstream_ps2_stm(STREAMFILE *streamFile) {
     vgmstream->meta_type = meta_PS2_STM;
 
 	if(loop_flag) {
-		vgmstream->loop_start_sample=0;
+		vgmstream->loop_start_sample=read_32bitLE(8,streamFile);
 		vgmstream->loop_end_sample=vgmstream->num_samples;
 	}
 
