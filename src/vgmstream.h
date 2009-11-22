@@ -337,6 +337,7 @@ typedef enum {
 	meta_ADS,               /* Gauntlet Dark Legends (GC) */
 	meta_PS2_SPS,           /* Ape Escape 2 */
     meta_PS2_XA2_RRP,       /* RC Revenge Pro */
+    meta_PS2_STM,           /* Red Dead Revolver .stm, renamed .ps2stm */
 
     meta_XBOX_WAVM,			/* XBOX WAVM File */
     meta_XBOX_RIFF,			/* XBOX RIFF/WAVE File */

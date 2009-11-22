@@ -427,4 +427,6 @@ VGMSTREAM * init_vgmstream_xbox_hlwav(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_stx(STREAMFILE* streamFile);
 
+VGMSTREAM * init_vgmstream_ps2_stm(STREAMFILE* streamFile);
+
 #endif

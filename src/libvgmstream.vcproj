@@ -647,6 +647,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\ps2_stm.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\ps2_str.c"
 					>
 				</File>

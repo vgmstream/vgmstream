@@ -229,6 +229,7 @@ etc:
 - .sc (Activision EXAKT SASSC DPCM)
 - .sd9 (MS ADPCM)
 - .spw (FFXI PS-like ADPCM)
+- .stm renamed .ps2stm (DVI IMA ADPCM)
 - .str (SDX2 DPCM)
 - .stx (GC AFC ADPCM)
 - .um3 (Ogg Vorbis)

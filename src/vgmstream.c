@@ -234,6 +234,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_pona,
     init_vgmstream_xbox_hlwav,
     init_vgmstream_stx,
+    init_vgmstream_ps2_stm,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -2347,6 +2348,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case meta_STX:
             snprintf(temp,TEMPSIZE,"Nintendo .stx header");
+            break;
+        case meta_PS2_STM:
+            snprintf(temp,TEMPSIZE,"Red Dead Revolver .stm (.ps2stm)");
             break;
         default:
            snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");
