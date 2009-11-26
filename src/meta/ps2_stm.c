@@ -22,7 +22,7 @@ VGMSTREAM * init_vgmstream_ps2_stm(STREAMFILE *streamFile) {
     /* check bps */
     if (read_32bitLE(0x10,streamFile) != 4) goto fail;
 
-    loop_flag = 0;
+    loop_flag = read_32bitLE(0x20,streamFile);
     channel_count = read_32bitLE(0x14,streamFile);
 	 
     /* build the VGMSTREAM */
@@ -50,7 +50,7 @@ VGMSTREAM * init_vgmstream_ps2_stm(STREAMFILE *streamFile) {
     vgmstream->meta_type = meta_PS2_STM;
 
 	if(loop_flag) {
-		vgmstream->loop_start_sample=read_32bitLE(8,streamFile);
+		vgmstream->loop_start_sample=read_32bitLE(0x24,streamFile);
 		vgmstream->loop_end_sample=vgmstream->num_samples;
 	}
 
