@@ -72,7 +72,6 @@ PS2/PSX ADPCM:
 - .mihb (merged mih+mib)
 - .msvp
 - .musc
-- .musx
 - .npsf
 - .pnb
 - .psh
@@ -195,6 +194,7 @@ multi:
 - .emff (PSX APDCM, GC DSP ADPCM)
 - .fsb, .wii (PSX ADPCM, GC DSP ADPCM, Xbox IMA ADPCM)
 - .genh (lots)
+- .musx (PSX ADPCM, Xbox IMA ADPCM, DAT4 IMA ADPCM)
 - .nwa (16 bit PCM, NWA DPCM)
 - .psw (PSX ADPCM, GC DSP ADPCM)
 - .rwar, .rwav (GC DSP ADPCM, 8/16 bit PCM)

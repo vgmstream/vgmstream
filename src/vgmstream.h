@@ -76,6 +76,7 @@ typedef enum {
     coding_MS_IMA,          /* Microsoft IMA */
     coding_RAD_IMA,         /* "Radical ADPCM" IMA */
     coding_APPLE_IMA4,      /* Apple Quicktime IMA4 */
+    coding_DAT4_IMA,        /* Eurocom 'DAT4' IMA ADPCM */
     coding_WS,              /* Westwood Studios' custom VBR ADPCM */
 #ifdef VGM_USE_MPEG
     coding_fake_MPEG2_L2,   /* MPEG-2 Layer 2 (AHX), with lying headers */

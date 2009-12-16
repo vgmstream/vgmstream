@@ -179,6 +179,7 @@ fail:
 
 /* MUSX */
 /* New MUSX formats, found in Quantum of Solace, The Mummy 3, possibly more */
+/* WII_ in Dead Space: Extraction */
 VGMSTREAM * init_vgmstream_musx_v010(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[260];
@@ -201,31 +202,61 @@ VGMSTREAM * init_vgmstream_musx_v010(STREAMFILE *streamFile) {
 	loop_flag = (read_32bitLE(0x34,streamFile)!=0x00000000);
     channel_count = 2;
     
+	musx_type=(read_32bitBE(0x10,streamFile));
+
+    if (musx_type == 0x5749495F &&  /* WII_ */
+        read_32bitBE(0x40,streamFile) == 0x44415434)    /* DAT4 */
+    {
+        channel_count = read_32bitLE(0x48,streamFile);
+        loop_flag = (read_32bitLE(0x64,streamFile) != -1);
+    }
+
 	/* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 	
 	/* fill in the vital statistics */	
-	musx_type=(read_32bitBE(0x10,streamFile));
 
-	switch (musx_type) {
-	case 0x5053325F: /* PS2_ */
-			start_offset = 0x800;
-			vgmstream->channels = channel_count;
-			vgmstream->sample_rate = 32000;
-			vgmstream->coding_type = coding_PSX;
-			vgmstream->num_samples = read_32bitLE(0x40,streamFile);
-			vgmstream->layout_type = layout_interleave;
-			vgmstream->interleave_block_size = 0x80;
-			vgmstream->meta_type = meta_MUSX_V010;
-		if (loop_flag) {
-			vgmstream->loop_start_sample = read_32bitLE(0x44,streamFile);
-			vgmstream->loop_end_sample = read_32bitLE(0x40,streamFile);
-		}
-	break;
-		default:
-			goto fail;
+    switch (musx_type) {
+        case 0x5053325F: /* PS2_ */
+            start_offset = 0x800;
+            vgmstream->channels = channel_count;
+            vgmstream->sample_rate = 32000;
+            vgmstream->coding_type = coding_PSX;
+            vgmstream->num_samples = read_32bitLE(0x40,streamFile);
+            vgmstream->layout_type = layout_interleave;
+            vgmstream->interleave_block_size = 0x80;
+            vgmstream->meta_type = meta_MUSX_V010;
+            if (loop_flag) {
+                vgmstream->loop_start_sample = read_32bitLE(0x44,streamFile);
+                vgmstream->loop_end_sample = read_32bitLE(0x40,streamFile);
+            }
+            break;
+        case 0x5749495F: /* WII_ */
+            start_offset = 0x800;
+            vgmstream->channels = channel_count;
+            vgmstream->sample_rate = read_32bitLE(0x4C,streamFile);
+            switch (read_32bitBE(0x40,streamFile))
+            {
+                case 0x44415434:    /* DAT4 */
+                    vgmstream->coding_type = coding_DAT4_IMA;
+                    break;
+                default:
+                    goto fail;
+            }
+            vgmstream->num_samples = read_32bitLE(0x60,streamFile);
+            vgmstream->layout_type = layout_interleave;
+            vgmstream->interleave_block_size = 0x20;
+            vgmstream->meta_type = meta_MUSX_V010;
+            if (loop_flag)
+            {
+                vgmstream->loop_start_sample = read_32bitLE(0x64,streamFile);
+                vgmstream->loop_end_sample = read_32bitLE(0x60,streamFile);
+            }
 
+            break;
+        default:
+            goto fail;
 	}
 
     /* open the file for reading */

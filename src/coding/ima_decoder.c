@@ -64,6 +64,43 @@ void decode_nds_ima(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspaci
     stream->adpcm_step_index = step_index;
 }
 
+void decode_dat4_ima(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
+    int i=first_sample;
+    int32_t sample_count;
+    int32_t hist1 = stream->adpcm_history1_16;
+    int step_index = stream->adpcm_step_index;
+
+    if (first_sample==0) {
+        hist1 = read_16bitLE(stream->offset,stream->streamfile);
+        step_index = read_8bit(stream->offset+2,stream->streamfile);
+    }
+
+    for (i=first_sample,sample_count=0; i<first_sample+samples_to_do; i++,sample_count+=channelspacing) {
+        int sample_nibble = 
+                (read_8bit(stream->offset+4+i/2,stream->streamfile) >> (i&1?0:4))&0xf;
+        int delta;
+        int step = ADPCMTable[step_index];
+
+        delta = step >> 3;
+        if (sample_nibble & 1) delta += step >> 2;
+        if (sample_nibble & 2) delta += step >> 1;
+        if (sample_nibble & 4) delta += step;
+        if (sample_nibble & 8)
+            outbuf[sample_count] = clamp16(hist1 - delta);
+        else
+            outbuf[sample_count] = clamp16(hist1 + delta);
+
+        step_index += IMA_IndexTable[sample_nibble];
+        if (step_index < 0) step_index=0;
+        if (step_index > 88) step_index=88;
+
+        hist1 = outbuf[sample_count];
+    }
+
+    stream->adpcm_history1_16 = hist1;
+    stream->adpcm_step_index = step_index;
+}
+
 /* Xbox IMA is MS IMA, but I'll leave it alone for now (esp as it has > 2 channel support) */
 void decode_ms_ima(VGMSTREAM * vgmstream,VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do,int channel) {
     int i=first_sample;
