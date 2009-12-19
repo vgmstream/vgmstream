@@ -159,6 +159,7 @@ VGMSTREAM * init_vgmstream_fsb4(STREAMFILE *streamFile) {
         case 0x40000802:
         case 0x40000882:
         case 0x40100802:
+		case 0x40200802:
     if (read_32bitLE(0x14,streamFile)==0x20 ||
         read_32bitLE(0x14,streamFile)==0x00)
     {
