@@ -1,7 +1,6 @@
 #include "meta.h"
 #include "../util.h"
 
-
 /* comment from hcs:
 ((uint8_t)read_8bit(offset, file))&0xf for the low nibble, 
 ((uint8_t)read_8bit(offset, file)) >> 4 for the high one
@@ -14,10 +13,10 @@ VGMSTREAM * init_vgmstream_fsb1(STREAMFILE *streamFile) {
     char filename[260];
     off_t start_offset;
 
-	/* int fsb1_included_files; */
-	int fsb1_format;
-	int loop_flag = 0;
-	int channel_count;
+    /* int fsb1_included_files; */
+    int fsb1_format;
+    int loop_flag = 0;
+    int channel_count;
 
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
@@ -27,39 +26,39 @@ VGMSTREAM * init_vgmstream_fsb1(STREAMFILE *streamFile) {
     if (read_32bitBE(0x00,streamFile) != 0x46534231) /* "FSB1" */
         goto fail;
  
-	/* "Check if the FSB is used as
-	conatiner or as single file" */
-	if (read_32bitBE(0x04,streamFile) != 0x01000000)
-		goto fail;
+    /* "Check if the FSB is used as
+       conatiner or as single file" */
+    if (read_32bitBE(0x04,streamFile) != 0x01000000)
+        goto fail;
 
-	loop_flag = 0;
-	channel_count = 2;
+    loop_flag = 0;
+    channel_count = 2;
 
-	/* build the VGMSTREAM */
+    /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
-	/* This will be tricky ;o) */
-	fsb1_format = read_32bitBE(0x44,streamFile);
-	switch (fsb1_format) {
-		case 0x40008800: /* PS2 (Operation Genesis) */
-		case 0x41008800: /* PS2 (Operation Genesis) */
-		vgmstream->coding_type = coding_PSX;
-		vgmstream->layout_type = layout_interleave;
-		vgmstream->interleave_block_size = 0x10;
-		vgmstream->num_samples = (read_32bitLE(0x34,streamFile))*28/16/channel_count;
-    if (loop_flag) {
-        vgmstream->loop_start_sample = 0;
-        vgmstream->loop_end_sample = read_32bitLE(0x30,streamFile);
-    }
-	break;
-		default:
-			goto fail;
+    /* This will be tricky ;o) */
+    fsb1_format = read_32bitBE(0x44,streamFile);
+    switch (fsb1_format) {
+        case 0x40008800: /* PS2 (Operation Genesis) */
+        case 0x41008800: /* PS2 (Operation Genesis) */
+            vgmstream->coding_type = coding_PSX;
+            vgmstream->layout_type = layout_interleave;
+            vgmstream->interleave_block_size = 0x10;
+            vgmstream->num_samples = (read_32bitLE(0x34,streamFile))*28/16/channel_count;
+            if (loop_flag) {
+                vgmstream->loop_start_sample = 0;
+                vgmstream->loop_end_sample = read_32bitLE(0x30,streamFile);
+            }
+            break;
+      default:
+            goto fail;
 
-	}
-	/* fill in the vital statistics */
+    }
+    /* fill in the vital statistics */
     start_offset = 0x50;
-	vgmstream->channels = channel_count;
+    vgmstream->channels = channel_count;
     vgmstream->sample_rate = read_32bitLE(0x38,streamFile);
     vgmstream->meta_type = meta_FSB1;
 
@@ -76,7 +75,6 @@ VGMSTREAM * init_vgmstream_fsb1(STREAMFILE *streamFile) {
             vgmstream->ch[i].channel_start_offset=
                 vgmstream->ch[i].offset=start_offset+
                 vgmstream->interleave_block_size*i;
-
         }
     }
 
@@ -95,10 +93,9 @@ VGMSTREAM * init_vgmstream_fsb4(STREAMFILE *streamFile) {
     char filename[260];
     off_t start_offset;
 
-	/* int fsb1_included_files; */
-	int fsb4_format;
-	int loop_flag = 0;
-	int channel_count;
+    int fsb4_format;
+    int loop_flag = 0;
+    int channel_count;
 
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
@@ -109,19 +106,18 @@ VGMSTREAM * init_vgmstream_fsb4(STREAMFILE *streamFile) {
     if (read_32bitBE(0x00,streamFile) != 0x46534234) /* "FSB4" */
         goto fail;
  
-	/* "Check if the FSB is used as
-	conatiner or as single file" */
-	if (read_32bitBE(0x04,streamFile) != 0x01000000)
-		goto fail;
-	
-	
-	if (read_32bitBE(0x60,streamFile) == 0x40008800 ||
+    /* "Check if the FSB is used as
+       conatiner or as single file" */
+    if (read_32bitBE(0x04,streamFile) != 0x01000000)
+        goto fail;
+
+    if (read_32bitBE(0x60,streamFile) == 0x40008800 ||
         read_32bitBE(0x60,streamFile) == 0x40000802 ||
         read_32bitBE(0x60,streamFile) == 0x40100802) {
-		loop_flag = 1;
-	} else {
-		loop_flag = 0;
-		}
+        loop_flag = 1;
+    } else {
+        loop_flag = 0;
+    }
 
     if (read_32bitBE(0x60,streamFile) != 0x20000882 &&
         read_32bitBE(0x60,streamFile) != 0x20100002 &&
@@ -134,55 +130,56 @@ VGMSTREAM * init_vgmstream_fsb4(STREAMFILE *streamFile) {
         channel_count = 1;
     }
 
-	/* build the VGMSTREAM */
+    /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
-	
-	
-	/* fill in the vital statistics */
-	vgmstream->channels = channel_count;
+
+    /* fill in the vital statistics */
+    vgmstream->channels = channel_count;
     vgmstream->sample_rate = read_32bitLE(0x64,streamFile);
-	fsb4_format = read_32bitBE(0x60,streamFile);
-	switch (fsb4_format) {
-		/* PS2 (Spider Man - Web of Shadows), Speed Racer */		
-		case 0x40008800:
-		vgmstream->coding_type = coding_PSX;
-		vgmstream->layout_type = layout_interleave;
-		vgmstream->interleave_block_size = 0x10;
-		vgmstream->num_samples = (read_32bitLE(0x54,streamFile))*28/16/channel_count;
-    if (loop_flag) {
-        vgmstream->loop_start_sample = 0;
-        vgmstream->loop_end_sample = read_32bitLE(0x50,streamFile);
-    }
-	break;
-    /* WII (de Blob, Night at the Museum) */
+    fsb4_format = read_32bitBE(0x60,streamFile);
+    switch (fsb4_format) {
+        /* PS2 (Spider Man - Web of Shadows), Speed Racer */
+        case 0x40008800:
+            vgmstream->coding_type = coding_PSX;
+            vgmstream->layout_type = layout_interleave;
+            vgmstream->interleave_block_size = 0x10;
+            vgmstream->num_samples = (read_32bitLE(0x54,streamFile))*28/16/channel_count;
+            if (loop_flag) {
+                vgmstream->loop_start_sample = 0;
+                vgmstream->loop_end_sample = read_32bitLE(0x50,streamFile);
+            }
+            break;
+        /* WII (de Blob, Night at the Museum) */
         case 0x40000802:
         case 0x40000882:
         case 0x40100802:
-		case 0x40200802:
-    if (read_32bitLE(0x14,streamFile)==0x20 ||
-        read_32bitLE(0x14,streamFile)==0x00)
-    {
-        /* Night at the Museum */
-		vgmstream->coding_type = coding_NGC_DSP;
-		vgmstream->layout_type = layout_interleave_byte;
-        vgmstream->interleave_block_size = 2;
-    }
-    else if (read_32bitLE(0x14,streamFile)==0x10 ||
-             read_32bitLE(0x14,streamFile)==0x30)
-    {
-        /* de Blob, NatM sfx */
-        vgmstream->coding_type = coding_NGC_DSP;
-        vgmstream->layout_type = layout_none;
-        vgmstream->interleave_block_size = read_32bitLE(0x54,streamFile)/channel_count;
-    }
-    else goto fail;
-    vgmstream->num_samples = (read_32bitLE(0x54,streamFile)/8/channel_count*14);
-    if (loop_flag) {
-        vgmstream->loop_start_sample = 0;
-        vgmstream->loop_end_sample = read_32bitLE(0x50,streamFile);
-    }
-    break;
+        case 0x40200802:
+            if (read_32bitLE(0x14,streamFile)==0x20 ||
+                read_32bitLE(0x14,streamFile)==0x00)
+            {
+                /* Night at the Museum */
+                vgmstream->coding_type = coding_NGC_DSP;
+                vgmstream->layout_type = layout_interleave_byte;
+                vgmstream->interleave_block_size = 2;
+            }
+            else if (read_32bitLE(0x14,streamFile)==0x10 ||
+                     read_32bitLE(0x14,streamFile)==0x30)
+            {
+                /* de Blob, NatM sfx */
+                vgmstream->coding_type = coding_NGC_DSP;
+                vgmstream->layout_type = layout_none;
+                vgmstream->interleave_block_size = read_32bitLE(0x54,streamFile)/channel_count;
+            }
+            else goto fail;
+
+            vgmstream->num_samples = (read_32bitLE(0x54,streamFile)/8/channel_count*14);
+            if (loop_flag) {
+                vgmstream->loop_start_sample = 0;
+                vgmstream->loop_end_sample = read_32bitLE(0x50,streamFile);
+            }
+            break;
+
         /* Night at the Museum */
         case 0x20000882:
         case 0x20000802:
@@ -198,10 +195,9 @@ VGMSTREAM * init_vgmstream_fsb4(STREAMFILE *streamFile) {
                 vgmstream->loop_end_sample = read_32bitLE(0x50,streamFile);
             }
             break;
-		default:
-			goto fail;
-
-	}
+        default:
+            goto fail;
+    }
 
     start_offset = read_32bitLE(0x08,streamFile)+0x30;
 
@@ -249,8 +245,8 @@ VGMSTREAM * init_vgmstream_fsb4_wav(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[260];
     off_t start_offset;
-	int loop_flag;
-	int channel_count;
+    int loop_flag;
+    int channel_count;
     int fsb_headerlength;
 
     /* check extension, case insensitive */
@@ -263,7 +259,7 @@ VGMSTREAM * init_vgmstream_fsb4_wav(STREAMFILE *streamFile) {
     if (read_32bitBE(0x10,streamFile) != 0x46534234) /* "FSB4" */
         goto fail;
 
-	channel_count = (uint16_t)read_16bitLE(0x7E,streamFile);
+    channel_count = (uint16_t)read_16bitLE(0x7E,streamFile);
 
     if (channel_count > 2) {
         goto fail;
@@ -272,21 +268,21 @@ VGMSTREAM * init_vgmstream_fsb4_wav(STREAMFILE *streamFile) {
     loop_flag = (read_32bitBE(0x70,streamFile) == 0x40000802);
     fsb_headerlength = read_32bitLE(0x18,streamFile);
 
-	/* build the VGMSTREAM */
+    /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
-	/* fill in the vital statistics */
+    /* fill in the vital statistics */
     start_offset = fsb_headerlength + 0x40;
-	vgmstream->sample_rate = read_32bitLE(0x74,streamFile);
-	vgmstream->coding_type = coding_NGC_DSP;
+    vgmstream->sample_rate = read_32bitLE(0x74,streamFile);
+    vgmstream->coding_type = coding_NGC_DSP;
     vgmstream->layout_type = layout_interleave_byte;
     vgmstream->interleave_block_size = 0x2;
     vgmstream->num_samples = (read_32bitLE(0x64,streamFile)/8/channel_count*14);
     if (loop_flag) {
         vgmstream->loop_start_sample = 0;
         vgmstream->loop_end_sample = read_32bitLE(0x60,streamFile);
-	}
+    }
 
     vgmstream->meta_type = meta_FSB4_WAV;
 
