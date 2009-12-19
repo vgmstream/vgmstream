@@ -11,8 +11,7 @@ VGMSTREAM * init_vgmstream_waa_wac_wad_wam(STREAMFILE *streamFile) {
 	int channel_count;
 	int coef1_start;
 	int coef2_start;
-	int i;
-	int second_channel_start;
+	int second_channel_start = -1;
 
     // Check file extensions
     streamFile->get_name(streamFile,filename,sizeof(filename));
@@ -119,6 +118,7 @@ VGMSTREAM * init_vgmstream_waa_wac_wad_wam(STREAMFILE *streamFile) {
             } else {
                 vgmstream->ch[0].channel_start_offset=start_offset;
             if (channel_count == 2) {
+                if (second_channel_start == -1) goto fail;
                 vgmstream->ch[1].channel_start_offset=second_channel_start;
             }
         }

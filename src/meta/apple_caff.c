@@ -7,12 +7,12 @@ VGMSTREAM * init_vgmstream_apple_caff(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[260];
 
-    off_t start_offset;
-    off_t data_size;
-    off_t sample_count;
-    off_t interleave;
-    int sample_rate,unused_frames;
-    int channel_count;
+    off_t start_offset = 0;
+    off_t data_size = 0;
+    off_t sample_count = 0;
+    off_t interleave = 0;
+    int sample_rate = -1, unused_frames = 0;
+    int channel_count = 0;
     
     off_t file_length;
     off_t chunk_offset = 8;
@@ -120,6 +120,8 @@ VGMSTREAM * init_vgmstream_apple_caff(STREAMFILE *streamFile) {
     }
 
     if (!found_pakt || !found_desc || !found_data) goto fail;
+    if (start_offset == 0 || data_size == 0 || sample_count == 0 ||
+        sample_rate == -1 || channel_count == 0) goto fail;
 
     /* ima4-specific */
     /* check for full packets */
