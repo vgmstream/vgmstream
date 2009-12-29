@@ -1,11 +1,44 @@
 #include "meta.h"
 #include "../util.h"
+/*
+const short wad_coef[16][2] =
+{
+	{0x4002,0x2003},
+	{0x2016,0xc600},
+	{0xC600,0x98ab},
+	{0x96bf,0x29c5},
+	{0x2003,0x0081},
+	{0x0e00,0x2004},
+	{0x8e01,0xc500},
+	{0x70bf,0x8128},
+	{0x288e,0xc600},
+	{0x016e,0x0e5b},
+	{0xbe20,0x2003},
+	{0x03c6,0xc600},
+	{0x0048,0xe85a},
+	{0xbe28,0x28c6},
+	{0xc600,0x00F6},
+	{0xbeab,0x5520}
+};*/
+const short wad_coef[16] =
+{
+	0x04ab, 0xfced,
+	0x0789,	0xfedf,
+	0x09a2,	0xfae5,
+	0x0c90,	0xfac1,
+	0x084d,	0xfaa4,
+	0x0982,	0xfdf7,
+	0x0af6,	0xfafa,
+	0x0be6,	0xfbf5
+};
+
 
 /* WAC - WAD - WAM (Beyond Good & Evil GC/PS2) */
 /* Note: A "Flat Layout" has no interleave */
 VGMSTREAM * init_vgmstream_waa_wac_wad_wam(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[260];
+	int i;
     off_t start_offset;
     int loop_flag;
 	int channel_count;
@@ -42,7 +75,6 @@ VGMSTREAM * init_vgmstream_waa_wac_wad_wam(STREAMFILE *streamFile) {
 
 	/* Check what encoder is needed */
 	//FIXME: //PC version uses pcm, but which encoder?
-	//FIXME: //Rayman Ravin Rabid Games on the wii use it with an unknown encoder yet
 
 	vgmstream->channels = channel_count;
     vgmstream->sample_rate = read_32bitLE(0x18,streamFile);
@@ -69,7 +101,7 @@ VGMSTREAM * init_vgmstream_waa_wac_wad_wam(STREAMFILE *streamFile) {
 		}
             second_channel_start = (read_32bitLE(0x2A,streamFile)/2)+start_offset;
     break;
-    case 0xFFFE: // GameCube DSP
+    case 0xFFFE: // GameCube/WII DSP
 		start_offset = 0x5C;
 		vgmstream->coding_type = coding_NGC_DSP;
 		vgmstream->num_samples = (read_32bitLE(0x2A,streamFile))*14/8/channel_count;
@@ -79,21 +111,31 @@ VGMSTREAM * init_vgmstream_waa_wac_wad_wam(STREAMFILE *streamFile) {
 		}
 		if(read_16bitLE(0x24,streamFile)==0x00)//is a wii file with no coeff table
 		{
+			//FIXME: WII version of WAM/WAD/WAC need some coeff table from somewhere
+			for (i=0;i<16;i++)
+					vgmstream->ch[0].adpcm_coef[i] = wad_coef[i];
+			if (channel_count == 2) {
+				for (i=0;i<16;i++)
+					vgmstream->ch[1].adpcm_coef[i] = wad_coef[i];
+			}
 			goto fail;
 		}
-            second_channel_start = (read_32bitLE(0x2A,streamFile)/2)+0x8A;
-            /* Retrieveing the coef tables */
-			coef1_start = 0x2E;
-			coef2_start = (read_32bitLE(0x2A,streamFile)/2)+0x5C;
+		else
+		{
+				second_channel_start = (read_32bitLE(0x2A,streamFile)/2)+0x8A;
+				/* Retrieveing the coef tables */
+				coef1_start = 0x2E;
+				coef2_start = (read_32bitLE(0x2A,streamFile)/2)+0x5C;
 
-        {
-			int i;
-			for (i=0;i<16;i++)
-				vgmstream->ch[0].adpcm_coef[i] = read_16bitBE(coef1_start+i*2,streamFile);
-			if (channel_count == 2) {
-			for (i=0;i<16;i++)
-				vgmstream->ch[1].adpcm_coef[i] = read_16bitBE(coef2_start+i*2,streamFile);
-            }
+			{
+				int i;
+				for (i=0;i<16;i++)
+					vgmstream->ch[0].adpcm_coef[i] = read_16bitBE(coef1_start+i*2,streamFile);
+				if (channel_count == 2) {
+				for (i=0;i<16;i++)
+					vgmstream->ch[1].adpcm_coef[i] = read_16bitBE(coef2_start+i*2,streamFile);
+				}
+			}
 		}
         break;
 		    default:
