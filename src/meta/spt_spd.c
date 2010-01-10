@@ -12,7 +12,6 @@ VGMSTREAM * init_vgmstream_spt_spd(STREAMFILE *streamFile) {
     STREAMFILE * streamFileSPT = NULL;
     char filename[260];
 	char filenameSPT[260];
-	
 	int i;
 	int channel_count;
 	int loop_flag;
@@ -41,8 +40,18 @@ VGMSTREAM * init_vgmstream_spt_spd(STREAMFILE *streamFile) {
 	vgmstream->channels = channel_count;
 	vgmstream->sample_rate = read_32bitBE(0x08,streamFileSPT);
 	vgmstream->num_samples=read_32bitBE(0x14,streamFileSPT)*14/16/channel_count;
-	vgmstream->coding_type = coding_NGC_DSP;
 	
+	switch ((read_32bitBE(0x0,streamFileSPT))) {
+		case 1:
+			vgmstream->coding_type = coding_NGC_DSP;
+			break;
+		case 2:
+			vgmstream->coding_type = coding_PCM16BE;
+			break;
+		default:
+	goto fail;
+	}
+
 	if(loop_flag) {
 		vgmstream->loop_start_sample = 0;
 		vgmstream->loop_end_sample = read_32bitBE(0x14,streamFileSPT)*14/16/channel_count;
@@ -52,7 +61,7 @@ VGMSTREAM * init_vgmstream_spt_spd(STREAMFILE *streamFile) {
 		vgmstream->layout_type = layout_none;
 	} else if (channel_count == 2) {
 		vgmstream->layout_type = layout_interleave;
-		vgmstream->interleave_block_size=0x4000; /* Unknown now, never seen 2ch files in psd+spt */
+		vgmstream->interleave_block_size=(read_32bitBE(0x34,streamFileSPT)*channel_count)/2;
 	}
 
 
