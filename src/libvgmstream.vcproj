@@ -387,6 +387,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\myspd.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\naomi_adpcm.c"
 					>
 				</File>

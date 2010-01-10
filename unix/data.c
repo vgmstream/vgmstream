@@ -114,6 +114,7 @@ gchar *vgmstream_exts [] = {
   "musx",
   "mwv",
   "mxst",
+  "myspd",
 
   "ndp",
   "npsf",

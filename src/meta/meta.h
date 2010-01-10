@@ -429,4 +429,6 @@ VGMSTREAM * init_vgmstream_stx(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_ps2_stm(STREAMFILE* streamFile);
 
+VGMSTREAM * init_vgmstream_myspd(STREAMFILE* streamFile);
+
 #endif

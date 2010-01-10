@@ -210,6 +210,7 @@ typedef enum {
     meta_HALPST,            /* HAL Labs HALPST */
     meta_GCSW,              /* GCSW (PCM) */
     meta_CFN,				/* Namco CAF Audio File */
+    meta_MYSPD,             /* U-Sing .myspd */
 
     meta_PS2_SShd,			/* .ADS with SShd header */
     meta_PS2_NPSF,			/* Namco Production Sound File */

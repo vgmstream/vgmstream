@@ -181,6 +181,7 @@ IMA ADPCM:
 - .hwas (IMA ADPCM)
 - .idvi (DVI IMA ADPCM)
 - .ivaud (IMA ADPCM)
+- .myspd (IMA ADPCM)
 - .stma (DVI IMA ADPCM)
 - .strm (IMA ADPCM)
 

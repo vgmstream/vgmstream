@@ -179,6 +179,7 @@ char * extension_list[] = {
     "musx\0MUSX Audio File (*.MUSX)\0",
     "mwv\0MWV Audio File (*.MWV)\0",
     "mxst\0MxSt Audio File (*.MxSt)\0",
+    "myspd\0MYSPD Audio File (*.MYSPD)\0",
 
     "ndp\0NDP Audio File (*.NDP)\0",
     "npsf\0PS2 NPSF Audio File (*.NPSF)\0",
