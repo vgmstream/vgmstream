@@ -150,6 +150,7 @@ PCM:
 - .bh2pcm (16 bit)
 - .gcsw (16 bit)
 - .gcw (16 bit)
+- .his (8 bit)
 - .int (16 bit)
 - .pcm (8 bit, 16 bit)
 - .kraw (16 bit)

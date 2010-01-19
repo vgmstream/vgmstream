@@ -77,6 +77,8 @@ gchar *vgmstream_exts [] = {
   "gsb",
 
   "hgc1",
+  "his",
+  "hlwav",
   "hps",
   "hwas",
 

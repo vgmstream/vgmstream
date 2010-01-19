@@ -175,5 +175,6 @@ libmeta_la_SOURCES += xbox_hlwav.c
 libmeta_la_SOURCES += stx.c
 libmeta_la_SOURCES += ps2_stm.c
 libmeta_la_SOURCES += myspd.c
+libmeta_la_SOURCES += his.c
 
 EXTRA_DIST = meta.h

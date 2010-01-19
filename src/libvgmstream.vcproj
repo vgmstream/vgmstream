@@ -329,6 +329,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\his.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\idsp.c"
 					>
 				</File>

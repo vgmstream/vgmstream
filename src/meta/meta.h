@@ -431,4 +431,6 @@ VGMSTREAM * init_vgmstream_ps2_stm(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_myspd(STREAMFILE* streamFile);
 
+VGMSTREAM * init_vgmstream_his(STREAMFILE* streamFile);
+
 #endif

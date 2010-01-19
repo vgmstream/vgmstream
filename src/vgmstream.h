@@ -211,6 +211,7 @@ typedef enum {
     meta_GCSW,              /* GCSW (PCM) */
     meta_CFN,				/* Namco CAF Audio File */
     meta_MYSPD,             /* U-Sing .myspd */
+    meta_HIS,               /* Her Ineractive .his */
 
     meta_PS2_SShd,			/* .ADS with SShd header */
     meta_PS2_NPSF,			/* Namco Production Sound File */
