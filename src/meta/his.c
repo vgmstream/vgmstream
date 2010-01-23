@@ -9,14 +9,14 @@ VGMSTREAM * init_vgmstream_his(STREAMFILE *streamFile) {
     int channel_count;
     int loop_flag = 0;
     off_t start_offset;
+    const uint8_t header_magic_expected[0x16] = "Her Interactive Sound\x1a";
+    uint8_t header_magic[0x16];
 
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
     if (strcasecmp("his",filename_extension(filename))) goto fail;
 
     /* check header magic */
-    const uint8_t header_magic_expected[0x16] = "Her Interactive Sound\x1a";
-    uint8_t header_magic[0x16];
     if (0x16 != streamFile->read(streamFile, header_magic, 0, 0x16)) goto fail;
 
     if (memcmp(header_magic_expected, header_magic, 0x16)) goto fail;
