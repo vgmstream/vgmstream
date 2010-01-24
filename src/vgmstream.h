@@ -425,6 +425,7 @@ typedef enum {
     meta_WII_WAS,           /* DiRT 2 (WII) */
     meta_PONA,              /* Policenauts (3DO + PSX) */
     meta_XBOX_HLWAV,        /* Half Life 2 (XBOX) */
+	meta_ISWS,				/* SEGA Superstars Tennis (Wii) */
 } meta_t;
 
 typedef struct {

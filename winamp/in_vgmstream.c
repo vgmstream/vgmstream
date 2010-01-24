@@ -152,6 +152,7 @@ char * extension_list[] = {
     "ild\0ILD Audio File (*.ILD)\0",
     "int\0PS2 RAW Interleaved PCM (*.INT)\0",
     "isd\0ISD Audio File (*.ISD)\0",
+	"isws\0ISWS Audio File (*.ISWS)\0",
     "ivaud\0IVAUD Audio File (*.IVAUD)\0",
     "ivb\0IVB Audio File (*.IVB)\0",
 

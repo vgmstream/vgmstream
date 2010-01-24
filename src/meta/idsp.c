@@ -90,7 +90,7 @@ VGMSTREAM * init_vgmstream_idsp2(STREAMFILE *streamFile) {
     off_t start_offset;
     int loop_flag;
 	int channel_count;
-	int i;
+	int i, j;
 
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
@@ -122,22 +122,27 @@ VGMSTREAM * init_vgmstream_idsp2(STREAMFILE *streamFile) {
 	if (channel_count == 1) {
 			vgmstream->layout_type = layout_none;
 	} else if (channel_count > 1) {
+		if (read_32bitBE(0xD8,streamFile) == 0) {
+			vgmstream->layout_type = layout_none;
+			vgmstream->interleave_block_size = (get_streamfile_size(streamFile)-start_offset)/2;
+		} else if (read_32bitBE(0xD8,streamFile) > 0) {
 			vgmstream->layout_type = layout_interleave;
-      vgmstream->interleave_block_size = read_32bitBE(0xD8,streamFile);
+			vgmstream->interleave_block_size = read_32bitBE(0xD8,streamFile);
+		}
 	}
 
 		vgmstream->meta_type = meta_IDSP2;
 
 	{
 		if (vgmstream->coding_type == coding_NGC_DSP) {
-			for (i=0;i<16;i++)
-				vgmstream->ch[0].adpcm_coef[i] = read_16bitBE(0x118+i*2,streamFile);
-		}
-			if (channel_count == 2) {
-			for (i=0;i<16;i++)
-				vgmstream->ch[1].adpcm_coef[i] = read_16bitBE(0x178+i*2,streamFile);
+			off_t coef_table[8] = {0x118,0x178,0x1D8,0x238,0x298,0x2F8,0x358,0x3B8};
+			for (j=0;j<vgmstream->channels;j++) {
+				for (i=0;i<16;i++) {
+				vgmstream->ch[j].adpcm_coef[i] = read_16bitBE(coef_table[j]+i*2,streamFile);
+				}
 			}
 		}
+	}
 
     /* open the file for reading */
     {

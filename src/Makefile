@@ -218,7 +218,8 @@ META_OBJS=meta/adx_header.o \
     meta/stx.o \
     meta/ps2_stm.o \
     meta/myspd.o \
-    meta/his.o
+    meta/his.o \
+    meta/isws.o
     
 OBJECTS=vgmstream.o streamfile.o util.o $(CODING_OBJS) $(LAYOUT_OBJS) $(META_OBJS)
 
