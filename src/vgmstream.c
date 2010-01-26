@@ -237,7 +237,6 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_ps2_stm,
     init_vgmstream_myspd,
     init_vgmstream_his,
-	init_vgmstream_isws,
 	init_vgmstream_ps2_ast,
 };
 
@@ -2357,7 +2356,7 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             snprintf(temp,TEMPSIZE,"Nintendo BNS header");
             break;
         case meta_WII_WAS:
-            snprintf(temp,TEMPSIZE,"DiRT2 WAS header");
+            snprintf(temp,TEMPSIZE,"WAS (iSWS) DSP header");
             break;
         case meta_XBOX_HLWAV:
             snprintf(temp,TEMPSIZE,"Half Life 2 bgm header");
@@ -2373,9 +2372,6 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case meta_HIS:
             snprintf(temp,TEMPSIZE,"Her Interactive Sound header");
-            break;
-        case meta_ISWS:
-            snprintf(temp,TEMPSIZE,"SEGA Superstars Tennis iSWS header");
             break;
         case meta_PS2_AST:
             snprintf(temp,TEMPSIZE,"KOEI AST header");

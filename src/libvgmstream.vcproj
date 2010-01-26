@@ -341,10 +341,6 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\isws.c"
-					>
-				</File>
-				<File
 					RelativePath=".\meta\ivaud.c"
 					>
 				</File>
