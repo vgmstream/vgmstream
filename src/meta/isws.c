@@ -39,9 +39,8 @@ VGMSTREAM * init_vgmstream_isws(STREAMFILE *streamFile) {
 		vgmstream->layout_type = layout_none;
 	} else if (channel_count > 1) {
 		// vgmstream->layout_type = layout_interleave;
-		vgmstream->layout_type = layout_interleave_shortblock;
+		vgmstream->layout_type = layout_interleave;
 		vgmstream->interleave_block_size = read_32bitBE(0x10,streamFile);
-		vgmstream->interleave_smallblock_size = (((read_32bitBE(0x24,streamFile))-start_offset)%(vgmstream->channels*vgmstream->interleave_block_size))/vgmstream->channels;
 	}
 		vgmstream->meta_type = meta_ISWS;
 
