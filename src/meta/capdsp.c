@@ -6,7 +6,6 @@ VGMSTREAM * init_vgmstream_capdsp(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[260];
     off_t start_offset;
-
     int loop_flag;
 	int channel_count;
 
@@ -33,7 +32,7 @@ VGMSTREAM * init_vgmstream_capdsp(STREAMFILE *streamFile) {
     }
 
     vgmstream->layout_type = layout_interleave;
-    vgmstream->interleave_block_size = 0x2000;
+    vgmstream->interleave_block_size = 0x4000;
     vgmstream->meta_type = meta_CAPDSP;
 
     if (vgmstream->coding_type == coding_NGC_DSP) {
@@ -54,11 +53,9 @@ VGMSTREAM * init_vgmstream_capdsp(STREAMFILE *streamFile) {
         if (!file) goto fail;
         for (i=0;i<channel_count;i++) {
             vgmstream->ch[i].streamfile = file;
-
             vgmstream->ch[i].channel_start_offset=
                 vgmstream->ch[i].offset=start_offset+
                 vgmstream->interleave_block_size*i;
-
         }
     }
 

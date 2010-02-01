@@ -2376,6 +2376,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         case meta_PS2_AST:
             snprintf(temp,TEMPSIZE,"KOEI AST header");
             break;
+		case meta_CAPDSP:
+            snprintf(temp,TEMPSIZE,"Capcom custom DSP header");
+            break;
         default:
            snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");
     }

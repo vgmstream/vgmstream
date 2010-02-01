@@ -76,7 +76,7 @@ char working_extension_list[EXTENSION_LIST_SIZE] = {0};
 char * extension_list[] = {
     /*WIP formats, enable on demand...! */
 #if 0
-    "capdsp\0CAPDSP Audio File (*.CAPDSP)\0", /* Capcom custom coefs */
+    
     "pdt\0PDT Audio File (*.PDT)\0", /* Mario Party and some other games */
 #endif
 
@@ -112,7 +112,8 @@ char * extension_list[] = {
     "brstm;brstmspm\0BRSTM Audio File (*.BRSTM)\0",
 
     "caf\0CAF Audio File (*.CAF)\0",
-    "ccc\0CCC Audio File (*.CCC)\0",
+	"capdsp\0CAPDSP Audio File (*.CAPDSP)\0", /* Capcom custom coefs */
+	"ccc\0CCC Audio File (*.CCC)\0",
     "cfn\0CFN Audio File (*.CFN)\0",
     "cnk\0CNK Audio File (*.CNK)\0",
 
