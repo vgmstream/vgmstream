@@ -48,6 +48,7 @@ gchar *vgmstream_exts [] = {
   "brstmspm",
 
   "caf",
+  "capdsp",
   "ccc",
   "cfn",
   "cnk",
