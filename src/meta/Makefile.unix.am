@@ -177,5 +177,6 @@ libmeta_la_SOURCES += ps2_stm.c
 libmeta_la_SOURCES += myspd.c
 libmeta_la_SOURCES += his.c
 libmeta_la_SOURCES += ps2_ast.c
+libmeta_la_SOURCES += dmsg_segh.c
 
 EXTRA_DIST = meta.h

@@ -178,7 +178,7 @@ typedef enum {
     meta_DSP_WII_MUS,       /* .mus */
     meta_DSP_WII_WSD,		/* Phantom Brave (WII) */
 	meta_WII_NDP,		    /* Vertigo (Wii) */
-	meta_DSP_YGO,           /* Yu-Gi-Oh! The Falsebound Kingdom (GC) */
+	meta_DSP_YGO,           /* Yu-Gi-Oh! The Falsebound Kingdom (NGC), Hikaru no Go 3 (NGC) */
 
     /* Nintendo */
     meta_STRM,              /* STRM */
@@ -426,6 +426,7 @@ typedef enum {
     meta_PONA,              /* Policenauts (3DO + PSX) */
     meta_XBOX_HLWAV,        /* Half Life 2 (XBOX) */
 	meta_PS2_AST,			/* Some KOEI game (PS2) */
+	meta_DMSG,				/* Nightcaster II - Equinox (XBOX) */
 } meta_t;
 
 typedef struct {

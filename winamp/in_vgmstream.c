@@ -119,6 +119,7 @@ char * extension_list[] = {
 
     "dcs\0DCS Audio File (*.DCS)\0",
     "de2\0DE2 Audio File (*.DE2)\0",
+	"dmsg\0DMSG Audio File (*.DMSG)\0",
     "dsp\0DSP Audio File (*.DSP)\0",
     "dtk\0DTK Audio File (*.DTK)\0",
     "dvi\0DVI Audio File (*.DVI)\0",

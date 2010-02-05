@@ -285,6 +285,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\dmsg_segh.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\ea_header.c"
 					>
 				</File>
