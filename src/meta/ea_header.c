@@ -82,10 +82,14 @@ void Parse_Header(STREAMFILE* streamFile,EA_STRUCT* ea, off_t offset, int length
 			case 0xFC:
 			case 0xFD:
 				break;
+#if 0
+            // was added for My Sims Kingdom, apparently this is not the right
+            // way to do it (see NFS Most Wanted and Underground 2)
             case 0x06: //
                 if (readPatch(streamFile, &offset) == 0x65)
                     ea->compression_type = EA_PCM_BE;
                 break;
+#endif
 			case 0x80: // compression version
 				ea->compression_version = (uint8_t)readPatch(streamFile, &offset);
 				break;
