@@ -11,6 +11,7 @@ VGMSTREAM * init_vgmstream_ps2_ads(STREAMFILE *streamFile) {
     int channel_count;
 	off_t start_offset;
 	off_t check_offset;
+	int32_t streamSize;
 
 	uint8_t	testBuffer[0x10];
 	uint8_t isPCM = 0;
@@ -34,8 +35,14 @@ VGMSTREAM * init_vgmstream_ps2_ads(STREAMFILE *streamFile) {
         goto fail;
 
     /* check if file is not corrupt */
-    if (get_streamfile_size(streamFile)<(size_t)(read_32bitLE(0x24,streamFile) + 0x28))
-        goto fail;
+	/* seems the Gran Turismo 4 ADS files are considered corrupt,*/
+	/* so I changed it to adapt the stream size if that's the case */
+	/* instead of failing playing them at all*/
+	streamSize = read_32bitLE(0x24,streamFile);
+    if (get_streamfile_size(streamFile)<(size_t)( streamSize+ 0x28))
+	{
+		streamSize = get_streamfile_size(streamFile) - 0x28;
+	}
 
     /* check loop */
     loop_flag = (read_32bitLE(0x1C,streamFile)!=0xFFFFFFFF);
@@ -52,13 +59,13 @@ VGMSTREAM * init_vgmstream_ps2_ads(STREAMFILE *streamFile) {
 
     /* Check for Compression Scheme */
     vgmstream->coding_type = coding_PSX;
-    vgmstream->num_samples = ((read_32bitLE(0x24,streamFile)-0x40)/16*28)/vgmstream->channels;
+    vgmstream->num_samples = ((streamSize-0x40)/16*28)/vgmstream->channels;
 
 	/* SS2 container with RAW Interleaved PCM */
     if (read_32bitLE(0x08,streamFile)!=0x10) {
 
         vgmstream->coding_type=coding_PCM16LE;
-        vgmstream->num_samples = read_32bitLE(0x24,streamFile)/2/vgmstream->channels;
+        vgmstream->num_samples = streamSize/2/vgmstream->channels;
     }
 
     vgmstream->interleave_block_size = read_32bitLE(0x14,streamFile);
