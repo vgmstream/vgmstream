@@ -8,7 +8,7 @@ VGMSTREAM * init_vgmstream_zwdsp(STREAMFILE *streamFile) {
     off_t start_offset;
 
     int loop_flag;
-    int channel_count;
+    int channel_count = 2;
 
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
@@ -28,8 +28,6 @@ VGMSTREAM * init_vgmstream_zwdsp(STREAMFILE *streamFile) {
         default:
             loop_flag = 1;
     }
-
-    channel_count = read_32bitBE(0x1C,streamFile);
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
