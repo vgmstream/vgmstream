@@ -109,6 +109,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_ps2_dxh,
     init_vgmstream_ps2_psh,
     init_vgmstream_pcm_scd,
+	init_vgmstream_pcm_ps2,
     init_vgmstream_ps2_rkv,
     init_vgmstream_ps2_psw,
     init_vgmstream_ps2_vas,
@@ -2047,7 +2048,10 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             snprintf(temp,TEMPSIZE,"RIFX WAVE header with sample looping info");
             break;
         case meta_PCM_SCD:
-            snprintf(temp,TEMPSIZE,"PCM file with custom header");
+            snprintf(temp,TEMPSIZE,"PCM file with custom header (SCD)");
+            break;
+        case meta_PCM_PS2:
+            snprintf(temp,TEMPSIZE,"PCM file with custom header (PS2)");
             break;
         case meta_PS2_RKV:
             snprintf(temp,TEMPSIZE,"Legacy of Kain - Blood Omen 2 RKV Header");
