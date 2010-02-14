@@ -239,6 +239,10 @@ static struct {
     /* Kadokawa Shoten (Fragments Blue) */
     /* confirmed unique with guessadx */
     {0x5803,0x4555,0x47bf},
+
+    /* Namco (Soulcalibur IV) */
+    /* confirmed unique with guessadx */
+    {0x59ed,0x4679,0x46c9},
 };
 
 static const int key_count = sizeof(keys)/sizeof(keys[0]);
