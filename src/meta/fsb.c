@@ -141,6 +141,7 @@ VGMSTREAM * init_vgmstream_fsb4(STREAMFILE *streamFile) {
     switch (fsb4_format) {
         /* PS2 (Spider Man - Web of Shadows), Speed Racer */
         case 0x40008800:
+        case 0x20008800: // Silent Hill: Shattered Memories
             vgmstream->coding_type = coding_PSX;
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = 0x10;

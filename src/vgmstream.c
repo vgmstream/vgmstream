@@ -185,7 +185,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_ngc_ssm,
     init_vgmstream_ps2_joe,
     init_vgmstream_vgs,
-    init_vgmstream_dc_wav_dcs,
+    init_vgmstream_dc_dcsw_dcs,
     init_vgmstream_wii_smp,
     init_vgmstream_emff_ps2,
     init_vgmstream_emff_ngc,
@@ -2227,8 +2227,8 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         case meta_VGS:
             snprintf(temp,TEMPSIZE,"Guitar Hero Encore Rocks the 80's Header");
             break;
-        case meta_DC_WAV_DCS:
-            snprintf(temp,TEMPSIZE,"Evil Twin WAV+DCS Header");
+        case meta_DC_DCSW_DCS:
+            snprintf(temp,TEMPSIZE,"Evil Twin DCS file with helper");
             break;
         case meta_WII_SMP:
             snprintf(temp,TEMPSIZE,"SMP DSP Header");

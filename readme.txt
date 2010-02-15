@@ -174,7 +174,7 @@ Xbox IMA ADPCM:
 
 Yamaha ADPCM:
 - .adpcm
-- .dcs+.wav
+- .dcs+.dcsw
 - .str
 - .spsd
 

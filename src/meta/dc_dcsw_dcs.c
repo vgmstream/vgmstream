@@ -1,17 +1,19 @@
 #include "meta.h"
 #include "../util.h"
 
-/* WAV+DCS
+/* WAV+DCS (DCSW+DCS)
 2008-12-06 - manakoAT : Evil Twin - Cypriens Chronicles...
 2008-12-07 - manakoAT : Added a function to read the Header file and for 
                         retrieving the channels/frequency, Frequency starts
                         always at a "data" chunk - 0x0C bytes, Channels
-                        always - 0x0E bytes... */
-VGMSTREAM * init_vgmstream_dc_wav_dcs(STREAMFILE *streamFile) {
+                        always - 0x0E bytes...
+2010-01-13 - manakoAT : Changed the 'Helper' extension from .wav to .dcws, to prevent conflicts */
+
+VGMSTREAM * init_vgmstream_dc_dcsw_dcs(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    STREAMFILE * streamFileWAV = NULL;
+    STREAMFILE * streamFileDCSW = NULL;
     char filename[260];
-    char filenameWAV[260];
+    char filenameDCSW[260];
     int i;
     int channel_count;
     int loop_flag;
@@ -26,28 +28,28 @@ VGMSTREAM * init_vgmstream_dc_wav_dcs(STREAMFILE *streamFile) {
     if (strcasecmp("dcs",filename_extension(filename))) goto fail;
 
     /* Getting the Header file name... */
-    strcpy(filenameWAV,filename);
-    strcpy(filenameWAV+strlen(filenameWAV)-3,"wav");
+    strcpy(filenameDCSW,filename);
+    strcpy(filenameDCSW+strlen(filenameDCSW)-3,"dcsw");
     
     /* Look if the Header file is present, else cancel vgmstream */
-    streamFileWAV = streamFile->open(streamFile,filenameWAV,STREAMFILE_DEFAULT_BUFFER_SIZE);
-    if (!streamFileWAV) goto fail;
+    streamFileDCSW = streamFile->open(streamFile,filenameDCSW,STREAMFILE_DEFAULT_BUFFER_SIZE);
+    if (!streamFileDCSW) goto fail;
 
     /* check header */
-    if (read_32bitBE(0x00,streamFileWAV) != 0x52494646 || /* "RIFF" */
-        read_32bitBE(0x08,streamFileWAV) != 0x57415645 || /* "WAVE" */
-        read_32bitBE(0x0C,streamFileWAV) != 0x34582E76 || /* 0x34582E76 */
-        read_32bitBE(0x3C,streamFileWAV) != 0x406E616D) /* "@nam" */
+    if (read_32bitBE(0x00,streamFileDCSW) != 0x52494646 || /* "RIFF" */
+        read_32bitBE(0x08,streamFileDCSW) != 0x57415645 || /* "WAVE" */
+        read_32bitBE(0x0C,streamFileDCSW) != 0x34582E76 || /* 0x34582E76 */
+        read_32bitBE(0x3C,streamFileDCSW) != 0x406E616D) /* "@nam" */
     goto fail;
 
     /* scan file until we find a "data" string */
-    file_size = get_streamfile_size(streamFileWAV);
+    file_size = get_streamfile_size(streamFileDCSW);
     {
         current_chunk = 0;
         /* Start at 0 and loop until we reached the
         file size, or until we found a "data string */
         while (!Founddata && current_chunk < file_size) {
-        dataBuffer = (read_32bitBE(current_chunk,streamFileWAV));
+        dataBuffer = (read_32bitBE(current_chunk,streamFileDCSW));
             if (dataBuffer == 0x64617461) { /* "data" */
                 /* if "data" string found, retrieve the needed infos */
                 Founddata = 1;
@@ -62,8 +64,8 @@ VGMSTREAM * init_vgmstream_dc_wav_dcs(STREAMFILE *streamFile) {
     if (Founddata == 0) {
         goto fail;
     } else if (Founddata == 1) {
-        channel_count = (uint16_t)read_16bitLE(current_chunk-0x0E,streamFileWAV);
-        frequency = read_32bitLE(current_chunk-0x0C,streamFileWAV);
+        channel_count = (uint16_t)read_16bitLE(current_chunk-0x0E,streamFileDCSW);
+        frequency = read_32bitLE(current_chunk-0x0C,streamFileDCSW);
     }
     
     loop_flag = 0;
@@ -91,7 +93,7 @@ VGMSTREAM * init_vgmstream_dc_wav_dcs(STREAMFILE *streamFile) {
     }
 
     vgmstream->coding_type = coding_AICA;
-    vgmstream->meta_type = meta_DC_WAV_DCS;
+    vgmstream->meta_type = meta_DC_DCSW_DCS;
     
     /* open the file for reading by each channel */
     {
@@ -105,13 +107,13 @@ VGMSTREAM * init_vgmstream_dc_wav_dcs(STREAMFILE *streamFile) {
 		}
     }
 
-    close_streamfile(streamFileWAV); streamFileWAV=NULL;
+    close_streamfile(streamFileDCSW); streamFileDCSW=NULL;
     
     return vgmstream;
 
     /* clean up anything we may have opened */
 fail:
-    if (streamFileWAV) close_streamfile(streamFileWAV);
+    if (streamFileDCSW) close_streamfile(streamFileDCSW);
     if (vgmstream) close_vgmstream(vgmstream);
     return NULL;
 }

@@ -169,7 +169,7 @@ META_OBJS=meta/adx_header.o \
     meta/ps2_joe.o \
     meta/vgs.o \
     meta/vs.o \
-    meta/dc_wav_dcs.o \
+    meta/dc_dcsw_dcs.o \
     meta/wii_smp.o \
     meta/ss_stream.o \
     meta/emff.o \

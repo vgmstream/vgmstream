@@ -330,7 +330,7 @@ typedef enum {
     meta_STR_ASR,			/* Donkey Kong Jet Race */
     meta_ZWDSP,				/* Zack and Wiki */
     meta_VGS,				/* Guitar Hero Encore - Rocks the 80s */
-    meta_DC_WAV_DCS,		/* Evil Twin - Cypriens Chronicles (DC) */
+    meta_DC_DCSW_DCS,		/* Evil Twin - Cypriens Chronicles (DC) */
     meta_WII_SMP,			/* Mushroom Men - The Spore Wars */
     meta_WII_SNG,           /* Excite Trucks */
     meta_EMFF_PS2,			/* Eidos Music File Format for PS2*/
