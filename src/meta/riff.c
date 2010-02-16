@@ -177,6 +177,13 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
                             coding_type = coding_MS_IMA;
                             interleave = 0;
                             break;
+                        case 0x69:  /* MS IMA ADCM - Rayman Raving Rabbids 2 (PC) */
+                            /* ensure 4bps */
+                            if (read_16bitLE(current_chunk+0x16,streamFile)!=4)
+                                goto fail;
+                            coding_type = coding_MS_IMA;
+                            interleave = 0;
+                            break;
                         case 0x555: /* Level-5 0x555 ADPCM */
                             if (!mwv) goto fail;
                             coding_type = coding_L5_555;
