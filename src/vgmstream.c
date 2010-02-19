@@ -216,30 +216,31 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_ps2_sps,
     init_vgmstream_ps2_xa2_rrp,
     init_vgmstream_nds_hwas,
-	init_vgmstream_ngc_lps,
+	  init_vgmstream_ngc_lps,
     init_vgmstream_ps2_snd,
     init_vgmstream_naomi_adpcm,
-	init_vgmstream_sd9,
-	init_vgmstream_2dx,
-	init_vgmstream_dsp_ygo,
+	  init_vgmstream_sd9,
+	  init_vgmstream_2dx,
+	  init_vgmstream_dsp_ygo,
     init_vgmstream_ps2_vgv,
     init_vgmstream_ngc_gcub,
     init_vgmstream_maxis_xa,
     init_vgmstream_ngc_sck_dsp,
     init_vgmstream_apple_caff,
-	init_vgmstream_pc_mxst,
-	init_vgmstream_sab,
+	  init_vgmstream_pc_mxst,
+	  init_vgmstream_sab,
     init_vgmstream_exakt_sc,
     init_vgmstream_wii_bns,
     init_vgmstream_wii_was,
-    init_vgmstream_pona,
+    init_vgmstream_pona_3do,
+    init_vgmstream_pona_psx,
     init_vgmstream_xbox_hlwav,
     init_vgmstream_stx,
     init_vgmstream_ps2_stm,
     init_vgmstream_myspd,
     init_vgmstream_his,
-	init_vgmstream_ps2_ast,
-	init_vgmstream_dmsg,
+	  init_vgmstream_ps2_ast,
+	  init_vgmstream_dmsg,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -2315,7 +2316,7 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         case meta_NDS_HWAS:
             snprintf(temp,TEMPSIZE,"NDS 'HWAS' Header");
             break;
-	    case meta_NGC_LPS:
+	      case meta_NGC_LPS:
             snprintf(temp,TEMPSIZE,"Rave Master LPS Header");
             break;
         case meta_NAOMI_ADPCM:
@@ -2324,7 +2325,7 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         case meta_SD9:
             snprintf(temp,TEMPSIZE,"beatmaniaIIDX SD9 header");
             break;
-		case meta_2DX:
+		    case meta_2DX:
             snprintf(temp,TEMPSIZE,"beatmaniaIIDX 2DX9 header");
             break;
         case meta_DSP_YGO:
@@ -2345,12 +2346,12 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         case meta_CAFF:
             snprintf(temp,TEMPSIZE,"Apple Core Audio Format Header");
             break;
-		case meta_PC_MXST:
-			snprintf(temp,TEMPSIZE,"Lego Island MxSt Header");
-			break;
-		case meta_PC_SOB_SAB:
-			snprintf(temp,TEMPSIZE,"Worms 4: Mayhem SOB/SAB Header");
-			break;
+		    case meta_PC_MXST:
+			      snprintf(temp,TEMPSIZE,"Lego Island MxSt Header");
+			      break;
+		    case meta_PC_SOB_SAB:
+			      snprintf(temp,TEMPSIZE,"Worms 4: Mayhem SOB/SAB Header");
+			      break;
         case meta_MAXIS_XA:
             snprintf(temp,TEMPSIZE,"Maxis XAI/XAJ Header");
             break;
@@ -2381,11 +2382,15 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         case meta_PS2_AST:
             snprintf(temp,TEMPSIZE,"KOEI AST header");
             break;
-		case meta_CAPDSP:
+		    case meta_CAPDSP:
             snprintf(temp,TEMPSIZE,"Capcom custom DSP header");
             break;
-		case meta_DMSG:
+		    case meta_DMSG:
             snprintf(temp,TEMPSIZE,"RIFF/DMSGsegh header");
+            break;
+		    case meta_PONA_3DO:
+        case meta_PONA_PSX:
+            snprintf(temp,TEMPSIZE,"Policenauts BGM header");
             break;
         default:
            snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

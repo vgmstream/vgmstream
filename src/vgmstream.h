@@ -389,34 +389,34 @@ typedef enum {
     meta_RIFF_WAVE_MWV,     /* .mwv RIFF w/ loop data in ctrl chunk pflt */
     meta_RIFX_WAVE,         /* RIFX, for big-endian WAVs */
     meta_RIFX_WAVE_smpl,    /* RIFX w/ loop data in smpl chunk */
-	meta_PC_MXST,           /* Lego Island MxSt */
-	meta_PC_SOB_SAB,		/* Worms 4 Mayhem SOB+SAB file */
+	  meta_PC_MXST,           /* Lego Island MxSt */
+	  meta_PC_SOB_SAB,		    /* Worms 4 Mayhem SOB+SAB file */
     meta_NWA,               /* Visual Art's NWA */
     meta_NWA_NWAINFOINI,    /* NWA w/ NWAINFO.INI for looping */
     meta_NWA_GAMEEXEINI,    /* NWA w/ Gameexe.ini for looping */
-    meta_DVI,				/* DVI Interleaved */
-    meta_KCEY,				/* KCEYCOMP */
+    meta_DVI,				        /* DVI Interleaved */
+    meta_KCEY,				      /* KCEYCOMP */
     meta_ACM,               /* InterPlay ACM header */
     meta_MUS_ACM,           /* MUS playlist of InterPlay ACM files */
     meta_DE2,               /* Falcom (Gurumin) .de2 */
-    meta_VS,				/* Men in Black .vs */
+    meta_VS,				        /* Men in Black .vs */
     meta_FFXI_BGW,          /* FFXI BGW */
     meta_FFXI_SPW,          /* FFXI SPW */
-    meta_STS_WII,			/* Shikigami No Shiro 3 STS Audio File */
-    meta_PS2_P2BT,			/* Pop'n'Music 7 Audio File */
-    meta_PS2_GBTS,			/* Pop'n'Music 9 Audio File */
-    meta_NGC_IADP,			/* Gamecube Interleave DSP */
-	meta_PS2_TK5,			/* Tekken 5 Stream Files */
-	meta_WII_STR,			/* House of The Dead Overkill STR+STH */
-	meta_PS2_MCG,			/* Gunvari MCG  Files (was name .GCM on disk) */
+    meta_STS_WII,			      /* Shikigami No Shiro 3 STS Audio File */
+    meta_PS2_P2BT,			    /* Pop'n'Music 7 Audio File */
+    meta_PS2_GBTS,			    /* Pop'n'Music 9 Audio File */
+    meta_NGC_IADP,			    /* Gamecube Interleave DSP */
+	  meta_PS2_TK5,			      /* Tekken 5 Stream Files */
+	  meta_WII_STR,			      /* House of The Dead Overkill STR+STH */
+	  meta_PS2_MCG,			      /* Gunvari MCG  Files (was name .GCM on disk) */
     meta_ZSD,               /* Dragon Booster ZSD */
     meta_RedSpark,          /* "RedSpark" RSD (MadWorld) */
-	meta_PC_IVAUD,			/* .ivaud GTA IV */
-    meta_NDS_HWAS,			/* Spider-Man 3, Tony Hawk's Downhill Jam, possibly more... */
-	meta_NGC_LPS,			/* Rave Master (Groove Adventure Rave)(GC) */
-    meta_NAOMI_ADPCM,		/* NAOMI/NAOMI2 ARcade games */
-	meta_SD9,               /* beatmaniaIIDX16 - EMPRESS (Arcade) */
-	meta_2DX,               /* beatmaniaIIDX16 - EMPRESS (Arcade) */
+	  meta_PC_IVAUD,			    /* .ivaud GTA IV */
+    meta_NDS_HWAS,			    /* Spider-Man 3, Tony Hawk's Downhill Jam, possibly more... */
+	  meta_NGC_LPS,			      /* Rave Master (Groove Adventure Rave)(GC) */
+    meta_NAOMI_ADPCM,		    /* NAOMI/NAOMI2 ARcade games */
+	  meta_SD9,               /* beatmaniaIIDX16 - EMPRESS (Arcade) */
+	  meta_2DX,               /* beatmaniaIIDX16 - EMPRESS (Arcade) */
     meta_PS2_VGV,           /* Rune: Viking Warlord */
     meta_NGC_GCUB,          /* Sega Soccer Slam */
     meta_MAXIS_XA,          /* Sim City 3000 (PC) */
@@ -424,10 +424,11 @@ typedef enum {
     meta_CAFF,              /* iPhone .caf */
     meta_EXAKT_SC,          /* Activision EXAKT .SC (PS2) */
     meta_WII_WAS,           /* DiRT 2 (WII) */
-    meta_PONA,              /* Policenauts (3DO + PSX) */
+    meta_PONA_3DO,          /* Policenauts (3DO) */
+    meta_PONA_PSX,          /* Policenauts (PSX) */
     meta_XBOX_HLWAV,        /* Half Life 2 (XBOX) */
-	meta_PS2_AST,			/* Some KOEI game (PS2) */
-	meta_DMSG,				/* Nightcaster II - Equinox (XBOX) */
+	  meta_PS2_AST,			      /* Some KOEI game (PS2) */
+	  meta_DMSG,				      /* Nightcaster II - Equinox (XBOX) */
 } meta_t;
 
 typedef struct {
