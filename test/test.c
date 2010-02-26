@@ -232,7 +232,7 @@ int main(int argc, char ** argv) {
     buf = malloc(BUFSIZE*sizeof(sample)*s->channels);
 
     len = get_vgmstream_play_samples(loop_count,fade_seconds,fade_delay_seconds,s);
-    if (!play && !adxencd && !oggenc && !batchvar) printf("samples to play: %d (%.2lf seconds)\n",len,(double)len/s->sample_rate);
+    if (!play && !adxencd && !oggenc && !batchvar) printf("samples to play: %d (%.4lf seconds)\n",len,(double)len/s->sample_rate);
     fade_samples = fade_seconds * s->sample_rate;
 
     /* slap on a .wav header */
