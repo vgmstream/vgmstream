@@ -223,7 +223,7 @@ t_filestats input_vgmstream::get_file_stats(abort_callback & p_abort) {
 	return stats;
 }
 
-bool input_vgmstream::decode_can_seek() {return true;} /*not implemented yet*/
+bool input_vgmstream::decode_can_seek() {return true;}
 bool input_vgmstream::decode_get_dynamic_info(file_info & p_out, double & p_timestamp_delta) {
 	//do we need anything else 'cept the samplrate
 	return true;
@@ -235,11 +235,6 @@ void input_vgmstream::retag(const file_info & p_info,abort_callback & p_abort) {
 
 bool input_vgmstream::g_is_our_content_type(const char * p_content_type) {return false;}
 bool input_vgmstream::g_is_our_path(const char * p_path,const char * p_extension) {
-#if 0
-	if(!stricmp_utf8(p_extension,"pdt")) return 1;
-#endif
-	if(!stricmp_utf8(p_extension,"pdt")) return 1;
-
 	if(!stricmp_utf8(p_extension,"2dx")) return 1;
 
 	if(!stricmp_utf8(p_extension,"aax")) return 1;
@@ -251,7 +246,7 @@ bool input_vgmstream::g_is_our_path(const char * p_path,const char * p_extension
 	if(!stricmp_utf8(p_extension,"afc")) return 1;
 	if(!stricmp_utf8(p_extension,"agsc")) return 1;
 	if(!stricmp_utf8(p_extension,"ahx")) return 1;
-	if(!stricmp_utf8(p_extension,"a			c")) return 1;
+	if(!stricmp_utf8(p_extension,"aifc")) return 1;
 	if(!stricmp_utf8(p_extension,"aix")) return 1;
 	if(!stricmp_utf8(p_extension,"amts")) return 1;
 	if(!stricmp_utf8(p_extension,"as4")) return 1;
@@ -493,9 +488,6 @@ DECLARE_COMPONENT_VERSION(APP_NAME,PLUGIN_VERSION,PLUGIN_DESCRIPTION);
 
 // File types go down here (and in the large chunk of IFs above
 // these are declared statically, and if anyone has a better idea i'd like to hear it - josh.
-#if 0
-DECLARE_MULTIPLE_FILE_TYPE("PDT Audio File (*.PDT)", pdt);
-#endif
 DECLARE_MULTIPLE_FILE_TYPE("2DX Audio File (*.2DX)", 2dx);
 
 DECLARE_MULTIPLE_FILE_TYPE("AAX Audio File (*.AAX)", aax);
