@@ -48,8 +48,14 @@ static size_t read_the_rest_foo(uint8_t * dest, off_t offset, size_t length, FOO
         size_t length_read=0;
         streamfile->validsize=0;
 
-        streamfile->m_file->seek(offset,*streamfile->p_abort);
-        if (streamfile->m_file->is_eof(*streamfile->p_abort)) return length_read;
+        try {
+			if(offset >= streamfile->m_file->get_size(*streamfile->p_abort))
+				return length_read;
+			streamfile->m_file->seek(offset,*streamfile->p_abort);
+			if (streamfile->m_file->is_eof(*streamfile->p_abort)) return length_read;
+		} catch (...) {
+			return length_read; //fail miserably
+		}
 
         streamfile->offset=offset;
 
@@ -58,7 +64,11 @@ static size_t read_the_rest_foo(uint8_t * dest, off_t offset, size_t length, FOO
         else length_to_read=length;
 
         /* always try to fill the buffer */
-        length_read = streamfile->m_file->read(streamfile->buffer,streamfile->buffersize,*streamfile->p_abort);
+        try {
+        	length_read = streamfile->m_file->read(streamfile->buffer,streamfile->buffersize,*streamfile->p_abort);
+        } catch(...) {
+			return length_read; //fail miserably
+        }
         streamfile->validsize=length_read;
 
 #ifdef PROFILE_STREAMFILE
@@ -87,7 +97,7 @@ static size_t read_foo(FOO_STREAMFILE *streamfile, uint8_t * dest, off_t offset,
 
 	if (!streamfile || !dest || length<=0) return 0;
 
-    /* if entire request is within the buffer */
+	/* if entire request is within the buffer */
     if (offset >= streamfile->offset && offset+length <= streamfile->offset+streamfile->validsize) {
         memcpy(dest,streamfile->buffer+(offset-streamfile->offset),length);
         return length;
@@ -96,8 +106,8 @@ static size_t read_foo(FOO_STREAMFILE *streamfile, uint8_t * dest, off_t offset,
     return read_the_rest_foo(dest,offset,length,streamfile);
 }
 
-STREAMFILE * open_foo_streamfile(const char * const filename, abort_callback * p_abort) {
-	return open_foo_streamfile_buffer(filename,STREAMFILE_DEFAULT_BUFFER_SIZE, p_abort);
+STREAMFILE * open_foo_streamfile(const char * const filename, abort_callback * p_abort, t_filestats * stats) {
+	return open_foo_streamfile_buffer(filename,STREAMFILE_DEFAULT_BUFFER_SIZE, p_abort, stats);
 }
 
 static STREAMFILE *open_foo(FOO_STREAMFILE *streamFile,const char * const filename,size_t buffersize) {
@@ -121,7 +131,7 @@ static STREAMFILE *open_foo(FOO_STREAMFILE *streamFile,const char * const filena
     }
     // a normal open, open a new file
 
-	return open_foo_streamfile_buffer(filename,buffersize,streamFile->p_abort);
+	return open_foo_streamfile_buffer(filename,buffersize,streamFile->p_abort,NULL);
 }
 
 static size_t get_size_foo(FOO_STREAMFILE * streamfile) {
@@ -179,7 +189,7 @@ static STREAMFILE * open_foo_streamfile_buffer_by_file(service_ptr_t<file> m_fil
     return &streamfile->sf;
 }
 
-STREAMFILE * open_foo_streamfile_buffer(const char * const filename, size_t buffersize, abort_callback * p_abort) {
+STREAMFILE * open_foo_streamfile_buffer(const char * const filename, size_t buffersize, abort_callback * p_abort, t_filestats * stats) {
     STREAMFILE *streamFile;
     service_ptr_t<file> infile;
 
@@ -187,6 +197,7 @@ STREAMFILE * open_foo_streamfile_buffer(const char * const filename, size_t buff
     	return NULL;
 
     filesystem::g_open_read(infile,filename,*p_abort);
+    if(stats) *stats = infile->get_stats(*p_abort);
 
     streamFile = open_foo_streamfile_buffer_by_file(infile,filename,buffersize,p_abort);
     if (!streamFile) {

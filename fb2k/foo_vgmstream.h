@@ -12,10 +12,71 @@ typedef struct _FOO_STREAMFILE {
     size_t buffersize;
 }  FOO_STREAMFILE;
 
+class input_vgmstream {
+	public:
+		input_vgmstream();
+		~input_vgmstream();
 
-static STREAMFILE * open_foo_streamfile_buffer_by_file(service_ptr_t<file> m_file,const char * const filename, size_t buffersize, abort_callback * p_abort);
-STREAMFILE * open_foo_streamfile_buffer(const char * const filename, size_t buffersize, abort_callback * p_abort);
-STREAMFILE * open_foo_streamfile(const char * const filename, abort_callback * p_abort);
+		VGMSTREAM * init_vgmstream_foo(const char * const filename, abort_callback & p_abort);
+		void decode_seek(double p_seconds,abort_callback & p_abort);
+		bool decode_run(audio_chunk & p_chunk,abort_callback & p_abort);
+		void decode_initialize(unsigned p_flags,abort_callback & p_abort);
+		void get_info(file_info & p_info,abort_callback & p_abort);
+		void open(service_ptr_t<file> p_filehint,const char * p_path,t_input_open_reason p_reason,abort_callback & p_abort);
+
+		static bool g_is_our_path(const char * p_path,const char * p_extension);
+		static bool g_is_our_content_type(const char * p_content_type);
+
+		bool decode_can_seek();
+		bool decode_get_dynamic_info(file_info & p_out, double & p_timestamp_delta);
+		bool decode_get_dynamic_info_track(file_info & p_out, double & p_timestamp_delta);
+		void decode_on_idle(abort_callback & p_abort);
+		void retag(const file_info & p_info,abort_callback & p_abort);
+		t_filestats get_file_stats(abort_callback & p_abort);
+
+
+	public:
+		service_ptr_t<file> m_file;
+		char filename[260];
+		t_input_open_reason currentreason;
+		VGMSTREAM * vgmstream;
+		HANDLE decode_thread_handle;
+
+		bool decoding;
+		int paused;
+		int decode_abort;
+		int decode_pos_ms;
+		int decode_pos_samples;
+		int stream_length_samples;
+		int fade_samples;
+		int test_length;
+
+		double fade_seconds;
+		double fade_delay_seconds;
+		double loop_count;
+		int thread_priority;
+		bool loop_forever;
+		int ignore_loop;
+		int seek_pos_samples;
+
+		t_filestats stats;
+
+		short sample_buffer[576*2*2]; /* 576 16-bit samples, stereo, possibly doubled in size for DSP */
+
+		void getfileinfo(char *filename, char *title, int *length_in_ms, int *sample_rate, int *channels, abort_callback & p_abort);
+
+	private:
+
+};
+
+STREAMFILE * open_foo_streamfile_buffer_by_file(service_ptr_t<file> m_file,const char * const filename, size_t buffersize, abort_callback * p_abort);
+STREAMFILE * open_foo_streamfile_buffer(const char * const filename, size_t buffersize, abort_callback * p_abort, t_filestats * stats);
+STREAMFILE * open_foo_streamfile(const char * const filename, abort_callback * p_abort, t_filestats * stats);
+//size_t read_the_rest_foo(uint8_t * dest, off_t offset, size_t length, FOO_STREAMFILE * streamfile);
+//size_t read_foo(FOO_STREAMFILE *streamfile, uint8_t * dest, off_t offset, size_t length);
+//void close_foo(FOO_STREAMFILE * streamfile);
+//off_t get_offset_foo(FOO_STREAMFILE *streamFile);
+//size_t get_size_foo(FOO_STREAMFILE * streamfile);
 
 #define DECLARE_MULTIPLE_FILE_TYPE(NAME,EXTENSION) \
 	namespace { static input_file_type_impl g_filetype_instance_##EXTENSION(NAME,"*." #EXTENSION ,true); \

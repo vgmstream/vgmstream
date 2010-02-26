@@ -1,10 +1,11 @@
 ﻿<?xml version="1.0" encoding="UTF-8"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="8.00"
+	Version="9.00"
 	Name="foo_input_vgmstream"
 	ProjectGUID="{F3739CF2-F422-4A3D-BB0A-53C5D4C5ABA0}"
 	Keyword="Win32Proj"
+	TargetFrameworkVersion="0"
 	>
 	<Platforms>
 		<Platform
@@ -39,10 +40,10 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="&quot;C:\projects\SDK-2007-02-04\foobar2000\SDK&quot;;&quot;C:\projects\SDK-2007-02-04\foobar2000\shared&quot;;&quot;C:\projects\SDK-2007-02-04\foobar2000\helpers&quot;"
+				AdditionalIncludeDirectories="../ext_includes"
 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;IN_VGMSTREAM_EXPORTS;"
 				MinimalRebuild="true"
-				BasicRuntimeChecks="1"
+				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
@@ -60,9 +61,11 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="shared.lib foobar2000_SDKd.lib foobar2000_component_clientd.lib pfcd.lib"
+				AdditionalDependencies="shared.lib foobar2000_SDKd.lib foobar2000_component_clientd.lib pfcd.lib ../ext_libs/libvorbis.lib ../ext_libs/libmpg123-0.lib"
+				OutputFile="$(OutDir)\$(ProjectName).dll"
 				LinkIncremental="2"
-				AdditionalLibraryDirectories="C:\projects\SDK-2007-02-04\foobar2000\lib"
+				AdditionalLibraryDirectories=""
+				DelayLoadDLLs="libvorbis.dll;libmpg123-0.dll"
 				GenerateDebugInformation="true"
 				SubSystem="2"
 				TargetMachine="1"
@@ -113,7 +116,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="&quot;C:\projects\SDK-2007-02-04\foobar2000\SDK&quot;;&quot;C:\projects\SDK-2007-02-04\foobar2000\shared&quot;;&quot;C:\projects\SDK-2007-02-04\foobar2000\helpers&quot;"
+				AdditionalIncludeDirectories="../ext_includes"
 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;IN_VGMSTREAM_EXPORTS;"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"
@@ -132,9 +135,10 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="shared.lib foobar2000_SDK.lib foobar2000_component_client.lib pfc.lib"
+				AdditionalDependencies="shared.lib foobar2000_SDK.lib foobar2000_component_client.lib pfc.lib ../ext_libs/libvorbis.lib ../ext_libs/libmpg123-0.lib"
 				LinkIncremental="2"
-				AdditionalLibraryDirectories="C:\projects\SDK-2007-02-04\foobar2000\lib"
+				AdditionalLibraryDirectories=""
+				DelayLoadDLLs="libvorbis.dll;libmpg123-0.dll"
 				SubSystem="2"
 				OptimizeReferences="2"
 				EnableCOMDATFolding="2"
