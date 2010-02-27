@@ -35,7 +35,7 @@ VGMSTREAM * init_vgmstream_gsp_gsb(STREAMFILE *streamFile) {
         goto fail;
 
     channel_count = (uint16_t)read_16bitBE(0x3A,streamFileGSP);
-    loop_flag = (read_32bitBE(0x64,streamFileGSP) !=0xFFFFFFFF);
+    loop_flag = (read_32bitBE(0x64,streamFileGSP) != 0xFFFFFFFF);
     header_len = read_32bitBE(0x1C,streamFileGSP);
     
     coef1_start = header_len-0x4C;

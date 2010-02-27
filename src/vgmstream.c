@@ -109,7 +109,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_ps2_dxh,
     init_vgmstream_ps2_psh,
     init_vgmstream_pcm_scd,
-	init_vgmstream_pcm_ps2,
+	  init_vgmstream_pcm_ps2,
     init_vgmstream_ps2_rkv,
     init_vgmstream_ps2_psw,
     init_vgmstream_ps2_vas,
@@ -241,6 +241,8 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_his,
 	  init_vgmstream_ps2_ast,
 	  init_vgmstream_dmsg,
+    init_vgmstream_ngc_aaap,
+    init_vgmstream_ngc_dsp_tmnt2,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -2391,6 +2393,12 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
 		    case meta_PONA_3DO:
         case meta_PONA_PSX:
             snprintf(temp,TEMPSIZE,"Policenauts BGM header");
+            break;
+        case meta_NGC_AAAP:
+            snprintf(temp,TEMPSIZE,"Turok: Evolution 'AAAp' dsp header");
+            break;
+        case meta_NGC_DSP_TMNT2:
+            snprintf(temp,TEMPSIZE,"TMNT2 dsp header");
             break;
         default:
            snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

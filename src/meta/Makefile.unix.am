@@ -80,7 +80,7 @@ libmeta_la_SOURCES += sli.c
 libmeta_la_SOURCES += sfl.c
 libmeta_la_SOURCES += pcm.c
 libmeta_la_SOURCES += ps2_psw.c
-libmeta_la_SOURCES += ps2_rkv.c
+libmeta_la_SOURCES += rkv.c
 libmeta_la_SOURCES += ps2_vas.c
 libmeta_la_SOURCES += ps2_tec.c
 libmeta_la_SOURCES += ps2_enth.c
@@ -178,5 +178,7 @@ libmeta_la_SOURCES += myspd.c
 libmeta_la_SOURCES += his.c
 libmeta_la_SOURCES += ps2_ast.c
 libmeta_la_SOURCES += dmsg_segh.c
+libmeta_la_SOURCES += ngc_aaap.c
+libmeta_la_SOURCES += ngc_dsp_tmnt2.c
 
 EXTRA_DIST = meta.h

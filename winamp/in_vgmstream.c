@@ -80,9 +80,10 @@ char * extension_list[] = {
     "pdt\0PDT Audio File (*.PDT)\0", /* Mario Party and some other games */
 #endif
 
-	"2dx\0""2DX Audio File (*.2DX)\0",
+	  "2dx\0""2DX Audio File (*.2DX)\0",
 	
-	"aax\0AAX Audio File (*.AAX)\0",
+	  "aaap\0AAAP Audio File (*.AAAP)\0",
+	  "aax\0AAX Audio File (*.AAX)\0",
     "acm\0ACM Audio File (*.ACM)\0",
     "adpcm\0ADPCM Audio File (*.ADPCM)\0",
     "adp\0ADP Audio File (*.ADP)\0",
@@ -112,14 +113,14 @@ char * extension_list[] = {
     "brstm;brstmspm\0BRSTM Audio File (*.BRSTM)\0",
 
     "caf\0CAF Audio File (*.CAF)\0",
-	"capdsp\0CAPDSP Audio File (*.CAPDSP)\0", /* Capcom custom coefs */
-	"ccc\0CCC Audio File (*.CCC)\0",
+	  "capdsp\0CAPDSP Audio File (*.CAPDSP)\0", /* Capcom custom coefs */
+	  "ccc\0CCC Audio File (*.CCC)\0",
     "cfn\0CFN Audio File (*.CFN)\0",
     "cnk\0CNK Audio File (*.CNK)\0",
 
     "dcs\0DCS Audio File (*.DCS)\0",
     "de2\0DE2 Audio File (*.DE2)\0",
-	"dmsg\0DMSG Audio File (*.DMSG)\0",
+	  "dmsg\0DMSG Audio File (*.DMSG)\0",
     "dsp\0DSP Audio File (*.DSP)\0",
     "dtk\0DTK Audio File (*.DTK)\0",
     "dvi\0DVI Audio File (*.DVI)\0",
@@ -154,7 +155,7 @@ char * extension_list[] = {
     "ild\0ILD Audio File (*.ILD)\0",
     "int\0PS2 RAW Interleaved PCM (*.INT)\0",
     "isd\0ISD Audio File (*.ISD)\0",
-	"isws\0ISWS Audio File (*.ISWS)\0",
+	  "isws\0ISWS Audio File (*.ISWS)\0",
     "ivaud\0IVAUD Audio File (*.IVAUD)\0",
     "ivb\0IVB Audio File (*.IVB)\0",
 
@@ -215,7 +216,7 @@ char * extension_list[] = {
     "rwx\0RWX Audio File (*.RWX)\0",
     "rxw\0PS2 RXWS File (*.RXW)\0",
 
-	"sab\0SAB Audio File (*.SAB)\0",
+	  "sab\0SAB Audio File (*.SAB)\0",
     "sad\0SAD Audio File (*.SAD)\0",
     "sap\0SAP Audio File (*.SAP)\0",
     "sc\0SC Audio File (*.SC)\0",

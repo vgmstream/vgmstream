@@ -110,13 +110,14 @@ VGMSTREAM * init_vgmstream_dc_str_v2(STREAMFILE *streamFile) {
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
     if (strcasecmp("str",filename_extension(filename))) goto fail;
-#if 0
+
     /* check header */
-    if ((read_32bitBE(0x00,streamFile) != 0x00000002) &&
-        (read_32bitBE(0x10,streamFile) != 0x00000100) &&
-        (read_32bitBE(0x1C,streamFile) != 0x1F000000))
-    goto fail;
-#endif
+    if ((read_32bitLE(0x00,streamFile) != 0x2))
+        goto fail;
+    if ((read_32bitLE(0x10,streamFile) != 0x10000))
+        goto fail;
+    if ((read_32bitLE(0x1C,streamFile) != 0x1F))
+        goto fail;
 
     channel_count = 2;
    

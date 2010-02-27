@@ -119,6 +119,7 @@ VGMSTREAM * init_vgmstream_fsb4(STREAMFILE *streamFile) {
         loop_flag = 0;
     }
 
+#if 0
     if (read_32bitBE(0x60,streamFile) != 0x20000882 &&
         read_32bitBE(0x60,streamFile) != 0x20100002 &&
         read_32bitBE(0x60,streamFile) != 0x20100882 &&
@@ -129,6 +130,9 @@ VGMSTREAM * init_vgmstream_fsb4(STREAMFILE *streamFile) {
     } else {
         channel_count = 1;
     }
+#endif
+
+    channel_count = (uint16_t)read_16bitLE(0x6E,streamFile);
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);

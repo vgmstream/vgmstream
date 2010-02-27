@@ -6,9 +6,12 @@
 VGMSTREAM * init_vgmstream_ps2_tec(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[260];
+  	int loop_flag;
+	  int channel_count;
+    int current_chunk;
     off_t start_offset;
-	int loop_flag;
-	int channel_count;
+    int dataBuffer = 0;
+    int Founddata = 0;
 
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
@@ -17,13 +20,13 @@ VGMSTREAM * init_vgmstream_ps2_tec(STREAMFILE *streamFile) {
     loop_flag = 0;
     channel_count = 2;
     
-	/* build the VGMSTREAM */
+	  /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
-	/* fill in the vital statistics */
-	start_offset = 0x0;
-	vgmstream->channels = channel_count;
+	  /* fill in the vital statistics */
+	  start_offset = 0x0;
+	  vgmstream->channels = channel_count;
     vgmstream->sample_rate = 44100;
     vgmstream->coding_type = coding_PSX_badflags;
     vgmstream->num_samples = get_streamfile_size(streamFile)*28/16/channel_count;
@@ -32,10 +35,39 @@ VGMSTREAM * init_vgmstream_ps2_tec(STREAMFILE *streamFile) {
         vgmstream->loop_end_sample = get_streamfile_size(streamFile)*28/16/channel_count;
     }
 
-    vgmstream->layout_type = layout_interleave;
-    vgmstream->interleave_block_size = 0x4000;
-    vgmstream->meta_type = meta_PS2_TEC;
+    // Check the first frame header (should be always zero)
+    if ((uint8_t)(read_8bit(0x00,streamFile) != 0x0))
+        goto fail;
 
+    // Scan for Interleave
+    {
+        current_chunk = 16;
+        while (!Founddata && current_chunk < 65536) {
+        dataBuffer = (uint8_t)(read_8bit(current_chunk,streamFile));
+            if (dataBuffer == 0x0) { /* "0x0" */
+                Founddata = 1;
+                break;
+            }
+            current_chunk = current_chunk + 16;
+        }
+    }
+
+    // Cancel if we can't find an interleave
+    if (Founddata == 0) {
+        goto fail;
+    } else if (Founddata == 1) {
+        vgmstream->layout_type = layout_interleave;
+        vgmstream->interleave_block_size = current_chunk;
+    }
+    
+    // Cancel if the first flag isn't invalid/bad
+    if ((uint8_t)(read_8bit(0x01,streamFile) == 0x0))
+        goto fail;
+    if ((uint8_t)(read_8bit(0x01+current_chunk,streamFile) == 0x0))
+        goto fail;
+
+    vgmstream->meta_type = meta_PS2_TEC;
+    
     /* open the file for reading */
     {
         int i;

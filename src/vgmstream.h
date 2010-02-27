@@ -265,7 +265,7 @@ typedef enum {
     meta_PS2_DXH,			/* Tokobot Plus - Myteries of the Karakuri */
     meta_PS2_PSH,			/* Dawn of Mana - Seiken Densetsu 4 */
     meta_PCM_SCD,			/* Ephemeral Fantasia */
-	meta_PCM_PS2,			/* Lunar - Eternal Blue */
+	  meta_PCM_PS2,			/* Lunar - Eternal Blue */
     meta_PS2_RKV,			/* Legacy of Kain - Blood Omen 2 */
     meta_PS2_PSW,			/* Rayman Raving Rabbids */
     meta_PS2_VAS,			/* Pro Baseball Spirits 5 */
@@ -285,41 +285,41 @@ typedef enum {
     meta_PS2_XA2,			/* XG3 Extreme-G Racing */
     meta_IDSP,				/* Chronicles of Narnia */
     meta_IDSP2,				/* Soul Calibur */
-	meta_IDSP3,				/* Mario Strikers Charged */
-	meta_SPT_SPD,			/* Variouis */
+	  meta_IDSP3,				/* Mario Strikers Charged */
+	  meta_SPT_SPD,			/* Variouis */
     meta_ISH_ISD,			/* Various */
     meta_GSP_GSB,			/* Various */
     meta_YDSP,				/* WWE Day of Reckoning */
-    meta_FFCC_STR,          /* Final Fantasy: Crystal Chronicles */
+    meta_FFCC_STR,    /* Final Fantasy: Crystal Chronicles */
 
     
     meta_WAA_WAC_WAD_WAM,	/* Beyond Good & Evil */
-    meta_GCA,				/* Metal Slug Anthology */
-    meta_MSVP,				/* Popcap Hits */
-    meta_NGC_SSM,			/* Golden Gashbell Full Power */
-    meta_PS2_JOE,			/* Wall-E / Pixar games */
+    meta_GCA,				      /* Metal Slug Anthology */
+    meta_MSVP,				    /* Popcap Hits */
+    meta_NGC_SSM,			    /* Golden Gashbell Full Power */
+    meta_PS2_JOE,			    /* Wall-E / Pixar games */
 
-    meta_NGC_YMF,			/* WWE WrestleMania X8 */
-    meta_SADL,              /* .sad */
-    meta_PS2_CCC,           /* Tokyo Xtreme Racer DRIFT 2 */
-    meta_PSX_FAG,           /* Jackie Chan - Stuntmaster */
-    meta_PS2_MIHB,          /* Merged MIH+MIB */
-    meta_NGC_PDT,           /* Mario Party 6 */
-    meta_DC_ASD,			/* Miss Moonligh */
-    meta_NAOMI_SPSD,		/* Guilty Gear X */
+    meta_NGC_YMF,			    /* WWE WrestleMania X8 */
+    meta_SADL,            /* .sad */
+    meta_PS2_CCC,         /* Tokyo Xtreme Racer DRIFT 2 */
+    meta_PSX_FAG,         /* Jackie Chan - Stuntmaster */
+    meta_PS2_MIHB,        /* Merged MIH+MIB */
+    meta_NGC_PDT,         /* Mario Party 6 */
+    meta_DC_ASD,    			/* Miss Moonligh */
+    meta_NAOMI_SPSD,		  /* Guilty Gear X */
     
-    meta_RSD2VAG,			/* RSD2VAG */
+    meta_RSD2VAG,			  /* RSD2VAG */
     meta_RSD2PCMB,			/* RSD2PCMB */
     meta_RSD2XADP,			/* RSD2XADP */
-	meta_RSD3VAG,			/* RSD3VAG */
-	meta_RSD3GADP,			/* RSD3GADP */
-    meta_RSD3PCM,			/* RSD3PCM */
+	  meta_RSD3VAG,			  /* RSD3VAG */
+	  meta_RSD3GADP,			/* RSD3GADP */
+    meta_RSD3PCM,		  	/* RSD3PCM */
     meta_RSD3PCMB,			/* RSD3PCMB */
     meta_RSD4PCMB,			/* RSD4PCMB */
-    meta_RSD4PCM,			/* RSD4PCM */
-	meta_RSD4RADP,			/* RSD4RADP */
-    meta_RSD4VAG,			/* RSD4VAG */
-    meta_RSD6VAG,			/* RSD6VAG */
+    meta_RSD4PCM,			  /* RSD4PCM */
+	  meta_RSD4RADP,			/* RSD4RADP */
+    meta_RSD4VAG,			  /* RSD4VAG */
+    meta_RSD6VAG,			  /* RSD6VAG */
     meta_RSD6WADP,			/* RSD6WADP */
     meta_RSD6XADP,			/* RSD6XADP */
     meta_RSD6RADP,			/* RSD6RADP */
@@ -336,17 +336,18 @@ typedef enum {
     meta_EMFF_PS2,			/* Eidos Music File Format for PS2*/
     meta_EMFF_NGC,			/* Eidos Music File Format for NGC/WII */
     meta_SAT_BAKA,			/* Crypt Killer */
-    meta_PS2_VSF,           /* Musashi: Samurai Legend */
-	meta_PS2_VSF_TTA,       /* Tiny Toon Adventures: Defenders of the Universe */
-	meta_ADS,               /* Gauntlet Dark Legends (GC) */
-	meta_PS2_SPS,           /* Ape Escape 2 */
-    meta_PS2_XA2_RRP,       /* RC Revenge Pro */
-    meta_PS2_STM,           /* Red Dead Revolver .stm, renamed .ps2stm */
+    meta_PS2_VSF,         /* Musashi: Samurai Legend */
+	  meta_PS2_VSF_TTA,     /* Tiny Toon Adventures: Defenders of the Universe */
+	  meta_ADS,             /* Gauntlet Dark Legends (GC) */
+	  meta_PS2_SPS,         /* Ape Escape 2 */
+    meta_PS2_XA2_RRP,     /* RC Revenge Pro */
+    meta_PS2_STM,         /* Red Dead Revolver .stm, renamed .ps2stm */
+    meta_NGC_DSP_TMNT2,    /* Teenage Mutant Ninja Turtles 2 */
 
     meta_XBOX_WAVM,			/* XBOX WAVM File */
     meta_XBOX_RIFF,			/* XBOX RIFF/WAVE File */
     meta_XBOX_WVS,			/* XBOX WVS */
-    meta_NGC_WVS,			/* NGC WVS */
+    meta_NGC_WVS,			  /* NGC WVS */
     meta_XBOX_STMA,			/* XBOX STMA */
     meta_XBOX_MATX,			/* XBOX MATX */
     meta_XBOX_XMU,			/* XBOX XMU */
@@ -429,6 +430,7 @@ typedef enum {
     meta_XBOX_HLWAV,        /* Half Life 2 (XBOX) */
 	  meta_PS2_AST,			      /* Some KOEI game (PS2) */
 	  meta_DMSG,				      /* Nightcaster II - Equinox (XBOX) */
+    meta_NGC_AAAP,  	      /* Turok: Evolution (NGC) */
 } meta_t;
 
 typedef struct {

@@ -427,6 +427,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\ngc_aaap.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\ngc_adpdtk.c"
 					>
 				</File>
@@ -440,6 +444,10 @@
 				</File>
 				<File
 					RelativePath=".\meta\ngc_dsp_std.c"
+					>
+				</File>
+				<File
+					RelativePath=".\meta\ngc_dsp_tmnt2.c"
 					>
 				</File>
 				<File
@@ -623,10 +631,6 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\ps2_rkv.c"
-					>
-				</File>
-				<File
 					RelativePath=".\meta\ps2_rnd.c"
 					>
 				</File>
@@ -732,6 +736,10 @@
 				</File>
 				<File
 					RelativePath=".\meta\riff.c"
+					>
+				</File>
+				<File
+					RelativePath=".\meta\rkv.c"
 					>
 				</File>
 				<File
