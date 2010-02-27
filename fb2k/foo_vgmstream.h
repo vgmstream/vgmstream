@@ -1,6 +1,8 @@
 #ifndef _FOO_VGMSTREAM_
 #define _FOO_VGMSTREAM_
 
+#define OUTBUF_SIZE		1024		/* Samples */
+
 typedef struct _FOO_STREAMFILE {
 	struct _STREAMFILE sf;
 	abort_callback * p_abort;
@@ -61,7 +63,7 @@ class input_vgmstream {
 
 		t_filestats stats;
 
-		short sample_buffer[576*2*2]; /* 576 16-bit samples, stereo, possibly doubled in size for DSP */
+		short sample_buffer[OUTBUF_SIZE];
 
 		void getfileinfo(char *filename, char *title, int *length_in_ms, int *sample_rate, int *channels, abort_callback & p_abort);
 
@@ -72,11 +74,7 @@ class input_vgmstream {
 STREAMFILE * open_foo_streamfile_buffer_by_file(service_ptr_t<file> m_file,const char * const filename, size_t buffersize, abort_callback * p_abort);
 STREAMFILE * open_foo_streamfile_buffer(const char * const filename, size_t buffersize, abort_callback * p_abort, t_filestats * stats);
 STREAMFILE * open_foo_streamfile(const char * const filename, abort_callback * p_abort, t_filestats * stats);
-//size_t read_the_rest_foo(uint8_t * dest, off_t offset, size_t length, FOO_STREAMFILE * streamfile);
-//size_t read_foo(FOO_STREAMFILE *streamfile, uint8_t * dest, off_t offset, size_t length);
-//void close_foo(FOO_STREAMFILE * streamfile);
-//off_t get_offset_foo(FOO_STREAMFILE *streamFile);
-//size_t get_size_foo(FOO_STREAMFILE * streamfile);
+
 
 #define DECLARE_MULTIPLE_FILE_TYPE(NAME,EXTENSION) \
 	namespace { static input_file_type_impl g_filetype_instance_##EXTENSION(NAME,"*." #EXTENSION ,true); \

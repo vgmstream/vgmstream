@@ -33,8 +33,6 @@ extern "C" {
 #define PLUGIN_VERSION VERSION " " __DATE__
 #define INI_NAME "plugin.ini"
 
-#define DECODE_SIZE		1024
-
 
 /* format detection and VGMSTREAM setup, uses default parameters */
 VGMSTREAM * input_vgmstream::init_vgmstream_foo(const char * const filename, abort_callback & p_abort) {
@@ -105,7 +103,7 @@ void input_vgmstream::get_info(file_info & p_info,abort_callback & p_abort ) {
 	p_info.info_set_int("channels", channels);
 	p_info.info_set_int("bitspersample",16);
 	p_info.info_set("encoding","lossless");
-	p_info.info_set_bitrate(16);
+	p_info.info_set_bitrate(samplerate * 16 * channels);
 
 	p_info.set_length(((double)length_in_ms)/1000);
 }
@@ -122,15 +120,16 @@ bool input_vgmstream::decode_run(audio_chunk & p_chunk,abort_callback & p_abort)
 		Sleep(10);
 	decoding = true;
 
-	int l = 0, samples_to_do = DECODE_SIZE, t= 0;
+	int max_buffer_samples = sizeof(sample_buffer)/sizeof(sample_buffer[0])/vgmstream->channels;
+	int l = 0, samples_to_do = max_buffer_samples, t= 0;
 
 	if(vgmstream) {
-		if (decode_pos_samples+DECODE_SIZE>stream_length_samples && (!loop_forever || !vgmstream->loop_flag))
+		if (decode_pos_samples+max_buffer_samples>stream_length_samples && (!loop_forever || !vgmstream->loop_flag))
 			samples_to_do=stream_length_samples-decode_pos_samples;
 		else
-			samples_to_do=DECODE_SIZE;
+			samples_to_do=max_buffer_samples;
 
-		l = (samples_to_do*vgmstream->channels*2);
+		l = (samples_to_do*vgmstream->channels * sizeof(sample_buffer[0]));
 
 		if (samples_to_do /*< DECODE_SIZE*/ == 0) {
 			decoding = false;
@@ -164,7 +163,7 @@ bool input_vgmstream::decode_run(audio_chunk & p_chunk,abort_callback & p_abort)
 		decode_pos_ms=decode_pos_samples*1000LL/vgmstream->sample_rate;
 
 		decoding = false;
-		return samples_to_do==DECODE_SIZE;
+		return samples_to_do==max_buffer_samples;
 
 	}
 	decoding = false;
@@ -173,6 +172,7 @@ bool input_vgmstream::decode_run(audio_chunk & p_chunk,abort_callback & p_abort)
 
 void input_vgmstream::decode_seek(double p_seconds,abort_callback & p_abort) {
 	seek_pos_samples = ((int)(p_seconds * (double)vgmstream->sample_rate));
+	int max_buffer_samples = sizeof(sample_buffer)/sizeof(sample_buffer[0])/vgmstream->channels;
 
 	// Reset of backwards seek
 	if(seek_pos_samples < decode_pos_samples) {
@@ -184,9 +184,9 @@ void input_vgmstream::decode_seek(double p_seconds,abort_callback & p_abort) {
 	// seeking overrun = bad
 	if(seek_pos_samples > stream_length_samples) seek_pos_samples = stream_length_samples;
 
-	while(decode_pos_samples+DECODE_SIZE<seek_pos_samples) {
-		int seek_samples = DECODE_SIZE;
-		if((decode_pos_samples+DECODE_SIZE>=stream_length_samples) && (!loop_forever || !vgmstream->loop_flag))
+	while(decode_pos_samples+max_buffer_samples<seek_pos_samples) {
+		int seek_samples = max_buffer_samples;
+		if((decode_pos_samples+max_buffer_samples>=stream_length_samples) && (!loop_forever || !vgmstream->loop_flag))
 			seek_samples=stream_length_samples-seek_pos_samples;
 
 		decode_pos_samples+=seek_samples;
@@ -246,7 +246,7 @@ bool input_vgmstream::g_is_our_path(const char * p_path,const char * p_extension
 	if(!stricmp_utf8(p_extension,"afc")) return 1;
 	if(!stricmp_utf8(p_extension,"agsc")) return 1;
 	if(!stricmp_utf8(p_extension,"ahx")) return 1;
-	if(!stricmp_utf8(p_extension,"aifc")) return 1;
+	if(!stricmp_utf8(p_extension,"aic")) return 1;
 	if(!stricmp_utf8(p_extension,"aix")) return 1;
 	if(!stricmp_utf8(p_extension,"amts")) return 1;
 	if(!stricmp_utf8(p_extension,"as4")) return 1;
