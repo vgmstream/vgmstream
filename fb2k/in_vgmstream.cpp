@@ -105,7 +105,7 @@ void input_vgmstream::get_info(file_info & p_info,abort_callback & p_abort ) {
 	p_info.info_set_int("channels", channels);
 	p_info.info_set_int("bitspersample",16);
 	p_info.info_set("encoding","lossless");
-	p_info.info_set_bitrate((samplerate * 16 * channels) >> 10);
+	p_info.info_set_bitrate((samplerate * 16 * channels) / 1000);
 
 	p_info.set_length(((double)length_in_ms)/1000);
 }
