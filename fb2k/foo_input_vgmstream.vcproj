@@ -4,6 +4,7 @@
 	Version="9.00"
 	Name="foo_input_vgmstream"
 	ProjectGUID="{F3739CF2-F422-4A3D-BB0A-53C5D4C5ABA0}"
+	RootNamespace="foo_input_vgmstream"
 	Keyword="Win32Proj"
 	TargetFrameworkVersion="0"
 	>
@@ -61,7 +62,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="shared.lib foobar2000_SDKd.lib foobar2000_component_clientd.lib pfcd.lib ../ext_libs/libvorbis.lib ../ext_libs/libmpg123-0.lib"
+				AdditionalDependencies="shared.lib foobar2000_SDKd.lib foobar2000_component_clientd.lib pfcd.lib foobar2000_sdk_helpersd.lib ../ext_libs/libvorbis.lib ../ext_libs/libmpg123-0.lib"
 				OutputFile="$(OutDir)\$(ProjectName).dll"
 				LinkIncremental="2"
 				AdditionalLibraryDirectories=""
@@ -135,9 +136,11 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="shared.lib foobar2000_SDK.lib foobar2000_component_client.lib pfc.lib ../ext_libs/libvorbis.lib ../ext_libs/libmpg123-0.lib"
+				AdditionalDependencies="shared.lib foobar2000_SDK.lib foobar2000_sdk_helpers.lib foobar2000_component_client.lib pfc.lib ../ext_libs/libvorbis.lib ../ext_libs/libmpg123-0.lib"
+				OutputFile="$(OutDir)\$(ProjectName).dll"
 				LinkIncremental="2"
 				AdditionalLibraryDirectories=""
+				IgnoreDefaultLibraryNames=""
 				DelayLoadDLLs="libvorbis.dll;libmpg123-0.dll"
 				SubSystem="2"
 				OptimizeReferences="2"
@@ -179,18 +182,30 @@
 				RelativePath=".\foo_vgmstream.h"
 				>
 			</File>
+			<File
+				RelativePath=".\resource1.h"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Resource Files"
 			Filter="rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx"
 			UniqueIdentifier="{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}"
 			>
+			<File
+				RelativePath=".\foo_input_vgmstream.rc"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Source Files"
 			Filter="cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx"
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
+			<File
+				RelativePath=".\foo_prefs.cpp"
+				>
+			</File>
 			<File
 				RelativePath=".\foostream.cpp"
 				>
@@ -202,5 +217,9 @@
 		</Filter>
 	</Files>
 	<Globals>
+		<Global
+			Name="RESOURCE_FILE"
+			Value="foo_input_vgmstream.rc"
+		/>
 	</Globals>
 </VisualStudioProject>

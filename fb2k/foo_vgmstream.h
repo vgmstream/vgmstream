@@ -37,7 +37,7 @@ class input_vgmstream {
 		t_filestats get_file_stats(abort_callback & p_abort);
 
 
-	public:
+	private:
 		service_ptr_t<file> m_file;
 		char filename[260];
 		t_input_open_reason currentreason;
@@ -66,6 +66,7 @@ class input_vgmstream {
 		short sample_buffer[OUTBUF_SIZE];
 
 		void getfileinfo(char *filename, char *title, int *length_in_ms, int *sample_rate, int *channels, abort_callback & p_abort);
+		void load_settings();
 
 	private:
 

@@ -29,9 +29,11 @@ extern "C" {
 #endif
 
 #define APP_NAME "vgmstream plugin"
-#define PLUGIN_DESCRIPTION "vgmstream plugin " VERSION " " __DATE__
+#define PLUGIN_DESCRIPTION "vgmstream plugin " VERSION " " __DATE__ "\n" \
+            "by hcs, FastElbja, manakoAT, and bxaimc\n" \
+            "foobar2000 plugin by Josh W\n\n" \
+            "http://sourceforge.net/projects/vgmstream"
 #define PLUGIN_VERSION VERSION " " __DATE__
-#define INI_NAME "plugin.ini"
 
 
 /* format detection and VGMSTREAM setup, uses default parameters */
@@ -103,7 +105,7 @@ void input_vgmstream::get_info(file_info & p_info,abort_callback & p_abort ) {
 	p_info.info_set_int("channels", channels);
 	p_info.info_set_int("bitspersample",16);
 	p_info.info_set("encoding","lossless");
-	p_info.info_set_bitrate(samplerate * 16 * channels);
+	p_info.info_set_bitrate((samplerate * 16 * channels) >> 10);
 
 	p_info.set_length(((double)length_in_ms)/1000);
 }
@@ -119,6 +121,10 @@ bool input_vgmstream::decode_run(audio_chunk & p_chunk,abort_callback & p_abort)
 	while(decoding)
 		Sleep(10);
 	decoding = true;
+
+	int CurPriority = GetThreadPriority(GetCurrentThread());
+	SetThreadPriority(GetCurrentThread(), thread_priority);
+
 
 	int max_buffer_samples = sizeof(sample_buffer)/sizeof(sample_buffer[0])/vgmstream->channels;
 	int l = 0, samples_to_do = max_buffer_samples, t= 0;
@@ -163,9 +169,11 @@ bool input_vgmstream::decode_run(audio_chunk & p_chunk,abort_callback & p_abort)
 		decode_pos_ms=decode_pos_samples*1000LL/vgmstream->sample_rate;
 
 		decoding = false;
+		SetThreadPriority(GetCurrentThread(), CurPriority);
 		return samples_to_do==max_buffer_samples;
 
 	}
+	SetThreadPriority(GetCurrentThread(), CurPriority);
 	decoding = false;
 	return false;
 }
@@ -196,6 +204,7 @@ void input_vgmstream::decode_seek(double p_seconds,abort_callback & p_abort) {
 	decode_pos_ms=decode_pos_samples*1000LL/vgmstream->sample_rate;
 }
 
+
 input_vgmstream::input_vgmstream() {
 	vgmstream = NULL;
 	decode_thread_handle = INVALID_HANDLE_VALUE;
@@ -213,6 +222,7 @@ input_vgmstream::input_vgmstream() {
 	ignore_loop = 0;
 	decoding = false;
 	seek_pos_samples = 0;
+	load_settings();
 
 }
 
@@ -237,6 +247,7 @@ bool input_vgmstream::g_is_our_content_type(const char * p_content_type) {return
 bool input_vgmstream::g_is_our_path(const char * p_path,const char * p_extension) {
 	if(!stricmp_utf8(p_extension,"2dx")) return 1;
 
+	if(!stricmp_utf8(p_extension,"aaap")) return 1;
 	if(!stricmp_utf8(p_extension,"aax")) return 1;
 	if(!stricmp_utf8(p_extension,"acm")) return 1;
 	if(!stricmp_utf8(p_extension,"adpcm")) return 1;
@@ -485,12 +496,15 @@ void input_vgmstream::getfileinfo(char *filename, char *title, int *length_in_ms
 static input_singletrack_factory_t<input_vgmstream> g_input_vgmstream_factory;
 
 DECLARE_COMPONENT_VERSION(APP_NAME,PLUGIN_VERSION,PLUGIN_DESCRIPTION);
+VALIDATE_COMPONENT_FILENAME("foo_input_vgmstream.dll");
 
 // File types go down here (and in the large chunk of IFs above
 // these are declared statically, and if anyone has a better idea i'd like to hear it - josh.
 DECLARE_MULTIPLE_FILE_TYPE("2DX Audio File (*.2DX)", 2dx);
 
+DECLARE_MULTIPLE_FILE_TYPE("AAAP Audio File (*.AAAP)", aaap);
 DECLARE_MULTIPLE_FILE_TYPE("AAX Audio File (*.AAX)", aax);
+
 DECLARE_MULTIPLE_FILE_TYPE("ACM Audio File (*.ACM)", acm);
 DECLARE_MULTIPLE_FILE_TYPE("ADPCM Audio File (*.ADPCM)", adpcm);
 DECLARE_MULTIPLE_FILE_TYPE("ADP Audio File (*.ADP)", adp);
