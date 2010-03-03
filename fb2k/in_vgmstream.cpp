@@ -60,6 +60,8 @@ void input_vgmstream::open(service_ptr_t<file> p_filehint,const char * p_path,t_
 
 			/* were we able to open it? */
 			if (!vgmstream) {
+				/* Generate exception if the file is unopenable*/
+				throw exception_io_data();
 				return;
 			}
 
@@ -70,6 +72,7 @@ void input_vgmstream::open(service_ptr_t<file> p_filehint,const char * p_path,t_
 			if (vgmstream->channels <= 0) {
 				close_vgmstream(vgmstream);
 				vgmstream=NULL;
+				throw exception_io_data();			
 				return;
 			}
 
@@ -227,6 +230,9 @@ input_vgmstream::input_vgmstream() {
 }
 
 input_vgmstream::~input_vgmstream() {
+	if(vgmstream)
+		close_vgmstream(vgmstream);
+	vgmstream=NULL;
 }
 
 t_filestats input_vgmstream::get_file_stats(abort_callback & p_abort) {

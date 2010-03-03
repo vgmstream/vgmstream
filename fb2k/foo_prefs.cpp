@@ -177,7 +177,7 @@ bool vgmstreamPreferences::HasChanged()
 	if(FadeDelay != uGetDlgItemText(m_hWnd, IDC_FADE_DELAY_SECONDS)) return true;
 	if(LoopCount != uGetDlgItemText(m_hWnd, IDC_LOOP_COUNT)) return true;
 
-	int Priority = 6 - SendDlgItemMessage(IDC_THREAD_PRIORITY_SLIDER, TBM_GETPOS, 0, 0);
+	int Priority = SendDlgItemMessage(IDC_THREAD_PRIORITY_SLIDER, TBM_GETPOS, 0, 0);
 	if(Priority != cfg_Priority) return true;
     return FALSE;
 }

@@ -144,9 +144,9 @@ static off_t get_offset_foo(FOO_STREAMFILE *streamFile) {
 }
 
 static void close_foo(FOO_STREAMFILE * streamfile) {
-    //fclose(streamfile->infile);
+    streamfile->m_file.release();
     free(streamfile->buffer);
-    free(streamfile);
+    free(streamfile);	
 }
 
 static void get_name_foo(FOO_STREAMFILE *streamfile,char *buffer,size_t length) {
