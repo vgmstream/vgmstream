@@ -26,7 +26,7 @@ VGMSTREAM * init_vgmstream_sd9(STREAMFILE *streamFile) {
     if (read_32bitBE(0x72,streamFile) != 0x64617461) /* data */
 		goto fail;
 
-    loop_flag = (read_16bitLE(0xe,streamFile)==0x1);
+    loop_flag = (read_16bitLE(0x0e,streamFile)==0x1);
     channel_count = read_16bitLE(0x36,streamFile);
     
 	/* build the VGMSTREAM */
@@ -40,8 +40,16 @@ VGMSTREAM * init_vgmstream_sd9(STREAMFILE *streamFile) {
     vgmstream->coding_type = coding_MSADPCM;
     vgmstream->num_samples = read_32bitLE(0x6e,streamFile);
 	if (loop_flag) {
-        vgmstream->loop_start_sample = (read_32bitLE(0x4,streamFile))*28/16/channel_count;
-		vgmstream->loop_end_sample = vgmstream->num_samples;
+        if (read_16bitLE(0x1C,streamFile)==1)
+        {
+            vgmstream->loop_start_sample = read_32bitLE(0x14,streamFile)/2/channel_count;
+            vgmstream->loop_end_sample = read_32bitLE(0x18,streamFile)/2/channel_count;
+        }
+        else
+        {
+            vgmstream->loop_start_sample = 0;
+            vgmstream->loop_end_sample = vgmstream->num_samples;
+        }
     }
     vgmstream->layout_type = layout_none;
 	vgmstream->interleave_block_size = read_16bitLE(0x40,streamFile);
