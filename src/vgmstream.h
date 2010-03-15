@@ -388,6 +388,7 @@ typedef enum {
     meta_RIFF_WAVE_labl_Marker, /* RIFF w/ loop Markers in LIST-adtl-labl */
     meta_RIFF_WAVE_smpl,    /* RIFF w/ loop data in smpl chunk */
     meta_RIFF_WAVE_MWV,     /* .mwv RIFF w/ loop data in ctrl chunk pflt */
+    meta_RIFF_WAVE_SNS,     /* .sns RIFF */
     meta_RIFX_WAVE,         /* RIFX, for big-endian WAVs */
     meta_RIFX_WAVE_smpl,    /* RIFX w/ loop data in smpl chunk */
 	  meta_PC_MXST,           /* Lego Island MxSt */

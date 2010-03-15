@@ -111,15 +111,20 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
     off_t mwv_pflt_offset = -1;
     off_t mwv_ctrl_offset = -1;
 
+    /* Ubisoft sns */
+    int sns = 0;
+
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
     if (strcasecmp("wav",filename_extension(filename)) &&
         strcasecmp("lwav",filename_extension(filename)))
     {
-        if (strcasecmp("mwv",filename_extension(filename)))
-            goto fail;
-        else
+        if (!strcasecmp("mwv",filename_extension(filename)))
             mwv = 1;
+        else if (!strcasecmp("sns",filename_extension(filename)))
+            sns = 1;
+        else
+            goto fail;
     }
 
     /* check header */
@@ -189,6 +194,11 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
                             coding_type = coding_L5_555;
                             interleave = 0x12;
                             break;
+                        case 0x5050: /* Ubisoft .sns uses this for DSP */
+                            if (!sns) goto fail;
+                            coding_type = coding_NGC_DSP;
+                            interleave = 8;
+                            break;
                         default:
                             goto fail;
                     }
@@ -244,7 +254,8 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
                     mwv_ctrl_offset = current_chunk;
                     break;
                 case 0x66616374:    /* fact */
-                    if (chunk_size != 4) break;
+                    if (chunk_size != 4
+                        && (!(sns && chunk_size == 0x10))) break;
                     fact_sample_count = read_32bitLE(current_chunk+8, streamFile);
                     break;
                 default:
@@ -272,6 +283,13 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
             sample_count = (data_size / block_size) * (block_size - 4 * channel_count) * 2 / channel_count +
                 ((data_size % block_size) ? (data_size % block_size - 4 * channel_count) * 2 / channel_count : 0);
             break;
+    }
+
+    /* .sns uses fact chunk */
+    if (sns)
+    {
+        if (-1 == fact_sample_count) goto fail;
+        sample_count = fact_sample_count;
     }
 
     /* build the VGMSTREAM */
@@ -344,6 +362,25 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
             }
         }
         vgmstream->meta_type = meta_RIFF_WAVE_MWV;
+    }
+
+    if (sns)
+    {
+        int c;
+        /* common codebook? */
+        static const int16_t coef[16] =
+        {0x04ab,0xfced,0x0789,0xfedf,0x09a2,0xfae5,0x0c90,0xfac1,
+         0x084d,0xfaa4,0x0982,0xfdf7,0x0af6,0xfafa,0x0be6,0xfbf5};
+
+        for (c = 0; c < channel_count; c++)
+        {
+            int i;
+            for (i = 0; i < 16; i++)
+            {
+                vgmstream->ch[c].adpcm_coef[i] = coef[i];
+            }
+        }
+        vgmstream->meta_type = meta_RIFF_WAVE_SNS;
     }
 
     /* open the file, set up each channel */

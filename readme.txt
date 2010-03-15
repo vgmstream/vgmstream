@@ -127,6 +127,7 @@ GC/Wii DSP ADPCM:
 - .pdt
 - .sdt
 - .smp
+- .sns
 - .spt+.spd
 - .ssm
 - .stm/.dsp

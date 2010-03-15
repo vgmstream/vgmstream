@@ -2261,6 +2261,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         case meta_RIFF_WAVE_MWV:
             snprintf(temp,TEMPSIZE,"RIFF WAVE header with .mwv flavoring");
             break;
+        case meta_RIFF_WAVE_SNS:
+            snprintf(temp,TEMPSIZE,"RIFF WAVE header with .sns flavoring");
+            break;
         case meta_FFCC_STR:
             snprintf(temp,TEMPSIZE,"Final Fantasy: Crystal Chronicles STR header");
             break;
