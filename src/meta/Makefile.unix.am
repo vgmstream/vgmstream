@@ -180,5 +180,6 @@ libmeta_la_SOURCES += ps2_ast.c
 libmeta_la_SOURCES += dmsg_segh.c
 libmeta_la_SOURCES += ngc_aaap.c
 libmeta_la_SOURCES += ngc_dsp_tmnt2.c
+libmeta_la_SOURCES += ps2_ster.c
 
 EXTRA_DIST = meta.h

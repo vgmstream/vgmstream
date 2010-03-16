@@ -445,4 +445,6 @@ VGMSTREAM * init_vgmstream_ngc_aaap(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_ngc_dsp_tmnt2(STREAMFILE* streamFile);
 
+VGMSTREAM * init_vgmstream_ps2_ster(STREAMFILE* streamFile);
+
 #endif

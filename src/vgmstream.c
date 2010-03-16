@@ -243,6 +243,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	  init_vgmstream_dmsg,
     init_vgmstream_ngc_aaap,
     init_vgmstream_ngc_dsp_tmnt2,
+	init_vgmstream_ps2_ster,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -2402,6 +2403,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case meta_NGC_DSP_TMNT2:
             snprintf(temp,TEMPSIZE,"TMNT2 dsp header");
+            break;
+        case meta_PS2_STER:
+            snprintf(temp,TEMPSIZE,"STER Header");
             break;
         default:
            snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");
