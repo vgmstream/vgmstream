@@ -72,7 +72,7 @@ void input_vgmstream::open(service_ptr_t<file> p_filehint,const char * p_path,t_
 			if (vgmstream->channels <= 0) {
 				close_vgmstream(vgmstream);
 				vgmstream=NULL;
-				throw exception_io_data();			
+				throw exception_io_data();
 				return;
 			}
 
@@ -412,6 +412,7 @@ bool input_vgmstream::g_is_our_path(const char * p_path,const char * p_extension
 	if(!stricmp_utf8(p_extension,"ss3")) return 1;
 	if(!stricmp_utf8(p_extension,"ss7")) return 1;
 	if(!stricmp_utf8(p_extension,"ssm")) return 1;
+	if(!stricmp_utf8(p_extension,"ster")) return 1;
 	if(!stricmp_utf8(p_extension,"stma")) return 1;
 	if(!stricmp_utf8(p_extension,"str")) return 1;
 	if(!stricmp_utf8(p_extension,"strm")) return 1;
@@ -669,6 +670,7 @@ DECLARE_MULTIPLE_FILE_TYPE("PS2 SS2 Audio File (*.SS2)", ss2);
 DECLARE_MULTIPLE_FILE_TYPE("SS3 Audio File (*.SS3)", ss3);
 DECLARE_MULTIPLE_FILE_TYPE("SS7 Audio File (*.SS7)", ss7);
 DECLARE_MULTIPLE_FILE_TYPE("SSM Audio File (*.SSM)", ssm);
+DECLARE_MULTIPLE_FILE_TYPE("STER Audio File (*.STER)", ster);
 DECLARE_MULTIPLE_FILE_TYPE("STMA Audio File (*.STMA)", stma);
 DECLARE_MULTIPLE_FILE_TYPE("STR Audio File (*.STR)", str);
 DECLARE_MULTIPLE_FILE_TYPE("STRM Audio File (*.STRM)", strm);
