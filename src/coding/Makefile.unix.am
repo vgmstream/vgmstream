@@ -26,5 +26,6 @@ libcoding_la_SOURCES += msadpcm_decoder.c
 libcoding_la_SOURCES += nds_procyon_decoder.c
 libcoding_la_SOURCES += l5_555_decoder.c
 libcoding_la_SOURCES += SASSC_decoder.c
+libcoding_la_SOURCES += g7221_decoder.c
 
 EXTRA_DIST = coding.h g72x_state.h

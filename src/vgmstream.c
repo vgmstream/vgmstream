@@ -244,6 +244,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_ngc_aaap,
     init_vgmstream_ngc_dsp_tmnt2,
 	init_vgmstream_ps2_ster,
+    init_vgmstream_bnsf,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -748,6 +749,12 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
             return (vgmstream->interleave_block_size-4*vgmstream->channels)*2/vgmstream->channels;
         case coding_NDS_PROCYON:
             return 30;
+#ifdef VGM_USE_G7221
+        case coding_G7221C:
+            return 32000/50;
+        case coding_G7221:
+            return 16000/50;
+#endif
         default:
             return 0;
     }
@@ -829,6 +836,10 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
             return 1; 
         case coding_APPLE_IMA4:
             return 34;
+#ifdef VGM_USE_G7221
+        case coding_G7221C:
+        case coding_G7221:
+#endif
         case coding_MSADPCM:
             return vgmstream->interleave_block_size;
         default:
@@ -1150,6 +1161,18 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                     vgmstream->codec_data,
                     buffer+samples_written*vgmstream->channels,samples_to_do,
                     vgmstream->channels);
+            break;
+#endif
+#ifdef VGM_USE_G7221
+        case coding_G7221:
+        case coding_G7221C:
+            for (chan=0;chan<vgmstream->channels;chan++) {
+                decode_g7221(vgmstream,
+                    buffer+samples_written*vgmstream->channels,
+                    vgmstream->channels,
+                    samples_to_do,
+                    chan);
+            }
             break;
 #endif
         case coding_ACM:
@@ -1516,6 +1539,14 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case coding_MPEG25_L3:
             snprintf(temp,TEMPSIZE,"MPEG-2.5 Layer III Audio (MP3)");
+            break;
+#endif
+#ifdef VGM_USE_G7221
+        case coding_G7221:
+            snprintf(temp,TEMPSIZE,"ITU G.722.1 (Polycom Siren 7)");
+            break;
+        case coding_G7221C:
+            snprintf(temp,TEMPSIZE,"ITU G.722.1 annex C (Polycom Siren 14)");
             break;
 #endif
         case coding_ACM:
@@ -2406,6 +2437,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case meta_PS2_STER:
             snprintf(temp,TEMPSIZE,"STER Header");
+            break;
+        case meta_BNSF:
+            snprintf(temp,TEMPSIZE,"Namco Bandai BNSF header");
             break;
         default:
            snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

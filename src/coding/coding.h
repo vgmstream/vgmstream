@@ -78,6 +78,11 @@ void decode_mpeg(VGMSTREAMCHANNEL * stream,
         sample * outbuf, int32_t samples_to_do, int channels);
 #endif
 
+#ifdef VGM_USE_G7221
+void decode_g7221(VGMSTREAM *vgmstream,
+        sample * outbuf, int channelspacing, int32_t samples_to_do, int channel);
+#endif
+
 void decode_acm(ACMStream * acm, sample * outbuf,
         int32_t samples_to_do, int channelspacing);
 

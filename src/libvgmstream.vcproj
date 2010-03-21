@@ -249,6 +249,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\bnsf.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\brstm.c"
 					>
 				</File>
@@ -968,6 +972,10 @@
 				</File>
 				<File
 					RelativePath=".\coding\g721_decoder.c"
+					>
+				</File>
+				<File
+					RelativePath=".\coding\g7221_decoder.c"
 					>
 				</File>
 				<File

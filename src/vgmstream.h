@@ -5,12 +5,14 @@
 #ifndef _VGMSTREAM_H
 #define _VGMSTREAM_H
 
-/* Vorbis and MPEG decoding are done by external libraries.
+/* Due mostly to licensing issues, Vorbis, MPEG, G.722.1 decoding are
+ * done by external libraries.
  * If someone wants to do a standalone build, they can do it by simply
  * removing these defines (and the references to the libraries in the
  * Makefile) */
 #define VGM_USE_VORBIS
 #define VGM_USE_MPEG
+//#define VGM_USE_G7221
 
 #include "streamfile.h"
 #include "coding/g72x_state.h"
@@ -90,6 +92,10 @@ typedef enum {
     coding_MPEG25_L1,
     coding_MPEG25_L2,
     coding_MPEG25_L3,
+#endif
+#ifdef VGM_USE_G7221
+    coding_G7221,           /* G.722.1 (Polycom Siren 7) */
+    coding_G7221C,          /* G.722.1 with Annex C extension (Polycom Siren 14) */
 #endif
 
     coding_ACM,             /* InterPlay ACM */
@@ -212,6 +218,7 @@ typedef enum {
     meta_CFN,				/* Namco CAF Audio File */
     meta_MYSPD,             /* U-Sing .myspd */
     meta_HIS,               /* Her Ineractive .his */
+    meta_BNSF,              /* Bandai Namco Sound Format */
 
     meta_PS2_SShd,			/* .ADS with SShd header */
     meta_PS2_NPSF,			/* Namco Production Sound File */
