@@ -244,8 +244,9 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_ngc_aaap,
     init_vgmstream_ngc_dsp_tmnt2,
 	init_vgmstream_ps2_ster,
-    init_vgmstream_bnsf,
 	init_vgmstream_ps2_wb,
+    init_vgmstream_bnsf,
+    init_vgmstream_s14_sss,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -345,6 +346,18 @@ void reset_vgmstream(VGMSTREAM * vgmstream) {
          * to sample 0 */
         mpg123_feedseek(data->m,0,SEEK_SET,&input_offset);
         data->buffer_full = data->buffer_used = 0;
+    }
+#endif
+#ifdef VGM_USE_G7221
+    if (vgmstream->coding_type==coding_G7221 ||
+        vgmstream->coding_type==coding_G7221C) {
+        g7221_codec_data *data = vgmstream->codec_data;
+        int i;
+
+        for (i = 0; i < vgmstream->channels; i++)
+        {
+            g7221_reset(data[i].handle);
+        }
     }
 #endif
 
@@ -489,6 +502,27 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
              * to 0. And if we exit we run the risk of turning it off when
              * someone else in another thread is using it. */
         }
+    }
+#endif
+
+#ifdef VGM_USE_G7221
+    if (vgmstream->coding_type == coding_G7221 ||
+        vgmstream->coding_type == coding_G7221C) {
+
+        g7221_codec_data *data = vgmstream->codec_data;
+
+        if (data)
+        {
+            int i;
+
+            for (i = 0; i < vgmstream->channels; i++)
+            {
+                g7221_free(data[i].handle);
+            }
+            free(data);
+        }
+
+        vgmstream->codec_data = NULL;
     }
 #endif
 
@@ -1169,7 +1203,7 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
         case coding_G7221C:
             for (chan=0;chan<vgmstream->channels;chan++) {
                 decode_g7221(vgmstream,
-                    buffer+samples_written*vgmstream->channels,
+                    buffer+samples_written*vgmstream->channels+chan,
                     vgmstream->channels,
                     samples_to_do,
                     chan);
@@ -2444,6 +2478,12 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case meta_PS2_WB:
             snprintf(temp,TEMPSIZE,"Shooting Love. ~TRIZEAL~ WB header");
+            break;
+        case meta_S14:
+            snprintf(temp,TEMPSIZE,"assumed Polycom Siren 14 by .s14 extension");
+            break;
+        case meta_SSS:
+            snprintf(temp,TEMPSIZE,"assumed Polycom Siren 14 by .sss extension");
             break;
         default:
            snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

@@ -281,6 +281,7 @@ bool input_vgmstream::g_is_our_path(const char * p_path,const char * p_extension
 	if(!stricmp_utf8(p_extension,"bh2pcm")) return 1;
 	if(!stricmp_utf8(p_extension,"bmdx")) return 1;
 	if(!stricmp_utf8(p_extension,"bns")) return 1;
+	if(!stricmp_utf8(p_extension,"bnsf")) return 1;
 	if(!stricmp_utf8(p_extension,"brstmspm")) return 1;
 	if(!stricmp_utf8(p_extension,"brstm")) return 1;
 
@@ -388,6 +389,7 @@ bool input_vgmstream::g_is_our_path(const char * p_path,const char * p_extension
 	if(!stricmp_utf8(p_extension,"rwx")) return 1;
 	if(!stricmp_utf8(p_extension,"rxw")) return 1;
 
+	if(!stricmp_utf8(p_extension,"s14")) return 1;
 	if(!stricmp_utf8(p_extension,"sab")) return 1;
 	if(!stricmp_utf8(p_extension,"sad")) return 1;
 	if(!stricmp_utf8(p_extension,"sap")) return 1;
@@ -412,6 +414,7 @@ bool input_vgmstream::g_is_our_path(const char * p_path,const char * p_extension
 	if(!stricmp_utf8(p_extension,"ss3")) return 1;
 	if(!stricmp_utf8(p_extension,"ss7")) return 1;
 	if(!stricmp_utf8(p_extension,"ssm")) return 1;
+	if(!stricmp_utf8(p_extension,"sss")) return 1;
 	if(!stricmp_utf8(p_extension,"ster")) return 1;
 	if(!stricmp_utf8(p_extension,"stma")) return 1;
 	if(!stricmp_utf8(p_extension,"str")) return 1;
@@ -539,6 +542,7 @@ DECLARE_MULTIPLE_FILE_TYPE("BGW Audio File (*.BGW)", bgw);
 DECLARE_MULTIPLE_FILE_TYPE("BH2PCM Audio File (*.BH2PCM)", bh2pcm);
 DECLARE_MULTIPLE_FILE_TYPE("BMDX Audio File (*.BMDX)", bmdx);
 DECLARE_MULTIPLE_FILE_TYPE("BNS Audio File (*.BNS)", bns);
+DECLARE_MULTIPLE_FILE_TYPE("BNSF Audio File (*.BNSF)", bnsf);
 DECLARE_MULTIPLE_FILE_TYPE("BRSTM Audio File (*.BRSTM)", brstm);
 DECLARE_MULTIPLE_FILE_TYPE("BRSTM Audio File [2] (*.BRSTM)", brstmspm);
 
@@ -646,6 +650,7 @@ DECLARE_MULTIPLE_FILE_TYPE("RWSD Audio File (*.RWSD)", rwsd);
 DECLARE_MULTIPLE_FILE_TYPE("RWX Audio File (*.RWX)", rwx);
 DECLARE_MULTIPLE_FILE_TYPE("PS2 RXWS File (*.RXW)", rxw);
 
+DECLARE_MULTIPLE_FILE_TYPE("S14 Audio File (*.S14)", s14);
 DECLARE_MULTIPLE_FILE_TYPE("SAB Audio File (*.SAB)", sab);
 DECLARE_MULTIPLE_FILE_TYPE("SAD Audio File (*.SAD)", sad);
 DECLARE_MULTIPLE_FILE_TYPE("SAP Audio File (*.SAP)", sap);
@@ -670,6 +675,7 @@ DECLARE_MULTIPLE_FILE_TYPE("PS2 SS2 Audio File (*.SS2)", ss2);
 DECLARE_MULTIPLE_FILE_TYPE("SS3 Audio File (*.SS3)", ss3);
 DECLARE_MULTIPLE_FILE_TYPE("SS7 Audio File (*.SS7)", ss7);
 DECLARE_MULTIPLE_FILE_TYPE("SSM Audio File (*.SSM)", ssm);
+DECLARE_MULTIPLE_FILE_TYPE("SSS Audio File (*.SSS)", sss);
 DECLARE_MULTIPLE_FILE_TYPE("STER Audio File (*.STER)", ster);
 DECLARE_MULTIPLE_FILE_TYPE("STMA Audio File (*.STMA)", stma);
 DECLARE_MULTIPLE_FILE_TYPE("STR Audio File (*.STR)", str);

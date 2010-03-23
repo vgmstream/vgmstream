@@ -44,6 +44,7 @@ gchar *vgmstream_exts [] = {
   "bh2pcm",
   "bmdx",
   "bns",
+  "bnsf",
   "brstm",
   "brstmspm",
 
@@ -148,6 +149,7 @@ gchar *vgmstream_exts [] = {
   "rwx",
   "rxw",
 
+  "s14",
   "sab",
   "sad",
   "sap",
@@ -170,8 +172,9 @@ gchar *vgmstream_exts [] = {
   "spw",
   "ss2",
   "ss3",
-  "ss7"
+  "ss7",
   "ssm",
+  "sss",
   "ster",
   "stma",
   "str",

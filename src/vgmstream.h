@@ -5,14 +5,14 @@
 #ifndef _VGMSTREAM_H
 #define _VGMSTREAM_H
 
-/* Due mostly to licensing issues, Vorbis, MPEG, G.722.1 decoding are
+/* Due mostly to licensing issues, Vorbis, MPEG, and G.722.1 decoding are
  * done by external libraries.
  * If someone wants to do a standalone build, they can do it by simply
  * removing these defines (and the references to the libraries in the
  * Makefile) */
 #define VGM_USE_VORBIS
 #define VGM_USE_MPEG
-//#define VGM_USE_G7221
+#define VGM_USE_G7221
 
 #include "streamfile.h"
 #include "coding/g72x_state.h"
@@ -21,6 +21,9 @@
 #endif
 #ifdef VGM_USE_MPEG
 #include <mpg123.h>
+#endif
+#ifdef VGM_USE_G7221
+#include "g7221.h"
 #endif
 #include "coding/acm_decoder.h"
 #include "coding/nwa_decoder.h"
@@ -441,6 +444,8 @@ typedef enum {
     meta_NGC_AAAP,  	      /* Turok: Evolution (NGC) */
 	meta_PS2_STER,          /* Juuni Kokuki: Kakukaku Taru Ou Michi Beni Midori no Uka */
 	meta_PS2_WB,            /* Shooting Love. ~TRIZEAL~ */
+    meta_S14,               /* raw Siren 14, 24kbit mono */
+    meta_SSS,               /* raw Siren 14, 48kbit stereo */
 } meta_t;
 
 typedef struct {
@@ -586,6 +591,13 @@ typedef struct {
     size_t bytes_in_buffer;
     mpg123_handle *m;
 } mpeg_codec_data;
+#endif
+
+#ifdef VGM_USE_G7221
+typedef struct {
+    sample buffer[640];
+    g7221_handle *handle;
+} g7221_codec_data;
 #endif
 
 /* with one file this is also used for just

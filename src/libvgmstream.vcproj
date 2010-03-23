@@ -775,6 +775,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\s14_sss.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\sat_baka.c"
 					>
 				</File>

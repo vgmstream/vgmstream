@@ -7,5 +7,8 @@ libvorbis.a: libvorbis.def
 libmpg123-0.a: libmpg123-0.def
 	$(DLLTOOL) -d libmpg123-0.def -l libmpg123-0.a
 
+libg7221_decode.a: libg7221_decode.def
+	$(DLLTOOL) -d libg7221_decode.def -l libg7221_decode.a
+
 clean:
-	rm -f libvorbis.a libmpg123-0.a
+	rm -f libvorbis.a libmpg123-0.a libg7221_decode.a

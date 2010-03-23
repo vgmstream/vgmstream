@@ -1,6 +1,10 @@
 #include "meta.h"
 #include "../layout/layout.h"
 #include "../util.h"
+#include "../vgmstream.h"
+#ifdef VGM_USE_G7221
+#include "g7221.h"
+#endif
 
 /* Namco Bandai's Bandai Namco Sound Format/File (BNSF) */
 /* similar to RIFX */
@@ -125,13 +129,6 @@ VGMSTREAM * init_vgmstream_bnsf(STREAMFILE *streamFile) {
             coding_type = coding_G7221C;
             sample_count = data_size/block_size*block_samples;
 
-            /* check for 0 bytes at start */
-            if (0 != read_32bitBE(start_offset,streamFile))
-            {
-                goto fail;
-            }
-            /* skip */
-            start_offset += 4;
             break;
 #endif
         default:
@@ -159,6 +156,33 @@ VGMSTREAM * init_vgmstream_bnsf(STREAMFILE *streamFile) {
         vgmstream->loop_end_sample = loop_end;
     }
     vgmstream->meta_type = meta_BNSF;
+
+#ifdef VGM_USE_G7221
+    if (coding_G7221C == coding_type)
+    {
+        int i;
+        g7221_codec_data *data;
+
+        /* one data structure per channel */
+        data = malloc(sizeof(g7221_codec_data) * channel_count);
+        if (!data)
+        {
+            goto fail;
+        }
+        memset(data,0,sizeof(g7221_codec_data) * channel_count);
+        vgmstream->codec_data = data;
+
+        for (i = 0; i < channel_count; i++)
+        {
+            /* Siren 14 == 14khz bandwidth */
+            data[i].handle = g7221_init(vgmstream->interleave_block_size, 14000);
+            if (!data[i].handle)
+            {
+                goto fail; /* close_vgmstream is able to clean up */
+            }
+        }
+    }
+#endif
 
     /* open the file, set up each channel */
     {
