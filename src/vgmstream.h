@@ -440,6 +440,7 @@ typedef enum {
 	  meta_DMSG,				      /* Nightcaster II - Equinox (XBOX) */
     meta_NGC_AAAP,  	      /* Turok: Evolution (NGC) */
 	meta_PS2_STER,          /* Juuni Kokuki: Kakukaku Taru Ou Michi Beni Midori no Uka */
+	meta_PS2_WB,            /* Shooting Love. ~TRIZEAL~ */
 } meta_t;
 
 typedef struct {

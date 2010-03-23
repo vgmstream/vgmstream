@@ -245,6 +245,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_ngc_dsp_tmnt2,
 	init_vgmstream_ps2_ster,
     init_vgmstream_bnsf,
+	init_vgmstream_ps2_wb,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -2440,6 +2441,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case meta_BNSF:
             snprintf(temp,TEMPSIZE,"Namco Bandai BNSF header");
+            break;
+        case meta_PS2_WB:
+            snprintf(temp,TEMPSIZE,"Shooting Love. ~TRIZEAL~ WB header");
             break;
         default:
            snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

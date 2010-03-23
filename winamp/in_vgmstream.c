@@ -274,6 +274,7 @@ char * extension_list[] = {
     "wam\0WAM Audio File (*.WAM)\0",
     "wavm\0WAVM Audio File (*.WAVM)\0",
     "was\0WAS Audio File (*.WAS)\0",
+	"wb\0WB Audio File (*.WB)\0",
     "wii\0WII Audio File (*.WII)\0",
     "wp2\0WP2 Audio File (*.WP2)\0",
     "wsd\0WSD Audio File (*.WSD)\0",

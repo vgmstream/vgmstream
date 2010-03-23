@@ -715,6 +715,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\ps2_wb.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\ps2_xa2.c"
 					>
 				</File>
