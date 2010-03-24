@@ -2,9 +2,6 @@
 #include "../layout/layout.h"
 #include "../util.h"
 #include "../vgmstream.h"
-#ifdef VGM_USE_G7221
-#include "g7221.h"
-#endif
 
 /* Namco Bandai's Bandai Namco Sound Format/File (BNSF) */
 /* similar to RIFX */

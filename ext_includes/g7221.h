@@ -5,8 +5,6 @@
 #ifndef G7221_H
 #define G7221_H
 
-#include <stdint.h>
-
 /* forward definition for the opaque handle object */
 typedef struct g7221_handle_s g7221_handle;
 
