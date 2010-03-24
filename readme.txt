@@ -6,11 +6,12 @@ line decoder called "test.exe", and a Winamp plugin called "in_vgmstream".
 
 *********** IMPORTANT!! ***********
 --- needed files (for Windows)  ---
-Since Ogg Vorbis and MPEG audio are now supported, you will need to have
-libvorbis.dll and libmpg123-0.dll.
+Since Ogg Vorbis, MPEG audio, and G.722.1 are now supported, you will need to
+have libvorbis.dll, libmpg123-0.dll, and libg7221_decode.dll.
 You can get these from http://hcs64.com/files/vgmstream_external_dlls.zip
 
-Put libvorbis.dll and libmpg123-0.dll somewhere Windows can find them.
+Put libvorbis.dll, libmpg123-0.dll, and libg7221_decode.dll somewhere Windows
+can find them.
 For in_vgmstream this means in the directory with winamp.exe, or in a
 system directory. For test.exe this means in the same directory as test.exe,
 or in a system directory.
