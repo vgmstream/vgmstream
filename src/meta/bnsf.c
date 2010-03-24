@@ -142,10 +142,7 @@ VGMSTREAM * init_vgmstream_bnsf(STREAMFILE *streamFile) {
     vgmstream->sample_rate = sample_rate;
 
     vgmstream->coding_type = coding_type;
-    if (channel_count > 1)
-        vgmstream->layout_type = layout_interleave;
-    else
-        vgmstream->layout_type = layout_none;
+    vgmstream->layout_type = layout_interleave;
     vgmstream->interleave_block_size = block_size/channel_count;
 
     if (loop_flag) {
