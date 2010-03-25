@@ -62,11 +62,11 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="shared.lib foobar2000_SDKd.lib foobar2000_component_clientd.lib pfcd.lib foobar2000_sdk_helpersd.lib ../ext_libs/libvorbis.lib ../ext_libs/libmpg123-0.lib"
+				AdditionalDependencies="shared.lib foobar2000_SDKd.lib foobar2000_component_clientd.lib pfcd.lib foobar2000_sdk_helpersd.lib ../ext_libs/libg7221_decode.lib ../ext_libs/libvorbis.lib ../ext_libs/libmpg123-0.lib"
 				OutputFile="$(OutDir)\$(ProjectName).dll"
 				LinkIncremental="2"
 				AdditionalLibraryDirectories=""
-				DelayLoadDLLs="libvorbis.dll;libmpg123-0.dll"
+				DelayLoadDLLs="libvorbis.dll;libmpg123-0.dll;libg7221_decode.dll"
 				GenerateDebugInformation="true"
 				SubSystem="2"
 				TargetMachine="1"
@@ -136,12 +136,12 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="shared.lib foobar2000_SDK.lib foobar2000_sdk_helpers.lib foobar2000_component_client.lib pfc.lib ../ext_libs/libvorbis.lib ../ext_libs/libmpg123-0.lib"
+				AdditionalDependencies="shared.lib foobar2000_SDK.lib foobar2000_sdk_helpers.lib foobar2000_component_client.lib pfc.lib ../ext_libs/libvorbis.lib ../ext_libs/libmpg123-0.lib ../ext_libs/libg7221_decode.lib"
 				OutputFile="$(OutDir)\$(ProjectName).dll"
 				LinkIncremental="2"
 				AdditionalLibraryDirectories=""
 				IgnoreDefaultLibraryNames=""
-				DelayLoadDLLs="libvorbis.dll;libmpg123-0.dll"
+				DelayLoadDLLs="libvorbis.dll;libmpg123-0.dll;libg7221_decode.dll"
 				SubSystem="2"
 				OptimizeReferences="2"
 				EnableCOMDATFolding="2"
