@@ -453,4 +453,6 @@ VGMSTREAM * init_vgmstream_ps2_wb(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_s14_sss(STREAMFILE* streamFile);
 
+VGMSTREAM * init_vgmstream_ps2_gcm(STREAMFILE* streamFile);
+
 #endif

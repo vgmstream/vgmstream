@@ -446,6 +446,7 @@ typedef enum {
 	meta_PS2_WB,            /* Shooting Love. ~TRIZEAL~ */
     meta_S14,               /* raw Siren 14, 24kbit mono */
     meta_SSS,               /* raw Siren 14, 48kbit stereo */
+	meta_PS2_GCM,           /* NamCollection */
 } meta_t;
 
 typedef struct {
