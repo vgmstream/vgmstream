@@ -9,7 +9,6 @@ VGMSTREAM * init_vgmstream_ps2_vsf(STREAMFILE *streamFile) {
 
     int loop_flag;
    int channel_count;
-   int channel_switch;
 
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
@@ -20,15 +19,11 @@ VGMSTREAM * init_vgmstream_ps2_vsf(STREAMFILE *streamFile) {
         goto fail;
 
     loop_flag = (read_32bitLE(0x1c,streamFile)==0x13);
-	channel_switch = read_32bitLE(0x8,streamFile);
-	switch (channel_switch){
-		case 0x0:
-			channel_count = 1;
-			break;
-		case 0x02:
-		    channel_count = 2;
-            break;
-	}
+	if(read_32bitLE(0x8,streamFile)==0x0) 
+		channel_count = 1;
+	else
+		channel_count = 2;
+
    /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
