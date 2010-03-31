@@ -619,6 +619,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\ps2_msa.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\ps2_npsf.c"
 					>
 				</File>
@@ -664,6 +668,10 @@
 				</File>
 				<File
 					RelativePath=".\meta\ps2_sl3.c"
+					>
+				</File>
+				<File
+					RelativePath=".\meta\ps2_smpl.c"
 					>
 				</File>
 				<File

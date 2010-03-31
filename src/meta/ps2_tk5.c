@@ -1,3 +1,4 @@
+
 #include "meta.h"
 #include "../util.h"
 
@@ -8,6 +9,7 @@ VGMSTREAM * init_vgmstream_ps2_tk5(STREAMFILE *streamFile) {
     off_t start_offset;
     int loop_flag = 0;
 	int channel_count;
+	int freq_switch;
 
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
@@ -27,7 +29,15 @@ VGMSTREAM * init_vgmstream_ps2_tk5(STREAMFILE *streamFile) {
 	/* fill in the vital statistics */
 	start_offset = 0x800;
 	vgmstream->channels = channel_count;
-    vgmstream->sample_rate = 48000;
+	freq_switch = read_16bitLE(0x7,streamFile);
+	switch (freq_switch){
+		case 0x30:
+			vgmstream->sample_rate = 48000;
+			break;
+		case 0x31:
+		    vgmstream->sample_rate = 44100;
+            break;
+	}
     vgmstream->coding_type = coding_PSX_badflags;
 	vgmstream->num_samples = ((get_streamfile_size(streamFile)-0x800))/16*28/2;
     vgmstream->layout_type = layout_interleave;

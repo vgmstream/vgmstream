@@ -248,6 +248,8 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_bnsf,
     init_vgmstream_s14_sss,
     init_vgmstream_ps2_gcm,
+	init_vgmstream_ps2_smpl,
+	init_vgmstream_ps2_msa,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -281,7 +283,8 @@ VGMSTREAM * init_vgmstream_internal(STREAMFILE *streamFile, int do_dfs) {
                         (vgmstream->meta_type == meta_PS2_MIB) ||
                         (vgmstream->meta_type == meta_NGC_LPS) ||
 						(vgmstream->meta_type == meta_DSP_YGO) ||
-                        (vgmstream->meta_type == meta_DSP_AGSC)
+                        (vgmstream->meta_type == meta_DSP_AGSC) ||
+						(vgmstream->meta_type == meta_PS2_SMPL)
                         ) && vgmstream->channels == 1) {
                 try_dual_file_stereo(vgmstream, streamFile);
             }
@@ -2487,7 +2490,10 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             snprintf(temp,TEMPSIZE,"assumed Polycom Siren 14 by .sss extension");
             break;
         case meta_PS2_GCM:
-            snprintf(temp,TEMPSIZE,"NamCollection");
+            snprintf(temp,TEMPSIZE,"GCM 'MCG' Header");
+            break;
+        case meta_PS2_SMPL:
+            snprintf(temp,TEMPSIZE,"Homura 'SMPL' Header");
             break;
         default:
            snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");
