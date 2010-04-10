@@ -188,5 +188,6 @@ libmeta_la_SOURCES += ps2_gcm.c
 libmeta_la_SOURCES += ps2_smpl.c
 libmeta_la_SOURCES += ps2_msa.c
 libmeta_la_SOURCES += pc_smp.c
+libmeta_la_SOURCES += p3d.c
 
 EXTRA_DIST = meta.h

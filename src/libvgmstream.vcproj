@@ -503,6 +503,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\p3d.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\pc_mxst.c"
 					>
 				</File>

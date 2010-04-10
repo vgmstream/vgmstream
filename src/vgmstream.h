@@ -81,6 +81,7 @@ typedef enum {
     coding_INT_IMA,         /* */
     coding_MS_IMA,          /* Microsoft IMA */
     coding_RAD_IMA,         /* "Radical ADPCM" IMA */
+    coding_RAD_IMA_mono,    /* "Radical ADPCM" IMA, mono (for interleave) */
     coding_APPLE_IMA4,      /* Apple Quicktime IMA4 */
     coding_DAT4_IMA,        /* Eurocom 'DAT4' IMA ADPCM */
     coding_WS,              /* Westwood Studios' custom VBR ADPCM */
@@ -451,6 +452,7 @@ typedef enum {
 	meta_PS2_SMPL,          /* Homura */
 	meta_PS2_MSA,           /* Psyvariar -Complete Edition- */
     meta_PC_SMP,            /* unknown PC game .smp */
+    meta_P3D,               /* Prototype P3D */
 } meta_t;
 
 typedef struct {

@@ -128,6 +128,7 @@ gchar *vgmstream_exts [] = {
   "omu",
 
   "p2bt",
+  "p3d",
   "pcm",
   "pdt",
   "pnb",
