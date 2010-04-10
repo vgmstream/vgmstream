@@ -51,6 +51,7 @@ the most obvious way to identify files.
 PS2/PSX ADPCM:
 - .ads/.ss2
 - .ass
+- .ast
 - .bg00
 - .bmdx
 - .ccc
@@ -59,6 +60,7 @@ PS2/PSX ADPCM:
 - .enth
 - .fag
 - .filp
+- .gcm
 - .gms
 - .hgc1
 - .ikm
@@ -71,6 +73,7 @@ PS2/PSX ADPCM:
 - .mib, .mi4 (w/ or w/o .mih)
 - .mic
 - .mihb (merged mih+mib)
+- .msa
 - .msvp
 - .musc
 - .npsf
@@ -85,6 +88,8 @@ PS2/PSX ADPCM:
 - .seg
 - .sfs
 - .sl3
+- .smpl (w/ bad flags)
+- .ster
 - .str+.sth
 - .sts
 - .svag
@@ -103,6 +108,7 @@ PS2/PSX ADPCM:
 - .xa30
 
 GC/Wii DSP ADPCM:
+- .aaap
 - .agsc
 - .amts
 - .asr
@@ -151,6 +157,7 @@ PCM:
 - .asd (16 bit)
 - .baka (16 bit)
 - .bh2pcm (16 bit)
+- .dmsg (16 bit)
 - .gcsw (16 bit)
 - .gcw (16 bit)
 - .his (8 bit)
@@ -164,6 +171,7 @@ PCM:
 - .sps (16 bit)
 - .str (16 bit)
 - .xss (16 bit)
+- .wb (16 bit)
 - .zsd (8 bit)
 
 Xbox IMA ADPCM:
@@ -235,6 +243,7 @@ etc:
 - .s14/.sss (G.722.1)
 - .sc (Activision EXAKT SASSC DPCM)
 - .sd9 (MS ADPCM)
+- .smp (MS ADPCM)
 - .spw (FFXI PS-like ADPCM)
 - .stm renamed .ps2stm (DVI IMA ADPCM)
 - .str (SDX2 DPCM)

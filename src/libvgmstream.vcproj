@@ -507,6 +507,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\pc_smp.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\pc_sob.c"
 					>
 				</File>
