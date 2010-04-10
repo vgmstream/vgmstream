@@ -75,10 +75,9 @@ VGMSTREAM * init_vgmstream_p3d(STREAMFILE *streamFile) {
     if (read_32bitLE(parse_offset+4,streamFile) != channel_count) goto fail;
     sample_rate = read_32bitLE(parse_offset+8,streamFile);
     /* codec id? */
-    if (9 != read_32bitLE(parse_offset+0xC,streamFile)) goto fail;
+    //if (9 != read_32bitLE(parse_offset+0xC,streamFile)) goto fail;
     body_bytes = read_32bitLE(parse_offset+0x10,streamFile);
     start_offset = parse_offset+0x14;
-    printf("start = %x\n", start_offset);
     if (start_offset + body_bytes != file_size) goto fail;
 
     loop_flag = 0;
