@@ -943,7 +943,8 @@ VGMSTREAM * init_vgmstream_wsi(STREAMFILE *streamFile) {
     if (!vgmstream) goto fail;
 
     /* fill in the vital statistics */
-    vgmstream->num_samples = header[0].sample_count;
+    /* incomplete last frame is missing */
+    vgmstream->num_samples = header[0].sample_count/14*14;
     vgmstream->sample_rate = header[0].sample_rate;
 
     vgmstream->loop_start_sample = dsp_nibbles_to_samples(
