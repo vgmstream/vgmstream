@@ -246,7 +246,9 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_ps2_ster,
 	init_vgmstream_ps2_wb,
     init_vgmstream_bnsf,
+#ifdef VGM_USE_G7221
     init_vgmstream_s14_sss,
+#endif
     init_vgmstream_ps2_gcm,
 	init_vgmstream_ps2_smpl,
 	init_vgmstream_ps2_msa,

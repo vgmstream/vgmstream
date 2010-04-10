@@ -12,7 +12,8 @@
  * Makefile) */
 #define VGM_USE_VORBIS
 #define VGM_USE_MPEG
-#define VGM_USE_G7221
+/* disabled by default, defined for builds that support it */
+//#define VGM_USE_G7221
 
 #include "streamfile.h"
 #include "coding/g72x_state.h"
