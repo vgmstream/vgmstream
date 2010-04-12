@@ -453,6 +453,8 @@ typedef enum {
 	meta_PS2_MSA,           /* Psyvariar -Complete Edition- */
     meta_PC_SMP,            /* unknown PC game .smp */
     meta_P3D,               /* Prototype P3D */
+	meta_PS2_TK1,           /* Tekken (NamCollection) */
+    meta_PS2_ADSC,          /* Kenka Bancho 2: Full Throttle */
 } meta_t;
 
 typedef struct {

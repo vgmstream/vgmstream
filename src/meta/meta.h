@@ -463,4 +463,8 @@ VGMSTREAM * init_vgmstream_pc_smp(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_p3d(STREAMFILE* streamFile);
 
+VGMSTREAM * init_vgmstream_ps2_tk1(STREAMFILE* streamFile);
+
+VGMSTREAM * init_vgmstream_ps2_adsc(STREAMFILE* streamFile);
+
 #endif

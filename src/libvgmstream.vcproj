@@ -535,6 +535,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\ps2_adsc.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\ps2_ass.c"
 					>
 				</File>

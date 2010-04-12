@@ -191,6 +191,7 @@ gchar *vgmstream_exts [] = {
 
   "tec",
   "thp",
+  "tk1",
   "tk5",
   "tydsp",
 

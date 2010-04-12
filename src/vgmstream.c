@@ -254,6 +254,8 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_ps2_msa,
     init_vgmstream_pc_smp,
     init_vgmstream_p3d,
+	init_vgmstream_ps2_tk1,
+	init_vgmstream_ps2_adsc,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -2521,6 +2523,12 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case meta_P3D:
             snprintf(temp,TEMPSIZE,"P3D Header");
+            break;
+		case meta_PS2_TK1:
+            snprintf(temp,TEMPSIZE,"Tekken TK5STRM1 Header");
+            break;
+		case meta_PS2_ADSC:
+            snprintf(temp,TEMPSIZE,"ADSC Header");
             break;
         default:
            snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

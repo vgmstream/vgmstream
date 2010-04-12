@@ -259,6 +259,7 @@ char * extension_list[] = {
 
     "tec\0TEC Audio File (*.TEC)\0",
     "thp\0THP Audio File (*.THP)\0",
+    "tk1\0TK1 Audio File (*.TK1)\0",
     "tk5\0TK5 Audio File (*.TK5)\0",
     "tydsp\0TYDSP Audio File (*.TYDSP)\0",
 
