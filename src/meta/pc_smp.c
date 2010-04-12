@@ -2,7 +2,7 @@
 #include "../layout/layout.h"
 #include "../util.h"
 
-/* .smp file, with MS ADPCM. Unsure of origin. */
+/* .smp file, with MS ADPCM. From Ghostbusters (PC). */
 
 VGMSTREAM * init_vgmstream_pc_smp(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
@@ -10,7 +10,7 @@ VGMSTREAM * init_vgmstream_pc_smp(STREAMFILE *streamFile) {
 
     int channel_count;
     off_t start_offset;
-    const int interleave = 0x10C;
+    int interleave;
 
     int loop_flag = 0;
 
@@ -30,7 +30,7 @@ VGMSTREAM * init_vgmstream_pc_smp(STREAMFILE *streamFile) {
 
     /* might also be codec id? */
     channel_count = read_32bitLE(0x28,streamFile);
-    if (channel_count != 2) goto fail;
+    if (channel_count != 1 && channel_count != 2) goto fail;
 
     /* verify MS ADPCM codec setup */
     {
@@ -65,6 +65,7 @@ VGMSTREAM * init_vgmstream_pc_smp(STREAMFILE *streamFile) {
 
     vgmstream->coding_type = coding_MSADPCM;
     vgmstream->layout_type = layout_none;   // MS ADPCM does own interleave
+    interleave = 0x86*channel_count;
     vgmstream->interleave_block_size = interleave;
 
     vgmstream->meta_type = meta_PC_SMP;

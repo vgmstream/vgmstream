@@ -1252,6 +1252,13 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                         vgmstream->samples_into_block,
                         samples_to_do);
             }
+            else if (vgmstream->channels == 1)
+            {
+                decode_msadpcm_mono(vgmstream,
+                        buffer+samples_written*vgmstream->channels,
+                        vgmstream->samples_into_block,
+                        samples_to_do);
+            }
             break;
         case coding_AICA:
             for (chan=0;chan<vgmstream->channels;chan++) {
@@ -2519,10 +2526,10 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             snprintf(temp,TEMPSIZE,"Psyvariar -Complete Edition- MSA header");
             break;
         case meta_PC_SMP:
-            snprintf(temp,TEMPSIZE,".smp Header");
+            snprintf(temp,TEMPSIZE,"Ghostbusters .smp Header");
             break;
         case meta_P3D:
-            snprintf(temp,TEMPSIZE,"P3D Header");
+            snprintf(temp,TEMPSIZE,"Prototype P3D Header");
             break;
 		case meta_PS2_TK1:
             snprintf(temp,TEMPSIZE,"Tekken TK5STRM1 Header");

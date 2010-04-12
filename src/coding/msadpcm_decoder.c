@@ -94,3 +94,67 @@ void decode_msadpcm_stereo(VGMSTREAM * vgmstream, sample * outbuf, int32_t first
         }
     }
 }
+
+void decode_msadpcm_mono(VGMSTREAM * vgmstream, sample * outbuf, int32_t first_sample, int32_t samples_to_do) {
+    VGMSTREAMCHANNEL *ch1;
+    int i;
+    int framesin;
+    STREAMFILE *streamfile;
+    off_t offset;
+    const int32_t orig_first_sample = first_sample;
+
+    framesin = first_sample/get_vgmstream_samples_per_frame(vgmstream);
+    first_sample = first_sample%get_vgmstream_samples_per_frame(vgmstream);
+
+    ch1 = &vgmstream->ch[0];
+    streamfile = ch1->streamfile;
+    offset = ch1->offset+framesin*get_vgmstream_frame_size(vgmstream);
+
+    if (first_sample==0) {
+        ch1->adpcm_coef[0] = ADPCMCoeffs[read_8bit(offset,streamfile)][0];
+        ch1->adpcm_coef[1] = ADPCMCoeffs[read_8bit(offset,streamfile)][1];
+        ch1->adpcm_scale = read_16bitLE(offset+1,streamfile);
+        ch1->adpcm_history1_16 = read_16bitLE(offset+3,streamfile);
+        ch1->adpcm_history2_16 = read_16bitLE(offset+5,streamfile);
+
+        outbuf[0] = ch1->adpcm_history2_16;
+
+        outbuf++;
+        first_sample++;
+        samples_to_do--;
+    }
+    if (first_sample==1 && samples_to_do > 0) {
+        outbuf[0] = ch1->adpcm_history1_16;
+
+        outbuf++;
+        first_sample++;
+        samples_to_do--;
+    }
+
+    for (i=first_sample; i<first_sample+samples_to_do; i++) {
+        {
+            VGMSTREAMCHANNEL *ch = &vgmstream->ch[0];
+            int sample_nibble =
+                (i & 1 ?
+                 get_low_nibble_signed(read_8bit(offset+7+(i-2)/2,streamfile)) :
+                 get_high_nibble_signed(read_8bit(offset+7+(i-2)/2,streamfile))
+                );
+            int32_t hist1,hist2;
+            int32_t predicted;
+
+            hist1 = ch->adpcm_history1_16;
+            hist2 = ch->adpcm_history2_16;
+            predicted = hist1 * ch->adpcm_coef[0] + hist2 * ch->adpcm_coef[1];
+            predicted /= 256;
+            predicted += sample_nibble*ch->adpcm_scale;
+            outbuf[0] = clamp16(predicted);
+            ch->adpcm_history2_16 = ch->adpcm_history1_16;
+            ch->adpcm_history1_16 = outbuf[0];
+            ch->adpcm_scale = (ADPCMTable[sample_nibble&0xf] *
+                    ch->adpcm_scale) / 256;
+            if (ch->adpcm_scale < 0x10) ch->adpcm_scale = 0x10;
+
+            outbuf++;
+        }
+    }
+}
