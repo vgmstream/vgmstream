@@ -47,12 +47,12 @@ VGMSTREAM * init_vgmstream_p3d(STREAMFILE *streamFile) {
             read_16bitBE(parse_offset+12,streamFile) != 0x6500) goto fail;
         parse_offset += 4 + text_len + 1;
     }
-    channel_count = read_32bitLE(parse_offset,streamFile);
-    parse_offset += 4;
     {
+        uint32_t name_count = read_32bitLE(parse_offset,streamFile);
         int i;
-        /* channel names? */
-        for (i = 0; i < channel_count; i++)
+        parse_offset += 4;
+        /* names? */
+        for (i = 0; i < name_count; i++)
         {
             int text_len = read_32bitLE(parse_offset,streamFile);
             parse_offset += 4 + text_len + 1;
@@ -72,7 +72,7 @@ VGMSTREAM * init_vgmstream_p3d(STREAMFILE *streamFile) {
 
     /* real RADP header */
     if (0x52414450 != read_32bitBE(parse_offset,streamFile)) goto fail;
-    if (read_32bitLE(parse_offset+4,streamFile) != channel_count) goto fail;
+    channel_count = read_32bitLE(parse_offset+4,streamFile);
     sample_rate = read_32bitLE(parse_offset+8,streamFile);
     /* codec id? */
     //if (9 != read_32bitLE(parse_offset+0xC,streamFile)) goto fail;
