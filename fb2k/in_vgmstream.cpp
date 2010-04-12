@@ -431,6 +431,7 @@ bool input_vgmstream::g_is_our_path(const char * p_path,const char * p_extension
 
 	if(!stricmp_utf8(p_extension,"tec")) return 1;
 	if(!stricmp_utf8(p_extension,"thp")) return 1;
+	if(!stricmp_utf8(p_extension,"tk1")) return 1;
 	if(!stricmp_utf8(p_extension,"tk5")) return 1;
 	if(!stricmp_utf8(p_extension,"tydsp")) return 1;
 
@@ -695,6 +696,7 @@ DECLARE_MULTIPLE_FILE_TYPE("SWD Audio File (*.SWD)", swd);
 
 DECLARE_MULTIPLE_FILE_TYPE("TEC Audio File (*.TEC)", tec);
 DECLARE_MULTIPLE_FILE_TYPE("THP Audio File (*.THP)", thp);
+DECLARE_MULTIPLE_FILE_TYPE("TK1 Audio File (*.TK1)", tk1);
 DECLARE_MULTIPLE_FILE_TYPE("TK5 Audio File (*.TK5)", tk5);
 DECLARE_MULTIPLE_FILE_TYPE("TYDSP Audio File (*.TYDSP)", tydsp);
 
