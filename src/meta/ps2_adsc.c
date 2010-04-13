@@ -35,7 +35,7 @@ VGMSTREAM * init_vgmstream_ps2_adsc(STREAMFILE *streamFile) {
 	else
     vgmstream->num_samples = read_32bitLE(0x2c,streamFile)*28/32;
     vgmstream->layout_type = layout_interleave;
-    vgmstream->interleave_block_size = 0x400;
+    vgmstream->interleave_block_size = read_32bitLE(0x1c,streamFile);
     vgmstream->meta_type = meta_PS2_ADSC;
 
     /* open the file for reading */
