@@ -60,7 +60,7 @@ VGMSTREAM * init_vgmstream_emff_ps2(STREAMFILE *streamFile) {
 
     /* Calc num_samples */
     emff_ps2_block_update(start_offset,vgmstream);
-    vgmstream->num_samples = read_32bitLE(0x8,streamFile);;
+    vgmstream->num_samples = read_32bitLE(0x8,streamFile);
     if (loop_flag) {
         vgmstream->loop_start_sample = (read_32bitLE(0x28,streamFile)-start_offset)*28/16/channel_count;
         vgmstream->loop_end_sample = read_32bitLE(0x8,streamFile);

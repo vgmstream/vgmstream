@@ -82,7 +82,7 @@ VGMSTREAM * init_vgmstream_ngc_ssm(STREAMFILE *streamFile) {
 		}
 	}
     
-}
+    }
 
 	return vgmstream;
 

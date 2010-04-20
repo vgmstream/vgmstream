@@ -30,5 +30,6 @@ liblayout_la_SOURCES += filp_blocked.c
 liblayout_la_SOURCES += aax_layout.c
 liblayout_la_SOURCES += ivaud_layout.c
 liblayout_la_SOURCES += mxch_blocked.c
+liblayout_la_SOURCES += psx_mgav_blocked.c
 
 EXTRA_DIST = layout.h

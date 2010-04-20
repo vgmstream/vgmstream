@@ -117,8 +117,9 @@ VGMSTREAM * init_vgmstream_ss_stream(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[260];
     int loop_flag=0;
-	int channels;
+    int channels;
     int channel_count;
+    int freq_flag;
     off_t start_offset;
     int i;
 
@@ -128,6 +129,7 @@ VGMSTREAM * init_vgmstream_ss_stream(STREAMFILE *streamFile) {
 		strcasecmp("ss7",filename_extension(filename))) goto fail;
 
 	loop_flag = 0;
+  freq_flag = read_8bit(0x08,streamFile);
 
     if (read_8bit(0x0C,streamFile) == 0) {
         channels = 1;
@@ -143,17 +145,19 @@ VGMSTREAM * init_vgmstream_ss_stream(STREAMFILE *streamFile) {
     if (!vgmstream) goto fail;
 
 	/* fill in the vital statistics */
-	vgmstream->channels = channel_count;
-	    
+  vgmstream->channels = channel_count;
+  vgmstream->sample_rate = 48000;
 
 
-
+#if 0
     if (!strcasecmp("ss3",filename_extension(filename))) {
         vgmstream->sample_rate = 32000;
     } else if (!strcasecmp("ss7",filename_extension(filename))) {
         vgmstream->sample_rate = 48000;
     }
+#endif
 
+  start_offset = (read_8bit(0x07,streamFile)+5);
 
             if (channel_count == 1){
                 start_offset = 0x3C;

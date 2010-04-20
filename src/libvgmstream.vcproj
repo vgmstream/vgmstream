@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="UTF-8"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="9.00"
+	Version="9,00"
 	Name="libvgmstream"
 	ProjectGUID="{54A6AD11-5369-4895-A06F-E255ABB99B11}"
 	RootNamespace="libvgmstream"
@@ -196,6 +196,10 @@
 			<Filter
 				Name="Source Files"
 				>
+				<File
+					RelativePath=".\meta\#dsp_test.c"
+					>
+				</File>
 				<File
 					RelativePath=".\meta\2dx.c"
 					>
@@ -443,7 +447,15 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\ngc_bo2.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\ngc_caf.c"
+					>
+				</File>
+				<File
+					RelativePath=".\meta\ngc_dsp_mpds.c"
 					>
 				</File>
 				<File
@@ -611,6 +623,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\ps2_khv.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\ps2_leg.c"
 					>
 				</File>
@@ -735,6 +751,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\ps2_voi.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\ps2_vpk.c"
 					>
 				</File>
@@ -760,6 +780,10 @@
 				</File>
 				<File
 					RelativePath=".\meta\psx_gms.c"
+					>
+				</File>
+				<File
+					RelativePath=".\meta\psx_str_mgav.c"
 					>
 				</File>
 				<File
@@ -896,10 +920,6 @@
 				</File>
 				<File
 					RelativePath=".\meta\wii_sts.c"
-					>
-				</File>
-				<File
-					RelativePath=".\meta\wii_was.c"
 					>
 				</File>
 				<File
@@ -1160,6 +1180,10 @@
 				</File>
 				<File
 					RelativePath=".\layout\nolayout.c"
+					>
+				</File>
+				<File
+					RelativePath=".\layout\psx_mgav_blocked.c"
 					>
 				</File>
 				<File

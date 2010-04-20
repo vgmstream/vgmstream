@@ -111,6 +111,7 @@ char * extension_list[] = {
     "bmdx\0BMDX Audio File (*.BMDX)\0",
     "bns\0BNS Audio File (*.BNS)\0",
     "bnsf\0BNSF Audio File (*.BNSF)\0",
+    "bo2\0BO2 Audio File (*.BO2)\0",
     "brstm;brstmspm\0BRSTM Audio File (*.BRSTM)\0",
 
     "caf\0CAF Audio File (*.CAF)\0",
@@ -121,6 +122,7 @@ char * extension_list[] = {
 
     "dcs\0DCS Audio File (*.DCS)\0",
     "de2\0DE2 Audio File (*.DE2)\0",
+    "ddsp\0DDSP Audio File (*.DDSP)\0",
 	  "dmsg\0DMSG Audio File (*.DMSG)\0",
     "dsp\0DSP Audio File (*.DSP)\0",
     "dtk\0DTK Audio File (*.DTK)\0",
@@ -164,6 +166,7 @@ char * extension_list[] = {
 
     "kces\0KCES Audio File (*.KCES)\0",
     "kcey\0KCEY Audio File (*.KCEY)\0",
+    "khv\0KHV Audio File (*.KHV)\0",
     "kraw\0KRAW Audio File (*.KRAW)\0",
 
     "leg\0LEG Audio File (*.LEG)\0",	
@@ -178,6 +181,7 @@ char * extension_list[] = {
     "mic\0PS2 MIC Audio File (*.MIC)\0",
     "mihb\0MIHB Audio File (*.MIHB)\0",
     "mpdsp\0MPDSP Audio File (*.MPDSP)\0",
+    "mpds\0MPDS Audio File (*.MPDS)\0",
     "msa\0MSA Audio File (*.MSA)\0",
     "mss\0MSS Audio File (*.MSS)\0",
     "msvp\0MSVP Audio File (*.MSVP)\0",
@@ -212,6 +216,7 @@ char * extension_list[] = {
     "rsd\0RSD Audio File (*.RSD)\0",
     "rsf\0RSF Audio File (*.RSF)\0",
     "rstm\0RSTM Audio File (*.RSTM)\0",
+    "rvws\0RVWS Audio File (*.RVWS)\0",
     "rwar\0RWAR Audio File (*.RWSD)\0",
     "rwav\0RWAV Audio File (*.RWAV)\0",
     "rws\0RWS Audio File (*.RWS)\0",
@@ -233,7 +238,7 @@ char * extension_list[] = {
     "sl3\0SL3 Audio File (*.SL3)\0",
     "sli\0SLI Audio File (*.SLI)\0",
     "smp\0SMP Audio File (*.SMP)\0",
-	"smpl\0SMPL Audio File (*.SMPL)\0",
+    "smpl\0SMPL Audio File (*.SMPL)\0",
     "snd\0SND Audio File (*.SND)\0",
     "sng\0SNG Audio File (*.SNG)\0",
     "sns\0SNS Audio File (*.SNS)\0",
@@ -274,6 +279,7 @@ char * extension_list[] = {
     "vs\0VS Audio File (*.VS)\0",
     "vsf\0VSF Audio File (*.VSF)\0",
     "vgv\0VGV Audio File (*.VGV)\0",
+    "voi\0VOI Audio File (*.VOI)\0",
 
     "waa\0WAA Audio File (*.WAA)\0",
     "wac\0WAC Audio File (*.WAC)\0",
@@ -281,7 +287,7 @@ char * extension_list[] = {
     "wam\0WAM Audio File (*.WAM)\0",
     "wavm\0WAVM Audio File (*.WAVM)\0",
     "was\0WAS Audio File (*.WAS)\0",
-	"wb\0WB Audio File (*.WB)\0",
+    "wb\0WB Audio File (*.WB)\0",
     "wii\0WII Audio File (*.WII)\0",
     "wp2\0WP2 Audio File (*.WP2)\0",
     "wsd\0WSD Audio File (*.WSD)\0",

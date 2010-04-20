@@ -143,6 +143,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_idsp,
     init_vgmstream_idsp2,
     init_vgmstream_idsp3,
+    init_vgmstream_idsp4,
     init_vgmstream_ngc_ymf,
     init_vgmstream_sadl,
     init_vgmstream_ps2_ccc,
@@ -243,19 +244,26 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	  init_vgmstream_dmsg,
     init_vgmstream_ngc_aaap,
     init_vgmstream_ngc_dsp_tmnt2,
-	init_vgmstream_ps2_ster,
-	init_vgmstream_ps2_wb,
+    init_vgmstream_ps2_ster,
+    init_vgmstream_ps2_wb,
     init_vgmstream_bnsf,
 #ifdef VGM_USE_G7221
     init_vgmstream_s14_sss,
 #endif
     init_vgmstream_ps2_gcm,
-	init_vgmstream_ps2_smpl,
-	init_vgmstream_ps2_msa,
+    init_vgmstream_ps2_smpl,
+    init_vgmstream_ps2_msa,
+    init_vgmstream_ps2_voi,
+    init_vgmstream_ps2_khv,
     init_vgmstream_pc_smp,
+    init_vgmstream_ngc_bo2,
+    init_vgmstream_dsp_ddsp,
     init_vgmstream_p3d,
-	init_vgmstream_ps2_tk1,
-	init_vgmstream_ps2_adsc,
+		init_vgmstream_ps2_tk1,
+		init_vgmstream_ps2_adsc,
+    init_vgmstream_ngc_dsp_mpds,
+    init_vgmstream_dsp_str_ig,
+    init_vgmstream_psx_mgav,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -288,9 +296,10 @@ VGMSTREAM * init_vgmstream_internal(STREAMFILE *streamFile, int do_dfs) {
                         (vgmstream->meta_type == meta_KRAW) ||
                         (vgmstream->meta_type == meta_PS2_MIB) ||
                         (vgmstream->meta_type == meta_NGC_LPS) ||
-						(vgmstream->meta_type == meta_DSP_YGO) ||
+						            (vgmstream->meta_type == meta_DSP_YGO) ||
                         (vgmstream->meta_type == meta_DSP_AGSC) ||
-						(vgmstream->meta_type == meta_PS2_SMPL)
+						            (vgmstream->meta_type == meta_PS2_SMPL) ||
+                        (vgmstream->meta_type == meta_SPT_SPD)
                         ) && vgmstream->channels == 1) {
                 try_dual_file_stereo(vgmstream, streamFile);
             }
@@ -691,6 +700,7 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
         case layout_thp_blocked:
         case layout_filp_blocked:
         case layout_ivaud_blocked:
+        case layout_psx_mgav_blocked:
             render_vgmstream_blocked(buffer,sample_count,vgmstream);
             break;
         case layout_interleave_byte:
@@ -1737,6 +1747,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         case layout_filp_blocked:
             snprintf(temp,TEMPSIZE,"FILp blocked");
             break;
+        case layout_psx_mgav_blocked:
+            snprintf(temp,TEMPSIZE,"MGAV blocked");
+            break;
 #ifdef VGM_USE_MPEG
         case layout_fake_mpeg:
             snprintf(temp,TEMPSIZE,"MPEG Audio stream with incorrect frame headers");
@@ -2283,12 +2296,6 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         case meta_IDSP:
             snprintf(temp,TEMPSIZE,"IDSP Header");
             break;
-        case meta_IDSP2:
-            snprintf(temp,TEMPSIZE,"IDSP Header");
-            break;
-        case meta_IDSP3:
-            snprintf(temp,TEMPSIZE,"IDSP Header");
-            break;
         case meta_WAA_WAC_WAD_WAM:
             snprintf(temp,TEMPSIZE,"WAA/WAC/WAD/WAM RIFF Header");
             break;
@@ -2528,14 +2535,29 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         case meta_PC_SMP:
             snprintf(temp,TEMPSIZE,"Ghostbusters .smp Header");
             break;
+        case meta_NGC_PDT:
+            snprintf(temp,TEMPSIZE,"PDT DSP header");
+            break;
+        case meta_NGC_BO2:
+            snprintf(temp,TEMPSIZE,"Blood Omen 2 DSP header");
+            break;
         case meta_P3D:
             snprintf(temp,TEMPSIZE,"Prototype P3D Header");
             break;
-		case meta_PS2_TK1:
+				case meta_PS2_TK1:
             snprintf(temp,TEMPSIZE,"Tekken TK5STRM1 Header");
             break;
-		case meta_PS2_ADSC:
+				case meta_PS2_ADSC:
             snprintf(temp,TEMPSIZE,"ADSC Header");
+            break;
+				case meta_NGC_DSP_MPDS:
+            snprintf(temp,TEMPSIZE,"MPDS DSP header");
+            break;
+				case meta_DSP_STR_IG:
+            snprintf(temp,TEMPSIZE,"Infogrames dual dsp header");
+            break;
+				case meta_PSX_MGAV:
+            snprintf(temp,TEMPSIZE,"Electronic Arts RVWS header");
             break;
         default:
            snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

@@ -147,8 +147,8 @@ typedef enum {
     layout_gsb_blocked,
     layout_thp_blocked,
     layout_filp_blocked,
-	layout_mxch_blocked,
-
+	  layout_mxch_blocked,
+    layout_psx_mgav_blocked,
 #if 0
     layout_strm_blocked,    /* */
 #endif
@@ -295,9 +295,7 @@ typedef enum {
     meta_KRAW,				/* Geometry Wars - Galaxies */
     meta_PS2_OMU,			/* PS2 Int file with Header */
     meta_PS2_XA2,			/* XG3 Extreme-G Racing */
-    meta_IDSP,				/* Chronicles of Narnia */
-    meta_IDSP2,				/* Soul Calibur */
-	  meta_IDSP3,				/* Mario Strikers Charged */
+    meta_IDSP,				/* Chronicles of Narnia, Soul Calibur Legends, Mario Strikers Charged */
 	  meta_SPT_SPD,			/* Variouis */
     meta_ISH_ISD,			/* Various */
     meta_GSP_GSB,			/* Various */
@@ -444,17 +442,24 @@ typedef enum {
 	  meta_PS2_AST,			      /* Some KOEI game (PS2) */
 	  meta_DMSG,				      /* Nightcaster II - Equinox (XBOX) */
     meta_NGC_AAAP,  	      /* Turok: Evolution (NGC) */
-	meta_PS2_STER,          /* Juuni Kokuki: Kakukaku Taru Ou Michi Beni Midori no Uka */
-	meta_PS2_WB,            /* Shooting Love. ~TRIZEAL~ */
+    meta_PS2_STER,          /* Juuni Kokuki: Kakukaku Taru Ou Michi Beni Midori no Uka */
+    meta_PS2_WB,            /* Shooting Love. ~TRIZEAL~ */
     meta_S14,               /* raw Siren 14, 24kbit mono */
     meta_SSS,               /* raw Siren 14, 48kbit stereo */
-	meta_PS2_GCM,           /* NamCollection */
-	meta_PS2_SMPL,          /* Homura */
-	meta_PS2_MSA,           /* Psyvariar -Complete Edition- */
+    meta_PS2_GCM,           /* NamCollection */
+    meta_PS2_SMPL,          /* Homura */
+    meta_PS2_MSA,           /* Psyvariar -Complete Edition- */
+    meta_PS2_VOI,           /* RAW Danger (Zettaizetsumei Toshi 2 - Itetsuita Kiokutachi) [PS2] */
+    meta_PS2_KHV,           /* Kingdom Hearts 2 VAG streams */
     meta_PC_SMP,            /* Ghostbusters PC .smp */
     meta_P3D,               /* Prototype P3D */
-	meta_PS2_TK1,           /* Tekken (NamCollection) */
+	  meta_PS2_TK1,           /* Tekken (NamCollection) */
     meta_PS2_ADSC,          /* Kenka Bancho 2: Full Throttle */
+    meta_NGC_BO2,           /* Blood Omen 2 (NGC) */
+    meta_DSP_DDSP,          /* Various (2 dsp files stuck together */
+    meta_NGC_DSP_MPDS,      /* Big Air Freestyle, Terminator 3 */
+    meta_DSP_STR_IG,        /* Micro Machines, Superman Superman: Shadow of Apokolis */
+    meta_PSX_MGAV,          /* Future Cop L.A.P.D. */
 } meta_t;
 
 typedef struct {

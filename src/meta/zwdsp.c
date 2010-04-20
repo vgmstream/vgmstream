@@ -5,10 +5,10 @@
 VGMSTREAM * init_vgmstream_zwdsp(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[260];
-    off_t start_offset;
-
+    int second_channel_start;
     int loop_flag;
     int channel_count = 2;
+    off_t start_offset;
 
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
@@ -61,7 +61,7 @@ VGMSTREAM * init_vgmstream_zwdsp(STREAMFILE *streamFile) {
         }
     }
 
-    /* open the file for reading */
+    second_channel_start = (get_streamfile_size(streamFile)+start_offset)/2;
     {
         int i;
         STREAMFILE * file;
@@ -70,10 +70,12 @@ VGMSTREAM * init_vgmstream_zwdsp(STREAMFILE *streamFile) {
         for (i=0;i<channel_count;i++) {
             vgmstream->ch[i].streamfile = file;
 
-            vgmstream->ch[i].channel_start_offset=
-                vgmstream->ch[i].offset=start_offset+
-                ((get_streamfile_size(streamFile)-start_offset)/2)*i;
-
+                vgmstream->ch[0].channel_start_offset=start_offset;
+            if (channel_count == 2) {
+                if (second_channel_start == -1) goto fail;
+                vgmstream->ch[1].channel_start_offset=second_channel_start;
+            }
+        vgmstream->ch[i].offset = vgmstream->ch[i].channel_start_offset;
         }
     }
 
