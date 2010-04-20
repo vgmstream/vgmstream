@@ -42,6 +42,11 @@ VGMSTREAM * init_vgmstream_zwdsp(STREAMFILE *streamFile) {
     if (loop_flag) {
         vgmstream->loop_start_sample = read_32bitBE(0x10,streamFile)*14/8/channel_count;
         vgmstream->loop_end_sample = read_32bitBE(0x14,streamFile)*14/8/channel_count;
+        // frequently end sample is one more than total samples in file
+        if (vgmstream->loop_end_sample > vgmstream->num_samples)
+        {
+            vgmstream->loop_end_sample = vgmstream->num_samples;
+        }
     }
 
 
