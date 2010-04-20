@@ -45,6 +45,7 @@ gchar *vgmstream_exts [] = {
   "bmdx",
   "bns",
   "bnsf",
+  "bo2",
   "brstm",
   "brstmspm",
 
@@ -56,6 +57,8 @@ gchar *vgmstream_exts [] = {
 
   "dcs",
   "de2",
+  "ddsp",
+  "dmsg",
   "dsp",
   "dtk",
   "dvi",
@@ -97,6 +100,7 @@ gchar *vgmstream_exts [] = {
 
   "kces",
   "kcey",
+  "khv",
   "kraw",
 
   "leg",
@@ -111,6 +115,7 @@ gchar *vgmstream_exts [] = {
   "mic",
   "mihb",
   "mpdsp",
+  "mpds",
   "msa",
   "mss",
   "msvp",
@@ -144,6 +149,7 @@ gchar *vgmstream_exts [] = {
   "rsd",
   "rsf",
   "rstm",
+  "rvws",
   "rwar",
   "rwav",
   "rws",
@@ -201,11 +207,12 @@ gchar *vgmstream_exts [] = {
   "vas",
   "vb",
   "vgs",
+  "vgv",
   "vig",
+  "voi",
   "vpk",
   "vs",
   "vsf",
-  "vgv",
 
   "waa",
   "wac",

@@ -101,7 +101,6 @@ void decode_msadpcm_mono(VGMSTREAM * vgmstream, sample * outbuf, int32_t first_s
     int framesin;
     STREAMFILE *streamfile;
     off_t offset;
-    const int32_t orig_first_sample = first_sample;
 
     framesin = first_sample/get_vgmstream_samples_per_frame(vgmstream);
     first_sample = first_sample%get_vgmstream_samples_per_frame(vgmstream);

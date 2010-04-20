@@ -7,8 +7,7 @@ VGMSTREAM * init_vgmstream_ngc_dsp_mpds(STREAMFILE *streamFile) {
     char filename[260];
     int loop_flag = 0;
   	int channel_count;
-    off_t start_offset;
-		int ch1_header_start, ch2_header_start, ch1_start, ch2_start;
+    int ch1_start, ch2_start;
 
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));

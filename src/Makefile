@@ -46,7 +46,7 @@ LAYOUT_OBJS=layout/ast_blocked.o \
     layout/aax_layout.o \
     layout/ivaud_layout.o \
     layout/mxch_blocked.o \
-    layout/mgav_blocked.o
+    layout/psx_mgav_blocked.o
 
 META_OBJS=meta/adx_header.o \
     meta/afc_header.o \

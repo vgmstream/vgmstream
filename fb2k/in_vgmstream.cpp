@@ -282,6 +282,7 @@ bool input_vgmstream::g_is_our_path(const char * p_path,const char * p_extension
 	if(!stricmp_utf8(p_extension,"bmdx")) return 1;
 	if(!stricmp_utf8(p_extension,"bns")) return 1;
 	if(!stricmp_utf8(p_extension,"bnsf")) return 1;
+	if(!stricmp_utf8(p_extension,"bo2")) return 1;
 	if(!stricmp_utf8(p_extension,"brstmspm")) return 1;
 	if(!stricmp_utf8(p_extension,"brstm")) return 1;
 
@@ -293,6 +294,7 @@ bool input_vgmstream::g_is_our_path(const char * p_path,const char * p_extension
 
 	if(!stricmp_utf8(p_extension,"dcs")) return 1;
 	if(!stricmp_utf8(p_extension,"de2")) return 1;
+	if(!stricmp_utf8(p_extension,"ddsp")) return 1;
 	if(!stricmp_utf8(p_extension,"dmsg")) return 1;
 	if(!stricmp_utf8(p_extension,"dsp")) return 1;
 	if(!stricmp_utf8(p_extension,"dtk")) return 1;
@@ -336,6 +338,7 @@ bool input_vgmstream::g_is_our_path(const char * p_path,const char * p_extension
 
 	if(!stricmp_utf8(p_extension,"kces")) return 1;
 	if(!stricmp_utf8(p_extension,"kcey")) return 1;
+	if(!stricmp_utf8(p_extension,"khv")) return 1;
 	if(!stricmp_utf8(p_extension,"kraw")) return 1;
 
 	if(!stricmp_utf8(p_extension,"leg")) return 1;
@@ -350,6 +353,7 @@ bool input_vgmstream::g_is_our_path(const char * p_path,const char * p_extension
 	if(!stricmp_utf8(p_extension,"mic")) return 1;
 	if(!stricmp_utf8(p_extension,"mihb")) return 1;
 	if(!stricmp_utf8(p_extension,"mpdsp")) return 1;
+	if(!stricmp_utf8(p_extension,"mpds")) return 1;
 	if(!stricmp_utf8(p_extension,"msa")) return 1;
 	if(!stricmp_utf8(p_extension,"mss")) return 1;
 	if(!stricmp_utf8(p_extension,"msvp")) return 1;
@@ -384,6 +388,7 @@ bool input_vgmstream::g_is_our_path(const char * p_path,const char * p_extension
 	if(!stricmp_utf8(p_extension,"rsd")) return 1;
 	if(!stricmp_utf8(p_extension,"rsf")) return 1;
 	if(!stricmp_utf8(p_extension,"rstm")) return 1;
+	if(!stricmp_utf8(p_extension,"rvws")) return 1;
 	if(!stricmp_utf8(p_extension,"rwar")) return 1;
 	if(!stricmp_utf8(p_extension,"rwav")) return 1;
 	if(!stricmp_utf8(p_extension,"rws")) return 1;
@@ -441,11 +446,12 @@ bool input_vgmstream::g_is_our_path(const char * p_path,const char * p_extension
 	if(!stricmp_utf8(p_extension,"vas")) return 1;
 	if(!stricmp_utf8(p_extension,"vb")) return 1;
 	if(!stricmp_utf8(p_extension,"vgs")) return 1;
+	if(!stricmp_utf8(p_extension,"vgv")) return 1;
 	if(!stricmp_utf8(p_extension,"vig")) return 1;
+	if(!stricmp_utf8(p_extension,"voi")) return 1;
 	if(!stricmp_utf8(p_extension,"vpk")) return 1;
 	if(!stricmp_utf8(p_extension,"vs")) return 1;
 	if(!stricmp_utf8(p_extension,"vsf")) return 1;
-	if(!stricmp_utf8(p_extension,"vgv")) return 1;
 
 	if(!stricmp_utf8(p_extension,"waa")) return 1;
 	if(!stricmp_utf8(p_extension,"wac")) return 1;
@@ -547,6 +553,7 @@ DECLARE_MULTIPLE_FILE_TYPE("BH2PCM Audio File (*.BH2PCM)", bh2pcm);
 DECLARE_MULTIPLE_FILE_TYPE("BMDX Audio File (*.BMDX)", bmdx);
 DECLARE_MULTIPLE_FILE_TYPE("BNS Audio File (*.BNS)", bns);
 DECLARE_MULTIPLE_FILE_TYPE("BNSF Audio File (*.BNSF)", bnsf);
+DECLARE_MULTIPLE_FILE_TYPE("BO2 Audio File (*.BO2)", bo2);
 DECLARE_MULTIPLE_FILE_TYPE("BRSTM Audio File (*.BRSTM)", brstm);
 DECLARE_MULTIPLE_FILE_TYPE("BRSTM Audio File [2] (*.BRSTM)", brstmspm);
 
@@ -558,6 +565,7 @@ DECLARE_MULTIPLE_FILE_TYPE("CNK Audio File (*.CNK)", cnk);
 
 DECLARE_MULTIPLE_FILE_TYPE("DCS Audio File (*.DCS)", dcs);
 DECLARE_MULTIPLE_FILE_TYPE("DE2 Audio File (*.DE2)", de2);
+DECLARE_MULTIPLE_FILE_TYPE("DDSP Audio File (*.DDSP)", ddsp);
 DECLARE_MULTIPLE_FILE_TYPE("DMSG Audio File (*.DMSG)", dmsg);
 DECLARE_MULTIPLE_FILE_TYPE("DSP Audio File (*.DSP)", dsp);
 DECLARE_MULTIPLE_FILE_TYPE("DTK Audio File (*.DTK)", dtk);
@@ -601,6 +609,7 @@ DECLARE_MULTIPLE_FILE_TYPE("JOE Audio File (*.JOE)", joe);
 
 DECLARE_MULTIPLE_FILE_TYPE("KCES Audio File (*.KCES)", kces);
 DECLARE_MULTIPLE_FILE_TYPE("KCEY Audio File (*.KCEY)", kcey);
+DECLARE_MULTIPLE_FILE_TYPE("KHV Audio File (*.KHV)", khv);
 DECLARE_MULTIPLE_FILE_TYPE("KRAW Audio File (*.KRAW)", kraw);
 
 DECLARE_MULTIPLE_FILE_TYPE("LEG Audio File (*.LEG)", leg);
@@ -615,6 +624,7 @@ DECLARE_MULTIPLE_FILE_TYPE("PS2 MIB Audio File (*.MIB)", mib);
 DECLARE_MULTIPLE_FILE_TYPE("PS2 MIC Audio File (*.MIC)", mic);
 DECLARE_MULTIPLE_FILE_TYPE("MIHB Audio File (*.MIHB)", mihb);
 DECLARE_MULTIPLE_FILE_TYPE("MPDSP Audio File (*.MPDSP)", mpdsp);
+DECLARE_MULTIPLE_FILE_TYPE("MPDS Audio File (*.MPDS)", mpds);
 DECLARE_MULTIPLE_FILE_TYPE("MSA Audio File (*.MSA)", msa);
 DECLARE_MULTIPLE_FILE_TYPE("MSS Audio File (*.MSS)", mss);
 DECLARE_MULTIPLE_FILE_TYPE("MSVP Audio File (*.MSVP)", msvp);
@@ -649,6 +659,7 @@ DECLARE_MULTIPLE_FILE_TYPE("RRDS Audio File (*.RRDS)", rrds);
 DECLARE_MULTIPLE_FILE_TYPE("RSD Audio File (*.RSD)", rsd);
 DECLARE_MULTIPLE_FILE_TYPE("RSF Audio File (*.RSF)", rsf);
 DECLARE_MULTIPLE_FILE_TYPE("RSTM Audio File (*.RSTM)", rstm);
+DECLARE_MULTIPLE_FILE_TYPE("RVWS Audio File (*.RSTM)", rvws);
 DECLARE_MULTIPLE_FILE_TYPE("RWAR Audio File (*.RWSD)", rwar);
 DECLARE_MULTIPLE_FILE_TYPE("RWAV Audio File (*.RWAV)", rwav);
 DECLARE_MULTIPLE_FILE_TYPE("RWS Audio File (*.RWS)", rws);
@@ -706,11 +717,12 @@ DECLARE_MULTIPLE_FILE_TYPE("VAG Audio File (*.VAG)", vag);
 DECLARE_MULTIPLE_FILE_TYPE("VAS Audio File (*.VAS)", vas);
 DECLARE_MULTIPLE_FILE_TYPE("VB Audio File (*.VB)", vb);
 DECLARE_MULTIPLE_FILE_TYPE("VGS Audio File (*.VGS)", vgs);
+DECLARE_MULTIPLE_FILE_TYPE("VGV Audio File (*.VGV)", vgv);
 DECLARE_MULTIPLE_FILE_TYPE("VIG Audio File (*.VIG)", vig);
+DECLARE_MULTIPLE_FILE_TYPE("VOI Audio File (*.VOI)", voi);
 DECLARE_MULTIPLE_FILE_TYPE("VPK Audio File (*.VPK)", vpk);
 DECLARE_MULTIPLE_FILE_TYPE("VS Audio File (*.VS)", vs);
 DECLARE_MULTIPLE_FILE_TYPE("VSF Audio File (*.VSF)", vsf);
-DECLARE_MULTIPLE_FILE_TYPE("VGV Audio File (*.VGV)", vgv);
 
 DECLARE_MULTIPLE_FILE_TYPE("WAA Audio File (*.WAA)", waa);
 DECLARE_MULTIPLE_FILE_TYPE("WAC Audio File (*.WAC)", wac);

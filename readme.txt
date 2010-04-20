@@ -68,6 +68,7 @@ PS2/PSX ADPCM:
 - .ivb
 - .joe
 - .kces
+- .khv
 - .leg
 - .mcg
 - .mib, .mi4 (w/ or w/o .mih)
@@ -91,6 +92,7 @@ PS2/PSX ADPCM:
 - .smpl (w/ bad flags)
 - .ster
 - .str+.sth
+- .str (MGAV blocked)
 - .sts
 - .svag
 - .svs
@@ -113,13 +115,16 @@ GC/Wii DSP ADPCM:
 - .amts
 - .asr
 - .bns
+- .bo2
 - .capdsp
 - .cfn
+- .ddsp
 - .dsp
-  - standard, with dual file stereo
+  - standard, optional dual file stereo
   - RS03
   - Cstr
   - _lr.dsp
+  - MPDS
 - .gca
 - .gcm
 - .gsp+.gsp
@@ -146,6 +151,7 @@ GC/Wii DSP ADPCM:
 - .tydsp
 - .vjdsp
 - .waa, .wac, .wad, .wam
+- .was
 - .wsd
 - .wsi
 - .ydsp
@@ -171,6 +177,7 @@ PCM:
 - .sps (16 bit)
 - .str (16 bit)
 - .xss (16 bit)
+- .voi (16 bit)
 - .wb (16 bit)
 - .zsd (8 bit)
 
