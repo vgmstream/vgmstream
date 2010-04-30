@@ -627,6 +627,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\ps2_lpcm.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\ps2_mcg.c"
 					>
 				</File>

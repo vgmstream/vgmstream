@@ -460,6 +460,7 @@ typedef enum {
     meta_NGC_DSP_MPDS,      /* Big Air Freestyle, Terminator 3 */
     meta_DSP_STR_IG,        /* Micro Machines, Superman Superman: Shadow of Apokolis */
     meta_PSX_MGAV,          /* Future Cop L.A.P.D. */
+	meta_PS2_LPCM,          /* Ah! My Goddess */
 } meta_t;
 
 typedef struct {

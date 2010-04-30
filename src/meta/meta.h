@@ -483,4 +483,6 @@ VGMSTREAM * init_vgmstream_dsp_str_ig(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_psx_mgav(STREAMFILE* streamFile);
 
+VGMSTREAM * init_vgmstream_ps2_lpcm(STREAMFILE* streamFile);
+
 #endif

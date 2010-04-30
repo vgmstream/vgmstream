@@ -343,6 +343,7 @@ bool input_vgmstream::g_is_our_path(const char * p_path,const char * p_extension
 
 	if(!stricmp_utf8(p_extension,"leg")) return 1;
 	if(!stricmp_utf8(p_extension,"logg")) return 1;
+	if(!stricmp_utf8(p_extension,"lpcm")) return 1;
 	if(!stricmp_utf8(p_extension,"lps")) return 1;
 	if(!stricmp_utf8(p_extension,"lwav")) return 1;
 
@@ -614,6 +615,7 @@ DECLARE_MULTIPLE_FILE_TYPE("KRAW Audio File (*.KRAW)", kraw);
 
 DECLARE_MULTIPLE_FILE_TYPE("LEG Audio File (*.LEG)", leg);
 DECLARE_MULTIPLE_FILE_TYPE("LOGG Audio File (*.LOGG)", logg);
+DECLARE_MULTIPLE_FILE_TYPE("LPCM Audio File (*.LPCM)", lpcm);
 DECLARE_MULTIPLE_FILE_TYPE("LPS Audio File (*.LPS)", lps);
 DECLARE_MULTIPLE_FILE_TYPE("LWAV Audio File (*.LWAV)", lwav);
 
