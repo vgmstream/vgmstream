@@ -49,11 +49,15 @@ static size_t read_the_rest_foo(uint8_t * dest, off_t offset, size_t length, FOO
         streamfile->validsize=0;
 
         try {
-			if(offset >= streamfile->m_file->get_size(*streamfile->p_abort))
+			if(offset >= streamfile->m_file->get_size(*streamfile->p_abort)) {
+				/* Update offset at end of file */
+				streamfile->offset = streamfile->m_file->get_size(*streamfile->p_abort);
 				return length_read;
+			}
 			streamfile->m_file->seek(offset,*streamfile->p_abort);
 			if (streamfile->m_file->is_eof(*streamfile->p_abort)) return length_read;
 		} catch (...) {
+			streamfile->offset = streamfile->m_file->get_size(*streamfile->p_abort);
 			return length_read; //fail miserably
 		}
 
@@ -146,7 +150,7 @@ static off_t get_offset_foo(FOO_STREAMFILE *streamFile) {
 static void close_foo(FOO_STREAMFILE * streamfile) {
     streamfile->m_file.release();
     free(streamfile->buffer);
-    free(streamfile);	
+    free(streamfile);
 }
 
 static void get_name_foo(FOO_STREAMFILE *streamfile,char *buffer,size_t length) {
