@@ -74,16 +74,15 @@ int fade_samples = 0;
 #define EXTENSION_LIST_SIZE 10240
 char working_extension_list[EXTENSION_LIST_SIZE] = {0};
 char * extension_list[] = {
-    /*WIP formats, enable on demand...! */
-#if 0
-    
-    "pdt\0PDT Audio File (*.PDT)\0", /* Mario Party and some other games */
-#endif
 
+	  "2dx\0""2DX Audio File (*.2DX)\0",
+
+	  "aax\0AAX Audio File (*.AAX)\0",
     "2dx\0""2DX Audio File (*.2DX)\0",
     "aaap\0AAAP Audio File (*.AAAP)\0",
     "aax\0AAX Audio File (*.AAX)\0",
     "acm\0ACM Audio File (*.ACM)\0",
+    "adm\0ADM Audio File (*.ADM)\0",
     "adpcm\0ADPCM Audio File (*.ADPCM)\0",
     "adp\0ADP Audio File (*.ADP)\0",
     "ads\0PS2 ADS Audio File (*.ADS)\0",
@@ -103,6 +102,7 @@ char * extension_list[] = {
     "aud\0AUD Audio File (*.AUD)\0",    
     "aus\0AUS Audio File (*.AUS)\0",    
 
+    "b1s\0B1S Audio File (*.B1S)\0",
     "baka\0BAKA Audio File (*.BAKA)\0",
     "bg00\0BG00 Audio File (*.BG00)\0",
     "bgw\0BGW Audio File (*.BGW)\0",
@@ -252,6 +252,7 @@ char * extension_list[] = {
     "ssm\0SSM Audio File (*.SSM)\0",
     "sss\0SSS Audio File (*.SSS)\0",
     "ster\0STER Audio File (*.STER)\0",
+    "sth\0STH Audio File (*.STH)\0",
     "stma\0STMA Audio File (*.STMA)\0",
     "str\0STR Audio File (*.STR)\0",
     "strm\0STRM Audio File (*.STRM)\0",
