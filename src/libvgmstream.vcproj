@@ -293,6 +293,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\dsp_sth_str.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\ea_header.c"
 					>
 				</File>
@@ -431,10 +435,6 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\ngc_aaap.c"
-					>
-				</File>
-				<File
 					RelativePath=".\meta\ngc_adpdtk.c"
 					>
 				</File>
@@ -451,15 +451,15 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\ngc_dsp_konami.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\ngc_dsp_mpds.c"
 					>
 				</File>
 				<File
 					RelativePath=".\meta\ngc_dsp_std.c"
-					>
-				</File>
-				<File
-					RelativePath=".\meta\ngc_dsp_tmnt2.c"
 					>
 				</File>
 				<File
@@ -539,6 +539,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\ps2_adm.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\ps2_ads.c"
 					>
 				</File>
@@ -556,6 +560,10 @@
 				</File>
 				<File
 					RelativePath=".\meta\ps2_aus.c"
+					>
+				</File>
+				<File
+					RelativePath=".\meta\ps2_b1s.c"
 					>
 				</File>
 				<File
@@ -759,6 +767,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\ps2_wad.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\ps2_wb.c"
 					>
 				</File>
@@ -900,10 +912,6 @@
 				</File>
 				<File
 					RelativePath=".\meta\wii_mus.c"
-					>
-				</File>
-				<File
-					RelativePath=".\meta\wii_ndp.c"
 					>
 				</File>
 				<File
@@ -1180,6 +1188,10 @@
 				</File>
 				<File
 					RelativePath=".\layout\nolayout.c"
+					>
+				</File>
+				<File
+					RelativePath=".\layout\ps2_adm_blocked.c"
 					>
 				</File>
 				<File

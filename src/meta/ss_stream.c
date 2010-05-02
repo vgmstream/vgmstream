@@ -159,12 +159,13 @@ VGMSTREAM * init_vgmstream_ss_stream(STREAMFILE *streamFile) {
 
   start_offset = (read_8bit(0x07,streamFile)+5);
 
+#if 0
             if (channel_count == 1){
                 start_offset = 0x3C;
             } else if (channel_count == 2) {
                 start_offset = 0x44;
             }
-
+#endif
 
 	if(channel_count==1)
 		vgmstream->coding_type = coding_IMA;

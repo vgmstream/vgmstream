@@ -46,7 +46,8 @@ LAYOUT_OBJS=layout/ast_blocked.o \
     layout/aax_layout.o \
     layout/ivaud_layout.o \
     layout/mxch_blocked.o \
-    layout/psx_mgav_blocked.o
+    layout/psx_mgav_blocked.o \
+    layout/ps2_adm_blocked.o
 
 META_OBJS=meta/adx_header.o \
     meta/afc_header.o \
@@ -195,7 +196,6 @@ META_OBJS=meta/adx_header.o \
     meta/redspark.o \
     meta/ps2_vgs.o \
     meta/ivaud.o \
-    meta/wii_ndp.o \
     meta/ps2_sps.o \
     meta/nds_hwas.o \
     meta/ngc_lps.o \
@@ -222,8 +222,7 @@ META_OBJS=meta/adx_header.o \
     meta/his.o \
     meta/ps2_ast.o \
     meta/dmsg_segh.o \
-    meta/ngc_aaap.o \
-    meta/ngc_dsp_tmnt2.o \
+    meta/ngc_dsp_konami.o \
     meta/ps2_ster.o \
     meta/ps2_wb.o \
     meta/bnsf.o \
@@ -238,6 +237,10 @@ META_OBJS=meta/adx_header.o \
     meta/ngc_bo2.o \
     meta/ngc_dsp_mpds.o \
     meta/ps2_khv.o \
+    meta/ps2_voi.o \
+    meta/dsp_sth_str.o \
+    meta/ps2_b1s.o \
+    meta/ps2_wad.o
     meta/ps2_voi.o \
     meta/ps2_lpcm.o 
 

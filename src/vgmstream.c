@@ -92,6 +92,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_xa30,
     init_vgmstream_musc,
     init_vgmstream_musx_v004,
+    init_vgmstream_musx_v005,
     init_vgmstream_musx_v006,
     init_vgmstream_musx_v010,
     init_vgmstream_musx_v201,
@@ -140,7 +141,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_kraw,
     init_vgmstream_ps2_omu,
     init_vgmstream_ps2_xa2,
-    init_vgmstream_idsp,
+    //init_vgmstream_idsp,
     init_vgmstream_idsp2,
     init_vgmstream_idsp3,
     init_vgmstream_idsp4,
@@ -242,8 +243,8 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_his,
 	  init_vgmstream_ps2_ast,
 	  init_vgmstream_dmsg,
-    init_vgmstream_ngc_aaap,
-    init_vgmstream_ngc_dsp_tmnt2,
+    init_vgmstream_ngc_dsp_aaap,
+    init_vgmstream_ngc_dsp_konami,
     init_vgmstream_ps2_ster,
     init_vgmstream_ps2_wb,
     init_vgmstream_bnsf,
@@ -264,7 +265,15 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_ngc_dsp_mpds,
     init_vgmstream_dsp_str_ig,
     init_vgmstream_psx_mgav,
-	init_vgmstream_ps2_lpcm,
+    init_vgmstream_ngc_dsp_sth_str1,
+    init_vgmstream_ngc_dsp_sth_str2,
+    init_vgmstream_ngc_dsp_sth_str3,
+    init_vgmstream_ps2_b1s,
+    init_vgmstream_ps2_wad,
+    init_vgmstream_dsp_xiii,
+    init_vgmstream_dsp_cabelas,
+    init_vgmstream_ps2_adm,
+		init_vgmstream_ps2_lpcm,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -702,6 +711,7 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
         case layout_filp_blocked:
         case layout_ivaud_blocked:
         case layout_psx_mgav_blocked:
+        case layout_ps2_adm_blocked:
             render_vgmstream_blocked(buffer,sample_count,vgmstream);
             break;
         case layout_interleave_byte:
@@ -1751,6 +1761,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         case layout_psx_mgav_blocked:
             snprintf(temp,TEMPSIZE,"MGAV blocked");
             break;
+        case layout_ps2_adm_blocked:
+            snprintf(temp,TEMPSIZE,"ADM blocked");
+            break;
 #ifdef VGM_USE_MPEG
         case layout_fake_mpeg:
             snprintf(temp,TEMPSIZE,"MPEG Audio stream with incorrect frame headers");
@@ -2102,6 +2115,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         case meta_MUSX_V004:
             snprintf(temp,TEMPSIZE,"MUSX / Version 004 Header");
             break;
+        case meta_MUSX_V005:
+            snprintf(temp,TEMPSIZE,"MUSX / Version 005 Header");
+            break;
         case meta_MUSX_V006:
             snprintf(temp,TEMPSIZE,"MUSX / Version 006 Header");
             break;
@@ -2322,7 +2338,7 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             snprintf(temp,TEMPSIZE,"ISH+ISD DSP Header");
             break;
         case meta_YDSP:
-            snprintf(temp,TEMPSIZE,"YDSP Header");
+            snprintf(temp,TEMPSIZE,"Yuke's DSP (YDSP) Header");
             break;
         case meta_MSVP:
             snprintf(temp,TEMPSIZE,"MSVP Header");
@@ -2503,11 +2519,11 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         case meta_PONA_PSX:
             snprintf(temp,TEMPSIZE,"Policenauts BGM header");
             break;
-        case meta_NGC_AAAP:
-            snprintf(temp,TEMPSIZE,"Turok: Evolution 'AAAp' dsp header");
+        case meta_NGC_DSP_AAAP:
+            snprintf(temp,TEMPSIZE,"Double standard dsp header in 'AAAp'");
             break;
-        case meta_NGC_DSP_TMNT2:
-            snprintf(temp,TEMPSIZE,"TMNT2 dsp header");
+        case meta_NGC_DSP_KONAMI:
+            snprintf(temp,TEMPSIZE,"Konami dsp header");
             break;
         case meta_PS2_STER:
             snprintf(temp,TEMPSIZE,"STER Header");
@@ -2560,7 +2576,22 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
 				case meta_PSX_MGAV:
             snprintf(temp,TEMPSIZE,"Electronic Arts RVWS header");
             break;
-		        case meta_PS2_LPCM:
+				case meta_PS2_B1S:
+            snprintf(temp,TEMPSIZE,"B1S header");
+            break;
+				case meta_PS2_WAD:
+            snprintf(temp,TEMPSIZE,"WAD header");
+            break;
+				case meta_DSP_XIII:
+            snprintf(temp,TEMPSIZE,"XIII dsp header");
+            break;
+				case meta_NGC_DSP_STH_STR:
+            snprintf(temp,TEMPSIZE,"STH dsp header");
+            break;
+				case meta_DSP_CABELAS:
+            snprintf(temp,TEMPSIZE,"Cabelas games dsp header");
+            break;
+        case meta_PS2_LPCM:
             snprintf(temp,TEMPSIZE,"LPCM header");
             break;
         default:

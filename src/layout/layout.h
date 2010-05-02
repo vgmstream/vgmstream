@@ -60,4 +60,6 @@ void render_vgmstream_aax(sample * buffer, int32_t sample_count, VGMSTREAM * vgm
 
 void psx_mgav_block_update(off_t block_offset, VGMSTREAM * vgmstream);
 
+void ps2_adm_block_update(off_t block_offset, VGMSTREAM * vgmstream);
+
 #endif

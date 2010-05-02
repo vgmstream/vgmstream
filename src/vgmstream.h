@@ -149,6 +149,7 @@ typedef enum {
     layout_filp_blocked,
 	  layout_mxch_blocked,
     layout_psx_mgav_blocked,
+    layout_ps2_adm_blocked,
 #if 0
     layout_strm_blocked,    /* */
 #endif
@@ -264,6 +265,7 @@ typedef enum {
     meta_XA30,				/* Driver - Parallel Lines (PS2) */
     meta_MUSC,				/* Spyro Games, possibly more */
     meta_MUSX_V004,			/* Spyro Games, possibly more */
+    meta_MUSX_V005,			/* Spyro Games, possibly more */
     meta_MUSX_V006,			/* Spyro Games, possibly more */
     meta_MUSX_V010,			/* Spyro Games, possibly more */
     meta_MUSX_V201,			/* Sphinx and the cursed Mummy */
@@ -352,7 +354,7 @@ typedef enum {
 	  meta_PS2_SPS,         /* Ape Escape 2 */
     meta_PS2_XA2_RRP,     /* RC Revenge Pro */
     meta_PS2_STM,         /* Red Dead Revolver .stm, renamed .ps2stm */
-    meta_NGC_DSP_TMNT2,    /* Teenage Mutant Ninja Turtles 2 */
+    meta_NGC_DSP_KONAMI,  /* Konami DSP header, found in various games */
 
     meta_XBOX_WAVM,			/* XBOX WAVM File */
     meta_XBOX_RIFF,			/* XBOX RIFF/WAVE File */
@@ -441,7 +443,7 @@ typedef enum {
     meta_XBOX_HLWAV,        /* Half Life 2 (XBOX) */
 	  meta_PS2_AST,			      /* Some KOEI game (PS2) */
 	  meta_DMSG,				      /* Nightcaster II - Equinox (XBOX) */
-    meta_NGC_AAAP,  	      /* Turok: Evolution (NGC) */
+    meta_NGC_DSP_AAAP,  	      /* Turok: Evolution (NGC), Vexx (NGC) */
     meta_PS2_STER,          /* Juuni Kokuki: Kakukaku Taru Ou Michi Beni Midori no Uka */
     meta_PS2_WB,            /* Shooting Love. ~TRIZEAL~ */
     meta_S14,               /* raw Siren 14, 24kbit mono */
@@ -460,7 +462,13 @@ typedef enum {
     meta_NGC_DSP_MPDS,      /* Big Air Freestyle, Terminator 3 */
     meta_DSP_STR_IG,        /* Micro Machines, Superman Superman: Shadow of Apokolis */
     meta_PSX_MGAV,          /* Future Cop L.A.P.D. */
-	meta_PS2_LPCM,          /* Ah! My Goddess */
+    meta_NGC_DSP_STH_STR,   /* SpongeBob Squarepants (NGC), Taz Wanted (NGC), Cubix (NGC), Tak (WII)*/
+    meta_PS2_B1S,           /* 7 Wonders of the ancient world */
+    meta_PS2_WAD,           /* The golden Compass */
+    meta_DSP_XIII,          /* XIII, possibly more (Ubisoft header???) */
+    meta_DSP_CABELAS,       /* Cabelas games */
+    meta_PS2_ADM,           /* Dragon Quest 5 */
+		meta_PS2_LPCM,          /* Ah! My Goddess */
 } meta_t;
 
 typedef struct {
