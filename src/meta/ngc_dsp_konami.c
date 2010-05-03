@@ -8,9 +8,8 @@ VGMSTREAM * init_vgmstream_ngc_dsp_konami(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[260];
     int loop_flag = 0;
-		int channel_count;
+	int channel_count;
     int i, j;
-		off_t start_offset;
     off_t ch1_start;
     off_t ch2_start;
     off_t coef_table[2] = {0x90, 0xD0};

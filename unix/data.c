@@ -19,6 +19,7 @@ gchar *vgmstream_exts [] = {
 
   "aax",
   "acm",
+  "adm",
   "adp",
   "adpcm",
   "ads",

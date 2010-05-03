@@ -196,5 +196,6 @@ libmeta_la_SOURCES += dsp_sth_str.c
 libmeta_la_SOURCES += ps2_b1s.c
 libmeta_la_SOURCES += ps2_wad.c
 libmeta_la_SOURCES += ps2_lpcm.c
+libmeta_la_SOURCES += ps2_adm.c
 
 EXTRA_DIST = meta.h

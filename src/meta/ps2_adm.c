@@ -1,4 +1,5 @@
 #include "meta.h"
+#include "../layout/layout.h"
 #include "../util.h"
 
 /* WAD (from The golden Compass) */

@@ -8,7 +8,7 @@ VGMSTREAM * init_vgmstream_ngc_pdt(STREAMFILE *streamFile) {
     int loop_flag;
     int channel_count;
     off_t start_offset;
-    int second_channel_start;
+    int second_channel_start = -1;
     
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));

@@ -257,6 +257,7 @@ bool input_vgmstream::g_is_our_path(const char * p_path,const char * p_extension
 	if(!stricmp_utf8(p_extension,"aax")) return 1;
 	if(!stricmp_utf8(p_extension,"acm")) return 1;
 	if(!stricmp_utf8(p_extension,"adpcm")) return 1;
+	if(!stricmp_utf8(p_extension,"adm")) return 1;
 	if(!stricmp_utf8(p_extension,"adp")) return 1;
 	if(!stricmp_utf8(p_extension,"ads")) return 1;
 	if(!stricmp_utf8(p_extension,"adx")) return 1;
@@ -529,6 +530,7 @@ DECLARE_MULTIPLE_FILE_TYPE("AAX Audio File (*.AAX)", aax);
 
 DECLARE_MULTIPLE_FILE_TYPE("ACM Audio File (*.ACM)", acm);
 DECLARE_MULTIPLE_FILE_TYPE("ADPCM Audio File (*.ADPCM)", adpcm);
+DECLARE_MULTIPLE_FILE_TYPE("ADM Audio File (*.ADM)", adm);
 DECLARE_MULTIPLE_FILE_TYPE("ADP Audio File (*.ADP)", adp);
 DECLARE_MULTIPLE_FILE_TYPE("PS2 ADS Audio File (*.ADS)", ads);
 DECLARE_MULTIPLE_FILE_TYPE("ADX Audio File (*.ADX)", adx);
