@@ -46,8 +46,7 @@ VGMSTREAM * init_vgmstream_ps2_ast(STREAMFILE *streamFile) {
 		vgmstream->sample_rate = read_32bitLE(0x04,streamFile);
 		vgmstream->num_samples = (read_32bitLE(0x0C,streamFile)-start_offset)*28/16/channel_count;
 		vgmstream->interleave_block_size = read_32bitLE(0x08,streamFile);
-
-		loop_flag = 1;
+		loop_flag = 0;
 	}
 	else if (variant_type == 2)
 	{
@@ -58,12 +57,6 @@ VGMSTREAM * init_vgmstream_ps2_ast(STREAMFILE *streamFile) {
 		vgmstream->num_samples = (read_32bitLE(0x04,streamFile)-start_offset)*28/16/channel_count;
 		vgmstream->interleave_block_size = read_32bitLE(0x10,streamFile);
 	}
-
-	if (loop_flag) 
-	{
-        vgmstream->loop_start_sample = 0;
-        vgmstream->loop_end_sample = (read_32bitLE(0x0C,streamFile)-start_offset)*28/16/channel_count;
-    }
 
     vgmstream->layout_type = layout_interleave;    
 	vgmstream->coding_type = coding_PSX;
