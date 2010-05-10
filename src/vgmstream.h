@@ -150,6 +150,7 @@ typedef enum {
 	  layout_mxch_blocked,
     layout_psx_mgav_blocked,
     layout_ps2_adm_blocked,
+    layout_dsp_bdsp_blocked,
 #if 0
     layout_strm_blocked,    /* */
 #endif
@@ -469,6 +470,7 @@ typedef enum {
     meta_DSP_CABELAS,       /* Cabelas games */
     meta_PS2_ADM,           /* Dragon Quest 5 */
 		meta_PS2_LPCM,          /* Ah! My Goddess */
+    meta_DSP_BDSP,          /* Ah! My Goddess */
 } meta_t;
 
 typedef struct {

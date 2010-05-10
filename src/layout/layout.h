@@ -62,4 +62,6 @@ void psx_mgav_block_update(off_t block_offset, VGMSTREAM * vgmstream);
 
 void ps2_adm_block_update(off_t block_offset, VGMSTREAM * vgmstream);
 
+void dsp_bdsp_block_update(off_t block_offset, VGMSTREAM * vgmstream);
+
 #endif

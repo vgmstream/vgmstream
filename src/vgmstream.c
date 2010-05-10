@@ -274,6 +274,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_dsp_cabelas,
     init_vgmstream_ps2_adm,
 		init_vgmstream_ps2_lpcm,
+    init_vgmstream_dsp_bdsp,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -712,6 +713,7 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
         case layout_ivaud_blocked:
         case layout_psx_mgav_blocked:
         case layout_ps2_adm_blocked:
+        case layout_dsp_bdsp_blocked:
             render_vgmstream_blocked(buffer,sample_count,vgmstream);
             break;
         case layout_interleave_byte:
@@ -1763,6 +1765,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case layout_ps2_adm_blocked:
             snprintf(temp,TEMPSIZE,"ADM blocked");
+            break;
+        case layout_dsp_bdsp_blocked:
+            snprintf(temp,TEMPSIZE,"DSP blocked");
             break;
 #ifdef VGM_USE_MPEG
         case layout_fake_mpeg:

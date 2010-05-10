@@ -6,8 +6,9 @@ VGMSTREAM * init_vgmstream_naomi_spsd(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[260];
     off_t start_offset;
+    int coding;
     int loop_flag;
-	int channel_count;
+	  int channel_count;
 
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
@@ -19,23 +20,38 @@ VGMSTREAM * init_vgmstream_naomi_spsd(STREAMFILE *streamFile) {
 
     loop_flag = 0;
     channel_count = 2;
-    
-	/* build the VGMSTREAM */
+	  
+    /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
-	/* fill in the vital statistics */
-	vgmstream->channels = channel_count;
+	  /* fill in the vital statistics */
     start_offset = 0x40;
+    vgmstream->channels = channel_count;
     vgmstream->sample_rate = (uint16_t)read_16bitLE(0x2A,streamFile);
-    vgmstream->coding_type = coding_AICA;
-
-    vgmstream->num_samples = read_32bitLE(0x0C,streamFile);
     
-	if (loop_flag) {
+  switch (read_8bit(0x8,streamFile))
+  {
+  case 0x01:
+      coding = coding_PCM8;
+    break;
+  case 0x03:
+      coding = coding_AICA;
+    break;
+      default:
+        goto fail;
+  }
+
+    vgmstream->coding_type = coding;
+    vgmstream->num_samples = read_32bitLE(0x0C,streamFile);
+
+#if 0
+	  if (loop_flag)
+    {
         vgmstream->loop_start_sample = 0;
         vgmstream->loop_end_sample = read_32bitLE(0x0C,streamFile);
     }
+#endif
 
     vgmstream->interleave_block_size = 0x2000;
     if (channel_count > 1) {

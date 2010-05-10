@@ -1786,8 +1786,9 @@ fail:
     return NULL;
 }
 
-/* .dsp found in Ubisoft games, like "XIII", possibly more
-  always 2 channels and an interleave of 8 */
+/* .dsp found in: Speed Challenge - Jacques Villeneuve's Racing Vision (NGC)
+                  XIII (NGC)
+  always 2 channels, and an interleave of 0x8 */
 VGMSTREAM * init_vgmstream_dsp_xiii(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[260];
@@ -1830,7 +1831,7 @@ VGMSTREAM * init_vgmstream_dsp_xiii(STREAMFILE *streamFile) {
             ch0_header.nibble_count != ch1_header.nibble_count ||
             ch0_header.sample_rate != ch1_header.sample_rate ||
             ch0_header.loop_flag != ch1_header.loop_flag ||
-            ch0_header.loop_start_offset != ch1_header.loop_start_offset ||
+            //ch0_header.loop_start_offset != ch1_header.loop_start_offset ||
             ch0_header.loop_end_offset != ch1_header.loop_end_offset
        ) goto fail;
 
@@ -1838,7 +1839,7 @@ VGMSTREAM * init_vgmstream_dsp_xiii(STREAMFILE *streamFile) {
     {
         off_t loop_off;
         /* check loop predictor/scale */
-        loop_off = ch0_header.loop_start_offset/16*8;
+        loop_off = 0x0; //ch0_header.loop_start_offset/16*8;
 
         if (ch0_header.loop_ps != (uint8_t)read_8bit(ch1_start+loop_off,streamFile))
           goto fail;
@@ -1846,16 +1847,16 @@ VGMSTREAM * init_vgmstream_dsp_xiii(STREAMFILE *streamFile) {
           goto fail;
     }
 
+
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(2,ch0_header.loop_flag);
+    vgmstream = allocate_vgmstream(2,ch1_header.loop_flag);
     if (!vgmstream) goto fail;
     
     /* fill in the vital statistics */
     vgmstream->num_samples = ch0_header.sample_count;
     vgmstream->sample_rate = ch0_header.sample_rate;
 
-    vgmstream->loop_start_sample = dsp_nibbles_to_samples(
-            ch0_header.loop_start_offset);
+    vgmstream->loop_start_sample = 0x0; //dsp_nibbles_to_samples(ch0_header.loop_start_offset);
     vgmstream->loop_end_sample =  dsp_nibbles_to_samples(
             ch0_header.loop_end_offset)+1;
 

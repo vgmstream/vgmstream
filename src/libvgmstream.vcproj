@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="UTF-8"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="9.00"
+	Version="9,00"
 	Name="libvgmstream"
 	ProjectGUID="{54A6AD11-5369-4895-A06F-E255ABB99B11}"
 	RootNamespace="libvgmstream"
@@ -196,6 +196,10 @@
 			<Filter
 				Name="Source Files"
 				>
+				<File
+					RelativePath=".\meta\#dsp_test.c"
+					>
+				</File>
 				<File
 					RelativePath=".\meta\2dx.c"
 					>
@@ -1128,6 +1132,10 @@
 				</File>
 				<File
 					RelativePath=".\layout\ast_blocked.c"
+					>
+				</File>
+				<File
+					RelativePath=".\layout\bdsp_blocked.c"
 					>
 				</File>
 				<File
