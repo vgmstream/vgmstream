@@ -297,6 +297,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\dsp_bdsp.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\dsp_sth_str.c"
 					>
 				</File>

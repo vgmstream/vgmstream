@@ -47,7 +47,8 @@ LAYOUT_OBJS=layout/ast_blocked.o \
     layout/ivaud_layout.o \
     layout/mxch_blocked.o \
     layout/psx_mgav_blocked.o \
-    layout/ps2_adm_blocked.o
+    layout/ps2_adm_blocked.o \
+    layout/bdsp_blocked.o
 
 META_OBJS=meta/adx_header.o \
     meta/afc_header.o \
@@ -243,7 +244,8 @@ META_OBJS=meta/adx_header.o \
     meta/ps2_wad.o \
     meta/ps2_voi.o \
     meta/ps2_lpcm.o \
-    meta/ps2_adm.o
+    meta/ps2_adm.o \
+    meta/dsp_bdsp.o
 
 OBJECTS=vgmstream.o streamfile.o util.o $(CODING_OBJS) $(LAYOUT_OBJS) $(META_OBJS)
 
