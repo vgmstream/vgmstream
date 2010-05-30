@@ -260,8 +260,8 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_ngc_bo2,
     init_vgmstream_dsp_ddsp,
     init_vgmstream_p3d,
-		init_vgmstream_ps2_tk1,
-		init_vgmstream_ps2_adsc,
+	init_vgmstream_ps2_tk1,
+	init_vgmstream_ps2_adsc,
     init_vgmstream_ngc_dsp_mpds,
     init_vgmstream_dsp_str_ig,
     init_vgmstream_psx_mgav,
@@ -273,8 +273,9 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_dsp_xiii,
     init_vgmstream_dsp_cabelas,
     init_vgmstream_ps2_adm,
-		init_vgmstream_ps2_lpcm,
+	init_vgmstream_ps2_lpcm,
     init_vgmstream_dsp_bdsp,
+	init_vgmstream_ps2_vms,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -2599,7 +2600,10 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         case meta_PS2_LPCM:
             snprintf(temp,TEMPSIZE,"LPCM header");
             break;
-        default:
+        case meta_PS2_VMS:
+            snprintf(temp,TEMPSIZE,"VMS Header");
+            break;
+		default:
            snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");
     }
     concatn(length,desc,temp);

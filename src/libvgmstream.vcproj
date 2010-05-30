@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="UTF-8"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="9,00"
+	Version="9.00"
 	Name="libvgmstream"
 	ProjectGUID="{54A6AD11-5369-4895-A06F-E255ABB99B11}"
 	RootNamespace="libvgmstream"
@@ -18,7 +18,7 @@
 	<Configurations>
 		<Configuration
 			Name="Debug|Win32"
-			OutputDirectory="C:\Program Files\Winamp\Plugins"
+			OutputDirectory="H:\Program Files\Winamp\Plugins"
 			IntermediateDirectory="$(ConfigurationName)"
 			ConfigurationType="4"
 			>
@@ -196,10 +196,6 @@
 			<Filter
 				Name="Source Files"
 				>
-				<File
-					RelativePath=".\meta\#dsp_test.c"
-					>
-				</File>
 				<File
 					RelativePath=".\meta\2dx.c"
 					>
@@ -764,6 +760,10 @@
 				</File>
 				<File
 					RelativePath=".\meta\ps2_vgv.c"
+					>
+				</File>
+				<File
+					RelativePath=".\meta\ps2_vms.c"
 					>
 				</File>
 				<File

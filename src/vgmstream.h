@@ -456,7 +456,7 @@ typedef enum {
     meta_PS2_KHV,           /* Kingdom Hearts 2 VAG streams */
     meta_PC_SMP,            /* Ghostbusters PC .smp */
     meta_P3D,               /* Prototype P3D */
-	  meta_PS2_TK1,           /* Tekken (NamCollection) */
+	meta_PS2_TK1,           /* Tekken (NamCollection) */
     meta_PS2_ADSC,          /* Kenka Bancho 2: Full Throttle */
     meta_NGC_BO2,           /* Blood Omen 2 (NGC) */
     meta_DSP_DDSP,          /* Various (2 dsp files stuck together */
@@ -469,8 +469,9 @@ typedef enum {
     meta_DSP_XIII,          /* XIII, possibly more (Ubisoft header???) */
     meta_DSP_CABELAS,       /* Cabelas games */
     meta_PS2_ADM,           /* Dragon Quest 5 */
-		meta_PS2_LPCM,          /* Ah! My Goddess */
+	meta_PS2_LPCM,          /* Ah! My Goddess */
     meta_DSP_BDSP,          /* Ah! My Goddess */
+	meta_PS2_VMS,          /* Autobahn Raser - Police Madness */
 } meta_t;
 
 typedef struct {
