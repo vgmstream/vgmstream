@@ -1,0 +1,1 @@
+vgmstream.c, in_vgmstream.c, vgmstream.h, meta.h, data.c, vgmstream\src\Makefile, vgmstream\src\meta\Makefile.unix.am, fb2k/in_vgmstream.cpp, unix/data.c
