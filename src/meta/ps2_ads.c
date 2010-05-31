@@ -119,7 +119,7 @@ VGMSTREAM * init_vgmstream_ps2_ads(STREAMFILE *streamFile) {
 	if ((streamSize * 2) == (get_streamfile_size(streamFile) - 0x18))
 	{
 		// True Fortune PS2
-		streamSize = (read_32bitLE(0x24,streamFile) * 2) - 10;
+		streamSize = (read_32bitLE(0x24,streamFile) * 2) - 0x10;
 		vgmstream->num_samples = streamSize / 16 * 28 / vgmstream->channels;
 	}
 	else if(get_streamfile_size(streamFile) - read_32bitLE(0x24,streamFile) >= 0x800)
