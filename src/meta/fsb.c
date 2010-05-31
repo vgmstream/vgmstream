@@ -200,6 +200,18 @@ VGMSTREAM * init_vgmstream_fsb4(STREAMFILE *streamFile) {
                 vgmstream->loop_end_sample = read_32bitLE(0x50,streamFile);
             }
             break;
+
+        /* Rocket Knight (PC) */
+	    case 0x50210000:
+            vgmstream->coding_type = coding_PCM16LE;
+            vgmstream->layout_type = layout_interleave;
+            vgmstream->interleave_block_size = 0x2;
+            vgmstream->num_samples = (read_32bitLE(0x54,streamFile))/4/channel_count;
+            if (loop_flag) {
+                vgmstream->loop_start_sample = 0;
+                vgmstream->loop_end_sample = read_32bitLE(0x50,streamFile);
+            }
+            break;
         default:
             goto fail;
     }
