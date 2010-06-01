@@ -203,6 +203,16 @@ VGMSTREAM * init_vgmstream_fsb4(STREAMFILE *streamFile) {
 
         /* Rocket Knight (PC) */
 	    case 0x50210000:
+		case 0x30210000:
+		case 0x30011000:
+		case 0x20005000:
+		case 0x30011080:
+		case 0x30211000:
+		case 0x40005020:
+		case 0x20204000:
+		case 0x40204020:
+		case 0x50011000:
+		case 0x20205000:
             vgmstream->coding_type = coding_PCM16LE;
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = 0x2;
