@@ -507,4 +507,6 @@ VGMSTREAM * init_vgmstream_dsp_bdsp(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_ps2_vms(STREAMFILE* streamFile);
 
+VGMSTREAM * init_vgmstream_ps2_xau(STREAMFILE* streamFile);
+
 #endif

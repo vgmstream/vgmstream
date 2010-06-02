@@ -791,6 +791,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\ps2_xau.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\psx_cdxa.c"
 					>
 				</File>

@@ -472,6 +472,7 @@ typedef enum {
 	meta_PS2_LPCM,          /* Ah! My Goddess */
     meta_DSP_BDSP,          /* Ah! My Goddess */
 	meta_PS2_VMS,          /* Autobahn Raser - Police Madness */
+	meta_PS2_XAU,			// Spectral Force Chronicle
 } meta_t;
 
 typedef struct {
