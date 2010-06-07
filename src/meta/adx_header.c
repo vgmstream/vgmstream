@@ -205,7 +205,7 @@ static struct {
     /* this is estimated */
     {0x5deb,0x5f27,0x673f},
 
-    /* G.dev (Senko no Ronde) */
+    /* G.rev 0 (Senko no Ronde) */
     /* this is estimated */
     {0x46d3,0x5ced,0x474d},
 
@@ -243,6 +243,10 @@ static struct {
     /* Namco (Soulcalibur IV) */
     /* confirmed unique with guessadx */
     {0x59ed,0x4679,0x46c9},
+
+    /* G.rev 1 (Senko no Ronde DUO) */
+    /* from guessadx */
+    {0x6157,0x6809,0x4045},
 };
 
 static const int key_count = sizeof(keys)/sizeof(keys[0]);
