@@ -473,6 +473,7 @@ typedef enum {
     meta_DSP_BDSP,          /* Ah! My Goddess */
 	meta_PS2_VMS,          /* Autobahn Raser - Police Madness */
 	meta_PS2_XAU,			// Spectral Force Chronicle
+    meta_GH3_BAR,           /* Guitar Hero III Mobile .bar */
 } meta_t;
 
 typedef struct {

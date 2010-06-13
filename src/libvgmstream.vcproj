@@ -337,6 +337,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\gh3_bar.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\gsp_gsb.c"
 					>
 				</File>

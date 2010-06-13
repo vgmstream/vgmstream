@@ -196,6 +196,7 @@ Yamaha ADPCM:
 - .spsd
 
 IMA ADPCM:
+- .bar (IMA ADPCM)
 - .dvi (DVI IMA ADPCM)
 - .hwas (IMA ADPCM)
 - .idvi (DVI IMA ADPCM)

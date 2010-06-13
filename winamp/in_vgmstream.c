@@ -104,6 +104,7 @@ char * extension_list[] = {
 
     "b1s\0B1S Audio File (*.B1S)\0",
     "baka\0BAKA Audio File (*.BAKA)\0",
+    "bar\0BAR Audio File (*.BAR)\0",
     "bdsp\0BDSP Audio File (*.BDSP)\0",
     "bg00\0BG00 Audio File (*.BG00)\0",
     "bgw\0BGW Audio File (*.BGW)\0",
