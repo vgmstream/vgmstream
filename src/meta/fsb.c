@@ -216,10 +216,10 @@ VGMSTREAM * init_vgmstream_fsb4(STREAMFILE *streamFile) {
             vgmstream->coding_type = coding_PCM16LE;
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = 0x2;
-            vgmstream->num_samples = (read_32bitLE(0x54,streamFile))/4/channel_count;
+            vgmstream->num_samples = (read_32bitLE(0x5C,streamFile));
             if (loop_flag) {
-                vgmstream->loop_start_sample = 0;
-                vgmstream->loop_end_sample = read_32bitLE(0x50,streamFile);
+                vgmstream->loop_start_sample = read_32bitLE(0x58,streamFile);
+                vgmstream->loop_end_sample = read_32bitLE(0x5C,streamFile);
             }
             break;
         default:
