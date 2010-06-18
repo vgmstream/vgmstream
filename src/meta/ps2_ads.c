@@ -45,9 +45,17 @@ VGMSTREAM * init_vgmstream_ps2_ads(STREAMFILE *streamFile) {
 		streamSize = get_streamfile_size(streamFile) - 0x28;
 	}
 
-    /* check loop */
-    loop_flag = (read_32bitLE(0x1C,streamFile)!=0xFFFFFFFF);
-
+    /* check loop */    
+	if ((read_32bitLE(0x1C,streamFile) == 0xFFFFFFFF) || 
+		((read_32bitLE(0x18,streamFile) == 0) && (read_32bitLE(0x1C,streamFile) == 0)))
+	{
+		loop_flag = 0;
+	}
+	else
+	{
+		loop_flag = 1;
+	}
+	
     channel_count=read_32bitLE(0x10,streamFile);
 
     /* build the VGMSTREAM */
