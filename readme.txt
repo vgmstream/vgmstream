@@ -231,7 +231,7 @@ multi:
 - .wav, .lwav (unsigned 8 bit PCM, 16 bit PCM, GC DSP ADPCM, MS IMA ADPCM)
 
 etc:
-- .2dx (MS ADPCM)
+- .2dx9 (MS ADPCM)
 - .aax (CRI ADX ADPCM)
 - .acm (InterPlay ACM)
 - .adp (GC DTK ADPCM)

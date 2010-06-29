@@ -222,7 +222,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_ps2_snd,
     init_vgmstream_naomi_adpcm,
 	  init_vgmstream_sd9,
-	  init_vgmstream_2dx,
+	  init_vgmstream_2dx9,
 	  init_vgmstream_dsp_ygo,
     init_vgmstream_ps2_vgv,
     init_vgmstream_ngc_gcub,
@@ -2458,10 +2458,10 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             snprintf(temp,TEMPSIZE,"NAOMI/NAOMI2 Arcade games ADPCM header");
             break;
         case meta_SD9:
-            snprintf(temp,TEMPSIZE,"beatmaniaIIDX SD9 header");
+            snprintf(temp,TEMPSIZE,"beatmania IIDX SD9 header");
             break;
-		    case meta_2DX:
-            snprintf(temp,TEMPSIZE,"beatmaniaIIDX 2DX9 header");
+		    case meta_2DX9:
+            snprintf(temp,TEMPSIZE,"beatmania IIDX 2DX9 header");
             break;
         case meta_DSP_YGO:
             snprintf(temp,TEMPSIZE,"Konami custom DSP Header");

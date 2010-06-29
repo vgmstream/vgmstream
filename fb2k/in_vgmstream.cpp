@@ -251,7 +251,7 @@ void input_vgmstream::retag(const file_info & p_info,abort_callback & p_abort) {
 
 bool input_vgmstream::g_is_our_content_type(const char * p_content_type) {return false;}
 bool input_vgmstream::g_is_our_path(const char * p_path,const char * p_extension) {
-	if(!stricmp_utf8(p_extension,"2dx")) return 1;
+	if(!stricmp_utf8(p_extension,"2dx9")) return 1;
 
 	if(!stricmp_utf8(p_extension,"aaap")) return 1;
 	if(!stricmp_utf8(p_extension,"aax")) return 1;
@@ -526,7 +526,7 @@ VALIDATE_COMPONENT_FILENAME("foo_input_vgmstream.dll");
 
 // File types go down here (and in the large chunk of IFs above
 // these are declared statically, and if anyone has a better idea i'd like to hear it - josh.
-DECLARE_MULTIPLE_FILE_TYPE("2DX Audio File (*.2DX)", 2dx);
+DECLARE_MULTIPLE_FILE_TYPE("2DX9 Audio File (*.2DX9)", 2dx9);
 
 DECLARE_MULTIPLE_FILE_TYPE("AAAP Audio File (*.AAAP)", aaap);
 DECLARE_MULTIPLE_FILE_TYPE("AAX Audio File (*.AAX)", aax);

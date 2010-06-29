@@ -15,7 +15,7 @@ void vgmstream_mseek(InputPlayback *context,gulong ms);
 void vgmstream_file_info_box(gchar *pFile);
 
 gchar *vgmstream_exts [] = {
-  "2dx",
+  "2dx9",
 
   "aax",
   "acm",

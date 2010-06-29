@@ -75,10 +75,10 @@ int fade_samples = 0;
 char working_extension_list[EXTENSION_LIST_SIZE] = {0};
 char * extension_list[] = {
 
-	  "2dx\0""2DX Audio File (*.2DX)\0",
+	  "2dx9\0""2DX9 Audio File (*.2DX9)\0",
 
 	  "aax\0AAX Audio File (*.AAX)\0",
-    "2dx\0""2DX Audio File (*.2DX)\0",
+    "2dx9\0""2DX9 Audio File (*.2DX9)\0",
     "aaap\0AAAP Audio File (*.AAAP)\0",
     "aax\0AAX Audio File (*.AAX)\0",
     "acm\0ACM Audio File (*.ACM)\0",

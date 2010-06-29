@@ -197,7 +197,7 @@
 				Name="Source Files"
 				>
 				<File
-					RelativePath=".\meta\2dx.c"
+					RelativePath=".\meta\2dx9.c"
 					>
 				</File>
 				<File

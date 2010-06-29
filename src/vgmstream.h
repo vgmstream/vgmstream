@@ -431,7 +431,7 @@ typedef enum {
 	  meta_NGC_LPS,			      /* Rave Master (Groove Adventure Rave)(GC) */
     meta_NAOMI_ADPCM,		    /* NAOMI/NAOMI2 ARcade games */
 	  meta_SD9,               /* beatmaniaIIDX16 - EMPRESS (Arcade) */
-	  meta_2DX,               /* beatmaniaIIDX16 - EMPRESS (Arcade) */
+	  meta_2DX9,               /* beatmaniaIIDX16 - EMPRESS (Arcade) */
     meta_PS2_VGV,           /* Rune: Viking Warlord */
     meta_NGC_GCUB,          /* Sega Soccer Slam */
     meta_MAXIS_XA,          /* Sim City 3000 (PC) */
