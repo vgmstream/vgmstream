@@ -203,7 +203,7 @@ META_OBJS=meta/adx_header.o \
     meta/ps2_snd.o \
     meta/naomi_adpcm.o \
     meta/sd9.o \
-    meta/2dx.o \
+    meta/2dx9.o \
     meta/ngc_dsp_ygo.o \
     meta/ps2_vgv.o \
     meta/ngc_gcub.o \
