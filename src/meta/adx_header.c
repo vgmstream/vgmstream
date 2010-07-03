@@ -247,6 +247,18 @@ static struct {
     /* G.rev 1 (Senko no Ronde DUO) */
     /* from guessadx */
     {0x6157,0x6809,0x4045},
+
+    /* ASCII Media Works 0 (Nogizaka Haruka no Himitsu: Cosplay Hajimemashita) */
+    /* 2nd from guessadx, other was {0x45ad,0x5f27,0x10fd} */
+    {0x45af,0x5f27,0x52b1},
+
+    /* D3 Publisher 0 (Little Anchor) */
+    /* confirmed unique with guessadx */
+    {0x5f65,0x5b3d,0x5f65},
+
+    /* Marvelous 0 (Hanayoi Romanesque: Ai to Kanashimi) */
+    /* 2nd from guessadx, other was {0x5562,0x5047,0x1433} */
+    {0x5563,0x5047,0x43ed},
 };
 
 static const int key_count = sizeof(keys)/sizeof(keys[0]);
