@@ -259,6 +259,10 @@ static struct {
     /* Marvelous 0 (Hanayoi Romanesque: Ai to Kanashimi) */
     /* 2nd from guessadx, other was {0x5562,0x5047,0x1433} */
     {0x5563,0x5047,0x43ed},
+
+	/* Capcom (Mobile Suit Gundam: Gundam vs. Gundam NEXT PLUS) */
+    /* confirmed unique with guessadx */
+    {0x4f7b,0x4fdb,0x5cbf},
 };
 
 static const int key_count = sizeof(keys)/sizeof(keys[0]);
