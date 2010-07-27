@@ -511,4 +511,6 @@ VGMSTREAM * init_vgmstream_ps2_xau(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_gh3_bar(STREAMFILE* streamFile);
 
+VGMSTREAM * init_vgmstream_ffw(STREAMFILE* streamFile);
+
 #endif

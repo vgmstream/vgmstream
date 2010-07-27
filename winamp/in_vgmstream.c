@@ -135,6 +135,7 @@ char * extension_list[] = {
     "enth\0ENTH Audio File (*.ENTH)\0",
 
     "fag\0FAG Audio File (*.FAG)\0",
+    "ffw\0FFW Audio File (*.FFW)\0",
     "filp\0FILP Audio File (*.FILP)\0",
     "fsb\0FSB Audio File (*.FSB)\0",
 

@@ -473,11 +473,12 @@ typedef enum {
     meta_DSP_XIII,          /* XIII, possibly more (Ubisoft header???) */
     meta_DSP_CABELAS,       /* Cabelas games */
     meta_PS2_ADM,           /* Dragon Quest 5 */
-	meta_PS2_LPCM,          /* Ah! My Goddess */
+	  meta_PS2_LPCM,          /* Ah! My Goddess */
     meta_DSP_BDSP,          /* Ah! My Goddess */
-	meta_PS2_VMS,          /* Autobahn Raser - Police Madness */
-	meta_PS2_XAU,			// Spectral Force Chronicle
+	  meta_PS2_VMS,          /* Autobahn Raser - Police Madness */
+	  meta_PS2_XAU,			// Spectral Force Chronicle
     meta_GH3_BAR,           /* Guitar Hero III Mobile .bar */
+    meta_FFW,           /* Freedom Fighters [NGC] */
 } meta_t;
 
 typedef struct {

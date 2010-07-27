@@ -278,6 +278,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_ps2_vms,
 	init_vgmstream_ps2_xau,
     init_vgmstream_gh3_bar,
+    init_vgmstream_ffw,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -2632,6 +2633,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case meta_GH3_BAR:
             snprintf(temp,TEMPSIZE,"Guitar Hero III Mobile .bar");
+            break;
+        case meta_FFW:
+            snprintf(temp,TEMPSIZE,"Freedom Fighters BGM header");
             break;
 		default:
            snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");
