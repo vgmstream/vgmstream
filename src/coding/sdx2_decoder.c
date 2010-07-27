@@ -3,8 +3,9 @@
 #include "../util.h"
 
 /* SDX2 - 2:1 Squareroot-delta-exact compression */
+/* CBD2 - 2:1 Cuberoot-delta-exact compression (from the unreleased 3DO M2) */
 
-/* for (i=-128;i<128;i++) squares[i+128]=i<0?(-i*i)*2:(i*i)*2); */
+/* for (i=-128;i<128;i++) squares[i+128]=i<0?(-i*i)*2:(i*i)*2; */
 static int16_t squares[256] = {
 -32768,-32258,-31752,-31250,-30752,-30258,-29768,-29282,-28800,-28322,-27848,
 -27378,-26912,-26450,-25992,-25538,-25088,-24642,-24200,-23762,-23328,-22898,
@@ -32,7 +33,37 @@ static int16_t squares[256] = {
  31250, 31752, 32258
 };
 
-void decode_sdx2(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
+//for (i=-128;i<128;i++)
+//{
+//    double j = (i/2)/2.0;
+//    cubes[i+128]=floor(j*j*j);
+//}
+static int16_t cubes[256]={
+-32768,-31256,-31256,-29791,-29791,-28373,-28373,-27000,-27000,-25672,-25672,
+-24389,-24389,-23149,-23149,-21952,-21952,-20797,-20797,-19683,-19683,-18610,
+-18610,-17576,-17576,-16581,-16581,-15625,-15625,-14706,-14706,-13824,-13824,
+-12978,-12978,-12167,-12167,-11391,-11391,-10648,-10648, -9938, -9938, -9261,
+ -9261, -8615, -8615, -8000, -8000, -7415, -7415, -6859, -6859, -6332, -6332,
+ -5832, -5832, -5359, -5359, -4913, -4913, -4492, -4492, -4096, -4096, -3724,
+ -3724, -3375, -3375, -3049, -3049, -2744, -2744, -2460, -2460, -2197, -2197,
+ -1953, -1953, -1728, -1728, -1521, -1521, -1331, -1331, -1158, -1158, -1000,
+ -1000,  -857,  -857,  -729,  -729,  -614,  -614,  -512,  -512,  -422,  -422,
+  -343,  -343,  -275,  -275,  -216,  -216,  -166,  -166,  -125,  -125,   -91,
+   -91,   -64,   -64,   -43,   -43,   -27,   -27,   -16,   -16,    -8,    -8,
+    -3,    -3,    -1,    -1,     0,     0,     0,     0,     0,     0,     0,
+     1,     1,     3,     3,     8,     8,    16,    16,    27,    27,    43,
+    43,    64,    64,    91,    91,   125,   125,   166,   166,   216,   216,
+   275,   275,   343,   343,   422,   422,   512,   512,   614,   614,   729,
+   729,   857,   857,  1000,  1000,  1158,  1158,  1331,  1331,  1521,  1521,
+  1728,  1728,  1953,  1953,  2197,  2197,  2460,  2460,  2744,  2744,  3049,
+  3049,  3375,  3375,  3724,  3724,  4096,  4096,  4492,  4492,  4913,  4913,
+  5359,  5359,  5832,  5832,  6332,  6332,  6859,  6859,  7415,  7415,  8000,
+  8000,  8615,  8615,  9261,  9261,  9938,  9938, 10648, 10648, 11391, 11391,
+ 12167, 12167, 12978, 12978, 13824, 13824, 14706, 14706, 15625, 15625, 16581,
+ 16581, 17576, 17576, 18610, 18610, 19683, 19683, 20797, 20797, 21952, 21952,
+ 23149, 23149, 24389, 24389, 25672, 25672, 27000, 27000, 28373, 28373, 29791,
+ 29791, 31256, 31256};
+static void decode_delta_exact(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int16_t * table) {
 
 	int32_t hist = stream->adpcm_history1_32;
 
@@ -44,14 +75,14 @@ void decode_sdx2(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing,
         int16_t sample;
 
         if (!(sample_byte & 1)) hist = 0;
-        sample = hist + squares[sample_byte+128];
+        sample = hist + table[sample_byte+128];
 
 		hist = outbuf[sample_count] = clamp16(sample);
 	}
 	stream->adpcm_history1_32=hist;
 }
 
-void decode_sdx2_int(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
+static void decode_delta_exact_int(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int16_t * table) {
 
 	int32_t hist = stream->adpcm_history1_32;
 
@@ -63,9 +94,25 @@ void decode_sdx2_int(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspac
         int16_t sample;
 
         if (!(sample_byte & 1)) hist = 0;
-        sample = hist + squares[sample_byte+128];
+        sample = hist + table[sample_byte+128];
 
 		hist = outbuf[sample_count] = clamp16(sample);
 	}
 	stream->adpcm_history1_32=hist;
+}
+
+void decode_sdx2(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
+    decode_delta_exact(stream, outbuf, channelspacing, first_sample, samples_to_do, squares);
+}
+
+void decode_sdx2_int(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
+    decode_delta_exact_int(stream, outbuf, channelspacing, first_sample, samples_to_do, squares);
+}
+
+void decode_cbd2(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
+    decode_delta_exact(stream, outbuf, channelspacing, first_sample, samples_to_do, cubes);
+}
+
+void decode_cbd2_int(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
+    decode_delta_exact_int(stream, outbuf, channelspacing, first_sample, samples_to_do, cubes);
 }

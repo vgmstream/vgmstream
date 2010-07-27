@@ -768,6 +768,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
 #endif
         case coding_SDX2:
         case coding_SDX2_int:
+        case coding_CBD2:
         case coding_ACM:
         case coding_NWA0:
         case coding_NWA1:
@@ -861,6 +862,7 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
         case coding_PCM8_U_int:
         case coding_SDX2:
         case coding_SDX2_int:
+        case coding_CBD2:
         case coding_NWA0:
         case coding_NWA1:
         case coding_NWA2:
@@ -1181,6 +1183,20 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
         case coding_SDX2_int:
             for (chan=0;chan<vgmstream->channels;chan++) {
                 decode_sdx2_int(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                        vgmstream->channels,vgmstream->samples_into_block,
+                        samples_to_do);
+            }
+            break;
+        case coding_CBD2:
+            for (chan=0;chan<vgmstream->channels;chan++) {
+                decode_cbd2(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                        vgmstream->channels,vgmstream->samples_into_block,
+                        samples_to_do);
+            }
+            break;
+        case coding_CBD2_int:
+            for (chan=0;chan<vgmstream->channels;chan++) {
+                decode_cbd2_int(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
                         samples_to_do);
             }
@@ -1567,6 +1583,12 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case coding_SDX2_int:
             snprintf(temp,TEMPSIZE,"Squareroot-delta-exact (SDX2) 8-bit DPCM with 1 byte interleave");
+            break;
+        case coding_CBD2:
+            snprintf(temp,TEMPSIZE,"Cuberoot-delta-exact (CBD2) 8-bit DPCM");
+            break;
+        case coding_CBD2_int:
+            snprintf(temp,TEMPSIZE,"Cuberoot-delta-exact (CBD2) 8-bit DPCM with 1 byte interleave");
             break;
         case coding_DVI_IMA:
             snprintf(temp,TEMPSIZE,"Intel DVI 4-bit IMA ADPCM");

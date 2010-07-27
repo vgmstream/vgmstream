@@ -74,6 +74,10 @@ typedef enum {
     coding_SDX2_int,        /* SDX2 2:1 Squareroot-Delta-Exact compression,
                                with smaple-level interleave handled by the
                                decoder */
+    coding_CBD2,            /* CBD2 2:1 Cuberoot-Delta-Exact compression */
+    coding_CBD2_int,        /* CBD2 2:1 Cuberoot-Delta-Exact compression,
+                               with sample-level interleave handled by the
+                               decoder */
     coding_DVI_IMA,         /* DVI (bare IMA, high nibble first), aka ADP4 */
     coding_INT_DVI_IMA,		/* Interleaved DVI */
     coding_EACS_IMA,

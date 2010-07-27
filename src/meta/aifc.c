@@ -86,7 +86,8 @@ VGMSTREAM * init_vgmstream_aifc(STREAMFILE *streamFile) {
     streamFile->get_name(streamFile,filename,sizeof(filename));
     if (!strcasecmp("aifc",filename_extension(filename)) ||
         !strcasecmp("afc",filename_extension(filename)) ||
-        !strcasecmp("aifcl",filename_extension(filename)))
+        !strcasecmp("aifcl",filename_extension(filename)) ||
+        !strcasecmp("cbd2",filename_extension(filename)))
     {
         AIFCext = 1;
     }
@@ -165,6 +166,10 @@ VGMSTREAM * init_vgmstream_aifc(STREAMFILE *streamFile) {
                         switch (read_32bitBE(current_chunk+0x1a,streamFile)) {
                             case 0x53445832:    /* SDX2 */
                                 coding_type = coding_SDX2;
+                                interleave = 1;
+                                break;
+                            case 0x43424432:    /* CBD2 */
+                                coding_type = coding_CBD2;
                                 interleave = 1;
                                 break;
                             case 0x41445034:    /* ADP4 */

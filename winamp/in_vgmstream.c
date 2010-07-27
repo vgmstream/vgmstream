@@ -116,8 +116,9 @@ char * extension_list[] = {
     "brstm;brstmspm\0BRSTM Audio File (*.BRSTM)\0",
 
     "caf\0CAF Audio File (*.CAF)\0",
-	  "capdsp\0CAPDSP Audio File (*.CAPDSP)\0", /* Capcom custom coefs */
-	  "ccc\0CCC Audio File (*.CCC)\0",
+    "capdsp\0CAPDSP Audio File (*.CAPDSP)\0", /* Capcom custom coefs */
+    "cbd2\0CBD2 Audio File (*.CBD2)\0",
+    "ccc\0CCC Audio File (*.CCC)\0",
     "cfn\0CFN Audio File (*.CFN)\0",
     "cnk\0CNK Audio File (*.CNK)\0",
 
