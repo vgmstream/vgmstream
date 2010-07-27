@@ -263,6 +263,11 @@ static struct {
 	/* Capcom (Mobile Suit Gundam: Gundam vs. Gundam NEXT PLUS) */
     /* confirmed unique with guessadx */
     {0x4f7b,0x4fdb,0x5cbf},
+
+	/* Developer: Bridge NetShop
+	 * Publisher: Kadokawa Shoten Shoukan Shoujo: Elemental Girl Calling) */
+    /* confirmed unique with guessadx */
+    {0x4f7b,0x5071,0x4c61},
 };
 
 static const int key_count = sizeof(keys)/sizeof(keys[0]);
