@@ -75,10 +75,9 @@ int fade_samples = 0;
 char working_extension_list[EXTENSION_LIST_SIZE] = {0};
 char * extension_list[] = {
 
-	  "2dx9\0""2DX9 Audio File (*.2DX9)\0",
-
-	  "aax\0AAX Audio File (*.AAX)\0",
     "2dx9\0""2DX9 Audio File (*.2DX9)\0",
+
+    "aax\0AAX Audio File (*.AAX)\0",
     "aaap\0AAAP Audio File (*.AAAP)\0",
     "aax\0AAX Audio File (*.AAX)\0",
     "acm\0ACM Audio File (*.ACM)\0",
@@ -125,7 +124,7 @@ char * extension_list[] = {
     "dcs\0DCS Audio File (*.DCS)\0",
     "de2\0DE2 Audio File (*.DE2)\0",
     "ddsp\0DDSP Audio File (*.DDSP)\0",
-	  "dmsg\0DMSG Audio File (*.DMSG)\0",
+    "dmsg\0DMSG Audio File (*.DMSG)\0",
     "dsp\0DSP Audio File (*.DSP)\0",
     "dtk\0DTK Audio File (*.DTK)\0",
     "dvi\0DVI Audio File (*.DVI)\0",
@@ -160,7 +159,7 @@ char * extension_list[] = {
     "ild\0ILD Audio File (*.ILD)\0",
     "int\0PS2 RAW Interleaved PCM (*.INT)\0",
     "isd\0ISD Audio File (*.ISD)\0",
-	  "isws\0ISWS Audio File (*.ISWS)\0",
+    "isws\0ISWS Audio File (*.ISWS)\0",
     "ivaud\0IVAUD Audio File (*.IVAUD)\0",
     "ivb\0IVB Audio File (*.IVB)\0",
 
@@ -228,7 +227,7 @@ char * extension_list[] = {
     "rxw\0PS2 RXWS File (*.RXW)\0",
 
     "s14\0S14 Audio File (*.S14)\0",
-	  "sab\0SAB Audio File (*.SAB)\0",
+    "sab\0SAB Audio File (*.SAB)\0",
     "sad\0SAD Audio File (*.SAD)\0",
     "sap\0SAP Audio File (*.SAP)\0",
     "sc\0SC Audio File (*.SC)\0",
@@ -280,7 +279,7 @@ char * extension_list[] = {
     "vgs\0VGS Audio File (*.VGS)\0",
     "vig\0VIG Audio File (*.VIG)\0",
 	"vms\0VMS Audio File (*.VMS)\0",
-	"vpk\0VPK Audio File (*.VPK)\0",
+    "vpk\0VPK Audio File (*.VPK)\0",
     "vs\0VS Audio File (*.VS)\0",
     "vsf\0VSF Audio File (*.VSF)\0",
     "vgv\0VGV Audio File (*.VGV)\0",
@@ -303,7 +302,7 @@ char * extension_list[] = {
     "xa2\0XA2 Audio File (*.XA2)\0",
     "xa30\0XA30 Audio File (*.XA30)\0",
 	"xau\0XAU Audio File (*.XAU)\0",
-	"xmu\0XMU Audio File (*.XMU)\0",
+    "xmu\0XMU Audio File (*.XMU)\0",
     "xsf\0XSF Audio File (*.XSF)\0",
     "xss\0XSS Audio File (*.XSS)\0",
     "xvas\0XVAS Audio File (*.XVAS)\0",
