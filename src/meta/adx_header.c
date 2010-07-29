@@ -265,9 +265,14 @@ static struct {
     {0x4f7b,0x4fdb,0x5cbf},
 
 	/* Developer: Bridge NetShop
-	 * Publisher: Kadokawa Shoten Shoukan Shoujo: Elemental Girl Calling) */
+	 * Publisher: Kadokawa Shoten (Shoukan Shoujo: Elemental Girl Calling) */
     /* confirmed unique with guessadx */
     {0x4f7b,0x5071,0x4c61},
+
+	/* Developer: Net Corporation
+	 * Publisher: Tecmo (Rakushou! Pachi-Slot Sengen 6: Rio 2 Cruising Vanadis) */
+    /* confirmed unique with guessadx */
+    {0x53e9,0x586d,0x4eaf},
 };
 
 static const int key_count = sizeof(keys)/sizeof(keys[0]);
