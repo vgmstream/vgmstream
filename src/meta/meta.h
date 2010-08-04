@@ -513,4 +513,6 @@ VGMSTREAM * init_vgmstream_gh3_bar(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_ffw(STREAMFILE* streamFile);
 
+VGMSTREAM * init_vgmstream_dsp_dspw(STREAMFILE* streamFile);
+
 #endif

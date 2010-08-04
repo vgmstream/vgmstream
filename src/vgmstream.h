@@ -479,6 +479,7 @@ typedef enum {
 	  meta_PS2_XAU,			// Spectral Force Chronicle
     meta_GH3_BAR,           /* Guitar Hero III Mobile .bar */
     meta_FFW,           /* Freedom Fighters [NGC] */
+    meta_DSP_DSPW,           /* Sengoku Basara 3 [WII] */
 } meta_t;
 
 typedef struct {
