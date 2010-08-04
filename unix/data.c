@@ -63,6 +63,7 @@ gchar *vgmstream_exts [] = {
   "ddsp",
   "dmsg",
   "dsp",
+  "dspw",
   "dtk",
   "dvi",
   "dxh",

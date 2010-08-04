@@ -300,6 +300,7 @@ bool input_vgmstream::g_is_our_path(const char * p_path,const char * p_extension
 	if(!stricmp_utf8(p_extension,"ddsp")) return 1;
 	if(!stricmp_utf8(p_extension,"dmsg")) return 1;
 	if(!stricmp_utf8(p_extension,"dsp")) return 1;
+	if(!stricmp_utf8(p_extension,"dspw")) return 1;
 	if(!stricmp_utf8(p_extension,"dtk")) return 1;
 	if(!stricmp_utf8(p_extension,"dvi")) return 1;
 	if(!stricmp_utf8(p_extension,"dxh")) return 1;
@@ -577,6 +578,7 @@ DECLARE_MULTIPLE_FILE_TYPE("DE2 Audio File (*.DE2)", de2);
 DECLARE_MULTIPLE_FILE_TYPE("DDSP Audio File (*.DDSP)", ddsp);
 DECLARE_MULTIPLE_FILE_TYPE("DMSG Audio File (*.DMSG)", dmsg);
 DECLARE_MULTIPLE_FILE_TYPE("DSP Audio File (*.DSP)", dsp);
+DECLARE_MULTIPLE_FILE_TYPE("DSPW Audio File (*.DSPW)", dspw);
 DECLARE_MULTIPLE_FILE_TYPE("DTK Audio File (*.DTK)", dtk);
 DECLARE_MULTIPLE_FILE_TYPE("DVI Audio File (*.DVI)", dvi);
 DECLARE_MULTIPLE_FILE_TYPE("DXH Audio File (*.DXH)", dxh);
