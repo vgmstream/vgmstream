@@ -160,6 +160,11 @@ VGMSTREAM * init_vgmstream_fsb4(STREAMFILE *streamFile) {
         case 0x40000882:
         case 0x40100802:
         case 0x40200802:
+            if (loop_flag) {
+                vgmstream->loop_start_sample = 0;
+                vgmstream->loop_end_sample = read_32bitLE(0x50,streamFile);
+            }
+
             if (read_32bitLE(0x14,streamFile)==0x20 ||
                 read_32bitLE(0x14,streamFile)==0x00)
             {
@@ -176,13 +181,19 @@ VGMSTREAM * init_vgmstream_fsb4(STREAMFILE *streamFile) {
                 vgmstream->layout_type = layout_none;
                 vgmstream->interleave_block_size = read_32bitLE(0x54,streamFile)/channel_count;
             }
+            else if (read_32bitLE(0x14,streamFile)==0x40) {
+                /* M. Night Shamylan The Last Airbender */
+                vgmstream->coding_type = coding_NGC_DSP;
+                vgmstream->layout_type = layout_interleave_byte;
+                vgmstream->interleave_block_size = 2;
+
+                if (loop_flag) {
+                    vgmstream->loop_start_sample = read_32bitLE(0x58,streamFile);
+                }
+            }
             else goto fail;
 
             vgmstream->num_samples = (read_32bitLE(0x54,streamFile)/8/channel_count*14);
-            if (loop_flag) {
-                vgmstream->loop_start_sample = 0;
-                vgmstream->loop_end_sample = read_32bitLE(0x50,streamFile);
-            }
             break;
 
         /* Night at the Museum */
