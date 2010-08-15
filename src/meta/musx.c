@@ -296,6 +296,10 @@ VGMSTREAM * init_vgmstream_musx_v010(STREAMFILE *streamFile) {
         channel_count = read_32bitLE(0x48,streamFile);
         loop_flag = (read_32bitLE(0x64,streamFile) != -1);
     }
+    if (musx_type = 0x58455F5F) /* XE__ */
+    {
+        loop_flag = 0;
+    }
 
 	/* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
@@ -340,6 +344,16 @@ VGMSTREAM * init_vgmstream_musx_v010(STREAMFILE *streamFile) {
                 vgmstream->loop_end_sample = read_32bitLE(0x60,streamFile);
             }
 
+            break;
+        case 0x58455F5F: /* XE__ */
+            start_offset = 0x800;
+            vgmstream->sample_rate = 32000;
+            vgmstream->coding_type = coding_DAT4_IMA;
+            vgmstream->num_samples = (get_streamfile_size(streamFile)-0x800)/2/(0x20)*((0x20-4)*2);
+            vgmstream->layout_type = layout_interleave;
+            vgmstream->interleave_block_size = 0x20;
+            vgmstream->meta_type = meta_MUSX_V010;
+            
             break;
         default:
             goto fail;
