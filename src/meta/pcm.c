@@ -93,7 +93,7 @@ VGMSTREAM * init_vgmstream_pcm_ps2(STREAMFILE *streamFile) {
 	/* fill in the vital statistics */
     start_offset = 0x800;
 	vgmstream->channels = channel_count;
-    vgmstream->sample_rate = 22050;
+    vgmstream->sample_rate = 24000;
     vgmstream->coding_type = coding_PCM16LE;
     vgmstream->num_samples = read_32bitLE(0x0,streamFile)/2/channel_count;
     if (loop_flag) {
