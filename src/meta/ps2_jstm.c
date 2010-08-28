@@ -4,7 +4,7 @@
 /* JSTM (.STM (renamed .JSTM) from Tantei Jinguji Saburo - Kind of Blue) */
 VGMSTREAM * init_vgmstream_ps2_jstm(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    off_t start_offset = 0x20;;
+    off_t start_offset = 0x20;
     int loop_flag;
     int channel_count;
     char filename[260];
