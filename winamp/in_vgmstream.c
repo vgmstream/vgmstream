@@ -166,6 +166,7 @@ char * extension_list[] = {
     "ivb\0IVB Audio File (*.IVB)\0",
 
     "joe\0JOE Audio File (*.JOE)\0",
+    "jstm\0JSTM Audio File (*.JSTM)\0",
 
     "kces\0KCES Audio File (*.KCES)\0",
     "kcey\0KCEY Audio File (*.KCEY)\0",

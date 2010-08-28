@@ -101,6 +101,7 @@ gchar *vgmstream_exts [] = {
   "ivb",
 
   "joe",
+  "jstm",
 
   "kces",
   "kcey",

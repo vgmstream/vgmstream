@@ -339,6 +339,7 @@ bool input_vgmstream::g_is_our_path(const char * p_path,const char * p_extension
 	if(!stricmp_utf8(p_extension,"ivb")) return 1;
 
 	if(!stricmp_utf8(p_extension,"joe")) return 1;
+	if(!stricmp_utf8(p_extension,"jstm")) return 1;
 
 	if(!stricmp_utf8(p_extension,"kces")) return 1;
 	if(!stricmp_utf8(p_extension,"kcey")) return 1;
@@ -617,6 +618,7 @@ DECLARE_MULTIPLE_FILE_TYPE("IVAUD Audio File (*.IVAUD)", ivaud);
 DECLARE_MULTIPLE_FILE_TYPE("IVB Audio File (*.IVB)", ivb);
 
 DECLARE_MULTIPLE_FILE_TYPE("JOE Audio File (*.JOE)", joe);
+DECLARE_MULTIPLE_FILE_TYPE("JSTM Audio File (*.JSTM)", jstm);
 
 DECLARE_MULTIPLE_FILE_TYPE("KCES Audio File (*.KCES)", kces);
 DECLARE_MULTIPLE_FILE_TYPE("KCEY Audio File (*.KCEY)", kcey);

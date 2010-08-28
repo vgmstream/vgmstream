@@ -1,7 +1,7 @@
 #include "meta.h"
 #include "../util.h"
 
-/* JSTM (.STM from Tantei Jinguji Saburo - Kind of Blue) */
+/* JSTM (.STM (renamed .JSTM) from Tantei Jinguji Saburo - Kind of Blue) */
 VGMSTREAM * init_vgmstream_ps2_jstm(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     off_t start_offset = 0x20;;
@@ -11,7 +11,8 @@ VGMSTREAM * init_vgmstream_ps2_jstm(STREAMFILE *streamFile) {
 
     /* check extension */
     streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("stm",filename_extension(filename))) goto fail;
+    if (strcasecmp("stm",filename_extension(filename)) &&
+        strcasecmp("jstm",filename_extension(filename))) goto fail;
 
     /* check header (JSTM) */
     if (read_32bitBE(0x0,streamFile) != 0x4A53544D) goto fail;
