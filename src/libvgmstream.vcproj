@@ -635,6 +635,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\ps2_jstm.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\ps2_kces.c"
 					>
 				</File>

@@ -280,6 +280,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_gh3_bar,
     init_vgmstream_ffw,
     init_vgmstream_dsp_dspw,
+    init_vgmstream_ps2_jstm,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -747,6 +748,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
             return 14;
         case coding_PCM16LE:
         case coding_PCM16LE_int:
+        case coding_PCM16LE_XOR_int:
         case coding_PCM16BE:
         case coding_PCM8:
         case coding_PCM8_U:
@@ -855,6 +857,7 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
             return 8;
         case coding_PCM16LE:
         case coding_PCM16LE_int:
+        case coding_PCM16LE_XOR_int:
         case coding_PCM16BE:
             return 2;
         case coding_PCM8:
@@ -986,6 +989,13 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
         case coding_PCM16LE_int:
             for (chan=0;chan<vgmstream->channels;chan++) {
                 decode_pcm16LE_int(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                        vgmstream->channels,vgmstream->samples_into_block,
+                        samples_to_do);
+            }
+            break;
+        case coding_PCM16LE_XOR_int:
+            for (chan=0;chan<vgmstream->channels;chan++) {
+                decode_pcm16LE_XOR_int(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
                         samples_to_do);
             }
@@ -1508,6 +1518,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case coding_PCM16LE_int:
             snprintf(temp,TEMPSIZE,"Little Endian 16-bit PCM with 2 byte interleave");
+            break;
+        case coding_PCM16LE_XOR_int:
+            snprintf(temp,TEMPSIZE,"Little Endian 16-bit PCM with 2 byte interleave and XOR obfuscation");
             break;
         case coding_PCM8:
             snprintf(temp,TEMPSIZE,"8-bit PCM");
@@ -2640,6 +2653,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case meta_DSP_DSPW:
             snprintf(temp,TEMPSIZE,"DSPW dsp header");
+            break;
+        case meta_PS2_JSTM:
+            snprintf(temp,TEMPSIZE,"JSTM Header");
             break;
 		default:
            snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

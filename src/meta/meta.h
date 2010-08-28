@@ -515,4 +515,6 @@ VGMSTREAM * init_vgmstream_ffw(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_dsp_dspw(STREAMFILE* streamFile);
 
+VGMSTREAM * init_vgmstream_ps2_jstm(STREAMFILE* streamFile);
+
 #endif

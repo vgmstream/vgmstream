@@ -120,6 +120,7 @@ typedef enum {
     coding_AICA,            /* Yamaha AICA ADPCM */
     coding_L5_555,          /* Level-5 0x555 */
     coding_SASSC,           /* Activision EXAKT SASSC DPCM */
+    coding_PCM16LE_XOR_int, /* sample-level xor */
 } coding_t;
 
 /* The layout type specifies how the sound data is laid out in the file */
@@ -480,6 +481,7 @@ typedef enum {
     meta_GH3_BAR,           /* Guitar Hero III Mobile .bar */
     meta_FFW,           /* Freedom Fighters [NGC] */
     meta_DSP_DSPW,           /* Sengoku Basara 3 [WII] */
+    meta_PS2_JSTM,          /* Tantei Jinguji Saburo - Kind of Blue (PS2) */
 } meta_t;
 
 typedef struct {
@@ -531,6 +533,9 @@ typedef struct {
     /* BMDX encryption */
     uint8_t bmdx_xor;
     uint8_t bmdx_add;
+    
+    /* generic encryption */
+    uint16_t key_xor;
 } VGMSTREAMCHANNEL;
 
 typedef struct {
