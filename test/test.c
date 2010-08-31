@@ -242,6 +242,7 @@ int main(int argc, char ** argv) {
     /* decode forever */
     while (forever) {
         render_vgmstream(buf,BUFSIZE,s);
+        swap_samples_le(buf,s->channels*BUFSIZE);
         fwrite(buf,sizeof(sample)*s->channels,BUFSIZE,outfile);
     }
 
@@ -265,6 +266,7 @@ int main(int argc, char ** argv) {
                 }
             }
         }
+        swap_samples_le(buf,s->channels*toget);
         fwrite(buf,sizeof(sample)*s->channels,toget,outfile);
     }
 
@@ -353,16 +355,7 @@ int main(int argc, char ** argv) {
             }
 
             /* do proper little endian samples */
-            {
-                int k;
-                for (k=0;k<toget*s->channels;k++) {
-                    uint8_t b0 = buf[k]&0xff;
-                    uint8_t b1 = buf[k]>>8;
-                    uint8_t *p = (uint8_t*)&buf[k];
-                    p[0] = b0;
-                    p[1] = b1;
-                }
-            }
+            swap_samples_le(buf,s->channels*toget);
             fwrite(buf,sizeof(sample)*s->channels,toget,outfile);
         }
         fclose(outfile); outfile = NULL;

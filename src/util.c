@@ -127,6 +127,17 @@ void make_wav_header(uint8_t * buf, int32_t sample_count, int32_t sample_rate, i
     put_32bitLE(buf+0x28, (int32_t)bytecount);
 }
 
+void swap_samples_le(sample *buf, int count) {
+    int i;
+    for (i=0;i<count;i++) {
+        uint8_t b0 = buf[i]&0xff;
+        uint8_t b1 = buf[i]>>8;
+        uint8_t *p = (uint8_t*)&(buf[i]);
+        p[0] = b0;
+        p[1] = b1;
+    }
+}
+
 /* length is maximum length of dst. dst will always be null-terminated if
  * length > 0 */
 void concatn(int length, char * dst, const char * src) {
