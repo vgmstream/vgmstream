@@ -308,6 +308,7 @@ char * extension_list[] = {
     "xmu\0XMU Audio File (*.XMU)\0",
     "xsf\0XSF Audio File (*.XSF)\0",
     "xss\0XSS Audio File (*.XSS)\0",
+    "xvag\0XVAG Audio File (*.XVAG)\0",
     "xvas\0XVAS Audio File (*.XVAS)\0",
     "xwav\0XWAV Audio File (*.XWAV)\0",
     "xwb\0XWB Audio File (*.XWB)\0",

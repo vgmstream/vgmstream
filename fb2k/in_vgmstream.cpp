@@ -479,6 +479,7 @@ bool input_vgmstream::g_is_our_path(const char * p_path,const char * p_extension
 	if(!stricmp_utf8(p_extension,"xmu")) return 1;
 	if(!stricmp_utf8(p_extension,"xsf")) return 1;
 	if(!stricmp_utf8(p_extension,"xss")) return 1;
+	if(!stricmp_utf8(p_extension,"xvag")) return 1;
 	if(!stricmp_utf8(p_extension,"xvas")) return 1;
 	if(!stricmp_utf8(p_extension,"xwav")) return 1;
 	if(!stricmp_utf8(p_extension,"xwb")) return 1;
@@ -758,6 +759,7 @@ DECLARE_MULTIPLE_FILE_TYPE("XAU Audio File (*.XAU)", xau);
 DECLARE_MULTIPLE_FILE_TYPE("XMU Audio File (*.XMU)", xmu);
 DECLARE_MULTIPLE_FILE_TYPE("XSF Audio File (*.XSF)", xsf);
 DECLARE_MULTIPLE_FILE_TYPE("XSS Audio File (*.XSS)", xss);
+DECLARE_MULTIPLE_FILE_TYPE("XVAG Audio File (*.XVAG)", xvag);
 DECLARE_MULTIPLE_FILE_TYPE("XVAS Audio File (*.XVAS)", xvas);
 DECLARE_MULTIPLE_FILE_TYPE("XWAV Audio File (*.XWAV)", xwav);
 DECLARE_MULTIPLE_FILE_TYPE("XWB Audio File (*.XWB)", xwb);
