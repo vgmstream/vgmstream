@@ -18,9 +18,7 @@ VGMSTREAM * init_vgmstream_ps3_xvag(STREAMFILE *streamFile) {
     if (read_32bitBE(0x00,streamFile) != 0x58564147) /* "XVAG" */
         goto fail;
 
-    if (read_32bitBE(0x44,streamFile) !=0x63756573)
 	loop_flag = 0;
-	else loop_flag = 1;
 
     channel_count = read_32bitBE(0x28,streamFile);
 
