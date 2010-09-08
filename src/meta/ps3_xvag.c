@@ -2,13 +2,31 @@
 #include "../util.h"
 
 /* XVAG (from Ratchet & Clank Future: Quest for Booty) */
+/* v0.1 : bxaimc : Initial release					   */
+/* v0.2 : Fastelbja : add support for loops points	   */
+/*                    + little endian header values    */
+
 VGMSTREAM * init_vgmstream_ps3_xvag(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[260];
-    off_t start_offset;
+	uint8_t	testBuffer[0x10];
 
-    int loop_flag;
-   int channel_count;
+    off_t start_offset;
+	off_t fileLength;
+
+    int loop_flag = 0;
+    int channel_count;
+	off_t	readOffset = 0;
+	int little_endian = 0;
+
+	int		loopStartPointsCount=0;
+	int		loopEndPointsCount=0;
+	int		mp3ID;
+	off_t	loopStartPoints[0x10];
+	off_t	loopEndPoints[0x10];
+
+	off_t	loopStart = 0;
+	off_t	loopEnd = 0;
 
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
@@ -18,43 +36,149 @@ VGMSTREAM * init_vgmstream_ps3_xvag(STREAMFILE *streamFile) {
     if (read_32bitBE(0x00,streamFile) != 0x58564147) /* "XVAG" */
         goto fail;
 
-	loop_flag = 0;
+	fileLength = get_streamfile_size(streamFile);
 
-    channel_count = read_32bitBE(0x28,streamFile);
+	if (read_8bit(0x07,streamFile)==0)
+		little_endian=1;
+
+	if(little_endian)
+	{
+		channel_count = read_32bitLE(0x28,streamFile);
+		start_offset = read_32bitLE(0x4,streamFile);
+	}
+	else
+	{
+		channel_count = read_32bitBE(0x28,streamFile);
+		start_offset = read_32bitBE(0x4,streamFile);
+	}
+
+	readOffset=start_offset;
+
+	// MP3s ?
+	mp3ID=read_16bitLE(0x4C,streamFile);
+	if(mp3ID!=0xFFFFFBFF) {
+		// get the loops the same way we get on .MIB
+		do {
+			readOffset+=(off_t)read_streamfile(testBuffer,readOffset,0x10,streamFile); 
+
+			// Loop Start ...
+			if(testBuffer[0x01]==0x06) 
+			{
+				if(loopStartPointsCount<0x10) 
+				{
+					loopStartPoints[loopStartPointsCount] = readOffset-0x10;
+					loopStartPointsCount++;
+				}
+			}
+
+			// Loop End ...
+			if(((testBuffer[0x01]==0x03) && (testBuffer[0x03]!=0x77)) ||
+				(testBuffer[0x01]==0x01)) 
+			{
+				if(loopEndPointsCount<0x10) 
+				{
+					loopEndPoints[loopEndPointsCount] = readOffset; //-0x10;
+					loopEndPointsCount++;
+				}
+
+			}
+
+		} while (readOffset<((int32_t)fileLength));
+
+			// Calc Loop Points & Interleave ...
+		if(loopStartPointsCount>=channel_count) 
+		{
+			// can't get more then 0x10 loop point !
+			if((loopStartPointsCount<=0x0F) && (loopStartPointsCount>=2)) 
+			{
+				// Always took the first 2 loop points
+				loopStart=loopStartPoints[1];
+				loop_flag=1;
+			} else 
+				loopStart=0;
+		}
+
+		if(loopEndPointsCount>=channel_count) 
+		{
+			// can't get more then 0x10 loop point !
+			if((loopEndPointsCount<=0x0F) && (loopEndPointsCount>=2)) {
+				loop_flag=1;
+				loopEnd=loopEndPoints[loopEndPointsCount-1];
+			} else {
+				loopEnd=0;
+			}
+		}
+
+		// as i can get on the header if a song is looped or not
+		// if try to take the loop marker on the file
+		// if the last byte of the file is = 00 is assume that the song is not looped
+		// i know that i can cover 95% of the file, but can't work on some of them
+		if(read_8bit((fileLength-1),streamFile)==0)
+			loop_flag=0;
+	}
 
    /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
-   /* fill in the vital statistics */
-    start_offset = read_32bitBE(0x4,streamFile);
-   vgmstream->channels = channel_count;
-    vgmstream->sample_rate = read_32bitBE(0x3c,streamFile);
-    vgmstream->coding_type = coding_PSX;
-    vgmstream->num_samples = read_32bitBE(0x30,streamFile);
-    if (loop_flag) {
-        vgmstream->loop_start_sample = read_32bitBE(0x24,streamFile);;
-       vgmstream->loop_end_sample = vgmstream->num_samples;
-    }
+    /* fill in the vital statistics */
+	if (little_endian) {
+		vgmstream->sample_rate = read_32bitLE(0x3c,streamFile);
+	    vgmstream->num_samples = read_32bitLE(0x30,streamFile);
+	} else {
+		vgmstream->sample_rate = read_32bitBE(0x3c,streamFile);
+	    vgmstream->num_samples = read_32bitBE(0x30,streamFile);
+	}
 
-    vgmstream->layout_type = layout_interleave;
-    vgmstream->interleave_block_size = 0x10;
+    vgmstream->channels = channel_count;
     vgmstream->meta_type = meta_PS3_XVAG;
+	
+	if(mp3ID==0xFFFFFBFF) {
+		// mp3s support doesn't work atm !
+		vgmstream->layout_type = layout_mpeg;
+		vgmstream->coding_type = coding_MPEG1_L3;
+	}
+	else {
+	    vgmstream->layout_type = layout_interleave;
+		vgmstream->interleave_block_size = 0x10;
+		vgmstream->coding_type = coding_PSX;
+	}
+
+	if (loop_flag) {
+		if(loopStart!=0) {
+			vgmstream->loop_start_sample = ((((loopStart/vgmstream->interleave_block_size)-1)*vgmstream->interleave_block_size)/16*14*channel_count)/channel_count;
+			if(loopStart%vgmstream->interleave_block_size) {
+				vgmstream->loop_start_sample += (((loopStart%vgmstream->interleave_block_size)-1)/16*14*channel_count);
+			}
+		}
+       vgmstream->loop_end_sample = ((((loopEnd/vgmstream->interleave_block_size)-1)*vgmstream->interleave_block_size)/16*14*channel_count)/channel_count;
+		if(loopEnd%vgmstream->interleave_block_size) {
+			vgmstream->loop_end_sample += (((loopEnd%vgmstream->interleave_block_size)-1)/16*14*channel_count);
+		}
+    }
 
     /* open the file for reading */
     {
         int i;
         STREAMFILE * file;
-        file = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-        if (!file) goto fail;
-        for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = file;
+		if(vgmstream->layout_type == layout_mpeg) {
+			for (i=0;i<channel_count;i++) {
+				vgmstream->ch[i].streamfile = streamFile->open(streamFile,filename,MPEG_BUFFER_SIZE);
+				vgmstream->ch[i].channel_start_offset= vgmstream->ch[i].offset=start_offset;
+			}
 
-            vgmstream->ch[i].channel_start_offset=
-                vgmstream->ch[i].offset=start_offset+
-                vgmstream->interleave_block_size*i;
+		} else {
+			file = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
+			if (!file) goto fail;
+			for (i=0;i<channel_count;i++) {
+				vgmstream->ch[i].streamfile = file;
 
-        }
+				vgmstream->ch[i].channel_start_offset=
+					vgmstream->ch[i].offset=start_offset+
+					vgmstream->interleave_block_size*i;
+
+			}
+		}
     }
 
     return vgmstream;
