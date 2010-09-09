@@ -483,6 +483,7 @@ typedef enum {
     meta_DSP_DSPW,           /* Sengoku Basara 3 [WII] */
     meta_PS2_JSTM,          /* Tantei Jinguji Saburo - Kind of Blue (PS2) */
 	meta_PS3_XVAG,          /* Ratchet & Clank Future: Quest for Booty (PS3) */
+	meta_PS3_CPS,           /* Eternal Sonata (PS3) */
 } meta_t;
 
 typedef struct {

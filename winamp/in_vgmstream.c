@@ -120,6 +120,7 @@ char * extension_list[] = {
     "ccc\0CCC Audio File (*.CCC)\0",
     "cfn\0CFN Audio File (*.CFN)\0",
     "cnk\0CNK Audio File (*.CNK)\0",
+	"cps\0CPS Audio File (*.CPS)\0",
 
     "dcs\0DCS Audio File (*.DCS)\0",
     "de2\0DE2 Audio File (*.DE2)\0",

@@ -204,5 +204,6 @@ libmeta_la_SOURCES += gh3_bar.c
 libmeta_la_SOURCES += ffw.c
 libmeta_la_SOURCES += ps2_jstm.c
 libmeta_la_SOURCES += ps3_xvag.c
+libmeta_la_SOURCES += ps3_cps.c
 
 EXTRA_DIST = meta.h

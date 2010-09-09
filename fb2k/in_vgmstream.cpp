@@ -294,6 +294,7 @@ bool input_vgmstream::g_is_our_path(const char * p_path,const char * p_extension
 	if(!stricmp_utf8(p_extension,"ccc")) return 1;
 	if(!stricmp_utf8(p_extension,"cfn")) return 1;
 	if(!stricmp_utf8(p_extension,"cnk")) return 1;
+	if(!stricmp_utf8(p_extension,"cps")) return 1;
 
 	if(!stricmp_utf8(p_extension,"dcs")) return 1;
 	if(!stricmp_utf8(p_extension,"de2")) return 1;
@@ -574,6 +575,7 @@ DECLARE_MULTIPLE_FILE_TYPE("CBD2 Audio File (*.CBD2)", cbd2);
 DECLARE_MULTIPLE_FILE_TYPE("CCC Audio File (*.CCC)", ccc);
 DECLARE_MULTIPLE_FILE_TYPE("CFN Audio File (*.CFN)", cfn);
 DECLARE_MULTIPLE_FILE_TYPE("CNK Audio File (*.CNK)", cnk);
+DECLARE_MULTIPLE_FILE_TYPE("CPS Audio File (*.CPS)", cps);
 
 DECLARE_MULTIPLE_FILE_TYPE("DCS Audio File (*.DCS)", dcs);
 DECLARE_MULTIPLE_FILE_TYPE("DE2 Audio File (*.DE2)", de2);

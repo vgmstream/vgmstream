@@ -282,6 +282,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_dsp_dspw,
     init_vgmstream_ps2_jstm,
     init_vgmstream_ps3_xvag,
+	init_vgmstream_ps3_cps,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -2660,6 +2661,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
 		case meta_PS3_XVAG:
             snprintf(temp,TEMPSIZE,"XVAG Header");
+            break;
+	    case meta_PS3_CPS:
+            snprintf(temp,TEMPSIZE,"CPS Header");
             break;
 		default:
            snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

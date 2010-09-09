@@ -807,6 +807,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\ps3_cps.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\ps3_xvag.c"
 					>
 				</File>

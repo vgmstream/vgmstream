@@ -57,6 +57,7 @@ gchar *vgmstream_exts [] = {
   "ccc",
   "cfn",
   "cnk",
+  "cps",
 
   "dcs",
   "de2",
@@ -240,6 +241,7 @@ gchar *vgmstream_exts [] = {
   "xmu",
   "xsf",
   "xss",
+  "xvag",
   "xvas",
   "xwav",
   "xwb",
