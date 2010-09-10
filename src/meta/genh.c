@@ -26,9 +26,6 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
 
     char filename[260];
     int coding;
-#ifdef VGM_USE_MPEG
-    mpeg_codec_data *data = NULL;
-#endif
 
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
@@ -325,89 +322,14 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
 
 #ifdef VGM_USE_MPEG
     if (coding == coding_MPEG1_L3) {
-        int rc;
-        off_t read_offset;
-        data = calloc(1,sizeof(mpeg_codec_data));
-        if (!data) goto mpeg_fail;
-
-        data->m = mpg123_new(NULL,&rc);
-        if (rc==MPG123_NOT_INITIALIZED) {
-            if (mpg123_init()!=MPG123_OK) goto mpeg_fail;
-            data->m = mpg123_new(NULL,&rc);
-            if (rc!=MPG123_OK) goto mpeg_fail;
-        } else if (rc!=MPG123_OK) {
-            goto mpeg_fail;
-        }
-
-        mpg123_param(data->m,MPG123_REMOVE_FLAGS,MPG123_GAPLESS,0.0);
-
-        if (mpg123_open_feed(data->m)!=MPG123_OK) {
-            goto mpeg_fail;
-        }
-
-        /* check format */
-        read_offset=0;
-        do {
-            size_t bytes_done;
-            if (read_streamfile(data->buffer, start_offset+read_offset,
-                    MPEG_BUFFER_SIZE,vgmstream->ch[0].streamfile) !=
-                    MPEG_BUFFER_SIZE) goto mpeg_fail;
-            read_offset+=1;
-            rc = mpg123_decode(data->m,data->buffer,MPEG_BUFFER_SIZE,
-                    NULL,0,&bytes_done);
-            if (rc != MPG123_OK && rc != MPG123_NEW_FORMAT &&
-                    rc != MPG123_NEED_MORE) goto mpeg_fail;
-        } while (rc != MPG123_NEW_FORMAT);
-
-        {
-            long rate;
-            int channels,encoding;
-            struct mpg123_frameinfo mi;
-            rc = mpg123_getformat(data->m,&rate,&channels,&encoding);
-            if (rc != MPG123_OK) goto mpeg_fail;
-            if (rate != vgmstream->sample_rate ||
-                    channels != vgmstream->channels ||
-                    encoding != MPG123_ENC_SIGNED_16) goto mpeg_fail;
-            mpg123_info(data->m,&mi);
-            if (mi.rate != vgmstream->sample_rate) goto mpeg_fail;
-            if (mi.version == MPG123_1_0 && mi.layer == 1)
-                vgmstream->coding_type = coding_MPEG1_L1;
-            else if (mi.version == MPG123_1_0 && mi.layer == 2)
-                vgmstream->coding_type = coding_MPEG1_L2;
-            else if (mi.version == MPG123_1_0 && mi.layer == 3)
-                vgmstream->coding_type = coding_MPEG1_L3;
-            else if (mi.version == MPG123_2_0 && mi.layer == 1)
-                vgmstream->coding_type = coding_MPEG2_L1;
-            else if (mi.version == MPG123_2_0 && mi.layer == 2)
-                vgmstream->coding_type = coding_MPEG2_L2;
-            else if (mi.version == MPG123_2_0 && mi.layer == 3)
-                vgmstream->coding_type = coding_MPEG2_L3;
-            else if (mi.version == MPG123_2_5 && mi.layer == 1)
-                vgmstream->coding_type = coding_MPEG25_L1;
-            else if (mi.version == MPG123_2_5 && mi.layer == 2)
-                vgmstream->coding_type = coding_MPEG25_L2;
-            else if (mi.version == MPG123_2_5 && mi.layer == 3)
-                vgmstream->coding_type = coding_MPEG25_L3;
-            else goto mpeg_fail;
-        }
-
-        /* reinit, to ignore the reading we've done so far */
-        mpg123_open_feed(data->m);
-
-        vgmstream->codec_data = data;
+        vgmstream->codec_data = init_mpeg_codec_data(vgmstream->ch[0].streamfile, start_offset, vgmstream->sample_rate, &(vgmstream->coding_type));
+        if (!vgmstream->codec_data) goto fail;
     }
 #endif
 
     return vgmstream;
 
     /* clean up anything we may have opened */
-#ifdef VGM_USE_MPEG
-mpeg_fail:
-    if (data) {
-        mpg123_delete(data->m);
-        free(data);
-    }
-#endif
 fail:
     if (vgmstream) close_vgmstream(vgmstream);
     return NULL;

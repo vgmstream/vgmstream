@@ -85,6 +85,94 @@ void decode_fake_mpeg2_l2(VGMSTREAMCHANNEL *stream,
     }
 }
 
+mpeg_codec_data *init_mpeg_codec_data(STREAMFILE *streamfile, off_t start_offset, long given_sample_rate, int given_channels, coding_t *coding_type) {
+    int rc;
+    off_t read_offset;
+    mpeg_codec_data *data = NULL;
+
+    data = calloc(1,sizeof(mpeg_codec_data));
+    if (!data) goto mpeg_fail;
+
+    data->m = mpg123_new(NULL,&rc);
+    if (rc==MPG123_NOT_INITIALIZED) {
+        if (mpg123_init()!=MPG123_OK) goto mpeg_fail;
+        data->m = mpg123_new(NULL,&rc);
+        if (rc!=MPG123_OK) goto mpeg_fail;
+    } else if (rc!=MPG123_OK) {
+        goto mpeg_fail;
+    }
+
+    mpg123_param(data->m,MPG123_REMOVE_FLAGS,MPG123_GAPLESS,0.0);
+
+    if (mpg123_open_feed(data->m)!=MPG123_OK) {
+        goto mpeg_fail;
+    }
+
+    /* check format */
+    read_offset=0;
+    do {
+        size_t bytes_done;
+        if (read_streamfile(data->buffer, start_offset+read_offset,
+                    MPEG_BUFFER_SIZE,streamfile) !=
+                MPEG_BUFFER_SIZE) goto mpeg_fail;
+        read_offset+=1;
+        rc = mpg123_decode(data->m,data->buffer,MPEG_BUFFER_SIZE,
+                NULL,0,&bytes_done);
+        if (rc != MPG123_OK && rc != MPG123_NEW_FORMAT &&
+                rc != MPG123_NEED_MORE) goto mpeg_fail;
+    } while (rc != MPG123_NEW_FORMAT);
+
+    {
+        long rate;
+        int channels,encoding;
+        struct mpg123_frameinfo mi;
+        rc = mpg123_getformat(data->m,&rate,&channels,&encoding);
+        if (rc != MPG123_OK) goto mpeg_fail;
+        //fprintf(stderr,"getformat ok, sr=%ld (%ld) ch=%d (%d) enc=%d (%d)\n",rate,given_sample_rate,channels,vgmstream->channels,encoding,MPG123_ENC_SIGNED_16);
+        if ((given_sample_rate != -1 && rate != given_sample_rate) ||
+            (given_channels != -1 && channels != given_channels) ||
+            encoding != MPG123_ENC_SIGNED_16) goto mpeg_fail;
+        mpg123_info(data->m,&mi);
+        if (given_sample_rate != -1 &&
+            mi.rate != given_sample_rate) goto mpeg_fail;
+
+        //fprintf(stderr,"mi.version=%d, mi.layer=%d\n",mi.version,mi.layer);
+
+        if (mi.version == MPG123_1_0 && mi.layer == 1)
+            *coding_type = coding_MPEG1_L1;
+        else if (mi.version == MPG123_1_0 && mi.layer == 2)
+            *coding_type = coding_MPEG1_L2;
+        else if (mi.version == MPG123_1_0 && mi.layer == 3)
+            *coding_type = coding_MPEG1_L3;
+        else if (mi.version == MPG123_2_0 && mi.layer == 1)
+            *coding_type = coding_MPEG2_L1;
+        else if (mi.version == MPG123_2_0 && mi.layer == 2)
+            *coding_type = coding_MPEG2_L2;
+        else if (mi.version == MPG123_2_0 && mi.layer == 3)
+            *coding_type = coding_MPEG2_L3;
+        else if (mi.version == MPG123_2_5 && mi.layer == 1)
+            *coding_type = coding_MPEG25_L1;
+        else if (mi.version == MPG123_2_5 && mi.layer == 2)
+            *coding_type = coding_MPEG25_L2;
+        else if (mi.version == MPG123_2_5 && mi.layer == 3)
+            *coding_type = coding_MPEG25_L3;
+        else goto mpeg_fail;
+    }
+
+    /* reinit, to ignore the reading we've done so far */
+    mpg123_open_feed(data->m);
+
+    return data;
+
+mpeg_fail:
+    fprintf(stderr, "mpeg_fail start_offset=%x\n",(unsigned int)start_offset);
+    if (data) {
+        mpg123_delete(data->m);
+        free(data);
+    }
+    return NULL;
+}
+
 /* decode anything mpg123 can */
 void decode_mpeg(VGMSTREAMCHANNEL *stream,
         mpeg_codec_data * data,

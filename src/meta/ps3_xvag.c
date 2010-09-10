@@ -1,4 +1,5 @@
 #include "meta.h"
+#include "../coding/coding.h"
 #include "../util.h"
 
 /* XVAG (from Ratchet & Clank Future: Quest for Booty) */
@@ -18,10 +19,15 @@ VGMSTREAM * init_vgmstream_ps3_xvag(STREAMFILE *streamFile) {
     int channel_count;
 	off_t	readOffset = 0;
 	int little_endian = 0;
+    long sample_rate = 0;
+    long num_samples = 0;
+
+    mpeg_codec_data *mpeg_data = NULL;
+    coding_t mpeg_coding_type = coding_MPEG1_L3;
 
 	int		loopStartPointsCount=0;
 	int		loopEndPointsCount=0;
-	int		mp3ID;
+	uint16_t mp3ID;
 	off_t	loopStartPoints[0x10];
 	off_t	loopEndPoints[0x10];
 
@@ -45,18 +51,38 @@ VGMSTREAM * init_vgmstream_ps3_xvag(STREAMFILE *streamFile) {
 	{
 		channel_count = read_32bitLE(0x28,streamFile);
 		start_offset = read_32bitLE(0x4,streamFile);
+		sample_rate = read_32bitLE(0x3c,streamFile);
+	    num_samples = read_32bitLE(0x30,streamFile);
 	}
 	else
 	{
 		channel_count = read_32bitBE(0x28,streamFile);
 		start_offset = read_32bitBE(0x4,streamFile);
+		sample_rate = read_32bitBE(0x3c,streamFile);
+	    num_samples = read_32bitBE(0x30,streamFile);
 	}
 
 	readOffset=start_offset;
 
 	// MP3s ?
-	mp3ID=read_16bitLE(0x4C,streamFile);
-	if(mp3ID!=0xFFFFFBFF) {
+	mp3ID=(uint16_t)read_16bitBE(0x4C,streamFile);
+	if(mp3ID==0xFFFB) {
+#ifdef VGM_USE_MPEG
+        long rate;
+        int channels,encoding;
+
+        mpeg_data = init_mpeg_codec_data(streamFile, start_offset, -1, -1, &mpeg_coding_type); // -1 to not check sample rate or channels
+        if (!mpeg_data) goto fail;
+
+        if (MPG123_OK != mpg123_getformat(mpeg_data->m,&rate,&channels,&encoding)) goto fail;
+        channel_count = channels;
+        sample_rate = rate;
+
+#else
+        // reject if no MPEG support
+        goto fail;
+#endif
+    } else {
 		// get the loops the same way we get on .MIB
 		do {
 			readOffset+=(off_t)read_streamfile(testBuffer,readOffset,0x10,streamFile); 
@@ -121,22 +147,21 @@ VGMSTREAM * init_vgmstream_ps3_xvag(STREAMFILE *streamFile) {
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
-    /* fill in the vital statistics */
-	if (little_endian) {
-		vgmstream->sample_rate = read_32bitLE(0x3c,streamFile);
-	    vgmstream->num_samples = read_32bitLE(0x30,streamFile);
-	} else {
-		vgmstream->sample_rate = read_32bitBE(0x3c,streamFile);
-	    vgmstream->num_samples = read_32bitBE(0x30,streamFile);
-	}
-
+    vgmstream->sample_rate = sample_rate;
+    vgmstream->num_samples = num_samples;
     vgmstream->channels = channel_count;
     vgmstream->meta_type = meta_PS3_XVAG;
 	
-	if(mp3ID==0xFFFFFBFF) {
-		// mp3s support doesn't work atm !
+	if(mp3ID==0xFFFB) {
+#ifdef VGM_USE_MPEG
+        /* NOTE: num_samples seems to be quite wrong for MPEG */
+        vgmstream->codec_data = mpeg_data;
 		vgmstream->layout_type = layout_mpeg;
-		vgmstream->coding_type = coding_MPEG1_L3;
+		vgmstream->coding_type = mpeg_coding_type;
+#else
+        // reject if no MPEG support
+        goto fail;
+#endif
 	}
 	else {
 	    vgmstream->layout_type = layout_interleave;
@@ -161,13 +186,7 @@ VGMSTREAM * init_vgmstream_ps3_xvag(STREAMFILE *streamFile) {
     {
         int i;
         STREAMFILE * file;
-		if(vgmstream->layout_type == layout_mpeg) {
-			for (i=0;i<channel_count;i++) {
-				vgmstream->ch[i].streamfile = streamFile->open(streamFile,filename,MPEG_BUFFER_SIZE);
-				vgmstream->ch[i].channel_start_offset= vgmstream->ch[i].offset=start_offset;
-			}
-
-		} else {
+		if(vgmstream->layout_type == layout_interleave) {
 			file = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
 			if (!file) goto fail;
 			for (i=0;i<channel_count;i++) {
@@ -179,6 +198,16 @@ VGMSTREAM * init_vgmstream_ps3_xvag(STREAMFILE *streamFile) {
 
 			}
 		}
+#ifdef VGM_USE_MPEG
+		else if(vgmstream->layout_type == layout_mpeg) {
+			for (i=0;i<channel_count;i++) {
+				vgmstream->ch[i].streamfile = streamFile->open(streamFile,filename,MPEG_BUFFER_SIZE);
+				vgmstream->ch[i].channel_start_offset= vgmstream->ch[i].offset=start_offset;
+			}
+
+        }
+#endif
+        else { goto fail; }
     }
 
     return vgmstream;

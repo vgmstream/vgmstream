@@ -78,6 +78,7 @@ void decode_ws(VGMSTREAM * vgmstream, int channel, sample * outbuf, int channels
 void decode_fake_mpeg2_l2(VGMSTREAMCHANNEL * stream,
         mpeg_codec_data * data,
         sample * outbuf, int32_t samples_to_do);
+mpeg_codec_data *init_mpeg_codec_data(STREAMFILE *streamfile, off_t start_offset, long given_sample_rate, int given_channels, coding_t *coding_type);
 void decode_mpeg(VGMSTREAMCHANNEL * stream,
         mpeg_codec_data * data,
         sample * outbuf, int32_t samples_to_do, int channels);
