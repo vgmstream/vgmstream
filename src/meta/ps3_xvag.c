@@ -22,8 +22,10 @@ VGMSTREAM * init_vgmstream_ps3_xvag(STREAMFILE *streamFile) {
     long sample_rate = 0;
     long num_samples = 0;
 
+#ifdef VGM_USE_MPEG
     mpeg_codec_data *mpeg_data = NULL;
     coding_t mpeg_coding_type = coding_MPEG1_L3;
+#endif
 
 	int		loopStartPointsCount=0;
 	int		loopEndPointsCount=0;
@@ -214,6 +216,7 @@ VGMSTREAM * init_vgmstream_ps3_xvag(STREAMFILE *streamFile) {
 
     /* clean up anything we may have opened */
 fail:
+#ifdef VGM_USE_MPEG
     if (mpeg_data) {
         mpg123_delete(mpeg_data->m);
         free(mpeg_data);
@@ -222,6 +225,7 @@ fail:
             vgmstream->codec_data = NULL;
         }
     }
+#endif
     if (vgmstream) close_vgmstream(vgmstream);
     return NULL;
 }
