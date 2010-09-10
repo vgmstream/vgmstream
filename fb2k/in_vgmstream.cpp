@@ -408,6 +408,7 @@ bool input_vgmstream::g_is_our_path(const char * p_path,const char * p_extension
 	if(!stricmp_utf8(p_extension,"sad")) return 1;
 	if(!stricmp_utf8(p_extension,"sap")) return 1;
 	if(!stricmp_utf8(p_extension,"sc")) return 1;
+	if(!stricmp_utf8(p_extension,"scd")) return 1;
 	if(!stricmp_utf8(p_extension,"sck")) return 1;
 	if(!stricmp_utf8(p_extension,"sd9")) return 1;
 	if(!stricmp_utf8(p_extension,"sdt")) return 1;
@@ -689,6 +690,7 @@ DECLARE_MULTIPLE_FILE_TYPE("SAB Audio File (*.SAB)", sab);
 DECLARE_MULTIPLE_FILE_TYPE("SAD Audio File (*.SAD)", sad);
 DECLARE_MULTIPLE_FILE_TYPE("SAP Audio File (*.SAP)", sap);
 DECLARE_MULTIPLE_FILE_TYPE("SC Audio File (*.SC)", sc);
+DECLARE_MULTIPLE_FILE_TYPE("SCD Audio File (*.SCD)", scd);
 DECLARE_MULTIPLE_FILE_TYPE("SCK Audio File (*.SCK)", sck);
 DECLARE_MULTIPLE_FILE_TYPE("SD9 Audio File (*.SD9)", sd9);
 DECLARE_MULTIPLE_FILE_TYPE("SDT Audio File (*.SDT)", sdt);

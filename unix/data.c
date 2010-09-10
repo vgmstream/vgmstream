@@ -169,6 +169,7 @@ gchar *vgmstream_exts [] = {
   "sad",
   "sap",
   "sc",
+  "scd",
   "sck",
   "sd9",
   "sdt",

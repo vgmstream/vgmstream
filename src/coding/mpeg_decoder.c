@@ -214,4 +214,8 @@ void decode_mpeg(VGMSTREAMCHANNEL *stream,
     }
 }
 
+long mpeg_bytes_to_samples(long bytes, const struct mpg123_frameinfo *mi) {
+    return bytes * mi->rate * 8 / (mi->bitrate * 1000);
+}
+
 #endif

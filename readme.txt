@@ -251,6 +251,7 @@ etc:
 - .sab (Worms 4 soundpacks)
 - .s14/.sss (G.722.1)
 - .sc (Activision EXAKT SASSC DPCM)
+- .scd (MS ADPCM, MPEG Audio, 16 bit PCM)
 - .sd9 (MS ADPCM)
 - .smp (MS ADPCM)
 - .spw (FFXI PS-like ADPCM)

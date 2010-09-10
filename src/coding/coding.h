@@ -79,6 +79,7 @@ void decode_fake_mpeg2_l2(VGMSTREAMCHANNEL * stream,
         mpeg_codec_data * data,
         sample * outbuf, int32_t samples_to_do);
 mpeg_codec_data *init_mpeg_codec_data(STREAMFILE *streamfile, off_t start_offset, long given_sample_rate, int given_channels, coding_t *coding_type);
+long mpeg_bytes_to_samples(long bytes, const struct mpg123_frameinfo *mi);
 void decode_mpeg(VGMSTREAMCHANNEL * stream,
         mpeg_codec_data * data,
         sample * outbuf, int32_t samples_to_do, int channels);
@@ -94,6 +95,7 @@ void decode_acm(ACMStream * acm, sample * outbuf,
 
 void decode_nwa(NWAData *nwa, sample *outbuf, int32_t samples_to_do);
 
+long msadpcm_bytes_to_samples(long bytes, int block_size, int channels);
 void decode_msadpcm_stereo(VGMSTREAM * vgmstream, sample * outbuf, int32_t first_sample, int32_t samples_to_do);
 
 void decode_msadpcm_mono(VGMSTREAM * vgmstream, sample * outbuf, int32_t first_sample, int32_t samples_to_do);

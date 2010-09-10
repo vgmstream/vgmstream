@@ -521,5 +521,6 @@ VGMSTREAM * init_vgmstream_ps3_xvag(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_ps3_cps(STREAMFILE* streamFile);
 
+VGMSTREAM * init_vgmstream_se_scd(STREAMFILE* streamFile);
 
 #endif

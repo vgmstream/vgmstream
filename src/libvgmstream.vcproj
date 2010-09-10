@@ -891,6 +891,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\se_scd.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\sfl.c"
 					>
 				</File>
