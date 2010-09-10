@@ -214,6 +214,14 @@ VGMSTREAM * init_vgmstream_ps3_xvag(STREAMFILE *streamFile) {
 
     /* clean up anything we may have opened */
 fail:
+    if (mpeg_data) {
+        mpg123_delete(mpeg_data->m);
+        free(mpeg_data);
+
+        if (vgmstream) {
+            vgmstream->codec_data = NULL;
+        }
+    }
     if (vgmstream) close_vgmstream(vgmstream);
     return NULL;
 }
