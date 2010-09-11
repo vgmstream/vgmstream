@@ -296,7 +296,7 @@ VGMSTREAM * init_vgmstream_musx_v010(STREAMFILE *streamFile) {
         channel_count = read_32bitLE(0x48,streamFile);
         loop_flag = (read_32bitLE(0x64,streamFile) != -1);
     }
-    if (musx_type = 0x58455F5F) /* XE__ */
+    if (0x58455F5F == musx_type) /* XE__ */
     {
         loop_flag = 0;
     }
