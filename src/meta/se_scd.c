@@ -93,9 +93,12 @@ VGMSTREAM * init_vgmstream_se_scd(STREAMFILE *streamFile) {
                 vgmstream->layout_type = layout_mpeg;
                 if (mi.vbr != MPG123_CBR) goto fail;
                 vgmstream->num_samples = mpeg_bytes_to_samples(read_32bit(meta_offset+0,streamFile), &mi);
+                vgmstream->num_samples = vgmstream->num_samples/2*2;
                 if (loop_flag) {
                     vgmstream->loop_start_sample = mpeg_bytes_to_samples(loop_start, &mi);
+                    vgmstream->loop_start_sample = vgmstream->loop_start_sample/2*2;
                     vgmstream->loop_end_sample = mpeg_bytes_to_samples(loop_end, &mi);
+                    vgmstream->loop_end_sample = vgmstream->loop_end_sample/2*2;
                 }
                 vgmstream->interleave_block_size = 0;
             }
