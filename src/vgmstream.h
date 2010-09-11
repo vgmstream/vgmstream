@@ -59,6 +59,7 @@ typedef enum {
     coding_invert_PSX,      /* PSX ADPCM with some weirdness */
     coding_PSX_badflags,    /* with garbage in the flags byte */
     coding_FFXI,            /* FF XI PSX-ish ADPCM */
+    coding_BLUR_ADPCM,      /* BLUR PSX-ish ADPCM */
     coding_XA,				/* PSX CD-XA */
     coding_XBOX,			/* XBOX IMA */
 	coding_INT_XBOX,		/* XBOX 'real interleaved' IMA */
@@ -486,6 +487,7 @@ typedef enum {
 	  meta_PS3_CPS,           /* Eternal Sonata (PS3) */
     meta_SE_SCD,            /* Square-Enix SCD */
     meta_NGC_NST_DSP,       /* Animaniacs [NGC] */
+    meta_BAF,               /* .baf (Blur) */
 } meta_t;
 
 typedef struct {

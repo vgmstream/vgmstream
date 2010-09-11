@@ -40,6 +40,7 @@ gchar *vgmstream_exts [] = {
   "aus",
 
   "baka",
+  "baf",
   "bar",
   "bg00",
   "bgw",

@@ -245,6 +245,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\baf.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\bgw.c"
 					>
 				</File>

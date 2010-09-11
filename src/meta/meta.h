@@ -525,4 +525,6 @@ VGMSTREAM * init_vgmstream_se_scd(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_ngc_nst_dsp(STREAMFILE* streamFile);
 
+VGMSTREAM * init_vgmstream_baf(STREAMFILE* streamFile);
+
 #endif

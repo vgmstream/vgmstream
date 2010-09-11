@@ -285,6 +285,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	  init_vgmstream_ps3_cps,
     init_vgmstream_se_scd,
     init_vgmstream_ngc_nst_dsp,
+    init_vgmstream_baf,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -810,6 +811,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
             return 28;
         case coding_XBOX:
 		case coding_INT_XBOX:
+        case coding_BLUR_ADPCM:
             return 64;
         case coding_EAXA:
             return 28;
@@ -922,6 +924,8 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
             return 1; 
         case coding_APPLE_IMA4:
             return 34;
+        case coding_BLUR_ADPCM:
+            return 33;
 #ifdef VGM_USE_G7221
         case coding_G7221C:
         case coding_G7221:
@@ -1150,6 +1154,13 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
         case coding_FFXI:
             for (chan=0;chan<vgmstream->channels;chan++) {
                 decode_ffxi_adpcm(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                        vgmstream->channels,vgmstream->samples_into_block,
+                        samples_to_do);
+            }
+            break;
+        case coding_BLUR_ADPCM:
+            for (chan=0;chan<vgmstream->channels;chan++) {
+                decode_blur_adpcm(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
                         samples_to_do);
             }
@@ -1576,6 +1587,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case coding_FFXI:
             snprintf(temp,TEMPSIZE,"FFXI Playstation-ish 4-bit ADPCM");
+            break;
+        case coding_BLUR_ADPCM:
+            snprintf(temp,TEMPSIZE,"Blur Playstation-ish 4-bit ADPCM");
             break;
         case coding_XA:
             snprintf(temp,TEMPSIZE,"CD-ROM XA 4-bit ADPCM");
@@ -2672,6 +2686,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case meta_NGC_NST_DSP:
             snprintf(temp,TEMPSIZE,"Animaniacs NST header");
+            break;
+        case meta_BAF:
+            snprintf(temp,TEMPSIZE,".baf WAVE header");
             break;
 		default:
            snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

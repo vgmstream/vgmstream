@@ -277,6 +277,7 @@ bool input_vgmstream::g_is_our_path(const char * p_path,const char * p_extension
 	if(!stricmp_utf8(p_extension,"aus")) return 1;
 
 	if(!stricmp_utf8(p_extension,"baka")) return 1;
+	if(!stricmp_utf8(p_extension,"baf")) return 1;
 	if(!stricmp_utf8(p_extension,"bar")) return 1;
 	if(!stricmp_utf8(p_extension,"bg00")) return 1;
 	if(!stricmp_utf8(p_extension,"bgw")) return 1;
@@ -559,6 +560,7 @@ DECLARE_MULTIPLE_FILE_TYPE("AUD Audio File (*.AUD)", aud);
 DECLARE_MULTIPLE_FILE_TYPE("AUS Audio File (*.AUS)", aus);
 
 DECLARE_MULTIPLE_FILE_TYPE("BAKA Audio File (*.BAKA)", baka);
+DECLARE_MULTIPLE_FILE_TYPE("BAF Audio File (*.BAF)", baf);
 DECLARE_MULTIPLE_FILE_TYPE("BAR Audio File (*.BAR)", bar);
 DECLARE_MULTIPLE_FILE_TYPE("BG00 Audio File (*.BG00)", bg00);
 DECLARE_MULTIPLE_FILE_TYPE("BGW Audio File (*.BGW)", bgw);
