@@ -120,7 +120,7 @@ VGMSTREAM * init_vgmstream_ps3_xvag(STREAMFILE *streamFile) {
 			if((loopStartPointsCount<=0x0F) && (loopStartPointsCount>=2)) 
 			{
 				// Always took the first 2 loop points
-				loopStart=loopStartPoints[1];
+				loopStart=loopStartPoints[1]-start_offset;
 				loop_flag=1;
 			} else 
 				loopStart=0;
@@ -131,7 +131,7 @@ VGMSTREAM * init_vgmstream_ps3_xvag(STREAMFILE *streamFile) {
 			// can't get more then 0x10 loop point !
 			if((loopEndPointsCount<=0x0F) && (loopEndPointsCount>=2)) {
 				loop_flag=1;
-				loopEnd=loopEndPoints[loopEndPointsCount-1];
+				loopEnd=loopEndPoints[loopEndPointsCount-1]-start_offset;
 			} else {
 				loopEnd=0;
 			}
@@ -173,12 +173,12 @@ VGMSTREAM * init_vgmstream_ps3_xvag(STREAMFILE *streamFile) {
 
 	if (loop_flag) {
 		if(loopStart!=0) {
-			vgmstream->loop_start_sample = ((((loopStart/vgmstream->interleave_block_size)-1)*vgmstream->interleave_block_size)/16*14*channel_count)/channel_count;
+			vgmstream->loop_start_sample = ((((loopStart/vgmstream->interleave_block_size)-1)*vgmstream->interleave_block_size)/16*28)/channel_count;
 			if(loopStart%vgmstream->interleave_block_size) {
 				vgmstream->loop_start_sample += (((loopStart%vgmstream->interleave_block_size)-1)/16*14*channel_count);
 			}
 		}
-       vgmstream->loop_end_sample = ((((loopEnd/vgmstream->interleave_block_size)-1)*vgmstream->interleave_block_size)/16*14*channel_count)/channel_count;
+       vgmstream->loop_end_sample = ((((loopEnd/vgmstream->interleave_block_size)-1)*vgmstream->interleave_block_size)/16*28)/channel_count;
 		if(loopEnd%vgmstream->interleave_block_size) {
 			vgmstream->loop_end_sample += (((loopEnd%vgmstream->interleave_block_size)-1)/16*14*channel_count);
 		}
