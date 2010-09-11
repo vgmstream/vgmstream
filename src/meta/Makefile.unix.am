@@ -206,5 +206,6 @@ libmeta_la_SOURCES += ps2_jstm.c
 libmeta_la_SOURCES += ps3_xvag.c
 libmeta_la_SOURCES += ps3_cps.c
 libmeta_la_SOURCES += se_scd.c
+libmeta_la_SOURCES += ngc_nst_dsp.c
 
 EXTRA_DIST = meta.h

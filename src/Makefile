@@ -253,7 +253,8 @@ META_OBJS=meta/adx_header.o \
     meta/ps2_jstm.o \
     meta/ps3_xvag.o \
     meta/ps3_cps.o \
-    meta/se_scd.o
+    meta/se_scd.o \
+    meta/ngc_nst_dsp.o
 
 OBJECTS=vgmstream.o streamfile.o util.o $(CODING_OBJS) $(LAYOUT_OBJS) $(META_OBJS)
 
