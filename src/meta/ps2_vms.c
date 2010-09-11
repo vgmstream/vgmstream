@@ -11,12 +11,6 @@ VGMSTREAM * init_vgmstream_ps2_vms(STREAMFILE *streamFile) {
 	int channel_count;
 	int header_size;
 
-	off_t readOffset;
-	size_t	fileLength;
-	uint8_t	testBuffer[0x10];
-	int loopStart = -1;
-	int loopEnd = -1;
-
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
     if (strcasecmp("vms",filename_extension(filename))) goto fail;

@@ -5,7 +5,6 @@
 VGMSTREAM * init_vgmstream_dsp_bdsp(STREAMFILE *streamFile) {
 
     VGMSTREAM * vgmstream = NULL;
-    STREAMFILE * streamFileGSP = NULL;
     char filename[260];
     int channel_count;
     int loop_flag;

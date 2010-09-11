@@ -2236,7 +2236,7 @@ VGMSTREAM * init_vgmstream_dsp_dspw(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[260];
 
-    off_t channel_1_start, channel_2_start, channel_1_size, channel_2_size;
+    off_t channel_1_start, channel_2_start;
 
     struct dsp_header ch0_header,ch1_header;
 
