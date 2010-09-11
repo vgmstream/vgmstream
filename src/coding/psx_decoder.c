@@ -197,9 +197,6 @@ void decode_blur_adpcm(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelsp
 	first_sample = first_sample % 64;
 	
 	for (i=first_sample,sample_count=0; i<first_sample+samples_to_do; i++,sample_count+=channelspacing) {
-
-		sample=0;
-
 		short sample_byte = (short)read_8bit(stream->offset+(framesin*33)+1+i/2,stream->streamfile);
 
 		scale = ((i&1 ?
