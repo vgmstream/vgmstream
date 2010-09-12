@@ -41,9 +41,12 @@ VGMSTREAM * init_vgmstream_se_scd(STREAMFILE *streamFile) {
         meta_offset_offset = 0x70;
     } else goto fail;
 
+    /* never mind, FFXIII music_68tak.ps3.scd is 0x80 shorter */
+#if 0
     /* check file size with header value */
     if (read_32bit(size_offset,streamFile) != get_streamfile_size(streamFile))
         goto fail;
+#endif
 
     /* this is probably some kind of chunk offset (?) */
     meta_offset = read_32bit(0x70,streamFile);
@@ -95,12 +98,12 @@ VGMSTREAM * init_vgmstream_se_scd(STREAMFILE *streamFile) {
                 vgmstream->layout_type = layout_mpeg;
                 if (mi.vbr != MPG123_CBR) goto fail;
                 vgmstream->num_samples = mpeg_bytes_to_samples(read_32bit(meta_offset+0,streamFile), &mi);
-                vgmstream->num_samples = vgmstream->num_samples/2*2;
+                vgmstream->num_samples -= vgmstream->num_samples%576;
                 if (loop_flag) {
                     vgmstream->loop_start_sample = mpeg_bytes_to_samples(loop_start, &mi);
-                    vgmstream->loop_start_sample = vgmstream->loop_start_sample/2*2;
+                    vgmstream->loop_start_sample -= vgmstream->loop_start_sample%576;
                     vgmstream->loop_end_sample = mpeg_bytes_to_samples(loop_end, &mi);
-                    vgmstream->loop_end_sample = vgmstream->loop_end_sample/2*2;
+                    vgmstream->loop_end_sample -= vgmstream->loop_end_sample%576;
                 }
                 vgmstream->interleave_block_size = 0;
             }
