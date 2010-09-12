@@ -24,8 +24,10 @@ VGMSTREAM * init_vgmstream_se_scd(STREAMFILE *streamFile) {
     if (read_32bitBE(0,streamFile) != 0x53454442) goto fail;
     /* SSCF */
     if (read_32bitBE(4,streamFile) != 0x53534346) goto fail;
-    if (read_32bitBE(8,streamFile) == 2) {
-        /* version 2 BE, as seen in FFXIII for PS3 */
+    if (read_32bitBE(8,streamFile) == 2 ||
+        read_32bitBE(8,streamFile) == 3) {
+        /* version 2 BE, as seen in FFXIII demo for PS3 */
+        /* version 3 BE, as seen in FFXIII for PS3 */
         read_32bit = read_32bitBE;
         read_16bit = read_16bitBE;
         size_offset = 0x14;
