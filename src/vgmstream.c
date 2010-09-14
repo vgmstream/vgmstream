@@ -286,6 +286,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_se_scd,
     init_vgmstream_ngc_nst_dsp,
     init_vgmstream_baf,
+    init_vgmstream_ps3_msf,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -2689,6 +2690,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case meta_BAF:
             snprintf(temp,TEMPSIZE,".baf WAVE header");
+            break;
+        case meta_PS3_MSF:
+            snprintf(temp,TEMPSIZE,"PS3 MSF header");
             break;
 		default:
            snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

@@ -488,6 +488,7 @@ typedef enum {
     meta_SE_SCD,            /* Square-Enix SCD */
     meta_NGC_NST_DSP,       /* Animaniacs [NGC] */
     meta_BAF,               /* .baf (Blur) */
+    meta_PS3_MSF,           /* MSF header */
 } meta_t;
 
 typedef struct {

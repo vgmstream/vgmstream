@@ -190,6 +190,7 @@ char * extension_list[] = {
     "mpdsp\0MPDSP Audio File (*.MPDSP)\0",
     "mpds\0MPDS Audio File (*.MPDS)\0",
     "msa\0MSA Audio File (*.MSA)\0",
+    "msf\0MSF Audio File (*.MSF)\0",
     "mss\0MSS Audio File (*.MSS)\0",
     "msvp\0MSVP Audio File (*.MSVP)\0",
     "mus\0MUS Playlist File (*.MUS)\0",
