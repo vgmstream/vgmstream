@@ -397,8 +397,13 @@ VGMSTREAM * init_vgmstream_fsb_mpeg(STREAMFILE *streamFile) {
     mp3ID = read_8bit(start_offset,streamFile);
     if (mp3ID != 0xFF)
         goto fail;
+     
+	/* Still WIP */
+	if (read_32bitBE(0x80,streamFile)==0x53594E43)
+        loop_flag = 1;
+	else
+		loop_flag = 0;
 
-    loop_flag=0;
     num_samples = (read_32bitLE(0x5C,streamFile));
 
 #ifdef VGM_USE_MPEG
@@ -421,6 +426,12 @@ VGMSTREAM * init_vgmstream_fsb_mpeg(STREAMFILE *streamFile) {
     vgmstream->sample_rate = sample_rate;
     vgmstream->num_samples = num_samples;
     vgmstream->channels = channel_count;
+  
+	/* Still WIP */
+	if (loop_flag) {
+        vgmstream->loop_start_sample = read_32bitLE(0x58,streamFile);
+       vgmstream->loop_end_sample = read_32bitLE(0x5c,streamFile);
+    }
     vgmstream->meta_type = meta_FSB_MPEG;
 
 #ifdef VGM_USE_MPEG
