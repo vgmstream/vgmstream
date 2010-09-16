@@ -197,7 +197,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_ps2_p2bt,
     init_vgmstream_ps2_gbts,
     init_vgmstream_wii_sng,
-//	init_vgmstream_iadp,
+    init_vgmstream_ngc_dsp_iadp,
     init_vgmstream_aax,
     init_vgmstream_ngc_ffcc_str,
     init_vgmstream_sat_baka,
@@ -288,6 +288,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_baf,
     init_vgmstream_ps3_msf,
     init_vgmstream_fsb_mpeg,
+    
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -2439,8 +2440,8 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         case meta_PS2_GBTS:
             snprintf(temp,TEMPSIZE,"Pop'n'Music 9 Header");
             break;
-        case meta_NGC_IADP:
-            snprintf(temp,TEMPSIZE,"Dr MUTO Header");
+        case meta_NGC_DSP_IADP:
+            snprintf(temp,TEMPSIZE,"IADP Header");
             break;
         case meta_RSTM_shrunken:
             snprintf(temp,TEMPSIZE,"Nintendo RSTM header, corrupted by Atlus");

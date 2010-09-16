@@ -427,7 +427,7 @@ typedef enum {
     meta_STS_WII,			      /* Shikigami No Shiro 3 STS Audio File */
     meta_PS2_P2BT,			    /* Pop'n'Music 7 Audio File */
     meta_PS2_GBTS,			    /* Pop'n'Music 9 Audio File */
-    meta_NGC_IADP,			    /* Gamecube Interleave DSP */
+    meta_NGC_DSP_IADP,      /* Gamecube Interleave DSP */
 	  meta_PS2_TK5,			      /* Tekken 5 Stream Files */
 	  meta_WII_STR,			      /* House of The Dead Overkill STR+STH */
 	  meta_PS2_MCG,			      /* Gunvari MCG  Files (was name .GCM on disk) */

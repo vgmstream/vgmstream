@@ -531,4 +531,6 @@ VGMSTREAM * init_vgmstream_baf(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_ps3_msf(STREAMFILE* streamFile);
 
+VGMSTREAM * init_vgmstream_ngc_dsp_iadp(STREAMFILE* streamFile);
+
 #endif

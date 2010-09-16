@@ -388,6 +388,10 @@ VGMSTREAM * init_vgmstream_fsb_mpeg(STREAMFILE *streamFile) {
     /* "Check if the FSB is used as conatiner or as single file" */
     if (read_32bitBE(0x04,streamFile) != 0x01000000)
         goto fail;
+    
+    /* Check channel count, multi-channel not supported and will be refused */
+    if (read_16bitLE(0x6E,streamFile) != 0x2)
+        goto fail;
 
 		start_offset = read_32bitLE(0x08,streamFile)+0x30; //read_32bitBE(0x4,streamFile);
     mp3ID = read_8bit(start_offset,streamFile);

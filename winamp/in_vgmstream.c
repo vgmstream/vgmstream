@@ -157,6 +157,7 @@ char * extension_list[] = {
     "hps\0HALPST Audio File (*.HPS)\0",
     "hwas\0HWAS Audio File (*.HWAS)\0",
 
+    "iadp\0IADP Audio File (*.IADP)\0",
     "idsp\0IDSP Audio File (*.IDSP)\0",
     "idvi\0IDVI Audio File (*.IDVI)\0",
     "ikm\0IKM Audio File (*.IKM)\0",
