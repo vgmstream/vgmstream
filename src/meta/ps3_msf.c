@@ -42,6 +42,26 @@ VGMSTREAM * init_vgmstream_ps3_msf(STREAMFILE *streamFile) {
     start_offset = 0x40;
 
     switch (codec_id) {
+        case 0x3:
+            {
+                vgmstream->coding_type = coding_PSX;
+                vgmstream->num_samples = read_32bitBE(0x0C,streamFile)/16/channel_count*28;
+                if (loop_flag) {
+                    vgmstream->loop_start_sample = read_32bitBE(0x18,streamFile)/16/channel_count*28;
+                    vgmstream->loop_end_sample = read_32bitBE(0x0C,streamFile)/16/channel_count*28;
+                }
+                
+                if (channel_count == 1)
+                {
+                  vgmstream->layout_type = layout_none;
+                }
+                else if (channel_count > 1)
+                {
+                  vgmstream->layout_type = layout_interleave;
+                  vgmstream->interleave_block_size = read_32bitBE(0x14,streamFile); // Not sure
+                }
+            }
+            break;
 #ifdef VGM_USE_MPEG
         case 0x7:
             /* MPEG */
