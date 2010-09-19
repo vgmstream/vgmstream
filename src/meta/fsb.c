@@ -221,6 +221,7 @@ VGMSTREAM * init_vgmstream_fsb4(STREAMFILE *streamFile) {
 		case 0x50011000:
 		case 0x20205000:
 		case 0x30610080:
+		case 0x50210080: /* Another Century's Episode R (PS3) */
             vgmstream->coding_type = coding_PCM16LE;
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = 0x2;
@@ -390,7 +391,8 @@ VGMSTREAM * init_vgmstream_fsb_mpeg(STREAMFILE *streamFile) {
         goto fail;
     
     /* Check channel count, multi-channel not supported and will be refused */
-    if (read_16bitLE(0x6E,streamFile) != 0x2)
+    if ((read_16bitLE(0x6E,streamFile) != 0x2) &&
+       (read_16bitLE(0x6E,streamFile) != 0x1))
         goto fail;
 
 		start_offset = read_32bitLE(0x08,streamFile)+0x30; //read_32bitBE(0x4,streamFile);
