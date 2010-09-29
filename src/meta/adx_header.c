@@ -273,6 +273,11 @@ static struct {
 	 * Publisher: Tecmo (Rakushou! Pachi-Slot Sengen 6: Rio 2 Cruising Vanadis) */
     /* confirmed unique with guessadx */
     {0x53e9,0x586d,0x4eaf},
+	
+	/* Developer: Aquaplus
+	 * Tears to Tiara Gaiden Avalon no Kagi (PS3) */
+    /* confirmed unique with guessadx */
+	{0x47e1,0x60e9,0x51c1},
 };
 
 static const int key_count = sizeof(keys)/sizeof(keys[0]);
