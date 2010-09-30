@@ -288,6 +288,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_baf,
     init_vgmstream_ps3_msf,
     init_vgmstream_fsb_mpeg,
+	init_vgmstream_nub_vag,
     
 };
 
@@ -321,9 +322,10 @@ VGMSTREAM * init_vgmstream_internal(STREAMFILE *streamFile, int do_dfs) {
                         (vgmstream->meta_type == meta_KRAW) ||
                         (vgmstream->meta_type == meta_PS2_MIB) ||
                         (vgmstream->meta_type == meta_NGC_LPS) ||
-						            (vgmstream->meta_type == meta_DSP_YGO) ||
+						 (vgmstream->meta_type == meta_DSP_YGO) ||
                         (vgmstream->meta_type == meta_DSP_AGSC) ||
-						            (vgmstream->meta_type == meta_PS2_SMPL) ||
+						 (vgmstream->meta_type == meta_PS2_SMPL) ||
+		                (vgmstream->meta_type == meta_NUB_VAG) ||
                         (vgmstream->meta_type == meta_SPT_SPD)
                         ) && vgmstream->channels == 1) {
                 try_dual_file_stereo(vgmstream, streamFile);
@@ -2698,6 +2700,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case meta_FSB_MPEG:
             snprintf(temp,TEMPSIZE,"FSB MPEG header");
+            break;
+		case meta_NUB_VAG:
+            snprintf(temp,TEMPSIZE,"VAG (NUB) header");
             break;
 		default:
            snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

@@ -490,6 +490,7 @@ typedef enum {
     meta_NGC_NST_DSP,       /* Animaniacs [NGC] */
     meta_BAF,               /* .baf (Blur) */
     meta_PS3_MSF,           /* MSF header */
+	meta_NUB_VAG            /* VAG from Nub archives */
 } meta_t;
 
 typedef struct {
