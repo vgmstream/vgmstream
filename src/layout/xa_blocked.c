@@ -20,18 +20,20 @@ void xa_block_update(off_t block_offset, VGMSTREAM * vgmstream) {
 		vgmstream->xa_sector_length=0;
 
 		// 0x30 of unused bytes/sector :(
-		block_offset+=0x30;
+		if (!vgmstream->xa_headerless) {
+			block_offset+=0x30;
 begin:
-		// Search for selected channel & valid audio
-		currentChannel=read_8bit(block_offset-7,vgmstream->ch[0].streamfile);
-		subAudio=read_8bit(block_offset-6,vgmstream->ch[0].streamfile);
+			// Search for selected channel & valid audio
+			currentChannel=read_8bit(block_offset-7,vgmstream->ch[0].streamfile);
+			subAudio=read_8bit(block_offset-6,vgmstream->ch[0].streamfile);
 
-		// audio is coded as 0x64
-		if(!((subAudio==0x64) && (currentChannel==vgmstream->xa_channel))) {
-			// go to next sector
-			block_offset+=2352;
-			if(currentChannel!=-1) goto begin;
-		} 
+			// audio is coded as 0x64
+			if(!((subAudio==0x64) && (currentChannel==vgmstream->xa_channel))) {
+				// go to next sector
+				block_offset+=2352;
+				if(currentChannel!=-1) goto begin;
+			} 
+		}
 	}
 
 	vgmstream->current_block_offset = block_offset;
