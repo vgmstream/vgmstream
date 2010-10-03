@@ -5,7 +5,7 @@
 /* Sony PSX CD-XA */
 /* No looped file ! */
 
-off_t init_xa_channel(int channel,STREAMFILE *streamFile);
+off_t init_xa_channel(int *channel,STREAMFILE *streamFile);
 
 uint8_t AUDIO_CODING_GET_STEREO(uint8_t value) {
 	return (uint8_t)(value & 3);
@@ -21,7 +21,7 @@ VGMSTREAM * init_vgmstream_cdxa(STREAMFILE *streamFile) {
 
 	int channel_count;
 	int headerless=0;
-	int* xa_channel=0;
+	int xa_channel=0;
 	uint8_t bCoding;
 	off_t start_offset;
 
@@ -115,8 +115,6 @@ off_t init_xa_channel(int* channel,STREAMFILE* streamFile) {
 
 	int8_t currentChannel;
 	int8_t subAudio;
-
-begin:
 
 	// 0 can't be a correct value
 	if(block_offset>=(off_t)filelength)

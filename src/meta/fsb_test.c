@@ -1,7 +1,7 @@
 #include "meta.h"
 #include "../util.h"
 
-/* FSB3.0 and /* FSB3.1*/
+/* FSB3.0 and FSB3.1 */
 
 VGMSTREAM * init_vgmstream_fsb3(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;

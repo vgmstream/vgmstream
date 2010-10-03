@@ -5,7 +5,6 @@
 #ifndef _VGMSTREAM_H
 #define _VGMSTREAM_H
 
-/* Vorbis and MPEG decoding are done by external libraries.
 /* Due mostly to licensing issues, Vorbis, MPEG, and G.722.1 decoding are
  * done by external libraries.
  * If someone wants to do a standalone build, they can do it by simply
@@ -158,7 +157,6 @@ typedef enum {
     layout_ps2_adm_blocked,
     layout_dsp_bdsp_blocked,
 	layout_mxch_blocked,
-	layout_mtaf_blocked,
 
 #if 0
     layout_strm_blocked,    /* */
