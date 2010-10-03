@@ -5,6 +5,7 @@
 #ifndef _VGMSTREAM_H
 #define _VGMSTREAM_H
 
+/* Vorbis and MPEG decoding are done by external libraries.
 /* Due mostly to licensing issues, Vorbis, MPEG, and G.722.1 decoding are
  * done by external libraries.
  * If someone wants to do a standalone build, they can do it by simply
@@ -153,10 +154,12 @@ typedef enum {
     layout_gsb_blocked,
     layout_thp_blocked,
     layout_filp_blocked,
-	  layout_mxch_blocked,
     layout_psx_mgav_blocked,
     layout_ps2_adm_blocked,
     layout_dsp_bdsp_blocked,
+	layout_mxch_blocked,
+	layout_mtaf_blocked,
+
 #if 0
     layout_strm_blocked,    /* */
 #endif
@@ -484,11 +487,12 @@ typedef enum {
     meta_FFW,               /* Freedom Fighters [NGC] */
     meta_DSP_DSPW,          /* Sengoku Basara 3 [WII] */
     meta_PS2_JSTM,          /* Tantei Jinguji Saburo - Kind of Blue (PS2) */
-	  meta_PS3_XVAG,          /* Ratchet & Clank Future: Quest for Booty (PS3) */
-	  meta_PS3_CPS,           /* Eternal Sonata (PS3) */
     meta_SE_SCD,            /* Square-Enix SCD */
     meta_NGC_NST_DSP,       /* Animaniacs [NGC] */
     meta_BAF,               /* .baf (Blur) */
+	meta_PS3_XVAG,          /* Ratchet & Clank Future: Quest for Booty (PS3) */
+	meta_PS2_MTAF,			/* Metal Gear 3 MTAF */
+	meta_PS3_CPS,           /* Eternal Sonata (PS3) */
     meta_PS3_MSF,           /* MSF header */
 	meta_NUB_VAG            /* VAG from Nub archives */
 } meta_t;
@@ -578,6 +582,7 @@ typedef struct {
     off_t current_block_offset;     /* start of this block (offset of block header) */
     size_t current_block_size;      /* size of the block we're in now */
     off_t next_block_offset;        /* offset of header of the next block */
+	int	block_count;				/* count of "semi" block in total block */
 
     int hit_loop;                   /* have we seen the loop yet? */
 
@@ -590,6 +595,7 @@ typedef struct {
 
     uint8_t xa_channel;				/* Selected XA Channel */
     int32_t xa_sector_length;		/* XA block */
+	uint8_t xa_headerless;			/* headerless XA block */
     int8_t get_high_nibble;
 
     uint8_t	ea_big_endian;			/* Big Endian ? */
@@ -605,7 +611,7 @@ typedef struct {
 	
 	int skip_last_channel;
 
-    /* Data the codec needs for the whole stream. This is for codecs too
+	/* Data the codec needs for the whole stream. This is for codecs too
      * different from vgmstream's structure to be reasonably shoehorned into
      * using the ch structures.
      * Note also that support must be added for resetting, looping and
