@@ -18,9 +18,8 @@ VGMSTREAM * init_vgmstream_ps3_past(STREAMFILE *streamFile) {
     if (read_32bitBE(0x0,streamFile) != 0x534E4450) /* SNDP */
         goto fail;
 
-    loop_flag = read_32bitLE(0x1C,streamFile);
-
-    channel_count = 2;
+    loop_flag = (read_32bitBE(0x1C,streamFile)!=0);
+    channel_count = (uint16_t)read_16bitBE(0xC,streamFile);
     
 	/* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
@@ -34,12 +33,20 @@ VGMSTREAM * init_vgmstream_ps3_past(STREAMFILE *streamFile) {
     vgmstream->num_samples = (read_32bitBE(0x14,streamFile))/2/channel_count;
     if (loop_flag) {
         vgmstream->loop_start_sample = read_32bitBE(0x18,streamFile)/2/channel_count;
-        vgmstream->loop_end_sample = vgmstream->num_samples;
+        vgmstream->loop_end_sample = read_32bitBE(0x1C,streamFile)/2/channel_count;
     }
 
-		vgmstream->layout_type = layout_interleave;
-		vgmstream->interleave_block_size = 0x2;
-        vgmstream->meta_type = meta_PS3_PAST;
+    if (channel_count == 1)
+    {
+		  vgmstream->layout_type = layout_none;
+    }
+    else
+    {
+      vgmstream->layout_type = layout_interleave;
+		  vgmstream->interleave_block_size = 0x2;
+    }
+
+      vgmstream->meta_type = meta_PS3_PAST;
 
     /* open the file for reading */
     {
