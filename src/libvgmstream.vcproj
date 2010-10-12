@@ -827,6 +827,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\ps3_past.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\ps3_xvag.c"
 					>
 				</File>

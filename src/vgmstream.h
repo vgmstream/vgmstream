@@ -492,7 +492,8 @@ typedef enum {
 	meta_PS2_MTAF,			/* Metal Gear 3 MTAF */
 	meta_PS3_CPS,           /* Eternal Sonata (PS3) */
     meta_PS3_MSF,           /* MSF header */
-	meta_NUB_VAG            /* VAG from Nub archives */
+	meta_NUB_VAG,           /* VAG from Nub archives */
+	meta_PS3_PAST,          /* Bakugan Battle Brawlers (PS3) */
 } meta_t;
 
 typedef struct {

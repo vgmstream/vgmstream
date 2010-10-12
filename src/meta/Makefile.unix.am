@@ -210,5 +210,6 @@ libmeta_la_SOURCES += ngc_nst_dsp.c
 libmeta_la_SOURCES += baf.c
 libmeta_la_SOURCES += ps3_msf.c
 libmeta_la_SOURCES += nub.c
+libmeta_la_SOURCES += ps3_past.c
 
 EXTRA_DIST = meta.h

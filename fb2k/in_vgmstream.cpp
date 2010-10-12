@@ -363,6 +363,7 @@ bool input_vgmstream::g_is_our_path(const char * p_path,const char * p_extension
 	if(!stricmp_utf8(p_extension,"mpdsp")) return 1;
 	if(!stricmp_utf8(p_extension,"mpds")) return 1;
 	if(!stricmp_utf8(p_extension,"msa")) return 1;
+	if(!stricmp_utf8(p_extension,"msf")) return 1;
 	if(!stricmp_utf8(p_extension,"mss")) return 1;
 	if(!stricmp_utf8(p_extension,"msvp")) return 1;
 	if(!stricmp_utf8(p_extension,"mus")) return 1;
@@ -380,6 +381,7 @@ bool input_vgmstream::g_is_our_path(const char * p_path,const char * p_extension
 
 	if(!stricmp_utf8(p_extension,"p2bt")) return 1;
 	if(!stricmp_utf8(p_extension,"p3d")) return 1;
+	if(!stricmp_utf8(p_extension,"past")) return 1;
 	if(!stricmp_utf8(p_extension,"pcm")) return 1;
 	if(!stricmp_utf8(p_extension,"pdt")) return 1;
 	if(!stricmp_utf8(p_extension,"pnb")) return 1;
@@ -646,6 +648,7 @@ DECLARE_MULTIPLE_FILE_TYPE("MIHB Audio File (*.MIHB)", mihb);
 DECLARE_MULTIPLE_FILE_TYPE("MPDSP Audio File (*.MPDSP)", mpdsp);
 DECLARE_MULTIPLE_FILE_TYPE("MPDS Audio File (*.MPDS)", mpds);
 DECLARE_MULTIPLE_FILE_TYPE("MSA Audio File (*.MSA)", msa);
+DECLARE_MULTIPLE_FILE_TYPE("MSF Audio File (*.MSF)", msf);
 DECLARE_MULTIPLE_FILE_TYPE("MSS Audio File (*.MSS)", mss);
 DECLARE_MULTIPLE_FILE_TYPE("MSVP Audio File (*.MSVP)", msvp);
 DECLARE_MULTIPLE_FILE_TYPE("MUS Playlist File (*.MUS)", mus);
@@ -663,6 +666,7 @@ DECLARE_MULTIPLE_FILE_TYPE("OMU Audio File (*.OMU)", omu);
 
 DECLARE_MULTIPLE_FILE_TYPE("P2BT Audio File (*.P2BT)", p2bt);
 DECLARE_MULTIPLE_FILE_TYPE("P3D Audio File (*.P3D)", p3d);
+DECLARE_MULTIPLE_FILE_TYPE("PAST Audio File (*.PAST)", past);
 DECLARE_MULTIPLE_FILE_TYPE("PCM Audio File (*.PCM)", pcm);
 DECLARE_MULTIPLE_FILE_TYPE("PDT Audio File (*.PDT)", pdt);
 DECLARE_MULTIPLE_FILE_TYPE("PNB Audio File (*.PNB)", pnb);

@@ -125,6 +125,7 @@ gchar *vgmstream_exts [] = {
   "mpdsp",
   "mpds",
   "msa",
+  "msf",
   "mss",
   "msvp",
   "mus",
@@ -142,6 +143,7 @@ gchar *vgmstream_exts [] = {
 
   "p2bt",
   "p3d",
+  "past",
   "pcm",
   "pdt",
   "pnb",

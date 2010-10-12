@@ -289,6 +289,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_ps3_msf,
     init_vgmstream_fsb_mpeg,
 	init_vgmstream_nub_vag,
+	init_vgmstream_ps3_past,
     
 };
 
@@ -2703,6 +2704,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
 		case meta_NUB_VAG:
             snprintf(temp,TEMPSIZE,"VAG (NUB) header");
+            break;
+		case meta_PS3_PAST:
+            snprintf(temp,TEMPSIZE,"SNDP header");
             break;
 		default:
            snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

@@ -535,4 +535,7 @@ VGMSTREAM * init_vgmstream_ngc_dsp_iadp(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_nub_vag(STREAMFILE* streamFile);
 
+VGMSTREAM * init_vgmstream_ps3_past(STREAMFILE* streamFile);
+
+
 #endif

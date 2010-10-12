@@ -209,6 +209,7 @@ char * extension_list[] = {
 
     "p2bt\0P2BT Audio File (*.P2BT)\0",
     "p3d\0P3D Audio File (*.P3D)\0",
+	"past\0PAST Audio File (*.PAST)\0",
     "pcm\0PCM Audio File (*.PCM)\0",
     "pdt\0PDT Audio File (*.PDT)\0",
     "pnb\0PNB Audio File (*.PNB)\0",
