@@ -418,6 +418,7 @@ bool input_vgmstream::g_is_our_path(const char * p_path,const char * p_extension
 	if(!stricmp_utf8(p_extension,"seg")) return 1;
 	if(!stricmp_utf8(p_extension,"sfl")) return 1;
 	if(!stricmp_utf8(p_extension,"sfs")) return 1;
+	if(!stricmp_utf8(p_extension,"sgb")) return 1;
 	if(!stricmp_utf8(p_extension,"sl3")) return 1;
 	if(!stricmp_utf8(p_extension,"sli")) return 1;
 	if(!stricmp_utf8(p_extension,"smp")) return 1;
@@ -703,6 +704,7 @@ DECLARE_MULTIPLE_FILE_TYPE("SDT Audio File (*.SDT)", sdt);
 DECLARE_MULTIPLE_FILE_TYPE("SEG Audio File (*.SEG)", seg);
 DECLARE_MULTIPLE_FILE_TYPE("SFL Audio File (*.SFL)", sfl);
 DECLARE_MULTIPLE_FILE_TYPE("SFS Audio File (*.SFS)", sfs);
+DECLARE_MULTIPLE_FILE_TYPE("SGB Audio File (*.SGB)", sgb);
 DECLARE_MULTIPLE_FILE_TYPE("SL3 Audio File (*.SL3)", sl3);
 DECLARE_MULTIPLE_FILE_TYPE("SLI Audio File (*.SLI)", sli);
 DECLARE_MULTIPLE_FILE_TYPE("SMP Audio File (*.SMP)", smp);

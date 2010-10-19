@@ -494,6 +494,7 @@ typedef enum {
     meta_PS3_MSF,           /* MSF header */
 	meta_NUB_VAG,           /* VAG from Nub archives */
 	meta_PS3_PAST,          /* Bakugan Battle Brawlers (PS3) */
+	meta_PS3_SGH_SGB,       /* Folklore (PS3) */
 } meta_t;
 
 typedef struct {

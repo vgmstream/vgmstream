@@ -290,7 +290,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_fsb_mpeg,
 	init_vgmstream_nub_vag,
 	init_vgmstream_ps3_past,
-    
+    init_vgmstream_ps3_sgh_sgb,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -2707,6 +2707,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
 		case meta_PS3_PAST:
             snprintf(temp,TEMPSIZE,"SNDP header");
+            break;
+	    case meta_PS3_SGH_SGB:
+            snprintf(temp,TEMPSIZE,"SGH+SGB SGXD header");
             break;
 		default:
            snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");
