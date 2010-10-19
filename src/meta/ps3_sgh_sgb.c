@@ -4,11 +4,10 @@
 /* SGH+SGB (from Folklore) */
 VGMSTREAM * init_vgmstream_ps3_sgh_sgb(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    off_t start_offset;
+    off_t start_offset = 0;
     STREAMFILE * streamFileSGH = NULL;
     char filename[260];
     char filenameSGH[260];
-    int i;
     int channel_count;
     int loop_flag;
 
