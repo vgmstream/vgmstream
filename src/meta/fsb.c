@@ -273,10 +273,16 @@ VGMSTREAM * init_vgmstream_fsb4(STREAMFILE *streamFile) {
         for (i=0;i<channel_count;i++) {
             vgmstream->ch[i].streamfile = file;
 
-            vgmstream->ch[i].channel_start_offset=
+
+            if (vgmstream->coding_type == coding_MS_IMA) {
+                // both IMA channels work with same bytes
+                vgmstream->ch[i].channel_start_offset=
+                vgmstream->ch[i].offset=start_offset;
+            } else {
+                vgmstream->ch[i].channel_start_offset=
                 vgmstream->ch[i].offset=start_offset+
                 vgmstream->interleave_block_size*i;
-
+            }
         }
     }
 
