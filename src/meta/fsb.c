@@ -109,7 +109,8 @@ VGMSTREAM * init_vgmstream_fsb4(STREAMFILE *streamFile) {
 
     if (read_32bitBE(0x60,streamFile) == 0x40008800 ||
         read_32bitBE(0x60,streamFile) == 0x40000802 ||
-        read_32bitBE(0x60,streamFile) == 0x40100802) {
+        read_32bitBE(0x60,streamFile) == 0x40100802 ||
+        read_32bitBE(0x60,streamFile) == 0x40004020) {
         loop_flag = 1;
     } else {
         loop_flag = 0;
@@ -139,6 +140,18 @@ VGMSTREAM * init_vgmstream_fsb4(STREAMFILE *streamFile) {
     vgmstream->sample_rate = read_32bitLE(0x64,streamFile);
     fsb4_format = read_32bitBE(0x60,streamFile);
     switch (fsb4_format) {
+        /* PC Blade Kitten */
+        case 0x40004020:
+            vgmstream->coding_type = coding_MS_IMA;
+            vgmstream->layout_type = layout_none;
+            vgmstream->interleave_block_size = 0x24*vgmstream->channels;
+            vgmstream->num_samples = (read_32bitLE(0x54,streamFile)/0x24/vgmstream->channels)*((0x24-4)*2);
+            //vgmstream->num_samples = read_32bitLE(0x50,streamFile);
+            if (loop_flag) {
+                vgmstream->loop_start_sample = read_32bitLE(0x58,streamFile);
+                vgmstream->loop_end_sample = read_32bitLE(0x5C,streamFile);
+            }
+            break;
         /* PS2 (Spider Man - Web of Shadows), Speed Racer */
         case 0x40008800:
         case 0x20008800: // Silent Hill: Shattered Memories
