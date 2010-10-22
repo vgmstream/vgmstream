@@ -141,7 +141,7 @@
 				LinkIncremental="2"
 				AdditionalLibraryDirectories=""
 				IgnoreDefaultLibraryNames=""
-				DelayLoadDLLs="libvorbis.dll;libmpg123-0.dll;libg7221_decode.dll"
+				DelayLoadDLLs=""
 				SubSystem="2"
 				OptimizeReferences="2"
 				EnableCOMDATFolding="2"

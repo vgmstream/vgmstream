@@ -12,7 +12,6 @@
 #define DEFAULT_FADE_SECONDS "10.00"
 #define DEFAULT_FADE_DELAY_SECONDS "0.00"
 #define DEFAULT_LOOP_COUNT "2.00"
-#define DEFAULT_THREAD_PRIORITY 3
 #define DEFAULT_LOOP_FOREVER false
 #define DEFAULT_IGNORE_LOOP false
 
@@ -41,12 +40,10 @@ public:
 		COMMAND_HANDLER_EX(IDC_FADE_SECONDS, EN_CHANGE, OnEditChange)
 		COMMAND_HANDLER_EX(IDC_FADE_DELAY_SECONDS, EN_CHANGE, OnEditChange)
 		COMMAND_HANDLER_EX(IDC_LOOP_COUNT, EN_CHANGE, OnEditChange)
-		MSG_WM_HSCROLL(OnVScroll)
 	END_MSG_MAP()
 private:
 	BOOL OnInitDialog(CWindow, LPARAM);
 	void OnEditChange(UINT, int, CWindow);
-	void OnVScroll(UINT nSBCode, UINT nPos, CTrackBarCtrl pScrollBar);
 	bool HasChanged();
 	void OnChanged();
 

@@ -31,7 +31,7 @@ extern "C" {
 #define APP_NAME "vgmstream plugin"
 #define PLUGIN_DESCRIPTION "vgmstream plugin " VERSION " " __DATE__ "\n" \
             "by hcs, FastElbja, manakoAT, and bxaimc\n" \
-            "foobar2000 plugin by Josh W\n\n" \
+            "foobar2000 plugin by Josh W, kode54\n\n" \
             "http://sourceforge.net/projects/vgmstream"
 #define PLUGIN_VERSION VERSION " " __DATE__
 
@@ -76,7 +76,6 @@ void input_vgmstream::open(service_ptr_t<file> p_filehint,const char * p_path,t_
 				return;
 			}
 
-			decode_abort = 0;
 			decode_pos_ms = 0;
 			decode_pos_samples = 0;
 			paused = 0;
@@ -87,10 +86,13 @@ void input_vgmstream::open(service_ptr_t<file> p_filehint,const char * p_path,t_
 			break;
 
 		case input_open_info_read:
+			if ( p_filehint.is_empty() ) input_open_file_helper( p_filehint, p_path, p_reason, p_abort );
+			stats = p_filehint->get_stats( p_abort );
 			break;
 
 		case input_open_info_write:
 			//cant write...ever
+			throw exception_io_data();
 			break;
 
 		default:
@@ -100,35 +102,34 @@ void input_vgmstream::open(service_ptr_t<file> p_filehint,const char * p_path,t_
 
 void input_vgmstream::get_info(file_info & p_info,abort_callback & p_abort ) {
 	int length_in_ms=0, channels = 0, samplerate = 0;
+	int total_samples = -1;
+	int loop_start = -1, loop_end = -1;
 	char title[256];
 
-	getfileinfo(filename, title, &length_in_ms, &samplerate, &channels, p_abort);
+	getfileinfo(filename, title, &length_in_ms, &total_samples, &loop_start, &loop_end, &samplerate, &channels, p_abort);
 
 	p_info.info_set_int("samplerate", samplerate);
 	p_info.info_set_int("channels", channels);
 	p_info.info_set_int("bitspersample",16);
 	p_info.info_set("encoding","lossless");
 	p_info.info_set_bitrate((samplerate * 16 * channels) / 1000);
+	if (total_samples > 0)
+		p_info.info_set_int("stream_total_samples", total_samples);
+	if (loop_start >= 0 && loop_end >= loop_start)
+	{
+		p_info.info_set_int("loop_start", loop_start);
+		p_info.info_set_int("loop_end", loop_end);
+	}
 
 	p_info.set_length(((double)length_in_ms)/1000);
 }
 
 void input_vgmstream::decode_initialize(unsigned p_flags,abort_callback & p_abort) {
-	if(!loop_forever || !vgmstream->loop_flag)
-		p_flags|=input_flag_no_looping;
-
+	if (p_flags & input_flag_no_looping) loop_forever = false;
+	decode_seek( 0, p_abort );
 };
 
 bool input_vgmstream::decode_run(audio_chunk & p_chunk,abort_callback & p_abort) {
-	// why is this being called while this is being called? bad foobar!
-	while(decoding)
-		Sleep(10);
-	decoding = true;
-
-	int CurPriority = GetThreadPriority(GetCurrentThread());
-	SetThreadPriority(GetCurrentThread(), thread_priority);
-
-
 	int max_buffer_samples = sizeof(sample_buffer)/sizeof(sample_buffer[0])/vgmstream->channels;
 	int l = 0, samples_to_do = max_buffer_samples, t= 0;
 
@@ -172,12 +173,9 @@ bool input_vgmstream::decode_run(audio_chunk & p_chunk,abort_callback & p_abort)
 		decode_pos_ms=decode_pos_samples*1000LL/vgmstream->sample_rate;
 
 		decoding = false;
-		SetThreadPriority(GetCurrentThread(), CurPriority);
 		return samples_to_do==max_buffer_samples;
 
 	}
-	SetThreadPriority(GetCurrentThread(), CurPriority);
-	decoding = false;
 	return false;
 }
 
@@ -210,9 +208,7 @@ void input_vgmstream::decode_seek(double p_seconds,abort_callback & p_abort) {
 
 input_vgmstream::input_vgmstream() {
 	vgmstream = NULL;
-	decode_thread_handle = INVALID_HANDLE_VALUE;
 	paused = 0;
-	decode_abort = 0;
 	decode_pos_ms = 0;
 	decode_pos_samples = 0;
 	stream_length_samples = 0;
@@ -220,7 +216,6 @@ input_vgmstream::input_vgmstream() {
 	fade_seconds = 10.0f;
 	fade_delay_seconds = 0.0f;
 	loop_count = 2.0f;
-	thread_priority = 3;
 	loop_forever = false;
 	ignore_loop = 0;
 	decoding = false;
@@ -502,7 +497,7 @@ bool input_vgmstream::g_is_our_path(const char * p_path,const char * p_extension
 
 
 /* retrieve information on this or possibly another file */
-void input_vgmstream::getfileinfo(char *filename, char *title, int *length_in_ms, int *sample_rate, int *channels, abort_callback & p_abort) {
+void input_vgmstream::getfileinfo(char *filename, char *title, int *length_in_ms, int *total_samples, int *loop_start, int *loop_end, int *sample_rate, int *channels, abort_callback & p_abort) {
 
 	VGMSTREAM * infostream;
 	if (length_in_ms)
@@ -514,6 +509,12 @@ void input_vgmstream::getfileinfo(char *filename, char *title, int *length_in_ms
 			test_length = *length_in_ms;
 			*sample_rate = infostream->sample_rate;
 			*channels = infostream->channels;
+			*total_samples = infostream->num_samples;
+			if (infostream->loop_flag)
+			{
+				*loop_start = infostream->loop_start_sample;
+				*loop_end = infostream->loop_end_sample;
+			}
 
 			close_vgmstream(infostream);
 			infostream=NULL;
