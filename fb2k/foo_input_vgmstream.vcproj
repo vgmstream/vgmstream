@@ -102,6 +102,8 @@
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
+				Description=""
+				CommandLine=""
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
@@ -118,7 +120,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				AdditionalIncludeDirectories="../ext_includes"
-				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;IN_VGMSTREAM_EXPORTS;"
+				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;IN_VGMSTREAM_EXPORTS"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"

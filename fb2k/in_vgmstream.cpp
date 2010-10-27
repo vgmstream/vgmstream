@@ -23,9 +23,12 @@ extern "C" {
 #include "../src/util.h"
 }
 #include "foo_vgmstream.h"
+#include "version.h"
 
 #ifndef VERSION
-#define VERSION
+#define PLUGIN_VERSION  __DATE__
+#else
+#define PLUGIN_VERSION  VERSION
 #endif
 
 #define APP_NAME "vgmstream plugin"
@@ -33,7 +36,7 @@ extern "C" {
             "by hcs, FastElbja, manakoAT, and bxaimc\n" \
             "foobar2000 plugin by Josh W, kode54\n\n" \
             "http://sourceforge.net/projects/vgmstream"
-#define PLUGIN_VERSION VERSION " " __DATE__
+
 
 
 /* format detection and VGMSTREAM setup, uses default parameters */
@@ -183,13 +186,20 @@ void input_vgmstream::decode_seek(double p_seconds,abort_callback & p_abort) {
 	seek_pos_samples = ((int)(p_seconds * (double)vgmstream->sample_rate));
 	int max_buffer_samples = sizeof(sample_buffer)/sizeof(sample_buffer[0])/vgmstream->channels;
 
+	// adjust for correct position within loop
+	if(vgmstream->loop_flag) {
+		seek_pos_samples -= vgmstream->loop_start_sample;
+		seek_pos_samples %= (vgmstream->loop_end_sample - vgmstream->loop_start_sample);
+		seek_pos_samples += vgmstream->loop_start_sample;
+	}
+
 	// Reset of backwards seek
 	if(seek_pos_samples < decode_pos_samples) {
 		reset_vgmstream(vgmstream);
 		if (ignore_loop) vgmstream->loop_flag = 0;
 		decode_pos_samples = 0;
 	}
-
+	
 	// seeking overrun = bad
 	if(seek_pos_samples > stream_length_samples) seek_pos_samples = stream_length_samples;
 
