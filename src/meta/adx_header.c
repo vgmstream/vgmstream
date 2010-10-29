@@ -276,8 +276,13 @@ static struct {
 	
 	/* Developer: Aquaplus
 	 * Tears to Tiara Gaiden Avalon no Kagi (PS3) */
-    /* confirmed unique with guessadx */
+	/* confirmed unique with guessadx */
 	{0x47e1,0x60e9,0x51c1},
+
+	/* Developer: Broccoli
+	 * Neon Genesis Evangelion: Koutetsu no Girlfriend 2nd (PS2) */
+    /* confirmed unique with guessadx */
+	{0x481d,0x4f25,0x5243},
 };
 
 static const int key_count = sizeof(keys)/sizeof(keys[0]);
