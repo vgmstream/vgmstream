@@ -283,6 +283,11 @@ static struct {
 	 * Neon Genesis Evangelion: Koutetsu no Girlfriend 2nd (PS2) */
     /* confirmed unique with guessadx */
 	{0x481d,0x4f25,0x5243},
+
+	/* Developer: Marvelous
+	 * Futakoi Alternative (PS2) */
+    /* confirmed unique with guessadx */
+	{0x413b,0x543b,0x57d1},
 };
 
 static const int key_count = sizeof(keys)/sizeof(keys[0]);
