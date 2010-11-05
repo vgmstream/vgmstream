@@ -37,7 +37,12 @@ VGMSTREAM * init_vgmstream_ps3_msf(STREAMFILE *streamFile) {
 
     /* fill in the vital statistics */
 	  vgmstream->channels = channel_count;
-    vgmstream->sample_rate = read_32bitBE(0x10,streamFile);
+
+   /* Sample rate hack for strange files that don't have a specified frequency */
+	if (read_32bitBE(0x10,streamFile)==0x00000000)
+		vgmstream->sample_rate = 48000;
+	else
+		vgmstream->sample_rate = read_32bitBE(0x10,streamFile);
 
     start_offset = 0x40;
 
