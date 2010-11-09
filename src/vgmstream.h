@@ -495,6 +495,7 @@ typedef enum {
 	meta_NUB_VAG,           /* VAG from Nub archives */
 	meta_PS3_PAST,          /* Bakugan Battle Brawlers (PS3) */
 	meta_PS3_SGH_SGB,       /* Folklore (PS3) */
+	meta_NGCA,              /* GoldenEye 007 (Wii) */
 } meta_t;
 
 typedef struct {

@@ -539,5 +539,7 @@ VGMSTREAM * init_vgmstream_ps3_past(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_ps3_sgh_sgb(STREAMFILE* streamFile);
 
+VGMSTREAM * init_vgmstream_ngca(STREAMFILE* streamFile);
+
 
 #endif

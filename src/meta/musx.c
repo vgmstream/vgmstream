@@ -294,7 +294,8 @@ VGMSTREAM * init_vgmstream_musx_v010(STREAMFILE *streamFile) {
 	musx_type=(read_32bitBE(0x10,streamFile));
 
     if (musx_type == 0x5749495F &&  /* WII_ */
-        read_32bitBE(0x40,streamFile) == 0x44415434)    /* DAT4 */
+        (read_16bitBE(0x40,streamFile) == 0x4441) && /* DA */
+        (read_8bit(0x42,streamFile) == 0x54)) /* T */
     {
         channel_count = read_32bitLE(0x48,streamFile);
         loop_flag = (read_32bitLE(0x64,streamFile) != -1);
@@ -347,6 +348,7 @@ VGMSTREAM * init_vgmstream_musx_v010(STREAMFILE *streamFile) {
             switch (read_32bitBE(0x40,streamFile))
             {
                 case 0x44415434:    /* DAT4 */
+				case 0x44415438:    /* DAT8 */
                     vgmstream->coding_type = coding_DAT4_IMA;
                     break;
                 default:

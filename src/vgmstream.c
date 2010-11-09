@@ -291,6 +291,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_nub_vag,
 	init_vgmstream_ps3_past,
     init_vgmstream_ps3_sgh_sgb,
+	init_vgmstream_ngca,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -326,6 +327,7 @@ VGMSTREAM * init_vgmstream_internal(STREAMFILE *streamFile, int do_dfs) {
 						 (vgmstream->meta_type == meta_DSP_YGO) ||
                         (vgmstream->meta_type == meta_DSP_AGSC) ||
 						 (vgmstream->meta_type == meta_PS2_SMPL) ||
+						 (vgmstream->meta_type == meta_NGCA) ||
 		                (vgmstream->meta_type == meta_NUB_VAG) ||
                         (vgmstream->meta_type == meta_SPT_SPD)
                         ) && vgmstream->channels == 1) {
@@ -2710,6 +2712,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
 	    case meta_PS3_SGH_SGB:
             snprintf(temp,TEMPSIZE,"SGH+SGB SGXD header");
+            break;
+	    case meta_NGCA:
+            snprintf(temp,TEMPSIZE,"NGCA header");
             break;
 		default:
            snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

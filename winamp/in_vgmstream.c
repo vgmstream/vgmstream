@@ -202,6 +202,7 @@ char * extension_list[] = {
     "myspd\0MYSPD Audio File (*.MYSPD)\0",
 
     "ndp\0NDP Audio File (*.NDP)\0",
+    "ngca\0NGCA Audio File (*.NGCA)\0",
     "npsf\0PS2 NPSF Audio File (*.NPSF)\0",
     "nwa\0NWA Audio File (*.NWA)\0",
 

@@ -136,6 +136,7 @@ gchar *vgmstream_exts [] = {
   "myspd",
 
   "ndp",
+  "ngca",
   "npsf",
   "nwa",
 
