@@ -288,6 +288,13 @@ static struct {
 	 * Futakoi Alternative (PS2) */
     /* confirmed unique with guessadx */
 	{0x413b,0x543b,0x57d1},
+
+	/* Developer: Marvelous
+	 * Gakuen Utopia - Manabi Straight! KiraKira Happy Festa! (PS2)
+	 * Second guess from guessadx, other was 
+	 *   {0x440b,0x4327,0x564b} 
+	 **/
+	 {0x440d,0x4327,0x4fff},
 };
 
 static const int key_count = sizeof(keys)/sizeof(keys[0]);
