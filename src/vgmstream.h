@@ -82,6 +82,7 @@ typedef enum {
     coding_DVI_IMA,         /* DVI (bare IMA, high nibble first), aka ADP4 */
     coding_INT_DVI_IMA,		/* Interleaved DVI */
     coding_EACS_IMA,
+	coding_UBI_IMA,
     coding_IMA,             /* bare IMA, low nibble first */
     coding_INT_IMA,         /* */
     coding_MS_IMA,          /* Microsoft IMA */
@@ -157,6 +158,8 @@ typedef enum {
     layout_ps2_adm_blocked,
     layout_dsp_bdsp_blocked,
 	layout_mxch_blocked,
+	layout_mtaf_blocked,
+	layout_tra_blocked,
 
 #if 0
     layout_strm_blocked,    /* */
@@ -496,6 +499,7 @@ typedef enum {
 	meta_PS3_PAST,          /* Bakugan Battle Brawlers (PS3) */
 	meta_PS3_SGH_SGB,       /* Folklore (PS3) */
 	meta_NGCA,              /* GoldenEye 007 (Wii) */
+	meta_X360_TRA,			/* Def Jam Rapstar */
 } meta_t;
 
 typedef struct {

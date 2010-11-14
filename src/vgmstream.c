@@ -282,7 +282,8 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_dsp_dspw,
     init_vgmstream_ps2_jstm,
     init_vgmstream_ps3_xvag,
-	  init_vgmstream_ps3_cps,
+	init_vgmstream_ps2_mtaf,
+	init_vgmstream_ps3_cps,
     init_vgmstream_se_scd,
     init_vgmstream_ngc_nst_dsp,
     init_vgmstream_baf,
@@ -290,8 +291,9 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_fsb_mpeg,
 	init_vgmstream_nub_vag,
 	init_vgmstream_ps3_past,
-    init_vgmstream_ps3_sgh_sgb,
-	init_vgmstream_ngca,
+//    init_vgmstream_ps3_sgh_sgb,
+	init_vgmstream_xbox_tra,
+	//init_vgmstream_ngca,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -733,6 +735,8 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
         case layout_psx_mgav_blocked:
         case layout_ps2_adm_blocked:
         case layout_dsp_bdsp_blocked:
+		case layout_mtaf_blocked:
+		case layout_tra_blocked:
             render_vgmstream_blocked(buffer,sample_count,vgmstream);
             break;
         case layout_interleave_byte:
@@ -1767,6 +1771,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
 		case layout_mxch_blocked:
             snprintf(temp,TEMPSIZE,"MxCh blocked");
             break;
+		case layout_mtaf_blocked:
+            snprintf(temp,TEMPSIZE,"MTAF blocked");
+            break;
         case layout_ast_blocked:
             snprintf(temp,TEMPSIZE,"AST blocked");
             break;
@@ -2716,6 +2723,8 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
 	    case meta_NGCA:
             snprintf(temp,TEMPSIZE,"NGCA header");
             break;
+		case meta_X360_TRA:
+			snprintf(temp,TEMPSIZE,"Assume Def Jam Rapstar Track by .tra extension");
 		default:
            snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");
     }
