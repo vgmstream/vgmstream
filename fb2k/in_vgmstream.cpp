@@ -397,6 +397,7 @@ bool input_vgmstream::g_is_our_path(const char * p_path,const char * p_extension
 	if(!stricmp_utf8(p_extension,"psh")) return 1;
 	if(!stricmp_utf8(p_extension,"psw")) return 1;
 
+	if(!stricmp_utf8(p_extension,"ras")) return 1;
 	if(!stricmp_utf8(p_extension,"raw")) return 1;
 	if(!stricmp_utf8(p_extension,"rkv")) return 1;
 	if(!stricmp_utf8(p_extension,"rnd")) return 1;
@@ -690,6 +691,7 @@ DECLARE_MULTIPLE_FILE_TYPE("PS2STM Audio File (*.PS2STM)", ps2stm);
 DECLARE_MULTIPLE_FILE_TYPE("PSH Audio File (*.PSH)", psh);
 DECLARE_MULTIPLE_FILE_TYPE("PSW Audio File (*.PSW)", psw);
 
+DECLARE_MULTIPLE_FILE_TYPE("RAS Audio File (*.RAS)", ras);
 DECLARE_MULTIPLE_FILE_TYPE("RAW Audio File (*.RAW)", raw);
 DECLARE_MULTIPLE_FILE_TYPE("RKV Audio File (*.RKV)", rkv);
 DECLARE_MULTIPLE_FILE_TYPE("RND Audio File (*.RND)", rnd);

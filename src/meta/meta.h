@@ -543,12 +543,12 @@ VGMSTREAM * init_vgmstream_nub_vag(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_ps3_past(STREAMFILE* streamFile);
 
-VGMSTREAM * init_vgmstream_ps3_sghb(STREAMFILE* streamFile);
+VGMSTREAM * init_vgmstream_ps3_sgh_sgb(STREAMFILE* streamFile);
 
-VGMSTREAM * init_vgmstream_xbox_tra(STREAMFILE* streamFile);
+//VGMSTREAM * init_vgmstream_xbox_tra(STREAMFILE* streamFile);
 
+VGMSTREAM * init_vgmstream_ngca(STREAMFILE* streamFile);
 
-//VGMSTREAM * init_vgmstream_ngca(STREAMFILE* streamFile);
-
+VGMSTREAM * init_vgmstream_wii_ras(STREAMFILE* streamFile);
 
 #endif

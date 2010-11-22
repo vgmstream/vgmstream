@@ -220,7 +220,8 @@ char * extension_list[] = {
     "psh\0PSH Audio File (*.PSH)\0",
     "psw\0PSW Audio File (*.PSW)\0",
 
-    "raw\0RAW Audio File (*.RAW)\0",
+    "ras\0RAS Audio File (*.RAS)\0",
+	"raw\0RAW Audio File (*.RAW)\0",
     "rkv\0RKV Audio File (*.RKV)\0",
     "rnd\0RND Audio File (*.RND)\0",
     "rrds\0RRDS Audio File (*.RRDS)\0",

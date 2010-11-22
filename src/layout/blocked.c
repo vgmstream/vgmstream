@@ -121,10 +121,10 @@ void render_vgmstream_blocked(sample * buffer, int32_t sample_count, VGMSTREAM *
          case layout_dsp_bdsp_blocked:
           dsp_bdsp_block_update(vgmstream->next_block_offset,vgmstream);
           break;
-				case layout_mtaf_blocked:
+				/*case layout_mtaf_blocked:
 					mtaf_block_update(vgmstream->next_block_offset,vgmstream);
 				case layout_tra_blocked:
-					tra_block_update(vgmstream->next_block_offset,vgmstream);
+					tra_block_update(vgmstream->next_block_offset,vgmstream);*/
 				default:
                     break;
             }

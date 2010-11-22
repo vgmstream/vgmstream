@@ -60,6 +60,7 @@ fail:
     return NULL;
 }
 
+#ifdef x360_tra
 VGMSTREAM * init_vgmstream_xbox_tra(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[260];
@@ -110,3 +111,4 @@ fail:
     if (vgmstream) close_vgmstream(vgmstream);
     return NULL;
 }
+#endif

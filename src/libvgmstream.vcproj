@@ -979,6 +979,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\wii_ras.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\wii_smp.c"
 					>
 				</File>

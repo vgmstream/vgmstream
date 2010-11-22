@@ -260,7 +260,8 @@ META_OBJS=meta/adx_header.o \
     meta/nub.o \
     meta/ps3_past.o \
     meta/ps3_sgh_sgb.o \
-    meta/ngca.o
+    meta/ngca.o \
+    meta/wii_ras.o
 
 OBJECTS=vgmstream.o streamfile.o util.o $(CODING_OBJS) $(LAYOUT_OBJS) $(META_OBJS)
 

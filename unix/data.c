@@ -153,6 +153,7 @@ gchar *vgmstream_exts [] = {
   "psh",
   "psw",
 
+  "ras",
   "raw",
   "rkv",
   "rnd",
