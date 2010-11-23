@@ -19,6 +19,12 @@ VGMSTREAM * init_vgmstream_wii_ras(STREAMFILE *streamFile) {
         goto fail;
 
     loop_flag = 0;
+    if (read_32bitBE(0x30,streamFile) != 0 ||
+        read_32bitBE(0x34,streamFile) != 0 ||
+        read_32bitBE(0x38,streamFile) != 0 ||
+        read_32bitBE(0x3C,streamFile) != 0) {
+        loop_flag = 1;
+    }
     channel_count = 2;
 
    /* build the VGMSTREAM */
@@ -30,10 +36,20 @@ VGMSTREAM * init_vgmstream_wii_ras(STREAMFILE *streamFile) {
     vgmstream->channels = channel_count;
     vgmstream->sample_rate = read_32bitBE(0x14,streamFile);
     vgmstream->coding_type = coding_NGC_DSP;
-    vgmstream->num_samples = read_32bitBE(0xc,streamFile);
+    vgmstream->num_samples = read_32bitBE(0x1c,streamFile)/channel_count/8*14;
     vgmstream->layout_type = layout_interleave;
 	vgmstream->interleave_block_size = read_32bitBE(0x20,streamFile);
     vgmstream->meta_type = meta_WII_RAS;
+
+    if (loop_flag) {
+        // loop is block + samples into block
+        vgmstream->loop_start_sample = 
+        read_32bitBE(0x30,streamFile)*vgmstream->interleave_block_size/8*14 + 
+            read_32bitBE(0x34,streamFile);
+        vgmstream->loop_end_sample =
+        read_32bitBE(0x38,streamFile)*vgmstream->interleave_block_size/8*14 +
+            read_32bitBE(0x3C,streamFile);
+    }
 
 	 if (vgmstream->coding_type == coding_NGC_DSP) {
          int i;
@@ -44,6 +60,8 @@ VGMSTREAM * init_vgmstream_wii_ras(STREAMFILE *streamFile) {
 		  for (i=0;i<16;i++)
 			vgmstream->ch[1].adpcm_coef[i] = read_16bitBE(0x70+i*2,streamFile);
 				}
+    } else {
+        goto fail;
     }
 
     /* open the file for reading */
