@@ -543,5 +543,7 @@ VGMSTREAM * init_vgmstream_ngca(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_wii_ras(STREAMFILE* streamFile);
 
+VGMSTREAM * init_vgmstream_ps2_spm(STREAMFILE* streamFile);
+
 
 #endif

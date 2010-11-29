@@ -497,6 +497,7 @@ typedef enum {
 	meta_PS3_SGH_SGB,       /* Folklore (PS3) */
 	meta_NGCA,              /* GoldenEye 007 (Wii) */
 	meta_WII_RAS,           /* Donkey Kong Country Returns (Wii) */
+	meta_PS2_SPM            /* Lethal Skies Elite Pilot: Team SW */
 } meta_t;
 
 typedef struct {

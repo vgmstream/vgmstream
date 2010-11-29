@@ -747,6 +747,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\ps2_spm.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\ps2_sps.c"
 					>
 				</File>
