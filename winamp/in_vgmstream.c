@@ -184,6 +184,7 @@ char * extension_list[] = {
 
     "matx\0MATX Audio File (*.MATX)\0",
     "mcg\0MCG Audio File (*.MCG)\0",
+    "mi2\0PS2 MI2 Audio File (*.MI2)\0",
     "mi4\0PS2 MI4 Audio File (*.MI4)\0",
     "mib\0PS2 MIB Audio File (*.MIB)\0",
     "mic\0PS2 MIC Audio File (*.MIC)\0",
@@ -194,6 +195,7 @@ char * extension_list[] = {
     "msf\0MSF Audio File (*.MSF)\0",
     "mss\0MSS Audio File (*.MSS)\0",
     "msvp\0MSVP Audio File (*.MSVP)\0",
+	"mtaf\0MTAF Audio File (*.MTAF)\0",
     "mus\0MUS Playlist File (*.MUS)\0",
     "musc\0MUSC Audio File (*.MUSC)\0",
     "musx\0MUSX Audio File (*.MUSX)\0",
@@ -247,6 +249,7 @@ char * extension_list[] = {
     "sdt\0SDT Audio File (*.SDT)\0",
     "seg\0SEG Audio File (*.SEG)\0",
     "sfl\0SFL Audio File (*.SFL)\0",
+	"sgb\0SGB Audio File (*.SGB)\0",
     "sfs\0SFS Audio File (*.SFS)\0",
 	"sgb\0SGB Audio File (*.SGB)\0",
     "sl3\0SL3 Audio File (*.SL3)\0",
@@ -282,6 +285,7 @@ char * extension_list[] = {
     "thp\0THP Audio File (*.THP)\0",
     "tk1\0TK1 Audio File (*.TK1)\0",
     "tk5\0TK5 Audio File (*.TK5)\0",
+	"tra\0TRA Audio File (*.TRA)\0",
     "tydsp\0TYDSP Audio File (*.TYDSP)\0",
 
     "um3\0UM3 Audio File (*.UM3)\0",
@@ -322,6 +326,7 @@ char * extension_list[] = {
     "xvas\0XVAS Audio File (*.XVAS)\0",
     "xwav\0XWAV Audio File (*.XWAV)\0",
     "xwb\0XWB Audio File (*.XWB)\0",
+	"xag\0XAG Audio File (*.XAG)\0",
 
     "ydsp\0YDSP Audio File (*.YDSP)\0",
     "ymf\0YMF Audio File (*.YMF)\0",

@@ -1,15 +1,14 @@
 #include "meta.h"
 #include "../util.h"
 
-/* WAVM
+/* TRA
 
-   WAVM is an headerless format which can be found on XBOX
+   TRA is an headerless format which can be found on DefJam Rapstar (X360)
    known extensions : WAVM
 
-   2008-05-23 - Fastelbja : First version ...
+   2010-12-03 - Fastelbja : First version ...
 */
-
-VGMSTREAM * init_vgmstream_xbox_wavm(STREAMFILE *streamFile) {
+VGMSTREAM * init_vgmstream_xbox_tra(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[260];
 
@@ -19,7 +18,7 @@ VGMSTREAM * init_vgmstream_xbox_wavm(STREAMFILE *streamFile) {
 
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("wavm",filename_extension(filename))) goto fail;
+    if (strcasecmp("tra",filename_extension(filename))) goto fail;
 
     /* No loop on wavm */
 	loop_flag = 0;
@@ -34,24 +33,24 @@ VGMSTREAM * init_vgmstream_xbox_wavm(STREAMFILE *streamFile) {
 	/* fill in the vital statistics */
 	/* allways 2 channels @ 44100 Hz */
 	vgmstream->channels = 2;
-    vgmstream->sample_rate = 44100;
+    vgmstream->sample_rate = 24000;
 
-	vgmstream->coding_type = coding_XBOX;
-    vgmstream->num_samples = (int32_t)(get_streamfile_size(streamFile) / 36 * 64 / vgmstream->channels);
-    vgmstream->layout_type = layout_none;
+	vgmstream->coding_type = coding_DVI_IMA;
+    vgmstream->num_samples = (int32_t)(get_streamfile_size(streamFile) - ((get_streamfile_size(streamFile)/0x204)*4));
+    vgmstream->layout_type = layout_tra_blocked;
 	
-    vgmstream->meta_type = meta_XBOX_WAVM;
+    vgmstream->meta_type = meta_X360_TRA;
 
     /* open the file for reading by each channel */
     {
         for (i=0;i<channel_count;i++) {
             vgmstream->ch[i].streamfile = streamFile->open(streamFile,filename,36);
-            vgmstream->ch[i].offset = 0;
 
             if (!vgmstream->ch[i].streamfile) goto fail;
         }
     }
 
+	tra_block_update(0,vgmstream);
     return vgmstream;
 
     /* clean up anything we may have opened */

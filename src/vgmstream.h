@@ -175,6 +175,8 @@ typedef enum {
     layout_aix,             /* CRI AIX's wheels within wheels */
     layout_aax,             /* CRI AAX's wheels within databases */
 	layout_ivaud_blocked,	/* GTA IV .ivaud blocks */
+	layout_tra_blocked,		/* DefJam Rapstar .tra blocks */
+	layout_mtaf_blocked,
 } layout_t;
 
 /* The meta type specifies how we know what we know about the file. We may know because of a header we read, some of it may have been guessed from filenames, etc. */
@@ -497,7 +499,8 @@ typedef enum {
 	meta_PS3_SGH_SGB,       /* Folklore (PS3) */
 	meta_NGCA,              /* GoldenEye 007 (Wii) */
 	meta_WII_RAS,           /* Donkey Kong Country Returns (Wii) */
-	meta_PS2_SPM            /* Lethal Skies Elite Pilot: Team SW */
+	meta_PS2_SPM,            /* Lethal Skies Elite Pilot: Team SW */
+	meta_X360_TRA,			/* Def Jam Rapstar */
 } meta_t;
 
 typedef struct {
