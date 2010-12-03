@@ -1863,6 +1863,12 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         case layout_ivaud_blocked:
             snprintf(temp,TEMPSIZE,"GTA IV blocked");
             break;
+		case layout_mtaf_blocked:
+            snprintf(temp,TEMPSIZE,"MTAF blocked");
+            break;
+		case layout_tra_blocked:
+            snprintf(temp,TEMPSIZE,"TRA blocked");
+            break;
         default:
             snprintf(temp,TEMPSIZE,"INCONCEIVABLE");
     }
