@@ -33,5 +33,7 @@ liblayout_la_SOURCES += mxch_blocked.c
 liblayout_la_SOURCES += psx_mgav_blocked.c
 liblayout_la_SOURCES += ps2_adm_blocked.c
 liblayout_la_SOURCES += bdsp_blocked.c
+liblayout_la_SOURCES += mtaf_block.c
+liblayout_la_SOURCES += tra_blocked.c
 
 EXTRA_DIST = layout.h

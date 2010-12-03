@@ -691,6 +691,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\ps2_mtaf.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\ps2_npsf.c"
 					>
 				</File>
@@ -1011,6 +1015,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\x360_tra.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\xbox_hlwav.c"
 					>
 				</File>
@@ -1255,6 +1263,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\layout\mtaf_block.c"
+					>
+				</File>
+				<File
 					RelativePath=".\layout\mus_acm_layout.c"
 					>
 				</File>
@@ -1280,6 +1292,10 @@
 				</File>
 				<File
 					RelativePath=".\layout\thp_blocked.c"
+					>
+				</File>
+				<File
+					RelativePath=".\layout\tra_blocked.c"
 					>
 				</File>
 				<File

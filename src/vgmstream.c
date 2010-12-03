@@ -294,7 +294,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_ngca,
 	init_vgmstream_wii_ras,
 	init_vgmstream_ps2_spm,
-	init_vgmstream_xbox_tra,
+	init_vgmstream_x360_tra,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))

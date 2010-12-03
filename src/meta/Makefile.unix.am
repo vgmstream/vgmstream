@@ -215,5 +215,7 @@ libmeta_la_SOURCES += ps3_sgh_sgb.c
 libmeta_la_SOURCES += ngca.c
 libmeta_la_SOURCES += wii_ras.c
 libmeta_la_SOURCES += ps2_spm.c
+libmeta_la_SOURCES += ps2_mtaf.c
+libmeta_la_SOURCES += x360_tra.c
 
 EXTRA_DIST = meta.h

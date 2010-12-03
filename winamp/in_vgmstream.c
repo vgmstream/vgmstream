@@ -338,7 +338,7 @@ char * extension_list[] = {
 void about(HWND hwndParent) {
     MessageBox(hwndParent,
             PLUGIN_DESCRIPTION "\n"
-            "by hcs, FastElbja, manakoAT, and bxaimc\n\n"
+            "by hcs, FastElbja, manakoAT, bxaimc, and snakemeat\n\n"
             "http://sourceforge.net/projects/vgmstream"
             ,"about in_vgmstream",MB_OK);
 }

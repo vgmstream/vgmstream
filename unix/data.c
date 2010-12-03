@@ -128,6 +128,7 @@ gchar *vgmstream_exts [] = {
   "msf",
   "mss",
   "msvp",
+  "mtaf",
   "mus",
   "musc",
   "musx",
@@ -214,6 +215,7 @@ gchar *vgmstream_exts [] = {
   "thp",
   "tk1",
   "tk5",
+  "tra",
   "tydsp",
 
   "um3",

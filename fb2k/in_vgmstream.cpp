@@ -371,6 +371,7 @@ bool input_vgmstream::g_is_our_path(const char * p_path,const char * p_extension
 	if(!stricmp_utf8(p_extension,"msf")) return 1;
 	if(!stricmp_utf8(p_extension,"mss")) return 1;
 	if(!stricmp_utf8(p_extension,"msvp")) return 1;
+    if(!stricmp_utf8(p_extension,"mtaf")) return 1;
 	if(!stricmp_utf8(p_extension,"mus")) return 1;
 	if(!stricmp_utf8(p_extension,"musc")) return 1;
 	if(!stricmp_utf8(p_extension,"musx")) return 1;
@@ -458,6 +459,7 @@ bool input_vgmstream::g_is_our_path(const char * p_path,const char * p_extension
 	if(!stricmp_utf8(p_extension,"thp")) return 1;
 	if(!stricmp_utf8(p_extension,"tk1")) return 1;
 	if(!stricmp_utf8(p_extension,"tk5")) return 1;
+	if(!stricmp_utf8(p_extension,"tra")) return 1;
 	if(!stricmp_utf8(p_extension,"tydsp")) return 1;
 
 	if(!stricmp_utf8(p_extension,"um3")) return 1;
@@ -666,6 +668,7 @@ DECLARE_MULTIPLE_FILE_TYPE("MSA Audio File (*.MSA)", msa);
 DECLARE_MULTIPLE_FILE_TYPE("MSF Audio File (*.MSF)", msf);
 DECLARE_MULTIPLE_FILE_TYPE("MSS Audio File (*.MSS)", mss);
 DECLARE_MULTIPLE_FILE_TYPE("MSVP Audio File (*.MSVP)", msvp);
+DECLARE_MULTIPLE_FILE_TYPE("MTAF Audio File (*.MTAF)", mtaf);
 DECLARE_MULTIPLE_FILE_TYPE("MUS Playlist File (*.MUS)", mus);
 DECLARE_MULTIPLE_FILE_TYPE("MUSC Audio File (*.MUSC)", musc);
 DECLARE_MULTIPLE_FILE_TYPE("MUSX Audio File (*.MUSX)", musx);

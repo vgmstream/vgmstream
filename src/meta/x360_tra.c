@@ -8,7 +8,7 @@
 
    2010-12-03 - Fastelbja : First version ...
 */
-VGMSTREAM * init_vgmstream_xbox_tra(STREAMFILE *streamFile) {
+VGMSTREAM * init_vgmstream_x360_tra(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[260];
 
