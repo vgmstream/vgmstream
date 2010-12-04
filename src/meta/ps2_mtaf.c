@@ -1,4 +1,5 @@
 #include "meta.h"
+#include "../layout/layout.h"
 #include "../util.h"
 
 VGMSTREAM * init_vgmstream_ps2_mtaf(STREAMFILE *streamFile) {
