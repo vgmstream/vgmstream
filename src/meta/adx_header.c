@@ -295,6 +295,11 @@ static struct {
 	 *   {0x440b,0x4327,0x564b} 
 	 **/
 	 {0x440d,0x4327,0x4fff},
+
+	/* Developer: Datam Polystar
+	 * Soshite Kono Uchuu ni Kirameku Kimi no Shi XXX (PS2) */
+    /* confirmed unique with guessadx */
+	{0x5f5d,0x552b,0x5507},
 };
 
 static const int key_count = sizeof(keys)/sizeof(keys[0]);
