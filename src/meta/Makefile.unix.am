@@ -217,5 +217,6 @@ libmeta_la_SOURCES += wii_ras.c
 libmeta_la_SOURCES += ps2_spm.c
 libmeta_la_SOURCES += ps2_mtaf.c
 libmeta_la_SOURCES += x360_tra.c
+libmeta_la_SOURCES += ps2_iab.c
 
 EXTRA_DIST = meta.h

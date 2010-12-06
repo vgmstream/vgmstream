@@ -93,6 +93,7 @@ gchar *vgmstream_exts [] = {
   "hps",
   "hwas",
 
+  "iab",
   "idsp",
   "idvi",
   "ikm",

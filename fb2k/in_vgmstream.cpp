@@ -335,6 +335,7 @@ bool input_vgmstream::g_is_our_path(const char * p_path,const char * p_extension
 	if(!stricmp_utf8(p_extension,"hps")) return 1;
 	if(!stricmp_utf8(p_extension,"hwas")) return 1;
 
+	if(!stricmp_utf8(p_extension,"iab")) return 1;
 	if(!stricmp_utf8(p_extension,"idsp")) return 1;
 	if(!stricmp_utf8(p_extension,"idvi")) return 1;
 	if(!stricmp_utf8(p_extension,"ikm")) return 1;

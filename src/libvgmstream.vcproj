@@ -635,6 +635,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\ps2_iab.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\ps2_ikm.c"
 					>
 				</File>
@@ -1280,6 +1284,10 @@
 				</File>
 				<File
 					RelativePath=".\layout\ps2_adm_blocked.c"
+					>
+				</File>
+				<File
+					RelativePath=".\layout\ps2_iab_blocked.c"
 					>
 				</File>
 				<File

@@ -68,4 +68,6 @@ void tra_block_update(off_t block_offset, VGMSTREAM * vgmstream);
 
 void mtaf_block_update(off_t block_offset, VGMSTREAM * vgmstream);
 
+void ps2_iab_block_update(off_t block_offset, VGMSTREAM * vgmstream);
+
 #endif
