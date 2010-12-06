@@ -1,7 +1,10 @@
 #include "meta.h"
 #include "../util.h"
 
-/* VGS (Phantom of Inferno) */
+/* VGS (Phantom of Inferno) 
+
+   This format is used in _many_ Princess Soft games.
+*/
 VGMSTREAM * init_vgmstream_ps2_vgs(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[260];
@@ -92,7 +95,7 @@ VGMSTREAM * init_vgmstream_ps2_vgs(STREAMFILE *streamFile) {
 
     vgmstream->layout_type = layout_interleave;
     vgmstream->interleave_block_size = read_32bitBE(0x04,streamFile)*0x1000;
-    vgmstream->meta_type = meta_PSX_FAG;
+    vgmstream->meta_type = meta_PS2_VGS;
 
     /* open the file for reading */
     {

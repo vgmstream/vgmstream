@@ -501,6 +501,7 @@ typedef enum {
 	meta_WII_RAS,           /* Donkey Kong Country Returns (Wii) */
 	meta_PS2_SPM,            /* Lethal Skies Elite Pilot: Team SW */
 	meta_X360_TRA,			/* Def Jam Rapstar */
+	meta_PS2_VGS,			// Princess Soft PS2 games
 } meta_t;
 
 typedef struct {

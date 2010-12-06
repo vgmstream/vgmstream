@@ -2736,6 +2736,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
 	    case meta_X360_TRA:
             snprintf(temp,TEMPSIZE,"assumed DefJam Rapstar Audio File by .tra extension");
             break;
+	    case meta_PS2_VGS:
+            snprintf(temp,TEMPSIZE,"Princess Soft VGS header");
+            break;
 		default:
            snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");
     }
