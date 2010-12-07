@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="UTF-8"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="9.00"
+	Version="9,00"
 	Name="in_vgmstream"
 	ProjectGUID="{42D86561-8CE4-40F5-86CE-58C986B77502}"
 	RootNamespace="in_vgmstream"
@@ -18,8 +18,8 @@
 	<Configurations>
 		<Configuration
 			Name="Debug|Win32"
-			OutputDirectory="H:\Program Files\Winamp\Plugins"
-			IntermediateDirectory="H:\Program Files\Winamp\Plugins"
+			OutputDirectory="C:\Program Files\Winamp\Plugins"
+			IntermediateDirectory="C:\Program Files\Winamp\Plugins"
 			ConfigurationType="2"
 			>
 			<Tool
