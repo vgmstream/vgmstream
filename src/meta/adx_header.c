@@ -305,6 +305,11 @@ static struct {
 	 * Sakura Taisen: Atsuki Chishio Ni (PS2) */
     /* confirmed unique with guessadx */
 	{0x645d,0x6011,0x5c29},
+
+	/* Developer: Sega
+	 * Sakura Taisen 3 ~Paris wa Moeteiru ka~ (PS2) */
+    /* confirmed unique with guessadx */
+	{0x62ad,0x4b13,0x5957},
 };
 
 static const int key_count = sizeof(keys)/sizeof(keys[0]);
