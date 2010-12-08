@@ -300,6 +300,11 @@ static struct {
 	 * Soshite Kono Uchuu ni Kirameku Kimi no Shi XXX (PS2) */
     /* confirmed unique with guessadx */
 	{0x5f5d,0x552b,0x5507},
+
+	/* Developer: Sega
+	 * Sakura Taisen: Atsuki Chishio Ni (PS2) */
+    /* confirmed unique with guessadx */
+	{0x645d,0x6011,0x5c29},
 };
 
 static const int key_count = sizeof(keys)/sizeof(keys[0]);
