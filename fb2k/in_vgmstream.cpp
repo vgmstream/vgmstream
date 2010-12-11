@@ -352,6 +352,7 @@ bool input_vgmstream::g_is_our_path(const char * p_path,const char * p_extension
 	if(!stricmp_utf8(p_extension,"kces")) return 1;
 	if(!stricmp_utf8(p_extension,"kcey")) return 1;
 	if(!stricmp_utf8(p_extension,"khv")) return 1;
+	if(!stricmp_utf8(p_extension,"kovs")) return 1;
 	if(!stricmp_utf8(p_extension,"kraw")) return 1;
 
 	if(!stricmp_utf8(p_extension,"leg")) return 1;
@@ -649,6 +650,7 @@ DECLARE_MULTIPLE_FILE_TYPE("JSTM Audio File (*.JSTM)", jstm);
 DECLARE_MULTIPLE_FILE_TYPE("KCES Audio File (*.KCES)", kces);
 DECLARE_MULTIPLE_FILE_TYPE("KCEY Audio File (*.KCEY)", kcey);
 DECLARE_MULTIPLE_FILE_TYPE("KHV Audio File (*.KHV)", khv);
+DECLARE_MULTIPLE_FILE_TYPE("KOVS Audio File (*.KOVS)", kovs);
 DECLARE_MULTIPLE_FILE_TYPE("KRAW Audio File (*.KRAW)", kraw);
 
 DECLARE_MULTIPLE_FILE_TYPE("LEG Audio File (*.LEG)", leg);

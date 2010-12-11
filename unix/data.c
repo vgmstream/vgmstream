@@ -109,6 +109,7 @@ gchar *vgmstream_exts [] = {
   "kces",
   "kcey",
   "khv",
+  "kovs",
   "kraw",
 
   "leg",

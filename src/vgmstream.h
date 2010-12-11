@@ -397,6 +397,7 @@ typedef enum {
     meta_OGG_SLI2,          /* Ogg Vorbis file w/ different styled .sli for looping */
     meta_OGG_SFL,           /* Ogg Vorbis file w/ .sfl (RIFF SFPL) for looping */
     meta_um3_ogg,           /* Ogg Vorbis with first 0x800 bytes XOR 0xFF */
+    meta_KOVS_ogg,          /* Ogg Vorbis with exta header and 0x100 bytes XOR */
 #endif
 
     meta_AIFC,              /* Audio Interchange File Format AIFF-C */

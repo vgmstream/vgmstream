@@ -55,6 +55,31 @@ static size_t read_func_um3(void *ptr, size_t size, size_t nmemb, void * datasou
     return items_read;
 }
 
+static size_t read_func_kovs(void *ptr, size_t size, size_t nmemb, void * datasource)
+{
+    ogg_vorbis_streamfile * const ov_streamfile = datasource;
+    size_t items_read;
+
+    size_t bytes_read;
+   
+    bytes_read = read_streamfile(ptr, ov_streamfile->offset+0x20, size * nmemb,
+            ov_streamfile->streamfile);
+
+    items_read = bytes_read / size;
+
+    /* first 0x100 bytes of KOVS are xor'd with offset */
+    if (ov_streamfile->offset < 0x100) {
+        int i;
+
+        for (i=ov_streamfile->offset;i<0x100;i++)
+            ((uint8_t*)ptr)[i-ov_streamfile->offset] ^= i;
+    }
+
+    ov_streamfile->offset += items_read * size;
+
+    return items_read;
+}
+
 static int seek_func(void *datasource, ogg_int64_t offset, int whence) {
     ogg_vorbis_streamfile * const ov_streamfile = datasource;
     ogg_int64_t base_offset;
@@ -116,7 +141,9 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
     int loop_end_found = 0;
     int32_t loop_end = 0;
 
+    off_t other_header_bytes = 0;
     int um3_ogg = 0;
+    int kovs_ogg = 0;
 
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
@@ -126,21 +153,41 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
        may be renamed to .logg. This meta reader should still support .ogg,
        though. */
     if (strcasecmp("logg",filename_extension(filename)) &&
-            strcasecmp("ogg",filename_extension(filename))
-       ) {
-        if(!strcasecmp("um3",filename_extension(filename))) {
+            strcasecmp("ogg",filename_extension(filename))) {
+        if (!strcasecmp("um3",filename_extension(filename))) {
             um3_ogg = 1;
+        } else if (!strcasecmp("kovs",filename_extension(filename))) {
+            kovs_ogg = 1;
+        } else {
+            goto fail;
         }
-        else goto fail;
     }
 
     /* not all um3-ogg are crypted */
-    if (um3_ogg && read_32bitBE(0x0,streamFile)==0x4f676753) um3_ogg = 0;
+    if (um3_ogg && read_32bitBE(0x0,streamFile)==0x4f676753) {
+        um3_ogg = 0;
+    }
 
-    if (um3_ogg)
+    /* use KOVS header */
+    if (kovs_ogg) {
+        if (read_32bitBE(0x0,streamFile)!=0x4b4f5653) { /* "KOVS" */
+            goto fail;
+        }
+        if (read_32bitLE(0x8,streamFile)!=0) {
+            loop_start = read_32bitLE(0x8,streamFile);
+            loop_flag = 1;
+        }
+
+        other_header_bytes = 0x20;
+    }
+
+    if (um3_ogg) {
         callbacks.read_func = read_func_um3;
-    else
+    } else if (kovs_ogg) {
+        callbacks.read_func = read_func_kovs;
+    } else {
         callbacks.read_func = read_func;
+    }
     callbacks.seek_func = seek_func;
     callbacks.close_func = close_func;
     callbacks.tell_func = tell_func;
@@ -148,6 +195,7 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
     temp_streamfile.streamfile = streamFile;
     temp_streamfile.offset = 0;
     temp_streamfile.size = get_streamfile_size(temp_streamfile.streamfile);
+    temp_streamfile.size -= other_header_bytes;
 
     /* can we open this as a proper ogg vorbis file? */
     memset(&temp_ovf, 0, sizeof(temp_ovf));
@@ -166,6 +214,7 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
     if (!data->ov_streamfile.streamfile) goto fail;
     data->ov_streamfile.offset = 0;
     data->ov_streamfile.size = get_streamfile_size(data->ov_streamfile.streamfile);
+    data->ov_streamfile.size -= other_header_bytes;
 
     /* open the ogg vorbis file for real */
     if (ov_open_callbacks(&data->ov_streamfile, &data->ogg_vorbis_file, NULL,
@@ -266,10 +315,13 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
     }
     vgmstream->coding_type = coding_ogg_vorbis;
     vgmstream->layout_type = layout_ogg_vorbis;
-    if (um3_ogg)
+    if (um3_ogg) {
         vgmstream->meta_type = meta_um3_ogg;
-    else
+    } else if (kovs_ogg) {
+        vgmstream->meta_type = meta_KOVS_ogg;
+    } else {
         vgmstream->meta_type = meta_ogg_vorbis;
+    }
 
     return vgmstream;
 
