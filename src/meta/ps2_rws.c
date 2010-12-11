@@ -35,7 +35,7 @@ VGMSTREAM * init_vgmstream_rws(STREAMFILE *streamFile) {
 	vgmstream->channels = channel_count;
 
 
-switch (read_32bitLE(0x38,streamFile)) {
+	switch (read_32bitLE(0x38,streamFile)) {
 			case 0x01:
 				vgmstream->sample_rate = read_32bitLE(0xE4,streamFile);
 			    vgmstream->num_samples = read_32bitLE(0x98,streamFile)/16*28/vgmstream->channels;
@@ -45,11 +45,25 @@ switch (read_32bitLE(0x38,streamFile)) {
 				}
 			break;
 			case 0x02:
-				vgmstream->sample_rate = read_32bitLE(0x178,streamFile);
-			    vgmstream->num_samples = read_32bitLE(0x150,streamFile)/16*28/vgmstream->channels;
-				if (loop_flag) {
-					vgmstream->loop_start_sample = 0;
-					vgmstream->loop_end_sample = read_32bitLE(0x150,streamFile)/16*28/vgmstream->channels;
+				if (start_offset < 0x800) // Max Payne 2
+				{
+					vgmstream->sample_rate = read_32bitLE(0x178,streamFile);
+				    vgmstream->num_samples = read_32bitLE(0x150,streamFile)/16*28/vgmstream->channels;
+					if (loop_flag) 
+					{
+						vgmstream->loop_start_sample = 0;
+						vgmstream->loop_end_sample = read_32bitLE(0x150,streamFile)/16*28/vgmstream->channels;
+					}
+				}
+				else // Nana (2005)(Konami)
+				{
+					vgmstream->sample_rate = read_32bitLE(0x128,streamFile);
+				    vgmstream->num_samples = read_32bitLE(0x7F8,streamFile)/16*28/vgmstream->channels;
+					if (loop_flag) 
+					{
+						vgmstream->loop_start_sample = 0;
+						vgmstream->loop_end_sample = read_32bitLE(0x7F8,streamFile)/16*28/vgmstream->channels;
+					}				
 				}
 			break;
 		default:
