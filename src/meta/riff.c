@@ -589,8 +589,8 @@ VGMSTREAM * init_vgmstream_rifx(STREAMFILE *streamFile) {
         for (i=0;i<channel_count;i++) {
             for (j=0;j<16;j++)
                 vgmstream->ch[i].adpcm_coef[j] = read_16bitBE(wiih_offset + i * 0x2e + j * 2,streamFile);
-            vgmstream->ch[i].adpcm_history1_16 = read_16bitBE(wiih_offset + i * 0x2e + 4,streamFile);
-            vgmstream->ch[i].adpcm_history2_16 = read_16bitBE(wiih_offset + i * 0x2e + 6,streamFile);
+            vgmstream->ch[i].adpcm_history1_16 = read_16bitBE(wiih_offset + i * 0x2e + 0x24,streamFile);
+            vgmstream->ch[i].adpcm_history2_16 = read_16bitBE(wiih_offset + i * 0x2e + 0x26,streamFile);
         }
     }
 
