@@ -310,6 +310,14 @@ static struct {
 	 * Sakura Taisen 3 ~Paris wa Moeteiru ka~ (PS2) */
     /* confirmed unique with guessadx */
 	{0x62ad,0x4b13,0x5957},
+
+	/* Developer: Jinx
+	 * Sotsugyou 2nd Generation (PS2)
+     * First guess from guessadx, other was 
+	 *   {0x6307,0x509f,0x2ac5} 
+	 */
+	{0x6305,0x509f,0x4c01},
+
 };
 
 static const int key_count = sizeof(keys)/sizeof(keys[0]);
