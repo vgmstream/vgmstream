@@ -296,6 +296,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_ps2_spm,
 	init_vgmstream_x360_tra,
 	init_vgmstream_ps2_iab,
+	init_vgmstream_ps2_strlr,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -740,6 +741,7 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
 		case layout_tra_blocked:
 		case layout_mtaf_blocked:
 		case layout_ps2_iab_blocked:
+		case layout_ps2_strlr_blocked:
             render_vgmstream_blocked(buffer,sample_count,vgmstream);
             break;
         case layout_interleave_byte:
@@ -1871,6 +1873,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
 		case layout_ps2_iab_blocked:
             snprintf(temp,TEMPSIZE,"IAB blocked");
             break;
+		case layout_ps2_strlr_blocked:
+            snprintf(temp,TEMPSIZE,"The Bouncer STR blocked");
+            break;
 		case layout_tra_blocked:
             snprintf(temp,TEMPSIZE,"TRA blocked");
             break;
@@ -2749,6 +2754,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
 	    case meta_PS2_IAB:
             snprintf(temp,TEMPSIZE,"IAB header");
+            break;
+	    case meta_PS2_STRLR:
+            snprintf(temp,TEMPSIZE,"STR L/R header");
             break;
 		default:
            snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

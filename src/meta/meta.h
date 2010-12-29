@@ -549,4 +549,6 @@ VGMSTREAM * init_vgmstream_x360_tra(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_ps2_iab(STREAMFILE* streamFile);
 
+VGMSTREAM * init_vgmstream_ps2_strlr(STREAMFILE* streamFile);
+
 #endif
