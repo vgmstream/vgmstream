@@ -353,6 +353,8 @@ VGMSTREAM * init_vgmstream_wii_sng(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_aax(STREAMFILE *streamFile);
 
+VGMSTREAM * init_vgmstream_utf_dsp(STREAMFILE *streamFile);
+
 VGMSTREAM * init_vgmstream_ngc_ffcc_str(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_sat_baka(STREAMFILE *streamFile);

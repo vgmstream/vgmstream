@@ -199,6 +199,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_wii_sng,
     init_vgmstream_ngc_dsp_iadp,
     init_vgmstream_aax,
+    init_vgmstream_utf_dsp,
     init_vgmstream_ngc_ffcc_str,
     init_vgmstream_sat_baka,
     init_vgmstream_nds_swav,
@@ -1923,6 +1924,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case meta_AAX:
             snprintf(temp,TEMPSIZE,"CRI AAX header");
+            break;
+        case meta_UTF_DSP:
+            snprintf(temp,TEMPSIZE,"CRI ADPCM_WII header");
             break;
         case meta_DSP_AGSC:
             snprintf(temp,TEMPSIZE,"Retro Studios AGSC header");

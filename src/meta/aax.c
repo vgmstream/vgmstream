@@ -721,6 +721,16 @@ static uint8_t query_utf_1byte(STREAMFILE *infile, const long offset, int index,
     return result.value.value_u8;
 }
 
+static uint32_t query_utf_4byte(STREAMFILE *infile, const long offset, int index, const char *name, int *error)
+{
+    struct utf_query_result result = query_utf_key(infile, offset, index, name, error);
+    if (error)
+    {
+        if (result.type != COLUMN_TYPE_4BYTE) *error = 1;
+    }
+    return result.value.value_u32;
+}
+
 static struct offset_size_pair query_utf_data(STREAMFILE *infile, const long offset,
         int index, const char *name, int *error)
 {
@@ -731,3 +741,98 @@ static struct offset_size_pair query_utf_data(STREAMFILE *infile, const long off
     }
     return result.value.value_data;
 }
+
+/* CRI's UTF wrapper around DSP */
+VGMSTREAM * init_vgmstream_utf_dsp(STREAMFILE *streamFile) {
+    
+	VGMSTREAM * vgmstream = NULL;
+    char filename[260];
+    int table_error;
+
+    int loop_flag = 0;
+
+    const long top_offset = 0;
+
+    int channel_count;
+    int sample_rate;
+    long sample_count;
+
+	int i;
+
+    long top_data_offset, segment_count;
+    long body_offset, body_size;
+    long header_offset, header_size;
+
+    /* check extension, case insensitive */
+    //streamFile->get_name(streamFile,filename,sizeof(filename));
+    //if (strcasecmp("aax",filename_extension(filename))) goto fail;
+    
+    /* get entry count, data offset */
+    {
+        struct utf_query_result result;
+        long top_string_table_offset;
+        long top_string_table_size;
+        long name_offset;
+       
+        result = query_utf_nofail(streamFile, top_offset, NULL, &table_error);
+        if (table_error) goto fail;
+        segment_count = result.rows;
+        if (segment_count != 1) goto fail; // only simple stuff for now
+        top_string_table_offset = top_offset + 8 + result.string_table_offset;
+        top_data_offset = top_offset + 8 + result.data_offset;
+        top_string_table_size = top_data_offset - top_string_table_offset;
+
+        if (result.name_offset+10 > top_string_table_size) goto fail;
+
+        name_offset = top_string_table_offset + result.name_offset;
+        if (read_32bitBE(name_offset, streamFile) != 0x41445043   ||// "ADPC"
+            read_32bitBE(name_offset+4, streamFile) != 0x4D5F5749 ||// "M_WI"
+            read_16bitBE(name_offset+8, streamFile) != 0x4900)      // "I\0"
+            goto fail;
+    }
+
+    {
+        struct offset_size_pair offset_size;
+
+        offset_size = query_utf_data(streamFile, top_offset, 0, "data", &table_error);
+        if (table_error) goto fail;
+        body_offset = top_data_offset + offset_size.offset;
+        body_size = offset_size.size;
+
+        offset_size = query_utf_data(streamFile, top_offset, 0, "header", &table_error);
+        if (table_error) goto fail;
+        header_offset = top_data_offset + offset_size.offset;
+        header_size = offset_size.size;
+        if (header_size != 0x60) goto fail;
+    }
+
+    channel_count = query_utf_1byte(streamFile, top_offset, 0, "nch", &table_error);
+    sample_count = query_utf_4byte(streamFile, top_offset, 0, "nsmpl", &table_error);
+    sample_rate = query_utf_4byte(streamFile, top_offset, 0, "sfreq", &table_error);
+    if (table_error) goto fail;
+    if (channel_count != 1) goto fail;
+
+    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+
+    vgmstream->num_samples = sample_count;
+    vgmstream->sample_rate = sample_rate;
+
+    vgmstream->coding_type = coding_NGC_DSP;
+    vgmstream->layout_type = layout_none;
+    vgmstream->meta_type = meta_UTF_DSP;
+
+    vgmstream->ch[0].streamfile = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
+    if (!vgmstream->ch[0].streamfile) goto fail;
+    vgmstream->ch[0].channel_start_offset =
+        vgmstream->ch[0].offset = body_offset;
+    for (i=0;i<16;i++)
+        vgmstream->ch[0].adpcm_coef[i] = read_16bitBE(header_offset+0x1c+i*2, streamFile);
+
+    return vgmstream;
+
+    /* clean up anything we may have opened */
+fail:
+    if (vgmstream) close_vgmstream(vgmstream);
+    return NULL;
+}
+

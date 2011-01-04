@@ -226,6 +226,7 @@ typedef enum {
     meta_ADX_05,            /* ADX "type 05" */
     meta_AIX,               /* CRI AIX */
     meta_AAX,               /* CRI AAX */
+    meta_UTF_DSP,           /* CRI ADPCM_WII, like AAX with DSP */
 
     /* etc */
     meta_NGC_ADPDTK,        /* NGC DTK/ADP, no header (.adp) */
