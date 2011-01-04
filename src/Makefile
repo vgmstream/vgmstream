@@ -51,7 +51,8 @@ LAYOUT_OBJS=layout/ast_blocked.o \
     layout/bdsp_blocked.o \
     layout/tra_blocked.o \
     layout/mtaf_block.o \
-    layout/ps2_iab_blocked.o
+    layout/ps2_iab_blocked.o \
+    layout/ps2_strlr_blocked.o
 
 META_OBJS=meta/adx_header.o \
     meta/afc_header.o \
@@ -268,7 +269,8 @@ META_OBJS=meta/adx_header.o \
     meta/ps2_spm.o \
     meta/ps2_mtaf.o \
     meta/x360_tra.o \
-    meta/ps2_iab.o
+    meta/ps2_iab.o \
+    meta/ps2_strlr.o
 
 OBJECTS=vgmstream.o streamfile.o util.o $(CODING_OBJS) $(LAYOUT_OBJS) $(META_OBJS)
 
