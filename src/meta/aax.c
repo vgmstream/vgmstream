@@ -757,8 +757,6 @@ VGMSTREAM * init_vgmstream_utf_dsp(STREAMFILE *streamFile) {
     int sample_rate;
     long sample_count;
 
-	int i;
-
     long top_data_offset, segment_count;
     long body_offset, body_size;
     long header_offset, header_size;
@@ -803,14 +801,14 @@ VGMSTREAM * init_vgmstream_utf_dsp(STREAMFILE *streamFile) {
         if (table_error) goto fail;
         header_offset = top_data_offset + offset_size.offset;
         header_size = offset_size.size;
-        if (header_size != 0x60) goto fail;
     }
 
     channel_count = query_utf_1byte(streamFile, top_offset, 0, "nch", &table_error);
     sample_count = query_utf_4byte(streamFile, top_offset, 0, "nsmpl", &table_error);
     sample_rate = query_utf_4byte(streamFile, top_offset, 0, "sfreq", &table_error);
     if (table_error) goto fail;
-    if (channel_count != 1) goto fail;
+    if (channel_count != 1 && channel_count != 2) goto fail;
+    if (header_size != channel_count * 0x60) goto fail;
 
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
 
@@ -821,12 +819,22 @@ VGMSTREAM * init_vgmstream_utf_dsp(STREAMFILE *streamFile) {
     vgmstream->layout_type = layout_none;
     vgmstream->meta_type = meta_UTF_DSP;
 
-    vgmstream->ch[0].streamfile = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-    if (!vgmstream->ch[0].streamfile) goto fail;
-    vgmstream->ch[0].channel_start_offset =
-        vgmstream->ch[0].offset = body_offset;
-    for (i=0;i<16;i++)
-        vgmstream->ch[0].adpcm_coef[i] = read_16bitBE(header_offset+0x1c+i*2, streamFile);
+    {
+        int i,j;
+        long channel_size = (body_size+7)/8*8/channel_count;
+        for (i = 0; i < channel_count; i++)
+        {
+            vgmstream->ch[i].streamfile = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
+            if (!vgmstream->ch[i].streamfile) goto fail;
+            vgmstream->ch[i].channel_start_offset =
+                vgmstream->ch[i].offset = body_offset + i * channel_size;
+            for (j=0;j<16;j++)
+            {
+                vgmstream->ch[i].adpcm_coef[j] =
+                    read_16bitBE(header_offset + 0x60*i + 0x1c + j*2, streamFile);
+            }
+        }
+    }
 
     return vgmstream;
 
