@@ -117,7 +117,7 @@ VGMSTREAM * init_vgmstream_aax(STREAMFILE *streamFile) {
     off_t *segment_offset = NULL;
     off_t *segment_size = NULL;
     int32_t sample_count;
-    int table_error;
+    int table_error = 0;
 
     int loop_flag = 0;
     int32_t loop_start_sample=0;
@@ -747,7 +747,7 @@ VGMSTREAM * init_vgmstream_utf_dsp(STREAMFILE *streamFile) {
     
 	VGMSTREAM * vgmstream = NULL;
     char filename[260];
-    int table_error;
+    int table_error = 0;
 
     int loop_flag = 0;
 
@@ -762,9 +762,9 @@ VGMSTREAM * init_vgmstream_utf_dsp(STREAMFILE *streamFile) {
     long header_offset, header_size;
 
     /* check extension, case insensitive */
-    //streamFile->get_name(streamFile,filename,sizeof(filename));
+    streamFile->get_name(streamFile,filename,sizeof(filename));
     //if (strcasecmp("aax",filename_extension(filename))) goto fail;
-    
+
     /* get entry count, data offset */
     {
         struct utf_query_result result;
