@@ -179,7 +179,7 @@ void decode_ffxi_adpcm(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelsp
 	stream->adpcm_history2_32=hist2;
 }
 
-void decode_blur_adpcm(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
+void decode_baf_adpcm(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
 
 	int predict_nr, shift_factor, sample;
 	int32_t hist1=stream->adpcm_history1_32;

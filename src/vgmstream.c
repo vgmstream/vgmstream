@@ -829,7 +829,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
             return 28;
         case coding_XBOX:
 		case coding_INT_XBOX:
-        case coding_BLUR_ADPCM:
+        case coding_BAF_ADPCM:
             return 64;
         case coding_EAXA:
             return 28;
@@ -942,7 +942,7 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
             return 1; 
         case coding_APPLE_IMA4:
             return 34;
-        case coding_BLUR_ADPCM:
+        case coding_BAF_ADPCM:
             return 33;
 #ifdef VGM_USE_G7221
         case coding_G7221C:
@@ -1176,9 +1176,9 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                         samples_to_do);
             }
             break;
-        case coding_BLUR_ADPCM:
+        case coding_BAF_ADPCM:
             for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_blur_adpcm(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                decode_baf_adpcm(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
                         samples_to_do);
             }
@@ -1606,8 +1606,8 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         case coding_FFXI:
             snprintf(temp,TEMPSIZE,"FFXI Playstation-ish 4-bit ADPCM");
             break;
-        case coding_BLUR_ADPCM:
-            snprintf(temp,TEMPSIZE,"Blur Playstation-ish 4-bit ADPCM");
+        case coding_BAF_ADPCM:
+            snprintf(temp,TEMPSIZE,"Bizarre Creations Playstation-ish 4-bit ADPCM");
             break;
         case coding_XA:
             snprintf(temp,TEMPSIZE,"CD-ROM XA 4-bit ADPCM");

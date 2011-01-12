@@ -1,14 +1,17 @@
 #include "meta.h"
 #include "../util.h"
 
-/* .BAF - Blur */
+/* .BAF - Bizarre Creations (Blur, James Bond 007: Blood Stone, etc) */
 
 VGMSTREAM * init_vgmstream_baf(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[260];
-    off_t WAVE_size;
+    off_t WAVE_size,DATA_size;
     off_t start_offset;
+    long sample_count;
 
+    const int frame_size = 33;
+    const int frame_samples = 64;
     int channels;
     int loop_flag = 0;
 
@@ -23,9 +26,13 @@ VGMSTREAM * init_vgmstream_baf(STREAMFILE *streamFile) {
     /* check for DATA after WAVE */
     if (read_32bitBE(WAVE_size,streamFile) != 0x44415441) goto fail;
     /* check that WAVE size is data size */
-    if (read_32bitBE(WAVE_size+4,streamFile)-8 != read_32bitBE(0x30,streamFile)) goto fail;
+    DATA_size = read_32bitBE(0x30,streamFile);
+    if (read_32bitBE(WAVE_size+4,streamFile)-8 != DATA_size) goto fail;
 
-    channels = read_8bit(0x4b,streamFile);
+    sample_count = read_32bitBE(0x44,streamFile);
+
+    /* unsure how to detect channel count, so use a hack */
+    channels = (long long)DATA_size / frame_size * frame_samples / sample_count;
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channels,loop_flag);
@@ -33,12 +40,12 @@ VGMSTREAM * init_vgmstream_baf(STREAMFILE *streamFile) {
 
     /* fill in the vital statistics */
     start_offset = WAVE_size + 8;
-    vgmstream->num_samples = read_32bitBE(0x44,streamFile);
     vgmstream->sample_rate = read_32bitBE(0x40,streamFile);
+    vgmstream->num_samples = sample_count;
 
-    vgmstream->coding_type = coding_BLUR_ADPCM;
+    vgmstream->coding_type = coding_BAF_ADPCM;
     vgmstream->layout_type = layout_interleave;
-    vgmstream->interleave_block_size = 33;
+    vgmstream->interleave_block_size = frame_size;
     vgmstream->meta_type = meta_BAF;
 
     /* open the file for reading by each channel */
