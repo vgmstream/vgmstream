@@ -116,6 +116,7 @@ gchar *vgmstream_exts [] = {
   "logg",
   "lpcm",
   "lps",
+  "lsf",
   "lwav",
 
   "matx",

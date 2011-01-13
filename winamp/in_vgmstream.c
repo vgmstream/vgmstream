@@ -182,6 +182,7 @@ char * extension_list[] = {
     "logg\0LOGG Audio File (*.LOGG)\0",
     "lpcm\0LPCM Audio File (*.LPCM)\0",
     "lps\0LPS Audio File (*.LPS)\0",
+    "lsf\0LSF Audio File (*.LSF)\0",
     "lwav\0LWAV Audio File (*.LWAV)\0",
 
     "matx\0MATX Audio File (*.MATX)\0",

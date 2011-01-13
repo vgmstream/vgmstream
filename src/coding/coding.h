@@ -110,4 +110,6 @@ void decode_l5_555(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacin
 
 void decode_SASSC(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
 
+void decode_lsf(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
+
 #endif

@@ -19,7 +19,8 @@ CODING_OBJS=coding/adx_decoder.o \
     coding/nds_procyon_decoder.o \
     coding/l5_555_decoder.o \
     coding/SASSC_decoder.o \
-    coding/g7221_decoder.o
+    coding/g7221_decoder.o \
+    coding/lsf_decoder.o
 
 LAYOUT_OBJS=layout/ast_blocked.o \
     layout/blocked.o \
@@ -270,7 +271,8 @@ META_OBJS=meta/adx_header.o \
     meta/ps2_mtaf.o \
     meta/x360_tra.o \
     meta/ps2_iab.o \
-    meta/ps2_strlr.o
+    meta/ps2_strlr.o \
+    meta/lsf.o
 
 OBJECTS=vgmstream.o streamfile.o util.o $(CODING_OBJS) $(LAYOUT_OBJS) $(META_OBJS)
 

@@ -381,6 +381,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\lsf.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\maxis_xa.c"
 					>
 				</File>
@@ -1132,6 +1136,10 @@
 				</File>
 				<File
 					RelativePath=".\coding\l5_555_decoder.c"
+					>
+				</File>
+				<File
+					RelativePath=".\coding\lsf_decoder.c"
 					>
 				</File>
 				<File

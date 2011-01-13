@@ -219,5 +219,6 @@ libmeta_la_SOURCES += ps2_mtaf.c
 libmeta_la_SOURCES += x360_tra.c
 libmeta_la_SOURCES += ps2_iab.c
 libmeta_la_SOURCES += ps2_strlr.c
+libmeta_la_SOURCES += lsf.c
 
 EXTRA_DIST = meta.h

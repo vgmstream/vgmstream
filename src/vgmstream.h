@@ -122,6 +122,7 @@ typedef enum {
     coding_L5_555,          /* Level-5 0x555 */
     coding_SASSC,           /* Activision EXAKT SASSC DPCM */
     coding_PCM16LE_XOR_int, /* sample-level xor */
+    coding_LSF,             /* lsf ADPCM */
 } coding_t;
 
 /* The layout type specifies how the sound data is laid out in the file */
@@ -508,6 +509,7 @@ typedef enum {
 	meta_PS2_VGS,			// Princess Soft PS2 games
 	meta_PS2_IAB,			// Ueki no Housoku - Taosu ze Robert Juudan!! (PS2)
 	meta_PS2_STRLR,
+    meta_LSF_N1NJ4N,        /* .lsf n1nj4n Fastlane Street Racing (iPhone) */
 } meta_t;
 
 typedef struct {
