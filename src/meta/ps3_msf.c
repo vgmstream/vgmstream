@@ -11,6 +11,7 @@ VGMSTREAM * init_vgmstream_ps3_msf(STREAMFILE *streamFile) {
     int loop_flag = 0;
   	int channel_count;
     int codec_id;
+	size_t	fileLength;
 
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
@@ -21,7 +22,9 @@ VGMSTREAM * init_vgmstream_ps3_msf(STREAMFILE *streamFile) {
     if (read_8bit(0x1,streamFile) != 0x53) goto fail;	/* S */
     if (read_8bit(0x2,streamFile) != 0x46) goto fail; /* F */
 
-    loop_flag = (read_32bitBE(0x18,streamFile) != 0xFFFFFFFF);
+    fileLength = get_streamfile_size(streamFile);
+
+	loop_flag = (read_32bitBE(0x18,streamFile) != 0xFFFFFFFF);
     if (loop_flag)
     {
       loop_start = read_32bitBE(0x18,streamFile);
@@ -51,7 +54,8 @@ VGMSTREAM * init_vgmstream_ps3_msf(STREAMFILE *streamFile) {
             {
                 vgmstream->coding_type = coding_PCM16BE;
                 vgmstream->num_samples = read_32bitBE(0x0C,streamFile)/2/channel_count;
-                if (loop_flag) {
+                
+				if (loop_flag){
                     vgmstream->loop_start_sample = loop_start/2/channel_count;
                     vgmstream->loop_end_sample = loop_end/2/channel_count;
                 }
@@ -71,7 +75,14 @@ VGMSTREAM * init_vgmstream_ps3_msf(STREAMFILE *streamFile) {
             {
                 vgmstream->coding_type = coding_PSX;
                 vgmstream->num_samples = read_32bitBE(0x0C,streamFile)*28/16/channel_count;
-                if (loop_flag) {
+
+				if (vgmstream->num_samples = 0xFFFFFFFF)
+				{
+					vgmstream->num_samples = (fileLength - start_offset)*28/16/channel_count;
+				}
+
+				if (loop_flag)
+				{
                     vgmstream->loop_start_sample = loop_start*28/16/channel_count;
                     vgmstream->loop_end_sample = loop_end*28/16/channel_count;
                 }
