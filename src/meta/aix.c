@@ -34,6 +34,8 @@ VGMSTREAM * init_vgmstream_aix(STREAMFILE *streamFile) {
     off_t first_AIXP;
     off_t stream_list_offset;
     off_t stream_list_end;
+    const int segment_list_entry_size = 0x10;
+    const off_t segment_list_offset = 0x20;
 
     int stream_count,channel_count,segment_count;
     int sample_rate;
@@ -51,7 +53,7 @@ VGMSTREAM * init_vgmstream_aix(STREAMFILE *streamFile) {
 
     first_AIXP = read_32bitBE(0x4,streamFile)+8;
     segment_count = (uint16_t)read_16bitBE(0x18,streamFile);
-    stream_list_offset = 0x20+0x10*segment_count+0x10;
+    stream_list_offset = segment_list_offset+segment_list_entry_size*segment_count+0x10;
 
     if (stream_list_offset >= first_AIXP)
         goto fail;
@@ -71,12 +73,17 @@ VGMSTREAM * init_vgmstream_aix(STREAMFILE *streamFile) {
 
     for (i = 0; i < segment_count; i++)
     {
-        segment_offset[i] = read_32bitBE(0x20+0x10*i+0,streamFile);
-        samples_in_segment[i] = read_32bitBE(0x20+0x10*i+0x08,streamFile);
+        segment_offset[i] = read_32bitBE(segment_list_offset+segment_list_entry_size*i+0,streamFile);
+        samples_in_segment[i] = read_32bitBE(segment_list_offset+segment_list_entry_size*i+0x08,streamFile);
         /*printf("samples_in_segment[%d]=%d\n",i,samples_in_segment[i]);*/
-        /* all segments must have equal samplerate */
-        if (read_32bitBE(0x20+0x10*i+0x0c,streamFile) != sample_rate)
-            goto fail;
+        /* all segments must have equal sample rate */
+        if (read_32bitBE(segment_list_offset+segment_list_entry_size*i+0x0c,streamFile) != sample_rate)
+        {
+            /* segments > 0 can have 0 sample rate (Ryu ga gotoku: Kenzan! tenkei_sng1.aix),
+               seems to indicate same sample rate as first */
+            if (!(i > 0 && read_32bitBE(segment_list_offset+segment_list_entry_size*i+0x0c,streamFile) == 0))
+                goto fail;
+        }
     }
 
     if (segment_offset[0] != first_AIXP)
