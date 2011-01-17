@@ -12,8 +12,6 @@ VGMSTREAM * init_vgmstream_ps3_vawx(STREAMFILE *streamFile)
 	size_t fileLength;
 	off_t readOffset = 0;
 	off_t start_offset;
-	off_t loop_start_offset;
-	off_t loop_end_offset;
 
 	int loop_flag = 0;
 	int channel_count;
@@ -25,6 +23,11 @@ VGMSTREAM * init_vgmstream_ps3_vawx(STREAMFILE *streamFile)
     /* check header */
     if (read_32bitBE(0x00,streamFile) != 0x56415758) // "VAWX"
         goto fail;
+
+	if (read_8bit(0xF,streamFile) == 2)
+	{
+		loop_flag = 1;
+	}
 
     channel_count = read_8bit(0x39,streamFile);;
     
@@ -41,8 +44,8 @@ VGMSTREAM * init_vgmstream_ps3_vawx(STREAMFILE *streamFile)
  
 	if (loop_flag) 
 	{
-		vgmstream->loop_start_sample = loop_start_offset/16/channel_count*28;
-		vgmstream->loop_end_sample = loop_end_offset/16/channel_count*28;
+		vgmstream->loop_start_sample = read_32bitBE(0x44,streamFile);
+		vgmstream->loop_end_sample = read_32bitBE(0x48,streamFile);;
 	}
 
     vgmstream->layout_type = layout_interleave;
@@ -55,14 +58,16 @@ VGMSTREAM * init_vgmstream_ps3_vawx(STREAMFILE *streamFile)
         STREAMFILE * file;
         file = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
         if (!file) goto fail;
-        for (i=0;i<channel_count;i++) {
+        
+		for (i=0;i<channel_count;i++) 
+		{
             vgmstream->ch[i].streamfile = file;
 
             vgmstream->ch[i].channel_start_offset=
-                vgmstream->ch[i].offset=start_offset+
-                vgmstream->interleave_block_size*i;
+                vgmstream->ch[i].offset=start_offset + (vgmstream->interleave_block_size * i);
 
         }
+		
     }
 
     return vgmstream;
