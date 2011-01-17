@@ -510,6 +510,7 @@ typedef enum {
 	meta_PS2_IAB,			// Ueki no Housoku - Taosu ze Robert Juudan!! (PS2)
 	meta_PS2_STRLR,
     meta_LSF_N1NJ4N,        /* .lsf n1nj4n Fastlane Street Racing (iPhone) */
+	meta_PS3_VAWX,			// No More Heroes: Heroes Paradise (PS3)
 } meta_t;
 
 typedef struct {

@@ -469,6 +469,7 @@ bool input_vgmstream::g_is_our_path(const char * p_path,const char * p_extension
 
 	if(!stricmp_utf8(p_extension,"vag")) return 1;
 	if(!stricmp_utf8(p_extension,"vas")) return 1;
+	if(!stricmp_utf8(p_extension,"vawx")) return 1;
 	if(!stricmp_utf8(p_extension,"vb")) return 1;
 	if(!stricmp_utf8(p_extension,"vgs")) return 1;
 	if(!stricmp_utf8(p_extension,"vgv")) return 1;

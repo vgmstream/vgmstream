@@ -295,6 +295,7 @@ char * extension_list[] = {
 
     "vag\0VAG Audio File (*.VAG)\0",
     "vas\0VAS Audio File (*.VAS)\0",
+	"vawx\0VAWX Audio File (*.VAWX)\0",
     "vb\0VB Audio File (*.VB)\0",
     "vgs\0VGS Audio File (*.VGS)\0",
     "vig\0VIG Audio File (*.VIG)\0",

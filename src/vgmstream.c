@@ -299,6 +299,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_ps2_iab,
 	init_vgmstream_ps2_strlr,
     init_vgmstream_lsf_n1nj4n,
+	init_vgmstream_ps3_vawx,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -2779,6 +2780,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case meta_LSF_N1NJ4N:
             snprintf(temp,TEMPSIZE,".lsf !n1nj4n header");
+            break;
+	    case meta_PS3_VAWX:
+            snprintf(temp,TEMPSIZE,"VAWX header");
             break;
 		default:
            snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");
