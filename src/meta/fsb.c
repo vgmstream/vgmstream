@@ -430,10 +430,9 @@ VGMSTREAM * init_vgmstream_fsb_mpeg(STREAMFILE *streamFile) {
     num_samples = (read_32bitLE(0x5C,streamFile));
 
 #ifdef VGM_USE_MPEG
-        mpeg_data = init_mpeg_codec_data(streamFile, start_offset, -1, -1, &mpeg_coding_type); // -1 to not check sample rate or channels
+        mpeg_data = init_mpeg_codec_data(streamFile, start_offset, -1, -1, &mpeg_coding_type, &rate, &channels); // -1 to not check sample rate or channels
         if (!mpeg_data) goto fail;
 
-        if (MPG123_OK != mpg123_getformat(mpeg_data->m,&rate,&channels,&encoding)) goto fail;
         channel_count = channels;
         sample_rate = rate;
 

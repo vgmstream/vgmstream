@@ -85,7 +85,7 @@ void decode_fake_mpeg2_l2(VGMSTREAMCHANNEL *stream,
     }
 }
 
-mpeg_codec_data *init_mpeg_codec_data(STREAMFILE *streamfile, off_t start_offset, long given_sample_rate, int given_channels, coding_t *coding_type) {
+mpeg_codec_data *init_mpeg_codec_data(STREAMFILE *streamfile, off_t start_offset, long given_sample_rate, int given_channels, coding_t *coding_type, int * actual_sample_rate, int * actual_channels) {
     int rc;
     off_t read_offset;
     mpeg_codec_data *data = NULL;
@@ -157,6 +157,9 @@ mpeg_codec_data *init_mpeg_codec_data(STREAMFILE *streamfile, off_t start_offset
         else if (mi.version == MPG123_2_5 && mi.layer == 3)
             *coding_type = coding_MPEG25_L3;
         else goto mpeg_fail;
+
+		if ( actual_sample_rate ) *actual_sample_rate = rate;
+		if ( actual_channels ) *actual_channels = channels;
     }
 
     /* reinit, to ignore the reading we've done so far */
@@ -186,6 +189,11 @@ void decode_mpeg(VGMSTREAMCHANNEL *stream,
         if (!data->buffer_full) {
             data->bytes_in_buffer = read_streamfile(data->buffer,
                     stream->offset,MPEG_BUFFER_SIZE,stream->streamfile);
+
+			if (!data->bytes_in_buffer) {
+				memset(outbuf + samples_done * channels, 0, (samples_to_do - samples_done) * sizeof(sample));
+				break;
+			}
 
             data->buffer_full = 1;
             data->buffer_used = 0;

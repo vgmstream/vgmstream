@@ -105,7 +105,7 @@ VGMSTREAM * init_vgmstream_ps3_msf(STREAMFILE *streamFile) {
                 struct mpg123_frameinfo mi;
                 coding_t ct;
 
-                mpeg_data = init_mpeg_codec_data(streamFile, start_offset, vgmstream->sample_rate, vgmstream->channels, &ct);
+                mpeg_data = init_mpeg_codec_data(streamFile, start_offset, vgmstream->sample_rate, vgmstream->channels, &ct, NULL, NULL);
                 if (!mpeg_data) goto fail;
                 vgmstream->codec_data = mpeg_data;
 
