@@ -739,10 +739,6 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\ps2_seg.c"
-					>
-				</File>
-				<File
 					RelativePath=".\meta\ps2_sfs.c"
 					>
 				</File>
@@ -944,6 +940,10 @@
 				</File>
 				<File
 					RelativePath=".\meta\se_scd.c"
+					>
+				</File>
+				<File
+					RelativePath=".\meta\seg.c"
 					>
 				</File>
 				<File

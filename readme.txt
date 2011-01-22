@@ -86,7 +86,6 @@ PS2/PSX ADPCM:
 - .rws
 - .rxw
 - .snd
-- .seg
 - .sfs
 - .sl3
 - .smpl (w/ bad flags)
@@ -223,6 +222,7 @@ multi:
 - .rsd (PSX ADPCM, 16 bit PCM, GC DSP ADPCM, Xbox IMA ADPCM, Radical ADPCM)
 - .rrds (NDS IMA ADPCM)
 - .sad (GC DSP ADPCM, NDS IMA ADPCM, Procyon Studios NDS ADPCM)
+- .seg (Xbox IMA ADPCM, PS2 ADPCM)
 - .sng, .asf, .str, .eam (EA/XA ADPCM or PSX ADPCM)
 - .strm (NDS IMA ADPCM, 8/16 bit PCM)
 - .ss7 (EACS IMA ADPCM, IMA ADPCM)

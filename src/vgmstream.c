@@ -174,7 +174,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_spw,
     init_vgmstream_ps2_ass,
     init_vgmstream_waa_wac_wad_wam,
-    init_vgmstream_ps2_seg,
+    init_vgmstream_seg,
     init_vgmstream_nds_strm_ffta2,
     init_vgmstream_str_asr,
     init_vgmstream_zwdsp,
@@ -2433,6 +2433,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case meta_PS2_SEG:
             snprintf(temp,TEMPSIZE,"SEG (PS2) Header");
+            break;
+        case meta_XBOX_SEG:
+            snprintf(temp,TEMPSIZE,"SEG (XBOX) Header");
             break;
         case meta_NDS_STRM_FFTA2:
             snprintf(temp,TEMPSIZE,"Final Fantasy Tactics A2 RIFF Header");
