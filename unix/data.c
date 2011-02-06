@@ -191,6 +191,7 @@ gchar *vgmstream_exts [] = {
   "smp",
   "smpl",
   "snd",
+  "snds",
   "sng",
   "sns",
   "spd",

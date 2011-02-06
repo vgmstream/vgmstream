@@ -555,6 +555,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\pc_snds.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\pc_sob.c"
 					>
 				</File>

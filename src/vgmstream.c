@@ -300,6 +300,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_ps2_strlr,
     init_vgmstream_lsf_n1nj4n,
 	init_vgmstream_ps3_vawx,
+    init_vgmstream_pc_snds,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -815,6 +816,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_G721:
         case coding_DVI_IMA:
         case coding_EACS_IMA:
+        case coding_SNDS_IMA:
         case coding_IMA:
             return 1;
         case coding_INT_IMA:
@@ -918,6 +920,7 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
         case coding_DVI_IMA:
         case coding_IMA:
         case coding_G721:
+        case coding_SNDS_IMA:
             return 0;
         case coding_NGC_AFC:
         case coding_FFXI:
@@ -1280,6 +1283,13 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                 decode_apple_ima4(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
                         samples_to_do);
+            }
+            break;
+        case coding_SNDS_IMA:
+            for (chan=0;chan<vgmstream->channels;chan++) {
+                decode_snds_ima(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                        vgmstream->channels,vgmstream->samples_into_block,
+                        samples_to_do,chan);
             }
             break;
         case coding_WS:
@@ -1683,6 +1693,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case coding_APPLE_IMA4:
             snprintf(temp,TEMPSIZE,"Apple Quicktime 4-bit IMA ADPCM");
+            break;
+        case coding_SNDS_IMA:
+            snprintf(temp,TEMPSIZE,"Heavy Iron .snds 4-bit IMA ADPCM");
             break;
         case coding_WS:
             snprintf(temp,TEMPSIZE,"Westwood Studios DPCM");
@@ -2786,6 +2799,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
 	    case meta_PS3_VAWX:
             snprintf(temp,TEMPSIZE,"VAWX header");
+            break;
+        case meta_PC_SNDS:
+            snprintf(temp,TEMPSIZE,"assumed Heavy Iron IMA by .snds extension");
             break;
 		default:
            snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

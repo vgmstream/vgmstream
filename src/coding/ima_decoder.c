@@ -598,3 +598,40 @@ void decode_apple_ima4(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelsp
     stream->adpcm_history1_16=hist1;
     stream->adpcm_step_index=step_index;
 }
+
+void decode_snds_ima(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
+    int i;
+
+    int32_t sample_count=0;
+    int32_t hist1=stream->adpcm_history1_32;
+    int step_index = stream->adpcm_step_index;
+
+    for (i=first_sample,sample_count=0; i<first_sample+samples_to_do; i++,sample_count+=channelspacing) {
+        int step;
+        uint8_t sample_byte;
+        int sample_nibble;
+        int sample_decoded;
+        int delta;
+
+        sample_byte = read_8bit(stream->offset+i,stream->streamfile);
+        sample_nibble = (sample_byte >> (channel==0?4:0))&0xf;
+
+        // update step before doing current sample
+        step_index += IMA_IndexTable[sample_nibble];
+        if (step_index < 0) step_index=0;
+        if (step_index > 88) step_index=88;
+        step = ADPCMTable[step_index];
+
+        delta = (sample_nibble & 7) * step / 4 + step / 8;
+        if (sample_nibble & 8) delta = -delta;
+        sample_decoded = hist1 + delta;
+
+        hist1=clamp16(sample_decoded);
+
+        outbuf[sample_count]=(short)(hist1);
+    }
+
+    stream->adpcm_history1_32=hist1;
+    stream->adpcm_step_index=step_index;
+}
+

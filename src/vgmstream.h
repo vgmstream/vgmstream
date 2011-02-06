@@ -89,6 +89,7 @@ typedef enum {
     coding_RAD_IMA_mono,    /* "Radical ADPCM" IMA, mono (for interleave) */
     coding_APPLE_IMA4,      /* Apple Quicktime IMA4 */
     coding_DAT4_IMA,        /* Eurocom 'DAT4' IMA ADPCM */
+    coding_SNDS_IMA,        /* Heavy Iron Studios .snds IMA ADPCM */
     coding_WS,              /* Westwood Studios' custom VBR ADPCM */
 #ifdef VGM_USE_MPEG
     coding_fake_MPEG2_L2,   /* MPEG-2 Layer 2 (AHX), with lying headers */
@@ -512,6 +513,7 @@ typedef enum {
 	meta_PS2_STRLR,
     meta_LSF_N1NJ4N,        /* .lsf n1nj4n Fastlane Street Racing (iPhone) */
 	meta_PS3_VAWX,			// No More Heroes: Heroes Paradise (PS3)
+    meta_PC_SNDS,           // Incredibles PC .snds
 } meta_t;
 
 typedef struct {
