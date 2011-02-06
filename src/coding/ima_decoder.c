@@ -614,7 +614,7 @@ void decode_snds_ima(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspac
         int delta;
 
         sample_byte = read_8bit(stream->offset+i,stream->streamfile);
-        sample_nibble = (sample_byte >> (channel==0?4:0))&0xf;
+        sample_nibble = (sample_byte >> (channel==0?0:4))&0xf;
 
         // update step before doing current sample
         step_index += IMA_IndexTable[sample_nibble];

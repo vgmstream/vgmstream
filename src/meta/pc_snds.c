@@ -23,7 +23,7 @@ VGMSTREAM * init_vgmstream_pc_snds(STREAMFILE *streamFile) {
 
     /* fill in the vital statistics */
     vgmstream->num_samples = file_size;
-    vgmstream->sample_rate = 44100;
+    vgmstream->sample_rate = 48000;
 
     vgmstream->coding_type = coding_SNDS_IMA;
     vgmstream->layout_type = layout_none;
