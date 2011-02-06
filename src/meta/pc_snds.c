@@ -8,6 +8,7 @@ VGMSTREAM * init_vgmstream_pc_snds(STREAMFILE *streamFile) {
     char filename[260];
 
     size_t file_size;
+    int i;
 
     /* check extension, case insensitive */
     /* this is all we have to go on, snds is completely headerless */
@@ -21,9 +22,21 @@ VGMSTREAM * init_vgmstream_pc_snds(STREAMFILE *streamFile) {
     vgmstream = allocate_vgmstream(2,0);
     if (!vgmstream) goto fail;
 
-    /* fill in the vital statistics */
-    vgmstream->num_samples = file_size;
     vgmstream->sample_rate = 48000;
+
+    /* file seems to be mistakenly 1/8 too long */
+    vgmstream->num_samples = file_size*8/9;
+
+    /* check for 32 0 bytes where the padding should start */
+    for (i = 0; i < 8; i++)
+    {
+        if (read_32bitBE(vgmstream->num_samples+i*4,streamFile) != 0)
+        {
+            /* not padding? just play the whole file */
+            vgmstream->num_samples = file_size;
+            break;
+        }
+    }
 
     vgmstream->coding_type = coding_SNDS_IMA;
     vgmstream->layout_type = layout_none;
