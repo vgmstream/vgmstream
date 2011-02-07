@@ -101,6 +101,7 @@ VGMSTREAM * init_vgmstream_fsb3(STREAMFILE *streamFile) {
             }
         }
     }
+    else goto fail;
 
 
    vgmstream->num_samples = read_32bitLE(0x38,streamFile);
