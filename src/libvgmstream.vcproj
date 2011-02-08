@@ -329,10 +329,6 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\fsb_test.c"
-					>
-				</File>
-				<File
 					RelativePath=".\meta\gca.c"
 					>
 				</File>
@@ -943,10 +939,6 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\se_scd.c"
-					>
-				</File>
-				<File
 					RelativePath=".\meta\seg.c"
 					>
 				</File>
@@ -960,6 +952,10 @@
 				</File>
 				<File
 					RelativePath=".\meta\spt_spd.c"
+					>
+				</File>
+				<File
+					RelativePath=".\meta\sqex_scd.c"
 					>
 				</File>
 				<File

@@ -220,7 +220,6 @@ META_OBJS=meta/adx_header.o \
     meta/exakt_sc.o \
     meta/wii_bns.o \
     meta/pona.o \
-    meta/fsb_test.o \
     meta/xbox_hlwav.o \
     meta/stx.o \
     meta/ps2_stm.o \
@@ -258,7 +257,7 @@ META_OBJS=meta/adx_header.o \
     meta/ps2_jstm.o \
     meta/ps3_xvag.o \
     meta/ps3_cps.o \
-    meta/se_scd.o \
+    meta/sqex_scd.o \
     meta/ngc_nst_dsp.o \
     meta/baf.o \
     meta/ps3_msf.o \

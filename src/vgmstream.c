@@ -284,7 +284,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_ps2_jstm,
     init_vgmstream_ps3_xvag,
 	  init_vgmstream_ps3_cps,
-    init_vgmstream_se_scd,
+    init_vgmstream_sqex_scd,
     init_vgmstream_ngc_nst_dsp,
     init_vgmstream_baf,
     init_vgmstream_ps3_msf,
@@ -2749,7 +2749,7 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
 	    case meta_PS3_CPS:
             snprintf(temp,TEMPSIZE,"CPS Header");
             break;
-        case meta_SE_SCD:
+        case meta_SQEX_SCD:
             snprintf(temp,TEMPSIZE,"Square-Enix SCD");
             break;
         case meta_NGC_NST_DSP:

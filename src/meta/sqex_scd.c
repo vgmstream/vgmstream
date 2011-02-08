@@ -3,7 +3,7 @@
 #include "../util.h"
 
 /* Square-Enix SCD (FF XIII, XIV) */
-VGMSTREAM * init_vgmstream_se_scd(STREAMFILE *streamFile) {
+VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[260];
     off_t start_offset, meta_offset_offset, meta_offset, size_offset;
@@ -125,7 +125,7 @@ VGMSTREAM * init_vgmstream_se_scd(STREAMFILE *streamFile) {
             goto fail;
     }
 
-    vgmstream->meta_type = meta_SE_SCD;
+    vgmstream->meta_type = meta_SQEX_SCD;
 
     /* open the file for reading */
     {
