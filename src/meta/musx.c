@@ -329,7 +329,7 @@ VGMSTREAM * init_vgmstream_musx_v010(STREAMFILE *streamFile) {
         case 0x5053335F: /* PS3_ */
             start_offset = 0x800;
             vgmstream->channels = channel_count;
-            vgmstream->sample_rate = 32000;
+            vgmstream->sample_rate = 44100;
             vgmstream->coding_type = coding_DAT4_IMA;
             vgmstream->num_samples = (get_streamfile_size(streamFile)-0x800)/2/(0x20)*((0x20-4)*2);
             vgmstream->layout_type = layout_interleave;
