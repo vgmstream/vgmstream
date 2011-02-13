@@ -1,6 +1,9 @@
 #include "meta.h"
 #include "../util.h"
 
+//#include <windows.h>
+//#include <tchar.h>
+
 /* WMUS - Arbitrary extension chosen for The Warriors (PS2) */
 
 VGMSTREAM * init_vgmstream_ps2_wmus(STREAMFILE *streamFile) 
@@ -15,9 +18,12 @@ VGMSTREAM * init_vgmstream_ps2_wmus(STREAMFILE *streamFile)
 	
 	int blockCount;
 	int shortBlockSize;
+	int lastBlockLocation;
 
 	char	filenameWHED[260];
 	STREAMFILE * streamFileWHED = NULL;
+
+	//_TCHAR szBuffer[100];
 
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
@@ -60,7 +66,13 @@ VGMSTREAM * init_vgmstream_ps2_wmus(STREAMFILE *streamFile)
 
 	vgmstream->num_samples = (vgmstream->interleave_block_size * blockCount) / 16 / channel_count * 28;
 	vgmstream->loop_start_sample = 0;
-	vgmstream->loop_end_sample = vgmstream->num_samples - (vgmstream->interleave_block_size - shortBlockSize);
+	
+	lastBlockLocation = (vgmstream->interleave_block_size * blockCount) - (vgmstream->interleave_block_size - shortBlockSize);
+	vgmstream->loop_end_sample = lastBlockLocation / 16 / channel_count * 28;
+
+	//_stprintf(szBuffer, _T("%x"), lastBlockLocation);
+	//MessageBox(NULL, szBuffer, _T("Foo"), MB_OK);
+
 
     vgmstream->layout_type = layout_interleave;
     vgmstream->meta_type = meta_PS2_WMUS;
