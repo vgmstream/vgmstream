@@ -827,6 +827,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\ps2_wmus.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\ps2_xa2.c"
 					>
 				</File>

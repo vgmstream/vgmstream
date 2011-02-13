@@ -559,4 +559,6 @@ VGMSTREAM * init_vgmstream_ps3_vawx(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_pc_snds(STREAMFILE* streamFile);
 
+VGMSTREAM * init_vgmstream_ps2_wmus(STREAMFILE* streamFile);
+
 #endif

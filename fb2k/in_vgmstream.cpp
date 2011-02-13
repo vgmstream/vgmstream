@@ -488,6 +488,7 @@ bool input_vgmstream::g_is_our_path(const char * p_path,const char * p_extension
 	if(!stricmp_utf8(p_extension,"wavm")) return 1;
 	if(!stricmp_utf8(p_extension,"was")) return 1;
 	if(!stricmp_utf8(p_extension,"wii")) return 1;
+	if(!stricmp_utf8(p_extension,"wmus")) return 1;
 	if(!stricmp_utf8(p_extension,"wp2")) return 1;
 	if(!stricmp_utf8(p_extension,"wsd")) return 1;
 	if(!stricmp_utf8(p_extension,"wsi")) return 1;
@@ -787,6 +788,7 @@ DECLARE_MULTIPLE_FILE_TYPE("WAM Audio File (*.WAM)", wam);
 DECLARE_MULTIPLE_FILE_TYPE("WAVM Audio File (*.WAVM)", wavm);
 DECLARE_MULTIPLE_FILE_TYPE("WAS Audio File (*.WAS)", was);
 DECLARE_MULTIPLE_FILE_TYPE("WII Audio File (*.WII)", wii);
+DECLARE_MULTIPLE_FILE_TYPE("WMUS Audio File (*.WMUS)", wmus);
 DECLARE_MULTIPLE_FILE_TYPE("WP2 Audio File (*.WP2)", wp2);
 DECLARE_MULTIPLE_FILE_TYPE("WSD Audio File (*.WSD)", wsd);
 DECLARE_MULTIPLE_FILE_TYPE("WSI Audio File (*.WSI)", wsi);

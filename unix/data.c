@@ -244,6 +244,7 @@ gchar *vgmstream_exts [] = {
   "wavm",
   "wb",
   "wii",
+  "wmus",
   "wp2",
   "wsd",
   "wsi",
