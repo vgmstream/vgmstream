@@ -96,6 +96,7 @@ VGMSTREAM * init_vgmstream_ps2_wmus(STREAMFILE *streamFile)
 
     /* clean up anything we may have opened */
 fail:
-    if (vgmstream) close_vgmstream(vgmstream);
+	if (streamFileWHED) close_streamfile(streamFileWHED);
+	if (vgmstream) close_vgmstream(vgmstream);
     return NULL;
 }
