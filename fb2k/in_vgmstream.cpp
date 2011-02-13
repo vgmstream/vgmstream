@@ -57,6 +57,15 @@ void input_vgmstream::open(service_ptr_t<file> p_filehint,const char * p_path,t_
 	currentreason = p_reason;
 	if(p_path) strcpy(filename, p_path);
 
+	/* KLUDGE */
+	if ( !pfc::stricmp_ascii( pfc::string_extension( p_path ), "MUS" ) )
+	{
+		unsigned char buffer[ 4 ];
+		if ( p_filehint.is_empty() ) input_open_file_helper( p_filehint, p_path, p_reason, p_abort );
+		p_filehint->read_object_t( buffer, p_abort );
+		if ( !memcmp( buffer, "MUS\x1A", 4 ) ) throw exception_io_unsupported_format();
+	}
+
 	switch(p_reason) {
 		case input_open_decode:
 			vgmstream = init_vgmstream_foo(p_path, p_abort);
@@ -187,7 +196,7 @@ void input_vgmstream::decode_seek(double p_seconds,abort_callback & p_abort) {
 	int max_buffer_samples = sizeof(sample_buffer)/sizeof(sample_buffer[0])/vgmstream->channels;
 
 	// adjust for correct position within loop
-	if(vgmstream->loop_flag) {
+	if(vgmstream->loop_flag && seek_pos_samples >= vgmstream->loop_end_sample) {
 		seek_pos_samples -= vgmstream->loop_start_sample;
 		seek_pos_samples %= (vgmstream->loop_end_sample - vgmstream->loop_start_sample);
 		seek_pos_samples += vgmstream->loop_start_sample;

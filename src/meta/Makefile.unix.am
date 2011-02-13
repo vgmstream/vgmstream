@@ -221,5 +221,6 @@ libmeta_la_SOURCES += ps2_strlr.c
 libmeta_la_SOURCES += lsf.c
 libmeta_la_SOURCES += ps3_vawx.c
 libmeta_la_SOURCES += pc_snds.c
+libmeta_la_SOURCES += ps2_wmus.c
 
 EXTRA_DIST = meta.h
