@@ -515,6 +515,7 @@ typedef enum {
 	meta_PS3_VAWX,			// No More Heroes: Heroes Paradise (PS3)
     meta_PC_SNDS,           // Incredibles PC .snds
     meta_PS2_WMUS,          // The Warriors (PS2)
+	meta_HYPERSCAN_KVAG,	// Hyperscan KVAG/BVG 
 } meta_t;
 
 typedef struct {

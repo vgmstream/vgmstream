@@ -302,6 +302,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_ps3_vawx,
     init_vgmstream_pc_snds,
 	init_vgmstream_ps2_wmus,
+	init_vgmstream_hyperscan_kvag,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -2806,6 +2807,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
 	    case meta_PS2_WMUS:
             snprintf(temp,TEMPSIZE,"assumed The Warriors Sony ADPCM by .wmus extension");
+            break;
+		case meta_HYPERSCAN_KVAG:
+            snprintf(temp,TEMPSIZE,"Mattel Hyperscan KVAG");
             break;
 		default:
            snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");
