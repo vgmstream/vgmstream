@@ -318,6 +318,10 @@ static struct {
 	 */
 	{0x6305,0x509f,0x4c01},
 
+    /*
+     * La Corda d'Oro (2005)(-)(Koei)[PSP]
+     * confirmed unique with guessadx */
+    {0x55b7,0x67e5,0x5387},
 };
 
 static const int key_count = sizeof(keys)/sizeof(keys[0]);
