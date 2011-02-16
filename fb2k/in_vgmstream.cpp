@@ -302,6 +302,7 @@ bool input_vgmstream::g_is_our_path(const char * p_path,const char * p_extension
 	if(!stricmp_utf8(p_extension,"bo2")) return 1;
 	if(!stricmp_utf8(p_extension,"brstmspm")) return 1;
 	if(!stricmp_utf8(p_extension,"brstm")) return 1;
+	if(!stricmp_utf8(p_extension,"bvg")) return 1;
 
 	if(!stricmp_utf8(p_extension,"caf")) return 1;
 	if(!stricmp_utf8(p_extension,"capdsp")) return 1;
@@ -605,6 +606,7 @@ DECLARE_MULTIPLE_FILE_TYPE("BNSF Audio File (*.BNSF)", bnsf);
 DECLARE_MULTIPLE_FILE_TYPE("BO2 Audio File (*.BO2)", bo2);
 DECLARE_MULTIPLE_FILE_TYPE("BRSTM Audio File (*.BRSTM)", brstm);
 DECLARE_MULTIPLE_FILE_TYPE("BRSTM Audio File [2] (*.BRSTM)", brstmspm);
+DECLARE_MULTIPLE_FILE_TYPE("BVG Audio File (*.BVG)", bvg);
 
 DECLARE_MULTIPLE_FILE_TYPE("CAF Audio File (*.CAF)", caf);
 DECLARE_MULTIPLE_FILE_TYPE("CAPDSP Audio File (*.CAPDSP)", capdsp);
