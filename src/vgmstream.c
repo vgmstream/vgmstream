@@ -303,6 +303,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_pc_snds,
 	init_vgmstream_ps2_wmus,
 	init_vgmstream_hyperscan_kvag,
+	init_vgmstream_ios_psnd,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -2810,6 +2811,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
 		case meta_HYPERSCAN_KVAG:
             snprintf(temp,TEMPSIZE,"Mattel Hyperscan KVAG");
+            break;
+		case meta_IOS_PSND:
+            snprintf(temp,TEMPSIZE,"PSND Header");
             break;
 		default:
            snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

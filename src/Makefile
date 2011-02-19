@@ -275,7 +275,8 @@ META_OBJS=meta/adx_header.o \
     meta/ps3_vawx.o \
     meta/pc_snds.o \
     meta/ps2_wmus.o \
-    meta/mattel_hyperscan.o 
+    meta/mattel_hyperscan.o \
+    meta/ios_psnd.o
 
 OBJECTS=vgmstream.o streamfile.o util.o $(CODING_OBJS) $(LAYOUT_OBJS) $(META_OBJS)
 

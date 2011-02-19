@@ -516,6 +516,7 @@ typedef enum {
     meta_PC_SNDS,           // Incredibles PC .snds
     meta_PS2_WMUS,          // The Warriors (PS2)
 	meta_HYPERSCAN_KVAG,	// Hyperscan KVAG/BVG 
+	meta_IOS_PSND,          // Crash Bandicoot Nitro Kart 2 (iOS)
 } meta_t;
 
 typedef struct {

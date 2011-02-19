@@ -409,6 +409,7 @@ bool input_vgmstream::g_is_our_path(const char * p_path,const char * p_extension
 	if(!stricmp_utf8(p_extension,"pos")) return 1;
 	if(!stricmp_utf8(p_extension,"ps2stm")) return 1;
 	if(!stricmp_utf8(p_extension,"psh")) return 1;
+	if(!stricmp_utf8(p_extension,"psnd")) return 1;
 	if(!stricmp_utf8(p_extension,"psw")) return 1;
 
 	if(!stricmp_utf8(p_extension,"ras")) return 1;
@@ -712,6 +713,7 @@ DECLARE_MULTIPLE_FILE_TYPE("PONA Audio File (*.PONA)", pona);
 DECLARE_MULTIPLE_FILE_TYPE("POS Audio File (*.POS)", pos);
 DECLARE_MULTIPLE_FILE_TYPE("PS2STM Audio File (*.PS2STM)", ps2stm);
 DECLARE_MULTIPLE_FILE_TYPE("PSH Audio File (*.PSH)", psh);
+DECLARE_MULTIPLE_FILE_TYPE("PSND Audio File (*.PSND)", psnd);
 DECLARE_MULTIPLE_FILE_TYPE("PSW Audio File (*.PSW)", psw);
 
 DECLARE_MULTIPLE_FILE_TYPE("RAS Audio File (*.RAS)", ras);

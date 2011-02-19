@@ -224,6 +224,7 @@ char * extension_list[] = {
     "pos\0POS Audio File (*.POS)\0",
     "ps2stm\0PS2STM Audio File (*.PS2STM)\0",
     "psh\0PSH Audio File (*.PSH)\0",
+	"psnd\0PSND Audio File (*.PSND)\0",
     "psw\0PSW Audio File (*.PSW)\0",
 
     "ras\0RAS Audio File (*.RAS)\0",
