@@ -322,6 +322,11 @@ static struct {
      * La Corda d'Oro (2005)(-)(Koei)[PSP]
      * confirmed unique with guessadx */
     {0x55b7,0x67e5,0x5387},
+
+    /*
+     * Nanatsuiro * Drops Pure!! (2007)(Media Works)[PS2]
+     * confirmed unique with guessadx */
+    {0x6731,0x645d,0x566b},
 };
 
 static const int key_count = sizeof(keys)/sizeof(keys[0]);
