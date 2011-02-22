@@ -304,6 +304,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_ps2_wmus,
 	init_vgmstream_hyperscan_kvag,
 	init_vgmstream_ios_psnd,
+    init_vgmstream_bos_adp,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -2806,14 +2807,17 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         case meta_PC_SNDS:
             snprintf(temp,TEMPSIZE,"assumed Heavy Iron IMA by .snds extension");
             break;
-	    case meta_PS2_WMUS:
+        case meta_PS2_WMUS:
             snprintf(temp,TEMPSIZE,"assumed The Warriors Sony ADPCM by .wmus extension");
             break;
-		case meta_HYPERSCAN_KVAG:
+        case meta_HYPERSCAN_KVAG:
             snprintf(temp,TEMPSIZE,"Mattel Hyperscan KVAG");
             break;
-		case meta_IOS_PSND:
+        case meta_IOS_PSND:
             snprintf(temp,TEMPSIZE,"PSND Header");
+            break;
+        case meta_BOS_ADP:
+            snprintf(temp,TEMPSIZE,"ADP! header");
             break;
 		default:
            snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

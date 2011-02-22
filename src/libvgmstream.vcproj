@@ -551,6 +551,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\pc_adp.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\pc_mxst.c"
 					>
 				</File>

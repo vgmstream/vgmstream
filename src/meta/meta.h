@@ -565,4 +565,6 @@ VGMSTREAM * init_vgmstream_hyperscan_kvag(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_ios_psnd(STREAMFILE* streamFile);
 
+VGMSTREAM * init_vgmstream_bos_adp(STREAMFILE* streamFile);
+
 #endif
