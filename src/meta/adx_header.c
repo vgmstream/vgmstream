@@ -327,6 +327,11 @@ static struct {
      * Nanatsuiro * Drops Pure!! (2007)(Media Works)[PS2]
      * confirmed unique with guessadx */
     {0x6731,0x645d,0x566b},
+
+    /*
+     * Shakugan no Shana (2006)(Vridge)(Media Works)[PS2]
+     * confirmed unique with guessadx */
+    {0x5fc5,0x63d9,0x599f},
 };
 
 static const int key_count = sizeof(keys)/sizeof(keys[0]);
