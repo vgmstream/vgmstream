@@ -305,6 +305,8 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_hyperscan_kvag,
 	init_vgmstream_ios_psnd,
     init_vgmstream_bos_adp,
+    init_vgmstream_eb_sfx,
+    init_vgmstream_eb_sf0,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -342,7 +344,8 @@ VGMSTREAM * init_vgmstream_internal(STREAMFILE *streamFile, int do_dfs) {
 						 (vgmstream->meta_type == meta_PS2_SMPL) ||
 						 (vgmstream->meta_type == meta_NGCA) ||
 		                (vgmstream->meta_type == meta_NUB_VAG) ||
-                        (vgmstream->meta_type == meta_SPT_SPD)
+                        (vgmstream->meta_type == meta_SPT_SPD) ||
+                        (vgmstream->meta_type == meta_EB_SFX)
                         ) && vgmstream->channels == 1) {
                 try_dual_file_stereo(vgmstream, streamFile);
             }
@@ -2818,6 +2821,12 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case meta_BOS_ADP:
             snprintf(temp,TEMPSIZE,"ADP! header");
+            break;
+        case meta_EB_SFX:
+            snprintf(temp,TEMPSIZE,"Excitebots .sfx header");
+            break;
+        case meta_EB_SF0:
+            snprintf(temp,TEMPSIZE,"assumed Excitebots .sf0 by extension");
             break;
 		default:
            snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

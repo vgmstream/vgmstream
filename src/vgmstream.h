@@ -518,6 +518,8 @@ typedef enum {
     meta_HYPERSCAN_KVAG,	// Hyperscan KVAG/BVG 
     meta_IOS_PSND,          // Crash Bandicoot Nitro Kart 2 (iOS)
     meta_BOS_ADP,           // ADP! (Balls of Steel, PC)
+    meta_EB_SFX,            // Excitebots .sfx
+    meta_EB_SF0,            // Excitebots .sf0
 } meta_t;
 
 typedef struct {

@@ -225,5 +225,6 @@ libmeta_la_SOURCES += ps2_wmus.c
 libmeta_la_SOURCES += mattel_hyperscan.c
 libmeta_la_SOURCES += ios_psnd.c
 libmeta_la_SOURCES += pc_adp.c
+libmeta_la_SOURCES += excitebots.c
 
 EXTRA_DIST = meta.h
