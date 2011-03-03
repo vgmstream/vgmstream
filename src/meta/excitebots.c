@@ -4,7 +4,7 @@
 
 /* a few formats from Excitebots */
 
-/* .sfx -  DSP and PCM */
+/* .sfx, some .sf0 -  DSP and PCM */
 VGMSTREAM * init_vgmstream_eb_sfx(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[260];
@@ -15,7 +15,8 @@ VGMSTREAM * init_vgmstream_eb_sfx(STREAMFILE *streamFile) {
 
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("sfx",filename_extension(filename)))
+    if (strcasecmp("sfx",filename_extension(filename)) &&
+        strcasecmp("sf0",filename_extension(filename)))
         goto fail;
 
     /* check sizes */
@@ -25,6 +26,8 @@ VGMSTREAM * init_vgmstream_eb_sfx(STREAMFILE *streamFile) {
     if (body_size + header_size != get_streamfile_size(streamFile))
         goto fail;
     
+    loop_flag = 0;
+
     switch (read_8bit(0x09,streamFile))
     {
         case 0:
@@ -36,12 +39,12 @@ VGMSTREAM * init_vgmstream_eb_sfx(STREAMFILE *streamFile) {
             if (header_size != 0x80)
                 goto fail;
             coding_type = coding_NGC_DSP;
+            loop_flag = 1;
             break;
         default:
             goto fail;
     }
 
-    loop_flag = read_8bit(0x08,streamFile);
     channel_count = 1;
     
 	/* build the VGMSTREAM */
