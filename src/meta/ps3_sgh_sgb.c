@@ -93,8 +93,6 @@ VGMSTREAM * init_vgmstream_ps3_sgx(STREAMFILE *streamFile) {
     loop_flag = (read_32bitLE(0x44,streamFile) != 0xFFFFFFFF);
     channel_count = read_8bit(0x29,streamFile);
     
-	if (channel_count == 5)
-		goto fail;
 	/* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
