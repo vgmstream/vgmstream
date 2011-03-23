@@ -104,7 +104,7 @@ VGMSTREAM * init_vgmstream_ps3_sgx(STREAMFILE *streamFile) {
 	vgmstream->channels = channel_count;
     vgmstream->sample_rate = read_32bitLE(0x2C,streamFile);
     vgmstream->coding_type = coding_PSX;
-    vgmstream->num_samples = read_32bitLE(0xC,streamFile)*28/16/channel_count;
+    vgmstream->num_samples = read_32bitLE(0xC,streamFile)/16/channel_count*28;
     if (loop_flag) {
         vgmstream->loop_start_sample = read_32bitLE(0x44,streamFile);
         vgmstream->loop_end_sample = read_32bitLE(0x48,streamFile);
