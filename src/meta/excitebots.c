@@ -13,6 +13,9 @@ VGMSTREAM * init_vgmstream_eb_sfx(STREAMFILE *streamFile) {
 	int channel_count;
     int coding_type;
 
+	long body_size;
+	long header_size;
+
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
     if (strcasecmp("sfx",filename_extension(filename)) &&
@@ -20,8 +23,8 @@ VGMSTREAM * init_vgmstream_eb_sfx(STREAMFILE *streamFile) {
         goto fail;
 
     /* check sizes */
-    long body_size = read_32bitLE(0x00,streamFile);
-    long header_size = read_32bitLE(0x04,streamFile);
+    body_size = read_32bitLE(0x00,streamFile);
+    header_size = read_32bitLE(0x04,streamFile);
 
     if (body_size + header_size != get_streamfile_size(streamFile))
         goto fail;

@@ -176,7 +176,8 @@ char * extension_list[] = {
     "kces\0KCES Audio File (*.KCES)\0",
     "kcey\0KCEY Audio File (*.KCEY)\0",
     "khv\0KHV Audio File (*.KHV)\0",
-    "kovs\0KOVS Audio File (*.KOVS)\0",
+    "klbs\0KLBS Audio File (*.KLBS)\0",
+	"kovs\0KOVS Audio File (*.KOVS)\0",
     "kraw\0KRAW Audio File (*.KRAW)\0",
 
     "leg\0LEG Audio File (*.LEG)\0",	

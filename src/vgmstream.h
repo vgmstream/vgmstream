@@ -520,6 +520,7 @@ typedef enum {
     meta_BOS_ADP,           // ADP! (Balls of Steel, PC)
     meta_EB_SFX,            // Excitebots .sfx
     meta_EB_SF0,            // Excitebots .sf0
+	meta_PS3_KLBS,          // L@VE ONCE (PS3)
 } meta_t;
 
 typedef struct {
