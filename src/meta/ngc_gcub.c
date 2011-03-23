@@ -4,19 +4,19 @@
 /* GCUB - found in 'Sega Soccer Slam' */
 VGMSTREAM * init_vgmstream_ngc_gcub(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
-    off_t start_offset;
-    int loop_flag;
+	char filename[260];
+	off_t start_offset;
+	int loop_flag;
 	int channel_count;
 
     /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("gcub",filename_extension(filename))) goto fail;
+	streamFile->get_name(streamFile,filename,sizeof(filename));
+	if (strcasecmp("gcub",filename_extension(filename))) goto fail;
 
     /* check header */
-    if (read_32bitBE(0x00,streamFile) != 0x47437562) /* "GCub" */
-        goto fail;
-        
+	if (read_32bitBE(0x00,streamFile) != 0x47437562) /* "GCub" */
+		goto fail;
+
     loop_flag = 0;
     channel_count = read_32bitBE(0x04,streamFile);
     
@@ -25,7 +25,15 @@ VGMSTREAM * init_vgmstream_ngc_gcub(STREAMFILE *streamFile) {
     if (!vgmstream) goto fail;
 
 	/* fill in the vital statistics */
-    start_offset = 0x60;
+	if (read_32bitBE(0x60,streamFile) == 0x47437878) /* "GCxx" */
+	{
+		start_offset = 0x88;
+	}
+	else
+	{
+		start_offset = 0x60;
+	}
+
 	vgmstream->channels = channel_count;
     vgmstream->sample_rate = read_32bitBE(0x08,streamFile);
     vgmstream->coding_type = coding_NGC_DSP;
@@ -35,16 +43,26 @@ VGMSTREAM * init_vgmstream_ngc_gcub(STREAMFILE *streamFile) {
         vgmstream->loop_end_sample = (read_32bitBE(0x0C,streamFile)-start_offset)/8/channel_count*14;
     }
 
-    vgmstream->layout_type = layout_interleave;
-    vgmstream->interleave_block_size = 0x8000; // read_32bitBE(0x04,streamFile);
+
+	if (channel_count == 1)
+	{
+		vgmstream->layout_type = layout_none;
+	}
+	else
+	{
+		vgmstream->layout_type = layout_interleave;
+		vgmstream->interleave_block_size = 0x8000; // read_32bitBE(0x04,streamFile);
+	}
+
     vgmstream->meta_type = meta_NGC_GCUB;
+
 
     if (vgmstream->coding_type == coding_NGC_DSP) {
         int i;
         for (i=0;i<16;i++) {
             vgmstream->ch[0].adpcm_coef[i] = read_16bitBE(0x10+i*2,streamFile);
         }
-        if (vgmstream->channels) {
+        if (vgmstream->channels == 2) {
             for (i=0;i<16;i++) {
                 vgmstream->ch[1].adpcm_coef[i] = read_16bitBE(0x30+i*2,streamFile);
             }
@@ -60,12 +78,21 @@ VGMSTREAM * init_vgmstream_ngc_gcub(STREAMFILE *streamFile) {
         for (i=0;i<channel_count;i++) {
             vgmstream->ch[i].streamfile = file;
 
-            vgmstream->ch[i].channel_start_offset=
-                vgmstream->ch[i].offset=start_offset+
-                vgmstream->interleave_block_size*i;
+	/* The first channel */
+    vgmstream->ch[0].channel_start_offset=
+        vgmstream->ch[0].offset=start_offset;
 
-        }
-    }
+	/* The second channel */
+    if (channel_count == 2) {
+        vgmstream->ch[1].streamfile = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
+
+        if (!vgmstream->ch[1].streamfile) goto fail;
+
+        vgmstream->ch[1].channel_start_offset=
+            vgmstream->ch[1].offset=start_offset+vgmstream->interleave_block_size;
+	}
+		}
+	}
 
     return vgmstream;
 

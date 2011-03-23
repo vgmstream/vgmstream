@@ -2602,7 +2602,7 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             snprintf(temp,TEMPSIZE,"Rune: Viking Warlord VGV Header");
             break;
         case meta_NGC_GCUB:
-            snprintf(temp,TEMPSIZE,"Sega Soccer Slam GCub Header");
+            snprintf(temp,TEMPSIZE,"GCub Header");
             break;
         case meta_NGC_SCK_DSP:
             snprintf(temp,TEMPSIZE,"The Scorpion King SCK Header");
