@@ -308,6 +308,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_eb_sfx,
     init_vgmstream_eb_sf0,
 	init_vgmstream_ps3_klbs,
+	init_vgmstream_ps3_sgx,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -2831,6 +2832,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case meta_PS3_KLBS:
             snprintf(temp,TEMPSIZE,"klBS Header");
+            break;
+        case meta_PS3_SGX:
+            snprintf(temp,TEMPSIZE,"PS3 SGXD/WAVE header");
             break;
 		default:
            snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");
