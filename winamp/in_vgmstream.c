@@ -110,7 +110,8 @@ char * extension_list[] = {
     "bgw\0BGW Audio File (*.BGW)\0",
     "bh2pcm\0BH2PCM Audio File (*.BH2PCM)\0",
     "bmdx\0BMDX Audio File (*.BMDX)\0",
-    "bns\0BNS Audio File (*.BNS)\0",
+	"bnk\0BNK Audio File (*.BNK)\0",
+	"bns\0BNS Audio File (*.BNS)\0",
     "bnsf\0BNSF Audio File (*.BNSF)\0",
     "bo2\0BO2 Audio File (*.BO2)\0",
     "brstm;brstmspm\0BRSTM Audio File (*.BRSTM)\0",
@@ -175,8 +176,7 @@ char * extension_list[] = {
 
     "kces\0KCES Audio File (*.KCES)\0",
     "kcey\0KCEY Audio File (*.KCEY)\0",
-    "khv\0KHV Audio File (*.KHV)\0",
-    "klbs\0KLBS Audio File (*.KLBS)\0",
+    "khv\0KHV Audio File (*.KHV)\0",    
 	"kovs\0KOVS Audio File (*.KOVS)\0",
     "kraw\0KRAW Audio File (*.KRAW)\0",
 

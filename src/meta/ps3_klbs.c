@@ -19,7 +19,7 @@ VGMSTREAM * init_vgmstream_ps3_klbs(STREAMFILE *streamFile)
 
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("klbs",filename_extension(filename))) goto fail;
+    if (strcasecmp("bnk",filename_extension(filename))) goto fail;
 
     /* check header */
     if (read_32bitBE(0x20,streamFile) != 0x6B6C4253)

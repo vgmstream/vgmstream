@@ -297,6 +297,7 @@ bool input_vgmstream::g_is_our_path(const char * p_path,const char * p_extension
 	if(!stricmp_utf8(p_extension,"bgw")) return 1;
 	if(!stricmp_utf8(p_extension,"bh2pcm")) return 1;
 	if(!stricmp_utf8(p_extension,"bmdx")) return 1;
+	if(!stricmp_utf8(p_extension,"bnk")) return 1;
 	if(!stricmp_utf8(p_extension,"bns")) return 1;
 	if(!stricmp_utf8(p_extension,"bnsf")) return 1;
 	if(!stricmp_utf8(p_extension,"bo2")) return 1;
@@ -362,7 +363,6 @@ bool input_vgmstream::g_is_our_path(const char * p_path,const char * p_extension
 	if(!stricmp_utf8(p_extension,"kces")) return 1;
 	if(!stricmp_utf8(p_extension,"kcey")) return 1;
 	if(!stricmp_utf8(p_extension,"khv")) return 1;
-	if(!stricmp_utf8(p_extension,"klbs")) return 1;
 	if(!stricmp_utf8(p_extension,"kovs")) return 1;
 	if(!stricmp_utf8(p_extension,"kraw")) return 1;
 
@@ -605,6 +605,7 @@ DECLARE_MULTIPLE_FILE_TYPE("BG00 Audio File (*.BG00)", bg00);
 DECLARE_MULTIPLE_FILE_TYPE("BGW Audio File (*.BGW)", bgw);
 DECLARE_MULTIPLE_FILE_TYPE("BH2PCM Audio File (*.BH2PCM)", bh2pcm);
 DECLARE_MULTIPLE_FILE_TYPE("BMDX Audio File (*.BMDX)", bmdx);
+DECLARE_MULTIPLE_FILE_TYPE("KLBS Audio File (*.BNK)", bnk);
 DECLARE_MULTIPLE_FILE_TYPE("BNS Audio File (*.BNS)", bns);
 DECLARE_MULTIPLE_FILE_TYPE("BNSF Audio File (*.BNSF)", bnsf);
 DECLARE_MULTIPLE_FILE_TYPE("BO2 Audio File (*.BO2)", bo2);
@@ -669,7 +670,6 @@ DECLARE_MULTIPLE_FILE_TYPE("JSTM Audio File (*.JSTM)", jstm);
 DECLARE_MULTIPLE_FILE_TYPE("KCES Audio File (*.KCES)", kces);
 DECLARE_MULTIPLE_FILE_TYPE("KCEY Audio File (*.KCEY)", kcey);
 DECLARE_MULTIPLE_FILE_TYPE("KHV Audio File (*.KHV)", khv);
-DECLARE_MULTIPLE_FILE_TYPE("KLBS Audio File (*.KLBS)", klbs);
 DECLARE_MULTIPLE_FILE_TYPE("KOVS Audio File (*.KOVS)", kovs);
 DECLARE_MULTIPLE_FILE_TYPE("KRAW Audio File (*.KRAW)", kraw);
 
