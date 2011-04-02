@@ -25,7 +25,7 @@ VGMSTREAM * init_vgmstream_ps3_sgh_sgb(STREAMFILE *streamFile) {
     if (read_32bitBE(0x00,streamFileSGH) != 0x53475844) /* "SGXD" */
         goto fail;
 
-    channel_count = read_32bitLE(0x6C,streamFileSGH);
+    channel_count = read_8bit(0x29,streamFileSGH);
  	if (read_32bitBE(0x44,streamFileSGH)==0xFFFFFFFF)
         loop_flag = 0;
 	else
