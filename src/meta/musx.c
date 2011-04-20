@@ -300,6 +300,13 @@ VGMSTREAM * init_vgmstream_musx_v010(STREAMFILE *streamFile) {
         channel_count = read_32bitLE(0x48,streamFile);
         loop_flag = (read_32bitLE(0x64,streamFile) != -1);
     }
+	if (musx_type == 0x5053335F &&  /* PS3_ */
+        (read_16bitBE(0x40,streamFile) == 0x4441) && /* DA */
+        (read_8bit(0x42,streamFile) == 0x54)) /* T */
+    {
+        channel_count = read_32bitLE(0x48,streamFile);
+        loop_flag = (read_32bitLE(0x64,streamFile) != -1);
+    }
     if (0x58455F5F == musx_type) /* XE__ */
     {
         loop_flag = 0;
@@ -329,17 +336,29 @@ VGMSTREAM * init_vgmstream_musx_v010(STREAMFILE *streamFile) {
         case 0x5053335F: /* PS3_ */
             start_offset = 0x800;
             vgmstream->channels = channel_count;
-            vgmstream->sample_rate = 44100;
             vgmstream->coding_type = coding_DAT4_IMA;
-            vgmstream->num_samples = (get_streamfile_size(streamFile)-0x800)/2/(0x20)*((0x20-4)*2);
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = 0x20;
             vgmstream->meta_type = meta_MUSX_V010;
-            if (loop_flag)
+
+			if (read_32bitBE(0x40,streamFile)==0x44415438){
+            vgmstream->num_samples = read_32bitLE(0x60,streamFile);
+			vgmstream->sample_rate = read_32bitLE(0x4C,streamFile);
+			if (loop_flag)
+            {
+                vgmstream->loop_start_sample = read_32bitLE(0x64,streamFile);
+                vgmstream->loop_end_sample = read_32bitLE(0x60,streamFile);
+            }
+			}
+			else {
+				vgmstream->sample_rate = 44100;
+				vgmstream->num_samples = (get_streamfile_size(streamFile)-0x800)/2/(0x20)*((0x20-4)*2);
+		    if (loop_flag)
             {
                 vgmstream->loop_start_sample = read_32bitLE(0x44,streamFile);
                 vgmstream->loop_end_sample = read_32bitLE(0x40,streamFile);
             }
+			}
             break;
         case 0x5749495F: /* WII_ */
             start_offset = 0x800;
