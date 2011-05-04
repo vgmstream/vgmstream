@@ -46,6 +46,9 @@ VGMSTREAM * init_vgmstream_apple_caff(STREAMFILE *streamFile) {
                     if (read_32bitBE(chunk_offset+0x10, streamFile) != 0) goto fail;
                     switch (sratefloat)
                     {
+					    case 0x40D19400:
+							sample_rate = 18000;
+							break;
                         case 0x40D58880:
                             sample_rate = 22050;
                             break;
