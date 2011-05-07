@@ -226,5 +226,6 @@ libmeta_la_SOURCES += ios_psnd.c
 libmeta_la_SOURCES += pc_adp.c
 libmeta_la_SOURCES += excitebots.c
 libmeta_la_SOURCES += ps2_mtaf.c
+libmeta_la_SOURCES += ps3_klbs.c
 
 EXTRA_DIST = meta.h
