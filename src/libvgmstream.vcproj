@@ -1179,6 +1179,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\coding\mtaf_decoder.c"
+					>
+				</File>
+				<File
 					RelativePath=".\coding\nds_procyon_decoder.c"
 					>
 				</File>
@@ -1307,7 +1311,7 @@
 					>
 				</File>
 				<File
-					RelativePath=".\layout\mtaf_block.c"
+					RelativePath=".\layout\mtaf_blocked.c"
 					>
 				</File>
 				<File

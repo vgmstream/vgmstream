@@ -72,4 +72,6 @@ void ps2_iab_block_update(off_t block_offset, VGMSTREAM * vgmstream);
 
 void ps2_strlr_block_update(off_t block_offset, VGMSTREAM * vgmstream);
 
+void ps2_mtaf_block_update(off_t block_ofset, VGMSTREAM * vgmstream);
+
 #endif

@@ -124,6 +124,7 @@ typedef enum {
     coding_SASSC,           /* Activision EXAKT SASSC DPCM */
     coding_PCM16LE_XOR_int, /* sample-level xor */
     coding_LSF,             /* lsf ADPCM */
+    coding_MTAF,            /* Konami IMA-derived MTAF ADPCM */
 } coding_t;
 
 /* The layout type specifies how the sound data is laid out in the file */
@@ -158,7 +159,8 @@ typedef enum {
     layout_psx_mgav_blocked,
     layout_ps2_adm_blocked,
     layout_dsp_bdsp_blocked,
-	layout_mxch_blocked,
+    layout_mxch_blocked,
+    layout_mtaf_blocked,
 
 #if 0
     layout_strm_blocked,    /* */
@@ -178,7 +180,6 @@ typedef enum {
     layout_aax,             /* CRI AAX's wheels within databases */
 	layout_ivaud_blocked,	/* GTA IV .ivaud blocks */
 	layout_tra_blocked,		/* DefJam Rapstar .tra blocks */
-	layout_mtaf_blocked,
 	layout_ps2_iab_blocked,
 	layout_ps2_strlr_blocked,
 } layout_t;
@@ -498,7 +499,6 @@ typedef enum {
     meta_NGC_NST_DSP,       /* Animaniacs [NGC] */
     meta_BAF,               /* .baf (Blur) */
 	meta_PS3_XVAG,          /* Ratchet & Clank Future: Quest for Booty (PS3) */
-	meta_PS2_MTAF,			/* Metal Gear 3 MTAF */
 	meta_PS3_CPS,           /* Eternal Sonata (PS3) */
     meta_PS3_MSF,           /* MSF header */
 	meta_NUB_VAG,           /* VAG from Nub archives */
@@ -522,6 +522,7 @@ typedef enum {
     meta_EB_SF0,            // Excitebots .sf0
 	meta_PS3_KLBS,          // L@VE ONCE (PS3)
 	meta_PS3_SGX,
+    meta_PS2_MTAF,          // Metal Gear Solid 3 MTAF
 } meta_t;
 
 typedef struct {

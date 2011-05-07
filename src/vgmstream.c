@@ -309,6 +309,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_eb_sf0,
 	init_vgmstream_ps3_klbs,
 	init_vgmstream_ps3_sgx,
+    init_vgmstream_ps2_mtaf,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -752,9 +753,9 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
         case layout_ps2_adm_blocked:
         case layout_dsp_bdsp_blocked:
 		case layout_tra_blocked:
-		case layout_mtaf_blocked:
 		case layout_ps2_iab_blocked:
 		case layout_ps2_strlr_blocked:
+        case layout_mtaf_blocked:
             render_vgmstream_blocked(buffer,sample_count,vgmstream);
             break;
         case layout_interleave_byte:
@@ -872,6 +873,8 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
 #endif
         case coding_LSF:
             return 54;
+        case coding_MTAF:
+            return 0x80*2;
         default:
             return 0;
     }
@@ -967,6 +970,7 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
         case coding_G7221:
 #endif
         case coding_MSADPCM:
+        case coding_MTAF:
             return vgmstream->interleave_block_size;
         default:
             return 0;
@@ -1409,6 +1413,13 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                         samples_to_do);
             }
             break;
+        case coding_MTAF:
+            for (chan=0;chan<vgmstream->channels;chan++) {
+                decode_mtaf(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                        vgmstream->channels, vgmstream->samples_into_block, samples_to_do,
+                        chan, vgmstream->channels);
+            }
+            break;
     }
 }
 
@@ -1787,6 +1798,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case coding_LSF:
             snprintf(temp,TEMPSIZE,"lsf 4-bit ADPCM");
+            break;
+        case coding_MTAF:
+            snprintf(temp,TEMPSIZE,"Konami MTAF 4-bit ADPCM (experimental)");
             break;
         default:
             snprintf(temp,TEMPSIZE,"CANNOT DECODE");
@@ -2835,6 +2849,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case meta_PS3_SGX:
             snprintf(temp,TEMPSIZE,"PS3 SGXD/WAVE header");
+            break;
+        case meta_PS2_MTAF:
+            snprintf(temp,TEMPSIZE,"PS2 MTAF header");
             break;
 		default:
            snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

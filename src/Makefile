@@ -20,7 +20,8 @@ CODING_OBJS=coding/adx_decoder.o \
     coding/l5_555_decoder.o \
     coding/SASSC_decoder.o \
     coding/g7221_decoder.o \
-    coding/lsf_decoder.o
+    coding/lsf_decoder.o\
+    coding/mtaf_decoder.o
 
 LAYOUT_OBJS=layout/ast_blocked.o \
     layout/blocked.o \
@@ -51,9 +52,9 @@ LAYOUT_OBJS=layout/ast_blocked.o \
     layout/ps2_adm_blocked.o \
     layout/bdsp_blocked.o \
     layout/tra_blocked.o \
-    layout/mtaf_block.o \
     layout/ps2_iab_blocked.o \
-    layout/ps2_strlr_blocked.o
+    layout/ps2_strlr_blocked.o \
+    layout/mtaf_blocked.o
 
 META_OBJS=meta/adx_header.o \
     meta/afc_header.o \
@@ -279,7 +280,8 @@ META_OBJS=meta/adx_header.o \
     meta/ios_psnd.o \
     meta/pc_adp.o \
     meta/excitebots.o \
-    meta/ps3_klbs.o
+    meta/ps3_klbs.o \
+    meta/ps2_mtaf.o
 
 OBJECTS=vgmstream.o streamfile.o util.o $(CODING_OBJS) $(LAYOUT_OBJS) $(META_OBJS)
 
