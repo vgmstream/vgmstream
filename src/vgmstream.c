@@ -2852,6 +2852,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         case meta_PS2_VAG1:
             snprintf(temp,TEMPSIZE,"Konami VAG Mono header (VAG1)");
             break;
+        case meta_PS2_VAG2:
+            snprintf(temp,TEMPSIZE,"Konami VAG Stereo header (VAG2)");
+            break;
 		default:
            snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");
     }

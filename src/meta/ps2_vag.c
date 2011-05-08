@@ -51,6 +51,9 @@ VGMSTREAM * init_vgmstream_ps2_vag(STREAMFILE *streamFile) {
         case '1':
             channel_count=1;
             break;
+        case '2':
+            channel_count=2;
+            break;
 		case 'i':
 			channel_count=2;
 			break;
@@ -114,6 +117,14 @@ VGMSTREAM * init_vgmstream_ps2_vag(STREAMFILE *streamFile) {
 			interleave = read_32bitLE(0x08,streamFile);
             if (interleave != 0) goto fail;
 			vgmstream->meta_type=meta_PS2_VAG1;
+			start_offset=0x40;
+            break;
+        case '2': // VAG2
+			vgmstream->layout_type=layout_interleave;
+			vgmstream->sample_rate = read_32bitBE(0x10,streamFile);
+			vgmstream->num_samples = read_32bitBE(0x0C,streamFile)/16*28;
+			interleave = 0x800;
+			vgmstream->meta_type=meta_PS2_VAG2;
 			start_offset=0x40;
             break;
 		case 'i': // VAGi
