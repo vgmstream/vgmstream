@@ -755,7 +755,6 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
 		case layout_tra_blocked:
 		case layout_ps2_iab_blocked:
 		case layout_ps2_strlr_blocked:
-        case layout_mtaf_blocked:
             render_vgmstream_blocked(buffer,sample_count,vgmstream);
             break;
         case layout_interleave_byte:
@@ -1919,9 +1918,6 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case layout_ivaud_blocked:
             snprintf(temp,TEMPSIZE,"GTA IV blocked");
-            break;
-		case layout_mtaf_blocked:
-            snprintf(temp,TEMPSIZE,"MTAF blocked");
             break;
 		case layout_ps2_iab_blocked:
             snprintf(temp,TEMPSIZE,"IAB blocked");

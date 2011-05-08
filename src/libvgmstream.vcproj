@@ -1311,10 +1311,6 @@
 					>
 				</File>
 				<File
-					RelativePath=".\layout\mtaf_blocked.c"
-					>
-				</File>
-				<File
 					RelativePath=".\layout\mus_acm_layout.c"
 					>
 				</File>

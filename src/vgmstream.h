@@ -11,7 +11,7 @@
  * removing these defines (and the references to the libraries in the
  * Makefile) */
 #define VGM_USE_VORBIS
-#define VGM_USE_MPEG
+//#define VGM_USE_MPEG
 /* disabled by default, defined for builds that support it */
 //#define VGM_USE_G7221
 
@@ -160,7 +160,6 @@ typedef enum {
     layout_ps2_adm_blocked,
     layout_dsp_bdsp_blocked,
     layout_mxch_blocked,
-    layout_mtaf_blocked,
 
 #if 0
     layout_strm_blocked,    /* */

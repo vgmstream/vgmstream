@@ -53,8 +53,7 @@ LAYOUT_OBJS=layout/ast_blocked.o \
     layout/bdsp_blocked.o \
     layout/tra_blocked.o \
     layout/ps2_iab_blocked.o \
-    layout/ps2_strlr_blocked.o \
-    layout/mtaf_blocked.o
+    layout/ps2_strlr_blocked.o
 
 META_OBJS=meta/adx_header.o \
     meta/afc_header.o \
