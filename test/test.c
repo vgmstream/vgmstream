@@ -32,6 +32,7 @@ void usage(const char * name) {
           "    -e: force end-to-end looping\n"
           "    -E: force end-to-end looping even if file has real loop points\n"
           "    -r outfile2.wav: output a second time after resetting\n"
+          "    -2 N: only output the Nth (first is 0) set of stereo channels\n"
             ,name);
     
 }
@@ -56,11 +57,12 @@ int main(int argc, char ** argv) {
     int adxencd = 0;
     int oggenc = 0;
     int batchvar = 0;
+    int only_stereo = -1;
     double loop_count = 2.0;
     double fade_seconds = 10.0;
     double fade_delay_seconds = 0.0;
 
-    while ((opt = getopt(argc, argv, "o:l:f:d:ipPcmxeEr:gb")) != -1) {
+    while ((opt = getopt(argc, argv, "o:l:f:d:ipPcmxeEr:gb2:")) != -1) {
         switch (opt) {
             case 'o':
                 outfilename = optarg;
@@ -107,6 +109,9 @@ int main(int argc, char ** argv) {
                 break;
             case 'r':
                 reset_outfilename = optarg;
+                break;
+            case '2':
+                only_stereo = atoi(optarg);
                 break;
             default:
                 usage(argv[0]);
@@ -236,14 +241,25 @@ int main(int argc, char ** argv) {
     fade_samples = fade_seconds * s->sample_rate;
 
     /* slap on a .wav header */
-    make_wav_header((uint8_t*)buf, len, s->sample_rate, s->channels);
+    if (only_stereo != -1) {
+        make_wav_header((uint8_t*)buf, len, s->sample_rate, 2);
+    } else {
+        make_wav_header((uint8_t*)buf, len, s->sample_rate, s->channels);
+    }
     fwrite(buf,1,0x2c,outfile);
 
     /* decode forever */
     while (forever) {
         render_vgmstream(buf,BUFSIZE,s);
         swap_samples_le(buf,s->channels*BUFSIZE);
-        fwrite(buf,sizeof(sample)*s->channels,BUFSIZE,outfile);
+        if (only_stereo != -1) {
+            int j;
+            for (j=0;j<BUFSIZE;j++) {
+                fwrite(buf+j*s->channels+(only_stereo*2),sizeof(sample),2,outfile);
+            }
+        } else {
+            fwrite(buf,sizeof(sample)*s->channels,BUFSIZE,outfile);
+        }
     }
 
     /* decode */
@@ -267,7 +283,15 @@ int main(int argc, char ** argv) {
             }
         }
         swap_samples_le(buf,s->channels*toget);
-        fwrite(buf,sizeof(sample)*s->channels,toget,outfile);
+
+        if (only_stereo != -1) {
+            int j;
+            for (j=0;j<toget;j++) {
+                fwrite(buf+j*s->channels+(only_stereo*2),sizeof(sample),2,outfile);
+            }
+        } else {
+            fwrite(buf,sizeof(sample)*s->channels,toget,outfile);
+        }
     }
 
     fclose(outfile); outfile = NULL;
@@ -356,7 +380,14 @@ int main(int argc, char ** argv) {
 
             /* do proper little endian samples */
             swap_samples_le(buf,s->channels*toget);
-            fwrite(buf,sizeof(sample)*s->channels,toget,outfile);
+            if (only_stereo != -1) {
+                int j;
+                for (j=0;j<toget;j++) {
+                    fwrite(buf+j*s->channels+(only_stereo*2),sizeof(sample),2,outfile);
+                }
+            } else {
+                fwrite(buf,sizeof(sample)*s->channels,toget,outfile);
+            }
         }
         fclose(outfile); outfile = NULL;
     }
