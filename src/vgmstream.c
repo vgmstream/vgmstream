@@ -2847,7 +2847,10 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             snprintf(temp,TEMPSIZE,"PS3 SGXD/WAVE header");
             break;
         case meta_PS2_MTAF:
-            snprintf(temp,TEMPSIZE,"PS2 MTAF header");
+            snprintf(temp,TEMPSIZE,"Konami MTAF header");
+            break;
+        case meta_PS2_VAG1:
+            snprintf(temp,TEMPSIZE,"Konami VAG Mono header (VAG1)");
             break;
 		default:
            snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

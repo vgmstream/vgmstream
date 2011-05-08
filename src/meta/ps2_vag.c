@@ -48,6 +48,9 @@ VGMSTREAM * init_vgmstream_ps2_vag(STREAMFILE *streamFile) {
 	vagID=read_8bit(0x03,streamFile);
 
 	switch(vagID) {
+        case '1':
+            channel_count=1;
+            break;
 		case 'i':
 			channel_count=2;
 			break;
@@ -104,6 +107,15 @@ VGMSTREAM * init_vgmstream_ps2_vag(STREAMFILE *streamFile) {
     vgmstream->channels = channel_count;
 
 	switch(vagID) {
+        case '1': // VAG1
+			vgmstream->layout_type=layout_none;
+			vgmstream->sample_rate = read_32bitBE(0x10,streamFile);
+			vgmstream->num_samples = read_32bitBE(0x0C,streamFile)/16*28;
+			interleave = read_32bitLE(0x08,streamFile);
+            if (interleave != 0) goto fail;
+			vgmstream->meta_type=meta_PS2_VAG1;
+			start_offset=0x40;
+            break;
 		case 'i': // VAGi
 			vgmstream->layout_type=layout_interleave;
 			vgmstream->sample_rate = read_32bitBE(0x10,streamFile);
@@ -181,7 +193,11 @@ VGMSTREAM * init_vgmstream_ps2_vag(STREAMFILE *streamFile) {
     /* open the file for reading by each channel */
     {
         for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = streamFile->open(streamFile,filename,vgmstream->interleave_block_size);
+            if (vgmstream->interleave_block_size > 0) {
+                vgmstream->ch[i].streamfile = streamFile->open(streamFile,filename,vgmstream->interleave_block_size);
+            } else {
+                vgmstream->ch[i].streamfile = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
+            }
 
             if (!vgmstream->ch[i].streamfile) goto fail;
 
