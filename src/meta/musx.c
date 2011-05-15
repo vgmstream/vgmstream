@@ -333,6 +333,16 @@ VGMSTREAM * init_vgmstream_musx_v010(STREAMFILE *streamFile) {
                 vgmstream->loop_end_sample = read_32bitLE(0x40,streamFile);
             }
             break;
+        case 0x5053505F: /* PSP_ */
+            start_offset = 0x800;
+            vgmstream->channels = channel_count;
+            vgmstream->sample_rate = 32768;
+            vgmstream->coding_type = coding_PSX;
+            vgmstream->num_samples = (read_32bitLE(0xC,streamFile))*28/32;
+            vgmstream->layout_type = layout_interleave;
+            vgmstream->interleave_block_size = 0x80;
+            vgmstream->meta_type = meta_MUSX_V010;
+            break;
         case 0x5053335F: /* PS3_ */
             start_offset = 0x800;
             vgmstream->channels = channel_count;
