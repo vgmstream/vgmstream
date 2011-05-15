@@ -4,13 +4,13 @@
 #include "../util.h"
 
 // A hybrid of IMA and Yamaha ADPCM found in Metal Gear Solid 3
+// Thanks to X_Tra (http://metalgear.in/) for pointing me to the step size table.
 
 int index_table[16] = {
     -1, -1, -1, -1, 2, 4, 6, 8,
     -1, -1, -1, -1, 2, 4, 6, 8
 }; 
 
-// thanks to Sergey T. for pointing me to the step size table
 static int16_t step_size[32][16] = {
 {     1,     5,     9,    13,    16,    20,    24,    28, 
      -1,    -5,    -9,   -13,   -16,   -20,   -24,   -28, },
