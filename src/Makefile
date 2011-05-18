@@ -280,7 +280,9 @@ META_OBJS=meta/adx_header.o \
     meta/pc_adp.o \
     meta/excitebots.o \
     meta/ps3_klbs.o \
-    meta/ps2_mtaf.o
+    meta/ps2_mtaf.o \
+    meta/tun.o \
+    meta/wpd.o
 
 OBJECTS=vgmstream.o streamfile.o util.o $(CODING_OBJS) $(LAYOUT_OBJS) $(META_OBJS)
 

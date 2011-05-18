@@ -577,4 +577,8 @@ VGMSTREAM * init_vgmstream_ps3_sgx(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_ps2_mtaf(STREAMFILE* streamFile);
 
+VGMSTREAM * init_vgmstream_tun(STREAMFILE* streamFile);
+
+VGMSTREAM * init_vgmstream_wpd(STREAMFILE* streamFile);
+
 #endif

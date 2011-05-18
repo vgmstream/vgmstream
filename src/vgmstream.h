@@ -524,6 +524,8 @@ typedef enum {
     meta_PS2_MTAF,          // Metal Gear Solid 3 MTAF
     meta_PS2_VAG1,          // Metal Gear Solid 3 VAG1
     meta_PS2_VAG2,          // Metal Gear Solid 3 VAG2
+	meta_TUN,               // LEGO Racers (PC)
+	meta_WPD,               // Shuffle! (PC)
 } meta_t;
 
 typedef struct {

@@ -310,6 +310,8 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_ps3_klbs,
 	init_vgmstream_ps3_sgx,
     init_vgmstream_ps2_mtaf,
+	init_vgmstream_tun,
+	init_vgmstream_wpd,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -2854,6 +2856,12 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case meta_PS2_VAG2:
             snprintf(temp,TEMPSIZE,"Konami VAG Stereo header (VAG2)");
+            break;
+		case meta_TUN:
+            snprintf(temp,TEMPSIZE,"TUN 'ALP' header");
+            break;
+		case meta_WPD:
+            snprintf(temp,TEMPSIZE,"WPD 'DPW' header");
             break;
 		default:
            snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");

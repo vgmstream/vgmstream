@@ -1007,6 +1007,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\tun.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\vgs.c"
 					>
 				</File>
@@ -1044,6 +1048,10 @@
 				</File>
 				<File
 					RelativePath=".\meta\wii_sts.c"
+					>
+				</File>
+				<File
+					RelativePath=".\meta\wpd.c"
 					>
 				</File>
 				<File

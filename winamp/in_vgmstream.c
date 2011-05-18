@@ -295,6 +295,7 @@ char * extension_list[] = {
     "tk1\0TK1 Audio File (*.TK1)\0",
     "tk5\0TK5 Audio File (*.TK5)\0",
 	"tra\0TRA Audio File (*.TRA)\0",
+	"tun\0TUN Audio File (*.TUN)\0",
     "tydsp\0TYDSP Audio File (*.TYDSP)\0",
 
     "um3\0UM3 Audio File (*.UM3)\0",
@@ -322,6 +323,7 @@ char * extension_list[] = {
     "wii\0WII Audio File (*.WII)\0",
     "wmus\0WMUS Audio File (*.WMUS)\0",
 	"wp2\0WP2 Audio File (*.WP2)\0",
+    "wpd\0WPD Audio File (*.WPD)\0",
     "wsd\0WSD Audio File (*.WSD)\0",
     "wsi\0WSI Audio File (*.WSI)\0",
     "wvs\0WVS Audio File (*.WVS)\0",

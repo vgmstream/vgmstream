@@ -478,6 +478,7 @@ bool input_vgmstream::g_is_our_path(const char * p_path,const char * p_extension
 	if(!stricmp_utf8(p_extension,"tk1")) return 1;
 	if(!stricmp_utf8(p_extension,"tk5")) return 1;
 	if(!stricmp_utf8(p_extension,"tra")) return 1;
+	if(!stricmp_utf8(p_extension,"tun")) return 1;
 	if(!stricmp_utf8(p_extension,"tydsp")) return 1;
 
 	if(!stricmp_utf8(p_extension,"um3")) return 1;
@@ -504,6 +505,7 @@ bool input_vgmstream::g_is_our_path(const char * p_path,const char * p_extension
 	if(!stricmp_utf8(p_extension,"wii")) return 1;
 	if(!stricmp_utf8(p_extension,"wmus")) return 1;
 	if(!stricmp_utf8(p_extension,"wp2")) return 1;
+	if(!stricmp_utf8(p_extension,"wpd")) return 1;
 	if(!stricmp_utf8(p_extension,"wsd")) return 1;
 	if(!stricmp_utf8(p_extension,"wsi")) return 1;
 	if(!stricmp_utf8(p_extension,"wvs")) return 1;
@@ -784,6 +786,7 @@ DECLARE_MULTIPLE_FILE_TYPE("TEC Audio File (*.TEC)", tec);
 DECLARE_MULTIPLE_FILE_TYPE("THP Audio File (*.THP)", thp);
 DECLARE_MULTIPLE_FILE_TYPE("TK1 Audio File (*.TK1)", tk1);
 DECLARE_MULTIPLE_FILE_TYPE("TK5 Audio File (*.TK5)", tk5);
+DECLARE_MULTIPLE_FILE_TYPE("TUN Audio File (*.TUN)", tun);
 DECLARE_MULTIPLE_FILE_TYPE("TYDSP Audio File (*.TYDSP)", tydsp);
 
 DECLARE_MULTIPLE_FILE_TYPE("UM3 Audio File (*.UM3)", um3);
@@ -809,6 +812,7 @@ DECLARE_MULTIPLE_FILE_TYPE("WAS Audio File (*.WAS)", was);
 DECLARE_MULTIPLE_FILE_TYPE("WII Audio File (*.WII)", wii);
 DECLARE_MULTIPLE_FILE_TYPE("WMUS Audio File (*.WMUS)", wmus);
 DECLARE_MULTIPLE_FILE_TYPE("WP2 Audio File (*.WP2)", wp2);
+DECLARE_MULTIPLE_FILE_TYPE("WPD Audio File (*.WPD)", wpd);
 DECLARE_MULTIPLE_FILE_TYPE("WSD Audio File (*.WSD)", wsd);
 DECLARE_MULTIPLE_FILE_TYPE("WSI Audio File (*.WSI)", wsi);
 DECLARE_MULTIPLE_FILE_TYPE("WVS Audio File (*.WVS)", wvs);

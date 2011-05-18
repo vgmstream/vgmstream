@@ -225,6 +225,7 @@ gchar *vgmstream_exts [] = {
   "tk1",
   "tk5",
   "tra",
+  "tun",
   "tydsp",
 
   "um3",
@@ -251,6 +252,7 @@ gchar *vgmstream_exts [] = {
   "wii",
   "wmus",
   "wp2",
+  "wpd",
   "wsd",
   "wsi",
   "wvs",

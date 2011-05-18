@@ -227,5 +227,7 @@ libmeta_la_SOURCES += pc_adp.c
 libmeta_la_SOURCES += excitebots.c
 libmeta_la_SOURCES += ps2_mtaf.c
 libmeta_la_SOURCES += ps3_klbs.c
+libmeta_la_SOURCES += tun.c
+libmeta_la_SOURCES += wpd.c
 
 EXTRA_DIST = meta.h
