@@ -3,7 +3,6 @@
 #include <audacious/plugin.h>
 #include <audacious/output.h>
 #include <audacious/i18n.h>
-#include <audacious/strings.h>
 
 #include <unistd.h>
 #include <pthread.h>
@@ -26,6 +25,8 @@ extern InputPlugin vgmstream_iplug;
 //static CDecoder decoder;
 static volatile long decode_seek;
 static GThread *decode_thread;
+static GCond *ctrl_cond = NULL;
+static GMutex *ctrl_mutex = NULL;
 static gint stream_length_samples;
 static gint fade_length_samples;
 SETTINGS settings;
@@ -34,44 +35,6 @@ static VGMSTREAM *vgmstream = NULL;
 static gchar strPlaying[260];
 static InputPlugin *vgmstream_iplist[] = { &vgmstream_iplug, NULL };
 static gint loop_forever = 0;
-
-/*
-static gint get_ms_position()
-{
-  if (vgmstream)
-  {
-    return (decode_pos_samples * 1000) / vgmstream->sample_rate;
-  }
-  return 0;
-}
-*/
-
-static char *get_title(const char *uri,char *title,size_t sz)
-{
-  gchar *base = aud_uri_to_display_basename(uri);
-#ifdef INCLUDE_BASE_IN_TITLE
-  size_t len;
-  gchar *dir  = aud_uri_to_display_dirname(uri);
-  
-  /* first copy the dir */
-  len = strlen(dir);
-  strcpy(title,dir);
-  if (dir[len-1] != '/')
-  {
-    title[len++] = '/';
-    title[len] = 0;
-  }
-  /* then the basename */
-  strcat(title,base);
-  
-  g_free(dir);
-#else
-  strcpy(title,base);
-#endif
-  g_free(base);
-  
-  return title;
-}
 
 void vgmstream_mseek(InputPlayback *data,gulong ms);
 
@@ -188,10 +151,8 @@ void* vgmstream_play_loop(InputPlayback *playback)
     else
     {
       // at EOF
-      playback->output->buffer_free();
-      playback->output->buffer_free();
       while (playback->output->buffer_playing())
-	g_usleep(10000);
+        g_usleep(10000);
       playback->playing = 0;
       // this effectively ends the loop
     }
@@ -201,6 +162,7 @@ void* vgmstream_play_loop(InputPlayback *playback)
   playback->playing = 0;
   decode_pos_samples = 0;
   CLOSE_STREAM();
+
   return 0;
 }
 
@@ -217,41 +179,16 @@ void vgmstream_configure()
 void vgmstream_init()
 {
   LoadSettings(&settings);
+  ctrl_cond = g_cond_new();
+  ctrl_mutex = g_mutex_new();
 }
 
 void vgmstream_destroy()
 {
-  
-}
-
-gboolean vgmstream_is_our_file(char *pFile)
-{
-  const char *pExt;
-  gchar **exts;
-  VGMSTREAM *stream;
-
-  if (!pFile)
-    return FALSE;
-
-  /* get extension */
-  pExt = strrchr(pFile,'.');
-  if (!pExt)
-    return FALSE;
-  /* skip past period */
-  ++pExt;
-
-  for (exts = vgmstream_iplug.vfs_extensions;*exts;++exts)
-  {
-    if (strcasecmp(pExt,*exts) == 0)
-    {
-      if ((stream = init_vgmstream_from_STREAMFILE(open_vfs(pFile))))
-      {
-	close_vgmstream(stream);
-	return TRUE;
-      }      
-    }
-  }
-  return FALSE;
+  g_cond_free(ctrl_cond);
+  ctrl_cond = NULL;
+  g_mutex_free(ctrl_mutex);
+  ctrl_mutex = NULL;
 }
 
 void vgmstream_mseek(InputPlayback *data,gulong ms)
@@ -268,19 +205,18 @@ void vgmstream_mseek(InputPlayback *data,gulong ms)
 
 void vgmstream_play(InputPlayback *context)
 {
-  char title[260];
   // this is now called in a new thread context
   vgmstream = init_vgmstream_from_STREAMFILE(open_vfs(context->filename));
   if (!vgmstream || vgmstream->channels <= 0)
   {
     CLOSE_STREAM();
-    return;
+    goto end_thread;
   }
   // open the audio device
   if (context->output->open_audio(FMT_S16_LE,vgmstream->sample_rate,vgmstream->channels) == 0)
   {
     CLOSE_STREAM();
-    return;
+    goto end_thread;
   }
 
   /* copy file name */
@@ -295,15 +231,20 @@ void vgmstream_play(InputPlayback *context)
   }
   gint ms = (stream_length_samples * 1000LL) / vgmstream->sample_rate;
   gint rate   = vgmstream->sample_rate * 2 * vgmstream->channels;
-  context->set_params(context,get_title(context->filename,title,sizeof(title)),
-		      /* length */ ms,
-		      /* rate */rate,
-		      /* freq */vgmstream->sample_rate,
-		      /* n channels */vgmstream->channels);
+
+  Tuple * tuple = tuple_new_from_filename(context->filename);
+  tuple_associate_int(tuple, FIELD_LENGTH, NULL, ms);
+  tuple_associate_int(tuple, FIELD_BITRATE, NULL, rate);
+  context->set_tuple(context, tuple);
   
   decode_thread = g_thread_self();
   context->set_pb_ready(context);
   vgmstream_play_loop(context);
+
+end_thread:
+  g_mutex_lock(ctrl_mutex);
+  g_cond_signal(ctrl_cond);
+  g_mutex_unlock(ctrl_mutex);
 }
 
 void vgmstream_stop(InputPlayback *context)
@@ -313,7 +254,9 @@ void vgmstream_stop(InputPlayback *context)
     // kill thread
     decode_seek = DS_EXIT;
     // wait for it to die
-    g_thread_join(decode_thread);
+    g_mutex_lock(ctrl_mutex);
+    g_cond_wait(ctrl_cond, ctrl_mutex);
+    g_mutex_unlock(ctrl_mutex);
     // close audio output
   }
   context->output->close_audio();
@@ -340,29 +283,41 @@ int vgmstream_get_time(InputPlayback *context)
       (context->eof && !context->output->buffer_playing()))
     return -1;
   
-  return context->output->output_time();
+  return context->output->written_time();
   //return get_ms_position();
 }
 
-void vgmstream_get_song_info(gchar *pFile,gchar **title,gint *length)
+Tuple * vgmstream_probe_for_tuple(const gchar * filename, VFSFile * file)
 {
-  VGMSTREAM *infostream;
-  char strTitle[260];
+  VGMSTREAM *infostream = NULL;
+  Tuple * tuple = NULL;
+  long length;
+
+  infostream = init_vgmstream_from_STREAMFILE(open_vfs(filename));
+  if (!infostream)
+    goto fail;
+
+  tuple = tuple_new_from_filename (filename);
+
+  length = get_vgmstream_play_samples(settings.loopcount,settings.fadeseconds,settings.fadedelayseconds,infostream) * 1000LL / infostream->sample_rate;
+  tuple_associate_int(tuple, FIELD_LENGTH, NULL, length);
+
+  close_vgmstream(infostream);
+
+  return tuple;
   
-  *title = g_strdup(get_title(pFile,strTitle,sizeof(strTitle)));
-  
-  if ((infostream = init_vgmstream_from_STREAMFILE(open_vfs(pFile))))
-  {
-    *length = get_vgmstream_play_samples(settings.loopcount,settings.fadeseconds,settings.fadedelayseconds,infostream) * 1000LL / infostream->sample_rate;
-    close_vgmstream(infostream);
-  }
-  else
-  {
-    *length = 0;
-  }
+fail:
+    if (tuple) {
+        tuple_free(tuple);
+    }
+    if (infostream)
+    {
+        close_vgmstream(infostream);
+    }
+    return NULL;
 }
 
-void vgmstream_file_info_box(gchar *pFile)
+void vgmstream_file_info_box(const gchar *pFile)
 {
   char msg[1024] = {0};
   VGMSTREAM *stream;

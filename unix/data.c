@@ -4,15 +4,14 @@ void vgmstream_init();
 void vgmstream_about();
 void vgmstream_configure();
 void vgmstream_destroy();
-gboolean vgmstream_is_our_file(gchar *pFile);
 void vgmstream_play(InputPlayback *context);
 void vgmstream_stop(InputPlayback *context);
 void vgmstream_pause(InputPlayback *context,gshort paused);
 void vgmstream_seek(InputPlayback *context,gint time);
 int vgmstream_get_time(InputPlayback *context);
-void vgmstream_get_song_info(gchar *pFile,gchar **title,gint *length);
 void vgmstream_mseek(InputPlayback *context,gulong ms);
-void vgmstream_file_info_box(gchar *pFile);
+void vgmstream_file_info_box(const gchar *pFile);
+Tuple * vgmstream_probe_for_tuple(const gchar *uri, VFSFile *fd);
 
 gchar *vgmstream_exts [] = {
   "2dx9",
@@ -285,13 +284,12 @@ InputPlugin vgmstream_iplug = {
   .about = vgmstream_about,
   .configure = vgmstream_configure,
   .cleanup = vgmstream_destroy,
-  .is_our_file = vgmstream_is_our_file,
+  .probe_for_tuple = vgmstream_probe_for_tuple,
   .play_file = vgmstream_play,
   .stop = vgmstream_stop,
   .pause = vgmstream_pause,
   .seek = vgmstream_seek,
   .get_time = vgmstream_get_time,
-  .get_song_info = vgmstream_get_song_info,
   .vfs_extensions = vgmstream_exts,
   .mseek = vgmstream_mseek,
   .file_info_box = vgmstream_file_info_box,

@@ -3,7 +3,6 @@
 #include <audacious/plugin.h>
 #include <audacious/output.h>
 #include <audacious/i18n.h>
-#include <audacious/strings.h>
 #include <glib.h>
 
 #include <unistd.h>
