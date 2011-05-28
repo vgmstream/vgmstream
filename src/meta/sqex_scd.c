@@ -58,6 +58,23 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
 
     channel_count = read_32bit(meta_offset+4,streamFile);
     codec_id = read_32bit(meta_offset+0xc,streamFile);
+    start_offset = meta_offset + 0x20 + read_32bit(meta_offset+0x18,streamFile);
+
+#ifdef VGM_USE_VORBIS
+    if (codec_id == 0x6)
+    {
+        vgm_vorbis_info_t inf;
+        inf.loop_start = loop_start;
+        inf.loop_end = loop_end;
+        inf.loop_flag = loop_flag;
+        inf.loop_end_found = loop_flag;
+        inf.loop_length_found = 0;
+        inf.layout_type = layout_ogg_vorbis;
+        inf.meta_type = meta_SQEX_SCD;
+
+        return init_vgmstream_ogg_vorbis_callbacks(streamFile, filename, NULL, start_offset, &inf);
+    }
+#endif
     
 	/* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
@@ -66,7 +83,6 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
 	/* fill in the vital statistics */
 	vgmstream->channels = channel_count;
     vgmstream->sample_rate = read_32bit(meta_offset+8,streamFile);
-    start_offset = meta_offset + 0x20 + read_32bit(meta_offset+0x18,streamFile);
 
     switch (codec_id) {
         case 0x1:

@@ -88,6 +88,19 @@ VGMSTREAM * init_vgmstream_xbox_stma(STREAMFILE *streamFile);
 #ifdef VGM_USE_VORBIS
 VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile);
 
+typedef struct {
+    int loop_flag;
+    int32_t loop_start;
+    int loop_length_found;
+    int32_t loop_length;
+    int loop_end_found;
+    int32_t loop_end;
+    meta_t meta_type;
+    layout_t layout_type;
+} vgm_vorbis_info_t;
+
+VGMSTREAM * init_vgmstream_ogg_vorbis_callbacks(STREAMFILE *streamFile, const char * filename, ov_callbacks *callbacks, off_t other_header_bytes, const vgm_vorbis_info_t *vgm_inf);
+
 VGMSTREAM * init_vgmstream_sli_ogg(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_sfl(STREAMFILE * streamFile);

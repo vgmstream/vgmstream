@@ -655,6 +655,7 @@ typedef struct {
     STREAMFILE *streamfile;
     ogg_int64_t offset;
     ogg_int64_t size;
+    ogg_int64_t other_header_bytes;
 } ogg_vorbis_streamfile;
 
 typedef struct {
