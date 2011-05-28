@@ -1801,7 +1801,7 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             snprintf(temp,TEMPSIZE,"lsf 4-bit ADPCM");
             break;
         case coding_MTAF:
-            snprintf(temp,TEMPSIZE,"Konami MTAF 4-bit ADPCM (experimental)");
+            snprintf(temp,TEMPSIZE,"Konami MTAF 4-bit ADPCM");
             break;
         default:
             snprintf(temp,TEMPSIZE,"CANNOT DECODE");
