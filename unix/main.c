@@ -274,19 +274,6 @@ void vgmstream_seek(InputPlayback *context,gint time)
   vgmstream_mseek(context,time * 1000);
 }
 
-int vgmstream_get_time(InputPlayback *context)
-{
-  if (!vgmstream)
-    return -2;
-  
-  if (!context->playing || 
-      (context->eof && !context->output->buffer_playing()))
-    return -1;
-  
-  return context->output->written_time();
-  //return get_ms_position();
-}
-
 Tuple * vgmstream_probe_for_tuple(const gchar * filename, VFSFile * file)
 {
   VGMSTREAM *infostream = NULL;

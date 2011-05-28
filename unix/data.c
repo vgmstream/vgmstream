@@ -289,7 +289,6 @@ InputPlugin vgmstream_iplug = {
   .stop = vgmstream_stop,
   .pause = vgmstream_pause,
   .seek = vgmstream_seek,
-  .get_time = vgmstream_get_time,
   .vfs_extensions = vgmstream_exts,
   .mseek = vgmstream_mseek,
   .file_info_box = vgmstream_file_info_box,
