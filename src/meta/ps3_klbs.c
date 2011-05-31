@@ -29,7 +29,8 @@ VGMSTREAM * init_vgmstream_ps3_klbs(STREAMFILE *streamFile)
 	fileLength = get_streamfile_size(streamFile);	
 
 	// Find loop start
-	readOffset = 0x500;
+	start_offset = read_32bitBE(0x10,streamFile);
+	readOffset = start_offset;
 
 	do {
 		readOffset += (off_t)read_streamfile(testBuffer, readOffset, 0x10, streamFile); 
@@ -80,22 +81,21 @@ VGMSTREAM * init_vgmstream_ps3_klbs(STREAMFILE *streamFile)
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
-	/* fill in the vital statistics */	
-	start_offset = 0x500;
+	/* fill in the vital statistics */		
+    vgmstream->layout_type = layout_interleave;
+    vgmstream->interleave_block_size = read_32bitBE(0x90, streamFile);
+    vgmstream->meta_type = meta_PS3_KLBS;
+
 	vgmstream->channels = channel_count;
     vgmstream->sample_rate = 48000;
     vgmstream->coding_type = coding_PSX;
-	vgmstream->num_samples = ((get_streamfile_size(streamFile)-0x30)/16/channel_count*28);
+	vgmstream->num_samples = ((vgmstream->interleave_block_size * channel_count)/16/channel_count*28);
  
 	if (loop_flag) 
 	{
 		vgmstream->loop_start_sample = loop_start_offset/16/channel_count*28;
 		vgmstream->loop_end_sample = loop_end_offset/16/channel_count*28;
 	}
-
-    vgmstream->layout_type = layout_interleave;
-    vgmstream->interleave_block_size = read_32bitBE(0x90, streamFile);
-    vgmstream->meta_type = meta_PS3_KLBS;
 
     /* open the file for reading */
     {
