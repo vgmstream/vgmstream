@@ -594,4 +594,6 @@ VGMSTREAM * init_vgmstream_tun(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_wpd(STREAMFILE* streamFile);
 
+VGMSTREAM * init_vgmstream_ps3_sgd(STREAMFILE* streamFile);
+
 #endif

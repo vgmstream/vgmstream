@@ -520,7 +520,7 @@ typedef enum {
     meta_EB_SFX,            // Excitebots .sfx
     meta_EB_SF0,            // Excitebots .sf0
 	meta_PS3_KLBS,          // L@VE ONCE (PS3)
-	meta_PS3_SGX,
+	meta_PS3_SGX,           // Boku no Natsuyasumi 3 (PS3)
     meta_PS2_MTAF,          // Metal Gear Solid 3 MTAF
     meta_PS2_VAG1,          // Metal Gear Solid 3 VAG1
     meta_PS2_VAG2,          // Metal Gear Solid 3 VAG2

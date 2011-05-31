@@ -190,6 +190,7 @@ gchar *vgmstream_exts [] = {
   "sfs",
   "sfx",
   "sgb",
+  "sgd",
   "sl3",
   "sli",
   "smp",
