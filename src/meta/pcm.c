@@ -20,7 +20,7 @@ VGMSTREAM * init_vgmstream_pcm_scd(STREAMFILE *streamFile) {
 		goto fail;
 
 		loop_flag = (read_32bitLE(0x02,streamFile)!=0);
-		channel_count = 2;
+		channel_count = 1;
 	 
 		/* build the VGMSTREAM */
 		vgmstream = allocate_vgmstream(channel_count,loop_flag);
@@ -29,12 +29,12 @@ VGMSTREAM * init_vgmstream_pcm_scd(STREAMFILE *streamFile) {
 		/* fill in the vital statistics */
 		start_offset = 0x200;
 		vgmstream->channels = channel_count;
-		vgmstream->sample_rate = 16000;
+		vgmstream->sample_rate = 32000;
 		vgmstream->coding_type = coding_PCM8_SB_int;
 		vgmstream->num_samples = read_32bitBE(0x06,streamFile)*2;
 		if(loop_flag) {
-			vgmstream->loop_start_sample = read_32bitBE(0x02,streamFile)*0x400;
-			vgmstream->loop_end_sample = read_32bitBE(0x06,streamFile);
+			vgmstream->loop_start_sample = read_32bitBE(0x02,streamFile)*0x400*2;
+			vgmstream->loop_end_sample = read_32bitBE(0x06,streamFile)*2;
 		}
 		vgmstream->layout_type = layout_interleave;
 		vgmstream->interleave_block_size = 0x1;
