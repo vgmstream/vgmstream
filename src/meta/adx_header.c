@@ -332,6 +332,11 @@ static struct {
      * Shakugan no Shana (2006)(Vridge)(Media Works)[PS2]
      * confirmed unique with guessadx */
     {0x5fc5,0x63d9,0x599f},
+
+    /*
+     * Uragiri wa Boku no Namae o Shitteiru (2010)(Kadokawa Shoten)[PS2]
+     * confirmed unique with guessadx */
+    {0x4c73,0x4d8d,0x5827},
 };
 
 static const int key_count = sizeof(keys)/sizeof(keys[0]);
