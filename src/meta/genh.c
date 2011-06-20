@@ -55,6 +55,9 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
     /* 12 = NGC DSP */
     /* 13 = 8bit unsingned PCM */
     /* 14 = PSX ADPCM (bad flagged) */
+	/* 15 = Microsoft IMA (MS ADPCM)
+	/* 16 = 8-bit PCM (unsigned)
+	/* 17 = Apple Quicktime 4-bit IMA ADPCM;
     /* ... others to come */
     switch (read_32bitLE(0x18,streamFile)) {
         case 0:
@@ -112,6 +115,9 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
         case 16:
             coding = coding_PCM8_U;
             break;
+		case 17:
+			coding = coding_APPLE_IMA4;
+			break;
         default:
             goto fail;
     }
@@ -169,6 +175,7 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
         case coding_DVI_IMA:
         case coding_IMA:
         case coding_AICA:
+		case coding_APPLE_IMA4:
             vgmstream->interleave_block_size = interleave;
             if (channel_count > 1)
             {
@@ -251,6 +258,7 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
                 case coding_AICA:
                 case coding_INT_DVI_IMA:
                 case coding_INT_IMA:
+				case coding_APPLE_IMA4:
                     if (coding == coding_AICA) {
                         vgmstream->ch[i].adpcm_step_index = 0x7f;
                     }
