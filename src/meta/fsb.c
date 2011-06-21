@@ -315,6 +315,7 @@ VGMSTREAM * init_vgmstream_fsb4(STREAMFILE *streamFile) {
         case 0x40000882:
         case 0x40100802:
         case 0x40200802:
+		case 0x00000802:
             if (loop_flag) {
                 vgmstream->loop_start_sample = 0;
                 vgmstream->loop_end_sample = read_32bitLE(0x50,streamFile);
