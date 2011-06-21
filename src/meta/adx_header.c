@@ -83,7 +83,11 @@ VGMSTREAM * init_vgmstream_adx(STREAMFILE *streamFile) {
 
         header_type = meta_ADX_04;
         if (stream_offset-ainf_info_length-6 >= 0x38) {   /* enough space for loop info? */
-            loop_flag = (read_32bitBE(0x24,streamFile) != 0);
+		if (read_32bitBE(0x24,streamFile) == 0xFFFEFFFE)
+			loop_flag = 0;
+		else
+			loop_flag = (read_32bitBE(0x24,streamFile) != 0);
+
             loop_start_sample = read_32bitBE(0x28,streamFile);
             loop_start_offset = read_32bitBE(0x2c,streamFile);
             loop_end_sample = read_32bitBE(0x30,streamFile);
