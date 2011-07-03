@@ -369,7 +369,8 @@ VGMSTREAM * init_vgmstream_fsb4(STREAMFILE *streamFile) {
             break;
 
         /* Rocket Knight (PC) */
-	    case 0x50210000:
+		case 0x10000000: /* Dead Space (iOS) */
+		case 0x50210000:
 		case 0x30210000:
 		case 0x30011000:
 		case 0x20005000:
