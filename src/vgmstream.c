@@ -1570,8 +1570,8 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
     concatn(length,desc,temp);
 
     if (vgmstream->loop_flag) {
-        snprintf(temp,TEMPSIZE,"loop start: %d samples (%.4lf seconds)\n"
-                "loop end: %d samples (%.4lf seconds)\n",
+        snprintf(temp,TEMPSIZE,"loop start: %d samples (%.4f seconds)\n"
+                "loop end: %d samples (%.4f seconds)\n",
                 vgmstream->loop_start_sample,
                 (double)vgmstream->loop_start_sample/vgmstream->sample_rate,
                 vgmstream->loop_end_sample,
@@ -1579,7 +1579,7 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         concatn(length,desc,temp);
     }
 
-    snprintf(temp,TEMPSIZE,"stream total samples: %d (%.4lf seconds)\n",
+    snprintf(temp,TEMPSIZE,"stream total samples: %d (%.4f seconds)\n",
             vgmstream->num_samples,
             (double)vgmstream->num_samples/vgmstream->sample_rate);
     concatn(length,desc,temp);
