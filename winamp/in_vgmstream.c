@@ -194,6 +194,7 @@ char * extension_list[] = {
     "mib\0PS2 MIB Audio File (*.MIB)\0",
     "mic\0PS2 MIC Audio File (*.MIC)\0",
     "mihb\0MIHB Audio File (*.MIHB)\0",
+	"mnstr\0MNSTR Audio File (*.MNSTR)\0",
     "mpdsp\0MPDSP Audio File (*.MPDSP)\0",
     "mpds\0MPDS Audio File (*.MPDS)\0",
     "msa\0MSA Audio File (*.MSA)\0",

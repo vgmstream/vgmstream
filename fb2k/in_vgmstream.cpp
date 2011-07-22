@@ -379,6 +379,7 @@ bool input_vgmstream::g_is_our_path(const char * p_path,const char * p_extension
 	if(!stricmp_utf8(p_extension,"mib")) return 1;
 	if(!stricmp_utf8(p_extension,"mic")) return 1;
 	if(!stricmp_utf8(p_extension,"mihb")) return 1;
+	if(!stricmp_utf8(p_extension,"mnstr")) return 1;
 	if(!stricmp_utf8(p_extension,"mpdsp")) return 1;
 	if(!stricmp_utf8(p_extension,"mpds")) return 1;
 	if(!stricmp_utf8(p_extension,"msa")) return 1;
@@ -689,6 +690,7 @@ DECLARE_MULTIPLE_FILE_TYPE("PS2 MI4 Audio File (*.MI4)", mi4);
 DECLARE_MULTIPLE_FILE_TYPE("PS2 MIB Audio File (*.MIB)", mib);
 DECLARE_MULTIPLE_FILE_TYPE("PS2 MIC Audio File (*.MIC)", mic);
 DECLARE_MULTIPLE_FILE_TYPE("MIHB Audio File (*.MIHB)", mihb);
+DECLARE_MULTIPLE_FILE_TYPE("MNSTR Audio File (*.MNSTR)", mnstr);
 DECLARE_MULTIPLE_FILE_TYPE("MPDSP Audio File (*.MPDSP)", mpdsp);
 DECLARE_MULTIPLE_FILE_TYPE("MPDS Audio File (*.MPDS)", mpds);
 DECLARE_MULTIPLE_FILE_TYPE("MSA Audio File (*.MSA)", msa);

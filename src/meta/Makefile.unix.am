@@ -229,5 +229,7 @@ libmeta_la_SOURCES += ps2_mtaf.c
 libmeta_la_SOURCES += ps3_klbs.c
 libmeta_la_SOURCES += tun.c
 libmeta_la_SOURCES += wpd.c
+libmeta_la_SOURCES += mn_str.c
+libmeta_la_SOURCES += ps2_mss.c
 
 EXTRA_DIST = meta.h

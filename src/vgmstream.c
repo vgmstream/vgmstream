@@ -313,6 +313,8 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_tun,
 	init_vgmstream_wpd,
 	init_vgmstream_ps3_sgd,
+	init_vgmstream_mn_str,
+	init_vgmstream_ps2_mss,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -2626,10 +2628,10 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         case meta_CAFF:
             snprintf(temp,TEMPSIZE,"Apple Core Audio Format Header");
             break;
-		    case meta_PC_MXST:
+		case meta_PC_MXST:
 			      snprintf(temp,TEMPSIZE,"Lego Island MxSt Header");
 			      break;
-		    case meta_PC_SOB_SAB:
+		case meta_PC_SOB_SAB:
 			      snprintf(temp,TEMPSIZE,"Worms 4: Mayhem SOB/SAB Header");
 			      break;
         case meta_MAXIS_XA:
@@ -2863,6 +2865,12 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
 		case meta_WPD:
             snprintf(temp,TEMPSIZE,"WPD 'DPW' header");
+            break;
+		case meta_MN_STR:
+            snprintf(temp,TEMPSIZE,"Mini Ninjas 'STR' header");
+            break;
+		case meta_PS2_MSS:
+            snprintf(temp,TEMPSIZE,"ShellShock Nam '67 'MSCC' header");
             break;
 		default:
            snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");
