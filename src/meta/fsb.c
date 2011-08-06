@@ -162,7 +162,7 @@ VGMSTREAM * init_vgmstream_fsb3(STREAMFILE *streamFile) {
     }
     else if (FSBFlag&0x02000000)
     { // Nintendo DSP
-				vgmstream->coding_type = coding_NGC_DSP;
+		vgmstream->coding_type = coding_NGC_DSP;
         if (channel_count == 1)
         {
             vgmstream->layout_type = layout_none;
@@ -183,8 +183,7 @@ VGMSTREAM * init_vgmstream_fsb3(STREAMFILE *streamFile) {
     }
     else goto fail;
 
-
-   vgmstream->num_samples = read_32bitLE(0x38,streamFile);
+	vgmstream->num_samples = read_32bitLE(0x38,streamFile);
     if (loop_flag) {
         vgmstream->loop_start_sample = read_32bitLE(0x40,streamFile);
         vgmstream->loop_end_sample = read_32bitLE(0x44,streamFile);
@@ -532,14 +531,9 @@ VGMSTREAM * init_vgmstream_fsb_mpeg(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[260];
     off_t start_offset;
-    int channel_count;
-    int loop_flag;
-    long sample_rate = 0;
-    long num_samples = 0;
-    uint8_t mp3ID;
-    long rate;
-    int channels,encoding;
-    // int FSBFlag;
+    int channel_count, channels, encoding, loop_flag, fsb_mainheader_len, fsb_subheader_len, FSBFlag;
+    long sample_rate = 0, num_samples = 0, rate;
+    uint16_t mp3ID;
 
 #ifdef VGM_USE_MPEG
     mpeg_codec_data *mpeg_data = NULL;
@@ -551,36 +545,54 @@ VGMSTREAM * init_vgmstream_fsb_mpeg(STREAMFILE *streamFile) {
     if (strcasecmp("fsb",filename_extension(filename))) goto fail;
 
     /* check header */
-    if (read_32bitBE(0x00,streamFile) != 0x46534234) /* "FSB4" */
+    if (read_32bitBE(0x00,streamFile) == 0x46534233) /* "FSB3" */
+	{
+		fsb_mainheader_len = 0x18;
+	}
+	else if (read_32bitBE(0x00,streamFile) == 0x46534234) /* "FSB4" */
+	{
+		fsb_mainheader_len = 0x30;
+	}
+	else
+	{
         goto fail;
+	}
+
+	fsb_subheader_len = read_16bitLE(fsb_mainheader_len,streamFile);
  
     /* "Check if the FSB is used as conatiner or as single file" */
     if (read_32bitBE(0x04,streamFile) != 0x01000000)
         goto fail;
-    
+   
+#if 0
     /* Check channel count, multi-channel not supported and will be refused */
     if ((read_16bitLE(0x6E,streamFile) != 0x2) &&
        (read_16bitLE(0x6E,streamFile) != 0x1))
         goto fail;
+#endif
 
-		start_offset = read_32bitLE(0x08,streamFile)+0x30; //read_32bitBE(0x4,streamFile);
-    mp3ID = read_8bit(start_offset,streamFile);
-    if (mp3ID != 0xFF)
+	start_offset = fsb_mainheader_len+fsb_subheader_len+0x10;
+    
+	/* Check the MPEG Sync Header */
+	mp3ID = read_16bitLE(start_offset,streamFile);
+    if (mp3ID&0x7FF != 0x7FF)
         goto fail;
-     
-	/* Still WIP */
-	if (read_32bitBE(0x80,streamFile)==0x53594E43)
-        loop_flag = 1;
-	else
-		loop_flag = 0;
 
-    num_samples = (read_32bitLE(0x5C,streamFile));
+	channel_count = read_16bitLE(fsb_mainheader_len+0x3E,streamFile);
+	if (channel_count != 1 && channel_count != 2)
+		goto fail;
+
+    FSBFlag = read_32bitLE(fsb_mainheader_len+0x30,streamFile);
+    if (FSBFlag&0x2 || FSBFlag&0x4 || FSBFlag&0x6)
+      loop_flag = 1;
+    
+	num_samples = (read_32bitLE(fsb_mainheader_len+0x2C,streamFile));
 
 #ifdef VGM_USE_MPEG
         mpeg_data = init_mpeg_codec_data(streamFile, start_offset, -1, -1, &mpeg_coding_type, &rate, &channels); // -1 to not check sample rate or channels
         if (!mpeg_data) goto fail;
 
-        channel_count = channels;
+        //channel_count = channels;
         sample_rate = rate;
 
 #else
@@ -598,8 +610,8 @@ VGMSTREAM * init_vgmstream_fsb_mpeg(STREAMFILE *streamFile) {
   
 	/* Still WIP */
 	if (loop_flag) {
-        vgmstream->loop_start_sample = read_32bitLE(0x58,streamFile);
-       vgmstream->loop_end_sample = read_32bitLE(0x5c,streamFile);
+        vgmstream->loop_start_sample = read_32bitLE(fsb_mainheader_len+0x28,streamFile);
+       vgmstream->loop_end_sample = read_32bitLE(fsb_mainheader_len+0x2C,streamFile);
     }
     vgmstream->meta_type = meta_FSB_MPEG;
 
