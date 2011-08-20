@@ -50,7 +50,8 @@ typedef enum {
     /* 4-bit ADPCM */
     coding_NDS_IMA,         /* IMA ADPCM w/ NDS layout */
     coding_CRI_ADX,         /* CRI ADX */
-    coding_CRI_ADX_enc,     /* encrypted CRI ADX */
+    coding_CRI_ADX_enc_8,   /* encrypted CRI ADX, type 8 (God Hand) */
+    coding_CRI_ADX_enc_9,   /* encrypted CRI ADX, type 9 (PSO2) */
     coding_NGC_DSP,         /* NGC ADPCM, called DSP */
     coding_NGC_DTK,         /* NGC hardware disc ADPCM, called DTK, TRK or ADP */
     coding_G721,            /* CCITT G.721 ADPCM */

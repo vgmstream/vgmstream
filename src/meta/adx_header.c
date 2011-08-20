@@ -9,7 +9,7 @@
 #include "../coding/coding.h"
 #include "../util.h"
 
-static int find_key(STREAMFILE *file, uint16_t *xor_start, uint16_t *xor_mult, uint16_t *xor_add);
+static int find_key(STREAMFILE *file, uint8_t type, uint16_t *xor_start, uint16_t *xor_mult, uint16_t *xor_add);
 
 VGMSTREAM * init_vgmstream_adx(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
@@ -59,12 +59,20 @@ VGMSTREAM * init_vgmstream_adx(STREAMFILE *streamFile) {
     version_signature = read_16bitBE(0x12,streamFile);
     /* encryption */
     if (version_signature == 0x0408) {
-        if (find_key(streamFile, &xor_start, &xor_mult, &xor_add))
+        if (find_key(streamFile, 8, &xor_start, &xor_mult, &xor_add))
         {
-            coding_type = coding_CRI_ADX_enc;
+            coding_type = coding_CRI_ADX_enc_8;
             version_signature = 0x0400;
         }
     }
+    else if (version_signature == 0x0409) {
+        if (find_key(streamFile, 9, &xor_start, &xor_mult, &xor_add))
+        {
+            coding_type = coding_CRI_ADX_enc_9;
+            version_signature = 0x0400;
+        }
+    }
+
     if (version_signature == 0x0300) {      /* type 03 */
         header_type = meta_ADX_03;
         if (stream_offset-6 >= 0x2c) {   /* enough space for loop info? */
@@ -157,7 +165,8 @@ VGMSTREAM * init_vgmstream_adx(STREAMFILE *streamFile) {
             vgmstream->ch[i].adpcm_coef[0] = coef1;
             vgmstream->ch[i].adpcm_coef[1] = coef2;
 
-            if (coding_type == coding_CRI_ADX_enc)
+            if (coding_type == coding_CRI_ADX_enc_8 ||
+                coding_type == coding_CRI_ADX_enc_9)
             {
                 int j;
                 vgmstream->ch[i].adx_channels = channel_count;
@@ -181,9 +190,10 @@ fail:
 
 /* guessadx stuff */
 
+/* type 8 keys */
 static struct {
     uint16_t start,mult,add;
-} keys[] = {
+} keys_8[] = {
     /* Clover Studio (GOD HAND, Okami) */
     /* I'm pretty sure this is right, based on a decrypted version of some GOD HAND tracks. */
     /* Also it is the 2nd result from guessadx */
@@ -343,10 +353,20 @@ static struct {
     {0x4c73,0x4d8d,0x5827},
 };
 
-static const int key_count = sizeof(keys)/sizeof(keys[0]);
+/* type 9 keys */
+static struct {
+    uint16_t start,mult,add;
+} keys_9[] = {
+    /* Phantasy Star Online 2
+     * guessed with degod */
+    {0x07d2,0x1ec5,0x0c7f},
+};
+
+static const int keys_8_count = sizeof(keys_8)/sizeof(keys_8[0]);
+static const int keys_9_count = sizeof(keys_9)/sizeof(keys_9[0]);
 
 /* return 0 if not found, 1 if found and set parameters */
-static int find_key(STREAMFILE *file, uint16_t *xor_start, uint16_t *xor_mult, uint16_t *xor_add)
+static int find_key(STREAMFILE *file, uint8_t type, uint16_t *xor_start, uint16_t *xor_mult, uint16_t *xor_add)
 {
     uint16_t * scales = NULL;
     uint16_t * prescales = NULL;
@@ -423,37 +443,84 @@ static int find_key(STREAMFILE *file, uint16_t *xor_start, uint16_t *xor_mult, u
             }
         }
 
-        /* guess each of the keys */
-        for (key_id=0;key_id<key_count;key_id++) {
-            /* test pre-scales */
-            uint16_t xor = keys[key_id].start;
-            uint16_t mult = keys[key_id].mult;
-            uint16_t add = keys[key_id].add;
-            int i;
+        if (type == 8)
+        {
+            /* guess each of the keys */
+            for (key_id=0;key_id<keys_8_count;key_id++) {
+                /* test pre-scales */
+                uint16_t xor = keys_8[key_id].start;
+                uint16_t mult = keys_8[key_id].mult;
+                uint16_t add = keys_8[key_id].add;
+                int i;
 
-            for (i=0;i<bruteframe &&
-                    ((prescales[i]&0x6000)==(xor&0x6000) ||
-                     prescales[i]==0);
-                    i++) {
-                xor = xor * mult + add;
-            }
-
-            if (i == bruteframe)
-            {
-                /* test */
-                for (i=0;i<scales_to_do &&
-                        (scales[i]&0x6000)==(xor&0x6000);i++) {
+                for (i=0;i<bruteframe &&
+                        ((prescales[i]&0x6000)==(xor&0x6000) ||
+                         prescales[i]==0);
+                        i++) {
                     xor = xor * mult + add;
                 }
-                if (i == scales_to_do)
+
+                if (i == bruteframe)
                 {
-                    *xor_start = keys[key_id].start;
-                    *xor_mult = keys[key_id].mult;
-                    *xor_add = keys[key_id].add;
-                    
-                    rc = 1;
-                    goto find_key_cleanup;
+                    /* test */
+                    for (i=0;i<scales_to_do &&
+                            (scales[i]&0x6000)==(xor&0x6000);i++) {
+                        xor = xor * mult + add;
+                    }
+                    if (i == scales_to_do)
+                    {
+                        *xor_start = keys_8[key_id].start;
+                        *xor_mult = keys_8[key_id].mult;
+                        *xor_add = keys_8[key_id].add;
+
+                        rc = 1;
+                        goto find_key_cleanup;
+                    }
                 }
+            }
+        }
+        else if (type == 9)
+        {
+            /* smarter XOR as seen in PSO2, can't do an exact match so we
+             * have to search for the lowest */
+            long best_score = MAX_FRAMES * 0x1fff;
+
+            /* guess each of the keys */
+            for (key_id=0;key_id<keys_9_count;key_id++) {
+                /* run past pre-scales */
+                uint16_t xor = keys_9[key_id].start;
+                uint16_t mult = keys_9[key_id].mult;
+                uint16_t add = keys_9[key_id].add;
+                int i;
+                long total_score = 0;
+
+                for (i=0;i<bruteframe;i++) {
+                    xor = xor * mult + add;
+                }
+
+                if (i == bruteframe)
+                {
+                    /* test */
+                    for (i=0;i<scales_to_do && total_score < best_score;i++) {
+                        xor = xor * mult + add;
+                        total_score += (scales[i]^xor)&0x1fff;
+                    }
+
+                    if (total_score < best_score)
+                    {
+                        *xor_start = keys_9[key_id].start;
+                        *xor_mult = keys_9[key_id].mult;
+                        *xor_add = keys_9[key_id].add;
+
+                        best_score = total_score;
+                    }
+                }
+            }
+
+            /* arbitrarily decide if we have won? */
+            if (best_score < scales_to_do * 0x1000)
+            {
+                rc = 1;
             }
         }
     }
@@ -463,3 +530,4 @@ find_key_cleanup:
     if (prescales) free(prescales);
     return rc;
 }
+
