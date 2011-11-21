@@ -67,7 +67,7 @@ VGMSTREAM * init_vgmstream_ps3_xvag(STREAMFILE *streamFile) {
 	readOffset=start_offset;
 
 	// MP3s ?
-	mp3ID=(uint16_t)read_16bitBE(0x4C,streamFile);
+	mp3ID=(uint16_t)read_16bitBE(start_offset,streamFile);
 	if(mp3ID==0xFFFB) {
 #ifdef VGM_USE_MPEG
         long rate;
