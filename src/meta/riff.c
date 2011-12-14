@@ -1,9 +1,9 @@
 #include "meta.h"
+#include "../coding/coding.h"
 #include "../layout/layout.h"
 #include "../util.h"
 
 /* Resource Interchange File Format */
-/* only the bare minimum needed to read PCM wavs */
 
 /* return milliseconds */
 long parse_marker(unsigned char * marker) {
@@ -175,6 +175,13 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
                                     goto fail;
                             }
                             break;
+                        case 2: /* MS ADPCM */
+                            /* ensure 4bps */
+                            if (read_16bitLE(current_chunk+0x16,streamFile)!=4)
+                                goto fail;
+                            coding_type = coding_MSADPCM;
+                            interleave = 0;
+                            break;
                         case 0x11:  /* MS IMA ADCM */
                             /* ensure 4bps */
                             if (read_16bitLE(current_chunk+0x16,streamFile)!=4)
@@ -279,6 +286,9 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
         case coding_L5_555:
             sample_count = data_size/0x12/channel_count*32;
             break;
+        case coding_MSADPCM:
+            sample_count = msadpcm_bytes_to_samples(data_size, block_size, channel_count);
+            break;
         case coding_MS_IMA:
             sample_count = (data_size / block_size) * (block_size - 4 * channel_count) * 2 / channel_count +
                 ((data_size % block_size) ? (data_size % block_size - 4 * channel_count) * 2 / channel_count : 0);
@@ -302,14 +312,32 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
     vgmstream->sample_rate = sample_rate;
 
     vgmstream->coding_type = coding_type;
-    if (channel_count > 1 && coding_type != coding_PCM8_U_int && coding_type != coding_MS_IMA)
-        vgmstream->layout_type = layout_interleave;
-    else
-        vgmstream->layout_type = layout_none;
-    vgmstream->interleave_block_size = interleave;
 
-    if (coding_type == coding_MS_IMA)
-        vgmstream->interleave_block_size = block_size;
+    vgmstream->layout_type = layout_none;
+    if (channel_count > 1) {
+        switch (coding_type) {
+            case coding_PCM8_U_int:
+            case coding_MS_IMA:
+            case coding_MSADPCM:
+                // use layout_none from above
+                break;
+            default:
+                vgmstream->layout_type = layout_interleave;
+                break;
+        }
+    }
+
+    vgmstream->interleave_block_size = interleave;
+    switch (coding_type) {
+        case coding_MSADPCM:
+        case coding_MS_IMA:
+            // override interleave_block_size with frame size
+            vgmstream->interleave_block_size = block_size;
+            break;
+        default:
+            // use interleave from above
+            break;
+    }
 
     if (loop_flag) {
         if (loop_start_ms >= 0)
