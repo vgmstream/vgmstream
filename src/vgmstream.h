@@ -659,6 +659,10 @@ typedef struct {
     ogg_int64_t offset;
     ogg_int64_t size;
     ogg_int64_t other_header_bytes;
+
+    // XOR setup with a single byte (SCD)
+    unsigned char   scd_xor;
+    ogg_int64_t     scd_xor_len;
 } ogg_vorbis_streamfile;
 
 typedef struct {

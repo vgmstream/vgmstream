@@ -80,6 +80,32 @@ static size_t read_func_kovs(void *ptr, size_t size, size_t nmemb, void * dataso
     return items_read;
 }
 
+static size_t read_func_scd(void *ptr, size_t size, size_t nmemb, void * datasource)
+{
+    ogg_vorbis_streamfile * const ov_streamfile = datasource;
+    size_t items_read;
+
+    size_t bytes_read;
+   
+    bytes_read = read_streamfile(ptr, ov_streamfile->offset + ov_streamfile->other_header_bytes, size * nmemb,
+            ov_streamfile->streamfile);
+
+    items_read = bytes_read / size;
+
+    /* first bytes are xor'd with a constant byte */
+    if (ov_streamfile->offset < ov_streamfile->scd_xor_len) {
+        int num_crypt = ov_streamfile->scd_xor_len-ov_streamfile->offset;
+        int i;
+
+        if (num_crypt > bytes_read) num_crypt=bytes_read;
+        for (i=0;i<num_crypt;i++)
+            ((uint8_t*)ptr)[i] ^= ov_streamfile->scd_xor;
+    }
+
+    ov_streamfile->offset += items_read * size;
+
+    return items_read;
+}
 static int seek_func(void *datasource, ogg_int64_t offset, int whence) {
     ogg_vorbis_streamfile * const ov_streamfile = datasource;
     ogg_int64_t base_offset;
@@ -130,7 +156,8 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
     int um3_ogg = 0;
     int kovs_ogg = 0;
 
-    vgm_vorbis_info_t inf = {0,0,0,0,0,0,0,0};
+    vgm_vorbis_info_t inf;
+    memset(&inf, 0, sizeof(inf));
 
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
@@ -214,12 +241,17 @@ VGMSTREAM * init_vgmstream_ogg_vorbis_callbacks(STREAMFILE *streamFile, const ch
     int32_t loop_end = vgm_inf->loop_end;
 
     ov_callbacks default_callbacks;
-    default_callbacks.read_func = read_func;
-    default_callbacks.seek_func = seek_func;
-    default_callbacks.close_func = close_func;
-    default_callbacks.tell_func = tell_func;
 
     if (!callbacks_p) {
+        default_callbacks.read_func = read_func;
+        default_callbacks.seek_func = seek_func;
+        default_callbacks.close_func = close_func;
+        default_callbacks.tell_func = tell_func;
+
+        if (vgm_inf->scd_xor != 0) {
+            default_callbacks.read_func = read_func_scd;
+        }
+
         callbacks_p = &default_callbacks;
     }
 
@@ -227,11 +259,14 @@ VGMSTREAM * init_vgmstream_ogg_vorbis_callbacks(STREAMFILE *streamFile, const ch
     temp_streamfile.offset = 0;
     temp_streamfile.size = get_streamfile_size(temp_streamfile.streamfile);
     temp_streamfile.other_header_bytes = other_header_bytes;
+    temp_streamfile.scd_xor  = vgm_inf->scd_xor;
+    temp_streamfile.scd_xor_len = vgm_inf->scd_xor_len;
 
     /* can we open this as a proper ogg vorbis file? */
     memset(&temp_ovf, 0, sizeof(temp_ovf));
     if (ov_test_callbacks(&temp_streamfile, &temp_ovf, NULL,
             0, *callbacks_p)) goto fail;
+
     /* we have to close this as it has the init_vgmstream meta-reading
        STREAMFILE */
     ov_clear(&temp_ovf);
@@ -246,6 +281,8 @@ VGMSTREAM * init_vgmstream_ogg_vorbis_callbacks(STREAMFILE *streamFile, const ch
     data->ov_streamfile.offset = 0;
     data->ov_streamfile.size = get_streamfile_size(data->ov_streamfile.streamfile);
     data->ov_streamfile.other_header_bytes = other_header_bytes;
+    data->ov_streamfile.scd_xor  = vgm_inf->scd_xor;
+    data->ov_streamfile.scd_xor_len = vgm_inf->scd_xor_len;
 
     /* open the ogg vorbis file for real */
     if (ov_open_callbacks(&data->ov_streamfile, &data->ogg_vorbis_file, NULL,
