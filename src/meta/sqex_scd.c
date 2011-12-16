@@ -66,6 +66,7 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
         vgm_vorbis_info_t inf;
         uint32_t seek_table_size = read_32bit(meta_offset+0x30, streamFile);
         uint32_t vorb_header_size = read_32bit(meta_offset+0x34, streamFile);
+        VGMSTREAM * result = NULL;
 
         memset(&inf, 0, sizeof(inf));
         inf.loop_start = loop_start;
@@ -76,7 +77,7 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
         inf.layout_type = layout_ogg_vorbis;
         inf.meta_type = meta_SQEX_SCD;
 
-        VGMSTREAM * result = init_vgmstream_ogg_vorbis_callbacks(streamFile, filename, NULL, start_offset, &inf);
+        result = init_vgmstream_ogg_vorbis_callbacks(streamFile, filename, NULL, start_offset, &inf);
 
         if (result != NULL) {
             return result;
