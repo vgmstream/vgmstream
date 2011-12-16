@@ -107,7 +107,7 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
             inf.scd_xor = xor_byte;
             inf.scd_xor_len = vorb_header_size;
 
-            VGMSTREAM * result = init_vgmstream_ogg_vorbis_callbacks(streamFile, filename, NULL, start_offset, &inf);
+            result = init_vgmstream_ogg_vorbis_callbacks(streamFile, filename, NULL, start_offset, &inf);
             return result;
         }
     }
