@@ -321,6 +321,7 @@ VGMSTREAM * init_vgmstream_fsb4(STREAMFILE *streamFile) {
             }
 
             if (read_32bitLE(0x14,streamFile)==0x20 ||
+				read_32bitLE(0x14,streamFile)==0x22 ||
                 read_32bitLE(0x14,streamFile)==0x00)
             {
                 /* Night at the Museum */
