@@ -5,7 +5,8 @@
 
 /* 3DO format, .str extension and possibly a CTRL header, blocks and
  * AIFF-C style format specifier. Blocks are not IFF-compliant. Interesting
- * blocks are all SNDS */
+ * blocks are all SNDS  
+ */
 
 VGMSTREAM * init_vgmstream_str_snds(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
@@ -25,7 +26,8 @@ VGMSTREAM * init_vgmstream_str_snds(STREAMFILE *streamFile) {
 
     /* check for opening CTRL or SNDS chunk */
     if (read_32bitBE(0x0,streamFile) != 0x4354524c &&   /* CTRL */
-        read_32bitBE(0x0,streamFile) != 0x534e4453)     /* SNDS */
+        read_32bitBE(0x0,streamFile) != 0x534e4453 &&   // SNDS
+		read_32bitBE(0x0,streamFile) != 0x53484452)     // SHDR    
         goto fail;
 
     file_size = get_streamfile_size(streamFile);
@@ -42,22 +44,37 @@ VGMSTREAM * init_vgmstream_str_snds(STREAMFILE *streamFile) {
             if (current_chunk+read_32bitBE(current_chunk+4,streamFile) >=
                     file_size) goto fail;
 
-            switch (read_32bitBE(current_chunk,streamFile)) {
+            switch (read_32bitBE(current_chunk,streamFile)) 
+			{
                 case 0x4354524C: /* CTRL */
                     /* to distinguish between styles */
-                    CTRL_size = read_32bitBE(current_chunk+4,streamFile);
-                    break;
+                    CTRL_size = read_32bitBE(current_chunk+4,streamFile);					
+					break;
                 case 0x534e4453: /* SNDS */
-                    switch (read_32bitBE(current_chunk+16,streamFile)) {
-                        case 0x53484452: /* SHDR */
-                            FoundSHDR = 1;
-                            SHDR_offset = current_chunk+16;
-                            break;
-                        default:
-                            break;
+                    switch (read_32bitBE(current_chunk+16,streamFile)) 
+					{
+						case 0x53484452: /* SHDR */
+							FoundSHDR = 1;
+							SHDR_offset = current_chunk+16;
+						break;
+						
+						default:
+							break;
                     }
                     break;
-                default:
+                case 0x53484452: /* SHDR */
+                    switch (read_32bitBE(current_chunk+0x7C, streamFile)) 
+					{
+						case 0x4354524C: /* CTRL */
+							// to distinguish between styles 
+							CTRL_size = read_32bitBE(current_chunk + 0x80, streamFile);							
+							break;
+						
+						default:
+							break;
+                    }
+					break;
+				default:
                     /* ignore others for now */
                     break;
             }
@@ -78,10 +95,14 @@ VGMSTREAM * init_vgmstream_str_snds(STREAMFILE *streamFile) {
     if (!vgmstream) goto fail;
 
     /* fill in the vital statistics */
-    if (CTRL_size == 0x1C) {
+    if ((CTRL_size == 0x1C) ||
+		(CTRL_size == 0x0B) ||
+		(CTRL_size == -1))
+	{
         vgmstream->num_samples =
             read_32bitBE(SHDR_offset+0x2c,streamFile)-1; /* sample count? */
-    } else {
+    } 
+	else {
         vgmstream->num_samples =
             read_32bitBE(SHDR_offset+0x2c,streamFile)   /* frame count? */
             * 0x10;
