@@ -356,6 +356,7 @@ bool input_vgmstream::g_is_our_path(const char * p_path,const char * p_extension
 	if(!stricmp_utf8(p_extension,"isd")) return 1;
 	if(!stricmp_utf8(p_extension,"isws")) return 1;
 	if(!stricmp_utf8(p_extension,"ivaud")) return 1;
+	if(!stricmp_utf8(p_extension,"ivag")) return 1;
 	if(!stricmp_utf8(p_extension,"ivb")) return 1;
 
 	if(!stricmp_utf8(p_extension,"joe")) return 1;
@@ -668,6 +669,7 @@ DECLARE_MULTIPLE_FILE_TYPE("PS2 RAW Interleaved PCM (*.INT)", int);
 DECLARE_MULTIPLE_FILE_TYPE("ISD Audio File (*.ISD)", isd);
 DECLARE_MULTIPLE_FILE_TYPE("ISWS Audio File (*.ISWS)", isws);
 DECLARE_MULTIPLE_FILE_TYPE("IVAUD Audio File (*.IVAUD)", ivaud);
+DECLARE_MULTIPLE_FILE_TYPE("IVAG Audio File (*.IVAG)", ivag);
 DECLARE_MULTIPLE_FILE_TYPE("IVB Audio File (*.IVB)", ivb);
 
 DECLARE_MULTIPLE_FILE_TYPE("JOE Audio File (*.JOE)", joe);

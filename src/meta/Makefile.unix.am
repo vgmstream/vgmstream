@@ -232,5 +232,6 @@ libmeta_la_SOURCES += wpd.c
 libmeta_la_SOURCES += mn_str.c
 libmeta_la_SOURCES += ps2_mss.c
 libmeta_la_SOURCES += ps2_hsf.c
+libmeta_la_SOURCES += ps3_ivag.c
 
 EXTRA_DIST = meta.h

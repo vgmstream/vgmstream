@@ -875,6 +875,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\ps3_ivag.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\ps3_klbs.c"
 					>
 				</File>

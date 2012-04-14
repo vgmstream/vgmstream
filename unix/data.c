@@ -102,6 +102,7 @@ gchar *vgmstream_exts [] = {
   "int",
   "isd",
   "ivaud",
+  "ivag",
   "ivb",
 
   "joe",

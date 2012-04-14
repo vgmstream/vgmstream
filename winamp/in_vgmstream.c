@@ -170,6 +170,7 @@ char * extension_list[] = {
     "isd\0ISD Audio File (*.ISD)\0",
     "isws\0ISWS Audio File (*.ISWS)\0",
     "ivaud\0IVAUD Audio File (*.IVAUD)\0",
+    "ivag\0IVAG Audio File (*.IVAG)\0",
     "ivb\0IVB Audio File (*.IVB)\0",
 
     "joe\0JOE Audio File (*.JOE)\0",

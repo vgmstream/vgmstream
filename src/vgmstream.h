@@ -530,6 +530,7 @@ typedef enum {
 	meta_MN_STR,            // Mini Ninjas (PC/PS3/WII)
 	meta_PS2_MSS,			// ShellShock Nam '67 (PS2)
 	meta_PS2_HSF,			// Lowrider (PS2)
+	meta_PS3_IVAG,			// Interleaved VAG files (PS3)
 } meta_t;
 
 typedef struct {
