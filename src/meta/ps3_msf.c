@@ -76,7 +76,7 @@ VGMSTREAM * init_vgmstream_ps3_msf(STREAMFILE *streamFile) {
                 vgmstream->coding_type = coding_PSX;
                 vgmstream->num_samples = read_32bitBE(0x0C,streamFile)*28/16/channel_count;
 
-				if (vgmstream->num_samples = 0xFFFFFFFF)
+				if (vgmstream->num_samples == 0xFFFFFFFF)
 				{
 					vgmstream->num_samples = (fileLength - start_offset)*28/16/channel_count;
 				}
