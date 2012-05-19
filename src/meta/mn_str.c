@@ -29,7 +29,7 @@ VGMSTREAM * init_vgmstream_mn_str(STREAMFILE *streamFile) {
 	switch (bitspersample) {
 		case 0x10:
 			vgmstream->coding_type = coding_PCM16LE;
-			if (channel_count = 1)
+			if (channel_count == 1)
 			{
 				vgmstream->layout_type = layout_none;
 			}
