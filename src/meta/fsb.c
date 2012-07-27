@@ -287,6 +287,7 @@ VGMSTREAM * init_vgmstream_fsb4(STREAMFILE *streamFile) {
         /* PC Blade Kitten */
         case 0x40004020:
         case 0x20004000:
+		case 0x00004020:
             vgmstream->coding_type = coding_MS_IMA;
             vgmstream->layout_type = layout_none;
             vgmstream->interleave_block_size = 0x24*vgmstream->channels;
