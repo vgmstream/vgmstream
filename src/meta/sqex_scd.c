@@ -6,12 +6,13 @@
 VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[260];
-    off_t start_offset, meta_offset_offset, meta_offset, size_offset;
+    off_t start_offset, meta_offset_offset, meta_offset, post_meta_offset, size_offset;
     int32_t loop_start, loop_end;
 
     int loop_flag = 0;
 	int channel_count;
     int codec_id;
+    int aux_chunk_count;
 
     int32_t (*read_32bit)(off_t,STREAMFILE*) = NULL;
     int16_t (*read_16bit)(off_t,STREAMFILE*) = NULL;
@@ -31,14 +32,14 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
         read_32bit = read_32bitBE;
         read_16bit = read_16bitBE;
         size_offset = 0x14;
-        meta_offset_offset = 0x70;
+        meta_offset_offset = 0x40 + read_16bit(0xe,streamFile);
     } else if (read_32bitLE(8,streamFile) == 3 ||
                read_32bitLE(8,streamFile) == 2) {
         /* version 2/3 LE, as seen in FFXIV for ?? */
         read_32bit = read_32bitLE;
         read_16bit = read_16bitLE;
         size_offset = 0x10;
-        meta_offset_offset = 0x70;
+        meta_offset_offset = 0x40 + read_16bit(0xe,streamFile);
     } else goto fail;
 
     /* never mind, FFXIII music_68tak.ps3.scd is 0x80 shorter */
@@ -48,8 +49,7 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
         goto fail;
 #endif
 
-    /* this is probably some kind of chunk offset (?) */
-    meta_offset = read_32bit(0x70,streamFile);
+    meta_offset = read_32bit(meta_offset_offset,streamFile);
 
     /* check that chunk size equals stream size (?) */
     loop_start = read_32bit(meta_offset+0x10,streamFile);
@@ -58,14 +58,28 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
 
     channel_count = read_32bit(meta_offset+4,streamFile);
     codec_id = read_32bit(meta_offset+0xc,streamFile);
-    start_offset = meta_offset + 0x20 + read_32bit(meta_offset+0x18,streamFile);
+
+    post_meta_offset = meta_offset + 0x20;
+
+    /* data at meta_offset is only 0x20 bytes, but there may be auxiliary chunks
+       before anything else */
+
+    aux_chunk_count = read_32bit(meta_offset+0x1c,streamFile);
+    for (; aux_chunk_count > 0; aux_chunk_count --)
+    {
+        /* skip aux chunks */
+        /*printf("skipping %08x\n", read_32bitBE(post_meta_offset, streamFile));*/
+        post_meta_offset += read_32bit(post_meta_offset+4,streamFile);
+    }
+
+    start_offset = post_meta_offset + read_32bit(meta_offset+0x18,streamFile);
 
 #ifdef VGM_USE_VORBIS
     if (codec_id == 0x6)
     {
         vgm_vorbis_info_t inf;
-        uint32_t seek_table_size = read_32bit(meta_offset+0x30, streamFile);
-        uint32_t vorb_header_size = read_32bit(meta_offset+0x34, streamFile);
+        uint32_t seek_table_size = read_32bit(post_meta_offset+0x10, streamFile);
+        uint32_t vorb_header_size = read_32bit(post_meta_offset+0x14, streamFile);
         VGMSTREAM * result = NULL;
 
         memset(&inf, 0, sizeof(inf));
@@ -85,20 +99,23 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
 
         // try skipping seek table
         {
-            if (0x20 + seek_table_size + vorb_header_size != read_32bit(meta_offset+0x18, streamFile)) {
+            if ((post_meta_offset-meta_offset) + seek_table_size + vorb_header_size != read_32bit(meta_offset+0x18, streamFile)) {
                 return NULL;
             }
 
-            start_offset = meta_offset + 0x40 + seek_table_size;
+            start_offset = post_meta_offset + 0x20 + seek_table_size;
             result = init_vgmstream_ogg_vorbis_callbacks(streamFile, filename, NULL, start_offset, &inf);
             if (result != NULL) {
                 return result;
             }
         }
 
-        // try deobfuscating header (assume skipping seek table)
+        // failed with Ogg, try deobfuscating header
         {
-            unsigned char xor_byte = read_8bit(meta_offset+0x22, streamFile);
+            // skip chunks before xor_byte
+            unsigned char xor_byte;
+
+            xor_byte = read_8bit(post_meta_offset+2, streamFile);
 
             if (xor_byte == 0) {
                 return NULL;
@@ -166,7 +183,7 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
             /* MS ADPCM */
             vgmstream->coding_type = coding_MSADPCM;
             vgmstream->layout_type = layout_none;
-            vgmstream->interleave_block_size = read_16bit(meta_offset+0x2c,streamFile);
+            vgmstream->interleave_block_size = read_16bit(post_meta_offset+0xc,streamFile);
             vgmstream->num_samples = msadpcm_bytes_to_samples(read_32bit(meta_offset+0,streamFile), vgmstream->interleave_block_size, vgmstream->channels);
 
             if (loop_flag) {
@@ -174,6 +191,10 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
                 vgmstream->loop_end_sample = msadpcm_bytes_to_samples(loop_end, vgmstream->interleave_block_size, vgmstream->channels);
             }
             break;
+        case 0xA:
+            /* GC/Wii DSP ADPCM */
+            /* TODO */
+            goto fail;
         default:
             goto fail;
     }
