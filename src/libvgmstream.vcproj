@@ -591,6 +591,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\ps2_2pfs.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\ps2_adm.c"
 					>
 				</File>

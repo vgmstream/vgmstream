@@ -683,7 +683,7 @@ fail:
 }
 
 // FSB5 MPEG
-VGMSTREAM * init_vgmstream_fsb_mpeg(STREAMFILE *streamFile) {
+VGMSTREAM * init_vgmstream_fsb5_mpeg(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[260];
     off_t start_offset;

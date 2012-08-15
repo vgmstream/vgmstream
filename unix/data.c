@@ -15,6 +15,7 @@ Tuple * vgmstream_probe_for_tuple(const gchar *uri, VFSFile *fd);
 
 gchar *vgmstream_exts [] = {
   "2dx9",
+  "2pfs",
 
   "aax",
   "acm",

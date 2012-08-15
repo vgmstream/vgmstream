@@ -531,6 +531,7 @@ typedef enum {
 	meta_PS2_MSS,			// ShellShock Nam '67 (PS2)
 	meta_PS2_HSF,			// Lowrider (PS2)
 	meta_PS3_IVAG,			// Interleaved VAG files (PS3)
+   meta_PS2_2PFS,			// Mahoromatic: Moetto - KiraKira Maid-San (PS2)
 } meta_t;
 
 typedef struct {

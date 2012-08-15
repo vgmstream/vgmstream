@@ -76,6 +76,7 @@ char working_extension_list[EXTENSION_LIST_SIZE] = {0};
 char * extension_list[] = {
 
     "2dx9\0""2DX9 Audio File (*.2DX9)\0",
+    "2pfs\0""2PFS Audio File (*.2PFS)\0",
 
     "aax\0AAX Audio File (*.AAX)\0",
     "aaap\0AAAP Audio File (*.AAAP)\0",
