@@ -27,7 +27,7 @@ VGMSTREAM * init_vgmstream_ps2_2pfs(STREAMFILE *streamFile)
         goto fail;
 
 	// channel count
-	channel_count = 2;
+	channel_count = read_8bit(0x40,streamFile);
 
 	// header size
 	start_offset = 0x800;
