@@ -338,6 +338,7 @@ char * extension_list[] = {
     "xa30\0XA30 Audio File (*.XA30)\0",
 	"xau\0XAU Audio File (*.XAU)\0",
     "xmu\0XMU Audio File (*.XMU)\0",
+    "xnb\0XNB Audio File (*.XNB)\0",
     "xsf\0XSF Audio File (*.XSF)\0",
     "xss\0XSS Audio File (*.XSS)\0",
     "xvag\0XVAG Audio File (*.XVAG)\0",

@@ -422,6 +422,7 @@ typedef enum {
     meta_RIFF_WAVE_SNS,     /* .sns RIFF */
     meta_RIFX_WAVE,         /* RIFX, for big-endian WAVs */
     meta_RIFX_WAVE_smpl,    /* RIFX w/ loop data in smpl chunk */
+    meta_XNBm,              /* XNBm, which has a RIFF fmt chunk */
 	  meta_PC_MXST,           /* Lego Island MxSt */
 	  meta_PC_SOB_SAB,		    /* Worms 4 Mayhem SOB+SAB file */
     meta_NWA,               /* Visual Art's NWA */

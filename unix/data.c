@@ -265,6 +265,7 @@ gchar *vgmstream_exts [] = {
   "xa30",
   "xau",
   "xmu",
+  "xnb",
   "xsf",
   "xss",
   "xvag",
