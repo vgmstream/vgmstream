@@ -116,9 +116,9 @@ int read_fmt(int big_endian,
             switch (read_16bit(current_chunk+0x16,streamFile)) {
                 case 16:
                     if (big_endian) {
-                        fmt->coding_type = coding_PCM16LE;
-                    } else {
                         fmt->coding_type = coding_PCM16BE;
+                    } else {
+                        fmt->coding_type = coding_PCM16LE;
                     }
                     fmt->interleave = 2;
                     break;
