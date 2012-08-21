@@ -123,7 +123,8 @@ static off_t get_offset_stdio(STDIOSTREAMFILE *streamFile) {
 }
 
 static void get_name_stdio(STDIOSTREAMFILE *streamfile,char *buffer,size_t length) {
-    strcpy(buffer,streamfile->name);
+    strncpy(buffer,streamfile->name,length);
+    buffer[length-1]='\0';
 }
 
 #ifdef PROFILE_STREAMFILE
@@ -190,7 +191,8 @@ static STREAMFILE * open_stdio_streamfile_buffer_by_FILE(FILE *infile,const char
     streamfile->buffersize = buffersize;
     streamfile->buffer = buffer;
 
-    strcpy(streamfile->name,filename);
+    strncpy(streamfile->name,filename,sizeof(streamfile->name));
+    streamfile->name[sizeof(streamfile->name)-1] = '\0';
 
     return &streamfile->sf;
 }

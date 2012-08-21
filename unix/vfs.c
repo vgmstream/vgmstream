@@ -65,12 +65,14 @@ static size_t get_offset_vfs(VFSSTREAMFILE *streamfile)
 
 static void get_name_vfs(VFSSTREAMFILE *streamfile,char *buffer,size_t length)
 {
-  strcpy(buffer,streamfile->name);
+  strncpy(buffer,streamfile->name,length);
+  buffer[length-1]='\0';
 }
 
 static void get_realname_vfs(VFSSTREAMFILE *streamfile,char *buffer,size_t length)
 {
-    strcpy(buffer,streamfile->realname);
+    strncpy(buffer,streamfile->realname,length);
+    buffer[length-1]='\0';
 }
 
 static STREAMFILE *open_vfs_by_VFSFILE(VFSFile *file,const char *path);
@@ -119,10 +121,12 @@ static STREAMFILE *open_vfs_by_VFSFILE(VFSFile *file,const char *path)
 
   streamfile->vfsFile = file;
   streamfile->offset = 0;
-  strcpy(streamfile->name,path);
+  strncpy(streamfile->name,path,sizeof(streamfile->name));
+  streamfile->name[sizeof(streamfile->name)-1] = '\0';
   {
       gchar* realname = g_filename_from_uri(path,NULL,NULL);
-      strcpy(streamfile->realname,realname);
+      strncpy(streamfile->realname,realname,sizeof(streamfile->realname));
+      streamfile->realname[sizeof(streamfile->realname)-1] = '\0';
       g_free(realname);
   }
   
