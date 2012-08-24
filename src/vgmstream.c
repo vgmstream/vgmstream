@@ -481,6 +481,17 @@ void reset_vgmstream(VGMSTREAM * vgmstream) {
         nwa_codec_data *data = vgmstream->codec_data;
         reset_nwa(data->nwa);
     }
+
+    if (vgmstream->layout_type==layout_scd_int) {
+        scd_int_codec_data *data = vgmstream->codec_data;
+        int i;
+
+        for (i=0;i<data->substream_count;i++)
+        {
+            reset_vgmstream(data->substreams[i]);
+        }
+    }
+
 }
 
 /* simply allocate memory for the VGMSTREAM and its channels */
@@ -689,6 +700,29 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
         vgmstream->codec_data = NULL;
     }
 
+    if (vgmstream->layout_type==layout_scd_int) {
+        scd_int_codec_data *data = vgmstream->codec_data;
+
+        if (data) {
+            if (data->substreams) {
+                int i;
+                for (i=0;i<data->substream_count;i++) {
+
+                    /* note that the scd_int close_streamfile won't do anything 
+                     * but deallocate itself, there is only one open file and
+                     * that is in vgmstream->ch[0].streamfile  */
+                    close_vgmstream(data->substreams[i]);
+                    close_streamfile(data->intfiles[i]);
+                }
+                free(data->substreams);
+                free(data->intfiles);
+            }
+
+            free(data);
+        }
+        vgmstream->codec_data = NULL;
+    }
+
     /* now that the special cases have had their chance, clean up the standard items */
     for (i=0;i<vgmstream->channels;i++) {
         if (vgmstream->ch[i].streamfile) {
@@ -778,6 +812,9 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
             break;
         case layout_aax:
             render_vgmstream_aax(buffer,sample_count,vgmstream);
+            break;
+        case layout_scd_int:
+            render_vgmstream_scd_int(buffer,sample_count,vgmstream);
             break;
     }
 }
@@ -1942,6 +1979,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
 		case layout_tra_blocked:
             snprintf(temp,TEMPSIZE,"TRA blocked");
+            break;
+        case layout_scd_int:
+            snprintf(temp,TEMPSIZE,"SCD multistream interleave");
             break;
         default:
             snprintf(temp,TEMPSIZE,"INCONCEIVABLE");

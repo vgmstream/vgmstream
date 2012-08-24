@@ -58,6 +58,8 @@ void render_vgmstream_aix(sample * buffer, int32_t sample_count, VGMSTREAM * vgm
 
 void render_vgmstream_aax(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstream);
 
+void render_vgmstream_scd_int(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstream);
+
 void psx_mgav_block_update(off_t block_offset, VGMSTREAM * vgmstream);
 
 void ps2_adm_block_update(off_t block_offset, VGMSTREAM * vgmstream);

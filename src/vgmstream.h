@@ -182,6 +182,7 @@ typedef enum {
 	layout_tra_blocked,		/* DefJam Rapstar .tra blocks */
 	layout_ps2_iab_blocked,
 	layout_ps2_strlr_blocked,
+	layout_scd_int,         /* deinterleave done by the SCDINTSTREAMFILE */
 } layout_t;
 
 /* The meta type specifies how we know what we know about the file. We may know because of a header we read, some of it may have been guessed from filenames, etc. */
@@ -740,6 +741,12 @@ typedef struct {
 typedef struct {
     NWAData *nwa;
 } nwa_codec_data;
+
+typedef struct {
+    int substream_count;
+    VGMSTREAM **substreams;
+    STREAMFILE **intfiles;
+} scd_int_codec_data;
 
 /* do format detection, return pointer to a usable VGMSTREAM, or NULL on failure */
 VGMSTREAM * init_vgmstream(const char * const filename);

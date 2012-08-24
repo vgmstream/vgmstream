@@ -1367,6 +1367,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\layout\scd_int_layout.c"
+					>
+				</File>
+				<File
 					RelativePath=".\layout\str_snds_blocked.c"
 					>
 				</File>
