@@ -70,8 +70,8 @@ VGMSTREAM * init_vgmstream_ps3_xvag(STREAMFILE *streamFile) {
 	mp3ID=(uint16_t)read_16bitBE(start_offset,streamFile);
 	if(mp3ID==0xFFFB) {
 #ifdef VGM_USE_MPEG
-        long rate;
-        int channels,encoding;
+        int rate;
+        int channels;
 
         mpeg_data = init_mpeg_codec_data(streamFile, start_offset, -1, -1, &mpeg_coding_type, &rate, &channels); // -1 to not check sample rate or channels
         if (!mpeg_data) goto fail;
