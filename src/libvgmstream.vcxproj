@@ -14,10 +14,14 @@
     <ProjectGuid>{54A6AD11-5369-4895-A06F-E255ABB99B11}</ProjectGuid>
     <RootNamespace>libvgmstream</RootNamespace>
     <Keyword>Win32Proj</Keyword>
-    <SccProjectName>SAK</SccProjectName>
-    <SccAuxPath>SAK</SccAuxPath>
-    <SccLocalPath>SAK</SccLocalPath>
-    <SccProvider>SAK</SccProvider>
+    <SccProjectName>
+    </SccProjectName>
+    <SccAuxPath>
+    </SccAuxPath>
+    <SccLocalPath>
+    </SccLocalPath>
+    <SccProvider>
+    </SccProvider>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
@@ -89,6 +93,7 @@
     <ClCompile Include="coding\mtaf_decoder.c" />
     <ClCompile Include="layout\ps2_iab_blocked.c" />
     <ClCompile Include="layout\ps2_strlr_blocked.c" />
+    <ClCompile Include="layout\scd_int_layout.c" />
     <ClCompile Include="layout\tra_blocked.c" />
     <ClCompile Include="meta\excitebots.c" />
     <ClCompile Include="meta\ios_psnd.c" />
@@ -99,12 +104,15 @@
     <ClCompile Include="meta\nub.c" />
     <ClCompile Include="meta\pc_adp.c" />
     <ClCompile Include="meta\pc_snds.c" />
+    <ClCompile Include="meta\ps2_2pfs.c" />
+    <ClCompile Include="meta\ps2_hsf.c" />
     <ClCompile Include="meta\ps2_iab.c" />
     <ClCompile Include="meta\ps2_mss.c" />
     <ClCompile Include="meta\ps2_mtaf.c" />
     <ClCompile Include="meta\ps2_spm.c" />
     <ClCompile Include="meta\ps2_strlr.c" />
     <ClCompile Include="meta\ps2_wmus.c" />
+    <ClCompile Include="meta\ps3_ivag.c" />
     <ClCompile Include="meta\ps3_klbs.c" />
     <ClCompile Include="meta\ps3_past.c" />
     <ClCompile Include="meta\ps3_sgh_sgb.c" />
