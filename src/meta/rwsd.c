@@ -255,10 +255,18 @@ VGMSTREAM * init_vgmstream_rwsd(STREAMFILE *streamFile) {
     if (!vgmstream) goto fail;
 
     /* fill in the vital statistics */
-    vgmstream->num_samples = dsp_nibbles_to_samples(read_32bit(rwav_data.wave_offset+0x1c,streamFile));
+    if (big_endian)
+    {
+        vgmstream->num_samples = dsp_nibbles_to_samples(read_32bit(rwav_data.wave_offset+0x1c,streamFile));
+        vgmstream->loop_start_sample = dsp_nibbles_to_samples(read_32bit(rwav_data.wave_offset+0x18,streamFile));
+    }
+    else
+    {
+        vgmstream->num_samples = read_32bit(rwav_data.wave_offset+0x1c,streamFile);
+        vgmstream->loop_start_sample = read_32bit(rwav_data.wave_offset+0x18,streamFile);
+    }
+
     vgmstream->sample_rate = (uint16_t)read_16bit(rwav_data.wave_offset+0x14,streamFile);
-    /* channels and loop flag are set by allocate_vgmstream */
-    vgmstream->loop_start_sample = dsp_nibbles_to_samples(read_32bit(rwav_data.wave_offset+0x18,streamFile));
     vgmstream->loop_end_sample = vgmstream->num_samples;
 
     vgmstream->coding_type = coding_type;
