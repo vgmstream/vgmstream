@@ -5,8 +5,11 @@
 /ext_libs/Debug
 /ext_libs/Release
 <<<<<<< HEAD
+<<<<<<< HEAD
 /ext_libs/*.exp
 /ext_libs/*.lib
+=======
+>>>>>>> Tossed in missing files
 =======
 >>>>>>> Tossed in missing files
 /fb2k/Debug
