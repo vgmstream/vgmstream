@@ -1,0 +1,382 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{54A6AD11-5369-4895-A06F-E255ABB99B11}</ProjectGuid>
+    <RootNamespace>libvgmstream</RootNamespace>
+    <Keyword>Win32Proj</Keyword>
+    <SccProjectName>SAK</SccProjectName>
+    <SccAuxPath>SAK</SccAuxPath>
+    <SccLocalPath>SAK</SccLocalPath>
+    <SccProvider>SAK</SccProvider>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
+    <CodeAnalysisRuleSet Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">AllRules.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRules Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" />
+    <CodeAnalysisRuleAssemblies Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" />
+    <CodeAnalysisRuleSet Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">AllRules.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRules Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" />
+    <CodeAnalysisRuleAssemblies Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" />
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <AdditionalIncludeDirectories>../ext_includes;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;VGM_USE_G7221;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MinimalRebuild>true</MinimalRebuild>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <FloatingPointModel>Precise</FloatingPointModel>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>../ext_includes;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;VGM_USE_G7221;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="streamfile.h" />
+    <ClInclude Include="streamtypes.h" />
+    <ClInclude Include="util.h" />
+    <ClInclude Include="vgmstream.h" />
+    <ClInclude Include="meta\meta.h" />
+    <ClInclude Include="coding\acm_decoder.h" />
+    <ClInclude Include="coding\coding.h" />
+    <ClInclude Include="coding\g72x_state.h" />
+    <ClInclude Include="coding\nwa_decoder.h" />
+    <ClInclude Include="layout\layout.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="coding\lsf_decoder.c" />
+    <ClCompile Include="coding\mtaf_decoder.c" />
+    <ClCompile Include="layout\ps2_iab_blocked.c" />
+    <ClCompile Include="layout\ps2_strlr_blocked.c" />
+    <ClCompile Include="layout\tra_blocked.c" />
+    <ClCompile Include="meta\excitebots.c" />
+    <ClCompile Include="meta\ios_psnd.c" />
+    <ClCompile Include="meta\lsf.c" />
+    <ClCompile Include="meta\mattel_hyperscan.c" />
+    <ClCompile Include="meta\mn_str.c" />
+    <ClCompile Include="meta\ngca.c" />
+    <ClCompile Include="meta\nub.c" />
+    <ClCompile Include="meta\pc_adp.c" />
+    <ClCompile Include="meta\pc_snds.c" />
+    <ClCompile Include="meta\ps2_iab.c" />
+    <ClCompile Include="meta\ps2_mss.c" />
+    <ClCompile Include="meta\ps2_mtaf.c" />
+    <ClCompile Include="meta\ps2_spm.c" />
+    <ClCompile Include="meta\ps2_strlr.c" />
+    <ClCompile Include="meta\ps2_wmus.c" />
+    <ClCompile Include="meta\ps3_klbs.c" />
+    <ClCompile Include="meta\ps3_past.c" />
+    <ClCompile Include="meta\ps3_sgh_sgb.c" />
+    <ClCompile Include="meta\ps3_vawx.c" />
+    <ClCompile Include="meta\seg.c" />
+    <ClCompile Include="meta\sqex_scd.c" />
+    <ClCompile Include="meta\tun.c" />
+    <ClCompile Include="meta\wii_ras.c" />
+    <ClCompile Include="meta\wpd.c" />
+    <ClCompile Include="meta\x360_tra.c" />
+    <ClCompile Include="streamfile.c" />
+    <ClCompile Include="util.c" />
+    <ClCompile Include="vgmstream.c" />
+    <ClCompile Include="meta\2dx9.c" />
+    <ClCompile Include="meta\aax.c" />
+    <ClCompile Include="meta\acm.c" />
+    <ClCompile Include="meta\ads.c" />
+    <ClCompile Include="meta\adx_header.c" />
+    <ClCompile Include="meta\afc_header.c" />
+    <ClCompile Include="meta\agsc.c" />
+    <ClCompile Include="meta\ahx.c" />
+    <ClCompile Include="meta\aifc.c" />
+    <ClCompile Include="meta\aix.c" />
+    <ClCompile Include="meta\apple_caff.c" />
+    <ClCompile Include="meta\ast.c" />
+    <ClCompile Include="meta\baf.c" />
+    <ClCompile Include="meta\bgw.c" />
+    <ClCompile Include="meta\bnsf.c" />
+    <ClCompile Include="meta\brstm.c" />
+    <ClCompile Include="meta\capdsp.c" />
+    <ClCompile Include="meta\Cstr.c" />
+    <ClCompile Include="meta\dc_asd.c" />
+    <ClCompile Include="meta\dc_dcsw_dcs.c" />
+    <ClCompile Include="meta\dc_idvi.c" />
+    <ClCompile Include="meta\dc_kcey.c" />
+    <ClCompile Include="meta\dc_str.c" />
+    <ClCompile Include="meta\de2.c" />
+    <ClCompile Include="meta\dmsg_segh.c" />
+    <ClCompile Include="meta\dsp_bdsp.c" />
+    <ClCompile Include="meta\dsp_sth_str.c" />
+    <ClCompile Include="meta\ea_header.c" />
+    <ClCompile Include="meta\ea_old.c" />
+    <ClCompile Include="meta\emff.c" />
+    <ClCompile Include="meta\exakt_sc.c" />
+    <ClCompile Include="meta\ffw.c" />
+    <ClCompile Include="meta\fsb.c" />
+    <ClCompile Include="meta\gca.c" />
+    <ClCompile Include="meta\gcsw.c" />
+    <ClCompile Include="meta\genh.c" />
+    <ClCompile Include="meta\gh3_bar.c" />
+    <ClCompile Include="meta\gsp_gsb.c" />
+    <ClCompile Include="meta\halpst.c" />
+    <ClCompile Include="meta\his.c" />
+    <ClCompile Include="meta\idsp.c" />
+    <ClCompile Include="meta\ish_isd.c" />
+    <ClCompile Include="meta\ivaud.c" />
+    <ClCompile Include="meta\ivb.c" />
+    <ClCompile Include="meta\kraw.c" />
+    <ClCompile Include="meta\maxis_xa.c" />
+    <ClCompile Include="meta\msvp.c" />
+    <ClCompile Include="meta\mus_acm.c">
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IntDir)%(Filename)1.obj</ObjectFileName>
+      <XMLDocumentationFileName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IntDir)%(Filename)1.xdc</XMLDocumentationFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(IntDir)%(Filename)1.obj</ObjectFileName>
+      <XMLDocumentationFileName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(IntDir)%(Filename)1.xdc</XMLDocumentationFileName>
+    </ClCompile>
+    <ClCompile Include="meta\musc.c" />
+    <ClCompile Include="meta\musx.c" />
+    <ClCompile Include="meta\myspd.c" />
+    <ClCompile Include="meta\naomi_adpcm.c" />
+    <ClCompile Include="meta\naomi_spsd.c" />
+    <ClCompile Include="meta\nds_hwas.c" />
+    <ClCompile Include="meta\nds_rrds.c" />
+    <ClCompile Include="meta\nds_sad.c" />
+    <ClCompile Include="meta\nds_strm.c" />
+    <ClCompile Include="meta\nds_swav.c" />
+    <ClCompile Include="meta\ngc_adpdtk.c" />
+    <ClCompile Include="meta\ngc_bh2pcm.c" />
+    <ClCompile Include="meta\ngc_bo2.c" />
+    <ClCompile Include="meta\ngc_caf.c" />
+    <ClCompile Include="meta\ngc_dsp_konami.c" />
+    <ClCompile Include="meta\ngc_dsp_mpds.c" />
+    <ClCompile Include="meta\ngc_dsp_std.c" />
+    <ClCompile Include="meta\ngc_dsp_ygo.c" />
+    <ClCompile Include="meta\ngc_ffcc_str.c" />
+    <ClCompile Include="meta\ngc_gcub.c" />
+    <ClCompile Include="meta\ngc_lps.c" />
+    <ClCompile Include="meta\ngc_nst_dsp.c" />
+    <ClCompile Include="meta\ngc_pdt.c" />
+    <ClCompile Include="meta\ngc_sck_dsp.c" />
+    <ClCompile Include="meta\ngc_ssm.c" />
+    <ClCompile Include="meta\ngc_tydsp.c" />
+    <ClCompile Include="meta\ngc_waa_wac_wad_wam.c" />
+    <ClCompile Include="meta\ngc_ymf.c" />
+    <ClCompile Include="meta\nwa.c" />
+    <ClCompile Include="meta\ogg_vorbis_file.c" />
+    <ClCompile Include="meta\p3d.c" />
+    <ClCompile Include="meta\pc_mxst.c" />
+    <ClCompile Include="meta\pc_smp.c" />
+    <ClCompile Include="meta\pc_sob.c" />
+    <ClCompile Include="meta\pcm.c" />
+    <ClCompile Include="meta\pona.c" />
+    <ClCompile Include="meta\pos.c" />
+    <ClCompile Include="meta\ps2_adm.c" />
+    <ClCompile Include="meta\ps2_ads.c" />
+    <ClCompile Include="meta\ps2_adsc.c" />
+    <ClCompile Include="meta\ps2_ass.c" />
+    <ClCompile Include="meta\ps2_ast.c" />
+    <ClCompile Include="meta\ps2_aus.c" />
+    <ClCompile Include="meta\ps2_b1s.c" />
+    <ClCompile Include="meta\ps2_bg00.c" />
+    <ClCompile Include="meta\ps2_bmdx.c" />
+    <ClCompile Include="meta\ps2_ccc.c" />
+    <ClCompile Include="meta\ps2_dxh.c" />
+    <ClCompile Include="meta\ps2_enth.c" />
+    <ClCompile Include="meta\ps2_exst.c" />
+    <ClCompile Include="meta\ps2_filp.c" />
+    <ClCompile Include="meta\ps2_gbts.c" />
+    <ClCompile Include="meta\ps2_gcm.c" />
+    <ClCompile Include="meta\ps2_hgc1.c" />
+    <ClCompile Include="meta\ps2_ikm.c" />
+    <ClCompile Include="meta\ps2_ild.c" />
+    <ClCompile Include="meta\ps2_int.c" />
+    <ClCompile Include="meta\ps2_joe.c" />
+    <ClCompile Include="meta\ps2_jstm.c" />
+    <ClCompile Include="meta\ps2_kces.c" />
+    <ClCompile Include="meta\ps2_khv.c" />
+    <ClCompile Include="meta\ps2_leg.c" />
+    <ClCompile Include="meta\ps2_lpcm.c" />
+    <ClCompile Include="meta\ps2_mcg.c" />
+    <ClCompile Include="meta\ps2_mib.c" />
+    <ClCompile Include="meta\ps2_mic.c" />
+    <ClCompile Include="meta\ps2_mihb.c" />
+    <ClCompile Include="meta\ps2_msa.c" />
+    <ClCompile Include="meta\ps2_npsf.c" />
+    <ClCompile Include="meta\ps2_p2bt.c" />
+    <ClCompile Include="meta\ps2_pnb.c" />
+    <ClCompile Include="meta\ps2_psh.c" />
+    <ClCompile Include="meta\ps2_psw.c" />
+    <ClCompile Include="meta\ps2_rnd.c" />
+    <ClCompile Include="meta\ps2_rstm.c" />
+    <ClCompile Include="meta\ps2_rws.c" />
+    <ClCompile Include="meta\ps2_rxw.c" />
+    <ClCompile Include="meta\ps2_sfs.c" />
+    <ClCompile Include="meta\ps2_sl3.c" />
+    <ClCompile Include="meta\ps2_smpl.c" />
+    <ClCompile Include="meta\ps2_snd.c" />
+    <ClCompile Include="meta\ps2_sps.c" />
+    <ClCompile Include="meta\ps2_ster.c" />
+    <ClCompile Include="meta\ps2_stm.c" />
+    <ClCompile Include="meta\ps2_str.c" />
+    <ClCompile Include="meta\ps2_svag.c" />
+    <ClCompile Include="meta\ps2_tec.c" />
+    <ClCompile Include="meta\ps2_tk5.c" />
+    <ClCompile Include="meta\ps2_vag.c" />
+    <ClCompile Include="meta\ps2_vas.c" />
+    <ClCompile Include="meta\ps2_vgs.c" />
+    <ClCompile Include="meta\ps2_vgv.c" />
+    <ClCompile Include="meta\ps2_vms.c" />
+    <ClCompile Include="meta\ps2_voi.c" />
+    <ClCompile Include="meta\ps2_vpk.c" />
+    <ClCompile Include="meta\ps2_wad.c" />
+    <ClCompile Include="meta\ps2_wb.c" />
+    <ClCompile Include="meta\ps2_xa2.c" />
+    <ClCompile Include="meta\ps2_xa30.c" />
+    <ClCompile Include="meta\ps2_xau.c" />
+    <ClCompile Include="meta\ps3_cps.c" />
+    <ClCompile Include="meta\ps3_msf.c" />
+    <ClCompile Include="meta\ps3_xvag.c" />
+    <ClCompile Include="meta\psx_cdxa.c" />
+    <ClCompile Include="meta\psx_fag.c" />
+    <ClCompile Include="meta\psx_gms.c" />
+    <ClCompile Include="meta\psx_str_mgav.c" />
+    <ClCompile Include="meta\raw.c" />
+    <ClCompile Include="meta\redspark.c" />
+    <ClCompile Include="meta\riff.c" />
+    <ClCompile Include="meta\rkv.c" />
+    <ClCompile Include="meta\rs03.c" />
+    <ClCompile Include="meta\rsd.c" />
+    <ClCompile Include="meta\rsf.c" />
+    <ClCompile Include="meta\rwsd.c" />
+    <ClCompile Include="meta\rwx.c" />
+    <ClCompile Include="meta\s14_sss.c" />
+    <ClCompile Include="meta\sat_baka.c" />
+    <ClCompile Include="meta\sat_dvi.c" />
+    <ClCompile Include="meta\sat_sap.c" />
+    <ClCompile Include="meta\sd9.c" />
+    <ClCompile Include="meta\sdt.c" />
+    <ClCompile Include="meta\sfl.c" />
+    <ClCompile Include="meta\sli.c" />
+    <ClCompile Include="meta\spt_spd.c" />
+    <ClCompile Include="meta\ss_stream.c" />
+    <ClCompile Include="meta\str_asr.c" />
+    <ClCompile Include="meta\str_snds.c" />
+    <ClCompile Include="meta\stx.c" />
+    <ClCompile Include="meta\svs.c" />
+    <ClCompile Include="meta\thp.c" />
+    <ClCompile Include="meta\vgs.c" />
+    <ClCompile Include="meta\vs.c" />
+    <ClCompile Include="meta\vsf.c" />
+    <ClCompile Include="meta\wii_bns.c" />
+    <ClCompile Include="meta\wii_mus.c" />
+    <ClCompile Include="meta\wii_smp.c" />
+    <ClCompile Include="meta\wii_sng.c" />
+    <ClCompile Include="meta\wii_str.c" />
+    <ClCompile Include="meta\wii_sts.c" />
+    <ClCompile Include="meta\ws_aud.c" />
+    <ClCompile Include="meta\wvs.c" />
+    <ClCompile Include="meta\xbox_hlwav.c" />
+    <ClCompile Include="meta\xbox_ims.c" />
+    <ClCompile Include="meta\xbox_stma.c" />
+    <ClCompile Include="meta\xbox_wavm.c" />
+    <ClCompile Include="meta\xbox_xmu.c" />
+    <ClCompile Include="meta\xbox_xvas.c" />
+    <ClCompile Include="meta\xbox_xwav.c" />
+    <ClCompile Include="meta\xss.c" />
+    <ClCompile Include="meta\xwb.c" />
+    <ClCompile Include="meta\ydsp.c" />
+    <ClCompile Include="meta\zsd.c" />
+    <ClCompile Include="meta\zwdsp.c" />
+    <ClCompile Include="coding\acm_decoder.c" />
+    <ClCompile Include="coding\adx_decoder.c" />
+    <ClCompile Include="coding\aica_decoder.c" />
+    <ClCompile Include="coding\eaxa_decoder.c" />
+    <ClCompile Include="coding\g721_decoder.c" />
+    <ClCompile Include="coding\g7221_decoder.c" />
+    <ClCompile Include="coding\ima_decoder.c" />
+    <ClCompile Include="coding\l5_555_decoder.c" />
+    <ClCompile Include="coding\mpeg_decoder.c" />
+    <ClCompile Include="coding\msadpcm_decoder.c" />
+    <ClCompile Include="coding\nds_procyon_decoder.c" />
+    <ClCompile Include="coding\ngc_afc_decoder.c" />
+    <ClCompile Include="coding\ngc_dsp_decoder.c" />
+    <ClCompile Include="coding\ngc_dtk_decoder.c" />
+    <ClCompile Include="coding\nwa_decoder.c" />
+    <ClCompile Include="coding\ogg_vorbis_decoder.c" />
+    <ClCompile Include="coding\pcm_decoder.c" />
+    <ClCompile Include="coding\psx_decoder.c" />
+    <ClCompile Include="coding\SASSC_decoder.c" />
+    <ClCompile Include="coding\sdx2_decoder.c" />
+    <ClCompile Include="coding\ws_decoder.c" />
+    <ClCompile Include="coding\xa_decoder.c" />
+    <ClCompile Include="layout\aax_layout.c" />
+    <ClCompile Include="layout\aix_layout.c" />
+    <ClCompile Include="layout\ast_blocked.c" />
+    <ClCompile Include="layout\bdsp_blocked.c" />
+    <ClCompile Include="layout\blocked.c" />
+    <ClCompile Include="layout\caf_blocked.c" />
+    <ClCompile Include="layout\de2_blocked.c" />
+    <ClCompile Include="layout\ea_block.c" />
+    <ClCompile Include="layout\emff_blocked.c" />
+    <ClCompile Include="layout\filp_blocked.c" />
+    <ClCompile Include="layout\gsb_blocked.c" />
+    <ClCompile Include="layout\halpst_blocked.c" />
+    <ClCompile Include="layout\ims_block.c" />
+    <ClCompile Include="layout\interleave.c" />
+    <ClCompile Include="layout\interleave_byte.c" />
+    <ClCompile Include="layout\ivaud_layout.c" />
+    <ClCompile Include="layout\mus_acm_layout.c" />
+    <ClCompile Include="layout\mxch_blocked.c" />
+    <ClCompile Include="layout\nolayout.c" />
+    <ClCompile Include="layout\ps2_adm_blocked.c" />
+    <ClCompile Include="layout\psx_mgav_blocked.c" />
+    <ClCompile Include="layout\str_snds_blocked.c" />
+    <ClCompile Include="layout\thp_blocked.c" />
+    <ClCompile Include="layout\vs_blocked.c" />
+    <ClCompile Include="layout\ws_aud_blocked.c" />
+    <ClCompile Include="layout\wsi_blocked.c" />
+    <ClCompile Include="layout\xa_blocked.c" />
+    <ClCompile Include="layout\xvas_block.c" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
