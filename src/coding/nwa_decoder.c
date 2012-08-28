@@ -120,7 +120,6 @@ fail:
     if (nwa)
     {
         close_nwa(nwa);
-        free(nwa);
     }
 
     return NULL;
