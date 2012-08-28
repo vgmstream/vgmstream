@@ -1,0 +1,81 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{10E6BFC6-1E5B-46E4-BA42-F04DFBD0ABFF}</ProjectGuid>
+    <SccProjectName>SAK</SccProjectName>
+    <SccAuxPath>SAK</SccAuxPath>
+    <SccLocalPath>SAK</SccLocalPath>
+    <SccProvider>SAK</SccProvider>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Utility</ConfigurationType>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Utility</ConfigurationType>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(SolutionDir)$(Configuration)\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(Configuration)\</IntDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(SolutionDir)</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <CustomBuild Include="libmpg123-0.def">
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Building library stub</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">lib /def:libmpg123-0.def /machine:x86
+</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">libmpg123-0.lib;libmpg123-0.exp;%(Outputs)</Outputs>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Building library stub</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">lib /def:libmpg123-0.def /machine:x86
+</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">libmpg123-0.lib;libmpg123-0.exp;%(Outputs)</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="libvorbis.def">
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Building library stub</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">lib /def:libvorbis.def /machine:x86
+</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">libvorbis.lib;libvorbis.exp;%(Outputs)</Outputs>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Building library stub</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">lib /def:libvorbis.def /machine:x86
+</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">libvorbis.lib;libvorbis.exp;%(Outputs)</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="libg7221_decode.def">
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Building library stub</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">lib /def:libg7221_decode.def /machine:x86
+</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">libg7221_decode.lib;libg7221_decode.exp;%(Outputs)</Outputs>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Building library stub</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">lib /def:libg7221_decode.def /machine:x86
+</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">libg7221_decode.lib;libg7221_decode.exp;%(Outputs)</Outputs>
+    </CustomBuild>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
