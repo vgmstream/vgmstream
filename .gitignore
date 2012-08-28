@@ -1,0 +1,10 @@
+.svn
+*.user
+*.suo
+*.vspscc
+/ext_libs/Debug
+/ext_libs/Release
+/fb2k/Debug
+/fb2k/Release
+/src/Debug
+/src/Release
