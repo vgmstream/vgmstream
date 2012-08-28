@@ -4,8 +4,11 @@
 *.vspscc
 /ext_libs/Debug
 /ext_libs/Release
+<<<<<<< HEAD
 /ext_libs/*.exp
 /ext_libs/*.lib
+=======
+>>>>>>> Tossed in missing files
 /fb2k/Debug
 /fb2k/Release
 /src/Debug
