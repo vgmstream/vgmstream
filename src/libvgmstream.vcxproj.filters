@@ -937,5 +937,14 @@
     <ClCompile Include="meta\ps3_ivag.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\mp4.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="coding\mp4_aac_decoder.c">
+      <Filter>coding\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\akb.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
