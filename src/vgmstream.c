@@ -420,7 +420,7 @@ void reset_vgmstream(VGMSTREAM * vgmstream) {
 #endif
 	if (vgmstream->coding_type==coding_MP4_AAC) {
 		mp4_aac_codec_data *data = vgmstream->codec_data;
-		data->sampleId = 0;
+		data->sampleId = 1;
 		data->sample_ptr = data->samples_per_frame;
 		data->samples_discard = 0;
 	}
@@ -592,6 +592,7 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
 			if (data->h_aacdecoder) aacDecoder_Close(data->h_aacdecoder);
 			if (data->h_mp4file) MP4Close(data->h_mp4file, 0);
 			if (data->if_file.streamfile) close_streamfile(data->if_file.streamfile);
+			if (data->codec_init_data) free(data->codec_init_data);
 			free(vgmstream->codec_data);
 			vgmstream->codec_data = NULL;
 		}
@@ -1579,6 +1580,10 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream) {
 				data->sampleId = 0;
 				data->sample_ptr = data->samples_per_frame;
 				data->samples_discard = vgmstream->loop_sample;
+				aacDecoder_Close(data->h_aacdecoder);
+				data->h_aacdecoder = aacDecoder_Open( TT_MP4_RAW, 1 );
+				aacDecoder_SetParam( data->h_aacdecoder, AAC_PCM_OUTPUT_CHANNELS, 2 );
+				aacDecoder_ConfigRaw( data->h_aacdecoder, &data->codec_init_data, &data->codec_init_data_size );
 			}
 #ifdef VGM_USE_MPEG
             /* won't work for fake MPEG */

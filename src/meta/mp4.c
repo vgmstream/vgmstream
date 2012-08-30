@@ -34,16 +34,8 @@ int mp4_file_read( void* handle, void* buffer, int64_t size, int64_t* nin, int64
 	mp4_streamfile * file = ( mp4_streamfile * ) handle;
 	int64_t max_size = file->size - file->offset - file->start;
 	if ( size > max_size ) size = max_size;
-	if ( size > 0 )
-	{
-		*nin = read_streamfile( (uint8_t *) buffer, file->offset, size, file->streamfile );
-		file->offset += *nin;
-	}
-	else
-	{
-		*nin = 0;
-		return 1;
-	}
+	*nin = read_streamfile( (uint8_t *) buffer, file->offset, size, file->streamfile );
+	file->offset += *nin;
 	return 0;
 }
 
@@ -99,12 +91,9 @@ VGMSTREAM * init_vgmstream_mp4_aac_offset(STREAMFILE *streamFile, uint64_t start
 
 	aacDecoder_SetParam( aac_file->h_aacdecoder, AAC_PCM_OUTPUT_CHANNELS, 2 );
 
-	MP4GetTrackESConfiguration( aac_file->h_mp4file, aac_file->track_id, (uint8_t**)(&buffer), (uint32_t*)(&buffer_size));
+	MP4GetTrackESConfiguration( aac_file->h_mp4file, aac_file->track_id, (uint8_t**)(&aac_file->codec_init_data), (uint32_t*)(&aac_file->codec_init_data_size));
 
-	ubuffer_size = buffer_size;
-	if ( aacDecoder_ConfigRaw( aac_file->h_aacdecoder, &buffer, &ubuffer_size ) ) goto fail;
-
-	free( buffer ); buffer = NULL;
+	if ( aacDecoder_ConfigRaw( aac_file->h_aacdecoder, &aac_file->codec_init_data, &aac_file->codec_init_data_size ) ) goto fail;
 
 	aac_file->sampleId = 1;
 	aac_file->numSamples = MP4GetTrackNumberOfSamples( aac_file->h_mp4file, aac_file->track_id );
@@ -153,6 +142,7 @@ fail:
 	if ( aac_file ) {
 		if ( aac_file->h_aacdecoder ) aacDecoder_Close( aac_file->h_aacdecoder );
 		if ( aac_file->h_mp4file ) MP4Close( aac_file->h_mp4file, 0 );
+		if ( aac_file->codec_init_data ) free( aac_file->codec_init_data );
 		free( aac_file );
 	}
 	return NULL;
