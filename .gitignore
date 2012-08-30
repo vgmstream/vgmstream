@@ -4,6 +4,8 @@
 *.vspscc
 /ext_libs/Debug
 /ext_libs/Release
+/ext_libs/*.exp
+/ext_libs/*.lib
 /fb2k/Debug
 /fb2k/Release
 /src/Debug
