@@ -91,9 +91,12 @@ VGMSTREAM * init_vgmstream_mp4_aac_offset(STREAMFILE *streamFile, uint64_t start
 
 	aacDecoder_SetParam( aac_file->h_aacdecoder, AAC_PCM_OUTPUT_CHANNELS, 2 );
 
-	MP4GetTrackESConfiguration( aac_file->h_mp4file, aac_file->track_id, (uint8_t**)(&aac_file->codec_init_data), (uint32_t*)(&aac_file->codec_init_data_size));
+	MP4GetTrackESConfiguration( aac_file->h_mp4file, aac_file->track_id, (uint8_t**)(&buffer), (uint32_t*)(&buffer_size));
 
-	if ( aacDecoder_ConfigRaw( aac_file->h_aacdecoder, &aac_file->codec_init_data, &aac_file->codec_init_data_size ) ) goto fail;
+	ubuffer_size = buffer_size;
+	if ( aacDecoder_ConfigRaw( aac_file->h_aacdecoder, &buffer, &ubuffer_size ) ) goto fail;
+
+	free( buffer ); buffer = NULL;
 
 	aac_file->sampleId = 1;
 	aac_file->numSamples = MP4GetTrackNumberOfSamples( aac_file->h_mp4file, aac_file->track_id );
@@ -142,7 +145,6 @@ fail:
 	if ( aac_file ) {
 		if ( aac_file->h_aacdecoder ) aacDecoder_Close( aac_file->h_aacdecoder );
 		if ( aac_file->h_mp4file ) MP4Close( aac_file->h_mp4file, 0 );
-		if ( aac_file->codec_init_data ) free( aac_file->codec_init_data );
 		free( aac_file );
 	}
 	return NULL;
