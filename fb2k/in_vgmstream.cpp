@@ -281,6 +281,7 @@ bool input_vgmstream::g_is_our_path(const char * p_path,const char * p_extension
 	if(!stricmp_utf8(p_extension,"ahx")) return 1;
 	if(!stricmp_utf8(p_extension,"aic")) return 1;
 	if(!stricmp_utf8(p_extension,"aix")) return 1;
+	if(!stricmp_utf8(p_extension,"akb")) return 1;
 	if(!stricmp_utf8(p_extension,"amts")) return 1;
 	if(!stricmp_utf8(p_extension,"as4")) return 1;
 	if(!stricmp_utf8(p_extension,"asd")) return 1;
@@ -599,6 +600,7 @@ DECLARE_MULTIPLE_FILE_TYPE("AGSC Audio File (*.AGSC)", agsc);
 DECLARE_MULTIPLE_FILE_TYPE("AHX Audio File (*.AHX)", ahx);
 DECLARE_MULTIPLE_FILE_TYPE("AIFC Audio File (*.AIFC)", aifc);
 DECLARE_MULTIPLE_FILE_TYPE("AIX Audio File (*.AIX)", aix);
+DECLARE_MULTIPLE_FILE_TYPE("AKB Audio File (*.AKB)", akb);
 DECLARE_MULTIPLE_FILE_TYPE("AMTS Audio File (*.AMTS)", amts);
 DECLARE_MULTIPLE_FILE_TYPE("AS4 Audio File (*.AS4)", as4);
 DECLARE_MULTIPLE_FILE_TYPE("ASD Audio File (*.ASD)", asd);

@@ -26,6 +26,12 @@
 #ifdef VGM_USE_G7221
 #include "g7221.h"
 #endif
+
+#define MP4V2_NO_STDINT_DEFS
+#include <mp4v2/mp4v2.h>
+
+#include <aacdecoder_lib.h>
+
 #include "coding/acm_decoder.h"
 #include "coding/nwa_decoder.h"
 
@@ -126,6 +132,8 @@ typedef enum {
     coding_PCM16LE_XOR_int, /* sample-level xor */
     coding_LSF,             /* lsf ADPCM */
     coding_MTAF,            /* Konami IMA-derived MTAF ADPCM */
+
+	coding_MP4_AAC,
 } coding_t;
 
 /* The layout type specifies how the sound data is laid out in the file */
@@ -535,6 +543,7 @@ typedef enum {
 	meta_PS2_HSF,			// Lowrider (PS2)
 	meta_PS3_IVAG,			// Interleaved VAG files (PS3)
    meta_PS2_2PFS,			// Mahoromatic: Moetto - KiraKira Maid-San (PS2)
+	meta_MP4,
 } meta_t;
 
 typedef struct {
@@ -748,6 +757,25 @@ typedef struct {
     VGMSTREAM **substreams;
     STREAMFILE **intfiles;
 } scd_int_codec_data;
+
+typedef struct {
+	STREAMFILE *streamfile;
+	uint64_t start;
+	uint64_t offset;
+	uint64_t size;
+} mp4_streamfile;
+
+typedef struct {
+	mp4_streamfile if_file;
+	MP4FileHandle h_mp4file;
+	MP4TrackId track_id;
+	unsigned long sampleId, numSamples;
+	uint8_t * codec_init_data;
+	UINT codec_init_data_size;
+	HANDLE_AACDECODER h_aacdecoder;
+	unsigned int sample_ptr, samples_per_frame, samples_discard;
+	INT_PCM sample_buffer[( (6) * (2048)*4 )];
+} mp4_aac_codec_data;
 
 /* do format detection, return pointer to a usable VGMSTREAM, or NULL on failure */
 VGMSTREAM * init_vgmstream(const char * const filename);
