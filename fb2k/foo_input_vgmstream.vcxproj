@@ -62,7 +62,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>../ext_includes;..\..\foobar\foobar2000\SDK;..\..\foobar\foobar2000\helpers;..\..\foobar\foobar2000\ATLHelpers;..\..\foobar\foobar2000\shared;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../ext_includes;..\..\foobar\foobar2000\SDK;..\..\foobar\foobar2000\helpers;..\..\foobar\foobar2000\ATLHelpers;..\..\foobar\foobar2000\shared;../../qaac/mp4v2/include;../../fdk-aac/libSYS/include;../../fdk-aac/libAACdec/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;VGM_USE_G7221;_DEBUG;_WINDOWS;_USRDLL;IN_VGMSTREAM_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -81,7 +81,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <AdditionalIncludeDirectories>../ext_includes;..\..\foobar\foobar2000\SDK;..\..\foobar\foobar2000\helpers;..\..\foobar\foobar2000\ATLHelpers;..\..\foobar\foobar2000\shared;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../ext_includes;..\..\foobar\foobar2000\SDK;..\..\foobar\foobar2000\helpers;..\..\foobar\foobar2000\ATLHelpers;..\..\foobar\foobar2000\shared;../../qaac/mp4v2/include;../../fdk-aac/libSYS/include;../../fdk-aac/libAACdec/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;VGM_USE_G7221;NDEBUG;_WINDOWS;_USRDLL;IN_VGMSTREAM_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <PrecompiledHeader>
@@ -114,6 +114,9 @@
     <ClCompile Include="in_vgmstream.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\fdk-aac\msvc\fdk-aac.vcxproj">
+      <Project>{308e2ad5-be31-4770-9441-a8d50f56895c}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\..\foobar\foobar2000\ATLHelpers\foobar2000_ATL_helpers.vcxproj">
       <Project>{622e8b19-8109-4717-bd4d-9657aa78363e}</Project>
     </ProjectReference>
@@ -128,6 +131,9 @@
     </ProjectReference>
     <ProjectReference Include="..\..\foobar\pfc\pfc.vcxproj">
       <Project>{ebfffb4e-261d-44d3-b89c-957b31a0bf9c}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\qaac\vcproject\mp4v2\mp4v2.vcxproj">
+      <Project>{86a064e2-c81b-4eee-8be0-a39a2e7c7c76}</Project>
     </ProjectReference>
     <ProjectReference Include="..\ext_libs\ext_libs.vcxproj">
       <Project>{10e6bfc6-1e5b-46e4-ba42-f04dfbd0abff}</Project>
