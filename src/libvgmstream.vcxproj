@@ -53,7 +53,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>../ext_includes;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../ext_includes;../../qaac/mp4v2/include;../../fdk-aac/libSYS/include;../../fdk-aac/libAACdec/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;VGM_USE_G7221;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -67,7 +67,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <AdditionalIncludeDirectories>../ext_includes;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../ext_includes;../../qaac/mp4v2/include;../../fdk-aac/libSYS/include;../../fdk-aac/libAACdec/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;VGM_USE_G7221;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <PrecompiledHeader>
@@ -90,16 +90,19 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="coding\lsf_decoder.c" />
+    <ClCompile Include="coding\mp4_aac_decoder.c" />
     <ClCompile Include="coding\mtaf_decoder.c" />
     <ClCompile Include="layout\ps2_iab_blocked.c" />
     <ClCompile Include="layout\ps2_strlr_blocked.c" />
     <ClCompile Include="layout\scd_int_layout.c" />
     <ClCompile Include="layout\tra_blocked.c" />
+    <ClCompile Include="meta\akb.c" />
     <ClCompile Include="meta\excitebots.c" />
     <ClCompile Include="meta\ios_psnd.c" />
     <ClCompile Include="meta\lsf.c" />
     <ClCompile Include="meta\mattel_hyperscan.c" />
     <ClCompile Include="meta\mn_str.c" />
+    <ClCompile Include="meta\mp4.c" />
     <ClCompile Include="meta\ngca.c" />
     <ClCompile Include="meta\nub.c" />
     <ClCompile Include="meta\pc_adp.c" />
