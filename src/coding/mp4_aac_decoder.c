@@ -1,15 +1,5 @@
 #include "../vgmstream.h"
 
-static void convert_samples(INT_PCM * src, sample * dest, int32_t count) {
-	int32_t i;
-	for ( i = 0; i < count; i++ ) {
-		INT_PCM sample = *src++;
-		sample >>= SAMPLE_BITS - 16;
-		if ( ( sample + 0x8000 ) & 0xFFFF0000 ) sample = 0x7FFF ^ ( sample >> 31 );
-		*dest++ = sample;
-	}
-}
-
 void decode_mp4_aac(mp4_aac_codec_data * data, sample * outbuf, int32_t samples_to_do, int channels) {
 	int samples_done = 0;
 
@@ -35,7 +25,7 @@ void decode_mp4_aac(mp4_aac_codec_data * data, sample * outbuf, int32_t samples_
 
 	if ( samples_remain > samples_to_do ) samples_remain = samples_to_do;
 
-	convert_samples( data->sample_buffer + data->sample_ptr * stream_info->numChannels, outbuf, samples_remain * stream_info->numChannels );
+	memcpy( outbuf, data->sample_buffer + data->sample_ptr * stream_info->numChannels, samples_remain * stream_info->numChannels * sizeof(short) );
 
 	outbuf += samples_remain * stream_info->numChannels;
 
@@ -44,10 +34,6 @@ void decode_mp4_aac(mp4_aac_codec_data * data, sample * outbuf, int32_t samples_
 	samples_done += samples_remain;
 
 	while ( samples_done < samples_to_do ) {
-		if (data->sampleId >= data->numSamples) {
-			memset(outbuf, 0, (samples_to_do - samples_done) * stream_info->numChannels * sizeof(sample));
-			break;
-		}
 		if (!MP4ReadSample( data->h_mp4file, data->track_id, ++data->sampleId, (uint8_t**)(&buffer), (uint32_t*)(&buffer_size), 0, 0, 0, 0)) return;
 		ubuffer_size = buffer_size;
 		bytes_valid = buffer_size;
@@ -75,7 +61,7 @@ void decode_mp4_aac(mp4_aac_codec_data * data, sample * outbuf, int32_t samples_
 			}
 		}
 		if ( samples_remain > samples_to_do - samples_done ) samples_remain = samples_to_do - samples_done;
-		convert_samples( data->sample_buffer + data->sample_ptr * stream_info->numChannels, outbuf, samples_remain * stream_info->numChannels );
+		memcpy( outbuf, data->sample_buffer + data->sample_ptr * stream_info->numChannels, samples_remain * stream_info->numChannels * sizeof(short) );
 		samples_done += samples_remain;
 		outbuf += samples_remain * stream_info->numChannels;
 		data->sample_ptr = samples_remain;

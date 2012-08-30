@@ -772,6 +772,7 @@ typedef struct {
 	MP4FileHandle h_mp4file;
 	MP4TrackId track_id;
 	unsigned long sampleId, numSamples;
+	uint8_t * codec_init_data;
 	UINT codec_init_data_size;
 	HANDLE_AACDECODER h_aacdecoder;
 	unsigned int sample_ptr, samples_per_frame, samples_discard;
