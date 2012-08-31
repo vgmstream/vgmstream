@@ -34,8 +34,16 @@ int mp4_file_read( void* handle, void* buffer, int64_t size, int64_t* nin, int64
 	mp4_streamfile * file = ( mp4_streamfile * ) handle;
 	int64_t max_size = file->size - file->offset - file->start;
 	if ( size > max_size ) size = max_size;
-	*nin = read_streamfile( (uint8_t *) buffer, file->offset, size, file->streamfile );
-	file->offset += *nin;
+	if ( size > 0 )
+	{
+		*nin = read_streamfile( (uint8_t *) buffer, file->offset, size, file->streamfile );
+		file->offset += *nin;
+	}
+	else
+	{
+		*nin = 0;
+		return 1;
+	}
 	return 0;
 }
 
