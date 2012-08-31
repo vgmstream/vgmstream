@@ -612,4 +612,6 @@ VGMSTREAM * init_vgmstream_ps3_ivag(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_ps2_2pfs(STREAMFILE* streamFile);
 
+VGMSTREAM * init_vgmstream_rsd6oogv(STREAMFILE* streamFile);
+
 #endif

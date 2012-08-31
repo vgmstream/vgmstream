@@ -348,12 +348,13 @@ typedef enum {
     meta_RSD3PCMB,			/* RSD3PCMB */
     meta_RSD4PCMB,			/* RSD4PCMB */
     meta_RSD4PCM,			  /* RSD4PCM */
-	  meta_RSD4RADP,			/* RSD4RADP */
+	meta_RSD4RADP,			/* RSD4RADP */
     meta_RSD4VAG,			  /* RSD4VAG */
     meta_RSD6VAG,			  /* RSD6VAG */
     meta_RSD6WADP,			/* RSD6WADP */
     meta_RSD6XADP,			/* RSD6XADP */
     meta_RSD6RADP,			/* RSD6RADP */
+	meta_RSD6OOGV,          /* RSD6OOGV */
 
     meta_PS2_ASS,			/* ASS */
     meta_PS2_SEG,			/* Eragon */
