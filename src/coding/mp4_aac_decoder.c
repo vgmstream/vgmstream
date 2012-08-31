@@ -44,6 +44,10 @@ void decode_mp4_aac(mp4_aac_codec_data * data, sample * outbuf, int32_t samples_
 	samples_done += samples_remain;
 
 	while ( samples_done < samples_to_do ) {
+		if (data->sampleId >= data->numSamples) {
+			memset(outbuf, 0, (samples_to_do - samples_done) * stream_info->numChannels * sizeof(sample));
+			break;
+		}
 		if (!MP4ReadSample( data->h_mp4file, data->track_id, ++data->sampleId, (uint8_t**)(&buffer), (uint32_t*)(&buffer_size), 0, 0, 0, 0)) return;
 		ubuffer_size = buffer_size;
 		bytes_valid = buffer_size;
