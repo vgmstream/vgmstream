@@ -356,12 +356,13 @@ typedef enum {
     meta_RSD3PCMB,			/* RSD3PCMB */
     meta_RSD4PCMB,			/* RSD4PCMB */
     meta_RSD4PCM,			  /* RSD4PCM */
-	  meta_RSD4RADP,			/* RSD4RADP */
+	meta_RSD4RADP,			/* RSD4RADP */
     meta_RSD4VAG,			  /* RSD4VAG */
     meta_RSD6VAG,			  /* RSD6VAG */
     meta_RSD6WADP,			/* RSD6WADP */
     meta_RSD6XADP,			/* RSD6XADP */
     meta_RSD6RADP,			/* RSD6RADP */
+	meta_RSD6OOGV,          /* RSD6OOGV */
 
     meta_PS2_ASS,			/* ASS */
     meta_PS2_SEG,			/* Eragon */
@@ -414,6 +415,7 @@ typedef enum {
     meta_OGG_SFL,           /* Ogg Vorbis file w/ .sfl (RIFF SFPL) for looping */
     meta_um3_ogg,           /* Ogg Vorbis with first 0x800 bytes XOR 0xFF */
     meta_KOVS_ogg,          /* Ogg Vorbis with exta header and 0x100 bytes XOR */
+    meta_psych_ogg,          /* Ogg Vorbis with all bytes -0x23*/
 #endif
 
     meta_AIFC,              /* Audio Interchange File Format AIFF-C */
