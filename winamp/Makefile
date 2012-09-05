@@ -1,6 +1,6 @@
 export SHELL = /bin/sh
 export CFLAGS=-Wall -O3 "-DVGM_USE_G7221" -I../ext_includes
-export LDFLAGS=-lm -L../src -L../ext_libs -lvgmstream -lvorbis -lmpg123-0 -lg7221_decode
+export LDFLAGS=-L../src -L../ext_libs -lvgmstream -lvorbis -lmpg123-0 -lg7221_decode -lm
 export CC=i586-mingw32msvc-gcc
 export AR=i586-mingw32msvc-ar
 export STRIP=i586-mingw32msvc-strip
