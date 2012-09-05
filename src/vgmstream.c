@@ -2213,6 +2213,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         case meta_KOVS_ogg:
             snprintf(temp,TEMPSIZE,"Ogg Vorbis, KOVS header");
             break;
+        case meta_psych_ogg:
+            snprintf(temp,TEMPSIZE,"Ogg Vorbis, Psychic Software obfuscation");
+            break;
 #endif
         case meta_DSP_SADB:
             snprintf(temp,TEMPSIZE,"sadb header");

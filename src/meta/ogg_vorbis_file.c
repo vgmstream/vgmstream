@@ -106,6 +106,29 @@ static size_t read_func_scd(void *ptr, size_t size, size_t nmemb, void * datasou
 
     return items_read;
 }
+
+static size_t read_func_psych(void *ptr, size_t size, size_t nmemb, void * datasource)
+{
+    ogg_vorbis_streamfile * const ov_streamfile = datasource;
+    size_t items_read;
+
+    size_t bytes_read;
+    size_t i;
+   
+    bytes_read = read_streamfile(ptr, ov_streamfile->offset + ov_streamfile->other_header_bytes, size * nmemb,
+            ov_streamfile->streamfile);
+
+    /* add 0x23 ('#') */
+    for (i=0;i<bytes_read;i++)
+        ((uint8_t*)ptr)[i] += 0x23;
+
+    items_read = bytes_read / size;
+
+    ov_streamfile->offset += items_read * size;
+
+    return items_read;
+}
+
 static int seek_func(void *datasource, ogg_int64_t offset, int whence) {
     ogg_vorbis_streamfile * const ov_streamfile = datasource;
     ogg_int64_t base_offset;
@@ -155,6 +178,7 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
     off_t other_header_bytes = 0;
     int um3_ogg = 0;
     int kovs_ogg = 0;
+    int psych_ogg = 0;
 
     vgm_vorbis_info_t inf;
     memset(&inf, 0, sizeof(inf));
@@ -195,10 +219,17 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
         other_header_bytes = 0x20;
     }
 
+    /* detect Psychic Software obfuscation (as seen in "Darkwind") */
+    if (read_32bitBE(0x0,streamFile)==0x2c444430) {
+        psych_ogg = 1;
+    }
+
     if (um3_ogg) {
         callbacks.read_func = read_func_um3;
     } else if (kovs_ogg) {
         callbacks.read_func = read_func_kovs;
+    } else if (psych_ogg) {
+        callbacks.read_func = read_func_psych;
     } else {
         callbacks.read_func = read_func;
     }
@@ -210,6 +241,8 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
         inf.meta_type = meta_um3_ogg;
     } else if (kovs_ogg) {
         inf.meta_type = meta_KOVS_ogg;
+    } else if (psych_ogg) {
+        inf.meta_type = meta_psych_ogg;
     } else {
         inf.meta_type = meta_ogg_vorbis;
     }
