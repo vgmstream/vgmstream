@@ -963,7 +963,6 @@ fail:
 
 /* RSD6OGG */
 VGMSTREAM * init_vgmstream_rsd6oogv(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
     char filename[260];
     off_t start_offset;
 
@@ -998,31 +997,8 @@ VGMSTREAM * init_vgmstream_rsd6oogv(STREAMFILE *streamFile) {
 	   }
 #endif
 
-	/* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
-    if (!vgmstream) goto fail;
-
-	/* fill in the vital statistics */
-	vgmstream->channels = read_32bitLE(0x8,streamFile);
-    vgmstream->sample_rate = read_32bitLE(0x10,streamFile);
-
-    /* open the file for reading */
-    {
-        int i;
-        STREAMFILE * file;
-        file = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-        if (!file) goto fail;
-        for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = file;
-
-        }
-    }
-    
-	return vgmstream;
-
 fail:
     /* clean up anything we may have opened */
-    if (vgmstream) close_vgmstream(vgmstream);
     return NULL;
 }
 
