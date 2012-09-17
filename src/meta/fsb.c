@@ -310,6 +310,8 @@ VGMSTREAM * init_vgmstream_fsb4(STREAMFILE *streamFile) {
                 vgmstream->loop_end_sample = read_32bitLE(0x50,streamFile);
             }
             break;
+        /* de Blob 2*/
+        case 0x00000886:
         /* WII (de Blob, Night at the Museum) */
         case 0x40000802:
         case 0x40000882:
