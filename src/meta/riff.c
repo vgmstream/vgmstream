@@ -339,6 +339,8 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
             sample_count = (data_size / fmt.block_size) * (fmt.block_size - 4 * fmt.channel_count) * 2 / fmt.channel_count +
                 ((data_size % fmt.block_size) ? (data_size % fmt.block_size - 4 * fmt.channel_count) * 2 / fmt.channel_count : 0);
             break;
+        case coding_NGC_DSP:
+            break;
         default:
             goto fail;
     }
