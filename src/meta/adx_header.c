@@ -111,6 +111,10 @@ VGMSTREAM * init_vgmstream_adx(STREAMFILE *streamFile) {
     /* high-pass cutoff frequency, always 500 that I've seen */
     cutoff = (uint16_t)read_16bitBE(0x10,streamFile);
 
+    if (loop_start_sample == 0 && loop_end_sample == 0) {
+        loop_flag = 0;
+    }
+
     channel_count = read_8bit(7,streamFile);
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
