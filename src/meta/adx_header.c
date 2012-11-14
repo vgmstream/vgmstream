@@ -355,6 +355,11 @@ static struct {
      * Uragiri wa Boku no Namae o Shitteiru (2010)(Kadokawa Shoten)[PS2]
      * confirmed unique with guessadx */
     {0x4c73,0x4d8d,0x5827},
+
+	/*
+     * StormLover Kai!! (2012)(D3 Publisher)[PSP]
+     * confirmed unique with guessadx */
+    {0x5a11,0x67e5,0x6751},
 };
 
 /* type 9 keys */
