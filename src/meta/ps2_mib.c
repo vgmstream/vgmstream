@@ -273,6 +273,9 @@ VGMSTREAM * init_vgmstream_ps2_mib(STREAMFILE *streamFile) {
 			vgmstream->layout_type = layout_none;
 			vgmstream->interleave_block_size=0;
 			vgmstream->sample_rate = 22050;
+			vgmstream->channels = 1;
+			vgmstream->start_ch = 1;
+			vgmstream->loop_ch = 1;
 		}
 
 		vgmstream->num_samples = (int32_t)(fileLength/16/channel_count*28);

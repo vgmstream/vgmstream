@@ -29,7 +29,7 @@ VGMSTREAM * init_vgmstream_sdt(STREAMFILE *streamFile) {
 
 	/* fill in the vital statistics */
     start_offset = 0xA0;
-	vgmstream->channels = read_32bitBE(0x00,streamFile);
+	vgmstream->channels = channel_count; /*read_32bitBE(0x00,streamFile);*/
     vgmstream->sample_rate = read_32bitBE(0x08,streamFile);
     vgmstream->coding_type = coding_NGC_DSP;
     vgmstream->num_samples = read_32bitBE(0x14,streamFile)/8*14/channel_count;
