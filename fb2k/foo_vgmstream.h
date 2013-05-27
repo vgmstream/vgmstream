@@ -7,7 +7,7 @@ typedef struct _FOO_STREAMFILE {
 	struct _STREAMFILE sf;
 	abort_callback * p_abort;
 	service_ptr_t<file> m_file;
-	char name[260];
+	char * name;
 	off_t offset;
     size_t validsize;
     uint8_t * buffer;

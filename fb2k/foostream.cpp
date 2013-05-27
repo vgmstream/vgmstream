@@ -149,12 +149,13 @@ static off_t get_offset_foo(FOO_STREAMFILE *streamFile) {
 
 static void close_foo(FOO_STREAMFILE * streamfile) {
     streamfile->m_file.release();
+	free(streamfile->name);
     free(streamfile->buffer);
     free(streamfile);
 }
 
 static void get_name_foo(FOO_STREAMFILE *streamfile,char *buffer,size_t length) {
-   strcpy(buffer,streamfile->name);
+   strcpy_s(buffer,length,streamfile->name);
 }
 
 static STREAMFILE * open_foo_streamfile_buffer_by_file(service_ptr_t<file> m_file,const char * const filename, size_t buffersize, abort_callback * p_abort) {
@@ -188,7 +189,12 @@ static STREAMFILE * open_foo_streamfile_buffer_by_file(service_ptr_t<file> m_fil
     streamfile->buffer = buffer;
     streamfile->p_abort = p_abort;
 
-    strcpy(streamfile->name,filename);
+    streamfile->name = strdup(filename);
+	if (!streamfile->name) {
+		free(streamfile);
+		free(buffer);
+		return NULL;
+	}
 
     return &streamfile->sf;
 }
