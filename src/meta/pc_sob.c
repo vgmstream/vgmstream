@@ -8,7 +8,7 @@ they are actually soundpacks, but the audio data is just streamed as one big str
 VGMSTREAM * init_vgmstream_sab(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
 	STREAMFILE* sob = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
 	int i;
 	int loop_flag, channel_count, numSounds;
 

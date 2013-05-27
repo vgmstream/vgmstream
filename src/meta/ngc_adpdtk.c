@@ -5,7 +5,7 @@
 VGMSTREAM * init_vgmstream_ngc_adpdtk(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     STREAMFILE * chstreamfile;
-    char filename[260];
+    char filename[PATH_LIMIT];
     
     size_t file_size;
     int i;

@@ -55,7 +55,7 @@ VGMSTREAM * input_vgmstream::init_vgmstream_foo(const char * const filename, abo
 void input_vgmstream::open(service_ptr_t<file> p_filehint,const char * p_path,t_input_open_reason p_reason,abort_callback & p_abort) {
 
 	currentreason = p_reason;
-	if(p_path) strcpy(filename, p_path);
+	if(p_path) filename = p_path;
 
 	/* KLUDGE */
 	if ( !pfc::stricmp_ascii( pfc::string_extension( p_path ), "MUS" ) )
@@ -116,9 +116,8 @@ void input_vgmstream::get_info(file_info & p_info,abort_callback & p_abort ) {
 	int length_in_ms=0, channels = 0, samplerate = 0;
 	int total_samples = -1;
 	int loop_start = -1, loop_end = -1;
-	char title[256];
 
-	getfileinfo(filename, title, &length_in_ms, &total_samples, &loop_start, &loop_end, &samplerate, &channels, p_abort);
+	getfileinfo(filename, NULL, &length_in_ms, &total_samples, &loop_start, &loop_end, &samplerate, &channels, p_abort);
 
 	p_info.info_set_int("samplerate", samplerate);
 	p_info.info_set_int("channels", channels);
@@ -543,7 +542,7 @@ bool input_vgmstream::g_is_our_path(const char * p_path,const char * p_extension
 
 
 /* retrieve information on this or possibly another file */
-void input_vgmstream::getfileinfo(char *filename, char *title, int *length_in_ms, int *total_samples, int *loop_start, int *loop_end, int *sample_rate, int *channels, abort_callback & p_abort) {
+void input_vgmstream::getfileinfo(const char *filename, char *title, int *length_in_ms, int *total_samples, int *loop_start, int *loop_end, int *sample_rate, int *channels, abort_callback & p_abort) {
 
 	VGMSTREAM * infostream;
 	if (length_in_ms)
@@ -568,7 +567,7 @@ void input_vgmstream::getfileinfo(char *filename, char *title, int *length_in_ms
 	}
 	if (title)
 	{
-		char *p=filename+strlen(filename);
+		const char *p=filename+strlen(filename);
 		while (*p != '\\' && p >= filename) p--;
 		strcpy(title,++p);
 	}

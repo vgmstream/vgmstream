@@ -72,7 +72,7 @@ static int read_dsp_header(struct dsp_header *header, off_t offset, STREAMFILE *
 
 VGMSTREAM * init_vgmstream_ngc_dsp_std(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
 
     struct dsp_header header;
     const off_t start_offset = 0x60;
@@ -181,7 +181,7 @@ fail:
  * Cubivore calls that into question. */
 VGMSTREAM * init_vgmstream_ngc_dsp_stm(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
 
     struct dsp_header ch0_header, ch1_header;
     int i;
@@ -348,7 +348,7 @@ fail:
 
 VGMSTREAM * init_vgmstream_ngc_mpdsp(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
 
     struct dsp_header header;
     const off_t start_offset = 0x60;
@@ -425,7 +425,7 @@ fail:
  */
 VGMSTREAM * init_vgmstream_ngc_str(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
 
     const off_t start_offset = 0x60;
     int i;
@@ -486,7 +486,7 @@ fail:
 
 VGMSTREAM * init_vgmstream_ngc_dsp_std_int(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
 
     const off_t start_offset = 0xc0;
     off_t interleave;
@@ -599,7 +599,7 @@ fail:
 /* sadb - .SAD files, two standard DSP headers */
 VGMSTREAM * init_vgmstream_sadb(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
 
     off_t start_offset;
     off_t interleave;
@@ -715,7 +715,7 @@ fail:
 /* AMTS - .amts files */
 VGMSTREAM * init_vgmstream_amts(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
 
     off_t start_offset;
     off_t interleave;
@@ -833,7 +833,7 @@ fail:
 
 VGMSTREAM * init_vgmstream_wsi(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     struct dsp_header header[2];
     off_t start_offset[2];
 
@@ -1009,7 +1009,7 @@ fail:
 /* SWD (found in Conflict - Desert Storm 1 & 2 */
 VGMSTREAM * init_vgmstream_ngc_swd(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     off_t start_offset;
     off_t interleave;
 
@@ -1125,7 +1125,7 @@ fail:
               The Chronicles of Narnia - Prince Caspian (Wii) */
 VGMSTREAM * init_vgmstream_wii_idsp(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     off_t start_offset;
     off_t interleave;
     struct dsp_header ch0_header,ch1_header;
@@ -1248,7 +1248,7 @@ fail:
 /* found in Phantom Brave Wii */
 VGMSTREAM * init_vgmstream_wii_wsd(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
 
     off_t channel_1_start, channel_2_start, channel_1_size, channel_2_size;
 
@@ -1370,7 +1370,7 @@ fail:
 /* .ddsp files, two DSP files stuck together, without additional header */
 VGMSTREAM * init_vgmstream_dsp_ddsp(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
 
     off_t channel_1_start, channel_2_start, channel_1_size, channel_2_size;
 
@@ -1492,7 +1492,7 @@ fail:
 /* .was files, DSP file(s), with additional iSWS header */
 VGMSTREAM * init_vgmstream_wii_was(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     struct dsp_header ch0_header,ch1_header;
     off_t ch1_header_start, ch2_header_start, ch1_start, ch2_start;
     int channel_count;
@@ -1679,7 +1679,7 @@ fail:
 /* .str found in Micro Machines, Superman: Shadow of Apokolips */
 VGMSTREAM * init_vgmstream_dsp_str_ig(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     struct dsp_header ch0_header,ch1_header;
     off_t ch1_header_start, ch2_header_start, ch1_start, ch2_start;
     int channel_count;
@@ -1791,7 +1791,7 @@ fail:
   always 2 channels, and an interleave of 0x8 */
 VGMSTREAM * init_vgmstream_dsp_xiii(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     struct dsp_header ch0_header,ch1_header;
     off_t ch1_header_start, ch2_header_start, ch1_start, ch2_start;
     int channel_count;
@@ -1902,7 +1902,7 @@ fail:
 /* .ndp found in Vertigo (WII) */
 VGMSTREAM * init_vgmstream_wii_ndp(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     struct dsp_header ch0_header,ch1_header;
     off_t ch1_header_start, ch2_header_start, ch1_start, ch2_start;
     int channel_count;
@@ -2020,7 +2020,7 @@ fail:
 /* found in "Cabelas" games, always stereo, looped and an interleave of 0x10 bytes */
 VGMSTREAM * init_vgmstream_dsp_cabelas(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     struct dsp_header ch0_header,ch1_header;
     off_t ch1_header_start, ch2_header_start, ch1_start, ch2_start;
     int channel_count;
@@ -2119,7 +2119,7 @@ fail:
 /* dual dsp header with additional "AAAp" header, found in Vexx (NGC) and Turok: Evolution (NGC) */
 VGMSTREAM * init_vgmstream_ngc_dsp_aaap(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     struct dsp_header ch0_header,ch1_header;
     off_t ch1_header_start, ch2_header_start, ch1_start, ch2_start;
     int channel_count;
@@ -2234,7 +2234,7 @@ fail:
 /* found in Sengoku Basara 3 Wii */
 VGMSTREAM * init_vgmstream_dsp_dspw(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
 
     off_t channel_1_start, channel_2_start;
 
@@ -2349,7 +2349,7 @@ fail:
 /* dual dsp header with additional "iadp" header, found in Dr. Muto (NGC) */
 VGMSTREAM * init_vgmstream_ngc_dsp_iadp(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     struct dsp_header ch0_header,ch1_header;
     off_t ch1_header_start, ch2_header_start, ch1_start, ch2_start;
     int channel_count;

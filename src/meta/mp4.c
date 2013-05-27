@@ -68,7 +68,7 @@ VGMSTREAM * init_vgmstream_mp4_aac(STREAMFILE *streamFile) {
 VGMSTREAM * init_vgmstream_mp4_aac_offset(STREAMFILE *streamFile, uint64_t start, uint64_t size) {
 	VGMSTREAM * vgmstream = NULL;
 
-	char filename[260];
+	char filename[PATH_LIMIT];
 
 	mp4_aac_codec_data * aac_file = ( mp4_aac_codec_data * ) calloc(1, sizeof(mp4_aac_codec_data));
 

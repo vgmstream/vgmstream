@@ -3,7 +3,7 @@
 /* RWX (found in Air Force Delta Storm (XBOX)) */
 VGMSTREAM * init_vgmstream_rwx(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     off_t start_offset;
 
     int loop_flag = 0;

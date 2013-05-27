@@ -89,7 +89,7 @@ static void read_rwar(struct rwav_data * rd)
  * single stream form here */
 VGMSTREAM * init_vgmstream_rwsd(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
 
     coding_t coding_type;
 

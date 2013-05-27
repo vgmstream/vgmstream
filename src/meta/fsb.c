@@ -6,7 +6,7 @@
 VGMSTREAM * init_vgmstream_fsb1(STREAMFILE *streamFile) {
 
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     off_t start_offset;
 
     /* int fsb1_included_files; */
@@ -85,7 +85,7 @@ fail:
 /* FSB3.0 and FSB3.1 */
 VGMSTREAM * init_vgmstream_fsb3(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     int fsb_headerlen;
     int channel_count;
     int loop_flag = 0;
@@ -230,7 +230,7 @@ fail:
 /* FSB4 */
 VGMSTREAM * init_vgmstream_fsb4(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     off_t start_offset;
 
     int fsb4_format;
@@ -450,7 +450,7 @@ fail:
     16 byte "WAV" header which holds the filesize...*/
 VGMSTREAM * init_vgmstream_fsb4_wav(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     off_t start_offset;
     int loop_flag;
     int channel_count;
@@ -533,7 +533,7 @@ fail:
 // FSB3 & FSB4 MPEG TEST
 VGMSTREAM * init_vgmstream_fsb_mpeg(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     off_t start_offset;
     int channel_count, channels, encoding, loop_flag, fsb_mainheader_len, fsb_subheader_len, FSBFlag;
     long sample_rate = 0, num_samples = 0, rate;
@@ -687,7 +687,7 @@ fail:
 // FSB5 MPEG
 VGMSTREAM * init_vgmstream_fsb5_mpeg(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     off_t start_offset;
     int channel_count, channels, encoding, loop_flag, fsb_mainheader_len, fsb_subheader_len, FSBFlag;
     long sample_rate = 0, num_samples = 0, rate;

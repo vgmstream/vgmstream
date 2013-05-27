@@ -7,7 +7,7 @@ VGMSTREAM * init_vgmstream_ps2_jstm(STREAMFILE *streamFile) {
     off_t start_offset = 0x20;
     int loop_flag;
     int channel_count;
-    char filename[260];
+    char filename[PATH_LIMIT];
 
     /* check extension */
     streamFile->get_name(streamFile,filename,sizeof(filename));

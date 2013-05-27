@@ -10,7 +10,7 @@ VGMSTREAM * init_vgmstream_spt_spd(STREAMFILE *streamFile) {
 	  
   VGMSTREAM * vgmstream = NULL;
   STREAMFILE * streamFileSPT = NULL;
-  char filename[260];
+  char filename[PATH_LIMIT];
 	char filenameSPT[260];
 	int channel_count;
 	int loop_flag;

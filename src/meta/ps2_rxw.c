@@ -4,7 +4,7 @@
 /* RXW file (Arc the Lad) */
 VGMSTREAM * init_vgmstream_ps2_rxw(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     int loop_flag=0;
 	int channel_count;
     off_t start_offset;

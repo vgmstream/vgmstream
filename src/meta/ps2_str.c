@@ -10,7 +10,7 @@ VGMSTREAM * init_vgmstream_ps2_str(STREAMFILE *streamFile) {
     
 	VGMSTREAM * vgmstream = NULL;
 	STREAMFILE * infileSTH = NULL;
-	char filename[260];
+	char filename[PATH_LIMIT];
 
 	char * filenameSTH = NULL;
 

@@ -5,7 +5,7 @@
 
 VGMSTREAM * init_vgmstream_exakt_sc(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
 
     size_t file_size;
 

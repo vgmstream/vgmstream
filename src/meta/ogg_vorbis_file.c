@@ -171,7 +171,7 @@ static int close_func(void * datasource) {
 /* Ogg Vorbis, by way of libvorbisfile */
 
 VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
-    char filename[260];
+    char filename[PATH_LIMIT];
 
     ov_callbacks callbacks;
 

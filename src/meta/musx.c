@@ -5,7 +5,7 @@
 /* MUSX (Version 004) --------------------------------------->*/
 VGMSTREAM * init_vgmstream_musx_v004(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     int loop_flag;
     int channel_count;
     off_t start_offset;
@@ -105,7 +105,7 @@ fail:
 /* MUSX (Version 005) --------------------------------------->*/
 VGMSTREAM * init_vgmstream_musx_v005(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     int loop_flag;
     int channel_count;
     off_t start_offset;
@@ -178,7 +178,7 @@ fail:
 /* MUSX (Version 006) ---------------------------------------> */
 VGMSTREAM * init_vgmstream_musx_v006(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     int loop_flag;
     int channel_count;
     off_t start_offset;
@@ -268,7 +268,7 @@ fail:
 /* WII_ in Dead Space: Extraction */
 VGMSTREAM * init_vgmstream_musx_v010(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     off_t start_offset;
 	int musx_type; /* determining the decoder by strings like "PS2_", "GC__" and so on */
 	//int musx_version; /* 0x08 provides a "version" byte */
@@ -437,7 +437,7 @@ fail:
 /* MUSX (Version 201) --------------------------------------->*/
 VGMSTREAM * init_vgmstream_musx_v201(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     off_t start_offset;
 	//int musx_version; /* 0x08 provides a "version" byte */
 	int loop_flag;

@@ -74,7 +74,7 @@ VGMSTREAM * init_vgmstream_sfl(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     STREAMFILE * streamFileOGG = NULL;
     char filenameOGG[260];
-    char filename[260];
+    char filename[PATH_LIMIT];
 
     off_t file_size = -1;
 

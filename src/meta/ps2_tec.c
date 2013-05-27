@@ -5,7 +5,7 @@
 /* probably TECMO Vag Stream */
 VGMSTREAM * init_vgmstream_ps2_tec(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
   	int loop_flag;
 	  int channel_count;
     int current_chunk;

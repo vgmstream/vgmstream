@@ -5,7 +5,7 @@
 
 VGMSTREAM * init_vgmstream_p3d(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     off_t parse_offset;
     off_t start_offset;
     size_t file_size;

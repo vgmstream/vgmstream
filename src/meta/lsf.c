@@ -6,7 +6,7 @@
 
 VGMSTREAM * init_vgmstream_lsf_n1nj4n(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
 
     size_t file_size;
     off_t start_offset;

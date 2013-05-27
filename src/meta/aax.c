@@ -113,7 +113,7 @@ VGMSTREAM * init_vgmstream_aax(STREAMFILE *streamFile) {
 	VGMSTREAM * vgmstream = NULL;
     STREAMFILE * streamFileAAX = NULL;
     STREAMFILE * streamFileADX = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     off_t *segment_offset = NULL;
     off_t *segment_size = NULL;
     int32_t sample_count;
@@ -746,7 +746,7 @@ static struct offset_size_pair query_utf_data(STREAMFILE *infile, const long off
 VGMSTREAM * init_vgmstream_utf_dsp(STREAMFILE *streamFile) {
     
 	VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     int table_error = 0;
 
     int loop_flag = 0;

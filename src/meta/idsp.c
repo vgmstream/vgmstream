@@ -7,7 +7,7 @@
 */
 VGMSTREAM * init_vgmstream_idsp2(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     int loop_flag;
   	int channel_count;
 	  int i, j;
@@ -105,7 +105,7 @@ fail:
     - Single "IDSP" header... */
 VGMSTREAM * init_vgmstream_idsp3(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     int loop_flag = 1;
     int channel_count;
     off_t start_offset;
@@ -185,7 +185,7 @@ fail:
 /* IDSP (Defender NGC) */
 VGMSTREAM * init_vgmstream_idsp4(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     int loop_flag = 0;
   	int channel_count;
     off_t start_offset;

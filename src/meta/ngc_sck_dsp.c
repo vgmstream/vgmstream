@@ -10,7 +10,7 @@ VGMSTREAM * init_vgmstream_ngc_sck_dsp(STREAMFILE *streamFile) {
 
 	VGMSTREAM * vgmstream = NULL;
     STREAMFILE * streamFileDSP = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
 	char filenameDSP[260];
 	
 	int i;

@@ -4,7 +4,7 @@
 /* MUSC (near all Spyro games and many other using this) */
 VGMSTREAM * init_vgmstream_musc(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     int loop_flag;
     int channel_count;
     off_t start_offset;

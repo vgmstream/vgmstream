@@ -136,7 +136,7 @@ void Parse_Header(STREAMFILE* streamFile,EA_STRUCT* ea, off_t offset, int length
 VGMSTREAM * init_vgmstream_ea(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
 	EA_STRUCT ea;
-    char filename[260];
+    char filename[PATH_LIMIT];
 
     int loop_flag=0;
     int channel_count;

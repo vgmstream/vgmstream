@@ -9,7 +9,7 @@
 	some files should loop, but i don't know how to get the loopstart here!*/
 VGMSTREAM * init_vgmstream_sat_baka(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     off_t start_offset;
     int loop_flag = 0;
     int channel_count;

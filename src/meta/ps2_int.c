@@ -14,7 +14,7 @@
 
 VGMSTREAM * init_vgmstream_ps2_int(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
 	int i,channel_count;
 
     /* check extension, case insensitive */
@@ -65,7 +65,7 @@ fail:
 // found in Alter Echo
 VGMSTREAM * init_vgmstream_ps2_omu(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
 	int i,channel_count;
 
     /* check extension, case insensitive */

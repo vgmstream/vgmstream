@@ -115,7 +115,7 @@ For Each Block: {
 
 VGMSTREAM * init_vgmstream_ss_stream(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     int loop_flag=0;
     int channels;
     int channel_count;

@@ -25,7 +25,7 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
     int32_t dsp_interleave_type;
     int32_t coef_type;
 
-    char filename[260];
+    char filename[PATH_LIMIT];
     int coding;
 
     /* check extension, case insensitive */

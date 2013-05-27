@@ -6,7 +6,7 @@
 VGMSTREAM * init_vgmstream_ivaud(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
 
-	char filename[260];
+	char filename[PATH_LIMIT];
     off_t start_offset;
 	off_t block_table_offset;
 	int block_count;

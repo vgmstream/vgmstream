@@ -4,7 +4,7 @@
 
 VGMSTREAM * init_vgmstream_ast(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
 
     coding_t coding_type;
 

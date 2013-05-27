@@ -6,7 +6,7 @@
 
 VGMSTREAM * init_vgmstream_ws_aud(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
 
     coding_t coding_type = -1;
     off_t format_offset;

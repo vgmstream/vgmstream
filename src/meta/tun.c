@@ -4,7 +4,7 @@
 /* TUN (from LEGO Racers (PC)) */
 VGMSTREAM * init_vgmstream_tun(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     off_t start_offset;
     int channel_count;
 	int loop_flag;

@@ -4,7 +4,7 @@
 /* PDT - Custom Generated File (Mario Party) */
 VGMSTREAM * init_vgmstream_ngc_pdt(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     int loop_flag;
     int channel_count;
     off_t start_offset;

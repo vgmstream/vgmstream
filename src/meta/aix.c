@@ -20,7 +20,7 @@ VGMSTREAM * init_vgmstream_aix(STREAMFILE *streamFile) {
 	VGMSTREAM * vgmstream = NULL;
     STREAMFILE * streamFileAIX = NULL;
     STREAMFILE * streamFileADX = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     off_t *segment_offset = NULL;
     int32_t *samples_in_segment = NULL;
     int32_t sample_count;

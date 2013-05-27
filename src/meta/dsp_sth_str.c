@@ -9,7 +9,7 @@
 VGMSTREAM * init_vgmstream_ngc_dsp_sth_str1(STREAMFILE *streamFile) {
   	VGMSTREAM * vgmstream = NULL;
     STREAMFILE * streamFileSTR = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
 	  char filenameSTR[260];
   	int i, j;
 	  int channel_count;
@@ -115,7 +115,7 @@ fail:
 VGMSTREAM * init_vgmstream_ngc_dsp_sth_str2(STREAMFILE *streamFile) {
   	VGMSTREAM * vgmstream = NULL;
     STREAMFILE * streamFileSTR = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
 	  char filenameSTR[260];
   	int i, j;
 	  int channel_count;
@@ -221,7 +221,7 @@ fail:
 VGMSTREAM * init_vgmstream_ngc_dsp_sth_str3(STREAMFILE *streamFile) {
   	VGMSTREAM * vgmstream = NULL;
     STREAMFILE * streamFileSTR = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
 	  char filenameSTR[260];
   	int i, j;
 	  int channel_count;

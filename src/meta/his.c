@@ -6,7 +6,7 @@
 
 VGMSTREAM * init_vgmstream_his(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     int channel_count;
     int loop_flag = 0;
     int bps = 0;

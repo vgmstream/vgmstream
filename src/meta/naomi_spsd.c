@@ -4,7 +4,7 @@
 /* SPSD (Guilty Gear X [NAOMI GD-ROM]) */
 VGMSTREAM * init_vgmstream_naomi_spsd(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     off_t start_offset;
     int coding;
     int loop_flag;

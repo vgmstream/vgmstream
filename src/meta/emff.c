@@ -6,7 +6,7 @@
 Legacy of Kain - Defiance, possibly more... */
 VGMSTREAM * init_vgmstream_emff_ps2(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     off_t start_offset;
     int loop_flag = 0;
     int channel_count;
@@ -79,7 +79,7 @@ fail:
 found in Tomb Raider Legend/Anniversary/Underworld, possibly more... */
 VGMSTREAM * init_vgmstream_emff_ngc(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     off_t start_offset;
     int loop_flag = 0;
     int channel_count;

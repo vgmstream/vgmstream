@@ -37,7 +37,7 @@ const short wad_coef[16] =
 /* Note: A "Flat Layout" has no interleave */
 VGMSTREAM * init_vgmstream_waa_wac_wad_wam(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
 	int i;
     off_t start_offset;
     int loop_flag;

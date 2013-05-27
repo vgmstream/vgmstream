@@ -17,7 +17,7 @@ uint8_t AUDIO_CODING_GET_FREQ(uint8_t value) {
 
 VGMSTREAM * init_vgmstream_cdxa(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
 
 	int channel_count;
 	int headerless=0;

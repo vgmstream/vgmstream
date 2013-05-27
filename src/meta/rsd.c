@@ -5,7 +5,7 @@
 /* RSD2VAG */
 VGMSTREAM * init_vgmstream_rsd2vag(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     off_t start_offset;
 
 	int loop_flag;
@@ -71,7 +71,7 @@ fail:
 /* RSD2PCMB - Big Endian */
 VGMSTREAM * init_vgmstream_rsd2pcmb(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     off_t start_offset;
 
 	int loop_flag;
@@ -145,7 +145,7 @@ fail:
 /* RSD2XADP */
 VGMSTREAM * init_vgmstream_rsd2xadp(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     off_t start_offset;
 
 	int loop_flag;
@@ -216,7 +216,7 @@ fail:
 /* RSD3VAG */
 VGMSTREAM * init_vgmstream_rsd3vag(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     off_t start_offset;
 
 	int loop_flag;
@@ -282,7 +282,7 @@ fail:
 /* RSD3GADP */
 VGMSTREAM * init_vgmstream_rsd3gadp(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     off_t start_offset;
 
 	int loop_flag;
@@ -353,7 +353,7 @@ fail:
 /* RSD3PCM  - Little Endian */
 VGMSTREAM * init_vgmstream_rsd3pcm(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     off_t start_offset;
 
 	int loop_flag;
@@ -427,7 +427,7 @@ fail:
 /* RSD3PCMB - Big Endian */
 VGMSTREAM * init_vgmstream_rsd3pcmb(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     off_t start_offset;
 
 	int loop_flag;
@@ -501,7 +501,7 @@ fail:
 /* RSD4VAG */
 VGMSTREAM * init_vgmstream_rsd4vag(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     off_t start_offset;
 
 	int loop_flag;
@@ -567,7 +567,7 @@ fail:
 /* RSD4PCM  - Little Endian */
 VGMSTREAM * init_vgmstream_rsd4pcm(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     off_t start_offset;
 
 	int loop_flag;
@@ -634,7 +634,7 @@ fail:
 /* RSD4PCMB - Big Endian */
 VGMSTREAM * init_vgmstream_rsd4pcmb(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     off_t start_offset;
 
 	int loop_flag;
@@ -699,7 +699,7 @@ fail:
 /* RSD4RADP */
 VGMSTREAM * init_vgmstream_rsd4radp(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     off_t start_offset;
 
 	int loop_flag;
@@ -760,7 +760,7 @@ fail:
 /* RSD6RADP */
 VGMSTREAM * init_vgmstream_rsd6radp(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     off_t start_offset;
 
 	int loop_flag;
@@ -821,7 +821,7 @@ fail:
 /* RSD6VAG */
 VGMSTREAM * init_vgmstream_rsd6vag(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     off_t start_offset;
 
 	int loop_flag;
@@ -887,7 +887,7 @@ fail:
 /* RSD6WADP */
 VGMSTREAM * init_vgmstream_rsd6wadp(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     off_t start_offset;
 
 	int loop_flag;
@@ -963,7 +963,7 @@ fail:
 
 /* RSD6OGG */
 VGMSTREAM * init_vgmstream_rsd6oogv(STREAMFILE *streamFile) {
-    char filename[260];
+    char filename[PATH_LIMIT];
     off_t start_offset;
 
 	int loop_flag;
@@ -1005,7 +1005,7 @@ fail:
 /* RSD6XADP */
 VGMSTREAM * init_vgmstream_rsd6xadp(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     off_t start_offset;
 
 	int loop_flag;
@@ -1075,7 +1075,7 @@ fail:
 /* RSD6XMA */
 VGMSTREAM * init_vgmstream_rsd6xma(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     off_t start_offset;
 
 	int loop_flag;

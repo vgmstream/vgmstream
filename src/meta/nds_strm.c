@@ -3,7 +3,7 @@
 
 VGMSTREAM * init_vgmstream_nds_strm(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
 
     coding_t coding_type;
 
@@ -108,7 +108,7 @@ fail:
 /* STRM (from Final Fantasy Tactics A2 - Fuuketsu no Grimoire) */
 VGMSTREAM * init_vgmstream_nds_strm_ffta2(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     off_t start_offset;
 
     int loop_flag;

@@ -9,7 +9,7 @@
 
 VGMSTREAM * init_vgmstream_ps3_xvag(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
 	uint8_t	testBuffer[0x10];
 
     off_t start_offset;

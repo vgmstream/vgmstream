@@ -5,7 +5,7 @@
 
 VGMSTREAM * init_vgmstream_apple_caff(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
 
     off_t start_offset = 0;
     off_t data_size = 0;

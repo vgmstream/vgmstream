@@ -4,7 +4,7 @@
 /* MPDS - found in Big Air Freestyle, Terminator 3 (no coeffs), etc */
 VGMSTREAM * init_vgmstream_ngc_dsp_mpds(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     int loop_flag = 0;
   	int channel_count;
     int ch1_start=-1, ch2_start=-1;

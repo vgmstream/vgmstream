@@ -4,7 +4,7 @@
 /* IDVI (Eldorado Gate Volume 1-7) */
 VGMSTREAM * init_vgmstream_dc_idvi(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     off_t start_offset;
 
     int loop_flag;

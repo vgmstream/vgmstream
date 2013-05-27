@@ -3,7 +3,7 @@
 
 VGMSTREAM * init_vgmstream_afc(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
 
     int loop_flag;
     const int channel_count = 2;    /* .afc seems to be stereo only */

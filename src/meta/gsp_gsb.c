@@ -8,7 +8,7 @@ VGMSTREAM * init_vgmstream_gsp_gsb(STREAMFILE *streamFile) {
 
     VGMSTREAM * vgmstream = NULL;
     STREAMFILE * streamFileGSP = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     char filenameGSP[260];
     int channel_count;
     int loop_flag;

@@ -10,7 +10,7 @@ VGMSTREAM * init_vgmstream_acm(STREAMFILE *streamFile) {
     ACMStream *acm_stream = NULL;
     mus_acm_codec_data *data;
 
-    char filename[260];
+    char filename[PATH_LIMIT];
 
     int loop_flag = 0;
 	int channel_count;

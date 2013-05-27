@@ -7,7 +7,7 @@ VGMSTREAM * init_vgmstream_psx_mgav(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
 		off_t start_offset;
 		off_t current_chunk;
-    char filename[260];
+    char filename[PATH_LIMIT];
     int loop_flag = 0;
 		int channel_count;
     int dataBuffer = 0;

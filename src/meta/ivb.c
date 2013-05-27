@@ -4,7 +4,7 @@
 /* a simple PS2 ADPCM format seen in Langrisser 3 */
 VGMSTREAM * init_vgmstream_ivb(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     off_t start_offset;
     off_t stream_length;
 

@@ -25,7 +25,7 @@ VGMSTREAM * init_vgmstream_adx(STREAMFILE *streamFile) {
     meta_t header_type;
     int16_t coef1, coef2;
     uint16_t cutoff;
-    char filename[260];
+    char filename[PATH_LIMIT];
     int coding_type = coding_CRI_ADX;
     uint16_t xor_start=0,xor_mult=0,xor_add=0;
 

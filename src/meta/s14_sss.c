@@ -13,7 +13,7 @@
 
 VGMSTREAM * init_vgmstream_s14_sss(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     int channel_count;
 
     size_t file_size;

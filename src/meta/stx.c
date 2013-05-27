@@ -3,7 +3,7 @@
 
 VGMSTREAM * init_vgmstream_stx(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
 
     const int loop_flag = 0;
     const int channel_count = 2;    /* .stx seems to be stereo only */

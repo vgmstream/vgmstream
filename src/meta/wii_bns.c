@@ -5,7 +5,7 @@
 /* BNS - Wii "Banner Sound" disc jingle */
 VGMSTREAM * init_vgmstream_wii_bns(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     off_t BNS_offset;
     uint32_t info_offset=0,data_offset=0;
     uint32_t channel_info_offset_list_offset;

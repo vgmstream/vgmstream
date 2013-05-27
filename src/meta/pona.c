@@ -4,7 +4,7 @@
 /* PONA (from Policenauts [3DO]) */
 VGMSTREAM * init_vgmstream_pona_3do(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     off_t start_offset;
     int loop_flag;
 	  int channel_count;
@@ -67,7 +67,7 @@ fail:
 /* PONA (from Policenauts [PSX]) */
 VGMSTREAM * init_vgmstream_pona_psx(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     off_t start_offset;
     int loop_flag;
 	  int channel_count;

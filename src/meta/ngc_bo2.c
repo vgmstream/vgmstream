@@ -4,7 +4,7 @@
 /* BO2 (Blood Omen 2 NGC) */
 VGMSTREAM * init_vgmstream_ngc_bo2(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     int loop_flag;
   	int channels;
     int channel_count;

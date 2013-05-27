@@ -5,7 +5,7 @@
     SWAV - found in Asphalt Urban GT & Asphalt Urban GT 2 */
 VGMSTREAM * init_vgmstream_nds_swav(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     int codec_number;
     int channel_count;
     int loop_flag;

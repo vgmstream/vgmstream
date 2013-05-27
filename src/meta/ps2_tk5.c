@@ -5,7 +5,7 @@
 /* TK5 (Tekken 5 Streams) */
 VGMSTREAM * init_vgmstream_ps2_tk5(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     off_t start_offset;
     int loop_flag = 0;
 	int channel_count;
@@ -68,7 +68,7 @@ fail:
 /* TK1 (Tekken 5 Streams from Tekken (NamCollection)) */
 VGMSTREAM * init_vgmstream_ps2_tk1(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     off_t start_offset;
     int loop_flag = 0;
 	int channel_count;

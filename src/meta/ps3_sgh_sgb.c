@@ -6,7 +6,7 @@ VGMSTREAM * init_vgmstream_ps3_sgh_sgb(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     off_t start_offset = 0;
     STREAMFILE * streamFileSGH = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     char filenameSGH[260];
     int channel_count;
     int loop_flag;
@@ -78,7 +78,7 @@ fail:
 
 VGMSTREAM * init_vgmstream_ps3_sgx(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     off_t start_offset;
     int loop_flag = 0;
 	int channel_count;
@@ -140,7 +140,7 @@ fail:
 
 VGMSTREAM * init_vgmstream_ps3_sgd(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     off_t start_offset;
     int loop_flag = 0;
 	int channel_count;

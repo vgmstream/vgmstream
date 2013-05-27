@@ -4,7 +4,7 @@
 /* VSF (from Musashi: Samurai Legend) */
 VGMSTREAM * init_vgmstream_ps2_vsf(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     off_t start_offset;
 
     int loop_flag;
@@ -70,7 +70,7 @@ fail:
 /* VSF with SMSS header (from Tiny Toon Adventures: Defenders of the Universe */
 VGMSTREAM * init_vgmstream_ps2_vsf_tta(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     off_t start_offset;
 
     int loop_flag;

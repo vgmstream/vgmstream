@@ -2995,7 +2995,7 @@ const char * const dfs_pairs[][2] = {
 #define DFS_PAIR_COUNT (sizeof(dfs_pairs)/sizeof(dfs_pairs[0]))
 
 void try_dual_file_stereo(VGMSTREAM * opened_stream, STREAMFILE *streamFile) {
-    char filename[260];
+    char filename[PATH_LIMIT];
     char filename2[260];
     char * ext;
     int dfs_name= -1; /*-1=no stereo, 0=opened_stream is left, 1=opened_stream is right */

@@ -177,7 +177,7 @@ fail:
 
 VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
 
     struct riff_fmt_chunk fmt;
 
@@ -486,7 +486,7 @@ fail:
 
 VGMSTREAM * init_vgmstream_rifx(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
 
     struct riff_fmt_chunk fmt;
 
@@ -706,7 +706,7 @@ fail:
 /* XNBm (Windows 7 Phone) */
 VGMSTREAM * init_vgmstream_xnbm(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
 
     struct riff_fmt_chunk fmt;
 

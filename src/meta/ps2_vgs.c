@@ -7,7 +7,7 @@
 */
 VGMSTREAM * init_vgmstream_ps2_vgs(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     
 	size_t fileLength;
 	off_t readOffset = 0;

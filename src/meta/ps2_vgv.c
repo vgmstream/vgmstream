@@ -4,7 +4,7 @@
 /* VGV (from Rune: Viking Warlord) */
 VGMSTREAM * init_vgmstream_ps2_vgv(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     off_t start_offset;
     int loop_flag = 0;
 	int channel_count;

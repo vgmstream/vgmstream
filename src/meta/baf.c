@@ -5,7 +5,7 @@
 
 VGMSTREAM * init_vgmstream_baf(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     off_t WAVE_size,DATA_size;
     off_t start_offset;
     long sample_count;

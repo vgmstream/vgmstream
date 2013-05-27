@@ -4,7 +4,7 @@
 /* B1S (found in 7 Wonders of the Ancient World) */
 VGMSTREAM * init_vgmstream_ps2_b1s(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
 		int channel_count;
 		off_t start_offset;
     

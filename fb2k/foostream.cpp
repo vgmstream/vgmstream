@@ -155,7 +155,13 @@ static void close_foo(FOO_STREAMFILE * streamfile) {
 }
 
 static void get_name_foo(FOO_STREAMFILE *streamfile,char *buffer,size_t length) {
-   strcpy_s(buffer,length,streamfile->name);
+   /* Most crap only cares about the filename itself */
+   size_t ourlen = strlen(streamfile->name);
+   if (ourlen > length) {
+      if (length) strcpy(buffer, streamfile->name + ourlen - length + 1);
+   } else {
+      strcpy(buffer, streamfile->name);
+   }
 }
 
 static STREAMFILE * open_foo_streamfile_buffer_by_file(service_ptr_t<file> m_file,const char * const filename, size_t buffersize, abort_callback * p_abort) {

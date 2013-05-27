@@ -21,7 +21,7 @@ VGMSTREAM * init_vgmstream_gh3_bar(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     // don't close, this is just the source streamFile wrapped
     STREAMFILE* streamFileBAR = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     off_t start_offset;
     off_t ch2_start_offset;
     int loop_flag;

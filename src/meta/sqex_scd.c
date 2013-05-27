@@ -22,7 +22,7 @@ static STREAMFILE *open_scdint_with_STREAMFILE(STREAMFILE *file, const char * fi
 
 VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     off_t start_offset, meta_offset_offset, meta_offset, post_meta_offset, size_offset;
     int32_t loop_start, loop_end;
 

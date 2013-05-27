@@ -14,7 +14,7 @@ VGMSTREAM * init_vgmstream_pos(STREAMFILE *streamFile) {
     
 	VGMSTREAM * vgmstream = NULL;
     STREAMFILE * streamFileWAV = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
 	char filenameWAV[260];
 
 	int i;

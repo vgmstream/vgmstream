@@ -5,6 +5,8 @@
 #ifndef _VGMSTREAM_H
 #define _VGMSTREAM_H
 
+enum { PATH_LIMIT = 32768 };
+
 /* Due mostly to licensing issues, Vorbis, MPEG, and G.722.1 decoding are
  * done by external libraries.
  * If someone wants to do a standalone build, they can do it by simply

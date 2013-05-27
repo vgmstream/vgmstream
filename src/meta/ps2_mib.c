@@ -35,7 +35,7 @@ VGMSTREAM * init_vgmstream_ps2_mib(STREAMFILE *streamFile) {
     
 	VGMSTREAM * vgmstream = NULL;
     STREAMFILE * streamFileMIH = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
     
 	uint8_t mibBuffer[0x10];
 	uint8_t	testBuffer[0x10];
