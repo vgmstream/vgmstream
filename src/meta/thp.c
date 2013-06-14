@@ -84,7 +84,6 @@ VGMSTREAM * init_vgmstream_thp(STREAMFILE *streamFile) {
         }
     }
 
-	start_offset=read_32bitBE(0x28,streamFile);
 	vgmstream->thpNextFrameSize=read_32bitBE(0x18,streamFile);
 	thp_block_update(start_offset,vgmstream);
 
