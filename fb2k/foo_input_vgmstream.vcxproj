@@ -83,6 +83,12 @@
       <DelayLoadDLLs>%(DelayLoadDLLs)</DelayLoadDLLs>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <PreBuildEvent>
+      <Command>"$(ProjectDir)genversion.bat" "$(ProjectDir)version.h" VERSION</Command>
+    </PreBuildEvent>
+    <PreBuildEvent>
+      <Message>Generating version.h</Message>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
