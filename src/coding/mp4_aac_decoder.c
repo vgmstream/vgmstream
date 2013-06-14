@@ -1,5 +1,6 @@
 #include "../vgmstream.h"
 
+#if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
 static void convert_samples(INT_PCM * src, sample * dest, int32_t count) {
 	int32_t i;
 	for ( i = 0; i < count; i++ ) {
@@ -81,3 +82,4 @@ void decode_mp4_aac(mp4_aac_codec_data * data, sample * outbuf, int32_t samples_
 		data->sample_ptr = samples_remain;
 	}
 }
+#endif

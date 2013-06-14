@@ -1,6 +1,7 @@
 #include "../vgmstream.h"
 #include "meta.h"
 
+#if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
 VGMSTREAM * init_vgmstream_akb(STREAMFILE *streamFile) {
 	VGMSTREAM * vgmstream = NULL;
 
@@ -28,3 +29,4 @@ VGMSTREAM * init_vgmstream_akb(STREAMFILE *streamFile) {
 fail:
 	return NULL;
 }
+#endif

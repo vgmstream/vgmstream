@@ -62,7 +62,9 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 #if 0
 	init_vgmstream_mp4_aac,
 #endif
+#if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
 	init_vgmstream_akb,
+#endif
     init_vgmstream_sadb,
     init_vgmstream_ps2_bmdx,
     init_vgmstream_wsi,
@@ -418,12 +420,14 @@ void reset_vgmstream(VGMSTREAM * vgmstream) {
         ov_pcm_seek(ogg_vorbis_file, 0);
     }
 #endif
+#if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
 	if (vgmstream->coding_type==coding_MP4_AAC) {
 		mp4_aac_codec_data *data = vgmstream->codec_data;
 		data->sampleId = 0;
 		data->sample_ptr = data->samples_per_frame;
 		data->samples_discard = 0;
 	}
+#endif
 #ifdef VGM_USE_MPEG
     if (vgmstream->layout_type==layout_mpeg ||
         vgmstream->layout_type==layout_fake_mpeg) {
@@ -586,6 +590,7 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
     }
 #endif
 
+#if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
 	if (vgmstream->coding_type==coding_MP4_AAC) {
 		mp4_aac_codec_data *data = vgmstream->codec_data;
 		if (vgmstream->codec_data) {
@@ -596,6 +601,7 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
 			vgmstream->codec_data = NULL;
 		}
 	}
+#endif
 
 #ifdef VGM_USE_MPEG
     if (vgmstream->layout_type==layout_fake_mpeg||
@@ -943,8 +949,10 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
             return 54;
         case coding_MTAF:
             return 0x80*2;
+#if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
 		case coding_MP4_AAC:
 			return ((mp4_aac_codec_data*)vgmstream->codec_data)->samples_per_frame;
+#endif
         default:
             return 0;
     }
@@ -1312,11 +1320,13 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                     vgmstream->channels);
             break;
 #endif
+#if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
 		case coding_MP4_AAC:
 			decode_mp4_aac(vgmstream->codec_data,
 				buffer+samples_written*vgmstream->channels,samples_to_do,
 				vgmstream->channels);
 			break;
+#endif
         case coding_SDX2:
             for (chan=0;chan<vgmstream->channels;chan++) {
                 decode_sdx2(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
@@ -1574,12 +1584,14 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream) {
                 ov_pcm_seek_lap(ogg_vorbis_file, vgmstream->loop_sample);
             }
 #endif
+#if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
 			if (vgmstream->coding_type==coding_MP4_AAC) {
 				mp4_aac_codec_data *data = (mp4_aac_codec_data *)(vgmstream->codec_data);
 				data->sampleId = 0;
 				data->sample_ptr = data->samples_per_frame;
 				data->samples_discard = vgmstream->loop_sample;
 			}
+#endif
 #ifdef VGM_USE_MPEG
             /* won't work for fake MPEG */
             if (vgmstream->layout_type==layout_mpeg) {

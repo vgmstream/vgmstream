@@ -29,10 +29,14 @@ enum { PATH_LIMIT = 32768 };
 #include "g7221.h"
 #endif
 
+#ifdef VGM_USE_MP4V2
 #define MP4V2_NO_STDINT_DEFS
 #include <mp4v2/mp4v2.h>
+#endif
 
+#ifdef VGM_USE_FDKAAC
 #include <aacdecoder_lib.h>
+#endif
 
 #include "coding/acm_decoder.h"
 #include "coding/nwa_decoder.h"
@@ -135,7 +139,9 @@ typedef enum {
     coding_LSF,             /* lsf ADPCM */
     coding_MTAF,            /* Konami IMA-derived MTAF ADPCM */
 
+#if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
 	coding_MP4_AAC,
+#endif
 } coding_t;
 
 /* The layout type specifies how the sound data is laid out in the file */
@@ -546,8 +552,10 @@ typedef enum {
 	meta_PS2_MSS,			// ShellShock Nam '67 (PS2)
 	meta_PS2_HSF,			// Lowrider (PS2)
 	meta_PS3_IVAG,			// Interleaved VAG files (PS3)
-   meta_PS2_2PFS,			// Mahoromatic: Moetto - KiraKira Maid-San (PS2)
+	meta_PS2_2PFS,			// Mahoromatic: Moetto - KiraKira Maid-San (PS2)
+#ifdef VGM_USE_MP4V2
 	meta_MP4,
+#endif
 } meta_t;
 
 typedef struct {
@@ -762,6 +770,7 @@ typedef struct {
     STREAMFILE **intfiles;
 } scd_int_codec_data;
 
+#ifdef VGM_USE_MP4V2
 typedef struct {
 	STREAMFILE *streamfile;
 	uint64_t start;
@@ -769,6 +778,7 @@ typedef struct {
 	uint64_t size;
 } mp4_streamfile;
 
+#ifdef VGM_USE_FDKAAC
 typedef struct {
 	mp4_streamfile if_file;
 	MP4FileHandle h_mp4file;
@@ -779,6 +789,8 @@ typedef struct {
 	unsigned int sample_ptr, samples_per_frame, samples_discard;
 	INT_PCM sample_buffer[( (6) * (2048)*4 )];
 } mp4_aac_codec_data;
+#endif
+#endif
 
 /* do format detection, return pointer to a usable VGMSTREAM, or NULL on failure */
 VGMSTREAM * init_vgmstream(const char * const filename);

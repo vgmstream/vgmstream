@@ -2,6 +2,7 @@
 #include "meta.h"
 #include "../util.h"
 
+#ifdef VGM_USE_MP4V2
 void* mp4_file_open( const char* name, MP4FileMode mode )
 {
 	char * endptr;
@@ -59,6 +60,7 @@ int mp4_file_close( void* handle )
 
 MP4FileProvider mp4_file_provider = { mp4_file_open, mp4_file_seek, mp4_file_get_size, mp4_file_read, mp4_file_write, mp4_file_close };
 
+#ifdef VGM_USE_FDKAAC
 VGMSTREAM * init_vgmstream_mp4_aac_offset(STREAMFILE *streamFile, uint64_t start, uint64_t size);
 
 VGMSTREAM * init_vgmstream_mp4_aac(STREAMFILE *streamFile) {
@@ -157,3 +159,5 @@ fail:
 	}
 	return NULL;
 }
+#endif
+#endif
