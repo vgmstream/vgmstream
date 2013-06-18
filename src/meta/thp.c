@@ -42,9 +42,12 @@ VGMSTREAM * init_vgmstream_thp(STREAMFILE *streamFile) {
     loop_flag = 0; // allways unloop
 
 	/* fill in the vital statistics */
-	if(thpVersion==0x10) 
+	if(thpVersion==0x10) {
 		start_offset = read_32bitBE(0x24,streamFile); 
-	else
+		/* No idea what's up with this */
+		if (start_offset == 0)
+			start_offset = read_32bitBE(0x28,streamFile);
+	} else
 		start_offset = read_32bitBE(0x28,streamFile); 
 
 	// Get info from the first block
