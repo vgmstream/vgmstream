@@ -14,8 +14,14 @@ void decode_at3(VGMSTREAM * vgmstream,
 	if ((0 == vgmstream->samples_into_block || data->samples_discard == vgmstream->samples_into_block) && 0 == channel)
     {
         uint8_t code_buffer[0x8000];
-		vgmstream->ch[channel].streamfile->read(ch->streamfile, code_buffer, ch->offset, vgmstream->interleave_block_size * vgmstream->channels);
-		Atrac3plusDecoder_decodeFrame(data->handle, code_buffer, vgmstream->interleave_block_size * vgmstream->channels, &data->channels, (void**)&data->buffer);
+		int blocks_to_decode = 1;
+		int max_blocks_to_decode = (ch->offset - ch->channel_start_offset) / (vgmstream->interleave_block_size * vgmstream->channels) + 1;
+		if (data->samples_discard) blocks_to_decode = 8;
+		if (blocks_to_decode > max_blocks_to_decode) blocks_to_decode = max_blocks_to_decode;
+		while (blocks_to_decode--) {
+			vgmstream->ch[0].streamfile->read(ch->streamfile, code_buffer, ch->offset - blocks_to_decode * vgmstream->interleave_block_size * vgmstream->channels, vgmstream->interleave_block_size * vgmstream->channels);
+			Atrac3plusDecoder_decodeFrame(data->handle, code_buffer, vgmstream->interleave_block_size * vgmstream->channels, &data->channels, (void**)&data->buffer);
+		}
 		data->samples_discard = 0;
     }
 
