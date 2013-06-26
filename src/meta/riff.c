@@ -393,6 +393,9 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
             case coding_PCM8_U_int:
             case coding_MS_IMA:
             case coding_MSADPCM:
+#ifdef VGM_USE_MAIATRAC3PLUS
+			case coding_AT3plus:
+#endif
                 // use layout_none from above
                 break;
             default:
@@ -405,13 +408,12 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
     switch (fmt.coding_type) {
         case coding_MSADPCM:
         case coding_MS_IMA:
+#ifdef VGM_USE_MAIATRAC3PLUS
+		case coding_AT3plus:
+#endif
             // override interleave_block_size with frame size
             vgmstream->interleave_block_size = fmt.block_size;
             break;
-#ifdef VGM_USE_MAIATRAC3PLUS
-		case coding_AT3plus:
-			vgmstream->interleave_block_size = fmt.block_size / fmt.channel_count;
-#endif
         default:
             // use interleave from above
             break;
