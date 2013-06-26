@@ -288,6 +288,7 @@ bool input_vgmstream::g_is_our_path(const char * p_path,const char * p_extension
 	if(!stricmp_utf8(p_extension,"ast")) return 1;
 	if(!stricmp_utf8(p_extension,"asr")) return 1;
 	if(!stricmp_utf8(p_extension,"ass")) return 1;
+	if(!stricmp_utf8(p_extension,"at3")) return 1;
 	if(!stricmp_utf8(p_extension,"aud")) return 1;
 	if(!stricmp_utf8(p_extension,"aus")) return 1;
 

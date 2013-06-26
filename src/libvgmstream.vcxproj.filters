@@ -946,5 +946,8 @@
     <ClCompile Include="meta\akb.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="coding\at3_decoder.c">
+      <Filter>coding\Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

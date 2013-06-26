@@ -50,6 +50,14 @@
   <ItemDefinitionGroup>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <CustomBuild Include="at3plusdecoder.def">
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Building library stub</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">lib /def:at3plusdecoder.def /machine:x86</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">at3plusdecoder.lib;at3plusdecoder.exp;%(Outputs)</Outputs>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Building library stub</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">lib /def:at3plusdecoder.def /machine:x86</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">at3plusdecoder.lib;at3plusdecoder.exp;%(Outputs)</Outputs>
+    </CustomBuild>
     <CustomBuild Include="libmpg123-0.def">
       <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Building library stub</Message>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">lib /def:libmpg123-0.def /machine:x86

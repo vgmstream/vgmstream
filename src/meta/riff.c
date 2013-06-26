@@ -165,6 +165,21 @@ int read_fmt(int big_endian,
             fmt->coding_type = coding_NGC_DSP;
             fmt->interleave = 8;
             break;
+#ifdef VGM_USE_MAIATRAC3PLUS
+		case 0xFFFE: /* WAVEFORMATEXTENSIBLE */
+			if (read_32bit(current_chunk+0x20,streamFile) == 0xE923AABF &&
+				read_16bit(current_chunk+0x24,streamFile) == (int16_t)0xCB58 &&
+				read_16bit(current_chunk+0x26,streamFile) == 0x4471 &&
+				read_32bitLE(current_chunk+0x28,streamFile) == 0xFAFF19A1 &&
+				read_32bitLE(current_chunk+0x2C,streamFile) == 0x62CEE401) {
+				uint16_t bztmp = read_16bit(current_chunk+0x32,streamFile);
+				bztmp = (bztmp >> 8) | (bztmp << 8);
+				fmt->coding_type = coding_AT3;
+				fmt->block_size = (bztmp & 0x3FF) * 8 + 8;
+				fmt->interleave = 0;
+			}
+			break;
+#endif
         default:
             goto fail;
     }
@@ -208,7 +223,11 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
     if (strcasecmp("wav",filename_extension(filename)) &&
-        strcasecmp("lwav",filename_extension(filename)))
+        strcasecmp("lwav",filename_extension(filename))
+#ifdef VGM_USE_MAIATRAC3PLUS
+		&& strcasecmp("at3",filename_extension(filename))
+#endif
+		)
     {
         if (!strcasecmp("mwv",filename_extension(filename)))
             mwv = 1;
@@ -341,6 +360,11 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
             break;
         case coding_NGC_DSP:
             break;
+#ifdef VGM_USE_MAIATRAC3PLUS
+		case coding_AT3:
+			sample_count = (data_size / fmt.block_size) * 2048 * fmt.channel_count;
+			break;
+#endif
         default:
             goto fail;
     }
@@ -384,10 +408,24 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
             // override interleave_block_size with frame size
             vgmstream->interleave_block_size = fmt.block_size;
             break;
+#ifdef VGM_USE_MAIATRAC3PLUS
+		case coding_AT3:
+			vgmstream->interleave_block_size = fmt.block_size / fmt.channel_count;
+#endif
         default:
             // use interleave from above
             break;
     }
+
+#ifdef VGM_USE_MAIATRAC3PLUS
+	if (fmt.coding_type == coding_AT3) {
+		maiatrac3plus_codec_data *data = malloc(sizeof(maiatrac3plus_codec_data));
+		data->buffer = 0;
+		data->samples_discard = 0;
+		data->handle = Atrac3plusDecoder_openContext();
+		vgmstream->codec_data = data;
+	}
+#endif
 
     if (loop_flag) {
         if (loop_start_ms >= 0)

@@ -38,6 +38,10 @@ enum { PATH_LIMIT = 32768 };
 #include <aacdecoder_lib.h>
 #endif
 
+#ifdef VGM_USE_MAIATRAC3PLUS
+#include <maiatrac3plus.h>
+#endif
+
 #include "coding/acm_decoder.h"
 #include "coding/nwa_decoder.h"
 
@@ -141,6 +145,10 @@ typedef enum {
 
 #if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
 	coding_MP4_AAC,
+#endif
+
+#ifdef VGM_USE_MAIATRAC3PLUS
+	coding_AT3,
 #endif
 } coding_t;
 
@@ -718,6 +726,15 @@ typedef struct {
     sample buffer[640];
     g7221_handle *handle;
 } g7221_codec_data;
+#endif
+
+#ifdef VGM_USE_MAIATRAC3PLUS
+typedef struct {
+	sample *buffer;
+	int channels;
+	int samples_discard;
+	void *handle;
+} maiatrac3plus_codec_data;
 #endif
 
 /* with one file this is also used for just

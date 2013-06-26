@@ -1,0 +1,5 @@
+LIBRARY at3plusdecoder.dll
+EXPORTS
+    Atrac3plusDecoder_openContext @1
+    Atrac3plusDecoder_closeContext @2
+    Atrac3plusDecoder_decodeFrame @3

@@ -453,6 +453,16 @@ void reset_vgmstream(VGMSTREAM * vgmstream) {
     }
 #endif
 
+#ifdef VGM_USE_MAIATRAC3PLUS
+	if (vgmstream->coding_type==coding_AT3) {
+		maiatrac3plus_codec_data *data = vgmstream->codec_data;
+
+		if (data->handle) Atrac3plusDecoder_closeContext(data->handle);
+		data->handle = Atrac3plusDecoder_openContext();
+		data->samples_discard = 0;
+	}
+#endif
+
     if (vgmstream->coding_type==coding_ACM) {
         mus_acm_codec_data *data = vgmstream->codec_data;
         int i;
@@ -640,6 +650,18 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
 
         vgmstream->codec_data = NULL;
     }
+#endif
+
+#ifdef VGM_USE_MAIATRAC3PLUS
+	if (vgmstream->coding_type == coding_AT3) {
+		maiatrac3plus_codec_data *data = vgmstream->codec_data;
+
+		if (data)
+		{
+			if (data->handle) Atrac3plusDecoder_closeContext(data->handle);
+			free(data);
+		}
+	}
 #endif
 
     if (vgmstream->coding_type==coding_ACM) {
@@ -953,6 +975,10 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
 		case coding_MP4_AAC:
 			return ((mp4_aac_codec_data*)vgmstream->codec_data)->samples_per_frame;
 #endif
+#ifdef VGM_USE_MAIATRAC3PLUS
+		case coding_AT3:
+			return 2048 - ((maiatrac3plus_codec_data*)vgmstream->codec_data)->samples_discard;
+#endif
         default:
             return 0;
     }
@@ -1047,6 +1073,9 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
 #ifdef VGM_USE_G7221
         case coding_G7221C:
         case coding_G7221:
+#endif
+#ifdef VGM_USE_MAIATRAC3PLUS
+		case coding_AT3:
 #endif
         case coding_MSADPCM:
         case coding_MTAF:
@@ -1434,6 +1463,17 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
             }
             break;
 #endif
+#ifdef VGM_USE_MAIATRAC3PLUS
+		case coding_AT3:
+			for (chan=0;chan<vgmstream->channels;chan++) {
+				decode_at3(vgmstream,
+					buffer+samples_written*vgmstream->channels+chan,
+					vgmstream->channels,
+					samples_to_do,
+					chan);
+			}
+			break;
+#endif
         case coding_ACM:
             /* handled in its own layout, here to quiet compiler */
             break;
@@ -1590,6 +1630,17 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream) {
 				data->sampleId = 0;
 				data->sample_ptr = data->samples_per_frame;
 				data->samples_discard = vgmstream->loop_sample;
+			}
+#endif
+#ifdef VGM_USE_MAIATRAC3PLUS
+			if (vgmstream->coding_type==coding_AT3) {
+				int blocks_to_skip = vgmstream->loop_sample / 2048;
+				int samples_to_discard = vgmstream->loop_sample % 2048;
+				maiatrac3plus_codec_data *data = (maiatrac3plus_codec_data *)(vgmstream->codec_data);
+                vgmstream->loop_ch[0].offset =
+                    vgmstream->loop_ch[0].channel_start_offset +
+					vgmstream->interleave_block_size * vgmstream->channels * blocks_to_skip;
+				data->samples_discard = samples_to_discard;
 			}
 #endif
 #ifdef VGM_USE_MPEG
@@ -1857,6 +1908,11 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         case coding_G7221C:
             snprintf(temp,TEMPSIZE,"ITU G.722.1 annex C (Polycom Siren 14)");
             break;
+#endif
+#ifdef VGM_USE_MAIATRAC3PLUS
+		case coding_AT3:
+			snprintf(temp,TEMPSIZE,"ATRAC3plus");
+			break;
 #endif
         case coding_ACM:
             snprintf(temp,TEMPSIZE,"InterPlay ACM");
