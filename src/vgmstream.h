@@ -148,7 +148,7 @@ typedef enum {
 #endif
 
 #ifdef VGM_USE_MAIATRAC3PLUS
-	coding_AT3,
+	coding_AT3plus,
 #endif
 } coding_t;
 

@@ -454,7 +454,7 @@ void reset_vgmstream(VGMSTREAM * vgmstream) {
 #endif
 
 #ifdef VGM_USE_MAIATRAC3PLUS
-	if (vgmstream->coding_type==coding_AT3) {
+	if (vgmstream->coding_type==coding_AT3plus) {
 		maiatrac3plus_codec_data *data = vgmstream->codec_data;
 
 		if (data->handle) Atrac3plusDecoder_closeContext(data->handle);
@@ -653,7 +653,7 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
 #endif
 
 #ifdef VGM_USE_MAIATRAC3PLUS
-	if (vgmstream->coding_type == coding_AT3) {
+	if (vgmstream->coding_type == coding_AT3plus) {
 		maiatrac3plus_codec_data *data = vgmstream->codec_data;
 
 		if (data)
@@ -976,7 +976,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
 			return ((mp4_aac_codec_data*)vgmstream->codec_data)->samples_per_frame;
 #endif
 #ifdef VGM_USE_MAIATRAC3PLUS
-		case coding_AT3:
+		case coding_AT3plus:
 			return 2048 - ((maiatrac3plus_codec_data*)vgmstream->codec_data)->samples_discard;
 #endif
         default:
@@ -1075,7 +1075,7 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
         case coding_G7221:
 #endif
 #ifdef VGM_USE_MAIATRAC3PLUS
-		case coding_AT3:
+		case coding_AT3plus:
 #endif
         case coding_MSADPCM:
         case coding_MTAF:
@@ -1464,9 +1464,9 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
             break;
 #endif
 #ifdef VGM_USE_MAIATRAC3PLUS
-		case coding_AT3:
+		case coding_AT3plus:
 			for (chan=0;chan<vgmstream->channels;chan++) {
-				decode_at3(vgmstream,
+				decode_at3plus(vgmstream,
 					buffer+samples_written*vgmstream->channels+chan,
 					vgmstream->channels,
 					samples_to_do,
@@ -1633,7 +1633,7 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream) {
 			}
 #endif
 #ifdef VGM_USE_MAIATRAC3PLUS
-			if (vgmstream->coding_type==coding_AT3) {
+			if (vgmstream->coding_type==coding_AT3plus) {
 				int blocks_to_skip = vgmstream->loop_sample / 2048;
 				int samples_to_discard = vgmstream->loop_sample % 2048;
 				maiatrac3plus_codec_data *data = (maiatrac3plus_codec_data *)(vgmstream->codec_data);
@@ -1910,7 +1910,7 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
 #endif
 #ifdef VGM_USE_MAIATRAC3PLUS
-		case coding_AT3:
+		case coding_AT3plus:
 			snprintf(temp,TEMPSIZE,"ATRAC3plus");
 			break;
 #endif

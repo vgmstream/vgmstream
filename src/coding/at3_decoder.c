@@ -5,7 +5,7 @@
 #include "coding.h"
 #include "../util.h"
 
-void decode_at3(VGMSTREAM * vgmstream, 
+void decode_at3plus(VGMSTREAM * vgmstream, 
         sample * outbuf, int channelspacing, int32_t samples_to_do, int channel) {
     VGMSTREAMCHANNEL *ch = &vgmstream->ch[0];
     maiatrac3plus_codec_data *data = vgmstream->codec_data;

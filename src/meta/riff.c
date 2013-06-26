@@ -174,7 +174,7 @@ int read_fmt(int big_endian,
 				read_32bitLE(current_chunk+0x2C,streamFile) == 0x62CEE401) {
 				uint16_t bztmp = read_16bit(current_chunk+0x32,streamFile);
 				bztmp = (bztmp >> 8) | (bztmp << 8);
-				fmt->coding_type = coding_AT3;
+				fmt->coding_type = coding_AT3plus;
 				fmt->block_size = (bztmp & 0x3FF) * 8 + 8;
 				fmt->interleave = 0;
 			}
@@ -361,7 +361,7 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
         case coding_NGC_DSP:
             break;
 #ifdef VGM_USE_MAIATRAC3PLUS
-		case coding_AT3:
+		case coding_AT3plus:
 			sample_count = (data_size / fmt.block_size) * 2048 * fmt.channel_count;
 			break;
 #endif
@@ -409,7 +409,7 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
             vgmstream->interleave_block_size = fmt.block_size;
             break;
 #ifdef VGM_USE_MAIATRAC3PLUS
-		case coding_AT3:
+		case coding_AT3plus:
 			vgmstream->interleave_block_size = fmt.block_size / fmt.channel_count;
 #endif
         default:
@@ -418,7 +418,7 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
     }
 
 #ifdef VGM_USE_MAIATRAC3PLUS
-	if (fmt.coding_type == coding_AT3) {
+	if (fmt.coding_type == coding_AT3plus) {
 		maiatrac3plus_codec_data *data = malloc(sizeof(maiatrac3plus_codec_data));
 		data->buffer = 0;
 		data->samples_discard = 0;
