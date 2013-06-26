@@ -1639,7 +1639,7 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream) {
 				maiatrac3plus_codec_data *data = (maiatrac3plus_codec_data *)(vgmstream->codec_data);
                 vgmstream->loop_ch[0].offset =
                     vgmstream->loop_ch[0].channel_start_offset +
-					vgmstream->interleave_block_size * vgmstream->channels * blocks_to_skip;
+					vgmstream->interleave_block_size * blocks_to_skip;
 				data->samples_discard = samples_to_discard;
 			}
 #endif
