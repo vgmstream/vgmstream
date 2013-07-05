@@ -195,7 +195,7 @@ void input_vgmstream::decode_seek(double p_seconds,abort_callback & p_abort) {
 	int max_buffer_samples = sizeof(sample_buffer)/sizeof(sample_buffer[0])/vgmstream->channels;
 
 	// adjust for correct position within loop
-	if(vgmstream->loop_flag && seek_pos_samples >= vgmstream->loop_end_sample) {
+	if(vgmstream->loop_flag && (vgmstream->loop_end_sample - vgmstream->loop_start_sample) && seek_pos_samples >= vgmstream->loop_end_sample) {
 		seek_pos_samples -= vgmstream->loop_start_sample;
 		seek_pos_samples %= (vgmstream->loop_end_sample - vgmstream->loop_start_sample);
 		seek_pos_samples += vgmstream->loop_start_sample;
