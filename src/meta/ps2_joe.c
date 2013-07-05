@@ -10,7 +10,11 @@ VGMSTREAM * init_vgmstream_ps2_joe(STREAMFILE *streamFile) {
 	off_t	loopStart = 0;
 	off_t	loopEnd = 0;
 	off_t	readOffset = 0;
+	off_t	blockOffset = 0;
+	off_t	sampleOffset = 0;
 	size_t	fileLength;
+	size_t	dataLength;
+	size_t	dataInterleave;
     int loop_flag;
 	int channel_count;
 
@@ -29,44 +33,57 @@ VGMSTREAM * init_vgmstream_ps2_joe(STREAMFILE *streamFile) {
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
+	fileLength = get_streamfile_size(streamFile);
+	dataLength = read_32bitLE(0x4,streamFile);
+	dataInterleave = read_32bitLE(0x8,streamFile);
+
 	/* fill in the vital statistics */
-    start_offset = 0x4020;
+    start_offset = fileLength - dataLength;
 	vgmstream->channels = channel_count;
     vgmstream->sample_rate = read_32bitLE(0x0,streamFile);
     vgmstream->coding_type = coding_PSX;
-    vgmstream->num_samples = (get_streamfile_size(streamFile)-start_offset)*28/16/channel_count;
+    vgmstream->num_samples = dataLength*28/16/channel_count;
 		
 	
-	fileLength = get_streamfile_size(streamFile);
     readOffset = start_offset;
 	do {
-		
-		readOffset+=(off_t)read_streamfile(testBuffer,readOffset,0x10,streamFile); 
+		off_t blockRead = (off_t)read_streamfile(testBuffer,readOffset,0x10,streamFile);
+
+		readOffset += blockRead;
+		blockOffset += blockRead;
+
+		if (blockOffset >= dataInterleave) {
+			readOffset += dataInterleave;
+			blockOffset -= dataInterleave;
+		}
 		
 		/* Loop Start */
 		if(testBuffer[0x01]==0x06) {
-			if(loopStart == 0) loopStart = readOffset-0x10;
+			if(loopStart == 0) loopStart = sampleOffset;
 			/* break; */
 		}
+
+		sampleOffset += 28;
+
 		/* Loop End */
 		if(testBuffer[0x01]==0x03) {
-			if(loopEnd == 0) loopEnd = readOffset-0x10;
+			if(loopEnd == 0) loopEnd = sampleOffset;
 			/* break; */
 		}
 
 	} while (streamFile->get_offset(streamFile)<(int32_t)fileLength);
 	
-	if(loopStart == 0) {
+	if(loopStart == 0 && loopEnd == 0) {
 		loop_flag = 0;
-		vgmstream->num_samples = read_32bitLE(0x4,streamFile)*28/16/channel_count;
+		vgmstream->num_samples = dataLength*28/16/channel_count;
 	} else {
 		loop_flag = 1;
-		vgmstream->loop_start_sample = (loopStart-start_offset-0x20)*28/16/channel_count;
-        	vgmstream->loop_end_sample = (loopEnd-start_offset+0x20)*28/16/channel_count;
-    	}
+		vgmstream->loop_start_sample = loopStart;
+        vgmstream->loop_end_sample = loopEnd;
+    }
 
 	vgmstream->layout_type = layout_interleave;
-	vgmstream->interleave_block_size = 0x10;
+	vgmstream->interleave_block_size = dataInterleave;
 	vgmstream->meta_type = meta_PS2_JOE;
 
     /* open the file for reading */
