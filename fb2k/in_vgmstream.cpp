@@ -496,6 +496,7 @@ bool input_vgmstream::g_is_our_path(const char * p_path,const char * p_extension
 	if(!stricmp_utf8(p_extension,"vas")) return 1;
 	if(!stricmp_utf8(p_extension,"vawx")) return 1;
 	if(!stricmp_utf8(p_extension,"vb")) return 1;
+	if(!stricmp_utf8(p_extension,"vbk")) return 1;
 	if(!stricmp_utf8(p_extension,"vgs")) return 1;
 	if(!stricmp_utf8(p_extension,"vgv")) return 1;
 	if(!stricmp_utf8(p_extension,"vig")) return 1;
@@ -814,6 +815,7 @@ DECLARE_MULTIPLE_FILE_TYPE("UM3 Audio File (*.UM3)", um3);
 DECLARE_MULTIPLE_FILE_TYPE("VAG Audio File (*.VAG)", vag);
 DECLARE_MULTIPLE_FILE_TYPE("VAS Audio File (*.VAS)", vas);
 DECLARE_MULTIPLE_FILE_TYPE("VB Audio File (*.VB)", vb);
+DECLARE_MULTIPLE_FILE_TYPE("VBK Audio File (*.VBK)", vbk);
 DECLARE_MULTIPLE_FILE_TYPE("VGS Audio File (*.VGS)", vgs);
 DECLARE_MULTIPLE_FILE_TYPE("VGV Audio File (*.VGV)", vgv);
 DECLARE_MULTIPLE_FILE_TYPE("VIG Audio File (*.VIG)", vig);

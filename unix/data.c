@@ -240,6 +240,7 @@ gchar *vgmstream_exts [] = {
   "vas",
   "vawx",
   "vb",
+  "vbk",
   "vgs",
   "vgv",
   "vig",

@@ -493,6 +493,9 @@
     <ClCompile Include="meta\ps2_vas.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\ps2_vbk.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\ps2_vgs.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
