@@ -395,6 +395,12 @@ static struct {
      * Nogizaka Haruka no Himitsu - Doujinshi Hajime Mashita (2010-10-28)(-)(ASCII Media Works)[PSP]
      */
     {0x4601,0x671f,0x0455},
+
+    /*
+     * Slotter Mania P - Mach Go Go Go III (2011-01-06)(-)(Dorart)[PSP]
+     */
+    {0x41ef,0x463d,0x5507},
+
 };
 
 /* type 9 keys */
