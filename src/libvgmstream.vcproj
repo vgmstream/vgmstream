@@ -1031,6 +1031,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\ubi_ckd.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\vgs.c"
 					>
 				</File>

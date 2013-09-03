@@ -400,6 +400,7 @@ typedef enum {
     meta_PS2_XA2_RRP,     /* RC Revenge Pro */
     meta_PS2_STM,         /* Red Dead Revolver .stm, renamed .ps2stm */
     meta_NGC_DSP_KONAMI,  /* Konami DSP header, found in various games */
+	meta_UBI_CKD,         /* Ubisoft CKD RIFF header from Rayman Origins */
 
     meta_XBOX_WAVM,			/* XBOX WAVM File */
     meta_XBOX_RIFF,			/* XBOX RIFF/WAVE File */

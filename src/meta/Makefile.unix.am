@@ -234,5 +234,6 @@ libmeta_la_SOURCES += ps2_mss.c
 libmeta_la_SOURCES += ps2_hsf.c
 libmeta_la_SOURCES += ps3_ivag.c
 libmeta_la_SOURCES += ps2_2pfs.c
+libmeta_la_SOURCES += ubi_ckd.c
 
 EXTRA_DIST = meta.h

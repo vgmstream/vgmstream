@@ -60,6 +60,7 @@ gchar *vgmstream_exts [] = {
   "cbd2",
   "ccc",
   "cfn",
+  "ckd",
   "cnk",
   "cps",
 
