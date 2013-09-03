@@ -346,6 +346,8 @@ VGMSTREAM * init_vgmstream_ogg_vorbis_callbacks(STREAMFILE *streamFile, const ch
                     comment->user_comments[i] ||
                 strstr(comment->user_comments[i],"um3.stream.looppoint.start=")==
                     comment->user_comments[i] ||
+                strstr(comment->user_comments[i],"LOOP_BEGIN=")==
+                    comment->user_comments[i] ||
                 strstr(comment->user_comments[i],"LoopStart=")==
                     comment->user_comments[i]
                     ) {
@@ -371,6 +373,13 @@ VGMSTREAM * init_vgmstream_ogg_vorbis_callbacks(STREAMFILE *streamFile, const ch
                 loop_end_found=1;
             }
             else if (strstr(comment->user_comments[i],"LoopEnd=")==
+                    comment->user_comments[i]) {
+						if(loop_flag) {
+							loop_length=atol(strrchr(comment->user_comments[i],'=')+1)-loop_start;
+							loop_length_found=1;
+						}
+            }
+            else if (strstr(comment->user_comments[i],"LOOP_END=")==
                     comment->user_comments[i]) {
 						if(loop_flag) {
 							loop_length=atol(strrchr(comment->user_comments[i],'=')+1)-loop_start;
