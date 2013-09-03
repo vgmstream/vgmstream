@@ -142,7 +142,7 @@ VGMSTREAM * init_vgmstream_ps3_msf(STREAMFILE *streamFile) {
             vgmstream->ch[i].streamfile = file;
 
             vgmstream->ch[i].channel_start_offset=
-                vgmstream->ch[i].offset=start_offset;
+                vgmstream->ch[i].offset=start_offset+vgmstream->interleave_block_size*i;
 
         }
     }
