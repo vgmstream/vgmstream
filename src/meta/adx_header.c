@@ -385,6 +385,16 @@ static struct {
      * Lucky Star - Ryouou Gakuen Outousai Portable (2010-12-22)(-)(Kadokawa Shoten)[PSP]
      */
     {0x4d06,0x663b,0x7d09},
+
+    /*
+     * Marriage Royale - Prism Story (2010-04-28)(-)(ASCII Media Works)[PSP]
+     */
+    {0x40a9,0x46b1,0x62ad},
+
+    /*
+     * Nogizaka Haruka no Himitsu - Doujinshi Hajime Mashita (2010-10-28)(-)(ASCII Media Works)[PSP]
+     */
+    {0x4601,0x671f,0x0455},
 };
 
 /* type 9 keys */
