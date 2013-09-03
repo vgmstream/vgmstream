@@ -360,6 +360,31 @@ static struct {
      * StormLover Kai!! (2012)(D3 Publisher)[PSP]
      * confirmed unique with guessadx */
     {0x5a11,0x67e5,0x6751},
+    
+	/*
+     * Sora no Otoshimono - DokiDoki Summer Vacation (2010)(Kadokawa Shoten)[PSP]
+     * confirmed unique with guessadx */
+    {0x5e75,0x4a89,0x4c61},
+    
+    /*
+     * Boku wa Koukuu Kanseikan - Airport Hero Naha (2006)(Sonic Powered)(Electronic Arts)[PSP]
+     * confirmed unique with guessadx */
+    {0x64ab,0x5297,0x632f},
+    
+	/*
+     * Lucky Star - Net Idol Meister (2009)(Kadokawa Shoten)[PSP]
+     * confirmed unique with guessadx */
+    {0x4d82,0x5243,0x685},
+    
+    /*
+     * Ishin Renka: Ryouma Gaiden (2010-11-25)(-)(D3 Publisher)[PSP]
+     */
+    {0x54d1,0x526d,0x5e8b},
+    
+    /*
+     * Lucky Star - Ryouou Gakuen Outousai Portable (2010-12-22)(-)(Kadokawa Shoten)[PSP]
+     */
+    {0x4d06,0x663b,0x7d09},
 };
 
 /* type 9 keys */
