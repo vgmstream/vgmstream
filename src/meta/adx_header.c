@@ -401,6 +401,21 @@ static struct {
      */
     {0x41ef,0x463d,0x5507},
 
+    /*
+     * Nichijou - Uchuujin (2011-07-28)(-)(Kadokawa Shoten)[PSP]
+     */
+    {0x4369,0x486d,0x5461},
+
+    /*
+     * R-15 Portable (2011-10-27)(-)(Kadokawa Shoten)[PSP]
+     */
+    {0x6809,0x5fd5,0x5bb1},
+
+    /*
+     * Suzumiya Haruhi-chan no Mahjong (2011-07-07)(-)(Kadokawa Shoten)[PSP]
+     */
+    {0x5c33,0x4133,0x4ce7},
+
 };
 
 /* type 9 keys */
