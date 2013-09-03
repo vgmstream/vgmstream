@@ -254,6 +254,7 @@ VGMSTREAM * init_vgmstream_fsb4(STREAMFILE *streamFile) {
     if (read_32bitBE(0x60,streamFile) == 0x40008800 ||
         read_32bitBE(0x60,streamFile) == 0x40000802 ||
         read_32bitBE(0x60,streamFile) == 0x40100802 ||
+		read_32bitBE(0x60,streamFile) == 0x000040A0 ||
         read_32bitBE(0x60,streamFile) == 0x40004020) {
         loop_flag = 1;
     } else {
@@ -288,6 +289,7 @@ VGMSTREAM * init_vgmstream_fsb4(STREAMFILE *streamFile) {
         case 0x40004020:
         case 0x20004000:
 		case 0x00004020:
+		case 0x000040A0:
             vgmstream->coding_type = coding_MS_IMA;
             vgmstream->layout_type = layout_none;
             vgmstream->interleave_block_size = 0x24*vgmstream->channels;
