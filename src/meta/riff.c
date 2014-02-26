@@ -82,6 +82,8 @@ void parse_adtl(off_t adtl_offset, off_t adtl_length, STREAMFILE  *streamFile,
 }
 
 struct riff_fmt_chunk {
+    off_t offset;
+    off_t size;
     int sample_rate;
     int channel_count;
     uint32_t block_size;
@@ -106,6 +108,9 @@ int read_fmt(int big_endian,
         read_32bit = read_32bitLE;
         read_16bit = read_16bitLE;
     }
+
+    fmt->offset = current_chunk;
+    fmt->size = read_32bit(current_chunk+0x4,streamFile);
 
     fmt->sample_rate = read_32bit(current_chunk+0x0c,streamFile);
     fmt->channel_count = read_16bit(current_chunk+0x0a,streamFile);
@@ -134,8 +139,10 @@ int read_fmt(int big_endian,
             /* ensure 4bps */
             if (read_16bit(current_chunk+0x16,streamFile)!=4)
                 goto fail;
+
             fmt->coding_type = coding_MSADPCM;
             fmt->interleave = 0;
+
             break;
         case 0x11:  /* MS IMA ADCM */
             /* ensure 4bps */
@@ -634,6 +641,17 @@ VGMSTREAM * init_vgmstream_rifx(STREAMFILE *streamFile) {
 
     if (!FormatChunkFound || !DataChunkFound) goto fail;
 
+    if (wiih_offset < 0 && fmt.coding_type == coding_MSADPCM &&
+        fmt.size == 0x1c + fmt.channel_count * 0x2e + 2) {
+
+        /* Epic Mickey 2 */
+
+        wiih_offset = fmt.offset + 8 + 0x1c;
+        wiih_size = fmt.channel_count * 0x2e;
+        fmt.coding_type = coding_NGC_DSP;
+        fmt.interleave = 8;
+    }
+
     switch (fmt.coding_type) {
         case coding_PCM16BE:
             sample_count = data_size/2/fmt.channel_count;
@@ -643,8 +661,9 @@ VGMSTREAM * init_vgmstream_rifx(STREAMFILE *streamFile) {
             break;
         case coding_NGC_DSP:
             /* the only way of getting DSP info right now */
-            if (wiih_offset < 0 || wiih_size != 0x2e*fmt.channel_count) goto fail;
-            sample_count = data_size/8/fmt.channel_count*14;
+            if (wiih_offset < 0 || wiih_size != 0x2e*fmt.channel_count)
+                goto fail;
+
             break;
 #if 0
         /* found in RE:ORC, looks like it should be MS_IMA instead */
