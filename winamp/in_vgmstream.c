@@ -221,6 +221,7 @@ char * extension_list[] = {
     "nwa\0NWA Audio File (*.NWA)\0",
 
     "omu\0OMU Audio File (*.OMU)\0",
+	"otm\0OTM Audio File (*.OTM)\0",
 
     "p2bt\0P2BT Audio File (*.P2BT)\0",
     "p3d\0P3D Audio File (*.P3D)\0",

@@ -152,6 +152,7 @@ gchar *vgmstream_exts [] = {
   "nwa",
 
   "omu",
+  "otm",
 
   "p2bt",
   "p3d",

@@ -217,6 +217,7 @@
     <ClCompile Include="meta\ngc_ymf.c" />
     <ClCompile Include="meta\nwa.c" />
     <ClCompile Include="meta\ogg_vorbis_file.c" />
+    <ClCompile Include="meta\otm.c" />
     <ClCompile Include="meta\p3d.c" />
     <ClCompile Include="meta\pc_mxst.c" />
     <ClCompile Include="meta\pc_smp.c" />

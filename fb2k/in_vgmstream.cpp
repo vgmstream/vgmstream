@@ -407,6 +407,7 @@ bool input_vgmstream::g_is_our_path(const char * p_path,const char * p_extension
 	if(!stricmp_utf8(p_extension,"nwa")) return 1;
 
 	if(!stricmp_utf8(p_extension,"omu")) return 1;
+	if(!stricmp_utf8(p_extension,"otm")) return 1;
 
 	if(!stricmp_utf8(p_extension,"p2bt")) return 1;
 	if(!stricmp_utf8(p_extension,"p3d")) return 1;
@@ -728,6 +729,7 @@ DECLARE_MULTIPLE_FILE_TYPE("PS2 NPSF Audio File (*.NPSF)", npsf);
 DECLARE_MULTIPLE_FILE_TYPE("NWA Audio File (*.NWA)", nwa);
 
 DECLARE_MULTIPLE_FILE_TYPE("OMU Audio File (*.OMU)", omu);
+DECLARE_MULTIPLE_FILE_TYPE("OTM Audio File (*.OTM)", otm);
 
 DECLARE_MULTIPLE_FILE_TYPE("P2BT Audio File (*.P2BT)", p2bt);
 DECLARE_MULTIPLE_FILE_TYPE("P3D Audio File (*.P3D)", p3d);
