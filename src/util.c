@@ -161,7 +161,7 @@ void concatn_doublenull(int length, char * dst, const char * src) {
         return;
     }
     if (i>0) i++;
-    for (j=0;i<length-2 && (src[j] || src[j+1]);i++,j++) dst[i]=src[j];
+    for (j=0;i<length-2 && src[j];i++,j++) dst[i]=src[j];
     dst[i]='\0';
     dst[i+1]='\0';
 }
