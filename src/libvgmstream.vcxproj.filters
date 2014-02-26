@@ -958,5 +958,8 @@
     <ClCompile Include="coding\at3_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\bcstm.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
