@@ -67,5 +67,6 @@ void swap_samples_le(sample *buf, int count);
 
 void concatn(int length, char * dst, const char * src);
 void concatn_doublenull(int length, char * dst, const char * src);
+void concatn_fitting_doublenull(int length, char * dst, const char * src);
 
 #endif

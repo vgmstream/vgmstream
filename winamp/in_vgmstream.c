@@ -373,7 +373,7 @@ void build_extension_list() {
     working_extension_list[1]='\0';
 
     for (i=0;i<sizeof(extension_list)/sizeof(extension_list[0]);i++) {
-        concatn_doublenull(EXTENSION_LIST_SIZE,working_extension_list,
+        concatn_fitting_doublenull(EXTENSION_LIST_SIZE,working_extension_list,
                 extension_list[i]);
     }
 }

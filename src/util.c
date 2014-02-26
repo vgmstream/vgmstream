@@ -161,7 +161,29 @@ void concatn_doublenull(int length, char * dst, const char * src) {
         return;
     }
     if (i>0) i++;
-    for (j=0;i<length-2 && src[j];i++,j++) dst[i]=src[j];
+    for (j=0;i<length-2 && (src[j] || src[j+1]);i++,j++) dst[i]=src[j];
+    dst[i]='\0';
+    dst[i+1]='\0';
+}
+
+/* length is maximum length of dst. dst will always be double-null-terminated if
+ * length > 1, if src won't fit, truncate */
+void concatn_fitting_doublenull(int length, char * dst, const char * src) {
+    int i,j,k;
+    if (length <= 1) return;
+    for (i=0;i<length-2 && (dst[i] || dst[i+1]);i++);   /* find end of dst */
+    if (i==length-2) {
+        dst[i]='\0';
+        dst[i+1]='\0';
+        return;
+    }
+    if (i>0) i++;
+    k = i;
+    for (j=0;i<length-2 && (src[j] || src[j+1]);i++,j++) dst[i]=src[j];
+
+    if (i == length-2 && (src[j] || src[j+1])) {
+        i = k;
+    }
     dst[i]='\0';
     dst[i+1]='\0';
 }
