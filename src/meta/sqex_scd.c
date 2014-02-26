@@ -175,6 +175,9 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
                 struct mpg123_frameinfo mi;
                 coding_t ct;
 
+                if (vgmstream->sample_rate == 47999)
+                    vgmstream->sample_rate = 48000;
+
                 mpeg_data = init_mpeg_codec_data(streamFile, start_offset, vgmstream->sample_rate, vgmstream->channels, &ct, NULL, NULL);
                 if (!mpeg_data) goto fail;
                 vgmstream->codec_data = mpeg_data;
