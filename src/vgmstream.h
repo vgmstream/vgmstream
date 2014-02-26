@@ -564,6 +564,7 @@ typedef enum {
 	meta_PS2_2PFS,			// Mahoromatic: Moetto - KiraKira Maid-San (PS2)
 	meta_PS2_VBK,
    meta_OTM,                 // Otomedius (Arcade)
+   meta_CSTM,                // Nintendo 3DS CSTM
 #ifdef VGM_USE_MP4V2
 	meta_MP4,
 #endif

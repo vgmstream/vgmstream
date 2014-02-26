@@ -42,6 +42,7 @@ gchar *vgmstream_exts [] = {
   "baka",
   "baf",
   "bar",
+  "bcstm",
   "bcwav",
   "bg00",
   "bgw",

@@ -249,6 +249,10 @@
 					>
 				</File>
 				<File
+					RelativePath=“.\meta\bcstm.c”
+					>
+				</File>
+				<File
 					RelativePath=".\meta\bgw.c"
 					>
 				</File>

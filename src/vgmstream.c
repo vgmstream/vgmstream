@@ -329,6 +329,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_ubi_ckd,
 	init_vgmstream_ps2_vbk,
 	init_vgmstream_otm,
+	init_vgmstream_bcstm,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -3057,6 +3058,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
 		case meta_OTM:
             snprintf(temp,TEMPSIZE,"Otomedius OTM Header");
+            break;
+		case meta_CSTM:
+            snprintf(temp,TEMPSIZE,"Nintendo 3DS CSTM Header");
             break;
 		default:
            snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");
