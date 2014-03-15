@@ -11,7 +11,7 @@ VGMSTREAM * init_vgmstream_ngc_sck_dsp(STREAMFILE *streamFile) {
 	VGMSTREAM * vgmstream = NULL;
     STREAMFILE * streamFileDSP = NULL;
     char filename[PATH_LIMIT];
-	char filenameDSP[260];
+	char filenameDSP[PATH_LIMIT];
 	
 	int i;
 	int channel_count;

@@ -7,7 +7,7 @@ VGMSTREAM * init_vgmstream_ps3_sgh_sgb(STREAMFILE *streamFile) {
     off_t start_offset = 0;
     STREAMFILE * streamFileSGH = NULL;
     char filename[PATH_LIMIT];
-    char filenameSGH[260];
+    char filenameSGH[PATH_LIMIT];
     int channel_count;
     int loop_flag;
 

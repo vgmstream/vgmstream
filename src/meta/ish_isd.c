@@ -10,7 +10,7 @@ VGMSTREAM * init_vgmstream_ish_isd(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     STREAMFILE * streamFileISH = NULL;
     char filename[PATH_LIMIT];
-    char filenameISH[260];
+    char filenameISH[PATH_LIMIT];
     int i;
     int channel_count;
     int loop_flag;
