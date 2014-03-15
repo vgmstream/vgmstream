@@ -8,9 +8,11 @@ VGMSTREAM * init_vgmstream_bcstm(STREAMFILE *streamFile) {
 	coding_t coding_type;
 
 	off_t head_offset;
+	off_t seek_offset;
 	int codec_number;
 	int channel_count;
 	int loop_flag;
+	int ima = 0;
 	off_t start_offset;
 
 	/* check extension, case insensitive */
@@ -29,11 +31,15 @@ VGMSTREAM * init_vgmstream_bcstm(STREAMFILE *streamFile) {
 
 	/* get head offset, check */
 	head_offset = read_32bitLE(0x18, streamFile);
-
+	
 	if ((uint32_t)read_32bitBE(head_offset, streamFile) != 0x494E464F) /* "INFO" */
 		goto fail;
 	
-
+	seek_offset = read_32bitLE(0x24, streamFile);
+	
+	if ((uint32_t)read_32bitBE(seek_offset, streamFile) != 0x5345454B) /* "SEEK" If this header doesn't exist, assuming that the file is IMA */
+		ima = 1;
+	
 	/* check type details */
 	codec_number = read_8bit(head_offset + 0x20, streamFile);
 	loop_flag = read_8bit(head_offset + 0x21, streamFile);
@@ -47,7 +53,10 @@ VGMSTREAM * init_vgmstream_bcstm(STREAMFILE *streamFile) {
 		coding_type = coding_PCM16BE;
 		break;
 	case 2:
-		coding_type = coding_NGC_DSP;
+		if (ima)
+			coding_type = coding_INT_IMA;			
+		else
+			coding_type = coding_NGC_DSP;
 		break;
 	default:
 		goto fail;
@@ -64,30 +73,59 @@ VGMSTREAM * init_vgmstream_bcstm(STREAMFILE *streamFile) {
 	vgmstream->num_samples = read_32bitLE(head_offset + 0x2c, streamFile);
 	vgmstream->sample_rate = (uint16_t)read_16bitLE(head_offset + 0x24, streamFile);
 	/* channels and loop flag are set by allocate_vgmstream */
-	vgmstream->loop_start_sample = read_32bitLE(head_offset + 0x28, streamFile);
-	vgmstream->loop_end_sample = vgmstream->num_samples;
+	if (ima) //Shift the loop points back slightly to avoid stupid pops in some IMA streams due to DC offsetting
+	{
+		vgmstream->loop_start_sample = read_32bitLE(head_offset + 0x28, streamFile);
+		if (vgmstream->loop_start_sample > 10000)
+		{
+			vgmstream->loop_start_sample -= 5000;
+			vgmstream->loop_end_sample = vgmstream->num_samples - 5000;
+		}
+		else
+			vgmstream->loop_end_sample = vgmstream->num_samples;
+	}
+	else
+	{
+		vgmstream->loop_start_sample = read_32bitLE(head_offset + 0x28, streamFile);
+		vgmstream->loop_end_sample = vgmstream->num_samples;
+	}
 
 	vgmstream->coding_type = coding_type;
 	if (channel_count == 1)
 		vgmstream->layout_type = layout_none;
 	else
-		vgmstream->layout_type = layout_interleave_shortblock;
+	{
+		if (ima)
+			vgmstream->layout_type = layout_interleave;
+		else
+			vgmstream->layout_type = layout_interleave_shortblock;
+	}
 	vgmstream->meta_type = meta_CSTM;
-
-	vgmstream->interleave_block_size = read_32bitLE(head_offset + 0x34, streamFile);
-	vgmstream->interleave_smallblock_size = read_32bitLE(head_offset + 0x44, streamFile);
-
+	
+	if (ima)
+		vgmstream->interleave_block_size = 0x200;
+	else {
+		vgmstream->interleave_block_size = read_32bitLE(head_offset + 0x34, streamFile);
+		vgmstream->interleave_smallblock_size = read_32bitLE(head_offset + 0x44, streamFile);
+	}
+	
 	if (vgmstream->coding_type == coding_NGC_DSP) {
 		off_t coef_offset;
-		off_t coef_offset1;
-		off_t coef_offset2;
+		off_t tempoffset = head_offset;
+		int foundcoef = 0;
 		int i, j;
 		int coef_spacing = 0x2E;
-
 		
-		coef_offset1 = read_32bitLE(head_offset + 0x1c, streamFile);
-		coef_offset = coef_offset1 + 0x40;
-	
+		while (!(foundcoef))
+		{
+			if ((uint32_t)read_32bitLE(tempoffset, streamFile) == 0x00004102)
+			{
+				coef_offset = read_32bitLE(tempoffset + 4, streamFile) + tempoffset + (channel_count * 8) - 4 - head_offset;
+				foundcoef++;
+				break;
+			}
+			tempoffset++;
+		}
 
 		for (j = 0; j<vgmstream->channels; j++) {
 			for (i = 0; i<16; i++) {
@@ -95,8 +133,13 @@ VGMSTREAM * init_vgmstream_bcstm(STREAMFILE *streamFile) {
 			}
 		}
 	}
-
-	start_offset = read_32bitLE(0x30, streamFile) + 0x20;
+	
+	if (ima) // No SEEK (ADPC) header, so just start where the SEEK header is supposed to be.
+		start_offset = seek_offset;
+	else
+		start_offset = read_32bitLE(0x30, streamFile) + 0x20;
+		
+		
 
 	/* open the file for reading by each channel */
 	{
@@ -105,6 +148,9 @@ VGMSTREAM * init_vgmstream_bcstm(STREAMFILE *streamFile) {
 			if (vgmstream->layout_type == layout_interleave_shortblock)
 				vgmstream->ch[i].streamfile = streamFile->open(streamFile, filename,
 				vgmstream->interleave_block_size);
+			else if (vgmstream->layout_type == layout_interleave)
+				vgmstream->ch[i].streamfile = streamFile->open(streamFile, filename,
+				STREAMFILE_DEFAULT_BUFFER_SIZE);
 			else
 				vgmstream->ch[i].streamfile = streamFile->open(streamFile, filename,
 				0x1000);

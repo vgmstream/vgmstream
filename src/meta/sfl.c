@@ -73,7 +73,7 @@ static void parse_adtl(off_t adtl_offset, off_t adtl_length, STREAMFILE  *stream
 VGMSTREAM * init_vgmstream_sfl(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     STREAMFILE * streamFileOGG = NULL;
-    char filenameOGG[260];
+    char filenameOGG[PATH_LIMIT];
     char filename[PATH_LIMIT];
 
     off_t file_size = -1;

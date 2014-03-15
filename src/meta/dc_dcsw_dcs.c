@@ -13,7 +13,7 @@ VGMSTREAM * init_vgmstream_dc_dcsw_dcs(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     STREAMFILE * streamFileDCSW = NULL;
     char filename[PATH_LIMIT];
-    char filenameDCSW[260];
+    char filenameDCSW[PATH_LIMIT];
     int i;
     int channel_count;
     int loop_flag;

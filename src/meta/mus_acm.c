@@ -13,7 +13,7 @@
 #define DIRSEP '/'
 #endif
 
-#define NAME_LENGTH 260
+#define NAME_LENGTH PATH_LIMIT 
 
 int exists(char *filename, STREAMFILE *streamfile) {
     STREAMFILE * temp = 

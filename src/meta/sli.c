@@ -19,8 +19,8 @@ VGMSTREAM * init_vgmstream_sli_ogg(STREAMFILE *streamFile) {
 	VGMSTREAM * vgmstream = NULL;
     STREAMFILE * streamFileOGG = NULL;
     char filename[PATH_LIMIT];
-	char filenameOGG[260];
-    char linebuffer[260];
+	char filenameOGG[PATH_LIMIT];
+    char linebuffer[PATH_LIMIT];
     off_t bytes_read;
     off_t sli_offset;
     int done;

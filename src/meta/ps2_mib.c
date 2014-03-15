@@ -51,7 +51,7 @@ VGMSTREAM * init_vgmstream_ps2_mib(STREAMFILE *streamFile) {
 
 	off_t	readOffset = 0;
 
-	char	filenameMIH[260];
+	char	filenameMIH[PATH_LIMIT];
 	off_t	loopStartPoints[0x10];
 	int		loopStartPointsCount=0;
 

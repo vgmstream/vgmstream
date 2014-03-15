@@ -20,7 +20,7 @@ VGMSTREAM * init_vgmstream_ps2_wmus(STREAMFILE *streamFile)
 	int shortBlockSize;
 	int lastBlockLocation;
 
-	char	filenameWHED[260];
+	char	filenameWHED[PATH_LIMIT];
 	STREAMFILE * streamFileWHED = NULL;
 
 	//_TCHAR szBuffer[100];

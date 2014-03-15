@@ -57,9 +57,9 @@ VGMSTREAM * init_vgmstream_nwa(STREAMFILE *streamFile) {
 
     /* try to locate NWAINFO.INI in the same directory */
     {
-        char ininame[260];
+        char ininame[PATH_LIMIT];
         char * ini_lastslash;
-        char namebase_array[260];
+        char namebase_array[PATH_LIMIT];
         char *namebase;
         STREAMFILE *inistreamfile;
 
@@ -134,9 +134,9 @@ VGMSTREAM * init_vgmstream_nwa(STREAMFILE *streamFile) {
 
     /* try to locate Gameexe.ini in the same directory */
     {
-        char ininame[260];
+        char ininame[PATH_LIMIT];
         char * ini_lastslash;
-        char namebase_array[260];
+        char namebase_array[PATH_LIMIT];
         char * namebase;
         STREAMFILE *inistreamfile;
 
