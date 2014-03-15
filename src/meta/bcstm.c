@@ -79,15 +79,21 @@ VGMSTREAM * init_vgmstream_bcstm(STREAMFILE *streamFile) {
 
 	if (vgmstream->coding_type == coding_NGC_DSP) {
 		off_t coef_offset;
-		off_t coef_offset1;
-		off_t coef_offset2;
+		off_t tempoffset = head_offset;
+		int foundcoef = 0;
 		int i, j;
 		int coef_spacing = 0x2E;
-
 		
-		coef_offset1 = read_32bitLE(head_offset + 0x1c, streamFile);
-		coef_offset = coef_offset1 + 0x40;
-	
+		while (!(foundcoef))
+		{
+			if ((uint32_t)read_32bitLE(tempoffset, streamFile) == 0x00004102)
+			{
+				coef_offset = read_32bitLE(tempoffset + 4, streamFile) + tempoffset + (channel_count * 8) - 4 - head_offset;
+				foundcoef++;
+				break;
+			}
+			tempoffset++;
+		}
 
 		for (j = 0; j<vgmstream->channels; j++) {
 			for (i = 0; i<16; i++) {
