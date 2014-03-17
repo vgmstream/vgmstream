@@ -117,6 +117,8 @@ void input_vgmstream::get_info(file_info & p_info,abort_callback & p_abort ) {
 	int total_samples = -1;
 	int loop_start = -1, loop_end = -1;
 
+	console::formatter() << "vgmstream checking file info for " << filename;
+
 	getfileinfo(filename, NULL, &length_in_ms, &total_samples, &loop_start, &loop_end, &samplerate, &channels, p_abort);
 
 	p_info.info_set_int("samplerate", samplerate);
