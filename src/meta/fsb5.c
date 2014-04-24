@@ -6,13 +6,13 @@
 VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[260];
-    
-    int32_t LoopStart, LoopEnd;
-    int LoopFlag = 0;
-  	
+
     off_t StartOffset;
-    int NumSamples;
     
+    int LoopFlag = 0;
+    int32_t LoopStart, LoopEnd;
+    
+    int NumSamples;
     int ChannelCount;
     int SampleRate;
     int DSPInfoStart;
@@ -21,7 +21,6 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
     int ExtraFlag, ExtraFlagStart, ExtraFlagType, ExtraFlagSize, ExtraFlagEnd;
     
     size_t fileLength;
-
 
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
@@ -57,8 +56,6 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
     }
     
     ExtraFlagStart = SampleHeaderStart+0x08;
-    ExtraFlagSize = 0x08;
-
 
     if (SampleMode&0x01)
     {
@@ -69,37 +66,35 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
         ExtraFlagSize = (ExtraFlag>>1)&0xFFFFFF;
         ExtraFlagEnd = (ExtraFlag&0x01);
 
-        switch(ExtraFlagType) {
-         case 0x02:
-           {
-             SampleRate = read_32bitLE(ExtraFlagStart+0x04,streamFile);
-           }
-           break;
-
-         case 0x03:
-           {
-             LoopStart = read_32bitLE(ExtraFlagStart+0x04,streamFile);
-             if (LoopStart != 0x00) {
-               LoopFlag = 1;
-               LoopEnd = read_32bitLE(ExtraFlagStart+0x08,streamFile);
-             }
-           }
-        break;
-
-         case 0x07:
-           {
-             DSPInfoStart = ExtraFlagStart+0x04; /* Returns 0xCCCCCCCC, uninitialised ??? */
-           }
-           break;
-
-      }
+        switch(ExtraFlagType)
+        {
+        case 0x02: /* Sample Rate Info */
+          {
+            SampleRate = read_32bitLE(ExtraFlagStart+0x04,streamFile);
+          }
+          break;
         
+        case 0x03: /* Loop Info */
+          {
+            LoopStart = read_32bitLE(ExtraFlagStart+0x04,streamFile);
+            if (LoopStart != 0x00) {
+              LoopFlag = 1;
+              LoopEnd = read_32bitLE(ExtraFlagStart+0x08,streamFile);
+            }
+          }
+          break;
+
+        case 0x07: /* DSP Info (Coeffs), only used if coding is DSP??? */
+          {
+            DSPInfoStart = ExtraFlagStart+0x04;
+          }
+          break;
+
+        }
         ExtraFlagStart+=ExtraFlagSize+0x04;
-        
+      }
+      while (ExtraFlagEnd != 0x00);
     }
-      while (ExtraFlagEnd = 0x00);
-    }
-    NumSamples = read_32bitLE(SampleHeaderStart+0x04,streamFile)/2/ChannelCount;
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(ChannelCount,LoopFlag);
@@ -110,14 +105,13 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
 		vgmstream->sample_rate = SampleRate;
 
 
-    switch (CodingID) {
-
+    switch (CodingID)
+    {
     case 0x00: /* FMOD_SOUND_FORMAT_NONE */
       {
         goto fail;
       }
       break;
-
     case 0x01: /* FMOD_SOUND_FORMAT_PCM8 */
       {
         goto fail;
@@ -150,13 +144,28 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
 
     case 0x06: /* FMOD_SOUND_FORMAT_GCADPCM */
       {
-        if (ChannelCount == 1) {
+        if (ChannelCount == 1)
+        {
+          NumSamples = read_32bitLE(SampleHeaderStart+0x04,streamFile)/4;
           vgmstream->layout_type = layout_none;
         } else {
+          NumSamples = read_32bitLE(SampleHeaderStart+0x04,streamFile)/(2*ChannelCount);
           vgmstream->layout_type = layout_interleave_byte;
           vgmstream->interleave_block_size = 0x02;
         }
+
         vgmstream->coding_type = coding_NGC_DSP;
+
+        /* DSP Coeffs */
+        {
+          int c,i;
+          for (c=0;c<ChannelCount;c++) {
+            for (i=0;i<16;i++)
+            {
+              vgmstream->ch[c].adpcm_coef[i] = read_16bitBE(DSPInfoStart + c*0x2E + i*2,streamFile);
+            }
+          }
+        }
       }
       break;
 
@@ -186,6 +195,8 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
 
     case 0x0B: /* FMOD_SOUND_FORMAT_MPEG */
       {
+        NumSamples = read_32bitLE(SampleHeaderStart+0x04,streamFile)/2/ChannelCount;
+
         #ifdef VGM_USE_MPEG
             {
                 mpeg_codec_data *mpeg_data = NULL;
@@ -238,36 +249,22 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
     vgmstream->num_samples = NumSamples;
     vgmstream->meta_type = meta_FSB5;    
 
-    if (LoopFlag) {
+    if (LoopFlag)
+    {
       vgmstream->loop_start_sample = LoopStart;
       vgmstream->loop_end_sample = LoopEnd;
     }
 
-	if (vgmstream->coding_type == coding_NGC_DSP) {
-        int i;
-        for (i=0;i<16;i++) {
-            vgmstream->ch[0].adpcm_coef[i] = read_16bitBE(DSPInfoStart+i*2,streamFile);
-        }
-        if (vgmstream->channels == 2) {
-            for (i=0;i<16;i++) {
-                vgmstream->ch[1].adpcm_coef[i] = read_16bitBE(DSPInfoStart+0x2E+i*2,streamFile);
-            }
-        }
-    }
-
     /* open the file for reading */
     {
-        int i;
-        STREAMFILE * file;
-        file = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-        if (!file) goto fail;
-        for (i=0;i<ChannelCount;i++) {
-            vgmstream->ch[i].streamfile = file;
-
-            vgmstream->ch[i].channel_start_offset=
-                vgmstream->ch[i].offset=StartOffset+vgmstream->interleave_block_size*i;
-
-        }
+      int i;
+      STREAMFILE * file;
+      file = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
+      if (!file) goto fail;
+      for (i=0;i<ChannelCount;i++) {
+        vgmstream->ch[i].streamfile = file;
+        vgmstream->ch[i].channel_start_offset=vgmstream->ch[i].offset=StartOffset+vgmstream->interleave_block_size*i;
+      }
     }
 
     return vgmstream;
