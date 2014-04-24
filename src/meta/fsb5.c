@@ -5,7 +5,7 @@
 /* FSB5 header */
 VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[260];
+    char filename[PATH_LIMIT];
 
     off_t StartOffset;
     
