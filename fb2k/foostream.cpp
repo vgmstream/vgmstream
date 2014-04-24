@@ -58,6 +58,9 @@ static size_t read_the_rest_foo(uint8_t * dest, off_t offset, size_t length, FOO
 			if (streamfile->m_file->is_eof(*streamfile->p_abort)) return length_read;
 		} catch (...) {
 			streamfile->offset = streamfile->m_file->get_size(*streamfile->p_abort);
+#ifdef PROFILE_STREAMFILE
+			streamfile->error_count++;
+#endif
 			return length_read; //fail miserably
 		}
 
@@ -71,6 +74,9 @@ static size_t read_the_rest_foo(uint8_t * dest, off_t offset, size_t length, FOO
         try {
         	length_read = streamfile->m_file->read(streamfile->buffer,streamfile->buffersize,*streamfile->p_abort);
         } catch(...) {
+#ifdef PROFILE_STREAMFILE
+			streamfile->error_count++;
+#endif
 			return length_read; //fail miserably
         }
         streamfile->validsize=length_read;
@@ -183,10 +189,12 @@ static STREAMFILE * open_foo_streamfile_buffer_by_file(service_ptr_t<file> m_fil
     streamfile->sf.get_size = (size_t (__cdecl *)(_STREAMFILE *)) get_size_foo;
     streamfile->sf.get_offset = (off_t (__cdecl *)(_STREAMFILE *)) get_offset_foo;
     streamfile->sf.get_name = (void (__cdecl *)(_STREAMFILE *,char *,size_t)) get_name_foo;
+	streamfile->sf.get_realname = (void (__cdecl *)(_STREAMFILE *,char *,size_t)) get_name_foo;
     streamfile->sf.open = (_STREAMFILE *(__cdecl *)(_STREAMFILE *,const char *const ,size_t)) open_foo;
     streamfile->sf.close = (void (__cdecl *)(_STREAMFILE *)) close_foo;
 #ifdef PROFILE_STREAMFILE
     streamfile->sf.get_bytes_read = (void*)get_bytes_read_stdio;
+	streamfile->sf.get_error_count = (void*)get_error_count_stdio;
 #endif
 
     streamfile->m_file = m_file;
