@@ -120,7 +120,19 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
 
     case 0x02: /* FMOD_SOUND_FORMAT_PCM16 */
       {
-        goto fail;
+
+        NumSamples = read_32bitLE(SampleHeaderStart+0x04,streamFile)/4;
+
+        if (ChannelCount == 1)
+        {
+          vgmstream->layout_type = layout_none;
+        } else {
+          vgmstream->layout_type = layout_interleave;
+          vgmstream->interleave_block_size = 0x02;
+        }
+
+
+        vgmstream->coding_type = coding_PCM16LE;
       }
       break;
 
@@ -171,7 +183,11 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
 
     case 0x07: /* FMOD_SOUND_FORMAT_IMAADPCM */
       {
-        goto fail;
+
+        NumSamples = read_32bitLE(SampleHeaderStart+0x04,streamFile)/4;
+        vgmstream->layout_type = layout_none;
+        vgmstream->coding_type = coding_XBOX;
+
       }
       break;
 
@@ -257,14 +273,24 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
 
     /* open the file for reading */
     {
-      int i;
-      STREAMFILE * file;
-      file = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-      if (!file) goto fail;
-      for (i=0;i<ChannelCount;i++) {
-        vgmstream->ch[i].streamfile = file;
-        vgmstream->ch[i].channel_start_offset=vgmstream->ch[i].offset=StartOffset+vgmstream->interleave_block_size*i;
-      }
+        int i;
+        STREAMFILE * file;
+        file = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
+        if (!file) goto fail;
+        for (i=0;i<ChannelCount;i++) {
+            vgmstream->ch[i].streamfile = file;
+
+            
+            if (vgmstream->coding_type == coding_XBOX) {
+                /* xbox interleaving is a little odd */
+                vgmstream->ch[i].channel_start_offset=StartOffset;
+            } else {
+                vgmstream->ch[i].channel_start_offset=
+                    StartOffset+vgmstream->interleave_block_size*i;
+            }
+            vgmstream->ch[i].offset = vgmstream->ch[i].channel_start_offset;
+
+        }
     }
 
     return vgmstream;
