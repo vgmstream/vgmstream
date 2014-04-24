@@ -168,6 +168,7 @@
     <ClCompile Include="meta\exakt_sc.c" />
     <ClCompile Include="meta\ffw.c" />
     <ClCompile Include="meta\fsb.c" />
+    <ClCompile Include="meta\fsb5.c" />
     <ClCompile Include="meta\gca.c" />
     <ClCompile Include="meta\gcsw.c" />
     <ClCompile Include="meta\genh.c" />

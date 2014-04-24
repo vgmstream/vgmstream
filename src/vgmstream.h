@@ -303,6 +303,7 @@ typedef enum {
     meta_FSB4,              /* FMOD Sample Bank, version 4 */
     meta_FSB_MPEG,          /* Just Test */
 	  meta_FSB4_WAV,          /* FMOD Sample Bank, version 4 with "WAV" Header */
+    meta_FSB5,              /* FMOD Sample Bank, version 5 */
     meta_RWX,				/* Air Force Delta Storm (XBOX) */
     meta_XWB,				/* King of Fighters (XBOX) */
     meta_XA30,				/* Driver - Parallel Lines (PS2) */
