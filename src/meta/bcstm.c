@@ -37,8 +37,6 @@ VGMSTREAM * init_vgmstream_bcstm(STREAMFILE *streamFile) {
 	
 	seek_offset = read_32bitLE(0x24, streamFile);
 	
-	if ((uint32_t)read_32bitBE(seek_offset, streamFile) != 0x5345454B) /* "SEEK" If this header doesn't exist, assuming that the file is IMA */
-		ima = 1;
 	
 	/* check type details */
 	codec_number = read_8bit(head_offset + 0x20, streamFile);
@@ -50,11 +48,13 @@ VGMSTREAM * init_vgmstream_bcstm(STREAMFILE *streamFile) {
 		coding_type = coding_PCM8;
 		break;
 	case 1:
-		coding_type = coding_PCM16BE;
+		coding_type = coding_PCM16LE;
 		break;
 	case 2:
-		if (ima)
-			coding_type = coding_INT_IMA;			
+		if ((uint32_t)read_32bitBE(seek_offset, streamFile) != 0x5345454B) { /* "SEEK" If this header doesn't exist, assuming that the file is IMA */
+			ima = 1;
+			coding_type = coding_INT_IMA;	
+		}
 		else
 			coding_type = coding_NGC_DSP;
 		break;
@@ -136,8 +136,10 @@ VGMSTREAM * init_vgmstream_bcstm(STREAMFILE *streamFile) {
 	
 	if (ima) // No SEEK (ADPC) header, so just start where the SEEK header is supposed to be.
 		start_offset = seek_offset;
-	else
+	else if (vgmstream->coding_type == coding_NGC_DSP)
 		start_offset = read_32bitLE(0x30, streamFile) + 0x20;
+	else // No SEEK header and not IMA, so just start after the DATA header
+		start_offset = 0x120;
 		
 		
 
