@@ -55,10 +55,10 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
     /* 12 = NGC DSP */
     /* 13 = 8bit unsingned PCM */
     /* 14 = PSX ADPCM (bad flagged) */
-	/* 15 = Microsoft IMA (MS ADPCM)
-	/* 16 = 8-bit PCM (unsigned)
-	/* 17 = Apple Quicktime 4-bit IMA ADPCM;
-    /* ... others to come */
+	/* 15 = Microsoft IMA (MS ADPCM) */
+	/* 16 = 8-bit PCM (unsigned) */
+	/* 17 = Apple Quicktime 4-bit IMA ADPCM */
+
     switch (read_32bitLE(0x18,streamFile)) {
         case 0:
             coding = coding_PSX;
@@ -142,10 +142,16 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
     coef[0] = read_32bitLE(0x24,streamFile);
     coef[1] = read_32bitLE(0x28,streamFile);
     dsp_interleave_type = read_32bitLE(0x2C,streamFile);
-    coef_type = read_32bitLE(0x30,streamFile); /*	0 - normal coefs
-                                                    1 - splitted coefs (16byte rows)  */
+
+    /* DSP coefficient variants */
+    /* bit 0 - split coefs (2 arrays) */
+    /* bit 1 - little endian coefs */
+    coef_type = read_32bitLE(0x30,streamFile); 
+
+    /* when using split coefficients, 2nd array is at: */
     coef_splitted[0] = read_32bitLE(0x34,streamFile);
     coef_splitted[1] = read_32bitLE(0x38,streamFile);
+
     //if (coding == coding_XBOX && channel_count != 2) goto fail;
 
     /* build the VGMSTREAM */
@@ -298,14 +304,23 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
                         chstreamfile =
                             streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
 
-                    if (coef_type == 0) {
-                        for (j=0;j<16;j++) {
-                            vgmstream->ch[i].adpcm_coef[j] = read_16bitBE(coef[i]+j*2,streamFile);
+                    {
+                        int16_t (*read_16bit)(off_t , STREAMFILE*);
+                        if ((coef_type & 2) == 0) {
+                          read_16bit = read_16bitBE;
+                        } else {
+                          read_16bit = read_16bitLE;
                         }
-                    } else if (coef_type == 1) {
-                        for (j=0;j<8;j++) {
-                            vgmstream->ch[i].adpcm_coef[j*2]=read_16bitBE(coef[i]+j*2,streamFile);
-                            vgmstream->ch[i].adpcm_coef[j*2+1]=read_16bitBE(coef_splitted[i]+j*2,streamFile);
+
+                        if ((coef_type & 1) == 0) {
+                            for (j=0;j<16;j++) {
+                                vgmstream->ch[i].adpcm_coef[j] = read_16bit(coef[i]+j*2,streamFile);
+                            }
+                        } else {
+                            for (j=0;j<8;j++) {
+                                vgmstream->ch[i].adpcm_coef[j*2]=read_16bit(coef[i]+j*2,streamFile);
+                                vgmstream->ch[i].adpcm_coef[j*2+1]=read_16bit(coef_splitted[i]+j*2,streamFile);
+                            }
                         }
                     }
                     chstart_offset =start_offset+vgmstream->interleave_block_size*i;
