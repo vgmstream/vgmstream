@@ -11,8 +11,6 @@ VGMSTREAM * init_vgmstream_ps3_ivag(STREAMFILE *streamFile)
     VGMSTREAM * vgmstream = NULL;
     char filename[PATH_LIMIT];
     
-	size_t fileLength;
-	off_t readOffset = 0;
 	off_t start_offset;
 
 	int loop_flag = 0;

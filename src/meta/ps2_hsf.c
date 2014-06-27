@@ -12,9 +12,11 @@ VGMSTREAM * init_vgmstream_ps2_hsf(STREAMFILE *streamFile)
 	size_t fileLength;
 	size_t frequencyFlag;
 	
+#if 0
 	off_t	readOffset = 0;
 	uint8_t	testBuffer[0x10];
 	off_t loopEndOffset;
+#endif
 
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
@@ -57,7 +59,7 @@ VGMSTREAM * init_vgmstream_ps2_hsf(STREAMFILE *streamFile)
 		vgmstream->loop_start_sample = 0;
 		vgmstream->loop_end_sample = vgmstream->num_samples;
 
-		/*
+#if 0
 		readOffset = fileLength - 0x10;
 
 		do
@@ -72,7 +74,7 @@ VGMSTREAM * init_vgmstream_ps2_hsf(STREAMFILE *streamFile)
 			}
 
 		} while (readOffset > 0);
-		*/
+#endif
 	}
 
     /* open the file for reading */

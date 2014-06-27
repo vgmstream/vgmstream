@@ -534,11 +534,12 @@ fail:
 
 // FSB3 & FSB4 MPEG TEST
 VGMSTREAM * init_vgmstream_fsb_mpeg(STREAMFILE *streamFile) {
+#ifdef VGM_USE_MPEG
     VGMSTREAM * vgmstream = NULL;
     char filename[PATH_LIMIT];
     off_t start_offset;
-    int channel_count, channels, encoding, loop_flag, fsb_mainheader_len, fsb_subheader_len, FSBFlag;
-    long sample_rate = 0, num_samples = 0, rate;
+    int channel_count, channels, loop_flag, fsb_mainheader_len, fsb_subheader_len, FSBFlag, rate;
+    long sample_rate = 0, num_samples = 0;
     uint16_t mp3ID;
 
 #ifdef VGM_USE_MPEG
@@ -581,7 +582,7 @@ VGMSTREAM * init_vgmstream_fsb_mpeg(STREAMFILE *streamFile) {
     
 	/* Check the MPEG Sync Header */
 	mp3ID = read_16bitLE(start_offset,streamFile);
-    if (mp3ID&0x7FF != 0x7FF)
+    if ((mp3ID&0x7FF) != 0x7FF)
         goto fail;
 
 	channel_count = read_16bitLE(fsb_mainheader_len+0x3E,streamFile);
@@ -594,17 +595,11 @@ VGMSTREAM * init_vgmstream_fsb_mpeg(STREAMFILE *streamFile) {
     
 	num_samples = (read_32bitLE(fsb_mainheader_len+0x2C,streamFile));
 
-#ifdef VGM_USE_MPEG
-        mpeg_data = init_mpeg_codec_data(streamFile, start_offset, -1, -1, &mpeg_coding_type, &rate, &channels); // -1 to not check sample rate or channels
-        if (!mpeg_data) goto fail;
+    mpeg_data = init_mpeg_codec_data(streamFile, start_offset, -1, -1, &mpeg_coding_type, &rate, &channels); // -1 to not check sample rate or channels
+    if (!mpeg_data) goto fail;
 
-        //channel_count = channels;
-        sample_rate = rate;
-
-#else
-        // reject if no MPEG support
-        goto fail;
-#endif
+    //channel_count = channels;
+    sample_rate = rate;
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
@@ -621,16 +616,10 @@ VGMSTREAM * init_vgmstream_fsb_mpeg(STREAMFILE *streamFile) {
     }
     vgmstream->meta_type = meta_FSB_MPEG;
 
-#ifdef VGM_USE_MPEG
-        /* NOTE: num_samples seems to be quite wrong for MPEG */
-        vgmstream->codec_data = mpeg_data;
-		vgmstream->layout_type = layout_mpeg;
-		vgmstream->coding_type = mpeg_coding_type;
-#else
-        // reject if no MPEG support
-        goto fail;
-#endif
-
+    /* NOTE: num_samples seems to be quite wrong for MPEG */
+    vgmstream->codec_data = mpeg_data;
+	vgmstream->layout_type = layout_mpeg;
+	vgmstream->coding_type = mpeg_coding_type;
 
 #if 0
 	if (loop_flag) {
@@ -656,7 +645,6 @@ VGMSTREAM * init_vgmstream_fsb_mpeg(STREAMFILE *streamFile) {
               }
         }
 
-#ifdef VGM_USE_MPEG
 		else if(vgmstream->layout_type == layout_mpeg) {
 			for (i=0;i<channel_count;i++) {
 				vgmstream->ch[i].streamfile = streamFile->open(streamFile,filename,MPEG_BUFFER_SIZE);
@@ -664,7 +652,6 @@ VGMSTREAM * init_vgmstream_fsb_mpeg(STREAMFILE *streamFile) {
       }
 
     }
-#endif
         else { goto fail; }
     }
 
@@ -672,7 +659,6 @@ VGMSTREAM * init_vgmstream_fsb_mpeg(STREAMFILE *streamFile) {
 
     /* clean up anything we may have opened */
 fail:
-#ifdef VGM_USE_MPEG
     if (mpeg_data) {
         mpg123_delete(mpeg_data->m);
         free(mpeg_data);
@@ -681,18 +667,19 @@ fail:
             vgmstream->codec_data = NULL;
         }
     }
-#endif
     if (vgmstream) close_vgmstream(vgmstream);
+#endif
     return NULL;
 }
 
+#if 0
 // FSB5 MPEG
 VGMSTREAM * init_vgmstream_fsb5_mpeg(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[PATH_LIMIT];
     off_t start_offset;
-    int channel_count, channels, encoding, loop_flag, fsb_mainheader_len, fsb_subheader_len, FSBFlag;
-    long sample_rate = 0, num_samples = 0, rate;
+    int channel_count, channels, loop_flag, fsb_mainheader_len, fsb_subheader_len, FSBFlag, rate;
+    long sample_rate = 0, num_samples = 0;
     uint16_t mp3ID;
 
 #ifdef VGM_USE_MPEG
@@ -731,7 +718,7 @@ VGMSTREAM * init_vgmstream_fsb5_mpeg(STREAMFILE *streamFile) {
     
 	/* Check the MPEG Sync Header */
 	mp3ID = read_16bitLE(start_offset,streamFile);
-    if (mp3ID&0x7FF != 0x7FF)
+    if ((mp3ID&0x7FF) != 0x7FF)
         goto fail;
 
 	channel_count = read_16bitLE(fsb_mainheader_len+0x3E,streamFile);
@@ -835,3 +822,4 @@ fail:
     if (vgmstream) close_vgmstream(vgmstream);
     return NULL;
 }
+#endif

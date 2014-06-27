@@ -169,16 +169,16 @@ static void
 nwa_decode_block(NWAData *nwa)
 {
     /* 今回読み込む／デコードするデータの大きさを得る */
-    int curblocksize, curcompsize;
+    int curblocksize;
     if (nwa->curblock != nwa->blocks - 1)
     {
         curblocksize = nwa->blocksize * (nwa->bps / 8);
-        curcompsize = nwa->offsets[nwa->curblock + 1] - nwa->offsets[nwa->curblock];
+        //curcompsize = nwa->offsets[nwa->curblock + 1] - nwa->offsets[nwa->curblock];
     }
     else
     {
         curblocksize = nwa->restsize * (nwa->bps / 8);
-        curcompsize = nwa->blocksize * (nwa->bps / 8) * 2;
+        //curcompsize = nwa->blocksize * (nwa->bps / 8) * 2;
     }
 
     nwa->samples_in_buffer = 0;

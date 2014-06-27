@@ -9,7 +9,6 @@ VGMSTREAM * init_vgmstream_ivaud(STREAMFILE *streamFile) {
 	char filename[PATH_LIMIT];
     off_t start_offset;
 	off_t block_table_offset;
-	int block_count;
     int loop_flag = 0;
 	int channel_count;
     int i;
@@ -52,7 +51,7 @@ VGMSTREAM * init_vgmstream_ivaud(STREAMFILE *streamFile) {
 	
 	/* Calc num_samples */
 	start_offset = read_32bitLE(0x2C,streamFile);
-	block_count = read_32bitLE(0x08,streamFile);
+	//block_count = read_32bitLE(0x08,streamFile);
 	vgmstream->next_block_offset = read_32bitLE(0x2C,streamFile);
 
 	// to avoid troubles with "extra" samples

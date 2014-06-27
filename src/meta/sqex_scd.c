@@ -23,7 +23,7 @@ static STREAMFILE *open_scdint_with_STREAMFILE(STREAMFILE *file, const char * fi
 VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[PATH_LIMIT];
-    off_t start_offset, meta_offset_offset, meta_offset, post_meta_offset, size_offset;
+    off_t start_offset, meta_offset_offset, meta_offset, post_meta_offset;
     int32_t loop_start, loop_end;
 
     int loop_flag = 0;
@@ -48,14 +48,14 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
         /* version 3 BE, as seen in FFXIII for PS3 */
         read_32bit = read_32bitBE;
         read_16bit = read_16bitBE;
-        size_offset = 0x14;
+        //size_offset = 0x14;
         meta_offset_offset = 0x40 + read_16bit(0xe,streamFile);
     } else if (read_32bitLE(8,streamFile) == 3 ||
                read_32bitLE(8,streamFile) == 2) {
         /* version 2/3 LE, as seen in FFXIV for ?? */
         read_32bit = read_32bitLE;
         read_16bit = read_16bitLE;
-        size_offset = 0x10;
+        //size_offset = 0x10;
         meta_offset_offset = 0x40 + read_16bit(0xe,streamFile);
     } else goto fail;
 

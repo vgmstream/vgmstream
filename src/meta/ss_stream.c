@@ -119,7 +119,6 @@ VGMSTREAM * init_vgmstream_ss_stream(STREAMFILE *streamFile) {
     int loop_flag=0;
     int channels;
     int channel_count;
-    int freq_flag;
     off_t start_offset;
     int i;
 
@@ -129,7 +128,7 @@ VGMSTREAM * init_vgmstream_ss_stream(STREAMFILE *streamFile) {
 		strcasecmp("ss7",filename_extension(filename))) goto fail;
 
 	loop_flag = 0;
-  freq_flag = read_8bit(0x08,streamFile);
+	//freq_flag = read_8bit(0x08,streamFile);
 
     if (read_8bit(0x0C,streamFile) == 0) {
         channels = 1;

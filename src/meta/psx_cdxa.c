@@ -114,14 +114,13 @@ off_t init_xa_channel(int* channel,STREAMFILE* streamFile) {
 	size_t filelength=get_streamfile_size(streamFile);
 
 	int8_t currentChannel;
-	int8_t subAudio;
 
 	// 0 can't be a correct value
 	if(block_offset>=(off_t)filelength)
 		return 0;
 
 	currentChannel=read_8bit(block_offset-7,streamFile);
-	subAudio=read_8bit(block_offset-6,streamFile);
+	//subAudio=read_8bit(block_offset-6,streamFile);
 	*channel=currentChannel;
 	//if (!((currentChannel==channel) && (subAudio==0x64))) {
 	//	block_offset+=2352;

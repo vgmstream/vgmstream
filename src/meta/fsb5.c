@@ -20,8 +20,6 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
     int SampleHeaderStart, SampleHeaderLength, NameTableLength, SampleDataLength, CodingID, SampleMode;
     int ExtraFlag, ExtraFlagStart, ExtraFlagType, ExtraFlagSize, ExtraFlagEnd;
     
-    size_t fileLength;
-
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
     if (strcasecmp("fsb",filename_extension(filename))) goto fail;

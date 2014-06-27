@@ -539,7 +539,7 @@ VGMSTREAM * init_vgmstream_rifx(STREAMFILE *streamFile) {
 
     off_t file_size = -1;
     int sample_count = 0;
-    int fact_sample_count = -1;
+    //int fact_sample_count = -1;
     off_t start_offset = -1;
     off_t wiih_offset = -1;
     uint32_t wiih_size = 0;
@@ -624,7 +624,7 @@ VGMSTREAM * init_vgmstream_rifx(STREAMFILE *streamFile) {
                     break;
                 case 0x66616374:    /* fact */
                     if (chunk_size != 4) break;
-                    fact_sample_count = read_32bitBE(current_chunk+8, streamFile);
+                    //fact_sample_count = read_32bitBE(current_chunk+8, streamFile);
                     break;
                 case 0x57696948:    /* WiiH */
                     wiih_size = read_32bitBE(current_chunk+4, streamFile);

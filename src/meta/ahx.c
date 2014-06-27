@@ -11,7 +11,6 @@
 VGMSTREAM * init_vgmstream_ahx(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     off_t stream_offset;
-    size_t filesize;
     char filename[PATH_LIMIT];
     int channel_count = 1;
     int loop_flag = 0;
@@ -20,8 +19,6 @@ VGMSTREAM * init_vgmstream_ahx(STREAMFILE *streamFile) {
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
     if (strcasecmp("ahx",filename_extension(filename))) goto fail;
-
-    filesize = get_streamfile_size(streamFile);
 
     /* check first 2 bytes */
     if ((uint16_t)read_16bitBE(0,streamFile)!=0x8000) goto fail;

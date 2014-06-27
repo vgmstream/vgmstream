@@ -963,11 +963,9 @@ fail:
 
 /* RSD6OGG */
 VGMSTREAM * init_vgmstream_rsd6oogv(STREAMFILE *streamFile) {
+#ifdef VGM_USE_VORBIS
     char filename[PATH_LIMIT];
     off_t start_offset;
-
-	int loop_flag;
-	int channel_count;
 
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
@@ -979,7 +977,6 @@ VGMSTREAM * init_vgmstream_rsd6oogv(STREAMFILE *streamFile) {
 	if (read_32bitBE(0x4,streamFile) != 0x4F4F4756)	/* OOGV */
         goto fail;
 
-  	#ifdef VGM_USE_VORBIS
     {
         vgm_vorbis_info_t inf;
         VGMSTREAM * result = NULL;
@@ -995,10 +992,10 @@ VGMSTREAM * init_vgmstream_rsd6oogv(STREAMFILE *streamFile) {
             return result;
         }
 	   }
-#endif
 
 fail:
     /* clean up anything we may have opened */
+#endif
     return NULL;
 }
 

@@ -1736,7 +1736,7 @@ VGMSTREAM * init_vgmstream_dsp_str_ig(STREAMFILE *streamFile) {
     }
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(2,ch0_header.loop_flag);
+    vgmstream = allocate_vgmstream(channel_count, ch0_header.loop_flag);
     if (!vgmstream) goto fail;
     
     /* fill in the vital statistics */
@@ -1849,7 +1849,7 @@ VGMSTREAM * init_vgmstream_dsp_xiii(STREAMFILE *streamFile) {
 
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(2,ch1_header.loop_flag);
+    vgmstream = allocate_vgmstream(channel_count, ch1_header.loop_flag);
     if (!vgmstream) goto fail;
     
     /* fill in the vital statistics */
@@ -1905,7 +1905,6 @@ VGMSTREAM * init_vgmstream_wii_ndp(STREAMFILE *streamFile) {
     char filename[PATH_LIMIT];
     struct dsp_header ch0_header,ch1_header;
     off_t ch1_header_start, ch2_header_start, ch1_start, ch2_start;
-    int channel_count;
     int i;
 
     /* check extension, case insensitive */
@@ -1921,7 +1920,7 @@ VGMSTREAM * init_vgmstream_wii_ndp(STREAMFILE *streamFile) {
     if ((read_32bitLE(0x8,streamFile)+0x18 != get_streamfile_size(streamFile))) /* NDP */
 		  goto fail;
 
-    channel_count = (read_16bitLE(0x10,streamFile) != 2);
+    //channel_count = (read_16bitLE(0x10,streamFile) != 2);
 
     ch1_header_start = 0x18;
     ch2_header_start = 0x78;
@@ -1967,7 +1966,7 @@ VGMSTREAM * init_vgmstream_wii_ndp(STREAMFILE *streamFile) {
     }
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(2,ch0_header.loop_flag);
+    vgmstream = allocate_vgmstream(2, ch0_header.loop_flag);
     if (!vgmstream) goto fail;
     
     /* fill in the vital statistics */
@@ -2066,7 +2065,7 @@ VGMSTREAM * init_vgmstream_dsp_cabelas(STREAMFILE *streamFile) {
 
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(2,1);
+    vgmstream = allocate_vgmstream(channel_count, 1);
     if (!vgmstream) goto fail;
     
     /* fill in the vital statistics */
@@ -2462,3 +2461,4 @@ fail:
     if (vgmstream) close_vgmstream(vgmstream);
     return NULL;
 }
+

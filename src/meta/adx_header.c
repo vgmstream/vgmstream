@@ -14,12 +14,9 @@ static int find_key(STREAMFILE *file, uint8_t type, uint16_t *xor_start, uint16_
 VGMSTREAM * init_vgmstream_adx(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     off_t stream_offset;
-    size_t filesize;
     uint16_t version_signature;
     int loop_flag=0;
     int channel_count;
-    int32_t loop_start_offset=0;
-    int32_t loop_end_offset=0;
     int32_t loop_start_sample=0;
     int32_t loop_end_sample=0;
     meta_t header_type;
@@ -32,8 +29,6 @@ VGMSTREAM * init_vgmstream_adx(STREAMFILE *streamFile) {
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
     if (strcasecmp("adx",filename_extension(filename))) goto fail;
-
-    filesize = get_streamfile_size(streamFile);
 
     /* check first 2 bytes */
     if ((uint16_t)read_16bitBE(0,streamFile)!=0x8000) goto fail;
@@ -78,9 +73,9 @@ VGMSTREAM * init_vgmstream_adx(STREAMFILE *streamFile) {
         if (stream_offset-6 >= 0x2c) {   /* enough space for loop info? */
             loop_flag = (read_32bitBE(0x18,streamFile) != 0);
             loop_start_sample = read_32bitBE(0x1c,streamFile);
-            loop_start_offset = read_32bitBE(0x20,streamFile);
+            //loop_start_offset = read_32bitBE(0x20,streamFile);
             loop_end_sample = read_32bitBE(0x24,streamFile);
-            loop_end_offset = read_32bitBE(0x28,streamFile);
+            //loop_end_offset = read_32bitBE(0x28,streamFile);
         }
     } else if (version_signature == 0x0400) {
 
@@ -97,9 +92,9 @@ VGMSTREAM * init_vgmstream_adx(STREAMFILE *streamFile) {
 			loop_flag = (read_32bitBE(0x24,streamFile) != 0);
 
             loop_start_sample = read_32bitBE(0x28,streamFile);
-            loop_start_offset = read_32bitBE(0x2c,streamFile);
+            //loop_start_offset = read_32bitBE(0x2c,streamFile);
             loop_end_sample = read_32bitBE(0x30,streamFile);
-            loop_end_offset = read_32bitBE(0x34,streamFile);
+            //loop_end_offset = read_32bitBE(0x34,streamFile);
         }
     } else if (version_signature == 0x0500) {			 /* found in some SFD : Buggy Heat, appears to have no loop */
         header_type = meta_ADX_05;

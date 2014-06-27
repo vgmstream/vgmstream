@@ -59,3 +59,4 @@ fail:
     if (vgmstream) close_vgmstream(vgmstream);
     return NULL;
 }
+

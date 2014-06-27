@@ -57,6 +57,10 @@ VGMSTREAM * init_vgmstream_ps2_ast(STREAMFILE *streamFile) {
 		vgmstream->num_samples = (read_32bitLE(0x04,streamFile)-start_offset)*28/16/channel_count;
 		vgmstream->interleave_block_size = read_32bitLE(0x10,streamFile);
 	}
+    else
+    {
+        goto fail;
+    }
 
     vgmstream->layout_type = layout_interleave;    
 	vgmstream->coding_type = coding_PSX;

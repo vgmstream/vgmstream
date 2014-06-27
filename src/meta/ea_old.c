@@ -24,7 +24,6 @@ VGMSTREAM * init_vgmstream_eacs(STREAMFILE *streamFile) {
     int channel_count;
     int loop_flag=0;
 	char little_endian=0;
-	off_t	start_offset;
 	EACSHeader	*ea_header = NULL;
 	int32_t samples_count=0;
     int i;
@@ -46,7 +45,6 @@ VGMSTREAM * init_vgmstream_eacs(STREAMFILE *streamFile) {
         little_endian=1;
 
     /* check type details */
-	start_offset = read_32bitLE(0x04,streamFile);
 
 	if((uint32_t)read_32bitBE(0x08,streamFile)==0x45414353) { /* EACS */ 
 		read_streamfile((uint8_t*)ea_header,0x08,sizeof(EACSHeader),streamFile);
