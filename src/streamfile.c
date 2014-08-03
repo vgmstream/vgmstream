@@ -1,6 +1,7 @@
 #ifndef _MSC_VER
 #include <unistd.h>
 #endif
+#include "vgmstream.h"
 #include "streamfile.h"
 #include "util.h"
 
