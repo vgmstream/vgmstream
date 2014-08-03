@@ -7,20 +7,20 @@ VGMSTREAM * init_vgmstream_bfwav(STREAMFILE *streamFile) {
 
 	coding_t coding_type;
 
+	off_t head_offset;
+	/*off_t seek_offset;*/
+	int codec_number;
+	int channel_count;
+	int loop_flag;
+
+	off_t start_offset;
+
 	int big_endian = 1;
 	int ima = 0;
 	int32_t(*read_32bit)(off_t, STREAMFILE*) = NULL;
 	int16_t(*read_16bit)(off_t, STREAMFILE*) = NULL;
 	read_16bit = read_16bitBE;
 	read_32bit = read_32bitBE;
-
-	off_t head_offset;
-	off_t seek_offset;
-	int codec_number;
-	int channel_count;
-	int loop_flag;
-
-	off_t start_offset;
 
 	/* check extension, case insensitive */
 	streamFile->get_name(streamFile, filename, sizeof(filename));
@@ -107,15 +107,17 @@ VGMSTREAM * init_vgmstream_bfwav(STREAMFILE *streamFile) {
 
 	if (vgmstream->coding_type == coding_NGC_DSP) {
 		off_t coef_offset;
-		off_t coef_offset1;
-		off_t coef_offset2;
+		/*off_t coef_offset1;
+		off_t coef_offset2;*/
 		int coef_spacing;
 		int i, j;
-	
+		off_t coeffheader;
+		int foundcoef;
+
 		coef_spacing = 0x2E;
 
-		off_t coeffheader = head_offset + 0x28;
-		int foundcoef = 0;
+		coeffheader = head_offset + 0x28;
+		foundcoef = 0;
 		while (!(foundcoef))
 		{
 			if ((uint32_t)read_32bit(coeffheader, streamFile) == 0x1F000000)
