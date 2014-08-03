@@ -297,6 +297,7 @@ bool input_vgmstream::g_is_our_path(const char * p_path,const char * p_extension
 	if(!stricmp_utf8(p_extension,"bar")) return 1;
 	if(!stricmp_utf8(p_extension,"bcstm")) return 1;
 	if(!stricmp_utf8(p_extension,"bcwav")) return 1;
+	if(!stricmp_utf8(p_extension,"bfwav")) return 1;
 	if(!stricmp_utf8(p_extension,"bg00")) return 1;
 	if(!stricmp_utf8(p_extension,"bgw")) return 1;
 	if(!stricmp_utf8(p_extension,"bh2pcm")) return 1;
@@ -621,6 +622,7 @@ DECLARE_MULTIPLE_FILE_TYPE("BAF Audio File (*.BAF)", baf);
 DECLARE_MULTIPLE_FILE_TYPE("BAR Audio File (*.BAR)", bar);
 DECLARE_MULTIPLE_FILE_TYPE("BCSTM Audio File (*.BCSTM)", bcstm);
 DECLARE_MULTIPLE_FILE_TYPE("BCWAV Audio File (*.BCWAV)", bcwav);
+DECLARE_MULTIPLE_FILE_TYPE("BFWAV Audio File (*.BFWAV)", bfwav);
 DECLARE_MULTIPLE_FILE_TYPE("BG00 Audio File (*.BG00)", bg00);
 DECLARE_MULTIPLE_FILE_TYPE("BGW Audio File (*.BGW)", bgw);
 DECLARE_MULTIPLE_FILE_TYPE("BH2PCM Audio File (*.BH2PCM)", bh2pcm);

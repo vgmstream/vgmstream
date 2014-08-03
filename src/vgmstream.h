@@ -240,7 +240,8 @@ typedef enum {
     meta_RWSD,              /* single-stream RWSD */
     meta_RWAR,              /* single-stream RWAR */
     meta_RWAV,              /* contents of RWAR */
-    meta_CWAV,              /* */
+    meta_CWAV,              /* contents of CWAR */
+	meta_FWAV				/* contents of FWAR */
     meta_RSTM_SPM,          /* RSTM with 44->22khz hack */
     meta_THP,
     meta_RSTM_shrunken,     /* Atlus' mutant shortened RSTM */

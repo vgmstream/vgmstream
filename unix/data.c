@@ -44,6 +44,7 @@ gchar *vgmstream_exts [] = {
   "bar",
   "bcstm",
   "bcwav",
+  "bfwav",
   "bg00",
   "bgw",
   "bh2pcm",
