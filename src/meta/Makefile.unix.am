@@ -56,6 +56,7 @@ libmeta_la_SOURCES += xss.c
 libmeta_la_SOURCES += ps2_sl3.c
 libmeta_la_SOURCES += ps2_aus.c
 libmeta_la_SOURCES += fsb.c
+libmeta_la_SOURCES += fsb5.c
 libmeta_la_SOURCES += rsd.c
 libmeta_la_SOURCES += rwx.c
 libmeta_la_SOURCES += xwb.c
