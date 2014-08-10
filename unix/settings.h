@@ -1,16 +1,18 @@
 #ifndef __SETTINGS__
 #define __SETTINGS__
 
-typedef struct _SETTINGS
+typedef struct
 {
-  int loopcount;
-  int fadeseconds;
-  int fadedelayseconds;
-} SETTINGS,*PSETTINGS,*LPSETTINGS;
+    bool loop_forever;
+	int loop_count;
+	double fade_length;
+	double fade_delay;
+} Settings;
 
-void DefaultSettings(LPSETTINGS pSettings);
-int LoadSettings(LPSETTINGS pSettings);
-int SaveSettings(LPSETTINGS pSettings);
+extern Settings vgmstream_cfg;
 
+void debugMessage(const char *str);
+void vgmstream_cfg_load();
+void vgmstream_cfg_save();
 
 #endif
