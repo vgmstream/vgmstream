@@ -108,6 +108,7 @@ META_OBJS=meta/adx_header.o \
     meta/ps2_sl3.o \
     meta/ps2_aus.o \
     meta/fsb.o \
+    meta/fsb5.o \
     meta/rsd.o \
     meta/rwx.o \
     meta/xwb.o \
@@ -293,7 +294,7 @@ META_OBJS=meta/adx_header.o \
     meta/ps2_vbk.o \
     meta/otm.o \
     meta/bcstm.o \
-	meta/bfwav.o
+    meta/bfwav.o
 
 OBJECTS=vgmstream.o streamfile.o util.o $(CODING_OBJS) $(LAYOUT_OBJS) $(META_OBJS)
 
