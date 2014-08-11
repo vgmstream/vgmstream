@@ -32,7 +32,9 @@ const char *vgmstream_exts[] =
   "baka",
   "baf",
   "bar",
+  "bcstm",
   "bcwav",
+  "bfwav",
   "bg00",
   "bgw",
   "bh2pcm",
@@ -142,6 +144,7 @@ const char *vgmstream_exts[] =
   "nwa",
 
   "omu",
+  "otm",
 
   "p2bt",
   "p3d",
@@ -230,6 +233,7 @@ const char *vgmstream_exts[] =
   "vas",
   "vawx",
   "vb",
+  "vbk",
   "vgs",
   "vgv",
   "vig",
