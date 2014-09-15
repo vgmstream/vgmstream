@@ -1,19 +1,9 @@
-#include <audacious/util.h>
+#include <cstdlib>
 
-void vgmstream_init();
-void vgmstream_about();
-void vgmstream_configure();
-void vgmstream_destroy();
-void vgmstream_play(InputPlayback *context);
-void vgmstream_stop(InputPlayback *context);
-void vgmstream_pause(InputPlayback *context,gshort paused);
-void vgmstream_seek(InputPlayback *context,gint time);
-int vgmstream_get_time(InputPlayback *context);
-void vgmstream_mseek(InputPlayback *context,gulong ms);
-void vgmstream_file_info_box(const gchar *pFile);
-Tuple * vgmstream_probe_for_tuple(const gchar *uri, VFSFile *fd);
+#include "exts.h"
 
-gchar *vgmstream_exts [] = {
+const char *vgmstream_exts[] =
+{
   "2dx9",
   "2pfs",
 
@@ -288,22 +278,3 @@ gchar *vgmstream_exts [] = {
   /* terminator */
   NULL
 };
-
-
-InputPlugin vgmstream_iplug = {
-  .description = "VGMStream Decoder",
-  .init = vgmstream_init,
-  .about = vgmstream_about,
-  .configure = vgmstream_configure,
-  .cleanup = vgmstream_destroy,
-  .probe_for_tuple = vgmstream_probe_for_tuple,
-  .play_file = vgmstream_play,
-  .stop = vgmstream_stop,
-  .pause = vgmstream_pause,
-  .seek = vgmstream_seek,
-  .vfs_extensions = vgmstream_exts,
-  .mseek = vgmstream_mseek,
-  .file_info_box = vgmstream_file_info_box,
-};
-
-

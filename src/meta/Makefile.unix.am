@@ -1,10 +1,10 @@
 noinst_LTLIBRARIES = libmeta.la
 
-AM_CFLAGS = -Wall @CFLAGS@ -I$(top_builddir) -I$(top_srcdir) 
+AM_CFLAGS = -Wall @CFLAGS@ -I$(top_builddir) -I$(top_srcdir)
 AM_MAKEFLAGS=-f Makefile.unix
 
-libmeta_la_LDFLAGS = 
-libmeta_la_SOURCES = 
+libmeta_la_LDFLAGS =
+libmeta_la_SOURCES =
 libmeta_la_SOURCES += Cstr.c
 libmeta_la_SOURCES += adx_header.c
 libmeta_la_SOURCES += afc_header.c
@@ -56,6 +56,7 @@ libmeta_la_SOURCES += xss.c
 libmeta_la_SOURCES += ps2_sl3.c
 libmeta_la_SOURCES += ps2_aus.c
 libmeta_la_SOURCES += fsb.c
+libmeta_la_SOURCES += fsb5.c
 libmeta_la_SOURCES += rsd.c
 libmeta_la_SOURCES += rwx.c
 libmeta_la_SOURCES += xwb.c
@@ -237,5 +238,7 @@ libmeta_la_SOURCES += ps2_2pfs.c
 libmeta_la_SOURCES += ubi_ckd.c
 libmeta_la_SOURCES += otm.c
 libmeta_la_SOURCES += bcstm.c
+libmeta_la_SOURCES += bfwav.c
+libmeta_la_SOURCES += ps2_vbk.c
 
 EXTRA_DIST = meta.h
