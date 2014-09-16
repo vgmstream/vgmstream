@@ -567,6 +567,7 @@ typedef enum {
 	meta_PS2_VBK,
    meta_OTM,                 // Otomedius (Arcade)
    meta_CSTM,                // Nintendo 3DS CSTM
+   meta_3DS_IDSP,           // Nintendo 3DS IDSP
 #ifdef VGM_USE_MP4V2
 	meta_MP4,
 #endif

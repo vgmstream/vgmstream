@@ -3,6 +3,8 @@
 
 #include "../vgmstream.h"
 
+VGMSTREAM * init_vgmstream_3ds_idsp(STREAMFILE *streamFile);
+
 VGMSTREAM * init_vgmstream_adx(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_afc(STREAMFILE *streamFile);
