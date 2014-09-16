@@ -213,6 +213,7 @@ typedef enum {
 typedef enum {
     /* DSP-specific */
     meta_DSP_STD,           /* standard GC ADPCM (DSP) header */
+    meta_DSP_CSMP,          /* Metroid Prime 3, Donkey Kong Country Returns */
     meta_DSP_CSTR,          /* Star Fox Assault "Cstr" */
     meta_DSP_RS03,          /* Metroid Prime 2 "RS03" */
     meta_DSP_STM,           /* Paper Mario 2 STM */

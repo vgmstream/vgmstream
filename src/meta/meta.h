@@ -33,6 +33,8 @@ VGMSTREAM * init_vgmstream_ngc_mpdsp(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_ngc_dsp_std_int(STREAMFILE *streamFile);
 
+VGMSTREAM * init_vgmstream_ngc_dsp_csmp(STREAMFILE *streamFile);
+
 VGMSTREAM * init_vgmstream_ps2_ads(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_ps2_npsf(STREAMFILE *streamFile);

@@ -27,6 +27,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_halpst,
     init_vgmstream_rs03,
     init_vgmstream_ngc_dsp_std,
+	 init_vgmstream_ngc_dsp_csmp,
     init_vgmstream_Cstr,
     init_vgmstream_gcsw,
     init_vgmstream_ps2_ads,
@@ -2143,6 +2144,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case meta_DSP_AGSC:
             snprintf(temp,TEMPSIZE,"Retro Studios AGSC header");
+            break;
+        case meta_DSP_CSMP:
+            snprintf(temp,TEMPSIZE,"Retro Studios CSMP header");
             break;
         case meta_NGC_ADPDTK:
             snprintf(temp,TEMPSIZE,"assumed Nintendo ADP by .adp extension and valid first frame");

@@ -2580,3 +2580,133 @@ fail:
     return NULL;
 }
 
+/* the csmp format from Metroid Prime 3 and DKCR */
+
+#define CSMP_MAGIC 0x43534D50
+#define CSMP_DATA  0x44415441
+
+struct csmp_chunk {
+    uint32_t id;
+    uint32_t length;
+};
+
+VGMSTREAM * init_vgmstream_ngc_dsp_csmp(STREAMFILE *streamFile) {
+    VGMSTREAM * vgmstream = NULL;
+    char filename[PATH_LIMIT];
+
+    struct dsp_header header;
+    const off_t start_offset = 0x60;
+    int i;
+	 int csmp_magic;
+	 int csmp_version;
+
+    /* check extension, case insensitive */
+    streamFile->get_name(streamFile,filename,sizeof(filename));
+    if (strcasecmp("csmp",filename_extension(filename))) goto fail;
+
+    off_t current_offset = 0;
+
+    csmp_magic = read_32bitBE(current_offset, streamFile);
+    if (csmp_magic != CSMP_MAGIC) goto fail;
+
+    current_offset += 4;
+
+    csmp_version = read_32bitBE(current_offset, streamFile);
+	 if (csmp_version != 1) goto fail;
+
+    current_offset += 4;
+
+    int tries =0;
+    while (1)
+    {
+        if (tries > 4)
+            goto fail;
+
+        struct csmp_chunk chunk;
+        chunk.id = read_32bitBE(current_offset, streamFile);
+        chunk.length = read_32bitBE(current_offset + 4, streamFile);
+        current_offset += 8;
+        if (chunk.id != CSMP_DATA)
+        {
+            current_offset += chunk.length;
+            tries++;
+            continue;
+        }
+
+        break;
+    }
+
+    if (read_dsp_header(&header, current_offset, streamFile)) goto fail; 
+
+    /* check initial predictor/scale */
+	/* Retro doesn't seem to abide by this */
+    //if (header.initial_ps != (uint8_t)read_8bit(current_offset + start_offset,streamFile))
+    //    goto fail;
+
+    /* check type==0 and gain==0 */
+    if (header.format || header.gain)
+        goto fail;
+
+    if (header.loop_flag) {
+        off_t loop_off;
+        /* check loop predictor/scale */
+        loop_off = header.loop_start_offset/16*8;
+		/* Retro doesn't seem to abide by this */
+//        if (header.loop_ps != (uint8_t)read_8bit(current_offset + start_offset+loop_off,streamFile))
+//            goto fail;
+    }
+
+    /* compare num_samples with nibble count */
+    /*
+    fprintf(stderr,"num samples (literal): %d\n",read_32bitBE(0,streamFile));
+    fprintf(stderr,"num samples (nibbles): %d\n",dsp_nibbles_to_samples(read_32bitBE(4,streamFile)));
+    */
+
+    /* build the VGMSTREAM */
+
+
+    vgmstream = allocate_vgmstream(1,header.loop_flag);
+    if (!vgmstream) goto fail;
+
+    /* fill in the vital statistics */
+    vgmstream->num_samples = header.sample_count;
+    vgmstream->sample_rate = header.sample_rate;
+
+    vgmstream->loop_start_sample = dsp_nibbles_to_samples(
+            header.loop_start_offset);
+    vgmstream->loop_end_sample =  dsp_nibbles_to_samples(
+            header.loop_end_offset)+1;
+
+    /* don't know why, but it does happen*/
+    if (vgmstream->loop_end_sample > vgmstream->num_samples)
+        vgmstream->loop_end_sample = vgmstream->num_samples;
+
+    vgmstream->coding_type = coding_NGC_DSP;
+    vgmstream->layout_type = layout_none;
+    vgmstream->meta_type = meta_DSP_CSMP;
+
+    /* coeffs */
+    for (i=0;i<16;i++)
+        vgmstream->ch[0].adpcm_coef[i] = header.coef[i];
+    
+    /* initial history */
+    /* always 0 that I've ever seen, but for completeness... */
+    vgmstream->ch[0].adpcm_history1_16 = header.initial_hist1;
+    vgmstream->ch[0].adpcm_history2_16 = header.initial_hist2;
+
+    /* open the file for reading */
+    vgmstream->ch[0].streamfile = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
+
+    if (!vgmstream->ch[0].streamfile) goto fail;
+
+    vgmstream->ch[0].channel_start_offset=
+        vgmstream->ch[0].offset=current_offset + start_offset;
+
+    return vgmstream;
+
+fail:
+    /* clean up anything we may have opened */
+    if (vgmstream) close_vgmstream(vgmstream);
+    return NULL;
+}
+
