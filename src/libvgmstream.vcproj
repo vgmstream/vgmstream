@@ -249,7 +249,11 @@
 					>
 				</File>
 				<File
-					RelativePath=“.\meta\bcstm.c”
+					RelativePath=".\meta\bcstm.c"
+					>
+				</File>
+				<File
+					RelativePath=".\meta\bfwav.c"
 					>
 				</File>
 				<File
