@@ -9,7 +9,7 @@ export WINDRES=i586-mingw32msvc-windres
 .PHONY: libvgmstream.a libvorbis.a libmpg123-0.a libg7221_decode.a
 
 in_vgmstream.dll: libvgmstream.a libvorbis.a libmpg123-0.a libg7221_decode.a in_vgmstream.c resource.o
-	$(CC) -shared $(CFLAGS) "-DVERSION=\"`../version.sh`\"" in_vgmstream.c resource.o $(LDFLAGS) -o in_vgmstream.dll
+	$(CC) -shared -static-libgcc $(CFLAGS) "-DVERSION=\"`../version.sh`\"" in_vgmstream.c resource.o $(LDFLAGS) -o in_vgmstream.dll
 	$(STRIP) in_vgmstream.dll
 
 resource.o: resource.rc resource.h
