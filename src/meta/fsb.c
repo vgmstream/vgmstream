@@ -581,8 +581,8 @@ VGMSTREAM * init_vgmstream_fsb_mpeg(STREAMFILE *streamFile) {
 	start_offset = fsb_mainheader_len+fsb_subheader_len+0x10;
     
 	/* Check the MPEG Sync Header */
-	mp3ID = read_16bitLE(start_offset,streamFile);
-    if ((mp3ID&0x7FF) != 0x7FF)
+	mp3ID = read_16bitBE(start_offset,streamFile);
+    if ((mp3ID&0xFFE0) != 0xFFE0)
         goto fail;
 
 	channel_count = read_16bitLE(fsb_mainheader_len+0x3E,streamFile);
@@ -717,8 +717,8 @@ VGMSTREAM * init_vgmstream_fsb5_mpeg(STREAMFILE *streamFile) {
 	start_offset = fsb_mainheader_len+fsb_subheader_len+0x10;
     
 	/* Check the MPEG Sync Header */
-	mp3ID = read_16bitLE(start_offset,streamFile);
-    if ((mp3ID&0x7FF) != 0x7FF)
+	mp3ID = read_16bitBE(start_offset,streamFile);
+    if ((mp3ID&0xFFE0) != 0xFFE0)
         goto fail;
 
 	channel_count = read_16bitLE(fsb_mainheader_len+0x3E,streamFile);
