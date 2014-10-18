@@ -18,6 +18,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_adx,
     init_vgmstream_brstm,
 	init_vgmstream_bfwav,
+	init_vgmstream_bfstm,
     init_vgmstream_nds_strm,
     init_vgmstream_agsc,
     init_vgmstream_ngc_adpdtk,
@@ -2193,6 +2194,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         case meta_CWAV:
             snprintf(temp,TEMPSIZE,"Nintendo CWAV header");
             break;
+		case meta_FWAV:
+            snprintf(temp,TEMPSIZE,"Nintendo FWAV header");
+            break;
         case meta_PSX_XA:
             snprintf(temp,TEMPSIZE,"RIFF/CDXA header");
             break;
@@ -3071,6 +3075,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
 		case meta_CSTM:
             snprintf(temp,TEMPSIZE,"Nintendo 3DS CSTM Header");
+            break;
+		case meta_FSTM:
+            snprintf(temp,TEMPSIZE,"Nintendo Wii U FSTM Header");
             break;
     case meta_3DS_IDSP:
             snprintf(temp,TEMPSIZE,"Nintendo 3DS IDSP Header");
