@@ -35,6 +35,7 @@ const char *vgmstream_exts[] =
   "bcstm",
   "bcwav",
   "bfwav",
+  "bfwavnsmbu",
   "bg00",
   "bgw",
   "bh2pcm",
@@ -73,6 +74,7 @@ const char *vgmstream_exts[] =
   "fag",
   "filp",
   "fsb",
+  "fwav",
 
   "gbts",
   "gca",
