@@ -103,8 +103,10 @@
     <ClCompile Include="layout\tra_blocked.c" />
     <ClCompile Include="meta\akb.c" />
     <ClCompile Include="meta\bcstm.c" />
+    <ClCompile Include="meta\bfstm.c" />
     <ClCompile Include="meta\bfwav.c" />
     <ClCompile Include="meta\excitebots.c" />
+    <ClCompile Include="meta\g1l.c" />
     <ClCompile Include="meta\ios_psnd.c" />
     <ClCompile Include="meta\lsf.c" />
     <ClCompile Include="meta\mattel_hyperscan.c" />
