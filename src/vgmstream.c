@@ -334,7 +334,8 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_ps2_vbk,
 	init_vgmstream_otm,
 	init_vgmstream_bcstm,
-  init_vgmstream_3ds_idsp,
+	init_vgmstream_3ds_idsp,
+	init_vgmstream_g1l,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -3078,6 +3079,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
 		case meta_FSTM:
             snprintf(temp,TEMPSIZE,"Nintendo Wii U FSTM Header");
+            break;
+		case meta_G1L:
+            snprintf(temp,TEMPSIZE,"Tecmo Koei G1L Header");
             break;
     case meta_3DS_IDSP:
             snprintf(temp,TEMPSIZE,"Nintendo 3DS IDSP Header");

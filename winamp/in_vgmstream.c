@@ -151,6 +151,7 @@ char * extension_list[] = {
     "filp\0FILP Audio File (*.FILP)\0",
     "fsb\0FSB Audio File (*.FSB)\0",
 
+	"g1l\0G1L Audio File (*.G1L)\0",
     "gbts\0GBTS Audio File (*.GBTS)\0",
     "gca\0GCA Audio File (*.GCA)\0",
     "gcm\0GCM Audio File (*.GCM)\0",

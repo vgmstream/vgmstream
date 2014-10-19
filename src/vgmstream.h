@@ -570,6 +570,7 @@ typedef enum {
    meta_CSTM,                // Nintendo 3DS CSTM
    meta_FSTM,                // Nintendo Wii U FSTM
    meta_3DS_IDSP,           // Nintendo 3DS IDSP
+   meta_G1L,           		// Tecmo Koei G1L
 #ifdef VGM_USE_MP4V2
 	meta_MP4,
 #endif

@@ -340,6 +340,7 @@ bool input_vgmstream::g_is_our_path(const char * p_path,const char * p_extension
 	if(!stricmp_utf8(p_extension,"filp")) return 1;
 	if(!stricmp_utf8(p_extension,"fsb")) return 1;
 
+	if(!stricmp_utf8(p_extension,"g1l")) return 1;
 	if(!stricmp_utf8(p_extension,"gbts")) return 1;
 	if(!stricmp_utf8(p_extension,"gca")) return 1;
 	if(!stricmp_utf8(p_extension,"gcm")) return 1;
@@ -667,6 +668,7 @@ DECLARE_MULTIPLE_FILE_TYPE("FAG Audio File (*.FAG)", fag);
 DECLARE_MULTIPLE_FILE_TYPE("FILP Audio File (*.FILP)", filp);
 DECLARE_MULTIPLE_FILE_TYPE("FSB Audio File (*.FSB)", fsb);
 
+DECLARE_MULTIPLE_FILE_TYPE("G1L Audio File (*.G1L)", g1l);
 DECLARE_MULTIPLE_FILE_TYPE("GBTS Audio File (*.GBTS)", gbts);
 DECLARE_MULTIPLE_FILE_TYPE("GCA Audio File (*.GCA)", gca);
 DECLARE_MULTIPLE_FILE_TYPE("GCM Audio File (*.GCM)", gcm);
