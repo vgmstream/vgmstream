@@ -239,6 +239,7 @@ libmeta_la_SOURCES += ubi_ckd.c
 libmeta_la_SOURCES += otm.c
 libmeta_la_SOURCES += bcstm.c
 libmeta_la_SOURCES += bfwav.c
+libmeta_la_SOURCES += bfstm.c
 libmeta_la_SOURCES += ps2_vbk.c
 
 EXTRA_DIST = meta.h

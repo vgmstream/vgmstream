@@ -17,6 +17,7 @@ VGMSTREAM * init_vgmstream_bfwav(STREAMFILE *streamFile) {
 
 	int big_endian = 1;
 	int ima = 0;
+	int nsmbu_flag = 0;
 	int32_t(*read_32bit)(off_t, STREAMFILE*) = NULL;
 	int16_t(*read_16bit)(off_t, STREAMFILE*) = NULL;
 	read_16bit = read_16bitBE;
@@ -24,9 +25,11 @@ VGMSTREAM * init_vgmstream_bfwav(STREAMFILE *streamFile) {
 
 	/* check extension, case insensitive */
 	streamFile->get_name(streamFile, filename, sizeof(filename));
-	if (strcasecmp("bfwav", filename_extension(filename)))
-		goto fail;
-
+	if (strcasecmp("bfwav", filename_extension(filename))) {
+		if (strcasecmp("bfwavnsmbu",filename_extension(filename))) goto fail;
+		else nsmbu_flag = 1;
+	}
+	
 	/* check header */
 	if ((uint32_t)read_32bitBE(0, streamFile) != 0x46574156) /* "FWAV" */
 		goto fail;
@@ -75,6 +78,8 @@ VGMSTREAM * init_vgmstream_bfwav(STREAMFILE *streamFile) {
 	/* fill in the vital statistics */
 	vgmstream->num_samples = read_32bit(head_offset + 0x14, streamFile);
 	vgmstream->sample_rate = (uint16_t)read_16bit(head_offset + 0xE, streamFile);
+	if (nsmbu_flag)
+		vgmstream->sample_rate /= 2;
 	/* channels and loop flag are set by allocate_vgmstream */
 
 	vgmstream->loop_start_sample = read_32bit(head_offset + 0x10, streamFile);
