@@ -295,7 +295,8 @@ META_OBJS=meta/adx_header.o \
     meta/otm.o \
     meta/bcstm.o \
 	meta/bfstm.o \
-    meta/bfwav.o
+    meta/bfwav.o \
+	meta/g1l.o
 
 OBJECTS=vgmstream.o streamfile.o util.o $(CODING_OBJS) $(LAYOUT_OBJS) $(META_OBJS)
 
