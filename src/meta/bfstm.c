@@ -3,7 +3,7 @@
 
 VGMSTREAM * init_vgmstream_bfstm(STREAMFILE *streamFile) {
 	VGMSTREAM * vgmstream = NULL;
-	char filename[260];
+	char filename[PATH_LIMIT];
 
 	coding_t coding_type;
 
@@ -61,7 +61,7 @@ VGMSTREAM * init_vgmstream_bfstm(STREAMFILE *streamFile) {
 		coding_type = coding_PCM8;
 		break;
 	case 1:
-		coding_type = coding_PCM16LE;
+		coding_type = coding_PCM16BE;
 		break;
 	case 2:
 		coding_type = coding_NGC_DSP;
