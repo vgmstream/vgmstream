@@ -7,15 +7,6 @@ VGMSTREAM * init_vgmstream_bfwav(STREAMFILE *streamFile) {
 
 	coding_t coding_type;
 
-	off_t head_offset;
-	/*off_t seek_offset;*/
-	int codec_number;
-	int channel_count;
-	int loop_flag;
-
-	off_t start_offset;
-
-	int big_endian = 1;
 	int ima = 0;
 	int nsmbu_flag = 0;
 	int32_t(*read_32bit)(off_t, STREAMFILE*) = NULL;
@@ -23,13 +14,20 @@ VGMSTREAM * init_vgmstream_bfwav(STREAMFILE *streamFile) {
 	read_16bit = read_16bitBE;
 	read_32bit = read_32bitBE;
 
+	off_t data_offset;
+	off_t head_offset;
+	int codec_number;
+	int channel_count;
+	int loop_flag;
+
+	off_t start_offset;
+
 	/* check extension, case insensitive */
 	streamFile->get_name(streamFile, filename, sizeof(filename));
-	if (strcasecmp("bfwav", filename_extension(filename))) {
+	if (strcasecmp("bfwav", filename_extension(filename)) && strcasecmp("fwav", filename_extension(filename))) {
 		if (strcasecmp("bfwavnsmbu",filename_extension(filename))) goto fail;
 		else nsmbu_flag = 1;
 	}
-	
 	/* check header */
 	if ((uint32_t)read_32bitBE(0, streamFile) != 0x46574156) /* "FWAV" */
 		goto fail;
@@ -38,9 +36,8 @@ VGMSTREAM * init_vgmstream_bfwav(STREAMFILE *streamFile) {
 		goto fail;
 
 	/* get head offset, check */
-	if (big_endian)
-		head_offset = read_32bit(0x18, streamFile);
-
+	head_offset = read_32bit(0x18, streamFile);		
+	data_offset = read_32bit(0x24, streamFile);
 	
 	if ((uint32_t)read_32bitBE(head_offset, streamFile) != 0x494E464F)  /* "INFO" (FWAV)*/
 		goto fail;
@@ -56,10 +53,7 @@ VGMSTREAM * init_vgmstream_bfwav(STREAMFILE *streamFile) {
 		coding_type = coding_PCM8;
 		break;
 	case 1:
-		if (big_endian)
-			coding_type = coding_PCM16BE;
-		else
-			coding_type = coding_PCM16LE;
+		coding_type = coding_PCM16BE;
 		break;
 	case 2:
 		coding_type = coding_NGC_DSP;
@@ -77,9 +71,10 @@ VGMSTREAM * init_vgmstream_bfwav(STREAMFILE *streamFile) {
 
 	/* fill in the vital statistics */
 	vgmstream->num_samples = read_32bit(head_offset + 0x14, streamFile);
-	vgmstream->sample_rate = (uint16_t)read_16bit(head_offset + 0xE, streamFile);
 	if (nsmbu_flag)
-		vgmstream->sample_rate /= 2;
+		vgmstream->sample_rate = 16000;
+	else
+		vgmstream->sample_rate = (uint16_t)read_16bit(head_offset + 0xE, streamFile);
 	/* channels and loop flag are set by allocate_vgmstream */
 
 	vgmstream->loop_start_sample = read_32bit(head_offset + 0x10, streamFile);
@@ -89,40 +84,25 @@ VGMSTREAM * init_vgmstream_bfwav(STREAMFILE *streamFile) {
 	if (channel_count == 1)
 		vgmstream->layout_type = layout_none;
 	else
-	{
-		if (ima)
-			vgmstream->layout_type = layout_interleave;
-		else
-			vgmstream->layout_type = layout_interleave_shortblock;
-	}
-	if (big_endian)
-		vgmstream->meta_type = meta_FWAV;
+		vgmstream->layout_type = layout_interleave;
 
-	if (big_endian)
-	{
-	//	vgmstream->interleave_block_size = read_32bit(head_offset + 0x38, streamFile);
-	//	vgmstream->interleave_smallblock_size = read_32bit(head_offset + 0x48, streamFile);
 
-		vgmstream->interleave_block_size = 0x200;
-		vgmstream->interleave_smallblock_size = 0x20;
-	}
+	vgmstream->meta_type = meta_FWAV;
 
-	if (big_endian)
-		start_offset = read_32bitBE(0x24, streamFile) + 0x20;
+	vgmstream->interleave_block_size = read_32bitBE(read_32bitBE(0x6c, streamFile) + 0x60, streamFile) - 0x18;
+	
+
+	start_offset = data_offset + 0x20;
 
 	if (vgmstream->coding_type == coding_NGC_DSP) {
 		off_t coef_offset;
-		/*off_t coef_offset1;
-		off_t coef_offset2;*/
 		int coef_spacing;
 		int i, j;
-		off_t coeffheader;
-		int foundcoef;
-
+	
 		coef_spacing = 0x2E;
 
-		coeffheader = head_offset + 0x28;
-		foundcoef = 0;
+		off_t coeffheader = head_offset + 0x28;
+		int foundcoef = 0;
 		while (!(foundcoef))
 		{
 			if ((uint32_t)read_32bit(coeffheader, streamFile) == 0x1F000000)
