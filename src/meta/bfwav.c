@@ -9,10 +9,8 @@ VGMSTREAM * init_vgmstream_bfwav(STREAMFILE *streamFile) {
 
 	int ima = 0;
 	int nsmbu_flag = 0;
-	int32_t(*read_32bit)(off_t, STREAMFILE*) = NULL;
-	int16_t(*read_16bit)(off_t, STREAMFILE*) = NULL;
-	read_16bit = read_16bitBE;
-	read_32bit = read_32bitBE;
+	int32_t(*read_32bit)(off_t, STREAMFILE*) = read_32bitBE;
+	int16_t(*read_16bit)(off_t, STREAMFILE*) = read_16bitBE;
 
 	off_t data_offset;
 	off_t head_offset;
@@ -96,10 +94,8 @@ VGMSTREAM * init_vgmstream_bfwav(STREAMFILE *streamFile) {
 
 	if (vgmstream->coding_type == coding_NGC_DSP) {
 		off_t coef_offset;
-		int coef_spacing;
 		int i, j;
-	
-		coef_spacing = 0x2E;
+		int coef_spacing = 0x2E;
 
 		off_t coeffheader = head_offset + 0x28;
 		int foundcoef = 0;
