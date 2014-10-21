@@ -2593,6 +2593,8 @@ struct csmp_chunk {
 VGMSTREAM * init_vgmstream_ngc_dsp_csmp(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[PATH_LIMIT];
+    off_t current_offset;
+    int tries;
 
     struct dsp_header header;
     const off_t start_offset = 0x60;
@@ -2604,7 +2606,7 @@ VGMSTREAM * init_vgmstream_ngc_dsp_csmp(STREAMFILE *streamFile) {
     streamFile->get_name(streamFile,filename,sizeof(filename));
     if (strcasecmp("csmp",filename_extension(filename))) goto fail;
 
-    off_t current_offset = 0;
+    current_offset = 0;
 
     csmp_magic = read_32bitBE(current_offset, streamFile);
     if (csmp_magic != CSMP_MAGIC) goto fail;
@@ -2616,13 +2618,14 @@ VGMSTREAM * init_vgmstream_ngc_dsp_csmp(STREAMFILE *streamFile) {
 
     current_offset += 4;
 
-    int tries =0;
+    tries =0;
     while (1)
     {
+        struct csmp_chunk chunk;
+
         if (tries > 4)
             goto fail;
-
-        struct csmp_chunk chunk;
+        
         chunk.id = read_32bitBE(current_offset, streamFile);
         chunk.length = read_32bitBE(current_offset + 4, streamFile);
         current_offset += 8;
