@@ -601,6 +601,7 @@ VGMSTREAM * init_vgmstream_3ds_idsp(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[PATH_LIMIT];
 
+    off_t idsp_offset  = 0;
     off_t start_offset;
     off_t interleave;
 
@@ -609,19 +610,37 @@ VGMSTREAM * init_vgmstream_3ds_idsp(STREAMFILE *streamFile) {
     int channel_count;
 
     /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("idsp",filename_extension(filename))) goto fail;
+    //streamFile->get_name(streamFile,filename,sizeof(filename));
+    //if (strcasecmp("idsp",filename_extension(filename))) goto fail;
 
     /* check header magic */
-    if (read_32bitBE(0x0,streamFile) != 0x49445350) goto fail; /* "IDSP" */
-
-    channel_count = read_32bitBE(0x8, streamFile);
-    if (channel_count != 2) goto fail;
-
-    if (read_dsp_header(&ch0_header, 0x40, streamFile)) goto fail;
-    if (channel_count == 2 && read_dsp_header(&ch1_header, 0xa0, streamFile)) goto fail;
-
-    start_offset = read_32bitBE(0x28,streamFile);
+    if( read_32bitBE(0x0,streamFile) != 0x49445350 )
+    {
+        /* check header magic */
+        if (read_32bitBE(0,streamFile) != 0x4E555333) goto fail; /* "NUS3" */
+        
+        /* Header size */
+        idsp_offset  = 0x14 + read_32bitLE( 0x10, streamFile );
+        
+        idsp_offset += read_32bitLE( 0x1C, streamFile ) + 8;
+        idsp_offset += read_32bitLE( 0x24, streamFile ) + 8;
+        idsp_offset += read_32bitLE( 0x2C, streamFile ) + 8;
+        idsp_offset += read_32bitLE( 0x34, streamFile ) + 8;
+        idsp_offset += read_32bitLE( 0x3C, streamFile ) + 8;
+        idsp_offset += read_32bitLE( 0x44, streamFile ) + 8;
+        idsp_offset += 8;
+    }
+    
+    /* check magic */
+    if (read_32bitBE(idsp_offset,streamFile) != 0x49445350) goto fail; /* "IDSP" */
+    
+    channel_count = read_32bitBE(idsp_offset+0x8, streamFile);
+    if(channel_count != 2 && channel_count != 1) goto fail;
+    
+    if (read_dsp_header(&ch0_header, idsp_offset+0x40, streamFile)) goto fail;
+    if (channel_count == 2 && read_dsp_header(&ch1_header, idsp_offset+0xa0, streamFile)) goto fail;
+    
+    start_offset = read_32bitBE(idsp_offset+0x28,streamFile) + idsp_offset;
     interleave = 16;
 
     /* check initial predictor/scale */
@@ -639,9 +658,9 @@ VGMSTREAM * init_vgmstream_3ds_idsp(STREAMFILE *streamFile) {
     if ( channel_count == 2 &&(
             ch0_header.sample_count != ch1_header.sample_count ||
             ch0_header.nibble_count != ch1_header.nibble_count ||
-            ch0_header.sample_rate != ch1_header.sample_rate ||
-            ch0_header.sample_rate != read_32bitBE(0xc, streamFile) ||
-            ch0_header.loop_flag != ch1_header.loop_flag ||
+            ch0_header.sample_rate  != ch1_header.sample_rate ||
+            ch0_header.sample_rate  != read_32bitBE(idsp_offset+0xc, streamFile) ||
+            ch0_header.loop_flag    != ch1_header.loop_flag ||
             ch0_header.loop_start_offset != ch1_header.loop_start_offset ||
             ch0_header.loop_end_offset != ch1_header.loop_end_offset
             )) goto fail;
@@ -2593,7 +2612,7 @@ struct csmp_chunk {
 VGMSTREAM * init_vgmstream_ngc_dsp_csmp(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[PATH_LIMIT];
-    off_t current_offset;
+    long current_offset;
     int tries;
 
     struct dsp_header header;
