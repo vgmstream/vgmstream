@@ -410,6 +410,7 @@ bool input_vgmstream::g_is_our_path(const char * p_path,const char * p_extension
 	if(!stricmp_utf8(p_extension,"ndp")) return 1;
 	if(!stricmp_utf8(p_extension,"ngca")) return 1;
 	if(!stricmp_utf8(p_extension,"npsf")) return 1;
+	if(!stricmp_utf8(p_extension,"nus3bank")) return 1;
 	if(!stricmp_utf8(p_extension,"nwa")) return 1;
 
 	if(!stricmp_utf8(p_extension,"omu")) return 1;

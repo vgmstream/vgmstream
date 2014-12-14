@@ -143,6 +143,7 @@ const char *vgmstream_exts[] =
   "ndp",
   "ngca",
   "npsf",
+  "nus3bank",
   "nwa",
 
   "omu",
