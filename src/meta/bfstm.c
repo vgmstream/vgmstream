@@ -27,7 +27,7 @@ VGMSTREAM * init_vgmstream_bfstm(STREAMFILE *streamFile) {
 	/* check header */
 	if ((uint32_t)read_32bitBE(0, streamFile) != 0x4653544D) /* "FSTM" */
 		goto fail;
-	if ((uint32_t)read_16bitBE(4, streamFile) != 0xFEFF)
+	if ((uint16_t)read_16bitBE(4, streamFile) != 0xFEFF)
 		goto fail;
 
 	founddata = 0;
