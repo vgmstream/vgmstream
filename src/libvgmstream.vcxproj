@@ -154,6 +154,7 @@
     <ClCompile Include="meta\bgw.c" />
     <ClCompile Include="meta\bnsf.c" />
     <ClCompile Include="meta\brstm.c" />
+    <ClCompile Include="meta\btsnd.c" />
     <ClCompile Include="meta\capdsp.c" />
     <ClCompile Include="meta\Cstr.c" />
     <ClCompile Include="meta\dc_asd.c" />
@@ -185,6 +186,7 @@
     <ClCompile Include="meta\ivb.c" />
     <ClCompile Include="meta\kraw.c" />
     <ClCompile Include="meta\maxis_xa.c" />
+    <ClCompile Include="meta\mca.c" />
     <ClCompile Include="meta\msvp.c" />
     <ClCompile Include="meta\mus_acm.c">
       <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IntDir)%(Filename)1.obj</ObjectFileName>

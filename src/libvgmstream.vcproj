@@ -273,6 +273,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\btsnd.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\capdsp.c"
 					>
 				</File>
@@ -414,6 +418,10 @@
 				</File>
 				<File
 					RelativePath=".\meta\maxis_xa.c"
+					>
+				</File>
+				<File
+					RelativePath=".\meta\mca.c"
 					>
 				</File>
 				<File
