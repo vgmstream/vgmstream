@@ -12,6 +12,9 @@ VGMSTREAM * init_vgmstream_mca(STREAMFILE *streamFile) {
 	int channel_count;
 	int loop_flag;
 	off_t start_offset;
+	off_t coef_offset;
+	int i, j;
+	int coef_spacing;
 
 	/* check extension, case insensitive */
 	streamFile->get_name(streamFile, filename, sizeof(filename));
@@ -58,9 +61,8 @@ VGMSTREAM * init_vgmstream_mca(STREAMFILE *streamFile) {
 	
 	
 	
-	off_t coef_offset = start_offset - (vgmstream->channels * 0x30);
-	int i, j;
-	int coef_spacing = 0x30;
+	coef_offset = start_offset - (vgmstream->channels * 0x30);
+	coef_spacing = 0x30;
 	
 	for (j = 0; j<vgmstream->channels; j++) {
 		for (i = 0; i<16; i++) {
@@ -71,7 +73,6 @@ VGMSTREAM * init_vgmstream_mca(STREAMFILE *streamFile) {
 
 	/* open the file for reading by each channel */
 	{
-		int i;
 		for (i = 0; i<channel_count; i++) {
 			if (vgmstream->layout_type == layout_interleave_shortblock)
 				vgmstream->ch[i].streamfile = streamFile->open(streamFile, filename,
