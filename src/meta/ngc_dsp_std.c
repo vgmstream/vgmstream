@@ -2366,117 +2366,129 @@ fail:
 }
 
 
-/* .dspw files, two DSP files stuck together */
+/* .dspw files, multiple DSP files stuck together */
 /* found in Sengoku Basara 3 Wii */
 VGMSTREAM * init_vgmstream_dsp_dspw(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[PATH_LIMIT];
 
-    off_t channel_1_start, channel_2_start;
+    off_t streamSize, mrkrOffset, channelSpacing;
+	int channel_count, i, j;
+	int found_mrkr = 0;
+	channel_count = read_8bit(0x1B, streamFile);
 
-    struct dsp_header ch0_header,ch1_header;
-
+	struct dsp_header ch_header[channel_count];
+	off_t channel_start[channel_count];
+	
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("dspw",filename_extension(filename))) goto fail;
+	if (strcasecmp("dspw",filename_extension(filename))) goto fail;
 
     if (read_32bitBE(0x0,streamFile) != 0x44535057) // DSPW
-      goto fail;
+		goto fail;
 
+	streamSize = read_32bitBE(0x8, streamFile);
+	
+
+	if (read_32bitBE(streamSize - 0x10, streamFile) == 0x74494D45) // tIME
+		streamSize -= 0x10;
+
+	mrkrOffset = streamSize - 4;
+	while ((mrkrOffset > streamSize - 0x1000) && !(found_mrkr)) {	// some files have a mrkr section with multiple loop regions at the end
+		if (read_32bitBE(mrkrOffset, streamFile) != 0x6D726B72) // mrkr
+			mrkrOffset -= 4;
+		else {
+			streamSize = mrkrOffset;
+			found_mrkr++;
+		}
+	}
+	streamSize -= 0x20; // minus the main header
+	channelSpacing = streamSize / channel_count;
+ 
     /* read .dspw header */
-    channel_1_start = 0x20;
-    channel_2_start = (get_streamfile_size(streamFile)/2)+0x10;
+	for (i = 0; i < channel_count; i++) {
+		channel_start[i] = 0x20 + i*channelSpacing;
 
-    /* get DSP headers */
-    if (read_dsp_header(&ch0_header, channel_1_start, streamFile)) goto fail;
-    if (read_dsp_header(&ch1_header, channel_2_start, streamFile)) goto fail;
+		/* get DSP headers */
+		if (read_dsp_header(&ch_header[i], channel_start[i], streamFile)) goto fail;
 
-    /* check initial predictor/scale */
-    if (ch0_header.initial_ps !=
-            (uint8_t)read_8bit(channel_1_start + 0x60, streamFile))
-        goto fail;
+		/* check initial predictor/scale */
+		if (ch_header[i].initial_ps !=
+				(uint8_t)read_8bit(channel_start[i] + 0x60, streamFile))
+			goto fail;
 
-    if (ch1_header.initial_ps !=
-            (uint8_t)read_8bit(channel_2_start + 0x60, streamFile))
-        goto fail;
+		/* check type==0 and gain==0 */
+		if (ch_header[i].format || ch_header[i].gain)
+			goto fail;
 
-    /* check type==0 and gain==0 */
-    if (ch0_header.format || ch0_header.gain ||
-        ch1_header.format || ch1_header.gain)
-        goto fail;
-
-    /* check for agreement */
-    if (
-            ch0_header.sample_count != ch1_header.sample_count ||
-            ch0_header.nibble_count != ch1_header.nibble_count ||
-            ch0_header.sample_rate != ch1_header.sample_rate ||
-            ch0_header.loop_flag != ch1_header.loop_flag ||
-            ch0_header.loop_start_offset != ch1_header.loop_start_offset ||
-            ch0_header.loop_end_offset != ch1_header.loop_end_offset
-       ) goto fail;
-
-    if (ch0_header.loop_flag) {
-        off_t loop_off;
-        /* check loop predictor/scale */
-        loop_off = ch0_header.loop_start_offset/16*8;
-        if (ch0_header.loop_ps !=
-                (uint8_t)read_8bit(channel_1_start+0x60+loop_off,streamFile))
-            goto fail;
-        if (ch1_header.loop_ps !=
-                (uint8_t)read_8bit(channel_2_start+0x60+loop_off,streamFile))
-            goto fail;
-    }
-
+		/* check for agreement */
+		if (i > 0) {
+			if (
+					ch_header[i].sample_count != ch_header[i-1].sample_count ||
+					ch_header[i].nibble_count != ch_header[i-1].nibble_count ||
+					ch_header[i].sample_rate != ch_header[i-1].sample_rate ||
+					ch_header[i].loop_flag != ch_header[i-1].loop_flag ||
+					ch_header[i].loop_start_offset != ch_header[i-1].loop_start_offset ||
+					ch_header[i].loop_end_offset != ch_header[i-1].loop_end_offset
+			   ) goto fail;
+		}
+		
+		if (ch_header[0].loop_flag) {
+			off_t loop_off;
+			/* check loop predictor/scale */
+			loop_off = ch_header[0].loop_start_offset/16*8;
+			if (ch_header[i].loop_ps !=
+					(uint8_t)read_8bit(channel_start[i]+0x60+loop_off,streamFile))
+				goto fail;
+		}
+	}
     /* build the VGMSTREAM */
 
-    vgmstream = allocate_vgmstream(2,ch0_header.loop_flag);
+    vgmstream = allocate_vgmstream(channel_count,ch_header[0].loop_flag);
     if (!vgmstream) goto fail;
 
     /* fill in the vital statistics */
-    vgmstream->num_samples = ch0_header.sample_count;
-    vgmstream->sample_rate = ch0_header.sample_rate;
+    vgmstream->num_samples = ch_header[0].sample_count;
+    vgmstream->sample_rate = ch_header[0].sample_rate;
 
     vgmstream->loop_start_sample = dsp_nibbles_to_samples(
-            ch0_header.loop_start_offset);
+            ch_header[0].loop_start_offset);
     vgmstream->loop_end_sample =  dsp_nibbles_to_samples(
-            ch0_header.loop_end_offset)+1;
+            ch_header[0].loop_end_offset)+1;
 
     vgmstream->coding_type = coding_NGC_DSP;
     vgmstream->layout_type = layout_none;
+	//	vgmstream->layout_type = layout_interleave;
+	//	vgmstream->interleave_block_size = channelSpacing;
     vgmstream->meta_type = meta_DSP_DSPW;
 
     /* coeffs */
-    {
-        int i;
-        for (i=0;i<16;i++) {
-            vgmstream->ch[0].adpcm_coef[i] = ch0_header.coef[i];
-            vgmstream->ch[1].adpcm_coef[i] = ch1_header.coef[i];
+    for (i=0;i<channel_count;i++){
+        for (j=0;j<16;j++) {
+            vgmstream->ch[i].adpcm_coef[j] = ch_header[i].coef[j];
         }
+		 /* initial history */
+		/* always 0 that I've ever seen, but for completeness... */
+		vgmstream->ch[i].adpcm_history1_16 = ch_header[i].initial_hist1;
+		vgmstream->ch[i].adpcm_history2_16 = ch_header[i].initial_hist2;
     }
     
-    /* initial history */
-    /* always 0 that I've ever seen, but for completeness... */
-    vgmstream->ch[0].adpcm_history1_16 = ch0_header.initial_hist1;
-    vgmstream->ch[0].adpcm_history2_16 = ch0_header.initial_hist2;
-    vgmstream->ch[1].adpcm_history1_16 = ch1_header.initial_hist1;
-    vgmstream->ch[1].adpcm_history2_16 = ch1_header.initial_hist2;
+   
 
     /* open the file for reading */
-    vgmstream->ch[0].streamfile = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-    if (!vgmstream->ch[0].streamfile) goto fail;
+	
+	for (i=0;i<channel_count;i++) {
+		vgmstream->ch[i].streamfile = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
+		if (!vgmstream->ch[i].streamfile) goto fail;
 
-    vgmstream->ch[1].streamfile = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-    if (!vgmstream->ch[1].streamfile) goto fail;
-
-    vgmstream->ch[0].channel_start_offset =
-            vgmstream->ch[0].offset=channel_1_start+0x60;
-    vgmstream->ch[1].channel_start_offset = 
-            vgmstream->ch[1].offset=channel_2_start+0x60;
+		vgmstream->ch[i].channel_start_offset =
+				vgmstream->ch[i].offset=channel_start[i]+0x60;
+	}
 
     return vgmstream;
 
-fail:
     /* clean up anything we may have opened */
+fail:
     if (vgmstream) close_vgmstream(vgmstream);
     return NULL;
 }

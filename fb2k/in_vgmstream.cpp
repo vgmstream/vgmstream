@@ -311,6 +311,7 @@ bool input_vgmstream::g_is_our_path(const char * p_path,const char * p_extension
 	if(!stricmp_utf8(p_extension,"bo2")) return 1;
 	if(!stricmp_utf8(p_extension,"brstmspm")) return 1;
 	if(!stricmp_utf8(p_extension,"brstm")) return 1;
+	if(!stricmp_utf8(p_extension,"btsnd")) return 1;
 	if(!stricmp_utf8(p_extension,"bvg")) return 1;
 
 	if(!stricmp_utf8(p_extension,"caf")) return 1;
@@ -387,6 +388,7 @@ bool input_vgmstream::g_is_our_path(const char * p_path,const char * p_extension
 	if(!stricmp_utf8(p_extension,"lwav")) return 1;
 
 	if(!stricmp_utf8(p_extension,"matx")) return 1;
+	if(!stricmp_utf8(p_extension,"mca")) return 1;
 	if(!stricmp_utf8(p_extension,"mcg")) return 1;
 	if(!stricmp_utf8(p_extension,"mi4")) return 1;
 	if(!stricmp_utf8(p_extension,"mib")) return 1;
@@ -641,6 +643,7 @@ DECLARE_MULTIPLE_FILE_TYPE("BNSF Audio File (*.BNSF)", bnsf);
 DECLARE_MULTIPLE_FILE_TYPE("BO2 Audio File (*.BO2)", bo2);
 DECLARE_MULTIPLE_FILE_TYPE("BRSTM Audio File (*.BRSTM)", brstm);
 DECLARE_MULTIPLE_FILE_TYPE("BRSTM Audio File [2] (*.BRSTM)", brstmspm);
+DECLARE_MULTIPLE_FILE_TYPE("BTSND Audio File (*.BTSND)", btsnd);
 DECLARE_MULTIPLE_FILE_TYPE("BVG Audio File (*.BVG)", bvg);
 
 DECLARE_MULTIPLE_FILE_TYPE("CAF Audio File (*.CAF)", caf);
@@ -715,6 +718,7 @@ DECLARE_MULTIPLE_FILE_TYPE("LSF Audio File (*.LSF)", lsf);
 DECLARE_MULTIPLE_FILE_TYPE("LWAV Audio File (*.LWAV)", lwav);
 
 DECLARE_MULTIPLE_FILE_TYPE("MATX Audio File (*.MATX)", matx);
+DECLARE_MULTIPLE_FILE_TYPE("MCA Audio File (*.MCA)", mca);
 DECLARE_MULTIPLE_FILE_TYPE("MCG Audio File (*.MCG)", mcg);
 DECLARE_MULTIPLE_FILE_TYPE("PS2 MI4 Audio File (*.MI4)", mi4);
 DECLARE_MULTIPLE_FILE_TYPE("PS2 MIB Audio File (*.MIB)", mib);

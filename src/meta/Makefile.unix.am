@@ -242,5 +242,7 @@ libmeta_la_SOURCES += bfwav.c
 libmeta_la_SOURCES += bfstm.c
 libmeta_la_SOURCES += g1l.c
 libmeta_la_SOURCES += ps2_vbk.c
+libmeta_la_SOURCES += mca.c
+libmeta_la_SOURCES += btsnd.c
 
 EXTRA_DIST = meta.h

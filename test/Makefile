@@ -1,18 +1,18 @@
 export SHELL = /bin/sh
-export CFLAGS=-Wall -ggdb
-export LDFLAGS= -L../src -lvgmstream -lvorbisfile -lmpg123 -lm
+export CFLAGS=-Wall -O3 -I../ext_includes
+export LDFLAGS=-L../src -L ../ext_libs -lvgmstream -lvorbisfile -lmpg123 -lm
+export CC=gcc
+export AR=ar
 export STRIP=strip
 
 .PHONY: libvgmstream.a
 
-test: libvgmstream.a test.o
-	$(CC) test.o $(LDFLAGS) $(CFLAGS) -o test
-
-test.o: test.c
-	$(CC) $(CFLAGS) -c "-DVERSION=\"`../version.sh`\"" test.c -o test.o
+test.exe: libvgmstream.a
+	$(CC) $(CFLAGS) $(LDFLAGS) "-DVERSION=\"`../version.sh`\"" test.c $(LDFLAGS) -o test
+	$(STRIP) test
 
 libvgmstream.a:
-	$(MAKE) -C ../src libvgmstream.a
+	$(MAKE) -C ../src $@
 
 clean:
 	rm -f test test.o
