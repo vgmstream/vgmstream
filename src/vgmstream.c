@@ -19,6 +19,8 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_brstm,
 	init_vgmstream_bfwav,
 	init_vgmstream_bfstm,
+	init_vgmstream_mca,
+	init_vgmstream_btsnd,
     init_vgmstream_nds_strm,
     init_vgmstream_agsc,
     init_vgmstream_ngc_adpdtk,
@@ -3083,9 +3085,15 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
 		case meta_G1L:
             snprintf(temp,TEMPSIZE,"Tecmo Koei G1L Header");
             break;
-    case meta_3DS_IDSP:
+		case meta_3DS_IDSP:
             snprintf(temp,TEMPSIZE,"Nintendo 3DS IDSP Header");
             break;
+		case meta_WIIU_BTSND:
+			snprintf(temp,TEMPSIZE,"Wii U Menu Boot Sound");
+			break;
+		case meta_MCA:
+			snprintf(temp,TEMPSIZE,"Capcom MCA Header");
+			break;
 		default:
            snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");
     }

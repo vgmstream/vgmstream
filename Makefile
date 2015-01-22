@@ -4,7 +4,8 @@ buildrelease: clean sourceball mingwbin
 
 sourceball:
 	rm -rf vgmstream-`./version.sh`
-	svn export . vgmstream-`./version.sh`
+	git checkout-index -f -a --prefix=vgmstream-`./version.sh`/
+#	git archive --format zip --output vgmstream-`./version.sh`.zip master
 	echo "#!/bin/sh" > vgmstream-`./version.sh`/version.sh
 	echo "echo \"`./version.sh`\"" >> vgmstream-`./version.sh`/version.sh
 	tar cvzf "vgmstream-`./version.sh`.tar.gz" vgmstream-`./version.sh`/*

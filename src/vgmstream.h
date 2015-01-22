@@ -39,7 +39,7 @@ enum { PATH_LIMIT = 32768 };
 #endif
 
 #ifdef VGM_USE_MAIATRAC3PLUS
-#include <maiatrac3plus.h>
+#include "maiatrac3plus.h"
 #endif
 
 #include "coding/acm_decoder.h"
@@ -250,6 +250,7 @@ typedef enum {
 	meta_NDS_RRDS,		    /* Ridge Racer DS */
     meta_WII_BNS,           /* Wii BNS Banner Sound (similar to RSTM) */
     meta_STX,               /* Pikmin .stx */
+	meta_WIIU_BTSND,		/* Wii U Boot Sound */
 
     /* CRI ADX */
     meta_ADX_03,            /* ADX "type 03" */
@@ -571,6 +572,7 @@ typedef enum {
    meta_FSTM,                // Nintendo Wii U FSTM
    meta_3DS_IDSP,           // Nintendo 3DS IDSP
    meta_G1L,           		// Tecmo Koei G1L
+   meta_MCA,			// Capcom MCA "MADP"
 #ifdef VGM_USE_MP4V2
 	meta_MP4,
 #endif

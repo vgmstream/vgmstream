@@ -1,41 +1,38 @@
+/*
+Capcom MADP format found in Capcom 3DS games.
+*/
+
 #include "meta.h"
 #include "../util.h"
-// Koei Tecmo G1L, found in the Warriors games
-VGMSTREAM * init_vgmstream_g1l(STREAMFILE *streamFile) {
+
+VGMSTREAM * init_vgmstream_mca(STREAMFILE *streamFile) {
 	VGMSTREAM * vgmstream = NULL;
 	char filename[PATH_LIMIT];
-
 	coding_t coding_type;
-
-	off_t head_offset;
-
 	int channel_count;
 	int loop_flag;
 	off_t start_offset;
 
 	/* check extension, case insensitive */
 	streamFile->get_name(streamFile, filename, sizeof(filename));
-	if (strcasecmp("g1l", filename_extension(filename)))
+	if (strcasecmp("mca", filename_extension(filename))) 
 		goto fail;
 
 
 	/* check header */
-	if ((uint32_t)read_32bitBE(0, streamFile) != 0x47314C5F) /* "G1L_" */
+	if ((uint32_t)read_32bitBE(0, streamFile) != 0x4D414450) /* "MADP" */
 		goto fail;
-	if ((uint32_t)read_32bitBE(0x1c, streamFile) != 0x57696942) /* "WiiB" */
-		goto fail;
+	
+	start_offset = (get_streamfile_size(streamFile) - read_32bitLE(0x20, streamFile));
+	
+	channel_count = read_8bit(0x8, streamFile);
 
-	/* check type details */
-	if (read_32bitBE(0x30, streamFile) > 0)
+	if (read_32bitLE(0x18, streamFile) > 0)
 		loop_flag = 1;
 	else
 		loop_flag = 0;
-	channel_count = read_8bit(0x3f, streamFile);
-
-
 	coding_type = coding_NGC_DSP;
 	
-
 	if (channel_count < 1) goto fail;
 
 	/* build the VGMSTREAM */
@@ -44,48 +41,33 @@ VGMSTREAM * init_vgmstream_g1l(STREAMFILE *streamFile) {
 	if (!vgmstream) goto fail;
 
 	/* fill in the vital statistics */
-	vgmstream->num_samples = read_32bitBE(0x2c, streamFile);
-	vgmstream->sample_rate = (uint16_t)read_16bitBE(0x42, streamFile);
+	vgmstream->num_samples = read_32bitLE(0xc, streamFile);
+	vgmstream->sample_rate = (uint16_t)read_16bitLE(0x10, streamFile);
 	/* channels and loop flag are set by allocate_vgmstream */
-	
-	vgmstream->loop_start_sample = read_32bitBE(0x30, streamFile);
-	vgmstream->loop_end_sample = vgmstream->num_samples;
-	
+
+	vgmstream->loop_start_sample = read_32bitLE(0x14, streamFile);
+	vgmstream->loop_end_sample = read_32bitLE(0x18, streamFile);
 
 	vgmstream->coding_type = coding_type;
 	if (channel_count == 1)
 		vgmstream->layout_type = layout_none;
-	
-	vgmstream->layout_type = layout_interleave_byte;
-	
-	vgmstream->meta_type = meta_G1L;
-
-	vgmstream->interleave_block_size = 0x1;	
-
-	if (vgmstream->coding_type == coding_NGC_DSP) {
-		off_t coef_offset = 0x78;
-		
-		int i, j;
-		int coef_spacing = 0x60;
-
-		for (j = 0; j<vgmstream->channels; j++) {
-			for (i = 0; i<16; i++) {
-				vgmstream->ch[j].adpcm_coef[i] = read_16bitBE(coef_offset + j*coef_spacing + i * 2, streamFile);
-			}
-		}
-		
-		start_offset = 0x81c;
-	}
-
-#ifdef VGM_USE_MAIATRAC3PLUS
-	else if (vgmstream->coding_type == coding_AT3plus) {
-		start_offset = 0xc4;
-	}
-#endif
 	else
-		goto fail;
-
-
+		vgmstream->layout_type = layout_interleave;
+	vgmstream->interleave_block_size = 0x100;	// Constant for this format
+	vgmstream->meta_type = meta_MCA;
+	
+	
+	
+	off_t coef_offset = start_offset - (vgmstream->channels * 0x30);
+	int i, j;
+	int coef_spacing = 0x30;
+	
+	for (j = 0; j<vgmstream->channels; j++) {
+		for (i = 0; i<16; i++) {
+			vgmstream->ch[j].adpcm_coef[i] = read_16bitLE(coef_offset + j*coef_spacing + i * 2, streamFile);
+		}
+	}
+		
 
 	/* open the file for reading by each channel */
 	{

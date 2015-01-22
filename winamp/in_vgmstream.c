@@ -99,9 +99,10 @@ char * extension_list[] = {
 	"ast\0AST Audio File (*.AST)\0",
 	"asr\0ASR Audio File (*.ASR)\0",
 	"ass\0ASS Audio File (*.ASS)\0",
+	"at3\0AT3 Audio File (*.AT3)\0",
 	"aud\0AUD Audio File (*.AUD)\0",
 	"aus\0AUS Audio File (*.AUS)\0",
-
+	
 	"b1s\0B1S Audio File (*.B1S)\0",
 	"baka\0BAKA Audio File (*.BAKA)\0",
 	"baf\0BAF Audio File (*.BAF)\0",
@@ -121,6 +122,7 @@ char * extension_list[] = {
     "bnsf\0BNSF Audio File (*.BNSF)\0",
     "bo2\0BO2 Audio File (*.BO2)\0",
     "brstm;brstmspm\0BRSTM Audio File (*.BRSTM)\0",
+    "btsnd\0BTSND Audio File (*.BTSND)\0",
 	"bvg\0BVG Audio File (*.BVG)\0",
 
     "caf\0CAF Audio File (*.CAF)\0",
@@ -198,6 +200,7 @@ char * extension_list[] = {
     "lwav\0LWAV Audio File (*.LWAV)\0",
 
     "matx\0MATX Audio File (*.MATX)\0",
+	"mca\0MCA Audio File (*.MCA)\0",
     "mcg\0MCG Audio File (*.MCG)\0",
     "mi2\0PS2 MI2 Audio File (*.MI2)\0",
     "mi4\0PS2 MI4 Audio File (*.MI4)\0",
