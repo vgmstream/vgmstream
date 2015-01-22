@@ -610,7 +610,7 @@ VGMSTREAM * init_vgmstream_3ds_idsp(STREAMFILE *streamFile) {
     int channel_count;
 
     /* check extension, case insensitive */
-    //streamFile->get_name(streamFile,filename,sizeof(filename));
+    streamFile->get_name(streamFile,filename,sizeof(filename));
     //if (strcasecmp("idsp",filename_extension(filename))) goto fail;
 
     /* check header magic */
