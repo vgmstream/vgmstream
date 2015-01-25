@@ -2379,7 +2379,7 @@ VGMSTREAM * init_vgmstream_dsp_dspw(STREAMFILE *streamFile) {
 	VARDECL(struct dsp_header, ch_header);
 	VARDECL(off_t, channel_start);
 
-	channel_count = read_8bit(0x1B, streamFile);
+	channel_count = (unsigned char)read_8bit(0x1B, streamFile);
 
 	ALLOC(ch_header, channel_count, struct dsp_header);
 	ALLOC(channel_start, channel_count, off_t);
