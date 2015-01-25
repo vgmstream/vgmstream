@@ -1,0 +1,6 @@
+LIBRARY libg719_decode.dll
+EXPORTS
+    g719_decode_frame @1
+    g719_free @2
+    g719_init @3
+    g719_reset @4

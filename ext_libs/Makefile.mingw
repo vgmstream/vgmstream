@@ -11,6 +11,9 @@ libmpg123-0.a: libmpg123-0.def
 libg7221_decode.a: libg7221_decode.def
 	$(DLLTOOL) -d libg7221_decode.def -l libg7221_decode.a
 
+libg719_decode.a: libg719_decode.def
+	$(DLLTOOL) -d libg719_decode.def -l libg719_decode.a
+
 at3plusdecoder.a: at3plusdecoder.def
 	$(DLLTOOL) -d at3plusdecoder.def -l at3plusdecoder.a
 

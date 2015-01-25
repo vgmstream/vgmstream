@@ -15,6 +15,7 @@ VGMSTREAM * init_vgmstream_bnsf(STREAMFILE *streamFile) {
     uint32_t bnsf_form;
     enum {
         form_IS14 = UINT32_C(0x49533134),  /* IS14 */
+        form_IS22 = UINT32_C(0x49533232),  /* IS22 */
     };
 
     int channel_count = 0;
@@ -32,6 +33,7 @@ VGMSTREAM * init_vgmstream_bnsf(STREAMFILE *streamFile) {
 
     int FormatChunkFound = 0;
     int DataChunkFound = 0;
+    int RiffSizeExtra = 8;
 
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
@@ -52,6 +54,11 @@ VGMSTREAM * init_vgmstream_bnsf(STREAMFILE *streamFile) {
         case form_IS14:
             break;
 #endif
+#ifdef VGM_USE_G719
+        case form_IS22:
+            RiffSizeExtra = 0;
+            break;
+#endif
         default:
             goto fail;
     }
@@ -60,7 +67,7 @@ VGMSTREAM * init_vgmstream_bnsf(STREAMFILE *streamFile) {
     file_size = get_streamfile_size(streamFile);
 
     /* check for tructated RIFF */
-    if (file_size < riff_size+8) goto fail;
+    if (file_size < riff_size+RiffSizeExtra) goto fail;
 
     /* read through chunks to verify format and find metadata */
     {
@@ -128,6 +135,13 @@ VGMSTREAM * init_vgmstream_bnsf(STREAMFILE *streamFile) {
 
             break;
 #endif
+#ifdef VGM_USE_G719
+        case form_IS22:
+            coding_type = coding_G719;
+            sample_count = data_size/block_size*block_samples;
+
+            break;
+#endif
         default:
             goto fail;
     }
@@ -170,6 +184,33 @@ VGMSTREAM * init_vgmstream_bnsf(STREAMFILE *streamFile) {
         {
             /* Siren 14 == 14khz bandwidth */
             data[i].handle = g7221_init(vgmstream->interleave_block_size, 14000);
+            if (!data[i].handle)
+            {
+                goto fail; /* close_vgmstream is able to clean up */
+            }
+        }
+    }
+#endif
+
+#ifdef VGM_USE_G719
+    if (coding_G719 == coding_type)
+    {
+        int i;
+        g719_codec_data *data;
+        
+        /* one data structure per channel */
+        data = malloc(sizeof(g719_codec_data) * channel_count);
+        if (!data)
+        {
+            goto fail;
+        }
+        memset(data,0,sizeof(g719_codec_data) * channel_count);
+        vgmstream->codec_data = data;
+        
+        for (i = 0; i < channel_count; i++)
+        {
+            /* Siren 22 == 22khz bandwidth */
+            data[i].handle = g719_init(vgmstream->interleave_block_size);
             if (!data[i].handle)
             {
                 goto fail; /* close_vgmstream is able to clean up */

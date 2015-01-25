@@ -16,6 +16,7 @@ enum { PATH_LIMIT = 32768 };
 #define VGM_USE_MPEG
 /* disabled by default, defined for builds that support it */
 //#define VGM_USE_G7221
+//#define VGM_USE_G719
 
 #include "streamfile.h"
 #include "coding/g72x_state.h"
@@ -27,6 +28,9 @@ enum { PATH_LIMIT = 32768 };
 #endif
 #ifdef VGM_USE_G7221
 #include "g7221.h"
+#endif
+#ifdef VGM_USE_G719
+#include "g719.h"
 #endif
 
 #ifdef VGM_USE_MP4V2
@@ -124,6 +128,9 @@ typedef enum {
 #ifdef VGM_USE_G7221
     coding_G7221,           /* G.722.1 (Polycom Siren 7) */
     coding_G7221C,          /* G.722.1 with Annex C extension (Polycom Siren 14) */
+#endif
+#ifdef VGM_USE_G719
+    coding_G719,
 #endif
 
     coding_ACM,             /* InterPlay ACM */
@@ -738,6 +745,13 @@ typedef struct {
     sample buffer[640];
     g7221_handle *handle;
 } g7221_codec_data;
+#endif
+
+#ifdef VGM_USE_G719
+typedef struct {
+   sample buffer[960];
+   g719_handle *handle;
+} g719_codec_data;
 #endif
 
 #ifdef VGM_USE_MAIATRAC3PLUS

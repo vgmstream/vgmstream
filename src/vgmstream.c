@@ -465,6 +465,18 @@ void reset_vgmstream(VGMSTREAM * vgmstream) {
     }
 #endif
 
+#ifdef VGM_USE_G719
+    if (vgmstream->coding_type==coding_G719) {
+        g719_codec_data *data = vgmstream->codec_data;
+        int i;
+
+        for (i = 0; i < vgmstream->channels; i++)
+        {
+            g719_reset(data[i].handle);
+        }
+    }
+#endif
+
 #ifdef VGM_USE_MAIATRAC3PLUS
 	if (vgmstream->coding_type==coding_AT3plus) {
 		maiatrac3plus_codec_data *data = vgmstream->codec_data;
@@ -656,6 +668,25 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
             for (i = 0; i < vgmstream->channels; i++)
             {
                 g7221_free(data[i].handle);
+            }
+            free(data);
+        }
+
+        vgmstream->codec_data = NULL;
+    }
+#endif
+
+#ifdef VGM_USE_G719
+    if (vgmstream->coding_type == coding_G719) {
+        g719_codec_data *data = vgmstream->codec_data;
+
+        if (data)
+        {
+            int i;
+
+            for (i = 0; i < vgmstream->channels; i++)
+            {
+                g719_free(data[i].handle);
             }
             free(data);
         }
@@ -979,6 +1010,10 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_G7221:
             return 16000/50;
 #endif
+#ifdef VGM_USE_G719
+        case coding_G719:
+            return 48000/50;
+#endif
         case coding_LSF:
             return 54;
         case coding_MTAF:
@@ -1085,6 +1120,9 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
 #ifdef VGM_USE_G7221
         case coding_G7221C:
         case coding_G7221:
+#endif
+#ifdef VGM_USE_G719:
+        case coding_G719:
 #endif
 #ifdef VGM_USE_MAIATRAC3PLUS
 		case coding_AT3plus:
@@ -1468,6 +1506,17 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
         case coding_G7221C:
             for (chan=0;chan<vgmstream->channels;chan++) {
                 decode_g7221(vgmstream,
+                    buffer+samples_written*vgmstream->channels+chan,
+                    vgmstream->channels,
+                    samples_to_do,
+                    chan);
+            }
+            break;
+#endif
+#ifdef VGM_USE_G719
+        case coding_G719:
+            for (chan=0;chan<vgmstream->channels;chan++) {
+                decode_g719(vgmstream,
                     buffer+samples_written*vgmstream->channels+chan,
                     vgmstream->channels,
                     samples_to_do,
@@ -1919,6 +1968,11 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case coding_G7221C:
             snprintf(temp,TEMPSIZE,"ITU G.722.1 annex C (Polycom Siren 14)");
+            break;
+#endif
+#ifdef VGM_USE_G719
+        case coding_G719:
+            snprintf(temp,TEMPSIZE,"ITU G.719 annex B (Polycom Siren 22)");
             break;
 #endif
 #ifdef VGM_USE_MAIATRAC3PLUS
