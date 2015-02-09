@@ -889,4 +889,8 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length);
  * stereo stream. */
 void try_dual_file_stereo(VGMSTREAM * opened_stream, STREAMFILE *streamFile);
 
+/* Return the average bitrate in bps of all unique files contained within this
+ * stream. Compares files by absolute paths. */
+int get_vgmstream_average_bitrate(VGMSTREAM * vgmstream);
+
 #endif

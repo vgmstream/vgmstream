@@ -3307,3 +3307,39 @@ void try_dual_file_stereo(VGMSTREAM * opened_stream, STREAMFILE *streamFile) {
 fail:
     return;
 }
+
+static int get_vgmstream_channel_average_bitrate(VGMSTREAMCHANNEL * channel, int sample_rate, int length_samples)
+{
+    return (int)((int64_t)get_streamfile_size(channel->streamfile) * 8 * sample_rate / length_samples);
+}
+
+int get_vgmstream_average_bitrate(VGMSTREAM * vgmstream)
+{
+    char path_current[PATH_LIMIT];
+    char path_compare[PATH_LIMIT];
+    
+    unsigned int i, j;
+    int bitrate = 0;
+    int sample_rate = vgmstream->sample_rate;
+    int length_samples = vgmstream->num_samples;
+    
+    if (vgmstream->channels >= 1)
+        bitrate += get_vgmstream_channel_average_bitrate(&vgmstream->ch[0], sample_rate, length_samples);
+
+    for (i = 1; i < vgmstream->channels; ++i)
+    {
+        VGMSTREAMCHANNEL * ch = &vgmstream->ch[i];
+        ch->streamfile->get_name(ch->streamfile, path_current, sizeof(path_current));
+        for (j = 0; j < i; ++j)
+        {
+            VGMSTREAMCHANNEL * chc = &vgmstream->ch[j];
+            chc->streamfile->get_name(chc->streamfile, path_compare, sizeof(path_compare));
+            if (!strcmp(path_current, path_compare))
+                break;
+        }
+        if (j == i)
+            bitrate += get_vgmstream_channel_average_bitrate(ch, sample_rate, length_samples);
+    }
+    
+    return bitrate;
+}
