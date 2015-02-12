@@ -3329,10 +3329,14 @@ int get_vgmstream_average_bitrate(VGMSTREAM * vgmstream)
     for (i = 1; i < vgmstream->channels; ++i)
     {
         VGMSTREAMCHANNEL * ch = &vgmstream->ch[i];
+        if (!ch->streamfile)
+            continue;
         ch->streamfile->get_name(ch->streamfile, path_current, sizeof(path_current));
         for (j = 0; j < i; ++j)
         {
             VGMSTREAMCHANNEL * chc = &vgmstream->ch[j];
+            if (!chc->streamfile)
+                continue;
             chc->streamfile->get_name(chc->streamfile, path_compare, sizeof(path_compare));
             if (!strcmp(path_current, path_compare))
                 break;
