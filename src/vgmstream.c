@@ -3308,9 +3308,68 @@ fail:
     return;
 }
 
-static int get_vgmstream_channel_average_bitrate(VGMSTREAMCHANNEL * channel, int sample_rate, int length_samples)
+static int get_vgmstream_channel_count(VGMSTREAM * vgmstream)
 {
-    return (int)((int64_t)get_streamfile_size(channel->streamfile) * 8 * sample_rate / length_samples);
+    if (vgmstream->layout_type==layout_scd_int) {
+        scd_int_codec_data *data = vgmstream->codec_data;
+        if (data) {
+            return data->substream_count;
+        }
+        else {
+            return 0;
+        }
+    }
+#ifdef VGM_USE_VORBIS
+    if (vgmstream->coding_type==coding_ogg_vorbis) {
+        ogg_vorbis_codec_data *data = vgmstream->codec_data;
+
+        if (data) {
+            return 1;
+        }
+        else {
+            return 0;
+        }
+    }
+#endif
+#if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
+    if (vgmstream->coding_type==coding_MP4_AAC) {
+        mp4_aac_codec_data *data = vgmstream->codec_data;
+        if (data) {
+            return 1;
+        }
+        else {
+            return 0;
+        }
+    }
+#endif
+    return vgmstream->channels;
+}
+
+static STREAMFILE * get_vgmstream_streamfile(VGMSTREAM * vgmstream, int channel)
+{
+    if (vgmstream->layout_type==layout_scd_int) {
+        scd_int_codec_data *data = vgmstream->codec_data;
+        return data->intfiles[channel];
+    }
+#ifdef VGM_USE_VORBIS
+    if (vgmstream->coding_type==coding_ogg_vorbis) {
+        ogg_vorbis_codec_data *data = vgmstream->codec_data;
+        
+        return data->ov_streamfile.streamfile;
+    }
+#endif
+#if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
+    if (vgmstream->coding_type==coding_MP4_AAC) {
+        mp4_aac_codec_data *data = vgmstream->codec_data;
+        return data->if_file.streamfile;
+    }
+#endif
+    return vgmstream->ch[channel].streamfile;
+}
+
+static int get_vgmstream_channel_average_bitrate(STREAMFILE * streamfile, int sample_rate, int length_samples)
+{
+    return (int)((int64_t)get_streamfile_size(streamfile) * 8 * sample_rate / length_samples);
 }
 
 int get_vgmstream_average_bitrate(VGMSTREAM * vgmstream)
@@ -3322,27 +3381,33 @@ int get_vgmstream_average_bitrate(VGMSTREAM * vgmstream)
     int bitrate = 0;
     int sample_rate = vgmstream->sample_rate;
     int length_samples = vgmstream->num_samples;
+    int channels = get_vgmstream_channel_count(vgmstream);
+    STREAMFILE * streamFile;
     
-    if (vgmstream->channels >= 1)
-        bitrate += get_vgmstream_channel_average_bitrate(&vgmstream->ch[0], sample_rate, length_samples);
+    if (channels >= 1) {
+        streamFile = get_vgmstream_streamfile(vgmstream, 0);
+        if (streamFile) {
+            bitrate += get_vgmstream_channel_average_bitrate(streamFile, sample_rate, length_samples);
+        }
+    }
 
-    for (i = 1; i < vgmstream->channels; ++i)
+    for (i = 1; i < channels; ++i)
     {
-        VGMSTREAMCHANNEL * ch = &vgmstream->ch[i];
-        if (!ch->streamfile)
+        streamFile = get_vgmstream_streamfile(vgmstream, i);
+        if (!streamFile)
             continue;
-        ch->streamfile->get_name(ch->streamfile, path_current, sizeof(path_current));
+        ch->streamfile->get_name(streamFile, path_current, sizeof(path_current));
         for (j = 0; j < i; ++j)
         {
-            VGMSTREAMCHANNEL * chc = &vgmstream->ch[j];
-            if (!chc->streamfile)
+            STREAMFILE * compareFile = get_vgmstream_streamfile(vgmstream, j);
+            if (!compareFile)
                 continue;
-            chc->streamfile->get_name(chc->streamfile, path_compare, sizeof(path_compare));
+            chc->streamfile->get_name(compareFile, path_compare, sizeof(path_compare));
             if (!strcmp(path_current, path_compare))
                 break;
         }
         if (j == i)
-            bitrate += get_vgmstream_channel_average_bitrate(ch, sample_rate, length_samples);
+            bitrate += get_vgmstream_channel_average_bitrate(streamFile, sample_rate, length_samples);
     }
     
     return bitrate;
