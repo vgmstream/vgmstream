@@ -3396,13 +3396,13 @@ int get_vgmstream_average_bitrate(VGMSTREAM * vgmstream)
         streamFile = get_vgmstream_streamfile(vgmstream, i);
         if (!streamFile)
             continue;
-        ch->streamfile->get_name(streamFile, path_current, sizeof(path_current));
+        streamFile->get_name(streamFile, path_current, sizeof(path_current));
         for (j = 0; j < i; ++j)
         {
             STREAMFILE * compareFile = get_vgmstream_streamfile(vgmstream, j);
             if (!compareFile)
                 continue;
-            chc->streamfile->get_name(compareFile, path_compare, sizeof(path_compare));
+            streamFile->get_name(compareFile, path_compare, sizeof(path_compare));
             if (!strcmp(path_current, path_compare))
                 break;
         }
