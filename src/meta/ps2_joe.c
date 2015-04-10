@@ -37,6 +37,9 @@ VGMSTREAM * init_vgmstream_ps2_joe(STREAMFILE *streamFile) {
 	dataLength = read_32bitLE(0x4,streamFile);
 	dataInterleave = read_32bitLE(0x8,streamFile);
 
+	if (!dataInterleave)
+		dataInterleave = 16; /* XXX */
+
 	/* fill in the vital statistics */
     start_offset = fileLength - dataLength;
 	vgmstream->channels = channel_count;
