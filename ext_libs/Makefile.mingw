@@ -14,8 +14,8 @@ libg7221_decode.a: libg7221_decode.def
 libg719_decode.a: libg719_decode.def
 	$(DLLTOOL) -d libg719_decode.def -l libg719_decode.a
 
-at3plusdecoder.a: at3plusdecoder.def
-	$(DLLTOOL) -d at3plusdecoder.def -l at3plusdecoder.a
+libat3plusdecoder.a: at3plusdecoder.def
+	$(DLLTOOL) -d at3plusdecoder.def -l libat3plusdecoder.a
 
 clean:
-	rm -f libvorbis.a libmpg123-0.a libg7221_decode.a libat3plusdecoder.a
+	rm -f libvorbis.a libmpg123-0.a libg7221_decode.a libg719_decode.a libat3plusdecoder.a

@@ -1,6 +1,6 @@
 export SHELL = /bin/sh
 export CFLAGS=-Wall -O3 -I../ext_includes
-export LDFLAGS=-L../src -L ../ext_libs -lvgmstream -lvorbisfile -lmpg123 -lm
+export LDFLAGS=-L../src -L ../ext_libs -lvgmstream -lvorbisfile -lmpg123-0 -lm
 export CC=gcc
 export AR=ar
 export STRIP=strip

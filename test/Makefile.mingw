@@ -8,9 +8,9 @@ export STRIP=i586-mingw32msvc-strip
 #export AR=i686-w64-mingw32-ar
 #export STRIP=i686-w64-mingw32-strip
 
-.PHONY: libvgmstream.a libvorbis.a libmpg123-0.a libg7221_decode.a libg719_decode.a at3plusdecoder.a
+.PHONY: libvgmstream.a libvorbis.a libmpg123-0.a libg7221_decode.a libg719_decode.a libat3plusdecoder.a
 
-test.exe: libvgmstream.a libvorbis.a libmpg123-0.a libg7221_decode.a libg719_decode.a at3plusdecoder.a
+test.exe: libvgmstream.a libvorbis.a libmpg123-0.a libg7221_decode.a libg719_decode.a libat3plusdecoder.a
 	$(CC) $(CFLAGS) "-DVERSION=\"`../version.sh`\"" test.c $(LDFLAGS) -o test.exe
 	$(STRIP) test.exe
 
@@ -29,7 +29,8 @@ libg7221_decode.a:
 libg719_decode.a:
 	$(MAKE) -C ../ext_libs -f Makefile.mingw $@
 
-at3plusdecoder.a:
-	 $(MAKE) -C ../ext_libs -f Makefile.mingw $@
+libat3plusdecoder.a:
+	$(MAKE) -C ../ext_libs -f Makefile.mingw $@
+	 
 clean:
 	rm -f test.exe

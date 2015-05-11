@@ -127,6 +127,29 @@ void make_wav_header(uint8_t * buf, int32_t sample_count, int32_t sample_rate, i
     put_32bitLE(buf+0x28, (int32_t)bytecount);
 }
 
+void make_smpl_chunk(uint8_t * buf, int32_t loop_start, int32_t loop_end) {
+   int i;
+   /* RIFF header */
+    memcpy(buf+0, "smpl", 4);
+    /* size of RIFF */
+    put_32bitLE(buf+4, 0x3c);
+	
+	for (i = 0; i < 7; i++)
+		put_32bitLE(buf+8 + i * 4, 0);
+	
+	put_32bitLE(buf+36, 1);
+	
+	for (i = 0; i < 3; i++)
+		put_32bitLE(buf+40 + i * 4, 0);
+	
+	put_32bitLE(buf+52, loop_start);
+	put_32bitLE(buf+56, loop_end);
+	put_32bitLE(buf+60, 0);
+	put_32bitLE(buf+64, 0);
+    
+
+}
+
 void swap_samples_le(sample *buf, int count) {
     int i;
     for (i=0;i<count;i++) {
