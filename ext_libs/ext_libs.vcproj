@@ -131,6 +131,30 @@
 				/>
 			</FileConfiguration>
 		</File>
+		<File
+			RelativePath=".\libg719_decode.def"
+			>
+			<FileConfiguration
+				Name="Debug|Win32"
+				>
+				<Tool
+					Name="VCCustomBuildTool"
+					Description="Building library stub"
+					CommandLine="lib /def:libg719_decode.def /machine:x86&#x0D;&#x0A;"
+					Outputs="libg719_decode.lib libg719_decode.exp"
+				/>
+			</FileConfiguration>
+			<FileConfiguration
+				Name="Release|Win32"
+				>
+				<Tool
+					Name="VCCustomBuildTool"
+					Description="Building library stub"
+					CommandLine="lib /def:libg719_decode.def /machine:x86&#x0D;&#x0A;"
+					Outputs="libg719_decode.lib libg719_decode.exp"
+				/>
+			</FileConfiguration>
+		</File>
 	</Files>
 	<Globals>
 	</Globals>

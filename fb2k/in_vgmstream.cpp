@@ -115,15 +115,16 @@ void input_vgmstream::open(service_ptr_t<file> p_filehint,const char * p_path,t_
 void input_vgmstream::get_info(file_info & p_info,abort_callback & p_abort ) {
 	int length_in_ms=0, channels = 0, samplerate = 0;
 	int total_samples = -1;
+	int bitrate = 0;
 	int loop_start = -1, loop_end = -1;
 
-	getfileinfo(filename, NULL, &length_in_ms, &total_samples, &loop_start, &loop_end, &samplerate, &channels, p_abort);
+	getfileinfo(filename, NULL, &length_in_ms, &total_samples, &loop_start, &loop_end, &samplerate, &channels, &bitrate, p_abort);
 
 	p_info.info_set_int("samplerate", samplerate);
 	p_info.info_set_int("channels", channels);
 	p_info.info_set_int("bitspersample",16);
 	p_info.info_set("encoding","lossless");
-	p_info.info_set_bitrate((samplerate * 16 * channels) / 1000);
+	p_info.info_set_bitrate(bitrate / 1000);
 	if (total_samples > 0)
 		p_info.info_set_int("stream_total_samples", total_samples);
 	if (loop_start >= 0 && loop_end >= loop_start)
@@ -555,7 +556,7 @@ bool input_vgmstream::g_is_our_path(const char * p_path,const char * p_extension
 
 
 /* retrieve information on this or possibly another file */
-void input_vgmstream::getfileinfo(const char *filename, char *title, int *length_in_ms, int *total_samples, int *loop_start, int *loop_end, int *sample_rate, int *channels, abort_callback & p_abort) {
+void input_vgmstream::getfileinfo(const char *filename, char *title, int *length_in_ms, int *total_samples, int *loop_start, int *loop_end, int *sample_rate, int *channels, int *bitrate, abort_callback & p_abort) {
 
 	VGMSTREAM * infostream;
 	if (length_in_ms)
@@ -568,6 +569,7 @@ void input_vgmstream::getfileinfo(const char *filename, char *title, int *length
 			*sample_rate = infostream->sample_rate;
 			*channels = infostream->channels;
 			*total_samples = infostream->num_samples;
+			*bitrate = get_vgmstream_average_bitrate(infostream);
 			if (infostream->loop_flag)
 			{
 				*loop_start = infostream->loop_start_sample;

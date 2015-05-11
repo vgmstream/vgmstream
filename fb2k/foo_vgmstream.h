@@ -62,7 +62,7 @@ class input_vgmstream {
 
 		short sample_buffer[OUTBUF_SIZE];
 
-		void getfileinfo(const char *filename, char *title, int *length_in_ms, int *total_samples, int *loop_start, int *loop_end, int *sample_rate, int *channels, abort_callback & p_abort);
+		void getfileinfo(const char *filename, char *title, int *length_in_ms, int *total_samples, int *loop_start, int *loop_end, int *sample_rate, int *channels, int *bitrate, abort_callback & p_abort);
 		void load_settings();
 
 	private:

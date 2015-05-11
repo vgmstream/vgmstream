@@ -41,7 +41,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				AdditionalIncludeDirectories="../ext_includes"
-				PreprocessorDefinitions="WIN32;VGM_USE_G7221;_DEBUG;_LIB;"
+				PreprocessorDefinitions="WIN32;VGM_USE_G7221;VGM_USE_G719;USE_ALLOCA;_DEBUG;_LIB;"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
@@ -103,7 +103,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				AdditionalIncludeDirectories="../ext_includes"
-				PreprocessorDefinitions="WIN32;VGM_USE_G7221;NDEBUG;_LIB;"
+				PreprocessorDefinitions="WIN32;VGM_USE_G7221;VGM_USE_G719;USE_ALLOCA;NDEBUG;_LIB;"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
@@ -273,6 +273,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\btsnd.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\capdsp.c"
 					>
 				</File>
@@ -414,6 +418,10 @@
 				</File>
 				<File
 					RelativePath=".\meta\maxis_xa.c"
+					>
+				</File>
+				<File
+					RelativePath=".\meta\mca.c"
 					>
 				</File>
 				<File
@@ -1208,6 +1216,10 @@
 				</File>
 				<File
 					RelativePath=".\coding\eaxa_decoder.c"
+					>
+				</File>
+				<File
+					RelativePath=".\coding\g719_decoder.c"
 					>
 				</File>
 				<File

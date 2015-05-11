@@ -2,6 +2,7 @@
 #include "../layout/layout.h"
 #include "../coding/coding.h"
 #include "../util.h"
+#include "../stack_alloc.h"
 
 /* If these variables are packed properly in the struct (one after another)
  * then this is actually how they are laid out in the file, albeit big-endian */
@@ -2375,10 +2376,13 @@ VGMSTREAM * init_vgmstream_dsp_dspw(STREAMFILE *streamFile) {
     off_t streamSize, mrkrOffset, channelSpacing;
 	int channel_count, i, j;
 	int found_mrkr = 0;
-	channel_count = read_8bit(0x1B, streamFile);
+	VARDECL(struct dsp_header, ch_header);
+	VARDECL(off_t, channel_start);
 
-	struct dsp_header ch_header[channel_count];
-	off_t channel_start[channel_count];
+	channel_count = (unsigned char)read_8bit(0x1B, streamFile);
+
+	ALLOC(ch_header, channel_count, struct dsp_header);
+	ALLOC(channel_start, channel_count, off_t);
 	
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));

@@ -1,6 +1,6 @@
 export SHELL = /bin/sh
-export CFLAGS=-Wall -O3 -DVGM_USE_G7221 -DVGM_USE_MAIATRAC3PLUS -I../ext_includes
-export LDFLAGS=-L../src -L../ext_libs -lvgmstream -lvorbis -lmpg123-0 -lg7221_decode -lat3plusdecoder -lm
+export CFLAGS=-Wall -O3 -DVGM_USE_G7221 -DVGM_USE_G719 -DVGM_USE_MAIATRAC3PLUS -DVAR_ARRAYS -I../ext_includes
+export LDFLAGS=-L../src -L../ext_libs -lvgmstream -lvorbis -lmpg123-0 -lg7221_decode -lg719_decode -lat3plusdecoder -lm
 export CC=i586-mingw32msvc-gcc
 export AR=i586-mingw32msvc-ar
 export STRIP=i586-mingw32msvc-strip
@@ -8,9 +8,9 @@ export STRIP=i586-mingw32msvc-strip
 #export AR=i686-w64-mingw32-ar
 #export STRIP=i686-w64-mingw32-strip
 
-.PHONY: libvgmstream.a libvorbis.a libmpg123-0.a libg7221_decode.a at3plusdecoder.a
+.PHONY: libvgmstream.a libvorbis.a libmpg123-0.a libg7221_decode.a libg719_decode.a at3plusdecoder.a
 
-test.exe: libvgmstream.a libvorbis.a libmpg123-0.a libg7221_decode.a at3plusdecoder.a
+test.exe: libvgmstream.a libvorbis.a libmpg123-0.a libg7221_decode.a libg719_decode.a at3plusdecoder.a
 	$(CC) $(CFLAGS) "-DVERSION=\"`../version.sh`\"" test.c $(LDFLAGS) -o test.exe
 	$(STRIP) test.exe
 
@@ -24,6 +24,9 @@ libmpg123-0.a:
 	$(MAKE) -C ../ext_libs -f Makefile.mingw $@
 
 libg7221_decode.a:
+	$(MAKE) -C ../ext_libs -f Makefile.mingw $@
+
+libg719_decode.a:
 	$(MAKE) -C ../ext_libs -f Makefile.mingw $@
 
 at3plusdecoder.a:

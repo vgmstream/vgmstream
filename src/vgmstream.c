@@ -465,6 +465,18 @@ void reset_vgmstream(VGMSTREAM * vgmstream) {
     }
 #endif
 
+#ifdef VGM_USE_G719
+    if (vgmstream->coding_type==coding_G719) {
+        g719_codec_data *data = vgmstream->codec_data;
+        int i;
+
+        for (i = 0; i < vgmstream->channels; i++)
+        {
+            g719_reset(data[i].handle);
+        }
+    }
+#endif
+
 #ifdef VGM_USE_MAIATRAC3PLUS
 	if (vgmstream->coding_type==coding_AT3plus) {
 		maiatrac3plus_codec_data *data = vgmstream->codec_data;
@@ -656,6 +668,25 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
             for (i = 0; i < vgmstream->channels; i++)
             {
                 g7221_free(data[i].handle);
+            }
+            free(data);
+        }
+
+        vgmstream->codec_data = NULL;
+    }
+#endif
+
+#ifdef VGM_USE_G719
+    if (vgmstream->coding_type == coding_G719) {
+        g719_codec_data *data = vgmstream->codec_data;
+
+        if (data)
+        {
+            int i;
+
+            for (i = 0; i < vgmstream->channels; i++)
+            {
+                g719_free(data[i].handle);
             }
             free(data);
         }
@@ -979,6 +1010,10 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_G7221:
             return 16000/50;
 #endif
+#ifdef VGM_USE_G719
+        case coding_G719:
+            return 48000/50;
+#endif
         case coding_LSF:
             return 54;
         case coding_MTAF:
@@ -1085,6 +1120,9 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
 #ifdef VGM_USE_G7221
         case coding_G7221C:
         case coding_G7221:
+#endif
+#ifdef VGM_USE_G719:
+        case coding_G719:
 #endif
 #ifdef VGM_USE_MAIATRAC3PLUS
 		case coding_AT3plus:
@@ -1468,6 +1506,17 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
         case coding_G7221C:
             for (chan=0;chan<vgmstream->channels;chan++) {
                 decode_g7221(vgmstream,
+                    buffer+samples_written*vgmstream->channels+chan,
+                    vgmstream->channels,
+                    samples_to_do,
+                    chan);
+            }
+            break;
+#endif
+#ifdef VGM_USE_G719
+        case coding_G719:
+            for (chan=0;chan<vgmstream->channels;chan++) {
+                decode_g719(vgmstream,
                     buffer+samples_written*vgmstream->channels+chan,
                     vgmstream->channels,
                     samples_to_do,
@@ -1919,6 +1968,11 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case coding_G7221C:
             snprintf(temp,TEMPSIZE,"ITU G.722.1 annex C (Polycom Siren 14)");
+            break;
+#endif
+#ifdef VGM_USE_G719
+        case coding_G719:
+            snprintf(temp,TEMPSIZE,"ITU G.719 annex B (Polycom Siren 22)");
             break;
 #endif
 #ifdef VGM_USE_MAIATRAC3PLUS
@@ -3252,4 +3306,109 @@ void try_dual_file_stereo(VGMSTREAM * opened_stream, STREAMFILE *streamFile) {
     }
 fail:
     return;
+}
+
+static int get_vgmstream_channel_count(VGMSTREAM * vgmstream)
+{
+    if (vgmstream->layout_type==layout_scd_int) {
+        scd_int_codec_data *data = vgmstream->codec_data;
+        if (data) {
+            return data->substream_count;
+        }
+        else {
+            return 0;
+        }
+    }
+#ifdef VGM_USE_VORBIS
+    if (vgmstream->coding_type==coding_ogg_vorbis) {
+        ogg_vorbis_codec_data *data = vgmstream->codec_data;
+
+        if (data) {
+            return 1;
+        }
+        else {
+            return 0;
+        }
+    }
+#endif
+#if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
+    if (vgmstream->coding_type==coding_MP4_AAC) {
+        mp4_aac_codec_data *data = vgmstream->codec_data;
+        if (data) {
+            return 1;
+        }
+        else {
+            return 0;
+        }
+    }
+#endif
+    return vgmstream->channels;
+}
+
+static STREAMFILE * get_vgmstream_streamfile(VGMSTREAM * vgmstream, int channel)
+{
+    if (vgmstream->layout_type==layout_scd_int) {
+        scd_int_codec_data *data = vgmstream->codec_data;
+        return data->intfiles[channel];
+    }
+#ifdef VGM_USE_VORBIS
+    if (vgmstream->coding_type==coding_ogg_vorbis) {
+        ogg_vorbis_codec_data *data = vgmstream->codec_data;
+        
+        return data->ov_streamfile.streamfile;
+    }
+#endif
+#if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
+    if (vgmstream->coding_type==coding_MP4_AAC) {
+        mp4_aac_codec_data *data = vgmstream->codec_data;
+        return data->if_file.streamfile;
+    }
+#endif
+    return vgmstream->ch[channel].streamfile;
+}
+
+static int get_vgmstream_channel_average_bitrate(STREAMFILE * streamfile, int sample_rate, int length_samples)
+{
+    return (int)((int64_t)get_streamfile_size(streamfile) * 8 * sample_rate / length_samples);
+}
+
+int get_vgmstream_average_bitrate(VGMSTREAM * vgmstream)
+{
+    char path_current[PATH_LIMIT];
+    char path_compare[PATH_LIMIT];
+    
+    unsigned int i, j;
+    int bitrate = 0;
+    int sample_rate = vgmstream->sample_rate;
+    int length_samples = vgmstream->num_samples;
+    int channels = get_vgmstream_channel_count(vgmstream);
+    STREAMFILE * streamFile;
+    
+    if (channels >= 1) {
+        streamFile = get_vgmstream_streamfile(vgmstream, 0);
+        if (streamFile) {
+            bitrate += get_vgmstream_channel_average_bitrate(streamFile, sample_rate, length_samples);
+        }
+    }
+
+    for (i = 1; i < channels; ++i)
+    {
+        streamFile = get_vgmstream_streamfile(vgmstream, i);
+        if (!streamFile)
+            continue;
+        streamFile->get_name(streamFile, path_current, sizeof(path_current));
+        for (j = 0; j < i; ++j)
+        {
+            STREAMFILE * compareFile = get_vgmstream_streamfile(vgmstream, j);
+            if (!compareFile)
+                continue;
+            streamFile->get_name(compareFile, path_compare, sizeof(path_compare));
+            if (!strcmp(path_current, path_compare))
+                break;
+        }
+        if (j == i)
+            bitrate += get_vgmstream_channel_average_bitrate(streamFile, sample_rate, length_samples);
+    }
+    
+    return bitrate;
 }

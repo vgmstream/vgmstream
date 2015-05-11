@@ -73,7 +73,7 @@ void decode_ogg_vorbis(ogg_vorbis_codec_data * data, sample * outbuf, int32_t sa
 
 #if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
 void decode_mp4_aac(mp4_aac_codec_data * data, sample * outbuf, int32_t samples_to_do, int channels);
-#endif 
+#endif
 
 void decode_sdx2(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
 void decode_sdx2_int(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
@@ -95,6 +95,11 @@ void decode_mpeg(VGMSTREAMCHANNEL * stream,
 
 #ifdef VGM_USE_G7221
 void decode_g7221(VGMSTREAM *vgmstream,
+        sample * outbuf, int channelspacing, int32_t samples_to_do, int channel);
+#endif
+
+#ifdef VGM_USE_G719
+void decode_g719(VGMSTREAM *vgmstream,
         sample * outbuf, int channelspacing, int32_t samples_to_do, int channel);
 #endif
 

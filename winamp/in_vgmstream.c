@@ -502,7 +502,7 @@ int play(char *fn)
 
     /* Set info display */
     /* TODO: actual bitrate */
-    input_module.SetInfo(100,vgmstream->sample_rate/1000,vgmstream->channels,1);
+    input_module.SetInfo(get_vgmstream_average_bitrate(vgmstream)/1000,vgmstream->sample_rate/1000,vgmstream->channels,1);
 
     /* setup visualization */
     input_module.SAVSAInit(max_latency,vgmstream->sample_rate);

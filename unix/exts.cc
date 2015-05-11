@@ -46,6 +46,7 @@ const char *vgmstream_exts[] =
   "bo2",
   "brstm",
   "brstmspm",
+  "btsnd",
   "bvg",
 
   "caf",
@@ -121,6 +122,7 @@ const char *vgmstream_exts[] =
   "lwav",
 
   "matx",
+  "mca",
   "mcg",
   "mi4",
   "mib",

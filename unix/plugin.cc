@@ -114,7 +114,7 @@ bool vgmstream_play(const char * filename, VFSFile * file)
     int max_buffer_samples = sizeof(buffer) / sizeof(buffer[0]) / vgmstream->channels;
 
     int stream_samples_amount = get_vgmstream_play_samples(vgmstream_cfg.loop_count, vgmstream_cfg.fade_length, vgmstream_cfg.fade_delay, vgmstream);
-    rate = vgmstream->sample_rate * 2 * vgmstream->channels;
+    rate = get_vgmstream_average_bitrate(vgmstream);
 
     aud_input_set_bitrate(rate);
 
