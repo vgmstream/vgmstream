@@ -17,6 +17,8 @@ void decode_ogg_vorbis(ogg_vorbis_codec_data * data, sample * outbuf, int32_t sa
         if (rc > 0) samples_done += rc/sizeof(sample)/channels;
         else return;
     } while (samples_done < samples_to_do);
+
+    swap_samples_le(outbuf, samples_to_do*channels);
 }
 
 #endif
