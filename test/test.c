@@ -29,13 +29,12 @@ void usage(const char * name) {
           "    -x: decode and print adxencd command line to encode as ADX\n"
           "    -g: decode and print oggenc command line to encode as OGG\n"
           "    -b: decode and print batch variable commands\n"
-		  "    -L: append a smpl chunk and create a looping wav\n"
+	  "    -L: append a smpl chunk and create a looping wav\n"
           "    -e: force end-to-end looping\n"
           "    -E: force end-to-end looping even if file has real loop points\n"
           "    -r outfile2.wav: output a second time after resetting\n"
           "    -2 N: only output the Nth (first is 0) set of stereo channels\n"
             ,name);
-    
 }
 
 int main(int argc, char ** argv) {
@@ -109,9 +108,9 @@ int main(int argc, char ** argv) {
             case 'E':
                 really_force_loop = 1;
                 break;
-			case 'L':
-				lwav = 1;
-				break;
+            case 'L':
+		lwav = 1;
+		break;
             case 'r':
                 reset_outfilename = optarg;
                 break;
@@ -298,16 +297,16 @@ int main(int argc, char ** argv) {
             fwrite(buf,sizeof(sample)*s->channels,toget,outfile);
         }
     }
-	
-	if (!play && lwav && s->loop_flag) {	// Writing smpl chuck
-		make_smpl_chunk((uint8_t*)buf, s->loop_start_sample, s->loop_end_sample);
-		fwrite(buf,1,0x44,outfile);
-		fseek(outfile, 4, SEEK_SET);
-		
-		size_t bytecount = len*s->channels*sizeof(sample);
-		put_32bitLE((uint8_t*)buf, (int32_t)(bytecount+0x2c+52));
-		fwrite(buf,1,0x4,outfile);
-	}
+
+    if (!play && lwav && s->loop_flag) {	// Writing smpl chuck
+	make_smpl_chunk((uint8_t*)buf, s->loop_start_sample, s->loop_end_sample);
+	fwrite(buf,1,0x44,outfile);
+	fseek(outfile, 4, SEEK_SET);
+
+	size_t bytecount = len*s->channels*sizeof(sample);
+	put_32bitLE((uint8_t*)buf, (int32_t)(bytecount+0x2c+52));
+	fwrite(buf,1,0x4,outfile);
+    }
     fclose(outfile); outfile = NULL;
 
 #ifdef PROFILE_STREAMFILE

@@ -35,7 +35,7 @@ libg7221_decode.a:
 libg719_decode.a:
 	$(MAKE) -C ../ext_libs -f Makefile.mingw $@
 
-at3plusdecoder.a:
+libat3plusdecoder.a:
 	 $(MAKE) -C ../ext_libs -f Makefile.mingw $@
 
 clean:
