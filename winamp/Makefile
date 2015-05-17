@@ -13,7 +13,7 @@ export WINDRES=i586-mingw32msvc-windres
 
 .PHONY: libvgmstream.a libvorbis.a libmpg123-0.a libg7221_decode.a libg719_decode.a at3plusdecoder.a
 
-in_vgmstream.dll: libvgmstream.a libvorbis.a libmpg123-0.a libg7221_decode.a libg719_decode.a in_vgmstream.c resource.o
+in_vgmstream.dll: libvgmstream.a libvorbis.a libmpg123-0.a libg7221_decode.a libg719_decode.a libat3plusdecoder.a in_vgmstream.c resource.o
 	$(CC) -shared -static-libgcc $(CFLAGS) "-DVERSION=\"`../version.sh`\"" in_vgmstream.c resource.o $(LDFLAGS) -o in_vgmstream.dll
 	$(STRIP) in_vgmstream.dll
 
@@ -35,7 +35,7 @@ libg7221_decode.a:
 libg719_decode.a:
 	$(MAKE) -C ../ext_libs -f Makefile.mingw $@
 
-at3plusdecoder.a:
+libat3plusdecoder.a:
 	 $(MAKE) -C ../ext_libs -f Makefile.mingw $@
 
 clean:

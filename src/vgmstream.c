@@ -3148,6 +3148,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
 		case meta_MCA:
 			snprintf(temp,TEMPSIZE,"Capcom MCA Header");
 			break;
+		case meta_XB3D_ADX:
+			snprintf(temp, TEMPSIZE,"Xenoblade 3D ADX Header");
+			break;
 		default:
            snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");
     }

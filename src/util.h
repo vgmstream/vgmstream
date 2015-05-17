@@ -63,6 +63,7 @@ static inline int clamp16(int32_t val) {
 /* make a header for PCM .wav */
 /* buffer must be 0x2c bytes */
 void make_wav_header(uint8_t * buf, int32_t sample_count, int32_t sample_rate, int channels);
+void make_smpl_chunk(uint8_t * buf, int32_t loop_start, int32_t loop_end);
 void swap_samples_le(sample *buf, int count);
 
 void concatn(int length, char * dst, const char * src);
