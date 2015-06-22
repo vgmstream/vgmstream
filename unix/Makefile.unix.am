@@ -7,4 +7,4 @@ AM_CXXFLAGS = -Wall -std=c++11 -fpermissive @CXXFLAGS@ -I$(top_builddir) -I$(top
 AM_LIBS =
 
 libvgmstream_la_LDFLAGS = -no-undefined -module -avoid-version -export-symbols-regex get_plugin_info ../src/libvgmstream.la
-libvgmstream_la_SOURCES =  exts.cc plugin.cc settings.cc vfs.cc
+libvgmstream_la_SOURCES =  exts.cc plugin.cc vfs.cc
