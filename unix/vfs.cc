@@ -4,9 +4,8 @@
 #include <libaudcore/plugin.h>
 
 #include "../src/vgmstream.h"
-#include "version.h"
+#include "plugin.h"
 #include "vfs.h"
-#include "settings.h"
 
 typedef struct _VFSSTREAMFILE
 {
@@ -25,11 +24,11 @@ static size_t read_vfs(VFSSTREAMFILE *streamfile, uint8_t *dest, off_t offset, s
   // if the offsets don't match, then we need to perform a seek
   if (streamfile->offset != offset)
   {
-    vfs_fseek(streamfile->vfsFile, offset, SEEK_SET);
+    streamfile->vfsFile->fseek(offset, VFS_SEEK_SET);
     streamfile->offset = offset;
   }
 
-  sz = vfs_fread(dest, 1, length, streamfile->vfsFile);
+  sz =  streamfile->vfsFile->fread(dest, 1, length);
   // increment our current offset
   streamfile->offset += sz;
 
@@ -39,13 +38,13 @@ static size_t read_vfs(VFSSTREAMFILE *streamfile, uint8_t *dest, off_t offset, s
 static void close_vfs(VFSSTREAMFILE *streamfile)
 {
   debugMessage("close_vfs");
-  vfs_fclose(streamfile->vfsFile);
+  free(streamfile->vfsFile);
   free(streamfile);
 }
 
 static size_t get_size_vfs(VFSSTREAMFILE *streamfile)
 {
-  return vfs_fsize(streamfile->vfsFile);
+  return streamfile->vfsFile->fsize();
 }
 
 static size_t get_offset_vfs(VFSSTREAMFILE *streamfile)
@@ -73,7 +72,7 @@ static STREAMFILE *open_vfs_impl(VFSSTREAMFILE *streamfile, const char * const f
   return open_vfs(filename);
 }
 
-static STREAMFILE *open_vfs_by_VFSFILE(VFSFile *file, const char *path)
+STREAMFILE *open_vfs_by_VFSFILE(VFSFile *file, const char *path)
 {
   VFSSTREAMFILE *streamfile = (VFSSTREAMFILE*)malloc(sizeof(VFSSTREAMFILE));
   if (!streamfile)
@@ -106,7 +105,7 @@ static STREAMFILE *open_vfs_by_VFSFILE(VFSFile *file, const char *path)
 
 STREAMFILE *open_vfs(const char *path)
 {
-  VFSFile *vfsFile = vfs_fopen(path, "rb");
+  VFSFile* vfsFile = new VFSFile(path, "rb");
   if (!vfsFile)
     return NULL;
 

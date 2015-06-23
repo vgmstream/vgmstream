@@ -1,8 +1,7 @@
 #include <cstdlib>
+#include "plugin.h"
 
-#include "exts.h"
-
-const char *vgmstream_exts[] =
+const char *const VgmStreamPlugin::exts[] =
 {
   "2dx9",
   "2pfs",
