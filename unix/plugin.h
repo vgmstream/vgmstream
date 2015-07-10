@@ -7,43 +7,37 @@
 #include <libaudcore/preferences.h>
 #include <libaudcore/runtime.h>
 
-class VgmStreamPlugin : public InputPlugin
-{
+class VgmStreamPlugin : public InputPlugin {
 public:
   static const char *const exts[];
-	static const char *const defaults[];
-	static const char about[];
-	static const PreferencesWidget widgets[];
-	static const PluginPreferences prefs;
+  static const char *const defaults[];
+  static const char about[];
+  static const PreferencesWidget widgets[];
+  static const PluginPreferences prefs;
 
-	static constexpr PluginInfo info = {
-		N_("VGMStream Decoder"),
-		N_("vgmstream"),
-		about,
-    & prefs,
-	};
+  static constexpr PluginInfo info = {
+      N_("VGMStream Decoder"), N_("vgmstream"), about, &prefs,
+  };
 
-	static constexpr auto iinfo = InputInfo()
-		.with_exts(exts);
+  static constexpr auto iinfo = InputInfo().with_exts(exts);
 
-	constexpr VgmStreamPlugin() : InputPlugin(info, iinfo) {}
+  constexpr VgmStreamPlugin() : InputPlugin(info, iinfo) {}
 
   bool init();
   void cleanup();
-  bool is_our_file(const char *filename, VFSFile &file) {return false;}
-	Tuple read_tuple(const char *filename, VFSFile &file);
-	bool play(const char *filename, VFSFile &file);
+  bool is_our_file(const char *filename, VFSFile &file) { return false; }
+  Tuple read_tuple(const char *filename, VFSFile &file);
+  bool play(const char *filename, VFSFile &file);
 
 private:
-	void seek(int seek_value, int& current_sample_pos);
+  void seek(int seek_value, int &current_sample_pos);
 };
 
-typedef struct
-{
+typedef struct {
   bool loop_forever;
-	int loop_count;
-	double fade_length;
-	double fade_delay;
+  int loop_count;
+  double fade_length;
+  double fade_delay;
 } Settings;
 
 extern Settings vgmstream_cfg;
