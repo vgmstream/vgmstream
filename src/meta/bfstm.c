@@ -1,5 +1,6 @@
 #include "meta.h"
 #include "../util.h"
+#include "../stack_alloc.h"
 
 VGMSTREAM * init_vgmstream_bfstm(STREAMFILE *streamFile) {
 	VGMSTREAM * vgmstream = NULL;
@@ -132,7 +133,8 @@ VGMSTREAM * init_vgmstream_bfstm(STREAMFILE *streamFile) {
 	}
 
 	if (vgmstream->coding_type == coding_NGC_DSP) {
-		off_t coef_offset[channel_count];
+		VARDECL(off_t, coef_offset);
+		ALLOC(coef_offset, channel_count, off_t);
 		off_t coeff_ptr_table = read_32bitBE(info_offset + 0x1c, streamFile) + info_offset + 8;	// Getting pointer for coefficient pointer table
 		
 		for (i = 0; i < channel_count; i++) {
