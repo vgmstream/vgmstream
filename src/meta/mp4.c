@@ -58,7 +58,7 @@ int mp4_file_close( void* handle )
 	return 0;
 }
 
-MP4FileProvider mp4_file_provider = { mp4_file_open, mp4_file_seek, mp4_file_get_size, mp4_file_read, mp4_file_write, mp4_file_close };
+MP4FileProvider mp4_file_provider = { mp4_file_open, mp4_file_seek, mp4_file_read, mp4_file_write, mp4_file_close, mp4_file_get_size };
 
 #ifdef VGM_USE_FDKAAC
 VGMSTREAM * init_vgmstream_mp4_aac_offset(STREAMFILE *streamFile, uint64_t start, uint64_t size);
