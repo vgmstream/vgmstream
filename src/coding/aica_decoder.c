@@ -22,7 +22,7 @@ void decode_aica(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing,
     int i;
     int32_t sample_count;
     int32_t hist1 = stream->adpcm_history1_16;
-    unsigned long step_size = stream->adpcm_step_index;
+    uint32_t step_size = stream->adpcm_step_index;
 
     for (i=first_sample,sample_count=0; i<first_sample+samples_to_do; i++,sample_count+=channelspacing) {
         int sample_nibble =

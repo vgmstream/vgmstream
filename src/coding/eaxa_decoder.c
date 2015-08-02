@@ -1,14 +1,14 @@
 #include "coding.h"
 #include "../util.h"
 
-long EA_XA_TABLE[28] = {0,0,240,0,460,-208,0x0188,-220,
+int32_t EA_XA_TABLE[28] = {0,0,240,0,460,-208,0x0188,-220,
 					      0x0000,0x0000,0x00F0,0x0000,
 					      0x01CC,0x0000,0x0188,0x0000,
 					      0x0000,0x0000,0x0000,0x0000,
 					                  -208,-1,-220,-1,
 					      0x0000,0x0000,0x0000,0x3F70};
 
-long EA_TABLE[20]= { 0x00000000, 0x000000F0, 0x000001CC, 0x00000188,
+int32_t EA_TABLE[20]= { 0x00000000, 0x000000F0, 0x000001CC, 0x00000188,
 			   	    0x00000000, 0x00000000, 0xFFFFFF30, 0xFFFFFF24,
 				    0x00000000, 0x00000001, 0x00000003, 0x00000004,
 				    0x00000007, 0x00000008, 0x0000000A, 0x0000000B,
@@ -17,7 +17,7 @@ long EA_TABLE[20]= { 0x00000000, 0x000000F0, 0x000001CC, 0x00000188,
 void decode_eaxa(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do,int channel) {
     uint8_t frame_info;
     int32_t sample_count;
-	long coef1,coef2;
+	int32_t coef1,coef2;
 	int i,shift;
 	off_t channel_offset=stream->channel_start_offset;
 	
@@ -75,7 +75,7 @@ void decode_eaxa(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing,
 void decode_ea_adpcm(VGMSTREAM * vgmstream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do,int channel) {
     uint8_t frame_info;
     int32_t sample_count;
-	long coef1,coef2;
+	int32_t coef1,coef2;
 	int i,shift;
     VGMSTREAMCHANNEL *stream = &(vgmstream->ch[channel]);
 	off_t channel_offset=stream->channel_start_offset;
@@ -123,7 +123,7 @@ void decode_ea_adpcm(VGMSTREAM * vgmstream, sample * outbuf, int channelspacing,
 void decode_maxis_adpcm(VGMSTREAM * vgmstream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do,int channel) {
     uint8_t frame_info;
     int32_t sample_count;
-	long coef1,coef2;
+	int32_t coef1,coef2;
 	int i,shift;
 	int frameSize = channelspacing*15;//mono samples have a frame of 15, stereo files have frames of 30
     VGMSTREAMCHANNEL *stream = &(vgmstream->ch[channel]);

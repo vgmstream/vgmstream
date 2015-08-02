@@ -30,7 +30,7 @@ void decode_lsf(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, 
     for (i=first_sample,sample_count=0; i<first_sample+samples_to_do; i++,sample_count+=channelspacing) {
         int sample_byte = read_8bit(framesin*bytes_per_frame+stream->offset+1+i/2,stream->streamfile);
 
-        long prediction =
+        int32_t prediction =
             (hist1 * lsf_coefs[coef_idx][0] +
              hist2 * lsf_coefs[coef_idx][1]) / 0x40;
 
