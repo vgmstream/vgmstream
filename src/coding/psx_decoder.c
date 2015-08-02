@@ -7,7 +7,7 @@ double VAG_f[5][2] = { { 0.0          ,   0.0        },
 		               { 115.0 / 64.0 , -52.0 / 64.0 },
 		               {  98.0 / 64.0 , -55.0 / 64.0 } ,
 		               { 122.0 / 64.0 , -60.0 / 64.0 } } ;
-long VAG_coefs[5][2] = { {   0 ,   0 },
+int32_t VAG_coefs[5][2] = { {   0 ,   0 },
                          {  60 ,   0 },
                          { 115 , -52 },
                          {  98 , -55 } ,
@@ -145,7 +145,7 @@ void decode_ffxi_adpcm(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelsp
 	short scale;
 	int i;
 	int32_t sample_count;
-    long predictor;
+    int32_t predictor;
 
 	int framesin = first_sample/16;
 
