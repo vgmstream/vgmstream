@@ -13,176 +13,372 @@
 
 #include "../src/vgmstream.h"
 #include "../src/util.h"
-#include "xmp_in.h"
+#include "xmpin.h"
+#include "version.h"
 
 
 #ifndef VERSION
 #define VERSION
 #endif
 
-VGMSTREAM * vgmstream = NULL;
-int Decoder_Is_Using_Lame_Hack = 0; 
-double timestamp=0;
+static XMPFUNC_IN *xmpfin;
+static XMPFUNC_MISC *xmpfmisc;
+static XMPFUNC_FILE *xmpffile;
 
-#define DECODE_SIZE		1024
+typedef struct _XMPSTREAMFILE {
+	STREAMFILE sf;
+	XMPFILE file;
+	off_t offset;
+	char name[PATH_LIMIT];
+} XMPSTREAMFILE;
+
+static void xmpsf_seek(XMPSTREAMFILE *this, off_t offset) {
+	if (xmpffile->Seek(this->file, offset))
+		this->offset = offset;
+	else
+		this->offset = xmpffile->Tell(this->file);
+}
+
+static off_t xmpsf_get_size(XMPSTREAMFILE *this)
+{
+	return xmpffile->GetSize(this->file);
+}
+
+static off_t xmpsf_get_offset(XMPSTREAMFILE *this)
+{
+	return xmpffile->Tell(this->file);
+}
+
+static void xmpsf_get_name(XMPSTREAMFILE *this, char *buffer, size_t length)
+{
+	strncpy(buffer, this->name, length);
+	buffer[length - 1] = '\0';
+}
+
+static size_t xmpsf_read(XMPSTREAMFILE *this, uint8_t *dest, off_t offset, size_t length)
+{
+	size_t read;
+	if (this->offset != offset)
+		xmpsf_seek(this, offset);
+	read = xmpffile->Read(this->file, dest, length);
+	if (read > 0)
+		this->offset += read;
+	return read;
+}
+
+static void xmpsf_close(XMPSTREAMFILE *this)
+{
+	xmpffile->Close(this->file);
+	free(this);
+}
+
+static STREAMFILE *xmpsf_create_from_path(const char *path);
+static STREAMFILE *xmpsf_open(XMPSTREAMFILE *this, const char *const filename, size_t buffersize)
+{
+	if (!filename) return NULL;
+	return xmpsf_create_from_path(filename);
+}
+
+static STREAMFILE *xmpsf_create(XMPFILE file, const char *path)
+{
+	XMPSTREAMFILE *streamfile = malloc(sizeof(XMPSTREAMFILE));
+
+	if (!streamfile) return NULL;
+
+	memset(streamfile, 0, sizeof(XMPSTREAMFILE));
+	streamfile->sf.read = (void*)xmpsf_read;
+	streamfile->sf.get_size = (void*)xmpsf_get_size;
+	streamfile->sf.get_offset = (void*)xmpsf_get_offset;
+	streamfile->sf.get_name = (void*)xmpsf_get_name;
+	streamfile->sf.get_realname = (void*)xmpsf_get_name;
+	streamfile->sf.open = (void*)xmpsf_open;
+	streamfile->sf.close = (void*)xmpsf_close;
+	streamfile->file = file;
+	streamfile->offset = 0;
+	strncpy(streamfile->name, path, sizeof(streamfile->name));
+
+	return &streamfile->sf;
+}
+
+STREAMFILE *xmpsf_create_from_path(const char *path)
+{
+	XMPFILE file = xmpffile->Open(path);
+	if (!file)
+		return NULL;
+
+	return xmpsf_create(file, path);
+}
+
+VGMSTREAM *init_vgmstream_from_path(const char *path)
+{
+	STREAMFILE *sf;
+	VGMSTREAM *vgm;
+
+	sf = xmpsf_create_from_path(path);
+	if (!sf) return NULL;
+
+	vgm = init_vgmstream_from_STREAMFILE(sf);
+	if (!vgm) goto err1;
+
+	return vgm;
+
+err1:
+	xmpsf_close((XMPSTREAMFILE *)sf);
+	return NULL;
+}
+
+VGMSTREAM *init_vgmstream_from_xmpfile(XMPFILE file, const char *path)
+{
+	STREAMFILE *sf;
+	VGMSTREAM *vgm;
+
+	sf = xmpsf_create(file, path);
+	if (!sf) return NULL;
+
+	vgm = init_vgmstream_from_STREAMFILE(sf);
+	if (!vgm) goto err1;
+
+	return vgm;
+
+err1:
+	xmpsf_close((XMPSTREAMFILE *)sf);
+	return NULL;
+}
+
+VGMSTREAM * vgmstream = NULL;
+int32_t totalFrames, framesDone, framesLength, framesFade;
+
 #define APP_NAME "vgmstream plugin"
 #define PLUGIN_DESCRIPTION "vgmstream plugin " VERSION " " __DATE__
 
-void __stdcall XMPAbout() {
-    MessageBox(NULL,
+void __stdcall XMPAbout(HWND hwParent) {
+    MessageBox(hwParent,
             PLUGIN_DESCRIPTION "\n"
-            "by hcs, FastElbja, manakoAT, and bxaimc\n\n"
-            "http://sourceforge.net/projects/vgmstream"
-            ,"about in_vgmstream",MB_OK);
+            "by hcs, FastElbja, manakoAT, bxaimc, and kode54\n\n"
+			"https://gitlab.kode54.net/kode54/vgmstream"
+            ,"about xmp-vgmstream",MB_OK);
 }
 
 void __stdcall Stop() {
 	close_vgmstream(vgmstream);
 }
 
-int __stdcall XMP_CheckFile(char *filename, BYTE *buf, DWORD length) {
-    VGMSTREAM* fakevgmstream = init_vgmstream(filename);
+BOOL __stdcall XMP_CheckFile(const char *filename, XMPFILE file) {
+	VGMSTREAM* thisvgmstream;
+	if (file) thisvgmstream = init_vgmstream_from_xmpfile(file, filename);
+	else thisvgmstream = init_vgmstream_from_path(filename);
     int ret;
 
-	if (!fakevgmstream) ret = 0;
-	else { ret = 1; close_vgmstream(fakevgmstream); }
+	if (!thisvgmstream) ret = FALSE;
+	else { ret = TRUE; close_vgmstream(thisvgmstream); }
 
 	return ret;
 }
 
-// part of our hugeass hack to stop things from crashing
-static INT32 valid_freqs[5] = {
-	11025,
-	22050,
-	32000,
-	44100,
-	48000,
-};
+DWORD __stdcall XMP_GetFileInfo(const char *filename, XMPFILE file, float **length, char **tags)
+{
+	VGMSTREAM* thisvgmstream;
+	if (file) thisvgmstream = init_vgmstream_from_xmpfile(file, filename);
+	else thisvgmstream = init_vgmstream_from_path(filename);
+	if (!thisvgmstream) return 0;
 
-int __stdcall LoadVgmStream(char *filename, XMPFILE file) {
-	int i;
-	vgmstream = init_vgmstream(filename);
+	if (length && thisvgmstream->sample_rate)
+	{
+		int totalFrames = get_vgmstream_play_samples(2.0, 10.0, 10.0, thisvgmstream);
+		float *lens = (float*)xmpfmisc->Alloc(sizeof(float));
+		lens[0] = (float)totalFrames / (float)thisvgmstream->sample_rate;
+		*length = lens;
+	}
+
+	close_vgmstream(thisvgmstream);
+
+	return 1;
+}
+
+DWORD __stdcall LoadVgmStream(const char *filename, XMPFILE file) {
+	if (file) vgmstream = init_vgmstream_from_xmpfile(file, filename);
+	else vgmstream = init_vgmstream_from_path(filename);
  
 	if (!vgmstream) return 0;
-	 // just loop forever till we have configuration done
 
-	Decoder_Is_Using_Lame_Hack = 0;
+	totalFrames = get_vgmstream_play_samples(2.0, 10.0, 10.0, vgmstream);
+	framesDone = 0;
+	framesFade = vgmstream->sample_rate * 10;
+	framesLength = totalFrames - framesFade;
 
-	for (i = 0; i < 5; i ++) {
-		if (vgmstream->sample_rate == valid_freqs[i]) {
-			Decoder_Is_Using_Lame_Hack = 1;
-			break;
-		}
+	if (totalFrames)
+	{
+		float length = (float)totalFrames / (float)vgmstream->sample_rate;
+		xmpfin->SetLength(length, TRUE);
 	}
 
 	return 1;
 }
 
-int __stdcall XMP_Buffer(float* buffer, UINT32 bufsize) {
-	int i,x,y;
-	int adder = vgmstream->channels * (Decoder_Is_Using_Lame_Hack ? 2 : 1);
+DWORD __stdcall XMP_Buffer(float* buffer, DWORD bufsize) {
+	INT16 buf[1024];
+	UINT32 i, j, todo, done;
 
-	/*
-	** Algorithm for correct playback.
-	** This is in fact a huge-ass hack which is terrible and crashes tracks with sample rates
-	** it doesn't like. We'll need to fix this later
-	*/
+	BOOL doLoop = xmpfin->GetLooping();
 
+	float *sbuf = buffer;
 
-	for (i=0;i<bufsize;i+=adder) {
-		INT16 buf[16];
-		memset(buf,0,16 * 2);
+	bufsize /= vgmstream->channels;
 
-		render_vgmstream(buf,vgmstream->channels,vgmstream);
-		for (x=0;x<adder;x++) {	
-			for (y=0;y<(Decoder_Is_Using_Lame_Hack ? 2 : 1);y++)
-				*(buffer + i + x + y) = (float)(buf[x]) / 22050; // This divide is required, audio is REALLY LOUD otherwise
+	UINT32 samplesTodo = doLoop ? bufsize : totalFrames - framesDone;
+	if (samplesTodo > bufsize)
+		samplesTodo = bufsize;
+
+	done = 0;
+	while (done < samplesTodo) {
+		todo = 1024 / vgmstream->channels;
+		if (todo > samplesTodo - done)
+			todo = samplesTodo - done;
+		render_vgmstream(buf, todo, vgmstream);
+		for (i = 0, j = todo * vgmstream->channels; i < j; ++i)
+		{
+			*sbuf++ = buf[i] * 1.0f / 32768.0f;
 		}
+		done += todo;
 	}
 
-	return bufsize;
+	sbuf = buffer;
+
+	if (!doLoop && framesDone + done > framesLength)
+	{
+		long fadeStart = (framesLength > framesDone) ? framesLength : framesDone;
+		long fadeEnd = (framesDone + done) > totalFrames ? totalFrames : (framesDone + done);
+		long fadePos;
+
+		float fadeScale = (float)(totalFrames - fadeStart) / framesFade;
+		float fadeStep = 1.0f / framesFade;
+		sbuf += (fadeStart - framesDone) * vgmstream->channels;
+		j = vgmstream->channels;
+		for (fadePos = fadeStart; fadePos < fadeEnd; ++fadePos)
+		{
+			for (i = 0; i < j; ++i)
+			{
+				sbuf[i] = sbuf[i] * fadeScale;
+			}
+			sbuf += j;
+			fadeScale -= fadeStep;
+			if (fadeScale <= 0.0f) break;
+		}
+		done = (int)(fadePos - framesDone);
+	}
+
+	framesDone += done;
+
+	return done * vgmstream->channels;
 }
 
-DWORD __stdcall XMP_GetFormat(DWORD *chan, DWORD *res) {
-	*(chan) = vgmstream->channels;
+void __stdcall XMP_SetFormat(XMPFORMAT *form) {
+	form->res = 16 / 8;
+	form->chan = vgmstream->channels;
+	form->rate = vgmstream->sample_rate;
+}
 
-	if (Decoder_Is_Using_Lame_Hack) return vgmstream->sample_rate;
-	else return vgmstream->sample_rate / 2;
+char * __stdcall XMP_GetTags()
+{
+	return NULL;
+}
+
+double __stdcall XMP_GetGranularity()
+{
+	return 0.001;
+}
+
+double __stdcall XMP_SetPosition(DWORD pos) {
+	double cpos = (double)framesDone / (double)vgmstream->sample_rate;
+	double time = pos * XMP_GetGranularity();
+
+	if (time < cpos)
+	{
+		reset_vgmstream(vgmstream);
+		cpos = 0.0;
+	}
+
+	while (cpos < time)
+	{
+		INT16 buffer[1024];
+		long max_sample_count = 1024 / vgmstream->channels;
+		long samples_to_skip = (long)((time - cpos) * vgmstream->sample_rate);
+		if (samples_to_skip > max_sample_count)
+			samples_to_skip = max_sample_count;
+		if (!samples_to_skip)
+			break;
+		render_vgmstream(buffer, (int)samples_to_skip, vgmstream);
+		cpos += (double)samples_to_skip / (double)vgmstream->sample_rate;
+	}
+
+	framesDone = (int32_t)(cpos * vgmstream->sample_rate);
+
+	return cpos;
 }
 
 void __stdcall XMP_GetInfoText(char* txt, char* length) {
-	sprintf(txt,"vgmstream!");
+	if (txt)
+		sprintf(txt,"vgmstream!");
 }
 
 void __stdcall GetAdditionalFields(char* blerp) {
 	sprintf(blerp,"oh god how did this get here i am not good with computers\n");
 }
 
-
-double __stdcall GetDecodePosition() {
-	return timestamp;
-}
-
-// Trap functions to catch stuff we haven't implemented.
-#define TRAP_FCN(id) void* __stdcall trap_##id() {\
-		cprintf("trap %d hit\n",id);\
-		return NULL;\
-}
-TRAP_FCN(1);
-TRAP_FCN(2);
-TRAP_FCN(3);
-TRAP_FCN(4);
-TRAP_FCN(5);
-TRAP_FCN(6);
-TRAP_FCN(7);
-TRAP_FCN(8);
-TRAP_FCN(9);
-TRAP_FCN(10);
-TRAP_FCN(11);
-TRAP_FCN(12);
-TRAP_FCN(13);
-TRAP_FCN(14);
-TRAP_FCN(15);
-TRAP_FCN(16);
-TRAP_FCN(17);
-TRAP_FCN(18);
-TRAP_FCN(19);
-TRAP_FCN(20);
-TRAP_FCN(21);
-TRAP_FCN(22);
-
-int __stdcall XMP_GetSubSongs() {
-	return 1; //
-}
-
 XMPIN vgmstream_intf = {
-	0,
+	XMPIN_FLAG_CANSTREAM,
 	"vgmstream for XMplay",
-	"vgmstream files\0brstm",
+	"vgmstream files\0""2dx9/aaap/aax/acm/adp/adpcm/ads/adx/afc/agsc/ahx/aifc/aiff/aix/amts/as4/asd/asf/asr/ass/ast/aud/aus/baf/baka/bar/bcstm/bcwav/bfstm/bfwav/bfwavnsmbu/bg00/bgw/bh2pcm/bmdx/bns/bnsf/bo2/brstm/caf/capdsp/ccc/cfn/cnk/dcs/dcsw/ddsp/de2/dmsg/dsp/dvi/dxh/eam/emff/enth/fag/filp/fsb/fwav/gca/gcm/gcsw/gcw/genh/gms/gsp/hgc1/his/hps/hwas/idsp/idvi/ikm/ild/int/isd/ish/ivaud/ivb/joe/kces/kcey/khv/kraw/leg/logg/lps/lsf/lwav/matx/mcg/mi4/mib/mic/mihb/mpdsp/msa/mss/msvp/mus/musc/musx/mwv/myspd/ndp/npsf/nus3bank/nwa/omu/otm/p3d/pcm/pdt/pnb/pos/psh/psw/raw/rkv/rnd/rrds/rsd/rsf/rstm/rwar/rwav/rws/rwsd/rwx/rxw/s14/sab/sad/sap/sc/scd/sd9/sdt/seg/sfl/sfs/sl3/sli/smp/smpl/snd/sng/sns/spd/sps/spsd/spt/spw/ss2/ss7/ssm/sss/ster/sth/stm/stma/str/strm/sts/stx/svag/svs/swav/swd/tec/thp/tk5/tydsp/um3/vag/vas/vgs/vig/vjdsp/voi/vpk/vs/vsf/waa/wac/wad/wam/was/wavm/wb/wii/wp2/wsd/wsi/wvs/xa/xa2/xa30/xmu/xss/xvas/xwav/xwb/ydsp/ymf/zsd/zwdsp",
 	XMPAbout,
 	NULL,
 	XMP_CheckFile,
-	NULL,
+	XMP_GetFileInfo,
 	LoadVgmStream,
 	Stop,
-	XMP_GetFormat,
 	NULL,
-	NULL,
+	XMP_SetFormat,
+	XMP_GetTags, // Actually mandatory
 	XMP_GetInfoText,
 	GetAdditionalFields,
 	NULL,
+	XMP_SetPosition,
+	XMP_GetGranularity,
 	NULL,
-	GetDecodePosition,
-	NULL,//trap_18,
 	XMP_Buffer,
 	NULL,
 	NULL,
-	XMP_GetSubSongs,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
 };
 
+static int shownerror = 0;
 
-__declspec(dllexport) XMPIN* XMPIN_GetInterface(UINT32 version, void* ifproc) {
-	AllocConsole();
-	if (version != 1) return NULL;
+__declspec(dllexport) XMPIN* __stdcall XMPIN_GetInterface(UINT32 face, InterfaceProc faceproc)
+{
+	if (face != XMPIN_FACE)
+	{ // unsupported version
+		if (face<XMPIN_FACE && !shownerror)
+		{
+			MessageBox(0, "The XMP-vgmstream plugin requires XMPlay 3.8 or above", 0, MB_ICONEXCLAMATION);
+			shownerror = 1;
+		}
+		return NULL;
+	}
+
+	xmpfin = (XMPFUNC_IN*)faceproc(XMPFUNC_IN_FACE);
+	xmpfmisc = (XMPFUNC_MISC*)faceproc(XMPFUNC_MISC_FACE);
+	xmpffile = (XMPFUNC_FILE*)faceproc(XMPFUNC_FILE_FACE);
+
 	return &vgmstream_intf;
 }
