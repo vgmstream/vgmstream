@@ -979,5 +979,8 @@
     <ClCompile Include="meta\g1l.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="coding\g719_decoder.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

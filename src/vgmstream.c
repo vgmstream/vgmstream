@@ -1121,7 +1121,7 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
         case coding_G7221C:
         case coding_G7221:
 #endif
-#ifdef VGM_USE_G719:
+#ifdef VGM_USE_G719
         case coding_G719:
 #endif
 #ifdef VGM_USE_MAIATRAC3PLUS
