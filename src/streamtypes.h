@@ -11,10 +11,10 @@
 #include <stdint.h>
 #else
 #include <pstdint.h>
+#define snprintf _snprintf
 #endif
 #define inline _inline
 #define strcasecmp _stricmp
-#define snprintf _snprintf
 #else
 #include <stdint.h>
 #endif
