@@ -62,6 +62,7 @@ int main(int argc, char ** argv) {
     double loop_count = 2.0;
     double fade_seconds = 10.0;
     double fade_delay_seconds = 0.0;
+	int32_t bytecount;
 
     while ((opt = getopt(argc, argv, "o:l:f:d:ipPcmxeLEr:gb2:")) != -1) {
         switch (opt) {
@@ -250,6 +251,10 @@ int main(int argc, char ** argv) {
     } else {
         make_wav_header((uint8_t*)buf, len, s->sample_rate, s->channels);
     }
+	if (lwav && s->loop_flag) {	// Adding space for smpl chunk at end
+        bytecount = get_32bitLE((uint8_t*)buf + 4);
+        put_32bitLE((uint8_t*)buf + 4, bytecount + 0x44);
+	}
     fwrite(buf,1,0x2c,outfile);
 
     /* decode forever */
@@ -298,14 +303,9 @@ int main(int argc, char ** argv) {
         }
     }
 
-    if (!play && lwav && s->loop_flag) {	// Writing smpl chuck
+    if (lwav && s->loop_flag) {	// Writing smpl chuck
 	make_smpl_chunk((uint8_t*)buf, s->loop_start_sample, s->loop_end_sample);
 	fwrite(buf,1,0x44,outfile);
-	fseek(outfile, 4, SEEK_SET);
-
-	size_t bytecount = len*s->channels*sizeof(sample);
-	put_32bitLE((uint8_t*)buf, (int32_t)(bytecount+0x2c+52));
-	fwrite(buf,1,0x4,outfile);
     }
     fclose(outfile); outfile = NULL;
 
