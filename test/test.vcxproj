@@ -52,7 +52,8 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <PreBuildEvent>
-      <Command>"$(ProjectDir)..\version.bat"</Command>
+      <Command>
+      </Command>
     </PreBuildEvent>
     <ClCompile>
       <Optimization>Disabled</Optimization>
@@ -64,7 +65,7 @@
       <PrecompiledHeader />
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
-      <ForcedIncludeFiles>$(ProjectDir)..\VERSION.H;%(ForcedIncludeFiles)</ForcedIncludeFiles>
+      <ForcedIncludeFiles>%(ForcedIncludeFiles)</ForcedIncludeFiles>
     </ClCompile>
     <Link>
       <AdditionalDependencies>libg719_decode.lib;libg7221_decode.lib;libmpg123-0.lib;libvorbis.lib;at3plusdecoder.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -76,7 +77,8 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <PreBuildEvent>
-      <Command>"$(ProjectDir)..\version.bat"</Command>
+      <Command>
+      </Command>
     </PreBuildEvent>
     <ClCompile>
       <Optimization>MaxSpeed</Optimization>
@@ -88,7 +90,7 @@
       <PrecompiledHeader />
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <ForcedIncludeFiles>$(ProjectDir)..\VERSION.H;%(ForcedIncludeFiles)</ForcedIncludeFiles>
+      <ForcedIncludeFiles>%(ForcedIncludeFiles)</ForcedIncludeFiles>
     </ClCompile>
     <Link>
       <AdditionalDependencies>libg719_decode.lib;libg7221_decode.lib;libmpg123-0.lib;libvorbis.lib;at3plusdecoder.lib;%(AdditionalDependencies)</AdditionalDependencies>

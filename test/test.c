@@ -1,10 +1,23 @@
 #define POSIXLY_CORRECT
-#include <unistd.h>
+#include <getopt.h>
 #include "../src/vgmstream.h"
 #include "../src/util.h"
 #ifdef WIN32
 #include <io.h>
 #include <fcntl.h>
+#else
+#include <unistd.h>
+#endif
+
+#ifndef STDOUT_FILENO
+#define STDOUT_FILENO 1
+#endif
+
+#ifndef VERSION
+#ifdef _MSC_VER
+// To include the git version number / commit in test.exe, compile outside of Visual Studio and make sure git is in the current PATH.
+#define VERSION ""
+#endif
 #endif
 
 #define BUFSIZE 4000
