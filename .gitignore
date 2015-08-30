@@ -6,7 +6,11 @@
 /ext_libs/Release
 /ext_libs/*.exp
 /ext_libs/*.lib
+/ext_libs/Getopt/Debug
+/ext_libs/Getopt/Release
 /fb2k/Debug
 /fb2k/Release
 /src/Debug
 /src/Release
+/test/Debug
+/test/Release
