@@ -1,12 +1,12 @@
 export SHELL = /bin/sh
 export CFLAGS=-Wall -O3 -DVGM_USE_G7221 -DVGM_USE_G719 -DVGM_USE_MAIATRAC3PLUS -DVAR_ARRAYS -I../ext_includes
 export LDFLAGS=-L../src -L../ext_libs -lvgmstream -lvorbis -lmpg123-0 -lg7221_decode -lg719_decode -lat3plusdecoder -lm
-export CC=i586-mingw32msvc-gcc
-export AR=i586-mingw32msvc-ar
-export STRIP=i586-mingw32msvc-strip
-#export CC=i686-w64-mingw32-gcc
-#export AR=i686-w64-mingw32-ar
-#export STRIP=i686-w64-mingw32-strip
+#export CC=i586-mingw32msvc-gcc
+#export AR=i586-mingw32msvc-ar
+#export STRIP=i586-mingw32msvc-strip
+export CC=i686-w64-mingw32-gcc
+export AR=i686-w64-mingw32-ar
+export STRIP=i686-w64-mingw32-strip
 
 .PHONY: libvgmstream.a libvorbis.a libmpg123-0.a libg7221_decode.a libg719_decode.a libat3plusdecoder.a
 
