@@ -18,8 +18,8 @@
 	<Configurations>
 		<Configuration
 			Name="Debug|Win32"
-			OutputDirectory="H:\Program Files\Winamp\Plugins"
-			IntermediateDirectory="H:\Program Files\Winamp\Plugins"
+			OutputDirectory="Debug"
+			IntermediateDirectory="Debug"
 			ConfigurationType="2"
 			>
 			<Tool

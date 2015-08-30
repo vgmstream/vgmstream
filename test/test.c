@@ -62,6 +62,7 @@ int main(int argc, char ** argv) {
     double loop_count = 2.0;
     double fade_seconds = 10.0;
     double fade_delay_seconds = 0.0;
+	size_t bytecount = 0;
 
     while ((opt = getopt(argc, argv, "o:l:f:d:ipPcmxeLEr:gb2:")) != -1) {
         switch (opt) {
@@ -303,7 +304,7 @@ int main(int argc, char ** argv) {
 	fwrite(buf,1,0x44,outfile);
 	fseek(outfile, 4, SEEK_SET);
 
-	size_t bytecount = len*s->channels*sizeof(sample);
+	bytecount = len*s->channels*sizeof(sample);
 	put_32bitLE((uint8_t*)buf, (int32_t)(bytecount+0x2c+52));
 	fwrite(buf,1,0x4,outfile);
     }
