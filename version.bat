@@ -21,4 +21,4 @@ REM Ex.
 REM Line: VERSION = "r2313"
 REM Result of the script: "r2313"
 :WORK
-FOR /F "tokens=3 delims= " %%G IN ('FINDSTR "VERSION" %~dp0version.mk') DO ECHO #define VERSION %%G > %~dp0VERSION.H
+FOR /F "tokens=3 delims= " %%G IN ('FINDSTR "VERSION" "%~dp0version.mk"') DO ECHO #define VERSION %%G > "%~dp0VERSION.H"
