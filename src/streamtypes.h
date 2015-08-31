@@ -11,10 +11,12 @@
 #include <stdint.h>
 #else
 #include <pstdint.h>
-#define snprintf _snprintf
 #endif
 #define inline _inline
 #define strcasecmp _stricmp
+#if (_MSC_VER < 1900)
+#define snprintf _snprintf
+#endif
 #else
 #include <stdint.h>
 #endif
