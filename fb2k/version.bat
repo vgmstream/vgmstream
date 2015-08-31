@@ -4,11 +4,11 @@ setlocal enableextensions enabledelayedexpansion
 
 cd /d "%~dp0"
 
-for /f %%v in ('git describe --tags --match "r*"') do set version=%%v
+for /f %%v in ('git describe --always --tag | repl.bat ":" "_"') do set version=%%v
 
 if not "%version%"=="" goto :gotversion
 
-if exist "..\version.mk" goto :getversion
+if exist "version.mk" goto :getversion
 
 echo Git cannot be found, nor can version.mk. Generating unknown version.
 
@@ -18,7 +18,7 @@ goto :gotversion
 
 :getversion
 
-for /f "delims== tokens=2" %%v in (..\version.mk) do set version=%%v
+for /f "delims== tokens=2" %%v in (version.mk) do set version=%%v
 
 set version=!version:^"=!
 set version=!version: =!
@@ -32,8 +32,8 @@ echo %version_out%> %1_temp
 
 if %version%==unknown goto :skipgenerate
 
-echo # static version string; update manually before and after every release.> "..\version.mk"
-echo %version_mk%>> "..\version.mk"
+echo # static version string; update manually before and after every release.> "version.mk"
+echo %version_mk%>> "version.mk"
 
 :skipgenerate
 

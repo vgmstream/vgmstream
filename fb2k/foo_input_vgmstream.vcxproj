@@ -84,7 +84,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <PreBuildEvent>
-      <Command>"$(ProjectDir)genversion.bat" "$(ProjectDir)version.h" VERSION</Command>
+      <Command>"$(ProjectDir)version.bat" "$(ProjectDir)version.h" VERSION</Command>
     </PreBuildEvent>
     <PreBuildEvent>
       <Message>Generating version.h</Message>
@@ -112,7 +112,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <PreBuildEvent>
-      <Command>"$(ProjectDir)genversion.bat" "$(ProjectDir)version.h" VERSION</Command>
+      <Command>"$(ProjectDir)version.bat" "$(ProjectDir)version.h" VERSION</Command>
     </PreBuildEvent>
     <PreBuildEvent>
       <Message>Generating version.h</Message>
