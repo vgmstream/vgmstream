@@ -353,6 +353,7 @@ bool input_vgmstream::g_is_our_path(const char * p_path,const char * p_extension
 	if(!stricmp_utf8(p_extension,"gms")) return 1;
 	if(!stricmp_utf8(p_extension,"gsb")) return 1;
 
+	if(!stricmp_utf8(p_extension, "hca")) return 1;
 	if(!stricmp_utf8(p_extension,"hgc1")) return 1;
 	if(!stricmp_utf8(p_extension,"his")) return 1;
 	if(!stricmp_utf8(p_extension,"hlwav")) return 1;
@@ -685,6 +686,7 @@ DECLARE_MULTIPLE_FILE_TYPE("GENH Audio File (*.GENH)", genh);
 DECLARE_MULTIPLE_FILE_TYPE("GMS Audio File (*.GMS)", gms);
 DECLARE_MULTIPLE_FILE_TYPE("GSB Audio File (*.GSB)", gsb);
 
+DECLARE_MULTIPLE_FILE_TYPE("HCA Audio File (*.HCA)", hca);
 DECLARE_MULTIPLE_FILE_TYPE("HGC1 Audio File (*.HGC1)", hgc1);
 DECLARE_MULTIPLE_FILE_TYPE("HIS Audio File (*.HIS)", his);
 DECLARE_MULTIPLE_FILE_TYPE("HLWAV Audio File (*.HLWAV)", hlwav);

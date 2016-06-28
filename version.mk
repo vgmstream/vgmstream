@@ -1,2 +1,2 @@
-# static version string; update manually before and after each release.
-VERSION = "r1004"
+# static version string; update manually before and after every release.
+VERSION = "r1050-40-g33563f4"
