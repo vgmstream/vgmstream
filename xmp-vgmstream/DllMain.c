@@ -11,8 +11,8 @@
 #include <io.h>
 #include <conio.h>
 
-#include "../src/vgmstream.h"
-#include "../src/util.h"
+#include ".\src\vgmstream.h"
+#include ".\src\util.h"
 #include "xmpin.h"
 #include "version.h"
 
@@ -68,7 +68,8 @@ static size_t xmpsf_read(XMPSTREAMFILE *this, uint8_t *dest, off_t offset, size_
 
 static void xmpsf_close(XMPSTREAMFILE *this)
 {
-	xmpffile->Close(this->file);
+// The line below is what Causes this Plugin to Crash. Credits to Ian Luck to Finding this issue.
+//	xmpffile->Close(this->file); 
 	free(this);
 }
 
@@ -109,23 +110,24 @@ STREAMFILE *xmpsf_create_from_path(const char *path)
 	return xmpsf_create(file, path);
 }
 
-VGMSTREAM *init_vgmstream_from_path(const char *path)
-{
-	STREAMFILE *sf;
-	VGMSTREAM *vgm;
-
-	sf = xmpsf_create_from_path(path);
-	if (!sf) return NULL;
-
-	vgm = init_vgmstream_from_STREAMFILE(sf);
-	if (!vgm) goto err1;
-
-	return vgm;
-
-err1:
-	xmpsf_close((XMPSTREAMFILE *)sf);
-	return NULL;
-}
+// Probably not needed at all.
+//VGMSTREAM *init_vgmstream_from_path(const char *path)
+//{
+//	STREAMFILE *sf;
+//	VGMSTREAM *vgm;
+//
+//	sf = xmpsf_create_from_path(path);
+//	if (!sf) return NULL;
+//
+//	vgm = init_vgmstream_from_STREAMFILE(sf);
+//	if (!vgm) goto err1;
+//
+//	return vgm;
+//
+//err1:
+//	xmpsf_close((XMPSTREAMFILE *)sf);
+//	return NULL;
+//}
 
 VGMSTREAM *init_vgmstream_from_xmpfile(XMPFILE file, const char *path)
 {
@@ -154,7 +156,7 @@ int32_t totalFrames, framesDone, framesLength, framesFade;
 void __stdcall XMPAbout(HWND hwParent) {
     MessageBox(hwParent,
             PLUGIN_DESCRIPTION "\n"
-            "by hcs, FastElbja, manakoAT, bxaimc, and kode54\n\n"
+            "by hcs, FastElbja, manakoAT, bxaimc, kode54, and PSXGamerPro1\n\n"
 			"https://gitlab.kode54.net/kode54/vgmstream"
             ,"about xmp-vgmstream",MB_OK);
 }
@@ -322,12 +324,12 @@ void __stdcall XMP_GetInfoText(char* txt, char* length) {
 }
 
 void __stdcall GetAdditionalFields(char* blerp) {
-	sprintf(blerp,"oh god how did this get here i am not good with computers\n");
+	sprintf(blerp,"oh god how did this get here I am not good with computers\n");
 }
 
 XMPIN vgmstream_intf = {
 	XMPIN_FLAG_CANSTREAM,
-	"vgmstream for XMplay",
+	"vgmstream for XMPlay",
 	"vgmstream files\0""2dx9/aaap/aax/acm/adp/adpcm/ads/adx/afc/agsc/ahx/aifc/aiff/aix/amts/as4/asd/asf/asr/ass/ast/aud/aus/baf/baka/bar/bcstm/bcwav/bfstm/bfwav/bfwavnsmbu/bg00/bgw/bh2pcm/bmdx/bns/bnsf/bo2/brstm/caf/capdsp/ccc/cfn/cnk/dcs/dcsw/ddsp/de2/dmsg/dsp/dvi/dxh/eam/emff/enth/fag/filp/fsb/fwav/gca/gcm/gcsw/gcw/genh/gms/gsp/hgc1/his/hps/hwas/idsp/idvi/ikm/ild/int/isd/ish/ivaud/ivb/joe/kces/kcey/khv/kraw/leg/logg/lps/lsf/lwav/matx/mcg/mi4/mib/mic/mihb/mpdsp/msa/mss/msvp/mus/musc/musx/mwv/myspd/ndp/npsf/nus3bank/nwa/omu/otm/p3d/pcm/pdt/pnb/pos/psh/psw/raw/rkv/rnd/rrds/rsd/rsf/rstm/rwar/rwav/rws/rwsd/rwx/rxw/s14/sab/sad/sap/sc/scd/sd9/sdt/seg/sfl/sfs/sl3/sli/smp/smpl/snd/sng/sns/spd/sps/spsd/spt/spw/ss2/ss7/ssm/sss/ster/sth/stm/stma/str/strm/sts/stx/svag/svs/swav/swd/tec/thp/tk5/tydsp/um3/vag/vas/vgs/vig/vjdsp/voi/vpk/vs/vsf/waa/wac/wad/wam/was/wavm/wb/wii/wp2/wsd/wsi/wvs/xa/xa2/xa30/xmu/xss/xvas/xwav/xwb/ydsp/ymf/zsd/zwdsp",
 	XMPAbout,
 	NULL,
@@ -370,7 +372,9 @@ __declspec(dllexport) XMPIN* __stdcall XMPIN_GetInterface(UINT32 face, Interface
 	{ // unsupported version
 		if (face<XMPIN_FACE && !shownerror)
 		{
-			MessageBox(0, "The XMP-vgmstream plugin requires XMPlay 3.8 or above", 0, MB_ICONEXCLAMATION);
+			//Replaced the message box below with a better one.
+			//MessageBox(0, "The XMP-vgmstream plugin requires XMPlay 3.8 or above", 0, MB_ICONEXCLAMATION);
+			MessageBox(0, "The xmp-vgmstream plugin requires XMPlay 3.8 or above. Please update at.\n\n http://www.un4seen.com/xmplay.html \n or at\n http://www.un4seen.com/stuff/xmplay.exe.", 0, MB_ICONEXCLAMATION);
 			shownerror = 1;
 		}
 		return NULL;
