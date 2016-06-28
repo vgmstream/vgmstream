@@ -46,6 +46,8 @@ enum { PATH_LIMIT = 32768 };
 #include "maiatrac3plus.h"
 #endif
 
+#include "clHCA.h"
+
 #include "coding/acm_decoder.h"
 #include "coding/nwa_decoder.h"
 
@@ -149,6 +151,8 @@ typedef enum {
     coding_PCM16LE_XOR_int, /* sample-level xor */
     coding_LSF,             /* lsf ADPCM */
     coding_MTAF,            /* Konami IMA-derived MTAF ADPCM */
+    
+    coding_CRI_HCA,         /* CRI High Compression Audio */
 
 #if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
 	coding_MP4_AAC,
@@ -581,6 +585,7 @@ typedef enum {
    meta_G1L,           		// Tecmo Koei G1L
    meta_MCA,			// Capcom MCA "MADP"
    meta_XB3D_ADX,				// Xenoblade Chronicles 3D ADX
+   meta_HCA,
 #ifdef VGM_USE_MP4V2
 	meta_MP4,
 #endif
@@ -813,6 +818,17 @@ typedef struct {
     VGMSTREAM **substreams;
     STREAMFILE **intfiles;
 } scd_int_codec_data;
+
+typedef struct {
+    STREAMFILE *streamfile;
+    uint64_t start;
+    uint64_t size;
+    clHCA_stInfo info;
+    unsigned int curblock;
+    unsigned int sample_ptr, samples_discard;
+    signed short sample_buffer[clHCA_samplesPerBlock * 16];
+    // clHCA exists here
+} hca_codec_data;
 
 #ifdef VGM_USE_MP4V2
 typedef struct {

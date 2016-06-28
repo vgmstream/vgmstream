@@ -111,6 +111,10 @@ VGMSTREAM * init_vgmstream_ogg_vorbis_callbacks(STREAMFILE *streamFile, const ch
 
 VGMSTREAM * init_vgmstream_sli_ogg(STREAMFILE * streamFile);
 
+VGMSTREAM * init_vgmstream_hca(STREAMFILE *streamFile);
+
+VGMSTREAM * init_vgmstream_hca_offset(STREAMFILE *streamFile, uint64_t start, uint64_t size);
+
 #if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
 VGMSTREAM * init_vgmstream_mp4_aac(STREAMFILE * streamFile);
 

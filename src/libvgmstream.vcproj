@@ -381,6 +381,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\hca.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\his.c"
 					>
 				</File>
@@ -1231,6 +1235,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\coding\hca_decoder.c"
+					>
+				</File>
+				<File
 					RelativePath=".\coding\ima_decoder.c"
 					>
 				</File>
@@ -1300,6 +1308,10 @@
 				</File>
 				<File
 					RelativePath=".\coding\xa_decoder.c"
+					>
+				</File>
+				<File
+					RelativePath="..\ext_libs\clHCA.c"
 					>
 				</File>
 			</Filter>

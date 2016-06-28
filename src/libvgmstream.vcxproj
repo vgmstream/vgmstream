@@ -183,6 +183,7 @@
     <ClCompile Include="meta\gh3_bar.c" />
     <ClCompile Include="meta\gsp_gsb.c" />
     <ClCompile Include="meta\halpst.c" />
+    <ClCompile Include="meta\hca.c" />
     <ClCompile Include="meta\his.c" />
     <ClCompile Include="meta\idsp.c" />
     <ClCompile Include="meta\ish_isd.c" />
@@ -362,6 +363,7 @@
     <ClCompile Include="coding\g719_decoder.c" />
     <ClCompile Include="coding\g721_decoder.c" />
     <ClCompile Include="coding\g7221_decoder.c" />
+    <ClCompile Include="coding\hca_decoder.c" />
     <ClCompile Include="coding\ima_decoder.c" />
     <ClCompile Include="coding\l5_555_decoder.c" />
     <ClCompile Include="coding\mpeg_decoder.c" />
@@ -406,6 +408,7 @@
     <ClCompile Include="layout\wsi_blocked.c" />
     <ClCompile Include="layout\xa_blocked.c" />
     <ClCompile Include="layout\xvas_block.c" />
+    <ClCompile Include="..\ext_libs\clHCA.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

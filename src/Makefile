@@ -23,7 +23,8 @@ CODING_OBJS=coding/adx_decoder.o \
     coding/lsf_decoder.o \
     coding/mtaf_decoder.o \
     coding/at3_decoder.o \
-    coding/g719_decoder.o
+    coding/g719_decoder.o \
+    coding/hca_decoder.o
 
 LAYOUT_OBJS=layout/ast_blocked.o \
     layout/blocked.o \
@@ -300,9 +301,12 @@ META_OBJS=meta/adx_header.o \
     meta/bfwav.o \
 	meta/g1l.o \
 	meta/mca.o \
-	meta/btsnd.o
+	meta/btsnd.o \
+	meta/hca.o
 
-OBJECTS=vgmstream.o streamfile.o util.o $(CODING_OBJS) $(LAYOUT_OBJS) $(META_OBJS)
+EXT_LIBS = ../ext_libs/clHCA.o
+
+OBJECTS=vgmstream.o streamfile.o util.o $(CODING_OBJS) $(LAYOUT_OBJS) $(META_OBJS) $(EXT_LIBS)
 
 libvgmstream.a: $(OBJECTS)
 	$(AR) crs libvgmstream.a $(OBJECTS)

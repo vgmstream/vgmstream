@@ -338,6 +338,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_bcstm,
 	init_vgmstream_3ds_idsp,
 	init_vgmstream_g1l,
+    init_vgmstream_hca,
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -432,6 +433,13 @@ void reset_vgmstream(VGMSTREAM * vgmstream) {
         ov_pcm_seek(ogg_vorbis_file, 0);
     }
 #endif
+    if (vgmstream->coding_type==coding_CRI_HCA) {
+        hca_codec_data *data = vgmstream->codec_data;
+        clHCA *hca = (clHCA *)(data + 1);
+        data->curblock = 0;
+        data->sample_ptr = clHCA_samplesPerBlock;
+        data->samples_discard = 0;
+    }
 #if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
 	if (vgmstream->coding_type==coding_MP4_AAC) {
 		mp4_aac_codec_data *data = vgmstream->codec_data;
@@ -623,6 +631,12 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
         }
     }
 #endif
+    if (vgmstream->coding_type==coding_CRI_HCA) {
+        if (vgmstream->codec_data) {
+            free(vgmstream->codec_data);
+            vgmstream->codec_data = NULL;
+        }
+    }
 
 #if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
 	if (vgmstream->coding_type==coding_MP4_AAC) {
@@ -1018,6 +1032,8 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
             return 54;
         case coding_MTAF:
             return 0x80*2;
+        case coding_CRI_HCA:
+            return clHCA_samplesPerBlock;
 #if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
 		case coding_MP4_AAC:
 			return ((mp4_aac_codec_data*)vgmstream->codec_data)->samples_per_frame;
@@ -1399,6 +1415,11 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                     vgmstream->channels);
             break;
 #endif
+        case coding_CRI_HCA:
+            decode_hca(vgmstream->codec_data,
+                buffer+samples_written*vgmstream->channels,samples_to_do,
+                vgmstream->channels);
+            break;
 #if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
 		case coding_MP4_AAC:
 			decode_mp4_aac(vgmstream->codec_data,
@@ -1685,6 +1706,12 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream) {
                 ov_pcm_seek_lap(ogg_vorbis_file, vgmstream->loop_sample);
             }
 #endif
+            if (vgmstream->coding_type==coding_CRI_HCA) {
+                hca_codec_data *data = (hca_codec_data *)(vgmstream->codec_data);
+                data->curblock = data->info.loopStart;
+                data->sample_ptr = clHCA_samplesPerBlock;
+                data->samples_discard = 0;
+            }
 #if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
 			if (vgmstream->coding_type==coding_MP4_AAC) {
 				mp4_aac_codec_data *data = (mp4_aac_codec_data *)(vgmstream->codec_data);
@@ -1831,6 +1858,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case coding_CRI_ADX_enc_9:
             snprintf(temp,TEMPSIZE,"encrypted (type 9) CRI ADX 4-bit ADPCM");
+            break;
+        case coding_CRI_HCA:
+            snprintf(temp,TEMPSIZE,"CRI HCA");
             break;
         case coding_NDS_IMA:
             snprintf(temp,TEMPSIZE,"NDS-style 4-bit IMA ADPCM");
@@ -3314,7 +3344,7 @@ fail:
 static int get_vgmstream_channel_count(VGMSTREAM * vgmstream)
 {
     if (vgmstream->layout_type==layout_scd_int) {
-        scd_int_codec_data *data = vgmstream->codec_data;
+        scd_int_codec_data *data = (scd_int_codec_data *) vgmstream->codec_data;
         if (data) {
             return data->substream_count;
         }
@@ -3324,7 +3354,7 @@ static int get_vgmstream_channel_count(VGMSTREAM * vgmstream)
     }
 #ifdef VGM_USE_VORBIS
     if (vgmstream->coding_type==coding_ogg_vorbis) {
-        ogg_vorbis_codec_data *data = vgmstream->codec_data;
+        ogg_vorbis_codec_data *data = (ogg_vorbis_codec_data *) vgmstream->codec_data;
 
         if (data) {
             return 1;
@@ -3334,9 +3364,19 @@ static int get_vgmstream_channel_count(VGMSTREAM * vgmstream)
         }
     }
 #endif
+    if (vgmstream->coding_type==coding_CRI_HCA) {
+        hca_codec_data *data = (hca_codec_data *) vgmstream->codec_data;
+        
+        if (data) {
+            return 1;
+        }
+        else {
+            return 0;
+        }
+    }
 #if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
     if (vgmstream->coding_type==coding_MP4_AAC) {
-        mp4_aac_codec_data *data = vgmstream->codec_data;
+        mp4_aac_codec_data *data = (mp4_aac_codec_data *) vgmstream->codec_data;
         if (data) {
             return 1;
         }
@@ -3351,19 +3391,24 @@ static int get_vgmstream_channel_count(VGMSTREAM * vgmstream)
 static STREAMFILE * get_vgmstream_streamfile(VGMSTREAM * vgmstream, int channel)
 {
     if (vgmstream->layout_type==layout_scd_int) {
-        scd_int_codec_data *data = vgmstream->codec_data;
+        scd_int_codec_data *data = (scd_int_codec_data *) vgmstream->codec_data;
         return data->intfiles[channel];
     }
 #ifdef VGM_USE_VORBIS
     if (vgmstream->coding_type==coding_ogg_vorbis) {
-        ogg_vorbis_codec_data *data = vgmstream->codec_data;
+        ogg_vorbis_codec_data *data = (ogg_vorbis_codec_data *) vgmstream->codec_data;
         
         return data->ov_streamfile.streamfile;
     }
 #endif
+    if (vgmstream->coding_type==coding_CRI_HCA) {
+        hca_codec_data *data = (hca_codec_data *) vgmstream->codec_data;
+        
+        return data->streamfile;
+    }
 #if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
     if (vgmstream->coding_type==coding_MP4_AAC) {
-        mp4_aac_codec_data *data = vgmstream->codec_data;
+        mp4_aac_codec_data *data = (mp4_aac_codec_data *) vgmstream->codec_data;
         return data->if_file.streamfile;
     }
 #endif

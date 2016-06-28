@@ -36,6 +36,15 @@
     <Filter Include="layout\Source Files">
       <UniqueIdentifier>{e729b7b3-e13c-4cf9-9ded-428c209b6f62}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ext_libs">
+      <UniqueIdentifier>{48DB0DEF-3694-40E0-9FF6-8A736E6C3A62}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ext_libs\Source Files">
+      <UniqueIdentifier>{78A32BD9-0DB4-4164-A7E6-41506B78392E}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ext_libs\Header Files">
+      <UniqueIdentifier>{20824073-8817-41CF-8A21-D54294A56050}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="streamfile.h">
@@ -67,6 +76,9 @@
     </ClInclude>
     <ClInclude Include="layout\layout.h">
       <Filter>layout\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ext_includes\clHCA.h">
+      <Filter>ext_libs\Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -200,6 +212,9 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\halpst.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\hca.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\his.c">
@@ -721,6 +736,9 @@
     <ClCompile Include="coding\g7221_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="coding\hca_decoder.c">
+      <Filter>coding\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="coding\ima_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
@@ -981,6 +999,9 @@
     </ClCompile>
     <ClCompile Include="coding\g719_decoder.c">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ext_libs\clHCA.c">
+      <Filter>ext_libs\Source Files</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

@@ -30,5 +30,6 @@ libcoding_la_SOURCES += g7221_decoder.c
 libcoding_la_SOURCES += lsf_decoder.c
 libcoding_la_SOURCES += mtaf_decoder.c
 libcoding_la_SOURCES += g719_decoder.c
+libcoding_la_SOURCES += hca_decoder.c
 
-EXTRA_DIST = coding.h g72x_state.h
+EXTRA_DIST = coding.h g72x_state.h clHCA.h
