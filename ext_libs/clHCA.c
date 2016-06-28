@@ -14,15 +14,21 @@
 //--------------------------------------------------
 // インライン関数
 //--------------------------------------------------
-//inline short bswap_s16(short v){short r=v&0xFF;r<<=8;v>>=8;r|=v&0xFF;return r;}
-static inline unsigned short bswap_u16(unsigned short v){unsigned short r=v&0xFF;r<<=8;v>>=8;r|=v&0xFF;return r;}
-//static inline int bswap_s24(int v){int r=v&0xFF;r<<=8;v>>=8;r|=v&0xFF;r<<=8;v>>=8;r|=v&0xFF;r<<=8;return r>>8;}
-static inline unsigned int bswap_u24(unsigned int v){unsigned int r=v&0xFF;r<<=8;v>>=8;r|=v&0xFF;r<<=8;v>>=8;r|=v&0xFF;return r;}
-//static inline int bswap_s32(int v){int r=v&0xFF;r<<=8;v>>=8;r|=v&0xFF;r<<=8;v>>=8;r|=v&0xFF;r<<=8;v>>=8;r|=v&0xFF;return r;}
-static inline unsigned int bswap_u32(unsigned int v){unsigned int r=v&0xFF;r<<=8;v>>=8;r|=v&0xFF;r<<=8;v>>=8;r|=v&0xFF;r<<=8;v>>=8;r|=v&0xFF;return r;}
-//static inline long long bswap_s64(long long v){long long r=v&0xFF;r<<=8;v>>=8;r|=v&0xFF;r<<=8;v>>=8;r|=v&0xFF;r<<=8;v>>=8;r|=v&0xFF;r<<=8;v>>=8;r|=v&0xFF;r<<=8;v>>=8;r|=v&0xFF;r<<=8;v>>=8;r|=v&0xFF;r<<=8;v>>=8;r|=v&0xFF;return r;}
-//static inline unsigned long long bswap_u64(unsigned long long v){unsigned long long r=v&0xFF;r<<=8;v>>=8;r|=v&0xFF;r<<=8;v>>=8;r|=v&0xFF;r<<=8;v>>=8;r|=v&0xFF;r<<=8;v>>=8;r|=v&0xFF;r<<=8;v>>=8;r|=v&0xFF;r<<=8;v>>=8;r|=v&0xFF;r<<=8;v>>=8;r|=v&0xFF;return r;}
-static inline float bswap_f(float v){unsigned int i=bswap_u32(*(unsigned int *)&v);return *(float *)&i;}
+static inline unsigned short get_le16(unsigned short v_){const unsigned char *v=(const unsigned char *)&v_;unsigned short r=v[1];r<<=8;r|=v[0];return r;}
+static inline unsigned short get_be16(unsigned short v_){const unsigned char *v=(const unsigned char *)&v_;unsigned short r=v[0];r<<=8;r|=v[1];return r;}
+static inline unsigned int get_be24(unsigned int v_){const unsigned char *v=(const unsigned char *)&v_;unsigned int r=v[0];r<<=8;r|=v[1];r<<=8;r|=v[2];return r;};
+static inline unsigned int get_le32(unsigned int v_){const unsigned char *v=(const unsigned char *)&v_;unsigned int r=v[3];r<<=8;r|=v[2];r<<=8;r|=v[1];r<<=8;r|=v[0];return r;}
+static inline unsigned int get_be32(unsigned int v_){const unsigned char *v=(const unsigned char *)&v_;unsigned int r=v[0];r<<=8;r|=v[1];r<<=8;r|=v[2];r<<=8;r|=v[3];return r;}
+static inline float get_bef32(float v_){union{float f;unsigned int i;}v;v.f=v_;v.i=get_be32(v.i);return v.f;}
+
+#if 0
+static union { unsigned int i; unsigned char c[4]; } g_is_le = {1};
+static inline unsigned short swap_u16(unsigned short v){unsigned short r=v&0xFF;r<<=8;v>>=8;r|=v&0xFF;return r;}
+static inline unsigned short swap_u32(unsigned int v){unsigned int r=v&0xFF;r<<=8;v>>=8;r|=v&0xFF;r<<=8;v>>=8;r|=v&0xFF;r<<=8;v>>=8;r|=v&0xFF;return r;}
+static inline unsigned short ret_le16(unsigned short v){if (g_is_le.c[0]) return v; else return swap_u16(v);}
+static inline unsigned short ret_le32(unsigned int v){if (g_is_le.c[0]) return v; else return swap_u32(v);}
+#endif
+
 static inline unsigned int ceil2(unsigned int a,unsigned int b){return (b>0)?(a/b+((a%b)?1:0)):0;}
 
 //--------------------------------------------------
@@ -180,7 +186,7 @@ static void clHCA_constructor(clHCA *hca,unsigned int ciphKey1,unsigned int ciph
 // HCAチェック
 //--------------------------------------------------
 static int clHCA_CheckFile(void *data,unsigned int size){
-	return (data&&size>=4&&(*(unsigned int *)data&0x7F7F7F7F)==0x00414348);
+	return (data&&size>=4&&(get_le32(*(unsigned int *)data)&0x7F7F7F7F)==0x00414348);
 }
 
 //--------------------------------------------------
@@ -272,7 +278,7 @@ static int clHCA_PrintInfo(const char *filenameHCA){
 	}
 
 	// ヘッダ解析
-	header.dataOffset=bswap_u16(header.dataOffset);
+	header.dataOffset=get_be16(header.dataOffset);
 	data=(unsigned char*) malloc(header.dataOffset);
 	if(!data){
 		printf("Error: メモリ不足です。\n");
@@ -291,10 +297,10 @@ static int clHCA_PrintInfo(const char *filenameHCA){
 	}
 
 	// HCA
-	if(size>=sizeof(stHeader) && (*(unsigned int *)s&0x7F7F7F7F)==0x00414348){
+	if(size>=sizeof(stHeader) && (get_le32(*(unsigned int *)s)&0x7F7F7F7F)==0x00414348){
 		stHeader *hca=(stHeader *)s;s+=sizeof(stHeader);
-		_version=bswap_u16(hca->version);
-		_dataOffset=bswap_u16(hca->dataOffset);
+		_version=get_be16(hca->version);
+		_dataOffset=get_be16(hca->dataOffset);
 		printf("コーデック: HCA\n");
 		printf("バージョン: %d.%d\n",_version>>8,_version&0xFF);
 		//if(size<_dataOffset)return -1;
@@ -305,13 +311,13 @@ static int clHCA_PrintInfo(const char *filenameHCA){
 	}
 
 	// fmt
-	if(size>=sizeof(stFormat) && (*(unsigned int *)s&0x7F7F7F7F)==0x00746D66){
+	if(size>=sizeof(stFormat) && (get_le32(*(unsigned int *)s)&0x7F7F7F7F)==0x00746D66){
 		stFormat *fmt=(stFormat *)s;s+=sizeof(stFormat);size-=sizeof(stFormat);
 		_channelCount=fmt->channelCount;
-		_samplingRate=bswap_u24(fmt->samplingRate);
-		_blockCount=bswap_u32(fmt->blockCount);
-		_fmt_r01=bswap_u16(fmt->r01);
-		_fmt_r02=bswap_u16(fmt->r02);
+		_samplingRate=get_be24(fmt->samplingRate);
+		_blockCount=get_be32(fmt->blockCount);
+		_fmt_r01=get_be16(fmt->r01);
+		_fmt_r02=get_be16(fmt->r02);
 		switch(_channelCount){
 		case 1:printf("チャンネル数: モノラル (1チャンネル)\n");break;
 		case 2:printf("チャンネル数: ステレオ (2チャンネル)\n");break;
@@ -332,9 +338,9 @@ static int clHCA_PrintInfo(const char *filenameHCA){
 	}
 
 	// comp
-	if(size>=sizeof(stCompress) && (*(unsigned int *)s&0x7F7F7F7F)==0x706D6F63){
+	if(size>=sizeof(stCompress) && (get_le32(*(unsigned int *)s)&0x7F7F7F7F)==0x706D6F63){
 		stCompress *comp=(stCompress *)s;s+=sizeof(stCompress);size-=sizeof(stCompress);
-		_blockSize=bswap_u16(comp->blockSize);
+		_blockSize=get_be16(comp->blockSize);
 		_comp_r01=comp->r01;
 		_comp_r02=comp->r02;
 		_comp_r03=comp->r03;
@@ -365,9 +371,9 @@ static int clHCA_PrintInfo(const char *filenameHCA){
 	}
 
 	// dec
-	else if(size>=sizeof(stDecode) && (*(unsigned int *)s&0x7F7F7F7F)==0x00636564){
+	else if(size>=sizeof(stDecode) && (get_le32(*(unsigned int *)s)&0x7F7F7F7F)==0x00636564){
 		stDecode *dec=(stDecode *)s;s+=sizeof(stDecode);size-=sizeof(stDecode);
-		_blockSize=bswap_u16(dec->blockSize);
+		_blockSize=get_be16(dec->blockSize);
 		_comp_r01=dec->r01;
 		_comp_r02=dec->r02;
 		_comp_r03=dec->r04;
@@ -399,10 +405,10 @@ static int clHCA_PrintInfo(const char *filenameHCA){
 	}
 
 	// vbr
-	if(size>=sizeof(stVBR) && (*(unsigned int *)s&0x7F7F7F7F)==0x00726276){
+	if(size>=sizeof(stVBR) && (get_le32(*(unsigned int *)s)&0x7F7F7F7F)==0x00726276){
 		stVBR *vbr=(stVBR *)s;s+=sizeof(stVBR);size-=sizeof(stVBR);
-		_vbr_r01=bswap_u16(vbr->r01);
-		_vbr_r02=bswap_u16(vbr->r02);
+		_vbr_r01=get_be16(vbr->r01);
+		_vbr_r02=get_be16(vbr->r02);
 		printf("ビットレート: VBR (可変ビットレート) ※v2.0で廃止されています。\n");
 		if(!(_blockSize==0)){
 			printf("※ compまたはdecチャンクですでにCBRが指定されています。\n");
@@ -418,7 +424,7 @@ static int clHCA_PrintInfo(const char *filenameHCA){
 	}
 
 	// ath
-	if(size>=6 && (*(unsigned int *)s&0x7F7F7F7F)==0x00687461){
+	if(size>=6 && (get_le32(*(unsigned int *)s)&0x7F7F7F7F)==0x00687461){
 		stATH *ath=(stATH *)s;s+=6;size-=6;//s+=sizeof(stATH);
 		_ath_type=ath->type;
 		printf("ATHタイプ:%d ※v2.0から廃止されています。\n",_ath_type);
@@ -429,12 +435,12 @@ static int clHCA_PrintInfo(const char *filenameHCA){
 	}
 
 	// loop
-	if(size>=sizeof(stLoop) && (*(unsigned int *)s&0x7F7F7F7F)==0x706F6F6C){
+	if(size>=sizeof(stLoop) && (get_le32(*(unsigned int *)s)&0x7F7F7F7F)==0x706F6F6C){
 		stLoop *loop=(stLoop *)s;s+=sizeof(stLoop);size-=sizeof(stLoop);
-		_loopStart=bswap_u32(loop->loopStart);
-		_loopEnd=bswap_u32(loop->loopEnd);
-		_loop_r01=bswap_u16(loop->r01);
-		_loop_r02=bswap_u16(loop->r02);
+		_loopStart=get_be32(loop->loopStart);
+		_loopEnd=get_be32(loop->loopEnd);
+		_loop_r01=get_be16(loop->r01);
+		_loop_r02=get_be16(loop->r02);
 		printf("ループ開始ブロック: %d\n",_loopStart);
 		printf("ループ終了ブロック: %d\n",_loopEnd);
 		if(!(_loopStart>=0&&_loopStart<=_loopEnd&&_loopEnd<_blockCount)){
@@ -445,9 +451,9 @@ static int clHCA_PrintInfo(const char *filenameHCA){
 	}
 
 hca->	// ciph
-	if(size>=6 && (*(unsigned int *)s&0x7F7F7F7F)==0x68706963){
+	if(size>=6 && (get_le32(*(unsigned int *)s)&0x7F7F7F7F)==0x68706963){
 		stCipher *ciph=(stCipher *)s;s+=6;size-=6;//s+=sizeof(stCipher);
-		_ciph_type=bswap_u16(ciph->type);
+		_ciph_type=get_be16(ciph->type);
 		switch(_ciph_type){
 		case 0:printf("暗号化タイプ: なし\n");break;
 		case 1:printf("暗号化タイプ: 鍵無し暗号化\n");break;
@@ -460,14 +466,14 @@ hca->	// ciph
 	}
 
 	// rva
-	if(size>=sizeof(stRVA) && (*(unsigned int *)s&0x7F7F7F7F)==0x00617672){
+	if(size>=sizeof(stRVA) && (get_le32(*(unsigned int *)s)&0x7F7F7F7F)==0x00617672){
 		stRVA *rva=(stRVA *)s;s+=sizeof(stRVA);size-=sizeof(stRVA);
-		_rva_volume=bswap_f(rva->volume);
+		_rva_volume=get_bef32(rva->volume);
 		printf("相対ボリューム調節: %g倍\n",_rva_volume);
 	}
 
 	// comm
-	if(size>=5 && (*(unsigned int *)s&0x7F7F7F7F)==0x6D6D6F63){
+	if(size>=5 && (get_le32(*(unsigned int *)s)&0x7F7F7F7F)==0x6D6D6F63){
 		stComment *comm=(stComment *)s;s+=5;size-=5;//s+=sizeof(stComment);
 		_comm_len=comm->len;
 		_comm_comment=(const char *)s;
@@ -513,7 +519,7 @@ static int clHCA_DecodeToWavefile(clHCA *hca,const char *filenameHCA,const char 
 		unsigned int fmtSamplesPerSec;
 		unsigned short fmtSamplingSize;
 		unsigned short fmtBitCount;
-	}wavRiff={'R','I','F','F',0,'W','A','V','E','f','m','t',' ',0x10,0,0,0,0,0,0};
+	}wavRiff={'R','I','F','F',0,'W','A','V','E','f','m','t',' ',ret_le32(0x10),0,0,0,0,0,0};
 	struct stWAVEsmpl{
 		char smpl[4];
 		unsigned int smplSize;
@@ -532,7 +538,7 @@ static int clHCA_DecodeToWavefile(clHCA *hca,const char *filenameHCA,const char 
 		unsigned int loop_End;
 		unsigned int loop_Fraction;
 		unsigned int loop_PlayCount;
-	}wavSmpl={'s','m','p','l',0x3C,0,0,0,0x3C,0,0,0,1,0x18,0,0,0,0,0,0};
+	}wavSmpl={'s','m','p','l',ret_le32(0x3C),0,0,0,ret_le32(0x3C),0,0,0,ret_le32(1),ret_le32(0x18),0,0,0,0,0,0};
 	struct stWAVEnote{
 		char note[4];
 		unsigned int noteSize;
@@ -555,7 +561,7 @@ static int clHCA_DecodeToWavefile(clHCA *hca,const char *filenameHCA,const char 
 	if(!CheckFile(&header,sizeof(header))){fclose(fp1);return -1;}
 
 	// ヘッダ解析
-	header.dataOffset=bswap_u16(header.dataOffset);
+	header.dataOffset=get_be16(header.dataOffset);
 	data1=(unsigned char*) malloc(header.dataOffset);
 	if(!data1){fclose(fp1);return -1;}
 	fseek(fp1,0,SEEK_SET);
@@ -566,29 +572,30 @@ static int clHCA_DecodeToWavefile(clHCA *hca,const char *filenameHCA,const char 
 	if((fp2 = fopen(filenameWAV,"wb")) == NULL){free(data1);fclose(fp1);return -1;}
 
 	// WAVEヘッダを書き込み
-	wavRiff.fmtType=(mode>0)?1:3;
-	wavRiff.fmtChannelCount=hca->_channelCount;
-	wavRiff.fmtBitCount=(mode>0)?mode:32;
-	wavRiff.fmtSamplingRate=hca->_samplingRate;
-	wavRiff.fmtSamplingSize=wavRiff.fmtBitCount/8*wavRiff.fmtChannelCount;
-	wavRiff.fmtSamplesPerSec=wavRiff.fmtSamplingRate*wavRiff.fmtSamplingSize;
+	wavRiff.fmtType=ret_le16((mode>0)?1:3);
+	wavRiff.fmtChannelCount=ret_le16(hca->_channelCount);
+	wavRiff.fmtBitCount=ret_le16((mode>0)?mode:32);
+	wavRiff.fmtSamplingRate=ret_le32(hca->_samplingRate);
+	wavRiff.fmtSamplingSize=ret_le16(wavRiff.fmtBitCount/8*wavRiff.fmtChannelCount);
+	wavRiff.fmtSamplesPerSec=ret_le32(wavRiff.fmtSamplingRate*wavRiff.fmtSamplingSize);
 	if(hca->_loopFlg){
-		wavSmpl.samplePeriod=(unsigned int)(1/(double)wavRiff.fmtSamplingRate*1000000000);
-		wavSmpl.loop_Start=hca->_loopStart*0x80*8*wavRiff.fmtSamplingSize;
-		wavSmpl.loop_End=hca->_loopEnd*0x80*8*wavRiff.fmtSamplingSize;
-		wavSmpl.loop_PlayCount=(hca->_loop_r01==0x80)?0:hca->_loop_r01;
+		wavSmpl.samplePeriod=ret_le32((unsigned int)(1/(double)wavRiff.fmtSamplingRate*1000000000));
+		wavSmpl.loop_Start=ret_le32(hca->_loopStart*0x80*8*wavRiff.fmtSamplingSize);
+		wavSmpl.loop_End=ret_le32(hca->_loopEnd*0x80*8*wavRiff.fmtSamplingSize);
+		wavSmpl.loop_PlayCount=ret_le32((hca->_loop_r01==0x80)?0:hca->_loop_r01);
 	}else if(loop){
 		wavSmpl.loop_Start=0;
-		wavSmpl.loop_End=hca->_blockCount*0x80*8*wavRiff.fmtSamplingSize;
+		wavSmpl.loop_End=ret_le32(hca->_blockCount*0x80*8*wavRiff.fmtSamplingSize);
 		hca->_loopStart=0;
 		hca->_loopEnd=hca->_blockCount;
 	}
 	if(_comm_comment){
-		wavNote.noteSize=4+hca->_comm_len+1;
-		if(wavNote.noteSize&3)wavNote.noteSize+=4-(wavNote.noteSize&3);
+		unsigned int noteSize=4+hca->_comm_len+1;
+		if(noteSize&3)noteSize+=4-(noteSize&3);
+		waveNote.noteSize=ret_le32(noteSize);
 	}
-	wavData.dataSize=hca->_blockCount*0x80*8*wavRiff.fmtSamplingSize+(wavSmpl.loop_End-wavSmpl.loop_Start)*loop;
-	wavRiff.riffSize=0x1C+((hca->_loopFlg&&!loop)?sizeof(wavSmpl):0)+(hca->_comm_comment?8+wavNote.noteSize:0)+sizeof(wavData)+wavData.dataSize;
+	wavData.dataSize=ret_le32(hca->_blockCount*0x80*8*wavRiff.fmtSamplingSize+(wavSmpl.loop_End-wavSmpl.loop_Start)*loop);
+	wavRiff.riffSize=ret_le32(0x1C+((hca->_loopFlg&&!loop)?sizeof(wavSmpl):0)+(hca->_comm_comment?8+wavNote.noteSize:0)+sizeof(wavData)+wavData.dataSize);
 	fwrite(&wavRiff,sizeof(wavRiff),1,fp2);
 	if(hca->_loopFlg&&!loop)fwrite(&wavSmpl,sizeof(wavSmpl),1,fp2);
 	if(hca->_comm_comment){
@@ -662,9 +669,9 @@ int clHCA_DecodeToWavefile_Decode(clHCA *hca,void *fp1,void *fp2,unsigned int ad
 
 int clHCA_isOurFile0(const void *data){
 	const unsigned char *s=(const unsigned char*)data;
-	if((*(const unsigned int *)s&0x7F7F7F7F)==0x00414348){
+	if((get_le32(*(unsigned int *)s)&0x7F7F7F7F)==0x00414348){
 		const stHeader *hca=(const stHeader *)s;
-		return bswap_u16(hca->dataOffset);
+		return get_be16(hca->dataOffset);
 	}
 	return -1;
 }
@@ -686,7 +693,7 @@ int clHCA_getInfo(clHCA *hca, clHCA_stInfo *info){
 	info->channelCount=hca->_channelCount;
 	info->blockSize=hca->_blockSize;
 	info->blockCount=hca->_blockCount;
-    info->loopEnabled=hca->_loopFlg;
+	info->loopEnabled=hca->_loopFlg;
 	info->loopStart=hca->_loopStart;
 	info->loopEnd=hca->_loopEnd;
 	return 0;
@@ -989,10 +996,10 @@ int clHCA_Decode(clHCA *hca,void *data,unsigned int size,unsigned int address){
 		if(size<sizeof(stHeader))return -1;
 
 		// HCA
-		if((*(const unsigned int *)s&0x7F7F7F7F)==0x00414348){
+		if((get_le32(*(unsigned int *)s)&0x7F7F7F7F)==0x00414348){
 			const stHeader *h=(const stHeader *)s;s+=sizeof(stHeader);
-			hca->_version=bswap_u16(h->version);
-			hca->_dataOffset=bswap_u16(h->dataOffset);
+			hca->_version=get_be16(h->version);
+			hca->_dataOffset=get_be16(h->dataOffset);
 			//if(!(_version<=0x200&&_version>0x101))return -1; // バージョンチェック(無効)
 			if(size<hca->_dataOffset)return -1;
 			//if(clHCA_CheckSum(hca,_dataOffset,0))return -1; // ヘッダの破損チェック(ヘッダ改変を有効にするため破損チェック無効)
@@ -1002,13 +1009,13 @@ int clHCA_Decode(clHCA *hca,void *data,unsigned int size,unsigned int address){
 		}
 
 		// fmt
-		if(size>=sizeof(stFormat) && (*(const unsigned int *)s&0x7F7F7F7F)==0x00746D66){
+		if(size>=sizeof(stFormat) && (get_le32(*(unsigned int *)s)&0x7F7F7F7F)==0x00746D66){
 			const stFormat *fmt=(const stFormat *)s;s+=sizeof(stFormat);size-=sizeof(stFormat);
 			hca->_channelCount=fmt->channelCount;
-			hca->_samplingRate=bswap_u24(fmt->samplingRate);
-			hca->_blockCount=bswap_u32(fmt->blockCount);
-			hca->_fmt_r01=bswap_u16(fmt->r01);
-			hca->_fmt_r02=bswap_u16(fmt->r02);
+			hca->_samplingRate=get_be24(fmt->samplingRate);
+			hca->_blockCount=get_be32(fmt->blockCount);
+			hca->_fmt_r01=get_be16(fmt->r01);
+			hca->_fmt_r02=get_be16(fmt->r02);
 			if(!(hca->_channelCount>=1&&hca->_channelCount<=16))return -1;
 			if(!(hca->_samplingRate>=1&&hca->_samplingRate<=0x7FFFFF))return -1;
 		}else{
@@ -1016,9 +1023,9 @@ int clHCA_Decode(clHCA *hca,void *data,unsigned int size,unsigned int address){
 		}
 
 		// comp
-		if(size>=sizeof(stCompress) && (*(const unsigned int *)s&0x7F7F7F7F)==0x706D6F63){
+		if(size>=sizeof(stCompress) && (get_le32(*(unsigned int *)s)&0x7F7F7F7F)==0x706D6F63){
 			const stCompress *comp=(const stCompress *)s;s+=sizeof(stCompress);size-=sizeof(stCompress);
-			hca->_blockSize=bswap_u16(comp->blockSize);
+			hca->_blockSize=get_be16(comp->blockSize);
 			hca->_comp_r01=comp->r01;
 			hca->_comp_r02=comp->r02;
 			hca->_comp_r03=comp->r03;
@@ -1032,9 +1039,9 @@ int clHCA_Decode(clHCA *hca,void *data,unsigned int size,unsigned int address){
 		}
 
 		// dec
-		else if(size>=sizeof(stDecode) && (*(const unsigned int *)s&0x7F7F7F7F)==0x00636564){
+		else if(size>=sizeof(stDecode) && (get_le32(*(unsigned int *)s)&0x7F7F7F7F)==0x00636564){
 			const stDecode *dec=(const stDecode *)s;s+=sizeof(stDecode);size-=sizeof(stDecode);
-			hca->_blockSize=bswap_u16(dec->blockSize);
+			hca->_blockSize=get_be16(dec->blockSize);
 			hca->_comp_r01=dec->r01;
 			hca->_comp_r02=dec->r02;
 			hca->_comp_r03=dec->r04;
@@ -1051,10 +1058,10 @@ int clHCA_Decode(clHCA *hca,void *data,unsigned int size,unsigned int address){
 		}
 
 		// vbr
-		if(size>=sizeof(stVBR) && (*(const unsigned int *)s&0x7F7F7F7F)==0x00726276){
+		if(size>=sizeof(stVBR) && (get_le32(*(unsigned int *)s)&0x7F7F7F7F)==0x00726276){
 			const stVBR *vbr=(const stVBR *)s;s+=sizeof(stVBR);size-=sizeof(stVBR);
-			hca->_vbr_r01=bswap_u16(vbr->r01);
-			hca->_vbr_r02=bswap_u16(vbr->r02);
+			hca->_vbr_r01=get_be16(vbr->r01);
+			hca->_vbr_r02=get_be16(vbr->r02);
 			if(!(hca->_blockSize==0&&/*hca->_vbr_r01>=0&&*/hca->_vbr_r01<=0x1FF))return -1;
 		}else{
 			hca->_vbr_r01=0;
@@ -1062,7 +1069,7 @@ int clHCA_Decode(clHCA *hca,void *data,unsigned int size,unsigned int address){
 		}
 
 		// ath
-		if(size>=6 && (*(const unsigned int *)s&0x7F7F7F7F)==0x00687461){
+		if(size>=6 && (get_le32(*(unsigned int *)s)&0x7F7F7F7F)==0x00687461){
 			const stATH *ath=(const stATH *)s;s+=6;size-=6;//s+=sizeof(stATH);
 			hca->_ath_type=ath->type;
 		}else{
@@ -1070,12 +1077,12 @@ int clHCA_Decode(clHCA *hca,void *data,unsigned int size,unsigned int address){
 		}
 
 		// loop
-		if(size>=sizeof(stLoop) && (*(const unsigned int *)s&0x7F7F7F7F)==0x706F6F6C){
+		if(size>=sizeof(stLoop) && (get_le32(*(unsigned int *)s)&0x7F7F7F7F)==0x706F6F6C){
 			const stLoop *loop=(const stLoop *)s;s+=sizeof(stLoop);size-=sizeof(stLoop);
-			hca->_loopStart=bswap_u32(loop->loopStart);
-			hca->_loopEnd=bswap_u32(loop->loopEnd);
-			hca->_loop_r01=bswap_u16(loop->r01);
-			hca->_loop_r02=bswap_u16(loop->r02);
+			hca->_loopStart=get_be32(loop->loopStart);
+			hca->_loopEnd=get_be32(loop->loopEnd);
+			hca->_loop_r01=get_be16(loop->r01);
+			hca->_loop_r02=get_be16(loop->r02);
 			hca->_loopFlg=1;
 			if(!(/*hca->_loopStart>=0&&*/hca->_loopStart<=hca->_loopEnd&&hca->_loopEnd<hca->_blockCount))return -1;
 		}else{
@@ -1087,24 +1094,24 @@ int clHCA_Decode(clHCA *hca,void *data,unsigned int size,unsigned int address){
 		}
 
 		// ciph
-		if(size>=6 && (*(const unsigned int *)s&0x7F7F7F7F)==0x68706963){
+		if(size>=6 && (get_le32(*(unsigned int *)s)&0x7F7F7F7F)==0x68706963){
 			const stCipher *ciph=(const stCipher *)s;s+=6;size-=6;//s+=sizeof(stCipher);
-			hca->_ciph_type=bswap_u16(ciph->type);
+			hca->_ciph_type=get_be16(ciph->type);
 			if(!(hca->_ciph_type==0||hca->_ciph_type==1||hca->_ciph_type==0x38))return -1;
 		}else{
 			hca->_ciph_type=0;
 		}
 
 		// rva
-		if(size>=sizeof(stRVA) && (*(const unsigned int *)s&0x7F7F7F7F)==0x00617672){
+		if(size>=sizeof(stRVA) && (get_le32(*(unsigned int *)s)&0x7F7F7F7F)==0x00617672){
 			const stRVA *rva=(const stRVA *)s;s+=sizeof(stRVA);size-=sizeof(stRVA);
-			hca->_rva_volume=bswap_f(rva->volume);
+			hca->_rva_volume=get_bef32(rva->volume);
 		}else{
 			hca->_rva_volume=1;
 		}
 
 		// comm
-		if(size>=5 && (*(const unsigned int *)s&0x7F7F7F7F)==0x6D6D6F63){
+		if(size>=5 && (get_le32(*(unsigned int *)s)&0x7F7F7F7F)==0x6D6D6F63){
 			const stComment *comm=(const stComment *)s;s+=5;size-=5;//s+=sizeof(stComment);
 			hca->_comm_len=comm->len;
 			if(hca->_comm_len>size)return -1;
@@ -1117,15 +1124,18 @@ int clHCA_Decode(clHCA *hca,void *data,unsigned int size,unsigned int address){
 
 		// 初期化
 		if(clATH_Init(&hca->_ath,hca->_ath_type,hca->_samplingRate) < 0)return -1;
-		if(clCipher_Init(&hca->_cipher,hca->_ciph_type,hca->_ciph_key1,hca->_ciph_key2))return -1;
+		if(clCipher_Init(&hca->_cipher,hca->_ciph_type,hca->_ciph_key1,hca->_ciph_key2) < 0)return -1;
 
 		// 値チェック(ヘッダの改変ミスによるエラーを回避するため)
 		if(!hca->_comp_r03)hca->_comp_r03=1;//0での除算を防ぐため
 
 		// デコード準備
 		memset(hca->_channel,0,sizeof(hca->_channel));
+
 		if(!(hca->_comp_r01==1&&hca->_comp_r02==15))return -1;
+
 		hca->_comp_r09=ceil2(hca->_comp_r05-(hca->_comp_r06+hca->_comp_r07),hca->_comp_r08);
+
 		memset(r,0,sizeof(r));
 		b=hca->_channelCount/hca->_comp_r03;
 		if(hca->_comp_r07&&b>1){
