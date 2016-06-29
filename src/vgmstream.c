@@ -619,7 +619,7 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
 
 #ifdef VGM_USE_VORBIS
     if (vgmstream->coding_type==coding_ogg_vorbis) {
-        ogg_vorbis_codec_data *data = vgmstream->codec_data;
+        ogg_vorbis_codec_data *data = (ogg_vorbis_codec_data *) vgmstream->codec_data;
         if (vgmstream->codec_data) {
             OggVorbis_File *ogg_vorbis_file = &(data->ogg_vorbis_file);
 
@@ -631,8 +631,11 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
         }
     }
 #endif
+
     if (vgmstream->coding_type==coding_CRI_HCA) {
+        hca_codec_data *data = (hca_codec_data *) vgmstream->codec_data;
         if (vgmstream->codec_data) {
+            if (data->streamfile) close_streamfile(data->streamfile);
             free(vgmstream->codec_data);
             vgmstream->codec_data = NULL;
         }
@@ -640,7 +643,7 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
 
 #if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
 	if (vgmstream->coding_type==coding_MP4_AAC) {
-		mp4_aac_codec_data *data = vgmstream->codec_data;
+		mp4_aac_codec_data *data = (mp4_aac_codec_data *) vgmstream->codec_data;
 		if (vgmstream->codec_data) {
 			if (data->h_aacdecoder) aacDecoder_Close(data->h_aacdecoder);
 			if (data->h_mp4file) MP4Close(data->h_mp4file, 0);
@@ -654,7 +657,7 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
 #ifdef VGM_USE_MPEG
     if (vgmstream->layout_type==layout_fake_mpeg||
         vgmstream->layout_type==layout_mpeg) {
-        mpeg_codec_data *data = vgmstream->codec_data;
+        mpeg_codec_data *data = (mpeg_codec_data *) vgmstream->codec_data;
 
         if (data) {
             mpg123_delete(data->m);
@@ -673,7 +676,7 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
     if (vgmstream->coding_type == coding_G7221 ||
         vgmstream->coding_type == coding_G7221C) {
 
-        g7221_codec_data *data = vgmstream->codec_data;
+        g7221_codec_data *data = (g7221_codec_data *) vgmstream->codec_data;
 
         if (data)
         {
@@ -692,7 +695,7 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
 
 #ifdef VGM_USE_G719
     if (vgmstream->coding_type == coding_G719) {
-        g719_codec_data *data = vgmstream->codec_data;
+        g719_codec_data *data = (g719_codec_data *) vgmstream->codec_data;
 
         if (data)
         {
@@ -711,7 +714,7 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
 
 #ifdef VGM_USE_MAIATRAC3PLUS
 	if (vgmstream->coding_type == coding_AT3plus) {
-		maiatrac3plus_codec_data *data = vgmstream->codec_data;
+		maiatrac3plus_codec_data *data = (maiatrac3plus_codec_data *) vgmstream->codec_data;
 
 		if (data)
 		{
@@ -722,7 +725,7 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
 #endif
 
     if (vgmstream->coding_type==coding_ACM) {
-        mus_acm_codec_data *data = vgmstream->codec_data;
+        mus_acm_codec_data *data = (mus_acm_codec_data *) vgmstream->codec_data;
 
         if (data) {
             if (data->files) {
@@ -744,7 +747,7 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
     }
 
     if (vgmstream->layout_type==layout_aix) {
-        aix_codec_data *data = vgmstream->codec_data;
+        aix_codec_data *data = (aix_codec_data *) vgmstream->codec_data;
 
         if (data) {
             if (data->adxs) {
@@ -767,7 +770,7 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
         vgmstream->codec_data = NULL;
     }
     if (vgmstream->layout_type==layout_aax) {
-        aax_codec_data *data = vgmstream->codec_data;
+        aax_codec_data *data = (aax_codec_data *) vgmstream->codec_data;
 
         if (data) {
             if (data->adxs) {
@@ -798,7 +801,7 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
             vgmstream->coding_type == coding_NWA4 ||
             vgmstream->coding_type == coding_NWA5
        ) {
-        nwa_codec_data *data = vgmstream->codec_data;
+        nwa_codec_data *data = (nwa_codec_data *) vgmstream->codec_data;
 
         close_nwa(data->nwa);
         
@@ -808,7 +811,7 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
     }
 
     if (vgmstream->layout_type==layout_scd_int) {
-        scd_int_codec_data *data = vgmstream->codec_data;
+        scd_int_codec_data *data = (scd_int_codec_data *) vgmstream->codec_data;
 
         if (data) {
             if (data->substreams) {

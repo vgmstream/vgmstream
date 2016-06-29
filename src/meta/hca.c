@@ -15,8 +15,6 @@ VGMSTREAM * init_vgmstream_hca_offset(STREAMFILE *streamFile, uint64_t start, ui
     
     VGMSTREAM * vgmstream = NULL;
 
-	char filename[PATH_LIMIT];
-
 	hca_codec_data * hca_file = ( hca_codec_data * ) calloc(1, sizeof(hca_codec_data) + clHCA_sizeof());
     void * hca_data = NULL;
     clHCA * hca;
@@ -60,11 +58,6 @@ VGMSTREAM * init_vgmstream_hca_offset(STREAMFILE *streamFile, uint64_t start, ui
     hca_file->sample_ptr = clHCA_samplesPerBlock;
     hca_file->samples_discard = 0;
     
-	streamFile->get_name( streamFile, filename, sizeof(filename) );
-
-	hca_file->streamfile = streamFile->open(streamFile, filename, STREAMFILE_DEFAULT_BUFFER_SIZE);
-	if (!hca_file->streamfile) goto fail;
-
 	vgmstream = allocate_vgmstream( hca_file->info.channelCount, 1 );
 	if (!vgmstream) goto fail;
     
