@@ -20,6 +20,7 @@ typedef struct clHCA clHCA;
 /* In case you wish to allocate the structure on your own. */
 int clHCA_sizeof();
 void clHCA_clear(clHCA *, unsigned int ciphKey1, unsigned int ciphKey2);
+void clHCA_done(clHCA *);
 
 /* Or you could let the library allocate it. */
 clHCA * clHCA_new(unsigned int ciphKey1, unsigned int ciphKey2);
@@ -47,9 +48,10 @@ typedef struct clHCA_stInfo {
 	unsigned int channelCount;
 	unsigned int blockSize;
 	unsigned int blockCount;
-    unsigned int loopEnabled;
+	unsigned int loopEnabled;
 	unsigned int loopStart;
 	unsigned int loopEnd;
+	const char *comment;
 } clHCA_stInfo;
 
 /* Retrieve information relevant for decoding and playback with this function.
@@ -63,4 +65,3 @@ int clHCA_getInfo(clHCA *, clHCA_stInfo *out);
 #endif
 
 #endif
-

@@ -635,6 +635,8 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
     if (vgmstream->coding_type==coding_CRI_HCA) {
         hca_codec_data *data = (hca_codec_data *) vgmstream->codec_data;
         if (vgmstream->codec_data) {
+            clHCA *hca = (clHCA *)(data + 1);
+            clHCA_done(hca);
             if (data->streamfile) close_streamfile(data->streamfile);
             free(vgmstream->codec_data);
             vgmstream->codec_data = NULL;
