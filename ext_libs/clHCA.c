@@ -740,7 +740,7 @@ int clHCA_DecodeToWavefile_Decode(clHCA *hca,void *fp1,void *fp2,unsigned int ad
 		for(i=0;i<8;i++){
 			for(j=0;j<0x80;j++){
 				for(k=0,m=hca->_channelCount;k<m;k++){
-					f=_channel[k].wave[i][j]*_rva_volume;
+					f=_channel[k].wave[i][j]*hca->_rva_volume;
 					if(f>1){f=1;}else if(f<-1){f=-1;}
 					((void (*)(float,void *))modeFunction)(f,fp2);
 				}
@@ -793,11 +793,11 @@ void clHCA_DecodeSamples16(clHCA *hca,signed short *samples){
 	const float scale = 32768.0f;
 	float f;
 	signed int s;
-	const float _rva_volume=hca->_rva_volume;
+	//const float _rva_volume=hca->_rva_volume;
 	for(int i=0;i<8;i++){
 		for(int j=0;j<0x80;j++){
 			for(unsigned int k=0,l=hca->_channelCount;k<l;k++){
-				f=hca->_channel[k].wave[i][j]*_rva_volume;
+				f=hca->_channel[k].wave[i][j]/**_rva_volume*/;
 				if(f>1){f=1;}else if(f<-1){f=-1;}
 				s=(signed int)(f*scale);
 				if ((unsigned)(s+0x8000)&0xFFFF0000)s=(s>>31)^0x7FFF;
