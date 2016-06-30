@@ -460,6 +460,9 @@ static struct {
     /* Phantasy Star Online 2
      * guessed with degod */
     {0x07d2,0x1ec5,0x0c7f},
+    /* Dragon Ball Z: Dokkan Battle
+     * guessed with degod */
+    {0x0003,0x0d19,0x043b},
 };
 
 static const int keys_8_count = sizeof(keys_8)/sizeof(keys_8[0]);
