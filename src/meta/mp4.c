@@ -127,6 +127,11 @@ VGMSTREAM * init_vgmstream_mp4_aac_offset(STREAMFILE *streamFile, uint64_t start
 	aac_file->samples_per_frame = stream_info->frameSize;
 	aac_file->samples_discard = 0;
 
+	streamFile->get_name( streamFile, filename, sizeof(filename) );
+
+	aac_file->if_file.streamfile = streamFile->open(streamFile, filename, STREAMFILE_DEFAULT_BUFFER_SIZE);
+	if (!aac_file->if_file.streamfile) goto fail;
+
 	vgmstream = allocate_vgmstream( stream_info->numChannels, 1 );
 	if (!vgmstream) goto fail;
 

@@ -9,63 +9,71 @@ VGMSTREAM * init_vgmstream_hca(STREAMFILE *streamFile) {
 }
 
 VGMSTREAM * init_vgmstream_hca_offset(STREAMFILE *streamFile, uint64_t start, uint64_t size) {
-    /* These I don't know about... */
-    static const unsigned int ciphKey1=0x30DBE1AB;
-    static const unsigned int ciphKey2=0xCC554639;
+	/* These I don't know about... */
+	static const unsigned int ciphKey1=0x30DBE1AB;
+	static const unsigned int ciphKey2=0xCC554639;
+
+	char filename[PATH_LIMIT];
     
-    VGMSTREAM * vgmstream = NULL;
+	VGMSTREAM * vgmstream = NULL;
 
 	hca_codec_data * hca_file = ( hca_codec_data * ) calloc(1, sizeof(hca_codec_data) + clHCA_sizeof());
-    void * hca_data = NULL;
-    clHCA * hca;
-    
-    uint8_t header[8];
-    
-    int header_size;
-    
-	if ( !hca_file ) goto fail;
-    
-    if ( size < 8 ) goto fail;
+	void * hca_data = NULL;
+	clHCA * hca;
 
-    hca_file->streamfile = streamFile;
-    hca_file->start = start;
-    hca_file->size = size;
+	uint8_t header[8];
+
+	int header_size;
+
+	if ( !hca_file ) goto fail;
+
+	if ( size < 8 ) goto fail;
+
+	hca_file->streamfile = streamFile;
+	hca_file->start = start;
+	hca_file->size = size;
     
-    if ( read_streamfile( header, start, 8, streamFile) != 8 ) goto fail;
+	if ( read_streamfile( header, start, 8, streamFile) != 8 ) goto fail;
+
+	header_size = clHCA_isOurFile0( header );
     
-    header_size = clHCA_isOurFile0( header );
+	if ( header_size < 0 ) goto fail;
+
+	hca_data = malloc( header_size );
+
+	if ( !hca_data ) goto fail;
+
+	memcpy( hca_data, header, 8 );
+
+	if ( read_streamfile( ((uint8_t*)hca_data) + 8, start + 8, header_size - 8, streamFile ) != header_size - 8 ) goto fail;
+
+	if ( clHCA_isOurFile1( hca_data, header_size ) < 0 ) goto fail;
+
+	hca = (clHCA *)(hca_file + 1);
+
+	clHCA_clear(hca, ciphKey1, ciphKey2);
     
-    if ( header_size < 0 ) goto fail;
+	if (clHCA_Decode(hca, hca_data, header_size, 0) < 0) goto fail;
+
+	free( hca_data );
+	hca_data = NULL;
     
-    hca_data = malloc( header_size );
-    
-    if ( !hca_data ) goto fail;
-    
-    memcpy( hca_data, header, 8 );
-    
-    if ( read_streamfile( ((uint8_t*)hca_data) + 8, start + 8, header_size - 8, streamFile ) != header_size - 8 ) goto fail;
-    
-    if ( clHCA_isOurFile1( hca_data, header_size ) < 0 ) goto fail;
-    
-    hca = (clHCA *)(hca_file + 1);
-    
-    clHCA_clear(hca, ciphKey1, ciphKey2);
-    
-    if (clHCA_Decode(hca, hca_data, header_size, 0) < 0) goto fail;
-    
-    if (clHCA_getInfo(hca, &hca_file->info) < 0) goto fail;
-    
-    hca_file->sample_ptr = clHCA_samplesPerBlock;
-    hca_file->samples_discard = 0;
+	if (clHCA_getInfo(hca, &hca_file->info) < 0) goto fail;
+
+	hca_file->sample_ptr = clHCA_samplesPerBlock;
+	hca_file->samples_discard = 0;
+
+	streamFile->get_name( streamFile, filename, sizeof(filename) );
+
+	hca_file->streamfile = streamFile->open(streamFile, filename, STREAMFILE_DEFAULT_BUFFER_SIZE);
+	if (!hca_file->streamfile) goto fail;
     
 	vgmstream = allocate_vgmstream( hca_file->info.channelCount, 1 );
 	if (!vgmstream) goto fail;
-    
-    free( hca_data );
 
 	vgmstream->loop_flag = hca_file->info.loopEnabled;
-    vgmstream->loop_start_sample = hca_file->info.loopStart * clHCA_samplesPerBlock;
-    vgmstream->loop_end_sample = hca_file->info.loopEnd * clHCA_samplesPerBlock;
+	vgmstream->loop_start_sample = hca_file->info.loopStart * clHCA_samplesPerBlock;
+	vgmstream->loop_end_sample = hca_file->info.loopEnd * clHCA_samplesPerBlock;
 
 	vgmstream->codec_data = hca_file;
 
@@ -81,9 +89,9 @@ VGMSTREAM * init_vgmstream_hca_offset(STREAMFILE *streamFile, uint64_t start, ui
 	return vgmstream;
 
 fail:
-    if ( hca_data ) {
-        free( hca_data );
-    }
+	if ( hca_data ) {
+		free( hca_data );
+	}
 	if ( hca_file ) {
 		free( hca_file );
 	}
