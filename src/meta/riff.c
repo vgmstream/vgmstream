@@ -172,6 +172,14 @@ int read_fmt(int big_endian,
             fmt->coding_type = coding_NGC_DSP;
             fmt->interleave = 8;
             break;
+#ifdef VGM_USE_FFMPEG
+		case 0x270:
+		case 0xFFFE:
+			fmt->coding_type = coding_FFmpeg;
+			fmt->block_size = 2048;
+			fmt->interleave = 0;
+			break;
+#endif
 #ifdef VGM_USE_MAIATRAC3PLUS
 		case 0xFFFE: /* WAVEFORMATEXTENSIBLE */
 			if (read_32bit(current_chunk+0x20,streamFile) == 0xE923AABF &&
@@ -203,6 +211,10 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
 
     struct riff_fmt_chunk fmt;
 
+#ifdef VGM_USE_FFMPEG
+    ffmpeg_codec_data *ffmpeg_data = NULL;
+#endif
+
     off_t file_size = -1;
     int sample_count = 0;
     int fact_sample_count = -1;
@@ -231,7 +243,7 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
     streamFile->get_name(streamFile,filename,sizeof(filename));
     if (strcasecmp("wav",filename_extension(filename)) &&
         strcasecmp("lwav",filename_extension(filename))
-#ifdef VGM_USE_MAIATRAC3PLUS
+#if defined(VGM_USE_MAIATRAC3PLUS) || defined(VGM_USE_FFMPEG)
 		&& strcasecmp("at3",filename_extension(filename))
 #endif
 		)
@@ -367,6 +379,16 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
             break;
         case coding_NGC_DSP:
             break;
+#ifdef VGM_USE_FFMPEG
+        case coding_FFmpeg:
+            {
+                ffmpeg_data = init_ffmpeg_offset(streamFile, 0, streamFile->get_size(streamFile) );
+                if ( !ffmpeg_data ) goto fail;
+
+                sample_count = ffmpeg_data->totalFrames;
+            }
+            break;
+#endif
 #ifdef VGM_USE_MAIATRAC3PLUS
 		case coding_AT3plus:
 			sample_count = (data_size / fmt.block_size) * 2048 * fmt.channel_count;
@@ -400,6 +422,9 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
             case coding_PCM8_U_int:
             case coding_MS_IMA:
             case coding_MSADPCM:
+#ifdef VGM_USE_FFMPEG
+            case coding_FFmpeg:
+#endif
 #ifdef VGM_USE_MAIATRAC3PLUS
 			case coding_AT3plus:
 #endif
@@ -415,6 +440,9 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
     switch (fmt.coding_type) {
         case coding_MSADPCM:
         case coding_MS_IMA:
+#ifdef VGM_USE_FFMPEG
+        case coding_FFmpeg:
+#endif
 #ifdef VGM_USE_MAIATRAC3PLUS
 		case coding_AT3plus:
 #endif
@@ -425,6 +453,12 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
             // use interleave from above
             break;
     }
+
+#ifdef VGM_USE_FFMPEG
+    if (fmt.coding_type == coding_FFmpeg) {
+        vgmstream->codec_data = ffmpeg_data;
+    }
+#endif
 
 #ifdef VGM_USE_MAIATRAC3PLUS
 	if (fmt.coding_type == coding_AT3plus) {
@@ -527,6 +561,9 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
 
     /* clean up anything we may have opened */
 fail:
+#ifdef VGM_USE_FFMPEG
+    if (ffmpeg_data) free_ffmpeg(ffmpeg_data);
+#endif
     if (vgmstream) close_vgmstream(vgmstream);
     return NULL;
 }

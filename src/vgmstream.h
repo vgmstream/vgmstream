@@ -48,6 +48,11 @@ enum { PATH_LIMIT = 32768 };
 
 #include "clHCA.h"
 
+#ifdef VGM_USE_FFMPEG
+#include <libavcodec/avcodec.h>
+#include <libavformat/avformat.h>
+#endif
+
 #include "coding/acm_decoder.h"
 #include "coding/nwa_decoder.h"
 
@@ -153,6 +158,10 @@ typedef enum {
     coding_MTAF,            /* Konami IMA-derived MTAF ADPCM */
     
     coding_CRI_HCA,         /* CRI High Compression Audio */
+    
+#ifdef VGM_USE_FFMPEG
+    coding_FFmpeg,
+#endif
 
 #if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
 	coding_MP4_AAC,
@@ -586,6 +595,9 @@ typedef enum {
    meta_MCA,			// Capcom MCA "MADP"
    meta_XB3D_ADX,				// Xenoblade Chronicles 3D ADX
    meta_HCA,
+#ifdef VGM_USE_FFMPEG
+   meta_FFmpeg,
+#endif
 #ifdef VGM_USE_MP4V2
 	meta_MP4,
 #endif
@@ -829,6 +841,51 @@ typedef struct {
     signed short sample_buffer[clHCA_samplesPerBlock * 16];
     // clHCA exists here
 } hca_codec_data;
+
+#ifdef VGM_USE_FFMPEG
+typedef struct {
+    STREAMFILE *streamfile;
+    
+    // offset and total size of raw stream data
+    uint64_t start;
+    uint64_t size;
+    
+    // offset into stream, includes header_size if header exists
+    uint64_t offset;
+    
+    // inserted header, ie. fake RIFF header
+    uint8_t *header_insert_block;
+    uint64_t header_size;
+    
+    // stream info
+    int channels;
+    int bitsPerSample;
+    int floatingPoint;
+    int sampleRate;
+    int64_t totalFrames;
+    int64_t framesRead;
+    int bitrate;
+    
+    // Intermediate buffer
+    uint8_t *sampleBuffer;
+    
+    // FFmpeg context used for metadata
+    AVCodec *codec;
+    
+    // FFmpeg decoder state
+    unsigned char *buffer;
+    AVIOContext *ioCtx;
+    int streamIndex;
+    AVFormatContext *formatCtx;
+    AVCodecContext *codecCtx;
+    AVFrame *lastDecodedFrame;
+    AVPacket *lastReadPacket;
+    int bytesConsumedFromDecodedFrame;
+    int readNextPacket;
+    int endOfStream;
+    int endOfAudio;
+} ffmpeg_codec_data;
+#endif
 
 #ifdef VGM_USE_MP4V2
 typedef struct {

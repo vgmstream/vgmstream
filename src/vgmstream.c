@@ -339,6 +339,9 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_3ds_idsp,
 	init_vgmstream_g1l,
     init_vgmstream_hca,
+#ifdef VGM_USE_FFMPEG
+    init_vgmstream_ffmpeg,
+#endif
 };
 
 #define INIT_VGMSTREAM_FCNS (sizeof(init_vgmstream_fcns)/sizeof(init_vgmstream_fcns[0]))
@@ -361,6 +364,13 @@ VGMSTREAM * init_vgmstream_internal(STREAMFILE *streamFile, int do_dfs) {
             if (!check_sample_rate(vgmstream->sample_rate)) {
                 close_vgmstream(vgmstream);
                 continue;
+            }
+            
+            /* Sanify loops! */
+            if (vgmstream->loop_flag) {
+                if ((vgmstream->loop_end_sample <= vgmstream->loop_start_sample) ||
+                    (vgmstream->loop_end_sample > vgmstream->num_samples))
+                    vgmstream->loop_flag = 0;
             }
 
             /* dual file stereo */
@@ -493,6 +503,24 @@ void reset_vgmstream(VGMSTREAM * vgmstream) {
 		data->handle = Atrac3plusDecoder_openContext();
 		data->samples_discard = 0;
 	}
+#endif
+    
+#ifdef VGM_USE_FFMPEG
+    if (vgmstream->coding_type==coding_FFmpeg) {
+        ffmpeg_codec_data *data = (ffmpeg_codec_data *) vgmstream->codec_data;
+        
+        if (data->formatCtx) {
+            avformat_seek_file(data->formatCtx, -1, 0, 0, 0, AVSEEK_FLAG_ANY);
+        }
+        if (data->codecCtx) {
+            avcodec_flush_buffers(data->codecCtx);
+        }
+        data->readNextPacket = 1;
+        data->bytesConsumedFromDecodedFrame = INT_MAX;
+        data->framesRead = 0;
+        data->endOfStream = 0;
+        data->endOfAudio = 0;
+    }
 #endif
 
     if (vgmstream->coding_type==coding_ACM) {
@@ -642,6 +670,16 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
             vgmstream->codec_data = NULL;
         }
     }
+    
+#ifdef VGM_USE_FFMPEG
+    if (vgmstream->coding_type==coding_FFmpeg) {
+        ffmpeg_codec_data *data = (ffmpeg_codec_data *) vgmstream->codec_data;
+        if (vgmstream->codec_data) {
+            free_ffmpeg(data);
+            vgmstream->codec_data = NULL;
+        }
+    }
+#endif
 
 #if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
 	if (vgmstream->coding_type==coding_MP4_AAC) {
@@ -1033,6 +1071,18 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_G719:
             return 48000/50;
 #endif
+#ifdef VGM_USE_FFMPEG
+        case coding_FFmpeg:
+        {
+            ffmpeg_codec_data *data = (ffmpeg_codec_data *) vgmstream->codec_data;
+            if (vgmstream->codec_data) {
+                int64_t samplesRemain = data->totalFrames - data->framesRead;
+                return samplesRemain > 2048 ? 2048 : samplesRemain;
+            }
+            return 0;
+        }
+            break;
+#endif
         case coding_LSF:
             return 54;
         case coding_MTAF:
@@ -1147,6 +1197,9 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
 #endif
 #ifdef VGM_USE_MAIATRAC3PLUS
 		case coding_AT3plus:
+#endif
+#ifdef VGM_USE_FFMPEG
+        case coding_FFmpeg:
 #endif
         case coding_MSADPCM:
         case coding_MTAF:
@@ -1425,6 +1478,14 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                 buffer+samples_written*vgmstream->channels,samples_to_do,
                 vgmstream->channels);
             break;
+#ifdef VGM_USE_FFMPEG
+        case coding_FFmpeg:
+            decode_ffmpeg(vgmstream,
+                          buffer+samples_written*vgmstream->channels,
+                          samples_to_do,
+                          vgmstream->channels);
+            break;
+#endif
 #if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
 		case coding_MP4_AAC:
 			decode_mp4_aac(vgmstream->codec_data,
@@ -1717,6 +1778,20 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream) {
                 data->sample_ptr = clHCA_samplesPerBlock;
                 data->samples_discard = 0;
             }
+#ifdef VGM_USE_FFMPEG
+            if (vgmstream->coding_type==coding_FFmpeg) {
+                ffmpeg_codec_data *data = (ffmpeg_codec_data *)(vgmstream->codec_data);
+                int64_t ts;
+                data->framesRead = vgmstream->loop_start_sample;
+                ts = data->framesRead * (data->formatCtx->duration) / data->totalFrames;
+                avformat_seek_file(data->formatCtx, -1, ts - 1000, ts, ts, AVSEEK_FLAG_ANY);
+                avcodec_flush_buffers(data->codecCtx);
+                data->readNextPacket = 1;
+                data->bytesConsumedFromDecodedFrame = INT_MAX;
+                data->endOfStream = 0;
+                data->endOfAudio = 0;
+            }
+#endif
 #if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
 			if (vgmstream->coding_type==coding_MP4_AAC) {
 				mp4_aac_codec_data *data = (mp4_aac_codec_data *)(vgmstream->codec_data);
@@ -2015,6 +2090,25 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
 			snprintf(temp,TEMPSIZE,"ATRAC3plus");
 			break;
 #endif
+#ifdef VGM_USE_FFMPEG
+        case coding_FFmpeg:
+            {
+                ffmpeg_codec_data *data = (ffmpeg_codec_data *) vgmstream->codec_data;
+                if (vgmstream->codec_data) {
+                    if (data->codec) {
+                        snprintf(temp,TEMPSIZE,data->codec->long_name);
+                    }
+                    else {
+                        snprintf(temp,TEMPSIZE,"FFmpeg");
+                    }
+                }
+                else {
+                    snprintf(temp,TEMPSIZE,"FFmpeg");
+                }
+            }
+            break;
+#endif
+            
         case coding_ACM:
             snprintf(temp,TEMPSIZE,"InterPlay ACM");
             break;
@@ -3186,6 +3280,14 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
 		case meta_XB3D_ADX:
 			snprintf(temp, TEMPSIZE,"Xenoblade 3D ADX Header");
 			break;
+        case meta_HCA:
+            snprintf(temp, TEMPSIZE,"CRI MiddleWare HCA Header");
+            break;
+#ifdef VGM_USE_FFMPEG
+        case meta_FFmpeg:
+            snprintf(temp, TEMPSIZE,"FFmpeg supported file format");
+            break;
+#endif
 		default:
            snprintf(temp,TEMPSIZE,"THEY SHOULD HAVE SENT A POET");
     }
@@ -3379,6 +3481,18 @@ static int get_vgmstream_channel_count(VGMSTREAM * vgmstream)
             return 0;
         }
     }
+#ifdef VGM_USE_FFMPEG
+    if (vgmstream->coding_type==coding_FFmpeg) {
+        ffmpeg_codec_data *data = (ffmpeg_codec_data *) vgmstream->codec_data;
+        
+        if (data) {
+            return 1;
+        }
+        else {
+            return 0;
+        }
+    }
+#endif
 #if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
     if (vgmstream->coding_type==coding_MP4_AAC) {
         mp4_aac_codec_data *data = (mp4_aac_codec_data *) vgmstream->codec_data;
@@ -3411,6 +3525,13 @@ static STREAMFILE * get_vgmstream_streamfile(VGMSTREAM * vgmstream, int channel)
         
         return data->streamfile;
     }
+#ifdef VGM_USE_FFMPEG
+    if (vgmstream->coding_type==coding_FFmpeg) {
+        ffmpeg_codec_data *data = (ffmpeg_codec_data *) vgmstream->codec_data;
+        
+        return data->streamfile;
+    }
+#endif
 #if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
     if (vgmstream->coding_type==coding_MP4_AAC) {
         mp4_aac_codec_data *data = (mp4_aac_codec_data *) vgmstream->codec_data;

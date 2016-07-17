@@ -280,6 +280,32 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
 
             }
             break;
+#ifdef VGM_USE_FFMPEG
+        case 0xB:
+            /* XMA1/XMA2 */
+            {
+                uint16_t codec_id = read_16bit(post_meta_offset, streamFile);
+                if (codec_id == 0x165 || codec_id == 0x166)
+                {
+                    ffmpeg_codec_data *ffmpeg_data = init_ffmpeg_faux_riff(streamFile, post_meta_offset, start_offset, streamFile->get_size(streamFile) - start_offset, read_32bit == read_32bitBE);
+                    if (!ffmpeg_data) goto fail;
+                    
+                    vgmstream->codec_data = ffmpeg_data;
+                    
+                    vgmstream->coding_type = coding_FFmpeg;
+                    vgmstream->layout_type = layout_none;
+                    
+                    vgmstream->num_samples = ffmpeg_data->totalFrames;
+
+                    if (loop_flag) {
+                        vgmstream->loop_start_sample = loop_start;
+                        vgmstream->loop_end_sample = loop_end;
+                    }
+                }
+                else goto fail;
+            }
+            break;
+#endif
         default:
             goto fail;
     }
@@ -287,7 +313,7 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
     vgmstream->meta_type = meta_SQEX_SCD;
 
     /* open the file for reading */
-    if (vgmstream->layout_type != layout_scd_int)
+    if (vgmstream->layout_type != layout_scd_int && vgmstream->coding_type != coding_FFmpeg)
     {
         int i;
         STREAMFILE * file;

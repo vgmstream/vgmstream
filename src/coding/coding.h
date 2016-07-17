@@ -108,6 +108,11 @@ void decode_at3plus(VGMSTREAM *vgmstream,
         sample * outbuf, int channelspacing, int32_t samples_to_do, int channel);
 #endif
 
+#ifdef VGM_USE_FFMPEG
+void decode_ffmpeg(VGMSTREAM *stream,
+                   sample * outbuf, int32_t samples_to_do, int channels);
+#endif
+
 void decode_acm(ACMStream * acm, sample * outbuf,
         int32_t samples_to_do, int channelspacing);
 

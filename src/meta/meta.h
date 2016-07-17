@@ -115,6 +115,17 @@ VGMSTREAM * init_vgmstream_hca(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_hca_offset(STREAMFILE *streamFile, uint64_t start, uint64_t size);
 
+#ifdef VGM_USE_FFMPEG
+ffmpeg_codec_data * init_ffmpeg_faux_riff(STREAMFILE *streamFile, int64_t fmt_offset, uint64_t stream_offset, uint64_t stream_size, int fmt_big_endian);
+ffmpeg_codec_data * init_ffmpeg_offset(STREAMFILE *streamFile, uint64_t start, uint64_t size);
+
+void free_ffmpeg(ffmpeg_codec_data *);
+
+VGMSTREAM * init_vgmstream_ffmpeg_offset(STREAMFILE *streamFile, uint64_t start, uint64_t size);
+
+VGMSTREAM * init_vgmstream_ffmpeg(STREAMFILE *streamFile);
+#endif
+
 #if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
 VGMSTREAM * init_vgmstream_mp4_aac(STREAMFILE * streamFile);
 

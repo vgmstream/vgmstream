@@ -18,6 +18,11 @@ void render_vgmstream_nolayout(sample * buffer, int32_t sample_count, VGMSTREAM 
 
         if (samples_written+samples_to_do > sample_count)
             samples_to_do=sample_count-samples_written;
+        
+        if (!samples_to_do) {
+            memset(buffer + samples_written * vgmstream->channels, 0, sizeof(sample) * vgmstream->channels * (sample_count - samples_written));
+            return;
+        }
 
         decode_vgmstream(vgmstream, samples_written, samples_to_do, buffer);
 
