@@ -110,6 +110,7 @@ typedef struct {
 VGMSTREAM * init_vgmstream_ogg_vorbis_callbacks(STREAMFILE *streamFile, const char * filename, ov_callbacks *callbacks, off_t other_header_bytes, const vgm_vorbis_info_t *vgm_inf);
 
 VGMSTREAM * init_vgmstream_sli_ogg(STREAMFILE * streamFile);
+#endif
 
 VGMSTREAM * init_vgmstream_hca(STREAMFILE *streamFile);
 
@@ -135,7 +136,6 @@ VGMSTREAM * init_vgmstream_akb(STREAMFILE *streamFile);
 #endif
 
 VGMSTREAM * init_vgmstream_sfl(STREAMFILE * streamFile);
-#endif
 
 VGMSTREAM * init_vgmstream_sadb(STREAMFILE *streamFile);
 

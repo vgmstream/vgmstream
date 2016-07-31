@@ -313,7 +313,11 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
     vgmstream->meta_type = meta_SQEX_SCD;
 
     /* open the file for reading */
-    if (vgmstream->layout_type != layout_scd_int && vgmstream->coding_type != coding_FFmpeg)
+    if (vgmstream->layout_type != layout_scd_int
+#ifdef VGM_USE_FFMPEG
+        && vgmstream->coding_type != coding_FFmpeg
+#endif
+        )
     {
         int i;
         STREAMFILE * file;
