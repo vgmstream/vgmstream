@@ -3558,8 +3558,8 @@ int get_vgmstream_average_bitrate(VGMSTREAM * vgmstream)
     int channels = get_vgmstream_channel_count(vgmstream);
     STREAMFILE * streamFile;
 
-	if (!sample_rate || !channels || !length_samples)
-		return 0;
+    if (!sample_rate || !channels || !length_samples)
+        return 0;
     
     if (channels >= 1) {
         streamFile = get_vgmstream_streamfile(vgmstream, 0);
