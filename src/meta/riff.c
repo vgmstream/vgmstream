@@ -245,6 +245,7 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
         strcasecmp("lwav",filename_extension(filename))
 #if defined(VGM_USE_MAIATRAC3PLUS) || defined(VGM_USE_FFMPEG)
 		&& strcasecmp("at3",filename_extension(filename))
+		&& strcasecmp("sgb",filename_extension(filename))
 #endif
 		)
     {
