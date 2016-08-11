@@ -277,7 +277,7 @@ ffmpeg_codec_data * init_ffmpeg_faux_riff(STREAMFILE *streamFile, int64_t fmt_of
     tb.num = 1; tb.den = data->codecCtx->sample_rate;
     
     data->totalFrames = av_rescale_q(data->formatCtx->streams[streamIndex]->duration, data->formatCtx->streams[streamIndex]->time_base, tb);
-    data->bitrate = (int)((data->codecCtx->bit_rate) / 1000);
+    data->bitrate = (int)(data->codecCtx->bit_rate);
     data->framesRead = 0;
     data->endOfStream = 0;
     data->endOfAudio = 0;
