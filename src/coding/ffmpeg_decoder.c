@@ -178,6 +178,21 @@ void decode_ffmpeg(VGMSTREAM *vgmstream,
         
         toConsume = FFMIN((dataSize - bytesConsumedFromDecodedFrame), (bytesToRead - bytesRead));
         
+        if (data->samplesToDiscard) {
+            int bytesPerFrame = ((data->bitsPerSample / 8) * channels);
+            int samplesToConsume = toConsume / bytesPerFrame;
+            if (data->samplesToDiscard >= samplesToConsume) {
+                data->samplesToDiscard -= samplesToConsume;
+                bytesConsumedFromDecodedFrame = dataSize;
+                continue;
+            }
+            else {
+                bytesConsumedFromDecodedFrame += data->samplesToDiscard * bytesPerFrame;
+                toConsume -= data->samplesToDiscard * bytesPerFrame;
+                data->samplesToDiscard = 0;
+            }
+        }
+        
         if (!planar || channels == 1) {
             memmove(targetBuf + bytesRead, (lastDecodedFrame->data[0] + bytesConsumedFromDecodedFrame), toConsume);
         }

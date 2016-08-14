@@ -520,6 +520,7 @@ void reset_vgmstream(VGMSTREAM * vgmstream) {
         data->framesRead = 0;
         data->endOfStream = 0;
         data->endOfAudio = 0;
+        data->samplesToDiscard = 0;
     }
 #endif
 
@@ -1782,7 +1783,16 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream) {
             if (vgmstream->coding_type==coding_FFmpeg) {
                 ffmpeg_codec_data *data = (ffmpeg_codec_data *)(vgmstream->codec_data);
                 int64_t ts;
-                data->framesRead = vgmstream->loop_start_sample;
+                ts = vgmstream->loop_start_sample;
+                if (ts >= data->sampleRate * 2) {
+                    data->samplesToDiscard = data->sampleRate * 2;
+                    ts -= data->samplesToDiscard;
+                }
+                else {
+                    data->samplesToDiscard = (int)ts;
+                    ts = 0;
+                }
+                data->framesRead = (int)ts;
                 ts = data->framesRead * (data->formatCtx->duration) / data->totalFrames;
                 avformat_seek_file(data->formatCtx, -1, ts - 1000, ts, ts, AVSEEK_FLAG_ANY);
                 avcodec_flush_buffers(data->codecCtx);
