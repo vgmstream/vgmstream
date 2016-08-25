@@ -81,15 +81,14 @@ static int16_t step_size[32][16] = {
 
 void decode_mtaf(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel, int channels) {
     int32_t sample_count;
-    int framesin = first_sample / 0x100;
-    unsigned long cur_off = stream->offset + framesin*(0x10+0x80*2)*(channels/2);
+    unsigned long cur_off = stream->offset;
     int i;
     int c = channel%2;
-    int16_t init_idx = read_16bitLE(cur_off+4+c*2, stream->streamfile);
-    int16_t init_hist = read_16bitLE(cur_off+8+c*4, stream->streamfile);
+    int16_t init_idx;
+    int16_t init_hist;
     int32_t hist = stream->adpcm_history1_16;
     int step_idx = stream->adpcm_step_index;
-
+    
     //printf("channel %d: first_sample = %d, stream->offset = 0x%lx, cur_off = 0x%lx init_idx = %d\n", channel, first_sample, (unsigned long)stream->offset, cur_off, init_idx);
 
 #if 0
@@ -104,8 +103,17 @@ void decode_mtaf(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing,
 #endif
 
     first_sample = first_sample%0x100;
-
+    
     if (first_sample%0x100 == 0) {
+        while (read_8bit(cur_off, stream->streamfile) != 0) {
+            cur_off += 16;
+        }
+        
+        stream->offset = cur_off;
+
+        init_idx = read_16bitLE(cur_off+4+c*2, stream->streamfile);
+        init_hist = read_16bitLE(cur_off+8+c*4, stream->streamfile);
+        
         hist = init_hist;
 
 #if 0
