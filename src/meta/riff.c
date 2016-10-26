@@ -392,7 +392,13 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
 #endif
 #ifdef VGM_USE_MAIATRAC3PLUS
 		case coding_AT3plus:
-			sample_count = (data_size / fmt.block_size) * 2048 * fmt.channel_count;
+            /* rough total samples, not totally accurate since there are some skipped samples in the first and (maybe) last frames
+             * channels shouldn't matter (mono and stereo encoding produces the same number of frames)
+             *
+             * to get the correct number of samples you'd need to read the fact_sample_count and skip some samples when decoding
+             * the first/last samples_to_skip seem related to the ints in the "fact" chunk
+             * those skipped samples are typically silent so there is not much difference */
+            sample_count = (data_size / fmt.block_size) * 2048; /* number_of_frames by decoded_samples_per_frame */
 			break;
 #endif
         default:
