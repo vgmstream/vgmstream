@@ -592,9 +592,10 @@ typedef enum {
    meta_FSTM,                // Nintendo Wii U FSTM
    meta_3DS_IDSP,           // Nintendo 3DS IDSP
    meta_G1L,           		// Tecmo Koei G1L
-   meta_MCA,			// Capcom MCA "MADP"
-   meta_XB3D_ADX,				// Xenoblade Chronicles 3D ADX
-   meta_HCA,
+   meta_MCA,                // Capcom MCA "MADP"
+   meta_XB3D_ADX,           // Xenoblade Chronicles 3D ADX
+   meta_HCA,                /* CRI HCA */
+   meta_PS2_SVAG_SNK,       /* SNK PS2 SVAG */
 #ifdef VGM_USE_FFMPEG
    meta_FFmpeg,
 #endif

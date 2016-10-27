@@ -339,6 +339,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_3ds_idsp,
 	init_vgmstream_g1l,
     init_vgmstream_hca,
+    init_vgmstream_ps2_svag_snk,
 #ifdef VGM_USE_FFMPEG
     init_vgmstream_ffmpeg,
 #endif
@@ -3292,6 +3293,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
 			break;
         case meta_HCA:
             snprintf(temp, TEMPSIZE,"CRI MiddleWare HCA Header");
+            break;
+        case meta_PS2_SVAG_SNK:
+            snprintf(temp,TEMPSIZE,"SNK SVAG header");
             break;
 #ifdef VGM_USE_FFMPEG
         case meta_FFmpeg:
