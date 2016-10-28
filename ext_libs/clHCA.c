@@ -769,7 +769,7 @@ int clHCA_isOurFile1(const void *data, unsigned int size){
 	int minsize;
 	if (size<8)return -1;
 	minsize = clHCA_isOurFile0(data);
-	if (minsize < 0 || minsize > size)return -1;
+	if (minsize < 0 || (unsigned int)minsize > size)return -1;
 	if (clHCA_CheckSum(data, minsize, 0))return -1;
 	return 0;
 }
@@ -793,10 +793,12 @@ void clHCA_DecodeSamples16(clHCA *hca,signed short *samples){
 	const float scale = 32768.0f;
 	float f;
 	signed int s;
+	int i, j;
+	unsigned int k, l;
 	//const float _rva_volume=hca->_rva_volume;
-	for(int i=0;i<8;i++){
-		for(int j=0;j<0x80;j++){
-			for(unsigned int k=0,l=hca->_channelCount;k<l;k++){
+	for(i=0;i<8;i++){
+		for(j=0;j<0x80;j++){
+			for(k=0,l=hca->_channelCount;k<l;k++){
 				f=hca->_channel[k].wave[i][j]/**_rva_volume*/;
 				if(f>1){f=1;}else if(f<-1){f=-1;}
 				s=(signed int)(f*scale);
@@ -981,7 +983,7 @@ void clCipher_Init56(clCipher *cipher,unsigned int key1,unsigned int key2){
 	unsigned char t2[0x10];
 	unsigned char t3[0x100],t31[0x10],t32[0x10],*t;
 
-	int i, v;
+	int i, j, v;
 
 	if(!key1)key2--;
 	key1--;
@@ -1004,10 +1006,11 @@ void clCipher_Init56(clCipher *cipher,unsigned int key1,unsigned int key2){
 	// テーブル3
 	t=t3;
 	clCipher_Init56_CreateTable(t31,t1[0]);
-	for(int i=0;i<0x10;i++){
+	for(i=0;i<0x10;i++){
+		unsigned char v;
 		clCipher_Init56_CreateTable(t32,t2[i]);
-		unsigned char v=t31[i]<<4;
-		for(int j=0;j<0x10;j++){
+		v=t31[i]<<4;
+		for(j=0;j<0x10;j++){
 			*(t++)=v|t32[j];
 		}
 	}
@@ -1028,8 +1031,9 @@ void clCipher_Init56(clCipher *cipher,unsigned int key1,unsigned int key2){
 void clCipher_Init56_CreateTable(unsigned char *r,unsigned char key){
 	int mul=((key&1)<<3)|5;
 	int add=(key&0xE)|1;
+	int i;
 	key>>=4;
-	for(int i=0;i<0x10;i++){
+	for(i=0;i<0x10;i++){
 		key=(key*mul+add)&0xF;
 		*(r++)=key;
 	}
@@ -1193,7 +1197,7 @@ int clHCA_Decode(clHCA *hca,void *data,unsigned int size,unsigned int address){
 		// comm
 		if(size>=5 && (clData_CheckBit(&d,32)&0x7F7F7F7F)=='comm'){
 			void * newmem;
-			int i;
+			unsigned int i;
 			clData_AddBit(&d,32);
 			hca->_comm_len=clData_GetBit(&d,8);
 			if(hca->_comm_len>size)return -1;
@@ -1673,11 +1677,11 @@ void stChannel_Decode5(stChannel *ch,int index){
 	for(i=0,count1=0x40,count2=1;i<7;i++,count1>>=1,count2<<=1){
 		const float *list1Float=(const float *)stChannel_Decode5_list1Int[i];
 		const float *list2Float=(const float *)stChannel_Decode5_list2Int[i];
+		float *d1, *d2, *w;
 		s1=s;
 		s2=&s1[count2];
-		float *d1=d;
-		float *d2=&d1[count2*2-1];
-		float *w;
+		d1=d;
+		d2=&d1[count2*2-1];
 		for(j=0;j<count1;j++){
 			for(k=0;k<count2;k++){
 				float a=*(s1++);
@@ -1698,10 +1702,9 @@ void stChannel_Decode5(stChannel *ch,int index){
 	for(i=0;i<0x80;i++)*(d++)=*(s++);
 	s=(const float *)stChannel_Decode5_list3Int;d=ch->wave[index];
 	s1=&ch->wav2[0x40];s2=ch->wav3;
-	for(int i=0;i<0x40;i++)*(d++)=*(s1++)**(s++)+*(s2++);
-	for(int i=0;i<0x40;i++)*(d++)=*(s++)**(--s1)-*(s2++);
+	for(i=0;i<0x40;i++)*(d++)=*(s1++)**(s++)+*(s2++);
+	for(i=0;i<0x40;i++)*(d++)=*(s++)**(--s1)-*(s2++);
 	s1=&ch->wav2[0x40-1];d=ch->wav3;
-	for(int i=0;i<0x40;i++)*(d++)=*(s1--)**(--s);
-	for(int i=0;i<0x40;i++)*(d++)=*(--s)**(++s1);
+	for(i=0;i<0x40;i++)*(d++)=*(s1--)**(--s);
+	for(i=0;i<0x40;i++)*(d++)=*(--s)**(++s1);
 }
-

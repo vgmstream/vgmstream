@@ -19,6 +19,7 @@ VGMSTREAM * init_vgmstream_bfstm(STREAMFILE *streamFile) {
 	off_t start_offset;
 	int founddata;
 	off_t tempoffset1;
+	int section_count;
 
 	/* check extension, case insensitive */
 	streamFile->get_name(streamFile, filename, sizeof(filename));
@@ -32,7 +33,7 @@ VGMSTREAM * init_vgmstream_bfstm(STREAMFILE *streamFile) {
 	if ((uint16_t)read_16bitBE(4, streamFile) != 0xFEFF)
 		goto fail;
 
-	int section_count = read_16bitBE(0x10, streamFile);
+	section_count = read_16bitBE(0x10, streamFile);
 	for (i = 0; i < section_count; i++) {
 		temp_id = read_16bitBE(0x14 + i * 0xc, streamFile);
 		switch(temp_id) {
@@ -133,9 +134,10 @@ VGMSTREAM * init_vgmstream_bfstm(STREAMFILE *streamFile) {
 	}
 
 	if (vgmstream->coding_type == coding_NGC_DSP) {
+		off_t coeff_ptr_table;
 		VARDECL(off_t, coef_offset);
 		ALLOC(coef_offset, channel_count, off_t);
-		off_t coeff_ptr_table = read_32bitBE(info_offset + 0x1c, streamFile) + info_offset + 8;	// Getting pointer for coefficient pointer table
+		coeff_ptr_table = read_32bitBE(info_offset + 0x1c, streamFile) + info_offset + 8;	// Getting pointer for coefficient pointer table
 		
 		for (i = 0; i < channel_count; i++) {
 			tempoffset1 = read_32bitBE(coeff_ptr_table + 8 + i * 8, streamFile);
