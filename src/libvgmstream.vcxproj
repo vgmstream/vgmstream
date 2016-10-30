@@ -283,6 +283,7 @@
     <ClCompile Include="meta\ps2_stm.c" />
     <ClCompile Include="meta\ps2_str.c" />
     <ClCompile Include="meta\ps2_svag.c" />
+    <ClCompile Include="meta\ps2_svag_snk.c" />
     <ClCompile Include="meta\ps2_tec.c" />
     <ClCompile Include="meta\ps2_tk5.c" />
     <ClCompile Include="meta\ps2_vag.c" />
