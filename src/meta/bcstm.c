@@ -15,6 +15,7 @@ VGMSTREAM * init_vgmstream_bcstm(STREAMFILE *streamFile) {
 	int loop_flag;
 	int i, ima = 0;
 	off_t start_offset;
+	int section_count;
 
 	/* check extension, case insensitive */
 	streamFile->get_name(streamFile, filename, sizeof(filename));
@@ -28,7 +29,7 @@ VGMSTREAM * init_vgmstream_bcstm(STREAMFILE *streamFile) {
 	if ((uint16_t)read_16bitLE(4, streamFile) != 0xFEFF)
 		goto fail;
 	
-	int section_count = read_16bitLE(0x10, streamFile);
+	section_count = read_16bitLE(0x10, streamFile);
 	for (i = 0; i < section_count; i++) {
 		temp_id = read_16bitLE(0x14 + i * 0xc, streamFile);
 		switch(temp_id) {

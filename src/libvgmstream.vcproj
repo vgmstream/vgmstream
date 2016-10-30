@@ -851,6 +851,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\ps2_svag_snk.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\ps2_tec.c"
 					>
 				</File>
