@@ -302,7 +302,8 @@ META_OBJS=meta/adx_header.o \
 	meta/g1l.o \
 	meta/mca.o \
 	meta/btsnd.o \
-	meta/hca.o
+	meta/hca.o \
+	meta/ps2_svag_snk.o
 
 EXT_LIBS = ../ext_libs/clHCA.o
 
