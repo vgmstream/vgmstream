@@ -248,4 +248,3 @@ libmeta_la_SOURCES += hca.c
 libmeta_la_SOURCES += ps2_svag_snk.c
 
 EXTRA_DIST = meta.h
-
