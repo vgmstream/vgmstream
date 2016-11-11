@@ -393,6 +393,13 @@ VGMSTREAM * init_vgmstream_ogg_vorbis_callbacks(STREAMFILE *streamFile, const ch
                 loop_flag=1;
                 loop_end_found=1;
             }
+            else if (strstr(comment->user_comments[i],"COMMENT=loop(")==
+                    comment->user_comments[i]) {
+                sscanf(strrchr(comment->user_comments[i],'(')+1,"%d,%d",
+                        &loop_start,&loop_end);
+                loop_flag=1;
+                loop_end_found=1;
+            }
         }
     }
 
