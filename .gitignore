@@ -2,6 +2,8 @@
 *.user
 *.suo
 *.vspscc
+*.o
+*.a
 /ext_libs/Debug
 /ext_libs/Release
 /ext_libs/*.exp
@@ -14,3 +16,5 @@
 /src/Release
 /test/Debug
 /test/Release
+/test/*.exe
+/winamp/*.dll
