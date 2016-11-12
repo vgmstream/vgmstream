@@ -109,6 +109,16 @@ VGMSTREAM * init_vgmstream_adx(STREAMFILE *streamFile) {
 				loop_end_sample = read_32bitBE(0x30,streamFile);
 				//loop_end_offset = read_32bitBE(0x34,streamFile);
 			}
+
+			/* AINF header can also start after the loop points
+			 *  (may be inserted by CRI's tools but is rarely used) */
+			/* ainf_magic = read_32bitBE(0x38,streamFile); */ /* 0x41494E46 */
+            /* ainf_length = read_32bitBE(0x3c,streamFile); */
+            /* ainf_str_id = read_string(0x40,streamFile); */ /* max size 0x10 */
+            /* ainf_volume = read_16bitBE(0x50,streamFile); */ /* 0=base/max?, negative=reduce */
+            /* ainf_pan_l = read_16bitBE(0x54,streamFile); */ /* 0=base, max +-128 */
+            /* ainf_pan_r = read_16bitBE(0x56,streamFile); */
+
 		} else if (version_signature == 0x0500) {			 /* found in some SFD : Buggy Heat, appears to have no loop */
 			header_type = meta_ADX_05;
 		} else goto fail;   /* not a known/supported version signature */
