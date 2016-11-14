@@ -6,7 +6,7 @@ cd /d "%~dp0"
 
 for /f %%v in ('git describe --always --tag') do set version=%%v
 
-set version=!version:^:=_!
+if not "%version%"=="" set version=!version:^:=_!
 
 if not "%version%"=="" goto :gotversion
 

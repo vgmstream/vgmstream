@@ -194,6 +194,7 @@ const char *const VgmStreamPlugin::exts[] =
   "sfx",
   "sgb",
   "sgd",
+  "sgx",
   "sl3",
   "sli",
   "smp",

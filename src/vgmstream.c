@@ -360,6 +360,13 @@ VGMSTREAM * init_vgmstream_internal(STREAMFILE *streamFile, int do_dfs) {
         if (vgmstream) {
             /* these are little hacky checks */
 
+            /* fail if there is nothing to play
+             *  (without this check vgmstream can generate empty files) */
+            if ( vgmstream->num_samples==0 ) {
+                close_vgmstream(vgmstream);
+                continue;
+            }
+
             /* everything should have a reasonable sample rate
              * (a verification of the metadata) */
             if (!check_sample_rate(vgmstream->sample_rate)) {
