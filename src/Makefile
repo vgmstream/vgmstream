@@ -24,7 +24,8 @@ CODING_OBJS=coding/adx_decoder.o \
     coding/mtaf_decoder.o \
     coding/at3_decoder.o \
     coding/g719_decoder.o \
-    coding/hca_decoder.o
+    coding/hca_decoder.o \
+    coding/ffmpeg_decoder.o
 
 LAYOUT_OBJS=layout/ast_blocked.o \
     layout/blocked.o \
@@ -303,7 +304,8 @@ META_OBJS=meta/adx_header.o \
 	meta/mca.o \
 	meta/btsnd.o \
 	meta/hca.o \
-	meta/ps2_svag_snk.o
+	meta/ps2_svag_snk.o \
+	meta/ffmpeg.o
 
 EXT_LIBS = ../ext_libs/clHCA.o
 
