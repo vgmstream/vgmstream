@@ -173,15 +173,17 @@ int read_fmt(int big_endian,
             fmt->interleave = 8;
             break;
 #ifdef VGM_USE_FFMPEG
-		case 0x270:
-		case 0xFFFE:
+		case 0x270: /* ATRAC3 */
+#if defined(VGM_USE_FFMPEG) && !defined(VGM_USE_MAIATRAC3PLUS)
+        case 0xFFFE: /* WAVEFORMATEXTENSIBLE / ATRAC3plus */
+#endif /* defined */
 			fmt->coding_type = coding_FFmpeg;
 			fmt->block_size = 2048;
 			fmt->interleave = 0;
 			break;
-#endif
+#endif /* VGM_USE_FFMPEG */
 #ifdef VGM_USE_MAIATRAC3PLUS
-		case 0xFFFE: /* WAVEFORMATEXTENSIBLE */
+		case 0xFFFE: /* WAVEFORMATEXTENSIBLE / ATRAC3plus */
 			if (read_32bit(current_chunk+0x20,streamFile) == 0xE923AABF &&
 				read_16bit(current_chunk+0x24,streamFile) == (int16_t)0xCB58 &&
 				read_16bit(current_chunk+0x26,streamFile) == 0x4471 &&
