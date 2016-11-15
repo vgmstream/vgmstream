@@ -135,4 +135,6 @@ void decode_lsf(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, 
 
 void decode_mtaf(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel, int channels);
 
+void decode_hca(hca_codec_data * data, sample * outbuf, int32_t samples_to_do, int channels);
+
 #endif
