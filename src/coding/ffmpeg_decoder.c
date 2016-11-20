@@ -117,6 +117,7 @@ void decode_ffmpeg(VGMSTREAM *vgmstream,
     endOfStream = data->endOfStream;
     endOfAudio = data->endOfAudio;
 
+    /* keep reading and decoding packets until the requested number of samples (in bytes) */
     while (bytesRead < bytesToRead) {
         int planeSize;
         int planar = av_sample_fmt_is_planar(codecCtx->sample_fmt);
@@ -127,6 +128,7 @@ void decode_ffmpeg(VGMSTREAM *vgmstream,
         if (dataSize < 0)
             dataSize = 0;
         
+        /* read packet */
         while (readNextPacket && !endOfAudio) {
             if (!endOfStream) {
                 av_packet_unref(lastReadPacket);
@@ -138,7 +140,7 @@ void decode_ffmpeg(VGMSTREAM *vgmstream,
                         break;
                 }
                 if (lastReadPacket->stream_index != streamIndex)
-                    continue;
+                    continue; /* ignore non audio streams */
             }
             
             if ((errcode = avcodec_send_packet(codecCtx, endOfStream ? NULL : lastReadPacket)) < 0) {
@@ -150,6 +152,7 @@ void decode_ffmpeg(VGMSTREAM *vgmstream,
             readNextPacket = 0;
         }
         
+        /* decode packet */
         if (dataSize <= bytesConsumedFromDecodedFrame) {
             if (endOfStream && endOfAudio)
                 break;
@@ -178,21 +181,32 @@ void decode_ffmpeg(VGMSTREAM *vgmstream,
         
         toConsume = FFMIN((dataSize - bytesConsumedFromDecodedFrame), (bytesToRead - bytesRead));
         
+        /* discard packet if needed (fully or partially) */
         if (data->samplesToDiscard) {
+            int samplesToConsume;
             int bytesPerFrame = ((data->bitsPerSample / 8) * channels);
-            int samplesToConsume = toConsume / bytesPerFrame;
-            if (data->samplesToDiscard >= samplesToConsume) {
+
+            /* discard all if there are more samples to do than the packet's samples */
+            if (data->samplesToDiscard >= dataSize / bytesPerFrame) {
+                samplesToConsume = dataSize / bytesPerFrame;
+            }
+            else {
+                samplesToConsume = toConsume / bytesPerFrame;
+            }
+
+            if (data->samplesToDiscard >= samplesToConsume) { /* full discard: skip to next */
                 data->samplesToDiscard -= samplesToConsume;
                 bytesConsumedFromDecodedFrame = dataSize;
                 continue;
             }
-            else {
+            else { /* partial discard: copy below */
                 bytesConsumedFromDecodedFrame += data->samplesToDiscard * bytesPerFrame;
                 toConsume -= data->samplesToDiscard * bytesPerFrame;
                 data->samplesToDiscard = 0;
             }
         }
-        
+
+        /* copy packet to buffer (mux channels if needed) */
         if (!planar || channels == 1) {
             memmove(targetBuf + bytesRead, (lastDecodedFrame->data[0] + bytesConsumedFromDecodedFrame), toConsume);
         }
@@ -210,6 +224,7 @@ void decode_ffmpeg(VGMSTREAM *vgmstream,
             }
         }
         
+        /* consume */
         bytesConsumedFromDecodedFrame += toConsume;
         bytesRead += toConsume;
     }

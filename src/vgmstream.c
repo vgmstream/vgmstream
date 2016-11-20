@@ -1791,6 +1791,10 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream) {
             if (vgmstream->coding_type==coding_FFmpeg) {
                 ffmpeg_codec_data *data = (ffmpeg_codec_data *)(vgmstream->codec_data);
                 int64_t ts;
+
+                /* Seek to loop start by timestamp (closest frame) + adjust skipping some samples */
+                /* FFmpeg seeks by ts by design (since not all containers can accurately skip to a frame). */
+                /* TODO: this seems to be off by +-1 frames in some cases */
                 ts = vgmstream->loop_start_sample;
                 if (ts >= data->sampleRate * 2) {
                     data->samplesToDiscard = data->sampleRate * 2;
@@ -1802,14 +1806,26 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream) {
                 }
                 data->framesRead = (int)ts;
                 ts = data->framesRead * (data->formatCtx->duration) / data->totalFrames;
+
+
+#ifdef VGM_USE_FFMPEG_ACCURATE_LOOPING
+                /* Start from 0 and discard samples until loop_start for accurate looping (slower but not too noticeable) */
+                /* We could also seek by offset (AVSEEK_FLAG_BYTE) to the frame closest to the loop then discard
+                 *  some samples, which is fast but would need calculations per format / when frame size is not constant */
+                data->samplesToDiscard = vgmstream->loop_start_sample;
+                data->framesRead = 0;
+                ts = 0;
+#endif /* VGM_USE_FFMPEG_ACCURATE_LOOPING */
+
                 avformat_seek_file(data->formatCtx, -1, ts - 1000, ts, ts, AVSEEK_FLAG_ANY);
                 avcodec_flush_buffers(data->codecCtx);
+
                 data->readNextPacket = 1;
                 data->bytesConsumedFromDecodedFrame = INT_MAX;
                 data->endOfStream = 0;
                 data->endOfAudio = 0;
             }
-#endif
+#endif /* VGM_USE_FFMPEG */
 #if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
 			if (vgmstream->coding_type==coding_MP4_AAC) {
 				mp4_aac_codec_data *data = (mp4_aac_codec_data *)(vgmstream->codec_data);
