@@ -1792,6 +1792,7 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream) {
                 ffmpeg_codec_data *data = (ffmpeg_codec_data *)(vgmstream->codec_data);
                 int64_t ts;
 
+#ifndef VGM_USE_FFMPEG_ACCURATE_LOOPING
                 /* Seek to loop start by timestamp (closest frame) + adjust skipping some samples */
                 /* FFmpeg seeks by ts by design (since not all containers can accurately skip to a frame). */
                 /* TODO: this seems to be off by +-1 frames in some cases */
@@ -1807,6 +1808,9 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream) {
                 data->framesRead = (int)ts;
                 ts = data->framesRead * (data->formatCtx->duration) / data->totalFrames;
 
+                avformat_seek_file(data->formatCtx, -1, ts - 1000, ts, ts, AVSEEK_FLAG_ANY);
+                avcodec_flush_buffers(data->codecCtx);
+#endif /* ifndef VGM_USE_FFMPEG_ACCURATE_LOOPING */
 
 #ifdef VGM_USE_FFMPEG_ACCURATE_LOOPING
                 /* Start from 0 and discard samples until loop_start for accurate looping (slower but not too noticeable) */
@@ -1815,10 +1819,10 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream) {
                 data->samplesToDiscard = vgmstream->loop_start_sample;
                 data->framesRead = 0;
                 ts = 0;
-#endif /* VGM_USE_FFMPEG_ACCURATE_LOOPING */
 
-                avformat_seek_file(data->formatCtx, -1, ts - 1000, ts, ts, AVSEEK_FLAG_ANY);
+                avformat_seek_file(data->formatCtx, -1, ts, ts, ts, AVSEEK_FLAG_ANY);
                 avcodec_flush_buffers(data->codecCtx);
+#endif /* ifdef VGM_USE_FFMPEG_ACCURATE_LOOPING */
 
                 data->readNextPacket = 1;
                 data->bytesConsumedFromDecodedFrame = INT_MAX;
@@ -2129,11 +2133,14 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             {
                 ffmpeg_codec_data *data = (ffmpeg_codec_data *) vgmstream->codec_data;
                 if (vgmstream->codec_data) {
-                    if (data->codec) {
+                    if (data->codec && data->codec->long_name) {
                         snprintf(temp,TEMPSIZE,data->codec->long_name);
                     }
+                    else if (data->codec && data->codec->name) {
+                        snprintf(temp,TEMPSIZE,data->codec->name);
+                    }
                     else {
-                        snprintf(temp,TEMPSIZE,"FFmpeg");
+                        snprintf(temp,TEMPSIZE,"FFmpeg (unknown codec)");
                     }
                 }
                 else {
