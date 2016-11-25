@@ -571,7 +571,10 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
     /* clean up anything we may have opened */
 fail:
 #ifdef VGM_USE_FFMPEG
-    if (ffmpeg_data) free_ffmpeg(ffmpeg_data);
+    if (ffmpeg_data) {
+        free_ffmpeg(ffmpeg_data);
+        vgmstream->codec_data = NULL;
+    }
 #endif
     if (vgmstream) close_vgmstream(vgmstream);
     return NULL;
