@@ -167,9 +167,9 @@ void __stdcall Stop() {
 
 BOOL __stdcall XMP_CheckFile(const char *filename, XMPFILE file) {
 	VGMSTREAM* thisvgmstream;
+	int ret;
 	if (file) thisvgmstream = init_vgmstream_from_xmpfile(file, filename);
-	else thisvgmstream = init_vgmstream_from_path(filename);
-    int ret;
+	else thisvgmstream = init_vgmstream(filename);
 
 	if (!thisvgmstream) ret = FALSE;
 	else { ret = TRUE; close_vgmstream(thisvgmstream); }
@@ -181,7 +181,7 @@ DWORD __stdcall XMP_GetFileInfo(const char *filename, XMPFILE file, float **leng
 {
 	VGMSTREAM* thisvgmstream;
 	if (file) thisvgmstream = init_vgmstream_from_xmpfile(file, filename);
-	else thisvgmstream = init_vgmstream_from_path(filename);
+	else thisvgmstream = init_vgmstream(filename);
 	if (!thisvgmstream) return 0;
 
 	if (length && thisvgmstream->sample_rate)
@@ -199,7 +199,7 @@ DWORD __stdcall XMP_GetFileInfo(const char *filename, XMPFILE file, float **leng
 
 DWORD __stdcall LoadVgmStream(const char *filename, XMPFILE file) {
 	if (file) vgmstream = init_vgmstream_from_xmpfile(file, filename);
-	else vgmstream = init_vgmstream_from_path(filename);
+	else vgmstream = init_vgmstream(filename);
  
 	if (!vgmstream) return 0;
 
@@ -225,9 +225,11 @@ DWORD __stdcall XMP_Buffer(float* buffer, DWORD bufsize) {
 
 	float *sbuf = buffer;
 
+	UINT32 samplesTodo;
+
 	bufsize /= vgmstream->channels;
 
-	UINT32 samplesTodo = doLoop ? bufsize : totalFrames - framesDone;
+	samplesTodo = doLoop ? bufsize : totalFrames - framesDone;
 	if (samplesTodo > bufsize)
 		samplesTodo = bufsize;
 
