@@ -171,7 +171,7 @@ VGMSTREAM * init_vgmstream_ps3_msf(STREAMFILE *streamFile) {
 
             break;
 #endif
-#if VGM_USE_MPEG
+#ifdef VGM_USE_MPEG
         case 0x7: /* MPEG */
             {
                 mpeg_codec_data *mpeg_data = NULL;
