@@ -17,6 +17,7 @@ Release
 
 # new for Visual Studio 2015
 .vs
+*.VC.db
 
 # auto generated
 version.h
