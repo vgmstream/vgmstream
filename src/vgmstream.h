@@ -856,6 +856,7 @@ typedef struct {
     
     // inserted header, ie. fake RIFF header
     uint8_t *header_insert_block;
+    // header/fake RIFF over the real (parseable by FFmpeg) file start
     uint64_t header_size;
     
     // stream info
@@ -869,6 +870,8 @@ typedef struct {
     
     // Intermediate buffer
     uint8_t *sampleBuffer;
+    // max samples a block can held (can be less or more than samples per decoded frame)
+    size_t samplesPerBlock;
     
     // FFmpeg context used for metadata
     AVCodec *codec;

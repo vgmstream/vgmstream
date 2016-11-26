@@ -4,8 +4,13 @@
 
 #ifdef VGM_USE_FFMPEG
 
+#define FFMPEG_DEFAULT_BLOCK_SIZE 2048
+
 static volatile int g_ffmpeg_initialized = 0;
 
+/*
+ * Global FFmpeg init
+ */
 static void g_init_ffmpeg()
 {
     if (g_ffmpeg_initialized == 1)
@@ -22,24 +27,19 @@ static void g_init_ffmpeg()
     }
 }
 
-ffmpeg_codec_data * init_ffmpeg_faux_riff(STREAMFILE *streamFile, int64_t fmt_offset, uint64_t stream_offset, uint64_t stream_size, int fmt_big_endian);
-ffmpeg_codec_data * init_ffmpeg_offset(STREAMFILE *streamFile, uint64_t start, uint64_t size) {
-    return init_ffmpeg_faux_riff(streamFile, -1, start, size, 0);
-}
 
-VGMSTREAM * init_vgmstream_ffmpeg_offset(STREAMFILE *streamFile, uint64_t start, uint64_t size);
-
+/**
+ * Generic init FFmpeg and vgmstream for any file supported by FFmpeg.
+ * Always called by vgmstream when trying to identify the file type (if the player allows it).
+ */
 VGMSTREAM * init_vgmstream_ffmpeg(STREAMFILE *streamFile) {
 	return init_vgmstream_ffmpeg_offset( streamFile, 0, streamFile->get_size(streamFile) );
 }
 
-void free_ffmpeg(ffmpeg_codec_data *data);
-
 VGMSTREAM * init_vgmstream_ffmpeg_offset(STREAMFILE *streamFile, uint64_t start, uint64_t size) {
     VGMSTREAM *vgmstream = NULL;
-    
+
     ffmpeg_codec_data *data = init_ffmpeg_offset(streamFile, start, size);
-    
     if (!data) return NULL;
     
     vgmstream = allocate_vgmstream(data->channels, 0);
@@ -53,7 +53,7 @@ VGMSTREAM * init_vgmstream_ffmpeg_offset(STREAMFILE *streamFile, uint64_t start,
     vgmstream->coding_type = coding_FFmpeg;
     vgmstream->layout_type = layout_none;
     vgmstream->meta_type = meta_FFmpeg;
-    
+
     return vgmstream;
     
 fail:
@@ -62,6 +62,10 @@ fail:
     return NULL;
 }
 
+
+/**
+ * AVIO callback: read stream, skipping external headers if needed
+ */
 static int ffmpeg_read(void *opaque, uint8_t *buf, int buf_size)
 {
     ffmpeg_codec_data *data = (ffmpeg_codec_data *) opaque;
@@ -100,11 +104,17 @@ static int ffmpeg_read(void *opaque, uint8_t *buf, int buf_size)
     return ret;
 }
 
+/**
+ * AVIO callback: write stream not needed
+ */
 static int ffmpeg_write(void *opaque, uint8_t *buf, int buf_size)
 {
     return -1;
 }
 
+/**
+ * AVIO callback: seek stream, skipping external headers if needed
+ */
 static int64_t ffmpeg_seek(void *opaque, int64_t offset, int whence)
 {
     ffmpeg_codec_data *data = (ffmpeg_codec_data *) opaque;
@@ -128,6 +138,19 @@ static int64_t ffmpeg_seek(void *opaque, int64_t offset, int whence)
     return data->offset = offset;
 }
 
+
+/**
+ * Manually init FFmpeg only, from an offset.
+ * Can be used if the stream has an extra header over data recognized by FFmpeg.
+ */
+ffmpeg_codec_data * init_ffmpeg_offset(STREAMFILE *streamFile, uint64_t start, uint64_t size) {
+    return init_ffmpeg_faux_riff(streamFile, -1, start, size, 0);
+}
+
+/**
+ * Manually init FFmpeg only, from an offset / fake RIFF.
+ * Can insert a fake RIFF header, to trick FFmpeg into demuxing/decoding the stream.
+ */
 ffmpeg_codec_data * init_ffmpeg_faux_riff(STREAMFILE *streamFile, int64_t fmt_offset, uint64_t start, uint64_t size, int big_endian) {
 	char filename[PATH_LIMIT];
     
@@ -139,12 +162,13 @@ ffmpeg_codec_data * init_ffmpeg_faux_riff(STREAMFILE *streamFile, int64_t fmt_of
     AVCodecParameters *codecPar;
     
     AVRational tb;
-    
+
+
+    /* basic setup */
     g_init_ffmpeg();
     
     data = ( ffmpeg_codec_data * ) calloc(1, sizeof(ffmpeg_codec_data));
-    
-    if (!data) return 0;
+    if (!data) return NULL;
     
     streamFile->get_name( streamFile, filename, sizeof(filename) );
     
@@ -153,7 +177,9 @@ ffmpeg_codec_data * init_ffmpeg_faux_riff(STREAMFILE *streamFile, int64_t fmt_of
     
     data->start = start;
     data->size = size;
-    
+
+
+    /* insert fake RIFF header to trick FFmpeg into demuxing/decoding the stream */
     if (fmt_offset > 0) {
         int max_header_size = (int)(start - fmt_offset);
         uint8_t *p;
@@ -188,6 +214,8 @@ ffmpeg_codec_data * init_ffmpeg_faux_riff(STREAMFILE *streamFile, int64_t fmt_of
         put_32bitLE(p + data->header_size - 4, size);
     }
     
+
+    /* setup IO, attempt to autodetect format and gather some info */
     data->buffer = av_malloc(128 * 1024);
     if (!data->buffer) goto fail;
     
@@ -199,10 +227,12 @@ ffmpeg_codec_data * init_ffmpeg_faux_riff(STREAMFILE *streamFile, int64_t fmt_of
     
     data->formatCtx->pb = data->ioCtx;
     
-    if ((errcode = avformat_open_input(&data->formatCtx, "", NULL, NULL)) < 0) goto fail;
+    if ((errcode = avformat_open_input(&data->formatCtx, "", NULL, NULL)) < 0) goto fail; /* autodetect */
 
     if ((errcode = avformat_find_stream_info(data->formatCtx, NULL)) < 0) goto fail;
     
+
+    /* find valid audio stream inside */
     streamIndex = -1;
     
     for (i = 0; i < data->formatCtx->nb_streams; ++i) {
@@ -217,6 +247,8 @@ ffmpeg_codec_data * init_ffmpeg_faux_riff(STREAMFILE *streamFile, int64_t fmt_of
     
     data->streamIndex = streamIndex;
     
+
+    /* prepare codec and frame/packet buffers */
     data->codecCtx = avcodec_alloc_context3(NULL);
     if (!data->codecCtx) goto fail;
     
@@ -232,12 +264,16 @@ ffmpeg_codec_data * init_ffmpeg_faux_riff(STREAMFILE *streamFile, int64_t fmt_of
     data->lastDecodedFrame = av_frame_alloc();
     if (!data->lastDecodedFrame) goto fail;
     av_frame_unref(data->lastDecodedFrame);
+
     data->lastReadPacket = malloc(sizeof(AVPacket));
     if (!data->lastReadPacket) goto fail;
     av_new_packet(data->lastReadPacket, 0);
+
     data->readNextPacket = 1;
     data->bytesConsumedFromDecodedFrame = INT_MAX;
-    
+
+
+    /* other setup */
     data->sampleRate = data->codecCtx->sample_rate;
     data->channels = data->codecCtx->channels;
     data->floatingPoint = 0;
@@ -274,18 +310,21 @@ ffmpeg_codec_data * init_ffmpeg_faux_riff(STREAMFILE *streamFile, int64_t fmt_of
             goto fail;
     }
 
-    tb.num = 1; tb.den = data->codecCtx->sample_rate;
-    
-    data->totalFrames = av_rescale_q(data->formatCtx->streams[streamIndex]->duration, data->formatCtx->streams[streamIndex]->time_base, tb);
     data->bitrate = (int)(data->codecCtx->bit_rate);
     data->framesRead = 0;
     data->endOfStream = 0;
     data->endOfAudio = 0;
-    
+
+    /* try to guess frames/samples (duration isn't always set) */
+    tb.num = 1; tb.den = data->codecCtx->sample_rate;
+    data->totalFrames = av_rescale_q(data->formatCtx->streams[streamIndex]->duration, data->formatCtx->streams[streamIndex]->time_base, tb);
     if (data->totalFrames < 0)
         data->totalFrames = 0;
-    
-    data->sampleBuffer = av_malloc( 2048 * (data->bitsPerSample / 8) * data->channels );
+
+
+    /* setup decode buffer */
+    data->samplesPerBlock = FFMPEG_DEFAULT_BLOCK_SIZE;
+    data->sampleBuffer = av_malloc( data->samplesPerBlock * (data->bitsPerSample / 8) * data->channels );
     if (!data->sampleBuffer)
         goto fail;
     
@@ -296,6 +335,7 @@ fail:
     
     return NULL;
 }
+
 
 void free_ffmpeg(ffmpeg_codec_data *data) {
     if (data->lastReadPacket) {

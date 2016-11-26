@@ -1086,7 +1086,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
             ffmpeg_codec_data *data = (ffmpeg_codec_data *) vgmstream->codec_data;
             if (vgmstream->codec_data) {
                 int64_t samplesRemain = data->totalFrames - data->framesRead;
-                return samplesRemain > 2048 ? 2048 : samplesRemain;
+                return samplesRemain > data->samplesPerBlock ? data->samplesPerBlock : samplesRemain;
             }
             return 0;
         }
@@ -1914,7 +1914,7 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         return;
     }
 
-    snprintf(temp,TEMPSIZE,"sample rate %d Hz\n"
+    snprintf(temp,TEMPSIZE,"sample rate: %d Hz\n"
             "channels: %d\n",
             vgmstream->sample_rate,vgmstream->channels);
     concatn(length,desc,temp);
