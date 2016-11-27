@@ -13,7 +13,12 @@ enum { PATH_LIMIT = 32768 };
  * removing these defines (and the references to the libraries in the
  * Makefile) */
 #define VGM_USE_VORBIS
+
+/* can be disabled to decode with FFmpeg instead */
+#ifndef VGM_DISABLE_MPEG
 #define VGM_USE_MPEG
+#endif
+
 /* disabled by default, defined for builds that support it */
 //#define VGM_USE_G7221
 //#define VGM_USE_G719
