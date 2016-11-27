@@ -149,7 +149,7 @@ static inline STREAMFILE * open_stdio_streamfile(const char * const filename) {
 size_t get_streamfile_dos_line(int dst_length, char * dst, off_t offset,
                 STREAMFILE * infile, int *line_done_ptr);
 
-int read_key_file(uint8_t * buf, size_t bufsize, const char * filename);
+int read_key_file(uint8_t * buf, size_t bufsize, STREAMFILE *streamFile);
 
 
 #endif

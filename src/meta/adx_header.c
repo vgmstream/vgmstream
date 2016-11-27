@@ -496,11 +496,9 @@ static int find_key(STREAMFILE *file, uint8_t type, uint16_t *xor_start, uint16_
 
     /* try to find key in external file first */
     {
-        char filename[PATH_LIMIT];
         uint8_t keybuf[6];
 
-        file->get_name(file,filename,sizeof(filename));
-        if ( read_key_file(keybuf, 6, filename) ) {
+        if ( read_key_file(keybuf, 6, file) ) {
             *xor_start = get_16bitBE(keybuf+0);
             *xor_mult = get_16bitBE(keybuf+2);
             *xor_add = get_16bitBE(keybuf+4);

@@ -275,57 +275,60 @@ size_t get_streamfile_dos_line(int dst_length, char * dst, off_t offset,
 
 /**
  * open file containing decryption keys and copy to buffer
- * tries combinations of keynames based on the original songname
+ * tries combinations of keynames based on the original filename
  *
  * returns true if found and copied
  */
-int read_key_file(uint8_t * buf, size_t bufsize, const char * songname) {
+int read_key_file(uint8_t * buf, size_t bufsize, STREAMFILE *streamFile) {
     char keyname[PATH_LIMIT];
+    char filename[PATH_LIMIT];
     const char *path, *ext;
     STREAMFILE * streamFileKey = NULL;
 
-    if (strlen(songname)+4 > sizeof(keyname)) goto fail;
+    streamFile->get_name(streamFile,filename,sizeof(filename));
+
+    if (strlen(filename)+4 > sizeof(keyname)) goto fail;
 
     /* try to open a keyfile using variations:
      *  "(name.ext)key" (per song), "(.ext)key" (per folder) */
     {
-        ext = strrchr(songname,'.');
+        ext = strrchr(filename,'.');
         if (ext!=NULL) ext = ext+1;
 
-        path = strrchr(songname,DIR_SEPARATOR);
+        path = strrchr(filename,DIR_SEPARATOR);
         if (path!=NULL) path = path+1;
 
         /* "(name.ext)key" */
-        strcpy(keyname, songname);
+        strcpy(keyname, filename);
         strcat(keyname, "key");
-        streamFileKey = open_stdio_streamfile(keyname);
+        streamFileKey = streamFile->open(streamFile,keyname,STREAMFILE_DEFAULT_BUFFER_SIZE);
         if (streamFileKey) goto found;
 
         /* "(name.ext)KEY" */
         /*
         strcpy(keyname+strlen(keyname)-3,"KEY");
-        streamFileKey = open_stdio_streamfile(keyname);
+        streamFileKey = streamFile->open(streamFile,keyname,STREAMFILE_DEFAULT_BUFFER_SIZE);
         if (streamFileKey) goto found;
         */
 
 
         /* "(.ext)key" */
         if (path) {
-            strcpy(keyname, songname);
-            keyname[path-songname] = '\0';
+            strcpy(keyname, filename);
+            keyname[path-filename] = '\0';
             strcat(keyname, ".");
         } else {
             strcpy(keyname, ".");
         }
         if (ext) strcat(keyname, ext);
         strcat(keyname, "key");
-        streamFileKey = open_stdio_streamfile(keyname);
+        streamFileKey = streamFile->open(streamFile,keyname,STREAMFILE_DEFAULT_BUFFER_SIZE);
         if (streamFileKey) goto found;
 
         /* "(.ext)KEY" */
         /*
         strcpy(keyname+strlen(keyname)-3,"KEY");
-        streamFileKey = open_stdio_streamfile(keyname);
+        streamFileKey = streamFile->open(streamFile,keyname,STREAMFILE_DEFAULT_BUFFER_SIZE);
         if (streamFileKey) goto found;
         */
 
