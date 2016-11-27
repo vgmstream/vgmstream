@@ -470,9 +470,15 @@ static struct {
     /* Phantasy Star Online 2
      * guessed with degod */
     {0x07d2,0x1ec5,0x0c7f},
+
     /* Dragon Ball Z: Dokkan Battle
      * guessed with degod */
     {0x0003,0x0d19,0x043b},
+
+    /* Kisou Ryouhei Gunhound EX (2013-01-31)(Dracue)[PSP]
+     * guessed with degod */
+    {0x0005,0x0bcd,0x1add},
+
 };
 
 static const int keys_8_count = sizeof(keys_8)/sizeof(keys_8[0]);
@@ -487,6 +493,21 @@ static int find_key(STREAMFILE *file, uint8_t type, uint16_t *xor_start, uint16_
     int startoff, endoff;
     int rc = 0;
 
+
+    /* try to find key in external file first */
+    {
+        uint8_t keybuf[6];
+
+        if ( read_key_file(keybuf, 6, file) ) {
+            *xor_start = get_16bitBE(keybuf+0);
+            *xor_mult = get_16bitBE(keybuf+2);
+            *xor_add = get_16bitBE(keybuf+4);
+            return 1;
+        }
+    }
+
+
+    /* guess key from the tables above */
     startoff=read_16bitBE(2, file)+4;
     endoff=(read_32bitBE(12, file)+31)/32*18*read_8bit(7, file)+startoff;
 

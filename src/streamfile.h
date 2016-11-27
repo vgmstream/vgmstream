@@ -34,6 +34,14 @@
 
 #define STREAMFILE_DEFAULT_BUFFER_SIZE 0x400
 
+#ifndef DIR_SEPARATOR
+#if defined (_WIN32) || defined (WIN32)
+#define DIR_SEPARATOR '\\'
+#else
+#define DIR_SEPARATOR '/'
+#endif
+#endif
+
 typedef struct _STREAMFILE {
     size_t (*read)(struct _STREAMFILE *,uint8_t * dest, off_t offset, size_t length);
     size_t (*get_size)(struct _STREAMFILE *);
@@ -140,5 +148,8 @@ static inline STREAMFILE * open_stdio_streamfile(const char * const filename) {
 
 size_t get_streamfile_dos_line(int dst_length, char * dst, off_t offset,
                 STREAMFILE * infile, int *line_done_ptr);
+
+int read_key_file(uint8_t * buf, size_t bufsize, STREAMFILE *streamFile);
+
 
 #endif
