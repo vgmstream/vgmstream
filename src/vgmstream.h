@@ -869,7 +869,7 @@ typedef struct {
     int bitsPerSample;
     int floatingPoint;
     int sampleRate;
-    int64_t totalFrames;
+    int64_t totalFrames; // sample count, or 0 if unknown
     int64_t framesRead;
     int bitrate;
     

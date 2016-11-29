@@ -90,7 +90,7 @@ void decode_ffmpeg(VGMSTREAM *vgmstream,
     
     int framesReadNow;
     
-    if (data->totalFrames && data->framesRead >= data->totalFrames) {
+    if ((data->totalFrames && data->framesRead >= data->totalFrames) || data->endOfStream || data->endOfAudio) {
         memset(outbuf, 0, samples_to_do * channels * sizeof(sample));
         return;
     }
