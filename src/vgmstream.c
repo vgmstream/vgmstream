@@ -362,7 +362,7 @@ VGMSTREAM * init_vgmstream_internal(STREAMFILE *streamFile, int do_dfs) {
 
             /* fail if there is nothing to play
              *  (without this check vgmstream can generate empty files) */
-            if ( vgmstream->num_samples==0 ) {
+            if (vgmstream->num_samples <= 0) {
                 close_vgmstream(vgmstream);
                 continue;
             }
@@ -1084,9 +1084,9 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_FFmpeg:
         {
             ffmpeg_codec_data *data = (ffmpeg_codec_data *) vgmstream->codec_data;
-            if (vgmstream->codec_data) {
-                int64_t samplesRemain = data->totalFrames - data->framesRead;
-                return samplesRemain > data->samplesPerBlock ? data->samplesPerBlock : samplesRemain;
+            if (data) { 
+	            /* must know the full block size for edge loops */
+                return data->samplesPerBlock;
             }
             return 0;
         }
@@ -1805,8 +1805,16 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream) {
                     data->samplesToDiscard = (int)ts;
                     ts = 0;
                 }
-                data->framesRead = (int)ts;
-                ts = data->framesRead * (data->formatCtx->duration) / data->totalFrames;
+
+                /* todo fix this properly */
+                if (data->totalFrames) {
+                    data->framesRead = (int)ts;
+                    ts = data->framesRead * (data->formatCtx->duration) / data->totalFrames;
+                } else {
+                    data->samplesToDiscard = vgmstream->loop_start_sample;
+                    data->framesRead = 0;
+                    ts = 0;
+                }
 
                 avformat_seek_file(data->formatCtx, -1, ts - 1000, ts, ts, AVSEEK_FLAG_ANY);
                 avcodec_flush_buffers(data->codecCtx);
