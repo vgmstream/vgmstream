@@ -248,6 +248,24 @@ end:
 }
 
 
+void reset_ffmpeg(VGMSTREAM *vgmstream) {
+    ffmpeg_codec_data *data = (ffmpeg_codec_data *) vgmstream->codec_data;
+
+    if (data->formatCtx) {
+        avformat_seek_file(data->formatCtx, -1, 0, 0, 0, AVSEEK_FLAG_ANY);
+    }
+    if (data->codecCtx) {
+        avcodec_flush_buffers(data->codecCtx);
+    }
+    data->readNextPacket = 1;
+    data->bytesConsumedFromDecodedFrame = INT_MAX;
+    data->framesRead = 0;
+    data->endOfStream = 0;
+    data->endOfAudio = 0;
+    data->samplesToDiscard = 0;
+}
+
+
 void seek_ffmpeg(VGMSTREAM *vgmstream, int32_t num_sample) {
     ffmpeg_codec_data *data = (ffmpeg_codec_data *) vgmstream->codec_data;
     int64_t ts;

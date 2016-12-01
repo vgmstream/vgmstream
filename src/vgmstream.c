@@ -515,20 +515,7 @@ void reset_vgmstream(VGMSTREAM * vgmstream) {
     
 #ifdef VGM_USE_FFMPEG
     if (vgmstream->coding_type==coding_FFmpeg) {
-        ffmpeg_codec_data *data = (ffmpeg_codec_data *) vgmstream->codec_data;
-        
-        if (data->formatCtx) {
-            avformat_seek_file(data->formatCtx, -1, 0, 0, 0, AVSEEK_FLAG_ANY);
-        }
-        if (data->codecCtx) {
-            avcodec_flush_buffers(data->codecCtx);
-        }
-        data->readNextPacket = 1;
-        data->bytesConsumedFromDecodedFrame = INT_MAX;
-        data->framesRead = 0;
-        data->endOfStream = 0;
-        data->endOfAudio = 0;
-        data->samplesToDiscard = 0;
+        reset_ffmpeg(vgmstream);
     }
 #endif
 
