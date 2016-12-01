@@ -4,7 +4,9 @@
 
 #ifdef VGM_USE_FFMPEG
 
+/* internal sizes, can be any value */
 #define FFMPEG_DEFAULT_BLOCK_SIZE 2048
+#define FFMPEG_DEFAULT_IO_BUFFER_SIZE 128 * 1024
 
 static void init_seek(ffmpeg_codec_data * data);
 
@@ -57,10 +59,19 @@ VGMSTREAM * init_vgmstream_ffmpeg_offset(STREAMFILE *streamFile, uint64_t start,
     vgmstream->layout_type = layout_none;
     vgmstream->meta_type = meta_FFmpeg;
 
+    /* this may happen for some streams */
+    if (vgmstream->num_samples <= 0)
+        goto fail;
+
+
     return vgmstream;
     
 fail:
     free_ffmpeg(data);
+    if (vgmstream) {
+        vgmstream->codec_data = NULL;
+        close_vgmstream(vgmstream);
+    }
     
     return NULL;
 }
@@ -73,10 +84,9 @@ static int ffmpeg_read(void *opaque, uint8_t *buf, int buf_size)
 {
     ffmpeg_codec_data *data = (ffmpeg_codec_data *) opaque;
     uint64_t offset = data->offset;
-    int max_to_copy;
+    int max_to_copy = 0;
     int ret;
     if (data->header_insert_block) {
-        max_to_copy = 0;
         if (offset < data->header_size) {
             max_to_copy = (int)(data->header_size - offset);
             if (max_to_copy > buf_size) {
@@ -125,7 +135,11 @@ static int64_t ffmpeg_seek(void *opaque, int64_t offset, int whence)
         return data->size + data->header_size;
     }
     whence &= ~(AVSEEK_SIZE | AVSEEK_FORCE);
+    /* false offsets, on reads data->start will be added */
     switch (whence) {
+        case SEEK_SET:
+            break;
+
         case SEEK_CUR:
             offset += data->offset;
             break;
@@ -162,6 +176,7 @@ ffmpeg_codec_data * init_ffmpeg_faux_riff(STREAMFILE *streamFile, int64_t fmt_of
     int errcode, i;
     
     int streamIndex;
+    AVStream *stream;
     AVCodecParameters *codecPar;
     
     AVRational tb;
@@ -219,10 +234,10 @@ ffmpeg_codec_data * init_ffmpeg_faux_riff(STREAMFILE *streamFile, int64_t fmt_of
     
 
     /* setup IO, attempt to autodetect format and gather some info */
-    data->buffer = av_malloc(128 * 1024);
+    data->buffer = av_malloc(FFMPEG_DEFAULT_IO_BUFFER_SIZE);
     if (!data->buffer) goto fail;
     
-    data->ioCtx = avio_alloc_context(data->buffer, 128 * 1024, 0, data, ffmpeg_read, ffmpeg_write, ffmpeg_seek);
+    data->ioCtx = avio_alloc_context(data->buffer, FFMPEG_DEFAULT_IO_BUFFER_SIZE, 0, data, ffmpeg_read, ffmpeg_write, ffmpeg_seek);
     if (!data->ioCtx) goto fail;
     
     data->formatCtx = avformat_alloc_context();
@@ -239,16 +254,19 @@ ffmpeg_codec_data * init_ffmpeg_faux_riff(STREAMFILE *streamFile, int64_t fmt_of
     streamIndex = -1;
     
     for (i = 0; i < data->formatCtx->nb_streams; ++i) {
-        codecPar = data->formatCtx->streams[i]->codecpar;
-        if (codecPar->codec_type == AVMEDIA_TYPE_AUDIO) {
-            streamIndex = i;
-            break;
+        stream = data->formatCtx->streams[i];
+        codecPar = stream->codecpar;
+        if (streamIndex < 0 && codecPar->codec_type == AVMEDIA_TYPE_AUDIO) {
+            streamIndex = i; /* select first audio stream found */
+        } else {
+            stream->discard = AVDISCARD_ALL; /* disable demuxing unneded streams */
         }
     }
     
     if (streamIndex < 0) goto fail;
     
     data->streamIndex = streamIndex;
+    stream = data->formatCtx->streams[streamIndex];
     
 
     /* prepare codec and frame/packet buffers */
@@ -257,7 +275,7 @@ ffmpeg_codec_data * init_ffmpeg_faux_riff(STREAMFILE *streamFile, int64_t fmt_of
     
     if ((errcode = avcodec_parameters_to_context(data->codecCtx, codecPar)) < 0) goto fail;
     
-    av_codec_set_pkt_timebase(data->codecCtx, data->formatCtx->streams[streamIndex]->time_base);
+    av_codec_set_pkt_timebase(data->codecCtx, stream->time_base);
     
     data->codec = avcodec_find_decoder(data->codecCtx->codec_id);
     if (!data->codec) goto fail;
@@ -320,10 +338,9 @@ ffmpeg_codec_data * init_ffmpeg_faux_riff(STREAMFILE *streamFile, int64_t fmt_of
 
     /* try to guess frames/samples (duration isn't always set) */
     tb.num = 1; tb.den = data->codecCtx->sample_rate;
-    data->totalFrames = av_rescale_q(data->formatCtx->streams[streamIndex]->duration, data->formatCtx->streams[streamIndex]->time_base, tb);
+    data->totalFrames = av_rescale_q(stream->duration, stream->time_base, tb);
     if (data->totalFrames < 0)
-        data->totalFrames = 0;
-
+        data->totalFrames = 0; /* caller must consider this */
 
     /* setup decode buffer */
     data->samplesPerBlock = FFMPEG_DEFAULT_BLOCK_SIZE;
@@ -386,7 +403,7 @@ static void init_seek(ffmpeg_codec_data * data) {
 
     /* add index 0 */
     stream = data->formatCtx->streams[data->streamIndex];
-    av_add_index_entry(stream, pkt->pos, ts, pkt->size, 0, AVINDEX_KEYFRAME); /* todo distance*/
+    av_add_index_entry(stream, pkt->pos, ts, pkt->size, 0, AVINDEX_KEYFRAME);
 
     /* move back to beginning, since we just consumed packets */
     avformat_seek_file(data->formatCtx, data->streamIndex, ts, ts, ts, AVSEEK_FLAG_ANY);
