@@ -6,6 +6,9 @@
 
 #define FFMPEG_DEFAULT_BLOCK_SIZE 2048
 
+static void init_seek(ffmpeg_codec_data * data);
+
+
 static volatile int g_ffmpeg_initialized = 0;
 
 /*
@@ -328,12 +331,66 @@ ffmpeg_codec_data * init_ffmpeg_faux_riff(STREAMFILE *streamFile, int64_t fmt_of
     if (!data->sampleBuffer)
         goto fail;
     
+
+    /* setup decent seeking for faulty formats */
+    init_seek(data);
+
+
     return data;
     
 fail:
     free_ffmpeg(data);
     
     return NULL;
+}
+
+
+/**
+ * Special patching for FFmpeg's buggy seek code.
+ *
+ * To seek with avformat_seek_file/av_seek_frame, FFmpeg's demuxers can implement read_seek2 (newest API)
+ * or read_seek (older API), with various search modes. If none are available it will use seek_frame_generic,
+ * which manually reads frame by frame until the selected timestamp. However, the prev frame will be consumed
+ * (so after seeking to 0 next av_read_frame will actually give the second frame and so on).
+ *
+ * Fortunately seek_frame_generic can use an index to find the correct position. This function reads the
+ * first frame/packet and sets up index to timestamp 0. This ensures faulty demuxers will seek to 0 correctly.
+ */
+static void init_seek(ffmpeg_codec_data * data) {
+    int ret, found = 0;
+    int64_t ts = 0;
+    AVStream * stream;
+    AVPacket * pkt;
+
+    /* read_seek wouldn't use the index, but direct access to FFmpeg's internals is no good */
+    /* if (data->formatCtx->iformat->read_seek || data->formatCtx->iformat->read_seek2)
+        return; */
+
+
+    pkt = data->lastReadPacket;
+
+    /* find the first packet */
+    while (!found) {
+        av_packet_unref(pkt);
+        ret = av_read_frame(data->formatCtx, pkt);
+        if (ret < 0)
+            break;
+
+        if (pkt->stream_index != data->streamIndex)
+            continue; /* ignore non-selected streams */
+
+        found = 1;
+    }
+    if (!found)
+        return;
+
+    /* add index 0 */
+    stream = data->formatCtx->streams[data->streamIndex];
+    av_add_index_entry(stream, pkt->pos, ts, pkt->size, 0, AVINDEX_KEYFRAME); /* todo distance*/
+
+    /* move back to beginning, since we just consumed packets */
+    avformat_seek_file(data->formatCtx, data->streamIndex, ts, ts, ts, AVSEEK_FLAG_ANY);
+    avcodec_flush_buffers(data->codecCtx);
 }
 
 
