@@ -8,7 +8,7 @@
 #define FFMPEG_DEFAULT_BLOCK_SIZE 2048
 #define FFMPEG_DEFAULT_IO_BUFFER_SIZE 128 * 1024
 
-static void init_seek(ffmpeg_codec_data * data);
+static int init_seek(ffmpeg_codec_data * data);
 
 
 static volatile int g_ffmpeg_initialized = 0;
@@ -350,7 +350,8 @@ ffmpeg_codec_data * init_ffmpeg_faux_riff(STREAMFILE *streamFile, int64_t fmt_of
     
 
     /* setup decent seeking for faulty formats */
-    init_seek(data);
+    errcode = init_seek(data);
+    if (errcode < 0) goto fail;
 
 
     return data;
@@ -372,8 +373,9 @@ fail:
  *
  * Fortunately seek_frame_generic can use an index to find the correct position. This function reads the
  * first frame/packet and sets up index to timestamp 0. This ensures faulty demuxers will seek to 0 correctly.
+ * Some formats may not seek to 0 even with this though.
  */
-static void init_seek(ffmpeg_codec_data * data) {
+static int init_seek(ffmpeg_codec_data * data) {
     int ret, found = 0;
     int64_t ts = 0;
     AVStream * stream;
@@ -399,15 +401,22 @@ static void init_seek(ffmpeg_codec_data * data) {
         found = 1;
     }
     if (!found)
-        return;
+        return -1;
 
     /* add index 0 */
     stream = data->formatCtx->streams[data->streamIndex];
-    av_add_index_entry(stream, pkt->pos, ts, pkt->size, 0, AVINDEX_KEYFRAME);
+    ret = av_add_index_entry(stream, pkt->pos, ts, pkt->size, 0, AVINDEX_KEYFRAME);
+    if ( ret < 0 )
+        return ret;
 
     /* move back to beginning, since we just consumed packets */
-    avformat_seek_file(data->formatCtx, data->streamIndex, ts, ts, ts, AVSEEK_FLAG_ANY);
+    ret = avformat_seek_file(data->formatCtx, data->streamIndex, ts, ts, ts, AVSEEK_FLAG_ANY);
+    if ( ret < 0 )
+        return ret; /* we can't even reset_vgmstream the file */
+
     avcodec_flush_buffers(data->codecCtx);
+
+    return 0;
 }
 
 
