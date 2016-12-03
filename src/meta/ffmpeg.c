@@ -332,7 +332,6 @@ ffmpeg_codec_data * init_ffmpeg_faux_riff(STREAMFILE *streamFile, int64_t fmt_of
     }
 
     data->bitrate = (int)(data->codecCtx->bit_rate);
-    data->framesRead = 0;
     data->endOfStream = 0;
     data->endOfAudio = 0;
 

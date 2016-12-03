@@ -59,8 +59,7 @@ static void convert_audio(sample *outbuf, const uint8_t *inbuf, int sampleCount,
     }
 }
 
-void decode_ffmpeg(VGMSTREAM *vgmstream,
-        sample * outbuf, int32_t samples_to_do, int channels) {
+void decode_ffmpeg(VGMSTREAM *vgmstream, sample * outbuf, int32_t samples_to_do, int channels) {
     ffmpeg_codec_data *data = (ffmpeg_codec_data *) vgmstream->codec_data;
     
     int bytesPerSample;
@@ -87,7 +86,7 @@ void decode_ffmpeg(VGMSTREAM *vgmstream,
     
 
     /* ignore decode attempts at EOF */
-    if ((data->totalFrames && data->framesRead >= data->totalFrames) || data->endOfStream || data->endOfAudio) {
+    if (data->endOfStream || data->endOfAudio) {
         memset(outbuf, 0, samples_to_do * channels * sizeof(sample));
         return;
     }
@@ -231,11 +230,6 @@ void decode_ffmpeg(VGMSTREAM *vgmstream,
     
 end:
     framesReadNow = bytesRead / frameSize;
-    if (data->totalFrames && (data->framesRead + framesReadNow > data->totalFrames)) {
-        framesReadNow = (int)(data->totalFrames - data->framesRead);
-    }
-    
-    data->framesRead += framesReadNow;
     
     // Convert the audio
     convert_audio(outbuf, data->sampleBuffer, framesReadNow * channels, data->bitsPerSample, data->floatingPoint);
@@ -259,7 +253,6 @@ void reset_ffmpeg(VGMSTREAM *vgmstream) {
     }
     data->readNextPacket = 1;
     data->bytesConsumedFromDecodedFrame = INT_MAX;
-    data->framesRead = 0;
     data->endOfStream = 0;
     data->endOfAudio = 0;
     data->samplesToDiscard = 0;
@@ -286,11 +279,9 @@ void seek_ffmpeg(VGMSTREAM *vgmstream, int32_t num_sample) {
 
     /* todo fix this properly */
     if (data->totalFrames) {
-        data->framesRead = (int)ts;
-        ts = data->framesRead * (data->formatCtx->duration) / data->totalFrames;
+        ts = (int)ts * (data->formatCtx->duration) / data->totalFrames;
     } else {
         data->samplesToDiscard = num_sample;
-        data->framesRead = 0;
         ts = 0;
     }
 
@@ -303,7 +294,6 @@ void seek_ffmpeg(VGMSTREAM *vgmstream, int32_t num_sample) {
     /* We could also seek by offset (AVSEEK_FLAG_BYTE) to the frame closest to the loop then discard
      *  some samples, which is fast but would need calculations per format / when frame size is not constant */
     data->samplesToDiscard = num_sample;
-    data->framesRead = 0;
     ts = 0;
 
     avformat_seek_file(data->formatCtx, data->streamIndex, ts, ts, ts, AVSEEK_FLAG_ANY);
