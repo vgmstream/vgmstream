@@ -373,43 +373,58 @@ fail:
  *
  * Fortunately seek_frame_generic can use an index to find the correct position. This function reads the
  * first frame/packet and sets up index to timestamp 0. This ensures faulty demuxers will seek to 0 correctly.
- * Some formats may not seek to 0 even with this though.
+ * Some formats may not seek to 0 even with this, though.
  */
 static int init_seek(ffmpeg_codec_data * data) {
-    int ret, found = 0;
+    int ret, ts_index, found_first = 0;
     int64_t ts = 0;
+    int64_t pos; /* offset */
+    int size; /* coded size */
+    int distance = 0; /* always? */
+
     AVStream * stream;
     AVPacket * pkt;
 
-    /* read_seek wouldn't use the index, but direct access to FFmpeg's internals is no good */
-    /* if (data->formatCtx->iformat->read_seek || data->formatCtx->iformat->read_seek2)
-        return; */
-
-
+    stream = data->formatCtx->streams[data->streamIndex];
     pkt = data->lastReadPacket;
 
-    /* find the first packet */
-    while (!found) {
+    /* read_seek shouldn't need this index, but direct access to FFmpeg's internals is no good */
+    /* if (data->formatCtx->iformat->read_seek || data->formatCtx->iformat->read_seek2)
+        return 0; */
+
+    /* some formats already have a proper index (e.g. M4A) */
+    ts_index = av_index_search_timestamp(stream, ts, AVSEEK_FLAG_ANY);
+    if (ts_index>=0)
+        goto test_seek;
+
+
+    /* find the first + second packets to get pos/size */
+    while (1) {
         av_packet_unref(pkt);
         ret = av_read_frame(data->formatCtx, pkt);
         if (ret < 0)
-            break;
-
+            goto fail;
         if (pkt->stream_index != data->streamIndex)
             continue; /* ignore non-selected streams */
 
-        found = 1;
+        if (!found_first) { /* first found */
+            found_first = 1;
+            pos = pkt->pos;
+            continue;
+        } else { /* second found */
+            size = pkt->pos - pos; /* coded, pkt->size is decoded size */
+            break;
+        }
     }
-    if (!found)
-        return -1;
 
     /* add index 0 */
-    stream = data->formatCtx->streams[data->streamIndex];
-    ret = av_add_index_entry(stream, pkt->pos, ts, pkt->size, 0, AVINDEX_KEYFRAME);
+    ret = av_add_index_entry(stream, pos, ts, size, distance, AVINDEX_KEYFRAME);
     if ( ret < 0 )
         return ret;
 
-    /* move back to beginning, since we just consumed packets */
+
+test_seek:
+    /* seek to 0 test / move back to beginning, since we just consumed packets */
     ret = avformat_seek_file(data->formatCtx, data->streamIndex, ts, ts, ts, AVSEEK_FLAG_ANY);
     if ( ret < 0 )
         return ret; /* we can't even reset_vgmstream the file */
@@ -417,6 +432,10 @@ static int init_seek(ffmpeg_codec_data * data) {
     avcodec_flush_buffers(data->codecCtx);
 
     return 0;
+
+
+fail:
+    return -1;
 }
 
 
