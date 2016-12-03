@@ -183,25 +183,25 @@ void decode_ffmpeg(VGMSTREAM *vgmstream, sample * outbuf, int32_t samples_to_do,
         
         /* discard decoded frame if needed (fully or partially) */
         if (data->samplesToDiscard) {
-            int samplesToConsume;
+            int samplesDataSize = dataSize / bytesPerFrame;
 
-            /* discard all if there are more samples to do than the packet's samples */
-            if (data->samplesToDiscard >= dataSize / bytesPerFrame) {
-                samplesToConsume = dataSize / bytesPerFrame;
-            }
-            else {
-                samplesToConsume = toConsume / bytesPerFrame;
-            }
+            if (data->samplesToDiscard >= samplesDataSize) {
+                /* discard all of the frame's samples and continue to the next */
 
-            if (data->samplesToDiscard >= samplesToConsume) { /* full discard: skip to next */
-                data->samplesToDiscard -= samplesToConsume;
                 bytesConsumedFromDecodedFrame = dataSize;
+                data->samplesToDiscard -= samplesDataSize;
+
                 continue;
             }
-            else { /* partial discard: copy below */
-                bytesConsumedFromDecodedFrame += data->samplesToDiscard * bytesPerFrame;
-                toConsume -= data->samplesToDiscard * bytesPerFrame;
+            else {
+                /* discard part of the frame and copy the rest below */
+                int bytesToDiscard = data->samplesToDiscard * bytesPerFrame;
+                int dataSizeLeft = dataSize - bytesToDiscard;
+
+                bytesConsumedFromDecodedFrame += bytesToDiscard;
                 data->samplesToDiscard = 0;
+                if (toConsume > dataSizeLeft)
+                    toConsume = dataSizeLeft; /* consume at most dataSize left */
             }
         }
 
