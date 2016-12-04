@@ -9,9 +9,8 @@ VGMSTREAM * init_vgmstream_hca(STREAMFILE *streamFile) {
 }
 
 VGMSTREAM * init_vgmstream_hca_offset(STREAMFILE *streamFile, uint64_t start, uint64_t size) {
-	/* These I don't know about... */
-	static const unsigned int ciphKey1=0x30DBE1AB;
-	static const unsigned int ciphKey2=0xCC554639;
+	unsigned int ciphKey1;
+	unsigned int ciphKey2;
 
 	char filename[PATH_LIMIT];
     
@@ -50,6 +49,20 @@ VGMSTREAM * init_vgmstream_hca_offset(STREAMFILE *streamFile, uint64_t start, ui
 	if ( clHCA_isOurFile1( hca_data, header_size ) < 0 ) goto fail;
 
 	hca = (clHCA *)(hca_file + 1);
+
+    /* try to find key in external file */
+    {
+        uint8_t keybuf[8];
+
+        if ( read_key_file(keybuf, 8, streamFile) ) {
+            ciphKey2 = get_32bitBE(keybuf+0);
+            ciphKey1 = get_32bitBE(keybuf+4);
+        } else {
+            /* PSO2 */
+            ciphKey2=0xCC554639;
+            ciphKey1=0x30DBE1AB;
+        }
+    }
 
 	clHCA_clear(hca, ciphKey1, ciphKey2);
     
