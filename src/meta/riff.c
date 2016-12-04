@@ -246,8 +246,10 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
     if (strcasecmp("wav",filename_extension(filename)) &&
         strcasecmp("lwav",filename_extension(filename))
 #if defined(VGM_USE_MAIATRAC3PLUS) || defined(VGM_USE_FFMPEG)
-		&& strcasecmp("at3",filename_extension(filename))
-		&& strcasecmp("sgb",filename_extension(filename))
+        && strcasecmp("at3",filename_extension(filename))
+#endif
+#ifndef VGM_USE_FFMPEG
+        && strcasecmp("sgb",filename_extension(filename)) /* SGB has proper support with FFmpeg in ps3_sgdx */
 #endif
 		)
     {
