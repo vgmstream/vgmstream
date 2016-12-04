@@ -870,7 +870,6 @@ typedef struct {
     int floatingPoint;
     int sampleRate;
     int64_t totalFrames; // sample count, or 0 if unknown
-    int64_t framesRead;
     int bitrate;
     
     // Intermediate buffer

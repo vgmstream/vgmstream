@@ -59,17 +59,15 @@ static void convert_audio(sample *outbuf, const uint8_t *inbuf, int sampleCount,
     }
 }
 
-void decode_ffmpeg(VGMSTREAM *vgmstream,
-        sample * outbuf, int32_t samples_to_do, int channels) {
+void decode_ffmpeg(VGMSTREAM *vgmstream, sample * outbuf, int32_t samples_to_do, int channels) {
     ffmpeg_codec_data *data = (ffmpeg_codec_data *) vgmstream->codec_data;
     
+    int bytesPerSample;
+    int bytesPerFrame;
     int frameSize;
-    int dataSize;
     
     int bytesToRead;
     int bytesRead;
-    
-    int errcode;
     
     uint8_t *targetBuf;
     
@@ -78,25 +76,24 @@ void decode_ffmpeg(VGMSTREAM *vgmstream,
     AVPacket *lastReadPacket;
     AVFrame *lastDecodedFrame;
     
-    int streamIndex;
-    
     int bytesConsumedFromDecodedFrame;
     
     int readNextPacket;
     int endOfStream;
     int endOfAudio;
     
-    int toConsume;
-    
     int framesReadNow;
     
-    if ((data->totalFrames && data->framesRead >= data->totalFrames) || data->endOfStream || data->endOfAudio) {
+
+    /* ignore decode attempts at EOF */
+    if (data->endOfStream || data->endOfAudio) {
         memset(outbuf, 0, samples_to_do * channels * sizeof(sample));
         return;
     }
     
-    frameSize = data->channels * (data->bitsPerSample / 8);
-    dataSize = 0;
+    bytesPerSample = data->bitsPerSample / 8;
+    bytesPerFrame = channels * bytesPerSample;
+    frameSize = data->channels * bytesPerSample;
     
     bytesToRead = samples_to_do * frameSize;
     bytesRead = 0;
@@ -109,8 +106,6 @@ void decode_ffmpeg(VGMSTREAM *vgmstream,
     lastReadPacket = data->lastReadPacket;
     lastDecodedFrame = data->lastDecodedFrame;
     
-    streamIndex = data->streamIndex;
-    
     bytesConsumedFromDecodedFrame = data->bytesConsumedFromDecodedFrame;
     
     readNextPacket = data->readNextPacket;
@@ -120,15 +115,18 @@ void decode_ffmpeg(VGMSTREAM *vgmstream,
     /* keep reading and decoding packets until the requested number of samples (in bytes) */
     while (bytesRead < bytesToRead) {
         int planeSize;
-        int planar = av_sample_fmt_is_planar(codecCtx->sample_fmt);
-        dataSize = av_samples_get_buffer_size(&planeSize, codecCtx->channels,
-                                              lastDecodedFrame->nb_samples,
-                                              codecCtx->sample_fmt, 1);
-        
+        int planar;
+        int dataSize;
+        int toConsume;
+        int errcode;
+
+
+        /* size of previous frame */
+        dataSize = av_samples_get_buffer_size(&planeSize, codecCtx->channels, lastDecodedFrame->nb_samples, codecCtx->sample_fmt, 1);
         if (dataSize < 0)
             dataSize = 0;
         
-        /* read packet */
+        /* read new frame + packets when requested */
         while (readNextPacket && !endOfAudio) {
             if (!endOfStream) {
                 av_packet_unref(lastReadPacket);
@@ -139,10 +137,11 @@ void decode_ffmpeg(VGMSTREAM *vgmstream,
                     if (formatCtx->pb && formatCtx->pb->error)
                         break;
                 }
-                if (lastReadPacket->stream_index != streamIndex)
-                    continue; /* ignore non audio streams */
+                if (lastReadPacket->stream_index != data->streamIndex)
+                    continue; /* ignore non-selected streams */
             }
             
+            /* send compressed packet to decoder (NULL at EOF to "drain") */
             if ((errcode = avcodec_send_packet(codecCtx, endOfStream ? NULL : lastReadPacket)) < 0) {
                 if (errcode != AVERROR(EAGAIN)) {
                     goto end;
@@ -152,13 +151,14 @@ void decode_ffmpeg(VGMSTREAM *vgmstream,
             readNextPacket = 0;
         }
         
-        /* decode packet */
+        /* decode packets into frame (checking if we have bytes to consume from previous frame) */
         if (dataSize <= bytesConsumedFromDecodedFrame) {
             if (endOfStream && endOfAudio)
                 break;
             
             bytesConsumedFromDecodedFrame = 0;
             
+            /* receive uncompressed data from decoder */
             if ((errcode = avcodec_receive_frame(codecCtx, lastDecodedFrame)) < 0) {
                 if (errcode == AVERROR_EOF) {
                     endOfAudio = 1;
@@ -173,46 +173,45 @@ void decode_ffmpeg(VGMSTREAM *vgmstream,
                 }
             }
             
+            /* size of current frame */
             dataSize = av_samples_get_buffer_size(&planeSize, codecCtx->channels, lastDecodedFrame->nb_samples, codecCtx->sample_fmt, 1);
-            
             if (dataSize < 0)
                 dataSize = 0;
         }
         
         toConsume = FFMIN((dataSize - bytesConsumedFromDecodedFrame), (bytesToRead - bytesRead));
         
-        /* discard packet if needed (fully or partially) */
+        /* discard decoded frame if needed (fully or partially) */
         if (data->samplesToDiscard) {
-            int samplesToConsume;
-            int bytesPerFrame = ((data->bitsPerSample / 8) * channels);
+            int samplesDataSize = dataSize / bytesPerFrame;
 
-            /* discard all if there are more samples to do than the packet's samples */
-            if (data->samplesToDiscard >= dataSize / bytesPerFrame) {
-                samplesToConsume = dataSize / bytesPerFrame;
-            }
-            else {
-                samplesToConsume = toConsume / bytesPerFrame;
-            }
+            if (data->samplesToDiscard >= samplesDataSize) {
+                /* discard all of the frame's samples and continue to the next */
 
-            if (data->samplesToDiscard >= samplesToConsume) { /* full discard: skip to next */
-                data->samplesToDiscard -= samplesToConsume;
                 bytesConsumedFromDecodedFrame = dataSize;
+                data->samplesToDiscard -= samplesDataSize;
+
                 continue;
             }
-            else { /* partial discard: copy below */
-                bytesConsumedFromDecodedFrame += data->samplesToDiscard * bytesPerFrame;
-                toConsume -= data->samplesToDiscard * bytesPerFrame;
+            else {
+                /* discard part of the frame and copy the rest below */
+                int bytesToDiscard = data->samplesToDiscard * bytesPerFrame;
+                int dataSizeLeft = dataSize - bytesToDiscard;
+
+                bytesConsumedFromDecodedFrame += bytesToDiscard;
                 data->samplesToDiscard = 0;
+                if (toConsume > dataSizeLeft)
+                    toConsume = dataSizeLeft; /* consume at most dataSize left */
             }
         }
 
-        /* copy packet to buffer (mux channels if needed) */
+        /* copy decoded frame to buffer (mux channels if needed) */
+        planar = av_sample_fmt_is_planar(codecCtx->sample_fmt);
         if (!planar || channels == 1) {
             memmove(targetBuf + bytesRead, (lastDecodedFrame->data[0] + bytesConsumedFromDecodedFrame), toConsume);
         }
         else {
             uint8_t * out = (uint8_t *) targetBuf + bytesRead;
-            int bytesPerSample = data->bitsPerSample / 8;
             int bytesConsumedPerPlane = bytesConsumedFromDecodedFrame / channels;
             int toConsumePerPlane = toConsume / channels;
             int s, ch;
@@ -231,11 +230,6 @@ void decode_ffmpeg(VGMSTREAM *vgmstream,
     
 end:
     framesReadNow = bytesRead / frameSize;
-    if (data->totalFrames && (data->framesRead + framesReadNow > data->totalFrames)) {
-        framesReadNow = (int)(data->totalFrames - data->framesRead);
-    }
-    
-    data->framesRead += framesReadNow;
     
     // Convert the audio
     convert_audio(outbuf, data->sampleBuffer, framesReadNow * channels, data->bitsPerSample, data->floatingPoint);
@@ -245,6 +239,72 @@ end:
     data->readNextPacket = readNextPacket;
     data->endOfStream = endOfStream;
     data->endOfAudio = endOfAudio;
+}
+
+
+void reset_ffmpeg(VGMSTREAM *vgmstream) {
+    ffmpeg_codec_data *data = (ffmpeg_codec_data *) vgmstream->codec_data;
+
+    if (data->formatCtx) {
+        avformat_seek_file(data->formatCtx, data->streamIndex, 0, 0, 0, AVSEEK_FLAG_ANY);
+    }
+    if (data->codecCtx) {
+        avcodec_flush_buffers(data->codecCtx);
+    }
+    data->readNextPacket = 1;
+    data->bytesConsumedFromDecodedFrame = INT_MAX;
+    data->endOfStream = 0;
+    data->endOfAudio = 0;
+    data->samplesToDiscard = 0;
+}
+
+
+void seek_ffmpeg(VGMSTREAM *vgmstream, int32_t num_sample) {
+    ffmpeg_codec_data *data = (ffmpeg_codec_data *) vgmstream->codec_data;
+    int64_t ts;
+
+#ifndef VGM_USE_FFMPEG_ACCURATE_LOOPING
+    /* Seek to loop start by timestamp (closest frame) + adjust skipping some samples */
+    /* FFmpeg seeks by ts by design (since not all containers can accurately skip to a frame). */
+    /* TODO: this seems to be off by +-1 frames in some cases */
+    ts = num_sample;
+    if (ts >= data->sampleRate * 2) {
+        data->samplesToDiscard = data->sampleRate * 2;
+        ts -= data->samplesToDiscard;
+    }
+    else {
+        data->samplesToDiscard = (int)ts;
+        ts = 0;
+    }
+
+    /* todo fix this properly */
+    if (data->totalFrames) {
+        ts = (int)ts * (data->formatCtx->duration) / data->totalFrames;
+    } else {
+        data->samplesToDiscard = num_sample;
+        ts = 0;
+    }
+
+    avformat_seek_file(data->formatCtx, data->streamIndex, ts - 1000, ts, ts, AVSEEK_FLAG_ANY);
+    avcodec_flush_buffers(data->codecCtx);
+#endif /* ifndef VGM_USE_FFMPEG_ACCURATE_LOOPING */
+
+#ifdef VGM_USE_FFMPEG_ACCURATE_LOOPING
+    /* Start from 0 and discard samples until loop_start for accurate looping (slower but not too noticeable) */
+    /* We could also seek by offset (AVSEEK_FLAG_BYTE) to the frame closest to the loop then discard
+     *  some samples, which is fast but would need calculations per format / when frame size is not constant */
+    data->samplesToDiscard = num_sample;
+    ts = 0;
+
+    avformat_seek_file(data->formatCtx, data->streamIndex, ts, ts, ts, AVSEEK_FLAG_ANY);
+    avcodec_flush_buffers(data->codecCtx);
+#endif /* ifdef VGM_USE_FFMPEG_ACCURATE_LOOPING */
+
+    data->readNextPacket = 1;
+    data->bytesConsumedFromDecodedFrame = INT_MAX;
+    data->endOfStream = 0;
+    data->endOfAudio = 0;
+
 }
 
 #endif

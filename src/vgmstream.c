@@ -515,20 +515,7 @@ void reset_vgmstream(VGMSTREAM * vgmstream) {
     
 #ifdef VGM_USE_FFMPEG
     if (vgmstream->coding_type==coding_FFmpeg) {
-        ffmpeg_codec_data *data = (ffmpeg_codec_data *) vgmstream->codec_data;
-        
-        if (data->formatCtx) {
-            avformat_seek_file(data->formatCtx, -1, 0, 0, 0, AVSEEK_FLAG_ANY);
-        }
-        if (data->codecCtx) {
-            avcodec_flush_buffers(data->codecCtx);
-        }
-        data->readNextPacket = 1;
-        data->bytesConsumedFromDecodedFrame = INT_MAX;
-        data->framesRead = 0;
-        data->endOfStream = 0;
-        data->endOfAudio = 0;
-        data->samplesToDiscard = 0;
+        reset_ffmpeg(vgmstream);
     }
 #endif
 
@@ -1789,53 +1776,7 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream) {
             }
 #ifdef VGM_USE_FFMPEG
             if (vgmstream->coding_type==coding_FFmpeg) {
-                ffmpeg_codec_data *data = (ffmpeg_codec_data *)(vgmstream->codec_data);
-                int64_t ts;
-
-#ifndef VGM_USE_FFMPEG_ACCURATE_LOOPING
-                /* Seek to loop start by timestamp (closest frame) + adjust skipping some samples */
-                /* FFmpeg seeks by ts by design (since not all containers can accurately skip to a frame). */
-                /* TODO: this seems to be off by +-1 frames in some cases */
-                ts = vgmstream->loop_start_sample;
-                if (ts >= data->sampleRate * 2) {
-                    data->samplesToDiscard = data->sampleRate * 2;
-                    ts -= data->samplesToDiscard;
-                }
-                else {
-                    data->samplesToDiscard = (int)ts;
-                    ts = 0;
-                }
-
-                /* todo fix this properly */
-                if (data->totalFrames) {
-                    data->framesRead = (int)ts;
-                    ts = data->framesRead * (data->formatCtx->duration) / data->totalFrames;
-                } else {
-                    data->samplesToDiscard = vgmstream->loop_start_sample;
-                    data->framesRead = 0;
-                    ts = 0;
-                }
-
-                avformat_seek_file(data->formatCtx, -1, ts - 1000, ts, ts, AVSEEK_FLAG_ANY);
-                avcodec_flush_buffers(data->codecCtx);
-#endif /* ifndef VGM_USE_FFMPEG_ACCURATE_LOOPING */
-
-#ifdef VGM_USE_FFMPEG_ACCURATE_LOOPING
-                /* Start from 0 and discard samples until loop_start for accurate looping (slower but not too noticeable) */
-                /* We could also seek by offset (AVSEEK_FLAG_BYTE) to the frame closest to the loop then discard
-                 *  some samples, which is fast but would need calculations per format / when frame size is not constant */
-                data->samplesToDiscard = vgmstream->loop_start_sample;
-                data->framesRead = 0;
-                ts = 0;
-
-                avformat_seek_file(data->formatCtx, -1, ts, ts, ts, AVSEEK_FLAG_ANY);
-                avcodec_flush_buffers(data->codecCtx);
-#endif /* ifdef VGM_USE_FFMPEG_ACCURATE_LOOPING */
-
-                data->readNextPacket = 1;
-                data->bytesConsumedFromDecodedFrame = INT_MAX;
-                data->endOfStream = 0;
-                data->endOfAudio = 0;
+                seek_ffmpeg(vgmstream, vgmstream->loop_start_sample);
             }
 #endif /* VGM_USE_FFMPEG */
 #if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
