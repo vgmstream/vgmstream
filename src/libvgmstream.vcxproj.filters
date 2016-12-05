@@ -1006,5 +1006,11 @@
     <ClCompile Include="..\ext_libs\clHCA.c">
       <Filter>ext_libs\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\ffmpeg.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="coding\ffmpeg_decoder.c">
+      <Filter>coding\Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
