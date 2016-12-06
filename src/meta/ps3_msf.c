@@ -144,7 +144,7 @@ VGMSTREAM * init_vgmstream_ps3_msf(STREAMFILE *streamFile) {
 
             break;
 #endif
-#if defined(VGM_USE_FFMPEG) && !defined(VGM_USE_MPEG)
+#ifdef VGM_USE_FFMPEG
         case 0x7: /* MPEG */
             /* delegate to FFMpeg, it can parse MSF files */
             ffmpeg_data = init_ffmpeg_offset(streamFile, header_offset, streamFile->get_size(streamFile) );
@@ -155,7 +155,7 @@ VGMSTREAM * init_vgmstream_ps3_msf(STREAMFILE *streamFile) {
             vgmstream->meta_type = meta_FFmpeg;
             vgmstream->codec_data = ffmpeg_data;
 
-            /* todo check CBR better (bitrate=0?) */
+            /* todo check CBR better (frame_size=0?) */
 
             /* vgmstream->num_samples = ffmpeg_data->totalFrames; */ /* duration is not set/innacurate for MP3 in FFMpeg */
             vgmstream->num_samples = (int64_t)data_size * ffmpeg_data->sampleRate * 8 / ffmpeg_data->bitrate;
@@ -171,9 +171,11 @@ VGMSTREAM * init_vgmstream_ps3_msf(STREAMFILE *streamFile) {
 
             break;
 #endif
-#ifdef VGM_USE_MPEG
+#if defined(VGM_USE_MPEG) && !defined(VGM_USE_FFMPEG)
         case 0x7: /* MPEG */
             {
+                int frame_size = 576; /* todo incorrect looping calcs, MP3 can have other sizes */
+
                 mpeg_codec_data *mpeg_data = NULL;
                 struct mpg123_frameinfo mi;
                 coding_t ct;
@@ -188,12 +190,12 @@ VGMSTREAM * init_vgmstream_ps3_msf(STREAMFILE *streamFile) {
                 vgmstream->layout_type = layout_mpeg;
                 if (mi.vbr != MPG123_CBR) goto fail;
                 vgmstream->num_samples = mpeg_bytes_to_samples(data_size, &mi);
-                vgmstream->num_samples -= vgmstream->num_samples%576;
+                vgmstream->num_samples -= vgmstream->num_samples % frame_size;
                 if (loop_flag) {
                     vgmstream->loop_start_sample = mpeg_bytes_to_samples(loop_start, &mi);
-                    vgmstream->loop_start_sample -= vgmstream->loop_start_sample%576;
+                    vgmstream->loop_start_sample -= vgmstream->loop_start_sample % frame_size;
                     vgmstream->loop_end_sample = mpeg_bytes_to_samples(loop_end, &mi);
-                    vgmstream->loop_end_sample -= vgmstream->loop_end_sample%576;
+                    vgmstream->loop_end_sample -= vgmstream->loop_end_sample % frame_size;
                 }
                 vgmstream->interleave_block_size = 0;
             }

@@ -125,6 +125,8 @@ void free_ffmpeg(ffmpeg_codec_data *);
 VGMSTREAM * init_vgmstream_ffmpeg_offset(STREAMFILE *streamFile, uint64_t start, uint64_t size);
 
 VGMSTREAM * init_vgmstream_ffmpeg(STREAMFILE *streamFile);
+
+VGMSTREAM * init_vgmstream_mp4_aac_ffmpeg(STREAMFILE * streamFile);
 #endif
 
 #if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
@@ -587,7 +589,7 @@ VGMSTREAM * init_vgmstream_nub_vag(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_ps3_past(STREAMFILE* streamFile);
 
-VGMSTREAM * init_vgmstream_ps3_sgh_sgb(STREAMFILE* streamFile);
+VGMSTREAM * init_vgmstream_ps3_sgdx(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_ngca(STREAMFILE* streamFile);
 
@@ -621,15 +623,11 @@ VGMSTREAM * init_vgmstream_eb_sf0(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_ps3_klbs(STREAMFILE* streamFile);
 
-VGMSTREAM * init_vgmstream_ps3_sgx(STREAMFILE* streamFile);
-
 VGMSTREAM * init_vgmstream_ps2_mtaf(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_tun(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_wpd(STREAMFILE* streamFile);
-
-VGMSTREAM * init_vgmstream_ps3_sgd(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_mn_str(STREAMFILE* streamFile);
 

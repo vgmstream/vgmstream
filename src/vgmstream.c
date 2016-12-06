@@ -303,7 +303,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_fsb_mpeg,
 	init_vgmstream_nub_vag,
 	init_vgmstream_ps3_past,
-    init_vgmstream_ps3_sgh_sgb,
+    init_vgmstream_ps3_sgdx,
 	init_vgmstream_ngca,
 	init_vgmstream_wii_ras,
 	init_vgmstream_ps2_spm,
@@ -320,11 +320,9 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_eb_sfx,
     init_vgmstream_eb_sf0,
 	init_vgmstream_ps3_klbs,
-	init_vgmstream_ps3_sgx,
     init_vgmstream_ps2_mtaf,
 	init_vgmstream_tun,
 	init_vgmstream_wpd,
-	init_vgmstream_ps3_sgd,
 	init_vgmstream_mn_str,
 	init_vgmstream_ps2_mss,
 	init_vgmstream_ps2_hsf,
@@ -341,6 +339,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_hca,
     init_vgmstream_ps2_svag_snk,
 #ifdef VGM_USE_FFMPEG
+    init_vgmstream_mp4_aac_ffmpeg,
     init_vgmstream_ffmpeg,
 #endif
 };
@@ -3150,8 +3149,8 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
 		case meta_PS3_PAST:
             snprintf(temp,TEMPSIZE,"SNDP header");
             break;
-	    case meta_PS3_SGH_SGB:
-            snprintf(temp,TEMPSIZE,"SGH+SGB SGXD header");
+	    case meta_PS3_SGDX:
+            snprintf(temp,TEMPSIZE,"SGXD header");
             break;
 	    case meta_NGCA:
             snprintf(temp,TEMPSIZE,"NGCA header");
@@ -3203,9 +3202,6 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case meta_PS3_KLBS:
             snprintf(temp,TEMPSIZE,"klBS Header");
-            break;
-        case meta_PS3_SGX:
-            snprintf(temp,TEMPSIZE,"PS3 SGXD/WAVE header");
             break;
         case meta_PS2_MTAF:
             snprintf(temp,TEMPSIZE,"Konami MTAF header");

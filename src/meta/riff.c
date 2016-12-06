@@ -220,6 +220,7 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
     off_t file_size = -1;
     int sample_count = 0;
     int fact_sample_count = -1;
+    int fact_sample_skip = -1;
     off_t start_offset = -1;
 
     int loop_flag = 0;
@@ -241,13 +242,15 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
     /* Ubisoft sns */
     int sns = 0;
 
+	/* Sony atrac3 / 3plus */
+    int at3 = 0;
+
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
     if (strcasecmp("wav",filename_extension(filename)) &&
         strcasecmp("lwav",filename_extension(filename))
-#if defined(VGM_USE_MAIATRAC3PLUS) || defined(VGM_USE_FFMPEG)
-		&& strcasecmp("at3",filename_extension(filename))
-		&& strcasecmp("sgb",filename_extension(filename))
+#ifndef VGM_USE_FFMPEG
+        && strcasecmp("sgb",filename_extension(filename)) /* SGB has proper support with FFmpeg in ps3_sgdx */
 #endif
 		)
     {
@@ -255,6 +258,10 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
             mwv = 1;
         else if (!strcasecmp("sns",filename_extension(filename)))
             sns = 1;
+#if defined(VGM_USE_MAIATRAC3PLUS) || defined(VGM_USE_FFMPEG)
+        else if (!strcasecmp("at3",filename_extension(filename)))
+            at3 = 1;
+#endif
         else
             goto fail;
     }
@@ -348,9 +355,16 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
                     mwv_ctrl_offset = current_chunk;
                     break;
                 case 0x66616374:    /* fact */
-                    if (chunk_size != 4
-                        && (!(sns && chunk_size == 0x10))) break;
-                    fact_sample_count = read_32bitLE(current_chunk+8, streamFile);
+                    if (sns && chunk_size == 0x10) {
+                        fact_sample_count = read_32bitLE(current_chunk+0x8, streamFile);
+                    } else if (at3 && chunk_size == 0x8) {
+                        fact_sample_count = read_32bitLE(current_chunk+0x8, streamFile);
+                        fact_sample_skip  = read_32bitLE(current_chunk+0xc, streamFile);
+                    } else if (at3 && chunk_size == 0xc) {
+                        fact_sample_count = read_32bitLE(current_chunk+0x8, streamFile);
+                        fact_sample_skip  = read_32bitLE(current_chunk+0x10, streamFile);
+                    }
+
                     break;
                 default:
                     /* ignorance is bliss */
@@ -388,18 +402,18 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
                 ffmpeg_data = init_ffmpeg_offset(streamFile, 0, streamFile->get_size(streamFile) );
                 if ( !ffmpeg_data ) goto fail;
 
-                sample_count = ffmpeg_data->totalFrames;
+                sample_count = ffmpeg_data->totalFrames; /* fact_sample_count */
+                /* the encoder introduces some garbage (usually silent) samples to skip before the stream
+                 *  loop values include the skip samples but fact_sample_count doesn't; add them back to fix some edge loops */
+                if (fact_sample_skip > 0)
+                    sample_count += fact_sample_skip;
             }
             break;
 #endif
 #ifdef VGM_USE_MAIATRAC3PLUS
 		case coding_AT3plus:
-            /* rough total samples, not totally accurate since there are some skipped samples in the first and (maybe) last frames
-             * channels shouldn't matter (mono and stereo encoding produces the same number of frames)
-             *
-             * to get the correct number of samples you'd need to read the fact_sample_count and skip some samples when decoding
-             * the first/last samples_to_skip seem related to the ints in the "fact" chunk
-             * those skipped samples are typically silent so there is not much difference */
+            /* rough total samples, not totally accurate since there are some skipped samples in the beginning
+             * channels shouldn't matter (mono and stereo encoding produces the same number of frames in ATRAC3plus) */
             sample_count = (data_size / fmt.block_size) * 2048; /* number_of_frames by decoded_samples_per_frame */
 			break;
 #endif
@@ -573,7 +587,7 @@ fail:
 #ifdef VGM_USE_FFMPEG
     if (ffmpeg_data) {
         free_ffmpeg(ffmpeg_data);
-        vgmstream->codec_data = NULL;
+        if (vgmstream) vgmstream->codec_data = NULL;
     }
 #endif
     if (vgmstream) close_vgmstream(vgmstream);

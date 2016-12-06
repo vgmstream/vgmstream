@@ -161,3 +161,79 @@ fail:
 }
 #endif
 #endif
+
+
+#ifdef VGM_USE_FFMPEG
+
+VGMSTREAM * init_vgmstream_mp4_aac_ffmpeg(STREAMFILE *streamFile) {
+    VGMSTREAM * vgmstream = NULL;
+    char filename[PATH_LIMIT];
+    off_t start_offset = 0;
+    int loop_flag = 0;
+    int32_t num_samples = 0, loop_start_sample = 0, loop_end_sample = 0;
+
+    ffmpeg_codec_data *ffmpeg_data = NULL;
+
+
+    /* check extension, case insensitive */
+    streamFile->get_name(streamFile,filename,sizeof(filename));
+    if ( strcasecmp("mp4",filename_extension(filename))
+            && strcasecmp("m4a",filename_extension(filename))
+            && strcasecmp("m4v",filename_extension(filename))
+            && strcasecmp("bin",filename_extension(filename)) ) /* Final Fantasy Dimensions iOS */
+        goto fail;
+
+
+    /* check header for Final Fantasy Dimensions */
+    if (read_32bitBE(0x00,streamFile) == 0x4646444C) { /* "FFDL" (any kind of FFD file) */
+        if (read_32bitBE(0x04,streamFile) == 0x6D747873) { /* "mtxs" (bgm file) */
+            num_samples = read_32bitLE(0x08,streamFile);
+            loop_start_sample = read_32bitLE(0x0c,streamFile);
+            loop_end_sample = read_32bitLE(0x10,streamFile);
+            loop_flag = !(loop_start_sample==0 && loop_end_sample==num_samples);
+            start_offset = 0x14;
+        } else {
+            start_offset = 0x4; /* some SEs */
+        }
+        /*  todo some FFDL have multi streams ("FFLD" + mtxsdata1 + mp4data1 + mtxsdata2 + mp4data2 + etc) */
+    }
+
+
+    /* check header */
+    if ( read_32bitBE(start_offset+0x04,streamFile) != 0x66747970) /* size 0x00 + "ftyp" 0x04 */
+        goto fail;
+
+    ffmpeg_data = init_ffmpeg_offset(streamFile, start_offset, streamFile->get_size(streamFile));
+    if ( !ffmpeg_data ) goto fail;
+
+    /* build the VGMSTREAM */
+    vgmstream = allocate_vgmstream(ffmpeg_data->channels,loop_flag);
+    if (!vgmstream) goto fail;
+
+    vgmstream->num_samples = ffmpeg_data->totalFrames; /* todo compare with FFD num_samples*/
+    vgmstream->sample_rate = ffmpeg_data->sampleRate;
+    vgmstream->channels = ffmpeg_data->channels;
+    if (loop_flag) {
+        vgmstream->loop_start_sample = loop_start_sample;
+        vgmstream->loop_end_sample = loop_end_sample;
+    }
+
+    vgmstream->coding_type = coding_FFmpeg;
+    vgmstream->layout_type = layout_none;
+    vgmstream->meta_type = meta_FFmpeg;
+    vgmstream->codec_data = ffmpeg_data;
+
+
+    return vgmstream;
+
+fail:
+    /* clean up anything we may have opened */
+    if (ffmpeg_data) {
+        free_ffmpeg(ffmpeg_data);
+        if (vgmstream) vgmstream->codec_data = NULL;
+    }
+    if (vgmstream) close_vgmstream(vgmstream);
+    return NULL;
+}
+
+#endif
