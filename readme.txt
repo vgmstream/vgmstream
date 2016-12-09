@@ -1,17 +1,21 @@
 vgmstream
 
 This is vgmstream, a library for playing streamed audio from video games.
-It is very much under development. There are two end-user bits: a command
-line decoder called "test.exe", and a Winamp plugin called "in_vgmstream".
+It is very much under development. There are multiple end-user bits: a command
+line decoder called "test.exe", a Winamp plugin called "in_vgmstream", a
+foobar2000 component called "foo_input_vgmstream", and an xmplay plugin
+called "xmp-vgmstream".
 
 *********** IMPORTANT!! ***********
 --- needed files (for Windows)  ---
 Since Ogg Vorbis, MPEG audio,and other formats are now supported, you will
 need to have certain DLL files.
-You can get these from https://gitlab.kode54.net/kode54/vgmstream/tree/master/ext_libs
+You can get these from https://f.losno.co/vgmstream-win32-deps.zip, or in
+the case of the foobar2000 component, they are all bundled for convenience.
 
 Put libvorbis.dll, libmpg123-0.dll, libg7221_decode.dll, libg719_decode.dll,
-and at3plusdecoder.dll somewhere Windows can find them.
+at3plusdecoder.dll, avcodec-vgmstream-57.dll, avformat-vgmstream-57.dll, and
+avutil-vgmstream-55.dll somewhere Windows can find them.
 For in_vgmstream this means in the directory with winamp.exe, or in a
 system directory. For test.exe this means in the same directory as test.exe,
 or in a system directory.

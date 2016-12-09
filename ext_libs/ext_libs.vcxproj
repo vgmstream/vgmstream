@@ -52,52 +52,48 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <CustomBuild Include="at3plusdecoder.def">
-      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Building library stub</Message>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">lib /def:at3plusdecoder.def /machine:x86</Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">at3plusdecoder.lib;at3plusdecoder.exp;%(Outputs)</Outputs>
-      <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Building library stub</Message>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">lib /def:at3plusdecoder.def /machine:x86</Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">at3plusdecoder.lib;at3plusdecoder.exp;%(Outputs)</Outputs>
+      <Message>Building library stub</Message>
+      <Command>lib /def:at3plusdecoder.def /machine:x86</Command>
+      <Outputs>at3plusdecoder.lib;at3plusdecoder.exp;%(Outputs)</Outputs>
     </CustomBuild>
     <CustomBuild Include="libmpg123-0.def">
-      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Building library stub</Message>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">lib /def:libmpg123-0.def /machine:x86
+      <Message>Building library stub</Message>
+      <Command>lib /def:libmpg123-0.def /machine:x86
 </Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">libmpg123-0.lib;libmpg123-0.exp;%(Outputs)</Outputs>
-      <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Building library stub</Message>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">lib /def:libmpg123-0.def /machine:x86
-</Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">libmpg123-0.lib;libmpg123-0.exp;%(Outputs)</Outputs>
+      <Outputs>libmpg123-0.lib;libmpg123-0.exp;%(Outputs)</Outputs>
     </CustomBuild>
     <CustomBuild Include="libvorbis.def">
-      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Building library stub</Message>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">lib /def:libvorbis.def /machine:x86
+      <Message>Building library stub</Message>
+      <Command>lib /def:libvorbis.def /machine:x86
 </Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">libvorbis.lib;libvorbis.exp;%(Outputs)</Outputs>
-      <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Building library stub</Message>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">lib /def:libvorbis.def /machine:x86
-</Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">libvorbis.lib;libvorbis.exp;%(Outputs)</Outputs>
+      <Outputs>libvorbis.lib;libvorbis.exp;%(Outputs)</Outputs>
     </CustomBuild>
     <CustomBuild Include="libg7221_decode.def">
-      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Building library stub</Message>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">lib /def:libg7221_decode.def /machine:x86
+      <Message>Building library stub</Message>
+      <Command>lib /def:libg7221_decode.def /machine:x86
 </Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">libg7221_decode.lib;libg7221_decode.exp;%(Outputs)</Outputs>
-      <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Building library stub</Message>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">lib /def:libg7221_decode.def /machine:x86
-</Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">libg7221_decode.lib;libg7221_decode.exp;%(Outputs)</Outputs>
+      <Outputs>libg7221_decode.lib;libg7221_decode.exp;%(Outputs)</Outputs>
     </CustomBuild>
     <CustomBuild Include="libg719_decode.def">
-      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Building library stub</Message>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">lib /def:libg719_decode.def /machine:x86
+      <Message>Building library stub</Message>
+      <Command>lib /def:libg719_decode.def /machine:x86
 </Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">libg719_decode.lib;libg719_decode.exp;%(Outputs)</Outputs>
-      <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Building library stub</Message>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">lib /def:libg719_decode.def /machine:x86
-</Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">libg719_decode.lib;libg719_decode.exp;%(Outputs)</Outputs>
+      <Outputs>libg719_decode.lib;libg719_decode.exp;%(Outputs)</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="avcodec-vgmstream-57.def">
+      <Message>Building library stub</Message>
+      <Command>lib /def:avcodec-vgmstream-57.def /machine:x86 /out:avcodec.lib</Command>
+      <Outputs>avcodec.lib;avcodec.exp;%(Outputs)</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="avformat-vgmstream-57.def">
+      <Message>Building library stub</Message>
+      <Command>lib /def:avformat-vgmstream-57.def /machine:x86 /out:avformat.lib</Command>
+      <Outputs>avformat.lib;avformat.exp;%(Outputs)</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="avutil-vgmstream-55.def">
+      <Message>Building library stub</Message>
+      <Command>lib /def:avutil-vgmstream-55.def /machine:x86 /out:avutil.lib</Command>
+      <Outputs>avutil.lib;avutil.exp;%(Outputs)</Outputs>
     </CustomBuild>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -155,6 +155,78 @@
 				/>
 			</FileConfiguration>
 		</File>
+		<File
+			RelativePath=".\avcodec-vgmstream-57.def"
+			>
+			<FileConfiguration
+				Name="Debug|Win32"
+				>
+				<Tool
+					Name="VCCustomBuildTool"
+					Description="Building library stub"
+					CommandLine="lib /def:avcodec-vgmstream-57.def /machine:x86 /out:avcodec.lib&#x0D;&#x0A;"
+					Outputs="avcodec.lib avcodec.exp"
+				/>
+			</FileConfiguration>
+			<FileConfiguration
+				Name="Release|Win32"
+				>
+				<Tool
+					Name="VCCustomBuildTool"
+					Description="Building library stub"
+					CommandLine="lib /def:avcodec-vgmstream-57.def /machine:x86 /out:avcodec.lib&#x0D;&#x0A;"
+					Outputs="avcodec.lib avcodec.exp"
+				/>
+			</FileConfiguration>
+		</File>
+		<File
+			RelativePath=".\avformat-vgmstream-57.def"
+			>
+			<FileConfiguration
+				Name="Debug|Win32"
+				>
+				<Tool
+					Name="VCCustomBuildTool"
+					Description="Building library stub"
+					CommandLine="lib /def:avformat-vgmstream-57.def /machine:x86 /out:avformat.lib&#x0D;&#x0A;"
+					Outputs="avformat.lib avformat.exp"
+				/>
+			</FileConfiguration>
+			<FileConfiguration
+				Name="Release|Win32"
+				>
+				<Tool
+					Name="VCCustomBuildTool"
+					Description="Building library stub"
+					CommandLine="lib /def:avformat-vgmstream-57.def /machine:x86 /out:avformat.lib&#x0D;&#x0A;"
+					Outputs="avformat.lib avformat.exp"
+				/>
+			</FileConfiguration>
+		</File>
+		<File
+			RelativePath=".\avutil-vgmstream-57.def"
+			>
+			<FileConfiguration
+				Name="Debug|Win32"
+				>
+				<Tool
+					Name="VCCustomBuildTool"
+					Description="Building library stub"
+					CommandLine="lib /def:avutil-vgmstream-55.def /machine:x86 /out:avutil.lib&#x0D;&#x0A;"
+					Outputs="avutil.lib avutil.exp"
+				/>
+			</FileConfiguration>
+			<FileConfiguration
+				Name="Release|Win32"
+				>
+				<Tool
+					Name="VCCustomBuildTool"
+					Description="Building library stub"
+					CommandLine="lib /def:avutil-vgmstream-55.def /machine:x86 /out:avutil.lib&#x0D;&#x0A;"
+					Outputs="avutil.lib avutil.exp"
+				/>
+			</FileConfiguration>
+		</File>
 	</Files>
 	<Globals>
 	</Globals>
