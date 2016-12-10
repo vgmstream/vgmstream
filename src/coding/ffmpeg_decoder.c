@@ -278,8 +278,8 @@ void seek_ffmpeg(VGMSTREAM *vgmstream, int32_t num_sample) {
     }
 
     /* todo fix this properly */
-    if (data->totalFrames) {
-        ts = (int)ts * (data->formatCtx->duration) / data->totalFrames;
+    if (data->totalSamples) {
+        ts = (int)ts * (data->formatCtx->duration) / data->totalSamples;
     } else {
         data->samplesToDiscard = num_sample;
         ts = 0;

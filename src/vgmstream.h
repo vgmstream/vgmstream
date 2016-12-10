@@ -868,13 +868,16 @@ typedef struct {
     int bitsPerSample;
     int floatingPoint;
     int sampleRate;
-    int64_t totalFrames; // sample count, or 0 if unknown
     int bitrate;
+    // extra info: 0 if unknown or not fixed
+    int64_t totalSamples; // estimated count (may not be accurate for some demuxers)
+    int64_t blockAlign; // coded block of bytes, counting channels (the block can be joint stereo)
+    int64_t frameSize; // decoded samples per block
     
-    // Intermediate buffer
+    // Intermediate byte buffer
     uint8_t *sampleBuffer;
-    // max samples a block can held (can be less or more than samples per decoded frame)
-    size_t samplesPerBlock;
+    // max samples we can held (can be less or more than frameSize)
+    size_t sampleBufferBlock;
     
     // FFmpeg context used for metadata
     AVCodec *codec;

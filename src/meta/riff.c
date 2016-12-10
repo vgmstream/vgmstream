@@ -402,7 +402,7 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
                 ffmpeg_data = init_ffmpeg_offset(streamFile, 0, streamFile->get_size(streamFile) );
                 if ( !ffmpeg_data ) goto fail;
 
-                sample_count = ffmpeg_data->totalFrames; /* fact_sample_count */
+                sample_count = ffmpeg_data->totalSamples; /* fact_sample_count */
                 /* the encoder introduces some garbage (usually silent) samples to skip before the stream
                  *  loop values include the skip samples but fact_sample_count doesn't; add them back to fix some edge loops */
                 if (fact_sample_skip > 0)

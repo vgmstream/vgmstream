@@ -210,7 +210,7 @@ VGMSTREAM * init_vgmstream_mp4_aac_ffmpeg(STREAMFILE *streamFile) {
     vgmstream = allocate_vgmstream(ffmpeg_data->channels,loop_flag);
     if (!vgmstream) goto fail;
 
-    vgmstream->num_samples = ffmpeg_data->totalFrames; /* todo compare with FFD num_samples*/
+    vgmstream->num_samples = ffmpeg_data->totalSamples; /* todo FFD num_samples is different from this */
     vgmstream->sample_rate = ffmpeg_data->sampleRate;
     vgmstream->channels = ffmpeg_data->channels;
     if (loop_flag) {

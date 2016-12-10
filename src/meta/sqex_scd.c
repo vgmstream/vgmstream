@@ -295,7 +295,7 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
                     vgmstream->coding_type = coding_FFmpeg;
                     vgmstream->layout_type = layout_none;
                     
-                    vgmstream->num_samples = ffmpeg_data->totalFrames;
+                    vgmstream->num_samples = ffmpeg_data->totalSamples;
 
                     if (loop_flag) {
                         vgmstream->loop_start_sample = loop_start;

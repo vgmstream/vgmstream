@@ -5,7 +5,7 @@
 #ifdef VGM_USE_FFMPEG
 
 /* internal sizes, can be any value */
-#define FFMPEG_DEFAULT_BLOCK_SIZE 2048
+#define FFMPEG_DEFAULT_BUFFER_SIZE 2048
 #define FFMPEG_DEFAULT_IO_BUFFER_SIZE 128 * 1024
 
 static int init_seek(ffmpeg_codec_data * data);
@@ -54,7 +54,7 @@ VGMSTREAM * init_vgmstream_ffmpeg_offset(STREAMFILE *streamFile, uint64_t start,
     vgmstream->codec_data = data;
     vgmstream->channels = data->channels;
     vgmstream->sample_rate = data->sampleRate;
-    vgmstream->num_samples = data->totalFrames;
+    vgmstream->num_samples = data->totalSamples;
     vgmstream->coding_type = coding_FFmpeg;
     vgmstream->layout_type = layout_none;
     vgmstream->meta_type = meta_FFmpeg;
@@ -337,13 +337,18 @@ ffmpeg_codec_data * init_ffmpeg_faux_riff(STREAMFILE *streamFile, int64_t fmt_of
 
     /* try to guess frames/samples (duration isn't always set) */
     tb.num = 1; tb.den = data->codecCtx->sample_rate;
-    data->totalFrames = av_rescale_q(stream->duration, stream->time_base, tb);
-    if (data->totalFrames < 0)
-        data->totalFrames = 0; /* caller must consider this */
+    data->totalSamples = av_rescale_q(stream->duration, stream->time_base, tb);
+    if (data->totalSamples < 0)
+        data->totalSamples = 0; /* caller must consider this */
 
+    data->blockAlign = data->codecCtx->block_align;
+    data->frameSize = data->codecCtx->frame_size;
+    if(data->frameSize == 0) /* some formats don't set frame_size but can get on request, and vice versa */
+        data->frameSize = av_get_audio_frame_duration(data->codecCtx,0);
+    
     /* setup decode buffer */
-    data->samplesPerBlock = FFMPEG_DEFAULT_BLOCK_SIZE;
-    data->sampleBuffer = av_malloc( data->samplesPerBlock * (data->bitsPerSample / 8) * data->channels );
+    data->sampleBufferBlock = FFMPEG_DEFAULT_BUFFER_SIZE;
+    data->sampleBuffer = av_malloc( data->sampleBufferBlock * (data->bitsPerSample / 8) * data->channels );
     if (!data->sampleBuffer)
         goto fail;
     
@@ -409,12 +414,18 @@ static int init_seek(ffmpeg_codec_data * data) {
         if (!found_first) { /* first found */
             found_first = 1;
             pos = pkt->pos;
+            ts = pkt->dts;
             continue;
         } else { /* second found */
             size = pkt->pos - pos; /* coded, pkt->size is decoded size */
             break;
         }
     }
+
+    /* apparently some (non-audio?) streams start with a DTS before 0, but some read_seeks expect 0, which would disrupt the index
+     *  we may need to keep start_ts around, since avstream/codec/format isn't always set */
+    if (ts != 0)
+        goto fail;
 
     /* add index 0 */
     ret = av_add_index_entry(stream, pos, ts, size, distance, AVINDEX_KEYFRAME);
