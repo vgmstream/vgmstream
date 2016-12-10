@@ -55,6 +55,7 @@ class input_vgmstream {
 		double fade_delay_seconds;
 		double loop_count;
 		bool loop_forever;
+		bool force_ignore_loop;
 		int ignore_loop;
 		int seek_pos_samples;
 
@@ -62,7 +63,7 @@ class input_vgmstream {
 
 		short sample_buffer[OUTBUF_SIZE];
 
-		void getfileinfo(const char *filename, char *title, int *length_in_ms, int *total_samples, int *loop_start, int *loop_end, int *sample_rate, int *channels, int *bitrate, abort_callback & p_abort);
+		void getfileinfo(const char *filename, char *title, int *length_in_ms, int *total_samples, int *loop_start, int *loop_end, int *sample_rate, int *channels, int *bitrate, pfc::string_base & description, abort_callback & p_abort);
 		void load_settings();
 
 	private:

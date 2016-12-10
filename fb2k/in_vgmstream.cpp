@@ -117,8 +117,10 @@ void input_vgmstream::get_info(file_info & p_info,abort_callback & p_abort ) {
 	int total_samples = -1;
 	int bitrate = 0;
 	int loop_start = -1, loop_end = -1;
+	pfc::string8 description;
+	pfc::string8_fast temp;
 
-	getfileinfo(filename, NULL, &length_in_ms, &total_samples, &loop_start, &loop_end, &samplerate, &channels, &bitrate, p_abort);
+	getfileinfo(filename, NULL, &length_in_ms, &total_samples, &loop_start, &loop_end, &samplerate, &channels, &bitrate, description, p_abort);
 
 	p_info.info_set_int("samplerate", samplerate);
 	p_info.info_set_int("channels", channels);
@@ -133,20 +135,73 @@ void input_vgmstream::get_info(file_info & p_info,abort_callback & p_abort ) {
 		p_info.info_set_int("loop_end", loop_end);
 	}
 
+	t_size pos = description.find_first("encoding: ");
+	t_size eos;
+	if (pos != pfc::infinite_size)
+	{
+		pos += strlen("encoding: ");
+		eos = description.find_first('\n', pos);
+		if (eos == pfc::infinite_size) eos = description.length();
+		temp.set_string(description + pos, eos - pos);
+		p_info.info_set("codec", temp);
+	}
+
+	pos = description.find_first("layout: ");
+	if (pos != pfc::infinite_size)
+	{
+		pos += strlen("layout: ");
+		eos = description.find_first('\n', pos);
+		if (eos == pfc::infinite_size) eos = description.length();
+		temp.set_string(description + pos, eos - pos);
+		p_info.info_set("layout", temp);
+	}
+
+	pos = description.find_first("interleave: ");
+	if (pos != pfc::infinite_size)
+	{
+		pos += strlen("interleave: ");
+		eos = description.find_first(' ', pos);
+		if (eos == pfc::infinite_size) eos = description.length();
+		temp.set_string(description + pos, eos - pos);
+		p_info.info_set("interleave", temp);
+		pos = description.find_first("last block interleave: ", eos);
+		if (pos != pfc::infinite_size)
+		{
+			pos += strlen("last block interleave: ");
+			eos = description.find_first(' ', pos);
+			if (eos == pfc::infinite_size) eos = description.length();
+			temp.set_string(description + pos, eos - pos);
+			p_info.info_set("interleave last block", temp);
+		}
+	}
+
+	pos = description.find_first("metadata from: ");
+	if (pos != pfc::infinite_size)
+	{
+		pos += strlen("metadata from: ");
+		eos = description.find_first('\n', pos);
+		if (eos == pfc::infinite_size) eos = description.length();
+		temp.set_string(description + pos, eos - pos);
+		p_info.info_set("metadata source", temp);
+	}
+
 	p_info.set_length(((double)length_in_ms)/1000);
 }
 
 void input_vgmstream::decode_initialize(unsigned p_flags,abort_callback & p_abort) {
-	if (p_flags & input_flag_no_looping) loop_forever = false;
+	force_ignore_loop = !!(p_flags & input_flag_no_looping);
 	decode_seek( 0, p_abort );
 };
 
 bool input_vgmstream::decode_run(audio_chunk & p_chunk,abort_callback & p_abort) {
+	if (!decoding) return false;
+
 	int max_buffer_samples = sizeof(sample_buffer)/sizeof(sample_buffer[0])/vgmstream->channels;
 	int l = 0, samples_to_do = max_buffer_samples, t= 0;
 
 	if(vgmstream) {
-		if (decode_pos_samples+max_buffer_samples>stream_length_samples && (!loop_forever || !vgmstream->loop_flag))
+		bool loop_okay = loop_forever && vgmstream->loop_flag && !ignore_loop && !force_ignore_loop;
+		if (decode_pos_samples+max_buffer_samples>stream_length_samples && !loop_okay)
 			samples_to_do=stream_length_samples-decode_pos_samples;
 		else
 			samples_to_do=max_buffer_samples;
@@ -163,7 +218,7 @@ bool input_vgmstream::decode_run(audio_chunk & p_chunk,abort_callback & p_abort)
 		render_vgmstream(sample_buffer,samples_to_do,vgmstream);
 
 		/* fade! */
-		if (vgmstream->loop_flag && fade_samples > 0 && !loop_forever) {
+		if (vgmstream->loop_flag && fade_samples > 0 && !loop_okay) {
 			int samples_into_fade = decode_pos_samples - (stream_length_samples - fade_samples);
 			if (samples_into_fade + samples_to_do > 0) {
 				int j,k;
@@ -184,7 +239,6 @@ bool input_vgmstream::decode_run(audio_chunk & p_chunk,abort_callback & p_abort)
 		decode_pos_samples+=samples_to_do;
 		decode_pos_ms=decode_pos_samples*1000LL/vgmstream->sample_rate;
 
-		decoding = false;
 		return samples_to_do==max_buffer_samples;
 
 	}
@@ -192,36 +246,53 @@ bool input_vgmstream::decode_run(audio_chunk & p_chunk,abort_callback & p_abort)
 }
 
 void input_vgmstream::decode_seek(double p_seconds,abort_callback & p_abort) {
-	seek_pos_samples = ((int)(p_seconds * (double)vgmstream->sample_rate));
+	seek_pos_samples = (int) audio_math::time_to_samples(p_seconds, vgmstream->sample_rate);
 	int max_buffer_samples = sizeof(sample_buffer)/sizeof(sample_buffer[0])/vgmstream->channels;
+	bool loop_okay = loop_forever && vgmstream->loop_flag && !ignore_loop && !force_ignore_loop;
+
+	int corrected_pos_samples = seek_pos_samples;
 
 	// adjust for correct position within loop
 	if(vgmstream->loop_flag && (vgmstream->loop_end_sample - vgmstream->loop_start_sample) && seek_pos_samples >= vgmstream->loop_end_sample) {
-		seek_pos_samples -= vgmstream->loop_start_sample;
-		seek_pos_samples %= (vgmstream->loop_end_sample - vgmstream->loop_start_sample);
-		seek_pos_samples += vgmstream->loop_start_sample;
+		corrected_pos_samples -= vgmstream->loop_start_sample;
+		corrected_pos_samples %= (vgmstream->loop_end_sample - vgmstream->loop_start_sample);
+		corrected_pos_samples += vgmstream->loop_start_sample;
+	}
+
+	// Allow for delta seeks forward, by up to the total length of the stream, if the delta is less than the corrected offset
+	if(decode_pos_samples > corrected_pos_samples && decode_pos_samples <= seek_pos_samples &&
+	   (seek_pos_samples - decode_pos_samples) < stream_length_samples) {
+		if (corrected_pos_samples > (seek_pos_samples - decode_pos_samples))
+			corrected_pos_samples = seek_pos_samples;
 	}
 
 	// Reset of backwards seek
-	if(seek_pos_samples < decode_pos_samples) {
+	else if(corrected_pos_samples < decode_pos_samples) {
 		reset_vgmstream(vgmstream);
 		if (ignore_loop) vgmstream->loop_flag = 0;
 		decode_pos_samples = 0;
 	}
 	
 	// seeking overrun = bad
-	if(seek_pos_samples > stream_length_samples) seek_pos_samples = stream_length_samples;
+	if(corrected_pos_samples > stream_length_samples) corrected_pos_samples = stream_length_samples;
 
-	while(decode_pos_samples+max_buffer_samples<seek_pos_samples) {
+	while(decode_pos_samples<corrected_pos_samples) {
 		int seek_samples = max_buffer_samples;
-		if((decode_pos_samples+max_buffer_samples>=stream_length_samples) && (!loop_forever || !vgmstream->loop_flag))
+		if((decode_pos_samples+max_buffer_samples>=stream_length_samples) && !loop_okay)
 			seek_samples=stream_length_samples-seek_pos_samples;
+		if(decode_pos_samples+max_buffer_samples>seek_pos_samples)
+			seek_samples=seek_pos_samples-decode_pos_samples;
 
 		decode_pos_samples+=seek_samples;
 		render_vgmstream(sample_buffer,seek_samples,vgmstream);
 	}
 
+	// remove seek loop correction from counter so file ends correctly
+	decode_pos_samples=seek_pos_samples;
+
 	decode_pos_ms=decode_pos_samples*1000LL/vgmstream->sample_rate;
+
+	decoding = loop_okay || decode_pos_samples < stream_length_samples;
 }
 
 
@@ -561,8 +632,7 @@ bool input_vgmstream::g_is_our_path(const char * p_path,const char * p_extension
 
 
 /* retrieve information on this or possibly another file */
-void input_vgmstream::getfileinfo(const char *filename, char *title, int *length_in_ms, int *total_samples, int *loop_start, int *loop_end, int *sample_rate, int *channels, int *bitrate, abort_callback & p_abort) {
-
+void input_vgmstream::getfileinfo(const char *filename, char *title, int *length_in_ms, int *total_samples, int *loop_start, int *loop_end, int *sample_rate, int *channels, int *bitrate, pfc::string_base & description, abort_callback & p_abort) {
 	VGMSTREAM * infostream;
 	if (length_in_ms)
 	{
@@ -580,6 +650,10 @@ void input_vgmstream::getfileinfo(const char *filename, char *title, int *length
 				*loop_start = infostream->loop_start_sample;
 				*loop_end = infostream->loop_end_sample;
 			}
+
+			char temp[1024];
+			describe_vgmstream(infostream, temp, 1024);
+			description = temp;
 
 			close_vgmstream(infostream);
 			infostream=NULL;
