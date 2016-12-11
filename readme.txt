@@ -8,7 +8,7 @@ called "xmp-vgmstream".
 
 *********** IMPORTANT!! ***********
 --- needed files (for Windows)  ---
-Since Ogg Vorbis, MPEG audio,and other formats are now supported, you will
+Since Ogg Vorbis, MPEG audio, and other formats are now supported, you will
 need to have certain DLL files.
 You can get these from https://f.losno.co/vgmstream-win32-deps.zip, or in
 the case of the foobar2000 component, they are all bundled for convenience.
@@ -17,8 +17,8 @@ Put libvorbis.dll, libmpg123-0.dll, libg7221_decode.dll, libg719_decode.dll,
 at3plusdecoder.dll, avcodec-vgmstream-57.dll, avformat-vgmstream-57.dll, and
 avutil-vgmstream-55.dll somewhere Windows can find them.
 For in_vgmstream this means in the directory with winamp.exe, or in a
-system directory. For test.exe this means in the same directory as test.exe,
-or in a system directory.
+system directory or other directory in the PATH variable. For test.exe this
+means in the same directory as test.exe, or in a system directory/PATH.
 
 --- test.exe ---
 Usage: ./test [-o outfile.wav] [-l loop count]
@@ -54,6 +54,8 @@ the above instructions for installing the other files needed.
 
 As manakoAT likes to say, the extension doesn't really mean anything, but it's
 the most obvious way to identify files.
+
+This list is not complete and many other files are supported.
 
 PS2/PSX ADPCM:
 - .ads/.ss2
@@ -221,6 +223,7 @@ multi:
 - .emff (PSX APDCM, GC DSP ADPCM)
 - .fsb, .wii (PSX ADPCM, GC DSP ADPCM, Xbox IMA ADPCM)
 - .genh (lots)
+- .msf (PCM, PSX ADPCM, ATRAC3, MP3)
 - .musx (PSX ADPCM, Xbox IMA ADPCM, DAT4 IMA ADPCM)
 - .nwa (16 bit PCM, NWA DPCM)
 - .psw (PSX ADPCM, GC DSP ADPCM)
@@ -229,6 +232,7 @@ multi:
 - .rsd (PSX ADPCM, 16 bit PCM, GC DSP ADPCM, Xbox IMA ADPCM, Radical ADPCM)
 - .rrds (NDS IMA ADPCM)
 - .sad (GC DSP ADPCM, NDS IMA ADPCM, Procyon Studios NDS ADPCM)
+- .sgd/sgb/sgx (PSX ADPCM, ATRAC3plus, AC3)
 - .seg (Xbox IMA ADPCM, PS2 ADPCM)
 - .sng, .asf, .str, .eam (EA/XA ADPCM or PSX ADPCM)
 - .strm (NDS IMA ADPCM, 8/16 bit PCM)
@@ -246,11 +250,13 @@ etc:
 - .afc (GC AFC ADPCM)
 - .ahx (MPEG-2 Layer II)
 - .aix (CRI ADX ADPCM)
+- .at3 (Sony ATRAC3 / ATRAC3plus)
 - .baf (Blur ADPCM)
 - .bgw (FFXI PS-like ADPCM)
 - .bnsf (G.722.1)
 - .caf (Apple IMA4 ADPCM)
 - .de2 (MS ADPCM)
+- .hca (CRI)
 - .kcey (EACS IMA ADPCM)
 - .lsf (LSF ADPCM)
 - .mwv (Level-5 0x555 ADPCM)
@@ -275,6 +281,11 @@ loop assists:
 - .pos (loop info for .wav)
 - .sli (loop info for .ogg)
 - .sfl (loop info for .ogg)
+
+other:
+- .adxkey (decryption key for .adx, in start/mult/add format)
+- .hcakey (decryption key for .hca, in HCA Decoder format)
+- .vgmstream/.vgms + .pos (to force FFmpeg formats + loop assist)
 
 Enjoy!
 -hcs
