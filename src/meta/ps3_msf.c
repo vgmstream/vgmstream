@@ -133,13 +133,11 @@ VGMSTREAM * init_vgmstream_ps3_msf(STREAMFILE *streamFile) {
             vgmstream->meta_type = meta_FFmpeg;
             vgmstream->codec_data = ffmpeg_data;
 
-            vgmstream->num_samples = ffmpeg_data->totalFrames;
-            if (loop_flag) {
-                int atrac3_frame = 1024;
-                int block_align = (codec_id == 0x4 ? 96 : codec_id == 0x5 ? 152 : 192) * channel_count;
-                /* int block_align = ffmpeg_data->codecCtx->block_align; *//* is this always set? */
-                vgmstream->loop_start_sample = (loop_start / block_align) * atrac3_frame;
-                vgmstream->loop_end_sample = (loop_end / block_align) * atrac3_frame;
+            vgmstream->num_samples = ffmpeg_data->totalSamples;
+
+            if (loop_flag && ffmpeg_data->blockAlign > 0) {
+                vgmstream->loop_start_sample = (loop_start / ffmpeg_data->blockAlign) * ffmpeg_data->frameSize;
+                vgmstream->loop_end_sample = (loop_end / ffmpeg_data->blockAlign) * ffmpeg_data->frameSize;
             }
 
             break;
@@ -155,12 +153,14 @@ VGMSTREAM * init_vgmstream_ps3_msf(STREAMFILE *streamFile) {
             vgmstream->meta_type = meta_FFmpeg;
             vgmstream->codec_data = ffmpeg_data;
 
-            /* todo check CBR better (frame_size=0?) */
+            /* TODO check CBR better (bitrate % X != 0?) */
+            if (ffmpeg_data->bitrate == 0)
+                goto fail;
 
-            /* vgmstream->num_samples = ffmpeg_data->totalFrames; */ /* duration is not set/innacurate for MP3 in FFMpeg */
+            /* vgmstream->num_samples = ffmpeg_data->totalSamples; */ /* duration may not be set/inaccurate */
             vgmstream->num_samples = (int64_t)data_size * ffmpeg_data->sampleRate * 8 / ffmpeg_data->bitrate;
             if (loop_flag) {
-                int frame_size = ffmpeg_data->codecCtx->frame_size;
+                int frame_size = ffmpeg_data->frameSize;
                 vgmstream->loop_start_sample = (int64_t)loop_start * ffmpeg_data->sampleRate * 8 / ffmpeg_data->bitrate;
                 vgmstream->loop_start_sample -= vgmstream->loop_start_sample==frame_size ? frame_size
                         : vgmstream->loop_start_sample % frame_size;

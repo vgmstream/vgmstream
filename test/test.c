@@ -14,10 +14,8 @@
 #endif
 
 #ifndef VERSION
-#ifdef _MSC_VER
-// To include the git version number / commit in test.exe, compile outside of Visual Studio and make sure git is in the current PATH.
+/* To include the git version number / commit in test.exe, compile outside of Visual Studio and make sure git / sh is in the current PATH */
 #define VERSION ""
-#endif
 #endif
 
 #define BUFSIZE 4000

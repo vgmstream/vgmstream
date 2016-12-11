@@ -402,7 +402,7 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
                 ffmpeg_data = init_ffmpeg_offset(streamFile, 0, streamFile->get_size(streamFile) );
                 if ( !ffmpeg_data ) goto fail;
 
-                sample_count = ffmpeg_data->totalFrames; /* fact_sample_count */
+                sample_count = ffmpeg_data->totalSamples; /* fact_sample_count */
                 /* the encoder introduces some garbage (usually silent) samples to skip before the stream
                  *  loop values include the skip samples but fact_sample_count doesn't; add them back to fix some edge loops */
                 if (fact_sample_skip > 0)
@@ -412,9 +412,12 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
 #endif
 #ifdef VGM_USE_MAIATRAC3PLUS
 		case coding_AT3plus:
-            /* rough total samples, not totally accurate since there are some skipped samples in the beginning
-             * channels shouldn't matter (mono and stereo encoding produces the same number of frames in ATRAC3plus) */
-            sample_count = (data_size / fmt.block_size) * 2048; /* number_of_frames by decoded_samples_per_frame */
+            /* rough total samples (block_size may be incorrect if not using joint stereo) */
+            sample_count = (data_size / fmt.block_size) * 2048;
+            /* favor fact_samples if available (skip isn't correctly handled for now) */
+            if (fact_sample_count > 0 && fact_sample_count + fact_sample_skip < sample_count)
+                sample_count = fact_sample_count + fact_sample_skip;
+
 			break;
 #endif
         default:

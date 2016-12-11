@@ -1072,7 +1072,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
             ffmpeg_codec_data *data = (ffmpeg_codec_data *) vgmstream->codec_data;
             if (data) { 
 	            /* must know the full block size for edge loops */
-                return data->samplesPerBlock;
+                return data->sampleBufferBlock;
             }
             return 0;
         }

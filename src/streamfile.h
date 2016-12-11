@@ -151,5 +151,6 @@ size_t get_streamfile_dos_line(int dst_length, char * dst, off_t offset,
 
 int read_key_file(uint8_t * buf, size_t bufsize, STREAMFILE *streamFile);
 
+int read_pos_file(uint8_t * buf, size_t bufsize, STREAMFILE *streamFile);
 
 #endif
