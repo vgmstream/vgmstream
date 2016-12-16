@@ -1,6 +1,11 @@
 #include "meta.h"
 #include "../util.h"
 
+/**
+ * Guerrilla's MSS
+ *
+ * Found in ShellShock Nam '67, Killzone (PS2)
+ */
 VGMSTREAM * init_vgmstream_ps2_mss(STREAMFILE *streamFile) {
 	VGMSTREAM * vgmstream = NULL;
 	char filename[PATH_LIMIT];
@@ -26,9 +31,10 @@ VGMSTREAM * init_vgmstream_ps2_mss(STREAMFILE *streamFile) {
 	/* fill in the vital statistics */
 	start_offset = read_32bitLE(0x08,streamFile);
 	vgmstream->channels = channel_count;
+	/*datasize = read_32bitLE(0x0c,streamFile) */
 	vgmstream->sample_rate = read_32bitLE(0x10,streamFile);
-	vgmstream->coding_type = coding_PSX;
-	vgmstream->num_samples = read_32bitLE(0x1C,streamFile);
+	vgmstream->num_samples = read_32bitLE(0x1C,streamFile);/*  / 16 * 28 */
+    vgmstream->coding_type = coding_PSX;
 
 
 	if (channel_count == 1)

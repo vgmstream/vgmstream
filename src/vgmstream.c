@@ -3222,7 +3222,7 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             snprintf(temp,TEMPSIZE,"Mini Ninjas 'STR' header");
             break;
 		case meta_PS2_MSS:
-            snprintf(temp,TEMPSIZE,"ShellShock Nam '67 'MSCC' header");
+            snprintf(temp,TEMPSIZE,"Guerilla MSCC header");
             break;
 		case meta_PS2_HSF:
             snprintf(temp,TEMPSIZE,"Lowrider 'HSF' header");
