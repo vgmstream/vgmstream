@@ -608,6 +608,8 @@ bool input_vgmstream::g_is_our_path(const char * p_path,const char * p_extension
 	if(!stricmp_utf8(p_extension,"xa2")) return 1;
 	if(!stricmp_utf8(p_extension,"xa30")) return 1;
 	if(!stricmp_utf8(p_extension,"xau")) return 1;
+	if(!stricmp_utf8(p_extension,"xma")) return 1;
+	if(!stricmp_utf8(p_extension,"xma2")) return 1;
 	if(!stricmp_utf8(p_extension,"xmu")) return 1;
 	if(!stricmp_utf8(p_extension,"xnb")) return 1;
 	if(!stricmp_utf8(p_extension,"xsf")) return 1;
@@ -945,6 +947,8 @@ DECLARE_MULTIPLE_FILE_TYPE("PSX CD-XA File (*.XA)", xa);
 DECLARE_MULTIPLE_FILE_TYPE("XA2 Audio File (*.XA2)", xa2);
 DECLARE_MULTIPLE_FILE_TYPE("XA30 Audio File (*.XA30)", xa30);
 DECLARE_MULTIPLE_FILE_TYPE("XAU Audio File (*.XAU)", xau);
+DECLARE_MULTIPLE_FILE_TYPE("XMA Audio File (*.XMA)", xma);
+DECLARE_MULTIPLE_FILE_TYPE("XMA2 Audio File (*.XMA2)", xma2);
 DECLARE_MULTIPLE_FILE_TYPE("XMU Audio File (*.XMU)", xmu);
 DECLARE_MULTIPLE_FILE_TYPE("XNB Audio File (*.XNB)", xnb);
 DECLARE_MULTIPLE_FILE_TYPE("XSF Audio File (*.XSF)", xsf);
