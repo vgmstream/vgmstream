@@ -57,6 +57,10 @@ void interleave_stereo(sample * buffer, int32_t sample_count) {
 }
 */
 
+void put_8bit(uint8_t * buf, int8_t i) {
+    buf[0] = i;
+}
+
 void put_16bitLE(uint8_t * buf, int16_t i) {
     buf[0] = (i & 0xFF);
     buf[1] = i >> 8;
