@@ -1,6 +1,8 @@
 #include "meta.h"
 #include "../util.h"
 
+#ifdef VGM_USE_FFMPEG
+
 #define ADJUST_SAMPLE_RATE              0
 #define XMA_BYTES_PER_PACKET            2048
 #define XMA_SAMPLES_PER_FRAME           512
@@ -393,4 +395,6 @@ static int32_t get_xma_sample_rate(int32_t general_rate) {
 
     return xma_rate;
 }
+#endif
+
 #endif
