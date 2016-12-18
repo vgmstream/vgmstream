@@ -394,7 +394,8 @@ VGMSTREAM * init_vgmstream_internal(STREAMFILE *streamFile, int do_dfs) {
 						 (vgmstream->meta_type == meta_NGCA) ||
 		                (vgmstream->meta_type == meta_NUB_VAG) ||
                         (vgmstream->meta_type == meta_SPT_SPD) ||
-                        (vgmstream->meta_type == meta_EB_SFX)
+                        (vgmstream->meta_type == meta_EB_SFX) ||
+                        (vgmstream->meta_type == meta_CWAV)
                         ) && vgmstream->channels == 1) {
                 try_dual_file_stereo(vgmstream, streamFile);
             }
