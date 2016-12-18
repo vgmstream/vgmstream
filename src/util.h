@@ -25,6 +25,8 @@ static inline int32_t get_32bitLE(uint8_t * p) {
     return (p[0]) | (p[1]<<8) | (p[2]<<16) | (p[3]<<24);
 }
 
+void put_8bit(uint8_t * buf, int8_t i);
+
 void put_16bitLE(uint8_t * buf, int16_t i);
 
 void put_32bitLE(uint8_t * buf, int32_t i);

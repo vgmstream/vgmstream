@@ -1166,6 +1166,10 @@
 					RelativePath=".\meta\xbox_xwav.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\meta\xma.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\xss.c"
 					>

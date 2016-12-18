@@ -186,18 +186,73 @@ static int64_t ffmpeg_seek(void *opaque, int64_t offset, int whence)
 
 
 /**
- * Manually init FFmpeg only, from an offset.
+ * Manually init FFmpeg, from an offset.
  * Can be used if the stream has an extra header over data recognized by FFmpeg.
  */
 ffmpeg_codec_data * init_ffmpeg_offset(STREAMFILE *streamFile, uint64_t start, uint64_t size) {
-    return init_ffmpeg_faux_riff(streamFile, -1, start, size, 0);
+    return init_ffmpeg_header_offset(streamFile, NULL, 0, start, size);
+}
+
+
+/**
+ * Manually init FFmpeg, from an offset and creating a fake RIFF from a streamfile.
+ */
+ffmpeg_codec_data * init_ffmpeg_faux_riff(STREAMFILE *streamFile, int64_t fmt_offset, uint64_t start, uint64_t size, int big_endian) {
+    if (fmt_offset > 0) {
+        size_t header_size = 0;
+        int max_header_size = (int)(start - fmt_offset);
+        uint8_t p[100];
+        if (max_header_size < 18 || max_header_size > 100)
+            goto fail;
+        //p = av_malloc(max_header_size + 8 + 4 + 8 + 8);
+        //if (!p) goto fail;
+        if (read_streamfile(p + 8 + 4 + 8, fmt_offset, max_header_size, streamFile) != max_header_size)
+            goto fail;
+
+        if (big_endian) {
+            int shift = 8 + 4 + 8;
+            put_16bitLE(p+shift, get_16bitBE(p));
+            put_16bitLE(p+shift + 2, get_16bitBE(p + 2));
+            put_32bitLE(p+shift + 4, get_32bitBE(p + 4));
+            put_32bitLE(p+shift + 8, get_32bitBE(p + 8));
+            put_16bitLE(p+shift + 12, get_16bitBE(p + 12));
+            put_16bitLE(p+shift + 14, get_16bitBE(p + 14));
+            put_16bitLE(p+shift + 16, get_16bitBE(p + 16));
+        }
+        header_size = 8 + 4 + 8 + 8 + 18 + get_16bitLE(p + 8 + 4 + 8 + 16);
+        // Meh, dunno how to handle swapping the extra data
+        // FFmpeg doesn't need most of this data anyway
+        if ((unsigned)(get_16bitLE(p + 8 + 4 + 8) - 0x165) < 2)
+            memset(p + 8 + 4 + 8 + 18, 0, 34);
+
+        // Fill out the RIFF structure
+        memcpy(p, "RIFF", 4);
+        put_32bitLE(p + 4, header_size + size - 8);
+        memcpy(p + 8, "WAVE", 4);
+        memcpy(p + 12, "fmt ", 4);
+        put_32bitLE(p + 16, 18 + get_16bitLE(p + 8 + 4 + 8 + 16));
+        memcpy(p + header_size - 8, "data", 4);
+        put_32bitLE(p + header_size - 4, size);
+
+
+        return init_ffmpeg_header_offset(streamFile, p, header_size, start, size);
+    }
+    else {
+        return init_ffmpeg_header_offset(streamFile, NULL, 0, start, size);
+    }
+
+fail:
+    return NULL;
 }
 
 /**
- * Manually init FFmpeg only, from an offset / fake RIFF.
- * Can insert a fake RIFF header, to trick FFmpeg into demuxing/decoding the stream.
+ * Manually init FFmpeg, from a fake header / offset.
+ *
+ * Can take a fake header, to trick FFmpeg into demuxing/decoding the stream.
+ * This header will be seamlessly inserted before 'start' offset, and total filesize will be 'header_size' + 'size'.
+ * The header buffer will be copied and memory-managed internally.
  */
-ffmpeg_codec_data * init_ffmpeg_faux_riff(STREAMFILE *streamFile, int64_t fmt_offset, uint64_t start, uint64_t size, int big_endian) {
+ffmpeg_codec_data * init_ffmpeg_header_offset(STREAMFILE *streamFile, uint8_t * header, uint64_t header_size, uint64_t start, uint64_t size) {
 	char filename[PATH_LIMIT];
     
     ffmpeg_codec_data * data;
@@ -226,42 +281,13 @@ ffmpeg_codec_data * init_ffmpeg_faux_riff(STREAMFILE *streamFile, int64_t fmt_of
     data->size = size;
 
 
-    /* insert fake RIFF header to trick FFmpeg into demuxing/decoding the stream */
-    if (fmt_offset > 0) {
-        int max_header_size = (int)(start - fmt_offset);
-        uint8_t *p;
-        if (max_header_size < 18) goto fail;
-        data->header_insert_block = p = av_malloc(max_header_size + 8 + 4 + 8 + 8);
+    /* insert fake header to trick FFmpeg into demuxing/decoding the stream */
+    if (header_size > 0) {
+        data->header_size = header_size;
+        data->header_insert_block = av_memdup(header, header_size);
         if (!data->header_insert_block) goto fail;
-        if (read_streamfile(p + 8 + 4 + 8, fmt_offset, max_header_size, streamFile) != max_header_size) goto fail;
-        if (big_endian) {
-            p += 8 + 4 + 8;
-            put_16bitLE(p, get_16bitBE(p));
-            put_16bitLE(p + 2, get_16bitBE(p + 2));
-            put_32bitLE(p + 4, get_32bitBE(p + 4));
-            put_32bitLE(p + 8, get_32bitBE(p + 8));
-            put_16bitLE(p + 12, get_16bitBE(p + 12));
-            put_16bitLE(p + 14, get_16bitBE(p + 14));
-            put_16bitLE(p + 16, get_16bitBE(p + 16));
-            p -= 8 + 4 + 8;
-        }
-        data->header_size = 8 + 4 + 8 + 8 + 18 + get_16bitLE(p + 8 + 4 + 8 + 16);
-        // Meh, dunno how to handle swapping the extra data
-        // FFmpeg doesn't need most of this data anyway
-        if ((unsigned)(get_16bitLE(p + 8 + 4 + 8) - 0x165) < 2)
-            memset(p + 8 + 4 + 8 + 18, 0, 34);
-        
-        // Fill out the RIFF structure
-        memcpy(p, "RIFF", 4);
-        put_32bitLE(p + 4, data->header_size + size - 8);
-        memcpy(p + 8, "WAVE", 4);
-        memcpy(p + 12, "fmt ", 4);
-        put_32bitLE(p + 16, 18 + get_16bitLE(p + 8 + 4 + 8 + 16));
-        memcpy(p + data->header_size - 8, "data", 4);
-        put_32bitLE(p + data->header_size - 4, size);
     }
     
-
     /* setup IO, attempt to autodetect format and gather some info */
     data->buffer = av_malloc(FFMPEG_DEFAULT_IO_BUFFER_SIZE);
     if (!data->buffer) goto fail;
@@ -411,8 +437,8 @@ fail:
 static int init_seek(ffmpeg_codec_data * data) {
     int ret, ts_index, found_first = 0;
     int64_t ts = 0;
-    int64_t pos; /* offset */
-    int size; /* coded size */
+    int64_t pos = 0; /* offset */
+    int size = 0; /* coded size */
     int distance = 0; /* always? */
 
     AVStream * stream;
@@ -436,7 +462,7 @@ static int init_seek(ffmpeg_codec_data * data) {
         av_packet_unref(pkt);
         ret = av_read_frame(data->formatCtx, pkt);
         if (ret < 0)
-            goto fail;
+            break;
         if (pkt->stream_index != data->streamIndex)
             continue; /* ignore non-selected streams */
 
@@ -450,6 +476,15 @@ static int init_seek(ffmpeg_codec_data * data) {
             break;
         }
     }
+    if (!found_first)
+        goto fail;
+
+    /* in rare cases there is only one packet */
+    /* if (size == 0) { size = data_end - pos; } */ /* no easy way to know, ignore (most formats don's need size) */
+
+    /* some formats (XMA1) don't seem to have packet.dts, pretend it's 0 */
+    if (ts == INT64_MIN)
+        ts = 0;
 
     /* apparently some (non-audio?) streams start with a DTS before 0, but some read_seeks expect 0, which would disrupt the index
      *  we may need to keep start_ts around, since avstream/codec/format isn't always set */

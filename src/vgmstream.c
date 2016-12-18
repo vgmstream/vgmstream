@@ -338,6 +338,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_g1l,
     init_vgmstream_hca,
     init_vgmstream_ps2_svag_snk,
+    init_vgmstream_xma,
 #ifdef VGM_USE_FFMPEG
     init_vgmstream_mp4_aac_ffmpeg,
     init_vgmstream_ffmpeg,
@@ -394,7 +395,8 @@ VGMSTREAM * init_vgmstream_internal(STREAMFILE *streamFile, int do_dfs) {
 						 (vgmstream->meta_type == meta_NGCA) ||
 		                (vgmstream->meta_type == meta_NUB_VAG) ||
                         (vgmstream->meta_type == meta_SPT_SPD) ||
-                        (vgmstream->meta_type == meta_EB_SFX)
+                        (vgmstream->meta_type == meta_EB_SFX) ||
+                        (vgmstream->meta_type == meta_CWAV)
                         ) && vgmstream->channels == 1) {
                 try_dual_file_stereo(vgmstream, streamFile);
             }
@@ -3222,7 +3224,7 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             snprintf(temp,TEMPSIZE,"Mini Ninjas 'STR' header");
             break;
 		case meta_PS2_MSS:
-            snprintf(temp,TEMPSIZE,"ShellShock Nam '67 'MSCC' header");
+            snprintf(temp,TEMPSIZE,"Guerilla MSCC header");
             break;
 		case meta_PS2_HSF:
             snprintf(temp,TEMPSIZE,"Lowrider 'HSF' header");

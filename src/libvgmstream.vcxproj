@@ -351,6 +351,7 @@
     <ClCompile Include="meta\xbox_xmu.c" />
     <ClCompile Include="meta\xbox_xvas.c" />
     <ClCompile Include="meta\xbox_xwav.c" />
+    <ClCompile Include="meta\xma.c" />
     <ClCompile Include="meta\xss.c" />
     <ClCompile Include="meta\xwb.c" />
     <ClCompile Include="meta\ydsp.c" />
