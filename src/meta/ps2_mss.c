@@ -9,7 +9,7 @@
 VGMSTREAM * init_vgmstream_ps2_mss(STREAMFILE *streamFile) {
 	VGMSTREAM * vgmstream = NULL;
 	char filename[PATH_LIMIT];
-	off_t start_offset;
+	off_t start_offset, datasize, num_samples;
 	int loop_flag = 0;
 	int channel_count;
 
@@ -31,11 +31,17 @@ VGMSTREAM * init_vgmstream_ps2_mss(STREAMFILE *streamFile) {
 	/* fill in the vital statistics */
 	start_offset = read_32bitLE(0x08,streamFile);
 	vgmstream->channels = channel_count;
-	/*datasize = read_32bitLE(0x0c,streamFile) */
+	datasize = read_32bitLE(0x0c,streamFile);
 	vgmstream->sample_rate = read_32bitLE(0x10,streamFile);
-	vgmstream->num_samples = read_32bitLE(0x1C,streamFile);/*  / 16 * 28 */
+	num_samples = read_32bitLE(0x1C,streamFile);
     vgmstream->coding_type = coding_PSX;
 
+	if (num_samples * vgmstream->channels <= datasize)
+	{
+		num_samples = num_samples / 16 * 28;
+	}
+
+	vgmstream->num_samples = num_samples;
 
 	if (channel_count == 1)
 	{
