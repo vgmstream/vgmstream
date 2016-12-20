@@ -2,7 +2,7 @@
 #include "../util.h"
 
 
-static int vag_find_loop_points(STREAMFILE *streamFile, off_t * loop_start, off_t * loop_end);
+static int vag_find_loop_points(STREAMFILE *streamFile, off_t * loop_start, off_t * loop_end, off_t offset);
 
 /* PS2 VAG format, found in many Sony games
 
@@ -59,7 +59,7 @@ VGMSTREAM * init_vgmstream_ps2_vag(STREAMFILE *streamFile) {
 				channel_count=2;
 			}
 			else {
-				loop_flag = vag_find_loop_points(streamFile, &loopStart, &loopEnd); /* offset 0x30 */
+				loop_flag = vag_find_loop_points(streamFile, &loopStart, &loopEnd, 0x30);
 				channel_count = 1;
 			}
 			break;
@@ -195,7 +195,7 @@ fail:
  *
  * returns 0 if not found
  */
-static int vag_find_loop_points(STREAMFILE *streamFile, off_t * loop_start, off_t * loop_end) {
+static int vag_find_loop_points(STREAMFILE *streamFile, off_t * loop_start, off_t * loop_end, off_t offset) {
     off_t loopStart = 0;
     off_t loopEnd = 0;
 
@@ -203,34 +203,41 @@ static int vag_find_loop_points(STREAMFILE *streamFile, off_t * loop_start, off_
     uint8_t eofVAG[16]={0x00,0x07,0x77,0x77,0x77,0x77,0x77,0x77,0x77,0x77,0x77,0x77,0x77,0x77,0x77,0x77};
     uint8_t eofVAG2[16]={0x00,0x07,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00};
     uint8_t readbuf[16];
+    uint8_t flag;
 
     /* Search for loop in VAG */
     size_t fileLength = get_streamfile_size(streamFile);
 
 
-    off_t readOffset = 0x20;
+    off_t readOffset = offset - 0x10;
     do {
         readOffset+=0x10;
 
+        flag = read_8bit(readOffset+0x01,streamFile) & 0x0F; /* lower nibble (for HEVAG) */
+
         // Loop Start ...
-        if(read_8bit(readOffset+0x01,streamFile)==0x06) {
-            if(loopStart==0) loopStart = readOffset;
+        if (flag == 0x06 && !loopStart) {
+            loopStart = readOffset;
         }
 
         // Loop End ...
-        if(read_8bit(readOffset+0x01,streamFile)==0x03) {
-            if(loopEnd==0) loopEnd = readOffset;
+        if (flag == 0x03 && !loopEnd) {
+            loopEnd = readOffset;
+
+            if (loopStart && loopEnd)
+               break;
         }
 
         // Loop from end to beginning ...
-        if((read_8bit(readOffset+0x01,streamFile)==0x01)) {
+        if (flag == 0x01) {
             // Check if we have the eof tag after the loop point ...
             // if so we don't loop, if not present, we loop from end to start ...
-            read_streamfile(readbuf,readOffset+0x10,0x10,streamFile);
-            if((readbuf[0]!=0) && (readbuf[0]!=0x0c)) {
-                if(memcmp(readbuf,eofVAG,0x10) && (memcmp(readbuf,eofVAG2,0x10))) {
-                    loopStart = 0x40;
+            int read = read_streamfile(readbuf,readOffset+0x10,0x10,streamFile);
+            if(read > 0 && readbuf[0]!=0x00 && readbuf[0]!=0x0c) { /* is there valid data after flag 0x1? */
+                if(memcmp(readbuf,eofVAG,0x10) && (memcmp(readbuf,eofVAG2,0x10))) { /* probably could just check flag 0x7 */
+                    loopStart = offset + 0x10;
                     loopEnd = readOffset;
+                    break;
                 }
             }
         }
