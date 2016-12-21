@@ -98,4 +98,5 @@ For new simple formats, assuming existing layout/coding:
   *xml-vgmstream/DllMain.c*: add new extension to the format list
 - *src/Makefile*
   *src/meta/Makefile.unix.am*
-  *src/libvgmstream.vcproj/vcxproj*: to compile new (format-name).c parser
+  *src/libvgmstream.vcproj/vcxproj/filters*: to compile new (format-name).c parser
+- if the format needs an external library don't forget to make it optional with: *#ifdef VGM_USE_X ... #endif*
