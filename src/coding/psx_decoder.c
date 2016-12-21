@@ -14,7 +14,6 @@ static const double VAG_f[5][2] = {
         {  98.0 / 64.0 , -55.0 / 64.0 },
         { 122.0 / 64.0 , -60.0 / 64.0 }
 };
-#if VAG_USE_INTEGER_TABLE
 /* PS ADPCM table */
 static const int8_t VAG_coefs[5][2] = {
         {   0 ,   0 },
@@ -23,7 +22,6 @@ static const int8_t VAG_coefs[5][2] = {
         {  98 , -55 },
         { 122 , -60 }
 };
-#endif
 
 
 /* PSVita ADPCM table */
@@ -418,7 +416,7 @@ void decode_hevag_adpcm(VGMSTREAMCHANNEL * stream, sample * outbuf, int channels
                 byte = read_8bit(stream->offset+(framesin*16)+2+i/2,stream->streamfile);
                 scale = byte & 0x0f;
             }
-            if (scale > 7) { /* sign fix */
+            if (scale > 7) { /* sign extend */
                 scale = scale - 16;
             }
 
@@ -440,4 +438,60 @@ void decode_hevag_adpcm(VGMSTREAMCHANNEL * stream, sample * outbuf, int channels
     stream->adpcm_history2_32 = hist2;
     stream->adpcm_history3_32 = hist3;
     stream->adpcm_history4_32 = hist4;
+}
+
+
+/**
+ * Short VAG ADPCM, found in PS3 Afrika (SGDX type 5).
+ * Uses 8 byte blocks and no flag.
+ */
+void decode_short_vag_adpcm(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
+
+    uint8_t predict_nr, shift, byte;
+    int16_t scale = 0;
+
+    int32_t sample;
+    int32_t hist1 = stream->adpcm_history1_32;
+    int32_t hist2 = stream->adpcm_history2_32;
+
+    int i, sample_count;
+
+
+    int framesin = first_sample / 6;
+
+    /* 2 byte header: predictor = 1st, shift = 2nd */
+    byte = (uint8_t)read_8bit(stream->offset+framesin*8+0,stream->streamfile);
+    predict_nr = byte >> 4;
+    shift = byte & 0x0f;
+
+    first_sample = first_sample % 6;
+
+    for (i = first_sample, sample_count = 0; i < first_sample + samples_to_do; i++, sample_count += channelspacing) {
+        sample = 0;
+
+        if (predict_nr < 5) {
+
+            if (i & 1) {/* odd/even nibble */
+                scale = byte >> 4;
+            } else {
+                byte = (uint8_t)read_8bit(stream->offset+(framesin*8)+1+i/2,stream->streamfile);
+                scale = (byte & 0x0f);
+            }
+            /*if (scale > 7) {
+                scale = scale - 16;
+            }*/
+            scale = scale << 12; /* shift + sign extend only if scale is int16_t */
+
+            sample = (hist1 * VAG_coefs[predict_nr][0] +
+                      hist2 * VAG_coefs[predict_nr][1] ) / 64;
+            sample = sample + (scale >> shift);
+        }
+
+        outbuf[sample_count] = clamp16(sample);
+        hist2 = hist1;
+        hist1 = sample;
+    }
+
+    stream->adpcm_history1_32 = hist1;
+    stream->adpcm_history2_32 = hist2;
 }

@@ -62,6 +62,8 @@ void decode_baf_adpcm(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspa
 
 void decode_hevag_adpcm(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
 
+void decode_short_vag_adpcm(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
+
 void decode_xa(VGMSTREAM * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel);
 void init_get_high_nibble(VGMSTREAM * vgmstream);
 

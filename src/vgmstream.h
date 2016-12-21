@@ -94,6 +94,7 @@ typedef enum {
     coding_FFXI,            /* FF XI PSX-ish ADPCM */
     coding_BAF_ADPCM,       /* Bizarre Creations PSX-ish ADPCM */
     coding_HEVAG_ADPCM,     /* PSVita games */
+    coding_SHORT_VAG_ADPCM, /* SGXD type 5 (PS3 Afrika) */
     coding_XA,				/* PSX CD-XA */
     coding_XBOX,			/* XBOX IMA */
 	coding_INT_XBOX,		/* XBOX 'real interleaved' IMA */
