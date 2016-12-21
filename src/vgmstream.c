@@ -1032,6 +1032,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_PSX:
         case coding_PSX_badflags:
         case coding_invert_PSX:
+        case coding_HEVAG_ADPCM:
         case coding_XA:
             return 28;
         case coding_XBOX:
@@ -1159,6 +1160,7 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
             return 9;
         case coding_PSX:
         case coding_PSX_badflags:
+        case coding_HEVAG_ADPCM:
         case coding_invert_PSX:
         case coding_NDS_PROCYON:
             return 16;
@@ -1431,6 +1433,13 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
         case coding_BAF_ADPCM:
             for (chan=0;chan<vgmstream->channels;chan++) {
                 decode_baf_adpcm(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                        vgmstream->channels,vgmstream->samples_into_block,
+                        samples_to_do);
+            }
+            break;
+        case coding_HEVAG_ADPCM:
+            for (chan=0;chan<vgmstream->channels;chan++) {
+                decode_hevag_adpcm(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
                         samples_to_do);
             }
@@ -1746,6 +1755,8 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream) {
                     vgmstream->loop_ch[i].adpcm_history2_32 = vgmstream->ch[i].adpcm_history2_32;
                 }
             }
+            /* todo preserve hevag, baf_adpcm, etc history? */
+
 #ifdef DEBUG
             {
                int i;
@@ -1959,6 +1970,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case coding_BAF_ADPCM:
             snprintf(temp,TEMPSIZE,"Bizarre Creations Playstation-ish 4-bit ADPCM");
+            break;
+        case coding_HEVAG_ADPCM:
+            snprintf(temp,TEMPSIZE,"PSVita HEVAG ADPCM");
             break;
         case coding_XA:
             snprintf(temp,TEMPSIZE,"CD-ROM XA 4-bit ADPCM");

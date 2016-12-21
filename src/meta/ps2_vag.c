@@ -58,6 +58,10 @@ VGMSTREAM * init_vgmstream_ps2_vag(STREAMFILE *streamFile) {
 				loop_flag=(read_32bitBE(0x14,streamFile)!=0);
 				channel_count=2;
 			}
+            else if (read_32bitBE(0x04,streamFile) == 0x00020001) { /* HEVAG */
+                loop_flag = vag_find_loop_points(streamFile, &loopStart, &loopEnd, 0x30);
+                channel_count = read_8bit(0x1e,streamFile);
+            }
 			else {
 				loop_flag = vag_find_loop_points(streamFile, &loopStart, &loopEnd, 0x30);
 				channel_count = 1;
@@ -125,6 +129,14 @@ VGMSTREAM * init_vgmstream_ps2_vag(STREAMFILE *streamFile) {
 					interleave=0x1000;
 					start_offset=0;
 				}
+            }
+			else if (read_32bitBE(0x04,streamFile) == 0x00020001) { /* HEVAG */
+                vgmstream->meta_type   = meta_PS2_VAGs;
+                vgmstream->coding_type = coding_HEVAG_ADPCM;
+                vgmstream->layout_type = layout_interleave;
+
+                vgmstream->num_samples = read_32bitBE(0x0C,streamFile) / channel_count / 16 * 28;
+                start_offset=0x30;
 			}
 			else {
 				vgmstream->layout_type=layout_none;
