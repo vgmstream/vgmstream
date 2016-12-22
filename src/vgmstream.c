@@ -376,8 +376,9 @@ VGMSTREAM * init_vgmstream_internal(STREAMFILE *streamFile, int do_dfs) {
             
             /* Sanify loops! */
             if (vgmstream->loop_flag) {
-                if ((vgmstream->loop_end_sample <= vgmstream->loop_start_sample) ||
-                    (vgmstream->loop_end_sample > vgmstream->num_samples))
+                if ((vgmstream->loop_end_sample <= vgmstream->loop_start_sample)
+                        || (vgmstream->loop_end_sample > vgmstream->num_samples)
+                        || (vgmstream->loop_start_sample < 0) )
                     vgmstream->loop_flag = 0;
             }
 
