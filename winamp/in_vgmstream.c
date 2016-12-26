@@ -371,7 +371,6 @@ char * extension_list[] = {
     "zwdsp\0ZWDSP Audio File (*.ZWDSP)\0",
 
     "vgmstream\0vgmstream Audio File (*.VGMSTREAM)\0",
-    "vgms\00vgmstream Audio File (*.VGMS)\0",
 };
 
 void about(HWND hwndParent) {

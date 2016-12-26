@@ -626,7 +626,6 @@ bool input_vgmstream::g_is_our_path(const char * p_path,const char * p_extension
 	if(!stricmp_utf8(p_extension,"zwdsp")) return 1;
 
     if(!stricmp_utf8(p_extension,"vgmstream")) return 1;
-    if(!stricmp_utf8(p_extension,"vgms")) return 1;
 	return 0;
 }
 
@@ -965,4 +964,3 @@ DECLARE_MULTIPLE_FILE_TYPE("ZSD Audio File (*.ZSD)", zsd);
 DECLARE_MULTIPLE_FILE_TYPE("ZWDSP Audio File (*.ZWDSP)", zwdsp);
 
 DECLARE_MULTIPLE_FILE_TYPE("vgmstream Audio File (*.VGMSTREAM)", vgmstream);
-DECLARE_MULTIPLE_FILE_TYPE("vgmstream Audio File (*.VGMS)", vgms);
