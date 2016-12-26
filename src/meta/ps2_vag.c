@@ -260,13 +260,20 @@ static int vag_find_loop_offsets(STREAMFILE *streamFile, off_t start_offset, off
                break;
         }
 
-        // Loop from end to beginning ...
+        /* hack for some games that don't have loop points but play the same track on repeat
+         * (sometimes this will loop non-looping tracks incorrectly)
+         * if there is a "partial" 0x07 end flag pretend it wants to loop */
         if (flag == 0x01) {
-            // Check if we have the eof tag after the loop point ...
+            // Check if we have a full eof tag after the loop point ...
             // if so we don't loop, if not present, we loop from end to start ...
             int read = read_streamfile(readbuf,readOffset+0x10,0x10,streamFile);
-            if(read > 0 && readbuf[0]!=0x00 && readbuf[0]!=0x0c) { /* is there valid data after flag 0x1? */
-                if(memcmp(readbuf,eofVAG,0x10) && (memcmp(readbuf,eofVAG2,0x10))) { /* probably could just check flag 0x7*/
+            /* is there valid data after flag 0x1? */
+            if (read > 0
+                    && readbuf[0] != 0x00
+                    && readbuf[0] != 0x0c
+                    && readbuf[0] != 0x3c /* Ecco the Dolphin, Ratchet & Clank 2  */
+                    ) { 
+                if (memcmp(readbuf,eofVAG,0x10) && (memcmp(readbuf,eofVAG2,0x10))) { /* full end flags */
                     loopStart = start_offset + 0x10; /* todo proper start */
                     loopEnd = readOffset;
                     break;
