@@ -1,6 +1,8 @@
-.PHONY: buildrelease mingw_test mingw_winamp sourceball mingwbin
+.PHONY: buildfullrelease buildrelease mingw_test mingw_winamp sourceball mingwbin
 
-buildrelease: clean sourceball mingwbin
+buildfullrelease: clean sourceball mingwbin
+
+buildrelease: clean mingwbin
 
 sourceball:
 	rm -rf vgmstream-`./version.sh`
@@ -12,7 +14,7 @@ sourceball:
 	rm -rf vgmstream-`./version.sh`
 
 mingwbin: mingw_test mingw_winamp
-	zip -j "vgmstream-`./version.sh`-test.zip" readme.txt COPYING test/test.exe winamp/in_vgmstream.dll 
+	zip -FS -j "vgmstream-`./version.sh`-test.zip" COPYING readme.txt test/test.exe winamp/in_vgmstream.dll ext_libs/*.dll
 
 mingw_test:
 	$(MAKE) -C test -f Makefile.mingw test.exe
