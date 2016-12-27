@@ -228,7 +228,7 @@ fail:
 #ifdef VGM_USE_FFMPEG
     if (ffmpeg_data) {
         free_ffmpeg(ffmpeg_data);
-        vgmstream->codec_data = NULL;
+        if (vgmstream) vgmstream->codec_data = NULL;
     }
 #endif
     if (vgmstream) close_vgmstream(vgmstream);
