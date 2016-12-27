@@ -10,8 +10,8 @@ VGMSTREAM * init_vgmstream_ps3_klbs(STREAMFILE *streamFile)
 	size_t fileLength;
 	off_t readOffset = 0;
 	off_t start_offset;
-	off_t loop_start_offset;
-	off_t loop_end_offset;
+	off_t loop_start_offset = 0;
+	off_t loop_end_offset = 0;
 
 	uint8_t	testBuffer[0x10];
 	int loop_flag = 0;

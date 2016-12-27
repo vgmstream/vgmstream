@@ -8,8 +8,7 @@ VGMSTREAM * init_vgmstream_bfstm(STREAMFILE *streamFile) {
 
 	coding_t coding_type;
 
-	off_t info_offset, seek_offset, data_offset, regn_offset, pdat_offset;
-	size_t info_size, seek_size, data_size, regn_size, pdat_size;
+	off_t info_offset = 0, seek_offset = 0, data_offset = 0;
 	uint16_t temp_id;
 	int codec_number;
 	int channel_count;
@@ -17,7 +16,6 @@ VGMSTREAM * init_vgmstream_bfstm(STREAMFILE *streamFile) {
 	int i, j;
 	int ima = 0;
 	off_t start_offset;
-	int founddata;
 	off_t tempoffset1;
 	int section_count;
 
@@ -39,23 +37,23 @@ VGMSTREAM * init_vgmstream_bfstm(STREAMFILE *streamFile) {
 		switch(temp_id) {
 			case 0x4000:
 				info_offset = read_32bitBE(0x18 + i * 0xc, streamFile);
-				info_size = read_32bitBE(0x1c + i * 0xc, streamFile);
+				/* size_t info_size = read_32bitBE(0x1c + i * 0xc, streamFile); */
 				break;
 			case 0x4001:
 				seek_offset = read_32bitBE(0x18 + i * 0xc, streamFile);
-				seek_size = read_32bitBE(0x1c + i * 0xc, streamFile);
+				/* size_t seek_size = read_32bitBE(0x1c + i * 0xc, streamFile); */
 				break;
 			case 0x4002:
 				data_offset = read_32bitBE(0x18 + i * 0xc, streamFile);
-				data_size = read_32bitBE(0x1c + i * 0xc, streamFile);
+				/* size_t data_size = read_32bitBE(0x1c + i * 0xc, streamFile); */
 				break;
 			case 0x4003:
-				regn_offset = read_32bitBE(0x18 + i * 0xc, streamFile);
-				regn_size = read_32bitBE(0x1c + i * 0xc, streamFile);
+			    /* off_t regn_offset = read_32bitBE(0x18 + i * 0xc, streamFile); */
+				/* size_t regn_size = read_32bitBE(0x1c + i * 0xc, streamFile); */
 				break;
 			case 0x4004:
-				pdat_offset = read_32bitBE(0x18 + i * 0xc, streamFile);
-				pdat_size = read_32bitBE(0x1c + i * 0xc, streamFile);
+				/* off_t pdat_offset = read_32bitBE(0x18 + i * 0xc, streamFile); */
+				/* size_t pdat_size = read_32bitBE(0x1c + i * 0xc, streamFile); */
 				break;
 			default:
 				break;				
@@ -63,6 +61,7 @@ VGMSTREAM * init_vgmstream_bfstm(STREAMFILE *streamFile) {
 	}
 	
 
+    if (info_offset == 0) goto fail;
 	if ((uint32_t)read_32bitBE(info_offset, streamFile) != 0x494E464F) /* "INFO" */
 		goto fail;
 
@@ -152,10 +151,13 @@ VGMSTREAM * init_vgmstream_bfstm(STREAMFILE *streamFile) {
 		}
 	}
 
-	if (ima) // No SEEK (ADPC) header, so just start where the SEEK header is supposed to be.
+	if (ima) { // No SEEK (ADPC) header, so just start where the SEEK header is supposed to be.
+        if (seek_offset == 0) goto fail;
 		start_offset = seek_offset;
-	else
+	} else {
+        if (data_offset == 0) goto fail;
 		start_offset = data_offset + 0x20;
+	}
 
 
 

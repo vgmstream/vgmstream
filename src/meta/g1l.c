@@ -7,7 +7,7 @@ VGMSTREAM * init_vgmstream_g1l(STREAMFILE *streamFile) {
 
 	coding_t coding_type;
 
-	off_t head_offset;
+	/*off_t head_offset;*/
 
 	int channel_count;
 	int loop_flag;

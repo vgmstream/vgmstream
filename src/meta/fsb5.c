@@ -15,7 +15,7 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
     int NumSamples;
     int ChannelCount;
     int SampleRate;
-    int DSPInfoStart;
+    int DSPInfoStart = 0;
 
     int SampleHeaderStart, SampleHeaderLength, NameTableLength, SampleDataLength, CodingID, SampleMode;
     int ExtraFlag, ExtraFlagStart, ExtraFlagType, ExtraFlagSize, ExtraFlagEnd;

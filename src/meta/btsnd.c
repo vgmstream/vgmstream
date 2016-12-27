@@ -8,7 +8,6 @@ Wii U boot sound file for each game/app.
 VGMSTREAM * init_vgmstream_btsnd(STREAMFILE *streamFile) {
 	VGMSTREAM * vgmstream = NULL;
 	char filename[PATH_LIMIT];
-	coding_t coding_type;
 	int channel_count = 2;
 	int loop_flag;
 	off_t start_offset = 0x8;
