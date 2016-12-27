@@ -3,6 +3,8 @@
 #include "coding.h"
 #include "../util.h"
 
+#define MTAF_BLOCK_SUPPORT 0
+
 // A hybrid of IMA and Yamaha ADPCM found in Metal Gear Solid 3
 // Thanks to X_Tra (http://metalgear.in/) for pointing me to the step size table.
 
@@ -81,62 +83,79 @@ static int16_t step_size[32][16] = {
 
 void decode_mtaf(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel, int channels) {
     int32_t sample_count;
-    unsigned long cur_off = stream->offset;
+    off_t cur_off = stream->offset;
     int i;
-    int c = channel%2;
-    int16_t init_idx;
-    int16_t init_hist;
+    int c = channel%2; /* global channel to stream channel */
     int32_t hist = stream->adpcm_history1_16;
-    int step_idx = stream->adpcm_step_index;
-    
-    //printf("channel %d: first_sample = %d, stream->offset = 0x%lx, cur_off = 0x%lx init_idx = %d\n", channel, first_sample, (unsigned long)stream->offset, cur_off, init_idx);
+    int32_t step_idx = stream->adpcm_step_index;
+	uint8_t byte = 0;
 
-#if 0
-    if (init_idx < 0 || init_idx > 31) {
-        fprintf(stderr, "step idx out of range at 0x%lx ch %d\n", cur_off, c);
-        exit(1);
-    }
-    if (0 != read_16bitLE(cur_off+10+c*4, stream->streamfile)) {
-        fprintf(stderr, "exp. zero after hist at 0x%lx ch %d\n", cur_off, c);
-        exit(1);
+
+#if MTAF_BLOCK_SUPPORT
+    {
+        /* "macroblock" support (layout/mtaf_block.c) was removed since the extractor now produces clean files;
+         *   this a hack to skip those blocks, left as a reminder (not well tested) */
+        int unk, size, empty, frames, repeat = 1;
+        do {
+            unk    = read_32bitLE(cur_off+0x00, stream->streamfile); /* always BE 0x01001100? */
+            size   = read_32bitLE(cur_off+0x04, stream->streamfile); /* block size */
+            empty  = read_32bitLE(cur_off+0x08, stream->streamfile); /* always 0? */
+            frames = read_32bitLE(cur_off+0x0c, stream->streamfile); /* total frames of 0x110 */
+            if (unk == 0x00110001 && empty == 0 && size > 0) {
+                if (frames == 0) {
+                    stream->offset += size; /* full skip */
+                } else if ((size-0x10) == frames*0x110) {
+                    stream->offset += 0x10; /* header skip */
+                    repeat = 0;
+                }
+                cur_off = stream->offset;
+            }
+            else {
+                repeat = 0;
+            }
+
+        } while(repeat);
     }
 #endif
 
-    first_sample = first_sample%0x100;
-    
-    if (first_sample%0x100 == 0) {
-        while (read_8bit(cur_off, stream->streamfile) != 0) {
-            cur_off += 16;
-        }
-        
-        stream->offset = cur_off;
+    first_sample = first_sample % 0x100;
 
-        init_idx = read_16bitLE(cur_off+4+c*2, stream->streamfile);
-        init_hist = read_16bitLE(cur_off+8+c*4, stream->streamfile);
-        
-        hist = init_hist;
+    /* read header when we hit a new frame every 0x100 samples */
+    if (first_sample == 0) {
+        int32_t init_idx, init_hist;
 
-#if 0
-        if (step_idx != init_idx) {
-            fprintf(stderr, "step_idx does not match at 0x%lx, %d!=%d\n",cur_off,step_idx, init_idx);
-            exit(1);
+		/*  0x10 header: owner stream, frame count, step-L, step-R, hist-L, hist-R */
+        /* uint32_t stream = read_8bit(cur_off+0+c*2, stream->streamfile); */ /* 0=first */
+        /* uint24_t frames = (uint24_t)read_16bitLE(cur_off+1, stream->streamfile); */ /* 1=first */
+        init_idx  = read_16bitLE(cur_off+4+c*2, stream->streamfile); /* step-L/R */
+        init_hist = read_16bitLE(cur_off+4+4+c*4, stream->streamfile); /* hist-L/R: hist 16bit + empty 16bit */
+
+        VGM_ASSERT( read_16bitLE(cur_off+4+4+2+c*4, stream->streamfile) != 0,
+                "init_hist not 16bit at 0x%lx, ch=%d\n", cur_off, c);
+        VGM_ASSERT( init_idx < 0 || init_idx > 31,
+                "init_idx out of range at 0x%lx, ch=%d\n", cur_off, c);
+        VGM_ASSERT( step_idx != init_idx,
+                "step_idx does not match init_idx at 0x%lx, step=%d, init=%d\n",cur_off,step_idx, init_idx);
+
+        /* avoid index out of range in corrupt files */
+        if (init_idx < 0) {
+            init_idx = 0;
+        } else if (init_idx > 31) {
+            init_idx = 31;
         }
-#endif
+
         step_idx = init_idx;
+        hist = init_hist;
     }
 
 
     for (i=first_sample,sample_count=0; i<first_sample+samples_to_do; i++,sample_count+=channelspacing) {
-        uint8_t byte, nibble;
-        byte = read_8bit(cur_off + 0x10 + 0x80*c + i/2, stream->streamfile);
-        if (i%2!=1)
-        {
-            // low nibble first
-            nibble = byte&0xf;
-        }
-        else
-        {
-            // high nibble last
+        uint8_t nibble;
+
+        if (i%2 != 1) { /* low nibble first */
+            byte = read_8bit(cur_off + 0x10 + 0x80*c + i/2, stream->streamfile);
+            nibble = byte & 0x0f;
+        } else { /* high nibble last */
             nibble = byte >> 4;
         }
 
@@ -145,12 +164,9 @@ void decode_mtaf(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing,
         outbuf[sample_count] = hist;
 
         step_idx += index_table[nibble];
-        if (step_idx < 0)
-        {
+        if (step_idx < 0) { /* clip step */
             step_idx = 0;
-        }
-        if (step_idx > 31)
-        {
+        } else if (step_idx > 31) {
             step_idx = 31;
         }
     } /* end sample loop */
