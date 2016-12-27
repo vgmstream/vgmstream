@@ -14,6 +14,7 @@
 //--------------------------------------------------
 // インライン関数
 //--------------------------------------------------
+#if 0
 static inline unsigned short get_le16(unsigned short v_){const unsigned char *v=(const unsigned char *)&v_;unsigned short r=v[1];r<<=8;r|=v[0];return r;}
 static inline unsigned short get_be16(unsigned short v_){const unsigned char *v=(const unsigned char *)&v_;unsigned short r=v[0];r<<=8;r|=v[1];return r;}
 static inline unsigned int get_be24(unsigned int v_){const unsigned char *v=(const unsigned char *)&v_;unsigned int r=v[0];r<<=8;r|=v[1];r<<=8;r|=v[2];return r;};
@@ -21,7 +22,6 @@ static inline unsigned int get_le32(unsigned int v_){const unsigned char *v=(con
 static inline unsigned int get_be32(unsigned int v_){const unsigned char *v=(const unsigned char *)&v_;unsigned int r=v[0];r<<=8;r|=v[1];r<<=8;r|=v[2];r<<=8;r|=v[3];return r;}
 static inline float get_bef32(float v_){union{float f;unsigned int i;}v;v.f=v_;v.i=get_be32(v.i);return v.f;}
 
-#if 0
 static union { unsigned int i; unsigned char c[4]; } g_is_le = {1};
 static inline unsigned short swap_u16(unsigned short v){unsigned short r=v&0xFF;r<<=8;v>>=8;r|=v&0xFF;return r;}
 static inline unsigned short swap_u32(unsigned int v){unsigned int r=v&0xFF;r<<=8;v>>=8;r|=v&0xFF;r<<=8;v>>=8;r|=v&0xFF;r<<=8;v>>=8;r|=v&0xFF;return r;}
@@ -191,9 +191,11 @@ static void clHCA_destructor(clHCA *hca)
 //--------------------------------------------------
 // HCAチェック
 //--------------------------------------------------
+#if 0
 static int clHCA_CheckFile(void *data,unsigned int size){
-	return (data&&size>=4&&(get_le32(*(unsigned int *)data)&0x7F7F7F7F)==0x00414348);
+	return (data&&size>=4&&(get_be32(*(unsigned int *)data)&0x7F7F7F7F)==0x48434100);/*'HCA\0'*/
 }
+#endif
 
 //--------------------------------------------------
 // チェックサム
@@ -366,7 +368,7 @@ static int clHCA_PrintInfo(const char *filenameHCA){
 	}
 
 	// HCA
-	if(size>=sizeof(stHeader) && (clData_CheckBit(&d,32)&0x7F7F7F7F)=='HCA\0'){
+	if(size>=sizeof(stHeader) && (clData_CheckBit(&d,32)&0x7F7F7F7F)==0x48434100){/*'HCA\0'*/
 		clData_AddBit(&d,32);
 		_version=clData_GetBit(&d,16);
 		_dataOffset=clData_GetBit(&d,16);
@@ -380,7 +382,7 @@ static int clHCA_PrintInfo(const char *filenameHCA){
 	}
 
 	// fmt
-	if(size>=sizeof(stFormat) && (clData_CheckBit(&d, 32)&0x7F7F7F7F)=='fmt\0'){
+	if(size>=sizeof(stFormat) && (clData_CheckBit(&d, 32)&0x7F7F7F7F)==0x666D7400){/*'fmt\0'*/
 		clData_AddBit(&d,32);
 		_channelCount=clData_GetBit(&d,8);
 		_samplingRate=clData_GetBit(&d,24);
@@ -408,7 +410,7 @@ static int clHCA_PrintInfo(const char *filenameHCA){
 	}
 
 	// comp
-	if(size>=sizeof(stCompress) && (clData_CheckBit(&d, 32)&0x7F7F7F7F)=='comp'){
+	if(size>=sizeof(stCompress) && (clData_CheckBit(&d, 32)&0x7F7F7F7F)==0x636F6D70){/*'comp'*/
 		clData_AddBit(&d,32);
 		_blockSize=clData_GetBit(&d,16);
 		_comp_r01=clData_GetBit(&d,8);
@@ -443,7 +445,7 @@ static int clHCA_PrintInfo(const char *filenameHCA){
 	}
 
 	// dec
-	else if(size>=sizeof(stDecode) && (clData_CheckBit(&d, 32)&0x7F7F7F7F)=='dec\0'){
+	else if(size>=sizeof(stDecode) && (clData_CheckBit(&d, 32)&0x7F7F7F7F)==0x64656300){/*'dec\0'*/
 		unsigned char count1,count2,enableCount2;
 		clData_AddBit(&d, 32);
 		_blockSize=clData_GetBit(&d,16);
@@ -482,7 +484,7 @@ static int clHCA_PrintInfo(const char *filenameHCA){
 	}
 
 	// vbr
-	if(size>=sizeof(stVBR) && (clData_CheckBit(&d,32)&0x7F7F7F7F)=='vbr\0'){
+	if(size>=sizeof(stVBR) && (clData_CheckBit(&d,32)&0x7F7F7F7F)==0x76627200){/*'vbr\0'*/
 		clData_AddBit(&d, 32);
 		_vbr_r01=clData_GetBit(&d,16);
 		_vbr_r02=clData_GetBit(&d,16);
@@ -502,7 +504,7 @@ static int clHCA_PrintInfo(const char *filenameHCA){
 	}
 
 	// ath
-	if(size>=6 && (clData_CheckBit(&d,32)&0x7F7F7F7F)=='ath\0'){
+	if(size>=6 && (clData_CheckBit(&d,32)&0x7F7F7F7F)==0x61746800){/*'ath\0'*/
 		clData_AddBit(&d,32);
 		_ath_type=clData_GetBit(&d,16);
 		printf("ATHタイプ:%d ※v2.0から廃止されています。\n",_ath_type);
@@ -514,7 +516,7 @@ static int clHCA_PrintInfo(const char *filenameHCA){
 	}
 
 	// loop
-	if(size>=sizeof(stLoop) && (clData_CheckBit(&d,32)&0x7F7F7F7F)=='loop'){
+	if(size>=sizeof(stLoop) && (clData_CheckBit(&d,32)&0x7F7F7F7F)==0x6C6F6F70){/*'loop'*/
 		clData_AddBit(&d, 32);
 		_loopStart=clData_GetBit(&d,32);
 		_loopEnd=clData_GetBit(&d,32);
@@ -531,7 +533,7 @@ static int clHCA_PrintInfo(const char *filenameHCA){
 	}
 
 	// ciph
-	if(size>=6 && (clData_CheckBit(&d, 32)&0x7F7F7F7F)=='ciph'){
+	if(size>=6 && (clData_CheckBit(&d, 32)&0x7F7F7F7F)==0x63697068){/*'ciph'*/
 		clData_AddBit(&d,32);
 		_ciph_type=clData_GetBit(&d,16);
 		switch(_ciph_type){
@@ -547,7 +549,7 @@ static int clHCA_PrintInfo(const char *filenameHCA){
 	}
 
 	// rva
-	if(size>=sizeof(stRVA) && (clData_CheckBit(&d,32)&0x7F7F7F7F)=='rva\0'){
+	if(size>=sizeof(stRVA) && (clData_CheckBit(&d,32)&0x7F7F7F7F)==0x72766100){/*'rva\0'*/
 		union { unsigned int i; float f; } v;
 		clData_AddBit(&d,32);
 		v.i=clData_GetBit(&d,32);
@@ -557,7 +559,7 @@ static int clHCA_PrintInfo(const char *filenameHCA){
 	}
 
 	// comm
-	if(size>=5 && (clData_CheckBit(&d,32)&0x7F7F7F7F)=='comm'){
+	if(size>=5 && (clData_CheckBit(&d,32)&0x7F7F7F7F)==0x636F6D6D){/*'comm'*/
 		int i;
 		clData_AddBit(&d,32);
 		_comm_len=clData_GetBit(&d,8);
@@ -758,7 +760,7 @@ int clHCA_DecodeToWavefile_Decode(clHCA *hca,void *fp1,void *fp2,unsigned int ad
 int clHCA_isOurFile0(const void *data){
 	clData d;
 	clData_constructor(&d, data, 8);
-	if((clData_CheckBit(&d,32)&0x7F7F7F7F)=='HCA\0'){
+	if((clData_CheckBit(&d,32)&0x7F7F7F7F)==0x48434100){/*'HCA\0'*/
 		clData_AddBit(&d,32+16);
 		return clData_CheckBit(&d,16);
 	}
@@ -1067,7 +1069,7 @@ int clHCA_Decode(clHCA *hca,void *data,unsigned int size,unsigned int address){
 		if(size<sizeof(stHeader))return -1;
 
 		// HCA
-		if((clData_CheckBit(&d,32)&0x7F7F7F7F)=='HCA\0'){
+		if((clData_CheckBit(&d,32)&0x7F7F7F7F)==0x48434100){/*'HCA\0'*/
 			clData_AddBit(&d,32);
 			hca->_version=clData_GetBit(&d,16);
 			hca->_dataOffset=clData_GetBit(&d,16);
@@ -1080,7 +1082,7 @@ int clHCA_Decode(clHCA *hca,void *data,unsigned int size,unsigned int address){
 		}
 
 		// fmt
-		if(size>=sizeof(stFormat) && (clData_CheckBit(&d,32)&0x7F7F7F7F)=='fmt\0'){
+		if(size>=sizeof(stFormat) && (clData_CheckBit(&d,32)&0x7F7F7F7F)==0x666D7400){/*'fmt\0'*/
 			clData_AddBit(&d,32);
 			hca->_channelCount=clData_GetBit(&d,8);
 			hca->_samplingRate=clData_GetBit(&d,24);
@@ -1095,7 +1097,7 @@ int clHCA_Decode(clHCA *hca,void *data,unsigned int size,unsigned int address){
 		}
 
 		// comp
-		if(size>=sizeof(stCompress) && (clData_CheckBit(&d,32)&0x7F7F7F7F)=='comp'){
+		if(size>=sizeof(stCompress) && (clData_CheckBit(&d,32)&0x7F7F7F7F)==0x636F6D70){/*'comp'*/
 			clData_AddBit(&d,32);
 			hca->_blockSize=clData_GetBit(&d,16);
 			hca->_comp_r01=clData_GetBit(&d,8);
@@ -1113,7 +1115,7 @@ int clHCA_Decode(clHCA *hca,void *data,unsigned int size,unsigned int address){
 		}
 
 		// dec
-		else if(size>=sizeof(stDecode) && (clData_CheckBit(&d,32)&0x7F7F7F7F)=='dec\0'){
+		else if(size>=sizeof(stDecode) && (clData_CheckBit(&d,32)&0x7F7F7F7F)==0x64656300){/*'dec\0'*/
 			unsigned char count1,count2,enableCount2;
 			clData_AddBit(&d,32);
 			hca->_blockSize=clData_GetBit(&d,16);
@@ -1137,7 +1139,7 @@ int clHCA_Decode(clHCA *hca,void *data,unsigned int size,unsigned int address){
 		}
 
 		// vbr
-		if(size>=sizeof(stVBR) && (clData_CheckBit(&d,32)&0x7F7F7F7F)=='vbr\0'){
+		if(size>=sizeof(stVBR) && (clData_CheckBit(&d,32)&0x7F7F7F7F)==0x76627200){/*'vbr\0'*/
 			clData_AddBit(&d,32);
 			hca->_vbr_r01=clData_GetBit(&d,16);
 			hca->_vbr_r02=clData_GetBit(&d,16);
@@ -1148,7 +1150,7 @@ int clHCA_Decode(clHCA *hca,void *data,unsigned int size,unsigned int address){
 		}
 
 		// ath
-		if(size>=6 && (clData_CheckBit(&d,32)&0x7F7F7F7F)=='ath\0'){
+		if(size>=6 && (clData_CheckBit(&d,32)&0x7F7F7F7F)==0x61746800){/*'ath\0'*/
 			clData_AddBit(&d,32);
 			hca->_ath_type=clData_GetBit(&d,16);
 		}else{
@@ -1156,7 +1158,7 @@ int clHCA_Decode(clHCA *hca,void *data,unsigned int size,unsigned int address){
 		}
 
 		// loop
-		if(size>=sizeof(stLoop) && (clData_CheckBit(&d,32)&0x7F7F7F7F)=='loop'){
+		if(size>=sizeof(stLoop) && (clData_CheckBit(&d,32)&0x7F7F7F7F)==0x6C6F6F70){/*'loop'*/
 			clData_AddBit(&d,32);
 			hca->_loopStart=clData_GetBit(&d,32);
 			hca->_loopEnd=clData_GetBit(&d,32);
@@ -1174,7 +1176,7 @@ int clHCA_Decode(clHCA *hca,void *data,unsigned int size,unsigned int address){
 		}
 
 		// ciph
-		if(size>=6 && (clData_CheckBit(&d,32)&0x7F7F7F7F)=='ciph'){
+		if(size>=6 && (clData_CheckBit(&d,32)&0x7F7F7F7F)==0x63697068){/*'ciph'*/
 			clData_AddBit(&d,32);
 			hca->_ciph_type=clData_GetBit(&d,16);
 			if(!(hca->_ciph_type==0||hca->_ciph_type==1||hca->_ciph_type==0x38))return -1;
@@ -1184,7 +1186,7 @@ int clHCA_Decode(clHCA *hca,void *data,unsigned int size,unsigned int address){
 		}
 
 		// rva
-		if(size>=sizeof(stRVA) && (clData_CheckBit(&d,32)&0x7F7F7F7F)=='rva\0'){
+		if(size>=sizeof(stRVA) && (clData_CheckBit(&d,32)&0x7F7F7F7F)==0x72766100){/*'rva\0'*/
 			union { unsigned int i; float f; } v;
 			clData_AddBit(&d,32);
 			v.i=clData_GetBit(&d,32);
@@ -1195,7 +1197,7 @@ int clHCA_Decode(clHCA *hca,void *data,unsigned int size,unsigned int address){
 		}
 
 		// comm
-		if(size>=5 && (clData_CheckBit(&d,32)&0x7F7F7F7F)=='comm'){
+		if(size>=5 && (clData_CheckBit(&d,32)&0x7F7F7F7F)==0x636F6D6D){/*'comm'*/
 			void * newmem;
 			unsigned int i;
 			clData_AddBit(&d,32);
