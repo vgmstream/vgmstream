@@ -17,5 +17,14 @@ libg719_decode.a: libg719_decode.def
 libat3plusdecoder.a: at3plusdecoder.def
 	$(DLLTOOL) -d at3plusdecoder.def -l libat3plusdecoder.a
 
+libavcodec.a: avcodec-vgmstream-57.dll avcodec-vgmstream-57.def
+	$(DLLTOOL) -D avcodec-vgmstream-57.dll -d avcodec-vgmstream-57.def -l libavcodec.a
+
+libavformat.a: avformat-vgmstream-57.dll avformat-vgmstream-57.def
+	$(DLLTOOL) -D avformat-vgmstream-57.dll -d avformat-vgmstream-57.def -l libavformat.a
+
+libavutil.a: avutil-vgmstream-55.dll avutil-vgmstream-55.def
+	$(DLLTOOL) -D avutil-vgmstream-55.dll -d avutil-vgmstream-55.def -l libavutil.a
+
 clean:
-	rm -f libvorbis.a libmpg123-0.a libg7221_decode.a libg719_decode.a libat3plusdecoder.a
+	rm -f libvorbis.a libmpg123-0.a libg7221_decode.a libg719_decode.a libat3plusdecoder.a libavcodec.a libavformat.a libavutil.a

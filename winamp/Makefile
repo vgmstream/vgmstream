@@ -1,11 +1,11 @@
 # optional parts
-VGM_ENABLE_FFMPEG=0
+VGM_ENABLE_FFMPEG=1
 ifeq ($(VGM_ENABLE_FFMPEG),1)
-FFMPEG_CC=-DVGM_USE_FFMPEG -DVGM_USE_FFMPEG_ACCURATE_LOOPING -I../../vgmstream-ffmpeg/include
-FFMPEG_LD=-L../../vgmstream-ffmpeg/lib -lavcodec -lavformat -lavutil
+FFMPEG_CC=-DVGM_USE_FFMPEG -DVGM_USE_FFMPEG_ACCURATE_LOOPING
+FFMPEG_LD=-lavcodec -lavformat -lavutil
 endif
 
-VGM_ENABLE_MAIATRAC3PLUS=1
+VGM_ENABLE_MAIATRAC3PLUS=0
 ifeq ($(VGM_ENABLE_MAIATRAC3PLUS),1) 
 MAT3P_CC=-DVGM_USE_MAIATRAC3PLUS
 MAT3P_LD=-lat3plusdecoder
@@ -33,9 +33,9 @@ export WINDRES=i586-mingw32msvc-windres
 #export STRIP=i686-w64-mingw32-strip
 #export WINDRES=i686-w64-mingw32-windres
 
-.PHONY: libvgmstream.a libvorbis.a libmpg123-0.a libg7221_decode.a libg719_decode.a at3plusdecoder.a
+.PHONY: libvgmstream.a libvorbis.a libmpg123-0.a libg7221_decode.a libg719_decode.a libat3plusdecoder.a libavcodec.a libavformat.a libavutil.a
 
-in_vgmstream.dll: libvgmstream.a libvorbis.a libmpg123-0.a libg7221_decode.a libg719_decode.a libat3plusdecoder.a in_vgmstream.c resource.o
+in_vgmstream.dll: libvgmstream.a libvorbis.a libmpg123-0.a libg7221_decode.a libg719_decode.a libat3plusdecoder.a libavcodec.a libavformat.a libavutil.a resource.o
 	$(CC) -shared -static-libgcc $(CFLAGS) "-DVERSION=\"`../version.sh`\"" in_vgmstream.c resource.o $(LDFLAGS) -o in_vgmstream.dll
 	$(STRIP) in_vgmstream.dll
 
@@ -58,6 +58,15 @@ libg719_decode.a:
 	$(MAKE) -C ../ext_libs -f Makefile.mingw $@
 
 libat3plusdecoder.a:
+	$(MAKE) -C ../ext_libs -f Makefile.mingw $@
+
+libavcodec.a:
+	$(MAKE) -C ../ext_libs -f Makefile.mingw $@
+
+libavformat.a:
+	$(MAKE) -C ../ext_libs -f Makefile.mingw $@
+
+libavutil.a:
 	$(MAKE) -C ../ext_libs -f Makefile.mingw $@
 
 clean:

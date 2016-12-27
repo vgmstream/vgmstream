@@ -194,21 +194,12 @@ VGMSTREAM * init_vgmstream_ps3_sgdx(STREAMFILE *streamFile) {
                 break;
             }
 #endif
-
-            case 0x05: /* todo PCM? */
-                goto fail;
-
-                /*
-                vgmstream->coding_type = coding_PCM16LE;
-                if (vgmstream->channels > 1) {
-                    vgmstream->layout_type = layout_interleave;
-                    vgmstream->interleave_block_size = 0x1;
-                } else {
-                    vgmstream->layout_type = layout_none;
-                }
+            case 0x05: /* Short VAG ADPCM */
+                vgmstream->coding_type = coding_SHORT_VAG_ADPCM;
+                vgmstream->layout_type = layout_interleave;
+                vgmstream->interleave_block_size = 0x4;
 
                 break;
-                */
 
 #ifdef VGM_USE_FFMPEG
             case 0x06: /* AC3 */

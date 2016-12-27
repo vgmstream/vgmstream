@@ -117,7 +117,7 @@ PS2/PSX ADPCM:
 - .xa2
 - .xa30
 
-GC/Wii DSP ADPCM:
+GC/Wii/3DS DSP ADPCM:
 - .aaap
 - .agsc
 - .amts
@@ -140,6 +140,7 @@ GC/Wii DSP ADPCM:
 - .idsp
 - .ish+.isd
 - .lps
+- .mca
 - .mpdsp
 - .mss
 - .mus (not quite right)
@@ -260,6 +261,7 @@ etc:
 - .kcey (EACS IMA ADPCM)
 - .lsf (LSF ADPCM)
 - .mwv (Level-5 0x555 ADPCM)
+- .mtaf (Konami ADPCM)
 - .ogg, .logg (Ogg Vorbis)
 - .p3d (Radical ADPCM)
 - .rsf (CCITT G.721 ADPCM)
@@ -275,17 +277,18 @@ etc:
 - .stx (GC AFC ADPCM)
 - .um3 (Ogg Vorbis)
 - .xa (CD-ROM XA audio)
+- .xma (MS WMA Pro)
 
 loop assists:
 - .mus (playlist for .acm)
-- .pos (loop info for .wav)
+- .pos (loop info for .wav: 32 bit LE loop start sample + loop end sample)
 - .sli (loop info for .ogg)
 - .sfl (loop info for .ogg)
 
 other:
 - .adxkey (decryption key for .adx, in start/mult/add format)
 - .hcakey (decryption key for .hca, in HCA Decoder format)
-- .vgmstream/.vgms + .pos (to force FFmpeg formats + loop assist)
+- .vgmstream + .pos (FFmpeg formats + loop assist)
 
 Enjoy!
 -hcs

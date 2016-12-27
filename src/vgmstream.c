@@ -376,8 +376,9 @@ VGMSTREAM * init_vgmstream_internal(STREAMFILE *streamFile, int do_dfs) {
             
             /* Sanify loops! */
             if (vgmstream->loop_flag) {
-                if ((vgmstream->loop_end_sample <= vgmstream->loop_start_sample) ||
-                    (vgmstream->loop_end_sample > vgmstream->num_samples))
+                if ((vgmstream->loop_end_sample <= vgmstream->loop_start_sample)
+                        || (vgmstream->loop_end_sample > vgmstream->num_samples)
+                        || (vgmstream->loop_start_sample < 0) )
                     vgmstream->loop_flag = 0;
             }
 
@@ -1032,8 +1033,11 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_PSX:
         case coding_PSX_badflags:
         case coding_invert_PSX:
+        case coding_HEVAG_ADPCM:
         case coding_XA:
             return 28;
+        case coding_SHORT_VAG_ADPCM:
+            return 6;
         case coding_XBOX:
 		case coding_INT_XBOX:
         case coding_BAF_ADPCM:
@@ -1159,9 +1163,12 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
             return 9;
         case coding_PSX:
         case coding_PSX_badflags:
+        case coding_HEVAG_ADPCM:
         case coding_invert_PSX:
         case coding_NDS_PROCYON:
             return 16;
+        case coding_SHORT_VAG_ADPCM:
+            return 4;
         case coding_XA:
             return 14*vgmstream->channels;
         case coding_XBOX:
@@ -1431,6 +1438,20 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
         case coding_BAF_ADPCM:
             for (chan=0;chan<vgmstream->channels;chan++) {
                 decode_baf_adpcm(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                        vgmstream->channels,vgmstream->samples_into_block,
+                        samples_to_do);
+            }
+            break;
+        case coding_HEVAG_ADPCM:
+            for (chan=0;chan<vgmstream->channels;chan++) {
+                decode_hevag_adpcm(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                        vgmstream->channels,vgmstream->samples_into_block,
+                        samples_to_do);
+            }
+            break;
+        case coding_SHORT_VAG_ADPCM:
+            for (chan=0;chan<vgmstream->channels;chan++) {
+                decode_short_vag_adpcm(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
                         samples_to_do);
             }
@@ -1746,6 +1767,8 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream) {
                     vgmstream->loop_ch[i].adpcm_history2_32 = vgmstream->ch[i].adpcm_history2_32;
                 }
             }
+            /* todo preserve hevag, baf_adpcm, etc history? */
+
 #ifdef DEBUG
             {
                int i;
@@ -1959,6 +1982,12 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case coding_BAF_ADPCM:
             snprintf(temp,TEMPSIZE,"Bizarre Creations Playstation-ish 4-bit ADPCM");
+            break;
+        case coding_HEVAG_ADPCM:
+            snprintf(temp,TEMPSIZE,"PSVita HEVAG ADPCM");
+            break;
+        case coding_SHORT_VAG_ADPCM:
+            snprintf(temp,TEMPSIZE,"Short VAG (SGXD type 5) ADPCM");
             break;
         case coding_XA:
             snprintf(temp,TEMPSIZE,"CD-ROM XA 4-bit ADPCM");
