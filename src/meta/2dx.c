@@ -41,7 +41,7 @@ VGMSTREAM * init_vgmstream_2dx(STREAMFILE *streamFile) {
     vgmstream->num_samples = read_32bitLE(0x66,streamFile);
     vgmstream->layout_type = layout_none;
 	vgmstream->interleave_block_size = read_16bitLE(0x38,streamFile);
-    vgmstream->meta_type = meta_2DX;
+    vgmstream->meta_type = meta_2DX9;
 
     /* open the file for reading */
     {
