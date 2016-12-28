@@ -226,4 +226,11 @@ long mpeg_bytes_to_samples(long bytes, const struct mpg123_frameinfo *mi) {
     return (int64_t)bytes * mi->rate * 8 / (mi->bitrate * 1000);
 }
 
+
+/**
+ * disables/enables stderr output, useful for MPEG known to contain recoverable errors
+ */
+void mpeg_set_error_logging(mpeg_codec_data * data, int enable) {
+    mpg123_param(data->m, MPG123_ADD_FLAGS, MPG123_QUIET, !enable);
+}
 #endif
