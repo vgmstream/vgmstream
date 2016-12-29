@@ -92,10 +92,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_hgc1,
     init_vgmstream_aus,
     init_vgmstream_rws,
-    init_vgmstream_fsb1,
-    // init_vgmstream_fsb2,
-    init_vgmstream_fsb3,
-    init_vgmstream_fsb4,
+    init_vgmstream_fsb,
     init_vgmstream_fsb4_wav,
     init_vgmstream_fsb5,
     init_vgmstream_rwx,
@@ -300,7 +297,6 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_ngc_nst_dsp,
     init_vgmstream_baf,
     init_vgmstream_ps3_msf,
-    init_vgmstream_fsb_mpeg,
 	init_vgmstream_nub_vag,
 	init_vgmstream_ps3_past,
     init_vgmstream_ps3_sgdx,
@@ -2620,17 +2616,14 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         case meta_FSB1:
             snprintf(temp,TEMPSIZE,"FMOD Sample Bank (FSB1) Header");
             break;
-        case meta_FSB3_0:
-            snprintf(temp,TEMPSIZE,"FMOD Sample Bank (FSB3.0) Header");
+        case meta_FSB2:
+            snprintf(temp,TEMPSIZE,"FMOD Sample Bank (FSB2) Header");
             break;
-        case meta_FSB3_1:
-            snprintf(temp,TEMPSIZE,"FMOD Sample Bank (FSB3.1) Header");
+        case meta_FSB3:
+            snprintf(temp,TEMPSIZE,"FMOD Sample Bank (FSB3) Header");
             break;
         case meta_FSB4:
             snprintf(temp,TEMPSIZE,"FMOD Sample Bank (FSB4) Header");
-            break;
-        case meta_FSB4_WAV:
-            snprintf(temp,TEMPSIZE,"FMOD Sample Bank (FSB4) with additional 'WAV' Header");
             break;
         case meta_FSB5:
             snprintf(temp,TEMPSIZE,"FMOD Sample Bank (FSB5) Header");
@@ -3170,9 +3163,6 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
         case meta_PS3_MSF:
             snprintf(temp,TEMPSIZE,"PS3 MSF header");
-            break;
-        case meta_FSB_MPEG:
-            snprintf(temp,TEMPSIZE,"FSB MPEG header");
             break;
 		case meta_NUB_VAG:
             snprintf(temp,TEMPSIZE,"VAG (NUB) header");
