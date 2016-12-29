@@ -455,7 +455,7 @@ void reset_vgmstream(VGMSTREAM * vgmstream) {
 #endif
     if (vgmstream->coding_type==coding_CRI_HCA) {
         hca_codec_data *data = vgmstream->codec_data;
-        clHCA *hca = (clHCA *)(data + 1);
+        /*clHCA *hca = (clHCA *)(data + 1);*/
         data->curblock = 0;
         data->sample_ptr = clHCA_samplesPerBlock;
         data->samples_discard = 0;
