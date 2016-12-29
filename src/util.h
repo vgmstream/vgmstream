@@ -81,11 +81,14 @@ void concatn_fitting_doublenull(int length, char * dst, const char * src);
     do { if (condition) printf(__VA_ARGS__); } while (0)
 #define VGM_LOG(...) \
     do { printf(__VA_ARGS__); } while (0)
+#define VGM_LOGF() \
+    do { printf("%s:%i '%s'\n",  __FILE__, __LINE__, __func__); } while (0)
 
 #else
 
 #define VGM_ASSERT(condition,fmt, ...) /* nothing */
 #define VGM_LOG(...) /* nothing */
+#define VGM_LOGF(...) /* nothing */
 
 #endif
 
