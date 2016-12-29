@@ -91,10 +91,8 @@ typedef enum {
     coding_PSX,				/* PSX & PS2 ADPCM */
     coding_invert_PSX,      /* PSX ADPCM with some weirdness */
     coding_PSX_badflags,    /* with garbage in the flags byte */
-    coding_FFXI,            /* FF XI PSX-ish ADPCM */
-    coding_BAF_ADPCM,       /* Bizarre Creations PSX-ish ADPCM */
     coding_HEVAG_ADPCM,     /* PSVita games */
-    coding_SHORT_VAG_ADPCM, /* SGXD type 5 (PS3 Afrika) */
+    coding_VAG_ADPCM_cfg,   /* VAG with configurable frame size: FF XI, SGXD type 5, Bizarre Creations */
     coding_XA,				/* PSX CD-XA */
     coding_XBOX,			/* XBOX IMA */
 	coding_INT_XBOX,		/* XBOX 'real interleaved' IMA */

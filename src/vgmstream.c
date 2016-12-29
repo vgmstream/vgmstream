@@ -1024,20 +1024,16 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_AICA:
             return 2;
         case coding_NGC_AFC:
-        case coding_FFXI:
-            return 16;
         case coding_PSX:
         case coding_PSX_badflags:
         case coding_invert_PSX:
         case coding_HEVAG_ADPCM:
         case coding_XA:
             return 28;
-        case coding_SHORT_VAG_ADPCM:
-            return 6;
+        case coding_VAG_ADPCM_cfg:
+            return (vgmstream->interleave_block_size - 1) * 2; /* decodes 1 byte into 2 bytes */
         case coding_XBOX:
 		case coding_INT_XBOX:
-        case coding_BAF_ADPCM:
-            return 64;
         case coding_EAXA:
             return 28;
 		case coding_MAXIS_ADPCM:
@@ -1155,16 +1151,14 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
         case coding_SNDS_IMA:
             return 0;
         case coding_NGC_AFC:
-        case coding_FFXI:
-            return 9;
         case coding_PSX:
         case coding_PSX_badflags:
         case coding_HEVAG_ADPCM:
         case coding_invert_PSX:
         case coding_NDS_PROCYON:
             return 16;
-        case coding_SHORT_VAG_ADPCM:
-            return 4;
+        case coding_VAG_ADPCM_cfg:
+            return vgmstream->interleave_block_size;
         case coding_XA:
             return 14*vgmstream->channels;
         case coding_XBOX:
@@ -1184,8 +1178,6 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
             return 1; 
         case coding_APPLE_IMA4:
             return 34;
-        case coding_BAF_ADPCM:
-            return 33;
         case coding_LSF:
             return 28;
 #ifdef VGM_USE_G7221
@@ -1424,20 +1416,6 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                         samples_to_do);
             }
             break;
-        case coding_FFXI:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_ffxi_adpcm(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do);
-            }
-            break;
-        case coding_BAF_ADPCM:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_baf_adpcm(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do);
-            }
-            break;
         case coding_HEVAG_ADPCM:
             for (chan=0;chan<vgmstream->channels;chan++) {
                 decode_hevag_adpcm(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
@@ -1445,11 +1423,11 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                         samples_to_do);
             }
             break;
-        case coding_SHORT_VAG_ADPCM:
+        case coding_VAG_ADPCM_cfg:
             for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_short_vag_adpcm(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                decode_vag_adpcm_configurable(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do);
+                        samples_to_do, vgmstream->interleave_block_size);
             }
             break;
         case coding_XA:
@@ -1763,7 +1741,7 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream) {
                     vgmstream->loop_ch[i].adpcm_history2_32 = vgmstream->ch[i].adpcm_history2_32;
                 }
             }
-            /* todo preserve hevag, baf_adpcm, etc history? */
+            /* todo preserve hevag/adjustable_vag_adpcm/others history? */
 
 #ifdef DEBUG
             {
@@ -1973,17 +1951,11 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         case coding_invert_PSX:
             snprintf(temp,TEMPSIZE,"BMDX \"encrypted\" Playstation 4-bit ADPCM");
             break;
-        case coding_FFXI:
-            snprintf(temp,TEMPSIZE,"FFXI Playstation-ish 4-bit ADPCM");
-            break;
-        case coding_BAF_ADPCM:
-            snprintf(temp,TEMPSIZE,"Bizarre Creations Playstation-ish 4-bit ADPCM");
-            break;
         case coding_HEVAG_ADPCM:
             snprintf(temp,TEMPSIZE,"PSVita HEVAG ADPCM");
             break;
-        case coding_SHORT_VAG_ADPCM:
-            snprintf(temp,TEMPSIZE,"Short VAG (SGXD type 5) ADPCM");
+        case coding_VAG_ADPCM_cfg:
+            snprintf(temp,TEMPSIZE,"Playstation 4-bit ADPCM (configurable)");
             break;
         case coding_XA:
             snprintf(temp,TEMPSIZE,"CD-ROM XA 4-bit ADPCM");

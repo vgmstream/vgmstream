@@ -195,7 +195,7 @@ VGMSTREAM * init_vgmstream_ps3_sgdx(STREAMFILE *streamFile) {
             }
 #endif
             case 0x05: /* Short VAG ADPCM */
-                vgmstream->coding_type = coding_SHORT_VAG_ADPCM;
+                vgmstream->coding_type = coding_VAG_ADPCM_cfg;
                 vgmstream->layout_type = layout_interleave;
                 vgmstream->interleave_block_size = 0x4;
 
