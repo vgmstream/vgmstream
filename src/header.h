@@ -10,7 +10,7 @@
 #include "vgmstream.h"
 
 
-int header_check_extensions(STREAMFILE *streamFile, char * extensions);
+int header_check_extensions(STREAMFILE *streamFile, const char * cmpexts);
 
 int header_open_stream(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t start_offset);
 

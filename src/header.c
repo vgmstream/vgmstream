@@ -1,6 +1,8 @@
 #include <string.h>
+#include "header.h"
 #include "vgmstream.h"
 #include "streamfile.h"
+#include "streamtypes.h"
 #include "util.h"
 
 /**
@@ -43,17 +45,6 @@ int header_open_stream(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t star
 
     streamFile->get_name(streamFile,filename,sizeof(filename));
 
-
-#if 0
-    /* there is no appreciable difference using this */
-    if (vgmstream->layout_type == layout_mpeg) {
-        for (ch=0; ch < vgmstream->channels; ch++) {
-            vgmstream->ch[ch].streamfile = streamFile->open(streamFile,filename,MPEG_BUFFER_SIZE);
-                vgmstream->ch[ch].channel_start_offset= vgmstream->ch[ch].offset=start_offset;
-        }
-    }
-    else
-#endif
     {
         file = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
         if (!file) return 0;
@@ -61,9 +52,9 @@ int header_open_stream(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t star
         for (ch=0; ch < vgmstream->channels; ch++) {
             vgmstream->ch[ch].streamfile = file;
 
-            if (vgmstream->coding_type == coding_MS_IMA
-                    || vgmstream->coding_type == coding_XBOX) { /*todo not needed?*/
-                /* both IMA channels work with same bytes */
+            if (vgmstream->layout_type == layout_none
+                    || vgmstream->layout_type == layout_mpeg) { /* no appreciable difference for mpeg */
+                /* for some codecs like IMA where channels work with the same bytes */
                 vgmstream->ch[ch].channel_start_offset =
                         vgmstream->ch[ch].offset = start_offset;
             }
@@ -72,7 +63,6 @@ int header_open_stream(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t star
                         vgmstream->ch[ch].offset = start_offset
                         + vgmstream->interleave_block_size*ch;
             }
-            /*todo if interleave and ch > 0 and layout none don't change offset? */
         }
     }
 
