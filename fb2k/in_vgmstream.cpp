@@ -618,6 +618,7 @@ bool input_vgmstream::g_is_our_path(const char * p_path,const char * p_extension
 	if(!stricmp_utf8(p_extension,"xvas")) return 1;
 	if(!stricmp_utf8(p_extension,"xwav")) return 1;
 	if(!stricmp_utf8(p_extension,"xwb")) return 1;
+	if(!stricmp_utf8(p_extension,"xwm")) return 1;
 
 	if(!stricmp_utf8(p_extension,"ydsp")) return 1;
 	if(!stricmp_utf8(p_extension,"ymf")) return 1;

@@ -362,6 +362,7 @@ char * extension_list[] = {
     "xvas\0XVAS Audio File (*.XVAS)\0",
     "xwav\0XWAV Audio File (*.XWAV)\0",
     "xwb\0XWB Audio File (*.XWB)\0",
+    "xwm\0XWM Audio File (*.XWM)\0",
 	"xag\0XAG Audio File (*.XAG)\0",
 
     "ydsp\0YDSP Audio File (*.YDSP)\0",
