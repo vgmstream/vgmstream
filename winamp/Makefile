@@ -22,8 +22,8 @@ endif
 
 # config
 export SHELL = /bin/sh
-export CFLAGS=-Wall -O3 $(MPEG_CC) -DVGM_USE_G7221 -DVGM_USE_G719 $(MAT3P_CC) -DWIN32 -DUSE_ALLOCA -I../ext_includes $(FFMPEG_CC)
-export LDFLAGS=-L../src -L../ext_libs -lvgmstream -lvorbis $(MPEG_LD) -lg7221_decode -lg719_decode $(MAT3P_LD) -lm $(FFMPEG_LD)
+export CFLAGS=-Wall -O3 $(MPEG_CC) -DVGM_USE_G7221 -DVGM_USE_G719 $(MAT3P_CC) $(FFMPEG_CC) -DUSE_ALLOCA -DWIN32 -I../ext_includes $(EXTRA_CFLAGS)
+export LDFLAGS=-L../src -L../ext_libs -lvgmstream -lvorbis $(MPEG_LD) -lg7221_decode -lg719_decode $(MAT3P_LD) $(FFMPEG_LD) -lm $(EXTRA_LDFLAGS)
 export CC=i586-mingw32msvc-gcc
 export AR=i586-mingw32msvc-ar
 export STRIP=i586-mingw32msvc-strip

@@ -7,7 +7,7 @@ VGMSTREAM * init_vgmstream_bfwav(STREAMFILE *streamFile) {
 
 	coding_t coding_type;
 
-	int ima = 0;
+	/*int ima = 0;*/
 	int nsmbu_flag = 0;
 	int32_t(*read_32bit)(off_t, STREAMFILE*) = read_32bitBE;
 	int16_t(*read_16bit)(off_t, STREAMFILE*) = read_16bitBE;

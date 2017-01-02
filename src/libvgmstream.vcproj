@@ -147,6 +147,10 @@
 			Filter="h;hpp;hxx;hm;inl;inc;xsd"
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
+            <File
+                RelativePath=".\header.h"
+                >
+            </File>
 			<File
 				RelativePath=".\streamfile.h"
 				>
@@ -169,6 +173,10 @@
 			Filter="cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx"
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
+            <File
+                RelativePath=".\header.c"
+                >
+            </File>
 			<File
 				RelativePath=".\streamfile.c"
 				>

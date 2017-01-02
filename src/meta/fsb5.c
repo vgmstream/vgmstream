@@ -15,7 +15,7 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
     int NumSamples;
     int ChannelCount;
     int SampleRate;
-    int DSPInfoStart;
+    int DSPInfoStart = 0;
 
     int SampleHeaderStart, SampleHeaderLength, NameTableLength, SampleDataLength, CodingID, SampleMode;
     int ExtraFlag, ExtraFlagStart, ExtraFlagType, ExtraFlagSize, ExtraFlagEnd;
@@ -298,3 +298,155 @@ fail:
     if (vgmstream) close_vgmstream(vgmstream);
     return NULL;
 }
+
+#if 0
+// FSB5 MPEG
+VGMSTREAM * init_vgmstream_fsb5_mpeg(STREAMFILE *streamFile) {
+    VGMSTREAM * vgmstream = NULL;
+    char filename[PATH_LIMIT];
+    off_t start_offset;
+    int channel_count, channels, loop_flag, fsb_mainheader_len, fsb_subheader_len, FSBFlag, rate;
+    long sample_rate = 0, num_samples = 0;
+    uint16_t mp3ID;
+
+#ifdef VGM_USE_MPEG
+    mpeg_codec_data *mpeg_data = NULL;
+    coding_t mpeg_coding_type = coding_MPEG1_L3;
+#endif
+
+    /* check extension, case insensitive */
+    streamFile->get_name(streamFile,filename,sizeof(filename));
+    if (strcasecmp("fsb",filename_extension(filename))) goto fail;
+
+    /* check header */
+    if (read_32bitBE(0x00,streamFile) == 0x46534235) /* "FSB5" */
+    {
+        fsb_mainheader_len = 0x3C;
+    }
+    else
+    {
+        goto fail;
+    }
+
+    //fsb_subheader_len = read_16bitLE(fsb_mainheader_len,streamFile);
+
+    /* "Check if the FSB is used as conatiner or as single file" */
+    if (read_32bitBE(0x04,streamFile) != 0x01000000)
+        goto fail;
+
+#if 0
+    /* Check channel count, multi-channel not supported and will be refused */
+    if ((read_16bitLE(0x6E,streamFile) != 0x2) &&
+       (read_16bitLE(0x6E,streamFile) != 0x1))
+        goto fail;
+#endif
+
+    start_offset = fsb_mainheader_len+fsb_subheader_len+0x10;
+
+    /* Check the MPEG Sync Header */
+    mp3ID = read_16bitBE(start_offset,streamFile);
+    if ((mp3ID&0xFFE0) != 0xFFE0)
+        goto fail;
+
+    channel_count = read_16bitLE(fsb_mainheader_len+0x3E,streamFile);
+    if (channel_count != 1 && channel_count != 2)
+        goto fail;
+
+    FSBFlag = read_32bitLE(fsb_mainheader_len+0x30,streamFile);
+    if (FSBFlag&0x2 || FSBFlag&0x4 || FSBFlag&0x6)
+      loop_flag = 1;
+
+    num_samples = (read_32bitLE(fsb_mainheader_len+0x2C,streamFile));
+
+#ifdef VGM_USE_MPEG
+        mpeg_data = init_mpeg_codec_data(streamFile, start_offset, -1, -1, &mpeg_coding_type, &rate, &channels); // -1 to not check sample rate or channels
+        if (!mpeg_data) goto fail;
+
+        //channel_count = channels;
+        sample_rate = rate;
+
+#else
+        // reject if no MPEG support
+        goto fail;
+#endif
+
+    /* build the VGMSTREAM */
+    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+    if (!vgmstream) goto fail;
+
+    vgmstream->sample_rate = sample_rate;
+    vgmstream->num_samples = num_samples;
+    vgmstream->channels = channel_count;
+
+    /* Still WIP */
+    if (loop_flag) {
+        vgmstream->loop_start_sample = read_32bitLE(fsb_mainheader_len+0x28,streamFile);
+       vgmstream->loop_end_sample = read_32bitLE(fsb_mainheader_len+0x2C,streamFile);
+    }
+    vgmstream->meta_type = meta_FSB_MPEG;
+
+#ifdef VGM_USE_MPEG
+        /* NOTE: num_samples seems to be quite wrong for MPEG */
+        vgmstream->codec_data = mpeg_data;
+        vgmstream->layout_type = layout_mpeg;
+        vgmstream->coding_type = mpeg_coding_type;
+#else
+        // reject if no MPEG support
+        goto fail;
+#endif
+
+
+#if 0
+    if (loop_flag) {
+            vgmstream->loop_start_sample = read_32bitBE(0x18,streamFile)/960*1152;
+            vgmstream->loop_end_sample = read_32bitBE(0x1C,streamFile)/960*1152;
+  }
+#endif
+
+    /* open the file for reading */
+    {
+    int i;
+      STREAMFILE * file;
+        if(vgmstream->layout_type == layout_interleave)
+        {
+          file = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
+                if (!file) goto fail;
+                    for (i=0;i<channel_count;i++)
+              {
+                        vgmstream->ch[i].streamfile = file;
+                        vgmstream->ch[i].channel_start_offset=
+                        vgmstream->ch[i].offset=start_offset+
+                          vgmstream->interleave_block_size*i;
+              }
+        }
+
+#ifdef VGM_USE_MPEG
+        else if(vgmstream->layout_type == layout_mpeg) {
+            for (i=0;i<channel_count;i++) {
+                vgmstream->ch[i].streamfile = streamFile->open(streamFile,filename,MPEG_BUFFER_SIZE);
+                vgmstream->ch[i].channel_start_offset= vgmstream->ch[i].offset=start_offset;
+      }
+
+    }
+#endif
+        else { goto fail; }
+    }
+
+    return vgmstream;
+
+    /* clean up anything we may have opened */
+fail:
+#ifdef VGM_USE_MPEG
+    if (mpeg_data) {
+        mpg123_delete(mpeg_data->m);
+        free(mpeg_data);
+
+        if (vgmstream) {
+            vgmstream->codec_data = NULL;
+        }
+    }
+#endif
+    if (vgmstream) close_vgmstream(vgmstream);
+    return NULL;
+}
+#endif

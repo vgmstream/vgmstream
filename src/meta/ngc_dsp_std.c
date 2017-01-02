@@ -2686,9 +2686,9 @@ VGMSTREAM * init_vgmstream_ngc_dsp_csmp(STREAMFILE *streamFile) {
         goto fail;
 
     if (header.loop_flag) {
-        off_t loop_off;
+//        off_t loop_off;
         /* check loop predictor/scale */
-        loop_off = header.loop_start_offset/16*8;
+//        loop_off = header.loop_start_offset/16*8;
 		/* Retro doesn't seem to abide by this */
 //        if (header.loop_ps != (uint8_t)read_8bit(current_offset + start_offset+loop_off,streamFile))
 //            goto fail;

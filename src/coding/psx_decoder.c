@@ -3,8 +3,7 @@
 #include "../util.h"
 
 /* for some algos, maybe closer to the real thing */
-#define VAG_USE_INTEGER_TABLE  0
-
+#define VAG_USE_INTEGER_TABLE   0
 
 /* PS ADPCM table (precalculated divs) */
 static const double VAG_f[5][2] = {
@@ -14,6 +13,7 @@ static const double VAG_f[5][2] = {
         {  98.0 / 64.0 , -55.0 / 64.0 },
         { 122.0 / 64.0 , -60.0 / 64.0 }
 };
+#if VAG_USE_INTEGER_TABLE
 /* PS ADPCM table */
 static const int8_t VAG_coefs[5][2] = {
         {   0 ,   0 },
@@ -22,7 +22,7 @@ static const int8_t VAG_coefs[5][2] = {
         {  98 , -55 },
         { 122 , -60 }
 };
-
+#endif
 
 /* PSVita ADPCM table */
 static const int16_t HEVAG_coefs[128][4] = {
@@ -294,84 +294,6 @@ void decode_psx_badflags(VGMSTREAMCHANNEL * stream, sample * outbuf, int channel
 	stream->adpcm_history2_32=hist2;
 }
 
-/* FF XI's Vag-ish format */
-void decode_ffxi_adpcm(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
-
-	int predict_nr, shift_factor, sample;
-	int32_t hist1=stream->adpcm_history1_32;
-	int32_t hist2=stream->adpcm_history2_32;
-
-	short scale;
-	int i;
-	int32_t sample_count;
-    int32_t predictor;
-
-	int framesin = first_sample/16;
-
-	predict_nr = read_8bit(stream->offset+framesin*9,stream->streamfile) >> 4;
-	shift_factor = read_8bit(stream->offset+framesin*9,stream->streamfile) & 0xf;
-	first_sample = first_sample % 16;
-	
-	for (i=first_sample,sample_count=0; i<first_sample+samples_to_do; i++,sample_count+=channelspacing) {
-        short sample_byte = (short)read_8bit(stream->offset+(framesin*9)+1+i/2,stream->streamfile);
-
-		sample=0;
-
-        scale = ((i&1 ?
-                    sample_byte >> 4 :
-                    sample_byte & 0x0f)<<12);
-
-#if !VAG_USE_INTEGER_TABLE
-        predictor =
-                (int)((hist1*VAG_f[predict_nr][0]+hist2*VAG_f[predict_nr][1]));
-#else
-        predictor = 
-                (hist1*VAG_coefs[predict_nr][0]+hist2*VAG_coefs[predict_nr][1])/64;
-#endif
-        sample=(scale >> shift_factor) + predictor;
-
-		outbuf[sample_count] = clamp16(sample);
-		hist2=hist1;
-		hist1=sample;
-	}
-	stream->adpcm_history1_32=hist1;
-	stream->adpcm_history2_32=hist2;
-}
-
-void decode_baf_adpcm(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
-
-	int predict_nr, shift_factor, sample;
-	int32_t hist1=stream->adpcm_history1_32;
-	int32_t hist2=stream->adpcm_history2_32;
-
-	short scale;
-	int i;
-	int32_t sample_count;
-
-	int framesin = first_sample/64;
-
-	predict_nr = read_8bit(stream->offset+framesin*33,stream->streamfile) >> 4;
-	shift_factor = read_8bit(stream->offset+framesin*33,stream->streamfile) & 0xf;
-
-	first_sample = first_sample % 64;
-	
-	for (i=first_sample,sample_count=0; i<first_sample+samples_to_do; i++,sample_count+=channelspacing) {
-		short sample_byte = (short)read_8bit(stream->offset+(framesin*33)+1+i/2,stream->streamfile);
-
-		scale = ((i&1 ?
-			     sample_byte >> 4 :
-				 sample_byte & 0x0f)<<12);
-
-		sample=(int)((scale >> shift_factor)+hist1*VAG_f[predict_nr][0]+hist2*VAG_f[predict_nr][1]);
-
-		outbuf[sample_count] = clamp16(sample);
-		hist2=hist1;
-		hist1=sample;
-	}
-	stream->adpcm_history1_32=hist1;
-	stream->adpcm_history2_32=hist2;
-}
-
 
 /**
  * Sony's HEVAG (High Efficiency VAG) ADPCM, used in PSVita games (hardware decoded).
@@ -442,11 +364,10 @@ void decode_hevag_adpcm(VGMSTREAMCHANNEL * stream, sample * outbuf, int channels
 
 
 /**
- * Short VAG ADPCM, found in PS3 Afrika (SGDX type 5).
- * Uses 8 byte blocks and no flag.
+ * PS ADPCM of configurable size, with no flag.
+ * Found in PS3 Afrika (SGDX type 5) in size 4, FF XI in sizes 3/5/9/41, Blur and James Bond in size 33.
  */
-void decode_short_vag_adpcm(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
-
+void decode_vag_adpcm_configurable(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int frame_size) {
     uint8_t predict_nr, shift, byte;
     int16_t scale = 0;
 
@@ -454,37 +375,45 @@ void decode_short_vag_adpcm(VGMSTREAMCHANNEL * stream, sample * outbuf, int chan
     int32_t hist1 = stream->adpcm_history1_32;
     int32_t hist2 = stream->adpcm_history2_32;
 
-    int i, sample_count;
+    int i, sample_count, bytes_per_frame, samples_per_frame;
+    const int header_size = 1;
 
+    bytes_per_frame = frame_size - header_size;
+    samples_per_frame = bytes_per_frame * 2;
 
-    int framesin = first_sample / 6;
+    int framesin = first_sample / samples_per_frame;
 
-    /* 2 byte header: predictor = 1st, shift = 2nd */
-    byte = (uint8_t)read_8bit(stream->offset+framesin*8+0,stream->streamfile);
+    /* 1 byte header: predictor = 1st, shift = 2nd */
+    byte = (uint8_t)read_8bit(stream->offset+framesin*frame_size+0,stream->streamfile);
     predict_nr = byte >> 4;
     shift = byte & 0x0f;
 
-    first_sample = first_sample % 6;
+    first_sample = first_sample % samples_per_frame;
 
     for (i = first_sample, sample_count = 0; i < first_sample + samples_to_do; i++, sample_count += channelspacing) {
         sample = 0;
 
         if (predict_nr < 5) {
-
-            if (i & 1) {/* odd/even nibble */
-                scale = byte >> 4;
-            } else {
-                byte = (uint8_t)read_8bit(stream->offset+(framesin*8)+1+i/2,stream->streamfile);
+            if (i%2 != 1) { /* low nibble first */
+                byte = (uint8_t)read_8bit(stream->offset+(framesin*frame_size)+header_size+i/2,stream->streamfile);
                 scale = (byte & 0x0f);
+            } else { /* high nibble last */
+                scale = byte >> 4;
             }
+            scale = scale << 12; /* shift + sign extend (only if scale is int16_t) */
             /*if (scale > 7) {
                 scale = scale - 16;
             }*/
-            scale = scale << 12; /* shift + sign extend only if scale is int16_t */
-
-            sample = (hist1 * VAG_coefs[predict_nr][0] +
+#if VAG_USE_INTEGER_TABLE
+            sample = (scale >> shift) +
+                     (hist1 * VAG_coefs[predict_nr][0] +
                       hist2 * VAG_coefs[predict_nr][1] ) / 64;
-            sample = sample + (scale >> shift);
+            sample = sample + ;
+#else
+            sample = (int)( (scale >> shift) +
+                     (hist1 * VAG_f[predict_nr][0] +
+                      hist2 * VAG_f[predict_nr][1]) );
+#endif
         }
 
         outbuf[sample_count] = clamp16(sample);

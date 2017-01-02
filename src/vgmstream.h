@@ -91,10 +91,8 @@ typedef enum {
     coding_PSX,				/* PSX & PS2 ADPCM */
     coding_invert_PSX,      /* PSX ADPCM with some weirdness */
     coding_PSX_badflags,    /* with garbage in the flags byte */
-    coding_FFXI,            /* FF XI PSX-ish ADPCM */
-    coding_BAF_ADPCM,       /* Bizarre Creations PSX-ish ADPCM */
     coding_HEVAG_ADPCM,     /* PSVita games */
-    coding_SHORT_VAG_ADPCM, /* SGXD type 5 (PS3 Afrika) */
+    coding_VAG_ADPCM_cfg,   /* VAG with configurable frame size: FF XI, SGXD type 5, Bizarre Creations */
     coding_XA,				/* PSX CD-XA */
     coding_XBOX,			/* XBOX IMA */
 	coding_INT_XBOX,		/* XBOX 'real interleaved' IMA */
@@ -328,11 +326,9 @@ typedef enum {
     meta_AUS,				/* Variuos Capcom Games */
     meta_RWS,				/* Variuos Konami Games */
     meta_FSB1,              /* FMOD Sample Bank, version 1 */
-    meta_FSB3_0,            /* FMOD Sample Bank, version 3.0 */
-    meta_FSB3_1,            /* FMOD Sample Bank, version 3.1 */
+    meta_FSB2,              /* FMOD Sample Bank, version 2 */
+    meta_FSB3,              /* FMOD Sample Bank, version 3.0/3.1 */
     meta_FSB4,              /* FMOD Sample Bank, version 4 */
-    meta_FSB_MPEG,          /* Just Test */
-	  meta_FSB4_WAV,          /* FMOD Sample Bank, version 4 with "WAV" Header */
     meta_FSB5,              /* FMOD Sample Bank, version 5 */
     meta_RWX,				/* Air Force Delta Storm (XBOX) */
     meta_XWB,				/* King of Fighters (XBOX) */
