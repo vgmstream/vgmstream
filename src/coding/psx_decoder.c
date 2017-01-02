@@ -377,11 +377,12 @@ void decode_vag_adpcm_configurable(VGMSTREAMCHANNEL * stream, sample * outbuf, i
 
     int i, sample_count, bytes_per_frame, samples_per_frame;
     const int header_size = 1;
+	int framesin;
 
     bytes_per_frame = frame_size - header_size;
     samples_per_frame = bytes_per_frame * 2;
 
-    int framesin = first_sample / samples_per_frame;
+    framesin = first_sample / samples_per_frame;
 
     /* 1 byte header: predictor = 1st, shift = 2nd */
     byte = (uint8_t)read_8bit(stream->offset+framesin*frame_size+0,stream->streamfile);
