@@ -301,9 +301,9 @@ VGMSTREAM * init_vgmstream_fsb_offset(STREAMFILE *streamFile, off_t offset) {
             //VGM_LOG("FSB FSOUND_IMAADPCM found\n");
 #if 0
             if (fsbh.numchannels > 2) { /* Blade Kitten 5.1 */
-                vgmstream->coding_type = coding_MS_IMA;
-                vgmstream->layout_type = layout_none;
-                vgmstream->interleave_block_size = 0x24 * vgmstream->channels;
+                vgmstream->coding_type = coding_XBOX;
+                vgmstream->layout_type = layout_interleave;
+                vgmstream->interleave_block_size = 0x12 * vgmstream->channels;
             }
 #endif
 
@@ -381,7 +381,7 @@ VGMSTREAM * init_vgmstream_fsb_offset(STREAMFILE *streamFile, off_t offset) {
             } else {
                 vgmstream->coding_type = coding_PCM16LE; /* ? coding_PCM16LE_int ? */
             }
-            vgmstream->layout_type = vgmstream->channels == 1 ? layout_none : layout_interleave; /* needed? */
+            vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = 0x2;
         }
     }
