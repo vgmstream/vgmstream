@@ -234,7 +234,7 @@ VGMSTREAM * init_vgmstream_fsb_offset(STREAMFILE *streamFile, off_t offset) {
 
     /* Loops by default unless disabled (sometimes may add FSOUND_LOOP_NORMAL). Often streams
      * repeat over and over (some tracks that shouldn't do this based on the flags, no real way to identify them). */
-    loop_flag = !(fsbh.mode & FSOUND_LOOP_OFF);
+    loop_flag = !(fsbh.mode & FSOUND_LOOP_OFF); /* (fsbh.mode & FSOUND_LOOP_NORMAL) */
     /* ping-pong looping = no looping? (forward > reverse > forward) */
     VGM_ASSERT(fsbh.mode & FSOUND_LOOP_BIDI, "FSB BIDI looping found\n");
 
@@ -291,13 +291,15 @@ VGMSTREAM * init_vgmstream_fsb_offset(STREAMFILE *streamFile, off_t offset) {
     else if (fsbh.mode & FSOUND_IMAADPCM) { /* (codec 0x69, Voxware Byte Aligned) */
         if (fsbh.mode & FSOUND_IMAADPCMSTEREO) { /* noninterleaved, true stereo IMA */
             /* FSB4: Shatter, Blade Kitten (PC), Hard Corps: Uprising (PS3) */
-            vgmstream->coding_type = coding_XBOX; /* todo not always working in Hard Corps, interleave problem? */
+            vgmstream->coding_type = coding_MS_IMA; /* todo not always working in Hard Corps, interleave problem? */
             vgmstream->layout_type = layout_none;
+            vgmstream->interleave_block_size = 0x24*vgmstream->channels;
             //VGM_LOG("FSB FSOUND_IMAADPCMSTEREO found\n");
         } else {
             /* FSB3: Bioshock (PC); FSB4: Blade Kitten (PC) */
-            vgmstream->coding_type = coding_XBOX;
+            vgmstream->coding_type = coding_MS_IMA;
             vgmstream->layout_type = layout_none;
+            vgmstream->interleave_block_size = 0x24*vgmstream->channels;
             //VGM_LOG("FSB FSOUND_IMAADPCM found\n");
 #if 0
             if (fsbh.numchannels > 2) { /* Blade Kitten 5.1 */
