@@ -13,9 +13,11 @@
 #include <commctrl.h>
 #include <stdio.h>
 #include <io.h>
+#include <string.h>
+#include <ctype.h>
 
+#include "../src/formats.h"
 #include "../src/vgmstream.h"
-#include "../src/util.h"
 #include "in2.h"
 #include "wa_ipc.h"
 #include "resource.h"
@@ -71,308 +73,14 @@ int decode_pos_samples = 0;
 int stream_length_samples = 0;
 int fade_samples = 0;
 
-#define EXTENSION_LIST_SIZE 10240
+/* Winamp Play extension list, needed to accept/play and associate extensions in Windows */
+#define EXTENSION_LIST_SIZE   VGM_EXTENSION_LIST_CHAR_SIZE * 6
 char working_extension_list[EXTENSION_LIST_SIZE] = {0};
-char * extension_list[] = {
+#define EXT_BUFFER_SIZE 200
 
-	"2dx9\0""2DX9 Audio File (*.2DX9)\0",
-	"2pfs\0""2PFS Audio File (*.2PFS)\0",
+static void add_extension(int length, char * dst, const char * src);
+static void build_extension_list();
 
-	"aax\0AAX Audio File (*.AAX)\0",
-	"aaap\0AAAP Audio File (*.AAAP)\0",
-	"aax\0AAX Audio File (*.AAX)\0",
-	"acm\0ACM Audio File (*.ACM)\0",
-	"adm\0ADM Audio File (*.ADM)\0",
-	"adpcm\0ADPCM Audio File (*.ADPCM)\0",
-	"adp\0ADP Audio File (*.ADP)\0",
-	"ads\0PS2 ADS Audio File (*.ADS)\0",
-	"adx\0ADX Audio File (*.ADX)\0",
-	"afc\0AFC Audio File (*.AFC)\0",
-	"agsc\0AGSC Audio File (*.AGSC)\0",
-	"ahx\0AHX Audio File (*.AHX)\0",
-	"aifc\0AIFC Audio File (*.AIFC)\0",
-	"aix\0AIX Audio File (*.AIX)\0",
-	"amts\0AMTS Audio File (*.AMTS)\0",
-	"as4\0AS4 Audio File (*.AS4)\0",
-	"asd\0ASD Audio File (*.ASD)\0",
-	"asf\0ASF Audio File (*.ASF)\0",
-	"ast\0AST Audio File (*.AST)\0",
-	"asr\0ASR Audio File (*.ASR)\0",
-	"ass\0ASS Audio File (*.ASS)\0",
-	"at3\0AT3 Audio File (*.AT3)\0",
-	"aud\0AUD Audio File (*.AUD)\0",
-	"aus\0AUS Audio File (*.AUS)\0",
-	
-	"b1s\0B1S Audio File (*.B1S)\0",
-	"baka\0BAKA Audio File (*.BAKA)\0",
-	"baf\0BAF Audio File (*.BAF)\0",
-	"bar\0BAR Audio File (*.BAR)\0",
-	"bcstm\0BCSTM Audio File (*.BCSTM)\0",
-	"bcwav\0BCWAV (*.BCWAV)\0",
-	"bdsp\0BDSP Audio File (*.BDSP)\0",
-	"bfstm\0BFSTM Audio File (*.BFSTM)\0",
-	"bfwav;bfwavnsmbu;fwav\0BFWAV Audio File (*.BFWAV)\0",
-    "bg00\0BG00 Audio File (*.BG00)\0",
-    "bgw\0BGW Audio File (*.BGW)\0",
-    "bh2pcm\0BH2PCM Audio File (*.BH2PCM)\0",
-    "bmdx\0BMDX Audio File (*.BMDX)\0",
-	"bms\0BMS (*.BMS)\0",
-	"bnk\0BNK Audio File (*.BNK)\0",
-	"bns\0BNS Audio File (*.BNS)\0",
-    "bnsf\0BNSF Audio File (*.BNSF)\0",
-    "bo2\0BO2 Audio File (*.BO2)\0",
-    "brstm;brstmspm\0BRSTM Audio File (*.BRSTM)\0",
-    "btsnd\0BTSND Audio File (*.BTSND)\0",
-	"bvg\0BVG Audio File (*.BVG)\0",
-
-    "caf\0CAF Audio File (*.CAF)\0",
-    "capdsp\0CAPDSP Audio File (*.CAPDSP)\0", /* Capcom custom coefs */
-    "cbd2\0CBD2 Audio File (*.CBD2)\0",
-    "ccc\0CCC Audio File (*.CCC)\0",
-    "cfn\0CFN Audio File (*.CFN)\0",
-    "ckd\0CKD Audio File (*.CKD)\0",
-    "cnk\0CNK Audio File (*.CNK)\0",
-	"cps\0CPS Audio File (*.CPS)\0",
-
-    "dcs\0DCS Audio File (*.DCS)\0",
-    "de2\0DE2 Audio File (*.DE2)\0",
-    "ddsp\0DDSP Audio File (*.DDSP)\0",
-    "dmsg\0DMSG Audio File (*.DMSG)\0",
-    "dsp\0DSP Audio File (*.DSP)\0",
-    "dspw\0DSPW Audio File (*.DSPW)\0",
-    "dtk\0DTK Audio File (*.DTK)\0",
-    "dvi\0DVI Audio File (*.DVI)\0",
-    "dxh\0DXH Audio File (*.DXH)\0",
-
-    "eam\0EAM Audio File (*.EAM)\0",
-    "emff\0EMFF Audio File (*.EMFF)\0",
-    "enth\0ENTH Audio File (*.ENTH)\0",
-
-    "fag\0FAG Audio File (*.FAG)\0",
-    "ffw\0FFW Audio File (*.FFW)\0",
-    "filp\0FILP Audio File (*.FILP)\0",
-    "fsb\0FSB Audio File (*.FSB)\0",
-
-	"g1l\0G1L Audio File (*.G1L)\0",
-    "gbts\0GBTS Audio File (*.GBTS)\0",
-    "gca\0GCA Audio File (*.GCA)\0",
-    "gcm\0GCM Audio File (*.GCM)\0",
-    "gcub\0GCUB Audio File (*.GCUB)\0",
-    "gcw\0GCW Audio File (*.GCW)\0",
-    "genh\0GENH Audio File (*.GENH)\0",
-    "gms\0GMS Audio File (*.GMS)\0",
-    "gsb\0GSB Audio File (*.GSB)\0",
-
-    "hca\0HCA Audio File (*.HCA)\0",
-
-    "hgc1\0HGC1 Audio File (*.HGC1)\0",
-    "his\0HIS Audio File (*.HIS)\0",
-    "hlwav\0HLWAV Audio File (*.HLWAV)\0",
-    "hps\0HALPST Audio File (*.HPS)\0",
-    "hsf\0HSF Audio File (*.HSF)\0",
-    "hwas\0HWAS Audio File (*.HWAS)\0",
-
-    "iab\0IAB Audio File (*.IAB)\0",
-	"iadp\0IADP Audio File (*.IADP)\0",
-    "idsp\0IDSP Audio File (*.IDSP)\0",
-    "idvi\0IDVI Audio File (*.IDVI)\0",
-    "ikm\0IKM Audio File (*.IKM)\0",
-    "ild\0ILD Audio File (*.ILD)\0",
-    "int\0PS2 RAW Interleaved PCM (*.INT)\0",
-    "isd\0ISD Audio File (*.ISD)\0",
-    "isws\0ISWS Audio File (*.ISWS)\0",
-    "ivaud\0IVAUD Audio File (*.IVAUD)\0",
-    "ivag\0IVAG Audio File (*.IVAG)\0",
-    "ivb\0IVB Audio File (*.IVB)\0",
-
-    "joe\0JOE Audio File (*.JOE)\0",
-    "jstm\0JSTM Audio File (*.JSTM)\0",
-
-    "kces\0KCES Audio File (*.KCES)\0",
-    "kcey\0KCEY Audio File (*.KCEY)\0",
-    "khv\0KHV Audio File (*.KHV)\0",    
-	"kovs\0KOVS Audio File (*.KOVS)\0",
-    "kraw\0KRAW Audio File (*.KRAW)\0",
-
-    "leg\0LEG Audio File (*.LEG)\0",	
-    "logg\0LOGG Audio File (*.LOGG)\0",
-    "lpcm\0LPCM Audio File (*.LPCM)\0",
-    "lps\0LPS Audio File (*.LPS)\0",
-    "lsf\0LSF Audio File (*.LSF)\0",
-    "lwav\0LWAV Audio File (*.LWAV)\0",
-
-    "matx\0MATX Audio File (*.MATX)\0",
-	"mca\0MCA Audio File (*.MCA)\0",
-    "mcg\0MCG Audio File (*.MCG)\0",
-    "mi2\0PS2 MI2 Audio File (*.MI2)\0",
-    "mi4\0PS2 MI4 Audio File (*.MI4)\0",
-    "mib\0PS2 MIB Audio File (*.MIB)\0",
-    "mic\0PS2 MIC Audio File (*.MIC)\0",
-    "mihb\0MIHB Audio File (*.MIHB)\0",
-	"mnstr\0MNSTR Audio File (*.MNSTR)\0",
-    "mpdsp\0MPDSP Audio File (*.MPDSP)\0",
-    "mpds\0MPDS Audio File (*.MPDS)\0",
-    "msa\0MSA Audio File (*.MSA)\0",
-    "msf\0MSF Audio File (*.MSF)\0",
-    "mss\0MSS Audio File (*.MSS)\0",
-    "msvp\0MSVP Audio File (*.MSVP)\0",
-	"mtaf\0MTAF Audio File (*.MTAF)\0",
-    "mus\0MUS Playlist File (*.MUS)\0",
-    "musc\0MUSC Audio File (*.MUSC)\0",
-    "musx\0MUSX Audio File (*.MUSX)\0",
-    "mwv\0MWV Audio File (*.MWV)\0",
-    "mxst\0MxSt Audio File (*.MxSt)\0",
-    "myspd\0MYSPD Audio File (*.MYSPD)\0",
-
-    "ndp\0NDP Audio File (*.NDP)\0",
-    "ngca\0NGCA Audio File (*.NGCA)\0",
-    "npsf\0PS2 NPSF Audio File (*.NPSF)\0",
-    "nus3bank\0NUS3BANK Audio File (*.NUS3BANK)\0",
-    "nwa\0NWA Audio File (*.NWA)\0",
-
-    "omu\0OMU Audio File (*.OMU)\0",
-	"otm\0OTM Audio File (*.OTM)\0",
-
-    "p2bt\0P2BT Audio File (*.P2BT)\0",
-    "p3d\0P3D Audio File (*.P3D)\0",
-	"past\0PAST Audio File (*.PAST)\0",
-    "pcm\0PCM Audio File (*.PCM)\0",
-    "pdt\0PDT Audio File (*.PDT)\0",
-    "pnb\0PNB Audio File (*.PNB)\0",
-    "pona\0PONA Audio File (*.PONA)\0",
-    "pos\0POS Audio File (*.POS)\0",
-    "ps2stm\0PS2STM Audio File (*.PS2STM)\0",
-    "psh\0PSH Audio File (*.PSH)\0",
-	"psnd\0PSND Audio File (*.PSND)\0",
-    "psw\0PSW Audio File (*.PSW)\0",
-
-    "ras\0RAS Audio File (*.RAS)\0",
-	"raw\0RAW Audio File (*.RAW)\0",
-    "rkv\0RKV Audio File (*.RKV)\0",
-    "rnd\0RND Audio File (*.RND)\0",
-    "rrds\0RRDS Audio File (*.RRDS)\0",
-    "rsd\0RSD Audio File (*.RSD)\0",
-    "rsf\0RSF Audio File (*.RSF)\0",
-    "rstm\0RSTM Audio File (*.RSTM)\0",
-    "rvws\0RVWS Audio File (*.RVWS)\0",
-    "rwar\0RWAR Audio File (*.RWSD)\0",
-    "rwav\0RWAV Audio File (*.RWAV)\0",
-    "rws\0RWS Audio File (*.RWS)\0",
-    "rwsd\0RWSD Audio File (*.RWSD)\0",
-    "rwx\0RWX Audio File (*.RWX)\0",
-    "rxw\0PS2 RXWS File (*.RXW)\0",
-
-    "s14\0S14 Audio File (*.S14)\0",
-    "sab\0SAB Audio File (*.SAB)\0",
-    "sad\0SAD Audio File (*.SAD)\0",
-    "sap\0SAP Audio File (*.SAP)\0",
-    "sc\0SC Audio File (*.SC)\0",
-    "scd\0SCD Audio File (*.SCD)\0",
-    "sck\0SCK Audio File (*.SCK)\0",
-    "sd9\0SD9 Audio File (*.SD9)\0",
-    "sdt\0SDT Audio File (*.SDT)\0",
-    "seg\0SEG Audio File (*.SEG)\0",
-    "sf0\0SF0 Audio File (*.SF0)\0",
-    "sfl\0SFL Audio File (*.SFL)\0",
-    "sfs\0SFS Audio File (*.SFS)\0",
-    "sfx\0SFX Audio File (*.SFX)\0",
-	"sgb\0SGB Audio File (*.SGB)\0",
-	"sgd\0SGD Audio File (*.SGD)\0",
-	"sgx\0SGX Audio File (*.SGX)\0",
-    "sl3\0SL3 Audio File (*.SL3)\0",
-    "sli\0SLI Audio File (*.SLI)\0",
-    "smp\0SMP Audio File (*.SMP)\0",
-    "smpl\0SMPL Audio File (*.SMPL)\0",
-    "snd\0SND Audio File (*.SND)\0",
-    "snds\0SNDS Audio File (*.SNDS)\0",
-    "sng\0SNG Audio File (*.SNG)\0",
-    "sns\0SNS Audio File (*.SNS)\0",
-    "spd\0SPD Audio File (*.SPD)\0",
-    "spm\0SPM Audio File (*.SPM)\0",
-    "sps\0SPS Audio File (*.SPS)\0",
-    "spsd\0SPSD Audio File (*.SPSD)\0",
-    "spw\0SPW Audio File (*.SPW)\0",
-    "ss2\0PS2 SS2 Audio File (*.SS2)\0",
-    "ss3\0SS3 Audio File (*.SS3)\0",
-    "ss7\0SS7 Audio File (*.SS7)\0",
-    "ssm\0SSM Audio File (*.SSM)\0",
-    "sss\0SSS Audio File (*.SSS)\0",
-    "ster\0STER Audio File (*.STER)\0",
-    "sth\0STH Audio File (*.STH)\0",
-    "stma\0STMA Audio File (*.STMA)\0",
-    "str\0STR Audio File (*.STR)\0",
-    "strm\0STRM Audio File (*.STRM)\0",
-    "sts\0PS2 EXST Audio File (*.STS)\0",
-    "stx\0STX Audio File (*.STX)\0",
-    "svag\0PS2 SVAG Audio File (*.SVAG)\0",
-    "svs\0SVS Audio File (*.SVS)\0",
-    "swav\0SWAV Audio File (*.SWAV)\0",
-    "swd\0SWD Audio File (*.SWD)\0",
-
-	"tec\0TEC Audio File (*.TEC)\0",
-    "thp\0THP Audio File (*.THP)\0",
-    "tk1\0TK1 Audio File (*.TK1)\0",
-    "tk5\0TK5 Audio File (*.TK5)\0",
-	"tra\0TRA Audio File (*.TRA)\0",
-	"tun\0TUN Audio File (*.TUN)\0",
-    "tydsp\0TYDSP Audio File (*.TYDSP)\0",
-
-    "um3\0UM3 Audio File (*.UM3)\0",
-
-    "vag\0VAG Audio File (*.VAG)\0",
-    "vas\0VAS Audio File (*.VAS)\0",
-	"vawx\0VAWX Audio File (*.VAWX)\0",
-    "vb\0VB Audio File (*.VB)\0",
-    "vbk\0VBK Audio File (*.VBK)\0",
-    "vgs\0VGS Audio File (*.VGS)\0",
-    "vig\0VIG Audio File (*.VIG)\0",
-	"vms\0VMS Audio File (*.VMS)\0",
-    "vpk\0VPK Audio File (*.VPK)\0",
-    "vs\0VS Audio File (*.VS)\0",
-    "vsf\0VSF Audio File (*.VSF)\0",
-    "vgv\0VGV Audio File (*.VGV)\0",
-    "voi\0VOI Audio File (*.VOI)\0",
-
-    "waa\0WAA Audio File (*.WAA)\0",
-    "wac\0WAC Audio File (*.WAC)\0",
-    "wad\0WAD Audio File (*.WAD)\0",
-    "wam\0WAM Audio File (*.WAM)\0",
-    "wavm\0WAVM Audio File (*.WAVM)\0",
-    "was\0WAS Audio File (*.WAS)\0",
-    "wb\0WB Audio File (*.WB)\0",
-    "wii\0WII Audio File (*.WII)\0",
-    "wmus\0WMUS Audio File (*.WMUS)\0",
-	"wp2\0WP2 Audio File (*.WP2)\0",
-    "wpd\0WPD Audio File (*.WPD)\0",
-    "wsd\0WSD Audio File (*.WSD)\0",
-    "wsi\0WSI Audio File (*.WSI)\0",
-    "wvs\0WVS Audio File (*.WVS)\0",
-
-    "xa\0PSX CD-XA File (*.XA)\0",
-    "xa2\0XA2 Audio File (*.XA2)\0",
-    "xa30\0XA30 Audio File (*.XA30)\0",
-	"xau\0XAU Audio File (*.XAU)\0",
-    "xma\0XMA Audio File (*.XMA)\0",
-    "xma2\0XMA2 Audio File (*.XMA2)\0",
-    "xmu\0XMU Audio File (*.XMU)\0",
-    "xnb\0XNB Audio File (*.XNB)\0",
-    "xsf\0XSF Audio File (*.XSF)\0",
-    "xss\0XSS Audio File (*.XSS)\0",
-    "xvag\0XVAG Audio File (*.XVAG)\0",
-    "xvas\0XVAS Audio File (*.XVAS)\0",
-    "xwav\0XWAV Audio File (*.XWAV)\0",
-    "xwb\0XWB Audio File (*.XWB)\0",
-    "xwm\0XWM Audio File (*.XWM)\0",
-	"xag\0XAG Audio File (*.XAG)\0",
-
-    "ydsp\0YDSP Audio File (*.YDSP)\0",
-    "ymf\0YMF Audio File (*.YMF)\0",
-
-    "zsd\0ZSD Audio File (*.ZSD)\0",
-    "zwdsp\0ZWDSP Audio File (*.ZWDSP)\0",
-
-    "vgmstream\0vgmstream Audio File (*.VGMSTREAM)\0",
-};
 
 void about(HWND hwndParent) {
     MessageBox(hwndParent,
@@ -382,17 +90,6 @@ void about(HWND hwndParent) {
             ,"about in_vgmstream",MB_OK);
 }
 void quit() {}
-
-void build_extension_list() {
-    int i;
-    working_extension_list[0]='\0';
-    working_extension_list[1]='\0';
-
-    for (i=0;i<sizeof(extension_list)/sizeof(extension_list[0]);i++) {
-        concatn_fitting_doublenull(EXTENSION_LIST_SIZE,working_extension_list,
-                extension_list[i]);
-    }
-}
 
 void GetINIFileName(char * iniFile) {
     /* if we're running on a newer winamp version that better supports
@@ -929,3 +626,63 @@ __declspec( dllexport ) In_Module * winampGetInModule2()
     return &input_module;
 }
 
+
+/**
+ * Creates Winamp's extension list, a single string that ends with \0\0.
+ * Each extension must be in this format: "extension\0Description\0"
+ */
+static void build_extension_list() {
+    const char ** ext_list;
+    int ext_list_len;
+    int i;
+
+    working_extension_list[0]='\0';
+    working_extension_list[1]='\0';
+
+    ext_list = vgmstream_get_formats();
+    ext_list_len = vgmstream_get_formats_length();
+
+    for (i=0; i < ext_list_len; i++) {
+        add_extension(EXTENSION_LIST_SIZE, working_extension_list, ext_list[i]);
+    }
+}
+
+/**
+ * Adds ext to Winamp's extension list.
+ */
+static void add_extension(int length, char * dst, const char * ext) {
+    char buf[EXT_BUFFER_SIZE];
+    char ext_upp[EXT_BUFFER_SIZE];
+    int ext_len, written;
+    int i,j;
+    if (length <= 1)
+        return;
+
+    ext_len = strlen(ext);
+
+    /* find end of dst (double \0), saved in i */
+    for (i=0; i<length-2 && (dst[i] || dst[i+1]); i++)
+        ;
+
+    /* check if end reached or not enough room to add */
+    if (i == length-2 || i + EXT_BUFFER_SIZE+2 > length-2 || ext_len * 3 + 20+2 > EXT_BUFFER_SIZE) {
+        dst[i]='\0';
+        dst[i+1]='\0';
+        return;
+    }
+
+    if (i > 0)
+        i++;
+
+    /* uppercase ext */
+    for (j=0; j < ext_len; j++)
+        ext_upp[j] = toupper(ext[j]);
+    ext_upp[j] = '\0';
+
+    /* copy new extension + double null terminate */
+    written = sprintf(buf, "%s%c%s Audio File (*.%s)%c", ext,'\0',ext_upp,ext_upp,'\0'); /*ex: "vgmstream\0vgmstream Audio File (*.VGMSTREAM)\0" */
+    for (j=0; j < written; i++,j++)
+        dst[i] = buf[j];
+    dst[i]='\0';
+    dst[i+1]='\0';
+}

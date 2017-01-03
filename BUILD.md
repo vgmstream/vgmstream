@@ -93,9 +93,8 @@ For new simple formats, assuming existing layout/coding:
 - *src/meta/meta.h*: register parser's init
 - *src/vgmstream.h*: register new meta
 - *src/vgmstream.c*: add parser init to search list, add meta description
-- *winamp/in_vgmstream.c*
-  *fb2k/in_vgmstream.cpp*
-  *xml-vgmstream/DllMain.c*: add new extension to the format list
+- *src/formats.c*: add new extension to the format list
+  *fb2k/in_vgmstream.cpp*: add new extension to the file associations list
 - *src/Makefile*
   *src/meta/Makefile.unix.am*
   *src/libvgmstream.vcproj/vcxproj/filters*: to compile new (format-name).c parser
