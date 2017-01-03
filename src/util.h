@@ -69,8 +69,6 @@ void make_smpl_chunk(uint8_t * buf, int32_t loop_start, int32_t loop_end);
 void swap_samples_le(sample *buf, int count);
 
 void concatn(int length, char * dst, const char * src);
-void concatn_doublenull(int length, char * dst, const char * src);
-void concatn_fitting_doublenull(int length, char * dst, const char * src);
 
 
 /* Simple stdout logging for debugging and regression testing purposes.
