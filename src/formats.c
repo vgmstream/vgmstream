@@ -11,8 +11,10 @@ static const char* extension_list[] = {
     "2dx9",
     "2pfs",
 
+    "aa3", //FFmpeg, not parsed (ATRAC3/ATRAC3PLUS/MP3/LPCM/WMA)
     "aaap",
     "aax",
+    //"ac3", //FFmpeg, not parsed //common?
     "acm",
     "adm",
     "adp",
@@ -166,6 +168,7 @@ static const char* extension_list[] = {
     "nus3bank", //todo not existing?
     "nwa",
 
+    "oma", //FFmpeg, not parsed (ATRAC3/ATRAC3PLUS/MP3/LPCM/WMA)
     "omu",
     "otm",
 
@@ -302,6 +305,7 @@ static const char* extension_list[] = {
     "xwav",
     "xwb",
     "xwm", //FFmpeg, not parsed (XWMA)
+    "xwma", //FFmpeg, not parsed (XWMA)
 
     "ydsp",
     "ymf",
@@ -310,6 +314,8 @@ static const char* extension_list[] = {
     "zwdsp",
 
     "vgmstream"
+
+    //, NULL //end mark
 };
 
 /**
