@@ -49,9 +49,11 @@ static void scd_ogg_decrypt_v3_callback(void *ptr, size_t size, size_t nmemb, vo
 VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[PATH_LIMIT];
-    off_t start_offset, meta_offset_offset, meta_offset, post_meta_offset, data_size;
+    off_t start_offset, tables_offset, headers_offset, meta_offset, post_meta_offset, stream_size;
+    int headers_entries;
     int32_t loop_start, loop_end;
 
+    int target_stream = 1; /* N=Nth stream, 0=auto (first) */
     int loop_flag = 0;
 	int channel_count;
     int codec_id;
@@ -68,55 +70,74 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
     if (read_32bitBE(0,streamFile) != 0x53454442) goto fail;
     /* SSCF */
     if (read_32bitBE(4,streamFile) != 0x53534346) goto fail;
-    if (read_32bitBE(8,streamFile) == 2 ||
-        read_32bitBE(8,streamFile) == 3) {
-        /* version 2 BE, as seen in FFXIII demo for PS3 */
-        /* version 3 BE, as seen in FFXIII for PS3 */
+
+    /** main header section **/
+    if (read_32bitBE(8,streamFile) == 2 || /* version 2 BE, as seen in FFXIII demo for PS3 */
+        read_32bitBE(8,streamFile) == 3) { /* version 3 BE, as seen in FFXIII for PS3 */
+
         read_32bit = read_32bitBE;
         read_16bit = read_16bitBE;
         //size_offset = 0x14;
-        meta_offset_offset = 0x40 + read_16bit(0xe,streamFile);
-    } else if (read_32bitLE(8,streamFile) == 3 ||
+    } else if (read_32bitLE(8,streamFile) == 3 || /* version 2/3 LE, as seen in FFXIV for PC (and others?) */
                read_32bitLE(8,streamFile) == 2) {
-        /* version 2/3 LE, as seen in FFXIV for PC (and others?) */
+
         read_32bit = read_32bitLE;
         read_16bit = read_16bitLE;
         //size_offset = 0x10;
-        meta_offset_offset = 0x40 + read_16bit(0xe,streamFile);
     } else goto fail;
 
-    /* never mind, FFXIII music_68tak.ps3.scd is 0x80 shorter */
+    /*  0xc: probably 00=LE, 01=BE */
+    /*  0xd: unk (always 0x04) */
+    tables_offset = read_16bit(0xe,streamFile);
+
 #if 0
+    /* never mind, FFXIII music_68tak.ps3.scd is 0x80 shorter */
     /* check file size with header value */
     if (read_32bit(size_offset,streamFile) != get_streamfile_size(streamFile))
         goto fail;
 #endif
 
-    meta_offset = read_32bit(meta_offset_offset,streamFile);
-    data_size = read_32bit(meta_offset + 0x0, streamFile); /* music size */
+    /** offset tables  **/
+    /* 0x00: table1_unknown entries */
+    /* 0x02: table2_headers entries */
+    /* 0x04: table3_unknown entries */
+    /* 0x06: unknown (varies) */
+    /* 0x08: table1_unknown start offset */
+    /* 0x0c: table2_headers start offset */
+    /* 0x10: table3_unknown start offset */
+    /* 0x14: unknown (0x0) */
+    /* 0x18: unknown offset */
+    /* 0x1c: unknown (0x0)  */
+    headers_entries = read_16bit(tables_offset+0x02,streamFile);
+    VGM_ASSERT(headers_entries > 1, "SCD: multiple streams found (%i entries)\n", headers_entries);
+    if (target_stream == 0) target_stream = 1; /* auto: default to 1 */
+    if (target_stream > headers_entries) goto fail;
+    headers_offset = read_32bit(tables_offset+0x0c,streamFile);
 
-    /* check that chunk size equals stream size (?) */
+    /** header table entries (each is an uint32_t offset to stream header) **/
+    meta_offset = read_32bit(headers_offset + (target_stream-1)*4,streamFile);
+
+    /** stream header **/
+    stream_size = read_32bit(meta_offset + 0x0, streamFile);
+    channel_count = read_32bit(meta_offset+4,streamFile);
+    /* 0x8 sample rate */
+    codec_id = read_32bit(meta_offset+0xc,streamFile);
+
     loop_start = read_32bit(meta_offset+0x10,streamFile);
     loop_end = read_32bit(meta_offset+0x14,streamFile);
     loop_flag = (loop_end > 0);
 
-    channel_count = read_32bit(meta_offset+4,streamFile);
-    codec_id = read_32bit(meta_offset+0xc,streamFile);
-
     post_meta_offset = meta_offset + 0x20;
 
-    /* data at meta_offset is only 0x20 bytes, but there may be auxiliary chunks
-       before anything else */
-
+    /* data at meta_offset is only 0x20 bytes, but there may be auxiliary chunks before anything else */
     aux_chunk_count = read_32bit(meta_offset+0x1c,streamFile);
-    for (; aux_chunk_count > 0; aux_chunk_count --)
-    {
+    for (; aux_chunk_count > 0; aux_chunk_count--) {
         /* skip aux chunks */
-        /*printf("skipping %08x\n", read_32bitBE(post_meta_offset, streamFile));*/
         post_meta_offset += read_32bit(post_meta_offset+4,streamFile);
     }
 
     start_offset = post_meta_offset + read_32bit(meta_offset+0x18,streamFile);
+
 
 #ifdef VGM_USE_VORBIS
     if (codec_id == 0x6)
@@ -174,8 +195,8 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
             } else if (xor_version == 3) {
                 inf.decryption_enabled = 1;
                 inf.decryption_callback = scd_ogg_decrypt_v3_callback;
-                inf.scd_xor = data_size & 0xFF; /* xor_byte is not used? */
-                inf.scd_xor_length = data_size; /* full file is XOR'ed */
+                inf.scd_xor = stream_size & 0xFF; /* xor_byte is not used? */
+                inf.scd_xor_length = stream_size; /* full file is XOR'ed */
             }
             result = init_vgmstream_ogg_vorbis_callbacks(streamFile, filename, NULL, start_offset, &inf);
             /* always? */
@@ -197,7 +218,7 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
             /* PCM */
             vgmstream->coding_type = coding_PCM16LE_int;
             vgmstream->layout_type = layout_none;
-            vgmstream->num_samples = read_32bit(meta_offset+0,streamFile) / 2 / channel_count;
+            vgmstream->num_samples = stream_size / 2 / channel_count;
 
             if (loop_flag) {
                 vgmstream->loop_start_sample = loop_start / 2 / channel_count;
@@ -212,6 +233,7 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
                 struct mpg123_frameinfo mi;
                 coding_t ct;
 
+                /* Drakengard 3, some Kingdom Hearts */
                 if (vgmstream->sample_rate == 47999)
                     vgmstream->sample_rate = 48000;
                 if (vgmstream->sample_rate == 44099)
@@ -226,7 +248,7 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
                 vgmstream->coding_type = ct;
                 vgmstream->layout_type = layout_mpeg;
                 if (mi.vbr != MPG123_CBR) goto fail;
-                vgmstream->num_samples = mpeg_bytes_to_samples(read_32bit(meta_offset+0,streamFile), &mi);
+                vgmstream->num_samples = mpeg_bytes_to_samples(stream_size, &mi);
                 vgmstream->num_samples -= vgmstream->num_samples%576;
                 if (loop_flag) {
                     vgmstream->loop_start_sample = mpeg_bytes_to_samples(loop_start, &mi);
@@ -243,7 +265,7 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
             vgmstream->coding_type = coding_MSADPCM;
             vgmstream->layout_type = layout_none;
             vgmstream->interleave_block_size = read_16bit(post_meta_offset+0xc,streamFile);
-            vgmstream->num_samples = msadpcm_bytes_to_samples(read_32bit(meta_offset+0,streamFile), vgmstream->interleave_block_size, vgmstream->channels);
+            vgmstream->num_samples = msadpcm_bytes_to_samples(stream_size, vgmstream->interleave_block_size, vgmstream->channels);
 
             if (loop_flag) {
                 vgmstream->loop_start_sample = msadpcm_bytes_to_samples(loop_start, vgmstream->interleave_block_size, vgmstream->channels);
@@ -344,7 +366,7 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
             break;
 #endif
         default:
-            VGM_LOG("SCD unknown codec_id: %x\n", codec_id);
+            VGM_LOG("SCD: unknown codec_id %x\n", codec_id);
             goto fail;
     }
 
