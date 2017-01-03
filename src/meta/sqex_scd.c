@@ -20,10 +20,36 @@ typedef struct _SCDINTSTREAMFILE
 
 static STREAMFILE *open_scdint_with_STREAMFILE(STREAMFILE *file, const char * filename, off_t start_offset, off_t interleave_block_size, off_t stride_size, size_t total_size);
 
+
+/* V3 decryption table found in the .exe */
+static const uint8_t scd_ogg_v3_lookuptable[256] = { /* FF XIV Heavensward */
+    0x3A, 0x32, 0x32, 0x32, 0x03, 0x7E, 0x12, 0xF7, 0xB2, 0xE2, 0xA2, 0x67, 0x32, 0x32, 0x22, 0x32, // 00-0F
+    0x32, 0x52, 0x16, 0x1B, 0x3C, 0xA1, 0x54, 0x7B, 0x1B, 0x97, 0xA6, 0x93, 0x1A, 0x4B, 0xAA, 0xA6, // 10-1F
+    0x7A, 0x7B, 0x1B, 0x97, 0xA6, 0xF7, 0x02, 0xBB, 0xAA, 0xA6, 0xBB, 0xF7, 0x2A, 0x51, 0xBE, 0x03, // 20-2F
+    0xF4, 0x2A, 0x51, 0xBE, 0x03, 0xF4, 0x2A, 0x51, 0xBE, 0x12, 0x06, 0x56, 0x27, 0x32, 0x32, 0x36, // 30-3F
+    0x32, 0xB2, 0x1A, 0x3B, 0xBC, 0x91, 0xD4, 0x7B, 0x58, 0xFC, 0x0B, 0x55, 0x2A, 0x15, 0xBC, 0x40, // 40-4F
+    0x92, 0x0B, 0x5B, 0x7C, 0x0A, 0x95, 0x12, 0x35, 0xB8, 0x63, 0xD2, 0x0B, 0x3B, 0xF0, 0xC7, 0x14, // 50-5F
+    0x51, 0x5C, 0x94, 0x86, 0x94, 0x59, 0x5C, 0xFC, 0x1B, 0x17, 0x3A, 0x3F, 0x6B, 0x37, 0x32, 0x32, // 60-6F
+    0x30, 0x32, 0x72, 0x7A, 0x13, 0xB7, 0x26, 0x60, 0x7A, 0x13, 0xB7, 0x26, 0x50, 0xBA, 0x13, 0xB4, // 70-7F
+    0x2A, 0x50, 0xBA, 0x13, 0xB5, 0x2E, 0x40, 0xFA, 0x13, 0x95, 0xAE, 0x40, 0x38, 0x18, 0x9A, 0x92, // 80-8F
+    0xB0, 0x38, 0x00, 0xFA, 0x12, 0xB1, 0x7E, 0x00, 0xDB, 0x96, 0xA1, 0x7C, 0x08, 0xDB, 0x9A, 0x91, // 90-9F
+    0xBC, 0x08, 0xD8, 0x1A, 0x86, 0xE2, 0x70, 0x39, 0x1F, 0x86, 0xE0, 0x78, 0x7E, 0x03, 0xE7, 0x64, // A0-AF
+    0x51, 0x9C, 0x8F, 0x34, 0x6F, 0x4E, 0x41, 0xFC, 0x0B, 0xD5, 0xAE, 0x41, 0xFC, 0x0B, 0xD5, 0xAE, // B0-BF
+    0x41, 0xFC, 0x3B, 0x70, 0x71, 0x64, 0x33, 0x32, 0x12, 0x32, 0x32, 0x36, 0x70, 0x34, 0x2B, 0x56, // C0-CF
+    0x22, 0x70, 0x3A, 0x13, 0xB7, 0x26, 0x60, 0xBA, 0x1B, 0x94, 0xAA, 0x40, 0x38, 0x00, 0xFA, 0xB2, // D0-DF
+    0xE2, 0xA2, 0x67, 0x32, 0x32, 0x12, 0x32, 0xB2, 0x32, 0x32, 0x32, 0x32, 0x75, 0xA3, 0x26, 0x7B, // E0-EF
+    0x83, 0x26, 0xF9, 0x83, 0x2E, 0xFF, 0xE3, 0x16, 0x7D, 0xC0, 0x1E, 0x63, 0x21, 0x07, 0xE3, 0x01, // F0-FF
+};
+
+static void scd_ogg_decrypt_v2_callback(void *ptr, size_t size, size_t nmemb, void *datasource, int bytes_read);
+static void scd_ogg_decrypt_v3_callback(void *ptr, size_t size, size_t nmemb, void *datasource, int bytes_read);
+
+
+
 VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[PATH_LIMIT];
-    off_t start_offset, meta_offset_offset, meta_offset, post_meta_offset;
+    off_t start_offset, meta_offset_offset, meta_offset, post_meta_offset, data_size;
     int32_t loop_start, loop_end;
 
     int loop_flag = 0;
@@ -52,7 +78,7 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
         meta_offset_offset = 0x40 + read_16bit(0xe,streamFile);
     } else if (read_32bitLE(8,streamFile) == 3 ||
                read_32bitLE(8,streamFile) == 2) {
-        /* version 2/3 LE, as seen in FFXIV for ?? */
+        /* version 2/3 LE, as seen in FFXIV for PC (and others?) */
         read_32bit = read_32bitLE;
         read_16bit = read_16bitLE;
         //size_offset = 0x10;
@@ -67,6 +93,7 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
 #endif
 
     meta_offset = read_32bit(meta_offset_offset,streamFile);
+    data_size = read_32bit(meta_offset + 0x0, streamFile); /* music size */
 
     /* check that chunk size equals stream size (?) */
     loop_start = read_32bit(meta_offset+0x10,streamFile);
@@ -130,18 +157,28 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
         // failed with Ogg, try deobfuscating header
         {
             // skip chunks before xor_byte
-            unsigned char xor_byte;
+            uint8_t xor_version, xor_byte;
 
-            xor_byte = read_8bit(post_meta_offset+2, streamFile);
-
+            xor_version = read_8bit(post_meta_offset + 0, streamFile);
+            xor_byte = read_8bit(post_meta_offset + 2, streamFile);
             if (xor_byte == 0) {
                 return NULL;
             }
 
-            inf.scd_xor = xor_byte;
-            inf.scd_xor_len = vorb_header_size;
+            if (xor_version <= 2) {
+                inf.decryption_enabled = 1;
+                inf.decryption_callback = scd_ogg_decrypt_v2_callback;
+                inf.scd_xor = xor_byte;
+                inf.scd_xor_length = vorb_header_size; /* header is XOR'ed */
 
+            } else if (xor_version == 3) {
+                inf.decryption_enabled = 1;
+                inf.decryption_callback = scd_ogg_decrypt_v3_callback;
+                inf.scd_xor = data_size & 0xFF; /* xor_byte is not used? */
+                inf.scd_xor_length = data_size; /* full file is XOR'ed */
+            }
             result = init_vgmstream_ogg_vorbis_callbacks(streamFile, filename, NULL, start_offset, &inf);
+            /* always? */
             return result;
         }
     }
@@ -307,6 +344,7 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
             break;
 #endif
         default:
+            VGM_LOG("SCD unknown codec_id: %x\n", codec_id);
             goto fail;
     }
 
@@ -459,4 +497,44 @@ static STREAMFILE *open_scdint_with_STREAMFILE(STREAMFILE *file, const char * fi
     scd->total_size = total_size;
 
     return &scd->sf;
+}
+
+
+static void scd_ogg_decrypt_v2_callback(void *ptr, size_t size, size_t nmemb, void *datasource, int bytes_read) {
+    ogg_vorbis_streamfile * ov_streamfile = (ogg_vorbis_streamfile*)datasource;
+
+    /* header is XOR'd with a constant byte */
+    if (ov_streamfile->offset < ov_streamfile->scd_xor_length) {
+        int i, num_crypt;
+
+        num_crypt = ov_streamfile->scd_xor_length - ov_streamfile->offset;
+        if (num_crypt > bytes_read)
+            num_crypt = bytes_read;
+
+        for (i = 0; i < num_crypt; i++) {
+            ((uint8_t*)ptr)[i] ^= (uint8_t)ov_streamfile->scd_xor;
+        }
+    }
+}
+
+static void scd_ogg_decrypt_v3_callback(void *ptr, size_t size, size_t nmemb, void *datasource, int bytes_read) {
+    ogg_vorbis_streamfile *ov_streamfile = (ogg_vorbis_streamfile*)datasource;
+
+    /* file is XOR'd with a table (algorithm and table by Ioncannon) */
+    if (ov_streamfile->offset < ov_streamfile->scd_xor_length) {
+        int i, num_crypt;
+        uint8_t byte1, byte2, xorByte;
+
+        num_crypt = bytes_read;
+        byte1 = ov_streamfile->scd_xor & 0x7F;
+        byte2 = ov_streamfile->scd_xor & 0x3F;
+
+        for (i = 0; i < num_crypt; i++) {
+            xorByte = scd_ogg_v3_lookuptable[(byte2 + ov_streamfile->offset + i) & 0xFF];
+            xorByte &= 0xFF;
+            xorByte ^= ((uint8_t*)ptr)[i];
+            xorByte ^= byte1;
+            ((uint8_t*)ptr)[i] = (uint8_t)xorByte;
+        }
+    }
 }
