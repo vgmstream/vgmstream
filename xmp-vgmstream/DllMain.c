@@ -10,9 +10,11 @@
 #include <stdio.h>
 #include <io.h>
 #include <conio.h>
+#include <string.h>
+#include <ctype.h>
 
-#include ".\src\vgmstream.h"
-#include ".\src\util.h"
+#include "../src/formats.h"
+#include "../src/vgmstream.h"
 #include "xmpin.h"
 #include "version.h"
 
@@ -329,10 +331,20 @@ void __stdcall GetAdditionalFields(char* blerp) {
 	sprintf(blerp,"oh god how did this get here I am not good with computers\n");
 }
 
+
+/* XMPlay extension list, only needed to associate extensions in Windows */
+/*  todo: as of v3.8.2.17, any more than 1024 will crash XMplay's file list screen (but not using the non-native Winamp plugin...) */
+#define EXTENSION_LIST_SIZE   1024 /*VGM_EXTENSION_LIST_CHAR_SIZE * 2*/
+char working_extension_list[EXTENSION_LIST_SIZE] = {0};
+
+static int add_extension(int length, char * dst, const char * src);
+static void build_extension_list();
+
+
 XMPIN vgmstream_intf = {
 	XMPIN_FLAG_CANSTREAM,
 	"vgmstream for XMPlay",
-	"vgmstream files\0""2dx9/aaap/aax/acm/adp/adpcm/ads/adx/afc/agsc/ahx/aifc/aiff/aix/amts/as4/asd/asf/asr/ass/ast/aud/aus/baf/baka/bar/bcstm/bcwav/bfstm/bfwav/bfwavnsmbu/bg00/bgw/bh2pcm/bmdx/bns/bnsf/bo2/brstm/caf/capdsp/ccc/cfn/cnk/dcs/dcsw/ddsp/de2/dmsg/dsp/dvi/dxh/eam/emff/enth/fag/filp/fsb/fwav/gca/gcm/gcsw/gcw/genh/gms/gsp/hca/hgc1/his/hps/hwas/idsp/idvi/ikm/ild/int/isd/ish/ivaud/ivb/joe/kces/kcey/khv/kraw/leg/logg/lps/lsf/lwav/matx/mcg/mi4/mib/mic/mihb/mpdsp/mca/msa/mss/msvp/mus/musc/musx/mwv/myspd/ndp/npsf/nus3bank/nwa/omu/otm/p3d/pcm/pdt/pnb/pos/psh/psw/raw/rkv/rnd/rrds/rsd/rsf/rstm/rwar/rwav/rws/rwsd/rwx/rxw/s14/sab/sad/sap/sc/scd/sd9/sdt/seg/sfl/sfs/sl3/sli/smp/smpl/snd/sng/sns/spd/sps/spsd/spt/spw/ss2/ss7/ssm/sss/ster/sth/stm/stma/str/strm/sts/stx/svag/svs/swav/swd/tec/thp/tk5/tydsp/um3/vag/vas/vgs/vig/vjdsp/voi/vpk/vs/vsf/waa/wac/wad/wam/was/wavm/wb/wii/wp2/wsd/wsi/wvs/xa/xa2/xa30/xma/xma2/xmu/xss/xvas/xwav/xwb/xwm/ydsp/ymf/zsd/zwdsp/vgmstream",
+	working_extension_list,
 	XMPAbout,
 	NULL,
 	XMP_CheckFile,
@@ -386,5 +398,54 @@ __declspec(dllexport) XMPIN* __stdcall XMPIN_GetInterface(UINT32 face, Interface
 	xmpfmisc = (XMPFUNC_MISC*)faceproc(XMPFUNC_MISC_FACE);
 	xmpffile = (XMPFUNC_FILE*)faceproc(XMPFUNC_FILE_FACE);
 
-	return &vgmstream_intf;
+    build_extension_list();
+
+    return &vgmstream_intf;
+}
+
+
+/**
+ * Creates XMPlay's extension list, a single string with 2 nulls.
+ * Extensions must be in this format: "Description\0extension1/.../extensionN"
+ */
+static void build_extension_list() {
+    const char ** ext_list;
+    int ext_list_len;
+    int i, written;
+
+    written = sprintf(working_extension_list, "%s%c", "vgmstream files",'\0');
+
+    ext_list = vgmstream_get_formats();
+    ext_list_len = vgmstream_get_formats_length();
+
+    for (i=0; i < ext_list_len; i++) {
+        written += add_extension(EXTENSION_LIST_SIZE-written, working_extension_list + written, ext_list[i]);
+    }
+    working_extension_list[written-1] = '\0'; /* remove last "/" */
+}
+
+/**
+ * Adds ext to XMPlay's extension list.
+ */
+static int add_extension(int length, char * dst, const char * ext) {
+    int ext_len;
+    int i;
+
+    if (length <= 1)
+        return 0;
+
+    ext_len = strlen(ext);
+
+    /* check if end reached or not enough room to add */
+    if (ext_len+2 > length-2) {
+        dst[0]='\0';
+        return 0;
+    }
+
+    /* copy new extension + null terminate */
+    for (i=0; i < ext_len; i++)
+        dst[i] = ext[i];
+    dst[i]='/';
+    dst[i+1]='\0';
+    return i+1;
 }

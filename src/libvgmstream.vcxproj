@@ -82,6 +82,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="..\ext_includes\clHCA.h" />
+    <ClInclude Include="formats.h" />
     <ClInclude Include="header.h" />
     <ClInclude Include="streamfile.h" />
     <ClInclude Include="streamtypes.h" />
@@ -139,6 +140,7 @@
     <ClCompile Include="meta\wii_ras.c" />
     <ClCompile Include="meta\wpd.c" />
     <ClCompile Include="meta\x360_tra.c" />
+    <ClCompile Include="formats.c" />
     <ClCompile Include="header.c" />
     <ClCompile Include="streamfile.c" />
     <ClCompile Include="util.c" />

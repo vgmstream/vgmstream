@@ -19,8 +19,8 @@
 #include <shared.h>
 
 extern "C" {
+#include "../src/formats.h"
 #include "../src/vgmstream.h"
-#include "../src/util.h"
 }
 #include "foo_vgmstream.h"
 #include "version.h"
@@ -336,298 +336,19 @@ void input_vgmstream::retag(const file_info & p_info,abort_callback & p_abort) {
 
 bool input_vgmstream::g_is_our_content_type(const char * p_content_type) {return false;}
 bool input_vgmstream::g_is_our_path(const char * p_path,const char * p_extension) {
-	if(!stricmp_utf8(p_extension,"2dx9")) return 1;
-   if(!stricmp_utf8(p_extension,"2pfs")) return 1;
+    const char ** ext_list;
+    int ext_list_len;
+    int i;
 
-	if(!stricmp_utf8(p_extension,"aaap")) return 1;
-	if(!stricmp_utf8(p_extension,"aax")) return 1;
-	if(!stricmp_utf8(p_extension,"acm")) return 1;
-	if(!stricmp_utf8(p_extension,"adpcm")) return 1;
-	if(!stricmp_utf8(p_extension,"adm")) return 1;
-	if(!stricmp_utf8(p_extension,"adp")) return 1;
-	if(!stricmp_utf8(p_extension,"ads")) return 1;
-	if(!stricmp_utf8(p_extension,"adx")) return 1;
-	if(!stricmp_utf8(p_extension,"afc")) return 1;
-	if(!stricmp_utf8(p_extension,"agsc")) return 1;
-	if(!stricmp_utf8(p_extension,"ahx")) return 1;
-	if(!stricmp_utf8(p_extension,"aic")) return 1;
-	if(!stricmp_utf8(p_extension,"aix")) return 1;
-	if(!stricmp_utf8(p_extension,"akb")) return 1;
-	if(!stricmp_utf8(p_extension,"amts")) return 1;
-	if(!stricmp_utf8(p_extension,"as4")) return 1;
-	if(!stricmp_utf8(p_extension,"asd")) return 1;
-	if(!stricmp_utf8(p_extension,"asf")) return 1;
-	if(!stricmp_utf8(p_extension,"ast")) return 1;
-	if(!stricmp_utf8(p_extension,"asr")) return 1;
-	if(!stricmp_utf8(p_extension,"ass")) return 1;
-	if(!stricmp_utf8(p_extension,"at3")) return 1;
-	if(!stricmp_utf8(p_extension,"aud")) return 1;
-	if(!stricmp_utf8(p_extension,"aus")) return 1;
+    ext_list = vgmstream_get_formats();
+    ext_list_len = vgmstream_get_formats_length();
 
-	if(!stricmp_utf8(p_extension,"baka")) return 1;
-	if(!stricmp_utf8(p_extension,"baf")) return 1;
-	if(!stricmp_utf8(p_extension,"bar")) return 1;
-	if(!stricmp_utf8(p_extension,"bcstm")) return 1;
-	if(!stricmp_utf8(p_extension,"bcwav")) return 1;
-	if(!stricmp_utf8(p_extension,"bfstm")) return 1;
-	if(!stricmp_utf8(p_extension,"bfwav")) return 1;
-	if(!stricmp_utf8(p_extension,"bfwavnsmbu")) return 1;
-	if(!stricmp_utf8(p_extension,"bg00")) return 1;
-	if(!stricmp_utf8(p_extension,"bgw")) return 1;
-	if(!stricmp_utf8(p_extension,"bh2pcm")) return 1;
-	if(!stricmp_utf8(p_extension,"bmdx")) return 1;
-	if(!stricmp_utf8(p_extension,"bms")) return 1;
-	if(!stricmp_utf8(p_extension,"bnk")) return 1;
-	if(!stricmp_utf8(p_extension,"bns")) return 1;
-	if(!stricmp_utf8(p_extension,"bnsf")) return 1;
-	if(!stricmp_utf8(p_extension,"bo2")) return 1;
-	if(!stricmp_utf8(p_extension,"brstmspm")) return 1;
-	if(!stricmp_utf8(p_extension,"brstm")) return 1;
-	if(!stricmp_utf8(p_extension,"btsnd")) return 1;
-	if(!stricmp_utf8(p_extension,"bvg")) return 1;
+    for (i=0; i < ext_list_len; i++) {
+        if (!stricmp_utf8(p_extension, ext_list[i]))
+            return 1;
+    }
 
-	if(!stricmp_utf8(p_extension,"caf")) return 1;
-	if(!stricmp_utf8(p_extension,"capdsp")) return 1;
-	if(!stricmp_utf8(p_extension,"cbd2")) return 1;
-	if(!stricmp_utf8(p_extension,"ccc")) return 1;
-	if(!stricmp_utf8(p_extension,"cfn")) return 1;
-	if(!stricmp_utf8(p_extension,"ckd")) return 1;
-	if(!stricmp_utf8(p_extension,"cnk")) return 1;
-	if(!stricmp_utf8(p_extension,"cps")) return 1;
-
-	if(!stricmp_utf8(p_extension,"dcs")) return 1;
-	if(!stricmp_utf8(p_extension,"de2")) return 1;
-	if(!stricmp_utf8(p_extension,"ddsp")) return 1;
-	if(!stricmp_utf8(p_extension,"dmsg")) return 1;
-	if(!stricmp_utf8(p_extension,"dsp")) return 1;
-	if(!stricmp_utf8(p_extension,"dspw")) return 1;
-	if(!stricmp_utf8(p_extension,"dtk")) return 1;
-	if(!stricmp_utf8(p_extension,"dvi")) return 1;
-	if(!stricmp_utf8(p_extension,"dxh")) return 1;
-
-	if(!stricmp_utf8(p_extension,"eam")) return 1;
-	if(!stricmp_utf8(p_extension,"emff")) return 1;
-	if(!stricmp_utf8(p_extension,"enth")) return 1;
-
-	if(!stricmp_utf8(p_extension,"fag")) return 1;
-	if(!stricmp_utf8(p_extension,"filp")) return 1;
-	if(!stricmp_utf8(p_extension,"fsb")) return 1;
-	if(!stricmp_utf8(p_extension,"fwav")) return 1;
-
-	if(!stricmp_utf8(p_extension,"g1l")) return 1;
-	if(!stricmp_utf8(p_extension,"gbts")) return 1;
-	if(!stricmp_utf8(p_extension,"gca")) return 1;
-	if(!stricmp_utf8(p_extension,"gcm")) return 1;
-	if(!stricmp_utf8(p_extension,"gcub")) return 1;
-	if(!stricmp_utf8(p_extension,"gcw")) return 1;
-	if(!stricmp_utf8(p_extension,"genh")) return 1;
-	if(!stricmp_utf8(p_extension,"gms")) return 1;
-	if(!stricmp_utf8(p_extension,"gsb")) return 1;
-
-	if(!stricmp_utf8(p_extension, "hca")) return 1;
-	if(!stricmp_utf8(p_extension,"hgc1")) return 1;
-	if(!stricmp_utf8(p_extension,"his")) return 1;
-	if(!stricmp_utf8(p_extension,"hlwav")) return 1;
-	if(!stricmp_utf8(p_extension,"hps")) return 1;
-	if(!stricmp_utf8(p_extension,"hsf")) return 1;
-	if(!stricmp_utf8(p_extension,"hwas")) return 1;
-
-	if(!stricmp_utf8(p_extension,"iab")) return 1;
-	if(!stricmp_utf8(p_extension,"idsp")) return 1;
-	if(!stricmp_utf8(p_extension,"idvi")) return 1;
-	if(!stricmp_utf8(p_extension,"ikm")) return 1;
-	if(!stricmp_utf8(p_extension,"ild")) return 1;
-	if(!stricmp_utf8(p_extension,"int")) return 1;
-	if(!stricmp_utf8(p_extension,"isd")) return 1;
-	if(!stricmp_utf8(p_extension,"isws")) return 1;
-	if(!stricmp_utf8(p_extension,"ivaud")) return 1;
-	if(!stricmp_utf8(p_extension,"ivag")) return 1;
-	if(!stricmp_utf8(p_extension,"ivb")) return 1;
-
-	if(!stricmp_utf8(p_extension,"joe")) return 1;
-	if(!stricmp_utf8(p_extension,"jstm")) return 1;
-
-	if(!stricmp_utf8(p_extension,"kces")) return 1;
-	if(!stricmp_utf8(p_extension,"kcey")) return 1;
-	if(!stricmp_utf8(p_extension,"khv")) return 1;
-	if(!stricmp_utf8(p_extension,"kovs")) return 1;
-	if(!stricmp_utf8(p_extension,"kraw")) return 1;
-
-	if(!stricmp_utf8(p_extension,"leg")) return 1;
-	if(!stricmp_utf8(p_extension,"logg")) return 1;
-	if(!stricmp_utf8(p_extension,"lpcm")) return 1;
-	if(!stricmp_utf8(p_extension,"lps")) return 1;
-	if(!stricmp_utf8(p_extension,"lsf")) return 1;
-	if(!stricmp_utf8(p_extension,"lwav")) return 1;
-
-	if(!stricmp_utf8(p_extension,"matx")) return 1;
-	if(!stricmp_utf8(p_extension,"mca")) return 1;
-	if(!stricmp_utf8(p_extension,"mcg")) return 1;
-	if(!stricmp_utf8(p_extension,"mi4")) return 1;
-	if(!stricmp_utf8(p_extension,"mib")) return 1;
-	if(!stricmp_utf8(p_extension,"mic")) return 1;
-	if(!stricmp_utf8(p_extension,"mihb")) return 1;
-	if(!stricmp_utf8(p_extension,"mnstr")) return 1;
-	if(!stricmp_utf8(p_extension,"mpdsp")) return 1;
-	if(!stricmp_utf8(p_extension,"mpds")) return 1;
-	if(!stricmp_utf8(p_extension,"msa")) return 1;
-	if(!stricmp_utf8(p_extension,"msf")) return 1;
-	if(!stricmp_utf8(p_extension,"mss")) return 1;
-	if(!stricmp_utf8(p_extension,"msvp")) return 1;
-    if(!stricmp_utf8(p_extension,"mtaf")) return 1;
-	if(!stricmp_utf8(p_extension,"mus")) return 1;
-	if(!stricmp_utf8(p_extension,"musc")) return 1;
-	if(!stricmp_utf8(p_extension,"musx")) return 1;
-	if(!stricmp_utf8(p_extension,"mwv")) return 1;
-	if(!stricmp_utf8(p_extension,"mxst")) return 1;
-	if(!stricmp_utf8(p_extension,"myspd")) return 1;
-
-	if(!stricmp_utf8(p_extension,"ndp")) return 1;
-	if(!stricmp_utf8(p_extension,"ngca")) return 1;
-	if(!stricmp_utf8(p_extension,"npsf")) return 1;
-	if(!stricmp_utf8(p_extension,"nus3bank")) return 1;
-	if(!stricmp_utf8(p_extension,"nwa")) return 1;
-
-	if(!stricmp_utf8(p_extension,"omu")) return 1;
-	if(!stricmp_utf8(p_extension,"otm")) return 1;
-
-	if(!stricmp_utf8(p_extension,"p2bt")) return 1;
-	if(!stricmp_utf8(p_extension,"p3d")) return 1;
-	if(!stricmp_utf8(p_extension,"past")) return 1;
-	if(!stricmp_utf8(p_extension,"pcm")) return 1;
-	if(!stricmp_utf8(p_extension,"pdt")) return 1;
-	if(!stricmp_utf8(p_extension,"pnb")) return 1;
-	if(!stricmp_utf8(p_extension,"pona")) return 1;
-	if(!stricmp_utf8(p_extension,"pos")) return 1;
-	if(!stricmp_utf8(p_extension,"ps2stm")) return 1;
-	if(!stricmp_utf8(p_extension,"psh")) return 1;
-	if(!stricmp_utf8(p_extension,"psnd")) return 1;
-	if(!stricmp_utf8(p_extension,"psw")) return 1;
-
-	if(!stricmp_utf8(p_extension,"ras")) return 1;
-	if(!stricmp_utf8(p_extension,"raw")) return 1;
-	if(!stricmp_utf8(p_extension,"rkv")) return 1;
-	if(!stricmp_utf8(p_extension,"rnd")) return 1;
-	if(!stricmp_utf8(p_extension,"rrds")) return 1;
-	if(!stricmp_utf8(p_extension,"rsd")) return 1;
-	if(!stricmp_utf8(p_extension,"rsf")) return 1;
-	if(!stricmp_utf8(p_extension,"rstm")) return 1;
-	if(!stricmp_utf8(p_extension,"rvws")) return 1;
-	if(!stricmp_utf8(p_extension,"rwar")) return 1;
-	if(!stricmp_utf8(p_extension,"rwav")) return 1;
-	if(!stricmp_utf8(p_extension,"rws")) return 1;
-	if(!stricmp_utf8(p_extension,"rwsd")) return 1;
-	if(!stricmp_utf8(p_extension,"rwx")) return 1;
-	if(!stricmp_utf8(p_extension,"rxw")) return 1;
-
-	if(!stricmp_utf8(p_extension,"s14")) return 1;
-	if(!stricmp_utf8(p_extension,"sab")) return 1;
-	if(!stricmp_utf8(p_extension,"sad")) return 1;
-	if(!stricmp_utf8(p_extension,"sap")) return 1;
-	if(!stricmp_utf8(p_extension,"sc")) return 1;
-	if(!stricmp_utf8(p_extension,"scd")) return 1;
-	if(!stricmp_utf8(p_extension,"sck")) return 1;
-	if(!stricmp_utf8(p_extension,"sd9")) return 1;
-	if(!stricmp_utf8(p_extension,"sdt")) return 1;
-	if(!stricmp_utf8(p_extension,"seg")) return 1;
-	if(!stricmp_utf8(p_extension,"sf0")) return 1;
-	if(!stricmp_utf8(p_extension,"sfl")) return 1;
-	if(!stricmp_utf8(p_extension,"sfs")) return 1;
-	if(!stricmp_utf8(p_extension,"sfx")) return 1;
-	if(!stricmp_utf8(p_extension,"sgb")) return 1;
-    if(!stricmp_utf8(p_extension,"sgd")) return 1;
-    if(!stricmp_utf8(p_extension,"sgx")) return 1;
-	if(!stricmp_utf8(p_extension,"sl3")) return 1;
-	if(!stricmp_utf8(p_extension,"sli")) return 1;
-	if(!stricmp_utf8(p_extension,"smp")) return 1;
-	if(!stricmp_utf8(p_extension,"smpl")) return 1;
-	if(!stricmp_utf8(p_extension,"snd")) return 1;
-	if(!stricmp_utf8(p_extension,"snds")) return 1;
-	if(!stricmp_utf8(p_extension,"sng")) return 1;
-	if(!stricmp_utf8(p_extension,"sns")) return 1;
-	if(!stricmp_utf8(p_extension,"spd")) return 1;
-	if(!stricmp_utf8(p_extension,"spm")) return 1;
-	if(!stricmp_utf8(p_extension,"sps")) return 1;
-	if(!stricmp_utf8(p_extension,"spsd")) return 1;
-	if(!stricmp_utf8(p_extension,"spw")) return 1;
-	if(!stricmp_utf8(p_extension,"ss2")) return 1;
-	if(!stricmp_utf8(p_extension,"ss3")) return 1;
-	if(!stricmp_utf8(p_extension,"ss7")) return 1;
-	if(!stricmp_utf8(p_extension,"ssm")) return 1;
-	if(!stricmp_utf8(p_extension,"sss")) return 1;
-	if(!stricmp_utf8(p_extension,"ster")) return 1;
-	if(!stricmp_utf8(p_extension,"stma")) return 1;
-	if(!stricmp_utf8(p_extension,"str")) return 1;
-	if(!stricmp_utf8(p_extension,"strm")) return 1;
-	if(!stricmp_utf8(p_extension,"sts")) return 1;
-	if(!stricmp_utf8(p_extension,"stx")) return 1;
-	if(!stricmp_utf8(p_extension,"svag")) return 1;
-	if(!stricmp_utf8(p_extension,"svs")) return 1;
-	if(!stricmp_utf8(p_extension,"swav")) return 1;
-	if(!stricmp_utf8(p_extension,"swd")) return 1;
-
-	if(!stricmp_utf8(p_extension,"tec")) return 1;
-	if(!stricmp_utf8(p_extension,"thp")) return 1;
-	if(!stricmp_utf8(p_extension,"tk1")) return 1;
-	if(!stricmp_utf8(p_extension,"tk5")) return 1;
-	if(!stricmp_utf8(p_extension,"tra")) return 1;
-	if(!stricmp_utf8(p_extension,"tun")) return 1;
-	if(!stricmp_utf8(p_extension,"tydsp")) return 1;
-
-	if(!stricmp_utf8(p_extension,"um3")) return 1;
-
-	if(!stricmp_utf8(p_extension,"vag")) return 1;
-	if(!stricmp_utf8(p_extension,"vas")) return 1;
-	if(!stricmp_utf8(p_extension,"vawx")) return 1;
-	if(!stricmp_utf8(p_extension,"vb")) return 1;
-	if(!stricmp_utf8(p_extension,"vbk")) return 1;
-	if(!stricmp_utf8(p_extension,"vgs")) return 1;
-	if(!stricmp_utf8(p_extension,"vgv")) return 1;
-	if(!stricmp_utf8(p_extension,"vig")) return 1;
-	if(!stricmp_utf8(p_extension,"vms")) return 1;
-	if(!stricmp_utf8(p_extension,"voi")) return 1;
-	if(!stricmp_utf8(p_extension,"vpk")) return 1;
-	if(!stricmp_utf8(p_extension,"vs")) return 1;
-	if(!stricmp_utf8(p_extension,"vsf")) return 1;
-
-	if(!stricmp_utf8(p_extension,"waa")) return 1;
-	if(!stricmp_utf8(p_extension,"wac")) return 1;
-	if(!stricmp_utf8(p_extension,"wad")) return 1;
-	if(!stricmp_utf8(p_extension,"wam")) return 1;
-	if(!stricmp_utf8(p_extension,"wavm")) return 1;
-	if(!stricmp_utf8(p_extension,"was")) return 1;
-	if(!stricmp_utf8(p_extension,"wii")) return 1;
-	if(!stricmp_utf8(p_extension,"wmus")) return 1;
-	if(!stricmp_utf8(p_extension,"wp2")) return 1;
-	if(!stricmp_utf8(p_extension,"wpd")) return 1;
-	if(!stricmp_utf8(p_extension,"wsd")) return 1;
-	if(!stricmp_utf8(p_extension,"wsi")) return 1;
-	if(!stricmp_utf8(p_extension,"wvs")) return 1;
-
-	if(!stricmp_utf8(p_extension,"xa")) return 1;
-	if(!stricmp_utf8(p_extension,"xa2")) return 1;
-	if(!stricmp_utf8(p_extension,"xa30")) return 1;
-	if(!stricmp_utf8(p_extension,"xau")) return 1;
-	if(!stricmp_utf8(p_extension,"xma")) return 1;
-	if(!stricmp_utf8(p_extension,"xma2")) return 1;
-	if(!stricmp_utf8(p_extension,"xmu")) return 1;
-	if(!stricmp_utf8(p_extension,"xnb")) return 1;
-	if(!stricmp_utf8(p_extension,"xsf")) return 1;
-	if(!stricmp_utf8(p_extension,"xss")) return 1;
-	if(!stricmp_utf8(p_extension,"xvag")) return 1;
-	if(!stricmp_utf8(p_extension,"xvas")) return 1;
-	if(!stricmp_utf8(p_extension,"xwav")) return 1;
-	if(!stricmp_utf8(p_extension,"xwb")) return 1;
-	if(!stricmp_utf8(p_extension,"xwm")) return 1;
-
-	if(!stricmp_utf8(p_extension,"ydsp")) return 1;
-	if(!stricmp_utf8(p_extension,"ymf")) return 1;
-
-	if(!stricmp_utf8(p_extension,"zsd")) return 1;
-	if(!stricmp_utf8(p_extension,"zwdsp")) return 1;
-
-    if(!stricmp_utf8(p_extension,"vgmstream")) return 1;
-	return 0;
+    return 0;
 }
 
 
@@ -676,7 +397,10 @@ static input_singletrack_factory_t<input_vgmstream> g_input_vgmstream_factory;
 DECLARE_COMPONENT_VERSION(APP_NAME,PLUGIN_VERSION,PLUGIN_DESCRIPTION);
 VALIDATE_COMPONENT_FILENAME("foo_input_vgmstream.dll");
 
-// File types go down here (and in the large chunk of IFs above
+// Registered file types, to associate an extension with foobar2000 in Windows.
+// Accepted types go in input_vgmstream::g_is_our_path; both lists don't need to match.
+// todo do we really want to associate every single vgmstream format?
+//
 // these are declared statically, and if anyone has a better idea i'd like to hear it - josh.
 DECLARE_MULTIPLE_FILE_TYPE("2DX9 Audio File (*.2DX9)", 2dx9);
 DECLARE_MULTIPLE_FILE_TYPE("2PFS Audio File (*.2PFS)", 2pfs);

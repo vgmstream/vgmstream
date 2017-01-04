@@ -102,9 +102,12 @@ typedef struct {
     meta_t meta_type;
     layout_t layout_type;
 
-    // XOR setup with a single byte (SCD)
-    unsigned char scd_xor;
-    off_t scd_xor_len;
+    /* XOR setup (SCD) */
+    int decryption_enabled;
+    void (*decryption_callback)(void *ptr, size_t size, size_t nmemb, void *datasource, int bytes_read);
+    uint8_t scd_xor;
+    off_t scd_xor_length;
+
 } vgm_vorbis_info_t;
 
 VGMSTREAM * init_vgmstream_ogg_vorbis_callbacks(STREAMFILE *streamFile, const char * filename, ov_callbacks *callbacks, off_t other_header_bytes, const vgm_vorbis_info_t *vgm_inf);

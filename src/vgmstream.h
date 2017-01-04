@@ -739,9 +739,12 @@ typedef struct {
     ogg_int64_t size;
     ogg_int64_t other_header_bytes;
 
-    // XOR setup with a single byte (SCD)
-    unsigned char   scd_xor;
-    ogg_int64_t     scd_xor_len;
+    /* XOR setup (SCD) */
+    int decryption_enabled;
+    void (*decryption_callback)(void *ptr, size_t size, size_t nmemb, void *datasource, int bytes_read);
+    uint8_t scd_xor;
+    off_t scd_xor_length;
+
 } ogg_vorbis_streamfile;
 
 typedef struct {

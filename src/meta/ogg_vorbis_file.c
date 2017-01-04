@@ -92,14 +92,9 @@ static size_t read_func_scd(void *ptr, size_t size, size_t nmemb, void * datasou
 
     items_read = bytes_read / size;
 
-    /* first bytes are xor'd with a constant byte */
-    if (ov_streamfile->offset < ov_streamfile->scd_xor_len) {
-        int num_crypt = ov_streamfile->scd_xor_len-ov_streamfile->offset;
-        int i;
-
-        if (num_crypt > bytes_read) num_crypt=bytes_read;
-        for (i=0;i<num_crypt;i++)
-            ((uint8_t*)ptr)[i] ^= ov_streamfile->scd_xor;
+    /* may be encrypted */
+    if (ov_streamfile->decryption_enabled) {
+        ov_streamfile->decryption_callback(ptr, size, nmemb, ov_streamfile, bytes_read);
     }
 
     ov_streamfile->offset += items_read * size;
@@ -281,7 +276,7 @@ VGMSTREAM * init_vgmstream_ogg_vorbis_callbacks(STREAMFILE *streamFile, const ch
         default_callbacks.close_func = close_func;
         default_callbacks.tell_func = tell_func;
 
-        if (vgm_inf->scd_xor != 0) {
+        if (vgm_inf->decryption_enabled) {
             default_callbacks.read_func = read_func_scd;
         }
 
@@ -292,8 +287,10 @@ VGMSTREAM * init_vgmstream_ogg_vorbis_callbacks(STREAMFILE *streamFile, const ch
     temp_streamfile.offset = 0;
     temp_streamfile.size = get_streamfile_size(temp_streamfile.streamfile);
     temp_streamfile.other_header_bytes = other_header_bytes;
-    temp_streamfile.scd_xor  = vgm_inf->scd_xor;
-    temp_streamfile.scd_xor_len = vgm_inf->scd_xor_len;
+    temp_streamfile.decryption_enabled = vgm_inf->decryption_enabled;
+    temp_streamfile.decryption_callback = vgm_inf->decryption_callback;
+    temp_streamfile.scd_xor = vgm_inf->scd_xor;
+    temp_streamfile.scd_xor_length = vgm_inf->scd_xor_length;
 
     /* can we open this as a proper ogg vorbis file? */
     memset(&temp_ovf, 0, sizeof(temp_ovf));
@@ -314,8 +311,10 @@ VGMSTREAM * init_vgmstream_ogg_vorbis_callbacks(STREAMFILE *streamFile, const ch
     data->ov_streamfile.offset = 0;
     data->ov_streamfile.size = get_streamfile_size(data->ov_streamfile.streamfile);
     data->ov_streamfile.other_header_bytes = other_header_bytes;
-    data->ov_streamfile.scd_xor  = vgm_inf->scd_xor;
-    data->ov_streamfile.scd_xor_len = vgm_inf->scd_xor_len;
+    data->ov_streamfile.decryption_enabled = vgm_inf->decryption_enabled;
+    data->ov_streamfile.decryption_callback = vgm_inf->decryption_callback;
+    data->ov_streamfile.scd_xor = vgm_inf->scd_xor;
+    data->ov_streamfile.scd_xor_length = vgm_inf->scd_xor_length;
 
     /* open the ogg vorbis file for real */
     if (ov_open_callbacks(&data->ov_streamfile, &data->ogg_vorbis_file, NULL,

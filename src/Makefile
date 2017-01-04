@@ -311,7 +311,7 @@ META_OBJS=meta/adx_header.o \
 
 EXT_LIBS = ../ext_libs/clHCA.o
 
-OBJECTS=vgmstream.o streamfile.o util.o header.o $(CODING_OBJS) $(LAYOUT_OBJS) $(META_OBJS) $(EXT_LIBS)
+OBJECTS=vgmstream.o streamfile.o util.o header.o formats.o $(CODING_OBJS) $(LAYOUT_OBJS) $(META_OBJS) $(EXT_LIBS)
 
 libvgmstream.a: $(OBJECTS)
 	$(AR) crs libvgmstream.a $(OBJECTS)
