@@ -43,6 +43,11 @@ int header_open_stream(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t star
     char filename[PATH_LIMIT];
     int ch;
 
+#ifdef VGM_USE_FFMPEG
+    if (vgmstream->coding_type == coding_FFmpeg) /* not needed */
+        return 1;
+#endif
+
     streamFile->get_name(streamFile,filename,sizeof(filename));
 
     {
@@ -53,7 +58,10 @@ int header_open_stream(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t star
             vgmstream->ch[ch].streamfile = file;
 
             if (vgmstream->layout_type == layout_none
-                    || vgmstream->layout_type == layout_mpeg) { /* no appreciable difference for mpeg */
+#ifdef VGM_USE_MPEG
+                    || vgmstream->layout_type == layout_mpeg
+#endif
+                    ) { /* no appreciable difference for mpeg */
                 /* for some codecs like IMA where channels work with the same bytes */
                 vgmstream->ch[ch].channel_start_offset =
                         vgmstream->ch[ch].offset = start_offset;
@@ -127,11 +135,11 @@ int header_make_riff_xma2(uint8_t * buf, size_t buf_size, size_t sample_count, s
     memcpy(buf+0x08, "WAVE", 4);
 
     memcpy(buf+0x0c, "fmt ", 4);
-    put_32bitLE(buf+0x10, 0x34);/*size*/
+    put_32bitLE(buf+0x10, 0x34);/*fmt size*/
     put_16bitLE(buf+0x14, codec_XMA2);
     put_16bitLE(buf+0x16, channels);
     put_32bitLE(buf+0x18, sample_rate);
-    put_32bitLE(buf+0x1c, sample_rate*channels*sizeof(sample)); /* average bytes per second (wrong) */
+    put_32bitLE(buf+0x1c, sample_rate*channels / sizeof(sample)); /* average bytes per second (wrong) */
     put_16bitLE(buf+0x20, (int16_t)(channels*sizeof(sample))); /* block align */
     put_16bitLE(buf+0x22, sizeof(sample)*8); /* bits per sample */
 
@@ -151,6 +159,50 @@ int header_make_riff_xma2(uint8_t * buf, size_t buf_size, size_t sample_count, s
 
     memcpy(buf+0x48, "data", 4);
     put_32bitLE(buf+0x4c, data_size); /* data size */
+
+    return riff_size;
+}
+
+/**
+ * Copies a ATRAC3 riff to buf
+ *
+ * returns number of bytes in buf or -1 when buf is not big enough
+ */
+int header_make_riff_atrac3(uint8_t * buf, size_t buf_size, size_t sample_count, size_t data_size, int channels, int sample_rate, int block_align, int joint_stereo, int encoder_delay) {
+    uint16_t codec_ATRAC3 = 0x0270;
+    size_t riff_size = 4+4+ 4 + 0x28 + 0x10 + 4+4;
+
+    if (buf_size < riff_size)
+        return -1;
+
+    memcpy(buf+0x00, "RIFF", 4);
+    put_32bitLE(buf+0x04, (int32_t)(riff_size-4-4 + data_size)); /* riff size */
+    memcpy(buf+0x08, "WAVE", 4);
+
+    memcpy(buf+0x0c, "fmt ", 4);
+    put_32bitLE(buf+0x10, 0x20);/*fmt size*/
+    put_16bitLE(buf+0x14, codec_ATRAC3);
+    put_16bitLE(buf+0x16, channels);
+    put_32bitLE(buf+0x18, sample_rate);
+    put_32bitLE(buf+0x1c, sample_rate*channels / sizeof(sample)); /* average bytes per second (wrong) */
+    put_32bitLE(buf+0x20, (int16_t)(block_align)); /* block align */
+
+    put_16bitLE(buf+0x24, 0x0e); /* extra data size */
+    put_16bitLE(buf+0x26, 1); /* unknown, always 1 */
+    put_16bitLE(buf+0x28, channels==1 ? 0x0800 : 0x1000); /* unknown (some size? 0x1000=2ch, 0x0800=1ch) */
+    put_16bitLE(buf+0x2a, 0); /* unknown, always 0 */
+    put_16bitLE(buf+0x2c, joint_stereo ? 0x0001 : 0x0000);
+    put_16bitLE(buf+0x2e, joint_stereo ? 0x0001 : 0x0000); /* repeated? */
+    put_16bitLE(buf+0x30, 1); /* unknown, always 1 (frame_factor?) */
+    put_16bitLE(buf+0x32, 0); /* unknown, always 0 */
+
+    memcpy(buf+0x34, "fact", 4);
+    put_32bitLE(buf+0x38, 0x8); /* fact size */
+    put_32bitLE(buf+0x3c, sample_count);
+    put_32bitLE(buf+0x40, encoder_delay);
+
+    memcpy(buf+0x44, "data", 4);
+    put_32bitLE(buf+0x48, data_size); /* data size */
 
     return riff_size;
 }
