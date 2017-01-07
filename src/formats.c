@@ -164,6 +164,7 @@ static const char* extension_list[] = {
 
     "ndp",
     "ngca",
+    "nps",
     "npsf",
     "nus3bank", //todo not existing?
     "nwa",
