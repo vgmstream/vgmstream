@@ -307,6 +307,7 @@ static const char* extension_list[] = {
     "xwb",
     "xwm", //FFmpeg, not parsed (XWMA)
     "xwma", //FFmpeg, not parsed (XWMA)
+    "xwv",
 
     "ydsp",
     "ymf",

@@ -569,7 +569,7 @@ typedef enum {
 	meta_PS2_IAB,			// Ueki no Housoku - Taosu ze Robert Juudan!! (PS2)
 	meta_PS2_STRLR,
     meta_LSF_N1NJ4N,        /* .lsf n1nj4n Fastlane Street Racing (iPhone) */
-    meta_PS3_VAWX,			// No More Heroes: Heroes Paradise (PS3)
+    meta_VAWX,              /* No More Heroes: Heroes Paradise, Moon Diver */
     meta_PC_SNDS,           // Incredibles PC .snds
     meta_PS2_WMUS,          // The Warriors (PS2)
     meta_HYPERSCAN_KVAG,	// Hyperscan KVAG/BVG 
@@ -722,7 +722,7 @@ typedef struct {
 
     int32_t thpNextFrameSize;
 	
-	int skip_last_channel;
+	int skip_last_channel; /* todo not used anymore */
 
 	/* Data the codec needs for the whole stream. This is for codecs too
      * different from vgmstream's structure to be reasonably shoehorned into

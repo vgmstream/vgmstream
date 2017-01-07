@@ -307,7 +307,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_ps2_iab,
 	init_vgmstream_ps2_strlr,
     init_vgmstream_lsf_n1nj4n,
-	init_vgmstream_ps3_vawx,
+	init_vgmstream_vawx,
     init_vgmstream_pc_snds,
 	init_vgmstream_ps2_wmus,
 	init_vgmstream_hyperscan_kvag,
@@ -3169,8 +3169,8 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         case meta_LSF_N1NJ4N:
             snprintf(temp,TEMPSIZE,".lsf !n1nj4n header");
             break;
-	    case meta_PS3_VAWX:
-            snprintf(temp,TEMPSIZE,"VAWX header");
+	    case meta_VAWX:
+            snprintf(temp,TEMPSIZE,"feelplus VAWX header");
             break;
         case meta_PC_SNDS:
             snprintf(temp,TEMPSIZE,"assumed Heavy Iron IMA by .snds extension");

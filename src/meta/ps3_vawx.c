@@ -1,77 +1,129 @@
 #include "meta.h"
 #include "../util.h"
+#include "../header.h"
 
-/* VAWX
-	- No More Heroes: Heroes Paradise (PS3)
-*/
-VGMSTREAM * init_vgmstream_ps3_vawx(STREAMFILE *streamFile) 
-{
+#define FAKE_RIFF_BUFFER_SIZE           100
+
+/**
+ * VAWX - found in feelplus games: No More Heroes Heroes Paradise, Moon Diver
+ */
+VGMSTREAM * init_vgmstream_vawx(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[PATH_LIMIT];
-    
-	off_t start_offset;
+    off_t start_offset, datasize;
 
-	int loop_flag = 0;
-	int channel_count;
+    int loop_flag = 0, channel_count, type;
 
-    /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("vawx",filename_extension(filename))) goto fail;
-
-    /* check header */
-    if (read_32bitBE(0x00,streamFile) != 0x56415758) // "VAWX"
+    /* check extensions */
+    if ( !header_check_extensions(streamFile, "vawx,xwv") )
         goto fail;
 
-	if (read_8bit(0xF,streamFile) == 2)
-	{
-		loop_flag = 1;
-	}
+    /* check header */
+    if (read_32bitBE(0x00,streamFile) != 0x56415758) /* "VAWX" */
+        goto fail;
 
+    loop_flag = read_8bit(0x37,streamFile);
     channel_count = read_8bit(0x39,streamFile);;
     
-	/* build the VGMSTREAM */
+    /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
-	/* fill in the vital statistics */	
-	start_offset = 0x800;
-	vgmstream->channels = channel_count;
+    /* 0x04: filesize */
+    start_offset = 0x800; /* ? read_32bitLE(0x0c,streamFile); */
+    vgmstream->channels = channel_count;
+    /* 0x16: file id */
+    type = read_8bit(0x36,streamFile); /* could be at 0x38 too */
+    vgmstream->num_samples = read_32bitBE(0x3c,streamFile);
     vgmstream->sample_rate = read_32bitBE(0x40,streamFile);
-    vgmstream->coding_type = coding_PSX;
-	vgmstream->num_samples = ((get_streamfile_size(streamFile)-start_offset)/16/channel_count*28);
- 
-	if (loop_flag) 
-	{
-		vgmstream->loop_start_sample = read_32bitBE(0x44,streamFile);
-		vgmstream->loop_end_sample = read_32bitBE(0x48,streamFile);;
-	}
 
-    vgmstream->layout_type = layout_interleave;
-    vgmstream->interleave_block_size = 0x10;
-    vgmstream->meta_type = meta_PS3_VAWX;
+    vgmstream->meta_type = meta_VAWX;
+
+    switch(type) {
+        case 2: /* VAG */
+            vgmstream->coding_type = coding_PSX;
+            vgmstream->layout_type = layout_interleave;
+            vgmstream->interleave_block_size = 0x10;
+
+            vgmstream->loop_start_sample = read_32bitBE(0x44,streamFile);
+            vgmstream->loop_end_sample = read_32bitBE(0x48,streamFile);
+            /* todo 6ch has 0x8000 blocks and must skip last 0x20 each block (or, skip 0x20 every 0x1550*6 */
+
+            break;
+
+#ifdef VGM_USE_FFMPEG
+        case 1: { /* XMA */
+            ffmpeg_codec_data *ffmpeg_data = NULL;
+            uint8_t buf[FAKE_RIFF_BUFFER_SIZE];
+            size_t bytes, block_size, block_count;
+            /* not accurate but not needed by FFmpeg */
+            datasize = get_streamfile_size(streamFile)-start_offset;
+            block_size = 2048;
+            block_count = datasize / block_size; /* read_32bitLE(custom_data_offset +0x14) -1? */
+
+            /* make a fake riff so FFmpeg can parse the XMA2 */
+            bytes = header_make_riff_xma2(buf, FAKE_RIFF_BUFFER_SIZE, vgmstream->num_samples, datasize, vgmstream->channels, vgmstream->sample_rate, block_count, block_size);
+            if (bytes <= 0)
+                goto fail;
+
+            ffmpeg_data = init_ffmpeg_header_offset(streamFile, buf,bytes, start_offset,datasize);
+            if ( !ffmpeg_data ) goto fail;
+            vgmstream->codec_data = ffmpeg_data;
+            vgmstream->coding_type = coding_FFmpeg;
+            vgmstream->layout_type = layout_none;
+
+            vgmstream->loop_start_sample = read_32bitBE(0x44,streamFile);
+            vgmstream->loop_end_sample = read_32bitBE(0x48,streamFile);
+
+            break;
+        }
+
+        case 7: { /* ATRAC3 */
+            ffmpeg_codec_data *ffmpeg_data = NULL;
+            uint8_t buf[FAKE_RIFF_BUFFER_SIZE];
+            size_t bytes, block_size, encoder_delay;
+            int joint_stereo;
+            int32_t max_samples;
+
+            datasize = read_32bitBE(0x54,streamFile);
+            block_size = 0x98 * 2;
+            joint_stereo = 0;
+            max_samples = (datasize / block_size) * 1024;
+            encoder_delay = 0x0; /* not used by FFmpeg */
+            if (vgmstream->num_samples > max_samples) {
+                vgmstream->num_samples = max_samples;
+                /*encoder_delay = ?; */ /* todo some tracks need it to skip garbage but not sure how to calculate it */
+            }
+
+            /* make a fake riff so FFmpeg can parse the ATRAC3 */
+            bytes = header_make_riff_atrac3(buf, FAKE_RIFF_BUFFER_SIZE, vgmstream->num_samples, datasize, vgmstream->channels, vgmstream->sample_rate, block_size, joint_stereo, encoder_delay);
+            if (bytes <= 0)
+                goto fail;
+
+            ffmpeg_data = init_ffmpeg_header_offset(streamFile, buf,bytes, start_offset,datasize);
+            if ( !ffmpeg_data ) goto fail;
+            vgmstream->codec_data = ffmpeg_data;
+            vgmstream->coding_type = coding_FFmpeg;
+            vgmstream->layout_type = layout_none;
+
+            vgmstream->loop_start_sample = (read_32bitBE(0x44,streamFile) / ffmpeg_data->blockAlign) * ffmpeg_data->frameSize;
+            vgmstream->loop_end_sample = (read_32bitBE(0x48,streamFile) / ffmpeg_data->blockAlign) * ffmpeg_data->frameSize;
+
+            break;
+        }
+#endif
+        default:
+            goto fail;
+
+    }
+
 
     /* open the file for reading */
-    {
-        int i;
-        STREAMFILE * file;
-        file = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-        if (!file) goto fail;
-        
-		for (i=0;i<channel_count;i++) 
-		{
-            vgmstream->ch[i].streamfile = file;
-
-            vgmstream->ch[i].channel_start_offset=
-                vgmstream->ch[i].offset=start_offset + (vgmstream->interleave_block_size * i);
-
-        }
-		
-    }
+    if ( !header_open_stream(vgmstream, streamFile, start_offset) )
+        goto fail;
 
     return vgmstream;
 
-    /* clean up anything we may have opened */
 fail:
-    if (vgmstream) close_vgmstream(vgmstream);
+    close_vgmstream(vgmstream);
     return NULL;
 }

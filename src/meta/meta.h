@@ -603,7 +603,7 @@ VGMSTREAM * init_vgmstream_ps2_strlr(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_lsf_n1nj4n(STREAMFILE* streamFile);
 
-VGMSTREAM * init_vgmstream_ps3_vawx(STREAMFILE* streamFile);
+VGMSTREAM * init_vgmstream_vawx(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_pc_snds(STREAMFILE* streamFile);
 
