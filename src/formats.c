@@ -247,6 +247,7 @@ static const char* extension_list[] = {
     "stx",
     "svag",
     "svs",
+    "swag",
     "swav",
     "swd",
 
