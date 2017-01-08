@@ -93,8 +93,8 @@ For new simple formats, assuming existing layout/coding:
 - *src/meta/(format-name).c*: create new format parser that reads all needed info from the stream header and inits VGMSTREAM
 - *src/meta/meta.h*: register parser's init
 - *src/vgmstream.h*: register new meta
-- *src/vgmstream.c*: add parser init to search list, add meta description
-- *src/formats.c*: add new extension to the format list
+- *src/vgmstream.c*: add parser init to search list
+- *src/formats.c*: add new extension to the format list, add meta description
   *fb2k/in_vgmstream.cpp*: add new extension to the file associations list
 - *src/Makefile*
   *src/meta/Makefile.unix.am*
