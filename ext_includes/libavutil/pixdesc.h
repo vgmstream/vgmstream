@@ -22,7 +22,11 @@
 #ifndef AVUTIL_PIXDESC_H
 #define AVUTIL_PIXDESC_H
 
+/* modification for MSVC by kode54 */
+#ifndef _MSC_VER
 #include <inttypes.h>
+#endif
+/* end modification */
 
 #include "attributes.h"
 #include "pixfmt.h"
