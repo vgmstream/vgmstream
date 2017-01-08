@@ -51,7 +51,7 @@ VGMSTREAM * init_vgmstream_baf(STREAMFILE *streamFile) {
     vgmstream->sample_rate = sample_rate;
     vgmstream->num_samples = sample_count;
 
-    vgmstream->coding_type = coding_VAG_ADPCM_cfg;
+    vgmstream->coding_type = coding_PSX_cfg;
     vgmstream->layout_type = layout_interleave;
     vgmstream->interleave_block_size = frame_size;
     vgmstream->meta_type = meta_BAF;

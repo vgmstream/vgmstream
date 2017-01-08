@@ -55,7 +55,7 @@ VGMSTREAM * init_vgmstream_bgw(STREAMFILE *streamFile) {
 
     switch (codec) {
         case 0: /* PS ADPCM */
-            vgmstream->coding_type = coding_VAG_ADPCM_cfg;
+            vgmstream->coding_type = coding_PSX_cfg;
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = (block_align / 2) + 1; /* half, even if channels = 1 */
 
@@ -138,7 +138,7 @@ VGMSTREAM * init_vgmstream_spw(STREAMFILE *streamFile) {
 
     switch (codec) {
         case 0: /* PS ADPCM */
-            vgmstream->coding_type = coding_VAG_ADPCM_cfg;
+            vgmstream->coding_type = coding_PSX_cfg;
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = (block_align / 2) + 1; /* half, even if channels = 1 */
             

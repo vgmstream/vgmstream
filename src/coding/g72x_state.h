@@ -1,5 +1,5 @@
 /*
- * streamtypes.h - widely used type definitions
+ * g72x_state.h - internal state used by g721 decoder
  */
 
 

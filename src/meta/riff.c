@@ -503,7 +503,7 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
                 (long long)loop_start_ms*fmt.sample_rate/1000;
             vgmstream->loop_end_sample =
                 (long long)loop_end_ms*fmt.sample_rate/1000;
-            vgmstream->meta_type = meta_RIFF_WAVE_labl_Marker;
+            vgmstream->meta_type = meta_RIFF_WAVE_labl;
         }
         else if (loop_start_offset >= 0)
         {

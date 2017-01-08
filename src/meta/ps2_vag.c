@@ -150,7 +150,7 @@ VGMSTREAM * init_vgmstream_ps2_vag(STREAMFILE *streamFile) {
                 start_offset = 0x30;
             }
             else if (version == 0x00020001) { /* HEVAG */
-                vgmstream->coding_type = coding_HEVAG_ADPCM;
+                vgmstream->coding_type = coding_HEVAG;
                 vgmstream->layout_type = layout_interleave;
                 vgmstream->meta_type   = meta_PS2_VAGs;
 

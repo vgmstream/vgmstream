@@ -14,7 +14,7 @@ int32_t EA_TABLE[20]= { 0x00000000, 0x000000F0, 0x000001CC, 0x00000188,
 				    0x00000007, 0x00000008, 0x0000000A, 0x0000000B,
 				    0x00000000, 0xFFFFFFFF, 0xFFFFFFFD, 0xFFFFFFFC};
 
-void decode_eaxa(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do,int channel) {
+void decode_ea_xa(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do,int channel) {
     uint8_t frame_info;
     int32_t sample_count;
 	int32_t coef1,coef2;
