@@ -443,7 +443,7 @@ static const coding_info coding_info_list[] = {
         {coding_G719,               "ITU G.719 annex B (Polycom Siren 22)"},
 #endif
 #ifdef VGM_USE_MAIATRAC3PLUS
-        {coding_AT3plus             "ATRAC3plus"},
+        {coding_AT3plus,            "ATRAC3plus"},
 #endif
 #ifdef VGM_USE_FFMPEG
         {coding_FFmpeg,             "FFmpeg"},
