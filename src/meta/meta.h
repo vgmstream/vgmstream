@@ -665,4 +665,6 @@ VGMSTREAM * init_vgmstream_xma(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_ps2_vds_vdm(STREAMFILE* streamFile);
 
-#endif
+VGMSTREAM * init_vgmstream_x360_cxs(STREAMFILE* streamFile);
+
+#endif /*_META_H*/

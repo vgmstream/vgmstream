@@ -72,6 +72,7 @@ static const char* extension_list[] = {
     "ckd",
     "cnk",
     "cps",
+    "cxs",
 
     "dcs",
     "ddsp",
@@ -419,10 +420,10 @@ static const coding_info coding_info_list[] = {
         {coding_SASSC,              "Activision / EXAKT SASSC 8-bit DPCM"},
         {coding_LSF,                "lsf 4-bit ADPCM"},
         {coding_MTAF,               "Konami MTAF 4-bit ADPCM"},
-    #ifdef VGM_USE_VORBIS
+#ifdef VGM_USE_VORBIS
         {coding_ogg_vorbis,         "Vorbis"},
-    #endif
-    #ifdef VGM_USE_MPEG
+#endif
+#ifdef VGM_USE_MPEG
         {coding_fake_MPEG2_L2,      "MPEG-2 Layer II Audio"},
         {coding_MPEG1_L1,           "MPEG-1 Layer I Audio"},
         {coding_MPEG1_L2,           "MPEG-1 Layer II Audio"},
@@ -433,20 +434,20 @@ static const coding_info coding_info_list[] = {
         {coding_MPEG25_L1,          "MPEG-2.5 Layer I Audio"},
         {coding_MPEG25_L2,          "MPEG-2.5 Layer II Audio"},
         {coding_MPEG25_L3,          "MPEG-2.5 Layer III Audio (MP3)"},
-    #endif
-    #ifdef VGM_USE_G7221
+#endif
+#ifdef VGM_USE_G7221
         {coding_G7221,              "ITU G.722.1 (Polycom Siren 7)"},
         {coding_G7221C,             "ITU G.722.1 annex C (Polycom Siren 14)"},
-    #endif
-    #ifdef VGM_USE_G719
+#endif
+#ifdef VGM_USE_G719
         {coding_G719,               "ITU G.719 annex B (Polycom Siren 22)"},
-    #endif
-    #ifdef VGM_USE_MAIATRAC3PLUS
+#endif
+#ifdef VGM_USE_MAIATRAC3PLUS
         {coding_AT3plus             "ATRAC3plus"},
-    #endif
-    #ifdef VGM_USE_FFMPEG
+#endif
+#ifdef VGM_USE_FFMPEG
         {coding_FFmpeg,             "FFmpeg"},
-    #endif
+#endif
 };
 
 static const layout_info layout_info_list[] = {
@@ -485,13 +486,13 @@ static const layout_info layout_info_list[] = {
         {layout_aix,                    "AIX interleave, internally 18-byte interleaved"},
         {layout_aax,                    "AAX blocked, 18-byte interleaved"},
         {layout_scd_int,                "SCD multistream interleave"},
-    #ifdef VGM_USE_VORBIS
+#ifdef VGM_USE_VORBIS
         {layout_ogg_vorbis,             "Ogg"},
-    #endif
-    #ifdef VGM_USE_MPEG
+#endif
+#ifdef VGM_USE_MPEG
         {layout_fake_mpeg,              "MPEG Audio stream with incorrect frame headers"},
         {layout_mpeg,                   "MPEG Audio stream"},
-    #endif
+#endif
 };
 
 static const meta_info meta_info_list[] = {
@@ -812,7 +813,8 @@ static const meta_info meta_info_list[] = {
         {meta_HCA,                  "CRI MiddleWare HCA Header"},
         {meta_PS2_SVAG_SNK,         "SNK SVAG header"},
         {meta_PS2_VDS_VDM,          "Graffiti Kingdom VDS/VDM Header"},
-    #ifdef VGM_USE_VORBIS
+        {meta_X360_CXS,             "CXS Header"},
+#ifdef VGM_USE_VORBIS
         {meta_OGG_VORBIS,           "Ogg Vorbis"},
         {meta_OGG_SLI,              "Ogg Vorbis with .sli (start,length) for looping"},
         {meta_OGG_SLI2,             "Ogg Vorbis with .sli (from,to) for looping"},
@@ -821,15 +823,15 @@ static const meta_info meta_info_list[] = {
         {meta_OGG_KOVS,             "Ogg Vorbis, KOVS header"},
         {meta_OGG_PSYCH,            "Ogg Vorbis, Psychic Software obfuscation"},
     #endif
-    #ifdef VGM_USE_MPEG
+#ifdef VGM_USE_MPEG
         {meta_AHX,                  "CRI AHX header"},
-    #endif
-    #ifdef VGM_USE_MP4V2
+#endif
+#ifdef VGM_USE_MP4V2
         {meta_MP4,                  "AAC header"},
-    #endif
-    #ifdef VGM_USE_FFMPEG
+#endif
+#ifdef VGM_USE_FFMPEG
         {meta_FFmpeg,               "FFmpeg supported file format"},
-    #endif
+#endif
 };
 
 

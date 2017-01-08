@@ -588,9 +588,10 @@ typedef enum {
     meta_HCA,               /* CRI HCA */
     meta_PS2_SVAG_SNK,      /* SNK PS2 SVAG */
     meta_PS2_VDS_VDM,       /* Graffiti Kingdom */
+    meta_X360_CXS,          /* Eternal Sonata (Xbox 360) */
 
 #ifdef VGM_USE_VORBIS
-    meta_OGG_VORBIS,        /* ogg vorbis */
+    meta_OGG_VORBIS,        /* Ogg Vorbis */
     meta_OGG_SLI,           /* Ogg Vorbis file w/ companion .sli for looping */
     meta_OGG_SLI2,          /* Ogg Vorbis file w/ different styled .sli for looping */
     meta_OGG_SFL,           /* Ogg Vorbis file w/ .sfl (RIFF SFPL) for looping */

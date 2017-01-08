@@ -1154,6 +1154,10 @@
 					RelativePath=".\meta\wvs.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\meta\x360.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\x360_tra.c"
 					>
