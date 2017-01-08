@@ -649,11 +649,6 @@ typedef struct {
     /* state for G.721 decoder, sort of big but we might as well keep it around */
     struct g72x_state g72x_state;
 
-#ifdef DEBUG
-    int samples_done;
-    int16_t loop_history1,loop_history2;
-#endif
-
     /* ADX encryption */
     int adx_channels;
     uint16_t adx_xor;

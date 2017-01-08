@@ -1735,20 +1735,6 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream) {
             }
             /* todo preserve ADPCM (ex hevag) history? */
 
-#ifdef DEBUG
-            {
-               int i;
-               for (i=0;i<vgmstream->channels;i++) {
-                   fprintf(stderr,"ch%d hist: %04x %04x loop hist: %04x %04x\n",i,
-                           vgmstream->ch[i].adpcm_history1_16,vgmstream->ch[i].adpcm_history2_16,
-                           vgmstream->loop_ch[i].adpcm_history1_16,vgmstream->loop_ch[i].adpcm_history2_16);
-                   fprintf(stderr,"ch%d offset: %x loop offset: %x\n",i,
-                           vgmstream->ch[i].offset,
-                           vgmstream->loop_ch[i].offset);
-               }
-            }
-#endif
-
             if (vgmstream->coding_type==coding_CRI_HCA) {
                 hca_codec_data *data = (hca_codec_data *)(vgmstream->codec_data);
                 data->curblock = data->info.loopStart;

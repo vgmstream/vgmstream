@@ -273,12 +273,6 @@ VGMSTREAM * init_vgmstream_Cstr(STREAMFILE *streamFile) {
         for (i=0;i<16;i++)
             vgmstream->ch[1].adpcm_coef[i]=read_16bitBE(0x9c+i*2,streamFile);
     }
-#ifdef DEBUG
-    vgmstream->ch[0].loop_history1 = read_16bitBE(0x66,streamFile);
-    vgmstream->ch[0].loop_history2 = read_16bitBE(0x68,streamFile);
-    vgmstream->ch[1].loop_history1 = read_16bitBE(0xc6,streamFile);
-    vgmstream->ch[1].loop_history2 = read_16bitBE(0xc8,streamFile);
-#endif
 
     /* open the file for reading by each channel */
     {
