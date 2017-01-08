@@ -587,6 +587,7 @@ typedef enum {
     meta_XB3D_ADX,          // Xenoblade Chronicles 3D ADX
     meta_HCA,               /* CRI HCA */
     meta_PS2_SVAG_SNK,      /* SNK PS2 SVAG */
+    meta_PS2_VDS_VDM,       /* Graffiti Kingdom */
 
 #ifdef VGM_USE_VORBIS
     meta_OGG_VORBIS,        /* ogg vorbis */

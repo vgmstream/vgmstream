@@ -248,5 +248,6 @@ libmeta_la_SOURCES += hca.c
 libmeta_la_SOURCES += ps2_svag_snk.c
 libmeta_la_SOURCES += mp4.c
 libmeta_la_SOURCES += xma.c
+libmeta_la_SOURCES += ps2.c
 
 EXTRA_DIST = meta.h

@@ -663,4 +663,6 @@ VGMSTREAM * init_vgmstream_ps2_svag_snk(STREAMFILE* streamFile);
 VGMSTREAM * init_vgmstream_xma(STREAMFILE* streamFile);
 #endif
 
+VGMSTREAM * init_vgmstream_ps2_vds_vdm(STREAMFILE* streamFile);
+
 #endif

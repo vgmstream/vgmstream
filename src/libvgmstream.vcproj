@@ -646,6 +646,10 @@
 					RelativePath=".\meta\pos.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\meta\ps2.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\ps2_2pfs.c"
 					>

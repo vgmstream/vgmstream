@@ -307,7 +307,8 @@ META_OBJS=meta/adx_header.o \
 	meta/ps2_svag_snk.o \
 	meta/ffmpeg.o \
 	meta/mp4.o \
-	meta/xma.o
+	meta/xma.o \
+    meta/ps2.o
 
 EXT_LIBS = ../ext_libs/clHCA.o
 

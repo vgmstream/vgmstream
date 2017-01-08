@@ -240,6 +240,7 @@
     <ClCompile Include="meta\pcm.c" />
     <ClCompile Include="meta\pona.c" />
     <ClCompile Include="meta\pos.c" />
+    <ClCompile Include="meta\ps2.c" />
     <ClCompile Include="meta\ps2_adm.c" />
     <ClCompile Include="meta\ps2_ads.c" />
     <ClCompile Include="meta\ps2_adsc.c" />

@@ -808,6 +808,7 @@ static const meta_info meta_info_list[] = {
         {meta_XB3D_ADX,             "Xenoblade 3D ADX Header"},
         {meta_HCA,                  "CRI MiddleWare HCA Header"},
         {meta_PS2_SVAG_SNK,         "SNK SVAG header"},
+        {meta_PS2_VDS_VDM,          "Graffiti Kingdom VDS/VDM Header"},
     #ifdef VGM_USE_VORBIS
         {meta_OGG_VORBIS,           "Ogg Vorbis"},
         {meta_OGG_SLI,              "Ogg Vorbis with .sli (start,length) for looping"},
