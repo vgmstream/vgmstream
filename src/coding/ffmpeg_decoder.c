@@ -263,42 +263,13 @@ void seek_ffmpeg(VGMSTREAM *vgmstream, int32_t num_sample) {
     ffmpeg_codec_data *data = (ffmpeg_codec_data *) vgmstream->codec_data;
     int64_t ts;
 
-#ifndef VGM_USE_FFMPEG_ACCURATE_LOOPING
-    /* Seek to loop start by timestamp (closest frame) + adjust skipping some samples */
-    /* FFmpeg seeks by ts by design (since not all containers can accurately skip to a frame). */
-    /* TODO: this seems to be off by +-1 frames in some cases */
-    ts = num_sample;
-    if (ts >= data->sampleRate * 2) {
-        data->samplesToDiscard = data->sampleRate * 2;
-        ts -= data->samplesToDiscard;
-    }
-    else {
-        data->samplesToDiscard = (int)ts;
-        ts = 0;
-    }
-
-    /* todo fix this properly */
-    if (data->totalSamples) {
-        ts = (int)ts * (data->formatCtx->duration) / data->totalSamples;
-    } else {
-        data->samplesToDiscard = num_sample;
-        ts = 0;
-    }
-
-    avformat_seek_file(data->formatCtx, data->streamIndex, ts - 1000, ts, ts, AVSEEK_FLAG_ANY);
-    avcodec_flush_buffers(data->codecCtx);
-#endif /* ifndef VGM_USE_FFMPEG_ACCURATE_LOOPING */
-
-#ifdef VGM_USE_FFMPEG_ACCURATE_LOOPING
-    /* Start from 0 and discard samples until loop_start for accurate looping (slower but not too noticeable) */
-    /* We could also seek by offset (AVSEEK_FLAG_BYTE) to the frame closest to the loop then discard
-     *  some samples, which is fast but would need calculations per format / when frame size is not constant */
+    /* Start from 0 and discard samples until loop_start (slower but not too noticeable) */
+    /* Due to various FFmpeg quirks seeking to a sample is erratic in many formats (would need extra steps) */
     data->samplesToDiscard = num_sample;
     ts = 0;
 
     avformat_seek_file(data->formatCtx, data->streamIndex, ts, ts, ts, AVSEEK_FLAG_ANY);
     avcodec_flush_buffers(data->codecCtx);
-#endif /* ifdef VGM_USE_FFMPEG_ACCURATE_LOOPING */
 
     data->readNextPacket = 1;
     data->bytesConsumedFromDecodedFrame = INT_MAX;
