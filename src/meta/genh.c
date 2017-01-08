@@ -215,7 +215,7 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
             vgmstream->layout_type = layout_none;
             break;
         case coding_NGC_DTK:
-            vgmstream->layout_type = layout_dtk_interleave;
+            vgmstream->layout_type = layout_none;
             break;
         case coding_NGC_DSP:
             if (dsp_interleave_type == 0) {

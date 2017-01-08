@@ -373,6 +373,9 @@
     <ClCompile Include="meta\pos.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\ps2.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\ps2_adm.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -1025,6 +1028,9 @@
       <Filter>coding\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\xma.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\x360.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
   </ItemGroup>

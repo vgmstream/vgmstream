@@ -1,5 +1,6 @@
 #include "meta.h"
 #include "../util.h"
+#include "../header.h"
 
 
 static int vag_find_loop_offsets(STREAMFILE *streamFile, off_t start_offset, off_t * loop_start, off_t * loop_end);
@@ -9,26 +10,23 @@ static int vag_find_loop_offsets(STREAMFILE *streamFile, off_t start_offset, off
 */
 VGMSTREAM * init_vgmstream_ps2_vag(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[PATH_LIMIT];
-
-    off_t loopStart = 0;
-    off_t loopEnd = 0;
+    off_t start_offset, loopStart = 0, loopEnd = 0;
 
     uint8_t vagID;
     uint32_t version = 0;
 
-    size_t filesize = 0, datasize = 0;
-    size_t interleave;
-    off_t start_offset;
-    
-    int loop_flag=0;
-    int loop_samples_found = 0;
-    int channel_count=0;
-    int i;
+    size_t filesize = 0, datasize = 0, interleave;
+
+    int loop_flag = 0, loop_samples_found = 0;
+    int channel_count = 0;
+    int is_swag = 0;
 
     /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("vag",filename_extension(filename))) goto fail;
+    if ( !header_check_extensions(streamFile,"vag,swag") )
+        goto fail;
+
+    /* Frantix VAGp .swag: some (not all) fields in LE + 2 VAGp in the same file (full interleave) */
+    is_swag = header_check_extensions(streamFile,"swag");
 
     /* check VAG Header */
     if (((read_32bitBE(0x00,streamFile) & 0xFFFFFF00) != 0x56414700) && /* "VAG\0" */
@@ -41,7 +39,10 @@ VGMSTREAM * init_vgmstream_ps2_vag(STREAMFILE *streamFile) {
      *  ex: 00000000 = v1.8 PC, 00000002 = v1.3 Mac, 00000003 = v1.6+ Mac, 00000020 = v2.0+ PC */
     version = read_32bitBE(0x04,streamFile);
     /* 0x08-0c: reserved */
-    datasize = read_32bitBE(0x0c,streamFile);
+    if (is_swag)
+        datasize = read_32bitLE(0x0c,streamFile);
+    else
+        datasize = read_32bitBE(0x0c,streamFile);
     /* 0x14-20 reserved */
     /* 0x20-30: name (optional) */
     /* 0x30: data start (first 0x10 usually 0s to init SPU) */
@@ -66,8 +67,11 @@ VGMSTREAM * init_vgmstream_ps2_vag(STREAMFILE *streamFile) {
             break;
         case 'p': /* "VAGp" (extended) [most common, ex Ratchet & Clank] */
 
-            if ((version <= 0x00000004) && (datasize < filesize / 2)) {
-                loop_flag=(read_32bitBE(0x14,streamFile)!=0);
+            if ((version <= 0x00000004) && (datasize < filesize / 2)) { /* two VAGp in the same file */
+                if (is_swag)
+                    loop_flag = vag_find_loop_offsets(streamFile, 0x30, &loopStart, &loopEnd);
+                else
+                    loop_flag = read_32bitBE(0x14,streamFile) != 0;
                 channel_count=2;
             }
             else if (version == 0x00020001) { /* HEVAG */
@@ -91,7 +95,10 @@ VGMSTREAM * init_vgmstream_ps2_vag(STREAMFILE *streamFile) {
 
     /* fill in the vital statistics */
     vgmstream->coding_type = coding_PSX;
-    vgmstream->sample_rate = read_32bitBE(0x10,streamFile);
+    if (is_swag)
+        vgmstream->sample_rate = read_32bitLE(0x10,streamFile);
+    else
+        vgmstream->sample_rate = read_32bitBE(0x10,streamFile);
 
     switch(vagID) {
         case '1': // VAG1
@@ -121,23 +128,31 @@ VGMSTREAM * init_vgmstream_ps2_vag(STREAMFILE *streamFile) {
 
             if ((version == 0x00000004) && (datasize < filesize / 2)) {
                 vgmstream->channels=2;
-                vgmstream->num_samples = datasize; /* todo test if datasize/16*28? */
-
-                if(loop_flag) {
-                    vgmstream->loop_start_sample=read_32bitBE(0x14,streamFile);
-                    vgmstream->loop_end_sample =read_32bitBE(0x18,streamFile);
-                    loop_samples_found = 1;
-                }
-
-                start_offset=0x80;
                 vgmstream->layout_type=layout_interleave;
                 vgmstream->meta_type=meta_PS2_VAGs;
 
-                // Double VAG Header @ 0x0000 & 0x1000
-                if(read_32bitBE(0,streamFile)==read_32bitBE(0x1000,streamFile)) {
+                if (is_swag) {
+                    start_offset = 0x30;
+                    interleave = datasize;
                     vgmstream->num_samples = datasize / 16 * 28;
-                    interleave=0x1000;
-                    start_offset=0;
+                    vgmstream->loop_start_sample = (loopStart-start_offset) / 16 * 28;
+                    vgmstream->loop_end_sample = (loopEnd-start_offset) / 16 * 28;
+                    loop_samples_found = 1;
+
+                } else {
+                    start_offset=0x80;
+                    vgmstream->num_samples = datasize; /* todo test if datasize/16*28? */
+                    if(loop_flag) {
+                        vgmstream->loop_start_sample=read_32bitBE(0x14,streamFile);
+                        vgmstream->loop_end_sample =read_32bitBE(0x18,streamFile);
+                        loop_samples_found = 1;
+                        // Double VAG Header @ 0x0000 & 0x1000
+                        if(read_32bitBE(0,streamFile)==read_32bitBE(0x1000,streamFile)) {
+                            vgmstream->num_samples = datasize / 16 * 28;
+                            interleave=0x1000;
+                            start_offset=0;
+                        }
+                    }
                 }
             }
             else if (version == 0x40000000) { /* Guerilla VAG (little endian) */
@@ -150,7 +165,7 @@ VGMSTREAM * init_vgmstream_ps2_vag(STREAMFILE *streamFile) {
                 start_offset = 0x30;
             }
             else if (version == 0x00020001) { /* HEVAG */
-                vgmstream->coding_type = coding_HEVAG_ADPCM;
+                vgmstream->coding_type = coding_HEVAG;
                 vgmstream->layout_type = layout_interleave;
                 vgmstream->meta_type   = meta_PS2_VAGs;
 
@@ -195,28 +210,14 @@ VGMSTREAM * init_vgmstream_ps2_vag(STREAMFILE *streamFile) {
     }
 
 
-    /* open the file for reading by each channel */
-    {
-        for (i=0;i<channel_count;i++) {
-            if (vgmstream->interleave_block_size > 0) {
-                vgmstream->ch[i].streamfile = streamFile->open(streamFile,filename,vgmstream->interleave_block_size);
-            } else {
-                vgmstream->ch[i].streamfile = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-            }
-
-            if (!vgmstream->ch[i].streamfile) goto fail;
-
-            vgmstream->ch[i].channel_start_offset=
-                vgmstream->ch[i].offset=
-                (off_t)(start_offset+vgmstream->interleave_block_size*i);
-        }
-    }
+    /* open the file for reading */
+    if ( !header_open_stream(vgmstream, streamFile, start_offset) )
+        goto fail;
 
     return vgmstream;
 
-    /* clean up anything we may have opened */
 fail:
-    if (vgmstream) close_vgmstream(vgmstream);
+    close_vgmstream(vgmstream);
     return NULL;
 }
 

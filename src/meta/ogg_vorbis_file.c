@@ -233,13 +233,13 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
     callbacks.tell_func = tell_func;
 
     if (um3_ogg) {
-        inf.meta_type = meta_um3_ogg;
+        inf.meta_type = meta_OGG_UM3;
     } else if (kovs_ogg) {
-        inf.meta_type = meta_KOVS_ogg;
+        inf.meta_type = meta_OGG_KOVS;
     } else if (psych_ogg) {
-        inf.meta_type = meta_psych_ogg;
+        inf.meta_type = meta_OGG_PSYCH;
     } else {
-        inf.meta_type = meta_ogg_vorbis;
+        inf.meta_type = meta_OGG_VORBIS;
     }
 
     inf.layout_type = layout_ogg_vorbis;

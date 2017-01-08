@@ -33,7 +33,7 @@ VGMSTREAM * init_vgmstream_ps2_bmdx(STREAMFILE *streamFile) {
 
     /* Check for Compression Scheme */
     if (read_32bitLE(0x20,streamFile) == 1)
-        vgmstream->coding_type = coding_invert_PSX;
+        vgmstream->coding_type = coding_PSX_bmdx;
     else
         vgmstream->coding_type = coding_PSX;
     vgmstream->num_samples = read_32bitLE(0x0c,streamFile)*28/16/channel_count;
@@ -55,7 +55,7 @@ VGMSTREAM * init_vgmstream_ps2_bmdx(STREAMFILE *streamFile) {
 
     start_offset = read_32bitLE(0x08,streamFile);
 
-    if (vgmstream->coding_type == coding_invert_PSX)
+    if (vgmstream->coding_type == coding_PSX_bmdx)
     {
         uint8_t xor = read_8bit(start_offset,streamFile);
         uint8_t add = (~(uint8_t)read_8bit(start_offset+2,streamFile))+1;

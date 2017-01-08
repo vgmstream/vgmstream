@@ -225,7 +225,7 @@ VGMSTREAM * init_vgmstream_ea(STREAMFILE *streamFile) {
 					vgmstream->meta_type=meta_EAXA_R2;
 			}
 
-			vgmstream->coding_type=coding_EAXA;
+			vgmstream->coding_type=coding_EA_XA;
 			vgmstream->layout_type=layout_ea_blocked;
 			if((vgmstream->ea_platform==EA_GC) || (vgmstream->ea_platform==EA_X360)) 
 				vgmstream->ea_big_endian=1;

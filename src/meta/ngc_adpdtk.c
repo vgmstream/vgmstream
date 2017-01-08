@@ -29,7 +29,7 @@ VGMSTREAM * init_vgmstream_ngc_adpdtk(STREAMFILE *streamFile) {
     vgmstream->num_samples = file_size/32*28;
     vgmstream->sample_rate = 48000;
     vgmstream->coding_type = coding_NGC_DTK;
-    vgmstream->layout_type = layout_dtk_interleave;
+    vgmstream->layout_type = layout_none;
     vgmstream->meta_type = meta_NGC_ADPDTK;
 
     /* locality is such that two streamfiles is silly */

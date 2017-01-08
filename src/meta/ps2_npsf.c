@@ -1,8 +1,9 @@
 #include "meta.h"
 #include "../util.h"
 
-/* Sony .ADS with SShd & SSbd Headers */
-
+/* NPFS - found in Namco PS2/PSP games:
+ * Tekken 5, Ace Combat 5, Yumeria, Venus & Braves (.nps), Ridge Racer PSP, etc
+ */
 VGMSTREAM * init_vgmstream_ps2_npsf(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[PATH_LIMIT];
@@ -14,7 +15,9 @@ VGMSTREAM * init_vgmstream_ps2_npsf(STREAMFILE *streamFile) {
 
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("npsf",filename_extension(filename))) goto fail;
+    if (strcasecmp("npsf",filename_extension(filename)) &&
+        strcasecmp("nps",filename_extension(filename)))
+        goto fail;
 
     /* check NPSF Header */
     if (read_32bitBE(0x00,streamFile) != 0x4E505346)

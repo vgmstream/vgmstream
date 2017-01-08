@@ -214,7 +214,7 @@ void decode_psx(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, 
 	stream->adpcm_history2_32=hist2;
 }
 
-void decode_invert_psx(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
+void decode_psx_bmdx(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
 
 	int predict_nr, shift_factor, sample;
 	int32_t hist1=stream->adpcm_history1_32;
@@ -301,7 +301,7 @@ void decode_psx_badflags(VGMSTREAMCHANNEL * stream, sample * outbuf, int channel
  *
  * Original research and algorithm by id-daemon / daemon1.
  */
-void decode_hevag_adpcm(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
+void decode_hevag(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
 
     uint8_t predict_nr, shift, flag, byte;
     int32_t scale = 0;
@@ -367,7 +367,7 @@ void decode_hevag_adpcm(VGMSTREAMCHANNEL * stream, sample * outbuf, int channels
  * PS ADPCM of configurable size, with no flag.
  * Found in PS3 Afrika (SGDX type 5) in size 4, FF XI in sizes 3/5/9/41, Blur and James Bond in size 33.
  */
-void decode_vag_adpcm_configurable(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int frame_size) {
+void decode_psx_configurable(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int frame_size) {
     uint8_t predict_nr, shift, byte;
     int16_t scale = 0;
 
