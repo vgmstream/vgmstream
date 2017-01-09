@@ -11,7 +11,7 @@ VGMSTREAM * init_vgmstream_mca(STREAMFILE *streamFile) {
 	int channel_count;
 	int loop_flag;
 	int version;
-	size_t head_size, data_size;
+	size_t head_size, data_size, file_size;
 	off_t start_offset, coef_offset, coef_start, coef_shift;
 	int i, j;
 	int coef_spacing;
@@ -76,6 +76,16 @@ VGMSTREAM * init_vgmstream_mca(STREAMFILE *streamFile) {
 
         start_offset = read_32bitLE(coef_start - 0x4, streamFile);
         coef_offset = coef_start + coef_shift * 0x14;
+	}
+
+	/* sanity check */
+	file_size = get_streamfile_size(streamFile);
+
+	if (start_offset + data_size > file_size) {
+		if (head_size + data_size > file_size)
+			goto fail;
+
+		start_offset = file_size - data_size;
 	}
 
 	
