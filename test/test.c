@@ -23,6 +23,10 @@
 extern char * optarg;
 extern int optind, opterr, optopt;
 
+
+static void make_wav_header(uint8_t * buf, int32_t sample_count, int32_t sample_rate, int channels);
+static void make_smpl_chunk(uint8_t * buf, int32_t loop_start, int32_t loop_end);
+
 void usage(const char * name) {
     fprintf(stderr,"vgmstream test decoder " VERSION " " __DATE__ "\n"
           "Usage: %s [-o outfile.wav] [-l loop count]\n"
@@ -420,4 +424,55 @@ int main(int argc, char ** argv) {
     free(buf);
 
     return 0;
+}
+
+
+
+/**
+ * make a header for PCM .wav
+ * buffer must be 0x2c bytes
+ */
+static void make_wav_header(uint8_t * buf, int32_t sample_count, int32_t sample_rate, int channels) {
+    size_t bytecount;
+
+    bytecount = sample_count*channels*sizeof(sample);
+
+    memcpy(buf+0, "RIFF", 4); /* RIFF header */
+    put_32bitLE(buf+4, (int32_t)(bytecount+0x2c-8)); /* size of RIFF */
+
+    memcpy(buf+8, "WAVE", 4); /* WAVE header */
+
+    memcpy(buf+0xc, "fmt ", 4); /* WAVE fmt chunk */
+    put_32bitLE(buf+0x10, 0x10); /* size of WAVE fmt chunk */
+    put_16bitLE(buf+0x14, 1); /* compression code 1=PCM */
+    put_16bitLE(buf+0x16, channels); /* channel count */
+    put_32bitLE(buf+0x18, sample_rate); /* sample rate */
+    put_32bitLE(buf+0x1c, sample_rate*channels*sizeof(sample)); /* bytes per second */
+    put_16bitLE(buf+0x20, (int16_t)(channels*sizeof(sample))); /* block align */
+    put_16bitLE(buf+0x22, sizeof(sample)*8); /* significant bits per sample */
+
+    /* PCM has no extra format bytes, so we don't even need to specify a count */
+
+    memcpy(buf+0x24, "data", 4); /* WAVE data chunk */
+    put_32bitLE(buf+0x28, (int32_t)bytecount); /* size of WAVE data chunk */
+}
+
+static void make_smpl_chunk(uint8_t * buf, int32_t loop_start, int32_t loop_end) {
+   int i;
+
+    memcpy(buf+0, "smpl", 4);/* header */
+    put_32bitLE(buf+4, 0x3c);/* size */
+
+    for (i = 0; i < 7; i++)
+        put_32bitLE(buf+8 + i * 4, 0);
+
+    put_32bitLE(buf+36, 1);
+
+    for (i = 0; i < 3; i++)
+        put_32bitLE(buf+40 + i * 4, 0);
+
+    put_32bitLE(buf+52, loop_start);
+    put_32bitLE(buf+56, loop_end);
+    put_32bitLE(buf+60, 0);
+    put_32bitLE(buf+64, 0);
 }
