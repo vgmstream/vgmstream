@@ -1,6 +1,7 @@
 #include "meta.h"
 #include "../util.h"
 #include "../header.h"
+#include "../coding/coding.h"
 
 #define FAKE_RIFF_BUFFER_SIZE           100
 
@@ -51,19 +52,17 @@ VGMSTREAM * init_vgmstream_vawx(STREAMFILE *streamFile) {
             break;
 
 #ifdef VGM_USE_FFMPEG
-        case 1: { /* XMA */
+        case 1: { /* XMA2 */
             ffmpeg_codec_data *ffmpeg_data = NULL;
             uint8_t buf[FAKE_RIFF_BUFFER_SIZE];
-            size_t bytes, block_size, block_count;
-            /* not accurate but not needed by FFmpeg */
+            int32_t bytes, block_size, block_count;
+            /* todo not accurate (needed for >2ch) */
             datasize = get_streamfile_size(streamFile)-start_offset;
             block_size = 2048;
             block_count = datasize / block_size; /* read_32bitLE(custom_data_offset +0x14) -1? */
 
-            /* make a fake riff so FFmpeg can parse the XMA2 */
-            bytes = header_make_riff_xma2(buf, FAKE_RIFF_BUFFER_SIZE, vgmstream->num_samples, datasize, vgmstream->channels, vgmstream->sample_rate, block_count, block_size);
-            if (bytes <= 0)
-                goto fail;
+            bytes = ffmpeg_make_riff_xma2(buf, FAKE_RIFF_BUFFER_SIZE, vgmstream->num_samples, datasize, vgmstream->channels, vgmstream->sample_rate, block_count, block_size);
+            if (bytes <= 0) goto fail;
 
             ffmpeg_data = init_ffmpeg_header_offset(streamFile, buf,bytes, start_offset,datasize);
             if ( !ffmpeg_data ) goto fail;
@@ -80,12 +79,10 @@ VGMSTREAM * init_vgmstream_vawx(STREAMFILE *streamFile) {
         case 7: { /* ATRAC3 */
             ffmpeg_codec_data *ffmpeg_data = NULL;
             uint8_t buf[FAKE_RIFF_BUFFER_SIZE];
-            size_t bytes, block_size, encoder_delay;
-            int joint_stereo;
-            int32_t max_samples;
+            int32_t bytes, block_size, encoder_delay, joint_stereo, max_samples;
 
             datasize = read_32bitBE(0x54,streamFile);
-            block_size = 0x98 * 2;
+            block_size = 0x98 * vgmstream->channels;
             joint_stereo = 0;
             max_samples = (datasize / block_size) * 1024;
             encoder_delay = 0x0; /* not used by FFmpeg */
@@ -95,7 +92,7 @@ VGMSTREAM * init_vgmstream_vawx(STREAMFILE *streamFile) {
             }
 
             /* make a fake riff so FFmpeg can parse the ATRAC3 */
-            bytes = header_make_riff_atrac3(buf, FAKE_RIFF_BUFFER_SIZE, vgmstream->num_samples, datasize, vgmstream->channels, vgmstream->sample_rate, block_size, joint_stereo, encoder_delay);
+            bytes = ffmpeg_make_riff_atrac3(buf, FAKE_RIFF_BUFFER_SIZE, vgmstream->num_samples, datasize, vgmstream->channels, vgmstream->sample_rate, block_size, joint_stereo, encoder_delay);
             if (bytes <= 0)
                 goto fail;
 

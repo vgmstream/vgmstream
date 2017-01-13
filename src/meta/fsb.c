@@ -330,7 +330,7 @@ VGMSTREAM * init_vgmstream_fsb_offset(STREAMFILE *streamFile, off_t offset) {
         block_count = fsbh.datasize / block_size; /* read_32bitLE(custom_data_offset +0x14) -1? */
 
         /* make a fake riff so FFmpeg can parse the XMA2 */
-        bytes = header_make_riff_xma2(buf, FAKE_RIFF_BUFFER_SIZE, fsbh.lengthsamples, fsbh.datasize, fsbh.numchannels, fsbh.deffreq, block_count, block_size);
+        bytes = ffmpeg_make_riff_xma2(buf, FAKE_RIFF_BUFFER_SIZE, fsbh.lengthsamples, fsbh.datasize, fsbh.numchannels, fsbh.deffreq, block_count, block_size);
         if (bytes <= 0)
             goto fail;
 

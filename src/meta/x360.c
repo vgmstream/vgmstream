@@ -1,5 +1,6 @@
 #include "meta.h"
 #include "../header.h"
+#include "../coding/coding.h"
 
 /* CXS - found in Eternal Sonata (Xbox 360) */
 VGMSTREAM * init_vgmstream_x360_cxs(STREAMFILE *streamFile) {
@@ -31,7 +32,6 @@ VGMSTREAM * init_vgmstream_x360_cxs(STREAMFILE *streamFile) {
     /* 0x1c: below */
 
     vgmstream->meta_type = meta_X360_CXS;
-    vgmstream->layout_type = layout_none;
 
 #ifdef VGM_USE_FFMPEG
     {
@@ -43,15 +43,14 @@ VGMSTREAM * init_vgmstream_x360_cxs(STREAMFILE *streamFile) {
         block_size  = read_32bitBE(0x20,streamFile);
         datasize    = read_32bitBE(0x24,streamFile);
 
-        /* make a fake riff so FFmpeg can parse the XMA2 */
-        bytes = header_make_riff_xma2(buf,100, vgmstream->num_samples, datasize, vgmstream->channels, vgmstream->sample_rate, block_count, block_size);
-        if (bytes <= 0)
-            goto fail;
+        bytes = ffmpeg_make_riff_xma2(buf,100, vgmstream->num_samples, datasize, vgmstream->channels, vgmstream->sample_rate, block_count, block_size);
+        if (bytes <= 0) goto fail;
+
         ffmpeg_data = init_ffmpeg_header_offset(streamFile, buf,bytes, start_offset,datasize);
         if ( !ffmpeg_data ) goto fail;
-
         vgmstream->codec_data = ffmpeg_data;
         vgmstream->coding_type = coding_FFmpeg;
+        vgmstream->layout_type = layout_none;
     }
 #else
     goto fail;
