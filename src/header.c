@@ -94,21 +94,6 @@ int header_open_stream(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t star
 }
 
 
-/**
- * reads DSP coefs built in the streamfile
- */
-void header_dsp_read_coefs_be(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t offset, off_t spacing) {
-    int ch, i;
-    /* get ADPCM coefs */
-    for (ch=0; ch < vgmstream->channels; ch++) {
-        for (i=0; i < 16; i++) {
-            vgmstream->ch[ch].adpcm_coef[i] =
-                    read_16bitBE(offset + ch*spacing + i*2, streamFile);
-        }
-    }
-}
-
-
 #if 0
 /**
  * Converts a data offset (without headers) to sample, so full datasize would be num_samples

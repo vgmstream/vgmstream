@@ -351,7 +351,7 @@ VGMSTREAM * init_vgmstream_fsb_offset(STREAMFILE *streamFile, off_t offset) {
         vgmstream->coding_type = coding_NGC_DSP;
         vgmstream->layout_type = layout_interleave_byte;
         vgmstream->interleave_block_size = 0x2;
-        header_dsp_read_coefs_be(vgmstream, streamFile, custom_data_offset, 0x2e);
+        dsp_read_coefs_be(vgmstream, streamFile, custom_data_offset, 0x2e);
     }
     else if (fsbh.mode & FSOUND_OGG) {
         /* FSB4: ? (possibly FMOD's custom ogg) */
