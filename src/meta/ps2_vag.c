@@ -1,6 +1,4 @@
 #include "meta.h"
-#include "../util.h"
-#include "../header.h"
 
 
 static int vag_find_loop_offsets(STREAMFILE *streamFile, off_t start_offset, off_t * loop_start, off_t * loop_end);
@@ -22,16 +20,16 @@ VGMSTREAM * init_vgmstream_ps2_vag(STREAMFILE *streamFile) {
     int is_swag = 0;
 
     /* check extension, case insensitive */
-    if ( !header_check_extensions(streamFile,"vag,swag") )
+    if ( !check_extensions(streamFile,"vag,swag") )
+        goto fail;
+
+    /* check VAG Header */
+    if (((read_32bitBE(0x00,streamFile) & 0xFFFFFF00) != 0x56414700) && /* "VAG" */
+        ((read_32bitLE(0x00,streamFile) & 0xFFFFFF00) != 0x56414700))
         goto fail;
 
     /* Frantix VAGp .swag: some (not all) fields in LE + 2 VAGp in the same file (full interleave) */
-    is_swag = header_check_extensions(streamFile,"swag");
-
-    /* check VAG Header */
-    if (((read_32bitBE(0x00,streamFile) & 0xFFFFFF00) != 0x56414700) && /* "VAG\0" */
-        ((read_32bitLE(0x00,streamFile) & 0xFFFFFF00) != 0x56414700))
-        goto fail;
+    is_swag = check_extensions(streamFile,"swag");
 
     filesize = get_streamfile_size(streamFile);
 
@@ -211,7 +209,7 @@ VGMSTREAM * init_vgmstream_ps2_vag(STREAMFILE *streamFile) {
 
 
     /* open the file for reading */
-    if ( !header_open_stream(vgmstream, streamFile, start_offset) )
+    if ( !vgmstream_open_stream(vgmstream, streamFile, start_offset) )
         goto fail;
 
     return vgmstream;

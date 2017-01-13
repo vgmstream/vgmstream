@@ -1,9 +1,9 @@
 #ifndef _MSC_VER
 #include <unistd.h>
 #endif
-#include "vgmstream.h"
 #include "streamfile.h"
 #include "util.h"
+#include "vgmstream.h"
 
 typedef struct {
     STREAMFILE sf;
@@ -388,6 +388,34 @@ found:
 
 fail:
     if (streamFilePos) close_streamfile(streamFilePos);
+
+    return 0;
+}
+
+
+/**
+ * checks if the stream filename is one of the extensions (comma-separated, ex. "adx" or "adx,aix")
+ *
+ * returns 0 on failure
+ */
+int check_extensions(STREAMFILE *streamFile, const char * cmp_exts) {
+    char filename[PATH_LIMIT];
+    const char * ext = NULL;
+    const char * cmp_ext = NULL;
+    size_t ext_len;
+
+    streamFile->get_name(streamFile,filename,sizeof(filename));
+    ext = filename_extension(filename);
+    ext_len = strlen(ext);
+
+    cmp_ext = cmp_exts;
+    do {
+        if (strncasecmp(ext,cmp_ext, ext_len)==0 )
+            return 1;
+        cmp_ext = strstr(cmp_ext, ",");
+        if (cmp_ext != NULL)
+            cmp_ext = cmp_ext + 1; /* skip comma */
+    } while (cmp_ext != NULL);
 
     return 0;
 }

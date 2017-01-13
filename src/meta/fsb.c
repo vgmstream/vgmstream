@@ -1,7 +1,5 @@
 #include "meta.h"
 #include "../coding/coding.h"
-#include "../util.h"
-#include "../header.h"
 
 #define FAKE_RIFF_BUFFER_SIZE           100
 
@@ -122,7 +120,7 @@ VGMSTREAM * init_vgmstream_fsb_offset(STREAMFILE *streamFile, off_t offset) {
     FSB_HEADER fsbh;
 
     /* check extensions */
-    if ( !header_check_extensions(streamFile, "fsb,wii") )
+    if ( !check_extensions(streamFile, "fsb,wii") )
         goto fail;
 
     h_off = offset;
@@ -396,7 +394,7 @@ VGMSTREAM * init_vgmstream_fsb_offset(STREAMFILE *streamFile, off_t offset) {
 
 
     /* open the file for reading */
-    if ( !header_open_stream(vgmstream, streamFile, start_offset) )
+    if ( !vgmstream_open_stream(vgmstream, streamFile, start_offset) )
         goto fail;
 
     return vgmstream;

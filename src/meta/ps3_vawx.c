@@ -1,6 +1,4 @@
 #include "meta.h"
-#include "../util.h"
-#include "../header.h"
 #include "../coding/coding.h"
 
 #define FAKE_RIFF_BUFFER_SIZE           100
@@ -15,7 +13,7 @@ VGMSTREAM * init_vgmstream_vawx(STREAMFILE *streamFile) {
     int loop_flag = 0, channel_count, type;
 
     /* check extensions */
-    if ( !header_check_extensions(streamFile, "vawx,xwv") )
+    if ( !check_extensions(streamFile, "vawx,xwv") )
         goto fail;
 
     /* check header */
@@ -115,7 +113,7 @@ VGMSTREAM * init_vgmstream_vawx(STREAMFILE *streamFile) {
 
 
     /* open the file for reading */
-    if ( !header_open_stream(vgmstream, streamFile, start_offset) )
+    if ( !vgmstream_open_stream(vgmstream, streamFile, start_offset) )
         goto fail;
 
     return vgmstream;

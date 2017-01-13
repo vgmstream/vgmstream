@@ -1,5 +1,4 @@
 #include "meta.h"
-#include "../header.h"
 #include "../coding/coding.h"
 
 /* CXS - found in Eternal Sonata (Xbox 360) */
@@ -9,7 +8,7 @@ VGMSTREAM * init_vgmstream_x360_cxs(STREAMFILE *streamFile) {
     int loop_flag, channel_count;
 
     /* check extension, case insensitive */
-    if ( !header_check_extensions(streamFile,"cxs"))
+    if ( !check_extensions(streamFile,"cxs"))
         goto fail;
 
     if (read_32bitBE(0x00,streamFile) != 0x43585320)   /* "CXS " */
@@ -57,7 +56,7 @@ VGMSTREAM * init_vgmstream_x360_cxs(STREAMFILE *streamFile) {
 #endif
 
     /* open the file for reading */
-    if ( !header_open_stream(vgmstream, streamFile, start_offset) )
+    if ( !vgmstream_open_stream(vgmstream, streamFile, start_offset) )
         goto fail;
     return vgmstream;
 
