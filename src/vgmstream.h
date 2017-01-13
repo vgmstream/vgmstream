@@ -373,7 +373,7 @@ typedef enum {
     meta_IDSP,				/* Chronicles of Narnia, Soul Calibur Legends, Mario Strikers Charged */
 	meta_SPT_SPD,			/* Various (SPT+SPT DSP) */
     meta_ISH_ISD,			/* Various (ISH+ISD DSP) */
-    meta_GSP_GSB,			/* Various (GSP+GSB DSP), Super Swing Golf 1 & 2 */
+    meta_GSP_GSB,			/* Tecmo games (Super Swing Golf 1 & 2, Quamtum Theory) */
     meta_YDSP,				/* WWE Day of Reckoning */
     meta_FFCC_STR,          /* Final Fantasy: Crystal Chronicles */
     

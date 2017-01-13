@@ -670,6 +670,7 @@ static const meta_info meta_info_list[] = {
         {meta_GCA,                  "GCA DSP Header"},
         {meta_SPT_SPD,              "SPT+SPD DSP Header"},
         {meta_ISH_ISD,              "ISH+ISD DSP Header"},
+        {meta_GSP_GSB,              "Tecmo GSP+GSB Header"},
         {meta_YDSP,                 "Yuke's DSP (YDSP) Header"},
         {meta_MSVP,                 "MSVP Header"},
         {meta_NGC_SSM,              "SSM DSP Header"},
