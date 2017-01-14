@@ -195,57 +195,6 @@ ffmpeg_codec_data * init_ffmpeg_offset(STREAMFILE *streamFile, uint64_t start, u
 
 
 /**
- * Manually init FFmpeg, from an offset and creating a fake RIFF from a streamfile.
- */
-ffmpeg_codec_data * init_ffmpeg_faux_riff(STREAMFILE *streamFile, int64_t fmt_offset, uint64_t start, uint64_t size, int big_endian) {
-    if (fmt_offset > 0) {
-        size_t header_size = 0;
-        int max_header_size = (int)(start - fmt_offset);
-        uint8_t p[100];
-        if (max_header_size < 18 || max_header_size > 100)
-            goto fail;
-        //p = av_malloc(max_header_size + 8 + 4 + 8 + 8);
-        //if (!p) goto fail;
-        if (read_streamfile(p + 8 + 4 + 8, fmt_offset, max_header_size, streamFile) != max_header_size)
-            goto fail;
-
-        if (big_endian) {
-            int shift = 8 + 4 + 8;
-            put_16bitLE(p+shift, get_16bitBE(p));
-            put_16bitLE(p+shift + 2, get_16bitBE(p + 2));
-            put_32bitLE(p+shift + 4, get_32bitBE(p + 4));
-            put_32bitLE(p+shift + 8, get_32bitBE(p + 8));
-            put_16bitLE(p+shift + 12, get_16bitBE(p + 12));
-            put_16bitLE(p+shift + 14, get_16bitBE(p + 14));
-            put_16bitLE(p+shift + 16, get_16bitBE(p + 16));
-        }
-        header_size = 8 + 4 + 8 + 8 + 18 + get_16bitLE(p + 8 + 4 + 8 + 16);
-        // Meh, dunno how to handle swapping the extra data
-        // FFmpeg doesn't need most of this data anyway
-        if ((unsigned)(get_16bitLE(p + 8 + 4 + 8) - 0x165) < 2)
-            memset(p + 8 + 4 + 8 + 18, 0, 34);
-
-        // Fill out the RIFF structure
-        memcpy(p, "RIFF", 4);
-        put_32bitLE(p + 4, header_size + size - 8);
-        memcpy(p + 8, "WAVE", 4);
-        memcpy(p + 12, "fmt ", 4);
-        put_32bitLE(p + 16, 18 + get_16bitLE(p + 8 + 4 + 8 + 16));
-        memcpy(p + header_size - 8, "data", 4);
-        put_32bitLE(p + header_size - 4, size);
-
-
-        return init_ffmpeg_header_offset(streamFile, p, header_size, start, size);
-    }
-    else {
-        return init_ffmpeg_header_offset(streamFile, NULL, 0, start, size);
-    }
-
-fail:
-    return NULL;
-}
-
-/**
  * Manually init FFmpeg, from a fake header / offset.
  *
  * Can take a fake header, to trick FFmpeg into demuxing/decoding the stream.

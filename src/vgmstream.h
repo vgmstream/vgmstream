@@ -119,8 +119,8 @@ typedef enum {
     coding_APPLE_IMA4,      /* Apple Quicktime IMA4 */
     coding_DAT4_IMA,        /* Eurocom 'DAT4' IMA ADPCM */
     coding_SNDS_IMA,        /* Heavy Iron Studios .snds IMA ADPCM */
-    coding_WS,              /* Westwood Studios VBR ADPCM */
 
+    coding_WS,              /* Westwood Studios VBR ADPCM */
     coding_MSADPCM,         /* Microsoft ADPCM */
     coding_AICA,            /* Yamaha AICA ADPCM */
     coding_L5_555,          /* Level-5 0x555 ADPCM */
@@ -373,7 +373,7 @@ typedef enum {
     meta_IDSP,				/* Chronicles of Narnia, Soul Calibur Legends, Mario Strikers Charged */
 	meta_SPT_SPD,			/* Various (SPT+SPT DSP) */
     meta_ISH_ISD,			/* Various (ISH+ISD DSP) */
-    meta_GSP_GSB,			/* Various (GSP+GSB DSP), Super Swing Golf 1 & 2 */
+    meta_GSP_GSB,			/* Tecmo games (Super Swing Golf 1 & 2, Quamtum Theory) */
     meta_YDSP,				/* WWE Day of Reckoning */
     meta_FFCC_STR,          /* Final Fantasy: Crystal Chronicles */
     
@@ -581,7 +581,7 @@ typedef enum {
     meta_OTM,               // Otomedius (Arcade)
     meta_CSTM,              // Nintendo 3DS CSTM
     meta_FSTM,              // Nintendo Wii U FSTM
-    meta_3DS_IDSP,          // Nintendo 3DS IDSP
+    meta_3DS_IDSP,          // Nintendo 3DS/Wii U IDSP
     meta_G1L,               // Tecmo Koei G1L
     meta_MCA,               // Capcom MCA "MADP"
     meta_XB3D_ADX,          // Xenoblade Chronicles 3D ADX
@@ -993,5 +993,10 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream);
  * already opened mono opened_stream which was opened from filename.
  * If a suitable file is found, open it and change opened_stream to a stereo stream. */
 void try_dual_file_stereo(VGMSTREAM * opened_stream, STREAMFILE *streamFile);
+
+
+/* Open the stream for reading at offset (standarized taking into account layouts, channels and so on).
+ * returns 0 on failure */
+int vgmstream_open_stream(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t start_offset);
 
 #endif

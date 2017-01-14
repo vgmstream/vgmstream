@@ -1,9 +1,9 @@
 #ifndef _MSC_VER
 #include <unistd.h>
 #endif
-#include "vgmstream.h"
 #include "streamfile.h"
 #include "util.h"
+#include "vgmstream.h"
 
 typedef struct {
     STREAMFILE sf;
@@ -274,6 +274,18 @@ size_t get_streamfile_dos_line(int dst_length, char * dst, off_t offset,
 
 
 /**
+ * Opens an stream using the base streamFile name plus a new extension (ex. for headers in a separate file)
+ */
+STREAMFILE * open_stream_ext(STREAMFILE *streamFile, const char * ext) {
+    char filename_ext[PATH_LIMIT];
+
+    streamFile->get_name(streamFile,filename_ext,sizeof(filename_ext));
+    strcpy(filename_ext + strlen(filename_ext) - strlen(filename_extension(filename_ext)), ext);
+
+    return streamFile->open(streamFile,filename_ext,STREAMFILE_DEFAULT_BUFFER_SIZE);
+}
+
+/**
  * open file containing decryption keys and copy to buffer
  * tries combinations of keynames based on the original filename
  *
@@ -391,3 +403,72 @@ fail:
 
     return 0;
 }
+
+
+/**
+ * checks if the stream filename is one of the extensions (comma-separated, ex. "adx" or "adx,aix")
+ *
+ * returns 0 on failure
+ */
+int check_extensions(STREAMFILE *streamFile, const char * cmp_exts) {
+    char filename[PATH_LIMIT];
+    const char * ext = NULL;
+    const char * cmp_ext = NULL;
+    size_t ext_len;
+
+    streamFile->get_name(streamFile,filename,sizeof(filename));
+    ext = filename_extension(filename);
+    ext_len = strlen(ext);
+
+    cmp_ext = cmp_exts;
+    do {
+        if (strncasecmp(ext,cmp_ext, ext_len)==0 )
+            return 1;
+        cmp_ext = strstr(cmp_ext, ",");
+        if (cmp_ext != NULL)
+            cmp_ext = cmp_ext + 1; /* skip comma */
+    } while (cmp_ext != NULL);
+
+    return 0;
+}
+
+
+/**
+ * Find a chunk starting from an offset, and save its offset/size (if not NULL), with offset after id/size.
+ * Works for chunked headers in the form of "chunk_id chunk_size (data)"xN  (ex. RIFF).
+ * The start_offset should be the first actual chunk (not "RIFF" or "WAVE" but "fmt ").
+ * "full_chunk_size" signals chunk_size includes 4+4+data.
+ *
+ * returns 0 on failure
+ */
+static int find_chunk(STREAMFILE *streamFile, uint32_t chunk_id, off_t start_offset, int full_chunk_size, int size_big_endian, off_t *out_chunk_offset, size_t *out_chunk_size);
+int find_chunk_be(STREAMFILE *streamFile, uint32_t chunk_id, off_t start_offset, int full_chunk_size, off_t *out_chunk_offset, size_t *out_chunk_size) {
+    return find_chunk(streamFile, chunk_id, start_offset, full_chunk_size, 1, out_chunk_offset, out_chunk_size);
+}
+int find_chunk_le(STREAMFILE *streamFile, uint32_t chunk_id, off_t start_offset, int full_chunk_size, off_t *out_chunk_offset, size_t *out_chunk_size) {
+    return find_chunk(streamFile, chunk_id, start_offset, full_chunk_size, 0, out_chunk_offset, out_chunk_size);
+}
+int find_chunk(STREAMFILE *streamFile, uint32_t chunk_id, off_t start_offset, int full_chunk_size, int size_big_endian, off_t *out_chunk_offset, size_t *out_chunk_size) {
+    size_t filesize;
+    off_t current_chunk = start_offset;
+
+    filesize = get_streamfile_size(streamFile);
+    /* read chunks */
+    while (current_chunk < filesize) {
+        uint32_t chunk_type = read_32bitBE(current_chunk,streamFile);
+        off_t chunk_size = size_big_endian ?
+                read_32bitBE(current_chunk+4,streamFile) :
+                read_32bitLE(current_chunk+4,streamFile);
+
+        if (chunk_type == chunk_id) {
+            if (out_chunk_offset) *out_chunk_offset = current_chunk+8;
+            if (out_chunk_size) *out_chunk_size = chunk_size;
+            return 1;
+        }
+
+        current_chunk += full_chunk_size ? chunk_size : 4+4+chunk_size;
+    }
+
+    return 0;
+}
+

@@ -1,7 +1,5 @@
 #include "meta.h"
 #include "../coding/coding.h"
-#include "../util.h"
-#include "../header.h"
 
 #define FAKE_RIFF_BUFFER_SIZE           100
 
@@ -122,7 +120,7 @@ VGMSTREAM * init_vgmstream_fsb_offset(STREAMFILE *streamFile, off_t offset) {
     FSB_HEADER fsbh;
 
     /* check extensions */
-    if ( !header_check_extensions(streamFile, "fsb,wii") )
+    if ( !check_extensions(streamFile, "fsb,wii") )
         goto fail;
 
     h_off = offset;
@@ -330,7 +328,7 @@ VGMSTREAM * init_vgmstream_fsb_offset(STREAMFILE *streamFile, off_t offset) {
         block_count = fsbh.datasize / block_size; /* read_32bitLE(custom_data_offset +0x14) -1? */
 
         /* make a fake riff so FFmpeg can parse the XMA2 */
-        bytes = header_make_riff_xma2(buf, FAKE_RIFF_BUFFER_SIZE, fsbh.lengthsamples, fsbh.datasize, fsbh.numchannels, fsbh.deffreq, block_count, block_size);
+        bytes = ffmpeg_make_riff_xma2(buf, FAKE_RIFF_BUFFER_SIZE, fsbh.lengthsamples, fsbh.datasize, fsbh.numchannels, fsbh.deffreq, block_count, block_size);
         if (bytes <= 0)
             goto fail;
 
@@ -351,7 +349,7 @@ VGMSTREAM * init_vgmstream_fsb_offset(STREAMFILE *streamFile, off_t offset) {
         vgmstream->coding_type = coding_NGC_DSP;
         vgmstream->layout_type = layout_interleave_byte;
         vgmstream->interleave_block_size = 0x2;
-        header_dsp_read_coefs_be(vgmstream, streamFile, custom_data_offset, 0x2e);
+        dsp_read_coefs_be(vgmstream, streamFile, custom_data_offset, 0x2e);
     }
     else if (fsbh.mode & FSOUND_OGG) {
         /* FSB4: ? (possibly FMOD's custom ogg) */
@@ -396,7 +394,7 @@ VGMSTREAM * init_vgmstream_fsb_offset(STREAMFILE *streamFile, off_t offset) {
 
 
     /* open the file for reading */
-    if ( !header_open_stream(vgmstream, streamFile, start_offset) )
+    if ( !vgmstream_open_stream(vgmstream, streamFile, start_offset) )
         goto fail;
 
     return vgmstream;

@@ -151,10 +151,6 @@
                 RelativePath=".\formats.h"
                 >
             </File>
-            <File
-                RelativePath=".\header.h"
-                >
-            </File>
 			<File
 				RelativePath=".\streamfile.h"
 				>
@@ -179,10 +175,6 @@
 			>
             <File
                 RelativePath=".\formats.c"
-                >
-            </File>
-            <File
-                RelativePath=".\header.c"
                 >
             </File>
 			<File

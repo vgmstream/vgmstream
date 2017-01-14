@@ -1,6 +1,4 @@
 #include "meta.h"
-#include "../util.h"
-#include "../header.h"
 
 /* VDS/VDM - from Grafitti Kingdom / Rakugaki Oukoku 2 */
 VGMSTREAM * init_vgmstream_ps2_vds_vdm(STREAMFILE *streamFile) {
@@ -9,7 +7,7 @@ VGMSTREAM * init_vgmstream_ps2_vds_vdm(STREAMFILE *streamFile) {
     int loop_flag, channel_count;
 
     /* check extension, case insensitive */
-    if ( !header_check_extensions(streamFile,"vds,vdm"))
+    if ( !check_extensions(streamFile,"vds,vdm"))
         goto fail;
 
     if (read_32bitBE(0x00,streamFile) != 0x56445320 && /* "VDS " (music)*/
@@ -40,7 +38,7 @@ VGMSTREAM * init_vgmstream_ps2_vds_vdm(STREAMFILE *streamFile) {
     /*0x23: 02=VDS 04=VDM? */
 
     /* open the file for reading */
-    if ( !header_open_stream(vgmstream, streamFile, start_offset) )
+    if ( !vgmstream_open_stream(vgmstream, streamFile, start_offset) )
         goto fail;
     return vgmstream;
 

@@ -1,9 +1,6 @@
 #include "meta.h"
-#include "../util.h"
-#include "../header.h"
 
 /* .BAF - Bizarre Creations (Blur, James Bond 007: Blood Stone, etc) */
-
 VGMSTREAM * init_vgmstream_baf(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     off_t WAVE_size, DATA_size;
@@ -17,7 +14,7 @@ VGMSTREAM * init_vgmstream_baf(STREAMFILE *streamFile) {
     int loop_flag = 0;
 
     /* check extensions */
-    if ( !header_check_extensions(streamFile, "baf") )
+    if ( !check_extensions(streamFile, "baf") )
         goto fail;
 
     /* check WAVE */
@@ -57,7 +54,7 @@ VGMSTREAM * init_vgmstream_baf(STREAMFILE *streamFile) {
     vgmstream->meta_type = meta_BAF;
 
     /* open the file for reading */
-    if ( !header_open_stream(vgmstream, streamFile, start_offset) )
+    if ( !vgmstream_open_stream(vgmstream, streamFile, start_offset) )
         goto fail;
 
     return vgmstream;

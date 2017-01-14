@@ -120,7 +120,6 @@ VGMSTREAM * init_vgmstream_hca(STREAMFILE *streamFile);
 VGMSTREAM * init_vgmstream_hca_offset(STREAMFILE *streamFile, uint64_t start, uint64_t size);
 
 #ifdef VGM_USE_FFMPEG
-ffmpeg_codec_data * init_ffmpeg_faux_riff(STREAMFILE *streamFile, int64_t fmt_offset, uint64_t stream_offset, uint64_t stream_size, int fmt_big_endian);
 ffmpeg_codec_data * init_ffmpeg_offset(STREAMFILE *streamFile, uint64_t start, uint64_t size);
 ffmpeg_codec_data * init_ffmpeg_header_offset(STREAMFILE *streamFile, uint8_t * header, uint64_t header_size, uint64_t start, uint64_t size);
 

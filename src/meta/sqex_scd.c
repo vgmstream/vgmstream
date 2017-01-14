@@ -132,12 +132,12 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
     /* data at meta_offset is only 0x20 bytes, but there may be auxiliary chunks before anything else */
     aux_chunk_count = read_32bit(meta_offset+0x1c,streamFile);
     for (; aux_chunk_count > 0; aux_chunk_count--) {
-        /* skip aux chunks */
-        post_meta_offset += read_32bit(post_meta_offset+4,streamFile);
+        post_meta_offset += read_32bit(post_meta_offset+4,streamFile); /* skip aux chunks */
     }
 
     start_offset = post_meta_offset + read_32bit(meta_offset+0x18,streamFile);
 
+    VGM_LOG("post_meta_offset=%lx, start_offset=%lx\n", post_meta_offset, start_offset);
 
 #ifdef VGM_USE_VORBIS
     if (codec_id == 0x6)
@@ -341,32 +341,63 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
             break;
 #ifdef VGM_USE_FFMPEG
         case 0xB:
-            /* XMA1/XMA2 */
+            /* XMA1/XMA2 */ /* Lightning Returns SFX, FFXIII (X360) */
             {
-                uint16_t codec_id = read_16bit(post_meta_offset, streamFile);
-                if (codec_id == 0x165 || codec_id == 0x166)
-                {
-                    ffmpeg_codec_data *ffmpeg_data = init_ffmpeg_faux_riff(streamFile, post_meta_offset, start_offset, streamFile->get_size(streamFile) - start_offset, read_32bit == read_32bitBE);
-                    if (!ffmpeg_data) goto fail;
-                    
-                    vgmstream->codec_data = ffmpeg_data;
-                    
-                    vgmstream->coding_type = coding_FFmpeg;
-                    vgmstream->layout_type = layout_none;
-                    
-                    vgmstream->num_samples = ffmpeg_data->totalSamples;
+                ffmpeg_codec_data *ffmpeg_data = NULL;
+                uint8_t buf[200];
+                int32_t bytes;
 
-                    if (loop_flag) {
-                        vgmstream->loop_start_sample = loop_start;
-                        vgmstream->loop_end_sample = loop_end;
-                    }
-                }
-                else goto fail;
+                /* post_meta_offset+0x00: fmt0x166 header (BE),  post_meta_offset+0x34: seek table */
+
+                bytes = ffmpeg_make_riff_xma2_from_fmt(buf,200, post_meta_offset,0x34, stream_size, streamFile, 1);
+                if (bytes <= 0) goto fail;
+
+                ffmpeg_data = init_ffmpeg_header_offset(streamFile, buf,bytes, start_offset,stream_size);
+                if (!ffmpeg_data) goto fail;
+                vgmstream->codec_data = ffmpeg_data;
+                vgmstream->coding_type = coding_FFmpeg;
+                vgmstream->layout_type = layout_none;
+
+                vgmstream->num_samples = ffmpeg_data->totalSamples;
+                vgmstream->loop_start_sample = loop_start;
+                vgmstream->loop_end_sample = loop_end;
             }
             break;
+
+        case 0xE:
+            /* ATRAC3plus */ /* Lord of Arcana (PSP) */
+            {
+                ffmpeg_codec_data *ffmpeg_data = NULL;
+                off_t chunk_offset;
+                size_t chunk_size, fact_sample_skip = 0;
+
+                /* full riff header at start_offset/post_meta_offset (same) */
+                ffmpeg_data = init_ffmpeg_offset(streamFile, start_offset,stream_size);
+                if (!ffmpeg_data) goto fail;
+                vgmstream->codec_data = ffmpeg_data;
+                vgmstream->coding_type = coding_FFmpeg;
+                vgmstream->layout_type = layout_none;
+
+                vgmstream->num_samples = ffmpeg_data->totalSamples;
+                vgmstream->loop_start_sample = loop_start;
+                vgmstream->loop_end_sample = loop_end;
+
+                /* manually find encoder_delay to adjust samples since it's not properly used by FFmpeg */
+                if (!find_chunk_le(streamFile, 0x66616374,start_offset+0xc,0, &chunk_offset,&chunk_size)) goto fail; /*"fact"*/
+                if (chunk_size == 0x8) {
+                    fact_sample_skip  = read_32bitLE(chunk_offset+0x4, streamFile);
+                } else if (chunk_size == 0xc) {
+                    fact_sample_skip  = read_32bitLE(chunk_offset+0x8, streamFile);
+                }
+                vgmstream->num_samples += fact_sample_skip;
+                vgmstream->loop_start_sample += fact_sample_skip;
+                vgmstream->loop_end_sample += fact_sample_skip;
+            }
+            break;
+
 #endif
         default:
-            VGM_LOG("SCD: unknown codec_id %x\n", codec_id);
+            VGM_LOG("SCD: unknown codec_id 0x%x\n", codec_id);
             goto fail;
     }
 

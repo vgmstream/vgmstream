@@ -2234,3 +2234,59 @@ int get_vgmstream_average_bitrate(VGMSTREAM * vgmstream)
     
     return bitrate;
 }
+
+
+int vgmstream_open_stream(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t start_offset) {
+    STREAMFILE * file;
+    char filename[PATH_LIMIT];
+    int ch;
+    int buffer_size = STREAMFILE_DEFAULT_BUFFER_SIZE;
+
+#ifdef VGM_USE_FFMPEG
+    if (vgmstream->coding_type == coding_FFmpeg) /* not needed */
+        return 1;
+#endif
+
+    /* minor optimizations */
+    if (vgmstream->layout_type == layout_interleave
+            &&vgmstream->interleave_block_size > 0
+            && vgmstream->interleave_block_size > buffer_size) {
+        buffer_size = vgmstream->interleave_block_size;
+    }
+
+    if (buffer_size > 0x8000) {
+        buffer_size = 0x8000;
+        /* todo if interleave is big enough open one streamfile per channel so each uses it's own buffer */
+    }
+
+
+    streamFile->get_name(streamFile,filename,sizeof(filename));
+    /* open the file for reading by each channel */
+    {
+        file = streamFile->open(streamFile,filename,buffer_size);
+        if (!file) return 0;
+
+        for (ch=0; ch < vgmstream->channels; ch++) {
+
+            vgmstream->ch[ch].streamfile = file;
+
+            if (vgmstream->layout_type == layout_none
+#ifdef VGM_USE_MPEG
+                    || vgmstream->layout_type == layout_mpeg //todo simplify using flag "start offset"
+#endif
+                    ) { /* no appreciable difference for mpeg */
+                /* for some codecs like IMA where channels work with the same bytes */
+                vgmstream->ch[ch].channel_start_offset =
+                        vgmstream->ch[ch].offset = start_offset;
+            }
+            else {
+                vgmstream->ch[ch].channel_start_offset =
+                        vgmstream->ch[ch].offset = start_offset
+                        + vgmstream->interleave_block_size*ch;
+            }
+        }
+    }
+
+
+    return 1;
+}

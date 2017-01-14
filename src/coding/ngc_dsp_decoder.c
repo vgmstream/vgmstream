@@ -94,3 +94,19 @@ int32_t dsp_nibbles_to_samples(int32_t nibbles) {
     if (remainder>0) return whole_frames*14+remainder-2;
     else return whole_frames*14;
 }
+
+
+/**
+ * reads DSP coefs built in the streamfile
+ */
+void dsp_read_coefs_be(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t offset, off_t spacing) {
+    int ch, i;
+    /* get ADPCM coefs */
+    for (ch=0; ch < vgmstream->channels; ch++) {
+        for (i=0; i < 16; i++) {
+            vgmstream->ch[ch].adpcm_coef[i] =
+                    read_16bitBE(offset + ch*spacing + i*2, streamFile);
+        }
+    }
+}
+

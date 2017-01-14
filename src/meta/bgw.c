@@ -1,12 +1,7 @@
 #include "meta.h"
-#include "../util.h"
-#include "../header.h"
 
-/**
- * BGW - Final Fantasy XI (PC) music files.
- *
- * Some info from POLUtils
- */
+/* BGW - from Final Fantasy XI (PC) music files
+ * Some info from POLUtils */
 VGMSTREAM * init_vgmstream_bgw(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     uint32_t codec, filesize, blocksize, sample_rate;
@@ -17,7 +12,7 @@ VGMSTREAM * init_vgmstream_bgw(STREAMFILE *streamFile) {
     int channel_count, loop_flag = 0;
 
     /* check extensions */
-    if ( !header_check_extensions(streamFile, "bgw") )
+    if ( !check_extensions(streamFile, "bgw") )
         goto fail;
 
     /* check header */
@@ -74,7 +69,7 @@ VGMSTREAM * init_vgmstream_bgw(STREAMFILE *streamFile) {
 
 
     /* open the file for reading */
-    if ( !header_open_stream(vgmstream, streamFile, start_offset) )
+    if ( !vgmstream_open_stream(vgmstream, streamFile, start_offset) )
         goto fail;
 
     return vgmstream;
@@ -84,9 +79,7 @@ fail:
     return NULL;
 }
 
-/**
- * SPW (SEWave), PlayOnline viewer for Final Fantasy XI (PC)
- */
+/* SPW (SEWave) - from  PlayOnline viewer for Final Fantasy XI (PC) */
 VGMSTREAM * init_vgmstream_spw(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     uint32_t codec, filesize, blocksize, sample_rate;
@@ -97,7 +90,7 @@ VGMSTREAM * init_vgmstream_spw(STREAMFILE *streamFile) {
     int channel_count, loop_flag = 0;
 
 	/* check extensions */
-	if ( !header_check_extensions(streamFile, "spw") )
+	if ( !check_extensions(streamFile, "spw") )
         goto fail;
 
     /* check header */
@@ -168,7 +161,7 @@ VGMSTREAM * init_vgmstream_spw(STREAMFILE *streamFile) {
 
 
     /* open the file for reading */
-    if ( !header_open_stream(vgmstream, streamFile, start_offset) )
+    if ( !vgmstream_open_stream(vgmstream, streamFile, start_offset) )
         goto fail;
 
     return vgmstream;
