@@ -40,7 +40,7 @@ VGMSTREAM * init_vgmstream_gsp_gsb(STREAMFILE *streamFile) {
 
     if (!find_chunk_be(streamFileGSP, 0x44415441,first_offset,1, &chunk_offset,NULL)) goto fail; /*"DATA"*/
     /*  0x00: filesize,  0x0c: always 10?,  0x10: always 0?,  0x18: always 0? */
-    datasize = read_32bitBE(chunk_offset+0x00,streamFileGSP);//todo get filesize + validate
+    datasize = read_32bitBE(chunk_offset+0x00,streamFileGSP);
     codec_id = read_32bitBE(chunk_offset+0x04,streamFileGSP);
     vgmstream->sample_rate = read_32bitBE(chunk_offset+0x08,streamFileGSP);
     vgmstream->channels = channel_count; /* 0x0e */
@@ -59,14 +59,19 @@ VGMSTREAM * init_vgmstream_gsp_gsb(STREAMFILE *streamFile) {
 
     switch (codec_id) {
         case 4: { /* DSP */
+            size_t block_header_size;
+            size_t num_blocks;
+
             vgmstream->coding_type = coding_NGC_DSP;
             vgmstream->layout_type = layout_gsb_blocked;
 
             if (!find_chunk_be(streamFileGSP, 0x47434558,first_offset,1, &chunk_offset,NULL)) goto fail; /*"GCEX"*/
-            /* 0x00+: probably block stuff */
 
-            if (channel_count > 1)
-                vgmstream->interleave_block_size = read_32bitBE(chunk_offset+0x14,streamFileGSP);
+            //vgmstream->current_block_size = read_32bitBE(chunk_offset+0x00,streamFileGSP);
+            block_header_size = read_32bitBE(chunk_offset+0x04,streamFileGSP);
+            num_blocks = read_32bitBE(chunk_offset+0x08,streamFileGSP);
+            vgmstream->num_samples = (datasize - block_header_size * num_blocks) / 8 / vgmstream->channels * 14;
+            /* 0x0c+: unk */
 
             dsp_read_coefs_be(vgmstream, streamFileGSP, chunk_offset+0x18, 0x30);
             break;
@@ -111,13 +116,6 @@ VGMSTREAM * init_vgmstream_gsp_gsb(STREAMFILE *streamFile) {
             bytes = ffmpeg_make_riff_xma2_from_fmt_be(buf,200, chunk_offset,0x34, datasize, streamFileGSP);
             if (bytes <= 0) goto fail;
 
-            printf("fakeriff %x\n", bytes);
-            if(bytes>100) bytes = 100;
-            for (int i=0; i < bytes; i++) {
-                printf("%02x",buf[i]);
-            }
-            printf("\n");
-
             ffmpeg_data = init_ffmpeg_header_offset(streamFile, buf,bytes, start_offset,datasize);
             if ( !ffmpeg_data ) goto fail;
             vgmstream->codec_data = ffmpeg_data;
@@ -137,19 +135,7 @@ VGMSTREAM * init_vgmstream_gsp_gsb(STREAMFILE *streamFile) {
     if ( !vgmstream_open_stream(vgmstream, streamFile, start_offset) )
         goto fail;
 
-
-    /* calc num_samples (after opening the streams) */
-    if (vgmstream->num_samples==0 && vgmstream->coding_type == coding_NGC_DSP) {
-        gsb_block_update(start_offset,vgmstream);
-        do {
-            vgmstream->num_samples += vgmstream->current_block_size*14/8;
-            gsb_block_update(vgmstream->next_block_offset,vgmstream);
-        } while (vgmstream->next_block_offset<get_streamfile_size(streamFile));
-        gsb_block_update(start_offset,vgmstream);
-    }
-    vgmstream->num_samples = 500000;
-
-    close_streamfile(streamFileGSP); streamFileGSP=NULL;
+    close_streamfile(streamFileGSP);
     return vgmstream;
 
 fail:
