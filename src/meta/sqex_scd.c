@@ -132,12 +132,10 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
     /* data at meta_offset is only 0x20 bytes, but there may be auxiliary chunks before anything else */
     aux_chunk_count = read_32bit(meta_offset+0x1c,streamFile);
     for (; aux_chunk_count > 0; aux_chunk_count--) {
-        /* skip aux chunks */
-        post_meta_offset += read_32bit(post_meta_offset+4,streamFile);
+        post_meta_offset += read_32bit(post_meta_offset+4,streamFile); /* skip aux chunks */
     }
 
     start_offset = post_meta_offset + read_32bit(meta_offset+0x18,streamFile);
-
 
 #ifdef VGM_USE_VORBIS
     if (codec_id == 0x6)
@@ -341,27 +339,26 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
             break;
 #ifdef VGM_USE_FFMPEG
         case 0xB:
-            /* XMA1/XMA2 */
+            /* XMA1/XMA2 */ /* Lightning Returns SFX, FFXIII (X360)*/
             {
-                uint16_t codec_id = read_16bit(post_meta_offset, streamFile);
-                if (codec_id == 0x165 || codec_id == 0x166)
-                {
-                    ffmpeg_codec_data *ffmpeg_data = init_ffmpeg_faux_riff(streamFile, post_meta_offset, start_offset, streamFile->get_size(streamFile) - start_offset, read_32bit == read_32bitBE);
-                    if (!ffmpeg_data) goto fail;
-                    
-                    vgmstream->codec_data = ffmpeg_data;
-                    
-                    vgmstream->coding_type = coding_FFmpeg;
-                    vgmstream->layout_type = layout_none;
-                    
-                    vgmstream->num_samples = ffmpeg_data->totalSamples;
+                ffmpeg_codec_data *ffmpeg_data = NULL;
+                uint8_t buf[200];
+                int32_t bytes;
 
-                    if (loop_flag) {
-                        vgmstream->loop_start_sample = loop_start;
-                        vgmstream->loop_end_sample = loop_end;
-                    }
-                }
-                else goto fail;
+                uint16_t fmt_id = read_16bit(post_meta_offset, streamFile);
+
+                bytes = ffmpeg_make_riff_xma2_from_fmt(buf,200, post_meta_offset,0x34, stream_size, streamFile, 1);
+                if (bytes <= 0) goto fail;
+
+                ffmpeg_data = init_ffmpeg_header_offset(streamFile, buf,bytes, start_offset,stream_size);
+                if (!ffmpeg_data) goto fail;
+                vgmstream->codec_data = ffmpeg_data;
+                vgmstream->coding_type = coding_FFmpeg;
+                vgmstream->layout_type = layout_none;
+
+                vgmstream->num_samples = ffmpeg_data->totalSamples;
+                vgmstream->loop_start_sample = loop_start;
+                vgmstream->loop_end_sample = loop_end;
             }
             break;
 #endif
