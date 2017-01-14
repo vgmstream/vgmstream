@@ -50,9 +50,6 @@
     <ClInclude Include="formats.h">
       <Filter>Header Files</Filter>
     </ClInclude>  
-    <ClInclude Include="header.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="streamfile.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -89,9 +86,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="formats.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="header.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="streamfile.c">
