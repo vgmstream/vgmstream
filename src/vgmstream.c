@@ -1891,7 +1891,7 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             description = get_vgmstream_coding_description(vgmstream->coding_type);
             if (!description)
                 description = "CANNOT DECODE";
-            snprintf(temp,TEMPSIZE,description);
+            strncpy(temp,description,TEMPSIZE);
             break;
     }
     concatn(length,desc,temp);
@@ -1903,7 +1903,7 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             description = get_vgmstream_layout_description(vgmstream->layout_type);
             if (!description)
                 description = "INCONCEIVABLE";
-            snprintf(temp,TEMPSIZE,description);
+            strncpy(temp,description,TEMPSIZE);
             break;
     }
     concatn(length,desc,temp);
@@ -1933,7 +1933,7 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             description = get_vgmstream_meta_description(vgmstream->meta_type);
             if (!description)
                 description = "THEY SHOULD HAVE SENT A POET";
-            snprintf(temp,TEMPSIZE,description);
+            strncpy(temp,description,TEMPSIZE);
             break;
     }
     concatn(length,desc,temp);
