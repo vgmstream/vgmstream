@@ -284,7 +284,6 @@ void seek_ffmpeg(VGMSTREAM *vgmstream, int32_t num_sample) {
 /* FAKE RIFF HELPERS                            */
 /* ******************************************** */
 static int ffmpeg_fmt_chunk_swap_endian(uint8_t * chunk, uint16_t codec);
-static int ffmpeg_make_riff_xma2_from_fmt(uint8_t * buf, size_t buf_size, off_t fmt_offset, size_t fmt_size, size_t data_size, STREAMFILE *streamFile, int big_endian);
 
 /**
  * Copies a ATRAC3 riff to buf
@@ -415,10 +414,12 @@ int ffmpeg_make_riff_xma2(uint8_t * buf, size_t buf_size, size_t sample_count, s
 }
 
 
-int ffmpeg_make_riff_xma2_from_fmt_be(uint8_t * buf, size_t buf_size, off_t fmt_offset, size_t fmt_size, size_t data_size, STREAMFILE *streamFile) {
-    return ffmpeg_make_riff_xma2_from_fmt(buf, buf_size, fmt_offset, fmt_size, data_size, streamFile, 1);
-}
-static int ffmpeg_make_riff_xma2_from_fmt(uint8_t * buf, size_t buf_size, off_t fmt_offset, size_t fmt_size, size_t data_size, STREAMFILE *streamFile, int big_endian) {
+/**
+ * Copies a XMA2 riff to buf from a fmt chunk offset
+ *
+ * returns number of bytes in buf or -1 when buf is not big enough
+ */
+int ffmpeg_make_riff_xma2_from_fmt(uint8_t * buf, size_t buf_size, off_t fmt_offset, size_t fmt_size, size_t data_size, STREAMFILE *streamFile, int big_endian) {
     size_t riff_size = 4+4+ 4 + 4+4+fmt_size + 4+4;
     uint8_t chunk[100];
 
