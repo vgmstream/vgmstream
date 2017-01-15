@@ -137,8 +137,6 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
 
     start_offset = post_meta_offset + read_32bit(meta_offset+0x18,streamFile);
 
-    VGM_LOG("post_meta_offset=%lx, start_offset=%lx\n", post_meta_offset, start_offset);
-
 #ifdef VGM_USE_VORBIS
     if (codec_id == 0x6)
     {
@@ -272,7 +270,9 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
                 vgmstream->loop_end_sample = msadpcm_bytes_to_samples(loop_end, vgmstream->interleave_block_size, vgmstream->channels);
             }
             break;
-        case 0xA:
+
+        case 0xA:   /* Dragon Quest X (Wii) */
+        case 0x15:  /* Dragon Quest X (Wii U) (no apparent differences except higher sample rate) */
             /* GC/Wii DSP ADPCM */
             {
                 STREAMFILE * file;
