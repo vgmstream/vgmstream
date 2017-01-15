@@ -2250,7 +2250,7 @@ int vgmstream_open_stream(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t s
 #endif
 
     /* if interleave is big enough keep a buffer per channel */
-    if (vgmstream->interleave_block_size > STREAMFILE_DEFAULT_BUFFER_SIZE) {
+    if (vgmstream->interleave_block_size >= STREAMFILE_DEFAULT_BUFFER_SIZE) {
         use_streamfile_per_channel = 1;
     }
 
