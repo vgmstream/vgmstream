@@ -18,7 +18,7 @@
 #define VERSION ""
 #endif
 
-#define BUFSIZE 4000
+#define BUFSIZE 0x8000
 
 extern char * optarg;
 extern int optind, opterr, optopt;
