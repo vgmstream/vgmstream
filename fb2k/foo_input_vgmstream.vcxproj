@@ -85,7 +85,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <PreBuildEvent>
-      <Command>"$(ProjectDir)version.bat" "$(ProjectDir)version.h" VERSION</Command>
+      <Command>"$(ProjectDir)..\version.bat" "$(ProjectDir)..\version.h" VERSION</Command>
     </PreBuildEvent>
     <PreBuildEvent>
       <Message>Generating version.h</Message>
@@ -112,7 +112,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <PreBuildEvent>
-      <Command>"$(ProjectDir)version.bat" "$(ProjectDir)version.h" VERSION</Command>
+      <Command>"$(ProjectDir)..\version.bat" "$(ProjectDir)..\version.h" VERSION</Command>
     </PreBuildEvent>
     <PreBuildEvent>
       <Message>Generating version.h</Message>
@@ -122,7 +122,6 @@
     <ClInclude Include="foo_prefs.h" />
     <ClInclude Include="foo_vgmstream.h" />
     <ClInclude Include="resource.h" />
-    <ClInclude Include="version.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="foo_input_vgmstream.rc" />

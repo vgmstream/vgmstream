@@ -23,8 +23,10 @@ extern "C" {
 #include "../src/vgmstream.h"
 }
 #include "foo_vgmstream.h"
-#include "version.h"
 
+#ifndef VERSION
+#include "../version.h"
+#endif
 #ifndef VERSION
 #define PLUGIN_VERSION  __DATE__
 #else

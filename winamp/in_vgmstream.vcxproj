@@ -88,7 +88,7 @@
       <TargetMachine>MachineX86</TargetMachine>
     </Link>
     <PreBuildEvent>
-      <Command>"$(ProjectDir)version.bat" "$(ProjectDir)version.h" VERSION</Command>
+      <Command>"$(ProjectDir)..\version.bat" "$(ProjectDir)..\version.h" VERSION</Command>
     </PreBuildEvent>
     <PreBuildEvent>
       <Message>Generating version.h</Message>
@@ -118,7 +118,7 @@
       <TargetMachine>MachineX86</TargetMachine>
     </Link>
     <PreBuildEvent>
-      <Command>"$(ProjectDir)version.bat" "$(ProjectDir)version.h" VERSION</Command>
+      <Command>"$(ProjectDir)..\version.bat" "$(ProjectDir)..\version.h" VERSION</Command>
     </PreBuildEvent>
     <PreBuildEvent>
       <Message>Generating version.h</Message>

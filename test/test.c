@@ -14,8 +14,10 @@
 #endif
 
 #ifndef VERSION
-/* To include the git version number / commit in test.exe, compile outside of Visual Studio and make sure git / sh is in the current PATH */
-#define VERSION ""
+#include "../version.h"
+#endif
+#ifndef VERSION
+#define VERSION "(unknown version)"
 #endif
 
 #define BUFSIZE 0x8000
