@@ -252,9 +252,9 @@ void input_vgmstream::decode_seek(double p_seconds,abort_callback & p_abort) {
 	int max_buffer_samples = sizeof(sample_buffer)/sizeof(sample_buffer[0])/vgmstream->channels;
 	bool loop_okay = loop_forever && vgmstream->loop_flag && !ignore_loop && !force_ignore_loop;
 
-	/* odd number of samples are problematic in some decoders */
-	if (seek_pos_samples % 2) {
-	    seek_pos_samples -= 1;
+	/* start on first channel to avoid problems in some decoders */
+	if (seek_pos_samples % vgmstream->channels) {
+	    seek_pos_samples -= seek_pos_samples % vgmstream->channels;
 	}
 
 	int corrected_pos_samples = seek_pos_samples;
