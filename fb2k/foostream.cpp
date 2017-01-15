@@ -45,25 +45,28 @@ static size_t read_the_rest_foo(uint8_t * dest, off_t offset, size_t length, FOO
     /* read as much of the beginning of the request as possible, proceed */
     while (length>0) {
         size_t length_to_read;
-        size_t length_read=0;
+        size_t length_read;
         streamfile->validsize=0;
 
+        /* request outside file: ignore to avoid seek/read */
+        if (offset > streamfile->filesize) {
+            streamfile->offset = streamfile->filesize;
+            memset(dest,0,length);
+            return length; /* return partially-read buffer and 0-set the rest */
+        }
+
+        /* position to new offset */
         try {
-			if(offset > streamfile->m_file->get_size(*streamfile->p_abort)) {
-				/* Update offset at end of file */
-				streamfile->offset = streamfile->m_file->get_size(*streamfile->p_abort);
-				return length_read;
-			}
-			streamfile->m_file->seek(offset,*streamfile->p_abort);
-			//if (streamfile->m_file->is_eof(*streamfile->p_abort)) /* allow edge case of offset=filesize */
-			//   return length_read;
-		} catch (...) {
-			streamfile->offset = streamfile->m_file->get_size(*streamfile->p_abort);
+            streamfile->m_file->seek(offset,*streamfile->p_abort);
+            //if (streamfile->m_file->is_eof(*streamfile->p_abort)) /* allow edge case of offset=filesize */
+            //   return length_read;
+        } catch (...) {
+            streamfile->offset = streamfile->filesize;
 #ifdef PROFILE_STREAMFILE
-			streamfile->error_count++;
+            streamfile->error_count++;
 #endif
-			return length_read; //fail miserably
-		}
+            return 0; //fail miserably
+        }
 
         streamfile->offset=offset;
 
@@ -73,12 +76,12 @@ static size_t read_the_rest_foo(uint8_t * dest, off_t offset, size_t length, FOO
 
         /* always try to fill the buffer */
         try {
-        	length_read = streamfile->m_file->read(streamfile->buffer,streamfile->buffersize,*streamfile->p_abort);
+            length_read = streamfile->m_file->read(streamfile->buffer,streamfile->buffersize,*streamfile->p_abort);
         } catch(...) {
 #ifdef PROFILE_STREAMFILE
-			streamfile->error_count++;
+            streamfile->error_count++;
 #endif
-			return length_read; //fail miserably
+            return 0; //fail miserably
         }
         streamfile->validsize=length_read;
 
@@ -106,25 +109,33 @@ static size_t read_the_rest_foo(uint8_t * dest, off_t offset, size_t length, FOO
 
 static size_t read_foo(FOO_STREAMFILE *streamfile, uint8_t * dest, off_t offset, size_t length) {
 
-	if (!streamfile || !dest || length<=0) return 0;
+    if (!streamfile || !dest || length<=0) return 0;
 
-	/* if entire request is within the buffer */
+    /* if entire request is within the buffer */
     if (offset >= streamfile->offset && offset+length <= streamfile->offset+streamfile->validsize) {
         memcpy(dest,streamfile->buffer+(offset-streamfile->offset),length);
         return length;
     }
 
+    /* request outside file: ignore to avoid seek/read in read_the_rest_foo() */
+    if (offset > streamfile->filesize) {
+        streamfile->offset = streamfile->filesize;
+        memset(dest, 0, length);
+        return length;
+    }
+
+    /* request outside buffer: new fread */
     return read_the_rest_foo(dest,offset,length,streamfile);
 }
 
 STREAMFILE * open_foo_streamfile(const char * const filename, abort_callback * p_abort, t_filestats * stats) {
-	return open_foo_streamfile_buffer(filename,STREAMFILE_DEFAULT_BUFFER_SIZE, p_abort, stats);
+    return open_foo_streamfile_buffer(filename,STREAMFILE_DEFAULT_BUFFER_SIZE, p_abort, stats);
 }
 
 static STREAMFILE *open_foo(FOO_STREAMFILE *streamFile,const char * const filename,size_t buffersize) {
-	service_ptr_t<file> m_file;
+    service_ptr_t<file> m_file;
 
-	STREAMFILE *newstreamFile;
+    STREAMFILE *newstreamFile;
 
     if (!filename)
         return NULL;
@@ -142,12 +153,11 @@ static STREAMFILE *open_foo(FOO_STREAMFILE *streamFile,const char * const filena
     }
     // a normal open, open a new file
 
-	return open_foo_streamfile_buffer(filename,buffersize,streamFile->p_abort,NULL);
+    return open_foo_streamfile_buffer(filename,buffersize,streamFile->p_abort,NULL);
 }
 
 static size_t get_size_foo(FOO_STREAMFILE * streamfile) {
-    //fseeko(streamfile->infile,0,SEEK_END);
-    return streamfile->m_file->get_size(*streamfile->p_abort);//ftello(streamfile->infile);
+    return streamfile->filesize;
 }
 
 static off_t get_offset_foo(FOO_STREAMFILE *streamFile) {
@@ -156,7 +166,7 @@ static off_t get_offset_foo(FOO_STREAMFILE *streamFile) {
 
 static void close_foo(FOO_STREAMFILE * streamfile) {
     streamfile->m_file.release();
-	free(streamfile->name);
+    free(streamfile->name);
     free(streamfile->buffer);
     free(streamfile);
 }
@@ -190,12 +200,12 @@ static STREAMFILE * open_foo_streamfile_buffer_by_file(service_ptr_t<file> m_fil
     streamfile->sf.get_size = (size_t (__cdecl *)(_STREAMFILE *)) get_size_foo;
     streamfile->sf.get_offset = (off_t (__cdecl *)(_STREAMFILE *)) get_offset_foo;
     streamfile->sf.get_name = (void (__cdecl *)(_STREAMFILE *,char *,size_t)) get_name_foo;
-	streamfile->sf.get_realname = (void (__cdecl *)(_STREAMFILE *,char *,size_t)) get_name_foo;
+    streamfile->sf.get_realname = (void (__cdecl *)(_STREAMFILE *,char *,size_t)) get_name_foo;
     streamfile->sf.open = (_STREAMFILE *(__cdecl *)(_STREAMFILE *,const char *const ,size_t)) open_foo;
     streamfile->sf.close = (void (__cdecl *)(_STREAMFILE *)) close_foo;
 #ifdef PROFILE_STREAMFILE
     streamfile->sf.get_bytes_read = (void*)get_bytes_read_stdio;
-	streamfile->sf.get_error_count = (void*)get_error_count_stdio;
+    streamfile->sf.get_error_count = (void*)get_error_count_stdio;
 #endif
 
     streamfile->m_file = m_file;
@@ -205,11 +215,14 @@ static STREAMFILE * open_foo_streamfile_buffer_by_file(service_ptr_t<file> m_fil
     streamfile->p_abort = p_abort;
 
     streamfile->name = strdup(filename);
-	if (!streamfile->name) {
-		free(streamfile);
-		free(buffer);
-		return NULL;
-	}
+    if (!streamfile->name) {
+        free(streamfile);
+        free(buffer);
+        return NULL;
+    }
+
+    /* cache filesize */
+    streamfile->filesize = streamfile->m_file->get_size(*streamfile->p_abort);
 
     return &streamfile->sf;
 }
@@ -219,7 +232,7 @@ STREAMFILE * open_foo_streamfile_buffer(const char * const filename, size_t buff
     service_ptr_t<file> infile;
 
     if(!(filesystem::g_exists(filename, *p_abort)))
-    	return NULL;
+        return NULL;
 
     filesystem::g_open_read(infile,filename,*p_abort);
     if(stats) *stats = infile->get_stats(*p_abort);
