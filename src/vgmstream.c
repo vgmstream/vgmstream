@@ -1037,6 +1037,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
             return (vgmstream->interleave_block_size - 1) * 2; /* decodes 1 byte into 2 bytes */
         case coding_XBOX:
 		case coding_INT_XBOX:
+            return 64;
         case coding_EA_XA:
             return 28;
 		case coding_MAXIS_ADPCM:
