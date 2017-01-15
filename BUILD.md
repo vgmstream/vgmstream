@@ -2,7 +2,7 @@
 
 ## Compilation requirements
 
-**GCC**: you need GCC and MAKE somewhere in path. In Windows this means one of these:
+**GCC**: you need GCC and MAKE somewhere in PATH. In Windows this means one of these:
 - MinGW-w64 (32bit version): https://sourceforge.net/projects/mingw-w64/
 - MSYS2 with the MinGW-w64_shell (32bit) package: https://msys2.github.io/
 
@@ -33,7 +33,7 @@ mingw32-make.exe mingw_test -f Makefile ^
  SHELL=sh.exe CC=gcc.exe AR=ar.exe STRIP=strip.exe DLLTOOL=dlltool.exe WINDRES=windres.exe
 ```
 
-**With MSVC**: open *./vgmstream.sln* and compile in Visual Studio.
+**With MSVC**: open *./vgmstream_full.sln* and compile in Visual Studio.
 For XMPlay open *xmp-vgmstream/xmp-vgmstream.sln* instead; FDK-AAC/QAAC/others may be needed (see below).
 
 
@@ -42,16 +42,16 @@ Requires MSVC (foobar/SDK only links to MSVC C++ DLLs) and these dependencies:
 - foobar2000 SDK, in *(vgmstream)/../foobar/*: http://www.foobar2000.org/SDK
 - FDK-AAC, in *(vgmstream)/../fdk-aac/*: https://github.com/kode54/fdk-aac
 - QAAC, in *(vgmstream)/../qaac/*: https://github.com/kode54/qaac
-- WTL91_5321_Final includes (if needed): http://wtl.sourceforge.net/
-FDK-AAC/QAAC can be disabled by removing *VGM_USE_MP4V2* and *VGM_USE_FDKAAC*.
+- WTL (if needed), in *(vgmstream)/../WTL/*: http://wtl.sourceforge.net/
 
-Open *./vgmstream.sln* as a base and add *fb2k/foo_input_vgmstream.vcxproj*, which expects the above, and all projects from those dependencies.
+Open *./vgmstream_full.sln* as a base, which expects the above dependencies. Then, depending on your VS version (like VS2015) you may need to manually do the following (in *Debug* and *Release* options):
+- Change each project's compiler version from VS2010 to your version (right click menu)
+- For *foobar2000_ATL_helpers* add *../../../WTL/Include* to the compilers's *additional includes*
+- For *foo_input_vgmstream* add *../../WTL/Include* to the compilers's *additional includes*
+- For *foo_input_vgmstream* add *../../foobar/foobar2000/shared/shared.lib* to the linker's *additional dependencies*
 
-Depending on your VS version you may need to manually do the following:
-- Change each project's compiler version from VS2010 to yours
-- For foobar add *(vgmstream)/../WTL91_5321_Final/Include* to the compilers's *additional includes*
-- For foobar add *(vgmstream)/../foobar/foobar2000/shared/shared.lib* to the linker's *additional dependencies*
-VS2013 may not be compatible with the SDK.
+VS2013 may not be compatible with the SDK in release mode due to compiler bugs.
+FDK-AAC/QAAC can be disabled by removing *VGM_USE_MP4V2* and *VGM_USE_FDKAAC* in the compiler/linker options and the project dependencies.
 
 
 ## Development
