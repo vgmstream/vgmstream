@@ -94,6 +94,7 @@ void input_vgmstream::open(service_ptr_t<file> p_filehint,const char * p_path,t_
 			decode_pos_samples = 0;
 			paused = 0;
 			stream_length_samples = get_vgmstream_play_samples(loop_count,fade_seconds,fade_delay_seconds,vgmstream);
+			decode_step_size = get_vgmstream_samples_per_frame(vgmstream);
 
 			fade_samples = (int)(fade_seconds * vgmstream->sample_rate);
 
@@ -208,6 +209,11 @@ bool input_vgmstream::decode_run(audio_chunk & p_chunk,abort_callback & p_abort)
 		else
 			samples_to_do=max_buffer_samples;
 
+		if (samples_to_do % decode_step_size)
+		{
+			samples_to_do -= samples_to_do % decode_step_size;
+		}
+
 		l = (samples_to_do*vgmstream->channels * sizeof(sample_buffer[0]));
 
 		if (samples_to_do /*< DECODE_SIZE*/ == 0) {
@@ -236,7 +242,16 @@ bool input_vgmstream::decode_run(audio_chunk & p_chunk,abort_callback & p_abort)
 			}
 		}
 
-		p_chunk.set_data_fixedpoint((char*)sample_buffer, l, vgmstream->sample_rate,vgmstream->channels,16,audio_chunk::g_guess_channel_config(vgmstream->channels));
+		if (decode_discard)
+		{
+			decode_discard *= vgmstream->channels * 2;
+			p_chunk.set_data_fixedpoint(((char*)sample_buffer) + decode_discard, l - decode_discard, vgmstream->sample_rate, vgmstream->channels, 16, audio_chunk::g_guess_channel_config(vgmstream->channels));
+			decode_discard = 0;
+		}
+		else
+		{
+			p_chunk.set_data_fixedpoint((char*)sample_buffer, l, vgmstream->sample_rate, vgmstream->channels, 16, audio_chunk::g_guess_channel_config(vgmstream->channels));
+		}
 
 		decode_pos_samples+=samples_to_do;
 		decode_pos_ms=decode_pos_samples*1000LL/vgmstream->sample_rate;
@@ -252,9 +267,11 @@ void input_vgmstream::decode_seek(double p_seconds,abort_callback & p_abort) {
 	int max_buffer_samples = sizeof(sample_buffer)/sizeof(sample_buffer[0])/vgmstream->channels;
 	bool loop_okay = loop_forever && vgmstream->loop_flag && !ignore_loop && !force_ignore_loop;
 
-	/* start on first channel to avoid problems in some decoders */
-	if (seek_pos_samples % vgmstream->channels) {
-	    seek_pos_samples -= seek_pos_samples % vgmstream->channels;
+	decode_discard = 0;
+
+	if (seek_pos_samples % decode_step_size) {
+		decode_discard = seek_pos_samples % decode_step_size;
+	    seek_pos_samples -= decode_discard;
 	}
 
 	int corrected_pos_samples = seek_pos_samples;

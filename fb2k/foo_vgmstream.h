@@ -59,6 +59,8 @@ class input_vgmstream {
 		bool force_ignore_loop;
 		int ignore_loop;
 		int seek_pos_samples;
+		int decode_step_size;
+		int decode_discard;
 
 		t_filestats stats;
 
