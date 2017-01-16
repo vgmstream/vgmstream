@@ -32,7 +32,7 @@
 #define fseeko fseek
 #endif
 
-#define STREAMFILE_DEFAULT_BUFFER_SIZE 0x400
+#define STREAMFILE_DEFAULT_BUFFER_SIZE 0x8000
 
 #ifndef DIR_SEPARATOR
 #if defined (_WIN32) || defined (WIN32)

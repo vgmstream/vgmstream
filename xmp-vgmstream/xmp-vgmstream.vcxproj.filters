@@ -4,7 +4,6 @@
     <ClCompile Include="DllMain.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="version.h" />
     <ClInclude Include="xmpfunc.h" />
     <ClInclude Include="xmpin.h" />
   </ItemGroup>

@@ -12,6 +12,7 @@ typedef struct _FOO_STREAMFILE {
     size_t validsize;
     uint8_t * buffer;
     size_t buffersize;
+    size_t filesize;
 }  FOO_STREAMFILE;
 
 class input_vgmstream {

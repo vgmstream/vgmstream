@@ -16,11 +16,12 @@
 #include "../src/formats.h"
 #include "../src/vgmstream.h"
 #include "xmpin.h"
-#include "version.h"
-
 
 #ifndef VERSION
-#define VERSION
+#include "../version.h"
+#endif
+#ifndef VERSION
+#define VERSION "(unknown version)"
 #endif
 
 static XMPFUNC_IN *xmpfin;

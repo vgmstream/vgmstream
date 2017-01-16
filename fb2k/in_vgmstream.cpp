@@ -23,8 +23,10 @@ extern "C" {
 #include "../src/vgmstream.h"
 }
 #include "foo_vgmstream.h"
-#include "version.h"
 
+#ifndef VERSION
+#include "../version.h"
+#endif
 #ifndef VERSION
 #define PLUGIN_VERSION  __DATE__
 #else
@@ -249,6 +251,11 @@ void input_vgmstream::decode_seek(double p_seconds,abort_callback & p_abort) {
 	seek_pos_samples = (int) audio_math::time_to_samples(p_seconds, vgmstream->sample_rate);
 	int max_buffer_samples = sizeof(sample_buffer)/sizeof(sample_buffer[0])/vgmstream->channels;
 	bool loop_okay = loop_forever && vgmstream->loop_flag && !ignore_loop && !force_ignore_loop;
+
+	/* start on first channel to avoid problems in some decoders */
+	if (seek_pos_samples % vgmstream->channels) {
+	    seek_pos_samples -= seek_pos_samples % vgmstream->channels;
+	}
 
 	int corrected_pos_samples = seek_pos_samples;
 

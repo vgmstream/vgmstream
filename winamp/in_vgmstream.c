@@ -23,7 +23,10 @@
 #include "resource.h"
 
 #ifndef VERSION
-#define VERSION
+#include "../version.h"
+#endif
+#ifndef VERSION
+#define VERSION "(unknown version)"
 #endif
 
 #define APP_NAME "vgmstream plugin"

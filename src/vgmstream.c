@@ -1037,6 +1037,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
             return (vgmstream->interleave_block_size - 1) * 2; /* decodes 1 byte into 2 bytes */
         case coding_XBOX:
 		case coding_INT_XBOX:
+            return 64;
         case coding_EA_XA:
             return 28;
 		case coding_MAXIS_ADPCM:
@@ -2240,53 +2241,66 @@ int vgmstream_open_stream(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t s
     STREAMFILE * file;
     char filename[PATH_LIMIT];
     int ch;
-    int buffer_size = STREAMFILE_DEFAULT_BUFFER_SIZE;
+    int use_streamfile_per_channel = 0;
+    int use_same_offset_per_channel = 0;
 
 #ifdef VGM_USE_FFMPEG
-    if (vgmstream->coding_type == coding_FFmpeg) /* not needed */
+    if (vgmstream->coding_type == coding_FFmpeg) /* stream not needed, FFmpeg manages itself */
         return 1;
 #endif
 
-    /* minor optimizations */
-    if (vgmstream->layout_type == layout_interleave
-            &&vgmstream->interleave_block_size > 0
-            && vgmstream->interleave_block_size > buffer_size) {
-        buffer_size = vgmstream->interleave_block_size;
+    /* if interleave is big enough keep a buffer per channel */
+    if (vgmstream->interleave_block_size >= STREAMFILE_DEFAULT_BUFFER_SIZE) {
+        use_streamfile_per_channel = 1;
     }
 
-    if (buffer_size > 0x8000) {
-        buffer_size = 0x8000;
-        /* todo if interleave is big enough open one streamfile per channel so each uses it's own buffer */
+    if (vgmstream->layout_type == layout_none
+            //#ifdef VGM_USE_MPEG || (vgmstream->layout_type == layout_mpeg)  #endif //no appreciable difference
+        ) {
+        /* for some codecs like IMA where channels work with the same bytes *///todo which ones?
+        use_same_offset_per_channel = 1;
     }
 
 
     streamFile->get_name(streamFile,filename,sizeof(filename));
     /* open the file for reading by each channel */
     {
-        file = streamFile->open(streamFile,filename,buffer_size);
-        if (!file) return 0;
+        if (!use_streamfile_per_channel) {
+            file = streamFile->open(streamFile,filename, STREAMFILE_DEFAULT_BUFFER_SIZE);
+            if (!file) goto fail;
+        }
 
         for (ch=0; ch < vgmstream->channels; ch++) {
+            off_t offset;
+            if (use_same_offset_per_channel) {
+                offset = start_offset;
+            } else {
+                offset = start_offset + vgmstream->interleave_block_size*ch;
+            }
+
+            /* open new one if needed */
+            if (use_streamfile_per_channel) {
+                file = streamFile->open(streamFile,filename, STREAMFILE_DEFAULT_BUFFER_SIZE);
+                if (!file) goto fail;
+            }
 
             vgmstream->ch[ch].streamfile = file;
-
-            if (vgmstream->layout_type == layout_none
-#ifdef VGM_USE_MPEG
-                    || vgmstream->layout_type == layout_mpeg //todo simplify using flag "start offset"
-#endif
-                    ) { /* no appreciable difference for mpeg */
-                /* for some codecs like IMA where channels work with the same bytes */
-                vgmstream->ch[ch].channel_start_offset =
-                        vgmstream->ch[ch].offset = start_offset;
-            }
-            else {
-                vgmstream->ch[ch].channel_start_offset =
-                        vgmstream->ch[ch].offset = start_offset
-                        + vgmstream->interleave_block_size*ch;
-            }
+            vgmstream->ch[ch].channel_start_offset =
+                    vgmstream->ch[ch].offset = offset;
         }
     }
 
-
     return 1;
+
+fail:
+    if (!use_streamfile_per_channel) {
+        streamFile->close(file); /* only one file was ever open */
+    } else {
+        for (ch=0; ch < vgmstream->channels; ch++) {
+            if (vgmstream->ch[ch].streamfile)
+                streamFile->close(vgmstream->ch[ch].streamfile); /* close all open files */
+        }
+    }
+
+    return 0;
 }

@@ -8,11 +8,15 @@
 typedef struct {
     STREAMFILE sf;
     FILE * infile;
+    char name[PATH_LIMIT];
     off_t offset;
     size_t validsize;
     uint8_t * buffer;
     size_t buffersize;
-    char name[PATH_LIMIT];
+    size_t filesize;
+#ifdef VGM_DEBUG_OUTPUT
+    int error_notified;
+#endif
 #ifdef PROFILE_STREAMFILE
     size_t bytes_read;
     int error_count;
@@ -47,9 +51,31 @@ static size_t read_the_rest(uint8_t * dest, off_t offset, size_t length, STDIOST
     /* read as much of the beginning of the request as possible, proceed */
     while (length>0) {
         size_t length_to_read;
-        size_t length_read=0;
+        size_t length_read;
         streamfile->validsize=0;
-        if (fseeko(streamfile->infile,offset,SEEK_SET)) return length_read;
+
+        /* request outside file: ignore to avoid seek/read */
+        if (offset > streamfile->filesize) {
+    #ifdef VGM_DEBUG_OUTPUT
+            if (!streamfile->error_notified) {
+                VGM_LOG("ERROR: reading outside filesize, at offset 0x%lx + 0x%x (buggy meta?)\n", offset, length);
+                streamfile->error_notified = 1;
+            }
+    #endif
+            streamfile->offset = streamfile->filesize;
+            memset(dest,0,length);
+            return length; /* return partially-read buffer and 0-set the rest */
+        }
+
+        /* position to new offset */
+        if (fseeko(streamfile->infile,offset,SEEK_SET)) {
+            streamfile->offset = streamfile->filesize;
+#ifdef PROFILE_STREAMFILE
+            streamfile->error_count++;
+#endif
+            return 0; //fail miserably
+        }
+
         streamfile->offset=offset;
 
         /* decide how much must be read this time */
@@ -87,9 +113,8 @@ static size_t read_the_rest(uint8_t * dest, off_t offset, size_t length, STDIOST
     return length_read_total;
 }
 
-static size_t read_stdio(STDIOSTREAMFILE *streamfile,uint8_t * dest, off_t offset, size_t length)
-{
-    // read
+static size_t read_stdio(STDIOSTREAMFILE *streamfile,uint8_t * dest, off_t offset, size_t length) {
+
     if (!streamfile || !dest || length<=0) return 0;
 
     /* if entire request is within the buffer */
@@ -98,6 +123,21 @@ static size_t read_stdio(STDIOSTREAMFILE *streamfile,uint8_t * dest, off_t offse
         return length;
     }
 
+    /* request outside file: ignore to avoid seek/read in read_the_rest() */
+    if (offset > streamfile->filesize) {
+#ifdef VGM_DEBUG_OUTPUT
+        if (!streamfile->error_notified) {
+            VGM_LOG("ERROR: reading outside filesize, at offset over 0x%lx (buggy meta?)\n", offset);
+            streamfile->error_notified = 1;
+        }
+#endif
+
+        streamfile->offset = streamfile->filesize;
+        memset(dest,0,length);
+        return length;
+    }
+
+    /* request outside buffer: new fread */
     {
         size_t length_read = read_the_rest(dest,offset,length,streamfile);
 #if PROFILE_STREAMFILE
@@ -115,8 +155,7 @@ static void close_stdio(STDIOSTREAMFILE * streamfile) {
 }
 
 static size_t get_size_stdio(STDIOSTREAMFILE * streamfile) {
-    fseeko(streamfile->infile,0,SEEK_END);
-    return ftello(streamfile->infile);
+    return streamfile->filesize;
 }
 
 static off_t get_offset_stdio(STDIOSTREAMFILE *streamFile) {
@@ -194,6 +233,10 @@ static STREAMFILE * open_stdio_streamfile_buffer_by_FILE(FILE *infile,const char
 
     strncpy(streamfile->name,filename,sizeof(streamfile->name));
     streamfile->name[sizeof(streamfile->name)-1] = '\0';
+
+    /* cache filesize */
+    fseeko(streamfile->infile,0,SEEK_END);
+    streamfile->filesize = ftello(streamfile->infile);
 
     return &streamfile->sf;
 }
