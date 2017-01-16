@@ -203,16 +203,17 @@ bool input_vgmstream::decode_run(audio_chunk & p_chunk,abort_callback & p_abort)
 	int l = 0, samples_to_do = max_buffer_samples, t= 0;
 
 	if(vgmstream) {
+		if (max_buffer_samples % decode_step_size)
+		{
+			max_buffer_samples -= max_buffer_samples % decode_step_size;
+			samples_to_do = max_buffer_samples;
+		}
+
 		bool loop_okay = loop_forever && vgmstream->loop_flag && !ignore_loop && !force_ignore_loop;
 		if (decode_pos_samples+max_buffer_samples>stream_length_samples && !loop_okay)
 			samples_to_do=stream_length_samples-decode_pos_samples;
 		else
 			samples_to_do=max_buffer_samples;
-
-		if (samples_to_do % decode_step_size)
-		{
-			samples_to_do -= samples_to_do % decode_step_size;
-		}
 
 		l = (samples_to_do*vgmstream->channels * sizeof(sample_buffer[0]));
 
