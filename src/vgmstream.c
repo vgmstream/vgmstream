@@ -1027,6 +1027,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_AICA:
             return 2;
         case coding_NGC_AFC:
+            return 16;
         case coding_PSX:
         case coding_PSX_badflags:
         case coding_PSX_bmdx:
@@ -1155,6 +1156,7 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
         case coding_SNDS_IMA:
             return 0;
         case coding_NGC_AFC:
+            return 9;
         case coding_PSX:
         case coding_PSX_badflags:
         case coding_PSX_bmdx:
