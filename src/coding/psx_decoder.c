@@ -327,6 +327,10 @@ void decode_hevag(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing
 
     first_sample = first_sample % 28;
 
+	if (first_sample & 1) { /* if first sample is odd, read byte first */
+		byte = read_8bit(stream->offset+(framesin*16)+2+first_sample/2,stream->streamfile);
+	}
+
     for (i = first_sample, sample_count = 0; i < first_sample + samples_to_do; i++, sample_count += channelspacing) {
         sample = 0;
 
@@ -391,11 +395,15 @@ void decode_psx_configurable(VGMSTREAMCHANNEL * stream, sample * outbuf, int cha
 
     first_sample = first_sample % samples_per_frame;
 
+	if (first_sample & 1) { /* if restarting on a high nibble, read byte first */
+		byte = (uint8_t)read_8bit(stream->offset+(framesin*frame_size)+header_size+first_sample/2,stream->streamfile);
+	}
+
     for (i = first_sample, sample_count = 0; i < first_sample + samples_to_do; i++, sample_count += channelspacing) {
         sample = 0;
 
         if (predict_nr < 5) {
-            if (i%2 != 1) { /* low nibble first */
+            if (!(i&1)) { /* low nibble first */
                 byte = (uint8_t)read_8bit(stream->offset+(framesin*frame_size)+header_size+i/2,stream->streamfile);
                 scale = (byte & 0x0f);
             } else { /* high nibble last */
