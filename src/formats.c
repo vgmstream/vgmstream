@@ -806,7 +806,7 @@ static const meta_info meta_info_list[] = {
         {meta_OTM,                  "Otomedius OTM Header"},
         {meta_CSTM,                 "Nintendo 3DS CSTM Header"},
         {meta_FSTM,                 "Nintendo Wii U FSTM Header"},
-        {meta_G1L,                  "Tecmo Koei G1L Header"},
+        {meta_KT_WIIBGM,            "Koei Tecmo WiiBGM Header"},
         {meta_3DS_IDSP,             "Nintendo IDSP Header"},
         {meta_WIIU_BTSND,           "Wii U Menu Boot Sound"},
         {meta_MCA,                  "Capcom MCA Header"},
