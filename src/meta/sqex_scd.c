@@ -322,6 +322,8 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
                 for (i=0;i<channel_count;i++) {
                     STREAMFILE * intfile =
                         open_scdint_with_STREAMFILE(file, "ARBITRARY.DSP", start_offset+interleave_size*i, interleave_size, stride_size, total_size);
+                    if (!intfile)
+                        goto fail;
 
                     data->substreams[i] = init_vgmstream_ngc_dsp_std(intfile);
                     data->intfiles[i] = intfile;
@@ -528,8 +530,13 @@ static size_t read_scdint(SCDINTSTREAMFILE *streamfile, uint8_t *dest, off_t off
 /* start_offset is for *this* interleaved stream */
 static STREAMFILE *open_scdint_with_STREAMFILE(STREAMFILE *file, const char * filename, off_t start_offset, off_t interleave_block_size, off_t stride_size, size_t total_size)
 {
-    SCDINTSTREAMFILE * scd = malloc(sizeof(SCDINTSTREAMFILE));
+    SCDINTSTREAMFILE * scd = NULL;
+
+    /* _scdint funcs can't handle this case */
+    if (start_offset + total_size > file->get_size(file))
+        return NULL;
     
+    scd = malloc(sizeof(SCDINTSTREAMFILE));
     if (!scd)
         return NULL;
 

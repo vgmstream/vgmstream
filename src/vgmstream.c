@@ -860,7 +860,7 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
                      * but deallocate itself, there is only one open file and
                      * that is in vgmstream->ch[0].streamfile  */
                     close_vgmstream(data->substreams[i]);
-                    close_streamfile(data->intfiles[i]);
+                    if(data->intfiles[i]) close_streamfile(data->intfiles[i]);
                 }
                 free(data->substreams);
                 free(data->intfiles);
