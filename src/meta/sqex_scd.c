@@ -99,16 +99,16 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
 
     /** offset tables  **/
     /* 0x00: table1_unknown entries */
-    /* 0x02: table2_headers entries */
-    /* 0x04: table3_unknown entries */
+    /* 0x02: table2_unknown entries */
+    /* 0x04: table_headers entries */
     /* 0x06: unknown (varies) */
     /* 0x08: table1_unknown start offset */
-    /* 0x0c: table2_headers start offset */
-    /* 0x10: table3_unknown start offset */
+    /* 0x0c: table_headers start offset */
+    /* 0x10: table2_unknown start offset */
     /* 0x14: unknown (0x0) */
     /* 0x18: unknown offset */
     /* 0x1c: unknown (0x0)  */
-    headers_entries = read_16bit(tables_offset+0x02,streamFile);
+    headers_entries = read_16bit(tables_offset+0x04,streamFile);
     VGM_ASSERT(headers_entries > 1, "SCD: multiple streams found (%i entries)\n", headers_entries);
     if (target_stream == 0) target_stream = 1; /* auto: default to 1 */
     if (target_stream > headers_entries) goto fail;
