@@ -128,22 +128,32 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
     loop_flag = (loop_end > 0);
 
     post_meta_offset = meta_offset + 0x20;
-
-    /* data at meta_offset is only 0x20 bytes, but there may be auxiliary chunks before anything else */
-    aux_chunk_count = read_32bit(meta_offset+0x1c,streamFile);
-    for (; aux_chunk_count > 0; aux_chunk_count--) {
-        post_meta_offset += read_32bit(post_meta_offset+4,streamFile); /* skip aux chunks */
-    }
-
     start_offset = post_meta_offset + read_32bit(meta_offset+0x18,streamFile);
+    aux_chunk_count = read_32bit(meta_offset+0x1c,streamFile);
 
 #ifdef VGM_USE_VORBIS
     if (codec_id == 0x6)
     {
         vgm_vorbis_info_t inf;
-        uint32_t seek_table_size = read_32bit(post_meta_offset+0x10, streamFile);
-        uint32_t vorb_header_size = read_32bit(post_meta_offset+0x14, streamFile);
+        uint32_t seek_table_size;
+        uint32_t vorb_header_size;
         VGMSTREAM * result = NULL;
+        
+        /* todo this skips the "MARK" chunk for FF XIV "03.scd", but without it actually the start_offset
+         *  lands in a "OggS" though will fail in the "try skipping seek table"
+         *  maybe this isn't needed and there is another bug, since other games with "MARK" don't need this */
+        if (aux_chunk_count) {
+            post_meta_offset = meta_offset + 0x20;
+            
+            /* data at meta_offset is only 0x20 bytes, but there may be auxiliary chunks before anything else */
+            for (; aux_chunk_count > 0; aux_chunk_count--) {
+                post_meta_offset += read_32bit(post_meta_offset+4,streamFile); /* skip aux chunks */
+            }
+            start_offset = post_meta_offset + read_32bit(meta_offset+0x18,streamFile);
+        }
+
+        seek_table_size = read_32bit(post_meta_offset+0x10, streamFile);
+        vorb_header_size = read_32bit(post_meta_offset+0x14, streamFile);
 
         memset(&inf, 0, sizeof(inf));
         inf.loop_start = loop_start;
