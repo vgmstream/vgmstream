@@ -99,16 +99,16 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
 
     /** offset tables  **/
     /* 0x00: table1_unknown entries */
-    /* 0x02: table2_headers entries */
-    /* 0x04: table3_unknown entries */
+    /* 0x02: table2_unknown entries */
+    /* 0x04: table_headers entries */
     /* 0x06: unknown (varies) */
     /* 0x08: table1_unknown start offset */
-    /* 0x0c: table2_headers start offset */
-    /* 0x10: table3_unknown start offset */
+    /* 0x0c: table_headers start offset */
+    /* 0x10: table2_unknown start offset */
     /* 0x14: unknown (0x0) */
     /* 0x18: unknown offset */
     /* 0x1c: unknown (0x0)  */
-    headers_entries = read_16bit(tables_offset+0x02,streamFile);
+    headers_entries = read_16bit(tables_offset+0x04,streamFile);
     VGM_ASSERT(headers_entries > 1, "SCD: multiple streams found (%i entries)\n", headers_entries);
     if (target_stream == 0) target_stream = 1; /* auto: default to 1 */
     if (target_stream > headers_entries) goto fail;
@@ -128,22 +128,32 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
     loop_flag = (loop_end > 0);
 
     post_meta_offset = meta_offset + 0x20;
-
-    /* data at meta_offset is only 0x20 bytes, but there may be auxiliary chunks before anything else */
-    aux_chunk_count = read_32bit(meta_offset+0x1c,streamFile);
-    for (; aux_chunk_count > 0; aux_chunk_count--) {
-        post_meta_offset += read_32bit(post_meta_offset+4,streamFile); /* skip aux chunks */
-    }
-
     start_offset = post_meta_offset + read_32bit(meta_offset+0x18,streamFile);
+    aux_chunk_count = read_32bit(meta_offset+0x1c,streamFile);
 
 #ifdef VGM_USE_VORBIS
     if (codec_id == 0x6)
     {
         vgm_vorbis_info_t inf;
-        uint32_t seek_table_size = read_32bit(post_meta_offset+0x10, streamFile);
-        uint32_t vorb_header_size = read_32bit(post_meta_offset+0x14, streamFile);
+        uint32_t seek_table_size;
+        uint32_t vorb_header_size;
         VGMSTREAM * result = NULL;
+        
+        /* todo this skips the "MARK" chunk for FF XIV "03.scd", but without it actually the start_offset
+         *  lands in a "OggS" though will fail in the "try skipping seek table"
+         *  maybe this isn't needed and there is another bug, since other games with "MARK" don't need this */
+        if (aux_chunk_count) {
+            post_meta_offset = meta_offset + 0x20;
+            
+            /* data at meta_offset is only 0x20 bytes, but there may be auxiliary chunks before anything else */
+            for (; aux_chunk_count > 0; aux_chunk_count--) {
+                post_meta_offset += read_32bit(post_meta_offset+4,streamFile); /* skip aux chunks */
+            }
+            start_offset = post_meta_offset + read_32bit(meta_offset+0x18,streamFile);
+        }
+
+        seek_table_size = read_32bit(post_meta_offset+0x10, streamFile);
+        vorb_header_size = read_32bit(post_meta_offset+0x14, streamFile);
 
         memset(&inf, 0, sizeof(inf));
         inf.loop_start = loop_start;
@@ -322,6 +332,8 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
                 for (i=0;i<channel_count;i++) {
                     STREAMFILE * intfile =
                         open_scdint_with_STREAMFILE(file, "ARBITRARY.DSP", start_offset+interleave_size*i, interleave_size, stride_size, total_size);
+                    if (!intfile)
+                        goto fail;
 
                     data->substreams[i] = init_vgmstream_ngc_dsp_std(intfile);
                     data->intfiles[i] = intfile;
@@ -528,8 +540,13 @@ static size_t read_scdint(SCDINTSTREAMFILE *streamfile, uint8_t *dest, off_t off
 /* start_offset is for *this* interleaved stream */
 static STREAMFILE *open_scdint_with_STREAMFILE(STREAMFILE *file, const char * filename, off_t start_offset, off_t interleave_block_size, off_t stride_size, size_t total_size)
 {
-    SCDINTSTREAMFILE * scd = malloc(sizeof(SCDINTSTREAMFILE));
+    SCDINTSTREAMFILE * scd = NULL;
+
+    /* _scdint funcs can't handle this case */
+    if (start_offset + total_size > file->get_size(file))
+        return NULL;
     
+    scd = malloc(sizeof(SCDINTSTREAMFILE));
     if (!scd)
         return NULL;
 

@@ -582,7 +582,7 @@ typedef enum {
     meta_CSTM,              // Nintendo 3DS CSTM
     meta_FSTM,              // Nintendo Wii U FSTM
     meta_3DS_IDSP,          // Nintendo 3DS/Wii U IDSP
-    meta_G1L,               // Tecmo Koei G1L
+    meta_KT_WIIBGM,         // Koei Tecmo WiiBGM
     meta_MCA,               // Capcom MCA "MADP"
     meta_XB3D_ADX,          // Xenoblade Chronicles 3D ADX
     meta_HCA,               /* CRI HCA */

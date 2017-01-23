@@ -64,6 +64,7 @@ VGMSTREAM * init_vgmstream_xma(STREAMFILE *streamFile) {
     streamFile->get_name(streamFile,filename,sizeof(filename));
     if (strcasecmp("xma",filename_extension(filename))
             && strcasecmp("xma2",filename_extension(filename))  /* Skullgirls */
+            && strcasecmp("nps",filename_extension(filename))   /* Beautiful Katamari */
             && strcasecmp("past",filename_extension(filename))  /* SoulCalibur II HD */
             )
         goto fail;

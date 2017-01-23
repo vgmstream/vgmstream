@@ -6,8 +6,10 @@
 - MinGW-w64 (32bit version): https://sourceforge.net/projects/mingw-w64/
 - MSYS2 with the MinGW-w64_shell (32bit) package: https://msys2.github.io/
 
-**MSVC / Visual Studio**: Visual Studio Community 2015 (free) should work:
+**MSVC / Visual Studio**: Microsoft's Visual C++ and MSBuild, bundled in either:
 - Visual Studio: https://www.visualstudio.com/downloads/
+  Visual Studio Community 2015 should work (free, but must register after trial period).
+- Visual C++ Build Tools (no IDE): http://landinghub.visualstudio.com/visual-cpp-build-tools
 
 **Git**: optional, to generate version numbers:
 - Git for Windows: https://git-scm.com/download/win
@@ -23,8 +25,9 @@ In Linux you may need to use *Makefile.unix.am* instead, and note that some Linu
 
 Windows CMD example for test.exe:
 ```
-set PATH=%PATH%;C:\Git\usr\bin
-set PATH=%PATH%;C:\mingw-w64\i686-5.4.0-win32-sjlj-rt_v5-rev0\mingw32\bin
+prompt $P$G$_$S
+set PATH=C:\Program Files (x86)\Git\usr\bin;%PATH%
+set PATH=C:\Program Files (x86)\mingw-w64\i686-5.4.0-win32-sjlj-rt_v5-rev0\mingw32\bin;%PATH%
 
 cd vgmstream
 
@@ -33,8 +36,7 @@ mingw32-make.exe mingw_test -f Makefile ^
  SHELL=sh.exe CC=gcc.exe AR=ar.exe STRIP=strip.exe DLLTOOL=dlltool.exe WINDRES=windres.exe
 ```
 
-**With MSVC**: open *./vgmstream_full.sln* and compile in Visual Studio.
-For XMPlay open *xmp-vgmstream/xmp-vgmstream.sln* instead; FDK-AAC/QAAC/others may be needed (see below).
+**With MSVC**: open *./vgmstream_full.sln* and compile in Visual Studio, see the section below.
 
 
 ### foo_input_vgmstream (foobar2000)
@@ -44,7 +46,7 @@ Requires MSVC (foobar/SDK only links to MSVC C++ DLLs) and these dependencies:
 - QAAC, in *(vgmstream)/../qaac/*: https://github.com/kode54/qaac
 - WTL (if needed), in *(vgmstream)/../WTL/*: http://wtl.sourceforge.net/
 
-Open *./vgmstream_full.sln* as a base, which expects the above dependencies. Then, depending on your VS version (like VS2015) you may need to manually do the following (in *Debug* and *Release* options):
+Open *./vgmstream_full.sln* as a base, which expects the above dependencies. Then, depending on your VS version (like VS2015) you may need to manually do the following (in *Debug* and *Release* configurations):
 - Change each project's compiler version from VS2010 to your version (right click menu)
 - For *foobar2000_ATL_helpers* add *../../../WTL/Include* to the compilers's *additional includes*
 - For *foo_input_vgmstream* add *../../WTL/Include* to the compilers's *additional includes*
@@ -52,6 +54,33 @@ Open *./vgmstream_full.sln* as a base, which expects the above dependencies. The
 
 VS2013 may not be compatible with the SDK in release mode due to compiler bugs.
 FDK-AAC/QAAC can be disabled by removing *VGM_USE_MP4V2* and *VGM_USE_FDKAAC* in the compiler/linker options and the project dependencies.
+
+
+You can also use the command line to compile, if you don't want to touch the .vcxproj files, register VS2015 after trial, or only have VC++/MSBuild tools.
+
+Windows CMD example for foobar2000:
+```
+prompt $P$G$_$S
+set PATH=C:\Program Files (x86)\Git\usr\bin;%PATH%
+set PATH=C:\Program Files (x86)\MSBuild\14.0\Bin;%PATH%
+
+cd vgmstream
+
+set CL=/I"C:\projects\WTL\Include"
+set LINK="C:\projects\foobar\foobar2000\shared\shared.lib"
+
+msbuild fb2k/foo_input_vgmstream.vcxproj ^
+ /t:Clean
+
+msbuild fb2k/foo_input_vgmstream.vcxproj ^
+ /t:Build ^
+ /p:Platform=Win32 ^
+ /p:PlatformToolset=v140 ^
+ /p:Configuration=Release
+```
+
+### Audacious plugin
+It *should* be buildable with autoconf (support unknown).
 
 
 ## Development

@@ -331,7 +331,8 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_otm,
 	init_vgmstream_bcstm,
 	init_vgmstream_3ds_idsp,
-	init_vgmstream_g1l,
+    init_vgmstream_kt_g1l,
+    init_vgmstream_kt_wiibgm,
     init_vgmstream_hca,
     init_vgmstream_ps2_svag_snk,
     init_vgmstream_ps2_vds_vdm,
@@ -860,7 +861,7 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
                      * but deallocate itself, there is only one open file and
                      * that is in vgmstream->ch[0].streamfile  */
                     close_vgmstream(data->substreams[i]);
-                    close_streamfile(data->intfiles[i]);
+                    if(data->intfiles[i]) close_streamfile(data->intfiles[i]);
                 }
                 free(data->substreams);
                 free(data->intfiles);
