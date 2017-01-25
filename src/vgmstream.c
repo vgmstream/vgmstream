@@ -2308,14 +2308,6 @@ int vgmstream_open_stream(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t s
     return 1;
 
 fail:
-    if (!use_streamfile_per_channel) {
-        streamFile->close(file); /* only one file was ever open */
-    } else {
-        for (ch=0; ch < vgmstream->channels; ch++) {
-            if (vgmstream->ch[ch].streamfile)
-                streamFile->close(vgmstream->ch[ch].streamfile); /* close all open files */
-        }
-    }
-
+    /* open streams will be closed in close_vgmstream(), hopefully called by the meta */
     return 0;
 }
