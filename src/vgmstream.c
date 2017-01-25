@@ -338,6 +338,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_ps2_svag_snk,
     init_vgmstream_ps2_vds_vdm,
     init_vgmstream_x360_cxs,
+    init_vgmstream_dsp_adx,
 #ifdef VGM_USE_FFMPEG
     init_vgmstream_xma,
     init_vgmstream_mp4_aac_ffmpeg,
