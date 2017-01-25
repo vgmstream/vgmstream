@@ -20,7 +20,7 @@ VGMSTREAM * init_vgmstream_ps2_vag(STREAMFILE *streamFile) {
     int is_swag = 0;
 
     /* check extension, case insensitive */
-    if ( !check_extensions(streamFile,"vag,swag") )
+    if ( !check_extensions(streamFile,"vag,swag,str") )
         goto fail;
 
     /* check VAG Header */
