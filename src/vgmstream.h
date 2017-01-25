@@ -119,6 +119,7 @@ typedef enum {
     coding_APPLE_IMA4,      /* Apple Quicktime IMA4 */
     coding_DAT4_IMA,        /* Eurocom 'DAT4' IMA ADPCM */
     coding_SNDS_IMA,        /* Heavy Iron Studios .snds IMA ADPCM */
+    coding_OTNS_IMA,        /* Omikron The Nomad Soul IMA ADPCM */
 
     coding_WS,              /* Westwood Studios VBR ADPCM */
     coding_MSADPCM,         /* Microsoft ADPCM */
@@ -564,6 +565,7 @@ typedef enum {
     meta_HYPERSCAN_KVAG,	// Hyperscan KVAG/BVG 
     meta_IOS_PSND,          // Crash Bandicoot Nitro Kart 2 (iOS)
     meta_BOS_ADP,           // ADP! (Balls of Steel, PC)
+    meta_OTNS_ADP,          // Omikron: The Nomad Soul .adp (PC/DC)
     meta_EB_SFX,            // Excitebots .sfx
     meta_EB_SF0,            // Excitebots .sf0
 	meta_PS3_KLBS,          // L@VE ONCE (PS3)

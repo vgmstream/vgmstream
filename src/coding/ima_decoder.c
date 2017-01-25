@@ -650,3 +650,48 @@ void decode_snds_ima(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspac
     stream->adpcm_history1_32 = hist1;
     stream->adpcm_step_index = step_index;
 }
+
+void decode_otns_ima(VGMSTREAM * vgmstream, VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
+    int i, sample_count;
+
+    int32_t hist1 = stream->adpcm_history1_32;
+    int step_index = stream->adpcm_step_index;
+
+    //external interleave
+
+    //no header
+
+    for (i=first_sample,sample_count=0; i<first_sample+samples_to_do; i++,sample_count+=channelspacing) {
+        int nibble_shift, sample_nibble, sample_decoded, step, delta;
+
+        off_t byte_offset = stream->offset + (vgmstream->channels==1 ? i/2 : i); //one nibble per channel if stereo
+        nibble_shift = (vgmstream->channels==1) ? //todo simplify
+                    (i&1?0:4) : //high nibble first(?)
+                    (channel==0?4:0); //low=ch0, high=ch1 (this is correct compared to vids)
+
+        //OTNS nibble expansion (algorithm by aluigi, unsure if it's a known ADPCM codec)
+        sample_nibble = (read_8bit(byte_offset,stream->streamfile) >> nibble_shift)&0xf;
+
+        sample_decoded = hist1;
+        step = ADPCMTable[step_index];
+        delta = 0;
+        if(sample_nibble & 4) delta = step << 2;
+        if(sample_nibble & 2) delta += step << 1;
+        if(sample_nibble & 1) delta += step;
+        delta >>= 2;
+        if(sample_nibble & 8)
+            sample_decoded -= delta;
+        else
+            sample_decoded += delta;
+
+        hist1 = clamp16(sample_decoded);
+        step_index += IMA_IndexTable[sample_nibble];
+        if (step_index < 0) step_index=0;
+        if (step_index > 88) step_index=88;
+
+        outbuf[sample_count] = (short)(hist1);
+    }
+
+    stream->adpcm_history1_32 = hist1;
+    stream->adpcm_step_index = step_index;
+}

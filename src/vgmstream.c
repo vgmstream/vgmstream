@@ -312,7 +312,8 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_ps2_wmus,
 	init_vgmstream_hyperscan_kvag,
 	init_vgmstream_ios_psnd,
-    init_vgmstream_bos_adp,
+	init_vgmstream_pc_adp_bos,
+	init_vgmstream_pc_adp_otns,
     init_vgmstream_eb_sfx,
     init_vgmstream_eb_sf0,
 	init_vgmstream_ps3_klbs,
@@ -1022,6 +1023,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_EACS_IMA:
         case coding_SNDS_IMA:
         case coding_IMA:
+        case coding_OTNS_IMA:
             return 1;
         case coding_INT_IMA:
         case coding_INT_DVI_IMA:
@@ -1155,6 +1157,7 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
         case coding_IMA:
         case coding_G721:
         case coding_SNDS_IMA:
+        case coding_OTNS_IMA:
             return 0;
         case coding_NGC_AFC:
             return 9;
@@ -1547,6 +1550,14 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                         samples_to_do,chan);
             }
             break;
+        case coding_OTNS_IMA:
+            for (chan=0;chan<vgmstream->channels;chan++) {
+                decode_otns_ima(vgmstream, &vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                        vgmstream->channels,vgmstream->samples_into_block,
+                        samples_to_do,chan);
+            }
+            break;
+
         case coding_WS:
             for (chan=0;chan<vgmstream->channels;chan++) {
                 decode_ws(vgmstream,chan,buffer+samples_written*vgmstream->channels+chan,
