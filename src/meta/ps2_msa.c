@@ -4,15 +4,11 @@
 /* MSA (from Psyvariar -Complete Edition-) */
 VGMSTREAM * init_vgmstream_ps2_msa(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[PATH_LIMIT];
-    off_t start_offset;
-
-    int loop_flag;
-   int channel_count;
+    off_t start_offset, datasize, filesize;
+    int loop_flag, channel_count;
 
     /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("msa",filename_extension(filename))) goto fail;
+    if (!check_extensions(streamFile, "msa")) goto fail;
 
     /* check header */
     if (read_32bitBE(0x00,streamFile) != 0x00000000)
@@ -21,40 +17,36 @@ VGMSTREAM * init_vgmstream_ps2_msa(STREAMFILE *streamFile) {
     loop_flag = 0;
     channel_count = 2;
 
-   /* build the VGMSTREAM */
+    /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
-   /* fill in the vital statistics */
     start_offset = 0x14;
-   vgmstream->channels = channel_count;
-    vgmstream->sample_rate = 44100;
+    datasize = read_32bitLE(0x4,streamFile);
+    filesize = get_streamfile_size(streamFile);
+    vgmstream->channels = channel_count;
+    vgmstream->sample_rate = read_32bitLE(0x10,streamFile);
+    vgmstream->num_samples = datasize*28/(16*channel_count);
     vgmstream->coding_type = coding_PSX;
-    vgmstream->num_samples = read_32bitLE(0x4,streamFile)*28/32;
     vgmstream->layout_type = layout_interleave;
     vgmstream->interleave_block_size = 0x4000;
     vgmstream->meta_type = meta_PS2_MSA;
 
-    /* open the file for reading */
-    {
-        int i;
-        STREAMFILE * file;
-        file = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-        if (!file) goto fail;
-        for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = file;
-
-            vgmstream->ch[i].channel_start_offset=
-                vgmstream->ch[i].offset=start_offset+
-                vgmstream->interleave_block_size*i;
-
-        }
+    /* MSAs are strangely truncated, so manually calculate samples
+     *  data after last usable block is always silence or garbage */
+    if (datasize > filesize) {
+        off_t usable_size = filesize - start_offset;
+        usable_size -= usable_size % (vgmstream->interleave_block_size*channel_count);/* block-aligned */
+        vgmstream->num_samples = usable_size * 28 / (16*channel_count);
     }
 
+
+    /* open the file for reading */
+    if (!vgmstream_open_stream(vgmstream, streamFile, start_offset))
+        goto fail;
     return vgmstream;
 
-    /* clean up anything we may have opened */
 fail:
-    if (vgmstream) close_vgmstream(vgmstream);
+    close_vgmstream(vgmstream);
     return NULL;
 }
