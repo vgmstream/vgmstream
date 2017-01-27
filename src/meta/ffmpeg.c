@@ -115,6 +115,7 @@ static int ffmpeg_read(void *opaque, uint8_t *buf, int buf_size)
     uint64_t offset = data->offset;
     int max_to_copy = 0;
     int ret;
+
     if (data->header_insert_block) {
         if (offset < data->header_size) {
             max_to_copy = (int)(data->header_size - offset);
@@ -132,6 +133,13 @@ static int ffmpeg_read(void *opaque, uint8_t *buf, int buf_size)
         }
         offset -= data->header_size;
     }
+
+    /* when "fake" size is smaller than "real" size we need to make sure bytes_read (ret) is clamped;
+     * it confuses FFmpeg in rare cases (STREAMFILE may have valid data after size) */
+    if (offset + buf_size > data->size + data->header_size) {
+        buf_size = data->size + data->header_size - offset;
+    }
+
     ret = read_streamfile(buf, offset + data->start, buf_size, data->streamfile);
     if (ret > 0) {
         offset += ret;
@@ -139,9 +147,11 @@ static int ffmpeg_read(void *opaque, uint8_t *buf, int buf_size)
             ret += max_to_copy;
         }
     }
+
     if (data->header_insert_block) {
         offset += data->header_size;
     }
+
     data->offset = offset;
     return ret;
 }
@@ -160,6 +170,8 @@ static int ffmpeg_write(void *opaque, uint8_t *buf, int buf_size)
 static int64_t ffmpeg_seek(void *opaque, int64_t offset, int whence)
 {
     ffmpeg_codec_data *data = (ffmpeg_codec_data *) opaque;
+    int ret = 0;
+
     if (whence & AVSEEK_SIZE) {
         return data->size + data->header_size;
     }
@@ -179,9 +191,14 @@ static int64_t ffmpeg_seek(void *opaque, int64_t offset, int whence)
                 offset += data->header_size;
             break;
     }
-    if (offset > data->size + data->header_size)
+
+    /* clamp offset; fseek returns 0 when offset > size, too */
+    if (offset > data->size + data->header_size) {
         offset = data->size + data->header_size;
-    return data->offset = offset;
+    }
+
+    data->offset = offset;
+    return ret;
 }
 
 
