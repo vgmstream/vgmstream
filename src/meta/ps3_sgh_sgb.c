@@ -27,6 +27,7 @@ static int get_at3_riff_info(at3_riff_info* info, STREAMFILE *streamFile, int32_
 VGMSTREAM * init_vgmstream_ps3_sgdx(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     STREAMFILE * streamHeader = NULL;
+    int32_t stream_size = 0;
     char filename[PATH_LIMIT];
 
     off_t start_offset, data_offset;
@@ -102,7 +103,6 @@ VGMSTREAM * init_vgmstream_ps3_sgdx(STREAMFILE *streamFile) {
         int32_t stream_sample_rate;
         int32_t stream_num_samples, stream_loop_start_sample, stream_loop_end_sample;
         off_t stream_start_offset;
-        int32_t stream_size;
 
         for (i=0; i < total_streams; i++) {
             if (i != target_stream) {
@@ -160,9 +160,9 @@ VGMSTREAM * init_vgmstream_ps3_sgdx(STREAMFILE *streamFile) {
             case 0x03: /* PSX ADPCM */
                 vgmstream->coding_type = coding_PSX;
                 vgmstream->layout_type = layout_interleave;
-                if (is_sgx) {
+                if (is_sgx || is_sgb) {
                     vgmstream->interleave_block_size = 0x10;
-                } else {
+                } else { //todo this only seems to happen with SFX
                     vgmstream->interleave_block_size = stream_size;
                 }
 
@@ -173,7 +173,7 @@ VGMSTREAM * init_vgmstream_ps3_sgdx(STREAMFILE *streamFile) {
             {
                 at3_riff_info info;
 
-                ffmpeg_data = init_ffmpeg_offset(streamFile, data_offset, streamFile->get_size(streamFile));
+                ffmpeg_data = init_ffmpeg_offset(streamFile, data_offset, stream_size);
                 if ( !ffmpeg_data ) goto fail;
 
                 vgmstream->coding_type = coding_FFmpeg;
@@ -203,7 +203,7 @@ VGMSTREAM * init_vgmstream_ps3_sgdx(STREAMFILE *streamFile) {
 
 #ifdef VGM_USE_FFMPEG
             case 0x06: /* AC3 */
-                ffmpeg_data = init_ffmpeg_offset(streamFile, data_offset, streamFile->get_size(streamFile));
+                ffmpeg_data = init_ffmpeg_offset(streamFile, data_offset, stream_size);
                 if ( !ffmpeg_data ) goto fail;
 
                 vgmstream->coding_type = coding_FFmpeg;
