@@ -416,6 +416,7 @@ static const coding_info coding_info_list[] = {
         {coding_APPLE_IMA4,         "Apple Quicktime 4-bit IMA ADPCM"},
         {coding_SNDS_IMA,           "Heavy Iron .snds 4-bit IMA ADPCM"},
         {coding_OTNS_IMA,           "Omikron: The Nomad Soul 4-bit IMA ADPCM"},
+        {coding_FSB_IMA,            "FSB multichannel 4-bit IMA ADPCM"},
         {coding_WS,                 "Westwood Studios ADPCM"},
         {coding_ACM,                "InterPlay ACM"},
         {coding_NWA0,               "NWA DPCM Level 0"},
