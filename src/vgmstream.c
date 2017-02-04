@@ -312,7 +312,8 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_ps2_wmus,
 	init_vgmstream_hyperscan_kvag,
 	init_vgmstream_ios_psnd,
-    init_vgmstream_bos_adp,
+	init_vgmstream_pc_adp_bos,
+	init_vgmstream_pc_adp_otns,
     init_vgmstream_eb_sfx,
     init_vgmstream_eb_sf0,
 	init_vgmstream_ps3_klbs,
@@ -337,6 +338,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_ps2_svag_snk,
     init_vgmstream_ps2_vds_vdm,
     init_vgmstream_x360_cxs,
+    init_vgmstream_dsp_adx,
 #ifdef VGM_USE_FFMPEG
     init_vgmstream_xma,
     init_vgmstream_mp4_aac_ffmpeg,
@@ -1022,6 +1024,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_EACS_IMA:
         case coding_SNDS_IMA:
         case coding_IMA:
+        case coding_OTNS_IMA:
             return 1;
         case coding_INT_IMA:
         case coding_INT_DVI_IMA:
@@ -1155,6 +1158,7 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
         case coding_IMA:
         case coding_G721:
         case coding_SNDS_IMA:
+        case coding_OTNS_IMA:
             return 0;
         case coding_NGC_AFC:
             return 9;
@@ -1547,6 +1551,14 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                         samples_to_do,chan);
             }
             break;
+        case coding_OTNS_IMA:
+            for (chan=0;chan<vgmstream->channels;chan++) {
+                decode_otns_ima(vgmstream, &vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                        vgmstream->channels,vgmstream->samples_into_block,
+                        samples_to_do,chan);
+            }
+            break;
+
         case coding_WS:
             for (chan=0;chan<vgmstream->channels;chan++) {
                 decode_ws(vgmstream,chan,buffer+samples_written*vgmstream->channels+chan,
@@ -2296,14 +2308,6 @@ int vgmstream_open_stream(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t s
     return 1;
 
 fail:
-    if (!use_streamfile_per_channel) {
-        streamFile->close(file); /* only one file was ever open */
-    } else {
-        for (ch=0; ch < vgmstream->channels; ch++) {
-            if (vgmstream->ch[ch].streamfile)
-                streamFile->close(vgmstream->ch[ch].streamfile); /* close all open files */
-        }
-    }
-
+    /* open streams will be closed in close_vgmstream(), hopefully called by the meta */
     return 0;
 }

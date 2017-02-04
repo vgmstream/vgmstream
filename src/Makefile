@@ -309,7 +309,8 @@ META_OBJS=meta/adx_header.o \
 	meta/mp4.o \
 	meta/xma.o \
     meta/ps2.o \
-    meta/x360.o
+    meta/x360.o \
+    meta/dsp_adx.o
 
 EXT_LIBS = ../ext_libs/clHCA.o
 

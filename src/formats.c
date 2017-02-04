@@ -167,7 +167,7 @@ static const char* extension_list[] = {
     "ngca",
     "nps",
     "npsf",
-    "nus3bank", //todo not existing?
+    "nus3bank",
     "nwa",
 
     "oma", //FFmpeg, not parsed (ATRAC3/ATRAC3PLUS/MP3/LPCM/WMA)
@@ -405,6 +405,7 @@ static const coding_info coding_info_list[] = {
         {coding_RAD_IMA_mono,       "'Radical' 4-bit IMA ADPCM (mono)"},
         {coding_APPLE_IMA4,         "Apple Quicktime 4-bit IMA ADPCM"},
         {coding_SNDS_IMA,           "Heavy Iron .snds 4-bit IMA ADPCM"},
+        {coding_OTNS_IMA,           "Omikron: The Nomad Soul 4-bit IMA ADPCM"},
         {coding_WS,                 "Westwood Studios ADPCM"},
         {coding_ACM,                "InterPlay ACM"},
         {coding_NWA0,               "NWA DPCM Level 0"},
@@ -787,6 +788,7 @@ static const meta_info meta_info_list[] = {
         {meta_HYPERSCAN_KVAG,       "Mattel Hyperscan KVAG"},
         {meta_IOS_PSND,             "PSND Header"},
         {meta_BOS_ADP,              "ADP! header"},
+        {meta_OTNS_ADP,             "Omikron: The Nomad Soul ADP header"},
         {meta_EB_SFX,               "Excitebots .sfx header"},
         {meta_EB_SF0,               "assumed Excitebots .sf0 by extension"},
         {meta_PS3_KLBS,             "klBS Header"},

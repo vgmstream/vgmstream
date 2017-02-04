@@ -612,7 +612,8 @@ VGMSTREAM * init_vgmstream_hyperscan_kvag(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_ios_psnd(STREAMFILE* streamFile);
 
-VGMSTREAM * init_vgmstream_bos_adp(STREAMFILE* streamFile);
+VGMSTREAM * init_vgmstream_pc_adp_bos(STREAMFILE* streamFile);
+VGMSTREAM * init_vgmstream_pc_adp_otns(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_eb_sfx(STREAMFILE* streamFile);
 
@@ -666,5 +667,7 @@ VGMSTREAM * init_vgmstream_xma(STREAMFILE* streamFile);
 VGMSTREAM * init_vgmstream_ps2_vds_vdm(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_x360_cxs(STREAMFILE* streamFile);
+
+VGMSTREAM * init_vgmstream_dsp_adx(STREAMFILE *streamFile);
 
 #endif /*_META_H*/

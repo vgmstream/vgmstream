@@ -170,6 +170,7 @@
     <ClCompile Include="meta\dc_str.c" />
     <ClCompile Include="meta\de2.c" />
     <ClCompile Include="meta\dmsg_segh.c" />
+    <ClCompile Include="meta\dsp_adx.c" />
     <ClCompile Include="meta\dsp_bdsp.c" />
     <ClCompile Include="meta\dsp_sth_str.c" />
     <ClCompile Include="meta\ea_header.c" />
