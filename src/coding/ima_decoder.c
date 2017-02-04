@@ -330,7 +330,7 @@ void decode_xbox_ima(VGMSTREAM * vgmstream,VGMSTREAMCHANNEL * stream, sample * o
     //internal interleave (0x20+4 size), mixed channels (4 byte per ch, mixed stereo)
     int block_samples = (vgmstream->channels==1) ?
             32 :
-            32*(vgmstream->channels&2);
+            32*(vgmstream->channels&2);//todo this can be zero in 4/5/8ch = SEGFAULT using %
     first_sample = first_sample % block_samples;
 
     //normal header (per channel)
@@ -410,7 +410,7 @@ void decode_int_xbox_ima(VGMSTREAM * vgmstream,VGMSTREAMCHANNEL * stream, sample
     //semi-internal interleave (0x24 size), mixed channels (4 byte per ch)?
     int block_samples = (vgmstream->channels==1) ?
             32 :
-            32*(vgmstream->channels&2);
+            32*(vgmstream->channels&2);//todo this can be zero in 4/5/8ch = SEGFAULT using %
     first_sample = first_sample % block_samples;
 
     //normal header
