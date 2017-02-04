@@ -342,6 +342,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 #ifdef VGM_USE_FFMPEG
     init_vgmstream_xma,
     init_vgmstream_mp4_aac_ffmpeg,
+    init_vgmstream_bik,
 
     init_vgmstream_ffmpeg, /* should go at the end */
 #endif
