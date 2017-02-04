@@ -320,6 +320,10 @@
 					RelativePath=".\meta\dmsg_segh.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\meta\dsp_adx.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\dsp_bdsp.c"
 					>

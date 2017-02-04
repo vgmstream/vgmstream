@@ -1027,5 +1027,8 @@
     <ClCompile Include="meta\x360.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\dsp_adx.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
