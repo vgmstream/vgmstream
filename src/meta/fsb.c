@@ -315,27 +315,16 @@ VGMSTREAM * init_vgmstream_fsb_offset(STREAMFILE *streamFile, off_t offset) {
 #endif
     }
     else if (fsbh.mode & FSOUND_IMAADPCM) { /* (codec 0x69, Voxware Byte Aligned) */
-        if (fsbh.mode & FSOUND_IMAADPCMSTEREO) { /* noninterleaved, true stereo IMA */
-            /* FSB4: Shatter, Blade Kitten (PC), Hard Corps: Uprising (PS3) */
-            vgmstream->coding_type = coding_MS_IMA;
-            vgmstream->layout_type = layout_none;
-            vgmstream->interleave_block_size = 0x24*vgmstream->channels;
-            //VGM_LOG("FSB FSOUND_IMAADPCMSTEREO found\n");
-        } else {
-            /* FSB3: Bioshock (PC); FSB4: Blade Kitten (PC) */
-            vgmstream->coding_type = coding_MS_IMA;
-            vgmstream->layout_type = layout_none;
-            vgmstream->interleave_block_size = 0x24*vgmstream->channels;
-            //VGM_LOG("FSB FSOUND_IMAADPCM found\n");
-#if 0
-            if (fsbh.numchannels > 2) { /* Blade Kitten 5.1 (interleaved header?) */
-                vgmstream->coding_type = coding_XBOX;
-                vgmstream->layout_type = layout_interleave;
-                vgmstream->interleave_block_size = 0x12 * vgmstream->channels;
-            }
-#endif
+        //VGM_ASSERT(fsbh.mode & FSOUND_IMAADPCMSTEREO, "FSB FSOUND_IMAADPCMSTEREO found\n");
+        /* FSOUND_IMAADPCMSTEREO is "noninterleaved, true stereo IMA", but doesn't seem to be any different
+         * (found in FSB4: Shatter, Blade Kitten (PC), Hard Corps: Uprising (PS3)) */
 
-        }
+        /* FSB3: Bioshock (PC); FSB4: Blade Kitten (PC) */
+        vgmstream->coding_type = coding_XBOX;
+        vgmstream->layout_type = layout_none;
+        /* "interleaved header" IMA, which seems only used with >2ch (ex. Blade Kitten 5.1) */
+        if (vgmstream->channels > 2)
+            vgmstream->coding_type = coding_FSB_IMA;
     }
     else if (fsbh.mode & FSOUND_VAG) {
         /* FSB1: Jurassic Park Operation Genesis
