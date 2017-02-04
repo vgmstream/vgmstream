@@ -13,6 +13,65 @@
 #undef APSTUDIO_READONLY_SYMBOLS
 
 /////////////////////////////////////////////////////////////////////////////
+// English resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
+LANGUAGE LANG_ENGLISH, SUBLANG_NEUTRAL
+#pragma code_page(1252)
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_CONFIG DIALOGEX 0, 0, 187, 144
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD
+FONT 8, "MS Shell Dlg", 400, 0, 0x0
+BEGIN
+    LTEXT           "Loop Count",IDC_STATIC,7,10,44,12
+    EDITTEXT        IDC_LOOP_COUNT,52,7,39,14,ES_AUTOHSCROLL
+    LTEXT           "Fade Length",IDC_STATIC,7,25,41,8
+    EDITTEXT        IDC_FADE_SECONDS,52,23,39,14,ES_AUTOHSCROLL
+    LTEXT           "seconds",IDC_STATIC,93,25,29,11
+    LTEXT           "Fade Delay",IDC_STATIC,7,40,41,8
+    EDITTEXT        IDC_FADE_DELAY_SECONDS,52,38,39,14,ES_AUTOHSCROLL
+    LTEXT           "seconds",IDC_STATIC,93,40,29,11
+    CONTROL         "Loop normally",IDC_LOOP_NORMALLY,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,7,57,77,10
+    CONTROL         "Loop forever",IDC_LOOP_FOREVER,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,7,70,77,10
+    CONTROL         "Ignore looping",IDC_IGNORE_LOOP,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,7,83,77,10
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO
+BEGIN
+    IDD_CONFIG, DIALOG
+    BEGIN
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// AFX_DIALOG_LAYOUT
+//
+
+IDD_CONFIG AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+#endif    // English resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+/////////////////////////////////////////////////////////////////////////////
 // English (Australia) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENA)
@@ -42,44 +101,6 @@ BEGIN
     "\0"
 END
 
-#endif    // APSTUDIO_INVOKED
-
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// Dialog
-//
-
-IDD_CONFIG DIALOGEX 0, 0, 187, 144
-STYLE DS_SETFONT | WS_CHILD
-FONT 8, "MS Sans Serif", 0, 0, 0x0
-BEGIN
-    LTEXT           "Loop Count",IDC_STATIC,7,10,44,12
-    EDITTEXT        IDC_LOOP_COUNT,52,7,39,14,ES_AUTOHSCROLL
-    LTEXT           "Fade Length",IDC_STATIC,7,25,41,8
-    EDITTEXT        IDC_FADE_SECONDS,52,23,39,14,ES_AUTOHSCROLL
-    LTEXT           "seconds",IDC_STATIC,93,25,29,11
-    LTEXT           "Fade Delay",IDC_STATIC,7,40,41,8
-    EDITTEXT        IDC_FADE_DELAY_SECONDS,52,38,39,14,ES_AUTOHSCROLL
-    LTEXT           "seconds",IDC_STATIC,93,40,29,11
-    CONTROL         "Loop normally",IDC_LOOP_NORMALLY,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,7,57,77,10
-    CONTROL         "Loop forever",IDC_LOOP_FOREVER,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,7,70,77,10
-    CONTROL         "Ignore looping",IDC_IGNORE_LOOP,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,7,83,77,10
-END
-
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// DESIGNINFO
-//
-
-#ifdef APSTUDIO_INVOKED
-GUIDELINES DESIGNINFO
-BEGIN
-    IDD_CONFIG, DIALOG
-    BEGIN
-    END
-END
 #endif    // APSTUDIO_INVOKED
 
 #endif    // English (Australia) resources
