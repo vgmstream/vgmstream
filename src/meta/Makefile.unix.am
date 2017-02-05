@@ -251,5 +251,6 @@ libmeta_la_SOURCES += xma.c
 libmeta_la_SOURCES += ps2.c
 libmeta_la_SOURCES += x360.c
 libmeta_la_SOURCES += dsp_adx.c
+libmeta_la_SOURCES += bik.c
 
 EXTRA_DIST = meta.h

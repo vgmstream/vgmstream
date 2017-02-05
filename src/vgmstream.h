@@ -120,6 +120,7 @@ typedef enum {
     coding_DAT4_IMA,        /* Eurocom 'DAT4' IMA ADPCM */
     coding_SNDS_IMA,        /* Heavy Iron Studios .snds IMA ADPCM */
     coding_OTNS_IMA,        /* Omikron The Nomad Soul IMA ADPCM */
+    coding_FSB_IMA,         /* FMOD's FSB multichannel IMA ADPCM */
 
     coding_WS,              /* Westwood Studios VBR ADPCM */
     coding_MSADPCM,         /* Microsoft ADPCM */

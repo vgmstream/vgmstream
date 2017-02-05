@@ -28,7 +28,7 @@ static const char* extension_list[] = {
     "aifcl",
     //"aiff", //common
     "aix",
-    "akb", //AAC
+    "akb",
     "amts",
     "as4",
     "asd",
@@ -53,6 +53,12 @@ static const char* extension_list[] = {
     "bg00",
     "bgw",
     "bh2pcm",
+    "bik",
+    "bika",
+    "bik2",
+    "bik2a",
+    "bk2",
+    "bk2a",
     "bmdx",
     "bms",
     "bnk",
@@ -135,11 +141,12 @@ static const char* extension_list[] = {
     "kraw",
 
     "leg",
-    "logg",
+    "lmp4", //fake extension, for looping
+    "logg", //fake extension, for looping
     "lpcm",
     "lps",
     "lsf",
-    "lwav",
+    "lwav", //fake extension, for looping
 
     "matx",
     "mca",
@@ -149,6 +156,7 @@ static const char* extension_list[] = {
     "mic",
     "mihb",
     "mnstr",
+    //"mp4", //common
     "mpdsp",
     "mpds",
     "msa",
@@ -170,6 +178,7 @@ static const char* extension_list[] = {
     "nus3bank",
     "nwa",
 
+    //"ogg", //common
     "oma", //FFmpeg, not parsed (ATRAC3/ATRAC3PLUS/MP3/LPCM/WMA)
     "omu",
     "otm",
@@ -285,6 +294,7 @@ static const char* extension_list[] = {
     "wad",
     "wam",
     "was",
+    //"wav", //common
     "wavm",
     "wb",
     "wii",
@@ -406,6 +416,7 @@ static const coding_info coding_info_list[] = {
         {coding_APPLE_IMA4,         "Apple Quicktime 4-bit IMA ADPCM"},
         {coding_SNDS_IMA,           "Heavy Iron .snds 4-bit IMA ADPCM"},
         {coding_OTNS_IMA,           "Omikron: The Nomad Soul 4-bit IMA ADPCM"},
+        {coding_FSB_IMA,            "FSB multichannel 4-bit IMA ADPCM"},
         {coding_WS,                 "Westwood Studios ADPCM"},
         {coding_ACM,                "InterPlay ACM"},
         {coding_NWA0,               "NWA DPCM Level 0"},

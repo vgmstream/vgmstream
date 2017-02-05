@@ -5,8 +5,6 @@
 /* FSB5 header */
 VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[PATH_LIMIT];
-
     off_t StartOffset;
     
     int LoopFlag = 0;
@@ -19,10 +17,10 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
 
     int SampleHeaderStart, SampleHeaderLength, NameTableLength, SampleDataLength, CodingID, SampleMode;
     int ExtraFlag, ExtraFlagStart, ExtraFlagType, ExtraFlagSize, ExtraFlagEnd;
+    int freq_mode, ch_mode;
     
     /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("fsb",filename_extension(filename))) goto fail;
+    if (!check_extensions(streamFile,"fsb")) goto fail;
 
     if (read_32bitBE(0x00,streamFile) != 0x46534235) goto fail; /* "FSB5" */
     if (read_32bitLE(0x04,streamFile) != 0x01) goto fail; /* Version ID */
@@ -39,23 +37,41 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
     StartOffset = SampleHeaderLength + NameTableLength + 0x3C;
     SampleMode = read_32bitLE(SampleHeaderStart+0x00,streamFile);
     
-    if (SampleMode&0x02)
-    {
-      SampleRate = 48000;
-    } else {
-      SampleRate = 44100;
+    /* get sample rate  */
+    freq_mode = (SampleMode >> 1) & 0x0f; /* bits 5..1 */
+    switch (freq_mode) {
+        case 0:  SampleRate = 4000;  break; //???
+        case 1:  SampleRate = 8000;  break;
+        case 2:  SampleRate = 11000; break;
+        case 3:  SampleRate = 11025; break;
+        case 4:  SampleRate = 16000; break;
+        case 5:  SampleRate = 22050; break;
+        case 6:  SampleRate = 24000; break;
+        case 7:  SampleRate = 32000; break;
+        case 8:  SampleRate = 44100; break;
+        case 9:  SampleRate = 48000; break;
+        case 10: SampleRate = 96000; break; //???
+        default:
+            SampleRate = 44100;
+            //goto fail; /* probably better? */
+            break;
     }
 
-    if (SampleMode&0x20)
-    {
-      ChannelCount = 2;
-    } else {
-      ChannelCount = 1;
+    /* get channels (from tests seems correct, but multichannel isn't very common, ex. no 4ch mode?) */
+    ch_mode = (SampleMode >> 5) & 0x03; /* bits 7..6 (maybe 8 too?) */
+    switch (ch_mode) {
+        case 0:  ChannelCount = 1; break;
+        case 1:  ChannelCount = 2; break;
+        case 2:  ChannelCount = 6; break;/* some Dark Souls 2 MPEG; some IMA ADPCM */
+        case 3:  ChannelCount = 8; break;/* some IMA ADPCM */
+        /* other values (ex. 10ch) seem specified in the extra flags */
+        default:
+            goto fail;
     }
-    
+
+    /* get extra flags */
     ExtraFlagStart = SampleHeaderStart+0x08;
-
-    if (SampleMode&0x01)
+    if (SampleMode&0x01) /* bit 0 */
     {
       do
       {
@@ -66,6 +82,11 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
 
         switch(ExtraFlagType)
         {
+        case 0x01: /* Channel Info */
+          {
+              ChannelCount = read_8bit(ExtraFlagStart+0x04,streamFile);
+          }
+          break;
         case 0x02: /* Sample Rate Info */
           {
             SampleRate = read_32bitLE(ExtraFlagStart+0x04,streamFile);
@@ -99,8 +120,8 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
     if (!vgmstream) goto fail;
 
     /* fill in the vital statistics */
-	  vgmstream->channels = ChannelCount;
-		vgmstream->sample_rate = SampleRate;
+    vgmstream->channels = ChannelCount;
+    vgmstream->sample_rate = SampleRate;
 
 
     switch (CodingID)
@@ -166,26 +187,17 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
 
         vgmstream->coding_type = coding_NGC_DSP;
 
-        /* DSP Coeffs */
-        {
-          int c,i;
-          for (c=0;c<ChannelCount;c++) {
-            for (i=0;i<16;i++)
-            {
-              vgmstream->ch[c].adpcm_coef[i] = read_16bitBE(DSPInfoStart + c*0x2E + i*2,streamFile);
-            }
-          }
-        }
+        dsp_read_coefs_be(vgmstream,streamFile,DSPInfoStart,0x2E);
       }
       break;
 
     case 0x07: /* FMOD_SOUND_FORMAT_IMAADPCM */
       {
-
         NumSamples = read_32bitLE(SampleHeaderStart+0x04,streamFile)/4;
         vgmstream->layout_type = layout_none;
         vgmstream->coding_type = coding_XBOX;
-
+        if (vgmstream->channels > 2) /* multichannel FSB IMA (interleaved header) */
+            vgmstream->coding_type = coding_FSB_IMA;
       }
       break;
 
@@ -211,7 +223,7 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
       {
         NumSamples = read_32bitLE(SampleHeaderStart+0x04,streamFile)/2/ChannelCount;
 
-        #ifdef VGM_USE_MPEG
+#ifdef VGM_USE_MPEG
             {
                 mpeg_codec_data *mpeg_data = NULL;
                 struct mpg123_frameinfo mi;
@@ -269,27 +281,8 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
       vgmstream->loop_end_sample = LoopEnd;
     }
 
-    /* open the file for reading */
-    {
-        int i;
-        STREAMFILE * file;
-        file = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-        if (!file) goto fail;
-        for (i=0;i<ChannelCount;i++) {
-            vgmstream->ch[i].streamfile = file;
-
-            
-            if (vgmstream->coding_type == coding_XBOX) {
-                /* xbox interleaving is a little odd */
-                vgmstream->ch[i].channel_start_offset=StartOffset;
-            } else {
-                vgmstream->ch[i].channel_start_offset=
-                    StartOffset+vgmstream->interleave_block_size*i;
-            }
-            vgmstream->ch[i].offset = vgmstream->ch[i].channel_start_offset;
-
-        }
-    }
+    if (!vgmstream_open_stream(vgmstream,streamFile,StartOffset))
+        goto fail;
 
     return vgmstream;
 

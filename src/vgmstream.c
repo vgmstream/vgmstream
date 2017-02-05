@@ -342,6 +342,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 #ifdef VGM_USE_FFMPEG
     init_vgmstream_xma,
     init_vgmstream_mp4_aac_ffmpeg,
+    init_vgmstream_bik,
 
     init_vgmstream_ffmpeg, /* should go at the end */
 #endif
@@ -1042,6 +1043,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
             return (vgmstream->interleave_block_size - 1) * 2; /* decodes 1 byte into 2 bytes */
         case coding_XBOX:
 		case coding_INT_XBOX:
+        case coding_FSB_IMA:
             return 64;
         case coding_EA_XA:
             return 28;
@@ -1174,6 +1176,7 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
             return 14*vgmstream->channels;
         case coding_XBOX:
 		case coding_INT_XBOX:
+        case coding_FSB_IMA:
             return 36;
 		case coding_MAXIS_ADPCM:
 			return 15*vgmstream->channels;
@@ -1554,6 +1557,13 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
         case coding_OTNS_IMA:
             for (chan=0;chan<vgmstream->channels;chan++) {
                 decode_otns_ima(vgmstream, &vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                        vgmstream->channels,vgmstream->samples_into_block,
+                        samples_to_do,chan);
+            }
+            break;
+        case coding_FSB_IMA:
+            for (chan=0;chan<vgmstream->channels;chan++) {
+                decode_fsb_ima(vgmstream, &vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
                         samples_to_do,chan);
             }

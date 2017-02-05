@@ -480,6 +480,9 @@ fail:
 
 
 void free_ffmpeg(ffmpeg_codec_data *data) {
+    if (data == NULL)
+        return;
+
     if (data->lastReadPacket) {
         av_packet_unref(data->lastReadPacket);
         free(data->lastReadPacket);

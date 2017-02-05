@@ -70,19 +70,31 @@ void concatn(int length, char * dst, const char * src);
 /* Simple stdout logging for debugging and regression testing purposes.
  * Needs C99 variadic macros. */
 #ifdef VGM_DEBUG_OUTPUT
-
+/* equivalent to printf when condition is true */
 #define VGM_ASSERT(condition, ...) \
     do { if (condition) printf(__VA_ARGS__); } while (0)
+/* equivalent to printf */
 #define VGM_LOG(...) \
     do { printf(__VA_ARGS__); } while (0)
+/* prints file/line/func */
 #define VGM_LOGF() \
     do { printf("%s:%i '%s'\n",  __FILE__, __LINE__, __func__); } while (0)
-
+/* prints a buffer/array */
+#define VGM_LOGB(buf, buf_size, bytes_per_line) \
+    do { \
+        int i; \
+        for (i=0; i < buf_size; i++) { \
+            printf("%02x",buf[i]); \
+            if (bytes_per_line && (i+1) % bytes_per_line == 0) printf("\n"); \
+        } \
+        printf("\n"); \
+    } while (0)
 #else
 
-#define VGM_ASSERT(condition,fmt, ...) /* nothing */
+#define VGM_ASSERT(condition, ...) /* nothing */
 #define VGM_LOG(...) /* nothing */
-#define VGM_LOGF(...) /* nothing */
+#define VGM_LOGF() /* nothing */
+#define VGM_LOGB(buf, buf_size, bytes_per_line) /* nothing */
 
 #endif
 
