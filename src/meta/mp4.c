@@ -165,75 +165,129 @@ fail:
 
 #ifdef VGM_USE_FFMPEG
 
+static int find_atom_be(STREAMFILE *streamFile, uint32_t atom_id, off_t start_offset, off_t *out_atom_offset, size_t *out_atom_size);
+
+
 VGMSTREAM * init_vgmstream_mp4_aac_ffmpeg(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[PATH_LIMIT];
     off_t start_offset = 0;
     int loop_flag = 0;
     int32_t num_samples = 0, loop_start_sample = 0, loop_end_sample = 0;
+    size_t filesize;
+    off_t atom_offset;
+    size_t atom_size;
+    int is_ffdl = 0;
 
     ffmpeg_codec_data *ffmpeg_data = NULL;
 
 
     /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if ( strcasecmp("mp4",filename_extension(filename))
-            && strcasecmp("m4a",filename_extension(filename))
-            && strcasecmp("m4v",filename_extension(filename))
-            && strcasecmp("bin",filename_extension(filename)) ) /* Final Fantasy Dimensions iOS */
+    /*  .bin: Final Fantasy Dimensions (iOS), Final Fantasy V (iOS) */
+    if (!check_extensions(streamFile,"mp4,m4a,m4v,lmp4,bin"))
         goto fail;
 
+    filesize = streamFile->get_size(streamFile);
 
     /* check header for Final Fantasy Dimensions */
-    if (read_32bitBE(0x00,streamFile) == 0x4646444C) { /* "FFDL" (any kind of FFD file) */
+    if (read_32bitBE(0x00,streamFile) == 0x4646444C) { /* "FFDL" (any kind of file) */
+        is_ffdl = 1;
         if (read_32bitBE(0x04,streamFile) == 0x6D747873) { /* "mtxs" (bgm file) */
+            /* this value is erratic so we'll use FFmpeg's num_samples
+             *  (can be bigger = silence-padded, or smaller = cut; doesn't matter for looping though)*/
             num_samples = read_32bitLE(0x08,streamFile);
+            /* loop samples are within num_samples, and don't have encoder delay (loop_start=0 starts from encoder_delay) */
             loop_start_sample = read_32bitLE(0x0c,streamFile);
             loop_end_sample = read_32bitLE(0x10,streamFile);
             loop_flag = !(loop_start_sample==0 && loop_end_sample==num_samples);
             start_offset = 0x14;
+
+            /* some FFDL have muxed streams ("FFDL" + "mtxs" data1 + mp4 data1 + "mtxs" data2 + mp4 data2 + etc)
+             *  check if there is anything after the first mp4 data */
+            if (!find_atom_be(streamFile, 0x6D646174, start_offset, &atom_offset, &atom_size)) goto fail; /* "mdat" */
+            if (atom_offset-8 + atom_size < filesize && read_32bitBE(atom_offset-8 + atom_size,streamFile) == 0x6D747873) { /*"mtxs"*/
+                VGM_LOG("FFDL: multiple streams found\n");
+                filesize = atom_offset-8 + atom_size; /* clamp size, though FFmpeg will ignore the extra data anyway */
+            }
         } else {
-            start_offset = 0x4; /* some SEs */
+            start_offset = 0x4; /* some SEs contain "ftyp" after "FFDL" */
         }
-        /*  todo some FFDL have multi streams ("FFLD" + mtxsdata1 + mp4data1 + mtxsdata2 + mp4data2 + etc) */
     }
 
-
     /* check header */
-    if ( read_32bitBE(start_offset+0x04,streamFile) != 0x66747970) /* size 0x00 + "ftyp" 0x04 */
+    if ( read_32bitBE(start_offset+0x04,streamFile) != 0x66747970) /* atom size @0x00 + "ftyp" @0x04 */
         goto fail;
 
-    ffmpeg_data = init_ffmpeg_offset(streamFile, start_offset, streamFile->get_size(streamFile));
+    ffmpeg_data = init_ffmpeg_offset(streamFile, start_offset, filesize);
     if ( !ffmpeg_data ) goto fail;
+
+    /* Tales of Hearts iOS has loop info in the first "free" atom */
+    if (!is_ffdl && find_atom_be(streamFile, 0x66726565, start_offset, &atom_offset, &atom_size)) { /* "free" */
+        if (read_32bitBE(atom_offset,streamFile) == 0x4F700002
+                && (atom_size == 0x38 || atom_size == 0x40)) { /* make sure it's ToHr "free" */
+            /* 0x00: id?  0x04/8: s_rate; 0x10: num_samples (without padding, same as FFmpeg's)  */
+            /* 0x14/18/1c: 0x238/250/278?  0x20: ?  0x24: start_pad */
+            loop_flag = read_32bitBE(atom_offset+0x28,streamFile);
+            if (loop_flag) { /* atom ends if no loop flag */
+                loop_start_sample = read_32bitBE(atom_offset+0x2c,streamFile);
+                loop_end_sample = read_32bitBE(atom_offset+0x30,streamFile);
+            }
+        }
+    }
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(ffmpeg_data->channels,loop_flag);
     if (!vgmstream) goto fail;
-
-    vgmstream->num_samples = ffmpeg_data->totalSamples; /* todo FFD num_samples is different from this */
-    vgmstream->sample_rate = ffmpeg_data->sampleRate;
-    vgmstream->channels = ffmpeg_data->channels;
-    if (loop_flag) {
-        vgmstream->loop_start_sample = loop_start_sample;
-        vgmstream->loop_end_sample = loop_end_sample;
-    }
-
+    vgmstream->codec_data = ffmpeg_data;
     vgmstream->coding_type = coding_FFmpeg;
     vgmstream->layout_type = layout_none;
     vgmstream->meta_type = meta_FFmpeg;
-    vgmstream->codec_data = ffmpeg_data;
 
+    vgmstream->num_samples = ffmpeg_data->totalSamples;
+    vgmstream->sample_rate = ffmpeg_data->sampleRate;
+    vgmstream->channels = ffmpeg_data->channels;
+    vgmstream->loop_start_sample = loop_start_sample;
+    vgmstream->loop_end_sample = loop_end_sample;
 
     return vgmstream;
 
 fail:
-    /* clean up anything we may have opened */
     if (ffmpeg_data) {
         free_ffmpeg(ffmpeg_data);
         if (vgmstream) vgmstream->codec_data = NULL;
     }
     if (vgmstream) close_vgmstream(vgmstream);
     return NULL;
+}
+
+/**
+ * Almost the same as streamfile.c's find_chunk but for "atom" chunks, which have chunk_size first because Apple.
+ *
+ * returns 0 on failure
+ */
+static int find_atom_be(STREAMFILE *streamFile, uint32_t atom_id, off_t start_offset, off_t *out_atom_offset, size_t *out_atom_size) {
+    size_t filesize;
+    off_t current_atom = start_offset;
+    int full_atom_size = 1;
+    int size_big_endian = 1;
+
+    filesize = get_streamfile_size(streamFile);
+    /* read chunks */
+    while (current_atom < filesize) {
+        off_t chunk_size = size_big_endian ?
+                read_32bitBE(current_atom+0,streamFile) :
+                read_32bitLE(current_atom+0,streamFile);
+        uint32_t chunk_type = read_32bitBE(current_atom+4,streamFile);
+
+        if (chunk_type == atom_id) {
+            if (out_atom_size) *out_atom_size = chunk_size;
+            if (out_atom_offset) *out_atom_offset = current_atom+8;
+            return 1;
+        }
+
+        current_atom += full_atom_size ? chunk_size : 4+4+chunk_size;
+    }
+
+    return 0;
 }
 
 #endif

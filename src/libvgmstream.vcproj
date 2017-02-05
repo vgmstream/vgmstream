@@ -272,6 +272,10 @@
 					RelativePath=".\meta\bgw.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\meta\bik.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\bnsf.c"
 					>
