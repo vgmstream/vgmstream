@@ -256,6 +256,16 @@ void reset_ffmpeg(VGMSTREAM *vgmstream) {
     data->endOfStream = 0;
     data->endOfAudio = 0;
     data->samplesToDiscard = 0;
+
+    /* consider skip samples (encoder delay), if manually set (otherwise let FFmpeg handle it) */
+    if (data->skipSamplesSet) {
+        AVStream *stream = data->formatCtx->streams[data->streamIndex];
+        /* sometimes (ex. AAC) after seeking to the first packet skip_samples is restored, but we want our value */
+        stream->skip_samples = 0;
+        stream->start_skip_samples = 0;
+
+        data->samplesToDiscard += data->skipSamples;
+    }
 }
 
 
@@ -263,8 +273,8 @@ void seek_ffmpeg(VGMSTREAM *vgmstream, int32_t num_sample) {
     ffmpeg_codec_data *data = (ffmpeg_codec_data *) vgmstream->codec_data;
     int64_t ts;
 
-    /* Start from 0 and discard samples until loop_start (slower but not too noticeable) */
-    /* Due to various FFmpeg quirks seeking to a sample is erratic in many formats (would need extra steps) */
+    /* Start from 0 and discard samples until loop_start (slower but not too noticeable).
+     * Due to various FFmpeg quirks seeking to a sample is erratic in many formats (would need extra steps). */
     data->samplesToDiscard = num_sample;
     ts = 0;
 
@@ -276,8 +286,43 @@ void seek_ffmpeg(VGMSTREAM *vgmstream, int32_t num_sample) {
     data->endOfStream = 0;
     data->endOfAudio = 0;
 
+    /* consider skip samples (encoder delay), if manually set (otherwise let FFmpeg handle it) */
+    if (data->skipSamplesSet) {
+        AVStream *stream = data->formatCtx->streams[data->streamIndex];
+        /* sometimes (ex. AAC) after seeking to the first packet skip_samples is restored, but we want our value */
+        stream->skip_samples = 0;
+        stream->start_skip_samples = 0;
+
+        data->samplesToDiscard += data->skipSamples;
+    }
 }
 
+/**
+ * Sets the number of samples to skip at the beginning of the stream, needed by some "gapless" formats.
+ *  (encoder delay, usually added by MDCT-based encoders like AAC/MP3/ATRAC3/XMA/etc to "set up" the decoder).
+ * - should be used at the beginning of the stream
+ * - should check if there are data->skipSamples before using this, to avoid overwritting FFmpeg's value (ex. AAC).
+ *
+ * This could be added per format in FFmpeg directly, but it's here for flexibility and due to bugs
+ *  (FFmpeg's stream->(start_)skip_samples causes glitches in XMA).
+ */
+void ffmpeg_set_skip_samples(ffmpeg_codec_data * data, int skip_samples) {
+    AVStream *stream = NULL;
+    if (!data->formatCtx)
+        return;
+
+    /* overwrite FFmpeg's skip samples */
+    stream = data->formatCtx->streams[data->streamIndex];
+    stream->start_skip_samples = 0; /* used for the first packet *if* pts=0 */
+    stream->skip_samples = 0; /* skip_samples can be used for any packet */
+
+    /* set skip samples with our internal discard */
+    data->skipSamplesSet = 1;
+    data->samplesToDiscard = skip_samples;
+
+    /* expose (info only) */
+    data->skipSamples = skip_samples;
+}
 
 
 /* ******************************************** */
@@ -311,7 +356,7 @@ int ffmpeg_make_riff_atrac3(uint8_t * buf, size_t buf_size, size_t sample_count,
 
     put_16bitLE(buf+0x24, 0x0e); /* extra data size */
     put_16bitLE(buf+0x26, 1); /* unknown, always 1 */
-    put_16bitLE(buf+0x28, channels==1 ? 0x0800 : 0x1000); /* unknown (some size? 0x1000=2ch, 0x0800=1ch) */
+    put_16bitLE(buf+0x28, 0x0800 * channels); /* unknown (some size? 0x1000=2ch, 0x0800=1ch) */
     put_16bitLE(buf+0x2a, 0); /* unknown, always 0 */
     put_16bitLE(buf+0x2c, joint_stereo ? 0x0001 : 0x0000);
     put_16bitLE(buf+0x2e, joint_stereo ? 0x0001 : 0x0000); /* repeated? */
@@ -346,7 +391,7 @@ int ffmpeg_make_riff_xma2(uint8_t * buf, size_t buf_size, size_t sample_count, s
 
     bytecount = sample_count * channels * sizeof(sample);
 
-    /* untested (no support for > 2ch xma for now) */
+    /* todo untested */
     switch (channels) {
         case 1:
             streams = 1;
