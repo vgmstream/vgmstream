@@ -35,8 +35,9 @@ extern "C" {
 
 #define APP_NAME "vgmstream plugin"
 #define PLUGIN_DESCRIPTION "vgmstream plugin " VERSION " " __DATE__ "\n" \
-            "by hcs, FastElbja, manakoAT, and bxaimc\n" \
+            "by hcs, FastElbja, manakoAT, bxaimc and bnnm\n" \
             "foobar2000 plugin by Josh W, kode54\n\n" \
+	    "https://github.com/kode54/vgmstream\n\n" \
             "http://sourceforge.net/projects/vgmstream"
 
 
