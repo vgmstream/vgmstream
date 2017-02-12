@@ -592,6 +592,7 @@ typedef enum {
     meta_PS2_SVAG_SNK,      /* SNK PS2 SVAG */
     meta_PS2_VDS_VDM,       /* Graffiti Kingdom */
     meta_X360_CXS,          /* Eternal Sonata (Xbox 360) */
+    meta_AKB,               /* SQEX iOS */
 
 #ifdef VGM_USE_VORBIS
     meta_OGG_VORBIS,        /* Ogg Vorbis */
