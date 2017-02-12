@@ -112,8 +112,13 @@ VGMSTREAM * init_vgmstream_ngc_dsp_std(STREAMFILE *streamFile) {
         off_t loop_off;
         /* check loop predictor/scale */
         loop_off = header.loop_start_offset/16*8;
-        if (header.loop_ps != (uint8_t)read_8bit(start_offset+loop_off,streamFile))
-            goto fail;
+        if (header.loop_ps != (uint8_t)read_8bit(start_offset+loop_off,streamFile)) {
+            /* rarely won't match (ex ESPN 2002), not sure if header or calc problem,  but doesn't seem to matter
+             *  (there may be a "click" when looping, or loop values may be too big and loop disabled anyway) */
+            VGM_LOG("DSP (std): bad loop_predictor\n");
+            //header.loop_flag = 0;
+            //goto fail;
+        }
     }
 
     /* compare num_samples with nibble count */

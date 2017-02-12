@@ -378,6 +378,12 @@ ffmpeg_codec_data * init_ffmpeg_header_offset(STREAMFILE *streamFile, uint8_t * 
     errcode = init_seek(data);
     if (errcode < 0) goto fail;
 
+    /* expose start samples to be skipped (encoder delay, usually added by MDCT-based encoders like AAC/MP3/ATRAC3/XMA/etc)
+     * get after init_seek because some demuxers like AAC only fill skip_samples for the first packet */
+    if (stream->start_skip_samples) /* samples to skip in the first packet */
+        data->skipSamples = stream->start_skip_samples;
+    else if (stream->skip_samples) /* samples to skip in any packet (first in this case), used sometimes instead (ex. AAC) */
+        data->skipSamples = stream->skip_samples;
 
     return data;
     
@@ -452,10 +458,11 @@ static int init_seek(ffmpeg_codec_data * data) {
     if (ts == INT64_MIN)
         ts = 0;
 
-    /* apparently some (non-audio?) streams start with a DTS before 0, but some read_seeks expect 0, which would disrupt the index
-     *  we may need to keep start_ts around, since avstream/codec/format isn't always set */
+    /* Some streams start with negative DTS (observed in Ogg). For Ogg seeking to negative or 0 doesn't alter the output.
+     *  It does seem seeking before decoding alters a bunch of (inaudible) +-1 lower bytes though. */
+    VGM_ASSERT(ts != 0, "FFMPEG: negative start_ts (%li)\n", (long)ts);
     if (ts != 0)
-        goto fail;
+        ts = 0;
 
     /* add index 0 */
     ret = av_add_index_entry(stream, pos, ts, size, distance, AVINDEX_KEYFRAME);

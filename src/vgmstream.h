@@ -592,6 +592,7 @@ typedef enum {
     meta_PS2_SVAG_SNK,      /* SNK PS2 SVAG */
     meta_PS2_VDS_VDM,       /* Graffiti Kingdom */
     meta_X360_CXS,          /* Eternal Sonata (Xbox 360) */
+    meta_AKB,               /* SQEX iOS */
 
 #ifdef VGM_USE_VORBIS
     meta_OGG_VORBIS,        /* Ogg Vorbis */
@@ -859,6 +860,7 @@ typedef struct {
 
 #ifdef VGM_USE_FFMPEG
 typedef struct {
+    /*** init data ***/
     STREAMFILE *streamfile;
     
     // offset and total size of raw stream data
@@ -873,6 +875,7 @@ typedef struct {
     // header/fake RIFF over the real (parseable by FFmpeg) file start
     uint64_t header_size;
     
+    /*** "public" API (read-only) ***/
     // stream info
     int channels;
     int bitsPerSample;
@@ -883,7 +886,9 @@ typedef struct {
     int64_t totalSamples; // estimated count (may not be accurate for some demuxers)
     int64_t blockAlign; // coded block of bytes, counting channels (the block can be joint stereo)
     int64_t frameSize; // decoded samples per block
+    int64_t skipSamples; // number of start samples that will be skipped (encoder delay), for looping adjustments
     
+    /*** internal state ***/
     // Intermediate byte buffer
     uint8_t *sampleBuffer;
     // max samples we can held (can be less or more than frameSize)
@@ -904,6 +909,7 @@ typedef struct {
     int readNextPacket;
     int endOfStream;
     int endOfAudio;
+    int skipSamplesSet; // flag to know skip samples were manually added from vgmstream
     
     // Seeking is not ideal, so rollback is necessary
     int samplesToDiscard;

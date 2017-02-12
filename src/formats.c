@@ -828,6 +828,7 @@ static const meta_info meta_info_list[] = {
         {meta_PS2_SVAG_SNK,         "SNK SVAG header"},
         {meta_PS2_VDS_VDM,          "Graffiti Kingdom VDS/VDM Header"},
         {meta_X360_CXS,             "CXS Header"},
+        {meta_AKB,                  "Square Enix AKB Header"},
 #ifdef VGM_USE_VORBIS
         {meta_OGG_VORBIS,           "Ogg Vorbis"},
         {meta_OGG_SLI,              "Ogg Vorbis with .sli (start,length) for looping"},

@@ -2,6 +2,7 @@
 #include "meta.h"
 
 #if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
+/* AKB (AAC only) - found in SQEX iOS games */
 VGMSTREAM * init_vgmstream_akb(STREAMFILE *streamFile) {
 	VGMSTREAM * vgmstream = NULL;
 
@@ -30,3 +31,173 @@ fail:
 	return NULL;
 }
 #endif
+
+
+/* AKB - found in SQEX iOS games */
+VGMSTREAM * init_vgmstream_akb_multi(STREAMFILE *streamFile) {
+    VGMSTREAM * vgmstream = NULL;
+    off_t start_offset;
+    size_t filesize;
+    int loop_flag = 0, channel_count, codec;
+
+    /* check extensions */
+    if ( !check_extensions(streamFile, "akb") )
+        goto fail;
+
+    /* check header */
+    if (read_32bitBE(0x00,streamFile) != 0x414B4220) /* "AKB " */
+        goto fail;
+
+    channel_count = read_8bit(0x0d,streamFile);
+    loop_flag = read_32bitLE(0x18,streamFile) > 0;
+
+    /* build the VGMSTREAM */
+    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+    if (!vgmstream) goto fail;
+
+    /* 0x04: version? (iPad/IPhone?)  0x24: file_id? */
+    filesize = read_32bitLE(0x08,streamFile);
+    codec = read_8bit(0x0c,streamFile);
+    vgmstream->sample_rate = (uint16_t)read_16bitLE(0x0e,streamFile);
+    vgmstream->num_samples = read_32bitLE(0x10,streamFile);
+    vgmstream->loop_start_sample = read_32bitLE(0x14,streamFile);
+    vgmstream->loop_end_sample = read_32bitLE(0x18,streamFile);
+    /* 0x0c: some size based on codec  0x10+: unk stuff? 0xc0+: data stuff? */
+    vgmstream->meta_type = meta_AKB;
+
+    switch (codec) {
+#if 0
+        case 0x02: { /* some kind of ADPCM or PCM [various SFX] */
+            start_offset = 0xC4;
+            vgmstream->coding_type = coding_APPLE_IMA4;
+            vgmstream->layout_type = channel_count==1 ? layout_none : layout_interleave;
+            vgmstream->interleave_block_size = 0x100;
+            break;
+        }
+#endif
+
+#ifdef VGM_USE_FFMPEG
+        case 0x05: { /* ogg vorbis [Final Fantasy VI, Dragon Quest II-VI] */
+            /* Starting from an offset in the current libvorbis code is a bit hard so just use FFmpeg.
+             * Decoding seems to produce the same output with (inaudible) +-1 lower byte differences here and there. */
+            ffmpeg_codec_data *ffmpeg_data;
+
+            start_offset = 0xCC;
+            ffmpeg_data = init_ffmpeg_offset(streamFile, start_offset,filesize-start_offset);
+            if ( !ffmpeg_data ) goto fail;
+
+            vgmstream->codec_data = ffmpeg_data;
+            vgmstream->coding_type = coding_FFmpeg;
+            vgmstream->layout_type = layout_none;
+            /* These oggs have loop info in the comments, too */
+
+            break;
+        }
+
+        case 0x06: { /* aac [The World Ends with You (iPad)] */
+            /* init_vgmstream_akb above has priority, but this works fine too */
+            ffmpeg_codec_data *ffmpeg_data;
+
+            start_offset = 0x20;
+            ffmpeg_data = init_ffmpeg_offset(streamFile, start_offset,filesize-start_offset);
+            if ( !ffmpeg_data ) goto fail;
+
+            vgmstream->codec_data = ffmpeg_data;
+            vgmstream->coding_type = coding_FFmpeg;
+            vgmstream->layout_type = layout_none;
+
+            /* remove encoder delay from the "global" sample values */
+            vgmstream->num_samples -= ffmpeg_data->skipSamples;
+            vgmstream->loop_start_sample -= ffmpeg_data->skipSamples;
+            vgmstream->loop_end_sample -= ffmpeg_data->skipSamples;
+
+            break;
+        }
+#endif
+
+        /* AAC @20 in some cases? (see above) */
+        default:
+            goto fail;
+    }
+
+    /* open the file for reading */
+    if ( !vgmstream_open_stream(vgmstream, streamFile, start_offset) )
+        goto fail;
+
+    return vgmstream;
+
+fail:
+    close_vgmstream(vgmstream);
+    return NULL;
+}
+
+
+/* AKB2 - found in later SQEX iOS games */
+VGMSTREAM * init_vgmstream_akb2_multi(STREAMFILE *streamFile) {
+    VGMSTREAM * vgmstream = NULL;
+    off_t start_offset, header_offset;
+    size_t datasize;
+    int loop_flag = 0, channel_count, codec;
+
+    /* check extensions */
+    if ( !check_extensions(streamFile, "akb") )
+        goto fail;
+
+    /* check header */
+    if (read_32bitBE(0x00,streamFile) != 0x414B4232) /* "AKB2" */
+        goto fail;
+
+    /* this is weird (BE?) but seems to work */
+    start_offset = (uint16_t)read_16bitBE(0x21,streamFile);
+    header_offset = start_offset - 0x50;
+    if (header_offset < 0x30) goto fail;
+
+    channel_count = read_8bit(header_offset+0x02,streamFile);
+    loop_flag = read_32bitLE(header_offset+0x14,streamFile) > 0;
+
+    /* build the VGMSTREAM */
+    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+    if (!vgmstream) goto fail;
+
+    /* 0x04: version?  0x08: filesize,  0x28: file_id?,  others: no idea */
+    codec = read_8bit(header_offset+0x01,streamFile);
+    datasize = read_32bitLE(header_offset+0x08,streamFile);
+    vgmstream->sample_rate = (uint16_t)read_16bitLE(header_offset+0x06,streamFile);
+    /* When loop_flag num_samples may be much larger than real num_samples (it's fine when looping is off)
+     * Actual num_samples would be loop_end_sample+1, but more testing is needed */
+    vgmstream->num_samples = read_32bitLE(header_offset+0x0c,streamFile);
+    vgmstream->loop_start_sample = read_32bitLE(header_offset+0x10,streamFile);
+    vgmstream->loop_end_sample = read_32bitLE(header_offset+0x14,streamFile);
+
+    vgmstream->meta_type = meta_AKB;
+
+    switch (codec) {
+#ifdef VGM_USE_FFMPEG
+        case 0x05: { /* ogg vorbis [The World Ends with You (iPhone / latest update)] */
+            ffmpeg_codec_data *ffmpeg_data;
+
+            ffmpeg_data = init_ffmpeg_offset(streamFile, start_offset,datasize);
+            if ( !ffmpeg_data ) goto fail;
+
+            vgmstream->codec_data = ffmpeg_data;
+            vgmstream->coding_type = coding_FFmpeg;
+            vgmstream->layout_type = layout_none;
+
+            break;
+        }
+#endif
+
+        default:
+            goto fail;
+    }
+
+    /* open the file for reading */
+    if ( !vgmstream_open_stream(vgmstream, streamFile, start_offset) )
+        goto fail;
+
+    return vgmstream;
+
+fail:
+    close_vgmstream(vgmstream);
+    return NULL;
+}
