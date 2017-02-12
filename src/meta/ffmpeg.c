@@ -452,10 +452,11 @@ static int init_seek(ffmpeg_codec_data * data) {
     if (ts == INT64_MIN)
         ts = 0;
 
-    /* apparently some (non-audio?) streams start with a DTS before 0, but some read_seeks expect 0, which would disrupt the index
-     *  we may need to keep start_ts around, since avstream/codec/format isn't always set */
+    /* Some streams start with negative DTS (observed in Ogg). For Ogg seeking to negative or 0 doesn't alter the output.
+     *  It does seem seeking before decoding alters a bunch of (inaudible) +-1 lower bytes though. */
+    VGM_ASSERT(ts != 0, "FFMPEG: negative start_ts (%i)\n", ts);
     if (ts != 0)
-        goto fail;
+        ts = 0;
 
     /* add index 0 */
     ret = av_add_index_entry(stream, pos, ts, size, distance, AVINDEX_KEYFRAME);
