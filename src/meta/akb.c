@@ -135,7 +135,7 @@ fail:
 /* AKB2 - found in later SQEX iOS games */
 VGMSTREAM * init_vgmstream_akb2_multi(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    off_t start_offset;
+    off_t start_offset, header_offset;
     size_t datasize;
     int loop_flag = 0, channel_count, codec;
 
@@ -147,24 +147,28 @@ VGMSTREAM * init_vgmstream_akb2_multi(STREAMFILE *streamFile) {
     if (read_32bitBE(0x00,streamFile) != 0x414B4232) /* "AKB2" */
         goto fail;
 
-    channel_count = read_8bit(0xd2,streamFile);
-    loop_flag = read_32bitLE(0xe4,streamFile) > 0;
+    /* this is weird (BE?) but seems to work */
+    start_offset = (uint16_t)read_16bitBE(0x21,streamFile);
+    header_offset = start_offset - 0x50;
+    if (header_offset < 0x30) goto fail;
+
+    channel_count = read_8bit(header_offset+0x02,streamFile);
+    loop_flag = read_32bitLE(header_offset+0x14,streamFile) > 0;
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
     /* 0x04: version?  0x08: filesize,  0x28: file_id?,  others: no idea */
-    codec = read_8bit(0xd1,streamFile);
-    datasize = read_32bitLE(0xd8,streamFile);
-    vgmstream->sample_rate = (uint16_t)read_16bitLE(0xd6,streamFile);
+    codec = read_8bit(header_offset+0x01,streamFile);
+    datasize = read_32bitLE(header_offset+0x08,streamFile);
+    vgmstream->sample_rate = (uint16_t)read_16bitLE(header_offset+0x06,streamFile);
     /* When loop_flag num_samples may be much larger than real num_samples (it's fine when looping is off)
      * Actual num_samples would be loop_end_sample+1, but more testing is needed */
-    vgmstream->num_samples = read_32bitLE(0xdc,streamFile);
-    vgmstream->loop_start_sample = read_32bitLE(0xe0,streamFile);
-    vgmstream->loop_end_sample = read_32bitLE(0xe4,streamFile);
+    vgmstream->num_samples = read_32bitLE(header_offset+0x0c,streamFile);
+    vgmstream->loop_start_sample = read_32bitLE(header_offset+0x10,streamFile);
+    vgmstream->loop_end_sample = read_32bitLE(header_offset+0x14,streamFile);
 
-    start_offset = 0x120;
     vgmstream->meta_type = meta_AKB;
 
     switch (codec) {
