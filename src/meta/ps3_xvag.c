@@ -202,7 +202,7 @@ VGMSTREAM * init_vgmstream_ps3_xvag(STREAMFILE *streamFile) {
 #ifdef VGM_USE_MPEG
 		else if(vgmstream->layout_type == layout_mpeg) {
 			for (i=0;i<channel_count;i++) {
-				vgmstream->ch[i].streamfile = streamFile->open(streamFile,filename,MPEG_BUFFER_SIZE);
+				vgmstream->ch[i].streamfile = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
 				vgmstream->ch[i].channel_start_offset= vgmstream->ch[i].offset=start_offset;
 			}
 
@@ -216,14 +216,8 @@ VGMSTREAM * init_vgmstream_ps3_xvag(STREAMFILE *streamFile) {
     /* clean up anything we may have opened */
 fail:
 #ifdef VGM_USE_MPEG
-    if (mpeg_data) {
-        mpg123_delete(mpeg_data->m);
-        free(mpeg_data);
-
-        if (vgmstream) {
-            vgmstream->codec_data = NULL;
-        }
-    }
+    free_mpeg(mpeg_data);
+    if (vgmstream) vgmstream->codec_data = NULL;
 #endif
     if (vgmstream) close_vgmstream(vgmstream);
     return NULL;

@@ -1,9 +1,8 @@
-#include "../vgmstream.h"
+#include "meta.h"
+#include "../coding/coding.h"
+#include "../util.h"
 
 #ifdef VGM_USE_MPEG
-
-#include "meta.h"
-#include "../util.h"
 
 /* AHX is a CRI format which contains an MPEG-2 Layer 2 audio stream.
  * Although the MPEG frame headers are incorrect... */
@@ -45,7 +44,7 @@ VGMSTREAM * init_vgmstream_ahx(STREAMFILE *streamFile) {
     /* check channel count (only mono AHXs are known) */
     if (read_8bit(7,streamFile) != 1) goto fail;
 
-    /* At this point we almost certainly have an ADX file,
+    /* At this point we almost certainly have an AHX file,
      * so let's build the VGMSTREAM. */
 
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
@@ -103,15 +102,10 @@ VGMSTREAM * init_vgmstream_ahx(STREAMFILE *streamFile) {
 
     /* clean up anything we may have opened */
 fail:
-    if (data) {
-        if (data->m) {
-            mpg123_delete(data->m);
-            data->m = NULL;
-        }
-        free(data);
-        data = NULL;
-    }
-    if (vgmstream) close_vgmstream(vgmstream);
+    free_mpeg(data);
+    if (vgmstream) vgmstream->codec_data = NULL;
+
+    close_vgmstream(vgmstream);
     return NULL;
 }
 
