@@ -222,10 +222,45 @@ void decode_mpeg(VGMSTREAMCHANNEL *stream,
     }
 }
 
+
+void free_mpeg(mpeg_codec_data *data) {
+    if (!data)
+        return;
+
+    mpg123_delete(data->m);
+    free(data);
+
+    /* The astute reader will note that a call to mpg123_exit is never
+     * made. While is is evilly breaking our contract with mpg123, it
+     * doesn't actually do anything except set the "initialized" flag
+     * to 0. And if we exit we run the risk of turning it off when
+     * someone else in another thread is using it. */
+}
+
+void reset_mpeg(VGMSTREAM *vgmstream) {
+    off_t input_offset;
+    mpeg_codec_data *data = vgmstream->codec_data;
+
+    /* input_offset is ignored as we can assume it will be 0 for a seek to sample 0 */
+    mpg123_feedseek(data->m,0,SEEK_SET,&input_offset);
+    data->buffer_full = data->buffer_used = 0;
+}
+
+void seek_mpeg(VGMSTREAM *vgmstream, int32_t num_sample) {
+    /* won't work for fake MPEG */
+    off_t input_offset;
+    mpeg_codec_data *data = vgmstream->codec_data;
+
+    mpg123_feedseek(data->m, num_sample,SEEK_SET,&input_offset);
+    vgmstream->loop_ch[0].offset = vgmstream->loop_ch[0].channel_start_offset + input_offset;
+    data->buffer_full = 0;
+    data->buffer_used = 0;
+}
+
+
 long mpeg_bytes_to_samples(long bytes, const struct mpg123_frameinfo *mi) {
     return (int64_t)bytes * mi->rate * 8 / (mi->bitrate * 1000);
 }
-
 
 /**
  * disables/enables stderr output, useful for MPEG known to contain recoverable errors

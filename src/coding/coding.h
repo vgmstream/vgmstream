@@ -120,8 +120,14 @@ void decode_ogg_vorbis(ogg_vorbis_codec_data * data, sample * outbuf, int32_t sa
 /* mpeg_decoder */
 #ifdef VGM_USE_MPEG
 mpeg_codec_data *init_mpeg_codec_data(STREAMFILE *streamfile, off_t start_offset, long given_sample_rate, int given_channels, coding_t *coding_type, int * actual_sample_rate, int * actual_channels);
-void decode_fake_mpeg2_l2(VGMSTREAMCHANNEL * stream, mpeg_codec_data * data, sample * outbuf, int32_t samples_to_do);
+
 void decode_mpeg(VGMSTREAMCHANNEL * stream, mpeg_codec_data * data, sample * outbuf, int32_t samples_to_do, int channels);
+void decode_fake_mpeg2_l2(VGMSTREAMCHANNEL * stream, mpeg_codec_data * data, sample * outbuf, int32_t samples_to_do);
+
+void free_mpeg(mpeg_codec_data *data);
+void reset_mpeg(VGMSTREAM *vgmstream);
+void seek_mpeg(VGMSTREAM *vgmstream, int32_t num_sample);
+
 long mpeg_bytes_to_samples(long bytes, const struct mpg123_frameinfo *mi);
 void mpeg_set_error_logging(mpeg_codec_data * data, int enable);
 #endif
