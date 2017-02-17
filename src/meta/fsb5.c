@@ -226,18 +226,14 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
 #ifdef VGM_USE_MPEG
             {
                 mpeg_codec_data *mpeg_data = NULL;
-                struct mpg123_frameinfo mi;
                 coding_t ct;
 
                 mpeg_data = init_mpeg_codec_data(streamFile, StartOffset, vgmstream->sample_rate, vgmstream->channels, &ct, NULL, NULL);
                 if (!mpeg_data) goto fail;
                 vgmstream->codec_data = mpeg_data;
 
-                if (MPG123_OK != mpg123_info(mpeg_data->m, &mi)) goto fail;
-
                 vgmstream->coding_type = ct;
                 vgmstream->layout_type = layout_mpeg;
-                if (mi.vbr != MPG123_CBR) goto fail;
                 vgmstream->interleave_block_size = 0;
             }
             break;

@@ -238,7 +238,6 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
             /* MPEG */
             {
                 mpeg_codec_data *mpeg_data = NULL;
-                struct mpg123_frameinfo mi;
                 coding_t ct;
 
                 /* Drakengard 3, some Kingdom Hearts */
@@ -251,17 +250,14 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
                 if (!mpeg_data) goto fail;
                 vgmstream->codec_data = mpeg_data;
 
-                if (MPG123_OK != mpg123_info(mpeg_data->m, &mi)) goto fail;
-
                 vgmstream->coding_type = ct;
                 vgmstream->layout_type = layout_mpeg;
-                if (mi.vbr != MPG123_CBR) goto fail;
-                vgmstream->num_samples = mpeg_bytes_to_samples(stream_size, &mi);
+                vgmstream->num_samples = mpeg_bytes_to_samples(stream_size, mpeg_data);
                 vgmstream->num_samples -= vgmstream->num_samples%576;
                 if (loop_flag) {
-                    vgmstream->loop_start_sample = mpeg_bytes_to_samples(loop_start, &mi);
+                    vgmstream->loop_start_sample = mpeg_bytes_to_samples(loop_start, mpeg_data);
                     vgmstream->loop_start_sample -= vgmstream->loop_start_sample%576;
-                    vgmstream->loop_end_sample = mpeg_bytes_to_samples(loop_end, &mi);
+                    vgmstream->loop_end_sample = mpeg_bytes_to_samples(loop_end, mpeg_data);
                     vgmstream->loop_end_sample -= vgmstream->loop_end_sample%576;
                 }
                 vgmstream->interleave_block_size = 0;

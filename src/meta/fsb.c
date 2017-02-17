@@ -288,8 +288,6 @@ VGMSTREAM * init_vgmstream_fsb_offset(STREAMFILE *streamFile, off_t offset) {
         vgmstream->coding_type = mpeg_coding_type;
         vgmstream->layout_type = layout_mpeg;
 
-        /* struct mpg123_frameinfo mpeg_info; */
-        /* if (MPG123_OK != mpg123_info(mpeg_data->m, &mpeg_info)) goto fail; */
         VGM_ASSERT(fsbh.mode & FSOUND_MPEG_LAYER2, "FSB FSOUND_MPEG_LAYER2 found\n");
         VGM_ASSERT(fsbh.mode & FSOUND_IGNORETAGS, "FSB FSOUND_IGNORETAGS found\n");
 

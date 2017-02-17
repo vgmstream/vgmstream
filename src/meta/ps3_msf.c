@@ -162,24 +162,20 @@ VGMSTREAM * init_vgmstream_ps3_msf(STREAMFILE *streamFile) {
             int frame_size = 576; /* todo incorrect looping calcs */
 
             mpeg_codec_data *mpeg_data = NULL;
-            struct mpg123_frameinfo mi;
             coding_t ct;
 
             mpeg_data = init_mpeg_codec_data(streamFile, start_offset, vgmstream->sample_rate, vgmstream->channels, &ct, NULL, NULL);
             if (!mpeg_data) goto fail;
             vgmstream->codec_data = mpeg_data;
 
-            if (MPG123_OK != mpg123_info(mpeg_data->m, &mi)) goto fail;
-
             vgmstream->coding_type = ct;
             vgmstream->layout_type = layout_mpeg;
-            if (mi.vbr != MPG123_CBR) goto fail;
-            vgmstream->num_samples = mpeg_bytes_to_samples(data_size, &mi);
+            vgmstream->num_samples = mpeg_bytes_to_samples(data_size, mpeg_data);
             vgmstream->num_samples -= vgmstream->num_samples % frame_size;
             if (loop_flag) {
-                vgmstream->loop_start_sample = mpeg_bytes_to_samples(loop_start, &mi);
+                vgmstream->loop_start_sample = mpeg_bytes_to_samples(loop_start, mpeg_data);
                 vgmstream->loop_start_sample -= vgmstream->loop_start_sample % frame_size;
-                vgmstream->loop_end_sample = mpeg_bytes_to_samples(loop_end, &mi);
+                vgmstream->loop_end_sample = mpeg_bytes_to_samples(loop_end, mpeg_data);
                 vgmstream->loop_end_sample -= vgmstream->loop_end_sample % frame_size;
             }
             vgmstream->interleave_block_size = 0;

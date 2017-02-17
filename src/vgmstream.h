@@ -761,15 +761,13 @@ typedef struct {
 #endif
 
 #ifdef VGM_USE_MPEG
-#define AHX_EXPECTED_FRAME_SIZE 0x414
-/* MPEG_BUFFER_SIZE should be >= AHX_EXPECTED_FRAME_SIZE */
-#define MPEG_BUFFER_SIZE 0x1000
-
 typedef struct {
-    uint8_t buffer[MPEG_BUFFER_SIZE];
-    int buffer_used;
-    int buffer_full;
+    uint8_t *buffer; /* raw (coded) data buffer */
+    size_t buffer_size;
     size_t bytes_in_buffer;
+    int buffer_full; /* raw buffer has been filled */
+    int buffer_used; /* raw buffer has been fed to the decoder */
+
     mpg123_handle *m;
 } mpeg_codec_data;
 #endif

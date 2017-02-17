@@ -129,7 +129,7 @@ void free_mpeg(mpeg_codec_data *data);
 void reset_mpeg(VGMSTREAM *vgmstream);
 void seek_mpeg(VGMSTREAM *vgmstream, int32_t num_sample);
 
-long mpeg_bytes_to_samples(long bytes, const struct mpg123_frameinfo *mi);
+long mpeg_bytes_to_samples(long bytes, const mpeg_codec_data *data);
 void mpeg_set_error_logging(mpeg_codec_data * data, int enable);
 #endif
 
