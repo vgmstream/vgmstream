@@ -1581,9 +1581,9 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
         case coding_MPEG25_L2:
         case coding_MPEG25_L3:
             decode_mpeg(
-                    &vgmstream->ch[0],
-                    vgmstream->codec_data,
-                    buffer+samples_written*vgmstream->channels,samples_to_do,
+                    vgmstream,
+                    buffer+samples_written*vgmstream->channels,
+                    samples_to_do,
                     vgmstream->channels);
             break;
 #endif
@@ -2259,9 +2259,7 @@ int vgmstream_open_stream(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t s
         use_streamfile_per_channel = 1;
     }
 
-    if (vgmstream->layout_type == layout_none
-            //#ifdef VGM_USE_MPEG || (vgmstream->layout_type == layout_mpeg)  #endif //no appreciable difference
-        ) {
+    if (vgmstream->layout_type == layout_none) {
         /* for some codecs like IMA where channels work with the same bytes *///todo which ones?
         use_same_offset_per_channel = 1;
     }
