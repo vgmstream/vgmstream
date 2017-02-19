@@ -238,7 +238,7 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
                 if (vgmstream->channels > 2) vgmstream->loop_flag = 0;//todo not implemented yet
 #endif
 
-                mpeg_data = init_mpeg_codec_data(streamFile, StartOffset, vgmstream->sample_rate, vgmstream->channels, &mpeg_coding_type, NULL, NULL);
+                mpeg_data = init_mpeg_codec_data(streamFile, StartOffset, &mpeg_coding_type, vgmstream->channels);
                 if (!mpeg_data) goto fail;
 
                 vgmstream->codec_data = mpeg_data;

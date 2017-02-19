@@ -10,7 +10,7 @@
 #define MPEG_SYNC_BITS 0xFFE00000
 #define MPEG_PADDING_BIT 0x200
 
-static mpeg_codec_data *init_mpeg_codec_data_internal(STREAMFILE *streamfile, off_t start_offset, long given_sample_rate, int given_channels, coding_t *coding_type, int * actual_sample_rate, int * actual_channels, int interleaved, int fixed_frame_size, int fsb_padding);
+static mpeg_codec_data *init_mpeg_codec_data_internal(STREAMFILE *streamfile, off_t start_offset, coding_t *coding_type, int channels, int interleaved, int fixed_frame_size, int fsb_padding);
 static mpg123_handle * init_mpg123_handle();
 
 static void decode_mpeg_default(VGMSTREAMCHANNEL *stream, mpeg_codec_data * data, sample * outbuf, int32_t samples_to_do, int channels);
@@ -24,18 +24,18 @@ static void update_base_frame_sizes(mpeg_codec_data * data, STREAMFILE *streamFi
 /**
  * Inits regular MPEG.
  */
-mpeg_codec_data *init_mpeg_codec_data(STREAMFILE *streamfile, off_t start_offset, long given_sample_rate, int given_channels, coding_t *coding_type, int * actual_sample_rate, int * actual_channels) {
-    return init_mpeg_codec_data_internal(streamfile, start_offset, given_sample_rate, given_channels, coding_type, actual_sample_rate, actual_channels, 0, 0, 0);
+mpeg_codec_data *init_mpeg_codec_data(STREAMFILE *streamfile, off_t start_offset, coding_t *coding_type, int channels) {
+    return init_mpeg_codec_data_internal(streamfile, start_offset, coding_type, channels, 0, 0, 0);
 }
 
 /**
  * Init interleaved MPEG.
  */
 mpeg_codec_data *init_mpeg_codec_data_interleaved(STREAMFILE *streamfile, off_t start_offset, coding_t *coding_type, int channels, int fixed_frame_size, int fsb_padding) {
-    return init_mpeg_codec_data_internal(streamfile, start_offset, -1, channels, coding_type, NULL, NULL, 1, fixed_frame_size, fsb_padding);
+    return init_mpeg_codec_data_internal(streamfile, start_offset, coding_type, channels, 1, fixed_frame_size, fsb_padding);
 }
 
-static mpeg_codec_data *init_mpeg_codec_data_internal(STREAMFILE *streamfile, off_t start_offset, long given_sample_rate, int given_channels, coding_t *coding_type, int * actual_sample_rate, int * actual_channels, int interleaved, int fixed_frame_size, int fsb_padding) {
+static mpeg_codec_data *init_mpeg_codec_data_internal(STREAMFILE *streamfile, off_t start_offset, coding_t *coding_type, int channels, int interleaved, int fixed_frame_size, int fsb_padding) {
     mpeg_codec_data *data = NULL;
     int current_frame_size = 0;
 
@@ -82,9 +82,7 @@ static mpeg_codec_data *init_mpeg_codec_data_internal(STREAMFILE *streamfile, of
             goto fail;
         if (sample_rate_per_frame != mi.rate)
             goto fail;
-
-        if ((given_sample_rate != -1 && sample_rate_per_frame != given_sample_rate && !interleaved)
-                || (given_channels != -1 && channels_per_frame != given_channels && !interleaved))
+        if ((channels != -1 && channels_per_frame != channels && !interleaved))
             goto fail;
 
         if (mi.version == MPG123_1_0 && mi.layer == 1)
@@ -137,13 +135,13 @@ static mpeg_codec_data *init_mpeg_codec_data_internal(STREAMFILE *streamfile, of
 
         data->interleaved = interleaved;
 
-        if (given_channels < 1 || given_channels > 32) goto fail; /* arbitrary max */
-        if (given_channels < data->channels_per_frame) goto fail;
+        if (channels < 1 || channels > 32) goto fail; /* arbitrary max */
+        if (channels < data->channels_per_frame) goto fail;
 
         update_base_frame_sizes(data, streamfile, start_offset, fixed_frame_size, current_frame_size, fsb_padding);
         if (!data->base_frame_size) goto fail;
 
-        data->ms_size = given_channels / data->channels_per_frame;
+        data->ms_size = channels / data->channels_per_frame;
         data->ms = calloc(sizeof(mpg123_handle *), data->ms_size);
         for (i=0; i < data->ms_size; i++) {
             data->ms[i] = init_mpg123_handle();
@@ -154,7 +152,7 @@ static mpeg_codec_data *init_mpeg_codec_data_internal(STREAMFILE *streamfile, of
         data->frame_buffer = calloc(sizeof(uint8_t), data->frame_buffer_size);
         if (!data->frame_buffer) goto fail;
 
-        data->interleave_buffer_size = sizeof(sample) * data->samples_per_frame * given_channels;
+        data->interleave_buffer_size = sizeof(sample) * data->samples_per_frame * channels;
         data->interleave_buffer = calloc(sizeof(uint8_t), data->interleave_buffer_size);
         if (!data->interleave_buffer) goto fail;
     }

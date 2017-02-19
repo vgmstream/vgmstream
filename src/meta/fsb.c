@@ -300,7 +300,7 @@ VGMSTREAM * init_vgmstream_fsb_offset(STREAMFILE *streamFile, off_t offset) {
         VGM_ASSERT(fsbh.mode & FSOUND_MPEG_LAYER2, "FSB FSOUND_MPEG_LAYER2 found\n");
         VGM_ASSERT(fsbh.mode & FSOUND_IGNORETAGS, "FSB FSOUND_IGNORETAGS found\n");
 
-        mpeg_data = init_mpeg_codec_data(streamFile, start_offset, vgmstream->sample_rate, vgmstream->channels, &mpeg_coding_type, NULL, NULL);
+        mpeg_data = init_mpeg_codec_data(streamFile, start_offset, &mpeg_coding_type, vgmstream->channels);
         if (!mpeg_data) goto fail;
 
         vgmstream->codec_data = mpeg_data;

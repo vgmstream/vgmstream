@@ -246,7 +246,7 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
                 if (vgmstream->sample_rate == 44099)
                     vgmstream->sample_rate = 44100;
 
-                mpeg_data = init_mpeg_codec_data(streamFile, start_offset, vgmstream->sample_rate, vgmstream->channels, &ct, NULL, NULL);
+                mpeg_data = init_mpeg_codec_data(streamFile, start_offset, &ct, vgmstream->channels);
                 if (!mpeg_data) goto fail;
                 vgmstream->codec_data = mpeg_data;
 

@@ -343,7 +343,7 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
 
 #ifdef VGM_USE_MPEG
     if (coding == coding_MPEG1_L3) {
-        vgmstream->codec_data = init_mpeg_codec_data(vgmstream->ch[0].streamfile, start_offset, vgmstream->sample_rate, vgmstream->channels, &(vgmstream->coding_type), NULL, NULL);
+        vgmstream->codec_data = init_mpeg_codec_data(vgmstream->ch[0].streamfile, start_offset, &(vgmstream->coding_type), vgmstream->channels);
         if (!vgmstream->codec_data) goto fail;
     }
 #endif
