@@ -226,15 +226,26 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
 #ifdef VGM_USE_MPEG
             {
                 mpeg_codec_data *mpeg_data = NULL;
-                coding_t ct;
+                coding_t mpeg_coding_type;
 
-                mpeg_data = init_mpeg_codec_data(streamFile, StartOffset, vgmstream->sample_rate, vgmstream->channels, &ct, NULL, NULL);
+#if 0
+                int fsb_padding = vgmstream->channels > 2 ? 16 : 0;//todo fix
+
+                mpeg_data = init_mpeg_codec_data_interleaved(streamFile, StartOffset, &mpeg_coding_type, vgmstream->channels, 0, fsb_padding);
                 if (!mpeg_data) goto fail;
-                vgmstream->codec_data = mpeg_data;
 
-                vgmstream->coding_type = ct;
+                vgmstream->interleave_block_size = mpeg_data->current_frame_size + mpeg_data->current_padding;
+                if (vgmstream->channels > 2) vgmstream->loop_flag = 0;//todo not implemented yet
+#endif
+
+                mpeg_data = init_mpeg_codec_data(streamFile, StartOffset, vgmstream->sample_rate, vgmstream->channels, &mpeg_coding_type, NULL, NULL);
+                if (!mpeg_data) goto fail;
+
+                vgmstream->codec_data = mpeg_data;
+                vgmstream->coding_type = mpeg_coding_type;
                 vgmstream->layout_type = layout_mpeg;
-                vgmstream->interleave_block_size = 0;
+
+                mpeg_set_error_logging(mpeg_data, 0);
             }
             break;
 #endif
