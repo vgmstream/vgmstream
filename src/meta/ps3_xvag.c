@@ -13,8 +13,7 @@ VGMSTREAM * init_vgmstream_ps3_xvag(STREAMFILE *streamFile) {
     off_t start_offset, loop_start, loop_end, chunk_offset;
     off_t first_offset = 0x20;
     int little_endian;
-    int sample_rate;
-    int num_samples;
+    int sample_rate, num_samples, multiplier;
 
     /* check extension, case insensitive */
     if (!check_extensions(streamFile,"xvag")) goto fail;
@@ -38,13 +37,14 @@ VGMSTREAM * init_vgmstream_ps3_xvag(STREAMFILE *streamFile) {
     channel_count = read_32bit(chunk_offset+0x00,streamFile);
     codec = read_32bit(chunk_offset+0x04,streamFile);
     num_samples = read_32bit(chunk_offset+0x08,streamFile);
-    /* 0x0c: samples again?  0x10: 1? */
+    /* 0x0c: samples again? */
+    multiplier = read_32bit(chunk_offset+0x10,streamFile);
     sample_rate = read_32bit(chunk_offset+0x14,streamFile);
     /* 0x18: datasize */
 
     /* other chunks: */
     /* "cpan": pan/volume per channel */
-    /* "0000": last before start_offset */
+    /* "0000": end chunk before start_offset */
 
     //if ((uint16_t)read_16bitBE(start_offset,streamFile)==0xFFFB) codec = 0x08;
     if (codec == 0x06) { /* todo not sure if there are any looping XVAGs */
@@ -60,9 +60,10 @@ VGMSTREAM * init_vgmstream_ps3_xvag(STREAMFILE *streamFile) {
     vgmstream->meta_type = meta_PS3_XVAG;
 
     switch (codec) {
-        case 0x06: { /* PS ADPCM: God of War III, Uncharted 1/2, Ratchet and Clank Future */
+        case 0x06:   /* PS ADPCM: God of War III, Uncharted 1/2, Ratchet and Clank Future */
+        case 0x07: { /* Bizarro 6ch PS ADPCM: infamous 1 (todo won't play properly; algo tweak + bigger predictor table?) */
             vgmstream->layout_type = layout_interleave;
-            vgmstream->interleave_block_size = 0x10;
+            vgmstream->interleave_block_size = 0x10;//* multiplier? (doesn't seem necessary, always 1);
             vgmstream->coding_type = coding_PSX;
 
             if (loop_flag) {
@@ -82,25 +83,27 @@ VGMSTREAM * init_vgmstream_ps3_xvag(STREAMFILE *streamFile) {
 #ifdef VGM_USE_MPEG
         case 0x08: { /* MPEG: The Last of Us, Uncharted 3, Medieval Moves */
             mpeg_codec_data *mpeg_data = NULL;
-            coding_t coding_type;
+            coding_t mpeg_coding_type;
+            int fixed_frame_size;
 
             /* "mpin": mpeg info */
-            /*  0x00/04: mpeg version/layer?  0x1c: frame size;  other: unknown or repeats of "fmat" */
+            /*  0x00/04: mpeg version/layer?  other: unknown or repeats of "fmat" */
+            if (!find_chunk(streamFile, 0x6D70696E,first_offset,0, &chunk_offset,NULL, !little_endian)) goto fail; /*"mpin"*/
+            fixed_frame_size = read_32bit(chunk_offset+0x1c,streamFile);
 
-            mpeg_data = init_mpeg_codec_data(streamFile, start_offset, sample_rate, channel_count, &coding_type, NULL, NULL);
+            mpeg_data = init_mpeg_codec_data_interleaved(streamFile, start_offset, &mpeg_coding_type, vgmstream->channels, fixed_frame_size, 0);
             if (!mpeg_data) goto fail;
-
-            /* todo num_samples seems to be quite wrong for MPEG */
             vgmstream->codec_data = mpeg_data;
             vgmstream->layout_type = layout_mpeg;
-            vgmstream->coding_type = coding_type;
+            vgmstream->coding_type = mpeg_coding_type;
+            vgmstream->interleave_block_size = fixed_frame_size * multiplier;
 
             break;
         }
 #endif
 
         case 0x09: { /* ATRAC9: Sly Cooper and the Thievius Raccoonus */
-            /* "a9in" chunk: ATRAC9 info */
+            /* "a9in": ATRAC9 info */
             goto fail;
         }
 
