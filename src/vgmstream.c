@@ -478,13 +478,7 @@ void reset_vgmstream(VGMSTREAM * vgmstream) {
 #ifdef VGM_USE_MPEG
     if (vgmstream->layout_type==layout_mpeg ||
         vgmstream->layout_type==layout_fake_mpeg) {
-        off_t input_offset;
-        mpeg_codec_data *data = vgmstream->codec_data;
-
-        /* input_offset is ignored as we can assume it will be 0 for a seek
-         * to sample 0 */
-        mpg123_feedseek(data->m,0,SEEK_SET,&input_offset);
-        data->buffer_full = data->buffer_used = 0;
+        reset_mpeg(vgmstream);
     }
 #endif
 #ifdef VGM_USE_G7221
@@ -702,18 +696,8 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
 #ifdef VGM_USE_MPEG
     if (vgmstream->layout_type==layout_fake_mpeg||
         vgmstream->layout_type==layout_mpeg) {
-        mpeg_codec_data *data = (mpeg_codec_data *) vgmstream->codec_data;
-
-        if (data) {
-            mpg123_delete(data->m);
-            free(vgmstream->codec_data);
-            vgmstream->codec_data = NULL;
-            /* The astute reader will note that a call to mpg123_exit is never
-             * made. While is is evilly breaking our contract with mpg123, it
-             * doesn't actually do anything except set the "initialized" flag
-             * to 0. And if we exit we run the risk of turning it off when
-             * someone else in another thread is using it. */
-        }
+        free_mpeg((mpeg_codec_data *)vgmstream->codec_data);
+        vgmstream->codec_data = NULL;
     }
 #endif
 
@@ -1597,9 +1581,9 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
         case coding_MPEG25_L2:
         case coding_MPEG25_L3:
             decode_mpeg(
-                    &vgmstream->ch[0],
-                    vgmstream->codec_data,
-                    buffer+samples_written*vgmstream->channels,samples_to_do,
+                    vgmstream,
+                    buffer+samples_written*vgmstream->channels,
+                    samples_to_do,
                     vgmstream->channels);
             break;
 #endif
@@ -1813,14 +1797,7 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream) {
 #ifdef VGM_USE_MPEG
             /* won't work for fake MPEG */
             if (vgmstream->layout_type==layout_mpeg) {
-                off_t input_offset;
-                mpeg_codec_data *data = vgmstream->codec_data;
-
-                mpg123_feedseek(data->m,vgmstream->loop_sample,
-                        SEEK_SET,&input_offset);
-                vgmstream->loop_ch[0].offset =
-                    vgmstream->loop_ch[0].channel_start_offset + input_offset;
-                data->buffer_full = data->buffer_used = 0;
+                seek_mpeg(vgmstream, vgmstream->loop_sample);
             }
 #endif
 
@@ -2282,9 +2259,7 @@ int vgmstream_open_stream(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t s
         use_streamfile_per_channel = 1;
     }
 
-    if (vgmstream->layout_type == layout_none
-            //#ifdef VGM_USE_MPEG || (vgmstream->layout_type == layout_mpeg)  #endif //no appreciable difference
-        ) {
+    if (vgmstream->layout_type == layout_none) {
         /* for some codecs like IMA where channels work with the same bytes *///todo which ones?
         use_same_offset_per_channel = 1;
     }

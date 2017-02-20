@@ -281,36 +281,38 @@ VGMSTREAM * init_vgmstream_fsb_offset(STREAMFILE *streamFile, off_t offset) {
         mpeg_codec_data *mpeg_data = NULL;
         coding_t mpeg_coding_type;
 
-        mpeg_data = init_mpeg_codec_data(streamFile, start_offset, vgmstream->sample_rate, vgmstream->channels, &mpeg_coding_type, NULL, NULL);
+#if 0
+        int fsb_padding = 0;
+        if (fsbh.flags & FMOD_FSB_SOURCE_MPEG_PADDED)
+            fsb_padding = fsbh.numchannels > 2 ? 16 : 2;
+        else if (fsbh.flags & FMOD_FSB_SOURCE_MPEG_PADDED4)
+            fsb_padding = fsbh.numchannels > 2 ? 16 : 4;
+        else /* seems to be needed with no flag */
+            fsb_padding = fsbh.numchannels > 2 ? 16 : 0;
+
+        mpeg_data = init_mpeg_codec_data_interleaved(streamFile, start_offset, &mpeg_coding_type, vgmstream->channels, 0, fsb_padding);
+        if (!mpeg_data) goto fail;
+
+        vgmstream->interleave_block_size = mpeg_data->current_frame_size + mpeg_data->current_padding;
+        if (vgmstream->channels > 2) vgmstream->loop_flag = 0;//todo not implemented yet
+#endif
+
+        VGM_ASSERT(fsbh.mode & FSOUND_MPEG_LAYER2, "FSB FSOUND_MPEG_LAYER2 found\n");
+        VGM_ASSERT(fsbh.mode & FSOUND_IGNORETAGS, "FSB FSOUND_IGNORETAGS found\n");
+
+        mpeg_data = init_mpeg_codec_data(streamFile, start_offset, &mpeg_coding_type, vgmstream->channels);
         if (!mpeg_data) goto fail;
 
         vgmstream->codec_data = mpeg_data;
         vgmstream->coding_type = mpeg_coding_type;
         vgmstream->layout_type = layout_mpeg;
 
-        /* struct mpg123_frameinfo mpeg_info; */
-        /* if (MPG123_OK != mpg123_info(mpeg_data->m, &mpeg_info)) goto fail; */
-        VGM_ASSERT(fsbh.mode & FSOUND_MPEG_LAYER2, "FSB FSOUND_MPEG_LAYER2 found\n");
-        VGM_ASSERT(fsbh.mode & FSOUND_IGNORETAGS, "FSB FSOUND_IGNORETAGS found\n");
-
-        /* when these flags are set each MPEG frame is 0-padded at the end, and mpg123 will complain to stderr (but ignore them)
-         * no way to easily skip the padding so for now we'll just disable stderr output */
-        if ((fsbh.flags & FMOD_FSB_SOURCE_MPEG_PADDED) || (fsbh.flags & FMOD_FSB_SOURCE_MPEG_PADDED4)) {
-            mpeg_set_error_logging(mpeg_data, 0);
-        }
+        mpeg_set_error_logging(mpeg_data, 0);
 
 #elif defined(VGM_USE_FFMPEG)
-        /* FFmpeg can't properly read FSB4 or FMOD's 0-padded MPEG data @ start_offset, this won't work */
-        ffmpeg_codec_data *ffmpeg_data = NULL;
-
-        ffmpeg_data = init_ffmpeg_offset(streamFile, 0, streamFile->get_size(streamFile));
-        if ( !ffmpeg_data ) goto fail;
-        vgmstream->codec_data = ffmpeg_data;
-        vgmstream->coding_type = coding_FFmpeg;
-        vgmstream->layout_type = layout_none;
-
+        /* FFmpeg can't properly read FSB4 or FMOD's 0-padded MPEG data @ start_offset */
+        goto fail;
 #else
-        VGM_LOG("FSB4 MPEG found\n");
         goto fail;
 #endif
     }
@@ -356,7 +358,6 @@ VGMSTREAM * init_vgmstream_fsb_offset(STREAMFILE *streamFile, off_t offset) {
         vgmstream->layout_type = layout_none;
 
 #else
-        VGM_LOG("FSB XMA found\n");
         goto fail;
 #endif
     }

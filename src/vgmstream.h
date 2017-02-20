@@ -761,16 +761,38 @@ typedef struct {
 #endif
 
 #ifdef VGM_USE_MPEG
-#define AHX_EXPECTED_FRAME_SIZE 0x414
-/* MPEG_BUFFER_SIZE should be >= AHX_EXPECTED_FRAME_SIZE */
-#define MPEG_BUFFER_SIZE 0x1000
-
 typedef struct {
-    uint8_t buffer[MPEG_BUFFER_SIZE];
-    int buffer_used;
-    int buffer_full;
+    uint8_t *buffer; /* raw (coded) data buffer */
+    size_t buffer_size;
     size_t bytes_in_buffer;
-    mpg123_handle *m;
+    int buffer_full; /* raw buffer has been filled */
+    int buffer_used; /* raw buffer has been fed to the decoder */
+
+    mpg123_handle *m; /* "base" MPEG stream */
+
+    /* base values, assumed to be constant in the file */
+    int sample_rate_per_frame;
+    int channels_per_frame;
+    size_t samples_per_frame;
+
+    /* interleaved MPEG internals */
+    int interleaved; /* flag */
+    mpg123_handle **ms; /* array of MPEG streams */
+    size_t ms_size;
+    uint8_t *frame_buffer; /* temp buffer with samples from a single decoded frame */
+    size_t frame_buffer_size;
+    uint8_t *interleave_buffer; /* intermediate buffer with samples from all channels */
+    size_t interleave_buffer_size;
+    size_t bytes_in_interleave_buffer;
+    size_t bytes_used_in_interleave_buffer;
+
+    /* messy stuff for padded FSB frames */
+    size_t fixed_frame_size; /* when given a fixed size (XVAG) */
+    size_t base_frame_size; /* without header padding byte */
+    size_t current_frame_size; /* with padding byte applied if needed */
+    int fsb_padding; /* for FSBs that have extra garbage between frames */
+    size_t current_padding; /* padding needed for current frame size */
+
 } mpeg_codec_data;
 #endif
 

@@ -65,7 +65,8 @@ static uint32_t bik_get_num_samples(STREAMFILE *streamFile, int bits_per_sample)
     filesize = get_streamfile_size(streamFile);
 
     num_frames = read_32bitLE(0x08,streamFile);
-    if (num_frames<=0) goto fail;
+    if (num_frames <= 0) goto fail;
+    if (num_frames > 0x100000) goto fail; /* something must be off (avoids big allocs below) */
 
     /* multichannel audio is usually N tracks of stereo/mono, no way to know channel layout */
     num_tracks = read_32bitLE(0x28,streamFile);
@@ -77,6 +78,8 @@ static uint32_t bik_get_num_samples(STREAMFILE *streamFile, int bits_per_sample)
     /* read offsets in a buffer, to avoid fseeking to the table back and forth
      * the number of frames can be highly variable so we'll alloc */
     offsets = malloc(sizeof(uint32_t) * num_frames);
+    if (!offsets) goto fail;
+
     for (i=0; i < num_frames; i++) {
         offsets[i] = read_32bitLE(cur_offset,streamFile) & 0xFFFFFFFE; /* mask first bit (= keyframe) */
         cur_offset += 0x4;

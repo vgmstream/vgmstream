@@ -3,9 +3,6 @@
 #include "../coding/coding.h"
 #include "../layout/layout.h"
 #include "../util.h"
-#ifdef VGM_USE_MPEG
-#include <mpg123.h>
-#endif
 
 /* GENH is an artificial "generic" header for headerless streams */
 
@@ -330,7 +327,7 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
                 case coding_MPEG1_L3:
                     if (!chstreamfile)
                         chstreamfile =
-                            streamFile->open(streamFile,filename,MPEG_BUFFER_SIZE);
+                            streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
                     break;
 #endif
             }
@@ -346,7 +343,7 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
 
 #ifdef VGM_USE_MPEG
     if (coding == coding_MPEG1_L3) {
-        vgmstream->codec_data = init_mpeg_codec_data(vgmstream->ch[0].streamfile, start_offset, vgmstream->sample_rate, vgmstream->channels, &(vgmstream->coding_type), NULL, NULL);
+        vgmstream->codec_data = init_mpeg_codec_data(vgmstream->ch[0].streamfile, start_offset, &(vgmstream->coding_type), vgmstream->channels);
         if (!vgmstream->codec_data) goto fail;
     }
 #endif
