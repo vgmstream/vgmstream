@@ -48,12 +48,20 @@ int ffmpeg_make_riff_atrac3(uint8_t * buf, size_t buf_size, size_t sample_count,
     return riff_size;
 }
 
-int ffmpeg_make_riff_xma1(uint8_t * buf, size_t buf_size, size_t sample_count, size_t data_size, int channels, int sample_rate) {
+int ffmpeg_make_riff_xma1(uint8_t * buf, size_t buf_size, size_t sample_count, size_t data_size, int channels, int sample_rate, int stream_mode) {
     uint16_t codec_XMA1 = 0x0165;
     size_t riff_size;
     int streams, i;
 
-    streams = (channels + 1) / 2;
+    /* stream disposition:
+     * 0: default (ex. 5ch = 2ch + 2ch + 1ch = 3 streams)
+     * 1: lineal (ex. 5ch = 1ch + 1ch + 1ch + 1ch + 1ch = 5 streams), unusual but exists
+     * others: not seen (ex. maybe 5ch = 2ch + 1ch + 1ch + 1ch = 4 streams) */
+    switch(stream_mode) {
+        case 0 : streams = (channels + 1) / 2; break;
+        case 1 : streams = channels; break;
+        default: return 0;
+    }
 
     riff_size = 4+4+ 4 + 0x14 + 0x14*streams + 4+4;
 
@@ -79,15 +87,31 @@ int ffmpeg_make_riff_xma1(uint8_t * buf, size_t buf_size, size_t sample_count, s
         uint32_t speakers;
         off_t off = 0x20 + 0x14*i;/* stream riff offset */
 
-        /* with odd channels the last stream is mono */
-        stream_channels = channels / streams + (channels%2 != 0 && i+1 != streams ? 1 : 0);
-        VGM_LOG("sch=%i, %i, %i\n", stream_channels, channels / streams, (channels%2 != 0 && i+1 != streams ? 1 : 0));
-        switch(i) { /* per stream, values from xmaencode */
-            case 0: speakers = stream_channels == 1 ? 0x0001 : 0x0201; break;/* L R */
-            case 1: speakers = stream_channels == 1 ? 0x0004 : 0x0804; break;/* C LFE */
-            case 2: speakers = stream_channels == 1 ? 0x0040 : 0x8040; break;/* LB RB */
-            case 3: speakers = stream_channels == 1 ? 0x0000 : 0x0000; break;/* somehow empty (maybe should use 0x2010 LS RS) */
-            default: speakers = 0;
+        if (stream_mode == 1) {
+            /* lineal */
+            stream_channels = 1;
+            switch(i) { /* per stream, values observed */
+                case 0: speakers = 0x0001; break;/* L */
+                case 1: speakers = 0x0002; break;/* R */
+                case 2: speakers = 0x0004; break;/* C */
+                case 3: speakers = 0x0008; break;/* LFE */
+                case 4: speakers = 0x0040; break;/* LB */
+                case 5: speakers = 0x0080; break;/* RB */
+                case 6: speakers = 0x0000; break;/* ? */
+                case 7: speakers = 0x0000; break;/* ? */
+                default: speakers = 0;
+            }
+        }
+        else {
+            /* with odd channels the last stream is mono */
+            stream_channels = channels / streams + (channels%2 != 0 && i+1 != streams ? 1 : 0);
+            switch(i) { /* per stream, values from xmaencode */
+                case 0: speakers = stream_channels == 1 ? 0x0001 : 0x0201; break;/* L R */
+                case 1: speakers = stream_channels == 1 ? 0x0004 : 0x0804; break;/* C LFE */
+                case 2: speakers = stream_channels == 1 ? 0x0040 : 0x8040; break;/* LB RB */
+                case 3: speakers = stream_channels == 1 ? 0x0000 : 0x0000; break;/* somehow empty (maybe should use 0x2010 LS RS) */
+                default: speakers = 0;
+            }
         }
 
         put_32bitLE(buf+off+0x00, sample_rate*stream_channels / sizeof(sample)); /* average bytes per second (wrong, unneeded) */

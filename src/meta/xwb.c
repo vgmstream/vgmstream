@@ -277,7 +277,7 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
             uint8_t buf[100];
             int bytes;
 
-            bytes = ffmpeg_make_riff_xma1(buf, 100, vgmstream->num_samples, xwb.stream_size, vgmstream->channels, vgmstream->sample_rate);
+            bytes = ffmpeg_make_riff_xma1(buf, 100, vgmstream->num_samples, xwb.stream_size, vgmstream->channels, vgmstream->sample_rate, 0);
             if (bytes <= 0) goto fail;
 
             ffmpeg_data = init_ffmpeg_header_offset(streamFile, buf,bytes, xwb.stream_offset,xwb.stream_size);
