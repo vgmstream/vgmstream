@@ -1,13 +1,38 @@
+#include "coding.h"
 #include "../vgmstream.h"
 
 #ifdef VGM_USE_FFMPEG
+
+#define XMA_CHECK_SKIPS                 0
+#define XMA_BYTES_PER_PACKET            2048
+#define XMA_SAMPLES_PER_FRAME           512
+#define XMA_SAMPLES_PER_SUBFRAME        128
+
+/* ******************************************** */
+/* INTERNAL UTILS                               */
+/* ******************************************** */
+
+/**
+ * read num_bits (up to 25) from a bit offset.
+ * 25 since we read a 32 bit int, and need to adjust up to 7 bits from the byte-rounded fseek (32-7=25)
+ */
+static uint32_t read_bitsBE_b(off_t bit_offset, int num_bits, STREAMFILE *streamFile) {
+    uint32_t num, mask;
+    if (num_bits > 25) return -1; //???
+
+    num = read_32bitBE(bit_offset / 8, streamFile); /* fseek rounded to 8 */
+    num = num << (bit_offset % 8); /* offset adjust (up to 7) */
+    num = num >> (32 - num_bits);
+    mask = 0xffffffff >> (32 - num_bits);
+
+    return num & mask;
+}
+
 
 /* ******************************************** */
 /* FAKE RIFF HELPERS                            */
 /* ******************************************** */
 /* All helpers copy a RIFF header to buf and returns the number of bytes in buf or -1 when buf is not big enough */
-
-static int ffmpeg_fmt_chunk_swap_endian(uint8_t * chunk, uint16_t codec);
 
 int ffmpeg_make_riff_atrac3(uint8_t * buf, size_t buf_size, size_t sample_count, size_t data_size, int channels, int sample_rate, int block_align, int joint_stereo, int encoder_delay) {
     uint16_t codec_ATRAC3 = 0x0270;
@@ -245,7 +270,7 @@ int ffmpeg_make_riff_xwma(uint8_t * buf, size_t buf_size, int codec, size_t samp
 }
 
 
-static int ffmpeg_fmt_chunk_swap_endian(uint8_t * chunk, uint16_t codec) {
+int ffmpeg_fmt_chunk_swap_endian(uint8_t * chunk, uint16_t codec) {
     if (codec != 0x166)/* XMA2 */
         goto fail;
 
@@ -272,6 +297,201 @@ static int ffmpeg_fmt_chunk_swap_endian(uint8_t * chunk, uint16_t codec) {
 
 fail:
     return 0;
+}
+
+
+/* ******************************************** */
+/* XMA PARSING                                  */
+/* ******************************************** */
+
+/**
+ * Find total and loop samples by reading XMA frame headers.
+ *
+ * A XMA stream is made of packets, each containing N small frames of X samples.
+ * Frames are further divided into subframes for looping purposes.
+ * XMA1 and XMA2 only differ in the packet headers.
+ */
+void xma_get_samples(xma_sample_data * xma, STREAMFILE *streamFile) {
+    int frames = 0, samples = 0, loop_start_frame = 0, loop_end_frame = 0, skip_packets;
+#if XMA_CHECK_SKIPS
+    int start_skip = 0, end_skip = 0, first_start_skip = 0, last_end_skip = 0;
+#endif
+    uint32_t first_frame_b, packet_skip_count = 0, frame_size_b, packet_size_b;
+    uint64_t offset_b, packet_offset_b, frame_offset_b;
+    size_t size;
+
+    uint32_t packet_size = XMA_BYTES_PER_PACKET;
+    off_t offset = xma->data_offset;
+    uint32_t stream_offset_b = xma->data_offset * 8;
+
+    size = offset + xma->data_size;
+    packet_size_b = packet_size * 8;
+
+    /* if we knew the streams mode then we could read just the first one and adjust samples later
+     * not a big deal but maybe important for skip stuff */
+    //streams = (xma->stream_mode==0 ? (xma->channels + 1) / 2 : xma->channels)
+    skip_packets = 0;
+
+    /* read packets */
+    while (offset < size) {
+        offset_b = offset * 8; /* global offset in bits */
+        offset += packet_size; /* global offset in bytes */
+
+        /* skip packets not owned by the first stream, since we only need samples from it */
+        if (skip_packets && packet_skip_count) {
+            packet_skip_count--;
+            continue;
+        }
+
+        /* XMA1 or XMA2 packet header */
+        if (xma->xma_version == 1) {
+            //packet_sequence = read_bitsBE_b(offset_b+0,  4,  streamFile); /* numbered from 0 to N */
+            //unknown         = read_bitsBE_b(offset_b+4,  2,  streamFile); /* packet_metadata? (always 2) */
+            first_frame_b     = read_bitsBE_b(offset_b+6,  15, streamFile); /* offset in bits inside the packet */
+            packet_skip_count = read_bitsBE_b(offset_b+21, 11, streamFile); /* packets to skip for next packet of this stream */
+        } else {
+            //frame_count     = read_bitsBE_b(offset_b+0,  6,  streamFile); /* frames that begin in this packet */
+            first_frame_b     = read_bitsBE_b(offset_b+6,  15, streamFile); /* offset in bits inside this packet */
+            //packet_metadata = read_bitsBE_b(offset_b+21, 3,  streamFile); /* packet_metadata (always 1) */
+            packet_skip_count = read_bitsBE_b(offset_b+24, 8,  streamFile); /* packets to skip for next packet of this stream */
+        }
+
+        /* full packet skip */
+        if (packet_skip_count == 0x7FF) {
+            packet_skip_count = 0;
+            continue;
+        }
+        if (packet_skip_count > 255) { /* seen in some (converted?) XMA1 */
+            packet_skip_count = 0;
+        }
+        VGM_ASSERT(packet_skip_count > 10, "XMA: found big packet skip %i\n", packet_skip_count);//a bit unusual...
+        //VGM_LOG("packet: off=%x, ff=%i, ps=%i\n", offset, first_frame_b, packet_skip_b);
+
+        packet_offset_b = 4*8 + first_frame_b; /* packet offset in bits */
+
+        /* read packet frames */
+        while (packet_offset_b < packet_size_b) {
+            frame_offset_b = offset_b + packet_offset_b; /* in bits for aligment stuff */
+
+            //todo not sure if frames or frames+1 (considering skip_samples)
+            if (xma->loop_flag && (offset_b + packet_offset_b) - stream_offset_b == xma->loop_start_b)
+                loop_start_frame = frames;
+            if (xma->loop_flag && (offset_b + packet_offset_b) - stream_offset_b == xma->loop_end_b)
+                loop_end_frame = frames;
+
+
+            /* XMA1/2 frame header */
+            frame_size_b = read_bitsBE_b(frame_offset_b, 15, streamFile);
+            frame_offset_b += 15;
+            if (frame_size_b == 0) /* observed in some files with empty frames/packets */
+                break;
+            packet_offset_b += frame_size_b; /* including header */
+
+#if 0
+            {
+                uint32_t frame_config
+                frame_config = read_bitsBE_b(frame_offset_b, 15, streamFile);
+
+                //VGM_LOG(" frame %04i: off_b=%I64x (~0x%I64x), fs_b=%i (~0x%x), fs=%x\n",frames, frame_offset_b, frame_offset_b/8, frame_size_b,frame_size_b/8, frame_config);
+
+                //if (frame_config != 0x7f00) /* "contains all subframes"? */
+                //    continue; // todo read packet end bit instead
+            }
+#endif
+            frame_offset_b += 15;
+
+            if (frame_size_b == 0x7FFF) { /* end packet frame marker */
+                break;
+            }
+
+#if 0
+            // more header stuff (info from FFmpeg)
+            {
+                int flag;
+
+                /* ignore "postproc transform" */
+                if (xma->channels > 1) {
+                    flag = read_bitsBE_b(frame_offset_b, 1, streamFile);
+                    frame_offset_b += 1;
+                    if (flag) {
+                        flag = read_bitsBE_b(frame_offset_b, 1, streamFile);
+                        frame_offset_b += 1;
+                        if (flag) {
+                            frame_offset_b += 1 + 4 * xma->channels*xma->channels; /* 4-something per double channel? */
+                        }
+                    }
+                }
+
+                /* get start/end skips to get the proper number of samples */ //todo check if first bit =1 means full 512 skip
+                flag = read_bitsBE_b(frame_offset_b, 1, streamFile);
+                frame_offset_b += 1;
+                if (flag) {
+                    int new_skip;
+
+                    /* get start skip */
+                    flag = read_bitsBE_b(frame_offset_b, 1, streamFile);
+                    frame_offset_b += 1;
+                    if (flag) {
+                        new_skip = read_bitsBE_b(frame_offset_b, 10, streamFile);
+                        frame_offset_b += 10;
+                        VGM_ASSERT(start_skip, "XMA: more than one start_skip (%i)\n", new_skip);
+
+                        if (new_skip > XMA_SAMPLES_PER_FRAME) { /* from xmaencode */
+                            VGM_LOG("XMA: bad start_skip (%i)\n", new_skip);
+                            new_skip = XMA_SAMPLES_PER_FRAME;
+                        }
+
+                        if (frames==0) first_start_skip = new_skip; /* sometimes in the middle */
+                        start_skip += new_skip;
+                    }
+
+                    /* get end skip */
+                    flag = read_bitsBE_b(frame_offset_b, 1, streamFile);
+                    frame_offset_b += 1;
+                    if (flag) {
+                        new_skip = read_bitsBE_b(frame_offset_b, 10, streamFile);
+                        frame_offset_b += 10;
+                        VGM_ASSERT(end_skip, "XMA: more than one end_skip (%i)\n", new_skip);
+
+                        if (new_skip > XMA_SAMPLES_PER_FRAME) { /* from xmaencode  */
+                            VGM_LOG("XMA: bad end_skip (%i)\n", new_skip);
+                            new_skip = XMA_SAMPLES_PER_FRAME;
+                        }
+
+                        last_end_skip = new_skip; /* not seen */
+                        end_skip += new_skip;
+                    }
+
+                    VGM_LOG("  skip: st=%i, ed=%i\n", start_skip, end_skip);
+                }
+            }
+#endif
+
+            samples += XMA_SAMPLES_PER_FRAME;
+            frames++;
+        }
+    }
+
+#if XMA_CHECK_SKIPS
+    //todo this seems to usually work, but not always
+    /* apply skips (not sure why 64, empty samples generated by the decoder not in the file?) */
+    samples = samples + 64 - start_skip;
+    samples = samples + 64 - end_skip;
+
+    xma->skip_samples = 64 + 512; //todo not always correct
+#endif
+
+    xma->num_samples = samples;
+
+    if (xma->loop_flag && loop_end_frame > loop_start_frame) {
+        xma->loop_start_sample = loop_start_frame * XMA_SAMPLES_PER_FRAME + xma->loop_start_subframe * XMA_SAMPLES_PER_SUBFRAME;
+        xma->loop_end_sample = loop_end_frame * XMA_SAMPLES_PER_FRAME + xma->loop_end_subframe * XMA_SAMPLES_PER_SUBFRAME;
+#if XMA_CHECK_SKIPS
+        /* maybe this is needed */
+        //xma->loop_start_sample -= xma->skip_samples;
+        //xma->loop_end_sample -= xma->skip_samples;
+#endif
+    }
 }
 
 #endif
