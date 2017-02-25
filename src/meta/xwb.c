@@ -128,8 +128,8 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
 
     if (xwb.base_flags & WAVEBANK_FLAGS_COMPACT) { /* compact entry */
         /* offset_in_sectors:21 and sector_alignment_in_bytes:11 */
-        uint32_t entry = (uint32_t)read_32bit(off+0x00, streamFile);
-        xwb.stream_offset = xwb.data_offset + (entry >> 11) * xwb.entry_alignment + (entry & 0x7FF);
+        uint32_t entry      = (uint32_t)read_32bit(off+0x00, streamFile);
+        xwb.stream_offset   = xwb.data_offset + (entry >> 11) * xwb.entry_alignment + (entry & 0x7FF);
 
         /* find size (up to next entry or data end) */
         if (xwb.streams > 1) {
@@ -152,19 +152,18 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
         xwb.stream_offset   = xwb.data_offset + (uint32_t)read_32bit(off+0x08, streamFile);
         xwb.stream_size     = (uint32_t)read_32bit(off+0x0c, streamFile);
 
-        if (xwb.xact == 1) { //LoopRegion (bytes)
-            xwb.loop_start  = xwb.data_offset + (uint32_t)read_32bit(off+0x10, streamFile);
-            xwb.loop_end    = xwb.loop_start + (uint32_t)read_32bit(off+0x14, streamFile);
-        } else if (xwb.xact == 2) {//LoopRegion (bytes)
-           xwb.loop_start   = xwb.data_offset + (uint32_t)read_32bit(off+0x10, streamFile);
-           xwb.loop_end     = xwb.loop_start + (uint32_t)read_32bit(off+0x14, streamFile);
-           //XMALoopRegion (XMA1/2) //todo
+        if (xwb.xact == 1) { //LoopRegion (bytes within data)
+            xwb.loop_start  = (uint32_t)read_32bit(off+0x10, streamFile);
+            xwb.loop_end    = (uint32_t)read_32bit(off+0x14, streamFile);//length
+        } else if (xwb.xact == 2) {//LoopRegion (bytes within data) or XMALoopRegion (bits within data)
+            xwb.loop_start  = (uint32_t)read_32bit(off+0x10, streamFile);
+            xwb.loop_end    = (uint32_t)read_32bit(off+0x14, streamFile);//length (LoopRegion) or offset (XMALoopRegion)
         } else {//LoopRegion (samples)
             xwb.loop_start_sample   = (uint32_t)read_32bit(off+0x10, streamFile);
             xwb.loop_end_sample     = xwb.loop_start_sample + (uint32_t)read_32bit(off+0x14, streamFile);
         }
 
-        xwb.loop_flag = (xwb.loop_end > xwb.loop_start || xwb.loop_end_sample > xwb.loop_start)
+        xwb.loop_flag = (xwb.loop_end > 0 || xwb.loop_end_sample > xwb.loop_start)
             && !(xwb.entry_flags & WAVEBANKENTRY_FLAGS_IGNORELOOP);
     }
 
@@ -222,23 +221,47 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
     if ((xwb.xact == 1 || xwb.xact == 2) && xwb.codec == PCM) {
         xwb.num_samples = xwb.stream_size / 2 / xwb.channels;
         if (xwb.loop_flag) {
-            xwb.loop_start_sample = xwb.loop_start / 2 / xwb.channels;
-            xwb.loop_end_sample = xwb.loop_end / 2 / xwb.channels;
+            xwb.loop_start_sample = (xwb.loop_start) / 2 / xwb.channels;
+            xwb.loop_end_sample = (xwb.loop_start + xwb.loop_end) / 2 / xwb.channels;
         }
-    } else if (xwb.xact == 1 && xwb.codec == XBOX_ADPCM) {
+    }
+    else if (xwb.xact == 1 && xwb.codec == XBOX_ADPCM) {
         xwb.num_samples = xwb.stream_size / 36 / xwb.channels*64;
         if (xwb.loop_flag) {
             xwb.loop_start_sample = xwb.loop_start / 36 / xwb.channels*64;
-            xwb.loop_end_sample = xwb.loop_end / 36 / xwb.channels*64;
+            xwb.loop_end_sample = (xwb.loop_start + xwb.loop_end) / 36 / xwb.channels*64;
         }
-    } else if (xwb.xact == 2 && xwb.codec == MS_ADPCM) {
+    }
+    else if (xwb.xact == 2 && xwb.codec == MS_ADPCM && xwb.loop_flag) {
         int block_size, samples_per_frame;
         block_size = (xwb.block_align + 22) * xwb.channels; /*22=CONVERSION_OFFSET (?)*/
         samples_per_frame = (block_size-(7-1) * xwb.channels) * 2 / xwb.channels;
-        if (xwb.loop_flag) {
-            xwb.loop_start_sample = xwb.loop_start / block_size / samples_per_frame;
-            xwb.loop_end_sample = xwb.loop_end / block_size / samples_per_frame;
-        }
+
+        xwb.loop_start_sample = (xwb.loop_start) / block_size / samples_per_frame;
+        xwb.loop_end_sample = (xwb.loop_start + xwb.loop_end) / block_size / samples_per_frame;
+    }
+    else if (xwb.xact == 2 && (xwb.codec == XMA1 || xwb.codec == XMA2) &&  xwb.loop_flag) {
+        /* need to manually find sample offsets, thanks to Microsoft dumb headers */
+        xma_sample_data xma_sd;
+        memset(&xma_sd,0,sizeof(xma_sample_data));
+
+        xma_sd.xma_version = xwb.codec == XMA1 ? 1 : 2;
+        xma_sd.channels = xwb.channels;
+        xma_sd.data_offset = xwb.stream_offset;
+        xma_sd.data_size = xwb.stream_size;
+        xma_sd.loop_flag = xwb.loop_flag;
+        xma_sd.loop_start_b = xwb.loop_start; /* bit offset in the stream */
+        xma_sd.loop_end_b   = (xwb.loop_end >> 4); /*28b */
+        /* XACT adds +1 to the subframe, but this means 0 can't be used? */
+        xma_sd.loop_end_subframe    = ((xwb.loop_end >> 2) & 0x3) + 1; /* 2b */
+        xma_sd.loop_start_subframe  = ((xwb.loop_end >> 0) & 0x3) + 1; /* 2b */
+
+        xma_get_samples(&xma_sd, streamFile);
+        xwb.loop_start_sample = xma_sd.loop_start_sample;
+        xwb.loop_end_sample = xma_sd.loop_end_sample;
+        // todo fix properly (XWB loop_start/end seem to count padding samples while XMA1 RIFF doesn't)
+        xwb.loop_start_sample -= 512;
+        xwb.loop_end_sample -= 512;
     }
 
 
