@@ -602,7 +602,7 @@ static const meta_info meta_info_list[] = {
         {meta_FSB4,                 "FMOD Sample Bank (FSB4) Header"},
         {meta_FSB5,                 "FMOD Sample Bank (FSB5) Header"},
         {meta_RWX,                  "RWX Header"},
-        {meta_XWB,                  "XWB WBND Header"},
+        {meta_XWB,                  "Microsoft XWB Header"},
         {meta_XA30,                 "XA30 Header"},
         {meta_MUSC,                 "MUSC Header"},
         {meta_MUSX_V004,            "MUSX / Version 004 Header"},
