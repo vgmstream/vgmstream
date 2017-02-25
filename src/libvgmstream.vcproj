@@ -1258,10 +1258,14 @@
 					RelativePath=".\coding\eaxa_decoder.c"
 					>
 				</File>
-				<File
-					RelativePath=".\coding\ffmpeg_decoder.c"
-					>
-				</File>
+                <File
+                    RelativePath=".\coding\ffmpeg_decoder.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\coding\ffmpeg_decoder_utils.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\coding\g719_decoder.c"
 					>
