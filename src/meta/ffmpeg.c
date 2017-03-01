@@ -137,7 +137,7 @@ static int ffmpeg_read(void *opaque, uint8_t *buf, int buf_size)
     /* when "fake" size is smaller than "real" size we need to make sure bytes_read (ret) is clamped;
      * it confuses FFmpeg in rare cases (STREAMFILE may have valid data after size) */
     if (offset + buf_size > data->size + data->header_size) {
-        buf_size = data->size + data->header_size - offset;
+        buf_size = data->size - offset; /* header "read" is manually inserted later */
     }
 
     ret = read_streamfile(buf, offset + data->start, buf_size, data->streamfile);

@@ -124,6 +124,7 @@
   <ItemGroup>
     <ClCompile Include="coding\at3_decoder.c" />
     <ClCompile Include="coding\ffmpeg_decoder.c" />
+    <ClCompile Include="coding\ffmpeg_decoder_utils.c" />
     <ClCompile Include="coding\lsf_decoder.c" />
     <ClCompile Include="coding\mp4_aac_decoder.c" />
     <ClCompile Include="coding\mtaf_decoder.c" />
