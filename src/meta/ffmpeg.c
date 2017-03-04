@@ -225,7 +225,7 @@ ffmpeg_codec_data * init_ffmpeg_header_offset(STREAMFILE *streamFile, uint8_t * 
     
     int errcode, i;
     
-    int streamIndex;
+    int streamIndex, streamCount;
     AVStream *stream;
     AVCodecParameters *codecPar;
     
@@ -273,6 +273,7 @@ ffmpeg_codec_data * init_ffmpeg_header_offset(STREAMFILE *streamFile, uint8_t * 
 
     /* find valid audio stream inside */
     streamIndex = -1;
+    streamCount = 0; /* audio streams only */
     
     for (i = 0; i < data->formatCtx->nb_streams; ++i) {
         stream = data->formatCtx->streams[i];
@@ -282,12 +283,15 @@ ffmpeg_codec_data * init_ffmpeg_header_offset(STREAMFILE *streamFile, uint8_t * 
         } else {
             stream->discard = AVDISCARD_ALL; /* disable demuxing unneded streams */
         }
+        if (codecPar->codec_type == AVMEDIA_TYPE_AUDIO)
+            streamCount++;
     }
     
     if (streamIndex < 0) goto fail;
-    
+
     data->streamIndex = streamIndex;
     stream = data->formatCtx->streams[streamIndex];
+    data->streamCount = streamCount;
     
 
     /* prepare codec and frame/packet buffers */
