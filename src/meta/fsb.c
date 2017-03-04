@@ -243,8 +243,6 @@ VGMSTREAM * init_vgmstream_fsb_offset(STREAMFILE *streamFile, off_t offset) {
         }
     }
 
-    VGM_ASSERT(fsbh.numsamples > 1, "FSB: multiple streams found (%i entries)\n", fsbh.numsamples);
-
     /* XOR encryption for some FSB4 */
     if (fsbh.flags & FMOD_FSB_SOURCE_ENCRYPTED) {
         VGM_LOG("FSB ENCRYPTED found\n");
@@ -272,6 +270,7 @@ VGMSTREAM * init_vgmstream_fsb_offset(STREAMFILE *streamFile, off_t offset) {
     vgmstream->num_samples = fsbh.lengthsamples;
     vgmstream->loop_start_sample = fsbh.loopstart;
     vgmstream->loop_end_sample = fsbh.loopend;
+    vgmstream->num_streams = fsbh.numsamples;
     vgmstream->meta_type = fsbh.meta_type;
 
     /* parse format */

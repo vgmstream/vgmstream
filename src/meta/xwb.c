@@ -88,7 +88,7 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
         xwb.xact = 1; /* XACT1: XBOX [The King of Fighters 2003] */
     } else if (xwb.version < 42) {
         xwb.xact = 2; /* XACT2: early XBOX360 [Kameo, Table Tennis, Blue Dragon], Windows */
-    } else {
+    } else { /* highest seen: tool=v46, header=v44 */
         xwb.xact = 3; /* XACT3: late XBOX360, Windows */
     }
 
@@ -118,7 +118,6 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
     xwb.format = read_32bit(off+suboff+0x0c, streamFile); /* compact mode only */
     /* suboff+0x10: build time 64b (XACT2/3) */
 
-    VGM_ASSERT(xwb.streams > 1, "XWB: multiple streams found (%i entries)\n", xwb.streams);
     if (target_stream == 0) target_stream = 1; /* auto: default to 1 */
     if (xwb.streams < 1 || target_stream > xwb.streams) goto fail;
 
@@ -273,6 +272,7 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
     vgmstream->num_samples = xwb.num_samples;
     vgmstream->loop_start_sample = xwb.loop_start_sample;
     vgmstream->loop_end_sample = xwb.loop_end_sample;
+    vgmstream->num_streams = xwb.streams;
     vgmstream->meta_type = meta_XWB;
 
     switch(xwb.codec) {
