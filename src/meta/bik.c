@@ -93,7 +93,7 @@ static uint32_t bik_get_num_samples(STREAMFILE *streamFile, int bits_per_sample)
      * (num_samples for other streams seem erratic though) */
     if (target_stream > num_tracks) goto fail;
     if (target_stream == 0) target_stream = 1;
-    VGM_ASSERT(num_tracks > 1, "BIK: multiple streams found (%i entries)\n", num_tracks);
+    //VGM_ASSERT(num_tracks > 1, "BIK: multiple streams found (%i entries)\n", num_tracks);//FFmpeg data has this
 
     /* read each frame header and sum all samples
      * a frame has N audio packets with header (one per track) + video packet */

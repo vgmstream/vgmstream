@@ -109,7 +109,6 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
     /* 0x18: unknown offset */
     /* 0x1c: unknown (0x0)  */
     headers_entries = read_16bit(tables_offset+0x04,streamFile);
-    VGM_ASSERT(headers_entries > 1, "SCD: multiple streams found (%i entries)\n", headers_entries);
     if (target_stream == 0) target_stream = 1; /* auto: default to 1 */
     if (target_stream > headers_entries) goto fail;
     headers_offset = read_32bit(tables_offset+0x0c,streamFile);
@@ -220,6 +219,8 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
 	/* fill in the vital statistics */
 	vgmstream->channels = channel_count;
     vgmstream->sample_rate = read_32bit(meta_offset+8,streamFile);
+    vgmstream->num_streams = headers_entries;
+    vgmstream->meta_type = meta_SQEX_SCD;
 
     switch (codec_id) {
         case 0x1:
@@ -408,8 +409,6 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
             VGM_LOG("SCD: unknown codec_id 0x%x\n", codec_id);
             goto fail;
     }
-
-    vgmstream->meta_type = meta_SQEX_SCD;
 
     /* open the file for reading */
     if (vgmstream->layout_type != layout_scd_int

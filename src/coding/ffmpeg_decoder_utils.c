@@ -404,7 +404,7 @@ void xma_get_samples(xma_sample_data * xma, STREAMFILE *streamFile) {
                 break;
             }
 
-#if 0
+#if XMA_CHECK_SKIPS
             // more header stuff (info from FFmpeg)
             {
                 int flag;
@@ -432,6 +432,7 @@ void xma_get_samples(xma_sample_data * xma, STREAMFILE *streamFile) {
                     flag = read_bitsBE_b(frame_offset_b, 1, streamFile);
                     frame_offset_b += 1;
                     if (flag) {
+                        VGM_LOG("start_skip at 0x%I64x\n", frame_offset_b);
                         new_skip = read_bitsBE_b(frame_offset_b, 10, streamFile);
                         frame_offset_b += 10;
                         VGM_ASSERT(start_skip, "XMA: more than one start_skip (%i)\n", new_skip);
@@ -449,6 +450,7 @@ void xma_get_samples(xma_sample_data * xma, STREAMFILE *streamFile) {
                     flag = read_bitsBE_b(frame_offset_b, 1, streamFile);
                     frame_offset_b += 1;
                     if (flag) {
+                        VGM_LOG("end_skip at 0x%I64x\n", frame_offset_b);
                         new_skip = read_bitsBE_b(frame_offset_b, 10, streamFile);
                         frame_offset_b += 10;
                         VGM_ASSERT(end_skip, "XMA: more than one end_skip (%i)\n", new_skip);

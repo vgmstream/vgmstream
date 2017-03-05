@@ -257,6 +257,11 @@ int main(int argc, char ** argv) {
     }
 
     buf = malloc(BUFSIZE*sizeof(sample)*s->channels);
+    if (!buf) {
+        fprintf(stderr,"failed allocating output buffer\n");
+        close_vgmstream(s);
+        return 1;
+    }
 
     len = get_vgmstream_play_samples(loop_count,fade_seconds,fade_delay_seconds,s);
     if (!play && !adxencd && !oggenc && !batchvar) printf("samples to play: %d (%.4lf seconds)\n",len,(double)len/s->sample_rate);

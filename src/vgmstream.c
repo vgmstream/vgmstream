@@ -408,6 +408,16 @@ VGMSTREAM * init_vgmstream_internal(STREAMFILE *streamFile, int do_dfs) {
                 try_dual_file_stereo(vgmstream, streamFile);
             }
 
+#ifdef VGM_USE_FFMPEG
+            /* check FFmpeg streams here, for lack of a better place */
+            if (vgmstream->coding_type == coding_FFmpeg) {
+                ffmpeg_codec_data *data = (ffmpeg_codec_data *) vgmstream->codec_data;
+                if (data->streamCount && !vgmstream->num_streams) {
+                    vgmstream->num_streams = data->streamCount;
+                }
+            }
+#endif
+
             /* save start things so we can restart for seeking */
             /* copy the channels */
             memcpy(vgmstream->start_ch,vgmstream->ch,sizeof(VGMSTREAMCHANNEL)*vgmstream->channels);
@@ -1942,6 +1952,12 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             break;
     }
     concatn(length,desc,temp);
+
+    /* only interesting if more than one */
+    if (vgmstream->num_streams > 1) {
+        snprintf(temp,TEMPSIZE,"\nnumber of streams: %d",vgmstream->num_streams);
+        concatn(length,desc,temp);
+    }
 }
 
 /* filename search pairs for dual file stereo */

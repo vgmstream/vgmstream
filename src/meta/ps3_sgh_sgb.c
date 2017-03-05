@@ -28,14 +28,14 @@ VGMSTREAM * init_vgmstream_ps3_sgdx(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     STREAMFILE * streamHeader = NULL;
 
-    off_t start_offset, data_offset;
-    int32_t data_size;
+    off_t start_offset, data_offset, chunk_offset;
+    size_t data_size;
 
     int is_sgx, is_sgb;
     int loop_flag, channels, type;
     int sample_rate, num_samples, loop_start_sample, loop_end_sample;
 
-    int target_stream = 0;
+    int target_stream = 0, total_streams;
 
 
     /* check extension, case insensitive */
@@ -54,7 +54,7 @@ VGMSTREAM * init_vgmstream_ps3_sgdx(STREAMFILE *streamFile) {
     }
 
 
-    /* SGXD chunk (size 0x10) */
+    /* SGXD base (size 0x10) */
     if (read_32bitBE(0x00,streamHeader) != 0x53475844) /* "SGXD" */
         goto fail;
     /* 0x04  SGX: full header_size; SGD/SGH: unknown header_size (counting from 0x0/0x8/0x10, varies) */
@@ -70,24 +70,23 @@ VGMSTREAM * init_vgmstream_ps3_sgdx(STREAMFILE *streamFile) {
 
 
     /* WAVE chunk (size 0x10 + files * 0x38 + optional padding) */
-    /*  the format reads chunks until header_size, but we only want WAVE in the first position meaning BGM */
-    if (read_32bitBE(0x10,streamHeader) != 0x57415645)  /* "WAVE" */
-        goto fail;
-    /* 0x04  SGX: unknown; SGD/SGH: chunk length */
-    /* 0x08  null */
-
-    /* validate multi-streams (usually only SE containers) */
-    {
-        int total_streams = read_32bitLE(0x1c,streamHeader);
-        VGM_ASSERT(total_streams > 1, "SGXD: multiple streams found (%i entries)\n", total_streams);
-        if (target_stream == 0) target_stream = 1; /* auto: default to 1 */
-        if (target_stream > total_streams) goto fail;
+    /* 0x04  SGX: unknown; SGD/SGH: chunk length,  0x08  null */
+    if (is_sgx) { /* position after chunk+size */
+        if (read_32bitBE(0x10,streamHeader) != 0x57415645) goto fail;  /* "WAVE" */
+        chunk_offset = 0x18;
+    } else {
+        if (!find_chunk_le(streamHeader, 0x57415645,0x10,0, &chunk_offset,NULL)) goto fail; /* "WAVE" */
     }
+
+    /* check multi-streams (usually only SE containers; Puppeteer) */
+    total_streams = read_32bitLE(chunk_offset+0x04,streamHeader);
+    if (target_stream == 0) target_stream = 1;
+    if (target_stream > total_streams) goto fail;
 
     /* read stream header */
     {
-        off_t chunk_offset, stream_offset;
-        chunk_offset = 0x10 + 0x10 + 0x38 * (target_stream-1); /* position in target header*/
+        off_t stream_offset;
+        chunk_offset += 0x08 + 0x38 * (target_stream-1); /* position in target header*/
 
         /* 0x00  ? (00/01/02) */
         /* 0x04  sometimes global offset to wave_name */
@@ -122,11 +121,11 @@ VGMSTREAM * init_vgmstream_ps3_sgdx(STREAMFILE *streamFile) {
     vgmstream = allocate_vgmstream(channels,loop_flag);
     if (!vgmstream) goto fail;
 
-    vgmstream->num_samples = num_samples;
     vgmstream->sample_rate = sample_rate;
+    vgmstream->num_samples = num_samples;
     vgmstream->loop_start_sample = loop_start_sample;
     vgmstream->loop_end_sample = loop_end_sample;
-
+    vgmstream->num_streams = total_streams;
     vgmstream->meta_type = meta_PS3_SGDX;
 
     switch (type) {

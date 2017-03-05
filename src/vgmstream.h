@@ -678,6 +678,7 @@ typedef struct {
     coding_t coding_type;   /* type of encoding */
     layout_t layout_type;   /* type of layout for data */
     meta_t meta_type;       /* how we know the metadata */
+    int num_streams;        /* info only, for a few multi-stream formats (0=not set/one, 1=one stream) */
 
     /* looping */
     int loop_flag;          /* is this stream looped? */
@@ -909,6 +910,7 @@ typedef struct {
     int64_t blockAlign; // coded block of bytes, counting channels (the block can be joint stereo)
     int64_t frameSize; // decoded samples per block
     int64_t skipSamples; // number of start samples that will be skipped (encoder delay), for looping adjustments
+    int streamCount; // number of FFmpeg audio streams
     
     /*** internal state ***/
     // Intermediate byte buffer
