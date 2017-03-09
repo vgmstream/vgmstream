@@ -54,17 +54,16 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
     int32_t loop_start, loop_end;
 
     int target_stream = 1; /* N=Nth stream, 0=auto (first) */
-    int loop_flag = 0;
-	int channel_count;
-    int codec_id;
+    int loop_flag = 0, channel_count, codec_id;
     int aux_chunk_count;
 
     int32_t (*read_32bit)(off_t,STREAMFILE*) = NULL;
     int16_t (*read_16bit)(off_t,STREAMFILE*) = NULL;
 
     /* check extension, case insensitive */
+    if ( !check_extensions(streamFile, "scd") ) goto fail;
+
     streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("scd",filename_extension(filename))) goto fail;
 
     /* SEDB */
     if (read_32bitBE(0,streamFile) != 0x53454442) goto fail;
@@ -110,7 +109,7 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
     /* 0x1c: unknown (0x0)  */
     headers_entries = read_16bit(tables_offset+0x04,streamFile);
     if (target_stream == 0) target_stream = 1; /* auto: default to 1 */
-    if (target_stream > headers_entries) goto fail;
+    if (headers_entries <= 0 || target_stream > headers_entries) goto fail;
     headers_offset = read_32bit(tables_offset+0x0c,streamFile);
 
     /** header table entries (each is an uint32_t offset to stream header) **/
@@ -410,31 +409,14 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
             goto fail;
     }
 
-    /* open the file for reading */
-    if (vgmstream->layout_type != layout_scd_int
-#ifdef VGM_USE_FFMPEG
-        && vgmstream->coding_type != coding_FFmpeg
-#endif
-        )
-    {
-        int i;
-        STREAMFILE * file;
-        file = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-        if (!file) goto fail;
-        for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = file;
 
-            vgmstream->ch[i].channel_start_offset=
-                vgmstream->ch[i].offset=start_offset;
-
-        }
-    }
+    if ( !vgmstream_open_stream(vgmstream, streamFile, start_offset) )
+        goto fail;
 
     return vgmstream;
 
-    /* clean up anything we may have opened */
 fail:
-    if (vgmstream) close_vgmstream(vgmstream);
+    close_vgmstream(vgmstream);
     return NULL;
 }
 
