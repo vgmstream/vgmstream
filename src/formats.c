@@ -151,6 +151,7 @@ static const char* extension_list[] = {
     "matx",
     "mca",
     "mcg",
+    "mds",
     "mi4",
     "mib",
     "mic",
