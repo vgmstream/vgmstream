@@ -73,6 +73,49 @@ int ffmpeg_make_riff_atrac3(uint8_t * buf, size_t buf_size, size_t sample_count,
     return riff_size;
 }
 
+int ffmpeg_make_riff_atrac3plus(uint8_t * buf, size_t buf_size, size_t sample_count, size_t data_size, int channels, int sample_rate, int block_align, int encoder_delay) {
+    uint16_t codec_ATRAC3plus = 0xfffe; /* wave format extensible */
+    size_t riff_size = 4+4+ 4 + 0x3c + 0x14 + 4+4;
+
+    if (buf_size < riff_size)
+        return -1;
+
+    memcpy(buf+0x00, "RIFF", 4);
+    put_32bitLE(buf+0x04, (int32_t)(riff_size-4-4 + data_size)); /* riff size */
+    memcpy(buf+0x08, "WAVE", 4);
+
+    memcpy(buf+0x0c, "fmt ", 4);
+    put_32bitLE(buf+0x10, 0x34);/*fmt size*/
+    put_16bitLE(buf+0x14, codec_ATRAC3plus);
+    put_16bitLE(buf+0x16, channels);
+    put_32bitLE(buf+0x18, sample_rate);
+    put_32bitLE(buf+0x1c, sample_rate*channels / sizeof(sample)); /* average bytes per second (wrong) */
+    put_32bitLE(buf+0x20, (int16_t)(block_align)); /* block align */
+
+    put_16bitLE(buf+0x24, 0x22); /* extra data size */
+    put_16bitLE(buf+0x26, 0x0800); /* samples per block */
+    put_32bitLE(buf+0x28, 0x0000003); /* unknown */
+    put_32bitBE(buf+0x2c, 0xBFAA23E9); /* GUID1 */
+    put_32bitBE(buf+0x30, 0x58CB7144); /* GUID2 */
+    put_32bitBE(buf+0x34, 0xA119FFFA); /* GUID3 */
+    put_32bitBE(buf+0x38, 0x01E4CE62); /* GUID4 */
+    put_16bitBE(buf+0x3c, 0x0010); /* unknown */
+    put_16bitBE(buf+0x3e, 0x0000); /* config */ //todo this varies with block size, but FFmpeg doesn't use it
+    put_32bitBE(buf+0x40, 0x00000000); /* empty */
+    put_32bitBE(buf+0x44, 0x00000000); /* empty */
+
+    memcpy(buf+0x48, "fact", 4);
+    put_32bitLE(buf+0x4c, 0x0c); /* fact size */
+    put_32bitLE(buf+0x50, sample_count);
+    put_32bitLE(buf+0x54, 0); /* unknown */
+    put_32bitLE(buf+0x58, encoder_delay);
+
+    memcpy(buf+0x5c, "data", 4);
+    put_32bitLE(buf+0x60, data_size); /* data size */
+
+    return riff_size;
+}
+
 int ffmpeg_make_riff_xma1(uint8_t * buf, size_t buf_size, size_t sample_count, size_t data_size, int channels, int sample_rate, int stream_mode) {
     uint16_t codec_XMA1 = 0x0165;
     size_t riff_size;

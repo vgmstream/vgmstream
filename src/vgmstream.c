@@ -2257,6 +2257,12 @@ int get_vgmstream_average_bitrate(VGMSTREAM * vgmstream)
 }
 
 
+/**
+ * Inits vgmstreams' channels doing two things:
+ * - sets the starting offset per channel (depending on the layout)
+ * - opens its own streamfile from on a base one. One streamfile per channel may be open (to improve read/seeks).
+ * Should be called in metas before returning the VGMSTREAM..
+ */
 int vgmstream_open_stream(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t start_offset) {
     STREAMFILE * file;
     char filename[PATH_LIMIT];
@@ -2264,8 +2270,14 @@ int vgmstream_open_stream(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t s
     int use_streamfile_per_channel = 0;
     int use_same_offset_per_channel = 0;
 
+
+    /* stream/offsets not needed, scd manages itself */
+    if (vgmstream->layout_type == layout_scd_int)
+        return 1;
+
 #ifdef VGM_USE_FFMPEG
-    if (vgmstream->coding_type == coding_FFmpeg) /* stream not needed, FFmpeg manages itself */
+    /* stream/offsets not needed, FFmpeg manages itself */
+    if (vgmstream->coding_type == coding_FFmpeg)
         return 1;
 #endif
 
@@ -2274,8 +2286,8 @@ int vgmstream_open_stream(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t s
         use_streamfile_per_channel = 1;
     }
 
+    /* for mono or codecs like IMA (XBOX, MS IMA, MS ADPCM) where channels work with the same bytes */
     if (vgmstream->layout_type == layout_none) {
-        /* for some codecs like IMA where channels work with the same bytes *///todo which ones?
         use_same_offset_per_channel = 1;
     }
 

@@ -1,99 +1,74 @@
 #include "meta.h"
 #include "../util.h"
+#include "../coding/coding.h"
 
-/* MPDS - found in Big Air Freestyle, Terminator 3 (no coeffs), etc */
+/* MPDS - found in Paradigm Entertainment GC games */
 VGMSTREAM * init_vgmstream_ngc_dsp_mpds(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[PATH_LIMIT];
-    int loop_flag = 0;
-  	int channel_count;
-    int ch1_start=-1, ch2_start=-1;
+    off_t start_offset;
+    int loop_flag = 0, channel_count, short_mpds;
+
 
     /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("dsp",filename_extension(filename))) goto fail;
+    /* .adp: Big Air Freestyle */
+    /* .mds: Terminator 3 The Redemption, Mission Impossible: Operation Surma */
+    if (!check_extensions(streamFile, "dsp,mds")) goto fail;
 
     /* check header */
     if (read_32bitBE(0x00,streamFile) != 0x4D504453) /* "MPDS" */
         goto fail;
-    /* Version byte ??? */
-    if (read_32bitBE(0x04,streamFile) != 0x00010000) /* "0x10000" */
-        goto fail;
-    /* compare sample count with body size */
-    if (((read_32bitBE(0x08,streamFile)/7*8)) != (read_32bitBE(0x0C,streamFile)))
-        goto fail;
 
-    channel_count = read_32bitBE(0x14,streamFile);
+    short_mpds = read_32bitBE(0x04,streamFile) != 0x00010000 && read_32bitBE(0x0c,streamFile) == 0x00000002; /* version byte? */
 
-    if (channel_count > 2)
-    {
-      goto fail;
-    }
+    channel_count = short_mpds ?
+            read_16bitBE(0x0a, streamFile) :
+            read_32bitBE(0x14, streamFile);
+    if (channel_count > 2) goto fail;
 
-	  /* build the VGMSTREAM */
+    /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
-	  /* fill in the vital statistics */
-	  vgmstream->channels = channel_count;
-
-    if (channel_count == 1)
-    {
-      vgmstream->layout_type = layout_none;
-      ch1_start = 0x80;
-    }
-    else if (channel_count == 2)
-    {
-      vgmstream->layout_type = layout_interleave;
-      vgmstream->interleave_block_size = read_32bitBE(0x18,streamFile);
-      ch1_start = 0x80;
-      ch2_start = 0x80 + vgmstream->interleave_block_size;
-    }
-    else
-    {
-    	goto fail;
-    }
-
-    vgmstream->sample_rate = read_32bitBE(0x10,streamFile);
+    /* fill in the vital statistics */
     vgmstream->coding_type = coding_NGC_DSP;
-    vgmstream->num_samples = read_32bitBE(0x08,streamFile);
-    if (loop_flag) {
-        vgmstream->loop_start_sample = 0;
-        vgmstream->loop_end_sample = read_32bitBE(0x08,streamFile);
-    }
-    
     vgmstream->meta_type = meta_NGC_DSP_MPDS;
-    
-    {
-      int i;
-			for (i=0;i<16;i++)
-			  vgmstream->ch[0].adpcm_coef[i] = read_16bitBE(0x24+i*2,streamFile);
-			
-      if (channel_count == 2)
-      {
-			  for (i=0;i<16;i++)
-			  vgmstream->ch[1].adpcm_coef[i] = read_16bitBE(0x4C+i*2,streamFile);
-      }
+    vgmstream->layout_type = channel_count == 1 ? layout_none : layout_interleave;
+
+    if (!short_mpds) { /* Big Air Freestyle */
+        start_offset = 0x80;
+        vgmstream->num_samples = read_32bitBE(0x08,streamFile);
+        vgmstream->sample_rate = read_32bitBE(0x10,streamFile);
+        vgmstream->interleave_block_size = channel_count==1 ? 0 : read_32bitBE(0x18,streamFile);
+
+        /* compare sample count with body size */
+        if ((vgmstream->num_samples / 7 * 8) != (read_32bitBE(0x0C,streamFile))) goto fail;
+
+        dsp_read_coefs_be(vgmstream,streamFile,0x24, 0x28);
+    }
+    else { /* Terminator 3 The Redemption, Mission Impossible: Operation Surma */
+        start_offset = 0x20;
+        vgmstream->num_samples = read_32bitBE(0x04,streamFile);
+        vgmstream->sample_rate = (uint16_t)read_16bitBE(0x08,streamFile);
+        vgmstream->interleave_block_size = channel_count==1 ? 0 : 0x200;
+
+#if 0   //todo unknown coeffs, maybe depends on stuff @ 0x10? (but looks like some kind of size)
+        {
+            int i,ch;
+            for (ch=0; ch < vgmstream->channels; ch++) {
+                for (i=0; i < 16; i++)
+                    vgmstream->ch[ch].adpcm_coef[i] = mpds_coefs[i];
+            }
+        }
+#endif
     }
 
-    /* open the file for reading */
-    vgmstream->ch[0].streamfile = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-    if (!vgmstream->ch[0].streamfile) goto fail;
-    vgmstream->ch[0].channel_start_offset =
-            vgmstream->ch[0].offset=ch1_start;
 
-    if (channel_count == 2)
-    {
-      vgmstream->ch[1].streamfile = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-      if (!vgmstream->ch[1].streamfile) goto fail;
-        vgmstream->ch[1].channel_start_offset = 
-        vgmstream->ch[1].offset=ch2_start;
-    }
+    if ( !vgmstream_open_stream(vgmstream,streamFile,start_offset))
+        goto fail;
 
     return vgmstream;
 
-    /* clean up anything we may have opened */
 fail:
-    if (vgmstream) close_vgmstream(vgmstream);
+    close_vgmstream(vgmstream);
     return NULL;
 }
