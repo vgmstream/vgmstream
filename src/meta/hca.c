@@ -5,6 +5,10 @@
 VGMSTREAM * init_vgmstream_hca_offset(STREAMFILE *streamFile, uint64_t start, uint64_t size);
 
 VGMSTREAM * init_vgmstream_hca(STREAMFILE *streamFile) {
+
+    /* check extension, case insensitive */
+    if ( !check_extensions(streamFile, "hca")) return NULL;
+
 	return init_vgmstream_hca_offset( streamFile, 0, streamFile->get_size(streamFile) );
 }
 
