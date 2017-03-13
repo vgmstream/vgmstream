@@ -105,16 +105,20 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
                         /* when start is 0 seems the song repeats with no real looping (ex. Sonic Boom Fire & Ice jingles) */
                         LoopFlag = (LoopStart != 0x00);
                         break;
+                    case 0x04:  /* free comment, or maybe SFX info */
+                        break;
                     case 0x06:  /* XMA seek table */
                         /* no need for it */
                         break;
                     case 0x07:  /* DSP Info (Coeffs) */
                         DSPInfoStart = ExtraFlagStart + 0x04;
                         break;
+                    case 0x0b:  /* Vorbis data */
+                        break;
                     case 0x0d:  /* Unknown XMA value (size 4) */
                         break;
                     default:
-                        VGM_LOG("FSB5: unknown extra flag 0x%x at 0x%04x\n", ExtraFlagType, ExtraFlagStart);
+                        VGM_LOG("FSB5: unknown extra flag 0x%x at 0x%04x (size 0x%x)\n", ExtraFlagType, ExtraFlagStart, ExtraFlagSize);
                         break;
                 }
 
