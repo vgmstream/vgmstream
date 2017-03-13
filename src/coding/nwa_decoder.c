@@ -6,14 +6,14 @@
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
  *
- * ¤³¤Î¥×¥í¥°¥é¥à¤Îºî¼Ô¤Ï jagarl ¤Ç¤¹¡£
+ * ã“ã®ãƒ—ãƒ­ã‚°ãƒ©ãƒ ã®ä½œè€…ã¯ jagarl ã§ã™ã€‚
  *
- * ¤³¤Î¥×¥í¥°¥é¥à¡¢µÚ¤Ó¥³¥ó¥Ñ¥¤¥ë¤Ë¤è¤Ã¤ÆÀ¸À®¤·¤¿¥Ğ¥¤¥Ê¥ê¤Ï
- * ¥×¥í¥°¥é¥à¤òÊÑ¹¹¤¹¤ë¡¢¤·¤Ê¤¤¤Ë¤«¤«¤ï¤é¤ººÆÇÛÉÛ²ÄÇ½¤Ç¤¹¡£
- * ¤½¤Îºİ¡¢¾åµ­ Copyright É½¼¨¤òÊİ»ı¤¹¤ë¤Ê¤É¤Î¾ò·ï¤Ï²İ¤·¤Ş
- * ¤»¤ó¡£ÂĞ±ş¤¬ÌÌÅİ¤Ê¤Î¤Ç¥Ğ¥°Êó¹ğ¤ò½ü¤­¡¢¥á¡¼¥ë¤ÇÏ¢Íí¤ò¤¹¤ë
- * ¤Ê¤É¤ÎÉ¬Í×¤â¤¢¤ê¤Ş¤»¤ó¡£¥½¡¼¥¹¤Î°ìÉô¤òÎ®ÍÑ¤¹¤ë¤³¤È¤ò´Ş¤á¡¢
- * ¤´¼«Í³¤Ë¤ª»È¤¤¤¯¤À¤µ¤¤¡£
+ * ã“ã®ãƒ—ãƒ­ã‚°ãƒ©ãƒ ã€åŠã³ã‚³ãƒ³ãƒ‘ã‚¤ãƒ«ã«ã‚ˆã£ã¦ç”Ÿæˆã—ãŸãƒã‚¤ãƒŠãƒªã¯
+ * ãƒ—ãƒ­ã‚°ãƒ©ãƒ ã‚’å¤‰æ›´ã™ã‚‹ã€ã—ãªã„ã«ã‹ã‹ã‚ã‚‰ãšå†é…å¸ƒå¯èƒ½ã§ã™ã€‚
+ * ãã®éš›ã€ä¸Šè¨˜ Copyright è¡¨ç¤ºã‚’ä¿æŒã™ã‚‹ãªã©ã®æ¡ä»¶ã¯èª²ã—ã¾
+ * ã›ã‚“ã€‚å¯¾å¿œãŒé¢å€’ãªã®ã§ãƒã‚°å ±å‘Šã‚’é™¤ãã€ãƒ¡ãƒ¼ãƒ«ã§é€£çµ¡ã‚’ã™ã‚‹
+ * ãªã©ã®å¿…è¦ã‚‚ã‚ã‚Šã¾ã›ã‚“ã€‚ã‚½ãƒ¼ã‚¹ã®ä¸€éƒ¨ã‚’æµç”¨ã™ã‚‹ã“ã¨ã‚’å«ã‚ã€
+ * ã”è‡ªç”±ã«ãŠä½¿ã„ãã ã•ã„ã€‚
  *
  * THIS SOFTWARE IS PROVIDED BY KAZUNORI 'jagarl' UENO ``AS IS'' AND ANY
  * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -168,7 +168,7 @@ static int use_runlength(NWAData *nwa)
 static void
 nwa_decode_block(NWAData *nwa)
 {
-    /* º£²óÆÉ¤ß¹ş¤à¡¿¥Ç¥³¡¼¥É¤¹¤ë¥Ç¡¼¥¿¤ÎÂç¤­¤µ¤òÆÀ¤ë */
+    /* ä»Šå›èª­ã¿è¾¼ã‚€ï¼ãƒ‡ã‚³ãƒ¼ãƒ‰ã™ã‚‹ãƒ‡ãƒ¼ã‚¿ã®å¤§ãã•ã‚’å¾—ã‚‹ */
     int curblocksize;
     if (nwa->curblock != nwa->blocks - 1)
     {
@@ -190,7 +190,7 @@ nwa_decode_block(NWAData *nwa)
         int shift = 0;
         off_t offset = nwa->offsets[nwa->curblock];
         int dsize = curblocksize / (nwa->bps / 8);
-        int flip_flag = 0;			/* stereo ÍÑ */
+        int flip_flag = 0;			/* stereo ç”¨ */
         int runlength = 0;
 
         /* read initial sample value */
@@ -207,16 +207,16 @@ nwa_decode_block(NWAData *nwa)
         for (i = 0; i < dsize; i++)
         {
             if (runlength == 0)
-            {						/* ¥³¥Ô¡¼¥ë¡¼¥×Ãæ¤Ç¤Ê¤¤¤Ê¤é¥Ç¡¼¥¿ÆÉ¤ß¹ş¤ß */
+            {						/* ã‚³ãƒ”ãƒ¼ãƒ«ãƒ¼ãƒ—ä¸­ã§ãªã„ãªã‚‰ãƒ‡ãƒ¼ã‚¿èª­ã¿è¾¼ã¿ */
                 int type = getbits(nwa->file, &offset, &shift, 3);
-                /* type ¤Ë¤è¤êÊ¬´ô¡§0, 1-6, 7 */
+                /* type ã«ã‚ˆã‚Šåˆ†å²ï¼š0, 1-6, 7 */
                 if (type == 7)
                 {
-                    /* 7 : Âç¤­¤Êº¹Ê¬ */
-                    /* RunLength() Í­¸ú»ş¡ÊCompLevel==5, ²»À¼¥Õ¥¡¥¤¥ë) ¤Ç¤ÏÌµ¸ú */
+                    /* 7 : å¤§ããªå·®åˆ† */
+                    /* RunLength() æœ‰åŠ¹æ™‚ï¼ˆCompLevel==5, éŸ³å£°ãƒ•ã‚¡ã‚¤ãƒ«) ã§ã¯ç„¡åŠ¹ */
                     if (getbits(nwa->file, &offset, &shift, 1) == 1)
                     {
-                        d[flip_flag] = 0;	/* Ì¤»ÈÍÑ */
+                        d[flip_flag] = 0;	/* æœªä½¿ç”¨ */
                     }
                     else
                     {
@@ -244,7 +244,7 @@ nwa_decode_block(NWAData *nwa)
                 }
                 else if (type != 0)
                 {
-                    /* 1-6 : ÄÌ¾ï¤Îº¹Ê¬ */
+                    /* 1-6 : é€šå¸¸ã®å·®åˆ† */
                     int BITS, SHIFT;
                     if (nwa->complevel >= 3)
                     {
@@ -268,10 +268,10 @@ nwa_decode_block(NWAData *nwa)
                 }
                 else
                 {					/* type == 0 */
-                    /* ¥é¥ó¥ì¥ó¥°¥¹°µ½Ì¤Ê¤·¤Î¾ì¹ç¤Ï¤Ê¤Ë¤â¤·¤Ê¤¤ */
+                    /* ãƒ©ãƒ³ãƒ¬ãƒ³ã‚°ã‚¹åœ§ç¸®ãªã—ã®å ´åˆã¯ãªã«ã‚‚ã—ãªã„ */
                     if (use_runlength(nwa))
                     {
-                        /* ¥é¥ó¥ì¥ó¥°¥¹°µ½Ì¤¢¤ê¤Î¾ì¹ç */
+                        /* ãƒ©ãƒ³ãƒ¬ãƒ³ã‚°ã‚¹åœ§ç¸®ã‚ã‚Šã®å ´åˆ */
                         runlength = getbits(nwa->file, &offset, &shift, 1);
                         if (runlength == 1)
                         {
@@ -298,7 +298,7 @@ nwa_decode_block(NWAData *nwa)
             }
             nwa->samples_in_buffer++;
             if (nwa->channels == 2)
-                flip_flag ^= 1;			/* channel ÀÚ¤êÂØ¤¨ */
+                flip_flag ^= 1;			/* channel åˆ‡ã‚Šæ›¿ãˆ */
         }
     }
 
