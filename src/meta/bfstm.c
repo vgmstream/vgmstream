@@ -2,17 +2,17 @@
 #include "../util.h"
 #include "../stack_alloc.h"
 
+/* BFSTM - Nintendo Wii U format */
 VGMSTREAM * init_vgmstream_bfstm(STREAMFILE *streamFile) {
 	VGMSTREAM * vgmstream = NULL;
-	char filename[PATH_LIMIT];
-
 	coding_t coding_type;
+    int32_t (*read_32bit)(off_t,STREAMFILE*) = NULL;
+    int16_t (*read_16bit)(off_t,STREAMFILE*) = NULL;
 
 	off_t info_offset = 0, seek_offset = 0, data_offset = 0;
 	uint16_t temp_id;
 	int codec_number;
-	int channel_count;
-	int loop_flag;
+	int channel_count, loop_flag;
 	int i, j;
 	int ima = 0;
 	off_t start_offset;
@@ -20,47 +20,52 @@ VGMSTREAM * init_vgmstream_bfstm(STREAMFILE *streamFile) {
 	int section_count;
 
 	/* check extension, case insensitive */
-	streamFile->get_name(streamFile, filename, sizeof(filename));
-	if (strcasecmp("bfstm", filename_extension(filename)))
+	if ( !check_extensions(streamFile,"bfstm") )
 		goto fail;
-
 
 	/* check header */
 	if ((uint32_t)read_32bitBE(0, streamFile) != 0x4653544D) /* "FSTM" */
 		goto fail;
-	if ((uint16_t)read_16bitBE(4, streamFile) != 0xFEFF)
-		goto fail;
 
-	section_count = read_16bitBE(0x10, streamFile);
+	if ((uint16_t)read_16bitBE(4, streamFile) == 0xFEFF) { /* endian marker (BE most common) */
+        read_32bit = read_32bitBE;
+        read_16bit = read_16bitBE;
+	} else if ((uint16_t)read_16bitBE(4, streamFile) == 0xFFFE) { /* Blaster Master Zero 3DS */
+        read_32bit = read_32bitLE;
+        read_16bit = read_16bitLE;
+	} else {
+	    goto fail;
+	}
+
+	section_count = read_16bit(0x10, streamFile);
 	for (i = 0; i < section_count; i++) {
-		temp_id = read_16bitBE(0x14 + i * 0xc, streamFile);
+		temp_id = read_16bit(0x14 + i * 0xc, streamFile);
 		switch(temp_id) {
 			case 0x4000:
-				info_offset = read_32bitBE(0x18 + i * 0xc, streamFile);
-				/* size_t info_size = read_32bitBE(0x1c + i * 0xc, streamFile); */
+				info_offset = read_32bit(0x18 + i * 0xc, streamFile);
+				/* size_t info_size = read_32bit(0x1c + i * 0xc, streamFile); */
 				break;
 			case 0x4001:
-				seek_offset = read_32bitBE(0x18 + i * 0xc, streamFile);
-				/* size_t seek_size = read_32bitBE(0x1c + i * 0xc, streamFile); */
+				seek_offset = read_32bit(0x18 + i * 0xc, streamFile);
+				/* size_t seek_size = read_32bit(0x1c + i * 0xc, streamFile); */
 				break;
 			case 0x4002:
-				data_offset = read_32bitBE(0x18 + i * 0xc, streamFile);
-				/* size_t data_size = read_32bitBE(0x1c + i * 0xc, streamFile); */
+				data_offset = read_32bit(0x18 + i * 0xc, streamFile);
+				/* size_t data_size = read_32bit(0x1c + i * 0xc, streamFile); */
 				break;
 			case 0x4003:
-			    /* off_t regn_offset = read_32bitBE(0x18 + i * 0xc, streamFile); */
-				/* size_t regn_size = read_32bitBE(0x1c + i * 0xc, streamFile); */
+			    /* off_t regn_offset = read_32bit(0x18 + i * 0xc, streamFile); */
+				/* size_t regn_size = read_32bit(0x1c + i * 0xc, streamFile); */
 				break;
 			case 0x4004:
-				/* off_t pdat_offset = read_32bitBE(0x18 + i * 0xc, streamFile); */
-				/* size_t pdat_size = read_32bitBE(0x1c + i * 0xc, streamFile); */
+				/* off_t pdat_offset = read_32bit(0x18 + i * 0xc, streamFile); */
+				/* size_t pdat_size = read_32bit(0x1c + i * 0xc, streamFile); */
 				break;
 			default:
 				break;				
 		}
 	}
 	
-
     if (info_offset == 0) goto fail;
 	if ((uint32_t)read_32bitBE(info_offset, streamFile) != 0x494E464F) /* "INFO" */
 		goto fail;
@@ -88,17 +93,16 @@ VGMSTREAM * init_vgmstream_bfstm(STREAMFILE *streamFile) {
 	if (channel_count < 1) goto fail;
 
 	/* build the VGMSTREAM */
-
 	vgmstream = allocate_vgmstream(channel_count, loop_flag);
 	if (!vgmstream) goto fail;
 
 	/* fill in the vital statistics */
-	vgmstream->num_samples = read_32bitBE(info_offset + 0x2c, streamFile);
-	vgmstream->sample_rate = (uint16_t)read_16bitBE(info_offset + 0x26, streamFile);
+	vgmstream->num_samples = read_32bit(info_offset + 0x2c, streamFile);
+	vgmstream->sample_rate = read_32bit(info_offset + 0x24, streamFile);
 	/* channels and loop flag are set by allocate_vgmstream */
 	if (ima) //Shift the loop points back slightly to avoid stupid pops in some IMA streams due to DC offsetting
 	{
-		vgmstream->loop_start_sample = read_32bitBE(info_offset + 0x28, streamFile);
+		vgmstream->loop_start_sample = read_32bit(info_offset + 0x28, streamFile);
 		if (vgmstream->loop_start_sample > 10000)
 		{
 			vgmstream->loop_start_sample -= 5000;
@@ -109,7 +113,7 @@ VGMSTREAM * init_vgmstream_bfstm(STREAMFILE *streamFile) {
 	}
 	else
 	{
-		vgmstream->loop_start_sample = read_32bitBE(info_offset + 0x28, streamFile);
+		vgmstream->loop_start_sample = read_32bit(info_offset + 0x28, streamFile);
 		vgmstream->loop_end_sample = vgmstream->num_samples;
 	}
 
@@ -128,25 +132,25 @@ VGMSTREAM * init_vgmstream_bfstm(STREAMFILE *streamFile) {
 	if (ima)
 		vgmstream->interleave_block_size = 0x200;
 	else {
-		vgmstream->interleave_block_size = read_32bitBE(info_offset + 0x34, streamFile);
-		vgmstream->interleave_smallblock_size = read_32bitBE(info_offset + 0x44, streamFile);
+		vgmstream->interleave_block_size = read_32bit(info_offset + 0x34, streamFile);
+		vgmstream->interleave_smallblock_size = read_32bit(info_offset + 0x44, streamFile);
 	}
 
 	if (vgmstream->coding_type == coding_NGC_DSP) {
 		off_t coeff_ptr_table;
 		VARDECL(off_t, coef_offset);
 		ALLOC(coef_offset, channel_count, off_t);
-		coeff_ptr_table = read_32bitBE(info_offset + 0x1c, streamFile) + info_offset + 8;	// Getting pointer for coefficient pointer table
+		coeff_ptr_table = read_32bit(info_offset + 0x1c, streamFile) + info_offset + 8;	// Getting pointer for coefficient pointer table
 		
 		for (i = 0; i < channel_count; i++) {
-			tempoffset1 = read_32bitBE(coeff_ptr_table + 8 + i * 8, streamFile);
+			tempoffset1 = read_32bit(coeff_ptr_table + 8 + i * 8, streamFile);
 			coef_offset[i] = tempoffset1 + coeff_ptr_table;
-			coef_offset[i] += read_32bitBE(coef_offset[i] + 4, streamFile);
+			coef_offset[i] += read_32bit(coef_offset[i] + 4, streamFile);
 		} 
 		
 		for (j = 0; j<vgmstream->channels; j++) {
 			for (i = 0; i<16; i++) {
-				vgmstream->ch[j].adpcm_coef[i] = read_16bitBE(coef_offset[j] + i * 2, streamFile);
+				vgmstream->ch[j].adpcm_coef[i] = read_16bit(coef_offset[j] + i * 2, streamFile);
 			}
 		}
 	}
@@ -160,33 +164,13 @@ VGMSTREAM * init_vgmstream_bfstm(STREAMFILE *streamFile) {
 	}
 
 
-
 	/* open the file for reading by each channel */
-	{
-		int i;
-		for (i = 0; i<channel_count; i++) {
-			if (vgmstream->layout_type == layout_interleave_shortblock)
-				vgmstream->ch[i].streamfile = streamFile->open(streamFile, filename,
-				vgmstream->interleave_block_size);
-			else if (vgmstream->layout_type == layout_interleave)
-				vgmstream->ch[i].streamfile = streamFile->open(streamFile, filename,
-				STREAMFILE_DEFAULT_BUFFER_SIZE);
-			else
-				vgmstream->ch[i].streamfile = streamFile->open(streamFile, filename,
-				0x1000);
-
-			if (!vgmstream->ch[i].streamfile) goto fail;
-
-			vgmstream->ch[i].channel_start_offset =
-				vgmstream->ch[i].offset =
-				start_offset + i*vgmstream->interleave_block_size;
-		}
-	}
+	if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
+	    goto fail;
 
 	return vgmstream;
 
-	/* clean up anything we may have opened */
 fail:
-	if (vgmstream) close_vgmstream(vgmstream);
+	close_vgmstream(vgmstream);
 	return NULL;
 }

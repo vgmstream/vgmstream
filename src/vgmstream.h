@@ -776,6 +776,8 @@ typedef struct {
     int channels_per_frame;
     size_t samples_per_frame;
 
+    size_t samples_to_discard; /* for interleaved looping */
+
     /* interleaved MPEG internals */
     int interleaved; /* flag */
     mpg123_handle **ms; /* array of MPEG streams */
@@ -789,8 +791,7 @@ typedef struct {
 
     /* messy stuff for padded FSB frames */
     size_t fixed_frame_size; /* when given a fixed size (XVAG) */
-    size_t base_frame_size; /* without header padding byte */
-    size_t current_frame_size; /* with padding byte applied if needed */
+    size_t current_frame_size;
     int fsb_padding; /* for FSBs that have extra garbage between frames */
     size_t current_padding; /* padding needed for current frame size */
 

@@ -1,30 +1,27 @@
 #include "meta.h"
 #include "../util.h"
 
+/* BCSTM - Nintendo 3DS format */
 VGMSTREAM * init_vgmstream_bcstm(STREAMFILE *streamFile) {
 	VGMSTREAM * vgmstream = NULL;
-	char filename[PATH_LIMIT];
-
 	coding_t coding_type;
 
 	off_t info_offset = 0, seek_offset = 0, data_offset = 0;
 	uint16_t temp_id;
 	int codec_number;
-	int channel_count;
-	int loop_flag;
+	int channel_count, loop_flag;
 	int i, ima = 0;
 	off_t start_offset;
 	int section_count;
 
 	/* check extension, case insensitive */
-	streamFile->get_name(streamFile, filename, sizeof(filename));
-	if (strcasecmp("bcstm", filename_extension(filename))) 
+    if ( !check_extensions(streamFile,"bcstm") )
 		goto fail;
-
 
 	/* check header */
 	if ((uint32_t)read_32bitBE(0, streamFile) != 0x4353544D) /* "CSTM" */
 		goto fail;
+
 	if ((uint16_t)read_16bitLE(4, streamFile) != 0xFEFF)
 		goto fail;
 	
@@ -57,11 +54,12 @@ VGMSTREAM * init_vgmstream_bcstm(STREAMFILE *streamFile) {
 		}
 	}
 	
-	
-	
+    if (info_offset == 0) goto fail;
+    if ((uint32_t)read_32bitBE(info_offset, streamFile) != 0x494E464F) /* "INFO" */
+        goto fail;
+
 	
 	/* check type details */
-	if (info_offset == 0) goto fail;
 	codec_number = read_8bit(info_offset + 0x20, streamFile);
 	loop_flag = read_8bit(info_offset + 0x21, streamFile);
 	channel_count = read_8bit(info_offset + 0x22, streamFile);
@@ -89,13 +87,12 @@ VGMSTREAM * init_vgmstream_bcstm(STREAMFILE *streamFile) {
 	if (channel_count < 1) goto fail;
 
 	/* build the VGMSTREAM */
-
 	vgmstream = allocate_vgmstream(channel_count, loop_flag);
 	if (!vgmstream) goto fail;
 
 	/* fill in the vital statistics */
 	vgmstream->num_samples = read_32bitLE(info_offset + 0x2c, streamFile);
-	vgmstream->sample_rate = (uint16_t)read_16bitLE(info_offset + 0x24, streamFile);
+	vgmstream->sample_rate = read_32bitLE(info_offset + 0x24, streamFile);
 	/* channels and loop flag are set by allocate_vgmstream */
 	if (ima) //Shift the loop points back slightly to avoid stupid pops in some IMA streams due to DC offsetting
 	{
@@ -166,34 +163,14 @@ VGMSTREAM * init_vgmstream_bcstm(STREAMFILE *streamFile) {
 		start_offset = data_offset + 0x20;
 	}
 		
-		
 
-	/* open the file for reading by each channel */
-	{
-		int i;
-		for (i = 0; i<channel_count; i++) {
-			if (vgmstream->layout_type == layout_interleave_shortblock)
-				vgmstream->ch[i].streamfile = streamFile->open(streamFile, filename,
-				vgmstream->interleave_block_size);
-			else if (vgmstream->layout_type == layout_interleave)
-				vgmstream->ch[i].streamfile = streamFile->open(streamFile, filename,
-				STREAMFILE_DEFAULT_BUFFER_SIZE);
-			else
-				vgmstream->ch[i].streamfile = streamFile->open(streamFile, filename,
-				0x1000);
+    /* open the file for reading by each channel */
+    if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
+        goto fail;
 
-			if (!vgmstream->ch[i].streamfile) goto fail;
+    return vgmstream;
 
-			vgmstream->ch[i].channel_start_offset =
-				vgmstream->ch[i].offset =
-				start_offset + i*vgmstream->interleave_block_size;
-		}
-	}
-
-	return vgmstream;
-
-	/* clean up anything we may have opened */
 fail:
-	if (vgmstream) close_vgmstream(vgmstream);
-	return NULL;
+    close_vgmstream(vgmstream);
+    return NULL;
 }

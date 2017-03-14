@@ -2,12 +2,12 @@
 #include "../coding/coding.h"
 #include "../util.h"
 
-/* FSB5 header */
+/* FSB5 - FMOD Studio multiplatform format */
 VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     off_t StartOffset = 0;
     off_t SampleHeaderStart = 0, DSPInfoStart = 0;
-    size_t SampleHeaderLength, NameTableLength, SampleDataLength, BaseHeaderLength;
+    size_t SampleHeaderLength, NameTableLength, SampleDataLength, BaseHeaderLength, StreamSize = 0;
 
     uint32_t BaseSamples = 0, LoopStart = 0, LoopEnd = 0, NumSamples = 0;
     int LoopFlag = 0, ChannelCount = 0, SampleRate = 0, CodingID;
@@ -20,7 +20,7 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
 
     if (read_32bitBE(0x00,streamFile) != 0x46534235) goto fail; /* "FSB5" */
 
-    //v0 has extra flags at 0x1c and SampleHeaderStart = 0x40?
+    //v0 has extra flags at 0x1c and BaseHeaderLength = 0x40?
     if (read_32bitLE(0x04,streamFile) != 0x01) goto fail; /* Version ID */
 
     TotalStreams       = read_32bitLE(0x08,streamFile);
@@ -35,11 +35,11 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
 
     if ((SampleHeaderLength + NameTableLength + SampleDataLength + 0x3C) != get_streamfile_size(streamFile)) goto fail;
     if (TargetStream == 0) TargetStream = 1; /* default to 1 */
-    if (TargetStream > TotalStreams || TotalStreams < 0) goto fail;
+    if (TargetStream > TotalStreams || TotalStreams <= 0) goto fail;
 
-    /* find target stream header and data offset and read all needed values for later use
+    /* find target stream header and data offset, and read all needed values for later use
      *  (reads one by one as the size of a single stream header is variable) */
-    for (i = 0; i < TotalStreams; i++) {
+    for (i = 1; i <= TotalStreams; i++) {
         off_t  DataStart = 0;
         size_t StreamHeaderLength = 0;
         uint32_t SampleMode;
@@ -48,8 +48,18 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
         BaseSamples = read_32bitLE(SampleHeaderStart+0x04,streamFile);
         StreamHeaderLength += 0x08;
 
-        /* get global offset */
-        DataStart = (SampleMode >> 7) * 0x20;
+        /* get offset inside data section */
+        DataStart = (SampleMode >> 7) * 0x20; /* bits 31..8 */
+
+        /* get channels (from tests seems correct, but multichannel isn't very common, ex. no 4ch mode?) */
+        switch ((SampleMode >> 5) & 0x03) { /* bits 7..6 */
+            case 0:  ChannelCount = 1; break;
+            case 1:  ChannelCount = 2; break;
+            case 2:  ChannelCount = 6; break;/* some Dark Souls 2 MPEG; some IMA ADPCM */
+            case 3:  ChannelCount = 8; break;/* some IMA ADPCM */
+            default: /* other values (ex. 10ch) are specified in the extra flags, using 0 here */
+                goto fail;
+        }
 
         /* get sample rate  */
         switch ((SampleMode >> 1) & 0x0f) { /* bits 5..1 */
@@ -64,19 +74,9 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
             case 8:  SampleRate = 44100; break;
             case 9:  SampleRate = 48000; break;
             case 10: SampleRate = 96000; break; //???
-            default:
+            default: /* probably specified in the extra flags */
                 SampleRate = 44100;
-                break; /* probably specified in the extra flags */
-        }
-
-        /* get channels (from tests seems correct, but multichannel isn't very common, ex. no 4ch mode?) */
-        switch ((SampleMode >> 5) & 0x03) { /* bits 7..6 */
-            case 0:  ChannelCount = 1; break;
-            case 1:  ChannelCount = 2; break;
-            case 2:  ChannelCount = 6; break;/* some Dark Souls 2 MPEG; some IMA ADPCM */
-            case 3:  ChannelCount = 8; break;/* some IMA ADPCM */
-            default: /* other values (ex. 10ch) seem specified in the extra flags */
-                goto fail;
+                break;
         }
 
         /* get extra flags */
@@ -102,14 +102,23 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
                         if (ExtraFlagSize > 0x04) /* probably no needed */
                             LoopEnd = read_32bitLE(ExtraFlagStart+0x08,streamFile);
 
-                        /* when start is 0 seems the song reoeats with no real looping (ex. Sonic Boom Fire & Ice jingles) */
+                        /* when start is 0 seems the song repeats with no real looping (ex. Sonic Boom Fire & Ice jingles) */
                         LoopFlag = (LoopStart != 0x00);
                         break;
-                    case 0x07:  /* DSP Info (Coeffs), only used if coding is DSP??? */
+                    case 0x04:  /* free comment, or maybe SFX info */
+                        break;
+                    case 0x06:  /* XMA seek table */
+                        /* no need for it */
+                        break;
+                    case 0x07:  /* DSP Info (Coeffs) */
                         DSPInfoStart = ExtraFlagStart + 0x04;
                         break;
+                    case 0x0b:  /* Vorbis data */
+                        break;
+                    case 0x0d:  /* Unknown XMA value (size 4) */
+                        break;
                     default:
-                        VGM_LOG("FSB5: unknown extra flag %i at 0x%04x\n", ExtraFlagType, ExtraFlagStart);
+                        VGM_LOG("FSB5: unknown extra flag 0x%x at 0x%04x (size 0x%x)\n", ExtraFlagType, ExtraFlagStart, ExtraFlagSize);
                         break;
                 }
 
@@ -119,17 +128,26 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
         }
 
         /* stream found */
-        if (i == TotalStreams-1) {
+        if (i == TargetStream) {
             StartOffset = BaseHeaderLength + SampleHeaderLength + NameTableLength + DataStart;
+
+            /* get stream size from next stream or datasize if there is only one */
+            if (i == TotalStreams) {
+                StreamSize = SampleDataLength - DataStart;
+            } else {
+                uint32_t NextSampleMode = read_32bitLE(SampleHeaderStart+StreamHeaderLength+0x00,streamFile);
+                StreamSize = ((NextSampleMode >> 7) * 0x20) - DataStart;
+            }
+
             break;
         }
 
         /* continue searching */
         SampleHeaderStart += StreamHeaderLength;
     }
-    /* target stream not found*/
-    if (!StartOffset) goto fail;
 
+    /* target stream not found*/
+    if (!StartOffset || !StreamSize) goto fail;
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(ChannelCount,LoopFlag);
@@ -140,6 +158,7 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
     vgmstream->sample_rate = SampleRate;
     vgmstream->num_streams = TotalStreams;
     vgmstream->meta_type = meta_FSB5;
+    NumSamples = BaseSamples / 4; /* not affected by channels */
 
     switch (CodingID) {
         case 0x00:  /* FMOD_SOUND_FORMAT_NONE */
@@ -149,7 +168,6 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
             goto fail;
 
         case 0x02:  /* FMOD_SOUND_FORMAT_PCM16 */
-            NumSamples = BaseSamples / 4;
             if (ChannelCount == 1) {
                 vgmstream->layout_type = layout_none;
             } else {
@@ -171,10 +189,8 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
 
         case 0x06:  /* FMOD_SOUND_FORMAT_GCADPCM */
             if (ChannelCount == 1) {
-                NumSamples = BaseSamples / 4;
                 vgmstream->layout_type = layout_none;
             } else {
-                NumSamples = BaseSamples / (2*ChannelCount);
                 vgmstream->layout_type = layout_interleave_byte;
                 vgmstream->interleave_block_size = 0x02;
             }
@@ -184,7 +200,6 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
             break;
 
         case 0x07:  /* FMOD_SOUND_FORMAT_IMAADPCM */
-            NumSamples = BaseSamples / 4;
             vgmstream->layout_type = layout_none;
             vgmstream->coding_type = coding_XBOX;
             if (vgmstream->channels > 2) /* multichannel FSB IMA (interleaved header) */
@@ -197,37 +212,41 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
         case 0x09:  /* FMOD_SOUND_FORMAT_HEVAG */
             goto fail;
 
-        case 0x0A:  /* FMOD_SOUND_FORMAT_XMA */
-            goto fail;
+#ifdef VGM_USE_FFMPEG
+        case 0x0A: {/* FMOD_SOUND_FORMAT_XMA */
+            uint8_t buf[100];
+            int bytes, block_size, block_count;
+
+            block_size = 0x10000; /* XACT default */
+            block_count = StreamSize / block_size + (StreamSize % block_size ? 1 : 0);
+
+            bytes = ffmpeg_make_riff_xma2(buf, 100, vgmstream->num_samples, StreamSize, vgmstream->channels, vgmstream->sample_rate, block_count, block_size);
+            if (bytes <= 0) goto fail;
+
+            vgmstream->codec_data = init_ffmpeg_header_offset(streamFile, buf,bytes, StartOffset,StreamSize);
+            if ( !vgmstream->codec_data ) goto fail;
+            vgmstream->coding_type = coding_FFmpeg;
+            vgmstream->layout_type = layout_none;
+            break;
+        }
+#endif
 
 #ifdef VGM_USE_MPEG
         case 0x0B: {/* FMOD_SOUND_FORMAT_MPEG */
             mpeg_codec_data *mpeg_data = NULL;
             coding_t mpeg_coding_type;
+            int fsb_padding = 0;
 
-            NumSamples = BaseSamples / 2 / ChannelCount;
-
-#if 0
-            int fsb_padding = vgmstream->channels > 2 ? 16 : 0;//todo fix
+            fsb_padding = vgmstream->channels > 2 ? 16 : 4; /* observed default */
 
             mpeg_data = init_mpeg_codec_data_interleaved(streamFile, StartOffset, &mpeg_coding_type, vgmstream->channels, 0, fsb_padding);
             if (!mpeg_data) goto fail;
-
-            vgmstream->interleave_block_size = mpeg_data->current_frame_size + mpeg_data->current_padding;
-            if (vgmstream->channels > 2) vgmstream->loop_flag = 0;//todo not implemented yet
-#endif
-
-            if (vgmstream->channels > 2)
-                goto fail; /* no multichannel for now */
-
-            mpeg_data = init_mpeg_codec_data(streamFile, StartOffset, &mpeg_coding_type, vgmstream->channels);
-            if (!mpeg_data) goto fail;
-
             vgmstream->codec_data = mpeg_data;
             vgmstream->coding_type = mpeg_coding_type;
             vgmstream->layout_type = layout_mpeg;
 
-            mpeg_set_error_logging(mpeg_data, 0);
+            vgmstream->interleave_block_size = mpeg_data->current_frame_size + mpeg_data->current_padding;
+            //mpeg_set_error_logging(mpeg_data, 0); /* should not be needed anymore with the interleave decoder */
             break;
         }
 #endif
