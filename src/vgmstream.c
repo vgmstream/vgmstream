@@ -384,8 +384,10 @@ VGMSTREAM * init_vgmstream_internal(STREAMFILE *streamFile, int do_dfs) {
             if (vgmstream->loop_flag) {
                 if ((vgmstream->loop_end_sample <= vgmstream->loop_start_sample)
                         || (vgmstream->loop_end_sample > vgmstream->num_samples)
-                        || (vgmstream->loop_start_sample < 0) )
+                        || (vgmstream->loop_start_sample < 0) ) {
                     vgmstream->loop_flag = 0;
+                    VGM_LOG("VGMSTREAM: wrong loops ignored (lss==%i, lse=%i, ns=%i)\n", vgmstream->loop_start_sample, vgmstream->loop_end_sample, vgmstream->num_samples);
+                }
             }
 
             /* dual file stereo */
