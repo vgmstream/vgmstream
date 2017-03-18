@@ -279,7 +279,7 @@ META_OBJS=meta/adx_header.o \
     meta/ps2_iab.o \
     meta/ps2_strlr.o \
     meta/lsf.o \
-    meta/ps3_vawx.o \
+    meta/vawx.o \
     meta/pc_snds.o \
     meta/ps2_wmus.o \
     meta/mattel_hyperscan.o \

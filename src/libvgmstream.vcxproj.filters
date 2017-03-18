@@ -928,7 +928,7 @@
     <ClCompile Include="meta\lsf.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\ps3_vawx.c">
+    <ClCompile Include="meta\vawx.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\pc_snds.c">
