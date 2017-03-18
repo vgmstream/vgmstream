@@ -270,7 +270,7 @@ META_OBJS=meta/adx_header.o \
     meta/ps3_msf.o \
     meta/nub.o \
     meta/ps3_past.o \
-    meta/ps3_sgh_sgb.o \
+    meta/sgxd.o \
     meta/ngca.o \
     meta/wii_ras.o \
     meta/ps2_spm.o \

@@ -889,7 +889,7 @@
     <ClCompile Include="meta\ps3_past.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\ps3_sgh_sgb.c">
+    <ClCompile Include="meta\sgxd.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ngca.c">
