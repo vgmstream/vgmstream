@@ -39,8 +39,9 @@ VGMSTREAM * init_vgmstream_ps3_msf(STREAMFILE *streamFile) {
      *  0x40: joint stereo MP3 (apparently interleaved stereo for other formats)
      *  0x80+: (none/reserved) */
     flags = read_32bitBE(header_offset+0x14,streamFile);
-    /* sometimes loop_start/end is set but not flag 0x01, but from tests it only loops with 0x01 */
-    loop_flag = flags != 0xffffffff && (flags & 0x10) && (flags & 0x01);
+    /* sometimes loop_start/end is set but not flag 0x01, but from tests it only loops with 0x01
+     * Malicious PS3 uses flag 0x2 instead */
+    loop_flag = flags != 0xffffffff && (((flags & 0x10) && (flags & 0x01)) || (flags & 0x02));
 
     /* loop markers (marker N @ 0x18 + N*(4+4), but in practice only marker 0 is used) */
     if (loop_flag) {
