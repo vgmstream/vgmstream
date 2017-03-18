@@ -883,7 +883,7 @@
     <ClCompile Include="layout\xvas_block.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\nub.c">
+    <ClCompile Include="meta\nub_vag.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ps3_past.c">

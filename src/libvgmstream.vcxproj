@@ -145,7 +145,7 @@
     <ClCompile Include="meta\mn_str.c" />
     <ClCompile Include="meta\mp4.c" />
     <ClCompile Include="meta\ngca.c" />
-    <ClCompile Include="meta\nub.c" />
+    <ClCompile Include="meta\nub_vag.c" />
     <ClCompile Include="meta\pc_adp.c" />
     <ClCompile Include="meta\pc_snds.c" />
     <ClCompile Include="meta\ps2_2pfs.c" />

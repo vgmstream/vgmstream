@@ -595,7 +595,7 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\nub.c"
+					RelativePath=".\meta\nub_vag.c"
 					>
 				</File>
 				<File

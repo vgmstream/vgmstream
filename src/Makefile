@@ -268,7 +268,7 @@ META_OBJS=meta/adx_header.o \
     meta/ngc_nst_dsp.o \
     meta/baf.o \
     meta/ps3_msf.o \
-    meta/nub.o \
+    meta/nub_vag.o \
     meta/ps3_past.o \
     meta/sgxd.o \
     meta/ngca.o \
