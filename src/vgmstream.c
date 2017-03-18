@@ -298,7 +298,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_ps3_msf,
 	init_vgmstream_nub_vag,
 	init_vgmstream_ps3_past,
-    init_vgmstream_ps3_sgdx,
+    init_vgmstream_sgxd,
 	init_vgmstream_ngca,
 	init_vgmstream_wii_ras,
 	init_vgmstream_ps2_spm,

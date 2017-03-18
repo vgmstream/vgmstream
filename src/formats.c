@@ -785,7 +785,7 @@ static const meta_info meta_info_list[] = {
         {meta_PS3_MSF,              "PS3 MSF header"},
         {meta_NUB_VAG,              "VAG (NUB) header"},
         {meta_PS3_PAST,             "SNDP header"},
-        {meta_PS3_SGDX,             "SGXD header"},
+        {meta_SGXD,                 "Sony SGXD header"},
         {meta_NGCA,                 "NGCA header"},
         {meta_WII_RAS,              "RAS header"},
         {meta_PS2_SPM,              "SPM header"},

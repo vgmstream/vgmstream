@@ -369,7 +369,7 @@ void decode_hevag(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing
 
 /**
  * PS ADPCM of configurable size, with no flag.
- * Found in PS3 Afrika (SGDX type 5) in size 4, FF XI in sizes 3/5/9/41, Blur and James Bond in size 33.
+ * Found in PS3 Afrika (SGXD type 5) in size 4, FF XI in sizes 3/5/9/41, Blur and James Bond in size 33.
  */
 void decode_psx_configurable(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int frame_size) {
     uint8_t predict_nr, shift, byte;
@@ -417,7 +417,6 @@ void decode_psx_configurable(VGMSTREAMCHANNEL * stream, sample * outbuf, int cha
             sample = (scale >> shift) +
                      (hist1 * VAG_coefs[predict_nr][0] +
                       hist2 * VAG_coefs[predict_nr][1] ) / 64;
-            sample = sample + ;
 #else
             sample = (int)( (scale >> shift) +
                      (hist1 * VAG_f[predict_nr][0] +
