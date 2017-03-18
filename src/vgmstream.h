@@ -336,7 +336,7 @@ typedef enum {
     meta_FSB4,              /* FMOD Sample Bank, version 4 */
     meta_FSB5,              /* FMOD Sample Bank, version 5 */
     meta_RWX,				/* Air Force Delta Storm (XBOX) */
-    meta_XWB,				/* King of Fighters (XBOX) */
+    meta_XWB,				/* Microsoft XACT framework (Xbox, X360, Windows) */
     meta_XA30,				/* Driver - Parallel Lines (PS2) */
     meta_MUSC,				/* Spyro Games, possibly more */
     meta_MUSX_V004,			/* Spyro Games, possibly more */
@@ -549,7 +549,7 @@ typedef enum {
 	meta_PS3_XVAG,          /* Ratchet & Clank Future: Quest for Booty (PS3) */
 	meta_PS3_CPS,           /* Eternal Sonata (PS3) */
     meta_PS3_MSF,           /* MSF header */
-	meta_NUB_VAG,           /* VAG from Nub archives */
+	meta_NUB_VAG,           /* Namco VAG from NUB archives */
 	meta_PS3_PAST,          /* Bakugan Battle Brawlers (PS3) */
     meta_SGXD,              /* Sony: Folklore, Genji, Tokyo Jungle (PS3), Brave Story, Kurohyo (PSP)  */
 	meta_NGCA,              /* GoldenEye 007 (Wii) */
@@ -593,6 +593,9 @@ typedef enum {
     meta_PS2_VDS_VDM,       /* Graffiti Kingdom */
     meta_X360_CXS,          /* Eternal Sonata (Xbox 360) */
     meta_AKB,               /* SQEX iOS */
+    meta_NUB_XMA,           /* Namco XMA from NUB archives */
+    meta_X360_PASX,         /* Namco PASX (Soul Calibur HD) */
+    meta_XMA_RIFF,          /* Microsoft RIFF XMA */
 
 #ifdef VGM_USE_VORBIS
     meta_OGG_VORBIS,        /* Ogg Vorbis */

@@ -562,7 +562,7 @@ static const meta_info meta_info_list[] = {
         {meta_PS2_ILD,              "ILD header"},
         {meta_PS2_PNB,              "assumed PNB (PsychoNauts Bgm File) by .pnb extension"},
         {meta_XBOX_WAVM,            "assumed Xbox WAVM file by .wavm extension"},
-        {meta_XBOX_RIFF,            "Xbox RIFF/WAVE file with 0x0069 Codec ID"},
+        {meta_XBOX_RIFF,            "Microsoft XWAV RIFF header"},
         {meta_DSP_STR,              "assumed Conan Gamecube STR File by .str extension"},
         {meta_EAXA_R2,              "Electronic Arts XA R2"},
         {meta_EAXA_R3,              "Electronic Arts XA R3"},
@@ -830,6 +830,10 @@ static const meta_info meta_info_list[] = {
         {meta_PS2_VDS_VDM,          "Graffiti Kingdom VDS/VDM header"},
         {meta_X360_CXS,             "tri-Crescendo CXS header"},
         {meta_AKB,                  "Square-Enix AKB header"},
+        {meta_NUB_XMA,              "Namco NUB XMA header"},
+        {meta_X360_PASX,            "Namco PASX header"},
+        {meta_XMA_RIFF,             "Microsoft XMA RIFF header"},
+
 #ifdef VGM_USE_VORBIS
         {meta_OGG_VORBIS,           "Ogg Vorbis"},
         {meta_OGG_SLI,              "Ogg Vorbis with .sli (start,length) for looping"},
