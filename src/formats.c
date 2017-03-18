@@ -833,6 +833,7 @@ static const meta_info meta_info_list[] = {
         {meta_NUB_XMA,              "Namco NUB XMA header"},
         {meta_X360_PASX,            "Namco PASX header"},
         {meta_XMA_RIFF,             "Microsoft XMA RIFF header"},
+        {meta_X360_AST,             "Capcom AST header"},
 
 #ifdef VGM_USE_VORBIS
         {meta_OGG_VORBIS,           "Ogg Vorbis"},

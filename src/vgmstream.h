@@ -594,8 +594,9 @@ typedef enum {
     meta_X360_CXS,          /* Eternal Sonata (Xbox 360) */
     meta_AKB,               /* SQEX iOS */
     meta_NUB_XMA,           /* Namco XMA from NUB archives */
-    meta_X360_PASX,         /* Namco PASX (Soul Calibur HD) */
+    meta_X360_PASX,         /* Namco PASX (Soul Calibur II HD X360) */
     meta_XMA_RIFF,          /* Microsoft RIFF XMA */
+    meta_X360_AST,          /* Dead Rising (X360) */
 
 #ifdef VGM_USE_VORBIS
     meta_OGG_VORBIS,        /* Ogg Vorbis */
