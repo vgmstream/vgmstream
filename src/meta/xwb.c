@@ -122,7 +122,7 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
     /* suboff+0x10: build time 64b (XACT2/3) */
 
     if (target_stream == 0) target_stream = 1; /* auto: default to 1 */
-    if (xwb.streams < 1 || target_stream > xwb.streams) goto fail;
+    if (target_stream < 0 || target_stream > xwb.streams || xwb.streams < 1) goto fail;
 
 
     /* read stream entry (WAVEBANKENTRY) */

@@ -33,8 +33,9 @@ VGMSTREAM * init_vgmstream_kt_g1l(STREAMFILE *streamFile) {
     /* 0x0c first file offset (same as 0x18) */
 	type = read_32bit(0x10,streamFile);
 	num_streams = read_32bit(0x14,streamFile);
-	if (target_stream < 0 || target_stream > num_streams) goto fail;
     if (target_stream==0) target_stream = 1;
+	if (target_stream < 0 || target_stream > num_streams || num_streams < 1) goto fail;
+
     stream_offset = read_32bit(0x18 + 0x4*(target_stream-1),streamFile);
     /* filesize = stream_offset - stream_next_offset*/
 

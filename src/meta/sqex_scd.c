@@ -109,7 +109,8 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
     /* 0x1c: unknown (0x0)  */
     headers_entries = read_16bit(tables_offset+0x04,streamFile);
     if (target_stream == 0) target_stream = 1; /* auto: default to 1 */
-    if (headers_entries <= 0 || target_stream > headers_entries) goto fail;
+    if (target_stream < 0 || target_stream > headers_entries || headers_entries < 1) goto fail;
+
     headers_offset = read_32bit(tables_offset+0x0c,streamFile);
 
     /** header table entries (each is an uint32_t offset to stream header) **/

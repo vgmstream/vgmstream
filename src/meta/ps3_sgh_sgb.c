@@ -81,7 +81,7 @@ VGMSTREAM * init_vgmstream_sgxd(STREAMFILE *streamFile) {
     /* check multi-streams (usually only SE containers; Puppeteer) */
     total_streams = read_32bitLE(chunk_offset+0x04,streamHeader);
     if (target_stream == 0) target_stream = 1;
-    if (target_stream > total_streams) goto fail;
+    if (target_stream < 0 || target_stream > total_streams || total_streams < 1) goto fail;
 
     /* read stream header */
     {
