@@ -385,7 +385,7 @@ static int create_riff_header(uint8_t * buf, size_t buf_size, xma_header_data * 
         internal_size = 4+4+xma->chunk_size;
 
         if (xma->force_little_endian ) {
-            if ( !ffmpeg_fmt_chunk_swap_endian(chunk, xma->fmt_codec) )
+            if ( !ffmpeg_fmt_chunk_swap_endian(chunk, xma->chunk_size, xma->fmt_codec) )
                 goto fail;
         }
 

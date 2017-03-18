@@ -350,7 +350,7 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
             break;
 #ifdef VGM_USE_FFMPEG
         case 0xB:
-            /* XMA1/XMA2 */ /* Lightning Returns SFX, FFXIII (X360) */
+            /* XMA2 */ /* Lightning Returns SFX, FFXIII (X360) */
             {
                 ffmpeg_codec_data *ffmpeg_data = NULL;
                 uint8_t buf[200];
@@ -358,7 +358,7 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
 
                 /* post_meta_offset+0x00: fmt0x166 header (BE),  post_meta_offset+0x34: seek table */
 
-                bytes = ffmpeg_make_riff_xma2_from_fmt(buf,200, post_meta_offset,0x34, stream_size, streamFile, 1);
+                bytes = ffmpeg_make_riff_xma_from_fmt(buf,200, post_meta_offset,0x34, stream_size, streamFile, 1);
                 if (bytes <= 0) goto fail;
 
                 ffmpeg_data = init_ffmpeg_header_offset(streamFile, buf,bytes, start_offset,stream_size);
