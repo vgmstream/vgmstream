@@ -647,7 +647,7 @@
 					>
 				</File>
                 <File
-                    RelativePath=".\meta\ps2.c"
+                    RelativePath=".\meta\ps2_vds_vdm.c"
                     >
                 </File>
 				<File
@@ -1155,7 +1155,7 @@
 					>
 				</File>
                 <File
-                    RelativePath=".\meta\x360.c"
+                    RelativePath=".\meta\x360_cxs.c"
                     >
                 </File>
 				<File

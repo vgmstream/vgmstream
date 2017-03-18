@@ -309,8 +309,8 @@ META_OBJS=meta/adx_header.o \
 	meta/ffmpeg.o \
 	meta/mp4.o \
 	meta/xma.o \
-    meta/ps2.o \
-    meta/x360.o \
+    meta/ps2_vds_vdm.o \
+    meta/x360_cxs.o \
     meta/dsp_adx.o \
     meta/bik.o \
     meta/akb.o
