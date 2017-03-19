@@ -37,6 +37,7 @@ VGMSTREAM * init_vgmstream_x360_ast(STREAMFILE *streamFile) {
     vgmstream->sample_rate = read_32bitBE(0x40,streamFile);
     vgmstream->meta_type = meta_X360_AST;
 
+#ifdef VGM_USE_FFMPEG
     {
         /* manually find sample offsets (XMA1 nonsense again) */
         xma_sample_data xma_sd;
@@ -59,7 +60,6 @@ VGMSTREAM * init_vgmstream_x360_ast(STREAMFILE *streamFile) {
         //skip_samples = xma_sd.skip_samples; //todo add skip samples
     }
 
-#ifdef VGM_USE_FFMPEG
     {
         uint8_t buf[100];
         size_t bytes;

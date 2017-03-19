@@ -255,6 +255,7 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
     }
     else if (xwb.xact == 2 && xwb.version <= 38 /* v38: byte offset, v40+: sample offset, v39: ? */
             && (xwb.codec == XMA1 || xwb.codec == XMA2) &&  xwb.loop_flag) {
+#ifdef VGM_USE_FFMPEG
         /* need to manually find sample offsets, thanks to Microsoft dumb headers */
         xma_sample_data xma_sd;
         memset(&xma_sd,0,sizeof(xma_sample_data));
@@ -282,6 +283,9 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
         //add padding back until it's fixed (affects looping)
         // (in rare cases this causes a glitch in FFmpeg since it has a bug where it's missing some samples)
         xwb.num_samples += 64 + 512;
+#else
+    goto fail;
+#endif
     }
 
 
