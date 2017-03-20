@@ -200,8 +200,8 @@ VGMSTREAM * init_vgmstream_fsb_offset(STREAMFILE *streamFile, off_t offset) {
         }
 
         if (fsbh.shdrsize < fsbh.shdrsize_min) goto fail;
-        if (target_stream > fsbh.numsamples || target_stream < 0) goto fail;
         if (target_stream == 0) target_stream = 1;
+        if (target_stream < 0 || target_stream > fsbh.numsamples || fsbh.numsamples < 1) goto fail;
 
         /* sample header (N-stream) */
         {

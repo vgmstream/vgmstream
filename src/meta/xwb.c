@@ -15,7 +15,7 @@ static const int32_t wma_block_align_index[] = { /*17*/
 };
 
 
-typedef enum { PCM, XBOX_ADPCM, MS_ADPCM, XMA1, XMA2, WMA, XWMA } xact_codec;
+typedef enum { PCM, XBOX_ADPCM, MS_ADPCM, XMA1, XMA2, WMA, XWMA, ATRAC3 } xact_codec;
 typedef struct {
     int little_endian;
     int xact; /* rough XACT version (1/2/3) */
@@ -103,8 +103,11 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
     //0x14: XACT1: none (ENTRYWAVEDATA), XACT2: EXTRA, XACT3: ENTRYNAMES
     suboff = xwb.xact >= 2 ? 0x08+0x08 : 0x08;
     xwb.data_offset = read_32bit(off+0x10+suboff, streamFile);//ENTRYWAVEDATA
-    xwb.data_size   = read_32bit(off+0x10+suboff, streamFile);
+    xwb.data_size   = read_32bit(off+0x14+suboff, streamFile);
 
+    /* for Silent Hill 4 Xbox fake XWB and Techland's XWB with no data */
+    if (xwb.base_offset == 0) goto fail;
+    if (xwb.data_offset + xwb.data_size != get_streamfile_size(streamFile)) goto fail;
 
     /* read base entry (WAVEBANKDATA) */
     off = xwb.base_offset;
@@ -119,7 +122,7 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
     /* suboff+0x10: build time 64b (XACT2/3) */
 
     if (target_stream == 0) target_stream = 1; /* auto: default to 1 */
-    if (xwb.streams < 1 || target_stream > xwb.streams) goto fail;
+    if (target_stream < 0 || target_stream > xwb.streams || xwb.streams < 1) goto fail;
 
 
     /* read stream entry (WAVEBANKENTRY) */
@@ -215,6 +218,17 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
         }
     }
 
+    /* Techland's bizarre format hijack (Nail'd, Sniper: Ghost Warrior PS3).
+     * Somehow they used XWB + ATRAC3 in their PS3 games, very creative */
+    if (xwb.version == 0x10000 && xwb.codec == XMA2 /* v 0x10000 is used in their X360 games too */
+            && (xwb.block_align == 0x60 || xwb.block_align == 0x98 || xwb.block_align == 0xc0) ) {
+        xwb.codec = ATRAC3; /* standard ATRAC3 blocks sizes; no other way to identify (other than reading data) */
+
+        /* num samples uses a modified entry_info format (maybe skip samples + samples? sfx use the standard format)
+         * ignore for now and just calc max samples */ //todo
+        xwb.num_samples = xwb.stream_size / (xwb.block_align * xwb.channels) * 1024;
+    }
+
 
     /* fix samples */
     if ((xwb.xact == 1 || xwb.xact == 2) && xwb.codec == PCM) {
@@ -241,6 +255,7 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
     }
     else if (xwb.xact == 2 && xwb.version <= 38 /* v38: byte offset, v40+: sample offset, v39: ? */
             && (xwb.codec == XMA1 || xwb.codec == XMA2) &&  xwb.loop_flag) {
+#ifdef VGM_USE_FFMPEG
         /* need to manually find sample offsets, thanks to Microsoft dumb headers */
         xma_sample_data xma_sd;
         memset(&xma_sd,0,sizeof(xma_sample_data));
@@ -268,6 +283,9 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
         //add padding back until it's fixed (affects looping)
         // (in rare cases this causes a glitch in FFmpeg since it has a bug where it's missing some samples)
         xwb.num_samples += 64 + 512;
+#else
+    goto fail;
+#endif
     }
 
 
@@ -368,6 +386,24 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
             ffmpeg_data = init_ffmpeg_header_offset(streamFile, buf,bytes, xwb.stream_offset,xwb.stream_size);
             if ( !ffmpeg_data ) goto fail;
             vgmstream->codec_data = ffmpeg_data;
+            vgmstream->coding_type = coding_FFmpeg;
+            vgmstream->layout_type = layout_none;
+            break;
+        }
+
+        case ATRAC3: { /* Techland extension */
+            uint8_t buf[200];
+            int bytes;
+
+            int block_size = xwb.block_align * vgmstream->channels;
+            int joint_stereo = xwb.block_align == 0x60; /* untested, ATRAC3 default */
+            int skip_samples = 0; /* unknown */
+
+            bytes = ffmpeg_make_riff_atrac3(buf, 200, vgmstream->num_samples, xwb.stream_size, vgmstream->channels, vgmstream->sample_rate, block_size, joint_stereo, skip_samples);
+            if (bytes <= 0) goto fail;
+
+            vgmstream->codec_data = init_ffmpeg_header_offset(streamFile, buf,bytes, xwb.stream_offset,xwb.stream_size);
+            if ( !vgmstream->codec_data ) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
             break;

@@ -298,7 +298,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_ps3_msf,
 	init_vgmstream_nub_vag,
 	init_vgmstream_ps3_past,
-    init_vgmstream_ps3_sgdx,
+    init_vgmstream_sgxd,
 	init_vgmstream_ngca,
 	init_vgmstream_wii_ras,
 	init_vgmstream_ps2_spm,
@@ -340,6 +340,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_dsp_adx,
     init_vgmstream_akb_multi,
     init_vgmstream_akb2_multi,
+    init_vgmstream_x360_ast,
 
 #ifdef VGM_USE_FFMPEG
     init_vgmstream_xma,
@@ -384,8 +385,10 @@ VGMSTREAM * init_vgmstream_internal(STREAMFILE *streamFile, int do_dfs) {
             if (vgmstream->loop_flag) {
                 if ((vgmstream->loop_end_sample <= vgmstream->loop_start_sample)
                         || (vgmstream->loop_end_sample > vgmstream->num_samples)
-                        || (vgmstream->loop_start_sample < 0) )
+                        || (vgmstream->loop_start_sample < 0) ) {
                     vgmstream->loop_flag = 0;
+                    VGM_LOG("VGMSTREAM: wrong loops ignored (lss==%i, lse=%i, ns=%i)\n", vgmstream->loop_start_sample, vgmstream->loop_end_sample, vgmstream->num_samples);
+                }
             }
 
             /* dual file stereo */

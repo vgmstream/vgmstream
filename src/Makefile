@@ -268,9 +268,9 @@ META_OBJS=meta/adx_header.o \
     meta/ngc_nst_dsp.o \
     meta/baf.o \
     meta/ps3_msf.o \
-    meta/nub.o \
+    meta/nub_vag.o \
     meta/ps3_past.o \
-    meta/ps3_sgh_sgb.o \
+    meta/sgxd.o \
     meta/ngca.o \
     meta/wii_ras.o \
     meta/ps2_spm.o \
@@ -279,7 +279,7 @@ META_OBJS=meta/adx_header.o \
     meta/ps2_iab.o \
     meta/ps2_strlr.o \
     meta/lsf.o \
-    meta/ps3_vawx.o \
+    meta/vawx.o \
     meta/pc_snds.o \
     meta/ps2_wmus.o \
     meta/mattel_hyperscan.o \
@@ -309,11 +309,12 @@ META_OBJS=meta/adx_header.o \
 	meta/ffmpeg.o \
 	meta/mp4.o \
 	meta/xma.o \
-    meta/ps2.o \
-    meta/x360.o \
+    meta/ps2_vds_vdm.o \
+    meta/x360_cxs.o \
     meta/dsp_adx.o \
     meta/bik.o \
-    meta/akb.o
+    meta/akb.o \
+    meta/x360_ast.o
 
 EXT_LIBS = ../ext_libs/clHCA.o
 

@@ -595,7 +595,7 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\nub.c"
+					RelativePath=".\meta\nub_vag.c"
 					>
 				</File>
 				<File
@@ -647,7 +647,7 @@
 					>
 				</File>
                 <File
-                    RelativePath=".\meta\ps2.c"
+                    RelativePath=".\meta\ps2_vds_vdm.c"
                     >
                 </File>
 				<File
@@ -963,11 +963,11 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\ps3_sgh_sgb.c"
+					RelativePath=".\meta\sgxd.c"
 					>
 				</File>
 				<File
-					RelativePath=".\meta\ps3_vawx.c"
+					RelativePath=".\meta\vawx.c"
 					>
 				</File>
 				<File
@@ -1155,7 +1155,11 @@
 					>
 				</File>
                 <File
-                    RelativePath=".\meta\x360.c"
+                    RelativePath=".\meta\x360_ast.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\x360_cxs.c"
                     >
                 </File>
 				<File

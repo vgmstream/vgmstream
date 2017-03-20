@@ -22,9 +22,9 @@ static int get_at3_riff_info(at3_riff_info* info, STREAMFILE *streamFile, int32_
  *  WSUR, WMRK, BUSS: unknown
  *  RGND, SEQD: unknown (related to SE)
  * Then data, containing the original header if applicable (ex. AT3 RIFF).
- * The SGDX header has priority over it (ex. some ATRAC3plus files have 48000 while the data RIFF 44100)
+ * The SGXD header has priority over it (ex. some ATRAC3plus files have 48000 while the data RIFF 44100)
  */
-VGMSTREAM * init_vgmstream_ps3_sgdx(STREAMFILE *streamFile) {
+VGMSTREAM * init_vgmstream_sgxd(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     STREAMFILE * streamHeader = NULL;
 
@@ -81,7 +81,7 @@ VGMSTREAM * init_vgmstream_ps3_sgdx(STREAMFILE *streamFile) {
     /* check multi-streams (usually only SE containers; Puppeteer) */
     total_streams = read_32bitLE(chunk_offset+0x04,streamHeader);
     if (target_stream == 0) target_stream = 1;
-    if (target_stream > total_streams) goto fail;
+    if (target_stream < 0 || target_stream > total_streams || total_streams < 1) goto fail;
 
     /* read stream header */
     {
@@ -126,7 +126,7 @@ VGMSTREAM * init_vgmstream_ps3_sgdx(STREAMFILE *streamFile) {
     vgmstream->loop_start_sample = loop_start_sample;
     vgmstream->loop_end_sample = loop_end_sample;
     vgmstream->num_streams = total_streams;
-    vgmstream->meta_type = meta_PS3_SGDX;
+    vgmstream->meta_type = meta_SGXD;
 
     switch (type) {
         case 0x03: /* PSX ADPCM */
@@ -202,7 +202,7 @@ fail:
 
 /**
  * AT3 RIFF headers have a "skip samples at the beginning" value that the decoder should use,
- * and absolute loop values. However the SGDX header loop values assume those samples are skipped.
+ * and absolute loop values. However the SGXD header loop values assume those samples are skipped.
  *
  * FFmpeg doesn't support/export this, so we have to manually get the absolute values to fix looping.
  */

@@ -164,12 +164,12 @@ void seek_ffmpeg(VGMSTREAM *vgmstream, int32_t num_sample);
 void ffmpeg_set_skip_samples(ffmpeg_codec_data * data, int skip_samples);
 
 /* ffmpeg_decoder_utils */
-int ffmpeg_fmt_chunk_swap_endian(uint8_t * chunk, uint16_t codec);
+int ffmpeg_fmt_chunk_swap_endian(uint8_t * chunk, size_t chunk_size, uint16_t codec);
 int ffmpeg_make_riff_atrac3(uint8_t * buf, size_t buf_size, size_t sample_count, size_t data_size, int channels, int sample_rate, int block_align, int joint_stereo, int encoder_delay);
 int ffmpeg_make_riff_atrac3plus(uint8_t * buf, size_t buf_size, size_t sample_count, size_t data_size, int channels, int sample_rate, int block_align, int encoder_delay);
 int ffmpeg_make_riff_xma1(uint8_t * buf, size_t buf_size, size_t sample_count, size_t data_size, int channels, int sample_rate, int stream_mode);
 int ffmpeg_make_riff_xma2(uint8_t * buf, size_t buf_size, size_t sample_count, size_t data_size, int channels, int sample_rate, int block_count, int block_size);
-int ffmpeg_make_riff_xma2_from_fmt(uint8_t * buf, size_t buf_size, off_t fmt_offset, size_t fmt_size, size_t data_size, STREAMFILE *streamFile, int big_endian);
+int ffmpeg_make_riff_xma_from_fmt(uint8_t * buf, size_t buf_size, off_t fmt_offset, size_t fmt_size, size_t data_size, STREAMFILE *streamFile, int big_endian);
 int ffmpeg_make_riff_xwma(uint8_t * buf, size_t buf_size, int codec, size_t sample_count, size_t data_size, int channels, int sample_rate, int avg_bps, int block_align);
 
 /* XMA sample parser info (struct to avoid passing so much stuff, separate for reusing) */

@@ -33,6 +33,8 @@ typedef struct {
     int32_t loop_start_b;
     int32_t loop_end_b;
     int32_t loop_subframe;
+
+    meta_t meta;
 } xma_header_data;
 
 static int parse_header(xma_header_data * xma, STREAMFILE *streamFile);
@@ -83,7 +85,7 @@ VGMSTREAM * init_vgmstream_xma(STREAMFILE *streamFile) {
     vgmstream->codec_data = data;
     vgmstream->coding_type = coding_FFmpeg;
     vgmstream->layout_type = layout_none;
-    vgmstream->meta_type = meta_FFmpeg;
+    vgmstream->meta_type = xma.meta;
 
     vgmstream->sample_rate = data->sampleRate;
 
@@ -166,11 +168,12 @@ static int parse_header(xma_header_data * xma, STREAMFILE *streamFile) {
     xma->file_size = streamFile->get_size(streamFile);
 
     /* find offsets */
-    if (id == id_RIFF || id == id_RIFX) { /* regular RIFF header */
+    if (id == id_RIFF || id == id_RIFX) { /* regular RIFF header / RIFX (BE, wwsize?) */
         off_t current_chunk = 0xc;
         off_t fmt_offset = 0, xma2_offset = 0;
         size_t riff_size = 0, fmt_size = 0, xma2_size = 0;
 
+        xma->meta = meta_XMA_RIFF;
         riff_size = read_32bit(4,streamFile);
         if (riff_size != xma->file_size &&  /* some Beautiful Katamari, unsure if bad rip */
             riff_size+8 > xma->file_size) goto fail;
@@ -223,9 +226,12 @@ static int parse_header(xma_header_data * xma, STREAMFILE *streamFile) {
             goto fail;
         }
     }
-    else if (id == id_NXMA) { /* Namco (Tekken 6, Galaga Legions DX) */
-        /* custom header with a "XMA2" or "fmt " data chunk inside, most other values are unknown */
+    else if (id == id_NXMA) { /* Namco NUB xma (Tekken 6, Galaga Legions DX) */
+        /* Custom header with a "XMA2" or "fmt " data chunk inside; most other values are unknown
+         * It's here rather than its own meta to reuse the chunk parsing (probably intended to be .nub) */
         uint32_t chunk_type = read_32bit(0xC,streamFile);
+
+        xma->meta = meta_NUB_XMA;
         xma->data_offset = 0x100;
         xma->data_size = read_32bit(0x14,streamFile);
         xma->chunk_offset = 0xBC;
@@ -243,7 +249,10 @@ static int parse_header(xma_header_data * xma, STREAMFILE *streamFile) {
         if (xma->data_size + xma->data_offset > xma->file_size) goto fail;
     }
     else if (id == id_PASX) {  /* SoulCalibur II HD */
-        /* custom header with a "fmt " data chunk inside */
+        /* Custom header with a "fmt " data chunk inside
+         * It's here rather than its own meta to reuse the chunk parsing */
+
+        xma->meta = meta_X360_PASX;
         xma->chunk_size = read_32bit(0x08,streamFile);
         xma->data_size = read_32bit(0x0c,streamFile);
         xma->chunk_offset = read_32bit(0x10,streamFile);
@@ -376,7 +385,7 @@ static int create_riff_header(uint8_t * buf, size_t buf_size, xma_header_data * 
         internal_size = 4+4+xma->chunk_size;
 
         if (xma->force_little_endian ) {
-            if ( !ffmpeg_fmt_chunk_swap_endian(chunk, xma->fmt_codec) )
+            if ( !ffmpeg_fmt_chunk_swap_endian(chunk, xma->chunk_size, xma->fmt_codec) )
                 goto fail;
         }
 

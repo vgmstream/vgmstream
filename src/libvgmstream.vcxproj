@@ -145,7 +145,7 @@
     <ClCompile Include="meta\mn_str.c" />
     <ClCompile Include="meta\mp4.c" />
     <ClCompile Include="meta\ngca.c" />
-    <ClCompile Include="meta\nub.c" />
+    <ClCompile Include="meta\nub_vag.c" />
     <ClCompile Include="meta\pc_adp.c" />
     <ClCompile Include="meta\pc_snds.c" />
     <ClCompile Include="meta\ps2_2pfs.c" />
@@ -159,14 +159,15 @@
     <ClCompile Include="meta\ps3_ivag.c" />
     <ClCompile Include="meta\ps3_klbs.c" />
     <ClCompile Include="meta\ps3_past.c" />
-    <ClCompile Include="meta\ps3_sgh_sgb.c" />
-    <ClCompile Include="meta\ps3_vawx.c" />
+    <ClCompile Include="meta\sgxd.c" />
+    <ClCompile Include="meta\vawx.c" />
     <ClCompile Include="meta\seg.c" />
     <ClCompile Include="meta\sqex_scd.c" />
     <ClCompile Include="meta\tun.c" />
     <ClCompile Include="meta\wii_ras.c" />
     <ClCompile Include="meta\wpd.c" />
-    <ClCompile Include="meta\x360.c" />
+    <ClCompile Include="meta\x360_ast.c" />
+    <ClCompile Include="meta\x360_cxs.c" />
     <ClCompile Include="meta\x360_tra.c" />
     <ClCompile Include="formats.c" />
     <ClCompile Include="streamfile.c" />
@@ -271,7 +272,7 @@
     <ClCompile Include="meta\pcm.c" />
     <ClCompile Include="meta\pona.c" />
     <ClCompile Include="meta\pos.c" />
-    <ClCompile Include="meta\ps2.c" />
+    <ClCompile Include="meta\ps2_vds_vdm.c" />
     <ClCompile Include="meta\ps2_adm.c" />
     <ClCompile Include="meta\ps2_ads.c" />
     <ClCompile Include="meta\ps2_adsc.c" />

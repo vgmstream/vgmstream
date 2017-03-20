@@ -3,9 +3,7 @@
 
 static int vag_find_loop_offsets(STREAMFILE *streamFile, off_t start_offset, off_t * loop_start, off_t * loop_end);
 
-/**
- * VAGp - SDK format, created by Sony's tools (like AIFF2VAG)
-*/
+/* VAGp - SDK format, created by various Sony's tools (like AIFF2VAG) */
 VGMSTREAM * init_vgmstream_ps2_vag(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     off_t start_offset, loopStart = 0, loopEnd = 0;
@@ -74,9 +72,16 @@ VGMSTREAM * init_vgmstream_ps2_vag(STREAMFILE *streamFile) {
             }
             else if (version == 0x00020001) { /* HEVAG */
                 loop_flag = vag_find_loop_offsets(streamFile, 0x30, &loopStart, &loopEnd);
-                channel_count = read_8bit(0x1e,streamFile);
-                if (channel_count == 0)
-                    channel_count = 1;  /* ex. Lumines */
+
+                /* channels are usually at 0x1e, but not in Ukiyo no Roushi which has some kind
+                 *  of loop-like values instead (who designs this crap?) */
+                if (read_32bitBE(0x18,streamFile) != 0 || read_32bitBE(0x1c,streamFile) > 0x20) {
+                    channel_count = 1;
+                } else {
+                    channel_count = read_8bit(0x1e,streamFile);
+                    if (channel_count == 0)
+                        channel_count = 1;  /* ex. early Vita vag (Lumines) */
+                }
             }
             else {
                 loop_flag = vag_find_loop_offsets(streamFile, 0x30, &loopStart, &loopEnd);

@@ -582,7 +582,7 @@ VGMSTREAM * init_vgmstream_nub_vag(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_ps3_past(STREAMFILE* streamFile);
 
-VGMSTREAM * init_vgmstream_ps3_sgdx(STREAMFILE* streamFile);
+VGMSTREAM * init_vgmstream_sgxd(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_ngca(STREAMFILE* streamFile);
 
@@ -671,5 +671,7 @@ VGMSTREAM * init_vgmstream_dsp_adx(STREAMFILE *streamFile);
 VGMSTREAM * init_vgmstream_akb_multi(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_akb2_multi(STREAMFILE *streamFile);
+
+VGMSTREAM * init_vgmstream_x360_ast(STREAMFILE *streamFile);
 
 #endif /*_META_H*/
