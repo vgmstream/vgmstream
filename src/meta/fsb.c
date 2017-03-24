@@ -243,12 +243,13 @@ VGMSTREAM * init_vgmstream_fsb_offset(STREAMFILE *streamFile, off_t offset) {
         }
     }
 
-    /* XOR encryption for some FSB4 */
+#if 0
+    /* XOR encryption for some FSB4, though the flag is only seen after decrypting */
     if (fsbh.flags & FMOD_FSB_SOURCE_ENCRYPTED) {
         VGM_LOG("FSB ENCRYPTED found\n");
         goto fail;
     }
-#if 0
+
     /* sometimes there is garbage at the end or missing bytes due to improper demuxing */
     if (fsbh.hdrsize + fsbh.shdrsize + fsbh.datasize != streamFile->get_size(streamFile) - offset) {
         VGM_LOG("FSB wrong head/datasize found\n");
