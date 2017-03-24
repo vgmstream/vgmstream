@@ -9,7 +9,7 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
     off_t SampleHeaderStart = 0, DSPInfoStart = 0;
     size_t SampleHeaderLength, NameTableLength, SampleDataLength, BaseHeaderLength, StreamSize = 0;
 
-    uint32_t BaseSamples = 0, LoopStart = 0, LoopEnd = 0, NumSamples = 0;
+    uint32_t NumSamples = 0, LoopStart = 0, LoopEnd = 0;
     int LoopFlag = 0, ChannelCount = 0, SampleRate = 0, CodingID;
     int TotalStreams, TargetStream = 0;
     int i;
@@ -42,17 +42,23 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
     for (i = 1; i <= TotalStreams; i++) {
         off_t  DataStart = 0;
         size_t StreamHeaderLength = 0;
-        uint32_t SampleMode;
+        uint32_t SampleMode, SampleMode2;
 
-        SampleMode  = read_32bitLE(SampleHeaderStart+0x00,streamFile);
-        BaseSamples = read_32bitLE(SampleHeaderStart+0x04,streamFile);
+
+        /* seems ok but could use some testing against FMOD's SDK */
+        SampleMode  = (uint32_t)read_32bitLE(SampleHeaderStart+0x00,streamFile);
+        SampleMode2 = (uint32_t)read_32bitLE(SampleHeaderStart+0x04,streamFile);
         StreamHeaderLength += 0x08;
 
+        /* get samples */
+        NumSamples  = ((SampleMode2 >> 2) & 0x3FFFFFFF); /* bits 31..2 (30) */
+        // bits 1..0 part of DataStart?
+
         /* get offset inside data section */
-        DataStart = (SampleMode >> 7) * 0x20; /* bits 31..8 */
+        DataStart   = ((SampleMode >> 7) & 0x0FFFFFF) << 5; /* bits 31..8 (24) * 0x20 */
 
         /* get channels (from tests seems correct, but multichannel isn't very common, ex. no 4ch mode?) */
-        switch ((SampleMode >> 5) & 0x03) { /* bits 7..6 */
+        switch ((SampleMode >> 5) & 0x03) { /* bits 7..6 (2) */
             case 0:  ChannelCount = 1; break;
             case 1:  ChannelCount = 2; break;
             case 2:  ChannelCount = 6; break;/* some Dark Souls 2 MPEG; some IMA ADPCM */
@@ -62,7 +68,7 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
         }
 
         /* get sample rate  */
-        switch ((SampleMode >> 1) & 0x0f) { /* bits 5..1 */
+        switch ((SampleMode >> 1) & 0x0f) { /* bits 5..1 (4) */
             case 0:  SampleRate = 4000;  break; //???
             case 1:  SampleRate = 8000;  break;
             case 2:  SampleRate = 11000; break;
@@ -80,15 +86,15 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
         }
 
         /* get extra flags */
-        if (SampleMode&0x01) { /* bit 0 */
+        if (SampleMode & 0x01) { /* bit 0 (1) */
             uint32_t ExtraFlag, ExtraFlagStart, ExtraFlagType, ExtraFlagSize, ExtraFlagEnd;
 
             ExtraFlagStart = SampleHeaderStart+0x08;
             do {
                 ExtraFlag = read_32bitLE(ExtraFlagStart,streamFile);
-                ExtraFlagType = (ExtraFlag>>25)&0x7F;
-                ExtraFlagSize = (ExtraFlag>>1)&0xFFFFFF;
-                ExtraFlagEnd = (ExtraFlag&0x01);
+                ExtraFlagType = (ExtraFlag >> 25) & 0x7F; /* bits 32..26 (7) */
+                ExtraFlagSize = (ExtraFlag >> 1) & 0xFFFFFF; /* bits 25..1 (24)*/
+                ExtraFlagEnd  = (ExtraFlag & 0x01); /* bit 0 (1) */
 
                 switch(ExtraFlagType) {
                     case 0x01:  /* Channel Info */
@@ -113,6 +119,10 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
                     case 0x07:  /* DSP Info (Coeffs) */
                         DSPInfoStart = ExtraFlagStart + 0x04;
                         break;
+                    case 0x09:  /* ATRAC9 data */
+                        break;
+                    case 0x0a:  /* XWMA data */
+                        break;
                     case 0x0b:  /* Vorbis data */
                         break;
                     case 0x0d:  /* Unknown XMA value (size 4) */
@@ -135,8 +145,8 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
             if (i == TotalStreams) {
                 StreamSize = SampleDataLength - DataStart;
             } else {
-                uint32_t NextSampleMode = read_32bitLE(SampleHeaderStart+StreamHeaderLength+0x00,streamFile);
-                StreamSize = ((NextSampleMode >> 7) * 0x20) - DataStart;
+                uint32_t NextSampleMode  = (uint32_t)read_32bitLE(SampleHeaderStart+StreamHeaderLength+0x00,streamFile);
+                StreamSize = (((NextSampleMode >> 7) & 0x00FFFFFF) << 5) - DataStart;
             }
 
             break;
@@ -149,16 +159,15 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
     /* target stream not found*/
     if (!StartOffset || !StreamSize) goto fail;
 
+
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(ChannelCount,LoopFlag);
     if (!vgmstream) goto fail;
 
     /* fill in the vital statistics */
-    vgmstream->channels = ChannelCount;
     vgmstream->sample_rate = SampleRate;
     vgmstream->num_streams = TotalStreams;
     vgmstream->meta_type = meta_FSB5;
-    NumSamples = BaseSamples / 4; /* not affected by channels */
 
     switch (CodingID) {
         case 0x00:  /* FMOD_SOUND_FORMAT_NONE */
@@ -260,6 +269,9 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
             goto fail;
 
         case 0x0F: /* FMOD_SOUND_FORMAT_VORBIS */
+            goto fail;
+
+        case 0x10: /* FMOD_SOUND_FORMAT_FADPCM */
             goto fail;
 
         default:
