@@ -12,6 +12,7 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
     uint32_t NumSamples = 0, LoopStart = 0, LoopEnd = 0;
     int LoopFlag = 0, ChannelCount = 0, SampleRate = 0, CodingID;
     int TotalStreams, TargetStream = 0;
+    uint32_t VorbisSetupId = 0;
     int i;
 
 
@@ -124,9 +125,16 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
                     case 0x0a:  /* XWMA data */
                         break;
                     case 0x0b:  /* Vorbis data */
+                        VorbisSetupId = (uint32_t)read_32bitLE(ExtraFlagStart+0x04,streamFile); /* crc32? */
+                        /* seek table format:
+                         * 0x08: table_size (total_entries = seek_table_size / (4+4)), not counting this value; can be 0
+                         * 0x0C: sample number (only some samples are saved in the table)
+                         * 0x10: offset within data, pointing to a FSB vorbis block (with the 16b block size header)
+                         * (xN entries)
+                         */
                         break;
-                    case 0x0d:  /* Unknown XMA value (size 4) */
-                        break;
+                    //case 0x0d:  /* Unknown value (32b), found in some XMA2 and Vorbis */
+                    //    break;
                     default:
                         VGM_LOG("FSB5: unknown extra flag 0x%x at 0x%04x (size 0x%x)\n", ExtraFlagType, ExtraFlagStart, ExtraFlagSize);
                         break;
@@ -259,19 +267,27 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
             break;
         }
 #endif
-        case 0x0C: /* FMOD_SOUND_FORMAT_CELT */
+        case 0x0C:  /* FMOD_SOUND_FORMAT_CELT */
             goto fail;
 
-        case 0x0D: /* FMOD_SOUND_FORMAT_AT9 */
+        case 0x0D:  /* FMOD_SOUND_FORMAT_AT9 */
             goto fail;
 
-        case 0x0E: /* FMOD_SOUND_FORMAT_XWMA */
+        case 0x0E:  /* FMOD_SOUND_FORMAT_XWMA */
             goto fail;
 
-        case 0x0F: /* FMOD_SOUND_FORMAT_VORBIS */
-            goto fail;
+#ifdef VGM_USE_VORBIS
+        case 0x0F: {/* FMOD_SOUND_FORMAT_VORBIS */
+            vgmstream->codec_data = init_fsb_vorbis_codec_data(streamFile, StartOffset, vgmstream->channels, vgmstream->sample_rate,VorbisSetupId);
+            if (!vgmstream->codec_data) goto fail;
+            vgmstream->coding_type = coding_fsb_vorbis;
+            vgmstream->layout_type = layout_none;
 
-        case 0x10: /* FMOD_SOUND_FORMAT_FADPCM */
+            break;
+        }
+#endif
+
+        case 0x10:  /* FMOD_SOUND_FORMAT_FADPCM */
             goto fail;
 
         default:
