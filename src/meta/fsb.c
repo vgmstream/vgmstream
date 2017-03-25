@@ -361,14 +361,8 @@ VGMSTREAM * init_vgmstream_fsb_offset(STREAMFILE *streamFile, off_t offset) {
         vgmstream->interleave_block_size = 0x2;
         dsp_read_coefs_be(vgmstream, streamFile, custom_data_offset, 0x2e);
     }
-    else if (fsbh.mode & FSOUND_OGG) {
-        /* FSB4: ? (possibly FMOD's custom ogg) */
-
-        VGM_LOG("FSB4 FSOUND_OGG found\n");
-        goto fail;
-    }
-    else if (fsbh.mode & FSOUND_CELT) {
-        /* FSB4: ? (The Witcher 2?) */
+    else if (fsbh.mode & FSOUND_CELT) { /* || fsbh.mode & FSOUND_OGG (same flag) */
+        /* FSB4: War Thunder (PC), The Witcher 2 (PC) */
 
         VGM_LOG("FSB4 FSOUND_CELT found\n");
         goto fail;
