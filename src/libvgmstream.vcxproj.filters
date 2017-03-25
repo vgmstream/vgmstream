@@ -742,6 +742,9 @@
     <ClCompile Include="coding\eaxa_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="coding\fsb_vorbis_decoder.c">
+      <Filter>coding\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="coding\g721_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>

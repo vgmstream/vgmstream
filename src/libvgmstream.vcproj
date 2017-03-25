@@ -1270,6 +1270,10 @@
                     RelativePath=".\coding\ffmpeg_decoder_utils.c"
                     >
                 </File>
+                <File
+                    RelativePath=".\coding\fsb_vorbis_decoder.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\coding\g719_decoder.c"
 					>
@@ -1330,10 +1334,10 @@
 					RelativePath=".\coding\nwa_decoder.c"
 					>
 				</File>
-				<File
-					RelativePath=".\coding\ogg_vorbis_decoder.c"
-					>
-				</File>
+                <File
+                    RelativePath=".\coding\ogg_vorbis_decoder.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\coding\pcm_decoder.c"
 					>

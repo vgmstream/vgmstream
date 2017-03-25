@@ -434,7 +434,8 @@ static const coding_info coding_info_list[] = {
         {coding_LSF,                "lsf 4-bit ADPCM"},
         {coding_MTAF,               "Konami MTAF 4-bit ADPCM"},
 #ifdef VGM_USE_VORBIS
-        {coding_ogg_vorbis,         "Vorbis"},
+        {coding_ogg_vorbis,         "Ogg Vorbis"},
+        {coding_fsb_vorbis,         "FSB Vorbis"},
 #endif
 #ifdef VGM_USE_MPEG
         {coding_fake_MPEG2_L2,      "MPEG-2 Layer II Audio"},
