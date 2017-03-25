@@ -21,7 +21,7 @@ VGMSTREAM * init_vgmstream_ps3_msf(STREAMFILE *streamFile) {
     start_offset = header_offset+0x40; /* MSF header is always 0x40 */
 
     /* check header "MSF" + version-char
-     *  usually "MSF\0\1", "MSF\0\2", "MSF5"(\3\5),  "MSFC"(\4\3) (latest/common version) */
+     *  usually "MSF\0\1", "MSF\0\2", "MSF0"(\3\0), "MSF5"(\3\5), "MSFC"(\4\3) (last/common version) */
     id = read_32bitBE(header_offset+0x00,streamFile);
     if ((id & 0xffffff00) != 0x4D534600) goto fail;
 
@@ -33,15 +33,15 @@ VGMSTREAM * init_vgmstream_ps3_msf(STREAMFILE *streamFile) {
         data_size = get_streamfile_size(streamFile) - start_offset;
 
     /* byte flags, not in MSFv1 or v2
-     *  0x01/02/04/08: loop marker 0/1/2/3 (requires flag 0x10)
+     *  0x01/02/04/08: loop marker 0/1/2/3
      *  0x10: "resample" loop option (may be active with no 0x01 flag set)
      *  0x20: VBR MP3
      *  0x40: joint stereo MP3 (apparently interleaved stereo for other formats)
      *  0x80+: (none/reserved) */
     flags = read_32bitBE(header_offset+0x14,streamFile);
-    /* sometimes loop_start/end is set but not flag 0x01, but from tests it only loops with 0x01
-     * Malicious PS3 uses flag 0x2 instead */
-    loop_flag = flags != 0xffffffff && (((flags & 0x10) && (flags & 0x01)) || (flags & 0x02));
+    /* sometimes loop_start/end is set with flag 0x10, but from tests it only loops if 0x01/02 is set
+     * 0x10 often goes with 0x01 but not always (Castlevania HoD); Malicious PS3 uses flag 0x2 instead */
+    loop_flag = flags != 0xffffffff && ((flags & 0x01) || (flags & 0x02));
 
     /* loop markers (marker N @ 0x18 + N*(4+4), but in practice only marker 0 is used) */
     if (loop_flag) {

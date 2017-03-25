@@ -471,6 +471,10 @@ void reset_vgmstream(VGMSTREAM * vgmstream) {
 
         ov_pcm_seek(ogg_vorbis_file, 0);
     }
+
+    if (vgmstream->coding_type==coding_fsb_vorbis) {
+        reset_fsb_vorbis(vgmstream);
+    }
 #endif
     if (vgmstream->coding_type==coding_CRI_HCA) {
         hca_codec_data *data = vgmstream->codec_data;
@@ -668,6 +672,11 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
             free(vgmstream->codec_data);
             vgmstream->codec_data = NULL;
         }
+    }
+
+    if (vgmstream->coding_type==coding_fsb_vorbis) {
+        free_fsb_vorbis(vgmstream->codec_data);
+        vgmstream->codec_data = NULL;
     }
 #endif
 
@@ -989,6 +998,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_PCM8_U_int:
 #ifdef VGM_USE_VORBIS
         case coding_ogg_vorbis:
+        case coding_fsb_vorbis:
 #endif
 #ifdef VGM_USE_MPEG
         case coding_fake_MPEG2_L2:
@@ -1467,6 +1477,12 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                     buffer+samples_written*vgmstream->channels,samples_to_do,
                     vgmstream->channels);
             break;
+
+        case coding_fsb_vorbis:
+            decode_fsb_vorbis(vgmstream,
+                    buffer+samples_written*vgmstream->channels,samples_to_do,
+                    vgmstream->channels);
+            break;
 #endif
         case coding_CRI_HCA:
             decode_hca(vgmstream->codec_data,
@@ -1776,6 +1792,10 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream) {
                 OggVorbis_File *ogg_vorbis_file = &(data->ogg_vorbis_file);
                 
                 ov_pcm_seek_lap(ogg_vorbis_file, vgmstream->loop_sample);
+            }
+
+            if (vgmstream->coding_type==coding_fsb_vorbis) {
+                seek_fsb_vorbis(vgmstream, vgmstream->loop_start_sample);
             }
 #endif
 

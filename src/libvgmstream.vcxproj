@@ -398,6 +398,7 @@
     <ClCompile Include="coding\adx_decoder.c" />
     <ClCompile Include="coding\aica_decoder.c" />
     <ClCompile Include="coding\eaxa_decoder.c" />
+    <ClCompile Include="coding\fsb_vorbis_decoder.c" />
     <ClCompile Include="coding\g719_decoder.c" />
     <ClCompile Include="coding\g721_decoder.c" />
     <ClCompile Include="coding\g7221_decoder.c" />

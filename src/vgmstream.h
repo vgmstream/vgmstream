@@ -149,6 +149,7 @@ typedef enum {
 
 #ifdef VGM_USE_VORBIS
     coding_ogg_vorbis,      /* Xiph Vorbis (MDCT-based) */
+    coding_fsb_vorbis,      /* FMOD's Vorbis without Ogg layer */
 #endif
 
 #ifdef VGM_USE_MPEG
@@ -744,6 +745,7 @@ typedef struct {
 } VGMSTREAM;
 
 #ifdef VGM_USE_VORBIS
+/* Ogg with Vorbis */
 typedef struct {
     STREAMFILE *streamfile;
     ogg_int64_t offset;
@@ -763,6 +765,20 @@ typedef struct {
 
     ogg_vorbis_streamfile ov_streamfile;
 } ogg_vorbis_codec_data;
+
+/* any raw Vorbis without Ogg layer */
+typedef struct  {
+    vorbis_info vi;             /* stream settings */
+    vorbis_comment vc;          /* stream comments */
+    vorbis_dsp_state vd;        /* decoder global state */
+    vorbis_block vb;            /* decoder local state */
+    ogg_packet op;              /* fake packet for internal use */
+
+    uint8_t * buffer;           /* internal raw data buffer */
+    size_t buffer_size;
+    size_t samples_to_discard;  /* for looping purposes */
+    int samples_full;           /* flag, samples available in vorbis buffers */
+} vorbis_codec_data;
 #endif
 
 #ifdef VGM_USE_MPEG

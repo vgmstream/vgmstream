@@ -304,7 +304,7 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
             vgmstream->layout_type = layout_none;
 
             /* force encoder delay */
-            if (skip_samples_mode) {
+            if (skip_samples_mode && skip_samples >= 0) {
                 ffmpeg_set_skip_samples(ffmpeg_data, skip_samples);
             }
 
