@@ -3,7 +3,7 @@
 #ifdef VGM_USE_VORBIS
 #include <vorbis/codec.h>
 
-#define FSB_VORBIS_ON 0 //todo recompile libvorbis and remove
+#define FSB_VORBIS_ON 0 //todo recompile libvorbis with vorbis_* and remove
 
 #define FSB_VORBIS_DEFAULT_BUFFER_SIZE 0x8000 /* should be at least the size of the setup header, ~0x2000 */
 
@@ -90,13 +90,10 @@ void decode_fsb_vorbis(VGMSTREAM * vgmstream, sample * outbuf, int32_t samples_t
 
         /* extra EOF check for edge cases */
         if (stream->offset > stream_size) {
-            //todo e_o_s on eof?
-
             memset(outbuf + samples_done * channels, 0, (samples_to_do - samples_done) * sizeof(sample));
             break;
         }
 
-        //todo discard samples
 
         if (data->samples_full) {  /* read more samples */
             int samples_to_get;
@@ -109,17 +106,23 @@ void decode_fsb_vorbis(VGMSTREAM * vgmstream, sample * outbuf, int32_t samples_t
                 continue;
             }
 
-            /* get max samples and convert from Vorbis float pcm to 16bit pcm */
-            if (samples_to_get > samples_to_do - samples_done)
-                samples_to_get = samples_to_do - samples_done;
-            pcm_convert_float_to_16(data, outbuf + samples_done * channels, samples_to_get, pcm);
+            if (data->samples_to_discard) {
+                /* discard samples for looping */
+                if (samples_to_get > data->samples_to_discard)
+                    samples_to_get = data->samples_to_discard;
+                data->samples_to_discard -= samples_to_get;
+            }
+            else {
+                /* get max samples and convert from Vorbis float pcm to 16bit pcm */
+                if (samples_to_get > samples_to_do - samples_done)
+                    samples_to_get = samples_to_do - samples_done;
+                samples_done += samples_to_get;
+                pcm_convert_float_to_16(data, outbuf + samples_done * channels, samples_to_get, pcm);
+            }
 
             /* mark consumed samples from the buffer
              * (non-consumed samples are returned in next vorbis_synthesis_pcmout calls) */
             vorbis_synthesis_read(&data->vd, samples_to_get);
-
-
-            samples_done += samples_to_get;
         }
         else { /* read more data */
             int rc;
@@ -181,8 +184,6 @@ static void pcm_convert_float_to_16(vorbis_codec_data * data, sample * outbuf, i
         float *mono = pcm[i];
         for (j = 0; j < samples_to_do; j++) {
             int val = floor(mono[j] * 32767.f + .5f);
-            //int val=mono[j]*32767.f+drand48()-0.5f; /* optional dither */
-
             if (val > 32767) val = 32767;
             if (val < -32768) val = -32768;
 
@@ -326,6 +327,7 @@ void seek_fsb_vorbis(VGMSTREAM *vgmstream, int32_t num_sample) {
      * To avoid having to parse different formats we'll just discard until the expected sample */
     vorbis_synthesis_restart(&data->vd);
     data->samples_to_discard = num_sample;
+    vgmstream->loop_ch[0].offset = vgmstream->loop_ch[0].channel_start_offset;
 #endif
 }
 
