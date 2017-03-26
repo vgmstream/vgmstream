@@ -116,8 +116,8 @@ void decode_fsb_vorbis(VGMSTREAM * vgmstream, sample * outbuf, int32_t samples_t
                 /* get max samples and convert from Vorbis float pcm to 16bit pcm */
                 if (samples_to_get > samples_to_do - samples_done)
                     samples_to_get = samples_to_do - samples_done;
-                samples_done += samples_to_get;
                 pcm_convert_float_to_16(data, outbuf + samples_done * channels, samples_to_get, pcm);
+                samples_done += samples_to_get;
             }
 
             /* mark consumed samples from the buffer
