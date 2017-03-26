@@ -4,7 +4,7 @@
 #include <vorbis/codec.h>
 
 #define FSB_VORBIS_ON 1 //todo remove once battle-tested
-#define FSB_VORBIS_USE_PRECOMPILED_FVS 0 /* if enabled vgmstream weights ~600kb more but doesn't need external .fvs packets */
+#define FSB_VORBIS_USE_PRECOMPILED_FVS 1 /* if enabled vgmstream weights ~600kb more but doesn't need external .fvs packets */
 
 #if FSB_VORBIS_ON
 #if FSB_VORBIS_USE_PRECOMPILED_FVS

@@ -117,6 +117,7 @@
     <ClInclude Include="meta\meta.h" />
     <ClInclude Include="coding\acm_decoder.h" />
     <ClInclude Include="coding\coding.h" />
+    <ClInclude Include="coding\fsb_vorbis_data.h" />
     <ClInclude Include="coding\g72x_state.h" />
     <ClInclude Include="coding\nwa_decoder.h" />
     <ClInclude Include="layout\layout.h" />
