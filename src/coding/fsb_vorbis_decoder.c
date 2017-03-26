@@ -3,7 +3,7 @@
 #ifdef VGM_USE_VORBIS
 #include <vorbis/codec.h>
 
-#define FSB_VORBIS_ON 0 //todo recompile libvorbis with vorbis_* and remove
+#define FSB_VORBIS_ON 1 //todo recompile libvorbis with vorbis_* and remove
 
 #define FSB_VORBIS_DEFAULT_BUFFER_SIZE 0x8000 /* should be at least the size of the setup header, ~0x2000 */
 
