@@ -1230,10 +1230,14 @@
 					RelativePath=".\coding\acm_decoder.h"
 					>
 				</File>
-				<File
-					RelativePath=".\coding\coding.h"
-					>
-				</File>
+                <File
+                    RelativePath=".\coding\coding.h"
+                    >
+                </File>
+                <File
+                    RelativePath=".\coding\fsb_vorbis_data.h"
+                    >
+                </File>
 				<File
 					RelativePath=".\coding\g72x_state.h"
 					>

@@ -3,15 +3,24 @@
 #ifdef VGM_USE_VORBIS
 #include <vorbis/codec.h>
 
-#define FSB_VORBIS_ON 1 //todo recompile libvorbis with vorbis_* and remove
+#define FSB_VORBIS_ON 1 //todo remove once battle-tested
+#define FSB_VORBIS_USE_PRECOMPILED_FVS 1 /* if enabled vgmstream weights ~600kb more but doesn't need external .fvs packets */
+
+#if FSB_VORBIS_ON
+#if FSB_VORBIS_USE_PRECOMPILED_FVS
+#include "fsb_vorbis_data.h"
+#endif
 
 #define FSB_VORBIS_DEFAULT_BUFFER_SIZE 0x8000 /* should be at least the size of the setup header, ~0x2000 */
 
-#if FSB_VORBIS_ON
 static void pcm_convert_float_to_16(vorbis_codec_data * data, sample * outbuf, int samples_to_do, float ** pcm);
 static int vorbis_make_header_identification(uint8_t * buf, size_t bufsize, int channels, int sample_rate, int blocksize_short, int blocksize_long);
 static int vorbis_make_header_comment(uint8_t * buf, size_t bufsize);
 static int vorbis_make_header_setup(uint8_t * buf, size_t bufsize, uint32_t setup_id, STREAMFILE *streamFile);
+
+static int load_fvs_file_single(uint8_t * buf, size_t bufsize, uint32_t setup_id, STREAMFILE *streamFile);
+static int load_fvs_file_multi(uint8_t * buf, size_t bufsize, uint32_t setup_id, STREAMFILE *streamFile);
+static int load_fvs_array(uint8_t * buf, size_t bufsize, uint32_t setup_id, STREAMFILE *streamFile);
 #endif
 
 /**
@@ -116,8 +125,8 @@ void decode_fsb_vorbis(VGMSTREAM * vgmstream, sample * outbuf, int32_t samples_t
                 /* get max samples and convert from Vorbis float pcm to 16bit pcm */
                 if (samples_to_get > samples_to_do - samples_done)
                     samples_to_get = samples_to_do - samples_done;
-                samples_done += samples_to_get;
                 pcm_convert_float_to_16(data, outbuf + samples_done * channels, samples_to_get, pcm);
+                samples_done += samples_to_get;
             }
 
             /* mark consumed samples from the buffer
@@ -254,48 +263,134 @@ static int vorbis_make_header_comment(uint8_t * buf, size_t bufsize) {
 }
 
 static int vorbis_make_header_setup(uint8_t * buf, size_t bufsize, uint32_t setup_id, STREAMFILE *streamFile) {
-    char setupname[PATH_LIMIT];
-    char pathname[PATH_LIMIT];
-    char *path;
+    int bytes;
+
+    /* try to load from external files first */
+    bytes = load_fvs_file_single(buf, bufsize, setup_id, streamFile);
+    if (bytes)
+        return bytes;
+
+    bytes = load_fvs_file_multi(buf, bufsize, setup_id, streamFile);
+    if (bytes)
+        return bytes;
+
+    /* try to locate from the precompiled list */
+    bytes = load_fvs_array(buf, bufsize, setup_id, streamFile);
+    if (bytes)
+        return bytes;
+
+    /* not found */
+    VGM_LOG("FSB Vorbis: setup_id %08x not found\n", setup_id);
+    return 0;
+}
+
+static int load_fvs_file_single(uint8_t * buf, size_t bufsize, uint32_t setup_id, STREAMFILE *streamFile) {
     STREAMFILE * streamFileSetup = NULL;
-    size_t bytes = 0;
 
+    {
+        char setupname[PATH_LIMIT];
+        char pathname[PATH_LIMIT];
+        char *path;
 
-    streamFile->get_name(streamFile,pathname,sizeof(pathname));
+        /* read "(dir/).fvs_{setup_id}" */
+        streamFile->get_name(streamFile,pathname,sizeof(pathname));
+        path = strrchr(pathname,DIR_SEPARATOR);
+        if (path)
+            *(path+1) = '\0';
+        else
+            pathname[0] = '\0';
 
-    /* try to get setup packet from external file first, using "(dir/).vorbis_{setup_id}" */
-    path = strrchr(pathname,DIR_SEPARATOR);
-    if (path) {
-        *(path+1) = '\0';
-    } else {
-        pathname[0] = '\0';
+        snprintf(setupname,PATH_LIMIT,"%s.fvs_%08x", pathname, setup_id);
+        streamFileSetup = streamFile->open(streamFile,setupname,STREAMFILE_DEFAULT_BUFFER_SIZE);
     }
-    snprintf(setupname,PATH_LIMIT,"%s.vorbis_%08x", pathname, setup_id);
 
-    streamFileSetup = streamFile->open(streamFile,setupname,STREAMFILE_DEFAULT_BUFFER_SIZE);
     if (streamFileSetup) {
         /* file found, get contents into the buffer */
-        bytes = streamFileSetup->get_size(streamFileSetup);
+        size_t bytes = streamFileSetup->get_size(streamFileSetup);
         if (bytes > bufsize) goto fail;
 
-        if (read_streamfile(buf, 0, bufsize, streamFileSetup) != bytes)
+        if (read_streamfile(buf, 0, bytes, streamFileSetup) != bytes)
             goto fail;
 
         streamFileSetup->close(streamFileSetup);
+        return bytes;
     }
-    else {
-        /* check the index list */
-        VGM_LOG("FSB Vorbis: setup_id %08x not found\n", setup_id);
-        goto fail;
-    }
-
-
-    return bytes;
 
 fail:
     if (streamFileSetup) streamFileSetup->close(streamFileSetup);
     return 0;
 }
+
+static int load_fvs_file_multi(uint8_t * buf, size_t bufsize, uint32_t setup_id, STREAMFILE *streamFile) {
+    STREAMFILE * streamFileSetup = NULL;
+
+    {
+        char setupname[PATH_LIMIT];
+        char pathname[PATH_LIMIT];
+        char *path;
+
+        /* read "(dir/).fvs" */
+        streamFile->get_name(streamFile,pathname,sizeof(pathname));
+        path = strrchr(pathname,DIR_SEPARATOR);
+        if (path)
+            *(path+1) = '\0';
+        else
+            pathname[0] = '\0';
+
+        snprintf(setupname,PATH_LIMIT,"%s.fvs", pathname);
+        streamFileSetup = streamFile->open(streamFile,setupname,STREAMFILE_DEFAULT_BUFFER_SIZE);
+    }
+
+    if (streamFileSetup) {
+        /* file found: read mini-header (format by bnnm, feel free to change) and locate FVS */
+        int entries, i;
+        uint32_t offset = 0, size = 0;
+
+        if (read_32bitBE(0x0, streamFileSetup) != 0x56465653) goto fail; /* "VFVS" */
+        entries = read_32bitLE(0x08, streamFileSetup); /* 0x04=v0, 0x0c-0x20: reserved */
+        if (entries <= 0) goto fail;
+
+        for (i=0; i < entries; i++) {  /* entry = id, offset, size, reserved */
+            if ((uint32_t)read_32bitLE(0x20 + i*0x10, streamFileSetup) == setup_id) {
+                offset = read_32bitLE(0x24 + i*0x10, streamFileSetup);
+                size = read_32bitLE(0x28 + i*0x10, streamFileSetup);
+                break;
+            }
+        }
+        if (!size || !offset || size > bufsize) goto fail;
+
+        /* read into buf */
+        if (read_streamfile(buf, offset, size, streamFileSetup) != size)
+            goto fail;
+
+        streamFileSetup->close(streamFileSetup);
+        return size;
+    }
+
+fail:
+    if (streamFileSetup) streamFileSetup->close(streamFileSetup);
+    return 0;
+}
+
+static int load_fvs_array(uint8_t * buf, size_t bufsize, uint32_t setup_id, STREAMFILE *streamFile) {
+#if FSB_VORBIS_USE_PRECOMPILED_FVS
+    int i, list_length;
+
+    list_length = sizeof(fvs_list) / sizeof(fvs_info);
+    for (i=0; i < list_length; i++) {
+        if (fvs_list[i].id == setup_id) {
+            if (fvs_list[i].size > bufsize) goto fail;
+            /* found: copy data as-is */
+            memcpy(buf,fvs_list[i].setup, fvs_list[i].size);
+            return fvs_list[i].size;
+        }
+    }
+
+fail:
+#endif
+    return 0;
+}
+
 
 #endif
 
