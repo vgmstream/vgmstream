@@ -168,10 +168,6 @@ int read_fmt(int big_endian,
             fmt->coding_type = coding_NGC_DSP;
             fmt->interleave = 8;
             break;
-        case 0xFFF0: /* */
-            fmt->coding_type = coding_NGC_DSP;
-            fmt->interleave = 8;
-            break;
 #ifdef VGM_USE_FFMPEG
 		case 0x270: /* ATRAC3 */
 #if defined(VGM_USE_FFMPEG) && !defined(VGM_USE_MAIATRAC3PLUS)
@@ -395,6 +391,7 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
                 ((data_size % fmt.block_size) ? (data_size % fmt.block_size - 4 * fmt.channel_count) * 2 / fmt.channel_count : 0);
             break;
         case coding_NGC_DSP:
+            //sample_count = data_size / fmt.channel_count / 8 * 14; /* expected from the "fact" chunk */
             break;
 #ifdef VGM_USE_FFMPEG
         case coding_FFmpeg:
@@ -607,8 +604,6 @@ VGMSTREAM * init_vgmstream_rifx(STREAMFILE *streamFile) {
     int sample_count = 0;
     //int fact_sample_count = -1;
     off_t start_offset = -1;
-    off_t wiih_offset = -1;
-    uint32_t wiih_size = 0;
 
     int loop_flag = 0;
     off_t loop_start_offset = -1;
@@ -692,10 +687,6 @@ VGMSTREAM * init_vgmstream_rifx(STREAMFILE *streamFile) {
                     if (chunk_size != 4) break;
                     //fact_sample_count = read_32bitBE(current_chunk+8, streamFile);
                     break;
-                case 0x57696948:    /* WiiH */
-                    wiih_size = read_32bitBE(current_chunk+4, streamFile);
-                    wiih_offset = current_chunk+8;
-                    break;
                 default:
                     /* ignorance is bliss */
                     break;
@@ -707,17 +698,6 @@ VGMSTREAM * init_vgmstream_rifx(STREAMFILE *streamFile) {
 
     if (!FormatChunkFound || !DataChunkFound) goto fail;
 
-    if (wiih_offset < 0 && fmt.coding_type == coding_MSADPCM &&
-        fmt.size == 0x1c + fmt.channel_count * 0x2e + 2) {
-
-        /* Epic Mickey 2 */
-
-        wiih_offset = fmt.offset + 8 + 0x1c;
-        wiih_size = fmt.channel_count * 0x2e;
-        fmt.coding_type = coding_NGC_DSP;
-        fmt.interleave = 8;
-    }
-
     switch (fmt.coding_type) {
         case coding_PCM16BE:
             sample_count = data_size/2/fmt.channel_count;
@@ -726,17 +706,8 @@ VGMSTREAM * init_vgmstream_rifx(STREAMFILE *streamFile) {
             sample_count = data_size/fmt.channel_count;
             break;
         case coding_NGC_DSP:
-            /* the only way of getting DSP info right now */
-            if (wiih_offset < 0 || wiih_size != 0x2e*fmt.channel_count)
-                goto fail;
-
+            //sample_count = data_size / fmt.channel_count / 8 * 14; /* expected from the "fact" chunk */
             break;
-#if 0
-        /* found in RE:ORC, looks like it should be MS_IMA instead */
-        case coding_MSADPCM:
-            sample_count = msadpcm_bytes_to_samples(data_size, fmt.block_size, fmt.channel_count);
-            break;
-#endif
         default:
             goto fail;
     }
@@ -792,17 +763,6 @@ VGMSTREAM * init_vgmstream_rifx(STREAMFILE *streamFile) {
     else
     {
         vgmstream->meta_type = meta_RIFX_WAVE;
-    }
-
-    /* read from WiiH */
-    if (wiih_offset >= 0) {
-        int i,j;
-        for (i=0;i<fmt.channel_count;i++) {
-            for (j=0;j<16;j++)
-                vgmstream->ch[i].adpcm_coef[j] = read_16bitBE(wiih_offset + i * 0x2e + j * 2,streamFile);
-            vgmstream->ch[i].adpcm_history1_16 = read_16bitBE(wiih_offset + i * 0x2e + 0x24,streamFile);
-            vgmstream->ch[i].adpcm_history2_16 = read_16bitBE(wiih_offset + i * 0x2e + 0x26,streamFile);
-        }
     }
 
     /* open the file, set up each channel */

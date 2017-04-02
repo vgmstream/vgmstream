@@ -382,6 +382,7 @@
     <ClCompile Include="meta\wii_sts.c" />
     <ClCompile Include="meta\ws_aud.c" />
     <ClCompile Include="meta\wvs.c" />
+    <ClCompile Include="meta\wwise.c" />
     <ClCompile Include="meta\xbox_hlwav.c" />
     <ClCompile Include="meta\xbox_ims.c" />
     <ClCompile Include="meta\xbox_stma.c" />

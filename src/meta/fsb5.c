@@ -175,6 +175,11 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
     /* fill in the vital statistics */
     vgmstream->sample_rate = SampleRate;
     vgmstream->num_streams = TotalStreams;
+    vgmstream->num_samples = NumSamples;
+    if (LoopFlag) {
+        vgmstream->loop_start_sample = LoopStart;
+        vgmstream->loop_end_sample = LoopEnd;
+    }
     vgmstream->meta_type = meta_FSB5;
 
     switch (CodingID) {
@@ -227,7 +232,10 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
             goto fail;
 
         case 0x09:  /* FMOD_SOUND_FORMAT_HEVAG */
-            goto fail;
+            vgmstream->layout_type = layout_interleave;
+            vgmstream->interleave_block_size = 0x10;
+            vgmstream->coding_type = coding_HEVAG;
+            break;
 
 #ifdef VGM_USE_FFMPEG
         case 0x0A: {/* FMOD_SOUND_FORMAT_XMA */
@@ -292,12 +300,6 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
 
         default:
             goto fail;
-    }
-
-    vgmstream->num_samples = NumSamples;
-    if (LoopFlag) {
-        vgmstream->loop_start_sample = LoopStart;
-        vgmstream->loop_end_sample = LoopEnd;
     }
 
 

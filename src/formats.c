@@ -298,6 +298,7 @@ static const char* extension_list[] = {
     //"wav", //common
     "wavm",
     "wb",
+    "wem",
     "wii",
     "wmus",
     "wp2",
@@ -835,6 +836,7 @@ static const meta_info meta_info_list[] = {
         {meta_X360_PASX,            "Namco PASX header"},
         {meta_XMA_RIFF,             "Microsoft XMA RIFF header"},
         {meta_X360_AST,             "Capcom AST header"},
+        {meta_WWISE_RIFF,           "Audiokinetic Wwise RIFF header"},
 
 #ifdef VGM_USE_VORBIS
         {meta_OGG_VORBIS,           "Ogg Vorbis"},

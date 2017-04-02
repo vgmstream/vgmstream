@@ -491,12 +491,12 @@ int check_extensions(STREAMFILE *streamFile, const char * cmp_exts) {
  * returns 0 on failure
  */
 int find_chunk_be(STREAMFILE *streamFile, uint32_t chunk_id, off_t start_offset, int full_chunk_size, off_t *out_chunk_offset, size_t *out_chunk_size) {
-    return find_chunk(streamFile, chunk_id, start_offset, full_chunk_size, out_chunk_offset, out_chunk_size, 1);
+    return find_chunk(streamFile, chunk_id, start_offset, full_chunk_size, out_chunk_offset, out_chunk_size, 1, 0);
 }
 int find_chunk_le(STREAMFILE *streamFile, uint32_t chunk_id, off_t start_offset, int full_chunk_size, off_t *out_chunk_offset, size_t *out_chunk_size) {
-    return find_chunk(streamFile, chunk_id, start_offset, full_chunk_size, out_chunk_offset, out_chunk_size, 0);
+    return find_chunk(streamFile, chunk_id, start_offset, full_chunk_size, out_chunk_offset, out_chunk_size, 0, 0);
 }
-int find_chunk(STREAMFILE *streamFile, uint32_t chunk_id, off_t start_offset, int full_chunk_size, off_t *out_chunk_offset, size_t *out_chunk_size, int size_big_endian) {
+int find_chunk(STREAMFILE *streamFile, uint32_t chunk_id, off_t start_offset, int full_chunk_size, off_t *out_chunk_offset, size_t *out_chunk_size, int size_big_endian, int zero_size_end) {
     size_t filesize;
     off_t current_chunk = start_offset;
 
@@ -514,8 +514,8 @@ int find_chunk(STREAMFILE *streamFile, uint32_t chunk_id, off_t start_offset, in
             return 1;
         }
 
-        /* end chunk with 0 size, seen in some custom formats */
-        if (chunk_size == 0)
+        /* empty chunk with 0 size, seen in some formats (XVAG uses it as end marker, Wwise doesn't) */
+        if (chunk_size == 0 && zero_size_end)
             return 0;
 
         current_chunk += full_chunk_size ? chunk_size : 4+4+chunk_size;

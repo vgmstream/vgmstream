@@ -32,6 +32,9 @@ VGMSTREAM * init_vgmstream_mca(STREAMFILE *streamFile) {
 	vgmstream->loop_start_sample = read_32bitLE(0x14, streamFile);
 	vgmstream->loop_end_sample = read_32bitLE(0x18, streamFile);
 
+	if (vgmstream->loop_end_sample > vgmstream->num_samples) /* some MH3U songs, somehow */
+	    vgmstream->loop_end_sample = vgmstream->num_samples;
+
 	vgmstream->coding_type = coding_NGC_DSP;
     vgmstream->layout_type = channel_count == 1 ? layout_none : layout_interleave;
 	vgmstream->meta_type = meta_MCA;
@@ -55,7 +58,7 @@ VGMSTREAM * init_vgmstream_mca(STREAMFILE *streamFile) {
         coef_shift = read_16bitLE(0x28, streamFile);
         coef_start = head_size - coef_spacing * channel_count;
 
-	    start_offset = head_size;
+	    start_offset = get_streamfile_size(streamFile) - data_size; /* usually head_size but not for some MH3U songs */
 	    coef_offset = coef_start + coef_shift * 0x14;
 
 	} else { /* v5: Ace Attourney 6, Monster Hunter Generations, v6+? */

@@ -598,6 +598,7 @@ typedef enum {
     meta_X360_PASX,         /* Namco PASX (Soul Calibur II HD X360) */
     meta_XMA_RIFF,          /* Microsoft RIFF XMA */
     meta_X360_AST,          /* Dead Rising (X360) */
+    meta_WWISE_RIFF,        /* Audiokinetic Wwise RIFF/RIFX */
 
 #ifdef VGM_USE_VORBIS
     meta_OGG_VORBIS,        /* Ogg Vorbis */

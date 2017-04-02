@@ -674,4 +674,6 @@ VGMSTREAM * init_vgmstream_akb2_multi(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_x360_ast(STREAMFILE *streamFile);
 
+VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile);
+
 #endif /*_META_H*/
