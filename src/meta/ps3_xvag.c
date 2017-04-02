@@ -33,7 +33,7 @@ VGMSTREAM * init_vgmstream_ps3_xvag(STREAMFILE *streamFile) {
     /* 0x08: flags? (&0x01=big endian?)  0x0a: version (chunk sizes vary) */
 
     /* "fmat": base format */
-    if (!find_chunk(streamFile, 0x666D6174,first_offset,0, &chunk_offset,NULL, !little_endian)) goto fail; /*"fmat"*/
+    if (!find_chunk(streamFile, 0x666D6174,first_offset,0, &chunk_offset,NULL, !little_endian, 1)) goto fail; /*"fmat"*/
     channel_count = read_32bit(chunk_offset+0x00,streamFile);
     codec = read_32bit(chunk_offset+0x04,streamFile);
     num_samples = read_32bit(chunk_offset+0x08,streamFile);
@@ -88,7 +88,7 @@ VGMSTREAM * init_vgmstream_ps3_xvag(STREAMFILE *streamFile) {
 
             /* "mpin": mpeg info */
             /*  0x00/04: mpeg version/layer?  other: unknown or repeats of "fmat" */
-            if (!find_chunk(streamFile, 0x6D70696E,first_offset,0, &chunk_offset,NULL, !little_endian)) goto fail; /*"mpin"*/
+            if (!find_chunk(streamFile, 0x6D70696E,first_offset,0, &chunk_offset,NULL, !little_endian, 1)) goto fail; /*"mpin"*/
             fixed_frame_size = read_32bit(chunk_offset+0x1c,streamFile);
 
             mpeg_data = init_mpeg_codec_data_interleaved(streamFile, start_offset, &mpeg_coding_type, vgmstream->channels, fixed_frame_size, 0);
