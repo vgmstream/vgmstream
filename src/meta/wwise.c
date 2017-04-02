@@ -320,20 +320,18 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
         }
 #endif
         case HEVAG:     /* PSV */
-            /* swapped values, another bizarre Wwise quirk */
-            if (ww.bit_per_sample != 4 && ww.block_align == 4) {
-                ww.block_align = ww.bit_per_sample;
-                ww.bit_per_sample = 4;
-            }
+            /* changed values, another bizarre Wwise quirk */
+            //ww.block_align /* unknown (1ch=2, 2ch=4) */
+            //ww.bit_per_sample; /* probably interleave (0x10) */
+            //if (ww.bit_per_sample != 4) goto fail;
+
+            if (ww.big_endian) goto fail;
 
             /* extra_data: size 0x06, @0x00: samples per block (28), @0x04: channel config */
 
-            if (ww.bit_per_sample != 4) goto fail;
-            if (ww.big_endian) goto fail;
-
             vgmstream->coding_type = coding_HEVAG;
             vgmstream->layout_type = layout_interleave;
-            vgmstream->interleave_block_size = ww.block_align;
+            vgmstream->interleave_block_size = 0x10;
 
             vgmstream->num_samples = ww.data_size * 28 / 16 / ww.channels;
             break;
