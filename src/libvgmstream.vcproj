@@ -1155,6 +1155,10 @@
 					>
 				</File>
                 <File
+                    RelativePath=".\meta\wwise.c"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\x360_ast.c"
                     >
                 </File>
