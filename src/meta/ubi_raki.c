@@ -5,8 +5,8 @@
 /* RAKI - Ubisoft audio format [Rayman Legends, Just Dance 2017 (multi)] */
 VGMSTREAM * init_vgmstream_ubi_raki(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    off_t start_offset, off, fmt_offset, dsp_coefs;
-    size_t data_size;
+    off_t start_offset, off, fmt_offset;
+    size_t header_size, data_size;
     int little_endian;
     int loop_flag, channel_count, block_align, bits_per_sample;
     uint32_t platform, type;
@@ -41,7 +41,7 @@ VGMSTREAM * init_vgmstream_ubi_raki(STREAMFILE *streamFile) {
     /* 0x04: version? (0x00, 0x07, 0x0a, etc); */
     platform = read_32bitBE(off+0x08,streamFile); /* string */
     type     = read_32bitBE(off+0x0c,streamFile); /* string */
-    /* 0x10: header size */
+    header_size  = read_32bit(off+0x10,streamFile);
     start_offset = read_32bit(off+0x14,streamFile);
     /* 0x18: number of chunks */
     /* 0x1c: unk */
@@ -87,16 +87,35 @@ VGMSTREAM * init_vgmstream_ubi_raki(STREAMFILE *streamFile) {
             vgmstream->num_samples = msadpcm_bytes_to_samples(data_size, vgmstream->interleave_block_size, channel_count);
             break;
 
+        case 0x5769692061647063:    /* "Wii adpc" */
         case 0x4361666561647063:    /* "Cafeadpc" (WiiU) */
-            /* chunks: "datS" ("data" equivalent) */
+            /* chunks: "datS" (stereo), "datL" (mono or full interleave), "datR" (full interleave), "data" equivalents */
             vgmstream->coding_type = coding_NGC_DSP;
-            vgmstream->layout_type = layout_interleave;
+            vgmstream->layout_type = channel_count==1 ? layout_none : layout_interleave;
             vgmstream->interleave_block_size = 8;
 
-            /* get coef offsets; could check "dspL" and "dspR" chunks after "fmt " better but whatevs (only "dspL" if mono) */
-            dsp_coefs = read_32bitBE(off+0x30,streamFile); /* after "dspL"; spacing is consistent but could vary */
-            dsp_read_coefs(vgmstream,streamFile, dsp_coefs+0x1c, 0x60, !little_endian);
-            /* dsp_coefs + 0x00-0x1c: ? (special coefs or adpcm history?) */
+            /* we need to know if the file uses "datL" and is full-interleave */
+            if (channel_count > 1) {
+                off_t chunk_off = off+ 0x20 + 0xc; /* after "fmt" */
+                while (chunk_off < header_size) {
+                    if (read_32bitBE(chunk_off,streamFile) == 0x6461744C) { /*"datL" found */
+                        size_t chunk_size = read_32bit(chunk_off+0x8,streamFile);
+                        data_size = chunk_size * channel_count; /* to avoid counting the "datR" chunk */
+                        vgmstream->interleave_block_size = (4+4) + chunk_size; /* don't forget to skip the "datR"+size chunk */
+                        break;
+                    }
+                    chunk_off += 0xc;
+                }
+
+                /* not found? probably "datS" (regular stereo interleave) */
+            }
+
+            {
+                /* get coef offsets; could check "dspL" and "dspR" chunks after "fmt " better but whatevs (only "dspL" if mono) */
+                off_t dsp_coefs = read_32bitBE(off+0x30,streamFile); /* after "dspL"; spacing is consistent but could vary */
+                dsp_read_coefs(vgmstream,streamFile, dsp_coefs+0x1c, 0x60, !little_endian);
+                /* dsp_coefs + 0x00-0x1c: ? (special coefs or adpcm history?) */
+            }
 
             vgmstream->num_samples = dsp_bytes_to_samples(data_size, channel_count);
             break;
