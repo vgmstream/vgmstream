@@ -81,7 +81,7 @@ VGMSTREAM * init_vgmstream_ubi_raki(STREAMFILE *streamFile) {
         case 0x57696E2061647063:    /* "Win adpc" */
             /* chunks: "data" */
             vgmstream->coding_type = coding_MSADPCM;
-            vgmstream->layout_type = layout_interleave;
+            vgmstream->layout_type = layout_none;
             vgmstream->interleave_block_size = block_align;
 
             vgmstream->num_samples = msadpcm_bytes_to_samples(data_size, vgmstream->interleave_block_size, channel_count);
