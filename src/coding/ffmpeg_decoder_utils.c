@@ -631,4 +631,16 @@ void wmapro_get_samples(xma_sample_data * msd, STREAMFILE *streamFile, int block
 }
 
 
+size_t atrac3_bytes_to_samples(size_t bytes, int full_block_align) {
+    /* ATRAC3 expects full block align since as is can mix joint stereo with mono blocks;
+     * so (full_block_align / channels) DOESN'T give the size of a single channel (uncommon in ATRAC3 though) */
+    return (bytes / full_block_align) * 1024;
+}
+
+size_t atrac3plus_bytes_to_samples(size_t bytes, int full_block_align) {
+    /* ATRAC3plus expects full block align since as is can mix joint stereo with mono blocks;
+     * so (full_block_align / channels) DOESN'T give the size of a single channel (common in ATRAC3plus) */
+    return (bytes / full_block_align) * 2048;
+}
+
 #endif

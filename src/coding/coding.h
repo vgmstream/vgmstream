@@ -207,6 +207,9 @@ typedef struct {
 void xma_get_samples(xma_sample_data * msd, STREAMFILE *streamFile);
 void wmapro_get_samples(xma_sample_data * msd, STREAMFILE *streamFile, int block_align, int sample_rate, uint32_t decode_flags);
 
+size_t atrac3_bytes_to_samples(size_t bytes, int full_block_align);
+size_t atrac3plus_bytes_to_samples(size_t bytes, int full_block_align);
+
 #endif
 
 #endif /*_CODING_H*/

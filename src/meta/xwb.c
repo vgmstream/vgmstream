@@ -226,7 +226,7 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
 
         /* num samples uses a modified entry_info format (maybe skip samples + samples? sfx use the standard format)
          * ignore for now and just calc max samples */ //todo
-        xwb.num_samples = xwb.stream_size / (xwb.block_align * xwb.channels) * 1024;
+        xwb.num_samples = atrac3_bytes_to_samples(xwb.stream_size, xwb.block_align * xwb.channels);
     }
 
 
