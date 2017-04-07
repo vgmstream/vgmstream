@@ -31,7 +31,7 @@ void decode_fsb_ima(VGMSTREAM * vgmstream, VGMSTREAMCHANNEL * stream, sample * o
 /* ngc_dsp_decoder */
 void decode_ngc_dsp(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
 void decode_ngc_dsp_mem(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, uint8_t * mem);
-
+size_t dsp_bytes_to_samples(size_t bytes, int channels);
 int32_t dsp_nibbles_to_samples(int32_t nibbles);
 void dsp_read_coefs_be(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t offset, off_t spacing);
 void dsp_read_coefs_le(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t offset, off_t spacing);
@@ -53,6 +53,7 @@ void decode_pcm8_int(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspac
 void decode_pcm8_sb_int(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
 void decode_pcm8_unsigned_int(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
 void decode_pcm8_unsigned(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
+size_t pcm_bytes_to_samples(size_t bytes, int channels, int bits_per_sample);
 
 /* psx_decoder */
 void decode_psx(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
@@ -60,6 +61,7 @@ void decode_psx_badflags(VGMSTREAMCHANNEL * stream, sample * outbuf, int channel
 void decode_psx_bmdx(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
 void decode_psx_configurable(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int frame_size);
 void decode_hevag(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
+size_t ps_bytes_to_samples(size_t bytes, int channels);
 
 /* xa_decoder */
 void decode_xa(VGMSTREAM * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel);
@@ -87,9 +89,9 @@ void decode_acm(ACMStream * acm, sample * outbuf, int32_t samples_to_do, int cha
 void decode_nwa(NWAData *nwa, sample *outbuf, int32_t samples_to_do);
 
 /* msadpcm_decoder */
-long msadpcm_bytes_to_samples(long bytes, int block_size, int channels);
 void decode_msadpcm_stereo(VGMSTREAM * vgmstream, sample * outbuf, int32_t first_sample, int32_t samples_to_do);
 void decode_msadpcm_mono(VGMSTREAM * vgmstream, sample * outbuf, int32_t first_sample, int32_t samples_to_do);
+long msadpcm_bytes_to_samples(long bytes, int block_size, int channels);
 
 /* aica_decoder */
 void decode_aica(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);

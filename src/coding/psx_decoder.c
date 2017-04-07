@@ -432,3 +432,8 @@ void decode_psx_configurable(VGMSTREAMCHANNEL * stream, sample * outbuf, int cha
     stream->adpcm_history1_32 = hist1;
     stream->adpcm_history2_32 = hist2;
 }
+
+
+size_t ps_bytes_to_samples(size_t bytes, int channels) {
+    return bytes / channels / 16 * 28;
+}

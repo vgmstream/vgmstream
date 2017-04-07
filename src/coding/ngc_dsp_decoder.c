@@ -95,6 +95,10 @@ int32_t dsp_nibbles_to_samples(int32_t nibbles) {
     else return whole_frames*14;
 }
 
+size_t dsp_bytes_to_samples(size_t bytes, int channels) {
+    return bytes / channels / 8 * 14;
+}
+
 
 /**
  * reads DSP coefs built in the streamfile
