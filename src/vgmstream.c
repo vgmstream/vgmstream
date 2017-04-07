@@ -342,6 +342,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_akb2_multi,
     init_vgmstream_x360_ast,
     init_vgmstream_wwise,
+    init_vgmstream_ubi_raki,
 
 #ifdef VGM_USE_FFMPEG
     init_vgmstream_xma,
@@ -371,6 +372,7 @@ VGMSTREAM * init_vgmstream_internal(STREAMFILE *streamFile, int do_dfs) {
             /* fail if there is nothing to play
              *  (without this check vgmstream can generate empty files) */
             if (vgmstream->num_samples <= 0) {
+                VGM_LOG("VGMSTREAM: wrong num_samples (ns=%i)\n", vgmstream->num_samples);
                 close_vgmstream(vgmstream);
                 continue;
             }
@@ -378,6 +380,7 @@ VGMSTREAM * init_vgmstream_internal(STREAMFILE *streamFile, int do_dfs) {
             /* everything should have a reasonable sample rate
              * (a verification of the metadata) */
             if (!check_sample_rate(vgmstream->sample_rate)) {
+                VGM_LOG("VGMSTREAM: wrong sample rate (sr=%i)\n", vgmstream->sample_rate);
                 close_vgmstream(vgmstream);
                 continue;
             }
@@ -388,7 +391,7 @@ VGMSTREAM * init_vgmstream_internal(STREAMFILE *streamFile, int do_dfs) {
                         || (vgmstream->loop_end_sample > vgmstream->num_samples)
                         || (vgmstream->loop_start_sample < 0) ) {
                     vgmstream->loop_flag = 0;
-                    VGM_LOG("VGMSTREAM: wrong loops ignored (lss==%i, lse=%i, ns=%i)\n", vgmstream->loop_start_sample, vgmstream->loop_end_sample, vgmstream->num_samples);
+                    VGM_LOG("VGMSTREAM: wrong loops ignored (lss=%i, lse=%i, ns=%i)\n", vgmstream->loop_start_sample, vgmstream->loop_end_sample, vgmstream->num_samples);
                 }
             }
 

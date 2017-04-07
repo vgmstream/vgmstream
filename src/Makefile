@@ -317,6 +317,7 @@ META_OBJS=meta/adx_header.o \
     meta/akb.o \
     meta/x360_ast.o \
     meta/wwise.o \
+    meta/ubi_raki.o
 
 EXT_LIBS = ../ext_libs/clHCA.o
 

@@ -1,0 +1,196 @@
+#include "meta.h"
+#include "../coding/coding.h"
+
+
+/* RAKI - Ubisoft audio format [Rayman Legends, Just Dance 2017 (multi)] */
+VGMSTREAM * init_vgmstream_ubi_raki(STREAMFILE *streamFile) {
+    VGMSTREAM * vgmstream = NULL;
+    off_t start_offset, off, fmt_offset, dsp_coefs;
+    size_t data_size;
+    int little_endian;
+    int loop_flag, channel_count, block_align, bits_per_sample;
+    uint32_t platform, type;
+
+    int32_t (*read_32bit)(off_t,STREAMFILE*) = NULL;
+    int16_t (*read_16bit)(off_t,STREAMFILE*) = NULL;
+
+
+    /* basic checks */
+    /* .rak: Just Dance 2017; .ckd: Rayman Legends (technically .wav.ckd/rak) */
+    if (!check_extensions(streamFile,"rak,ckd")) goto fail;
+
+    /* some games (ex. Rayman Legends PS3) have a 32b file type before the RAKI data. However
+     * offsets are absolute and expect the type exists, so it's part of the file and not an extraction defect. */
+    if ((read_32bitBE(0x00,streamFile) == 0x52414B49))  /* "RAKI" */
+        off = 0x0;
+    else if ((read_32bitBE(0x04,streamFile) == 0x52414B49)) /* type varies between platforms (0x09, 0x0b) so ignore */
+        off = 0x4;
+    else
+        goto fail;
+
+    /* endianness is given with the platform field, but this is more versatile */
+    little_endian = read_32bitBE(off+0x10,streamFile) > 0x00ffffff;
+    if (little_endian) {
+        read_32bit = read_32bitLE;
+        read_16bit = read_16bitLE;
+    } else {
+        read_32bit = read_32bitBE;
+        read_16bit = read_16bitBE;
+    }
+
+    /* 0x04: version? (0x00, 0x07, 0x0a, etc); */
+    platform = read_32bitBE(off+0x08,streamFile); /* string */
+    type     = read_32bitBE(off+0x0c,streamFile); /* string */
+    /* 0x10: header size */
+    start_offset = read_32bit(off+0x14,streamFile);
+    /* 0x18: number of chunks */
+    /* 0x1c: unk */
+
+    /* The first chunk is always "fmt" and points to a RIFF "fmt" chunk (even for WiiU or PS3) */
+    if (read_32bitBE(off+0x20,streamFile) != 0x666D7420) goto fail; /*"fmt "*/
+    fmt_offset = read_32bit(off+0x24,streamFile);
+    //fmt_size = read_32bit(off+0x28,streamFile);
+
+    loop_flag = 0; /* not seen */
+    channel_count = read_16bit(fmt_offset+0x2,streamFile);
+    block_align = read_16bit(fmt_offset+0xc,streamFile);
+    bits_per_sample = read_16bit(fmt_offset+0xe,streamFile);
+
+    /* build the VGMSTREAM */
+    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+    if (!vgmstream) goto fail;
+
+    vgmstream->sample_rate = read_32bit(fmt_offset+0x4,streamFile);
+    vgmstream->meta_type = meta_UBI_RAKI;
+
+    /* codecs have a "data" or equivalent chunk with the size/start_offset, but always agree with this */
+    data_size = get_streamfile_size(streamFile) - start_offset;
+
+    /* parse compound codec to simplify */
+    switch(((uint64_t)platform << 32) | type) {
+
+        case 0x57696E2070636D20:    /* "Win pcm " */
+            /* chunks: "data" */
+            vgmstream->coding_type = little_endian ? coding_PCM16LE : coding_PCM16BE;
+            vgmstream->layout_type = layout_interleave;
+            vgmstream->interleave_block_size = block_align;
+
+            vgmstream->num_samples = pcm_bytes_to_samples(data_size, channel_count, bits_per_sample);
+            break;
+
+        case 0x57696E2061647063:    /* "Win adpc" */
+            /* chunks: "data" */
+            vgmstream->coding_type = coding_MSADPCM;
+            vgmstream->layout_type = layout_interleave;
+            vgmstream->interleave_block_size = block_align;
+
+            vgmstream->num_samples = msadpcm_bytes_to_samples(data_size, vgmstream->interleave_block_size, channel_count);
+            break;
+
+        case 0x4361666561647063:    /* "Cafeadpc" (WiiU) */
+            /* chunks: "datS" ("data" equivalent) */
+            vgmstream->coding_type = coding_NGC_DSP;
+            vgmstream->layout_type = layout_interleave;
+            vgmstream->interleave_block_size = 8;
+
+            /* get coef offsets; could check "dspL" and "dspR" chunks after "fmt " better but whatevs (only "dspL" if mono) */
+            dsp_coefs = read_32bitBE(off+0x30,streamFile); /* after "dspL"; spacing is consistent but could vary */
+            dsp_read_coefs(vgmstream,streamFile, dsp_coefs+0x1c, 0x60, !little_endian);
+            /* dsp_coefs + 0x00-0x1c: ? (special coefs or adpcm history?) */
+
+            vgmstream->num_samples = dsp_bytes_to_samples(data_size, channel_count);
+            break;
+
+#ifdef VGM_USE_MPEG
+        case 0x505333206D703320: {  /* "PS3 mp3 " */
+            /* chunks: "MARK" optional seek table), "STRG" (optional description), "Msf " ("data" equivalent) */
+            vgmstream->codec_data = init_mpeg_codec_data(streamFile, start_offset, &vgmstream->coding_type, vgmstream->channels);
+            if (!vgmstream->codec_data) goto fail;
+            vgmstream->layout_type = layout_mpeg;
+
+            vgmstream->num_samples = mpeg_bytes_to_samples(data_size, vgmstream->codec_data);
+            break;
+        }
+#endif
+
+#ifdef VGM_USE_FFMPEG
+        case 0x58333630786D6132: {  /* "X360xma2" */
+            /* chunks: "seek" (XMA2 seek table), "data" */
+            uint8_t buf[100];
+            int bytes, block_count;
+
+            block_count = data_size / block_align + (data_size % block_align ? 1 : 0);
+            bytes = ffmpeg_make_riff_xma2(buf, 100, vgmstream->num_samples, data_size, vgmstream->channels, vgmstream->sample_rate, block_count, block_align);
+            if (bytes <= 0) goto fail;
+
+            vgmstream->codec_data = init_ffmpeg_header_offset(streamFile, buf,bytes, start_offset,data_size);
+            if ( !vgmstream->codec_data ) goto fail;
+            vgmstream->coding_type = coding_FFmpeg;
+            vgmstream->layout_type = layout_none;
+
+            vgmstream->num_samples = read_32bit(fmt_offset+0x18,streamFile);
+            break;
+        }
+#endif
+
+        case 0x5649544161743920:    /*"VITAat9 "*/
+            /* chunks: "fact" (equivalent to a RIFF "fact", num_samples + skip_samples), "data" */
+            goto fail;
+
+        default:
+            VGM_LOG("RAKI: unknown platform %x and type %x\n", platform, type);
+            goto fail;
+    }
+
+
+    if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
+        goto fail;
+    return vgmstream;
+
+fail:
+    close_vgmstream(vgmstream);
+    return NULL;
+}
+
+//todo remove
+#if 0
+    typedef enum { PCM, MSADPCM, DSP, XMA2, MP3, ATRAC9 } raki_codec;
+
+    if (platform == 0x57696E20 && type == 0x70636D20) {      /*"Win pcm " */
+        codec = PCM;
+    }
+    else if (platform == 0x57696E20 && type == 0x61647063) { /*"Win adpc"*/
+        codec = MSADPCM;
+    }
+    else if (platform == 0x50533320 && type == 0x6D703320) { /*"PS3 mp3 "*/
+        codec = MP3;
+    }
+    else if (platform == 0x58333630 && type == 0x786D6132) { /*"X360xma2"*/
+        codec = XMA2;
+    }
+    else if (platform == 0x43616665 && type == 0x61647063) { /*"Cafeadpc" (WiiU) */
+        codec = DSP;
+    }
+    else if (platform == 0x56495441 && type == 0x61743920) { /*"VITAat9 "*/
+        //"data" 64617461
+
+        codec = ATRAC9;
+    }
+    else
+        goto fail;
+
+    switch(codec) {
+        case PCM:
+            break;
+        case MSADPCM:
+            break;
+        case MP3:
+            break;
+        case XMA2:
+            break;
+        case ATRAC9:
+            break;
+        default:
+            goto fail;
+    }
+#endif

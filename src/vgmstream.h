@@ -432,7 +432,7 @@ typedef enum {
     meta_PS2_XA2_RRP,       /* RC Revenge Pro */
     meta_PS2_STM,           /* Red Dead Revolver .stm, renamed .ps2stm */
     meta_NGC_DSP_KONAMI,    /* Konami DSP header, found in various games */
-	meta_UBI_CKD,           /* Ubisoft CKD RIFF header from Rayman Origins */
+	meta_UBI_CKD,           /* Ubisoft CKD RIFF header (Rayman Origins Wii) */
 
     meta_XBOX_WAVM,			/* XBOX WAVM File */
     meta_XBOX_RIFF,			/* XBOX RIFF/WAVE File */
@@ -599,6 +599,7 @@ typedef enum {
     meta_XMA_RIFF,          /* Microsoft RIFF XMA */
     meta_X360_AST,          /* Dead Rising (X360) */
     meta_WWISE_RIFF,        /* Audiokinetic Wwise RIFF/RIFX */
+    meta_UBI_RAKI,          /* Ubisoft RAKI header (Rayman Legends, Just Dance 2017) */
 
 #ifdef VGM_USE_VORBIS
     meta_OGG_VORBIS,        /* Ogg Vorbis */
