@@ -380,7 +380,7 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
             block_align = wma_block_align_index[block_index];
             wma_codec = xwb.bits_per_sample ? 0x162 : 0x161; /* 0=WMAudio2, 1=WMAudio3 */
 
-            bytes = ffmpeg_make_riff_xwma(buf, 100, wma_codec, vgmstream->num_samples, xwb.stream_size, vgmstream->channels, vgmstream->sample_rate, avg_bps, block_align);
+            bytes = ffmpeg_make_riff_xwma(buf, 100, wma_codec, xwb.stream_size, vgmstream->channels, vgmstream->sample_rate, avg_bps, block_align);
             if (bytes <= 0) goto fail;
 
             ffmpeg_data = init_ffmpeg_header_offset(streamFile, buf,bytes, xwb.stream_offset,xwb.stream_size);
