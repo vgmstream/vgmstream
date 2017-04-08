@@ -29,9 +29,10 @@ typedef struct {
     int bits_per_sample;
     size_t extra_size;
 
+    int32_t num_samples;
     int loop_flag;
-    uint32_t loop_start_sample;
-    uint32_t loop_end_sample;
+    int32_t loop_start_sample;
+    int32_t loop_end_sample;
 } wwise_header;
 
 
@@ -69,7 +70,7 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
     ww.file_size = streamFile->get_size(streamFile);
 
 #if 0
-    /* sometimes uses a RIFF size that doesn't count chunk/sizes, LE value in RIFX, or just wrong...? */
+    /* sometimes uses a RIFF size that doesn't count chunks/sizes, has LE size in RIFX, or is just wrong...? */
     if (4+4+read_32bit(0x04,streamFile) != ww.file_size) {
         VGM_LOG("WWISE: bad riff size (real=0x%x vs riff=0x%x)\n", 4+4+read_32bit(0x04,streamFile), ww.file_size);
         goto fail;
@@ -77,7 +78,7 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
 #endif
 
 
-    /* parse WAVEFORMATEX (roughly spec-compliant but some massaging is needed) */
+    /* parse format (roughly spec-compliant but some massaging is needed) */
     {
         off_t loop_offset;
         size_t loop_size;
@@ -94,21 +95,29 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
         /* base fmt */
         if (ww.fmt_size < 0x12) goto fail;
         ww.format           = (uint16_t)read_16bit(ww.fmt_offset+0x00,streamFile);
-        ww.channels         = read_16bit(ww.fmt_offset+0x02,streamFile);
-        ww.sample_rate      = read_32bit(ww.fmt_offset+0x04,streamFile);
-        ww.average_bps      = read_32bit(ww.fmt_offset+0x08,streamFile);/* bytes per sec */
-        ww.block_align      = (uint16_t)read_16bit(ww.fmt_offset+0x0c,streamFile);
-        ww.bits_per_sample   = (uint16_t)read_16bit(ww.fmt_offset+0x0e,streamFile);
-        if (ww.fmt_size > 0x10 && ww.format != 0x0165 && ww.format != 0x0166) /* ignore XMAWAVEFORMAT */
-            ww.extra_size   = (uint16_t)read_16bit(ww.fmt_offset+0x10,streamFile);
-#if 0
-        /* channel bitmask, see AkSpeakerConfig.h (ex. 1ch uses FRONT_CENTER 0x4, 2ch FRONT_LEFT 0x1 | FRONT_RIGHT 0x2, etc) */
-        if (ww.extra_size >= 6)
-            ww.channel_config = read_32bit(ww.fmt_offset+0x14,streamFile);
-#endif
 
-        /* find loop info (both used in early and late Wwise and seem to follow the spec) */
-        if (find_chunk(streamFile, 0x736D706C,first_offset,0, &loop_offset,&loop_size, ww.big_endian, 0)) { /*"smpl"*/
+        if (ww.format == 0x0165) { /* XMA2WAVEFORMAT (always "fmt"+"XMA2", unlike .xma that may only have "XMA2") */
+            off_t xma2_offset;
+            if (!find_chunk(streamFile, 0x584D4132,first_offset,0, &xma2_offset,NULL, ww.big_endian, 0)) goto fail;
+            xma2_parse_xma2_chunk(streamFile, xma2_offset,&ww.channels,&ww.sample_rate, &ww.loop_flag, &ww.num_samples, &ww.loop_start_sample, &ww.loop_end_sample);
+        } else { /* WAVEFORMATEX */
+            ww.channels         = read_16bit(ww.fmt_offset+0x02,streamFile);
+            ww.sample_rate      = read_32bit(ww.fmt_offset+0x04,streamFile);
+            ww.average_bps      = read_32bit(ww.fmt_offset+0x08,streamFile);/* bytes per sec */
+            ww.block_align      = (uint16_t)read_16bit(ww.fmt_offset+0x0c,streamFile);
+            ww.bits_per_sample   = (uint16_t)read_16bit(ww.fmt_offset+0x0e,streamFile);
+            if (ww.fmt_size > 0x10 && ww.format != 0x0165 && ww.format != 0x0166) /* ignore XMAWAVEFORMAT */
+                ww.extra_size   = (uint16_t)read_16bit(ww.fmt_offset+0x10,streamFile);
+            /* channel bitmask, see AkSpeakerConfig.h (ex. 1ch uses FRONT_CENTER 0x4, 2ch FRONT_LEFT 0x1 | FRONT_RIGHT 0x2, etc) */
+            //if (ww.extra_size >= 6)
+            //    ww.channel_config = read_32bit(ww.fmt_offset+0x14,streamFile);
+        }
+
+        /* find loop info */
+        if (ww.format == 0x0166) { /* XMA2WAVEFORMATEX */
+            xma2_parse_fmt_chunk_extra(streamFile, ww.fmt_offset, &ww.loop_flag, &ww.num_samples, &ww.loop_start_sample, &ww.loop_end_sample, ww.big_endian);
+        }
+        else if (find_chunk(streamFile, 0x736D706C,first_offset,0, &loop_offset,&loop_size, ww.big_endian, 0)) { /*"smpl". common */
             if (loop_size >= 0x34
                     && read_32bit(loop_offset+0x1c, streamFile)==1        /*loop count*/
                     && read_32bit(loop_offset+0x24+4, streamFile)==0) {
@@ -117,7 +126,8 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
                 ww.loop_end_sample   = read_32bit(loop_offset+0x24+0xc,streamFile);
                 //todo fix repeat looping
             }
-        } else if (find_chunk(streamFile, 0x4C495354,first_offset,0, &loop_offset,&loop_size, ww.big_endian, 0)) { /*"LIST"*/
+        }
+        else if (find_chunk(streamFile, 0x4C495354,first_offset,0, &loop_offset,&loop_size, ww.big_endian, 0)) { /*"LIST", common */
             //todo parse "adtl" (does it ever contain loop info in Wwise?)
         }
 
@@ -293,24 +303,42 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
 
 #ifdef VGM_USE_FFMPEG
         case XMA2: {    /* X360/XBone */
-            //chunks:
-            //"XMA2", "seek": same as the official ones
-            //"XMAc": Wwise extension, XMA2 physical loop regions (loop_start_b, loop_end_b, loop_subframe_data)
+            uint8_t buf[0x100];
+            int bytes;
+            off_t xma2_offset;
+            size_t xma2_size;
 
-            if (!ww.big_endian) goto fail; /* must be from Wwise X360 (real LE XMA(2)WAVEFORMAT/EX are parsed elsewhere) */
+            if (!ww.big_endian) goto fail; /* must be Wwise (real XMA are LE and parsed elsewhere) */
 
-            VGM_LOG("WWISE: XMA2 found (unsupported)\n");
-            goto fail;
+            if (find_chunk(streamFile, 0x584D4132,first_offset,0, &xma2_offset,&xma2_size, ww.big_endian, 0)) { /*"XMA2"*/ /* older Wwise */
+                bytes = ffmpeg_make_riff_xma2_from_xma2_chunk(buf,0x100, xma2_offset, xma2_size, ww.data_size, streamFile);
+            } else { /* newer Wwise */
+                bytes = ffmpeg_make_riff_xma_from_fmt(buf,0x100, ww.fmt_offset, ww.fmt_size, ww.data_size, streamFile, ww.big_endian);
+            }
+            if (bytes <= 0) goto fail;
+
+            vgmstream->codec_data = init_ffmpeg_header_offset(streamFile, buf,bytes, ww.data_offset,ww.data_size);
+            if ( !vgmstream->codec_data ) goto fail;
+            vgmstream->coding_type = coding_FFmpeg;
+            vgmstream->layout_type = layout_none;
+
+            vgmstream->num_samples = ww.num_samples; /* set while parsing XMAWAVEFORMATs */
+
+            /* "XMAc": rare Wwise extension, XMA2 physical loop regions (loop_start_b, loop_end_b, loop_subframe_data) */
+            VGM_ASSERT(find_chunk(streamFile, 0x584D4163,first_offset,0, NULL,NULL, ww.big_endian, 0), "WWISE: XMAc chunk found\n");
+            /* other chunks: "seek", regular XMA2 seek table */
+
+            break;
         }
 
         case XWMA: {    /* X360 */
             ffmpeg_codec_data *ffmpeg_data = NULL;
-            uint8_t buf[100];
+            uint8_t buf[0x100];
             int bytes;
 
             if (!ww.big_endian) goto fail; /* must be from Wwise X360 (PC LE XWMA is parsed elsewhere) */
 
-            bytes = ffmpeg_make_riff_xwma(buf, 100, ww.format, ww.data_size, vgmstream->channels, vgmstream->sample_rate, ww.average_bps, ww.block_align);
+            bytes = ffmpeg_make_riff_xwma(buf,0x100, ww.format, ww.data_size, vgmstream->channels, vgmstream->sample_rate, ww.average_bps, ww.block_align);
             if (bytes <= 0) goto fail;
 
             ffmpeg_data = init_ffmpeg_header_offset(streamFile, buf,bytes, ww.data_offset,ww.data_size);
