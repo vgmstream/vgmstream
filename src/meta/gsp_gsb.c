@@ -82,9 +82,9 @@ VGMSTREAM * init_vgmstream_gsp_gsb(STREAMFILE *streamFile) {
             uint8_t buf[100];
             int32_t bytes, block_size, encoder_delay, joint_stereo, max_samples;
 
-            block_size = 0x98 * vgmstream->channels;
-            joint_stereo = 0;
-            max_samples = (datasize / block_size) * 1024;
+            block_size    = 0x98 * vgmstream->channels;
+            joint_stereo  = 0;
+            max_samples   = atrac3_bytes_to_samples(datasize, block_size);;
             encoder_delay = max_samples - vgmstream->num_samples; /* todo guessed */
 
             vgmstream->num_samples += encoder_delay;

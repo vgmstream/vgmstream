@@ -255,5 +255,6 @@ libmeta_la_SOURCES += bik.c
 libmeta_la_SOURCES += akb.c
 libmeta_la_SOURCES += x360_ast.c
 libmeta_la_SOURCES += wwise.c
+libmeta_la_SOURCES += ubi_raki.c
 
 EXTRA_DIST = meta.h

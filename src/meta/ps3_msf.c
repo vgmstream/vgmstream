@@ -104,12 +104,12 @@ VGMSTREAM * init_vgmstream_ps3_msf(STREAMFILE *streamFile) {
         case 0x6: { /* ATRAC3 high (132 kbps, frame size 192) */
             ffmpeg_codec_data *ffmpeg_data = NULL;
             uint8_t buf[100];
-            int32_t bytes, samples_size = 1024, block_size, encoder_delay, joint_stereo, max_samples;
+            int32_t bytes, block_size, encoder_delay, joint_stereo, max_samples;
 
-            block_size = (codec_id==4 ? 0x60 : (codec_id==5 ? 0x98 : 0xC0)) * vgmstream->channels;
+            block_size    = (codec_id==4 ? 0x60 : (codec_id==5 ? 0x98 : 0xC0)) * vgmstream->channels;
             encoder_delay = 0x0; //todo MSF encoder delay (around 440-450*2)
-            max_samples = (data_size / block_size) * samples_size;
-            joint_stereo = codec_id==4; /* interleaved joint stereo (ch must be even) */
+            max_samples   = atrac3_bytes_to_samples(data_size, block_size);
+            joint_stereo  = codec_id==4; /* interleaved joint stereo (ch must be even) */
 
             if (vgmstream->sample_rate==0xFFFFFFFF) /* some MSFv1 (Digi World SP) */
                 vgmstream->sample_rate = 44100;//voice tracks seems to use 44khz, not sure about other tracks
@@ -126,8 +126,8 @@ VGMSTREAM * init_vgmstream_ps3_msf(STREAMFILE *streamFile) {
 
             vgmstream->num_samples = max_samples;
             if (loop_flag) {
-                vgmstream->loop_start_sample = (loop_start / block_size) * samples_size;
-                vgmstream->loop_end_sample = (loop_end / block_size) * samples_size;
+                vgmstream->loop_start_sample = atrac3_bytes_to_samples(loop_start, block_size);
+                vgmstream->loop_end_sample   = atrac3_bytes_to_samples(loop_end, block_size);
             }
 
             break;

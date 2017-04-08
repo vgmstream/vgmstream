@@ -75,33 +75,30 @@ VGMSTREAM * init_vgmstream_vawx(STREAMFILE *streamFile) {
         }
 
         case 7: { /* ATRAC3 */
-            ffmpeg_codec_data *ffmpeg_data = NULL;
             uint8_t buf[FAKE_RIFF_BUFFER_SIZE];
             int32_t bytes, block_size, encoder_delay, joint_stereo, max_samples;
 
             datasize = read_32bitBE(0x54,streamFile);
             block_size = 0x98 * vgmstream->channels;
             joint_stereo = 0;
-            max_samples = (datasize / block_size) * 1024;
-            encoder_delay = 0x0; /* not used by FFmpeg */
-            if (vgmstream->num_samples > max_samples) {
-                vgmstream->num_samples = max_samples;
-                /*encoder_delay = ?; */ /* todo some tracks need it to skip garbage but not sure how to calculate it */
-            }
+            max_samples = atrac3_bytes_to_samples(datasize, block_size);
+            encoder_delay = 0x0; //max_samples - vgmstream->num_samples; /* todo not correct */
+            vgmstream->num_samples = max_samples; /* use calc samples since loop points are too, breaks looping in some files otherwise */
 
             /* make a fake riff so FFmpeg can parse the ATRAC3 */
             bytes = ffmpeg_make_riff_atrac3(buf, FAKE_RIFF_BUFFER_SIZE, vgmstream->num_samples, datasize, vgmstream->channels, vgmstream->sample_rate, block_size, joint_stereo, encoder_delay);
             if (bytes <= 0)
                 goto fail;
 
-            ffmpeg_data = init_ffmpeg_header_offset(streamFile, buf,bytes, start_offset,datasize);
-            if ( !ffmpeg_data ) goto fail;
-            vgmstream->codec_data = ffmpeg_data;
+            vgmstream->codec_data = init_ffmpeg_header_offset(streamFile, buf,bytes, start_offset,datasize);
+            if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
 
-            vgmstream->loop_start_sample = (read_32bitBE(0x44,streamFile) / ffmpeg_data->blockAlign) * ffmpeg_data->frameSize;
-            vgmstream->loop_end_sample = (read_32bitBE(0x48,streamFile) / ffmpeg_data->blockAlign) * ffmpeg_data->frameSize;
+            vgmstream->loop_start_sample = atrac3_bytes_to_samples(read_32bitBE(0x44,streamFile), block_size);
+            vgmstream->loop_end_sample   = atrac3_bytes_to_samples(read_32bitBE(0x48,streamFile), block_size);
+            //vgmstream->loop_start_sample -= encoder_delay;
+            //vgmstream->loop_end_sample   -= encoder_delay;
 
             break;
         }

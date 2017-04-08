@@ -676,4 +676,6 @@ VGMSTREAM * init_vgmstream_x360_ast(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile);
 
+VGMSTREAM * init_vgmstream_ubi_raki(STREAMFILE* streamFile);
+
 #endif /*_META_H*/

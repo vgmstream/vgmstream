@@ -1,20 +1,17 @@
 #include "meta.h"
 #include "../coding/coding.h"
-#include "../layout/layout.h"
-#include "../util.h"
 
-/* Ubisoft CKD (Rayman Origins - Wii) */
+
+/* CKD RIFF - Ubisoft audio [Rayman Origins (Wii)] */
 VGMSTREAM * init_vgmstream_ubi_ckd(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[PATH_LIMIT];
-    off_t start_offset;
+    off_t start_offset, first_offset = 0xc, chunk_offset;
+    size_t chunk_size, data_size;
+	int loop_flag, channel_count, interleave;
 
-	int loop_flag;
-	int channel_count;
 
     /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("ckd",filename_extension(filename))) goto fail;
+    if (!check_extensions(streamFile,"ckd")) goto fail;
 
     /* check header */
     if (read_32bitBE(0x0,streamFile) != 0x52494646) /* RIFF */
@@ -25,61 +22,43 @@ VGMSTREAM * init_vgmstream_ubi_ckd(STREAMFILE *streamFile) {
     loop_flag = 0;
     channel_count = read_16bitBE(0x16,streamFile);
     
-	/* build the VGMSTREAM */
+    /* find data chunk, in 3 variants */
+    if (find_chunk_be(streamFile, 0x64617453,first_offset,0, &chunk_offset,&chunk_size)) { /*"datS"*/
+        /* normal interleave */
+        start_offset = chunk_offset;
+        data_size = chunk_size;
+        interleave = 8;
+    } else if (find_chunk_be(streamFile, 0x6461744C,first_offset,0, &chunk_offset,&chunk_size)) { /*"datL"*/
+        /* mono or full interleave (with a "datR" after the "datL", no check as we can just pretend it exists) */
+        start_offset = chunk_offset;
+        data_size = chunk_size * channel_count;
+        interleave = (4+4) + chunk_size; /* don't forget to skip the "datR"+size chunk */
+    } else {
+        goto fail;
+    }
+
+
+    /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
-	/* fill in the vital statistics */
-	if (read_16bitBE(0x16,streamFile) == 1) {
-		start_offset = 0x96;
-        vgmstream->num_samples = (read_32bitBE(0x92,streamFile))*28/16/channel_count;
-	}
-	else {
-		start_offset = 0xFE;
-	    vgmstream->num_samples = (read_32bitBE(0xFA,streamFile))*28/16/channel_count;
-	}
-	vgmstream->channels = channel_count;
     vgmstream->sample_rate = read_32bitBE(0x18,streamFile);
-    vgmstream->coding_type = coding_NGC_DSP;
-    vgmstream->num_samples = (read_32bitBE(0xFA,streamFile))*28/16/channel_count;
+    vgmstream->num_samples = dsp_bytes_to_samples(data_size, channel_count);
 
-    vgmstream->layout_type = layout_interleave; 
-    vgmstream->interleave_block_size = 8;
+    vgmstream->coding_type = coding_NGC_DSP;
+    vgmstream->layout_type = channel_count==1 ? layout_none : layout_interleave;
+    vgmstream->interleave_block_size = interleave;
     vgmstream->meta_type = meta_UBI_CKD;
 
-    if (vgmstream->coding_type == coding_NGC_DSP) {
-        int i;
-        for (i=0;i<16;i++) {
-            vgmstream->ch[0].adpcm_coef[i] = read_16bitBE(0x4A+i*2,streamFile);
-        }
-        if (vgmstream->channels) {
-            for (i=0;i<16;i++) {
-                vgmstream->ch[1].adpcm_coef[i] = read_16bitBE(0xB2+i*2,streamFile);
-            }
-        }
-    }
-    /* open the file for reading */
-    {
-        int i;
-        STREAMFILE * file;
-        file = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-        if (!file) goto fail;
-        for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = file;
+    dsp_read_coefs_be(vgmstream,streamFile, 0x4A, (4+4)+0x60);
 
-            vgmstream->ch[i].channel_start_offset=
-                vgmstream->ch[i].offset=start_offset+
-                vgmstream->interleave_block_size*i;
 
-        }
-
-    }
-
+    if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
+        goto fail;
     return vgmstream;
 
 fail:
-    /* clean up anything we may have opened */
-    if (vgmstream) close_vgmstream(vgmstream);
+    close_vgmstream(vgmstream);
     return NULL;
 }
 

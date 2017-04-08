@@ -85,3 +85,7 @@ void decode_pcm16LE_XOR_int(VGMSTREAMCHANNEL * stream, sample * outbuf, int chan
         outbuf[sample_count]=read_16bitLE(stream->offset+i*2*channelspacing,stream->streamfile)^stream->key_xor;
     }
 }
+
+size_t pcm_bytes_to_samples(size_t bytes, int channels, int bits_per_sample) {
+    return bytes / channels / (bits_per_sample/8);
+}
