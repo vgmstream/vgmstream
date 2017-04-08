@@ -266,38 +266,15 @@ static int parse_header(xma_header_data * xma, STREAMFILE *streamFile) {
         goto fail;
     }
 
-    /* find sample data */
-    if (xma->xma2_version) { /* old XMA2 (internally always BE) */
-        xma->loop_start_sample = read_32bitBE(xma->chunk_offset+0x4,streamFile);
-        xma->loop_end_sample = read_32bitBE(xma->chunk_offset+0x8,streamFile);
-        xma->loop_flag = (uint8_t)read_8bit(xma->chunk_offset+0x3,streamFile) > 0 /* rarely not set, encoder default */
-                || xma->loop_end_sample;
-        if (xma->xma2_version == 3) {
-            xma->num_samples = read_32bitBE(xma->chunk_offset+0x14,streamFile);
-            /*xma->pcm_samples = read_32bitBE(xma->chunk_offset+0x18,streamFile)*/
-        } else {
-            xma->num_samples = read_32bitBE(xma->chunk_offset+0x1C,streamFile);
-            /*xma->pcm_samples = read_32bitBE(xma->chunk_offset+0x20,streamFile)*/
-        }
-        /* num_samples is the max samples in the file (apparently not including encoder delay) */
-        /* pcm_samples are original WAV's; not current since samples and sample rate may be adjusted for looping purposes */
+    /* parse sample data */
+    if (xma->xma2_version) { /* old XMA2 */
+        xma2_parse_xma2_chunk(streamFile, xma->chunk_offset, NULL,NULL, &xma->loop_flag, &xma->num_samples, &xma->loop_start_sample, &xma->loop_end_sample);
     }
     else if (xma->fmt_codec == 0x166) { /* pure XMA2 */
-        xma->num_samples = read_32bit(xma->chunk_offset+0x18,streamFile);
-        xma->loop_start_sample = read_32bit(xma->chunk_offset+0x28,streamFile);
-        xma->loop_end_sample = xma->loop_start_sample + read_32bit(xma->chunk_offset+0x2C,streamFile);
-        xma->loop_flag = (uint8_t)read_8bit(xma->chunk_offset+0x30,streamFile) > 0 /* never set in practice */
-                || xma->loop_end_sample;
-        /* play_begin+end = probably pcm_samples (for original sample rate), don't seem to affect anything */
-        /* int32_t play_begin_sample = read_32bit(xma->chunk_offset+0x20,streamFile); */
-        /* int32_t play_end_sample = play_begin_sample + read_32bit(xma->chunk_offset+0x24,streamFile); */
+        xma2_parse_fmt_chunk_extra(streamFile, xma->chunk_offset, &xma->loop_flag, &xma->num_samples, &xma->loop_start_sample, &xma->loop_end_sample, xma->big_endian);
     }
     else if (xma->fmt_codec == 0x165) { /* pure XMA1 */
-        xma->loop_flag = (uint8_t)read_8bit(xma->chunk_offset+0xA,streamFile) > 0;
-        xma->loop_start_b = read_32bit(xma->chunk_offset+0x14,streamFile);
-        xma->loop_end_b = read_32bit(xma->chunk_offset+0x18,streamFile);
-        xma->loop_subframe = (uint8_t)read_8bit(xma->chunk_offset+0x1C,streamFile);
-        /* num_samples are parsed later */
+        xma1_parse_fmt_chunk(streamFile, xma->chunk_offset, NULL,NULL, &xma->loop_flag, &xma->loop_start_b, &xma->loop_end_b, &xma->loop_subframe, xma->big_endian);
     }
     else { /* unknown chunk */
         goto fail;
