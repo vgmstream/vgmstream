@@ -362,6 +362,10 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
                     }
 
                     break;
+                case 0x4A554E4B:    /* JUNK */
+                    /* JUNK is an optional Wwise chunk, and Wwise hijacks the MSADPCM/MS_IMA/XBOX IMA ids (how nice).
+                     * To ensure their stuff is parsed in wwise.c we reject their JUNK, which they put almost always. */
+                    goto fail;
                 default:
                     /* ignorance is bliss */
                     break;
@@ -687,6 +691,10 @@ VGMSTREAM * init_vgmstream_rifx(STREAMFILE *streamFile) {
                     if (chunk_size != 4) break;
                     //fact_sample_count = read_32bitBE(current_chunk+8, streamFile);
                     break;
+                case 0x4A554E4B:    /* JUNK */
+                    /* JUNK is an optional Wwise chunk, and Wwise hijacks the MSADPCM/MS_IMA/XBOX IMA ids (how nice).
+                     * To ensure their stuff is parsed in wwise.c we reject their JUNK, which they put almost always. */
+                    goto fail;
                 default:
                     /* ignorance is bliss */
                     break;
