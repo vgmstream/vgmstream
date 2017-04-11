@@ -46,8 +46,8 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
 
     /* basic checks */
     /* .wem (Wwise Encoded Media) is "newer Wwise", used after the 2011.2 SDK (~july)
-     * .wav (ex. Shadowrun X360) and .ogg (ex. KOF XII X360) are used only in older Wwise */
-    if (!check_extensions(streamFile,"wem,wav,lwav,ogg,logg")) goto fail; /* .xma may be possible? */
+     * .wav (ex. Shadowrun X360) and .ogg (ex. KOF XII X360), .xma (ex. Tron Evolution X360) are used in older Wwise */
+    if (!check_extensions(streamFile,"wem,wav,lwav,ogg,logg,xma")) goto fail;
 
     if ((read_32bitBE(0x00,streamFile) != 0x52494646) &&    /* "RIFF" (LE) */
         (read_32bitBE(0x00,streamFile) != 0x52494658))      /* "RIFX" (BE) */
@@ -86,11 +86,6 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
         /* find basic chunks */
         if (!find_chunk(streamFile, 0x666d7420,first_offset,0, &ww.fmt_offset,&ww.fmt_size, ww.big_endian, 0)) goto fail; /*"fmt "*/
         if (!find_chunk(streamFile, 0x64617461,first_offset,0, &ww.data_offset,&ww.data_size, ww.big_endian, 0)) goto fail; /*"data"*/
-
-        if (ww.data_size > ww.file_size) {
-            VGM_LOG("WWISE: bad data size (real=0x%x > riff=0x%x)\n", ww.data_size, ww.file_size);
-            goto fail;
-        }
 
         /* base fmt */
         if (ww.fmt_size < 0x12) goto fail;
@@ -140,8 +135,8 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
     switch(ww.format) {
         case 0x0001: ww.codec = PCM; break; /* older Wwise */
         case 0x0002: ww.codec = IMA; break; /* newer Wwise (conflicts with MSADPCM, probably means "platform's ADPCM") */
-        case 0x0011: ww.codec = IMA; break; /* older Wwise */
-        case 0x0069: ww.codec = IMA; break; /* older Wwise */
+        //case 0x0011: ww.codec = IMA; break; /* older Wwise (used?) */
+        case 0x0069: ww.codec = IMA; break; /* older Wwise (Spiderman Web of Shadows X360) */
         case 0x0161: ww.codec = XWMA; break;
         case 0x0162: ww.codec = XWMA; break;
         case 0x0165: ww.codec = XMA2; break; /* always with the "XMA2" chunk, Wwise doesn't use XMA1 */
@@ -159,6 +154,15 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
     /* fix for newer Wwise DSP with coefs: Epic Mickey 2 (Wii), Batman Arkham Origins Blackgate (3DS) */
     if (ww.format == 0x0002 && ww.extra_size == 0x0c + ww.channels * 0x2e) {
         ww.codec = DSP;
+    }
+
+    /* this happens in some IMA files (ex. Bayonetta 2 sfx), maybe they are split and and meant to be joined in memory? */
+    if (ww.data_size > ww.file_size) {
+        VGM_LOG("WWISE: bad data size (real=0x%x > riff=0x%x)\n", ww.data_size, ww.file_size);
+        if (ww.codec == IMA)
+            ww.data_size = ww.file_size - ww.data_offset;
+        else
+            goto fail;
     }
 
 
@@ -186,19 +190,18 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
             break;
 
         case IMA: /* common */
-            /* slightly modified MS-IMA.
-             * Original research by hcs in ima_rejigger (https://github.com/hcs64/vgm_ripping/tree/master/demux/ima_rejigger5) */
-#if 0
+            /* slightly modified MS IMA with interleaved sub-blocks and LE/BE header */
+
+            /* Wwise uses common codecs (ex. 0x0002 MSADPCM) so this parser should go AFTER riff.c avoid misdetection */
+
             if (ww.bits_per_sample != 4) goto fail;
             vgmstream->coding_type = coding_WWISE_IMA;
             vgmstream->layout_type = layout_none;
             vgmstream->interleave_block_size = ww.block_align;
+            vgmstream->codec_endian = ww.big_endian;
 
-            vgmstream->num_samples = (ww.data_size / ww.block_align) * (ww.block_align - 4 * vgmstream->channels) * 2 /vgmstream->channels;//todo ms_ima_bytes_to_samples
+            vgmstream->num_samples = ms_ima_bytes_to_samples(ww.data_size, ww.block_align, ww.channels);
             break;
-#endif
-            VGM_LOG("WWISE: IMA found (unsupported)\n");
-            goto fail;
 
 #ifdef VGM_USE_VORBIS
         case VORBIS: {  /* common */
@@ -207,13 +210,12 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
 #if 0
             off_t vorb_offset;
             size_t vorb_size;
+            wwise_setup_type setup_type;
+            wwise_header_type header_type;
+            wwise_packet_type packet_type;
+            int blocksize_0_exp = 0, blocksize_1_exp = 0;
 
-            int packet_header_type = 0; /* 1 = size 8 (4-granule + 4-size), 2 = size 6 (4-granule + 2-size) or 3 = size 2 (2-size) */
-            int packet_type = 0; /* 1 = standard, 2 = modified vorbis packets */
-            int setup_type = 0; /* 1: triad, 2 = inline codebooks, 3 = external codebooks, 4 = external aoTuV codebooks */
-            int blocksize_0_pow = 0, blocksize_1_pow = 0;
-
-            if (ww.block_align != 0 || ww.bits_per_sample != 0) goto fail;
+            if (ww.block_align != 0 || ww.bits_per_sample != 0) goto fail; /* always 0 for Worbis */
 
             /* autodetect format */
             if (find_chunk(streamFile, 0x766F7262,first_offset,0, &vorb_offset,&vorb_size, ww.big_endian, 0)) { /*"vorb"*/
@@ -226,15 +228,16 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
                     case 0x34:
                     default: goto fail;
                 }
-
             }
             else {
                 /* newer Wwise (~2012+) */
                 if (ww.extra_size != 0x30) goto fail; //todo some 0x2a exist
 
-                packet_header_type = 3; /* size 2 */
-                packet_type = 1; //todo mod packets false on certain configs
-                setup_type = 4; /* aoTuV */
+                //todo mod packets true on certain configs and always goes with 6/2 headers?
+
+                setup_type  = AOTUV603_CODEBOOKS;
+                header_type = TYPE_2;
+                packet_type = STANDARD;
 
                 /* 0x12 (2): unk (00,10,18) not related to seek table*/
                 /* 0x14 (4): channel config */
@@ -248,17 +251,18 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
                 /* 0x34 (4): ? */
                 /* 0x38 (4): ? */
                 /* 0x3c (4): uid */ //todo same as external crc32?
-                blocksize_0_pow = read_8bit(ww.fmt_offset + 0x40, streamFile);
-                blocksize_1_pow = read_8bit(ww.fmt_offset + 0x41, streamFile);
+                blocksize_0_exp = read_8bit(ww.fmt_offset + 0x40, streamFile);
+                blocksize_1_exp = read_8bit(ww.fmt_offset + 0x41, streamFile);
 
                 goto fail;
             }
 
-
-            vgmstream->codec_data = init_wwise_vorbis_codec_data(streamFile, start_offset, vgmstream->channels, vgmstream->sample_rate);//pass endianness too
+            vgmstream->codec_data = init_wwise_vorbis_codec_data(streamFile, start_offset, ww.channels, ww.sample_rate, blocksize_0_exp,blocksize_1_exp,
+                    setup_type,header_type,packet_type, ww.big_endian);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_wwise_vorbis;
             vgmstream->layout_type = layout_none;
+            vgmstream->codec_endian = ww.big_endian;
             break;
 #endif
             VGM_LOG("WWISE: VORBIS found (unsupported)\n");
