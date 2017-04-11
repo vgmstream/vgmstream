@@ -1073,6 +1073,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
             return 64;
         case coding_MS_IMA:
         case coding_RAD_IMA:
+        case coding_WWISE_IMA:
             return (vgmstream->interleave_block_size-4*vgmstream->channels)*2/vgmstream->channels;
         case coding_RAD_IMA_mono:
             return 32;
@@ -1162,6 +1163,7 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
         case coding_RAD_IMA:
         case coding_NDS_IMA:
         case coding_DAT4_IMA:
+        case coding_WWISE_IMA:
             return vgmstream->interleave_block_size;
         case coding_RAD_IMA_mono:
             return 0x14;
@@ -1583,6 +1585,13 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
         case coding_FSB_IMA:
             for (chan=0;chan<vgmstream->channels;chan++) {
                 decode_fsb_ima(vgmstream, &vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                        vgmstream->channels,vgmstream->samples_into_block,
+                        samples_to_do,chan);
+            }
+            break;
+        case coding_WWISE_IMA:
+            for (chan=0;chan<vgmstream->channels;chan++) {
+                decode_wwise_ima(vgmstream,&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
                         samples_to_do,chan);
             }

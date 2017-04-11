@@ -121,9 +121,10 @@ typedef enum {
     coding_SNDS_IMA,        /* Heavy Iron Studios .snds IMA ADPCM */
     coding_OTNS_IMA,        /* Omikron The Nomad Soul IMA ADPCM */
     coding_FSB_IMA,         /* FMOD's FSB multichannel IMA ADPCM */
+    coding_WWISE_IMA,       /* Audiokinetic Wwise IMA ADPCM */
 
-    coding_WS,              /* Westwood Studios VBR ADPCM */
     coding_MSADPCM,         /* Microsoft ADPCM */
+    coding_WS,              /* Westwood Studios VBR ADPCM */
     coding_AICA,            /* Yamaha AICA ADPCM */
     coding_L5_555,          /* Level-5 0x555 ADPCM */
     coding_SASSC,           /* Activision EXAKT SASSC DPCM */
@@ -721,6 +722,8 @@ typedef struct {
     off_t loop_next_block_offset;   /* saved from next_block_offset */
 
     /* decoder specific */
+    int codec_endian;               /* little/big endian marker; name is left vague but usually means big endian */
+
     uint8_t xa_channel;				/* XA ADPCM: selected channel */
     int32_t xa_sector_length;		/* XA ADPCM: XA block */
 	uint8_t xa_headerless;			/* XA ADPCM: headerless XA block */
