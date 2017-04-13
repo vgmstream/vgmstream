@@ -12,6 +12,7 @@ typedef enum { PCM, IMA, VORBIS, DSP, XMA2, XWMA, AAC, HEVAG, ATRAC9 } wwise_cod
 typedef struct {
     int big_endian;
     size_t file_size;
+    int truncated;
 
     /* chunks references */
     off_t fmt_offset;
@@ -156,12 +157,13 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
         ww.codec = DSP;
     }
 
-    /* This happens in some IMA/VORBIS files (ex. Oddworld PSV, Bayonetta 2 WiiU sfx), which are truncated
-     * Maybe they are split and meant to be joined in memory? */
+    /* Some Wwise files (ex. Oddworld PSV, Bayonetta 2 WiiU sfx) are truncated mirrors of another file.
+     * They come in RAM banks, probably to play the beginning while the rest of the real stream loads.
+     * We'll add basic support to avoid complaints of this or that .wem not playing */
     if (ww.data_size > ww.file_size) {
-        VGM_LOG("WWISE: bad data size (real=0x%x > riff=0x%x)\n", ww.data_size, ww.file_size);
-        if (ww.codec == IMA || ww.codec == VORBIS)
-            ww.data_size = ww.file_size - ww.data_offset;
+        //VGM_LOG("WWISE: truncated data size (prefetch): (real=0x%x > riff=0x%x)\n", ww.data_size, ww.file_size);
+        if (ww.codec == IMA || ww.codec == VORBIS) /* only seen in those, probably other exist */
+            ww.truncated = 1;
         else
             goto fail;
     }
@@ -200,6 +202,9 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
             vgmstream->layout_type = layout_none;
             vgmstream->interleave_block_size = ww.block_align;
             vgmstream->codec_endian = ww.big_endian;
+
+            if (ww.truncated) /* enough to get real samples */
+                ww.data_size = ww.file_size - ww.data_offset;
 
             vgmstream->num_samples = ms_ima_bytes_to_samples(ww.data_size, ww.block_align, ww.channels);
             break;
@@ -343,6 +348,11 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
             vgmstream->codec_endian = ww.big_endian;
 
             start_offset = start_offset + audio_offset;
+
+            /* Vorbis is VBR so this is very approximate, meh */
+            if (ww.truncated)
+                vgmstream->num_samples = 500;// vgmstream->num_samples * (ww.file_size - start_offset) / ww.data_size;
+
             break;
         }
 #endif
