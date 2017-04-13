@@ -27,7 +27,9 @@ CODING_OBJS=coding/adx_decoder.o \
     coding/hca_decoder.o \
     coding/ffmpeg_decoder.o \
     coding/ffmpeg_decoder_utils.o \
-    coding/fsb_vorbis_decoder.o
+    coding/fsb_vorbis_decoder.o \
+    coding/wwise_vorbis_decoder.o \
+    coding/wwise_vorbis_utils.o
 
 LAYOUT_OBJS=layout/ast_blocked.o \
     layout/blocked.o \

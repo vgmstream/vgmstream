@@ -421,6 +421,8 @@
     <ClCompile Include="coding\SASSC_decoder.c" />
     <ClCompile Include="coding\sdx2_decoder.c" />
     <ClCompile Include="coding\ws_decoder.c" />
+    <ClCompile Include="coding\wwise_vorbis_decoder.c" />
+    <ClCompile Include="coding\wwise_vorbis_utils.c" />
     <ClCompile Include="coding\xa_decoder.c" />
     <ClCompile Include="layout\aax_layout.c" />
     <ClCompile Include="layout\aix_layout.c" />

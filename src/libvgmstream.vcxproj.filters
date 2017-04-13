@@ -808,6 +808,12 @@
     <ClCompile Include="coding\ws_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="coding\wwise_vorbis_decoder.c">
+      <Filter>coding\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="coding\wwise_vorbis_utils.c">
+      <Filter>coding\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="coding\xa_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>

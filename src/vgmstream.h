@@ -151,6 +151,7 @@ typedef enum {
 #ifdef VGM_USE_VORBIS
     coding_ogg_vorbis,      /* Xiph Vorbis (MDCT-based) */
     coding_fsb_vorbis,      /* FMOD's Vorbis without Ogg layer */
+    coding_wwise_vorbis,    /* Audiokinetic's Vorbis without Ogg layer */
 #endif
 
 #ifdef VGM_USE_MPEG
@@ -771,8 +772,13 @@ typedef struct {
     ogg_vorbis_streamfile ov_streamfile;
 } ogg_vorbis_codec_data;
 
+/* config for Wwise Vorbis */
+typedef enum { HEADER_TRIAD, FULL_SETUP, INLINE_CODEBOOKS, EXTERNAL_CODEBOOKS, AOTUV603_CODEBOOKS } wwise_setup_type;
+typedef enum { TYPE_8, TYPE_6, TYPE_2 } wwise_header_type;
+typedef enum { STANDARD, MODIFIED } wwise_packet_type;
+
 /* any raw Vorbis without Ogg layer */
-typedef struct  {
+typedef struct {
     vorbis_info vi;             /* stream settings */
     vorbis_comment vc;          /* stream comments */
     vorbis_dsp_state vd;        /* decoder global state */
@@ -783,6 +789,16 @@ typedef struct  {
     size_t buffer_size;
     size_t samples_to_discard;  /* for looping purposes */
     int samples_full;           /* flag, samples available in vorbis buffers */
+
+    /* Wwise Vorbis config */
+    wwise_setup_type setup_type;
+    wwise_header_type header_type;
+    wwise_packet_type packet_type;
+    /* saved data to reconstruct modified packets */
+    uint8_t mode_blockflag[64+1];   /* max 6b+1; flags 'n stuff */
+    int mode_bits;                  /* bits to store mode_number */
+    uint8_t prev_blockflag;         /* blockflag in the last decoded packet */
+
 } vorbis_codec_data;
 #endif
 
