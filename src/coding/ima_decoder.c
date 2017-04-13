@@ -630,10 +630,10 @@ void decode_wwise_ima(VGMSTREAM * vgmstream,VGMSTREAMCHANNEL * stream, sample * 
         outbuf[sample_count] = (short)(hist1);
         sample_count += channelspacing;
         first_sample += 1;
+        samples_to_do -= 1;
     }
-    // todo seek bug when landing in odd samples; i-1 doesn't seem to help
 
-    for (i=first_sample; i < samples_to_do; i++) { /* samples_to_do should be block_samples at most */
+    for (i=first_sample; i < first_sample + samples_to_do; i++) { /* first_sample + samples_to_do should be block_samples at most */
         off_t byte_offset = stream->offset + (vgmstream->interleave_block_size / vgmstream->channels)*channel + 4 + (i-1)/2;
         int nibble_shift = ((i-1)&1?4:0); //low nibble first
 
@@ -642,7 +642,7 @@ void decode_wwise_ima(VGMSTREAM * vgmstream,VGMSTREAMCHANNEL * stream, sample * 
             ms_ima_expand_nibble(stream, byte_offset,nibble_shift, &hist1, &step_index);
             outbuf[sample_count] = (short)(hist1);
             sample_count+=channelspacing;
-            //todo atenuation: apparently from hcs's analysis Wwise IMA decodes nibble slightly different slightly reducing noise
+            //todo atenuation: apparently from hcs's analysis Wwise IMA decodes nibbles slightly different, reducing dbs
         }
     }
 
