@@ -156,10 +156,11 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
         ww.codec = DSP;
     }
 
-    /* this happens in some IMA files (ex. Bayonetta 2 sfx), maybe they are split and and meant to be joined in memory? */
+    /* This happens in some IMA/VORBIS files (ex. Oddworld PSV, Bayonetta 2 WiiU sfx), which are truncated
+     * Maybe they are split and meant to be joined in memory? */
     if (ww.data_size > ww.file_size) {
         VGM_LOG("WWISE: bad data size (real=0x%x > riff=0x%x)\n", ww.data_size, ww.file_size);
-        if (ww.codec == IMA)
+        if (ww.codec == IMA || ww.codec == VORBIS)
             ww.data_size = ww.file_size - ww.data_offset;
         else
             goto fail;
@@ -225,7 +226,7 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
                     case 0x28: /* early (~2009), some Divinity II files? */
                     case 0x2C: /* early (~2009), some EVE Online Apocrypha files? */
                         data_offsets = 0x18;
-                        block_offsets = 0; /* not needed if full headers are present */
+                        block_offsets = 0; /* no need, full headers are present */
                         header_type = TYPE_8;
                         packet_type = STANDARD;
                         setup_type = HEADER_TRIAD;
@@ -296,6 +297,7 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
                         block_offsets = 0x28;
                         header_type = TYPE_2;
                         packet_type = MODIFIED;
+                        //packet_type = STANDARD;
 
                         /* setup not detectable by header, so we'll try both; hopefully libvorbis will reject wrong codebooks
                          * - standard: early (<2012), ex. The King of Fighters XIII X360 (2011/11), .ogg
@@ -305,7 +307,6 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
                     default:
                         //todo apparently some 0x2a + non mod_packets exist
                         //todo TYPE_06 possibly detectable by checking setup's granule (should be 0)
-                        //todo STANDARD possibly detectable by trying to decode the first packet
                         VGM_LOG("WWISE: unknown extra size 0x%x\n", vorb_size);
                         goto fail;
                 }
@@ -315,6 +316,16 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
                 audio_offset    = read_32bit(extra_offset + data_offsets + 0x04, streamFile); /* within data */
                 blocksize_1_exp = read_8bit(extra_offset + block_offsets + 0x00, streamFile); /* small */
                 blocksize_0_exp = read_8bit(extra_offset + block_offsets + 0x01, streamFile); /* big */
+
+                /* Normal packets are used rarely (ex. Oddworld New 'n' Tasty! PSV). They are hard to detect (decoding
+                 * will mostly work with garbage results) but we'll try. Setup size and "fmt" bitrate fields may matter too. */
+                if (ww.extra_size == 0x30) {
+                    /* all blocksizes I've seen are 0x08+0x0B except Oddworld PSV, that uses 0x09+0x09
+                     * (maybe lower spec machines = needs simpler packets) */
+                    if (blocksize_0_exp == blocksize_1_exp)
+                        packet_type = STANDARD;
+                }
+
 
                 /* try with the selected codebooks */
                 vgmstream->codec_data = init_wwise_vorbis_codec_data(streamFile, start_offset + setup_offset, ww.channels, ww.sample_rate, blocksize_0_exp,blocksize_1_exp,
