@@ -134,7 +134,6 @@ static int parse_header(xma_header_data * xma, STREAMFILE *streamFile) {
     int big_endian = 0;
     enum {
         id_RIFF = UINT32_C(0x52494646),  /* "RIFF" */
-        id_RIFX = UINT32_C(0x52494658),  /* "RIFX" */
         id_NXMA = UINT32_C(0x786D6100),  /* "xma\0" */
         id_PASX = UINT32_C(0x50415358),  /* "PASX" */
     };
@@ -145,7 +144,6 @@ static int parse_header(xma_header_data * xma, STREAMFILE *streamFile) {
     switch (id) {
         case id_RIFF:
             break;
-        case id_RIFX:
         case id_NXMA:
         case id_PASX:
             big_endian = 1;
@@ -168,7 +166,7 @@ static int parse_header(xma_header_data * xma, STREAMFILE *streamFile) {
     xma->file_size = streamFile->get_size(streamFile);
 
     /* find offsets */
-    if (id == id_RIFF || id == id_RIFX) { /* regular RIFF header / RIFX (BE, wwsize?) */
+    if (id == id_RIFF) { /* regular RIFF header */
         off_t current_chunk = 0xc;
         off_t fmt_offset = 0, xma2_offset = 0;
         size_t riff_size = 0, fmt_size = 0, xma2_size = 0;
