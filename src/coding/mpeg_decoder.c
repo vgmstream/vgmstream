@@ -685,7 +685,6 @@ void reset_mpeg(VGMSTREAM *vgmstream) {
         int i;
         for (i=0; i < data->ms_size; i++) {
             mpg123_feedseek(data->ms[i],0,SEEK_SET,&input_offset);
-            vgmstream->loop_ch[i].offset = vgmstream->loop_ch[i].channel_start_offset + input_offset;
         }
 
         data->bytes_in_interleave_buffer = 0;
@@ -701,13 +700,15 @@ void seek_mpeg(VGMSTREAM *vgmstream, int32_t num_sample) {
     /* seek multistream */
     if (!data->interleaved) {
 	    mpg123_feedseek(data->m, num_sample,SEEK_SET,&input_offset);
-        vgmstream->loop_ch[0].offset = vgmstream->loop_ch[0].channel_start_offset + input_offset;
+	    if (vgmstream->loop_ch)
+	        vgmstream->loop_ch[0].offset = vgmstream->loop_ch[0].channel_start_offset + input_offset;
     } else {
         int i;
         /* re-start from 0 */
         for (i=0; i < data->ms_size; i++) {
             mpg123_feedseek(data->ms[i],0,SEEK_SET,&input_offset);
-            vgmstream->loop_ch[i].offset = vgmstream->loop_ch[i].channel_start_offset;
+            if (vgmstream->loop_ch)
+                vgmstream->loop_ch[i].offset = vgmstream->loop_ch[i].channel_start_offset;
         }
         /* manually add skip samples, since we don't really know the correct offset */
         data->samples_to_discard = num_sample;

@@ -294,7 +294,14 @@ void free_wwise_vorbis(vorbis_codec_data * data) {
 }
 
 void reset_wwise_vorbis(VGMSTREAM *vgmstream) {
-    seek_wwise_vorbis(vgmstream, 0);
+#if WWISE_VORBIS_ON
+    vorbis_codec_data *data = vgmstream->codec_data;
+
+    /* Seeking is provided by the Ogg layer, so with raw vorbis we need seek tables instead.
+     * To avoid having to parse different formats we'll just discard until the expected sample */
+    vorbis_synthesis_restart(&data->vd);
+    data->samples_to_discard = 0;
+#endif
 }
 
 void seek_wwise_vorbis(VGMSTREAM *vgmstream, int32_t num_sample) {
@@ -305,7 +312,8 @@ void seek_wwise_vorbis(VGMSTREAM *vgmstream, int32_t num_sample) {
      * To avoid having to parse different formats we'll just discard until the expected sample */
     vorbis_synthesis_restart(&data->vd);
     data->samples_to_discard = num_sample;
-    vgmstream->loop_ch[0].offset = vgmstream->loop_ch[0].channel_start_offset;
+    if (vgmstream->loop_ch) /* this func is only using for looping though */
+        vgmstream->loop_ch[0].offset = vgmstream->loop_ch[0].channel_start_offset;
 #endif
 }
 
