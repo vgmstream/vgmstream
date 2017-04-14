@@ -27,6 +27,8 @@ void decode_apple_ima4(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelsp
 void decode_ms_ima(VGMSTREAM * vgmstream,VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do,int channel);
 void decode_otns_ima(VGMSTREAM * vgmstream, VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel);
 void decode_fsb_ima(VGMSTREAM * vgmstream, VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel);
+void decode_wwise_ima(VGMSTREAM * vgmstream, VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel);
+size_t ms_ima_bytes_to_samples(size_t bytes, int block_align, int channels);
 
 /* ngc_dsp_decoder */
 void decode_ngc_dsp(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
@@ -126,6 +128,15 @@ void decode_fsb_vorbis(VGMSTREAM * vgmstream, sample * outbuf, int32_t samples_t
 void free_fsb_vorbis(vorbis_codec_data *data);
 void reset_fsb_vorbis(VGMSTREAM *vgmstream);
 void seek_fsb_vorbis(VGMSTREAM *vgmstream, int32_t num_sample);
+
+/* wwise_vorbis_decoder */
+vorbis_codec_data * init_wwise_vorbis_codec_data(STREAMFILE *streamfile, off_t start_offset, int channels, int sample_rate, int blocksize_0_exp, int blocksize_1_exp,
+        wwise_setup_type setup_type, wwise_header_type header_type, wwise_packet_type packet_type, int big_endian);
+void decode_wwise_vorbis(VGMSTREAM * vgmstream, sample * outbuf, int32_t samples_to_do, int channels);
+
+void free_wwise_vorbis(vorbis_codec_data *data);
+void reset_wwise_vorbis(VGMSTREAM *vgmstream);
+void seek_wwise_vorbis(VGMSTREAM *vgmstream, int32_t num_sample);
 #endif
 
 /* mpeg_decoder */

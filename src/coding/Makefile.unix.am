@@ -32,5 +32,7 @@ libcoding_la_SOURCES += mtaf_decoder.c
 libcoding_la_SOURCES += g719_decoder.c
 libcoding_la_SOURCES += hca_decoder.c
 libcoding_la_SOURCES += fsb_vorbis_decoder.c
+libcoding_la_SOURCES += wwise_vorbis_decoder.c
+libcoding_la_SOURCES += wwise_vorbis_utils.c
 
 EXTRA_DIST = coding.h g72x_state.h clHCA.h

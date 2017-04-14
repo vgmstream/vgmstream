@@ -12,6 +12,7 @@ typedef enum { PCM, IMA, VORBIS, DSP, XMA2, XWMA, AAC, HEVAG, ATRAC9 } wwise_cod
 typedef struct {
     int big_endian;
     size_t file_size;
+    int truncated;
 
     /* chunks references */
     off_t fmt_offset;
@@ -46,8 +47,8 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
 
     /* basic checks */
     /* .wem (Wwise Encoded Media) is "newer Wwise", used after the 2011.2 SDK (~july)
-     * .wav (ex. Shadowrun X360) and .ogg (ex. KOF XII X360) are used only in older Wwise */
-    if (!check_extensions(streamFile,"wem,wav,lwav,ogg,logg")) goto fail; /* .xma may be possible? */
+     * .wav (ex. Shadowrun X360) and .ogg (ex. KOF XII X360), .xma (ex. Tron Evolution X360) are used in older Wwise */
+    if (!check_extensions(streamFile,"wem,wav,lwav,ogg,logg,xma")) goto fail;
 
     if ((read_32bitBE(0x00,streamFile) != 0x52494646) &&    /* "RIFF" (LE) */
         (read_32bitBE(0x00,streamFile) != 0x52494658))      /* "RIFX" (BE) */
@@ -86,11 +87,6 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
         /* find basic chunks */
         if (!find_chunk(streamFile, 0x666d7420,first_offset,0, &ww.fmt_offset,&ww.fmt_size, ww.big_endian, 0)) goto fail; /*"fmt "*/
         if (!find_chunk(streamFile, 0x64617461,first_offset,0, &ww.data_offset,&ww.data_size, ww.big_endian, 0)) goto fail; /*"data"*/
-
-        if (ww.data_size > ww.file_size) {
-            VGM_LOG("WWISE: bad data size (real=0x%x > riff=0x%x)\n", ww.data_size, ww.file_size);
-            goto fail;
-        }
 
         /* base fmt */
         if (ww.fmt_size < 0x12) goto fail;
@@ -140,8 +136,8 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
     switch(ww.format) {
         case 0x0001: ww.codec = PCM; break; /* older Wwise */
         case 0x0002: ww.codec = IMA; break; /* newer Wwise (conflicts with MSADPCM, probably means "platform's ADPCM") */
-        case 0x0011: ww.codec = IMA; break; /* older Wwise */
-        case 0x0069: ww.codec = IMA; break; /* older Wwise */
+        //case 0x0011: ww.codec = IMA; break; /* older Wwise (used?) */
+        case 0x0069: ww.codec = IMA; break; /* older Wwise (Spiderman Web of Shadows X360) */
         case 0x0161: ww.codec = XWMA; break;
         case 0x0162: ww.codec = XWMA; break;
         case 0x0165: ww.codec = XMA2; break; /* always with the "XMA2" chunk, Wwise doesn't use XMA1 */
@@ -159,6 +155,17 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
     /* fix for newer Wwise DSP with coefs: Epic Mickey 2 (Wii), Batman Arkham Origins Blackgate (3DS) */
     if (ww.format == 0x0002 && ww.extra_size == 0x0c + ww.channels * 0x2e) {
         ww.codec = DSP;
+    }
+
+    /* Some Wwise files (ex. Oddworld PSV, Bayonetta 2 WiiU sfx) are truncated mirrors of another file.
+     * They come in RAM banks, probably to play the beginning while the rest of the real stream loads.
+     * We'll add basic support to avoid complaints of this or that .wem not playing */
+    if (ww.data_size > ww.file_size) {
+        //VGM_LOG("WWISE: truncated data size (prefetch): (real=0x%x > riff=0x%x)\n", ww.data_size, ww.file_size);
+        if (ww.codec == IMA || ww.codec == VORBIS) /* only seen in those, probably other exist */
+            ww.truncated = 1;
+        else
+            goto fail;
     }
 
 
@@ -186,83 +193,167 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
             break;
 
         case IMA: /* common */
-            /* slightly modified MS-IMA.
-             * Original research by hcs in ima_rejigger (https://github.com/hcs64/vgm_ripping/tree/master/demux/ima_rejigger5) */
-#if 0
+            /* slightly modified MS IMA with interleaved sub-blocks and LE/BE header */
+
+            /* Wwise uses common codecs (ex. 0x0002 MSADPCM) so this parser should go AFTER riff.c avoid misdetection */
+
             if (ww.bits_per_sample != 4) goto fail;
             vgmstream->coding_type = coding_WWISE_IMA;
             vgmstream->layout_type = layout_none;
             vgmstream->interleave_block_size = ww.block_align;
+            vgmstream->codec_endian = ww.big_endian;
 
-            vgmstream->num_samples = (ww.data_size / ww.block_align) * (ww.block_align - 4 * vgmstream->channels) * 2 /vgmstream->channels;//todo ms_ima_bytes_to_samples
+            if (ww.truncated) /* enough to get real samples */
+                ww.data_size = ww.file_size - ww.data_offset;
+
+            vgmstream->num_samples = ms_ima_bytes_to_samples(ww.data_size, ww.block_align, ww.channels);
             break;
-#endif
-            VGM_LOG("WWISE: IMA found (unsupported)\n");
-            goto fail;
 
 #ifdef VGM_USE_VORBIS
         case VORBIS: {  /* common */
-            /* Wwise uses custom Vorbis, which changed over time (config must be detected to pass to the decoder).
-             * Original research by hcs in ww2ogg (https://github.com/hcs64/ww2ogg) */
-#if 0
-            off_t vorb_offset;
-            size_t vorb_size;
+            /* Wwise uses custom Vorbis, which changed over time (config must be detected to pass to the decoder). */
+            off_t vorb_offset, data_offsets, block_offsets;
+            size_t vorb_size, setup_offset, audio_offset;
 
-            int packet_header_type = 0; /* 1 = size 8 (4-granule + 4-size), 2 = size 6 (4-granule + 2-size) or 3 = size 2 (2-size) */
-            int packet_type = 0; /* 1 = standard, 2 = modified vorbis packets */
-            int setup_type = 0; /* 1: triad, 2 = inline codebooks, 3 = external codebooks, 4 = external aoTuV codebooks */
-            int blocksize_0_pow = 0, blocksize_1_pow = 0;
+            wwise_setup_type setup_type;
+            wwise_header_type header_type;
+            wwise_packet_type packet_type;
+            int blocksize_0_exp = 0, blocksize_1_exp = 0;
 
-            if (ww.block_align != 0 || ww.bits_per_sample != 0) goto fail;
+            if (ww.block_align != 0 || ww.bits_per_sample != 0) goto fail; /* always 0 for Worbis */
 
-            /* autodetect format */
+            /* autodetect format (field are mostly common, see the end of the file) */
             if (find_chunk(streamFile, 0x766F7262,first_offset,0, &vorb_offset,&vorb_size, ww.big_endian, 0)) { /*"vorb"*/
-                /* older Wwise (~2011) */
-                switch (vorb_size) {
-                    case 0x28:
-                    case 0x2A:
-                    case 0x2C:
-                    case 0x32:
-                    case 0x34:
-                    default: goto fail;
+                /* older Wwise (~<2012) */
+
+                switch(vorb_size) {
+#if 0
+                    case 0x28: /* early (~2009), some Divinity II files? */
+                    case 0x2C: /* early (~2009), some EVE Online Apocrypha files? */
+                        data_offsets = 0x18;
+                        block_offsets = 0; /* no need, full headers are present */
+                        header_type = TYPE_8;
+                        packet_type = STANDARD;
+                        setup_type = HEADER_TRIAD;
+                        break;
+
+                    case 0x32:  /* ? */
+#endif
+                    case 0x34:  /* common (2010~2011) */
+                        data_offsets = 0x18;
+                        block_offsets = 0x30;
+                        header_type = TYPE_6;
+                        packet_type = STANDARD;
+                        /* setup_type: autodetect later */
+                        break;
+                    case 0x2a:  /* infamous 2 (mid 2011) */
+                        data_offsets = 0x10;
+                        block_offsets = 0x28;
+                        header_type = TYPE_2;
+                        packet_type = MODIFIED;
+                        setup_type = EXTERNAL_CODEBOOKS;
+                        break;
+                    default:
+                        VGM_LOG("WWISE: unknown vorb size 0x%x\n", vorb_size);
+                        goto fail;
                 }
 
+                vgmstream->num_samples = read_32bit(vorb_offset + 0x00, streamFile);
+                setup_offset    = read_32bit(vorb_offset + data_offsets + 0x00, streamFile); /* within data (0 = no seek table) */
+                audio_offset    = read_32bit(vorb_offset + data_offsets + 0x04, streamFile); /* within data */
+                if (block_offsets) {
+                    blocksize_1_exp = read_8bit(vorb_offset + block_offsets + 0x00, streamFile); /* small */
+                    blocksize_0_exp = read_8bit(vorb_offset + block_offsets + 0x01, streamFile); /* big */
+                }
+
+                /* detect setup type:
+                 * - full inline: ~2009, ex. The King of Fighters XII X360, The Saboteur PC
+                 * - trimmed inline: ~2010, ex. Army of Two: 40 days X360 (some multiplayer files)
+                 * - external: ~2010, ex. Assassin's Creed Brotherhood X360, Dead Nation X360 */
+                if (vorb_size == 0x34) {
+                    size_t setup_size = (uint16_t)read_16bit(start_offset + setup_offset, streamFile);
+                    uint32_t id = (uint32_t)read_32bitBE(start_offset + setup_offset + 0x06, streamFile);
+
+                    /* if the setup after header starts with "(data)BCV" it's an inline codebook) */
+                    if ((id & 0x00FFFFFF) == 0x00424356) { /* 0"BCV" */
+                        setup_type = FULL_SETUP;
+                    }
+                    /* if the setup is suspiciously big it's probably trimmed inline codebooks */
+                    else if (setup_size > 0x200) { /* an external setup it's ~0x100 max + some threshold */
+                        setup_type = INLINE_CODEBOOKS;
+                    }
+                    else {
+                        setup_type = EXTERNAL_CODEBOOKS;
+                    }
+                }
+
+                vgmstream->codec_data = init_wwise_vorbis_codec_data(streamFile, start_offset + setup_offset, ww.channels, ww.sample_rate, blocksize_0_exp,blocksize_1_exp,
+                        setup_type,header_type,packet_type, ww.big_endian);
+                if (!vgmstream->codec_data) goto fail;
             }
             else {
-                /* newer Wwise (~2012+) */
-                if (ww.extra_size != 0x30) goto fail; //todo some 0x2a exist
+                /* newer Wwise (>2012) */
+                off_t extra_offset = ww.fmt_offset + 0x18; /* after flag + channels */
+                int is_wem = check_extensions(streamFile,"wem");
 
-                packet_header_type = 3; /* size 2 */
-                packet_type = 1; //todo mod packets false on certain configs
-                setup_type = 4; /* aoTuV */
+                switch(ww.extra_size) {
+                    case 0x30:
+                        data_offsets = 0x10;
+                        block_offsets = 0x28;
+                        header_type = TYPE_2;
+                        packet_type = MODIFIED;
+                        //packet_type = STANDARD;
 
-                /* 0x12 (2): unk (00,10,18) not related to seek table*/
-                /* 0x14 (4): channel config */
-                vgmstream->num_samples = read_32bit(ww.fmt_offset + 0x18, streamFile);
-                /* 0x20 (4): config, 0xcb/0xd9/etc */
-                /* 0x24 (4): ? samples? */
-                /* 0x28 (4): seek table size (setup packet offset within data) */
-                /* 0x2c (4): setup size (first audio packet offset within data) */
-                /* 0x30 (2): ? */
-                /* 0x32 (2): ? */
-                /* 0x34 (4): ? */
-                /* 0x38 (4): ? */
-                /* 0x3c (4): uid */ //todo same as external crc32?
-                blocksize_0_pow = read_8bit(ww.fmt_offset + 0x40, streamFile);
-                blocksize_1_pow = read_8bit(ww.fmt_offset + 0x41, streamFile);
+                        /* setup not detectable by header, so we'll try both; hopefully libvorbis will reject wrong codebooks
+                         * - standard: early (<2012), ex. The King of Fighters XIII X360 (2011/11), .ogg
+                         * - aoTuV603: later (>2012), ex. Sonic & All-Stars Racing Transformed PC (2012/11), .wem */
+                        setup_type  = is_wem ? AOTUV603_CODEBOOKS : EXTERNAL_CODEBOOKS; /* aoTuV came along .wem */
+                        break;
+                    default:
+                        //todo apparently some 0x2a + non mod_packets exist
+                        //todo TYPE_06 possibly detectable by checking setup's granule (should be 0)
+                        VGM_LOG("WWISE: unknown extra size 0x%x\n", vorb_size);
+                        goto fail;
+                }
 
-                goto fail;
+                vgmstream->num_samples = read_32bit(extra_offset + 0x00, streamFile);
+                setup_offset    = read_32bit(extra_offset + data_offsets + 0x00, streamFile); /* within data*/
+                audio_offset    = read_32bit(extra_offset + data_offsets + 0x04, streamFile); /* within data */
+                blocksize_1_exp = read_8bit(extra_offset + block_offsets + 0x00, streamFile); /* small */
+                blocksize_0_exp = read_8bit(extra_offset + block_offsets + 0x01, streamFile); /* big */
+
+                /* Normal packets are used rarely (ex. Oddworld New 'n' Tasty! PSV). They are hard to detect (decoding
+                 * will mostly work with garbage results) but we'll try. Setup size and "fmt" bitrate fields may matter too. */
+                if (ww.extra_size == 0x30) {
+                    /* all blocksizes I've seen are 0x08+0x0B except Oddworld PSV, that uses 0x09+0x09
+                     * (maybe lower spec machines = needs simpler packets) */
+                    if (blocksize_0_exp == blocksize_1_exp)
+                        packet_type = STANDARD;
+                }
+
+
+                /* try with the selected codebooks */
+                vgmstream->codec_data = init_wwise_vorbis_codec_data(streamFile, start_offset + setup_offset, ww.channels, ww.sample_rate, blocksize_0_exp,blocksize_1_exp,
+                        setup_type,header_type,packet_type, ww.big_endian);
+                if (!vgmstream->codec_data) {
+                    /* codebooks failed: try again with the other type */
+                    setup_type  = is_wem ? EXTERNAL_CODEBOOKS : AOTUV603_CODEBOOKS;
+                    vgmstream->codec_data = init_wwise_vorbis_codec_data(streamFile, start_offset + setup_offset, ww.channels, ww.sample_rate, blocksize_0_exp,blocksize_1_exp,
+                            setup_type,header_type,packet_type, ww.big_endian);
+                    if (!vgmstream->codec_data) goto fail;
+                }
             }
-
-
-            vgmstream->codec_data = init_wwise_vorbis_codec_data(streamFile, start_offset, vgmstream->channels, vgmstream->sample_rate);//pass endianness too
-            if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_wwise_vorbis;
             vgmstream->layout_type = layout_none;
+            vgmstream->codec_endian = ww.big_endian;
+
+            start_offset = start_offset + audio_offset;
+
+            /* Vorbis is VBR so this is very approximate, meh */
+            if (ww.truncated)
+                vgmstream->num_samples = 500;// vgmstream->num_samples * (ww.file_size - start_offset) / ww.data_size;
+
             break;
-#endif
-            VGM_LOG("WWISE: VORBIS found (unsupported)\n");
-            goto fail;
         }
 #endif
 
@@ -324,8 +415,9 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
 
             vgmstream->num_samples = ww.num_samples; /* set while parsing XMAWAVEFORMATs */
 
-            /* "XMAc": rare Wwise extension, XMA2 physical loop regions (loop_start_b, loop_end_b, loop_subframe_data) */
-            VGM_ASSERT(find_chunk(streamFile, 0x584D4163,first_offset,0, NULL,NULL, ww.big_endian, 0), "WWISE: XMAc chunk found\n");
+            /* "XMAc": rare Wwise extension, XMA2 physical loop regions (loop_start_b, loop_end_b, loop_subframe_data)
+             * Can appear even in the file doesn't loop, maybe it's meant to be the playable physical region */
+            //VGM_ASSERT(find_chunk(streamFile, 0x584D4163,first_offset,0, NULL,NULL, ww.big_endian, 0), "WWISE: XMAc chunk found\n");
             /* other chunks: "seek", regular XMA2 seek table */
 
             break;
@@ -415,3 +507,68 @@ fail:
     close_vgmstream(vgmstream);
     return NULL;
 }
+
+
+
+/* VORBIS FORMAT RESEARCH */
+/*
+- old format
+"fmt" size 0x28, extra size 0x16 / size 0x18, extra size 0x06
+0x12 (2): flag? (00,10,18): not related to seek table, codebook type, chunk count, looping
+0x14 (4): channel config
+0x18-24 (16): ? (fixed: 0x01000000 00001000 800000AA 00389B71)  [removed when extra size is 0x06]
+
+"vorb" size 0x34
+0x00 (4): num_samples
+0x04 (4): skip samples?
+0x08 (4): ? (small if loop, 0 otherwise)
+0x0c (4): loop offset after seek table+setup (offset after setup if file doesn't loop)
+0x10 (4): ? (small, 0..~0x400)
+0x14 (4): approximate data size without seek table? (almost setup+packets)
+0x18 (4): setup_offset within data (0 = no seek table)
+0x1c (4): audio_offset within data
+0x20 (4): biggest packet size (not including header)?
+0x24 (4): ? (mid, 0~0x5000)
+0x28 (4): ? (mid, 0~0x5000)
+0x2c (4): parent bank/event id? (shared by several .wem a game, but not all need to share it)
+0x30 (1): blocksize_1_exp (small)
+0x31 (1): blocksize_0_exp (large)
+0x32 (2): empty
+
+"vorb" size 0x2a
+0x00 (4): num_samples
+0x04 (4): loop offset after seek table+setup (offset after setup if file doesn't loop)
+0x08 (4): data size without seek table (setup+packets)
+0x0c (2): ? (small, 0..~0x400)
+0x10 (4): setup_offset within data (0 = no seek table)
+0x14 (4): audio_offset within data
+0x18 (2): ? (small, 0..~0x400)
+0x1a (2): ? (small, N..~0x100)
+0x1c (4): ? (mid, 0~0x5000)
+0x20 (4): ? (mid, 0~0x5000)
+0x24 (4): parent bank/event id? (shared by several .wem a game, but not all need to share it)
+0x28 (1): blocksize_1_exp (small)
+0x29 (1): blocksize_0_exp (large)
+
+
+- new format:
+"fmt" size 0x42, extra size 0x30
+0x12 (2): flag? (00,10,18): not related to seek table, codebook type, chunk count, looping, etc
+0x14 (4): channel config
+0x18 (4): num_samples
+0x1c (4): loop offset after seek table+setup (offset after setup if file doesn't loop)
+0x20 (4): data size without seek table (setup+packets)
+0x24 (2): ?1 (small, 0..~0x400)
+0x26 (2): ?2 (small, N..~0x100): not related to seek table, codebook type, chunk count, looping, packet size, samples, etc
+0x28 (4): setup offset within data (0 = no seek table)
+0x2c (4): audio offset within data
+0x30 (2): biggest packet size (not including header)
+0x32 (2): ?4 (small, 0..~0x100): may be same than ?2 (something related to the avg bitrate?)
+0x34 (4): bitrate config? (mid, 0~0x5000)
+0x38 (4): bitrate config? (mid, 0~0x5000) (2 byte with max/min?)
+0x40 (1): blocksize_1_exp (small)
+0x41 (1): blocksize_0_exp (large)
+
+Wwise encoder options, unknown fields above may be reflect these:
+ https://www.audiokinetic.com/library/edge/?source=Help&id=vorbis_encoder_parameters
+*/

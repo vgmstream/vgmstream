@@ -1,8 +1,6 @@
-/*
-** vgmstream for XMPlay
-**
-** 11/11/2009 - started. this is hilariously buggy and doesnt support much yet. [unknownfile]
-*/
+/**
+ * vgmstream for XMPlay
+ */
 
 #include <windows.h>
 #include <windowsx.h>
@@ -156,7 +154,7 @@ int32_t totalFrames, framesDone, framesLength, framesFade;
 #define APP_NAME "vgmstream plugin"
 #define PLUGIN_DESCRIPTION "vgmstream plugin " VERSION " " __DATE__
 
-void __stdcall XMPAbout(HWND hwParent) {
+void __stdcall XMP_About(HWND hwParent) {
     MessageBox(hwParent,
             PLUGIN_DESCRIPTION "\n"
             "by hcs, FastElbja, manakoAT, bxaimc, kode54, and PSXGamerPro1\n\n"
@@ -164,8 +162,9 @@ void __stdcall XMPAbout(HWND hwParent) {
             ,"about xmp-vgmstream",MB_OK);
 }
 
-void __stdcall Stop() {
+void __stdcall XMP_Close() {
 	close_vgmstream(vgmstream);
+	vgmstream = NULL;
 }
 
 BOOL __stdcall XMP_CheckFile(const char *filename, XMPFILE file) {
@@ -200,7 +199,7 @@ DWORD __stdcall XMP_GetFileInfo(const char *filename, XMPFILE file, float **leng
 	return 1;
 }
 
-DWORD __stdcall LoadVgmStream(const char *filename, XMPFILE file) {
+DWORD __stdcall XMP_Open(const char *filename, XMPFILE file) {
 	if (file) vgmstream = init_vgmstream_from_xmpfile(file, filename);
 	else vgmstream = init_vgmstream(filename);
  
@@ -220,7 +219,7 @@ DWORD __stdcall LoadVgmStream(const char *filename, XMPFILE file) {
 	return 1;
 }
 
-DWORD __stdcall XMP_Buffer(float* buffer, DWORD bufsize) {
+DWORD __stdcall XMP_Process(float* buffer, DWORD bufsize) {
 	INT16 buf[1024];
 	UINT32 i, j, todo, done;
 
@@ -323,45 +322,80 @@ double __stdcall XMP_SetPosition(DWORD pos) {
 	return cpos;
 }
 
-void __stdcall XMP_GetInfoText(char* txt, char* length) {
-	if (txt)
-		sprintf(txt,"vgmstream!");
+/* main panel info text (short file info) */
+void __stdcall XMP_GetInfoText(char* format, char* length) {
+    if (!format)
+	    return;
+
+	sprintf(format,"vgmstream");
+	/* length is the file time */
 }
 
-void __stdcall GetAdditionalFields(char* blerp) {
-	sprintf(blerp,"oh god how did this get here I am not good with computers\n");
+/* info for the "General" window/tab (buf is ~40K) */
+void __stdcall XMP_GetGeneralInfo(char* buf) {
+    int i;
+    char description[1024];
+
+    if (!buf)
+        return;
+    if (!vgmstream)
+        return;
+
+    description[0] = '\0';
+    describe_vgmstream(vgmstream,description,sizeof(description));
+
+    /* tags are divided with a tab and lines with carriage return so we'll do some guetto fixin' */
+    for (i = 0; i < 1024; i++) {
+        int tag_done = 0;
+
+        if (description[i] == '\0')
+            break;
+
+        if (description[i] == ':' && !tag_done) { /* to ignore multiple ':' in a line*/
+            description[i] = ' ';
+            description[i+1] = '\t';
+            tag_done = 1;
+        }
+
+        if (description[i] == '\n') {
+            description[i] = '\r';
+            tag_done = 0;
+        }
+    }
+
+    sprintf(buf,"vgmstream\t\r%s\r", description);
 }
 
-
-/* XMPlay extension list, only needed to associate extensions in Windows */
-/*  todo: as of v3.8.2.17, any more than 1024 will crash XMplay's file list screen (but not using the non-native Winamp plugin...) */
-#define EXTENSION_LIST_SIZE   1024 /*VGM_EXTENSION_LIST_CHAR_SIZE * 2*/
-char working_extension_list[EXTENSION_LIST_SIZE] = {0};
 
 static int add_extension(int length, char * dst, const char * src);
 static void build_extension_list();
 
+/* XMPlay extension list, only needed to associate extensions in Windows */
+/*  todo: as of v3.8.2.17, any more than ~1000 will crash XMplay's file list screen (but not using the non-native Winamp plugin...) */
+#define EXTENSION_LIST_SIZE   1000 /*VGM_EXTENSION_LIST_CHAR_SIZE * 2*/
+char working_extension_list[EXTENSION_LIST_SIZE] = {0};
 
+/* plugin defs, see xmpin.h */
 XMPIN vgmstream_intf = {
 	XMPIN_FLAG_CANSTREAM,
 	"vgmstream for XMPlay",
 	working_extension_list,
-	XMPAbout,
-	NULL,
+	XMP_About,
+	NULL,//XMP_Config
 	XMP_CheckFile,
 	XMP_GetFileInfo,
-	LoadVgmStream,
-	Stop,
+	XMP_Open,
+	XMP_Close,
 	NULL,
 	XMP_SetFormat,
-	XMP_GetTags, // Actually mandatory
+	XMP_GetTags, //(OPTIONAL) --actually mandatory
 	XMP_GetInfoText,
-	GetAdditionalFields,
-	NULL,
+	XMP_GetGeneralInfo,
+	NULL,//GetMessage - text for the "Message" tab window/tab (OPTIONAL)
 	XMP_SetPosition,
 	XMP_GetGranularity,
 	NULL,
-	XMP_Buffer,
+	XMP_Process,
 	NULL,
 	NULL,
 	NULL,

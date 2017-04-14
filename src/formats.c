@@ -420,6 +420,7 @@ static const coding_info coding_info_list[] = {
         {coding_SNDS_IMA,           "Heavy Iron .snds 4-bit IMA ADPCM"},
         {coding_OTNS_IMA,           "Omikron: The Nomad Soul 4-bit IMA ADPCM"},
         {coding_FSB_IMA,            "FSB multichannel 4-bit IMA ADPCM"},
+        {coding_WWISE_IMA,          "Audiokinetic Wwise 4-bit IMA ADPCM"},
         {coding_WS,                 "Westwood Studios ADPCM"},
         {coding_ACM,                "InterPlay ACM"},
         {coding_NWA0,               "NWA DPCM Level 0"},
@@ -438,6 +439,7 @@ static const coding_info coding_info_list[] = {
 #ifdef VGM_USE_VORBIS
         {coding_ogg_vorbis,         "Ogg Vorbis"},
         {coding_fsb_vorbis,         "FSB Vorbis"},
+        {coding_wwise_vorbis,       "Wwise Vorbis"},
 #endif
 #ifdef VGM_USE_MPEG
         {coding_fake_MPEG2_L2,      "MPEG-2 Layer II Audio"},

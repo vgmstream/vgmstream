@@ -479,6 +479,10 @@ void reset_vgmstream(VGMSTREAM * vgmstream) {
     if (vgmstream->coding_type==coding_fsb_vorbis) {
         reset_fsb_vorbis(vgmstream);
     }
+
+    if (vgmstream->coding_type==coding_wwise_vorbis) {
+        reset_wwise_vorbis(vgmstream);
+    }
 #endif
     if (vgmstream->coding_type==coding_CRI_HCA) {
         hca_codec_data *data = vgmstream->codec_data;
@@ -680,6 +684,11 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
 
     if (vgmstream->coding_type==coding_fsb_vorbis) {
         free_fsb_vorbis(vgmstream->codec_data);
+        vgmstream->codec_data = NULL;
+    }
+
+    if (vgmstream->coding_type==coding_wwise_vorbis) {
+        free_wwise_vorbis(vgmstream->codec_data);
         vgmstream->codec_data = NULL;
     }
 #endif
@@ -1003,6 +1012,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
 #ifdef VGM_USE_VORBIS
         case coding_ogg_vorbis:
         case coding_fsb_vorbis:
+        case coding_wwise_vorbis:
 #endif
 #ifdef VGM_USE_MPEG
         case coding_fake_MPEG2_L2:
@@ -1073,6 +1083,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
             return 64;
         case coding_MS_IMA:
         case coding_RAD_IMA:
+        case coding_WWISE_IMA:
             return (vgmstream->interleave_block_size-4*vgmstream->channels)*2/vgmstream->channels;
         case coding_RAD_IMA_mono:
             return 32;
@@ -1162,6 +1173,7 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
         case coding_RAD_IMA:
         case coding_NDS_IMA:
         case coding_DAT4_IMA:
+        case coding_WWISE_IMA:
             return vgmstream->interleave_block_size;
         case coding_RAD_IMA_mono:
             return 0x14;
@@ -1487,6 +1499,12 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                     buffer+samples_written*vgmstream->channels,samples_to_do,
                     vgmstream->channels);
             break;
+
+        case coding_wwise_vorbis:
+            decode_wwise_vorbis(vgmstream,
+                    buffer+samples_written*vgmstream->channels,samples_to_do,
+                    vgmstream->channels);
+            break;
 #endif
         case coding_CRI_HCA:
             decode_hca(vgmstream->codec_data,
@@ -1583,6 +1601,13 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
         case coding_FSB_IMA:
             for (chan=0;chan<vgmstream->channels;chan++) {
                 decode_fsb_ima(vgmstream, &vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                        vgmstream->channels,vgmstream->samples_into_block,
+                        samples_to_do,chan);
+            }
+            break;
+        case coding_WWISE_IMA:
+            for (chan=0;chan<vgmstream->channels;chan++) {
+                decode_wwise_ima(vgmstream,&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
                         samples_to_do,chan);
             }
@@ -1800,6 +1825,10 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream) {
 
             if (vgmstream->coding_type==coding_fsb_vorbis) {
                 seek_fsb_vorbis(vgmstream, vgmstream->loop_start_sample);
+            }
+
+            if (vgmstream->coding_type==coding_wwise_vorbis) {
+                seek_wwise_vorbis(vgmstream, vgmstream->loop_start_sample);
             }
 #endif
 
