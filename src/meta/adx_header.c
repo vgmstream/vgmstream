@@ -11,138 +11,146 @@
 
 static int find_key(STREAMFILE *file, uint8_t type, uint16_t *xor_start, uint16_t *xor_mult, uint16_t *xor_add);
 
+/* ADX - CRI Middleware format */
 VGMSTREAM * init_vgmstream_adx(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    off_t stream_offset;
+    off_t start_offset, hist_offset = 0;
+    int loop_flag = 0, channel_count;
+    int32_t loop_start_sample = 0, loop_end_sample = 0;
     uint16_t version_signature;
-    int loop_flag=0;
-    int channel_count;
-    int32_t loop_start_sample=0;
-    int32_t loop_end_sample=0;
+
     meta_t header_type;
+    coding_t coding_type = coding_CRI_ADX;
     int16_t coef1, coef2;
-    uint16_t cutoff;
-    char filename[PATH_LIMIT];
-    int coding_type = coding_CRI_ADX;
     uint16_t xor_start=0,xor_mult=0,xor_add=0;
 
+
     /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("adx",filename_extension(filename))) goto fail;
+    if (!check_extensions(streamFile,"adx")) goto fail;
 
     /* check first 2 bytes */
-    if ((uint16_t)read_16bitBE(0,streamFile)!=0x8000) goto fail;
+    if ((uint16_t)read_16bitBE(0x00,streamFile)!=0x8000) goto fail;
 
     /* get stream offset, check for CRI signature just before */
-    stream_offset = (uint16_t)read_16bitBE(2,streamFile) + 4;
-    if ((uint16_t)read_16bitBE(stream_offset-6,streamFile)!=0x2863 ||/* "(c" */
-        (uint32_t)read_32bitBE(stream_offset-4,streamFile)!=0x29435249 /* ")CRI" */
+    start_offset = (uint16_t)read_16bitBE(0x02,streamFile) + 4;
+    if ((uint16_t)read_16bitBE(start_offset-6,streamFile)!=0x2863 ||   /* "(c" */
+        (uint32_t)read_32bitBE(start_offset-4,streamFile)!=0x29435249  /* ")CRI" */
        ) goto fail;
 
     /* check for encoding type */
-    /* 2 is for some unknown fixed filter, 3 is standard ADX, 4 is
-     * ADX with exponential scale, 0x11 is AHX */
-    if (read_8bit(4,streamFile) != 3) goto fail;
+    /* 0x02 is for some unknown fixed filter, 0x03 is standard ADX, 0x04 is
+     * ADX with exponential scale, 0x10 is AHX for DC, 0x11 is AHX */
+    if (read_8bit(0x04,streamFile) != 3) goto fail;
 
     /* check for frame size (only 18 is supported at the moment) */
-    if (read_8bit(5,streamFile) != 18) goto fail;
+    if (read_8bit(0x05,streamFile) != 18) goto fail;
 
     /* check for bits per sample? (only 4 makes sense for ADX) */
-    if (read_8bit(6,streamFile) != 4) goto fail;
+    if (read_8bit(0x06,streamFile) != 4) goto fail;
+
+    /* older ADX (adxencd) up to 2ch, newer ADX (criatomencd) up to 8 */
+    channel_count = read_8bit(0x07,streamFile);
 
     /* check version signature, read loop info */
     version_signature = read_16bitBE(0x12,streamFile);
+
+
     /* encryption */
     if (version_signature == 0x0408) {
-        if (find_key(streamFile, 8, &xor_start, &xor_mult, &xor_add))
-        {
+        if (find_key(streamFile, 8, &xor_start, &xor_mult, &xor_add)) {
             coding_type = coding_CRI_ADX_enc_8;
             version_signature = 0x0400;
         }
     }
     else if (version_signature == 0x0409) {
-        if (find_key(streamFile, 9, &xor_start, &xor_mult, &xor_add))
-        {
+        if (find_key(streamFile, 9, &xor_start, &xor_mult, &xor_add)) {
             coding_type = coding_CRI_ADX_enc_9;
             version_signature = 0x0400;
         }
     }
 
-    if (version_signature == 0x0300) {      /* type 03 */
+
+    /* version + extra data */
+    if (version_signature == 0x0300) {  /* early ADX (~2004?) */
+        size_t base_size = 0x14, loops_size = 0x18;
+
         header_type = meta_ADX_03;
-        if (stream_offset-6 >= 0x2c) {   /* enough space for loop info? */
-            loop_flag = (read_32bitBE(0x18,streamFile) != 0);
-            loop_start_sample = read_32bitBE(0x1c,streamFile);
-            //loop_start_offset = read_32bitBE(0x20,streamFile);
-            loop_end_sample = read_32bitBE(0x24,streamFile);
-            //loop_end_offset = read_32bitBE(0x28,streamFile);
+
+        /* no sample history */
+
+        if (start_offset - 6 >= base_size + loops_size) { /* enough space for loop info? */
+            off_t loops_offset = base_size;
+
+            /* off+0x00 (2): initial loop padding (the encoder adds a few blank samples so loop start is block-aligned; max 31)
+             *  ex. loop_start=12: enc_start=32, padding=20 (32-20=12); loop_start=35: enc_start=64, padding=29 (64-29=35)
+             * off+0x02 (2): loop sample(?) flag (always 1) */
+            loop_flag           = read_32bitBE(loops_offset+0x04,streamFile) != 0; /* loop offset(?) flag (always 1) */
+            loop_start_sample   = read_32bitBE(loops_offset+0x08,streamFile);
+            //loop_start_offset = read_32bitBE(loops_offset+0x0c,streamFile);
+            loop_end_sample     = read_32bitBE(loops_offset+0x10,streamFile);
+            //loop_end_offset   = read_32bitBE(loops_offset+0x14,streamFile);
         }
-    } else if (version_signature == 0x0400) {
-
-        off_t	ainf_info_length=0;
-
-        if((uint32_t)read_32bitBE(0x24,streamFile)==0x41494E46) /* AINF Header */
-            ainf_info_length = (off_t)read_32bitBE(0x28,streamFile);
+    }
+    else if (version_signature == 0x0400) {  /* common */
+        size_t base_size = 0x18, hist_size, ainf_size = 0, loops_size = 0x18;
+        off_t ainf_offset;
 
         header_type = meta_ADX_04;
-        if (stream_offset-ainf_info_length-6 >= 0x38) {   /* enough space for loop info? */
-        if (read_32bitBE(0x24,streamFile) == 0xFFFEFFFE)
-            loop_flag = 0;
-        else
-            loop_flag = (read_32bitBE(0x24,streamFile) != 0);
 
-            loop_start_sample = read_32bitBE(0x28,streamFile);
-            //loop_start_offset = read_32bitBE(0x2c,streamFile);
-            loop_end_sample = read_32bitBE(0x30,streamFile);
-            //loop_end_offset = read_32bitBE(0x34,streamFile);
+        hist_offset = base_size; /* always present but often blank */
+        hist_size = (channel_count > 1 ? 4*channel_count : 4+4); /* min is 8, even in 1ch files */
+
+        ainf_offset = base_size + hist_size + 0x4; /* not seen with >2ch though */
+        if ((uint32_t)read_32bitBE(ainf_offset+0x00,streamFile) == 0x41494E46) /* "AINF" */
+            ainf_size = read_32bitBE(ainf_offset+0x04,streamFile);
+
+        if (start_offset - ainf_size - 6 >= hist_offset + hist_size + loops_size) {  /* enough space for loop info? */
+            off_t loops_offset = base_size + hist_size;
+
+            /* off+0x00 (2): initial loop padding (the encoder adds a few blank samples so loop start is block-aligned; max 31)
+             *  ex. loop_start=12: enc_start=32, padding=20 (32-20=12); loop_start=35: enc_start=64, padding=29 (64-29=35)
+             * off+0x02 (2): loop sample(?) flag (always 1) */
+            loop_flag           = read_32bitBE(loops_offset+0x04,streamFile) != 0; /* loop offset(?) flag (always 1) */
+            loop_start_sample   = read_32bitBE(loops_offset+0x08,streamFile);
+            //loop_start_offset = read_32bitBE(loops_offset+0x0c,streamFile);
+            loop_end_sample     = read_32bitBE(loops_offset+0x10,streamFile);
+            //loop_end_offset   = read_32bitBE(loops_offset+0x14,streamFile);
         }
 
-        /* AINF header can also start after the loop points
-         *  (may be inserted by CRI's tools but is rarely used) */
-        /* ainf_magic = read_32bitBE(0x38,streamFile); */ /* 0x41494E46 */
-        /* ainf_length = read_32bitBE(0x3c,streamFile); */
-        /* ainf_str_id = read_string(0x40,streamFile); */ /* max size 0x10 */
-        /* ainf_volume = read_16bitBE(0x50,streamFile); */ /* 0=base/max?, negative=reduce */
-        /* ainf_pan_l = read_16bitBE(0x54,streamFile); */ /* 0=base, max +-128 */
-        /* ainf_pan_r = read_16bitBE(0x56,streamFile); */
-
-    } else if (version_signature == 0x0500) {			 /* found in some SFD : Buggy Heat, appears to have no loop */
+        /* AINF header info (may be inserted by CRI's tools but is rarely used)
+         *  Can also start right after the loop points (base_size + hist_size + loops_size)
+         * 0x00 (4): "AINF";  0x04 (4): size;  0x08 (10): str_id
+         * 0x18 (2): volume (0=base/max?, negative=reduce)
+         * 0x1c (2): pan l;   0x1e (2): pan r (0=base, max +-128) */
+    }
+    else if (version_signature == 0x0500) {  /* found in some SFD: Buggy Heat, appears to have no loop */
         header_type = meta_ADX_05;
-    } else goto fail;   /* not a known/supported version signature */
-
-    /* At this point we almost certainly have an ADX file,
-     * so let's build the VGMSTREAM. */
-
-    /* high-pass cutoff frequency, always 500 that I've seen */
-    cutoff = (uint16_t)read_16bitBE(0x10,streamFile);
-
-    if (loop_start_sample == 0 && loop_end_sample == 0) {
-        loop_flag = 0;
+    }
+    else { /* not a known/supported version signature */
+        goto fail;
     }
 
-    channel_count = read_8bit(7,streamFile);
+
+    /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
-    /* fill in the vital statistics */
     vgmstream->num_samples = read_32bitBE(0xc,streamFile);
-    vgmstream->sample_rate = read_32bitBE(8,streamFile);
-    /* channels and loop flag are set by allocate_vgmstream */
+    vgmstream->sample_rate = read_32bitBE(0x8,streamFile);
     vgmstream->loop_start_sample = loop_start_sample;
     vgmstream->loop_end_sample = loop_end_sample;
 
     vgmstream->coding_type = coding_type;
-    if (channel_count==1)
-        vgmstream->layout_type = layout_none;
-    else
-        vgmstream->layout_type = layout_interleave;
+    vgmstream->layout_type = channel_count==1 ? layout_none : layout_interleave;
+    vgmstream->interleave_block_size = 18;
     vgmstream->meta_type = header_type;
 
-    vgmstream->interleave_block_size=18;
 
     /* calculate filter coefficients */
     {
         double x,y,z,a,b,c;
+        /* high-pass cutoff frequency, always 500 that I've seen */
+        uint16_t cutoff = (uint16_t)read_16bitBE(0x10,streamFile);
 
         x = cutoff;
         y = vgmstream->sample_rate;
@@ -156,27 +164,22 @@ VGMSTREAM * init_vgmstream_adx(STREAMFILE *streamFile) {
         coef2 = floor(c*c*-4096);
     }
 
+    /* init decoder */
     {
         int i;
-        STREAMFILE * chstreamfile;
-		
-        /* ADX is so tightly interleaved that having two buffers is silly */
-        chstreamfile = streamFile->open(streamFile,filename,18*0x400);
-        if (!chstreamfile) goto fail;
 
         for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = chstreamfile;
-
-            vgmstream->ch[i].channel_start_offset=
-                vgmstream->ch[i].offset=
-                stream_offset+18*i;
-
             vgmstream->ch[i].adpcm_coef[0] = coef1;
             vgmstream->ch[i].adpcm_coef[1] = coef2;
 
-            if (coding_type == coding_CRI_ADX_enc_8 ||
-                coding_type == coding_CRI_ADX_enc_9)
-            {
+            /* 2 hist shorts per ch, corresponding to the very first original sample repeated (verified with CRI's encoders).
+             * Not vital as their effect is small, after a few samples they don't matter, and most songs start in silence. */
+            if (hist_offset) {
+                vgmstream->ch[i].adpcm_history1_32 = read_16bitBE(hist_offset + i*4 + 0x00,streamFile);
+                vgmstream->ch[i].adpcm_history2_32 = read_16bitBE(hist_offset + i*4 + 0x02,streamFile);
+            }
+
+            if (coding_type == coding_CRI_ADX_enc_8 || coding_type == coding_CRI_ADX_enc_9) {
                 int j;
                 vgmstream->ch[i].adx_channels = channel_count;
                 vgmstream->ch[i].adx_xor = xor_start;
@@ -189,11 +192,13 @@ VGMSTREAM * init_vgmstream_adx(STREAMFILE *streamFile) {
         }
     }
 
+
+    if ( !vgmstream_open_stream(vgmstream,streamFile,start_offset) )
+        goto fail;
     return vgmstream;
 
-    /* clean up anything we may have opened */
 fail:
-    if (vgmstream) close_vgmstream(vgmstream);
+    close_vgmstream(vgmstream);
     return NULL;
 }
 
@@ -426,7 +431,7 @@ static struct {
 
 };
 
-/* type 9 keys */
+/* type 9 keys (may not be autodetected correctly) */
 static struct {
     uint16_t start,mult,add;
 } keys_9[] = {
@@ -441,6 +446,10 @@ static struct {
     /* Kisou Ryouhei Gunhound EX (2013-01-31)(Dracue)[PSP]
      * guessed with degod */
     {0x0005,0x0bcd,0x1add},
+
+    /* Raramagi [Android]
+     * found in 2ch */
+    {0x0000,0x0b99,0x1e33},
 
 };
 
