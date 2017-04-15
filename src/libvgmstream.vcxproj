@@ -178,7 +178,7 @@
     <ClCompile Include="meta\aax.c" />
     <ClCompile Include="meta\acm.c" />
     <ClCompile Include="meta\ads.c" />
-    <ClCompile Include="meta\adx_header.c" />
+    <ClCompile Include="meta\adx.c" />
     <ClCompile Include="meta\afc_header.c" />
     <ClCompile Include="meta\agsc.c" />
     <ClCompile Include="meta\ahx.c" />

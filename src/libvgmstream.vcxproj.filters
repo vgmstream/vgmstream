@@ -112,7 +112,7 @@
     <ClCompile Include="meta\ads.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\adx_header.c">
+    <ClCompile Include="meta\adx.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\afc_header.c">

@@ -221,7 +221,7 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\adx_header.c"
+					RelativePath=".\meta\adx.c"
 					>
 				</File>
 				<File

@@ -64,7 +64,7 @@ LAYOUT_OBJS=layout/ast_blocked.o \
     layout/ps2_strlr_blocked.o \
     layout/scd_int_layout.o
 
-META_OBJS=meta/adx_header.o \
+META_OBJS=meta/adx.o \
     meta/afc_header.o \
     meta/agsc.o \
     meta/ast.o \
