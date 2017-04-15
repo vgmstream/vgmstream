@@ -1,4 +1,5 @@
 #include "coding.h"
+#include <math.h>
 
 #ifdef VGM_USE_VORBIS
 #include <vorbis/codec.h>
