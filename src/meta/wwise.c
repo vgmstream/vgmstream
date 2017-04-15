@@ -399,7 +399,7 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
             if (find_chunk(streamFile, 0x584D4132,first_offset,0, &xma2_offset,&xma2_size, ww.big_endian, 0)) { /*"XMA2"*/ /* older Wwise */
                 bytes = ffmpeg_make_riff_xma2_from_xma2_chunk(buf,0x100, xma2_offset, xma2_size, ww.data_size, streamFile);
             } else { /* newer Wwise */
-                bytes = ffmpeg_make_riff_xma_from_fmt(buf,0x100, ww.fmt_offset, ww.fmt_size, ww.data_size, streamFile, ww.big_endian);
+                bytes = ffmpeg_make_riff_xma_from_fmt_chunk(buf,0x100, ww.fmt_offset, ww.fmt_size, ww.data_size, streamFile, ww.big_endian);
             }
             if (bytes <= 0) goto fail;
 
@@ -436,8 +436,8 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
 
             /* manually find total samples, why don't they put this in the header is beyond me */
             if (ww.format == 0x0162) { /* WMAPRO */
-                xma_sample_data msd;
-                memset(&msd,0,sizeof(xma_sample_data));
+                ms_sample_data msd;
+                memset(&msd,0,sizeof(ms_sample_data));
 
                 msd.channels = ww.channels;
                 msd.data_offset = ww.data_offset;

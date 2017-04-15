@@ -113,7 +113,7 @@ VGMSTREAM * init_vgmstream_gsp_gsb(STREAMFILE *streamFile) {
             if (!find_chunk_be(streamFileGSP, 0x584D4558,first_offset,1, &chunk_offset,NULL)) goto fail; /*"XMEX"*/
             /* 0x00: fmt0x166 header (BE),  0x34: seek table */
 
-            bytes = ffmpeg_make_riff_xma_from_fmt(buf,200, chunk_offset,0x34, datasize, streamFileGSP, 1);
+            bytes = ffmpeg_make_riff_xma_from_fmt_chunk(buf,200, chunk_offset,0x34, datasize, streamFileGSP, 1);
             if (bytes <= 0) goto fail;
 
             ffmpeg_data = init_ffmpeg_header_offset(streamFile, buf,bytes, start_offset,datasize);

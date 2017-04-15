@@ -255,25 +255,24 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
     }
     else if (xwb.xact == 2 && xwb.version <= 38 /* v38: byte offset, v40+: sample offset, v39: ? */
             && (xwb.codec == XMA1 || xwb.codec == XMA2) &&  xwb.loop_flag) {
-#ifdef VGM_USE_FFMPEG
         /* need to manually find sample offsets, thanks to Microsoft dumb headers */
-        xma_sample_data xma_sd;
-        memset(&xma_sd,0,sizeof(xma_sample_data));
+        ms_sample_data msd;
+        memset(&msd,0,sizeof(ms_sample_data));
 
-        xma_sd.xma_version = xwb.codec == XMA1 ? 1 : 2;
-        xma_sd.channels = xwb.channels;
-        xma_sd.data_offset = xwb.stream_offset;
-        xma_sd.data_size = xwb.stream_size;
-        xma_sd.loop_flag = xwb.loop_flag;
-        xma_sd.loop_start_b = xwb.loop_start; /* bit offset in the stream */
-        xma_sd.loop_end_b   = (xwb.loop_end >> 4); /*28b */
+        msd.xma_version = xwb.codec == XMA1 ? 1 : 2;
+        msd.channels = xwb.channels;
+        msd.data_offset = xwb.stream_offset;
+        msd.data_size = xwb.stream_size;
+        msd.loop_flag = xwb.loop_flag;
+        msd.loop_start_b = xwb.loop_start; /* bit offset in the stream */
+        msd.loop_end_b   = (xwb.loop_end >> 4); /*28b */
         /* XACT adds +1 to the subframe, but this means 0 can't be used? */
-        xma_sd.loop_end_subframe    = ((xwb.loop_end >> 2) & 0x3) + 1; /* 2b */
-        xma_sd.loop_start_subframe  = ((xwb.loop_end >> 0) & 0x3) + 1; /* 2b */
+        msd.loop_end_subframe    = ((xwb.loop_end >> 2) & 0x3) + 1; /* 2b */
+        msd.loop_start_subframe  = ((xwb.loop_end >> 0) & 0x3) + 1; /* 2b */
 
-        xma_get_samples(&xma_sd, streamFile);
-        xwb.loop_start_sample = xma_sd.loop_start_sample;
-        xwb.loop_end_sample = xma_sd.loop_end_sample;
+        xma_get_samples(&msd, streamFile);
+        xwb.loop_start_sample = msd.loop_start_sample;
+        xwb.loop_end_sample = msd.loop_end_sample;
 
         // todo fix properly (XWB loop_start/end seem to count padding samples while XMA1 RIFF doesn't)
         //this doesn't seem ok because can fall within 0 to 512 (ie.- first frame)
@@ -283,9 +282,6 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
         //add padding back until it's fixed (affects looping)
         // (in rare cases this causes a glitch in FFmpeg since it has a bug where it's missing some samples)
         xwb.num_samples += 64 + 512;
-#else
-    goto fail;
-#endif
     }
 
 

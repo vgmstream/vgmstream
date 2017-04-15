@@ -261,7 +261,7 @@ int ffmpeg_make_riff_xma2(uint8_t * buf, size_t buf_size, size_t sample_count, s
 
 /* Makes a XMA1/2 RIFF header for FFmpeg using a "fmt " chunk (XMAWAVEFORMAT or XMA2WAVEFORMATEX) as a base:
  * Useful to preserve the stream layout */
-int ffmpeg_make_riff_xma_from_fmt(uint8_t * buf, size_t buf_size, off_t fmt_offset, size_t fmt_size, size_t data_size, STREAMFILE *streamFile, int big_endian) {
+int ffmpeg_make_riff_xma_from_fmt_chunk(uint8_t * buf, size_t buf_size, off_t fmt_offset, size_t fmt_size, size_t data_size, STREAMFILE *streamFile, int big_endian) {
     size_t riff_size = 4+4+ 4 + 4+4+fmt_size + 4+4;
     uint8_t chunk[0x100];
 
@@ -432,7 +432,7 @@ fail:
  * The stream is made of packets, each containing N small frames of X samples. Frames are further divided into subframes.
  * XMA1/XMA2/WMAPRO only differ in the packet headers.
  */
-static void ms_audio_get_samples(xma_sample_data * msd, STREAMFILE *streamFile, int bytes_per_packet, int samples_per_frame, int samples_per_subframe, int bits_frame_size) {
+static void ms_audio_get_samples(ms_sample_data * msd, STREAMFILE *streamFile, int bytes_per_packet, int samples_per_frame, int samples_per_subframe, int bits_frame_size) {
     int frames = 0, samples = 0, loop_start_frame = 0, loop_end_frame = 0, skip_packets;
 #if XMA_CHECK_SKIPS
     int start_skip = 0, end_skip = 0, first_start_skip = 0, last_end_skip = 0;
@@ -626,14 +626,14 @@ static void ms_audio_get_samples(xma_sample_data * msd, STREAMFILE *streamFile, 
     }
 }
 
-void xma_get_samples(xma_sample_data * msd, STREAMFILE *streamFile) {
+void xma_get_samples(ms_sample_data * msd, STREAMFILE *streamFile) {
     const int bytes_per_packet = 2048;
     const int samples_per_frame = 512;
     const int samples_per_subframe = 128;
 
     ms_audio_get_samples(msd, streamFile, bytes_per_packet, samples_per_frame, samples_per_subframe, 15);
 }
-void wmapro_get_samples(xma_sample_data * msd, STREAMFILE *streamFile, int block_align, int sample_rate, uint32_t decode_flags) {
+void wmapro_get_samples(ms_sample_data * msd, STREAMFILE *streamFile, int block_align, int sample_rate, uint32_t decode_flags) {
     int bytes_per_packet = block_align;
     int samples_per_frame = 0;
     int samples_per_subframe = 0;
