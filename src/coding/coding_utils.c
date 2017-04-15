@@ -2,7 +2,14 @@
 #include "math.h"
 #include "../vgmstream.h"
 
-#ifdef VGM_USE_FFMPEG
+
+/**
+ * Various utils for formats that aren't handled their own decoder or meta
+ *
+ * ffmpeg_make_riff_* utils don't depend on FFmpeg, but rather, they make headers that FFmpeg
+ * can use (it doesn't understand all valid RIFF headers, nor the utils make 100% correct headers).
+ */
+
 
 /* ******************************************** */
 /* INTERNAL UTILS                               */
@@ -768,5 +775,3 @@ size_t atrac3plus_bytes_to_samples(size_t bytes, int full_block_align) {
      * so (full_block_align / channels) DOESN'T give the size of a single channel (common in ATRAC3plus) */
     return (bytes / full_block_align) * 2048;
 }
-
-#endif

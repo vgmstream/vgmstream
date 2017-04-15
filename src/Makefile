@@ -26,7 +26,7 @@ CODING_OBJS=coding/adx_decoder.o \
     coding/g719_decoder.o \
     coding/hca_decoder.o \
     coding/ffmpeg_decoder.o \
-    coding/ffmpeg_decoder_utils.o \
+    coding/coding_utils.o \
     coding/fsb_vorbis_decoder.o \
     coding/wwise_vorbis_decoder.o \
     coding/wwise_vorbis_utils.o
