@@ -20,7 +20,6 @@ typedef struct {
 } ww_stream;
 
 static int generate_vorbis_packet(ww_stream * ow, ww_stream * iw, STREAMFILE *streamFile, off_t offset, vorbis_codec_data * data, int big_endian);
-static int generate_vorbis_setup_from_triad(ww_stream * ow, ww_stream * iw, vorbis_codec_data * data, int channels, size_t packet_size, STREAMFILE *streamFile);
 static int generate_vorbis_setup(ww_stream * ow, ww_stream * iw, vorbis_codec_data * data, int channels, size_t packet_size, STREAMFILE *streamFile);
 
 static int codebook_library_copy(ww_stream * ow, ww_stream * iw);
@@ -136,11 +135,7 @@ int wwise_vorbis_rebuild_setup(uint8_t * obuf, size_t obufsize, STREAMFILE *stre
     iw.bufsize = ibufsize;
     iw.b_off = 0;
 
-    if (data->setup_type == HEADER_TRIAD) {
-        rc = generate_vorbis_setup_from_triad(&ow,&iw, data, channels, packet_size, streamFile);
-    } else {
-        rc = generate_vorbis_setup(&ow,&iw, data, channels, packet_size, streamFile);
-    }
+    rc = generate_vorbis_setup(&ow,&iw, data, channels, packet_size, streamFile);
     if (!rc) goto fail;
 
     if (ow.b_off % 8 != 0) {
@@ -271,58 +266,6 @@ static int generate_vorbis_packet(ww_stream * ow, ww_stream * iw, STREAMFILE *st
         int padding_bits = 8 - (ow->b_off % 8);
 
         w_bits(ow,  padding_bits,  padding);
-    }
-
-
-    return 1;
-fail:
-    return 0;
-}
-
-
-/* Parse a partially modified Wwise setup packet.
- * (ref: https://www.xiph.org/vorbis/doc/Vorbis_I_spec.html#x1-650004.2.4) */
-static int generate_vorbis_setup_from_triad(ww_stream * ow, ww_stream * iw, vorbis_codec_data * data, int channels, size_t packet_size, STREAMFILE *streamFile) {
-    int i;
-    uint32_t c = 0;
-
-    /* other packets from the triad should be memcpy'ed externally as they are untouched */
-
-    /* type */
-    r_bits(iw,  8,&c);
-    w_bits(ow,  8, c);
-
-    /* 'vorbis' */
-    for (i = 0; i < 6; i++) {
-        r_bits(iw,  8,&c);
-        w_bits(iw,  8, c);
-    }
-
-    /* codebook count */
-    {
-        uint32_t codebook_count_less1 = 0, codebook_count = 0;
-
-        r_bits(iw,  8,&codebook_count_less1);
-        w_bits(iw,  8, codebook_count_less1);
-        codebook_count = codebook_count_less1 + 1;
-
-        /* rebuild codebooks */
-        for (i = 0; i < codebook_count; i++) {
-            if(!codebook_library_copy(ow, iw)) goto fail;
-        }
-    }
-
-    /* rest of setup is untouched, copy bits */
-    {
-        uint32_t bitly = 0;
-        uint32_t total_bits_read = iw->b_off;
-        uint32_t setup_packet_size_bits = packet_size*8;
-
-        while (total_bits_read < setup_packet_size_bits) {
-            r_bits(iw,  1,&bitly);
-            w_bits(ow,  1, bitly);
-            total_bits_read = iw->b_off;
-        }
     }
 
 
