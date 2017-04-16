@@ -26,7 +26,7 @@ CODING_OBJS=coding/adx_decoder.o \
     coding/g719_decoder.o \
     coding/hca_decoder.o \
     coding/ffmpeg_decoder.o \
-    coding/ffmpeg_decoder_utils.o \
+    coding/coding_utils.o \
     coding/fsb_vorbis_decoder.o \
     coding/wwise_vorbis_decoder.o \
     coding/wwise_vorbis_utils.o
@@ -64,7 +64,7 @@ LAYOUT_OBJS=layout/ast_blocked.o \
     layout/ps2_strlr_blocked.o \
     layout/scd_int_layout.o
 
-META_OBJS=meta/adx_header.o \
+META_OBJS=meta/adx.o \
     meta/afc_header.o \
     meta/agsc.o \
     meta/ast.o \

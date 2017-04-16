@@ -1,12 +1,11 @@
 #include "coding.h"
+#include <math.h>
 
 #ifdef VGM_USE_VORBIS
 #include <vorbis/codec.h>
 
-#define FSB_VORBIS_ON 1 //todo remove once battle-tested
 #define FSB_VORBIS_USE_PRECOMPILED_FVS 1 /* if enabled vgmstream weights ~600kb more but doesn't need external .fvs packets */
 
-#if FSB_VORBIS_ON
 #if FSB_VORBIS_USE_PRECOMPILED_FVS
 #include "fsb_vorbis_data.h"
 #endif
@@ -21,7 +20,6 @@ static int vorbis_make_header_setup(uint8_t * buf, size_t bufsize, uint32_t setu
 static int load_fvs_file_single(uint8_t * buf, size_t bufsize, uint32_t setup_id, STREAMFILE *streamFile);
 static int load_fvs_file_multi(uint8_t * buf, size_t bufsize, uint32_t setup_id, STREAMFILE *streamFile);
 static int load_fvs_array(uint8_t * buf, size_t bufsize, uint32_t setup_id, STREAMFILE *streamFile);
-#endif
 
 /**
  * Inits a raw FSB vorbis stream.
@@ -37,7 +35,6 @@ static int load_fvs_array(uint8_t * buf, size_t bufsize, uint32_t setup_id, STRE
  * Also from the official docs (https://www.xiph.org/vorbis/doc/libvorbis/overview.html).
  */
 vorbis_codec_data * init_fsb_vorbis_codec_data(STREAMFILE *streamfile, off_t start_offset, int channels, int sample_rate, uint32_t setup_id) {
-#if FSB_VORBIS_ON
     vorbis_codec_data * data = NULL;
 
     /* init stuff */
@@ -80,7 +77,6 @@ vorbis_codec_data * init_fsb_vorbis_codec_data(STREAMFILE *streamfile, off_t sta
 
 fail:
     free_fsb_vorbis(data);
-#endif
     return NULL;
 }
 
@@ -88,7 +84,6 @@ fail:
  * Decodes raw FSB vorbis
  */
 void decode_fsb_vorbis(VGMSTREAM * vgmstream, sample * outbuf, int32_t samples_to_do, int channels) {
-#if FSB_VORBIS_ON
     VGMSTREAMCHANNEL *stream = &vgmstream->ch[0];
     vorbis_codec_data * data = vgmstream->codec_data;
     size_t stream_size =  get_streamfile_size(stream->streamfile);
@@ -177,10 +172,8 @@ void decode_fsb_vorbis(VGMSTREAM * vgmstream, sample * outbuf, int32_t samples_t
 decode_fail:
     /* on error just put some 0 samples */
     memset(outbuf + samples_done * channels, 0, (samples_to_do - samples_done) * sizeof(sample));
-#endif
 }
 
-#if FSB_VORBIS_ON
 
 static void pcm_convert_float_to_16(vorbis_codec_data * data, sample * outbuf, int samples_to_do, float ** pcm) {
     /* mostly from Xiph's decoder_example.c */
@@ -391,12 +384,9 @@ fail:
     return 0;
 }
 
-
-#endif
-
+/* ********************************************** */
 
 void free_fsb_vorbis(vorbis_codec_data * data) {
-#if FSB_VORBIS_ON
     if (!data)
         return;
 
@@ -407,22 +397,18 @@ void free_fsb_vorbis(vorbis_codec_data * data) {
 
     free(data->buffer);
     free(data);
-#endif
 }
 
 void reset_fsb_vorbis(VGMSTREAM *vgmstream) {
-#if FSB_VORBIS_ON
     vorbis_codec_data *data = vgmstream->codec_data;
 
     /* Seeking is provided by the Ogg layer, so with raw vorbis we need seek tables instead.
      * To avoid having to parse different formats we'll just discard until the expected sample */
     vorbis_synthesis_restart(&data->vd);
     data->samples_to_discard = 0;
-#endif
 }
 
 void seek_fsb_vorbis(VGMSTREAM *vgmstream, int32_t num_sample) {
-#if FSB_VORBIS_ON
     vorbis_codec_data *data = vgmstream->codec_data;
 
     /* Seeking is provided by the Ogg layer, so with raw vorbis we need seek tables instead.
@@ -431,7 +417,6 @@ void seek_fsb_vorbis(VGMSTREAM *vgmstream, int32_t num_sample) {
     data->samples_to_discard = num_sample;
     if (vgmstream->loop_ch)
         vgmstream->loop_ch[0].offset = vgmstream->loop_ch[0].channel_start_offset;
-#endif
 }
 
 #endif

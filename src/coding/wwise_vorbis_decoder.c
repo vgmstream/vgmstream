@@ -1,10 +1,10 @@
 #include "coding.h"
+#include <math.h>
 
 #ifdef VGM_USE_VORBIS
 #include <vorbis/codec.h>
 
-#define WWISE_VORBIS_ON 1 //todo remove once battle-tested
-#if WWISE_VORBIS_ON
+#define WWISE_VORBIS_ON 0 //todo remove once battle-tested
 #include "wwise_vorbis_utils.h"
 
 
@@ -13,7 +13,6 @@
 static void pcm_convert_float_to_16(vorbis_codec_data * data, sample * outbuf, int samples_to_do, float ** pcm);
 static int vorbis_make_header_identification(uint8_t * buf, size_t bufsize, int channels, int sample_rate, int blocksize_short, int blocksize_long);
 static int vorbis_make_header_comment(uint8_t * buf, size_t bufsize);
-#endif
 
 /**
  * Inits a raw Wwise vorbis stream.
@@ -31,7 +30,6 @@ static int vorbis_make_header_comment(uint8_t * buf, size_t bufsize);
  */
 vorbis_codec_data * init_wwise_vorbis_codec_data(STREAMFILE *streamFile, off_t start_offset, int channels, int sample_rate, int blocksize_0_exp, int blocksize_1_exp,
         wwise_setup_type setup_type, wwise_header_type header_type, wwise_packet_type packet_type, int big_endian) {
-#if WWISE_VORBIS_ON
     vorbis_codec_data * data = NULL;
     size_t header_size, packet_size;
 
@@ -62,20 +60,21 @@ vorbis_codec_data * init_wwise_vorbis_codec_data(STREAMFILE *streamFile, off_t s
         /* normal identificacion packet */
         header_size = wwise_vorbis_get_header(streamFile, offset, data->header_type, (int*)&data->op.granulepos, &packet_size, big_endian);
         if (!header_size || packet_size > data->buffer_size) goto fail;
-        if (read_streamfile(data->buffer,offset+header_size,packet_size, streamFile)!=packet_size) goto fail;
+        data->op.bytes = read_streamfile(data->buffer,offset+header_size,packet_size, streamFile);
         if (vorbis_synthesis_headerin(&data->vi, &data->vc, &data->op) != 0) goto fail; /* parse identification header */
         offset += header_size + packet_size;
 
         /* normal comment packet */
         header_size = wwise_vorbis_get_header(streamFile, offset, data->header_type, (int*)&data->op.granulepos, &packet_size, big_endian);
         if (!header_size || packet_size > data->buffer_size) goto fail;
-        if (read_streamfile(data->buffer,offset+header_size,packet_size, streamFile)!=packet_size) goto fail;
+        data->op.bytes = read_streamfile(data->buffer,offset+header_size,packet_size, streamFile);
         if (vorbis_synthesis_headerin(&data->vi, &data->vc, &data->op) !=0 ) goto fail; /* parse comment header */
         offset += header_size + packet_size;
 
-        /* modified setup packet */ //todo doesn't seem needed, may be copied as -is
+        /* normal setup packet */
         header_size = wwise_vorbis_get_header(streamFile, offset, data->header_type, (int*)&data->op.granulepos, &packet_size, big_endian);
-        data->op.bytes = wwise_vorbis_rebuild_setup(data->buffer, data->buffer_size, streamFile, offset, data, big_endian, channels);
+        if (!header_size || packet_size > data->buffer_size) goto fail;
+        data->op.bytes = read_streamfile(data->buffer,offset+header_size,packet_size, streamFile);
         if (vorbis_synthesis_headerin(&data->vi, &data->vc, &data->op) != 0) goto fail; /* parse setup header */
         offset += header_size + packet_size;
     }
@@ -110,7 +109,6 @@ vorbis_codec_data * init_wwise_vorbis_codec_data(STREAMFILE *streamFile, off_t s
 
 fail:
     free_wwise_vorbis(data);
-#endif
     return NULL;
 }
 
@@ -118,7 +116,6 @@ fail:
  * Decodes raw Wwise Vorbis
  */
 void decode_wwise_vorbis(VGMSTREAM * vgmstream, sample * outbuf, int32_t samples_to_do, int channels) {
-#if WWISE_VORBIS_ON
     VGMSTREAMCHANNEL *stream = &vgmstream->ch[0];
     vorbis_codec_data * data = vgmstream->codec_data;
     size_t stream_size =  get_streamfile_size(stream->streamfile);
@@ -210,10 +207,9 @@ void decode_wwise_vorbis(VGMSTREAM * vgmstream, sample * outbuf, int32_t samples
 decode_fail:
     /* on error just put some 0 samples */
     memset(outbuf + samples_done * channels, 0, (samples_to_do - samples_done) * sizeof(sample));
-#endif
 }
 
-#if WWISE_VORBIS_ON
+/* *************************************************** */
 
 static void pcm_convert_float_to_16(vorbis_codec_data * data, sample * outbuf, int samples_to_do, float ** pcm) {
     /* mostly from Xiph's decoder_example.c */
@@ -234,8 +230,6 @@ static void pcm_convert_float_to_16(vorbis_codec_data * data, sample * outbuf, i
         }
     }
 }
-
-/* *************************************************** */
 
 static int vorbis_make_header_identification(uint8_t * buf, size_t bufsize, int channels, int sample_rate, int blocksize_0_exp, int blocksize_1_exp) {
     int bytes = 0x1e;
@@ -274,12 +268,9 @@ static int vorbis_make_header_comment(uint8_t * buf, size_t bufsize) {
     return bytes;
 }
 
-#endif
-
 /* *************************************** */
 
 void free_wwise_vorbis(vorbis_codec_data * data) {
-#if WWISE_VORBIS_ON
     if (!data)
         return;
 
@@ -290,22 +281,18 @@ void free_wwise_vorbis(vorbis_codec_data * data) {
 
     free(data->buffer);
     free(data);
-#endif
 }
 
 void reset_wwise_vorbis(VGMSTREAM *vgmstream) {
-#if WWISE_VORBIS_ON
     vorbis_codec_data *data = vgmstream->codec_data;
 
     /* Seeking is provided by the Ogg layer, so with raw vorbis we need seek tables instead.
      * To avoid having to parse different formats we'll just discard until the expected sample */
     vorbis_synthesis_restart(&data->vd);
     data->samples_to_discard = 0;
-#endif
 }
 
 void seek_wwise_vorbis(VGMSTREAM *vgmstream, int32_t num_sample) {
-#if WWISE_VORBIS_ON
     vorbis_codec_data *data = vgmstream->codec_data;
 
     /* Seeking is provided by the Ogg layer, so with raw vorbis we need seek tables instead.
@@ -314,7 +301,6 @@ void seek_wwise_vorbis(VGMSTREAM *vgmstream, int32_t num_sample) {
     data->samples_to_discard = num_sample;
     if (vgmstream->loop_ch) /* this func is only using for looping though */
         vgmstream->loop_ch[0].offset = vgmstream->loop_ch[0].channel_start_offset;
-#endif
 }
 
 #endif

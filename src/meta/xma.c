@@ -286,7 +286,7 @@ fail:
 
 
 static void fix_samples(xma_header_data * xma, STREAMFILE *streamFile) {
-    xma_sample_data xma_sd;
+    ms_sample_data msd;
 
     /* for now only XMA1 is fixed, but xmaencode.exe doesn't seem to use
      * XMA2 sample values in the headers, and the exact number of samples may not be exact.
@@ -296,26 +296,26 @@ static void fix_samples(xma_header_data * xma, STREAMFILE *streamFile) {
         return;
     }
 
-    memset(&xma_sd,0,sizeof(xma_sample_data));
+    memset(&msd,0,sizeof(ms_sample_data));
 
     /* call xma parser (copy to its own struct, a bit clunky but oh well...) */
-    xma_sd.xma_version = xma->fmt_codec==0x165 ? 1 : 2;
-    xma_sd.channels = xma->channels;
-    xma_sd.data_offset = xma->data_offset;
-    xma_sd.data_size = xma->data_size;
-    xma_sd.loop_flag = xma->loop_flag;
-    xma_sd.loop_start_b = xma->loop_start_b;
-    xma_sd.loop_end_b = xma->loop_end_b;
-    xma_sd.loop_start_subframe = xma->loop_subframe & 0xF; /* lower 4b: subframe where the loop starts, 0..4 */
-    xma_sd.loop_end_subframe = xma->loop_subframe >> 4; /* upper 4b: subframe where the loop ends, 0..3 */
+    msd.xma_version = xma->fmt_codec==0x165 ? 1 : 2;
+    msd.channels = xma->channels;
+    msd.data_offset = xma->data_offset;
+    msd.data_size = xma->data_size;
+    msd.loop_flag = xma->loop_flag;
+    msd.loop_start_b = xma->loop_start_b;
+    msd.loop_end_b = xma->loop_end_b;
+    msd.loop_start_subframe = xma->loop_subframe & 0xF; /* lower 4b: subframe where the loop starts, 0..4 */
+    msd.loop_end_subframe = xma->loop_subframe >> 4; /* upper 4b: subframe where the loop ends, 0..3 */
 
-    xma_get_samples(&xma_sd, streamFile);
+    xma_get_samples(&msd, streamFile);
 
     /* and recieve results */
-    xma->num_samples = xma_sd.num_samples;
-    xma->skip_samples = xma_sd.skip_samples;
-    xma->loop_start_sample = xma_sd.loop_start_sample;
-    xma->loop_end_sample = xma_sd.loop_end_sample;
+    xma->num_samples = msd.num_samples;
+    xma->skip_samples = msd.skip_samples;
+    xma->loop_start_sample = msd.loop_start_sample;
+    xma->loop_end_sample = msd.loop_end_sample;
     /* XMA2 loop/num_samples don't seem to skip_samples */
 }
 

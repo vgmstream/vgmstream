@@ -124,8 +124,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="coding\at3_decoder.c" />
+    <ClCompile Include="coding\coding_utils.c" />
     <ClCompile Include="coding\ffmpeg_decoder.c" />
-    <ClCompile Include="coding\ffmpeg_decoder_utils.c" />
     <ClCompile Include="coding\lsf_decoder.c" />
     <ClCompile Include="coding\mp4_aac_decoder.c" />
     <ClCompile Include="coding\mtaf_decoder.c" />
@@ -178,7 +178,7 @@
     <ClCompile Include="meta\aax.c" />
     <ClCompile Include="meta\acm.c" />
     <ClCompile Include="meta\ads.c" />
-    <ClCompile Include="meta\adx_header.c" />
+    <ClCompile Include="meta\adx.c" />
     <ClCompile Include="meta\afc_header.c" />
     <ClCompile Include="meta\agsc.c" />
     <ClCompile Include="meta\ahx.c" />

@@ -358,7 +358,7 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
 
                 /* post_meta_offset+0x00: fmt0x166 header (BE),  post_meta_offset+0x34: seek table */
 
-                bytes = ffmpeg_make_riff_xma_from_fmt(buf,200, post_meta_offset,0x34, stream_size, streamFile, 1);
+                bytes = ffmpeg_make_riff_xma_from_fmt_chunk(buf,200, post_meta_offset,0x34, stream_size, streamFile, 1);
                 if (bytes <= 0) goto fail;
 
                 ffmpeg_data = init_ffmpeg_header_offset(streamFile, buf,bytes, start_offset,stream_size);

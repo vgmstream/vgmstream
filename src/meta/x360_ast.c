@@ -37,29 +37,29 @@ VGMSTREAM * init_vgmstream_x360_ast(STREAMFILE *streamFile) {
     vgmstream->sample_rate = read_32bitBE(0x40,streamFile);
     vgmstream->meta_type = meta_X360_AST;
 
-#ifdef VGM_USE_FFMPEG
     {
         /* manually find sample offsets (XMA1 nonsense again) */
-        xma_sample_data xma_sd;
-        memset(&xma_sd,0,sizeof(xma_sample_data));
+        ms_sample_data msd;
+        memset(&msd,0,sizeof(ms_sample_data));
 
-        xma_sd.xma_version = 1;
-        xma_sd.channels = channel_count;
-        xma_sd.data_offset = start_offset;
-        xma_sd.data_size = data_size;
-        xma_sd.loop_flag = loop_flag;
-        xma_sd.loop_start_b = read_32bitBE(0x44,streamFile);
-        xma_sd.loop_end_b   = read_32bitBE(0x48,streamFile);
-        xma_sd.loop_start_subframe = read_8bit(0x4c,streamFile) & 0xF; /* lower 4b: subframe where the loop starts, 0..4 */
-        xma_sd.loop_end_subframe   = read_8bit(0x4c,streamFile) >> 4;  /* upper 4b: subframe where the loop ends, 0..3 */
+        msd.xma_version = 1;
+        msd.channels = channel_count;
+        msd.data_offset = start_offset;
+        msd.data_size = data_size;
+        msd.loop_flag = loop_flag;
+        msd.loop_start_b = read_32bitBE(0x44,streamFile);
+        msd.loop_end_b   = read_32bitBE(0x48,streamFile);
+        msd.loop_start_subframe = read_8bit(0x4c,streamFile) & 0xF; /* lower 4b: subframe where the loop starts, 0..4 */
+        msd.loop_end_subframe   = read_8bit(0x4c,streamFile) >> 4;  /* upper 4b: subframe where the loop ends, 0..3 */
 
-        xma_get_samples(&xma_sd, streamFile);
-        vgmstream->num_samples = xma_sd.num_samples;
-        vgmstream->loop_start_sample = xma_sd.loop_start_sample;
-        vgmstream->loop_end_sample = xma_sd.loop_end_sample;
-        //skip_samples = xma_sd.skip_samples; //todo add skip samples
+        xma_get_samples(&msd, streamFile);
+        vgmstream->num_samples = msd.num_samples;
+        vgmstream->loop_start_sample = msd.loop_start_sample;
+        vgmstream->loop_end_sample = msd.loop_end_sample;
+        //skip_samples = msd.skip_samples; //todo add skip samples
     }
 
+#ifdef VGM_USE_FFMPEG
     {
         uint8_t buf[100];
         size_t bytes;
@@ -68,7 +68,7 @@ VGMSTREAM * init_vgmstream_x360_ast(STREAMFILE *streamFile) {
         size_t fmt_size = 0x0c + xma_streams * 0x14;
 
         /* XMA1 "fmt" chunk @ 0x20 (BE, unlike the usual LE) */
-        bytes = ffmpeg_make_riff_xma_from_fmt(buf,100, fmt_offset,fmt_size, data_size, streamFile, 1);
+        bytes = ffmpeg_make_riff_xma_from_fmt_chunk(buf,100, fmt_offset,fmt_size, data_size, streamFile, 1);
         if (bytes <= 0) goto fail;
 
         vgmstream->codec_data = init_ffmpeg_header_offset(streamFile, buf,bytes, start_offset,data_size);

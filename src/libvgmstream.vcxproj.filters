@@ -112,7 +112,7 @@
     <ClCompile Include="meta\ads.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\adx_header.c">
+    <ClCompile Include="meta\adx.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\afc_header.c">
@@ -1039,7 +1039,7 @@
     <ClCompile Include="coding\ffmpeg_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="coding\ffmpeg_decoder_utils.c">
+    <ClCompile Include="coding\coding_utils.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\xma.c">

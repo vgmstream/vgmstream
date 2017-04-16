@@ -137,7 +137,7 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
         case 0x0001: ww.codec = PCM; break; /* older Wwise */
         case 0x0002: ww.codec = IMA; break; /* newer Wwise (conflicts with MSADPCM, probably means "platform's ADPCM") */
         //case 0x0011: ww.codec = IMA; break; /* older Wwise (used?) */
-        case 0x0069: ww.codec = IMA; break; /* older Wwise (Spiderman Web of Shadows X360) */
+        case 0x0069: ww.codec = IMA; break; /* older Wwise (Spiderman Web of Shadows X360, LotR Conquest PC) */
         case 0x0161: ww.codec = XWMA; break;
         case 0x0162: ww.codec = XWMA; break;
         case 0x0165: ww.codec = XMA2; break; /* always with the "XMA2" chunk, Wwise doesn't use XMA1 */
@@ -146,7 +146,7 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
         case 0xFFF0: ww.codec = DSP; break;
         case 0xFFFB: ww.codec = HEVAG; break;
         case 0xFFFC: ww.codec = ATRAC9; break;
-        case 0xFFFE: ww.codec = PCM; break; /* newer Wwise ("PCM for Wwise Authoring") (conflicts with WAVEFORMATEXTENSIBLE) */
+        case 0xFFFE: ww.codec = PCM; break; /* "PCM for Wwise Authoring" */
         case 0xFFFF: ww.codec = VORBIS; break;
         default:
             VGM_LOG("WWISE: unknown codec 0x%x \n", ww.format);
@@ -162,7 +162,7 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
      * We'll add basic support to avoid complaints of this or that .wem not playing */
     if (ww.data_size > ww.file_size) {
         //VGM_LOG("WWISE: truncated data size (prefetch): (real=0x%x > riff=0x%x)\n", ww.data_size, ww.file_size);
-        if (ww.codec == IMA || ww.codec == VORBIS) /* only seen in those, probably other exist */
+        if (ww.codec == IMA || ww.codec == VORBIS) /* only seen those, probably others exist */
             ww.truncated = 1;
         else
             goto fail;
@@ -227,9 +227,8 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
                 /* older Wwise (~<2012) */
 
                 switch(vorb_size) {
-#if 0
-                    case 0x28: /* early (~2009), some Divinity II files? */
-                    case 0x2C: /* early (~2009), some EVE Online Apocrypha files? */
+                    //case 0x2C: /* early (~2009), some EVE Online Apocrypha files? */
+                    case 0x28: /* early (~2009), ex. The Lord of the Rings: Conquest PC */
                         data_offsets = 0x18;
                         block_offsets = 0; /* no need, full headers are present */
                         header_type = TYPE_8;
@@ -237,16 +236,15 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
                         setup_type = HEADER_TRIAD;
                         break;
 
-                    case 0x32:  /* ? */
-#endif
+                    //case 0x32:  /* ? */
                     case 0x34:  /* common (2010~2011) */
                         data_offsets = 0x18;
                         block_offsets = 0x30;
                         header_type = TYPE_6;
                         packet_type = STANDARD;
-                        /* setup_type: autodetect later */
+                        setup_type = EXTERNAL_CODEBOOKS; /* setup_type will be corrected  later */
                         break;
-                    case 0x2a:  /* infamous 2 (mid 2011) */
+                    case 0x2a:  /* uncommon (mid 2011), ex. infamous 2 PS3 */
                         data_offsets = 0x10;
                         block_offsets = 0x28;
                         header_type = TYPE_2;
@@ -282,9 +280,6 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
                     else if (setup_size > 0x200) { /* an external setup it's ~0x100 max + some threshold */
                         setup_type = INLINE_CODEBOOKS;
                     }
-                    else {
-                        setup_type = EXTERNAL_CODEBOOKS;
-                    }
                 }
 
                 vgmstream->codec_data = init_wwise_vorbis_codec_data(streamFile, start_offset + setup_offset, ww.channels, ww.sample_rate, blocksize_0_exp,blocksize_1_exp,
@@ -302,16 +297,16 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
                         block_offsets = 0x28;
                         header_type = TYPE_2;
                         packet_type = MODIFIED;
-                        //packet_type = STANDARD;
 
                         /* setup not detectable by header, so we'll try both; hopefully libvorbis will reject wrong codebooks
-                         * - standard: early (<2012), ex. The King of Fighters XIII X360 (2011/11), .ogg
+                         * - standard: early (<2012), ex. The King of Fighters XIII X360 (2011/11), .ogg (cbs are from aoTuV, too)
                          * - aoTuV603: later (>2012), ex. Sonic & All-Stars Racing Transformed PC (2012/11), .wem */
                         setup_type  = is_wem ? AOTUV603_CODEBOOKS : EXTERNAL_CODEBOOKS; /* aoTuV came along .wem */
                         break;
+
+                    //case 0x2a: /* Rocksmith 2011 X360? */
+                        //non mod packets? TYPE_06? (possibly detectable by checking setup's granule, should be 0)
                     default:
-                        //todo apparently some 0x2a + non mod_packets exist
-                        //todo TYPE_06 possibly detectable by checking setup's granule (should be 0)
                         VGM_LOG("WWISE: unknown extra size 0x%x\n", vorb_size);
                         goto fail;
                 }
@@ -404,7 +399,7 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
             if (find_chunk(streamFile, 0x584D4132,first_offset,0, &xma2_offset,&xma2_size, ww.big_endian, 0)) { /*"XMA2"*/ /* older Wwise */
                 bytes = ffmpeg_make_riff_xma2_from_xma2_chunk(buf,0x100, xma2_offset, xma2_size, ww.data_size, streamFile);
             } else { /* newer Wwise */
-                bytes = ffmpeg_make_riff_xma_from_fmt(buf,0x100, ww.fmt_offset, ww.fmt_size, ww.data_size, streamFile, ww.big_endian);
+                bytes = ffmpeg_make_riff_xma_from_fmt_chunk(buf,0x100, ww.fmt_offset, ww.fmt_size, ww.data_size, streamFile, ww.big_endian);
             }
             if (bytes <= 0) goto fail;
 
@@ -441,8 +436,8 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
 
             /* manually find total samples, why don't they put this in the header is beyond me */
             if (ww.format == 0x0162) { /* WMAPRO */
-                xma_sample_data msd;
-                memset(&msd,0,sizeof(xma_sample_data));
+                ms_sample_data msd;
+                memset(&msd,0,sizeof(ms_sample_data));
 
                 msd.channels = ww.channels;
                 msd.data_offset = ww.data_offset;
@@ -535,7 +530,7 @@ fail:
 0x31 (1): blocksize_0_exp (large)
 0x32 (2): empty
 
-"vorb" size 0x2a
+"vorb" size 0x28 / 0x2a
 0x00 (4): num_samples
 0x04 (4): loop offset after seek table+setup (offset after setup if file doesn't loop)
 0x08 (4): data size without seek table (setup+packets)
@@ -547,8 +542,8 @@ fail:
 0x1c (4): ? (mid, 0~0x5000)
 0x20 (4): ? (mid, 0~0x5000)
 0x24 (4): parent bank/event id? (shared by several .wem a game, but not all need to share it)
-0x28 (1): blocksize_1_exp (small)
-0x29 (1): blocksize_0_exp (large)
+0x28 (1): blocksize_1_exp (small)  [removed when size is 0x28]
+0x29 (1): blocksize_0_exp (large)  [removed when size is 0x28]
 
 
 - new format:

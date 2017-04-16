@@ -221,7 +221,7 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\adx_header.c"
+					RelativePath=".\meta\adx.c"
 					>
 				</File>
 				<File
@@ -1270,16 +1270,16 @@
 					RelativePath=".\coding\aica_decoder.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\coding\coding_utils.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\coding\eaxa_decoder.c"
 					>
 				</File>
                 <File
                     RelativePath=".\coding\ffmpeg_decoder.c"
-                    >
-                </File>
-                <File
-                    RelativePath=".\coding\ffmpeg_decoder_utils.c"
                     >
                 </File>
                 <File
