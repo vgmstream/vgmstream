@@ -138,6 +138,7 @@ VGMSTREAM * init_vgmstream_akb2_multi(STREAMFILE *streamFile) {
     off_t start_offset, header_offset;
     size_t datasize;
     int loop_flag = 0, channel_count, codec;
+    int akb_header_size, sound_index = 0, sound_offset_data, sound, sound_header_size, material_offset_data, material_index = 0, material, extradata, encryption_flag;
 
     /* check extensions */
     if ( !check_extensions(streamFile, "akb") )
@@ -147,10 +148,17 @@ VGMSTREAM * init_vgmstream_akb2_multi(STREAMFILE *streamFile) {
     if (read_32bitBE(0x00,streamFile) != 0x414B4232) /* "AKB2" */
         goto fail;
 
-    /* this is weird (BE?) but seems to work */
-    start_offset = (uint16_t)read_16bitBE(0x21,streamFile);
-    header_offset = start_offset - 0x50;
-    if (header_offset < 0x30) goto fail;
+    akb_header_size = read_16bitLE(0x06, streamFile);
+    sound_offset_data = akb_header_size + sound_index * 0x10;
+    sound = read_32bitLE(sound_offset_data + 0x04, streamFile);
+    sound_header_size = read_16bitLE(sound + 0x02, streamFile);
+    material_offset_data = sound + sound_header_size + material_index * 0x10;
+    material = sound + read_32bitLE(material_offset_data + 0x04, streamFile);
+    encryption_flag = read_8bit(material + 0x03, streamFile) & 0x08;
+    extradata = material + read_16bitLE(material + 0x04, streamFile);
+
+    start_offset = material + read_16bitLE(material + 0x04, streamFile) + read_32bitLE(material + 0x18, streamFile);
+	header_offset = material;
 
     channel_count = read_8bit(header_offset+0x02,streamFile);
     loop_flag = read_32bitLE(header_offset+0x14,streamFile) > 0;
@@ -172,6 +180,15 @@ VGMSTREAM * init_vgmstream_akb2_multi(STREAMFILE *streamFile) {
     vgmstream->meta_type = meta_AKB;
 
     switch (codec) {
+        case 0x02: { /* msadpcm [The Irregular at Magic High School Lost Zero (Android)] */
+            if (encryption_flag) goto fail;
+            vgmstream->num_samples = read_32bitLE(extradata + 0x04, streamFile);
+            vgmstream->coding_type = coding_MSADPCM;
+            vgmstream->layout_type = layout_none;
+            vgmstream->interleave_block_size = read_16bitLE(extradata + 0x02, streamFile);
+            break;
+        }
+
 #ifdef VGM_USE_FFMPEG
         case 0x05: { /* ogg vorbis [The World Ends with You (iPhone / latest update)] */
             ffmpeg_codec_data *ffmpeg_data;
