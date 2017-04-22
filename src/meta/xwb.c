@@ -5,12 +5,21 @@
 /* most info from XWBtool, xactwb.h, xact2wb.h and xact3wb.h */
 
 #define WAVEBANK_FLAGS_COMPACT              0x00020000  // Bank uses compact format
-#define WAVEBANKENTRY_FLAGS_IGNORELOOP      0x00000008  // Used internally when the loop region can't be used
+#define WAVEBANKENTRY_FLAGS_IGNORELOOP      0x00000008  // Used internally when the loop region can't be used (no idea...)
 
-static const int32_t wma_avg_bps_index[] = { /*7*/
+/* the x.x version is just to make it clearer, MS only classifies XACT as 1/2/3 */
+#define XACT1_0_MAX     1           /* Project Gotham Racing 2 (v1), Silent Hill 4 (v1) */
+#define XACT1_1_MAX     3           /* The King of Fighters 2003 (v3) */
+#define XACT2_0_MAX     34          /* Dead or Alive 4 (v17), Kameo (v23), Table Tennis (v34) */ // v35/36/37 too?
+#define XACT2_1_MAX     38          /* Prey (v38) */ // v39 too?
+#define XACT2_2_MAX     41          /* Blue Dragon (v40) */
+#define XACT3_0_MAX     46          /* Ninja Blade (t43 v42), Persona 4 Ultimax NESSICA (t45 v43) */
+#define XACT_TECHLAND   0x10000     /* Sniper Ghost Warrior, Nail'd (PS3/X360) */
+
+static const int wma_avg_bps_index[7] = {
     12000, 24000, 4000, 6000, 8000, 20000, 2500
 };
-static const int32_t wma_block_align_index[] = { /*17*/
+static const int wma_block_align_index[17] = {
     929, 1487, 1280, 2230, 8917, 8192, 4459, 5945, 2304, 1536, 1485, 1008, 2731, 4096, 6827, 5462, 1280
 };
 
@@ -18,8 +27,6 @@ static const int32_t wma_block_align_index[] = { /*17*/
 typedef enum { PCM, XBOX_ADPCM, MS_ADPCM, XMA1, XMA2, WMA, XWMA, ATRAC3 } xact_codec;
 typedef struct {
     int little_endian;
-    int xact; /* rough XACT version (1/2/3) */
-
     int version;
 
     /* segments */
@@ -83,43 +90,47 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
 
 
     /* read main header (WAVEBANKHEADER) */
-    xwb.version = read_32bit(0x04, streamFile);
-    if (xwb.version <= 3) {
-        xwb.xact = 1; /* XACT1: XBOX [The King of Fighters 2003] */
-    } else if (xwb.version < 42) {
-        xwb.xact = 2; /* XACT2: early XBOX360 [Kameo, Table Tennis, Blue Dragon], Windows */
-    } else { /* highest seen: tool=v46, header=v44 */
-        xwb.xact = 3; /* XACT3: late XBOX360, Windows */
-    }
+    xwb.version = read_32bit(0x04, streamFile); /* XACT3: 0x04=tool version, 0x08=header version */
 
     /* read segment offsets (SEGIDX) */
-    off = xwb.xact <= 2 ? 0x08 : 0x0c; /* XACT3: 0x04=tool version, 0x08=header version */
-    xwb.base_offset = read_32bit(off+0x00, streamFile);//BANKDATA
-    xwb.base_size   = read_32bit(off+0x04, streamFile);
-    xwb.entry_offset= read_32bit(off+0x08, streamFile);//ENTRYMETADATA
-    xwb.entry_size  = read_32bit(off+0x0c, streamFile);
-    /* go to last segment (XACT2/3 have 5 segments, XACT1 4) */
-    //0x10: XACT1/2: ENTRYNAMES,  XACT3: SEEKTABLES
-    //0x14: XACT1: none (ENTRYWAVEDATA), XACT2: EXTRA, XACT3: ENTRYNAMES
-    suboff = xwb.xact >= 2 ? 0x08+0x08 : 0x08;
-    xwb.data_offset = read_32bit(off+0x10+suboff, streamFile);//ENTRYWAVEDATA
-    xwb.data_size   = read_32bit(off+0x14+suboff, streamFile);
+    if (xwb.version <= XACT1_0_MAX) {
+        xwb.streams     = read_32bit(0x0c, streamFile);
+        /* 0x10: bank name */
+        xwb.entry_elem_size = 0x14;
+        xwb.entry_offset= 0x50;
+        xwb.entry_size  = xwb.entry_elem_size * xwb.streams;
+        xwb.data_offset = xwb.entry_offset + xwb.entry_size;
+        xwb.data_size   = get_streamfile_size(streamFile) - xwb.data_offset;
+    }
+    else {
+        off = xwb.version <= XACT2_2_MAX ? 0x08 : 0x0c;
+        xwb.base_offset = read_32bit(off+0x00, streamFile);//BANKDATA
+        xwb.base_size   = read_32bit(off+0x04, streamFile);
+        xwb.entry_offset= read_32bit(off+0x08, streamFile);//ENTRYMETADATA
+        xwb.entry_size  = read_32bit(off+0x0c, streamFile);
+        /* go to last segment (XACT2/3 have 5 segments, XACT1 4) */
+        //0x10: XACT1/2: ENTRYNAMES,  XACT3: SEEKTABLES
+        //0x14: XACT1: none (ENTRYWAVEDATA), XACT2: EXTRA, XACT3: ENTRYNAMES
+        suboff = xwb.version <= XACT1_1_MAX ? 0x08 : 0x08+0x08;
+        xwb.data_offset = read_32bit(off+0x10+suboff, streamFile);//ENTRYWAVEDATA
+        xwb.data_size   = read_32bit(off+0x14+suboff, streamFile);
 
-    /* for Silent Hill 4 Xbox fake XWB and Techland's XWB with no data */
-    if (xwb.base_offset == 0) goto fail;
-    if (xwb.data_offset + xwb.data_size != get_streamfile_size(streamFile)) goto fail;
+        /* for Techland's XWB with no data */
+        if (xwb.base_offset == 0) goto fail;
+        if (xwb.data_offset + xwb.data_size != get_streamfile_size(streamFile)) goto fail;
 
-    /* read base entry (WAVEBANKDATA) */
-    off = xwb.base_offset;
-    xwb.base_flags = (uint32_t)read_32bit(off+0x00, streamFile);
-    xwb.streams = read_32bit(off+0x04, streamFile);
-    /* 0x08 bank_name */
-    suboff = 0x08 + (xwb.xact == 1 ? 0x10 : 0x40);
-    xwb.entry_elem_size = read_32bit(off+suboff+0x00, streamFile);
-    /* suboff+0x04: meta name entry size */
-    xwb.entry_alignment = read_32bit(off+suboff+0x08, streamFile); /* usually 1 dvd sector */
-    xwb.format = read_32bit(off+suboff+0x0c, streamFile); /* compact mode only */
-    /* suboff+0x10: build time 64b (XACT2/3) */
+        /* read base entry (WAVEBANKDATA) */
+        off = xwb.base_offset;
+        xwb.base_flags  = (uint32_t)read_32bit(off+0x00, streamFile);
+        xwb.streams     = read_32bit(off+0x04, streamFile);
+        /* 0x08 bank_name */
+        suboff = 0x08 + (xwb.version <= XACT1_1_MAX ? 0x10 : 0x40);
+        xwb.entry_elem_size = read_32bit(off+suboff+0x00, streamFile);
+        /* suboff+0x04: meta name entry size */
+        xwb.entry_alignment = read_32bit(off+suboff+0x08, streamFile); /* usually 1 dvd sector */
+        xwb.format = read_32bit(off+suboff+0x0c, streamFile); /* compact mode only */
+        /* suboff+0x10: build time 64b (XACT2/3) */
+    }
 
     if (target_stream == 0) target_stream = 1; /* auto: default to 1 */
     if (target_stream < 0 || target_stream > xwb.streams || xwb.streams < 1) goto fail;
@@ -142,27 +153,34 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
             xwb.stream_size = xwb.data_size;
         }
     }
+    else if (xwb.version <= XACT1_0_MAX) {
+        xwb.format          = (uint32_t)read_32bit(off+0x00, streamFile);
+        xwb.stream_offset   = xwb.data_offset + (uint32_t)read_32bit(off+0x04, streamFile);
+        xwb.stream_size     = (uint32_t)read_32bit(off+0x08, streamFile);
+
+        xwb.loop_start      = (uint32_t)read_32bit(off+0x0c, streamFile);
+        xwb.loop_end        = (uint32_t)read_32bit(off+0x10, streamFile);//length
+
+        xwb.loop_flag = (xwb.loop_end > 0 || xwb.loop_end_sample > xwb.loop_start);
+    }
     else {
         uint32_t entry_info = (uint32_t)read_32bit(off+0x00, streamFile);
-        if (xwb.xact == 1) {
+        if (xwb.version <= XACT1_1_MAX) {
             xwb.entry_flags = entry_info;
         } else {
-            xwb.entry_flags = (entry_info) & 0xF; /*4*/
-            xwb.num_samples = (entry_info >> 4) & 0x0FFFFFFF; /*28*/
+            xwb.entry_flags = (entry_info) & 0xF; /*4b*/
+            xwb.num_samples = (entry_info >> 4) & 0x0FFFFFFF; /*28b*/
         }
         xwb.format          = (uint32_t)read_32bit(off+0x04, streamFile);
         xwb.stream_offset   = xwb.data_offset + (uint32_t)read_32bit(off+0x08, streamFile);
         xwb.stream_size     = (uint32_t)read_32bit(off+0x0c, streamFile);
 
-        if (xwb.xact == 1) { //LoopRegion (bytes within data)
+		if (xwb.version <= XACT2_1_MAX) { /* LoopRegion (bytes) */
             xwb.loop_start  = (uint32_t)read_32bit(off+0x10, streamFile);
-            xwb.loop_end    = (uint32_t)read_32bit(off+0x14, streamFile);//length
-        } else if (xwb.xact == 2 && xwb.version <= 38) {//LoopRegion (bytes within data) or XMALoopRegion (bits within data)
-            xwb.loop_start  = (uint32_t)read_32bit(off+0x10, streamFile);
-            xwb.loop_end    = (uint32_t)read_32bit(off+0x14, streamFile);//length (LoopRegion) or offset (XMALoopRegion)
-        } else {//LoopRegion (samples)
+            xwb.loop_end    = (uint32_t)read_32bit(off+0x14, streamFile);//length (LoopRegion) or offset (XMALoopRegion in late XACT2)
+        } else { /* LoopRegion (samples) */
             xwb.loop_start_sample   = (uint32_t)read_32bit(off+0x10, streamFile);
-            xwb.loop_end_sample     = xwb.loop_start_sample + (uint32_t)read_32bit(off+0x14, streamFile);
+            xwb.loop_end_sample     = (uint32_t)read_32bit(off+0x14, streamFile) + xwb.loop_start_sample;
         }
 
         xwb.loop_flag = (xwb.loop_end > 0 || xwb.loop_end_sample > xwb.loop_start)
@@ -171,40 +189,52 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
 
 
     /* parse format */
-    if (xwb.xact == 1) {
-        xwb.bits_per_sample = (xwb.format >> 31) & 0x1; /*1*/
-        xwb.sample_rate     = (xwb.format >> 5) & 0x3FFFFFF; /*26*/
-        xwb.channels        = (xwb.format >> 2) & 0x7; /*3*/
-        xwb.tag             = (xwb.format) & 0x3; /*2*/
+    if (xwb.version <= XACT1_0_MAX) {
+        xwb.bits_per_sample = (xwb.format >> 31) & 0x1; /*1b*/
+        xwb.sample_rate     = (xwb.format >> 4) & 0x7FFFFFF; /*27b*/
+        xwb.channels        = (xwb.format >> 1) & 0x7; /*3b*/
+        xwb.tag             = (xwb.format) & 0x1; /*1b*/
     }
-    else if (xwb.version <= 34) { /* early XACT2, not sure if includes v35/36 */
-        xwb.bits_per_sample = (xwb.format >> 31) & 0x1; /*1*/
-        xwb.block_align     = (xwb.format >> 24) & 0xFF; /*8*/
-        xwb.sample_rate     = (xwb.format >> 4) & 0x7FFFF; /*19*/
-        xwb.channels        = (xwb.format >> 1) & 0x7; /*3*/
-        xwb.tag             = (xwb.format) & 0x1; /*1*/
+    else if (xwb.version <= XACT1_1_MAX) {
+        xwb.bits_per_sample = (xwb.format >> 31) & 0x1; /*1b*/
+        xwb.sample_rate     = (xwb.format >> 5) & 0x3FFFFFF; /*26b*/
+        xwb.channels        = (xwb.format >> 2) & 0x7; /*3b*/
+        xwb.tag             = (xwb.format) & 0x3; /*2b*/
+    }
+    else if (xwb.version <= XACT2_0_MAX) {
+        xwb.bits_per_sample = (xwb.format >> 31) & 0x1; /*1b*/
+        xwb.block_align     = (xwb.format >> 24) & 0xFF; /*8b*/
+        xwb.sample_rate     = (xwb.format >> 4) & 0x7FFFF; /*19b*/
+        xwb.channels        = (xwb.format >> 1) & 0x7; /*3b*/
+        xwb.tag             = (xwb.format) & 0x1; /*1b*/
     }
     else {
-        xwb.bits_per_sample = (xwb.format >> 31) & 0x1; /*1*/
-        xwb.block_align     = (xwb.format >> 23) & 0xFF; /*8*/
-        xwb.sample_rate     = (xwb.format >> 5) & 0x3FFFF; /*18*/
-        xwb.channels        = (xwb.format >> 2) & 0x7; /*3*/
-        xwb.tag             = (xwb.format) & 0x3; /*2*/
+        xwb.bits_per_sample = (xwb.format >> 31) & 0x1; /*1b*/
+        xwb.block_align     = (xwb.format >> 23) & 0xFF; /*8b*/
+        xwb.sample_rate     = (xwb.format >> 5) & 0x3FFFF; /*18b*/
+        xwb.channels        = (xwb.format >> 2) & 0x7; /*3b*/
+        xwb.tag             = (xwb.format) & 0x3; /*2b*/
     }
 
     /* standardize tag to codec */
-    if (xwb.xact == 1) {
+    if (xwb.version <= XACT1_0_MAX) {
+        switch(xwb.tag){
+            case 0: xwb.codec = PCM; break;
+            case 1: xwb.codec = XBOX_ADPCM; break;
+            default: goto fail;
+        }
+    } else if (xwb.version <= XACT1_1_MAX) {
         switch(xwb.tag){
             case 0: xwb.codec = PCM; break;
             case 1: xwb.codec = XBOX_ADPCM; break;
             case 2: xwb.codec = WMA; break;
             default: goto fail;
         }
-    } else if (xwb.xact == 2) {
+    } else if (xwb.version <= XACT2_2_MAX) {
         switch(xwb.tag) {
             case 0: xwb.codec = PCM; break;
             /* Table Tennis (v34): XMA1, Prey (v38): XMA2, v35/36/37: ? */
-            case 1: xwb.codec = xwb.version <= 34 ? XMA1 : XMA2; break;
+            case 1: xwb.codec = xwb.version <= XACT2_0_MAX ? XMA1 : XMA2; break;
             case 2: xwb.codec = MS_ADPCM; break;
             default: goto fail;
         }
@@ -220,50 +250,50 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
 
     /* Techland's bizarre format hijack (Nail'd, Sniper: Ghost Warrior PS3).
      * Somehow they used XWB + ATRAC3 in their PS3 games, very creative */
-    if (xwb.version == 0x10000 && xwb.codec == XMA2 /* v 0x10000 is used in their X360 games too */
+    if (xwb.version == XACT_TECHLAND && xwb.codec == XMA2 /* XACT_TECHLAND used in their X360 games too */
             && (xwb.block_align == 0x60 || xwb.block_align == 0x98 || xwb.block_align == 0xc0) ) {
         xwb.codec = ATRAC3; /* standard ATRAC3 blocks sizes; no other way to identify (other than reading data) */
 
         /* num samples uses a modified entry_info format (maybe skip samples + samples? sfx use the standard format)
-         * ignore for now and just calc max samples */ //todo
+         * ignore for now and just calc max samples */
         xwb.num_samples = atrac3_bytes_to_samples(xwb.stream_size, xwb.block_align * xwb.channels);
     }
 
 
     /* fix samples */
-    if ((xwb.xact == 1 || xwb.xact == 2) && xwb.codec == PCM) {
-        xwb.num_samples = xwb.stream_size / 2 / xwb.channels;
+    if (xwb.version <= XACT2_2_MAX && xwb.codec == PCM) {
+        int bits_per_sample = xwb.bits_per_sample == 0 ? 8 : 16;
+        xwb.num_samples = pcm_bytes_to_samples(xwb.stream_size, xwb.channels, bits_per_sample);
         if (xwb.loop_flag) {
-            xwb.loop_start_sample = (xwb.loop_start) / 2 / xwb.channels;
-            xwb.loop_end_sample = (xwb.loop_start + xwb.loop_end) / 2 / xwb.channels;
+            xwb.loop_start_sample = pcm_bytes_to_samples(xwb.loop_start, xwb.channels, bits_per_sample);
+            xwb.loop_end_sample   = pcm_bytes_to_samples(xwb.loop_start + xwb.loop_end, xwb.channels, bits_per_sample);
         }
     }
-    else if (xwb.xact == 1 && xwb.codec == XBOX_ADPCM) {
-        xwb.num_samples = xwb.stream_size / 36 / xwb.channels*64;
+    else if (xwb.version <= XACT1_1_MAX && xwb.codec == XBOX_ADPCM) {
+        xwb.block_align = 0x24 * xwb.channels;
+        xwb.num_samples = ms_ima_bytes_to_samples(xwb.stream_size, xwb.block_align, xwb.channels);
         if (xwb.loop_flag) {
-            xwb.loop_start_sample = xwb.loop_start / 36 / xwb.channels*64;
-            xwb.loop_end_sample = (xwb.loop_start + xwb.loop_end) / 36 / xwb.channels*64;
+            xwb.loop_start_sample = ms_ima_bytes_to_samples(xwb.loop_start, xwb.block_align, xwb.channels);
+            xwb.loop_end_sample   = ms_ima_bytes_to_samples(xwb.loop_start + xwb.loop_end, xwb.block_align, xwb.channels);
         }
     }
-    else if (xwb.xact == 2 && xwb.codec == MS_ADPCM && xwb.loop_flag) {
-        int block_size, samples_per_frame;
-        block_size = (xwb.block_align + 22) * xwb.channels; /*22=CONVERSION_OFFSET (?)*/
-        samples_per_frame = (block_size-(7-1) * xwb.channels) * 2 / xwb.channels;
+    else if (xwb.version <= XACT2_2_MAX && xwb.codec == MS_ADPCM && xwb.loop_flag) {
+        int block_size = (xwb.block_align + 22) * xwb.channels; /*22=CONVERSION_OFFSET (?)*/
 
-        xwb.loop_start_sample = (xwb.loop_start) / block_size / samples_per_frame;
-        xwb.loop_end_sample = (xwb.loop_start + xwb.loop_end) / block_size / samples_per_frame;
+        xwb.loop_start_sample = msadpcm_bytes_to_samples(xwb.loop_start, block_size, xwb.channels);
+        xwb.loop_end_sample   = msadpcm_bytes_to_samples(xwb.loop_start + xwb.loop_end, block_size, xwb.channels);
     }
-    else if (xwb.xact == 2 && xwb.version <= 38 /* v38: byte offset, v40+: sample offset, v39: ? */
-            && (xwb.codec == XMA1 || xwb.codec == XMA2) &&  xwb.loop_flag) {
+    else if (xwb.version <= XACT2_1_MAX && (xwb.codec == XMA1 || xwb.codec == XMA2) &&  xwb.loop_flag) {
+	    /* v38: byte offset, v40+: sample offset, v39: ? */
         /* need to manually find sample offsets, thanks to Microsoft dumb headers */
         ms_sample_data msd;
         memset(&msd,0,sizeof(ms_sample_data));
 
         msd.xma_version = xwb.codec == XMA1 ? 1 : 2;
-        msd.channels = xwb.channels;
+        msd.channels    = xwb.channels;
         msd.data_offset = xwb.stream_offset;
-        msd.data_size = xwb.stream_size;
-        msd.loop_flag = xwb.loop_flag;
+        msd.data_size   = xwb.stream_size;
+        msd.loop_flag   = xwb.loop_flag;
         msd.loop_start_b = xwb.loop_start; /* bit offset in the stream */
         msd.loop_end_b   = (xwb.loop_end >> 4); /*28b */
         /* XACT adds +1 to the subframe, but this means 0 can't be used? */
@@ -272,7 +302,7 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
 
         xma_get_samples(&msd, streamFile);
         xwb.loop_start_sample = msd.loop_start_sample;
-        xwb.loop_end_sample = msd.loop_end_sample;
+        xwb.loop_end_sample   = msd.loop_end_sample;
 
         // todo fix properly (XWB loop_start/end seem to count padding samples while XMA1 RIFF doesn't)
         //this doesn't seem ok because can fall within 0 to 512 (ie.- first frame)
@@ -292,7 +322,7 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
     vgmstream->sample_rate = xwb.sample_rate;
     vgmstream->num_samples = xwb.num_samples;
     vgmstream->loop_start_sample = xwb.loop_start_sample;
-    vgmstream->loop_end_sample = xwb.loop_end_sample;
+    vgmstream->loop_end_sample   = xwb.loop_end_sample;
     vgmstream->num_streams = xwb.streams;
     vgmstream->meta_type = meta_XWB;
 
