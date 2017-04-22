@@ -4,7 +4,6 @@
 #ifdef VGM_USE_VORBIS
 #include <vorbis/codec.h>
 
-#define WWISE_VORBIS_ON 0 //todo remove once battle-tested
 #include "wwise_vorbis_utils.h"
 
 
