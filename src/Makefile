@@ -29,7 +29,8 @@ CODING_OBJS=coding/adx_decoder.o \
     coding/coding_utils.o \
     coding/fsb_vorbis_decoder.o \
     coding/wwise_vorbis_decoder.o \
-    coding/wwise_vorbis_utils.o
+    coding/wwise_vorbis_utils.o \
+    coding/ogl_vorbis_decoder.o
 
 LAYOUT_OBJS=layout/ast_blocked.o \
     layout/blocked.o \
@@ -322,7 +323,8 @@ META_OBJS=meta/adx.o \
     meta/ubi_raki.o \
     meta/x360_nub.o \
     meta/x360_pasx.o \
-    meta/sxd.o
+    meta/sxd.o \
+    meta/ogl.o
 
 EXT_LIBS = ../ext_libs/clHCA.o
 

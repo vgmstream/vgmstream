@@ -137,6 +137,14 @@ void decode_wwise_vorbis(VGMSTREAM * vgmstream, sample * outbuf, int32_t samples
 void free_wwise_vorbis(vorbis_codec_data *data);
 void reset_wwise_vorbis(VGMSTREAM *vgmstream);
 void seek_wwise_vorbis(VGMSTREAM *vgmstream, int32_t num_sample);
+
+/* ogl_vorbis_decoder */
+vorbis_codec_data * init_ogl_vorbis_codec_data(STREAMFILE *streamFile, off_t start_offset, off_t * data_start_offset);
+void decode_ogl_vorbis(VGMSTREAM * vgmstream, sample * outbuf, int32_t samples_to_do, int channels);
+
+void free_ogl_vorbis(vorbis_codec_data *data);
+void reset_ogl_vorbis(VGMSTREAM *vgmstream);
+void seek_ogl_vorbis(VGMSTREAM *vgmstream, int32_t num_sample);
 #endif
 
 /* mpeg_decoder */

@@ -606,6 +606,10 @@
 					RelativePath=".\meta\ogg_vorbis_file.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\meta\ogl.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\otm.c"
 					>
@@ -1360,6 +1364,10 @@
 				</File>
                 <File
                     RelativePath=".\coding\ogg_vorbis_decoder.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\coding\ogl_vorbis_decoder.c"
                     >
                 </File>
 				<File

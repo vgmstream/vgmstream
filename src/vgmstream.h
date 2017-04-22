@@ -150,8 +150,9 @@ typedef enum {
 
 #ifdef VGM_USE_VORBIS
     coding_ogg_vorbis,      /* Xiph Vorbis (MDCT-based) */
-    coding_fsb_vorbis,      /* FMOD's Vorbis without Ogg layer */
-    coding_wwise_vorbis,    /* Audiokinetic's Vorbis without Ogg layer */
+    coding_fsb_vorbis,      /* FMOD Vorbis without Ogg layer */
+    coding_wwise_vorbis,    /* Audiokinetic Vorbis without Ogg layer */
+    coding_ogl_vorbis,      /* Shin'en Vorbis without Ogg layer */
 #endif
 
 #ifdef VGM_USE_MPEG
@@ -603,6 +604,7 @@ typedef enum {
     meta_WWISE_RIFF,        /* Audiokinetic Wwise RIFF/RIFX */
     meta_UBI_RAKI,          /* Ubisoft RAKI header (Rayman Legends, Just Dance 2017) */
     meta_SXD,               /* Sony SXD (Gravity Rush, Freedom Wars PSV) */
+    meta_OGL,               /* Shin'en Wii/WiiU (Jett Rocket (Wii), FAST Racing NEO (WiiU)) */
 
 #ifdef VGM_USE_VORBIS
     meta_OGG_VORBIS,        /* Ogg Vorbis */
