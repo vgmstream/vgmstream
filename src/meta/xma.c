@@ -56,8 +56,8 @@ VGMSTREAM * init_vgmstream_xma(STREAMFILE *streamFile) {
 
 
     /* check extension, case insensitive */
-    /* .xma2: Skullgirls, .nps: Beautiful Katamari, .past: SoulCalibur II HD */
-    if ( !check_extensions(streamFile, "xma,xma2,nps,past") )
+    /* .xma2: Skullgirls, .nps: Beautiful Katamari */
+    if ( !check_extensions(streamFile, "xma,xma2,nps") )
         goto fail;
 
     /* check header */
@@ -134,8 +134,6 @@ static int parse_header(xma_header_data * xma, STREAMFILE *streamFile) {
     int big_endian = 0;
     enum {
         id_RIFF = UINT32_C(0x52494646),  /* "RIFF" */
-        id_NXMA = UINT32_C(0x786D6100),  /* "xma\0" */
-        id_PASX = UINT32_C(0x50415358),  /* "PASX" */
     };
 
 
@@ -143,10 +141,6 @@ static int parse_header(xma_header_data * xma, STREAMFILE *streamFile) {
     id = read_32bitBE(0x00,streamFile);
     switch (id) {
         case id_RIFF:
-            break;
-        case id_NXMA:
-        case id_PASX:
-            big_endian = 1;
             break;
         default:
             goto fail;
@@ -223,42 +217,6 @@ static int parse_header(xma_header_data * xma, STREAMFILE *streamFile) {
         } else {
             goto fail;
         }
-    }
-    else if (id == id_NXMA) { /* Namco NUB xma (Tekken 6, Galaga Legions DX) */
-        /* Custom header with a "XMA2" or "fmt " data chunk inside; most other values are unknown
-         * It's here rather than its own meta to reuse the chunk parsing (probably intended to be .nub) */
-        uint32_t chunk_type = read_32bit(0xC,streamFile);
-
-        xma->meta = meta_NUB_XMA;
-        xma->data_offset = 0x100;
-        xma->data_size = read_32bit(0x14,streamFile);
-        xma->chunk_offset = 0xBC;
-        xma->chunk_size = read_32bit(0x24,streamFile);
-        if (chunk_type == 0x4) { /* "XMA2" */
-            xma->xma2_version = read_8bit(xma->chunk_offset,streamFile);
-        } else if (chunk_type == 0x8) { /* "fmt " */
-            xma->fmt_codec = read_16bit(xma->chunk_offset,streamFile);
-            xma->force_little_endian = 1;
-        } else {
-            goto fail;
-        }
-        xma->needs_header = 1;
-
-        if (xma->data_size + xma->data_offset > xma->file_size) goto fail;
-    }
-    else if (id == id_PASX) {  /* SoulCalibur II HD */
-        /* Custom header with a "fmt " data chunk inside
-         * It's here rather than its own meta to reuse the chunk parsing */
-
-        xma->meta = meta_X360_PASX;
-        xma->chunk_size = read_32bit(0x08,streamFile);
-        xma->data_size = read_32bit(0x0c,streamFile);
-        xma->chunk_offset = read_32bit(0x10,streamFile);
-        /* 0x14: chunk offset end */
-        xma->data_offset = read_32bit(0x18,streamFile);
-        xma->fmt_codec = read_16bit(xma->chunk_offset,streamFile);
-        xma->needs_header = 1;
-        xma->force_little_endian = 1;
     }
     else {
         goto fail;

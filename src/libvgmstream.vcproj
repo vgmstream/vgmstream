@@ -1170,6 +1170,14 @@
                     RelativePath=".\meta\x360_cxs.c"
                     >
                 </File>
+                <File
+                    RelativePath=".\meta\x360_nub.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\x360_pasx.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\x360_tra.c"
 					>

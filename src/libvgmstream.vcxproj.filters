@@ -703,6 +703,12 @@
     <ClCompile Include="meta\wwise.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\x360_nub.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\x360_pasx.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\xbox_hlwav.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
