@@ -321,7 +321,8 @@ META_OBJS=meta/adx.o \
     meta/wwise.o \
     meta/ubi_raki.o \
     meta/x360_nub.o \
-    meta/x360_pasx.o
+    meta/x360_pasx.o \
+    meta/sxd.o
 
 EXT_LIBS = ../ext_libs/clHCA.o
 

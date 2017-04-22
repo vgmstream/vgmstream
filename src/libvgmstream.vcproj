@@ -1090,6 +1090,10 @@
 					RelativePath=".\meta\svs.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\meta\sxd.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\thp.c"
 					>

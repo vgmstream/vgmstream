@@ -262,6 +262,8 @@ static const char* extension_list[] = {
     "swag",
     "swav",
     "swd",
+    "sxd",
+    "sxd2",
 
     "tec",
     "thp",
@@ -841,6 +843,7 @@ static const meta_info meta_info_list[] = {
         {meta_X360_AST,             "Capcom AST header"},
         {meta_WWISE_RIFF,           "Audiokinetic Wwise RIFF header"},
         {meta_UBI_RAKI,             "Ubisoft RAKI header"},
+        {meta_SXD,                  "Sony SXD header"},
 
 #ifdef VGM_USE_VORBIS
         {meta_OGG_VORBIS,           "Ogg Vorbis"},

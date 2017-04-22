@@ -602,6 +602,7 @@ typedef enum {
     meta_X360_AST,          /* Dead Rising (X360) */
     meta_WWISE_RIFF,        /* Audiokinetic Wwise RIFF/RIFX */
     meta_UBI_RAKI,          /* Ubisoft RAKI header (Rayman Legends, Just Dance 2017) */
+    meta_SXD,               /* Sony SXD (Gravity Rush, Freedom Wars PSV) */
 
 #ifdef VGM_USE_VORBIS
     meta_OGG_VORBIS,        /* Ogg Vorbis */
