@@ -1064,12 +1064,6 @@ int vgmstream_samples_to_do(int samples_this_block, int samples_per_frame, VGMST
  * Returns 1 if loop was done. */
 int vgmstream_do_loop(VGMSTREAM * vgmstream);
 
-/* See if there is a second file which may be the second channel, given
- * already opened mono opened_stream which was opened from filename.
- * If a suitable file is found, open it and change opened_stream to a stereo stream. */
-void try_dual_file_stereo(VGMSTREAM * opened_stream, STREAMFILE *streamFile);
-
-
 /* Open the stream for reading at offset (standarized taking into account layouts, channels and so on).
  * returns 0 on failure */
 int vgmstream_open_stream(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t start_offset);

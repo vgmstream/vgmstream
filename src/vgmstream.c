@@ -11,6 +11,12 @@
 #include "layout/layout.h"
 #include "coding/coding.h"
 
+/* See if there is a second file which may be the second channel, given
+ * already opened mono opened_stream which was opened from filename.
+ * If a suitable file is found, open it and change opened_stream to a stereo stream. */
+static void try_dual_file_stereo(VGMSTREAM * opened_stream, STREAMFILE *streamFile);
+
+
 /*
  * List of functions that will recognize files. These should correspond pretty
  * directly to the metadata types
@@ -2028,7 +2034,7 @@ const char * const dfs_pairs[][2] = {
 };
 #define DFS_PAIR_COUNT (sizeof(dfs_pairs)/sizeof(dfs_pairs[0]))
 
-void try_dual_file_stereo(VGMSTREAM * opened_stream, STREAMFILE *streamFile) {
+static void try_dual_file_stereo(VGMSTREAM * opened_stream, STREAMFILE *streamFile) {
     char filename[PATH_LIMIT];
     char filename2[PATH_LIMIT];
     char * ext;
