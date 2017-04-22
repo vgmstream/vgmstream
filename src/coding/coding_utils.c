@@ -738,14 +738,14 @@ void xma1_parse_fmt_chunk(STREAMFILE *streamFile, off_t chunk_offset, int * chan
     if(loop_flag)  *loop_flag = (uint8_t)read_8bit(chunk_offset+0xA,streamFile) > 0;
 
     /* sample rate and loop bit offsets are defined per stream, but the first is enough */
-    if(sample_rate)   *sample_rate   = (uint8_t)read_8bit(chunk_offset+0x10,streamFile) > 0;
+    if(sample_rate)   *sample_rate   = read_32bit(chunk_offset+0x10,streamFile);
     if(loop_start_b)  *loop_start_b  = read_32bit(chunk_offset+0x14,streamFile);
     if(loop_end_b)    *loop_end_b    = read_32bit(chunk_offset+0x18,streamFile);
     if(loop_subframe) *loop_subframe = (uint8_t)read_8bit(chunk_offset+0x1C,streamFile);
 
     /* channels is the sum of all streams */
     for (i = 0; i < num_streams; i++) {
-        total_channels += read_8bit(chunk_offset+0x0C+0x11+i*0x10,streamFile) > 0;
+        total_channels += read_8bit(chunk_offset+0x0C+0x11+i*0x10,streamFile);
     }
     if(channels)      *channels = total_channels;
 }
