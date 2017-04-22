@@ -137,6 +137,14 @@ void decode_wwise_vorbis(VGMSTREAM * vgmstream, sample * outbuf, int32_t samples
 void free_wwise_vorbis(vorbis_codec_data *data);
 void reset_wwise_vorbis(VGMSTREAM *vgmstream);
 void seek_wwise_vorbis(VGMSTREAM *vgmstream, int32_t num_sample);
+
+/* ogl_vorbis_decoder */
+vorbis_codec_data * init_ogl_vorbis_codec_data(STREAMFILE *streamFile, off_t start_offset, off_t * data_start_offset);
+void decode_ogl_vorbis(VGMSTREAM * vgmstream, sample * outbuf, int32_t samples_to_do, int channels);
+
+void free_ogl_vorbis(vorbis_codec_data *data);
+void reset_ogl_vorbis(VGMSTREAM *vgmstream);
+void seek_ogl_vorbis(VGMSTREAM *vgmstream, int32_t num_sample);
 #endif
 
 /* mpeg_decoder */
@@ -218,6 +226,7 @@ typedef struct {
 } ms_sample_data;
 void xma_get_samples(ms_sample_data * msd, STREAMFILE *streamFile);
 void wmapro_get_samples(ms_sample_data * msd, STREAMFILE *streamFile, int block_align, int sample_rate, uint32_t decode_flags);
+void wma_get_samples(ms_sample_data * msd, STREAMFILE *streamFile, int block_align, int sample_rate, uint32_t decode_flags);
 
 void xma1_parse_fmt_chunk(STREAMFILE *streamFile, off_t chunk_offset, int * channels, int * sample_rate, int * loop_flag, int32_t * loop_start_b, int32_t * loop_end_b, int32_t * loop_subframe, int be);
 void xma2_parse_fmt_chunk_extra(STREAMFILE *streamFile, off_t chunk_offset, int * loop_flag, int32_t * num_samples, int32_t * loop_start_sample, int32_t * loop_end_sample, int be);

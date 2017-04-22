@@ -180,6 +180,7 @@ static const char* extension_list[] = {
     "nwa",
 
     //"ogg", //common
+    "ogl",
     "oma", //FFmpeg, not parsed (ATRAC3/ATRAC3PLUS/MP3/LPCM/WMA)
     "omu",
     "otm",
@@ -262,6 +263,8 @@ static const char* extension_list[] = {
     "swag",
     "swav",
     "swd",
+    "sxd",
+    "sxd2",
 
     "tec",
     "thp",
@@ -440,6 +443,7 @@ static const coding_info coding_info_list[] = {
         {coding_ogg_vorbis,         "Ogg Vorbis"},
         {coding_fsb_vorbis,         "FSB Vorbis"},
         {coding_wwise_vorbis,       "Wwise Vorbis"},
+        {coding_ogl_vorbis,         "OGL Vorbis"},
 #endif
 #ifdef VGM_USE_MPEG
         {coding_fake_MPEG2_L2,      "MPEG-2 Layer II Audio"},
@@ -841,6 +845,8 @@ static const meta_info meta_info_list[] = {
         {meta_X360_AST,             "Capcom AST header"},
         {meta_WWISE_RIFF,           "Audiokinetic Wwise RIFF header"},
         {meta_UBI_RAKI,             "Ubisoft RAKI header"},
+        {meta_SXD,                  "Sony SXD header"},
+        {meta_OGL,                  "Shin'en OGL header"},
 
 #ifdef VGM_USE_VORBIS
         {meta_OGG_VORBIS,           "Ogg Vorbis"},

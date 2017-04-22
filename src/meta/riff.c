@@ -227,8 +227,7 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
     uint32_t riff_size;
     uint32_t data_size = 0;
 
-    int FormatChunkFound = 0;
-    int DataChunkFound = 0;
+    int FormatChunkFound = 0, DataChunkFound = 0, JunkFound = 0;
 
     /* Level-5 mwv */
     int mwv = 0;
@@ -363,9 +362,8 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
 
                     break;
                 case 0x4A554E4B:    /* JUNK */
-                    /* JUNK is an optional Wwise chunk, and Wwise hijacks the MSADPCM/MS_IMA/XBOX IMA ids (how nice).
-                     * To ensure their stuff is parsed in wwise.c we reject their JUNK, which they put almost always. */
-                    goto fail;
+                    JunkFound = 1;
+                    break;
                 default:
                     /* ignorance is bliss */
                     break;
@@ -376,6 +374,12 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
     }
 
     if (!FormatChunkFound || !DataChunkFound) goto fail;
+
+    /* JUNK is an optional Wwise chunk, and Wwise hijacks the MSADPCM/MS_IMA/XBOX IMA ids (how nice).
+     * To ensure their stuff is parsed in wwise.c we reject their JUNK, which they put almost always.
+     * As JUNK is legal (if unusual) we only reject those codecs.
+     * (ex. Cave PC games have PCM16LE + JUNK + smpl created by "Samplitude software") */
+    if (JunkFound && (fmt.coding_type==coding_MSADPCM || fmt.coding_type==coding_MS_IMA)) goto fail;
 
     switch (fmt.coding_type) {
         case coding_PCM16LE:
@@ -615,8 +619,7 @@ VGMSTREAM * init_vgmstream_rifx(STREAMFILE *streamFile) {
     uint32_t riff_size;
     uint32_t data_size = 0;
 
-    int FormatChunkFound = 0;
-    int DataChunkFound = 0;
+    int FormatChunkFound = 0, DataChunkFound = 0, JunkFound = 0;
 
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
@@ -692,9 +695,7 @@ VGMSTREAM * init_vgmstream_rifx(STREAMFILE *streamFile) {
                     //fact_sample_count = read_32bitBE(current_chunk+8, streamFile);
                     break;
                 case 0x4A554E4B:    /* JUNK */
-                    /* JUNK is an optional Wwise chunk, and Wwise hijacks the MSADPCM/MS_IMA/XBOX IMA ids (how nice).
-                     * To ensure their stuff is parsed in wwise.c we reject their JUNK, which they put almost always. */
-                    goto fail;
+                    JunkFound = 1;
                 default:
                     /* ignorance is bliss */
                     break;
@@ -705,6 +706,12 @@ VGMSTREAM * init_vgmstream_rifx(STREAMFILE *streamFile) {
     }
 
     if (!FormatChunkFound || !DataChunkFound) goto fail;
+
+    /* JUNK is an optional Wwise chunk, and Wwise hijacks the MSADPCM/MS_IMA/XBOX IMA ids (how nice).
+     * To ensure their stuff is parsed in wwise.c we reject their JUNK, which they put almost always.
+     * As JUNK is legal (if unusual) we only reject those codecs.
+     * (ex. Cave PC games have PCM16LE + JUNK + smpl created by "Samplitude software") */
+    if (JunkFound && (fmt.coding_type==coding_MSADPCM || fmt.coding_type==coding_MS_IMA)) goto fail;
 
     switch (fmt.coding_type) {
         case coding_PCM16BE:

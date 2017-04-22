@@ -11,6 +11,12 @@
 #include "layout/layout.h"
 #include "coding/coding.h"
 
+/* See if there is a second file which may be the second channel, given
+ * already opened mono opened_stream which was opened from filename.
+ * If a suitable file is found, open it and change opened_stream to a stereo stream. */
+static void try_dual_file_stereo(VGMSTREAM * opened_stream, STREAMFILE *streamFile);
+
+
 /*
  * List of functions that will recognize files. These should correspond pretty
  * directly to the metadata types
@@ -343,9 +349,13 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_x360_ast,
     init_vgmstream_wwise,
     init_vgmstream_ubi_raki,
+    init_vgmstream_x360_pasx,
+    init_vgmstream_x360_nub,
+    init_vgmstream_xma,
+    init_vgmstream_sxd,
+    init_vgmstream_ogl,
 
 #ifdef VGM_USE_FFMPEG
-    init_vgmstream_xma,
     init_vgmstream_mp4_aac_ffmpeg,
     init_vgmstream_bik,
 
@@ -482,6 +492,10 @@ void reset_vgmstream(VGMSTREAM * vgmstream) {
 
     if (vgmstream->coding_type==coding_wwise_vorbis) {
         reset_wwise_vorbis(vgmstream);
+    }
+
+    if (vgmstream->coding_type==coding_ogl_vorbis) {
+        reset_ogl_vorbis(vgmstream);
     }
 #endif
     if (vgmstream->coding_type==coding_CRI_HCA) {
@@ -689,6 +703,11 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
 
     if (vgmstream->coding_type==coding_wwise_vorbis) {
         free_wwise_vorbis(vgmstream->codec_data);
+        vgmstream->codec_data = NULL;
+    }
+
+    if (vgmstream->coding_type==coding_ogl_vorbis) {
+        free_ogl_vorbis(vgmstream->codec_data);
         vgmstream->codec_data = NULL;
     }
 #endif
@@ -1013,6 +1032,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_ogg_vorbis:
         case coding_fsb_vorbis:
         case coding_wwise_vorbis:
+        case coding_ogl_vorbis:
 #endif
 #ifdef VGM_USE_MPEG
         case coding_fake_MPEG2_L2:
@@ -1505,6 +1525,12 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                     buffer+samples_written*vgmstream->channels,samples_to_do,
                     vgmstream->channels);
             break;
+
+        case coding_ogl_vorbis:
+            decode_ogl_vorbis(vgmstream,
+                    buffer+samples_written*vgmstream->channels,samples_to_do,
+                    vgmstream->channels);
+            break;
 #endif
         case coding_CRI_HCA:
             decode_hca(vgmstream->codec_data,
@@ -1830,6 +1856,10 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream) {
             if (vgmstream->coding_type==coding_wwise_vorbis) {
                 seek_wwise_vorbis(vgmstream, vgmstream->loop_start_sample);
             }
+
+            if (vgmstream->coding_type==coding_ogl_vorbis) {
+                seek_ogl_vorbis(vgmstream, vgmstream->loop_start_sample);
+            }
 #endif
 
 #ifdef VGM_USE_FFMPEG
@@ -2026,7 +2056,7 @@ const char * const dfs_pairs[][2] = {
 };
 #define DFS_PAIR_COUNT (sizeof(dfs_pairs)/sizeof(dfs_pairs[0]))
 
-void try_dual_file_stereo(VGMSTREAM * opened_stream, STREAMFILE *streamFile) {
+static void try_dual_file_stereo(VGMSTREAM * opened_stream, STREAMFILE *streamFile) {
     char filename[PATH_LIMIT];
     char filename2[PATH_LIMIT];
     char * ext;

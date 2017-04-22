@@ -150,8 +150,9 @@ typedef enum {
 
 #ifdef VGM_USE_VORBIS
     coding_ogg_vorbis,      /* Xiph Vorbis (MDCT-based) */
-    coding_fsb_vorbis,      /* FMOD's Vorbis without Ogg layer */
-    coding_wwise_vorbis,    /* Audiokinetic's Vorbis without Ogg layer */
+    coding_fsb_vorbis,      /* FMOD Vorbis without Ogg layer */
+    coding_wwise_vorbis,    /* Audiokinetic Vorbis without Ogg layer */
+    coding_ogl_vorbis,      /* Shin'en Vorbis without Ogg layer */
 #endif
 
 #ifdef VGM_USE_MPEG
@@ -602,6 +603,8 @@ typedef enum {
     meta_X360_AST,          /* Dead Rising (X360) */
     meta_WWISE_RIFF,        /* Audiokinetic Wwise RIFF/RIFX */
     meta_UBI_RAKI,          /* Ubisoft RAKI header (Rayman Legends, Just Dance 2017) */
+    meta_SXD,               /* Sony SXD (Gravity Rush, Freedom Wars PSV) */
+    meta_OGL,               /* Shin'en Wii/WiiU (Jett Rocket (Wii), FAST Racing NEO (WiiU)) */
 
 #ifdef VGM_USE_VORBIS
     meta_OGG_VORBIS,        /* Ogg Vorbis */
@@ -1063,12 +1066,6 @@ int vgmstream_samples_to_do(int samples_this_block, int samples_per_frame, VGMST
 /* Detect start and save values, also detect end and restore values. Only works on exact sample values.
  * Returns 1 if loop was done. */
 int vgmstream_do_loop(VGMSTREAM * vgmstream);
-
-/* See if there is a second file which may be the second channel, given
- * already opened mono opened_stream which was opened from filename.
- * If a suitable file is found, open it and change opened_stream to a stereo stream. */
-void try_dual_file_stereo(VGMSTREAM * opened_stream, STREAMFILE *streamFile);
-
 
 /* Open the stream for reading at offset (standarized taking into account layouts, channels and so on).
  * returns 0 on failure */

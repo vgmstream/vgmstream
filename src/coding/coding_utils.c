@@ -626,6 +626,33 @@ static void ms_audio_get_samples(ms_sample_data * msd, STREAMFILE *streamFile, i
     }
 }
 
+static int wma_get_samples_per_frame(int version, int sample_rate, uint32_t decode_flags) {
+    int frame_len_bits;
+
+    if (sample_rate <= 16000)
+        frame_len_bits = 9;
+    else if (sample_rate <= 22050 || (sample_rate <= 32000 && version == 1))
+        frame_len_bits = 10;
+    else if (sample_rate <= 48000 || version < 3)
+        frame_len_bits = 11;
+    else if (sample_rate <= 96000)
+        frame_len_bits = 12;
+    else
+        frame_len_bits = 13;
+
+    if (version == 3) {
+        int tmp = decode_flags & 0x6;
+        if (tmp == 0x2)
+            ++frame_len_bits;
+        else if (tmp == 0x4)
+            --frame_len_bits;
+        else if (tmp == 0x6)
+            frame_len_bits -= 2;
+    }
+
+    return 1 << frame_len_bits;
+}
+
 void xma_get_samples(ms_sample_data * msd, STREAMFILE *streamFile) {
     const int bytes_per_packet = 2048;
     const int samples_per_frame = 512;
@@ -633,42 +660,16 @@ void xma_get_samples(ms_sample_data * msd, STREAMFILE *streamFile) {
 
     ms_audio_get_samples(msd, streamFile, bytes_per_packet, samples_per_frame, samples_per_subframe, 15);
 }
+
 void wmapro_get_samples(ms_sample_data * msd, STREAMFILE *streamFile, int block_align, int sample_rate, uint32_t decode_flags) {
+    const int version = 3; /* WMAPRO = WMAv3 */
     int bytes_per_packet = block_align;
     int samples_per_frame = 0;
     int samples_per_subframe = 0;
     int bits_frame_size = 0;
 
     /* do some WMAPRO setup (code from ffmpeg) */
-
-    /* get samples per frame */
-    {
-        int version = 3;
-        int frame_len_bits;
-
-        if (sample_rate <= 16000)
-            frame_len_bits = 9;
-        else if (sample_rate <= 22050 || (sample_rate <= 32000 && version == 1))
-            frame_len_bits = 10;
-        else if (sample_rate <= 48000 || version < 3)
-            frame_len_bits = 11;
-        else if (sample_rate <= 96000)
-            frame_len_bits = 12;
-        else
-            frame_len_bits = 13;
-
-        if (version == 3) {
-            int tmp = decode_flags & 0x6;
-            if (tmp == 0x2)
-                ++frame_len_bits;
-            else if (tmp == 0x4)
-                --frame_len_bits;
-            else if (tmp == 0x6)
-                frame_len_bits -= 2;
-        }
-
-        samples_per_frame = 1 << frame_len_bits;
-    }
+    samples_per_frame = wma_get_samples_per_frame(version, sample_rate, decode_flags);
 
     /* max bits needed to represent this block_align */
     bits_frame_size = floor(log(block_align) / log(2)) + 4;
@@ -683,7 +684,46 @@ void wmapro_get_samples(ms_sample_data * msd, STREAMFILE *streamFile, int block_
     ms_audio_get_samples(msd, streamFile, bytes_per_packet, samples_per_frame, samples_per_subframe, bits_frame_size);
 }
 
+void wma_get_samples(ms_sample_data * msd, STREAMFILE *streamFile, int block_align, int sample_rate, uint32_t decode_flags) {
+    const int version = 2; /* WMAv1 rarely used */
+    int use_bit_reservoir = 0; /* last packet frame can spill into the next packet */
+    int samples_per_frame = 0;
+    int num_frames = 0;
 
+    samples_per_frame = wma_get_samples_per_frame(version, sample_rate, decode_flags);
+
+    /* assumed (ASF has a flag for this but XWMA doesn't) */
+    if (version == 2)
+        use_bit_reservoir = 1;
+
+
+    if (!use_bit_reservoir) {
+        /* 1 frame per packet */
+        num_frames = msd->data_size / block_align + (msd->data_size % block_align ? 1 : 0);
+    }
+    else {
+        /* variable frames per packet (mini-header values) */
+        off_t offset = msd->data_offset;
+        while (offset < msd->data_size) { /* read packets (superframes) */
+            int packet_frames;
+            uint8_t header = read_8bit(offset, streamFile); /* upper nibble: index;  lower nibble: frames */
+
+            /* frames starting in this packet (ie. counts frames that spill due to bit_reservoir) */
+            packet_frames = (header & 0xf);
+
+            num_frames += packet_frames;
+            offset += block_align;
+        }
+    }
+
+    msd->num_samples = num_frames * samples_per_frame;
+}
+
+
+
+/* ******************************************** */
+/* HEADER PARSING                               */
+/* ******************************************** */
 
 /* Read values from a XMA1 RIFF "fmt" chunk (XMAWAVEFORMAT), starting from an offset *after* chunk type+size.
  * Useful as custom X360 headers commonly have it lurking inside. */
@@ -698,14 +738,14 @@ void xma1_parse_fmt_chunk(STREAMFILE *streamFile, off_t chunk_offset, int * chan
     if(loop_flag)  *loop_flag = (uint8_t)read_8bit(chunk_offset+0xA,streamFile) > 0;
 
     /* sample rate and loop bit offsets are defined per stream, but the first is enough */
-    if(sample_rate)   *sample_rate   = (uint8_t)read_8bit(chunk_offset+0x10,streamFile) > 0;
+    if(sample_rate)   *sample_rate   = read_32bit(chunk_offset+0x10,streamFile);
     if(loop_start_b)  *loop_start_b  = read_32bit(chunk_offset+0x14,streamFile);
     if(loop_end_b)    *loop_end_b    = read_32bit(chunk_offset+0x18,streamFile);
     if(loop_subframe) *loop_subframe = (uint8_t)read_8bit(chunk_offset+0x1C,streamFile);
 
     /* channels is the sum of all streams */
     for (i = 0; i < num_streams; i++) {
-        total_channels += read_8bit(chunk_offset+0x0C+0x11+i*0x10,streamFile) > 0;
+        total_channels += read_8bit(chunk_offset+0x0C+0x11+i*0x10,streamFile);
     }
     if(channels)      *channels = total_channels;
 }

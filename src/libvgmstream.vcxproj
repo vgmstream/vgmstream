@@ -265,6 +265,7 @@
     <ClCompile Include="meta\ngc_ymf.c" />
     <ClCompile Include="meta\nwa.c" />
     <ClCompile Include="meta\ogg_vorbis_file.c" />
+    <ClCompile Include="meta\ogl.c" />
     <ClCompile Include="meta\otm.c" />
     <ClCompile Include="meta\p3d.c" />
     <ClCompile Include="meta\pc_mxst.c" />
@@ -369,6 +370,7 @@
     <ClCompile Include="meta\str_snds.c" />
     <ClCompile Include="meta\stx.c" />
     <ClCompile Include="meta\svs.c" />
+    <ClCompile Include="meta\sxd.c" />
     <ClCompile Include="meta\thp.c" />
     <ClCompile Include="meta\vgs.c" />
     <ClCompile Include="meta\ubi_ckd.c" />
@@ -391,6 +393,8 @@
     <ClCompile Include="meta\xbox_xmu.c" />
     <ClCompile Include="meta\xbox_xvas.c" />
     <ClCompile Include="meta\xbox_xwav.c" />
+    <ClCompile Include="meta\x360_pasx.c" />
+    <ClCompile Include="meta\x360_nub.c" />
     <ClCompile Include="meta\xma.c" />
     <ClCompile Include="meta\xss.c" />
     <ClCompile Include="meta\xwb.c" />
@@ -416,6 +420,7 @@
     <ClCompile Include="coding\ngc_dtk_decoder.c" />
     <ClCompile Include="coding\nwa_decoder.c" />
     <ClCompile Include="coding\ogg_vorbis_decoder.c" />
+    <ClCompile Include="coding\ogl_vorbis_decoder.c" />
     <ClCompile Include="coding\pcm_decoder.c" />
     <ClCompile Include="coding\psx_decoder.c" />
     <ClCompile Include="coding\SASSC_decoder.c" />

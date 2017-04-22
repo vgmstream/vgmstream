@@ -346,7 +346,7 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
 
             /* Vorbis is VBR so this is very approximate, meh */
             if (ww.truncated)
-                vgmstream->num_samples = 500;// vgmstream->num_samples * (ww.file_size - start_offset) / ww.data_size;
+                vgmstream->num_samples = vgmstream->num_samples * (ww.file_size - start_offset) / ww.data_size;
 
             break;
         }
@@ -435,18 +435,20 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
             vgmstream->layout_type = layout_none;
 
             /* manually find total samples, why don't they put this in the header is beyond me */
-            if (ww.format == 0x0162) { /* WMAPRO */
+            {
                 ms_sample_data msd;
                 memset(&msd,0,sizeof(ms_sample_data));
 
                 msd.channels = ww.channels;
                 msd.data_offset = ww.data_offset;
                 msd.data_size = ww.data_size;
-                wmapro_get_samples(&msd, streamFile,  ww.block_align, ww.sample_rate,0x0000);
 
-                vgmstream->num_samples = msd.num_samples;
-            } else { /* WMAv2 */
-                vgmstream->num_samples = ffmpeg_data->totalSamples; //todo inaccurate approximation using the avg_bps
+                if (ww.format == 0x0162)
+                    wmapro_get_samples(&msd, streamFile, ww.block_align, ww.sample_rate,0x0000);
+                else
+                    wma_get_samples(&msd, streamFile, ww.block_align, ww.sample_rate,0x0000);
+
+                vgmstream->num_samples = ffmpeg_data->totalSamples; /* ffmpeg_data->totalSamples is approximate from avg-br */
             }
 
             break;

@@ -606,6 +606,10 @@
 					RelativePath=".\meta\ogg_vorbis_file.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\meta\ogl.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\otm.c"
 					>
@@ -1090,6 +1094,10 @@
 					RelativePath=".\meta\svs.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\meta\sxd.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\thp.c"
 					>
@@ -1168,6 +1176,14 @@
                 </File>
                 <File
                     RelativePath=".\meta\x360_cxs.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\x360_nub.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\x360_pasx.c"
                     >
                 </File>
 				<File
@@ -1348,6 +1364,10 @@
 				</File>
                 <File
                     RelativePath=".\coding\ogg_vorbis_decoder.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\coding\ogl_vorbis_decoder.c"
                     >
                 </File>
 				<File

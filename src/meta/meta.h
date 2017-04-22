@@ -656,9 +656,9 @@ VGMSTREAM * init_vgmstream_btsnd(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_ps2_svag_snk(STREAMFILE* streamFile);
 
-#ifdef VGM_USE_FFMPEG
 VGMSTREAM * init_vgmstream_xma(STREAMFILE* streamFile);
 
+#ifdef VGM_USE_FFMPEG
 VGMSTREAM * init_vgmstream_bik(STREAMFILE* streamFile);
 #endif
 
@@ -677,5 +677,13 @@ VGMSTREAM * init_vgmstream_x360_ast(STREAMFILE *streamFile);
 VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_ubi_raki(STREAMFILE* streamFile);
+
+VGMSTREAM * init_vgmstream_x360_nub(STREAMFILE *streamFile);
+
+VGMSTREAM * init_vgmstream_x360_pasx(STREAMFILE *streamFile);
+
+VGMSTREAM * init_vgmstream_sxd(STREAMFILE *streamFile);
+
+VGMSTREAM * init_vgmstream_ogl(STREAMFILE *streamFile);
 
 #endif /*_META_H*/
