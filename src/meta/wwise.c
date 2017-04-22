@@ -346,7 +346,7 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
 
             /* Vorbis is VBR so this is very approximate, meh */
             if (ww.truncated)
-                vgmstream->num_samples = 500;// vgmstream->num_samples * (ww.file_size - start_offset) / ww.data_size;
+                vgmstream->num_samples = vgmstream->num_samples * (ww.file_size - start_offset) / ww.data_size;
 
             break;
         }
