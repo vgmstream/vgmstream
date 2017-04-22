@@ -63,6 +63,13 @@ enum AVSphericalProjection {
      * to the back.
      */
     AV_SPHERICAL_CUBEMAP,
+
+    /**
+     * Video represents a portion of a sphere mapped on a flat surface
+     * using equirectangular projection. The @ref bounding fields indicate
+     * the position of the current video in a larger surface.
+     */
+    AV_SPHERICAL_EQUIRECTANGULAR_TILE,
 };
 
 /**
@@ -122,6 +129,57 @@ typedef struct AVSphericalMapping {
     /**
      * @}
      */
+
+    /**
+     * @name Bounding rectangle
+     * @anchor bounding
+     * @{
+     * These fields indicate the location of the current tile, and where
+     * it should be mapped relative to the original surface. They are
+     * exported as 0.32 fixed point, and can be converted to classic
+     * pixel values with av_spherical_bounds().
+     *
+     * @code{.unparsed}
+     *      +----------------+----------+
+     *      |                |bound_top |
+     *      |            +--------+     |
+     *      | bound_left |tile    |     |
+     *      +<---------->|        |<--->+bound_right
+     *      |            +--------+     |
+     *      |                |          |
+     *      |    bound_bottom|          |
+     *      +----------------+----------+
+     * @endcode
+     *
+     * If needed, the original video surface dimensions can be derived
+     * by adding the current stream or frame size to the related bounds,
+     * like in the following example:
+     *
+     * @code{c}
+     *     original_width  = tile->width  + bound_left + bound_right;
+     *     original_height = tile->height + bound_top  + bound_bottom;
+     * @endcode
+     *
+     * @note These values are valid only for the tiled equirectangular
+     *       projection type (@ref AV_SPHERICAL_EQUIRECTANGULAR_TILE),
+     *       and should be ignored in all other cases.
+     */
+    uint32_t bound_left;   ///< Distance from the left edge
+    uint32_t bound_top;    ///< Distance from the top edge
+    uint32_t bound_right;  ///< Distance from the right edge
+    uint32_t bound_bottom; ///< Distance from the bottom edge
+    /**
+     * @}
+     */
+
+    /**
+     * Number of pixels to pad from the edge of each cube face.
+     *
+     * @note This value is valid for only for the cubemap projection type
+     *       (@ref AV_SPHERICAL_CUBEMAP), and should be ignored in all other
+     *       cases.
+     */
+    uint32_t padding;
 } AVSphericalMapping;
 
 /**
@@ -132,6 +190,40 @@ typedef struct AVSphericalMapping {
  */
 AVSphericalMapping *av_spherical_alloc(size_t *size);
 
+/**
+ * Convert the @ref bounding fields from an AVSphericalVideo
+ * from 0.32 fixed point to pixels.
+ *
+ * @param map    The AVSphericalVideo map to read bound values from.
+ * @param width  Width of the current frame or stream.
+ * @param height Height of the current frame or stream.
+ * @param left   Pixels from the left edge.
+ * @param top    Pixels from the top edge.
+ * @param right  Pixels from the right edge.
+ * @param bottom Pixels from the bottom edge.
+ */
+void av_spherical_tile_bounds(const AVSphericalMapping *map,
+                              size_t width, size_t height,
+                              size_t *left, size_t *top,
+                              size_t *right, size_t *bottom);
+
+/**
+ * Provide a human-readable name of a given AVSphericalProjection.
+ *
+ * @param projection The input AVSphericalProjection.
+ *
+ * @return The name of the AVSphericalProjection, or "unknown".
+ */
+const char *av_spherical_projection_name(enum AVSphericalProjection projection);
+
+/**
+ * Get the AVSphericalProjection form a human-readable name.
+ *
+ * @param name The input string.
+ *
+ * @return The AVSphericalProjection value, or -1 if not found.
+ */
+int av_spherical_from_name(const char *name);
 /**
  * @}
  * @}
