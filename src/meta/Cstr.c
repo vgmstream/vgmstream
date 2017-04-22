@@ -203,8 +203,11 @@ VGMSTREAM * init_vgmstream_Cstr(STREAMFILE *streamFile) {
                     if (!(double_loop_end &&
                             read_32bitBE(0x30,streamFile) +
                             read_32bitBE(0x0c,streamFile) + 8 ==
-                            read_32bitBE(0x10,streamFile)*2))
-                        goto fail;
+                            read_32bitBE(0x10,streamFile)*2)) {
+                        /* for Mr.Driller Drill Land, no idea about the above but seems to play and loop ok */
+                        VGM_LOG("Cstr: bad loop check ignored\n");
+                        //goto fail;
+                    }
 
 #ifdef DEBUG
         fprintf(stderr,"loop points agree\n");
