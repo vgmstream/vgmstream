@@ -656,9 +656,9 @@ VGMSTREAM * init_vgmstream_btsnd(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_ps2_svag_snk(STREAMFILE* streamFile);
 
-#ifdef VGM_USE_FFMPEG
 VGMSTREAM * init_vgmstream_xma(STREAMFILE* streamFile);
 
+#ifdef VGM_USE_FFMPEG
 VGMSTREAM * init_vgmstream_bik(STREAMFILE* streamFile);
 #endif
 
