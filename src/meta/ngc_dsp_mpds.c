@@ -10,7 +10,7 @@ VGMSTREAM * init_vgmstream_ngc_dsp_mpds(STREAMFILE *streamFile) {
 
 
     /* check extension, case insensitive */
-    /* .adp: Big Air Freestyle */
+    /* .dsp: Big Air Freestyle */
     /* .mds: Terminator 3 The Redemption, Mission Impossible: Operation Surma */
     if (!check_extensions(streamFile, "dsp,mds")) goto fail;
 
@@ -18,7 +18,7 @@ VGMSTREAM * init_vgmstream_ngc_dsp_mpds(STREAMFILE *streamFile) {
     if (read_32bitBE(0x00,streamFile) != 0x4D504453) /* "MPDS" */
         goto fail;
 
-    short_mpds = read_32bitBE(0x04,streamFile) != 0x00010000 && read_32bitBE(0x0c,streamFile) == 0x00000002; /* version byte? */
+    short_mpds = read_32bitBE(0x04,streamFile) != 0x00010000 && check_extensions(streamFile, "mds"); /* version byte? */
 
     channel_count = short_mpds ?
             read_16bitBE(0x0a, streamFile) :
@@ -51,12 +51,13 @@ VGMSTREAM * init_vgmstream_ngc_dsp_mpds(STREAMFILE *streamFile) {
         vgmstream->sample_rate = (uint16_t)read_16bitBE(0x08,streamFile);
         vgmstream->interleave_block_size = channel_count==1 ? 0 : 0x200;
 
-#if 0   //todo unknown coeffs, maybe depends on stuff @ 0x10? (but looks like some kind of size)
+#if 0   //unknown coeffs/hist, related to data after 0x0c? (only coefs 0..7 seem to be needed)
         {
+            off_t offset = 0x0c;
             int i,ch;
             for (ch=0; ch < vgmstream->channels; ch++) {
                 for (i=0; i < 16; i++)
-                    vgmstream->ch[ch].adpcm_coef[i] = mpds_coefs[i];
+                    vgmstream->ch[ch].adpcm_coef[i] = read_16bitBE(offset + i*2);
             }
         }
 #endif
