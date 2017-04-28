@@ -225,6 +225,7 @@
     <ClCompile Include="meta\ivb.c" />
     <ClCompile Include="meta\kraw.c" />
     <ClCompile Include="meta\maxis_xa.c" />
+    <ClCompile Include="meta\mc3.c" />
     <ClCompile Include="meta\mca.c" />
     <ClCompile Include="meta\msvp.c" />
     <ClCompile Include="meta\mus_acm.c">
@@ -412,6 +413,7 @@
     <ClCompile Include="coding\hca_decoder.c" />
     <ClCompile Include="coding\ima_decoder.c" />
     <ClCompile Include="coding\l5_555_decoder.c" />
+    <ClCompile Include="coding\mc3_decoder.c" />
     <ClCompile Include="coding\mpeg_decoder.c" />
     <ClCompile Include="coding\msadpcm_decoder.c" />
     <ClCompile Include="coding\nds_procyon_decoder.c" />

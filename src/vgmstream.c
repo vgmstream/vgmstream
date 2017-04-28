@@ -354,6 +354,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_xma,
     init_vgmstream_sxd,
     init_vgmstream_ogl,
+    init_vgmstream_mc3,
 
 #ifdef VGM_USE_FFMPEG
     init_vgmstream_mp4_aac_ffmpeg,
@@ -1135,6 +1136,8 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
             return 54;
         case coding_MTAF:
             return 0x80*2;
+        case coding_MC3:
+            return 10;
         case coding_CRI_HCA:
             return clHCA_samplesPerBlock;
 #if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
@@ -1255,6 +1258,8 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
         case coding_MSADPCM:
         case coding_MTAF:
             return vgmstream->interleave_block_size;
+        case coding_MC3:
+            return 4;
         default:
             return 0;
     }
@@ -1775,6 +1780,13 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                 decode_mtaf(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels, vgmstream->samples_into_block, samples_to_do,
                         chan, vgmstream->channels);
+            }
+            break;
+        case coding_MC3:
+            for (chan=0;chan<vgmstream->channels;chan++) {
+                decode_mc3(vgmstream, &vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                        vgmstream->channels, vgmstream->samples_into_block, samples_to_do,
+                        chan);
             }
             break;
     }

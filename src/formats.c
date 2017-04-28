@@ -149,6 +149,7 @@ static const char* extension_list[] = {
     "lwav", //fake extension, for looping
 
     "matx",
+    "mc3",
     "mca",
     "mcg",
     "mds",
@@ -439,6 +440,8 @@ static const coding_info coding_info_list[] = {
         {coding_SASSC,              "Activision / EXAKT SASSC 8-bit DPCM"},
         {coding_LSF,                "lsf 4-bit ADPCM"},
         {coding_MTAF,               "Konami MTAF 4-bit ADPCM"},
+        {coding_MC3,                "Paradigm MC3 3-bit ADPCM"},
+        
 #ifdef VGM_USE_VORBIS
         {coding_ogg_vorbis,         "Ogg Vorbis"},
         {coding_fsb_vorbis,         "FSB Vorbis"},
@@ -847,6 +850,7 @@ static const meta_info meta_info_list[] = {
         {meta_UBI_RAKI,             "Ubisoft RAKI header"},
         {meta_SXD,                  "Sony SXD header"},
         {meta_OGL,                  "Shin'en OGL header"},
+        {meta_MC3,                  "Paradigm MC3 header"},
 
 #ifdef VGM_USE_VORBIS
         {meta_OGG_VORBIS,           "Ogg Vorbis"},

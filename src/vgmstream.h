@@ -130,6 +130,7 @@ typedef enum {
     coding_SASSC,           /* Activision EXAKT SASSC DPCM */
     coding_LSF,             /* lsf ADPCM (Fastlane Street Racing iPhone)*/
     coding_MTAF,            /* Konami MTAF ADPCM (IMA-derived) */
+    coding_MC3,             /* Paradigm MC3 3-bit ADPCM */
 
     /* others */
     coding_SDX2,            /* SDX2 2:1 Squareroot-Delta-Exact compression DPCM */
@@ -605,6 +606,7 @@ typedef enum {
     meta_UBI_RAKI,          /* Ubisoft RAKI header (Rayman Legends, Just Dance 2017) */
     meta_SXD,               /* Sony SXD (Gravity Rush, Freedom Wars PSV) */
     meta_OGL,               /* Shin'en Wii/WiiU (Jett Rocket (Wii), FAST Racing NEO (WiiU)) */
+    meta_MC3,               /* Paradigm games (T3 PS2, MX Rider PS2, MI: Operation Surma PS2) */
 
 #ifdef VGM_USE_VORBIS
     meta_OGG_VORBIS,        /* Ogg Vorbis */
