@@ -117,7 +117,8 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
 
         /* for Techland's XWB with no data */
         if (xwb.base_offset == 0) goto fail;
-        if (xwb.data_offset + xwb.data_size != get_streamfile_size(streamFile)) goto fail;
+        /* some BlazBlue Centralfiction songs have padding after data size */
+        if (xwb.data_offset + xwb.data_size > get_streamfile_size(streamFile)) goto fail;
 
         /* read base entry (WAVEBANKDATA) */
         off = xwb.base_offset;
