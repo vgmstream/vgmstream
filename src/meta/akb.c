@@ -50,7 +50,7 @@ VGMSTREAM * init_vgmstream_akb_multi(STREAMFILE *streamFile) {
         goto fail;
 
     channel_count = read_8bit(0x0d,streamFile);
-    loop_flag = read_32bitLE(0x18,streamFile) > 0;
+    loop_flag = read_32bitLE(0x18,streamFile) > 0; /* loop end */
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
@@ -86,12 +86,17 @@ VGMSTREAM * init_vgmstream_akb_multi(STREAMFILE *streamFile) {
             vgmstream->layout_type = layout_none;
             vgmstream->interleave_block_size = read_16bitLE(extra_data_offset + 0x02,streamFile);
 
-            vgmstream->num_samples = read_32bitLE(extra_data_offset + 0x04, streamFile); /* lower than header num_samples */
+            /* adjusted samples; bigger or smaller than base samples, but seems more accurate
+             * (base samples may have more than possible and read over file size otherwise, very strange)
+             * loop_end seems to exist even with loop disabled */
+            vgmstream->num_samples       = read_32bitLE(extra_data_offset + 0x04, streamFile);
+            vgmstream->loop_start_sample = read_32bitLE(extra_data_offset + 0x08, streamFile);
+            vgmstream->loop_end_sample   = read_32bitLE(extra_data_offset + 0x0c, streamFile);
             break;
         }
 
 #ifdef VGM_USE_FFMPEG
-        case 0x05: { /* ogg vorbis [Final Fantasy VI, Dragon Quest II-VI] */
+        case 0x05: { /* Ogg Vorbis [Final Fantasy VI, Dragon Quest II-VI] */
             /* Starting from an offset in the current libvorbis code is a bit hard so just use FFmpeg.
              * Decoding seems to produce the same output with (inaudible) +-1 lower byte differences due to rounding. */
             ffmpeg_codec_data *ffmpeg_data;
@@ -173,7 +178,7 @@ VGMSTREAM * init_vgmstream_akb2_multi(STREAMFILE *streamFile) {
 	header_offset = material;
 
     channel_count = read_8bit(header_offset+0x02,streamFile);
-    loop_flag = read_32bitLE(header_offset+0x14,streamFile) > 0;
+    loop_flag = read_32bitLE(header_offset+0x14,streamFile) > 0; /* loop end */
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
@@ -187,17 +192,23 @@ VGMSTREAM * init_vgmstream_akb2_multi(STREAMFILE *streamFile) {
      * Actual num_samples would be loop_end_sample+1, but more testing is needed */
     vgmstream->num_samples = read_32bitLE(header_offset+0x0c,streamFile);
     vgmstream->loop_start_sample = read_32bitLE(header_offset+0x10,streamFile);
-    vgmstream->loop_end_sample = read_32bitLE(header_offset+0x14,streamFile);
+    vgmstream->loop_end_sample   = read_32bitLE(header_offset+0x14,streamFile);
 
     vgmstream->meta_type = meta_AKB;
 
     switch (codec) {
-        case 0x02: { /* msadpcm [The Irregular at Magic High School Lost Zero (Android)] */
+        case 0x02: { /* MSAPDCM [The Irregular at Magic High School Lost Zero (Android)] */
             if (encryption_flag) goto fail;
-            vgmstream->num_samples = read_32bitLE(extradata + 0x04, streamFile);
             vgmstream->coding_type = coding_MSADPCM;
             vgmstream->layout_type = layout_none;
             vgmstream->interleave_block_size = read_16bitLE(extradata + 0x02, streamFile);
+
+            /* adjusted samples; bigger or smaller than base samples, but seems more accurate
+             * (base samples may have more than possible and read over file size otherwise, very strange)
+             * loop_end seems to exist even with loop disabled */
+            vgmstream->num_samples       = read_32bitLE(extradata + 0x04, streamFile);
+            vgmstream->loop_start_sample = read_32bitLE(extradata + 0x08, streamFile);
+            vgmstream->loop_end_sample   = read_32bitLE(extradata + 0x0c, streamFile);
             break;
         }
 
