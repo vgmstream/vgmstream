@@ -1955,18 +1955,22 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
     const char* description;
 
     if (!vgmstream) {
-        snprintf(temp,TEMPSIZE,"NULL VGMSTREAM");
+        snprintf(temp,TEMPSIZE,
+                "NULL VGMSTREAM");
         concatn(length,desc,temp);
         return;
     }
 
-    snprintf(temp,TEMPSIZE,"sample rate: %d Hz\n"
+    snprintf(temp,TEMPSIZE,
+            "sample rate: %d Hz\n"
             "channels: %d\n",
-            vgmstream->sample_rate,vgmstream->channels);
+            vgmstream->sample_rate,
+            vgmstream->channels);
     concatn(length,desc,temp);
 
     if (vgmstream->loop_flag) {
-        snprintf(temp,TEMPSIZE,"loop start: %d samples (%.4f seconds)\n"
+        snprintf(temp,TEMPSIZE,
+                "loop start: %d samples (%.4f seconds)\n"
                 "loop end: %d samples (%.4f seconds)\n",
                 vgmstream->loop_start_sample,
                 (double)vgmstream->loop_start_sample/vgmstream->sample_rate,
@@ -1975,12 +1979,14 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         concatn(length,desc,temp);
     }
 
-    snprintf(temp,TEMPSIZE,"stream total samples: %d (%.4f seconds)\n",
+    snprintf(temp,TEMPSIZE,
+            "stream total samples: %d (%.4f seconds)\n",
             vgmstream->num_samples,
             (double)vgmstream->num_samples/vgmstream->sample_rate);
     concatn(length,desc,temp);
 
-    snprintf(temp,TEMPSIZE,"encoding: ");
+    snprintf(temp,TEMPSIZE,
+            "encoding: ");
     concatn(length,desc,temp);
     switch (vgmstream->coding_type) {
 #ifdef VGM_USE_FFMPEG
@@ -2009,7 +2015,8 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
     }
     concatn(length,desc,temp);
 
-    snprintf(temp,TEMPSIZE,"\nlayout: ");
+    snprintf(temp,TEMPSIZE,
+            "\nlayout: ");
     concatn(length,desc,temp);
     switch (vgmstream->layout_type) {
         default:
@@ -2021,26 +2028,46 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
     }
     concatn(length,desc,temp);
 
-    snprintf(temp,TEMPSIZE,"\n");
+    snprintf(temp,TEMPSIZE,
+            "\n");
     concatn(length,desc,temp);
 
     if (vgmstream->layout_type == layout_interleave
             || vgmstream->layout_type == layout_interleave_shortblock
             || vgmstream->layout_type == layout_interleave_byte) {
-        snprintf(temp,TEMPSIZE,"interleave: %#x bytes\n",
+        snprintf(temp,TEMPSIZE,
+                "interleave: %#x bytes\n",
                 (int32_t)vgmstream->interleave_block_size);
         concatn(length,desc,temp);
 
         if (vgmstream->layout_type == layout_interleave_shortblock) {
-            snprintf(temp,TEMPSIZE,"last block interleave: %#x bytes\n",
+            snprintf(temp,TEMPSIZE,
+                    "last block interleave: %#x bytes\n",
                     (int32_t)vgmstream->interleave_smallblock_size);
             concatn(length,desc,temp);
         }
     }
 
-    snprintf(temp,TEMPSIZE,"metadata from: ");
-    concatn(length,desc,temp);
+    /* codecs with blocks + headers (there are more, this is a start) */
+    if (vgmstream->layout_type == layout_none && vgmstream->interleave_block_size > 0) {
+        switch (vgmstream->coding_type) {
+            case coding_MSADPCM:
+            case coding_MS_IMA:
+            case coding_MC3:
+            case coding_WWISE_IMA:
+                snprintf(temp,TEMPSIZE,
+                        "block size: %#x bytes\n",
+                        (int32_t)vgmstream->interleave_block_size);
+                concatn(length,desc,temp);
+                break;
+            default:
+                break;
+        }
+    }
 
+    snprintf(temp,TEMPSIZE,
+            "metadata from: ");
+    concatn(length,desc,temp);
     switch (vgmstream->meta_type) {
         default:
             description = get_vgmstream_meta_description(vgmstream->meta_type);
@@ -2053,7 +2080,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
 
     /* only interesting if more than one */
     if (vgmstream->num_streams > 1) {
-        snprintf(temp,TEMPSIZE,"\nnumber of streams: %d",vgmstream->num_streams);
+        snprintf(temp,TEMPSIZE,
+                "\nnumber of streams: %d",
+                vgmstream->num_streams);
         concatn(length,desc,temp);
     }
 }
