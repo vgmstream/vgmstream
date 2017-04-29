@@ -1071,8 +1071,8 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_IMA:
         case coding_OTNS_IMA:
             return 1;
-        case coding_INT_IMA:
-        case coding_INT_DVI_IMA:
+        case coding_IMA_int:
+        case coding_DVI_IMA_int:
         case coding_AICA:
             return 2;
         case coding_NGC_AFC:
@@ -1086,7 +1086,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_PSX_cfg:
             return (vgmstream->interleave_block_size - 1) * 2; /* decodes 1 byte into 2 bytes */
         case coding_XBOX:
-		case coding_INT_XBOX:
+		case coding_XBOX_int:
         case coding_FSB_IMA:
             return 64;
         case coding_EA_XA:
@@ -1223,7 +1223,7 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
         case coding_XA:
             return 14*vgmstream->channels;
         case coding_XBOX:
-		case coding_INT_XBOX:
+		case coding_XBOX_int:
         case coding_FSB_IMA:
             return 36;
 		case coding_MAXIS_ADPCM:
@@ -1234,8 +1234,8 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
             return 1; // the frame is variant in size
         case coding_WS:
             return vgmstream->current_block_size;
-        case coding_INT_IMA:
-        case coding_INT_DVI_IMA:
+        case coding_IMA_int:
+        case coding_DVI_IMA_int:
         case coding_AICA:
             return 1; 
         case coding_APPLE_IMA4:
@@ -1400,7 +1400,7 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                         samples_to_do,chan);
             }
             break;
-        case coding_INT_XBOX:
+        case coding_XBOX_int:
             for (chan=0;chan<vgmstream->channels;chan++) {
                 decode_int_xbox_ima(vgmstream,&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
@@ -1586,7 +1586,7 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
             }
             break;
         case coding_DVI_IMA:
-        case coding_INT_DVI_IMA:
+        case coding_DVI_IMA_int:
             for (chan=0;chan<vgmstream->channels;chan++) {
                 decode_dvi_ima(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
@@ -1601,7 +1601,7 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
             }
             break;
         case coding_IMA:
-        case coding_INT_IMA:
+        case coding_IMA_int:
             for (chan=0;chan<vgmstream->channels;chan++) {
                 decode_ima(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,

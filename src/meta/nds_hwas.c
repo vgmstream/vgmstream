@@ -28,7 +28,7 @@ VGMSTREAM * init_vgmstream_nds_hwas(STREAMFILE *streamFile) {
     start_offset = 0x200;
 	vgmstream->channels = channel_count;
     vgmstream->sample_rate = read_32bitLE(0x08,streamFile);
-    vgmstream->coding_type = coding_INT_IMA;
+    vgmstream->coding_type = coding_IMA_int;
     vgmstream->num_samples = read_32bitLE(0x14,streamFile);
     if (loop_flag) {
         vgmstream->loop_start_sample = read_32bitLE(0x10,streamFile);

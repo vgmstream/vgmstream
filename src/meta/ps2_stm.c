@@ -33,7 +33,7 @@ VGMSTREAM * init_vgmstream_ps2_stm(STREAMFILE *streamFile) {
     start_offset = 0x800;
     vgmstream->sample_rate = (uint16_t)read_32bitLE(0xc,streamFile);
 
-    vgmstream->coding_type = coding_INT_DVI_IMA;
+    vgmstream->coding_type = coding_DVI_IMA_int;
 
     vgmstream->num_samples = read_32bitLE(0x18,streamFile);
 

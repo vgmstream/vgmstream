@@ -107,16 +107,16 @@ typedef enum {
 	coding_NDS_PROCYON,     /* Procyon Studio ADPCM */
 
     coding_XBOX,            /* XBOX IMA ADPCM */
-    coding_INT_XBOX,        /* XBOX IMA ADPCM (interleaved) */
+    coding_XBOX_int,        /* XBOX IMA ADPCM (interleaved) */
     coding_IMA,             /* IMA ADPCM (low nibble first) */
-    coding_INT_IMA,         /* IMA ADPCM (interleaved) */
+    coding_IMA_int,         /* IMA ADPCM (interleaved) */
     coding_DVI_IMA,         /* DVI IMA ADPCM (high nibble first), aka ADP4 */
-    coding_INT_DVI_IMA,		/* DVI IMA ADPCM (Interleaved) */
+    coding_DVI_IMA_int,		/* DVI IMA ADPCM (Interleaved) */
     coding_NDS_IMA,         /* IMA ADPCM w/ NDS layout */
     coding_EACS_IMA,
     coding_MS_IMA,          /* Microsoft IMA */
-    coding_RAD_IMA,         /* "Radical ADPCM" IMA */
-    coding_RAD_IMA_mono,    /* "Radical ADPCM" IMA, mono (for interleave) */
+    coding_RAD_IMA,         /* Radical IMA ADPCM */
+    coding_RAD_IMA_mono,    /* Radical IMA ADPCM, mono (for interleave) */
     coding_APPLE_IMA4,      /* Apple Quicktime IMA4 */
     coding_DAT4_IMA,        /* Eurocom 'DAT4' IMA ADPCM */
     coding_SNDS_IMA,        /* Heavy Iron Studios .snds IMA ADPCM */

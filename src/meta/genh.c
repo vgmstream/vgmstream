@@ -173,9 +173,9 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
                 else {
                     vgmstream->layout_type = layout_interleave;
                     if(coding==coding_DVI_IMA)
-                        coding=coding_INT_DVI_IMA;
+                        coding=coding_DVI_IMA_int;
                     if(coding==coding_IMA)
-                        coding=coding_INT_IMA;
+                        coding=coding_IMA_int;
                 }
             } else {
                 vgmstream->layout_type = layout_none;

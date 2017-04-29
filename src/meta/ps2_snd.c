@@ -31,7 +31,7 @@ VGMSTREAM * init_vgmstream_ps2_snd(STREAMFILE *streamFile) {
     vgmstream->sample_rate = (uint16_t)read_16bitLE(0xe,streamFile);
 
 	if(read_8bit(0x08,streamFile)==1) {
-		vgmstream->coding_type = coding_INT_DVI_IMA;
+		vgmstream->coding_type = coding_DVI_IMA_int;
 	}
 	else
 		vgmstream->coding_type = coding_PCM16LE;
