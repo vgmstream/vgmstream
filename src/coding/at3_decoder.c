@@ -1,12 +1,10 @@
-#include "../vgmstream.h"
-
-#ifdef VGM_USE_MAIATRAC3PLUS
-#include "maiatrac3plus.h"
 #include "coding.h"
 #include "../util.h"
 
-void decode_at3plus(VGMSTREAM * vgmstream, 
-        sample * outbuf, int channelspacing, int32_t samples_to_do, int channel) {
+#ifdef VGM_USE_MAIATRAC3PLUS
+#include "maiatrac3plus.h"
+
+void decode_at3plus(VGMSTREAM * vgmstream, sample * outbuf, int channelspacing, int32_t samples_to_do, int channel) {
     VGMSTREAMCHANNEL *ch = &vgmstream->ch[0];
     maiatrac3plus_codec_data *data = vgmstream->codec_data;
     int i;
@@ -35,6 +33,33 @@ void decode_at3plus(VGMSTREAM * vgmstream,
 	if (0 == channel && 2048 == first_sample + samples_to_do) {
 		ch->offset += vgmstream->interleave_block_size;
 	}
+}
+
+
+void reset_at3plus(VGMSTREAM *vgmstream) {
+    maiatrac3plus_codec_data *data = vgmstream->codec_data;
+
+    if (data->handle)
+        Atrac3plusDecoder_closeContext(data->handle);
+    data->handle = Atrac3plusDecoder_openContext();
+    data->samples_discard = 0;
+}
+
+void seek_at3plus(VGMSTREAM *vgmstream, int32_t num_sample) {
+    int blocks_to_skip = num_sample / 2048;
+    int samples_to_discard = num_sample % 2048;
+    maiatrac3plus_codec_data *data = (maiatrac3plus_codec_data *)(vgmstream->codec_data);
+    vgmstream->loop_ch[0].offset =
+        vgmstream->loop_ch[0].channel_start_offset +
+        vgmstream->interleave_block_size * blocks_to_skip;
+    data->samples_discard = samples_to_discard;
+}
+
+void free_at3plus(maiatrac3plus_codec_data *data) {
+    if (data) {
+        if (data->handle) Atrac3plusDecoder_closeContext(data->handle);
+        free(data);
+    }
 }
 
 #endif

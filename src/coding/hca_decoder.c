@@ -1,4 +1,4 @@
-#include "../vgmstream.h"
+#include "coding.h"
 
 void decode_hca(hca_codec_data * data, sample * outbuf, int32_t samples_to_do, int channels) {
 	int samples_done = 0;
@@ -79,4 +79,30 @@ void decode_hca(hca_codec_data * data, sample * outbuf, int32_t samples_to_do, i
 	}
     
     free( hca_data );
+}
+
+
+void reset_hca(VGMSTREAM *vgmstream) {
+    hca_codec_data *data = vgmstream->codec_data;
+    /*clHCA *hca = (clHCA *)(data + 1);*/
+    data->curblock = 0;
+    data->sample_ptr = clHCA_samplesPerBlock;
+    data->samples_discard = 0;
+}
+
+void loop_hca(VGMSTREAM *vgmstream) {
+    hca_codec_data *data = (hca_codec_data *)(vgmstream->codec_data);
+    data->curblock = data->info.loopStart;
+    data->sample_ptr = clHCA_samplesPerBlock;
+    data->samples_discard = 0;
+}
+
+void free_hca(hca_codec_data * data) {
+    if (data) {
+        clHCA *hca = (clHCA *)(data + 1);
+        clHCA_done(hca);
+        if (data->streamfile)
+            close_streamfile(data->streamfile);
+        free(data);
+    }
 }

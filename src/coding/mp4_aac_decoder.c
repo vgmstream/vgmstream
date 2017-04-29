@@ -82,4 +82,29 @@ void decode_mp4_aac(mp4_aac_codec_data * data, sample * outbuf, int32_t samples_
 		data->sample_ptr = samples_remain;
 	}
 }
+
+
+void reset_mp4_aac(VGMSTREAM *vgmstream) {
+    mp4_aac_codec_data *data = vgmstream->codec_data;
+    data->sampleId = 0;
+    data->sample_ptr = data->samples_per_frame;
+    data->samples_discard = 0;
+}
+
+void seek_mp4_aac(VGMSTREAM *vgmstream, int32_t num_sample) {
+    mp4_aac_codec_data *data = (mp4_aac_codec_data *)(vgmstream->codec_data);
+    data->sampleId = 0;
+    data->sample_ptr = data->samples_per_frame;
+    data->samples_discard = num_sample;
+}
+
+void free_mp4_aac(mp4_aac_codec_data * data) {
+    if (data) {
+        if (data->h_aacdecoder) aacDecoder_Close(data->h_aacdecoder);
+        if (data->h_mp4file) MP4Close(data->h_mp4file, 0);
+        if (data->if_file.streamfile) close_streamfile(data->if_file.streamfile);
+        free(data);
+    }
+}
+
 #endif
