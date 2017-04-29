@@ -13,9 +13,10 @@ enum { PATH_LIMIT = 32768 };
  * done by external libraries.
  * If someone wants to do a standalone build, they can do it by simply
  * removing these defines (and the references to the libraries in the Makefile) */
+#ifndef VGM_DISABLE_VORBIS
 #define VGM_USE_VORBIS
+#endif
 
-/* can be disabled to decode with FFmpeg instead */
 #ifndef VGM_DISABLE_MPEG
 #define VGM_USE_MPEG
 #endif
