@@ -1994,9 +1994,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             ffmpeg_codec_data *data = (ffmpeg_codec_data *) vgmstream->codec_data;
             if (vgmstream->codec_data) {
                 if (data->codec && data->codec->long_name) {
-                    snprintf(temp,TEMPSIZE,data->codec->long_name);
+                    snprintf(temp,TEMPSIZE,"%s",data->codec->long_name);
                 } else if (data->codec && data->codec->name) {
-                    snprintf(temp,TEMPSIZE,data->codec->name);
+                    snprintf(temp,TEMPSIZE,"%s",data->codec->name);
                 } else {
                     snprintf(temp,TEMPSIZE,"FFmpeg (unknown codec)");
                 }
@@ -2010,7 +2010,7 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             description = get_vgmstream_coding_description(vgmstream->coding_type);
             if (!description)
                 description = "CANNOT DECODE";
-            strncpy(temp,description,TEMPSIZE);
+            snprintf(temp,TEMPSIZE,"%s",description);
             break;
     }
     concatn(length,desc,temp);
@@ -2023,7 +2023,7 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             description = get_vgmstream_layout_description(vgmstream->layout_type);
             if (!description)
                 description = "INCONCEIVABLE";
-            strncpy(temp,description,TEMPSIZE);
+            snprintf(temp,TEMPSIZE,"%s",description);
             break;
     }
     concatn(length,desc,temp);
@@ -2073,7 +2073,7 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             description = get_vgmstream_meta_description(vgmstream->meta_type);
             if (!description)
                 description = "THEY SHOULD HAVE SENT A POET";
-            strncpy(temp,description,TEMPSIZE);
+            snprintf(temp,TEMPSIZE,"%s",description);
             break;
     }
     concatn(length,desc,temp);
