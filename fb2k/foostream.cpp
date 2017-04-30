@@ -18,23 +18,29 @@ extern "C" {
 }
 #include "foo_vgmstream.h"
 
+/* On EOF reads we can return length 0, or ignore and return the requested length + 0-set the buffer.
+ * Some decoders don't check for EOF and may decode garbage if returned 0, as read_Nbit() funcs return -1.
+ * Only matters for metas that get num_samples wrong (bigger than total data). */
+#define STREAMFILE_IGNORE_EOF 0
+
 
 static size_t read_the_rest_foo(uint8_t * dest, off_t offset, size_t length, FOO_STREAMFILE * streamfile) {
     size_t length_read_total=0;
 
-    /* is the beginning at least there? */
-    if (offset >= streamfile->offset && offset < streamfile->offset+streamfile->validsize) {
+    /* is the part of the requested length in the buffer? */
+    if (offset >= streamfile->offset && offset < streamfile->offset + streamfile->validsize) {
         size_t length_read;
-        off_t offset_into_buffer = offset-streamfile->offset;
-        length_read = streamfile->validsize-offset_into_buffer;
-        memcpy(dest,streamfile->buffer+offset_into_buffer,length_read);
+        off_t offset_into_buffer = offset - streamfile->offset;
+        length_read = streamfile->validsize - offset_into_buffer;
+
+        memcpy(dest,streamfile->buffer + offset_into_buffer,length_read);
         length_read_total += length_read;
         length -= length_read;
         offset += length_read;
         dest += length_read;
     }
 
-    /* TODO: What would make more sense here is to read the whole request
+    /* What would make more sense here is to read the whole request
      * at once into the dest buffer, as it must be large enough, and then
      * copy some part of that into our own buffer.
      * The destination buffer is supposed to be much smaller than the
@@ -42,17 +48,22 @@ static size_t read_the_rest_foo(uint8_t * dest, off_t offset, size_t length, FOO
      * to the buffer size to avoid having to deal with things like this
      * which are outside of my intended use.
      */
-    /* read as much of the beginning of the request as possible, proceed */
-    while (length>0) {
+    /* read the rest of the requested length */
+    while (length > 0) {
         size_t length_to_read;
         size_t length_read;
-        streamfile->validsize=0;
+        streamfile->validsize = 0; /* buffer is empty now */
 
         /* request outside file: ignore to avoid seek/read */
         if (offset > streamfile->filesize) {
             streamfile->offset = streamfile->filesize;
-            memset(dest,0,length);
-            return length; /* return partially-read buffer and 0-set the rest */
+
+#if STREAMFILE_IGNORE_EOF
+            memset(dest,0,length); /* dest is already shifted */
+            return length_read_total + length; /* partially-read + 0-set buffer */
+#else
+            return length_read_total; /* partially-read buffer */
+#endif
         }
 
         /* position to new offset */
@@ -65,43 +76,49 @@ static size_t read_the_rest_foo(uint8_t * dest, off_t offset, size_t length, FOO
 #ifdef PROFILE_STREAMFILE
             streamfile->error_count++;
 #endif
-            return 0; //fail miserably
+            return 0; /* fail miserably (fseek shouldn't fail and reach this) */
         }
-
-        streamfile->offset=offset;
+        streamfile->offset = offset;
 
         /* decide how much must be read this time */
-        if (length>streamfile->buffersize) length_to_read=streamfile->buffersize;
-        else length_to_read=length;
+        if (length > streamfile->buffersize)
+            length_to_read = streamfile->buffersize;
+        else
+            length_to_read = length;
 
-        /* always try to fill the buffer */
+        /* fill the buffer */
         try {
             length_read = streamfile->m_file->read(streamfile->buffer,streamfile->buffersize,*streamfile->p_abort);
         } catch(...) {
 #ifdef PROFILE_STREAMFILE
             streamfile->error_count++;
 #endif
-            return 0; //fail miserably
+            return 0; /* fail miserably */
         }
-        streamfile->validsize=length_read;
+        streamfile->validsize = length_read;
 
 #ifdef PROFILE_STREAMFILE
         streamfile->bytes_read += length_read;
 #endif
 
-        /* if we can't get enough to satisfy the request we give up */
+        /* if we can't get enough to satisfy the request (EOF) we give up */
         if (length_read < length_to_read) {
             memcpy(dest,streamfile->buffer,length_read);
-            length_read_total+=length_read;
-            return length_read_total;
+
+#if STREAMFILE_IGNORE_EOF
+            memset(dest+length_read,0,length-length_read);
+            return length_read_total + length; /* partially-read + 0-set buffer */
+#else
+            return length_read_total + length_read; /* partially-read buffer */
+#endif
         }
 
         /* use the new buffer */
         memcpy(dest,streamfile->buffer,length_to_read);
-        length_read_total+=length_to_read;
-        length-=length_to_read;
-        dest+=length_to_read;
-        offset+=length_to_read;
+        length_read_total += length_to_read;
+        length -= length_to_read;
+        dest += length_to_read;
+        offset += length_to_read;
     }
 
     return length_read_total;
@@ -109,23 +126,32 @@ static size_t read_the_rest_foo(uint8_t * dest, off_t offset, size_t length, FOO
 
 static size_t read_foo(FOO_STREAMFILE *streamfile, uint8_t * dest, off_t offset, size_t length) {
 
-    if (!streamfile || !dest || length<=0) return 0;
-
-    /* if entire request is within the buffer */
-    if (offset >= streamfile->offset && offset+length <= streamfile->offset+streamfile->validsize) {
-        memcpy(dest,streamfile->buffer+(offset-streamfile->offset),length);
-        return length;
-    }
+    if (!streamfile || !dest || length<=0)
+        return 0;
 
     /* request outside file: ignore to avoid seek/read in read_the_rest_foo() */
     if (offset > streamfile->filesize) {
         streamfile->offset = streamfile->filesize;
-        memset(dest, 0, length);
+
+#if STREAMFILE_IGNORE_EOF
+        memset(dest,0,length);
+        return length; /* 0-set buffer */
+#else
+        return 0; /* nothing to read */
+#endif
+    }
+
+    /* just copy if entire request is within the buffer */
+    if (offset >= streamfile->offset && offset + length <= streamfile->offset + streamfile->validsize) {
+        off_t offset_into_buffer = offset - streamfile->offset;
+        memcpy(dest,streamfile->buffer + offset_into_buffer,length);
         return length;
     }
 
     /* request outside buffer: new fread */
-    return read_the_rest_foo(dest,offset,length,streamfile);
+    {
+        return read_the_rest_foo(dest,offset,length,streamfile);
+    }
 }
 
 STREAMFILE * open_foo_streamfile(const char * const filename, abort_callback * p_abort, t_filestats * stats) {

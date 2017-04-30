@@ -29,7 +29,7 @@ VGMSTREAM * init_vgmstream_dvi(STREAMFILE *streamFile) {
 	vgmstream->channels = channel_count;
     start_offset = read_32bitBE(0x04,streamFile);
     vgmstream->sample_rate = 44100;
-    vgmstream->coding_type = coding_INT_DVI_IMA;
+    vgmstream->coding_type = coding_DVI_IMA_int;
 
     vgmstream->num_samples = read_32bitBE(0x08,streamFile);
     

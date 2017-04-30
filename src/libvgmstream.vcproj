@@ -444,6 +444,10 @@
 					RelativePath=".\meta\maxis_xa.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\meta\mc3.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\mca.c"
 					>
@@ -1330,6 +1334,10 @@
 					RelativePath=".\coding\lsf_decoder.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\coding\mc3_decoder.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\coding\mpeg_decoder.c"
 					>

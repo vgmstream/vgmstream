@@ -134,7 +134,7 @@ VGMSTREAM * init_vgmstream_nds_strm_ffta2(STREAMFILE *streamFile) {
     start_offset = 0x2C;
 	vgmstream->channels = channel_count;
     vgmstream->sample_rate = read_32bitLE(0x0C,streamFile);
-    vgmstream->coding_type = coding_INT_IMA;
+    vgmstream->coding_type = coding_IMA_int;
     vgmstream->num_samples = (read_32bitLE(0x04,streamFile)-start_offset);
     if (loop_flag) {
         vgmstream->loop_start_sample = read_32bitLE(0x20,streamFile);

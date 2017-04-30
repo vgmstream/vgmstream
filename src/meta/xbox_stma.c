@@ -34,7 +34,7 @@ VGMSTREAM * init_vgmstream_xbox_stma(STREAMFILE *streamFile) {
 	/* fill in the vital statistics */
 	vgmstream->channels = channel_count;
     vgmstream->sample_rate = read_32bitLE(0x0C,streamFile);
-	vgmstream->coding_type = coding_INT_DVI_IMA;
+	vgmstream->coding_type = coding_DVI_IMA_int;
     vgmstream->num_samples = read_32bitLE(0x18,streamFile)*2/vgmstream->channels;
     vgmstream->layout_type = layout_interleave;
 	vgmstream->interleave_block_size=0x40;

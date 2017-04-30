@@ -75,7 +75,7 @@ VGMSTREAM * init_vgmstream_bcstm(STREAMFILE *streamFile) {
 	    if (seek_offset == 0) goto fail;
 		if ((uint32_t)read_32bitBE(seek_offset, streamFile) != 0x5345454B) { /* "SEEK" If this header doesn't exist, assuming that the file is IMA */
 			ima = 1;
-			coding_type = coding_INT_IMA;	
+			coding_type = coding_IMA_int;
 		}
 		else
 			coding_type = coding_NGC_DSP;

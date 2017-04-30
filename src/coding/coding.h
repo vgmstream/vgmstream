@@ -77,7 +77,6 @@ void decode_maxis_adpcm(VGMSTREAM * vgmstream, sample * outbuf, int channelspaci
 /* sdx2_decoder */
 void decode_sdx2(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
 void decode_sdx2_int(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
-/* sdx2_decoder */
 void decode_cbd2(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
 void decode_cbd2_int(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
 
@@ -113,79 +112,93 @@ void decode_lsf(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, 
 /* mtaf_decoder */
 void decode_mtaf(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel, int channels);
 
+/* mc3_decoder */
+void decode_mc3(VGMSTREAM * vgmstream, VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel);
+
 /* hca_decoder */
 void decode_hca(hca_codec_data * data, sample * outbuf, int32_t samples_to_do, int channels);
-
+void reset_hca(VGMSTREAM *vgmstream);
+void loop_hca(VGMSTREAM *vgmstream);
+void free_hca(hca_codec_data * data);
 
 #ifdef VGM_USE_VORBIS
 /* ogg_vorbis_decoder */
 void decode_ogg_vorbis(ogg_vorbis_codec_data * data, sample * outbuf, int32_t samples_to_do, int channels);
+void reset_ogg_vorbis(VGMSTREAM *vgmstream);
+void seek_ogg_vorbis(VGMSTREAM *vgmstream, int32_t num_sample);
+void free_ogg_vorbis(ogg_vorbis_codec_data *data);
 
 /* fsb_vorbis_decoder */
 vorbis_codec_data * init_fsb_vorbis_codec_data(STREAMFILE *streamfile, off_t start_offset, int channels, int sample_rate, uint32_t setup_id);
 void decode_fsb_vorbis(VGMSTREAM * vgmstream, sample * outbuf, int32_t samples_to_do, int channels);
-
-void free_fsb_vorbis(vorbis_codec_data *data);
 void reset_fsb_vorbis(VGMSTREAM *vgmstream);
 void seek_fsb_vorbis(VGMSTREAM *vgmstream, int32_t num_sample);
+void free_fsb_vorbis(vorbis_codec_data *data);
 
 /* wwise_vorbis_decoder */
 vorbis_codec_data * init_wwise_vorbis_codec_data(STREAMFILE *streamfile, off_t start_offset, int channels, int sample_rate, int blocksize_0_exp, int blocksize_1_exp,
         wwise_setup_type setup_type, wwise_header_type header_type, wwise_packet_type packet_type, int big_endian);
 void decode_wwise_vorbis(VGMSTREAM * vgmstream, sample * outbuf, int32_t samples_to_do, int channels);
-
-void free_wwise_vorbis(vorbis_codec_data *data);
 void reset_wwise_vorbis(VGMSTREAM *vgmstream);
 void seek_wwise_vorbis(VGMSTREAM *vgmstream, int32_t num_sample);
+void free_wwise_vorbis(vorbis_codec_data *data);
 
 /* ogl_vorbis_decoder */
 vorbis_codec_data * init_ogl_vorbis_codec_data(STREAMFILE *streamFile, off_t start_offset, off_t * data_start_offset);
 void decode_ogl_vorbis(VGMSTREAM * vgmstream, sample * outbuf, int32_t samples_to_do, int channels);
-
-void free_ogl_vorbis(vorbis_codec_data *data);
 void reset_ogl_vorbis(VGMSTREAM *vgmstream);
 void seek_ogl_vorbis(VGMSTREAM *vgmstream, int32_t num_sample);
+void free_ogl_vorbis(vorbis_codec_data *data);
 #endif
 
-/* mpeg_decoder */
 #ifdef VGM_USE_MPEG
+/* mpeg_decoder */
 mpeg_codec_data *init_mpeg_codec_data(STREAMFILE *streamfile, off_t start_offset, coding_t *coding_type, int channels);
 mpeg_codec_data *init_mpeg_codec_data_interleaved(STREAMFILE *streamfile, off_t start_offset, coding_t *coding_type, int channels, int fixed_frame_size, int fsb_padding);
 mpeg_codec_data *init_mpeg_codec_data_ahx(STREAMFILE *streamFile, off_t start_offset, int channel_count);
 
 void decode_mpeg(VGMSTREAM * vgmstream, sample * outbuf, int32_t samples_to_do, int channels);
 void decode_fake_mpeg2_l2(VGMSTREAMCHANNEL * stream, mpeg_codec_data * data, sample * outbuf, int32_t samples_to_do);
-
-void free_mpeg(mpeg_codec_data *data);
 void reset_mpeg(VGMSTREAM *vgmstream);
 void seek_mpeg(VGMSTREAM *vgmstream, int32_t num_sample);
+void free_mpeg(mpeg_codec_data *data);
 
 long mpeg_bytes_to_samples(long bytes, const mpeg_codec_data *data);
 void mpeg_set_error_logging(mpeg_codec_data * data, int enable);
 #endif
 
-/* g7221_decoder */
 #ifdef VGM_USE_G7221
+/* g7221_decoder */
 void decode_g7221(VGMSTREAM *vgmstream, sample * outbuf, int channelspacing, int32_t samples_to_do, int channel);
+void reset_g7221(VGMSTREAM *vgmstream);
+void free_g7221(VGMSTREAM *vgmstream);
 #endif
 
-/* g719_decoder */
 #ifdef VGM_USE_G719
+/* g719_decoder */
 void decode_g719(VGMSTREAM *vgmstream, sample * outbuf, int channelspacing, int32_t samples_to_do, int channel);
+void reset_g719(VGMSTREAM *vgmstream);
+void free_g719(VGMSTREAM *vgmstream);
 #endif
 
-/* mp4_aac_decoder */
 #if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
+/* mp4_aac_decoder */
 void decode_mp4_aac(mp4_aac_codec_data * data, sample * outbuf, int32_t samples_to_do, int channels);
+void reset_mp4_aac(VGMSTREAM *vgmstream);
+void seek_mp4_aac(VGMSTREAM *vgmstream, int32_t num_sample);
+void free_mp4_aac(mp4_aac_codec_data * data);
 #endif
 
-/* at3_decoder */
 #ifdef VGM_USE_MAIATRAC3PLUS
+/* at3_decoder */
 void decode_at3plus(VGMSTREAM *vgmstream, sample * outbuf, int channelspacing, int32_t samples_to_do, int channel);
+void reset_at3plus(VGMSTREAM *vgmstream);
+void seek_at3plus(VGMSTREAM *vgmstream, int32_t num_sample);
+void free_at3plus(maiatrac3plus_codec_data *data);
 #endif
 
-/* ffmpeg_decoder */
 #ifdef VGM_USE_FFMPEG
+/* ffmpeg_decoder */
 void decode_ffmpeg(VGMSTREAM *stream, sample * outbuf, int32_t samples_to_do, int channels);
 void reset_ffmpeg(VGMSTREAM *vgmstream);
 void seek_ffmpeg(VGMSTREAM *vgmstream, int32_t num_sample);
