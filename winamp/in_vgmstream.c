@@ -5,7 +5,8 @@
 ** Copyright (c) 1998, Justin Frankel/Nullsoft Inc.
 */
 
-/* Winamp uses wchar_t when this is on, so extra steps are needed */
+/* Winamp uses wchar_t filenames when this is on, so extra steps are needed.
+ * To open unicode filenames it needs to use _wfopen, inside a WA_STREAMFILE to pass around */
 //#define UNICODE_INPUT_PLUGIN
 
 
@@ -45,9 +46,6 @@
 In_Module input_module; /* the input module, declared at the bottom of this file */
 DWORD WINAPI __stdcall decode(void *arg);
 
-#define WINAMP_MAX_PATH  32768  /* originally 260+1 */
-char lastfn[WINAMP_MAX_PATH] = {0}; /* name of the currently playing file */
-
 
 #define DEFAULT_FADE_SECONDS "10.00"
 #define DEFAULT_FADE_DELAY_SECONDS "0.00"
@@ -66,6 +64,8 @@ char lastfn[WINAMP_MAX_PATH] = {0}; /* name of the currently playing file */
 char *priority_strings[] = {"Idle","Lowest","Below Normal","Normal","Above Normal","Highest (not recommended)","Time Critical (not recommended)"};
 int priority_values[] = {THREAD_PRIORITY_IDLE,THREAD_PRIORITY_LOWEST,THREAD_PRIORITY_BELOW_NORMAL,THREAD_PRIORITY_NORMAL,THREAD_PRIORITY_ABOVE_NORMAL,THREAD_PRIORITY_HIGHEST,THREAD_PRIORITY_TIME_CRITICAL};
 
+#define WINAMP_MAX_PATH  32768  /* originally 260+1 */
+in_char lastfn[WINAMP_MAX_PATH] = {0}; /* name of the currently playing file */
 
 /* Winamp Play extension list, needed to accept/play and associate extensions in Windows */
 #define EXTENSION_LIST_SIZE   VGM_EXTENSION_LIST_CHAR_SIZE * 6
@@ -177,6 +177,23 @@ static void build_extension_list() {
     }
 }
 
+/* unicode utils */
+static void copy_title(in_char * dst, int dst_size, const in_char * src) {
+#ifdef UNICODE_INPUT_PLUGIN
+    in_char *p = (in_char*)src + wcslen(src); /* find end */
+    while (*p != '\\' && p >= src) /* and find last "\" */
+        p--;
+    p++;
+    wcscpy(dst,p); /* copy filename only */
+#else
+    in_char *p = (in_char*)src + strlen(src); /* find end */
+    while (*p != '\\' && p >= src) /* and find last "\" */
+        p--;
+    p++;
+    strcpy(dst,p); /* copy filename only */
+#endif
+}
+
 /* ***************************************** */
 
 /* about dialog */
@@ -254,6 +271,7 @@ int play(const in_char *fn) {
         /* TODO: this should either pop up an error box or close the file */
         return 1; /* error */
     }
+
     /* open the stream, set up */
     vgmstream = init_vgmstream(fn);
     /* were we able to open it? */
@@ -378,8 +396,7 @@ void setpan(int pan) {
 /* display information */
 int infoDlg(const in_char *fn, HWND hwnd) {
     VGMSTREAM * infostream = NULL;
-    char description[1024];
-    description[0]='\0';
+    char description[1024] = {0};
 
     concatn(sizeof(description),description,PLUGIN_DESCRIPTION "\n\n");
 
@@ -400,36 +417,35 @@ int infoDlg(const in_char *fn, HWND hwnd) {
 
 /* retrieve information on this or possibly another file */
 void getfileinfo(const in_char *filename, in_char *title, int *length_in_ms) {
-    if (!filename || !*filename)  /* currently playing file*/
+
+    if (!filename || !*filename)  /* no filename = use currently playing file */
     {
-        if (!vgmstream) return;
-        if (length_in_ms) *length_in_ms=getlength();
-        if (title) 
-        {
-            char *p=lastfn+strlen(lastfn);
-            while (*p != '\\' && p >= lastfn) p--;
-            strcpy((char*)title,++p);
+        if (!vgmstream)
+            return;
+        if (length_in_ms)
+            *length_in_ms = getlength();
+
+        if (title) {
+            copy_title(title,GETFILEINFO_TITLE_LENGTH, lastfn);
         }
     }
     else /* some other file */
     {
         VGMSTREAM * infostream;
-        if (length_in_ms) 
-        {
+
+        if (length_in_ms) {
             *length_in_ms=-1000;
-            if ((infostream=init_vgmstream(filename)))
-            {
+
+            if ((infostream=init_vgmstream(filename))) {
                 *length_in_ms = get_vgmstream_play_samples(loop_count,fade_seconds,fade_delay_seconds,infostream)*1000LL/infostream->sample_rate;
 
                 close_vgmstream(infostream);
                 infostream=NULL;
             }
         }
-        if (title) 
-        {
-            const char *p = filename + strlen(filename);
-            while (*p != '\\' && p >= filename) p--;
-            strcpy((char*)title,++p);
+
+        if (title) {
+            copy_title(title,GETFILEINFO_TITLE_LENGTH, filename);
         }
     }
 }
