@@ -47,13 +47,16 @@ const char *const VgmstreamPlugin::defaults[] = {
 };
 
 const char VgmstreamPlugin::about[] =
-    "vgmstream for Audacious version: " VERSION "\n"
+    "vgmstream plugin " VERSION " " __DATE__ "\n"
+    "by hcs, FastElbja, manakoAT, bxaimc, snakemeat, soneek, kode54, bnnm and many others\n"
     "\n"
+    "Audacious plugin:\n"
     "ported to Audacious 3.6 by Brandon Whitehead\n"
     "adopted from Audacious 3 port by Thomas Eppers\n"
     "originally written by Todd Jeffreys (http://voidpointer.org/)\n"
-    "vgmstream written by hcs, FastElbja, manakoAT, and bxaimc\n"
-    "http://www.sf.net/projects/vgmstream";
+    "\n"
+    "https://github.com/kode54/vgmstream/\n"
+    "https://sourceforge.net/projects/vgmstream/ (original)";
 
 const PreferencesWidget VgmstreamPlugin::widgets[] = {
     WidgetLabel(N_("<b>vgmstream Config</b>")),
