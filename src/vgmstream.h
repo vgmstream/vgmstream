@@ -38,10 +38,10 @@ enum { PATH_LIMIT = 32768 };
 #endif
 
 #ifdef VGM_USE_G7221
-#include "g7221.h"
+#include <g7221.h>
 #endif
 #ifdef VGM_USE_G719
-#include "g719.h"
+#include <g719.h>
 #endif
 
 #ifdef VGM_USE_MP4V2
@@ -54,7 +54,7 @@ enum { PATH_LIMIT = 32768 };
 #endif
 
 #ifdef VGM_USE_MAIATRAC3PLUS
-#include "maiatrac3plus.h"
+#include <maiatrac3plus.h>
 #endif
 
 #ifdef VGM_USE_FFMPEG
@@ -62,10 +62,11 @@ enum { PATH_LIMIT = 32768 };
 #include <libavformat/avformat.h>
 #endif
 
+#include <clHCA.h>
+
 #include "coding/g72x_state.h"
 #include "coding/acm_decoder.h"
 #include "coding/nwa_decoder.h"
-#include "clHCA.h"
 
 
 /* The encoding type specifies the format the sound data itself takes */
