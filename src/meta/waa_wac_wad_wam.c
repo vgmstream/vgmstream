@@ -33,7 +33,7 @@ const short wad_coef[16] =
 };
 
 
-/* WAC - WAD - WAM (Beyond Good & Evil GC/PS2) */
+/* WAC - WAD - WAM (Beyond Good & Evil GC/PS2/Xbox/Wii) */
 /* Note: A "Flat Layout" has no interleave */
 VGMSTREAM * init_vgmstream_waa_wac_wad_wam(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;

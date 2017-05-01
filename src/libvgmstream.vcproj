@@ -587,10 +587,6 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\ngc_waa_wac_wad_wam.c"
-					>
-				</File>
-				<File
 					RelativePath=".\meta\ngc_ymf.c"
 					>
 				</File>
@@ -1130,6 +1126,10 @@
 					RelativePath=".\meta\vsf.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\meta\waa_wac_wad_wam.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\wii_bns.c"
 					>

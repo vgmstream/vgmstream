@@ -337,9 +337,6 @@
     <ClCompile Include="meta\ngc_tydsp.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\ngc_waa_wac_wad_wam.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="meta\ngc_ymf.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -683,6 +680,9 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\vsf.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\waa_wac_wad_wam.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\wii_bns.c">
