@@ -3,7 +3,7 @@
 noinst_LTLIBRARIES = libvgmstream.la
 
 AM_CFLAGS = -Wall @CFLAGS@ -I$(top_builddir) -I$(top_srcdir) -I$(top_srcdir)/ext_includes/
-AM_MAKEFLAGS=-f Makefile.unix
+AM_MAKEFLAGS=-f Makefile.audacious
 
 SUBDIRS = coding layout meta
 

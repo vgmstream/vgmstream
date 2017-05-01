@@ -3,7 +3,7 @@
 noinst_LTLIBRARIES = libmeta.la
 
 AM_CFLAGS = -Wall @CFLAGS@ -DVAR_ARRAYS -I$(top_builddir) -I$(top_srcdir) -I$(top_srcdir)/ext_includes/
-AM_MAKEFLAGS=-f Makefile.unix
+AM_MAKEFLAGS=-f Makefile.audacious
 
 # sources/headers are updated automatically by ./bootstrap script (not all headers are needed though)
 libmeta_la_LDFLAGS =

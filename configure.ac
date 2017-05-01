@@ -4,7 +4,7 @@ dnl Process this file with autoconf to produce a configure script.
 AC_PREREQ(2.53)
 AC_INIT(audacious-vgmstream,1.3.0)
 AM_INIT_AUTOMAKE([subdir-objects])
-AC_CONFIG_HEADERS(unix/config.h)
+AC_CONFIG_HEADERS(audacious/config.h)
 AM_DISABLE_STATIC
 
 AC_PROG_CC
@@ -49,10 +49,10 @@ AC_PATH_X
 AC_PATH_XTRA
 
 AC_OUTPUT([
-  Makefile.unix
-  src/Makefile.unix
-  src/coding/Makefile.unix
-  src/layout/Makefile.unix
-  src/meta/Makefile.unix
-  unix/Makefile.unix
+  Makefile.audacious
+  src/Makefile.audacious
+  src/coding/Makefile.audacious
+  src/layout/Makefile.audacious
+  src/meta/Makefile.audacious
+  audacious/Makefile.audacious
 ])

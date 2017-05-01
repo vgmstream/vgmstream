@@ -4,7 +4,7 @@ lib_LTLIBRARIES = libvgmstream.la
 
 libdir = @plugindir@/@INPUT_PLUGIN_DIR@
 
-AM_MAKEFLAGS=-f Makefile.unix
+AM_MAKEFLAGS=-f Makefile.audacious
 AM_CXXFLAGS = -DVERSION=\"VGMSTREAM_VERSION\" -Wall -std=c++11 -fpermissive @CXXFLAGS@ -I$(top_builddir) -I$(top_srcdir) -I$(top_srcdir)/ext_includes/ @GTK_CFLAGS@
 AM_LIBS =
 
