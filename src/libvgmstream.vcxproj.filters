@@ -817,6 +817,9 @@
     <ClCompile Include="coding\pcm_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="coding\psv_decoder.c">
+      <Filter>coding\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="coding\psx_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>

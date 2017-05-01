@@ -1382,6 +1382,10 @@
 					RelativePath=".\coding\pcm_decoder.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\coding\psv_decoder.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\coding\psx_decoder.c"
 					>
