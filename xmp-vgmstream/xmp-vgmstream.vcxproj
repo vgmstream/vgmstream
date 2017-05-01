@@ -113,7 +113,7 @@
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="DllMain.c" />
+    <ClCompile Include="xmp_vgmstream.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="xmpfunc.h" />

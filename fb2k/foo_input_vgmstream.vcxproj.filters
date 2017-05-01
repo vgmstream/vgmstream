@@ -34,10 +34,10 @@
     <ClCompile Include="foo_prefs.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="foostream.cpp">
+    <ClCompile Include="foo_streamfile.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="in_vgmstream.cpp">
+    <ClCompile Include="foo_vgmstream.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
