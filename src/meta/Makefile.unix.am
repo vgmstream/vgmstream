@@ -1,6 +1,8 @@
+## audacious-vgmstream automake script
+
 noinst_LTLIBRARIES = libmeta.la
 
-AM_CFLAGS = -Wall @CFLAGS@ -DVAR_ARRAYS -I$(top_builddir) -I$(top_srcdir)
+AM_CFLAGS = -Wall @CFLAGS@ -DVAR_ARRAYS -I$(top_builddir) -I$(top_srcdir) -I$(top_srcdir)/ext_includes/
 AM_MAKEFLAGS=-f Makefile.unix
 
 libmeta_la_LDFLAGS =
@@ -262,4 +264,4 @@ libmeta_la_SOURCES += sxd.c
 libmeta_la_SOURCES += ogl.c
 libmeta_la_SOURCES += mc3.c
 
-EXTRA_DIST = meta.h
+##EXTRA_DIST = meta.h

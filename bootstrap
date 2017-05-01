@@ -1,4 +1,5 @@
 #!/bin/sh
+# audacious-vgmstream script - automake/autoconf init
 
 touch README AUTHORS NEWS ChangeLog
 aclocal

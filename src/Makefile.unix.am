@@ -1,11 +1,13 @@
+## audacious-vgmstream automake script
+
 noinst_LTLIBRARIES = libvgmstream.la
 
-AM_CFLAGS = -Wall @CFLAGS@ -I$(top_builddir) -I$(top_srcdir) 
+AM_CFLAGS = -Wall @CFLAGS@ -I$(top_builddir) -I$(top_srcdir) -I$(top_srcdir)/ext_includes/
 AM_MAKEFLAGS=-f Makefile.unix
 
 libvgmstream_la_LDFLAGS = coding/libcoding.la layout/liblayout.la meta/libmeta.la
-libvgmstream_la_SOURCES = vgmstream.c util.c streamfile.c formats.c ../ext_libs/clHCA.c
+libvgmstream_la_SOURCES = formats.c streamfile.c util.c vgmstream.c ../ext_libs/clHCA.c
 
 SUBDIRS = coding layout meta
 
-EXTRA_DIST = pstdint.h streamfile.h streamtypes.h util.h vgmstream.h
+##EXTRA_DIST = formats.h stack_alloc.h streamfile.h streamtypes.h util.h vgmstream.h ../ext_includes/clHCA.h

@@ -1,8 +1,10 @@
+dnl audacious-vgmstream m4 script 
 dnl Process this file with autoconf to produce a configure script.
+
 AC_PREREQ(2.53)
-AC_INIT(audacious-vgmstream,1.1.0)
-AM_INIT_AUTOMAKE(audacious-vgmstream, 1.1.0)
-AM_CONFIG_HEADER(unix/config.h)
+AC_INIT(audacious-vgmstream,1.3.0)
+AM_INIT_AUTOMAKE([subdir-objects])
+AC_CONFIG_HEADERS(unix/config.h)
 AM_DISABLE_STATIC
 
 AC_PROG_CC
@@ -16,7 +18,7 @@ AC_PATH_X
 AC_PATH_XTRA
 
 PKG_CHECK_MODULES(AUDACIOUS, [audacious >= 3.5.0],,
-        [AC_MSG_ERROR([Cannot find Audacious, have you installed audacious yet?])]
+        [AC_MSG_ERROR([Cannot find audacious >= 3.5.0 correctly installed])]
 )
 
 PKG_CHECK_MODULES(VORBISFILE, [vorbisfile],,
@@ -26,8 +28,6 @@ PKG_CHECK_MODULES(VORBISFILE, [vorbisfile],,
 PKG_CHECK_MODULES(MPG123, [libmpg123],,
         [AC_MSG_ERROR([Cannot find libmpg123])]
 )
-
-dnl Check for GTK/GLib/GThread/Pango
 
 PKG_CHECK_MODULES(GTK, [glib-2.0 >= 2.6.0 gtk+-2.0 >= 2.6.0 gthread-2.0 pango],
     , [AC_MSG_ERROR([Cannot find glib2/gtk2/pango])]

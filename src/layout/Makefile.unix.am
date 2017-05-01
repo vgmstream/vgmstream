@@ -1,6 +1,8 @@
+## audacious-vgmstream automake script
+
 noinst_LTLIBRARIES = liblayout.la
 
-AM_CFLAGS = -Wall @CFLAGS@ -I$(top_builddir) -I$(top_srcdir) 
+AM_CFLAGS = -Wall @CFLAGS@ -I$(top_builddir) -I$(top_srcdir) -I$(top_srcdir)/ext_includes/
 AM_MAKEFLAGS=-f Makefile.unix
 
 liblayout_la_LDFLAGS = 
@@ -38,4 +40,4 @@ liblayout_la_SOURCES += ps2_iab_blocked.c
 liblayout_la_SOURCES += ps2_strlr_blocked.c
 liblayout_la_SOURCES += scd_int_layout.c
 
-EXTRA_DIST = layout.h
+##EXTRA_DIST = layout.h

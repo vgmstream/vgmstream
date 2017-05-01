@@ -1,6 +1,8 @@
+## audacious-vgmstream automake script
+
 noinst_LTLIBRARIES = libcoding.la
 
-AM_CFLAGS = -Wall @CFLAGS@ -I$(top_builddir) -I$(top_srcdir) 
+AM_CFLAGS = -Wall @CFLAGS@ -I$(top_builddir) -I$(top_srcdir) -I$(top_srcdir)/ext_includes/
 AM_MAKEFLAGS=-f Makefile.unix
 
 libcoding_la_LDFLAGS = 
@@ -36,5 +38,6 @@ libcoding_la_SOURCES += wwise_vorbis_decoder.c
 libcoding_la_SOURCES += wwise_vorbis_utils.c
 libcoding_la_SOURCES += ogl_vorbis_decoder.c
 libcoding_la_SOURCES += mc3_decoder.c
+libcoding_la_SOURCES += coding_utils.c
 
-EXTRA_DIST = coding.h g72x_state.h clHCA.h
+##EXTRA_DIST = acm_decoder.h coding.h fsb_vorbis_data.h g72x_state.h nwa_decoder.h wwise_vorbis_data.h wwise_vorbis_utils.h  
