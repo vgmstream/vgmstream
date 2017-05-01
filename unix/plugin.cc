@@ -22,7 +22,13 @@ extern "C" {
 #include "vfs.h"
 
 
-#define VERSION "1.3.0"
+#ifndef VERSION
+#include "../version.h"
+#endif
+#ifndef VERSION
+#define VERSION "(unknown version)"
+#endif
+
 #define CFG_ID "vgmstream" // ID for storing in audacious
 #define MIN_BUFFER_SIZE 576
 
@@ -124,7 +130,7 @@ bool read_data(const char * filename, Tuple & tuple) {
         return false;
     }
 
-    tuple.set_filename(filename);
+    tuple.set_filename(filename); //may leak string???
     int rate = get_vgmstream_average_bitrate(vgmstream);
     tuple.set_int(Tuple::Bitrate, rate);
 
