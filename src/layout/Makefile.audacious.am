@@ -1,0 +1,11 @@
+## audacious-vgmstream automake script
+
+noinst_LTLIBRARIES = liblayout.la
+
+AM_CFLAGS = -Wall @CFLAGS@ -I$(top_builddir) -I$(top_srcdir) -I$(top_srcdir)/ext_includes/
+AM_MAKEFLAGS=-f Makefile.audacious
+
+# sources/headers are updated automatically by ./bootstrap script (not all headers are needed though)
+liblayout_la_LDFLAGS =
+liblayout_la_SOURCES = (auto-updated)
+EXTRA_DIST = (auto-updated)

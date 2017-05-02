@@ -209,11 +209,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\foostream.cpp"
+				RelativePath=".\foo_streamfile.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\in_vgmstream.cpp"
+				RelativePath=".\foo_vgmstream.cpp"
 				>
 			</File>
 		</Filter>

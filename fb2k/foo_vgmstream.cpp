@@ -1,9 +1,6 @@
-/* Winamp plugin interface for vgmstream */
-/* Based on: */
-/*
-** Example Winamp .RAW input plug-in
-** Copyright (c) 1998, Justin Frankel/Nullsoft Inc.
-*/
+/**
+ * vgmstream for foobar2000
+ */
 
 #ifdef _MSC_VER
 #define _CRT_SECURE_NO_DEPRECATE
@@ -35,10 +32,12 @@ extern "C" {
 
 #define APP_NAME "vgmstream plugin"
 #define PLUGIN_DESCRIPTION "vgmstream plugin " VERSION " " __DATE__ "\n" \
-            "by hcs, FastElbja, manakoAT, bxaimc and bnnm\n" \
-            "foobar2000 plugin by Josh W, kode54\n\n" \
-	    "https://github.com/kode54/vgmstream\n\n" \
-            "http://sourceforge.net/projects/vgmstream"
+            "by hcs, FastElbja, manakoAT, bxaimc, snakemeat, soneek, kode54, bnnm and many others\n" \
+            "\n" \
+            "foobar2000 plugin by Josh W, kode54\n" \
+            "\n" \
+            "https://github.com/kode54/vgmstream/\n" \
+            "https://sourceforge.net/projects/vgmstream/ (original)";
 
 
 

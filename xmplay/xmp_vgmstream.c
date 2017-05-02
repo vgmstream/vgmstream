@@ -15,6 +15,7 @@
 #include "../src/vgmstream.h"
 #include "xmpin.h"
 
+
 #ifndef VERSION
 #include "../version.h"
 #endif
@@ -25,6 +26,8 @@
 static XMPFUNC_IN *xmpfin;
 static XMPFUNC_MISC *xmpfmisc;
 static XMPFUNC_FILE *xmpffile;
+
+/* ************************************* */
 
 typedef struct _XMPSTREAMFILE {
 	STREAMFILE sf;
@@ -69,8 +72,11 @@ static size_t xmpsf_read(XMPSTREAMFILE *this, uint8_t *dest, off_t offset, size_
 
 static void xmpsf_close(XMPSTREAMFILE *this)
 {
-// The line below is what Causes this Plugin to Crash. Credits to Ian Luck to Finding this issue.
-//	xmpffile->Close(this->file); 
+    // The line below is what Causes this Plugin to Crash. Credits to Ian Luck to Finding this issue.
+    // This closes the internal XMPFILE, which must be done by XMPlay instead.
+    // However vgmtream sometimes opens its own files, so it may be leaking handles.
+    //xmpffile->Close(this->file);
+
 	free(this);
 }
 
@@ -148,17 +154,23 @@ err1:
 	return NULL;
 }
 
+/* ************************************* */
+
+/* internal state */
 VGMSTREAM * vgmstream = NULL;
 int32_t totalFrames, framesDone, framesLength, framesFade;
 
-#define APP_NAME "vgmstream plugin"
-#define PLUGIN_DESCRIPTION "vgmstream plugin " VERSION " " __DATE__
+#define APP_NAME "vgmstream plugin" //unused?
 
 void __stdcall XMP_About(HWND hwParent) {
     MessageBox(hwParent,
-            PLUGIN_DESCRIPTION "\n"
-            "by hcs, FastElbja, manakoAT, bxaimc, kode54, and PSXGamerPro1\n\n"
-			"https://gitlab.kode54.net/kode54/vgmstream"
+            "vgmstream plugin " VERSION " " __DATE__ "\n"
+            "by hcs, FastElbja, manakoAT, bxaimc, snakemeat, soneek, kode54, bnnm and many others\n"
+            "\n"
+            "XMPlay plugin by unknownfile, PSXGamerPro1, kode54\n"
+            "\n"
+            "https://github.com/kode54/vgmstream/\n"
+            "https://sourceforge.net/projects/vgmstream/ (original)"
             ,"about xmp-vgmstream",MB_OK);
 }
 

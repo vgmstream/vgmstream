@@ -1,0 +1,8 @@
+## audacious-vgmstream script
+## Process this file with automake to produce Makefile.in
+
+AM_MAKEFLAGS=-f Makefile.audacious
+
+SUBDIRS = src audacious
+
+#EXTRA_DIST = include 

@@ -262,7 +262,6 @@
     <ClCompile Include="meta\ngc_sck_dsp.c" />
     <ClCompile Include="meta\ngc_ssm.c" />
     <ClCompile Include="meta\ngc_tydsp.c" />
-    <ClCompile Include="meta\ngc_waa_wac_wad_wam.c" />
     <ClCompile Include="meta\ngc_ymf.c" />
     <ClCompile Include="meta\nwa.c" />
     <ClCompile Include="meta\ogg_vorbis_file.c" />
@@ -378,6 +377,7 @@
     <ClCompile Include="meta\ubi_raki.c" />
     <ClCompile Include="meta\vs.c" />
     <ClCompile Include="meta\vsf.c" />
+    <ClCompile Include="meta\waa_wac_wad_wam.c" />
     <ClCompile Include="meta\wii_bns.c" />
     <ClCompile Include="meta\wii_mus.c" />
     <ClCompile Include="meta\wii_smp.c" />
@@ -424,6 +424,7 @@
     <ClCompile Include="coding\ogg_vorbis_decoder.c" />
     <ClCompile Include="coding\ogl_vorbis_decoder.c" />
     <ClCompile Include="coding\pcm_decoder.c" />
+    <ClCompile Include="coding\psv_decoder.c" />
     <ClCompile Include="coding\psx_decoder.c" />
     <ClCompile Include="coding\SASSC_decoder.c" />
     <ClCompile Include="coding\sdx2_decoder.c" />

@@ -29,7 +29,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "foobar2000_component_client
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "pfc", "..\foobar\pfc\pfc.vcxproj", "{EBFFFB4E-261D-44D3-B89C-957B31A0BF9C}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "xmp-vgmstream", "xmp-vgmstream\xmp-vgmstream.vcxproj", "{49AF76F7-CBA0-4486-9DDF-51F30DF45F33}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "xmp-vgmstream", "xmplay\xmp-vgmstream.vcxproj", "{49AF76F7-CBA0-4486-9DDF-51F30DF45F33}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

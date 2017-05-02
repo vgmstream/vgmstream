@@ -1,1 +1,4 @@
-rm -rf configure AUTHORS depcomp ChangeLog config.guess ltmain.sh README config.sub autom4te.cache Makefile.unix.in INSTALL missing NEWS aclocal.m4 install-sh unix/config.h.in unix/main.loT unix/Makefile.unix.in src/Makefile.unix.in src/coding/Makefile.unix.in src/meta/Makefile.unix.in src/layout/Makefile.unix.in
+#!/bin/sh
+# audacious-vgmstream script - reverses the actions of bootstrap
+
+rm -rf configure AUTHORS depcomp ChangeLog config.guess ltmain.sh README config.sub autom4te.cache Makefile.audacious.in INSTALL missing NEWS aclocal.m4 install-sh audacious/config.h.in audacious/main.loT audacious/Makefile.audacious.in src/Makefile.audacious.in src/coding/Makefile.audacious.in src/meta/Makefile.audacious.in src/layout/Makefile.audacious.in

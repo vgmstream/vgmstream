@@ -1,14 +1,10 @@
-/* Winamp plugin interface for vgmstream */
-/* Based on: */
-/*
-** Example Winamp .RAW input plug-in
-** Copyright (c) 1998, Justin Frankel/Nullsoft Inc.
-*/
+/**
+ * vgmstream for Winamp
+ */
 
 /* Winamp uses wchar_t filenames when this is on, so extra steps are needed.
  * To open unicode filenames it needs to use _wfopen, inside a WA_STREAMFILE to pass around */
 //#define UNICODE_INPUT_PLUGIN
-
 
 #ifdef _MSC_VER
 #define _CRT_SECURE_NO_DEPRECATE
@@ -200,8 +196,12 @@ static void copy_title(in_char * dst, int dst_size, const in_char * src) {
 void about(HWND hwndParent) {
     MessageBox(hwndParent,
             PLUGIN_DESCRIPTION "\n"
-            "by hcs, FastElbja, manakoAT, bxaimc, and snakemeat\n\n"
-            "http://sourceforge.net/projects/vgmstream"
+            "by hcs, FastElbja, manakoAT, bxaimc, snakemeat, soneek, kode54, bnnm and many others\n"
+            "\n"
+            "Winamp plugin by hcs, others\n"
+            "\n"
+            "https://github.com/kode54/vgmstream/\n"
+            "https://sourceforge.net/projects/vgmstream/ (original)"
             ,"about in_vgmstream",MB_OK);
 }
 

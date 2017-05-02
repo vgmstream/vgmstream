@@ -1,15 +1,24 @@
 .*
 !/.gitignore
 *.user
-*.suo
-*.vspscc
 *.o
 *.a
+
+# VS stuff
+ipch
+.vs
+*.opensdf
+*.pdb
+*.sdf
+*.suo
+*.v11.suo
+*.v12.suo
+*.vspscc
 *.VC.db
 *.VC.VC.opendb
+
 Debug
 Release
-ipch
 /ext_libs/Debug
 /ext_libs/Release
 /ext_libs/*.exp
@@ -26,4 +35,6 @@ ipch
 /winamp/Debug
 /winamp/Release
 /winamp/*.dll
-/xmp-vgmstream/*.dll
+/xmplay/Debug
+/xmplay/Release
+/xmplay/*.dll

@@ -1,0 +1,15 @@
+## audacious-vgmstream automake script
+
+noinst_LTLIBRARIES = libvgmstream.la
+
+AM_CFLAGS = -Wall @CFLAGS@ -I$(top_builddir) -I$(top_srcdir) -I$(top_srcdir)/ext_includes/
+AM_MAKEFLAGS=-f Makefile.audacious
+
+SUBDIRS = coding layout meta
+
+# sources/headers are updated automatically by ./bootstrap script (not all headers are needed though)
+libvgmstream_la_LDFLAGS = coding/libcoding.la layout/liblayout.la meta/libmeta.la
+libvgmstream_la_SOURCES = (auto-updated)
+libvgmstream_la_SOURCES += ../ext_libs/clHCA.c
+EXTRA_DIST = (auto-updated)
+EXTRA_DIST += ../ext_includes/clHCA.h

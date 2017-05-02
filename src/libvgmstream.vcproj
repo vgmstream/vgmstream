@@ -587,10 +587,6 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\ngc_waa_wac_wad_wam.c"
-					>
-				</File>
-				<File
 					RelativePath=".\meta\ngc_ymf.c"
 					>
 				</File>
@@ -1130,6 +1126,10 @@
 					RelativePath=".\meta\vsf.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\meta\waa_wac_wad_wam.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\wii_bns.c"
 					>
@@ -1382,6 +1382,10 @@
 					RelativePath=".\coding\pcm_decoder.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\coding\psv_decoder.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\coding\psx_decoder.c"
 					>
