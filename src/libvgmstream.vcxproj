@@ -152,7 +152,7 @@
     <ClCompile Include="meta\ps2_2pfs.c" />
     <ClCompile Include="meta\ps2_hsf.c" />
     <ClCompile Include="meta\ps2_iab.c" />
-    <ClCompile Include="meta\ps2_mss.c" />
+    <ClCompile Include="meta\mss.c" />
     <ClCompile Include="meta\ps2_mtaf.c" />
     <ClCompile Include="meta\ps2_spm.c" />
     <ClCompile Include="meta\ps2_strlr.c" />

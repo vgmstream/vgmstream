@@ -791,7 +791,7 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\ps2_mss.c"
+					RelativePath=".\meta\mss.c"
 					>
 				</File>
 				<File
