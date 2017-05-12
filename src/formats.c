@@ -109,6 +109,7 @@ static const char* extension_list[] = {
     "genh",
     "gms",
     "gsb",
+    "gtd",
 
     "hca",
     "hgc1",
@@ -851,6 +852,7 @@ static const meta_info meta_info_list[] = {
         {meta_SXD,                  "Sony SXD header"},
         {meta_OGL,                  "Shin'en OGL header"},
         {meta_MC3,                  "Paradigm MC3 header"},
+        {meta_GTD,                  "GTD/GHS header"},
 
 #ifdef VGM_USE_VORBIS
         {meta_OGG_VORBIS,           "Ogg Vorbis"},

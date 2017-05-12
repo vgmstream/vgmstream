@@ -688,4 +688,7 @@ VGMSTREAM * init_vgmstream_ogl(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_mc3(STREAMFILE *streamFile);
 
+VGMSTREAM * init_vgmstream_gtd(STREAMFILE *streamFile);
+
+
 #endif /*_META_H*/

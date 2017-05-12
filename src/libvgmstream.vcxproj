@@ -216,6 +216,7 @@
     <ClCompile Include="meta\genh.c" />
     <ClCompile Include="meta\gh3_bar.c" />
     <ClCompile Include="meta\gsp_gsb.c" />
+    <ClCompile Include="meta\gtd.c" />
     <ClCompile Include="meta\halpst.c" />
     <ClCompile Include="meta\hca.c" />
     <ClCompile Include="meta\his.c" />

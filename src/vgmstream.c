@@ -354,6 +354,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_sxd,
     init_vgmstream_ogl,
     init_vgmstream_mc3,
+    init_vgmstream_gtd,
 
 #ifdef VGM_USE_FFMPEG
     init_vgmstream_mp4_aac_ffmpeg,
@@ -931,6 +932,7 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
     }
 }
 
+/* get the size in samples of a single frame (1 or N channels), for interleaved/blocked layouts */
 int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
     switch (vgmstream->coding_type) {
         case coding_CRI_ADX:
@@ -1081,6 +1083,7 @@ int get_vgmstream_samples_per_shortframe(VGMSTREAM * vgmstream) {
     }
 }
 
+/* get the data size of a single frame (1 or N channels), for interleaved/blocked layouts */
 int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
     switch (vgmstream->coding_type) {
         case coding_CRI_ADX:

@@ -609,6 +609,7 @@ typedef enum {
     meta_SXD,               /* Sony SXD (Gravity Rush, Freedom Wars PSV) */
     meta_OGL,               /* Shin'en Wii/WiiU (Jett Rocket (Wii), FAST Racing NEO (WiiU)) */
     meta_MC3,               /* Paradigm games (T3 PS2, MX Rider PS2, MI: Operation Surma PS2) */
+    meta_GTD,               /* Knights Contract (X360/PS3), Valhalla Knights 3 (PSV) */
 
 #ifdef VGM_USE_VORBIS
     meta_OGG_VORBIS,        /* Ogg Vorbis */

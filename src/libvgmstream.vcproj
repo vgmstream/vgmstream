@@ -396,6 +396,10 @@
 					RelativePath=".\meta\gsp_gsb.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\meta\gtd.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\halpst.c"
 					>
