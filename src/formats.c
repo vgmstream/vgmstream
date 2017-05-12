@@ -822,7 +822,7 @@ static const meta_info meta_info_list[] = {
         {meta_TUN,                  "TUN 'ALP' header"},
         {meta_WPD,                  "WPD 'DPW' header"},
         {meta_MN_STR,               "Mini Ninjas 'STR' header"},
-        {meta_PS2_MSS,              "Guerilla MSCC header"},
+        {meta_MSS,                  "Guerilla MCSS header"},
         {meta_PS2_HSF,              "Lowrider 'HSF' header"},
         {meta_PS3_IVAG,             "PS3 'IVAG' Header"},
         {meta_PS2_2PFS,             "Konami 2PFS header"},
