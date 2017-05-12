@@ -1,3 +1,5 @@
+#include "../vgmstream.h"
+#ifdef VGM_USE_VORBIS
 #include "wwise_vorbis_utils.h"
 
 #define WWISE_VORBIS_USE_PRECOMPILED_WVC 1 /* if enabled vgmstream weights ~150kb more but doesn't need external .wvc packets */
@@ -1161,3 +1163,5 @@ static int w_bits(ww_stream * ow, int num_bits, uint32_t value) {
 fail:
     return 0;
 }
+
+#endif

@@ -20,7 +20,7 @@ typedef struct _SCDINTSTREAMFILE
 
 static STREAMFILE *open_scdint_with_STREAMFILE(STREAMFILE *file, const char * filename, off_t start_offset, off_t interleave_block_size, off_t stride_size, size_t total_size);
 
-
+#ifdef VGM_USE_VORBIS
 /* V3 decryption table found in the .exe */
 static const uint8_t scd_ogg_v3_lookuptable[256] = { /* FF XIV Heavensward */
     0x3A, 0x32, 0x32, 0x32, 0x03, 0x7E, 0x12, 0xF7, 0xB2, 0xE2, 0xA2, 0x67, 0x32, 0x32, 0x22, 0x32, // 00-0F
@@ -43,6 +43,7 @@ static const uint8_t scd_ogg_v3_lookuptable[256] = { /* FF XIV Heavensward */
 
 static void scd_ogg_decrypt_v2_callback(void *ptr, size_t size, size_t nmemb, void *datasource, int bytes_read);
 static void scd_ogg_decrypt_v3_callback(void *ptr, size_t size, size_t nmemb, void *datasource, int bytes_read);
+#endif
 
 
 
@@ -547,7 +548,7 @@ static STREAMFILE *open_scdint_with_STREAMFILE(STREAMFILE *file, const char * fi
     return &scd->sf;
 }
 
-
+#ifdef VGM_USE_VORBIS
 static void scd_ogg_decrypt_v2_callback(void *ptr, size_t size, size_t nmemb, void *datasource, int bytes_read) {
     ogg_vorbis_streamfile * ov_streamfile = (ogg_vorbis_streamfile*)datasource;
 
@@ -586,3 +587,4 @@ static void scd_ogg_decrypt_v3_callback(void *ptr, size_t size, size_t nmemb, vo
         }
     }
 }
+#endif
