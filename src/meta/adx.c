@@ -22,7 +22,7 @@ VGMSTREAM * init_vgmstream_adx(STREAMFILE *streamFile) {
     uint8_t frame_size;
 
     meta_t header_type;
-    coding_t coding_type = coding_CRI_ADX;
+    coding_t coding_type;
     int16_t coef1, coef2;
     uint16_t xor_start=0,xor_mult=0,xor_add=0;
 
@@ -43,9 +43,20 @@ VGMSTREAM * init_vgmstream_adx(STREAMFILE *streamFile) {
     /* 0x02 is for some unknown fixed filter, 0x03 is standard ADX, 0x04 is
      * ADX with exponential scale, 0x10 is AHX for DC, 0x11 is AHX */
     encoding_type = read_8bit(0x04, streamFile);
-    if (encoding_type != 2 && encoding_type != 3) goto fail;
-    if (encoding_type == 2)
-        coding_type = coding_CRI_ADX_fixed;
+
+    switch (encoding_type) {
+        case 2:
+            coding_type = coding_CRI_ADX_fixed;
+            break;
+        case 3:
+            coding_type = coding_CRI_ADX;
+            break;
+        case 4:
+            coding_type = coding_CRI_ADX_exp;
+            break;
+        default:
+            goto fail;
+    }
 
     frame_size = read_8bit(0x05, streamFile);
 
@@ -182,8 +193,8 @@ VGMSTREAM * init_vgmstream_adx(STREAMFILE *streamFile) {
 
         int i;
         for (i = 0; i < channel_count; i++) {
-            vgmstream->ch[i].adpcm_coef[0] == coef1;
-            vgmstream->ch[i].adpcm_coef[1] == coef2;
+            vgmstream->ch[i].adpcm_coef[0] = coef1;
+            vgmstream->ch[i].adpcm_coef[1] = coef2;
         }
     }
 

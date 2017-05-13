@@ -935,6 +935,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
     switch (vgmstream->coding_type) {
         case coding_CRI_ADX:
         case coding_CRI_ADX_fixed:
+        case coding_CRI_ADX_exp:
         case coding_CRI_ADX_enc_8:
         case coding_CRI_ADX_enc_9:
 			return (vgmstream->interleave_block_size - 2) * 2;
@@ -1087,6 +1088,7 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
     switch (vgmstream->coding_type) {
         case coding_CRI_ADX:
         case coding_CRI_ADX_fixed:
+        case coding_CRI_ADX_exp:
         case coding_CRI_ADX_enc_8:
         case coding_CRI_ADX_enc_9:
             return vgmstream->interleave_block_size;
@@ -1218,6 +1220,15 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
         case coding_CRI_ADX:
             for (chan=0;chan<vgmstream->channels;chan++) {
                 decode_adx(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                        vgmstream->channels,vgmstream->samples_into_block,
+                        samples_to_do,
+                        vgmstream->interleave_block_size);
+            }
+
+            break;
+        case coding_CRI_ADX_exp:
+            for (chan=0;chan<vgmstream->channels;chan++) {
+                decode_adx_exp(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
                         samples_to_do,
                         vgmstream->interleave_block_size);
