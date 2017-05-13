@@ -188,8 +188,8 @@ VGMSTREAM * init_vgmstream_adx(STREAMFILE *streamFile) {
         b = M_SQRT2-1.0;
         c = (a-sqrt((a+b)*(a-b)))/b;
 
-        coef1 = floor(c*8192);
-        coef2 = floor(c*c*-4096);
+        coef1 = (short)(c*8192);
+        coef2 = (short)(c*c*-4096);
 
         int i;
         for (i = 0; i < channel_count; i++) {

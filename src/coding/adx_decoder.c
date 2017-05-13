@@ -24,7 +24,7 @@ void decode_adx(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, 
                  get_low_nibble_signed(sample_byte):
                  get_high_nibble_signed(sample_byte)
                 ) * scale +
-                ((coef1 * hist1 + coef2 * hist2) >> 12)
+                (coef1 * hist1 >> 12) + (coef2 * hist2 >> 12)
                 );
 
         hist2 = hist1;
@@ -59,7 +59,7 @@ void decode_adx_exp(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspaci
                  get_low_nibble_signed(sample_byte):
                  get_high_nibble_signed(sample_byte)
                 ) * scale +
-                ((coef1 * hist1 + coef2 * hist2) >> 12)
+                (coef1 * hist1 >> 12) + (coef2 * hist2 >> 12)
                 );
 
         hist2 = hist1;
@@ -94,7 +94,7 @@ void decode_adx_fixed(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspa
                  get_low_nibble_signed(sample_byte):
                  get_high_nibble_signed(sample_byte)
                 ) * scale +
-                ((coef1 * hist1 + coef2 * hist2) >> 12)
+                (coef1 * hist1 >> 12) + (coef2 * hist2 >> 12)
                 );
 
         hist2 = hist1;
@@ -133,7 +133,7 @@ void decode_adx_enc(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspaci
                  get_low_nibble_signed(sample_byte):
                  get_high_nibble_signed(sample_byte)
                 ) * scale +
-                ((coef1 * hist1 + coef2 * hist2) >> 12)
+                (coef1 * hist1 >> 12) + (coef2 * hist2 >> 12)
                 );
 
         hist2 = hist1;
