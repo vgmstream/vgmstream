@@ -18,9 +18,11 @@ VGMSTREAM * init_vgmstream_adx(STREAMFILE *streamFile) {
     int loop_flag = 0, channel_count;
     int32_t loop_start_sample = 0, loop_end_sample = 0;
     uint16_t version_signature;
+    uint8_t encoding_type;
+    uint8_t frame_size;
 
     meta_t header_type;
-    coding_t coding_type = coding_CRI_ADX;
+    coding_t coding_type;
     int16_t coef1, coef2;
     uint16_t xor_start=0,xor_mult=0,xor_add=0;
 
@@ -40,10 +42,23 @@ VGMSTREAM * init_vgmstream_adx(STREAMFILE *streamFile) {
     /* check for encoding type */
     /* 0x02 is for some unknown fixed filter, 0x03 is standard ADX, 0x04 is
      * ADX with exponential scale, 0x10 is AHX for DC, 0x11 is AHX */
-    if (read_8bit(0x04,streamFile) != 3) goto fail;
+    encoding_type = read_8bit(0x04, streamFile);
 
-    /* check for frame size (only 18 is supported at the moment) */
-    if (read_8bit(0x05,streamFile) != 18) goto fail;
+    switch (encoding_type) {
+        case 2:
+            coding_type = coding_CRI_ADX_fixed;
+            break;
+        case 3:
+            coding_type = coding_CRI_ADX;
+            break;
+        case 4:
+            coding_type = coding_CRI_ADX_exp;
+            break;
+        default:
+            goto fail;
+    }
+
+    frame_size = read_8bit(0x05, streamFile);
 
     /* check for bits per sample? (only 4 makes sense for ADX) */
     if (read_8bit(0x06,streamFile) != 4) goto fail;
@@ -142,12 +157,25 @@ VGMSTREAM * init_vgmstream_adx(STREAMFILE *streamFile) {
 
     vgmstream->coding_type = coding_type;
     vgmstream->layout_type = channel_count==1 ? layout_none : layout_interleave;
-    vgmstream->interleave_block_size = 18;
+    vgmstream->interleave_block_size = frame_size;
     vgmstream->meta_type = header_type;
 
 
     /* calculate filter coefficients */
-    {
+    if (coding_type == coding_CRI_ADX_fixed) {
+        int i;
+        for (i = 0; i < channel_count; i++) {
+            vgmstream->ch[i].adpcm_coef[0] = 0x0000;
+            vgmstream->ch[i].adpcm_coef[1] = 0x0000;
+            vgmstream->ch[i].adpcm_coef[2] = 0x0F00;
+            vgmstream->ch[i].adpcm_coef[3] = 0x0000;
+            vgmstream->ch[i].adpcm_coef[4] = 0x1CC0;
+            vgmstream->ch[i].adpcm_coef[5] = 0xF300;
+            vgmstream->ch[i].adpcm_coef[6] = 0x1880;
+            vgmstream->ch[i].adpcm_coef[7] = 0xF240;
+        }
+    }
+    else {
         double x,y,z,a,b,c;
         /* high-pass cutoff frequency, always 500 that I've seen */
         uint16_t cutoff = (uint16_t)read_16bitBE(0x10,streamFile);
@@ -160,8 +188,14 @@ VGMSTREAM * init_vgmstream_adx(STREAMFILE *streamFile) {
         b = M_SQRT2-1.0;
         c = (a-sqrt((a+b)*(a-b)))/b;
 
-        coef1 = floor(c*8192);
-        coef2 = floor(c*c*-4096);
+        coef1 = (short)(c*8192);
+        coef2 = (short)(c*c*-4096);
+
+        int i;
+        for (i = 0; i < channel_count; i++) {
+            vgmstream->ch[i].adpcm_coef[0] = coef1;
+            vgmstream->ch[i].adpcm_coef[1] = coef2;
+        }
     }
 
     /* init decoder */
@@ -169,9 +203,6 @@ VGMSTREAM * init_vgmstream_adx(STREAMFILE *streamFile) {
         int i;
 
         for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].adpcm_coef[0] = coef1;
-            vgmstream->ch[i].adpcm_coef[1] = coef2;
-
             /* 2 hist shorts per ch, corresponding to the very first original sample repeated (verified with CRI's encoders).
              * Not vital as their effect is small, after a few samples they don't matter, and most songs start in silence. */
             if (hist_offset) {

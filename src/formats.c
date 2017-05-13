@@ -392,6 +392,8 @@ static const coding_info coding_info_list[] = {
         {coding_PCM8_int,           "8-bit PCM with 1 byte interleave"},
         {coding_PCM8_SB_int,        "8-bit PCM with sign bit, 1 byte interleave"},
         {coding_CRI_ADX,            "CRI ADX 4-bit ADPCM"},
+        {coding_CRI_ADX_exp,        "CRI ADX 4-bit ADPCM with exponential scale"},
+        {coding_CRI_ADX_fixed,      "CRI ADX 4-bit ADPCM with fixed coefficients"},
         {coding_CRI_ADX_enc_8,      "CRI ADX 4-bit ADPCM (type 8 encryption)"},
         {coding_CRI_ADX_enc_9,      "CRI ADX 4-bit ADPCM (type 8 encryption)"},
         {coding_NGC_DSP,            "Nintendo DSP 4-bit ADPCM"},
