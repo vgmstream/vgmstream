@@ -47,6 +47,7 @@ VGMSTREAM * init_vgmstream_rwsd(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_cdxa(STREAMFILE *streamFile);
 
+VGMSTREAM * init_vgmstream_ps2_rxws(STREAMFILE *streamFile);
 VGMSTREAM * init_vgmstream_ps2_rxw(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_ps2_int(STREAMFILE *streamFile);

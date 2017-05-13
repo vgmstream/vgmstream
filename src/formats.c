@@ -332,6 +332,7 @@ static const char* extension_list[] = {
     "xwb",
     "xwm", //FFmpeg, not parsed (XWMA)
     "xwma", //FFmpeg, not parsed (XWMA)
+    "xws",
     "xwv",
 
     "ydsp",
@@ -551,7 +552,7 @@ static const meta_info meta_info_list[] = {
         {meta_CWAV,                 "Nintendo CWAV header"},
         {meta_FWAV,                 "Nintendo FWAV header"},
         {meta_PSX_XA,               "RIFF/CDXA header"},
-        {meta_PS2_RXWS,             "Sony RXWS header)"},
+        {meta_PS2_RXWS,             "Sony RXWS header"},
         {meta_PS2_RAW,              "assumed RAW Interleaved PCM by .int extension"},
         {meta_PS2_OMU,              "Alter Echo OMU Header"},
         {meta_DSP_STM,              "Nintendo STM header"},

@@ -43,6 +43,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_ps2_npsf,
     init_vgmstream_rwsd,
     init_vgmstream_cdxa,
+    init_vgmstream_ps2_rxws,
     init_vgmstream_ps2_rxw,
     init_vgmstream_ps2_int,
     init_vgmstream_ngc_dsp_stm,
