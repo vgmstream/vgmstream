@@ -1,5 +1,6 @@
 #include "meta.h"
 #include "../util.h"
+#include "../coding/coding.h"
 
 /* RSD */
 /* RSD2VAG */
@@ -1068,70 +1069,99 @@ fail:
     return NULL;
 }
 
-#if 0 
+
 /* RSD6XMA */
 VGMSTREAM * init_vgmstream_rsd6xma(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[PATH_LIMIT];
     off_t start_offset;
+	int loop_flag, channel_count;
+	uint32_t version;
 
-	int loop_flag;
-	int channel_count;
-
-    /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("rsd",filename_extension(filename))) goto fail;
+	/* check extension, case insensitive */
+	if (!check_extensions(streamFile,"rsd"))
+		goto fail;
 
     /* check header */
-    if (read_32bitBE(0x0,streamFile) != 0x52534436) /* RSD6 */
+	if (read_32bitBE(0x0, streamFile) != 0x52534436) /* RSD6 */
 		goto fail;
-	if (read_32bitBE(0x4,streamFile) != 0x584D4120)	/* XMA */
+	if (read_32bitBE(0x04,streamFile) != 0x584D4120) /* XMA */
         goto fail;
 
-    loop_flag = 0;
-    channel_count = read_32bitLE(0x8,streamFile);
+	loop_flag = 0;
+	channel_count = read_32bitLE(0x8, streamFile);
+	version = read_32bitBE(0x80C, streamFile);
     
 	/* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
 	/* fill in the vital statistics */
-  start_offset = 0x800;
+	start_offset = read_32bitBE(0x800, streamFile) + read_32bitBE(0x804, streamFile) + 0xc; /* assumed, seek table always at 0x800 */
 	vgmstream->channels = channel_count;
-    vgmstream->sample_rate = read_32bitLE(0x10,streamFile);
-    vgmstream->coding_type = coding_XMA;
-    vgmstream->num_samples = (get_streamfile_size(streamFile)-start_offset)*64/36/channel_count;
-    if (loop_flag) {
-        vgmstream->loop_start_sample = loop_flag;
-        vgmstream->loop_end_sample = (get_streamfile_size(streamFile)-start_offset)*28/16/channel_count;
-    }
-
-    vgmstream->layout_type = layout_interleave;
-    vgmstream->interleave_block_size = 0x10;
     vgmstream->meta_type = meta_RSD6XMA;
+	vgmstream->sample_rate = read_32bitBE(0x818, streamFile);
 
-    /* open the file for reading */
-    {
-        int i;
-        STREAMFILE * file;
-        file = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-        if (!file) goto fail;
-        for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = file;
+	switch (version) {
+	case 0x03010000: {
+		vgmstream->num_samples = read_32bitBE(0x824, streamFile);
 
-   
-		if (vgmstream->coding_type == coding_XMA) {
-				vgmstream->layout_type=layout_none;
-                vgmstream->ch[i].channel_start_offset=start_offset;
-            } else {
-                vgmstream->ch[i].channel_start_offset=
-                    start_offset+vgmstream->interleave_block_size*i;
-            }
-            vgmstream->ch[i].offset = vgmstream->ch[i].channel_start_offset;
 
-        }
-    }
-    
+#ifdef VGM_USE_FFMPEG
+		{
+			ffmpeg_codec_data *ffmpeg_data = NULL;
+			uint8_t buf[100];
+			size_t bytes, datasize, block_size, block_count;
+
+			block_count = read_32bitBE(0x828, streamFile);
+			block_size = 0x10000;
+			datasize = read_32bitBE(0x808, streamFile);
+
+			bytes = ffmpeg_make_riff_xma2(buf, 100, vgmstream->num_samples, datasize, vgmstream->channels, vgmstream->sample_rate, block_count, block_size);
+			if (bytes <= 0) goto fail;
+
+			ffmpeg_data = init_ffmpeg_header_offset(streamFile, buf, bytes, start_offset, datasize);
+			if (!ffmpeg_data) goto fail;
+			vgmstream->codec_data = ffmpeg_data;
+			vgmstream->coding_type = coding_FFmpeg;
+			vgmstream->layout_type = layout_none;
+		}
+#else
+		goto fail;
+#endif
+		break;
+	}
+	case 0x04010000: {
+		vgmstream->num_samples = read_32bitBE(0x814, streamFile);
+
+
+#ifdef VGM_USE_FFMPEG
+		{
+			ffmpeg_codec_data *ffmpeg_data = NULL;
+			uint8_t buf[100];
+			size_t bytes, datasize, block_size, block_count;
+
+			block_count = read_32bitBE(0x830, streamFile);
+			block_size = 0x10000;
+			datasize = read_32bitBE(0x808, streamFile);
+
+			bytes = ffmpeg_make_riff_xma2(buf, 100, vgmstream->num_samples, datasize, vgmstream->channels, vgmstream->sample_rate, block_count, block_size);
+			if (bytes <= 0) goto fail;
+
+			ffmpeg_data = init_ffmpeg_header_offset(streamFile, buf, bytes, start_offset, datasize);
+			if (!ffmpeg_data) goto fail;
+			vgmstream->codec_data = ffmpeg_data;
+			vgmstream->coding_type = coding_FFmpeg;
+			vgmstream->layout_type = layout_none;
+		}
+#else
+		goto fail;
+#endif
+		break;
+	}
+	}
+	/* open the file for reading */
+	if (!vgmstream_open_stream(vgmstream, streamFile, start_offset))
+		goto fail;
 	return vgmstream;
 
 fail:
@@ -1139,5 +1169,3 @@ fail:
     if (vgmstream) close_vgmstream(vgmstream);
     return NULL;
 } 
-
-#endif

@@ -396,6 +396,10 @@
 					RelativePath=".\meta\gsp_gsb.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\meta\gtd.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\halpst.c"
 					>
@@ -791,7 +795,7 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\ps2_mss.c"
+					RelativePath=".\meta\mss.c"
 					>
 				</File>
 				<File
@@ -831,7 +835,7 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\ps2_rxw.c"
+					RelativePath=".\meta\ps2_rxws.c"
 					>
 				</File>
 				<File
@@ -1096,6 +1100,10 @@
 				</File>
                 <File
                     RelativePath=".\meta\sxd.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\ta_aac.c"
                     >
                 </File>
 				<File

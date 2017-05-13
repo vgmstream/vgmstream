@@ -152,7 +152,7 @@
     <ClCompile Include="meta\ps2_2pfs.c" />
     <ClCompile Include="meta\ps2_hsf.c" />
     <ClCompile Include="meta\ps2_iab.c" />
-    <ClCompile Include="meta\ps2_mss.c" />
+    <ClCompile Include="meta\mss.c" />
     <ClCompile Include="meta\ps2_mtaf.c" />
     <ClCompile Include="meta\ps2_spm.c" />
     <ClCompile Include="meta\ps2_strlr.c" />
@@ -216,6 +216,7 @@
     <ClCompile Include="meta\genh.c" />
     <ClCompile Include="meta\gh3_bar.c" />
     <ClCompile Include="meta\gsp_gsb.c" />
+    <ClCompile Include="meta\gtd.c" />
     <ClCompile Include="meta\halpst.c" />
     <ClCompile Include="meta\hca.c" />
     <ClCompile Include="meta\his.c" />
@@ -314,7 +315,7 @@
     <ClCompile Include="meta\ps2_rnd.c" />
     <ClCompile Include="meta\ps2_rstm.c" />
     <ClCompile Include="meta\ps2_rws.c" />
-    <ClCompile Include="meta\ps2_rxw.c" />
+    <ClCompile Include="meta\ps2_rxws.c" />
     <ClCompile Include="meta\ps2_sfs.c" />
     <ClCompile Include="meta\ps2_sl3.c" />
     <ClCompile Include="meta\ps2_smpl.c" />
@@ -371,6 +372,7 @@
     <ClCompile Include="meta\stx.c" />
     <ClCompile Include="meta\svs.c" />
     <ClCompile Include="meta\sxd.c" />
+    <ClCompile Include="meta\ta_aac.c" />
     <ClCompile Include="meta\thp.c" />
     <ClCompile Include="meta\vgs.c" />
     <ClCompile Include="meta\ubi_ckd.c" />

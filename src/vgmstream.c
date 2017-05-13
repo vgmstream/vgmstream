@@ -43,6 +43,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_ps2_npsf,
     init_vgmstream_rwsd,
     init_vgmstream_cdxa,
+    init_vgmstream_ps2_rxws,
     init_vgmstream_ps2_rxw,
     init_vgmstream_ps2_int,
     init_vgmstream_ngc_dsp_stm,
@@ -325,7 +326,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_tun,
 	init_vgmstream_wpd,
 	init_vgmstream_mn_str,
-	init_vgmstream_ps2_mss,
+	init_vgmstream_mss,
 	init_vgmstream_ps2_hsf,
 	init_vgmstream_ps3_ivag,
 	init_vgmstream_ps2_2pfs,
@@ -354,6 +355,10 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_sxd,
     init_vgmstream_ogl,
     init_vgmstream_mc3,
+    init_vgmstream_gtd,
+    init_vgmstream_rsd6xma,
+    init_vgmstream_ta_aac_x360,
+    init_vgmstream_ta_aac_ps3,
 
 #ifdef VGM_USE_FFMPEG
     init_vgmstream_mp4_aac_ffmpeg,
@@ -931,6 +936,7 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
     }
 }
 
+/* get the size in samples of a single frame (1 or N channels), for interleaved/blocked layouts */
 int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
     switch (vgmstream->coding_type) {
         case coding_CRI_ADX:
@@ -1081,6 +1087,7 @@ int get_vgmstream_samples_per_shortframe(VGMSTREAM * vgmstream) {
     }
 }
 
+/* get the data size of a single frame (1 or N channels), for interleaved/blocked layouts */
 int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
     switch (vgmstream->coding_type) {
         case coding_CRI_ADX:

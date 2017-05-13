@@ -11,10 +11,12 @@ static const char* extension_list[] = {
     "2dx9",
     "2pfs",
 
+    //"aac", //common, also tri-Ace's
     "aa3", //FFmpeg, not parsed (ATRAC3/ATRAC3PLUS/MP3/LPCM/WMA)
     "aaap",
     "aax",
     //"ac3", //FFmpeg, not parsed //common?
+    "ace", //fake, for tri-Ace's formats
     "acm",
     "adm",
     "adp",
@@ -109,6 +111,7 @@ static const char* extension_list[] = {
     "genh",
     "gms",
     "gsb",
+    "gtd",
 
     "hca",
     "hgc1",
@@ -329,6 +332,7 @@ static const char* extension_list[] = {
     "xwb",
     "xwm", //FFmpeg, not parsed (XWMA)
     "xwma", //FFmpeg, not parsed (XWMA)
+    "xws",
     "xwv",
 
     "ydsp",
@@ -548,7 +552,7 @@ static const meta_info meta_info_list[] = {
         {meta_CWAV,                 "Nintendo CWAV header"},
         {meta_FWAV,                 "Nintendo FWAV header"},
         {meta_PSX_XA,               "RIFF/CDXA header"},
-        {meta_PS2_RXW,              "RXWS header)"},
+        {meta_PS2_RXWS,             "Sony RXWS header"},
         {meta_PS2_RAW,              "assumed RAW Interleaved PCM by .int extension"},
         {meta_PS2_OMU,              "Alter Echo OMU Header"},
         {meta_DSP_STM,              "Nintendo STM header"},
@@ -680,6 +684,7 @@ static const meta_info meta_info_list[] = {
         {meta_RSD6VAG,              "RSD6/VAG Header"},
         {meta_RSD6WADP,             "RSD6/WADP Header"},
         {meta_RSD6RADP,             "RSD6/RADP Header"},
+        {meta_RSD6XMA,              "RSD6/XMA Header"},
         {meta_DC_ASD,               "ASD Header"},
         {meta_NAOMI_SPSD,           "SPSD Header"},
         {meta_FFXI_BGW,             "BGW BGMStream header"},
@@ -822,7 +827,7 @@ static const meta_info meta_info_list[] = {
         {meta_TUN,                  "TUN 'ALP' header"},
         {meta_WPD,                  "WPD 'DPW' header"},
         {meta_MN_STR,               "Mini Ninjas 'STR' header"},
-        {meta_PS2_MSS,              "Guerilla MSCC header"},
+        {meta_MSS,                  "Guerilla MCSS header"},
         {meta_PS2_HSF,              "Lowrider 'HSF' header"},
         {meta_PS3_IVAG,             "PS3 'IVAG' Header"},
         {meta_PS2_2PFS,             "Konami 2PFS header"},
@@ -851,6 +856,9 @@ static const meta_info meta_info_list[] = {
         {meta_SXD,                  "Sony SXD header"},
         {meta_OGL,                  "Shin'en OGL header"},
         {meta_MC3,                  "Paradigm MC3 header"},
+        {meta_GTD,                  "GTD/GHS header"},
+        {meta_TA_AAC_X360,          "tri-Ace AAC (X360) header"},
+        {meta_TA_AAC_PS3,           "tri-Ace AAC (PS3) header"},
 
 #ifdef VGM_USE_VORBIS
         {meta_OGG_VORBIS,           "Ogg Vorbis"},

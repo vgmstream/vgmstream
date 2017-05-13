@@ -220,6 +220,9 @@
     <ClCompile Include="meta\gsp_gsb.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\gtd.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\halpst.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -493,7 +496,7 @@
     <ClCompile Include="meta\ps2_rws.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\ps2_rxw.c">
+    <ClCompile Include="meta\ps2_rxws.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ps2_sfs.c">
@@ -662,6 +665,9 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\sxd.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\ta_aac.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\thp.c">
@@ -1012,7 +1018,7 @@
     <ClCompile Include="meta\mn_str.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\ps2_mss.c">
+    <ClCompile Include="meta\mss.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ps2_hsf.c">

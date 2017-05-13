@@ -311,7 +311,7 @@ typedef enum {
     meta_PSX_XA,            /* CD-ROM XA with RIFF header */
     meta_PS2_SShd,			/* .ADS with SShd header */
     meta_PS2_NPSF,			/* Namco Production Sound File */
-    meta_PS2_RXW,			/* Sony Arc The Lad Sound File */
+    meta_PS2_RXWS,          /* Sony games (Genji, Okage Shadow King, Arc The Lad Twilight of Spirits) */
     meta_PS2_RAW,			/* RAW Interleaved Format */
     meta_PS2_EXST,			/* Shadow of Colossus EXST */
     meta_PS2_SVAG,			/* Konami SVAG */
@@ -417,6 +417,7 @@ typedef enum {
     meta_RSD6XADP,			/* RSD6XADP */
     meta_RSD6RADP,			/* RSD6RADP */
 	meta_RSD6OOGV,          /* RSD6OOGV */
+    meta_RSD6XMA,           /* RSD6XMA */
 
     meta_PS2_ASS,			/* ASS */
     meta_PS2_SEG,			/* Eragon */
@@ -583,7 +584,7 @@ typedef enum {
 	meta_TUN,               // LEGO Racers (PC)
 	meta_WPD,               // Shuffle! (PC)
 	meta_MN_STR,            // Mini Ninjas (PC/PS3/WII)
-	meta_PS2_MSS,			// Guerilla: ShellShock Nam '67, Killzone (PS2)
+	meta_MSS,               // Guerilla: ShellShock Nam '67 (PS2/Xbox), Killzone (PS2)
 	meta_PS2_HSF,			// Lowrider (PS2)
 	meta_PS3_IVAG,			// Interleaved VAG files (PS3)
 	meta_PS2_2PFS,			// Konami: Mahoromatic: Moetto - KiraKira Maid-San, GANTZ (PS2)
@@ -609,6 +610,9 @@ typedef enum {
     meta_SXD,               /* Sony SXD (Gravity Rush, Freedom Wars PSV) */
     meta_OGL,               /* Shin'en Wii/WiiU (Jett Rocket (Wii), FAST Racing NEO (WiiU)) */
     meta_MC3,               /* Paradigm games (T3 PS2, MX Rider PS2, MI: Operation Surma PS2) */
+    meta_GTD,               /* Knights Contract (X360/PS3), Valhalla Knights 3 (PSV) */
+    meta_TA_AAC_X360,       /* tri-ace AAC (Star Ocean 4, End of Eternity, Infinite Undiscovery) */
+    meta_TA_AAC_PS3,        /* tri-ace AAC (Star Ocean International, Resonance of Fate) */
 
 #ifdef VGM_USE_VORBIS
     meta_OGG_VORBIS,        /* Ogg Vorbis */
