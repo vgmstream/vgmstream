@@ -11,10 +11,12 @@ static const char* extension_list[] = {
     "2dx9",
     "2pfs",
 
+    //"aac", //common, also tri-Ace's
     "aa3", //FFmpeg, not parsed (ATRAC3/ATRAC3PLUS/MP3/LPCM/WMA)
     "aaap",
     "aax",
     //"ac3", //FFmpeg, not parsed //common?
+    "ace", //fake, for tri-Ace's formats
     "acm",
     "adm",
     "adp",
