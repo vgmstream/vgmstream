@@ -18,6 +18,7 @@ VGMSTREAM * init_vgmstream_adx(STREAMFILE *streamFile) {
     int loop_flag = 0, channel_count;
     int32_t loop_start_sample = 0, loop_end_sample = 0;
     uint16_t version_signature;
+    uint8_t frame_size;
 
     meta_t header_type;
     coding_t coding_type = coding_CRI_ADX;
@@ -42,8 +43,7 @@ VGMSTREAM * init_vgmstream_adx(STREAMFILE *streamFile) {
      * ADX with exponential scale, 0x10 is AHX for DC, 0x11 is AHX */
     if (read_8bit(0x04,streamFile) != 3) goto fail;
 
-    /* check for frame size (only 18 is supported at the moment) */
-    if (read_8bit(0x05,streamFile) != 18) goto fail;
+    frame_size = read_8bit(0x05, streamFile);
 
     /* check for bits per sample? (only 4 makes sense for ADX) */
     if (read_8bit(0x06,streamFile) != 4) goto fail;
@@ -142,7 +142,7 @@ VGMSTREAM * init_vgmstream_adx(STREAMFILE *streamFile) {
 
     vgmstream->coding_type = coding_type;
     vgmstream->layout_type = channel_count==1 ? layout_none : layout_interleave;
-    vgmstream->interleave_block_size = 18;
+    vgmstream->interleave_block_size = frame_size;
     vgmstream->meta_type = header_type;
 
 

@@ -936,6 +936,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_CRI_ADX:
         case coding_CRI_ADX_enc_8:
         case coding_CRI_ADX_enc_9:
+			return (vgmstream->interleave_block_size - 2) * 2;
         case coding_L5_555:
             return 32;
         case coding_NGC_DSP:
@@ -1215,7 +1216,8 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
             for (chan=0;chan<vgmstream->channels;chan++) {
                 decode_adx(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do);
+                        samples_to_do,
+                        vgmstream->interleave_block_size);
             }
 
             break;
@@ -1224,7 +1226,8 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
             for (chan=0;chan<vgmstream->channels;chan++) {
                 decode_adx_enc(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do);
+                        samples_to_do,
+                        vgmstream->interleave_block_size);
             }
 
             break;
