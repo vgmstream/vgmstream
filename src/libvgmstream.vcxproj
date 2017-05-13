@@ -372,6 +372,7 @@
     <ClCompile Include="meta\stx.c" />
     <ClCompile Include="meta\svs.c" />
     <ClCompile Include="meta\sxd.c" />
+    <ClCompile Include="meta\ta_aac.c" />
     <ClCompile Include="meta\thp.c" />
     <ClCompile Include="meta\vgs.c" />
     <ClCompile Include="meta\ubi_ckd.c" />

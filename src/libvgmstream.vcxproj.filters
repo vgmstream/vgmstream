@@ -667,6 +667,9 @@
     <ClCompile Include="meta\sxd.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\ta_aac.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\thp.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>

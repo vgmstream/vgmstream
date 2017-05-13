@@ -690,5 +690,10 @@ VGMSTREAM * init_vgmstream_mc3(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_gtd(STREAMFILE *streamFile);
 
+VGMSTREAM * init_vgmstream_rsd6xma(STREAMFILE *streamFile);
+
+VGMSTREAM * init_vgmstream_ta_aac_x360(STREAMFILE *streamFile);
+
+VGMSTREAM * init_vgmstream_ta_aac_ps3(STREAMFILE *streamFile);
 
 #endif /*_META_H*/

@@ -1102,6 +1102,10 @@
                     RelativePath=".\meta\sxd.c"
                     >
                 </File>
+                <File
+                    RelativePath=".\meta\ta_aac.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\thp.c"
 					>

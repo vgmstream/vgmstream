@@ -681,6 +681,7 @@ static const meta_info meta_info_list[] = {
         {meta_RSD6VAG,              "RSD6/VAG Header"},
         {meta_RSD6WADP,             "RSD6/WADP Header"},
         {meta_RSD6RADP,             "RSD6/RADP Header"},
+        {meta_RSD6XMA,              "RSD6/XMA Header"},
         {meta_DC_ASD,               "ASD Header"},
         {meta_NAOMI_SPSD,           "SPSD Header"},
         {meta_FFXI_BGW,             "BGW BGMStream header"},
@@ -853,6 +854,8 @@ static const meta_info meta_info_list[] = {
         {meta_OGL,                  "Shin'en OGL header"},
         {meta_MC3,                  "Paradigm MC3 header"},
         {meta_GTD,                  "GTD/GHS header"},
+        {meta_TA_AAC_X360,          "tri-Ace AAC (X360) header"},
+        {meta_TA_AAC_PS3,           "tri-Ace AAC (PS3) header"},
 
 #ifdef VGM_USE_VORBIS
         {meta_OGG_VORBIS,           "Ogg Vorbis"},

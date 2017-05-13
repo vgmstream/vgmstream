@@ -417,6 +417,7 @@ typedef enum {
     meta_RSD6XADP,			/* RSD6XADP */
     meta_RSD6RADP,			/* RSD6RADP */
 	meta_RSD6OOGV,          /* RSD6OOGV */
+    meta_RSD6XMA,           /* RSD6XMA */
 
     meta_PS2_ASS,			/* ASS */
     meta_PS2_SEG,			/* Eragon */
@@ -610,6 +611,8 @@ typedef enum {
     meta_OGL,               /* Shin'en Wii/WiiU (Jett Rocket (Wii), FAST Racing NEO (WiiU)) */
     meta_MC3,               /* Paradigm games (T3 PS2, MX Rider PS2, MI: Operation Surma PS2) */
     meta_GTD,               /* Knights Contract (X360/PS3), Valhalla Knights 3 (PSV) */
+    meta_TA_AAC_X360,       /* tri-ace AAC (Star Ocean 4, End of Eternity, Infinite Undiscovery) */
+    meta_TA_AAC_PS3,        /* tri-ace AAC (Star Ocean International, Resonance of Fate) */
 
 #ifdef VGM_USE_VORBIS
     meta_OGG_VORBIS,        /* Ogg Vorbis */

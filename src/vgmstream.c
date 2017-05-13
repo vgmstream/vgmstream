@@ -355,6 +355,9 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_ogl,
     init_vgmstream_mc3,
     init_vgmstream_gtd,
+    init_vgmstream_rsd6xma,
+    init_vgmstream_ta_aac_x360,
+    init_vgmstream_ta_aac_ps3,
 
 #ifdef VGM_USE_FFMPEG
     init_vgmstream_mp4_aac_ffmpeg,
