@@ -43,11 +43,13 @@ void decode_adx_exp(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspaci
     int framesin = first_sample/frame_samples;
 
     int32_t scale = read_16bitBE(stream->offset+framesin*frame_bytes,stream->streamfile);
+    int32_t hist1, hist2;
+    int coef1, coef2;
     scale = 1 << (12 - scale);
-    int32_t hist1 = stream->adpcm_history1_32;
-    int32_t hist2 = stream->adpcm_history2_32;
-    int coef1 = stream->adpcm_coef[0];
-    int coef2 = stream->adpcm_coef[1];
+    hist1 = stream->adpcm_history1_32;
+    hist2 = stream->adpcm_history2_32;
+    coef1 = stream->adpcm_coef[0];
+    coef2 = stream->adpcm_coef[1];
 
     first_sample = first_sample%frame_samples;
 

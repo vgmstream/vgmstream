@@ -177,6 +177,7 @@ VGMSTREAM * init_vgmstream_adx(STREAMFILE *streamFile) {
     }
     else {
         double x,y,z,a,b,c;
+        int i;
         /* high-pass cutoff frequency, always 500 that I've seen */
         uint16_t cutoff = (uint16_t)read_16bitBE(0x10,streamFile);
 
@@ -191,7 +192,6 @@ VGMSTREAM * init_vgmstream_adx(STREAMFILE *streamFile) {
         coef1 = (short)(c*8192);
         coef2 = (short)(c*c*-4096);
 
-        int i;
         for (i = 0; i < channel_count; i++) {
             vgmstream->ch[i].adpcm_coef[0] = coef1;
             vgmstream->ch[i].adpcm_coef[1] = coef2;
