@@ -86,6 +86,7 @@ typedef enum {
 
     /* 4-bit ADPCM */
     coding_CRI_ADX,         /* CRI ADX */
+    coding_CRI_ADX_fixed,   /* CRI ADX, encoding type 2 with fixed coefficients */
     coding_CRI_ADX_enc_8,   /* CRI ADX, type 8 encryption (God Hand) */
     coding_CRI_ADX_enc_9,   /* CRI ADX, type 9 encryption (PSO2) */
 
