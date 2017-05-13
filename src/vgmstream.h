@@ -311,7 +311,7 @@ typedef enum {
     meta_PSX_XA,            /* CD-ROM XA with RIFF header */
     meta_PS2_SShd,			/* .ADS with SShd header */
     meta_PS2_NPSF,			/* Namco Production Sound File */
-    meta_PS2_RXW,			/* Sony Arc The Lad Sound File */
+    meta_PS2_RXWS,          /* Sony games (Genji, Okage Shadow King, Arc The Lad Twilight of Spirits) */
     meta_PS2_RAW,			/* RAW Interleaved Format */
     meta_PS2_EXST,			/* Shadow of Colossus EXST */
     meta_PS2_SVAG,			/* Konami SVAG */
