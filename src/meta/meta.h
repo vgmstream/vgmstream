@@ -27,6 +27,8 @@ VGMSTREAM * init_vgmstream_ngc_adpdtk(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_ngc_dsp_std(STREAMFILE *streamFile);
 
+VGMSTREAM * init_vgmstream_ngc_mdsp_std(STREAMFILE *streamFile);
+
 VGMSTREAM * init_vgmstream_ngc_dsp_stm(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_ngc_mpdsp(STREAMFILE *streamFile);
