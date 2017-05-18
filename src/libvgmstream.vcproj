@@ -947,10 +947,6 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\ps2_xau.c"
-					>
-				</File>
-				<File
 					RelativePath=".\meta\ps3_cps.c"
 					>
 				</File>
@@ -1206,6 +1202,10 @@
 					RelativePath=".\meta\x360_tra.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\meta\xau.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\xbox_hlwav.c"
 					>

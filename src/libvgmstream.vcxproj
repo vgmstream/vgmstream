@@ -341,7 +341,6 @@
     <ClCompile Include="meta\ps2_wb.c" />
     <ClCompile Include="meta\ps2_xa2.c" />
     <ClCompile Include="meta\ps2_xa30.c" />
-    <ClCompile Include="meta\ps2_xau.c" />
     <ClCompile Include="meta\ps3_cps.c" />
     <ClCompile Include="meta\ps3_msf.c" />
     <ClCompile Include="meta\ps3_mta2.c" />
@@ -391,6 +390,7 @@
     <ClCompile Include="meta\ws_aud.c" />
     <ClCompile Include="meta\wvs.c" />
     <ClCompile Include="meta\wwise.c" />
+    <ClCompile Include="meta\xau.c" />
     <ClCompile Include="meta\xbox_hlwav.c" />
     <ClCompile Include="meta\xbox_ims.c" />
     <ClCompile Include="meta\xbox_stma.c" />
