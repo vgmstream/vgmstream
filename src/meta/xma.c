@@ -11,8 +11,8 @@ VGMSTREAM * init_vgmstream_xma(STREAMFILE *streamFile) {
 
 
     /* check extension, case insensitive */
-    /* .xma2: Skullgirls, .nps: Beautiful Katamari (renamed .xma) */
-    if ( !check_extensions(streamFile, "xma,xma2,nps") )
+    /* .xma2: Skullgirls, .nps: Beautiful Katamari (renamed .xma), .str: Sonic & Sega All Stars Racing */
+    if ( !check_extensions(streamFile, "xma,xma2,nps,str") )
         goto fail;
 
     {
