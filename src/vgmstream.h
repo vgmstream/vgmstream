@@ -728,14 +728,18 @@ typedef struct {
     off_t next_block_offset;        /* offset of header of the next block */
 	int	block_count;				/* count of "semi" block in total block */
 
-    int hit_loop;                   /* have we seen the loop yet? */
-
     /* loop layout (saved values) */
     int32_t loop_sample;            /* saved from current_sample, should be loop_start_sample... */
     int32_t loop_samples_into_block;/* saved from samples_into_block */
     off_t loop_block_offset;        /* saved from current_block_offset */
     size_t loop_block_size;         /* saved from current_block_size */
     off_t loop_next_block_offset;   /* saved from next_block_offset */
+
+    /* loop internals */
+    int hit_loop;                   /* have we seen the loop yet? */
+    /* counters for "loop + play end of the stream instead of fading" (not used/needed otherwise) */
+    int loop_count;                 /* number of complete loops (1=looped once) */
+    int loop_target;                /* max loops before continuing with the stream end */
 
     /* decoder specific */
     int codec_endian;               /* little/big endian marker; name is left vague but usually means big endian */
