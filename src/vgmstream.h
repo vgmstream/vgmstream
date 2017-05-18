@@ -134,6 +134,7 @@ typedef enum {
     coding_SASSC,           /* Activision EXAKT SASSC DPCM */
     coding_LSF,             /* lsf ADPCM (Fastlane Street Racing iPhone)*/
     coding_MTAF,            /* Konami MTAF ADPCM (IMA-derived) */
+    coding_MTA2,            /* Konami MTA2 ADPCM */
     coding_MC3,             /* Paradigm MC3 3-bit ADPCM */
 
     /* others */
@@ -615,6 +616,7 @@ typedef enum {
     meta_GTD,               /* Knights Contract (X360/PS3), Valhalla Knights 3 (PSV) */
     meta_TA_AAC_X360,       /* tri-ace AAC (Star Ocean 4, End of Eternity, Infinite Undiscovery) */
     meta_TA_AAC_PS3,        /* tri-ace AAC (Star Ocean International, Resonance of Fate) */
+    meta_PS3_MTA2,          /* Metal Gear Solid 4 MTA2 */
 
 #ifdef VGM_USE_VORBIS
     meta_OGG_VORBIS,        /* Ogg Vorbis */

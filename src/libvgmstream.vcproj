@@ -966,6 +966,10 @@
 					RelativePath=".\meta\ps3_msf.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\meta\ps3_mta2.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\ps3_past.c"
 					>
@@ -1358,6 +1362,10 @@
 					RelativePath=".\coding\mtaf_decoder.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\coding\mta2_decoder.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\coding\nds_procyon_decoder.c"
 					>

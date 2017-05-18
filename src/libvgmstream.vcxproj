@@ -129,6 +129,7 @@
     <ClCompile Include="coding\lsf_decoder.c" />
     <ClCompile Include="coding\mp4_aac_decoder.c" />
     <ClCompile Include="coding\mtaf_decoder.c" />
+    <ClCompile Include="coding\mta2_decoder.c" />
     <ClCompile Include="layout\ps2_iab_blocked.c" />
     <ClCompile Include="layout\ps2_strlr_blocked.c" />
     <ClCompile Include="layout\scd_int_layout.c" />
@@ -343,6 +344,7 @@
     <ClCompile Include="meta\ps2_xau.c" />
     <ClCompile Include="meta\ps3_cps.c" />
     <ClCompile Include="meta\ps3_msf.c" />
+    <ClCompile Include="meta\ps3_mta2.c" />
     <ClCompile Include="meta\ps3_xvag.c" />
     <ClCompile Include="meta\psx_cdxa.c" />
     <ClCompile Include="meta\psx_fag.c" />
