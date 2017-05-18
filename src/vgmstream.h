@@ -549,7 +549,7 @@ typedef enum {
 	meta_PS2_LPCM,          /* Ah! My Goddess */
     meta_DSP_BDSP,          /* Ah! My Goddess */
 	meta_PS2_VMS,           /* Autobahn Raser - Police Madness */
-	meta_PS2_XAU,			/* Spectral Force Chronicle */
+	meta_XAU,			    /* XPEC Entertainment (Beat Down (PS2 Xbox), Spectral Force Chronicle (PS2)) */
     meta_GH3_BAR,           /* Guitar Hero III Mobile .bar */
     meta_FFW,               /* Freedom Fighters [NGC] */
     meta_DSP_DSPW,          /* Sengoku Basara 3 [WII] */

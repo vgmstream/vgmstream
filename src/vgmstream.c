@@ -292,7 +292,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_ps2_lpcm,
     init_vgmstream_dsp_bdsp,
 	init_vgmstream_ps2_vms,
-	init_vgmstream_ps2_xau,
+	init_vgmstream_xau,
     init_vgmstream_gh3_bar,
     init_vgmstream_ffw,
     init_vgmstream_dsp_dspw,

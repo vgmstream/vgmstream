@@ -1,67 +1,80 @@
 #include "meta.h"
 #include "../util.h"
+#include "../coding/coding.h"
 
-/* XAU (Spectral Force Chronicle [SLPM-65967]) */
-VGMSTREAM * init_vgmstream_ps2_xau(STREAMFILE *streamFile) 
-{
+/* XAU - XPEC Entertainment sound format (Beat Down PS2/Xbox, Spectral Force Chronicle [SLPM-65967]) */
+VGMSTREAM * init_vgmstream_xau(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[PATH_LIMIT];
     off_t start_offset;
-    
-	int loop_flag = 0;
-	int channel_count;
+	int loop_flag, channel_count, type, loop_start, loop_end;
 
 
-    /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("xau",filename_extension(filename))) goto fail;
+    /* check extension */
+	if (!check_extensions(streamFile, "xau"))
+	    goto fail;
 
     /* check header */
-    if (read_32bitBE(0x00,streamFile) != 0x58415500)
+    if (read_32bitBE(0x00,streamFile) != 0x58415500) /* "XAU\0" "*/
+        goto fail;
+    if (read_32bitLE(0x08,streamFile) != 0x40) /* header start */
         goto fail;
 
-	loop_flag = 0;
+    /* 0x04: version? (0x100) */
+    type       = read_32bitBE(0x0c, streamFile);
+    loop_start = read_32bitLE(0x10, streamFile);
+    loop_end   = read_32bitLE(0x14, streamFile);
+	loop_flag  = (loop_end > 0);
+
 	channel_count = read_8bit(0x18,streamFile);
     
 	/* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count, loop_flag);
     if (!vgmstream) goto fail;
 
-	/* fill in the vital statistics */
-	start_offset = 0x800;
-		
 	vgmstream->channels = channel_count;
-    vgmstream->sample_rate = read_32bitBE(0x50, streamFile);
-    vgmstream->coding_type = coding_PSX;
-	vgmstream->num_samples = ((read_32bitBE(0x4C, streamFile) * channel_count)/ 16 / channel_count * 28);
+    vgmstream->meta_type = meta_XAU;
 
-    vgmstream->layout_type = layout_interleave;
-    vgmstream->interleave_block_size = 0x8000;
-	vgmstream->meta_type = meta_PS2_XAU;
+	/* miniheader over a common header with some tweaks, so we'll simplify parsing */
+	switch(type) {
+	    case 0x50533200: /* "PS2\0" */
+	        if (read_32bitBE(0x40,streamFile) != 0x56414770) goto fail; /* "VAGp" */
 
-    /* open the file for reading */
-    {
-        int i;
-        STREAMFILE * file;
-        
-		file = streamFile->open(streamFile, filename, STREAMFILE_DEFAULT_BUFFER_SIZE);
-        
-		if (!file) goto fail;
-        
-		for (i=0;i<channel_count;i++) 
-		{
-            vgmstream->ch[i].streamfile = file;
+	        start_offset = 0x800;
+            vgmstream->sample_rate = read_32bitBE(0x50, streamFile);
+            vgmstream->num_samples = ps_bytes_to_samples(read_32bitBE(0x4C,streamFile) * channel_count, channel_count);
+            vgmstream->loop_start_sample = loop_start;
+            vgmstream->loop_end_sample = loop_end;
 
-            vgmstream->ch[i].channel_start_offset=
-                vgmstream->ch[i].offset=start_offset + vgmstream->interleave_block_size * i;
+            vgmstream->coding_type = coding_PSX;
+            vgmstream->layout_type = layout_interleave;
+	        vgmstream->interleave_block_size = 0x8000;
 
-        }
-    }
+	        break;
+	    case 0x58420000: /* "XB\0\0" */
+	        if (read_32bitBE(0x40,streamFile) != 0x52494646) goto fail; /* "RIFF" */
+
+            start_offset = 0x70;
+            vgmstream->sample_rate = read_32bitLE(0x58, streamFile);
+            vgmstream->num_samples = ms_ima_bytes_to_samples(read_32bitLE(0x6c, streamFile), read_16bitLE(0x60, streamFile), channel_count);
+            vgmstream->loop_start_sample = loop_start;
+            vgmstream->loop_end_sample = loop_end;
+            /* there is also a "smpl" chunk at the end, same as loop_start/end */
+
+            vgmstream->coding_type = coding_XBOX;
+            vgmstream->layout_type = layout_none;
+
+            break;
+	    default:
+	        goto fail;
+	}
+
+
+	if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
+	    goto fail;
 
     return vgmstream;
 
-    /* clean up anything we may have opened */
 fail:
-    if (vgmstream) close_vgmstream(vgmstream);
+    close_vgmstream(vgmstream);
     return NULL;
 }

@@ -795,7 +795,7 @@ static const meta_info meta_info_list[] = {
         {meta_DSP_CABELAS,          "Cabelas games dsp header"},
         {meta_PS2_LPCM,             "LPCM header"},
         {meta_PS2_VMS,              "VMS Header"},
-        {meta_PS2_XAU,              "XAU Header"},
+        {meta_XAU,                  "XPEC XAU header"},
         {meta_GH3_BAR,              "Guitar Hero III Mobile .bar"},
         {meta_FFW,                  "Freedom Fighters BGM header"},
         {meta_DSP_DSPW,             "DSPW dsp header"},
