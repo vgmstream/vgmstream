@@ -19,7 +19,7 @@ VGMSTREAM * init_vgmstream_gtd(STREAMFILE *streamFile) {
 
     if (read_32bitBE(0x00,streamFile) != 0x47485320)   /* "GHS " */
         goto fail;
-VGM_LOG("1");
+
     /* header type, not formally specified */
     if (read_32bitBE(0x04,streamFile) == 1 && read_16bitBE(0x0C,streamFile) == 0x0166) { /* XMA2 */
         /* 0x08(4): seek table size */
@@ -55,8 +55,8 @@ VGM_LOG("1");
     vgmstream->meta_type = meta_GTD;
 
     switch(codec) {
-        case XMA2: {
 #ifdef VGM_USE_FFMPEG
+        case XMA2: {
             uint8_t buf[0x100];
             size_t bytes;
 
