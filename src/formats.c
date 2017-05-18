@@ -145,6 +145,7 @@ static const char* extension_list[] = {
     "kovs",
     "kraw",
 
+    "laac", //fake extension, for tri-Ace/FFmpeg
     "leg",
     "lmp4", //fake extension, for looping
     "logg", //fake extension, for looping
@@ -158,6 +159,7 @@ static const char* extension_list[] = {
     "mca",
     "mcg",
     "mds",
+    "mdsp",
     "mi4",
     "mib",
     "mic",
