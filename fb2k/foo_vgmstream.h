@@ -75,10 +75,4 @@ STREAMFILE * open_foo_streamfile_buffer_by_file(service_ptr_t<file> m_file,const
 STREAMFILE * open_foo_streamfile_buffer(const char * const filename, size_t buffersize, abort_callback * p_abort, t_filestats * stats);
 STREAMFILE * open_foo_streamfile(const char * const filename, abort_callback * p_abort, t_filestats * stats);
 
-
-#define DECLARE_MULTIPLE_FILE_TYPE(NAME,EXTENSION) \
-	namespace { static input_file_type_impl g_filetype_instance_##EXTENSION(NAME,"*." #EXTENSION ,true); \
-	static service_factory_single_ref_t<input_file_type_impl> g_filetype_service##EXTENSION(g_filetype_instance_##EXTENSION); }
-
-
-#endif
+#endif /*_FOO_VGMSTREAM_*/

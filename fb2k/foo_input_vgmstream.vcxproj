@@ -162,6 +162,7 @@
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="foo_filetypes.h" />
     <ClInclude Include="foo_prefs.h" />
     <ClInclude Include="foo_vgmstream.h" />
     <ClInclude Include="resource.h" />
