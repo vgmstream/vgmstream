@@ -188,6 +188,26 @@ void input_vgmstream::get_info(file_info & p_info,abort_callback & p_abort ) {
 		p_info.info_set("metadata source", temp);
 	}
 
+    pos = description.find_first("number of streams: ");
+    if (pos != pfc::infinite_size)
+    {
+        pos += strlen("number of streams: ");
+        eos = description.find_first('\n', pos);
+        if (eos == pfc::infinite_size) eos = description.length();
+        temp.set_string(description + pos, eos - pos);
+        p_info.info_set("number of streams", temp);
+    }
+
+    pos = description.find_first("block size: ");
+    if (pos != pfc::infinite_size)
+    {
+        pos += strlen("block size: ");
+        eos = description.find_first('\n', pos);
+        if (eos == pfc::infinite_size) eos = description.length();
+        temp.set_string(description + pos, eos - pos);
+        p_info.info_set("block size", temp);
+    }
+
 	p_info.set_length(((double)length_in_ms)/1000);
 }
 
