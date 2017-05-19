@@ -1,5 +1,5 @@
 #include "meta.h"
-#include "../util.h"
+#include "../coding/coding.h"
 
 
 /* utils to fix AT3 looping */
