@@ -60,7 +60,7 @@ VGMSTREAM * init_vgmstream_halpst(STREAMFILE *streamFile) {
             loop_offset = offset;
             offset = 0x80;
             while (offset != loop_offset) {
-                start_nibble += read_32bitBE(offset,streamFile);
+                start_nibble += read_32bitBE(offset+4,streamFile)+1;
                 offset = read_32bitBE(offset+8,streamFile);
             }
 
