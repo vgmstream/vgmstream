@@ -419,5 +419,3 @@ static input_singletrack_factory_t<input_vgmstream> g_input_vgmstream_factory;
 
 DECLARE_COMPONENT_VERSION(APP_NAME,PLUGIN_VERSION,PLUGIN_DESCRIPTION);
 VALIDATE_COMPONENT_FILENAME("foo_input_vgmstream.dll");
-
-#include "foo_filetypes.h"
