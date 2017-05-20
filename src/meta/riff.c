@@ -174,7 +174,6 @@ int read_fmt(int big_endian,
         case 0xFFFE: /* WAVEFORMATEXTENSIBLE / ATRAC3plus */
 #endif /* defined */
 			fmt->coding_type = coding_FFmpeg;
-			fmt->block_size = 2048;
 			fmt->interleave = 0;
 			break;
 #endif /* VGM_USE_FFMPEG */
@@ -408,10 +407,20 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
                 if ( !ffmpeg_data ) goto fail;
 
                 sample_count = ffmpeg_data->totalSamples; /* fact_sample_count */
-                /* the encoder introduces some garbage (usually silent) samples to skip before the stream
-                 *  loop values include the skip samples but fact_sample_count doesn't; add them back to fix some edge loops */
-                if (fact_sample_skip > 0)
-                    sample_count += fact_sample_skip;
+
+                if (at3) {
+                    /* the encoder introduces some garbage (not always silent) samples to skip before the stream */
+                    /* manually set skip_samples if FFmpeg didn't do it */
+                    if (ffmpeg_data->skipSamples <= 0) {
+                        ffmpeg_set_skip_samples(ffmpeg_data, fact_sample_skip);
+                    }
+
+                    /* RIFF loop/sample values are absolute (with skip samples), adjust */
+                    if (loop_flag) {
+                        loop_start_offset -= ffmpeg_data->skipSamples;
+                        loop_end_offset -= ffmpeg_data->skipSamples;
+                    }
+                }
             }
             break;
 #endif

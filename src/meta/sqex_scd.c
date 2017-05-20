@@ -1,6 +1,5 @@
 #include "meta.h"
 #include "../coding/coding.h"
-#include "../util.h"
 
 /* Square-Enix SCD (FF XIII, XIV) */
 
@@ -358,7 +357,6 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
                 int32_t bytes;
 
                 /* post_meta_offset+0x00: fmt0x166 header (BE),  post_meta_offset+0x34: seek table */
-
                 bytes = ffmpeg_make_riff_xma_from_fmt_chunk(buf,200, post_meta_offset,0x34, stream_size, streamFile, 1);
                 if (bytes <= 0) goto fail;
 
@@ -378,30 +376,33 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
             /* ATRAC3plus */ /* Lord of Arcana (PSP) */
             {
                 ffmpeg_codec_data *ffmpeg_data = NULL;
-                off_t chunk_offset;
-                size_t chunk_size, fact_sample_skip = 0;
 
-                /* full riff header at start_offset/post_meta_offset (same) */
+                /* full RIFF header at start_offset/post_meta_offset (same) */
                 ffmpeg_data = init_ffmpeg_offset(streamFile, start_offset,stream_size);
                 if (!ffmpeg_data) goto fail;
                 vgmstream->codec_data = ffmpeg_data;
                 vgmstream->coding_type = coding_FFmpeg;
                 vgmstream->layout_type = layout_none;
 
-                vgmstream->num_samples = ffmpeg_data->totalSamples;
+                vgmstream->num_samples = ffmpeg_data->totalSamples; /* fact samples */
                 vgmstream->loop_start_sample = loop_start;
                 vgmstream->loop_end_sample = loop_end;
 
-                /* manually find encoder_delay to adjust samples since it's not properly used by FFmpeg */
-                if (!find_chunk_le(streamFile, 0x66616374,start_offset+0xc,0, &chunk_offset,&chunk_size)) goto fail; /*"fact"*/
-                if (chunk_size == 0x8) {
-                    fact_sample_skip  = read_32bitLE(chunk_offset+0x4, streamFile);
-                } else if (chunk_size == 0xc) {
-                    fact_sample_skip  = read_32bitLE(chunk_offset+0x8, streamFile);
+                /* manually read skip_samples if FFmpeg didn't do it */
+                if (ffmpeg_data->skipSamples <= 0) {
+                    off_t chunk_offset;
+                    size_t chunk_size, fact_skip_samples = 0;
+                    if (!find_chunk_le(streamFile, 0x66616374,start_offset+0xc,0, &chunk_offset,&chunk_size)) /* find "fact" */
+                        goto fail;
+                    if (chunk_size == 0x8) {
+                        fact_skip_samples  = read_32bitLE(chunk_offset+0x4, streamFile);
+                    } else if (chunk_size == 0xc) {
+                        fact_skip_samples  = read_32bitLE(chunk_offset+0x8, streamFile);
+                    }
+                    ffmpeg_set_skip_samples(ffmpeg_data, fact_skip_samples);
                 }
-                vgmstream->num_samples += fact_sample_skip;
-                vgmstream->loop_start_sample += fact_sample_skip;
-                vgmstream->loop_end_sample += fact_sample_skip;
+                /* SCD loop/sample values are relative (without skip samples) vs RIFF (with skip samples), no need to adjust */
+
             }
             break;
 
