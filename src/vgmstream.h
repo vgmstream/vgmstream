@@ -134,6 +134,7 @@ typedef enum {
     coding_SASSC,           /* Activision EXAKT SASSC DPCM */
     coding_LSF,             /* lsf ADPCM (Fastlane Street Racing iPhone)*/
     coding_MTAF,            /* Konami MTAF ADPCM (IMA-derived) */
+    coding_MTA2,            /* Konami MTA2 ADPCM */
     coding_MC3,             /* Paradigm MC3 3-bit ADPCM */
 
     /* others */
@@ -548,7 +549,7 @@ typedef enum {
 	meta_PS2_LPCM,          /* Ah! My Goddess */
     meta_DSP_BDSP,          /* Ah! My Goddess */
 	meta_PS2_VMS,           /* Autobahn Raser - Police Madness */
-	meta_PS2_XAU,			/* Spectral Force Chronicle */
+	meta_XAU,			    /* XPEC Entertainment (Beat Down (PS2 Xbox), Spectral Force Chronicle (PS2)) */
     meta_GH3_BAR,           /* Guitar Hero III Mobile .bar */
     meta_FFW,               /* Freedom Fighters [NGC] */
     meta_DSP_DSPW,          /* Sengoku Basara 3 [WII] */
@@ -615,6 +616,7 @@ typedef enum {
     meta_GTD,               /* Knights Contract (X360/PS3), Valhalla Knights 3 (PSV) */
     meta_TA_AAC_X360,       /* tri-ace AAC (Star Ocean 4, End of Eternity, Infinite Undiscovery) */
     meta_TA_AAC_PS3,        /* tri-ace AAC (Star Ocean International, Resonance of Fate) */
+    meta_PS3_MTA2,          /* Metal Gear Solid 4 MTA2 */
 
 #ifdef VGM_USE_VORBIS
     meta_OGG_VORBIS,        /* Ogg Vorbis */
@@ -726,14 +728,18 @@ typedef struct {
     off_t next_block_offset;        /* offset of header of the next block */
 	int	block_count;				/* count of "semi" block in total block */
 
-    int hit_loop;                   /* have we seen the loop yet? */
-
     /* loop layout (saved values) */
     int32_t loop_sample;            /* saved from current_sample, should be loop_start_sample... */
     int32_t loop_samples_into_block;/* saved from samples_into_block */
     off_t loop_block_offset;        /* saved from current_block_offset */
     size_t loop_block_size;         /* saved from current_block_size */
     off_t loop_next_block_offset;   /* saved from next_block_offset */
+
+    /* loop internals */
+    int hit_loop;                   /* have we seen the loop yet? */
+    /* counters for "loop + play end of the stream instead of fading" (not used/needed otherwise) */
+    int loop_count;                 /* number of complete loops (1=looped once) */
+    int loop_target;                /* max loops before continuing with the stream end */
 
     /* decoder specific */
     int codec_endian;               /* little/big endian marker; name is left vague but usually means big endian */

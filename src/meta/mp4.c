@@ -1,6 +1,5 @@
-#include "../vgmstream.h"
 #include "meta.h"
-#include "../util.h"
+#include "../coding/coding.h"
 
 #ifdef VGM_USE_MP4V2
 void* mp4_file_open( const char* name, MP4FileMode mode )

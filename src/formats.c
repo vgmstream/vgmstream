@@ -53,6 +53,7 @@ static const char* extension_list[] = {
     "bfwav",
     "bfwavnsmbu",
     "bg00",
+    "bgm",
     "bgw",
     "bh2pcm",
     "bik",
@@ -82,6 +83,7 @@ static const char* extension_list[] = {
     "cps",
     "cxs",
 
+    "dbm",
     "dcs",
     "ddsp",
     "de2",
@@ -143,6 +145,7 @@ static const char* extension_list[] = {
     "kovs",
     "kraw",
 
+    "laac", //fake extension, for tri-Ace/FFmpeg
     "leg",
     "lmp4", //fake extension, for looping
     "logg", //fake extension, for looping
@@ -156,6 +159,7 @@ static const char* extension_list[] = {
     "mca",
     "mcg",
     "mds",
+    "mdsp",
     "mi4",
     "mib",
     "mic",
@@ -168,6 +172,7 @@ static const char* extension_list[] = {
     "msf",
     "mss",
     "msvp",
+    "mta2",
     "mtaf",
     "mus",
     "musc",
@@ -288,10 +293,8 @@ static const char* extension_list[] = {
     "vgs",
     "vgv",
     "vig",
-
     "vds",
     "vdm",
-    "vms",
     "vms",
     "voi",
     "vpk",
@@ -446,6 +449,7 @@ static const coding_info coding_info_list[] = {
         {coding_SASSC,              "Activision / EXAKT SASSC 8-bit DPCM"},
         {coding_LSF,                "lsf 4-bit ADPCM"},
         {coding_MTAF,               "Konami MTAF 4-bit ADPCM"},
+        {coding_MTA2,               "Konami MTA2 4-bit ADPCM"},
         {coding_MC3,                "Paradigm MC3 3-bit ADPCM"},
         
 #ifdef VGM_USE_VORBIS
@@ -791,7 +795,7 @@ static const meta_info meta_info_list[] = {
         {meta_DSP_CABELAS,          "Cabelas games dsp header"},
         {meta_PS2_LPCM,             "LPCM header"},
         {meta_PS2_VMS,              "VMS Header"},
-        {meta_PS2_XAU,              "XAU Header"},
+        {meta_XAU,                  "XPEC XAU header"},
         {meta_GH3_BAR,              "Guitar Hero III Mobile .bar"},
         {meta_FFW,                  "Freedom Fighters BGM header"},
         {meta_DSP_DSPW,             "DSPW dsp header"},
@@ -861,6 +865,7 @@ static const meta_info meta_info_list[] = {
         {meta_GTD,                  "GTD/GHS header"},
         {meta_TA_AAC_X360,          "tri-Ace AAC (X360) header"},
         {meta_TA_AAC_PS3,           "tri-Ace AAC (PS3) header"},
+        {meta_PS3_MTA2,             "Konami MTA2 header"},
 
 #ifdef VGM_USE_VORBIS
         {meta_OGG_VORBIS,           "Ogg Vorbis"},

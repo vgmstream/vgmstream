@@ -23,6 +23,10 @@ VGMSTREAM * init_vgmstream_ps2_strlr(STREAMFILE *streamFile) {
         goto fail;
 #endif
 
+	/* don't hijack Sonic & Sega All Stars Racing X360 (xma) */
+	if (read_32bitBE(0x00,streamFile) == 0x52494646) /* "RIFF"*/
+        goto fail;
+
     loop_flag = 0;
     channel_count = 2;
     

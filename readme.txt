@@ -43,6 +43,7 @@ Options:
     -E: force end-to-end looping even if file has real loop points
     -r outfile2.wav: output a second time after resetting
     -2 N: only output the Nth (first is 0) set of stereo channels
+    -F: don't fade after N loops and play the rest of the stream
 
 Typical usage would be:
 test -o happy.wav happy.adx

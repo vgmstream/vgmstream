@@ -14,7 +14,8 @@
 #define XACT2_1_MAX     38          /* Prey (v38) */ // v39 too?
 #define XACT2_2_MAX     41          /* Blue Dragon (v40) */
 #define XACT3_0_MAX     46          /* Ninja Blade (t43 v42), Persona 4 Ultimax NESSICA (t45 v43) */
-#define XACT_TECHLAND   0x10000     /* Sniper Ghost Warrior, Nail'd (PS3/X360) */
+#define XACT_TECHLAND   0x10000     /* Sniper Ghost Warrior, Nail'd (PS3/X360), equivalent to XACT3_0 */
+#define XACT_CRACKDOWN  0x87        /* Crackdown 1, equivalent to XACT2_2 */
 
 static const int wma_avg_bps_index[7] = {
     12000, 24000, 4000, 6000, 8000, 20000, 2500
@@ -91,6 +92,10 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
 
     /* read main header (WAVEBANKHEADER) */
     xwb.version = read_32bit(0x04, streamFile); /* XACT3: 0x04=tool version, 0x08=header version */
+
+    /* Crackdown 1 X360, essentially XACT2 but may have split header in some cases */
+    if (xwb.version == XACT_CRACKDOWN)
+        xwb.version = XACT2_2_MAX;
 
     /* read segment offsets (SEGIDX) */
     if (xwb.version <= XACT1_0_MAX) {
@@ -306,12 +311,17 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
         xwb.loop_end_sample   = msd.loop_end_sample;
 
         // todo fix properly (XWB loop_start/end seem to count padding samples while XMA1 RIFF doesn't)
-        //this doesn't seem ok because can fall within 0 to 512 (ie.- first frame)
+        //this doesn't seem ok because can fall within 0 to 512 (ie.- first frame, 384)
         //if (xwb.loop_start_sample) xwb.loop_start_sample -= 512;
         //if (xwb.loop_end_sample) xwb.loop_end_sample -= 512;
 
         //add padding back until it's fixed (affects looping)
         // (in rare cases this causes a glitch in FFmpeg since it has a bug where it's missing some samples)
+        xwb.num_samples += 64 + 512;
+    }
+    else if ((xwb.codec == XMA1 || xwb.codec == XMA2) &&  xwb.loop_flag) {
+        /* seems to be needed by some edge cases, ex. Crackdown */
+        //add padding, see above
         xwb.num_samples += 64 + 512;
     }
 

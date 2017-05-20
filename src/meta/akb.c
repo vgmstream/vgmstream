@@ -1,5 +1,5 @@
-#include "../vgmstream.h"
 #include "meta.h"
+#include "../coding/coding.h"
 
 #if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
 /* AKB (AAC only) - found in SQEX iOS games */

@@ -36,7 +36,7 @@ void usage(const char * name) {
           "Options:\n"
           "    -o outfile.wav: name of output .wav file, default is dump.wav\n"
           "    -l loop count: loop count, default 2.0\n"
-          "    -f fade time: fade time (seconds), default 10.0\n"
+          "    -f fade time: fade time (seconds) after N loops, default 10.0\n"
           "    -d fade delay: fade delay (seconds, default 0.0\n"
           "    -i: ignore looping information and play the whole stream once\n"
           "    -p: output to stdout (for piping into another program)\n"
@@ -46,11 +46,12 @@ void usage(const char * name) {
           "    -x: decode and print adxencd command line to encode as ADX\n"
           "    -g: decode and print oggenc command line to encode as OGG\n"
           "    -b: decode and print batch variable commands\n"
-	  "    -L: append a smpl chunk and create a looping wav\n"
+          "    -L: append a smpl chunk and create a looping wav\n"
           "    -e: force end-to-end looping\n"
           "    -E: force end-to-end looping even if file has real loop points\n"
           "    -r outfile2.wav: output a second time after resetting\n"
           "    -2 N: only output the Nth (first is 0) set of stereo channels\n"
+          "    -F: don't fade after N loops and play the rest of the stream\n"
             ,name);
 }
 
@@ -73,15 +74,16 @@ int main(int argc, char ** argv) {
     int metaonly = 0;
     int adxencd = 0;
     int oggenc = 0;
-	int lwav = 0;
+    int lwav = 0;
     int batchvar = 0;
     int only_stereo = -1;
     double loop_count = 2.0;
     double fade_seconds = 10.0;
     double fade_delay_seconds = 0.0;
-	int32_t bytecount;
+    int fade_ignore = 0;
+    int32_t bytecount;
 
-    while ((opt = getopt(argc, argv, "o:l:f:d:ipPcmxeLEr:gb2:")) != -1) {
+    while ((opt = getopt(argc, argv, "o:l:f:d:ipPcmxeLEFr:gb2:")) != -1) {
         switch (opt) {
             case 'o':
                 outfilename = optarg;
@@ -127,13 +129,16 @@ int main(int argc, char ** argv) {
                 really_force_loop = 1;
                 break;
             case 'L':
-		lwav = 1;
-		break;
+                lwav = 1;
+                break;
             case 'r':
                 reset_outfilename = optarg;
                 break;
             case '2':
                 only_stereo = atoi(optarg);
+                break;
+            case 'F':
+                fade_ignore = 1;
                 break;
             default:
                 usage(argv[0]);
@@ -263,6 +268,11 @@ int main(int argc, char ** argv) {
         return 1;
     }
 
+    /* signal ignore fade for get_vgmstream_play_samples */
+    if (loop_count && fade_ignore) {
+        fade_seconds = -1.0;
+    }
+
     len = get_vgmstream_play_samples(loop_count,fade_seconds,fade_delay_seconds,s);
     if (!play && !adxencd && !oggenc && !batchvar) printf("samples to play: %d (%.4lf seconds)\n",len,(double)len/s->sample_rate);
     fade_samples = fade_seconds * s->sample_rate;
@@ -273,10 +283,10 @@ int main(int argc, char ** argv) {
     } else {
         make_wav_header((uint8_t*)buf, len, s->sample_rate, s->channels);
     }
-	if (lwav && s->loop_flag) {	// Adding space for smpl chunk at end
+    if (lwav && s->loop_flag) { // Adding space for smpl chunk at end
         bytecount = get_32bitLE((uint8_t*)buf + 4);
         put_32bitLE((uint8_t*)buf + 4, bytecount + 0x44);
-	}
+    }
     fwrite(buf,1,0x2c,outfile);
 
     /* decode forever */
@@ -325,9 +335,9 @@ int main(int argc, char ** argv) {
         }
     }
 
-    if (lwav && s->loop_flag) {	// Writing smpl chuck
-	make_smpl_chunk((uint8_t*)buf, s->loop_start_sample, s->loop_end_sample);
-	fwrite(buf,1,0x44,outfile);
+    if (lwav && s->loop_flag) { // Writing smpl chuck
+        make_smpl_chunk((uint8_t*)buf, s->loop_start_sample, s->loop_end_sample);
+        fwrite(buf,1,0x44,outfile);
     }
     fclose(outfile); outfile = NULL;
 

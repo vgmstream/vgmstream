@@ -114,6 +114,9 @@ void decode_lsf(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, 
 /* mtaf_decoder */
 void decode_mtaf(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel, int channels);
 
+/* mta2_decoder */
+void decode_mta2(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel);
+
 /* mc3_decoder */
 void decode_mc3(VGMSTREAM * vgmstream, VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel);
 
@@ -201,9 +204,13 @@ void free_at3plus(maiatrac3plus_codec_data *data);
 
 #ifdef VGM_USE_FFMPEG
 /* ffmpeg_decoder */
+ffmpeg_codec_data * init_ffmpeg_offset(STREAMFILE *streamFile, uint64_t start, uint64_t size);
+ffmpeg_codec_data * init_ffmpeg_header_offset(STREAMFILE *streamFile, uint8_t * header, uint64_t header_size, uint64_t start, uint64_t size);
+
 void decode_ffmpeg(VGMSTREAM *stream, sample * outbuf, int32_t samples_to_do, int channels);
 void reset_ffmpeg(VGMSTREAM *vgmstream);
 void seek_ffmpeg(VGMSTREAM *vgmstream, int32_t num_sample);
+void free_ffmpeg(ffmpeg_codec_data *data);
 
 void ffmpeg_set_skip_samples(ffmpeg_codec_data * data, int skip_samples);
 #endif

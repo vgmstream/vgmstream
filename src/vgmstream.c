@@ -292,7 +292,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 	init_vgmstream_ps2_lpcm,
     init_vgmstream_dsp_bdsp,
 	init_vgmstream_ps2_vms,
-	init_vgmstream_ps2_xau,
+	init_vgmstream_xau,
     init_vgmstream_gh3_bar,
     init_vgmstream_ffw,
     init_vgmstream_dsp_dspw,
@@ -360,6 +360,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_rsd6xma,
     init_vgmstream_ta_aac_x360,
     init_vgmstream_ta_aac_ps3,
+    init_vgmstream_ps3_mta2,
 
 #ifdef VGM_USE_FFMPEG
     init_vgmstream_mp4_aac_ffmpeg,
@@ -868,12 +869,31 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
     free(vgmstream);
 }
 
+/* calculate samples based on player's config */
 int32_t get_vgmstream_play_samples(double looptimes, double fadeseconds, double fadedelayseconds, VGMSTREAM * vgmstream) {
     if (vgmstream->loop_flag) {
-        return vgmstream->loop_start_sample+(vgmstream->loop_end_sample-vgmstream->loop_start_sample)*looptimes+(fadedelayseconds+fadeseconds)*vgmstream->sample_rate;
-    } else return vgmstream->num_samples;
+        if (fadeseconds < 0) { /* a bit hack-y to avoid signature change */
+            /* Continue playing the file normally after looping, instead of fading.
+             * Most files cut abruply after the loop, but some do have proper endings.
+             * With looptimes = 1 this option should give the same output vs loop disabled */
+            int loop_count = (int)looptimes; /* no half loops allowed */
+            vgmstream->loop_target = loop_count;
+            return vgmstream->loop_start_sample
+                + (vgmstream->loop_end_sample - vgmstream->loop_start_sample) * loop_count
+                + (vgmstream->num_samples - vgmstream->loop_end_sample);
+        }
+        else {
+            return vgmstream->loop_start_sample
+                + (vgmstream->loop_end_sample - vgmstream->loop_start_sample) * looptimes
+                + (fadedelayseconds + fadeseconds) * vgmstream->sample_rate;
+        }
+    }
+    else {
+        return vgmstream->num_samples;
+    }
 }
 
+/* decode data into sample buffer */
 void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstream) {
     switch (vgmstream->layout_type) {
         case layout_interleave:
@@ -1065,6 +1085,8 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
             return 54;
         case coding_MTAF:
             return 0x80*2;
+        case coding_MTA2:
+            return 0x80*2;
         case coding_MC3:
             return 10;
         case coding_CRI_HCA:
@@ -1191,6 +1213,8 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
         case coding_MSADPCM:
         case coding_MTAF:
             return vgmstream->interleave_block_size;
+        case coding_MTA2:
+            return 0x90;
         case coding_MC3:
             return 4;
         default:
@@ -1735,6 +1759,13 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                         chan, vgmstream->channels);
             }
             break;
+        case coding_MTA2:
+            for (chan=0;chan<vgmstream->channels;chan++) {
+                decode_mta2(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                        vgmstream->channels, vgmstream->samples_into_block, samples_to_do,
+                        chan);
+            }
+            break;
         case coding_MC3:
             for (chan=0;chan<vgmstream->channels;chan++) {
                 decode_mc3(vgmstream, &vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
@@ -1776,12 +1807,20 @@ int vgmstream_samples_to_do(int samples_this_block, int samples_per_frame, VGMST
     return samples_to_do;
 }
 
-/* return 1 if we just looped */
+/* loop if end sample is reached, and return 1 if we did loop */
 int vgmstream_do_loop(VGMSTREAM * vgmstream) {
-    /*if (vgmstream->loop_flag) return 0;*/
+    /*if (!vgmstream->loop_flag) return 0;*/
 
-    /* is this the loop end? */
+    /* is this the loop end? = new loop, continue from loop_start_sample */
     if (vgmstream->current_sample==vgmstream->loop_end_sample) {
+
+        /* disable looping if target count reached and continue normally
+         * (only needed with the "play stream end after looping N times" option enabled) */
+        vgmstream->loop_count++;
+        if (vgmstream->loop_target && vgmstream->loop_target == vgmstream->loop_count) {
+            vgmstream->loop_flag = 0; /* could be improved but works ok */
+            return 0;
+        }
 
         /* against everything I hold sacred, preserve adpcm
          * history through loop for certain types */
