@@ -9,6 +9,7 @@ VGMSTREAM * init_vgmstream_halpst(STREAMFILE *streamFile) {
 
     int channel_count;
     int loop_flag = 0;
+    int header_length = 0x80;
 
     int32_t samples_l,samples_r;
     int32_t start_sample = 0;
@@ -28,14 +29,20 @@ VGMSTREAM * init_vgmstream_halpst(STREAMFILE *streamFile) {
     channel_count = read_32bitBE(0xc,streamFile);
     max_block = read_32bitBE(0x10,streamFile)/channel_count;
 
-    if (channel_count != 1 && channel_count != 2) goto fail;
+    if (channel_count > 2) {
+        /* align the header length needed for the extra channels */
+        header_length = 0x10+0x38*channel_count;
+        header_length = (header_length+0x1f)/0x20*0x20;
+    }
 
     /* yay for redundancy, gives us something to test */
     samples_l = dsp_nibbles_to_samples(read_32bitBE(0x18,streamFile))+1;
-    if (channel_count == 2) {
-        samples_r = dsp_nibbles_to_samples(read_32bitBE(0x50,streamFile))+1;
-
-        if (samples_l != samples_r) goto fail;
+    {
+        int i;
+        for (i=1;i<channel_count;i++) {
+            samples_r = dsp_nibbles_to_samples(read_32bitBE(0x18+0x38*i,streamFile))+1;
+            if (samples_l != samples_r) goto fail;
+        }
     }
 
     /*
@@ -43,7 +50,7 @@ VGMSTREAM * init_vgmstream_halpst(STREAMFILE *streamFile) {
      * block, so we have to find that
      */
     {
-        off_t offset = 0x80, last_offset = 0;
+        off_t offset = header_length, last_offset = 0;
         off_t loop_offset;
 
         /* determine if there is a loop */
@@ -58,9 +65,9 @@ VGMSTREAM * init_vgmstream_halpst(STREAMFILE *streamFile) {
             loop_flag = 1;
 
             loop_offset = offset;
-            offset = 0x80;
+            offset = header_length;
             while (offset != loop_offset) {
-                start_nibble += read_32bitBE(offset,streamFile);
+                start_nibble += read_32bitBE(offset+4,streamFile)+1;
                 offset = read_32bitBE(offset+8,streamFile);
             }
 
@@ -89,12 +96,10 @@ VGMSTREAM * init_vgmstream_halpst(STREAMFILE *streamFile) {
 
     /* load decode coefs */
     {
-        int i;
-        for (i=0;i<16;i++)
-            vgmstream->ch[0].adpcm_coef[i] = read_16bitBE(0x20+i*2,streamFile);
-        if (channel_count == 2)
-            for (i=0;i<16;i++)
-                vgmstream->ch[1].adpcm_coef[i] = read_16bitBE(0x58+i*2,streamFile);
+        int i,j;
+        for (i=0;i<channel_count;i++)
+            for (j=0;j<16;j++)
+                vgmstream->ch[i].adpcm_coef[j] = read_16bitBE(0x20+0x38*i+j*2,streamFile);
     }
 
     /* open the file for reading by each channel */
@@ -115,7 +120,7 @@ VGMSTREAM * init_vgmstream_halpst(STREAMFILE *streamFile) {
     }
 
     /* start me up */
-    halpst_block_update(0x80,vgmstream);
+    halpst_block_update(header_length,vgmstream);
 
     return vgmstream;
 
