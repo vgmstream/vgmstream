@@ -485,7 +485,8 @@ int check_extensions(STREAMFILE *streamFile, const char * cmp_exts) {
     char filename[PATH_LIMIT];
     const char * ext = NULL;
     const char * cmp_ext = NULL;
-    int ext_len, cmp_len;
+    const char * ststr_res = NULL;
+    size_t ext_len, cmp_len;
 
     streamFile->get_name(streamFile,filename,sizeof(filename));
     ext = filename_extension(filename);
@@ -493,14 +494,15 @@ int check_extensions(STREAMFILE *streamFile, const char * cmp_exts) {
 
     cmp_ext = cmp_exts;
     do {
-        cmp_len = strstr(cmp_ext, ",") - cmp_ext; /* find next ext; becomes negative if not found */
-        if (cmp_len < 0)
-            cmp_len = strlen(cmp_ext); /* total length if more not found */
+        ststr_res = strstr(cmp_ext, ",");
+        cmp_len = ststr_res == NULL
+                  ? strlen(cmp_ext) /* total length if more not found */
+                  : (intptr_t)ststr_res - (intptr_t)cmp_ext; /* find next ext; ststr_res should always be greater than cmp_ext, resulting in a positive cmp_len */
 
-        if (strncasecmp(ext,cmp_ext, ext_len) == 0 && ext_len == cmp_len)
+        if (ext_len == cmp_len && strncasecmp(ext,cmp_ext, ext_len) == 0)
             return 1;
 
-        cmp_ext = strstr(cmp_ext, ",");
+        cmp_ext = ststr_res;
         if (cmp_ext != NULL)
             cmp_ext = cmp_ext + 1; /* skip comma */
 
