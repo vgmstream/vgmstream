@@ -37,7 +37,7 @@ VGMSTREAM * init_vgmstream_xau(STREAMFILE *streamFile) {
 	/* miniheader over a common header with some tweaks, so we'll simplify parsing */
 	switch(type) {
 	    case 0x50533200: /* "PS2\0" */
-	        if (read_32bitBE(0x40,streamFile) != 0x56414770) goto fail; /* "VAGp" */
+	        if (read_32bitBE(0x40,streamFile) != 0x56414770) goto fail; /* mutant "VAGp" (long header size) */
 
 	        start_offset = 0x800;
             vgmstream->sample_rate = read_32bitBE(0x50, streamFile);
@@ -48,22 +48,24 @@ VGMSTREAM * init_vgmstream_xau(STREAMFILE *streamFile) {
             vgmstream->coding_type = coding_PSX;
             vgmstream->layout_type = layout_interleave;
 	        vgmstream->interleave_block_size = 0x8000;
-
 	        break;
-	    case 0x58420000: /* "XB\0\0" */
-	        if (read_32bitBE(0x40,streamFile) != 0x52494646) goto fail; /* "RIFF" */
 
-            start_offset = 0x70;
+	    case 0x58420000: /* "XB\0\0" */
+	        if (read_32bitBE(0x40,streamFile) != 0x52494646) goto fail; /* mutant "RIFF" (sometimes wrong RIFF size) */
+
+	        /* start offset: find "data" chunk, as sometimes there is a "smpl" chunk at the start or the end (same as loop_start/end) */
+	        if (!find_chunk_le(streamFile, 0x64617461, 0x4c, 0, &start_offset, NULL) )
+	            goto fail;
+
             vgmstream->sample_rate = read_32bitLE(0x58, streamFile);
-            vgmstream->num_samples = ms_ima_bytes_to_samples(read_32bitLE(0x6c, streamFile), read_16bitLE(0x60, streamFile), channel_count);
+            vgmstream->num_samples = ms_ima_bytes_to_samples(read_32bitLE(start_offset-4, streamFile), read_16bitLE(0x60, streamFile), channel_count);
             vgmstream->loop_start_sample = loop_start;
             vgmstream->loop_end_sample = loop_end;
-            /* there is also a "smpl" chunk at the end, same as loop_start/end */
 
             vgmstream->coding_type = coding_XBOX;
             vgmstream->layout_type = layout_none;
-
             break;
+
 	    default:
 	        goto fail;
 	}
