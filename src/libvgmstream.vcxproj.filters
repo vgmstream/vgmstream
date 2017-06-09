@@ -343,6 +343,9 @@
     <ClCompile Include="meta\ngc_ymf.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\ngc_ulw.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\nwa.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>

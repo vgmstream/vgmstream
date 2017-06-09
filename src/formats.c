@@ -283,6 +283,7 @@ static const char* extension_list[] = {
     "tun",
     "tydsp",
 
+    "ulw",
     "um3",
 
     "vag",
@@ -394,6 +395,7 @@ static const coding_info coding_info_list[] = {
         {coding_PCM8_U_int,         "8-bit unsigned PCM with 1 byte interleave"},
         {coding_PCM8_int,           "8-bit PCM with 1 byte interleave"},
         {coding_PCM8_SB_int,        "8-bit PCM with sign bit, 1 byte interleave"},
+        {coding_ULAW,               "8-bit u-Law"},
         {coding_CRI_ADX,            "CRI ADX 4-bit ADPCM"},
         {coding_CRI_ADX_exp,        "CRI ADX 4-bit ADPCM with exponential scale"},
         {coding_CRI_ADX_fixed,      "CRI ADX 4-bit ADPCM with fixed coefficients"},
@@ -866,6 +868,7 @@ static const meta_info meta_info_list[] = {
         {meta_TA_AAC_X360,          "tri-Ace AAC (X360) header"},
         {meta_TA_AAC_PS3,           "tri-Ace AAC (PS3) header"},
         {meta_PS3_MTA2,             "Konami MTA2 header"},
+        {meta_NGC_ULW,              "Criterion ULW raw header"},
 
 #ifdef VGM_USE_VORBIS
         {meta_OGG_VORBIS,           "Ogg Vorbis"},

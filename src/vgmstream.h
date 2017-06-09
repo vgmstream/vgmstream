@@ -83,6 +83,7 @@ typedef enum {
     coding_PCM8_U,          /* 8-bit PCM, unsigned (0x80 = 0) */
     coding_PCM8_U_int,      /* 8-bit PCM, unsigned (0x80 = 0) with sample-level interleave */
     coding_PCM8_SB_int,     /* 8-bit PCM, sign bit (others are 2's complement) with sample-level interleave */
+    coding_ULAW,            /* 8-bit u-Law (non-linear PCM) */
 
     /* 4-bit ADPCM */
     coding_CRI_ADX,         /* CRI ADX */
@@ -617,6 +618,7 @@ typedef enum {
     meta_TA_AAC_X360,       /* tri-ace AAC (Star Ocean 4, End of Eternity, Infinite Undiscovery) */
     meta_TA_AAC_PS3,        /* tri-ace AAC (Star Ocean International, Resonance of Fate) */
     meta_PS3_MTA2,          /* Metal Gear Solid 4 MTA2 */
+    meta_NGC_ULW,           /* Burnout 1 (GC only) */
 
 #ifdef VGM_USE_VORBIS
     meta_OGG_VORBIS,        /* Ogg Vorbis */

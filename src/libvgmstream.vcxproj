@@ -265,6 +265,7 @@
     <ClCompile Include="meta\ngc_ssm.c" />
     <ClCompile Include="meta\ngc_tydsp.c" />
     <ClCompile Include="meta\ngc_ymf.c" />
+    <ClCompile Include="meta\ngc_ulw.c" />
     <ClCompile Include="meta\nwa.c" />
     <ClCompile Include="meta\ogg_vorbis_file.c" />
     <ClCompile Include="meta\ogl.c" />

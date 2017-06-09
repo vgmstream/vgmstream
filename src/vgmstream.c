@@ -361,6 +361,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_ta_aac_x360,
     init_vgmstream_ta_aac_ps3,
     init_vgmstream_ps3_mta2,
+    init_vgmstream_ngc_ulw,
 
 #ifdef VGM_USE_FFMPEG
     init_vgmstream_mp4_aac_ffmpeg,
@@ -979,6 +980,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_PCM8_int:
         case coding_PCM8_SB_int:
         case coding_PCM8_U_int:
+        case coding_ULAW:
 #ifdef VGM_USE_VORBIS
         case coding_ogg_vorbis:
         case coding_fsb_vorbis:
@@ -1136,6 +1138,7 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
         case coding_PCM8_int:
         case coding_PCM8_SB_int:
         case coding_PCM8_U_int:
+        case coding_ULAW:
         case coding_SDX2:
         case coding_SDX2_int:
         case coding_CBD2:
@@ -1352,6 +1355,13 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
         case coding_PCM8_U_int:
             for (chan=0;chan<vgmstream->channels;chan++) {
                 decode_pcm8_unsigned_int(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                        vgmstream->channels,vgmstream->samples_into_block,
+                        samples_to_do);
+            }
+            break;
+        case coding_ULAW:
+            for (chan=0;chan<vgmstream->channels;chan++) {
+                decode_ulaw(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
                         samples_to_do);
             }
