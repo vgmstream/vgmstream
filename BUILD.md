@@ -53,8 +53,8 @@ Open *./vgmstream_full.sln* as a base, which expects the above dependencies. The
 - For *foo_input_vgmstream* add *../../WTL/Include* to the compilers's *additional includes*
 - For *foo_input_vgmstream* add *../../foobar/foobar2000/shared/shared.lib* to the linker's *additional dependencies*
 
-VS2013 may not be compatible with the SDK in release mode due to compiler bugs.
-FDK-AAC/QAAC can be disabled by removing *VGM_USE_MP4V2* and *VGM_USE_FDKAAC* in the compiler/linker options and the project dependencies.
+VS2013/VS2015/VS2017 may not be compatible with the SDK in release mode when some options are enabled due to compiler bugs.
+FDK-AAC/QAAC can be safely disabled by removing *VGM_USE_MP4V2* and *VGM_USE_FDKAAC* in the compiler/linker options and the project dependencies, MAIATRAC3 too, as FFmpeg is used instead to support their codecs.
 
 
 You can also use the command line to compile with MSBuild, if you don't want to touch the .vcxproj files, register VS2015 after trial, or only have VC++/MSBuild tools.
@@ -167,6 +167,6 @@ For new simple formats, assuming existing layout/coding:
 - *src/vgmstream.h*: register new meta
 - *src/vgmstream.c*: add parser init to the init list
 - *src/formats.c*: add new extension to the format list, add meta description
-- *fb2k/foo_vgmstream.cpp*: add new extension to the file register list (optional)
+- *fb2k/foo_filetypes.h*: add new extension to the file register list (optional)
 - *src/libvgmstream.vcproj/vcxproj/filters*: add to compile new (format-name).c parser in VS
 - if the format needs an external library don't forget to mark optional parts with: *#ifdef VGM_USE_X ... #endif*
