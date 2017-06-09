@@ -253,7 +253,7 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
         else if (!strcasecmp("sns",filename_extension(filename)))
             sns = 1;
 #if defined(VGM_USE_MAIATRAC3PLUS) || defined(VGM_USE_FFMPEG)
-        else if (!strcasecmp("at3",filename_extension(filename)))
+        else if ( check_extensions(streamFile, "at3,rws") ) /* Renamed .RWS AT3 found in Climax games (Silent Hill Origins PSP, Oblivion PSP) */
             at3 = 1;
 #endif
         else
