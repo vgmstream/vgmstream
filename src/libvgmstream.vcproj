@@ -835,10 +835,6 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\ps2_rws.c"
-					>
-				</File>
-				<File
 					RelativePath=".\meta\ps2_rxws.c"
 					>
 				</File>
@@ -1030,6 +1026,10 @@
 					RelativePath=".\meta\rsf.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\meta\rws.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\rwsd.c"
 					>

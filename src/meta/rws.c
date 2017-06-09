@@ -1,7 +1,7 @@
 #include "meta.h"
 #include "../util.h"
 
-/* RWS (Silent Hill Origins, Ghost Rider, Max Payne 2) */
+/* RWS - RenderWare Stream (from games using RenderWare Audio middleware) */
 VGMSTREAM * init_vgmstream_rws(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[PATH_LIMIT];

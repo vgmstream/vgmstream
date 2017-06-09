@@ -616,7 +616,7 @@ static const meta_info meta_info_list[] = {
         {meta_XSS,                  "Dino Crisis 3 XSS File"},
         {meta_HGC1,                 "Knights of the Temple 2 hgC1 Header"},
         {meta_AUS,                  "Capcom AUS Header"},
-        {meta_RWS,                  "RWS Header"},
+        {meta_RWS,                  "RenderWare RWS header"},
         {meta_EACS_PC,              "EACS Header (PC)"},
         {meta_EACS_PSX,             "EACS Header (PSX)"},
         {meta_EACS_SAT,             "EACS Header (SATURN)"},

@@ -340,7 +340,7 @@ typedef enum {
     meta_SL3,				/* Test Drive Unlimited */
     meta_HGC1,				/* Knights of the Temple 2 */
     meta_AUS,				/* Various Capcom games */
-    meta_RWS,				/* Various Konami games */
+    meta_RWS,				/* RenderWare games (only when using RW Audio middleware) */
     meta_FSB1,              /* FMOD Sample Bank, version 1 */
     meta_FSB2,              /* FMOD Sample Bank, version 2 */
     meta_FSB3,              /* FMOD Sample Bank, version 3.0/3.1 */
