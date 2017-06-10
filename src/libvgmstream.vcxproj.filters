@@ -916,6 +916,9 @@
     <ClCompile Include="layout\psx_mgav_blocked.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="layout\rws_blocked.c">
+      <Filter>layout\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="layout\str_snds_blocked.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>

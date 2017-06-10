@@ -458,6 +458,7 @@
     <ClCompile Include="layout\nolayout.c" />
     <ClCompile Include="layout\ps2_adm_blocked.c" />
     <ClCompile Include="layout\psx_mgav_blocked.c" />
+    <ClCompile Include="layout\rws_blocked.c" />
     <ClCompile Include="layout\str_snds_blocked.c" />
     <ClCompile Include="layout\thp_blocked.c" />
     <ClCompile Include="layout\vs_blocked.c" />

@@ -235,6 +235,7 @@ typedef enum {
     layout_tra_blocked,     /* DefJam Rapstar .tra blocks */
     layout_ps2_iab_blocked,
     layout_ps2_strlr_blocked,
+    layout_rws_blocked,
 
     /* otherwise odd */
     layout_acm,             /* libacm layout */
@@ -726,9 +727,11 @@ typedef struct {
     size_t interleave_smallblock_size;  /* smaller interleave for last block */
     /* headered blocks */
     off_t current_block_offset;     /* start of this block (offset of block header) */
-    size_t current_block_size;      /* size of the block we're in now */
+    size_t current_block_size;      /* size of the block we're in now (usable data) */
+    size_t full_block_size;         /* size including padding and other unusable data */
     off_t next_block_offset;        /* offset of header of the next block */
-	int	block_count;				/* count of "semi" block in total block */
+    int block_count;                /* count of "semi" block in total block */
+
 
     /* loop layout (saved values) */
     int32_t loop_sample;            /* saved from current_sample, should be loop_start_sample... */

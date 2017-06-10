@@ -1546,6 +1546,10 @@
 					RelativePath=".\layout\psx_mgav_blocked.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\layout\rws_blocked.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\layout\scd_int_layout.c"
 					>

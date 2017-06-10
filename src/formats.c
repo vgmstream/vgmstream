@@ -517,6 +517,7 @@ static const layout_info layout_info_list[] = {
         {layout_ivaud_blocked,          "GTA IV blocked"},
         {layout_ps2_iab_blocked,        "IAB blocked"},
         {layout_ps2_strlr_blocked,      "The Bouncer STR blocked"},
+        {layout_rws_blocked,            "RWS blocked"},
         {layout_tra_blocked,            "TRA blocked"},
         {layout_acm,                    "ACM blocked"},
         {layout_mus_acm,                "multiple ACM files, ACM blocked"},
