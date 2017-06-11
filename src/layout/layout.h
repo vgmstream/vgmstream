@@ -59,6 +59,8 @@ void ps2_iab_block_update(off_t block_offset, VGMSTREAM * vgmstream);
 
 void ps2_strlr_block_update(off_t block_offset, VGMSTREAM * vgmstream);
 
+void rws_block_update(off_t block_offset, VGMSTREAM * vgmstream);
+
 /* other layouts */
 void render_vgmstream_interleave(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstream);
 

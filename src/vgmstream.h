@@ -83,6 +83,7 @@ typedef enum {
     coding_PCM8_U,          /* 8-bit PCM, unsigned (0x80 = 0) */
     coding_PCM8_U_int,      /* 8-bit PCM, unsigned (0x80 = 0) with sample-level interleave */
     coding_PCM8_SB_int,     /* 8-bit PCM, sign bit (others are 2's complement) with sample-level interleave */
+    coding_ULAW,            /* 8-bit u-Law (non-linear PCM) */
 
     /* 4-bit ADPCM */
     coding_CRI_ADX,         /* CRI ADX */
@@ -234,6 +235,7 @@ typedef enum {
     layout_tra_blocked,     /* DefJam Rapstar .tra blocks */
     layout_ps2_iab_blocked,
     layout_ps2_strlr_blocked,
+    layout_rws_blocked,
 
     /* otherwise odd */
     layout_acm,             /* libacm layout */
@@ -339,7 +341,7 @@ typedef enum {
     meta_SL3,				/* Test Drive Unlimited */
     meta_HGC1,				/* Knights of the Temple 2 */
     meta_AUS,				/* Various Capcom games */
-    meta_RWS,				/* Various Konami games */
+    meta_RWS,				/* RenderWare games (only when using RW Audio middleware) */
     meta_FSB1,              /* FMOD Sample Bank, version 1 */
     meta_FSB2,              /* FMOD Sample Bank, version 2 */
     meta_FSB3,              /* FMOD Sample Bank, version 3.0/3.1 */
@@ -617,6 +619,7 @@ typedef enum {
     meta_TA_AAC_X360,       /* tri-ace AAC (Star Ocean 4, End of Eternity, Infinite Undiscovery) */
     meta_TA_AAC_PS3,        /* tri-ace AAC (Star Ocean International, Resonance of Fate) */
     meta_PS3_MTA2,          /* Metal Gear Solid 4 MTA2 */
+    meta_NGC_ULW,           /* Burnout 1 (GC only) */
 
 #ifdef VGM_USE_VORBIS
     meta_OGG_VORBIS,        /* Ogg Vorbis */
@@ -724,9 +727,11 @@ typedef struct {
     size_t interleave_smallblock_size;  /* smaller interleave for last block */
     /* headered blocks */
     off_t current_block_offset;     /* start of this block (offset of block header) */
-    size_t current_block_size;      /* size of the block we're in now */
+    size_t current_block_size;      /* size of the block we're in now (usable data) */
+    size_t full_block_size;         /* size including padding and other unusable data */
     off_t next_block_offset;        /* offset of header of the next block */
-	int	block_count;				/* count of "semi" block in total block */
+    int block_count;                /* count of "semi" block in total block */
+
 
     /* loop layout (saved values) */
     int32_t loop_sample;            /* saved from current_sample, should be loop_start_sample... */

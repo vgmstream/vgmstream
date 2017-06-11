@@ -57,6 +57,10 @@ the above instructions for installing the other files needed.
 Drop the xmp-vgmstream.dll in your XMPlay plugins directory. Please follow
 the above instructions for installing the other files needed.
 
+Because the XMPlay MP3 decoder incorrectly tries to play some vgmstream exts,
+you need to manually fix it by going to options > plugins > input > vgmstream
+and in the "priority filetypes" put: ckd,fsb,genh,msf,rak,scd,xvag
+
 --- foo_input_vgmstream ---
 Every should be installed automatically by the .fb2k-component bundle.
 
@@ -127,6 +131,7 @@ PS2/PSX ADPCM:
 - .wp2
 - .xa2
 - .xa30
+- .xwb+xwh
 
 GC/Wii/3DS DSP ADPCM:
 - .aaap
