@@ -97,11 +97,12 @@ static void mta2_block_update(VGMSTREAMCHANNEL * stream) {
 void decode_mta2(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
     int samples_done = 0, sample_count = 0, channel_block_samples, channel_first_sample, frame_size = 0;
     int i, group, row, col;
-    int num_track = 0, channel_layout, track_channels = 0, track_channel;
+    int track_channels = 0, track_channel;
 
 
     /* block/track skip */
     do {
+        int num_track = 0, channel_layout;
         /* autodetect and skip macroblock header */
         mta2_block_update(stream);
 
@@ -112,8 +113,13 @@ void decode_mta2(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing,
         frame_size     = read_16bitBE(stream->offset+0x06,stream->streamfile); /* not including this header */
         /* 0x08(8): null */
 
-        if (num_track < 0)
-            break; /* EOF: whatever */
+        /* EOF: 0-fill buffer (or, as track_channels = 0 > divs by 0) */
+        if (num_track < 0) {
+            for (i = 0; i < samples_to_do; i++)
+                outbuf[i * channelspacing] = 0;
+            return;
+        }
+
 
         track_channels = 0;
         for (i = 0; i < 8; i++) {
