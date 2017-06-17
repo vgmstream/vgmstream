@@ -548,6 +548,8 @@ static int find_key(STREAMFILE *file, uint8_t type, uint16_t *xor_start, uint16_
     {
         /* try to guess key */
 #define MAX_FRAMES (INT_MAX/0x8000)
+        struct { uint16_t start, mult, add; } *keys = NULL;
+        int keycount = 0, keymask = 0;
         int scales_to_do;
         int key_id;
 
@@ -582,82 +584,52 @@ static int find_key(STREAMFILE *file, uint8_t type, uint16_t *xor_start, uint16_
 
         if (type == 8)
         {
-            /* guess each of the keys */
-            for (key_id=0;key_id<keys_8_count;key_id++) {
-                /* test pre-scales */
-                uint16_t xor = keys_8[key_id].start;
-                uint16_t mult = keys_8[key_id].mult;
-                uint16_t add = keys_8[key_id].add;
-                int i;
-
-                for (i=0;i<bruteframe &&
-                        ((prescales[i]&0x6000)==(xor&0x6000) ||
-                         prescales[i]==0);
-                        i++) {
-                    xor = xor * mult + add;
-                }
-
-                if (i == bruteframe)
-                {
-                    /* test */
-                    for (i=0;i<scales_to_do &&
-                            (scales[i]&0x6000)==(xor&0x6000);i++) {
-                        xor = xor * mult + add;
-                    }
-                    if (i == scales_to_do)
-                    {
-                        *xor_start = keys_8[key_id].start;
-                        *xor_mult = keys_8[key_id].mult;
-                        *xor_add = keys_8[key_id].add;
-
-                        rc = 1;
-                        goto find_key_cleanup;
-                    }
-                }
-            }
+            keys = &keys_8;
+            keycount = keys_8_count;
+            keymask = 0x6000;
         }
         else if (type == 9)
         {
-            /* smarter XOR as seen in PSO2, can't do an exact match so we
-             * have to search for the lowest */
-            long best_score = MAX_FRAMES * 0x1fff;
+            /* smarter XOR as seen in PSO2. The scale is technically 13 bits,
+             * but the maximum value assigned by the encoder is 0x1000.
+             * This is written to the ADX file as 0xFFF, leaving the high bit
+             * empty, which is used to validate a key */
+            keys = &keys_9;
+            keycount = keys_9_count;
+            keymask = 0x1000;
+        }
 
-            /* guess each of the keys */
-            for (key_id=0;key_id<keys_9_count;key_id++) {
-                /* run past pre-scales */
-                uint16_t xor = keys_9[key_id].start;
-                uint16_t mult = keys_9[key_id].mult;
-                uint16_t add = keys_9[key_id].add;
-                int i;
-                long total_score = 0;
+        /* guess each of the keys */
+        for (key_id=0;key_id<keycount;key_id++) {
+            /* test pre-scales */
+            uint16_t xor = keys[key_id].start;
+            uint16_t mult = keys[key_id].mult;
+            uint16_t add = keys[key_id].add;
+            int i;
 
-                for (i=0;i<bruteframe;i++) {
-                    xor = xor * mult + add;
-                }
-
-                if (i == bruteframe)
-                {
-                    /* test */
-                    for (i=0;i<scales_to_do && total_score < best_score;i++) {
-                        xor = xor * mult + add;
-                        total_score += (scales[i]^xor)&0x1fff;
-                    }
-
-                    if (total_score < best_score)
-                    {
-                        *xor_start = keys_9[key_id].start;
-                        *xor_mult = keys_9[key_id].mult;
-                        *xor_add = keys_9[key_id].add;
-
-                        best_score = total_score;
-                    }
-                }
+            for (i=0;i<bruteframe &&
+                ((prescales[i]&keymask)==(xor&keymask) ||
+                    prescales[i]==0);
+                i++) {
+                xor = xor * mult + add;
             }
 
-            /* arbitrarily decide if we have won? */
-            if (best_score < scales_to_do * 0x1000)
+            if (i == bruteframe)
             {
-                rc = 1;
+                /* test */
+                for (i=0;i<scales_to_do &&
+                    (scales[i]&keymask)==(xor&keymask);i++) {
+                    xor = xor * mult + add;
+                }
+                if (i == scales_to_do)
+                {
+                    *xor_start = keys[key_id].start;
+                    *xor_mult = keys[key_id].mult;
+                    *xor_add = keys[key_id].add;
+
+                    rc = 1;
+                    goto find_key_cleanup;
+                }
             }
         }
     }
