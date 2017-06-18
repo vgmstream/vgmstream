@@ -240,8 +240,8 @@ static struct {
     uint16_t start,mult,add;
 } keys_8[] = {
     /* Clover Studio (GOD HAND, Okami) */
-    /* I'm pretty sure this is right, based on a decrypted version of some GOD HAND tracks. */
-    /* Also it is the 2nd result from guessadx */
+    /* Verified by VGAudio and the game's executable */
+    /* Key string: karaage */
     {0x49e1,0x4a57,0x553d},
 
     /* Grasshopper Manufacture 0 (Blood+) */
@@ -261,7 +261,8 @@ static struct {
     {0x66f5,0x58bd,0x4459},
 
     /* Sonic Team 0 (Phantasy Star Universe) */
-    /* this is estimated */
+    /* Verified by VGAudio and the game's executable */
+    /* Key string: 3x5k62bg9ptbwy */
     {0x5deb,0x5f27,0x673f},
 
     /* G.rev 0 (Senko no Ronde) */
@@ -284,11 +285,13 @@ static struct {
     {0x4d65,0x5eb7,0x5dfd},
 
     /* Sonic Team 2 (Sonic and the Black Knight) */
-    /* confirmed unique with guessadx */
+    /* Verified by VGAudio and the game's executable */
+    /* Key string: morio */
     {0x55b7,0x6191,0x5a77},
 
     /* Enterbrain (Amagami) */
-    /* one of 32 from guessadx */
+    /* Verified by VGAudio and the game's executable */
+    /* Key string: mituba */
     {0x5a17,0x509f,0x5bfd},
 
     /* Yamasa (Yamasa Digi Portable: Matsuri no Tatsujin) */
@@ -471,16 +474,24 @@ static struct {
     {0x07d2,0x1ec5,0x0c7f},
 
     /* Dragon Ball Z: Dokkan Battle
-     * guessed with degod */
+     * Verified by VGAudio 
+     * Key code: 416383518 */
     {0x0003,0x0d19,0x043b},
 
     /* Kisou Ryouhei Gunhound EX (2013-01-31)(Dracue)[PSP]
-     * guessed with degod */
+     * Verified by VGAudio 
+     * Key code: 683461999 */
     {0x0005,0x0bcd,0x1add},
 
     /* Raramagi [Android]
-     * found in 2ch */
+     * Verified by VGAudio 
+     * Key code: 12160794 */
     {0x0000,0x0b99,0x1e33},
+
+    /* Sonic runners [Android]
+     * Verified by VGAudio 
+     * Key code: 19910623 */
+    {0x0000,0x12fd,0x1fbd},
 
 };
 
