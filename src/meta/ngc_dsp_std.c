@@ -229,9 +229,10 @@ VGMSTREAM * init_vgmstream_ngc_mdsp_std(STREAMFILE *streamFile) {
         vgmstream->loop_end_sample = vgmstream->num_samples;
 
     vgmstream->coding_type = coding_NGC_DSP;
-    vgmstream->layout_type = channel_count == 1 ? layout_none : layout_interleave;
+    vgmstream->layout_type = channel_count == 1 ? layout_none : layout_interleave_shortblock;
     vgmstream->meta_type = meta_DSP_STD;
     vgmstream->interleave_block_size = header.block_size * 8;
+    vgmstream->interleave_smallblock_size = (header.nibble_count / 2 % vgmstream->interleave_block_size + 7) / 8 * 8;
 
     for (i = 0; i < channel_count; i++) {
         if (read_dsp_header(&header, header_size * i, streamFile)) goto fail;
