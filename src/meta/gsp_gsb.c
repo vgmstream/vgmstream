@@ -82,9 +82,9 @@ VGMSTREAM * init_vgmstream_gsp_gsb(STREAMFILE *streamFile) {
             uint8_t buf[100];
             int32_t bytes, block_size, encoder_delay, joint_stereo, max_samples;
 
-            block_size = 0x98 * vgmstream->channels;
-            joint_stereo = 0;
-            max_samples = (datasize / block_size) * 1024;
+            block_size    = 0x98 * vgmstream->channels;
+            joint_stereo  = 0;
+            max_samples   = atrac3_bytes_to_samples(datasize, block_size);;
             encoder_delay = max_samples - vgmstream->num_samples; /* todo guessed */
 
             vgmstream->num_samples += encoder_delay;
@@ -113,7 +113,7 @@ VGMSTREAM * init_vgmstream_gsp_gsb(STREAMFILE *streamFile) {
             if (!find_chunk_be(streamFileGSP, 0x584D4558,first_offset,1, &chunk_offset,NULL)) goto fail; /*"XMEX"*/
             /* 0x00: fmt0x166 header (BE),  0x34: seek table */
 
-            bytes = ffmpeg_make_riff_xma2_from_fmt(buf,200, chunk_offset,0x34, datasize, streamFileGSP, 1);
+            bytes = ffmpeg_make_riff_xma_from_fmt_chunk(buf,200, chunk_offset,0x34, datasize, streamFileGSP, 1);
             if (bytes <= 0) goto fail;
 
             ffmpeg_data = init_ffmpeg_header_offset(streamFile, buf,bytes, start_offset,datasize);

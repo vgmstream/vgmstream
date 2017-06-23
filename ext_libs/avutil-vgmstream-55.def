@@ -82,6 +82,8 @@ EXPORTS
     av_color_transfer_name
     av_compare_mod
     av_compare_ts
+    av_content_light_metadata_alloc
+    av_content_light_metadata_create_side_data
     av_cpu_count
     av_crc
     av_crc_get_table
@@ -141,6 +143,7 @@ EXPORTS
     av_find_nearest_q_idx
     av_fopen_utf8
     av_force_cpu_flags
+    av_fourcc_make_string
     av_frame_alloc
     av_frame_clone
     av_frame_copy
@@ -241,8 +244,10 @@ EXPORTS
     av_hwdevice_hwconfig_alloc
     av_hwframe_constraints_free
     av_hwframe_ctx_alloc
+    av_hwframe_ctx_create_derived
     av_hwframe_ctx_init
     av_hwframe_get_buffer
+    av_hwframe_map
     av_hwframe_transfer_data
     av_hwframe_transfer_get_formats
     av_i2int
@@ -253,6 +258,7 @@ EXPORTS
     av_image_copy
     av_image_copy_plane
     av_image_copy_to_buffer
+    av_image_copy_uc_from
     av_image_fill_arrays
     av_image_fill_linesizes
     av_image_fill_max_pixsteps
@@ -405,6 +411,9 @@ EXPORTS
     av_shr_i
     av_small_strptime
     av_spherical_alloc
+    av_spherical_from_name
+    av_spherical_projection_name
+    av_spherical_tile_bounds
     av_stereo3d_alloc
     av_stereo3d_create_side_data
     av_stereo3d_from_name
@@ -412,6 +421,7 @@ EXPORTS
     av_strcasecmp
     av_strdup
     av_strerror
+    av_strireplace
     av_stristart
     av_stristr
     av_strlcat

@@ -1,11 +1,9 @@
-#include "../vgmstream.h"
-
-#ifdef VGM_USE_G7221
 #include "coding.h"
 #include "../util.h"
 
-void decode_g7221(VGMSTREAM * vgmstream, 
-        sample * outbuf, int channelspacing, int32_t samples_to_do, int channel) {
+#ifdef VGM_USE_G7221
+
+void decode_g7221(VGMSTREAM * vgmstream, sample * outbuf, int channelspacing, int32_t samples_to_do, int channel) {
     VGMSTREAMCHANNEL *ch = &vgmstream->ch[channel];
     g7221_codec_data *data = vgmstream->codec_data;
     g7221_codec_data *ch_data = &data[channel];
@@ -21,6 +19,32 @@ void decode_g7221(VGMSTREAM * vgmstream,
     for (i = 0; i < samples_to_do; i++)
     {
         outbuf[i*channelspacing] = ch_data->buffer[vgmstream->samples_into_block+i];
+    }
+}
+
+
+void reset_g7221(VGMSTREAM *vgmstream) {
+    g7221_codec_data *data = vgmstream->codec_data;
+    int i;
+
+    for (i = 0; i < vgmstream->channels; i++)
+    {
+        g7221_reset(data[i].handle);
+    }
+}
+
+void free_g7221(VGMSTREAM *vgmstream) {
+    g7221_codec_data *data = (g7221_codec_data *) vgmstream->codec_data;
+
+    if (data)
+    {
+        int i;
+
+        for (i = 0; i < vgmstream->channels; i++)
+        {
+            g7221_free(data[i].handle);
+        }
+        free(data);
     }
 }
 

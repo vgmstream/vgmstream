@@ -1,9 +1,10 @@
-/* Winamp plugin interface for vgmstream */
-/* Based on: */
-/*
-** Example Winamp .RAW input plug-in
-** Copyright (c) 1998, Justin Frankel/Nullsoft Inc.
-*/
+/**
+ * vgmstream for Winamp
+ */
+
+/* Winamp uses wchar_t filenames when this is on, so extra steps are needed.
+ * To open unicode filenames it needs to use _wfopen, inside a WA_STREAMFILE to pass around */
+//#define UNICODE_INPUT_PLUGIN
 
 #ifdef _MSC_VER
 #define _CRT_SECURE_NO_DEPRECATE
@@ -22,6 +23,7 @@
 #include "wa_ipc.h"
 #include "resource.h"
 
+
 #ifndef VERSION
 #include "../version.h"
 #endif
@@ -33,14 +35,13 @@
 #define PLUGIN_DESCRIPTION "vgmstream plugin " VERSION " " __DATE__
 #define INI_NAME "plugin.ini"
 
+
 /* post when playback stops */
 #define WM_WA_MPEG_EOF WM_USER+2
 
 In_Module input_module; /* the input module, declared at the bottom of this file */
 DWORD WINAPI __stdcall decode(void *arg);
 
-char lastfn[MAX_PATH+1] = {0}; /* name of the currently playing file */
-short sample_buffer[576*2*2]; /* 576 16-bit samples, stereo, possibly doubled in size for DSP */
 
 #define DEFAULT_FADE_SECONDS "10.00"
 #define DEFAULT_FADE_DELAY_SECONDS "0.00"
@@ -56,6 +57,18 @@ short sample_buffer[576*2*2]; /* 576 16-bit samples, stereo, possibly doubled in
 #define LOOP_FOREVER_INI_ENTRY "loop_forever"
 #define IGNORE_LOOP_INI_ENTRY "ignore_loop"
 
+char *priority_strings[] = {"Idle","Lowest","Below Normal","Normal","Above Normal","Highest (not recommended)","Time Critical (not recommended)"};
+int priority_values[] = {THREAD_PRIORITY_IDLE,THREAD_PRIORITY_LOWEST,THREAD_PRIORITY_BELOW_NORMAL,THREAD_PRIORITY_NORMAL,THREAD_PRIORITY_ABOVE_NORMAL,THREAD_PRIORITY_HIGHEST,THREAD_PRIORITY_TIME_CRITICAL};
+
+#define WINAMP_MAX_PATH  32768  /* originally 260+1 */
+in_char lastfn[WINAMP_MAX_PATH] = {0}; /* name of the currently playing file */
+
+/* Winamp Play extension list, needed to accept/play and associate extensions in Windows */
+#define EXTENSION_LIST_SIZE   VGM_EXTENSION_LIST_CHAR_SIZE * 6
+#define EXT_BUFFER_SIZE 200
+char working_extension_list[EXTENSION_LIST_SIZE] = {0};
+
+/* plugin config */
 double fade_seconds;
 double fade_delay_seconds;
 double loop_count;
@@ -63,11 +76,11 @@ int thread_priority;
 int loop_forever;
 int ignore_loop;
 
-char *priority_strings[] = {"Idle","Lowest","Below Normal","Normal","Above Normal","Highest (not recommended)","Time Critical (not recommended)"};
-int priority_values[] = {THREAD_PRIORITY_IDLE,THREAD_PRIORITY_LOWEST,THREAD_PRIORITY_BELOW_NORMAL,THREAD_PRIORITY_NORMAL,THREAD_PRIORITY_ABOVE_NORMAL,THREAD_PRIORITY_HIGHEST,THREAD_PRIORITY_TIME_CRITICAL};
-
+/* plugin state */
 VGMSTREAM * vgmstream = NULL;
 HANDLE decode_thread_handle = INVALID_HANDLE_VALUE;
+short sample_buffer[576*2*2]; /* 576 16-bit samples, stereo, possibly doubled in size for DSP */
+
 int paused = 0;
 int decode_abort = 0;
 int seek_needed_samples = -1;
@@ -76,52 +89,125 @@ int decode_pos_samples = 0;
 int stream_length_samples = 0;
 int fade_samples = 0;
 
-/* Winamp Play extension list, needed to accept/play and associate extensions in Windows */
-#define EXTENSION_LIST_SIZE   VGM_EXTENSION_LIST_CHAR_SIZE * 6
-char working_extension_list[EXTENSION_LIST_SIZE] = {0};
-#define EXT_BUFFER_SIZE 200
+/* ***************************************** */
 
-static void add_extension(int length, char * dst, const char * src);
-static void build_extension_list();
-
-
-void about(HWND hwndParent) {
-    MessageBox(hwndParent,
-            PLUGIN_DESCRIPTION "\n"
-            "by hcs, FastElbja, manakoAT, bxaimc, and snakemeat\n\n"
-            "http://sourceforge.net/projects/vgmstream"
-            ,"about in_vgmstream",MB_OK);
-}
-void quit() {}
-
-void GetINIFileName(char * iniFile) {
+/* Winamp INI reader */
+static void GetINIFileName(char * iniFile) {
     /* if we're running on a newer winamp version that better supports
      * saving of settings to a per-user directory, use that directory - if not
      * then just revert to the old behaviour */
 
     if(IsWindow(input_module.hMainWindow) && SendMessage(input_module.hMainWindow, WM_WA_IPC,0,IPC_GETVERSION) >= 0x5000) {
         char * iniDir = (char *)SendMessage(input_module.hMainWindow, WM_WA_IPC, 0, IPC_GETINIDIRECTORY);
-        strncpy(iniFile, iniDir, MAX_PATH);
+        strncpy(iniFile, iniDir, WINAMP_MAX_PATH);
 
-        strncat(iniFile, "\\Plugins\\", MAX_PATH);
+        strncat(iniFile, "\\Plugins\\", WINAMP_MAX_PATH);
         /* can't be certain that \Plugins already exists in the user dir */
         CreateDirectory(iniFile,NULL);
-        strncat(iniFile, INI_NAME, MAX_PATH);
-
+        strncat(iniFile, INI_NAME, WINAMP_MAX_PATH);
     }
     else {
         char * lastSlash;
 
-        GetModuleFileName(NULL, iniFile, MAX_PATH);
+        GetModuleFileName(NULL, iniFile, WINAMP_MAX_PATH);
         lastSlash = strrchr(iniFile, '\\');
 
         *(lastSlash + 1) = 0;
-        strncat(iniFile, "Plugins\\" INI_NAME,MAX_PATH);
+        strncat(iniFile, "Plugins\\" INI_NAME,WINAMP_MAX_PATH);
     }
 }
 
+/* Adds ext to Winamp's extension list */
+static void add_extension(int length, char * dst, const char * ext) {
+    char buf[EXT_BUFFER_SIZE];
+    char ext_upp[EXT_BUFFER_SIZE];
+    int ext_len, written;
+    int i,j;
+    if (length <= 1)
+        return;
+
+    ext_len = strlen(ext);
+
+    /* find end of dst (double \0), saved in i */
+    for (i=0; i<length-2 && (dst[i] || dst[i+1]); i++)
+        ;
+
+    /* check if end reached or not enough room to add */
+    if (i == length-2 || i + EXT_BUFFER_SIZE+2 > length-2 || ext_len * 3 + 20+2 > EXT_BUFFER_SIZE) {
+        dst[i]='\0';
+        dst[i+1]='\0';
+        return;
+    }
+
+    if (i > 0)
+        i++;
+
+    /* uppercase ext */
+    for (j=0; j < ext_len; j++)
+        ext_upp[j] = toupper(ext[j]);
+    ext_upp[j] = '\0';
+
+    /* copy new extension + double null terminate */
+    written = sprintf(buf, "%s%c%s Audio File (*.%s)%c", ext,'\0',ext_upp,ext_upp,'\0'); /*ex: "vgmstream\0vgmstream Audio File (*.VGMSTREAM)\0" */
+    for (j=0; j < written; i++,j++)
+        dst[i] = buf[j];
+    dst[i]='\0';
+    dst[i+1]='\0';
+}
+
+/* Creates Winamp's extension list, a single string that ends with \0\0.
+ * Each extension must be in this format: "extension\0Description\0" */
+static void build_extension_list() {
+    const char ** ext_list;
+    int ext_list_len;
+    int i;
+
+    working_extension_list[0]='\0';
+    working_extension_list[1]='\0';
+
+    ext_list = vgmstream_get_formats();
+    ext_list_len = vgmstream_get_formats_length();
+
+    for (i=0; i < ext_list_len; i++) {
+        add_extension(EXTENSION_LIST_SIZE, working_extension_list, ext_list[i]);
+    }
+}
+
+/* unicode utils */
+static void copy_title(in_char * dst, int dst_size, const in_char * src) {
+#ifdef UNICODE_INPUT_PLUGIN
+    in_char *p = (in_char*)src + wcslen(src); /* find end */
+    while (*p != '\\' && p >= src) /* and find last "\" */
+        p--;
+    p++;
+    wcscpy(dst,p); /* copy filename only */
+#else
+    in_char *p = (in_char*)src + strlen(src); /* find end */
+    while (*p != '\\' && p >= src) /* and find last "\" */
+        p--;
+    p++;
+    strcpy(dst,p); /* copy filename only */
+#endif
+}
+
+/* ***************************************** */
+
+/* about dialog */
+void about(HWND hwndParent) {
+    MessageBox(hwndParent,
+            PLUGIN_DESCRIPTION "\n"
+            "by hcs, FastElbja, manakoAT, bxaimc, snakemeat, soneek, kode54, bnnm and many others\n"
+            "\n"
+            "Winamp plugin by hcs, others\n"
+            "\n"
+            "https://github.com/kode54/vgmstream/\n"
+            "https://sourceforge.net/projects/vgmstream/ (original)"
+            ,"about in_vgmstream",MB_OK);
+}
+
+/* called at program init */
 void init() {
-    char iniFile[MAX_PATH+1];
+    char iniFile[WINAMP_MAX_PATH];
     char buf[256];
     int consumed;
 
@@ -167,19 +253,25 @@ void init() {
     build_extension_list();
 }
 
-/* we don't recognize protocols */
-int isourfile(char *fn) { return 0; }
+/* called at program quit */
+void quit() {
+}
+
+/* called before extension checks, to allow detection of mms://, etc */
+int isourfile(const in_char *fn) {
+    return 0; /* we don't recognize protocols */
+}
 
 /* request to start playing a file */
-int play(char *fn)
-{
+int play(const in_char *fn) {
     int max_latency;
 
     /* don't lose a pointer! */
     if (vgmstream) {
         /* TODO: this should either pop up an error box or close the file */
-        return 1;
+        return 1; /* error */
     }
+
     /* open the stream, set up */
     vgmstream = init_vgmstream(fn);
     /* were we able to open it? */
@@ -191,11 +283,11 @@ int play(char *fn)
     if (vgmstream->channels <= 0) {
         close_vgmstream(vgmstream);
         vgmstream=NULL;
-        return 1;
+        return 1; /* error */
     }
 
     /* Remember that name, friends! */
-    strncpy(lastfn,fn,MAX_PATH);
+    strncpy(lastfn,fn,WINAMP_MAX_PATH);
 
     /* open the output plugin */
     max_latency = input_module.outMod->Open(vgmstream->sample_rate,vgmstream->channels,
@@ -204,7 +296,7 @@ int play(char *fn)
     if (max_latency < 0) {
         close_vgmstream(vgmstream);
         vgmstream=NULL;
-        return 1;
+        return 1; /* error */
     }
 
     /* Set info display */
@@ -234,15 +326,27 @@ int play(char *fn)
 
     SetThreadPriority(decode_thread_handle,priority_values[thread_priority]);
 
-    return 0;
+    return 0; /* success */
 }
 
-/* pausing... */
-void pause() { paused=1; input_module.outMod->Pause(1); }
-void unpause() {paused=0; input_module.outMod->Pause(0); }
-int ispaused() { return paused; }
+/* pause stream */
+void pause() {
+    paused=1;
+    input_module.outMod->Pause(1);
+}
 
-/* stop playback */
+/* unpause stream */
+void unpause() {
+    paused=0;
+    input_module.outMod->Pause(0);
+}
+
+/* ispaused? return 1 if paused, 0 if not */
+int ispaused() {
+    return paused;
+}
+
+/* stop (unload) stream */
 void stop() {
     if (decode_thread_handle != INVALID_HANDLE_VALUE) {
         decode_abort=1;
@@ -265,31 +369,34 @@ void stop() {
     input_module.SAVSADeInit();
 }
 
-/* get current stream length */
+/* get length in ms */
 int getlength() {
     return stream_length_samples*1000LL/vgmstream->sample_rate;
 }
 
-/* get current output time */
+/* current output time in ms */
 int getoutputtime() {
     return decode_pos_ms+(input_module.outMod->GetOutputTime()-input_module.outMod->GetWrittenTime());
 }
 
-/* seek */
+/* seeks to point in stream (in ms) */
 void setoutputtime(int t) {
     if (vgmstream)
         seek_needed_samples = (long long)t * vgmstream->sample_rate / 1000LL;
 }
 
 /* pass these commands through */
-void setvolume(int volume) { input_module.outMod->SetVolume(volume); }
-void setpan(int pan) { input_module.outMod->SetPan(pan); }
+void setvolume(int volume) {
+    input_module.outMod->SetVolume(volume);
+}
+void setpan(int pan) {
+    input_module.outMod->SetPan(pan);
+}
 
 /* display information */
-int infoDlg(char *fn, HWND hwnd) {
+int infoDlg(const in_char *fn, HWND hwnd) {
     VGMSTREAM * infostream = NULL;
-    char description[1024];
-    description[0]='\0';
+    char description[1024] = {0};
 
     concatn(sizeof(description),description,PLUGIN_DESCRIPTION "\n\n");
 
@@ -297,7 +404,7 @@ int infoDlg(char *fn, HWND hwnd) {
         if (!vgmstream) return 0;
         describe_vgmstream(vgmstream,description,sizeof(description));
     } else {
-        infostream = init_vgmstream(fn);
+        infostream = init_vgmstream((char*)fn);
         if (!infostream) return 0;
         describe_vgmstream(infostream,description,sizeof(description));
         close_vgmstream(infostream);
@@ -309,43 +416,44 @@ int infoDlg(char *fn, HWND hwnd) {
 }
 
 /* retrieve information on this or possibly another file */
-void getfileinfo(char *filename, char *title, int *length_in_ms) {
-    if (!filename || !*filename)  /* currently playing file*/
+void getfileinfo(const in_char *filename, in_char *title, int *length_in_ms) {
+
+    if (!filename || !*filename)  /* no filename = use currently playing file */
     {
-        if (!vgmstream) return;
-        if (length_in_ms) *length_in_ms=getlength();
-        if (title) 
-        {
-            char *p=lastfn+strlen(lastfn);
-            while (*p != '\\' && p >= lastfn) p--;
-            strcpy(title,++p);
+        if (!vgmstream)
+            return;
+        if (length_in_ms)
+            *length_in_ms = getlength();
+
+        if (title) {
+            copy_title(title,GETFILEINFO_TITLE_LENGTH, lastfn);
         }
     }
     else /* some other file */
     {
         VGMSTREAM * infostream;
-        if (length_in_ms) 
-        {
+
+        if (length_in_ms) {
             *length_in_ms=-1000;
-            if ((infostream=init_vgmstream(filename)))
-            {
+
+            if ((infostream=init_vgmstream(filename))) {
                 *length_in_ms = get_vgmstream_play_samples(loop_count,fade_seconds,fade_delay_seconds,infostream)*1000LL/infostream->sample_rate;
 
                 close_vgmstream(infostream);
                 infostream=NULL;
             }
         }
-        if (title) 
-        {
-            char *p=filename+strlen(filename);
-            while (*p != '\\' && p >= filename) p--;
-            strcpy(title,++p);
+
+        if (title) {
+            copy_title(title,GETFILEINFO_TITLE_LENGTH, filename);
         }
     }
 }
 
-/* nothin' */
-void eq_set(int on, char data[10], int preamp) {}
+/* eq stuff */
+void eq_set(int on, char data[10], int preamp) {
+    /* nothin' */
+}
 
 /* the decode thread */
 DWORD WINAPI __stdcall decode(void *arg) {
@@ -439,7 +547,7 @@ DWORD WINAPI __stdcall decode(void *arg) {
 
 INT_PTR CALLBACK configDlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     char buf[256];
-    char iniFile[MAX_PATH+1];
+    char iniFile[WINAMP_MAX_PATH];
     static int mypri;
     HANDLE hSlider;
 
@@ -587,12 +695,16 @@ INT_PTR CALLBACK configDlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
     return TRUE;
 }
 
+/* configuration dialog */
 void config(HWND hwndParent) {
+    /* defined in resource.rc */
     DialogBox(input_module.hDllInstance, (const char *)IDD_CONFIG, hwndParent, configDlgProc);
 }
 
-In_Module input_module = 
-{
+/* *********************************** */
+
+/* main plugin def */
+In_Module input_module = {
     IN_VER,
     PLUGIN_DESCRIPTION,
     0,  /* hMainWindow */
@@ -624,68 +736,6 @@ In_Module input_module =
     0 // out_mod
 };
 
-__declspec( dllexport ) In_Module * winampGetInModule2()
-{
+__declspec( dllexport ) In_Module * winampGetInModule2() {
     return &input_module;
-}
-
-
-/**
- * Creates Winamp's extension list, a single string that ends with \0\0.
- * Each extension must be in this format: "extension\0Description\0"
- */
-static void build_extension_list() {
-    const char ** ext_list;
-    int ext_list_len;
-    int i;
-
-    working_extension_list[0]='\0';
-    working_extension_list[1]='\0';
-
-    ext_list = vgmstream_get_formats();
-    ext_list_len = vgmstream_get_formats_length();
-
-    for (i=0; i < ext_list_len; i++) {
-        add_extension(EXTENSION_LIST_SIZE, working_extension_list, ext_list[i]);
-    }
-}
-
-/**
- * Adds ext to Winamp's extension list.
- */
-static void add_extension(int length, char * dst, const char * ext) {
-    char buf[EXT_BUFFER_SIZE];
-    char ext_upp[EXT_BUFFER_SIZE];
-    int ext_len, written;
-    int i,j;
-    if (length <= 1)
-        return;
-
-    ext_len = strlen(ext);
-
-    /* find end of dst (double \0), saved in i */
-    for (i=0; i<length-2 && (dst[i] || dst[i+1]); i++)
-        ;
-
-    /* check if end reached or not enough room to add */
-    if (i == length-2 || i + EXT_BUFFER_SIZE+2 > length-2 || ext_len * 3 + 20+2 > EXT_BUFFER_SIZE) {
-        dst[i]='\0';
-        dst[i+1]='\0';
-        return;
-    }
-
-    if (i > 0)
-        i++;
-
-    /* uppercase ext */
-    for (j=0; j < ext_len; j++)
-        ext_upp[j] = toupper(ext[j]);
-    ext_upp[j] = '\0';
-
-    /* copy new extension + double null terminate */
-    written = sprintf(buf, "%s%c%s Audio File (*.%s)%c", ext,'\0',ext_upp,ext_upp,'\0'); /*ex: "vgmstream\0vgmstream Audio File (*.VGMSTREAM)\0" */
-    for (j=0; j < written; i++,j++)
-        dst[i] = buf[j];
-    dst[i]='\0';
-    dst[i+1]='\0';
 }

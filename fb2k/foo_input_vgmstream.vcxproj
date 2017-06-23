@@ -162,6 +162,7 @@
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="foo_filetypes.h" />
     <ClInclude Include="foo_prefs.h" />
     <ClInclude Include="foo_vgmstream.h" />
     <ClInclude Include="resource.h" />
@@ -171,8 +172,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="foo_prefs.cpp" />
-    <ClCompile Include="foostream.cpp" />
-    <ClCompile Include="in_vgmstream.cpp" />
+    <ClCompile Include="foo_streamfile.cpp" />
+    <ClCompile Include="foo_vgmstream.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\fdk-aac\msvc\fdk-aac.vcxproj">

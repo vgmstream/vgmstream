@@ -165,17 +165,27 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
             {
                 if (coding == coding_SDX2) {
                     coding = coding_SDX2_int;
-                    vgmstream->coding_type = coding_SDX2_int;
                 }
-                //todo if 0 do this too (most codecs seem to enter an infinite loop otherwise)
-                if(vgmstream->interleave_block_size==0xffffffff)
-                    vgmstream->layout_type=layout_none;
+
+                if (vgmstream->interleave_block_size==0xffffffff) {
+                    vgmstream->layout_type = layout_none;
+                }
                 else {
                     vgmstream->layout_type = layout_interleave;
-                    if(coding==coding_DVI_IMA)
-                        coding=coding_INT_DVI_IMA;
-                    if(coding==coding_IMA)
-                        coding=coding_INT_IMA;
+                    if (coding == coding_DVI_IMA)
+                        coding = coding_DVI_IMA_int;
+                    if (coding == coding_IMA)
+                        coding = coding_IMA_int;
+                }
+
+                /* to avoid endless loops */
+                if (!interleave && (
+                        coding == coding_PSX ||
+                        coding == coding_PSX_badflags ||
+                        coding == coding_IMA_int ||
+                        coding == coding_DVI_IMA_int ||
+                        coding == coding_SDX2_int) ) {
+                    goto fail;
                 }
             } else {
                 vgmstream->layout_type = layout_none;
@@ -191,11 +201,15 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
 
             break;
         case coding_MS_IMA:
+            if (!interleave) goto fail; /* creates garbage */
+
             vgmstream->interleave_block_size = interleave;
             vgmstream->layout_type = layout_none;
             break;
         case coding_MSADPCM:
-            if (channel_count != 2) goto fail;
+            if (channel_count > 2) goto fail;
+            if (!interleave) goto fail; /* creates garbage */
+
             vgmstream->interleave_block_size = interleave;
             vgmstream->layout_type = layout_none;
             break;
@@ -208,9 +222,11 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
             break;
         case coding_NGC_DSP:
             if (dsp_interleave_type == 0) {
+                if (!interleave) goto fail;
                 vgmstream->layout_type = layout_interleave;
                 vgmstream->interleave_block_size = interleave;
             } else if (dsp_interleave_type == 1) {
+                if (!interleave) goto fail;
                 vgmstream->layout_type = layout_interleave_byte;
                 vgmstream->interleave_block_size = interleave;
             } else if (dsp_interleave_type == 2) {
@@ -304,7 +320,7 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
             vgmstream->layout_type = layout_none;
 
             /* force encoder delay */
-            if (skip_samples_mode) {
+            if (skip_samples_mode && skip_samples >= 0) {
                 ffmpeg_set_skip_samples(ffmpeg_data, skip_samples);
             }
 

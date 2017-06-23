@@ -36,7 +36,7 @@ VGMSTREAM * init_vgmstream_ivaud(STREAMFILE *streamFile) {
     block_table_offset = read_32bitLE(0,streamFile);
 	vgmstream->channels = channel_count;
     vgmstream->sample_rate = read_32bitLE(block_table_offset + 0x04,streamFile);
-    vgmstream->coding_type = coding_INT_IMA;
+    vgmstream->coding_type = coding_IMA_int;
 
 	vgmstream->layout_type = layout_ivaud_blocked;
 	vgmstream->meta_type = meta_PC_IVAUD;

@@ -1,101 +1,117 @@
 #include "meta.h"
-#include "../util.h"
 #include "../coding/coding.h"
 
-#ifdef VGM_USE_FFMPEG
-
-#define FAKE_RIFF_BUFFER_SIZE           100
-
-
-/* parsing helper */
-typedef struct {
-    size_t file_size;
-    /* file traversing */
-    int big_endian;
-    off_t chunk_offset; /* main header chunk offset, after "(id)" and size */
-    size_t chunk_size;
-    off_t data_offset;
-    size_t data_size;
-
-    int32_t fmt_codec;
-    uint8_t xma2_version;
-    int needs_header;
-    int force_little_endian;  /* FFmpeg can't parse big endian "fmt" chunks */
-    int skip_samples;
-
-    /* info */
-    int channels;
-    int loop_flag;
-    int32_t num_samples;
-    int32_t loop_start_sample;
-    int32_t loop_end_sample;
-
-    int32_t loop_start_b;
-    int32_t loop_end_b;
-    int32_t loop_subframe;
-} xma_header_data;
-
-static int parse_header(xma_header_data * xma, STREAMFILE *streamFile);
-static void fix_samples(xma_header_data * xma, STREAMFILE *streamFile);
-static int create_riff_header(uint8_t * buf, size_t buf_size, xma_header_data * xma, STREAMFILE *streamFile);
-
-/**
- * XMA 1/2 (Microsoft)
- *
- * Usually in RIFF headers and minor variations.
- */
+/* XMA - Microsoft format derived from WMAPRO, found in X360/XBone games */
 VGMSTREAM * init_vgmstream_xma(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    ffmpeg_codec_data *data = NULL;
-
-    xma_header_data xma;
-    uint8_t fake_riff[FAKE_RIFF_BUFFER_SIZE];
-    int fake_riff_size = 0;
+    off_t start_offset, chunk_offset, first_offset = 0xc;
+    size_t data_size, chunk_size;
+    int loop_flag, channel_count, sample_rate, is_xma2_old = 0, is_xma1 = 0;
+    int num_samples, loop_start_sample, loop_end_sample, loop_start_b = 0, loop_end_b = 0, loop_subframe = 0;
 
 
     /* check extension, case insensitive */
-    /* .xma2: Skullgirls, .nps: Beautiful Katamari, .past: SoulCalibur II HD */
-    if ( !check_extensions(streamFile, "xma,xma2,nps,past") )
+    /* .xma2: Skullgirls, .nps: Beautiful Katamari (renamed .xma), .str: Sonic & Sega All Stars Racing */
+    if ( !check_extensions(streamFile, "xma,xma2,nps,str") )
         goto fail;
 
-    /* check header */
-    if ( !parse_header(&xma, streamFile) )
-        goto fail;
-
-
-    /* init ffmpeg (create a fake RIFF that FFmpeg can read if needed) */
-    if (xma.needs_header) { /* fake header + partial size */
-        fake_riff_size = create_riff_header(fake_riff, FAKE_RIFF_BUFFER_SIZE, &xma, streamFile);
-        if (fake_riff_size <= 0) goto fail;
-
-        data = init_ffmpeg_header_offset(streamFile, fake_riff, (uint64_t)fake_riff_size, xma.data_offset, xma.data_size);
-        if (!data) goto fail;
-    }
-    else { /* no change */
-        data = init_ffmpeg_offset(streamFile, 0, xma.file_size);
-        if (!data) goto fail;
+    {
+        size_t file_size = streamFile->get_size(streamFile);
+        size_t riff_size = read_32bitLE(0x04,streamFile);
+        /* +8 for some Beautiful Katamari files, unsure if bad rip */
+        if (riff_size != file_size && riff_size+8 > file_size)
+            goto fail;
     }
 
 
-    /* build VGMSTREAM */
-    vgmstream = allocate_vgmstream(data->channels, xma.loop_flag);
+    /* parse LE RIFF header, with "XMA2" (XMA2WAVEFORMAT) or "fmt " (XMAWAVEFORMAT/XMA2WAVEFORMAT) main chunks
+     * Often comes with an optional "seek" chunk too */
+
+    /* parse sample data */
+    if ( find_chunk_le(streamFile, 0x584D4132,first_offset,0, &chunk_offset,&chunk_size) ) { /* old XMA2 */
+        is_xma2_old = 1;
+        xma2_parse_xma2_chunk(streamFile, chunk_offset, &channel_count,&sample_rate, &loop_flag, &num_samples, &loop_start_sample, &loop_end_sample);
+    }
+    else if ( find_chunk_le(streamFile, 0x666d7420,first_offset,0, &chunk_offset,&chunk_size)) {
+        int format = read_16bitLE(chunk_offset,streamFile);
+        if (format == 0x165) { /* XMA1 */
+            is_xma1 = 1;
+            xma1_parse_fmt_chunk(streamFile, chunk_offset, &channel_count,&sample_rate, &loop_flag, &loop_start_b, &loop_end_b, &loop_subframe, 0);
+        } else if (format == 0x166) { /* new XMA2 */
+            channel_count = read_16bitLE(chunk_offset+0x02,streamFile);
+            sample_rate   = read_32bitLE(chunk_offset+0x04,streamFile);
+            xma2_parse_fmt_chunk_extra(streamFile, chunk_offset, &loop_flag, &num_samples, &loop_start_sample, &loop_end_sample, 0);
+        } else {
+            goto fail;
+        }
+    }
+    else {
+        goto fail;
+    }
+
+    /* "data" chunk */
+    if (!find_chunk_le(streamFile, 0x64617461,first_offset,0, &start_offset,&data_size)) /*"data"*/
+        goto fail;
+
+
+    /* fix samples; for now only XMA1 is fixed, but xmaencode.exe doesn't seem to use XMA2
+     * num_samples in the headers, and the values don't look exact */
+    if (is_xma1) {
+        ms_sample_data msd;
+        memset(&msd,0,sizeof(ms_sample_data));
+
+        msd.xma_version = 1;
+        msd.channels    = channel_count;
+        msd.data_offset = start_offset;
+        msd.data_size   = data_size;
+        msd.loop_flag   = loop_flag;
+        msd.loop_start_b= loop_start_b;
+        msd.loop_end_b  = loop_end_b;
+        msd.loop_start_subframe = loop_subframe & 0xF; /* lower 4b: subframe where the loop starts, 0..4 */
+        msd.loop_end_subframe   = loop_subframe >> 4; /* upper 4b: subframe where the loop ends, 0..3 */
+
+        xma_get_samples(&msd, streamFile);
+
+        num_samples = msd.num_samples;
+        //skip_samples = msd.skip_samples;
+        loop_start_sample = msd.loop_start_sample;
+        loop_end_sample = msd.loop_end_sample;
+        /* XMA2 loop/num_samples don't seem to skip_samples */
+    }
+
+
+    /* build the VGMSTREAM */
+    vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
-    vgmstream->codec_data = data;
-    vgmstream->coding_type = coding_FFmpeg;
-    vgmstream->layout_type = layout_none;
-    vgmstream->meta_type = meta_FFmpeg;
 
-    vgmstream->sample_rate = data->sampleRate;
+    vgmstream->sample_rate = sample_rate;
+    vgmstream->num_samples = num_samples;
+    vgmstream->loop_start_sample = loop_start_sample;
+    vgmstream->loop_end_sample   = loop_end_sample;
+    vgmstream->meta_type = meta_XMA_RIFF;
 
-    /* fix samples for some formats (data->totalSamples: XMA1 = not set; XMA2 = not reliable) */
-    xma.channels = data->channels;
-    fix_samples(&xma, streamFile);
 
-    vgmstream->num_samples = xma.num_samples;
-    if (vgmstream->loop_flag) {
-        vgmstream->loop_start_sample = xma.loop_start_sample;
-        vgmstream->loop_end_sample = xma.loop_end_sample;
+#ifdef VGM_USE_FFMPEG
+    {
+        uint8_t buf[0x100];
+        size_t bytes;
+
+        if (is_xma2_old) {
+            bytes = ffmpeg_make_riff_xma2_from_xma2_chunk(buf,0x100, chunk_offset,chunk_size, data_size, streamFile);
+        } else {
+            bytes = ffmpeg_make_riff_xma_from_fmt_chunk(buf,0x100, chunk_offset,chunk_size, data_size, streamFile, 0);
+        }
+        if (bytes <= 0) goto fail;
+
+        vgmstream->codec_data = init_ffmpeg_header_offset(streamFile, buf,bytes, start_offset,data_size);
+        if ( !vgmstream->codec_data ) goto fail;
+        vgmstream->coding_type = coding_FFmpeg;
+        vgmstream->layout_type = layout_none;
     }
+#else
+    goto fail;
+#endif
+
 #if 0
     //not active due to a FFmpeg bug that misses some of the last packet samples and decodes
     // garbage if asked for more samples (always happens but more apparent with skip_samples active)
@@ -104,303 +120,14 @@ VGMSTREAM * init_vgmstream_xma(STREAMFILE *streamFile) {
         ffmpeg_set_skip_samples(data, xma.skip_samples);
 #endif
 
-
+    /* open the file for reading */
+    if ( !vgmstream_open_stream(vgmstream, streamFile, start_offset) )
+        goto fail;
     return vgmstream;
 
 fail:
-    /* clean up */
-    if (data) {
-        free_ffmpeg(data);
-    }
-    if (vgmstream) {
-        vgmstream->codec_data = NULL;
-        close_vgmstream(vgmstream);
-    }
+    close_vgmstream(vgmstream);
     return NULL;
-}
-
-
-/**
- * Finds stuff needed for XMA with FFmpeg
- *
- * returns 1 if ok, 0 on error
- */
-static int parse_header(xma_header_data * xma, STREAMFILE *streamFile) {
-    int32_t (*read_32bit)(off_t,STREAMFILE*) = NULL;
-    int16_t (*read_16bit)(off_t,STREAMFILE*) = NULL;
-    uint32_t id;
-    int big_endian = 0;
-    enum {
-        id_RIFF = UINT32_C(0x52494646),  /* "RIFF" */
-        id_RIFX = UINT32_C(0x52494658),  /* "RIFX" */
-        id_NXMA = UINT32_C(0x786D6100),  /* "xma\0" */
-        id_PASX = UINT32_C(0x50415358),  /* "PASX" */
-    };
-
-
-    /* check header */
-    id = read_32bitBE(0x00,streamFile);
-    switch (id) {
-        case id_RIFF:
-            break;
-        case id_RIFX:
-        case id_NXMA:
-        case id_PASX:
-            big_endian = 1;
-            break;
-        default:
-            goto fail;
-    }
-
-    memset(xma,0,sizeof(xma_header_data));
-    xma->big_endian = big_endian;
-
-    if (xma->big_endian) {
-        read_32bit = read_32bitBE;
-        read_16bit = read_16bitBE;
-    } else {
-        read_32bit = read_32bitLE;
-        read_16bit = read_16bitLE;
-    }
-
-    xma->file_size = streamFile->get_size(streamFile);
-
-    /* find offsets */
-    if (id == id_RIFF || id == id_RIFX) { /* regular RIFF header */
-        off_t current_chunk = 0xc;
-        off_t fmt_offset = 0, xma2_offset = 0;
-        size_t riff_size = 0, fmt_size = 0, xma2_size = 0;
-
-        riff_size = read_32bit(4,streamFile);
-        if (riff_size != xma->file_size &&  /* some Beautiful Katamari, unsure if bad rip */
-            riff_size+8 > xma->file_size) goto fail;
-
-        while (current_chunk < xma->file_size && current_chunk < riff_size+8) {
-            uint32_t chunk_type = read_32bitBE(current_chunk,streamFile);
-            off_t chunk_size = read_32bit(current_chunk+4,streamFile);
-
-            if (current_chunk+4+4+chunk_size > xma->file_size)
-                goto fail;
-
-            switch(chunk_type) {
-                case 0x666d7420:    /* "fmt " */
-                    if (fmt_offset) goto fail;
-
-                    fmt_offset = current_chunk + 4 + 4;
-                    fmt_size = chunk_size;
-                    break;
-                case 0x64617461:    /* "data" */
-                    if (xma->data_offset) goto fail;
-
-                    xma->data_offset = current_chunk + 4 + 4;
-                    xma->data_size = chunk_size;
-                    break;
-                case 0x584D4132:    /* "XMA2" */
-                    if (xma2_offset) goto fail;
-
-                    xma2_offset = current_chunk + 4 + 4;
-                    xma2_size = chunk_size;
-                    break;
-                default:
-                    break;
-            }
-
-            current_chunk += 8+chunk_size;
-        }
-
-        /* give priority to "XMA2" since it can go together with "fmt " */
-        if (xma2_offset) {
-            xma->chunk_offset = xma2_offset;
-            xma->chunk_size = xma2_size;
-            xma->xma2_version = read_8bit(xma->chunk_offset,streamFile);
-            xma->needs_header = 1; /* FFmpeg can only parse pure XMA1 or pure XMA2 */
-        } else if (fmt_offset) {
-            xma->chunk_offset = fmt_offset;
-            xma->chunk_size = fmt_size;
-            xma->fmt_codec = read_16bit(xma->chunk_offset,streamFile);
-            xma->force_little_endian = xma->big_endian;
-        } else {
-            goto fail;
-        }
-    }
-    else if (id == id_NXMA) { /* Namco (Tekken 6, Galaga Legions DX) */
-        /* custom header with a "XMA2" or "fmt " data chunk inside, most other values are unknown */
-        uint32_t chunk_type = read_32bit(0xC,streamFile);
-        xma->data_offset = 0x100;
-        xma->data_size = read_32bit(0x14,streamFile);
-        xma->chunk_offset = 0xBC;
-        xma->chunk_size = read_32bit(0x24,streamFile);
-        if (chunk_type == 0x4) { /* "XMA2" */
-            xma->xma2_version = read_8bit(xma->chunk_offset,streamFile);
-        } else if (chunk_type == 0x8) { /* "fmt " */
-            xma->fmt_codec = read_16bit(xma->chunk_offset,streamFile);
-            xma->force_little_endian = 1;
-        } else {
-            goto fail;
-        }
-        xma->needs_header = 1;
-
-        if (xma->data_size + xma->data_offset > xma->file_size) goto fail;
-    }
-    else if (id == id_PASX) {  /* SoulCalibur II HD */
-        /* custom header with a "fmt " data chunk inside */
-        xma->chunk_size = read_32bit(0x08,streamFile);
-        xma->data_size = read_32bit(0x0c,streamFile);
-        xma->chunk_offset = read_32bit(0x10,streamFile);
-        /* 0x14: chunk offset end */
-        xma->data_offset = read_32bit(0x18,streamFile);
-        xma->fmt_codec = read_16bit(xma->chunk_offset,streamFile);
-        xma->needs_header = 1;
-        xma->force_little_endian = 1;
-    }
-    else {
-        goto fail;
-    }
-
-    /* find sample data */
-    if (xma->xma2_version) { /* old XMA2 (internally always BE) */
-        xma->loop_start_sample = read_32bitBE(xma->chunk_offset+0x4,streamFile);
-        xma->loop_end_sample = read_32bitBE(xma->chunk_offset+0x8,streamFile);
-        xma->loop_flag = (uint8_t)read_8bit(xma->chunk_offset+0x3,streamFile) > 0 /* rarely not set, encoder default */
-                || xma->loop_end_sample;
-        if (xma->xma2_version == 3) {
-            xma->num_samples = read_32bitBE(xma->chunk_offset+0x14,streamFile);
-            /*xma->pcm_samples = read_32bitBE(xma->chunk_offset+0x18,streamFile)*/
-        } else {
-            xma->num_samples = read_32bitBE(xma->chunk_offset+0x1C,streamFile);
-            /*xma->pcm_samples = read_32bitBE(xma->chunk_offset+0x20,streamFile)*/
-        }
-        /* num_samples is the max samples in the file (apparently not including encoder delay) */
-        /* pcm_samples are original WAV's; not current since samples and sample rate may be adjusted for looping purposes */
-    }
-    else if (xma->fmt_codec == 0x166) { /* pure XMA2 */
-        xma->num_samples = read_32bit(xma->chunk_offset+0x18,streamFile);
-        xma->loop_start_sample = read_32bit(xma->chunk_offset+0x28,streamFile);
-        xma->loop_end_sample = xma->loop_start_sample + read_32bit(xma->chunk_offset+0x2C,streamFile);
-        xma->loop_flag = (uint8_t)read_8bit(xma->chunk_offset+0x30,streamFile) > 0 /* never set in practice */
-                || xma->loop_end_sample;
-        /* play_begin+end = probably pcm_samples (for original sample rate), don't seem to affect anything */
-        /* int32_t play_begin_sample = read_32bit(xma->chunk_offset+0x20,streamFile); */
-        /* int32_t play_end_sample = play_begin_sample + read_32bit(xma->chunk_offset+0x24,streamFile); */
-    }
-    else if (xma->fmt_codec == 0x165) { /* pure XMA1 */
-        xma->loop_flag = (uint8_t)read_8bit(xma->chunk_offset+0xA,streamFile) > 0;
-        xma->loop_start_b = read_32bit(xma->chunk_offset+0x14,streamFile);
-        xma->loop_end_b = read_32bit(xma->chunk_offset+0x18,streamFile);
-        xma->loop_subframe = (uint8_t)read_8bit(xma->chunk_offset+0x1C,streamFile);
-        /* num_samples are parsed later */
-    }
-    else { /* unknown chunk */
-        goto fail;
-    }
-
-    return 1;
-
-fail:
-    return 0;
-}
-
-
-static void fix_samples(xma_header_data * xma, STREAMFILE *streamFile) {
-    xma_sample_data xma_sd;
-
-    /* for now only XMA1 is fixed, but xmaencode.exe doesn't seem to use
-     * XMA2 sample values in the headers, and the exact number of samples may not be exact.
-     * Also loop values don't seem to need skip_samples. */
-
-    if (xma->fmt_codec != 0x165) {
-        return;
-    }
-
-    memset(&xma_sd,0,sizeof(xma_sample_data));
-
-    /* call xma parser (copy to its own struct, a bit clunky but oh well...) */
-    xma_sd.xma_version = xma->fmt_codec==0x165 ? 1 : 2;
-    xma_sd.channels = xma->channels;
-    xma_sd.data_offset = xma->data_offset;
-    xma_sd.data_size = xma->data_size;
-    xma_sd.loop_flag = xma->loop_flag;
-    xma_sd.loop_start_b = xma->loop_start_b;
-    xma_sd.loop_end_b = xma->loop_end_b;
-    xma_sd.loop_start_subframe = xma->loop_subframe & 0xF; /* lower 4b: subframe where the loop starts, 0..4 */
-    xma_sd.loop_end_subframe = xma->loop_subframe >> 4; /* upper 4b: subframe where the loop ends, 0..3 */
-
-    xma_get_samples(&xma_sd, streamFile);
-
-    /* and recieve results */
-    xma->num_samples = xma_sd.num_samples;
-    xma->skip_samples = xma_sd.skip_samples;
-    xma->loop_start_sample = xma_sd.loop_start_sample;
-    xma->loop_end_sample = xma_sd.loop_end_sample;
-    /* XMA2 loop/num_samples don't seem to skip_samples */
-}
-
-
-
-/**
- * Recreates a RIFF header that FFmpeg can read since it lacks support for some variations.
- *
- * returns bytes written (up until "data" chunk + size), -1 on failure
- */
-static int create_riff_header(uint8_t * buf, size_t buf_size, xma_header_data * xma, STREAMFILE *streamFile) {
-    void (*put_32bit)(uint8_t *, int32_t) = NULL;
-    uint8_t chunk[FAKE_RIFF_BUFFER_SIZE];
-    uint8_t internal[FAKE_RIFF_BUFFER_SIZE];
-    size_t head_size, file_size, internal_size;
-
-    int use_be = xma->big_endian && !xma->force_little_endian;
-
-    if (use_be) {
-        put_32bit = put_32bitBE;
-    } else {
-        put_32bit = put_32bitLE;
-    }
-
-    memset(buf,0, sizeof(uint8_t) * buf_size);
-    if (read_streamfile(chunk,xma->chunk_offset,xma->chunk_size, streamFile) != xma->chunk_size)
-        goto fail;
-
-    /* create internal chunks */
-    if (xma->xma2_version == 3) { /* old XMA2 v3: change to v4 (extra 8 bytes in the middle) */
-        internal_size = 4+4+xma->chunk_size + 8;
-
-        memcpy(internal + 0x0, "XMA2", 4);  /* "XMA2" chunk (internal data is BE) */
-        put_32bit(internal + 0x4, xma->chunk_size + 8); /* v3 > v4 size*/
-        put_8bit(internal + 0x8, 4); /* v4 */
-        memcpy(internal + 0x9, chunk+1, 15); /* first v3 part (fixed) */
-        put_32bitBE(internal + 0x18, 0); /* extra v4 BE: "EncodeOptions" (not used by FFmpeg) */
-        put_32bitBE(internal + 0x1c, 0); /* extra v4 BE: "PsuedoBytesPerSec" (not used by FFmpeg) */
-        memcpy(internal + 0x20, chunk+16, xma->chunk_size - 16); /* second v3 part (variable) */
-    }
-    else { /* direct copy (old XMA2 v4 ignoring "fmt", pure XMA1/2) */
-        internal_size = 4+4+xma->chunk_size;
-
-        if (xma->force_little_endian ) {
-            if ( !ffmpeg_fmt_chunk_swap_endian(chunk, xma->fmt_codec) )
-                goto fail;
-        }
-
-        memcpy(internal + 0x0, xma->xma2_version ? "XMA2" : "fmt ", 4);
-        put_32bit(internal + 0x4, xma->chunk_size);
-        memcpy(internal + 0x8, chunk, xma->chunk_size);
-    }
-
-    /* create main RIFF */
-    head_size = 4+4 + 4 + internal_size + 4+4;
-    file_size = head_size-4-4 + xma->data_size;
-    if (head_size > buf_size) goto fail;
-
-    memcpy(buf + 0x0, use_be ? "RIFX" : "RIFF", 4);
-    put_32bit(buf + 0x4, file_size);
-    memcpy(buf + 0x8, "WAVE", 4);
-    memcpy(buf + 0xc, internal, internal_size);
-    memcpy(buf + head_size-4-4, "data", 4);
-    put_32bit(buf + head_size-4, xma->data_size);
-
-    return head_size;
-
-fail:
-    return -1;
 }
 
 
@@ -418,6 +145,4 @@ static int32_t get_xma_sample_rate(int32_t general_rate) {
 
     return xma_rate;
 }
-#endif
-
 #endif

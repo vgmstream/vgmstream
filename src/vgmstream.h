@@ -13,9 +13,10 @@ enum { PATH_LIMIT = 32768 };
  * done by external libraries.
  * If someone wants to do a standalone build, they can do it by simply
  * removing these defines (and the references to the libraries in the Makefile) */
+#ifndef VGM_DISABLE_VORBIS
 #define VGM_USE_VORBIS
+#endif
 
-/* can be disabled to decode with FFmpeg instead */
 #ifndef VGM_DISABLE_MPEG
 #define VGM_USE_MPEG
 #endif
@@ -37,10 +38,10 @@ enum { PATH_LIMIT = 32768 };
 #endif
 
 #ifdef VGM_USE_G7221
-#include "g7221.h"
+#include <g7221.h>
 #endif
 #ifdef VGM_USE_G719
-#include "g719.h"
+#include <g719.h>
 #endif
 
 #ifdef VGM_USE_MP4V2
@@ -53,7 +54,7 @@ enum { PATH_LIMIT = 32768 };
 #endif
 
 #ifdef VGM_USE_MAIATRAC3PLUS
-#include "maiatrac3plus.h"
+#include <maiatrac3plus.h>
 #endif
 
 #ifdef VGM_USE_FFMPEG
@@ -61,10 +62,11 @@ enum { PATH_LIMIT = 32768 };
 #include <libavformat/avformat.h>
 #endif
 
+#include <clHCA.h>
+
 #include "coding/g72x_state.h"
 #include "coding/acm_decoder.h"
 #include "coding/nwa_decoder.h"
-#include "clHCA.h"
 
 
 /* The encoding type specifies the format the sound data itself takes */
@@ -81,9 +83,12 @@ typedef enum {
     coding_PCM8_U,          /* 8-bit PCM, unsigned (0x80 = 0) */
     coding_PCM8_U_int,      /* 8-bit PCM, unsigned (0x80 = 0) with sample-level interleave */
     coding_PCM8_SB_int,     /* 8-bit PCM, sign bit (others are 2's complement) with sample-level interleave */
+    coding_ULAW,            /* 8-bit u-Law (non-linear PCM) */
 
     /* 4-bit ADPCM */
     coding_CRI_ADX,         /* CRI ADX */
+    coding_CRI_ADX_fixed,   /* CRI ADX, encoding type 2 with fixed coefficients */
+    coding_CRI_ADX_exp,     /* CRI ADX, encoding type 4 with exponential scale */
     coding_CRI_ADX_enc_8,   /* CRI ADX, type 8 encryption (God Hand) */
     coding_CRI_ADX_enc_9,   /* CRI ADX, type 9 encryption (PSO2) */
 
@@ -106,29 +111,32 @@ typedef enum {
 	coding_NDS_PROCYON,     /* Procyon Studio ADPCM */
 
     coding_XBOX,            /* XBOX IMA ADPCM */
-    coding_INT_XBOX,        /* XBOX IMA ADPCM (interleaved) */
+    coding_XBOX_int,        /* XBOX IMA ADPCM (interleaved) */
     coding_IMA,             /* IMA ADPCM (low nibble first) */
-    coding_INT_IMA,         /* IMA ADPCM (interleaved) */
+    coding_IMA_int,         /* IMA ADPCM (interleaved) */
     coding_DVI_IMA,         /* DVI IMA ADPCM (high nibble first), aka ADP4 */
-    coding_INT_DVI_IMA,		/* DVI IMA ADPCM (Interleaved) */
+    coding_DVI_IMA_int,		/* DVI IMA ADPCM (Interleaved) */
     coding_NDS_IMA,         /* IMA ADPCM w/ NDS layout */
     coding_EACS_IMA,
     coding_MS_IMA,          /* Microsoft IMA */
-    coding_RAD_IMA,         /* "Radical ADPCM" IMA */
-    coding_RAD_IMA_mono,    /* "Radical ADPCM" IMA, mono (for interleave) */
+    coding_RAD_IMA,         /* Radical IMA ADPCM */
+    coding_RAD_IMA_mono,    /* Radical IMA ADPCM, mono (for interleave) */
     coding_APPLE_IMA4,      /* Apple Quicktime IMA4 */
     coding_DAT4_IMA,        /* Eurocom 'DAT4' IMA ADPCM */
     coding_SNDS_IMA,        /* Heavy Iron Studios .snds IMA ADPCM */
     coding_OTNS_IMA,        /* Omikron The Nomad Soul IMA ADPCM */
     coding_FSB_IMA,         /* FMOD's FSB multichannel IMA ADPCM */
+    coding_WWISE_IMA,       /* Audiokinetic Wwise IMA ADPCM */
 
-    coding_WS,              /* Westwood Studios VBR ADPCM */
     coding_MSADPCM,         /* Microsoft ADPCM */
+    coding_WS,              /* Westwood Studios VBR ADPCM */
     coding_AICA,            /* Yamaha AICA ADPCM */
     coding_L5_555,          /* Level-5 0x555 ADPCM */
     coding_SASSC,           /* Activision EXAKT SASSC DPCM */
     coding_LSF,             /* lsf ADPCM (Fastlane Street Racing iPhone)*/
     coding_MTAF,            /* Konami MTAF ADPCM (IMA-derived) */
+    coding_MTA2,            /* Konami MTA2 ADPCM */
+    coding_MC3,             /* Paradigm MC3 3-bit ADPCM */
 
     /* others */
     coding_SDX2,            /* SDX2 2:1 Squareroot-Delta-Exact compression DPCM */
@@ -149,6 +157,9 @@ typedef enum {
 
 #ifdef VGM_USE_VORBIS
     coding_ogg_vorbis,      /* Xiph Vorbis (MDCT-based) */
+    coding_fsb_vorbis,      /* FMOD Vorbis without Ogg layer */
+    coding_wwise_vorbis,    /* Audiokinetic Vorbis without Ogg layer */
+    coding_ogl_vorbis,      /* Shin'en Vorbis without Ogg layer */
 #endif
 
 #ifdef VGM_USE_MPEG
@@ -224,6 +235,7 @@ typedef enum {
     layout_tra_blocked,     /* DefJam Rapstar .tra blocks */
     layout_ps2_iab_blocked,
     layout_ps2_strlr_blocked,
+    layout_rws_blocked,
 
     /* otherwise odd */
     layout_acm,             /* libacm layout */
@@ -304,7 +316,7 @@ typedef enum {
     meta_PSX_XA,            /* CD-ROM XA with RIFF header */
     meta_PS2_SShd,			/* .ADS with SShd header */
     meta_PS2_NPSF,			/* Namco Production Sound File */
-    meta_PS2_RXW,			/* Sony Arc The Lad Sound File */
+    meta_PS2_RXWS,          /* Sony games (Genji, Okage Shadow King, Arc The Lad Twilight of Spirits) */
     meta_PS2_RAW,			/* RAW Interleaved Format */
     meta_PS2_EXST,			/* Shadow of Colossus EXST */
     meta_PS2_SVAG,			/* Konami SVAG */
@@ -329,14 +341,14 @@ typedef enum {
     meta_SL3,				/* Test Drive Unlimited */
     meta_HGC1,				/* Knights of the Temple 2 */
     meta_AUS,				/* Various Capcom games */
-    meta_RWS,				/* Various Konami games */
+    meta_RWS,				/* RenderWare games (only when using RW Audio middleware) */
     meta_FSB1,              /* FMOD Sample Bank, version 1 */
     meta_FSB2,              /* FMOD Sample Bank, version 2 */
     meta_FSB3,              /* FMOD Sample Bank, version 3.0/3.1 */
     meta_FSB4,              /* FMOD Sample Bank, version 4 */
     meta_FSB5,              /* FMOD Sample Bank, version 5 */
     meta_RWX,				/* Air Force Delta Storm (XBOX) */
-    meta_XWB,				/* King of Fighters (XBOX) */
+    meta_XWB,				/* Microsoft XACT framework (Xbox, X360, Windows) */
     meta_XA30,				/* Driver - Parallel Lines (PS2) */
     meta_MUSC,				/* Spyro Games, possibly more */
     meta_MUSX_V004,			/* Spyro Games, possibly more */
@@ -410,6 +422,7 @@ typedef enum {
     meta_RSD6XADP,			/* RSD6XADP */
     meta_RSD6RADP,			/* RSD6RADP */
 	meta_RSD6OOGV,          /* RSD6OOGV */
+    meta_RSD6XMA,           /* RSD6XMA */
 
     meta_PS2_ASS,			/* ASS */
     meta_PS2_SEG,			/* Eragon */
@@ -431,7 +444,7 @@ typedef enum {
     meta_PS2_XA2_RRP,       /* RC Revenge Pro */
     meta_PS2_STM,           /* Red Dead Revolver .stm, renamed .ps2stm */
     meta_NGC_DSP_KONAMI,    /* Konami DSP header, found in various games */
-	meta_UBI_CKD,           /* Ubisoft CKD RIFF header from Rayman Origins */
+	meta_UBI_CKD,           /* Ubisoft CKD RIFF header (Rayman Origins Wii) */
 
     meta_XBOX_WAVM,			/* XBOX WAVM File */
     meta_XBOX_RIFF,			/* XBOX RIFF/WAVE File */
@@ -538,7 +551,7 @@ typedef enum {
 	meta_PS2_LPCM,          /* Ah! My Goddess */
     meta_DSP_BDSP,          /* Ah! My Goddess */
 	meta_PS2_VMS,           /* Autobahn Raser - Police Madness */
-	meta_PS2_XAU,			/* Spectral Force Chronicle */
+	meta_XAU,			    /* XPEC Entertainment (Beat Down (PS2 Xbox), Spectral Force Chronicle (PS2)) */
     meta_GH3_BAR,           /* Guitar Hero III Mobile .bar */
     meta_FFW,               /* Freedom Fighters [NGC] */
     meta_DSP_DSPW,          /* Sengoku Basara 3 [WII] */
@@ -549,9 +562,9 @@ typedef enum {
 	meta_PS3_XVAG,          /* Ratchet & Clank Future: Quest for Booty (PS3) */
 	meta_PS3_CPS,           /* Eternal Sonata (PS3) */
     meta_PS3_MSF,           /* MSF header */
-	meta_NUB_VAG,           /* VAG from Nub archives */
+	meta_NUB_VAG,           /* Namco VAG from NUB archives */
 	meta_PS3_PAST,          /* Bakugan Battle Brawlers (PS3) */
-    meta_PS3_SGDX,          /* Folklore, Genji, Tokyo Jungle (PS3), Brave Story, Kurohyo (PSP)  */
+    meta_SGXD,              /* Sony: Folklore, Genji, Tokyo Jungle (PS3), Brave Story, Kurohyo (PSP)  */
 	meta_NGCA,              /* GoldenEye 007 (Wii) */
 	meta_WII_RAS,           /* Donkey Kong Country Returns (Wii) */
 	meta_PS2_SPM,           /* Lethal Skies Elite Pilot: Team SW */
@@ -576,7 +589,7 @@ typedef enum {
 	meta_TUN,               // LEGO Racers (PC)
 	meta_WPD,               // Shuffle! (PC)
 	meta_MN_STR,            // Mini Ninjas (PC/PS3/WII)
-	meta_PS2_MSS,			// Guerilla: ShellShock Nam '67, Killzone (PS2)
+	meta_MSS,               // Guerilla: ShellShock Nam '67 (PS2/Xbox), Killzone (PS2)
 	meta_PS2_HSF,			// Lowrider (PS2)
 	meta_PS3_IVAG,			// Interleaved VAG files (PS3)
 	meta_PS2_2PFS,			// Konami: Mahoromatic: Moetto - KiraKira Maid-San, GANTZ (PS2)
@@ -593,6 +606,20 @@ typedef enum {
     meta_PS2_VDS_VDM,       /* Graffiti Kingdom */
     meta_X360_CXS,          /* Eternal Sonata (Xbox 360) */
     meta_AKB,               /* SQEX iOS */
+    meta_NUB_XMA,           /* Namco XMA from NUB archives */
+    meta_X360_PASX,         /* Namco PASX (Soul Calibur II HD X360) */
+    meta_XMA_RIFF,          /* Microsoft RIFF XMA */
+    meta_X360_AST,          /* Dead Rising (X360) */
+    meta_WWISE_RIFF,        /* Audiokinetic Wwise RIFF/RIFX */
+    meta_UBI_RAKI,          /* Ubisoft RAKI header (Rayman Legends, Just Dance 2017) */
+    meta_SXD,               /* Sony SXD (Gravity Rush, Freedom Wars PSV) */
+    meta_OGL,               /* Shin'en Wii/WiiU (Jett Rocket (Wii), FAST Racing NEO (WiiU)) */
+    meta_MC3,               /* Paradigm games (T3 PS2, MX Rider PS2, MI: Operation Surma PS2) */
+    meta_GTD,               /* Knights Contract (X360/PS3), Valhalla Knights 3 (PSV) */
+    meta_TA_AAC_X360,       /* tri-ace AAC (Star Ocean 4, End of Eternity, Infinite Undiscovery) */
+    meta_TA_AAC_PS3,        /* tri-ace AAC (Star Ocean International, Resonance of Fate) */
+    meta_PS3_MTA2,          /* Metal Gear Solid 4 MTA2 */
+    meta_NGC_ULW,           /* Burnout 1 (GC only) */
 
 #ifdef VGM_USE_VORBIS
     meta_OGG_VORBIS,        /* Ogg Vorbis */
@@ -700,11 +727,11 @@ typedef struct {
     size_t interleave_smallblock_size;  /* smaller interleave for last block */
     /* headered blocks */
     off_t current_block_offset;     /* start of this block (offset of block header) */
-    size_t current_block_size;      /* size of the block we're in now */
+    size_t current_block_size;      /* size of the block we're in now (usable data) */
+    size_t full_block_size;         /* size including padding and other unusable data */
     off_t next_block_offset;        /* offset of header of the next block */
-	int	block_count;				/* count of "semi" block in total block */
+    int block_count;                /* count of "semi" block in total block */
 
-    int hit_loop;                   /* have we seen the loop yet? */
 
     /* loop layout (saved values) */
     int32_t loop_sample;            /* saved from current_sample, should be loop_start_sample... */
@@ -713,7 +740,15 @@ typedef struct {
     size_t loop_block_size;         /* saved from current_block_size */
     off_t loop_next_block_offset;   /* saved from next_block_offset */
 
+    /* loop internals */
+    int hit_loop;                   /* have we seen the loop yet? */
+    /* counters for "loop + play end of the stream instead of fading" (not used/needed otherwise) */
+    int loop_count;                 /* number of complete loops (1=looped once) */
+    int loop_target;                /* max loops before continuing with the stream end */
+
     /* decoder specific */
+    int codec_endian;               /* little/big endian marker; name is left vague but usually means big endian */
+
     uint8_t xa_channel;				/* XA ADPCM: selected channel */
     int32_t xa_sector_length;		/* XA ADPCM: XA block */
 	uint8_t xa_headerless;			/* XA ADPCM: headerless XA block */
@@ -740,6 +775,7 @@ typedef struct {
 } VGMSTREAM;
 
 #ifdef VGM_USE_VORBIS
+/* Ogg with Vorbis */
 typedef struct {
     STREAMFILE *streamfile;
     ogg_int64_t offset;
@@ -759,6 +795,35 @@ typedef struct {
 
     ogg_vorbis_streamfile ov_streamfile;
 } ogg_vorbis_codec_data;
+
+/* config for Wwise Vorbis */
+typedef enum { HEADER_TRIAD, FULL_SETUP, INLINE_CODEBOOKS, EXTERNAL_CODEBOOKS, AOTUV603_CODEBOOKS } wwise_setup_type;
+typedef enum { TYPE_8, TYPE_6, TYPE_2 } wwise_header_type;
+typedef enum { STANDARD, MODIFIED } wwise_packet_type;
+
+/* any raw Vorbis without Ogg layer */
+typedef struct {
+    vorbis_info vi;             /* stream settings */
+    vorbis_comment vc;          /* stream comments */
+    vorbis_dsp_state vd;        /* decoder global state */
+    vorbis_block vb;            /* decoder local state */
+    ogg_packet op;              /* fake packet for internal use */
+
+    uint8_t * buffer;           /* internal raw data buffer */
+    size_t buffer_size;
+    size_t samples_to_discard;  /* for looping purposes */
+    int samples_full;           /* flag, samples available in vorbis buffers */
+
+    /* Wwise Vorbis config */
+    wwise_setup_type setup_type;
+    wwise_header_type header_type;
+    wwise_packet_type packet_type;
+    /* saved data to reconstruct modified packets */
+    uint8_t mode_blockflag[64+1];   /* max 6b+1; flags 'n stuff */
+    int mode_bits;                  /* bits to store mode_number */
+    uint8_t prev_blockflag;         /* blockflag in the last decoded packet */
+
+} vorbis_codec_data;
 #endif
 
 #ifdef VGM_USE_MPEG
@@ -1022,12 +1087,6 @@ int vgmstream_samples_to_do(int samples_this_block, int samples_per_frame, VGMST
 /* Detect start and save values, also detect end and restore values. Only works on exact sample values.
  * Returns 1 if loop was done. */
 int vgmstream_do_loop(VGMSTREAM * vgmstream);
-
-/* See if there is a second file which may be the second channel, given
- * already opened mono opened_stream which was opened from filename.
- * If a suitable file is found, open it and change opened_stream to a stereo stream. */
-void try_dual_file_stereo(VGMSTREAM * opened_stream, STREAMFILE *streamFile);
-
 
 /* Open the stream for reading at offset (standarized taking into account layouts, channels and so on).
  * returns 0 on failure */

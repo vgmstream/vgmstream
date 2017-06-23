@@ -1,6 +1,5 @@
 #include "meta.h"
 #include "../coding/coding.h"
-#include "../util.h"
 
 /* Square-Enix SCD (FF XIII, XIV) */
 
@@ -20,7 +19,7 @@ typedef struct _SCDINTSTREAMFILE
 
 static STREAMFILE *open_scdint_with_STREAMFILE(STREAMFILE *file, const char * filename, off_t start_offset, off_t interleave_block_size, off_t stride_size, size_t total_size);
 
-
+#ifdef VGM_USE_VORBIS
 /* V3 decryption table found in the .exe */
 static const uint8_t scd_ogg_v3_lookuptable[256] = { /* FF XIV Heavensward */
     0x3A, 0x32, 0x32, 0x32, 0x03, 0x7E, 0x12, 0xF7, 0xB2, 0xE2, 0xA2, 0x67, 0x32, 0x32, 0x22, 0x32, // 00-0F
@@ -43,6 +42,7 @@ static const uint8_t scd_ogg_v3_lookuptable[256] = { /* FF XIV Heavensward */
 
 static void scd_ogg_decrypt_v2_callback(void *ptr, size_t size, size_t nmemb, void *datasource, int bytes_read);
 static void scd_ogg_decrypt_v3_callback(void *ptr, size_t size, size_t nmemb, void *datasource, int bytes_read);
+#endif
 
 
 
@@ -109,7 +109,8 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
     /* 0x1c: unknown (0x0)  */
     headers_entries = read_16bit(tables_offset+0x04,streamFile);
     if (target_stream == 0) target_stream = 1; /* auto: default to 1 */
-    if (headers_entries <= 0 || target_stream > headers_entries) goto fail;
+    if (target_stream < 0 || target_stream > headers_entries || headers_entries < 1) goto fail;
+
     headers_offset = read_32bit(tables_offset+0x0c,streamFile);
 
     /** header table entries (each is an uint32_t offset to stream header) **/
@@ -349,15 +350,14 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
             break;
 #ifdef VGM_USE_FFMPEG
         case 0xB:
-            /* XMA1/XMA2 */ /* Lightning Returns SFX, FFXIII (X360) */
+            /* XMA2 */ /* Lightning Returns SFX, FFXIII (X360) */
             {
                 ffmpeg_codec_data *ffmpeg_data = NULL;
                 uint8_t buf[200];
                 int32_t bytes;
 
                 /* post_meta_offset+0x00: fmt0x166 header (BE),  post_meta_offset+0x34: seek table */
-
-                bytes = ffmpeg_make_riff_xma2_from_fmt(buf,200, post_meta_offset,0x34, stream_size, streamFile, 1);
+                bytes = ffmpeg_make_riff_xma_from_fmt_chunk(buf,200, post_meta_offset,0x34, stream_size, streamFile, 1);
                 if (bytes <= 0) goto fail;
 
                 ffmpeg_data = init_ffmpeg_header_offset(streamFile, buf,bytes, start_offset,stream_size);
@@ -376,30 +376,33 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
             /* ATRAC3plus */ /* Lord of Arcana (PSP) */
             {
                 ffmpeg_codec_data *ffmpeg_data = NULL;
-                off_t chunk_offset;
-                size_t chunk_size, fact_sample_skip = 0;
 
-                /* full riff header at start_offset/post_meta_offset (same) */
+                /* full RIFF header at start_offset/post_meta_offset (same) */
                 ffmpeg_data = init_ffmpeg_offset(streamFile, start_offset,stream_size);
                 if (!ffmpeg_data) goto fail;
                 vgmstream->codec_data = ffmpeg_data;
                 vgmstream->coding_type = coding_FFmpeg;
                 vgmstream->layout_type = layout_none;
 
-                vgmstream->num_samples = ffmpeg_data->totalSamples;
+                vgmstream->num_samples = ffmpeg_data->totalSamples; /* fact samples */
                 vgmstream->loop_start_sample = loop_start;
                 vgmstream->loop_end_sample = loop_end;
 
-                /* manually find encoder_delay to adjust samples since it's not properly used by FFmpeg */
-                if (!find_chunk_le(streamFile, 0x66616374,start_offset+0xc,0, &chunk_offset,&chunk_size)) goto fail; /*"fact"*/
-                if (chunk_size == 0x8) {
-                    fact_sample_skip  = read_32bitLE(chunk_offset+0x4, streamFile);
-                } else if (chunk_size == 0xc) {
-                    fact_sample_skip  = read_32bitLE(chunk_offset+0x8, streamFile);
+                /* manually read skip_samples if FFmpeg didn't do it */
+                if (ffmpeg_data->skipSamples <= 0) {
+                    off_t chunk_offset;
+                    size_t chunk_size, fact_skip_samples = 0;
+                    if (!find_chunk_le(streamFile, 0x66616374,start_offset+0xc,0, &chunk_offset,&chunk_size)) /* find "fact" */
+                        goto fail;
+                    if (chunk_size == 0x8) {
+                        fact_skip_samples  = read_32bitLE(chunk_offset+0x4, streamFile);
+                    } else if (chunk_size == 0xc) {
+                        fact_skip_samples  = read_32bitLE(chunk_offset+0x8, streamFile);
+                    }
+                    ffmpeg_set_skip_samples(ffmpeg_data, fact_skip_samples);
                 }
-                vgmstream->num_samples += fact_sample_skip;
-                vgmstream->loop_start_sample += fact_sample_skip;
-                vgmstream->loop_end_sample += fact_sample_skip;
+                /* SCD loop/sample values are relative (without skip samples) vs RIFF (with skip samples), no need to adjust */
+
             }
             break;
 
@@ -546,7 +549,7 @@ static STREAMFILE *open_scdint_with_STREAMFILE(STREAMFILE *file, const char * fi
     return &scd->sf;
 }
 
-
+#ifdef VGM_USE_VORBIS
 static void scd_ogg_decrypt_v2_callback(void *ptr, size_t size, size_t nmemb, void *datasource, int bytes_read) {
     ogg_vorbis_streamfile * ov_streamfile = (ogg_vorbis_streamfile*)datasource;
 
@@ -585,3 +588,4 @@ static void scd_ogg_decrypt_v3_callback(void *ptr, size_t size, size_t nmemb, vo
         }
     }
 }
+#endif

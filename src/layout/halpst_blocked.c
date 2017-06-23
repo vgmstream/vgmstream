@@ -3,7 +3,9 @@
 
 /* set up for the block at the given offset */
 void halpst_block_update(off_t block_offset, VGMSTREAM * vgmstream) {
-    int i;
+    int i, header_length;
+    /* header length must be a multiple of 0x20 */
+    header_length = (4+8*vgmstream->channels+0x1f)/0x20*0x20;
     vgmstream->current_block_offset = block_offset;
     vgmstream->current_block_size = read_32bitBE(
             vgmstream->current_block_offset,
@@ -14,6 +16,6 @@ void halpst_block_update(off_t block_offset, VGMSTREAM * vgmstream) {
 
     for (i=0;i<vgmstream->channels;i++) {
         vgmstream->ch[i].offset = vgmstream->current_block_offset +
-            0x20 + vgmstream->current_block_size*i;
+            header_length + vgmstream->current_block_size*i;
     }
 }

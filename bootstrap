@@ -1,5 +1,37 @@
 #!/bin/sh
+# audacious-vgmstream script - automake/autoconf init
 
+
+# gets all files and updates .am scripts to avoid having to do manually (frowned upon by automake, whatevs)
+# maybe there is a better way or place for this
+VGMSTREAM_SRCS=`(cd ./src/ && ls *.c) | tr '\n' ' '`
+VGMSTREAM_HDRS=`(cd ./src/ && ls *.h) | tr '\n' ' '`
+CODING_SRCS=`(cd ./src/coding/ && ls *.c) | tr '\n' ' '`
+CODING_HDRS=`(cd ./src/coding/ && ls *.h) | tr '\n' ' '`
+LAYOUT_SRCS=`(cd ./src/layout/ && ls *.c) | tr '\n' ' '`
+LAYOUT_HDRS=`(cd ./src/layout/ && ls *.h) | tr '\n' ' '`
+META_SRCS=`(cd ./src/meta/ && ls *.c) | tr '\n' ' '`
+META_HDRS=`(cd ./src/meta/ && ls *.h) | tr '\n' ' '`
+AUDACIOUS_SRCS=`(cd ./audacious/ && ls *.cc) | tr '\n' ' '`
+AUDACIOUS_HDRS=`(cd ./audacious/ && ls *.h) | tr '\n' ' '`
+sed -i -e "s/libvgmstream_la_SOURCES =.*/libvgmstream_la_SOURCES = $VGMSTREAM_SRCS/g" ./src/Makefile.audacious.am
+sed -i -e "s/EXTRA_DIST =.*/EXTRA_DIST = $VGMSTREAM_HDRS/g" ./src/Makefile.audacious.am
+sed -i -e "s/libcoding_la_SOURCES =.*/libcoding_la_SOURCES = $CODING_SRCS/g" ./src/coding/Makefile.audacious.am
+sed -i -e "s/EXTRA_DIST =.*/EXTRA_DIST = $CODING_HDRS/g" ./src/coding/Makefile.audacious.am
+sed -i -e "s/liblayout_la_SOURCES =.*/liblayout_la_SOURCES = $LAYOUT_SRCS/g" ./src/layout/Makefile.audacious.am
+sed -i -e "s/EXTRA_DIST =.*/EXTRA_DIST = $LAYOUT_HDRS/g" ./src/layout/Makefile.audacious.am
+sed -i -e "s/libmeta_la_SOURCES =.*/libmeta_la_SOURCES = $META_SRCS/g" ./src/meta/Makefile.audacious.am
+sed -i -e "s/EXTRA_DIST =.*/EXTRA_DIST = $META_HDRS/g" ./src/meta/Makefile.audacious.am
+sed -i -e "s/libvgmstream_la_SOURCES =.*/libvgmstream_la_SOURCES = $AUDACIOUS_SRCS/g" ./audacious/Makefile.audacious.am
+sed -i -e "s/EXTRA_DIST =.*/EXTRA_DIST = $AUDACIOUS_HDRS/g" ./audacious/Makefile.audacious.am
+
+# get version to show in about dialogs
+# again, not very pretty
+VGMSTREAM_VERSION=`./version.sh`
+sed -i -e "s/VGMSTREAM_VERSION/$VGMSTREAM_VERSION/g" ./audacious/Makefile.audacious.am
+
+
+# create fake files expected by automake and process
 touch README AUTHORS NEWS ChangeLog
 aclocal
 autoheader

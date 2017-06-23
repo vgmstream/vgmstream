@@ -127,9 +127,12 @@ void render_vgmstream_blocked(sample * buffer, int32_t sample_count, VGMSTREAM *
 				case layout_ps2_iab_blocked:
 					ps2_iab_block_update(vgmstream->next_block_offset,vgmstream);
 					break;
-				case layout_ps2_strlr_blocked:
-					ps2_strlr_block_update(vgmstream->next_block_offset,vgmstream);
-					break;
+                case layout_ps2_strlr_blocked:
+                    ps2_strlr_block_update(vgmstream->next_block_offset,vgmstream);
+                    break;
+                case layout_rws_blocked:
+                    rws_block_update(vgmstream->next_block_offset,vgmstream);
+                    break;
 				default:
                     break;
             }

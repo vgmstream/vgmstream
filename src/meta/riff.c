@@ -168,17 +168,12 @@ int read_fmt(int big_endian,
             fmt->coding_type = coding_NGC_DSP;
             fmt->interleave = 8;
             break;
-        case 0xFFF0: /* */
-            fmt->coding_type = coding_NGC_DSP;
-            fmt->interleave = 8;
-            break;
 #ifdef VGM_USE_FFMPEG
 		case 0x270: /* ATRAC3 */
 #if defined(VGM_USE_FFMPEG) && !defined(VGM_USE_MAIATRAC3PLUS)
         case 0xFFFE: /* WAVEFORMATEXTENSIBLE / ATRAC3plus */
 #endif /* defined */
 			fmt->coding_type = coding_FFmpeg;
-			fmt->block_size = 2048;
 			fmt->interleave = 0;
 			break;
 #endif /* VGM_USE_FFMPEG */
@@ -231,8 +226,7 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
     uint32_t riff_size;
     uint32_t data_size = 0;
 
-    int FormatChunkFound = 0;
-    int DataChunkFound = 0;
+    int FormatChunkFound = 0, DataChunkFound = 0, JunkFound = 0;
 
     /* Level-5 mwv */
     int mwv = 0;
@@ -250,7 +244,7 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
     if (strcasecmp("wav",filename_extension(filename)) &&
         strcasecmp("lwav",filename_extension(filename))
 #ifndef VGM_USE_FFMPEG
-        && strcasecmp("sgb",filename_extension(filename)) /* SGB has proper support with FFmpeg in ps3_sgdx */
+        && strcasecmp("sgb",filename_extension(filename)) /* SGB has proper support with FFmpeg in sgxd */
 #endif
 		)
     {
@@ -259,7 +253,7 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
         else if (!strcasecmp("sns",filename_extension(filename)))
             sns = 1;
 #if defined(VGM_USE_MAIATRAC3PLUS) || defined(VGM_USE_FFMPEG)
-        else if (!strcasecmp("at3",filename_extension(filename)))
+        else if ( check_extensions(streamFile, "at3,rws") ) /* Renamed .RWS AT3 found in Climax games (Silent Hill Origins PSP, Oblivion PSP) */
             at3 = 1;
 #endif
         else
@@ -366,6 +360,9 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
                     }
 
                     break;
+                case 0x4A554E4B:    /* JUNK */
+                    JunkFound = 1;
+                    break;
                 default:
                     /* ignorance is bliss */
                     break;
@@ -376,6 +373,12 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
     }
 
     if (!FormatChunkFound || !DataChunkFound) goto fail;
+
+    /* JUNK is an optional Wwise chunk, and Wwise hijacks the MSADPCM/MS_IMA/XBOX IMA ids (how nice).
+     * To ensure their stuff is parsed in wwise.c we reject their JUNK, which they put almost always.
+     * As JUNK is legal (if unusual) we only reject those codecs.
+     * (ex. Cave PC games have PCM16LE + JUNK + smpl created by "Samplitude software") */
+    if (JunkFound && (fmt.coding_type==coding_MSADPCM || fmt.coding_type==coding_MS_IMA)) goto fail;
 
     switch (fmt.coding_type) {
         case coding_PCM16LE:
@@ -395,6 +398,7 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
                 ((data_size % fmt.block_size) ? (data_size % fmt.block_size - 4 * fmt.channel_count) * 2 / fmt.channel_count : 0);
             break;
         case coding_NGC_DSP:
+            //sample_count = data_size / fmt.channel_count / 8 * 14; /* expected from the "fact" chunk */
             break;
 #ifdef VGM_USE_FFMPEG
         case coding_FFmpeg:
@@ -403,10 +407,20 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
                 if ( !ffmpeg_data ) goto fail;
 
                 sample_count = ffmpeg_data->totalSamples; /* fact_sample_count */
-                /* the encoder introduces some garbage (usually silent) samples to skip before the stream
-                 *  loop values include the skip samples but fact_sample_count doesn't; add them back to fix some edge loops */
-                if (fact_sample_skip > 0)
-                    sample_count += fact_sample_skip;
+
+                if (at3) {
+                    /* the encoder introduces some garbage (not always silent) samples to skip before the stream */
+                    /* manually set skip_samples if FFmpeg didn't do it */
+                    if (ffmpeg_data->skipSamples <= 0) {
+                        ffmpeg_set_skip_samples(ffmpeg_data, fact_sample_skip);
+                    }
+
+                    /* RIFF loop/sample values are absolute (with skip samples), adjust */
+                    if (loop_flag) {
+                        loop_start_offset -= ffmpeg_data->skipSamples;
+                        loop_end_offset -= ffmpeg_data->skipSamples;
+                    }
+                }
             }
             break;
 #endif
@@ -607,8 +621,6 @@ VGMSTREAM * init_vgmstream_rifx(STREAMFILE *streamFile) {
     int sample_count = 0;
     //int fact_sample_count = -1;
     off_t start_offset = -1;
-    off_t wiih_offset = -1;
-    uint32_t wiih_size = 0;
 
     int loop_flag = 0;
     off_t loop_start_offset = -1;
@@ -616,8 +628,7 @@ VGMSTREAM * init_vgmstream_rifx(STREAMFILE *streamFile) {
     uint32_t riff_size;
     uint32_t data_size = 0;
 
-    int FormatChunkFound = 0;
-    int DataChunkFound = 0;
+    int FormatChunkFound = 0, DataChunkFound = 0, JunkFound = 0;
 
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
@@ -692,10 +703,8 @@ VGMSTREAM * init_vgmstream_rifx(STREAMFILE *streamFile) {
                     if (chunk_size != 4) break;
                     //fact_sample_count = read_32bitBE(current_chunk+8, streamFile);
                     break;
-                case 0x57696948:    /* WiiH */
-                    wiih_size = read_32bitBE(current_chunk+4, streamFile);
-                    wiih_offset = current_chunk+8;
-                    break;
+                case 0x4A554E4B:    /* JUNK */
+                    JunkFound = 1;
                 default:
                     /* ignorance is bliss */
                     break;
@@ -707,16 +716,11 @@ VGMSTREAM * init_vgmstream_rifx(STREAMFILE *streamFile) {
 
     if (!FormatChunkFound || !DataChunkFound) goto fail;
 
-    if (wiih_offset < 0 && fmt.coding_type == coding_MSADPCM &&
-        fmt.size == 0x1c + fmt.channel_count * 0x2e + 2) {
-
-        /* Epic Mickey 2 */
-
-        wiih_offset = fmt.offset + 8 + 0x1c;
-        wiih_size = fmt.channel_count * 0x2e;
-        fmt.coding_type = coding_NGC_DSP;
-        fmt.interleave = 8;
-    }
+    /* JUNK is an optional Wwise chunk, and Wwise hijacks the MSADPCM/MS_IMA/XBOX IMA ids (how nice).
+     * To ensure their stuff is parsed in wwise.c we reject their JUNK, which they put almost always.
+     * As JUNK is legal (if unusual) we only reject those codecs.
+     * (ex. Cave PC games have PCM16LE + JUNK + smpl created by "Samplitude software") */
+    if (JunkFound && (fmt.coding_type==coding_MSADPCM || fmt.coding_type==coding_MS_IMA)) goto fail;
 
     switch (fmt.coding_type) {
         case coding_PCM16BE:
@@ -726,17 +730,8 @@ VGMSTREAM * init_vgmstream_rifx(STREAMFILE *streamFile) {
             sample_count = data_size/fmt.channel_count;
             break;
         case coding_NGC_DSP:
-            /* the only way of getting DSP info right now */
-            if (wiih_offset < 0 || wiih_size != 0x2e*fmt.channel_count)
-                goto fail;
-
+            //sample_count = data_size / fmt.channel_count / 8 * 14; /* expected from the "fact" chunk */
             break;
-#if 0
-        /* found in RE:ORC, looks like it should be MS_IMA instead */
-        case coding_MSADPCM:
-            sample_count = msadpcm_bytes_to_samples(data_size, fmt.block_size, fmt.channel_count);
-            break;
-#endif
         default:
             goto fail;
     }
@@ -792,17 +787,6 @@ VGMSTREAM * init_vgmstream_rifx(STREAMFILE *streamFile) {
     else
     {
         vgmstream->meta_type = meta_RIFX_WAVE;
-    }
-
-    /* read from WiiH */
-    if (wiih_offset >= 0) {
-        int i,j;
-        for (i=0;i<fmt.channel_count;i++) {
-            for (j=0;j<16;j++)
-                vgmstream->ch[i].adpcm_coef[j] = read_16bitBE(wiih_offset + i * 0x2e + j * 2,streamFile);
-            vgmstream->ch[i].adpcm_history1_16 = read_16bitBE(wiih_offset + i * 0x2e + 0x24,streamFile);
-            vgmstream->ch[i].adpcm_history2_16 = read_16bitBE(wiih_offset + i * 0x2e + 0x26,streamFile);
-        }
     }
 
     /* open the file, set up each channel */

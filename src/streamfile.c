@@ -5,15 +5,23 @@
 #include "util.h"
 #include "vgmstream.h"
 
+
+/* On EOF reads we can return length 0, or ignore and return the requested length + 0-set the buffer.
+ * Some decoders don't check for EOF and may decode garbage if returned 0, as read_Nbit() funcs return -1.
+ * Only matters for metas that get num_samples wrong (bigger than total data). */
+#define STREAMFILE_IGNORE_EOF 0
+
+
+/* buffered file reader */
 typedef struct {
-    STREAMFILE sf;
-    FILE * infile;
+    STREAMFILE sf;          /* callbacks */
+    FILE * infile;          /* actual FILE */
     char name[PATH_LIMIT];
-    off_t offset;
-    size_t validsize;
-    uint8_t * buffer;
-    size_t buffersize;
-    size_t filesize;
+    off_t offset;           /* current offset */
+    size_t validsize;       /* current buffer size */
+    uint8_t * buffer;       /* data buffer */
+    size_t buffersize;      /* max buffer size */
+    size_t filesize;        /* cached file size (max offset) */
 #ifdef VGM_DEBUG_OUTPUT
     int error_notified;
 #endif
@@ -28,19 +36,20 @@ static STREAMFILE * open_stdio_streamfile_buffer_by_FILE(FILE *infile,const char
 static size_t read_the_rest(uint8_t * dest, off_t offset, size_t length, STDIOSTREAMFILE * streamfile) {
     size_t length_read_total=0;
 
-    /* is the beginning at least there? */
-    if (offset >= streamfile->offset && offset < streamfile->offset+streamfile->validsize) {
+    /* is the part of the requested length in the buffer? */
+    if (offset >= streamfile->offset && offset < streamfile->offset + streamfile->validsize) {
         size_t length_read;
-        off_t offset_into_buffer = offset-streamfile->offset;
-        length_read = streamfile->validsize-offset_into_buffer;
-        memcpy(dest,streamfile->buffer+offset_into_buffer,length_read);
+        off_t offset_into_buffer = offset - streamfile->offset;
+        length_read = streamfile->validsize - offset_into_buffer;
+
+        memcpy(dest,streamfile->buffer + offset_into_buffer,length_read);
         length_read_total += length_read;
         length -= length_read;
         offset += length_read;
         dest += length_read;
     }
 
-    /* TODO: What would make more sense here is to read the whole request
+    /* What would make more sense here is to read the whole request
      * at once into the dest buffer, as it must be large enough, and then
      * copy some part of that into our own buffer.
      * The destination buffer is supposed to be much smaller than the
@@ -48,23 +57,29 @@ static size_t read_the_rest(uint8_t * dest, off_t offset, size_t length, STDIOST
      * to the buffer size to avoid having to deal with things like this
      * which are outside of my intended use.
      */
-    /* read as much of the beginning of the request as possible, proceed */
-    while (length>0) {
+    /* read the rest of the requested length */
+    while (length > 0) {
         size_t length_to_read;
         size_t length_read;
-        streamfile->validsize=0;
+        streamfile->validsize = 0; /* buffer is empty now */
 
         /* request outside file: ignore to avoid seek/read */
         if (offset > streamfile->filesize) {
-    #ifdef VGM_DEBUG_OUTPUT
+            streamfile->offset = streamfile->filesize;
+
+#ifdef VGM_DEBUG_OUTPUT
             if (!streamfile->error_notified) {
-                VGM_LOG("ERROR: reading outside filesize, at offset 0x%lx + 0x%x (buggy meta?)\n", offset, length);
+                VGM_LOG("ERROR: reading over filesize 0x%x @ 0x%lx + 0x%x (buggy meta?)\n", streamfile->filesize, offset, length);
                 streamfile->error_notified = 1;
             }
-    #endif
-            streamfile->offset = streamfile->filesize;
-            memset(dest,0,length);
-            return length; /* return partially-read buffer and 0-set the rest */
+#endif
+
+#if STREAMFILE_IGNORE_EOF
+            memset(dest,0,length); /* dest is already shifted */
+            return length_read_total + length; /* partially-read + 0-set buffer */
+#else
+            return length_read_total; /* partially-read buffer */
+#endif
         }
 
         /* position to new offset */
@@ -73,18 +88,19 @@ static size_t read_the_rest(uint8_t * dest, off_t offset, size_t length, STDIOST
 #ifdef PROFILE_STREAMFILE
             streamfile->error_count++;
 #endif
-            return 0; //fail miserably
+            return 0; /* fail miserably (fseek shouldn't fail and reach this) */
         }
-
-        streamfile->offset=offset;
+        streamfile->offset = offset;
 
         /* decide how much must be read this time */
-        if (length>streamfile->buffersize) length_to_read=streamfile->buffersize;
-        else length_to_read=length;
+        if (length > streamfile->buffersize)
+            length_to_read = streamfile->buffersize;
+        else
+            length_to_read = length;
 
-        /* always try to fill the buffer */
-        length_read = fread(streamfile->buffer,1,streamfile->buffersize,streamfile->infile);
-        streamfile->validsize=length_read;
+        /* fill the buffer */
+        length_read = fread(streamfile->buffer,sizeof(uint8_t),streamfile->buffersize,streamfile->infile);
+        streamfile->validsize = length_read;
 
 #ifdef PROFILE_STREAMFILE
         if (ferror(streamfile->infile)) {
@@ -95,19 +111,24 @@ static size_t read_the_rest(uint8_t * dest, off_t offset, size_t length, STDIOST
         streamfile->bytes_read += length_read;
 #endif
 
-        /* if we can't get enough to satisfy the request we give up */
+        /* if we can't get enough to satisfy the request (EOF) we give up */
         if (length_read < length_to_read) {
             memcpy(dest,streamfile->buffer,length_read);
-            length_read_total+=length_read;
-            return length_read_total;
+
+#if STREAMFILE_IGNORE_EOF
+            memset(dest+length_read,0,length-length_read);
+            return length_read_total + length; /* partially-read + 0-set buffer */
+#else
+            return length_read_total + length_read; /* partially-read buffer */
+#endif
         }
 
         /* use the new buffer */
         memcpy(dest,streamfile->buffer,length_to_read);
-        length_read_total+=length_to_read;
-        length-=length_to_read;
-        dest+=length_to_read;
-        offset+=length_to_read;
+        length_read_total += length_to_read;
+        length -= length_to_read;
+        dest += length_to_read;
+        offset += length_to_read;
     }
 
     return length_read_total;
@@ -115,25 +136,32 @@ static size_t read_the_rest(uint8_t * dest, off_t offset, size_t length, STDIOST
 
 static size_t read_stdio(STDIOSTREAMFILE *streamfile,uint8_t * dest, off_t offset, size_t length) {
 
-    if (!streamfile || !dest || length<=0) return 0;
-
-    /* if entire request is within the buffer */
-    if (offset >= streamfile->offset && offset+length <= streamfile->offset+streamfile->validsize) {
-        memcpy(dest,streamfile->buffer+(offset-streamfile->offset),length);
-        return length;
-    }
+    if (!streamfile || !dest || length<=0)
+        return 0;
 
     /* request outside file: ignore to avoid seek/read in read_the_rest() */
     if (offset > streamfile->filesize) {
+        streamfile->offset = streamfile->filesize;
+
 #ifdef VGM_DEBUG_OUTPUT
         if (!streamfile->error_notified) {
-            VGM_LOG("ERROR: reading outside filesize, at offset over 0x%lx (buggy meta?)\n", offset);
+            VGM_LOG("ERROR: offset over filesize 0x%x @ 0x%lx + 0x%x (buggy meta?)\n", streamfile->filesize, offset, length);
             streamfile->error_notified = 1;
         }
 #endif
 
-        streamfile->offset = streamfile->filesize;
+#if STREAMFILE_IGNORE_EOF
         memset(dest,0,length);
+        return length; /* 0-set buffer */
+#else
+        return 0; /* nothing to read */
+#endif
+    }
+
+    /* just copy if entire request is within the buffer */
+    if (offset >= streamfile->offset && offset + length <= streamfile->offset + streamfile->validsize) {
+        off_t offset_into_buffer = offset - streamfile->offset;
+        memcpy(dest,streamfile->buffer + offset_into_buffer,length);
         return length;
     }
 
@@ -457,7 +485,8 @@ int check_extensions(STREAMFILE *streamFile, const char * cmp_exts) {
     char filename[PATH_LIMIT];
     const char * ext = NULL;
     const char * cmp_ext = NULL;
-    int ext_len, cmp_len;
+    const char * ststr_res = NULL;
+    size_t ext_len, cmp_len;
 
     streamFile->get_name(streamFile,filename,sizeof(filename));
     ext = filename_extension(filename);
@@ -465,14 +494,15 @@ int check_extensions(STREAMFILE *streamFile, const char * cmp_exts) {
 
     cmp_ext = cmp_exts;
     do {
-        cmp_len = strstr(cmp_ext, ",") - cmp_ext; /* find next ext; becomes negative if not found */
-        if (cmp_len < 0)
-            cmp_len = strlen(cmp_ext); /* total length if more not found */
+        ststr_res = strstr(cmp_ext, ",");
+        cmp_len = ststr_res == NULL
+                  ? strlen(cmp_ext) /* total length if more not found */
+                  : (intptr_t)ststr_res - (intptr_t)cmp_ext; /* find next ext; ststr_res should always be greater than cmp_ext, resulting in a positive cmp_len */
 
-        if (strncasecmp(ext,cmp_ext, ext_len) == 0 && ext_len == cmp_len)
+        if (ext_len == cmp_len && strncasecmp(ext,cmp_ext, ext_len) == 0)
             return 1;
 
-        cmp_ext = strstr(cmp_ext, ",");
+        cmp_ext = ststr_res;
         if (cmp_ext != NULL)
             cmp_ext = cmp_ext + 1; /* skip comma */
 
@@ -491,12 +521,12 @@ int check_extensions(STREAMFILE *streamFile, const char * cmp_exts) {
  * returns 0 on failure
  */
 int find_chunk_be(STREAMFILE *streamFile, uint32_t chunk_id, off_t start_offset, int full_chunk_size, off_t *out_chunk_offset, size_t *out_chunk_size) {
-    return find_chunk(streamFile, chunk_id, start_offset, full_chunk_size, out_chunk_offset, out_chunk_size, 1);
+    return find_chunk(streamFile, chunk_id, start_offset, full_chunk_size, out_chunk_offset, out_chunk_size, 1, 0);
 }
 int find_chunk_le(STREAMFILE *streamFile, uint32_t chunk_id, off_t start_offset, int full_chunk_size, off_t *out_chunk_offset, size_t *out_chunk_size) {
-    return find_chunk(streamFile, chunk_id, start_offset, full_chunk_size, out_chunk_offset, out_chunk_size, 0);
+    return find_chunk(streamFile, chunk_id, start_offset, full_chunk_size, out_chunk_offset, out_chunk_size, 0, 0);
 }
-int find_chunk(STREAMFILE *streamFile, uint32_t chunk_id, off_t start_offset, int full_chunk_size, off_t *out_chunk_offset, size_t *out_chunk_size, int size_big_endian) {
+int find_chunk(STREAMFILE *streamFile, uint32_t chunk_id, off_t start_offset, int full_chunk_size, off_t *out_chunk_offset, size_t *out_chunk_size, int size_big_endian, int zero_size_end) {
     size_t filesize;
     off_t current_chunk = start_offset;
 
@@ -514,8 +544,8 @@ int find_chunk(STREAMFILE *streamFile, uint32_t chunk_id, off_t start_offset, in
             return 1;
         }
 
-        /* end chunk with 0 size, seen in some custom formats */
-        if (chunk_size == 0)
+        /* empty chunk with 0 size, seen in some formats (XVAG uses it as end marker, Wwise doesn't) */
+        if (chunk_size == 0 && zero_size_end)
             return 0;
 
         current_chunk += full_chunk_size ? chunk_size : 4+4+chunk_size;
@@ -523,4 +553,3 @@ int find_chunk(STREAMFILE *streamFile, uint32_t chunk_id, off_t start_offset, in
 
     return 0;
 }
-

@@ -200,8 +200,8 @@ VGMSTREAM * init_vgmstream_fsb_offset(STREAMFILE *streamFile, off_t offset) {
         }
 
         if (fsbh.shdrsize < fsbh.shdrsize_min) goto fail;
-        if (target_stream > fsbh.numsamples || target_stream < 0) goto fail;
         if (target_stream == 0) target_stream = 1;
+        if (target_stream < 0 || target_stream > fsbh.numsamples || fsbh.numsamples < 1) goto fail;
 
         /* sample header (N-stream) */
         {
@@ -243,12 +243,13 @@ VGMSTREAM * init_vgmstream_fsb_offset(STREAMFILE *streamFile, off_t offset) {
         }
     }
 
-    /* XOR encryption for some FSB4 */
+#if 0
+    /* XOR encryption for some FSB4, though the flag is only seen after decrypting */
     if (fsbh.flags & FMOD_FSB_SOURCE_ENCRYPTED) {
         VGM_LOG("FSB ENCRYPTED found\n");
         goto fail;
     }
-#if 0
+
     /* sometimes there is garbage at the end or missing bytes due to improper demuxing */
     if (fsbh.hdrsize + fsbh.shdrsize + fsbh.datasize != streamFile->get_size(streamFile) - offset) {
         VGM_LOG("FSB wrong head/datasize found\n");
@@ -360,14 +361,8 @@ VGMSTREAM * init_vgmstream_fsb_offset(STREAMFILE *streamFile, off_t offset) {
         vgmstream->interleave_block_size = 0x2;
         dsp_read_coefs_be(vgmstream, streamFile, custom_data_offset, 0x2e);
     }
-    else if (fsbh.mode & FSOUND_OGG) {
-        /* FSB4: ? (possibly FMOD's custom ogg) */
-
-        VGM_LOG("FSB4 FSOUND_OGG found\n");
-        goto fail;
-    }
-    else if (fsbh.mode & FSOUND_CELT) {
-        /* FSB4: ? (The Witcher 2?) */
+    else if (fsbh.mode & FSOUND_CELT) { /* || fsbh.mode & FSOUND_OGG (same flag) */
+        /* FSB4: War Thunder (PC), The Witcher 2 (PC) */
 
         VGM_LOG("FSB4 FSOUND_CELT found\n");
         goto fail;
