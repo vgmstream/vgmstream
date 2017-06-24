@@ -697,6 +697,9 @@
     <ClCompile Include="meta\waa_wac_wad_wam.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\wii_04sw.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\wii_bns.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>

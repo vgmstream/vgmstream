@@ -16,6 +16,7 @@
 
 // these are declared statically, and if anyone has a better idea i'd like to hear it - josh.
 
+DECLARE_MULTIPLE_FILE_TYPE("04SW Audio File (*.04SW)", 04sw);
 DECLARE_MULTIPLE_FILE_TYPE("2DX9 Audio File (*.2DX9)", 2dx9);
 DECLARE_MULTIPLE_FILE_TYPE("2PFS Audio File (*.2PFS)", 2pfs);
 

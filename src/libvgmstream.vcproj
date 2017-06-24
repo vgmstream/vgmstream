@@ -1146,6 +1146,10 @@
                     RelativePath=".\meta\waa_wac_wad_wam.c"
                     >
                 </File>
+                <File
+                    RelativePath=".\meta\wii_04sw.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\wii_bns.c"
 					>

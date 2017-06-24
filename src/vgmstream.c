@@ -363,6 +363,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_ps3_mta2,
     init_vgmstream_ngc_ulw,
     init_vgmstream_pc_xa30,
+    init_vgmstream_wii_04sw,
 
 #ifdef VGM_USE_FFMPEG
     init_vgmstream_mp4_aac_ffmpeg,

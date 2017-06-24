@@ -8,6 +8,7 @@
 /* some formats marked as "not parsed" mean they'll go through FFmpeg, the header/extension is not parsed */
 
 static const char* extension_list[] = {
+    "04sw",
     "2dx9",
     "2pfs",
 
@@ -873,6 +874,7 @@ static const meta_info meta_info_list[] = {
         {meta_PS3_MTA2,             "Konami MTA2 header"},
         {meta_NGC_ULW,              "Criterion ULW raw header"},
         {meta_PC_XA30,              "Reflections XA30 PC header"},
+        {meta_WII_04SW,             "Reflections 04SW header"},
 
 #ifdef VGM_USE_VORBIS
         {meta_OGG_VORBIS,           "Ogg Vorbis"},
