@@ -437,6 +437,7 @@ static const coding_info coding_info_list[] = {
         {coding_OTNS_IMA,           "Omikron: The Nomad Soul 4-bit IMA ADPCM"},
         {coding_FSB_IMA,            "FSB multichannel 4-bit IMA ADPCM"},
         {coding_WWISE_IMA,          "Audiokinetic Wwise 4-bit IMA ADPCM"},
+        {coding_REF_IMA,            "Reflections 4-bit IMA ADPCM"},
         {coding_WS,                 "Westwood Studios VBR ADPCM"},
         {coding_ACM,                "InterPlay ACM"},
         {coding_NWA0,               "NWA DPCM Level 0"},
@@ -871,6 +872,7 @@ static const meta_info meta_info_list[] = {
         {meta_TA_AAC_PS3,           "tri-Ace AAC (PS3) header"},
         {meta_PS3_MTA2,             "Konami MTA2 header"},
         {meta_NGC_ULW,              "Criterion ULW raw header"},
+        {meta_PC_XA30,              "Reflections XA30 PC header"},
 
 #ifdef VGM_USE_VORBIS
         {meta_OGG_VORBIS,           "Ogg Vorbis"},

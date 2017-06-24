@@ -118,7 +118,7 @@ typedef enum {
     coding_DVI_IMA_int,		/* DVI IMA ADPCM (Interleaved) */
     coding_NDS_IMA,         /* IMA ADPCM w/ NDS layout */
     coding_EACS_IMA,
-    coding_MS_IMA,          /* Microsoft IMA */
+    coding_MS_IMA,          /* Microsoft IMA ADPCM */
     coding_RAD_IMA,         /* Radical IMA ADPCM */
     coding_RAD_IMA_mono,    /* Radical IMA ADPCM, mono (for interleave) */
     coding_APPLE_IMA4,      /* Apple Quicktime IMA4 */
@@ -127,6 +127,7 @@ typedef enum {
     coding_OTNS_IMA,        /* Omikron The Nomad Soul IMA ADPCM */
     coding_FSB_IMA,         /* FMOD's FSB multichannel IMA ADPCM */
     coding_WWISE_IMA,       /* Audiokinetic Wwise IMA ADPCM */
+    coding_REF_IMA,         /* Reflections IMA ADPCM */
 
     coding_MSADPCM,         /* Microsoft ADPCM */
     coding_WS,              /* Westwood Studios VBR ADPCM */
@@ -620,6 +621,7 @@ typedef enum {
     meta_TA_AAC_PS3,        /* tri-ace AAC (Star Ocean International, Resonance of Fate) */
     meta_PS3_MTA2,          /* Metal Gear Solid 4 MTA2 */
     meta_NGC_ULW,           /* Burnout 1 (GC only) */
+    meta_PC_XA30,           /* Driver - Parallel Lines (PC) */
 
 #ifdef VGM_USE_VORBIS
     meta_OGG_VORBIS,        /* Ogg Vorbis */

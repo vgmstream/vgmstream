@@ -646,6 +646,10 @@
 					RelativePath=".\meta\pc_sob.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\meta\pc_xa30.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\pcm.c"
 					>

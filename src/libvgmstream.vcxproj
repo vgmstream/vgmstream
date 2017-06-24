@@ -274,6 +274,7 @@
     <ClCompile Include="meta\pc_mxst.c" />
     <ClCompile Include="meta\pc_smp.c" />
     <ClCompile Include="meta\pc_sob.c" />
+    <ClCompile Include="meta\pc_xa30.c" />
     <ClCompile Include="meta\pcm.c" />
     <ClCompile Include="meta\pona.c" />
     <ClCompile Include="meta\pos.c" />

@@ -653,6 +653,43 @@ void decode_wwise_ima(VGMSTREAM * vgmstream,VGMSTREAMCHANNEL * stream, sample * 
     stream->adpcm_step_index = step_index;
 }
 
+/* Reflection's MS-IMA (some layout info from XA2WAV) */
+void decode_ref_ima(VGMSTREAM * vgmstream,VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do,int channel) {
+    int i, sample_count;
+
+    int32_t hist1 = stream->adpcm_history1_32;
+    int step_index = stream->adpcm_step_index;
+
+    //internal interleave (configurable size), mixed channels (4 byte per ch)
+    int block_channel_size = (vgmstream->interleave_block_size - 4*vgmstream->channels) / vgmstream->channels;
+    int block_samples = (vgmstream->interleave_block_size - 4*vgmstream->channels) * 2 / vgmstream->channels;
+    first_sample = first_sample % block_samples;
+
+    //normal header (per channel)
+    if (first_sample == 0) {
+        off_t header_offset = stream->offset + 4*channel;
+
+        hist1 = read_16bitLE(header_offset,stream->streamfile);
+        step_index = read_8bit(header_offset+2,stream->streamfile);
+        if (step_index < 0) step_index=0;
+        if (step_index > 88) step_index=88;
+    }
+
+    //layout: all nibbles from one channel, then all nibbles from other
+    for (i=first_sample,sample_count=0; i<first_sample+samples_to_do; i++,sample_count+=channelspacing) {
+        off_t byte_offset = stream->offset + 4*vgmstream->channels + block_channel_size*channel + i/2;
+        int nibble_shift = (i&1?4:0); //low nibble first
+
+        ms_ima_expand_nibble(stream, byte_offset,nibble_shift, &hist1, &step_index);
+        outbuf[sample_count] = (short)(hist1);
+    }
+
+    //internal interleave: increment offset on complete frame
+    if (i == block_samples) stream->offset += vgmstream->interleave_block_size;
+
+    stream->adpcm_history1_32 = hist1;
+    stream->adpcm_step_index = step_index;
+}
 
 size_t ms_ima_bytes_to_samples(size_t bytes, int block_align, int channels) {
     /* MS IMA blocks have a 4 byte header per channel; 2 samples per byte (2 nibbles) */

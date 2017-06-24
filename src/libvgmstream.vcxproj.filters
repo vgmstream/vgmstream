@@ -370,6 +370,9 @@
     <ClCompile Include="meta\pc_sob.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\pc_xa30.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\pcm.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>

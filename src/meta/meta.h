@@ -674,4 +674,6 @@ VGMSTREAM * init_vgmstream_ps3_mta2(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_ngc_ulw(STREAMFILE * streamFile);
 
+VGMSTREAM * init_vgmstream_pc_xa30(STREAMFILE * streamFile);
+
 #endif /*_META_H*/
