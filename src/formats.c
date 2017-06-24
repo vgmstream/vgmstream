@@ -160,6 +160,7 @@ static const char* extension_list[] = {
     "mcg",
     "mds",
     "mdsp",
+    "med",
     "mi4",
     "mib",
     "mic",
