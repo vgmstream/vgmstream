@@ -350,7 +350,7 @@ typedef enum {
     meta_FSB5,              /* FMOD Sample Bank, version 5 */
     meta_RWX,				/* Air Force Delta Storm (XBOX) */
     meta_XWB,				/* Microsoft XACT framework (Xbox, X360, Windows) */
-    meta_XA30,				/* Driver - Parallel Lines (PS2) */
+    meta_PS2_XA30,          /* Driver - Parallel Lines (PS2) */
     meta_MUSC,				/* Spyro Games, possibly more */
     meta_MUSX_V004,			/* Spyro Games, possibly more */
     meta_MUSX_V005,			/* Spyro Games, possibly more */

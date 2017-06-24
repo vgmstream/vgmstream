@@ -188,7 +188,7 @@ VGMSTREAM * init_vgmstream_rwx(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_xwb(STREAMFILE * streamFile);
 
-VGMSTREAM * init_vgmstream_xa30(STREAMFILE * streamFile);
+VGMSTREAM * init_vgmstream_ps2_xa30(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_musc(STREAMFILE * streamFile);
 
