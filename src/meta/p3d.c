@@ -38,6 +38,7 @@ VGMSTREAM * init_vgmstream_p3d(STREAMFILE *streamFile) {
     if (9 != text_len) goto fail;
     parse_offset += 4;
 
+    /* check the type as P3D is just a generic container used in Radical's games */
     if (read_32bitBE(parse_offset+0x00,streamFile) != 0x41756469 ||
         read_32bitBE(parse_offset+0x04,streamFile) != 0x6F46696C ||
         read_16bitBE(parse_offset+0x08,streamFile) != 0x6500) goto fail; /* "AudioFile\0" */

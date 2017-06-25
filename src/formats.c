@@ -788,7 +788,7 @@ static const meta_info meta_info_list[] = {
         {meta_PC_SMP,               "Ghostbusters .smp Header"},
         {meta_NGC_PDT,              "PDT DSP header"},
         {meta_NGC_BO2,              "Blood Omen 2 DSP header"},
-        {meta_P3D,                  "Prototype P3D Header"},
+        {meta_P3D,                  "Radical P3D Header"},
         {meta_PS2_TK1,              "Tekken TK5STRM1 Header"},
         {meta_PS2_ADSC,             "ADSC Header"},
         {meta_NGC_DSP_MPDS,         "MPDS DSP header"},
