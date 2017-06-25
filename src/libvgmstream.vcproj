@@ -646,6 +646,10 @@
 					RelativePath=".\meta\pc_sob.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\meta\pc_xa30.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\pcm.c"
 					>
@@ -1140,6 +1144,10 @@
 				</File>
                 <File
                     RelativePath=".\meta\waa_wac_wad_wam.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\wii_04sw.c"
                     >
                 </File>
 				<File

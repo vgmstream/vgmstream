@@ -10,9 +10,8 @@ static off_t get_rws_string_size(off_t off, STREAMFILE *streamFile);
 VGMSTREAM * init_vgmstream_rws(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     off_t start_offset, off, coefs_offset = 0, stream_offset = 0;
-    int loop_flag = 0, channel_count, codec;
-    size_t file_size, header_size, data_size, stream_size = 0, info_size;
-    int block_size_max = 0, block_size = 0, sample_rate;
+    int loop_flag = 0, channel_count = 0, codec = 0, sample_rate = 0;
+    size_t file_size, header_size, data_size, stream_size = 0, block_size_max = 0, block_size = 0;
     int32_t (*read_32bit)(off_t,STREAMFILE*) = NULL;
     int i, total_segments, total_streams, target_stream = 0;
 
@@ -43,7 +42,7 @@ VGMSTREAM * init_vgmstream_rws(STREAMFILE *streamFile) {
     /* inside header chunk (many unknown fields are probably IDs/config, as two same-sized files vary a lot) */
     off = 0x0c + 0x0c;
 
-    /* 0x00: actual header size (less than chunk size), useful to check endianness (Wii/X360 = BE) */
+    /* 0x00: actual header size (less than chunk size), useful to check endianness (GC/Wii/X360 = BE) */
     read_32bit = (read_32bitLE(off+0x00,streamFile) > header_size) ? read_32bitBE : read_32bitLE;
 
     /* 0x04-14: sizes of various sections?,  others: ? */
@@ -54,15 +53,15 @@ VGMSTREAM * init_vgmstream_rws(STREAMFILE *streamFile) {
 
     /* check streams/segments */
     /* Data can be divided into segments (cues/divisions within data, ex. intro+main, voice1+2+..N) or
-     * tracks/streams in interleaved blocks that can contain padding and don't need to match between tracks
-     * (ex 0x1800 data + 0 pad of stream_0 2ch, 0x1800 data + 0x200 pad of stream1 2ch, etc). */
+     * tracks/streams in interleaved blocks; last track (only?) has some padding. Tracks seems to be used for multichannel.
+     * ex.- 0x1800 data + 0 pad of stream_0 2ch, 0x1800 data + 0x200 pad of stream1 2ch (xN) */
     if (target_stream == 0) target_stream = 1;
     if (target_stream < 0 || target_stream > total_streams || total_streams < 1) goto fail;
 
     /* skip segment stuff and get stream size (from sizes for all segments, repeated per track) */
     off += 0x20 * total_segments; /* segment data (mostly unknown except @ 0x18: full data size, 0x1c: offset) */
     for (i = 0; i < total_segments; i++) { /* sum usable segment sizes (no padding) */
-        stream_size += read_32bit(off + 0x04 * i + total_segments*(target_stream-1),streamFile);
+        stream_size += read_32bit(off + 0x04 * i + 0x04 * total_segments*(target_stream-1),streamFile);
     }
     off += 0x04 * (total_segments * total_streams);
     off += 0x10 * total_segments; /* segment uuids? */
@@ -82,23 +81,30 @@ VGMSTREAM * init_vgmstream_rws(STREAMFILE *streamFile) {
     off += 0x28 * total_streams;
 
     /* get stream config: 0x0c(1): bits per sample,  others: ? */
-    info_size = total_streams > 1 ? 0x30 : 0x2c; //todo this doesn't look right
-    sample_rate   = read_32bit(off+0x00 + info_size*(target_stream-1),streamFile);
-    //unk_size    = read_32bit(off+0x08 + info_size*(target_stream-1),streamFile); /* segment size? loop-related? */
-    channel_count =  read_8bit(off+0x0d + info_size*(target_stream-1),streamFile);
-    codec         = read_32bitBE(off+0x1c + info_size*(target_stream-1),streamFile); /* uuid of 128b but the first is enough */
-    off += info_size * total_streams;
+    for (i = 0; i < total_streams; i++) {/* size depends on codec so we must parse it */
+        sample_rate   = read_32bit(off+0x00, streamFile);
+        //unk_size    = read_32bit(off+0x08, streamFile); /* segment size? loop-related? */
+        channel_count =  read_8bit(off+0x0d, streamFile);
+        codec         = read_32bitBE(off+0x1c, streamFile); /* uuid of 128b but first 32b is enough */
+        off += 0x2c;
 
+        if (codec == 0xF86215B0) { /* if codec is DSP there is an extra field per stream */
+            /* 0x00: approx num samples?  0x04: approx size/loop related? (can be 0) */
+            coefs_offset = off + 0x1c;
+            off += 0x60;
+        }
 
-    /* if codec is DSP there is an extra field */
-    if (codec == 0xF86215B0) {
-        /* 0x00: approx num samples?  0x04: approx size? */
-        coefs_offset = off + 0x1c;
+        if (total_streams > 1) /* multitracks have an unknown field */
+            off += 0x04;
+
+        if (i == target_stream-1)
+            break;
     }
 
     /* next is 0x14 * streams = ?(4) + uuid? (header ends), rest is garbage/padding until chunk end (may contain strings and weird stuff) */
 
     start_offset = 0x0c + 0x0c + header_size + 0x0c + stream_offset; /* usually 0x800 but not always */
+
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
@@ -129,8 +135,8 @@ VGMSTREAM * init_vgmstream_rws(STREAMFILE *streamFile) {
             vgmstream->num_samples = ps_bytes_to_samples(stream_size, channel_count);
             break;
 
-        case 0xF86215B0:    /* DSP Wii (F86215B0 31D54C29 BD37CDBF 9BD10C53) */
-            /* ex. Alice in Wonderland (Wii) */
+        case 0xF86215B0:    /* DSP GC/Wii (F86215B0 31D54C29 BD37CDBF 9BD10C53) */
+            /* ex. Burnout 2 (GC), Alice in Wonderland (Wii) */
             vgmstream->coding_type = coding_NGC_DSP;
             vgmstream->interleave_block_size = block_size / 2;
 

@@ -264,7 +264,7 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
 
             fsb_padding = vgmstream->channels > 2 ? 16 : 4; /* observed default */
 
-            mpeg_data = init_mpeg_codec_data_interleaved(streamFile, StartOffset, &mpeg_coding_type, vgmstream->channels, 0, fsb_padding);
+            mpeg_data = init_mpeg_codec_data_interleaved(streamFile, StartOffset, &mpeg_coding_type, vgmstream->channels, MPEG_FSB, fsb_padding);
             if (!mpeg_data) goto fail;
             vgmstream->codec_data = mpeg_data;
             vgmstream->coding_type = mpeg_coding_type;

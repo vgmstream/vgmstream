@@ -292,7 +292,7 @@ VGMSTREAM * init_vgmstream_fsb_offset(STREAMFILE *streamFile, off_t offset) {
         else /* needed by multichannel with no flags */
             fsb_padding = fsbh.numchannels > 2 ? 16 : 0;
 
-        mpeg_data = init_mpeg_codec_data_interleaved(streamFile, start_offset, &mpeg_coding_type, vgmstream->channels, 0, fsb_padding);
+        mpeg_data = init_mpeg_codec_data_interleaved(streamFile, start_offset, &mpeg_coding_type, vgmstream->channels, MPEG_FSB, fsb_padding);
         if (!mpeg_data) goto fail;
         vgmstream->codec_data = mpeg_data;
         vgmstream->coding_type = mpeg_coding_type;

@@ -8,6 +8,7 @@
 /* some formats marked as "not parsed" mean they'll go through FFmpeg, the header/extension is not parsed */
 
 static const char* extension_list[] = {
+    "04sw",
     "2dx9",
     "2pfs",
 
@@ -160,6 +161,7 @@ static const char* extension_list[] = {
     "mcg",
     "mds",
     "mdsp",
+    "med",
     "mi4",
     "mib",
     "mic",
@@ -436,6 +438,7 @@ static const coding_info coding_info_list[] = {
         {coding_OTNS_IMA,           "Omikron: The Nomad Soul 4-bit IMA ADPCM"},
         {coding_FSB_IMA,            "FSB multichannel 4-bit IMA ADPCM"},
         {coding_WWISE_IMA,          "Audiokinetic Wwise 4-bit IMA ADPCM"},
+        {coding_REF_IMA,            "Reflections 4-bit IMA ADPCM"},
         {coding_WS,                 "Westwood Studios VBR ADPCM"},
         {coding_ACM,                "InterPlay ACM"},
         {coding_NWA0,               "NWA DPCM Level 0"},
@@ -629,7 +632,7 @@ static const meta_info meta_info_list[] = {
         {meta_FSB5,                 "FMOD Sample Bank (FSB5) Header"},
         {meta_RWX,                  "RWX Header"},
         {meta_XWB,                  "Microsoft XWB Header"},
-        {meta_XA30,                 "XA30 Header"},
+        {meta_PS2_XA30,             "Reflections XA30 PS2 header"},
         {meta_MUSC,                 "MUSC Header"},
         {meta_MUSX_V004,            "MUSX / Version 004 Header"},
         {meta_MUSX_V005,            "MUSX / Version 005 Header"},
@@ -785,7 +788,7 @@ static const meta_info meta_info_list[] = {
         {meta_PC_SMP,               "Ghostbusters .smp Header"},
         {meta_NGC_PDT,              "PDT DSP header"},
         {meta_NGC_BO2,              "Blood Omen 2 DSP header"},
-        {meta_P3D,                  "Prototype P3D Header"},
+        {meta_P3D,                  "Radical P3D Header"},
         {meta_PS2_TK1,              "Tekken TK5STRM1 Header"},
         {meta_PS2_ADSC,             "ADSC Header"},
         {meta_NGC_DSP_MPDS,         "MPDS DSP header"},
@@ -870,6 +873,8 @@ static const meta_info meta_info_list[] = {
         {meta_TA_AAC_PS3,           "tri-Ace AAC (PS3) header"},
         {meta_PS3_MTA2,             "Konami MTA2 header"},
         {meta_NGC_ULW,              "Criterion ULW raw header"},
+        {meta_PC_XA30,              "Reflections XA30 PC header"},
+        {meta_WII_04SW,             "Reflections 04SW header"},
 
 #ifdef VGM_USE_VORBIS
         {meta_OGG_VORBIS,           "Ogg Vorbis"},

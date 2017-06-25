@@ -370,6 +370,9 @@
     <ClCompile Include="meta\pc_sob.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\pc_xa30.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\pcm.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -692,6 +695,9 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\waa_wac_wad_wam.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\wii_04sw.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\wii_bns.c">

@@ -98,6 +98,7 @@ int read_fmt(int big_endian,
     int sns,
     int mwv) {
 
+    int codec;
     int32_t (*read_32bit)(off_t,STREAMFILE*) = NULL;
     int16_t (*read_16bit)(off_t,STREAMFILE*) = NULL;
 
@@ -116,7 +117,13 @@ int read_fmt(int big_endian,
     fmt->channel_count = read_16bit(current_chunk+0x0a,streamFile);
     fmt->block_size = read_16bit(current_chunk+0x14,streamFile);
 
-    switch ((uint16_t)read_16bit(current_chunk+0x8,streamFile)) {
+    codec = (uint16_t)read_16bit(current_chunk+0x8,streamFile);
+
+    /* 0x007A is apparently "Voxware SC3" but in .MED it's just fake MS-IMA */
+    if (check_extensions(streamFile,"med") && codec == 0x007A)
+        codec = 0x11;
+
+    switch (codec) {
         case 1: /* PCM */
             switch (read_16bit(current_chunk+0x16,streamFile)) {
                 case 16:
@@ -246,6 +253,7 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
 #ifndef VGM_USE_FFMPEG
         && strcasecmp("sgb",filename_extension(filename)) /* SGB has proper support with FFmpeg in sgxd */
 #endif
+        && strcasecmp("med",filename_extension(filename))
 		)
     {
         if (!strcasecmp("mwv",filename_extension(filename)))

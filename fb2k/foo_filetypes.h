@@ -16,6 +16,7 @@
 
 // these are declared statically, and if anyone has a better idea i'd like to hear it - josh.
 
+DECLARE_MULTIPLE_FILE_TYPE("04SW Audio File (*.04SW)", 04sw);
 DECLARE_MULTIPLE_FILE_TYPE("2DX9 Audio File (*.2DX9)", 2dx9);
 DECLARE_MULTIPLE_FILE_TYPE("2PFS Audio File (*.2PFS)", 2pfs);
 
@@ -168,6 +169,7 @@ DECLARE_MULTIPLE_FILE_TYPE("MCA Audio File (*.MCA)", mca);
 DECLARE_MULTIPLE_FILE_TYPE("MCG Audio File (*.MCG)", mcg);
 DECLARE_MULTIPLE_FILE_TYPE("MDS Audio File (*.MDS)", mds);
 DECLARE_MULTIPLE_FILE_TYPE("MDSP Audio File (*.MDSP)", mdsp);
+DECLARE_MULTIPLE_FILE_TYPE("MED Audio File (*.MED)", med);
 DECLARE_MULTIPLE_FILE_TYPE("MI4 Audio File (*.MI4)", mi4);
 DECLARE_MULTIPLE_FILE_TYPE("MIB Audio File (*.MIB)", mib);
 DECLARE_MULTIPLE_FILE_TYPE("MIC Audio File (*.MIC)", mic);

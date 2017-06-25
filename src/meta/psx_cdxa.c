@@ -37,6 +37,9 @@ VGMSTREAM * init_vgmstream_cdxa(STREAMFILE *streamFile) {
 		  (read_32bitBE(0x0C,streamFile) == 0x666D7420)))
         headerless=1;
 
+    /* don't misdetect Reflections' XA ("XA30" / "04SW") */
+    if (read_32bitBE(0x00,streamFile) == 0x58413330 || read_32bitBE(0x00,streamFile) == 0x30345357) goto fail;
+
 	/* First init to have the correct info of the channel */
 	if (!headerless) {
 		start_offset=init_xa_channel(&xa_channel,streamFile);

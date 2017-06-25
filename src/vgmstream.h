@@ -118,7 +118,7 @@ typedef enum {
     coding_DVI_IMA_int,		/* DVI IMA ADPCM (Interleaved) */
     coding_NDS_IMA,         /* IMA ADPCM w/ NDS layout */
     coding_EACS_IMA,
-    coding_MS_IMA,          /* Microsoft IMA */
+    coding_MS_IMA,          /* Microsoft IMA ADPCM */
     coding_RAD_IMA,         /* Radical IMA ADPCM */
     coding_RAD_IMA_mono,    /* Radical IMA ADPCM, mono (for interleave) */
     coding_APPLE_IMA4,      /* Apple Quicktime IMA4 */
@@ -127,6 +127,7 @@ typedef enum {
     coding_OTNS_IMA,        /* Omikron The Nomad Soul IMA ADPCM */
     coding_FSB_IMA,         /* FMOD's FSB multichannel IMA ADPCM */
     coding_WWISE_IMA,       /* Audiokinetic Wwise IMA ADPCM */
+    coding_REF_IMA,         /* Reflections IMA ADPCM */
 
     coding_MSADPCM,         /* Microsoft ADPCM */
     coding_WS,              /* Westwood Studios VBR ADPCM */
@@ -349,7 +350,7 @@ typedef enum {
     meta_FSB5,              /* FMOD Sample Bank, version 5 */
     meta_RWX,				/* Air Force Delta Storm (XBOX) */
     meta_XWB,				/* Microsoft XACT framework (Xbox, X360, Windows) */
-    meta_XA30,				/* Driver - Parallel Lines (PS2) */
+    meta_PS2_XA30,          /* Driver - Parallel Lines (PS2) */
     meta_MUSC,				/* Spyro Games, possibly more */
     meta_MUSX_V004,			/* Spyro Games, possibly more */
     meta_MUSX_V005,			/* Spyro Games, possibly more */
@@ -620,6 +621,8 @@ typedef enum {
     meta_TA_AAC_PS3,        /* tri-ace AAC (Star Ocean International, Resonance of Fate) */
     meta_PS3_MTA2,          /* Metal Gear Solid 4 MTA2 */
     meta_NGC_ULW,           /* Burnout 1 (GC only) */
+    meta_PC_XA30,           /* Driver - Parallel Lines (PC) */
+    meta_WII_04SW,          /* Driver - Parallel Lines (Wii) */
 
 #ifdef VGM_USE_VORBIS
     meta_OGG_VORBIS,        /* Ogg Vorbis */
@@ -827,6 +830,7 @@ typedef struct {
 #endif
 
 #ifdef VGM_USE_MPEG
+typedef enum { /*MPEG_NONE,*/ MPEG_FIXED, MPEG_FSB, MPEG_P3D } mpeg_interleave_type;
 typedef struct {
     uint8_t *buffer; /* raw (coded) data buffer */
     size_t buffer_size;
@@ -844,7 +848,10 @@ typedef struct {
     size_t samples_to_discard; /* for interleaved looping */
 
     /* interleaved MPEG internals */
-    int interleaved; /* flag */
+    int interleaved;
+    mpeg_interleave_type interleave_type; /* flag */
+    uint32_t interleave_value; /* varies with type */
+
     mpg123_handle **ms; /* array of MPEG streams */
     size_t ms_size;
     uint8_t *frame_buffer; /* temp buffer with samples from a single decoded frame */
@@ -854,11 +861,8 @@ typedef struct {
     size_t bytes_in_interleave_buffer;
     size_t bytes_used_in_interleave_buffer;
 
-    /* messy stuff for padded FSB frames */
-    size_t fixed_frame_size; /* when given a fixed size (XVAG) */
     size_t current_frame_size;
-    int fsb_padding; /* for FSBs that have extra garbage between frames */
-    size_t current_padding; /* padding needed for current frame size */
+    size_t current_padding; /* FSB padding between frames */
 
 } mpeg_codec_data;
 #endif
