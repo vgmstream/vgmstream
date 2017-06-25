@@ -830,6 +830,7 @@ typedef struct {
 #endif
 
 #ifdef VGM_USE_MPEG
+typedef enum { /*MPEG_NONE,*/ MPEG_FIXED, MPEG_FSB, MPEG_P3D } mpeg_interleave_type;
 typedef struct {
     uint8_t *buffer; /* raw (coded) data buffer */
     size_t buffer_size;
@@ -847,7 +848,10 @@ typedef struct {
     size_t samples_to_discard; /* for interleaved looping */
 
     /* interleaved MPEG internals */
-    int interleaved; /* flag */
+    int interleaved;
+    mpeg_interleave_type interleave_type; /* flag */
+    uint32_t interleave_value; /* varies with type */
+
     mpg123_handle **ms; /* array of MPEG streams */
     size_t ms_size;
     uint8_t *frame_buffer; /* temp buffer with samples from a single decoded frame */
@@ -857,11 +861,8 @@ typedef struct {
     size_t bytes_in_interleave_buffer;
     size_t bytes_used_in_interleave_buffer;
 
-    /* messy stuff for padded FSB frames */
-    size_t fixed_frame_size; /* when given a fixed size (XVAG) */
     size_t current_frame_size;
-    int fsb_padding; /* for FSBs that have extra garbage between frames */
-    size_t current_padding; /* padding needed for current frame size */
+    size_t current_padding; /* FSB padding between frames */
 
 } mpeg_codec_data;
 #endif
