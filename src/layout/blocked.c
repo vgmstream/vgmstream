@@ -8,7 +8,9 @@ void render_vgmstream_blocked(sample * buffer, int32_t sample_count, VGMSTREAM *
     int samples_per_frame = get_vgmstream_samples_per_frame(vgmstream);
     int samples_this_block;
 
-    if (frame_size == 0) {
+    if (vgmstream->current_block_samples) {
+        samples_this_block = vgmstream->current_block_samples;
+    } else if (frame_size == 0) {
         /* assume 4 bit */
         /* TODO: get_vgmstream_frame_size() really should return bits... */
         samples_this_block = vgmstream->current_block_size * 2 * samples_per_frame;
@@ -20,7 +22,9 @@ void render_vgmstream_blocked(sample * buffer, int32_t sample_count, VGMSTREAM *
         int samples_to_do; 
 
         if (vgmstream->loop_flag && vgmstream_do_loop(vgmstream)) {
-            if (frame_size == 0) {
+            if (vgmstream->current_block_samples) {
+                samples_this_block = vgmstream->current_block_samples;
+            } else if (frame_size == 0) {
                 samples_this_block = vgmstream->current_block_size * 2 * samples_per_frame;
             } else {
                 samples_this_block = vgmstream->current_block_size / frame_size * samples_per_frame;
@@ -65,7 +69,7 @@ void render_vgmstream_blocked(sample * buffer, int32_t sample_count, VGMSTREAM *
 					xa_block_update(vgmstream->next_block_offset,vgmstream);
 					break;
 				case layout_ea_blocked:
-					ea_block_update(vgmstream->next_block_offset,vgmstream);
+					ea_schl_block_update(vgmstream->next_block_offset,vgmstream);
 					break;
 				case layout_eacs_blocked:
 					eacs_block_update(vgmstream->next_block_offset,vgmstream);
@@ -141,7 +145,9 @@ void render_vgmstream_blocked(sample * buffer, int32_t sample_count, VGMSTREAM *
             frame_size = get_vgmstream_frame_size(vgmstream);
             samples_per_frame = get_vgmstream_samples_per_frame(vgmstream);
 
-            if (frame_size == 0) {
+            if (vgmstream->current_block_samples) {
+                samples_this_block = vgmstream->current_block_samples;
+            } else if (frame_size == 0) {
                 samples_this_block = vgmstream->current_block_size * 2 * samples_per_frame;
             } else {
                 samples_this_block = vgmstream->current_block_size / frame_size * samples_per_frame;

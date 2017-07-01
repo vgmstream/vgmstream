@@ -63,7 +63,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_xbox_wavm,
     init_vgmstream_xbox_xwav,
     init_vgmstream_ngc_str,
-    init_vgmstream_ea,
+    init_vgmstream_ea_schl,
     init_vgmstream_caf,
     init_vgmstream_ps2_vpk,
     init_vgmstream_genh,
@@ -1047,7 +1047,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_EA_XA:
             return 28;
 		case coding_MAXIS_ADPCM:
-        case coding_EA_ADPCM:
+        case coding_EA_MT10:
 			return 14*vgmstream->channels;
         case coding_WS:
             /* only works if output sample size is 8 bit, which always is for WS ADPCM */
@@ -1191,7 +1191,7 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
             return 36;
 		case coding_MAXIS_ADPCM:
 			return 15*vgmstream->channels;
-        case coding_EA_ADPCM:
+        case coding_EA_MT10:
             return 30;
         case coding_EA_XA:
             return 1; // the frame is variant in size
@@ -1490,9 +1490,9 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                         samples_to_do,chan);
             }
             break;
-        case coding_EA_ADPCM:
+        case coding_EA_MT10:
             for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_ea_adpcm(vgmstream,buffer+samples_written*vgmstream->channels+chan,
+                decode_ea_mt10(vgmstream,buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
                         samples_to_do,chan);
             }

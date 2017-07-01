@@ -184,7 +184,7 @@
     <ClCompile Include="meta\dsp_sth_str.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\ea_header.c">
+    <ClCompile Include="meta\ea_schl.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ea_old.c">
@@ -781,7 +781,7 @@
     <ClCompile Include="coding\aica_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="coding\eaxa_decoder.c">
+    <ClCompile Include="coding\ea_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\fsb_vorbis_decoder.c">

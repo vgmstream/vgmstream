@@ -205,7 +205,7 @@
     <ClCompile Include="meta\dsp_adx.c" />
     <ClCompile Include="meta\dsp_bdsp.c" />
     <ClCompile Include="meta\dsp_sth_str.c" />
-    <ClCompile Include="meta\ea_header.c" />
+    <ClCompile Include="meta\ea_schl.c" />
     <ClCompile Include="meta\ea_old.c" />
     <ClCompile Include="meta\emff.c" />
     <ClCompile Include="meta\exakt_sc.c" />
@@ -412,7 +412,7 @@
     <ClCompile Include="coding\acm_decoder.c" />
     <ClCompile Include="coding\adx_decoder.c" />
     <ClCompile Include="coding\aica_decoder.c" />
-    <ClCompile Include="coding\eaxa_decoder.c" />
+    <ClCompile Include="coding\ea_decoder.c" />
     <ClCompile Include="coding\fsb_vorbis_decoder.c" />
     <ClCompile Include="coding\g719_decoder.c" />
     <ClCompile Include="coding\g721_decoder.c" />

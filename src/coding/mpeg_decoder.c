@@ -373,7 +373,8 @@ static void decode_mpeg_interleave(VGMSTREAM * vgmstream, mpeg_codec_data * data
             data->bytes_used_in_interleave_buffer = 0;
 
             for (i=0; i < data->ms_size; i++) {
-                if (data->interleave_type == MPEG_P3D) /* P3D have a strange way to interleave so just use first offset */
+                if (data->interleave_type == MPEG_P3D           /* P3D have a strange way to interleave so just use first offset */
+                        || data->interleave_type == MPEG_EA)    /* EA MPEG is simply frame by frame normal MPEG  */
                     decode_mpeg_interleave_samples(&vgmstream->ch[0], data, data->ms[i], channels, i, vgmstream->interleave_block_size);
                 else
                     decode_mpeg_interleave_samples(&vgmstream->ch[i], data, data->ms[i], channels, i, vgmstream->interleave_block_size);
@@ -529,12 +530,6 @@ static int update_frame_sizes(mpeg_codec_data * data, STREAMFILE *streamfile, of
         /* Manually find new frame size. Not ideal but mpg123_info.framesize is wrong sometimes */
         if ( !mpeg_get_frame_info(streamfile, offset, &info) )
             goto fail;
-
-        /* could mess some calcs */
-        VGM_ASSERT(data->sample_rate_per_frame != info.sample_rate || data->samples_per_frame != info.frame_samples,
-                "MPEG: variable frame info found @ 0x%08lx", offset);
-
-        /* new frame */
         data->current_frame_size = info.frame_size;
 
         /* get FSB padding for MPEG1/2 Layer III (MPEG1 Layer II doesn't use it, and Layer I doesn't seem to be supported) */
@@ -543,6 +538,10 @@ static int update_frame_sizes(mpeg_codec_data * data, STREAMFILE *streamfile, of
                     ? data->interleave_value - (data->current_frame_size % data->interleave_value)
                     : 0;
         }
+
+        /* could mess some calcs */
+        VGM_ASSERT(data->sample_rate_per_frame != info.sample_rate || data->samples_per_frame != info.frame_samples,
+                "MPEG: variable frame info found @ 0x%08lx", offset);
     }
     else if (data->interleave_type == MPEG_P3D) { /* varying frames size, even though the frame header says 0x120 */
         uint32_t header = read_32bitBE(offset,streamfile);
@@ -561,7 +560,14 @@ static int update_frame_sizes(mpeg_codec_data * data, STREAMFILE *streamfile, of
             VGM_LOG("MPEG: unknown frame size @ %lx, %x\n", offset, read_32bitBE(offset+0x120,streamfile));
             goto fail;
         }
+    }
+    else if (data->interleave_type == MPEG_EA) { /* straight frame by frame */
+        mpeg_frame_info info;
 
+        /* Manually find new frame size. Not ideal but mpg123_info.framesize is wrong sometimes */
+        if ( !mpeg_get_frame_info(streamfile, offset, &info) )
+            goto fail;
+        data->current_frame_size = info.frame_size;
     }
 
     return 1;
