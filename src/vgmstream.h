@@ -825,7 +825,7 @@ typedef struct {
 #endif
 
 #ifdef VGM_USE_MPEG
-typedef enum { /*MPEG_NONE,*/ MPEG_FIXED, MPEG_FSB, MPEG_P3D } mpeg_interleave_type;
+typedef enum { /*MPEG_NONE,*/ MPEG_FIXED, MPEG_FSB, MPEG_P3D, MPEG_EA } mpeg_interleave_type;
 typedef struct {
     uint8_t *buffer; /* raw (coded) data buffer */
     size_t buffer_size;
