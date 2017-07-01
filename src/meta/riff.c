@@ -98,7 +98,7 @@ int read_fmt(int big_endian,
     int sns,
     int mwv) {
 
-    int codec;
+    int codec, bps;
     int32_t (*read_32bit)(off_t,STREAMFILE*) = NULL;
     int16_t (*read_16bit)(off_t,STREAMFILE*) = NULL;
 
@@ -117,15 +117,12 @@ int read_fmt(int big_endian,
     fmt->channel_count = read_16bit(current_chunk+0x0a,streamFile);
     fmt->block_size = read_16bit(current_chunk+0x14,streamFile);
 
+    bps = read_16bit(current_chunk+0x16,streamFile);
     codec = (uint16_t)read_16bit(current_chunk+0x8,streamFile);
 
-    /* 0x007A is apparently "Voxware SC3" but in .MED it's just fake MS-IMA */
-    if (check_extensions(streamFile,"med") && codec == 0x007A)
-        codec = 0x11;
-
     switch (codec) {
-        case 1: /* PCM */
-            switch (read_16bit(current_chunk+0x16,streamFile)) {
+        case 0x01: /* PCM */
+            switch (bps) {
                 case 16:
                     if (big_endian) {
                         fmt->coding_type = coding_PCM16BE;
@@ -142,39 +139,54 @@ int read_fmt(int big_endian,
                     goto fail;
             }
             break;
-        case 2: /* MS ADPCM */
-            /* ensure 4bps */
-            if (read_16bit(current_chunk+0x16,streamFile)!=4)
-                goto fail;
 
+        case 0x02: /* MS ADPCM */
+            if (bps != 4) /* ensure 4bps */
+                goto fail;
             fmt->coding_type = coding_MSADPCM;
             fmt->interleave = 0;
+            break;
 
-            break;
-        case 0x11:  /* MS IMA ADCM */
-            /* ensure 4bps */
-            if (read_16bit(current_chunk+0x16,streamFile)!=4)
+        case 0x11:  /* MS IMA ADPCM */
+            if (bps != 4) /* ensure 4bps */
                 goto fail;
             fmt->coding_type = coding_MS_IMA;
             fmt->interleave = 0;
             break;
-        case 0x69:  /* MS IMA ADCM - Rayman Raving Rabbids 2 (PC) */
-            /* ensure 4bps */
-            if (read_16bit(current_chunk+0x16,streamFile)!=4)
+
+        case 0x69:  /* MS IMA ADPCM - Rayman Raving Rabbids 2 (PC) */
+            if (bps != 4) /* ensure 4bps */
                 goto fail;
             fmt->coding_type = coding_MS_IMA;
             fmt->interleave = 0;
             break;
-        case 0x555: /* Level-5 0x555 ADPCM */
+
+        case 0x007A:  /* MS IMA ADPCM (LA Rush, Psi Ops PC) */
+            /* 0x007A is apparently "Voxware SC3" but in .MED it's just MS-IMA */
+            if (!check_extensions(streamFile,"med"))
+                goto fail;
+
+            if (bps == 4) /* normal MS IMA */
+                fmt->coding_type = coding_MS_IMA;
+            else if (bps == 3) /* 3-bit MS IMA, used in a very few files */
+                goto fail; //fmt->coding_type = coding_MS_IMA_3BIT;
+            else
+                goto fail;
+            fmt->interleave = 0;
+            break;
+
+        case 0x0555: /* Level-5 0x555 ADPCM */
             if (!mwv) goto fail;
             fmt->coding_type = coding_L5_555;
             fmt->interleave = 0x12;
             break;
+
         case 0x5050: /* Ubisoft .sns uses this for DSP */
             if (!sns) goto fail;
             fmt->coding_type = coding_NGC_DSP;
             fmt->interleave = 8;
             break;
+
 #ifdef VGM_USE_FFMPEG
 		case 0x270: /* ATRAC3 */
 #if defined(VGM_USE_FFMPEG) && !defined(VGM_USE_MAIATRAC3PLUS)
@@ -184,6 +196,7 @@ int read_fmt(int big_endian,
 			fmt->interleave = 0;
 			break;
 #endif /* VGM_USE_FFMPEG */
+
 #ifdef VGM_USE_MAIATRAC3PLUS
 		case 0xFFFE: /* WAVEFORMATEXTENSIBLE / ATRAC3plus */
 			if (read_32bit(current_chunk+0x20,streamFile) == 0xE923AABF &&
@@ -386,7 +399,9 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
      * To ensure their stuff is parsed in wwise.c we reject their JUNK, which they put almost always.
      * As JUNK is legal (if unusual) we only reject those codecs.
      * (ex. Cave PC games have PCM16LE + JUNK + smpl created by "Samplitude software") */
-    if (JunkFound && (fmt.coding_type==coding_MSADPCM || fmt.coding_type==coding_MS_IMA)) goto fail;
+    if (JunkFound
+            && check_extensions(streamFile,"wav,lwav") /* for some .MED IMA */
+            && (fmt.coding_type==coding_MSADPCM || fmt.coding_type==coding_MS_IMA)) goto fail;
 
     switch (fmt.coding_type) {
         case coding_PCM16LE:
