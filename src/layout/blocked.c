@@ -69,7 +69,7 @@ void render_vgmstream_blocked(sample * buffer, int32_t sample_count, VGMSTREAM *
 					xa_block_update(vgmstream->next_block_offset,vgmstream);
 					break;
 				case layout_ea_blocked:
-					ea_block_update(vgmstream->next_block_offset,vgmstream);
+					ea_schl_block_update(vgmstream->next_block_offset,vgmstream);
 					break;
 				case layout_eacs_blocked:
 					eacs_block_update(vgmstream->next_block_offset,vgmstream);

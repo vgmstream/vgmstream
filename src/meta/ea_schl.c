@@ -191,7 +191,7 @@ VGMSTREAM * init_vgmstream_ea_schl(STREAMFILE *streamFile) {
     if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
         goto fail;
 
-    ea_block_update(start_offset,vgmstream);
+    ea_schl_block_update(start_offset,vgmstream);
 
 
     return vgmstream;

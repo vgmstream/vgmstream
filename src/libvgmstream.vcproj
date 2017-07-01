@@ -337,7 +337,7 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\ea_header.c"
+					RelativePath=".\meta\ea_schl.c"
 					>
 				</File>
 				<File
@@ -1319,7 +1319,7 @@
                     >
                 </File>
 				<File
-					RelativePath=".\coding\eaxa_decoder.c"
+					RelativePath=".\coding\ea_decoder.c"
 					>
 				</File>
                 <File

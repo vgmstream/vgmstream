@@ -3,7 +3,7 @@
 #include "../vgmstream.h"
 
 /* set up for the block at the given offset */
-void ea_block_update(off_t block_offset, VGMSTREAM * vgmstream) {
+void ea_schl_block_update(off_t block_offset, VGMSTREAM * vgmstream) {
     int i;
     STREAMFILE* streamFile = vgmstream->ch[0].streamfile;
     uint32_t id;
