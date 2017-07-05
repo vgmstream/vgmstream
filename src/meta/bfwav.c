@@ -6,11 +6,12 @@ VGMSTREAM * init_vgmstream_bfwav(STREAMFILE *streamFile) {
 	char filename[PATH_LIMIT];
 
 	coding_t coding_type;
+	coding_t coding_PCM16;
+	int32_t (*read_32bit)(off_t,STREAMFILE*) = NULL;
+	int16_t (*read_16bit)(off_t,STREAMFILE*) = NULL;
 
 	/*int ima = 0;*/
 	int nsmbu_flag = 0;
-	int32_t(*read_32bit)(off_t, STREAMFILE*) = read_32bitBE;
-	int16_t(*read_16bit)(off_t, STREAMFILE*) = read_16bitBE;
 
 	off_t data_offset;
 	off_t head_offset;
@@ -30,8 +31,17 @@ VGMSTREAM * init_vgmstream_bfwav(STREAMFILE *streamFile) {
 	if ((uint32_t)read_32bitBE(0, streamFile) != 0x46574156) /* "FWAV" */
 		goto fail;
 
-	if ((uint32_t)read_32bitBE(4, streamFile) != 0xFEFF0040) /* "FWAV" */
+	if ((uint16_t)read_16bitBE(4, streamFile) == 0xFEFF) { /* endian marker (BE most common) */
+		read_32bit = read_32bitBE;
+		read_16bit = read_16bitBE;
+		coding_PCM16 = coding_PCM16BE;
+	} else if ((uint16_t)read_16bitBE(4, streamFile) == 0xFFFE) { /* LE endian marker */
+		read_32bit = read_32bitLE;
+		read_16bit = read_16bitLE;
+		coding_PCM16 = coding_PCM16LE;
+	} else {
 		goto fail;
+	}
 
 	/* get head offset, check */
 	head_offset = read_32bit(0x18, streamFile);		
@@ -44,14 +54,14 @@ VGMSTREAM * init_vgmstream_bfwav(STREAMFILE *streamFile) {
 	/* check type details */
 	codec_number = read_8bit(head_offset + 0x8, streamFile);
 	loop_flag = read_8bit(head_offset + 0x9, streamFile);
-	channel_count = read_8bit(head_offset + 0x1F, streamFile);
+	channel_count = read_32bit(head_offset + 0x1C, streamFile);
 
 	switch (codec_number) {
 	case 0:
 		coding_type = coding_PCM8;
 		break;
 	case 1:
-		coding_type = coding_PCM16BE;
+		coding_type = coding_PCM16;
 		break;
 	case 2:
 		coding_type = coding_NGC_DSP;
@@ -72,7 +82,7 @@ VGMSTREAM * init_vgmstream_bfwav(STREAMFILE *streamFile) {
 	if (nsmbu_flag)
 		vgmstream->sample_rate = 16000;
 	else
-		vgmstream->sample_rate = (uint16_t)read_16bit(head_offset + 0xE, streamFile);
+		vgmstream->sample_rate = (uint16_t)read_32bit(head_offset + 0xC, streamFile);
 	/* channels and loop flag are set by allocate_vgmstream */
 
 	vgmstream->loop_start_sample = read_32bit(head_offset + 0x10, streamFile);
@@ -87,33 +97,20 @@ VGMSTREAM * init_vgmstream_bfwav(STREAMFILE *streamFile) {
 
 	vgmstream->meta_type = meta_FWAV;
 
-	vgmstream->interleave_block_size = read_32bitBE(read_32bitBE(0x6c, streamFile) + 0x60, streamFile) - 0x18;
+	vgmstream->interleave_block_size = read_32bit(read_32bit(0x6c, streamFile) + 0x60, streamFile) - 0x18;
 	
 
 	start_offset = data_offset + 0x20;
 
 	if (vgmstream->coding_type == coding_NGC_DSP) {
-		off_t coef_offset;
 		int i, j;
-		int coef_spacing = 0x2E;
-
-		off_t coeffheader = head_offset + 0x28;
-		int foundcoef = 0;
-		while (!(foundcoef))
-		{
-			if ((uint32_t)read_32bit(coeffheader, streamFile) == 0x1F000000)
-			{
-				coef_offset = read_32bit(coeffheader + 0xC, streamFile) + coeffheader;
-				foundcoef = 1;
-				break;				
-			}
-			coeffheader++;
-		}
-			
-		
 
 		for (j = 0; j<vgmstream->channels; j++) {
 			for (i = 0; i<16; i++) {
+				off_t coeffheader = head_offset + 0x1C + read_32bit(head_offset + 0x24 + (j*8), streamFile);
+				if ((uint32_t)read_16bit(coeffheader, streamFile) != 0x1F00) goto fail;
+
+				off_t coef_offset = read_32bit(coeffheader + 0xC, streamFile) + coeffheader;
 				vgmstream->ch[j].adpcm_coef[i] = read_16bit(coef_offset + j*coef_spacing + i * 2, streamFile);
 			}
 		}
