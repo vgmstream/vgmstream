@@ -6,6 +6,7 @@
 VGMSTREAM * init_vgmstream_bfstm(STREAMFILE *streamFile) {
 	VGMSTREAM * vgmstream = NULL;
 	coding_t coding_type;
+	coding_t coding_PCM16;
     int32_t (*read_32bit)(off_t,STREAMFILE*) = NULL;
     int16_t (*read_16bit)(off_t,STREAMFILE*) = NULL;
 
@@ -30,9 +31,11 @@ VGMSTREAM * init_vgmstream_bfstm(STREAMFILE *streamFile) {
 	if ((uint16_t)read_16bitBE(4, streamFile) == 0xFEFF) { /* endian marker (BE most common) */
         read_32bit = read_32bitBE;
         read_16bit = read_16bitBE;
+        coding_PCM16 = coding_PCM16BE;
 	} else if ((uint16_t)read_16bitBE(4, streamFile) == 0xFFFE) { /* Blaster Master Zero 3DS */
         read_32bit = read_32bitLE;
         read_16bit = read_16bitLE;
+        coding_PCM16 = coding_PCM16LE;
 	} else {
 	    goto fail;
 	}
@@ -81,7 +84,7 @@ VGMSTREAM * init_vgmstream_bfstm(STREAMFILE *streamFile) {
 		coding_type = coding_PCM8;
 		break;
 	case 1:
-		coding_type = coding_PCM16BE;
+		coding_type = coding_PCM16;
 		break;
 	case 2:
 		coding_type = coding_NGC_DSP;
