@@ -111,7 +111,7 @@ VGMSTREAM * init_vgmstream_bfwav(STREAMFILE *streamFile) {
 				if ((uint32_t)read_16bit(coeffheader, streamFile) != 0x1F00) goto fail;
 
 				off_t coef_offset = read_32bit(coeffheader + 0xC, streamFile) + coeffheader;
-				vgmstream->ch[j].adpcm_coef[i] = read_16bit(coef_offset + j*coef_spacing + i * 2, streamFile);
+				vgmstream->ch[j].adpcm_coef[i] = read_16bit(coef_offset + i * 2, streamFile);
 			}
 		}
 	}
