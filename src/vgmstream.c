@@ -1044,10 +1044,11 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
 		case coding_XBOX_int:
         case coding_FSB_IMA:
             return 64;
+        case coding_EA_MT10:
+        case coding_EA_MT10_int:
         case coding_EA_XA:
             return 28;
-		case coding_MAXIS_ADPCM:
-        case coding_EA_MT10:
+		case coding_MAXIS_MT10:
 			return 14*vgmstream->channels;
         case coding_WS:
             /* only works if output sample size is 8 bit, which always is for WS ADPCM */
@@ -1189,10 +1190,12 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
 		case coding_XBOX_int:
         case coding_FSB_IMA:
             return 36;
-		case coding_MAXIS_ADPCM:
-			return 15*vgmstream->channels;
         case coding_EA_MT10:
-            return 30;
+            return 0x1E;
+        case coding_EA_MT10_int:
+            return 0x0F;
+        case coding_MAXIS_MT10:
+            return 0x0F*vgmstream->channels;
         case coding_EA_XA:
             return 1; // the frame is variant in size
         case coding_WS:
@@ -1492,14 +1495,21 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
             break;
         case coding_EA_MT10:
             for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_ea_mt10(vgmstream,buffer+samples_written*vgmstream->channels+chan,
+                decode_ea_mt10(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
                         samples_to_do,chan);
             }
             break;
-        case coding_MAXIS_ADPCM:
+        case coding_EA_MT10_int:
             for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_maxis_adpcm(vgmstream,buffer+samples_written*vgmstream->channels+chan,
+                decode_ea_mt10_int(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                        vgmstream->channels,vgmstream->samples_into_block,
+                        samples_to_do,chan);
+            }
+            break;
+        case coding_MAXIS_MT10:
+            for (chan=0;chan<vgmstream->channels;chan++) {
+                decode_maxis_mt10(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
                         samples_to_do,chan);
             }

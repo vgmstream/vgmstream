@@ -29,14 +29,13 @@ VGMSTREAM * init_vgmstream_maxis_xa(STREAMFILE *streamFile) {
     start_offset = 0x18;
 	vgmstream->channels = channel_count;
     vgmstream->sample_rate = read_32bitLE(0x0C,streamFile);
-    vgmstream->coding_type = coding_MAXIS_ADPCM;
+    vgmstream->coding_type = coding_MAXIS_MT10;
     vgmstream->num_samples = read_32bitLE(0x04,streamFile)/2/channel_count;
 
     if (loop_flag) {
         vgmstream->loop_start_sample = 0;
         vgmstream->loop_end_sample = (read_32bitBE(0x0C,streamFile)-start_offset)/8/channel_count*14;
     }
-
 
     vgmstream->layout_type = layout_none;
     vgmstream->meta_type = meta_MAXIS_XA;

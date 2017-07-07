@@ -105,9 +105,10 @@ typedef enum {
     coding_PSX_cfg,         /* Sony PS ADPCM with configurable frame size (FF XI, SGXD type 5, Bizarre Creations) */
     coding_HEVAG,           /* Sony PSVita ADPCM */
 
-    coding_EA_MT10,         /* Electronic Arts MicroTalk (10:1) ADPCM ('EA ADPCM')*/
+    coding_EA_MT10,         /* Electronic Arts MicroTalk (10:1) ADPCM (stereo) aka EA ADPCM */
+    coding_EA_MT10_int,     /* Electronic Arts MicroTalk (10:1) ADPCM (mono/interleave) */
+    coding_MAXIS_MT10,      /* Maxis MicroTalk (10:1) ADPCM */
     coding_EA_XA,			/* Electronic Arts EA-XA ADPCM */
-	coding_MAXIS_ADPCM,		/* Maxis ADPCM */
 
     coding_XBOX,            /* XBOX IMA ADPCM */
     coding_XBOX_int,        /* XBOX IMA ADPCM (interleaved) */
