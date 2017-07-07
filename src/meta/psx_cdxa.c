@@ -39,6 +39,8 @@ VGMSTREAM * init_vgmstream_cdxa(STREAMFILE *streamFile) {
 
     /* don't misdetect Reflections' XA ("XA30" / "04SW") */
     if (read_32bitBE(0x00,streamFile) == 0x58413330 || read_32bitBE(0x00,streamFile) == 0x30345357) goto fail;
+    /* don't misdetect Maxis XA ("XAI\0" / "XAJ\0") */
+    if (read_32bitBE(0x00,streamFile) == 0x58414900 || read_32bitBE(0x00,streamFile) == 0x58414A00) goto fail;
 
 	/* First init to have the correct info of the channel */
 	if (!headerless) {
