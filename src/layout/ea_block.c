@@ -28,8 +28,11 @@ void ea_schl_block_update(off_t block_offset, VGMSTREAM * vgmstream) {
 
         /* Some EA files concat many small subfiles, for mapped music (.map/lin), so after SCEl
          * there may be a new SCHl. We'll find it and pretend they are a single stream. */
-        if (id == 0x5343456C && block_offset + 0x80 > file_size)
+        if (id == 0x5343456C && block_offset + 0x80 > file_size) { /* "SCEl" end block found with no extra "SCHl" */
+            vgmstream->current_block_offset = block_offset;
+            vgmstream->next_block_offset = block_offset + block_size;
             return;
+        }
         if (id == 0x5343456C) { /* "SCEl" end block found */
             /* Usually there is padding between SCEl and SCHl (aligned to 0x80) */
             block_offset += (block_offset % 0x04) == 0 ? 0 : 0x04 - (block_offset % 0x04); /* also 32b-aligned */
@@ -41,14 +44,24 @@ void ea_schl_block_update(off_t block_offset, VGMSTREAM * vgmstream) {
             }
         }
 
-        if (block_offset > file_size)
+        if (block_offset >= file_size) {
+            vgmstream->current_block_offset = block_offset;
+            vgmstream->next_block_offset = block_offset + 0x04;
             return;
+        }
 
-        if (id == 0 || id == 0xFFFFFFFF)
+        if (id == 0 || id == 0xFFFFFFFF) {
+            vgmstream->current_block_offset = block_offset;
+            vgmstream->next_block_offset = block_offset + 0x04;
             return; /* probably hit padding or EOF */
+        }
+
     }
-    if (block_offset > file_size)
+    if (block_offset >= file_size) {
+        vgmstream->current_block_offset = block_offset;
+        vgmstream->next_block_offset = block_offset + 0x04;
         return;
+    }
 
 
     /* use num_samples from header if possible; don't calc as rarely data may have padding (ex. PCM8) or not possible (ex. MP3) */
