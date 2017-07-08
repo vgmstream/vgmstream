@@ -1859,6 +1859,7 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream) {
         if (vgmstream->meta_type == meta_DSP_STD ||
             vgmstream->meta_type == meta_DSP_RS03 ||
             vgmstream->meta_type == meta_DSP_CSTR ||
+            vgmstream->meta_type == meta_NDS_STRM_FFTA2 || /* clicks in some files otherwise */
             vgmstream->coding_type == coding_PSX ||
             vgmstream->coding_type == coding_PSX_bmdx ||
             vgmstream->coding_type == coding_PSX_badflags) {
