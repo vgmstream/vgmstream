@@ -522,6 +522,10 @@
 					RelativePath=".\meta\nds_strm.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\meta\nds_strm_ffta2.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\nds_swav.c"
 					>
