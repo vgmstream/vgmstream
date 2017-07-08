@@ -18,61 +18,56 @@ void ea_schl_block_update(off_t block_offset, VGMSTREAM * vgmstream) {
         id = read_32bitBE(block_offset+0x00,streamFile);
 
         block_size = read_32bitLE(block_offset+0x04,streamFile);
-        if (block_size > 0x00F00000) /* size size is always LE, except in early SS/MAC */
+        if (block_size > 0x00F00000) /* size is always LE, except in early SS/MAC */
             block_size = read_32bitBE(block_offset+0x04,streamFile);
 
-        if (id == 0x5343446C) /* "SCDl" data block found */
+        /* SCxx blocks have size in the header, but others may not. To simplify we just try to find
+         * a SCDl (main data) every 0x04. EA sometimes concats many small files, so after a SCEl (end block)
+         * there may be a new SCHl + SCDl too, so this pretends they are a single stream. */
+        if (id == 0x5343446C) {  /* "SCDl" data block found */
+
+            /* use num_samples from header if possible; don't calc as data may have padding (ex. PCM8) or not possible (ex. MP3) */
+            switch(vgmstream->coding_type) {
+                case coding_PSX:
+                    block_samples = ps_bytes_to_samples(block_size-0x10, vgmstream->channels);
+                    break;
+
+                default:
+                    block_samples = read_32bit(block_offset+0x08,streamFile);
+                    break;
+            }
+
+            /* guard against false positives (happens in "pIQT" blocks) */
+            if (block_size > 0xFFFF || block_samples > 0xFFFF) { /* observed max is ~0xf00 but who knows */
+                block_offset += 0x04;
+                continue;
+            }
+
             break;
-
-        block_offset += block_size; /* size includes header */
-
-        /* Some EA files concat many small subfiles, for mapped music (.map/lin), so after SCEl
-         * there may be a new SCHl. We'll find it and pretend they are a single stream. */
-        if (id == 0x5343456C && block_offset + 0x80 > file_size) { /* "SCEl" end block found with no extra "SCHl" */
-            vgmstream->current_block_offset = block_offset;
-            vgmstream->next_block_offset = block_offset + block_size;
-            return;
         }
-        if (id == 0x5343456C) { /* "SCEl" end block found */
-            /* Usually there is padding between SCEl and SCHl (aligned to 0x80) */
-            block_offset += (block_offset % 0x04) == 0 ? 0 : 0x04 - (block_offset % 0x04); /* also 32b-aligned */
-            for (i = 0; i < 0x80 / 4; i++) {
-                id = read_32bitBE(block_offset,streamFile);
-                if (id == 0x5343486C) /* "SCHl" new header block found */
-                    break; /* next loop will parse and skip it */
+        else {
+            /* movie "pIQT" may be bigger than what block_size says, but seems to help */
+            if (id == 0x5343486C || id == 0x5343436C || id == 0x53434C6C || id == 0x70495154) { /* "SCHl" "SCCl" "SCLl" "SCEl" "pIQT" */
+                block_offset += block_size;
+            } else {
                 block_offset += 0x04;
             }
-        }
 
-        if (block_offset >= file_size) {
-            vgmstream->current_block_offset = block_offset;
-            vgmstream->next_block_offset = block_offset + 0x04;
-            return;
-        }
+            if (id == 0x5343456C) { /* "SCEl" end block found */
+                block_offset += (block_offset % 0x04) == 0 ? 0 : 0x04 - (block_offset % 0x04); /* 32b-aligned, important */
+                /* Usually there is padding between SCEl and SCHl too (aligned to 0x80) */
+            }
 
-        if (id == 0 || id == 0xFFFFFFFF) {
-            vgmstream->current_block_offset = block_offset;
-            vgmstream->next_block_offset = block_offset + 0x04;
-            return; /* probably hit padding or EOF */
+            continue;
         }
-
     }
+
+    /* EOF reads: pretend we have samples to please the layout (unsure if this helps) */
     if (block_offset >= file_size) {
         vgmstream->current_block_offset = block_offset;
         vgmstream->next_block_offset = block_offset + 0x04;
+        vgmstream->current_block_samples = vgmstream->num_samples;
         return;
-    }
-
-
-    /* use num_samples from header if possible; don't calc as rarely data may have padding (ex. PCM8) or not possible (ex. MP3) */
-    switch(vgmstream->coding_type) {
-        case coding_PSX:
-            block_samples = ps_bytes_to_samples(block_size-0x10, vgmstream->channels);
-            break;
-
-        default:
-            block_samples = read_32bit(block_offset+0x08,streamFile);
-            break;
     }
 
 
