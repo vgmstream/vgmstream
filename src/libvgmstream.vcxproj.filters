@@ -289,6 +289,9 @@
     <ClCompile Include="meta\nds_strm.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\nds_strm_ffta2.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\nds_swav.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>

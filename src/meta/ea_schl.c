@@ -15,7 +15,7 @@
 #define EA_PLATFORM_PSX         0x01
 #define EA_PLATFORM_N64         0x02
 #define EA_PLATFORM_MAC         0x03
-//#define EA_PLATFORM_SAT       0x04  // ?
+#define EA_PLATFORM_SAT         0x04
 #define EA_PLATFORM_PS2         0x05
 #define EA_PLATFORM_GC_WII      0x06  // reused later for Wii
 #define EA_PLATFORM_XBOX        0x07
@@ -26,9 +26,9 @@
 /* codec constants (undefined are probably reserved, ie.- sx.exe encodes PCM24/DVI but no platform decodes them) */
 /* CODEC1 values were used early, then they migrated to CODEC2 values */
 #define EA_CODEC1_NONE          -1
-//#define EA_CODEC1_S16BE       0x00 //LE too?
+//#define EA_CODEC1_S16BE       0x00  //LE too?
 //#define EA_CODEC1_VAG         0x01
-#define EA_CODEC1_MT10          0x07 // Need for Speed 2 PC
+#define EA_CODEC1_MT10          0x07  // Need for Speed 2 PC, Fifa 98 SAT
 //#define EA_CODEC1_N64         ?
 
 #define EA_CODEC2_NONE          -1
@@ -84,7 +84,7 @@ VGMSTREAM * init_vgmstream_ea_schl(STREAMFILE *streamFile) {
 
     /* check extension; exts don't seem enforced by EA's tools, but usually:
      * STR/ASF/MUS ~early, EAM ~mid, SNG/AUD ~late, rest uncommon/one game (ex. STRM: MySims Kingdom Wii) */
-    if (!check_extensions(streamFile,"str,asf,mus,eam,sng,aud,strm,xa,xsf,exa,stm"))
+    if (!check_extensions(streamFile,"str,asf,mus,eam,sng,aud,sx,strm,xa,xsf,exa,stm"))
         goto fail;
 
     /* check header */
@@ -95,7 +95,7 @@ VGMSTREAM * init_vgmstream_ea_schl(STREAMFILE *streamFile) {
         goto fail;
 
     header_size = read_32bitLE(0x04,streamFile);
-    if (header_size > 0xF0000000) /* size is always LE, except in early MAC apparently */
+    if (header_size > 0x00F00000) /* size is always LE, except in early SS/MAC */
         header_size = read_32bitBE(0x04,streamFile);
 
     memset(&ea,0,sizeof(ea_header));
@@ -132,7 +132,10 @@ VGMSTREAM * init_vgmstream_ea_schl(STREAMFILE *streamFile) {
             break;
 
         case EA_CODEC2_MT10:        /* MicroTalk (10:1), aka EA ADPCM (stereo or interleaved) */
-            vgmstream->coding_type = coding_EA_MT10;
+            if (ea.codec_version==1 || ea.channels == 1)
+                vgmstream->coding_type = coding_EA_MT10_int;
+            else
+                vgmstream->coding_type = coding_EA_MT10;
             break;
 
         case EA_CODEC2_S8:          /* PCM8 */
@@ -210,7 +213,6 @@ VGMSTREAM * init_vgmstream_ea_schl(STREAMFILE *streamFile) {
         goto fail;
 
     ea_schl_block_update(start_offset,vgmstream);
-
 
     return vgmstream;
 
@@ -294,6 +296,7 @@ static int parse_stream_header(STREAMFILE* streamFile, ea_header* ea, off_t begi
             case 0x0B: /* unknown (always 0x02) */
             case 0x13: /* effect bus (0..127) */
             case 0x14: /* emdedded user data (free size/value) */
+            case 0x1B: /* unknown (movie related?) */
                 read_patch(streamFile, &offset);
                 break;
 
@@ -395,6 +398,7 @@ static int parse_stream_header(STREAMFILE* streamFile, ea_header* ea, off_t begi
 
             case 0xFF: /* header end (then 0-padded) */
                 is_header_end = 1;
+                /* offset always 32 padded (ex SHOW.eam) */
                 break;
 
             default:
@@ -403,7 +407,8 @@ static int parse_stream_header(STREAMFILE* streamFile, ea_header* ea, off_t begi
         }
     }
 
-    if (ea->id && ea->id != 0x65) /* very rarely not specified (FIFA 14) */
+    /* always 0x65 for non-BNK streams, rarely not specified (FIFA 14, some BNKs) */
+    if (ea->id && ea->id != 0x65)
         goto fail;
     if (ea->channels > EA_MAX_CHANNELS)
         goto fail;
@@ -426,6 +431,7 @@ static int parse_stream_header(STREAMFILE* streamFile, ea_header* ea, off_t begi
             case EA_PLATFORM_PSX:       ea->version = EA_VERSION_V0; break; // assumed
             case EA_PLATFORM_N64:       ea->version = EA_VERSION_V0; break; // assumed
             case EA_PLATFORM_MAC:       ea->version = EA_VERSION_V0; break;
+            case EA_PLATFORM_SAT:       ea->version = EA_VERSION_V0; break;
             case EA_PLATFORM_PS2:       ea->version = EA_VERSION_V1; break;
             case EA_PLATFORM_GC_WII:    ea->version = EA_VERSION_V2; break;
             case EA_PLATFORM_XBOX:      ea->version = EA_VERSION_V2; break;
@@ -475,6 +481,7 @@ static int parse_stream_header(STREAMFILE* streamFile, ea_header* ea, off_t begi
             case EA_PLATFORM_PSX:       ea->sample_rate = 22050; break;
             case EA_PLATFORM_N64:       ea->sample_rate = 22050; break;
             case EA_PLATFORM_MAC:       ea->sample_rate = 22050; break;
+            case EA_PLATFORM_SAT:       ea->sample_rate = 22050; break;
             case EA_PLATFORM_PS2:       ea->sample_rate = 22050; break;
             case EA_PLATFORM_GC_WII:    ea->sample_rate = 24000; break;
             case EA_PLATFORM_XBOX:      ea->sample_rate = 24000; break;
@@ -490,6 +497,7 @@ static int parse_stream_header(STREAMFILE* streamFile, ea_header* ea, off_t begi
     /* affects blocks/codecs */
     if (ea->platform == EA_PLATFORM_N64
         || ea->platform == EA_PLATFORM_MAC
+        || ea->platform == EA_PLATFORM_SAT
         || ea->platform == EA_PLATFORM_GC_WII
         || ea->platform == EA_PLATFORM_X360
         || ea->platform == EA_PLATFORM_GENERIC) {
@@ -498,8 +506,9 @@ static int parse_stream_header(STREAMFILE* streamFile, ea_header* ea, off_t begi
 
     /* config MT/EAXA variations */
     if (ea->codec2 == EA_CODEC2_MT10) {
-        if (ea->version > EA_VERSION_V0)
-            ea->codec_version = 1; /* 0=stereo (early), 1:interleaved */
+        if (ea->version > EA_VERSION_V0 || 
+            (ea->platform == EA_PLATFORM_SAT && ea->version == EA_VERSION_V0))
+            ea->codec_version = 1; /* 0=stereo (early), 1=interleaved */
     }
     else if (ea->codec2 == EA_CODEC2_EAXA) {
         /* console EAXA V2 uses hist, as does PC/MAC V1 */
@@ -519,59 +528,62 @@ fail:
  * music (.map/lin). We get total possible samples (counting all subfiles) and pretend
  * they are a single stream. Subfiles always share header, except num_samples. */
 static int get_ea_total_samples(STREAMFILE* streamFile, off_t start_offset, const ea_header* ea) {
-    int i, num_samples = 0;
+    int num_samples = 0;
     size_t file_size = get_streamfile_size(streamFile);
     off_t block_offset = start_offset;
     int32_t (*read_32bit)(off_t,STREAMFILE*) = ea->big_endian ? read_32bitBE : read_32bitLE;
 
     while (block_offset < file_size) {
-        uint32_t id, block_size;
+        uint32_t id, block_size, block_samples;
 
         id = read_32bitBE(block_offset+0x00,streamFile);
 
         block_size = read_32bitLE(block_offset+0x04,streamFile);
-        VGM_ASSERT(block_size > 0xF0000000, "EA: BE block size in MAC\n");
-        if (block_size > 0xF0000000) /* size is always LE, except in early MAC apparently */
+        if (block_size > 0x00F00000) /* size is always LE, except in early SS/MAC */
             block_size = read_32bitBE(block_offset+0x04,streamFile);
 
+        /* SCxx blocks have size in the header, but others may not. To simplify we just try to
+         * find a SCDl (main data) every 0x04. EA sometimes concats many small files, so after a SCEl (end block)
+         * there may be a new SCHl + SCDl too, so this pretends they are a single stream. */
         if (id == 0x5343446C) { /* "SCDl" data block found */
+
             /* use num_samples from header if possible */
             switch (ea->codec2) {
                 case EA_CODEC2_VAG:         /* PS-ADPCM */
-                    num_samples += ps_bytes_to_samples(block_size-0x10, ea->channels);
+                    block_samples = ps_bytes_to_samples(block_size-0x10, ea->channels);
                     break;
 
                 default:
-                    num_samples += read_32bit(block_offset+0x08,streamFile);
+                    block_samples = read_32bit(block_offset+0x08,streamFile);
                     break;
             }
+
+            /* guard against false positives (happens in "pIQT" blocks) */
+            if (block_size > 0xFFFF || block_samples > 0xFFFF) { /* observed max is ~0xf00 but who knows */
+                block_offset += 0x04;
+                continue;
+            }
+
+            num_samples += block_samples;
+
+            block_offset += block_size; /* size includes header */
         }
-
-        block_offset += block_size; /* size includes header */
-
-        /* EA sometimes concats many small files, so after SCEl there may be a new SCHl.
-         * We'll find it and pretend they are a single stream. */
-        if (id == 0x5343456C && block_offset + 0x80 > file_size)
-            break;
-        if (id == 0x5343456C) { /* "SCEl" end block found */
-            /* Usually there is padding between SCEl and SCHl (aligned to 0x80) */
-            block_offset += (block_offset % 0x04) == 0 ? 0 : 0x04 - (block_offset % 0x04); /* also 32b-aligned */
-            for (i = 0; i < 0x80 / 4; i++) {
-                id = read_32bitBE(block_offset,streamFile);
-                if (id == 0x5343486C) /* "SCHl" new header block found */
-                    break; /* next loop will parse and skip it */
+        else {
+            /* movie "pIQT" may be bigger than what block_size says, but seems to help */
+            if (id == 0x5343486C || id == 0x5343436C || id == 0x53434C6C || id == 0x70495154) { /* "SCHl" "SCCl" "SCLl" "SCEl" "pIQT" */
+                block_offset += block_size;
+            } else {
                 block_offset += 0x04;
             }
+
+            if (id == 0x5343456C) {  /* "SCEl" end block found */
+                /* Usually there is padding between SCEl and SCHl (aligned to 0x80) */
+                block_offset += (block_offset % 0x04) == 0 ? 0 : 0x04 - (block_offset % 0x04); /* also 32b-aligned, important */
+            }
+
+            block_offset += 0x04;
+            continue;
         }
-
-        if (block_offset > file_size)
-            break;
-
-        if (id == 0 || id == 0xFFFFFFFF)
-            return num_samples; /* probably hit padding or EOF */
-
-        VGM_ASSERT(id != 0x5343486C && id != 0x5343436C && id != 0x5343446C && id != 0x53434C6C && id != 0x5343456C,
-            "EA: unknown block id 0x%x at 0x%lx\n", id, block_offset);
     }
 
     return num_samples;
@@ -589,7 +601,7 @@ static off_t get_ea_mpeg_start_offset(STREAMFILE* streamFile, off_t start_offset
         id = read_32bitBE(block_offset+0x00,streamFile);
 
         block_size = read_32bitLE(block_offset+0x04,streamFile);
-        if (block_size > 0xF0000000) /* size is always LE, except in early MAC apparently */
+        if (block_size > 0x00F00000) /* size is always LE, except in early SS/MAC */
             block_size = read_32bitBE(block_offset+0x04,streamFile);
 
         if (id == 0x5343446C) { /* "SCDl" data block found */

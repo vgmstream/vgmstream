@@ -1,7 +1,7 @@
 #include "coding.h"
 #include "../util.h"
 
-/* Various EA ADPCM codecs */
+/* Various EA ADPCM codecs evolved from CDXA */
 
 static const int32_t EA_XA_TABLE[28] = {
     0,0,240,0,
@@ -13,21 +13,21 @@ static const int32_t EA_XA_TABLE[28] = {
     0x0000,0x0000,0x0000,0x3F70
 };
 
-static const int32_t EA_TABLE[20]= {
-    0x00000000, 0x000000F0, 0x000001CC, 0x00000188,
-    0x00000000, 0x00000000, 0xFFFFFF30, 0xFFFFFF24,
-    0x00000000, 0x00000001, 0x00000003, 0x00000004,
-    0x00000007, 0x00000008, 0x0000000A, 0x0000000B,
-    0x00000000, 0xFFFFFFFF, 0xFFFFFFFD, 0xFFFFFFFC
+static const int EA_TABLE[20] = {
+    0,  240,  460,  392,
+    0,    0, -208, -220,
+    0,    1,    3,    4,
+    7,    8,   10,   11,
+    0,   -1,   -3,   -4
 };
 
-/* EA EAXA, evolved from CDXA */
+/* EA's main ADPCM, inconsistently called EAXA or EA-XA */
 void decode_ea_xa(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do,int channel) {
     uint8_t frame_info;
     int32_t sample_count;
-    int32_t coef1,coef2;
-    int i,shift;
-    off_t channel_offset = stream->channel_start_offset; //suboffset within channel
+    int32_t coef1, coef2;
+    int i, shift;
+    off_t channel_offset = stream->channel_start_offset; /* suboffset within frame */
 
     first_sample = first_sample%28;
 
@@ -45,7 +45,7 @@ void decode_ea_xa(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing
             channel_offset+=2;
         }
 
-        // Only increment offset on complete frame
+        /* Only increment offset on complete frame */
         if (channel_offset-stream->channel_start_offset == (2*28)+5)
             stream->channel_start_offset += (2*28)+5;
 
@@ -66,98 +66,125 @@ void decode_ea_xa(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing
             stream->adpcm_history2_32 = stream->adpcm_history1_32;
             stream->adpcm_history1_32 = sample;
         }
+        channel_offset += i/2;
 
-        channel_offset+=i/2;
-
-        // Only increment offset on complete frame
-        if(channel_offset - stream->channel_start_offset == 0x0F)
+        /* Only increment offset on complete frame */
+        if (channel_offset - stream->channel_start_offset == 0x0F)
             stream->channel_start_offset += 0x0F;
     }
 }
 
-/* EA MicroTalk 10:1 (aka "EA ADPCM") */
-void decode_ea_mt10(VGMSTREAM * vgmstream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do,int channel) {
+/* EA MicroTalk 10:1 stereo (aka "EA ADPCM") */
+void decode_ea_mt10(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do,int channel) {
     uint8_t frame_info;
-    int32_t sample_count;
-    int32_t coef1,coef2;
-    int i, shift;
-    VGMSTREAMCHANNEL *stream = &(vgmstream->ch[channel]);
-    off_t channel_offset=stream->channel_start_offset;
+    int32_t coef1, coef2;
+    int i, sample_count, shift;
+    off_t channel_offset = stream->channel_start_offset; /* suboffset within frame */
+    int hn = (channel==0); /* high nibble marker for stereo subinterleave, ch0/L=high nibble, ch1/R=low nibble */
 
-    vgmstream->get_high_nibble = !vgmstream->get_high_nibble; /* for stereo subinterleave, L=high nibble, R=low nibble */
+    first_sample = first_sample % 28;
 
-    first_sample = first_sample%28;
-
-    /* header */ //todo mono/interleave decoder
+    /* header (coefs ch0+ch1 + shift ch0+ch1) */
     frame_info = read_8bit(stream->offset+channel_offset,stream->streamfile);
     channel_offset++;
-	coef1 = EA_TABLE[(vgmstream->get_high_nibble ? frame_info & 0x0F: frame_info >> 4)];
-	coef2 = EA_TABLE[(vgmstream->get_high_nibble ? frame_info & 0x0F: frame_info >> 4) + 4];
+    coef1 = EA_TABLE[(hn ? frame_info >> 4 : frame_info & 0x0F) + 0];
+    coef2 = EA_TABLE[(hn ? frame_info >> 4 : frame_info & 0x0F) + 4];
 
     frame_info = read_8bit(stream->offset+channel_offset,stream->streamfile);
     channel_offset++;
-	shift = (vgmstream->get_high_nibble ? frame_info & 0x0F : frame_info >> 4) + 8;
+    shift = (hn ? frame_info >> 4 : frame_info & 0x0F) + 8;
 
-
+    /* samples */
     for (i=first_sample,sample_count=0; i<first_sample+samples_to_do; i++,sample_count+=channelspacing) {
-        uint8_t sample_byte;
+        uint8_t sample_byte, sample_nibble;
         int32_t sample;
+        off_t byte_offset = (stream->offset + channel_offset + i);
 
-        sample_byte = (uint8_t)read_8bit(stream->offset+channel_offset+i,stream->streamfile);
+        sample_byte = (uint8_t)read_8bit(byte_offset,stream->streamfile);
+        sample_nibble = (hn   ? sample_byte >> 4 : sample_byte & 0x0F);
 
-        sample = ((((vgmstream->get_high_nibble?
-                        sample_byte & 0x0F:
-                        sample_byte >> 4
-                      ) << 0x1C) >> shift) +
-                      (coef1 * stream->adpcm_history1_32) + (coef2 * stream->adpcm_history2_32) + 0x80) >> 8;
+        sample = (sample_nibble << 28) >> shift; /* sign extend to 32b and shift */
+        sample = (sample + coef1 * stream->adpcm_history1_32 + coef2 * stream->adpcm_history2_32 + 0x80) >> 8;
 
         outbuf[sample_count] = clamp16(sample);
         stream->adpcm_history2_32 = stream->adpcm_history1_32;
         stream->adpcm_history1_32 = sample;
     }
-    channel_offset+=i;
+    channel_offset += i;
 
-    // Only increment offset on complete frame
-    if(channel_offset-stream->channel_start_offset==0x1E)
-        stream->channel_start_offset+=0x1E;
+    /* Only increment offset on complete frame */
+    if(channel_offset - stream->channel_start_offset == 0x1E)
+        stream->channel_start_offset += 0x1E;
 }
 
+/* EA MicroTalk 10:1 mono/interleave */
+void decode_ea_mt10_int(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do,int channel) {
+    uint8_t frame_info;
+    int32_t coef1, coef2;
+    int i, sample_count, shift;
+    off_t channel_offset = stream->channel_start_offset; /* suboffset within frame */
 
-/* EA MicroTalk 5:1, unknown variation */
+    first_sample = first_sample % 28;
+
+    /* header (coefs+shift ch0) */
+    frame_info = read_8bit(stream->offset+channel_offset,stream->streamfile);
+    channel_offset++;
+    coef1 = EA_TABLE[(frame_info >> 4) + 0];
+    coef2 = EA_TABLE[(frame_info >> 4) + 4];
+    shift = (frame_info & 0x0F) + 8;
+
+    /* samples */
+    for (i=first_sample,sample_count=0; i<first_sample+samples_to_do; i++,sample_count+=channelspacing) {
+        uint8_t sample_byte, sample_nibble;
+        int32_t sample;
+        off_t byte_offset = (stream->offset + channel_offset + i/2);
+
+        sample_byte = (uint8_t)read_8bit(byte_offset,stream->streamfile);
+        sample_nibble = (!(i%2) ? sample_byte >> 4 : sample_byte & 0x0F);  /* i=even > high nibble */
+        sample = (sample_nibble << 28) >> shift; /* sign extend to 32b and shift */
+        sample = (sample + coef1 * stream->adpcm_history1_32 + coef2 * stream->adpcm_history2_32 + 0x80) >> 8;
+
+        outbuf[sample_count] = clamp16(sample);
+        stream->adpcm_history2_32 = stream->adpcm_history1_32;
+        stream->adpcm_history1_32 = sample;
+    }
+    channel_offset += i/2;
+
+    /* Only increment offset on complete frame */
+    if(channel_offset - stream->channel_start_offset == 0x0F)
+        stream->channel_start_offset += 0x0F;
+}
+
+/* EA MicroTalk 5:1, unknown variation with optional PCM blocks */
 //void decode_ea_mt5(VGMSTREAM * vgmstream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do,int channel)
 
-
-/* Maxis EAXA, yet another CDXA variation */
-void decode_maxis_adpcm(VGMSTREAM * vgmstream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do,int channel) {
+/* Maxis MicroTalk 10:1 (mono+stereo), differing slightly in the header layout in stereo mode */
+void decode_maxis_mt10(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do,int channel) {
     uint8_t frame_info;
-    int32_t sample_count;
-    int32_t coef1,coef2;
-    int i,shift;
-    int frameSize = channelspacing*15;//mono samples have a frame of 15, stereo files have frames of 30
-    VGMSTREAMCHANNEL *stream = &(vgmstream->ch[channel]);
-    off_t channel_offset=stream->channel_start_offset;
+    int32_t coef1, coef2;
+    int i, sample_count, shift;
+    off_t channel_offset = stream->channel_start_offset;
+    int frameSize = channelspacing*15; /* mono samples have a frame of 15, stereo files have frames of 30 */
 
     first_sample = first_sample%28;
-    frame_info = read_8bit(channel_offset,stream->streamfile);
 
+    /* header (coefs+shift ch0 + coefs+shift ch1) */
+    frame_info = read_8bit(channel_offset,stream->streamfile);
+    channel_offset += channelspacing;
     coef1 = EA_TABLE[frame_info >> 4];
     coef2 = EA_TABLE[(frame_info >> 4) + 4];
     shift = (frame_info & 0x0F)+8;
 
-    channel_offset+=channelspacing;
-    //stream->offset = first_sample*channelspacing/2;
-
+    /* samples */
     for (i=first_sample,sample_count=0; i<first_sample+samples_to_do; i++,sample_count+=channelspacing) {
-        uint8_t sample_byte;
+        uint8_t sample_byte, sample_nibble;
         int32_t sample;
+        off_t byte_offset = (stream->offset + channel_offset);
 
-        sample_byte = (uint8_t)read_8bit(stream->offset+channel_offset,stream->streamfile);
-
-        sample = (((((i&1)?
-                        sample_byte & 0x0F:
-                        sample_byte >> 4
-                      ) << 0x1C) >> shift) +
-                      (coef1 * stream->adpcm_history1_32) + (coef2 * stream->adpcm_history2_32) + 0x80) >> 8;
+        sample_byte = (uint8_t)read_8bit(byte_offset,stream->streamfile);
+        sample_nibble = (i&1) ? sample_byte & 0x0F : sample_byte >> 4;
+        sample = (sample_nibble << 28) >> shift; /* sign extend to 32b and shift */
+        sample = (sample + coef1 * stream->adpcm_history1_32 + coef2 * stream->adpcm_history2_32 + 0x80) >> 8;
 
         outbuf[sample_count] = clamp16(sample);
         stream->adpcm_history2_32 = stream->adpcm_history1_32;
@@ -166,13 +193,11 @@ void decode_maxis_adpcm(VGMSTREAM * vgmstream, sample * outbuf, int channelspaci
         if(i&1)
             stream->offset+=channelspacing;
     }
-
     channel_offset+=i;
 
-    // Only increment offset on complete frame
-
-    if(channel_offset-stream->channel_start_offset==frameSize) {
-        stream->channel_start_offset+=frameSize;
+    /* Only increment offset on complete frame */
+    if (channel_offset - stream->channel_start_offset == frameSize) {
+        stream->channel_start_offset += frameSize;
         stream->offset=0;
     }
 }
