@@ -5,6 +5,7 @@
 /* BFSTM - Nintendo Wii U format */
 VGMSTREAM * init_vgmstream_bfstm(STREAMFILE *streamFile) {
 	VGMSTREAM * vgmstream = NULL;
+	char filename[PATH_LIMIT];
 	coding_t coding_type;
 	coding_t coding_PCM16;
     int32_t (*read_32bit)(off_t,STREAMFILE*) = NULL;
@@ -20,6 +21,7 @@ VGMSTREAM * init_vgmstream_bfstm(STREAMFILE *streamFile) {
 	off_t tempoffset1;
 	int section_count;
 
+	streamFile->get_name(streamFile, filename, sizeof(filename));
 	/* check extension, case insensitive */
 	if ( !check_extensions(streamFile,"bfstm") )
 		goto fail;
@@ -168,9 +170,31 @@ VGMSTREAM * init_vgmstream_bfstm(STREAMFILE *streamFile) {
 
 
 	/* open the file for reading by each channel */
-	if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
-	    goto fail;
+	// if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
+	//     goto fail;
 
+	// do it the old way, less disk intensive
+	{
+		int i;
+		for (i = 0; i<channel_count; i++) {
+			if (vgmstream->layout_type == layout_interleave_shortblock)
+				vgmstream->ch[i].streamfile = streamFile->open(streamFile, filename,
+				vgmstream->interleave_block_size);
+			else if (vgmstream->layout_type == layout_interleave)
+				vgmstream->ch[i].streamfile = streamFile->open(streamFile, filename,
+				STREAMFILE_DEFAULT_BUFFER_SIZE);
+			else
+				vgmstream->ch[i].streamfile = streamFile->open(streamFile, filename,
+				0x1000);
+
+			if (!vgmstream->ch[i].streamfile) goto fail;
+
+			vgmstream->ch[i].channel_start_offset =
+				vgmstream->ch[i].offset =
+				start_offset + i*vgmstream->interleave_block_size;
+		}
+	}
+	
 	return vgmstream;
 
 fail:
