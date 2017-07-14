@@ -108,9 +108,10 @@ VGMSTREAM * init_vgmstream_bfwav(STREAMFILE *streamFile) {
 		for (j = 0; j<vgmstream->channels; j++) {
 			for (i = 0; i<16; i++) {
 				off_t coeffheader = head_offset + 0x1C + read_32bit(head_offset + 0x24 + (j*8), streamFile);
+				off_t coef_offset;
 				if ((uint32_t)read_16bit(coeffheader, streamFile) != 0x1F00) goto fail;
 
-				off_t coef_offset = read_32bit(coeffheader + 0xC, streamFile) + coeffheader;
+				coef_offset = read_32bit(coeffheader + 0xC, streamFile) + coeffheader;
 				vgmstream->ch[j].adpcm_coef[i] = read_16bit(coef_offset + i * 2, streamFile);
 			}
 		}
