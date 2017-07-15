@@ -4,50 +4,43 @@
 
 VGMSTREAM * init_vgmstream_ngc_adpdtk(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    STREAMFILE * chstreamfile;
-    char filename[PATH_LIMIT];
-    
-    size_t file_size;
-    int i;
+    off_t start_offset = 0;
+    int channel_count = 2, loop_flag = 0; /* always stereo, no loop */
 
     /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("adp",filename_extension(filename)) && 
-		strcasecmp("dtk",filename_extension(filename))) goto fail;
+    if ( !check_extensions(streamFile,"dtk,adp"))
+        goto fail;
 
-    /* file size is the only way to determine sample count */
-    file_size = get_streamfile_size(streamFile);
+    /* .adp files have no header, and the ext is common, so all we can do is look for valid first frames */
+    if (check_extensions(streamFile,"adp")) {
+        int i;
+        for (i = 0; i < 10; i++) { /* try a bunch of frames */
+            if (read_8bit(0x00 + i*0x20,streamFile) != read_8bit(0x02 + i*0x20,streamFile) ||
+                read_8bit(0x01 + i*0x20,streamFile) != read_8bit(0x03 + i*0x20,streamFile))
+                goto fail;
+        }
+    }
 
-    /* .adp files have no header, so all we can do is look for a valid first frame */
-    if (read_8bit(0,streamFile)!=read_8bit(2,streamFile) || read_8bit(1,streamFile)!=read_8bit(3,streamFile)) goto fail;
 
-    /* Hopefully we haven't falsely detected something else... */
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(2,0);    /* always stereo, no loop */
+    vgmstream = allocate_vgmstream(channel_count, loop_flag);
     if (!vgmstream) goto fail;
 
-    vgmstream->num_samples = file_size/32*28;
+    vgmstream->num_samples = get_streamfile_size(streamFile) / 32 * 28;
     vgmstream->sample_rate = 48000;
     vgmstream->coding_type = coding_NGC_DTK;
     vgmstream->layout_type = layout_none;
     vgmstream->meta_type = meta_NGC_ADPDTK;
 
-    /* locality is such that two streamfiles is silly */
-    chstreamfile = streamFile->open(streamFile,filename,32*0x400);
-    if (!chstreamfile) goto fail;
 
-    for (i=0;i<2;i++) {
-        vgmstream->ch[i].channel_start_offset =
-            vgmstream->ch[i].offset = 0;
-
-        vgmstream->ch[i].streamfile = chstreamfile;
-    }
+    /* open the file for reading */
+    if ( !vgmstream_open_stream(vgmstream, streamFile, start_offset) )
+        goto fail;
 
     return vgmstream;
 
-    /* clean up anything we may have opened */
 fail:
-    if (vgmstream) close_vgmstream(vgmstream);
+    close_vgmstream(vgmstream);
     return NULL;
 }
 

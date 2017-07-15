@@ -619,6 +619,7 @@ typedef enum {
     meta_NGC_ULW,           /* Burnout 1 (GC only) */
     meta_PC_XA30,           /* Driver - Parallel Lines (PC) */
     meta_WII_04SW,          /* Driver - Parallel Lines (Wii) */
+    meta_TXTH,              /* generic text header */
 
 #ifdef VGM_USE_VORBIS
     meta_OGG_VORBIS,        /* Ogg Vorbis */

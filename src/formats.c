@@ -197,6 +197,7 @@ static const char* extension_list[] = {
     "omu",
     "otm",
 
+    "p1d", //txth/reserved [Farming Simulator 18 (3DS)]
     "p2bt",
     "p3d",
     "past",
@@ -316,11 +317,13 @@ static const char* extension_list[] = {
     "wb",
     "wem",
     "wii",
+    "wip", //txth/reserved [Colin McRae DiRT (PC)]
     "wmus",
     "wp2",
     "wpd",
     "wsd",
     "wsi",
+    "wv2", //txth/reserved [Slave Zero (PC)]
     "wvs",
 
     "xa",
@@ -873,6 +876,7 @@ static const meta_info meta_info_list[] = {
         {meta_NGC_ULW,              "Criterion ULW raw header"},
         {meta_PC_XA30,              "Reflections XA30 PC header"},
         {meta_WII_04SW,             "Reflections 04SW header"},
+        {meta_TXTH,                 "TXTH Generic Header"},
 
 #ifdef VGM_USE_VORBIS
         {meta_OGG_VORBIS,           "Ogg Vorbis"},

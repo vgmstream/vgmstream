@@ -8,6 +8,7 @@ VGMSTREAM * init_vgmstream_xma(STREAMFILE *streamFile) {
     size_t data_size, chunk_size;
     int loop_flag, channel_count, sample_rate, is_xma2_old = 0, is_xma1 = 0;
     int num_samples, loop_start_sample, loop_end_sample, loop_start_b = 0, loop_end_b = 0, loop_subframe = 0;
+    int fmt_be = 0;
 
 
     /* check extension, case insensitive */
@@ -34,13 +35,24 @@ VGMSTREAM * init_vgmstream_xma(STREAMFILE *streamFile) {
     }
     else if ( find_chunk_le(streamFile, 0x666d7420,first_offset,0, &chunk_offset,&chunk_size)) {
         int format = read_16bitLE(chunk_offset,streamFile);
+
+        /* some Fable Heroes and Fable 3 XMA have a BE fmt chunk, but the rest of the file is still LE
+         *  (incidentally they come with a "frsk" chunk) */
+        if (format == 0x6601) { /* new XMA2 but BE */
+            fmt_be = 1;
+            format = 0x0166;
+        }
+
         if (format == 0x165) { /* XMA1 */
             is_xma1 = 1;
-            xma1_parse_fmt_chunk(streamFile, chunk_offset, &channel_count,&sample_rate, &loop_flag, &loop_start_b, &loop_end_b, &loop_subframe, 0);
+            xma1_parse_fmt_chunk(streamFile, chunk_offset, &channel_count,&sample_rate, &loop_flag, &loop_start_b, &loop_end_b, &loop_subframe, fmt_be);
         } else if (format == 0x166) { /* new XMA2 */
-            channel_count = read_16bitLE(chunk_offset+0x02,streamFile);
-            sample_rate   = read_32bitLE(chunk_offset+0x04,streamFile);
-            xma2_parse_fmt_chunk_extra(streamFile, chunk_offset, &loop_flag, &num_samples, &loop_start_sample, &loop_end_sample, 0);
+            int32_t (*read_32bit)(off_t,STREAMFILE*) = fmt_be ? read_32bitBE : read_32bitLE;
+            int16_t (*read_16bit)(off_t,STREAMFILE*) = fmt_be ? read_16bitBE : read_16bitLE;
+
+            channel_count = read_16bit(chunk_offset+0x02,streamFile);
+            sample_rate   = read_32bit(chunk_offset+0x04,streamFile);
+            xma2_parse_fmt_chunk_extra(streamFile, chunk_offset, &loop_flag, &num_samples, &loop_start_sample, &loop_end_sample, fmt_be);
         } else {
             goto fail;
         }
@@ -99,7 +111,7 @@ VGMSTREAM * init_vgmstream_xma(STREAMFILE *streamFile) {
         if (is_xma2_old) {
             bytes = ffmpeg_make_riff_xma2_from_xma2_chunk(buf,0x100, chunk_offset,chunk_size, data_size, streamFile);
         } else {
-            bytes = ffmpeg_make_riff_xma_from_fmt_chunk(buf,0x100, chunk_offset,chunk_size, data_size, streamFile, 0);
+            bytes = ffmpeg_make_riff_xma_from_fmt_chunk(buf,0x100, chunk_offset,chunk_size, data_size, streamFile, fmt_be);
         }
         if (bytes <= 0) goto fail;
 
