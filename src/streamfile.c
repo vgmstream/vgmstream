@@ -553,3 +553,29 @@ int find_chunk(STREAMFILE *streamFile, uint32_t chunk_id, off_t start_offset, in
 
     return 0;
 }
+
+int get_streamfile_name(STREAMFILE *streamFile, char * buffer, size_t size) {
+    streamFile->get_name(streamFile,buffer,size);
+    return 1;
+}
+int get_streamfile_path(STREAMFILE *streamFile, char * buffer, size_t size) {
+    const char *path;
+
+    streamFile->get_name(streamFile,buffer,size);
+
+    path = strrchr(buffer,DIR_SEPARATOR);
+    if (path!=NULL) path = path+1; /* includes "/" */
+
+    if (path) {
+        buffer[path - buffer] = '\0';
+    } else {
+        buffer[0] = '\0';
+    }
+
+    return 1;
+}
+int get_streamfile_ext(STREAMFILE *streamFile, char * filename, size_t size) {
+    streamFile->get_name(streamFile,filename,size);
+    strcpy(filename, filename_extension(filename));
+    return 1;
+}
