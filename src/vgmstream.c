@@ -347,6 +347,10 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_dsp_adx,
     init_vgmstream_akb_multi,
     init_vgmstream_akb2_multi,
+#ifdef VGM_USE_FFMPEG
+    init_vgmstream_mp4_aac_ffmpeg,
+    init_vgmstream_bik,
+#endif
     init_vgmstream_x360_ast,
     init_vgmstream_wwise,
     init_vgmstream_ubi_raki,
@@ -365,10 +369,8 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_pc_xa30,
     init_vgmstream_wii_04sw,
 
+    init_vgmstream_txth,  /* should go at the end (lower priority) */
 #ifdef VGM_USE_FFMPEG
-    init_vgmstream_mp4_aac_ffmpeg,
-    init_vgmstream_bik,
-
     init_vgmstream_ffmpeg, /* should go at the end */
 #endif
 };

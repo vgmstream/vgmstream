@@ -873,6 +873,7 @@ static const meta_info meta_info_list[] = {
         {meta_NGC_ULW,              "Criterion ULW raw header"},
         {meta_PC_XA30,              "Reflections XA30 PC header"},
         {meta_WII_04SW,             "Reflections 04SW header"},
+        {meta_TXTH,                 "TXTH Generic Header"},
 
 #ifdef VGM_USE_VORBIS
         {meta_OGG_VORBIS,           "Ogg Vorbis"},

@@ -1126,6 +1126,10 @@
 					RelativePath=".\meta\tun.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\meta\txth.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\ubi_ckd.c"
 					>

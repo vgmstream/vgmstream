@@ -166,6 +166,7 @@
     <ClCompile Include="meta\seg.c" />
     <ClCompile Include="meta\sqex_scd.c" />
     <ClCompile Include="meta\tun.c" />
+    <ClCompile Include="meta\txth.c" />
     <ClCompile Include="meta\wii_ras.c" />
     <ClCompile Include="meta\wpd.c" />
     <ClCompile Include="meta\x360_ast.c" />
