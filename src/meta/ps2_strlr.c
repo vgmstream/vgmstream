@@ -23,8 +23,14 @@ VGMSTREAM * init_vgmstream_ps2_strlr(STREAMFILE *streamFile) {
         goto fail;
 #endif
 
-	/* don't hijack Sonic & Sega All Stars Racing X360 (xma) */
-	if (read_32bitBE(0x00,streamFile) == 0x52494646) /* "RIFF"*/
+    /* don't hijack Sonic & Sega All Stars Racing X360 (xma) */
+    if (read_32bitBE(0x00,streamFile) == 0x52494646)
+        goto fail; /* "RIFF"*/
+    /* don't hijack Mad Dash Racing (Xbox) */
+    if (read_32bitLE(0x0c,streamFile) == 1
+            && read_32bitLE(0x010,streamFile) == 0
+            && read_32bitLE(0x400,streamFile) == 0
+            && read_32bitLE(0x7f0,streamFile) == 0)
         goto fail;
 
     loop_flag = 0;
