@@ -3,17 +3,24 @@
 
 /* Various EA ADPCM codecs evolved from CDXA */
 
-static const int32_t EA_XA_TABLE[28] = {
-    0,0,240,0,
-    460,-208,0x0188,-220,
-    0x0000,0x0000,0x00F0,0x0000,
-    0x01CC,0x0000,0x0188,0x0000,
-    0x0000,0x0000,0x0000,0x0000,
-    -208,-1,-220,-1,
-    0x0000,0x0000,0x0000,0x3F70
+/*
+ * Another way to get coefs in EAXA v2, with no diffs (no idea which table is actually used in games):
+ * coef1 = EA_XA_TABLE2[(((frame_info >> 4) & 0x0F) << 1) + 0];
+ * coef2 = EA_XA_TABLE2[(((frame_info >> 4) & 0x0F) << 1) + 1];
+ */
+/*
+static const int32_t EA_XA_TABLE2[28] = {
+       0,    0,  240,    0,
+     460, -208,  392, -220,
+       0,    0,  240,    0,
+     460,    0,  392,    0,
+       0,    0,    0,    0,
+    -208,   -1, -220,   -1,
+       0,    0,    0, 0x3F70
 };
+*/
 
-static const int EA_TABLE[20] = {
+static const int EA_XA_TABLE[20] = {
     0,  240,  460,  392,
     0,    0, -208, -220,
     0,    1,    3,    4,
@@ -50,17 +57,19 @@ void decode_ea_xa_v2(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspac
             stream->channel_start_offset += (2*28)+5;
 
     } else { /* ADPCM frame */
-        coef1 = EA_XA_TABLE[(((frame_info >> 4) & 0x0F) << 1)];
-        coef2 = EA_XA_TABLE[(((frame_info >> 4) & 0x0F) << 1) + 1];
+        coef1 = EA_XA_TABLE[(frame_info >> 4) + 0];
+        coef2 = EA_XA_TABLE[(frame_info >> 4) + 4];
         shift = (frame_info & 0x0F) + 8;
 
         for (i=first_sample,sample_count=0; i<first_sample+samples_to_do; i++,sample_count+=channelspacing) {
-            uint8_t sample_byte = (uint8_t)read_8bit(stream->offset+channel_offset+i/2,stream->streamfile);
-            int32_t sample = ((((i&1?
-                            sample_byte & 0x0F:
-                            sample_byte >> 4
-                          ) << 0x1C) >> shift) +
-                          (coef1 * stream->adpcm_history1_32) + (coef2 * stream->adpcm_history2_32)) >> 8;
+            uint8_t sample_byte, sample_nibble;
+            int32_t sample;
+            off_t byte_offset = (stream->offset + channel_offset + i/2);
+
+            sample_byte = (uint8_t)read_8bit(byte_offset,stream->streamfile);
+            sample_nibble = (!(i%2) ? sample_byte >> 4 : sample_byte & 0x0F);  /* i=even > high nibble */
+            sample = (sample_nibble << 28) >> shift; /* sign extend to 32b and shift */
+            sample = (sample + coef1 * stream->adpcm_history1_32 + coef2 * stream->adpcm_history2_32) >> 8;
             sample = clamp16(sample);
 
             outbuf[sample_count] = sample;
@@ -88,8 +97,8 @@ void decode_ea_xa(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing
     /* header (coefs ch0+ch1 + shift ch0+ch1) */
     frame_info = read_8bit(stream->offset+channel_offset,stream->streamfile);
     channel_offset++;
-    coef1 = EA_TABLE[(hn ? frame_info >> 4 : frame_info & 0x0F) + 0];
-    coef2 = EA_TABLE[(hn ? frame_info >> 4 : frame_info & 0x0F) + 4];
+    coef1 = EA_XA_TABLE[(hn ? frame_info >> 4 : frame_info & 0x0F) + 0];
+    coef2 = EA_XA_TABLE[(hn ? frame_info >> 4 : frame_info & 0x0F) + 4];
     shift = (frame_info & 0x0F) + 8;
 
     frame_info = read_8bit(stream->offset+channel_offset,stream->streamfile);
@@ -131,8 +140,8 @@ void decode_ea_xa_int(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspa
     /* header (coefs+shift ch0) */
     frame_info = read_8bit(stream->offset+channel_offset,stream->streamfile);
     channel_offset++;
-    coef1 = EA_TABLE[(frame_info >> 4) + 0];
-    coef2 = EA_TABLE[(frame_info >> 4) + 4];
+    coef1 = EA_XA_TABLE[(frame_info >> 4) + 0];
+    coef2 = EA_XA_TABLE[(frame_info >> 4) + 4];
     shift = (frame_info & 0x0F) + 8;
 
     /* samples */
@@ -171,8 +180,8 @@ void decode_maxis_xa(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspac
     /* header (coefs+shift ch0 + coefs+shift ch1) */
     frame_info = read_8bit(channel_offset,stream->streamfile);
     channel_offset += channelspacing;
-    coef1 = EA_TABLE[(frame_info >> 4) + 0];
-    coef2 = EA_TABLE[(frame_info >> 4) + 4];
+    coef1 = EA_XA_TABLE[(frame_info >> 4) + 0];
+    coef2 = EA_XA_TABLE[(frame_info >> 4) + 4];
     shift = (frame_info & 0x0F) + 8;
 
     /* samples */
