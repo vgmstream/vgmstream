@@ -9,7 +9,7 @@ void ea_schl_block_update(off_t block_offset, VGMSTREAM * vgmstream) {
     uint32_t id;
     size_t file_size, block_size = 0, block_samples;
     int32_t (*read_32bit)(off_t,STREAMFILE*) = vgmstream->codec_endian ? read_32bitBE : read_32bitLE;
-    int16_t (*read_16bit)(off_t,STREAMFILE*) = vgmstream->codec_endian ? read_16bitBE : read_16bitLE;
+    //int16_t (*read_16bit)(off_t,STREAMFILE*) = vgmstream->codec_endian ? read_16bitBE : read_16bitLE;
 
 
     /* find target block ID and skip the rest */
@@ -93,8 +93,8 @@ void ea_schl_block_update(off_t block_offset, VGMSTREAM * vgmstream) {
                 size_t interleave;
 
                 /* read ADPCM history from all channels before data (not actually used in sx.exe) */
-                vgmstream->ch[i].adpcm_history1_32 = read_16bit(block_offset + 0x0C + (i*0x04) + 0x00,streamFile);
-                vgmstream->ch[i].adpcm_history2_32 = read_16bit(block_offset + 0x0C + (i*0x04) + 0x02,streamFile);
+                //vgmstream->ch[i].adpcm_history1_32 = read_16bit(block_offset + 0x0C + (i*0x04) + 0x00,streamFile);
+                //vgmstream->ch[i].adpcm_history2_32 = read_16bit(block_offset + 0x0C + (i*0x04) + 0x02,streamFile);
 
                 /* the block can have padding so find the channel size from num_samples */
                 interleave = is_interleaved ? (block_samples / 28 * 0x0f) : 0;
@@ -114,8 +114,8 @@ void ea_schl_block_update(off_t block_offset, VGMSTREAM * vgmstream) {
             if ((vgmstream->coding_type == coding_NGC_DSP) ||
                 (vgmstream->coding_type == coding_EA_XA_V2 && vgmstream->codec_version == 1)) {
                 for (i = 0; i < vgmstream->channels; i++) {
-                    vgmstream->ch[i].adpcm_history1_32 = read_16bit(vgmstream->ch[i].offset+0x00,streamFile);
-                    vgmstream->ch[i].adpcm_history3_32 = read_16bit(vgmstream->ch[i].offset+0x02,streamFile);
+                    //vgmstream->ch[i].adpcm_history1_32 = read_16bit(vgmstream->ch[i].offset+0x00,streamFile);
+                    //vgmstream->ch[i].adpcm_history3_32 = read_16bit(vgmstream->ch[i].offset+0x02,streamFile);
                     vgmstream->ch[i].offset += 4;
                 }
             }
