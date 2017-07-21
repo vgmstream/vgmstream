@@ -21,8 +21,8 @@ static const int EA_TABLE[20] = {
     0,   -1,   -3,   -4
 };
 
-/* EA's main ADPCM, inconsistently called EAXA or EA-XA */
-void decode_ea_xa(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do,int channel) {
+/* EA XA v2 (inconsistently called EAXA or EA-XA too); like ea_xa_int but with "PCM samples" flag and doesn't add 128 on nibble expand */
+void decode_ea_xa_v2(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do,int channel) {
     uint8_t frame_info;
     int32_t sample_count;
     int32_t coef1, coef2;
@@ -35,7 +35,7 @@ void decode_ea_xa(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing
     frame_info = (uint8_t)read_8bit(stream->offset+channel_offset,stream->streamfile);
     channel_offset++;
 
-    if (frame_info == 0xEE) { /* PCM frame (used in later revisions), always BE */
+    if (frame_info == 0xEE) { /* PCM frame (used in later revisions), samples always BE */
         stream->adpcm_history1_32 = read_16bitBE(stream->offset+channel_offset+0x00,stream->streamfile);
         stream->adpcm_history2_32 = read_16bitBE(stream->offset+channel_offset+0x02,stream->streamfile);
         channel_offset += 4;
@@ -74,8 +74,8 @@ void decode_ea_xa(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing
     }
 }
 
-/* EA MicroTalk 10:1 stereo (aka "EA ADPCM") */
-void decode_ea_mt10(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do,int channel) {
+/* EA XA v2 stereo (aka "EA ADPCM") */
+void decode_ea_xa(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do,int channel) {
     uint8_t frame_info;
     int32_t coef1, coef2;
     int i, sample_count, shift;
@@ -104,7 +104,7 @@ void decode_ea_mt10(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspaci
         sample_nibble = (hn   ? sample_byte >> 4 : sample_byte & 0x0F);
 
         sample = (sample_nibble << 28) >> shift; /* sign extend to 32b and shift */
-        sample = (sample + coef1 * stream->adpcm_history1_32 + coef2 * stream->adpcm_history2_32 + 0x80) >> 8;
+        sample = (sample + coef1 * stream->adpcm_history1_32 + coef2 * stream->adpcm_history2_32 + 128) >> 8;
 
         outbuf[sample_count] = clamp16(sample);
         stream->adpcm_history2_32 = stream->adpcm_history1_32;
@@ -117,8 +117,8 @@ void decode_ea_mt10(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspaci
         stream->channel_start_offset += 0x1E;
 }
 
-/* EA MicroTalk 10:1 mono/interleave */
-void decode_ea_mt10_int(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do,int channel) {
+/* EA-XA v2 mono/interleave */
+void decode_ea_xa_int(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do,int channel) {
     uint8_t frame_info;
     int32_t coef1, coef2;
     int i, sample_count, shift;
@@ -142,7 +142,7 @@ void decode_ea_mt10_int(VGMSTREAMCHANNEL * stream, sample * outbuf, int channels
         sample_byte = (uint8_t)read_8bit(byte_offset,stream->streamfile);
         sample_nibble = (!(i%2) ? sample_byte >> 4 : sample_byte & 0x0F);  /* i=even > high nibble */
         sample = (sample_nibble << 28) >> shift; /* sign extend to 32b and shift */
-        sample = (sample + coef1 * stream->adpcm_history1_32 + coef2 * stream->adpcm_history2_32 + 0x80) >> 8;
+        sample = (sample + coef1 * stream->adpcm_history1_32 + coef2 * stream->adpcm_history2_32 + 128) >> 8;
 
         outbuf[sample_count] = clamp16(sample);
         stream->adpcm_history2_32 = stream->adpcm_history1_32;
@@ -155,11 +155,8 @@ void decode_ea_mt10_int(VGMSTREAMCHANNEL * stream, sample * outbuf, int channels
         stream->channel_start_offset += 0x0F;
 }
 
-/* EA MicroTalk 5:1, unknown variation with optional PCM blocks */
-//void decode_ea_mt5(VGMSTREAM * vgmstream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do,int channel)
-
-/* Maxis MicroTalk 10:1 (mono+stereo), differing slightly in the header layout in stereo mode */
-void decode_maxis_mt10(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do,int channel) {
+/* Maxis EA-XA v1 (mono+stereo), differing slightly in the header layout in stereo mode */
+void decode_maxis_xa(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
     uint8_t frame_info;
     int32_t coef1, coef2;
     int i, sample_count, shift;
@@ -184,7 +181,7 @@ void decode_maxis_mt10(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelsp
         sample_byte = (uint8_t)read_8bit(byte_offset,stream->streamfile);
         sample_nibble = (i&1) ? sample_byte & 0x0F : sample_byte >> 4;
         sample = (sample_nibble << 28) >> shift; /* sign extend to 32b and shift */
-        sample = (sample + coef1 * stream->adpcm_history1_32 + coef2 * stream->adpcm_history2_32 + 0x80) >> 8;
+        sample = (sample + coef1 * stream->adpcm_history1_32 + coef2 * stream->adpcm_history2_32 + 128) >> 8;
 
         outbuf[sample_count] = clamp16(sample);
         stream->adpcm_history2_32 = stream->adpcm_history1_32;
@@ -201,3 +198,23 @@ void decode_maxis_mt10(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelsp
         stream->offset=0;
     }
 }
+
+
+/* EA MicroTalk 10:1 / 5:1 */
+/**
+ * Rarely used but can be found in the wild: FIFA 2001 (PS2), FIFA Soccer 2002 (PS2)
+ *
+ * Decoding algorithm is unknown; some info found by analyzing sx.exe output:
+ * - Comes in 10:1 or 5:1 compression varieties (the later's byte layout looks similar but has roughly double frame size)
+ * - Also with "PCM samples" flag before each frame (later version) or without (first version)
+ * - When PCM flag is 0xEE it has 16b ? + 16b num_samples + PCM samples placed right after the frame, but they
+ *   are written *before* (presumably so they have something while the frame is decoded), like EALayer3.
+ * - VBR ADPCM, apparently similar to Westwood VBR ADPCM: first byte seems a header with mode+count, but after it may
+ *   be 8 bytes(?) of coefs/hist (unlike Westwood's), then data. Samples per frame changes with the mode used.
+ *   ex. decoding pure silence (0000) takes 0x2E (10:1) or 0x48 (5:1) into 432 samples (RLE mode)
+ * - Variable frame size but seems to range from 0x20 to 0x80 (in 5:1 at least)
+ * - After a new SCDl block, first byte (in each channel) is a flag but values have no effect in the output
+ *   (01=first block, 00=normal block?) and should be skipped in the block parser.
+ *
+ */
+//void decode_ea_mt10(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do,int channel) {

@@ -27,8 +27,9 @@
 /* CODEC1 values were used early, then they migrated to CODEC2 values */
 #define EA_CODEC1_NONE          -1
 //#define EA_CODEC1_S16BE       0x00  //LE too?
-//#define EA_CODEC1_VAG         0x01
-#define EA_CODEC1_MT10          0x07  // Need for Speed 2 PC, Fifa 98 SAT
+//#define EA_CODEC1_VAG         0x01 ?
+#define EA_CODEC1_EAXA          0x07  // Need for Speed 2 PC, Fifa 98 SAT
+#define EA_CODEC1_MT10          0x09
 //#define EA_CODEC1_N64         ?
 
 #define EA_CODEC2_NONE          -1
@@ -65,7 +66,6 @@ typedef struct {
 
     int big_endian;
     int loop_flag;
-    int codec_version;
 } ea_header;
 
 static int parse_stream_header(STREAMFILE* streamFile, ea_header* ea, off_t begin_offset, int max_length);
@@ -117,10 +117,9 @@ VGMSTREAM * init_vgmstream_ea_schl(STREAMFILE *streamFile) {
     vgmstream->loop_end_sample = ea.loop_end;
 
     vgmstream->codec_endian = ea.big_endian;
-    vgmstream->codec_version = ea.codec_version;
 
-    vgmstream->meta_type = meta_EA_SCHL;
     vgmstream->layout_type = layout_ea_blocked;
+    vgmstream->meta_type = meta_EA_SCHL;
 
     /* EA usually implements their codecs in all platforms (PS2/WII do EAXA/MT/EALAYER3) and
      * favors them over platform's natives (ex. EAXA vs VAG/DSP).
@@ -128,14 +127,22 @@ VGMSTREAM * init_vgmstream_ea_schl(STREAMFILE *streamFile) {
     switch (ea.codec2) {
 
         case EA_CODEC2_EAXA:        /* EA-XA, CDXA ADPCM variant */
-            vgmstream->coding_type = coding_EA_XA;
-            break;
+            if (ea.codec1 == EA_CODEC1_EAXA) {
+                if (ea.version == EA_VERSION_V0 && ea.platform != EA_PLATFORM_SAT)
+                    vgmstream->coding_type = coding_EA_XA; /* original version, stereo stream */
+                else
+                    vgmstream->coding_type = coding_EA_XA_int; /* interleaved mono streams */
+            }
+            else { /* later revision with PCM blocks and slighty modified decoding */
+                vgmstream->coding_type = coding_EA_XA_V2;
 
-        case EA_CODEC2_MT10:        /* MicroTalk (10:1), aka EA ADPCM (stereo or interleaved) */
-            if (ea.codec_version==1 || ea.channels == 1)
-                vgmstream->coding_type = coding_EA_MT10_int;
-            else
-                vgmstream->coding_type = coding_EA_MT10;
+                /* console V2 uses hist, as does PC/MAC V1 (but not later versions) */
+                if (ea.version <= EA_VERSION_V1 ||
+                        ((ea.platform == EA_PLATFORM_PS2 || ea.platform == EA_PLATFORM_GC_WII || ea.platform == EA_PLATFORM_XBOX)
+                        && ea.version == EA_VERSION_V2)) {
+                    vgmstream->codec_version = 1; /* 1=has ADPCM history per block (early), 0=doesn't */
+                }
+            }
             break;
 
         case EA_CODEC2_S8:          /* PCM8 */
@@ -177,23 +184,18 @@ VGMSTREAM * init_vgmstream_ea_schl(STREAMFILE *streamFile) {
 #ifdef VGM_USE_MPEG
         case EA_CODEC2_LAYER2:      /* MPEG Layer II, aka MP2 */
         case EA_CODEC2_LAYER3: {    /* MPEG Layer III, aka MP3 */
-            mpeg_codec_data *mpeg_data = NULL;
-            coding_t mpeg_coding_type;
-
             off_t mpeg_start_offset = get_ea_mpeg_start_offset(streamFile, start_offset, &ea);
             if (!mpeg_start_offset) goto fail;
 
-            mpeg_data = init_mpeg_codec_data_interleaved(streamFile, mpeg_start_offset, &mpeg_coding_type, vgmstream->channels, MPEG_EA, 0);
-            if (!mpeg_data) goto fail;
-            vgmstream->codec_data = mpeg_data;
-            vgmstream->coding_type = mpeg_coding_type;
-            //vgmstream->layout_type = layout_mpeg;
-            //mpeg_set_error_logging(mpeg_data, 0); /* should not be needed anymore with the interleave decoder */
+            vgmstream->codec_data = init_mpeg_codec_data_interleaved(streamFile, mpeg_start_offset, &vgmstream->coding_type, vgmstream->channels, MPEG_EA, 0);
+            if (!vgmstream->codec_data) goto fail;
+
             break;
         }
 #endif
 
-        case EA_CODEC2_MT5:         /* MicroTalk (5:1) */
+        case EA_CODEC2_MT10:        /* MicroTalk (10:1 compression) */
+        case EA_CODEC2_MT5:         /* MicroTalk (5:1 compression) */
         case EA_CODEC2_EALAYER3:    /* MP3 variant */
         default:
             VGM_LOG("EA: unknown codec2 0x%02x for platform 0x%02x\n", ea.codec2, ea.platform);
@@ -423,7 +425,8 @@ static int parse_stream_header(STREAMFILE* streamFile, ea_header* ea, off_t begi
     }
 
     /* version affects EAXA and MT codecs, but can be found with all other codecs */
-    /* For PC/MAC V0 is simply no version when codec1 was used */
+    /* For PC/MAC V0 is simply no version when codec1 was used
+     * Uncommon, but version 0 (with patch size 0x00) does exist. */
     if (ea->version == EA_VERSION_NONE) {
         switch(ea->platform) {
             case EA_PLATFORM_GENERIC:   ea->version = EA_VERSION_V2; break;
@@ -447,6 +450,7 @@ static int parse_stream_header(STREAMFILE* streamFile, ea_header* ea, off_t begi
     /* codec1 to codec2 to simplify later parsing */
     if (ea->codec1 != EA_CODEC1_NONE && ea->codec2 == EA_CODEC2_NONE) {
         switch (ea->codec1) {
+            case EA_CODEC1_EAXA:        ea->codec2 = EA_CODEC2_EAXA; break;
             case EA_CODEC1_MT10:        ea->codec2 = EA_CODEC2_MT10; break;
             default:
                 VGM_LOG("EA: unknown codec1 0x%02x\n", ea->codec1);
@@ -504,18 +508,6 @@ static int parse_stream_header(STREAMFILE* streamFile, ea_header* ea, off_t begi
         ea->big_endian = 1;
     }
 
-    /* config MT/EAXA variations */
-    if (ea->codec2 == EA_CODEC2_MT10) {
-        if (ea->version > EA_VERSION_V0 || 
-            (ea->platform == EA_PLATFORM_SAT && ea->version == EA_VERSION_V0))
-            ea->codec_version = 1; /* 0=stereo (early), 1=interleaved */
-    }
-    else if (ea->codec2 == EA_CODEC2_EAXA) {
-        /* console EAXA V2 uses hist, as does PC/MAC V1 */
-        if (ea->version > EA_VERSION_V1 && !(ea->version == EA_VERSION_V2
-                && (ea->platform == EA_PLATFORM_PS2|| ea->platform == EA_PLATFORM_GC_WII || ea->platform == EA_PLATFORM_XBOX)))
-            ea->codec_version = 1; /* 0=has ADPCM history per block (early), 1:doesn't */
-    }
 
     return offset;
 

@@ -26,7 +26,7 @@ VGMSTREAM * init_vgmstream_maxis_xa(STREAMFILE *streamFile) {
     start_offset = 0x18;
     vgmstream->channels = channel_count;
     vgmstream->sample_rate = read_32bitLE(0x0C,streamFile);
-    vgmstream->coding_type = coding_MAXIS_MT10;
+    vgmstream->coding_type = coding_MAXIS_XA;
     vgmstream->num_samples = read_32bitLE(0x04,streamFile)/2/channel_count;
 
     vgmstream->layout_type = layout_none;
