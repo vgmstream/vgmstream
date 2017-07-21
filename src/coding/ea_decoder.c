@@ -61,8 +61,9 @@ void decode_ea_xa_v2(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspac
                             sample_byte >> 4
                           ) << 0x1C) >> shift) +
                           (coef1 * stream->adpcm_history1_32) + (coef2 * stream->adpcm_history2_32)) >> 8;
+            sample = clamp16(sample);
 
-            outbuf[sample_count] = clamp16(sample);
+            outbuf[sample_count] = sample;
             stream->adpcm_history2_32 = stream->adpcm_history1_32;
             stream->adpcm_history1_32 = sample;
         }
@@ -74,7 +75,7 @@ void decode_ea_xa_v2(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspac
     }
 }
 
-/* EA XA v2 stereo (aka "EA ADPCM") */
+/* EA XA v1 stereo (aka "EA ADPCM") */
 void decode_ea_xa(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do,int channel) {
     uint8_t frame_info;
     int32_t coef1, coef2;
@@ -89,6 +90,7 @@ void decode_ea_xa(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing
     channel_offset++;
     coef1 = EA_TABLE[(hn ? frame_info >> 4 : frame_info & 0x0F) + 0];
     coef2 = EA_TABLE[(hn ? frame_info >> 4 : frame_info & 0x0F) + 4];
+    shift = (frame_info & 0x0F) + 8;
 
     frame_info = read_8bit(stream->offset+channel_offset,stream->streamfile);
     channel_offset++;
@@ -101,12 +103,12 @@ void decode_ea_xa(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing
         off_t byte_offset = (stream->offset + channel_offset + i);
 
         sample_byte = (uint8_t)read_8bit(byte_offset,stream->streamfile);
-        sample_nibble = (hn   ? sample_byte >> 4 : sample_byte & 0x0F);
-
+        sample_nibble = (hn ? sample_byte >> 4 : sample_byte & 0x0F);
         sample = (sample_nibble << 28) >> shift; /* sign extend to 32b and shift */
         sample = (sample + coef1 * stream->adpcm_history1_32 + coef2 * stream->adpcm_history2_32 + 128) >> 8;
+        sample = clamp16(sample);
 
-        outbuf[sample_count] = clamp16(sample);
+        outbuf[sample_count] = sample;
         stream->adpcm_history2_32 = stream->adpcm_history1_32;
         stream->adpcm_history1_32 = sample;
     }
@@ -117,7 +119,7 @@ void decode_ea_xa(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing
         stream->channel_start_offset += 0x1E;
 }
 
-/* EA-XA v2 mono/interleave */
+/* EA-XA v1 mono/interleave */
 void decode_ea_xa_int(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do,int channel) {
     uint8_t frame_info;
     int32_t coef1, coef2;
@@ -143,8 +145,9 @@ void decode_ea_xa_int(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspa
         sample_nibble = (!(i%2) ? sample_byte >> 4 : sample_byte & 0x0F);  /* i=even > high nibble */
         sample = (sample_nibble << 28) >> shift; /* sign extend to 32b and shift */
         sample = (sample + coef1 * stream->adpcm_history1_32 + coef2 * stream->adpcm_history2_32 + 128) >> 8;
+        sample = clamp16(sample);
 
-        outbuf[sample_count] = clamp16(sample);
+        outbuf[sample_count] = sample;
         stream->adpcm_history2_32 = stream->adpcm_history1_32;
         stream->adpcm_history1_32 = sample;
     }
@@ -161,16 +164,16 @@ void decode_maxis_xa(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspac
     int32_t coef1, coef2;
     int i, sample_count, shift;
     off_t channel_offset = stream->channel_start_offset;
-    int frameSize = channelspacing*15; /* mono samples have a frame of 15, stereo files have frames of 30 */
+    int frame_size = channelspacing * 15; /* mono samples have a frame of 15, stereo files have frames of 30 */
 
-    first_sample = first_sample%28;
+    first_sample = first_sample % 28;
 
     /* header (coefs+shift ch0 + coefs+shift ch1) */
     frame_info = read_8bit(channel_offset,stream->streamfile);
     channel_offset += channelspacing;
-    coef1 = EA_TABLE[frame_info >> 4];
+    coef1 = EA_TABLE[(frame_info >> 4) + 0];
     coef2 = EA_TABLE[(frame_info >> 4) + 4];
-    shift = (frame_info & 0x0F)+8;
+    shift = (frame_info & 0x0F) + 8;
 
     /* samples */
     for (i=first_sample,sample_count=0; i<first_sample+samples_to_do; i++,sample_count+=channelspacing) {
@@ -182,8 +185,9 @@ void decode_maxis_xa(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspac
         sample_nibble = (i&1) ? sample_byte & 0x0F : sample_byte >> 4;
         sample = (sample_nibble << 28) >> shift; /* sign extend to 32b and shift */
         sample = (sample + coef1 * stream->adpcm_history1_32 + coef2 * stream->adpcm_history2_32 + 128) >> 8;
+        sample = clamp16(sample);
 
-        outbuf[sample_count] = clamp16(sample);
+        outbuf[sample_count] = sample;
         stream->adpcm_history2_32 = stream->adpcm_history1_32;
         stream->adpcm_history1_32 = sample;
 
@@ -193,8 +197,8 @@ void decode_maxis_xa(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspac
     channel_offset+=i;
 
     /* Only increment offset on complete frame */
-    if (channel_offset - stream->channel_start_offset == frameSize) {
-        stream->channel_start_offset += frameSize;
+    if (channel_offset - stream->channel_start_offset == frame_size) {
+        stream->channel_start_offset += frame_size;
         stream->offset=0;
     }
 }
@@ -213,7 +217,7 @@ void decode_maxis_xa(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspac
  *   be 8 bytes(?) of coefs/hist (unlike Westwood's), then data. Samples per frame changes with the mode used.
  *   ex. decoding pure silence (0000) takes 0x2E (10:1) or 0x48 (5:1) into 432 samples (RLE mode)
  * - Variable frame size but seems to range from 0x20 to 0x80 (in 5:1 at least)
- * - After a new SCDl block, first byte (in each channel) is a flag but values have no effect in the output
+ * - After a new SCDl block, first byte (in each channel) is a flag but various values have no effect in the output
  *   (01=first block, 00=normal block?) and should be skipped in the block parser.
  *
  */
