@@ -238,6 +238,7 @@ typedef enum {
     layout_ps2_iab_blocked,
     layout_ps2_strlr_blocked,
     layout_rws_blocked,
+    layout_hwas_blocked,
 
     /* otherwise odd */
     layout_acm,             /* libacm layout */

@@ -1566,6 +1566,10 @@
                     RelativePath=".\layout\rws_blocked.c"
                     >
                 </File>
+                <File
+                    RelativePath=".\layout\hwas_blocked.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\layout\scd_int_layout.c"
 					>

@@ -898,6 +898,9 @@
     <ClCompile Include="layout\halpst_blocked.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="layout\hwas_blocked.c">
+      <Filter>layout\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="layout\ims_block.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
