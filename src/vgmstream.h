@@ -457,7 +457,8 @@ typedef enum {
     meta_XBOX_XMU,			/* XBOX XMU */
     meta_XBOX_XVAS,			/* XBOX VAS */
     
-    meta_EA_SCHL,			/* Electronic Arts SCHl */
+    meta_EA_SCHL,           /* Electronic Arts SCHl */
+    meta_EA_BNK,            /* Electronic Arts BNK */
     meta_EACS_PC,			/* Electronic Arts EACS PC */
     meta_EACS_PSX,			/* Electronic Arts EACS PSX */
     meta_EACS_SAT,			/* Electronic Arts EACS SATURN */

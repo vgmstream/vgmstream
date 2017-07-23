@@ -877,6 +877,7 @@ static const meta_info meta_info_list[] = {
         {meta_PC_XA30,              "Reflections XA30 PC header"},
         {meta_WII_04SW,             "Reflections 04SW header"},
         {meta_TXTH,                 "TXTH Generic Header"},
+        {meta_EA_BNK,               "Electronic Arts BNK header"},
 
 #ifdef VGM_USE_VORBIS
         {meta_OGG_VORBIS,           "Ogg Vorbis"},

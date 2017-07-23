@@ -92,7 +92,7 @@ void ea_schl_block_update(off_t block_offset, VGMSTREAM * vgmstream) {
                 int is_interleaved = vgmstream->coding_type == coding_EA_XA_int;
                 size_t interleave;
 
-                /* read ADPCM history from all channels before data (not actually used in sx.exe) */
+                /* read ADPCM history from all channels before data (not actually read in sx.exe) */
                 //vgmstream->ch[i].adpcm_history1_32 = read_16bit(block_offset + 0x0C + (i*0x04) + 0x00,streamFile);
                 //vgmstream->ch[i].adpcm_history2_32 = read_16bit(block_offset + 0x0C + (i*0x04) + 0x02,streamFile);
 
@@ -110,9 +110,8 @@ void ea_schl_block_update(off_t block_offset, VGMSTREAM * vgmstream) {
                 vgmstream->ch[i].offset = block_offset + 0x0C + (0x04*vgmstream->channels) + channel_start;
             }
 
-            /* read ADPCM history before each channel if needed (not actually used in sx.exe) */
-            if ((vgmstream->coding_type == coding_NGC_DSP) ||
-                (vgmstream->coding_type == coding_EA_XA_V2 && vgmstream->codec_version == 1)) {
+            /* read ADPCM history before each channel if needed (not actually read in sx.exe) */
+            if (vgmstream->codec_version == 1) {
                 for (i = 0; i < vgmstream->channels; i++) {
                     //vgmstream->ch[i].adpcm_history1_32 = read_16bit(vgmstream->ch[i].offset+0x00,streamFile);
                     //vgmstream->ch[i].adpcm_history3_32 = read_16bit(vgmstream->ch[i].offset+0x02,streamFile);
