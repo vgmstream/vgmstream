@@ -360,7 +360,7 @@ void decode_xbox_ima(VGMSTREAM * vgmstream,VGMSTREAMCHANNEL * stream, sample * o
 
 /* mono XBOX ADPCM for interleave */
 void decode_xbox_ima_int(VGMSTREAM * vgmstream,VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
-    int i, sample_count;
+    int i, sample_count = 0;
 
     int32_t hist1 = stream->adpcm_history1_32;
     int step_index = stream->adpcm_step_index;
@@ -377,14 +377,24 @@ void decode_xbox_ima_int(VGMSTREAM * vgmstream,VGMSTREAMCHANNEL * stream, sample
         step_index = read_16bitLE(header_offset+2,stream->streamfile);
         if (step_index < 0) step_index=0;
         if (step_index > 88) step_index=88;
+
+        //must write history from header as last nibble/sample in block is almost always 0 / not encoded
+        outbuf[sample_count] = (short)(hist1);
+        sample_count += channelspacing;
+        first_sample += 1;
+        samples_to_do -= 1;
     }
 
-    for (i=first_sample,sample_count=0; i<first_sample+samples_to_do; i++,sample_count+=channelspacing) {
-        off_t byte_offset = stream->offset + 4 + i/2;
-        int nibble_shift = (i&1?4:0); //low nibble first
+    for (i=first_sample; i < first_sample + samples_to_do; i++) { /* first_sample + samples_to_do should be block_samples at most */
+        off_t byte_offset = stream->offset + 4 + (i-1)/2;
+        int nibble_shift = ((i-1)&1?4:0); //low nibble first
 
-        ms_ima_expand_nibble(stream, byte_offset,nibble_shift, &hist1, &step_index);
-        outbuf[sample_count] = (short)(hist1);
+        //last nibble/sample in block is ignored (next header sample contains it)
+        if (i < block_samples) {
+            ms_ima_expand_nibble(stream, byte_offset,nibble_shift, &hist1, &step_index);
+            outbuf[sample_count] = (short)(hist1);
+            sample_count+=channelspacing;
+        }
     }
 
     //internal interleave: increment offset on complete frame;  layout test so it works in full mono
