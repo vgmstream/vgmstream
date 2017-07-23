@@ -428,6 +428,7 @@ void decode_dvi_ima(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspaci
     stream->adpcm_step_index = step_index;
 }
 
+/* basically DVI stereo (high=L + low=R nibbles) and DVI mono (high=L, low=L) all-in-one, can be simplified/removed */
 void decode_eacs_ima(VGMSTREAM * vgmstream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
     VGMSTREAMCHANNEL * stream = &(vgmstream->ch[channel]);//todo pass externally for consistency
     int i, sample_count;
@@ -439,14 +440,13 @@ void decode_eacs_ima(VGMSTREAM * vgmstream, sample * outbuf, int channelspacing,
 
     //no header
 
-    //variable nibble order
-    vgmstream->get_high_nibble = !vgmstream->get_high_nibble;
-    if((first_sample) && (channelspacing==1))
-        vgmstream->get_high_nibble = !vgmstream->get_high_nibble;
-
     for (i=first_sample,sample_count=0; i<first_sample+samples_to_do; i++,sample_count+=channelspacing) {
-        off_t byte_offset = stream->offset + i;
-        int nibble_shift = (vgmstream->get_high_nibble?0:4); //variable nibble order
+        off_t byte_offset = channelspacing == 1 ?
+                stream->offset + i/2 :  /* mono mode */
+                stream->offset + i;     /* stereo mode */
+        int nibble_shift = channelspacing == 1 ?
+                (!(i%2) ? 4:0) :        /* mono mode (high first) */
+                (channel==0 ? 4:0);     /* stereo mode (high=L,low=R) */
 
         ms_ima_expand_nibble(stream, byte_offset,nibble_shift, &hist1, &step_index);
         outbuf[sample_count] = (short)(hist1);
