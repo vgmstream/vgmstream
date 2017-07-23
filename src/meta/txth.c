@@ -390,10 +390,12 @@ fail:
 static int parse_txth(STREAMFILE * streamFile, STREAMFILE * streamText, txth_header * txth) {
     off_t off = 0;
     off_t file_size = get_streamfile_size(streamText);
+#ifndef LINE_MAX /* some platforms define this via limits.h */
 #if defined(_MSC_VER) && (_MSC_VER < 1900)
 	enum { LINE_MAX = 0x2000 };
 #else
 	const size_t LINE_MAX = 0x2000; /* arbitrary max */
+#endif
 #endif
 
     txth->data_size = get_streamfile_size(streamFile); /* for later use */
