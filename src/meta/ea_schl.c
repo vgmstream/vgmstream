@@ -282,7 +282,7 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE *streamFile, ea_
             break;
 
         case EA_CODEC2_XBOXADPCM:   /* XBOX IMA (interleaved mono) */
-            vgmstream->coding_type = coding_XBOX; /* stereo decoder actually, but has a special case for EA */
+            vgmstream->coding_type = coding_XBOX_int;
             break;
 
         case EA_CODEC2_GCADPCM:     /* DSP */
