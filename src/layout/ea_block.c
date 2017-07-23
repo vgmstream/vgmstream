@@ -9,7 +9,7 @@ void ea_schl_block_update(off_t block_offset, VGMSTREAM * vgmstream) {
     uint32_t id;
     size_t file_size, block_size = 0, block_samples;
     int32_t (*read_32bit)(off_t,STREAMFILE*) = vgmstream->codec_endian ? read_32bitBE : read_32bitLE;
-    int16_t (*read_16bit)(off_t,STREAMFILE*) = vgmstream->codec_endian ? read_16bitBE : read_16bitLE;
+    //int16_t (*read_16bit)(off_t,STREAMFILE*) = vgmstream->codec_endian ? read_16bitBE : read_16bitLE;
 
 
     /* find target block ID and skip the rest */
@@ -73,7 +73,7 @@ void ea_schl_block_update(off_t block_offset, VGMSTREAM * vgmstream) {
 
     /* set new channel offsets and ADPCM history */
     /* ADPCM hist could be considered part of the stream/decoder (some EAXA decoders call it "EAXA R1" when it has hist), and BNKs
-     * (with no blocks) also have them in the first offset. To simplify and since DSP also have them, we read them here instead. */
+     * (with no blocks) may also have them in the first offset, but also may not. To simplify we just read them here. */
     switch(vgmstream->coding_type) {
         /* id, size, unk1, unk2, interleaved data */
         case coding_PSX:
@@ -85,16 +85,27 @@ void ea_schl_block_update(off_t block_offset, VGMSTREAM * vgmstream) {
 
             break;
 
+        /* id, size, IMA hist, stereo/mono data */
+        case coding_EACS_IMA:
+            for(i = 0; i < vgmstream->channels; i++) {
+                off_t header_offset = block_offset + 0xc + i*4;
+                vgmstream->ch[i].adpcm_history1_32 = read_16bitLE(header_offset+0x00, vgmstream->ch[i].streamfile);
+                vgmstream->ch[i].adpcm_step_index  = read_16bitLE(header_offset+0x02, vgmstream->ch[i].streamfile);
+                vgmstream->ch[i].offset = block_offset + 0xc + (4*vgmstream->channels);
+            }
+
+            break;
+
         /* id, size, samples, hists-per-channel, stereo/interleaved data */
-        case coding_EA_MT10:
-        case coding_EA_MT10_int:
+        case coding_EA_XA:
+        case coding_EA_XA_int:
             for (i = 0; i < vgmstream->channels; i++) {
-                int is_interleaved = vgmstream->coding_type == coding_EA_MT10_int;
+                int is_interleaved = vgmstream->coding_type == coding_EA_XA_int;
                 size_t interleave;
 
-                /* read ADPCM history from all channels before data */
-                vgmstream->ch[i].adpcm_history1_32 = read_16bit(block_offset + 0x0C + (i*0x04) + 0x00,streamFile);
-                vgmstream->ch[i].adpcm_history2_32 = read_16bit(block_offset + 0x0C + (i*0x04) + 0x02,streamFile);
+                /* read ADPCM history from all channels before data (not actually read in sx.exe) */
+                //vgmstream->ch[i].adpcm_history1_32 = read_16bit(block_offset + 0x0C + (i*0x04) + 0x00,streamFile);
+                //vgmstream->ch[i].adpcm_history2_32 = read_16bit(block_offset + 0x0C + (i*0x04) + 0x02,streamFile);
 
                 /* the block can have padding so find the channel size from num_samples */
                 interleave = is_interleaved ? (block_samples / 28 * 0x0f) : 0;
@@ -110,12 +121,11 @@ void ea_schl_block_update(off_t block_offset, VGMSTREAM * vgmstream) {
                 vgmstream->ch[i].offset = block_offset + 0x0C + (0x04*vgmstream->channels) + channel_start;
             }
 
-            /* read ADPCM history before each channel if needed (there is a small diff vs decoded hist) */
-            if ((vgmstream->coding_type == coding_NGC_DSP) ||
-                (vgmstream->coding_type == coding_EA_XA && vgmstream->codec_version == 0)) {
+            /* read ADPCM history before each channel if needed (not actually read in sx.exe) */
+            if (vgmstream->codec_version == 1) {
                 for (i = 0; i < vgmstream->channels; i++) {
-                    vgmstream->ch[i].adpcm_history1_32 = read_16bit(vgmstream->ch[i].offset+0x00,streamFile);
-                    vgmstream->ch[i].adpcm_history3_32 = read_16bit(vgmstream->ch[i].offset+0x02,streamFile);
+                    //vgmstream->ch[i].adpcm_history1_32 = read_16bit(vgmstream->ch[i].offset+0x00,streamFile);
+                    //vgmstream->ch[i].adpcm_history3_32 = read_16bit(vgmstream->ch[i].offset+0x02,streamFile);
                     vgmstream->ch[i].offset += 4;
                 }
             }
@@ -130,9 +140,9 @@ void ea_schl_block_update(off_t block_offset, VGMSTREAM * vgmstream) {
 
 
     /* reset channel sub offset for codecs using it */
-    if (vgmstream->coding_type == coding_EA_MT10
-            || vgmstream->coding_type == coding_EA_MT10_int
-            || vgmstream->coding_type == coding_EA_XA) {
+    if (vgmstream->coding_type == coding_EA_XA
+            || vgmstream->coding_type == coding_EA_XA_int
+            || vgmstream->coding_type == coding_EA_XA_V2) {
         for(i=0;i<vgmstream->channels;i++) {
             vgmstream->ch[i].channel_start_offset=0;
         }
@@ -163,7 +173,6 @@ void eacs_block_update(off_t block_offset, VGMSTREAM * vgmstream) {
     vgmstream->current_block_size=block_size-8;
 
     if(vgmstream->coding_type==coding_EACS_IMA) {
-        init_get_high_nibble(vgmstream); /* swap nibble marker for codecs with stereo subinterleave */
         vgmstream->current_block_size=read_32bitLE(block_offset,vgmstream->ch[0].streamfile);
 
         for(i=0;i<vgmstream->channels;i++) {

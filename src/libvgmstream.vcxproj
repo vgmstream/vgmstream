@@ -207,6 +207,7 @@
     <ClCompile Include="meta\dsp_bdsp.c" />
     <ClCompile Include="meta\dsp_sth_str.c" />
     <ClCompile Include="meta\ea_schl.c" />
+    <ClCompile Include="meta\ea_schl_fixed.c" />
     <ClCompile Include="meta\ea_old.c" />
     <ClCompile Include="meta\emff.c" />
     <ClCompile Include="meta\exakt_sc.c" />
@@ -463,6 +464,7 @@
     <ClCompile Include="layout\ps2_adm_blocked.c" />
     <ClCompile Include="layout\psx_mgav_blocked.c" />
     <ClCompile Include="layout\rws_blocked.c" />
+    <ClCompile Include="layout\hwas_blocked.c" />
     <ClCompile Include="layout\str_snds_blocked.c" />
     <ClCompile Include="layout\thp_blocked.c" />
     <ClCompile Include="layout\vs_blocked.c" />

@@ -187,6 +187,9 @@
     <ClCompile Include="meta\ea_schl.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\ea_schl_fixed.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\ea_old.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -896,6 +899,9 @@
       <Filter>layout\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="layout\halpst_blocked.c">
+      <Filter>layout\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="layout\hwas_blocked.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="layout\ims_block.c">

@@ -105,10 +105,10 @@ typedef enum {
     coding_PSX_cfg,         /* Sony PS ADPCM with configurable frame size (FF XI, SGXD type 5, Bizarre Creations) */
     coding_HEVAG,           /* Sony PSVita ADPCM */
 
-    coding_EA_MT10,         /* Electronic Arts MicroTalk (10:1) ADPCM (stereo) aka EA ADPCM */
-    coding_EA_MT10_int,     /* Electronic Arts MicroTalk (10:1) ADPCM (mono/interleave) */
-    coding_MAXIS_MT10,      /* Maxis MicroTalk (10:1) ADPCM */
-    coding_EA_XA,			/* Electronic Arts EA-XA ADPCM */
+    coding_EA_XA,           /* Electronic Arts EA-XA ADPCM v1 (stereo) aka "EA ADPCM" */
+    coding_EA_XA_int,       /* Electronic Arts EA-XA ADPCM v1 (mono/interleave) */
+    coding_EA_XA_V2,        /* Electronic Arts EA-XA ADPCM v2 */
+    coding_MAXIS_XA,        /* Maxis EA-XA ADPCM */
 
     coding_XBOX,            /* XBOX IMA ADPCM */
     coding_XBOX_int,        /* XBOX IMA ADPCM (interleaved) */
@@ -136,7 +136,7 @@ typedef enum {
     coding_L5_555,          /* Level-5 0x555 ADPCM */
     coding_SASSC,           /* Activision EXAKT SASSC DPCM */
     coding_LSF,             /* lsf ADPCM (Fastlane Street Racing iPhone)*/
-    coding_MTAF,            /* Konami MTAF ADPCM (IMA-derived) */
+    coding_MTAF,            /* Konami MTAF ADPCM */
     coding_MTA2,            /* Konami MTA2 ADPCM */
     coding_MC3,             /* Paradigm MC3 3-bit ADPCM */
 
@@ -238,6 +238,7 @@ typedef enum {
     layout_ps2_iab_blocked,
     layout_ps2_strlr_blocked,
     layout_rws_blocked,
+    layout_hwas_blocked,
 
     /* otherwise odd */
     layout_acm,             /* libacm layout */
@@ -457,7 +458,9 @@ typedef enum {
     meta_XBOX_XMU,			/* XBOX XMU */
     meta_XBOX_XVAS,			/* XBOX VAS */
     
-    meta_EA_SCHL,			/* Electronic Arts SCHl */
+    meta_EA_SCHL,           /* Electronic Arts SCHl with variable header */
+    meta_EA_SCHL_fixed,     /* Electronic Arts SCHl with fixed header */
+    meta_EA_BNK,            /* Electronic Arts BNK */
     meta_EACS_PC,			/* Electronic Arts EACS PC */
     meta_EACS_PSX,			/* Electronic Arts EACS PSX */
     meta_EACS_SAT,			/* Electronic Arts EACS SATURN */

@@ -368,6 +368,8 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_ngc_ulw,
     init_vgmstream_pc_xa30,
     init_vgmstream_wii_04sw,
+    init_vgmstream_ea_bnk,
+    init_vgmstream_ea_schl_fixed,
 
     init_vgmstream_txth,  /* should go at the end (lower priority) */
 #ifdef VGM_USE_FFMPEG
@@ -942,6 +944,7 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
 		case layout_ps2_iab_blocked:
         case layout_ps2_strlr_blocked:
         case layout_rws_blocked:
+        case layout_hwas_blocked:
             render_vgmstream_blocked(buffer,sample_count,vgmstream);
             break;
         case layout_interleave_byte:
@@ -1046,11 +1049,11 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
 		case coding_XBOX_int:
         case coding_FSB_IMA:
             return 64;
-        case coding_EA_MT10:
-        case coding_EA_MT10_int:
         case coding_EA_XA:
+        case coding_EA_XA_int:
+        case coding_EA_XA_V2:
             return 28;
-		case coding_MAXIS_MT10:
+		case coding_MAXIS_XA:
 			return 14*vgmstream->channels;
         case coding_WS:
             /* only works if output sample size is 8 bit, which always is for WS ADPCM */
@@ -1192,14 +1195,14 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
 		case coding_XBOX_int:
         case coding_FSB_IMA:
             return 36;
-        case coding_EA_MT10:
-            return 0x1E;
-        case coding_EA_MT10_int:
-            return 0x0F;
-        case coding_MAXIS_MT10:
-            return 0x0F*vgmstream->channels;
         case coding_EA_XA:
-            return 1; // the frame is variant in size
+            return 0x1E;
+        case coding_EA_XA_int:
+            return 0x0F;
+        case coding_MAXIS_XA:
+            return 0x0F*vgmstream->channels;
+        case coding_EA_XA_V2:
+            return 1; /* the frame is variant in size (ADPCM frames of 0x0F or PCM frames) */
         case coding_WS:
             return vgmstream->current_block_size;
         case coding_IMA_int:
@@ -1399,7 +1402,7 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
             break;
         case coding_XBOX_int:
             for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_int_xbox_ima(vgmstream,&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                decode_xbox_ima_int(vgmstream,&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
                         samples_to_do,chan);
             }
@@ -1495,23 +1498,23 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                         samples_to_do,chan);
             }
             break;
-        case coding_EA_MT10:
+        case coding_EA_XA_int:
             for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_ea_mt10(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                decode_ea_xa_int(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
                         samples_to_do,chan);
             }
             break;
-        case coding_EA_MT10_int:
+        case coding_EA_XA_V2:
             for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_ea_mt10_int(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                decode_ea_xa_v2(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
                         samples_to_do,chan);
             }
             break;
-        case coding_MAXIS_MT10:
+        case coding_MAXIS_XA:
             for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_maxis_mt10(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                decode_maxis_xa(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
                         samples_to_do,chan);
             }
