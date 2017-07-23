@@ -73,7 +73,7 @@ void ea_schl_block_update(off_t block_offset, VGMSTREAM * vgmstream) {
 
     /* set new channel offsets and ADPCM history */
     /* ADPCM hist could be considered part of the stream/decoder (some EAXA decoders call it "EAXA R1" when it has hist), and BNKs
-     * (with no blocks) also have them in the first offset. To simplify and since DSP also have them, we read them here instead. */
+     * (with no blocks) may also have them in the first offset, but also may not. To simplify we just read them here. */
     switch(vgmstream->coding_type) {
         /* id, size, unk1, unk2, interleaved data */
         case coding_PSX:
@@ -82,6 +82,17 @@ void ea_schl_block_update(off_t block_offset, VGMSTREAM * vgmstream) {
                 vgmstream->ch[i].offset = block_offset + 0x10 + i*interleave;
             }
             /* 0x08/0x0c: unknown (doesn't look like hist or offsets, as 1ch files has them too) */
+
+            break;
+
+        /* id, size, IMA hist, stereo/mono data */
+        case coding_EACS_IMA:
+            for(i = 0; i < vgmstream->channels; i++) {
+                off_t header_offset = block_offset + 0xc + i*4;
+                vgmstream->ch[i].adpcm_history1_32 = read_16bitLE(header_offset+0x00, vgmstream->ch[i].streamfile);
+                vgmstream->ch[i].adpcm_step_index  = read_16bitLE(header_offset+0x02, vgmstream->ch[i].streamfile);
+                vgmstream->ch[i].offset = block_offset + 0xc + (4*vgmstream->channels);
+            }
 
             break;
 
@@ -162,7 +173,6 @@ void eacs_block_update(off_t block_offset, VGMSTREAM * vgmstream) {
     vgmstream->current_block_size=block_size-8;
 
     if(vgmstream->coding_type==coding_EACS_IMA) {
-        init_get_high_nibble(vgmstream); /* swap nibble marker for codecs with stereo subinterleave */
         vgmstream->current_block_size=read_32bitLE(block_offset,vgmstream->ch[0].streamfile);
 
         for(i=0;i<vgmstream->channels;i++) {

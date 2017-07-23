@@ -187,6 +187,9 @@
     <ClCompile Include="meta\ea_schl.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\ea_schl_fixed.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\ea_old.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
