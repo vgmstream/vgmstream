@@ -790,9 +790,6 @@
     <ClCompile Include="coding\ea_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="coding\fsb_vorbis_decoder.c">
-      <Filter>coding\Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="coding\g721_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
@@ -835,9 +832,6 @@
     <ClCompile Include="coding\ogg_vorbis_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="coding\ogl_vorbis_decoder.c">
-      <Filter>coding\Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="coding\pcm_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
@@ -856,10 +850,16 @@
     <ClCompile Include="coding\ws_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="coding\wwise_vorbis_decoder.c">
+    <ClCompile Include="coding\vorbis_custom_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="coding\wwise_vorbis_utils.c">
+    <ClCompile Include="coding\vorbis_custom_utils_fsb.c">
+      <Filter>coding\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="coding\vorbis_custom_utils_ogl.c">
+      <Filter>coding\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="coding\vorbis_custom_utils_wwise.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\xa_decoder.c">
