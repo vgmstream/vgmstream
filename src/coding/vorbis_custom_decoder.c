@@ -83,8 +83,8 @@ void decode_vorbis_custom(VGMSTREAM * vgmstream, sample * outbuf, int32_t sample
     while (samples_done < samples_to_do) {
 
         /* extra EOF check for edge cases */
-        if (stream->offset > stream_size) {
-            memset(outbuf + samples_done * channels, 0, (samples_to_do - samples_done) * sizeof(sample));
+        if (stream->offset >= stream_size) {
+            memset(outbuf + samples_done * channels, 0, (samples_to_do - samples_done) * sizeof(sample) * channels);
             break;
         }
 
