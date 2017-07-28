@@ -5,7 +5,7 @@
 
 #define FSB_VORBIS_USE_PRECOMPILED_FVS 1 /* if enabled vgmstream weights ~600kb more but doesn't need external .fvs packets */
 #if FSB_VORBIS_USE_PRECOMPILED_FVS
-#include "fsb_vorbis_data.h"
+#include "vorbis_custom_data_fsb.h"
 #endif
 
 
