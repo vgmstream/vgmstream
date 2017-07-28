@@ -137,27 +137,12 @@ void reset_ogg_vorbis(VGMSTREAM *vgmstream);
 void seek_ogg_vorbis(VGMSTREAM *vgmstream, int32_t num_sample);
 void free_ogg_vorbis(ogg_vorbis_codec_data *data);
 
-/* fsb_vorbis_decoder */
-vorbis_codec_data * init_fsb_vorbis_codec_data(STREAMFILE *streamfile, off_t start_offset, int channels, int sample_rate, uint32_t setup_id);
-void decode_fsb_vorbis(VGMSTREAM * vgmstream, sample * outbuf, int32_t samples_to_do, int channels);
-void reset_fsb_vorbis(VGMSTREAM *vgmstream);
-void seek_fsb_vorbis(VGMSTREAM *vgmstream, int32_t num_sample);
-void free_fsb_vorbis(vorbis_codec_data *data);
-
-/* wwise_vorbis_decoder */
-vorbis_codec_data * init_wwise_vorbis_codec_data(STREAMFILE *streamfile, off_t start_offset, int channels, int sample_rate, int blocksize_0_exp, int blocksize_1_exp,
-        wwise_setup_type setup_type, wwise_header_type header_type, wwise_packet_type packet_type, int big_endian);
-void decode_wwise_vorbis(VGMSTREAM * vgmstream, sample * outbuf, int32_t samples_to_do, int channels);
-void reset_wwise_vorbis(VGMSTREAM *vgmstream);
-void seek_wwise_vorbis(VGMSTREAM *vgmstream, int32_t num_sample);
-void free_wwise_vorbis(vorbis_codec_data *data);
-
-/* ogl_vorbis_decoder */
-vorbis_codec_data * init_ogl_vorbis_codec_data(STREAMFILE *streamFile, off_t start_offset, off_t * data_start_offset);
-void decode_ogl_vorbis(VGMSTREAM * vgmstream, sample * outbuf, int32_t samples_to_do, int channels);
-void reset_ogl_vorbis(VGMSTREAM *vgmstream);
-void seek_ogl_vorbis(VGMSTREAM *vgmstream, int32_t num_sample);
-void free_ogl_vorbis(vorbis_codec_data *data);
+/* vorbis_custom_decoder */
+vorbis_custom_codec_data * init_vorbis_custom_codec_data(STREAMFILE *streamfile, off_t start_offset, vorbis_custom_t type, vorbis_custom_config * config);
+void decode_vorbis_custom(VGMSTREAM * vgmstream, sample * outbuf, int32_t samples_to_do, int channels);
+void reset_vorbis_custom(VGMSTREAM *vgmstream);
+void seek_vorbis_custom(VGMSTREAM *vgmstream, int32_t num_sample);
+void free_vorbis_custom(vorbis_custom_codec_data *data);
 #endif
 
 #ifdef VGM_USE_MPEG

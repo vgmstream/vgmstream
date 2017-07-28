@@ -286,10 +286,17 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
 
 #ifdef VGM_USE_VORBIS
         case 0x0F: {/* FMOD_SOUND_FORMAT_VORBIS */
-            vgmstream->codec_data = init_fsb_vorbis_codec_data(streamFile, StartOffset, vgmstream->channels, vgmstream->sample_rate,VorbisSetupId);
-            if (!vgmstream->codec_data) goto fail;
-            vgmstream->coding_type = coding_fsb_vorbis;
+            vorbis_custom_config cfg;
+
+            memset(&cfg, 0, sizeof(vorbis_custom_config));
+            cfg.channels = vgmstream->channels;
+            cfg.sample_rate = vgmstream->sample_rate;
+            cfg.setup_id = VorbisSetupId;
+
             vgmstream->layout_type = layout_none;
+            vgmstream->coding_type = coding_VORBIS_custom;
+            vgmstream->codec_data = init_vorbis_custom_codec_data(streamFile, StartOffset, VORBIS_FSB, &cfg);
+            if (!vgmstream->codec_data) goto fail;
 
             break;
         }

@@ -494,16 +494,8 @@ void reset_vgmstream(VGMSTREAM * vgmstream) {
         reset_ogg_vorbis(vgmstream);
     }
 
-    if (vgmstream->coding_type==coding_fsb_vorbis) {
-        reset_fsb_vorbis(vgmstream);
-    }
-
-    if (vgmstream->coding_type==coding_wwise_vorbis) {
-        reset_wwise_vorbis(vgmstream);
-    }
-
-    if (vgmstream->coding_type==coding_ogl_vorbis) {
-        reset_ogl_vorbis(vgmstream);
+    if (vgmstream->coding_type==coding_VORBIS_custom) {
+        reset_vorbis_custom(vgmstream);
     }
 #endif
 
@@ -678,18 +670,8 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
         vgmstream->codec_data = NULL;
     }
 
-    if (vgmstream->coding_type==coding_fsb_vorbis) {
-        free_fsb_vorbis(vgmstream->codec_data);
-        vgmstream->codec_data = NULL;
-    }
-
-    if (vgmstream->coding_type==coding_wwise_vorbis) {
-        free_wwise_vorbis(vgmstream->codec_data);
-        vgmstream->codec_data = NULL;
-    }
-
-    if (vgmstream->coding_type==coding_ogl_vorbis) {
-        free_ogl_vorbis(vgmstream->codec_data);
+    if (vgmstream->coding_type==coding_VORBIS_custom) {
+        free_vorbis_custom(vgmstream->codec_data);
         vgmstream->codec_data = NULL;
     }
 #endif
@@ -991,9 +973,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_ULAW:
 #ifdef VGM_USE_VORBIS
         case coding_ogg_vorbis:
-        case coding_fsb_vorbis:
-        case coding_wwise_vorbis:
-        case coding_ogl_vorbis:
+        case coding_VORBIS_custom:
 #endif
 #ifdef VGM_USE_MPEG
         case coding_fake_MPEG2_L2:
@@ -1526,20 +1506,8 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                     vgmstream->channels);
             break;
 
-        case coding_fsb_vorbis:
-            decode_fsb_vorbis(vgmstream,
-                    buffer+samples_written*vgmstream->channels,samples_to_do,
-                    vgmstream->channels);
-            break;
-
-        case coding_wwise_vorbis:
-            decode_wwise_vorbis(vgmstream,
-                    buffer+samples_written*vgmstream->channels,samples_to_do,
-                    vgmstream->channels);
-            break;
-
-        case coding_ogl_vorbis:
-            decode_ogl_vorbis(vgmstream,
+        case coding_VORBIS_custom:
+            decode_vorbis_custom(vgmstream,
                     buffer+samples_written*vgmstream->channels,samples_to_do,
                     vgmstream->channels);
             break;
@@ -1889,16 +1857,8 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream) {
             seek_ogg_vorbis(vgmstream, vgmstream->loop_sample);
         }
 
-        if (vgmstream->coding_type==coding_fsb_vorbis) {
-            seek_fsb_vorbis(vgmstream, vgmstream->loop_start_sample);
-        }
-
-        if (vgmstream->coding_type==coding_wwise_vorbis) {
-            seek_wwise_vorbis(vgmstream, vgmstream->loop_start_sample);
-        }
-
-        if (vgmstream->coding_type==coding_ogl_vorbis) {
-            seek_ogl_vorbis(vgmstream, vgmstream->loop_start_sample);
+        if (vgmstream->coding_type==coding_VORBIS_custom) {
+            seek_vorbis_custom(vgmstream, vgmstream->loop_start_sample);
         }
 #endif
 

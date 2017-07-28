@@ -158,10 +158,8 @@ typedef enum {
     coding_CRI_HCA,         /* CRI High Compression Audio (MDCT-based) */
 
 #ifdef VGM_USE_VORBIS
-    coding_ogg_vorbis,      /* Xiph Vorbis (MDCT-based) */
-    coding_fsb_vorbis,      /* FMOD Vorbis without Ogg layer */
-    coding_wwise_vorbis,    /* Audiokinetic Vorbis without Ogg layer */
-    coding_ogl_vorbis,      /* Shin'en Vorbis without Ogg layer */
+    coding_ogg_vorbis,      /* Xiph Vorbis with Ogg layer (MDCT-based) */
+    coding_VORBIS_custom,   /* Xiph Vorbis with custom layer (MDCT-based) */
 #endif
 
 #ifdef VGM_USE_MPEG
@@ -799,12 +797,42 @@ typedef struct {
     ogg_vorbis_streamfile ov_streamfile;
 } ogg_vorbis_codec_data;
 
-/* config for Wwise Vorbis */
-typedef enum { HEADER_TRIAD, FULL_SETUP, INLINE_CODEBOOKS, EXTERNAL_CODEBOOKS, AOTUV603_CODEBOOKS } wwise_setup_type;
-typedef enum { TYPE_8, TYPE_6, TYPE_2 } wwise_header_type;
-typedef enum { STANDARD, MODIFIED } wwise_packet_type;
 
-/* any raw Vorbis without Ogg layer */
+/* custom Vorbis modes */
+typedef enum {
+  //VORBIS_OGG,         /* regular Ogg layer */
+    VORBIS_FSB,         /* simplified/external setup packets, custom packet headers */
+    VORBIS_WWISE,       /* many variations (custom setup, headers and data) */
+    VORBIS_OGL,         /* custom packet headers */
+  //VORBIS_SK           /* "OggS" replaced by "SK" */
+} vorbis_custom_t;
+
+/* config for Wwise Vorbis (3 types for flexibility though not all combinations exist) */
+typedef enum { HEADER_TRIAD, FULL_SETUP, INLINE_CODEBOOKS, EXTERNAL_CODEBOOKS, AOTUV603_CODEBOOKS } wwise_setup_t; /* Vorbis setup style */
+typedef enum { TYPE_8, TYPE_6, TYPE_2 } wwise_header_t; /* size of packet headers */
+typedef enum { STANDARD, MODIFIED } wwise_packet_t; /* type of Vorbis packets */
+
+typedef struct {
+    /* to reconstruct init packets */
+    int channels;
+    int sample_rate;
+    int blocksize_0_exp;
+    int blocksize_1_exp;
+
+    uint32_t setup_id; /* external setup */
+    int big_endian; /* flag */
+
+    /* Wwise Vorbis config */
+    wwise_setup_t setup_type;
+    wwise_header_t header_type;
+    wwise_packet_t packet_type;
+
+    /* output (kinda ugly here but to simplify) */
+    off_t data_start_offset;
+
+} vorbis_custom_config;
+
+/* custom Vorbis without Ogg layer */
 typedef struct {
     vorbis_info vi;             /* stream settings */
     vorbis_comment vc;          /* stream comments */
@@ -817,16 +845,15 @@ typedef struct {
     size_t samples_to_discard;  /* for looping purposes */
     int samples_full;           /* flag, samples available in vorbis buffers */
 
-    /* Wwise Vorbis config */
-    wwise_setup_type setup_type;
-    wwise_header_type header_type;
-    wwise_packet_type packet_type;
-    /* saved data to reconstruct modified packets */
+    vorbis_custom_t type;        /* Vorbis subtype */
+    vorbis_custom_config config; /* config depending on the mode */
+
+    /* Wwise Vorbis: saved data to reconstruct modified packets */
     uint8_t mode_blockflag[64+1];   /* max 6b+1; flags 'n stuff */
     int mode_bits;                  /* bits to store mode_number */
     uint8_t prev_blockflag;         /* blockflag in the last decoded packet */
 
-} vorbis_codec_data;
+} vorbis_custom_codec_data;
 #endif
 
 #ifdef VGM_USE_MPEG

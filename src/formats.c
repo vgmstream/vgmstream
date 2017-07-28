@@ -465,9 +465,7 @@ static const coding_info coding_info_list[] = {
         
 #ifdef VGM_USE_VORBIS
         {coding_ogg_vorbis,         "Ogg Vorbis"},
-        {coding_fsb_vorbis,         "FSB Vorbis"},
-        {coding_wwise_vorbis,       "Wwise Vorbis"},
-        {coding_ogl_vorbis,         "OGL Vorbis"},
+        {coding_VORBIS_custom,      "Custom Vorbis"},
 #endif
 #ifdef VGM_USE_MPEG
         {coding_fake_MPEG2_L2,      "MPEG-2 Layer II Audio"},

@@ -24,7 +24,7 @@ VGMSTREAM * init_vgmstream_ogl(STREAMFILE *streamFile) {
     if (partial_file_size > get_streamfile_size(streamFile)) goto fail;
     loop_end_sample = num_samples; /* there is no data after num_samples (ie.- it's really num_samples) */
 
-    /* this is actually peeking into the Vorbis id packet */
+    /* actually peeking into the Vorbis id packet */
     channel_count   = read_8bit   (0x21,streamFile);
     sample_rate     = read_32bitLE(0x22,streamFile);
 
@@ -33,7 +33,7 @@ VGMSTREAM * init_vgmstream_ogl(STREAMFILE *streamFile) {
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
-    vgmstream->sample_rate = sample_rate;
+    vgmstream->sample_rate       = sample_rate;
     vgmstream->num_samples       = num_samples;
     vgmstream->loop_start_sample = loop_start_sample;
     vgmstream->loop_end_sample   = loop_end_sample;
@@ -41,10 +41,15 @@ VGMSTREAM * init_vgmstream_ogl(STREAMFILE *streamFile) {
 
 #ifdef VGM_USE_VORBIS
     {
-        vgmstream->codec_data = init_ogl_vorbis_codec_data(streamFile, 0x14, &start_offset);
-        if (!vgmstream->codec_data) goto fail;
-        vgmstream->coding_type = coding_ogl_vorbis;
+        vorbis_custom_config cfg;
+        memset(&cfg, 0, sizeof(vorbis_custom_config));
+
         vgmstream->layout_type = layout_none;
+        vgmstream->coding_type = coding_VORBIS_custom;
+        vgmstream->codec_data = init_vorbis_custom_codec_data(streamFile, 0x14, VORBIS_OGL, &cfg);
+        if (!vgmstream->codec_data) goto fail;
+
+        start_offset = cfg.data_start_offset;
     }
 #else
     goto fail;

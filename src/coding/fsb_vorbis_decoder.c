@@ -1,201 +1,89 @@
-#include "coding.h"
-#include <math.h>
+#include "vorbis_custom_decoder.h"
 
 #ifdef VGM_USE_VORBIS
 #include <vorbis/codec.h>
 
 #define FSB_VORBIS_USE_PRECOMPILED_FVS 1 /* if enabled vgmstream weights ~600kb more but doesn't need external .fvs packets */
-
 #if FSB_VORBIS_USE_PRECOMPILED_FVS
 #include "fsb_vorbis_data.h"
 #endif
 
-#define FSB_VORBIS_DEFAULT_BUFFER_SIZE 0x8000 /* should be at least the size of the setup header, ~0x2000 */
 
-static void pcm_convert_float_to_16(vorbis_codec_data * data, sample * outbuf, int samples_to_do, float ** pcm);
-static int vorbis_make_header_identification(uint8_t * buf, size_t bufsize, int channels, int sample_rate, int blocksize_short, int blocksize_long);
-static int vorbis_make_header_comment(uint8_t * buf, size_t bufsize);
-static int vorbis_make_header_setup(uint8_t * buf, size_t bufsize, uint32_t setup_id, STREAMFILE *streamFile);
+/* **************************************************************************** */
+/* DEFS                                                                         */
+/* **************************************************************************** */
+
+static int build_header_identification(uint8_t * buf, size_t bufsize, int channels, int sample_rate, int blocksize_short, int blocksize_long);
+static int build_header_comment(uint8_t * buf, size_t bufsize);
+static int build_header_setup(uint8_t * buf, size_t bufsize, uint32_t setup_id, STREAMFILE *streamFile);
 
 static int load_fvs_file_single(uint8_t * buf, size_t bufsize, uint32_t setup_id, STREAMFILE *streamFile);
 static int load_fvs_file_multi(uint8_t * buf, size_t bufsize, uint32_t setup_id, STREAMFILE *streamFile);
 static int load_fvs_array(uint8_t * buf, size_t bufsize, uint32_t setup_id, STREAMFILE *streamFile);
 
+
+/* **************************************************************************** */
+/* EXTERNAL API                                                                 */
+/* **************************************************************************** */
+
 /**
- * Inits a raw FSB vorbis stream.
+ * FSB references an external setup packet by the setup_id, and packets have mini headers with the size.
  *
- * Vorbis packets are stored in .ogg, which is divided into ogg pages/packets, and the first packets contain necessary
- * vorbis setup. For raw vorbis the setup is stored it elsewhere (i.e.- in the .exe), presumably to shave off some kb
- * per stream and codec startup time. We'll read the external setup and raw data and decode it with libvorbis.
- *
- * FSB references the external setup with the setup_id, and the raw vorbis packets have mini headers with the block size.
- *
- * Format info and references from python-fsb5 (https://github.com/HearthSim/python-fsb5) and
+ * Format info from python-fsb5 (https://github.com/HearthSim/python-fsb5) and
  *  fsb-vorbis-extractor (https://github.com/tmiasko/fsb-vorbis-extractor).
- * Also from the official docs (https://www.xiph.org/vorbis/doc/libvorbis/overview.html).
  */
-vorbis_codec_data * init_fsb_vorbis_codec_data(STREAMFILE *streamfile, off_t start_offset, int channels, int sample_rate, uint32_t setup_id) {
-    vorbis_codec_data * data = NULL;
+int vorbis_custom_setup_init_fsb(STREAMFILE *streamFile, off_t start_offset, vorbis_custom_codec_data *data) {
+    vorbis_custom_config cfg = data->config;
 
-    /* init stuff */
-    data = calloc(1,sizeof(vorbis_codec_data));
-    if (!data) goto fail;
-
-    data->buffer_size = FSB_VORBIS_DEFAULT_BUFFER_SIZE;
-    data->buffer = calloc(sizeof(uint8_t), data->buffer_size);
-    if (!data->buffer) goto fail;
-
-
-    /* init vorbis stream state, using 3 fake Ogg setup packets (info, comments, setup/codebooks)
-     * libvorbis expects parsed Ogg pages, but we'll fake them with our raw data instead */
-    vorbis_info_init(&data->vi);
-    vorbis_comment_init(&data->vc);
-
-    data->op.packet = data->buffer;
-    data->op.b_o_s = 1; /* fake headers start */
-
-    data->op.bytes = vorbis_make_header_identification(data->buffer, data->buffer_size, channels, sample_rate, 256, 2048); /* FSB default block sizes */
+    data->op.bytes = build_header_identification(data->buffer, data->buffer_size, cfg.channels, cfg.sample_rate, 256, 2048); /* FSB default block sizes */
     if (!data->op.bytes) goto fail;
     if (vorbis_synthesis_headerin(&data->vi, &data->vc, &data->op) != 0) goto fail; /* parse identification header */
 
-    data->op.bytes = vorbis_make_header_comment(data->buffer, data->buffer_size);
+    data->op.bytes = build_header_comment(data->buffer, data->buffer_size);
     if (!data->op.bytes) goto fail;
     if (vorbis_synthesis_headerin(&data->vi, &data->vc, &data->op) !=0 ) goto fail; /* parse comment header */
 
-    data->op.bytes = vorbis_make_header_setup(data->buffer, data->buffer_size, setup_id, streamfile);
+    data->op.bytes = build_header_setup(data->buffer, data->buffer_size, cfg.setup_id, streamFile);
     if (!data->op.bytes) goto fail;
     if (vorbis_synthesis_headerin(&data->vi, &data->vc, &data->op) != 0) goto fail; /* parse setup header */
 
-    data->op.b_o_s = 0; /* end of fake headers */
-
-    /* init vorbis global and block state */
-    if (vorbis_synthesis_init(&data->vd,&data->vi) != 0) goto fail;
-    if (vorbis_block_init(&data->vd,&data->vb) != 0) goto fail;
-
-
-    return data;
+    return 1;
 
 fail:
-    free_fsb_vorbis(data);
-    return NULL;
+    return 0;
 }
 
-/**
- * Decodes raw FSB vorbis
- */
-void decode_fsb_vorbis(VGMSTREAM * vgmstream, sample * outbuf, int32_t samples_to_do, int channels) {
-    VGMSTREAMCHANNEL *stream = &vgmstream->ch[0];
-    vorbis_codec_data * data = vgmstream->codec_data;
-    size_t stream_size =  get_streamfile_size(stream->streamfile);
-    //data->op.packet = data->buffer;/* implicit from init */
-    int samples_done = 0;
 
-    while (samples_done < samples_to_do) {
+int vorbis_custom_parse_packet_fsb(VGMSTREAMCHANNEL *stream, vorbis_custom_codec_data *data) {
+    size_t bytes;
 
-        /* extra EOF check for edge cases */
-        if (stream->offset > stream_size) {
-            memset(outbuf + samples_done * channels, 0, (samples_to_do - samples_done) * sizeof(sample));
-            break;
-        }
-
-
-        if (data->samples_full) {  /* read more samples */
-            int samples_to_get;
-            float **pcm;
-
-            /* get PCM samples from libvorbis buffers */
-            samples_to_get = vorbis_synthesis_pcmout(&data->vd, &pcm);
-            if (!samples_to_get) {
-                data->samples_full = 0; /* request more if empty*/
-                continue;
-            }
-
-            if (data->samples_to_discard) {
-                /* discard samples for looping */
-                if (samples_to_get > data->samples_to_discard)
-                    samples_to_get = data->samples_to_discard;
-                data->samples_to_discard -= samples_to_get;
-            }
-            else {
-                /* get max samples and convert from Vorbis float pcm to 16bit pcm */
-                if (samples_to_get > samples_to_do - samples_done)
-                    samples_to_get = samples_to_do - samples_done;
-                pcm_convert_float_to_16(data, outbuf + samples_done * channels, samples_to_get, pcm);
-                samples_done += samples_to_get;
-            }
-
-            /* mark consumed samples from the buffer
-             * (non-consumed samples are returned in next vorbis_synthesis_pcmout calls) */
-            vorbis_synthesis_read(&data->vd, samples_to_get);
-        }
-        else { /* read more data */
-            int rc;
-
-            /* this is not actually needed, but feels nicer */
-            data->op.granulepos += samples_to_do;
-            data->op.packetno++;
-
-            /* get next packet size from the FSB 16b header (doesn't count this 16b) */
-            data->op.bytes = (uint16_t)read_16bitLE(stream->offset, stream->streamfile);
-            stream->offset += 2;
-            if (data->op.bytes == 0 || data->op.bytes == 0xFFFF) {
-                goto decode_fail; /* eof or FSB end padding */
-            }
-
-            /* read raw block */
-            if (read_streamfile(data->buffer,stream->offset, data->op.bytes,stream->streamfile) != data->op.bytes) {
-                goto decode_fail; /* wrong packet? */
-            }
-            stream->offset += data->op.bytes;
-
-            /* parse the fake ogg packet into a logical vorbis block */
-            rc = vorbis_synthesis(&data->vb,&data->op);
-            if (rc == OV_ENOTAUDIO) {
-                VGM_LOG("vorbis_synthesis: not audio packet @ %lx\n",stream->offset); getchar();
-                continue; /* not tested */
-            } else if (rc != 0) {
-                goto decode_fail;
-            }
-
-            /* finally decode the logical block into samples */
-            rc = vorbis_synthesis_blockin(&data->vd,&data->vb);
-            if (rc != 0)  {
-                goto decode_fail; /* ? */
-            }
-
-            data->samples_full = 1;
-        }
+    /* get next packet size from the FSB 16b header (doesn't count this 16b) */
+    data->op.bytes = (uint16_t)read_16bitLE(stream->offset, stream->streamfile);
+    stream->offset += 2;
+    if (data->op.bytes == 0 || data->op.bytes == 0xFFFF) {
+        VGM_LOG("FSB Vorbis: wrong packet (0x%lx) @ %lx\n", data->op.bytes, stream->offset-2);
+        goto fail; /* EOF or end padding */
     }
 
-    return;
-
-decode_fail:
-    /* on error just put some 0 samples */
-    memset(outbuf + samples_done * channels, 0, (samples_to_do - samples_done) * sizeof(sample));
-}
-
-
-static void pcm_convert_float_to_16(vorbis_codec_data * data, sample * outbuf, int samples_to_do, float ** pcm) {
-    /* mostly from Xiph's decoder_example.c */
-    int i,j;
-
-    /* convert float PCM (multichannel float array, with pcm[0]=ch0, pcm[1]=ch1, pcm[2]=ch0, etc)
-     * to 16 bit signed PCM ints (host order) and interleave + fix clipping */
-    for (i = 0; i < data->vi.channels; i++) {
-        sample *ptr = outbuf + i;
-        float *mono = pcm[i];
-        for (j = 0; j < samples_to_do; j++) {
-            int val = floor(mono[j] * 32767.f + .5f);
-            if (val > 32767) val = 32767;
-            if (val < -32768) val = -32768;
-
-            *ptr = val;
-            ptr += data->vi.channels;
-        }
+    /* read raw block */
+    bytes = read_streamfile(data->buffer,stream->offset, data->op.bytes,stream->streamfile);
+    stream->offset += bytes;
+    if (bytes != data->op.bytes) {
+        VGM_LOG("Wwise Vorbis: wrong bytes (0x%lx) @ %lx\n", data->op.bytes, stream->offset-bytes);
+        goto fail; /* wrong packet? */
     }
+
+    return 1;
+
+fail:
+    return 0;
 }
 
-static int vorbis_make_header_identification(uint8_t * buf, size_t bufsize, int channels, int sample_rate, int blocksize_short, int blocksize_long) {
+/* **************************************************************************** */
+/* INTERNAL HELPERS                                                             */
+/* **************************************************************************** */
+
+static int build_header_identification(uint8_t * buf, size_t bufsize, int channels, int sample_rate, int blocksize_short, int blocksize_long) {
     int bytes = 0x1e;
     uint8_t blocksizes, exp_blocksize_0, exp_blocksize_1;
 
@@ -240,7 +128,7 @@ static int vorbis_make_header_identification(uint8_t * buf, size_t bufsize, int 
     return bytes;
 }
 
-static int vorbis_make_header_comment(uint8_t * buf, size_t bufsize) {
+static int build_header_comment(uint8_t * buf, size_t bufsize) {
     int bytes = 0x19;
 
     if (bytes > bufsize) return 0;
@@ -255,7 +143,7 @@ static int vorbis_make_header_comment(uint8_t * buf, size_t bufsize) {
     return bytes;
 }
 
-static int vorbis_make_header_setup(uint8_t * buf, size_t bufsize, uint32_t setup_id, STREAMFILE *streamFile) {
+static int build_header_setup(uint8_t * buf, size_t bufsize, uint32_t setup_id, STREAMFILE *streamFile) {
     int bytes;
 
     /* try to load from external files first */
@@ -382,41 +270,6 @@ static int load_fvs_array(uint8_t * buf, size_t bufsize, uint32_t setup_id, STRE
 fail:
 #endif
     return 0;
-}
-
-/* ********************************************** */
-
-void free_fsb_vorbis(vorbis_codec_data * data) {
-    if (!data)
-        return;
-
-    /* internal decoder cleanp */
-    vorbis_info_clear(&data->vi);
-    vorbis_comment_clear(&data->vc);
-    vorbis_dsp_clear(&data->vd);
-
-    free(data->buffer);
-    free(data);
-}
-
-void reset_fsb_vorbis(VGMSTREAM *vgmstream) {
-    vorbis_codec_data *data = vgmstream->codec_data;
-
-    /* Seeking is provided by the Ogg layer, so with raw vorbis we need seek tables instead.
-     * To avoid having to parse different formats we'll just discard until the expected sample */
-    vorbis_synthesis_restart(&data->vd);
-    data->samples_to_discard = 0;
-}
-
-void seek_fsb_vorbis(VGMSTREAM *vgmstream, int32_t num_sample) {
-    vorbis_codec_data *data = vgmstream->codec_data;
-
-    /* Seeking is provided by the Ogg layer, so with raw vorbis we need seek tables instead.
-     * To avoid having to parse different formats we'll just discard until the expected sample */
-    vorbis_synthesis_restart(&data->vd);
-    data->samples_to_discard = num_sample;
-    if (vgmstream->loop_ch)
-        vgmstream->loop_ch[0].offset = vgmstream->loop_ch[0].channel_start_offset;
 }
 
 #endif
