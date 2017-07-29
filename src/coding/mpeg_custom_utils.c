@@ -22,8 +22,6 @@ int mpeg_custom_setup_init_default(STREAMFILE *streamFile, off_t start_offset, m
 
     /* extra checks per type */
     switch(data->type) {
-      //case MPEG_P3D:
-      //case MPEG_LYN:
         case MPEG_XVAG:
             if (data->config.chunk_size <= 0 || data->config.interleave <= 0)
                 goto fail; /* needs external fixed size */
@@ -51,6 +49,10 @@ int mpeg_custom_setup_init_default(STREAMFILE *streamFile, off_t start_offset, m
             break;
 
         case MPEG_P3D:
+            if (data->config.interleave <= 0)
+                goto fail; /* needs external fixed size */
+            break;
+
         case MPEG_LYN:
         case MPEG_AWC:
             goto fail; /* not fully implemented */
@@ -75,11 +77,9 @@ int mpeg_custom_setup_init_default(STREAMFILE *streamFile, off_t start_offset, m
 
     /* set encoder delay (samples to skip at the beginning of a stream) if needed, which varies with encoder used */
     switch(data->type) {
-        case MPEG_AHX:
-            data->skip_samples = 480; /* observed default */
-            break;
-        default:
-            break;
+        case MPEG_AHX: data->skip_samples = 480; break; /* observed default */
+        case MPEG_P3D: data->skip_samples = info.frame_samples; break; /* matches Radical ADPCM (PC) output */
+        default: break;
     }
     data->samples_to_discard = data->skip_samples;
 
@@ -101,29 +101,6 @@ int mpeg_custom_parse_frame_default(VGMSTREAMCHANNEL *stream, mpeg_codec_data *d
     /* Get data size to give to the decoder, per stream. Usually 1 frame at a time,
      * but doesn't really need to be a full frame (decoder would request more data). */
     switch(data->type) {
-#if 0
-        case MPEG_P3D: { /* frames chopped up after the first frames? chunk_size * 3 = frame size? (0x60=0x120, 0x40=0xC0) */
-            //try: after N frames always read 0x60/0x40 (value given in the P3D header), as chunks seems muxed (mpg123 will request more data)
-            uint32_t current_header = read_32bitBE(offset,streamfile);
-
-            /* unknown how frames are chunked, frame header separation can be one of these */
-            if (read_32bitBE(offset+0x120,streamfile) == current_header) {
-                data->current_data_size = 0x120;
-            } else if (read_32bitBE(offset+0xA0,streamfile) == current_header) {
-                data->current_data_size = 0xA0;
-            } else if (read_32bitBE(offset+0x1C0,streamfile) == current_header) {
-                data->current_data_size = 0x1C0;
-            } else if (read_32bitBE(offset+0x180,streamfile) == current_header) {
-                data->current_data_size = 0x180;
-            //} else if (read_32bitBE(offset+0x120,streamfile) == -1) { /* at EOF */
-            //    data->current_data_size = 0x120;
-            } else {
-                VGM_LOG("MPEG P3D: unknown frame size @ %lx, %x\n", offset, read_32bitBE(offset+0x120,streamfile));
-                goto fail;
-            }
-            break;
-        }
-#endif
 
         case MPEG_XVAG: /* frames of fixed size (though we could read frame info too) */
             current_data_size = data->config.chunk_size;
@@ -148,6 +125,12 @@ int mpeg_custom_parse_frame_default(VGMSTREAMCHANNEL *stream, mpeg_codec_data *d
 
             VGM_ASSERT(current_interleave != current_data_size+current_padding,
                     "MPEG FSB: non-constant interleave found @ 0x%08lx\n", stream->offset);
+            break;
+
+        case MPEG_P3D: /* fixed interleave, not frame-aligned (ie. blocks may end/start in part of a frame) */
+            current_data_size = data->config.interleave / 4; /* to ensure we don't feed mpg123 too much */
+            current_interleave = data->config.interleave; /* fixed interleave (0x400) */
+            //todo: last block is smaller that interleave, not sure how it's divided
             break;
 
         default: /* standard frames (CBR or VBR) */

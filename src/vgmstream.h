@@ -854,9 +854,9 @@ typedef struct {
 typedef enum {
     MPEG_STANDARD,          /* 1 stream */
     MPEG_AHX,               /* 1 stream with false frame headers */
-    MPEG_XVAG,              /* N streams of fixed interleave (with several data-frames of fixed size) */
+    MPEG_XVAG,              /* N streams of fixed interleave (frame-aligned, several data-frames of fixed size) */
     MPEG_FSB,               /* N streams of 1 data-frame+padding (=interleave) */
-    MPEG_P3D,               /* N streams of chunked frames */
+    MPEG_P3D,               /* N streams of fixed interleave (not frame-aligned) */
     MPEG_EA,                /* 1 stream (maybe N streams in absolute offsets?) */
     MPEG_EAL31,             /* EALayer3 v1, custom frames */
     MPEG_EAL32P,            /* EALayer3 v2 "P" (PCM?), altered custom frames */

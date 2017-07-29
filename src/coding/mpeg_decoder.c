@@ -328,6 +328,7 @@ static void decode_mpeg_custom(VGMSTREAM * vgmstream, mpeg_codec_data * data, sa
                   //case MPEG_LYN:
                     case MPEG_FSB:
                     case MPEG_XVAG:
+                    case MPEG_P3D:
                         /* multiple offsets, decodes 1 frame per stream until reaching interleave/block_size and skips it */
                         decode_mpeg_custom_stream(&vgmstream->ch[i], data, data->ms[i], channels, i);
                         break;
@@ -370,8 +371,7 @@ static void decode_mpeg_custom_stream(VGMSTREAMCHANNEL *stream, mpeg_codec_data 
 
     /* decode samples from one full-frame (as N data-frames = 1 full-frame) before exiting (to orderly copy to sample buffer) */
     do {
-        VGM_LOG("MPEG: new step of stream %i @ 0x%08lx\n", num_stream, stream->offset);
-        getchar();
+        //VGM_LOG("MPEG: new step of stream %i @ 0x%08lx\n", num_stream, stream->offset);
 
         /* extra EOF check for edge cases when the caller tries to read more samples than possible */
         if (stream->offset >= stream_size) {
@@ -397,7 +397,7 @@ static void decode_mpeg_custom_stream(VGMSTREAMCHANNEL *stream, mpeg_codec_data 
                 bytes_done = data->stream_buffer_size;
                 break; /* continue with other streams */
             }
-            VGM_LOG("MPEG: read results: bytes_in_buffer=0x%x, new offset off=%lx\n", data->bytes_in_buffer, stream->offset);
+            //VGM_LOG("MPEG: read results: bytes_in_buffer=0x%x, new offset off=%lx\n", data->bytes_in_buffer, stream->offset);
 
             data->buffer_full = 1;
             data->buffer_used = 0;

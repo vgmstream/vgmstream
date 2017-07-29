@@ -143,11 +143,15 @@ VGMSTREAM * init_vgmstream_p3d(STREAMFILE *streamFile) {
             mpeg_custom_config cfg;
 
             memset(&cfg, 0, sizeof(mpeg_custom_config));
-            cfg.chunk_size = block_size; /* usually 0x60 or 0x40, portion of a full MPEG frame */
+            cfg.interleave = 0x400;
+            /* block_size * 3 = frame size (0x60*3=0x120 or 0x40*3=0xC0) but doesn't seem to have any significance) */
 
-            vgmstream->layout_type = layout_none;
             vgmstream->codec_data = init_mpeg_custom_codec_data(streamFile, start_offset, &vgmstream->coding_type, vgmstream->channels, MPEG_P3D, &cfg);
             if (!vgmstream->codec_data) goto fail;
+
+            /* both to setup initial interleave in vgmstream_open_stream */
+            vgmstream->interleave_block_size = cfg.interleave;
+            vgmstream->layout_type = layout_mpeg_custom;
             break;
         }
 #endif
