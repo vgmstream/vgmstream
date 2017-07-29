@@ -49,7 +49,7 @@ vorbis_custom_codec_data * init_vorbis_custom_codec_data(STREAMFILE *streamFile,
         case VORBIS_FSB:    ok = vorbis_custom_setup_init_fsb(streamFile, start_offset, data); break;
         case VORBIS_WWISE:  ok = vorbis_custom_setup_init_wwise(streamFile, start_offset, data); break;
         case VORBIS_OGL:    ok = vorbis_custom_setup_init_ogl(streamFile, start_offset, data); break;
-      //case VORBIS_SK:     ok = vorbis_custom_setup_init_sk(streamFile, start_offset, data); break;
+        case VORBIS_SK:     ok = vorbis_custom_setup_init_sk(streamFile, start_offset, data); break;
         default: goto fail;
     }
     if(!ok) goto fail;
@@ -130,10 +130,14 @@ void decode_vorbis_custom(VGMSTREAM * vgmstream, sample * outbuf, int32_t sample
                 case VORBIS_FSB:    ok = vorbis_custom_parse_packet_fsb(stream, data); break;
                 case VORBIS_WWISE:  ok = vorbis_custom_parse_packet_wwise(stream, data); break;
                 case VORBIS_OGL:    ok = vorbis_custom_parse_packet_ogl(stream, data); break;
-              //case VORBIS_SK:     ok = vorbis_custom_parse_packet_sk(stream, data); break;
+                case VORBIS_SK:     ok = vorbis_custom_parse_packet_sk(stream, data); break;
                 default: goto decode_fail;
             }
-            if(!ok) goto decode_fail;
+            if(!ok) {
+                VGM_LOG("Vorbis: cannot parse packet @ around %lx\n",stream->offset);
+                goto decode_fail;
+            }
+
 
             /* parse the fake ogg packet into a logical vorbis block */
             rc = vorbis_synthesis(&data->vb,&data->op);

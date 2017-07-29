@@ -859,6 +859,9 @@
     <ClCompile Include="coding\vorbis_custom_utils_ogl.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="coding\vorbis_custom_utils_sk.c">
+      <Filter>coding\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="coding\vorbis_custom_utils_wwise.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>

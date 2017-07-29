@@ -878,6 +878,7 @@ static const meta_info meta_info_list[] = {
         {meta_WII_04SW,             "Reflections 04SW header"},
         {meta_TXTH,                 "TXTH Generic Header"},
         {meta_EA_BNK,               "Electronic Arts BNK header"},
+        {meta_SK_AUD,               "Silicon Knights AUD header"},
 
 #ifdef VGM_USE_VORBIS
         {meta_OGG_VORBIS,           "Ogg Vorbis"},

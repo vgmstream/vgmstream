@@ -1459,6 +1459,10 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\coding\vorbis_custom_utils_sk.c"
+                    >
+                </File>
+                <File
                     RelativePath=".\coding\vorbis_custom_utils_wwise.c"
                     >
                 </File>

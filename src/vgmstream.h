@@ -492,8 +492,8 @@ typedef enum {
     meta_MUS_ACM,           /* MUS playlist of InterPlay ACM files */
     meta_DE2,               /* Falcom (Gurumin) .de2 */
     meta_VS,				/* Men in Black .vs */
-    meta_FFXI_BGW,          /* FFXI BGW */
-    meta_FFXI_SPW,          /* FFXI SPW */
+    meta_FFXI_BGW,          /* FFXI (PC) BGW */
+    meta_FFXI_SPW,          /* FFXI (PC) SPW */
     meta_STS_WII,			/* Shikigami No Shiro 3 STS Audio File */
     meta_PS2_P2BT,			/* Pop'n'Music 7 Audio File */
     meta_PS2_GBTS,			/* Pop'n'Music 9 Audio File */
@@ -621,6 +621,7 @@ typedef enum {
     meta_PC_XA30,           /* Driver - Parallel Lines (PC) */
     meta_WII_04SW,          /* Driver - Parallel Lines (Wii) */
     meta_TXTH,              /* generic text header */
+    meta_SK_AUD,            /* Silicon Knights .AUD (Eternal Darkness GC) */
 
 #ifdef VGM_USE_VORBIS
     meta_OGG_VORBIS,        /* Ogg Vorbis */
@@ -800,11 +801,10 @@ typedef struct {
 
 /* custom Vorbis modes */
 typedef enum {
-  //VORBIS_OGG,         /* regular Ogg layer */
     VORBIS_FSB,         /* simplified/external setup packets, custom packet headers */
     VORBIS_WWISE,       /* many variations (custom setup, headers and data) */
     VORBIS_OGL,         /* custom packet headers */
-  //VORBIS_SK           /* "OggS" replaced by "SK" */
+    VORBIS_SK           /* "OggS" replaced by "SK" */
 } vorbis_custom_t;
 
 /* config for Wwise Vorbis (3 types for flexibility though not all combinations exist) */
@@ -852,6 +852,8 @@ typedef struct {
     uint8_t mode_blockflag[64+1];   /* max 6b+1; flags 'n stuff */
     int mode_bits;                  /* bits to store mode_number */
     uint8_t prev_blockflag;         /* blockflag in the last decoded packet */
+    /* Ogg-style Vorbis: packet within a page */
+    int current_packet;
 
 } vorbis_custom_codec_data;
 #endif
