@@ -468,16 +468,10 @@ static const coding_info coding_info_list[] = {
         {coding_VORBIS_custom,      "Custom Vorbis"},
 #endif
 #ifdef VGM_USE_MPEG
-        {coding_fake_MPEG2_L2,      "MPEG-2 Layer II Audio"},
-        {coding_MPEG1_L1,           "MPEG-1 Layer I Audio"},
-        {coding_MPEG1_L2,           "MPEG-1 Layer II Audio"},
-        {coding_MPEG1_L3,           "MPEG-1 Layer III Audio (MP3)"},
-        {coding_MPEG2_L1,           "MPEG-2 Layer I Audio"},
-        {coding_MPEG2_L2,           "MPEG-2 Layer II Audio"},
-        {coding_MPEG2_L3,           "MPEG-2 Layer III Audio (MP3)"},
-        {coding_MPEG25_L1,          "MPEG-2.5 Layer I Audio"},
-        {coding_MPEG25_L2,          "MPEG-2.5 Layer II Audio"},
-        {coding_MPEG25_L3,          "MPEG-2.5 Layer III Audio (MP3)"},
+        {coding_MPEG_custom,        "Custom MPEG Audio"},
+        {coding_MPEG_layer1,        "MPEG Layer I Audio (MP1)"},
+        {coding_MPEG_layer2,        "MPEG Layer II Audio (MP2)"},
+        {coding_MPEG_layer3,        "MPEG Layer III Audio (MP3)"},
 #endif
 #ifdef VGM_USE_G7221
         {coding_G7221,              "ITU G.722.1 (Polycom Siren 7)"},
@@ -536,8 +530,7 @@ static const layout_info layout_info_list[] = {
         {layout_ogg_vorbis,             "Ogg"},
 #endif
 #ifdef VGM_USE_MPEG
-        {layout_fake_mpeg,              "MPEG Audio stream with incorrect frame headers"},
-        {layout_mpeg,                   "MPEG Audio stream"},
+        {layout_mpeg_custom,            "Custom MPEG Audio"},
 #endif
 };
 

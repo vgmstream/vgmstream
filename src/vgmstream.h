@@ -163,17 +163,10 @@ typedef enum {
 #endif
 
 #ifdef VGM_USE_MPEG
-    coding_fake_MPEG2_L2,   /* MPEG-2 Layer 2 (AHX), with lying headers */
-    /* MPEG audio variations (depending on sample rate and other config) */
-    coding_MPEG1_L1,        /* MP1 */
-    coding_MPEG1_L2,        /* MP2 */
-    coding_MPEG1_L3,        /* good ol' MPEG-1 Layer 3 (MP3) */
-    coding_MPEG2_L1,
-    coding_MPEG2_L2,
-    coding_MPEG2_L3,
-    coding_MPEG25_L1,
-    coding_MPEG25_L2,
-    coding_MPEG25_L3,
+    coding_MPEG_custom,     /* MPEG audio with custom features (MDCT-based) */
+    coding_MPEG_layer1,     /* MP1 MPEG audio (MDCT-based) */
+    coding_MPEG_layer2,     /* MP2 MPEG audio (MDCT-based) */
+    coding_MPEG_layer3,     /* MP3 MPEG audio (MDCT-based) */
 #endif
 
 #ifdef VGM_USE_G7221
@@ -249,8 +242,7 @@ typedef enum {
     layout_ogg_vorbis,      /* ogg vorbis file */
 #endif
 #ifdef VGM_USE_MPEG
-    layout_fake_mpeg,       /* MPEG audio stream with bad frame headers (AHX) */
-    layout_mpeg,            /* proper MPEG audio stream */
+    layout_mpeg_custom,     /* usually straight data but may setup offset/interleave somehow */
 #endif
 } layout_t;
 
@@ -562,7 +554,7 @@ typedef enum {
     meta_PS3_MSF,           /* MSF header */
 	meta_NUB_VAG,           /* Namco VAG from NUB archives */
 	meta_PS3_PAST,          /* Bakugan Battle Brawlers (PS3) */
-    meta_SGXD,              /* Sony: Folklore, Genji, Tokyo Jungle (PS3), Brave Story, Kurohyo (PSP)  */
+    meta_SGXD,              /* Sony: Folklore, Genji, Tokyo Jungle (PS3), Brave Story, Kurohyo (PSP) */
 	meta_NGCA,              /* GoldenEye 007 (Wii) */
 	meta_WII_RAS,           /* Donkey Kong Country Returns (Wii) */
 	meta_PS2_SPM,           /* Lethal Skies Elite Pilot: Team SW */
@@ -597,8 +589,8 @@ typedef enum {
     meta_FSTM,              // Nintendo Wii U FSTM
     meta_3DS_IDSP,          // Nintendo 3DS/Wii U IDSP
     meta_KT_WIIBGM,         // Koei Tecmo WiiBGM
-    meta_MCA,               // Capcom MCA "MADP"
-    meta_XB3D_ADX,          // Xenoblade Chronicles 3D ADX
+    meta_MCA,               /* Capcom MCA "MADP" */
+    meta_XB3D_ADX,          /* Xenoblade Chronicles 3D ADX */
     meta_HCA,               /* CRI HCA */
     meta_PS2_SVAG_SNK,      /* SNK PS2 SVAG */
     meta_PS2_VDS_VDM,       /* Graffiti Kingdom */

@@ -178,7 +178,7 @@ VGMSTREAM * init_vgmstream_ps3_msf(STREAMFILE *streamFile) {
             vgmstream->codec_data = mpeg_data;
 
             vgmstream->coding_type = ct;
-            vgmstream->layout_type = layout_mpeg;
+            vgmstream->layout_type = layout_none;
             vgmstream->num_samples = mpeg_bytes_to_samples(data_size, mpeg_data);
             vgmstream->num_samples -= vgmstream->num_samples % frame_size;
             if (loop_flag) {

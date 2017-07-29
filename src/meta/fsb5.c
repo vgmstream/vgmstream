@@ -268,7 +268,7 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
             if (!mpeg_data) goto fail;
             vgmstream->codec_data = mpeg_data;
             vgmstream->coding_type = mpeg_coding_type;
-            vgmstream->layout_type = layout_mpeg;
+            vgmstream->layout_type = layout_mpeg_custom;
 
             vgmstream->interleave_block_size = mpeg_data->current_frame_size + mpeg_data->current_padding;
             //mpeg_set_error_logging(mpeg_data, 0); /* should not be needed anymore with the interleave decoder */

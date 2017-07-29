@@ -94,7 +94,7 @@ VGMSTREAM * init_vgmstream_ps3_xvag(STREAMFILE *streamFile) {
             mpeg_data = init_mpeg_codec_data_interleaved(streamFile, start_offset, &mpeg_coding_type, vgmstream->channels, MPEG_FIXED, fixed_frame_size);
             if (!mpeg_data) goto fail;
             vgmstream->codec_data = mpeg_data;
-            vgmstream->layout_type = layout_mpeg;
+            vgmstream->layout_type = layout_mpeg_custom;
             vgmstream->coding_type = mpeg_coding_type;
             vgmstream->interleave_block_size = fixed_frame_size * multiplier;
 

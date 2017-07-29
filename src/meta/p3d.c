@@ -147,7 +147,7 @@ VGMSTREAM * init_vgmstream_p3d(STREAMFILE *streamFile) {
             mpeg_data = init_mpeg_codec_data_interleaved(streamFile, start_offset, &mpeg_coding_type, vgmstream->channels, MPEG_P3D, 0);
             if (!mpeg_data) goto fail;
             vgmstream->codec_data = mpeg_data;
-            vgmstream->layout_type = layout_mpeg;
+            vgmstream->layout_type = layout_none;
             vgmstream->coding_type = mpeg_coding_type;
 
             goto fail; //todo: not working right (unknown interleave)

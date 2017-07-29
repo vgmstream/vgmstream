@@ -511,8 +511,10 @@ void reset_vgmstream(VGMSTREAM * vgmstream) {
 #endif
 
 #ifdef VGM_USE_MPEG
-    if (vgmstream->layout_type==layout_mpeg ||
-        vgmstream->layout_type==layout_fake_mpeg) {
+    if (vgmstream->coding_type==coding_MPEG_custom ||
+        vgmstream->coding_type==coding_MPEG_layer1 ||
+        vgmstream->coding_type==coding_MPEG_layer2 ||
+        vgmstream->coding_type==coding_MPEG_layer3) {
         reset_mpeg(vgmstream);
     }
 #endif
@@ -697,8 +699,10 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
 #endif
 
 #ifdef VGM_USE_MPEG
-    if (vgmstream->layout_type==layout_fake_mpeg ||
-        vgmstream->layout_type==layout_mpeg) {
+    if (vgmstream->coding_type==coding_MPEG_custom ||
+        vgmstream->coding_type==coding_MPEG_layer1 ||
+        vgmstream->coding_type==coding_MPEG_layer2 ||
+        vgmstream->coding_type==coding_MPEG_layer3) {
         free_mpeg(vgmstream->codec_data);
         vgmstream->codec_data = NULL;
     }
@@ -894,8 +898,7 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
         case layout_ogg_vorbis:
 #endif
 #ifdef VGM_USE_MPEG
-        case layout_fake_mpeg:
-        case layout_mpeg:
+        case layout_mpeg_custom:
 #endif
         case layout_none:
             render_vgmstream_nolayout(buffer,sample_count,vgmstream);
@@ -977,16 +980,10 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_VORBIS_custom:
 #endif
 #ifdef VGM_USE_MPEG
-        case coding_fake_MPEG2_L2:
-        case coding_MPEG1_L1:
-        case coding_MPEG1_L2:
-        case coding_MPEG1_L3:
-        case coding_MPEG2_L1:
-        case coding_MPEG2_L2:
-        case coding_MPEG2_L3:
-        case coding_MPEG25_L1:
-        case coding_MPEG25_L2:
-        case coding_MPEG25_L3:
+        case coding_MPEG_custom:
+        case coding_MPEG_layer1:
+        case coding_MPEG_layer2:
+        case coding_MPEG_layer3:
 #endif
         case coding_SDX2:
         case coding_SDX2_int:
@@ -1636,21 +1633,15 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
             break;
 
 #ifdef VGM_USE_MPEG
-        case coding_fake_MPEG2_L2:
+        case coding_MPEG_custom:
             decode_fake_mpeg2_l2(
                     &vgmstream->ch[0],
                     vgmstream->codec_data,
                     buffer+samples_written*vgmstream->channels,samples_to_do);
             break;
-        case coding_MPEG1_L1:
-        case coding_MPEG1_L2:
-        case coding_MPEG1_L3:
-        case coding_MPEG2_L1:
-        case coding_MPEG2_L2:
-        case coding_MPEG2_L3:
-        case coding_MPEG25_L1:
-        case coding_MPEG25_L2:
-        case coding_MPEG25_L3:
+        case coding_MPEG_layer1:
+        case coding_MPEG_layer2:
+        case coding_MPEG_layer3:
             decode_mpeg(
                     vgmstream,
                     buffer+samples_written*vgmstream->channels,
@@ -1882,8 +1873,11 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream) {
 #endif
 
 #ifdef VGM_USE_MPEG
-        if (vgmstream->layout_type==layout_mpeg) {
-            seek_mpeg(vgmstream, vgmstream->loop_sample); /* won't work for fake MPEG */
+        if (vgmstream->coding_type==coding_MPEG_custom ||
+            vgmstream->coding_type==coding_MPEG_layer1 ||
+            vgmstream->coding_type==coding_MPEG_layer2 ||
+            vgmstream->coding_type==coding_MPEG_layer3) {
+            seek_mpeg(vgmstream, vgmstream->loop_sample);
         }
 #endif
 

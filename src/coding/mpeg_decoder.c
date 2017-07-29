@@ -86,25 +86,12 @@ mpeg_codec_data *init_mpeg_codec_data(STREAMFILE *streamfile, off_t start_offset
         if ((channels != -1 && channels_per_frame != channels))
             goto fail;
 
-        if (mi.version == MPG123_1_0 && mi.layer == 1)
-            *coding_type = coding_MPEG1_L1;
-        else if (mi.version == MPG123_1_0 && mi.layer == 2)
-            *coding_type = coding_MPEG1_L2;
-        else if (mi.version == MPG123_1_0 && mi.layer == 3)
-            *coding_type = coding_MPEG1_L3;
-        else if (mi.version == MPG123_2_0 && mi.layer == 1)
-            *coding_type = coding_MPEG2_L1;
-        else if (mi.version == MPG123_2_0 && mi.layer == 2)
-            *coding_type = coding_MPEG2_L2;
-        else if (mi.version == MPG123_2_0 && mi.layer == 3)
-            *coding_type = coding_MPEG2_L3;
-        else if (mi.version == MPG123_2_5 && mi.layer == 1)
-            *coding_type = coding_MPEG25_L1;
-        else if (mi.version == MPG123_2_5 && mi.layer == 2)
-            *coding_type = coding_MPEG25_L2;
-        else if (mi.version == MPG123_2_5 && mi.layer == 3)
-            *coding_type = coding_MPEG25_L3;
-        else goto fail;
+        switch(mi.layer) {
+            case 1: *coding_type = coding_MPEG_layer1; break;
+            case 2: *coding_type = coding_MPEG_layer2; break;
+            case 3: *coding_type = coding_MPEG_layer3; break;
+            default: goto fail;
+        }
 
         if (mi.layer == 1)
             samples_per_frame = 384;
@@ -797,11 +784,7 @@ static int mpeg_get_frame_info(STREAMFILE *streamfile, off_t offset, mpeg_frame_
             { 384, 1152, 576  }, /* MPEG2 */
             { 384, 1152, 576  }  /* MPEG2.5 */
     };
-    static const coding_t coding_types[3][3] = { /* [version][layer] */
-            { coding_MPEG1_L1,  coding_MPEG1_L2,  coding_MPEG1_L3  },
-            { coding_MPEG2_L1,  coding_MPEG2_L2,  coding_MPEG2_L3  },
-            { coding_MPEG25_L1, coding_MPEG25_L2, coding_MPEG25_L3 },
-    };
+    static const coding_t coding_types[3] = { coding_MPEG_layer1, coding_MPEG_layer2, coding_MPEG_layer3 }; /* [layer] */
 
     uint32_t header;
     int idx, padding;
@@ -818,7 +801,7 @@ static int mpeg_get_frame_info(STREAMFILE *streamfile, off_t offset, mpeg_frame_
     if (info->version <= 0) goto fail;
 
     info->layer = layers[(header >> 17) & 0x3]; /* 18,17: layer */
-    if (info->layer <= 0) goto fail;
+    if (info->layer <= 0 || info->layer > 3) goto fail;
 
     //crc       = (header >> 16) & 0x1; /* 16: protected by crc? */
 
@@ -848,7 +831,7 @@ static int mpeg_get_frame_info(STREAMFILE *streamfile, off_t offset, mpeg_frame_
         case 1152: info->frame_size = (144l * info->bit_rate * 1000l / info->sample_rate + padding); break;
     }
 
-    info->coding_type = coding_types[info->version-1][info->layer-1];
+    info->coding_type = coding_types[info->layer-1];
 
     return 1;
 

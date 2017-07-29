@@ -70,7 +70,7 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
         case SDX2:       coding = coding_SDX2; break;
         case DVI_IMA:    coding = coding_DVI_IMA; break;
 #ifdef VGM_USE_MPEG
-        case MPEG:       coding = coding_MPEG1_L3; break; /* we later find out exactly which */
+        case MPEG:       coding = coding_MPEG_layer3; break; /* we later find out exactly which */
 #endif
         case IMA:        coding = coding_IMA; break;
         case AICA:       coding = coding_AICA; break;
@@ -258,8 +258,8 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
 
             break;
 #ifdef VGM_USE_MPEG
-        case coding_MPEG1_L3:
-            vgmstream->layout_type = layout_mpeg;
+        case coding_MPEG_layer3:
+            vgmstream->layout_type = layout_none;
             vgmstream->codec_data = init_mpeg_codec_data(streamFile, start_offset, &coding, vgmstream->channels);
             if (!vgmstream->codec_data) goto fail;
 

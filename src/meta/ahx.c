@@ -51,8 +51,8 @@ VGMSTREAM * init_vgmstream_ahx(STREAMFILE *streamFile) {
     /* This is the One True Samplerate, the MPEG headers lie. */
     vgmstream->sample_rate = read_32bitBE(8,streamFile);
 
-    vgmstream->coding_type = coding_fake_MPEG2_L2;
-    vgmstream->layout_type = layout_fake_mpeg;
+    vgmstream->coding_type = coding_MPEG_custom;
+    vgmstream->layout_type = layout_none;
     vgmstream->meta_type = meta_AHX;
     vgmstream->codec_data = init_mpeg_codec_data_ahx(streamFile, start_offset, channel_count);
 

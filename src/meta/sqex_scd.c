@@ -252,7 +252,7 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
                 vgmstream->codec_data = mpeg_data;
 
                 vgmstream->coding_type = ct;
-                vgmstream->layout_type = layout_mpeg;
+                vgmstream->layout_type = layout_none;
                 vgmstream->num_samples = mpeg_bytes_to_samples(stream_size, mpeg_data);
                 vgmstream->num_samples -= vgmstream->num_samples%576;
                 if (loop_flag) {
