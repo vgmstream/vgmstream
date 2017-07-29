@@ -851,39 +851,61 @@ typedef struct {
 #endif
 
 #ifdef VGM_USE_MPEG
-typedef enum { /*MPEG_NONE,*/ MPEG_FIXED, MPEG_FSB, MPEG_P3D, MPEG_EA } mpeg_interleave_type;
+
+/* Custom MPEG modes, mostly differing in the data layout */
+typedef enum {
+    MPEG_STANDARD,          /* 1 stream */
+    MPEG_AHX,               /* 1 stream with false frame headers */
+    MPEG_XVAG,              /* N streams of fixed interleave (with several data-frames of fixed size) */
+    MPEG_FSB,               /* N streams of 1 data-frame+padding (=interleave) */
+    MPEG_P3D,               /* N streams of chunked frames */
+    MPEG_EA,                /* 1 stream (maybe N streams in absolute offsets?) */
+    MPEG_EAL31,             /* EALayer3 v1, custom frames */
+    MPEG_EAL32P,            /* EALayer3 v2 "P" (PCM?), altered custom frames */
+    MPEG_EAL32S,            /* EALayer3 v2 "S" (Spike?), altered custom frames */
+    MPEG_LYN,               /* N streams of fixed interleave */
+    MPEG_AWC                /* N streams in absolute offsets (consecutive) */
+} mpeg_custom_t;
+
 typedef struct {
-    uint8_t *buffer; /* raw (coded) data buffer */
+    int channels; /* max channels */
+    int fsb_padding; /* fsb padding mode */
+    int chunk_size; /* size of a data portion */
+    int interleave; /* size of stream interleave */
+    int encryption; /* encryption mode */
+} mpeg_custom_config;
+
+typedef struct {
+    uint8_t *buffer; /* internal raw data buffer */
     size_t buffer_size;
     size_t bytes_in_buffer;
     int buffer_full; /* raw buffer has been filled */
     int buffer_used; /* raw buffer has been fed to the decoder */
 
-    mpg123_handle *m; /* "base" MPEG stream */
+    mpg123_handle *m; /* regular/single MPEG decoder */
 
-    /* base values, assumed to be constant in the file */
-    int sample_rate_per_frame;
+    /* for internal use, assumed to be constant for all frames */
     int channels_per_frame;
-    size_t samples_per_frame;
+    int samples_per_frame;
 
-    size_t samples_to_discard; /* for interleaved looping */
+    /* custom MPEG internals */
+    int custom; /* flag */
+    mpeg_custom_t type; /* mpeg subtype */
+    mpeg_custom_config config; /* config depending on the mode */
 
-    /* interleaved MPEG internals */
-    int interleaved;
-    mpeg_interleave_type interleave_type; /* flag */
-    uint32_t interleave_value; /* varies with type */
-
-    mpg123_handle **ms; /* array of MPEG streams */
+    mpg123_handle **ms; /* custom MPEG decoder array */
     size_t ms_size;
-    uint8_t *frame_buffer; /* temp buffer with samples from a single decoded frame */
-    size_t frame_buffer_size;
-    uint8_t *interleave_buffer; /* intermediate buffer with samples from all channels */
-    size_t interleave_buffer_size;
-    size_t bytes_in_interleave_buffer;
-    size_t bytes_used_in_interleave_buffer;
 
-    size_t current_frame_size;
-    size_t current_padding; /* FSB padding between frames */
+    uint8_t *stream_buffer; /* contains samples from N frames of one stream */
+    size_t stream_buffer_size;
+    uint8_t *sample_buffer; /* contains samples from N frames of all streams/channels */
+    size_t sample_buffer_size;
+    size_t bytes_in_sample_buffer;
+    size_t bytes_used_in_sample_buffer;
+
+
+    size_t samples_to_discard; /* for custom mpeg looping */
+    size_t skip_samples; /* base encoder delay */
 
 } mpeg_codec_data;
 #endif

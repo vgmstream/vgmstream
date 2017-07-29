@@ -1634,11 +1634,6 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
 
 #ifdef VGM_USE_MPEG
         case coding_MPEG_custom:
-            decode_fake_mpeg2_l2(
-                    &vgmstream->ch[0],
-                    vgmstream->codec_data,
-                    buffer+samples_written*vgmstream->channels,samples_to_do);
-            break;
         case coding_MPEG_layer1:
         case coding_MPEG_layer2:
         case coding_MPEG_layer3:

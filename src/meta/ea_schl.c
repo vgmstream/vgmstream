@@ -45,6 +45,7 @@
 #define EA_CODEC2_XBOXADPCM     0x14
 #define EA_CODEC2_MT5           0x16
 #define EA_CODEC2_EALAYER3      0x17
+#define EA_CODEC2_ATRAC3PLUS    0x1B /* Medal of Honor Heroes 2 (PSP) */
 
 #define EA_MAX_CHANNELS  6
 
@@ -127,7 +128,7 @@ VGMSTREAM * init_vgmstream_ea_bnk(STREAMFILE *streamFile) {
     /* .bnk: sfx, .sdt: speech, .mus: streams/jingles (rare) */
     if (!check_extensions(streamFile,"bnk,sdt,mus"))
         goto fail;
-
+VGM_LOG("1\n");
     /* check header (doesn't use EA blocks, otherwise very similar to SCHl) */
     if (read_32bitBE(0x00,streamFile) == 0x424E4B6C ||  /* "BNKl" (common) */
         read_32bitBE(0x00,streamFile) == 0x424E4B62)    /* "BNKb" (FIFA 98 SS) */
@@ -136,7 +137,7 @@ VGMSTREAM * init_vgmstream_ea_bnk(STREAMFILE *streamFile) {
         offset = 0x100; /* Harry Potter and the Goblet of Fire (PS2) .mus have weird extra 0x100 bytes */
     else
         goto fail;
-
+VGM_LOG("2\n");
     /* use header size as endianness flag */
     if ((uint32_t)read_32bitLE(0x08,streamFile) > 0x00F00000) {
         read_32bit = read_32bitBE;
@@ -151,7 +152,7 @@ VGMSTREAM * init_vgmstream_ea_bnk(STREAMFILE *streamFile) {
     /* check multi-streams */
     if (target_stream == 0) target_stream = 1;
     if (target_stream < 0 || target_stream > total_streams || total_streams < 1) goto fail;
-
+VGM_LOG("3\n");
     switch(bnk_version) {
         case 0x02: /* early (Need For Speed PC, Fifa 98 SS) */
             header_size = read_32bit(offset + 0x08,streamFile); /* full size */
@@ -169,10 +170,10 @@ VGMSTREAM * init_vgmstream_ea_bnk(STREAMFILE *streamFile) {
             VGM_LOG("EA BNK: unknown version %x\n", bnk_version);
             goto fail;
     }
-
+VGM_LOG("4\n");
     if (!parse_variable_header(streamFile,&ea, header_offset, header_size - header_offset))
         goto fail;
-
+VGM_LOG("5\n");
     /* fix absolute offsets so it works in next funcs */
     if (offset) {
         for (i = 0; i < ea.channels; i++) {
@@ -303,21 +304,39 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE *streamFile, ea_
 #ifdef VGM_USE_MPEG
         case EA_CODEC2_LAYER2:      /* MPEG Layer II, aka MP2 */
         case EA_CODEC2_LAYER3: {    /* MPEG Layer III, aka MP3 */
+            mpeg_custom_config cfg;
             off_t mpeg_start_offset = is_bnk ?
                     start_offset :
                     get_ea_stream_mpeg_start_offset(streamFile, start_offset, ea);
             if (!mpeg_start_offset) goto fail;
 
-            vgmstream->codec_data = init_mpeg_codec_data_interleaved(streamFile, mpeg_start_offset, &vgmstream->coding_type, vgmstream->channels, MPEG_EA, 0);
-            if (!vgmstream->codec_data) goto fail;
+            memset(&cfg, 0, sizeof(mpeg_custom_config));
 
+            /* layout is still blocks, but should work fine with the custom mpeg decoder */
+            vgmstream->codec_data = init_mpeg_custom_codec_data(streamFile, mpeg_start_offset, &vgmstream->coding_type, vgmstream->channels, MPEG_EA, &cfg);
+            if (!vgmstream->codec_data) goto fail;
+            break;
+        }
+
+        case EA_CODEC2_EALAYER3: {  /* MP3 variant */
+            mpeg_custom_config cfg;
+            off_t mpeg_start_offset = is_bnk ?
+                    start_offset :
+                    get_ea_stream_mpeg_start_offset(streamFile, start_offset, ea);
+            if (!mpeg_start_offset) goto fail;
+
+            memset(&cfg, 0, sizeof(mpeg_custom_config));
+
+            /* layout is still blocks, but should work fine with the custom mpeg decoder */
+            vgmstream->codec_data = init_mpeg_custom_codec_data(streamFile, mpeg_start_offset, &vgmstream->coding_type, vgmstream->channels, MPEG_EAL31, &cfg);
+            if (!vgmstream->codec_data) goto fail;
             break;
         }
 #endif
 
         case EA_CODEC2_MT10:        /* MicroTalk (10:1 compression) */
         case EA_CODEC2_MT5:         /* MicroTalk (5:1 compression) */
-        case EA_CODEC2_EALAYER3:    /* MP3 variant */
+        case EA_CODEC2_ATRAC3PLUS:  /* regular ATRAC3plus chunked in SCxx blocks, including RIFF header */
         default:
             VGM_LOG("EA: unknown codec2 0x%02x for platform 0x%02x\n", ea->codec2, ea->platform);
             goto fail;
@@ -810,7 +829,7 @@ static off_t get_ea_stream_mpeg_start_offset(STREAMFILE* streamFile, off_t start
             block_size = read_32bitBE(block_offset+0x04,streamFile);
 
         if (id == 0x5343446C) { /* "SCDl" data block found */
-            off_t offset = read_32bit(block_offset+0x0c,streamFile); /* first channel offset is ok, MPEG channels share offsets */
+            off_t offset = read_32bit(block_offset+0x0c,streamFile); /* first value seems ok, second is something else in EALayer3 */
             return block_offset + 0x0c + ea->channels*0x04 + offset;
         } else if (id == 0x5343436C) { /* "SCCl" data count found */
             block_offset += block_size; /* size includes header */

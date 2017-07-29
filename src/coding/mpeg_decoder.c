@@ -4,31 +4,33 @@
 
 #ifdef VGM_USE_MPEG
 #include <mpg123.h>
+#include "mpeg_decoder.h"
 
-#define AHX_EXPECTED_FRAME_SIZE 0x414
-#define MPEG_DEFAULT_BUFFER_SIZE 0x1000  /* should be >= AHX_EXPECTED_FRAME_SIZE */
 
-typedef struct {
-    int version;
-    int layer;
-    int bit_rate;
-    int sample_rate;
-    int frame_samples;
-    int frame_size; /* bytes */
-    int channels;
-    coding_t coding_type;
-} mpeg_frame_info;
+/* TODO list for custom decoder
+ * - don't force channel param and get them from frame headers for some types (for MPEG_STANDARD)
+ * - use one stream per channel and advance streams as channels are done in case of streams like 2ch+1ch+1ch+2ch (not seen)
+ *   (would also need to change sample_buffer copy)
+ * - improve validation of channels/samples_per_frame between streams
+ * - improve decoded samples to sample buffer copying (very picky with sizes)
+ * - use mpg123 stream_buffer, with flags per stream, and call copy to sample_buffer when all streams have some samples
+ *   (so it could handle interleaved VBR frames).
+ * - AHX type 8 encryption
+ * - test encoder delays
+ * - improve error handling
+ */
+
+/* mostly arbitrary max values */
+#define MPEG_DATA_BUFFER_SIZE 0x1000
+#define MPEG_MAX_CHANNELS 16
+#define MPEG_MAX_STREAM_FRAMES 10
 
 static mpg123_handle * init_mpg123_handle();
-static void decode_mpeg_default(VGMSTREAMCHANNEL *stream, mpeg_codec_data * data, sample * outbuf, int32_t samples_to_do, int channels);
-static void decode_mpeg_interleave(VGMSTREAM * vgmstream, mpeg_codec_data * data, sample * outbuf, int32_t samples_to_do, int channels);
-static void decode_mpeg_interleave_samples(VGMSTREAMCHANNEL *stream, mpeg_codec_data * data, mpg123_handle *m, int channels, int num_stream, size_t block_size);
-static int update_frame_sizes(mpeg_codec_data * data, STREAMFILE *streamfile, off_t offset);
-static int mpeg_get_frame_info(STREAMFILE *streamfile, off_t offset, mpeg_frame_info * info);
+static void decode_mpeg_standard(VGMSTREAMCHANNEL *stream, mpeg_codec_data * data, sample * outbuf, int32_t samples_to_do, int channels);
+static void decode_mpeg_custom(VGMSTREAM * vgmstream, mpeg_codec_data * data, sample * outbuf, int32_t samples_to_do, int channels);
+static void decode_mpeg_custom_stream(VGMSTREAMCHANNEL *stream, mpeg_codec_data * data, mpg123_handle *m, int channels, int num_stream);
 
-/**
- * Inits regular MPEG.
- */
+/* Inits regular MPEG */
 mpeg_codec_data *init_mpeg_codec_data(STREAMFILE *streamfile, off_t start_offset, coding_t *coding_type, int channels) {
     mpeg_codec_data *data = NULL;
 
@@ -36,7 +38,7 @@ mpeg_codec_data *init_mpeg_codec_data(STREAMFILE *streamfile, off_t start_offset
     data = calloc(1,sizeof(mpeg_codec_data));
     if (!data) goto fail;
 
-    data->buffer_size = MPEG_DEFAULT_BUFFER_SIZE;
+    data->buffer_size = MPEG_DATA_BUFFER_SIZE;
     data->buffer = calloc(sizeof(uint8_t), data->buffer_size);
     if (!data->buffer) goto fail;
 
@@ -64,7 +66,7 @@ mpeg_codec_data *init_mpeg_codec_data(STREAMFILE *streamfile, off_t start_offset
             rc = mpg123_decode(main_m, data->buffer,data->buffer_size, NULL,0, &bytes_done);
             if (rc != MPG123_OK && rc != MPG123_NEW_FORMAT && rc != MPG123_NEED_MORE) {
                 VGM_LOG("MPEG: unable to set up mpg123 @ 0x%08lx to 0x%08lx\n", start_offset, read_offset);
-                goto fail; //todo handle MPG123_DONE?
+                goto fail; //handle MPG123_DONE?
             }
             if (read_offset > 0x5000) { /* don't hang in some incorrectly detected formats */
                 VGM_LOG("MPEG: unable to find mpeg data @ 0x%08lx to 0x%08lx\n", start_offset, read_offset);
@@ -103,9 +105,11 @@ mpeg_codec_data *init_mpeg_codec_data(STREAMFILE *streamfile, off_t start_offset
             samples_per_frame = 576;
         else goto fail;
 
-        data->sample_rate_per_frame = sample_rate_per_frame;
         data->channels_per_frame = channels_per_frame;
         data->samples_per_frame = samples_per_frame;
+        if (channels_per_frame != channels)
+            goto fail;
+
 
         /* reinit, to ignore the reading we've done so far */
         mpg123_open_feed(main_m);
@@ -118,99 +122,64 @@ fail:
     return NULL;
 }
 
-/**
- * Init interleaved MPEG (also accepts normal MPEGs, but it's less error tolerant than normal MPEG init).
- */
-mpeg_codec_data *init_mpeg_codec_data_interleaved(STREAMFILE *streamfile, off_t start_offset, coding_t *coding_type, int channels, mpeg_interleave_type interleave_type, uint32_t interleave_value) {
+
+/* Init custom MPEG, with given type and config. */
+mpeg_codec_data *init_mpeg_custom_codec_data(STREAMFILE *streamFile, off_t start_offset, coding_t *coding_type, int channels, mpeg_custom_t type, mpeg_custom_config *config) {
     mpeg_codec_data *data = NULL;
+    int stream_frames = 1;
+    int i, ok;
 
     /* init codec */
     data = calloc(1,sizeof(mpeg_codec_data));
     if (!data) goto fail;
 
-    data->buffer_size = MPEG_DEFAULT_BUFFER_SIZE;
+    data->buffer_size = MPEG_DATA_BUFFER_SIZE;
     data->buffer = calloc(sizeof(uint8_t), data->buffer_size);
     if (!data->buffer) goto fail;
 
-    data->m = init_mpg123_handle();
-    if (!data->m) goto fail;
 
-    /* interleaved setup */
-    {
-        mpeg_frame_info info;
-        int i;
+    /* keep around to decode */
+    data->custom = 1;
+    data->type = type;
+    memcpy(&data->config, config, sizeof(mpeg_custom_config));
+    data->config.channels = channels;
 
+    /* init per subtype */
+    switch(data->type) {
+        case MPEG_EAL31:
+        case MPEG_EAL32P:
+        case MPEG_EAL32S:   ok = 0; break; //ok = mpeg_custom_setup_init_ealayer3(streamFile, start_offset, data, coding_type); break;
+        default:            ok = mpeg_custom_setup_init_default(streamFile, start_offset, data, coding_type); break;
+    }
+    if (!ok)
+        goto fail;
 
-        data->interleaved = 1;
+    if (channels <= 0 || channels > MPEG_MAX_CHANNELS) goto fail;
+    if (channels < data->channels_per_frame) goto fail;
 
-        /* get frame info at offset */
-        if ( !mpeg_get_frame_info(streamfile, start_offset, &info) )
-            goto fail;
-
-        *coding_type = info.coding_type;
-        data->channels_per_frame = info.channels;
-        data->sample_rate_per_frame = info.sample_rate;
-        data->samples_per_frame = info.frame_samples;
-
-        data->interleave_type = interleave_type;
-        data->interleave_value = interleave_value;
-
-        /* get frame size from the first frame as it can be used externally to calc interleave */
-        if ( !update_frame_sizes(data, streamfile, start_offset) )
-            goto fail;
-
-        /* unlikely, can fixed with bigger buffer or a feed loop */
-        if (info.frame_size > data->buffer_size)
-            goto fail;
-
-        if (channels < 1 || channels > 32) goto fail; /* arbitrary max */
-        if (channels < data->channels_per_frame) goto fail;
-
-        //todo improve (less buffers / simplify data->ms)
-        /* Init interleaved audio, which needs separate decoders per stream and frame size stuff.
-         * We still leave data->m as a "base" info/format to simplify some stuff */
-        data->ms_size = channels / data->channels_per_frame;
-        data->ms = calloc(sizeof(mpg123_handle *), data->ms_size);
-        for (i=0; i < data->ms_size; i++) {
-            data->ms[i] = init_mpg123_handle();
-            if (!data->ms[i]) goto fail;
-        }
-
-        data->frame_buffer_size = sizeof(sample) * data->samples_per_frame * data->channels_per_frame;
-        data->frame_buffer = calloc(sizeof(uint8_t), data->frame_buffer_size);
-        if (!data->frame_buffer) goto fail;
-
-        data->interleave_buffer_size = sizeof(sample) * data->samples_per_frame * channels;
-        data->interleave_buffer = calloc(sizeof(uint8_t), data->interleave_buffer_size);
-        if (!data->interleave_buffer) goto fail;
+    /* init stream decoders (separate as MPEG frames may need N previous frames from their stream to decode) */
+    data->ms_size = channels / data->channels_per_frame;
+    data->ms = calloc(sizeof(mpg123_handle *), data->ms_size);
+    for (i=0; i < data->ms_size; i++) {
+        data->ms[i] = init_mpg123_handle();
+        if (!data->ms[i]) goto fail;
     }
 
+    if (stream_frames > MPEG_MAX_STREAM_FRAMES) goto fail;
 
-    return data;
+    /* init stream buffer, big enough for one stream and N frames at a time (will be copied to sample buffer) */
+    data->stream_buffer_size = sizeof(sample) * data->channels_per_frame * stream_frames * data->samples_per_frame;
+    data->stream_buffer = calloc(sizeof(uint8_t), data->stream_buffer_size);
+    if (!data->stream_buffer) goto fail;
 
-fail:
-    free_mpeg(data);
-    return NULL;
-}
+    /* init sample buffer, big enough for all streams/channels and N frames at a time */
+    data->sample_buffer_size = sizeof(sample) * channels * stream_frames * data->samples_per_frame;
+    data->sample_buffer = calloc(sizeof(uint8_t), data->sample_buffer_size);
+    if (!data->sample_buffer) goto fail;
 
 
-/**
- * Inits MPEG for AHX, which ignores frame headers.
- */
-mpeg_codec_data *init_mpeg_codec_data_ahx(STREAMFILE *streamFile, off_t start_offset, int channel_count) {
-    mpeg_codec_data *data = NULL;
-
-    /* init codec */
-    data = calloc(1,sizeof(mpeg_codec_data));
-    if (!data) goto fail;
-
-    data->buffer_size = MPEG_DEFAULT_BUFFER_SIZE;
-    data->buffer = calloc(sizeof(uint8_t), data->buffer_size);
-    if (!data->buffer) goto fail;
-
-    data->m = init_mpg123_handle();
-    if (!data->m) goto fail;
-
+    /* write output */
+    config->interleave = data->config.interleave; /* for FSB */
 
     return data;
 
@@ -236,7 +205,7 @@ static mpg123_handle * init_mpg123_handle() {
         goto fail;
     }
 
-    mpg123_param(m,MPG123_REMOVE_FLAGS,MPG123_GAPLESS,0.0); //todo fix gapless
+    mpg123_param(m,MPG123_REMOVE_FLAGS,MPG123_GAPLESS,0.0); /* wonky support */
     mpg123_param(m,MPG123_RESYNC_LIMIT, -1, 0x10000); /* should be enough */
 
     if (mpg123_open_feed(m) != MPG123_OK) {
@@ -258,11 +227,10 @@ fail:
 void decode_mpeg(VGMSTREAM * vgmstream, sample * outbuf, int32_t samples_to_do, int channels) {
     mpeg_codec_data * data = (mpeg_codec_data *) vgmstream->codec_data;
 
-    /* MPEGs streams contain one or two channels, so we may only need half VGMSTREAMCHANNELs for offsets */
-    if (data->interleaved) {
-        decode_mpeg_interleave(vgmstream, data, outbuf, samples_to_do, channels);
+    if (!data->custom) {
+        decode_mpeg_standard(&vgmstream->ch[0], data, outbuf, samples_to_do, channels);
     } else {
-        decode_mpeg_default(&vgmstream->ch[0], data, outbuf, samples_to_do, channels);
+        decode_mpeg_custom(vgmstream, data, outbuf, samples_to_do, channels);
     }
 }
 
@@ -270,7 +238,7 @@ void decode_mpeg(VGMSTREAM * vgmstream, sample * outbuf, int32_t samples_to_do, 
  * Decode anything mpg123 can.
  * Feeds raw data and extracts decoded samples as needed.
  */
-static void decode_mpeg_default(VGMSTREAMCHANNEL *stream, mpeg_codec_data * data, sample * outbuf, int32_t samples_to_do, int channels) {
+static void decode_mpeg_standard(VGMSTREAMCHANNEL *stream, mpeg_codec_data * data, sample * outbuf, int32_t samples_to_do, int channels) {
     int samples_done = 0;
     mpg123_handle *m = data->m;
 
@@ -302,7 +270,8 @@ static void decode_mpeg_default(VGMSTREAMCHANNEL *stream, mpeg_codec_data * data
                     (samples_to_do-samples_done)*sizeof(sample)*channels,
                     &bytes_done);
             data->buffer_used = 1;
-        } else {
+        }
+        else {
             rc = mpg123_decode(m,
                     NULL,0,
                     (unsigned char *)(outbuf+samples_done*channels),
@@ -322,49 +291,58 @@ static void decode_mpeg_default(VGMSTREAMCHANNEL *stream, mpeg_codec_data * data
 
 
 /**
- * Decode interleaved (multichannel) MPEG. Works with mono/stereo too.
- * Channels (1 or 2), samples and frame size per stream should be constant.
+ * Decode custom MPEG, allowing support for: single frames, interleave, mutant frames, multiple streams
+ * (1 frame = 1/2ch so Nch = 2ch*N/2 or 1ch*N or 2ch+1ch+2ch+...), etc.
  *
- * Reads frame 'streams' (ex. 4ch = 1+1+1+1 = 4 streams or 2+2 = 2 streams), decodes
- * samples per stream and muxes them into a single internal buffer before copying to outbuf
+ * Decodes samples per each stream and muxes them into a single internal buffer before copying to outbuf
  * (to make sure channel samples are orderly copied between decode_mpeg calls).
- *
- * Interleave modes:
- * - FIXED [XVAG]: fixed block_size per stream (unknown number of samples)
- *   (ex. b1 = N samples of ch1, b2 = N samples of ch2, b3 = M samples of ch1, etc)
- * - FSB: single frames per stream with padding (block_size is frame_size+padding) [FSB]
- *   (ex. f1+f3+f5 = 1152*2 samples of ch1+2, f2+f4 = 1152*2 samples of ch3+4, etc)
- * - P3D: unknown layout at the moment (possibly N
+ * decode_mpeg_custom_stream does the main decoding, while this handles layout and copying samples to output.
  */
-static void decode_mpeg_interleave(VGMSTREAM * vgmstream, mpeg_codec_data * data, sample * outbuf, int32_t samples_to_do, int channels) {
+static void decode_mpeg_custom(VGMSTREAM * vgmstream, mpeg_codec_data * data, sample * outbuf, int32_t samples_to_do, int channels) {
     int samples_done = 0, bytes_max, bytes_to_copy;
 
     while (samples_done < samples_to_do) {
 
-        if (data->bytes_used_in_interleave_buffer < data->bytes_in_interleave_buffer) {
+        if (data->bytes_used_in_sample_buffer < data->bytes_in_sample_buffer) {
             /* copy remaining samples */
-            bytes_to_copy = data->bytes_in_interleave_buffer - data->bytes_used_in_interleave_buffer;
+            bytes_to_copy = data->bytes_in_sample_buffer - data->bytes_used_in_sample_buffer;
             bytes_max = (samples_to_do - samples_done) * sizeof(sample) * channels;
             if (bytes_to_copy > bytes_max)
                 bytes_to_copy = bytes_max;
-            memcpy((uint8_t*)(outbuf+samples_done*channels), data->interleave_buffer + data->bytes_used_in_interleave_buffer, bytes_to_copy);
+            memcpy((uint8_t*)(outbuf+samples_done*channels), data->sample_buffer + data->bytes_used_in_sample_buffer, bytes_to_copy);
 
             /* update samples copied */
-            data->bytes_used_in_interleave_buffer += bytes_to_copy;
+            data->bytes_used_in_sample_buffer += bytes_to_copy;
             samples_done += bytes_to_copy / sizeof(sample) / channels;
         }
         else {
             /* fill the internal sample buffer */
             int i;
-            data->bytes_in_interleave_buffer = 0;
-            data->bytes_used_in_interleave_buffer = 0;
+            data->bytes_in_sample_buffer = 0;
+            data->bytes_used_in_sample_buffer = 0;
 
+            /* Handle offsets depending on the data layout (may only use half VGMSTREAMCHANNELs with 2ch streams)
+             * With multiple offsets it's expected offsets are set up pointing to the first frame of each stream. */
             for (i=0; i < data->ms_size; i++) {
-                if (data->interleave_type == MPEG_P3D           /* P3D have a strange way to interleave so just use first offset */
-                        || data->interleave_type == MPEG_EA)    /* EA MPEG is simply frame by frame normal MPEG  */
-                    decode_mpeg_interleave_samples(&vgmstream->ch[0], data, data->ms[i], channels, i, vgmstream->interleave_block_size);
-                else
-                    decode_mpeg_interleave_samples(&vgmstream->ch[i], data, data->ms[i], channels, i, vgmstream->interleave_block_size);
+                switch(data->type) {
+                  //case MPEG_LYN:
+                    case MPEG_FSB:
+                    case MPEG_XVAG:
+                        /* multiple offsets, decodes 1 frame per stream until reaching interleave/block_size and skips it */
+                        decode_mpeg_custom_stream(&vgmstream->ch[i], data, data->ms[i], channels, i);
+                        break;
+
+                  //case MPEG_EA: //?
+                    case MPEG_AWC:
+                        /* consecutive streams: multiple offsets, decodes 1 frame per stream */
+                        decode_mpeg_custom_stream(&vgmstream->ch[i], data, data->ms[i], channels, i);
+                        break;
+
+                    default:
+                        /* N frames: single offset, decodes all N frames per stream (sample buffer must be big enough for N) */
+                        decode_mpeg_custom_stream(&vgmstream->ch[0], data, data->ms[i], channels, i);
+                        break;
+                }
             }
 
             /* discard (for looping): 'remove' decoded samples from the buffer */
@@ -372,115 +350,111 @@ static void decode_mpeg_interleave(VGMSTREAM * vgmstream, mpeg_codec_data * data
                 size_t bytes_to_discard = data->samples_to_discard * sizeof(sample) * channels;
 
                 /* 'remove' all buffer at most */
-                if (bytes_to_discard > data->bytes_in_interleave_buffer)
-                    bytes_to_discard = data->bytes_in_interleave_buffer;
+                if (bytes_to_discard > data->bytes_in_sample_buffer)
+                    bytes_to_discard = data->bytes_in_sample_buffer;
 
                 /* pretend the samples were used up and readjust discard */
-                data->bytes_used_in_interleave_buffer = bytes_to_discard;
+                data->bytes_used_in_sample_buffer = bytes_to_discard;
                 data->samples_to_discard -= bytes_to_discard / sizeof(sample) / channels;;
             }
         }
     }
-
 }
 
-/**
- * Decodes frames from a stream and muxes the samples into a intermediate buffer.
- * Skips to the next interleaved block once reaching the stream's block end.
- */
-static void decode_mpeg_interleave_samples(VGMSTREAMCHANNEL *stream, mpeg_codec_data * data, mpg123_handle *m, int channels, int num_stream, size_t block_size) {
-    size_t bytes_done;
-    size_t stream_size =  get_streamfile_size(stream->streamfile);
+/* Decodes frames from a stream and muxes samples into a intermediate buffer and moves the stream offsets. */
+static void decode_mpeg_custom_stream(VGMSTREAMCHANNEL *stream, mpeg_codec_data * data, mpg123_handle *m, int channels, int num_stream) {
+    size_t bytes_done = 0;
+    size_t stream_size = get_streamfile_size(stream->streamfile);
+    int rc, ok;
 
-    /* decode samples from 1 full frame */
+
+    /* decode samples from one full-frame (as N data-frames = 1 full-frame) before exiting (to orderly copy to sample buffer) */
     do {
-        int rc;
-        //int first_frame = stream->offset == stream->channel_start_offset;
-
-        /* padded frame stuff */
-        rc = update_frame_sizes(data, stream->streamfile, stream->offset);
-        /* ignore any errors and continue; mpg123 will probably sync */
-        VGM_ASSERT(rc==0, "MPEG: frame error @ 0x%08lx (prev size=0x%x / padding=0x%x)\n", stream->offset, data->current_frame_size, data->current_padding);
-        //VGM_LOG("off=%lx, st=%i, fs=%x, pd=%x\n", stream->offset, num_stream, data->current_frame_size, data->current_padding);
-
+        VGM_LOG("MPEG: new step of stream %i @ 0x%08lx\n", num_stream, stream->offset);
+        getchar();
 
         /* extra EOF check for edge cases when the caller tries to read more samples than possible */
-        if (stream->offset > stream_size) {
-            memset(data->frame_buffer, 0, data->frame_buffer_size);
-            bytes_done = data->frame_buffer_size;
-            break;
+        if (stream->offset >= stream_size) {
+            memset(data->stream_buffer, 0, data->stream_buffer_size);
+            bytes_done = data->stream_buffer_size;
+            break; /* continue with other streams */
         }
 
-        /* read more raw data (only 1 frame, to check interleave block end) */
+        /* read more raw data */
         if (!data->buffer_full) {
             //VGM_LOG("MPEG: reading more raw data\n");
-            data->bytes_in_buffer = read_streamfile(data->buffer,stream->offset,data->current_frame_size,stream->streamfile);
-
-            /* end of stream, fill frame buffer with 0s but continue normally with other streams */
-            if (!data->bytes_in_buffer) {
-                memset(data->frame_buffer, 0, data->frame_buffer_size);
-                bytes_done = data->frame_buffer_size;
-                break;
+            switch(data->type) {
+                case MPEG_EAL31:
+                case MPEG_EAL32P:
+                case MPEG_EAL32S:   ok = 0; break; //ok = mpeg_custom_parse_frame_ealayer3(stream, data); break;
+                case MPEG_AHX:      ok = mpeg_custom_parse_frame_ahx(stream, data); break;
+                default:            ok = mpeg_custom_parse_frame_default(stream, data); break;
             }
+            /* error/EOF, mpg123 can resync in some cases but custom MPEGs wouldn't need that */
+            if (!ok || !data->bytes_in_buffer) {
+                VGM_LOG("MPEG: cannot parse frame @ around %lx\n",stream->offset);
+                memset(data->stream_buffer, 0, data->stream_buffer_size);
+                bytes_done = data->stream_buffer_size;
+                break; /* continue with other streams */
+            }
+            VGM_LOG("MPEG: read results: bytes_in_buffer=0x%x, new offset off=%lx\n", data->bytes_in_buffer, stream->offset);
 
             data->buffer_full = 1;
             data->buffer_used = 0;
-
-            stream->offset += data->current_frame_size + data->current_padding; /* skip frame + FSB garbage */
-            if (block_size && ((stream->offset - stream->channel_start_offset) % block_size==0)) {
-                stream->offset += block_size * (data->ms_size-1); /* skip a block per stream if block done */
-            }
+        }
 
 #if 0
-            //TODO: skip very first frame but add fake silence? only if first frame is fully decodable?
-            if (data->interleave_type == MPEG_FSB && first_frame) {
-                data->buffer_full = 0;
+            //TODO: in case of EALayer3 with "PCM flag" must put them in buffer
+            if (ea_pcm_flag) {
+                /* write some samples to data->stream_buffer *before* decoding this frame */
+                bytes_done += read_streamfile(data->stream_buffer,offset,num_pcm_samples,stream->streamfile);
+            }
+#endif
+#if 0
+            //TODO: FSB sometimes has garbage in the first frames, not sure why/when, no apparent patern
+            if (data->custom_type == MPEG_FSB && stream->offset == stream->channel_start_offset) { /* first frame */
+                VGM_LOG("MPEG: skip first frame @ %x - %x\n", stream->offset, stream->channel_start_offset);
 
-                VGM_LOG("skip first frame @ %x - %x\n", stream->offset, stream->channel_start_offset);
-                memset(data->frame_buffer, 0, data->frame_buffer_size);
-                bytes_done = data->frame_buffer_size;
+                data->buffer_full = 0;
+                memset(data->stream_buffer, 0, data->stream_buffer_size);
+                bytes_done = data->stream_buffer_size;
                 break;
             }
 #endif
-        }
-
 
         /* feed new raw data to the decoder if needed, copy decoded results to frame buffer output */
         if (!data->buffer_used) {
-            //VGM_LOG("MPEG: get samples from new raw data\n");
+            //VGM_LOG("MPEG: feed new data and get samples \n");
             rc = mpg123_decode(m,
                     data->buffer, data->bytes_in_buffer,
-                    (unsigned char *)data->frame_buffer, data->frame_buffer_size,
+                    (unsigned char *)data->stream_buffer /*+bytes_done*/, data->stream_buffer_size,
                     &bytes_done);
             data->buffer_used = 1;
-        } else {
-            //VGM_LOG("MPEG: get samples from old raw data\n");
+        }
+        else {
+            //VGM_LOG("MPEG: get samples from old data\n");
             rc = mpg123_decode(m,
                     NULL,0,
-                    (unsigned char *)data->frame_buffer, data->frame_buffer_size,
+                    (unsigned char *)data->stream_buffer /*+bytes_done*/, data->stream_buffer_size,
                     &bytes_done);
-        }
-
-        /* samples per frame should be constant... */
-        if (bytes_done > 0 && bytes_done < data->frame_buffer_size) {
-            VGM_LOG("MPEG: borked frame @ 0x%08lx (%i bytes done, expected %i, rc=%i)\n", stream->offset, bytes_done, data->frame_buffer_size, rc);
-            memset(data->frame_buffer + bytes_done, 0, data->frame_buffer_size - bytes_done);
-            bytes_done = data->frame_buffer_size;
         }
 
         /* not enough raw data, request more */
         if (rc == MPG123_NEED_MORE) {
-            //VGM_LOG("MPEG: need more raw data\n");
+            //VGM_LOG("MPEG: need more raw data to get samples\n");
+            /* (apparently mpg123 can give bytes and request more at the same time and may mess up some calcs, when/how?  */
+            VGM_ASSERT(bytes_done > 0, "MPEG: bytes done but decoder requests more data\n");
             data->buffer_full = 0;
             continue;
         }
+        //VGM_LOG("MPEG: got samples, bytes_done=0x%x (fsbs=0x%x)\n", bytes_done, data->stream_buffer_size);
 
 
         break;
     } while (1);
 
 
-    /* copy decoded frame to intermediate sample buffer, muxing channels
+    /* copy decoded full-frame to intermediate sample buffer, muxing channels
      * (ex stream1: ch1s1 ch1s2, stream2: ch2s1 ch2s2  >  ch1s1 ch2s1 ch1s2 ch2s2) */
     {
         size_t samples_done;
@@ -493,159 +467,14 @@ static void decode_mpeg_interleave_samples(VGMSTREAMCHANNEL *stream, mpeg_codec_
             for (i = 0; i < samples_done; i++) { /* decoded samples */
                 off_t in_offset = sz*i*channels_f + sz*fch;
                 off_t out_offset = sz*i*channels + sz*(num_stream*channels_f + fch);
-                memcpy(data->interleave_buffer + out_offset, data->frame_buffer + in_offset, sz);
+                memcpy(data->sample_buffer + out_offset, data->stream_buffer + in_offset, sz);
             }
         }
 
-        data->bytes_in_interleave_buffer += bytes_done;
+        data->bytes_in_sample_buffer += bytes_done;
     }
 }
 
-/**
- * Get frame size info for the current frame, needed by FSBs of varying padding.
- * Padding sometimes contains next frame header so we can't feed it to mpg123 or it gets confused.
- * Expected to be called at the beginning of a new frame.
- */
-static int update_frame_sizes(mpeg_codec_data * data, STREAMFILE *streamfile, off_t offset) {
-
-    if (data->interleave_type == MPEG_FIXED) { /* frames of fixed size */
-        data->current_frame_size = data->interleave_value;
-    }
-    else if (data->interleave_type == MPEG_FSB) { /* padding between frames */
-        mpeg_frame_info info;
-
-        /* Manually find new frame size. Not ideal but mpg123_info.framesize is wrong sometimes */
-        if ( !mpeg_get_frame_info(streamfile, offset, &info) )
-            goto fail;
-        data->current_frame_size = info.frame_size;
-
-        /* get FSB padding for MPEG1/2 Layer III (MPEG1 Layer II doesn't use it, and Layer I doesn't seem to be supported) */
-        if (data->interleave_value && info.layer == 3) {
-            data->current_padding = (data->current_frame_size % data->interleave_value)
-                    ? data->interleave_value - (data->current_frame_size % data->interleave_value)
-                    : 0;
-        }
-
-        /* could mess some calcs */
-        VGM_ASSERT(data->sample_rate_per_frame != info.sample_rate || data->samples_per_frame != info.frame_samples,
-                "MPEG: variable frame info found @ 0x%08lx", offset);
-    }
-    else if (data->interleave_type == MPEG_P3D) { /* varying frames size, even though the frame header says 0x120 */
-        uint32_t header = read_32bitBE(offset,streamfile);
-
-        if (read_32bitBE(offset+0x120,streamfile) == header) {
-            data->current_frame_size = 0x120;
-        } else if (read_32bitBE(offset+0xA0,streamfile) == header) {
-            data->current_frame_size = 0xA0;
-        } else if (read_32bitBE(offset+0x1C0,streamfile) == header) {
-            data->current_frame_size = 0x1C0;
-        } else if (read_32bitBE(offset+0x180,streamfile) == header) {
-            data->current_frame_size = 0x180;
-        //} else if (read_32bitBE(offset+0x120,streamfile) == -1) { /* at EOF */
-        //    data->current_frame_size = 0x120;
-        } else {
-            VGM_LOG("MPEG: unknown frame size @ %lx, %x\n", offset, read_32bitBE(offset+0x120,streamfile));
-            goto fail;
-        }
-    }
-    else if (data->interleave_type == MPEG_EA) { /* straight frame by frame */
-        mpeg_frame_info info;
-
-        /* Manually find new frame size. Not ideal but mpg123_info.framesize is wrong sometimes */
-        if ( !mpeg_get_frame_info(streamfile, offset, &info) )
-            goto fail;
-        data->current_frame_size = info.frame_size;
-    }
-
-    return 1;
-
-fail:
-    return 0;
-}
-
-/**
- * Decode AHX mono frames.
- * mpg123 expects frames of 0x414 (160kbps, 22050Hz) but they actually vary and are much shorter
- */
-void decode_fake_mpeg2_l2(VGMSTREAMCHANNEL *stream, mpeg_codec_data * data, sample * outbuf, int32_t samples_to_do) {
-    int samples_done = 0;
-    const int frame_size = AHX_EXPECTED_FRAME_SIZE;
-    mpg123_handle *m = data->m;
-
-    while (samples_done < samples_to_do) {
-        size_t bytes_done;
-        int rc;
-
-        /* read more raw data */
-        if (!data->buffer_full) {
-            /* fill buffer up to next frame ending (or file ending) */
-            int bytes_into_header = 0;
-            const uint8_t header[4] = {0xff,0xf5,0xe0,0xc0};
-            off_t frame_offset = 0;
-
-            /* assume that we are starting at a header, skip it and look for the next one */
-            read_streamfile(data->buffer, stream->offset+frame_offset, 4, stream->streamfile);
-            frame_offset += 4;
-
-            do {
-                uint8_t byte;
-                byte = read_8bit(stream->offset+frame_offset,stream->streamfile);
-                data->buffer[frame_offset] = byte;
-                frame_offset++;
-
-                if (byte == header[bytes_into_header]) {
-                    bytes_into_header++;
-                } else {
-                    /* This might have been the first byte of the header, so
-                     * we need to check again.
-                     * No need to get more complicated than this, though, since
-                     * there are no repeated characters in the search string. */
-                    if (bytes_into_header>0) {
-                        frame_offset--;
-                    }
-                    bytes_into_header=0;
-                }
-
-                if (bytes_into_header==4) {
-                    break;
-                }
-            } while (frame_offset < frame_size);
-
-            if (bytes_into_header==4)
-                frame_offset-=4;
-            memset(data->buffer+frame_offset,0,frame_size-frame_offset);
-
-            data->buffer_full = 1;
-            data->buffer_used = 0;
-
-            stream->offset += frame_offset;
-        }
-
-        /* feed new raw data to the decoder if needed, copy decodec results to output */
-        if (!data->buffer_used) {
-            rc = mpg123_decode(m,
-                    data->buffer,frame_size,
-                    (unsigned char *)(outbuf+samples_done),
-                    (samples_to_do-samples_done)*sizeof(sample),
-                    &bytes_done);
-            data->buffer_used = 1;
-        } else {
-            rc = mpg123_decode(m,
-                    NULL,0,
-                    (unsigned char *)(outbuf+samples_done),
-                    (samples_to_do-samples_done)*sizeof(sample),
-                    &bytes_done);
-        }
-
-        /* not enough raw data, request more */
-        if (rc == MPG123_NEED_MORE) {
-            data->buffer_full = 0;
-        }
-
-        /* update copied samples */
-        samples_done += bytes_done/sizeof(sample);/* mono */
-    }
-}
 
 /*********/
 /* UTILS */
@@ -655,16 +484,18 @@ void free_mpeg(mpeg_codec_data *data) {
     if (!data)
         return;
 
-    mpg123_delete(data->m);
-    if (data->interleaved) {
+    if (!data->custom) {
+        mpg123_delete(data->m);
+    }
+    else {
         int i;
         for (i=0; i < data->ms_size; i++) {
             mpg123_delete(data->ms[i]);
         }
         free(data->ms);
 
-        free(data->interleave_buffer);
-        free(data->frame_buffer);
+        free(data->stream_buffer);
+        free(data->sample_buffer);
     }
 
     free(data->buffer);
@@ -681,32 +512,37 @@ void reset_mpeg(VGMSTREAM *vgmstream) {
     off_t input_offset;
     mpeg_codec_data *data = vgmstream->codec_data;
 
-    /* input_offset is ignored as we can assume it will be 0 for a seek to sample 0 */
-    mpg123_feedseek(data->m,0,SEEK_SET,&input_offset);
-
     /* reset multistream */ //todo check if stream offsets are properly reset
-    if (data->interleaved) {
+
+    if (!data->custom) {
+        /* input_offset is ignored as we can assume it will be 0 for a seek to sample 0 */
+        mpg123_feedseek(data->m,0,SEEK_SET,&input_offset);
+    }
+    else {
         int i;
         for (i=0; i < data->ms_size; i++) {
             mpg123_feedseek(data->ms[i],0,SEEK_SET,&input_offset);
         }
 
-        data->bytes_in_interleave_buffer = 0;
-        data->bytes_used_in_interleave_buffer = 0;
+        data->bytes_in_sample_buffer = 0;
+        data->bytes_used_in_sample_buffer = 0;
+
+        /* initial delay */
+        data->samples_to_discard = data->skip_samples;
     }
 }
 
 void seek_mpeg(VGMSTREAM *vgmstream, int32_t num_sample) {
-    /* won't work for fake AHX MPEG */
     off_t input_offset;
     mpeg_codec_data *data = vgmstream->codec_data;
 
     /* seek multistream */
-    if (!data->interleaved) {
-	    mpg123_feedseek(data->m, num_sample,SEEK_SET,&input_offset);
-	    if (vgmstream->loop_ch)
-	        vgmstream->loop_ch[0].offset = vgmstream->loop_ch[0].channel_start_offset + input_offset;
-    } else {
+    if (!data->custom) {
+        mpg123_feedseek(data->m, num_sample,SEEK_SET,&input_offset);
+        if (vgmstream->loop_ch)
+            vgmstream->loop_ch[0].offset = vgmstream->loop_ch[0].channel_start_offset + input_offset;
+    }
+    else {
         int i;
         /* re-start from 0 */
         for (i=0; i < data->ms_size; i++) {
@@ -714,11 +550,12 @@ void seek_mpeg(VGMSTREAM *vgmstream, int32_t num_sample) {
             if (vgmstream->loop_ch)
                 vgmstream->loop_ch[i].offset = vgmstream->loop_ch[i].channel_start_offset;
         }
-        /* manually add skip samples, since we don't really know the correct offset */
-        data->samples_to_discard = num_sample;
+        data->bytes_in_sample_buffer = 0;
+        data->bytes_used_in_sample_buffer = 0;
 
-        data->bytes_in_interleave_buffer = 0;
-        data->bytes_used_in_interleave_buffer = 0;
+        /* manually discard samples, since we don't really know the correct offset */
+        data->samples_to_discard = num_sample;
+        data->samples_to_discard += data->skip_samples;
     }
 
     data->buffer_full = 0;
@@ -727,116 +564,36 @@ void seek_mpeg(VGMSTREAM *vgmstream, int32_t num_sample) {
 
 
 long mpeg_bytes_to_samples(long bytes, const mpeg_codec_data *data) {
-    struct mpg123_frameinfo mi;
-    mpg123_handle *m = data->m;
+    /* if not found just return 0 and expect to fail (if used for num_samples) */
+    if (!data->custom) {
+        struct mpg123_frameinfo mi;
+        mpg123_handle *m = data->m;
 
-    if (MPG123_OK != mpg123_info(m, &mi))
-        return 0;
+        if (m == NULL || MPG123_OK != mpg123_info(m, &mi))
+            return 0;
 
-    /* In this case just return 0 and expect to fail (if used for num_samples)
-     * We would need to read the number of frames in some frame header or count them to get samples */
-    if (mi.vbr != MPG123_CBR) //maybe abr_rate could be used
-        return 0;
+        /* We would need to read all VBR frames headers to count samples */
+        if (mi.vbr != MPG123_CBR) //maybe abr_rate could be used to get an approx
+            return 0;
 
-    return (int64_t)bytes * mi.rate * 8 / (mi.bitrate * 1000);
+        return (int64_t)bytes * mi.rate * 8 / (mi.bitrate * 1000);
+    }
+    else {
+        return 0; /* a bit too complex for what is worth */
+    }
 }
 
-/**
- * disables/enables stderr output, useful for MPEG known to contain recoverable errors
- */
+/* disables/enables stderr output, useful for MPEG known to contain recoverable errors */
 void mpeg_set_error_logging(mpeg_codec_data * data, int enable) {
-    mpg123_param(data->m, MPG123_ADD_FLAGS, MPG123_QUIET, !enable);
-    if (data->interleaved) {
+    if (!data->custom) {
+        mpg123_param(data->m, MPG123_ADD_FLAGS, MPG123_QUIET, !enable);
+    }
+    else {
         int i;
         for (i=0; i < data->ms_size; i++) {
             mpg123_param(data->ms[i], MPG123_ADD_FLAGS, MPG123_QUIET, !enable);
         }
     }
-}
-
-/*****************/
-/* FRAME HELPERS */
-/*****************/
-
-/**
- * Gets info from a MPEG frame header at offset. Normally you would use mpg123_info but somehow
- * it's wrong at times (maybe because we use an ancient version) so here we do our thing.
- */
-static int mpeg_get_frame_info(STREAMFILE *streamfile, off_t offset, mpeg_frame_info * info) {
-    /* index tables */
-    static const int versions[4] = { /* MPEG 2.5 */ 3, /* reserved */ -1,  /* MPEG 2 */ 2, /* MPEG 1 */ 1 };
-    static const int layers[4] = { -1,3,2,1 };
-    static const int bit_rates[5][16] = { /* [version index ][bit rate index] (0=free, -1=bad) */
-            { 0, 32, 64, 96, 128, 160, 192, 224, 256, 288, 320, 352, 384, 416, 448, -1 }, /* MPEG1 Layer I */
-            { 0, 32, 48, 56,  64,  80,  96, 112, 128, 160, 192, 224, 256, 320, 384, -1 }, /* MPEG1 Layer II */
-            { 0, 32, 40, 48,  56,  64,  80,  96, 112, 128, 160, 192, 224, 256, 320, -1 }, /* MPEG1 Layer III */
-            { 0, 32, 48, 56,  64,  80,  96, 112, 128, 144, 160, 176, 192, 224, 256, -1 }, /* MPEG2/2.5 Layer I */
-            { 0,  8, 16, 24,  32,  40,  48,  56,  64,  80,  96, 112, 128, 144, 160, -1 }, /* MPEG2/2.5 Layer II/III */
-    };
-    static const int sample_rates[4][4] = { /* [version][sample rate index] */
-            { 44100, 48000, 32000, -1}, /* MPEG1 */
-            { 22050, 24000, 16000, -1}, /* MPEG2 */
-            { 11025, 12000,  8000, -1}, /* MPEG2.5 */
-    };
-    static const int channels[4] = { 2,2,2, 1 }; /* [channel] */
-    static const int frame_samples[3][3] = { /* [version][layer] */
-            { 384, 1152, 1152 }, /* MPEG1 */
-            { 384, 1152, 576  }, /* MPEG2 */
-            { 384, 1152, 576  }  /* MPEG2.5 */
-    };
-    static const coding_t coding_types[3] = { coding_MPEG_layer1, coding_MPEG_layer2, coding_MPEG_layer3 }; /* [layer] */
-
-    uint32_t header;
-    int idx, padding;
-
-
-    memset(info, 0, sizeof(*info));
-
-    header = read_32bitBE(offset, streamfile);
-
-    if ((header >> 21) != 0x7FF) /* 31-21: sync */
-        goto fail;
-
-    info->version = versions[(header >> 19) & 0x3]; /* 20,19: version */
-    if (info->version <= 0) goto fail;
-
-    info->layer = layers[(header >> 17) & 0x3]; /* 18,17: layer */
-    if (info->layer <= 0 || info->layer > 3) goto fail;
-
-    //crc       = (header >> 16) & 0x1; /* 16: protected by crc? */
-
-    idx = (info->version==1 ? info->layer-1 : (3 + (info->layer==1 ? 0 : 1)));
-    info->bit_rate = bit_rates[idx][(header >> 12) & 0xf]; /* 15-12: bit rate */
-    if (info->bit_rate <= 0) goto fail;
-
-    info->sample_rate = sample_rates[info->version-1][(header >> 10) & 0x3]; /* 11-10: sampling rate */
-    if (info->sample_rate <= 0) goto fail;
-
-    padding     = (header >>  9) & 0x1; /* 9: padding? */
-    //private   = (header >>  8) & 0x1; /* 8: private bit */
-
-    info->channels = channels[(header >>  6) & 0x3]; /* 7,6: channel mode */
-
-    //js_mode   = (header >>  4) & 0x3; /* 5,4: mode extension for joint stereo */
-    //copyright = (header >>  3) & 0x1; /* 3: copyrighted */
-    //original  = (header >>  2) & 0x1; /* 2: original */
-    //emphasis  = (header >>  0) & 0x3; /* 1,0: emphasis */
-
-    info->frame_samples = frame_samples[info->version-1][info->layer-1];
-
-    /* calculate frame length (from hcs's fsb_mpeg) */
-    switch (info->frame_samples) {
-        case 384:  info->frame_size = (12l  * info->bit_rate * 1000l / info->sample_rate + padding) * 4; break;
-        case 576:  info->frame_size = (72l  * info->bit_rate * 1000l / info->sample_rate + padding); break;
-        case 1152: info->frame_size = (144l * info->bit_rate * 1000l / info->sample_rate + padding); break;
-    }
-
-    info->coding_type = coding_types[info->layer-1];
-
-    return 1;
-
-fail:
-    return 0;
 }
 
 #endif

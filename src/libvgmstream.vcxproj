@@ -423,6 +423,8 @@
     <ClCompile Include="coding\ima_decoder.c" />
     <ClCompile Include="coding\l5_555_decoder.c" />
     <ClCompile Include="coding\mc3_decoder.c" />
+    <ClCompile Include="coding\mpeg_custom_utils.c" />
+    <ClCompile Include="coding\mpeg_custom_utils_ahx.c" />
     <ClCompile Include="coding\mpeg_decoder.c" />
     <ClCompile Include="coding\msadpcm_decoder.c" />
     <ClCompile Include="coding\nds_procyon_decoder.c" />

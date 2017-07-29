@@ -1302,6 +1302,10 @@
 					RelativePath=".\coding\g72x_state.h"
 					>
 				</File>
+                <File
+                    RelativePath=".\coding\mpeg_decoder.h"
+                    >
+                </File>
 				<File
 					RelativePath=".\coding\nwa_decoder.h"
 					>
@@ -1376,6 +1380,14 @@
 				</File>
                 <File
                     RelativePath=".\coding\mc3_decoder.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\coding\mpeg_custom_utils.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\coding\mpeg_custom_utils_ahx.c"
                     >
                 </File>
 				<File

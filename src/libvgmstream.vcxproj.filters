@@ -808,6 +808,12 @@
     <ClCompile Include="coding\mc3_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="coding\mpeg_custom_utils.c">
+      <Filter>coding\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="coding\mpeg_custom_utils_ahx.c">
+      <Filter>coding\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="coding\mpeg_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
