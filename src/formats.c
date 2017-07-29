@@ -872,6 +872,7 @@ static const meta_info meta_info_list[] = {
         {meta_TXTH,                 "TXTH Generic Header"},
         {meta_EA_BNK,               "Electronic Arts BNK header"},
         {meta_SK_AUD,               "Silicon Knights AUD header"},
+        {meta_AHX,                  "CRI AHX header"},
 
 #ifdef VGM_USE_VORBIS
         {meta_OGG_VORBIS,           "Ogg Vorbis"},
@@ -882,9 +883,6 @@ static const meta_info meta_info_list[] = {
         {meta_OGG_KOVS,             "Ogg Vorbis, KOVS header"},
         {meta_OGG_PSYCH,            "Ogg Vorbis, Psychic Software obfuscation"},
     #endif
-#ifdef VGM_USE_MPEG
-        {meta_AHX,                  "CRI AHX header"},
-#endif
 #ifdef VGM_USE_MP4V2
         {meta_MP4,                  "AAC header"},
 #endif

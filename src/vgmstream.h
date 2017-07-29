@@ -614,6 +614,7 @@ typedef enum {
     meta_WII_04SW,          /* Driver - Parallel Lines (Wii) */
     meta_TXTH,              /* generic text header */
     meta_SK_AUD,            /* Silicon Knights .AUD (Eternal Darkness GC) */
+    meta_AHX,               /* CRI AHX header */
 
 #ifdef VGM_USE_VORBIS
     meta_OGG_VORBIS,        /* Ogg Vorbis */
@@ -623,9 +624,6 @@ typedef enum {
     meta_OGG_UM3,           /* Ogg Vorbis with first 0x800 bytes XOR 0xFF */
     meta_OGG_KOVS,          /* Ogg Vorbis with exta header and 0x100 bytes XOR */
     meta_OGG_PSYCH,         /* Ogg Vorbis with all bytes -0x23*/
-#endif
-#ifdef VGM_USE_MPEG
-    meta_AHX,               /* CRI AHX header (same structure as ADX) */
 #endif
 #ifdef VGM_USE_MP4V2
     meta_MP4,               /* AAC (iOS) */

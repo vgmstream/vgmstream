@@ -84,9 +84,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_aifc,
     init_vgmstream_str_snds,
     init_vgmstream_ws_aud,
-#ifdef VGM_USE_MPEG
     init_vgmstream_ahx,
-#endif
     init_vgmstream_ivb,
     init_vgmstream_amts,
     init_vgmstream_svs,
