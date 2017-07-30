@@ -258,20 +258,17 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
 
 #ifdef VGM_USE_MPEG
         case 0x0B: {/* FMOD_SOUND_FORMAT_MPEG */
-            mpeg_codec_data *mpeg_data = NULL;
-            coding_t mpeg_coding_type;
-            int fsb_padding = 0;
+            mpeg_custom_config cfg;
 
-            fsb_padding = vgmstream->channels > 2 ? 16 : 4; /* observed default */
+            memset(&cfg, 0, sizeof(mpeg_custom_config));
+            cfg.fsb_padding = (vgmstream->channels > 2 ? 16 : 4); /* observed default */
 
-            mpeg_data = init_mpeg_codec_data_interleaved(streamFile, StartOffset, &mpeg_coding_type, vgmstream->channels, MPEG_FSB, fsb_padding);
-            if (!mpeg_data) goto fail;
-            vgmstream->codec_data = mpeg_data;
-            vgmstream->coding_type = mpeg_coding_type;
-            vgmstream->layout_type = layout_mpeg;
+            vgmstream->codec_data = init_mpeg_custom_codec_data(streamFile, StartOffset, &vgmstream->coding_type, vgmstream->channels, MPEG_FSB, &cfg);
+            if (!vgmstream->codec_data) goto fail;
 
-            vgmstream->interleave_block_size = mpeg_data->current_frame_size + mpeg_data->current_padding;
-            //mpeg_set_error_logging(mpeg_data, 0); /* should not be needed anymore with the interleave decoder */
+            /* both to setup initial interleave in vgmstream_open_stream */
+            vgmstream->interleave_block_size = cfg.interleave;
+            vgmstream->layout_type = layout_mpeg_custom;
             break;
         }
 #endif
@@ -286,10 +283,17 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
 
 #ifdef VGM_USE_VORBIS
         case 0x0F: {/* FMOD_SOUND_FORMAT_VORBIS */
-            vgmstream->codec_data = init_fsb_vorbis_codec_data(streamFile, StartOffset, vgmstream->channels, vgmstream->sample_rate,VorbisSetupId);
-            if (!vgmstream->codec_data) goto fail;
-            vgmstream->coding_type = coding_fsb_vorbis;
+            vorbis_custom_config cfg;
+
+            memset(&cfg, 0, sizeof(vorbis_custom_config));
+            cfg.channels = vgmstream->channels;
+            cfg.sample_rate = vgmstream->sample_rate;
+            cfg.setup_id = VorbisSetupId;
+
             vgmstream->layout_type = layout_none;
+            vgmstream->coding_type = coding_VORBIS_custom;
+            vgmstream->codec_data = init_vorbis_custom_codec_data(streamFile, StartOffset, VORBIS_FSB, &cfg);
+            if (!vgmstream->codec_data) goto fail;
 
             break;
         }

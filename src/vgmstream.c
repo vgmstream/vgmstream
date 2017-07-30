@@ -84,9 +84,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_aifc,
     init_vgmstream_str_snds,
     init_vgmstream_ws_aud,
-#ifdef VGM_USE_MPEG
     init_vgmstream_ahx,
-#endif
     init_vgmstream_ivb,
     init_vgmstream_amts,
     init_vgmstream_svs,
@@ -370,6 +368,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_wii_04sw,
     init_vgmstream_ea_bnk,
     init_vgmstream_ea_schl_fixed,
+    init_vgmstream_sk_aud,
 
     init_vgmstream_txth,  /* should go at the end (lower priority) */
 #ifdef VGM_USE_FFMPEG
@@ -494,16 +493,8 @@ void reset_vgmstream(VGMSTREAM * vgmstream) {
         reset_ogg_vorbis(vgmstream);
     }
 
-    if (vgmstream->coding_type==coding_fsb_vorbis) {
-        reset_fsb_vorbis(vgmstream);
-    }
-
-    if (vgmstream->coding_type==coding_wwise_vorbis) {
-        reset_wwise_vorbis(vgmstream);
-    }
-
-    if (vgmstream->coding_type==coding_ogl_vorbis) {
-        reset_ogl_vorbis(vgmstream);
+    if (vgmstream->coding_type==coding_VORBIS_custom) {
+        reset_vorbis_custom(vgmstream);
     }
 #endif
 
@@ -518,8 +509,10 @@ void reset_vgmstream(VGMSTREAM * vgmstream) {
 #endif
 
 #ifdef VGM_USE_MPEG
-    if (vgmstream->layout_type==layout_mpeg ||
-        vgmstream->layout_type==layout_fake_mpeg) {
+    if (vgmstream->coding_type==coding_MPEG_custom ||
+        vgmstream->coding_type==coding_MPEG_layer1 ||
+        vgmstream->coding_type==coding_MPEG_layer2 ||
+        vgmstream->coding_type==coding_MPEG_layer3) {
         reset_mpeg(vgmstream);
     }
 #endif
@@ -678,18 +671,8 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
         vgmstream->codec_data = NULL;
     }
 
-    if (vgmstream->coding_type==coding_fsb_vorbis) {
-        free_fsb_vorbis(vgmstream->codec_data);
-        vgmstream->codec_data = NULL;
-    }
-
-    if (vgmstream->coding_type==coding_wwise_vorbis) {
-        free_wwise_vorbis(vgmstream->codec_data);
-        vgmstream->codec_data = NULL;
-    }
-
-    if (vgmstream->coding_type==coding_ogl_vorbis) {
-        free_ogl_vorbis(vgmstream->codec_data);
+    if (vgmstream->coding_type==coding_VORBIS_custom) {
+        free_vorbis_custom(vgmstream->codec_data);
         vgmstream->codec_data = NULL;
     }
 #endif
@@ -714,8 +697,10 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
 #endif
 
 #ifdef VGM_USE_MPEG
-    if (vgmstream->layout_type==layout_fake_mpeg ||
-        vgmstream->layout_type==layout_mpeg) {
+    if (vgmstream->coding_type==coding_MPEG_custom ||
+        vgmstream->coding_type==coding_MPEG_layer1 ||
+        vgmstream->coding_type==coding_MPEG_layer2 ||
+        vgmstream->coding_type==coding_MPEG_layer3) {
         free_mpeg(vgmstream->codec_data);
         vgmstream->codec_data = NULL;
     }
@@ -911,8 +896,7 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
         case layout_ogg_vorbis:
 #endif
 #ifdef VGM_USE_MPEG
-        case layout_fake_mpeg:
-        case layout_mpeg:
+        case layout_mpeg_custom:
 #endif
         case layout_none:
             render_vgmstream_nolayout(buffer,sample_count,vgmstream);
@@ -991,21 +975,13 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_ULAW:
 #ifdef VGM_USE_VORBIS
         case coding_ogg_vorbis:
-        case coding_fsb_vorbis:
-        case coding_wwise_vorbis:
-        case coding_ogl_vorbis:
+        case coding_VORBIS_custom:
 #endif
 #ifdef VGM_USE_MPEG
-        case coding_fake_MPEG2_L2:
-        case coding_MPEG1_L1:
-        case coding_MPEG1_L2:
-        case coding_MPEG1_L3:
-        case coding_MPEG2_L1:
-        case coding_MPEG2_L2:
-        case coding_MPEG2_L3:
-        case coding_MPEG25_L1:
-        case coding_MPEG25_L2:
-        case coding_MPEG25_L3:
+        case coding_MPEG_custom:
+        case coding_MPEG_layer1:
+        case coding_MPEG_layer2:
+        case coding_MPEG_layer3:
 #endif
         case coding_SDX2:
         case coding_SDX2_int:
@@ -1526,20 +1502,8 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                     vgmstream->channels);
             break;
 
-        case coding_fsb_vorbis:
-            decode_fsb_vorbis(vgmstream,
-                    buffer+samples_written*vgmstream->channels,samples_to_do,
-                    vgmstream->channels);
-            break;
-
-        case coding_wwise_vorbis:
-            decode_wwise_vorbis(vgmstream,
-                    buffer+samples_written*vgmstream->channels,samples_to_do,
-                    vgmstream->channels);
-            break;
-
-        case coding_ogl_vorbis:
-            decode_ogl_vorbis(vgmstream,
+        case coding_VORBIS_custom:
+            decode_vorbis_custom(vgmstream,
                     buffer+samples_written*vgmstream->channels,samples_to_do,
                     vgmstream->channels);
             break;
@@ -1667,21 +1631,10 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
             break;
 
 #ifdef VGM_USE_MPEG
-        case coding_fake_MPEG2_L2:
-            decode_fake_mpeg2_l2(
-                    &vgmstream->ch[0],
-                    vgmstream->codec_data,
-                    buffer+samples_written*vgmstream->channels,samples_to_do);
-            break;
-        case coding_MPEG1_L1:
-        case coding_MPEG1_L2:
-        case coding_MPEG1_L3:
-        case coding_MPEG2_L1:
-        case coding_MPEG2_L2:
-        case coding_MPEG2_L3:
-        case coding_MPEG25_L1:
-        case coding_MPEG25_L2:
-        case coding_MPEG25_L3:
+        case coding_MPEG_custom:
+        case coding_MPEG_layer1:
+        case coding_MPEG_layer2:
+        case coding_MPEG_layer3:
             decode_mpeg(
                     vgmstream,
                     buffer+samples_written*vgmstream->channels,
@@ -1889,16 +1842,8 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream) {
             seek_ogg_vorbis(vgmstream, vgmstream->loop_sample);
         }
 
-        if (vgmstream->coding_type==coding_fsb_vorbis) {
-            seek_fsb_vorbis(vgmstream, vgmstream->loop_start_sample);
-        }
-
-        if (vgmstream->coding_type==coding_wwise_vorbis) {
-            seek_wwise_vorbis(vgmstream, vgmstream->loop_start_sample);
-        }
-
-        if (vgmstream->coding_type==coding_ogl_vorbis) {
-            seek_ogl_vorbis(vgmstream, vgmstream->loop_start_sample);
+        if (vgmstream->coding_type==coding_VORBIS_custom) {
+            seek_vorbis_custom(vgmstream, vgmstream->loop_start_sample);
         }
 #endif
 
@@ -1921,8 +1866,11 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream) {
 #endif
 
 #ifdef VGM_USE_MPEG
-        if (vgmstream->layout_type==layout_mpeg) {
-            seek_mpeg(vgmstream, vgmstream->loop_sample); /* won't work for fake MPEG */
+        if (vgmstream->coding_type==coding_MPEG_custom ||
+            vgmstream->coding_type==coding_MPEG_layer1 ||
+            vgmstream->coding_type==coding_MPEG_layer2 ||
+            vgmstream->coding_type==coding_MPEG_layer3) {
+            seek_mpeg(vgmstream, vgmstream->loop_sample);
         }
 #endif
 

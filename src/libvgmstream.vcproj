@@ -1298,18 +1298,30 @@
                     RelativePath=".\coding\coding.h"
                     >
                 </File>
-                <File
-                    RelativePath=".\coding\fsb_vorbis_data.h"
-                    >
-                </File>
 				<File
 					RelativePath=".\coding\g72x_state.h"
 					>
 				</File>
+                <File
+                    RelativePath=".\coding\mpeg_decoder.h"
+                    >
+                </File>
 				<File
 					RelativePath=".\coding\nwa_decoder.h"
 					>
 				</File>
+                <File
+                    RelativePath=".\coding\vorbis_custom_decoder.h"
+                    >
+                </File>
+                <File
+                    RelativePath=".\coding\vorbis_custom_data_fsb.h"
+                    >
+                </File>
+                <File
+                    RelativePath=".\coding\vorbis_custom_data_wwise.h"
+                    >
+                </File>
 			</Filter>
 			<Filter
 				Name="Source Files"
@@ -1336,10 +1348,6 @@
 				</File>
                 <File
                     RelativePath=".\coding\ffmpeg_decoder.c"
-                    >
-                </File>
-                <File
-                    RelativePath=".\coding\fsb_vorbis_decoder.c"
                     >
                 </File>
 				<File
@@ -1372,6 +1380,14 @@
 				</File>
                 <File
                     RelativePath=".\coding\mc3_decoder.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\coding\mpeg_custom_utils.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\coding\mpeg_custom_utils_ahx.c"
                     >
                 </File>
 				<File
@@ -1414,10 +1430,6 @@
                     RelativePath=".\coding\ogg_vorbis_decoder.c"
                     >
                 </File>
-                <File
-                    RelativePath=".\coding\ogl_vorbis_decoder.c"
-                    >
-                </File>
 				<File
 					RelativePath=".\coding\pcm_decoder.c"
 					>
@@ -1438,14 +1450,6 @@
 					RelativePath=".\coding\sdx2_decoder.c"
 					>
 				</File>
-                <File
-                    RelativePath=".\coding\wwise_vorbis_decoder.c"
-                    >
-                </File>
-                <File
-                    RelativePath=".\coding\wwise_vorbis_utils.c"
-                    >
-                </File>
 				<File
 					RelativePath=".\coding\ws_decoder.c"
 					>
@@ -1454,6 +1458,26 @@
 					RelativePath=".\coding\xa_decoder.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\coding\vorbis_custom_decoder.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\coding\vorbis_custom_utils_fsb.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\coding\vorbis_custom_utils_ogl.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\coding\vorbis_custom_utils_sk.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\coding\vorbis_custom_utils_wwise.c"
+                    >
+                </File>
 				<File
 					RelativePath="..\ext_libs\clHCA.c"
 					>

@@ -2,7 +2,7 @@
 #define _FSB_VORBIS_DATA_H_
 
 /**
- * fvs (FSB vorbis setup) data for fsb_vorbis_decoder.c
+ * fvs (FSB vorbis setup) data for FSB Vorbis.
  * They are Vorbis setup packets (type 0x05) binaries converted to c-arrays.
  * Extracted from FMOD by python-fsb5 (https://github.com/HearthSim/python-fsb5).
  */

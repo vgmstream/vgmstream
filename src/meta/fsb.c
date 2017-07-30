@@ -278,34 +278,25 @@ VGMSTREAM * init_vgmstream_fsb_offset(STREAMFILE *streamFile, off_t offset) {
     if (fsbh.mode & FSOUND_MPEG) {
         /* FSB3: ?; FSB4: Shatter, Way of the Samurai 3/4, Forza Horizon 1/2, Dragon Age Origins */
 #if defined(VGM_USE_MPEG)
-        mpeg_codec_data *mpeg_data = NULL;
-        coding_t mpeg_coding_type;
-        int fsb_padding = 0;
+        mpeg_custom_config cfg;
+
+        memset(&cfg, 0, sizeof(mpeg_custom_config));
+        cfg.fsb_padding = (vgmstream->channels > 2 ? 16 :
+            (fsbh.flags & FMOD_FSB_SOURCE_MPEG_PADDED4 ? 4 :
+            (fsbh.flags & FMOD_FSB_SOURCE_MPEG_PADDED ? 2 : 0)));
 
         //VGM_ASSERT(fsbh.mode & FSOUND_MPEG_LAYER2, "FSB FSOUND_MPEG_LAYER2 found\n");/* not always set anyway */
         VGM_ASSERT(fsbh.mode & FSOUND_IGNORETAGS, "FSB FSOUND_IGNORETAGS found\n");
 
-        if (fsbh.flags & FMOD_FSB_SOURCE_MPEG_PADDED)
-            fsb_padding = fsbh.numchannels > 2 ? 16 : 2;
-        else if (fsbh.flags & FMOD_FSB_SOURCE_MPEG_PADDED4)
-            fsb_padding = fsbh.numchannels > 2 ? 16 : 4;
-        else /* needed by multichannel with no flags */
-            fsb_padding = fsbh.numchannels > 2 ? 16 : 0;
+        vgmstream->codec_data = init_mpeg_custom_codec_data(streamFile, start_offset, &vgmstream->coding_type, vgmstream->channels, MPEG_FSB, &cfg);
+        if (!vgmstream->codec_data) goto fail;
 
-        mpeg_data = init_mpeg_codec_data_interleaved(streamFile, start_offset, &mpeg_coding_type, vgmstream->channels, MPEG_FSB, fsb_padding);
-        if (!mpeg_data) goto fail;
-        vgmstream->codec_data = mpeg_data;
-        vgmstream->coding_type = mpeg_coding_type;
-        vgmstream->layout_type = layout_mpeg;
+        /* both to setup initial interleave in vgmstream_open_stream */
+        vgmstream->interleave_block_size = cfg.interleave;
+        vgmstream->layout_type = layout_mpeg_custom;
 
-        vgmstream->interleave_block_size = mpeg_data->current_frame_size + mpeg_data->current_padding;
-        //mpeg_set_error_logging(mpeg_data, 0); /* should not be needed anymore with the interleave decoder */
-
-#elif defined(VGM_USE_FFMPEG)
-        /* FFmpeg can't properly read FSB4 or FMOD's 0-padded MPEG data @ start_offset */
-        goto fail;
 #else
-        goto fail;
+        goto fail; /* FFmpeg can't properly read FSB4 or FMOD's 0-padded MPEG data @ start_offset */
 #endif
     }
     else if (fsbh.mode & FSOUND_IMAADPCM) { /* (codec 0x69, Voxware Byte Aligned) */

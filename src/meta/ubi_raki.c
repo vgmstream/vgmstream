@@ -125,7 +125,7 @@ VGMSTREAM * init_vgmstream_ubi_raki(STREAMFILE *streamFile) {
             /* chunks: "MARK" optional seek table), "STRG" (optional description), "Msf " ("data" equivalent) */
             vgmstream->codec_data = init_mpeg_codec_data(streamFile, start_offset, &vgmstream->coding_type, vgmstream->channels);
             if (!vgmstream->codec_data) goto fail;
-            vgmstream->layout_type = layout_mpeg;
+            vgmstream->layout_type = layout_none;
 
             vgmstream->num_samples = mpeg_bytes_to_samples(data_size, vgmstream->codec_data);
             break;

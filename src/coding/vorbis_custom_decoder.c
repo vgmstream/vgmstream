@@ -1,33 +1,39 @@
-#include "coding.h"
 #include <math.h>
+#include "coding.h"
+#include "vorbis_custom_decoder.h"
 
 #ifdef VGM_USE_VORBIS
 #include <vorbis/codec.h>
 
-#define ogl_vorbis_DEFAULT_BUFFER_SIZE 0x8000 /* should be at least the size of the setup header, ~0x2000 */
+#define VORBIS_DEFAULT_BUFFER_SIZE 0x8000 /* should be at least the size of the setup header, ~0x2000 */
 
-static void pcm_convert_float_to_16(vorbis_codec_data * data, sample * outbuf, int samples_to_do, float ** pcm);
+static void pcm_convert_float_to_16(vorbis_custom_codec_data * data, sample * outbuf, int samples_to_do, float ** pcm);
 
 /**
- * Inits a raw OGL vorbis stream.
+ * Inits a vorbis stream of some custom variety.
  *
- * Vorbis packets are stored in .ogg, which is divided into ogg pages/packets, and the first packets contain necessary
- * vorbis setup. For raw vorbis the setup is stored it elsewhere (i.e.- in the .exe), presumably to shave off some kb
- * per stream and codec startup time. We'll read the external setup and raw data and decode it with libvorbis.
+ * Normally Vorbis packets are stored in .ogg, which is divided into OggS pages/packets, and the first packets contain necessary
+ * Vorbis setup. For custom vorbis the OggS layer is replaced/optimized, the setup can be modified or stored elsewhere
+ * (i.e.- in the .exe) and raw Vorbis packets may be modified as well, presumably to shave off some kb and/or obfuscate.
+ * We'll manually read/modify the data and decode it with libvorbis calls.
  *
- * OGL simply removes the Ogg layer and uses 16b packet headers, that have the size of the next packet, but
- * the lower 2b need to be removed (usually 00 but 01 for the id packet, not sure about the meaning).
+ * Reference: https://www.xiph.org/vorbis/doc/libvorbis/overview.html
  */
-vorbis_codec_data * init_ogl_vorbis_codec_data(STREAMFILE *streamFile, off_t start_offset, off_t * data_start_offset) {
-    vorbis_codec_data * data = NULL;
+vorbis_custom_codec_data * init_vorbis_custom_codec_data(STREAMFILE *streamFile, off_t start_offset, vorbis_custom_t type, vorbis_custom_config * config) {
+    vorbis_custom_codec_data * data = NULL;
+    int ok;
 
     /* init stuff */
-    data = calloc(1,sizeof(vorbis_codec_data));
+    data = calloc(1,sizeof(vorbis_custom_codec_data));
     if (!data) goto fail;
 
-    data->buffer_size = ogl_vorbis_DEFAULT_BUFFER_SIZE;
+    data->buffer_size = VORBIS_DEFAULT_BUFFER_SIZE;
     data->buffer = calloc(sizeof(uint8_t), data->buffer_size);
     if (!data->buffer) goto fail;
+
+    /* keep around to decode too */
+    data->type = type;
+    memcpy(&data->config, config, sizeof(vorbis_custom_config));
 
 
     /* init vorbis stream state, using 3 fake Ogg setup packets (info, comments, setup/codebooks)
@@ -38,35 +44,15 @@ vorbis_codec_data * init_ogl_vorbis_codec_data(STREAMFILE *streamFile, off_t sta
     data->op.packet = data->buffer;
     data->op.b_o_s = 1; /* fake headers start */
 
-    {
-        /* read 3 packets with triad (id/comment/setup), each with an OGL header */
-        off_t offset = start_offset;
-        size_t packet_size;
-
-        /* normal identificacion packet */
-        packet_size = (uint16_t)read_16bitLE(offset, streamFile) >> 2;
-        if (packet_size > data->buffer_size) goto fail;
-        data->op.bytes = read_streamfile(data->buffer,offset+2,packet_size, streamFile);
-        if (vorbis_synthesis_headerin(&data->vi, &data->vc, &data->op) != 0) goto fail; /* parse identification header */
-        offset += 2+packet_size;
-
-        /* normal comment packet */
-        packet_size = (uint16_t)read_16bitLE(offset, streamFile) >> 2;
-        if (packet_size > data->buffer_size) goto fail;
-        data->op.bytes = read_streamfile(data->buffer,offset+2,packet_size, streamFile);
-        if (vorbis_synthesis_headerin(&data->vi, &data->vc, &data->op) !=0 ) goto fail; /* parse comment header */
-        offset += 2+packet_size;
-
-        /* normal setup packet */
-        packet_size = (uint16_t)read_16bitLE(offset, streamFile) >> 2;
-        if (packet_size > data->buffer_size) goto fail;
-        data->op.bytes = read_streamfile(data->buffer,offset+2,packet_size, streamFile);
-        if (vorbis_synthesis_headerin(&data->vi, &data->vc, &data->op) != 0) goto fail; /* parse setup header */
-        offset += 2+packet_size;
-
-        /* data starts after triad */
-        *data_start_offset = offset;
+    /* init header */
+    switch(data->type) {
+        case VORBIS_FSB:    ok = vorbis_custom_setup_init_fsb(streamFile, start_offset, data); break;
+        case VORBIS_WWISE:  ok = vorbis_custom_setup_init_wwise(streamFile, start_offset, data); break;
+        case VORBIS_OGL:    ok = vorbis_custom_setup_init_ogl(streamFile, start_offset, data); break;
+        case VORBIS_SK:     ok = vorbis_custom_setup_init_sk(streamFile, start_offset, data); break;
+        default: goto fail;
     }
+    if(!ok) goto fail;
 
     data->op.b_o_s = 0; /* end of fake headers */
 
@@ -75,19 +61,21 @@ vorbis_codec_data * init_ogl_vorbis_codec_data(STREAMFILE *streamFile, off_t sta
     if (vorbis_block_init(&data->vd,&data->vb) != 0) goto fail;
 
 
+    /* write output */
+    config->data_start_offset = data->config.data_start_offset;
+
+
     return data;
 
 fail:
-    free_ogl_vorbis(data);
+    free_vorbis_custom(data);
     return NULL;
 }
 
-/**
- * Decodes raw OGL vorbis
- */
-void decode_ogl_vorbis(VGMSTREAM * vgmstream, sample * outbuf, int32_t samples_to_do, int channels) {
+/* Decodes Vorbis packets into a libvorbis sample buffer, and copies them to outbuf */
+void decode_vorbis_custom(VGMSTREAM * vgmstream, sample * outbuf, int32_t samples_to_do, int channels) {
     VGMSTREAMCHANNEL *stream = &vgmstream->ch[0];
-    vorbis_codec_data * data = vgmstream->codec_data;
+    vorbis_custom_codec_data * data = vgmstream->codec_data;
     size_t stream_size =  get_streamfile_size(stream->streamfile);
     //data->op.packet = data->buffer;/* implicit from init */
     int samples_done = 0;
@@ -95,8 +83,8 @@ void decode_ogl_vorbis(VGMSTREAM * vgmstream, sample * outbuf, int32_t samples_t
     while (samples_done < samples_to_do) {
 
         /* extra EOF check for edge cases */
-        if (stream->offset > stream_size) {
-            memset(outbuf + samples_done * channels, 0, (samples_to_do - samples_done) * sizeof(sample));
+        if (stream->offset >= stream_size) {
+            memset(outbuf + samples_done * channels, 0, (samples_to_do - samples_done) * sizeof(sample) * channels);
             break;
         }
 
@@ -131,37 +119,40 @@ void decode_ogl_vorbis(VGMSTREAM * vgmstream, sample * outbuf, int32_t samples_t
             vorbis_synthesis_read(&data->vd, samples_to_get);
         }
         else { /* read more data */
-            int rc;
+            int ok, rc;
 
-            /* this is not actually needed, but feels nicer */
-            data->op.granulepos += samples_to_do;
+            /* not actually needed, but feels nicer */
+            data->op.granulepos += samples_to_do; /* can be changed next if desired */
             data->op.packetno++;
 
-            /* get next packet size from the OGL 16b header */
-            data->op.bytes = (uint16_t)read_16bitLE(stream->offset, stream->streamfile) >> 2;
-            stream->offset += 2;
-            if (data->op.bytes == 0 || data->op.bytes == 0xFFFF) {
-                goto decode_fail; /* eof or end padding */
+            /* read/transform data into the ogg_packet buffer and advance offsets */
+            switch(data->type) {
+                case VORBIS_FSB:    ok = vorbis_custom_parse_packet_fsb(stream, data); break;
+                case VORBIS_WWISE:  ok = vorbis_custom_parse_packet_wwise(stream, data); break;
+                case VORBIS_OGL:    ok = vorbis_custom_parse_packet_ogl(stream, data); break;
+                case VORBIS_SK:     ok = vorbis_custom_parse_packet_sk(stream, data); break;
+                default: goto decode_fail;
+            }
+            if(!ok) {
+                VGM_LOG("Vorbis: cannot parse packet @ around %lx\n",stream->offset);
+                goto decode_fail;
             }
 
-            /* read raw block */
-            if (read_streamfile(data->buffer,stream->offset, data->op.bytes,stream->streamfile) != data->op.bytes) {
-                goto decode_fail; /* wrong packet? */
-            }
-            stream->offset += data->op.bytes;
 
             /* parse the fake ogg packet into a logical vorbis block */
             rc = vorbis_synthesis(&data->vb,&data->op);
             if (rc == OV_ENOTAUDIO) {
-                VGM_LOG("vorbis_synthesis: not audio packet @ %lx\n",stream->offset); getchar();
+                VGM_LOG("Vorbis: not an audio packet @ %lx\n",stream->offset);
                 continue; /* not tested */
             } else if (rc != 0) {
+                VGM_LOG("Vorbis: cannot parse Vorbis block @ %lx\n",stream->offset);
                 goto decode_fail;
             }
 
             /* finally decode the logical block into samples */
             rc = vorbis_synthesis_blockin(&data->vd,&data->vb);
             if (rc != 0)  {
+                VGM_LOG("Vorbis: cannot decode Vorbis block @ %lx\n",stream->offset);
                 goto decode_fail; /* ? */
             }
 
@@ -176,9 +167,8 @@ decode_fail:
     memset(outbuf + samples_done * channels, 0, (samples_to_do - samples_done) * sizeof(sample));
 }
 
-
-static void pcm_convert_float_to_16(vorbis_codec_data * data, sample * outbuf, int samples_to_do, float ** pcm) {
-    /* mostly from Xiph's decoder_example.c */
+/* converts from internal Vorbis format to standard PCM (mostly from Xiph's decoder_example.c) */
+static void pcm_convert_float_to_16(vorbis_custom_codec_data * data, sample * outbuf, int samples_to_do, float ** pcm) {
     int i,j;
 
     /* convert float PCM (multichannel float array, with pcm[0]=ch0, pcm[1]=ch1, pcm[2]=ch0, etc)
@@ -199,7 +189,7 @@ static void pcm_convert_float_to_16(vorbis_codec_data * data, sample * outbuf, i
 
 /* ********************************************** */
 
-void free_ogl_vorbis(vorbis_codec_data * data) {
+void free_vorbis_custom(vorbis_custom_codec_data * data) {
     if (!data)
         return;
 
@@ -212,19 +202,19 @@ void free_ogl_vorbis(vorbis_codec_data * data) {
     free(data);
 }
 
-void reset_ogl_vorbis(VGMSTREAM *vgmstream) {
-    vorbis_codec_data *data = vgmstream->codec_data;
+void reset_vorbis_custom(VGMSTREAM *vgmstream) {
+    vorbis_custom_codec_data *data = vgmstream->codec_data;
 
-    /* Seeking is provided by the Ogg layer, so with raw vorbis we need seek tables instead.
+    /* Seeking is provided by the Ogg layer, so with custom vorbis we'd need seek tables instead.
      * To avoid having to parse different formats we'll just discard until the expected sample */
     vorbis_synthesis_restart(&data->vd);
     data->samples_to_discard = 0;
 }
 
-void seek_ogl_vorbis(VGMSTREAM *vgmstream, int32_t num_sample) {
-    vorbis_codec_data *data = vgmstream->codec_data;
+void seek_vorbis_custom(VGMSTREAM *vgmstream, int32_t num_sample) {
+    vorbis_custom_codec_data *data = vgmstream->codec_data;
 
-    /* Seeking is provided by the Ogg layer, so with raw vorbis we need seek tables instead.
+    /* Seeking is provided by the Ogg layer, so with custom vorbis we'd need seek tables instead.
      * To avoid having to parse different formats we'll just discard until the expected sample */
     vorbis_synthesis_restart(&data->vd);
     data->samples_to_discard = num_sample;

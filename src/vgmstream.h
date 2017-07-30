@@ -158,24 +158,15 @@ typedef enum {
     coding_CRI_HCA,         /* CRI High Compression Audio (MDCT-based) */
 
 #ifdef VGM_USE_VORBIS
-    coding_ogg_vorbis,      /* Xiph Vorbis (MDCT-based) */
-    coding_fsb_vorbis,      /* FMOD Vorbis without Ogg layer */
-    coding_wwise_vorbis,    /* Audiokinetic Vorbis without Ogg layer */
-    coding_ogl_vorbis,      /* Shin'en Vorbis without Ogg layer */
+    coding_ogg_vorbis,      /* Xiph Vorbis with Ogg layer (MDCT-based) */
+    coding_VORBIS_custom,   /* Xiph Vorbis with custom layer (MDCT-based) */
 #endif
 
 #ifdef VGM_USE_MPEG
-    coding_fake_MPEG2_L2,   /* MPEG-2 Layer 2 (AHX), with lying headers */
-    /* MPEG audio variations (depending on sample rate and other config) */
-    coding_MPEG1_L1,        /* MP1 */
-    coding_MPEG1_L2,        /* MP2 */
-    coding_MPEG1_L3,        /* good ol' MPEG-1 Layer 3 (MP3) */
-    coding_MPEG2_L1,
-    coding_MPEG2_L2,
-    coding_MPEG2_L3,
-    coding_MPEG25_L1,
-    coding_MPEG25_L2,
-    coding_MPEG25_L3,
+    coding_MPEG_custom,     /* MPEG audio with custom features (MDCT-based) */
+    coding_MPEG_layer1,     /* MP1 MPEG audio (MDCT-based) */
+    coding_MPEG_layer2,     /* MP2 MPEG audio (MDCT-based) */
+    coding_MPEG_layer3,     /* MP3 MPEG audio (MDCT-based) */
 #endif
 
 #ifdef VGM_USE_G7221
@@ -251,8 +242,7 @@ typedef enum {
     layout_ogg_vorbis,      /* ogg vorbis file */
 #endif
 #ifdef VGM_USE_MPEG
-    layout_fake_mpeg,       /* MPEG audio stream with bad frame headers (AHX) */
-    layout_mpeg,            /* proper MPEG audio stream */
+    layout_mpeg_custom,     /* usually straight data but may setup offset/interleave somehow */
 #endif
 } layout_t;
 
@@ -494,8 +484,8 @@ typedef enum {
     meta_MUS_ACM,           /* MUS playlist of InterPlay ACM files */
     meta_DE2,               /* Falcom (Gurumin) .de2 */
     meta_VS,				/* Men in Black .vs */
-    meta_FFXI_BGW,          /* FFXI BGW */
-    meta_FFXI_SPW,          /* FFXI SPW */
+    meta_FFXI_BGW,          /* FFXI (PC) BGW */
+    meta_FFXI_SPW,          /* FFXI (PC) SPW */
     meta_STS_WII,			/* Shikigami No Shiro 3 STS Audio File */
     meta_PS2_P2BT,			/* Pop'n'Music 7 Audio File */
     meta_PS2_GBTS,			/* Pop'n'Music 9 Audio File */
@@ -564,7 +554,7 @@ typedef enum {
     meta_PS3_MSF,           /* MSF header */
 	meta_NUB_VAG,           /* Namco VAG from NUB archives */
 	meta_PS3_PAST,          /* Bakugan Battle Brawlers (PS3) */
-    meta_SGXD,              /* Sony: Folklore, Genji, Tokyo Jungle (PS3), Brave Story, Kurohyo (PSP)  */
+    meta_SGXD,              /* Sony: Folklore, Genji, Tokyo Jungle (PS3), Brave Story, Kurohyo (PSP) */
 	meta_NGCA,              /* GoldenEye 007 (Wii) */
 	meta_WII_RAS,           /* Donkey Kong Country Returns (Wii) */
 	meta_PS2_SPM,           /* Lethal Skies Elite Pilot: Team SW */
@@ -599,8 +589,8 @@ typedef enum {
     meta_FSTM,              // Nintendo Wii U FSTM
     meta_3DS_IDSP,          // Nintendo 3DS/Wii U IDSP
     meta_KT_WIIBGM,         // Koei Tecmo WiiBGM
-    meta_MCA,               // Capcom MCA "MADP"
-    meta_XB3D_ADX,          // Xenoblade Chronicles 3D ADX
+    meta_MCA,               /* Capcom MCA "MADP" */
+    meta_XB3D_ADX,          /* Xenoblade Chronicles 3D ADX */
     meta_HCA,               /* CRI HCA */
     meta_PS2_SVAG_SNK,      /* SNK PS2 SVAG */
     meta_PS2_VDS_VDM,       /* Graffiti Kingdom */
@@ -623,6 +613,8 @@ typedef enum {
     meta_PC_XA30,           /* Driver - Parallel Lines (PC) */
     meta_WII_04SW,          /* Driver - Parallel Lines (Wii) */
     meta_TXTH,              /* generic text header */
+    meta_SK_AUD,            /* Silicon Knights .AUD (Eternal Darkness GC) */
+    meta_AHX,               /* CRI AHX header */
 
 #ifdef VGM_USE_VORBIS
     meta_OGG_VORBIS,        /* Ogg Vorbis */
@@ -632,9 +624,6 @@ typedef enum {
     meta_OGG_UM3,           /* Ogg Vorbis with first 0x800 bytes XOR 0xFF */
     meta_OGG_KOVS,          /* Ogg Vorbis with exta header and 0x100 bytes XOR */
     meta_OGG_PSYCH,         /* Ogg Vorbis with all bytes -0x23*/
-#endif
-#ifdef VGM_USE_MPEG
-    meta_AHX,               /* CRI AHX header (same structure as ADX) */
 #endif
 #ifdef VGM_USE_MP4V2
     meta_MP4,               /* AAC (iOS) */
@@ -799,12 +788,41 @@ typedef struct {
     ogg_vorbis_streamfile ov_streamfile;
 } ogg_vorbis_codec_data;
 
-/* config for Wwise Vorbis */
-typedef enum { HEADER_TRIAD, FULL_SETUP, INLINE_CODEBOOKS, EXTERNAL_CODEBOOKS, AOTUV603_CODEBOOKS } wwise_setup_type;
-typedef enum { TYPE_8, TYPE_6, TYPE_2 } wwise_header_type;
-typedef enum { STANDARD, MODIFIED } wwise_packet_type;
 
-/* any raw Vorbis without Ogg layer */
+/* custom Vorbis modes */
+typedef enum {
+    VORBIS_FSB,         /* simplified/external setup packets, custom packet headers */
+    VORBIS_WWISE,       /* many variations (custom setup, headers and data) */
+    VORBIS_OGL,         /* custom packet headers */
+    VORBIS_SK           /* "OggS" replaced by "SK" */
+} vorbis_custom_t;
+
+/* config for Wwise Vorbis (3 types for flexibility though not all combinations exist) */
+typedef enum { HEADER_TRIAD, FULL_SETUP, INLINE_CODEBOOKS, EXTERNAL_CODEBOOKS, AOTUV603_CODEBOOKS } wwise_setup_t; /* Vorbis setup style */
+typedef enum { TYPE_8, TYPE_6, TYPE_2 } wwise_header_t; /* size of packet headers */
+typedef enum { STANDARD, MODIFIED } wwise_packet_t; /* type of Vorbis packets */
+
+typedef struct {
+    /* to reconstruct init packets */
+    int channels;
+    int sample_rate;
+    int blocksize_0_exp;
+    int blocksize_1_exp;
+
+    uint32_t setup_id; /* external setup */
+    int big_endian; /* flag */
+
+    /* Wwise Vorbis config */
+    wwise_setup_t setup_type;
+    wwise_header_t header_type;
+    wwise_packet_t packet_type;
+
+    /* output (kinda ugly here but to simplify) */
+    off_t data_start_offset;
+
+} vorbis_custom_config;
+
+/* custom Vorbis without Ogg layer */
 typedef struct {
     vorbis_info vi;             /* stream settings */
     vorbis_comment vc;          /* stream comments */
@@ -817,52 +835,75 @@ typedef struct {
     size_t samples_to_discard;  /* for looping purposes */
     int samples_full;           /* flag, samples available in vorbis buffers */
 
-    /* Wwise Vorbis config */
-    wwise_setup_type setup_type;
-    wwise_header_type header_type;
-    wwise_packet_type packet_type;
-    /* saved data to reconstruct modified packets */
+    vorbis_custom_t type;        /* Vorbis subtype */
+    vorbis_custom_config config; /* config depending on the mode */
+
+    /* Wwise Vorbis: saved data to reconstruct modified packets */
     uint8_t mode_blockflag[64+1];   /* max 6b+1; flags 'n stuff */
     int mode_bits;                  /* bits to store mode_number */
     uint8_t prev_blockflag;         /* blockflag in the last decoded packet */
+    /* Ogg-style Vorbis: packet within a page */
+    int current_packet;
 
-} vorbis_codec_data;
+} vorbis_custom_codec_data;
 #endif
 
 #ifdef VGM_USE_MPEG
-typedef enum { /*MPEG_NONE,*/ MPEG_FIXED, MPEG_FSB, MPEG_P3D, MPEG_EA } mpeg_interleave_type;
+
+/* Custom MPEG modes, mostly differing in the data layout */
+typedef enum {
+    MPEG_STANDARD,          /* 1 stream */
+    MPEG_AHX,               /* 1 stream with false frame headers */
+    MPEG_XVAG,              /* N streams of fixed interleave (frame-aligned, several data-frames of fixed size) */
+    MPEG_FSB,               /* N streams of 1 data-frame+padding (=interleave) */
+    MPEG_P3D,               /* N streams of fixed interleave (not frame-aligned) */
+    MPEG_EA,                /* 1 stream (maybe N streams in absolute offsets?) */
+    MPEG_EAL31,             /* EALayer3 v1, custom frames */
+    MPEG_EAL32P,            /* EALayer3 v2 "P" (PCM?), altered custom frames */
+    MPEG_EAL32S,            /* EALayer3 v2 "S" (Spike?), altered custom frames */
+    MPEG_LYN,               /* N streams of fixed interleave */
+    MPEG_AWC                /* N streams in absolute offsets (consecutive) */
+} mpeg_custom_t;
+
 typedef struct {
-    uint8_t *buffer; /* raw (coded) data buffer */
+    int channels; /* max channels */
+    int fsb_padding; /* fsb padding mode */
+    int chunk_size; /* size of a data portion */
+    int interleave; /* size of stream interleave */
+    int encryption; /* encryption mode */
+} mpeg_custom_config;
+
+typedef struct {
+    uint8_t *buffer; /* internal raw data buffer */
     size_t buffer_size;
     size_t bytes_in_buffer;
     int buffer_full; /* raw buffer has been filled */
     int buffer_used; /* raw buffer has been fed to the decoder */
 
-    mpg123_handle *m; /* "base" MPEG stream */
+    mpg123_handle *m; /* regular/single MPEG decoder */
 
-    /* base values, assumed to be constant in the file */
-    int sample_rate_per_frame;
+    /* for internal use, assumed to be constant for all frames */
     int channels_per_frame;
-    size_t samples_per_frame;
+    int samples_per_frame;
 
-    size_t samples_to_discard; /* for interleaved looping */
+    /* custom MPEG internals */
+    int custom; /* flag */
+    mpeg_custom_t type; /* mpeg subtype */
+    mpeg_custom_config config; /* config depending on the mode */
 
-    /* interleaved MPEG internals */
-    int interleaved;
-    mpeg_interleave_type interleave_type; /* flag */
-    uint32_t interleave_value; /* varies with type */
-
-    mpg123_handle **ms; /* array of MPEG streams */
+    mpg123_handle **ms; /* custom MPEG decoder array */
     size_t ms_size;
-    uint8_t *frame_buffer; /* temp buffer with samples from a single decoded frame */
-    size_t frame_buffer_size;
-    uint8_t *interleave_buffer; /* intermediate buffer with samples from all channels */
-    size_t interleave_buffer_size;
-    size_t bytes_in_interleave_buffer;
-    size_t bytes_used_in_interleave_buffer;
 
-    size_t current_frame_size;
-    size_t current_padding; /* FSB padding between frames */
+    uint8_t *stream_buffer; /* contains samples from N frames of one stream */
+    size_t stream_buffer_size;
+    uint8_t *sample_buffer; /* contains samples from N frames of all streams/channels */
+    size_t sample_buffer_size;
+    size_t bytes_in_sample_buffer;
+    size_t bytes_used_in_sample_buffer;
+
+
+    size_t samples_to_discard; /* for custom mpeg looping */
+    size_t skip_samples; /* base encoder delay */
 
 } mpeg_codec_data;
 #endif

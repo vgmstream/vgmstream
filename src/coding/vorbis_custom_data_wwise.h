@@ -2,7 +2,7 @@
 #define _WWISE_VORBIS_DATA_H_
 
 /**
- * Codebook data for wwise_vorbis_decoder.c
+ * Codebook data for Wwise Vorbis.
  * They are Wwise Vorbis codebook binaries converted to c-arrays.
  * Extracted from Wwise SDK by ww2ogg. The originals have all codebooks together with an index table at the end.
  * Here each codebook is an array instead, and the index is converted to a list.

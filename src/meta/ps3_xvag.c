@@ -82,22 +82,25 @@ VGMSTREAM * init_vgmstream_ps3_xvag(STREAMFILE *streamFile) {
 
 #ifdef VGM_USE_MPEG
         case 0x08: { /* MPEG: The Last of Us, Uncharted 3, Medieval Moves */
-            mpeg_codec_data *mpeg_data = NULL;
-            coding_t mpeg_coding_type;
+            mpeg_custom_config cfg;
             int fixed_frame_size;
+
+            memset(&cfg, 0, sizeof(mpeg_custom_config));
 
             /* "mpin": mpeg info */
             /*  0x00/04: mpeg version/layer?  other: unknown or repeats of "fmat" */
             if (!find_chunk(streamFile, 0x6D70696E,first_offset,0, &chunk_offset,NULL, !little_endian, 1)) goto fail; /*"mpin"*/
             fixed_frame_size = read_32bit(chunk_offset+0x1c,streamFile);
 
-            mpeg_data = init_mpeg_codec_data_interleaved(streamFile, start_offset, &mpeg_coding_type, vgmstream->channels, MPEG_FIXED, fixed_frame_size);
-            if (!mpeg_data) goto fail;
-            vgmstream->codec_data = mpeg_data;
-            vgmstream->layout_type = layout_mpeg;
-            vgmstream->coding_type = mpeg_coding_type;
-            vgmstream->interleave_block_size = fixed_frame_size * multiplier;
+            cfg.chunk_size = fixed_frame_size;
+            cfg.interleave = fixed_frame_size * multiplier;
 
+            vgmstream->codec_data = init_mpeg_custom_codec_data(streamFile, start_offset, &vgmstream->coding_type, vgmstream->channels, MPEG_XVAG, &cfg);
+            if (!vgmstream->codec_data) goto fail;
+
+            /* both to setup initial interleave in vgmstream_open_stream */
+            vgmstream->interleave_block_size = cfg.interleave;
+            vgmstream->layout_type = layout_mpeg_custom;
             break;
         }
 #endif

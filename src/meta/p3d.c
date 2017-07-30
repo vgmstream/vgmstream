@@ -95,7 +95,6 @@ VGMSTREAM * init_vgmstream_p3d(STREAMFILE *streamFile) {
             channel_count = read_32bitLE(parse_offset+0x10,streamFile);
             block_size    = read_32bitLE(parse_offset+0x14,streamFile);
             num_samples   = num_samples / channel_count; /* total samples */
-            block_size    = block_size * channel_count; /* seems ok? */
             start_offset  = parse_offset+0x18;
             break;
 
@@ -141,17 +140,19 @@ VGMSTREAM * init_vgmstream_p3d(STREAMFILE *streamFile) {
 
 #ifdef VGM_USE_MPEG
         case 0x6D703300: {  /* "mp3\0" (PS3) */
-            mpeg_codec_data *mpeg_data = NULL;
-            coding_t mpeg_coding_type;
+            mpeg_custom_config cfg;
 
-            mpeg_data = init_mpeg_codec_data_interleaved(streamFile, start_offset, &mpeg_coding_type, vgmstream->channels, MPEG_P3D, 0);
-            if (!mpeg_data) goto fail;
-            vgmstream->codec_data = mpeg_data;
-            vgmstream->layout_type = layout_mpeg;
-            vgmstream->coding_type = mpeg_coding_type;
+            memset(&cfg, 0, sizeof(mpeg_custom_config));
+            cfg.interleave = 0x400;
+            /* block_size * 3 = frame size (0x60*3=0x120 or 0x40*3=0xC0) but doesn't seem to have any significance) */
 
-            goto fail; //todo: not working right (unknown interleave)
-            //break;
+            vgmstream->codec_data = init_mpeg_custom_codec_data(streamFile, start_offset, &vgmstream->coding_type, vgmstream->channels, MPEG_P3D, &cfg);
+            if (!vgmstream->codec_data) goto fail;
+
+            /* both to setup initial interleave in vgmstream_open_stream */
+            vgmstream->interleave_block_size = cfg.interleave;
+            vgmstream->layout_type = layout_mpeg_custom;
+            break;
         }
 #endif
 
