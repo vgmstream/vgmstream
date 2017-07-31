@@ -1083,6 +1083,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\sk_aud.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\sli.c"
 					>
 				</File>

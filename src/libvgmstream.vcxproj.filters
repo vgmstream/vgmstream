@@ -49,7 +49,7 @@
   <ItemGroup>
     <ClInclude Include="formats.h">
       <Filter>Header Files</Filter>
-    </ClInclude>  
+    </ClInclude>
     <ClInclude Include="streamfile.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -1124,6 +1124,9 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\x360_ast.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\sk_aud.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
   </ItemGroup>
