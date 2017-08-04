@@ -6,7 +6,7 @@
 VGMSTREAM * init_vgmstream_ahx(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     off_t start_offset;
-    int channel_count = 1, loop_flag = 0;
+    int channel_count = 1, loop_flag = 0, type;
 
     /* check extension, case insensitive */
     if ( !check_extensions(streamFile, "ahx") ) goto fail;
@@ -22,8 +22,8 @@ VGMSTREAM * init_vgmstream_ahx(STREAMFILE *streamFile) {
        goto fail;
 
     /* check for encoding type (0x10 is AHX for DC with bigger frames, 0x11 is AHX, 0x0N are ADX) */
-    if (read_8bit(0x04,streamFile) != 0x10 &&
-        read_8bit(0x04,streamFile) != 0x11) goto fail;
+    type = read_8bit(0x04,streamFile);
+    if (type != 0x10 && type != 0x11) goto fail;
 
     /* check for frame size (0 for AHX) */
     if (read_8bit(0x05,streamFile) != 0) goto fail;
@@ -52,6 +52,16 @@ VGMSTREAM * init_vgmstream_ahx(STREAMFILE *streamFile) {
 
         memset(&cfg, 0, sizeof(mpeg_custom_config));
         cfg.encryption = read_8bit(0x13,streamFile); /* 0x08 = keyword encryption */
+        cfg.cri_type = type;
+
+        if (cfg.encryption) {
+            uint8_t keybuf[6];
+            if (read_key_file(keybuf, 6, streamFile)) {
+                cfg.cri_key1 = get_16bitBE(keybuf+0);
+                cfg.cri_key2 = get_16bitBE(keybuf+2);
+                cfg.cri_key3 = get_16bitBE(keybuf+4);
+            }
+        }
 
         vgmstream->layout_type = layout_none;
         vgmstream->codec_data = init_mpeg_custom_codec_data(streamFile, start_offset, &vgmstream->coding_type, channel_count, MPEG_AHX, &cfg);

@@ -873,6 +873,11 @@ typedef struct {
     int chunk_size; /* size of a data portion */
     int interleave; /* size of stream interleave */
     int encryption; /* encryption mode */
+    /* for AHX */
+    int cri_type;
+    uint16_t cri_key1;
+    uint16_t cri_key2;
+    uint16_t cri_key3;
 } mpeg_custom_config;
 
 /* represents a single MPEG stream */
