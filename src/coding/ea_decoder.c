@@ -1,7 +1,8 @@
 #include "coding.h"
 #include "../util.h"
 
-/* Various EA ADPCM codecs evolved from CDXA */
+/* AKA "EA ADPCM", evolved from CDXA. Inconsistently called EA XA/EA-XA/EAXA.
+ * Some variations contain ADPCM hist header per block, but it's handled in ea_block.c */
 
 /*
  * Another way to get coefs in EAXA v2, with no diffs (no idea which table is actually used in games):
@@ -28,7 +29,7 @@ static const int EA_XA_TABLE[20] = {
     0,   -1,   -3,   -4
 };
 
-/* EA XA v2 (inconsistently called EAXA or EA-XA too); like ea_xa_int but with "PCM samples" flag and doesn't add 128 on nibble expand */
+/* EA XA v2; like ea_xa_int but with "PCM samples" flag and doesn't add 128 on expand or clamp (pre-adjusted by the encoder?) */
 void decode_ea_xa_v2(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do,int channel) {
     uint8_t frame_info;
     int32_t sample_count;
@@ -84,7 +85,7 @@ void decode_ea_xa_v2(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspac
     }
 }
 
-/* EA XA v1 stereo (aka "EA ADPCM") */
+/* EA XA v1 stereo */
 void decode_ea_xa(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do,int channel) {
     uint8_t frame_info;
     int32_t coef1, coef2;
