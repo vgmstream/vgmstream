@@ -69,12 +69,9 @@ int mpeg_custom_setup_init_default(STREAMFILE *streamFile, off_t start_offset, m
     }
 
 
-    /* unknown encryption */
-    if (data->type == MPEG_AHX && data->config.encryption) {
-        goto fail;
-    }
-
-
+    //todo: test more: this improves the output, but seems formats aren't usually prepared
+    // (and/or the num_samples includes all possible samples in file, so by discarding some it'll reach EOF)
+#if 0
     /* set encoder delay (samples to skip at the beginning of a stream) if needed, which varies with encoder used */
     switch(data->type) {
         case MPEG_AHX: data->skip_samples = 480; break; /* observed default */
@@ -82,7 +79,7 @@ int mpeg_custom_setup_init_default(STREAMFILE *streamFile, off_t start_offset, m
         default: break;
     }
     data->samples_to_discard = data->skip_samples;
-
+#endif
 
     return 1;
 fail:
@@ -121,10 +118,10 @@ int mpeg_custom_parse_frame_default(VGMSTREAMCHANNEL *stream, mpeg_codec_data *d
             }
 
             /* frame interleave (ie. read 1 data-frame, skip 1 data-frame per stream) */
-            current_interleave = data->config.interleave; /* constant, current_size+current_padding */
+            current_interleave = data->config.interleave; /* constant for multi-stream FSbs */
 
-            VGM_ASSERT(current_interleave != current_data_size+current_padding,
-                    "MPEG FSB: non-constant interleave found @ 0x%08lx\n", stream->offset);
+            VGM_ASSERT(data->streams_size > 1 && current_interleave != current_data_size+current_padding,
+                    "MPEG FSB: %i streams with non-constant interleave found @ 0x%08lx\n", data->streams_size, stream->offset);
             break;
 
         case MPEG_P3D: /* fixed interleave, not frame-aligned (ie. blocks may end/start in part of a frame) */
@@ -154,7 +151,7 @@ int mpeg_custom_parse_frame_default(VGMSTREAMCHANNEL *stream, mpeg_codec_data *d
 
     /* skip interleave once block is done, if defined */
     if (current_interleave && ((stream->offset - stream->channel_start_offset) % current_interleave == 0)) {
-        stream->offset += current_interleave * (data->ms_size-1); /* skip a block each stream */
+        stream->offset += current_interleave * (data->streams_size-1); /* skip a block each stream */
     }
 
     return 1;

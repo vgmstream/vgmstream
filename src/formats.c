@@ -469,6 +469,7 @@ static const coding_info coding_info_list[] = {
 #endif
 #ifdef VGM_USE_MPEG
         {coding_MPEG_custom,        "Custom MPEG Audio"},
+        {coding_MPEG_ealayer3,      "EALayer3"},
         {coding_MPEG_layer1,        "MPEG Layer I Audio (MP1)"},
         {coding_MPEG_layer2,        "MPEG Layer II Audio (MP2)"},
         {coding_MPEG_layer3,        "MPEG Layer III Audio (MP3)"},

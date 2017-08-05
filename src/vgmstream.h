@@ -164,6 +164,7 @@ typedef enum {
 
 #ifdef VGM_USE_MPEG
     coding_MPEG_custom,     /* MPEG audio with custom features (MDCT-based) */
+    coding_MPEG_ealayer3,   /* EALayer3, custom MPEG frames */
     coding_MPEG_layer1,     /* MP1 MPEG audio (MDCT-based) */
     coding_MPEG_layer2,     /* MP2 MPEG audio (MDCT-based) */
     coding_MPEG_layer3,     /* MP3 MPEG audio (MDCT-based) */
@@ -795,6 +796,7 @@ typedef enum {
     VORBIS_WWISE,       /* many variations (custom setup, headers and data) */
     VORBIS_OGL,         /* custom packet headers */
     VORBIS_SK           /* "OggS" replaced by "SK" */
+  //VORBIS_LYN          /* two interleaved Ogg (including setup, duplicated) */
 } vorbis_custom_t;
 
 /* config for Wwise Vorbis (3 types for flexibility though not all combinations exist) */
@@ -832,6 +834,7 @@ typedef struct {
 
     uint8_t * buffer;           /* internal raw data buffer */
     size_t buffer_size;
+
     size_t samples_to_discard;  /* for looping purposes */
     int samples_full;           /* flag, samples available in vorbis buffers */
 
@@ -848,8 +851,8 @@ typedef struct {
 } vorbis_custom_codec_data;
 #endif
 
-#ifdef VGM_USE_MPEG
 
+#ifdef VGM_USE_MPEG
 /* Custom MPEG modes, mostly differing in the data layout */
 typedef enum {
     MPEG_STANDARD,          /* 1 stream */
@@ -858,20 +861,36 @@ typedef enum {
     MPEG_FSB,               /* N streams of 1 data-frame+padding (=interleave) */
     MPEG_P3D,               /* N streams of fixed interleave (not frame-aligned) */
     MPEG_EA,                /* 1 stream (maybe N streams in absolute offsets?) */
-    MPEG_EAL31,             /* EALayer3 v1, custom frames */
-    MPEG_EAL32P,            /* EALayer3 v2 "P" (PCM?), altered custom frames */
-    MPEG_EAL32S,            /* EALayer3 v2 "S" (Spike?), altered custom frames */
+    MPEG_EAL31,             /* EALayer3 v1, custom frames with v1 header */
+    MPEG_EAL32P,            /* EALayer3 v2 "P" (PCM?), custom frames with v2 header */
+    MPEG_EAL32S,            /* EALayer3 v2 "S" (Spike?), custom frames with v2 header */
     MPEG_LYN,               /* N streams of fixed interleave */
     MPEG_AWC                /* N streams in absolute offsets (consecutive) */
 } mpeg_custom_t;
 
+/* config for the above modes */
 typedef struct {
     int channels; /* max channels */
     int fsb_padding; /* fsb padding mode */
     int chunk_size; /* size of a data portion */
     int interleave; /* size of stream interleave */
     int encryption; /* encryption mode */
+    /* for AHX */
+    int cri_type;
+    uint16_t cri_key1;
+    uint16_t cri_key2;
+    uint16_t cri_key3;
 } mpeg_custom_config;
+
+/* represents a single MPEG stream */
+typedef struct {
+    mpg123_handle *m; /* MPEG decoder */
+
+    uint8_t *output_buffer; /* decoded samples from this stream (in bytes for mpg123) */
+    size_t output_buffer_size;
+    size_t samples_filled; /* data in the buffer (in samples) */
+    size_t samples_used; /* data extracted from the buffer */
+} mpeg_custom_stream;
 
 typedef struct {
     uint8_t *buffer; /* internal raw data buffer */
@@ -891,19 +910,12 @@ typedef struct {
     mpeg_custom_t type; /* mpeg subtype */
     mpeg_custom_config config; /* config depending on the mode */
 
-    mpg123_handle **ms; /* custom MPEG decoder array */
-    size_t ms_size;
+    mpeg_custom_stream **streams; /* array of MPEG streams (ex. 2ch+2ch) */
+    size_t streams_size;
 
-    uint8_t *stream_buffer; /* contains samples from N frames of one stream */
-    size_t stream_buffer_size;
-    uint8_t *sample_buffer; /* contains samples from N frames of all streams/channels */
-    size_t sample_buffer_size;
-    size_t bytes_in_sample_buffer;
-    size_t bytes_used_in_sample_buffer;
-
-
-    size_t samples_to_discard; /* for custom mpeg looping */
     size_t skip_samples; /* base encoder delay */
+    size_t samples_to_discard; /* for custom mpeg looping */
+    size_t decode_to_discard;  /* for EALayer3, that discards decoded samples and writes PCM blocks in their place */
 
 } mpeg_codec_data;
 #endif
