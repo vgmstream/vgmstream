@@ -510,6 +510,7 @@ void reset_vgmstream(VGMSTREAM * vgmstream) {
 
 #ifdef VGM_USE_MPEG
     if (vgmstream->coding_type==coding_MPEG_custom ||
+        vgmstream->coding_type==coding_MPEG_ealayer3 ||
         vgmstream->coding_type==coding_MPEG_layer1 ||
         vgmstream->coding_type==coding_MPEG_layer2 ||
         vgmstream->coding_type==coding_MPEG_layer3) {
@@ -698,6 +699,7 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
 
 #ifdef VGM_USE_MPEG
     if (vgmstream->coding_type==coding_MPEG_custom ||
+        vgmstream->coding_type==coding_MPEG_ealayer3 ||
         vgmstream->coding_type==coding_MPEG_layer1 ||
         vgmstream->coding_type==coding_MPEG_layer2 ||
         vgmstream->coding_type==coding_MPEG_layer3) {
@@ -979,6 +981,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
 #endif
 #ifdef VGM_USE_MPEG
         case coding_MPEG_custom:
+        case coding_MPEG_ealayer3:
         case coding_MPEG_layer1:
         case coding_MPEG_layer2:
         case coding_MPEG_layer3:
@@ -1632,6 +1635,7 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
 
 #ifdef VGM_USE_MPEG
         case coding_MPEG_custom:
+        case coding_MPEG_ealayer3:
         case coding_MPEG_layer1:
         case coding_MPEG_layer2:
         case coding_MPEG_layer3:
@@ -1867,6 +1871,7 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream) {
 
 #ifdef VGM_USE_MPEG
         if (vgmstream->coding_type==coding_MPEG_custom ||
+            vgmstream->coding_type==coding_MPEG_ealayer3 ||
             vgmstream->coding_type==coding_MPEG_layer1 ||
             vgmstream->coding_type==coding_MPEG_layer2 ||
             vgmstream->coding_type==coding_MPEG_layer3) {

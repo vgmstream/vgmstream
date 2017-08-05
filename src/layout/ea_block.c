@@ -5,6 +5,7 @@
 /* set up for the block at the given offset */
 void ea_schl_block_update(off_t block_offset, VGMSTREAM * vgmstream) {
     int i;
+    int new_schl = 0;
     STREAMFILE* streamFile = vgmstream->ch[0].streamfile;
     uint32_t id;
     size_t file_size, block_size = 0, block_samples;
@@ -56,6 +57,10 @@ void ea_schl_block_update(off_t block_offset, VGMSTREAM * vgmstream) {
             if (id == 0x5343456C) { /* "SCEl" end block found */
                 block_offset += (block_offset % 0x04) == 0 ? 0 : 0x04 - (block_offset % 0x04); /* 32b-aligned, important */
                 /* Usually there is padding between SCEl and SCHl too (aligned to 0x80) */
+            }
+
+            if (id == 0x5343486C) { /* "SCHl", new subfile */
+                new_schl = 1;
             }
 
             continue;
@@ -114,6 +119,25 @@ void ea_schl_block_update(off_t block_offset, VGMSTREAM * vgmstream) {
 
             break;
 
+#ifdef VGM_USE_MPEG
+        /* id, size, samples, offset?, unknown (null for MP2, some constant for all blocks for EALayer3) */
+        case coding_MPEG_custom:
+        case coding_MPEG_layer1:
+        case coding_MPEG_layer2:
+        case coding_MPEG_layer3:
+        case coding_MPEG_ealayer3:
+            for (i = 0; i < vgmstream->channels; i++) {
+                off_t channel_start = read_32bit(block_offset + 0x0C,streamFile);
+                vgmstream->ch[i].offset = block_offset + 0x0C + (0x04*vgmstream->channels) + channel_start;
+            }
+
+            /* SCHl with multiple SCHl need to reset their MPEG decoder as there are trailing samples in the buffers */
+            if (new_schl) {
+                flush_mpeg(vgmstream->codec_data);
+            }
+
+            break;
+#endif
         /* id, size, samples, offsets-per-channel, interleaved data (w/ optional hist per channel) */
         default:
             for (i = 0; i < vgmstream->channels; i++) {

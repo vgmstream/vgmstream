@@ -155,6 +155,7 @@ void decode_fake_mpeg2_l2(VGMSTREAMCHANNEL * stream, mpeg_codec_data * data, sam
 void reset_mpeg(VGMSTREAM *vgmstream);
 void seek_mpeg(VGMSTREAM *vgmstream, int32_t num_sample);
 void free_mpeg(mpeg_codec_data *data);
+void flush_mpeg(mpeg_codec_data * data);
 
 long mpeg_bytes_to_samples(long bytes, const mpeg_codec_data *data);
 void mpeg_set_error_logging(mpeg_codec_data * data, int enable);

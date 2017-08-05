@@ -14,13 +14,13 @@
  * - fsb garbage in the first frames
  */
 
-#define MPEG_DATA_BUFFER_SIZE 0x1000 /* at least one MPEG sample (max ~0x5A1) */
-
+#define MPEG_DATA_BUFFER_SIZE 0x1000 /* at least one MPEG frame (max ~0x5A1) */
 
 static mpg123_handle * init_mpg123_handle();
 static void decode_mpeg_standard(VGMSTREAMCHANNEL *stream, mpeg_codec_data * data, sample * outbuf, int32_t samples_to_do, int channels);
 static void decode_mpeg_custom(VGMSTREAM * vgmstream, mpeg_codec_data * data, sample * outbuf, int32_t samples_to_do, int channels);
 static void decode_mpeg_custom_stream(VGMSTREAMCHANNEL *stream, mpeg_codec_data * data, int num_stream);
+
 
 /* Inits regular MPEG */
 mpeg_codec_data *init_mpeg_codec_data(STREAMFILE *streamfile, off_t start_offset, coding_t *coding_type, int channels) {
@@ -139,7 +139,7 @@ mpeg_codec_data *init_mpeg_custom_codec_data(STREAMFILE *streamFile, off_t start
     switch(data->type) {
         case MPEG_EAL31:
         case MPEG_EAL32P:
-        case MPEG_EAL32S:   ok = 0; break; //ok = mpeg_custom_setup_init_ealayer3(streamFile, start_offset, data, coding_type); break;
+        case MPEG_EAL32S:   ok = mpeg_custom_setup_init_ealayer3(streamFile, start_offset, data, coding_type); break;
         default:            ok = mpeg_custom_setup_init_default(streamFile, start_offset, data, coding_type); break;
     }
     if (!ok)
@@ -285,7 +285,6 @@ static void decode_mpeg_standard(VGMSTREAMCHANNEL *stream, mpeg_codec_data * dat
 static void decode_mpeg_custom(VGMSTREAM * vgmstream, mpeg_codec_data * data, sample * outbuf, int32_t samples_to_do, int channels) {
     int i, samples_done = 0;
 
-
     while (samples_done < samples_to_do) {
         int samples_to_copy = -1;
 
@@ -363,12 +362,12 @@ static void decode_mpeg_custom(VGMSTREAM * vgmstream, mpeg_codec_data * data, sa
 /* Decodes frames from a stream into the stream's sample buffer, feeding mpg123 buffer data.
  * If not enough data to decode (as N data-frames = 1 full-frame) this will exit but be called again. */
 static void decode_mpeg_custom_stream(VGMSTREAMCHANNEL *stream, mpeg_codec_data * data, int num_stream) {
-    size_t bytes_done = 0, bytes_filled;
+    size_t bytes_done = 0, bytes_filled, samples_filled;
     size_t stream_size = get_streamfile_size(stream->streamfile);
     int rc, ok;
     mpeg_custom_stream *ms = data->streams[num_stream];
 
-    //VGM_LOG("MPEG: decode stream%i @ 0x%08lx (filled=%i, used=%i)\n", num_stream, stream->offset, ms->samples_filled, ms->samples_used);
+    //;VGM_LOG("MPEG: decode stream%i @ 0x%08lx (filled=%i, used=%i)\n", num_stream, stream->offset, ms->samples_filled, ms->samples_used);
 
     /* wait until samples are depleted, so buffers don't grow too big */
     if (ms->samples_filled - ms->samples_used > 0) {
@@ -388,11 +387,11 @@ static void decode_mpeg_custom_stream(VGMSTREAMCHANNEL *stream, mpeg_codec_data 
 
     /* read more raw data (could fill the sample buffer too in some cases, namely EALayer3) */
     if (!data->buffer_full) {
-        //VGM_LOG("MPEG: reading more raw data\n");
+        //;VGM_LOG("MPEG: reading more raw data\n");
         switch(data->type) {
             case MPEG_EAL31:
             case MPEG_EAL32P:
-            case MPEG_EAL32S:   ok = 0; break; //ok = mpeg_custom_parse_frame_ealayer3(stream, data); break;
+            case MPEG_EAL32S:   ok = mpeg_custom_parse_frame_ealayer3(stream, data, num_stream); break;
             case MPEG_AHX:      ok = mpeg_custom_parse_frame_ahx(stream, data); break;
             default:            ok = mpeg_custom_parse_frame_default(stream, data); break;
         }
@@ -400,10 +399,13 @@ static void decode_mpeg_custom_stream(VGMSTREAMCHANNEL *stream, mpeg_codec_data 
             VGM_LOG("MPEG: cannot parse frame @ around %lx\n",stream->offset);
             goto decode_fail; /* mpg123 could resync but custom MPEGs wouldn't need that */
         }
-        //VGM_LOG("MPEG: read results: bytes_in_buffer=0x%x, new offset=%lx\n", data->bytes_in_buffer, stream->offset);
+        //;VGM_LOG("MPEG: read results: bytes_in_buffer=0x%x, new offset=%lx\n", data->bytes_in_buffer, stream->offset);
 
-        data->buffer_full = 1;
-        data->buffer_used = 0;
+        /* parse frame may not touch the buffer (only move offset, or fill the sample buffer) */
+        if (data->bytes_in_buffer) {
+            data->buffer_full = 1;
+            data->buffer_used = 0;
+        }
     }
 
 #if 0
@@ -420,10 +422,9 @@ static void decode_mpeg_custom_stream(VGMSTREAMCHANNEL *stream, mpeg_codec_data 
 
 
     bytes_filled = sizeof(sample)*ms->samples_filled*data->channels_per_frame;
-
     /* feed new raw data to the decoder if needed, copy decoded results to frame buffer output */
     if (!data->buffer_used) {
-        //VGM_LOG("MPEG: feed new data and get samples \n");
+        //;VGM_LOG("MPEG: feed new data and get samples \n");
         rc = mpg123_decode(ms->m,
                 data->buffer, data->bytes_in_buffer,
                 (unsigned char*)ms->output_buffer + bytes_filled, ms->output_buffer_size - bytes_filled,
@@ -431,21 +432,37 @@ static void decode_mpeg_custom_stream(VGMSTREAMCHANNEL *stream, mpeg_codec_data 
         data->buffer_used = 1;
     }
     else {
-        //VGM_LOG("MPEG: get samples from old data\n");
+        //;VGM_LOG("MPEG: get samples from old data\n");
         rc = mpg123_decode(ms->m,
                 NULL, 0,
                 (unsigned char*)ms->output_buffer + bytes_filled, ms->output_buffer_size - bytes_filled,
                 &bytes_done);
     }
+    samples_filled = (bytes_done / sizeof(sample) / data->channels_per_frame);
+
+    /* for EALayer3, that discards decoded samples and writes PCM blocks instead */
+    if (data->decode_to_discard) {
+        size_t bytes_to_discard = 0;
+        size_t decode_to_discard = data->decode_to_discard;
+        if (decode_to_discard > samples_filled)
+            decode_to_discard = samples_filled;
+        bytes_to_discard = sizeof(sample)*decode_to_discard*data->channels_per_frame;
+
+        bytes_done -= bytes_to_discard;
+        data->decode_to_discard -= decode_to_discard;
+        ms->samples_used += decode_to_discard;
+    }
 
     /* if no decoding was done bytes_done will be zero */
-    ms->samples_filled += (bytes_done / sizeof(sample) / data->channels_per_frame);
+    ms->samples_filled += samples_filled;
 
-    /* not enough raw data, set flag to request more next time */
-    if (rc == MPG123_NEED_MORE) {
-        //VGM_LOG("MPEG: need more raw data to get samples\n");
+    /* not enough raw data, set flag to request more next time
+     * (but only with empty mpg123 buffer, EA blocks wait for all samples decoded before advancing blocks) */
+    if (!bytes_done && rc == MPG123_NEED_MORE) {
+        //;VGM_LOG("MPEG: need more raw data to get samples (bytest_done=%x)\n", bytes_done);
         data->buffer_full = 0;
     }
+
 
     return;
 
@@ -507,8 +524,8 @@ void reset_mpeg(VGMSTREAM *vgmstream) {
             data->streams[i]->samples_used = 0;
         }
 
-        /* initial delay */
-        data->samples_to_discard = data->skip_samples;
+        data->samples_to_discard = data->skip_samples; /* initial delay */
+        data->decode_to_discard = 0;
     }
 }
 
@@ -541,8 +558,35 @@ void seek_mpeg(VGMSTREAM *vgmstream, int32_t num_sample) {
 
     data->buffer_full = 0;
     data->buffer_used = 0;
+    data->decode_to_discard = 0;
 }
 
+/* resets mpg123 decoder and its internals (with mpg123_open_feed as mpg123_feedseek won't work) */
+void flush_mpeg(mpeg_codec_data * data) {
+    if (!data)
+        return;
+
+    if (!data->custom) {
+        /* input_offset is ignored as we can assume it will be 0 for a seek to sample 0 */
+        mpg123_open_feed(data->m);
+    }
+    else {
+        int i;
+        /* re-start from 0 */
+        for (i=0; i < data->streams_size; i++) {
+            mpg123_open_feed(data->streams[i]->m);
+            data->streams[i]->samples_filled = 0;
+            data->streams[i]->samples_used = 0;
+        }
+
+        data->samples_to_discard = data->skip_samples; /* initial delay */
+        data->decode_to_discard = 0;
+    }
+
+    data->bytes_in_buffer = 0;
+    data->buffer_full = 0;
+    data->buffer_used = 0;
+}
 
 long mpeg_bytes_to_samples(long bytes, const mpeg_codec_data *data) {
     /* if not found just return 0 and expect to fail (if used for num_samples) */

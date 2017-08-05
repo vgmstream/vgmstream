@@ -164,6 +164,7 @@ typedef enum {
 
 #ifdef VGM_USE_MPEG
     coding_MPEG_custom,     /* MPEG audio with custom features (MDCT-based) */
+    coding_MPEG_ealayer3,   /* EALayer3, custom MPEG frames */
     coding_MPEG_layer1,     /* MP1 MPEG audio (MDCT-based) */
     coding_MPEG_layer2,     /* MP2 MPEG audio (MDCT-based) */
     coding_MPEG_layer3,     /* MP3 MPEG audio (MDCT-based) */
@@ -833,6 +834,7 @@ typedef struct {
 
     uint8_t * buffer;           /* internal raw data buffer */
     size_t buffer_size;
+
     size_t samples_to_discard;  /* for looping purposes */
     int samples_full;           /* flag, samples available in vorbis buffers */
 
@@ -911,8 +913,9 @@ typedef struct {
     mpeg_custom_stream **streams; /* array of MPEG streams (ex. 2ch+2ch) */
     size_t streams_size;
 
-    size_t samples_to_discard; /* for custom mpeg looping */
     size_t skip_samples; /* base encoder delay */
+    size_t samples_to_discard; /* for custom mpeg looping */
+    size_t decode_to_discard;  /* for EALayer3, that discards decoded samples and writes PCM blocks in their place */
 
 } mpeg_codec_data;
 #endif
