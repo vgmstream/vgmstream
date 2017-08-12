@@ -32,7 +32,7 @@ static const char* extension_list[] = {
     //"aiff", //common
     "aix",
     "akb",
-    "amts",
+    "amts", //fake extension (to be removed)
     "as4",
     "asd",
     "asf",
@@ -147,14 +147,15 @@ static const char* extension_list[] = {
     "kovs",
     "kraw",
 
-    "laac", //fake extension, for tri-Ace/FFmpeg
+    "laac", //fake extension, for AAC (tri-Ace/FFmpeg)
     "leg",
-    "lmp4", //fake extension, for looping
-    "logg", //fake extension, for looping
+    "lmp4", //fake extension, for MP4s
+    "logg", //fake extension, for OGGs
     "lpcm",
     "lps",
     "lsf",
-    "lwav", //fake extension, for looping
+    "lstm", //fake extension, for STMs
+    "lwav", //fake extension, for WAVs
 
     "matx",
     "mc3",
@@ -187,7 +188,7 @@ static const char* extension_list[] = {
     "ndp",
     "ngca",
     "nps",
-    "npsf",
+    "npsf", //fake extension (to be removed)
     "nus3bank",
     "nwa",
 
@@ -206,7 +207,7 @@ static const char* extension_list[] = {
     "pnb",
     "pona",
     "pos",
-    "ps2stm",
+    "ps2stm", //fake extension (to be removed)
     "psh",
     "psnd",
     "psw",
@@ -266,7 +267,7 @@ static const char* extension_list[] = {
     "ster",
     "sth",
     //"stm", //common
-    "stma",
+    "stma", //fake extension (to be removed)
     "str",
     "strm",
     "sts",
@@ -660,7 +661,6 @@ static const meta_info meta_info_list[] = {
         {meta_PS2_TEC,              "assumed TECMO badflagged stream by .tec extension"},
         {meta_XBOX_WVS,             "Metal Arms WVS Header (XBOX)"},
         {meta_NGC_WVS,              "Metal Arms WVS Header (GameCube)"},
-        {meta_XBOX_STMA,            "Midnight Club 2 STMA Header"},
         {meta_XBOX_MATX,            "assumed Matrix file by .matx extension"},
         {meta_DE2,                  "gurumin .de2 with embedded funky RIFF"},
         {meta_VS,                   "Men in Black VS Header"},
@@ -762,7 +762,6 @@ static const meta_info meta_info_list[] = {
         {meta_WII_WAS,              "WAS (iSWS) DSP header"},
         {meta_XBOX_HLWAV,           "Half Life 2 bgm header"},
         {meta_STX,                  "Nintendo .stx header"},
-        {meta_PS2_STM,              "Red Dead Revolver .stm (.ps2stm)"},
         {meta_MYSPD,                "U-Sing .myspd header"},
         {meta_HIS,                  "Her Interactive Sound header"},
         {meta_PS2_AST,              "KOEI AST header"},
@@ -874,6 +873,7 @@ static const meta_info meta_info_list[] = {
         {meta_EA_BNK,               "Electronic Arts BNK header"},
         {meta_SK_AUD,               "Silicon Knights AUD header"},
         {meta_AHX,                  "CRI AHX header"},
+        {meta_STM,                  "Angel Studios/Rockstar San Diego STMA header"},
 
 #ifdef VGM_USE_VORBIS
         {meta_OGG_VORBIS,           "Ogg Vorbis"},

@@ -265,7 +265,6 @@ typedef enum {
     meta_DSP_STR,			/* Conan .str files */
     meta_DSP_SADB,          /* .sad */
     meta_DSP_WSI,           /* .wsi */
-    meta_DSP_AMTS,			/* .amts */
     meta_DSP_WII_IDSP,		/* .gcm with IDSP header */
     meta_DSP_WII_MUS,       /* .mus */
     meta_DSP_WII_WSD,		/* Phantom Brave (WII) */
@@ -437,7 +436,6 @@ typedef enum {
 	meta_ADS,               /* Gauntlet Dark Legends (GC) */
 	meta_PS2_SPS,           /* Ape Escape 2 */
     meta_PS2_XA2_RRP,       /* RC Revenge Pro */
-    meta_PS2_STM,           /* Red Dead Revolver .stm, renamed .ps2stm */
     meta_NGC_DSP_KONAMI,    /* Konami DSP header, found in various games */
 	meta_UBI_CKD,           /* Ubisoft CKD RIFF header (Rayman Origins Wii) */
 
@@ -445,7 +443,6 @@ typedef enum {
     meta_XBOX_RIFF,			/* XBOX RIFF/WAVE File */
     meta_XBOX_WVS,			/* XBOX WVS */
     meta_NGC_WVS,			/* Metal Arms - Glitch in the System */
-    meta_XBOX_STMA,			/* XBOX STMA */
     meta_XBOX_MATX,			/* XBOX MATX */
     meta_XBOX_XMU,			/* XBOX XMU */
     meta_XBOX_XVAS,			/* XBOX VAS */
@@ -617,6 +614,7 @@ typedef enum {
     meta_TXTH,              /* generic text header */
     meta_SK_AUD,            /* Silicon Knights .AUD (Eternal Darkness GC) */
     meta_AHX,               /* CRI AHX header */
+    meta_STM,               /* Angel Studios/Rockstar San Diego Games */
 
 #ifdef VGM_USE_VORBIS
     meta_OGG_VORBIS,        /* Ogg Vorbis */
