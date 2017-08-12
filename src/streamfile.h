@@ -59,6 +59,12 @@ typedef struct _STREAMFILE {
     size_t (*get_bytes_read)(struct _STREAMFILE *);
     int (*get_error_count)(struct _STREAMFILE *);
 #endif
+
+
+    /* Substream selection for files with multiple streams. Manually used in metas if supported.
+     * Not ideal here, but it's the simplest way to pass to all init_vgmstream_x functions. */
+    int stream_index; /* 0=default/auto (first), 1=first, N=Nth */
+
 } STREAMFILE;
 
 /* open file with a set buffer size, create a STREAMFILE object or return NULL if open failed */
