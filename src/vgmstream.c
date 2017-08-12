@@ -446,6 +446,9 @@ VGMSTREAM * init_vgmstream_internal(STREAMFILE *streamFile, int do_dfs) {
             }
 #endif
 
+            /* save info */
+            vgmstream->stream_index = streamFile->stream_index;
+
             /* save start things so we can restart for seeking */
             /* copy the channels */
             memcpy(vgmstream->start_ch,vgmstream->ch,sizeof(VGMSTREAMCHANNEL)*vgmstream->channels);
@@ -2052,8 +2055,21 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
     /* only interesting if more than one */
     if (vgmstream->num_streams > 1) {
         snprintf(temp,TEMPSIZE,
-                "\nnumber of streams: %d",
+                "\nstream number: %d",
                 vgmstream->num_streams);
+        concatn(length,desc,temp);
+    }
+
+    if (vgmstream->num_streams > 1 && vgmstream->stream_index > 0) {
+        snprintf(temp,TEMPSIZE,
+                "\nstream index: %d",
+                vgmstream->stream_index);
+        concatn(length,desc,temp);
+    }
+    if (vgmstream->stream_name[0] != '\0') {
+        snprintf(temp,TEMPSIZE,
+                "\nstream name: %s",
+                vgmstream->stream_name);
         concatn(length,desc,temp);
     }
 }

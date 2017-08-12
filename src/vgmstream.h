@@ -6,6 +6,7 @@
 #define _VGMSTREAM_H
 
 enum { PATH_LIMIT = 32768 };
+enum { STREAM_NAME_SIZE = 255 }; /* reasonable max */
 
 #include "streamfile.h"
 
@@ -698,7 +699,11 @@ typedef struct {
     coding_t coding_type;   /* type of encoding */
     layout_t layout_type;   /* type of layout for data */
     meta_t meta_type;       /* how we know the metadata */
-    int num_streams;        /* info only, for a few multi-stream formats (0=not set/one, 1=one stream) */
+
+    /* streams (info only) */
+    int num_streams;        /* for multi-stream formats (0=not set/one, 1=one stream) */
+    int stream_index;       /* current stream */
+    char stream_name[STREAM_NAME_SIZE]; /* name of the current stream, if the file stores it and it's filled */
 
     /* looping */
     int loop_flag;          /* is this stream looped? */
