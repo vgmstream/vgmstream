@@ -6,14 +6,14 @@
 VGMSTREAM * init_vgmstream_ps2_rxws(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     STREAMFILE * streamHeader = NULL;
-    off_t start_offset, chunk_offset;
-    size_t data_size;
+    off_t start_offset, chunk_offset, name_offset = 0;
+    size_t data_size, chunk_size;
     int loop_flag = 0, channel_count, is_separate, type, sample_rate;
     int32_t loop_start, loop_end;
-    int target_stream = 0, total_streams;
+    int total_streams, target_stream = streamFile->stream_index;
 
     /* check extensions */
-    /* .xws: header and data, .xwh+xwb: header + data */
+    /* .xws: header and data, .xwh+xwb: header + data (.bin+dat are also found in Wild Arms 4/5) */
     if (!check_extensions(streamFile,"xws,xwb")) goto fail;
     is_separate = check_extensions(streamFile,"xwb");
 
@@ -35,13 +35,15 @@ VGMSTREAM * init_vgmstream_ps2_rxws(STREAMFILE *streamFile) {
     /* file size (just the .xwh/xws) */
     if (read_32bitLE(0x04,streamHeader)+0x10 != get_streamfile_size(streamHeader))
         goto fail;
-    /* 0x08(4): version/type? (0x200), 0x0C: null */
+    /* 0x08(4): version (0x100/0x200), 0x0C: null */
 
     /* typical chunks: FORM, FTXT, MARK, BODY (for .xws) */
     if (read_32bitBE(0x10,streamHeader) != 0x464F524D) /* "FORM", main header (always first) */
         goto fail;
-    /* 0x04: chunk size (-0x10), 0x08 version/type? (0x100), 0x0c: null */
+    chunk_size = read_32bitLE(0x10+0x04,streamHeader); /* size - 0x10 */
+    /* 0x08 version (0x100), 0x0c: null */
     chunk_offset = 0x20;
+
 
     /* check multi-streams */
     total_streams = read_32bitLE(chunk_offset+0x00,streamHeader);
@@ -92,6 +94,14 @@ VGMSTREAM * init_vgmstream_ps2_rxws(STREAMFILE *streamFile) {
         start_offset = data_offset + stream_offset;
     }
 
+    /* get stream name (always follows FORM) */
+    if (read_32bitBE(0x10+0x10 + chunk_size,streamHeader) == 0x46545854) { /* "FTXT" */
+        chunk_offset = 0x10+0x10 + chunk_size + 0x10;
+        if (read_32bitLE(chunk_offset+0x00,streamHeader) == total_streams) {
+            name_offset = chunk_offset + read_32bitLE(chunk_offset+0x04 + (target_stream-1)*0x04,streamHeader);
+        }
+    }
+
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
@@ -100,6 +110,8 @@ VGMSTREAM * init_vgmstream_ps2_rxws(STREAMFILE *streamFile) {
     vgmstream->sample_rate = sample_rate;
     vgmstream->num_streams = total_streams;
     vgmstream->meta_type = meta_PS2_RXWS;
+    if (name_offset)
+        read_string(vgmstream->stream_name,STREAM_NAME_SIZE, name_offset,streamHeader);
 
     switch (type) {
         case 0x00:      /* PS-ADPCM */
@@ -107,9 +119,9 @@ VGMSTREAM * init_vgmstream_ps2_rxws(STREAMFILE *streamFile) {
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = 0x10;
 
-            vgmstream->num_samples = ps_bytes_to_samples(loop_end, channel_count); //todo (read_32bitLE(0x38,streamFile)*28/16)/2;
-            vgmstream->loop_start_sample = ps_bytes_to_samples(loop_start, channel_count); //todo read_32bitLE(0x3C,streamFile)/16*14;
-            vgmstream->loop_end_sample = ps_bytes_to_samples(loop_end, channel_count); //todo read_32bitLE(0x38,streamFile)/16*14;
+            vgmstream->num_samples = ps_bytes_to_samples(loop_end, channel_count);
+            vgmstream->loop_start_sample = ps_bytes_to_samples(loop_start, channel_count);
+            vgmstream->loop_end_sample = ps_bytes_to_samples(loop_end, channel_count);
             break;
 
         case 0x01:      /* PCM */

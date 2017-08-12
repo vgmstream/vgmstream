@@ -53,7 +53,7 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
     int headers_entries;
     int32_t loop_start, loop_end;
 
-    int target_stream = 1; /* N=Nth stream, 0=auto (first) */
+    int target_stream = streamFile->stream_index;
     int loop_flag = 0, channel_count, codec_id;
     int aux_chunk_count;
 

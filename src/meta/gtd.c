@@ -6,7 +6,7 @@ typedef enum { XMA2 } gtd_codec;
 /* GTD - found in Knights Contract (X360, PS3), Valhalla Knights 3 (PSV) */
 VGMSTREAM * init_vgmstream_gtd(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    off_t start_offset, chunk_offset;
+    off_t start_offset, chunk_offset, stpr_offset, name_offset = 0;
     size_t data_size, chunk_size;
     int loop_flag, channel_count, sample_rate;
     int num_samples, loop_start_sample, loop_end_sample;
@@ -32,14 +32,22 @@ VGMSTREAM * init_vgmstream_gtd(STREAMFILE *streamFile) {
 
         start_offset = read_32bitBE(0x58,streamFile); /* always 0x800 */
         data_size = read_32bitBE(0x5c,streamFile);
-        /* 0x40(18): null,  0x60(4): header size (0x70), 0x64(4): seek table size again, 0x68(8): null */
-        /* 0x70: seek table; then a "STPR" chunk with the file ID and filename */
+        /* 0x34(18): null,  0x54(4): seek table offset, 0x58(4): seek table size, 0x5c(8): null, 0x64: seek table */
+
+        stpr_offset = read_32bitBE(chunk_offset+0x54,streamFile) + read_32bitBE(chunk_offset+0x58,streamFile);;
+        if (read_32bitBE(stpr_offset,streamFile) == 0x53545052) { /* "STPR" */
+            name_offset = stpr_offset + 0xB8; /* there are offsets fields but seems to work */
+        }
 
         codec = XMA2;
     }
     else {
-        /* there are PSV (LE, ATRAC9) and PS3 (MSF inside?) variations, somewhat-but-not-quite similar
-         * (contain the "STPR" chunk but the rest is mostly different) */
+        /* there are PSV (LE, ATRAC9 data) and PS3 (MSF inside?) variations, somewhat-but-not-quite similar */
+
+        /* for PSV: */
+        /* 0x0c: data_size, 0x10: channles, 0x14: sample rate, 0x18-0x2c: fixed and unknown values */
+        /* 0x2c: STPR chunk, with name_offset at + 0xE8 */
+
         goto fail;
     }
 
@@ -53,6 +61,8 @@ VGMSTREAM * init_vgmstream_gtd(STREAMFILE *streamFile) {
     vgmstream->loop_start_sample = loop_start_sample;
     vgmstream->loop_end_sample   = loop_end_sample;
     vgmstream->meta_type = meta_GTD;
+    if (name_offset) //encoding is Shift-Jis in some PSV files
+        read_string(vgmstream->stream_name,STREAM_NAME_SIZE, name_offset,streamFile);
 
     switch(codec) {
 #ifdef VGM_USE_FFMPEG

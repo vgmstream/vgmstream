@@ -122,7 +122,7 @@ VGMSTREAM * init_vgmstream_ea_bnk(STREAMFILE *streamFile) {
     int32_t (*read_32bit)(off_t,STREAMFILE*) = NULL;
     int16_t (*read_16bit)(off_t,STREAMFILE*) = NULL;
     int i, bnk_version;
-    int target_stream = 0, total_streams;
+    int total_streams, target_stream = streamFile->stream_index;
 
 
     /* check extension */

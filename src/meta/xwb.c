@@ -63,13 +63,15 @@ typedef struct {
     uint32_t loop_end_sample;
 } xwb_header;
 
+static void get_xsb_name(char * buf, size_t maxsize, int target_stream, xwb_header * xwb, STREAMFILE *streamFile);
+
 
 /* XWB - XACT Wave Bank (Microsoft SDK format for XBOX/XBOX360/Windows) */
 VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     off_t start_offset, off, suboff;
     xwb_header xwb;
-    int target_stream = 0;
+    int target_stream = streamFile->stream_index;
     int32_t (*read_32bit)(off_t,STREAMFILE*) = NULL;
 
 
@@ -336,6 +338,7 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
     vgmstream->loop_end_sample   = xwb.loop_end_sample;
     vgmstream->num_streams = xwb.streams;
     vgmstream->meta_type = meta_XWB;
+    get_xsb_name(vgmstream->stream_name,STREAM_NAME_SIZE, target_stream, &xwb, streamFile);
 
     switch(xwb.codec) {
         case PCM:
@@ -461,4 +464,330 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
 fail:
     close_vgmstream(vgmstream);
     return NULL;
+}
+
+
+/* ****************************************************************************** */
+/* XSB parsing from xwb_split (mostly untouched), could be improved */
+
+#define XSB_XACT1_MAX   11
+#define XSB_XACT2_MAX   41
+
+/**
+ * XWB contain stream info (channels, loop, data etc), often from multiple streams.
+ * XSBs contain info about how to play sounds (volume, pitch, name, etc) from XWBs (music or SFX).
+ * We only need to parse the XSB for the stream names.
+ */
+typedef struct {
+    int sound_count;
+} xsb_wavebank;
+
+typedef struct {
+    int stream_index; /* stream id in the xwb (doesn't need to match xsb sound order) */
+    int wavebank; /* xwb id, if the xsb has multiple wavebanks */
+    off_t name_index; /* name order */
+    off_t name_offset; /* global offset to the name string */
+    off_t sound_offset; /* global offset to the xsb sound */
+    off_t unk_index; /* some kind of number up to sound_count or 0xffff */
+} xsb_sound;
+
+typedef struct {
+    /* XSB header info */
+    xsb_sound * xsb_sounds; /* array of sounds info from the xsb, simplified */
+    xsb_wavebank * xsb_wavebanks; /* array of wavebank info from the xsb, simplified */
+
+    off_t xsb_sounds_offset;
+    size_t xsb_sounds_count;
+
+    size_t xsb_simple_sounds_offset; /* sound cues */
+    size_t xsb_simple_sounds_count;
+    size_t xsb_complex_sounds_offset;
+    size_t xsb_complex_sounds_count;
+
+    size_t xsb_wavebanks_count;
+    off_t xsb_nameoffsets_offset;
+} xsb_header;
+
+
+/* try to find the stream name in a companion XSB file, a comically complex cue format. */
+static void get_xsb_name(char * buf, size_t maxsize, int target_stream, xwb_header * xwb, STREAMFILE *streamXwb) {
+    STREAMFILE *streamFile;
+    int i,j, start_sound, cfg__start_sound = 0, cfg__selected_wavebank = 0;
+    int xsb_version;
+    off_t off, suboff, name_offset = 0;
+    int32_t (*read_32bit)(off_t,STREAMFILE*) = NULL;
+    int16_t (*read_16bit)(off_t,STREAMFILE*) = NULL;
+    xsb_header xsb;
+
+    memset(&xsb,0,sizeof(xsb_header)); /* before any "fail"! */
+
+
+    streamFile = open_stream_ext(streamXwb, "xsb");
+    if (!streamFile) goto fail;
+
+    //todo try common names (xwb and xsb often are named slightly differently using a common convention)
+
+
+    /* check header */
+    if ((read_32bitBE(0x00,streamFile) != 0x5344424B) &&    /* "SDBK" (LE) */
+        (read_32bitBE(0x00,streamFile) != 0x4B424453))      /* "KBDS" (BE) */
+        goto fail;
+
+    if (read_32bitBE(0x00,streamFile) == 0x5344424B) { /* SDBK */
+        read_32bit = read_32bitLE;
+        read_16bit = read_16bitLE;
+    } else {
+        read_32bit = read_32bitBE;
+        read_16bit = read_16bitBE;
+    }
+
+
+
+    /* read main header (SoundBankHeader) */
+    xsb_version = read_16bit(0x04, streamFile);
+    if ((xwb->version <= XACT1_1_MAX && xsb_version > XSB_XACT1_MAX) || (xwb->version <= XACT2_2_MAX && xsb_version > XSB_XACT2_MAX)) {
+        VGM_LOG("XSB: xsb and xwb are from different XACT versions (xsb v%i vs xwb v%i)", xsb_version, xwb->version);
+        goto fail;
+    }
+
+
+    off = 0;
+    if (xsb_version <= XSB_XACT1_MAX) {
+        xsb.xsb_wavebanks_count = 1; //read_8bit(0x22, streamFile);
+        xsb.xsb_sounds_count = read_16bit(0x1e, streamFile);//@ 0x1a? 0x1c?
+        //xsb.xsb_names_size   = 0;
+        //xsb.xsb_names_offset = 0;
+        xsb.xsb_nameoffsets_offset = 0;
+        xsb.xsb_sounds_offset = 0x38;
+    } else if (xsb_version <= XSB_XACT2_MAX) {
+        xsb.xsb_simple_sounds_count = read_16bit(0x09, streamFile);
+        xsb.xsb_complex_sounds_count = read_16bit(0x0B, streamFile);
+        xsb.xsb_wavebanks_count = read_8bit(0x11, streamFile);
+        xsb.xsb_sounds_count = read_16bit(0x12, streamFile);
+        //0x14: 16b unk
+        //xsb.xsb_names_size   = read_32bit(0x16, streamFile);
+        xsb.xsb_simple_sounds_offset = read_32bit(0x1a, streamFile);
+        xsb.xsb_complex_sounds_offset = read_32bit(0x1e, streamFile); //todo 0x1e?
+        //xsb.xsb_names_offset = read_32bit(0x22, streamFile);
+        xsb.xsb_nameoffsets_offset = read_32bit(0x3a, streamFile);
+        xsb.xsb_sounds_offset = read_32bit(0x3e, streamFile);
+    } else {
+        xsb.xsb_simple_sounds_count = read_16bit(0x13, streamFile);
+        xsb.xsb_complex_sounds_count = read_16bit(0x15, streamFile);
+        xsb.xsb_wavebanks_count = read_8bit(0x1b, streamFile);
+        xsb.xsb_sounds_count = read_16bit(0x1c, streamFile);
+        //xsb.xsb_names_size   = read_32bit(0x1e, streamFile);
+        xsb.xsb_simple_sounds_offset = read_32bit(0x22, streamFile);
+        xsb.xsb_complex_sounds_offset = read_32bit(0x26, streamFile);
+        //xsb.xsb_names_offset = read_32bit(0x2a, streamFile);
+        xsb.xsb_nameoffsets_offset = read_32bit(0x42, streamFile);
+        xsb.xsb_sounds_offset = read_32bit(0x46, streamFile);
+    }
+
+    VGM_ASSERT(xsb.xsb_sounds_count < xwb->streams,
+               "XSB: number of streams in xsb lower than xwb (xsb %i vs xwb %i)", xsb.xsb_sounds_count, xwb->streams);
+
+    VGM_ASSERT(xsb.xsb_simple_sounds_count + xsb.xsb_complex_sounds_count != xsb.xsb_sounds_count,
+               "XSB: number of xsb sounds doesn't match simple + complex sounds (simple %i, complex %i, total %i)", xsb.xsb_simple_sounds_count, xsb.xsb_complex_sounds_count, xsb.xsb_sounds_count);
+
+
+    /* init stuff */
+    xsb.xsb_sounds = calloc(xsb.xsb_sounds_count, sizeof(xsb_sound));
+    if (!xsb.xsb_sounds) goto fail;
+
+    xsb.xsb_wavebanks = calloc(xsb.xsb_wavebanks_count, sizeof(xsb_wavebank));
+    if (!xsb.xsb_wavebanks) goto fail;
+
+    /* The following is a bizarre soup of flags, tables, offsets to offsets and stuff, just to get the actual name.
+     * info: https://wiki.multimedia.cx/index.php/XACT */
+
+    /* parse xsb sounds */
+    off = xsb.xsb_sounds_offset;
+    for (i = 0; i < xsb.xsb_sounds_count; i++) {
+        xsb_sound *s = &(xsb.xsb_sounds[i]);
+        uint32_t flag;
+        size_t size;
+
+        if (xsb_version <= XSB_XACT1_MAX) {
+            /* The format seems constant */
+            flag = read_8bit(off+0x00, streamFile);
+            size = 0x14;
+
+            if (flag != 0x01) {
+                VGM_LOG("XSB: xsb flag 0x%x at offset 0x%08lx not implemented", flag, off);
+                goto fail;
+            }
+
+            s->wavebank     = 0; //read_8bit(off+suboff + 0x02, streamFile);
+            s->stream_index = read_16bit(off+0x02, streamFile);
+            s->sound_offset = off;
+            s->name_offset  = read_16bit(off+0x04, streamFile);
+        }
+        else {
+            /* Each XSB sound has a variable size and somewhere inside is the stream/wavebank index.
+             * Various flags control the sound layout, but I can't make sense of them so quick hack instead */
+            flag = read_8bit(off+0x00, streamFile);
+            //0x01 16b unk, 0x03: 8b unk 04: 16b unk, 06: 8b unk
+            size = read_16bit(off+0x07, streamFile);
+
+            if (!(flag & 0x01)) { /* simple sound */
+                suboff = 0x09;
+            } else { /* complex sound */
+                /* not very exact but seems to work */
+                if (flag==0x01 || flag==0x03 || flag==0x05 || flag==0x07) {
+                    if (size == 0x49) { //grotesque hack for Eschatos (these flags are way too complex)
+                        suboff = 0x23;
+                    } else if (size % 2 == 1 && read_16bit(off+size-0x2, streamFile)!=0) {
+                        suboff = size - 0x08 - 0x07; //7 unk bytes at the end
+                    } else {
+                        suboff = size - 0x08;
+                    }
+                } else {
+                    VGM_LOG("XSB: xsb flag 0x%x at offset 0x%08lx not implemented", flag, off);
+                    goto fail;
+                }
+            }
+
+            s->stream_index = read_16bit(off+suboff + 0x00, streamFile);
+            s->wavebank     =  read_8bit(off+suboff + 0x02, streamFile);
+            s->sound_offset = off;
+        }
+
+        if (s->wavebank+1 > xsb.xsb_wavebanks_count) {
+            VGM_LOG("XSB: unknown xsb wavebank id %i at offset 0x%lx", s->wavebank, off);
+            goto fail;
+        }
+
+        xsb.xsb_wavebanks[s->wavebank].sound_count += 1;
+        off += size;
+    }
+
+
+    /* parse name offsets */
+    if (xsb_version > XSB_XACT1_MAX) {
+        /* "cue" name order: first simple sounds, then complex sounds
+         * Both aren't ordered like the sound entries, instead use a global offset to the entry
+         *
+         * ex. of a possible XSB:
+         *   name 1 = simple  sound 1 > sound entry 2 (points to xwb stream 4): stream 4 uses name 1
+         *   name 2 = simple  sound 2 > sound entry 1 (points to xwb stream 1): stream 1 uses name 2
+         *   name 3 = complex sound 1 > sound entry 3 (points to xwb stream 3): stream 3 uses name 3
+         *   name 4 = complex sound 2 > sound entry 4 (points to xwb stream 2): stream 2 uses name 4
+         *
+         * Multiple cues can point to the same sound entry but we only use the first name (meaning some won't be used) */
+        off_t n_off = xsb.xsb_nameoffsets_offset;
+
+        off = xsb.xsb_simple_sounds_offset;
+        for (i = 0; i < xsb.xsb_simple_sounds_count; i++) {
+            off_t sound_offset = read_32bit(off + 0x01, streamFile);
+            off += 0x05;
+
+            /* find sound by offset */
+            for (j = 0; j < xsb.xsb_sounds_count; j++) {
+                xsb_sound *s = &(xsb.xsb_sounds[j]);;
+                /* update with the current name offset */
+                if (!s->name_offset && sound_offset == s->sound_offset) {
+                    s->name_offset = read_32bit(n_off + 0x00, streamFile);
+                    s->unk_index  = read_16bit(n_off + 0x04, streamFile);
+                    n_off += 0x06;
+                    break;
+                }
+            }
+        }
+
+        off = xsb.xsb_complex_sounds_offset;
+        for (i = 0; i < xsb.xsb_complex_sounds_count; i++) {
+            off_t sound_offset = read_32bit(off + 0x01, streamFile);
+            off += 0x0f;
+
+            /* find sound by offset */
+            for (j = 0; j < xsb.xsb_sounds_count; j++) {
+                xsb_sound *s = &(xsb.xsb_sounds[j]);;
+                /* update with the current name offset */
+                if (!s->name_offset && sound_offset == s->sound_offset) {
+                    s->name_offset = read_32bit(n_off + 0x00, streamFile);
+                    s->unk_index  = read_16bit(n_off + 0x04, streamFile);
+                    n_off += 0x06;
+                    break;
+                }
+            }
+        }
+    }
+
+    // todo: it's possible to find the wavebank using the name
+    /* try to find correct wavebank, in cases of multiple */
+    if (!cfg__selected_wavebank) {
+        for (i = 0; i < xsb.xsb_wavebanks_count; i++) {
+            xsb_wavebank *w = &(xsb.xsb_wavebanks[i]);
+
+            //CHECK_EXIT(w->sound_count == 0, "ERROR: xsb wavebank %i has no sounds", i); //Ikaruga PC
+
+            if (w->sound_count == xwb->streams) {
+                if (!cfg__selected_wavebank) {
+                    VGM_LOG("XSB: multiple xsb wavebanks with the same number of sounds, use -w to specify one of the wavebanks");
+                    goto fail;
+                }
+
+                cfg__selected_wavebank = i+1;
+            }
+        }
+    }
+
+    /* banks with different number of sounds but only one wavebank, just select the first */
+    if (!cfg__selected_wavebank && xsb.xsb_wavebanks_count==1) {
+        cfg__selected_wavebank = 1;
+    }
+
+    if (!cfg__selected_wavebank) {
+        VGM_LOG("XSB: multiple xsb wavebanks but autodetect didn't work");
+        goto fail;
+    }
+    if (xsb.xsb_wavebanks[cfg__selected_wavebank-1].sound_count == 0) {
+        VGM_LOG("XSB: xsb selected wavebank %i has no sounds", cfg__selected_wavebank);
+        goto fail;
+    }
+
+    if (cfg__start_sound) {
+        if (xsb.xsb_wavebanks[cfg__selected_wavebank-1].sound_count - (cfg__start_sound-1) < xwb->streams) {
+            VGM_LOG("XSB: starting sound too high (max in selected wavebank is %i)", xsb.xsb_wavebanks[cfg__selected_wavebank-1].sound_count - xwb->streams + 1);
+            goto fail;
+        }
+
+    } else {
+        /*
+        if (!cfg->ignore_names_not_found)
+            CHECK_EXIT(xwb->xsb_wavebanks[cfg->selected_wavebank-1].sound_count > xwb->streams_count, "ERROR: number of streams in xsb wavebank bigger than xwb (xsb %i vs xwb %i), use -s to specify (1=first)", xwb->xsb_wavebanks[cfg->selected_wavebank-1].sound_count, xwb->streams_count);
+        if (!cfg->ignore_names_not_found)
+            CHECK_EXIT(xwb->xsb_wavebanks[cfg->selected_wavebank-1].sound_count < xwb->streams_count, "ERROR: number of streams in xsb wavebank lower than xwb (xsb %i vs xwb %i), use -n to ignore (some names won't be extracted)", xwb->xsb_wavebanks[cfg->selected_wavebank-1].sound_count, xwb->streams_count);
+        */
+
+
+        //if (!cfg->ignore_names_not_found)
+        //    CHECK_EXIT(xwb->xsb_wavebanks[cfg->selected_wavebank-1].sound_count != xwb->streams_count, "ERROR: number of streams in xsb wavebank different than xwb (xsb %i vs xwb %i), use -s to specify (1=first)", xwb->xsb_wavebanks[cfg->selected_wavebank-1].sound_count, xwb->streams_count);
+    }
+
+    /* *************************** */
+
+    start_sound = cfg__start_sound ? cfg__start_sound-1 : 0;
+
+    /* get name offset */
+    for (i = start_sound; i < xsb.xsb_sounds_count; i++) {
+        xsb_sound *s = &(xsb.xsb_sounds[i]);
+        VGM_LOG("wa=%i, sel=%i, si=%i vs ti=%i\n", s->wavebank, cfg__selected_wavebank, s->stream_index, target_stream);
+        if (s->wavebank == cfg__selected_wavebank-1
+                && s->stream_index == target_stream-1){
+            name_offset = s->name_offset;
+            break;
+        }
+    }
+
+    if (name_offset)
+        read_string(buf,maxsize, name_offset,streamFile);
+
+    //return; /* no return, let free */
+
+fail:
+    free(xsb.xsb_sounds);
+    free(xsb.xsb_wavebanks);
+    return;
 }
