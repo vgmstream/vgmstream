@@ -100,9 +100,7 @@ size_t dsp_bytes_to_samples(size_t bytes, int channels) {
 }
 
 
-/**
- * reads DSP coefs built in the streamfile
- */
+/* reads DSP coefs built in the streamfile */
 void dsp_read_coefs_be(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t offset, off_t spacing) {
     dsp_read_coefs(vgmstream, streamFile, offset, spacing, 1);
 }
@@ -118,6 +116,26 @@ void dsp_read_coefs(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t offset,
                     read_16bitBE(offset + ch*spacing + i*2, streamFile) :
                     read_16bitLE(offset + ch*spacing + i*2, streamFile);
         }
+    }
+}
+
+/* reads DSP initial hist built in the streamfile */
+void dsp_read_hist_be(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t offset, off_t spacing) {
+    dsp_read_hist(vgmstream, streamFile, offset, spacing, 1);
+}
+void dsp_read_hist_le(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t offset, off_t spacing) {
+    dsp_read_hist(vgmstream, streamFile, offset, spacing, 0);
+}
+void dsp_read_hist(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t offset, off_t spacing, int be) {
+    int ch;
+    /* get ADPCM hist */
+    for (ch=0; ch < vgmstream->channels; ch++) {
+        vgmstream->ch[ch].adpcm_history1_16 = be ?
+                read_16bitBE(offset + ch*spacing + 0*2, streamFile) :
+                read_16bitLE(offset + ch*spacing + 0*2, streamFile);;
+        vgmstream->ch[ch].adpcm_history2_16 = be ?
+                read_16bitBE(offset + ch*spacing + 1*2, streamFile) :
+                read_16bitLE(offset + ch*spacing + 1*2, streamFile);;
     }
 }
 
