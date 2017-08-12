@@ -3,6 +3,8 @@
 #include "../layout/layout.h"
 #include "../util.h"
 
+#define TXTH_LINE_MAX 0x2000
+
 /* known TXTH types */
 typedef enum {
     PSX = 0,          /* PSX ADPCM */
@@ -390,13 +392,6 @@ fail:
 static int parse_txth(STREAMFILE * streamFile, STREAMFILE * streamText, txth_header * txth) {
     off_t off = 0;
     off_t file_size = get_streamfile_size(streamText);
-#ifndef LINE_MAX /* some platforms define this via limits.h */
-#if defined(_MSC_VER) && (_MSC_VER < 1900)
-	enum { LINE_MAX = 0x2000 };
-#else
-	const size_t LINE_MAX = 0x2000; /* arbitrary max */
-#endif
-#endif
 
     txth->data_size = get_streamfile_size(streamFile); /* for later use */
 
@@ -406,15 +401,15 @@ static int parse_txth(STREAMFILE * streamFile, STREAMFILE * streamText, txth_hea
 
     /* read lines */
     while (off < file_size) {
-        char line[LINE_MAX];
-        char key[LINE_MAX];
-        char val[LINE_MAX]; /* at least as big as a line to avoid overflows (I hope) */
+        char line[TXTH_LINE_MAX];
+        char key[TXTH_LINE_MAX];
+        char val[TXTH_LINE_MAX]; /* at least as big as a line to avoid overflows (I hope) */
         int ok;
         off_t line_start = off, line_end = 0;
         line[0] = key[0] = val[0] = 0;
         
         /* find line end */
-        while (line_end == 0 && off - line_start < LINE_MAX) {
+        while (line_end == 0 && off - line_start < TXTH_LINE_MAX) {
             char c = (char)read_8bit(off, streamText);
             if (c == '\n')
                 line_end = off;
