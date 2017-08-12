@@ -21,6 +21,7 @@
 #include "../src/vgmstream.h"
 #include "in2.h"
 #include "wa_ipc.h"
+#include "ipc_pe.h"
 #include "resource.h"
 
 
@@ -43,6 +44,7 @@ In_Module input_module; /* the input module, declared at the bottom of this file
 DWORD WINAPI __stdcall decode(void *arg);
 
 
+/* config defaults */
 #define DEFAULT_FADE_SECONDS "10.00"
 #define DEFAULT_FADE_DELAY_SECONDS "0.00"
 #define DEFAULT_LOOP_COUNT "2.00"
@@ -60,8 +62,6 @@ DWORD WINAPI __stdcall decode(void *arg);
 char *priority_strings[] = {"Idle","Lowest","Below Normal","Normal","Above Normal","Highest (not recommended)","Time Critical (not recommended)"};
 int priority_values[] = {THREAD_PRIORITY_IDLE,THREAD_PRIORITY_LOWEST,THREAD_PRIORITY_BELOW_NORMAL,THREAD_PRIORITY_NORMAL,THREAD_PRIORITY_ABOVE_NORMAL,THREAD_PRIORITY_HIGHEST,THREAD_PRIORITY_TIME_CRITICAL};
 
-#define WINAMP_MAX_PATH  32768  /* originally 260+1 */
-in_char lastfn[WINAMP_MAX_PATH] = {0}; /* name of the currently playing file */
 
 /* Winamp Play extension list, needed to accept/play and associate extensions in Windows */
 #define EXTENSION_LIST_SIZE   VGM_EXTENSION_LIST_CHAR_SIZE * 6
@@ -88,6 +88,9 @@ int decode_pos_ms = 0;
 int decode_pos_samples = 0;
 int stream_length_samples = 0;
 int fade_samples = 0;
+
+#define WINAMP_MAX_PATH  32768  /* originally 260+1 */
+in_char lastfn[WINAMP_MAX_PATH] = {0}; /* name of the currently playing file */
 
 /* ***************************************** */
 
@@ -190,10 +193,26 @@ static void copy_title(in_char * dst, int dst_size, const in_char * src) {
 #endif
 }
 
+/* opens vgmstream for winamp */
+static VGMSTREAM* init_vgmstream_winamp(const in_char *fn) {
+    VGMSTREAM * vgmstream = NULL;
+
+    //return init_vgmstream(fn);
+
+    /* manually init streamfile to pass the stream index */
+    STREAMFILE *streamFile = open_stdio_streamfile(fn);
+    if (streamFile) {
+        vgmstream = init_vgmstream_from_STREAMFILE(streamFile);
+        close_streamfile(streamFile);
+    }
+
+    return vgmstream;
+}
+
 /* ***************************************** */
 
 /* about dialog */
-void about(HWND hwndParent) {
+void winamp_About(HWND hwndParent) {
     MessageBox(hwndParent,
             PLUGIN_DESCRIPTION "\n"
             "by hcs, FastElbja, manakoAT, bxaimc, snakemeat, soneek, kode54, bnnm and many others\n"
@@ -206,14 +225,15 @@ void about(HWND hwndParent) {
 }
 
 /* called at program init */
-void init() {
+void winamp_Init() {
     char iniFile[WINAMP_MAX_PATH];
     char buf[256];
     int consumed;
 
+
     GetINIFileName(iniFile);
 
-    thread_priority=GetPrivateProfileInt(APP_NAME,THREAD_PRIORITY_INI_ENTRY,DEFAULT_THREAD_PRIORITY,iniFile);
+    thread_priority = GetPrivateProfileInt(APP_NAME,THREAD_PRIORITY_INI_ENTRY,DEFAULT_THREAD_PRIORITY,iniFile);
     if (thread_priority < 0 || thread_priority > 6) {
         sprintf(buf,"%d",DEFAULT_THREAD_PRIORITY);
         WritePrivateProfileString(APP_NAME,THREAD_PRIORITY_INI_ENTRY,buf,iniFile);
@@ -238,84 +258,76 @@ void init() {
         sscanf(DEFAULT_LOOP_COUNT,"%lf",&loop_count);
     }
 
-    loop_forever=GetPrivateProfileInt(APP_NAME,LOOP_FOREVER_INI_ENTRY,DEFAULT_LOOP_FOREVER,iniFile);
-    ignore_loop=GetPrivateProfileInt(APP_NAME,IGNORE_LOOP_INI_ENTRY,DEFAULT_IGNORE_LOOP,iniFile);
-
+    loop_forever = GetPrivateProfileInt(APP_NAME,LOOP_FOREVER_INI_ENTRY,DEFAULT_LOOP_FOREVER,iniFile);
+    ignore_loop = GetPrivateProfileInt(APP_NAME,IGNORE_LOOP_INI_ENTRY,DEFAULT_IGNORE_LOOP,iniFile);
     if (loop_forever && ignore_loop) {
         sprintf(buf,"%d",DEFAULT_LOOP_FOREVER);
         WritePrivateProfileString(APP_NAME,LOOP_FOREVER_INI_ENTRY,buf,iniFile);
         loop_forever = DEFAULT_LOOP_FOREVER;
+
         sprintf(buf,"%d",DEFAULT_IGNORE_LOOP);
         WritePrivateProfileString(APP_NAME,IGNORE_LOOP_INI_ENTRY,buf,iniFile);
         ignore_loop = DEFAULT_IGNORE_LOOP;
     }
 
+    /* dynamically make a list of supported extensions */
     build_extension_list();
 }
 
 /* called at program quit */
-void quit() {
+void winamp_Quit() {
 }
 
 /* called before extension checks, to allow detection of mms://, etc */
-int isourfile(const in_char *fn) {
+int winamp_IsOurFile(const in_char *fn) {
     return 0; /* we don't recognize protocols */
 }
 
 /* request to start playing a file */
-int play(const in_char *fn) {
+int winamp_Play(const in_char *fn) {
     int max_latency;
 
-    /* don't lose a pointer! */
-    if (vgmstream) {
-        /* TODO: this should either pop up an error box or close the file */
-        return 1; /* error */
-    }
 
-    /* open the stream, set up */
-    vgmstream = init_vgmstream(fn);
-    /* were we able to open it? */
-    if (!vgmstream) {
+    if (vgmstream)
+        return 1; // TODO: this should either pop up an error box or close the file
+
+    /* open the stream */
+    vgmstream = init_vgmstream_winamp(fn);
+    if (!vgmstream)
         return 1;
-    }
-    if (ignore_loop) vgmstream->loop_flag = 0;
-    /* will we be able to play it? */
-    if (vgmstream->channels <= 0) {
-        close_vgmstream(vgmstream);
-        vgmstream=NULL;
-        return 1; /* error */
-    }
 
-    /* Remember that name, friends! */
+    /* config */
+    if (ignore_loop)
+        vgmstream->loop_flag = 0;
+
+    /* save original name */
     strncpy(lastfn,fn,WINAMP_MAX_PATH);
 
     /* open the output plugin */
-    max_latency = input_module.outMod->Open(vgmstream->sample_rate,vgmstream->channels,
-            16, 0, 0);
-    /* were we able to open it? */
+    max_latency = input_module.outMod->Open(vgmstream->sample_rate,vgmstream->channels, 16, 0, 0);
     if (max_latency < 0) {
         close_vgmstream(vgmstream);
-        vgmstream=NULL;
-        return 1; /* error */
+        vgmstream = NULL;
+        return 1;
     }
 
-    /* Set info display */
-    /* TODO: actual bitrate */
+    /* set info display */ //TODO: actual bitrate
     input_module.SetInfo(get_vgmstream_average_bitrate(vgmstream)/1000,vgmstream->sample_rate/1000,vgmstream->channels,1);
 
     /* setup visualization */
     input_module.SAVSAInit(max_latency,vgmstream->sample_rate);
     input_module.VSASetInfo(vgmstream->sample_rate,vgmstream->channels);
 
+    /* reset internals */
     decode_abort = 0;
     seek_needed_samples = -1;
     decode_pos_ms = 0;
     decode_pos_samples = 0;
     paused = 0;
     stream_length_samples = get_vgmstream_play_samples(loop_count,fade_seconds,fade_delay_seconds,vgmstream);
-
     fade_samples = (int)(fade_seconds * vgmstream->sample_rate);
 
+    /* start */
     decode_thread_handle = CreateThread(
             NULL,   /* handle cannot be inherited */
             0,      /* stack size, 0=default */
@@ -330,129 +342,141 @@ int play(const in_char *fn) {
 }
 
 /* pause stream */
-void pause() {
-    paused=1;
+void winamp_Pause() {
+    paused = 1;
     input_module.outMod->Pause(1);
 }
 
 /* unpause stream */
-void unpause() {
-    paused=0;
+void winamp_UnPause() {
+    paused = 0;
     input_module.outMod->Pause(0);
 }
 
-/* ispaused? return 1 if paused, 0 if not */
-int ispaused() {
+/* return 1 if paused, 0 if not */
+int winamp_IsPaused() {
     return paused;
 }
 
 /* stop (unload) stream */
-void stop() {
+void winamp_Stop() {
     if (decode_thread_handle != INVALID_HANDLE_VALUE) {
-        decode_abort=1;
+        decode_abort = 1;
 
         /* arbitrary wait length */
         if (WaitForSingleObject(decode_thread_handle,1000) == WAIT_TIMEOUT) {
-            /* TODO: error? */
-            TerminateThread(decode_thread_handle,0);
+            TerminateThread(decode_thread_handle,0); // TODO: error?
         }
         CloseHandle(decode_thread_handle);
         decode_thread_handle = INVALID_HANDLE_VALUE;
     }
 
-    if (vgmstream) {
-        close_vgmstream(vgmstream);
-        vgmstream=NULL;
-    }
+
+    close_vgmstream(vgmstream);
+    vgmstream = NULL;
 
     input_module.outMod->Close();
     input_module.SAVSADeInit();
 }
 
 /* get length in ms */
-int getlength() {
-    return stream_length_samples*1000LL/vgmstream->sample_rate;
+int winamp_GetLength() {
+    return stream_length_samples * 1000LL / vgmstream->sample_rate;
 }
 
 /* current output time in ms */
-int getoutputtime() {
-    return decode_pos_ms+(input_module.outMod->GetOutputTime()-input_module.outMod->GetWrittenTime());
+int winamp_GetOutputTime() {
+    return decode_pos_ms + (input_module.outMod->GetOutputTime()-input_module.outMod->GetWrittenTime());
 }
 
 /* seeks to point in stream (in ms) */
-void setoutputtime(int t) {
+void winamp_SetOutputTime(int time_in_ms) {
     if (vgmstream)
-        seek_needed_samples = (long long)t * vgmstream->sample_rate / 1000LL;
+        seek_needed_samples = (long long)time_in_ms * vgmstream->sample_rate / 1000LL;
 }
 
 /* pass these commands through */
-void setvolume(int volume) {
+void winamp_SetVolume(int volume) {
     input_module.outMod->SetVolume(volume);
 }
-void setpan(int pan) {
+void winamp_SetPan(int pan) {
     input_module.outMod->SetPan(pan);
 }
 
-/* display information */
-int infoDlg(const in_char *fn, HWND hwnd) {
-    VGMSTREAM * infostream = NULL;
+/* display info box (ALT+3) */
+int winamp_InfoBox(const in_char *fn, HWND hwnd) {
     char description[1024] = {0};
+
 
     concatn(sizeof(description),description,PLUGIN_DESCRIPTION "\n\n");
 
     if (!fn || !*fn) {
-        if (!vgmstream) return 0;
+        /* no filename = current playing file */
+        if (!vgmstream)
+            return 0;
+
         describe_vgmstream(vgmstream,description,sizeof(description));
-    } else {
-        infostream = init_vgmstream((char*)fn);
-        if (!infostream) return 0;
+    }
+    else {
+        /* some other file in playlist given by filename */
+        VGMSTREAM * infostream = NULL;
+
+        infostream = init_vgmstream_winamp(fn);
+        if (!infostream)
+            return 0;
+
         describe_vgmstream(infostream,description,sizeof(description));
+
         close_vgmstream(infostream);
-        infostream=NULL;
+        infostream = NULL;
     }
 
     MessageBox(hwnd,description,"Stream info",MB_OK);
     return 0;
 }
 
-/* retrieve information on this or possibly another file */
-void getfileinfo(const in_char *filename, in_char *title, int *length_in_ms) {
+/* retrieve title (playlist name) and time on the current or other file in the playlist */
+void winamp_GetFileInfo(const in_char *fn, in_char *title, int *length_in_ms) {
 
-    if (!filename || !*filename)  /* no filename = use currently playing file */
-    {
+    if (!fn || !*fn) {
+        /* no filename = current playing file */
+
         if (!vgmstream)
             return;
-        if (length_in_ms)
-            *length_in_ms = getlength();
 
         if (title) {
             copy_title(title,GETFILEINFO_TITLE_LENGTH, lastfn);
         }
-    }
-    else /* some other file */
-    {
-        VGMSTREAM * infostream;
 
         if (length_in_ms) {
-            *length_in_ms=-1000;
+            *length_in_ms = winamp_GetLength();
+        }
+    }
+    else {
+        /* some other file in playlist given by filename */
+        VGMSTREAM * infostream = NULL;
 
-            if ((infostream=init_vgmstream(filename))) {
-                *length_in_ms = get_vgmstream_play_samples(loop_count,fade_seconds,fade_delay_seconds,infostream)*1000LL/infostream->sample_rate;
+        infostream = init_vgmstream_winamp(fn);
 
-                close_vgmstream(infostream);
-                infostream=NULL;
+        if (title) {
+            copy_title(title,GETFILEINFO_TITLE_LENGTH, fn);
+        }
+
+        if (length_in_ms) {
+            *length_in_ms = -1000;
+            if (infostream) {
+                int num_samples = get_vgmstream_play_samples(loop_count,fade_seconds,fade_delay_seconds,infostream);
+                *length_in_ms = num_samples * 1000LL /infostream->sample_rate;
             }
         }
 
-        if (title) {
-            copy_title(title,GETFILEINFO_TITLE_LENGTH, filename);
-        }
+        close_vgmstream(infostream);
+        infostream = NULL;
     }
 }
 
 /* eq stuff */
-void eq_set(int on, char data[10], int preamp) {
-    /* nothin' */
+void winamp_EQSet(int on, char data[10], int preamp) {
 }
 
 /* the decode thread */
@@ -461,14 +485,14 @@ DWORD WINAPI __stdcall decode(void *arg) {
     int max_buffer_samples = sizeof(sample_buffer)/sizeof(sample_buffer[0])/2/vgmstream->channels;
 
     while (!decode_abort) {
-
         int samples_to_do;
         int l;
 
-        if (decode_pos_samples+max_buffer_samples>stream_length_samples && (!loop_forever || !vgmstream->loop_flag))
-            samples_to_do=stream_length_samples-decode_pos_samples;
+        if (decode_pos_samples + max_buffer_samples > stream_length_samples
+                && (!loop_forever || !vgmstream->loop_flag))
+            samples_to_do = stream_length_samples - decode_pos_samples;
         else
-            samples_to_do=max_buffer_samples;
+            samples_to_do = max_buffer_samples;
 
         /* play 'till the end of this seek, or note if we're done seeking */
         if (seek_needed_samples != -1) {
@@ -476,29 +500,29 @@ DWORD WINAPI __stdcall decode(void *arg) {
             if (seek_needed_samples < decode_pos_samples) {
                 reset_vgmstream(vgmstream);
 
-                if (ignore_loop) vgmstream->loop_flag = 0;
+                if (ignore_loop)
+                    vgmstream->loop_flag = 0;
 
                 decode_pos_samples = 0;
                 decode_pos_ms = 0;
             }
 
             if (decode_pos_samples < seek_needed_samples) {
-                samples_to_do=seek_needed_samples-decode_pos_samples;
-                if (samples_to_do>max_buffer_samples) samples_to_do=max_buffer_samples;
+                samples_to_do = seek_needed_samples-decode_pos_samples;
+                if (samples_to_do > max_buffer_samples)
+                    samples_to_do = max_buffer_samples;
             } else
                 seek_needed_samples = -1;
 
             input_module.outMod->Flush((int)decode_pos_ms);
         }
 
-        l = (samples_to_do*vgmstream->channels*2)<<(input_module.dsp_isactive()?1:0);
+        l = (samples_to_do*vgmstream->channels*2) << (input_module.dsp_isactive()?1:0);
 
         if (samples_to_do == 0) {
             input_module.outMod->CanWrite();    /* ? */
             if (!input_module.outMod->IsPlaying()) {
-                PostMessage(input_module.hMainWindow,   /* message dest */
-                        WM_WA_MPEG_EOF,     /* message id */
-                        0,0);   /* no parameters */
+                PostMessage(input_module.hMainWindow, WM_WA_MPEG_EOF, 0,0); /* end */
                 return 0;
             }
             Sleep(10);
@@ -506,8 +530,8 @@ DWORD WINAPI __stdcall decode(void *arg) {
         else if (seek_needed_samples != -1) {
             render_vgmstream(sample_buffer,samples_to_do,vgmstream);
 
-            decode_pos_samples+=samples_to_do;
-            decode_pos_ms=decode_pos_samples*1000LL/vgmstream->sample_rate;
+            decode_pos_samples += samples_to_do;
+            decode_pos_ms = decode_pos_samples * 1000LL / vgmstream->sample_rate;
         }
         else if (input_module.outMod->CanWrite() >= l) {
             /* let vgmstream do its thing */
@@ -518,10 +542,10 @@ DWORD WINAPI __stdcall decode(void *arg) {
                 int samples_into_fade = decode_pos_samples - (stream_length_samples - fade_samples);
                 if (samples_into_fade + samples_to_do > 0) {
                     int j,k;
-                    for (j=0;j<samples_to_do;j++,samples_into_fade++) {
+                    for (j=0; j < samples_to_do; j++, samples_into_fade++) {
                         if (samples_into_fade > 0) {
                             double fadedness = (double)(fade_samples-samples_into_fade)/fade_samples;
-                            for (k=0;k<vgmstream->channels;k++) {
+                            for (k=0; k < vgmstream->channels; k++) {
                                 sample_buffer[j*vgmstream->channels+k] =
                                     (short)(sample_buffer[j*vgmstream->channels+k]*fadedness);
                             }
@@ -532,19 +556,22 @@ DWORD WINAPI __stdcall decode(void *arg) {
 
             input_module.SAAddPCMData((char*)sample_buffer,vgmstream->channels,16,decode_pos_ms);
             input_module.VSAAddPCMData((char*)sample_buffer,vgmstream->channels,16,decode_pos_ms);
-            decode_pos_samples+=samples_to_do;
-            decode_pos_ms=decode_pos_samples*1000LL/vgmstream->sample_rate;
+            decode_pos_samples += samples_to_do;
+            decode_pos_ms = decode_pos_samples*1000LL/vgmstream->sample_rate;
             if (input_module.dsp_isactive())
-                l =input_module.dsp_dosamples(sample_buffer,samples_to_do,16,vgmstream->channels,vgmstream->sample_rate) * 
-                    2 * vgmstream->channels;
+                l = input_module.dsp_dosamples(sample_buffer,samples_to_do,16,vgmstream->channels,vgmstream->sample_rate) * 2 * vgmstream->channels;
 
             input_module.outMod->Write((char*)sample_buffer,l);
         }   /* if we can write enough */
-        else Sleep(20);
+        else {
+            Sleep(20);
+        }
     }   /* main loop */
+
     return 0;
 }
 
+/* config dialog handler */
 INT_PTR CALLBACK configDlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     char buf[256];
     char iniFile[WINAMP_MAX_PATH];
@@ -696,7 +723,7 @@ INT_PTR CALLBACK configDlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 }
 
 /* configuration dialog */
-void config(HWND hwndParent) {
+void winamp_Config(HWND hwndParent) {
     /* defined in resource.rc */
     DialogBox(input_module.hDllInstance, (const char *)IDD_CONFIG, hwndParent, configDlgProc);
 }
@@ -707,33 +734,33 @@ void config(HWND hwndParent) {
 In_Module input_module = {
     IN_VER,
     PLUGIN_DESCRIPTION,
-    0,  /* hMainWindow */
-    0,  /* hDllInstance */
+    0,  /* hMainWindow (filled in by Winamp) */
+    0,  /* hDllInstance (filled in by Winamp) */
     working_extension_list,
-    1, /* is_seekable  */
-    1, /* uses output */
-    config,
-    about,
-    init,
-    quit,
-    getfileinfo,
-    infoDlg,
-    isourfile,
-    play,
-    pause,
-    unpause,
-    ispaused,
-    stop,
-    getlength,
-    getoutputtime,
-    setoutputtime,
-    setvolume,
-    setpan,
-    0,0,0,0,0,0,0,0,0, // vis stuff
-    0,0, // dsp
-    eq_set,
-    NULL,       // setinfo
-    0 // out_mod
+    1, /* is_seekable flag  */
+    1, /* UsesOutputPlug flag */
+    winamp_Config,
+    winamp_About,
+    winamp_Init,
+    winamp_Quit,
+    winamp_GetFileInfo,
+    winamp_InfoBox,
+    winamp_IsOurFile,
+    winamp_Play,
+    winamp_Pause,
+    winamp_UnPause,
+    winamp_IsPaused,
+    winamp_Stop,
+    winamp_GetLength,
+    winamp_GetOutputTime,
+    winamp_SetOutputTime,
+    winamp_SetVolume,
+    winamp_SetPan,
+    0,0,0,0,0,0,0,0,0, /* vis stuff */
+    0,0, /* dsp stuff */
+    winamp_EQSet,
+    NULL, /* SetInfo */
+    0 /* outMod */
 };
 
 __declspec( dllexport ) In_Module * winampGetInModule2() {
