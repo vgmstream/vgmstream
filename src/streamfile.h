@@ -67,13 +67,12 @@ typedef struct _STREAMFILE {
 
 } STREAMFILE;
 
-/* open file with a set buffer size, create a STREAMFILE object or return NULL if open failed */
-STREAMFILE * open_stdio_streamfile_buffer(const char * const filename, size_t buffersize);
+/* create a STREAMFILE from path */
+STREAMFILE * open_stdio_streamfile(const char * filename);
 
-/* open file with a default buffer size, create a STREAMFILE object or return NULL if open failed */
-static inline STREAMFILE * open_stdio_streamfile(const char * const filename) {
-    return open_stdio_streamfile_buffer(filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-}
+/* create a STREAMFILE from pre-opened file path */
+STREAMFILE * open_stdio_streamfile_by_file(FILE * file, const char * filename);
+
 
 /* close a file, destroy the STREAMFILE object */
 static inline void close_streamfile(STREAMFILE * streamfile) {

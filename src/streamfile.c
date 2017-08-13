@@ -12,7 +12,7 @@
 #define STREAMFILE_IGNORE_EOF 0
 
 
-/* buffered file reader */
+/* a STREAMFILE that operates via standard IO using a buffer */
 typedef struct {
     STREAMFILE sf;          /* callbacks */
     FILE * infile;          /* actual FILE */
@@ -31,7 +31,8 @@ typedef struct {
 #endif
 } STDIOSTREAMFILE;
 
-static STREAMFILE * open_stdio_streamfile_buffer_by_FILE(FILE *infile,const char * const filename, size_t buffersize);
+static STREAMFILE * open_stdio_streamfile_buffer(const char * const filename, size_t buffersize);
+static STREAMFILE * open_stdio_streamfile_buffer_by_file(FILE *infile,const char * const filename, size_t buffersize);
 
 static size_t read_the_rest(uint8_t * dest, off_t offset, size_t length, STDIOSTREAMFILE * streamfile) {
     size_t length_read_total=0;
@@ -211,12 +212,13 @@ static STREAMFILE *open_stdio(STDIOSTREAMFILE *streamFile,const char * const fil
 
     if (!filename)
         return NULL;
+
     // if same name, duplicate the file pointer we already have open
     if (!strcmp(streamFile->name,filename)) {
         if (((newfd = dup(fileno(streamFile->infile))) >= 0) &&
             (newfile = fdopen( newfd, "rb" ))) 
         {
-            newstreamFile = open_stdio_streamfile_buffer_by_FILE(newfile,filename,buffersize);
+            newstreamFile = open_stdio_streamfile_buffer_by_file(newfile,filename,buffersize);
             if (newstreamFile) { 
                 return newstreamFile;
             }
@@ -228,7 +230,7 @@ static STREAMFILE *open_stdio(STDIOSTREAMFILE *streamFile,const char * const fil
     return open_stdio_streamfile_buffer(filename,buffersize);
 }
 
-static STREAMFILE * open_stdio_streamfile_buffer_by_FILE(FILE *infile,const char * const filename, size_t buffersize) {
+static STREAMFILE * open_stdio_streamfile_buffer_by_file(FILE *infile,const char * const filename, size_t buffersize) {
     uint8_t * buffer;
     STDIOSTREAMFILE * streamfile;
 
@@ -269,20 +271,32 @@ static STREAMFILE * open_stdio_streamfile_buffer_by_FILE(FILE *infile,const char
     return &streamfile->sf;
 }
 
-STREAMFILE * open_stdio_streamfile_buffer(const char * const filename, size_t buffersize) {
+static STREAMFILE * open_stdio_streamfile_buffer(const char * const filename, size_t buffersize) {
     FILE * infile;
     STREAMFILE *streamFile;
 
     infile = fopen(filename,"rb");
     if (!infile) return NULL;
 
-    streamFile = open_stdio_streamfile_buffer_by_FILE(infile,filename,buffersize);
+    streamFile = open_stdio_streamfile_buffer_by_file(infile,filename,buffersize);
     if (!streamFile) {
         fclose(infile);
     }
 
     return streamFile;
 }
+
+
+STREAMFILE * open_stdio_streamfile(const char * filename) {
+    return open_stdio_streamfile_buffer(filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
+}
+
+STREAMFILE * open_stdio_streamfile_by_file(FILE * file, const char * filename) {
+    return open_stdio_streamfile_buffer_by_file(file,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
+}
+
+
+/* **************************************************** */
 
 /* Read a line into dst. The source files are MS-DOS style,
  * separated (not terminated) by CRLF. Return 1 if the full line was
