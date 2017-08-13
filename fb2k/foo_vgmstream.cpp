@@ -43,6 +43,7 @@ extern "C" {
 
 input_vgmstream::input_vgmstream() {
     vgmstream = NULL;
+    subsong = 1;
 
     decoding = false;
     paused = 0;
@@ -57,6 +58,7 @@ input_vgmstream::input_vgmstream() {
     loop_count = 2.0f;
     loop_forever = false;
     ignore_loop = 0;
+    disable_subsongs = true;
 
     load_settings();
 }
@@ -68,13 +70,10 @@ input_vgmstream::~input_vgmstream() {
 
 void input_vgmstream::open(service_ptr_t<file> p_filehint,const char * p_path,t_input_open_reason p_reason,abort_callback & p_abort) {
 
-    if (!p_path) {
+    if (!p_path) { // shouldn't be possible
         throw exception_io_data();
         return;
     }
-
-
-    currentreason = p_reason;
 
     filename = p_path;
 
@@ -87,22 +86,24 @@ void input_vgmstream::open(service_ptr_t<file> p_filehint,const char * p_path,t_
         if ( !memcmp( buffer, "MUS\x1A", 4 ) ) throw exception_io_unsupported_format();
     }
 
+
+    // keep file stats around (timestamp, filesize)
+    if ( p_filehint.is_empty() )
+        input_open_file_helper( p_filehint, filename, p_reason, p_abort );
+    stats = p_filehint->get_stats( p_abort );
+
     switch(p_reason) {
-        case input_open_decode:
-            setup_vgmstream(p_abort);
+        case input_open_decode: // prepare to retrieve info and decode
+        case input_open_info_read: // prepare to retrieve info
+            setup_vgmstream(p_abort); // must init vgmstream to get subsongs
             break;
 
-        case input_open_info_read:
-            if ( p_filehint.is_empty() ) input_open_file_helper( p_filehint, filename, p_reason, p_abort );
-            stats = p_filehint->get_stats( p_abort );
-            break;
-
-        case input_open_info_write:
-            //cant write...ever
+        case input_open_info_write: // prepare to retrieve info and tag
             throw exception_io_data();
             break;
 
-        default:
+        default: // nothing else should be possible
+            throw exception_io_data();
             break;
     }
 }
@@ -111,12 +112,18 @@ unsigned input_vgmstream::get_subsong_count() {
     // if the plugin uses input_factory_t template and returns > 1 here when adding a song to the playlist,
     // foobar will automagically "unpack" it by calling decode_initialize/get_info with all subsong indexes.
     // There is no need to add any playlist code, only properly handle the subsong index.
+    if (disable_subsongs)
+        return 1;
 
-    return 1;
+    // vgmstream ready as method is valid after open() with any reason
+    int subsong_count = vgmstream->num_streams;
+    if (subsong_count == 0)
+        subsong_count = 1; // most formats don't have subsongs
+    return subsong_count;
 }
 
 t_uint32 input_vgmstream::get_subsong(unsigned p_index) {
-    return p_index + 1; // for vgmstream: 0=default/first, 1=first
+    return p_index + 1; // translates index (0..N < subsong_count) for vgmstream: 1=first
 }
 
 void input_vgmstream::get_info(t_uint32 p_subsong, file_info & p_info, abort_callback & p_abort) {
@@ -127,7 +134,7 @@ void input_vgmstream::get_info(t_uint32 p_subsong, file_info & p_info, abort_cal
     pfc::string8 description;
     pfc::string8_fast temp;
 
-    get_file_info(p_subsong, filename, NULL, &length_in_ms, &total_samples, &loop_start, &loop_end, &samplerate, &channels, &bitrate, description, p_abort);
+    get_subsong_info(p_subsong, NULL, &length_in_ms, &total_samples, &loop_start, &loop_end, &samplerate, &channels, &bitrate, description, p_abort);
 
     p_info.info_set_int("samplerate", samplerate);
     p_info.info_set_int("channels", channels);
@@ -162,6 +169,12 @@ t_filestats input_vgmstream::get_file_stats(abort_callback & p_abort) {
 void input_vgmstream::decode_initialize(t_uint32 p_subsong, unsigned p_flags, abort_callback & p_abort) {
     force_ignore_loop = !!(p_flags & input_flag_no_looping);
 
+    // if subsong changes recreate vgmstream (subsong is only used on init)
+    if (subsong != p_subsong) {
+        subsong = p_subsong;
+        setup_vgmstream(p_abort);
+    }
+
     decode_seek( 0, p_abort );
 };
 
@@ -185,8 +198,6 @@ bool input_vgmstream::decode_run(audio_chunk & p_chunk,abort_callback & p_abort)
             return false;
         }
 
-        //int test_length = get_vgmstream_play_samples(loop_count,fade_seconds,fade_delay_seconds,vgmstream)*1000LL/vgmstream->sample_rate;
-        //int t = ((test_length*vgmstream->sample_rate)/1000); // ???
 
         render_vgmstream(sample_buffer,samples_to_do,vgmstream);
 
@@ -299,6 +310,7 @@ VGMSTREAM * input_vgmstream::init_vgmstream_foo(t_uint32 p_subsong, const char *
 
     STREAMFILE *streamFile = open_foo_streamfile(filename, &p_abort, &stats);
     if (streamFile) {
+        streamFile->stream_index = p_subsong;
         vgmstream = init_vgmstream_from_STREAMFILE(streamFile);
         close_streamfile(streamFile);
     }
@@ -312,7 +324,7 @@ void input_vgmstream::setup_vgmstream(abort_callback & p_abort) {
     }
 
     // subsong and filename are always defined before this
-    vgmstream = init_vgmstream_foo(1, filename, p_abort);
+    vgmstream = init_vgmstream_foo(subsong, filename, p_abort);
     if (!vgmstream) {
         throw exception_io_data();
         return;
@@ -329,8 +341,17 @@ void input_vgmstream::setup_vgmstream(abort_callback & p_abort) {
     fade_samples = (int)(fade_seconds * vgmstream->sample_rate);
 }
 
-void input_vgmstream::get_file_info(t_uint32 p_subsong, const char *filename, char *title, int *length_in_ms, int *total_samples, int *loop_start, int *loop_end, int *sample_rate, int *channels, int *bitrate, pfc::string_base & description, abort_callback & p_abort) {
-    VGMSTREAM * infostream = init_vgmstream_foo(p_subsong, filename, p_abort);
+void input_vgmstream::get_subsong_info(t_uint32 p_subsong, char *title, int *length_in_ms, int *total_samples, int *loop_start, int *loop_end, int *sample_rate, int *channels, int *bitrate, pfc::string_base & description, abort_callback & p_abort) {
+    VGMSTREAM * infostream = NULL;
+
+    // reuse current vgmstream if not querying a new subsong
+    if (subsong != p_subsong) {
+        infostream = init_vgmstream_foo(p_subsong, filename, p_abort);
+    } else {
+        // vgmstream ready as get_info is valid after open() with any reason
+        infostream = vgmstream;
+    }
+
 
     if (length_in_ms) {
         *length_in_ms = -1000;
@@ -357,11 +378,15 @@ void input_vgmstream::get_file_info(t_uint32 p_subsong, const char *filename, ch
         strcpy(title,++p);
     }
 
-    close_vgmstream(infostream);
-    infostream = NULL;
+    // and only close if was querying a new subsong
+    if (subsong != p_subsong) {
+        close_vgmstream(infostream);
+        infostream = NULL;
+    }
 }
 
 bool input_vgmstream::get_description_tag(pfc::string_base & temp, pfc::string_base & description, const char *tag, char delimiter) {
+    // extract a "tag" from the description string
     t_size pos = description.find_first(tag);
     t_size eos;
     if (pos != pfc::infinite_size) {

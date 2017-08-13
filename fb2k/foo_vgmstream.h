@@ -3,18 +3,6 @@
 
 #define OUTBUF_SIZE     1024        /* Samples */
 
-typedef struct _FOO_STREAMFILE {
-    struct _STREAMFILE sf;
-    abort_callback * p_abort;
-    service_ptr_t<file> m_file;
-    char * name;
-    off_t offset;
-    size_t validsize;
-    uint8_t * buffer;
-    size_t buffersize;
-    size_t filesize;
-}  FOO_STREAMFILE;
-
 class input_vgmstream {
     public:
         input_vgmstream();
@@ -42,13 +30,13 @@ class input_vgmstream {
         static bool g_is_our_path(const char * p_path,const char * p_extension);
 
     private:
-        service_ptr_t<file> m_file;
+        //service_ptr_t<file> m_file;
         pfc::string8 filename;
-        t_input_open_reason currentreason;
         t_filestats stats;
 
         /* state */
         VGMSTREAM * vgmstream;
+        t_uint32 subsong;
 
         bool decoding;
         int paused;
@@ -66,17 +54,18 @@ class input_vgmstream {
         bool loop_forever;
         bool force_ignore_loop;
         int ignore_loop;
+        bool disable_subsongs;
 
         /* helpers */
         VGMSTREAM * init_vgmstream_foo(t_uint32 p_subsong, const char * const filename, abort_callback & p_abort);
         void setup_vgmstream(abort_callback & p_abort);
         void load_settings();
-        void get_file_info(t_uint32 p_subsong, const char *filename, char *title, int *length_in_ms, int *total_samples, int *loop_start, int *loop_end, int *sample_rate, int *channels, int *bitrate, pfc::string_base & description, abort_callback & p_abort);
+        void get_subsong_info(t_uint32 p_subsong, char *title, int *length_in_ms, int *total_samples, int *loop_start, int *loop_end, int *sample_rate, int *channels, int *bitrate, pfc::string_base & description, abort_callback & p_abort);
         bool get_description_tag(pfc::string_base & temp, pfc::string_base & description, const char *tag, char delimiter = '\n');
 };
 
-STREAMFILE * open_foo_streamfile_buffer_by_file(service_ptr_t<file> m_file,const char * const filename, size_t buffersize, abort_callback * p_abort);
-STREAMFILE * open_foo_streamfile_buffer(const char * const filename, size_t buffersize, abort_callback * p_abort, t_filestats * stats);
+/* foo_streamfile.cpp */
 STREAMFILE * open_foo_streamfile(const char * const filename, abort_callback * p_abort, t_filestats * stats);
+
 
 #endif /*_FOO_VGMSTREAM_*/
