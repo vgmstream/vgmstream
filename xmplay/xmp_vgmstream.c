@@ -25,26 +25,33 @@
 
 /* ************************************* */
 
+/* XMPlay extension list, only needed to associate extensions in Windows */
+/*  todo: as of v3.8.2.17, any more than ~1000 will crash XMplay's file list screen (but not using the non-native Winamp plugin...) */
+#define EXTENSION_LIST_SIZE   1000 /*VGM_EXTENSION_LIST_CHAR_SIZE * 2*/
+#define XMPLAY_MAX_PATH  32768
+
 /* XMPlay function library */
 static XMPFUNC_IN *xmpfin;
 static XMPFUNC_MISC *xmpfmisc;
 static XMPFUNC_FILE *xmpffile;
 
-/* XMPlay extension list, only needed to associate extensions in Windows */
-/*  todo: as of v3.8.2.17, any more than ~1000 will crash XMplay's file list screen (but not using the non-native Winamp plugin...) */
-#define EXTENSION_LIST_SIZE   1000 /*VGM_EXTENSION_LIST_CHAR_SIZE * 2*/
 char working_extension_list[EXTENSION_LIST_SIZE] = {0};
 
 /* plugin config */
 double fade_seconds = 10.0;
 double fade_delay_seconds = 10.0;
 double loop_count = 2.0;
+int disable_subsongs = 1;
 
 /* plugin state */
 VGMSTREAM * vgmstream = NULL;
 int framesDone, framesLength;
 int stream_length_samples = 0;
 int fade_samples = 0;
+
+int current_subsong = 0;
+//XMPFILE current_file = NULL;
+//char current_fn[XMPLAY_MAX_PATH] = {0};
 
 static int shownerror = 0; /* init error */
 
@@ -133,13 +140,14 @@ static STREAMFILE *open_xmplay_streamfile_by_xmpfile(XMPFILE infile, const char 
     return &streamfile->sf; /* pointer to STREAMFILE start = rest of the custom data follows */
 }
 
-VGMSTREAM *init_vgmstream_xmplay(XMPFILE file, const char *path) {
+VGMSTREAM *init_vgmstream_xmplay(XMPFILE file, const char *path, int subsong) {
     STREAMFILE *streamfile = NULL;
     VGMSTREAM *vgmstream = NULL;
 
     streamfile = open_xmplay_streamfile_by_xmpfile(file, path, 0); /* external XMPFILE */
     if (!streamfile) return NULL;
 
+    streamfile->stream_index = subsong;
     vgmstream = init_vgmstream_from_STREAMFILE(streamfile);
     if (!vgmstream) goto fail;
 
@@ -234,11 +242,11 @@ void WINAPI xmplay_Config(HWND win) {
 }
 #endif
 
-/* check if a file is playable by this plugin */
+/* quick check if a file is playable by this plugin */
 BOOL WINAPI xmplay_CheckFile(const char *filename, XMPFILE file) {
     VGMSTREAM* infostream = NULL;
     if (file)
-        infostream = init_vgmstream_xmplay(file, filename);
+        infostream = init_vgmstream_xmplay(file, filename, 0);
     else
         infostream = init_vgmstream(filename); //TODO: unicode problems?
     if (!infostream)
@@ -252,29 +260,35 @@ BOOL WINAPI xmplay_CheckFile(const char *filename, XMPFILE file) {
 /* update info from a file, returning the number of subsongs */
 DWORD WINAPI xmplay_GetFileInfo(const char *filename, XMPFILE file, float **length, char **tags) {
     VGMSTREAM* infostream;
+    int subsong_count;
+
     if (file)
-        infostream = init_vgmstream_xmplay(file, filename);
+        infostream = init_vgmstream_xmplay(file, filename, 0);
     else
         infostream = init_vgmstream(filename); //TODO: unicode problems?
     if (!infostream)
         return 0;
 
-    if (length && infostream->sample_rate)     {
+    if (length && infostream->sample_rate) {
         int stream_length_samples = get_vgmstream_play_samples(loop_count, fade_seconds, fade_delay_seconds, infostream);
         float *lens = (float*)xmpfmisc->Alloc(sizeof(float));
         lens[0] = (float)stream_length_samples / (float)infostream->sample_rate;
         *length = lens;
     }
 
+    subsong_count = infostream->num_streams;
+    if (disable_subsongs || subsong_count == 0)
+        subsong_count = 1;
+
     close_vgmstream(infostream);
 
-    return 1;
+    return subsong_count;
 }
 
 /* open a file for playback, returning:  0=failed, 1=success, 2=success and XMPlay can close the file */
 DWORD WINAPI xmplay_Open(const char *filename, XMPFILE file) {
     if (file)
-        vgmstream = init_vgmstream_xmplay(file, filename);
+        vgmstream = init_vgmstream_xmplay(file, filename, current_subsong+1);
     else
         vgmstream = init_vgmstream(filename);
     if (!vgmstream)
@@ -284,6 +298,11 @@ DWORD WINAPI xmplay_Open(const char *filename, XMPFILE file) {
     stream_length_samples = get_vgmstream_play_samples(loop_count, fade_seconds, fade_delay_seconds, vgmstream);
     fade_samples = (int)(fade_seconds * vgmstream->sample_rate);
     framesLength = stream_length_samples - fade_samples;
+
+    //strncpy(current_fn,filename,XMPLAY_MAX_PATH);
+    //current_file = file;
+    //current_subsong = 0;
+
 
     if (stream_length_samples) {
         float length = (float)stream_length_samples / (float)vgmstream->sample_rate;
@@ -367,16 +386,24 @@ double WINAPI xmplay_SetPosition(DWORD pos) {
 
 #if 0
     /* set a subsong */
-    if (pos & XMPIN_POS_SUBSONG) {
-        int subsong = LOWORD(pos);
+    if (!disable_subsongs && (pos & XMPIN_POS_SUBSONG)) {
+        int new_subsong = LOWORD(pos);
 
         /* "single subsong mode (don't show info on other subsongs)" */
         if (pos & XMPIN_POS_SUBSONG1) {
             // ???
         }
 
-        // todo reopen vgmstream based on current with new subsong index
-        cpos = 0.0;
+        if (new_subsong && new_subsong != current_subsong) { /* todo implicit? */
+            if (current_file)
+                return -1;
+
+            vgmstream = init_vgmstream_xmplay(current_file, current_fn, current_subsong+1);
+            if (!vgmstream) return -1;
+            
+            current_subsong = new_subsong;
+            return 0.0;
+        }
     }
 #endif
 
@@ -464,6 +491,36 @@ DWORD WINAPI xmplay_Process(float* buf, DWORD bufsize) {
     return done * vgmstream->channels;
 }
 
+static DWORD WINAPI xmplay_GetSubSongs(float *length) {
+    int subsong_count;
+
+    if (!vgmstream)
+        return 0;
+
+    subsong_count = vgmstream->num_streams;
+    if (disable_subsongs || subsong_count == 0)
+        subsong_count = 1;
+
+    /* get times for all subsongs */
+    //todo request updating playlist update every subsong change instead?
+    {
+        int stream_length_samples;
+
+        /* not good for vgmstream as would mean re-parsing many times */
+        //int i;
+        //for (i = 0; i < subsong_count; i++) {
+        //    float subsong_length = ...
+        //    *length += subsong_length;
+        //}
+
+        /* simply use the current length */ //todo just use 0?
+        stream_length_samples = get_vgmstream_play_samples(loop_count, fade_seconds, fade_delay_seconds, vgmstream);
+        *length = (float)stream_length_samples / (float)vgmstream->sample_rate;
+    }
+
+    return subsong_count;
+}
+
 /* *********************************** */
 
 /* main plugin def, see xmpin.h */
@@ -489,7 +546,7 @@ XMPIN vgmstream_xmpin = {
     xmplay_Process,
     NULL,
     NULL,
-    NULL,
+    xmplay_GetSubSongs,
     NULL,
     NULL,
     NULL,
