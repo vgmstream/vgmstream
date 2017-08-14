@@ -280,7 +280,7 @@ void input_vgmstream::decode_seek(double p_seconds,abort_callback & p_abort) {
 }
 
 bool input_vgmstream::decode_can_seek() {return true;}
-bool input_vgmstream::decode_get_dynamic_info(file_info & p_out, double & p_timestamp_delta) { return true; }
+bool input_vgmstream::decode_get_dynamic_info(file_info & p_out, double & p_timestamp_delta) { return false; }
 bool input_vgmstream::decode_get_dynamic_info_track(file_info & p_out, double & p_timestamp_delta) {return false;}
 void input_vgmstream::decode_on_idle(abort_callback & p_abort) {/*m_file->on_idle(p_abort);*/}
 
