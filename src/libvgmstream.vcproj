@@ -879,10 +879,6 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\ps2_stm.c"
-					>
-				</File>
-				<File
 					RelativePath=".\meta\ps2_str.c"
 					>
 				</File>
@@ -1102,6 +1098,10 @@
 					RelativePath=".\meta\ss_stream.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\meta\stm.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\str_asr.c"
 					>
@@ -1240,10 +1240,6 @@
 				</File>
 				<File
 					RelativePath=".\meta\xbox_ims.c"
-					>
-				</File>
-				<File
-					RelativePath=".\meta\xbox_stma.c"
 					>
 				</File>
 				<File

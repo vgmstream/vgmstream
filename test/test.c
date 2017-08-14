@@ -52,11 +52,12 @@ void usage(const char * name) {
           "    -r outfile2.wav: output a second time after resetting\n"
           "    -2 N: only output the Nth (first is 0) set of stereo channels\n"
           "    -F: don't fade after N loops and play the rest of the stream\n"
+          "    -s N: select subtream N, if the format supports multiple streams\n"
             ,name);
 }
 
 int main(int argc, char ** argv) {
-    VGMSTREAM * s;
+    VGMSTREAM * s = NULL;
     sample * buf = NULL;
     int32_t len;
     int32_t fade_samples;
@@ -77,13 +78,14 @@ int main(int argc, char ** argv) {
     int lwav = 0;
     int batchvar = 0;
     int only_stereo = -1;
+    int stream_index = 0;
     double loop_count = 2.0;
     double fade_seconds = 10.0;
     double fade_delay_seconds = 0.0;
     int fade_ignore = 0;
     int32_t bytecount;
 
-    while ((opt = getopt(argc, argv, "o:l:f:d:ipPcmxeLEFr:gb2:")) != -1) {
+    while ((opt = getopt(argc, argv, "o:l:f:d:ipPcmxeLEFr:gb2:s:")) != -1) {
         switch (opt) {
             case 'o':
                 outfilename = optarg;
@@ -140,6 +142,9 @@ int main(int argc, char ** argv) {
             case 'F':
                 fade_ignore = 1;
                 break;
+            case 's':
+                stream_index = atoi(optarg);
+                break;
             default:
                 usage(argv[0]);
                 return 1;
@@ -182,7 +187,17 @@ int main(int argc, char ** argv) {
         return 1;
     }
 
-    s = init_vgmstream(argv[optind]);
+    /* manually init streamfile to pass the stream index */
+    {
+        //s = init_vgmstream(argv[optind]);
+        STREAMFILE *streamFile = open_stdio_streamfile(argv[optind]);
+        if (streamFile) {
+            streamFile->stream_index = stream_index;
+            s = init_vgmstream_from_STREAMFILE(streamFile);
+            close_streamfile(streamFile);
+        }
+    }
+
 
     if (!s) {
         fprintf(stderr,"failed opening %s\n",argv[optind]);

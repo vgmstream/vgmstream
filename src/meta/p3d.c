@@ -4,7 +4,7 @@
 /* P3D - from Radical's Prototype 1/2 (PC/PS3/X360) */
 VGMSTREAM * init_vgmstream_p3d(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    off_t start_offset, parse_offset;
+    off_t start_offset, parse_offset, name_offset = 0;
     size_t header_size, file_size, data_size;
     int loop_flag = 0, channel_count, sample_rate, codec;
     int i, name_count, text_len, block_size = 0, block_count = 0, num_samples;
@@ -49,9 +49,12 @@ VGMSTREAM * init_vgmstream_p3d(STREAMFILE *streamFile) {
     if (name_count != 2 && name_count != 3) goto fail; /* 2: Prototype1, 3: Prototype2 */
     parse_offset += 4;
 
-    for (i = 0; i < 2; i++) { /* skip names */
-        text_len = read_32bit(parse_offset,streamFile);
-        parse_offset += 4 + text_len + 1;
+    /* skip names */
+    for (i = 0; i < 2; i++) {
+        if (!name_offset)
+            name_offset = parse_offset + 4;
+        text_len = read_32bit(parse_offset,streamFile) + 1; /* null-terminated */
+        parse_offset += 4 + text_len;
     }
 
     /* info count? */
@@ -65,8 +68,8 @@ VGMSTREAM * init_vgmstream_p3d(STREAMFILE *streamFile) {
 
     /* extra "Music" string in Prototype 2 */
     if (name_count == 3) {
-        text_len = read_32bit(parse_offset,streamFile);
-        parse_offset += 4 + text_len + 1;
+        text_len = read_32bit(parse_offset,streamFile) + 1; /* null-terminated */
+        parse_offset += 4 + text_len;
     }
 
 
@@ -129,6 +132,8 @@ VGMSTREAM * init_vgmstream_p3d(STREAMFILE *streamFile) {
     vgmstream->sample_rate = sample_rate;
     vgmstream->num_samples = num_samples;
     vgmstream->meta_type = meta_P3D;
+    if (name_offset)
+        read_string(vgmstream->stream_name,STREAM_NAME_SIZE, name_offset,streamFile);
 
     /* codec init */
     switch(codec) {

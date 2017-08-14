@@ -24,6 +24,22 @@ extern "C" {
 #define STREAMFILE_IGNORE_EOF 0
 
 
+/* a STREAMFILE that operates via foobar's file service using a buffer */
+typedef struct _FOO_STREAMFILE {
+    struct _STREAMFILE sf;
+    abort_callback * p_abort;
+    service_ptr_t<file> m_file;
+    char * name;
+    off_t offset;
+    size_t validsize;
+    uint8_t * buffer;
+    size_t buffersize;
+    size_t filesize;
+}  FOO_STREAMFILE;
+
+static STREAMFILE * open_foo_streamfile_buffer_by_file(service_ptr_t<file> m_file,const char * const filename, size_t buffersize, abort_callback * p_abort);
+static STREAMFILE * open_foo_streamfile_buffer(const char * const filename, size_t buffersize, abort_callback * p_abort, t_filestats * stats);
+
 static size_t read_the_rest_foo(uint8_t * dest, off_t offset, size_t length, FOO_STREAMFILE * streamfile) {
     size_t length_read_total=0;
 
@@ -253,7 +269,7 @@ static STREAMFILE * open_foo_streamfile_buffer_by_file(service_ptr_t<file> m_fil
     return &streamfile->sf;
 }
 
-STREAMFILE * open_foo_streamfile_buffer(const char * const filename, size_t buffersize, abort_callback * p_abort, t_filestats * stats) {
+static STREAMFILE * open_foo_streamfile_buffer(const char * const filename, size_t buffersize, abort_callback * p_abort, t_filestats * stats) {
     STREAMFILE *streamFile;
     service_ptr_t<file> infile;
 

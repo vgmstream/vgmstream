@@ -9,7 +9,7 @@ static VGMSTREAM * init_vgmstream_kt_wiibgm_offset(STREAMFILE *streamFile, off_t
  * It probably makes more sense to extract it externally, it's here mainly for Hyrule Warriors */
 VGMSTREAM * init_vgmstream_kt_g1l(STREAMFILE *streamFile) {
 	VGMSTREAM * vgmstream = NULL;
-	int type, num_streams, target_stream = 1;
+	int type, num_streams, target_stream = streamFile->stream_index;
 	off_t stream_offset;
     int32_t (*read_32bit)(off_t,STREAMFILE*) = NULL;
 

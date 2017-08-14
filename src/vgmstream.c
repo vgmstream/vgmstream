@@ -47,7 +47,6 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_ps2_rxws,
     init_vgmstream_ps2_rxw,
     init_vgmstream_ps2_int,
-    init_vgmstream_ngc_dsp_stm,
     init_vgmstream_ps2_exst,
     init_vgmstream_ps2_svag,
     init_vgmstream_ps2_mib,
@@ -86,7 +85,6 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_ws_aud,
     init_vgmstream_ahx,
     init_vgmstream_ivb,
-    init_vgmstream_amts,
     init_vgmstream_svs,
     init_vgmstream_riff,
     init_vgmstream_rifx,
@@ -139,7 +137,6 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_ngc_wvs,
     init_vgmstream_dc_str,
     init_vgmstream_dc_str_v2,
-    init_vgmstream_xbox_stma,
     init_vgmstream_xbox_matx,
     init_vgmstream_de2,
     init_vgmstream_vs,
@@ -252,7 +249,6 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_pona_psx,
     init_vgmstream_xbox_hlwav,
     init_vgmstream_stx,
-    init_vgmstream_ps2_stm,
     init_vgmstream_myspd,
     init_vgmstream_his,
 	init_vgmstream_ps2_ast,
@@ -369,6 +365,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_ea_bnk,
     init_vgmstream_ea_schl_fixed,
     init_vgmstream_sk_aud,
+    init_vgmstream_stm,
 
     init_vgmstream_txth,  /* should go at the end (lower priority) */
 #ifdef VGM_USE_FFMPEG
@@ -378,7 +375,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
 
 
 /* internal version with all parameters */
-VGMSTREAM * init_vgmstream_internal(STREAMFILE *streamFile, int do_dfs) {
+static VGMSTREAM * init_vgmstream_internal(STREAMFILE *streamFile, int do_dfs) {
     int i, fcns_size;
     
     if (!streamFile)
@@ -445,6 +442,9 @@ VGMSTREAM * init_vgmstream_internal(STREAMFILE *streamFile, int do_dfs) {
                 }
             }
 #endif
+
+            /* save info */
+            vgmstream->stream_index = streamFile->stream_index;
 
             /* save start things so we can restart for seeking */
             /* copy the channels */
@@ -2052,8 +2052,21 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
     /* only interesting if more than one */
     if (vgmstream->num_streams > 1) {
         snprintf(temp,TEMPSIZE,
-                "\nnumber of streams: %d",
+                "\nstream number: %d",
                 vgmstream->num_streams);
+        concatn(length,desc,temp);
+    }
+
+    if (vgmstream->num_streams > 1 && vgmstream->stream_index > 0) {
+        snprintf(temp,TEMPSIZE,
+                "\nstream index: %d",
+                vgmstream->stream_index);
+        concatn(length,desc,temp);
+    }
+    if (vgmstream->stream_name[0] != '\0') {
+        snprintf(temp,TEMPSIZE,
+                "\nstream name: %s",
+                vgmstream->stream_name);
         concatn(length,desc,temp);
     }
 }

@@ -14,13 +14,13 @@ Since Ogg Vorbis, MPEG audio, and other formats are now supported, you will
 need to have certain DLL files.
 In the case of the foobar2000 component they are all bundled for convenience,
 or you can get them from here: https://github.com/kode54/vgmstream
-(also here: https://f.losno.co/vgmstream-win32-deps.zip, may not be latest). 
+(also here: https://f.losno.co/vgmstream-win32-deps.zip, may not be latest).
 
 Put libvorbis.dll, libmpg123-0.dll, libg7221_decode.dll, libg719_decode.dll,
 at3plusdecoder.dll, avcodec-vgmstream-57.dll, avformat-vgmstream-57.dll, and
 avutil-vgmstream-55.dll somewhere Windows can find them.
 For Winamp/XMPlay/test.exe this means in the directory with the .exe, or in a
-system directory, or other directory in the PATH variable.
+system directory, or any other directory in the PATH variable.
 
 --- test.exe ---
 Usage: ./test [-o outfile.wav] [-l loop count]
@@ -44,6 +44,7 @@ Options:
     -r outfile2.wav: output a second time after resetting
     -2 N: only output the Nth (first is 0) set of stereo channels
     -F: don't fade after N loops and play the rest of the stream
+    -s N: select subtream N, if the format supports multiple streams
 
 Typical usage would be:
 test -o happy.wav happy.adx
@@ -57,13 +58,18 @@ the above instructions for installing the other files needed.
 Drop the xmp-vgmstream.dll in your XMPlay plugins directory. Please follow
 the above instructions for installing the other files needed.
 
+Note that there are minor differences compared to in_vgmstream. Since XMPlay
+supports Winamp plugins you may also use in_vgmstream.dll instead.
+
 Because the XMPlay MP3 decoder incorrectly tries to play some vgmstream exts,
 you need to manually fix it by going to options > plugins > input > vgmstream
-and in the "priority filetypes" put: ckd,fsb,genh,msf,rak,scd,xvag
+and in the "priority filetypes" put: ckd,fsb,genh,msf,p3d,rak,scd,xvag
 
 --- foo_input_vgmstream ---
 Every should be installed automatically by the .fb2k-component bundle.
 
+--- Audacious plugin ---
+Needs to be manually built. Instructions can be found in the source files.
 
 --- File types supported by this version of vgmstream ---
 
@@ -136,7 +142,6 @@ PS2/PSX ADPCM:
 GC/Wii/3DS DSP ADPCM:
 - .aaap
 - .agsc
-- .amts
 - .asr
 - .bns
 - .bo2
@@ -227,37 +232,44 @@ IMA ADPCM:
 - .idvi (DVI IMA ADPCM)
 - .ivaud (IMA ADPCM)
 - .myspd (IMA ADPCM)
-- .stma (DVI IMA ADPCM)
 - .strm (IMA ADPCM)
 
 multi:
 - .aifc (SDX2 DPCM, DVI IMA ADPCM)
-- .asf, .as4 (8/16 bit PCM, EACS IMA ADPCM)
+- .asf/as4 (8/16 bit PCM, EACS IMA ADPCM)
 - .ast (GC AFC ADPCM, 16 bit PCM)
 - .aud (IMA ADPCM, WS DPCM)
 - .aus (PSX ADPCM, Xbox IMA ADPCM)
 - .brstm (GC DSP ADPCM, 8/16 bit PCM)
 - .emff (PSX APDCM, GC DSP ADPCM)
-- .fsb, .wii (PSX ADPCM, GC DSP ADPCM, Xbox IMA ADPCM)
+- .fsb/wii (PSX ADPCM, GC DSP ADPCM, Xbox IMA ADPCM, MPEG audio, FSB Vorbis, 
+  MS XMA)
 - .genh (lots)
+- .txth (lots)
 - .msf (PCM, PSX ADPCM, ATRAC3, MP3)
 - .musx (PSX ADPCM, Xbox IMA ADPCM, DAT4 IMA ADPCM)
 - .nwa (16 bit PCM, NWA DPCM)
+- .p3d (Radical ADPCM, Radical MP3, XMA2)
 - .psw (PSX ADPCM, GC DSP ADPCM)
 - .rwar, .rwav (GC DSP ADPCM, 8/16 bit PCM)
+- .rws (PSX ADPCM, XBOX IMA ADPCM, GC DSP ADPCM, 16 bit PCM)
 - .rwsd (GC DSP ADPCM, 8/16 bit PCM)
 - .rsd (PSX ADPCM, 16 bit PCM, GC DSP ADPCM, Xbox IMA ADPCM, Radical ADPCM)
 - .rrds (NDS IMA ADPCM)
 - .sad (GC DSP ADPCM, NDS IMA ADPCM, Procyon Studios NDS ADPCM)
-- .sgd/sgb/sgx (PSX ADPCM, ATRAC3plus, AC3)
+- .sgd/sgb+sgh/sgx (PSX ADPCM, ATRAC3plus, AC3)
 - .seg (Xbox IMA ADPCM, PS2 ADPCM)
-- .sng, .asf, .str, .eam (EA/XA ADPCM or PSX ADPCM)
+- .sng/asf/str/eam/aud (8/16 bit PCM, EA-XA ADPCM, PSX ADPCM, GC DSP ADPCM,
+   XBOX IMA ADPCM, MPEG audio, EALayer3)
 - .strm (NDS IMA ADPCM, 8/16 bit PCM)
 - .ss7 (EACS IMA ADPCM, IMA ADPCM)
 - .swav (NDS IMA ADPCM, 8/16 bit PCM)
 - .xwb (PCM, Xbox IMA ADPCM, MS ADPCM, XMA, XWMA, ATRAC3)
-- .wav, .lwav (unsigned 8 bit PCM, 16 bit PCM, GC DSP ADPCM, MS IMA ADPCM)
-- .wem (PCM, Wwise Vorbis, Wwise ADPCM, XMA, XWMA, GC DSP ADPCM)
+- .xwb+xwh (PCM, PSX ADPCM, ATRAC3)
+- .wav/lwav (unsigned 8 bit PCM, 16 bit PCM, GC DSP ADPCM, MS IMA ADPCM,
+   XBOX IMA ADPCM)
+- .wem [lwav/logg/xma] (PCM, Wwise Vorbis, Wwise IMA ADPCM, XMA, XWMA,
+   GC DSP ADPCM)
 
 etc:
 - .2dx9 (MS ADPCM)
@@ -269,34 +281,38 @@ etc:
 - .ahx (MPEG-2 Layer II)
 - .aix (CRI ADX ADPCM)
 - .at3 (Sony ATRAC3 / ATRAC3plus)
-- .baf (Blur ADPCM)
-- .bgw (FFXI PS-like ADPCM)
+- .aud (Silicon Knights Vorbis)
+- .baf (PSX configurable ADPCM)
+- .bgw (PSX configurable ADPCM)
 - .bnsf (G.722.1)
-- .caf (Apple IMA4 ADPCM)
+- .caf (Apple IMA4 ADPCM, others)
 - .de2 (MS ADPCM)
-- .hca (CRI)
+- .hca (CRI High Compression Audio)
 - .kcey (EACS IMA ADPCM)
 - .lsf (LSF ADPCM)
 - .mc3 (Paradigm MC3 ADPCM)
-- .mwv (Level-5 0x555 ADPCM)
+- .mp4/lmp4 (AAC)
+- .msf (PCM, PSX ADPCM, ATRAC3, MP3)
 - .mtaf (Konami ADPCM)
-- .ogg, .logg (Ogg Vorbis)
+- .mta2 (Konami XAS-like ADPCM)
+- .mwv (Level-5 0x555 ADPCM)
+- .ogg/logg (Ogg Vorbis)
 - .ogl (Shin'en Vorbis)
-- .p3d (Radical ADPCM)
 - .rsf (CCITT G.721 ADPCM)
 - .sab (Worms 4 soundpacks)
-- .s14/.sss (G.722.1)
+- .s14/sss (G.722.1)
 - .sc (Activision EXAKT SASSC DPCM)
 - .scd (MS ADPCM, MPEG Audio, 16 bit PCM)
 - .sd9 (MS ADPCM)
 - .smp (MS ADPCM)
-- .spw (FFXI PS-like ADPCM)
-- .stm renamed .ps2stm (DVI IMA ADPCM)
+- .spw (PSX configurable ADPCM)
+- .stm/lstm [amts/ps2stm/stma] (16 bit PCM, DVI IMA ADPCM, GC DSP ADPCM)
 - .str (SDX2 DPCM)
 - .stx (GC AFC ADPCM)
+- .ulw (u-Law PCM)
 - .um3 (Ogg Vorbis)
 - .xa (CD-ROM XA audio)
-- .xma (MS WMA Pro)
+- .xma (MS XMA/XMA2)
 
 loop assists:
 - .mus (playlist for .acm)
@@ -306,6 +322,7 @@ loop assists:
 
 other:
 - .adxkey (decryption key for .adx, in start/mult/add format)
+- .ahxkey (decryption key for .ahx, in start/mult/add format)
 - .hcakey (decryption key for .hca, in HCA Decoder format)
 - .vgmstream + .pos (FFmpeg formats + loop assist)
 

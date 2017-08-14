@@ -212,6 +212,9 @@ VGMSTREAM * init_vgmstream_ps2_vag(STREAMFILE *streamFile) {
         vgmstream->loop_end_sample += (int32_t)(loopEnd%(interleave*channel_count))/16*28;
     }
 
+    /* always, but can be null or used as special string */
+    read_string(vgmstream->stream_name,0x10+1, 0x20,streamFile);
+
 
     /* open the file for reading */
     if ( !vgmstream_open_stream(vgmstream, streamFile, start_offset) )

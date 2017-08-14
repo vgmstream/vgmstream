@@ -8,13 +8,13 @@
 VGMSTREAM * init_vgmstream_sgxd(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     STREAMFILE * streamHeader = NULL;
-    off_t start_offset, data_offset, chunk_offset;
+    off_t start_offset, data_offset, chunk_offset, name_offset = 0;
     size_t data_size;
 
     int is_sgx, is_sgb;
     int loop_flag, channels, type;
     int sample_rate, num_samples, loop_start_sample, loop_end_sample;
-    int target_stream = 0, total_streams;
+    int total_streams, target_stream = streamFile->stream_index;
 
 
     /* check extension, case insensitive */
@@ -48,7 +48,7 @@ VGMSTREAM * init_vgmstream_sgxd(STREAMFILE *streamFile) {
     }
 
 
-    /* typical chunks: WAVE, NAME (strings), RGND, SEQD (related to SFX), WSUR, WMKR, BUSS */
+    /* typical chunks: WAVE, RGND, NAME (strings for WAVE or RGND), SEQD (related to SFX), WSUR, WMKR, BUSS */
     /* WAVE chunk (size 0x10 + files * 0x38 + optional padding) */
     if (is_sgx) { /* position after chunk+size */
         if (read_32bitBE(0x10,streamHeader) != 0x57415645) goto fail;  /* "WAVE" */
@@ -69,7 +69,8 @@ VGMSTREAM * init_vgmstream_sgxd(STREAMFILE *streamFile) {
         chunk_offset += 0x08 + 0x38 * (target_stream-1); /* position in target header*/
 
         /* 0x00  ? (00/01/02) */
-        /* 0x04  sometimes global offset to wave_name */
+        if (!is_sgx) /* meaning unknown in .sgx; offset 0 = not a stream (a RGND sample) */
+            name_offset = read_32bitLE(chunk_offset+0x04,streamHeader);
         type = read_8bit(chunk_offset+0x08,streamHeader);
         channels = read_8bit(chunk_offset+0x09,streamHeader);
         /* 0x0a  null */
@@ -97,6 +98,7 @@ VGMSTREAM * init_vgmstream_sgxd(STREAMFILE *streamFile) {
         start_offset = data_offset + stream_offset;
     }
 
+
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channels,loop_flag);
     if (!vgmstream) goto fail;
@@ -107,6 +109,8 @@ VGMSTREAM * init_vgmstream_sgxd(STREAMFILE *streamFile) {
     vgmstream->loop_end_sample = loop_end_sample;
     vgmstream->num_streams = total_streams;
     vgmstream->meta_type = meta_SGXD;
+    if (name_offset)
+        read_string(vgmstream->stream_name,STREAM_NAME_SIZE, name_offset,streamHeader);
 
     /* needs -1 to match RIFF AT3's loop chunk
      * (maybe SGXD = "loop before this sample" rather than "loop after this sample" as expected by vgmstream) */

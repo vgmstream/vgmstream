@@ -9,11 +9,12 @@ static off_t get_rws_string_size(off_t off, STREAMFILE *streamFile);
 /* RWS - RenderWare Stream (from games using RenderWare Audio middleware) */
 VGMSTREAM * init_vgmstream_rws(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    off_t start_offset, off, coefs_offset = 0, stream_offset = 0;
+    off_t start_offset, off, coefs_offset = 0, stream_offset = 0, name_offset = 0;
     int loop_flag = 0, channel_count = 0, codec = 0, sample_rate = 0;
     size_t file_size, header_size, data_size, stream_size = 0, block_size_max = 0, block_size = 0;
     int32_t (*read_32bit)(off_t,STREAMFILE*) = NULL;
-    int i, total_segments, total_streams, target_stream = 0;
+    int i, total_segments;
+    int total_streams, target_stream = streamFile->stream_index;
 
 
     if (!check_extensions(streamFile,"rws"))
@@ -73,7 +74,7 @@ VGMSTREAM * init_vgmstream_rws(STREAMFILE *streamFile) {
     /* get block_size for our target stream and from all streams, to skip their blocks during decode */
     for (i = 0; i < total_streams; i++) { /* get block_sizes */
         block_size_max += read_32bit(off+0x10 + 0x28*i,streamFile); /* includes padding and can be different per stream */
-        if (target_stream-1 == i) {
+        if (i+1 == target_stream) {
             block_size = read_32bit(off+0x20 + 0x28*i,streamFile); /* actual size */
             stream_offset = read_32bit(off+0x24 + 0x28*i,streamFile); /* within data */
         }
@@ -81,27 +82,40 @@ VGMSTREAM * init_vgmstream_rws(STREAMFILE *streamFile) {
     off += 0x28 * total_streams;
 
     /* get stream config: 0x0c(1): bits per sample,  others: ? */
-    for (i = 0; i < total_streams; i++) {/* size depends on codec so we must parse it */
-        sample_rate   = read_32bit(off+0x00, streamFile);
-        //unk_size    = read_32bit(off+0x08, streamFile); /* segment size? loop-related? */
-        channel_count =  read_8bit(off+0x0d, streamFile);
-        codec         = read_32bitBE(off+0x1c, streamFile); /* uuid of 128b but first 32b is enough */
+    for (i = 0; i < total_streams; i++) { /* size depends on codec so we must parse it */
+        int prev_codec = 0;
+        if (i+1 == target_stream) {
+            sample_rate   = read_32bit(off+0x00, streamFile);
+            //unk_size    = read_32bit(off+0x08, streamFile); /* segment size? loop-related? */
+            channel_count =  read_8bit(off+0x0d, streamFile);
+            codec         = read_32bitBE(off+0x1c, streamFile); /* uuid of 128b but first 32b is enough */
+        }
+        prev_codec = read_32bitBE(off+0x1c, streamFile);
         off += 0x2c;
 
-        if (codec == 0xF86215B0) { /* if codec is DSP there is an extra field per stream */
+        if (prev_codec == 0xF86215B0) { /* if codec is DSP there is an extra field per stream */
             /* 0x00: approx num samples?  0x04: approx size/loop related? (can be 0) */
-            coefs_offset = off + 0x1c;
+            if (i+1 == target_stream) {
+                coefs_offset = off + 0x1c;
+            }
             off += 0x60;
         }
 
-        if (total_streams > 1) /* multitracks have an unknown field */
-            off += 0x04;
-
-        if (i == target_stream-1)
-            break;
+        off += 0x04; /* padding/garbage */
     }
 
-    /* next is 0x14 * streams = ?(4) + uuid? (header ends), rest is garbage/padding until chunk end (may contain strings and weird stuff) */
+    /* skip uuid? per stream */
+    off += 0x10 * total_streams;
+
+    /* get stream name */
+    for (i = 0; i < total_streams; i++) {
+        if (i+1 == target_stream) {
+            name_offset = off;
+        }
+        off += get_rws_string_size(off, streamFile);
+    }
+
+    /* rest is padding/garbage until chunk end (may contain strings and weird stuff) */
 
     start_offset = 0x0c + 0x0c + header_size + 0x0c + stream_offset; /* usually 0x800 but not always */
 
@@ -110,9 +124,11 @@ VGMSTREAM * init_vgmstream_rws(STREAMFILE *streamFile) {
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
-    vgmstream->meta_type = meta_RWS;
     vgmstream->sample_rate = sample_rate;
     vgmstream->num_streams = total_streams;
+    vgmstream->meta_type = meta_RWS;
+    if (name_offset)
+        read_string(vgmstream->stream_name,STREAM_NAME_SIZE, name_offset,streamFile);
 
     vgmstream->layout_type = layout_rws_blocked;
     vgmstream->current_block_size = block_size / vgmstream->channels;

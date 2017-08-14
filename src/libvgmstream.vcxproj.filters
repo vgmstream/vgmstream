@@ -526,9 +526,6 @@
     <ClCompile Include="meta\ps2_ster.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\ps2_stm.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="meta\ps2_str.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -664,6 +661,9 @@
     <ClCompile Include="meta\ss_stream.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\stm.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\str_asr.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -746,9 +746,6 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\xbox_ims.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="meta\xbox_stma.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\xbox_wavm.c">

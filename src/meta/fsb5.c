@@ -5,16 +5,15 @@
 /* FSB5 - FMOD Studio multiplatform format */
 VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    off_t StartOffset = 0;
+    off_t StartOffset = 0, NameOffset = 0;
     off_t SampleHeaderStart = 0, DSPInfoStart = 0;
     size_t SampleHeaderLength, NameTableLength, SampleDataLength, BaseHeaderLength, StreamSize = 0;
 
     uint32_t NumSamples = 0, LoopStart = 0, LoopEnd = 0;
     int LoopFlag = 0, ChannelCount = 0, SampleRate = 0, CodingID;
-    int TotalStreams, TargetStream = 0;
+    int TotalStreams, TargetStream = streamFile->stream_index;
     uint32_t VorbisSetupId = 0;
     int i;
-
 
     /* check extension, case insensitive */
     if (!check_extensions(streamFile,"fsb")) goto fail;
@@ -163,16 +162,19 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
         /* continue searching */
         SampleHeaderStart += StreamHeaderLength;
     }
-
     /* target stream not found*/
     if (!StartOffset || !StreamSize) goto fail;
+
+    /* get stream name */
+    if (NameTableLength) {
+        NameOffset = BaseHeaderLength + SampleHeaderLength + read_32bitLE(BaseHeaderLength + SampleHeaderLength + 0x04*(TargetStream-1),streamFile);
+    }
 
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(ChannelCount,LoopFlag);
     if (!vgmstream) goto fail;
 
-    /* fill in the vital statistics */
     vgmstream->sample_rate = SampleRate;
     vgmstream->num_streams = TotalStreams;
     vgmstream->num_samples = NumSamples;
@@ -181,7 +183,11 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
         vgmstream->loop_end_sample = LoopEnd;
     }
     vgmstream->meta_type = meta_FSB5;
+    if (NameOffset)
+        read_string(vgmstream->stream_name,STREAM_NAME_SIZE, NameOffset,streamFile);
 
+
+    /* parse codec */
     switch (CodingID) {
         case 0x00:  /* FMOD_SOUND_FORMAT_NONE */
             goto fail;
@@ -305,7 +311,6 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
         default:
             goto fail;
     }
-
 
     if (!vgmstream_open_stream(vgmstream,streamFile,StartOffset))
         goto fail;

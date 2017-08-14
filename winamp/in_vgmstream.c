@@ -2,9 +2,11 @@
  * vgmstream for Winamp
  */
 
-/* Winamp uses wchar_t filenames when this is on, so extra steps are needed.
- * To open unicode filenames it needs to use _wfopen, inside a WA_STREAMFILE to pass around */
-//#define UNICODE_INPUT_PLUGIN
+/* Normally Winamp opens unicode files by their DOS 8.3 name. #define this to use wchar_t filenames,
+ * which must be opened with _wfopen in a WINAMP_STREAMFILE (needed for dual files like .pos).
+ * Only for Winamp paths, other parts would need #define UNICODE for Windows. */
+#define UNICODE_INPUT_PLUGIN
+
 
 #ifdef _MSC_VER
 #define _CRT_SECURE_NO_DEPRECATE
@@ -21,6 +23,7 @@
 #include "../src/vgmstream.h"
 #include "in2.h"
 #include "wa_ipc.h"
+#include "ipc_pe.h"
 #include "resource.h"
 
 
@@ -31,17 +34,13 @@
 #define VERSION "(unknown version)"
 #endif
 
-#define APP_NAME "vgmstream plugin"
 #define PLUGIN_DESCRIPTION "vgmstream plugin " VERSION " " __DATE__
-#define INI_NAME "plugin.ini"
 
+/* ************************************* */
 
-/* post when playback stops */
-#define WM_WA_MPEG_EOF WM_USER+2
-
-In_Module input_module; /* the input module, declared at the bottom of this file */
-DWORD WINAPI __stdcall decode(void *arg);
-
+/* config */
+#define CONFIG_APP_NAME "vgmstream plugin"
+#define CONFIG_INI_NAME "plugin.ini"
 
 #define DEFAULT_FADE_SECONDS "10.00"
 #define DEFAULT_FADE_DELAY_SECONDS "0.00"
@@ -60,8 +59,11 @@ DWORD WINAPI __stdcall decode(void *arg);
 char *priority_strings[] = {"Idle","Lowest","Below Normal","Normal","Above Normal","Highest (not recommended)","Time Critical (not recommended)"};
 int priority_values[] = {THREAD_PRIORITY_IDLE,THREAD_PRIORITY_LOWEST,THREAD_PRIORITY_BELOW_NORMAL,THREAD_PRIORITY_NORMAL,THREAD_PRIORITY_ABOVE_NORMAL,THREAD_PRIORITY_HIGHEST,THREAD_PRIORITY_TIME_CRITICAL};
 
-#define WINAMP_MAX_PATH  32768  /* originally 260+1 */
-in_char lastfn[WINAMP_MAX_PATH] = {0}; /* name of the currently playing file */
+/* ************************************* */
+
+/* plugin main (declared at the bottom of this file) */
+In_Module input_module;
+DWORD WINAPI __stdcall decode(void *arg);
 
 /* Winamp Play extension list, needed to accept/play and associate extensions in Windows */
 #define EXTENSION_LIST_SIZE   VGM_EXTENSION_LIST_CHAR_SIZE * 6
@@ -89,7 +91,195 @@ int decode_pos_samples = 0;
 int stream_length_samples = 0;
 int fade_samples = 0;
 
-/* ***************************************** */
+in_char lastfn[PATH_LIMIT] = {0}; /* name of the currently playing file */
+
+/* ************************************* */
+//todo safe ops
+
+#ifdef UNICODE_INPUT_PLUGIN
+#define wa_strcpy wcscpy
+#define wa_strncpy wcsncpy
+#define wa_strlen wcslen
+#else
+#define wa_strcpy strcpy
+#define wa_strncpy strncpy
+#define wa_strlen strlen
+#endif
+
+/* converts from utf16 to utf8 (if unicode is active) */
+static void wa_wchar_to_char(char *dst, size_t dstsize, const in_char *wsrc) {
+#ifdef UNICODE_INPUT_PLUGIN
+    /* converto to UTF8 codepage, default separate bytes, source wstr, wstr lenght,  */
+    //int size_needed = WideCharToMultiByte(CP_UTF8,0, src,-1, NULL,0, NULL, NULL);
+    WideCharToMultiByte(CP_UTF8,0, wsrc,-1, dst,dstsize, NULL, NULL);
+#else
+    strcpy(dst,wsrc);
+#endif
+}
+
+/* converts from utf8 to utf16 (if unicode is active) */
+static void wa_char_to_wchar(in_char *wdst, size_t wdstsize, const char *src) {
+#ifdef UNICODE_INPUT_PLUGIN
+    //int size_needed = MultiByteToWideChar(CP_UTF8,0, src,-1, NULL,0);
+    MultiByteToWideChar(CP_UTF8,0, src,-1, wdst,wdstsize);
+#else
+    strcpy(wdst,src);
+#endif
+}
+
+/* opens a utf16 (unicode) path */
+static FILE* wa_fopen(const in_char *wpath) {
+#ifdef UNICODE_INPUT_PLUGIN
+    return _wfopen(wpath,L"rb");
+#else
+    return fopen(wpath,"rb");
+#endif
+}
+
+/* dupes a utf16 (unicode) file */
+static FILE* wa_fdopen(int fd) {
+#ifdef UNICODE_INPUT_PLUGIN
+    return _wfdopen(fd,L"rb");
+#else
+    return fdopen(fd,"rb");
+#endif
+}
+
+
+
+/* a STREAMFILE that operates via STDIOSTREAMFILE but handles Winamp's unicode (in_char) paths */
+typedef struct _WINAMP_STREAMFILE {
+    STREAMFILE sf;
+    STREAMFILE *stdiosf;
+    FILE *infile_ref; /* pointer to the infile in stdiosf */
+} WINAMP_STREAMFILE;
+
+static STREAMFILE *open_winamp_streamfile_by_file(FILE *infile, const char * path);
+static STREAMFILE *open_winamp_streamfile_by_wpath(const in_char *wpath);
+
+static size_t wasf_read(WINAMP_STREAMFILE *streamfile, uint8_t *dest, off_t offset, size_t length) {
+    return streamfile->stdiosf->read(streamfile->stdiosf,dest,offset,length);
+}
+
+static off_t wasf_get_size(WINAMP_STREAMFILE *streamfile) {
+    return streamfile->stdiosf->get_size(streamfile->stdiosf);
+}
+
+static off_t wasf_get_offset(WINAMP_STREAMFILE *streamfile) {
+    return streamfile->stdiosf->get_offset(streamfile->stdiosf);
+}
+
+static void wasf_get_name(WINAMP_STREAMFILE *streamfile, char *buffer, size_t length) {
+    return streamfile->stdiosf->get_name(streamfile->stdiosf, buffer, length);
+}
+
+static void wasf_get_realname(WINAMP_STREAMFILE *streamfile, char *buffer, size_t length) {
+    return streamfile->stdiosf->get_realname(streamfile->stdiosf, buffer, length);
+}
+
+static STREAMFILE *wasf_open(WINAMP_STREAMFILE *streamFile, const char *const filename, size_t buffersize) {
+    int newfd;
+    FILE *newfile;
+    STREAMFILE *newstreamFile;
+    in_char wpath[PATH_LIMIT];
+    char name[PATH_LIMIT];
+
+    if (!filename)
+        return NULL;
+
+    /* if same name, duplicate the file pointer we already have open */ //unsure if all this is needed
+    streamFile->stdiosf->get_name(streamFile->stdiosf, name, PATH_LIMIT);
+    if (!strcmp(name,filename)) {
+        if (((newfd = dup(fileno(streamFile->infile_ref))) >= 0) &&
+            (newfile = wa_fdopen(newfd)))
+        {
+            newstreamFile = open_winamp_streamfile_by_file(newfile,filename);
+            if (newstreamFile) {
+                return newstreamFile;
+            }
+            // failure, close it and try the default path (which will probably fail a second time)
+            fclose(newfile);
+        }
+    }
+
+    /* STREAMFILEs carry char/UTF8 names, convert to wchar for Winamp */
+    wa_char_to_wchar(wpath,PATH_LIMIT, filename);
+    return open_winamp_streamfile_by_wpath(wpath);
+}
+
+static void wasf_close(WINAMP_STREAMFILE *streamfile) {
+    /* closes infile_ref + frees in the internal STDIOSTREAMFILE (fclose for wchar is not needed) */
+    streamfile->stdiosf->close(streamfile->stdiosf);
+    free(streamfile); /* and the current struct */
+}
+
+static STREAMFILE *open_winamp_streamfile_by_file(FILE *infile, const char * path) {
+    WINAMP_STREAMFILE *streamfile = NULL;
+    STREAMFILE *stdiosf = NULL;
+
+    streamfile = calloc(1,sizeof(WINAMP_STREAMFILE));
+    if (!streamfile) goto fail;
+
+    stdiosf = open_stdio_streamfile_by_file(infile,path);
+    if (!stdiosf) goto fail;
+
+    streamfile->sf.read = (void*)wasf_read;
+    streamfile->sf.get_size = (void*)wasf_get_size;
+    streamfile->sf.get_offset = (void*)wasf_get_offset;
+    streamfile->sf.get_name = (void*)wasf_get_name;
+    streamfile->sf.get_realname = (void*)wasf_get_realname;
+    streamfile->sf.open = (void*)wasf_open;
+    streamfile->sf.close = (void*)wasf_close;
+
+    streamfile->stdiosf = stdiosf;
+    streamfile->infile_ref = infile;
+
+    return &streamfile->sf; /* pointer to STREAMFILE start = rest of the custom data follows */
+
+fail:
+    close_streamfile(stdiosf);
+    free(streamfile);
+    return NULL;
+}
+
+
+static STREAMFILE *open_winamp_streamfile_by_wpath(const in_char *wpath) {
+    FILE *infile = NULL;
+    STREAMFILE *streamFile;
+    char path[PATH_LIMIT];
+
+    /* open a FILE from a Winamp (possibly UTF-16) path */
+    infile = wa_fopen(wpath);
+    if (!infile) return NULL;
+
+    /* convert to UTF-8 if needed for internal use */
+    wa_wchar_to_char(path,PATH_LIMIT, wpath);
+
+    streamFile = open_winamp_streamfile_by_file(infile,path);
+    if (!streamFile) {
+        fclose(infile);
+    }
+
+    return streamFile;
+}
+
+/* opens vgmstream for winamp */
+static VGMSTREAM* init_vgmstream_winamp(const in_char *fn) {
+    VGMSTREAM * vgmstream = NULL;
+
+    //return init_vgmstream(fn);
+
+    /* manually init streamfile to pass the stream index */
+    STREAMFILE *streamFile = open_winamp_streamfile_by_wpath(fn); //open_stdio_streamfile(fn);
+    if (streamFile) {
+        vgmstream = init_vgmstream_from_STREAMFILE(streamFile);
+        close_streamfile(streamFile);
+    }
+
+    return vgmstream;
+}
+
+/* ************************************* */
 
 /* Winamp INI reader */
 static void GetINIFileName(char * iniFile) {
@@ -99,21 +289,21 @@ static void GetINIFileName(char * iniFile) {
 
     if(IsWindow(input_module.hMainWindow) && SendMessage(input_module.hMainWindow, WM_WA_IPC,0,IPC_GETVERSION) >= 0x5000) {
         char * iniDir = (char *)SendMessage(input_module.hMainWindow, WM_WA_IPC, 0, IPC_GETINIDIRECTORY);
-        strncpy(iniFile, iniDir, WINAMP_MAX_PATH);
+        strncpy(iniFile, iniDir, PATH_LIMIT);
 
-        strncat(iniFile, "\\Plugins\\", WINAMP_MAX_PATH);
+        strncat(iniFile, "\\Plugins\\", PATH_LIMIT);
         /* can't be certain that \Plugins already exists in the user dir */
         CreateDirectory(iniFile,NULL);
-        strncat(iniFile, INI_NAME, WINAMP_MAX_PATH);
+        strncat(iniFile, CONFIG_INI_NAME, PATH_LIMIT);
     }
     else {
         char * lastSlash;
 
-        GetModuleFileName(NULL, iniFile, WINAMP_MAX_PATH);
+        GetModuleFileName(NULL, iniFile, PATH_LIMIT);
         lastSlash = strrchr(iniFile, '\\');
 
         *(lastSlash + 1) = 0;
-        strncat(iniFile, "Plugins\\" INI_NAME,WINAMP_MAX_PATH);
+        strncat(iniFile, "Plugins\\" CONFIG_INI_NAME,PATH_LIMIT);
     }
 }
 
@@ -175,25 +365,17 @@ static void build_extension_list() {
 
 /* unicode utils */
 static void copy_title(in_char * dst, int dst_size, const in_char * src) {
-#ifdef UNICODE_INPUT_PLUGIN
-    in_char *p = (in_char*)src + wcslen(src); /* find end */
+    in_char *p = (in_char*)src + wa_strlen(src); /* find end */
     while (*p != '\\' && p >= src) /* and find last "\" */
         p--;
     p++;
-    wcscpy(dst,p); /* copy filename only */
-#else
-    in_char *p = (in_char*)src + strlen(src); /* find end */
-    while (*p != '\\' && p >= src) /* and find last "\" */
-        p--;
-    p++;
-    strcpy(dst,p); /* copy filename only */
-#endif
+    wa_strcpy(dst,p); /* copy filename only */
 }
 
 /* ***************************************** */
 
 /* about dialog */
-void about(HWND hwndParent) {
+void winamp_About(HWND hwndParent) {
     MessageBox(hwndParent,
             PLUGIN_DESCRIPTION "\n"
             "by hcs, FastElbja, manakoAT, bxaimc, snakemeat, soneek, kode54, bnnm and many others\n"
@@ -206,116 +388,108 @@ void about(HWND hwndParent) {
 }
 
 /* called at program init */
-void init() {
-    char iniFile[WINAMP_MAX_PATH];
+void winamp_Init() {
+    char iniFile[PATH_LIMIT];
     char buf[256];
     int consumed;
 
+
     GetINIFileName(iniFile);
 
-    thread_priority=GetPrivateProfileInt(APP_NAME,THREAD_PRIORITY_INI_ENTRY,DEFAULT_THREAD_PRIORITY,iniFile);
+    thread_priority = GetPrivateProfileInt(CONFIG_APP_NAME,THREAD_PRIORITY_INI_ENTRY,DEFAULT_THREAD_PRIORITY,iniFile);
     if (thread_priority < 0 || thread_priority > 6) {
         sprintf(buf,"%d",DEFAULT_THREAD_PRIORITY);
-        WritePrivateProfileString(APP_NAME,THREAD_PRIORITY_INI_ENTRY,buf,iniFile);
+        WritePrivateProfileString(CONFIG_APP_NAME,THREAD_PRIORITY_INI_ENTRY,buf,iniFile);
         thread_priority = DEFAULT_THREAD_PRIORITY;
     }
 
-    GetPrivateProfileString(APP_NAME,FADE_SECONDS_INI_ENTRY,DEFAULT_FADE_SECONDS,buf,sizeof(buf),iniFile);
+    GetPrivateProfileString(CONFIG_APP_NAME,FADE_SECONDS_INI_ENTRY,DEFAULT_FADE_SECONDS,buf,sizeof(buf),iniFile);
     if (sscanf(buf,"%lf%n",&fade_seconds,&consumed)<1 || consumed!=strlen(buf) || fade_seconds < 0) {
-        WritePrivateProfileString(APP_NAME,FADE_SECONDS_INI_ENTRY,DEFAULT_FADE_SECONDS,iniFile);
+        WritePrivateProfileString(CONFIG_APP_NAME,FADE_SECONDS_INI_ENTRY,DEFAULT_FADE_SECONDS,iniFile);
         sscanf(DEFAULT_FADE_SECONDS,"%lf",&fade_seconds);
     }
 
-    GetPrivateProfileString(APP_NAME,FADE_DELAY_SECONDS_INI_ENTRY,DEFAULT_FADE_DELAY_SECONDS,buf,sizeof(buf),iniFile);
+    GetPrivateProfileString(CONFIG_APP_NAME,FADE_DELAY_SECONDS_INI_ENTRY,DEFAULT_FADE_DELAY_SECONDS,buf,sizeof(buf),iniFile);
     if (sscanf(buf,"%lf%n",&fade_delay_seconds,&consumed)<1 || consumed!=strlen(buf)) {
-        WritePrivateProfileString(APP_NAME,FADE_DELAY_SECONDS_INI_ENTRY,DEFAULT_FADE_DELAY_SECONDS,iniFile);
+        WritePrivateProfileString(CONFIG_APP_NAME,FADE_DELAY_SECONDS_INI_ENTRY,DEFAULT_FADE_DELAY_SECONDS,iniFile);
         sscanf(DEFAULT_FADE_DELAY_SECONDS,"%lf",&fade_delay_seconds);
     }
 
-    GetPrivateProfileString(APP_NAME,LOOP_COUNT_INI_ENTRY,DEFAULT_LOOP_COUNT,buf,sizeof(buf),iniFile);
+    GetPrivateProfileString(CONFIG_APP_NAME,LOOP_COUNT_INI_ENTRY,DEFAULT_LOOP_COUNT,buf,sizeof(buf),iniFile);
     if (sscanf(buf,"%lf%n",&loop_count,&consumed)!=1 || consumed!=strlen(buf) || loop_count < 0) {
-        WritePrivateProfileString(APP_NAME,LOOP_COUNT_INI_ENTRY,DEFAULT_LOOP_COUNT,iniFile);
+        WritePrivateProfileString(CONFIG_APP_NAME,LOOP_COUNT_INI_ENTRY,DEFAULT_LOOP_COUNT,iniFile);
         sscanf(DEFAULT_LOOP_COUNT,"%lf",&loop_count);
     }
 
-    loop_forever=GetPrivateProfileInt(APP_NAME,LOOP_FOREVER_INI_ENTRY,DEFAULT_LOOP_FOREVER,iniFile);
-    ignore_loop=GetPrivateProfileInt(APP_NAME,IGNORE_LOOP_INI_ENTRY,DEFAULT_IGNORE_LOOP,iniFile);
-
+    loop_forever = GetPrivateProfileInt(CONFIG_APP_NAME,LOOP_FOREVER_INI_ENTRY,DEFAULT_LOOP_FOREVER,iniFile);
+    ignore_loop = GetPrivateProfileInt(CONFIG_APP_NAME,IGNORE_LOOP_INI_ENTRY,DEFAULT_IGNORE_LOOP,iniFile);
     if (loop_forever && ignore_loop) {
         sprintf(buf,"%d",DEFAULT_LOOP_FOREVER);
-        WritePrivateProfileString(APP_NAME,LOOP_FOREVER_INI_ENTRY,buf,iniFile);
+        WritePrivateProfileString(CONFIG_APP_NAME,LOOP_FOREVER_INI_ENTRY,buf,iniFile);
         loop_forever = DEFAULT_LOOP_FOREVER;
+
         sprintf(buf,"%d",DEFAULT_IGNORE_LOOP);
-        WritePrivateProfileString(APP_NAME,IGNORE_LOOP_INI_ENTRY,buf,iniFile);
+        WritePrivateProfileString(CONFIG_APP_NAME,IGNORE_LOOP_INI_ENTRY,buf,iniFile);
         ignore_loop = DEFAULT_IGNORE_LOOP;
     }
 
+    /* dynamically make a list of supported extensions */
     build_extension_list();
 }
 
 /* called at program quit */
-void quit() {
+void winamp_Quit() {
 }
 
 /* called before extension checks, to allow detection of mms://, etc */
-int isourfile(const in_char *fn) {
+int winamp_IsOurFile(const in_char *fn) {
     return 0; /* we don't recognize protocols */
 }
 
 /* request to start playing a file */
-int play(const in_char *fn) {
+int winamp_Play(const in_char *fn) {
     int max_latency;
 
-    /* don't lose a pointer! */
-    if (vgmstream) {
-        /* TODO: this should either pop up an error box or close the file */
-        return 1; /* error */
-    }
+    if (vgmstream)
+        return 1; // TODO: this should either pop up an error box or close the file
 
-    /* open the stream, set up */
-    vgmstream = init_vgmstream(fn);
-    /* were we able to open it? */
-    if (!vgmstream) {
+    /* open the stream */
+    vgmstream = init_vgmstream_winamp(fn);
+    if (!vgmstream)
         return 1;
-    }
-    if (ignore_loop) vgmstream->loop_flag = 0;
-    /* will we be able to play it? */
-    if (vgmstream->channels <= 0) {
-        close_vgmstream(vgmstream);
-        vgmstream=NULL;
-        return 1; /* error */
-    }
 
-    /* Remember that name, friends! */
-    strncpy(lastfn,fn,WINAMP_MAX_PATH);
+    /* config */
+    if (ignore_loop)
+        vgmstream->loop_flag = 0;
+
+    /* save original name */
+    wa_strncpy(lastfn,fn,PATH_LIMIT);
 
     /* open the output plugin */
-    max_latency = input_module.outMod->Open(vgmstream->sample_rate,vgmstream->channels,
-            16, 0, 0);
-    /* were we able to open it? */
+    max_latency = input_module.outMod->Open(vgmstream->sample_rate,vgmstream->channels, 16, 0, 0);
     if (max_latency < 0) {
         close_vgmstream(vgmstream);
-        vgmstream=NULL;
-        return 1; /* error */
+        vgmstream = NULL;
+        return 1;
     }
 
-    /* Set info display */
-    /* TODO: actual bitrate */
+    /* set info display */ //TODO: actual bitrate
     input_module.SetInfo(get_vgmstream_average_bitrate(vgmstream)/1000,vgmstream->sample_rate/1000,vgmstream->channels,1);
 
     /* setup visualization */
     input_module.SAVSAInit(max_latency,vgmstream->sample_rate);
     input_module.VSASetInfo(vgmstream->sample_rate,vgmstream->channels);
 
+    /* reset internals */
     decode_abort = 0;
     seek_needed_samples = -1;
     decode_pos_ms = 0;
     decode_pos_samples = 0;
     paused = 0;
     stream_length_samples = get_vgmstream_play_samples(loop_count,fade_seconds,fade_delay_seconds,vgmstream);
-
     fade_samples = (int)(fade_seconds * vgmstream->sample_rate);
 
+    /* start */
     decode_thread_handle = CreateThread(
             NULL,   /* handle cannot be inherited */
             0,      /* stack size, 0=default */
@@ -330,129 +504,141 @@ int play(const in_char *fn) {
 }
 
 /* pause stream */
-void pause() {
-    paused=1;
+void winamp_Pause() {
+    paused = 1;
     input_module.outMod->Pause(1);
 }
 
 /* unpause stream */
-void unpause() {
-    paused=0;
+void winamp_UnPause() {
+    paused = 0;
     input_module.outMod->Pause(0);
 }
 
-/* ispaused? return 1 if paused, 0 if not */
-int ispaused() {
+/* return 1 if paused, 0 if not */
+int winamp_IsPaused() {
     return paused;
 }
 
 /* stop (unload) stream */
-void stop() {
+void winamp_Stop() {
     if (decode_thread_handle != INVALID_HANDLE_VALUE) {
-        decode_abort=1;
+        decode_abort = 1;
 
         /* arbitrary wait length */
         if (WaitForSingleObject(decode_thread_handle,1000) == WAIT_TIMEOUT) {
-            /* TODO: error? */
-            TerminateThread(decode_thread_handle,0);
+            TerminateThread(decode_thread_handle,0); // TODO: error?
         }
         CloseHandle(decode_thread_handle);
         decode_thread_handle = INVALID_HANDLE_VALUE;
     }
 
-    if (vgmstream) {
-        close_vgmstream(vgmstream);
-        vgmstream=NULL;
-    }
+
+    close_vgmstream(vgmstream);
+    vgmstream = NULL;
 
     input_module.outMod->Close();
     input_module.SAVSADeInit();
 }
 
 /* get length in ms */
-int getlength() {
-    return stream_length_samples*1000LL/vgmstream->sample_rate;
+int winamp_GetLength() {
+    return stream_length_samples * 1000LL / vgmstream->sample_rate;
 }
 
 /* current output time in ms */
-int getoutputtime() {
-    return decode_pos_ms+(input_module.outMod->GetOutputTime()-input_module.outMod->GetWrittenTime());
+int winamp_GetOutputTime() {
+    return decode_pos_ms + (input_module.outMod->GetOutputTime()-input_module.outMod->GetWrittenTime());
 }
 
 /* seeks to point in stream (in ms) */
-void setoutputtime(int t) {
+void winamp_SetOutputTime(int time_in_ms) {
     if (vgmstream)
-        seek_needed_samples = (long long)t * vgmstream->sample_rate / 1000LL;
+        seek_needed_samples = (long long)time_in_ms * vgmstream->sample_rate / 1000LL;
 }
 
 /* pass these commands through */
-void setvolume(int volume) {
+void winamp_SetVolume(int volume) {
     input_module.outMod->SetVolume(volume);
 }
-void setpan(int pan) {
+void winamp_SetPan(int pan) {
     input_module.outMod->SetPan(pan);
 }
 
-/* display information */
-int infoDlg(const in_char *fn, HWND hwnd) {
-    VGMSTREAM * infostream = NULL;
+/* display info box (ALT+3) */
+int winamp_InfoBox(const in_char *fn, HWND hwnd) {
     char description[1024] = {0};
+
 
     concatn(sizeof(description),description,PLUGIN_DESCRIPTION "\n\n");
 
     if (!fn || !*fn) {
-        if (!vgmstream) return 0;
+        /* no filename = current playing file */
+        if (!vgmstream)
+            return 0;
+
         describe_vgmstream(vgmstream,description,sizeof(description));
-    } else {
-        infostream = init_vgmstream((char*)fn);
-        if (!infostream) return 0;
+    }
+    else {
+        /* some other file in playlist given by filename */
+        VGMSTREAM * infostream = NULL;
+
+        infostream = init_vgmstream_winamp(fn);
+        if (!infostream)
+            return 0;
+
         describe_vgmstream(infostream,description,sizeof(description));
+
         close_vgmstream(infostream);
-        infostream=NULL;
+        infostream = NULL;
     }
 
     MessageBox(hwnd,description,"Stream info",MB_OK);
     return 0;
 }
 
-/* retrieve information on this or possibly another file */
-void getfileinfo(const in_char *filename, in_char *title, int *length_in_ms) {
+/* retrieve title (playlist name) and time on the current or other file in the playlist */
+void winamp_GetFileInfo(const in_char *fn, in_char *title, int *length_in_ms) {
 
-    if (!filename || !*filename)  /* no filename = use currently playing file */
-    {
+    if (!fn || !*fn) {
+        /* no filename = current playing file */
+
         if (!vgmstream)
             return;
-        if (length_in_ms)
-            *length_in_ms = getlength();
 
         if (title) {
             copy_title(title,GETFILEINFO_TITLE_LENGTH, lastfn);
         }
-    }
-    else /* some other file */
-    {
-        VGMSTREAM * infostream;
 
         if (length_in_ms) {
-            *length_in_ms=-1000;
+            *length_in_ms = winamp_GetLength();
+        }
+    }
+    else {
+        /* some other file in playlist given by filename */
+        VGMSTREAM * infostream = NULL;
 
-            if ((infostream=init_vgmstream(filename))) {
-                *length_in_ms = get_vgmstream_play_samples(loop_count,fade_seconds,fade_delay_seconds,infostream)*1000LL/infostream->sample_rate;
+        infostream = init_vgmstream_winamp(fn);
 
-                close_vgmstream(infostream);
-                infostream=NULL;
+        if (title) {
+            copy_title(title,GETFILEINFO_TITLE_LENGTH, fn);
+        }
+
+        if (length_in_ms) {
+            *length_in_ms = -1000;
+            if (infostream) {
+                int num_samples = get_vgmstream_play_samples(loop_count,fade_seconds,fade_delay_seconds,infostream);
+                *length_in_ms = num_samples * 1000LL /infostream->sample_rate;
             }
         }
 
-        if (title) {
-            copy_title(title,GETFILEINFO_TITLE_LENGTH, filename);
-        }
+        close_vgmstream(infostream);
+        infostream = NULL;
     }
 }
 
 /* eq stuff */
-void eq_set(int on, char data[10], int preamp) {
-    /* nothin' */
+void winamp_EQSet(int on, char data[10], int preamp) {
 }
 
 /* the decode thread */
@@ -461,14 +647,14 @@ DWORD WINAPI __stdcall decode(void *arg) {
     int max_buffer_samples = sizeof(sample_buffer)/sizeof(sample_buffer[0])/2/vgmstream->channels;
 
     while (!decode_abort) {
-
         int samples_to_do;
         int l;
 
-        if (decode_pos_samples+max_buffer_samples>stream_length_samples && (!loop_forever || !vgmstream->loop_flag))
-            samples_to_do=stream_length_samples-decode_pos_samples;
+        if (decode_pos_samples + max_buffer_samples > stream_length_samples
+                && (!loop_forever || !vgmstream->loop_flag))
+            samples_to_do = stream_length_samples - decode_pos_samples;
         else
-            samples_to_do=max_buffer_samples;
+            samples_to_do = max_buffer_samples;
 
         /* play 'till the end of this seek, or note if we're done seeking */
         if (seek_needed_samples != -1) {
@@ -476,29 +662,29 @@ DWORD WINAPI __stdcall decode(void *arg) {
             if (seek_needed_samples < decode_pos_samples) {
                 reset_vgmstream(vgmstream);
 
-                if (ignore_loop) vgmstream->loop_flag = 0;
+                if (ignore_loop)
+                    vgmstream->loop_flag = 0;
 
                 decode_pos_samples = 0;
                 decode_pos_ms = 0;
             }
 
             if (decode_pos_samples < seek_needed_samples) {
-                samples_to_do=seek_needed_samples-decode_pos_samples;
-                if (samples_to_do>max_buffer_samples) samples_to_do=max_buffer_samples;
+                samples_to_do = seek_needed_samples-decode_pos_samples;
+                if (samples_to_do > max_buffer_samples)
+                    samples_to_do = max_buffer_samples;
             } else
                 seek_needed_samples = -1;
 
             input_module.outMod->Flush((int)decode_pos_ms);
         }
 
-        l = (samples_to_do*vgmstream->channels*2)<<(input_module.dsp_isactive()?1:0);
+        l = (samples_to_do*vgmstream->channels*2) << (input_module.dsp_isactive()?1:0);
 
         if (samples_to_do == 0) {
             input_module.outMod->CanWrite();    /* ? */
             if (!input_module.outMod->IsPlaying()) {
-                PostMessage(input_module.hMainWindow,   /* message dest */
-                        WM_WA_MPEG_EOF,     /* message id */
-                        0,0);   /* no parameters */
+                PostMessage(input_module.hMainWindow, WM_WA_MPEG_EOF, 0,0); /* end */
                 return 0;
             }
             Sleep(10);
@@ -506,8 +692,8 @@ DWORD WINAPI __stdcall decode(void *arg) {
         else if (seek_needed_samples != -1) {
             render_vgmstream(sample_buffer,samples_to_do,vgmstream);
 
-            decode_pos_samples+=samples_to_do;
-            decode_pos_ms=decode_pos_samples*1000LL/vgmstream->sample_rate;
+            decode_pos_samples += samples_to_do;
+            decode_pos_ms = decode_pos_samples * 1000LL / vgmstream->sample_rate;
         }
         else if (input_module.outMod->CanWrite() >= l) {
             /* let vgmstream do its thing */
@@ -518,10 +704,10 @@ DWORD WINAPI __stdcall decode(void *arg) {
                 int samples_into_fade = decode_pos_samples - (stream_length_samples - fade_samples);
                 if (samples_into_fade + samples_to_do > 0) {
                     int j,k;
-                    for (j=0;j<samples_to_do;j++,samples_into_fade++) {
+                    for (j=0; j < samples_to_do; j++, samples_into_fade++) {
                         if (samples_into_fade > 0) {
                             double fadedness = (double)(fade_samples-samples_into_fade)/fade_samples;
-                            for (k=0;k<vgmstream->channels;k++) {
+                            for (k=0; k < vgmstream->channels; k++) {
                                 sample_buffer[j*vgmstream->channels+k] =
                                     (short)(sample_buffer[j*vgmstream->channels+k]*fadedness);
                             }
@@ -532,22 +718,25 @@ DWORD WINAPI __stdcall decode(void *arg) {
 
             input_module.SAAddPCMData((char*)sample_buffer,vgmstream->channels,16,decode_pos_ms);
             input_module.VSAAddPCMData((char*)sample_buffer,vgmstream->channels,16,decode_pos_ms);
-            decode_pos_samples+=samples_to_do;
-            decode_pos_ms=decode_pos_samples*1000LL/vgmstream->sample_rate;
+            decode_pos_samples += samples_to_do;
+            decode_pos_ms = decode_pos_samples*1000LL/vgmstream->sample_rate;
             if (input_module.dsp_isactive())
-                l =input_module.dsp_dosamples(sample_buffer,samples_to_do,16,vgmstream->channels,vgmstream->sample_rate) * 
-                    2 * vgmstream->channels;
+                l = input_module.dsp_dosamples(sample_buffer,samples_to_do,16,vgmstream->channels,vgmstream->sample_rate) * 2 * vgmstream->channels;
 
             input_module.outMod->Write((char*)sample_buffer,l);
         }   /* if we can write enough */
-        else Sleep(20);
+        else {
+            Sleep(20);
+        }
     }   /* main loop */
+
     return 0;
 }
 
+/* config dialog handler */
 INT_PTR CALLBACK configDlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     char buf[256];
-    char iniFile[WINAMP_MAX_PATH];
+    char iniFile[PATH_LIMIT];
     static int mypri;
     HANDLE hSlider;
 
@@ -630,27 +819,27 @@ INT_PTR CALLBACK configDlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 
                         thread_priority=mypri;
                         sprintf(buf,"%d",thread_priority);
-                        WritePrivateProfileString(APP_NAME,THREAD_PRIORITY_INI_ENTRY,buf,iniFile);
+                        WritePrivateProfileString(CONFIG_APP_NAME,THREAD_PRIORITY_INI_ENTRY,buf,iniFile);
 
                         fade_seconds = temp_fade_seconds;
                         sprintf(buf,"%.2lf",fade_seconds);
-                        WritePrivateProfileString(APP_NAME,FADE_SECONDS_INI_ENTRY,buf,iniFile);
+                        WritePrivateProfileString(CONFIG_APP_NAME,FADE_SECONDS_INI_ENTRY,buf,iniFile);
 
                         fade_delay_seconds = temp_fade_delay_seconds;
                         sprintf(buf,"%.2lf",fade_delay_seconds);
-                        WritePrivateProfileString(APP_NAME,FADE_DELAY_SECONDS_INI_ENTRY,buf,iniFile);
+                        WritePrivateProfileString(CONFIG_APP_NAME,FADE_DELAY_SECONDS_INI_ENTRY,buf,iniFile);
 
                         loop_count = temp_loop_count;
                         sprintf(buf,"%.2lf",loop_count);
-                        WritePrivateProfileString(APP_NAME,LOOP_COUNT_INI_ENTRY,buf,iniFile);
+                        WritePrivateProfileString(CONFIG_APP_NAME,LOOP_COUNT_INI_ENTRY,buf,iniFile);
 
                         loop_forever = (IsDlgButtonChecked(hDlg,IDC_LOOP_FOREVER) == BST_CHECKED);
                         sprintf(buf,"%d",loop_forever);
-                        WritePrivateProfileString(APP_NAME,LOOP_FOREVER_INI_ENTRY,buf,iniFile);
+                        WritePrivateProfileString(CONFIG_APP_NAME,LOOP_FOREVER_INI_ENTRY,buf,iniFile);
 
                         ignore_loop = (IsDlgButtonChecked(hDlg,IDC_IGNORE_LOOP) == BST_CHECKED);
                         sprintf(buf,"%d",ignore_loop);
-                        WritePrivateProfileString(APP_NAME,IGNORE_LOOP_INI_ENTRY,buf,iniFile);
+                        WritePrivateProfileString(CONFIG_APP_NAME,IGNORE_LOOP_INI_ENTRY,buf,iniFile);
                     }
 
                     EndDialog(hDlg,TRUE);
@@ -696,7 +885,7 @@ INT_PTR CALLBACK configDlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 }
 
 /* configuration dialog */
-void config(HWND hwndParent) {
+void winamp_Config(HWND hwndParent) {
     /* defined in resource.rc */
     DialogBox(input_module.hDllInstance, (const char *)IDD_CONFIG, hwndParent, configDlgProc);
 }
@@ -707,33 +896,33 @@ void config(HWND hwndParent) {
 In_Module input_module = {
     IN_VER,
     PLUGIN_DESCRIPTION,
-    0,  /* hMainWindow */
-    0,  /* hDllInstance */
+    0,  /* hMainWindow (filled in by Winamp) */
+    0,  /* hDllInstance (filled in by Winamp) */
     working_extension_list,
-    1, /* is_seekable  */
-    1, /* uses output */
-    config,
-    about,
-    init,
-    quit,
-    getfileinfo,
-    infoDlg,
-    isourfile,
-    play,
-    pause,
-    unpause,
-    ispaused,
-    stop,
-    getlength,
-    getoutputtime,
-    setoutputtime,
-    setvolume,
-    setpan,
-    0,0,0,0,0,0,0,0,0, // vis stuff
-    0,0, // dsp
-    eq_set,
-    NULL,       // setinfo
-    0 // out_mod
+    1, /* is_seekable flag  */
+    1, /* UsesOutputPlug flag */
+    winamp_Config,
+    winamp_About,
+    winamp_Init,
+    winamp_Quit,
+    winamp_GetFileInfo,
+    winamp_InfoBox,
+    winamp_IsOurFile,
+    winamp_Play,
+    winamp_Pause,
+    winamp_UnPause,
+    winamp_IsPaused,
+    winamp_Stop,
+    winamp_GetLength,
+    winamp_GetOutputTime,
+    winamp_SetOutputTime,
+    winamp_SetVolume,
+    winamp_SetPan,
+    0,0,0,0,0,0,0,0,0, /* vis stuff */
+    0,0, /* dsp stuff */
+    winamp_EQSet,
+    NULL, /* SetInfo */
+    0 /* outMod */
 };
 
 __declspec( dllexport ) In_Module * winampGetInModule2() {

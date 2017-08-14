@@ -88,10 +88,6 @@ VGMSTREAM * init_vgmstream_ps2_vpk(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile);
 
-VGMSTREAM * init_vgmstream_amts(STREAMFILE *streamFile);
-
-VGMSTREAM * init_vgmstream_xbox_stma(STREAMFILE *streamFile);
-
 #ifdef VGM_USE_VORBIS
 VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile);
 
@@ -462,8 +458,6 @@ VGMSTREAM * init_vgmstream_xbox_hlwav(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_stx(STREAMFILE* streamFile);
 
-VGMSTREAM * init_vgmstream_ps2_stm(STREAMFILE* streamFile);
-
 VGMSTREAM * init_vgmstream_myspd(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_his(STREAMFILE* streamFile);
@@ -685,5 +679,7 @@ VGMSTREAM * init_vgmstream_ea_bnk(STREAMFILE * streamFile);
 VGMSTREAM * init_vgmstream_ea_schl_fixed(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_sk_aud(STREAMFILE * streamFile);
+
+VGMSTREAM * init_vgmstream_stm(STREAMFILE * streamFile);
 
 #endif /*_META_H*/

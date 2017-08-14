@@ -42,34 +42,44 @@
 #endif
 #endif
 
+/* struct representing a file with callbacks. Code should use STREAMFILEs and not std C functions
+ * to do file operations, as plugins may need to provide their own callbacks. */
 typedef struct _STREAMFILE {
     size_t (*read)(struct _STREAMFILE *,uint8_t * dest, off_t offset, size_t length);
     size_t (*get_size)(struct _STREAMFILE *);
     off_t (*get_offset)(struct _STREAMFILE *);    
-    // for dual-file support
+    /* for dual-file support */
     void (*get_name)(struct _STREAMFILE *,char *name,size_t length);
-    // for when the "name" is encoded specially, this is the actual user
-    // visible name
+    /* for when the "name" is encoded specially, this is the actual user visible name */
     void (*get_realname)(struct _STREAMFILE *,char *name,size_t length);
     struct _STREAMFILE * (*open)(struct _STREAMFILE *,const char * const filename,size_t buffersize);
-
     void (*close)(struct _STREAMFILE *);
+
 #ifdef PROFILE_STREAMFILE
     size_t (*get_bytes_read)(struct _STREAMFILE *);
     int (*get_error_count)(struct _STREAMFILE *);
-
 #endif
+
+
+    /* Substream selection for files with multiple streams. Manually used in metas if supported.
+     * Not ideal here, but it's the simplest way to pass to all init_vgmstream_x functions. */
+    int stream_index; /* 0=default/auto (first), 1=first, N=Nth */
+
 } STREAMFILE;
+
+/* create a STREAMFILE from path */
+STREAMFILE * open_stdio_streamfile(const char * filename);
+
+/* create a STREAMFILE from pre-opened file path */
+STREAMFILE * open_stdio_streamfile_by_file(FILE * file, const char * filename);
+
 
 /* close a file, destroy the STREAMFILE object */
 static inline void close_streamfile(STREAMFILE * streamfile) {
     streamfile->close(streamfile);
 }
 
-/* read from a file
-*
-* returns number of bytes read
-*/
+/* read from a file, returns number of bytes read */
 static inline size_t read_streamfile(uint8_t * dest, off_t offset, size_t length, STREAMFILE * streamfile) {
     return streamfile->read(streamfile,dest,offset,length);
 }
@@ -132,26 +142,15 @@ static inline int8_t read_8bit(off_t offset, STREAMFILE * streamfile) {
     return buf[0];
 }
 
-/* open file with a set buffer size, create a STREAMFILE object
-*
-* Returns pointer to new STREAMFILE or NULL if open failed
-*/
-STREAMFILE * open_stdio_streamfile_buffer(const char * const filename, size_t buffersize);
-
-/* open file with a default buffer size, create a STREAMFILE object
-*
-* Returns pointer to new STREAMFILE or NULL if open failed
-*/
-static inline STREAMFILE * open_stdio_streamfile(const char * const filename) {
-    return open_stdio_streamfile_buffer(filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-}
+/* various STREAMFILE helpers functions */
 
 size_t get_streamfile_dos_line(int dst_length, char * dst, off_t offset, STREAMFILE * infile, int *line_done_ptr);
 
 STREAMFILE * open_stream_ext(STREAMFILE *streamFile, const char * ext);
 
-int read_key_file(uint8_t * buf, size_t bufsize, STREAMFILE *streamFile);
+int read_string(char * buf, size_t bufsize, off_t offset, STREAMFILE *streamFile);
 
+int read_key_file(uint8_t * buf, size_t bufsize, STREAMFILE *streamFile);
 int read_pos_file(uint8_t * buf, size_t bufsize, STREAMFILE *streamFile);
 
 int check_extensions(STREAMFILE *streamFile, const char * cmp_exts);

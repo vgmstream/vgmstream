@@ -6,12 +6,12 @@
 VGMSTREAM * init_vgmstream_sxd(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     STREAMFILE * streamHeader = NULL;
-    off_t start_offset, chunk_offset, first_offset = 0x60;
+    off_t start_offset, chunk_offset, first_offset = 0x60, name_offset = 0;
 
     int is_separate;
     int loop_flag, channels, type;
     int sample_rate, num_samples, loop_start_sample, loop_end_sample;
-    int target_stream = 0, total_streams;
+    int total_streams, target_stream = streamFile->stream_index;
 
 
     /* check extension, case insensitive */
@@ -85,6 +85,20 @@ VGMSTREAM * init_vgmstream_sxd(STREAMFILE *streamFile) {
         start_offset = data_offset + stream_offset;
     }
 
+    /* get stream name (NAME is tied to REQD/cues, and SFX cues repeat WAVEs, but should work ok for streams) */
+    if (is_separate && find_chunk_le(streamHeader, 0x4E414D45,first_offset,0, &chunk_offset,NULL)) { /* "NAME" */
+        /* table: relative offset (32b) + hash? (32b) + cue index (32b) */
+        int i;
+        int num_entries = read_16bitLE(chunk_offset+0x04,streamHeader); /*can be more than streams */
+        for (i = 0; i < num_entries; i++) {
+            uint32_t index = (uint32_t)read_32bitLE(chunk_offset+0x08 + 0x08 + i*0x0c,streamHeader);
+            if (index+1 == target_stream) {
+                name_offset = chunk_offset+0x08 + 0x00 + i*0x0c + read_32bitLE(chunk_offset+0x08 + 0x00 + i*0x0c,streamHeader);
+                break;
+            }
+        }
+    }
+
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channels,loop_flag);
@@ -96,7 +110,8 @@ VGMSTREAM * init_vgmstream_sxd(STREAMFILE *streamFile) {
     vgmstream->loop_end_sample = loop_end_sample;
     vgmstream->num_streams = total_streams;
     vgmstream->meta_type = meta_SXD;
-
+    if (name_offset)
+        read_string(vgmstream->stream_name,STREAM_NAME_SIZE, name_offset,streamHeader);
 
     switch (type) {
         case 0x01:      /* HEVAG */
