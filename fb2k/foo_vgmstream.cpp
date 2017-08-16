@@ -253,6 +253,7 @@ void input_vgmstream::decode_seek(double p_seconds,abort_callback & p_abort) {
     // Reset of backwards seek
     else if(corrected_pos_samples < decode_pos_samples) {
         reset_vgmstream(vgmstream);
+        vgmstream->loop_target = 0;
         if (ignore_loop) vgmstream->loop_flag = 0;
         decode_pos_samples = 0;
     }
@@ -337,6 +338,7 @@ void input_vgmstream::setup_vgmstream(abort_callback & p_abort) {
     decode_pos_samples = 0;
     paused = 0;
     stream_length_samples = get_vgmstream_play_samples(loop_count,fade_seconds,fade_delay_seconds,vgmstream);
+    vgmstream->loop_target = 0;
 
     fade_samples = (int)(fade_seconds * vgmstream->sample_rate);
 }
@@ -357,6 +359,7 @@ void input_vgmstream::get_subsong_info(t_uint32 p_subsong, char *title, int *len
         *length_in_ms = -1000;
         if (infostream) {
             *length_in_ms = get_vgmstream_play_samples(loop_count,fade_seconds,fade_delay_seconds,infostream)*1000LL/infostream->sample_rate;
+			infostream->loop_target = 0;
             *sample_rate = infostream->sample_rate;
             *channels = infostream->channels;
             *total_samples = infostream->num_samples;
