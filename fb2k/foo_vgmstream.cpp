@@ -38,7 +38,7 @@ extern "C" {
             "foobar2000 plugin by Josh W, kode54\n" \
             "\n" \
             "https://github.com/kode54/vgmstream/\n" \
-            "https://sourceforge.net/projects/vgmstream/ (original)";
+            "https://sourceforge.net/projects/vgmstream/ (original)"
 
 
 input_vgmstream::input_vgmstream() {
