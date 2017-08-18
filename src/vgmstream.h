@@ -617,6 +617,7 @@ typedef enum {
     meta_SK_AUD,            /* Silicon Knights .AUD (Eternal Darkness GC) */
     meta_AHX,               /* CRI AHX header */
     meta_STM,               /* Angel Studios/Rockstar San Diego Games */
+    meta_BINK,              /* RAD Game Tools BINK audio/video */
 
 #ifdef VGM_USE_VORBIS
     meta_OGG_VORBIS,        /* Ogg Vorbis */

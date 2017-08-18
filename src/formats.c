@@ -875,6 +875,7 @@ static const meta_info meta_info_list[] = {
         {meta_SK_AUD,               "Silicon Knights AUD header"},
         {meta_AHX,                  "CRI AHX header"},
         {meta_STM,                  "Angel Studios/Rockstar San Diego STMA header"},
+        {meta_BINK,                 "RAD Game Tools Bink header"},
 
 #ifdef VGM_USE_VORBIS
         {meta_OGG_VORBIS,           "Ogg Vorbis"},

@@ -343,8 +343,8 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_akb2_multi,
 #ifdef VGM_USE_FFMPEG
     init_vgmstream_mp4_aac_ffmpeg,
-    init_vgmstream_bik,
 #endif
+    init_vgmstream_bik,
     init_vgmstream_x360_ast,
     init_vgmstream_wwise,
     init_vgmstream_ubi_raki,
