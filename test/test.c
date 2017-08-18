@@ -292,6 +292,11 @@ int main(int argc, char ** argv) {
     if (!play && !adxencd && !oggenc && !batchvar) printf("samples to play: %d (%.4lf seconds)\n",len,(double)len/s->sample_rate);
     fade_samples = fade_seconds * s->sample_rate;
 
+    if (loop_count && fade_ignore) {
+        s->loop_target = (int)loop_count;
+    }
+
+
     /* slap on a .wav header */
     if (only_stereo != -1) {
         make_wav_header((uint8_t*)buf, len, s->sample_rate, 2);

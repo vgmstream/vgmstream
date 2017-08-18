@@ -871,7 +871,7 @@ int32_t get_vgmstream_play_samples(double looptimes, double fadeseconds, double 
              * Most files cut abruply after the loop, but some do have proper endings.
              * With looptimes = 1 this option should give the same output vs loop disabled */
             int loop_count = (int)looptimes; /* no half loops allowed */
-            vgmstream->loop_target = loop_count;
+            //vgmstream->loop_target = loop_count; /* handled externally, as this is into-only */
             return vgmstream->loop_start_sample
                 + (vgmstream->loop_end_sample - vgmstream->loop_start_sample) * loop_count
                 + (vgmstream->num_samples - vgmstream->loop_end_sample);
