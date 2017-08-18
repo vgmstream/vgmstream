@@ -212,10 +212,13 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
         case 0x04:  /* FMOD_SOUND_FORMAT_PCM32 */
             goto fail;
 
-        case 0x05:  /* FMOD_SOUND_FORMAT_PCMFLOAT */
-            goto fail;
+        case 0x05:  /* FMOD_SOUND_FORMAT_PCMFLOAT  [Anima - Gate of Memories (PC)]*/
+            vgmstream->coding_type = coding_PCMFLOAT;
+            vgmstream->layout_type = (ChannelCount == 1) ? layout_none : layout_interleave;
+            vgmstream->interleave_block_size = 0x04;
+            break;
 
-        case 0x06:  /* FMOD_SOUND_FORMAT_GCADPCM */
+        case 0x06:  /* FMOD_SOUND_FORMAT_GCADPCM  [Sonic Boom - Fire and Ice (3DS)] */
             if (ChannelCount == 1) {
                 vgmstream->layout_type = layout_none;
             } else {

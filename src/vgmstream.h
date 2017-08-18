@@ -72,21 +72,23 @@ enum { STREAM_NAME_SIZE = 255 }; /* reasonable max */
 
 /* The encoding type specifies the format the sound data itself takes */
 typedef enum {
-    /* 16-bit PCM */
+    /* PCM */
     coding_PCM16LE,         /* little endian 16-bit PCM */
     coding_PCM16LE_int,		/* little endian 16-bit PCM with sample-level interleave */
     coding_PCM16LE_XOR_int, /* little endian 16-bit PCM with sample-level xor */
     coding_PCM16BE,         /* big endian 16-bit PCM */
 
-    /* 8-bit PCM */
     coding_PCM8,            /* 8-bit PCM */
     coding_PCM8_int,        /* 8-Bit PCM with sample-level interleave */
     coding_PCM8_U,          /* 8-bit PCM, unsigned (0x80 = 0) */
     coding_PCM8_U_int,      /* 8-bit PCM, unsigned (0x80 = 0) with sample-level interleave */
     coding_PCM8_SB_int,     /* 8-bit PCM, sign bit (others are 2's complement) with sample-level interleave */
+
     coding_ULAW,            /* 8-bit u-Law (non-linear PCM) */
 
-    /* 4-bit ADPCM */
+    coding_PCMFLOAT,        /* 32 bit float PCM */
+
+    /* ADPCM */
     coding_CRI_ADX,         /* CRI ADX */
     coding_CRI_ADX_fixed,   /* CRI ADX, encoding type 2 with fixed coefficients */
     coding_CRI_ADX_exp,     /* CRI ADX, encoding type 4 with exponential scale */

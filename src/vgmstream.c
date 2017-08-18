@@ -975,6 +975,8 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_PCM8_SB_int:
         case coding_PCM8_U_int:
         case coding_ULAW:
+        case coding_PCMFLOAT:
+            return 1;
 #ifdef VGM_USE_VORBIS
         case coding_ogg_vorbis:
         case coding_VORBIS_custom:
@@ -1128,6 +1130,9 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
         case coding_PCM8_SB_int:
         case coding_PCM8_U_int:
         case coding_ULAW:
+            return 1;
+        case coding_PCMFLOAT:
+            return 4;
         case coding_SDX2:
         case coding_SDX2_int:
         case coding_CBD2:
@@ -1358,6 +1363,14 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                         samples_to_do);
             }
             break;
+        case coding_PCMFLOAT:
+            for (chan=0;chan<vgmstream->channels;chan++) {
+                decode_pcmfloat(vgmstream, &vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                        vgmstream->channels,vgmstream->samples_into_block,
+                        samples_to_do);
+            }
+            break;
+
         case coding_NDS_IMA:
             for (chan=0;chan<vgmstream->channels;chan++) {
                 decode_nds_ima(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
