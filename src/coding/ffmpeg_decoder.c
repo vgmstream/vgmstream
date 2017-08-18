@@ -294,7 +294,7 @@ ffmpeg_codec_data * init_ffmpeg_header_offset(STREAMFILE *streamFile, uint8_t * 
 
     int streamIndex, streamCount;
     AVStream *stream;
-    AVCodecParameters *codecPar;
+    AVCodecParameters *codecPar = NULL;
 
     AVRational tb;
 
@@ -338,23 +338,29 @@ ffmpeg_codec_data * init_ffmpeg_header_offset(STREAMFILE *streamFile, uint8_t * 
     if ((errcode = avformat_find_stream_info(data->formatCtx, NULL)) < 0) goto fail;
 
 
-    /* find valid audio stream inside */
+    /* find valid audio stream */
     streamIndex = -1;
-    streamCount = 0; /* audio streams only */
+    streamCount = 0;
 
     for (i = 0; i < data->formatCtx->nb_streams; ++i) {
         stream = data->formatCtx->streams[i];
-        codecPar = stream->codecpar;
-        if (streamIndex < 0 && codecPar->codec_type == AVMEDIA_TYPE_AUDIO) {
-            streamIndex = i; /* select first audio stream found */
-        } else {
-            stream->discard = AVDISCARD_ALL; /* disable demuxing unneded streams */
-        }
-        if (codecPar->codec_type == AVMEDIA_TYPE_AUDIO)
-            streamCount++;
-    }
 
-    if (streamIndex < 0) goto fail;
+        if (stream->codecpar->codec_type == AVMEDIA_TYPE_AUDIO) {
+            streamCount++;
+
+            /* select Nth audio stream if specified, or first one */
+            if (streamIndex < 0 ||
+                    (streamFile->stream_index > 0 && streamCount == streamFile->stream_index)) {
+                codecPar = stream->codecpar;
+                streamIndex = i;
+            }
+        }
+
+        if (i != streamIndex)
+            stream->discard = AVDISCARD_ALL; /* disable demuxing for other streams */
+    }
+    if (streamCount < streamFile->stream_index) goto fail;
+    if (streamIndex < 0 || !codecPar) goto fail;
 
     data->streamIndex = streamIndex;
     stream = data->formatCtx->streams[streamIndex];
@@ -384,6 +390,7 @@ ffmpeg_codec_data * init_ffmpeg_header_offset(STREAMFILE *streamFile, uint8_t * 
 
     data->readNextPacket = 1;
     data->bytesConsumedFromDecodedFrame = INT_MAX;
+
 
 
     /* other setup */
