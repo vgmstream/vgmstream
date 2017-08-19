@@ -160,7 +160,7 @@ void input_vgmstream::get_info(t_uint32 p_subsong, file_info & p_info, abort_cal
 
     if (get_description_tag(temp,description,"block size: ")) p_info.info_set("block_size",temp);
     if (get_description_tag(temp,description,"metadata from: ")) p_info.info_set("metadata_source",temp);
-    if (get_description_tag(temp,description,"stream number: ")) p_info.info_set("stream_number",temp);
+    if (get_description_tag(temp,description,"stream count: ")) p_info.info_set("stream_count",temp);
     if (get_description_tag(temp,description,"stream index: ")) p_info.info_set("stream_index",temp);
     if (get_description_tag(temp,description,"stream name: ")) p_info.info_set("stream_name",temp);
 }

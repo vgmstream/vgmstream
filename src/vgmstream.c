@@ -2065,7 +2065,7 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
     /* only interesting if more than one */
     if (vgmstream->num_streams > 1) {
         snprintf(temp,TEMPSIZE,
-                "\nstream number: %d",
+                "\nstream count: %d",
                 vgmstream->num_streams);
         concatn(length,desc,temp);
     }
