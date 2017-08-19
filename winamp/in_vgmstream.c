@@ -48,6 +48,7 @@
 #define DEFAULT_THREAD_PRIORITY 3
 #define DEFAULT_LOOP_FOREVER 0
 #define DEFAULT_IGNORE_LOOP 0
+#define DEFAULT_DISABLE_SUBSONGS 0
 
 #define FADE_SECONDS_INI_ENTRY "fade_seconds"
 #define FADE_DELAY_SECONDS_INI_ENTRY "fade_delay"
@@ -55,6 +56,7 @@
 #define THREAD_PRIORITY_INI_ENTRY "thread_priority"
 #define LOOP_FOREVER_INI_ENTRY "loop_forever"
 #define IGNORE_LOOP_INI_ENTRY "ignore_loop"
+#define DISABLE_SUBSONGS_INI_ENTRY "disable_subsongs"
 
 char *priority_strings[] = {"Idle","Lowest","Below Normal","Normal","Above Normal","Highest (not recommended)","Time Critical (not recommended)"};
 int priority_values[] = {THREAD_PRIORITY_IDLE,THREAD_PRIORITY_LOWEST,THREAD_PRIORITY_BELOW_NORMAL,THREAD_PRIORITY_NORMAL,THREAD_PRIORITY_ABOVE_NORMAL,THREAD_PRIORITY_HIGHEST,THREAD_PRIORITY_TIME_CRITICAL};
@@ -77,7 +79,7 @@ double loop_count;
 int thread_priority;
 int loop_forever;
 int ignore_loop;
-int disable_subsongs = 1;
+int disable_subsongs;
 
 /* plugin state */
 VGMSTREAM * vgmstream = NULL;
@@ -567,6 +569,13 @@ void winamp_Init() {
         ignore_loop = DEFAULT_IGNORE_LOOP;
     }
 
+    disable_subsongs = GetPrivateProfileInt(CONFIG_APP_NAME,DISABLE_SUBSONGS_INI_ENTRY,DEFAULT_DISABLE_SUBSONGS,iniFile);
+    //if (disable_subsongs < 0) {
+    //    sprintf(buf,"%d",DEFAULT_DISABLE_SUBSONGS);
+    //    WritePrivateProfileString(CONFIG_APP_NAME,DISABLE_SUBSONGS_INI_ENTRY,buf,iniFile);
+    //    disable_subsongs = DEFAULT_DISABLE_SUBSONGS;
+    //}
+
     /* XMPlay with in_vgmstream doesn't support most IPC_x messages so no playlist manipulation */
     if (is_xmplay()) {
         disable_subsongs = 1;
@@ -936,6 +945,9 @@ INT_PTR CALLBACK configDlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
             else
                 CheckDlgButton(hDlg,IDC_LOOP_NORMALLY,BST_CHECKED);
 
+            if (disable_subsongs)
+                CheckDlgButton(hDlg,IDC_DISABLE_SUBSONGS,BST_CHECKED);
+
             break;
         case WM_COMMAND:
             switch (GET_WM_COMMAND_ID(wParam, lParam)) {
@@ -1004,6 +1016,10 @@ INT_PTR CALLBACK configDlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
                         ignore_loop = (IsDlgButtonChecked(hDlg,IDC_IGNORE_LOOP) == BST_CHECKED);
                         sprintf(buf,"%d",ignore_loop);
                         WritePrivateProfileString(CONFIG_APP_NAME,IGNORE_LOOP_INI_ENTRY,buf,iniFile);
+
+                        disable_subsongs = (IsDlgButtonChecked(hDlg,IDC_DISABLE_SUBSONGS) == BST_CHECKED);
+                        sprintf(buf,"%d",disable_subsongs);
+                        WritePrivateProfileString(CONFIG_APP_NAME,DISABLE_SUBSONGS_INI_ENTRY,buf,iniFile);
                     }
 
                     EndDialog(hDlg,TRUE);
@@ -1030,6 +1046,8 @@ INT_PTR CALLBACK configDlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
                     CheckDlgButton(hDlg,IDC_LOOP_FOREVER,BST_UNCHECKED);
                     CheckDlgButton(hDlg,IDC_IGNORE_LOOP,BST_UNCHECKED);
                     CheckDlgButton(hDlg,IDC_LOOP_NORMALLY,BST_CHECKED);
+
+                    CheckDlgButton(hDlg,IDC_DISABLE_SUBSONGS,BST_UNCHECKED);
                     break;
                 default:
                     return FALSE;
