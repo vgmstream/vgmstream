@@ -8,6 +8,7 @@ static int bink_get_info(STREAMFILE *streamFile, int * out_total_streams, int * 
 VGMSTREAM * init_vgmstream_bik(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     int channel_count = 0, loop_flag = 0, sample_rate = 0, num_samples = 0, total_streams = 0;
+    int stream_index = streamFile->stream_index;
 
 
     /* check extension, case insensitive (bika = manually demuxed audio) */
@@ -34,7 +35,7 @@ VGMSTREAM * init_vgmstream_bik(STREAMFILE *streamFile) {
 #ifdef VGM_USE_FFMPEG
     {
         /* init_FFmpeg uses streamFile->stream_index internally, if specified */
-        vgmstream->codec_data = init_ffmpeg_offset(streamFile, 0x0, get_streamfile_size(streamFile));
+        vgmstream->codec_data = init_ffmpeg_offset_index(streamFile, 0x0, get_streamfile_size(streamFile), stream_index);
         if (!vgmstream->codec_data) goto fail;
         vgmstream->coding_type = coding_FFmpeg;
     }

@@ -272,13 +272,16 @@ static int64_t ffmpeg_seek(void *opaque, int64_t offset, int whence) {
 /* MAIN INIT/DECODER                            */
 /* ******************************************** */
 
-/**
- * Manually init FFmpeg, from an offset.
- * Used if the stream has internal data recognized by FFmpeg.
- */
 ffmpeg_codec_data * init_ffmpeg_offset(STREAMFILE *streamFile, uint64_t start, uint64_t size) {
-    return init_ffmpeg_header_offset(streamFile, NULL, 0, start, size);
+    return init_ffmpeg_header_offset_index(streamFile, NULL,0, start,size, 0);
 }
+ffmpeg_codec_data * init_ffmpeg_offset_index(STREAMFILE *streamFile, uint64_t start, uint64_t size, int stream_index) {
+    return init_ffmpeg_header_offset_index(streamFile, NULL,0, start,size, stream_index);
+}
+ffmpeg_codec_data * init_ffmpeg_header_offset(STREAMFILE *streamFile, uint8_t * header, uint64_t header_size, uint64_t start, uint64_t size) {
+    return init_ffmpeg_header_offset_index(streamFile, header,header_size, start,size, 0);
+}
+
 
 /**
  * Manually init FFmpeg, from a fake header / offset.
@@ -286,8 +289,10 @@ ffmpeg_codec_data * init_ffmpeg_offset(STREAMFILE *streamFile, uint64_t start, u
  * Takes a fake header, to trick FFmpeg into demuxing/decoding the stream.
  * This header will be seamlessly inserted before 'start' offset, and total filesize will be 'header_size' + 'size'.
  * The header buffer will be copied and memory-managed internally.
+ * NULL header can used given if the stream has internal data recognized by FFmpeg at offset.
+ * Stream index can be passed to FFmpeg, if the format has multiple streams (1=first).
  */
-ffmpeg_codec_data * init_ffmpeg_header_offset(STREAMFILE *streamFile, uint8_t * header, uint64_t header_size, uint64_t start, uint64_t size) {
+ffmpeg_codec_data * init_ffmpeg_header_offset_index(STREAMFILE *streamFile, uint8_t * header, uint64_t header_size, uint64_t start, uint64_t size, int stream_index) {
     char filename[PATH_LIMIT];
     ffmpeg_codec_data * data;
     int errcode, i;
@@ -349,8 +354,7 @@ ffmpeg_codec_data * init_ffmpeg_header_offset(STREAMFILE *streamFile, uint8_t * 
             streamCount++;
 
             /* select Nth audio stream if specified, or first one */
-            if (streamIndex < 0 ||
-                    (streamFile->stream_index > 0 && streamCount == streamFile->stream_index)) {
+            if (streamIndex < 0 || (stream_index > 0 && streamCount == stream_index)) {
                 codecPar = stream->codecpar;
                 streamIndex = i;
             }
@@ -359,7 +363,7 @@ ffmpeg_codec_data * init_ffmpeg_header_offset(STREAMFILE *streamFile, uint8_t * 
         if (i != streamIndex)
             stream->discard = AVDISCARD_ALL; /* disable demuxing for other streams */
     }
-    if (streamCount < streamFile->stream_index) goto fail;
+    if (streamCount < stream_index) goto fail;
     if (streamIndex < 0 || !codecPar) goto fail;
 
     data->streamIndex = streamIndex;
