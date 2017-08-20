@@ -348,6 +348,10 @@
 					RelativePath=".\meta\ea_old.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\meta\ea_snu.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\emff.c"
 					>
@@ -1343,9 +1347,13 @@
                     >
                 </File>
 				<File
-					RelativePath=".\coding\ea_decoder.c"
+					RelativePath=".\coding\ea_xa_decoder.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\coding\ea_xas_decoder.c"
+                    >
+                </File>
                 <File
                     RelativePath=".\coding\ffmpeg_decoder.c"
                     >
@@ -1534,6 +1542,10 @@
 					RelativePath=".\layout\ea_block.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\layout\ea_sns_blocked.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\layout\emff_blocked.c"
 					>

@@ -254,6 +254,7 @@ static const char* extension_list[] = {
     "snds",
     "sng",
     "sns",
+    "snu",
     "spd",
     "spm",
     "sps",
@@ -464,6 +465,7 @@ static const coding_info coding_info_list[] = {
         {coding_MTAF,               "Konami MTAF 4-bit ADPCM"},
         {coding_MTA2,               "Konami MTA2 4-bit ADPCM"},
         {coding_MC3,                "Paradigm MC3 3-bit ADPCM"},
+        {coding_EA_XAS,             "Electronic Arts EA-XAS 4-bit ADPCM"},
         
 #ifdef VGM_USE_VORBIS
         {coding_ogg_vorbis,         "Ogg Vorbis"},
@@ -500,8 +502,8 @@ static const layout_info layout_info_list[] = {
         {layout_ast_blocked,            "AST blocked"},
         {layout_halpst_blocked,         "HALPST blocked"},
         {layout_xa_blocked,             "CD-ROM XA"},
-        {layout_ea_blocked,             "Electronic Arts Audio Blocks"},
-        {layout_eacs_blocked,           "Electronic Arts (Old Version) Audio Blocks"},
+        {layout_ea_blocked,             "Electronic Arts SCxx blocked"},
+        {layout_eacs_blocked,           "Electronic Arts EACS blocked"},
         {layout_caf_blocked,            "CAF blocked"},
         {layout_wsi_blocked,            ".wsi blocked"},
         {layout_xvas_blocked,           ".xvas blocked"},
@@ -529,6 +531,7 @@ static const layout_info layout_info_list[] = {
         {layout_aix,                    "AIX interleave, internally 18-byte interleaved"},
         {layout_aax,                    "AAX blocked, 18-byte interleaved"},
         {layout_scd_int,                "SCD multistream interleave"},
+        {layout_ea_sns_blocked,         "Electronic Arts SNS blocked"},
 #ifdef VGM_USE_VORBIS
         {layout_ogg_vorbis,             "Ogg"},
 #endif
@@ -876,6 +879,7 @@ static const meta_info meta_info_list[] = {
         {meta_AHX,                  "CRI AHX header"},
         {meta_STM,                  "Angel Studios/Rockstar San Diego STMA header"},
         {meta_BINK,                 "RAD Game Tools Bink header"},
+        {meta_EA_SNU,               "Electronic Arts SNU header"},
 
 #ifdef VGM_USE_VORBIS
         {meta_OGG_VORBIS,           "Ogg Vorbis"},

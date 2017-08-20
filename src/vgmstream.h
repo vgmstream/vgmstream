@@ -112,6 +112,7 @@ typedef enum {
     coding_EA_XA_int,       /* Electronic Arts EA-XA ADPCM v1 (mono/interleave) */
     coding_EA_XA_V2,        /* Electronic Arts EA-XA ADPCM v2 */
     coding_MAXIS_XA,        /* Maxis EA-XA ADPCM */
+    coding_EA_XAS,          /* Electronic Arts EA-XAS ADPCM */
 
     coding_XBOX,            /* XBOX IMA ADPCM */
     coding_XBOX_int,        /* XBOX IMA ADPCM (interleaved) */
@@ -234,6 +235,7 @@ typedef enum {
     layout_ps2_strlr_blocked,
     layout_rws_blocked,
     layout_hwas_blocked,
+    layout_ea_sns_blocked,  /* newest Electronic Arts blocks, found in SNS/SNU/SPS/etc formats */
 
     /* otherwise odd */
     layout_acm,             /* libacm layout */
@@ -618,6 +620,7 @@ typedef enum {
     meta_AHX,               /* CRI AHX header */
     meta_STM,               /* Angel Studios/Rockstar San Diego Games */
     meta_BINK,              /* RAD Game Tools BINK audio/video */
+    meta_EA_SNU,            /* Electronic Arts SNU (Dead Space) */
 
 #ifdef VGM_USE_VORBIS
     meta_OGG_VORBIS,        /* Ogg Vorbis */
