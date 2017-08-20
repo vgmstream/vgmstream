@@ -58,7 +58,7 @@ input_vgmstream::input_vgmstream() {
     loop_count = 2.0f;
     loop_forever = false;
     ignore_loop = 0;
-    disable_subsongs = true;
+    disable_subsongs = false;
 
     load_settings();
 }
@@ -134,7 +134,11 @@ void input_vgmstream::get_info(t_uint32 p_subsong, file_info & p_info, abort_cal
     pfc::string8 description;
     pfc::string8_fast temp;
 
-    get_subsong_info(p_subsong, NULL, &length_in_ms, &total_samples, &loop_start, &loop_end, &samplerate, &channels, &bitrate, description, p_abort);
+    get_subsong_info(p_subsong, temp, &length_in_ms, &total_samples, &loop_start, &loop_end, &samplerate, &channels, &bitrate, description, p_abort);
+
+    if (get_subsong_count() > 1) {
+        p_info.meta_set("TITLE",temp);
+    }
 
     p_info.info_set_int("samplerate", samplerate);
     p_info.info_set_int("channels", channels);
@@ -156,7 +160,7 @@ void input_vgmstream::get_info(t_uint32 p_subsong, file_info & p_info, abort_cal
 
     if (get_description_tag(temp,description,"block size: ")) p_info.info_set("block_size",temp);
     if (get_description_tag(temp,description,"metadata from: ")) p_info.info_set("metadata_source",temp);
-    if (get_description_tag(temp,description,"stream number: ")) p_info.info_set("stream_number",temp);
+    if (get_description_tag(temp,description,"stream count: ")) p_info.info_set("stream_count",temp);
     if (get_description_tag(temp,description,"stream index: ")) p_info.info_set("stream_index",temp);
     if (get_description_tag(temp,description,"stream name: ")) p_info.info_set("stream_name",temp);
 }
@@ -343,8 +347,9 @@ void input_vgmstream::setup_vgmstream(abort_callback & p_abort) {
     fade_samples = (int)(fade_seconds * vgmstream->sample_rate);
 }
 
-void input_vgmstream::get_subsong_info(t_uint32 p_subsong, char *title, int *length_in_ms, int *total_samples, int *loop_start, int *loop_end, int *sample_rate, int *channels, int *bitrate, pfc::string_base & description, abort_callback & p_abort) {
+void input_vgmstream::get_subsong_info(t_uint32 p_subsong, pfc::string_base & title, int *length_in_ms, int *total_samples, int *loop_start, int *loop_end, int *sample_rate, int *channels, int *bitrate, pfc::string_base & description, abort_callback & p_abort) {
     VGMSTREAM * infostream = NULL;
+    char temp[1024];
 
     // reuse current vgmstream if not querying a new subsong
     if (subsong != p_subsong) {
@@ -376,9 +381,23 @@ void input_vgmstream::get_subsong_info(t_uint32 p_subsong, char *title, int *len
     }
 
     if (title) {
-        const char *p=filename+strlen(filename);
+        const char *p = filename + strlen(filename);
         while (*p != '\\' && p >= filename) p--;
-        strcpy(title,++p);
+        p++;
+        const char *e = filename + strlen(filename);
+        while (*e != '.' && e >= filename) e--;
+
+        title.set_string(p, e - p);
+
+        if (!disable_subsongs && infostream && infostream->num_streams > 1) {
+            sprintf(temp,"#%d",p_subsong);
+            title += temp;
+
+            if (infostream->stream_name[0] != '\0') {
+                sprintf(temp," (%s)",infostream->stream_name);
+                title += temp;
+            }
+        }
     }
 
     // and only close if was querying a new subsong

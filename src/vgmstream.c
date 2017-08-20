@@ -343,8 +343,8 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_akb2_multi,
 #ifdef VGM_USE_FFMPEG
     init_vgmstream_mp4_aac_ffmpeg,
-    init_vgmstream_bik,
 #endif
+    init_vgmstream_bik,
     init_vgmstream_x360_ast,
     init_vgmstream_wwise,
     init_vgmstream_ubi_raki,
@@ -366,6 +366,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_ea_schl_fixed,
     init_vgmstream_sk_aud,
     init_vgmstream_stm,
+    init_vgmstream_ea_snu,
 
     init_vgmstream_txth,  /* should go at the end (lower priority) */
 #ifdef VGM_USE_FFMPEG
@@ -871,7 +872,7 @@ int32_t get_vgmstream_play_samples(double looptimes, double fadeseconds, double 
              * Most files cut abruply after the loop, but some do have proper endings.
              * With looptimes = 1 this option should give the same output vs loop disabled */
             int loop_count = (int)looptimes; /* no half loops allowed */
-            vgmstream->loop_target = loop_count;
+            //vgmstream->loop_target = loop_count; /* handled externally, as this is into-only */
             return vgmstream->loop_start_sample
                 + (vgmstream->loop_end_sample - vgmstream->loop_start_sample) * loop_count
                 + (vgmstream->num_samples - vgmstream->loop_end_sample);
@@ -931,6 +932,7 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
         case layout_ps2_strlr_blocked:
         case layout_rws_blocked:
         case layout_hwas_blocked:
+        case layout_ea_sns_blocked:
             render_vgmstream_blocked(buffer,sample_count,vgmstream);
             break;
         case layout_interleave_byte:
@@ -975,6 +977,8 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_PCM8_SB_int:
         case coding_PCM8_U_int:
         case coding_ULAW:
+        case coding_PCMFLOAT:
+            return 1;
 #ifdef VGM_USE_VORBIS
         case coding_ogg_vorbis:
         case coding_VORBIS_custom:
@@ -1034,6 +1038,8 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
             return 28;
 		case coding_MAXIS_XA:
 			return 14*vgmstream->channels;
+        case coding_EA_XAS:
+            return 128;
         case coding_WS:
             /* only works if output sample size is 8 bit, which always is for WS ADPCM */
             return vgmstream->ws_output_size;
@@ -1128,6 +1134,9 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
         case coding_PCM8_SB_int:
         case coding_PCM8_U_int:
         case coding_ULAW:
+            return 1;
+        case coding_PCMFLOAT:
+            return 4;
         case coding_SDX2:
         case coding_SDX2_int:
         case coding_CBD2:
@@ -1182,6 +1191,8 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
             return 0x0F*vgmstream->channels;
         case coding_EA_XA_V2:
             return 1; /* the frame is variant in size (ADPCM frames of 0x0F or PCM frames) */
+        case coding_EA_XAS:
+            return 0x4c*vgmstream->channels;
         case coding_WS:
             return vgmstream->current_block_size;
         case coding_IMA_int:
@@ -1358,6 +1369,14 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                         samples_to_do);
             }
             break;
+        case coding_PCMFLOAT:
+            for (chan=0;chan<vgmstream->channels;chan++) {
+                decode_pcmfloat(vgmstream, &vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                        vgmstream->channels,vgmstream->samples_into_block,
+                        samples_to_do);
+            }
+            break;
+
         case coding_NDS_IMA:
             for (chan=0;chan<vgmstream->channels;chan++) {
                 decode_nds_ima(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
@@ -1494,6 +1513,13 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
         case coding_MAXIS_XA:
             for (chan=0;chan<vgmstream->channels;chan++) {
                 decode_maxis_xa(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                        vgmstream->channels,vgmstream->samples_into_block,
+                        samples_to_do,chan);
+            }
+            break;
+        case coding_EA_XAS:
+            for (chan=0;chan<vgmstream->channels;chan++) {
+                decode_ea_xas(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
                         samples_to_do,chan);
             }
@@ -2052,7 +2078,7 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
     /* only interesting if more than one */
     if (vgmstream->num_streams > 1) {
         snprintf(temp,TEMPSIZE,
-                "\nstream number: %d",
+                "\nstream count: %d",
                 vgmstream->num_streams);
         concatn(length,desc,temp);
     }

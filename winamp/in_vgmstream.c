@@ -48,6 +48,7 @@
 #define DEFAULT_THREAD_PRIORITY 3
 #define DEFAULT_LOOP_FOREVER 0
 #define DEFAULT_IGNORE_LOOP 0
+#define DEFAULT_DISABLE_SUBSONGS 0
 
 #define FADE_SECONDS_INI_ENTRY "fade_seconds"
 #define FADE_DELAY_SECONDS_INI_ENTRY "fade_delay"
@@ -55,6 +56,7 @@
 #define THREAD_PRIORITY_INI_ENTRY "thread_priority"
 #define LOOP_FOREVER_INI_ENTRY "loop_forever"
 #define IGNORE_LOOP_INI_ENTRY "ignore_loop"
+#define DISABLE_SUBSONGS_INI_ENTRY "disable_subsongs"
 
 char *priority_strings[] = {"Idle","Lowest","Below Normal","Normal","Above Normal","Highest (not recommended)","Time Critical (not recommended)"};
 int priority_values[] = {THREAD_PRIORITY_IDLE,THREAD_PRIORITY_LOWEST,THREAD_PRIORITY_BELOW_NORMAL,THREAD_PRIORITY_NORMAL,THREAD_PRIORITY_ABOVE_NORMAL,THREAD_PRIORITY_HIGHEST,THREAD_PRIORITY_TIME_CRITICAL};
@@ -77,6 +79,7 @@ double loop_count;
 int thread_priority;
 int loop_forever;
 int ignore_loop;
+int disable_subsongs;
 
 /* plugin state */
 VGMSTREAM * vgmstream = NULL;
@@ -95,15 +98,29 @@ in_char lastfn[PATH_LIMIT] = {0}; /* name of the currently playing file */
 
 /* ************************************* */
 //todo safe ops
-
+//todo there must be a better way to handle unicode...
 #ifdef UNICODE_INPUT_PLUGIN
 #define wa_strcpy wcscpy
 #define wa_strncpy wcsncpy
+#define wa_strcat wcscat
 #define wa_strlen wcslen
+#define wa_strchr wcschr
+#define wa_sscanf swscanf
+#define wa_snprintf snwprintf
+#define wa_fileinfo fileinfoW
+#define wa_IPC_PE_INSERTFILENAME IPC_PE_INSERTFILENAMEW
+#define wa_L(x) L ##x
 #else
 #define wa_strcpy strcpy
 #define wa_strncpy strncpy
+#define wa_strcat strcat
 #define wa_strlen strlen
+#define wa_strchr strchr
+#define wa_sscanf sscanf
+#define wa_snprintf snprintf
+#define wa_fileinfo fileinfo
+#define wa_IPC_PE_INSERTFILENAME IPC_PE_INSERTFILENAME
+#define wa_L(x) x
 #endif
 
 /* converts from utf16 to utf8 (if unicode is active) */
@@ -264,7 +281,7 @@ static STREAMFILE *open_winamp_streamfile_by_wpath(const in_char *wpath) {
 }
 
 /* opens vgmstream for winamp */
-static VGMSTREAM* init_vgmstream_winamp(const in_char *fn) {
+static VGMSTREAM* init_vgmstream_winamp(const in_char *fn, int stream_index) {
     VGMSTREAM * vgmstream = NULL;
 
     //return init_vgmstream(fn);
@@ -272,11 +289,108 @@ static VGMSTREAM* init_vgmstream_winamp(const in_char *fn) {
     /* manually init streamfile to pass the stream index */
     STREAMFILE *streamFile = open_winamp_streamfile_by_wpath(fn); //open_stdio_streamfile(fn);
     if (streamFile) {
+        streamFile->stream_index = stream_index;
         vgmstream = init_vgmstream_from_STREAMFILE(streamFile);
         close_streamfile(streamFile);
     }
 
     return vgmstream;
+}
+
+/* ************************************* */
+
+/* makes a modified filename, suitable to pass parameters around */
+static void make_fn_subsong(in_char * dst, int dst_size, const in_char * filename, int stream_index) {
+    /* Follows "(file)(config)(ext)". Winamp needs to "see" (ext) to validate, and file goes first so relative
+     * files work in M3Us (path is added). Protocols a la "vgmstream://(config)(file)" work but don't get full paths. */
+    wa_snprintf(dst,dst_size, wa_L("%s|$s=%i|.vgmstream"), filename, stream_index);
+}
+
+/* unpacks the subsongs by adding entries to the playlist */
+static int split_subsongs(const in_char * filename, int stream_index, VGMSTREAM *vgmstream) {
+    int i, playlist_index;
+    HWND hPlaylistWindow;
+
+
+    if (disable_subsongs || vgmstream->num_streams <= 1 || (vgmstream->num_streams > 1 && stream_index > 0))
+        return 0; /* no split if no subsongs or playing a subsong */
+
+    hPlaylistWindow = (HWND)SendMessage(input_module.hMainWindow, WM_WA_IPC, IPC_GETWND_PE, IPC_GETWND);
+    playlist_index = SendMessage(input_module.hMainWindow,WM_WA_IPC,0,IPC_GETLISTPOS);
+
+    /* The only way to pass info around in Winamp is encoding it into the filename, so a fake name
+     * is created with the index. Then, winamp_Play (and related) intercepts and reads the index. */
+    for (i = 0; i < vgmstream->num_streams; i++) {
+        in_char stream_fn[PATH_LIMIT];
+
+        make_fn_subsong(stream_fn,PATH_LIMIT, filename, (i+1)); /* encode index in filename */
+
+        /* insert at index */
+        {
+            COPYDATASTRUCT cds = {0};
+            wa_fileinfo f;
+
+            wa_strncpy(f.file, stream_fn,MAX_PATH-1);
+            f.file[MAX_PATH-1] = '\0';
+            f.index = playlist_index + (i+1);
+            cds.dwData = wa_IPC_PE_INSERTFILENAME;
+            cds.lpData = (void*)&f;
+            cds.cbData = sizeof(wa_fileinfo);
+            SendMessage(hPlaylistWindow,WM_COPYDATA,0,(LPARAM)&cds);
+        }
+        /* IPC_ENQUEUEFILE can pre-set the title without needing the Playlist handle, but can't insert at index */
+    }
+
+    /* remove current file from the playlist */
+    SendMessage(hPlaylistWindow, WM_WA_IPC, IPC_PE_DELETEINDEX, playlist_index);
+
+    /* autoplay doesn't always advance to the first unpacked track, manually fails too */
+    //SendMessage(input_module.hMainWindow,WM_WA_IPC,playlist_index,IPC_SETPLAYLISTPOS);
+    //SendMessage(input_module.hMainWindow,WM_WA_IPC,0,IPC_STARTPLAY);
+
+
+    return 1;
+}
+
+/* parses a modified filename ('fakename') extracting tags parameters (NULL tag for first = filename) */
+static int parse_fn_string(const in_char * fn, const in_char * tag, in_char * dst, int dst_size) {
+    in_char *end;
+
+    end = wa_strchr(fn,'|');
+    if (tag==NULL) {
+        wa_strcpy(dst,fn);
+        if (end)
+            dst[end - fn] = '\0';
+        return 1;
+    }
+
+    //todo actually find + read tags
+    dst[0] = '\0';
+    return 0;
+}
+static int parse_fn_int(const in_char * fn, const in_char * tag, int * num) {
+    in_char * start = wa_strchr(fn,'|');
+
+    //todo actually find + read tags
+    if (start > 0) {
+        wa_sscanf(start+1, wa_L("$s=%i "), num);
+        return 1;
+    } else {
+        *num = 0;
+        return 0;
+    }
+}
+
+/* try to detect XMPlay, which can't interact with the playlist = no splitting */
+static int is_xmplay() {
+    if (GetModuleHandle("xmplay.exe"))
+        return 1;
+    if (GetModuleHandle("xmp-wadsp.dll"))
+        return 1;
+    if (GetModuleHandle("xmp-wma.dll"))
+        return 1;
+
+    return 0;
 }
 
 /* ************************************* */
@@ -364,12 +478,34 @@ static void build_extension_list() {
 }
 
 /* unicode utils */
-static void copy_title(in_char * dst, int dst_size, const in_char * src) {
-    in_char *p = (in_char*)src + wa_strlen(src); /* find end */
-    while (*p != '\\' && p >= src) /* and find last "\" */
-        p--;
-    p++;
-    wa_strcpy(dst,p); /* copy filename only */
+static void get_title(in_char * dst, int dst_size, const in_char * fn, VGMSTREAM * infostream) {
+    in_char *basename;
+    in_char buffer[PATH_LIMIT];
+    in_char filename[PATH_LIMIT];
+    int stream_index = 0;
+
+    parse_fn_string(fn, NULL, filename,PATH_LIMIT);
+    parse_fn_int(fn, wa_L("$s"), &stream_index);
+
+    basename = (in_char*)filename + wa_strlen(filename); /* find end */
+    while (*basename != '\\' && basename >= filename) /* and find last "\" */
+        basename--;
+    basename++;
+    wa_strcpy(dst,basename);
+
+    /* show stream subsong number */
+    if (stream_index > 0) {
+        wa_snprintf(buffer,PATH_LIMIT, wa_L("#%i"), stream_index);
+        wa_strcat(dst,buffer);
+    }
+
+    /* show name, but not for the base stream */
+    if (infostream && infostream->stream_name[0] != '\0' && stream_index > 0) {
+        in_char stream_name[PATH_LIMIT];
+        wa_char_to_wchar(stream_name, PATH_LIMIT, infostream->stream_name);
+        wa_snprintf(buffer,PATH_LIMIT, wa_L(" (%s)"), stream_name);
+        wa_strcat(dst,buffer);
+    }
 }
 
 /* ***************************************** */
@@ -433,6 +569,18 @@ void winamp_Init() {
         ignore_loop = DEFAULT_IGNORE_LOOP;
     }
 
+    disable_subsongs = GetPrivateProfileInt(CONFIG_APP_NAME,DISABLE_SUBSONGS_INI_ENTRY,DEFAULT_DISABLE_SUBSONGS,iniFile);
+    //if (disable_subsongs < 0) {
+    //    sprintf(buf,"%d",DEFAULT_DISABLE_SUBSONGS);
+    //    WritePrivateProfileString(CONFIG_APP_NAME,DISABLE_SUBSONGS_INI_ENTRY,buf,iniFile);
+    //    disable_subsongs = DEFAULT_DISABLE_SUBSONGS;
+    //}
+
+    /* XMPlay with in_vgmstream doesn't support most IPC_x messages so no playlist manipulation */
+    if (is_xmplay()) {
+        disable_subsongs = 1;
+    }
+
     /* dynamically make a list of supported extensions */
     build_extension_list();
 }
@@ -449,14 +597,27 @@ int winamp_IsOurFile(const in_char *fn) {
 /* request to start playing a file */
 int winamp_Play(const in_char *fn) {
     int max_latency;
+    in_char filename[PATH_LIMIT];
+    int stream_index = 0;
 
     if (vgmstream)
         return 1; // TODO: this should either pop up an error box or close the file
 
+    /* check for info encoded in the filename */
+    parse_fn_string(fn, NULL, filename,PATH_LIMIT);
+    parse_fn_int(fn, wa_L("$s"), &stream_index);
+
     /* open the stream */
-    vgmstream = init_vgmstream_winamp(fn);
+    vgmstream = init_vgmstream_winamp(filename,stream_index);
     if (!vgmstream)
         return 1;
+
+    /* add N subsongs to the playlist, if any */
+    if (split_subsongs(filename, stream_index, vgmstream)) {
+        close_vgmstream(vgmstream);
+        vgmstream = NULL;
+        return 1;
+    }
 
     /* config */
     if (ignore_loop)
@@ -569,7 +730,6 @@ void winamp_SetPan(int pan) {
 int winamp_InfoBox(const in_char *fn, HWND hwnd) {
     char description[1024] = {0};
 
-
     concatn(sizeof(description),description,PLUGIN_DESCRIPTION "\n\n");
 
     if (!fn || !*fn) {
@@ -582,8 +742,14 @@ int winamp_InfoBox(const in_char *fn, HWND hwnd) {
     else {
         /* some other file in playlist given by filename */
         VGMSTREAM * infostream = NULL;
+        in_char filename[PATH_LIMIT];
+        int stream_index = 0;
 
-        infostream = init_vgmstream_winamp(fn);
+        /* check for info encoded in the filename */
+        parse_fn_string(fn, NULL, filename,PATH_LIMIT);
+        parse_fn_int(fn, wa_L("$s"), &stream_index);
+
+        infostream = init_vgmstream_winamp(filename, stream_index);
         if (!infostream)
             return 0;
 
@@ -607,7 +773,7 @@ void winamp_GetFileInfo(const in_char *fn, in_char *title, int *length_in_ms) {
             return;
 
         if (title) {
-            copy_title(title,GETFILEINFO_TITLE_LENGTH, lastfn);
+            get_title(title,GETFILEINFO_TITLE_LENGTH, lastfn, vgmstream);
         }
 
         if (length_in_ms) {
@@ -617,11 +783,18 @@ void winamp_GetFileInfo(const in_char *fn, in_char *title, int *length_in_ms) {
     else {
         /* some other file in playlist given by filename */
         VGMSTREAM * infostream = NULL;
+        in_char filename[PATH_LIMIT];
+        int stream_index = 0;
 
-        infostream = init_vgmstream_winamp(fn);
+        /* check for info encoded in the filename */
+        parse_fn_string(fn, NULL, filename,PATH_LIMIT);
+        parse_fn_int(fn, wa_L("$s"), &stream_index);
+
+        infostream = init_vgmstream_winamp(filename, stream_index);
+        if (!infostream) return;
 
         if (title) {
-            copy_title(title,GETFILEINFO_TITLE_LENGTH, fn);
+            get_title(title,GETFILEINFO_TITLE_LENGTH, fn, infostream);
         }
 
         if (length_in_ms) {
@@ -772,6 +945,9 @@ INT_PTR CALLBACK configDlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
             else
                 CheckDlgButton(hDlg,IDC_LOOP_NORMALLY,BST_CHECKED);
 
+            if (disable_subsongs)
+                CheckDlgButton(hDlg,IDC_DISABLE_SUBSONGS,BST_CHECKED);
+
             break;
         case WM_COMMAND:
             switch (GET_WM_COMMAND_ID(wParam, lParam)) {
@@ -840,6 +1016,10 @@ INT_PTR CALLBACK configDlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
                         ignore_loop = (IsDlgButtonChecked(hDlg,IDC_IGNORE_LOOP) == BST_CHECKED);
                         sprintf(buf,"%d",ignore_loop);
                         WritePrivateProfileString(CONFIG_APP_NAME,IGNORE_LOOP_INI_ENTRY,buf,iniFile);
+
+                        disable_subsongs = (IsDlgButtonChecked(hDlg,IDC_DISABLE_SUBSONGS) == BST_CHECKED);
+                        sprintf(buf,"%d",disable_subsongs);
+                        WritePrivateProfileString(CONFIG_APP_NAME,DISABLE_SUBSONGS_INI_ENTRY,buf,iniFile);
                     }
 
                     EndDialog(hDlg,TRUE);
@@ -866,6 +1046,8 @@ INT_PTR CALLBACK configDlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
                     CheckDlgButton(hDlg,IDC_LOOP_FOREVER,BST_UNCHECKED);
                     CheckDlgButton(hDlg,IDC_IGNORE_LOOP,BST_UNCHECKED);
                     CheckDlgButton(hDlg,IDC_LOOP_NORMALLY,BST_CHECKED);
+
+                    CheckDlgButton(hDlg,IDC_DISABLE_SUBSONGS,BST_UNCHECKED);
                     break;
                 default:
                     return FALSE;

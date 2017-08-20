@@ -118,6 +118,22 @@ void decode_ulaw(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing,
     }
 }
 
+void decode_pcmfloat(VGMSTREAM *vgmstream, VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
+    int i, sample_count;
+    int32_t (*read_32bit)(off_t,STREAMFILE*) = vgmstream->codec_endian ? read_32bitBE : read_32bitLE;
+
+    for (i=first_sample,sample_count=0; i<first_sample+samples_to_do; i++,sample_count+=channelspacing) {
+        uint32_t sample_int = read_32bit(stream->offset+i*4,stream->streamfile);
+        float sample_float;
+        int sample_pcm;
+
+        memcpy(&sample_float, &sample_int, 4); /* maybe unorthodox but simplest */
+        sample_pcm = floor(sample_float * 32767.f + .5f);
+
+        outbuf[sample_count] = clamp16(sample_pcm);
+    }
+}
+
 size_t pcm_bytes_to_samples(size_t bytes, int channels, int bits_per_sample) {
     return bytes / channels / (bits_per_sample/8);
 }

@@ -72,21 +72,23 @@ enum { STREAM_NAME_SIZE = 255 }; /* reasonable max */
 
 /* The encoding type specifies the format the sound data itself takes */
 typedef enum {
-    /* 16-bit PCM */
+    /* PCM */
     coding_PCM16LE,         /* little endian 16-bit PCM */
     coding_PCM16LE_int,		/* little endian 16-bit PCM with sample-level interleave */
     coding_PCM16LE_XOR_int, /* little endian 16-bit PCM with sample-level xor */
     coding_PCM16BE,         /* big endian 16-bit PCM */
 
-    /* 8-bit PCM */
     coding_PCM8,            /* 8-bit PCM */
     coding_PCM8_int,        /* 8-Bit PCM with sample-level interleave */
     coding_PCM8_U,          /* 8-bit PCM, unsigned (0x80 = 0) */
     coding_PCM8_U_int,      /* 8-bit PCM, unsigned (0x80 = 0) with sample-level interleave */
     coding_PCM8_SB_int,     /* 8-bit PCM, sign bit (others are 2's complement) with sample-level interleave */
+
     coding_ULAW,            /* 8-bit u-Law (non-linear PCM) */
 
-    /* 4-bit ADPCM */
+    coding_PCMFLOAT,        /* 32 bit float PCM */
+
+    /* ADPCM */
     coding_CRI_ADX,         /* CRI ADX */
     coding_CRI_ADX_fixed,   /* CRI ADX, encoding type 2 with fixed coefficients */
     coding_CRI_ADX_exp,     /* CRI ADX, encoding type 4 with exponential scale */
@@ -110,6 +112,7 @@ typedef enum {
     coding_EA_XA_int,       /* Electronic Arts EA-XA ADPCM v1 (mono/interleave) */
     coding_EA_XA_V2,        /* Electronic Arts EA-XA ADPCM v2 */
     coding_MAXIS_XA,        /* Maxis EA-XA ADPCM */
+    coding_EA_XAS,          /* Electronic Arts EA-XAS ADPCM */
 
     coding_XBOX,            /* XBOX IMA ADPCM */
     coding_XBOX_int,        /* XBOX IMA ADPCM (interleaved) */
@@ -232,6 +235,7 @@ typedef enum {
     layout_ps2_strlr_blocked,
     layout_rws_blocked,
     layout_hwas_blocked,
+    layout_ea_sns_blocked,  /* newest Electronic Arts blocks, found in SNS/SNU/SPS/etc formats */
 
     /* otherwise odd */
     layout_acm,             /* libacm layout */
@@ -615,6 +619,8 @@ typedef enum {
     meta_SK_AUD,            /* Silicon Knights .AUD (Eternal Darkness GC) */
     meta_AHX,               /* CRI AHX header */
     meta_STM,               /* Angel Studios/Rockstar San Diego Games */
+    meta_BINK,              /* RAD Game Tools BINK audio/video */
+    meta_EA_SNU,            /* Electronic Arts SNU (Dead Space) */
 
 #ifdef VGM_USE_VORBIS
     meta_OGG_VORBIS,        /* Ogg Vorbis */

@@ -193,6 +193,9 @@
     <ClCompile Include="meta\ea_old.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\ea_snu.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\emff.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -784,7 +787,10 @@
     <ClCompile Include="coding\aica_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="coding\ea_decoder.c">
+    <ClCompile Include="coding\ea_xa_decoder.c">
+      <Filter>coding\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="coding\ea_xas_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\g721_decoder.c">
@@ -896,6 +902,9 @@
       <Filter>layout\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="layout\ea_block.c">
+      <Filter>layout\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="layout\ea_sns_blocked.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="layout\emff_blocked.c">

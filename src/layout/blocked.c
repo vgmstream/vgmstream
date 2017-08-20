@@ -51,7 +51,8 @@ void render_vgmstream_blocked(sample * buffer, int32_t sample_count, VGMSTREAM *
         vgmstream->current_sample += samples_to_do;
         vgmstream->samples_into_block+=samples_to_do;
 
-        if (vgmstream->samples_into_block==samples_this_block) {
+        if (vgmstream->samples_into_block==samples_this_block
+                /*&& vgmstream->current_sample < vgmstream->num_samples*/) { /* don't go past last block */
             switch (vgmstream->layout_type) {
                 case layout_ast_blocked:
                     ast_block_update(vgmstream->next_block_offset,vgmstream);
@@ -139,6 +140,9 @@ void render_vgmstream_blocked(sample * buffer, int32_t sample_count, VGMSTREAM *
                     break;
                 case layout_hwas_blocked:
                     hwas_block_update(vgmstream->next_block_offset,vgmstream);
+                    break;
+                case layout_ea_sns_blocked:
+                    ea_sns_block_update(vgmstream->next_block_offset,vgmstream);
                     break;
 				default:
                     break;

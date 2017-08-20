@@ -2,81 +2,94 @@
 #include "../coding/coding.h"
 #include "../util.h"
 
-#ifdef VGM_USE_FFMPEG
+static int bink_get_info(STREAMFILE *streamFile, int * out_total_streams, int * out_channel_count, int * out_sample_rate, int * out_num_samples);
 
-static uint32_t bik_get_num_samples(STREAMFILE *streamFile, int bits_per_sample);
-
-/* BIK 1/2 - RAD Game Tools movies (audio/video format) */
+/* BINK 1/2 - RAD Game Tools movies (audio/video format) */
 VGMSTREAM * init_vgmstream_bik(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    ffmpeg_codec_data *data = NULL;
+    int channel_count = 0, loop_flag = 0, sample_rate = 0, num_samples = 0, total_streams = 0;
+    int stream_index = streamFile->stream_index;
+
 
     /* check extension, case insensitive (bika = manually demuxed audio) */
     if (!check_extensions(streamFile,"bik,bika,bik2,bik2a,bk2,bk2a")) goto fail;
 
-    /* check header "BIK" (bik1) or "KB2" (bik2) (followed by version-char) */
+    /* check header "BIK" (bink 1) or "KB2" (bink 2), followed by version-char (audio is the same for both) */
     if ((read_32bitBE(0x00,streamFile) & 0xffffff00) != 0x42494B00 &&
         (read_32bitBE(0x00,streamFile) & 0xffffff00) != 0x4B423200 ) goto fail;
 
-    /* FFmpeg can parse BIK audio, but can't get the number of samples, which vgmstream needs.
-     * The only way to get them is to read all frame headers */
-    data = init_ffmpeg_offset(streamFile, 0x0, get_streamfile_size(streamFile));
-    if (!data) goto fail;
-
-    vgmstream = allocate_vgmstream(data->channels, 0); /* alloc FFmpeg first to get channel count */
-    if (!vgmstream) goto fail;
-    vgmstream->codec_data = data;
-    vgmstream->coding_type = coding_FFmpeg;
-    vgmstream->layout_type = layout_none;
-    vgmstream->meta_type = meta_FFmpeg;
-    vgmstream->sample_rate = data->sampleRate;
-
-    /* manually get num_samples since data->totalSamples is always 0 */
-    vgmstream->num_samples = bik_get_num_samples(streamFile, data->bitsPerSample);
-    if (vgmstream->num_samples == 0)
+    /* find target stream info and samples */
+    if (!bink_get_info(streamFile, &total_streams, &channel_count, &sample_rate, &num_samples))
         goto fail;
+
+    /* build the VGMSTREAM */
+    vgmstream = allocate_vgmstream(channel_count, loop_flag);
+    if (!vgmstream) goto fail;
+
+    vgmstream->layout_type = layout_none;
+    vgmstream->sample_rate = sample_rate;
+    vgmstream->num_samples = num_samples;
+    vgmstream->num_streams = total_streams;
+    vgmstream->meta_type = meta_BINK;
+
+#ifdef VGM_USE_FFMPEG
+    {
+        /* init_FFmpeg uses streamFile->stream_index internally, if specified */
+        vgmstream->codec_data = init_ffmpeg_offset_index(streamFile, 0x0, get_streamfile_size(streamFile), stream_index);
+        if (!vgmstream->codec_data) goto fail;
+        vgmstream->coding_type = coding_FFmpeg;
+    }
+#else
+    goto fail;
+#endif
 
     return vgmstream;
 
 fail:
-    free_ffmpeg(data);
-    if (vgmstream) {
-        vgmstream->codec_data = NULL;
-        close_vgmstream(vgmstream);
-    }
+    close_vgmstream(vgmstream);
     return NULL;
 }
 
 /**
- * Gets the number of samples in a BIK file by reading all frames' headers,
- * as they are not in the main header. The header for BIK1 and 2 is the same.
+ * Gets stream info, and number of samples in a BINK file by reading all frames' headers (as it's VBR),
+ * as they are not in the main header. The header for BINK1 and 2 is the same.
  * (a ~3 min movie needs ~6000-7000 frames = fseeks, should be fast enough)
- *
- * Needs bits per sample to calculate PCM samples, since most bink audio seems to use 32, actually.
  */
-static uint32_t bik_get_num_samples(STREAMFILE *streamFile, int bits_per_sample) {
+static int bink_get_info(STREAMFILE *streamFile, int * out_total_streams, int * out_channel_count, int * out_sample_rate, int * out_num_samples) {
     uint32_t *offsets = NULL;
-    uint32_t num_samples_b = 0;
+    uint32_t num_frames, num_samples_b = 0;
     off_t cur_offset;
-    size_t filesize;
-    int i, j, num_frames, num_tracks;
-    int target_stream = 0;
+    int i, j, sample_rate, channel_count;
+    int total_streams, target_stream = streamFile->stream_index;
 
-    filesize = get_streamfile_size(streamFile);
+    size_t filesize = get_streamfile_size(streamFile);
+    uint32_t signature = (read_32bitBE(0x00,streamFile) & 0xffffff00);
+    uint8_t revision = (read_32bitBE(0x00,streamFile) & 0xFF);
 
-    num_frames = read_32bitLE(0x08,streamFile);
-    if (num_frames <= 0) goto fail;
-    if (num_frames > 0x100000) goto fail; /* something must be off (avoids big allocs below) */
+    if (read_32bitLE(0x04,streamFile)+ 0x08 != filesize)
+        goto fail;
 
-    /* multichannel audio is usually N tracks of stereo/mono, no way to know channel layout */
-    num_tracks = read_32bitLE(0x28,streamFile);
-    if (num_tracks<=0 || num_tracks > 255) goto fail;
+    num_frames = (uint32_t)read_32bitLE(0x08,streamFile);
+    if (num_frames == 0 || num_frames > 0x100000) goto fail; /* something must be off (avoids big allocs below) */
 
-    /* find the frame index table, which is after 3 audio headers of size 4 for each track */
-    cur_offset = 0x2c + num_tracks*4 * 3;
+    /* multichannel/multilanguage audio is usually N streams of stereo/mono, no way to know channel layout */
+    total_streams = read_32bitLE(0x28,streamFile);
+    if (target_stream == 0) target_stream = 1;
+    if (target_stream < 0 || target_stream > total_streams || total_streams < 1 || total_streams > 255) goto fail;
 
-    /* read offsets in a buffer, to avoid fseeking to the table back and forth
-     * the number of frames can be highly variable so we'll alloc */
+    /* find stream info and position in offset table */
+    cur_offset = 0x2c;
+    if ((signature == 0x42494B00 && (revision == 0x6b)) || /* k */
+        (signature == 0x4B423200 && (revision == 0x69 || revision == 0x6a || revision == 0x6b))) /* i,j,k */
+        cur_offset += 0x04; /* unknown v2 header field */
+    cur_offset += 0x04*total_streams; /* skip streams max packet bytes */
+    sample_rate   = (uint16_t)read_16bitLE(cur_offset+0x04*(target_stream-1)+0x00,streamFile);
+    channel_count = (uint16_t)read_16bitLE(cur_offset+0x04*(target_stream-1)+0x02,streamFile) & 0x2000 ? 2 : 1; /* stereo flag */
+    cur_offset += 0x04*total_streams; /* skip streams info */
+    cur_offset += 0x04*total_streams; /* skip streams ids */
+
+
+    /* read frame offsets in a buffer, to avoid fseeking to the table back and forth */
     offsets = malloc(sizeof(uint32_t) * num_frames);
     if (!offsets) goto fail;
 
@@ -87,41 +100,40 @@ static uint32_t bik_get_num_samples(STREAMFILE *streamFile, int bits_per_sample)
         if (offsets[i] > filesize) goto fail;
     }
     /* after the last index is the file size, validate just in case */
-    if (read_32bitLE(cur_offset,streamFile)!=filesize) goto fail;
-
-    /* multistream support just for fun (FFmpeg should select the same target stream)
-     * (num_samples for other streams seem erratic though) */
-    if (target_stream == 0) target_stream = 1;
-    if (target_stream < 0 || target_stream > num_tracks || num_tracks < 1) goto fail;
+    if (read_32bitLE(cur_offset,streamFile) != filesize) goto fail;
 
     /* read each frame header and sum all samples
-     * a frame has N audio packets with header (one per track) + video packet */
+     * a frame has N audio packets with a header (one per stream) + video packet */
     for (i=0; i < num_frames; i++) {
         cur_offset = offsets[i];
 
-        /* read audio packet headers */
-        for (j=0; j < num_tracks; j++) {
-            uint32_t ap_size, samples_b;
-            ap_size = read_32bitLE(cur_offset+0x00,streamFile); /* not counting this int */
-            samples_b = read_32bitLE(cur_offset+0x04,streamFile); /* decoded samples in bytes */
-            if (ap_size==0) break; /* no audio in this frame */
+        /* read audio packet headers per stream */
+        for (j=0; j < total_streams; j++) {
+            uint32_t ap_size = read_32bitLE(cur_offset+0x00,streamFile); /* not counting this int */
 
-            if (j == target_stream-1) { /* target samples found, read next frame */
-                num_samples_b += samples_b;
-                break;
-            } else { /* check next audio packet */
-                cur_offset += 4 + ap_size; /* todo sometimes ap_size doesn't include itself (+4), others it does? */
+            if (j == target_stream-1) {
+                if (ap_size > 0)
+                    num_samples_b += read_32bitLE(cur_offset+0x04,streamFile); /* decoded samples in bytes */
+                break; /* next frame */
+            }
+            else { /* next stream packet or frame */
+                cur_offset += 4 + ap_size; //todo sometimes ap_size doesn't include itself (+4), others it does?
             }
         }
     }
 
-
     free(offsets);
-    return num_samples_b / (bits_per_sample / 8);
+
+
+    if (out_total_streams)  *out_total_streams = total_streams;
+    if (out_sample_rate)    *out_sample_rate = sample_rate;
+    if (out_channel_count)  *out_channel_count = channel_count;
+    //todo returns a few more samples (~48) than binkconv.exe?
+    if (out_num_samples)    *out_num_samples = num_samples_b / (2 * channel_count);
+
+    return 1;
 
 fail:
     free(offsets);
     return 0;
 }
-
-#endif
