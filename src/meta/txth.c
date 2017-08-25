@@ -624,8 +624,12 @@ fail:
 }
 
 static int get_bytes_to_samples(txth_header * txth, uint32_t bytes) {
+    if (!txth->channels)
+        return 0; /* div-by-zero is no fun */
+
     switch(txth->codec) {
         case MS_IMA:
+            if (!txth->interleave) return 0;
             return ms_ima_bytes_to_samples(bytes, txth->interleave, txth->channels);
         case XBOX:
             return ms_ima_bytes_to_samples(bytes, 0x24 * txth->channels, txth->channels);
@@ -642,10 +646,13 @@ static int get_bytes_to_samples(txth_header * txth, uint32_t bytes) {
         case PCM8_U:
             return pcm_bytes_to_samples(bytes, txth->channels, 8);
         case MSADPCM:
+            if (!txth->interleave) return 0;
             return msadpcm_bytes_to_samples(bytes, txth->interleave, txth->channels);
         case ATRAC3:
+            if (!txth->interleave) return 0;
             return atrac3_bytes_to_samples(bytes, txth->interleave);
         case ATRAC3PLUS:
+            if (!txth->interleave) return 0;
             return atrac3plus_bytes_to_samples(bytes, txth->interleave);
 
         /* XMA bytes-to-samples is done at the end as the value meanings are a bit different */
@@ -663,6 +670,7 @@ static int get_bytes_to_samples(txth_header * txth, uint32_t bytes) {
         case NGC_DTK:
             return bytes / 32 * 28; /* always stereo? */
         case APPLE_IMA4:
+            if (!txth->interleave) return 0;
             return (bytes / txth->interleave) * (txth->interleave - 2) * 2;
 
         case MPEG: /* a bit complex */
