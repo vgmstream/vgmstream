@@ -240,7 +240,7 @@ enum AVPixelFormat {
      */
     AV_PIX_FMT_MMAL,
 
-    AV_PIX_FMT_D3D11VA_VLD,  ///< HW decoding through Direct3D11, Picture.data[3] contains a ID3D11VideoDecoderOutputView pointer
+    AV_PIX_FMT_D3D11VA_VLD,  ///< HW decoding through Direct3D11 via old API, Picture.data[3] contains a ID3D11VideoDecoderOutputView pointer
 
     /**
      * HW acceleration through CUDA. data[i] contain CUdeviceptr pointers
@@ -314,6 +314,26 @@ enum AVPixelFormat {
     AV_PIX_FMT_P016LE, ///< like NV12, with 16bpp per component, little-endian
     AV_PIX_FMT_P016BE, ///< like NV12, with 16bpp per component, big-endian
 
+    /**
+     * Hardware surfaces for Direct3D11.
+     *
+     * This is preferred over the legacy AV_PIX_FMT_D3D11VA_VLD. The new D3D11
+     * hwaccel API and filtering support AV_PIX_FMT_D3D11 only.
+     *
+     * data[0] contains a ID3D11Texture2D pointer, and data[1] contains the
+     * texture array index of the frame as intptr_t if the ID3D11Texture2D is
+     * an array texture (or always 0 if it's a normal texture).
+     */
+    AV_PIX_FMT_D3D11,
+
+    AV_PIX_FMT_GRAY9BE,   ///<        Y        , 9bpp, big-endian
+    AV_PIX_FMT_GRAY9LE,   ///<        Y        , 9bpp, little-endian
+
+    AV_PIX_FMT_GBRPF32BE,  ///< IEEE-754 single precision planar GBR 4:4:4,     96bpp, big-endian
+    AV_PIX_FMT_GBRPF32LE,  ///< IEEE-754 single precision planar GBR 4:4:4,     96bpp, little-endian
+    AV_PIX_FMT_GBRAPF32BE, ///< IEEE-754 single precision planar GBRA 4:4:4:4, 128bpp, big-endian
+    AV_PIX_FMT_GBRAPF32LE, ///< IEEE-754 single precision planar GBRA 4:4:4:4, 128bpp, little-endian
+
     AV_PIX_FMT_NB         ///< number of pixel formats, DO NOT USE THIS if you want to link with shared libav* because the number of formats might differ between versions
 };
 
@@ -330,6 +350,7 @@ enum AVPixelFormat {
 #define AV_PIX_FMT_0RGB32  AV_PIX_FMT_NE(0RGB, BGR0)
 #define AV_PIX_FMT_0BGR32  AV_PIX_FMT_NE(0BGR, RGB0)
 
+#define AV_PIX_FMT_GRAY9  AV_PIX_FMT_NE(GRAY9BE,  GRAY9LE)
 #define AV_PIX_FMT_GRAY10 AV_PIX_FMT_NE(GRAY10BE, GRAY10LE)
 #define AV_PIX_FMT_GRAY12 AV_PIX_FMT_NE(GRAY12BE, GRAY12LE)
 #define AV_PIX_FMT_GRAY16 AV_PIX_FMT_NE(GRAY16BE, GRAY16LE)
@@ -377,6 +398,8 @@ enum AVPixelFormat {
 #define AV_PIX_FMT_BAYER_GBRG16 AV_PIX_FMT_NE(BAYER_GBRG16BE,    BAYER_GBRG16LE)
 #define AV_PIX_FMT_BAYER_GRBG16 AV_PIX_FMT_NE(BAYER_GRBG16BE,    BAYER_GRBG16LE)
 
+#define AV_PIX_FMT_GBRPF32    AV_PIX_FMT_NE(GBRPF32BE,  GBRPF32LE)
+#define AV_PIX_FMT_GBRAPF32   AV_PIX_FMT_NE(GBRAPF32BE, GBRAPF32LE)
 
 #define AV_PIX_FMT_YUVA420P9  AV_PIX_FMT_NE(YUVA420P9BE , YUVA420P9LE)
 #define AV_PIX_FMT_YUVA422P9  AV_PIX_FMT_NE(YUVA422P9BE , YUVA422P9LE)
@@ -465,10 +488,11 @@ enum AVColorSpace {
     AVCOL_SPC_BT2020_NCL  = 9,  ///< ITU-R BT2020 non-constant luminance system
     AVCOL_SPC_BT2020_CL   = 10, ///< ITU-R BT2020 constant luminance system
     AVCOL_SPC_SMPTE2085   = 11, ///< SMPTE 2085, Y'D'zD'x
+    AVCOL_SPC_CHROMA_DERIVED_NCL = 12, ///< Chromaticity-derived non-constant luminance system
+    AVCOL_SPC_CHROMA_DERIVED_CL = 13, ///< Chromaticity-derived constant luminance system
+    AVCOL_SPC_ICTCP       = 14, ///< ITU-R BT.2100-0, ICtCp
     AVCOL_SPC_NB                ///< Not part of ABI
 };
-#define AVCOL_SPC_YCGCO AVCOL_SPC_YCOCG
-
 
 /**
  * MPEG vs JPEG YUV range.

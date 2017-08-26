@@ -446,6 +446,7 @@ enum AVCodecID {
     AV_CODEC_ID_MSCC,
     AV_CODEC_ID_SRGC,
     AV_CODEC_ID_SVG,
+    AV_CODEC_ID_GDV,
 
     /* various PCM "codecs" */
     AV_CODEC_ID_FIRST_AUDIO = 0x10000,     ///< A dummy id pointing at the start of audio codecs
@@ -548,6 +549,7 @@ enum AVCodecID {
     AV_CODEC_ID_SOL_DPCM,
 
     AV_CODEC_ID_SDX2_DPCM = 0x14800,
+    AV_CODEC_ID_GREMLIN_DPCM,
 
     /* audio codecs */
     AV_CODEC_ID_MP2 = 0x15000,
@@ -637,6 +639,7 @@ enum AVCodecID {
     AV_CODEC_ID_DST,
     AV_CODEC_ID_ATRAC3AL,
     AV_CODEC_ID_ATRAC3PAL,
+    AV_CODEC_ID_DOLBY_E,
 
     /* subtitle codecs */
     AV_CODEC_ID_FIRST_SUBTITLE = 0x17000,          ///< A dummy ID pointing at the start of subtitle codecs.
@@ -3946,7 +3949,7 @@ typedef struct AVHWAccel {
     /**
      * Called for every Macroblock in a slice.
      *
-     * XvMC uses it to replace the ff_mpv_decode_mb().
+     * XvMC uses it to replace the ff_mpv_reconstruct_mb().
      * Instead of decoding to raw picture, MB parameters are
      * stored in an array provided by the video driver.
      *
@@ -3998,6 +4001,20 @@ typedef struct AVHWAccel {
  * sampling than 4:2:0 and/or other than 8 bits per component.
  */
 #define AV_HWACCEL_FLAG_ALLOW_HIGH_DEPTH (1 << 1)
+
+/**
+ * Hardware acceleration should still be attempted for decoding when the
+ * codec profile does not match the reported capabilities of the hardware.
+ *
+ * For example, this can be used to try to decode baseline profile H.264
+ * streams in hardware - it will often succeed, because many streams marked
+ * as baseline profile actually conform to constrained baseline profile.
+ *
+ * @warning If the stream is actually not supported then the behaviour is
+ *          undefined, and may include returning entirely incorrect output
+ *          while indicating success.
+ */
+#define AV_HWACCEL_FLAG_ALLOW_PROFILE_MISMATCH (1 << 2)
 
 /**
  * @}
@@ -5648,22 +5665,14 @@ int av_picture_pad(AVPicture *dst, const AVPicture *src, int height, int width, 
  * @{
  */
 
+#if FF_API_GETCHROMA
 /**
- * Utility function to access log2_chroma_w log2_chroma_h from
- * the pixel format AVPixFmtDescriptor.
- *
- * This function asserts that pix_fmt is valid. See av_pix_fmt_get_chroma_sub_sample
- * for one that returns a failure code and continues in case of invalid
- * pix_fmts.
- *
- * @param[in]  pix_fmt the pixel format
- * @param[out] h_shift store log2_chroma_w
- * @param[out] v_shift store log2_chroma_h
- *
- * @see av_pix_fmt_get_chroma_sub_sample
+ * @deprecated Use av_pix_fmt_get_chroma_sub_sample
  */
 
+attribute_deprecated
 void avcodec_get_chroma_sub_sample(enum AVPixelFormat pix_fmt, int *h_shift, int *v_shift);
+#endif
 
 /**
  * Return a value representing the fourCC code associated to the

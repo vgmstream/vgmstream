@@ -145,6 +145,7 @@ EXPORTS
     av_force_cpu_flags
     av_fourcc_make_string
     av_frame_alloc
+    av_frame_apply_cropping
     av_frame_clone
     av_frame_copy
     av_frame_copy_props
@@ -239,9 +240,13 @@ EXPORTS
     av_hmac_update
     av_hwdevice_ctx_alloc
     av_hwdevice_ctx_create
+    av_hwdevice_ctx_create_derived
     av_hwdevice_ctx_init
+    av_hwdevice_find_type_by_name
     av_hwdevice_get_hwframe_constraints
+    av_hwdevice_get_type_name
     av_hwdevice_hwconfig_alloc
+    av_hwdevice_iterate_types
     av_hwframe_constraints_free
     av_hwframe_ctx_alloc
     av_hwframe_ctx_create_derived
@@ -260,6 +265,7 @@ EXPORTS
     av_image_copy_to_buffer
     av_image_copy_uc_from
     av_image_fill_arrays
+    av_image_fill_black
     av_image_fill_linesizes
     av_image_fill_max_pixsteps
     av_image_fill_pointers
@@ -492,6 +498,9 @@ EXPORTS
     avpriv_request_sample
     avpriv_scalarproduct_float_c
     avpriv_set_systematic_pal2
+    avpriv_slicethread_create
+    avpriv_slicethread_execute
+    avpriv_slicethread_free
     avpriv_solve_lls
     avpriv_tempfile
     avpriv_vga16_font DATA
