@@ -11,7 +11,8 @@ VGMSTREAM * init_vgmstream_rws(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     off_t start_offset, off, coefs_offset = 0, stream_offset = 0, name_offset = 0;
     int loop_flag = 0, channel_count = 0, codec = 0, sample_rate = 0;
-    size_t file_size, header_size, data_size, stream_size = 0, block_size_max = 0, block_size = 0;
+    size_t file_size, header_size, data_size, stream_size_full = 0, stream_size = 0, stream_size_expected = 0;
+    size_t block_size = 0, block_size_total = 0;
     int32_t (*read_32bit)(off_t,STREAMFILE*) = NULL;
     int i, total_segments;
     int total_streams, target_stream = streamFile->stream_index;
@@ -43,50 +44,64 @@ VGMSTREAM * init_vgmstream_rws(STREAMFILE *streamFile) {
     /* inside header chunk (many unknown fields are probably IDs/config, as two same-sized files vary a lot) */
     off = 0x0c + 0x0c;
 
-    /* 0x00: actual header size (less than chunk size), useful to check endianness (GC/Wii/X360 = BE) */
-    read_32bit = (read_32bitLE(off+0x00,streamFile) > header_size) ? read_32bitBE : read_32bitLE;
-
-    /* 0x04-14: sizes of various sections?,  others: ? */
+    /* get base header */
+    /* 0x00: actual header size (less than chunk size),  0x04/08/10: sizes of various sections?,  0x14/18/24/2C: commands?
+     * 0x1c: null?  0x30: 0x800?,  0x34: block_size_total?, 0x38: data offset,  0x3c: 0?, 0x40-50: file uuid */
+    read_32bit = (read_32bitLE(off+0x00,streamFile) > header_size) ? read_32bitBE : read_32bitLE; /* GC/Wii/X360 = BE */
     total_segments = read_32bit(off+0x20,streamFile);
     total_streams = read_32bit(off+0x28,streamFile);
-    /* 0x2c: unk,  0x30: 0x800?,  0x34: max block size?, 0x38: data offset,  0x3c: 0?, 0x40-50: file uuid?  */
-    off += 0x50 + get_rws_string_size(off+0x50, streamFile); /* skip audio file name */
 
-    /* check streams/segments */
-    /* Data can be divided into segments (cues/divisions within data, ex. intro+main, voice1+2+..N) or
-     * tracks/streams in interleaved blocks; last track (only?) has some padding. Tracks seems to be used for multichannel.
-     * ex.- 0x1800 data + 0 pad of stream_0 2ch, 0x1800 data + 0x200 pad of stream1 2ch (xN) */
+    /* skip audio file name */
+    off += 0x50 + get_rws_string_size(off+0x50, streamFile);
+
+
+    /* Data is divided into "segments" (cues/divisions within data, ex. intro+main, voice1+2+..N) and "streams"
+     * of interleaved blocks (for multichannel?). last stream (only?) has padding. Segments divide all streams.
+     * ex.- 0x1800 data + 0 pad of stream_0 2ch, 0x1800 data + 0x200 pad of stream1 2ch (xN). */
     if (target_stream == 0) target_stream = 1;
     if (target_stream < 0 || target_stream > total_streams || total_streams < 1) goto fail;
 
-    /* skip segment stuff and get stream size (from sizes for all segments, repeated per track) */
-    off += 0x20 * total_segments; /* segment data (mostly unknown except @ 0x18: full data size, 0x1c: offset) */
+    /* get segment info, for all streams */
+    /* 0x00/04/0c: command?,  0x18: full segment size (including all streams),  0x1c: offset, others: ?) */
+    for (i = 0; i < total_segments; i++) {
+        stream_size_full += read_32bit(off + 0x20*i + 0x18,streamFile);
+    }
+    off += 0x20 * total_segments;
+
+    /* get usable segment sizes (usually ok but sometimes > stream_size), per stream */
     for (i = 0; i < total_segments; i++) { /* sum usable segment sizes (no padding) */
-        stream_size += read_32bit(off + 0x04 * i + 0x04 * total_segments*(target_stream-1),streamFile);
+        stream_size += read_32bit(off + 0x04*i + 0x04*total_segments*(target_stream-1),streamFile);
     }
     off += 0x04 * (total_segments * total_streams);
-    off += 0x10 * total_segments; /* segment uuids? */
-    for (i = 0; i < total_segments; i++) { /* skip segments names */
+
+    /* skip segment uuids */
+    off += 0x10 * total_segments;
+
+    /* skip segment names */
+    for (i = 0; i < total_segments; i++) {
         off += get_rws_string_size(off, streamFile);
     }
 
-    /* get stream layout: 0xc: samples per frame (ex. 28 in VAG), 0x24: offset within data chunk,  others: ? */
-    /* get block_size for our target stream and from all streams, to skip their blocks during decode */
+    /* get stream layout */
+    /* 0x00/04/14: command?, 0x08: null?  0x0c: spf related? (XADPCM=07, VAG=1C, DSP=0E, PCM=01)
+     * 0x24: offset within data chunk, 0x1c: codec related?,  others: ?) */
     for (i = 0; i < total_streams; i++) { /* get block_sizes */
-        block_size_max += read_32bit(off+0x10 + 0x28*i,streamFile); /* includes padding and can be different per stream */
+        block_size_total += read_32bit(off + 0x10 + 0x28*i, streamFile); /* for all streeams, to skip during decode */
         if (i+1 == target_stream) {
-            block_size = read_32bit(off+0x20 + 0x28*i,streamFile); /* actual size */
-            stream_offset = read_32bit(off+0x24 + 0x28*i,streamFile); /* within data */
+            //block_size_full = read_32bit(off + 0x10 + 0x28*i, streamFile); /* with padding, can be different per stream */
+            block_size = read_32bit(off + 0x20 + 0x28*i, streamFile); /* without padding */
+            stream_offset = read_32bit(off + 0x24 + 0x28*i, streamFile); /* within data */
         }
     }
     off += 0x28 * total_streams;
 
-    /* get stream config: 0x0c(1): bits per sample,  others: ? */
+    /* get stream config */
+    /* 0x04: command?,  0x0c(1): bits per sample,  others: null? */
     for (i = 0; i < total_streams; i++) { /* size depends on codec so we must parse it */
         int prev_codec = 0;
         if (i+1 == target_stream) {
             sample_rate   = read_32bit(off+0x00, streamFile);
-            //unk_size    = read_32bit(off+0x08, streamFile); /* segment size? loop-related? */
+            //unk_size    = read_32bit(off+0x08, streamFile); /* segment size again? loop-related? */
             channel_count =  read_8bit(off+0x0d, streamFile);
             codec         = read_32bitBE(off+0x1c, streamFile); /* uuid of 128b but first 32b is enough */
         }
@@ -104,7 +119,7 @@ VGMSTREAM * init_vgmstream_rws(STREAMFILE *streamFile) {
         off += 0x04; /* padding/garbage */
     }
 
-    /* skip uuid? per stream */
+    /* skip stream uuids */
     off += 0x10 * total_streams;
 
     /* get stream name */
@@ -116,8 +131,17 @@ VGMSTREAM * init_vgmstream_rws(STREAMFILE *streamFile) {
     }
 
     /* rest is padding/garbage until chunk end (may contain strings and weird stuff) */
+    // ...
 
-    start_offset = 0x0c + 0x0c + header_size + 0x0c + stream_offset; /* usually 0x800 but not always */
+    /* usually 0x800 but not always */
+    start_offset = 0x0c + 0x0c + header_size + 0x0c + stream_offset;
+
+    /* sometimes it's wrong for no apparent reason (probably a bug in RWS) */
+    stream_size_expected = (stream_size_full / block_size_total) * (block_size * total_streams) / total_streams;
+    if (stream_size > stream_size_expected) {
+        VGM_LOG("RWS: readjusting wrong stream size %x vs expected %x\n", stream_size, stream_size_expected);
+        stream_size = stream_size_expected;
+    }
 
 
     /* build the VGMSTREAM */
@@ -132,7 +156,7 @@ VGMSTREAM * init_vgmstream_rws(STREAMFILE *streamFile) {
 
     vgmstream->layout_type = layout_rws_blocked;
     vgmstream->current_block_size = block_size / vgmstream->channels;
-    vgmstream->full_block_size = block_size_max;
+    vgmstream->full_block_size = block_size_total;
 
     switch(codec) {
         case 0xD01BD217:    /* PCM X360 (D01BD217 35874EED B9D9B8E8 6EA9B995) */
@@ -168,7 +192,7 @@ VGMSTREAM * init_vgmstream_rws(STREAMFILE *streamFile) {
             vgmstream->coding_type = coding_XBOX;
             vgmstream->interleave_block_size = 0; /* uses regular XBOX/MS-IMA interleave */
 
-            vgmstream->num_samples = ms_ima_bytes_to_samples(stream_size, 0x48, channel_count);
+            vgmstream->num_samples = ms_ima_bytes_to_samples(stream_size, 0x24 * channel_count, channel_count);
             break;
 
         default:
