@@ -96,7 +96,7 @@ typedef struct {
     meta_t meta_type;
     off_t name_offset;
     size_t name_size;
-} FSB_HEADER;
+} fsb_header;
 
 /* ********************************************************************************** */
 
@@ -121,7 +121,7 @@ VGMSTREAM * init_vgmstream_fsb_offset(STREAMFILE *streamFile, off_t offset) {
     int loop_flag = 0;
     int target_stream = streamFile->stream_index;
 
-    FSB_HEADER fsbh;
+    fsb_header fsbh;
 
     /* check extensions (.bnk = Hard Corps Uprising PS3) */
     if ( !check_extensions(streamFile, "fsb,wii,bnk") )
@@ -250,17 +250,23 @@ VGMSTREAM * init_vgmstream_fsb_offset(STREAMFILE *streamFile, off_t offset) {
 
 
     /* XOR encryption for some FSB4, though the flag is only seen after decrypting */
-    VGM_ASSERT(fsbh.flags & FMOD_FSB_SOURCE_ENCRYPTED, "FSB ENCRYPTED found\n");
+    //VGM_ASSERT(fsbh.flags & FMOD_FSB_SOURCE_ENCRYPTED, "FSB ENCRYPTED found\n");
 
     /* sometimes there is garbage at the end or missing bytes due to improper demuxing */
     VGM_ASSERT(fsbh.hdrsize + fsbh.shdrsize + fsbh.datasize != streamFile->get_size(streamFile) - offset,
                "FSB wrong head/datasize found\n");
 
-    /* Loops by default unless disabled (sometimes may add FSOUND_LOOP_NORMAL). Often streams
-     * repeat over and over (some tracks that shouldn't do this based on the flags, no real way to identify them). */
-    loop_flag = !(fsbh.mode & FSOUND_LOOP_OFF); /* (fsbh.mode & FSOUND_LOOP_NORMAL) */
+    /* Loops unless disabled. FMOD default seems full loops (0/num_samples-1) without flags, for repeating tracks
+     * that should loop and jingles/sfx that shouldn't. We'll try to disable looping is it looks jingly enough. */
+    loop_flag = !(fsbh.mode & FSOUND_LOOP_OFF);
+    if(!(fsbh.mode & FSOUND_LOOP_NORMAL)                            /* rarely set */
+            && fsbh.loopstart+fsbh.loopend+1 == fsbh.lengthsamples  /* full loop */
+            && fsbh.lengthsamples < 20*fsbh.deffreq)                /* seconds, lame but no other way to know */
+        loop_flag = 0;
+
     /* ping-pong looping = no looping? (forward > reverse > forward) */
     VGM_ASSERT(fsbh.mode & FSOUND_LOOP_BIDI, "FSB BIDI looping found\n");
+
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(fsbh.numchannels,loop_flag);
@@ -302,7 +308,6 @@ VGMSTREAM * init_vgmstream_fsb_offset(STREAMFILE *streamFile, off_t offset) {
 #endif
     }
     else if (fsbh.mode & FSOUND_IMAADPCM) { /* (codec 0x69, Voxware Byte Aligned) */
-        //VGM_ASSERT(fsbh.mode & FSOUND_IMAADPCMSTEREO, "FSB FSOUND_IMAADPCMSTEREO found\n");
         /* FSOUND_IMAADPCMSTEREO is "noninterleaved, true stereo IMA", but doesn't seem to be any different
          * (found in FSB4: Shatter, Blade Kitten (PC), Hard Corps: Uprising (PS3)) */
 
@@ -316,7 +321,6 @@ VGMSTREAM * init_vgmstream_fsb_offset(STREAMFILE *streamFile, off_t offset) {
     else if (fsbh.mode & FSOUND_VAG) {
         /* FSB1: Jurassic Park Operation Genesis
          * FSB3: ?; FSB4: Spider Man Web of Shadows, Speed Racer, Silent Hill: Shattered Memories (PS2) */
-
         vgmstream->coding_type = coding_PSX;
         vgmstream->layout_type = layout_interleave;
         vgmstream->interleave_block_size = 0x10;
@@ -348,37 +352,26 @@ VGMSTREAM * init_vgmstream_fsb_offset(STREAMFILE *streamFile, off_t offset) {
     }
     else if (fsbh.mode & FSOUND_GCADPCM) {
         /* FSB3: ?; FSB4: de Blob (Wii), Night at the Museum, M. Night Shyamalan Avatar: The Last Airbender */
-
         vgmstream->coding_type = coding_NGC_DSP;
         vgmstream->layout_type = layout_interleave_byte;
         vgmstream->interleave_block_size = 0x2;
         dsp_read_coefs_be(vgmstream, streamFile, custom_data_offset, 0x2e);
     }
-    else if (fsbh.mode & FSOUND_CELT) { /* || fsbh.mode & FSOUND_OGG (same flag) */
+    else if (fsbh.mode & FSOUND_CELT) { /* || fsbh.mode & FSOUND_OGG (same flag, unused) */
         /* FSB4: War Thunder (PC), The Witcher 2 (PC) */
-
         VGM_LOG("FSB4 FSOUND_CELT found\n");
         goto fail;
     }
     else { /* PCM */
         if (fsbh.mode & FSOUND_8BITS) {
-            VGM_LOG("FSB FSOUND_8BITS found\n");
-            if (fsbh.mode & FSOUND_UNSIGNED) {
-                vgmstream->coding_type = coding_PCM8_U; /* ? coding_PCM8_U_int */
-            } else { /* FSOUND_SIGNED */
-                vgmstream->coding_type = coding_PCM8; /* ? coding_PCM8_int / coding_PCM8_SB_int */
-            }
+            vgmstream->coding_type = (fsbh.mode & FSOUND_UNSIGNED) ? coding_PCM8_U : coding_PCM8;
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = 0x1;
         }
         else {  /* Rocket Knight (PC), Another Century's Episode R (PS3), Toy Story 3 (Wii)  */
             /* sometimes FSOUND_STEREO/FSOUND_MONO is not set (ex. Dead Space iOS),
              * or only STEREO/MONO but not FSOUND_8BITS/FSOUND_16BITS is set */
-            if (fsbh.flags & FMOD_FSB_SOURCE_BIGENDIANPCM) {
-                vgmstream->coding_type = coding_PCM16BE;
-            } else {
-                vgmstream->coding_type = coding_PCM16LE; /* ? coding_PCM16LE_int ? */
-            }
+            vgmstream->coding_type = (fsbh.flags & FMOD_FSB_SOURCE_BIGENDIANPCM) ? coding_PCM16BE : coding_PCM16LE;
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = 0x2;
         }
