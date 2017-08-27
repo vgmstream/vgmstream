@@ -160,9 +160,10 @@ VGMSTREAM * init_vgmstream_rws(STREAMFILE *streamFile) {
 
     switch(codec) {
         case 0xD01BD217:    /* PCM X360 (D01BD217 35874EED B9D9B8E8 6EA9B995) */
-            /* The Legend of Spyro (X360) */
-            vgmstream->coding_type = coding_PCM16BE;
-            //vgmstream->interleave_block_size = block_size / 2; //0x2; //todo 2ch PCM not working correctly (interleaved PCM not ok?)
+            /* ex. The Legend of Spyro (X360) */
+            vgmstream->coding_type = coding_PCM16_int;
+            vgmstream->codec_endian = 1; /* big */
+            vgmstream->interleave_block_size = 0x02; /* only used to setup channels */
 
             vgmstream->num_samples = pcm_bytes_to_samples(stream_size, channel_count, 16);
             break;
