@@ -74,9 +74,9 @@ enum { STREAM_NAME_SIZE = 255 }; /* reasonable max */
 typedef enum {
     /* PCM */
     coding_PCM16LE,         /* little endian 16-bit PCM */
-    coding_PCM16LE_int,		/* little endian 16-bit PCM with sample-level interleave */
     coding_PCM16LE_XOR_int, /* little endian 16-bit PCM with sample-level xor */
     coding_PCM16BE,         /* big endian 16-bit PCM */
+    coding_PCM16_int,       /* 16-bit PCM with sample-level interleave */
 
     coding_PCM8,            /* 8-bit PCM */
     coding_PCM8_int,        /* 8-Bit PCM with sample-level interleave */

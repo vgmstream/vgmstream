@@ -53,7 +53,7 @@ VGMSTREAM * init_vgmstream_sab(STREAMFILE *streamFile) {
 	vgmstream->current_block_offset=8+32*numSounds;
     vgmstream->channels = channel_count;
 	vgmstream->sample_rate = read_32bitLE(0x20,streamFile);
-    vgmstream->coding_type = coding_PCM16LE_int;
+    vgmstream->coding_type = coding_PCM16_int;
     vgmstream->num_samples = (int32_t)((get_streamfile_size(streamFile)-vgmstream->current_block_offset)/2/channel_count);
 	if(loop_flag)
 	{

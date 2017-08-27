@@ -68,12 +68,12 @@ void decode_pcm8_unsigned(VGMSTREAMCHANNEL * stream, sample * outbuf, int channe
     }
 }
 
-void decode_pcm16LE_int(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
-    int i;
-    int32_t sample_count;
+void decode_pcm16_int(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int big_endian) {
+    int i, sample_count;
+    int16_t (*read_16bit)(off_t,STREAMFILE*) = big_endian ? read_16bitBE : read_16bitLE;
 
     for (i=first_sample,sample_count=0; i<first_sample+samples_to_do; i++,sample_count+=channelspacing) {
-        outbuf[sample_count]=read_16bitLE(stream->offset+i*2*channelspacing,stream->streamfile);
+        outbuf[sample_count]=read_16bit(stream->offset+i*2*channelspacing,stream->streamfile);
     }
 }
 
@@ -118,9 +118,9 @@ void decode_ulaw(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing,
     }
 }
 
-void decode_pcmfloat(VGMSTREAM *vgmstream, VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
+void decode_pcmfloat(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int big_endian) {
     int i, sample_count;
-    int32_t (*read_32bit)(off_t,STREAMFILE*) = vgmstream->codec_endian ? read_32bitBE : read_32bitLE;
+    int32_t (*read_32bit)(off_t,STREAMFILE*) = big_endian ? read_32bitBE : read_32bitLE;
 
     for (i=first_sample,sample_count=0; i<first_sample+samples_to_do; i++,sample_count+=channelspacing) {
         uint32_t sample_int = read_32bit(stream->offset+i*4,stream->streamfile);

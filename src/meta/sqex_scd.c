@@ -225,7 +225,7 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
     switch (codec_id) {
         case 0x1:
             /* PCM */
-            vgmstream->coding_type = coding_PCM16LE_int;
+            vgmstream->coding_type = coding_PCM16_int;
             vgmstream->layout_type = layout_none;
             vgmstream->num_samples = stream_size / 2 / channel_count;
 
