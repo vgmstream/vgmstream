@@ -25,6 +25,14 @@ static inline int32_t get_32bitLE(uint8_t * p) {
     return (p[0]) | (p[1]<<8) | (p[2]<<16) | (p[3]<<24);
 }
 
+static inline int64_t get_64bitBE(uint8_t * p) {
+    return (uint64_t)(((uint64_t)p[0]<<56) | ((uint64_t)p[1]<<48) | ((uint64_t)p[2]<<40) | ((uint64_t)p[3]<<32) | ((uint64_t)p[4]<<24) | ((uint64_t)p[5]<<16) | ((uint64_t)p[6]<<8) | ((uint64_t)p[7]));
+}
+
+static inline int64_t get_64bitLE(uint8_t * p) {
+    return (uint64_t)(((uint64_t)p[0]) | ((uint64_t)p[1]<<8) | ((uint64_t)p[2]<<16) | ((uint64_t)p[3]<<24) | ((uint64_t)p[4]<<32) | ((uint64_t)p[5]<<40) | ((uint64_t)p[6]<<48) | ((uint64_t)p[7]<<56));
+}
+
 void put_8bit(uint8_t * buf, int8_t i);
 
 void put_16bitLE(uint8_t * buf, int16_t i);

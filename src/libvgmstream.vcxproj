@@ -427,6 +427,7 @@
     <ClCompile Include="coding\mc3_decoder.c" />
     <ClCompile Include="coding\mpeg_custom_utils.c" />
     <ClCompile Include="coding\mpeg_custom_utils_ahx.c" />
+    <ClCompile Include="coding\mpeg_custom_utils_awc.c" />
     <ClCompile Include="coding\mpeg_custom_utils_ealayer3.c" />
     <ClCompile Include="coding\mpeg_decoder.c" />
     <ClCompile Include="coding\msadpcm_decoder.c" />
@@ -453,6 +454,8 @@
     <ClCompile Include="layout\ast_blocked.c" />
     <ClCompile Include="layout\bdsp_blocked.c" />
     <ClCompile Include="layout\blocked.c" />
+    <ClCompile Include="layout\blocked_awc.c" />
+    <ClCompile Include="layout\blocked_vgs.c" />
     <ClCompile Include="layout\caf_blocked.c" />
     <ClCompile Include="layout\de2_blocked.c" />
     <ClCompile Include="layout\ea_block.c" />

@@ -68,7 +68,7 @@ VGMSTREAM * init_vgmstream_his(STREAMFILE *streamFile) {
         vgmstream->coding_type = coding_PCM16LE;
         if (channel_count == 2)
         {
-            vgmstream->coding_type = coding_PCM16LE_int;
+            vgmstream->coding_type = coding_PCM16_int;
             vgmstream->interleave_block_size = 2;
         }
     }

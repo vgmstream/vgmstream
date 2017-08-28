@@ -1399,6 +1399,10 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\coding\mpeg_custom_utils_awc.c"
+                    >
+                </File>
+                <File
                     RelativePath=".\coding\mpeg_custom_utils_ealayer3.c"
                     >
                 </File>
@@ -1530,6 +1534,14 @@
 					RelativePath=".\layout\blocked.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\layout\blocked_awc.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\layout\blocked_vgs.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\layout\caf_blocked.c"
 					>

@@ -42,6 +42,7 @@ static const char* extension_list[] = {
     "at3",
     "aud",
     "aus",
+    "awc",
 
     "b1s",
     "baf",
@@ -395,10 +396,10 @@ typedef struct {
 
 
 static const coding_info coding_info_list[] = {
-        {coding_PCM16BE,            "Big Endian 16-bit PCM"},
         {coding_PCM16LE,            "Little Endian 16-bit PCM"},
-        {coding_PCM16LE_int,        "Little Endian 16-bit PCM with 2 byte interleave"},
         {coding_PCM16LE_XOR_int,    "Little Endian 16-bit PCM with 2 byte interleave and XOR obfuscation"},
+        {coding_PCM16BE,            "Big Endian 16-bit PCM"},
+        {coding_PCM16_int,          "16-bit PCM with 2 byte interleave"},
         {coding_PCM8,               "8-bit PCM"},
         {coding_PCM8_U,             "8-bit unsigned PCM"},
         {coding_PCM8_U_int,         "8-bit unsigned PCM with 1 byte interleave"},
@@ -448,6 +449,7 @@ static const coding_info coding_info_list[] = {
         {coding_FSB_IMA,            "FSB multichannel 4-bit IMA ADPCM"},
         {coding_WWISE_IMA,          "Audiokinetic Wwise 4-bit IMA ADPCM"},
         {coding_REF_IMA,            "Reflections 4-bit IMA ADPCM"},
+        {coding_AWC_IMA,            "Rockstar AWC 4-bit IMA ADPCM"},
         {coding_WS,                 "Westwood Studios VBR ADPCM"},
         {coding_ACM,                "InterPlay ACM"},
         {coding_NWA0,               "NWA DPCM Level 0"},
@@ -532,6 +534,8 @@ static const layout_info layout_info_list[] = {
         {layout_aax,                    "AAX blocked, 18-byte interleaved"},
         {layout_scd_int,                "SCD multistream interleave"},
         {layout_ea_sns_blocked,         "Electronic Arts SNS blocked"},
+        {layout_blocked_awc,            "blocked (AWC)"},
+        {layout_blocked_vgs,            "blocked (VGS)"},
 #ifdef VGM_USE_VORBIS
         {layout_ogg_vorbis,             "Ogg"},
 #endif
@@ -716,7 +720,7 @@ static const meta_info meta_info_list[] = {
         {meta_MSVP,                 "MSVP Header"},
         {meta_NGC_SSM,              "SSM DSP Header"},
         {meta_PS2_JOE,              "Disney/Pixar JOE Header"},
-        {meta_VGS,                  "Guitar Hero Encore Rocks the 80's Header"},
+        {meta_VGS,                  "Guitar Hero VGS Header"},
         {meta_DC_DCSW_DCS,          "Evil Twin DCS file with helper"},
         {meta_WII_SMP,              "SMP DSP Header"},
         {meta_EMFF_PS2,             "Eidos Music File Format Header"},
@@ -880,6 +884,7 @@ static const meta_info meta_info_list[] = {
         {meta_STM,                  "Angel Studios/Rockstar San Diego STMA header"},
         {meta_BINK,                 "RAD Game Tools Bink header"},
         {meta_EA_SNU,               "Electronic Arts SNU header"},
+        {meta_AWC,                  "Rockstar AWC header"},
 
 #ifdef VGM_USE_VORBIS
         {meta_OGG_VORBIS,           "Ogg Vorbis"},

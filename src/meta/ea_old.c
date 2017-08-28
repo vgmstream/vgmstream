@@ -61,7 +61,7 @@ VGMSTREAM * init_vgmstream_eacs(STREAMFILE *streamFile) {
 		vgmstream->sample_rate = ea_header->dwSampleRate;
 		
 		if(ea_header->bCompression==0) {
-			vgmstream->coding_type = coding_PCM16LE_int;
+			vgmstream->coding_type = coding_PCM16_int;
 			if(ea_header->bBits==1)
 				vgmstream->coding_type = coding_PCM8_int;
 		}

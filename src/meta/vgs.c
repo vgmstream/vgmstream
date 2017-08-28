@@ -1,100 +1,76 @@
 #include "meta.h"
 #include "../util.h"
+#include "../coding/coding.h"
+#include "../layout/layout.h"
 
-/* VGS (from Guitar Hero Encore - Rocks the 80s) */
+/* VGS  - from Guitar Hero Encore - Rocks the 80s, Guitar Hero II PS2 */
 VGMSTREAM * init_vgmstream_vgs(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[PATH_LIMIT];
     off_t start_offset;
+    size_t channel_size = 0, stream_data_size, stream_frame_count;
+    int channel_count = 0, loop_flag = 0, sample_rate = 0, stream_sample_rate;
+    int i;
 
-    int loop_flag;
-	int channel_flag;
-	int channel_flag_offset;
-	int channel_count;
 
     /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("vgs",filename_extension(filename))) goto fail;
+    if (!check_extensions(streamFile,"vgs"))
+        goto fail;
 
     /* check header */
     if (read_32bitBE(0x00,streamFile) != 0x56675321) /* "VgS!" */
         goto fail;
+    /* 0x04: version? */
 
-    loop_flag = 0;
-    channel_flag_offset = get_streamfile_size(streamFile)-0x10;
-	channel_flag = read_32bitBE(channel_flag_offset,streamFile);
-	
-	/* Only seen files up to 5 channels, but just
-	to be sure we will look up to 8 chanels */
-	switch (channel_flag) {
-		case 0x00800000:
-			channel_count = 1;
-			break;
-		case 0x00810000:
-			channel_count = 2;
-			break;
-		case 0x00820000:
-			channel_count = 3;
-			break;
-		case 0x00830000:
-			channel_count = 4;
-			break;
-		case 0x00840000:
-			channel_count = 5;
-			break;
-		case 0x00850000:
-			channel_count = 6;
-			break;
-		case 0x00860000:
-			channel_count = 7;
-			break;
-		case 0x00870000:
-			channel_count = 8;
-		break;
-			default:
-				goto fail;
-		}
+    /* contains N streams, which can have one less frame, or half frame and sample rate */
+    for (i = 0; i < 8; i++) {
+        stream_sample_rate = read_32bitLE(0x08 + 0x08*i + 0x00,streamFile);
+        stream_frame_count = read_32bitLE(0x08 + 0x08*i + 0x04,streamFile);
+        stream_data_size = stream_frame_count*0x10;
+
+        if (stream_sample_rate == 0)
+            break;
+
+        if (!sample_rate || !channel_size) {
+            sample_rate = stream_sample_rate;
+            channel_size = stream_data_size;
+        }
+
+        /* some streams end 1 frame early */
+        if (channel_size - 0x10 == stream_data_size) {
+            channel_size -= 0x10;
+        }
+
+        /* Guitar Hero II sometimes uses half sample rate for last stream */
+        if (sample_rate != stream_sample_rate) {
+            VGM_LOG("VGS: ignoring stream %i\n", i);
+            //total_streams++; // todo handle substreams
+            break;
+        }
+
+        channel_count++;
+    }
 
     
 	/* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
-	/* fill in the vital statistics */
     start_offset = 0x80;
-	vgmstream->channels = channel_count;
-    vgmstream->sample_rate = read_32bitLE(0x08,streamFile);
-    vgmstream->coding_type = coding_PSX_badflags;
-    vgmstream->num_samples = (read_32bitLE(0x0C,streamFile)*channel_count*0x10)*28/16/channel_count;
-    if (loop_flag) {
-        vgmstream->loop_start_sample = 0;
-        vgmstream->loop_end_sample = (read_32bitLE(0x0C,streamFile)*channel_count*0x10)*28/16/channel_count;
-    }
+    vgmstream->sample_rate = sample_rate;
+    vgmstream->num_samples = ps_bytes_to_samples(channel_size*channel_count, channel_count);
 
-    vgmstream->layout_type = layout_interleave;
-    vgmstream->interleave_block_size = 0x10;
+    vgmstream->coding_type = coding_PSX_badflags; /* flag = stream/channel number */
+    vgmstream->layout_type = layout_blocked_vgs;
     vgmstream->meta_type = meta_VGS;
 
-    /* open the file for reading */
-    {
-        int i;
-        STREAMFILE * file;
-        file = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-        if (!file) goto fail;
-        for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = file;
 
-            vgmstream->ch[i].channel_start_offset=
-                vgmstream->ch[i].offset=start_offset+
-                vgmstream->interleave_block_size*i;
-
-        }
-    }
+    /* open files; channel offsets are updated below */
+    if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
+        goto fail;
+    block_update_vgs(start_offset, vgmstream);
 
     return vgmstream;
-
-    /* clean up anything we may have opened */
 fail:
-    if (vgmstream) close_vgmstream(vgmstream);
+    close_vgmstream(vgmstream);
     return NULL;
 }

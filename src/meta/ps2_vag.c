@@ -63,7 +63,11 @@ VGMSTREAM * init_vgmstream_ps2_vag(STREAMFILE *streamFile) {
             break;
         case 'p': /* "VAGp" (extended) [most common, ex Ratchet & Clank] */
 
-            if ((version <= 0x00000004) && (datasize < filesize / 2)) { /* two VAGp in the same file */
+            if (read_32bitBE(0x6000,streamFile) == 0x56414770) { /* "VAGp" */
+                channel_count = 2; /* The Simpsons Wrestling PSX interleave */
+                loop_flag = 0;
+            }
+            else if ((version <= 0x00000004) && (datasize < filesize / 2)) { /* two VAGp in the same file */
                 if (is_swag)
                     loop_flag = vag_find_loop_offsets(streamFile, 0x30, &loopStart, &loopEnd);
                 else
@@ -129,7 +133,15 @@ VGMSTREAM * init_vgmstream_ps2_vag(STREAMFILE *streamFile) {
         case 'p': // VAGp
             interleave=0x10;
 
-            if ((version == 0x00000004) && (datasize < filesize / 2)) {
+            if (read_32bitBE(0x6000,streamFile) == 0x56414770) { /* "VAGp" */
+                 interleave = 0x6000; /* The Simpsons Wrestling PSX interleave, includes header */
+                 vgmstream->layout_type = layout_interleave;
+                 vgmstream->meta_type = meta_PS2_VAGs;
+
+                 vgmstream->num_samples = datasize / 16 * 28;
+                 start_offset = 0x30;
+            }
+            else if ((version == 0x00000004) && (datasize < filesize / 2)) {
                 vgmstream->channels=2;
                 vgmstream->layout_type=layout_interleave;
                 vgmstream->meta_type=meta_PS2_VAGs;

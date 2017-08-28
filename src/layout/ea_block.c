@@ -211,7 +211,7 @@ void eacs_block_update(off_t block_offset, VGMSTREAM * vgmstream) {
         } else {
 
             for (i=0;i<vgmstream->channels;i++) {
-                if(vgmstream->coding_type==coding_PCM16LE_int)
+                if(vgmstream->coding_type==coding_PCM16_int)
                     vgmstream->ch[i].offset = block_offset+(i*2);
                 else
                     vgmstream->ch[i].offset = block_offset+i;

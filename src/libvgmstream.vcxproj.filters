@@ -817,6 +817,9 @@
     <ClCompile Include="coding\mpeg_custom_utils_ahx.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="coding\mpeg_custom_utils_awc.c">
+      <Filter>coding\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="coding\mpeg_custom_utils_ealayer3.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
@@ -893,6 +896,12 @@
       <Filter>layout\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="layout\blocked.c">
+      <Filter>layout\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="layout\blocked_awc.c">
+      <Filter>layout\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="layout\blocked_vgs.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="layout\caf_blocked.c">
