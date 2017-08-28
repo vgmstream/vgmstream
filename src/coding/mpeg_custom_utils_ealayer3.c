@@ -579,7 +579,7 @@ static int ealayer3_write_pcm_block(VGMSTREAMCHANNEL *stream, mpeg_codec_data *d
             if (decode_to_discard == 576)
                 decode_to_discard = data->samples_per_frame;//+ eaf->v1_pcm_number;
 
-            data->decode_to_discard += decode_to_discard;
+            ms->decode_to_discard += decode_to_discard;
         }
     }
 

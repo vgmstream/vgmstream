@@ -54,7 +54,6 @@ int mpeg_custom_setup_init_default(STREAMFILE *streamFile, off_t start_offset, m
             break;
 
         case MPEG_LYN:
-        case MPEG_AWC:
             goto fail; /* not fully implemented */
 
         case MPEG_STANDARD:

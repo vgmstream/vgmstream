@@ -63,7 +63,7 @@ supports Winamp plugins you may also use in_vgmstream.dll instead.
 
 Because the XMPlay MP3 decoder incorrectly tries to play some vgmstream exts,
 you need to manually fix it by going to options > plugins > input > vgmstream
-and in the "priority filetypes" put: ckd,fsb,genh,msf,p3d,rak,scd,xvag
+and in the "priority filetypes" put: awc,ckd,fsb,genh,msf,p3d,rak,scd,xvag
 
 --- foo_input_vgmstream ---
 Every should be installed automatically by the .fb2k-component bundle.

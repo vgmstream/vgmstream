@@ -621,6 +621,7 @@ typedef enum {
     meta_STM,               /* Angel Studios/Rockstar San Diego Games */
     meta_BINK,              /* RAD Game Tools BINK audio/video */
     meta_EA_SNU,            /* Electronic Arts SNU (Dead Space) */
+    meta_AWC,               /* Rockstar AWC (GTA5, RDR) */
 
 #ifdef VGM_USE_VORBIS
     meta_OGG_VORBIS,        /* Ogg Vorbis */
@@ -874,7 +875,7 @@ typedef enum {
     MPEG_EAL32P,            /* EALayer3 v2 "P" (PCM?), custom frames with v2 header */
     MPEG_EAL32S,            /* EALayer3 v2 "S" (Spike?), custom frames with v2 header */
     MPEG_LYN,               /* N streams of fixed interleave */
-    MPEG_AWC                /* N streams in absolute offsets (consecutive) */
+    MPEG_AWC                /* N streams in block layout (music) or absolute offsets (sfx) */
 } mpeg_custom_t;
 
 /* config for the above modes */
@@ -884,6 +885,7 @@ typedef struct {
     int chunk_size; /* size of a data portion */
     int interleave; /* size of stream interleave */
     int encryption; /* encryption mode */
+    int big_endian;
     /* for AHX */
     int cri_type;
     uint16_t cri_key1;
@@ -899,6 +901,11 @@ typedef struct {
     size_t output_buffer_size;
     size_t samples_filled; /* data in the buffer (in samples) */
     size_t samples_used; /* data extracted from the buffer */
+
+    size_t current_size_count; /* data read (if the parser needs to know) */
+    size_t current_size_target; /* max data, until something happens */
+    size_t decode_to_discard;  /* discard from this stream only (for EALayer3 or AWC) */
+
 } mpeg_custom_stream;
 
 typedef struct {
@@ -924,7 +931,6 @@ typedef struct {
 
     size_t skip_samples; /* base encoder delay */
     size_t samples_to_discard; /* for custom mpeg looping */
-    size_t decode_to_discard;  /* for EALayer3, that discards decoded samples and writes PCM blocks in their place */
 
 } mpeg_codec_data;
 #endif

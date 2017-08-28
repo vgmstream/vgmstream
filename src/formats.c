@@ -42,6 +42,7 @@ static const char* extension_list[] = {
     "at3",
     "aud",
     "aus",
+    "awc",
 
     "b1s",
     "baf",
@@ -880,6 +881,7 @@ static const meta_info meta_info_list[] = {
         {meta_STM,                  "Angel Studios/Rockstar San Diego STMA header"},
         {meta_BINK,                 "RAD Game Tools Bink header"},
         {meta_EA_SNU,               "Electronic Arts SNU header"},
+        {meta_AWC,                  "Rockstar AWC header"},
 
 #ifdef VGM_USE_VORBIS
         {meta_OGG_VORBIS,           "Ogg Vorbis"},

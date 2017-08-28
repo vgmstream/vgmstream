@@ -140,6 +140,7 @@ mpeg_codec_data *init_mpeg_custom_codec_data(STREAMFILE *streamFile, off_t start
         case MPEG_EAL31:
         case MPEG_EAL32P:
         case MPEG_EAL32S:   ok = mpeg_custom_setup_init_ealayer3(streamFile, start_offset, data, coding_type); break;
+        case MPEG_AWC:      ok = mpeg_custom_setup_init_awc(streamFile, start_offset, data, coding_type); break;
         default:            ok = mpeg_custom_setup_init_default(streamFile, start_offset, data, coding_type); break;
     }
     if (!ok)
@@ -393,6 +394,7 @@ static void decode_mpeg_custom_stream(VGMSTREAMCHANNEL *stream, mpeg_codec_data 
             case MPEG_EAL32P:
             case MPEG_EAL32S:   ok = mpeg_custom_parse_frame_ealayer3(stream, data, num_stream); break;
             case MPEG_AHX:      ok = mpeg_custom_parse_frame_ahx(stream, data); break;
+            case MPEG_AWC:      ok = mpeg_custom_parse_frame_awc(stream, data, num_stream); break;
             default:            ok = mpeg_custom_parse_frame_default(stream, data); break;
         }
         if (!ok) {
@@ -440,16 +442,16 @@ static void decode_mpeg_custom_stream(VGMSTREAMCHANNEL *stream, mpeg_codec_data 
     }
     samples_filled = (bytes_done / sizeof(sample) / data->channels_per_frame);
 
-    /* for EALayer3, that discards decoded samples and writes PCM blocks instead */
-    if (data->decode_to_discard) {
+    /* discard for weird features (EALayer3 and PCM blocks, AWC and repeated frames) */
+    if (ms->decode_to_discard) {
         size_t bytes_to_discard = 0;
-        size_t decode_to_discard = data->decode_to_discard;
+        size_t decode_to_discard = ms->decode_to_discard;
         if (decode_to_discard > samples_filled)
             decode_to_discard = samples_filled;
         bytes_to_discard = sizeof(sample)*decode_to_discard*data->channels_per_frame;
 
         bytes_done -= bytes_to_discard;
-        data->decode_to_discard -= decode_to_discard;
+        ms->decode_to_discard -= decode_to_discard;
         ms->samples_used += decode_to_discard;
     }
 
@@ -522,10 +524,10 @@ void reset_mpeg(VGMSTREAM *vgmstream) {
             mpg123_feedseek(data->streams[i]->m,0,SEEK_SET,&input_offset);
             data->streams[i]->samples_filled = 0;
             data->streams[i]->samples_used = 0;
+            data->streams[i]->decode_to_discard = 0;
         }
 
         data->samples_to_discard = data->skip_samples; /* initial delay */
-        data->decode_to_discard = 0;
     }
 }
 
@@ -546,6 +548,7 @@ void seek_mpeg(VGMSTREAM *vgmstream, int32_t num_sample) {
             mpg123_feedseek(data->streams[i]->m,0,SEEK_SET,&input_offset);
             data->streams[i]->samples_filled = 0;
             data->streams[i]->samples_used = 0;
+            data->streams[i]->decode_to_discard = 0;
 
             if (vgmstream->loop_ch)
                 vgmstream->loop_ch[i].offset = vgmstream->loop_ch[i].channel_start_offset;
@@ -558,7 +561,6 @@ void seek_mpeg(VGMSTREAM *vgmstream, int32_t num_sample) {
 
     data->buffer_full = 0;
     data->buffer_used = 0;
-    data->decode_to_discard = 0;
 }
 
 /* resets mpg123 decoder and its internals (with mpg123_open_feed as mpg123_feedseek won't work) */
@@ -577,10 +579,10 @@ void flush_mpeg(mpeg_codec_data * data) {
             mpg123_open_feed(data->streams[i]->m);
             data->streams[i]->samples_filled = 0;
             data->streams[i]->samples_used = 0;
+            data->streams[i]->decode_to_discard = 0;
         }
 
         data->samples_to_discard = data->skip_samples; /* initial delay */
-        data->decode_to_discard = 0;
     }
 
     data->bytes_in_buffer = 0;
