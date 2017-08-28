@@ -135,6 +135,7 @@
     <ClCompile Include="layout\scd_int_layout.c" />
     <ClCompile Include="layout\tra_blocked.c" />
     <ClCompile Include="meta\akb.c" />
+    <ClCompile Include="meta\awc.c" />
     <ClCompile Include="meta\bcstm.c" />
     <ClCompile Include="meta\bfstm.c" />
     <ClCompile Include="meta\bfwav.c" />

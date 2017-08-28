@@ -253,6 +253,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\awc.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\baf.c"
 					>
 				</File>
