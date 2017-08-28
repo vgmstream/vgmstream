@@ -212,23 +212,3 @@ void decode_maxis_xa(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspac
         stream->offset=0;
     }
 }
-
-
-/* EA MicroTalk 10:1 / 5:1 */
-/**
- * Rarely used but can be found in the wild: FIFA 2001 (PS2), FIFA Soccer 2002 (PS2)
- *
- * Decoding algorithm is unknown; some info found by analyzing sx.exe output:
- * - Comes in 10:1 or 5:1 compression varieties (the later's byte layout looks similar but has roughly double frame size)
- * - Also with "PCM samples" flag before each frame (later version) or without (first version)
- * - When PCM flag is 0xEE it has 16b ? + 16b num_samples + PCM samples placed right after the frame, but they
- *   are written *before* (presumably so they have something while the frame is decoded), like EALayer3.
- * - VBR ADPCM, apparently similar to Westwood VBR ADPCM: first byte seems a header with mode+count, but after it may
- *   be 8 bytes(?) of coefs/hist (unlike Westwood's), then data. Samples per frame changes with the mode used.
- *   ex. decoding pure silence (0000) takes 0x2E (10:1) or 0x48 (5:1) into 432 samples (RLE mode)
- * - Variable frame size but seems to range from 0x20 to 0x80 (in 5:1 at least)
- * - After a new SCDl block, first byte (in each channel) is a flag but various values have no effect in the output
- *   (01=first block, 00=normal block?) and should be skipped in the block parser.
- *
- */
-//void decode_ea_mt10(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do,int channel) {
