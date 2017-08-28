@@ -132,6 +132,7 @@ typedef enum {
     coding_FSB_IMA,         /* FMOD's FSB multichannel IMA ADPCM */
     coding_WWISE_IMA,       /* Audiokinetic Wwise IMA ADPCM */
     coding_REF_IMA,         /* Reflections IMA ADPCM */
+    coding_AWC_IMA,         /* Rockstar AWC IMA ADPCM */
 
     coding_MSADPCM,         /* Microsoft ADPCM */
     coding_WS,              /* Westwood Studios VBR ADPCM */
@@ -236,6 +237,7 @@ typedef enum {
     layout_rws_blocked,
     layout_hwas_blocked,
     layout_ea_sns_blocked,  /* newest Electronic Arts blocks, found in SNS/SNU/SPS/etc formats */
+    layout_blocked_awc,     /* Rockstar AWC */
 
     /* otherwise odd */
     layout_acm,             /* libacm layout */

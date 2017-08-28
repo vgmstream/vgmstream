@@ -934,6 +934,7 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
         case layout_rws_blocked:
         case layout_hwas_blocked:
         case layout_ea_sns_blocked:
+        case layout_blocked_awc:
             render_vgmstream_blocked(buffer,sample_count,vgmstream);
             break;
         case layout_interleave_byte:
@@ -1053,6 +1054,8 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_WWISE_IMA:
         case coding_REF_IMA:
             return (vgmstream->interleave_block_size-4*vgmstream->channels)*2/vgmstream->channels;
+        case coding_AWC_IMA:
+            return (0x800-4)*2;
         case coding_RAD_IMA_mono:
             return 32;
         case coding_NDS_PROCYON:
@@ -1156,6 +1159,8 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
         case coding_WWISE_IMA:
         case coding_REF_IMA:
             return vgmstream->interleave_block_size;
+        case coding_AWC_IMA:
+            return 0x800;
         case coding_RAD_IMA_mono:
             return 0x14;
         case coding_NGC_DTK:
@@ -1651,6 +1656,13 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                 decode_ref_ima(vgmstream,&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
                         samples_to_do,chan);
+            }
+            break;
+        case coding_AWC_IMA:
+            for (chan=0;chan<vgmstream->channels;chan++) {
+                decode_awc_ima(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                        vgmstream->channels,vgmstream->samples_into_block,
+                        samples_to_do);
             }
             break;
 

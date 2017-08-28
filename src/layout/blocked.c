@@ -144,6 +144,9 @@ void render_vgmstream_blocked(sample * buffer, int32_t sample_count, VGMSTREAM *
                 case layout_ea_sns_blocked:
                     ea_sns_block_update(vgmstream->next_block_offset,vgmstream);
                     break;
+                case layout_blocked_awc:
+                    block_update_awc(vgmstream->next_block_offset,vgmstream);
+                    break;
 				default:
                     break;
             }

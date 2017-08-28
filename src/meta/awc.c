@@ -1,5 +1,6 @@
 #include "meta.h"
 #include "../coding/coding.h"
+#include "../layout/layout.h"
 
 typedef struct {
     int big_endian;
@@ -51,16 +52,19 @@ VGMSTREAM * init_vgmstream_awc(STREAMFILE *streamFile) {
 
 
     switch(awc.codec) {
-        //case 0x01:      /* PCM (PC/PS3) */
-        //    vgmstream->coding_type = coding_PCM!6;
-        //    vgmstream->layout_type = awc.is_music ? layout_blocked_awc : layout_none;
-        //    break;
+        case 0x01:      /* PCM (PC/PS3) [sfx, rarely] */
+            if (awc.is_music) goto fail; /* blocked_awc needs to be prepared */
+            vgmstream->coding_type = awc.big_endian ? coding_PCM16BE : coding_PCM16LE;
+            vgmstream->layout_type = layout_interleave;
+            vgmstream->interleave_block_size = 0x02;
+            break;
 
-        //case 0x04:      /* IMA (PC) */
-        //    vgmstream->coding_type = coding_AWC_IMA;
-        //    vgmstream->layout_type = awc.is_music ? layout_blocked_awc : layout_none;
-        //    break;
-
+        case 0x04:      /* IMA (PC) */
+            vgmstream->coding_type = coding_AWC_IMA;
+            vgmstream->layout_type = awc.is_music ? layout_blocked_awc : layout_none;
+            vgmstream->full_block_size = awc.block_chunk;
+            vgmstream->codec_endian = awc.big_endian;
+            break;
 
 #ifdef VGM_USE_MPEG
         case 0x07: {    /* MPEG (PS3) */
@@ -89,8 +93,8 @@ VGMSTREAM * init_vgmstream_awc(STREAMFILE *streamFile) {
     if (!vgmstream_open_stream(vgmstream,streamFile,awc.stream_offset))
         goto fail;
 
-    //if (vgmstream->layout_type == layout_blocked_awc)
-    //    update_
+    if (vgmstream->layout_type == layout_blocked_awc)
+        block_update_awc(awc.stream_offset, vgmstream);
 
     return vgmstream;
 

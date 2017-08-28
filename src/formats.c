@@ -449,6 +449,7 @@ static const coding_info coding_info_list[] = {
         {coding_FSB_IMA,            "FSB multichannel 4-bit IMA ADPCM"},
         {coding_WWISE_IMA,          "Audiokinetic Wwise 4-bit IMA ADPCM"},
         {coding_REF_IMA,            "Reflections 4-bit IMA ADPCM"},
+        {coding_AWC_IMA,            "Rockstar AWC 4-bit IMA ADPCM"},
         {coding_WS,                 "Westwood Studios VBR ADPCM"},
         {coding_ACM,                "InterPlay ACM"},
         {coding_NWA0,               "NWA DPCM Level 0"},
@@ -533,6 +534,7 @@ static const layout_info layout_info_list[] = {
         {layout_aax,                    "AAX blocked, 18-byte interleaved"},
         {layout_scd_int,                "SCD multistream interleave"},
         {layout_ea_sns_blocked,         "Electronic Arts SNS blocked"},
+        {layout_blocked_awc,            "blocked (AWC)"},
 #ifdef VGM_USE_VORBIS
         {layout_ogg_vorbis,             "Ogg"},
 #endif
