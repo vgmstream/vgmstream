@@ -901,6 +901,9 @@
     <ClCompile Include="layout\blocked_awc.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="layout\blocked_vgs.c">
+      <Filter>layout\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="layout\caf_blocked.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>

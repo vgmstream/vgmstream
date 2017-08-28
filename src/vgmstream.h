@@ -238,6 +238,7 @@ typedef enum {
     layout_hwas_blocked,
     layout_ea_sns_blocked,  /* newest Electronic Arts blocks, found in SNS/SNU/SPS/etc formats */
     layout_blocked_awc,     /* Rockstar AWC */
+    layout_blocked_vgs,     /* Guitar Hero II */
 
     /* otherwise odd */
     layout_acm,             /* libacm layout */

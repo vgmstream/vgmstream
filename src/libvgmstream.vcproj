@@ -1538,6 +1538,10 @@
                     RelativePath=".\layout\blocked_awc.c"
                     >
                 </File>
+                <File
+                    RelativePath=".\layout\blocked_vgs.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\layout\caf_blocked.c"
 					>

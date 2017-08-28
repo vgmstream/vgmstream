@@ -535,6 +535,7 @@ static const layout_info layout_info_list[] = {
         {layout_scd_int,                "SCD multistream interleave"},
         {layout_ea_sns_blocked,         "Electronic Arts SNS blocked"},
         {layout_blocked_awc,            "blocked (AWC)"},
+        {layout_blocked_vgs,            "blocked (VGS)"},
 #ifdef VGM_USE_VORBIS
         {layout_ogg_vorbis,             "Ogg"},
 #endif
@@ -719,7 +720,7 @@ static const meta_info meta_info_list[] = {
         {meta_MSVP,                 "MSVP Header"},
         {meta_NGC_SSM,              "SSM DSP Header"},
         {meta_PS2_JOE,              "Disney/Pixar JOE Header"},
-        {meta_VGS,                  "Guitar Hero Encore Rocks the 80's Header"},
+        {meta_VGS,                  "Guitar Hero VGS Header"},
         {meta_DC_DCSW_DCS,          "Evil Twin DCS file with helper"},
         {meta_WII_SMP,              "SMP DSP Header"},
         {meta_EMFF_PS2,             "Eidos Music File Format Header"},

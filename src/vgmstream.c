@@ -936,6 +936,7 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
         case layout_hwas_blocked:
         case layout_ea_sns_blocked:
         case layout_blocked_awc:
+        case layout_blocked_vgs:
             render_vgmstream_blocked(buffer,sample_count,vgmstream);
             break;
         case layout_interleave_byte:

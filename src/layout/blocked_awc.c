@@ -1,6 +1,8 @@
 #include "layout.h"
 #include "../coding/coding.h"
+#include "../layout/layout.h"
 #include "../vgmstream.h"
+
 
 static size_t get_block_header_size(STREAMFILE *streamFile, off_t offset, int channels, int big_endian);
 
