@@ -134,6 +134,18 @@ static inline int32_t read_32bitBE(off_t offset, STREAMFILE * streamfile) {
     if (read_streamfile(buf,offset,4,streamfile)!=4) return -1;
     return get_32bitBE(buf);
 }
+static inline int64_t read_64bitLE(off_t offset, STREAMFILE * streamfile) {
+    uint8_t buf[8];
+
+    if (read_streamfile(buf,offset,8,streamfile)!=8) return -1;
+    return get_64bitLE(buf);
+}
+static inline int64_t read_64bitBE(off_t offset, STREAMFILE * streamfile) {
+    uint8_t buf[8];
+
+    if (read_streamfile(buf,offset,8,streamfile)!=8) return -1;
+    return get_64bitBE(buf);
+}
 
 static inline int8_t read_8bit(off_t offset, STREAMFILE * streamfile) {
     uint8_t buf[1];
