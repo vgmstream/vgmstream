@@ -65,6 +65,9 @@
     <ClInclude Include="meta\meta.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="meta\hca_keys.h">
+      <Filter>meta\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="coding\acm_decoder.h">
       <Filter>coding\Header Files</Filter>
     </ClInclude>

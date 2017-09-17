@@ -115,6 +115,7 @@
     <ClInclude Include="util.h" />
     <ClInclude Include="vgmstream.h" />
     <ClInclude Include="meta\meta.h" />
+    <ClInclude Include="meta\hca_keys.h" />
     <ClInclude Include="coding\acm_decoder.h" />
     <ClInclude Include="coding\coding.h" />
     <ClInclude Include="coding\fsb_vorbis_data.h" />

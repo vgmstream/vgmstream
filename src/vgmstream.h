@@ -1014,12 +1014,13 @@ typedef struct {
 typedef struct {
     STREAMFILE *streamfile;
     uint64_t start;
-    uint64_t size;
+    //uint64_t size;
     clHCA_stInfo info;
     unsigned int curblock;
-    unsigned int sample_ptr, samples_discard;
+    unsigned int sample_ptr;
+    unsigned int samples_discard;
     signed short sample_buffer[clHCA_samplesPerBlock * 16];
-    // clHCA exists here
+    //clHCA * hca exists here (pre-alloc'ed)
 } hca_codec_data;
 
 #ifdef VGM_USE_FFMPEG
