@@ -61,7 +61,7 @@ class input_vgmstream {
         void setup_vgmstream(abort_callback & p_abort);
         void load_settings();
         void get_subsong_info(t_uint32 p_subsong, pfc::string_base & title, int *length_in_ms, int *total_samples, int *loop_start, int *loop_end, int *sample_rate, int *channels, int *bitrate, pfc::string_base & description, abort_callback & p_abort);
-        bool get_description_tag(pfc::string_base & temp, pfc::string_base & description, const char *tag, char delimiter = '\n');
+        bool get_description_tag(pfc::string_base & temp, pfc::string_base const& description, const char *tag, char delimiter = '\n');
 };
 
 /* foo_streamfile.cpp */

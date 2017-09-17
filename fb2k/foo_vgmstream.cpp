@@ -407,7 +407,7 @@ void input_vgmstream::get_subsong_info(t_uint32 p_subsong, pfc::string_base & ti
     }
 }
 
-bool input_vgmstream::get_description_tag(pfc::string_base & temp, pfc::string_base & description, const char *tag, char delimiter) {
+bool input_vgmstream::get_description_tag(pfc::string_base & temp, pfc::string_base const& description, const char *tag, char delimiter) {
     // extract a "tag" from the description string
     t_size pos = description.find_first(tag);
     t_size eos;
