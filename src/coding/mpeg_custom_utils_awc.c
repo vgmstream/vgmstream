@@ -9,7 +9,7 @@
  * the last few frames of a channel are repeated in the new block (marked with the "discard samples" field).
  */
 
-
+/* block header size, algined/padded to 0x800 */
 static size_t get_block_header_size(STREAMFILE *streamFile, off_t offset, mpeg_codec_data *data) {
     size_t header_size = 0;
     int i;
@@ -25,6 +25,42 @@ static size_t get_block_header_size(STREAMFILE *streamFile, off_t offset, mpeg_c
         header_size +=  0x800 - (header_size % 0x800);
 
     return header_size;
+}
+
+/* find data that repeats in the beginning of a new block at the end of last block */
+static size_t get_repeated_data_size(STREAMFILE *streamFile, off_t new_offset, off_t last_offset) {
+    uint8_t new_frame[0x1000];/* buffer to avoid fseek back and forth */
+    mpeg_frame_info info;
+    off_t off;
+    int i;
+
+    /* read block first frame */
+    if ( !mpeg_get_frame_info(streamFile, new_offset, &info))
+        goto fail;
+    if (info.frame_size > 0x1000)
+        goto fail;
+    if (read_streamfile(new_frame,new_offset, info.frame_size,streamFile) != info.frame_size)
+        goto fail;
+
+    /* find the frame in last bytes of prev block */
+    off = last_offset - 0x4000; /* typical max is 5-10 frames of ~0x200, no way to know exact size */
+    while (off < last_offset) {
+        /* compare frame vs prev block data */
+        for (i = 0; i < info.frame_size; i++) {
+            if ((uint8_t)read_8bit(off+i,streamFile) != new_frame[i])
+                break;
+        }
+
+        /* frame fully compared? */
+        if (i == info.frame_size)
+            return last_offset - off;
+        else
+            off += i+1;
+    }
+
+fail:
+    VGM_LOG("AWC: can't find repeat size, new=0x%08lx, last=0x%08lx\n", new_offset, last_offset);
+    return 0; /* keep on truckin' */
 }
 
 
@@ -76,6 +112,7 @@ int mpeg_custom_parse_frame_awc(VGMSTREAMCHANNEL *stream, mpeg_codec_data *data,
 
     /* blocked layout used for music */
     if (data->config.chunk_size) {
+        off_t last_offset = stream->offset; /* when block end needs to be known */
 
         /* block ended for this channel, move to next block start */
         if (ms->current_size_count > 0 && ms->current_size_count == ms->current_size_target) {
@@ -111,10 +148,19 @@ int mpeg_custom_parse_frame_awc(VGMSTREAMCHANNEL *stream, mpeg_codec_data *data,
                 channel_offset += channel_size;
             }
 
-            //VGM_ASSERT(ms->decode_to_discard > 0, "AWC: s%i discard of %x found at chunk %lx\n", num_stream, ms->decode_to_discard, stream->offset);
-            //;VGM_LOG("AWC: s%i off=%lx to %lx\n", num_stream, stream->offset, stream->offset + channel_offset + get_block_header_size(stream->streamfile, stream->offset, data));
-
+            //;VGM_ASSERT(ms->decode_to_discard > 0, "AWC: s%i discard of %x found at chunk %lx\n", num_stream, ms->decode_to_discard, stream->offset);
             stream->offset += channel_offset + get_block_header_size(stream->streamfile, stream->offset, data);
+
+            /* A new block may repeat frame bytes from prev block, and decode_to_discard has the number of repeated samples.
+             * However in RDR PS3 (not GTA5?) the value can be off (ie. discards 1152 but the repeat decodes to ~1152*4).
+             * I can't figure out why, so just find and skip the repeat data manually (probably better for mpg123 too) */
+            if (ms->decode_to_discard) {
+                size_t repeat = get_repeated_data_size(stream->streamfile, stream->offset, last_offset);
+                if (repeat > 0)
+                    ms->decode_to_discard = 0;
+                stream->offset += repeat;
+                ms->current_size_target -= repeat;
+            }
         }
     }
 

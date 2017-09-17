@@ -36,7 +36,7 @@ void seek_ogg_vorbis(VGMSTREAM *vgmstream, int32_t num_sample) {
 }
 
 void free_ogg_vorbis(ogg_vorbis_codec_data *data) {
-    if (!data) {
+    if (data) {
         OggVorbis_File *ogg_vorbis_file = &(data->ogg_vorbis_file);
 
         ov_clear(ogg_vorbis_file);

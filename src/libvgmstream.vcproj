@@ -200,6 +200,10 @@
 					RelativePath=".\meta\meta.h"
 					>
 				</File>
+                <File
+                    RelativePath=".\meta\hca_keys.h"
+                    >
+                </File>
 			</Filter>
 			<Filter
 				Name="Source Files"
