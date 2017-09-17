@@ -714,8 +714,10 @@ int winamp_GetOutputTime() {
 
 /* seeks to point in stream (in ms) */
 void winamp_SetOutputTime(int time_in_ms) {
-    if (vgmstream)
-        seek_needed_samples = (long long)time_in_ms * vgmstream->sample_rate / 1000LL;
+    if (!vgmstream)
+        return;
+
+    seek_needed_samples = (long long)time_in_ms * vgmstream->sample_rate / 1000LL;
 }
 
 /* pass these commands through */
@@ -818,6 +820,7 @@ void winamp_EQSet(int on, char data[10], int preamp) {
 DWORD WINAPI __stdcall decode(void *arg) {
     /* channel count shouldn't change during decode */
     int max_buffer_samples = sizeof(sample_buffer)/sizeof(sample_buffer[0])/2/vgmstream->channels;
+    int max_samples = get_vgmstream_play_samples(loop_count,fade_seconds,fade_delay_seconds,vgmstream);
 
     while (!decode_abort) {
         int samples_to_do;
@@ -842,12 +845,21 @@ DWORD WINAPI __stdcall decode(void *arg) {
                 decode_pos_ms = 0;
             }
 
+            /* adjust seeking past file, can happen using the right (->) key
+             * (should be done here and not in SetOutputTime due to threads/race condicions) */
+            if (seek_needed_samples > max_samples) {
+                seek_needed_samples = max_samples;
+            }
+
+            /* adjust max samples to seek */
             if (decode_pos_samples < seek_needed_samples) {
-                samples_to_do = seek_needed_samples-decode_pos_samples;
+                samples_to_do = seek_needed_samples - decode_pos_samples;
                 if (samples_to_do > max_buffer_samples)
                     samples_to_do = max_buffer_samples;
-            } else
+            }
+            else {
                 seek_needed_samples = -1;
+            }
 
             input_module.outMod->Flush((int)decode_pos_ms);
         }
