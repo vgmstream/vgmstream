@@ -8,7 +8,7 @@
  *
  * Some info: https://www.audiokinetic.com/en/library/edge/
  */
-typedef enum { PCM, IMA, VORBIS, DSP, XMA2, XWMA, AAC, HEVAG, ATRAC9 } wwise_codec;
+typedef enum { PCM, IMA, VORBIS, DSP, XMA2, XWMA, AAC, HEVAG, ATRAC9, OPUS } wwise_codec;
 typedef struct {
     int big_endian;
     size_t file_size;
@@ -142,6 +142,7 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
         case 0x0162: ww.codec = XWMA; break;
         case 0x0165: ww.codec = XMA2; break; /* always with the "XMA2" chunk, Wwise doesn't use XMA1 */
         case 0x0166: ww.codec = XMA2; break;
+        case 0x3039: ww.codec = OPUS; break;
         case 0xAAC0: ww.codec = AAC; break;
         case 0xFFF0: ww.codec = DSP; break;
         case 0xFFFB: ww.codec = HEVAG; break;
@@ -283,6 +284,8 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
                     }
                 }
 
+                //ww.data_size -= audio_offset; //todo test
+
                 vgmstream->codec_data = init_vorbis_custom_codec_data(streamFile, start_offset + setup_offset, VORBIS_WWISE, &cfg);
                 if (!vgmstream->codec_data) goto fail;
             }
@@ -326,6 +329,7 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
                         cfg.packet_type = STANDARD;
                 }
 
+                //ww.data_size -= audio_offset; //todo test
 
                 /* try with the selected codebooks */
                 vgmstream->codec_data = init_vorbis_custom_codec_data(streamFile, start_offset + setup_offset, VORBIS_WWISE, &cfg);
@@ -340,7 +344,7 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
             vgmstream->coding_type = coding_VORBIS_custom;
             vgmstream->codec_endian = ww.big_endian;
 
-            start_offset = start_offset + audio_offset;
+            start_offset += audio_offset;
 
             /* Vorbis is VBR so this is very approximate, meh */
             if (ww.truncated)
@@ -467,11 +471,48 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
             vgmstream->num_samples = ffmpeg_data->totalSamples;
             break;
         }
+
+        case OPUS: {    /* Switch */
+            uint8_t buf[0x100];
+            size_t bytes, skip;
+            ffmpeg_custom_config cfg;
+
+            /* values up to 0x14 seem fixed and similar to HEVAG's (block_align 0x02/04, bits_per_sample 0x10) */
+            if (ww.fmt_size == 0x28) {
+                size_t seek_size;
+
+                vgmstream->num_samples += read_32bit(ww.fmt_offset + 0x18, streamFile);
+                //todo 0x1c and 0x20: related to samples/looping?
+                seek_size = read_32bit(ww.fmt_offset + 0x24, streamFile);
+
+                start_offset += seek_size;
+                ww.data_size -= seek_size;
+            }
+            else {
+                goto fail;
+            }
+
+            skip = 0; /* Wwise doesn't seem to use it? (0x138 /0x3E8 ~default) */
+
+            bytes = ffmpeg_make_opus_header(buf,0x100, ww.channels, skip, ww.sample_rate);
+            if (bytes <= 0) goto fail;
+
+            memset(&cfg, 0, sizeof(ffmpeg_custom_config));
+            cfg.type = FFMPEG_WWISE_OPUS;
+            //cfg.big_endian = ww.big_endian; /* internally BE */
+
+            vgmstream->codec_data = init_ffmpeg_config(streamFile, buf,bytes, start_offset,ww.data_size, &cfg);
+            if (!vgmstream->codec_data) goto fail;
+
+            vgmstream->coding_type = coding_FFmpeg;
+            vgmstream->layout_type = layout_none;
+            break;
+        }
 #endif
         case HEVAG:     /* PSV */
             /* changed values, another bizarre Wwise quirk */
             //ww.block_align /* unknown (1ch=2, 2ch=4) */
-            //ww.bits_per_sample; /* probably interleave (0x10) */
+            //ww.bits_per_sample; /* unknown (0x10) */
             //if (ww.bits_per_sample != 4) goto fail;
 
             if (ww.big_endian) goto fail;
