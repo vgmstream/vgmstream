@@ -92,6 +92,18 @@
     <ClInclude Include="..\ext_includes\clHCA.h">
       <Filter>ext_libs\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="coding\mpeg_decoder.h">
+      <Filter>coding\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="coding\vorbis_custom_data_fsb.h">
+      <Filter>coding\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="coding\vorbis_custom_data_wwise.h">
+      <Filter>coding\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="coding\vorbis_custom_decoder.h">
+      <Filter>coding\Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="formats.c">
@@ -1130,9 +1142,6 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\ffmpeg_decoder.c">
-      <Filter>coding\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="coding\ffmpeg_decoder_utils_ea_schl.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\ffmpeg_decoder_utils_ea_xma.c">

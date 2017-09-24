@@ -109,6 +109,10 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="..\ext_includes\clHCA.h" />
+    <ClInclude Include="coding\mpeg_decoder.h" />
+    <ClInclude Include="coding\vorbis_custom_data_fsb.h" />
+    <ClInclude Include="coding\vorbis_custom_data_wwise.h" />
+    <ClInclude Include="coding\vorbis_custom_decoder.h" />
     <ClInclude Include="formats.h" />
     <ClInclude Include="streamfile.h" />
     <ClInclude Include="streamtypes.h" />
@@ -128,7 +132,6 @@
     <ClCompile Include="coding\at3_decoder.c" />
     <ClCompile Include="coding\coding_utils.c" />
     <ClCompile Include="coding\ffmpeg_decoder.c" />
-    <ClCompile Include="coding\ffmpeg_decoder_utils_ea_schl.c" />
     <ClCompile Include="coding\ffmpeg_decoder_utils_ea_xma.c" />
     <ClCompile Include="coding\ffmpeg_decoder_utils_wwise_opus.c" />
     <ClCompile Include="coding\ffmpeg_decoder_utils.c" />
