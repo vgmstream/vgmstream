@@ -34,8 +34,11 @@ VGMSTREAM * init_vgmstream_bik(STREAMFILE *streamFile) {
 
 #ifdef VGM_USE_FFMPEG
     {
-        /* init_FFmpeg uses streamFile->stream_index internally, if specified */
-        vgmstream->codec_data = init_ffmpeg_offset_index(streamFile, 0x0, get_streamfile_size(streamFile), stream_index);
+        ffmpeg_custom_config cfg;
+        memset(&cfg, 0, sizeof(ffmpeg_custom_config));
+        cfg.stream_index = stream_index;
+
+        vgmstream->codec_data = init_ffmpeg_config(streamFile, NULL,0, 0x0,get_streamfile_size(streamFile), &cfg);
         if (!vgmstream->codec_data) goto fail;
         vgmstream->coding_type = coding_FFmpeg;
     }
