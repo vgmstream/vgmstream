@@ -100,6 +100,15 @@ static const hcakey_info hcakey_list[] = {
         // Yuyuyui (iOS/Android) *unconfirmed
         {4867249871962584729},      // 438BF1F883653699
 
+        // Tekken Mobile (iOS/Android)
+        {0xFFFFFFFFFFFFFFFF},       //
+
+        // Tales of the Rays (iOS/Android)
+        {9516284},                  // 00000000009134FC
+
+        // Skylock - Kamigami to Unmei no Itsutsuko [iOS]
+        {49160768297},              // 0000000B7235CB29
+
 };
 
 
