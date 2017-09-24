@@ -2,7 +2,7 @@
 VGM_ENABLE_FFMPEG=1
 ifeq ($(VGM_ENABLE_FFMPEG),1)
 FFMPEG_CC=-DVGM_USE_FFMPEG
-FFMPEG_LD=-lavcodec -lavformat -lavutil
+FFMPEG_LD=-lavcodec -lavformat -lavutil -lswresample
 endif
 
 VGM_ENABLE_MAIATRAC3PLUS=0
@@ -33,9 +33,9 @@ export WINDRES=i586-mingw32msvc-windres
 #export STRIP=i686-w64-mingw32-strip
 #export WINDRES=i686-w64-mingw32-windres
 
-.PHONY: libvgmstream.a libvorbis.a libmpg123-0.a libg7221_decode.a libg719_decode.a libat3plusdecoder.a libavcodec.a libavformat.a libavutil.a
+.PHONY: libvgmstream.a libvorbis.a libmpg123-0.a libg7221_decode.a libg719_decode.a libat3plusdecoder.a libavcodec.a libavformat.a libavutil.a libswresample.a
 
-in_vgmstream.dll: libvgmstream.a libvorbis.a libmpg123-0.a libg7221_decode.a libg719_decode.a libat3plusdecoder.a libavcodec.a libavformat.a libavutil.a resource.o
+in_vgmstream.dll: libvgmstream.a libvorbis.a libmpg123-0.a libg7221_decode.a libg719_decode.a libat3plusdecoder.a libavcodec.a libavformat.a libavutil.a libswresample.a resource.o
 	$(CC) -shared -static-libgcc $(CFLAGS) "-DVERSION=\"`../version.sh`\"" in_vgmstream.c resource.o $(LDFLAGS) -o in_vgmstream.dll
 	$(STRIP) in_vgmstream.dll
 
@@ -67,6 +67,9 @@ libavformat.a:
 	$(MAKE) -C ../ext_libs -f Makefile.mingw $@
 
 libavutil.a:
+	$(MAKE) -C ../ext_libs -f Makefile.mingw $@
+
+libswresample.a:
 	$(MAKE) -C ../ext_libs -f Makefile.mingw $@
 
 clean:

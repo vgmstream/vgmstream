@@ -26,5 +26,8 @@ libavformat.a: avformat-vgmstream-57.dll avformat-vgmstream-57.def
 libavutil.a: avutil-vgmstream-55.dll avutil-vgmstream-55.def
 	$(DLLTOOL) -D avutil-vgmstream-55.dll -d avutil-vgmstream-55.def -l libavutil.a
 
+libswresample.a: swresample-vgmstream-2.dll swresample-vgmstream-2.def
+	$(DLLTOOL) -D swresample-vgmstream-2.dll -d swresample-vgmstream-2.def -l libswresample.a
+
 clean:
-	rm -f libvorbis.a libmpg123-0.a libg7221_decode.a libg719_decode.a libat3plusdecoder.a libavcodec.a libavformat.a libavutil.a
+	rm -f libvorbis.a libmpg123-0.a libg7221_decode.a libg719_decode.a libat3plusdecoder.a libavcodec.a libavformat.a libavutil.a libswresample.a
