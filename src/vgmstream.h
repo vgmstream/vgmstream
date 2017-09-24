@@ -61,6 +61,7 @@ enum { STREAM_NAME_SIZE = 255 }; /* reasonable max */
 #ifdef VGM_USE_FFMPEG
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
+#include <libswresample/swresample.h>
 #endif
 
 #include <clHCA.h>
@@ -1024,22 +1025,45 @@ typedef struct {
 } hca_codec_data;
 
 #ifdef VGM_USE_FFMPEG
+/* Custom FFMPEG modes */
+typedef enum {
+    FFMPEG_STANDARD,        /* default FFmpeg */
+    FFMPEG_WWISE_OPUS,      /* Opus without Ogg layer */
+    FFMPEG_EA_XMA,          /* XMA with padding removed in SNS blocks */
+  //FFMPEG_EA_SCHL,         /* Normal header+data (ex. ATRAC3) in SCxx blocks */
+  //FFMPEG_SFH,             /* ATRAC3plus header+data in SFH blocks */
+  //FFMPEG_AWC_XMA,         /* XMA data in AWC blocks, 1 streams per channel */
+} ffmpeg_custom_t;
+
+/* config for the above modes */
 typedef struct {
-    /*** init data ***/
+    int stream_index; /* FFmpeg's sub-stream (as opposed to an internal stream in custom read/seeks) */
+    int codec_endian;
+
+    ffmpeg_custom_t type; /* ffmpeg subtype */
+    size_t virtual_size; /* external value, if meta needs to know/supply it */
+
+    /* internal sequences, when needed */
+    int sequence;
+    int samples_done;
+} ffmpeg_custom_config;
+
+typedef struct {
+    /*** IO internals ***/
     STREAMFILE *streamfile;
+
+    uint64_t real_start;        // absolute start within the streamfile
+    uint64_t real_offset;       // absolute offset within the streamfile
+    uint64_t real_size;         // max size within the streamfile
+    uint64_t virtual_offset;    // computed offset FFmpeg sees (including fake header)
+    uint64_t virtual_size;      // computed size FFmpeg sees (including fake header)
+    uint64_t virtual_base;      // info/base virtual_offset equivalent to current real_offset (block aligned)
     
-    // offset and total size of raw stream data
-    uint64_t start;
-    uint64_t size;
-    
-    // offset into stream, includes header_size if header exists
-    uint64_t offset;
-    
-    // inserted header, ie. fake RIFF header
-    uint8_t *header_insert_block;
-    // header/fake RIFF over the real (parseable by FFmpeg) file start
-    uint64_t header_size;
-    
+    uint64_t header_size;       // fake header (parseable by FFmpeg) prepended on reads
+    uint8_t *header_insert_block; // fake header data (ie. RIFF)
+
+    ffmpeg_custom_config config; /* custom config/state */
+
     /*** "public" API (read-only) ***/
     // stream info
     int channels;
@@ -1079,6 +1103,8 @@ typedef struct {
     
     // Seeking is not ideal, so rollback is necessary
     int samplesToDiscard;
+
+
 } ffmpeg_codec_data;
 #endif
 

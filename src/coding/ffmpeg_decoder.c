@@ -1,4 +1,5 @@
 #include "coding.h"
+#include "ffmpeg_decoder_utils.h"
 
 #ifdef VGM_USE_FFMPEG
 
@@ -181,51 +182,53 @@ fail:
 /* AVIO CALLBACKS                               */
 /* ******************************************** */
 
-/* AVIO callback: read stream, skipping external headers if needed */
+/* AVIO callback: read stream, handling custom data */
 static int ffmpeg_read(void *opaque, uint8_t *buf, int buf_size) {
     ffmpeg_codec_data *data = (ffmpeg_codec_data *) opaque;
-    uint64_t offset = data->offset;
+    int ret = 0;
     int max_to_copy = 0;
-    int ret;
 
-    if (data->header_insert_block) {
-        if (offset < data->header_size) {
-            max_to_copy = (int)(data->header_size - offset);
+    //;VGM_LOG("AVIO read: r_off=%"PRIx64", v_off=%"PRIx64", b_size=%x\n", data->real_offset, data->virtual_offset, buf_size);fflush(stdout);
+
+    /* clamp reads */
+    if (data->virtual_offset + buf_size > data->virtual_size)
+        buf_size = data->virtual_size - data->virtual_offset;
+    if (buf_size == 0)
+        return ret;
+
+    /* handle reads on inserted header */
+    if (data->header_size) {
+        if (data->virtual_offset < data->header_size) {
+            max_to_copy = (int)(data->header_size - data->virtual_offset);
             if (max_to_copy > buf_size) {
                 max_to_copy = buf_size;
             }
-            memcpy(buf, data->header_insert_block + offset, max_to_copy);
+
+            //;VGM_LOG("AVIO header: v_off=%lx, h_size=%lx, mtc=%x, b_size=%x\n",  (off_t)data->virtual_offset, (off_t)data->header_size, max_to_copy, buf_size);fflush(stdout);
+            memcpy(buf, data->header_insert_block + data->virtual_offset, max_to_copy);
             buf += max_to_copy;
             buf_size -= max_to_copy;
-            offset += max_to_copy;
-            if (!buf_size) {
-                data->offset = offset;
-                return max_to_copy;
+            data->virtual_offset += max_to_copy; /* adjust for reads below */
+
+            if (buf_size == 0) {
+                return max_to_copy; /* offset still in header */
             }
         }
-        offset -= data->header_size;
     }
 
-    /* when "fake" size is smaller than "real" size we need to make sure bytes_read (ret) is clamped;
-     * it confuses FFmpeg in rare cases (STREAMFILE may have valid data after size) */
-    if (offset + buf_size > data->size + data->header_size) {
-        buf_size = data->size - offset; /* header "read" is manually inserted later */
+    /* main read */
+    switch(data->config.type) {
+        case FFMPEG_EA_XMA:     ret = ffmpeg_custom_read_eaxma(data, buf, buf_size); break;
+        case FFMPEG_WWISE_OPUS: ret = ffmpeg_custom_read_wwise_opus(data, buf, buf_size); break;
+      //case FFMPEG_EA_SCHL:    ret = ffmpeg_custom_read_ea_schl(data, buf, buf_size); break;
+      //case FFMPEG_SFH:        ret = ffmpeg_custom_read_sfh(data, buf, buf_size); break;
+        default:                ret = ffmpeg_custom_read_standard(data, buf, buf_size); break;
     }
+    data->virtual_offset += ret;
+    //data->real_offset = ; /* must be updated in function */
 
-    ret = read_streamfile(buf, offset + data->start, buf_size, data->streamfile);
-    if (ret > 0) {
-        offset += ret;
-        if (data->header_insert_block) {
-            ret += max_to_copy;
-        }
-    }
-
-    if (data->header_insert_block) {
-        offset += data->header_size;
-    }
-
-    data->offset = offset;
-    return ret;
+    //;VGM_LOG("AVIO read done: ret=%x, r_off=%"PRIx64", v_off=%"PRIx64"\n", ret + max_to_copy, data->real_offset, data->virtual_offset);fflush(stdout);
+    return ret + max_to_copy;
 }
 
 /* AVIO callback: write stream not needed */
@@ -233,38 +236,80 @@ static int ffmpeg_write(void *opaque, uint8_t *buf, int buf_size) {
     return -1;
 }
 
-/* AVIO callback: seek stream, skipping external headers if needed */
+/* AVIO callback: seek stream, handling custom data */
 static int64_t ffmpeg_seek(void *opaque, int64_t offset, int whence) {
     ffmpeg_codec_data *data = (ffmpeg_codec_data *) opaque;
     int ret = 0;
 
+    /* get cache'd size */
     if (whence & AVSEEK_SIZE) {
-        return data->size + data->header_size;
+        //;VGM_LOG("AVIO size: v_size=%"PRIx64", h_size=%"PRIx64", r_size=%"PRIx64", r_start=%"PRIx64"\n", data->virtual_size, data->header_size, data->real_size, data->real_start);fflush(stdout);
+        return data->virtual_size;
     }
+
+    //;VGM_LOG("AVIO seek: off=%"PRIx64" r_off=%"PRIx64", v_off=%"PRIx64"\n", offset, data->real_offset, data->virtual_offset);fflush(stdout);
+
     whence &= ~(AVSEEK_SIZE | AVSEEK_FORCE);
-    /* false offsets, on reads data->start will be added */
+
+    /* find the final offset FFmpeg sees (within fake header + virtual size) */
     switch (whence) {
-        case SEEK_SET:
+        case SEEK_SET: /* absolute */
             break;
 
-        case SEEK_CUR:
-            offset += data->offset;
+        case SEEK_CUR: /* relative to current */
+            offset += data->virtual_offset;
             break;
 
-        case SEEK_END:
-            offset += data->size;
-            if (data->header_insert_block)
-                offset += data->header_size;
+        case SEEK_END: /* relative to file end (should be negative) */
+            offset += data->virtual_size;
             break;
     }
 
-    /* clamp offset; fseek returns 0 when offset > size, too */
-    if (offset > data->size + data->header_size) {
-        offset = data->size + data->header_size;
+    /* clamp offset; fseek does this too */
+    if (offset > data->virtual_size)
+        offset = data->virtual_size;
+    else if (offset < 0)
+        offset = 0;
+
+    /* no change */
+    if (data->virtual_offset == offset) {
+        return ret;
     }
 
-    data->offset = offset;
+    /* seeks inside fake header */
+    if (offset < data->header_size) {
+        data->virtual_offset = offset;
+        data->real_offset = data->real_start;
+        return ret;
+    }
+
+    /* main seek */
+    switch(data->config.type) {
+        case FFMPEG_EA_XMA:     offset = ffmpeg_custom_seek_eaxma(data, offset); break;
+        case FFMPEG_WWISE_OPUS: offset = ffmpeg_custom_seek_wwise_opus(data, offset); break;
+      //case FFMPEG_EA_SCHL:    offset = ffmpeg_custom_seek_ea_schl(data, offset); break;
+      //case FFMPEG_SFH:        offset = ffmpeg_custom_seek_sfh(data, offset); break;
+        default:                offset = ffmpeg_custom_seek_standard(data, offset); break;
+    }
+    data->virtual_offset = offset;
+    //data->real_offset = ; /* must be updated in function */
+
+    //;VGM_LOG("AVIO seek done: r_off=%"PRIx64", v_off=%"PRIx64"\n", data->real_offset, data->virtual_offset);fflush(stdout);
     return ret;
+}
+
+/* called on init, not a callback */ //todo rename to ffmpeg_init
+static int64_t ffmpeg_size(ffmpeg_codec_data * data) {
+    int64_t bytes;
+    switch(data->config.type) {
+        case FFMPEG_EA_XMA:     bytes = ffmpeg_custom_size_eaxma(data); break;
+        case FFMPEG_WWISE_OPUS: bytes = ffmpeg_custom_size_wwise_opus(data); break;
+      //case FFMPEG_EA_SCHL:    bytes = ffmpeg_custom_size_ea_schl(data); break;
+      //case FFMPEG_SFH:        bytes = ffmpeg_custom_size_sfh(data); break;
+        default:                bytes = ffmpeg_custom_size_standard(data); break;
+    }
+
+    return bytes;
 }
 
 
@@ -273,13 +318,10 @@ static int64_t ffmpeg_seek(void *opaque, int64_t offset, int whence) {
 /* ******************************************** */
 
 ffmpeg_codec_data * init_ffmpeg_offset(STREAMFILE *streamFile, uint64_t start, uint64_t size) {
-    return init_ffmpeg_header_offset_index(streamFile, NULL,0, start,size, 0);
-}
-ffmpeg_codec_data * init_ffmpeg_offset_index(STREAMFILE *streamFile, uint64_t start, uint64_t size, int stream_index) {
-    return init_ffmpeg_header_offset_index(streamFile, NULL,0, start,size, stream_index);
+    return init_ffmpeg_config(streamFile, NULL,0, start,size, NULL);
 }
 ffmpeg_codec_data * init_ffmpeg_header_offset(STREAMFILE *streamFile, uint8_t * header, uint64_t header_size, uint64_t start, uint64_t size) {
-    return init_ffmpeg_header_offset_index(streamFile, header,header_size, start,size, 0);
+    return init_ffmpeg_config(streamFile, header,header_size, start,size, NULL);
 }
 
 
@@ -292,7 +334,7 @@ ffmpeg_codec_data * init_ffmpeg_header_offset(STREAMFILE *streamFile, uint8_t * 
  * NULL header can used given if the stream has internal data recognized by FFmpeg at offset.
  * Stream index can be passed to FFmpeg, if the format has multiple streams (1=first).
  */
-ffmpeg_codec_data * init_ffmpeg_header_offset_index(STREAMFILE *streamFile, uint8_t * header, uint64_t header_size, uint64_t start, uint64_t size, int stream_index) {
+ffmpeg_codec_data * init_ffmpeg_config(STREAMFILE *streamFile, uint8_t * header, uint64_t header_size, uint64_t start, uint64_t size, ffmpeg_custom_config * config) {
     char filename[PATH_LIMIT];
     ffmpeg_codec_data * data;
     int errcode, i;
@@ -315,16 +357,24 @@ ffmpeg_codec_data * init_ffmpeg_header_offset_index(STREAMFILE *streamFile, uint
     data->streamfile = streamFile->open(streamFile, filename, STREAMFILE_DEFAULT_BUFFER_SIZE);
     if (!data->streamfile) goto fail;
 
-    data->start = start;
-    data->size = size;
+    if (config) {
+        memcpy(&data->config, config, sizeof(ffmpeg_custom_config));
+    }
 
-
-    /* insert fake header to trick FFmpeg into demuxing/decoding the stream */
+    /* fake header to trick FFmpeg into demuxing/decoding the stream */
     if (header_size > 0) {
         data->header_size = header_size;
         data->header_insert_block = av_memdup(header, header_size);
         if (!data->header_insert_block) goto fail;
     }
+
+    data->real_start = start;
+    data->real_offset = data->real_start;
+    data->real_size = size;
+    data->virtual_offset = 0;
+    data->virtual_size = ffmpeg_size(data);
+    data->virtual_base = 0;
+    if (data->virtual_size == 0) goto fail;
 
     /* setup IO, attempt to autodetect format and gather some info */
     data->buffer = av_malloc(FFMPEG_DEFAULT_IO_BUFFER_SIZE);
@@ -354,7 +404,7 @@ ffmpeg_codec_data * init_ffmpeg_header_offset_index(STREAMFILE *streamFile, uint
             streamCount++;
 
             /* select Nth audio stream if specified, or first one */
-            if (streamIndex < 0 || (stream_index > 0 && streamCount == stream_index)) {
+            if (streamIndex < 0 || (data->config.stream_index > 0 && streamCount == data->config.stream_index)) {
                 codecPar = stream->codecpar;
                 streamIndex = i;
             }
@@ -363,7 +413,7 @@ ffmpeg_codec_data * init_ffmpeg_header_offset_index(STREAMFILE *streamFile, uint
         if (i != streamIndex)
             stream->discard = AVDISCARD_ALL; /* disable demuxing for other streams */
     }
-    if (streamCount < stream_index) goto fail;
+    if (streamCount < data->config.stream_index) goto fail;
     if (streamIndex < 0 || !codecPar) goto fail;
 
     data->streamIndex = streamIndex;
