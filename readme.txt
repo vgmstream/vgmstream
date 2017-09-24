@@ -17,8 +17,9 @@ or you can get them from here: https://github.com/kode54/vgmstream
 (also here: https://f.losno.co/vgmstream-win32-deps.zip, may not be latest).
 
 Put libvorbis.dll, libmpg123-0.dll, libg7221_decode.dll, libg719_decode.dll,
-at3plusdecoder.dll, avcodec-vgmstream-57.dll, avformat-vgmstream-57.dll, and
-avutil-vgmstream-55.dll somewhere Windows can find them.
+at3plusdecoder.dll, avcodec-vgmstream-57.dll, avformat-vgmstream-57.dll, 
+avutil-vgmstream-55.dll and swresample-vgmstream-2.dll somewhere Windows can
+find them.
 For Winamp/XMPlay/test.exe this means in the directory with the .exe, or in a
 system directory, or any other directory in the PATH variable.
 
@@ -269,7 +270,7 @@ multi:
 - .wav/lwav (unsigned 8 bit PCM, 16 bit PCM, GC DSP ADPCM, MS IMA ADPCM,
    XBOX IMA ADPCM)
 - .wem [lwav/logg/xma] (PCM, Wwise Vorbis, Wwise IMA ADPCM, XMA, XWMA,
-   GC DSP ADPCM)
+   GC DSP ADPCM, Wwise Opus)
 
 etc:
 - .2dx9 (MS ADPCM)
