@@ -1,27 +1,38 @@
 #include "meta.h"
 #include "../layout/layout.h"
+#include "../coding/coding.h"
 
-/* .SNU - EA new-ish header (Dead Space, The Godfather 2) */
+
+/* .SNU - from EA Redwood Shores/Visceral games (Dead Space, Dante's Inferno, The Godfather 2) */
 VGMSTREAM * init_vgmstream_ea_snu(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     int channel_count, loop_flag = 0, channel_config, codec, sample_rate, flags;
     uint32_t num_samples, loop_start = 0, loop_end = 0;
     off_t start_offset;
+    int32_t (*read_32bit)(off_t,STREAMFILE*) = NULL;
 
 
     /* check extension, case insensitive */
     if (!check_extensions(streamFile,"snu"))
         goto fail;
 
-    /* check header */
-    //if ((read_32bitBE(0x00,streamFile) & 0x00FFFF00 != 0x00000000) && (read_32bitBE(0x0c,streamFile) != 0x00000000))
-    //    goto fail;
-    /* 0x00: related to sample rate?, 0x02: always 0?, 0x03: related to channels? (usually match but may be 0) */
-    /* 0x04: some size, maybe >>2 ~= number of 0x4c frames (BE/LE depending on platform) */
-    /* 0x08: always 0x20? (also BE/LE), 0x0c: always 0? */
+    /* check header (the first 0x10 are BE/LE depending on platform) */
+    /* 0x00(1): related to sample rate? (03=48000)
+     * 0x01(1): flags? (when set seems to be a bank and has extra data before start_offset) //todo
+     * 0x02(1): always 0?
+     * 0x03(1): channels? (usually matches but rarely may be 0)
+     * 0x04(4): some size, maybe >>2 ~= number of frames
+     * 0x08(4): start offset
+     * 0x0c(4): some sub-offset? (0x20, found when 0x01 is set) */
 
+    /* use start offset as endianness flag */
+    if ((uint32_t)read_32bitLE(0x08,streamFile) > 0x00F00000) {
+        read_32bit = read_32bitBE;
+    } else {
+        read_32bit = read_32bitLE;
+    }
 
-    start_offset = 0x20; /* first block */
+    start_offset = read_32bit(0x08,streamFile);
 
     codec = read_8bit(0x10,streamFile);
     channel_config = read_8bit(0x11,streamFile);
@@ -36,7 +47,7 @@ VGMSTREAM * init_vgmstream_ea_snu(STREAMFILE *streamFile) {
     }
 
 #if 0
-    //todo not working ok with blocks
+    //todo not working ok with blocks in XAS
     if (flags & 0x60) { /* full loop, seen in ambient tracks */
         loop_flag = 1;
         loop_start = 0;
@@ -45,7 +56,7 @@ VGMSTREAM * init_vgmstream_ea_snu(STREAMFILE *streamFile) {
 #endif
 
     //channel_count = (channel_config >> 2) + 1; //todo test
-    /* 01/02/03 = 1 ch?, 05/06/07 = 2/3 ch?, 0d/0e/0f = 4/5 ch?, 14/15/16/17 = 6/7 ch?, 1d/1e/1f = 8 ch? */
+    /* 01/02/03 = 1 ch?, 05/06/07 = 2/3 ch?, 0d/0e/0f = 4/5 ch?, 15/16/17 = 6/7 ch?, 1d/1e/1f = 8 ch? */
     switch(channel_config) {
         case 0x00: channel_count = 1; break;
         case 0x04: channel_count = 2; break;
@@ -68,20 +79,64 @@ VGMSTREAM * init_vgmstream_ea_snu(STREAMFILE *streamFile) {
     vgmstream->loop_end_sample = loop_end;
 
     vgmstream->meta_type = meta_EA_SNU;
-    vgmstream->layout_type = layout_ea_sns_blocked;
 
     switch(codec) {
-        case 0x04: /* "Xas1": EA-XAS (Dead Space) */
+        case 0x04:      /* "Xas1": EA-XAS (Dead Space) */
             vgmstream->coding_type = coding_EA_XAS;
+            vgmstream->layout_type = layout_ea_sns_blocked;
             break;
 
+#if 0
+#ifdef VGM_USE_MPEG
+        case 0x07: {    /* "EL32S": EALayer3 v2 "S" (Dante's Inferno PS3) */
+            mpeg_custom_config cfg;
+            off_t mpeg_start_offset = start_offset + 0x08;
+
+            memset(&cfg, 0, sizeof(mpeg_custom_config));
+
+            /* layout is still blocks, but should work fine with the custom mpeg decoder */
+            vgmstream->codec_data = init_mpeg_custom_codec_data(streamFile, mpeg_start_offset, &vgmstream->coding_type, vgmstream->channels, MPEG_EAL32S, &cfg);
+            if (!vgmstream->codec_data) goto fail;
+
+            vgmstream->layout_type = layout_ea_sns_blocked;
+            break;
+        }
+#endif
+#endif
+
+#ifdef VGM_USE_FFMPEG
+        case 0x03: {    /* "EXm0": EA-XMA (Dante's Inferno X360) */
+            uint8_t buf[0x100];
+            int bytes, block_size, block_count;
+            size_t stream_size, virtual_size;
+            ffmpeg_custom_config cfg;
+
+            stream_size = get_streamfile_size(streamFile) - start_offset;
+            virtual_size = ffmpeg_get_eaxma_virtual_size(start_offset,stream_size, streamFile);
+            block_size = 0x8000; /* ? */
+            block_count = stream_size / block_size + (stream_size % block_size ? 1 : 0);
+
+            bytes = ffmpeg_make_riff_xma2(buf, 0x100, vgmstream->num_samples, virtual_size, vgmstream->channels, vgmstream->sample_rate, block_count, block_size);
+            if (bytes <= 0) goto fail;
+
+            memset(&cfg, 0, sizeof(ffmpeg_custom_config));
+            cfg.type = FFMPEG_EA_XMA;
+            cfg.virtual_size = virtual_size;
+
+            vgmstream->codec_data = init_ffmpeg_config(streamFile, buf,bytes, start_offset,stream_size, &cfg);
+            if (!vgmstream->codec_data) goto fail;
+
+            vgmstream->coding_type = coding_FFmpeg;
+            vgmstream->layout_type = layout_none;
+            break;
+        }
+#endif
         case 0x00: /* "NONE" */
         case 0x01: /* not used? */
         case 0x02: /* "P6B0": PCM16BE */
-        case 0x03: /* "EXm0": EA-XMA */
+
         case 0x05: /* "EL31": EALayer3 v1 b (with PCM blocks in normal EA-frames?) */
         case 0x06: /* "EL32P": EALayer3 v2 "P" */
-        case 0x07: /* "EL32S": EALayer3 v2 "S" */
         case 0x09: /* EASpeex? */
         case 0x0c: /* EAOpus? */
         case 0x0e: /* XAS variant? */
@@ -97,7 +152,8 @@ VGMSTREAM * init_vgmstream_ea_snu(STREAMFILE *streamFile) {
     if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
         goto fail;
 
-    ea_sns_block_update(start_offset, vgmstream);
+    if (vgmstream->layout_type == layout_ea_sns_blocked)
+        ea_sns_block_update(start_offset, vgmstream);
 
     return vgmstream;
 

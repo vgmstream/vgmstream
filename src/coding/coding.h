@@ -202,9 +202,8 @@ void free_at3plus(maiatrac3plus_codec_data *data);
 #ifdef VGM_USE_FFMPEG
 /* ffmpeg_decoder */
 ffmpeg_codec_data * init_ffmpeg_offset(STREAMFILE *streamFile, uint64_t start, uint64_t size);
-ffmpeg_codec_data * init_ffmpeg_offset_index(STREAMFILE *streamFile, uint64_t start, uint64_t size, int stream_index);
 ffmpeg_codec_data * init_ffmpeg_header_offset(STREAMFILE *streamFile, uint8_t * header, uint64_t header_size, uint64_t start, uint64_t size);
-ffmpeg_codec_data * init_ffmpeg_header_offset_index(STREAMFILE *streamFile, uint8_t * header, uint64_t header_size, uint64_t start, uint64_t size, int stream_index);
+ffmpeg_codec_data * init_ffmpeg_config(STREAMFILE *streamFile, uint8_t * header, uint64_t header_size, uint64_t start, uint64_t size, ffmpeg_custom_config * config);
 
 void decode_ffmpeg(VGMSTREAM *stream, sample * outbuf, int32_t samples_to_do, int channels);
 void reset_ffmpeg(VGMSTREAM *vgmstream);
@@ -212,6 +211,10 @@ void seek_ffmpeg(VGMSTREAM *vgmstream, int32_t num_sample);
 void free_ffmpeg(ffmpeg_codec_data *data);
 
 void ffmpeg_set_skip_samples(ffmpeg_codec_data * data, int skip_samples);
+
+
+size_t ffmpeg_make_opus_header(uint8_t * buf, int buf_size, int channels, int skip, int sample_rate);
+size_t ffmpeg_get_eaxma_virtual_size(off_t real_offset, size_t real_size, STREAMFILE *streamFile);
 #endif
 
 /* coding_utils */
@@ -255,6 +258,5 @@ void xma2_parse_xma2_chunk(STREAMFILE *streamFile, off_t chunk_offset, int * cha
 
 size_t atrac3_bytes_to_samples(size_t bytes, int full_block_align);
 size_t atrac3plus_bytes_to_samples(size_t bytes, int full_block_align);
-
 
 #endif /*_CODING_H*/
