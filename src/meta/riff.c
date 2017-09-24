@@ -2,6 +2,7 @@
 #include "../coding/coding.h"
 #include "../layout/layout.h"
 #include "../util.h"
+#include <string.h>
 
 /* Resource Interchange File Format */
 
@@ -262,7 +263,8 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
     if (strcasecmp("wav",filename_extension(filename)) &&
-        strcasecmp("lwav",filename_extension(filename))
+        strcasecmp("lwav",filename_extension(filename)) &&
+        strcasecmp("da",filename_extension(filename)) /* SD Gundam - Over Galaxian, The Great Battle VI (PS) */
 #ifndef VGM_USE_FFMPEG
         && strcasecmp("sgb",filename_extension(filename)) /* SGB has proper support with FFmpeg in sgxd */
 #endif
@@ -835,79 +837,66 @@ fail:
     return NULL;
 }
 
-/* XNBm (Windows 7 Phone) */
+//todo move
+/* XNB - Microsoft XNA Game Studio 4.0 format */
 VGMSTREAM * init_vgmstream_xnbm(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[PATH_LIMIT];
+    off_t start_offset;
+    int loop_flag = 0, version, flags, num_samples = 0;
+    size_t xnb_size, data_size;
 
     struct riff_fmt_chunk fmt;
 
-    off_t file_size = -1;
-    int sample_count = 0;
-    off_t start_offset = -1;
-
-    int loop_flag = 0;
-#if 0
-    long loop_start_ms = -1;
-    long loop_end_ms = -1;
-    off_t loop_start_offset = -1;
-    off_t loop_end_offset = -1;
-#endif
-
-    uint32_t xnbm_size;
-    uint32_t data_size = 0;
 
     /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("xnb",filename_extension(filename)))
-    {
+    if ( !check_extensions(streamFile,"xnb"))
         goto fail;
-    }
 
     /* check header */
-    if ((uint32_t)read_32bitBE(0,streamFile)!=0x584E426d) /* "XNBm" */
+    if ((read_32bitBE(0,streamFile) & 0xFFFFFF00) != 0x584E4200) /* "XNB" */
         goto fail;
-    /* check version? */
-    if ((uint32_t)read_16bitLE(4,streamFile)!=5)
-        goto fail;
+    /* 0x04: platform: ‘w’ = Microsoft Windows, ‘m’ = Windows Phone 7, ‘x’ = Xbox 360, 'a' = Android */
 
-    xnbm_size = read_32bitLE(6,streamFile);
-    file_size = get_streamfile_size(streamFile);
+    version = read_8bit(0x04,streamFile);
+    if (version != 5) goto fail; /* XNA 4.0 only */
 
-    /* check for tructated XNBm */
-    if (file_size < xnbm_size) goto fail;
+    flags = read_8bit(0x05,streamFile);
+    if (flags & 0x80) goto fail; /* compressed with XMemCompress, not public */
+    //if (flags & 0x01) goto fail; /* XMA flag? */
 
-    /* read through chunks to verify format and find metadata */
+    /* "check for truncated XNB" (???) */
+    xnb_size = read_32bitLE(0x06,streamFile);
+    if (get_streamfile_size(streamFile) < xnb_size) goto fail;
+
+    /* XNB contains "type reader" class references to parse "shared resource" data (can be any implemented filetype) */
     {
-        off_t current_chunk = 0xa; /* start with first chunk */
-        int id_string_len;
+        char reader_name[255+1];
+        off_t current_chunk = 0xa;
+        int reader_string_len;
         uint32_t fmt_chunk_size;
+        const char * type_sound =  "Microsoft.Xna.Framework.Content.SoundEffectReader"; /* partial "fmt" chunk or XMA */
+        //const char * type_song =  "Microsoft.Xna.Framework.Content.SongReader"; /* just references a companion .wma */
 
-        /* flag? count of strings? */
-        if (read_8bit(current_chunk ++, streamFile) != 1)
-            goto fail;
-
-        /* string length */
-        id_string_len = read_8bit(current_chunk ++, streamFile);
-
-        /* skip string */
-        /* may want to check this ID "Microsoft.Xna.Framework.Content.SoundEffectReader" */
-        current_chunk += id_string_len;
-
-        /* ???? */
-        if (read_32bitLE(current_chunk, streamFile) != 0)
-            goto fail;
-        current_chunk += 4;
-
-        /* ???? */
-        if (read_8bit(current_chunk ++, streamFile) != 0)
-            goto fail;
-
-        /* flag? count of chunks? */
+        /* type reader count, accept only one for now */
         if (read_8bit(current_chunk++, streamFile) != 1)
             goto fail;
 
-        /* fmt size */
+        reader_string_len = read_8bit(current_chunk++, streamFile); /* doesn't count null */
+        if (reader_string_len > 255) goto fail;
+
+        /* check SoundEffect type string */
+        if (read_string(reader_name,reader_string_len+1,current_chunk,streamFile) != reader_string_len)
+            goto fail;
+        if ( strcmp(reader_name, type_sound) != 0 )
+            goto fail;
+        current_chunk += reader_string_len + 1;
+        current_chunk += 4; /* reader version */
+
+        /* shared resource count */
+        if (read_8bit(current_chunk++, streamFile) != 1)
+            goto fail;
+
+        /* shared resource: partial "fmt" chunk */
         fmt_chunk_size = read_32bitLE(current_chunk, streamFile);
         current_chunk += 4;
 
@@ -918,10 +907,8 @@ VGMSTREAM * init_vgmstream_xnbm(STREAMFILE *streamFile) {
                   0,    /* sns == false */
                   0))   /* mwv == false */
                   goto fail;
-
         current_chunk += fmt_chunk_size;
 
-        /* data size! */
         data_size = read_32bitLE(current_chunk, streamFile);
         current_chunk += 4;
 
@@ -930,40 +917,40 @@ VGMSTREAM * init_vgmstream_xnbm(STREAMFILE *streamFile) {
 
     switch (fmt.coding_type) {
         case coding_PCM16LE:
-            sample_count = data_size/2/fmt.channel_count;
+            num_samples = pcm_bytes_to_samples(data_size, fmt.channel_count, 16);
             break;
         case coding_PCM8_U_int:
-            sample_count = data_size/fmt.channel_count;
+            num_samples = pcm_bytes_to_samples(data_size, fmt.channel_count, 8);
             break;
         case coding_MSADPCM:
-            sample_count = msadpcm_bytes_to_samples(data_size, fmt.block_size, fmt.channel_count);
+            num_samples = msadpcm_bytes_to_samples(data_size, fmt.block_size, fmt.channel_count);
             break;
         case coding_MS_IMA:
-            sample_count = (data_size / fmt.block_size) * (fmt.block_size - 4 * fmt.channel_count) * 2 / fmt.channel_count +
+            num_samples = (data_size / fmt.block_size) * (fmt.block_size - 4 * fmt.channel_count) * 2 / fmt.channel_count +
                 ((data_size % fmt.block_size) ? (data_size % fmt.block_size - 4 * fmt.channel_count) * 2 / fmt.channel_count : 0);
             break;
         default:
+            VGM_LOG("XNB: unknown codec 0x%x\n", fmt.coding_type);
             goto fail;
     }
 
-    /* build the VGMSTREAM */
 
+    /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(fmt.channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
-    /* fill in the vital statistics */
-    vgmstream->num_samples = sample_count;
+    vgmstream->num_samples = num_samples;
     vgmstream->sample_rate = fmt.sample_rate;
 
+    vgmstream->meta_type = meta_XNB;
     vgmstream->coding_type = fmt.coding_type;
 
-    vgmstream->layout_type = layout_none;
     if (fmt.channel_count > 1) {
         switch (fmt.coding_type) {
             case coding_PCM8_U_int:
             case coding_MS_IMA:
             case coding_MSADPCM:
-                // use layout_none from above
+                vgmstream->layout_type = layout_none;
                 break;
             default:
                 vgmstream->layout_type = layout_interleave;
@@ -971,40 +958,24 @@ VGMSTREAM * init_vgmstream_xnbm(STREAMFILE *streamFile) {
         }
     }
 
-    vgmstream->interleave_block_size = fmt.interleave;
     switch (fmt.coding_type) {
         case coding_MSADPCM:
         case coding_MS_IMA:
-            // override interleave_block_size with frame size
             vgmstream->interleave_block_size = fmt.block_size;
             break;
         default:
-            // use interleave from above
+            vgmstream->interleave_block_size = fmt.interleave;
             break;
     }
 
-    vgmstream->meta_type = meta_XNBm;
 
-    /* open the file, set up each channel */
-    {
-        int i;
-
-        vgmstream->ch[0].streamfile = streamFile->open(streamFile,filename,
-                STREAMFILE_DEFAULT_BUFFER_SIZE);
-        if (!vgmstream->ch[0].streamfile) goto fail;
-
-        for (i=0;i<fmt.channel_count;i++) {
-            vgmstream->ch[i].streamfile = vgmstream->ch[0].streamfile;
-            vgmstream->ch[i].offset = vgmstream->ch[i].channel_start_offset =
-                start_offset+i*fmt.interleave;
-        }
-    }
+    if ( !vgmstream_open_stream(vgmstream,streamFile,start_offset) )
+        goto fail;
 
     return vgmstream;
 
-    /* clean up anything we may have opened */
 fail:
-    if (vgmstream) close_vgmstream(vgmstream);
+    close_vgmstream(vgmstream);
     return NULL;
 }
 

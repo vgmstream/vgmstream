@@ -1310,6 +1310,10 @@
                     RelativePath=".\coding\coding.h"
                     >
                 </File>
+                <File
+                    RelativePath=".\coding\ffmpeg_decoder_utils.h"
+                    >
+                </File>
 				<File
 					RelativePath=".\coding\g72x_state.h"
 					>
@@ -1364,6 +1368,22 @@
                 </File>
                 <File
                     RelativePath=".\coding\ffmpeg_decoder.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\coding\ffmpeg_decoder_utils_ea_schl.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\coding\ffmpeg_decoder_utils_ea_xma.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\coding\ffmpeg_decoder_utils_wwise_opus.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\coding\ffmpeg_decoder_utils.c"
                     >
                 </File>
 				<File

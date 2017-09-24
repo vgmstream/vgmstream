@@ -33,6 +33,7 @@ static const char* extension_list[] = {
     "aix",
     "akb",
     "amts", //fake extension (to be removed)
+    "ao", //txth/reserved [Cloudphobia (PC)]
     "as4",
     "asd",
     "asf",
@@ -85,6 +86,7 @@ static const char* extension_list[] = {
     "cps",
     "cxs",
 
+    "da",
     "dbm",
     "dcs",
     "ddsp",
@@ -135,6 +137,7 @@ static const char* extension_list[] = {
     "int",
     "isd",
     "isws",
+    "itl", //txth/reserved [Charinko Hero (GC)]
     "ivaud",
     "ivag",
     "ivb",
@@ -660,7 +663,7 @@ static const meta_info meta_info_list[] = {
         {meta_RIFF_WAVE_smpl,       "RIFF WAVE header with sample looping info"},
         {meta_RIFX_WAVE,            "RIFX WAVE header"},
         {meta_RIFX_WAVE_smpl,       "RIFX WAVE header with sample looping info"},
-        {meta_XNBm,                 "XNBm header"},
+        {meta_XNB,                  "Microsoft XNA Game Studio 4.0 header"},
         {meta_PCM_SCD,              "PCM file with custom header (SCD)"},
         {meta_PCM_PS2,              "PCM file with custom header (PS2)"},
         {meta_PS2_RKV,              "Legacy of Kain - Blood Omen 2 RKV Header"},

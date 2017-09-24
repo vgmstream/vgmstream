@@ -95,7 +95,7 @@
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>../ext_libs/libvorbis.lib;../ext_libs/libmpg123-0.lib;../ext_libs/libg7221_decode.lib;../ext_libs/libg719_decode.lib;../ext_libs/at3plusdecoder.lib;../ext_libs/avcodec.lib;../ext_libs/avformat.lib;../ext_libs/avutil.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>../ext_libs/libvorbis.lib;../ext_libs/libmpg123-0.lib;../ext_libs/libg7221_decode.lib;../ext_libs/libg719_decode.lib;../ext_libs/at3plusdecoder.lib;../ext_libs/avcodec.lib;../ext_libs/avformat.lib;../ext_libs/avutil.lib;../ext_libs/swresample.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <DelayLoadDLLs>%(DelayLoadDLLs)</DelayLoadDLLs>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -119,7 +119,7 @@
       <FloatingPointModel>Fast</FloatingPointModel>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>../ext_libs/libvorbis.lib;../ext_libs/libmpg123-0.lib;../ext_libs/libg7221_decode.lib;../ext_libs/libg719_decode.lib;../ext_libs/at3plusdecoder.lib;../ext_libs/avcodec.lib;../ext_libs/avformat.lib;../ext_libs/avutil.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>../ext_libs/libvorbis.lib;../ext_libs/libmpg123-0.lib;../ext_libs/libg7221_decode.lib;../ext_libs/libg719_decode.lib;../ext_libs/at3plusdecoder.lib;../ext_libs/avcodec.lib;../ext_libs/avformat.lib;../ext_libs/avutil.lib;../ext_libs/swresample.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <DelayLoadDLLs>%(DelayLoadDLLs)</DelayLoadDLLs>
@@ -146,7 +146,7 @@
       <FloatingPointModel>Fast</FloatingPointModel>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>../ext_libs/libvorbis.lib;../ext_libs/libmpg123-0.lib;../ext_libs/libg7221_decode.lib;../ext_libs/libg719_decode.lib;../ext_libs/at3plusdecoder.lib;../ext_libs/avcodec.lib;../ext_libs/avformat.lib;../ext_libs/avutil.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>../ext_libs/libvorbis.lib;../ext_libs/libmpg123-0.lib;../ext_libs/libg7221_decode.lib;../ext_libs/libg719_decode.lib;../ext_libs/at3plusdecoder.lib;../ext_libs/avcodec.lib;../ext_libs/avformat.lib;../ext_libs/avutil.lib;../ext_libs/swresample.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <DelayLoadDLLs>%(DelayLoadDLLs)</DelayLoadDLLs>

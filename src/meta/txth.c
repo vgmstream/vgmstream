@@ -289,6 +289,9 @@ found:
                 /* default FFmpeg */
                 ffmpeg_data = init_ffmpeg_offset(streamFile, txth.start_offset,txth.data_size);
                 if ( !ffmpeg_data ) goto fail;
+
+                if (vgmstream->num_samples == 0)
+                    vgmstream->num_samples = ffmpeg_data->totalSamples; /* sometimes works */
             }
             else {
                 /* fake header FFmpeg */
@@ -674,7 +677,7 @@ static int get_bytes_to_samples(txth_header * txth, uint32_t bytes) {
             return (bytes / txth->interleave) * (txth->interleave - 2) * 2;
 
         case MPEG: /* a bit complex */
-        case FFMPEG: /* too complex */
+        case FFMPEG: /* too complex, try after init */
         default:
             return 0;
     }
