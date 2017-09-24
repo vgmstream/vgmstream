@@ -108,6 +108,11 @@
       <Command>lib /def:avutil-vgmstream-55.def /machine:x86 /out:avutil.lib</Command>
       <Outputs>avutil.lib;avutil.exp;%(Outputs)</Outputs>
     </CustomBuild>
+    <CustomBuild Include="swresample-vgmstream-2.def">
+      <Message>Building library stub</Message>
+      <Command>lib /def:swresample-vgmstream-2.def /machine:x86 /out:swresample.lib</Command>
+      <Outputs>swresample.lib;swresample.exp;%(Outputs)</Outputs>
+    </CustomBuild>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

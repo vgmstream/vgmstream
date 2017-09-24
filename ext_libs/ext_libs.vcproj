@@ -227,6 +227,30 @@
 				/>
 			</FileConfiguration>
 		</File>
+        <File
+            RelativePath=".\swresample-vgmstream-2.def"
+            >
+            <FileConfiguration
+                Name="Debug|Win32"
+                >
+                <Tool
+                    Name="VCCustomBuildTool"
+                    Description="Building library stub"
+                    CommandLine="lib /def:swresample-vgmstream-2.def /machine:x86 /out:swresample.lib&#x0D;&#x0A;"
+                    Outputs="swresample.lib swresample.exp"
+                />
+            </FileConfiguration>
+            <FileConfiguration
+                Name="Release|Win32"
+                >
+                <Tool
+                    Name="VCCustomBuildTool"
+                    Description="Building library stub"
+                    CommandLine="lib /def:swresample-vgmstream-2.def /machine:x86 /out:swresample.lib&#x0D;&#x0A;"
+                    Outputs="swresample.lib swresample.exp"
+                />
+            </FileConfiguration>
+        </File>
 	</Files>
 	<Globals>
 	</Globals>

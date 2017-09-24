@@ -74,6 +74,9 @@
     <ClInclude Include="coding\coding.h">
       <Filter>coding\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="coding\ffmpeg_decoder_utils.h">
+      <Filter>coding\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="coding\fsb_vorbis_data.h">
       <Filter>coding\Header Files</Filter>
     </ClInclude>
@@ -1127,6 +1130,18 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\ffmpeg_decoder.c">
+      <Filter>coding\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="coding\ffmpeg_decoder_utils_ea_schl.c">
+      <Filter>coding\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="coding\ffmpeg_decoder_utils_ea_xma.c">
+      <Filter>coding\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="coding\ffmpeg_decoder_utils_wwise_opus.c">
+      <Filter>coding\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="coding\ffmpeg_decoder_utils.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\coding_utils.c">
