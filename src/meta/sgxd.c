@@ -11,7 +11,7 @@ VGMSTREAM * init_vgmstream_sgxd(STREAMFILE *streamFile) {
     off_t start_offset, data_offset, chunk_offset, name_offset = 0;
     size_t data_size;
 
-    int is_sgx, is_sgb;
+    int is_sgx, is_sgb = false;
     int loop_flag, channels, type;
     int sample_rate, num_samples, loop_start_sample, loop_end_sample;
     int total_streams, target_stream = streamFile->stream_index;
