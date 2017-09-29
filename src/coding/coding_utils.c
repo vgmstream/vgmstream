@@ -243,7 +243,7 @@ int ffmpeg_make_riff_xma2(uint8_t * buf, size_t buf_size, size_t sample_count, s
     put_16bitLE(buf+0x26, streams); /* number of streams */
     put_32bitLE(buf+0x28, speakers); /* speaker position  */
     put_32bitLE(buf+0x2c, bytecount); /* PCM samples */
-    put_32bitLE(buf+0x30, block_size); /* XMA block size */
+    put_32bitLE(buf+0x30, block_size); /* XMA block size (can be zero, it's for seeking only) */
     /* (looping values not set, expected to be handled externally) */
     put_32bitLE(buf+0x34, 0); /* play begin */
     put_32bitLE(buf+0x38, 0); /* play length */
@@ -251,7 +251,7 @@ int ffmpeg_make_riff_xma2(uint8_t * buf, size_t buf_size, size_t sample_count, s
     put_32bitLE(buf+0x40, 0); /* loop length */
     put_8bit(buf+0x44, 0); /* loop count */
     put_8bit(buf+0x45, 4); /* encoder version */
-    put_16bitLE(buf+0x46, block_count); /* blocks count = entries in seek table */
+    put_16bitLE(buf+0x46, block_count); /* blocks count (entries in seek table, can be zero) */
 
     memcpy(buf+0x48, "data", 4);
     put_32bitLE(buf+0x4c, data_size); /* data size */
