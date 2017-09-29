@@ -44,7 +44,7 @@ fail:
 }
 
 
-int ffmpeg_custom_read_wwise_opus(ffmpeg_codec_data *data, uint8_t *buf, int buf_size) {
+int ffmpeg_custom_read_switch_opus(ffmpeg_codec_data *data, uint8_t *buf, int buf_size) {
     uint8_t v_buf[0x8000]; /* intermediate buffer, could be simplified */
     int buf_done = 0;
     uint64_t real_offset = data->real_offset;
@@ -98,7 +98,7 @@ int ffmpeg_custom_read_wwise_opus(ffmpeg_codec_data *data, uint8_t *buf, int buf
     return buf_size;
 }
 
-int64_t ffmpeg_custom_seek_wwise_opus(ffmpeg_codec_data *data, int64_t virtual_offset) {
+int64_t ffmpeg_custom_seek_switch_opus(ffmpeg_codec_data *data, int64_t virtual_offset) {
     int64_t real_offset, virtual_base;
     int64_t current_virtual_offset = data->virtual_offset;
 
@@ -138,7 +138,7 @@ int64_t ffmpeg_custom_seek_wwise_opus(ffmpeg_codec_data *data, int64_t virtual_o
     return virtual_offset;
 }
 
-int64_t ffmpeg_custom_size_wwise_opus(ffmpeg_codec_data *data) {
+int64_t ffmpeg_custom_size_switch_opus(ffmpeg_codec_data *data) {
     uint64_t real_offset = data->real_start;
     uint64_t real_end_offset = data->real_start + data->real_size;
     uint64_t virtual_size = data->header_size;

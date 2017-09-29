@@ -1379,7 +1379,7 @@
                     >
                 </File>
                 <File
-                    RelativePath=".\coding\ffmpeg_decoder_utils_wwise_opus.c"
+                    RelativePath=".\coding\ffmpeg_decoder_utils_switch_opus.c"
                     >
                 </File>
                 <File

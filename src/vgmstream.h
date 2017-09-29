@@ -1028,8 +1028,8 @@ typedef struct {
 /* Custom FFMPEG modes */
 typedef enum {
     FFMPEG_STANDARD,        /* default FFmpeg */
-    FFMPEG_WWISE_OPUS,      /* Opus without Ogg layer */
-    FFMPEG_EA_XMA,          /* XMA with padding removed in SNS blocks */
+    FFMPEG_SWITCH_OPUS,     /* Opus without Ogg layer */
+    FFMPEG_EA_XMA,          /* XMA with padding removed and custom streams in SNS blocks */
   //FFMPEG_EA_SCHL,         /* Normal header+data (ex. ATRAC3) in SCxx blocks */
   //FFMPEG_SFH,             /* ATRAC3plus header+data in SFH blocks */
   //FFMPEG_AWC_XMA,         /* XMA data in AWC blocks, 1 streams per channel */

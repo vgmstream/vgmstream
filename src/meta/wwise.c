@@ -496,7 +496,7 @@ VGM_LOG("so=%lx, ds=%x\n", start_offset, ww.data_size);
             if (bytes <= 0) goto fail;
 
             memset(&cfg, 0, sizeof(ffmpeg_custom_config));
-            cfg.type = FFMPEG_WWISE_OPUS;
+            cfg.type = FFMPEG_SWITCH_OPUS;
             //cfg.big_endian = ww.big_endian; /* internally BE */
 
             vgmstream->codec_data = init_ffmpeg_config(streamFile, buf,bytes, start_offset,ww.data_size, &cfg);
