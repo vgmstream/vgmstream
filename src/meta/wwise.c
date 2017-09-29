@@ -265,6 +265,7 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
                     cfg.blocksize_1_exp = read_8bit(vorb_offset + block_offsets + 0x00, streamFile); /* small */
                     cfg.blocksize_0_exp = read_8bit(vorb_offset + block_offsets + 0x01, streamFile); /* big */
                 }
+                ww.data_size -= audio_offset;
 
                 /* detect setup type:
                  * - full inline: ~2009, ex. The King of Fighters XII X360, The Saboteur PC
@@ -283,8 +284,6 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
                         cfg.setup_type = INLINE_CODEBOOKS;
                     }
                 }
-
-                //ww.data_size -= audio_offset; //todo test
 
                 vgmstream->codec_data = init_vorbis_custom_codec_data(streamFile, start_offset + setup_offset, VORBIS_WWISE, &cfg);
                 if (!vgmstream->codec_data) goto fail;
@@ -319,6 +318,7 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
                 audio_offset = read_32bit(extra_offset + data_offsets + 0x04, streamFile); /* within data */
                 cfg.blocksize_1_exp = read_8bit(extra_offset + block_offsets + 0x00, streamFile); /* small */
                 cfg.blocksize_0_exp = read_8bit(extra_offset + block_offsets + 0x01, streamFile); /* big */
+                ww.data_size -= audio_offset;
 
                 /* Normal packets are used rarely (ex. Oddworld New 'n' Tasty! PSV). They are hard to detect (decoding
                  * will mostly work with garbage results) but we'll try. Setup size and "fmt" bitrate fields may matter too. */
@@ -328,8 +328,6 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
                     if (cfg.blocksize_0_exp == cfg.blocksize_1_exp)
                         cfg.packet_type = STANDARD;
                 }
-
-                //ww.data_size -= audio_offset; //todo test
 
                 /* try with the selected codebooks */
                 vgmstream->codec_data = init_vorbis_custom_codec_data(streamFile, start_offset + setup_offset, VORBIS_WWISE, &cfg);
@@ -349,7 +347,7 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
             /* Vorbis is VBR so this is very approximate, meh */
             if (ww.truncated)
                 vgmstream->num_samples = vgmstream->num_samples * (ww.file_size - start_offset) / ww.data_size;
-
+VGM_LOG("so=%lx, ds=%x\n", start_offset, ww.data_size);
             break;
         }
 #endif
@@ -482,7 +480,7 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
                 size_t seek_size;
 
                 vgmstream->num_samples += read_32bit(ww.fmt_offset + 0x18, streamFile);
-                //todo 0x1c and 0x20: related to samples/looping?
+                /* 0x1c: null? 0x20: data_size without seek_size */
                 seek_size = read_32bit(ww.fmt_offset + 0x24, streamFile);
 
                 start_offset += seek_size;
