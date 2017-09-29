@@ -1039,6 +1039,7 @@ typedef enum {
 typedef struct {
     int stream_index; /* FFmpeg's sub-stream (as opposed to an internal stream in custom read/seeks) */
     int codec_endian;
+    int channels;
 
     ffmpeg_custom_t type; /* ffmpeg subtype */
     size_t virtual_size; /* external value, if meta needs to know/supply it */
