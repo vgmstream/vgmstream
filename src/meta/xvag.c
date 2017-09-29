@@ -5,7 +5,7 @@
 static int ps_adpcm_find_loop_offsets(STREAMFILE *streamFile, int channel_count, off_t start_offset, off_t * loop_start, off_t * loop_end);
 
 /* XVAG - Sony's (second party?) format (God of War III, Ratchet & Clank Future, The Last of Us, Uncharted) */
-VGMSTREAM * init_vgmstream_ps3_xvag(STREAMFILE *streamFile) {
+VGMSTREAM * init_vgmstream_xvag(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     int32_t (*read_32bit)(off_t,STREAMFILE*) = NULL;
     int loop_flag = 0, channel_count, codec;
@@ -57,7 +57,7 @@ VGMSTREAM * init_vgmstream_ps3_xvag(STREAMFILE *streamFile) {
 
     vgmstream->sample_rate = sample_rate;
     vgmstream->num_samples = num_samples;
-    vgmstream->meta_type = meta_PS3_XVAG;
+    vgmstream->meta_type = meta_XVAG;
 
     switch (codec) {
         case 0x06:   /* PS ADPCM: God of War III, Uncharted 1/2, Ratchet and Clank Future */

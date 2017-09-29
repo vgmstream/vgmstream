@@ -811,7 +811,7 @@ static const meta_info meta_info_list[] = {
         {meta_FFW,                  "Freedom Fighters BGM header"},
         {meta_DSP_DSPW,             "DSPW dsp header"},
         {meta_PS2_JSTM,             "JSTM Header"},
-        {meta_PS3_XVAG,             "XVAG Header"},
+        {meta_XVAG,                 "Sony XVAG header"},
         {meta_PS3_CPS,              "tri-Crescendo CPS Header"},
         {meta_SQEX_SCD,             "Square-Enix SCD header"},
         {meta_NGC_NST_DSP,          "Animaniacs NST header"},

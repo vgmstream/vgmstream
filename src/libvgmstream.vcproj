@@ -626,6 +626,10 @@
 					RelativePath=".\meta\nub_vag.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\meta\nub_xma.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\nwa.c"
 					>
@@ -999,10 +1003,6 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\ps3_xvag.c"
-					>
-				</File>
-				<File
 					RelativePath=".\meta\psx_cdxa.c"
 					>
 				</File>
@@ -1231,10 +1231,6 @@
                     >
                 </File>
                 <File
-                    RelativePath=".\meta\x360_nub.c"
-                    >
-                </File>
-                <File
                     RelativePath=".\meta\x360_pasx.c"
                     >
                 </File>
@@ -1278,6 +1274,10 @@
 					RelativePath=".\meta\xss.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\meta\xvag.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\xwb.c"
 					>

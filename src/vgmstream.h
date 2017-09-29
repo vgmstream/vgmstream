@@ -556,7 +556,7 @@ typedef enum {
     meta_SQEX_SCD,          /* Square-Enix SCD */
     meta_NGC_NST_DSP,       /* Animaniacs [NGC] */
     meta_BAF,               /* Bizarre Creations (Blur, James Bond) */
-	meta_PS3_XVAG,          /* Ratchet & Clank Future: Quest for Booty (PS3) */
+	meta_XVAG,              /* Ratchet & Clank Future: Quest for Booty (PS3) */
 	meta_PS3_CPS,           /* Eternal Sonata (PS3) */
     meta_PS3_MSF,           /* MSF header */
 	meta_NUB_VAG,           /* Namco VAG from NUB archives */
