@@ -1012,6 +1012,9 @@
     <ClCompile Include="meta\ngca.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\nsw_opus.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\ps2_mtaf.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>

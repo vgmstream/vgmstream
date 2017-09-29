@@ -200,6 +200,7 @@ static const char* extension_list[] = {
     "ogl",
     "oma", //FFmpeg, not parsed (ATRAC3/ATRAC3PLUS/MP3/LPCM/WMA)
     "omu",
+    "opus",
     "otm",
 
     "p1d", //txth/reserved [Farming Simulator 18 (3DS)]
@@ -888,6 +889,7 @@ static const meta_info meta_info_list[] = {
         {meta_BINK,                 "RAD Game Tools Bink header"},
         {meta_EA_SNU,               "Electronic Arts SNU header"},
         {meta_AWC,                  "Rockstar AWC header"},
+        {meta_NSW_OPUS,             ".OPUS header"},
 
 #ifdef VGM_USE_VORBIS
         {meta_OGG_VORBIS,           "Ogg Vorbis"},

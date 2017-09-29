@@ -159,7 +159,23 @@ int64_t ffmpeg_custom_size_switch_opus(ffmpeg_codec_data *data) {
     return virtual_size;
 }
 
+size_t switch_opus_get_samples(off_t offset, size_t data_size, int sample_rate, STREAMFILE *streamFile) {
+    size_t num_samples = 0;
+    off_t end_offset = offset + data_size;
 
+    /* count by reading all frames */
+    while (offset < end_offset) {
+        uint8_t buf[4];
+        size_t block_size = read_32bitBE(offset, streamFile);
+
+        read_streamfile(buf, offset+4, 4, streamFile);
+        num_samples += get_opus_samples_per_frame(buf, sample_rate);
+
+        offset += 0x08 + block_size;
+    }
+
+    return num_samples;
+}
 
 /* ************************************************** */
 
@@ -341,6 +357,5 @@ static size_t make_opus_comment(uint8_t * buf, int buf_size) {
 fail:
     return 0;
 }
-
 
 #endif

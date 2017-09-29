@@ -626,6 +626,7 @@ typedef enum {
     meta_BINK,              /* RAD Game Tools BINK audio/video */
     meta_EA_SNU,            /* Electronic Arts SNU (Dead Space) */
     meta_AWC,               /* Rockstar AWC (GTA5, RDR) */
+    meta_NSW_OPUS,          /* Lego City Undercover (Switch) */
 
 #ifdef VGM_USE_VORBIS
     meta_OGG_VORBIS,        /* Ogg Vorbis */
