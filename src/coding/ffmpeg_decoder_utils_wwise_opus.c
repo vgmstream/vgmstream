@@ -140,11 +140,11 @@ int64_t ffmpeg_custom_seek_wwise_opus(ffmpeg_codec_data *data, int64_t virtual_o
 
 int64_t ffmpeg_custom_size_wwise_opus(ffmpeg_codec_data *data) {
     uint64_t real_offset = data->real_start;
-    uint64_t real_size = data->real_size;
+    uint64_t real_end_offset = data->real_start + data->real_size;
     uint64_t virtual_size = data->header_size;
 
     /* count all Wwise Opus blocks size + OggS page size */
-    while (real_offset < real_size) {
+    while (real_offset < real_end_offset) {
         size_t extra_size;
         size_t data_size = read_32bitBE(real_offset, data->streamfile);
         /* 0x00: data size, 0x04: ? (not a sequence or CRC), 0x08+: data */
@@ -316,8 +316,8 @@ fail:
 static size_t make_opus_comment(uint8_t * buf, int buf_size) {
     size_t comment_size;
     int vendor_string_length, user_comment_0_length;
-    char * vendor_string = "libopus 1.0.2";
-    char * user_comment_0_string = "ENCODER=opusenc from opus-tools 0.1.6";
+    char * vendor_string = "vgmstream";
+    char * user_comment_0_string = "vgmstream Opus converter";
     vendor_string_length = strlen(vendor_string);
     user_comment_0_length = strlen(user_comment_0_string);
 
