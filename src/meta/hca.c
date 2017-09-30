@@ -170,8 +170,6 @@ static void find_hca_key(hca_codec_data * hca_data, clHCA * hca, uint8_t * buffe
         //    break;
     }
 
-	if (testbuf) free(testbuf);
-
     /* reset HCA */
     hca_data->curblock = 0;
     hca_data->sample_ptr = clHCA_samplesPerBlock;
