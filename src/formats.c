@@ -200,6 +200,7 @@ static const char* extension_list[] = {
     "ogl",
     "oma", //FFmpeg, not parsed (ATRAC3/ATRAC3PLUS/MP3/LPCM/WMA)
     "omu",
+    "opus",
     "otm",
 
     "p1d", //txth/reserved [Farming Simulator 18 (3DS)]
@@ -811,7 +812,7 @@ static const meta_info meta_info_list[] = {
         {meta_FFW,                  "Freedom Fighters BGM header"},
         {meta_DSP_DSPW,             "DSPW dsp header"},
         {meta_PS2_JSTM,             "JSTM Header"},
-        {meta_PS3_XVAG,             "XVAG Header"},
+        {meta_XVAG,                 "Sony XVAG header"},
         {meta_PS3_CPS,              "tri-Crescendo CPS Header"},
         {meta_SQEX_SCD,             "Square-Enix SCD header"},
         {meta_NGC_NST_DSP,          "Animaniacs NST header"},
@@ -888,6 +889,7 @@ static const meta_info meta_info_list[] = {
         {meta_BINK,                 "RAD Game Tools Bink header"},
         {meta_EA_SNU,               "Electronic Arts SNU header"},
         {meta_AWC,                  "Rockstar AWC header"},
+        {meta_NSW_OPUS,             ".OPUS header"},
 
 #ifdef VGM_USE_VORBIS
         {meta_OGG_VORBIS,           "Ogg Vorbis"},

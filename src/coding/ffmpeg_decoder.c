@@ -218,11 +218,11 @@ static int ffmpeg_read(void *opaque, uint8_t *buf, int buf_size) {
 
     /* main read */
     switch(data->config.type) {
-        case FFMPEG_EA_XMA:     ret = ffmpeg_custom_read_eaxma(data, buf, buf_size); break;
-        case FFMPEG_WWISE_OPUS: ret = ffmpeg_custom_read_wwise_opus(data, buf, buf_size); break;
-      //case FFMPEG_EA_SCHL:    ret = ffmpeg_custom_read_ea_schl(data, buf, buf_size); break;
-      //case FFMPEG_SFH:        ret = ffmpeg_custom_read_sfh(data, buf, buf_size); break;
-        default:                ret = ffmpeg_custom_read_standard(data, buf, buf_size); break;
+        case FFMPEG_EA_XMA:         ret = ffmpeg_custom_read_eaxma(data, buf, buf_size); break;
+        case FFMPEG_SWITCH_OPUS:    ret = ffmpeg_custom_read_switch_opus(data, buf, buf_size); break;
+      //case FFMPEG_EA_SCHL:        ret = ffmpeg_custom_read_ea_schl(data, buf, buf_size); break;
+      //case FFMPEG_SFH:            ret = ffmpeg_custom_read_sfh(data, buf, buf_size); break;
+        default:                    ret = ffmpeg_custom_read_standard(data, buf, buf_size); break;
     }
     data->virtual_offset += ret;
     //data->real_offset = ; /* must be updated in function */
@@ -285,11 +285,11 @@ static int64_t ffmpeg_seek(void *opaque, int64_t offset, int whence) {
 
     /* main seek */
     switch(data->config.type) {
-        case FFMPEG_EA_XMA:     offset = ffmpeg_custom_seek_eaxma(data, offset); break;
-        case FFMPEG_WWISE_OPUS: offset = ffmpeg_custom_seek_wwise_opus(data, offset); break;
-      //case FFMPEG_EA_SCHL:    offset = ffmpeg_custom_seek_ea_schl(data, offset); break;
-      //case FFMPEG_SFH:        offset = ffmpeg_custom_seek_sfh(data, offset); break;
-        default:                offset = ffmpeg_custom_seek_standard(data, offset); break;
+        case FFMPEG_EA_XMA:         offset = ffmpeg_custom_seek_eaxma(data, offset); break;
+        case FFMPEG_SWITCH_OPUS:    offset = ffmpeg_custom_seek_switch_opus(data, offset); break;
+      //case FFMPEG_EA_SCHL:        offset = ffmpeg_custom_seek_ea_schl(data, offset); break;
+      //case FFMPEG_SFH:            offset = ffmpeg_custom_seek_sfh(data, offset); break;
+        default:                    offset = ffmpeg_custom_seek_standard(data, offset); break;
     }
     data->virtual_offset = offset;
     //data->real_offset = ; /* must be updated in function */
@@ -302,11 +302,11 @@ static int64_t ffmpeg_seek(void *opaque, int64_t offset, int whence) {
 static int64_t ffmpeg_size(ffmpeg_codec_data * data) {
     int64_t bytes;
     switch(data->config.type) {
-        case FFMPEG_EA_XMA:     bytes = ffmpeg_custom_size_eaxma(data); break;
-        case FFMPEG_WWISE_OPUS: bytes = ffmpeg_custom_size_wwise_opus(data); break;
-      //case FFMPEG_EA_SCHL:    bytes = ffmpeg_custom_size_ea_schl(data); break;
-      //case FFMPEG_SFH:        bytes = ffmpeg_custom_size_sfh(data); break;
-        default:                bytes = ffmpeg_custom_size_standard(data); break;
+        case FFMPEG_EA_XMA:         bytes = ffmpeg_custom_size_eaxma(data); break;
+        case FFMPEG_SWITCH_OPUS:    bytes = ffmpeg_custom_size_switch_opus(data); break;
+      //case FFMPEG_EA_SCHL:        bytes = ffmpeg_custom_size_ea_schl(data); break;
+      //case FFMPEG_SFH:            bytes = ffmpeg_custom_size_sfh(data); break;
+        default:                    bytes = ffmpeg_custom_size_standard(data); break;
     }
 
     return bytes;

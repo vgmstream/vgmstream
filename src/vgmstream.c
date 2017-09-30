@@ -292,7 +292,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_ffw,
     init_vgmstream_dsp_dspw,
     init_vgmstream_ps2_jstm,
-    init_vgmstream_ps3_xvag,
+    init_vgmstream_xvag,
 	init_vgmstream_ps3_cps,
     init_vgmstream_sqex_scd,
     init_vgmstream_ngc_nst_dsp,
@@ -350,7 +350,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_wwise,
     init_vgmstream_ubi_raki,
     init_vgmstream_x360_pasx,
-    init_vgmstream_x360_nub,
+    init_vgmstream_nub_xma,
     init_vgmstream_xma,
     init_vgmstream_sxd,
     init_vgmstream_ogl,
@@ -369,6 +369,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_stm,
     init_vgmstream_ea_snu,
     init_vgmstream_awc,
+    init_vgmstream_nsw_opus,
 
     init_vgmstream_txth,  /* should go at the end (lower priority) */
 #ifdef VGM_USE_FFMPEG

@@ -556,7 +556,7 @@ typedef enum {
     meta_SQEX_SCD,          /* Square-Enix SCD */
     meta_NGC_NST_DSP,       /* Animaniacs [NGC] */
     meta_BAF,               /* Bizarre Creations (Blur, James Bond) */
-	meta_PS3_XVAG,          /* Ratchet & Clank Future: Quest for Booty (PS3) */
+	meta_XVAG,              /* Ratchet & Clank Future: Quest for Booty (PS3) */
 	meta_PS3_CPS,           /* Eternal Sonata (PS3) */
     meta_PS3_MSF,           /* MSF header */
 	meta_NUB_VAG,           /* Namco VAG from NUB archives */
@@ -626,6 +626,7 @@ typedef enum {
     meta_BINK,              /* RAD Game Tools BINK audio/video */
     meta_EA_SNU,            /* Electronic Arts SNU (Dead Space) */
     meta_AWC,               /* Rockstar AWC (GTA5, RDR) */
+    meta_NSW_OPUS,          /* Lego City Undercover (Switch) */
 
 #ifdef VGM_USE_VORBIS
     meta_OGG_VORBIS,        /* Ogg Vorbis */
@@ -1028,8 +1029,8 @@ typedef struct {
 /* Custom FFMPEG modes */
 typedef enum {
     FFMPEG_STANDARD,        /* default FFmpeg */
-    FFMPEG_WWISE_OPUS,      /* Opus without Ogg layer */
-    FFMPEG_EA_XMA,          /* XMA with padding removed in SNS blocks */
+    FFMPEG_SWITCH_OPUS,     /* Opus without Ogg layer */
+    FFMPEG_EA_XMA,          /* XMA with padding removed and custom streams in SNS blocks */
   //FFMPEG_EA_SCHL,         /* Normal header+data (ex. ATRAC3) in SCxx blocks */
   //FFMPEG_SFH,             /* ATRAC3plus header+data in SFH blocks */
   //FFMPEG_AWC_XMA,         /* XMA data in AWC blocks, 1 streams per channel */
@@ -1039,6 +1040,7 @@ typedef enum {
 typedef struct {
     int stream_index; /* FFmpeg's sub-stream (as opposed to an internal stream in custom read/seeks) */
     int codec_endian;
+    int channels;
 
     ffmpeg_custom_t type; /* ffmpeg subtype */
     size_t virtual_size; /* external value, if meta needs to know/supply it */
