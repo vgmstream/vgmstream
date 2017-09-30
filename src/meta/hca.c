@@ -94,8 +94,8 @@ fail:
 /* Tries to find the decryption key from a list. Simply decodes a few frames and checks if there aren't too many
  * clipped samples, as it's common for invalid keys (though possible with valid keys in poorly mastered files). */
 static void find_hca_key(hca_codec_data * hca_data, clHCA * hca, uint8_t * buffer, int header_size, unsigned int * out_key1, unsigned int * out_key2) {
-    sample testbuf[clHCA_samplesPerBlock * 16]; /* max 16 channels, let's be generous */
-    int i;
+    sample *testbuf = NULL, *temp;
+    int i, j;
     size_t keys_length = sizeof(hcakey_list) / sizeof(hcakey_info);
 
     int min_clip_count = -1;
@@ -124,16 +124,20 @@ static void find_hca_key(hca_codec_data * hca_data, clHCA * hca, uint8_t * buffe
         if (clHCA_Decode(hca, buffer, header_size, 0) < 0) continue;
         if (clHCA_getInfo(hca, &hca_data->info) < 0) continue;
 
-        if (hca_data->info.channelCount > 16) {
-            VGM_LOG("HCA: too many channels, cannot test keys\n");
-            goto end;
+        temp = (sample *)realloc(testbuf, sizeof(sample) * clHCA_samplesPerBlock * hca_data->info.channelCount);
+        if (!temp) {
+            if (testbuf) free(testbuf);
+            return;
         }
+        testbuf = temp;
 
         /* test enough frames, but not too many */
         while (f < HCA_KEY_MAX_TEST_FRAMES && f < hca_data->info.blockCount) {
-            decode_hca(hca_data, testbuf, clHCA_samplesPerBlock, hca_data->info.channelCount);
+            j = clHCA_samplesPerBlock;
+            decode_hca(hca_data, testbuf, j, hca_data->info.channelCount);
 
-            for (s = 0; s < clHCA_samplesPerBlock; s++) {
+            j *= hca_data->info.channelCount;
+            for (s = 0; s < j; s++) {
                 if (testbuf[s] != 0x0000 && testbuf[s] != 0xFFFF)
                     sample_count++; /* ignore upper/lower blank samples */
 

@@ -8,7 +8,7 @@ VGMSTREAM * init_vgmstream_ps2_rxws(STREAMFILE *streamFile) {
     STREAMFILE * streamHeader = NULL;
     off_t start_offset, chunk_offset, name_offset = 0;
     size_t data_size, chunk_size;
-    int loop_flag = 0, channel_count, is_separate, type, sample_rate;
+    int loop_flag = 0, channel_count, is_separate = false, type, sample_rate;
     int32_t loop_start, loop_end;
     int total_streams, target_stream = streamFile->stream_index;
 
