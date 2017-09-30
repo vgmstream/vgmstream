@@ -27,9 +27,9 @@ int ffmpeg_custom_read_eaxma(ffmpeg_codec_data *data, uint8_t *buf, int buf_size
 int64_t ffmpeg_custom_seek_eaxma(ffmpeg_codec_data *data, int64_t virtual_offset);
 int64_t ffmpeg_custom_size_eaxma(ffmpeg_codec_data *data);
 
-int ffmpeg_custom_read_wwise_opus(ffmpeg_codec_data *data, uint8_t *buf, int buf_size);
-int64_t ffmpeg_custom_seek_wwise_opus(ffmpeg_codec_data *data, int64_t virtual_offset);
-int64_t ffmpeg_custom_size_wwise_opus(ffmpeg_codec_data *data);
+int ffmpeg_custom_read_switch_opus(ffmpeg_codec_data *data, uint8_t *buf, int buf_size);
+int64_t ffmpeg_custom_seek_switch_opus(ffmpeg_codec_data *data, int64_t virtual_offset);
+int64_t ffmpeg_custom_size_switch_opus(ffmpeg_codec_data *data);
 
 //int ffmpeg_custom_read_ea_schl(ffmpeg_codec_data *data, uint8_t *buf, int buf_size);
 //int64_t ffmpeg_custom_seek_ea_schl(ffmpeg_codec_data *data, int64_t virtual_offset);

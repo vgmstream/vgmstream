@@ -455,7 +455,7 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
     }
 
 
-    start_offset = xwb.data_offset;
+    start_offset = xwb.stream_offset;
 
     if ( !vgmstream_open_stream(vgmstream,streamFile,start_offset) )
         goto fail;

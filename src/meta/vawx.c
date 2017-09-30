@@ -1,14 +1,11 @@
 #include "meta.h"
 #include "../coding/coding.h"
 
-#define FAKE_RIFF_BUFFER_SIZE           100
 
-/**
- * VAWX - found in feelplus games: No More Heroes Heroes Paradise, Moon Diver
- */
+/* VAWX - found in feelplus games (No More Heroes Heroes Paradise, Moon Diver) */
 VGMSTREAM * init_vgmstream_vawx(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    off_t start_offset, datasize;
+    off_t start_offset, data_size;
 
     int loop_flag = 0, channel_count, type;
 
@@ -52,17 +49,17 @@ VGMSTREAM * init_vgmstream_vawx(STREAMFILE *streamFile) {
 #ifdef VGM_USE_FFMPEG
         case 1: { /* XMA2 */
             ffmpeg_codec_data *ffmpeg_data = NULL;
-            uint8_t buf[FAKE_RIFF_BUFFER_SIZE];
+            uint8_t buf[0x100];
             int32_t bytes, block_size, block_count;
-            /* todo not accurate (needed for >2ch) */
-            datasize = get_streamfile_size(streamFile)-start_offset;
-            block_size = 2048;
-            block_count = datasize / block_size; /* read_32bitLE(custom_data_offset +0x14) -1? */
 
-            bytes = ffmpeg_make_riff_xma2(buf, FAKE_RIFF_BUFFER_SIZE, vgmstream->num_samples, datasize, vgmstream->channels, vgmstream->sample_rate, block_count, block_size);
+            data_size = get_streamfile_size(streamFile)-start_offset;
+            block_size = 0x10000; /* VAWX default */
+            block_count = (uint16_t)read_16bitBE(0x3A, streamFile); /* also at 0x56 */
+
+            bytes = ffmpeg_make_riff_xma2(buf,0x100, vgmstream->num_samples, data_size, vgmstream->channels, vgmstream->sample_rate, block_count, block_size);
             if (bytes <= 0) goto fail;
 
-            ffmpeg_data = init_ffmpeg_header_offset(streamFile, buf,bytes, start_offset,datasize);
+            ffmpeg_data = init_ffmpeg_header_offset(streamFile, buf,bytes, start_offset,data_size);
             if ( !ffmpeg_data ) goto fail;
             vgmstream->codec_data = ffmpeg_data;
             vgmstream->coding_type = coding_FFmpeg;
@@ -75,22 +72,22 @@ VGMSTREAM * init_vgmstream_vawx(STREAMFILE *streamFile) {
         }
 
         case 7: { /* ATRAC3 */
-            uint8_t buf[FAKE_RIFF_BUFFER_SIZE];
+            uint8_t buf[0x100];
             int32_t bytes, block_size, encoder_delay, joint_stereo, max_samples;
 
-            datasize = read_32bitBE(0x54,streamFile);
+            data_size = read_32bitBE(0x54,streamFile);
             block_size = 0x98 * vgmstream->channels;
             joint_stereo = 0;
-            max_samples = atrac3_bytes_to_samples(datasize, block_size);
+            max_samples = atrac3_bytes_to_samples(data_size, block_size);
             encoder_delay = 0x0; //max_samples - vgmstream->num_samples; /* todo not correct */
             vgmstream->num_samples = max_samples; /* use calc samples since loop points are too, breaks looping in some files otherwise */
 
             /* make a fake riff so FFmpeg can parse the ATRAC3 */
-            bytes = ffmpeg_make_riff_atrac3(buf, FAKE_RIFF_BUFFER_SIZE, vgmstream->num_samples, datasize, vgmstream->channels, vgmstream->sample_rate, block_size, joint_stereo, encoder_delay);
+            bytes = ffmpeg_make_riff_atrac3(buf,0x100, vgmstream->num_samples, data_size, vgmstream->channels, vgmstream->sample_rate, block_size, joint_stereo, encoder_delay);
             if (bytes <= 0)
                 goto fail;
 
-            vgmstream->codec_data = init_ffmpeg_header_offset(streamFile, buf,bytes, start_offset,datasize);
+            vgmstream->codec_data = init_ffmpeg_header_offset(streamFile, buf,bytes, start_offset,data_size);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;

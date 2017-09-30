@@ -251,13 +251,13 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
 
 #ifdef VGM_USE_FFMPEG
         case 0x0A: {/* FMOD_SOUND_FORMAT_XMA */
-            uint8_t buf[100];
+            uint8_t buf[0x100];
             int bytes, block_size, block_count;
 
-            block_size = 0x10000; /* XACT default */
+            block_size = 0x8000; /* FSB default */
             block_count = StreamSize / block_size + (StreamSize % block_size ? 1 : 0);
 
-            bytes = ffmpeg_make_riff_xma2(buf, 100, vgmstream->num_samples, StreamSize, vgmstream->channels, vgmstream->sample_rate, block_count, block_size);
+            bytes = ffmpeg_make_riff_xma2(buf, 0x100, vgmstream->num_samples, StreamSize, vgmstream->channels, vgmstream->sample_rate, block_count, block_size);
             if (bytes <= 0) goto fail;
 
             vgmstream->codec_data = init_ffmpeg_header_offset(streamFile, buf,bytes, StartOffset,StreamSize);

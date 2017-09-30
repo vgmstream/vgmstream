@@ -5,7 +5,11 @@ typedef struct {
     uint64_t key;
 } hcakey_info;
 
-/* CRI's tools expect an unsigned 64 bit number, but keys are commonly found online in hex form */
+/**
+ * List of known keys, extracted from the game files (mostly found in 2ch.net).
+ * CRI's tools expect an unsigned 64 bit number string, but keys are commonly found online in hex form.
+ * Keys only use 56 bits though, so the upper 8 bits can be ignored.
+ */
 static const hcakey_info hcakey_list[] = {
 
         // HCA Decoder default
@@ -14,8 +18,6 @@ static const hcakey_info hcakey_list[] = {
         // Phantasy Star Online 2 (multi?)
         // used by most console games
         {0xCC55463930DBE1AB},       // CC55463930DBE1AB / 14723751768204501419
-        // variation from VGAudio, but some 2ch poster says the above works with CRI's tools; seems to decode the same
-        {24002584467202475},        // 0055463930DBE1AB
 
         // Old Phantasy Star Online 2 (multi?)
         {61891147883431481},        // 30DBE1ABCC554639

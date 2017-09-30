@@ -44,7 +44,7 @@ fail:
 }
 
 
-int ffmpeg_custom_read_wwise_opus(ffmpeg_codec_data *data, uint8_t *buf, int buf_size) {
+int ffmpeg_custom_read_switch_opus(ffmpeg_codec_data *data, uint8_t *buf, int buf_size) {
     uint8_t v_buf[0x8000]; /* intermediate buffer, could be simplified */
     int buf_done = 0;
     uint64_t real_offset = data->real_offset;
@@ -98,7 +98,7 @@ int ffmpeg_custom_read_wwise_opus(ffmpeg_codec_data *data, uint8_t *buf, int buf
     return buf_size;
 }
 
-int64_t ffmpeg_custom_seek_wwise_opus(ffmpeg_codec_data *data, int64_t virtual_offset) {
+int64_t ffmpeg_custom_seek_switch_opus(ffmpeg_codec_data *data, int64_t virtual_offset) {
     int64_t real_offset, virtual_base;
     int64_t current_virtual_offset = data->virtual_offset;
 
@@ -138,13 +138,13 @@ int64_t ffmpeg_custom_seek_wwise_opus(ffmpeg_codec_data *data, int64_t virtual_o
     return virtual_offset;
 }
 
-int64_t ffmpeg_custom_size_wwise_opus(ffmpeg_codec_data *data) {
+int64_t ffmpeg_custom_size_switch_opus(ffmpeg_codec_data *data) {
     uint64_t real_offset = data->real_start;
-    uint64_t real_size = data->real_size;
+    uint64_t real_end_offset = data->real_start + data->real_size;
     uint64_t virtual_size = data->header_size;
 
     /* count all Wwise Opus blocks size + OggS page size */
-    while (real_offset < real_size) {
+    while (real_offset < real_end_offset) {
         size_t extra_size;
         size_t data_size = read_32bitBE(real_offset, data->streamfile);
         /* 0x00: data size, 0x04: ? (not a sequence or CRC), 0x08+: data */
@@ -159,7 +159,23 @@ int64_t ffmpeg_custom_size_wwise_opus(ffmpeg_codec_data *data) {
     return virtual_size;
 }
 
+size_t switch_opus_get_samples(off_t offset, size_t data_size, int sample_rate, STREAMFILE *streamFile) {
+    size_t num_samples = 0;
+    off_t end_offset = offset + data_size;
 
+    /* count by reading all frames */
+    while (offset < end_offset) {
+        uint8_t buf[4];
+        size_t block_size = read_32bitBE(offset, streamFile);
+
+        read_streamfile(buf, offset+4, 4, streamFile);
+        num_samples += get_opus_samples_per_frame(buf, sample_rate);
+
+        offset += 0x08 + block_size;
+    }
+
+    return num_samples;
+}
 
 /* ************************************************** */
 
@@ -316,8 +332,8 @@ fail:
 static size_t make_opus_comment(uint8_t * buf, int buf_size) {
     size_t comment_size;
     int vendor_string_length, user_comment_0_length;
-    char * vendor_string = "libopus 1.0.2";
-    char * user_comment_0_string = "ENCODER=opusenc from opus-tools 0.1.6";
+    char * vendor_string = "vgmstream";
+    char * user_comment_0_string = "vgmstream Opus converter";
     vendor_string_length = strlen(vendor_string);
     user_comment_0_length = strlen(user_comment_0_string);
 
@@ -341,6 +357,5 @@ static size_t make_opus_comment(uint8_t * buf, int buf_size) {
 fail:
     return 0;
 }
-
 
 #endif

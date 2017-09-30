@@ -18,15 +18,15 @@ VGMSTREAM * init_vgmstream_ea_snu(STREAMFILE *streamFile) {
 
     /* check header (the first 0x10 are BE/LE depending on platform) */
     /* 0x00(1): related to sample rate? (03=48000)
-     * 0x01(1): flags? (when set seems to be a bank and has extra data before start_offset) //todo
+     * 0x01(1): flags/count? (when set has extra block data before start_offset)
      * 0x02(1): always 0?
      * 0x03(1): channels? (usually matches but rarely may be 0)
      * 0x04(4): some size, maybe >>2 ~= number of frames
      * 0x08(4): start offset
-     * 0x0c(4): some sub-offset? (0x20, found when 0x01 is set) */
+     * 0x0c(4): some sub-offset? (0x20, found when @0x01 is set) */
 
-    /* use start offset as endianness flag */
-    if ((uint32_t)read_32bitLE(0x08,streamFile) > 0x00F00000) {
+    /* use start_offset as endianness flag */
+    if ((uint32_t)read_32bitLE(0x08,streamFile) > 0x0000FFFF) {
         read_32bit = read_32bitBE;
     } else {
         read_32bit = read_32bitLE;
@@ -48,6 +48,7 @@ VGMSTREAM * init_vgmstream_ea_snu(STREAMFILE *streamFile) {
 
 #if 0
     //todo not working ok with blocks in XAS
+    //todo check if EA-XMA loops (Dante's Inferno doesn't)
     if (flags & 0x60) { /* full loop, seen in ambient tracks */
         loop_flag = 1;
         loop_start = 0;
@@ -81,7 +82,7 @@ VGMSTREAM * init_vgmstream_ea_snu(STREAMFILE *streamFile) {
     vgmstream->meta_type = meta_EA_SNU;
 
     switch(codec) {
-        case 0x04:      /* "Xas1": EA-XAS (Dead Space) */
+        case 0x04:      /* "Xas1": EA-XAS (Dead Space PC/PS3) */
             vgmstream->coding_type = coding_EA_XAS;
             vgmstream->layout_type = layout_ea_sns_blocked;
             break;
@@ -112,8 +113,8 @@ VGMSTREAM * init_vgmstream_ea_snu(STREAMFILE *streamFile) {
             ffmpeg_custom_config cfg;
 
             stream_size = get_streamfile_size(streamFile) - start_offset;
-            virtual_size = ffmpeg_get_eaxma_virtual_size(start_offset,stream_size, streamFile);
-            block_size = 0x8000; /* ? */
+            virtual_size = ffmpeg_get_eaxma_virtual_size(vgmstream->channels, start_offset,stream_size, streamFile);
+            block_size = 0x10000; /* todo unused and not correctly done by the parser */
             block_count = stream_size / block_size + (stream_size % block_size ? 1 : 0);
 
             bytes = ffmpeg_make_riff_xma2(buf, 0x100, vgmstream->num_samples, virtual_size, vgmstream->channels, vgmstream->sample_rate, block_count, block_size);
@@ -122,6 +123,7 @@ VGMSTREAM * init_vgmstream_ea_snu(STREAMFILE *streamFile) {
             memset(&cfg, 0, sizeof(ffmpeg_custom_config));
             cfg.type = FFMPEG_EA_XMA;
             cfg.virtual_size = virtual_size;
+            cfg.channels = vgmstream->channels;
 
             vgmstream->codec_data = init_ffmpeg_config(streamFile, buf,bytes, start_offset,stream_size, &cfg);
             if (!vgmstream->codec_data) goto fail;

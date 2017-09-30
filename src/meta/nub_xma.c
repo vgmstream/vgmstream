@@ -2,7 +2,7 @@
 #include "../coding/coding.h"
 
 /* Namco NUB xma - from Tekken 6, Galaga Legions DX */
-VGMSTREAM * init_vgmstream_x360_nub(STREAMFILE *streamFile) {
+VGMSTREAM * init_vgmstream_nub_xma(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     off_t start_offset, chunk_offset;
     size_t data_size, chunk_size;
