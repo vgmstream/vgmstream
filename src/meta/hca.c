@@ -95,7 +95,7 @@ fail:
  * clipped samples, as it's common for invalid keys (though possible with valid keys in poorly mastered files). */
 static void find_hca_key(hca_codec_data * hca_data, clHCA * hca, uint8_t * buffer, int header_size, unsigned int * out_key1, unsigned int * out_key2) {
     sample *testbuf = NULL, *temp;
-    int i, j;
+    int i, j, bufsize = 0, tempsize;
     size_t keys_length = sizeof(hcakey_list) / sizeof(hcakey_info);
 
     int min_clip_count = -1;
@@ -123,13 +123,15 @@ static void find_hca_key(hca_codec_data * hca_data, clHCA * hca, uint8_t * buffe
         clHCA_clear(hca, key1, key2);
         if (clHCA_Decode(hca, buffer, header_size, 0) < 0) continue;
         if (clHCA_getInfo(hca, &hca_data->info) < 0) continue;
+        if (hca_data->info.channelCount > 32) continue; /* nonsense don't alloc too much */
 
-        temp = (sample *)realloc(testbuf, sizeof(sample) * clHCA_samplesPerBlock * hca_data->info.channelCount);
-        if (!temp) {
-            if (testbuf) free(testbuf);
-            return;
+        tempsize = sizeof(sample) * clHCA_samplesPerBlock * hca_data->info.channelCount;
+        if (tempsize > bufsize) { /* should happen once */
+            temp = (sample *)realloc(testbuf, tempsize);
+            if (!temp) goto end;
+            testbuf = temp;
+            bufsize = tempsize;
         }
-        testbuf = temp;
 
         /* test enough frames, but not too many */
         while (f < HCA_KEY_MAX_TEST_FRAMES && f < hca_data->info.blockCount) {
@@ -172,8 +174,10 @@ static void find_hca_key(hca_codec_data * hca_data, clHCA * hca, uint8_t * buffe
     hca_data->curblock = 0;
     hca_data->sample_ptr = clHCA_samplesPerBlock;
     read_streamfile(buffer, hca_data->start, header_size, hca_data->streamfile);
+
 end:
     VGM_LOG("HCA: best key=%08x%08x (clips=%i)\n", best_key2,best_key1, min_clip_count);
     *out_key2 = best_key2;
     *out_key1 = best_key1;
+    free(testbuf);//free(temp);
 }
