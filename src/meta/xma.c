@@ -66,13 +66,12 @@ VGMSTREAM * init_vgmstream_xma(STREAMFILE *streamFile) {
         goto fail;
 
 
-    /* fix samples; for now only XMA1 is fixed, but xmaencode.exe doesn't seem to use XMA2
-     * num_samples in the headers, and the values don't look exact */
+    /* fix samples; for now only XMA1 is fixed, but XMA2 num_samples don't include skip samples and xmaencode.exe doesn't use it */
     if (is_xma1) {
         ms_sample_data msd;
         memset(&msd,0,sizeof(ms_sample_data));
 
-        msd.xma_version = 1;
+        msd.xma_version = is_xma1 ? 1 : 2;
         msd.channels    = channel_count;
         msd.data_offset = start_offset;
         msd.data_size   = data_size;
@@ -81,14 +80,14 @@ VGMSTREAM * init_vgmstream_xma(STREAMFILE *streamFile) {
         msd.loop_end_b  = loop_end_b;
         msd.loop_start_subframe = loop_subframe & 0xF; /* lower 4b: subframe where the loop starts, 0..4 */
         msd.loop_end_subframe   = loop_subframe >> 4; /* upper 4b: subframe where the loop ends, 0..3 */
+        msd.chunk_offset= chunk_offset;
 
         xma_get_samples(&msd, streamFile);
 
         num_samples = msd.num_samples;
-        //skip_samples = msd.skip_samples;
         loop_start_sample = msd.loop_start_sample;
         loop_end_sample = msd.loop_end_sample;
-        /* XMA2 loop/num_samples don't seem to skip_samples */
+        /* XMA2 loop/num_samples don't seem to use msd.skip_samples */
     }
 
 
@@ -146,7 +145,8 @@ fail:
 #if 0
 /**
  * Get real XMA sample rate (from Microsoft docs).
- * Info only, not for playback as the encoder adjusts sample rate for looping purposes (sample<>data align).
+ * Info only, not for playback as the encoder adjusts sample rate for looping purposes (sample<>data align),
+ * When converting to PCM, xmaencode does use the modified sample rate.
  */
 static int32_t get_xma_sample_rate(int32_t general_rate) {
     int32_t xma_rate = 48000; /* default XMA */

@@ -64,6 +64,7 @@ void decode_pcm8_sb_int(VGMSTREAMCHANNEL * stream, sample * outbuf, int channels
 void decode_pcm8_unsigned_int(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
 void decode_pcm8_unsigned(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
 void decode_ulaw(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
+void decode_alaw(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
 void decode_pcmfloat(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int big_endian);
 size_t pcm_bytes_to_samples(size_t bytes, int channels, int bits_per_sample);
 
@@ -232,11 +233,13 @@ int ffmpeg_make_riff_xwma(uint8_t * buf, size_t buf_size, int codec, size_t data
 
 /* MS audio format's sample info (struct to avoid passing so much stuff, separate for reusing) */
 typedef struct {
+    /* input */
     int xma_version;
-    int channels;
-    int stream_mode;
     off_t data_offset;
     size_t data_size;
+
+    int channels; /* for skips */
+    off_t chunk_offset; /* for multistream config */
 
     /* frame offsets */
     int loop_flag;
@@ -256,7 +259,7 @@ void wmapro_get_samples(ms_sample_data * msd, STREAMFILE *streamFile, int block_
 void wma_get_samples(ms_sample_data * msd, STREAMFILE *streamFile, int block_align, int sample_rate, uint32_t decode_flags);
 
 void xma1_parse_fmt_chunk(STREAMFILE *streamFile, off_t chunk_offset, int * channels, int * sample_rate, int * loop_flag, int32_t * loop_start_b, int32_t * loop_end_b, int32_t * loop_subframe, int be);
-void xma2_parse_fmt_chunk_extra(STREAMFILE *streamFile, off_t chunk_offset, int * loop_flag, int32_t * num_samples, int32_t * loop_start_sample, int32_t * loop_end_sample, int be);
+void xma2_parse_fmt_chunk_extra(STREAMFILE *streamFile, off_t chunk_offset, int * loop_flag, int32_t * out_num_samples, int32_t * out_loop_start_sample, int32_t * out_loop_end_sample, int be);
 void xma2_parse_xma2_chunk(STREAMFILE *streamFile, off_t chunk_offset, int * channels, int * sample_rate, int * loop_flag, int32_t * num_samples, int32_t * loop_start_sample, int32_t * loop_end_sample);
 
 size_t atrac3_bytes_to_samples(size_t bytes, int full_block_align);

@@ -86,6 +86,7 @@ typedef enum {
     coding_PCM8_SB_int,     /* 8-bit PCM, sign bit (others are 2's complement) with sample-level interleave */
 
     coding_ULAW,            /* 8-bit u-Law (non-linear PCM) */
+    coding_ALAW,            /* 8-bit a-Law (non-linear PCM) */
 
     coding_PCMFLOAT,        /* 32 bit float PCM */
 
@@ -352,7 +353,7 @@ typedef enum {
     meta_RWX,				/* Air Force Delta Storm (XBOX) */
     meta_XWB,				/* Microsoft XACT framework (Xbox, X360, Windows) */
     meta_PS2_XA30,          /* Driver - Parallel Lines (PS2) */
-    meta_MUSC,				/* Spyro Games, possibly more */
+    meta_MUSC,				/* Krome PS2 games */
     meta_MUSX_V004,			/* Spyro Games, possibly more */
     meta_MUSX_V005,			/* Spyro Games, possibly more */
     meta_MUSX_V006,			/* Spyro Games, possibly more */
@@ -627,6 +628,7 @@ typedef enum {
     meta_EA_SNU,            /* Electronic Arts SNU (Dead Space) */
     meta_AWC,               /* Rockstar AWC (GTA5, RDR) */
     meta_NSW_OPUS,          /* Lego City Undercover (Switch) */
+    meta_PC_AL2,            /* Conquest of Elysium 3 (PC) */
 
 #ifdef VGM_USE_VORBIS
     meta_OGG_VORBIS,        /* Ogg Vorbis */

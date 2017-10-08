@@ -138,8 +138,8 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
         case 0x0002: ww.codec = IMA; break; /* newer Wwise (conflicts with MSADPCM, probably means "platform's ADPCM") */
         //case 0x0011: ww.codec = IMA; break; /* older Wwise (used?) */
         case 0x0069: ww.codec = IMA; break; /* older Wwise (Spiderman Web of Shadows X360, LotR Conquest PC) */
-        case 0x0161: ww.codec = XWMA; break;
-        case 0x0162: ww.codec = XWMA; break;
+        case 0x0161: ww.codec = XWMA; break; /* WMAv2 */
+        case 0x0162: ww.codec = XWMA; break; /* WMAPro */
         case 0x0165: ww.codec = XMA2; break; /* always with the "XMA2" chunk, Wwise doesn't use XMA1 */
         case 0x0166: ww.codec = XMA2; break;
         case 0x3039: ww.codec = OPUS; break;
@@ -347,7 +347,7 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
             /* Vorbis is VBR so this is very approximate, meh */
             if (ww.truncated)
                 vgmstream->num_samples = vgmstream->num_samples * (ww.file_size - start_offset) / ww.data_size;
-VGM_LOG("so=%lx, ds=%x\n", start_offset, ww.data_size);
+
             break;
         }
 #endif
@@ -434,6 +434,7 @@ VGM_LOG("so=%lx, ds=%x\n", start_offset, ww.data_size);
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
 
+
             /* manually find total samples, why don't they put this in the header is beyond me */
             {
                 ms_sample_data msd;
@@ -444,11 +445,14 @@ VGM_LOG("so=%lx, ds=%x\n", start_offset, ww.data_size);
                 msd.data_size = ww.data_size;
 
                 if (ww.format == 0x0162)
-                    wmapro_get_samples(&msd, streamFile, ww.block_align, ww.sample_rate,0x0000);
+                    wmapro_get_samples(&msd, streamFile, ww.block_align, ww.sample_rate,0x00E0);
                 else
-                    wma_get_samples(&msd, streamFile, ww.block_align, ww.sample_rate,0x0000);
+                    wma_get_samples(&msd, streamFile, ww.block_align, ww.sample_rate,0x001F);
 
-                vgmstream->num_samples = ffmpeg_data->totalSamples; /* ffmpeg_data->totalSamples is approximate from avg-br */
+                vgmstream->num_samples = msd.num_samples;
+                if (!vgmstream->num_samples)
+                    vgmstream->num_samples = ffmpeg_data->totalSamples; /* very wrong, from avg-br */
+                //num_samples seem to be found in the last "seek" table entry too, as: entry / channels / 2
             }
 
             break;
