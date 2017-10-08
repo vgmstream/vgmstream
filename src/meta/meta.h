@@ -684,4 +684,6 @@ VGMSTREAM * init_vgmstream_awc(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_nsw_opus(STREAMFILE * streamFile);
 
+VGMSTREAM * init_vgmstream_pc_al2(STREAMFILE * streamFile);
+
 #endif /*_META_H*/

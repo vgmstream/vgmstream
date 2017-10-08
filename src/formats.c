@@ -32,6 +32,7 @@ static const char* extension_list[] = {
     //"aiff", //common
     "aix",
     "akb",
+    "al2",
     "amts", //fake extension (to be removed)
     "ao", //txth/reserved [Cloudphobia (PC)]
     "as4",
@@ -410,6 +411,7 @@ static const coding_info coding_info_list[] = {
         {coding_PCM8_int,           "8-bit PCM with 1 byte interleave"},
         {coding_PCM8_SB_int,        "8-bit PCM with sign bit, 1 byte interleave"},
         {coding_ULAW,               "8-bit u-Law"},
+        {coding_ALAW,               "8-bit a-Law"},
         {coding_PCMFLOAT,           "32-bit float PCM"},
         {coding_CRI_ADX,            "CRI ADX 4-bit ADPCM"},
         {coding_CRI_ADX_exp,        "CRI ADX 4-bit ADPCM with exponential scale"},
@@ -890,6 +892,7 @@ static const meta_info meta_info_list[] = {
         {meta_EA_SNU,               "Electronic Arts SNU header"},
         {meta_AWC,                  "Rockstar AWC header"},
         {meta_NSW_OPUS,             ".OPUS header"},
+        {meta_PC_AL2,               "Illwinter Game Design AL2 raw header"},
 
 #ifdef VGM_USE_VORBIS
         {meta_OGG_VORBIS,           "Ogg Vorbis"},

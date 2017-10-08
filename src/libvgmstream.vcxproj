@@ -288,6 +288,7 @@
     <ClCompile Include="meta\ogl.c" />
     <ClCompile Include="meta\otm.c" />
     <ClCompile Include="meta\p3d.c" />
+    <ClCompile Include="meta\pc_al2.c" />
     <ClCompile Include="meta\pc_mxst.c" />
     <ClCompile Include="meta\pc_smp.c" />
     <ClCompile Include="meta\pc_sob.c" />
