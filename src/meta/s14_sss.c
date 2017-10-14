@@ -1,105 +1,66 @@
-#include "../vgmstream.h"
-
-#ifdef VGM_USE_G7221
-
 #include "meta.h"
 #include "../util.h"
 #include "../coding/coding.h"
+#include <string.h>
 
-/* .s14 and .sss - from Idolm@ster DS (and others?)
- * Raw 24kbit Siren 14 stream, s14 is mono and sss is
- * frame-interleaved stereo
- */
-
+/* .s14 and .sss - headerless siren14 stream (The Idolm@ster DS, Korogashi Puzzle Katamari Damacy DS) */
 VGMSTREAM * init_vgmstream_s14_sss(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[PATH_LIMIT];
-    int channel_count;
+    off_t start_offset = 0;
+    int channel_count, loop_flag = 0, interleave;
 
-    size_t file_size;
 
-    /* check extension, case insensitive */
-    /* this is all we have to go on, rsf is completely headerless */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (!strcasecmp("sss",filename_extension(filename)))
-    {
+    /* check extension */
+    if (check_extensions(streamFile,"sss")) {
         channel_count = 2;
-    }
-    else if (!strcasecmp("s14",filename_extension(filename)))
-    {
-        channel_count = 1;
-    }
-    else
-    {
+    } else if (check_extensions(streamFile,"s14")) {
+        channel_count = 1; //todo missing dual _0ch.s14 _1ch.s14, but dual_ext thing doesn't work properly with siren14 decoder
+    } else {
         goto fail;
     }
 
-    file_size = get_streamfile_size(streamFile);
+    /* raw siren comes in 3 frame sizes, try to guess the correct one
+     * (should try to decode and check the error flag but it isn't currently reported) */
+    {
+        char filename[PATH_LIMIT];
+        streamFile->get_name(streamFile,filename,sizeof(filename));
+
+        /* horrid but I ain't losing sleep over it (besides the header must be somewhere as some tracks loop) */
+        if (strstr(filename,"S037")==filename || strstr(filename,"b06")==filename) /* Korogashi Puzzle Katamari Damacy */
+            interleave = 0x78;
+        else if (strstr(filename,"32700")==filename || /* Hottarake no Shima - Kanata to Nijiiro no Kagami */
+                (strstr(filename,"b0")==filename || strstr(filename,"puzzle")==filename || strstr(filename,"M09")==filename) ) /* Korogashi Puzzle Katamari Damacy */
+            interleave = 0x50;
+        else
+            interleave = 0x3c; /* The Idolm@ster - Dearly Stars */
+    }
+
 
     /* build the VGMSTREAM */
-
-    vgmstream = allocate_vgmstream(channel_count,0);
+    vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
+    vgmstream->num_samples = get_streamfile_size(streamFile) / (interleave * channel_count) * (32000/50);
+    vgmstream->sample_rate = 32768; /* maybe 32700? */
 
-    /* fill in the vital statistics */
-    vgmstream->num_samples = file_size/0x3c/channel_count*(32000/50);
-    vgmstream->sample_rate = 32768;
-
-    vgmstream->coding_type = coding_G7221C;
+    vgmstream->meta_type = channel_count==1 ? meta_S14 : meta_SSS;
     vgmstream->layout_type = layout_interleave;
-    vgmstream->interleave_block_size = 0x3c;
-    if (1 == channel_count)
-    {
-        vgmstream->meta_type = meta_S14;
-    }
-    else
-    {
-        vgmstream->meta_type = meta_SSS;
-    }
+    vgmstream->interleave_block_size = interleave;
 
     {
-        int i;
-        g7221_codec_data *data;
-
-        /* one data structure per channel */
-        data = malloc(sizeof(g7221_codec_data) * channel_count);
-        if (!data)
-        {
-            goto fail;
-        }
-        memset(data,0,sizeof(g7221_codec_data) * channel_count);
-        vgmstream->codec_data = data;
-
-        for (i = 0; i < channel_count; i++)
-        {
-            /* Siren 14 == 14khz bandwidth */
-            data[i].handle = g7221_init(vgmstream->interleave_block_size, 14000);
-            if (!data[i].handle)
-            {
-                goto fail; /* close_vgmstream is able to clean up */
-            }
-        }
+#ifdef VGM_USE_G7221
+        vgmstream->coding_type = coding_G7221C;
+        vgmstream->codec_data = init_g7221(vgmstream->channels, vgmstream->interleave_block_size);
+        if (!vgmstream->codec_data) goto fail;
+#else
+    goto fail;
+#endif
     }
 
-    /* open the file for reading by each channel */
-    {
-        int i;
-        for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-
-            if (!vgmstream->ch[i].streamfile) goto fail;
-
-            vgmstream->ch[i].channel_start_offset=
-                vgmstream->ch[i].offset=0x3c*i;
-        }
-    }
-
+    if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
+        goto fail;
     return vgmstream;
 
-    /* clean up anything we may have opened */
 fail:
-    if (vgmstream) close_vgmstream(vgmstream);
+    close_vgmstream(vgmstream);
     return NULL;
 }
-
-#endif
