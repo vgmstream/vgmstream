@@ -81,6 +81,7 @@ static const char* extension_list[] = {
     "capdsp",
     "cbd2",
     "ccc",
+    "cd",
     "cfn",
     "ckd",
     "cnk",

@@ -262,13 +262,14 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
 
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("wav",filename_extension(filename)) &&
-        strcasecmp("lwav",filename_extension(filename)) &&
-        strcasecmp("da",filename_extension(filename)) /* SD Gundam - Over Galaxian, The Great Battle VI (PS) */
+    if (strcasecmp("wav",filename_extension(filename))
+            && strcasecmp("lwav",filename_extension(filename))
+            && strcasecmp("da",filename_extension(filename)) /* SD Gundam - Over Galaxian, The Great Battle VI (PS) */
+            && strcasecmp("cd",filename_extension(filename)) /* Exector (PS) */
 #ifndef VGM_USE_FFMPEG
-        && strcasecmp("sgb",filename_extension(filename)) /* SGB has proper support with FFmpeg in sgxd */
+            && strcasecmp("sgb",filename_extension(filename)) /* SGB has proper support with FFmpeg in sgxd */
 #endif
-        && strcasecmp("med",filename_extension(filename))
+            && strcasecmp("med",filename_extension(filename))
 		)
     {
         if (!strcasecmp("mwv",filename_extension(filename)))
