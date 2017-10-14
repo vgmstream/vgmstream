@@ -3,6 +3,32 @@
 
 #ifdef VGM_USE_G7221
 
+g7221_codec_data * init_g7221(int channel_count, int frame_size) {
+    int i;
+    g7221_codec_data *data = NULL;
+
+    data = calloc(channel_count, sizeof(g7221_codec_data)); /* one decoder per channel */
+    if (!data) goto fail;
+
+    for (i = 0; i < channel_count; i++) {
+        data[i].handle = g7221_init(frame_size, 14000); /* Siren 14 == 14khz bandwidth */
+        if (!data[i].handle) goto fail;
+    }
+
+    return data;
+
+fail:
+    if (data) {
+        for (i = 0; i < channel_count; i++) {
+            g7221_free(data[i].handle);
+        }
+    }
+    free(data);
+
+    return NULL;
+}
+
+
 void decode_g7221(VGMSTREAM * vgmstream, sample * outbuf, int channelspacing, int32_t samples_to_do, int channel) {
     VGMSTREAMCHANNEL *ch = &vgmstream->ch[channel];
     g7221_codec_data *data = vgmstream->codec_data;

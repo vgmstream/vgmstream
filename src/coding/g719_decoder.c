@@ -4,6 +4,31 @@
 #ifdef VGM_USE_G719
 #include "../stack_alloc.h"
 
+g719_codec_data *init_g719(int channel_count, int frame_size) {
+    int i;
+    g719_codec_data *data = NULL;
+
+    data = calloc(channel_count, sizeof(g719_codec_data)); /* one decoder per channel */
+    if (!data) goto fail;
+
+    for (i = 0; i < channel_count; i++) {
+        data[i].handle = g719_init(frame_size); /* Siren 22 == 22khz bandwidth */
+        if (!data[i].handle) goto fail;
+    }
+
+    return data;
+
+fail:
+    if (data) {
+        for (i = 0; i < channel_count; i++) {
+            g719_free(data[i].handle);
+        }
+    }
+    free(data);
+
+    return NULL;
+}
+
 void decode_g719(VGMSTREAM * vgmstream, sample * outbuf, int channelspacing, int32_t samples_to_do, int channel) {
     VGMSTREAMCHANNEL *ch = &vgmstream->ch[channel];
     g719_codec_data *data = vgmstream->codec_data;

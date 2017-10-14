@@ -172,6 +172,7 @@ void mpeg_set_error_logging(mpeg_codec_data * data, int enable);
 
 #ifdef VGM_USE_G7221
 /* g7221_decoder */
+g7221_codec_data *init_g7221(int channel_count, int frame_size);
 void decode_g7221(VGMSTREAM *vgmstream, sample * outbuf, int channelspacing, int32_t samples_to_do, int channel);
 void reset_g7221(VGMSTREAM *vgmstream);
 void free_g7221(VGMSTREAM *vgmstream);
@@ -179,6 +180,7 @@ void free_g7221(VGMSTREAM *vgmstream);
 
 #ifdef VGM_USE_G719
 /* g719_decoder */
+g719_codec_data *init_g719(int channel_count, int frame_size);
 void decode_g719(VGMSTREAM *vgmstream, sample * outbuf, int channelspacing, int32_t samples_to_do, int channel);
 void reset_g719(VGMSTREAM *vgmstream);
 void free_g719(VGMSTREAM *vgmstream);
