@@ -14,7 +14,7 @@ sourceball:
 	rm -rf vgmstream-`./version.sh`
 
 mingwbin: mingw_test mingw_winamp mingw_xmplay
-	zip -FS -j "vgmstream-`./version.sh`-test.zip" COPYING readme.txt test/test.exe winamp/in_vgmstream.dll xmplay/xmp-vgmstream.dll ext_libs/*.dll
+	zip -FS -j "vgmstream-`./version.sh`-test.zip" COPYING README.md test/test.exe winamp/in_vgmstream.dll xmplay/xmp-vgmstream.dll ext_libs/*.dll
 
 mingw_test:
 	$(MAKE) -C test -f Makefile.mingw test.exe

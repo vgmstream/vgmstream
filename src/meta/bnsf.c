@@ -1,243 +1,96 @@
 #include "meta.h"
-#include "../layout/layout.h"
+#include "../coding/coding.h"
 #include "../util.h"
-#include "../vgmstream.h"
 
-/* Namco Bandai's Bandai Namco Sound Format/File (BNSF) */
-/* similar to RIFX */
-
+/* BNSF - Namco Bandai's Bandai Namco Sound Format/File */
 VGMSTREAM * init_vgmstream_bnsf(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[PATH_LIMIT];
+    off_t start_offset = 0, first_offset = 0x0C;
+    int loop_flag = 0, channel_count = 0;
+    int sample_rate, num_samples, loop_start = 0, loop_end = 0, block_size;
+    uint32_t codec, subcodec = 0;
+    size_t sdat_size;
+    off_t loop_chunk = 0, sfmt_chunk, sdat_chunk;
 
-    off_t file_size = -1;
-    uint32_t riff_size;
-    uint32_t bnsf_form;
-    enum {
-        form_IS14 = UINT32_C(0x49533134),  /* IS14 */
-        form_IS22 = UINT32_C(0x49533232),  /* IS22 */
-    };
 
-    int channel_count = 0;
-    int sample_count = 0;
-    int sample_rate = 0;
-    int coding_type = -1;
-    off_t start_offset = -1;
-
-    int loop_flag = 0;
-    off_t loop_start = -1;
-    off_t loop_end = -1;
-    uint32_t data_size = 0;
-    uint32_t block_size = 0;
-    uint32_t block_samples = 0;
-
-    int FormatChunkFound = 0;
-    int DataChunkFound = 0;
-    int RiffSizeExtra = 8;
-
-    /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("bnsf",filename_extension(filename)))
-    {
+    if (!check_extensions(streamFile,"bnsf"))
         goto fail;
-    }
-
-    /* check header */
-    if ((uint32_t)read_32bitBE(0,streamFile)!=0x424E5346) /* BNSF */
+    if (read_32bitBE(0,streamFile) != 0x424E5346) /* "BNSF" */
         goto fail;
 
-    /* check form */
-    bnsf_form = read_32bitBE(8,streamFile);
-    switch (bnsf_form)
-    {
-#ifdef VGM_USE_G7221
-        case form_IS14:
-            break;
-#endif
-#ifdef VGM_USE_G719
-        case form_IS22:
-            RiffSizeExtra = 0;
-            break;
-#endif
-        default:
-            goto fail;
+    codec = read_32bitBE(0x08,streamFile);
+
+    /* check RIFF size (for siren22 it's full size) */
+    if (read_32bitBE(0x04,streamFile) + (codec == 0x49533232 ? 0 : 8) != get_streamfile_size(streamFile))
+        goto fail;
+
+    if (!find_chunk_be(streamFile, 0x73666d74,first_offset,0, &sfmt_chunk,NULL)) /* "sfmt" */
+        goto fail;
+    if (!find_chunk_be(streamFile, 0x73646174,first_offset,0, &sdat_chunk,&sdat_size)) /* "sdat" */
+        goto fail;
+    if ( find_chunk_be(streamFile, 0x6C6F6F70,first_offset,0, &loop_chunk,NULL)) { /* "loop" */
+        loop_flag = 1;
+        loop_start = read_32bitBE(loop_chunk+0x00, streamFile);
+        loop_end = read_32bitBE(loop_chunk+0x04,streamFile);
     }
 
-    riff_size = read_32bitBE(4,streamFile);
-    file_size = get_streamfile_size(streamFile);
+    subcodec = read_16bitBE(sfmt_chunk+0x00,streamFile);
+    channel_count = read_16bitBE(sfmt_chunk+0x02,streamFile);
+    sample_rate = read_32bitBE(sfmt_chunk+0x04,streamFile);
+    num_samples = read_32bitBE(sfmt_chunk+0x08,streamFile);
+    /* 0x0c: some kind of sample count (skip?), can be 0 when no loops */
+    block_size = read_16bitBE(sfmt_chunk+0x10,streamFile);
+    //block_samples = read_16bitBE(sfmt_chunk+0x12,streamFile);
+    /* max_samples = sdat_size/block_size*block_samples //num_samples is smaller */
 
-    /* check for tructated RIFF */
-    if (file_size < riff_size+RiffSizeExtra) goto fail;
+    start_offset = sdat_chunk;
 
-    /* read through chunks to verify format and find metadata */
-    {
-        off_t current_chunk = 0xc; /* start with first chunk */
-
-        while (current_chunk < file_size && current_chunk < riff_size+8) {
-            uint32_t chunk_type = read_32bitBE(current_chunk,streamFile);
-            off_t chunk_size = read_32bitBE(current_chunk+4,streamFile);
-
-            if (current_chunk+8+chunk_size > file_size) goto fail;
-
-            switch(chunk_type) {
-                case 0x73666d74:    /* "sfmt" */
-                    /* only one per file */
-                    if (FormatChunkFound) goto fail;
-                    FormatChunkFound = 1;
-
-                    sample_rate = read_32bitBE(current_chunk+0x0c,streamFile);
-                    channel_count = read_16bitBE(current_chunk+0x0a,streamFile);
-                    // read_32bitBE(current_chunk+0x10,streamFile); // ?
-                    // read_32bitBE(current_chunk+0x14,streamFile); // ?
-                    block_size = read_16bitBE(current_chunk+0x18,streamFile);
-                    block_samples = read_16bitBE(current_chunk+0x1a,streamFile);
-
-                    /* I assume this is still the codec id, but as the codec is
-                       specified by the BNSF "form" I've only seen this zero */
-                    switch ((uint16_t)read_16bitBE(current_chunk+0x8,streamFile)) {
-                        case 0:
-                            break;
-                        default:
-                            goto fail;
-                    }
-                    break;
-                case 0x73646174:    /* sdat */
-                    /* at most one per file */
-                    if (DataChunkFound) goto fail;
-                    DataChunkFound = 1;
-
-                    start_offset = current_chunk + 8;
-                    data_size = chunk_size;
-                    break;
-                case 0x6C6F6F70:    /* loop */
-                    loop_flag = 1;
-                    loop_start =
-                        read_32bitBE(current_chunk+8, streamFile);
-                    loop_end =
-                        read_32bitBE(current_chunk+0xc,streamFile);
-                    break;
-                default:
-                    /* ignorance is bliss */
-                    break;
-            }
-
-            current_chunk += 8+chunk_size;
-        }
-    }
-
-    if (!FormatChunkFound || !DataChunkFound) goto fail;
-
-    switch (bnsf_form) {
-#ifdef VGM_USE_G7221
-        case form_IS14:
-            coding_type = coding_G7221C;
-            sample_count = data_size/block_size*block_samples;
-
-            break;
-#endif
-#ifdef VGM_USE_G719
-        case form_IS22:
-            coding_type = coding_G719;
-            sample_count = data_size/block_size*block_samples;
-
-            break;
-#endif
-        default:
-            goto fail;
-    }
 
     /* build the VGMSTREAM */
-
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
-    /* fill in the vital statistics */
-    vgmstream->num_samples = sample_count;
     vgmstream->sample_rate = sample_rate;
+    vgmstream->num_samples = num_samples;
+    vgmstream->loop_start_sample = loop_start;
+    vgmstream->loop_end_sample = loop_end;
 
-    vgmstream->coding_type = coding_type;
+    vgmstream->meta_type = meta_BNSF;
     vgmstream->layout_type = layout_interleave;
     vgmstream->interleave_block_size = block_size/channel_count;
 
-    if (loop_flag) {
-        vgmstream->loop_start_sample = loop_start;
-        vgmstream->loop_end_sample = loop_end;
-    }
-    vgmstream->meta_type = meta_BNSF;
+    /* some IS14 voice files have 0x02 (Tales of Zestiria, The Idolm@ster 2); data looks normal and silent
+     * frames decode ok but rest fails, must be some subtle decoding variation (not encryption) */
+    if (subcodec != 0)
+        goto fail;
 
+    switch (codec) {
 #ifdef VGM_USE_G7221
-    if (coding_G7221C == coding_type)
-    {
-        int i;
-        g7221_codec_data *data;
+        case 0x49533134: /* "IS14" */
+            vgmstream->coding_type = coding_G7221C;
+            vgmstream->codec_data = init_g7221(vgmstream->channels, vgmstream->interleave_block_size);
+            if (!vgmstream->codec_data) goto fail;
 
-        /* one data structure per channel */
-        data = malloc(sizeof(g7221_codec_data) * channel_count);
-        if (!data)
-        {
-            goto fail;
-        }
-        memset(data,0,sizeof(g7221_codec_data) * channel_count);
-        vgmstream->codec_data = data;
-
-        for (i = 0; i < channel_count; i++)
-        {
-            /* Siren 14 == 14khz bandwidth */
-            data[i].handle = g7221_init(vgmstream->interleave_block_size, 14000);
-            if (!data[i].handle)
-            {
-                goto fail; /* close_vgmstream is able to clean up */
-            }
-        }
-    }
+            break;
 #endif
-
 #ifdef VGM_USE_G719
-    if (coding_G719 == coding_type)
-    {
-        int i;
-        g719_codec_data *data;
-        
-        /* one data structure per channel */
-        data = malloc(sizeof(g719_codec_data) * channel_count);
-        if (!data)
-        {
-            goto fail;
-        }
-        memset(data,0,sizeof(g719_codec_data) * channel_count);
-        vgmstream->codec_data = data;
-        
-        for (i = 0; i < channel_count; i++)
-        {
-            /* Siren 22 == 22khz bandwidth */
-            data[i].handle = g719_init(vgmstream->interleave_block_size);
-            if (!data[i].handle)
-            {
-                goto fail; /* close_vgmstream is able to clean up */
-            }
-        }
-    }
+        case 0x49533232: /* "IS22" */
+            vgmstream->coding_type = coding_G719;
+            vgmstream->codec_data = init_g719(vgmstream->channels, vgmstream->interleave_block_size);
+            if (!vgmstream->codec_data) goto fail;
+
+            break;
 #endif
-
-    /* open the file, set up each channel */
-    {
-        int i;
-
-        vgmstream->ch[0].streamfile = streamFile->open(streamFile,filename,
-                STREAMFILE_DEFAULT_BUFFER_SIZE);
-        if (!vgmstream->ch[0].streamfile) goto fail;
-
-        for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = vgmstream->ch[0].streamfile;
-            vgmstream->ch[i].offset = vgmstream->ch[i].channel_start_offset =
-                start_offset+i*vgmstream->interleave_block_size;
-        }
+        default:
+            goto fail;
     }
 
+
+    if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
+        goto fail;
     return vgmstream;
 
-    /* clean up anything we may have opened */
 fail:
-    if (vgmstream) close_vgmstream(vgmstream);
+    close_vgmstream(vgmstream);
     return NULL;
 }
