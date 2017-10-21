@@ -629,6 +629,7 @@ typedef enum {
     meta_AWC,               /* Rockstar AWC (GTA5, RDR) */
     meta_NSW_OPUS,          /* Lego City Undercover (Switch) */
     meta_PC_AL2,            /* Conquest of Elysium 3 (PC) */
+	meta_PC_AST,            /* Dead Rising (PC) */
 
 #ifdef VGM_USE_VORBIS
     meta_OGG_VORBIS,        /* Ogg Vorbis */

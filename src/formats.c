@@ -894,6 +894,7 @@ static const meta_info meta_info_list[] = {
         {meta_AWC,                  "Rockstar AWC header"},
         {meta_NSW_OPUS,             ".OPUS header"},
         {meta_PC_AL2,               "Illwinter Game Design AL2 raw header"},
+		{meta_PC_AST,               "Capcom AST header"},
 
 #ifdef VGM_USE_VORBIS
         {meta_OGG_VORBIS,           "Ogg Vorbis"},
