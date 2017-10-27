@@ -770,7 +770,7 @@ static const meta_info meta_info_list[] = {
         {meta_NGC_SWD,              "PSF + Standard DSP Headers"},
         {meta_CAFF,                 "Apple Core Audio Format Header"},
         {meta_PC_MXST,              "Lego Island MxSt Header"},
-        {meta_PC_SOB_SAB,           "Worms 4: Mayhem SOB/SAB Header"},
+        {meta_SAB,                  "Team17 SAB header"},
         {meta_MAXIS_XA,             "Maxis XAI/XAJ Header"},
         {meta_EXAKT_SC,             "assumed Activision / EXAKT SC by extension"},
         {meta_WII_BNS,              "Nintendo BNS header"},

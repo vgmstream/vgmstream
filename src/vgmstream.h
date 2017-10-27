@@ -482,7 +482,7 @@ typedef enum {
     meta_RIFX_WAVE_smpl,    /* RIFX w/ loop data in smpl chunk */
     meta_XNB,               /* XNA Game Studio 4.0 */
     meta_PC_MXST,           /* Lego Island MxSt */
-	meta_PC_SOB_SAB,		/* Worms 4 Mayhem SOB+SAB file */
+	meta_SAB,		        /* Worms 4 Mayhem SAB+SOB file */
     meta_NWA,               /* Visual Art's NWA */
     meta_NWA_NWAINFOINI,    /* Visual Art's NWA w/ NWAINFO.INI for looping */
     meta_NWA_GAMEEXEINI,    /* Visual Art's NWA w/ Gameexe.ini for looping */
