@@ -7,7 +7,7 @@
 /* Resource Interchange File Format */
 
 /* return milliseconds */
-long parse_marker(unsigned char * marker) {
+static long parse_marker(unsigned char * marker) {
     long hh,mm,ss,ms;
     if (memcmp("Marker ",marker,7)) return -1;
 
@@ -18,8 +18,7 @@ long parse_marker(unsigned char * marker) {
 }
 
 /* loop points have been found hiding here */
-void parse_adtl(off_t adtl_offset, off_t adtl_length, STREAMFILE  *streamFile,
-        long *loop_start, long *loop_end, int *loop_flag) {
+static void parse_adtl(off_t adtl_offset, off_t adtl_length, STREAMFILE  *streamFile, long *loop_start, long *loop_end, int *loop_flag) {
     int loop_start_found = 0;
     int loop_end_found = 0;
 
@@ -92,12 +91,7 @@ struct riff_fmt_chunk {
     int interleave;
 };
 
-int read_fmt(int big_endian,
-    STREAMFILE * streamFile, 
-    off_t current_chunk,
-    struct riff_fmt_chunk * fmt,
-    int sns,
-    int mwv) {
+static int read_fmt(int big_endian, STREAMFILE * streamFile, off_t current_chunk, struct riff_fmt_chunk * fmt, int sns, int mwv) {
 
     int codec, bps;
     int32_t (*read_32bit)(off_t,STREAMFILE*) = NULL;
@@ -404,7 +398,9 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
      * (ex. Cave PC games have PCM16LE + JUNK + smpl created by "Samplitude software") */
     if (JunkFound
             && check_extensions(streamFile,"wav,lwav") /* for some .MED IMA */
-            && (fmt.coding_type==coding_MSADPCM || fmt.coding_type==coding_MS_IMA)) goto fail;
+            && (fmt.coding_type==coding_MSADPCM || fmt.coding_type==coding_MS_IMA))
+        goto fail;
+
 
     switch (fmt.coding_type) {
         case coding_PCM16LE:
@@ -731,6 +727,7 @@ VGMSTREAM * init_vgmstream_rifx(STREAMFILE *streamFile) {
                     break;
                 case 0x4A554E4B:    /* JUNK */
                     JunkFound = 1;
+                    break;
                 default:
                     /* ignorance is bliss */
                     break;

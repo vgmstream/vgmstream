@@ -665,7 +665,6 @@ VGMSTREAM * allocate_vgmstream(int channel_count, int looped) {
 }
 
 void close_vgmstream(VGMSTREAM * vgmstream) {
-    int i,j;
     if (!vgmstream)
         return;
 
@@ -841,19 +840,23 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
     }
 
     /* now that the special cases have had their chance, clean up the standard items */
-    for (i=0;i<vgmstream->channels;i++) {
-        if (vgmstream->ch[i].streamfile) {
-            close_streamfile(vgmstream->ch[i].streamfile);
-            /* Multiple channels might have the same streamfile. Find the others
-             * that are the same as this and clear them so they won't be closed
-             * again. */
-            for (j=0;j<vgmstream->channels;j++) {
-                if (i!=j && vgmstream->ch[j].streamfile == 
-                            vgmstream->ch[i].streamfile) {
-                    vgmstream->ch[j].streamfile = NULL;
+    {
+        int i,j;
+
+        for (i=0;i<vgmstream->channels;i++) {
+            if (vgmstream->ch[i].streamfile) {
+                close_streamfile(vgmstream->ch[i].streamfile);
+                /* Multiple channels might have the same streamfile. Find the others
+                 * that are the same as this and clear them so they won't be closed
+                 * again. */
+                for (j=0;j<vgmstream->channels;j++) {
+                    if (i!=j && vgmstream->ch[j].streamfile ==
+                                vgmstream->ch[i].streamfile) {
+                        vgmstream->ch[j].streamfile = NULL;
+                    }
                 }
+                vgmstream->ch[i].streamfile = NULL;
             }
-            vgmstream->ch[i].streamfile = NULL;
         }
     }
 
@@ -954,6 +957,8 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
             break;
         case layout_scd_int:
             render_vgmstream_scd_int(buffer,sample_count,vgmstream);
+            break;
+        default:
             break;
     }
 }
@@ -1818,6 +1823,8 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                         vgmstream->channels, vgmstream->samples_into_block, samples_to_do,
                         chan);
             }
+            break;
+        default:
             break;
     }
 }

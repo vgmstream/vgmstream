@@ -169,7 +169,7 @@ static size_t read_stdio(STDIOSTREAMFILE *streamfile,uint8_t * dest, off_t offse
     /* request outside buffer: new fread */
     {
         size_t length_read = read_the_rest(dest,offset,length,streamfile);
-#if PROFILE_STREAMFILE
+#ifdef PROFILE_STREAMFILE
         if (length_read < length) 
             streamfile->error_count++;
 #endif

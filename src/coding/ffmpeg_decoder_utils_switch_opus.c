@@ -333,8 +333,8 @@ fail:
 static size_t make_opus_comment(uint8_t * buf, int buf_size) {
     size_t comment_size;
     int vendor_string_length, user_comment_0_length;
-    char * vendor_string = "vgmstream";
-    char * user_comment_0_string = "vgmstream Opus converter";
+    const char * vendor_string = "vgmstream";
+    const char * user_comment_0_string = "vgmstream Opus converter";
     vendor_string_length = strlen(vendor_string);
     user_comment_0_length = strlen(user_comment_0_string);
 

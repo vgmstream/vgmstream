@@ -29,7 +29,7 @@ extern int optind, opterr, optopt;
 static void make_wav_header(uint8_t * buf, int32_t sample_count, int32_t sample_rate, int channels);
 static void make_smpl_chunk(uint8_t * buf, int32_t loop_start, int32_t loop_end);
 
-void usage(const char * name) {
+static void usage(const char * name) {
     fprintf(stderr,"vgmstream test decoder " VERSION " " __DATE__ "\n"
           "Usage: %s [-o outfile.wav] [-l loop count]\n"
           "    [-f fade time] [-d fade delay] [-ipcmxeE] infile\n"
@@ -284,7 +284,7 @@ int main(int argc, char ** argv) {
     }
 
     /* signal ignore fade for get_vgmstream_play_samples */
-    if (loop_count && fade_ignore) {
+    if (loop_count > 0 && fade_ignore) {
         fade_seconds = -1.0;
     }
 
@@ -292,7 +292,7 @@ int main(int argc, char ** argv) {
     if (!play && !adxencd && !oggenc && !batchvar) printf("samples to play: %d (%.4lf seconds)\n",len,(double)len/s->sample_rate);
     fade_samples = fade_seconds * s->sample_rate;
 
-    if (loop_count && fade_ignore) {
+    if (loop_count > 0 && fade_ignore) {
         s->loop_target = (int)loop_count;
     }
 

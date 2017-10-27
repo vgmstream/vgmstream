@@ -121,7 +121,7 @@ g72x_init_state(
  * computes the estimated signal from 6-zero predictor.
  *
  */
-int
+static int
 predictor_zero(
 	struct g72x_state *state_ptr)
 {
@@ -139,7 +139,7 @@ predictor_zero(
  * computes the estimated signal from 2-pole predictor.
  *
  */
-int
+static int
 predictor_pole(
 	struct g72x_state *state_ptr)
 {
@@ -152,7 +152,7 @@ predictor_pole(
  * computes the quantization step size of the adaptive quantizer.
  *
  */
-int
+static int
 step_size(
 	struct g72x_state *state_ptr)
 {
@@ -181,7 +181,7 @@ step_size(
  * codeword 'i' and quantization step size scale factor 'y'.
  * Multiplication is performed in log base 2 domain as addition.
  */
-int
+static int
 reconstruct(
 	int		sign,	/* 0 for non-negative value */
 	int		dqln,	/* G.72x codeword */
@@ -210,7 +210,7 @@ reconstruct(
  *
  * updates the state variables for each output code
  */
-void
+static void
 update(
 	/*int		code_size,*/	/* distinguish 723_40 with others */
 	int		y,		/* quantizer step size */
@@ -427,7 +427,7 @@ static short	_fitab[16] = {0, 0, 0, 0x200, 0x200, 0x200, 0x600, 0xE00,
  * returns the resulting linear PCM, A-law or u-law value.
  * return -1 for unknown out_coding value.
  */
-int
+static int
 g721_decoder(
 	int		i,
 	struct g72x_state *state_ptr)

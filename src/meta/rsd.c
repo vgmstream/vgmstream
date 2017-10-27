@@ -1158,6 +1158,8 @@ VGMSTREAM * init_vgmstream_rsd6xma(STREAMFILE *streamFile) {
 #endif
 		break;
 	}
+	default:
+	    goto fail;
 	}
 	/* open the file for reading */
 	if (!vgmstream_open_stream(vgmstream, streamFile, start_offset))
