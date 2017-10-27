@@ -101,10 +101,11 @@ int ffmpeg_custom_read_switch_opus(ffmpeg_codec_data *data, uint8_t *buf, int bu
 int64_t ffmpeg_custom_seek_switch_opus(ffmpeg_codec_data *data, int64_t virtual_offset) {
     int64_t real_offset, virtual_base;
     int64_t current_virtual_offset = data->virtual_offset;
+    int64_t seek_virtual_offset = virtual_offset - data->header_size;
 
     /* find Wwise block start closest to offset; a 0x1E8 block expands to 0x1D + 0x1E0 (oggs + data) */
 
-    if (virtual_offset > current_virtual_offset) { /* seek after current: start from current block */
+    if (seek_virtual_offset > current_virtual_offset) { /* seek after current: start from current block */
         real_offset = data->real_offset;
         virtual_base = data->virtual_base;
     }
@@ -117,14 +118,14 @@ int64_t ffmpeg_custom_seek_switch_opus(ffmpeg_codec_data *data, int64_t virtual_
 
 
     /* find target block */
-    while (virtual_base < virtual_offset) {
+    while (virtual_base < seek_virtual_offset) {
         size_t extra_size;
         size_t data_size = read_32bitBE(real_offset, data->streamfile);
 
         extra_size = 0x1b + (int)(data_size / 0xFF + 1); /* OggS page: base size + lacing values */
 
         /* stop if virtual_offset lands inside current block */
-        if (data_size + extra_size > virtual_offset)
+        if (data_size + extra_size > seek_virtual_offset)
             break;
 
         real_offset += 0x04 + 0x04 + data_size;

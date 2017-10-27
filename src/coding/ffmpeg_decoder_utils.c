@@ -16,7 +16,9 @@ int ffmpeg_custom_read_standard(ffmpeg_codec_data *data, uint8_t *buf, int buf_s
 }
 
 int64_t ffmpeg_custom_seek_standard(ffmpeg_codec_data *data, int64_t virtual_offset) {
-    data->real_offset = data->real_start + (virtual_offset - data->header_size);
+    int64_t seek_virtual_offset = virtual_offset - data->header_size;
+
+    data->real_offset = data->real_start + seek_virtual_offset;
     return virtual_offset;
 }
 
