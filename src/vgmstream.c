@@ -1419,7 +1419,7 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
             break;
         case coding_XBOX_int:
             for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_xbox_ima_int(vgmstream,&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                decode_xbox_ima_int(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
                         samples_to_do,chan);
             }
