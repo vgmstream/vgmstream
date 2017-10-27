@@ -403,6 +403,10 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
             vgmstream->codec_data = ffmpeg_data;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
+
+            /* no wma_bytes_to_samples, this should be ok */
+            if (!vgmstream->num_samples)
+                vgmstream->num_samples = ffmpeg_data->totalSamples;
             break;
         }
 
@@ -511,7 +515,7 @@ typedef struct {
 
 /* try to find the stream name in a companion XSB file, a comically complex cue format. */
 static void get_xsb_name(char * buf, size_t maxsize, int target_stream, xwb_header * xwb, STREAMFILE *streamXwb) {
-    STREAMFILE *streamFile;
+    STREAMFILE *streamFile = NULL;
     int i,j, start_sound, cfg__start_sound = 0, cfg__selected_wavebank = 0;
     int xsb_version;
     off_t off, suboff, name_offset = 0;
@@ -546,7 +550,7 @@ static void get_xsb_name(char * buf, size_t maxsize, int target_stream, xwb_head
     /* read main header (SoundBankHeader) */
     xsb_version = read_16bit(0x04, streamFile);
     if ((xwb->version <= XACT1_1_MAX && xsb_version > XSB_XACT1_MAX) || (xwb->version <= XACT2_2_MAX && xsb_version > XSB_XACT2_MAX)) {
-        VGM_LOG("XSB: xsb and xwb are from different XACT versions (xsb v%i vs xwb v%i)", xsb_version, xwb->version);
+        VGM_LOG("XSB: xsb and xwb are from different XACT versions (xsb v%i vs xwb v%i)\n", xsb_version, xwb->version);
         goto fail;
     }
 
@@ -585,10 +589,10 @@ static void get_xsb_name(char * buf, size_t maxsize, int target_stream, xwb_head
     }
 
     VGM_ASSERT(xsb.xsb_sounds_count < xwb->streams,
-               "XSB: number of streams in xsb lower than xwb (xsb %i vs xwb %i)", xsb.xsb_sounds_count, xwb->streams);
+               "XSB: number of streams in xsb lower than xwb (xsb %i vs xwb %i)\n", xsb.xsb_sounds_count, xwb->streams);
 
     VGM_ASSERT(xsb.xsb_simple_sounds_count + xsb.xsb_complex_sounds_count != xsb.xsb_sounds_count,
-               "XSB: number of xsb sounds doesn't match simple + complex sounds (simple %i, complex %i, total %i)", xsb.xsb_simple_sounds_count, xsb.xsb_complex_sounds_count, xsb.xsb_sounds_count);
+               "XSB: number of xsb sounds doesn't match simple + complex sounds (simple %i, complex %i, total %i)\n", xsb.xsb_simple_sounds_count, xsb.xsb_complex_sounds_count, xsb.xsb_sounds_count);
 
 
     /* init stuff */
@@ -614,7 +618,7 @@ static void get_xsb_name(char * buf, size_t maxsize, int target_stream, xwb_head
             size = 0x14;
 
             if (flag != 0x01) {
-                VGM_LOG("XSB: xsb flag 0x%x at offset 0x%08lx not implemented", flag, off);
+                VGM_LOG("XSB: xsb flag 0x%x at offset 0x%08lx not implemented\n", flag, off);
                 goto fail;
             }
 
@@ -643,7 +647,7 @@ static void get_xsb_name(char * buf, size_t maxsize, int target_stream, xwb_head
                         suboff = size - 0x08;
                     }
                 } else {
-                    VGM_LOG("XSB: xsb flag 0x%x at offset 0x%08lx not implemented", flag, off);
+                    VGM_LOG("XSB: xsb flag 0x%x at offset 0x%08lx not implemented\n", flag, off);
                     goto fail;
                 }
             }
@@ -654,7 +658,7 @@ static void get_xsb_name(char * buf, size_t maxsize, int target_stream, xwb_head
         }
 
         if (s->wavebank+1 > xsb.xsb_wavebanks_count) {
-            VGM_LOG("XSB: unknown xsb wavebank id %i at offset 0x%lx", s->wavebank, off);
+            VGM_LOG("XSB: unknown xsb wavebank id %i at offset 0x%lx\n", s->wavebank, off);
             goto fail;
         }
 
@@ -724,7 +728,7 @@ static void get_xsb_name(char * buf, size_t maxsize, int target_stream, xwb_head
 
             if (w->sound_count == xwb->streams) {
                 if (!cfg__selected_wavebank) {
-                    VGM_LOG("XSB: multiple xsb wavebanks with the same number of sounds, use -w to specify one of the wavebanks");
+                    VGM_LOG("XSB: multiple xsb wavebanks with the same number of sounds, use -w to specify one of the wavebanks\n");
                     goto fail;
                 }
 
@@ -739,17 +743,17 @@ static void get_xsb_name(char * buf, size_t maxsize, int target_stream, xwb_head
     }
 
     if (!cfg__selected_wavebank) {
-        VGM_LOG("XSB: multiple xsb wavebanks but autodetect didn't work");
+        VGM_LOG("XSB: multiple xsb wavebanks but autodetect didn't work\n");
         goto fail;
     }
     if (xsb.xsb_wavebanks[cfg__selected_wavebank-1].sound_count == 0) {
-        VGM_LOG("XSB: xsb selected wavebank %i has no sounds", cfg__selected_wavebank);
+        VGM_LOG("XSB: xsb selected wavebank %i has no sounds\n", cfg__selected_wavebank);
         goto fail;
     }
 
     if (cfg__start_sound) {
         if (xsb.xsb_wavebanks[cfg__selected_wavebank-1].sound_count - (cfg__start_sound-1) < xwb->streams) {
-            VGM_LOG("XSB: starting sound too high (max in selected wavebank is %i)", xsb.xsb_wavebanks[cfg__selected_wavebank-1].sound_count - xwb->streams + 1);
+            VGM_LOG("XSB: starting sound too high (max in selected wavebank is %i)\n", xsb.xsb_wavebanks[cfg__selected_wavebank-1].sound_count - xwb->streams + 1);
             goto fail;
         }
 
@@ -789,5 +793,6 @@ static void get_xsb_name(char * buf, size_t maxsize, int target_stream, xwb_head
 fail:
     free(xsb.xsb_sounds);
     free(xsb.xsb_wavebanks);
+    close_streamfile(streamFile);
     return;
 }
