@@ -62,7 +62,7 @@ VGMSTREAM * init_vgmstream_pc_adp_otns(STREAMFILE *streamFile) {
     if (datasize + 0x10 != streamFile->get_size(streamFile)
             || read_32bitLE(0x04,streamFile) != 0
             || read_32bitLE(0x08,streamFile) != 0
-            || read_32bitLE(0x10,streamFile) != 0)
+            || read_32bitLE(0x0c,streamFile) != 0)
         goto fail;
 
     stereo_flag = read_8bit(0x03, streamFile);
