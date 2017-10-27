@@ -103,13 +103,25 @@ static const hcakey_info hcakey_list[] = {
         {4867249871962584729},      // 438BF1F883653699
 
         // Tekken Mobile (iOS/Android)
-        {0xFFFFFFFFFFFFFFFF},       //
+        {0xFFFFFFFFFFFFFFFF},       // FFFFFFFFFFFFFFFF / 18446744073709551615
 
         // Tales of the Rays (iOS/Android)
         {9516284},                  // 00000000009134FC
 
-        // Skylock - Kamigami to Unmei no Itsutsuko [iOS]
+        // Skylock - Kamigami to Unmei no Itsutsuko (iOS/Android)
         {49160768297},              // 0000000B7235CB29
+
+        // Tokyo Ghoul: Re Invoke (iOS/Android)
+        {6929101074247145},         // 00189DFB1024ADE9
+
+        // Azur Lane (iOS/Android)
+        {621561580448882},          // 0002354E95356C72
+
+        // One Piece Treasure Cruise (iOS/Android)
+        {1224},                     // 00000000000004C8
+
+        // Schoolgirl Strikers ~Twinkle Melodies~ (iOS/Android)
+        {0xDB5B61B8343D0000},       // DB5B61B8343D0000
 
 };
 
