@@ -11,7 +11,6 @@
  * - don't force channel param and get them from frame headers for some types (for MPEG_STANDARD)
  * - in case of streams like 2ch+1ch+1ch+2ch (not seen) use one stream per channel and advance streams as channels are done
  * - validate of channels between streams
- * - fsb garbage in the first frames
  */
 
 #define MPEG_DATA_BUFFER_SIZE 0x1000 /* at least one MPEG frame (max ~0x5A1) */
@@ -409,18 +408,6 @@ static void decode_mpeg_custom_stream(VGMSTREAMCHANNEL *stream, mpeg_codec_data 
             data->buffer_used = 0;
         }
     }
-
-#if 0
-        //FSB sometimes has garbage in the first frames, not sure why/when, no apparent patern
-        if (data->custom_type == MPEG_FSB && stream->offset == stream->channel_start_offset) { /* first frame */
-            VGM_LOG("MPEG: skip first frame @ %x - %x\n", stream->offset, stream->channel_start_offset);
-
-            data->buffer_full = 0;
-            memset(data->stream_buffer, 0, data->stream_buffer_size);
-            bytes_done = data->stream_buffer_size;
-            break;
-        }
-#endif
 
 
     bytes_filled = sizeof(sample)*ms->samples_filled*data->channels_per_frame;

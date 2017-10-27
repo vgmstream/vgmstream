@@ -70,6 +70,7 @@ int mpeg_custom_setup_init_default(STREAMFILE *streamFile, off_t start_offset, m
 
     //todo: test more: this improves the output, but seems formats aren't usually prepared
     // (and/or the num_samples includes all possible samples in file, so by discarding some it'll reach EOF)
+    // FSBs (with FMOD DLLs) don't seem to need it, even when files contain garbage at the beginning
 #if 0
     /* set encoder delay (samples to skip at the beginning of a stream) if needed, which varies with encoder used */
     switch(data->type) {
