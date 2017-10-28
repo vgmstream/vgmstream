@@ -99,7 +99,7 @@ static const hcakey_info hcakey_list[] = {
         // World Chain (iOS/Android)
         {4892292804961027794},      // 43E4EA62B8E6C6D2
 
-        // Yuyuyui (iOS/Android) *unconfirmed
+        // Yuuki Yuuna wa Yuusha de aru - Hanayui no Kirameki / Yuyuyui (iOS/Android)
         {4867249871962584729},      // 438BF1F883653699
 
         // Tekken Mobile (iOS/Android)
