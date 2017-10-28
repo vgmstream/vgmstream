@@ -354,6 +354,23 @@ static int find_key(STREAMFILE *file, uint8_t type, uint16_t *xor_start, uint16_
             uint16_t add = keys[key_id].add;
             int i;
 
+#ifdef ADX_VERIFY_DERIVED_KEYS
+            {
+                uint16_t test_start, test_mult, test_add;
+                if (type == 8 && keys[key_id].key8) {
+                    process_cri_key8(keys[key_id].key8, &test_start, &test_mult, &test_add);
+                    VGM_LOG("key8: pre=%04x %04x %04x vs calc=%04x %04x %04x = %s (\"%s\")\n",
+                            xor,mult,add, test_start,test_mult,test_add, xor==test_start && mult==test_mult && add==test_add ? "ok" : "ko", keys[key_id].key8);
+                }
+                else if (type == 9 && keys[key_id].key9) {
+                    process_cri_key9(keys[key_id].key9, &test_start, &test_mult, &test_add);
+                    VGM_LOG("key9: pre=%04x %04x %04x vs calc=%04x %04x %04x = %s (%"PRIu64")\n",
+                            xor,mult,add, test_start,test_mult,test_add, xor==test_start && mult==test_mult && add==test_add ? "ok" : "ko", keys[key_id].key9);
+                }
+                continue;
+            }
+#endif
+
             for (i=0;i<bruteframe &&
                 ((prescales[i]&keymask)==(xor&keymask) ||
                     prescales[i]==0);
