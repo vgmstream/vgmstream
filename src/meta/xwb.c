@@ -793,6 +793,6 @@ static void get_xsb_name(char * buf, size_t maxsize, int target_stream, xwb_head
 fail:
     free(xsb.xsb_sounds);
     free(xsb.xsb_wavebanks);
-    close_streamfile(streamFile);
+    if (streamFile) close_streamfile(streamFile);
     return;
 }
