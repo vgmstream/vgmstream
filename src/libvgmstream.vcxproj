@@ -118,6 +118,7 @@
     <ClInclude Include="streamtypes.h" />
     <ClInclude Include="util.h" />
     <ClInclude Include="vgmstream.h" />
+    <ClInclude Include="meta\adx_keys.h" />
     <ClInclude Include="meta\meta.h" />
     <ClInclude Include="meta\hca_keys.h" />
     <ClInclude Include="coding\acm_decoder.h" />
@@ -132,6 +133,7 @@
     <ClCompile Include="coding\at3_decoder.c" />
     <ClCompile Include="coding\coding_utils.c" />
     <ClCompile Include="coding\ffmpeg_decoder.c" />
+    <ClCompile Include="coding\ffmpeg_decoder_utils_bgw_atrac3.c" />
     <ClCompile Include="coding\ffmpeg_decoder_utils_ea_xma.c" />
     <ClCompile Include="coding\ffmpeg_decoder_utils_switch_opus.c" />
     <ClCompile Include="coding\ffmpeg_decoder_utils.c" />
@@ -291,7 +293,7 @@
     <ClCompile Include="meta\pc_al2.c" />
     <ClCompile Include="meta\pc_mxst.c" />
     <ClCompile Include="meta\pc_smp.c" />
-    <ClCompile Include="meta\pc_sob.c" />
+    <ClCompile Include="meta\sab.c" />
     <ClCompile Include="meta\pc_xa30.c" />
     <ClCompile Include="meta\pcm.c" />
     <ClCompile Include="meta\pona.c" />
