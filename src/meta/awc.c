@@ -223,11 +223,12 @@ static int parse_awc_header(STREAMFILE* streamFile, awc_header* awc) {
                     sample_rate = (uint16_t)read_16bit(offset + 0x0c + 0x10*ch + 0x0a,streamFile);
                     codec = read_8bit(offset + 0x0c + 0x10*ch + 0x0c, streamFile);
 
-                    /* validate as all channels should repeat this */
-                    if ((awc->num_samples && awc->num_samples != num_samples) ||
+                    /* validate as all channels should repeat this (when channels is even and > 2 seems
+                     * it's stereo pairs, and num_samples can vary slightly but no matter) */
+                    if ((awc->num_samples && !(awc->num_samples >= num_samples - 10 && awc->num_samples <= num_samples + 10)) ||
                         (awc->sample_rate && awc->sample_rate != sample_rate) ||
                         (awc->codec && awc->codec != codec)) {
-                        VGM_LOG("AWC: found header diffs between channels\n"); /* can rarely happen in stereo pairs */
+                        VGM_LOG("AWC: found header diffs between channels\n");
                         goto fail;
                     }
 

@@ -196,6 +196,10 @@
 			<Filter
 				Name="Header Files"
 				>
+                <File
+                    RelativePath=".\meta\adx_keys.h"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\meta.h"
 					>
@@ -679,7 +683,7 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\pc_sob.c"
+					RelativePath=".\meta\sab.c"
 					>
 				</File>
                 <File
@@ -1384,6 +1388,10 @@
                 </File>
                 <File
                     RelativePath=".\coding\ffmpeg_decoder_utils_ea_schl.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\coding\ffmpeg_decoder_utils_bgw_atrac3.c"
                     >
                 </File>
                 <File

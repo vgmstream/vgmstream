@@ -7,13 +7,13 @@ const int SHC = 10;
 double K0[4] = { 0.0, 0.9375, 1.796875,  1.53125};
 double K1[4] = { 0.0,    0.0,  -0.8125,-0.859375};
 
-int IK0(int fid)
+static int IK0(int fid)
 { return ((int)((-K0[fid]) * (1 << SHC))); }
 
-int IK1(int fid)
+static int IK1(int fid)
 { return ((int)((-K1[fid]) * (1 << SHC))); }
 
-int CLAMP(int value, int Minim, int Maxim)
+static int CLAMP(int value, int Minim, int Maxim)
 {
     if (value < Minim) value = Minim;
     if (value > Maxim) value = Maxim;

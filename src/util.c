@@ -18,6 +18,8 @@ const char * filename_extension(const char * filename) {
     return ext;
 }
 
+/* unused */
+/*
 void interleave_channel(sample * outbuffer, sample * inbuffer, int32_t sample_count, int channel_count, int channel_number) {
     int32_t insample,outsample;
 
@@ -30,6 +32,7 @@ void interleave_channel(sample * outbuffer, sample * inbuffer, int32_t sample_co
         outbuffer[outsample]=inbuffer[insample];
     }
 }
+*/
 
 /* failed attempt at interleave in place */
 /*

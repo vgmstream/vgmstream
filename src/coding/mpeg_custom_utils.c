@@ -70,6 +70,7 @@ int mpeg_custom_setup_init_default(STREAMFILE *streamFile, off_t start_offset, m
 
     //todo: test more: this improves the output, but seems formats aren't usually prepared
     // (and/or the num_samples includes all possible samples in file, so by discarding some it'll reach EOF)
+    // FSBs (with FMOD DLLs) don't seem to need it, even when files contain garbage at the beginning
 #if 0
     /* set encoder delay (samples to skip at the beginning of a stream) if needed, which varies with encoder used */
     switch(data->type) {
@@ -233,6 +234,7 @@ int mpeg_get_frame_info(STREAMFILE *streamfile, off_t offset, mpeg_frame_info * 
         case 384:  info->frame_size = (12l  * info->bit_rate * 1000l / info->sample_rate + padding) * 4; break;
         case 576:  info->frame_size = (72l  * info->bit_rate * 1000l / info->sample_rate + padding); break;
         case 1152: info->frame_size = (144l * info->bit_rate * 1000l / info->sample_rate + padding); break;
+        default: goto fail;
     }
 
     return 1;

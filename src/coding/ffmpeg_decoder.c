@@ -98,6 +98,8 @@ static void convert_audio(sample *outbuf, const uint8_t *inbuf, int sampleCount,
  * Fortunately seek_frame_generic can use an index to find the correct position. This function reads the
  * first frame/packet and sets up index to timestamp 0. This ensures faulty demuxers will seek to 0 correctly.
  * Some formats may not seek to 0 even with this, though.
+ *
+ * todo: some formats don't work with the current index values
  */
 static int init_seek(ffmpeg_codec_data * data) {
     int ret, ts_index, found_first = 0;
@@ -220,6 +222,7 @@ static int ffmpeg_read(void *opaque, uint8_t *buf, int buf_size) {
     switch(data->config.type) {
         case FFMPEG_EA_XMA:         ret = ffmpeg_custom_read_eaxma(data, buf, buf_size); break;
         case FFMPEG_SWITCH_OPUS:    ret = ffmpeg_custom_read_switch_opus(data, buf, buf_size); break;
+        case FFMPEG_BGW_ATRAC3:     ret = ffmpeg_custom_read_bgw_atrac3(data, buf, buf_size); break;
       //case FFMPEG_EA_SCHL:        ret = ffmpeg_custom_read_ea_schl(data, buf, buf_size); break;
       //case FFMPEG_SFH:            ret = ffmpeg_custom_read_sfh(data, buf, buf_size); break;
         default:                    ret = ffmpeg_custom_read_standard(data, buf, buf_size); break;
@@ -228,6 +231,7 @@ static int ffmpeg_read(void *opaque, uint8_t *buf, int buf_size) {
     //data->real_offset = ; /* must be updated in function */
 
     //;VGM_LOG("AVIO read done: ret=%x, r_off=%"PRIx64", v_off=%"PRIx64"\n", ret + max_to_copy, data->real_offset, data->virtual_offset);fflush(stdout);
+    //;VGM_LOGB((buf - max_to_copy),ret + max_to_copy,0);
     return ret + max_to_copy;
 }
 
@@ -287,6 +291,7 @@ static int64_t ffmpeg_seek(void *opaque, int64_t offset, int whence) {
     switch(data->config.type) {
         case FFMPEG_EA_XMA:         offset = ffmpeg_custom_seek_eaxma(data, offset); break;
         case FFMPEG_SWITCH_OPUS:    offset = ffmpeg_custom_seek_switch_opus(data, offset); break;
+        case FFMPEG_BGW_ATRAC3:     offset = ffmpeg_custom_seek_bgw_atrac3(data, offset); break;
       //case FFMPEG_EA_SCHL:        offset = ffmpeg_custom_seek_ea_schl(data, offset); break;
       //case FFMPEG_SFH:            offset = ffmpeg_custom_seek_sfh(data, offset); break;
         default:                    offset = ffmpeg_custom_seek_standard(data, offset); break;
@@ -304,6 +309,7 @@ static int64_t ffmpeg_size(ffmpeg_codec_data * data) {
     switch(data->config.type) {
         case FFMPEG_EA_XMA:         bytes = ffmpeg_custom_size_eaxma(data); break;
         case FFMPEG_SWITCH_OPUS:    bytes = ffmpeg_custom_size_switch_opus(data); break;
+        case FFMPEG_BGW_ATRAC3:     bytes = ffmpeg_custom_size_bgw_atrac3(data); break;
       //case FFMPEG_EA_SCHL:        bytes = ffmpeg_custom_size_ea_schl(data); break;
       //case FFMPEG_SFH:            bytes = ffmpeg_custom_size_sfh(data); break;
         default:                    bytes = ffmpeg_custom_size_standard(data); break;
@@ -799,6 +805,9 @@ void free_ffmpeg(ffmpeg_codec_data *data) {
     if (data->streamfile) {
         close_streamfile(data->streamfile);
         data->streamfile = NULL;
+    }
+    if (data->config.key) {
+        free(data->config.key);
     }
     free(data);
 }

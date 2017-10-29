@@ -134,12 +134,13 @@ fail:
 
 int64_t ffmpeg_custom_seek_eaxma(ffmpeg_codec_data *data, int64_t virtual_offset) {
     int64_t real_offset, virtual_base;
-    int64_t current_virtual_offset = data->virtual_offset;
+    int64_t current_virtual_offset = data->virtual_offset - data->header_size;
+    int64_t seek_virtual_offset = virtual_offset - data->header_size;
 
     /* Find SNS block start closest to offset. ie. virtual_offset 0x1A10 could mean SNS blocks
      * of 0x456+0x820 padded to 0x800+0x1000 (base) + 0x210 (extra for reads), thus real_offset = 0xC76 */
 
-    if (virtual_offset > current_virtual_offset) { /* seek after current: start from current block */
+    if (seek_virtual_offset > current_virtual_offset) { /* seek after current: start from current block */
         real_offset = data->real_offset;
         virtual_base = data->virtual_base;
     }
@@ -150,7 +151,7 @@ int64_t ffmpeg_custom_seek_eaxma(ffmpeg_codec_data *data, int64_t virtual_offset
 
 
     /* find target block */
-    while (virtual_base < virtual_offset) {
+    while (virtual_base < seek_virtual_offset) {
         size_t data_size, extra_size = 0;
         size_t block_size = read_32bitBE(real_offset, data->streamfile);
 
@@ -159,7 +160,7 @@ int64_t ffmpeg_custom_seek_eaxma(ffmpeg_codec_data *data, int64_t virtual_offset
             extra_size = EAXMA_XMA_PACKET_SIZE - (data_size % EAXMA_XMA_PACKET_SIZE);
 
         /* stop if virtual_offset lands inside current block */
-        if (data_size + extra_size > virtual_offset)
+        if (data_size + extra_size > seek_virtual_offset)
             break;
 
         real_offset += (block_size & 0x00FFFFFF);

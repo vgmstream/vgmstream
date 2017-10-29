@@ -2,12 +2,13 @@
 #define _USE_MATH_DEFINES
 #endif
 #include <math.h>
-#include <string.h>
 #include <limits.h>
-#include "meta.h"
 
+#include "meta.h"
+#include "adx_keys.h"
 #include "../coding/coding.h"
-#include "../util.h"
+
+#define MAX_TEST_FRAMES (INT_MAX/0x8000)
 
 static int find_key(STREAMFILE *file, uint8_t type, uint16_t *xor_start, uint16_t *xor_mult, uint16_t *xor_add);
 
@@ -233,270 +234,6 @@ fail:
     return NULL;
 }
 
-/* guessadx stuff */
-
-/* type 8 keys */
-static struct {
-    uint16_t start,mult,add;
-} keys_8[] = {
-    /* Clover Studio (GOD HAND, Okami) */
-    /* Verified by VGAudio and the game's executable */
-    /* Key string: karaage */
-    {0x49e1,0x4a57,0x553d},
-
-    /* Grasshopper Manufacture 0 (Blood+) */
-    /* this is estimated */
-    {0x5f5d,0x58bd,0x55ed},
-
-    /* Grasshopper Manufacture 1 (Killer7) */
-    /* this is estimated */
-    {0x50fb,0x5803,0x5701},
-
-    /* Grasshopper Manufacture 2 (Samurai Champloo) */
-    /* confirmed unique with guessadx */
-    {0x4f3f,0x472f,0x562f},
-
-    /* Moss Ltd (Raiden III) */
-    /* this is estimated */
-    {0x66f5,0x58bd,0x4459},
-
-    /* Sonic Team 0 (Phantasy Star Universe) */
-    /* Verified by VGAudio and the game's executable */
-    /* Key string: 3x5k62bg9ptbwy */
-    {0x5deb,0x5f27,0x673f},
-
-    /* G.rev 0 (Senko no Ronde) */
-    /* this is estimated */
-    {0x46d3,0x5ced,0x474d},
-
-    /* Sonic Team 1 (NiGHTS: Journey of Dreams) */
-    /* this seems to be dead on, but still estimated */
-    {0x440b,0x6539,0x5723},
-
-    /* from guessadx (unique?), unknown source */
-    {0x586d,0x5d65,0x63eb},
-
-    /* Navel (Shuffle! On the Stage) */
-    /* 2nd key from guessadx */
-    {0x4969,0x5deb,0x467f},
-
-    /* Success (Aoishiro) */
-    /* 1st key from guessadx */
-    {0x4d65,0x5eb7,0x5dfd},
-
-    /* Sonic Team 2 (Sonic and the Black Knight) */
-    /* Verified by VGAudio and the game's executable */
-    /* Key string: morio */
-    {0x55b7,0x6191,0x5a77},
-
-    /* Enterbrain (Amagami) */
-    /* Verified by VGAudio and the game's executable */
-    /* Key string: mituba */
-    {0x5a17,0x509f,0x5bfd},
-
-    /* Yamasa (Yamasa Digi Portable: Matsuri no Tatsujin) */
-    /* confirmed unique with guessadx */
-    {0x4c01,0x549d,0x676f},
-
-    /* Kadokawa Shoten (Fragments Blue) */
-    /* confirmed unique with guessadx */
-    {0x5803,0x4555,0x47bf},
-
-    /* Namco (Soulcalibur IV) */
-    /* confirmed unique with guessadx */
-    {0x59ed,0x4679,0x46c9},
-
-    /* G.rev 1 (Senko no Ronde DUO) */
-    /* from guessadx */
-    {0x6157,0x6809,0x4045},
-
-    /* ASCII Media Works 0 (Nogizaka Haruka no Himitsu: Cosplay Hajimemashita) */
-    /* 2nd from guessadx, other was {0x45ad,0x5f27,0x10fd} */
-    {0x45af,0x5f27,0x52b1},
-
-    /* D3 Publisher 0 (Little Anchor) */
-    /* confirmed unique with guessadx */
-    {0x5f65,0x5b3d,0x5f65},
-
-    /* Marvelous 0 (Hanayoi Romanesque: Ai to Kanashimi) */
-    /* 2nd from guessadx, other was {0x5562,0x5047,0x1433} */
-    {0x5563,0x5047,0x43ed},
-
-	/* Capcom (Mobile Suit Gundam: Gundam vs. Gundam NEXT PLUS) */
-    /* confirmed unique with guessadx */
-    {0x4f7b,0x4fdb,0x5cbf},
-
-	/* Developer: Bridge NetShop
-	 * Publisher: Kadokawa Shoten (Shoukan Shoujo: Elemental Girl Calling) */
-    /* confirmed unique with guessadx */
-    {0x4f7b,0x5071,0x4c61},
-
-	/* Developer: Net Corporation
-	 * Publisher: Tecmo (Rakushou! Pachi-Slot Sengen 6: Rio 2 Cruising Vanadis) */
-    /* confirmed unique with guessadx */
-    {0x53e9,0x586d,0x4eaf},
-	
-	/* Developer: Aquaplus
-	 * Tears to Tiara Gaiden Avalon no Kagi (PS3) */
-	/* confirmed unique with guessadx */
-	{0x47e1,0x60e9,0x51c1},
-
-	/* Developer: Broccoli
-	 * Neon Genesis Evangelion: Koutetsu no Girlfriend 2nd (PS2) */
-    /* confirmed unique with guessadx */
-	{0x481d,0x4f25,0x5243},
-
-	/* Developer: Marvelous
-	 * Futakoi Alternative (PS2) */
-    /* confirmed unique with guessadx */
-	{0x413b,0x543b,0x57d1},
-
-	/* Developer: Marvelous
-	 * Gakuen Utopia - Manabi Straight! KiraKira Happy Festa! (PS2)
-	 * Second guess from guessadx, other was 
-	 *   {0x440b,0x4327,0x564b} 
-	 **/
-	 {0x440d,0x4327,0x4fff},
-
-	/* Developer: Datam Polystar
-	 * Soshite Kono Uchuu ni Kirameku Kimi no Shi XXX (PS2) */
-    /* confirmed unique with guessadx */
-	{0x5f5d,0x552b,0x5507},
-
-	/* Developer: Sega
-	 * Sakura Taisen: Atsuki Chishio Ni (PS2) */
-    /* confirmed unique with guessadx */
-	{0x645d,0x6011,0x5c29},
-
-	/* Developer: Sega
-	 * Sakura Taisen 3 ~Paris wa Moeteiru ka~ (PS2) */
-    /* confirmed unique with guessadx */
-	{0x62ad,0x4b13,0x5957},
-
-	/* Developer: Jinx
-	 * Sotsugyou 2nd Generation (PS2)
-     * First guess from guessadx, other was 
-	 *   {0x6307,0x509f,0x2ac5} 
-	 */
-	{0x6305,0x509f,0x4c01},
-
-    /*
-     * La Corda d'Oro (2005)(-)(Koei)[PSP]
-     * confirmed unique with guessadx */
-    {0x55b7,0x67e5,0x5387},
-
-    /*
-     * Nanatsuiro * Drops Pure!! (2007)(Media Works)[PS2]
-     * confirmed unique with guessadx */
-    {0x6731,0x645d,0x566b},
-
-    /*
-     * Shakugan no Shana (2006)(Vridge)(Media Works)[PS2]
-     * confirmed unique with guessadx */
-    {0x5fc5,0x63d9,0x599f},
-
-    /*
-     * Uragiri wa Boku no Namae o Shitteiru (2010)(Kadokawa Shoten)[PS2]
-     * confirmed unique with guessadx */
-    {0x4c73,0x4d8d,0x5827},
-
-	/*
-     * StormLover Kai!! (2012)(D3 Publisher)[PSP]
-     * confirmed unique with guessadx */
-    {0x5a11,0x67e5,0x6751},
-    
-	/*
-     * Sora no Otoshimono - DokiDoki Summer Vacation (2010)(Kadokawa Shoten)[PSP]
-     * confirmed unique with guessadx */
-    {0x5e75,0x4a89,0x4c61},
-    
-    /*
-     * Boku wa Koukuu Kanseikan - Airport Hero Naha (2006)(Sonic Powered)(Electronic Arts)[PSP]
-     * confirmed unique with guessadx */
-    {0x64ab,0x5297,0x632f},
-    
-	/*
-     * Lucky Star - Net Idol Meister (2009)(Kadokawa Shoten)[PSP]
-     * confirmed unique with guessadx */
-    {0x4d82,0x5243,0x685},
-    
-    /*
-     * Ishin Renka: Ryouma Gaiden (2010-11-25)(-)(D3 Publisher)[PSP]
-     */
-    {0x54d1,0x526d,0x5e8b},
-    
-    /*
-     * Lucky Star - Ryouou Gakuen Outousai Portable (2010-12-22)(-)(Kadokawa Shoten)[PSP]
-     */
-    {0x4d06,0x663b,0x7d09},
-
-    /*
-     * Marriage Royale - Prism Story (2010-04-28)(-)(ASCII Media Works)[PSP]
-     */
-    {0x40a9,0x46b1,0x62ad},
-
-    /*
-     * Nogizaka Haruka no Himitsu - Doujinshi Hajime Mashita (2010-10-28)(-)(ASCII Media Works)[PSP]
-     */
-    {0x4601,0x671f,0x0455},
-
-    /*
-     * Slotter Mania P - Mach Go Go Go III (2011-01-06)(-)(Dorart)[PSP]
-     */
-    {0x41ef,0x463d,0x5507},
-
-    /*
-     * Nichijou - Uchuujin (2011-07-28)(-)(Kadokawa Shoten)[PSP]
-     */
-    {0x4369,0x486d,0x5461},
-
-    /*
-     * R-15 Portable (2011-10-27)(-)(Kadokawa Shoten)[PSP]
-     */
-    {0x6809,0x5fd5,0x5bb1},
-
-    /*
-     * Suzumiya Haruhi-chan no Mahjong (2011-07-07)(-)(Kadokawa Shoten)[PSP]
-     */
-    {0x5c33,0x4133,0x4ce7},
-
-	// Storm Lover Natsu Koi!! (2011-08-04)(Vridge)(D3 Publisher)
-	{0x4133,0x5a01,0x5723},
-
-};
-
-/* type 9 keys (may not be autodetected correctly) */
-static struct {
-    uint16_t start,mult,add;
-} keys_9[] = {
-    /* Phantasy Star Online 2
-     * guessed with degod */
-    {0x07d2,0x1ec5,0x0c7f},
-
-    /* Dragon Ball Z: Dokkan Battle
-     * Verified by VGAudio 
-     * Key code: 416383518 */
-    {0x0003,0x0d19,0x043b},
-
-    /* Kisou Ryouhei Gunhound EX (2013-01-31)(Dracue)[PSP]
-     * Verified by VGAudio 
-     * Key code: 683461999 */
-    {0x0005,0x0bcd,0x1add},
-
-    /* Raramagi [Android]
-     * Verified by VGAudio 
-     * Key code: 12160794 */
-    {0x0000,0x0b99,0x1e33},
-
-    /* Sonic runners [Android]
-     * Verified by VGAudio 
-     * Key code: 19910623 */
-    {0x0000,0x12fd,0x1fbd},
-
-};
-
-static const int keys_8_count = sizeof(keys_8)/sizeof(keys_8[0]);
-static const int keys_9_count = sizeof(keys_9)/sizeof(keys_9[0]);
 
 /* return 0 if not found, 1 if found and set parameters */
 static int find_key(STREAMFILE *file, uint8_t type, uint16_t *xor_start, uint16_t *xor_mult, uint16_t *xor_add)
@@ -521,7 +258,7 @@ static int find_key(STREAMFILE *file, uint8_t type, uint16_t *xor_start, uint16_
     }
 
 
-    /* guess key from the tables above */
+    /* guess key from the tables */
     startoff=read_16bitBE(2, file)+4;
     endoff=(read_32bitBE(12, file)+31)/32*18*read_8bit(7, file)+startoff;
 
@@ -558,14 +295,13 @@ static int find_key(STREAMFILE *file, uint8_t type, uint16_t *xor_start, uint16_
 
     {
         /* try to guess key */
-#define MAX_FRAMES (INT_MAX/0x8000)
-        struct { uint16_t start, mult, add; } *keys = NULL;
+        const adxkey_info * keys = NULL;
         int keycount = 0, keymask = 0;
         int scales_to_do;
         int key_id;
 
         /* allocate storage for scales */
-        scales_to_do = (bruteframecount > MAX_FRAMES ? MAX_FRAMES : bruteframecount);
+        scales_to_do = (bruteframecount > MAX_TEST_FRAMES ? MAX_TEST_FRAMES : bruteframecount);
         scales = malloc(scales_to_do*sizeof(uint16_t));
         if (!scales) {
             goto find_key_cleanup;
@@ -595,8 +331,8 @@ static int find_key(STREAMFILE *file, uint8_t type, uint16_t *xor_start, uint16_
 
         if (type == 8)
         {
-            keys = &keys_8;
-            keycount = keys_8_count;
+            keys = adxkey8_list;
+            keycount = adxkey8_list_count;
             keymask = 0x6000;
         }
         else if (type == 9)
@@ -605,8 +341,8 @@ static int find_key(STREAMFILE *file, uint8_t type, uint16_t *xor_start, uint16_
              * but the maximum value assigned by the encoder is 0x1000.
              * This is written to the ADX file as 0xFFF, leaving the high bit
              * empty, which is used to validate a key */
-            keys = &keys_9;
-            keycount = keys_9_count;
+            keys = adxkey9_list;
+            keycount = adxkey9_list_count;
             keymask = 0x1000;
         }
 
@@ -617,6 +353,23 @@ static int find_key(STREAMFILE *file, uint8_t type, uint16_t *xor_start, uint16_
             uint16_t mult = keys[key_id].mult;
             uint16_t add = keys[key_id].add;
             int i;
+
+#ifdef ADX_VERIFY_DERIVED_KEYS
+            {
+                uint16_t test_start, test_mult, test_add;
+                if (type == 8 && keys[key_id].key8) {
+                    process_cri_key8(keys[key_id].key8, &test_start, &test_mult, &test_add);
+                    VGM_LOG("key8: pre=%04x %04x %04x vs calc=%04x %04x %04x = %s (\"%s\")\n",
+                            xor,mult,add, test_start,test_mult,test_add, xor==test_start && mult==test_mult && add==test_add ? "ok" : "ko", keys[key_id].key8);
+                }
+                else if (type == 9 && keys[key_id].key9) {
+                    process_cri_key9(keys[key_id].key9, &test_start, &test_mult, &test_add);
+                    VGM_LOG("key9: pre=%04x %04x %04x vs calc=%04x %04x %04x = %s (%"PRIu64")\n",
+                            xor,mult,add, test_start,test_mult,test_add, xor==test_start && mult==test_mult && add==test_add ? "ok" : "ko", keys[key_id].key9);
+                }
+                continue;
+            }
+#endif
 
             for (i=0;i<bruteframe &&
                 ((prescales[i]&keymask)==(xor&keymask) ||

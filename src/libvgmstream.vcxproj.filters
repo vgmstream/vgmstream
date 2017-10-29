@@ -62,6 +62,9 @@
     <ClInclude Include="vgmstream.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="meta\adx_keys.h">
+      <Filter>meta\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="meta\meta.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
@@ -400,7 +403,7 @@
     <ClCompile Include="meta\pc_smp.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\pc_sob.c">
+    <ClCompile Include="meta\sab.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\pc_xa30.c">
@@ -1148,6 +1151,9 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\ffmpeg_decoder.c">
+      <Filter>coding\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="coding\ffmpeg_decoder_utils_bgw_atrac3.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\ffmpeg_decoder_utils_ea_xma.c">

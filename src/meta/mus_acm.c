@@ -15,7 +15,7 @@
 
 #define NAME_LENGTH PATH_LIMIT 
 
-int exists(char *filename, STREAMFILE *streamfile) {
+static int exists(char *filename, STREAMFILE *streamfile) {
     STREAMFILE * temp = 
         streamfile->open(streamfile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
     if (!temp) return 0;
@@ -25,7 +25,7 @@ int exists(char *filename, STREAMFILE *streamfile) {
 }
 
 /* needs the name of a file in the directory to test, as all we can do reliably is attempt to open a file */
-int find_directory_name(char *name_base, char *dir_name, int subdir_name_size, char *subdir_name, char *name, char *file_name, STREAMFILE *streamfile) {
+static int find_directory_name(char *name_base, char *dir_name, int subdir_name_size, char *subdir_name, char *name, char *file_name, STREAMFILE *streamfile) {
     /* find directory name */
     {
         char temp_dir_name[NAME_LENGTH];
