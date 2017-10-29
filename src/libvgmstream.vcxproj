@@ -160,6 +160,7 @@
     <ClCompile Include="meta\nsw_opus.c" />
     <ClCompile Include="meta\nub_vag.c" />
     <ClCompile Include="meta\pc_adp.c" />
+    <ClCompile Include="meta\pc_ast.c" />
     <ClCompile Include="meta\pc_snds.c" />
     <ClCompile Include="meta\ps2_2pfs.c" />
     <ClCompile Include="meta\ps2_hsf.c" />

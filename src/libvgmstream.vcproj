@@ -662,6 +662,10 @@
                     RelativePath=".\meta\pc_al2.c"
                     >
                 </File>
+                <File
+                    RelativePath=".\meta\pc_ast.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\pc_mxst.c"
 					>
