@@ -41,21 +41,24 @@ static const int IMA_IndexTable[16] =
 };
 
 
-/* Original IMA */
+/* Alt IMA */
 static void ima_expand_nibble(VGMSTREAMCHANNEL * stream, off_t byte_offset, int nibble_shift, int32_t * hist1, int32_t * step_index) {
     int sample_nibble, sample_decoded, step, delta;
 
     //"original" ima nibble expansion
     sample_nibble = (read_8bit(byte_offset,stream->streamfile) >> nibble_shift)&0xf;
-    sample_decoded = *hist1 << 3;
+    sample_decoded = *hist1;
+
+    sample_decoded = sample_decoded << 3;
     step = ADPCMTable[*step_index];
     delta = step * (sample_nibble & 7) * 2 + step;
     if (sample_nibble & 8)
         sample_decoded -= delta;
     else
         sample_decoded += delta;
+    sample_decoded = sample_decoded >> 3;
 
-    *hist1 = clamp16(sample_decoded >> 3);
+    *hist1 = clamp16(sample_decoded);
     *step_index += IMA_IndexTable[sample_nibble];
     if (*step_index < 0) *step_index=0;
     if (*step_index > 88) *step_index=88;
@@ -117,7 +120,8 @@ static void snds_ima_expand_nibble(VGMSTREAMCHANNEL * stream, off_t byte_offset,
 
     step = ADPCMTable[*step_index];
     delta = (sample_nibble & 7) * step / 4 + step / 8;
-    if (sample_nibble & 8) delta = -delta;
+    if (sample_nibble & 8)
+        delta = -delta;
     sample_decoded = *hist1 + delta;
 
     *hist1 = clamp16(sample_decoded);
@@ -144,6 +148,25 @@ static void otns_ima_expand_nibble(VGMSTREAMCHANNEL * stream, off_t byte_offset,
     *step_index += IMA_IndexTable[sample_nibble];
     if (*step_index < 0) *step_index=0;
     if (*step_index > 88) *step_index=88;
+}
+
+/* algorithm by Zench (https://bitbucket.org/Zenchreal/decubisnd) */
+static void ubi_ima_expand_nibble(VGMSTREAMCHANNEL * stream, off_t byte_offset, int nibble_shift, int32_t * hist1, int32_t * step_index) {
+    int sample_nibble, sample_decoded, step, delta;
+
+    sample_nibble = (read_8bit(byte_offset,stream->streamfile) >> nibble_shift)&0xf;
+
+    step = ADPCMTable[*step_index];
+    *step_index += IMA_IndexTable[sample_nibble];
+    if (*step_index < 0) *step_index=0;
+    if (*step_index > 88) *step_index=88;
+
+    delta = (((sample_nibble & 7) * 2 + 1) * step) >> 3;
+    if (sample_nibble & 8)
+        delta = -delta;
+    sample_decoded = *hist1 + delta;
+
+    *hist1 = clamp16(sample_decoded);
 }
 
 
@@ -711,6 +734,67 @@ void decode_awc_ima(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspaci
 }
 
 
+/* DVI stereo/mono with some mini header and sample output */
+void decode_ubi_ima(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
+    int i, sample_count = 0;
+
+    int32_t hist1 = stream->adpcm_history1_32;
+    int step_index = stream->adpcm_step_index;
+
+    //internal interleave
+
+    //header in the beginning of the stream
+    if (stream->channel_start_offset == stream->offset) {
+        int version, big_endian, header_samples, max_samples_to_do;
+        int16_t (*read_16bit)(off_t,STREAMFILE*) = NULL;
+        off_t offset = stream->offset;
+
+        /* header fields mostly unknown (vary a lot or look like flags),
+         * 0x07 0x06 = major/minor tool version?, 0x0c: stereo flag? */
+        version = read_8bit(offset + 0x00, stream->streamfile);
+        big_endian = version < 5; //todo and sb.big_endian?
+        read_16bit = big_endian ? read_16bitBE : read_16bitLE;
+
+        header_samples = read_16bit(offset + 0x0E, stream->streamfile); /* always 10 (per channel) */
+        hist1      = read_16bit(offset + 0x10 + channel*0x04,stream->streamfile);
+        step_index =  read_8bit(offset + 0x12 + channel*0x04,stream->streamfile);
+        offset += 0x10 + 0x08 + 0x04; //todo v6 has extra 0x08?
+
+        /* write PCM samples, must be written to match header's num_samples (hist mustn't) */
+        max_samples_to_do = ((samples_to_do > header_samples) ? header_samples : samples_to_do);
+        for (i = first_sample; i < max_samples_to_do; i++, sample_count += channelspacing) {
+            outbuf[sample_count] = read_16bit(offset + channel*sizeof(sample) + i*channelspacing*sizeof(sample),stream->streamfile);
+            first_sample++;
+            samples_to_do--;
+        }
+
+        /* header done */
+        if (i == header_samples) {
+            stream->offset = offset + header_samples*channelspacing*sizeof(sample);
+        }
+    }
+
+
+    first_sample -= 10; //todo fix hack (needed to adjust nibble offset below)
+
+    for (i = first_sample; i < first_sample + samples_to_do; i++, sample_count += channelspacing) {
+        off_t byte_offset = channelspacing == 1 ?
+                stream->offset + i/2 :  /* mono mode */
+                stream->offset + i;     /* stereo mode */
+        int nibble_shift = channelspacing == 1 ?
+                (!(i%2) ? 4:0) :        /* mono mode (high first) */
+                (channel==0 ? 4:0);     /* stereo mode (high=L,low=R) */
+
+        ubi_ima_expand_nibble(stream, byte_offset,nibble_shift, &hist1, &step_index);
+        outbuf[sample_count] = (short)(hist1); /* all samples are written */
+    }
+
+    //external interleave
+
+    stream->adpcm_history1_32 = hist1;
+    stream->adpcm_step_index = step_index;
+}
+
 
 size_t ms_ima_bytes_to_samples(size_t bytes, int block_align, int channels) {
     /* MS IMA blocks have a 4 byte header per channel; 2 samples per byte (2 nibbles) */
@@ -720,4 +804,20 @@ size_t ms_ima_bytes_to_samples(size_t bytes, int block_align, int channels) {
 size_t ima_bytes_to_samples(size_t bytes, int channels) {
     /* 2 samples per byte (2 nibbles) in stereo or mono config */
     return bytes / channels * 2;
+}
+
+size_t ubi_ima_bytes_to_samples(size_t bytes, int channels, STREAMFILE *streamFile, off_t offset) {
+    int version, big_endian, header_samples;
+    int16_t (*read_16bit)(off_t,STREAMFILE*) = NULL;
+    size_t header_size = 0;
+
+    version = read_8bit(offset + 0x00, streamFile);
+    big_endian = version < 5; //todo and sb.big_endian?
+    read_16bit = big_endian ? read_16bitBE : read_16bitLE;
+
+    header_samples = read_16bit(offset + 0x0E, streamFile); /* always 10 (per channel) */
+    header_size += 0x10 + 0x04 * channels + 0x04; //todo v6 has extra 0x08?
+    header_size += header_samples * channels * sizeof(sample);
+
+    return header_samples + ima_bytes_to_samples(bytes - header_size, channels);
 }
