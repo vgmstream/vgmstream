@@ -901,7 +901,7 @@ static const meta_info meta_info_list[] = {
         {meta_BINK,                 "RAD Game Tools Bink header"},
         {meta_EA_SNU,               "Electronic Arts SNU header"},
         {meta_AWC,                  "Rockstar AWC header"},
-        {meta_NSW_OPUS,             ".OPUS header"},
+        {meta_NSW_OPUS,             "Nintendo Switch OPUS header"},
         {meta_PC_AL2,               "Illwinter Game Design AL2 raw header"},
         {meta_PC_AST,               "Capcom AST (PC) header"},
         {meta_UBI_SB,               "Ubisoft SBx header"},
