@@ -721,6 +721,9 @@
     <ClCompile Include="meta\ubi_raki.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\ubi_sb.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\vs.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>

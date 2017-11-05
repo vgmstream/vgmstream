@@ -135,6 +135,7 @@ typedef enum {
     coding_WWISE_IMA,       /* Audiokinetic Wwise IMA ADPCM */
     coding_REF_IMA,         /* Reflections IMA ADPCM */
     coding_AWC_IMA,         /* Rockstar AWC IMA ADPCM */
+    coding_UBI_IMA,         /* Ubisoft IMA ADPCM */
 
     coding_MSADPCM,         /* Microsoft ADPCM */
     coding_WS,              /* Westwood Studios VBR ADPCM */
@@ -629,7 +630,8 @@ typedef enum {
     meta_AWC,               /* Rockstar AWC (GTA5, RDR) */
     meta_NSW_OPUS,          /* Lego City Undercover (Switch) */
     meta_PC_AL2,            /* Conquest of Elysium 3 (PC) */
-	meta_PC_AST,            /* Dead Rising (PC) */
+    meta_PC_AST,            /* Dead Rising (PC) */
+    meta_UBI_SB,            /* Ubisoft banks */
 
 #ifdef VGM_USE_VORBIS
     meta_OGG_VORBIS,        /* Ogg Vorbis */

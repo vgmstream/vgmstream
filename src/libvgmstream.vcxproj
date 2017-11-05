@@ -400,6 +400,7 @@
     <ClCompile Include="meta\vgs.c" />
     <ClCompile Include="meta\ubi_ckd.c" />
     <ClCompile Include="meta\ubi_raki.c" />
+    <ClCompile Include="meta\ubi_sb.c" />
     <ClCompile Include="meta\vs.c" />
     <ClCompile Include="meta\vsf.c" />
     <ClCompile Include="meta\waa_wac_wad_wam.c" />

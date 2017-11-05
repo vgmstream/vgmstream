@@ -1174,6 +1174,10 @@
                     RelativePath=".\meta\ubi_raki.c"
                     >
                 </File>
+                <File
+                    RelativePath=".\meta\ubi_sb.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\vgs.c"
 					>
