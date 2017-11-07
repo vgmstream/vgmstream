@@ -392,6 +392,28 @@ STREAMFILE * open_stream_ext(STREAMFILE *streamFile, const char * ext) {
     return streamFile->open(streamFile,filename_ext,STREAMFILE_DEFAULT_BUFFER_SIZE);
 }
 
+/* Opens an stream in the same folder */
+STREAMFILE * open_stream_name(STREAMFILE *streamFile, const char * name) {
+    char foldername[PATH_LIMIT];
+    char filename[PATH_LIMIT];
+    const char *path;
+
+    streamFile->get_name(streamFile,foldername,sizeof(foldername));
+
+    path = strrchr(foldername,DIR_SEPARATOR);
+    if (path!=NULL) path = path+1;
+
+    if (path) {
+        strcpy(filename, foldername);
+        filename[path-foldername] = '\0';
+        strcat(filename, name);
+    } else {
+        strcpy(filename, name);
+    }
+
+    return streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
+}
+
 /**
  * open file containing decryption keys and copy to buffer
  * tries combinations of keynames based on the original filename

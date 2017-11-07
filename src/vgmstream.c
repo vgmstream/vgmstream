@@ -369,7 +369,8 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_awc,
     init_vgmstream_nsw_opus,
     init_vgmstream_pc_al2,
-	init_vgmstream_pc_ast,
+    init_vgmstream_pc_ast,
+    init_vgmstream_ubi_sb,
 
     init_vgmstream_txth,  /* should go at the end (lower priority) */
 #ifdef VGM_USE_FFMPEG
@@ -1024,6 +1025,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_SNDS_IMA:
         case coding_IMA:
         case coding_OTNS_IMA:
+        case coding_UBI_IMA:
             return 1;
         case coding_IMA_int:
         case coding_DVI_IMA_int:
@@ -1182,6 +1184,7 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
         case coding_G721:
         case coding_SNDS_IMA:
         case coding_OTNS_IMA:
+        case coding_UBI_IMA: /* variable (PCM then IMA) */
             return 0;
         case coding_NGC_AFC:
             return 9;
@@ -1680,6 +1683,13 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                 decode_awc_ima(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
                         samples_to_do);
+            }
+            break;
+        case coding_UBI_IMA:
+            for (chan=0;chan<vgmstream->channels;chan++) {
+                decode_ubi_ima(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                        vgmstream->channels,vgmstream->samples_into_block,
+                        samples_to_do,chan);
             }
             break;
 

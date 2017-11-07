@@ -38,7 +38,8 @@ int mpeg_custom_setup_init_default(STREAMFILE *streamFile, off_t start_offset, m
             {
                 int current_data_size = info.frame_size;
                 int current_padding = 0;
-                if (info.layer == 3 && data->config.fsb_padding) { /* FSB padding for Layer III */
+                /* FSB padding for Layer III or multichannel Layer II */
+                if ((info.layer == 3 && data->config.fsb_padding) || data->config.fsb_padding == 16) {
                     current_padding = (current_data_size % data->config.fsb_padding)
                             ? data->config.fsb_padding - (current_data_size % data->config.fsb_padding)
                             : 0;
@@ -109,9 +110,9 @@ int mpeg_custom_parse_frame_default(VGMSTREAMCHANNEL *stream, mpeg_codec_data *d
                 goto fail;
             current_data_size = info.frame_size;
 
-            /* get FSB padding for Layer III (Layer II doesn't use it, and Layer I doesn't seem to be supported) */
-            /* Padding sometimes contains garbage like the next frame header so we can't feed it to mpg123 or it gets confused. */
-            if (info.layer == 3 && data->config.fsb_padding) {
+            /* get FSB padding for Layer III or multichannel Layer II (Layer I doesn't seem to be supported)
+             * Padding sometimes contains garbage like the next frame header so we can't feed it to mpg123 or it gets confused. */
+            if ((info.layer == 3 && data->config.fsb_padding) || data->config.fsb_padding == 16) {
                 current_padding = (current_data_size % data->config.fsb_padding)
                         ? data->config.fsb_padding - (current_data_size % data->config.fsb_padding)
                         : 0;
