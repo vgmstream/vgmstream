@@ -154,6 +154,7 @@ static const char* extension_list[] = {
     "kraw",
 
     "laac", //fake extension, for AAC (tri-Ace/FFmpeg)
+    "lac3", //fake extension, for AC3
     "leg",
     "lmp4", //fake extension, for MP4s
     "logg", //fake extension, for OGGs
