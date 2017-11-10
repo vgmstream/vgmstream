@@ -73,8 +73,6 @@ VGMSTREAM * init_vgmstream_ubi_sb(STREAMFILE *streamFile) {
     /* check extension (number represents the platform, see later) */
     if ( !check_extensions(streamFile,"sb0,sb1,sb2,sb3,sb4,sb5,sb6,sb7") )
         goto fail;
-    //memset(&sb,0,sizeof(ubi_sb_header)); //todo test for VC2010's init = {0} above (should be C89 but...)
-    if (sb.flag1 != 0 || sb.codec!=0 || sb.stream_samples != 0) { VGM_LOG("UBI SB: not init ok\n"); goto fail; }
 
 
     /* .sb0 (sound bank) is a small multisong format (loaded in memory?) that contains SFX data
