@@ -254,7 +254,7 @@ VGMSTREAM * init_vgmstream_fsb_offset(STREAMFILE *streamFile, off_t offset) {
 
     /* sometimes there is garbage at the end or missing bytes due to improper demuxing */
     VGM_ASSERT(fsbh.hdrsize + fsbh.shdrsize + fsbh.datasize != streamFile->get_size(streamFile) - offset,
-               "FSB wrong head/datasize found (expected 0x%x vs 0x%l)x\n",
+               "FSB wrong head/datasize found (expected 0x%x vs 0x%lx)\n",
                fsbh.hdrsize + fsbh.shdrsize + fsbh.datasize, streamFile->get_size(streamFile) - offset);
 
     /* Loops unless disabled. FMOD default seems full loops (0/num_samples-1) without flags, for repeating tracks
