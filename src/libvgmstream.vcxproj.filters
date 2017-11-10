@@ -1081,6 +1081,9 @@
     <ClCompile Include="meta\pc_adp.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\pc_adp_otns.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\excitebots.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>

@@ -581,6 +581,7 @@ VGMSTREAM * init_vgmstream_hyperscan_kvag(STREAMFILE* streamFile);
 VGMSTREAM * init_vgmstream_ios_psnd(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_pc_adp_bos(STREAMFILE* streamFile);
+
 VGMSTREAM * init_vgmstream_pc_adp_otns(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_eb_sfx(STREAMFILE* streamFile);
