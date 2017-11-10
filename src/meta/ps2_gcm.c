@@ -8,7 +8,7 @@ VGMSTREAM * init_vgmstream_ps2_gcm(STREAMFILE *streamFile) {
     off_t start_offset;
 
     int loop_flag;
-   int channel_count;
+    int channel_count;
 
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
@@ -17,19 +17,19 @@ VGMSTREAM * init_vgmstream_ps2_gcm(STREAMFILE *streamFile) {
     /* check header */
     if (read_32bitBE(0x00,streamFile) != 0x4D434700) /* "MCG" */
         goto fail;
-	if (read_32bitBE(0x20,streamFile) != 0x56414770) /* "VAGp" */
+    if (read_32bitBE(0x20,streamFile) != 0x56414770) /* "VAGp" */
         goto fail;
 
     loop_flag = 0;
     channel_count= 2;
     
-   /* build the VGMSTREAM */
+    /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
-   /* fill in the vital statistics */
+    /* fill in the vital statistics */
     start_offset = 0x80;
-   vgmstream->channels = channel_count;
+    vgmstream->channels = channel_count;
     vgmstream->sample_rate = read_32bitBE(0x30,streamFile);
     vgmstream->coding_type = coding_PSX;
     vgmstream->num_samples = read_32bitLE(0x10,streamFile)*28/32;

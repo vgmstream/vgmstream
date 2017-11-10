@@ -19,11 +19,11 @@ VGMSTREAM * init_vgmstream_nds_strm(STREAMFILE *streamFile) {
     if (strcasecmp("strm",filename_extension(filename))) goto fail;
 
     /* check header */
-    if ((uint32_t)read_32bitBE(0x00,streamFile)!=0x5354524D)	/* STRM */
+    if ((uint32_t)read_32bitBE(0x00,streamFile)!=0x5354524D)    /* STRM */
         goto fail;
-	if ((uint32_t)read_32bitBE(0x04,streamFile)!=0xFFFE0001 &&	/* Old Header Check */
-		((uint32_t)read_32bitBE(0x04,streamFile)!=0xFEFF0001))	/* Some newer games have a new flag */
-		goto fail;
+    if ((uint32_t)read_32bitBE(0x04,streamFile)!=0xFFFE0001 &&    /* Old Header Check */
+        ((uint32_t)read_32bitBE(0x04,streamFile)!=0xFEFF0001))    /* Some newer games have a new flag */
+        goto fail;
 
 
 

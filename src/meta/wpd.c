@@ -7,7 +7,7 @@ VGMSTREAM * init_vgmstream_wpd(STREAMFILE *streamFile) {
     char filename[PATH_LIMIT];
     off_t start_offset;
     int channel_count;
-	int loop_flag;
+    int loop_flag;
 
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
@@ -17,8 +17,8 @@ VGMSTREAM * init_vgmstream_wpd(STREAMFILE *streamFile) {
     if (read_32bitBE(0x00,streamFile) != 0x20445057) /* " DPW" */
         goto fail;
 
-	channel_count = read_32bitLE(0x4,streamFile);
-	loop_flag = 0;
+    channel_count = read_32bitLE(0x4,streamFile);
+    loop_flag = 0;
 
    /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
