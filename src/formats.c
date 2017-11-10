@@ -1,4 +1,4 @@
-#include "formats.h"
+#include "vgmstream.h"
 
 //#define VGM_REGISTER_TYPE(extension) ...
 //#define VGM_REGISTER_TYPE_COMMON(extension) ... /* for common extensions like aiff */
@@ -375,20 +375,9 @@ static const char* extension_list[] = {
     //, NULL //end mark
 };
 
-/**
- * List of supported formats.
- *
- * For plugins that need to know (test.exe doesn't use it)
- */
-const char ** vgmstream_get_formats() {
+const char ** vgmstream_get_formats(size_t * size) {
+    *size = sizeof(extension_list) / sizeof(char*);
     return extension_list;
-}
-
-/**
- * Number of elements in the list.
- */
-int vgmstream_get_formats_length() {
-    return sizeof(extension_list) / sizeof(char*);
 }
 
 

@@ -1147,6 +1147,7 @@ typedef struct {
 /* do format detection, return pointer to a usable VGMSTREAM, or NULL on failure */
 VGMSTREAM * init_vgmstream(const char * const filename);
 
+/* init with custom IO via streamfile */
 VGMSTREAM * init_vgmstream_from_STREAMFILE(STREAMFILE *streamFile);
 
 /* reset a VGMSTREAM to start of stream */
@@ -1168,6 +1169,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length);
 /* Return the average bitrate in bps of all unique files contained within this
  * stream. Compares files by absolute paths. */
 int get_vgmstream_average_bitrate(VGMSTREAM * vgmstream);
+
+/* List of supported formats and elements in the list, for plugins that need to know. */
+const char ** vgmstream_get_formats(size_t * size);
 
 /* -------------------------------------------------------------------------*/
 /* vgmstream "private" API                                                  */
@@ -1202,5 +1206,10 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream);
 /* Open the stream for reading at offset (standarized taking into account layouts, channels and so on).
  * returns 0 on failure */
 int vgmstream_open_stream(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t start_offset);
+
+/* get description info */
+const char * get_vgmstream_coding_description(coding_t coding_type);
+const char * get_vgmstream_layout_description(layout_t layout_type);
+const char * get_vgmstream_meta_description(meta_t meta_type);
 
 #endif

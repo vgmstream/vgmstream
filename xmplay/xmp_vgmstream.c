@@ -11,7 +11,6 @@
 #include <string.h>
 #include <ctype.h>
 
-#include "../src/formats.h"
 #include "../src/vgmstream.h"
 #include "xmpin.h"
 
@@ -27,7 +26,7 @@
 
 /* XMPlay extension list, only needed to associate extensions in Windows */
 /*  todo: as of v3.8.2.17, any more than ~1000 will crash XMplay's file list screen (but not using the non-native Winamp plugin...) */
-#define EXTENSION_LIST_SIZE   1000 /*VGM_EXTENSION_LIST_CHAR_SIZE * 2*/
+#define EXTENSION_LIST_SIZE   1000 /* (0x2000 * 2) */
 #define XMPLAY_MAX_PATH  32768
 
 /* XMPlay function library */
@@ -205,13 +204,12 @@ static int add_extension(int length, char * dst, const char * ext) {
  * Extensions must be in this format: "Description\0extension1/.../extensionN" */
 static void build_extension_list() {
     const char ** ext_list;
-    int ext_list_len;
+    size_t ext_list_len;
     int i, written;
 
     written = sprintf(working_extension_list, "%s%c", "vgmstream files",'\0');
 
-    ext_list = vgmstream_get_formats();
-    ext_list_len = vgmstream_get_formats_length();
+    ext_list = vgmstream_get_formats(&ext_list_len);
 
     for (i=0; i < ext_list_len; i++) {
         written += add_extension(EXTENSION_LIST_SIZE-written, working_extension_list + written, ext_list[i]);

@@ -16,7 +16,6 @@
 #include <shared.h>
 
 extern "C" {
-#include "../src/formats.h"
 #include "../src/vgmstream.h"
 }
 #include "foo_vgmstream.h"
@@ -184,18 +183,18 @@ void input_vgmstream::decode_initialize(t_uint32 p_subsong, unsigned p_flags, ab
 
 bool input_vgmstream::decode_run(audio_chunk & p_chunk,abort_callback & p_abort) {
     if (!decoding) return false;
+    if (!vgmstream) return false;
 
     int max_buffer_samples = sizeof(sample_buffer)/sizeof(sample_buffer[0])/vgmstream->channels;
-    int l = 0, samples_to_do = max_buffer_samples;
+    int samples_to_do = max_buffer_samples;
+    t_size bytes;
 
-    if(vgmstream) {
+    {
         bool loop_okay = loop_forever && vgmstream->loop_flag && !ignore_loop && !force_ignore_loop;
         if (decode_pos_samples+max_buffer_samples>stream_length_samples && !loop_okay)
             samples_to_do=stream_length_samples-decode_pos_samples;
         else
             samples_to_do=max_buffer_samples;
-
-        l = (samples_to_do*vgmstream->channels * sizeof(sample_buffer[0]));
 
         if (samples_to_do /*< DECODE_SIZE*/ == 0) {
             decoding = false;
@@ -222,15 +221,14 @@ bool input_vgmstream::decode_run(audio_chunk & p_chunk,abort_callback & p_abort)
             }
         }
 
-        p_chunk.set_data_fixedpoint((char*)sample_buffer, l, vgmstream->sample_rate, vgmstream->channels, 16, audio_chunk::g_guess_channel_config(vgmstream->channels));
+        bytes = (samples_to_do*vgmstream->channels * sizeof(sample_buffer[0]));
+        p_chunk.set_data_fixedpoint((char*)sample_buffer, bytes, vgmstream->sample_rate, vgmstream->channels, 16, audio_chunk::g_guess_channel_config(vgmstream->channels));
 
         decode_pos_samples+=samples_to_do;
         decode_pos_ms=decode_pos_samples*1000LL/vgmstream->sample_rate;
 
         return samples_to_do==max_buffer_samples;
-
     }
-    return false;
 }
 
 void input_vgmstream::decode_seek(double p_seconds,abort_callback & p_abort) {
@@ -295,11 +293,10 @@ void input_vgmstream::retag_commit(abort_callback & p_abort) { /*throw exception
 bool input_vgmstream::g_is_our_content_type(const char * p_content_type) {return false;}
 bool input_vgmstream::g_is_our_path(const char * p_path,const char * p_extension) {
     const char ** ext_list;
-    int ext_list_len;
+    size_t ext_list_len;
     int i;
 
-    ext_list = vgmstream_get_formats();
-    ext_list_len = vgmstream_get_formats_length();
+    ext_list = vgmstream_get_formats(&ext_list_len);
 
     for (i=0; i < ext_list_len; i++) {
         if (!stricmp_utf8(p_extension, ext_list[i]))

@@ -5,7 +5,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
-#include "formats.h"
 #include "vgmstream.h"
 #include "meta/meta.h"
 #include "layout/layout.h"

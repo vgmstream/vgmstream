@@ -47,9 +47,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="formats.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="streamfile.h">
       <Filter>Header Files</Filter>
     </ClInclude>

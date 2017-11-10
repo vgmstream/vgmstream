@@ -19,7 +19,6 @@
 #include <string.h>
 #include <ctype.h>
 
-#include "../src/formats.h"
 #include "../src/vgmstream.h"
 #include "in2.h"
 #include "wa_ipc.h"
@@ -68,7 +67,7 @@ In_Module input_module;
 DWORD WINAPI __stdcall decode(void *arg);
 
 /* Winamp Play extension list, needed to accept/play and associate extensions in Windows */
-#define EXTENSION_LIST_SIZE   VGM_EXTENSION_LIST_CHAR_SIZE * 6
+#define EXTENSION_LIST_SIZE   (0x2000 * 6)
 #define EXT_BUFFER_SIZE 200
 char working_extension_list[EXTENSION_LIST_SIZE] = {0};
 
@@ -463,14 +462,13 @@ static void add_extension(int length, char * dst, const char * ext) {
  * Each extension must be in this format: "extension\0Description\0" */
 static void build_extension_list() {
     const char ** ext_list;
-    int ext_list_len;
+    size_t ext_list_len;
     int i;
 
     working_extension_list[0]='\0';
     working_extension_list[1]='\0';
 
-    ext_list = vgmstream_get_formats();
-    ext_list_len = vgmstream_get_formats_length();
+    ext_list = vgmstream_get_formats(&ext_list_len);
 
     for (i=0; i < ext_list_len; i++) {
         add_extension(EXTENSION_LIST_SIZE, working_extension_list, ext_list[i]);
