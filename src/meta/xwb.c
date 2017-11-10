@@ -25,7 +25,7 @@ static const int wma_block_align_index[17] = {
 };
 
 
-typedef enum { PCM, XBOX_ADPCM, MS_ADPCM, XMA1, XMA2, WMA, XWMA, ATRAC3 } xact_codec;
+typedef enum { PCM, XBOX_ADPCM, MS_ADPCM, XMA1, XMA2, WMA, XWMA, ATRAC3, OGG } xact_codec;
 typedef struct {
     int little_endian;
     int version;
@@ -124,8 +124,6 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
 
         /* for Techland's XWB with no data */
         if (xwb.base_offset == 0) goto fail;
-        /* some BlazBlue Centralfiction songs have padding after data size */
-        if (xwb.data_offset + xwb.data_size > get_streamfile_size(streamFile)) goto fail;
 
         /* read base entry (WAVEBANKDATA) */
         off = xwb.base_offset;
@@ -168,8 +166,6 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
 
         xwb.loop_start      = (uint32_t)read_32bit(off+0x0c, streamFile);
         xwb.loop_end        = (uint32_t)read_32bit(off+0x10, streamFile);//length
-
-        xwb.loop_flag = (xwb.loop_end > 0 || xwb.loop_end_sample > xwb.loop_start);
     }
     else {
         uint32_t entry_info = (uint32_t)read_32bit(off+0x00, streamFile);
@@ -190,9 +186,6 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
             xwb.loop_start_sample   = (uint32_t)read_32bit(off+0x10, streamFile);
             xwb.loop_end_sample     = (uint32_t)read_32bit(off+0x14, streamFile) + xwb.loop_start_sample;
         }
-
-        xwb.loop_flag = (xwb.loop_end > 0 || xwb.loop_end_sample > xwb.loop_start)
-            && !(xwb.entry_flags & WAVEBANKENTRY_FLAGS_IGNORELOOP);
     }
 
 
@@ -231,14 +224,17 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
             case 1: xwb.codec = XBOX_ADPCM; break;
             default: goto fail;
         }
-    } else if (xwb.version <= XACT1_1_MAX) {
+    }
+    else if (xwb.version <= XACT1_1_MAX) {
         switch(xwb.tag){
             case 0: xwb.codec = PCM; break;
             case 1: xwb.codec = XBOX_ADPCM; break;
             case 2: xwb.codec = WMA; break;
+            case 3: xwb.codec = OGG; break; /* extension */
             default: goto fail;
         }
-    } else if (xwb.version <= XACT2_2_MAX) {
+    }
+    else if (xwb.version <= XACT2_2_MAX) {
         switch(xwb.tag) {
             case 0: xwb.codec = PCM; break;
             /* Table Tennis (v34): XMA1, Prey (v38): XMA2, v35/36/37: ? */
@@ -246,7 +242,8 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
             case 2: xwb.codec = MS_ADPCM; break;
             default: goto fail;
         }
-    } else {
+    }
+    else {
         switch(xwb.tag) {
             case 0: xwb.codec = PCM; break;
             case 1: xwb.codec = XMA2; break;
@@ -265,6 +262,26 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
         /* num samples uses a modified entry_info format (maybe skip samples + samples? sfx use the standard format)
          * ignore for now and just calc max samples */
         xwb.num_samples = atrac3_bytes_to_samples(xwb.stream_size, xwb.block_align * xwb.channels);
+    }
+
+    /* Oddworld: Stranger's Wrath iOS/Android format hijack, with changed meanings */
+    if (xwb.codec == OGG) {
+        xwb.num_samples = xwb.stream_size / (2 * xwb.channels); /* uncompressed bytes */
+        xwb.stream_size = xwb.loop_end;
+        xwb.loop_start = 0;
+        xwb.loop_end = 0;
+    }
+
+
+    /* test loop after the above fixes */
+    xwb.loop_flag = (xwb.loop_end > 0 || xwb.loop_end_sample > xwb.loop_start)
+        && !(xwb.entry_flags & WAVEBANKENTRY_FLAGS_IGNORELOOP);
+
+    if (xwb.codec != OGG) {
+        /* for Oddworld OGG the data_size value is size of uncompressed bytes instead */
+        /* some BlazBlue Centralfiction songs have padding after data size (maybe wrong rip?) */
+        if (xwb.data_offset + xwb.data_size > get_streamfile_size(streamFile))
+            goto fail;
     }
 
 
@@ -435,7 +452,7 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
             break;
         }
 
-        case ATRAC3: { /* Techland extension */
+        case ATRAC3: { /* Techland PS3 extension */
             uint8_t buf[200];
             int bytes;
 
@@ -452,6 +469,15 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
             vgmstream->layout_type = layout_none;
             break;
         }
+
+        case OGG: { /* Oddworld: Strangers Wrath iOS/Android extension */
+            vgmstream->codec_data = init_ffmpeg_offset(streamFile, xwb.stream_offset, xwb.stream_size);
+            if ( !vgmstream->codec_data ) goto fail;
+            vgmstream->coding_type = coding_FFmpeg;
+            vgmstream->layout_type = layout_none;
+            break;
+        }
+
 #endif
 
         default:
