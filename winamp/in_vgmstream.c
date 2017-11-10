@@ -5,8 +5,9 @@
 /* Normally Winamp opens unicode files by their DOS 8.3 name. #define this to use wchar_t filenames,
  * which must be opened with _wfopen in a WINAMP_STREAMFILE (needed for dual files like .pos).
  * Only for Winamp paths, other parts would need #define UNICODE for Windows. */
-//#define UNICODE_INPUT_PLUGIN
-
+#ifdef VGM_WINAMP_UNICODE
+#define UNICODE_INPUT_PLUGIN
+#endif
 
 #ifdef _MSC_VER
 #define _CRT_SECURE_NO_DEPRECATE
