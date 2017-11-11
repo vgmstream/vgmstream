@@ -34,6 +34,8 @@ typedef struct {
     size_t stream_id_offset;
     int has_short_channels;
     int has_internal_names;
+    int has_extra_name_flag;
+    int has_rotating_ids;
 
     /* derived */
     size_t main_size;
@@ -117,7 +119,7 @@ VGMSTREAM * init_vgmstream_ubi_sb(STREAMFILE *streamFile) {
         start_offset  = sb.main_size + sb.section1_size + sb.section2_size + sb.extra_size + sb.section3_size;
         start_offset += sb.stream_offset;
     }
-    ;VGM_LOG("so=%lx, main=%x, s1=%x, s2=%x, ex=%x, s3=%x, so=%lx\n", start_offset, sb.main_size, sb.section1_size, sb.section2_size, sb.extra_size, sb.section3_size, sb.stream_offset);
+
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(sb.channels,loop_flag);
@@ -129,7 +131,7 @@ VGMSTREAM * init_vgmstream_ubi_sb(STREAMFILE *streamFile) {
 
 
     switch(sb.codec) {
-        case UBI_ADPCM: { //todo move to its own decoder
+        case UBI_ADPCM: {
             vgmstream->coding_type = coding_UBI_IMA;
             vgmstream->layout_type = layout_none;
             vgmstream->num_samples = ubi_ima_bytes_to_samples(sb.stream_size, sb.channels, streamData, start_offset);
@@ -141,6 +143,7 @@ VGMSTREAM * init_vgmstream_ubi_sb(STREAMFILE *streamFile) {
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = 0x02;
             vgmstream->num_samples = pcm_bytes_to_samples(sb.stream_size, sb.channels, 16);
+
             if (sb.channels > 1) { VGM_LOG("UBI SB: >1 channel\n"); goto fail; } //todo
             break;
 
@@ -181,7 +184,8 @@ VGMSTREAM * init_vgmstream_ubi_sb(STREAMFILE *streamFile) {
             vgmstream->coding_type = coding_PSX;
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = sb.stream_size / sb.channels;
-            vgmstream->num_samples = ps_bytes_to_samples(sb.stream_size, sb.channels) ;
+            vgmstream->num_samples = ps_bytes_to_samples(sb.stream_size, sb.channels);
+
             if (sb.channels > 1) { VGM_LOG("UBI SB: >1 channel\n"); goto fail; } //todo
             break;
 
@@ -262,7 +266,7 @@ fail:
 static int parse_sb_header(ubi_sb_header * sb, STREAMFILE *streamFile) {
     int32_t (*read_32bit)(off_t,STREAMFILE*) = NULL;
     int16_t (*read_16bit)(off_t,STREAMFILE*) = NULL;
-    int i, ok;
+    int i, ok, current_type = -1, current_id = -1;
     int target_stream = streamFile->stream_index;
 
     if (target_stream == 0) target_stream = 1;
@@ -282,7 +286,7 @@ static int parse_sb_header(ubi_sb_header * sb, STREAMFILE *streamFile) {
     sb->section1_num = read_32bit(0x04, streamFile); /* group headers? */
     sb->section2_num = read_32bit(0x08, streamFile); /* streams headers (internal or external) */
     sb->section3_num = read_32bit(0x0c, streamFile); /* internal streams table */
-    sb->extra_size   = read_32bit(0x10, streamFile); /* extra table, unknown except with DSP = coefs */
+    sb->extra_size   = read_32bit(0x10, streamFile); /* extra table, unknown (config for non-audio types) except with DSP = coefs */
     sb->flag1        = read_32bit(0x14, streamFile); /* unknown, usually -1 but can be others (0/1/2/etc) */
     sb->flag2        = read_32bit(0x18, streamFile); /* unknown, usually -1 but can be others  */
 
@@ -305,11 +309,39 @@ static int parse_sb_header(ubi_sb_header * sb, STREAMFILE *streamFile) {
         if (read_32bit(offset + 0x04, streamFile) != 0x01)
             continue;
 
+        /* weird case when there is no internal substream ID and just seem to rotate every time type changes, joy */
+        if (sb->has_rotating_ids) { /* assumes certain configs can't happen in this case */
+            int current_is_external = 0;
+            int type = read_32bit(offset + sb->stream_type_offset, streamFile);
+
+            if (current_type == -1)
+                current_type = type;
+            if (current_id == -1) /* use first ID in section3 */
+                current_id = read_32bit(sb->main_size + sb->section1_size + sb->section2_size + sb->extra_size + 0x00, streamFile);
+
+            if (sb->external_flag_offset) {
+                current_is_external = read_32bit(offset + sb->external_flag_offset, streamFile);
+            } else if (sb->has_extra_name_flag && read_32bit(offset + sb->extra_name_offset, streamFile) != 0xFFFFFFFF) {
+                current_is_external = 1; /* -1 in extra_name means internal */
+            }
+
+
+            if (!current_is_external) {
+                if (current_type != type) {
+                    current_type = type;
+                    current_id++; /* rotate */
+                    if (current_id >= sb->section3_num)
+                        current_id = 0; /* reset */
+                }
+
+            }
+        }
+
         /* update streams (total_stream also doubles as current) */
         sb->total_streams++;
         if (sb->total_streams != target_stream)
             continue;
-        ;VGM_LOG("target at offset=%lx (size=%x)\n", offset, sb->section2_entry_size);
+        //;VGM_LOG("target at offset=%lx (size=%x)\n", offset, sb->section2_entry_size);
 
         sb->header_id      = read_32bit(offset + 0x00, streamFile); /* 16b+16b group+sound id */
         sb->header_type    = read_32bit(offset + 0x04, streamFile);
@@ -325,8 +357,11 @@ static int parse_sb_header(ubi_sb_header * sb, STREAMFILE *streamFile) {
         if (sb->num_samples_offset)
             sb->stream_samples = read_32bit(offset + sb->num_samples_offset, streamFile);
 
-        if (sb->stream_id_offset)
+        if (sb-> has_rotating_ids) {
+            sb->stream_id  = current_id;
+        } else if (sb->stream_id_offset) {
             sb->stream_id  = read_32bit(offset + sb->stream_id_offset, streamFile);
+        }
 
         /* external stream name can be found in the header (first versions) or the extra table (later versions) */
         if (sb->stream_name_offset) {
@@ -339,6 +374,8 @@ static int parse_sb_header(ubi_sb_header * sb, STREAMFILE *streamFile) {
         /* not always set and must be derived */
         if (sb->external_flag_offset) {
             sb->is_external = read_32bit(offset + sb->external_flag_offset, streamFile);
+        } else if (sb->has_extra_name_flag && read_32bit(offset + sb->extra_name_offset, streamFile) != 0xFFFFFFFF) {
+            sb->is_external = 1; /* -1 in extra_name means internal */
         } else if (sb->section3_num == 0) {
             sb->is_external = 1;
         } else {
@@ -359,7 +396,7 @@ static int parse_sb_header(ubi_sb_header * sb, STREAMFILE *streamFile) {
         goto fail;
     }
 
-    if (!sb->stream_id_offset && sb->section3_num > 1) {
+    if (!(sb->stream_id_offset || sb->has_rotating_ids) && sb->section3_num > 1) {
         VGM_LOG("UBI SB: unexpected number of internal streams %i\n", sb->section3_num);
         goto fail;
     }
@@ -411,12 +448,11 @@ static int parse_sb_header(ubi_sb_header * sb, STREAMFILE *streamFile) {
     /* uncommon but possible */
     //VGM_ASSERT(sb->is_external && sb->section3_num != 0, "UBI SS: mixed external and internal streams\n");
 
-    /* seems can be safely ignored */
+    /* seems that can be safely ignored */
     //VGM_ASSERT(sb->is_external && sb->stream_id_offset && sb->stream_id > 0, "UBI SB: unexpected external stream with stream id\n");
 
-    //todo fix, wrong
     /* section 3: substreams within the file, adjust stream offset (rarely used but table is always present) */
-    if (!sb->is_external && sb->stream_id_offset && sb->section3_num > 1) {
+    if (!sb->is_external && (sb->stream_id_offset || sb->has_rotating_ids) && sb->section3_num > 1) {
         for (i = 0; i < sb->section3_num; i++) {
             off_t offset = sb->main_size + sb->section1_size + sb->section2_size + sb->extra_size + sb->section3_entry_size * i;
 
@@ -618,13 +654,14 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
         sb->section2_entry_size = 0x78;
 
         sb->external_flag_offset = 0x2c;
-        sb->stream_id_offset     = 0x34;//todo test
+        sb->stream_id_offset     = 0x34;
         sb->num_samples_offset   = 0x40;
         sb->sample_rate_offset   = 0x54;
         sb->channels_offset      = 0x5c;
         sb->stream_type_offset   = 0x60;
         sb->extra_name_offset    = 0x64;
 
+        sb->has_extra_name_flag = 1;
         return 1;
     }
 
@@ -633,13 +670,14 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
         sb->section1_entry_size = 0x48;
         sb->section2_entry_size = 0x5c;
 
-        sb->external_flag_offset = 0; /* no apparent flag */
+        sb->external_flag_offset = 0;
         sb->channels_offset      = 0x2c;
         sb->sample_rate_offset   = 0x30;
         sb->num_samples_offset   = 0x3c;
         sb->extra_name_offset    = 0x4c;
         sb->stream_type_offset   = 0x50;
 
+        sb->has_extra_name_flag = 1;
         return 1;
     }
 
@@ -648,15 +686,16 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
         sb->section1_entry_size = 0x48;
         sb->section2_entry_size = 0x58;
 
-        sb->external_flag_offset = 0; /* no apparent flag */
+        sb->external_flag_offset = 0;
         sb->num_samples_offset   = 0x28;
-        sb->stream_id_offset     = 0x34;//todo test
+        sb->stream_id_offset     = 0;
         sb->sample_rate_offset   = 0x3c;
         sb->channels_offset      = 0x44;
         sb->stream_type_offset   = 0x48;
         sb->extra_name_offset    = 0x4c;
 
-        sb->has_internal_names = 1;
+        sb->has_extra_name_flag = 1;
+        sb->has_rotating_ids = 1;
         return 1;
     }
 
@@ -680,13 +719,14 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
         sb->section1_entry_size = 0x48;
         sb->section2_entry_size = 0x54;
 
-        sb->external_flag_offset = 0; /* no apparent flag */
+        sb->external_flag_offset = 0;
         sb->channels_offset      = 0x28;
         sb->sample_rate_offset   = 0x2c;
         //sb->num_samples_offset = 0x34 or 0x3c /* varies */
         sb->extra_name_offset    = 0x44;
         sb->stream_type_offset   = 0x48;
 
+        sb->has_extra_name_flag = 1;
         return 1;
     }
 
@@ -697,7 +737,7 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
 
         sb->external_flag_offset = 0x28; /* maybe 0x2c */
         sb->channels_offset      = 0x3c;
-        sb->sample_rate_offset   = 0x44;
+        sb->sample_rate_offset   = 0x40;
         sb->num_samples_offset   = 0x48;
         sb->extra_name_offset    = 0x58;
         sb->stream_type_offset   = 0x5c;
