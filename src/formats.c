@@ -277,8 +277,6 @@ static const char* extension_list[] = {
     "spsd",
     "spw",
     "ss2",
-    "ss3",
-    "ss7",
     "ssm",
     "sss",
     "ster",

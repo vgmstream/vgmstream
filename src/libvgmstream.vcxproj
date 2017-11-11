@@ -388,7 +388,6 @@
     <ClCompile Include="meta\sfl.c" />
     <ClCompile Include="meta\sli.c" />
     <ClCompile Include="meta\spt_spd.c" />
-    <ClCompile Include="meta\ss_stream.c" />
     <ClCompile Include="meta\stm.c" />
     <ClCompile Include="meta\str_asr.c" />
     <ClCompile Include="meta\str_snds.c" />

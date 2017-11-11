@@ -1122,10 +1122,6 @@
 					RelativePath=".\meta\sqex_scd.c"
 					>
 				</File>
-				<File
-					RelativePath=".\meta\ss_stream.c"
-					>
-				</File>
                 <File
                     RelativePath=".\meta\stm.c"
                     >

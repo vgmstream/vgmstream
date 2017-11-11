@@ -682,9 +682,6 @@
     <ClCompile Include="meta\spt_spd.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\ss_stream.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="meta\stm.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
