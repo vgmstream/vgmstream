@@ -139,12 +139,10 @@ VGMSTREAM * init_vgmstream_ubi_sb(STREAMFILE *streamFile) {
         }
 
         case RAW_PCM:
-            vgmstream->coding_type = coding_PCM16LE;
+            vgmstream->coding_type = coding_PCM16LE; /* always LE even on Wii */
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = 0x02;
             vgmstream->num_samples = pcm_bytes_to_samples(sb.stream_size, sb.channels, 16);
-
-            if (sb.channels > 1) { VGM_LOG("UBI SB: >1 channel\n"); goto fail; } //todo
             break;
 
         case RAW_PSX:
@@ -427,6 +425,10 @@ static int parse_sb_header(ubi_sb_header * sb, STREAMFILE *streamFile) {
             }
             break;
 
+        case 0x01: /* PCM (Wii, rarely used) */
+            sb->codec = RAW_PCM;
+            break;
+
         case 0x03: /* Ubi ADPCM (main external stream codec, has subtypes) */
             sb->codec = UBI_ADPCM;
             break;
@@ -439,7 +441,6 @@ static int parse_sb_header(ubi_sb_header * sb, STREAMFILE *streamFile) {
             sb->codec = FMT_AT3;
             break;
 
-        case 0x01: /* PCM? (Wii, rarely used) */
         default:
             VGM_LOG("UBI SB: unknown stream_type %x\n", sb->stream_type);
             goto fail;
@@ -701,6 +702,21 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
 
     /* Prince of Persia: The Two Thrones (2005)(GC) */
     if (sb->version == 0x00150000 && is_sb3) {
+        sb->section1_entry_size = 0x68;
+        sb->section2_entry_size = 0x6c;
+
+        sb->external_flag_offset = 0x28; /* maybe 0x2c */
+        sb->num_samples_offset   = 0x3c;
+        sb->sample_rate_offset   = 0x50;
+        sb->channels_offset      = 0x58;
+        sb->stream_type_offset   = 0x5c;
+        sb->extra_name_offset    = 0x60;
+
+        return 1;
+    }
+
+    /* Red Steel (2006)(Wii) */
+    if (sb->version == 0x00180006 && is_sb7) { /* same as 0x00150000 */
         sb->section1_entry_size = 0x68;
         sb->section2_entry_size = 0x6c;
 
