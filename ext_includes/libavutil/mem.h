@@ -90,13 +90,6 @@
 #if defined(__INTEL_COMPILER) && __INTEL_COMPILER < 1110 || defined(__SUNPRO_C)
     #define DECLARE_ALIGNED(n,t,v)      t __attribute__ ((aligned (n))) v
     #define DECLARE_ASM_CONST(n,t,v)    const t __attribute__ ((aligned (n))) v
-#elif defined(__TI_COMPILER_VERSION__)
-    #define DECLARE_ALIGNED(n,t,v)                      \
-        AV_PRAGMA(DATA_ALIGN(v,n))                      \
-        t __attribute__((aligned(n))) v
-    #define DECLARE_ASM_CONST(n,t,v)                    \
-        AV_PRAGMA(DATA_ALIGN(v,n))                      \
-        static const t __attribute__((aligned(n))) v
 #elif defined(__DJGPP__)
     #define DECLARE_ALIGNED(n,t,v)      t __attribute__ ((aligned (FFMIN(n, 16)))) v
     #define DECLARE_ASM_CONST(n,t,v)    static const t av_used __attribute__ ((aligned (FFMIN(n, 16)))) v
@@ -206,12 +199,7 @@ void *av_mallocz(size_t size) av_malloc_attrib av_alloc_size(1);
  *         be allocated
  * @see av_malloc()
  */
-av_alloc_size(1, 2) static inline void *av_malloc_array(size_t nmemb, size_t size)
-{
-    if (!size || nmemb >= INT_MAX / size)
-        return NULL;
-    return av_malloc(nmemb * size);
-}
+av_alloc_size(1, 2) void *av_malloc_array(size_t nmemb, size_t size);
 
 /**
  * Allocate a memory block for an array with av_mallocz().
@@ -226,12 +214,7 @@ av_alloc_size(1, 2) static inline void *av_malloc_array(size_t nmemb, size_t siz
  * @see av_mallocz()
  * @see av_malloc_array()
  */
-av_alloc_size(1, 2) static inline void *av_mallocz_array(size_t nmemb, size_t size)
-{
-    if (!size || nmemb >= INT_MAX / size)
-        return NULL;
-    return av_mallocz(nmemb * size);
-}
+av_alloc_size(1, 2) void *av_mallocz_array(size_t nmemb, size_t size);
 
 /**
  * Non-inlined equivalent of av_mallocz_array().

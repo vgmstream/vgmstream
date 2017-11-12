@@ -5,7 +5,6 @@ EXPORTS
     av_codec_get_id
     av_codec_get_tag
     av_codec_get_tag2
-    av_convert_lang_to
     av_demuxer_open
     av_dump_format
     av_filename_number_test
@@ -14,7 +13,7 @@ EXPORTS
     av_find_input_format
     av_find_program_from_stream
     av_fmt_ctx_get_duration_estimation_method
-    av_format_ffversion DATA
+    av_format_ffversion
     av_format_get_audio_codec
     av_format_get_control_message_cb
     av_format_get_data_codec
@@ -50,8 +49,8 @@ EXPORTS
     av_match_ext
     av_new_program
     av_oformat_next
-    av_pkt_dump2
     av_pkt_dump_log2
+    av_pkt_dump2
     av_probe_input_buffer
     av_probe_input_buffer2
     av_probe_input_format
@@ -125,9 +124,9 @@ EXPORTS
     avio_get_str16le
     avio_handshake
     avio_open
-    avio_open2
     avio_open_dir
     avio_open_dyn_buf
+    avio_open2
     avio_pause
     avio_printf
     avio_put_str
@@ -168,6 +167,7 @@ EXPORTS
     ffio_open_dyn_packet_buf
     ffio_set_buf_size
     ffurl_close
+    ffurl_closep
     ffurl_open
+    ffurl_open_whitelist
     ffurl_write
-    url_feof

@@ -14,7 +14,7 @@ EXPORTS
     av_aes_ctr_set_iv
     av_aes_ctr_set_random_iv
     av_aes_init
-    av_aes_size DATA
+    av_aes_size
     av_append_path_component
     av_asprintf
     av_assert0_fpu
@@ -67,12 +67,12 @@ EXPORTS
     av_camellia_alloc
     av_camellia_crypt
     av_camellia_init
-    av_camellia_size DATA
+    av_camellia_size
     av_cast5_alloc
     av_cast5_crypt
     av_cast5_crypt2
     av_cast5_init
-    av_cast5_size DATA
+    av_cast5_size
     av_channel_layout_extract_channel
     av_chroma_location_from_name
     av_chroma_location_name
@@ -117,9 +117,9 @@ EXPORTS
     av_div_i
     av_div_q
     av_downmix_info_update_side_data
-    av_dynarray2_add
     av_dynarray_add
     av_dynarray_add_nofree
+    av_dynarray2_add
     av_escape
     av_expr_eval
     av_expr_free
@@ -277,14 +277,11 @@ EXPORTS
     av_image_fill_pointers
     av_image_get_buffer_size
     av_image_get_linesize
-    av_int2i
     av_int_list_length_for_size
+    av_int2i
     av_lfg_init
     av_lfg_init_from_data
     av_log
-    av_log2
-    av_log2_16bit
-    av_log2_i
     av_log_default_callback
     av_log_format_line
     av_log_format_line2
@@ -293,8 +290,13 @@ EXPORTS
     av_log_set_callback
     av_log_set_flags
     av_log_set_level
+    av_log2
+    av_log2_16bit
+    av_log2_i
     av_malloc
+    av_malloc_array
     av_mallocz
+    av_mallocz_array
     av_mastering_display_metadata_alloc
     av_mastering_display_metadata_create_side_data
     av_match_list
@@ -303,7 +305,7 @@ EXPORTS
     av_md5_alloc
     av_md5_final
     av_md5_init
-    av_md5_size DATA
+    av_md5_size
     av_md5_sum
     av_md5_update
     av_memcpy_backptr
@@ -355,8 +357,8 @@ EXPORTS
     av_opt_set_defaults
     av_opt_set_defaults2
     av_opt_set_dict
-    av_opt_set_dict2
     av_opt_set_dict_val
+    av_opt_set_dict2
     av_opt_set_double
     av_opt_set_from_string
     av_opt_set_image_size
@@ -399,7 +401,7 @@ EXPORTS
     av_ripemd_alloc
     av_ripemd_final
     av_ripemd_init
-    av_ripemd_size DATA
+    av_ripemd_size
     av_ripemd_update
     av_sample_fmt_is_planar
     av_samples_alloc
@@ -410,16 +412,16 @@ EXPORTS
     av_samples_set_silence
     av_set_cpu_flags_mask
     av_set_options_string
-    av_sha512_alloc
-    av_sha512_final
-    av_sha512_init
-    av_sha512_size DATA
-    av_sha512_update
     av_sha_alloc
     av_sha_final
     av_sha_init
-    av_sha_size DATA
+    av_sha_size
     av_sha_update
+    av_sha512_alloc
+    av_sha512_final
+    av_sha512_init
+    av_sha512_size
+    av_sha512_update
     av_shr_i
     av_small_strptime
     av_spherical_alloc
@@ -450,7 +452,7 @@ EXPORTS
     av_tea_alloc
     av_tea_crypt
     av_tea_init
-    av_tea_size DATA
+    av_tea_size
     av_tempfile
     av_thread_message_flush
     av_thread_message_queue_alloc
@@ -474,14 +476,14 @@ EXPORTS
     av_tree_find
     av_tree_insert
     av_tree_node_alloc
-    av_tree_node_size DATA
+    av_tree_node_size
     av_twofish_alloc
     av_twofish_crypt
     av_twofish_init
-    av_twofish_size DATA
+    av_twofish_size
     av_usleep
     av_utf8_decode
-    av_util_ffversion DATA
+    av_util_ffversion
     av_vbprintf
     av_version_info
     av_vlog
@@ -492,10 +494,9 @@ EXPORTS
     av_xtea_le_crypt
     av_xtea_le_init
     avpriv_alloc_fixed_dsp
-    avpriv_cga_font DATA
+    avpriv_cga_font
     avpriv_dict_set_timestamp
     avpriv_float_dsp_alloc
-    avpriv_frame_get_metadatap
     avpriv_get_gamma_from_trc
     avpriv_get_trc_function_from_trc
     avpriv_init_lls
@@ -509,7 +510,7 @@ EXPORTS
     avpriv_slicethread_free
     avpriv_solve_lls
     avpriv_tempfile
-    avpriv_vga16_font DATA
+    avpriv_vga16_font
     avutil_configuration
     avutil_license
     avutil_version

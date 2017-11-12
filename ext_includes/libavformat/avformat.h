@@ -437,19 +437,6 @@ int av_get_packet(AVIOContext *s, AVPacket *pkt, int size);
  */
 int av_append_packet(AVIOContext *s, AVPacket *pkt, int size);
 
-#if FF_API_LAVF_FRAC
-/*************************************************/
-/* fractional numbers for exact pts handling */
-
-/**
- * The exact value of the fractional number is: 'val + num / den'.
- * num is assumed to be 0 <= num < den.
- */
-typedef struct AVFrac {
-    int64_t val, num, den;
-} AVFrac;
-#endif
-
 /*************************************************/
 /* input/output formats */
 
@@ -478,10 +465,6 @@ typedef struct AVProbeData {
 #define AVFMT_NOFILE        0x0001
 #define AVFMT_NEEDNUMBER    0x0002 /**< Needs '%d' in filename. */
 #define AVFMT_SHOW_IDS      0x0008 /**< Show format stream IDs numbers. */
-#if FF_API_LAVF_FMT_RAWPICTURE
-#define AVFMT_RAWPICTURE    0x0020 /**< Format wants AVPicture structure for
-                                      raw picture data. @deprecated Not used anymore */
-#endif
 #define AVFMT_GLOBALHEADER  0x0040 /**< Format wants global header. */
 #define AVFMT_NOTIMESTAMPS  0x0080 /**< Format does not need / have any timestamps. */
 #define AVFMT_GENERIC_INDEX 0x0100 /**< Use generic index building code. */
@@ -894,14 +877,6 @@ typedef struct AVStream {
 #endif
     void *priv_data;
 
-#if FF_API_LAVF_FRAC
-    /**
-     * @deprecated this field is unused
-     */
-    attribute_deprecated
-    struct AVFrac pts;
-#endif
-
     /**
      * This is the fundamental unit of time (in seconds) in terms
      * of which frame timestamps are represented.
@@ -1001,6 +976,34 @@ typedef struct AVStream {
     int event_flags;
 #define AVSTREAM_EVENT_FLAG_METADATA_UPDATED 0x0001 ///< The call resulted in updated metadata.
 
+    /**
+     * Real base framerate of the stream.
+     * This is the lowest framerate with which all timestamps can be
+     * represented accurately (it is the least common multiple of all
+     * framerates in the stream). Note, this value is just a guess!
+     * For example, if the time base is 1/90000 and all frames have either
+     * approximately 3600 or 1800 timer ticks, then r_frame_rate will be 50/1.
+     */
+    AVRational r_frame_rate;
+
+    /**
+     * String containing pairs of key and values describing recommended encoder configuration.
+     * Pairs are separated by ','.
+     * Keys are separated from values by '='.
+     */
+    char *recommended_encoder_configuration;
+
+    /**
+     * Codec parameters associated with this stream. Allocated and freed by
+     * libavformat in avformat_new_stream() and avformat_free_context()
+     * respectively.
+     *
+     * - demuxing: filled by libavformat on stream creation or in
+     *             avformat_find_stream_info()
+     * - muxing: filled by the caller before avformat_write_header()
+     */
+    AVCodecParameters *codecpar;
+
     /*****************************************************************
      * All fields below this line are not part of the public API. They
      * may not be used outside of libavformat and can be changed and
@@ -1023,6 +1026,7 @@ typedef struct AVStream {
         double (*duration_error)[2][MAX_STD_TIMEBASES];
         int64_t codec_info_duration;
         int64_t codec_info_duration_fields;
+        int frame_delay_evidence;
 
         /**
          * 0  -> decoder has not been searched for yet.
@@ -1084,19 +1088,6 @@ typedef struct AVStream {
                                     support seeking natively. */
     int nb_index_entries;
     unsigned int index_entries_allocated_size;
-
-    /**
-     * Real base framerate of the stream.
-     * This is the lowest framerate with which all timestamps can be
-     * represented accurately (it is the least common multiple of all
-     * framerates in the stream). Note, this value is just a guess!
-     * For example, if the time base is 1/90000 and all frames have either
-     * approximately 3600 or 1800 timer ticks, then r_frame_rate will be 50/1.
-     *
-     * Code outside avformat should access this field using:
-     * av_stream_get/set_r_frame_rate(stream)
-     */
-    AVRational r_frame_rate;
 
     /**
      * Stream Identifier
@@ -1203,19 +1194,6 @@ typedef struct AVStream {
      */
     int inject_global_side_data;
 
-    /*****************************************************************
-     * All fields above this line are not part of the public API.
-     * Fields below are part of the public API and ABI again.
-     *****************************************************************
-     */
-
-    /**
-     * String containing paris of key and values describing recommended encoder configuration.
-     * Paris are separated by ','.
-     * Keys are separated from values by '='.
-     */
-    char *recommended_encoder_configuration;
-
     /**
      * display aspect ratio (0 if unknown)
      * - encoding: unused
@@ -1223,31 +1201,29 @@ typedef struct AVStream {
      */
     AVRational display_aspect_ratio;
 
-    struct FFFrac *priv_pts;
-
     /**
      * An opaque field for libavformat internal usage.
      * Must not be accessed in any way by callers.
      */
     AVStreamInternal *internal;
-
-    /*
-     * Codec parameters associated with this stream. Allocated and freed by
-     * libavformat in avformat_new_stream() and avformat_free_context()
-     * respectively.
-     *
-     * - demuxing: filled by libavformat on stream creation or in
-     *             avformat_find_stream_info()
-     * - muxing: filled by the caller before avformat_write_header()
-     */
-    AVCodecParameters *codecpar;
 } AVStream;
 
+#if FF_API_FORMAT_GET_SET
+/**
+ * Accessors for some AVStream fields. These used to be provided for ABI
+ * compatibility, and do not need to be used anymore.
+ */
+attribute_deprecated
 AVRational av_stream_get_r_frame_rate(const AVStream *s);
+attribute_deprecated
 void       av_stream_set_r_frame_rate(AVStream *s, AVRational r);
-struct AVCodecParserContext *av_stream_get_parser(const AVStream *s);
+attribute_deprecated
 char* av_stream_get_recommended_encoder_configuration(const AVStream *s);
+attribute_deprecated
 void  av_stream_set_recommended_encoder_configuration(AVStream *s, char *configuration);
+#endif
+
+struct AVCodecParserContext *av_stream_get_parser(const AVStream *s);
 
 /**
  * Returns the pts of the last muxed packet + its duration
@@ -1469,7 +1445,7 @@ typedef struct AVFormatContext {
 #define AVFMT_FLAG_SORT_DTS    0x10000 ///< try to interleave outputted packets by dts (using this flag can slow demuxing down)
 #define AVFMT_FLAG_PRIV_OPT    0x20000 ///< Enable use of private options by delaying codec open (this could be made default once all code is converted)
 #if FF_API_LAVF_KEEPSIDE_FLAG
-#define AVFMT_FLAG_KEEP_SIDE_DATA 0x40000 ///< Don't merge side data but keep it separate. Deprecated, will be the default.
+#define AVFMT_FLAG_KEEP_SIDE_DATA 0x40000 ///< Deprecated, does nothing.
 #endif
 #define AVFMT_FLAG_FAST_SEEK   0x80000 ///< Enable fast, but inaccurate seeks for some formats
 #define AVFMT_FLAG_SHORTEST   0x100000 ///< Stop muxing when the shortest stream stops.
@@ -1919,28 +1895,45 @@ typedef struct AVFormatContext {
     int max_streams;
 } AVFormatContext;
 
+#if FF_API_FORMAT_GET_SET
 /**
  * Accessors for some AVFormatContext fields. These used to be provided for ABI
  * compatibility, and do not need to be used anymore.
  */
+attribute_deprecated
 int av_format_get_probe_score(const AVFormatContext *s);
+attribute_deprecated
 AVCodec * av_format_get_video_codec(const AVFormatContext *s);
+attribute_deprecated
 void      av_format_set_video_codec(AVFormatContext *s, AVCodec *c);
+attribute_deprecated
 AVCodec * av_format_get_audio_codec(const AVFormatContext *s);
+attribute_deprecated
 void      av_format_set_audio_codec(AVFormatContext *s, AVCodec *c);
+attribute_deprecated
 AVCodec * av_format_get_subtitle_codec(const AVFormatContext *s);
+attribute_deprecated
 void      av_format_set_subtitle_codec(AVFormatContext *s, AVCodec *c);
+attribute_deprecated
 AVCodec * av_format_get_data_codec(const AVFormatContext *s);
+attribute_deprecated
 void      av_format_set_data_codec(AVFormatContext *s, AVCodec *c);
+attribute_deprecated
 int       av_format_get_metadata_header_padding(const AVFormatContext *s);
+attribute_deprecated
 void      av_format_set_metadata_header_padding(AVFormatContext *s, int c);
+attribute_deprecated
 void *    av_format_get_opaque(const AVFormatContext *s);
+attribute_deprecated
 void      av_format_set_opaque(AVFormatContext *s, void *opaque);
+attribute_deprecated
 av_format_control_message av_format_get_control_message_cb(const AVFormatContext *s);
+attribute_deprecated
 void      av_format_set_control_message_cb(AVFormatContext *s, av_format_control_message callback);
 #if FF_API_OLD_OPEN_CALLBACKS
 attribute_deprecated AVOpenCallback av_format_get_open_cb(const AVFormatContext *s);
 attribute_deprecated void av_format_set_open_cb(AVFormatContext *s, AVOpenCallback callback);
+#endif
 #endif
 
 /**
@@ -2103,13 +2096,8 @@ uint8_t *av_stream_new_side_data(AVStream *stream,
  * @param size pointer for side information size to store (optional)
  * @return pointer to data if present or NULL otherwise
  */
-#if FF_API_NOCONST_GET_SIDE_DATA
-uint8_t *av_stream_get_side_data(AVStream *stream,
-                                 enum AVPacketSideDataType type, int *size);
-#else
 uint8_t *av_stream_get_side_data(const AVStream *stream,
                                  enum AVPacketSideDataType type, int *size);
-#endif
 
 AVProgram *av_new_program(AVFormatContext *s, int id);
 

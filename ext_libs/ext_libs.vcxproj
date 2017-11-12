@@ -93,24 +93,24 @@
 </Command>
       <Outputs>libg719_decode.lib;libg719_decode.exp;%(Outputs)</Outputs>
     </CustomBuild>
-    <CustomBuild Include="avcodec-vgmstream-57.def">
+    <CustomBuild Include="avcodec-vgmstream-58.def">
       <Message>Building library stub</Message>
-      <Command>lib /def:avcodec-vgmstream-57.def /machine:x86 /out:avcodec.lib</Command>
+      <Command>lib /def:avcodec-vgmstream-58.def /machine:x86 /out:avcodec.lib</Command>
       <Outputs>avcodec.lib;avcodec.exp;%(Outputs)</Outputs>
     </CustomBuild>
-    <CustomBuild Include="avformat-vgmstream-57.def">
+    <CustomBuild Include="avformat-vgmstream-58.def">
       <Message>Building library stub</Message>
-      <Command>lib /def:avformat-vgmstream-57.def /machine:x86 /out:avformat.lib</Command>
+      <Command>lib /def:avformat-vgmstream-58.def /machine:x86 /out:avformat.lib</Command>
       <Outputs>avformat.lib;avformat.exp;%(Outputs)</Outputs>
     </CustomBuild>
-    <CustomBuild Include="avutil-vgmstream-55.def">
+    <CustomBuild Include="avutil-vgmstream-56.def">
       <Message>Building library stub</Message>
-      <Command>lib /def:avutil-vgmstream-55.def /machine:x86 /out:avutil.lib</Command>
+      <Command>lib /def:avutil-vgmstream-56.def /machine:x86 /out:avutil.lib</Command>
       <Outputs>avutil.lib;avutil.exp;%(Outputs)</Outputs>
     </CustomBuild>
-    <CustomBuild Include="swresample-vgmstream-2.def">
+    <CustomBuild Include="swresample-vgmstream-3.def">
       <Message>Building library stub</Message>
-      <Command>lib /def:swresample-vgmstream-2.def /machine:x86 /out:swresample.lib</Command>
+      <Command>lib /def:swresample-vgmstream-3.def /machine:x86 /out:swresample.lib</Command>
       <Outputs>swresample.lib;swresample.exp;%(Outputs)</Outputs>
     </CustomBuild>
   </ItemGroup>

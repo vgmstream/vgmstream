@@ -1,10 +1,6 @@
 EXPORTS
-    audio_resample
-    audio_resample_close
-    av_audio_convert
-    av_audio_convert_alloc
-    av_audio_convert_free
-    av_audio_resample_init
+    av_ac3_parse_header
+    av_adts_header_parse
     av_bitstream_filter_close
     av_bitstream_filter_filter
     av_bitstream_filter_init
@@ -24,7 +20,7 @@ EXPORTS
     av_bsf_next
     av_bsf_receive_packet
     av_bsf_send_packet
-    av_codec_ffversion DATA
+    av_codec_ffversion
     av_codec_get_chroma_intra_matrix
     av_codec_get_codec_descriptor
     av_codec_get_codec_properties
@@ -74,8 +70,6 @@ EXPORTS
     av_jni_get_java_vm
     av_jni_set_java_vm
     av_lockmgr_register
-    av_log_ask_for_sample
-    av_log_missing_feature
     av_mdct_calc
     av_mdct_end
     av_mdct_init
@@ -118,10 +112,6 @@ EXPORTS
     av_register_bitstream_filter
     av_register_codec_parser
     av_register_hwaccel
-    av_resample
-    av_resample_close
-    av_resample_compensate
-    av_resample_init
     av_shrink_packet
     av_vorbis_parse_frame
     av_vorbis_parse_frame_flags
@@ -154,9 +144,9 @@ EXPORTS
     avcodec_encode_video2
     avcodec_enum_to_chroma_pos
     avcodec_fill_audio_frame
-    avcodec_find_best_pix_fmt2
     avcodec_find_best_pix_fmt_of_2
     avcodec_find_best_pix_fmt_of_list
+    avcodec_find_best_pix_fmt2
     avcodec_find_decoder
     avcodec_find_decoder_by_name
     avcodec_find_encoder
@@ -166,8 +156,8 @@ EXPORTS
     avcodec_get_chroma_sub_sample
     avcodec_get_class
     avcodec_get_context_defaults3
-    avcodec_get_edge_width
     avcodec_get_frame_class
+    avcodec_get_hw_frames_parameters
     avcodec_get_name
     avcodec_get_pix_fmt_loss
     avcodec_get_subtitle_rect_class
@@ -188,7 +178,6 @@ EXPORTS
     avcodec_register_all
     avcodec_send_frame
     avcodec_send_packet
-    avcodec_set_dimensions
     avcodec_string
     avcodec_version
     avpicture_alloc
@@ -196,30 +185,26 @@ EXPORTS
     avpicture_free
     avpicture_get_size
     avpicture_layout
-    avpriv_aac_parse_header
-    avpriv_ac3_channel_layout_tab DATA
+    avpriv_ac3_channel_layout_tab
     avpriv_ac3_parse_header
     avpriv_align_put_bits
     avpriv_bprint_to_extradata
     avpriv_codec_get_cap_skip_frame_fill_param
     avpriv_copy_bits
-    avpriv_copy_pce_data
     avpriv_dca_convert_bitstream
     avpriv_dca_parse_core_frame_header
-    avpriv_dca_sample_rates DATA
+    avpriv_dca_sample_rates
     avpriv_find_pix_fmt
     avpriv_find_start_code
     avpriv_get_raw_pix_fmt_tags
     avpriv_lock_avformat
-    avpriv_mpa_bitrate_tab DATA
-    avpriv_mpa_decode_header
-    avpriv_mpa_decode_header2
-    avpriv_mpa_freq_tab DATA
+    avpriv_mpa_bitrate_tab
+    avpriv_mpa_freq_tab
     avpriv_mpeg4audio_get_config
-    avpriv_mpeg4audio_sample_rates DATA
+    avpriv_mpeg4audio_sample_rates
     avpriv_mpegaudio_decode_header
-    avpriv_pix_fmt_bps_avi DATA
-    avpriv_pix_fmt_bps_mov DATA
+    avpriv_pix_fmt_bps_avi
+    avpriv_pix_fmt_bps_mov
     avpriv_put_string
     avpriv_split_xiph_headers
     avpriv_tak_parse_streaminfo
