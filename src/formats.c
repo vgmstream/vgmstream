@@ -1,4 +1,4 @@
-#include "formats.h"
+#include "vgmstream.h"
 
 //#define VGM_REGISTER_TYPE(extension) ...
 //#define VGM_REGISTER_TYPE_COMMON(extension) ... /* for common extensions like aiff */
@@ -154,6 +154,7 @@ static const char* extension_list[] = {
     "kraw",
 
     "laac", //fake extension, for AAC (tri-Ace/FFmpeg)
+    "lac3", //fake extension, for AC3
     "leg",
     "lmp4", //fake extension, for MP4s
     "logg", //fake extension, for OGGs
@@ -276,8 +277,6 @@ static const char* extension_list[] = {
     "spsd",
     "spw",
     "ss2",
-    "ss3",
-    "ss7",
     "ssm",
     "sss",
     "ster",
@@ -374,20 +373,9 @@ static const char* extension_list[] = {
     //, NULL //end mark
 };
 
-/**
- * List of supported formats.
- *
- * For plugins that need to know (test.exe doesn't use it)
- */
-const char ** vgmstream_get_formats() {
+const char ** vgmstream_get_formats(size_t * size) {
+    *size = sizeof(extension_list) / sizeof(char*);
     return extension_list;
-}
-
-/**
- * Number of elements in the list.
- */
-int vgmstream_get_formats_length() {
-    return sizeof(extension_list) / sizeof(char*);
 }
 
 

@@ -129,7 +129,9 @@ git clean -fd
 ## Development
 
 ### Structure
-vgmstream uses C89 when possible (so VS2010 can compile it), and C++ for the foobar2000 and Audacious plugins.
+vgmstream uses C (C89 when possible), and C++ for the foobar2000 and Audacious plugins.
+
+C is restricted to features VS2010 can understand. This mainly means means declaring variables at the start of a { .. } block (declare+initialize is fine, as long as it doesn't reference variables declared in that block) and avoiding C99 like variable-length arrays (but others like // comments are fine).
 
 ```
 ./                   docs, scripts
@@ -162,11 +164,17 @@ Very simplified it goes like this:
 
 ### Adding new formats
 For new simple formats, assuming existing layout/coding:
-- *src/meta/(format-name).c*: create new format parser that reads all needed info from the stream header and inits VGMSTREAM
-- *src/meta/meta.h*: register parser's init
-- *src/vgmstream.h*: register new meta
+- *src/meta/(format-name).c*: create new init_vgmstream_(format-name) parser that reads all needed info from the stream header and inits VGMSTREAM
+- *src/meta/meta.h*: define parser's init
+- *src/vgmstream.h*: define meta description in the meta_t list
 - *src/vgmstream.c*: add parser init to the init list
 - *src/formats.c*: add new extension to the format list, add meta description
 - *fb2k/foo_filetypes.h*: add new extension to the file register list (optional)
 - *src/libvgmstream.vcproj/vcxproj/filters*: add to compile new (format-name).c parser in VS
 - if the format needs an external library don't forget to mark optional parts with: *#ifdef VGM_USE_X ... #endif*
+
+A STREAMFILE is passed to init_vgmstream_(format-name) function, and I/O must be done using its functions and not STDIO/FILEs, as this lets plugins do their own I/O. This includes reading data from the header or opening other STREAMFILEs (if the header has companion files that need to be parsed).
+
+When a parser is successful (allocates VGMSTREAM and sets values) it also needs to open and assign to the VGMSTREAM one or several STREAMFILEs (usually reopens the one passed, but could be any other file) to do I/O during decode. The STREAMFILE passed to the meta will be discarded and must not be reused.
+
+If it supports subsongs it should read and handle the stream index (subsong number) in the passed STREAMFILE, and report the number of subsongs in the VGMSTREAM, to signal the plugins this feature. The index is 1-based (first subsong is 1, not 0).

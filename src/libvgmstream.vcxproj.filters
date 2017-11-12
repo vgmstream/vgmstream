@@ -47,9 +47,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="formats.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="streamfile.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -685,9 +682,6 @@
     <ClCompile Include="meta\spt_spd.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\ss_stream.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="meta\stm.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -1079,6 +1073,9 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\pc_adp.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\pc_adp_otns.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\excitebots.c">

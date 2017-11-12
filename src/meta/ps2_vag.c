@@ -79,12 +79,15 @@ VGMSTREAM * init_vgmstream_ps2_vag(STREAMFILE *streamFile) {
 
                 /* channels are usually at 0x1e, but not in Ukiyo no Roushi which has some kind
                  *  of loop-like values instead (who designs this crap?) */
-                if (read_32bitBE(0x18,streamFile) != 0 || read_32bitBE(0x1c,streamFile) > 0x20) {
-                    channel_count = 1;
-                } else {
+                if (read_32bitBE(0x18,streamFile) == 0
+                        && (read_32bitBE(0x1c,streamFile) & 0xFFFF00FF) == 0
+                        && read_8bit(0x1e,streamFile) < 16) {
                     channel_count = read_8bit(0x1e,streamFile);
                     if (channel_count == 0)
                         channel_count = 1;  /* ex. early Vita vag (Lumines) */
+                }
+                else {
+                    channel_count = 1;
                 }
             }
             else {

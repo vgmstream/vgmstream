@@ -147,10 +147,6 @@
 			Filter="h;hpp;hxx;hm;inl;inc;xsd"
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
-            <File
-                RelativePath=".\formats.h"
-                >
-            </File>
 			<File
 				RelativePath=".\streamfile.h"
 				>
@@ -663,6 +659,10 @@
 					>
 				</File>
                 <File
+                    RelativePath=".\meta\pc_adp_otns.c"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\pc_al2.c"
                     >
                 </File>
@@ -1120,10 +1120,6 @@
 				</File>
 				<File
 					RelativePath=".\meta\sqex_scd.c"
-					>
-				</File>
-				<File
-					RelativePath=".\meta\ss_stream.c"
 					>
 				</File>
                 <File

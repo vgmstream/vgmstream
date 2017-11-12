@@ -14,8 +14,9 @@ REM #TODO: escape & ! % in file/folder names
 
 setlocal enableDelayedExpansion
 
-
+REM #-------------------------------------------------------------------------
 REM #options
+REM #-------------------------------------------------------------------------
 REM # -vo <exe> -vn <exe>: path to old/new exe
 set OP_CMD_OLD=test_old.exe
 set OP_CMD_NEW=test.exe
@@ -27,6 +28,8 @@ REM # -nd: don't delete compared files
 set OP_NODELETE=
 REM # -nc: don't report correct files
 set OP_NOCORRECT=
+REM # -p: performance test (decode with new exe and no comparison done)
+set OP_PERFORMANCE=
 
 
 REM # parse options
@@ -38,6 +41,7 @@ if "%~1"=="-f"  set OP_SEARCH=%2
 if "%~1"=="-r"  set OP_RECURSIVE=/s
 if "%~1"=="-nd" set OP_NODELETE=true
 if "%~1"=="-nc" set OP_NOCORRECT=true
+if "%~1"=="-p"  set OP_PERFORMANCE=true
 shift
 goto set_options
 :end_options
@@ -61,7 +65,8 @@ if %OP_SEARCH%=="" (
 )
 
 REM # process start
-echo VRTS: start @%time%
+set TIME_START=%time%
+echo VRTS: start @%TIME_START%
 
 REM # search for files
 set CMD_DIR=dir /a:-d /b %OP_RECURSIVE% %OP_SEARCH%
@@ -70,18 +75,39 @@ set CMD_FIND=findstr /i /v "\.exe$ \.dll$ \.zip$ \.7z$ \.rar$ \.bat$ \.sh$ \.txt
 REM # process files
 for /f "delims=" %%x in ('%CMD_DIR% ^| %CMD_FIND%') do (
     set CMD_FILE=%%x
-    call :process_file "!CMD_FILE!"
+
+    if "%OP_PERFORMANCE%" == "" (
+        call :process_file "!CMD_FILE!"
+    ) else (
+        call :performance_file "!CMD_FILE!"
+    )    
 )
 
+REM # find time elapsed
+set TIME_END=%time%
+for /F "tokens=1-4 delims=:.," %%a in ("%TIME_START%") do (
+   set /A "TIME_START_S=(((%%a*60)+1%%b %% 100)*60+1%%c %% 100)*100+1%%d %% 100"
+)
+for /F "tokens=1-4 delims=:.," %%a in ("%TIME_END%") do (
+   set /A "TIME_END_S=(((%%a*60)+1%%b %% 100)*60+1%%c %% 100)*100+1%%d %% 100"
+)
+set /A TIME_ELAPSED_S=(TIME_END_S-TIME_START_S)/100
+set /A TIME_ELAPSED_C=(TIME_END_S-TIME_START_S)%%100
+
+ 
 REM # process end (ok)
-goto done
+echo VRTS: done @%TIME_END% (%TIME_ELAPSED_S%,%TIME_ELAPSED_C%s)
+
+goto exit
 
 
+REM # ########################################################################
 REM # test a single file
+REM # ########################################################################
 :process_file outer
     REM # ignore files starting with dot (no filename)
     set CMD_SHORTNAME=%~n1
-    if "%CMD_SHORTNAME%" == "" goto continue
+    if "%CMD_SHORTNAME%" == "" goto process_file_continue
 
     REM # get file
     set CMD_FILE=%1
@@ -105,7 +131,7 @@ REM # test a single file
             REM echo VRTS: nothing created for file %CMD_FILE%
             if exist "%TXT_NEW%"  del /a:a "%TXT_NEW%"
             if exist "%TXT_OLD%"  del /a:a "%TXT_OLD%"
-            goto continue
+            goto process_file_continue
         )
     )
 
@@ -146,12 +172,42 @@ REM # test a single file
         if exist "%TXT_NEW%"  del /a:a "%TXT_NEW%"
     )
 
-:continue
+:process_file_continue
 exit /B
 REM :process_file end, continue from last call
 
 
+REM # ########################################################################
+REM # decode only (no comparisons done), for performance testing
+REM # ########################################################################
+:performance_file
+    REM # ignore files starting with dot (no filename)
+    set CMD_SHORTNAME=%~n1
+    if "%CMD_SHORTNAME%" == "" goto performance_file_continue
+
+    REM # get file
+    set CMD_FILE=%1
+    set CMD_FILE=%CMD_FILE:"=%
+    REM echo VTRS: file %CMD_FILE%
+   
+    REM # new temp output
+    set WAV_NEW=%CMD_FILE%.test.wav
+    set CMD_VGM_NEW="%OP_CMD_NEW%" -o "%WAV_NEW%" "%CMD_FILE%"
+    %CMD_VGM_NEW% 1> nul 2>&1  & REM || goto error
+
+    call :echo_color %C_O% "%CMD_FILE%" "done"
+
+    REM # ignore output
+    if exist "%WAV_NEW%"  del /a:a "%WAV_NEW%"   
+
+:performance_file_continue
+exit /B
+REM :performance_file end, continue from last call
+
+
+REM # ########################################################################
 REM # hack to get colored output in Windows CMD using findstr + temp file
+REM # ########################################################################
 :echo_color
 set TEMP_FILE=%2-result
 set TEMP_FILE=%TEMP_FILE:"=%
@@ -165,14 +221,10 @@ exit /B
 REM :echo_color end, continue from last call
 
 
-:done
-echo VRTS: done @%time%
-goto exit
-
+REM # ########################################################################
 
 :error
-echo VRTS: error @%time%
+echo VRTS: error
 goto exit
-
 
 :exit

@@ -128,8 +128,8 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
         }
 
         /* other Wwise specific: */
-        //"JUNK": optional padding so that raw data starts in an offset multiple of 0x10 (0-size JUNK exists too)
-        //"akd ": unknown (IMA/PCM; "audiokinetic data"?)
+        //"JUNK": optional padding for usually aligment (0-size JUNK exists too)
+        //"akd ": seem to store extra info for Wwise editor (wave peaks/loudness/HDR envelope?)
     }
 
     /* format to codec */
@@ -158,7 +158,7 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
         ww.codec = DSP;
     }
 
-    /* Some Wwise files (ex. Oddworld PSV, Bayonetta 2 WiiU sfx) are truncated mirrors of another file.
+    /* Some Wwise files (ex. Oddworld PSV, Bayonetta 2 WiiU, often in BGM.bnk) are truncated mirrors of another file.
      * They come in RAM banks, probably to play the beginning while the rest of the real stream loads.
      * We'll add basic support to avoid complaints of this or that .wem not playing */
     if (ww.data_size > ww.file_size) {
@@ -560,50 +560,50 @@ fail:
 0x00 (4): num_samples
 0x04 (4): skip samples?
 0x08 (4): ? (small if loop, 0 otherwise)
-0x0c (4): loop offset after seek table+setup (offset after setup if file doesn't loop)
+0x0c (4): data start offset after seek table+setup, or loop start when "smpl" is present
 0x10 (4): ? (small, 0..~0x400)
 0x14 (4): approximate data size without seek table? (almost setup+packets)
 0x18 (4): setup_offset within data (0 = no seek table)
 0x1c (4): audio_offset within data
-0x20 (4): biggest packet size (not including header)?
-0x24 (4): ? (mid, 0~0x5000)
-0x28 (4): ? (mid, 0~0x5000)
-0x2c (4): parent bank/event id? (shared by several .wem a game, but not all need to share it)
+0x20 (2): biggest packet size (not including header)?
+0x22 (2): ? (small, N..~0x100) uLastGranuleExtra?
+0x24 (4): ? (mid, 0~0x5000) dwDecodeAllocSize?
+0x28 (4): ? (mid, 0~0x5000) dwDecodeX64AllocSize?
+0x2c (4): parent bank/event id? uHashCodebook? (shared by several .wem a game, but not all need to share it)
 0x30 (1): blocksize_1_exp (small)
 0x31 (1): blocksize_0_exp (large)
 0x32 (2): empty
 
 "vorb" size 0x28 / 0x2a
 0x00 (4): num_samples
-0x04 (4): loop offset after seek table+setup (offset after setup if file doesn't loop)
-0x08 (4): data size without seek table (setup+packets)
+0x04 (4): data start offset after seek table+setup, or loop start when "smpl" is present
+0x08 (4): data end offset after seek table (setup+packets), or loop end when "smpl" is present
 0x0c (2): ? (small, 0..~0x400)
 0x10 (4): setup_offset within data (0 = no seek table)
 0x14 (4): audio_offset within data
-0x18 (2): ? (small, 0..~0x400)
-0x1a (2): ? (small, N..~0x100)
-0x1c (4): ? (mid, 0~0x5000)
-0x20 (4): ? (mid, 0~0x5000)
-0x24 (4): parent bank/event id? (shared by several .wem a game, but not all need to share it)
-0x28 (1): blocksize_1_exp (small)  [removed when size is 0x28]
-0x29 (1): blocksize_0_exp (large)  [removed when size is 0x28]
-
+0x18 (2): biggest packet size (not including header)?
+0x1a (2): ? (small, N..~0x100) uLastGranuleExtra?
+0x1c (4): ? (mid, 0~0x5000) dwDecodeAllocSize?
+0x20 (4): ? (mid, 0~0x5000) dwDecodeX64AllocSize?
+0x24 (4): parent bank/event id? uHashCodebook? (shared by several .wem a game, but not all need to share it)
+0x28 (1): blocksize_1_exp (small) [removed when size is 0x28]
+0x29 (1): blocksize_0_exp (large) [removed when size is 0x28]
 
 - new format:
 "fmt" size 0x42, extra size 0x30
 0x12 (2): flag? (00,10,18): not related to seek table, codebook type, chunk count, looping, etc
 0x14 (4): channel config
 0x18 (4): num_samples
-0x1c (4): loop offset after seek table+setup (offset after setup if file doesn't loop)
-0x20 (4): data size without seek table (setup+packets)
+0x1c (4): data start offset after seek table+setup, or loop start when "smpl" is present
+0x20 (4): data end offset after seek table (setup+packets), or loop end when "smpl" is present
 0x24 (2): ?1 (small, 0..~0x400)
 0x26 (2): ?2 (small, N..~0x100): not related to seek table, codebook type, chunk count, looping, packet size, samples, etc
 0x28 (4): setup offset within data (0 = no seek table)
 0x2c (4): audio offset within data
 0x30 (2): biggest packet size (not including header)
-0x32 (2): ?4 (small, 0..~0x100): may be same than ?2 (something related to the avg bitrate?)
-0x34 (4): bitrate config? (mid, 0~0x5000)
-0x38 (4): bitrate config? (mid, 0~0x5000) (2 byte with max/min?)
+0x32 (2): (small, 0..~0x100) uLastGranuleExtra?
+0x34 (4): ? (mid, 0~0x5000) dwDecodeAllocSize?
+0x38 (4): ? (mid, 0~0x5000) dwDecodeX64AllocSize?
 0x40 (1): blocksize_1_exp (small)
 0x41 (1): blocksize_0_exp (large)
 

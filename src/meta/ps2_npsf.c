@@ -14,20 +14,20 @@ VGMSTREAM * init_vgmstream_ps2_npsf(STREAMFILE *streamFile) {
     if (read_32bitBE(0x00,streamFile) != 0x4E505346) /* "NPSF" */
         goto fail;
 
-	loop_flag = (read_32bitLE(0x14,streamFile) != 0xFFFFFFFF);
+    loop_flag = (read_32bitLE(0x14,streamFile) != 0xFFFFFFFF);
     channel_count = read_32bitLE(0x0C,streamFile);
     
-	/* build the VGMSTREAM */
+    /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
-	vgmstream->channels = read_32bitLE(0x0C,streamFile);
+    vgmstream->channels = read_32bitLE(0x0C,streamFile);
     vgmstream->sample_rate = read_32bitLE(0x18,streamFile);
     vgmstream->num_samples = ps_bytes_to_samples(read_32bitLE(0x08,streamFile), 1); /* single channel data */
-	if(vgmstream->loop_flag) {
-		vgmstream->loop_start_sample = read_32bitLE(0x14,streamFile);
-		vgmstream->loop_end_sample = ps_bytes_to_samples(read_32bitLE(0x08,streamFile), 1);
-	}
+    if(vgmstream->loop_flag) {
+        vgmstream->loop_start_sample = read_32bitLE(0x14,streamFile);
+        vgmstream->loop_end_sample = ps_bytes_to_samples(read_32bitLE(0x08,streamFile), 1);
+    }
 
     vgmstream->coding_type = coding_PSX;
     vgmstream->layout_type = layout_interleave;

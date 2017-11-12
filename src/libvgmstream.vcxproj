@@ -113,7 +113,6 @@
     <ClInclude Include="coding\vorbis_custom_data_fsb.h" />
     <ClInclude Include="coding\vorbis_custom_data_wwise.h" />
     <ClInclude Include="coding\vorbis_custom_decoder.h" />
-    <ClInclude Include="formats.h" />
     <ClInclude Include="streamfile.h" />
     <ClInclude Include="streamtypes.h" />
     <ClInclude Include="util.h" />
@@ -162,6 +161,7 @@
     <ClCompile Include="meta\nsw_opus.c" />
     <ClCompile Include="meta\nub_vag.c" />
     <ClCompile Include="meta\pc_adp.c" />
+    <ClCompile Include="meta\pc_adp_otns.c" />
     <ClCompile Include="meta\pc_ast.c" />
     <ClCompile Include="meta\pc_snds.c" />
     <ClCompile Include="meta\ps2_2pfs.c" />
@@ -388,7 +388,6 @@
     <ClCompile Include="meta\sfl.c" />
     <ClCompile Include="meta\sli.c" />
     <ClCompile Include="meta\spt_spd.c" />
-    <ClCompile Include="meta\ss_stream.c" />
     <ClCompile Include="meta\stm.c" />
     <ClCompile Include="meta\str_asr.c" />
     <ClCompile Include="meta\str_snds.c" />

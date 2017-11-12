@@ -5,7 +5,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
-#include "formats.h"
 #include "vgmstream.h"
 #include "meta/meta.h"
 #include "layout/layout.h"
@@ -202,7 +201,6 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_wii_smp,
     init_vgmstream_emff_ps2,
     init_vgmstream_emff_ngc,
-    init_vgmstream_ss_stream,
     init_vgmstream_thp,
     init_vgmstream_wii_sts,
     init_vgmstream_ps2_p2bt,

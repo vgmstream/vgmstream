@@ -15,7 +15,6 @@
 
 
 extern "C" {
-#include "../src/formats.h"
 #include "../src/vgmstream.h"
 }
 #include "plugin.h"
@@ -95,8 +94,8 @@ bool VgmstreamPlugin::is_our_file(const char *filename, VFSFile &file) {
     else
         ext = ext+1; /* skip the dot */
 
-    const char ** ext_list = vgmstream_get_formats();
-    int ext_list_len = vgmstream_get_formats_length();
+    size_t ext_list_len = 0;
+    const char ** ext_list = vgmstream_get_formats(&ext_list_len);
 
     for (int i=0; i < ext_list_len; i++) {
         if (!strcasecmp(ext, ext_list[i]))

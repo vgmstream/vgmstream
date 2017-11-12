@@ -30,11 +30,12 @@ typedef enum {
     XMA1 = 20,        /* raw XMA1 */
     XMA2 = 21,        /* raw XMA2 */
     FFMPEG = 22,      /* any headered FFmpeg format */
+    AC3 = 23,         /* AC3/SPDIF */
 } txth_type;
 
 typedef struct {
     txth_type codec;
-    txth_type codec_mode;
+    uint32_t codec_mode;
     uint32_t interleave;
 
     uint32_t id_value;
@@ -60,11 +61,12 @@ typedef struct {
 
     uint32_t coef_offset;
     uint32_t coef_spacing;
-    uint32_t coef_mode;
     uint32_t coef_big_endian;
+    uint32_t coef_mode;
 
 } txth_header;
 
+static STREAMFILE * open_txth(STREAMFILE * streamFile);
 static int parse_txth(STREAMFILE * streamFile, STREAMFILE * streamText, txth_header * txth);
 static int parse_keyval(STREAMFILE * streamFile, STREAMFILE * streamText, txth_header * txth, const char * key, const char * val);
 static int parse_num(STREAMFILE * streamFile, const char * val, uint32_t * out_value);
@@ -76,44 +78,16 @@ static int get_bytes_to_samples(txth_header * txth, uint32_t bytes);
 VGMSTREAM * init_vgmstream_txth(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     STREAMFILE * streamText = NULL;
-    txth_header txth;
+    txth_header txth = {0};
     coding_t coding;
     int i, j;
 
     /* no need for ID or ext checks -- if a .TXTH exists all is good
      * (player still needs to accept the ext, so at worst rename to .vgmstream) */
-    {
-        char filename[PATH_LIMIT];
-        char fileext[PATH_LIMIT];
-
-        /* try "(path/)(name.ext).txth" */
-        if (!get_streamfile_name(streamFile,filename,PATH_LIMIT)) goto fail;
-        strcat(filename, ".txth");
-        streamText = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-        if (streamText) goto found;
-
-        /* try "(path/)(.ext).txth" */
-        if (!get_streamfile_path(streamFile,filename,PATH_LIMIT)) goto fail;
-        if (!get_streamfile_ext(streamFile,fileext,PATH_LIMIT)) goto fail;
-        strcat(filename,".");
-        strcat(filename, fileext);
-        strcat(filename, ".txth");
-        streamText = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-        if (streamText) goto found;
-
-        /* try "(path/).txth" */
-        if (!get_streamfile_path(streamFile,filename,PATH_LIMIT)) goto fail;
-        strcat(filename, ".txth");
-        streamText = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-        if (streamText) goto found;
-
-        /* not found */
-        goto fail;
-    }
-found:
+    streamText = open_txth(streamFile);
+    if (!streamText) goto fail;
 
     /* process the text file */
-    memset(&txth,0,sizeof(txth_header));
     if (!parse_txth(streamFile, streamText, &txth))
         goto fail;
 
@@ -145,6 +119,7 @@ found:
         case ATRAC3PLUS:
         case XMA1:
         case XMA2:
+        case AC3:
         case FFMPEG:     coding = coding_FFmpeg; break;
 #endif
         default:
@@ -261,7 +236,8 @@ found:
                     for (j=0;j<16;j++) {
                         vgmstream->ch[i].adpcm_coef[j] = read_16bit(txth.coef_offset + i*txth.coef_spacing  + j*2,streamFile);
                     }
-                } else {
+                }
+                else {
                     goto fail; //IDK what is this
                     /*
                     for (j=0;j<8;j++) {
@@ -285,7 +261,7 @@ found:
         case coding_FFmpeg: {
             ffmpeg_codec_data *ffmpeg_data = NULL;
 
-            if (txth.codec == FFMPEG) {
+            if (txth.codec == FFMPEG || txth.codec == AC3) {
                 /* default FFmpeg */
                 ffmpeg_data = init_ffmpeg_offset(streamFile, txth.start_offset,txth.data_size);
                 if ( !ffmpeg_data ) goto fail;
@@ -390,6 +366,38 @@ fail:
     return NULL;
 }
 
+
+static STREAMFILE * open_txth(STREAMFILE * streamFile) {
+    char filename[PATH_LIMIT];
+    char fileext[PATH_LIMIT];
+    STREAMFILE * streamText;
+
+    /* try "(path/)(name.ext).txth" */
+    if (!get_streamfile_name(streamFile,filename,PATH_LIMIT)) goto fail;
+    strcat(filename, ".txth");
+    streamText = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
+    if (streamText) return streamText;
+
+    /* try "(path/)(.ext).txth" */
+    if (!get_streamfile_path(streamFile,filename,PATH_LIMIT)) goto fail;
+    if (!get_streamfile_ext(streamFile,fileext,PATH_LIMIT)) goto fail;
+    strcat(filename,".");
+    strcat(filename, fileext);
+    strcat(filename, ".txth");
+    streamText = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
+    if (streamText) return streamText;
+
+    /* try "(path/).txth" */
+    if (!get_streamfile_path(streamFile,filename,PATH_LIMIT)) goto fail;
+    strcat(filename, ".txth");
+    streamText = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
+    if (streamText) return streamText;
+
+fail:
+    /* not found */
+    return 0;
+}
+
 /* Simple text parser of "key = value" lines.
  * The code is meh and error handling not exactly the best. */
 static int parse_txth(STREAMFILE * streamFile, STREAMFILE * streamText, txth_header * txth) {
@@ -472,6 +480,7 @@ static int parse_keyval(STREAMFILE * streamFile, STREAMFILE * streamText, txth_h
         else if (0==strcmp(val,"XMA1")) txth->codec = XMA1;
         else if (0==strcmp(val,"XMA2")) txth->codec = XMA2;
         else if (0==strcmp(val,"FFMPEG")) txth->codec = FFMPEG;
+        else if (0==strcmp(val,"AC3")) txth->codec = AC3;
         else goto fail;
     }
     else if (0==strcmp(key,"codec_mode")) {
@@ -662,6 +671,10 @@ static int get_bytes_to_samples(txth_header * txth, uint32_t bytes) {
         case XMA1:
         case XMA2:
             return bytes; /* preserve */
+
+        case AC3:
+            if (!txth->interleave) return 0;
+            return bytes / txth->interleave * 256 * txth->channels;
 
         /* untested */
         case IMA:
