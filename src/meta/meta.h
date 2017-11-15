@@ -200,11 +200,11 @@ VGMSTREAM * init_vgmstream_ikm(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_sfs(STREAMFILE * streamFile);
 
-VGMSTREAM * init_vgmstream_dvi(STREAMFILE * streamFile);
+VGMSTREAM * init_vgmstream_sat_dvi(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_bg00(STREAMFILE * streamFile);
 
-VGMSTREAM * init_vgmstream_kcey(STREAMFILE * streamFile);
+VGMSTREAM * init_vgmstream_dc_kcey(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_ps2_rstm(STREAMFILE * streamFile);
 

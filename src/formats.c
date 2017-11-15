@@ -97,7 +97,7 @@ static const char* extension_list[] = {
     "dsp",
     "dspw",
     "dtk",
-    "dvi",
+    "dvi", //fake extension (to be removed)
     "dxh",
 
     "eam",
@@ -148,7 +148,7 @@ static const char* extension_list[] = {
     "jstm",
 
     "kces",
-    "kcey",
+    "kcey", //fake extension (to be removed)
     "khv",
     "kovs",
     "kraw",
@@ -651,8 +651,8 @@ static const meta_info meta_info_list[] = {
         {meta_FILP,                 "Bio Hazard - Gun Survivor FILp Header"},
         {meta_IKM,                  "Zwei!! IKM Header"},
         {meta_SFS,                  "Baroque SFS Header"},
-        {meta_DVI,                  "DVI Header"},
-        {meta_KCEY,                 "KCEYCOMP Header"},
+        {meta_SAT_DVI,              "Konami KCEN DVI. header"},
+        {meta_DC_KCEY,              "Konami KCEY KCEYCOMP header"},
         {meta_BG00,                 "Falcom BG00 Header"},
         {meta_PS2_RSTM,             "Rockstar Games RSTM Header"},
         {meta_ACM,                  "InterPlay ACM Header"},

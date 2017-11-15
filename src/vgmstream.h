@@ -317,7 +317,7 @@ typedef enum {
     meta_HIS,               /* Her Ineractive .his */
     meta_BNSF,              /* Bandai Namco Sound Format */
 
-    meta_PSX_XA,            /* CD-ROM XA with RIFF header */
+    meta_PSX_XA,            /* CD-ROM XA */
     meta_PS2_SShd,			/* .ADS with SShd header */
     meta_PS2_NPSF,			/* Namco Production Sound File */
     meta_PS2_RXWS,          /* Sony games (Genji, Okage Shadow King, Arc The Lad Twilight of Spirits) */
@@ -487,8 +487,8 @@ typedef enum {
     meta_NWA,               /* Visual Art's NWA */
     meta_NWA_NWAINFOINI,    /* Visual Art's NWA w/ NWAINFO.INI for looping */
     meta_NWA_GAMEEXEINI,    /* Visual Art's NWA w/ Gameexe.ini for looping */
-    meta_DVI,				/* DVI Interleaved */
-    meta_KCEY,				/* KCEYCOMP */
+    meta_SAT_DVI,           /* Konami KCE Nagoya DVI (SAT games) */
+    meta_DC_KCEY,           /* Konami KCE Yokohama KCEYCOMP (DC games) */
     meta_ACM,               /* InterPlay ACM header */
     meta_MUS_ACM,           /* MUS playlist of InterPlay ACM files */
     meta_DE2,               /* Falcom (Gurumin) .de2 */
