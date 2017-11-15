@@ -56,8 +56,7 @@ VGMSTREAM * init_vgmstream_eacs(STREAMFILE *streamFile) {
 		if (!vgmstream) goto fail;
 
 		/* fill in the vital statistics */
-		init_get_high_nibble(vgmstream);
-		
+
 		vgmstream->sample_rate = ea_header->dwSampleRate;
 		
 		if(ea_header->bCompression==0) {
