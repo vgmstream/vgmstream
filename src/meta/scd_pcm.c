@@ -2,7 +2,7 @@
 #include "../util.h"
 
 /* PCM (from Lunar: Eternal Blue (Sega CD) */
-VGMSTREAM * init_vgmstream_pcm_scd(STREAMFILE *streamFile) {
+VGMSTREAM * init_vgmstream_scd_pcm(STREAMFILE *streamFile) {
 
     VGMSTREAM * vgmstream = NULL;
     char filename[PATH_LIMIT];
@@ -38,7 +38,7 @@ VGMSTREAM * init_vgmstream_pcm_scd(STREAMFILE *streamFile) {
     }
     vgmstream->layout_type = layout_interleave;
     vgmstream->interleave_block_size = 0x1;
-    vgmstream->meta_type = meta_PCM_SCD;
+    vgmstream->meta_type = meta_SCD_PCM;
 
     /* open the file for reading */
     {

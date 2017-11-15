@@ -691,7 +691,7 @@
                     >
                 </File>
 				<File
-					RelativePath=".\meta\pcm.c"
+					RelativePath=".\meta\scd_pcm.c"
 					>
 				</File>
 				<File

@@ -218,9 +218,9 @@ VGMSTREAM * init_vgmstream_ps2_psh(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_mus_acm(STREAMFILE * streamFile);
 
-VGMSTREAM * init_vgmstream_pcm_scd(STREAMFILE * streamFile);
+VGMSTREAM * init_vgmstream_scd_pcm(STREAMFILE * streamFile);
 
-VGMSTREAM * init_vgmstream_pcm_ps2(STREAMFILE * streamFile);
+VGMSTREAM * init_vgmstream_ps2_pcm(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_ps2_rkv(STREAMFILE * streamFile);
 

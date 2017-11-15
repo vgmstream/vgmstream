@@ -2,7 +2,7 @@
 #include "../coding/coding.h"
 
 /* .PCM - KCE Japan East PS2 games (Ephemeral Fantasia, Yu-Gi-Oh! The Duelists of the Roses, 7 Blades) */
-VGMSTREAM * init_vgmstream_pcm_ps2(STREAMFILE *streamFile) {
+VGMSTREAM * init_vgmstream_ps2_pcm(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     off_t start_offset;
     int loop_flag, channel_count;

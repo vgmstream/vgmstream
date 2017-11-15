@@ -665,7 +665,7 @@ static const meta_info meta_info_list[] = {
         {meta_RIFX_WAVE,            "RIFX WAVE header"},
         {meta_RIFX_WAVE_smpl,       "RIFX WAVE header with sample looping info"},
         {meta_XNB,                  "Microsoft XNA Game Studio 4.0 header"},
-        {meta_PCM_SCD,              "PCM file with custom header (SCD)"},
+        {meta_SCD_PCM,              "Lunar: Eternal Blue .PCM header"},
         {meta_PS2_PCM,              "Konami KCEJ East .PCM header"},
         {meta_PS2_RKV,              "Legacy of Kain - Blood Omen 2 RKV Header"},
         {meta_PS2_PSW,              "Rayman Raving Rabbids Riff Container File"},

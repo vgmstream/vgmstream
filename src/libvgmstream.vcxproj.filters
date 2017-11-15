@@ -406,7 +406,7 @@
     <ClCompile Include="meta\pc_xa30.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\pcm.c">
+    <ClCompile Include="meta\scd_pcm.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\pona.c">

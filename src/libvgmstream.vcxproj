@@ -296,7 +296,7 @@
     <ClCompile Include="meta\pc_smp.c" />
     <ClCompile Include="meta\sab.c" />
     <ClCompile Include="meta\pc_xa30.c" />
-    <ClCompile Include="meta\pcm.c" />
+    <ClCompile Include="meta\scd_pcm.c" />
     <ClCompile Include="meta\pona.c" />
     <ClCompile Include="meta\pos.c" />
     <ClCompile Include="meta\ps2_vds_vdm.c" />
