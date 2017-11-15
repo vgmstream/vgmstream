@@ -370,7 +370,7 @@ typedef enum {
     meta_PS2_DXH,			/* Tokobot Plus - Myteries of the Karakuri */
     meta_PS2_PSH,			/* Dawn of Mana - Seiken Densetsu 4 */
     meta_PCM_SCD,			/* Lunar - Eternal Blue */
-	meta_PCM_PS2,			/* Konami: Ephemeral Fantasia, Yu-Gi-Oh! The Duelists of the Roses */
+    meta_PS2_PCM,			/* Konami KCEJ East: Ephemeral Fantasia, Yu-Gi-Oh! The Duelists of the Roses, 7 Blades */
     meta_PS2_RKV,			/* Legacy of Kain - Blood Omen 2 */
     meta_PS2_PSW,			/* Rayman Raving Rabbids */
     meta_PS2_VAS,			/* Pro Baseball Spirits 5 */

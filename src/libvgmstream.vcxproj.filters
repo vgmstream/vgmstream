@@ -517,6 +517,9 @@
     <ClCompile Include="meta\ps2_p2bt.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\ps2_pcm.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\ps2_pnb.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>

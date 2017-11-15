@@ -858,6 +858,10 @@
 					RelativePath=".\meta\ps2_p2bt.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\meta\ps2_pcm.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\ps2_pnb.c"
 					>
