@@ -80,7 +80,8 @@ size_t ps_bytes_to_samples(size_t bytes, int channels);
 
 /* xa_decoder */
 void decode_xa(VGMSTREAM * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel);
-void init_get_high_nibble(VGMSTREAM * vgmstream);
+void xa_init_get_high_nibble(VGMSTREAM * vgmstream);
+size_t xa_bytes_to_samples(size_t bytes, int channels, int is_blocked);
 
 /* ea_xa_decoder */
 void decode_ea_xa(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel);

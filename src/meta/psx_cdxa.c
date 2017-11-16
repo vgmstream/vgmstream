@@ -1,135 +1,118 @@
 #include "meta.h"
 #include "../layout/layout.h"
-#include "../util.h"
+#include "../coding/coding.h"
 
-/* Sony PSX CD-XA */
-/* No looped file ! */
-
-static off_t init_xa_channel(int *channel,STREAMFILE *streamFile);
-
-static uint8_t AUDIO_CODING_GET_STEREO(uint8_t value) {
-	return (uint8_t)(value & 3);
-}
-
-static uint8_t AUDIO_CODING_GET_FREQ(uint8_t value) {
-	return (uint8_t)((value >> 2) & 3);
-}
-
+/* CD-XA - from Sony PS1 CDs */
 VGMSTREAM * init_vgmstream_cdxa(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[PATH_LIMIT];
+    off_t start_offset;
+    int loop_flag = 0, channel_count, sample_rate;
+    int xa_channel=0;
+    int is_blocked;
+    size_t file_size = get_streamfile_size(streamFile);
 
-	int channel_count;
-	int headerless=0;
-	int xa_channel=0;
-	uint8_t bCoding;
-	off_t start_offset;
+    /* check extension (.xa: common, .str: sometimes used) */
+    if ( !check_extensions(streamFile,"xa,str") )
+        goto fail;
 
-    int i;
+    /* Proper XA comes in raw (BIN 2352 mode2/form2) CD sectors, that contain XA subheaders.
+     * This also has minimal support for headerless (ISO 2048 mode1/data) mode. */
 
-    /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("xa",filename_extension(filename))) goto fail;
+    /* check RIFF header = raw (optional, added when ripping and not part of the CD data) */
+    if (read_32bitBE(0x00,streamFile) == 0x52494646 &&  /* "RIFF" */
+        read_32bitBE(0x08,streamFile) == 0x43445841 &&  /* "CDXA" */
+        read_32bitBE(0x0C,streamFile) == 0x666D7420) {  /* "fmt " */
+        is_blocked = 1;
+        start_offset = 0x2c; /* after "data" (chunk size tends to be a bit off) */
+    }
+    else {
+        /* sector sync word = raw */
+        if (read_32bitBE(0x00,streamFile) == 0x00FFFFFF &&
+            read_32bitBE(0x04,streamFile) == 0xFFFFFFFF &&
+            read_32bitBE(0x08,streamFile) == 0xFFFFFF00) {
+            is_blocked = 1;
+            start_offset = 0x00;
+        }
+        else { /* headerless */
+            is_blocked = 0;
+            start_offset = 0x00;
+        }
+    }
 
-    /* check RIFF Header */
-    if (!((read_32bitBE(0x00,streamFile) == 0x52494646) && 
-	      (read_32bitBE(0x08,streamFile) == 0x43445841) && 
-		  (read_32bitBE(0x0C,streamFile) == 0x666D7420)))
-        headerless=1;
+    /* test first block (except when RIFF) */
+    if (start_offset == 0) {
+        int i, j;
 
-    /* don't misdetect Reflections' XA ("XA30" / "04SW") */
-    if (read_32bitBE(0x00,streamFile) == 0x58413330 || read_32bitBE(0x00,streamFile) == 0x30345357) goto fail;
-    /* don't misdetect Maxis XA ("XAI\0" / "XAJ\0") */
-    if (read_32bitBE(0x00,streamFile) == 0x58414900 || read_32bitBE(0x00,streamFile) == 0x58414A00) goto fail;
+        /* 0x80 frames for 1 sector (max ~0x800 for ISO mode)  */
+        for (i = 0; i < (0x800/0x80); i++) {
+            off_t test_offset = start_offset + (is_blocked ? 0x18 : 0x00) + 0x80*i;
 
-	/* First init to have the correct info of the channel */
-	if (!headerless) {
-		start_offset=init_xa_channel(&xa_channel,streamFile);
+            /* ADPCM predictors should be 0..3 index */
+            for (j = 0; j < 16; j++) {
+                uint8_t header = read_8bit(test_offset + i, streamFile);
+                if (((header >> 4) & 0xF) > 3)
+                    goto fail;
+            }
+        }
+    }
 
-		/* No sound ? */
-		if(start_offset==0)
-			goto fail;
 
-		bCoding = read_8bit(start_offset-5,streamFile);
+    /* data is ok: parse header */
+    if (is_blocked) {
+        uint8_t xa_header;
 
-		switch (AUDIO_CODING_GET_STEREO(bCoding)) {
-			case 0: channel_count = 1; break;
-			case 1: channel_count = 2; break;
-			default: channel_count = 0; break;
-		}
+        /* parse 0x18 sector header (also see xa_blocked.c)  */
+        xa_channel = read_8bit(start_offset + 0x11,streamFile);
+        xa_header  = read_8bit(start_offset + 0x13,streamFile);
 
-		/* build the VGMSTREAM */
-		vgmstream = allocate_vgmstream(channel_count,0);
-		if (!vgmstream) goto fail;
+        switch((xa_header >> 0) & 3) { /* 0..1: stereo */
+            case 0: channel_count = 1; break;
+            case 1: channel_count = 2; break;
+            default: goto fail;
+        }
+        switch((xa_header >> 2) & 3) { /* 2..3: sample rate */
+            case 0: sample_rate = 37800; break;
+            case 1: sample_rate = 18900; break;
+            default: goto fail;
+        }
+        VGM_ASSERT(((xa_header >> 4) & 3) == 1, /* 4..5: bits per sample (0=4, 1=8) */
+                "XA: 8 bits per sample mode found\n"); /* spec only? */
+        /* 6: emphasis (applies a filter but apparently not used by games)
+         *   XA is also filtered when resampled to 44100 during output, differently from PS-ADPCM */
+        /* 7: reserved */
+    }
+    else {
+        /* headerless, probably will go wrong */
+        channel_count = 2;
+        sample_rate = 44100; /* not 37800? */
+    }
 
-		/* fill in the vital statistics */
-		vgmstream->channels = channel_count;
-		vgmstream->xa_channel = xa_channel;
 
-		switch (AUDIO_CODING_GET_FREQ(bCoding)) {
-			case 0: vgmstream->sample_rate = 37800; break;
-			case 1: vgmstream->sample_rate = 18900; break;
-			default: vgmstream->sample_rate = 0; break;
-		}
+    /* build the VGMSTREAM */
+    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+    if (!vgmstream) goto fail;
 
-		/* Check for Compression Scheme */
-		vgmstream->num_samples = (int32_t)((((get_streamfile_size(streamFile) - 0x3C)/2352)*0x1F80)/(2*channel_count));
-	} else 
-	{
-		channel_count=2;
-		vgmstream = allocate_vgmstream(2,0);
-		if (!vgmstream) goto fail;
+    vgmstream->sample_rate = sample_rate;
+    vgmstream->num_samples = xa_bytes_to_samples(file_size - start_offset, channel_count, is_blocked);
+    vgmstream->xa_headerless = !is_blocked;
+    vgmstream->xa_channel = xa_channel;
 
-		vgmstream->xa_headerless=1;
-		vgmstream->sample_rate=44100;
-		vgmstream->channels=2;
-		vgmstream->num_samples = (int32_t)(((get_streamfile_size(streamFile)/ 0x80)*0xE0)/2);
-		start_offset=0;
-	}
-
-	vgmstream->coding_type = coding_XA;
+    vgmstream->coding_type = coding_XA;
     vgmstream->layout_type = layout_xa_blocked;
     vgmstream->meta_type = meta_PSX_XA;
 
-	/* open the file for reading by each channel */
-    {
-        STREAMFILE *chstreamfile;
-        chstreamfile = streamFile->open(streamFile,filename,2352);
+    if (is_blocked)
+        start_offset += 0x18; /* move to first frame (hack for xa_blocked.c) */
 
-        if (!chstreamfile) goto fail;
+    /* open the file for reading */
+    if ( !vgmstream_open_stream(vgmstream, streamFile, start_offset) )
+        goto fail;
 
-        for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = chstreamfile;
-        }
-    }
-	
-	xa_block_update(start_offset,vgmstream);
+    xa_block_update(start_offset,vgmstream);
 
-	return vgmstream;
+    return vgmstream;
 
-    /* clean up anything we may have opened */
 fail:
     if (vgmstream) close_vgmstream(vgmstream);
     return NULL;
-}
-
-off_t init_xa_channel(int* channel,STREAMFILE* streamFile) {
-	
-	off_t block_offset=0x44;
-	size_t filelength=get_streamfile_size(streamFile);
-
-	int8_t currentChannel;
-
-	// 0 can't be a correct value
-	if(block_offset>=(off_t)filelength)
-		return 0;
-
-	currentChannel=read_8bit(block_offset-7,streamFile);
-	//subAudio=read_8bit(block_offset-6,streamFile);
-	*channel=currentChannel;
-	//if (!((currentChannel==channel) && (subAudio==0x64))) {
-	//	block_offset+=2352;
-	//	goto begin;
-	//}
-	return block_offset;
 }

@@ -715,10 +715,10 @@ typedef struct {
     layout_t layout_type;   /* type of layout for data */
     meta_t meta_type;       /* how we know the metadata */
 
-    /* streams (info only) */
-    int num_streams;        /* for multi-stream formats (0=not set/one, 1=one stream) */
-    int stream_index;       /* current stream */
-    char stream_name[STREAM_NAME_SIZE]; /* name of the current stream, if the file stores it and it's filled */
+    /* subsongs */
+    int num_streams;        /* for multi-stream formats (0=not set/one stream, 1=one stream) */
+    int stream_index;       /* selected stream (also 1-based) */
+    char stream_name[STREAM_NAME_SIZE]; /* name of the current stream (info), if the file stores it and it's filled */
 
     /* looping */
     int loop_flag;          /* is this stream looped? */
@@ -766,12 +766,10 @@ typedef struct {
 
     uint8_t xa_channel;				/* XA ADPCM: selected channel */
     int32_t xa_sector_length;		/* XA ADPCM: XA block */
-	uint8_t xa_headerless;			/* XA ADPCM: headerless XA block */
+    uint8_t xa_headerless;          /* XA ADPCM: headerless XA */
+    int8_t xa_get_high_nibble;      /* XA ADPCM: mono/stereo nibble selection (XA state could be simplified) */
 
-    int8_t get_high_nibble;         /* ADPCM: which nibble (XA, IMA, EA) */
-
-    uint8_t	ea_big_endian;          /* EA ADPCM stuff */
-    uint8_t	ea_platform;
+    uint8_t	ea_platform;            /* EA block */
 
     int32_t ws_output_size;         /* WS ADPCM: output bytes for this block */
 
