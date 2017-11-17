@@ -1,58 +1,43 @@
 #include "meta.h"
-#include "../util.h"
+#include "../coding/coding.h"
 
-/* TUN (from LEGO Racers (PC)) */
+/* ALP - from LEGO Racers (PC) */
 VGMSTREAM * init_vgmstream_tun(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[PATH_LIMIT];
     off_t start_offset;
-    int channel_count;
-    int loop_flag;
+    int loop_flag, channel_count;
 
-    /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("tun",filename_extension(filename))) goto fail;
+    /* check extension */
+    if ( !check_extensions(streamFile,"tun") )
+        goto fail;
 
     /* check header */
     if (read_32bitBE(0x00,streamFile) != 0x414C5020) /* "ALP " */
         goto fail;
 
-    channel_count = 2;
+    channel_count = 2; /* probably at 0x0F */
     loop_flag = 0;
+    start_offset = 0x10;
+    /* also "ADPCM" at 0x08 */
 
-   /* build the VGMSTREAM */
+    /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
-   /* fill in the vital statistics */
-    start_offset = 0x10;
     vgmstream->channels = channel_count;
     vgmstream->sample_rate = 22050;
+    vgmstream->num_samples = ima_bytes_to_samples(get_streamfile_size(streamFile) - 0x10, channel_count);
+
     vgmstream->coding_type = coding_DVI_IMA_int;
-    vgmstream->num_samples = (get_streamfile_size(streamFile)) - 0x10;
     vgmstream->layout_type = layout_interleave;
     vgmstream->interleave_block_size = 0x01;
     vgmstream->meta_type = meta_TUN;
 
     /* open the file for reading */
-    {
-        int i;
-        STREAMFILE * file;
-        file = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-        if (!file) goto fail;
-        for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = file;
-
-            vgmstream->ch[i].channel_start_offset=
-                vgmstream->ch[i].offset=start_offset+
-                vgmstream->interleave_block_size*i;
-
-        }
-    }
-
+    if ( !vgmstream_open_stream(vgmstream, streamFile, start_offset) )
+        goto fail;
     return vgmstream;
 
-    /* clean up anything we may have opened */
 fail:
     if (vgmstream) close_vgmstream(vgmstream);
     return NULL;
