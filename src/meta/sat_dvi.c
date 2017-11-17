@@ -29,7 +29,7 @@ VGMSTREAM * init_vgmstream_sat_dvi(STREAMFILE *streamFile) {
 
     vgmstream->coding_type = coding_DVI_IMA_int;
     vgmstream->layout_type = layout_interleave;
-    vgmstream->interleave_block_size = 4;
+    vgmstream->interleave_block_size = 0x4;
     vgmstream->meta_type = meta_SAT_DVI;
 
     /* at 0x10 (L) / 0x20 (R): probably ADPCM loop history @+0x00 and step @+0x17 (not init values) */
@@ -37,6 +37,16 @@ VGMSTREAM * init_vgmstream_sat_dvi(STREAMFILE *streamFile) {
     /* open the file for reading */
     if ( !vgmstream_open_stream(vgmstream, streamFile, start_offset) )
         goto fail;
+
+    /* for some reason right channel goes first (tested in SOTN vs emu and PS/OST version), swap offsets */
+    if (channel_count == 2) {
+        off_t temp = vgmstream->ch[0].offset;
+        vgmstream->ch[0].channel_start_offset =
+                vgmstream->ch[0].offset = vgmstream->ch[1].offset;
+        vgmstream->ch[1].channel_start_offset =
+                vgmstream->ch[1].offset = temp;
+    }
+
     return vgmstream;
 
 fail:
