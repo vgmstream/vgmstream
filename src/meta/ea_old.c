@@ -65,7 +65,7 @@ VGMSTREAM * init_vgmstream_eacs(STREAMFILE *streamFile) {
 				vgmstream->coding_type = coding_PCM8_int;
 		}
 		else 
-			vgmstream->coding_type = coding_EACS_IMA;
+			vgmstream->coding_type = coding_DVI_IMA;
 		
 		vgmstream->layout_type = layout_eacs_blocked;
 		vgmstream->meta_type = meta_EACS_PC;

@@ -426,8 +426,11 @@ void decode_xbox_ima_int(VGMSTREAMCHANNEL * stream, sample * outbuf, int channel
     stream->adpcm_step_index = step_index;
 }
 
-void decode_dvi_ima(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
-    int i, sample_count;
+/* Standard DVI/IMA ADPCM (as in, ADPCM recommended by the IMA using Intel/DVI's implementation).
+ * Configurable: stereo or mono/interleave nibbles, and high or low nibble first.
+ * For vgmstream, low nibble is called "IMA ADPCM" and high nibble is "DVI IMA ADPCM" (same thing though). */
+void decode_standard_ima(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel, int is_stereo, int is_high_first) {
+    int i, sample_count = 0;
 
     int32_t hist1 = stream->adpcm_history1_32;
     int step_index = stream->adpcm_step_index;
@@ -436,37 +439,13 @@ void decode_dvi_ima(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspaci
 
     //no header
 
-    for (i=first_sample,sample_count=0; i<first_sample+samples_to_do; i++,sample_count+=channelspacing) {
-        off_t byte_offset = stream->offset + i/2;
-        int nibble_shift = (i&1?0:4); //high nibble first (old-style DVI)
-
-        ms_ima_expand_nibble(stream, byte_offset,nibble_shift, &hist1, &step_index);
-        outbuf[sample_count] = (short)(hist1);
-    }
-
-    stream->adpcm_history1_32 = hist1;
-    stream->adpcm_step_index = step_index;
-}
-
-/* basically DVI stereo (high=L + low=R nibbles) and DVI mono (high=L, low=L) all-in-one, can be simplified/removed */
-void decode_eacs_ima(VGMSTREAM * vgmstream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
-    VGMSTREAMCHANNEL * stream = &(vgmstream->ch[channel]);//todo pass externally for consistency
-    int i, sample_count;
-
-    int32_t hist1 = stream->adpcm_history1_32;
-    int step_index = stream->adpcm_step_index;
-
-    //external interleave
-
-    //no header
-
-    for (i=first_sample,sample_count=0; i<first_sample+samples_to_do; i++,sample_count+=channelspacing) {
-        off_t byte_offset = channelspacing == 1 ?
-                stream->offset + i/2 :  /* mono mode */
-                stream->offset + i;     /* stereo mode */
-        int nibble_shift = channelspacing == 1 ?
-                (!(i%2) ? 4:0) :        /* mono mode (high first) */
-                (channel==0 ? 4:0);     /* stereo mode (high=L,low=R) */
+    for (i = first_sample; i < first_sample + samples_to_do; i++, sample_count += channelspacing) {
+        off_t byte_offset = is_stereo ?
+                stream->offset + i :    /* stereo: one nibble per channel */
+                stream->offset + i/2;   /* mono: consecutive nibbles */
+        int nibble_shift = is_high_first ?
+                is_stereo ? (!(channel&1) ? 4:0) : (!(i&1) ? 4:0) : /* even = high, odd = low */
+                is_stereo ? (!(channel&1) ? 0:4) : (!(i&1) ? 0:4);  /* even = low, odd = high */
 
         ms_ima_expand_nibble(stream, byte_offset,nibble_shift, &hist1, &step_index);
         outbuf[sample_count] = (short)(hist1);

@@ -440,7 +440,6 @@ static const coding_info coding_info_list[] = {
         {coding_CBD2_int,           "Cuberoot-delta-exact (CBD2) 8-bit DPCM with 1 byte interleave"},
         {coding_DVI_IMA,            "Intel DVI 4-bit IMA ADPCM"},
         {coding_DVI_IMA_int,        "Intel DVI 4-bit IMA ADPCM (interleaved)"},
-        {coding_EACS_IMA,           "EACS 4-bit IMA ADPCM"},
         {coding_IMA_int,            "IMA 4-bit ADPCM (interleaved)"},
         {coding_IMA,                "IMA 4-bit ADPCM"},
         {coding_MS_IMA,             "Microsoft 4-bit IMA ADPCM"},

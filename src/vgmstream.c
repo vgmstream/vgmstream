@@ -1019,7 +1019,6 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
             return 28;
         case coding_G721:
         case coding_DVI_IMA:
-        case coding_EACS_IMA:
         case coding_SNDS_IMA:
         case coding_IMA:
         case coding_OTNS_IMA:
@@ -1175,9 +1174,6 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
             return 0x14;
         case coding_NGC_DTK:
             return 32;
-        case coding_EACS_IMA:
-            return 1;
-        case coding_DVI_IMA:
         case coding_IMA:
         case coding_G721:
         case coding_SNDS_IMA:
@@ -1213,6 +1209,7 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
         case coding_WS:
             return vgmstream->current_block_size;
         case coding_IMA_int:
+        case coding_DVI_IMA:
         case coding_DVI_IMA_int:
         case coding_AICA:
             return 1; 
@@ -1614,16 +1611,12 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
         case coding_DVI_IMA:
         case coding_DVI_IMA_int:
             for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_dvi_ima(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                int is_stereo = vgmstream->channels > 1 && vgmstream->coding_type == coding_DVI_IMA;
+                int is_high_first = vgmstream->coding_type == coding_DVI_IMA || vgmstream->coding_type == coding_DVI_IMA_int;
+
+                decode_standard_ima(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do);
-            }
-            break;
-        case coding_EACS_IMA:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_eacs_ima(vgmstream,buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do,chan);
+                        samples_to_do, chan, is_stereo, is_high_first);
             }
             break;
         case coding_IMA:

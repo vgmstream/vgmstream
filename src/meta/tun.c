@@ -28,10 +28,10 @@ VGMSTREAM * init_vgmstream_tun(STREAMFILE *streamFile) {
     start_offset = 0x10;
     vgmstream->channels = channel_count;
     vgmstream->sample_rate = 22050;
-    vgmstream->coding_type = coding_DVI_IMA;
+    vgmstream->coding_type = coding_DVI_IMA_int;
     vgmstream->num_samples = (get_streamfile_size(streamFile)) - 0x10;
     vgmstream->layout_type = layout_interleave;
-    vgmstream->interleave_block_size = 1;
+    vgmstream->interleave_block_size = 0x01;
     vgmstream->meta_type = meta_TUN;
 
     /* open the file for reading */

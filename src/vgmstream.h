@@ -120,10 +120,9 @@ typedef enum {
     coding_XBOX_int,        /* XBOX IMA ADPCM (interleaved) */
     coding_IMA,             /* IMA ADPCM (low nibble first) */
     coding_IMA_int,         /* IMA ADPCM (interleaved) */
-    coding_DVI_IMA,         /* DVI IMA ADPCM (high nibble first), aka ADP4 */
-    coding_DVI_IMA_int,		/* DVI IMA ADPCM (Interleaved) */
+    coding_DVI_IMA,         /* DVI IMA ADPCM (stereo or mono, high nibble first) */
+    coding_DVI_IMA_int,		/* DVI IMA ADPCM (mono/interleave, high nibble first) */
     coding_NDS_IMA,         /* IMA ADPCM w/ NDS layout */
-    coding_EACS_IMA,        /* Electronic Arts IMA ADPCM */
     coding_MS_IMA,          /* Microsoft IMA ADPCM */
     coding_RAD_IMA,         /* Radical IMA ADPCM */
     coding_RAD_IMA_mono,    /* Radical IMA ADPCM, mono (for interleave) */

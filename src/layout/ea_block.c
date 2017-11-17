@@ -91,7 +91,7 @@ void ea_schl_block_update(off_t block_offset, VGMSTREAM * vgmstream) {
             break;
 
         /* id, size, IMA hist, stereo/mono data */
-        case coding_EACS_IMA:
+        case coding_DVI_IMA:
             for(i = 0; i < vgmstream->channels; i++) {
                 off_t header_offset = block_offset + 0xc + i*4;
                 vgmstream->ch[i].adpcm_history1_32 = read_16bitLE(header_offset+0x00, vgmstream->ch[i].streamfile);
@@ -196,7 +196,7 @@ void eacs_block_update(off_t block_offset, VGMSTREAM * vgmstream) {
 
     vgmstream->current_block_size=block_size-8;
 
-    if(vgmstream->coding_type==coding_EACS_IMA) {
+    if(vgmstream->coding_type==coding_DVI_IMA) {
         vgmstream->current_block_size=read_32bitLE(block_offset,vgmstream->ch[0].streamfile);
 
         for(i=0;i<vgmstream->channels;i++) {
