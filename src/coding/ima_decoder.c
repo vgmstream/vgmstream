@@ -435,10 +435,13 @@ void decode_standard_ima(VGMSTREAMCHANNEL * stream, sample * outbuf, int channel
     int32_t hist1 = stream->adpcm_history1_32;
     int step_index = stream->adpcm_step_index;
 
-    //external interleave
+    /* external interleave */
 
-    //no header
+    /* no header (external setup), pre-clamp for wrong values */
+    if (step_index < 0) step_index=0;
+    if (step_index > 88) step_index=88;
 
+    /* decode nibbles */
     for (i = first_sample; i < first_sample + samples_to_do; i++, sample_count += channelspacing) {
         off_t byte_offset = is_stereo ?
                 stream->offset + i :    /* stereo: one nibble per channel */
