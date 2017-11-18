@@ -208,7 +208,7 @@
     <ClCompile Include="meta\ea_schl_fixed.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\ea_old.c">
+    <ClCompile Include="meta\ea_1snh.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ea_snu.c">

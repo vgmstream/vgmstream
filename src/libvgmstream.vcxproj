@@ -223,7 +223,7 @@
     <ClCompile Include="meta\dsp_sth_str.c" />
     <ClCompile Include="meta\ea_schl.c" />
     <ClCompile Include="meta\ea_schl_fixed.c" />
-    <ClCompile Include="meta\ea_old.c" />
+    <ClCompile Include="meta\ea_1snh.c" />
     <ClCompile Include="meta\ea_snu.c" />
     <ClCompile Include="meta\emff.c" />
     <ClCompile Include="meta\exakt_sc.c" />
