@@ -245,7 +245,7 @@ VGMSTREAM * init_vgmstream_rwsd(STREAMFILE *streamFile) {
             coding_type = coding_NGC_DSP;
             break;
         case 3:
-            coding_type = coding_IMA;
+            coding_type = coding_3DS_IMA;
             break;
         default:
             goto fail;
