@@ -1,5 +1,4 @@
 #include "meta.h"
-#include "../util.h"
 
 /* STRM - from Final Fantasy Tactics A2 (NDS) */
 VGMSTREAM * init_vgmstream_nds_strm_ffta2(STREAMFILE *streamFile) {
@@ -18,24 +17,23 @@ VGMSTREAM * init_vgmstream_nds_strm_ffta2(STREAMFILE *streamFile) {
 
     loop_flag = (read_32bitLE(0x20,streamFile) !=0);
     channel_count = read_32bitLE(0x24,streamFile);
+    start_offset = 0x2C;
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
-    start_offset = 0x2C;
     vgmstream->channels = channel_count;
     vgmstream->sample_rate = read_32bitLE(0x0C,streamFile);
-    vgmstream->coding_type = coding_IMA_int; //todo: seems it has some diffs vs regular IMA
     vgmstream->num_samples = (read_32bitLE(0x04,streamFile)-start_offset);
-    if (loop_flag) {
-        vgmstream->loop_start_sample = read_32bitLE(0x20,streamFile);
-        vgmstream->loop_end_sample = read_32bitLE(0x28,streamFile);
-    }
+    vgmstream->loop_start_sample = read_32bitLE(0x20,streamFile);
+    vgmstream->loop_end_sample = read_32bitLE(0x28,streamFile);
 
-    vgmstream->interleave_block_size = 0x80;
-    vgmstream->layout_type = layout_interleave;
     vgmstream->meta_type = meta_NDS_STRM_FFTA2;
+
+    vgmstream->coding_type = coding_DVI_IMA_int;
+    vgmstream->layout_type = layout_interleave;
+    vgmstream->interleave_block_size = 0x80;
 
     if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
         goto fail;
