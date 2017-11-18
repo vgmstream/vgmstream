@@ -343,7 +343,7 @@ VGMSTREAM * init_vgmstream_rwsd(STREAMFILE *streamFile) {
                 }
             }
 
-            if (vgmstream->coding_type == coding_IMA) {
+            if (vgmstream->coding_type == coding_3DS_IMA) {
                 vgmstream->ch[j].adpcm_history1_16 = read_16bit(codec_info_offset,streamFile);
                 vgmstream->ch[j].adpcm_step_index = read_16bit(codec_info_offset+2,streamFile);
             }
