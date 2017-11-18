@@ -442,6 +442,7 @@ static const coding_info coding_info_list[] = {
         {coding_DVI_IMA_int,        "Intel DVI 4-bit IMA ADPCM (interleaved)"},
         {coding_IMA_int,            "IMA 4-bit ADPCM (interleaved)"},
         {coding_IMA,                "IMA 4-bit ADPCM"},
+        {coding_3DS_IMA,            "3DS IMA 4-bit ADPCM"},
         {coding_MS_IMA,             "Microsoft 4-bit IMA ADPCM"},
         {coding_RAD_IMA,            "Radical 4-bit IMA ADPCM"},
         {coding_RAD_IMA_mono,       "Radical 4-bit IMA ADPCM (mono)"},

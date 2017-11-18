@@ -1026,6 +1026,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
             return 1;
         case coding_IMA_int:
         case coding_DVI_IMA_int:
+        case coding_3DS_IMA:
         case coding_AICA:
             return 2;
         case coding_NGC_AFC:
@@ -1211,6 +1212,7 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
         case coding_IMA_int:
         case coding_DVI_IMA:
         case coding_DVI_IMA_int:
+        case coding_3DS_IMA:
         case coding_AICA:
             return 1; 
         case coding_APPLE_IMA4:
@@ -1623,6 +1625,13 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
         case coding_IMA_int:
             for (chan=0;chan<vgmstream->channels;chan++) {
                 decode_ima(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                        vgmstream->channels,vgmstream->samples_into_block,
+                        samples_to_do);
+            }
+            break;
+        case coding_3DS_IMA:
+            for (chan=0;chan<vgmstream->channels;chan++) {
+                decode_3ds_ima(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
                         samples_to_do);
             }

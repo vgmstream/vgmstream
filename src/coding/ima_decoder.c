@@ -41,8 +41,8 @@ static const int IMA_IndexTable[16] =
 };
 
 
-/* Alt IMA */
-static void ima_expand_nibble(VGMSTREAMCHANNEL * stream, off_t byte_offset, int nibble_shift, int32_t * hist1, int32_t * step_index) {
+/* 3DS IMA (Mario Golf, Mario Tennis; maybe other Camelot games) */
+static void n3ds_ima_expand_nibble(VGMSTREAMCHANNEL * stream, off_t byte_offset, int nibble_shift, int32_t * hist1, int32_t * step_index) {
     int sample_nibble, sample_decoded, step, delta;
 
     //"original" ima nibble expansion
@@ -64,7 +64,7 @@ static void ima_expand_nibble(VGMSTREAMCHANNEL * stream, off_t byte_offset, int 
     if (*step_index > 88) *step_index=88;
 }
 
-/* Microsoft's IMA (most common) */
+/* Standard IMA (most common) */
 static void ms_ima_expand_nibble(VGMSTREAMCHANNEL * stream, off_t byte_offset, int nibble_shift, int32_t * hist1, int32_t * step_index) {
     int sample_nibble, sample_decoded, step, delta;
 
@@ -86,7 +86,7 @@ static void ms_ima_expand_nibble(VGMSTREAMCHANNEL * stream, off_t byte_offset, i
     if (*step_index > 88) *step_index=88;
 }
 
-/* Apple's MS IMA variation. Exactly the same except it uses 16b history (probably more sensitive to overflow/sign extend) */
+/* Apple's IMA variation. Exactly the same except it uses 16b history (probably more sensitive to overflow/sign extend) */
 static void ms_ima_expand_nibble_16(VGMSTREAMCHANNEL * stream, off_t byte_offset, int nibble_shift, int16_t * hist1, int32_t * step_index) {
     int sample_nibble, sample_decoded, step, delta;
 
@@ -472,7 +472,29 @@ void decode_ima(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, 
         off_t byte_offset = stream->offset + i/2;
         int nibble_shift = (i&1?4:0); //low nibble order
 
-        ima_expand_nibble(stream, byte_offset,nibble_shift, &hist1, &step_index);
+        ms_ima_expand_nibble(stream, byte_offset,nibble_shift, &hist1, &step_index);
+        outbuf[sample_count] = (short)(hist1);
+    }
+
+    stream->adpcm_history1_32 = hist1;
+    stream->adpcm_step_index = step_index;
+}
+
+void decode_3ds_ima(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
+    int i, sample_count;
+
+    int32_t hist1 = stream->adpcm_history1_32;
+    int step_index = stream->adpcm_step_index;
+
+    //external interleave
+
+    //no header
+
+    for (i=first_sample,sample_count=0; i<first_sample+samples_to_do; i++,sample_count+=channelspacing) {
+        off_t byte_offset = stream->offset + i/2;
+        int nibble_shift = (i&1?4:0); //low nibble order
+
+        n3ds_ima_expand_nibble(stream, byte_offset,nibble_shift, &hist1, &step_index);
         outbuf[sample_count] = (short)(hist1);
     }
 

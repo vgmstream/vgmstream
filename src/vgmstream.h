@@ -135,6 +135,7 @@ typedef enum {
     coding_REF_IMA,         /* Reflections IMA ADPCM */
     coding_AWC_IMA,         /* Rockstar AWC IMA ADPCM */
     coding_UBI_IMA,         /* Ubisoft IMA ADPCM */
+    coding_3DS_IMA,         /* 3DS IMA ADPCM */
 
     coding_MSADPCM,         /* Microsoft ADPCM */
     coding_WS,              /* Westwood Studios VBR ADPCM */
