@@ -75,15 +75,15 @@ enum { STREAM_NAME_SIZE = 255 }; /* reasonable max */
 typedef enum {
     /* PCM */
     coding_PCM16LE,         /* little endian 16-bit PCM */
-    coding_PCM16LE_XOR_int, /* little endian 16-bit PCM with sample-level xor */
+    coding_PCM16LE_XOR_int, /* little endian 16-bit PCM with sample-level xor (for blocks) */
     coding_PCM16BE,         /* big endian 16-bit PCM */
-    coding_PCM16_int,       /* 16-bit PCM with sample-level interleave */
+    coding_PCM16_int,       /* 16-bit PCM with sample-level interleave (for blocks) */
 
     coding_PCM8,            /* 8-bit PCM */
-    coding_PCM8_int,        /* 8-Bit PCM with sample-level interleave */
+    coding_PCM8_int,        /* 8-Bit PCM with sample-level interleave (for blocks) */
     coding_PCM8_U,          /* 8-bit PCM, unsigned (0x80 = 0) */
-    coding_PCM8_U_int,      /* 8-bit PCM, unsigned (0x80 = 0) with sample-level interleave */
-    coding_PCM8_SB_int,     /* 8-bit PCM, sign bit (others are 2's complement) with sample-level interleave */
+    coding_PCM8_U_int,      /* 8-bit PCM, unsigned (0x80 = 0) with sample-level interleave (for blocks) */
+    coding_PCM8_SB_int,     /* 8-bit PCM, sign bit (others are 2's complement) with sample-level interleave (for blocks) */
 
     coding_ULAW,            /* 8-bit u-Law (non-linear PCM) */
     coding_ALAW,            /* 8-bit a-Law (non-linear PCM) */
@@ -214,7 +214,7 @@ typedef enum {
     layout_halpst_blocked,
     layout_xa_blocked,
     layout_ea_blocked,
-    layout_eacs_blocked,
+    layout_blocked_ea_1snh,
     layout_caf_blocked,
     layout_wsi_blocked,
     layout_str_snds_blocked,
@@ -459,9 +459,7 @@ typedef enum {
     meta_EA_SCHL,           /* Electronic Arts SCHl with variable header */
     meta_EA_SCHL_fixed,     /* Electronic Arts SCHl with fixed header */
     meta_EA_BNK,            /* Electronic Arts BNK */
-    meta_EACS_PC,			/* Electronic Arts EACS PC */
-    meta_EACS_PSX,			/* Electronic Arts EACS PSX */
-    meta_EACS_SAT,			/* Electronic Arts EACS SATURN */
+    meta_EA_1SNH,           /* Electronic Arts 1SNh/EACS */
 
     meta_RAW,				/* RAW PCM file */
 
@@ -767,8 +765,6 @@ typedef struct {
     int32_t xa_sector_length;		/* XA ADPCM: XA block */
     uint8_t xa_headerless;          /* XA ADPCM: headerless XA */
     int8_t xa_get_high_nibble;      /* XA ADPCM: mono/stereo nibble selection (XA state could be simplified) */
-
-    uint8_t	ea_platform;            /* EA block */
 
     int32_t ws_output_size;         /* WS ADPCM: output bytes for this block */
 

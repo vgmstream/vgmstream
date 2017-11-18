@@ -90,7 +90,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_rifx,
     init_vgmstream_pos,
     init_vgmstream_nwa,
-    init_vgmstream_eacs,
+    init_vgmstream_ea_1snh,
     init_vgmstream_xss,
     init_vgmstream_sl3,
     init_vgmstream_hgc1,
@@ -914,7 +914,7 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
         case layout_halpst_blocked:
         case layout_xa_blocked:
         case layout_ea_blocked:
-        case layout_eacs_blocked:
+        case layout_blocked_ea_1snh:
         case layout_caf_blocked:
         case layout_wsi_blocked:
         case layout_str_snds_blocked:
