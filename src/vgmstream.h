@@ -116,18 +116,19 @@ typedef enum {
     coding_MAXIS_XA,        /* Maxis EA-XA ADPCM */
     coding_EA_XAS,          /* Electronic Arts EA-XAS ADPCM */
 
-    coding_XBOX,            /* XBOX IMA ADPCM */
-    coding_XBOX_int,        /* XBOX IMA ADPCM (interleaved) */
-    coding_IMA,             /* IMA ADPCM (low nibble first) */
-    coding_IMA_int,         /* IMA ADPCM (interleaved) */
+    coding_IMA,             /* IMA ADPCM (stereo or mono, low nibble first) */
+    coding_IMA_int,         /* IMA ADPCM (mono/interleave, low nibble first) */
     coding_DVI_IMA,         /* DVI IMA ADPCM (stereo or mono, high nibble first) */
     coding_DVI_IMA_int,		/* DVI IMA ADPCM (mono/interleave, high nibble first) */
-    coding_NDS_IMA,         /* IMA ADPCM w/ NDS layout */
+    coding_3DS_IMA,         /* 3DS IMA ADPCM */
     coding_MS_IMA,          /* Microsoft IMA ADPCM */
+    coding_XBOX,            /* XBOX IMA ADPCM */
+    coding_XBOX_int,        /* XBOX IMA ADPCM (interleaved) */
+    coding_NDS_IMA,         /* IMA ADPCM w/ NDS layout */
+    coding_DAT4_IMA,        /* Eurocom 'DAT4' IMA ADPCM */
     coding_RAD_IMA,         /* Radical IMA ADPCM */
     coding_RAD_IMA_mono,    /* Radical IMA ADPCM, mono (for interleave) */
     coding_APPLE_IMA4,      /* Apple Quicktime IMA4 */
-    coding_DAT4_IMA,        /* Eurocom 'DAT4' IMA ADPCM */
     coding_SNDS_IMA,        /* Heavy Iron Studios .snds IMA ADPCM */
     coding_OTNS_IMA,        /* Omikron The Nomad Soul IMA ADPCM */
     coding_FSB_IMA,         /* FMOD's FSB multichannel IMA ADPCM */
@@ -135,7 +136,6 @@ typedef enum {
     coding_REF_IMA,         /* Reflections IMA ADPCM */
     coding_AWC_IMA,         /* Rockstar AWC IMA ADPCM */
     coding_UBI_IMA,         /* Ubisoft IMA ADPCM */
-    coding_3DS_IMA,         /* 3DS IMA ADPCM */
 
     coding_MSADPCM,         /* Microsoft ADPCM */
     coding_WS,              /* Westwood Studios VBR ADPCM */
@@ -153,9 +153,7 @@ typedef enum {
     coding_SDX2_int,        /* SDX2 2:1 Squareroot-Delta-Exact compression with sample-level interleave */
     coding_CBD2,            /* CBD2 2:1 Cuberoot-Delta-Exact compression DPCM */
     coding_CBD2_int,        /* CBD2 2:1 Cuberoot-Delta-Exact compression, with sample-level interleave  */
-
     coding_ACM,             /* InterPlay ACM */
-
     coding_NWA0,            /* Visual Art's NWA (compressed at various levels) */
     coding_NWA1,
     coding_NWA2,
