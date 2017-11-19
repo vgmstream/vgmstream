@@ -30,7 +30,7 @@ VGMSTREAM * init_vgmstream_pc_adp_bos(STREAMFILE *streamFile) {
         vgmstream->loop_end_sample = vgmstream->num_samples;
     }
 
-    vgmstream->coding_type = coding_DVI_IMA;
+    vgmstream->coding_type = coding_DVI_IMA_int;
     vgmstream->layout_type = layout_none;
     vgmstream->meta_type = meta_BOS_ADP;
 

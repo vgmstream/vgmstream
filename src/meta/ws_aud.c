@@ -55,7 +55,7 @@ VGMSTREAM * init_vgmstream_ws_aud(STREAMFILE *streamFile) {
             if (bytes_per_sample != 1) goto fail;
             break;
         case 99:    /* IMA ADPCM */
-            coding_type = coding_IMA;
+            coding_type = coding_IMA_int;
             break;
         default:
             goto fail;

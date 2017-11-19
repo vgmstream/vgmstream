@@ -27,7 +27,7 @@ VGMSTREAM * init_vgmstream_dc_kcey(STREAMFILE *streamFile) {
     vgmstream->loop_start_sample = read_32bitBE(0x14,streamFile);
     vgmstream->loop_end_sample = read_32bitBE(0x0C,streamFile);
 
-    vgmstream->coding_type = coding_DVI_IMA;
+    vgmstream->coding_type = coding_DVI_IMA; /* stereo/mono, high nibble first */
     vgmstream->layout_type = layout_none;
     vgmstream->meta_type = meta_DC_KCEY;
 

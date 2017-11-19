@@ -173,7 +173,7 @@ VGMSTREAM * init_vgmstream_aifc(STREAMFILE *streamFile) {
                                 interleave = 1;
                                 break;
                             case 0x41445034:    /* ADP4 */
-                                coding_type = coding_DVI_IMA;
+                                coding_type = coding_DVI_IMA_int;
                                 /* don't know how stereo DVI is laid out */
                                 if (channel_count != 1) break;
                                 break;

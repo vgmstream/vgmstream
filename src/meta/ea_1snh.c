@@ -69,7 +69,7 @@ VGMSTREAM * init_vgmstream_ea_1snh(STREAMFILE *streamFile) {
 
         case EA_CODEC_IMA:
             if (ea.bits!=2) goto fail;
-            vgmstream->coding_type = coding_DVI_IMA; /* high nibble first */
+            vgmstream->coding_type = coding_DVI_IMA; /* stereo/mono, high nibble first */
             break;
 
         case EA_CODEC_PSX:

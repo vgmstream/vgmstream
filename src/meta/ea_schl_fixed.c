@@ -66,7 +66,7 @@ VGMSTREAM * init_vgmstream_ea_schl_fixed(STREAMFILE *streamFile) {
             break;
 
         case EA_CODEC_IMA:
-            vgmstream->coding_type = coding_DVI_IMA;
+            vgmstream->coding_type = coding_DVI_IMA; /* stereo/mono, high nibble first */
             break;
 
         default:

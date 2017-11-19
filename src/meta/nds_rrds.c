@@ -11,7 +11,7 @@ VGMSTREAM * init_vgmstream_nds_rrds(STREAMFILE *streamFile) {
     int loop_flag;
     off_t start_offset;
 
-    /* check extension, case insensitive */
+    /* check extension, case insensitive (made-up extension) */
     streamFile->get_name(streamFile,filename,sizeof(filename));
     if (strcasecmp("rrds",filename_extension(filename))) goto fail;
 
@@ -37,7 +37,7 @@ VGMSTREAM * init_vgmstream_nds_rrds(STREAMFILE *streamFile) {
 		vgmstream->loop_end_sample = vgmstream->num_samples;
 	}
 	
-	vgmstream->coding_type = coding_IMA;
+	vgmstream->coding_type = coding_IMA_int;
     vgmstream->meta_type = meta_NDS_RRDS;
     vgmstream->layout_type = layout_none;
 
