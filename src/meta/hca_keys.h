@@ -12,7 +12,7 @@ typedef struct {
  */
 static const hcakey_info hcakey_list[] = {
 
-        // HCA Decoder default
+        // CRI HCA decoder default
         {9621963164387704},         // CF222F1FE0748978
 
         // Phantasy Star Online 2 (multi?)
@@ -28,7 +28,13 @@ static const hcakey_info hcakey_list[] = {
         // Ro-Kyu-Bu! Himitsu no Otoshimono (PSP)
         {2012082716},               // 0000000077EDF21C
 
-        // Ro-Kyu-Bu! Naisho no Shutter Chance (PSV)
+        // VRIDGE Inc. games:
+        // - HatsuKare * Renai Debut Sengen! (PSP)
+        // - Seitokai no Ichizon Lv. 2 Portable (PSP)
+        // - Koi wa Kousoku ni Shibararenai! (PSP)
+        // - StormLover 2nd (PSP)
+        // - Prince of Stride (PSVita)
+        // - Ro-Kyu-Bu! Naisho no Shutter Chance (PSVita)
         {1234253142},               // 0000000049913556
 
         // Idolm@ster Cinderella Stage (iOS/Android)
@@ -122,6 +128,21 @@ static const hcakey_info hcakey_list[] = {
 
         // Schoolgirl Strikers ~Twinkle Melodies~ (iOS/Android)
         {0xDB5B61B8343D0000},       // DB5B61B8343D0000
+
+        // Bad Apple Wars (PSVita)
+        {241352432},                // 000000000E62BEF0
+
+        // Koi to Senkyo to Chocolate Portable (PSP)
+        {243812156},                // 000000000E88473C
+
+        // Custom Drive (PSP)
+        {2012062010},               // 0000000077EDA13A
+
+        // Root Letter (PSVita)
+        {1547531215412131},         // 00057F78B05F9BA3
+
+        // Pro Evolution Soccer 2018 / Winning Eleven 2018 (Android)
+        {14121473},                 // 0000000000D77A01
 
 };
 

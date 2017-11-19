@@ -208,7 +208,7 @@
     <ClCompile Include="meta\ea_schl_fixed.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\ea_old.c">
+    <ClCompile Include="meta\ea_1snh.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ea_snu.c">
@@ -406,7 +406,7 @@
     <ClCompile Include="meta\pc_xa30.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\pcm.c">
+    <ClCompile Include="meta\scd_pcm.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\pona.c">
@@ -515,6 +515,9 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ps2_p2bt.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\ps2_pcm.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ps2_pnb.c">
@@ -920,6 +923,9 @@
       <Filter>layout\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="layout\blocked_awc.c">
+      <Filter>layout\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="layout\blocked_ea_1snh.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="layout\blocked_vgs.c">

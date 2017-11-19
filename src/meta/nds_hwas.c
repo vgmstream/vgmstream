@@ -8,7 +8,7 @@ VGMSTREAM * init_vgmstream_nds_hwas(STREAMFILE *streamFile) {
     off_t start_offset;
     int channel_count, loop_flag = 0;
 
-    /* check extension, case insensitive */
+    /* check extension, case insensitive (made-up extension) */
     if (!check_extensions(streamFile,"hwas"))
         goto fail;
 
@@ -33,7 +33,7 @@ VGMSTREAM * init_vgmstream_nds_hwas(STREAMFILE *streamFile) {
 
     vgmstream->meta_type = meta_NDS_HWAS;
 
-    vgmstream->coding_type = coding_IMA;
+    vgmstream->coding_type = coding_IMA_int;
     vgmstream->layout_type = layout_hwas_blocked;
     vgmstream->full_block_size = read_32bitLE(0x04,streamFile); /* usually 0x2000, 0x4000 or 0x8000 */
 

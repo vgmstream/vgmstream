@@ -36,7 +36,7 @@ VGMSTREAM * init_vgmstream_x360_tra(STREAMFILE *streamFile) {
 	vgmstream->channels = 2;
     vgmstream->sample_rate = 24000;
 
-	vgmstream->coding_type = coding_DVI_IMA;
+	vgmstream->coding_type = coding_DVI_IMA_int;
     vgmstream->num_samples = (int32_t)(get_streamfile_size(streamFile) - ((get_streamfile_size(streamFile)/0x204)*4));
     vgmstream->layout_type = layout_tra_blocked;
 	

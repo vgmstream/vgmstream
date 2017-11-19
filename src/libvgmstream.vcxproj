@@ -223,7 +223,7 @@
     <ClCompile Include="meta\dsp_sth_str.c" />
     <ClCompile Include="meta\ea_schl.c" />
     <ClCompile Include="meta\ea_schl_fixed.c" />
-    <ClCompile Include="meta\ea_old.c" />
+    <ClCompile Include="meta\ea_1snh.c" />
     <ClCompile Include="meta\ea_snu.c" />
     <ClCompile Include="meta\emff.c" />
     <ClCompile Include="meta\exakt_sc.c" />
@@ -296,7 +296,7 @@
     <ClCompile Include="meta\pc_smp.c" />
     <ClCompile Include="meta\sab.c" />
     <ClCompile Include="meta\pc_xa30.c" />
-    <ClCompile Include="meta\pcm.c" />
+    <ClCompile Include="meta\scd_pcm.c" />
     <ClCompile Include="meta\pona.c" />
     <ClCompile Include="meta\pos.c" />
     <ClCompile Include="meta\ps2_vds_vdm.c" />
@@ -333,6 +333,7 @@
     <ClCompile Include="meta\ps2_msa.c" />
     <ClCompile Include="meta\ps2_npsf.c" />
     <ClCompile Include="meta\ps2_p2bt.c" />
+    <ClCompile Include="meta\ps2_pcm.c" />
     <ClCompile Include="meta\ps2_pnb.c" />
     <ClCompile Include="meta\ps2_psh.c" />
     <ClCompile Include="meta\ps2_psw.c" />
@@ -470,6 +471,7 @@
     <ClCompile Include="layout\bdsp_blocked.c" />
     <ClCompile Include="layout\blocked.c" />
     <ClCompile Include="layout\blocked_awc.c" />
+    <ClCompile Include="layout\blocked_ea_1snh.c" />
     <ClCompile Include="layout\blocked_vgs.c" />
     <ClCompile Include="layout\caf_blocked.c" />
     <ClCompile Include="layout\de2_blocked.c" />

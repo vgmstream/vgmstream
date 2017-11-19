@@ -155,7 +155,6 @@ static void find_hca_key(hca_codec_data * hca_data, clHCA * hca, uint8_t * buffe
             f++;
         }
 
-        //;VGM_LOG("HCA: key %08x%08x clip_count=%i\n", ciphKey2,ciphKey1, clip_count);
         if (min_clip_count < 0 || clip_count < min_clip_count) {
             min_clip_count = clip_count;
             best_key2 = key2;
@@ -176,7 +175,7 @@ static void find_hca_key(hca_codec_data * hca_data, clHCA * hca, uint8_t * buffe
     read_streamfile(buffer, hca_data->start, header_size, hca_data->streamfile);
 
 end:
-    VGM_LOG("HCA: best key=%08x%08x (clips=%i)\n", best_key2,best_key1, min_clip_count);
+    VGM_ASSERT(min_clip_count > 0, "HCA: best key=%08x%08x (clips=%i)\n", best_key2,best_key1, min_clip_count);
     *out_key2 = best_key2;
     *out_key1 = best_key1;
     free(testbuf);//free(temp);

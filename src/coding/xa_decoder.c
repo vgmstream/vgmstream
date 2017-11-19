@@ -20,8 +20,8 @@ static int CLAMP(int value, int Minim, int Maxim)
     return value;
 }
 
-void init_get_high_nibble(VGMSTREAM *vgmstream) {
-	vgmstream->get_high_nibble=1;
+void xa_init_get_high_nibble(VGMSTREAM *vgmstream) {
+	vgmstream->xa_get_high_nibble=1;
 }
 
 void decode_xa(VGMSTREAM * vgmstream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
@@ -41,18 +41,18 @@ void decode_xa(VGMSTREAM * vgmstream, sample * outbuf, int channelspacing, int32
 
 	first_sample = first_sample % 28;
 	
-	vgmstream->get_high_nibble=!vgmstream->get_high_nibble;
+	vgmstream->xa_get_high_nibble=!vgmstream->xa_get_high_nibble;
 
 	if((first_sample) && (channelspacing==1))
-		vgmstream->get_high_nibble=!vgmstream->get_high_nibble;
+		vgmstream->xa_get_high_nibble=!vgmstream->xa_get_high_nibble;
 
-	predict_nr = read_8bit(stream->offset+HeadTable[framesin]+vgmstream->get_high_nibble,stream->streamfile) >> 4;
-	shift_factor = read_8bit(stream->offset+HeadTable[framesin]+vgmstream->get_high_nibble,stream->streamfile) & 0xf;
+	predict_nr = read_8bit(stream->offset+HeadTable[framesin]+vgmstream->xa_get_high_nibble,stream->streamfile) >> 4;
+	shift_factor = read_8bit(stream->offset+HeadTable[framesin]+vgmstream->xa_get_high_nibble,stream->streamfile) & 0xf;
 
 	for (i=first_sample,sample_count=0; i<first_sample+samples_to_do; i++,sample_count+=channelspacing) {
         short sample_byte = (short)read_8bit(stream->offset+16+framesin+(i*4),stream->streamfile);
 
-		scale = ((vgmstream->get_high_nibble ?
+		scale = ((vgmstream->xa_get_high_nibble ?
 			     sample_byte >> 4 :
 				 sample_byte & 0x0f)<<12);
 
@@ -69,4 +69,14 @@ void decode_xa(VGMSTREAM * vgmstream, sample * outbuf, int channelspacing, int32
 
 	stream->adpcm_history1_32=hist1;
 	stream->adpcm_history2_32=hist2;
+}
+
+size_t xa_bytes_to_samples(size_t bytes, int channels, int is_blocked) {
+    if (is_blocked) {
+        //todo with -0x10 misses the last sector, not sure if bug or feature
+        return ((bytes - 0x10) / 0x930) * (0x900 - 18*0x10) * 2 / channels;
+    }
+    else {
+        return ((bytes / 0x80)*0xE0) / 2;
+    }
 }

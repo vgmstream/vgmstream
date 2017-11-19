@@ -75,15 +75,15 @@ enum { STREAM_NAME_SIZE = 255 }; /* reasonable max */
 typedef enum {
     /* PCM */
     coding_PCM16LE,         /* little endian 16-bit PCM */
-    coding_PCM16LE_XOR_int, /* little endian 16-bit PCM with sample-level xor */
+    coding_PCM16LE_XOR_int, /* little endian 16-bit PCM with sample-level xor (for blocks) */
     coding_PCM16BE,         /* big endian 16-bit PCM */
-    coding_PCM16_int,       /* 16-bit PCM with sample-level interleave */
+    coding_PCM16_int,       /* 16-bit PCM with sample-level interleave (for blocks) */
 
     coding_PCM8,            /* 8-bit PCM */
-    coding_PCM8_int,        /* 8-Bit PCM with sample-level interleave */
+    coding_PCM8_int,        /* 8-Bit PCM with sample-level interleave (for blocks) */
     coding_PCM8_U,          /* 8-bit PCM, unsigned (0x80 = 0) */
-    coding_PCM8_U_int,      /* 8-bit PCM, unsigned (0x80 = 0) with sample-level interleave */
-    coding_PCM8_SB_int,     /* 8-bit PCM, sign bit (others are 2's complement) with sample-level interleave */
+    coding_PCM8_U_int,      /* 8-bit PCM, unsigned (0x80 = 0) with sample-level interleave (for blocks) */
+    coding_PCM8_SB_int,     /* 8-bit PCM, sign bit (others are 2's complement) with sample-level interleave (for blocks) */
 
     coding_ULAW,            /* 8-bit u-Law (non-linear PCM) */
     coding_ALAW,            /* 8-bit a-Law (non-linear PCM) */
@@ -116,19 +116,19 @@ typedef enum {
     coding_MAXIS_XA,        /* Maxis EA-XA ADPCM */
     coding_EA_XAS,          /* Electronic Arts EA-XAS ADPCM */
 
+    coding_IMA,             /* IMA ADPCM (stereo or mono, low nibble first) */
+    coding_IMA_int,         /* IMA ADPCM (mono/interleave, low nibble first) */
+    coding_DVI_IMA,         /* DVI IMA ADPCM (stereo or mono, high nibble first) */
+    coding_DVI_IMA_int,		/* DVI IMA ADPCM (mono/interleave, high nibble first) */
+    coding_3DS_IMA,         /* 3DS IMA ADPCM */
+    coding_MS_IMA,          /* Microsoft IMA ADPCM */
     coding_XBOX,            /* XBOX IMA ADPCM */
     coding_XBOX_int,        /* XBOX IMA ADPCM (interleaved) */
-    coding_IMA,             /* IMA ADPCM (low nibble first) */
-    coding_IMA_int,         /* IMA ADPCM (interleaved) */
-    coding_DVI_IMA,         /* DVI IMA ADPCM (high nibble first), aka ADP4 */
-    coding_DVI_IMA_int,		/* DVI IMA ADPCM (Interleaved) */
     coding_NDS_IMA,         /* IMA ADPCM w/ NDS layout */
-    coding_EACS_IMA,        /* Electronic Arts IMA ADPCM */
-    coding_MS_IMA,          /* Microsoft IMA ADPCM */
+    coding_DAT4_IMA,        /* Eurocom 'DAT4' IMA ADPCM */
     coding_RAD_IMA,         /* Radical IMA ADPCM */
     coding_RAD_IMA_mono,    /* Radical IMA ADPCM, mono (for interleave) */
     coding_APPLE_IMA4,      /* Apple Quicktime IMA4 */
-    coding_DAT4_IMA,        /* Eurocom 'DAT4' IMA ADPCM */
     coding_SNDS_IMA,        /* Heavy Iron Studios .snds IMA ADPCM */
     coding_OTNS_IMA,        /* Omikron The Nomad Soul IMA ADPCM */
     coding_FSB_IMA,         /* FMOD's FSB multichannel IMA ADPCM */
@@ -153,9 +153,7 @@ typedef enum {
     coding_SDX2_int,        /* SDX2 2:1 Squareroot-Delta-Exact compression with sample-level interleave */
     coding_CBD2,            /* CBD2 2:1 Cuberoot-Delta-Exact compression DPCM */
     coding_CBD2_int,        /* CBD2 2:1 Cuberoot-Delta-Exact compression, with sample-level interleave  */
-
     coding_ACM,             /* InterPlay ACM */
-
     coding_NWA0,            /* Visual Art's NWA (compressed at various levels) */
     coding_NWA1,
     coding_NWA2,
@@ -215,7 +213,7 @@ typedef enum {
     layout_halpst_blocked,
     layout_xa_blocked,
     layout_ea_blocked,
-    layout_eacs_blocked,
+    layout_blocked_ea_1snh,
     layout_caf_blocked,
     layout_wsi_blocked,
     layout_str_snds_blocked,
@@ -317,7 +315,7 @@ typedef enum {
     meta_HIS,               /* Her Ineractive .his */
     meta_BNSF,              /* Bandai Namco Sound Format */
 
-    meta_PSX_XA,            /* CD-ROM XA with RIFF header */
+    meta_PSX_XA,            /* CD-ROM XA */
     meta_PS2_SShd,			/* .ADS with SShd header */
     meta_PS2_NPSF,			/* Namco Production Sound File */
     meta_PS2_RXWS,          /* Sony games (Genji, Okage Shadow King, Arc The Lad Twilight of Spirits) */
@@ -369,8 +367,8 @@ typedef enum {
     meta_PS2_KCES,			/* Dance Dance Revolution */
     meta_PS2_DXH,			/* Tokobot Plus - Myteries of the Karakuri */
     meta_PS2_PSH,			/* Dawn of Mana - Seiken Densetsu 4 */
-    meta_PCM_SCD,			/* Lunar - Eternal Blue */
-	meta_PCM_PS2,			/* Konami: Ephemeral Fantasia, Yu-Gi-Oh! The Duelists of the Roses */
+    meta_SCD_PCM,			/* Lunar - Eternal Blue */
+    meta_PS2_PCM,			/* Konami KCEJ East: Ephemeral Fantasia, Yu-Gi-Oh! The Duelists of the Roses, 7 Blades */
     meta_PS2_RKV,			/* Legacy of Kain - Blood Omen 2 */
     meta_PS2_PSW,			/* Rayman Raving Rabbids */
     meta_PS2_VAS,			/* Pro Baseball Spirits 5 */
@@ -460,9 +458,7 @@ typedef enum {
     meta_EA_SCHL,           /* Electronic Arts SCHl with variable header */
     meta_EA_SCHL_fixed,     /* Electronic Arts SCHl with fixed header */
     meta_EA_BNK,            /* Electronic Arts BNK */
-    meta_EACS_PC,			/* Electronic Arts EACS PC */
-    meta_EACS_PSX,			/* Electronic Arts EACS PSX */
-    meta_EACS_SAT,			/* Electronic Arts EACS SATURN */
+    meta_EA_1SNH,           /* Electronic Arts 1SNh/EACS */
 
     meta_RAW,				/* RAW PCM file */
 
@@ -487,8 +483,8 @@ typedef enum {
     meta_NWA,               /* Visual Art's NWA */
     meta_NWA_NWAINFOINI,    /* Visual Art's NWA w/ NWAINFO.INI for looping */
     meta_NWA_GAMEEXEINI,    /* Visual Art's NWA w/ Gameexe.ini for looping */
-    meta_DVI,				/* DVI Interleaved */
-    meta_KCEY,				/* KCEYCOMP */
+    meta_SAT_DVI,           /* Konami KCE Nagoya DVI (SAT games) */
+    meta_DC_KCEY,           /* Konami KCE Yokohama KCEYCOMP (DC games) */
     meta_ACM,               /* InterPlay ACM header */
     meta_MUS_ACM,           /* MUS playlist of InterPlay ACM files */
     meta_DE2,               /* Falcom (Gurumin) .de2 */
@@ -715,10 +711,10 @@ typedef struct {
     layout_t layout_type;   /* type of layout for data */
     meta_t meta_type;       /* how we know the metadata */
 
-    /* streams (info only) */
-    int num_streams;        /* for multi-stream formats (0=not set/one, 1=one stream) */
-    int stream_index;       /* current stream */
-    char stream_name[STREAM_NAME_SIZE]; /* name of the current stream, if the file stores it and it's filled */
+    /* subsongs */
+    int num_streams;        /* for multi-stream formats (0=not set/one stream, 1=one stream) */
+    int stream_index;       /* selected stream (also 1-based) */
+    char stream_name[STREAM_NAME_SIZE]; /* name of the current stream (info), if the file stores it and it's filled */
 
     /* looping */
     int loop_flag;          /* is this stream looped? */
@@ -766,12 +762,8 @@ typedef struct {
 
     uint8_t xa_channel;				/* XA ADPCM: selected channel */
     int32_t xa_sector_length;		/* XA ADPCM: XA block */
-	uint8_t xa_headerless;			/* XA ADPCM: headerless XA block */
-
-    int8_t get_high_nibble;         /* ADPCM: which nibble (XA, IMA, EA) */
-
-    uint8_t	ea_big_endian;          /* EA ADPCM stuff */
-    uint8_t	ea_platform;
+    uint8_t xa_headerless;          /* XA ADPCM: headerless XA */
+    int8_t xa_get_high_nibble;      /* XA ADPCM: mono/stereo nibble selection (XA state could be simplified) */
 
     int32_t ws_output_size;         /* WS ADPCM: output bytes for this block */
 

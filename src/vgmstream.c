@@ -90,7 +90,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_rifx,
     init_vgmstream_pos,
     init_vgmstream_nwa,
-    init_vgmstream_eacs,
+    init_vgmstream_ea_1snh,
     init_vgmstream_xss,
     init_vgmstream_sl3,
     init_vgmstream_hgc1,
@@ -113,16 +113,16 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_ikm,
     init_vgmstream_sfs,
     init_vgmstream_bg00,
-    init_vgmstream_dvi,
-    init_vgmstream_kcey,
+    init_vgmstream_sat_dvi,
+    init_vgmstream_dc_kcey,
     init_vgmstream_ps2_rstm,
     init_vgmstream_acm,
     init_vgmstream_mus_acm,
     init_vgmstream_ps2_kces,
     init_vgmstream_ps2_dxh,
     init_vgmstream_ps2_psh,
-    init_vgmstream_pcm_scd,
-	init_vgmstream_pcm_ps2,
+    init_vgmstream_scd_pcm,
+	init_vgmstream_ps2_pcm,
     init_vgmstream_ps2_rkv,
     init_vgmstream_ps2_psw,
     init_vgmstream_ps2_vas,
@@ -914,7 +914,7 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
         case layout_halpst_blocked:
         case layout_xa_blocked:
         case layout_ea_blocked:
-        case layout_eacs_blocked:
+        case layout_blocked_ea_1snh:
         case layout_caf_blocked:
         case layout_wsi_blocked:
         case layout_str_snds_blocked:
@@ -1018,15 +1018,15 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_NGC_DTK:
             return 28;
         case coding_G721:
-        case coding_DVI_IMA:
-        case coding_EACS_IMA:
-        case coding_SNDS_IMA:
         case coding_IMA:
+        case coding_DVI_IMA:
+        case coding_SNDS_IMA:
         case coding_OTNS_IMA:
         case coding_UBI_IMA:
             return 1;
         case coding_IMA_int:
         case coding_DVI_IMA_int:
+        case coding_3DS_IMA:
         case coding_AICA:
             return 2;
         case coding_NGC_AFC:
@@ -1175,10 +1175,6 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
             return 0x14;
         case coding_NGC_DTK:
             return 32;
-        case coding_EACS_IMA:
-            return 1;
-        case coding_DVI_IMA:
-        case coding_IMA:
         case coding_G721:
         case coding_SNDS_IMA:
         case coding_OTNS_IMA:
@@ -1212,10 +1208,14 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
             return 0x4c*vgmstream->channels;
         case coding_WS:
             return vgmstream->current_block_size;
+        case coding_IMA:
         case coding_IMA_int:
+        case coding_DVI_IMA:
         case coding_DVI_IMA_int:
+        case coding_3DS_IMA:
+            return 0x01;
         case coding_AICA:
-            return 1; 
+            return 1;
         case coding_APPLE_IMA4:
             return 34;
         case coding_LSF:
@@ -1611,25 +1611,23 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                         samples_to_do);
             }
             break;
+        case coding_IMA:
+        case coding_IMA_int:
         case coding_DVI_IMA:
         case coding_DVI_IMA_int:
             for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_dvi_ima(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                int is_stereo = (vgmstream->channels > 1 && vgmstream->coding_type == coding_IMA)
+                        || (vgmstream->channels > 1 && vgmstream->coding_type == coding_DVI_IMA);
+                int is_high_first = vgmstream->coding_type == coding_DVI_IMA || vgmstream->coding_type == coding_DVI_IMA_int;
+
+                decode_standard_ima(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do);
+                        samples_to_do, chan, is_stereo, is_high_first);
             }
             break;
-        case coding_EACS_IMA:
+        case coding_3DS_IMA:
             for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_eacs_ima(vgmstream,buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do,chan);
-            }
-            break;
-        case coding_IMA:
-        case coding_IMA_int:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_ima(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                decode_3ds_ima(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
                         samples_to_do);
             }
@@ -1889,7 +1887,6 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream) {
         if (vgmstream->meta_type == meta_DSP_STD ||
             vgmstream->meta_type == meta_DSP_RS03 ||
             vgmstream->meta_type == meta_DSP_CSTR ||
-            vgmstream->meta_type == meta_NDS_STRM_FFTA2 || /* clicks in some files otherwise */
             vgmstream->coding_type == coding_PSX ||
             vgmstream->coding_type == coding_PSX_bmdx ||
             vgmstream->coding_type == coding_PSX_badflags) {

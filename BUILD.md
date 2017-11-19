@@ -149,22 +149,25 @@ C is restricted to features VS2010 can understand. This mainly means means decla
 ```
 
 ### Overview
-vgmstream works by parsing a music stream header (*meta/*), reading/demuxing data or looping (*layout/*) and decoding the compressed data into listenable PCM samples (*coding/*).
+vgmstream works by parsing a music stream header (*meta/*), preparing/demuxing data (*layout/*) and decoding the compressed data into listenable PCM samples (*coding/*).
 
 Very simplified it goes like this:
-- player (test.exe, plugin, etc) inits the stream *[main]*
+- player (test.exe, plugin, etc) opens a file stream *[plugin's main/decode]*
 - init tries all parsers (metas) until one works *[init_vgmstream]*
 - parser reads header (channels, sample rate, loop points) and set ups a VGMSTREAM struct + layout/coding, if the format is correct *[init_vgmstream_(format-name)]*
 - player gets total_samples to play, based on the number of loops and other settings *[get_vgmstream_play_samples]*
 - player asks to fill a small sample buffer *[render_vgmstream]*
-- layout prepares bytes to read from the stream *[render_vgmstream_(layout)]*
-- decoder decodes bytes into PCM samples *[decode_vgmstream_(coding)]*
-- player plays those samples, asks to fill sample buffer, repeats (until total_samples)
-- layout moves back to loop_start when loop_end is reached *[vgmstream_do_loop]*
+- layout prepares byte offsets to read from the stream *[render_vgmstream_(layout)]*
+- decoder reads and decodes bytes into PCM samples *[decode_vgmstream_(coding)]*
+- player plays those samples, asks to fill sample buffer again, repeats (until total_samples)
+- layout moves offsets back to loop_start when loop_end is reached *[vgmstream_do_loop]*
+- close the VGMSTREAM once the stream is finished
+
+The VGMSTREAM struct created during holds the stream's parameters and decoder state (such as file streams, or offsets per channel).
 
 ### Adding new formats
 For new simple formats, assuming existing layout/coding:
-- *src/meta/(format-name).c*: create new init_vgmstream_(format-name) parser that reads all needed info from the stream header and inits VGMSTREAM
+- *src/meta/(format-name).c*: create new init_vgmstream_(format-name) parser that tests the extension and header id, and reads all needed info from the stream header and inits the VGMSTREAM
 - *src/meta/meta.h*: define parser's init
 - *src/vgmstream.h*: define meta description in the meta_t list
 - *src/vgmstream.c*: add parser init to the init list
@@ -172,6 +175,8 @@ For new simple formats, assuming existing layout/coding:
 - *fb2k/foo_filetypes.h*: add new extension to the file register list (optional)
 - *src/libvgmstream.vcproj/vcxproj/filters*: add to compile new (format-name).c parser in VS
 - if the format needs an external library don't forget to mark optional parts with: *#ifdef VGM_USE_X ... #endif*
+
+The new meta is usually named after the format's header id or main extension, possibly with prepended platform. Each file should parse one format (regardless of accepted extensions or decoders used) for consistency, but variations can be found as code evolved. Differents formats can use the same extension, this is not a problem as long as the header id or some other validation tells them apart. If the format is headerless and the extension isn't unique enough it may need a generic GENH/TXTH header instead of direct support. 
 
 A STREAMFILE is passed to init_vgmstream_(format-name) function, and I/O must be done using its functions and not STDIO/FILEs, as this lets plugins do their own I/O. This includes reading data from the header or opening other STREAMFILEs (if the header has companion files that need to be parsed).
 

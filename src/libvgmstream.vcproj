@@ -353,7 +353,7 @@
                     >
                 </File>
 				<File
-					RelativePath=".\meta\ea_old.c"
+					RelativePath=".\meta\ea_1snh.c"
 					>
 				</File>
                 <File
@@ -691,7 +691,7 @@
                     >
                 </File>
 				<File
-					RelativePath=".\meta\pcm.c"
+					RelativePath=".\meta\scd_pcm.c"
 					>
 				</File>
 				<File
@@ -858,6 +858,10 @@
 					RelativePath=".\meta\ps2_p2bt.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\meta\ps2_pcm.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\ps2_pnb.c"
 					>
@@ -1584,6 +1588,10 @@
 				</File>
                 <File
                     RelativePath=".\layout\blocked_awc.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\layout\blocked_ea_1snh.c"
                     >
                 </File>
                 <File
