@@ -373,6 +373,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\ezw.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\ffmpeg.c"
 					>
 				</File>

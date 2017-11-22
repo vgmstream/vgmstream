@@ -150,6 +150,7 @@
     <ClCompile Include="meta\bfstm.c" />
     <ClCompile Include="meta\bfwav.c" />
     <ClCompile Include="meta\excitebots.c" />
+    <ClCompile Include="meta\ezw.c" />
     <ClCompile Include="meta\ffmpeg.c" />
     <ClCompile Include="meta\g1l.c" />
     <ClCompile Include="meta\ios_psnd.c" />

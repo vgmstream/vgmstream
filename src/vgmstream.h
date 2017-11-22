@@ -628,6 +628,7 @@ typedef enum {
     meta_PC_AL2,            /* Conquest of Elysium 3 (PC) */
     meta_PC_AST,            /* Dead Rising (PC) */
     meta_UBI_SB,            /* Ubisoft banks */
+	meta_EZW,               /* EZ2DJ (Arcade) EZWAV */
 
 #ifdef VGM_USE_VORBIS
     meta_OGG_VORBIS,        /* Ogg Vorbis */
