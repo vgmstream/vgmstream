@@ -400,8 +400,8 @@ static VGMSTREAM * init_vgmstream_internal(STREAMFILE *streamFile, int do_dfs) {
                 continue;
             }
 
-            /* everything should have a reasonable sample rate (a verification of the metadata) */
-            if (!check_sample_rate(vgmstream->sample_rate)) {
+            /* everything should have a reasonable sample rate (300 is Wwise min) */
+            if (vgmstream->sample_rate < 300 || vgmstream->sample_rate > 96000) {
                 VGM_LOG("VGMSTREAM: wrong sample rate (sr=%i)\n", vgmstream->sample_rate);
                 close_vgmstream(vgmstream);
                 continue;

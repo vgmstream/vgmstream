@@ -61,9 +61,6 @@ static inline int get_low_nibble_signed(uint8_t n) {
     return nibble_to_int[n&0xf];
 }
 
-/* return true for a good sample rate */
-int check_sample_rate(int32_t sr);
-
 /* return a file's extension (a pointer to the first character of the
  * extension in the original filename or the ending null byte if no extension
  */

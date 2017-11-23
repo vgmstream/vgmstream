@@ -61,7 +61,7 @@ VGMSTREAM * init_vgmstream_aix(STREAMFILE *streamFile) {
         goto fail;
 
     sample_rate = read_32bitBE(stream_list_offset+8,streamFile);
-    if (!check_sample_rate(sample_rate))
+    if (sample_rate < 300 || sample_rate > 96000)
         goto fail;
 
     samples_in_segment = calloc(segment_count,sizeof(int32_t));
