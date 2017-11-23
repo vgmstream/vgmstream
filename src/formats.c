@@ -93,6 +93,7 @@ static const char* extension_list[] = {
     "dcs",
     "ddsp",
     "de2",
+    "dec",
     "dmsg",
     "dsp",
     "dspw",

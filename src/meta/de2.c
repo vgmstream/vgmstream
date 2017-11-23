@@ -1,101 +1,183 @@
 #include "meta.h"
 #include "../layout/layout.h"
-#include "../util.h"
 
-/* Gurumin .de2 */
-/* A ways into the file we have a fake RIFF header wrapping MS ADPCM */
+#define TXT_LINE_MAX 0x1000
+static int get_falcom_looping(STREAMFILE *streamFile, int *out_loop_start, int *out_loop_end);
 
+/* .DEC/DE2 - from Falcom PC games (Xanadu Next, Zwei!!, VM Japan, Gurumin) */
 VGMSTREAM * init_vgmstream_de2(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[PATH_LIMIT];
-
-    off_t riff_off;
-    int channel_count;
-    int sample_count;
-    int sample_rate;
     off_t start_offset;
+    off_t riff_off = 0x00;
+    size_t pcm_size = 0;
+    int loop_flag, channel_count, sample_rate, loop_start = 0, loop_end = 0;
 
-    int loop_flag = 0;
-    uint32_t data_size;
 
-    /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("de2",filename_extension(filename))) goto fail;
-
-    /* still not sure what this is for, but consistently 0xb */
-    if (read_32bitLE(0x04,streamFile)!=0xb) goto fail;
-
-    /* legitimate! really! */
-    riff_off = 0x10 +
-        (read_32bitLE(0x0c,streamFile) ^ read_32bitLE(0x04,streamFile));
-
-    /* check header */
-    if ((uint32_t)read_32bitBE(riff_off+0,streamFile)!=0x52494646) /* "RIFF" */
+    /* check extension (.dec: main, .de2: Gurumin) */
+    if ( !check_extensions(streamFile,"dec,de2") )
         goto fail;
-    /* check for WAVE form */
-    if ((uint32_t)read_32bitBE(riff_off+8,streamFile)!=0x57415645) /* "WAVE" */
+
+    /* Gurumin has extra data, maybe related to rhythm (~0x50000) */
+    if (check_extensions(streamFile,"de2")) {
+        /* still not sure what this is for, but consistently 0xb */
+        if (read_32bitLE(0x04,streamFile) != 0xb) goto fail;
+
+        /* legitimate! really! */
+        riff_off = 0x10 + (read_32bitLE(0x0c,streamFile) ^ read_32bitLE(0x04,streamFile));
+    }
+
+
+    /* fake PCM RIFF header (the original WAV's) wrapping MS-ADPCM */
+    if (read_32bitBE(riff_off+0x00,streamFile) != 0x52494646 || /* "RIFF" */
+        read_32bitBE(riff_off+0x08,streamFile) != 0x57415645)   /* "WAVE" */
         goto fail;
-    /* check for "fmt " */
-    if ((uint32_t)read_32bitBE(riff_off+12,streamFile)!=0x666d7420) /* "fmt " */
+
+    if (read_32bitBE(riff_off+0x0c,streamFile) == 0x50414420) { /* "PAD " (Zwei!!), blank with wrong chunk size */
+        sample_rate = 44100;
+        channel_count = 2;
+        pcm_size = read_32bitLE(riff_off+0x04,streamFile) - 0x24;
+        /* somehow there is garbage at the beginning of some tracks */
+    }
+    else if (read_32bitBE(riff_off+0x0c,streamFile) == 0x666D7420) { /* "fmt " (rest) */
+        //if (read_32bitLE(riff_off+0x10,streamFile) != 0x12) goto fail; /* 0x10 in some */
+        if (read_16bitLE(riff_off+0x14,streamFile) != 0x01) goto fail; /* PCM (actually MS-ADPCM) */
+        if (read_16bitLE(riff_off+0x20,streamFile) != 4 ||
+            read_16bitLE(riff_off+0x22,streamFile) != 16) goto fail; /* 16-bit */
+
+        channel_count = read_16bitLE(riff_off+0x16,streamFile);
+        sample_rate = read_32bitLE(riff_off+0x18,streamFile);
+        if (read_32bitBE(riff_off+0x24,streamFile) == 0x64617461) { /* "data" size except in some Zwei!! */
+            pcm_size = read_32bitLE(riff_off+0x28,streamFile);
+        } else {
+            pcm_size = read_32bitLE(riff_off+0x04,streamFile) - 0x24;
+        }
+    }
+    else {
         goto fail;
-    /* check for "data" */
-    if ((uint32_t)read_32bitBE(riff_off+0x24,streamFile)!=0x64617461) /* "data" */
+    }
+
+    if (channel_count != 2)
         goto fail;
-    /* check for bad fmt chunk size */
-    if (read_32bitLE(riff_off+0x10,streamFile)!=0x12) goto fail;
-
-    sample_rate = read_32bitLE(riff_off+0x18,streamFile);
-
-    channel_count = read_16bitLE(riff_off+0x16,streamFile);
-    if (channel_count != 2) goto fail;
-
-    /* PCM */
-    if (read_16bitLE(riff_off+0x14,streamFile) != 1) goto fail;
-
-    /* 16-bit */
-    if (read_16bitLE(riff_off+0x20,streamFile) != 4 ||
-        read_16bitLE(riff_off+0x22,streamFile) != 16) goto fail;
 
     start_offset = riff_off + 0x2c;
-    data_size = read_32bitLE(riff_off+0x28,streamFile);
+    loop_flag = get_falcom_looping(streamFile, &loop_start, &loop_end);
 
-    sample_count = data_size/2/channel_count;
 
     /* build the VGMSTREAM */
-
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
-    /* fill in the vital statistics */
-    vgmstream->num_samples = sample_count;
     vgmstream->sample_rate = sample_rate;
+    vgmstream->num_samples = pcm_size / 2 / channel_count;
+    vgmstream->loop_start_sample = loop_start;
+    vgmstream->loop_end_sample = loop_end;
 
     vgmstream->coding_type = coding_MSADPCM;
-    vgmstream->layout_type = layout_de2_blocked;
     vgmstream->interleave_block_size = 0x800;
+    vgmstream->layout_type = layout_de2_blocked;
 
-    vgmstream->meta_type = meta_DE2;
+    vgmstream->meta_type = meta_DE2;//todo
 
-    /* open the file, set up each channel */
-    {
-        int i;
+    /* open the file for reading */
+    if ( !vgmstream_open_stream(vgmstream, streamFile, start_offset) )
+        goto fail;
 
-        vgmstream->ch[0].streamfile = streamFile->open(streamFile,filename,
-                STREAMFILE_DEFAULT_BUFFER_SIZE);
-        if (!vgmstream->ch[0].streamfile) goto fail;
-
-        for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = vgmstream->ch[0].streamfile;
-        }
-    }
-
-    /* start me up */
-    de2_block_update(start_offset,vgmstream);
+    de2_block_update(start_offset, vgmstream);
 
     return vgmstream;
 
-    /* clean up anything we may have opened */
 fail:
-    if (vgmstream) close_vgmstream(vgmstream);
+    close_vgmstream(vgmstream);
     return NULL;
+}
+
+
+/* Falcom loves loop points in external text files, here we parse them */
+typedef enum { XANADU_NEXT, ZWEI, DINOSAUR_RESURRECTION, GURUMIN } falcom_loop_t;
+static int get_falcom_looping(STREAMFILE *streamFile, int *out_loop_start, int *out_loop_end) {
+    STREAMFILE *streamText;
+    off_t txt_offset = 0x00;
+    falcom_loop_t type;
+    int loop_start = 0, loop_end = 0, loop_flag = 0;
+    char filename[TXT_LINE_MAX];
+
+
+    /* try one of the many loop files */
+    if ((streamText = open_stream_name(streamFile,"bgm.tbl")) != NULL) {
+        type = XANADU_NEXT;
+    }
+    else if ((streamText = open_stream_name(streamFile,"bgm.scr")) != NULL) {
+        type = ZWEI;
+    }
+    else if ((streamText = open_stream_name(streamFile,"loop.txt")) != NULL) { /* actual name in Shift JIS, 0x838B815B8376 */
+        type = DINOSAUR_RESURRECTION;
+    }
+    else if ((streamText = open_stream_name(streamFile,"map.itm")) != NULL) {
+        type = GURUMIN;
+    }
+    else {
+        goto end;
+    }
+
+    get_streamfile_name(streamFile,filename,TXT_LINE_MAX);
+
+    /* read line by line */
+    while (txt_offset < get_streamfile_size(streamText)) {
+        char line[TXT_LINE_MAX];
+        char name[TXT_LINE_MAX];
+        int ok, line_done, loop, bytes_read;
+
+        bytes_read = get_streamfile_dos_line(TXT_LINE_MAX,line, txt_offset,streamText, &line_done);
+        if (!line_done) goto end;
+
+        txt_offset += bytes_read;
+
+        if (line[0]=='/' || line[0]=='#' || line[0]=='[' || line[0]=='\0') /* comment/empty */
+            continue;
+
+        /* each game changes line format, wee */
+        switch(type) {
+            case XANADU_NEXT: /* "XANA000",          0,      0,99999990,0 */
+                ok = sscanf(line,"\"%[^\"]\", %*d, %d, %d, %d", name,&loop_start,&loop_end,&loop);
+                if (ok == 4 && strncasecmp(filename,name,strlen(name)) == 0) {
+                    loop_flag = (loop && loop_end != 0);
+                    goto end;
+                }
+                break;
+
+            case ZWEI: /* 1,.\wav\bgm01.wav,497010,7386720;//comment */
+                ok = sscanf(line,"%*i,.\\wav\\%[^.].dec,%d,%d;%*s", name,&loop_start,&loop_end);
+                if (ok == 3 && strncasecmp(filename,name,strlen(name)) == 0) {
+                    loop_flag = (loop_end != 9000000);
+                    goto end;
+                }
+                break;
+
+            case DINOSAUR_RESURRECTION: /* 01   970809 - 8015852 */
+                strcpy(name,"dinow_"); /* for easier comparison */
+                ok = sscanf(line,"%[^ ] %d - %d", (name+6), &loop_start,&loop_end);
+                if (ok == 3 && strncasecmp(filename,name,strlen(name)) == 0) {
+                    loop_flag = 1;
+                    goto end;
+                }
+                break;
+
+            case GURUMIN: /* 0003 BGM03      dec 00211049    02479133    00022050    00000084    //comment */
+                ok = sscanf(line,"%*i %[^ \t] %*[^ \t] %d %d %*d %*d %*s", name,&loop_start,&loop_end);
+                if (ok == 3 && strncasecmp(filename,name,strlen(name)) == 0) {
+                    loop_flag = (loop_end != 99999999 && loop_end != 10000000);
+                    goto end;
+                }
+                break;
+        }
+    }
+
+end:
+    if (loop_flag) {
+        *out_loop_start = loop_start;
+        *out_loop_end = loop_end;
+    }
+
+    if (streamText) close_streamfile(streamText);
+    return loop_flag;
 }
