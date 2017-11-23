@@ -3,7 +3,7 @@
 #include "../layout/layout.h"
 #include "../util.h"
 
-#define TXTH_LINE_MAX 0x2000
+#define TXT_LINE_MAX 0x2000
 
 /* known TXTH types */
 typedef enum {
@@ -83,7 +83,7 @@ VGMSTREAM * init_vgmstream_txth(STREAMFILE *streamFile) {
     int i, j;
 
     /* no need for ID or ext checks -- if a .TXTH exists all is good
-     * (player still needs to accept the ext, so at worst rename to .vgmstream) */
+     * (player still needs to accept the streamfile's ext, so at worst rename to .vgmstream) */
     streamText = open_txth(streamFile);
     if (!streamText) goto fail;
 
@@ -401,44 +401,28 @@ fail:
 /* Simple text parser of "key = value" lines.
  * The code is meh and error handling not exactly the best. */
 static int parse_txth(STREAMFILE * streamFile, STREAMFILE * streamText, txth_header * txth) {
-    off_t off = 0;
+    off_t txt_offset = 0x00;
     off_t file_size = get_streamfile_size(streamText);
 
     txth->data_size = get_streamfile_size(streamFile); /* for later use */
 
     /* skip BOM if needed */
     if (read_16bitLE(0x00, streamText) == 0xFFFE || read_16bitLE(0x00, streamText) == 0xFEFF)
-        off = 0x02;
+        txt_offset = 0x02;
 
     /* read lines */
-    while (off < file_size) {
-        char line[TXTH_LINE_MAX];
-        char key[TXTH_LINE_MAX];
-        char val[TXTH_LINE_MAX]; /* at least as big as a line to avoid overflows (I hope) */
-        int ok;
-        off_t line_start = off, line_end = 0;
-        line[0] = key[0] = val[0] = 0;
-        
-        /* find line end */
-        while (line_end == 0 && off - line_start < TXTH_LINE_MAX) {
-            char c = (char)read_8bit(off, streamText);
-            if (c == '\n')
-                line_end = off;
-            else if (off >= file_size)
-                line_end = off-1;
+    while (txt_offset < file_size) {
+        char line[TXT_LINE_MAX] = {0};
+        char key[TXT_LINE_MAX] = {0}, val[TXT_LINE_MAX] = {0}; /* at least as big as a line to avoid overflows (I hope) */
+        int ok, bytes_read, line_done;
 
-            off++;
-        }
+        bytes_read = get_streamfile_text_line(TXT_LINE_MAX,line, txt_offset,streamText, &line_done);
+        if (!line_done) goto fail;
 
-        if (line_end == 0)
-            goto fail; /* bad file / line too long */
+        txt_offset += bytes_read;
         
         /* get key/val (ignores lead/trail spaces, stops at space/comment/separator) */
-        read_streamfile((uint8_t*)line,line_start,line_end, streamText);
-        line[line_end - line_start + 1] = '\0';
         ok = sscanf(line, " %[^ \t#=] = %[^ \t#\r\n] ", key,val);
-        //VGM_LOG("TXTH: ok=%i, key=\"%s\", val=\"%s\" from 0x%lx to 0x%lx\n", ok, key, val, line_start, line_end);
-
         if (ok != 2) /* ignore line if no key=val (comment or garbage) */
             continue;
 
