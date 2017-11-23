@@ -5,7 +5,7 @@
 static int get_falcom_looping(STREAMFILE *streamFile, int *out_loop_start, int *out_loop_end);
 
 /* .DEC/DE2 - from Falcom PC games (Xanadu Next, Zwei!!, VM Japan, Gurumin) */
-VGMSTREAM * init_vgmstream_de2(STREAMFILE *streamFile) {
+VGMSTREAM * init_vgmstream_dec(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     off_t start_offset;
     off_t riff_off = 0x00;
@@ -74,15 +74,15 @@ VGMSTREAM * init_vgmstream_de2(STREAMFILE *streamFile) {
 
     vgmstream->coding_type = coding_MSADPCM;
     vgmstream->interleave_block_size = 0x800;
-    vgmstream->layout_type = layout_de2_blocked;
+    vgmstream->layout_type = layout_blocked_dec;
 
-    vgmstream->meta_type = meta_DE2;//todo
+    vgmstream->meta_type = meta_DEC;
 
     /* open the file for reading */
     if ( !vgmstream_open_stream(vgmstream, streamFile, start_offset) )
         goto fail;
 
-    de2_block_update(start_offset, vgmstream);
+    block_update_dec(start_offset, vgmstream);
 
     return vgmstream;
 

@@ -29,7 +29,7 @@ void ws_aud_block_update(off_t block_offset, VGMSTREAM * vgmstream);
 
 void matx_block_update(off_t block_offset, VGMSTREAM * vgmstream);
 
-void de2_block_update(off_t block_offset, VGMSTREAM * vgmstream);
+void block_update_dec(off_t block_offset, VGMSTREAM * vgmstream);
 
 void vs_block_update(off_t block_offset, VGMSTREAM * vgmstream);
 

@@ -277,7 +277,7 @@ This list is not complete and many other files are supported.
 	- .bgw (PSX configurable ADPCM)
 	- .bnsf (G.722.1)
 	- .caf (Apple IMA4 ADPCM, others)
-	- .de2 (MS ADPCM)
+	- .dec/de2 (MS ADPCM)
 	- .hca (CRI High Compression Audio)
 	- .pcm/kcey (DVI IMA ADPCM)
 	- .lsf (LSF ADPCM)

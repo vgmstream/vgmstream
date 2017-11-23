@@ -190,7 +190,7 @@
     <ClCompile Include="meta\dc_str.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\de2.c">
+    <ClCompile Include="meta\dec.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\dmsg_segh.c">
@@ -937,7 +937,7 @@
     <ClCompile Include="layout\caf_blocked.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="layout\de2_blocked.c">
+    <ClCompile Include="layout\blocked_dec.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="layout\ea_block.c">

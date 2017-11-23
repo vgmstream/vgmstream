@@ -252,7 +252,7 @@ VGMSTREAM * init_vgmstream_dc_str_v2(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_xbox_matx(STREAMFILE *streamFile);
 
-VGMSTREAM * init_vgmstream_de2(STREAMFILE *streamFile);
+VGMSTREAM * init_vgmstream_dec(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_vs(STREAMFILE *streamFile);
 

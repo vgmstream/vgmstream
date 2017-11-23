@@ -219,7 +219,7 @@ typedef enum {
     layout_str_snds_blocked,
     layout_ws_aud_blocked,
     layout_matx_blocked,
-    layout_de2_blocked,
+    layout_blocked_dec,
     layout_xvas_blocked,
     layout_vs_blocked,
     layout_emff_ps2_blocked,
@@ -487,7 +487,7 @@ typedef enum {
     meta_DC_KCEY,           /* Konami KCE Yokohama KCEYCOMP (DC games) */
     meta_ACM,               /* InterPlay ACM header */
     meta_MUS_ACM,           /* MUS playlist of InterPlay ACM files */
-    meta_DE2,               /* Falcom (Gurumin) .de2 */
+    meta_DEC,               /* Falcom PC games (Xanadu Next, Gurumin) */
     meta_VS,				/* Men in Black .vs */
     meta_FFXI_BGW,          /* FFXI (PC) BGW */
     meta_FFXI_SPW,          /* FFXI (PC) SPW */

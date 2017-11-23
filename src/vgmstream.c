@@ -138,7 +138,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_dc_str,
     init_vgmstream_dc_str_v2,
     init_vgmstream_xbox_matx,
-    init_vgmstream_de2,
+    init_vgmstream_dec,
     init_vgmstream_vs,
     init_vgmstream_dc_str,
     init_vgmstream_dc_str_v2,
@@ -921,7 +921,7 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
         case layout_str_snds_blocked:
         case layout_ws_aud_blocked:
         case layout_matx_blocked:
-        case layout_de2_blocked:
+        case layout_blocked_dec:
         case layout_vs_blocked:
         case layout_emff_ps2_blocked:
         case layout_emff_ngc_blocked:

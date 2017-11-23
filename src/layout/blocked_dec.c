@@ -1,7 +1,7 @@
 #include "layout.h"
 
 /* Falcom RIFF blocks (.DEC/DE2) */
-void de2_block_update(off_t block_offset, VGMSTREAM * vgmstream) {
+void block_update_dec(off_t block_offset, VGMSTREAM * vgmstream) {
     STREAMFILE* streamFile = vgmstream->ch[0].streamfile;
     size_t block_size, header_size;
     int i;

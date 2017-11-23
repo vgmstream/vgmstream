@@ -325,7 +325,7 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\de2.c"
+					RelativePath=".\meta\dec.c"
 					>
 				</File>
 				<File
@@ -1607,7 +1607,7 @@
 					>
 				</File>
 				<File
-					RelativePath=".\layout\de2_blocked.c"
+					RelativePath=".\layout\blocked_dec.c"
 					>
 				</File>
 				<File
