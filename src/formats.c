@@ -308,6 +308,7 @@ static const char* extension_list[] = {
     "ulw",
     "um3",
 
+    "v0",
     "vag",
     "vas",
     "vawx",
