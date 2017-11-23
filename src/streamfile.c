@@ -22,9 +22,6 @@ typedef struct {
     uint8_t * buffer;       /* data buffer */
     size_t buffersize;      /* max buffer size */
     size_t filesize;        /* cached file size (max offset) */
-#ifdef VGM_DEBUG_OUTPUT
-    int error_notified;
-#endif
 #ifdef PROFILE_STREAMFILE
     size_t bytes_read;
     int error_count;
@@ -67,13 +64,7 @@ static size_t read_the_rest(uint8_t * dest, off_t offset, size_t length, STDIOST
         /* request outside file: ignore to avoid seek/read */
         if (offset > streamfile->filesize) {
             streamfile->offset = streamfile->filesize;
-
-#ifdef VGM_DEBUG_OUTPUT
-            if (!streamfile->error_notified) {
-                VGM_LOG("ERROR: reading over filesize 0x%x @ 0x%lx + 0x%x (buggy meta?)\n", streamfile->filesize, offset, length);
-                streamfile->error_notified = 1;
-            }
-#endif
+            VGM_LOG_ONCE("ERROR: reading over filesize 0x%x @ 0x%lx + 0x%x (buggy meta?)\n", streamfile->filesize, offset, length);
 
 #if STREAMFILE_IGNORE_EOF
             memset(dest,0,length); /* dest is already shifted */
@@ -143,13 +134,7 @@ static size_t read_stdio(STDIOSTREAMFILE *streamfile,uint8_t * dest, off_t offse
     /* request outside file: ignore to avoid seek/read in read_the_rest() */
     if (offset > streamfile->filesize) {
         streamfile->offset = streamfile->filesize;
-
-#ifdef VGM_DEBUG_OUTPUT
-        if (!streamfile->error_notified) {
-            VGM_LOG("ERROR: offset over filesize 0x%x @ 0x%lx + 0x%x (buggy meta?)\n", streamfile->filesize, offset, length);
-            streamfile->error_notified = 1;
-        }
-#endif
+        VGM_LOG_ONCE("ERROR: offset over filesize 0x%x @ 0x%lx + 0x%x (buggy meta?)\n", streamfile->filesize, offset, length);
 
 #if STREAMFILE_IGNORE_EOF
         memset(dest,0,length);
