@@ -514,6 +514,10 @@
 					RelativePath=".\meta\myspd.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\meta\naac.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\naomi_adpcm.c"
 					>

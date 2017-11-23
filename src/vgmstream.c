@@ -368,6 +368,7 @@ VGMSTREAM * (*init_vgmstream_fcns[])(STREAMFILE *streamFile) = {
     init_vgmstream_nsw_opus,
     init_vgmstream_pc_al2,
     init_vgmstream_pc_ast,
+    init_vgmstream_naac,
     init_vgmstream_ubi_sb,
 
     init_vgmstream_txth,  /* should go at the end (lower priority) */

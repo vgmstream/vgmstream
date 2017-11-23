@@ -295,6 +295,9 @@
     <ClCompile Include="meta\myspd.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\naac.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\naomi_adpcm.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>

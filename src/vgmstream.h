@@ -239,7 +239,7 @@ typedef enum {
     layout_hwas_blocked,
     layout_ea_sns_blocked,  /* newest Electronic Arts blocks, found in SNS/SNU/SPS/etc formats */
     layout_blocked_awc,     /* Rockstar AWC */
-    layout_blocked_vgs,     /* Guitar Hero II */
+    layout_blocked_vgs,     /* Guitar Hero II (PS2) */
 
     /* otherwise odd */
     layout_acm,             /* libacm layout */
@@ -627,6 +627,7 @@ typedef enum {
     meta_NSW_OPUS,          /* Lego City Undercover (Switch) */
     meta_PC_AL2,            /* Conquest of Elysium 3 (PC) */
     meta_PC_AST,            /* Dead Rising (PC) */
+    meta_NAAC,              /* Namco AAC (3DS) */
     meta_UBI_SB,            /* Ubisoft banks */
 
 #ifdef VGM_USE_VORBIS

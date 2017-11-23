@@ -192,6 +192,7 @@ static const char* extension_list[] = {
     "mxst",
     "myspd",
 
+    "naac",
     "ndp",
     "ngca",
     "nps",
@@ -265,7 +266,7 @@ static const char* extension_list[] = {
     "sl3",
     "sli",
     "smp",
-    "smpl",
+    "smpl", //fake extension (to be removed)
     "snd",
     "snds",
     "sng",
@@ -681,7 +682,7 @@ static const meta_info meta_info_list[] = {
         {meta_XBOX_WVS,             "Metal Arms WVS Header (XBOX)"},
         {meta_NGC_WVS,              "Metal Arms WVS Header (GameCube)"},
         {meta_XBOX_MATX,            "assumed Matrix file by .matx extension"},
-        {meta_DE2,                  "gurumin .de2 with embedded funky RIFF"},
+        {meta_DE2,                  "Falcom DEC/DE2 RIFF header"},
         {meta_VS,                   "Men in Black VS Header"},
         {meta_DC_STR,               "Sega Stream Asset Builder header"},
         {meta_DC_STR_V2,            "variant of Sega Stream Asset Builder header"},
@@ -796,12 +797,12 @@ static const meta_info meta_info_list[] = {
         {meta_S14,                  "Namco .S14 raw header"},
         {meta_SSS,                  "Namco .SSS raw header"},
         {meta_PS2_GCM,              "GCM 'MCG' Header"},
-        {meta_PS2_SMPL,             "Homura 'SMPL' Header"},
+        {meta_PS2_SMPL,             "Homura SMPL header"},
         {meta_PS2_MSA,              "Psyvariar -Complete Edition- MSA header"},
         {meta_PC_SMP,               "Ghostbusters .smp Header"},
         {meta_NGC_PDT,              "PDT DSP header"},
         {meta_NGC_BO2,              "Blood Omen 2 DSP header"},
-        {meta_P3D,                  "Radical P3D Header"},
+        {meta_P3D,                  "Radical P3D header"},
         {meta_PS2_TK1,              "Tekken TK5STRM1 Header"},
         {meta_PS2_ADSC,             "ADSC Header"},
         {meta_NGC_DSP_MPDS,         "MPDS DSP header"},
@@ -900,6 +901,7 @@ static const meta_info meta_info_list[] = {
         {meta_PC_AL2,               "Illwinter Game Design AL2 raw header"},
         {meta_PC_AST,               "Capcom AST (PC) header"},
         {meta_UBI_SB,               "Ubisoft SBx header"},
+        {meta_NAAC,                 "Namco NAAC header"},
 
 #ifdef VGM_USE_VORBIS
         {meta_OGG_VORBIS,           "Ogg Vorbis"},

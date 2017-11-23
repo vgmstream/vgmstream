@@ -259,6 +259,7 @@
     <ClCompile Include="meta\musc.c" />
     <ClCompile Include="meta\musx.c" />
     <ClCompile Include="meta\myspd.c" />
+    <ClCompile Include="meta\naac.c" />
     <ClCompile Include="meta\naomi_adpcm.c" />
     <ClCompile Include="meta\naomi_spsd.c" />
     <ClCompile Include="meta\nds_hwas.c" />
