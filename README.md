@@ -10,10 +10,10 @@ There are multiple end-user bits:
 - an XMPlay plugin called "xmp-vgmstream"
 - an Audacious plugin called "libvgmstream"
 
-## IMPORTANT!!
-### Needed files (for Windows)
-Since Ogg Vorbis, MPEG audio, and other formats are now supported, you will
-need to have certain DLL files.<br/>
+## Needed files (for Windows)
+Since Ogg Vorbis, MPEG audio, and other external formats are supported, you
+will need to have certain DLL files.
+
 In the case of the foobar2000 component they are all bundled for convenience,
 or you can get them from here: https://github.com/kode54/vgmstream
 (also here: https://f.losno.co/vgmstream-win32-deps.zip, may not be latest).
@@ -22,13 +22,13 @@ Put ```libvorbis.dll```, ```libmpg123-0.dll```, ```libg7221_decode.dll```, ```li
 ```at3plusdecoder.dll```, ```avcodec-vgmstream-58.dll```, ```avformat-vgmstream-58.dll```, 
 ```avutil-vgmstream-56.dll``` and ```swresample-vgmstream-3.dll``` somewhere Windows can
 find them.
-For Winamp/XMPlay/```test.exe``` this means in the directory with the .exe, or in a
+
+For Winamp/XMPlay/test.exe this means in the directory with the .exe, or in a
 system directory, or any other directory in the PATH variable.
 
-### ```test.exe```
+### test.exe
 ```
-Usage: ./test [-o outfile.wav] [-l loop count]
-    [-f fade time] [-d fade delay] [-ipcmxeE] infile
+Usage: test.exe [-o outfile.wav] [options] infile
 Options:
     -o outfile.wav: name of output .wav file, default is dump.wav
     -l loop count: loop count, default 2.0
@@ -73,8 +73,50 @@ Every file should be installed automatically by the .fb2k-component bundle.
 ### Audacious plugin 
 Needs to be manually built. Instructions can be found in the source files.
 
-### File types supported by this version of vgmstream
+## Supported codec types
+Quick list of codecs vgmstream supports, including many obscure ones that 
+are used in few games.
 
+- PCM 16-bit
+- PCM 8-bit (signed/unsigned)
+- PCM 32-bit float
+- u-Law/a-LAW
+- CRI ADX (standard, fixed, exponential, encrypted)
+- Nintendo DSP ADPCM a.k.a GC ADPCM
+- Nintendo DTK ADPCM
+- Nintendo AFC ADPCM
+- ITU-T G.721
+- CD-ROM XA ADPCM
+- Sony PSX ADPCM a.k.a VAG (badflags, bmdx, configurable)
+- Sony HEVAG
+- Electronic Arts EA-XA (stereo, mono, Maxis)
+- Electronic Arts EA-XAS
+- DVI/IMA ADPCM (stereo/mono + high/low nibble, 3DS, Omikron, SNDS, etc)
+- Microsoft MS IMA ADPCM (standard, Xbox, NDS, Radical, Wwise, FSB, etc)
+- Microsoft MS ADPCM
+- Westwood VBR ADPCM 
+- Yamaha AICA ADPCM 
+- Procyon Studio ADPCM 
+- Level-5 0x555 ADPCM
+- Activision EXAKT SASSC DPCM
+- lsf ADPCM
+- Konami MTAF ADPCM
+- Konami MTA2 ADPCM
+- Paradigm MC3 ADPCM
+- SDX2 2:1 Squareroot-Delta-Exact compression DPCM
+- CBD2 2:1 Cuberoot-Delta-Exact compression DPCM
+- InterPlay ACM
+- Visual Art's NWA
+- CRI HCA
+- Xiph Vorbis (Ogg, FSB5, Wwise, OGL, Silicon Knights)
+- MPEG MP1/2/3 (standard, AHX, XVAG, FSB, AWC, P3D, etc)
+- Electronic Arts EALayer3 v1
+- ITU-T G.722.1 (Polycom Siren 7)
+- ITU-T G.722.1 annex C (Polycom Siren 14)
+- ITU G.719 annex B (Polycom Siren 22)
+- FFmpeg codecs (ATRAC3, ATRAC3plus, XMA, WMA/XWMA, AAC, BINK, AC3, FLAC, etc)
+
+## Supported file types
 As manakoAT likes to say, the extension doesn't really mean anything, but it's
 the most obvious way to identify files.
 
