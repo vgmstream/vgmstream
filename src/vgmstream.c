@@ -32,7 +32,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_ngc_dsp_std,
     init_vgmstream_ngc_mdsp_std,
 	init_vgmstream_ngc_dsp_csmp,
-    init_vgmstream_Cstr,
+    init_vgmstream_cstr,
     init_vgmstream_gcsw,
     init_vgmstream_ps2_ads,
     init_vgmstream_ps2_npsf,
@@ -388,77 +388,87 @@ static VGMSTREAM * init_vgmstream_internal(STREAMFILE *streamFile) {
         if (!vgmstream)
             continue;
 
-        {
-            /* these are little hacky checks */
+        /* fail if there is nothing to play (without this check vgmstream can generate empty files) */
+        if (vgmstream->num_samples <= 0) {
+            VGM_LOG("VGMSTREAM: wrong num_samples (ns=%i / 0x%08x)\n", vgmstream->num_samples, vgmstream->num_samples);
+            close_vgmstream(vgmstream);
+            continue;
+        }
 
-            /* fail if there is nothing to play (without this check vgmstream can generate empty files) */
-            if (vgmstream->num_samples <= 0) {
-                VGM_LOG("VGMSTREAM: wrong num_samples (ns=%i / 0x%08x)\n", vgmstream->num_samples, vgmstream->num_samples);
-                close_vgmstream(vgmstream);
-                continue;
-            }
-
-            /* everything should have a reasonable sample rate (300 is Wwise min) */
-            if (vgmstream->sample_rate < 300 || vgmstream->sample_rate > 96000) {
-                VGM_LOG("VGMSTREAM: wrong sample rate (sr=%i)\n", vgmstream->sample_rate);
-                close_vgmstream(vgmstream);
-                continue;
-            }
+        /* everything should have a reasonable sample rate (300 is Wwise min) */
+        if (vgmstream->sample_rate < 300 || vgmstream->sample_rate > 96000) {
+            VGM_LOG("VGMSTREAM: wrong sample rate (sr=%i)\n", vgmstream->sample_rate);
+            close_vgmstream(vgmstream);
+            continue;
+        }
             
-            /* Sanify loops! */
-            if (vgmstream->loop_flag) {
-                if ((vgmstream->loop_end_sample <= vgmstream->loop_start_sample)
-                        || (vgmstream->loop_end_sample > vgmstream->num_samples)
-                        || (vgmstream->loop_start_sample < 0) ) {
-                    vgmstream->loop_flag = 0;
-                    VGM_LOG("VGMSTREAM: wrong loops ignored (lss=%i, lse=%i, ns=%i)\n", vgmstream->loop_start_sample, vgmstream->loop_end_sample, vgmstream->num_samples);
-                }
+        /* Sanify loops! */
+        if (vgmstream->loop_flag) {
+            if ((vgmstream->loop_end_sample <= vgmstream->loop_start_sample)
+                    || (vgmstream->loop_end_sample > vgmstream->num_samples)
+                    || (vgmstream->loop_start_sample < 0) ) {
+                vgmstream->loop_flag = 0;
+                VGM_LOG("VGMSTREAM: wrong loops ignored (lss=%i, lse=%i, ns=%i)\n", vgmstream->loop_start_sample, vgmstream->loop_end_sample, vgmstream->num_samples);
             }
+        }
 
-            /* dual file stereo */
-            if (vgmstream->channels == 1 && (
-                        (vgmstream->meta_type == meta_DSP_STD) ||
-                        (vgmstream->meta_type == meta_PS2_VAGp) ||
-                        (vgmstream->meta_type == meta_GENH) ||
-                        (vgmstream->meta_type == meta_TXTH) ||
-                        (vgmstream->meta_type == meta_KRAW) ||
-                        (vgmstream->meta_type == meta_PS2_MIB) ||
-                        (vgmstream->meta_type == meta_NGC_LPS) ||
-						(vgmstream->meta_type == meta_DSP_YGO) ||
-                        (vgmstream->meta_type == meta_DSP_AGSC) ||
-						(vgmstream->meta_type == meta_PS2_SMPL) ||
-						(vgmstream->meta_type == meta_NGCA) ||
-		                (vgmstream->meta_type == meta_NUB_VAG) ||
-                        (vgmstream->meta_type == meta_SPT_SPD) ||
-                        (vgmstream->meta_type == meta_EB_SFX) ||
-                        (vgmstream->meta_type == meta_CWAV)
-                        )) {
-                try_dual_file_stereo(vgmstream, streamFile, init_vgmstream_functions[i]);
+        /* test if candidate for dual stereo */
+        if (vgmstream->channels == 1 && (
+                    (vgmstream->meta_type == meta_DSP_STD) ||
+                    (vgmstream->meta_type == meta_PS2_VAGp) ||
+                    (vgmstream->meta_type == meta_GENH) ||
+                    (vgmstream->meta_type == meta_TXTH) ||
+                    (vgmstream->meta_type == meta_KRAW) ||
+                    (vgmstream->meta_type == meta_PS2_MIB) ||
+                    (vgmstream->meta_type == meta_NGC_LPS) ||
+                    (vgmstream->meta_type == meta_DSP_YGO) ||
+                    (vgmstream->meta_type == meta_DSP_AGSC) ||
+                    (vgmstream->meta_type == meta_PS2_SMPL) ||
+                    (vgmstream->meta_type == meta_NGCA) ||
+                    (vgmstream->meta_type == meta_NUB_VAG) ||
+                    (vgmstream->meta_type == meta_SPT_SPD) ||
+                    (vgmstream->meta_type == meta_EB_SFX) ||
+                    (vgmstream->meta_type == meta_CWAV)
+                    )) {
+            try_dual_file_stereo(vgmstream, streamFile, init_vgmstream_functions[i]);
+        }
+
+
+#ifdef VGM_DEBUG_OUTPUT
+        /* debug fun */
+        {
+            int i = 0;
+
+            /* probable segfault but some layouts/codecs could ignore these */
+            for (i = 0; i < vgmstream->channels; i++) {
+                VGM_ASSERT(vgmstream->ch[i].streamfile == NULL, "VGMSTREAM: null streamfile in ch%i\n",i);
             }
+        }
+
+#endif/*VGM_DEBUG_OUTPUT*/
+
 
 #ifdef VGM_USE_FFMPEG
-            /* check FFmpeg streams here, for lack of a better place */
-            if (vgmstream->coding_type == coding_FFmpeg) {
-                ffmpeg_codec_data *data = (ffmpeg_codec_data *) vgmstream->codec_data;
-                if (data->streamCount && !vgmstream->num_streams) {
-                    vgmstream->num_streams = data->streamCount;
-                }
+        /* check FFmpeg streams here, for lack of a better place */
+        if (vgmstream->coding_type == coding_FFmpeg) {
+            ffmpeg_codec_data *data = (ffmpeg_codec_data *) vgmstream->codec_data;
+            if (data->streamCount && !vgmstream->num_streams) {
+                vgmstream->num_streams = data->streamCount;
             }
+        }
 #endif
 
-            /* save info */
-            vgmstream->stream_index = streamFile->stream_index;
+        /* save info */
+        vgmstream->stream_index = streamFile->stream_index;
 
-            /* save start things so we can restart for seeking */
-            /* copy the channels */
-            memcpy(vgmstream->start_ch,vgmstream->ch,sizeof(VGMSTREAMCHANNEL)*vgmstream->channels);
-            /* copy the whole VGMSTREAM */
-            memcpy(vgmstream->start_vgmstream,vgmstream,sizeof(VGMSTREAM));
+        /* save start things so we can restart for seeking */
+        memcpy(vgmstream->start_ch,vgmstream->ch,sizeof(VGMSTREAMCHANNEL)*vgmstream->channels);
+        memcpy(vgmstream->start_vgmstream,vgmstream,sizeof(VGMSTREAM));
 
-            return vgmstream;
-        }
+        return vgmstream;
     }
 
+    /* not supported */
     return NULL;
 }
 

@@ -413,6 +413,7 @@ bool input_vgmstream::get_description_tag(pfc::string_base & temp, pfc::string_b
         eos = description.find_first(delimiter, pos);
         if (eos == pfc::infinite_size) eos = description.length();
         temp.set_string(description + pos, eos - pos);
+        //console::formatter() << "tag=" << tag << ", delim=" << delimiter << "temp=" << temp << ", pos=" << pos << "" << eos;
         return true;
     }
     return false;

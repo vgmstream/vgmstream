@@ -301,7 +301,7 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\Cstr.c"
+					RelativePath=".\meta\cstr.c"
 					>
 				</File>
 				<File

@@ -15,7 +15,7 @@ VGMSTREAM * init_vgmstream_ast(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_brstm(STREAMFILE *streamFile);
 
-VGMSTREAM * init_vgmstream_Cstr(STREAMFILE *streamFile);
+VGMSTREAM * init_vgmstream_cstr(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_gcsw(STREAMFILE *streamFile);
 

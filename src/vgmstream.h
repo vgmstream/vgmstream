@@ -281,7 +281,7 @@ typedef enum {
 
     /* Nintendo */
     meta_STRM,              /* Nintendo STRM */
-    meta_RSTM,              /* Nintendo RSTM (similar to STRM) */
+    meta_RSTM,              /* Nintendo RSTM (Revolution Stream, similar to STRM) */
     meta_AFC,               /* AFC */
     meta_AST,               /* AST */
     meta_RWSD,              /* single-stream RWSD */
@@ -306,7 +306,6 @@ typedef enum {
     meta_UTF_DSP,           /* CRI ADPCM_WII, like AAX with DSP */
 
     meta_NGC_ADPDTK,        /* NGC DTK/ADP (.adp/dkt DTK) [no header_id] */
-    meta_kRAW,              /* almost headerless PCM */
     meta_RSF,               /* Retro Studios RSF (Metroid Prime .rsf) [no header_id] */
     meta_HALPST,            /* HAL Labs HALPST */
     meta_GCSW,              /* GCSW (PCM) */
@@ -470,7 +469,7 @@ typedef enum {
     meta_WS_AUD,            /* Westwood Studios .aud */
     meta_WS_AUD_old,        /* Westwood Studios .aud, old style */
     meta_RIFF_WAVE,         /* RIFF, for WAVs */
-    meta_RIFF_WAVE_POS,     /* .wav + .pos for looping */
+    meta_RIFF_WAVE_POS,     /* .wav + .pos for looping (Ys Complete PC) */
     meta_RIFF_WAVE_labl,    /* RIFF w/ loop Markers in LIST-adtl-labl */
     meta_RIFF_WAVE_smpl,    /* RIFF w/ loop data in smpl chunk */
     meta_RIFF_WAVE_MWV,     /* .mwv RIFF w/ loop data in ctrl chunk pflt */
@@ -590,8 +589,8 @@ typedef enum {
 	meta_PS2_2PFS,			// Konami: Mahoromatic: Moetto - KiraKira Maid-San, GANTZ (PS2)
 	meta_PS2_VBK,           // Disney's Stitch - Experiment 626
     meta_OTM,               // Otomedius (Arcade)
-    meta_CSTM,              // Nintendo 3DS CSTM
-    meta_FSTM,              // Nintendo Wii U FSTM
+    meta_CSTM,              // Nintendo 3DS CSTM (Century Stream)
+    meta_FSTM,              // Nintendo Wii U FSTM (caFe? Stream)
     meta_3DS_IDSP,          // Nintendo 3DS/Wii U IDSP
     meta_KT_WIIBGM,         // Koei Tecmo WiiBGM
     meta_MCA,               /* Capcom MCA "MADP" */
