@@ -114,7 +114,17 @@ are used in few games.
 - ITU-T G.722.1 (Polycom Siren 7)
 - ITU-T G.722.1 annex C (Polycom Siren 14)
 - ITU G.719 annex B (Polycom Siren 22)
-- FFmpeg codecs (ATRAC3, ATRAC3plus, XMA, WMA/XWMA, AAC, BINK, AC3, FLAC, etc)
+- FFmpeg codecs:
+    - ATRAC3, ATRAC3plus
+    - XMA
+    - WMA v1, WMA v2, WMAPro
+    - AAC
+    - Bink
+    - AC3/SPDIF
+    - Opus (Ogg, Switch)
+    - FLAC
+    - Others
+
 
 ## Supported file types
 As manakoAT likes to say, the extension doesn't really mean anything, but it's
