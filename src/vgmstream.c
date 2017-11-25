@@ -923,7 +923,7 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
         case layout_ast_blocked:
         case layout_halpst_blocked:
         case layout_xa_blocked:
-        case layout_ea_blocked:
+        case layout_blocked_ea_schl:
         case layout_blocked_ea_1snh:
         case layout_caf_blocked:
         case layout_wsi_blocked:
@@ -938,7 +938,7 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
         case layout_xvas_blocked:
         case layout_thp_blocked:
         case layout_filp_blocked:
-        case layout_ivaud_blocked:
+        case layout_blocked_ivaud:
         case layout_psx_mgav_blocked:
         case layout_ps2_adm_blocked:
         case layout_dsp_bdsp_blocked:
@@ -947,7 +947,7 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
         case layout_ps2_strlr_blocked:
         case layout_rws_blocked:
         case layout_hwas_blocked:
-        case layout_ea_sns_blocked:
+        case layout_blocked_ea_sns:
         case layout_blocked_awc:
         case layout_blocked_vgs:
             render_vgmstream_blocked(buffer,sample_count,vgmstream);

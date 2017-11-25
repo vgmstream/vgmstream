@@ -15,7 +15,7 @@ void halpst_block_update(off_t block_ofset, VGMSTREAM * vgmstream);
 
 void xa_block_update(off_t block_offset, VGMSTREAM * vgmstream);
 
-void ea_schl_block_update(off_t block_offset, VGMSTREAM * vgmstream);
+void block_update_ea_schl(off_t block_offset, VGMSTREAM * vgmstream);
 
 void block_update_ea_1snh(off_t block_offset, VGMSTREAM * vgmstream);
 
@@ -45,7 +45,7 @@ void thp_block_update(off_t block_offset, VGMSTREAM * vgmstream);
 
 void filp_block_update(off_t block_offset, VGMSTREAM * vgmstream);
 
-void ivaud_block_update(off_t block_offset, VGMSTREAM * vgmstream);
+void block_update_ivaud(off_t block_offset, VGMSTREAM * vgmstream);
 
 void psx_mgav_block_update(off_t block_offset, VGMSTREAM * vgmstream);
 
@@ -63,8 +63,7 @@ void rws_block_update(off_t block_offset, VGMSTREAM * vgmstream);
 
 void hwas_block_update(off_t block_offset, VGMSTREAM * vgmstream);
 
-void ea_sns_block_update(off_t block_offset, VGMSTREAM * vgmstream);
-
+void block_update_ea_sns(off_t block_offset, VGMSTREAM * vgmstream);
 void block_update_awc(off_t block_offset, VGMSTREAM * vgmstream);
 void block_update_vgs(off_t block_offset, VGMSTREAM * vgmstream);
 

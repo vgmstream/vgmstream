@@ -2,7 +2,7 @@
 #include "../vgmstream.h"
 
 /* set up for the block at the given offset */
-void ivaud_block_update(off_t block_offset, VGMSTREAM * vgmstream) {
+void block_update_ivaud(off_t block_offset, VGMSTREAM * vgmstream) {
     int i;
 	off_t	start_offset;
 	off_t	interleave_size;

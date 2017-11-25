@@ -940,10 +940,10 @@
     <ClCompile Include="layout\blocked_dec.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="layout\ea_block.c">
+    <ClCompile Include="layout\blocked_ea_schl.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="layout\ea_sns_blocked.c">
+    <ClCompile Include="layout\blocked_ea_sns.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="layout\emff_blocked.c">
@@ -970,7 +970,7 @@
     <ClCompile Include="layout\interleave_byte.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="layout\ivaud_layout.c">
+    <ClCompile Include="layout\blocked_ivaud.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="layout\mus_acm_layout.c">

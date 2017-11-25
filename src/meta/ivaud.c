@@ -38,7 +38,7 @@ VGMSTREAM * init_vgmstream_ivaud(STREAMFILE *streamFile) {
     vgmstream->sample_rate = read_32bitLE(block_table_offset + 0x04,streamFile);
     vgmstream->coding_type = coding_IMA_int;
 
-	vgmstream->layout_type = layout_ivaud_blocked;
+	vgmstream->layout_type = layout_blocked_ivaud;
 	vgmstream->meta_type = meta_PC_IVAUD;
 
 	/* open the file for reading */
@@ -57,7 +57,7 @@ VGMSTREAM * init_vgmstream_ivaud(STREAMFILE *streamFile) {
 	// to avoid troubles with "extra" samples
 	vgmstream->num_samples=((read_32bitLE(0x60,streamFile)/2)*2);
 
-	ivaud_block_update(start_offset,vgmstream);
+	block_update_ivaud(start_offset,vgmstream);
 
     return vgmstream;
 

@@ -80,8 +80,8 @@ void render_vgmstream_blocked(sample * buffer, int32_t sample_count, VGMSTREAM *
                 case layout_xa_blocked:
                     xa_block_update(vgmstream->next_block_offset,vgmstream);
                     break;
-                case layout_ea_blocked:
-                    ea_schl_block_update(vgmstream->next_block_offset,vgmstream);
+                case layout_blocked_ea_schl:
+                    block_update_ea_schl(vgmstream->next_block_offset,vgmstream);
                     break;
                 case layout_blocked_ea_1snh:
                     block_update_ea_1snh(vgmstream->next_block_offset,vgmstream);
@@ -125,8 +125,8 @@ void render_vgmstream_blocked(sample * buffer, int32_t sample_count, VGMSTREAM *
                 case layout_filp_blocked:
                     filp_block_update(vgmstream->next_block_offset,vgmstream);
                     break;
-                case layout_ivaud_blocked:
-                    ivaud_block_update(vgmstream->next_block_offset,vgmstream);
+                case layout_blocked_ivaud:
+                    block_update_ivaud(vgmstream->next_block_offset,vgmstream);
                     break;
                 case layout_psx_mgav_blocked:
                     psx_mgav_block_update(vgmstream->next_block_offset,vgmstream);
@@ -152,8 +152,8 @@ void render_vgmstream_blocked(sample * buffer, int32_t sample_count, VGMSTREAM *
                 case layout_hwas_blocked:
                     hwas_block_update(vgmstream->next_block_offset,vgmstream);
                     break;
-                case layout_ea_sns_blocked:
-                    ea_sns_block_update(vgmstream->next_block_offset,vgmstream);
+                case layout_blocked_ea_sns:
+                    block_update_ea_sns(vgmstream->next_block_offset,vgmstream);
                     break;
                 case layout_blocked_awc:
                     block_update_awc(vgmstream->next_block_offset,vgmstream);

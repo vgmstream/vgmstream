@@ -1611,11 +1611,11 @@
 					>
 				</File>
 				<File
-					RelativePath=".\layout\ea_block.c"
+					RelativePath=".\layout\blocked_ea_schl.c"
 					>
 				</File>
                 <File
-                    RelativePath=".\layout\ea_sns_blocked.c"
+                    RelativePath=".\layout\blocked_ea_sns.c"
                     >
                 </File>
 				<File
@@ -1647,7 +1647,7 @@
 					>
 				</File>
 				<File
-					RelativePath=".\layout\ivaud_layout.c"
+					RelativePath=".\layout\blocked_ivaud.c"
 					>
 				</File>
 				<File

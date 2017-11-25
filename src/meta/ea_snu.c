@@ -84,7 +84,7 @@ VGMSTREAM * init_vgmstream_ea_snu(STREAMFILE *streamFile) {
     switch(codec) {
         case 0x04:      /* "Xas1": EA-XAS (Dead Space PC/PS3) */
             vgmstream->coding_type = coding_EA_XAS;
-            vgmstream->layout_type = layout_ea_sns_blocked;
+            vgmstream->layout_type = layout_blocked_ea_sns;
             break;
 
 #if 0
@@ -99,7 +99,7 @@ VGMSTREAM * init_vgmstream_ea_snu(STREAMFILE *streamFile) {
             vgmstream->codec_data = init_mpeg_custom_codec_data(streamFile, mpeg_start_offset, &vgmstream->coding_type, vgmstream->channels, MPEG_EAL32S, &cfg);
             if (!vgmstream->codec_data) goto fail;
 
-            vgmstream->layout_type = layout_ea_sns_blocked;
+            vgmstream->layout_type = layout_blocked_ea_sns;
             break;
         }
 #endif
@@ -154,8 +154,8 @@ VGMSTREAM * init_vgmstream_ea_snu(STREAMFILE *streamFile) {
     if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
         goto fail;
 
-    if (vgmstream->layout_type == layout_ea_sns_blocked)
-        ea_sns_block_update(start_offset, vgmstream);
+    if (vgmstream->layout_type == layout_blocked_ea_sns)
+        block_update_ea_sns(start_offset, vgmstream);
 
     return vgmstream;
 
