@@ -310,6 +310,7 @@ static const char* extension_list[] = {
     "um3",
 
     "v0",
+    //"v1", //dual channel with v0
     "vag",
     "vas",
     "vawx",

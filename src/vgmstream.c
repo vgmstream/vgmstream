@@ -2157,9 +2157,10 @@ static void try_dual_file_stereo(VGMSTREAM * opened_vgmstream, STREAMFILE *strea
     static const char * const dfs_pairs[][2] = {
         {"L","R"},
         {"l","r"},
-        {"_0","_1"},
         {"left","right"},
         {"Left","Right"},
+        {".V0",".V1"},
+        {"_0","_1"}, //unneeded?
     };
     char new_filename[PATH_LIMIT];
     char * ext;
@@ -2180,7 +2181,7 @@ static void try_dual_file_stereo(VGMSTREAM * opened_vgmstream, STREAMFILE *strea
     if (strlen(new_filename)<2) return; /* we need at least a base and a name ending to replace */
     
     ext = (char *)filename_extension(new_filename);
-    if (ext-new_filename >= 1 && ext[-1]=='.') ext--; /* excluding "." */
+    if (ext-new_filename >= 1 && ext[-1]=='.') ext--; /* including "." */
 
     /* find pair from base name and modify new_filename with the opposite */
     dfs_pair_count = (sizeof(dfs_pairs)/sizeof(dfs_pairs[0]));
@@ -2188,22 +2189,31 @@ static void try_dual_file_stereo(VGMSTREAM * opened_vgmstream, STREAMFILE *strea
         for (j=0; dfs_pair==-1 && j<2; j++) {
             const char * this_suffix = dfs_pairs[i][j];
             size_t this_suffix_len = strlen(dfs_pairs[i][j]);
+            const char * other_suffix = dfs_pairs[i][j^1];
+            size_t other_suffix_len = strlen(dfs_pairs[i][j^1]);
 
             /* if suffix matches copy opposite to ext pointer (thus to new_filename) */
-            if ( !memcmp(ext - this_suffix_len,this_suffix,this_suffix_len) ) {
-                const char * other_suffix = dfs_pairs[i][j^1];
-                size_t other_suffix_len = strlen(dfs_pairs[i][j^1]);
-
-                dfs_pair = j;
-                memmove(ext + other_suffix_len - this_suffix_len, ext,strlen(ext)+1); /* move the extension and terminator, too */
-                memcpy (ext - this_suffix_len, other_suffix,other_suffix_len); /* make the new name */
+            if (this_suffix[0] == '.' && strlen(ext) == this_suffix_len) { /* dual extension (ex. Homura PS2) */
+                if ( !memcmp(ext,this_suffix,this_suffix_len) ) {
+                    dfs_pair = j;
+                    memcpy (ext, other_suffix,other_suffix_len); /* overwrite with new extension */
+                }
             }
+            else { /* dual suffix */
+                if ( !memcmp(ext - this_suffix_len,this_suffix,this_suffix_len) ) {
+                    dfs_pair = j;
+                    memmove(ext + other_suffix_len - this_suffix_len, ext,strlen(ext)+1); /* move the extension and terminator, too */
+                    memcpy (ext - this_suffix_len, other_suffix,other_suffix_len); /* overwrite with new suffix */
+                }
+            }
+
         }
     }
 
     /* see if the filename had a suitable L/R-pair name */
     if (dfs_pair == -1)
         goto fail;
+
 
     /* try to init other channel (new_filename now has the opposite name) */
     dual_streamFile = streamFile->open(streamFile,new_filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
@@ -2213,7 +2223,7 @@ static void try_dual_file_stereo(VGMSTREAM * opened_vgmstream, STREAMFILE *strea
     close_streamfile(dual_streamFile);
 
     /* see if we were able to open the file, and if everything matched nicely */
-    if (new_vgmstream &&
+    if (!(new_vgmstream &&
             new_vgmstream->channels == 1 &&
             /* we have seen legitimate pairs where these are off by one...
              * but leaving it commented out until I can find those and recheck */
@@ -2223,15 +2233,24 @@ static void try_dual_file_stereo(VGMSTREAM * opened_vgmstream, STREAMFILE *strea
             new_vgmstream->meta_type   == opened_vgmstream->meta_type &&
             new_vgmstream->coding_type == opened_vgmstream->coding_type &&
             new_vgmstream->layout_type == opened_vgmstream->layout_type &&
-            new_vgmstream->loop_flag   == opened_vgmstream->loop_flag &&
-            /* check these even if there is no loop, because they should then be zero in both */
-            new_vgmstream->loop_start_sample == opened_vgmstream->loop_start_sample &&
-            new_vgmstream->loop_end_sample == opened_vgmstream->loop_end_sample &&
             /* check even if the layout doesn't use them, because it is
              * difficult to determine when it does, and they should be zero otherwise, anyway */
             new_vgmstream->interleave_block_size == opened_vgmstream->interleave_block_size &&
-            new_vgmstream->interleave_smallblock_size == opened_vgmstream->interleave_smallblock_size) {
-        /* We seem to have a usable, matching file. Merge in the second channel. */
+            new_vgmstream->interleave_smallblock_size == opened_vgmstream->interleave_smallblock_size)) {
+        goto fail;
+    }
+
+    /* check these even if there is no loop, because they should then be zero in both
+     * Homura PS2 right channel doesn't have loop points so it's ignored */
+    if (new_vgmstream->meta_type != meta_PS2_SMPL &&
+            !(new_vgmstream->loop_flag      == opened_vgmstream->loop_flag &&
+            new_vgmstream->loop_start_sample== opened_vgmstream->loop_start_sample &&
+            new_vgmstream->loop_end_sample  == opened_vgmstream->loop_end_sample)) {
+        goto fail;
+    }
+
+    /* We seem to have a usable, matching file. Merge in the second channel. */
+    {
         VGMSTREAMCHANNEL * new_chans;
         VGMSTREAMCHANNEL * new_loop_chans = NULL;
         VGMSTREAMCHANNEL * new_start_chans = NULL;
@@ -2283,6 +2302,7 @@ static void try_dual_file_stereo(VGMSTREAM * opened_vgmstream, STREAMFILE *strea
         /* discard the second VGMSTREAM */
         free(new_vgmstream);
     }
+
 fail:
     return;
 }
