@@ -172,7 +172,7 @@
     <ClCompile Include="meta\capdsp.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\Cstr.c">
+    <ClCompile Include="meta\cstr.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\dc_asd.c">
@@ -190,7 +190,7 @@
     <ClCompile Include="meta\dc_str.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\de2.c">
+    <ClCompile Include="meta\dec.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\dmsg_segh.c">
@@ -293,6 +293,9 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\myspd.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\naac.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\naomi_adpcm.c">
@@ -934,13 +937,13 @@
     <ClCompile Include="layout\caf_blocked.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="layout\de2_blocked.c">
+    <ClCompile Include="layout\blocked_dec.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="layout\ea_block.c">
+    <ClCompile Include="layout\blocked_ea_schl.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="layout\ea_sns_blocked.c">
+    <ClCompile Include="layout\blocked_ea_sns.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="layout\emff_blocked.c">
@@ -967,7 +970,7 @@
     <ClCompile Include="layout\interleave_byte.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="layout\ivaud_layout.c">
+    <ClCompile Include="layout\blocked_ivaud.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="layout\mus_acm_layout.c">

@@ -22,9 +22,6 @@ typedef struct {
     uint8_t * buffer;       /* data buffer */
     size_t buffersize;      /* max buffer size */
     size_t filesize;        /* cached file size (max offset) */
-#ifdef VGM_DEBUG_OUTPUT
-    int error_notified;
-#endif
 #ifdef PROFILE_STREAMFILE
     size_t bytes_read;
     int error_count;
@@ -67,13 +64,7 @@ static size_t read_the_rest(uint8_t * dest, off_t offset, size_t length, STDIOST
         /* request outside file: ignore to avoid seek/read */
         if (offset > streamfile->filesize) {
             streamfile->offset = streamfile->filesize;
-
-#ifdef VGM_DEBUG_OUTPUT
-            if (!streamfile->error_notified) {
-                VGM_LOG("ERROR: reading over filesize 0x%x @ 0x%lx + 0x%x (buggy meta?)\n", streamfile->filesize, offset, length);
-                streamfile->error_notified = 1;
-            }
-#endif
+            VGM_LOG_ONCE("ERROR: reading over filesize 0x%x @ 0x%lx + 0x%x (buggy meta?)\n", streamfile->filesize, offset, length);
 
 #if STREAMFILE_IGNORE_EOF
             memset(dest,0,length); /* dest is already shifted */
@@ -143,13 +134,7 @@ static size_t read_stdio(STDIOSTREAMFILE *streamfile,uint8_t * dest, off_t offse
     /* request outside file: ignore to avoid seek/read in read_the_rest() */
     if (offset > streamfile->filesize) {
         streamfile->offset = streamfile->filesize;
-
-#ifdef VGM_DEBUG_OUTPUT
-        if (!streamfile->error_notified) {
-            VGM_LOG("ERROR: offset over filesize 0x%x @ 0x%lx + 0x%x (buggy meta?)\n", streamfile->filesize, offset, length);
-            streamfile->error_notified = 1;
-        }
-#endif
+        VGM_LOG_ONCE("ERROR: offset over filesize 0x%x @ 0x%lx + 0x%x (buggy meta?)\n", streamfile->filesize, offset, length);
 
 #if STREAMFILE_IGNORE_EOF
         memset(dest,0,length);
@@ -298,63 +283,59 @@ STREAMFILE * open_stdio_streamfile_by_file(FILE * file, const char * filename) {
 
 /* **************************************************** */
 
-/* Read a line into dst. The source files are MS-DOS style,
- * separated (not terminated) by CRLF. Return 1 if the full line was
- * retrieved (if it could fit in dst), 0 otherwise. In any case the result
- * will be properly terminated. The CRLF will be removed if there is one.
- * Return the number of bytes read (including CRLF line ending). Note that
- * this is not the length of the string, and could be larger than the buffer.
- * *line_done_ptr is set to 1 if the complete line was read into dst,
- * otherwise it is set to 0. line_done_ptr can be NULL if you aren't
- * interested in this info.
+/* Read a line into dst. The source files are lines separated by CRLF (Windows) / LF (Unux) / CR (Mac).
+ * The line will be null-terminated and CR/LF removed if found.
+ *
+ * Returns the number of bytes read (including CR/LF), note that this is not the string length.
+ * line_done_ptr is set to 1 if the complete line was read into dst; NULL can be passed to ignore.
  */
-size_t get_streamfile_dos_line(int dst_length, char * dst, off_t offset,
-        STREAMFILE * infile, int *line_done_ptr)
-{
+size_t get_streamfile_text_line(int dst_length, char * dst, off_t offset, STREAMFILE * streamfile, int *line_done_ptr) {
     int i;
-    off_t file_length = get_streamfile_size(infile);
-    /* how many bytes over those put in the buffer were read */
-    int extra_bytes = 0;
+    off_t file_length = get_streamfile_size(streamfile);
+    int extra_bytes = 0; /* how many bytes over those put in the buffer were read */
 
     if (line_done_ptr) *line_done_ptr = 0;
 
-    for (i=0;i<dst_length-1 && offset+i < file_length;i++)
-    {
-        char in_char = read_8bit(offset+i,infile);
+    for (i = 0; i < dst_length-1 && offset+i < file_length; i++) {
+        char in_char = read_8bit(offset+i,streamfile);
         /* check for end of line */
-        if (in_char == 0x0d &&
-                read_8bit(offset+i+1,infile) == 0x0a)
-        {
+        if (in_char == 0x0d && read_8bit(offset+i+1,streamfile) == 0x0a) { /* CRLF */
             extra_bytes = 2;
             if (line_done_ptr) *line_done_ptr = 1;
             break;
         }
+        else if (in_char == 0x0d || in_char == 0x0a) { /* CR or LF */
+            extra_bytes = 1;
+            if (line_done_ptr) *line_done_ptr = 1;
+            break;
+        }
 
-        dst[i]=in_char;
+        dst[i] = in_char;
     }
-    
-    dst[i]='\0';
+
+    dst[i] = '\0';
 
     /* did we fill the buffer? */
-    if (i==dst_length) {
+    if (i == dst_length) {
+        char in_char = read_8bit(offset+i,streamfile);
         /* did the bytes we missed just happen to be the end of the line? */
-        if (read_8bit(offset+i,infile) == 0x0d &&
-                read_8bit(offset+i+1,infile) == 0x0a)
-        {
+        if (in_char == 0x0d && read_8bit(offset+i+1,streamfile) == 0x0a) { /* CRLF */
             extra_bytes = 2;
-            /* if so be proud! */
+            if (line_done_ptr) *line_done_ptr = 1;
+        }
+        else if (in_char == 0x0d || in_char == 0x0a) { /* CR or LF */
+            extra_bytes = 1;
             if (line_done_ptr) *line_done_ptr = 1;
         }
     }
 
     /* did we hit the file end? */
-    if (offset+i == file_length)
-    {
+    if (offset+i == file_length) {
         /* then we did in fact finish reading the last line */
         if (line_done_ptr) *line_done_ptr = 1;
     }
 
-    return i+extra_bytes;
+    return i + extra_bytes;
 }
 
 
@@ -380,9 +361,7 @@ fail:
     return 0;
 }
 
-/**
- * Opens an stream using the base streamFile name plus a new extension (ex. for headers in a separate file)
- */
+/* Opens an stream using the base streamFile name plus a new extension (ex. for headers in a separate file) */
 STREAMFILE * open_stream_ext(STREAMFILE *streamFile, const char * ext) {
     char filename_ext[PATH_LIMIT];
 
@@ -392,7 +371,7 @@ STREAMFILE * open_stream_ext(STREAMFILE *streamFile, const char * ext) {
     return streamFile->open(streamFile,filename_ext,STREAMFILE_DEFAULT_BUFFER_SIZE);
 }
 
-/* Opens an stream in the same folder */
+/* Opens an stream using the passed name (in the same folder) */
 STREAMFILE * open_stream_name(STREAMFILE *streamFile, const char * name) {
     char foldername[PATH_LIMIT];
     char filename[PATH_LIMIT];

@@ -54,7 +54,7 @@ VGMSTREAM * init_vgmstream_sli_ogg(STREAMFILE *streamFile) {
     while ((loop_start == -1 || loop_length == -1) && sli_offset < get_streamfile_size(streamFile)) {
         char *endptr;
         char *foundptr;
-        bytes_read=get_streamfile_dos_line(sizeof(linebuffer),linebuffer,sli_offset,streamFile,&done);
+        bytes_read=get_streamfile_text_line(sizeof(linebuffer),linebuffer,sli_offset,streamFile,&done);
         if (!done) goto fail;
 
         if (!memcmp("LoopStart=",linebuffer,10) && linebuffer[10]!='\0') {

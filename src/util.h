@@ -61,9 +61,6 @@ static inline int get_low_nibble_signed(uint8_t n) {
     return nibble_to_int[n&0xf];
 }
 
-/* return true for a good sample rate */
-int check_sample_rate(int32_t sr);
-
 /* return a file's extension (a pointer to the first character of the
  * extension in the original filename or the ending null byte if no extension
  */
@@ -81,15 +78,19 @@ void concatn(int length, char * dst, const char * src);
 
 
 /* Simple stdout logging for debugging and regression testing purposes.
- * Needs C99 variadic macros. */
+ * Needs C99 variadic macros, uses do..while to force ; as statement */
 #ifdef VGM_DEBUG_OUTPUT
 
 /* equivalent to printf when condition is true */
 #define VGM_ASSERT(condition, ...) \
     do { if (condition) printf(__VA_ARGS__); } while (0)
+#define VGM_ASSERT_ONCE(condition, ...) \
+    do { static int written; if (!written) { if (condition) printf(__VA_ARGS__); written = 1; }  } while (0)
 /* equivalent to printf */
 #define VGM_LOG(...) \
     do { printf(__VA_ARGS__); } while (0)
+#define VGM_LOG_ONCE(...) \
+    do { static int written; if (!written) { printf(__VA_ARGS__); written = 1; } } while (0)
 /* prints file/line/func */
 #define VGM_LOGF() \
     do { printf("%s:%i '%s'\n",  __FILE__, __LINE__, __func__); } while (0)
@@ -111,9 +112,11 @@ void concatn(int length, char * dst, const char * src);
 
 #define VGM_ASSERT(condition, ...) /* nothing */
 #define VGM_LOG(...) /* nothing */
+#define VGM_LOG_ONCE(...) /* nothing */
 #define VGM_LOGF() /* nothing */
 #define VGM_LOGT() /* nothing */
 #define VGM_LOGB(buf, buf_size, bytes_per_line) /* nothing */
+
 
 #endif/*VGM_DEBUG_OUTPUT*/
 

@@ -301,7 +301,7 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\Cstr.c"
+					RelativePath=".\meta\cstr.c"
 					>
 				</File>
 				<File
@@ -325,7 +325,7 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\de2.c"
+					RelativePath=".\meta\dec.c"
 					>
 				</File>
 				<File
@@ -518,6 +518,10 @@
 					RelativePath=".\meta\myspd.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\meta\naac.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\naomi_adpcm.c"
 					>
@@ -1607,15 +1611,15 @@
 					>
 				</File>
 				<File
-					RelativePath=".\layout\de2_blocked.c"
+					RelativePath=".\layout\blocked_dec.c"
 					>
 				</File>
 				<File
-					RelativePath=".\layout\ea_block.c"
+					RelativePath=".\layout\blocked_ea_schl.c"
 					>
 				</File>
                 <File
-                    RelativePath=".\layout\ea_sns_blocked.c"
+                    RelativePath=".\layout\blocked_ea_sns.c"
                     >
                 </File>
 				<File
@@ -1647,7 +1651,7 @@
 					>
 				</File>
 				<File
-					RelativePath=".\layout\ivaud_layout.c"
+					RelativePath=".\layout\blocked_ivaud.c"
 					>
 				</File>
 				<File

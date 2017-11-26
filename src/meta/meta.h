@@ -15,7 +15,7 @@ VGMSTREAM * init_vgmstream_ast(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_brstm(STREAMFILE *streamFile);
 
-VGMSTREAM * init_vgmstream_Cstr(STREAMFILE *streamFile);
+VGMSTREAM * init_vgmstream_cstr(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_gcsw(STREAMFILE *streamFile);
 
@@ -252,7 +252,7 @@ VGMSTREAM * init_vgmstream_dc_str_v2(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_xbox_matx(STREAMFILE *streamFile);
 
-VGMSTREAM * init_vgmstream_de2(STREAMFILE *streamFile);
+VGMSTREAM * init_vgmstream_dec(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_vs(STREAMFILE *streamFile);
 
@@ -686,6 +686,8 @@ VGMSTREAM * init_vgmstream_nsw_opus(STREAMFILE * streamFile);
 VGMSTREAM * init_vgmstream_pc_al2(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_pc_ast(STREAMFILE * streamFile);
+
+VGMSTREAM * init_vgmstream_naac(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_ubi_sb(STREAMFILE * streamFile);
 

@@ -156,7 +156,7 @@ static inline int8_t read_8bit(off_t offset, STREAMFILE * streamfile) {
 
 /* various STREAMFILE helpers functions */
 
-size_t get_streamfile_dos_line(int dst_length, char * dst, off_t offset, STREAMFILE * infile, int *line_done_ptr);
+size_t get_streamfile_text_line(int dst_length, char * dst, off_t offset, STREAMFILE * streamfile, int *line_done_ptr);
 
 STREAMFILE * open_stream_ext(STREAMFILE *streamFile, const char * ext);
 STREAMFILE * open_stream_name(STREAMFILE *streamFile, const char * ext);

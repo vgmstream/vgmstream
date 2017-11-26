@@ -212,14 +212,14 @@ typedef enum {
     layout_ast_blocked,
     layout_halpst_blocked,
     layout_xa_blocked,
-    layout_ea_blocked,
+    layout_blocked_ea_schl,
     layout_blocked_ea_1snh,
     layout_caf_blocked,
     layout_wsi_blocked,
     layout_str_snds_blocked,
     layout_ws_aud_blocked,
     layout_matx_blocked,
-    layout_de2_blocked,
+    layout_blocked_dec,
     layout_xvas_blocked,
     layout_vs_blocked,
     layout_emff_ps2_blocked,
@@ -231,15 +231,15 @@ typedef enum {
     layout_ps2_adm_blocked,
     layout_dsp_bdsp_blocked,
     layout_mxch_blocked,
-    layout_ivaud_blocked,   /* GTA IV .ivaud blocks */
+    layout_blocked_ivaud,   /* GTA IV .ivaud blocks */
     layout_tra_blocked,     /* DefJam Rapstar .tra blocks */
     layout_ps2_iab_blocked,
     layout_ps2_strlr_blocked,
     layout_rws_blocked,
     layout_hwas_blocked,
-    layout_ea_sns_blocked,  /* newest Electronic Arts blocks, found in SNS/SNU/SPS/etc formats */
+    layout_blocked_ea_sns,  /* newest Electronic Arts blocks, found in SNS/SNU/SPS/etc formats */
     layout_blocked_awc,     /* Rockstar AWC */
-    layout_blocked_vgs,     /* Guitar Hero II */
+    layout_blocked_vgs,     /* Guitar Hero II (PS2) */
 
     /* otherwise odd */
     layout_acm,             /* libacm layout */
@@ -281,7 +281,7 @@ typedef enum {
 
     /* Nintendo */
     meta_STRM,              /* Nintendo STRM */
-    meta_RSTM,              /* Nintendo RSTM (similar to STRM) */
+    meta_RSTM,              /* Nintendo RSTM (Revolution Stream, similar to STRM) */
     meta_AFC,               /* AFC */
     meta_AST,               /* AST */
     meta_RWSD,              /* single-stream RWSD */
@@ -306,7 +306,6 @@ typedef enum {
     meta_UTF_DSP,           /* CRI ADPCM_WII, like AAX with DSP */
 
     meta_NGC_ADPDTK,        /* NGC DTK/ADP (.adp/dkt DTK) [no header_id] */
-    meta_kRAW,              /* almost headerless PCM */
     meta_RSF,               /* Retro Studios RSF (Metroid Prime .rsf) [no header_id] */
     meta_HALPST,            /* HAL Labs HALPST */
     meta_GCSW,              /* GCSW (PCM) */
@@ -470,7 +469,7 @@ typedef enum {
     meta_WS_AUD,            /* Westwood Studios .aud */
     meta_WS_AUD_old,        /* Westwood Studios .aud, old style */
     meta_RIFF_WAVE,         /* RIFF, for WAVs */
-    meta_RIFF_WAVE_POS,     /* .wav + .pos for looping */
+    meta_RIFF_WAVE_POS,     /* .wav + .pos for looping (Ys Complete PC) */
     meta_RIFF_WAVE_labl,    /* RIFF w/ loop Markers in LIST-adtl-labl */
     meta_RIFF_WAVE_smpl,    /* RIFF w/ loop data in smpl chunk */
     meta_RIFF_WAVE_MWV,     /* .mwv RIFF w/ loop data in ctrl chunk pflt */
@@ -487,7 +486,7 @@ typedef enum {
     meta_DC_KCEY,           /* Konami KCE Yokohama KCEYCOMP (DC games) */
     meta_ACM,               /* InterPlay ACM header */
     meta_MUS_ACM,           /* MUS playlist of InterPlay ACM files */
-    meta_DE2,               /* Falcom (Gurumin) .de2 */
+    meta_DEC,               /* Falcom PC games (Xanadu Next, Gurumin) */
     meta_VS,				/* Men in Black .vs */
     meta_FFXI_BGW,          /* FFXI (PC) BGW */
     meta_FFXI_SPW,          /* FFXI (PC) SPW */
@@ -590,8 +589,8 @@ typedef enum {
 	meta_PS2_2PFS,			// Konami: Mahoromatic: Moetto - KiraKira Maid-San, GANTZ (PS2)
 	meta_PS2_VBK,           // Disney's Stitch - Experiment 626
     meta_OTM,               // Otomedius (Arcade)
-    meta_CSTM,              // Nintendo 3DS CSTM
-    meta_FSTM,              // Nintendo Wii U FSTM
+    meta_CSTM,              // Nintendo 3DS CSTM (Century Stream)
+    meta_FSTM,              // Nintendo Wii U FSTM (caFe? Stream)
     meta_3DS_IDSP,          // Nintendo 3DS/Wii U IDSP
     meta_KT_WIIBGM,         // Koei Tecmo WiiBGM
     meta_MCA,               /* Capcom MCA "MADP" */
@@ -627,6 +626,7 @@ typedef enum {
     meta_NSW_OPUS,          /* Lego City Undercover (Switch) */
     meta_PC_AL2,            /* Conquest of Elysium 3 (PC) */
     meta_PC_AST,            /* Dead Rising (PC) */
+    meta_NAAC,              /* Namco AAC (3DS) */
     meta_UBI_SB,            /* Ubisoft banks */
 	meta_EZW,               /* EZ2DJ (Arcade) EZWAV */
 
@@ -718,40 +718,36 @@ typedef struct {
     char stream_name[STREAM_NAME_SIZE]; /* name of the current stream (info), if the file stores it and it's filled */
 
     /* looping */
-    int loop_flag;          /* is this stream looped? */
-    int32_t loop_start_sample; /* first sample of the loop (included in the loop) */
-    int32_t loop_end_sample; /* last sample of the loop (not included in the loop) */
+    int loop_flag;              /* is this stream looped? */
+    int32_t loop_start_sample;  /* first sample of the loop (included in the loop) */
+    int32_t loop_end_sample;    /* last sample of the loop (not included in the loop) */
 
-    /* channels */
-    VGMSTREAMCHANNEL * ch;   /* pointer to array of channels */
+    /* layouts/block */
+    size_t interleave_block_size;       /* interleave for this file */
+    size_t interleave_smallblock_size;  /* smaller interleave for last block */
+    size_t full_block_size;             /* fixed data size, from header (may include padding and other unusable data) */
 
-    /* channel copies */
+    /* channel state */
+    VGMSTREAMCHANNEL * ch;          /* pointer to array of channels */
     VGMSTREAMCHANNEL * start_ch;    /* copies of channel status as they were at the beginning of the stream */
     VGMSTREAMCHANNEL * loop_ch;     /* copies of channel status as they were at the loop point */
 
-    /* layout-specific */
+    /* layout/block state */
     int32_t current_sample;         /* number of samples we've passed */
     int32_t samples_into_block;     /* number of samples into the current block */
-    /* interleave */
-    size_t interleave_block_size;   /* interleave for this file */
-    size_t interleave_smallblock_size;  /* smaller interleave for last block */
-    /* headered blocks */
     off_t current_block_offset;     /* start of this block (offset of block header) */
     size_t current_block_size;      /* size in usable bytes of the block we're in now (used to calculate num_samples per block) */
     size_t current_block_samples;   /* size in samples of the block we're in now (used over current_block_size if possible) */
-    size_t full_block_size;         /* size including padding and other unusable data */
     off_t next_block_offset;        /* offset of header of the next block */
-    int block_count;                /* count of "semi" block in total block */
-
-
-    /* loop layout (saved values) */
+    /* layout/block loop state */
     int32_t loop_sample;            /* saved from current_sample, should be loop_start_sample... */
     int32_t loop_samples_into_block;/* saved from samples_into_block */
     off_t loop_block_offset;        /* saved from current_block_offset */
     size_t loop_block_size;         /* saved from current_block_size */
+    size_t loop_block_samples;      /* saved from current_block_samples */
     off_t loop_next_block_offset;   /* saved from next_block_offset */
 
-    /* loop internals */
+    /* loop state */
     int hit_loop;                   /* have we seen the loop yet? */
     /* counters for "loop + play end of the stream instead of fading" (not used/needed otherwise) */
     int loop_count;                 /* number of complete loops (1=looped once) */
