@@ -628,6 +628,7 @@ typedef enum {
     meta_PC_AST,            /* Dead Rising (PC) */
     meta_NAAC,              /* Namco AAC (3DS) */
     meta_UBI_SB,            /* Ubisoft banks */
+	meta_EZW,               /* EZ2DJ (Arcade) EZWAV */
 
 #ifdef VGM_USE_VORBIS
     meta_OGG_VORBIS,        /* Ogg Vorbis */

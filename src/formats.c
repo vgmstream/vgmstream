@@ -105,6 +105,7 @@ static const char* extension_list[] = {
     "emff",
     "enth",
     "exa",
+	"ezw",
 
     "fag",
     "ffw",
@@ -906,6 +907,7 @@ static const meta_info meta_info_list[] = {
         {meta_PC_AST,               "Capcom AST (PC) header"},
         {meta_UBI_SB,               "Ubisoft SBx header"},
         {meta_NAAC,                 "Namco NAAC header"},
+        {meta_EZW,                  "EZ2DJ EZWAVE header"},
 
 #ifdef VGM_USE_VORBIS
         {meta_OGG_VORBIS,           "Ogg Vorbis"},
