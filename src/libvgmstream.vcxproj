@@ -210,13 +210,13 @@
     <ClCompile Include="meta\brstm.c" />
     <ClCompile Include="meta\btsnd.c" />
     <ClCompile Include="meta\capdsp.c" />
-    <ClCompile Include="meta\Cstr.c" />
+    <ClCompile Include="meta\cstr.c" />
     <ClCompile Include="meta\dc_asd.c" />
     <ClCompile Include="meta\dc_dcsw_dcs.c" />
     <ClCompile Include="meta\dc_idvi.c" />
     <ClCompile Include="meta\dc_kcey.c" />
     <ClCompile Include="meta\dc_str.c" />
-    <ClCompile Include="meta\de2.c" />
+    <ClCompile Include="meta\dec.c" />
     <ClCompile Include="meta\dmsg_segh.c" />
     <ClCompile Include="meta\dsp_adx.c" />
     <ClCompile Include="meta\dsp_bdsp.c" />
@@ -259,6 +259,7 @@
     <ClCompile Include="meta\musc.c" />
     <ClCompile Include="meta\musx.c" />
     <ClCompile Include="meta\myspd.c" />
+    <ClCompile Include="meta\naac.c" />
     <ClCompile Include="meta\naomi_adpcm.c" />
     <ClCompile Include="meta\naomi_spsd.c" />
     <ClCompile Include="meta\nds_hwas.c" />
@@ -474,9 +475,9 @@
     <ClCompile Include="layout\blocked_ea_1snh.c" />
     <ClCompile Include="layout\blocked_vgs.c" />
     <ClCompile Include="layout\caf_blocked.c" />
-    <ClCompile Include="layout\de2_blocked.c" />
-    <ClCompile Include="layout\ea_block.c" />
-    <ClCompile Include="layout\ea_sns_blocked.c" />
+    <ClCompile Include="layout\blocked_dec.c" />
+    <ClCompile Include="layout\blocked_ea_schl.c" />
+    <ClCompile Include="layout\blocked_ea_sns.c" />
     <ClCompile Include="layout\emff_blocked.c" />
     <ClCompile Include="layout\filp_blocked.c" />
     <ClCompile Include="layout\gsb_blocked.c" />
@@ -484,7 +485,7 @@
     <ClCompile Include="layout\ims_block.c" />
     <ClCompile Include="layout\interleave.c" />
     <ClCompile Include="layout\interleave_byte.c" />
-    <ClCompile Include="layout\ivaud_layout.c" />
+    <ClCompile Include="layout\blocked_ivaud.c" />
     <ClCompile Include="layout\mus_acm_layout.c" />
     <ClCompile Include="layout\mxch_blocked.c" />
     <ClCompile Include="layout\nolayout.c" />

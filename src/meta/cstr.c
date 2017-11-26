@@ -3,8 +3,7 @@
 #include "../util.h"
 
 /* .dsp w/ Cstr header, seen in Star Fox Assault and Donkey Konga */
-
-VGMSTREAM * init_vgmstream_Cstr(STREAMFILE *streamFile) {
+VGMSTREAM * init_vgmstream_cstr(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[PATH_LIMIT];
 

@@ -220,13 +220,13 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
             for (i=0;i<vgmstream->channels;i++) {
                 int16_t (*read_16bit)(off_t , STREAMFILE*) = genh.coef_big_endian ? read_16bitBE : read_16bitLE;
 
-                /* normal/split coefs */
-                if ((genh.coef_type & 1) == 0) { /* bit 0 - split coefs (2 arrays) */
+                /* normal/split coefs bit flag */
+                if ((genh.coef_type & 1) == 0) { /* not set: normal coefs, all 16 interleaved into one array */
                     for (j=0;j<16;j++) {
                         vgmstream->ch[i].adpcm_coef[j] = read_16bit(genh.coef[i]+j*2,streamFile);
                     }
                 }
-                else {
+                else { /* set: split coefs, 8 coefs in the main array, additional offset to 2nd array given at 0x34 for left, 0x38 for right */
                     for (j=0;j<8;j++) {
                         vgmstream->ch[i].adpcm_coef[j*2]=read_16bit(genh.coef[i]+j*2,streamFile);
                         vgmstream->ch[i].adpcm_coef[j*2+1]=read_16bit(genh.coef_splitted[i]+j*2,streamFile);
@@ -353,8 +353,8 @@ static int parse_genh(STREAMFILE * streamFile, genh_header * genh) {
     genh->coef_interleave_type = read_32bitLE(0x2C,streamFile);
 
     /* DSP coefficient variants */
-    /* bit 0 - split coefs (2 arrays) */
-    /* bit 1 - little endian coefs */
+    /* bit 0 flag - split coefs (2 arrays) */
+    /* bit 1 flag - little endian coefs (for some 3DS) */
     genh->coef_type = read_32bitLE(0x30,streamFile);
     genh->coef_big_endian = ((genh->coef_type & 2) == 0);
 

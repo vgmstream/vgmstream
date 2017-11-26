@@ -238,7 +238,7 @@ static void decode_mpeg_standard(VGMSTREAMCHANNEL *stream, mpeg_codec_data * dat
 
             /* end of stream, fill rest with 0s */
 			if (!data->bytes_in_buffer) {
-				memset(outbuf + samples_done * channels, 0, (samples_to_do - samples_done) * sizeof(sample));
+				memset(outbuf + samples_done * channels, 0, (samples_to_do - samples_done) * channels * sizeof(sample));
 				break;
 			}
 

@@ -125,7 +125,7 @@ VGMSTREAM * init_vgmstream_mus_acm(STREAMFILE *streamFile) {
     if (strcasecmp("mus",filename_extension(filename))) goto fail;
 
     /* read file name base */
-    line_bytes = get_streamfile_dos_line(sizeof(line_buffer),line_buffer,
+    line_bytes = get_streamfile_text_line(sizeof(line_buffer),line_buffer,
             mus_offset, streamFile, &whole_line_read);
     if (!whole_line_read) goto fail;
     mus_offset += line_bytes;
@@ -140,7 +140,7 @@ VGMSTREAM * init_vgmstream_mus_acm(STREAMFILE *streamFile) {
     /*printf("name base: %s\n",name_base);*/
 
     /* read track entry count */
-    line_bytes = get_streamfile_dos_line(sizeof(line_buffer),line_buffer,
+    line_bytes = get_streamfile_text_line(sizeof(line_buffer),line_buffer,
             mus_offset, streamFile, &whole_line_read);
     if (!whole_line_read) goto fail;
     if (line_buffer[0] == '\0') goto fail;
@@ -184,7 +184,7 @@ VGMSTREAM * init_vgmstream_mus_acm(STREAMFILE *streamFile) {
         {
             int fields_matched;
             line_bytes =
-                get_streamfile_dos_line(sizeof(line_buffer),line_buffer,
+                    get_streamfile_text_line(sizeof(line_buffer),line_buffer,
                         mus_offset, streamFile, &whole_line_read);
             if (!whole_line_read) goto fail;
             mus_offset += line_bytes;

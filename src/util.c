@@ -2,10 +2,6 @@
 #include "util.h"
 #include "streamtypes.h"
 
-int check_sample_rate(int32_t sr) {
-    return !(sr<300 || sr>96000);
-}
-
 const char * filename_extension(const char * filename) {
     const char * ext;
 

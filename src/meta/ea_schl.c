@@ -250,7 +250,7 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE *streamFile, ea_
         }
     }
     else {
-        vgmstream->layout_type = layout_ea_blocked;
+        vgmstream->layout_type = layout_blocked_ea_schl;
     }
 
     if (is_bnk)
@@ -413,7 +413,7 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE *streamFile, ea_
     }
     else {
         /* setup first block to update offsets */
-        ea_schl_block_update(start_offset,vgmstream);
+        block_update_ea_schl(start_offset,vgmstream);
     }
 
 
