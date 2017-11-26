@@ -435,16 +435,17 @@ static VGMSTREAM * init_vgmstream_internal(STREAMFILE *streamFile) {
 
 
 #ifdef VGM_DEBUG_OUTPUT
+#ifdef VGM_USE_FFMPEG
         /* debug fun */
-        {
+        if (vgmstream->coding_type != coding_FFmpeg){
             int i = 0;
 
-            /* probable segfault but some layouts/codecs could ignore these */
+            /* probable segfault but some layouts/codecs can ignore these */
             for (i = 0; i < vgmstream->channels; i++) {
                 VGM_ASSERT(vgmstream->ch[i].streamfile == NULL, "VGMSTREAM: null streamfile in ch%i\n",i);
             }
         }
-
+#endif
 #endif/*VGM_DEBUG_OUTPUT*/
 
 
@@ -1970,6 +1971,7 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream) {
         vgmstream->current_sample = vgmstream->loop_sample;
         vgmstream->samples_into_block = vgmstream->loop_samples_into_block;
         vgmstream->current_block_size = vgmstream->loop_block_size;
+        vgmstream->current_block_samples = vgmstream->loop_block_samples;
         vgmstream->current_block_offset = vgmstream->loop_block_offset;
         vgmstream->next_block_offset = vgmstream->loop_next_block_offset;
 
@@ -1985,6 +1987,7 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream) {
         vgmstream->loop_sample = vgmstream->current_sample;
         vgmstream->loop_samples_into_block = vgmstream->samples_into_block;
         vgmstream->loop_block_size = vgmstream->current_block_size;
+        vgmstream->loop_block_samples = vgmstream->current_block_samples;
         vgmstream->loop_block_offset = vgmstream->current_block_offset;
         vgmstream->loop_next_block_offset = vgmstream->next_block_offset;
         vgmstream->hit_loop = 1;

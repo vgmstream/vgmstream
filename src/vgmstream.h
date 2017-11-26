@@ -717,40 +717,36 @@ typedef struct {
     char stream_name[STREAM_NAME_SIZE]; /* name of the current stream (info), if the file stores it and it's filled */
 
     /* looping */
-    int loop_flag;          /* is this stream looped? */
-    int32_t loop_start_sample; /* first sample of the loop (included in the loop) */
-    int32_t loop_end_sample; /* last sample of the loop (not included in the loop) */
+    int loop_flag;              /* is this stream looped? */
+    int32_t loop_start_sample;  /* first sample of the loop (included in the loop) */
+    int32_t loop_end_sample;    /* last sample of the loop (not included in the loop) */
 
-    /* channels */
-    VGMSTREAMCHANNEL * ch;   /* pointer to array of channels */
+    /* layouts/block */
+    size_t interleave_block_size;       /* interleave for this file */
+    size_t interleave_smallblock_size;  /* smaller interleave for last block */
+    size_t full_block_size;             /* fixed data size, from header (may include padding and other unusable data) */
 
-    /* channel copies */
+    /* channel state */
+    VGMSTREAMCHANNEL * ch;          /* pointer to array of channels */
     VGMSTREAMCHANNEL * start_ch;    /* copies of channel status as they were at the beginning of the stream */
     VGMSTREAMCHANNEL * loop_ch;     /* copies of channel status as they were at the loop point */
 
-    /* layout-specific */
+    /* layout/block state */
     int32_t current_sample;         /* number of samples we've passed */
     int32_t samples_into_block;     /* number of samples into the current block */
-    /* interleave */
-    size_t interleave_block_size;   /* interleave for this file */
-    size_t interleave_smallblock_size;  /* smaller interleave for last block */
-    /* headered blocks */
     off_t current_block_offset;     /* start of this block (offset of block header) */
     size_t current_block_size;      /* size in usable bytes of the block we're in now (used to calculate num_samples per block) */
     size_t current_block_samples;   /* size in samples of the block we're in now (used over current_block_size if possible) */
-    size_t full_block_size;         /* size including padding and other unusable data */
     off_t next_block_offset;        /* offset of header of the next block */
-    int block_count;                /* count of "semi" block in total block */
-
-
-    /* loop layout (saved values) */
+    /* layout/block loop state */
     int32_t loop_sample;            /* saved from current_sample, should be loop_start_sample... */
     int32_t loop_samples_into_block;/* saved from samples_into_block */
     off_t loop_block_offset;        /* saved from current_block_offset */
     size_t loop_block_size;         /* saved from current_block_size */
+    size_t loop_block_samples;      /* saved from current_block_samples */
     off_t loop_next_block_offset;   /* saved from next_block_offset */
 
-    /* loop internals */
+    /* loop state */
     int hit_loop;                   /* have we seen the loop yet? */
     /* counters for "loop + play end of the stream instead of fading" (not used/needed otherwise) */
     int loop_count;                 /* number of complete loops (1=looped once) */
