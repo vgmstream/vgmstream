@@ -730,6 +730,9 @@
     <ClCompile Include="meta\vsf.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\vxn.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\waa_wac_wad_wam.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>

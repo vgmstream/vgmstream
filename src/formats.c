@@ -179,6 +179,7 @@ static const char* extension_list[] = {
     "mihb",
     "mnstr",
     //"mp4", //common
+    "mpc", //FFmpeg, not parsed (musepack)
     "mpdsp",
     "mpds",
     "msa",
@@ -327,6 +328,7 @@ static const char* extension_list[] = {
     "vpk",
     "vs",
     "vsf",
+    "vxn",
 
     "waa",
     "wac",
@@ -908,6 +910,7 @@ static const meta_info meta_info_list[] = {
         {meta_UBI_SB,               "Ubisoft SBx header"},
         {meta_NAAC,                 "Namco NAAC header"},
         {meta_EZW,                  "EZ2DJ EZWAVE header"},
+        {meta_VXN,                  "Gameloft VXN header"},
 
 #ifdef VGM_USE_VORBIS
         {meta_OGG_VORBIS,           "Ogg Vorbis"},

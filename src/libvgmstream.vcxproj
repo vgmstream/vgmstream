@@ -405,6 +405,7 @@
     <ClCompile Include="meta\ubi_sb.c" />
     <ClCompile Include="meta\vs.c" />
     <ClCompile Include="meta\vsf.c" />
+    <ClCompile Include="meta\vxn.c" />
     <ClCompile Include="meta\waa_wac_wad_wam.c" />
     <ClCompile Include="meta\wii_04sw.c" />
     <ClCompile Include="meta\wii_bns.c" />

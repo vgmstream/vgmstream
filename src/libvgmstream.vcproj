@@ -1199,6 +1199,10 @@
 					>
 				</File>
                 <File
+                    RelativePath=".\meta\vxn.c"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\waa_wac_wad_wam.c"
                     >
                 </File>
