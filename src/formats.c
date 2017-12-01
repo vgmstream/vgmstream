@@ -273,6 +273,7 @@ static const char* extension_list[] = {
     "snd",
     "snds",
     "sng",
+    "snr",
     "sns",
     "snu",
     "spd",
@@ -911,6 +912,8 @@ static const meta_info meta_info_list[] = {
         {meta_NAAC,                 "Namco NAAC header"},
         {meta_EZW,                  "EZ2DJ EZWAVE header"},
         {meta_VXN,                  "Gameloft VXN header"},
+        {meta_EA_SNR_SNS,           "Electronic Arts SNR+SNS header"},
+        {meta_EA_SPS,               "Electronic Arts SPS header"},
 
 #ifdef VGM_USE_VORBIS
         {meta_OGG_VORBIS,           "Ogg Vorbis"},

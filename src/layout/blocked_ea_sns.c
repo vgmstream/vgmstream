@@ -21,9 +21,14 @@ void block_update_ea_sns(off_t block_offset, VGMSTREAM * vgmstream) {
         return;
     }
 
-    /* known: 0x80 = last block, 0x40, 0x08, 0x04, 0x01 */
+    /* 0x80: last block
+     * 0x40: new block for some codecs?
+     * 0x08: ?
+     * 0x04: new block for some codecs?
+     * 0x01: last block for some codecs?
+     * 0x00: none? */
     if (block_size & 0xFF000000) {
-        VGM_ASSERT(!(block_size & 0x80000000), "EA SNS: unknown flag found at %lx\n", block_offset);
+        //VGM_ASSERT(!(block_size & 0x80000000), "EA SNS: unknown flag found at %lx\n", block_offset);
         block_size &= 0x00FFFFFF;
     }
 

@@ -630,6 +630,8 @@ typedef enum {
     meta_UBI_SB,            /* Ubisoft banks */
     meta_EZW,               /* EZ2DJ (Arcade) EZWAV */
     meta_VXN,               /* Gameloft mobile games */
+    meta_EA_SNR_SNS,        /* Electronic Arts SNR+SNS (Burnout Paradise) */
+    meta_EA_SPS,            /* Electronic Arts SPS (Burnout Crash) */
 
 #ifdef VGM_USE_VORBIS
     meta_OGG_VORBIS,        /* Ogg Vorbis */
@@ -871,9 +873,10 @@ typedef enum {
     MPEG_FSB,               /* N streams of 1 data-frame+padding (=interleave) */
     MPEG_P3D,               /* N streams of fixed interleave (not frame-aligned) */
     MPEG_EA,                /* 1 stream (maybe N streams in absolute offsets?) */
-    MPEG_EAL31,             /* EALayer3 v1, custom frames with v1 header */
-    MPEG_EAL32P,            /* EALayer3 v2 "P" (PCM?), custom frames with v2 header */
-    MPEG_EAL32S,            /* EALayer3 v2 "S" (Spike?), custom frames with v2 header */
+    MPEG_EAL31,             /* EALayer3 v1 (SCHl), custom frames with v1 header */
+    MPEG_EAL31b,            /* EALayer3 v1 (SNS), custom frames with v1 header + minor changes */
+    MPEG_EAL32P,            /* EALayer3 v2 "PCM", custom frames with v2 header + bigger PCM blocks? */
+    MPEG_EAL32S,            /* EALayer3 v2 "Spike", custom frames with v2 header + smaller PCM blocks? */
     MPEG_LYN,               /* N streams of fixed interleave */
     MPEG_AWC                /* N streams in block layout (music) or absolute offsets (sfx) */
 } mpeg_custom_t;

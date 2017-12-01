@@ -3,7 +3,7 @@
 
 #ifdef VGM_USE_FFMPEG
 
-#define EAXMA_XMA_MAX_PACKETS_PER_SNS_BLOCK 3 /* only seen up to 3 (Dante's Inferno) */
+#define EAXMA_XMA_MAX_PACKETS_PER_SNS_BLOCK 4 /* normally max 3 (Dante's Inferno), ~14 (1 stream) in Burnout Paradise */
 #define EAXMA_XMA_MAX_STREAMS_PER_SNS_BLOCK 4 /* XMA2 max is 8ch = 4 * 2ch */
 #define EAXMA_XMA_PACKET_SIZE 0x800
 #define EAXMA_XMA_BUFFER_SIZE (EAXMA_XMA_MAX_PACKETS_PER_SNS_BLOCK * EAXMA_XMA_MAX_STREAMS_PER_SNS_BLOCK * EAXMA_XMA_PACKET_SIZE)
@@ -48,7 +48,8 @@ int ffmpeg_custom_read_eaxma(ffmpeg_codec_data *data, uint8_t *buf, int buf_size
         if (max_packets == 0) goto fail;
 
         if (max_packets * num_streams * EAXMA_XMA_PACKET_SIZE > EAXMA_XMA_BUFFER_SIZE) {
-            VGM_LOG("EA XMA: block too big at %lx\n", (off_t)real_offset);
+            VGM_LOG("EA XMA: block too big (%i * %i * 0x%x = 0x%x vs max 0x%x) at %lx\n",
+                    max_packets,num_streams,EAXMA_XMA_PACKET_SIZE, max_packets*num_streams*EAXMA_XMA_PACKET_SIZE, EAXMA_XMA_BUFFER_SIZE,(off_t)real_offset);
             goto fail;
         }
 
