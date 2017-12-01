@@ -130,7 +130,6 @@ static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE * streamHead, ST
 
     /* seen in sfx and Dead Space ambient tracks */
     if (flags & 0x20) {
-        VGM_LOG("flg=%x\n",flags);
         loop_flag = 1;
         loop_start = 0;
         loop_end = num_samples;

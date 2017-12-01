@@ -87,7 +87,7 @@ static int ealayer3_parse_frame_v2(ealayer3_bitstream *is, ealayer3_frame_info *
 static int ealayer3_parse_frame_common(ealayer3_bitstream *is, ealayer3_frame_info * eaf);
 static int ealayer3_rebuild_mpeg_frame(ealayer3_bitstream* is_0, ealayer3_frame_info* eaf_0, ealayer3_bitstream* is_1, ealayer3_frame_info* eaf_1, ealayer3_bitstream* os);
 static int ealayer3_write_pcm_block(VGMSTREAMCHANNEL *stream, mpeg_codec_data *data, int num_stream, ealayer3_frame_info * eaf);
-static int ealayer3_skip_data(VGMSTREAMCHANNEL *stream, mpeg_codec_data *data, int num_stream, int at_start, size_t last_eaframe_size);
+static int ealayer3_skip_data(VGMSTREAMCHANNEL *stream, mpeg_codec_data *data, int num_stream, int at_start);
 
 static int r_bits(ealayer3_bitstream * iw, int num_bits, uint32_t * value);
 static int w_bits(ealayer3_bitstream * ow, int num_bits, uint32_t value);
@@ -120,12 +120,6 @@ int mpeg_custom_setup_init_ealayer3(STREAMFILE *streamFile, off_t start_offset, 
     data->channels_per_frame = eaf.channels;
     data->samples_per_frame = eaf.mpeg1 ? 1152 : 576;
 
-    /* extra checks */
-    if (!data->channels_per_frame || data->config.channels != data->channels_per_frame){
-        VGM_LOG("MPEG EAL3: unknown %i multichannel layout\n", data->config.channels);
-        goto fail; /* to be fixed */
-    }
-
     /* encoder delay: EALayer3 handles this while decoding (skips samples as writes PCM blocks) */
 
     return 1;
@@ -135,6 +129,7 @@ fail:
 
 /* writes data to the buffer and moves offsets, transforming EALayer3 frames */
 int mpeg_custom_parse_frame_ealayer3(VGMSTREAMCHANNEL *stream, mpeg_codec_data *data, int num_stream) {
+    mpeg_custom_stream *ms = data->streams[num_stream];
     int ok, granule_found;
     off_t info_offset = stream->offset;
 
@@ -142,10 +137,10 @@ int mpeg_custom_parse_frame_ealayer3(VGMSTREAMCHANNEL *stream, mpeg_codec_data *
     ealayer3_bitstream is_0 = {0}, is_1 = {0}, os = {0};
     uint8_t ibuf_0[EALAYER3_EA_FRAME_BUFFER_SIZE], ibuf_1[EALAYER3_EA_FRAME_BUFFER_SIZE];
 
-
     /* read first frame/granule, or PCM-only frame (found alone at the end of SCHl streams) */
 	{
-        if (!ealayer3_skip_data(stream, data, num_stream, 1, 0))
+        //;VGM_LOG("s%i: get granule0 at %lx\n", num_stream,stream->offset);
+        if (!ealayer3_skip_data(stream, data, num_stream, 1))
             goto fail;
 
         is_0.buf = ibuf_0;
@@ -159,15 +154,18 @@ int mpeg_custom_parse_frame_ealayer3(VGMSTREAMCHANNEL *stream, mpeg_codec_data *
         if (!ok) goto fail;
 
         stream->offset += eaf_0.eaframe_size;
+        //;VGM_LOG("s%i: get granule0 done at %lx (eaf_size=%x, common_size=%x)\n", num_stream,stream->offset, eaf_0.eaframe_size, eaf_0.common_size);
 
-        if (!ealayer3_skip_data(stream, data, num_stream, 0, eaf_0.eaframe_size))
+        if (!ealayer3_skip_data(stream, data, num_stream, 0))
             goto fail;
+
 	}
 
     /* get second frame/granule (MPEG1 only) if first granule was found */
     granule_found = 0;
     while (eaf_0.common_size && eaf_0.mpeg1 && !granule_found) {
-        if (!ealayer3_skip_data(stream, data, num_stream, 1, 0))
+        //;VGM_LOG("s%i: get granule1 at %lx\n", num_stream,stream->offset);
+        if (!ealayer3_skip_data(stream, data, num_stream, 1))
             goto fail;
 
         is_1.buf = ibuf_1;
@@ -181,8 +179,9 @@ int mpeg_custom_parse_frame_ealayer3(VGMSTREAMCHANNEL *stream, mpeg_codec_data *
         if (!ok) goto fail;
 
         stream->offset += eaf_1.eaframe_size;
+        //;VGM_LOG("s%i: get granule0 done at %lx (eaf_size=%x, common_size=%x)\n", num_stream,stream->offset, eaf_0.eaframe_size, eaf_0.common_size);
 
-        if (!ealayer3_skip_data(stream, data, num_stream, 0, eaf_1.eaframe_size))
+        if (!ealayer3_skip_data(stream, data, num_stream, 0))
             goto fail;
 
         /* in V1a there may be PCM-only frames between granules so read until next one (or parse fails) */
@@ -192,15 +191,15 @@ int mpeg_custom_parse_frame_ealayer3(VGMSTREAMCHANNEL *stream, mpeg_codec_data *
 
     /* rebuild EALayer frame to MPEG frame */
     {
-        os.buf = data->buffer;
-        os.bufsize = data->buffer_size;
+        os.buf = ms->buffer;
+        os.bufsize = ms->buffer_size;
         os.b_off = 0;
         os.info_offset = info_offset;
 
         ok = ealayer3_rebuild_mpeg_frame(&is_0, &eaf_0, &is_1, &eaf_1, &os);
         if (!ok) goto fail;
 
-        data->bytes_in_buffer = os.b_off / 8; /* wrote full MPEG frame, hopefully */
+        ms->bytes_in_buffer = os.b_off / 8; /* wrote full MPEG frame, hopefully */
     }
 
     return 1;
@@ -660,12 +659,13 @@ fail:
  *   (ie. 1st stream skips 2, 2nd stream skips 1, 3rd stream skips 0)
  * - repeat again for granule1
  */
-static int ealayer3_skip_data(VGMSTREAMCHANNEL *stream, mpeg_codec_data *data, int num_stream, int at_start, size_t last_eaframe_size) {
+static int ealayer3_skip_data(VGMSTREAMCHANNEL *stream, mpeg_codec_data *data, int num_stream, int at_start) {
     int ok, i;
     ealayer3_frame_info eaf;
     ealayer3_bitstream is = {0};
     uint8_t ibuf[EALAYER3_EA_FRAME_BUFFER_SIZE];
     int skips = at_start ? num_stream : data->streams_size - 1 - num_stream;
+
 
     for (i = 0; i < skips; i++) {
         is.buf = ibuf;
@@ -677,6 +677,7 @@ static int ealayer3_skip_data(VGMSTREAMCHANNEL *stream, mpeg_codec_data *data, i
 
         stream->offset += eaf.eaframe_size;
     }
+    //;VGM_LOG("s%i: skipped %i frames, now at %lx\n", num_stream,skips,stream->offset);
 
     return 1;
 fail:
