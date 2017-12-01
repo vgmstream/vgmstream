@@ -357,7 +357,7 @@
 					>
 				</File>
                 <File
-                    RelativePath=".\meta\ea_snu.c"
+                    RelativePath=".\meta\ea_eaac.c"
                     >
                 </File>
 				<File

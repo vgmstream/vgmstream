@@ -225,7 +225,7 @@
     <ClCompile Include="meta\ea_schl.c" />
     <ClCompile Include="meta\ea_schl_fixed.c" />
     <ClCompile Include="meta\ea_1snh.c" />
-    <ClCompile Include="meta\ea_snu.c" />
+    <ClCompile Include="meta\ea_eaac.c" />
     <ClCompile Include="meta\emff.c" />
     <ClCompile Include="meta\exakt_sc.c" />
     <ClCompile Include="meta\ffw.c" />

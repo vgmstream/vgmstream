@@ -211,7 +211,7 @@
     <ClCompile Include="meta\ea_1snh.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\ea_snu.c">
+    <ClCompile Include="meta\ea_eaac.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\emff.c">
