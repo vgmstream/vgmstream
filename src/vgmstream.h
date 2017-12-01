@@ -898,6 +898,12 @@ typedef struct {
 
 /* represents a single MPEG stream */
 typedef struct {
+    /* per stream as sometimes mpg123 must be fed in passes if data is big enough (ex. EALayer3 multichannel) */
+    uint8_t *buffer; /* raw data buffer */
+    size_t buffer_size;
+    size_t bytes_in_buffer;
+    int buffer_full; /* raw buffer has been filled */
+    int buffer_used; /* raw buffer has been fed to the decoder */
     mpg123_handle *m; /* MPEG decoder */
 
     uint8_t *output_buffer; /* decoded samples from this stream (in bytes for mpg123) */
@@ -909,16 +915,17 @@ typedef struct {
     size_t current_size_target; /* max data, until something happens */
     size_t decode_to_discard;  /* discard from this stream only (for EALayer3 or AWC) */
 
+
 } mpeg_custom_stream;
 
 typedef struct {
-    uint8_t *buffer; /* internal raw data buffer */
+    /* regular/single MPEG internals */
+    uint8_t *buffer; /* raw data buffer */
     size_t buffer_size;
     size_t bytes_in_buffer;
     int buffer_full; /* raw buffer has been filled */
     int buffer_used; /* raw buffer has been fed to the decoder */
-
-    mpg123_handle *m; /* regular/single MPEG decoder */
+    mpg123_handle *m; /* MPEG decoder */
 
     /* for internal use, assumed to be constant for all frames */
     int channels_per_frame;

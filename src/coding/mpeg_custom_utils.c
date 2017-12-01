@@ -60,7 +60,7 @@ int mpeg_custom_setup_init_default(STREAMFILE *streamFile, off_t start_offset, m
         case MPEG_STANDARD:
         case MPEG_AHX:
         case MPEG_EA:
-            if (data->channels_per_frame != data->config.channels)
+            if (info.channels != data->config.channels)
                 goto fail; /* no multichannel expected */
             break;
 
@@ -89,7 +89,8 @@ fail:
 
 
 /* writes data to the buffer and moves offsets */
-int mpeg_custom_parse_frame_default(VGMSTREAMCHANNEL *stream, mpeg_codec_data *data) {
+int mpeg_custom_parse_frame_default(VGMSTREAMCHANNEL *stream, mpeg_codec_data *data, int num_stream) {
+    mpeg_custom_stream *ms = data->streams[num_stream];
     mpeg_frame_info info;
     size_t current_data_size = 0;
     size_t current_padding = 0;
@@ -137,14 +138,14 @@ int mpeg_custom_parse_frame_default(VGMSTREAMCHANNEL *stream, mpeg_codec_data *d
             current_data_size = info.frame_size;
             break;
     }
-    if (!current_data_size || current_data_size > data->buffer_size) {
+    if (!current_data_size || current_data_size > ms->buffer_size) {
         VGM_LOG("MPEG: incorrect data_size 0x%x\n", current_data_size);
         goto fail;
     }
 
 
     /* read single frame */
-    data->bytes_in_buffer = read_streamfile(data->buffer,stream->offset, current_data_size, stream->streamfile);
+    ms->bytes_in_buffer = read_streamfile(ms->buffer,stream->offset, current_data_size, stream->streamfile);
 
 
     /* update offsets */
