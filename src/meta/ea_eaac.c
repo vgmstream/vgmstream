@@ -14,8 +14,11 @@ VGMSTREAM * init_vgmstream_ea_snr_sns(STREAMFILE * streamFile) {
         goto fail;
 
     /* SNR headers normally need an external SNS file, but some have data */
-    if (get_streamfile_size(streamFile) > 0x0c) {
-        vgmstream = init_vgmstream_eaaudiocore_header(streamFile, streamFile, 0x00, 0x0c, meta_EA_SNR_SNS);
+    if (get_streamfile_size(streamFile) > 0x10) {
+        /* for Burnout Paradise has this, not sure if extension */
+        off_t start_offset = (read_32bitBE(0x0c, streamFile) == 0) ? 0x0c : 0x08;
+
+        vgmstream = init_vgmstream_eaaudiocore_header(streamFile, streamFile, 0x00, start_offset, meta_EA_SNR_SNS);
         if (!vgmstream) goto fail;
     }
     else {
@@ -162,7 +165,7 @@ static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE * streamHead, ST
     /* EA decoder list and known internal FourCCs */
     switch(codec) {
 
-        case 0x02:      /* "P6B0": PCM16BE */
+        case 0x02:      /* "P6B0": PCM16BE (NBA Jam Wii) */
             vgmstream->coding_type = coding_PCM16_int;
             vgmstream->codec_endian = 1;
             vgmstream->layout_type = layout_blocked_ea_sns;
