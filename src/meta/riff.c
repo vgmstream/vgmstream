@@ -266,16 +266,22 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
             && strcasecmp("med",filename_extension(filename))
 		)
     {
-        if (!strcasecmp("mwv",filename_extension(filename)))
+        if (!strcasecmp("mwv",filename_extension(filename))) {
             mwv = 1;
-        else if (!strcasecmp("sns",filename_extension(filename)))
+        }
+        else if (!strcasecmp("sns",filename_extension(filename))) {
             sns = 1;
+        }
 #if defined(VGM_USE_MAIATRAC3PLUS) || defined(VGM_USE_FFMPEG)
-        else if ( check_extensions(streamFile, "at3,rws") ) /* Renamed .RWS AT3 found in Climax games (Silent Hill Origins PSP, Oblivion PSP) */
+        /* .RWS: AT3 found in Climax games (Silent Hill Origins PSP, Oblivion PSP)
+         * .AUD: EA Replay */
+        else if ( check_extensions(streamFile, "at3,rws,aud") ) {
             at3 = 1;
+        }
 #endif
-        else
+        else {
             goto fail;
+        }
     }
 
     /* check header */
