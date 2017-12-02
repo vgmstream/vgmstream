@@ -376,6 +376,9 @@
     <ClCompile Include="meta\ngc_ulw.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\ngc_vid1.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\nub_xma.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -905,6 +908,9 @@
       <Filter>coding\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\vorbis_custom_utils_sk.c">
+      <Filter>coding\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="coding\vorbis_custom_utils_vid1.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\vorbis_custom_utils_wwise.c">

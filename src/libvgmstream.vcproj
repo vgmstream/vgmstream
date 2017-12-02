@@ -626,6 +626,10 @@
                     RelativePath=".\meta\ngc_ulw.c"
                     >
                 </File>
+                <File
+                    RelativePath=".\meta\ngc_vid1.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\ngca.c"
 					>
@@ -1552,6 +1556,10 @@
                 </File>
                 <File
                     RelativePath=".\coding\vorbis_custom_utils_sk.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\coding\vorbis_custom_utils_vid1.c"
                     >
                 </File>
                 <File

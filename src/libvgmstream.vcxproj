@@ -287,6 +287,7 @@
     <ClCompile Include="meta\ngc_tydsp.c" />
     <ClCompile Include="meta\ngc_ymf.c" />
     <ClCompile Include="meta\ngc_ulw.c" />
+    <ClCompile Include="meta\ngc_vid1.c" />
     <ClCompile Include="meta\nub_xma.c" />
     <ClCompile Include="meta\nwa.c" />
     <ClCompile Include="meta\ogg_vorbis_file.c" />
@@ -465,6 +466,7 @@
     <ClCompile Include="coding\vorbis_custom_utils_fsb.c" />
     <ClCompile Include="coding\vorbis_custom_utils_ogl.c" />
     <ClCompile Include="coding\vorbis_custom_utils_sk.c" />
+    <ClCompile Include="coding\vorbis_custom_utils_vid1.c" />
     <ClCompile Include="coding\vorbis_custom_utils_wwise.c" />
     <ClCompile Include="coding\ws_decoder.c" />
     <ClCompile Include="coding\xa_decoder.c" />

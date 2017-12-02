@@ -50,6 +50,7 @@ vorbis_custom_codec_data * init_vorbis_custom_codec_data(STREAMFILE *streamFile,
         case VORBIS_WWISE:  ok = vorbis_custom_setup_init_wwise(streamFile, start_offset, data); break;
         case VORBIS_OGL:    ok = vorbis_custom_setup_init_ogl(streamFile, start_offset, data); break;
         case VORBIS_SK:     ok = vorbis_custom_setup_init_sk(streamFile, start_offset, data); break;
+        case VORBIS_VID1:   ok = vorbis_custom_setup_init_vid1(streamFile, start_offset, data); break;
         default: goto fail;
     }
     if(!ok) goto fail;
@@ -131,6 +132,7 @@ void decode_vorbis_custom(VGMSTREAM * vgmstream, sample * outbuf, int32_t sample
                 case VORBIS_WWISE:  ok = vorbis_custom_parse_packet_wwise(stream, data); break;
                 case VORBIS_OGL:    ok = vorbis_custom_parse_packet_ogl(stream, data); break;
                 case VORBIS_SK:     ok = vorbis_custom_parse_packet_sk(stream, data); break;
+                case VORBIS_VID1:   ok = vorbis_custom_parse_packet_vid1(stream, data); break;
                 default: goto decode_fail;
             }
             if(!ok) {
@@ -142,8 +144,9 @@ void decode_vorbis_custom(VGMSTREAM * vgmstream, sample * outbuf, int32_t sample
             /* parse the fake ogg packet into a logical vorbis block */
             rc = vorbis_synthesis(&data->vb,&data->op);
             if (rc == OV_ENOTAUDIO) {
-                VGM_LOG("Vorbis: not an audio packet @ %lx\n",stream->offset);
-                continue; /* not tested */
+                VGM_LOG("Vorbis: not an audio packet (size=0x%x) @ %lx\n",(size_t)data->op.bytes,stream->offset);
+                //VGM_LOGB(data->op.packet, (size_t)data->op.bytes,0);
+                continue; /* seems ok? */
             } else if (rc != 0) {
                 VGM_LOG("Vorbis: cannot parse Vorbis block @ %lx\n",stream->offset);
                 goto decode_fail;

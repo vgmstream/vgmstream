@@ -632,6 +632,7 @@ typedef enum {
     meta_VXN,               /* Gameloft mobile games */
     meta_EA_SNR_SNS,        /* Electronic Arts SNR+SNS (Burnout Paradise) */
     meta_EA_SPS,            /* Electronic Arts SPS (Burnout Crash) */
+    meta_NGC_VID1,          /* Neversoft .ogg (Gun GC) */
 
 #ifdef VGM_USE_VORBIS
     meta_OGG_VORBIS,        /* Ogg Vorbis */
@@ -804,11 +805,12 @@ typedef struct {
 
 /* custom Vorbis modes */
 typedef enum {
-    VORBIS_FSB,         /* simplified/external setup packets, custom packet headers */
-    VORBIS_WWISE,       /* many variations (custom setup, headers and data) */
-    VORBIS_OGL,         /* custom packet headers */
-    VORBIS_SK           /* "OggS" replaced by "SK" */
-  //VORBIS_LYN          /* two interleaved Ogg (including setup, duplicated) */
+    VORBIS_FSB,         /* FMOD FSB: simplified/external setup packets, custom packet headers */
+    VORBIS_WWISE,       /* Wwise WEM: many variations (custom setup, headers and data) */
+    VORBIS_OGL,         /* Shin'en OGL: custom packet headers */
+    VORBIS_SK,          /* Silicon Knights AUD: "OggS" replaced by "SK" */
+    VORBIS_VID1,        /* Neversoft VID1: custom packet blocks/headers */
+  //VORBIS_LYN          /* Ubisoft LyN: two interleaved Ogg (including setup, duplicated) */
 } vorbis_custom_t;
 
 /* config for Wwise Vorbis (3 types for flexibility though not all combinations exist) */
@@ -859,6 +861,9 @@ typedef struct {
     uint8_t prev_blockflag;         /* blockflag in the last decoded packet */
     /* Ogg-style Vorbis: packet within a page */
     int current_packet;
+    /* reference for page/blocks */
+    off_t block_offset;
+    size_t block_size;
 
 } vorbis_custom_codec_data;
 #endif

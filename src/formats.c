@@ -319,11 +319,11 @@ static const char* extension_list[] = {
     "vawx",
     "vb",
     "vbk",
+    "vds",
+    "vdm",
     "vgs",
     "vgv",
     "vig",
-    "vds",
-    "vdm",
     "vms",
     "voi",
     "vpk",
@@ -914,6 +914,7 @@ static const meta_info meta_info_list[] = {
         {meta_VXN,                  "Gameloft VXN header"},
         {meta_EA_SNR_SNS,           "Electronic Arts SNR+SNS header"},
         {meta_EA_SPS,               "Electronic Arts SPS header"},
+        {meta_NGC_VID1,             "Neversoft VID1 header"},
 
 #ifdef VGM_USE_VORBIS
         {meta_OGG_VORBIS,           "Ogg Vorbis"},
