@@ -701,4 +701,6 @@ VGMSTREAM * init_vgmstream_ea_sps(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_ngc_vid1(STREAMFILE * streamFile);
 
+VGMSTREAM * init_vgmstream_flx(STREAMFILE * streamFile);
+
 #endif /*_META_H*/

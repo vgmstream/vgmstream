@@ -633,6 +633,7 @@ typedef enum {
     meta_EA_SNR_SNS,        /* Electronic Arts SNR+SNS (Burnout Paradise) */
     meta_EA_SPS,            /* Electronic Arts SPS (Burnout Crash) */
     meta_NGC_VID1,          /* Neversoft .ogg (Gun GC) */
+    meta_PC_FLX,            /* Ultima IX PC */
 
 #ifdef VGM_USE_VORBIS
     meta_OGG_VORBIS,        /* Ogg Vorbis */

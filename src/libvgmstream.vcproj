@@ -384,6 +384,10 @@
 					RelativePath=".\meta\ffw.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\meta\flx.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\fsb.c"
 					>

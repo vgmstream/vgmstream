@@ -223,6 +223,9 @@
     <ClCompile Include="meta\ffw.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\flx.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\fsb.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>

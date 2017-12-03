@@ -110,6 +110,7 @@ static const char* extension_list[] = {
     "fag",
     "ffw",
     "filp",
+    "flx",
     "fsb",
     "fwav",
 
@@ -915,6 +916,8 @@ static const meta_info meta_info_list[] = {
         {meta_EA_SNR_SNS,           "Electronic Arts SNR+SNS header"},
         {meta_EA_SPS,               "Electronic Arts SPS header"},
         {meta_NGC_VID1,             "Neversoft VID1 header"},
+        {meta_PC_FLX,               "Ultima IX .FLX header"},
+
 
 #ifdef VGM_USE_VORBIS
         {meta_OGG_VORBIS,           "Ogg Vorbis"},
