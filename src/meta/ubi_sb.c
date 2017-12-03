@@ -571,6 +571,22 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
         return 1;
     }
 
+    /* Myst IV Demo (2004)(PC) (final game is different) */
+    if (sb->version == 0x00100000 && is_sb0) {
+        sb->section1_entry_size = 0x68;
+        sb->section2_entry_size = 0xa4;
+
+        sb->external_flag_offset = 0x24;
+        sb->num_samples_offset   = 0x34;
+        sb->sample_rate_offset   = 0x44;
+        sb->channels_offset      = 0x4c;
+        sb->stream_type_offset   = 0x50;
+        sb->stream_name_offset   = 0x54;
+
+        sb->has_internal_names = 1;
+        return 1;
+    }
+
     /* Prince of Persia: Warrior Within (2004)(PC) */
     if (sb->version == 0x00120009 && is_sb0) {
         sb->section1_entry_size = 0x6c;
@@ -757,6 +773,37 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
         sb->num_samples_offset   = 0x48;
         sb->extra_name_offset    = 0x58;
         sb->stream_type_offset   = 0x5c;
+
+        return 1;
+    }
+
+    /* TMNT (2007)(PS2) */
+    if (sb->version == 0x00190002 && is_sb1) {
+        sb->section1_entry_size = 0x48;
+        sb->section2_entry_size = 0x5c;
+
+        sb->external_flag_offset = 0;
+        sb->channels_offset      = 0x28;
+        sb->sample_rate_offset   = 0x2c;
+        //sb->num_samples_offset = 0x34 or 0x3c /* varies */
+        sb->extra_name_offset    = 0x44;
+        sb->stream_type_offset   = 0x48;
+
+        sb->has_extra_name_flag = 1;
+        return 1;
+    }
+
+    /* TMNT (2007)(GC) */
+    if (sb->version == 0x00190002 && is_sb3) { /* same as 0x00190003 */
+        sb->section1_entry_size = 0x68;
+        sb->section2_entry_size = 0x6c;
+
+        sb->external_flag_offset = 0x28; /* maybe 0x2c */
+        sb->channels_offset      = 0x3c;
+        sb->sample_rate_offset   = 0x40;
+        sb->num_samples_offset   = 0x48;
+        sb->stream_type_offset   = 0x5c;
+        sb->extra_name_offset    = 0x58;
 
         return 1;
     }
