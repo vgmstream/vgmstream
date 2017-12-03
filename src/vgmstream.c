@@ -522,6 +522,10 @@ void reset_vgmstream(VGMSTREAM * vgmstream) {
         reset_hca(vgmstream);
     }
 
+    if (vgmstream->coding_type==coding_EA_MT) {
+        reset_ea_mt(vgmstream);
+    }
+
 #if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
 	if (vgmstream->coding_type==coding_MP4_AAC) {
 	    reset_mp4_aac(vgmstream);
@@ -702,6 +706,11 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
         vgmstream->codec_data = NULL;
     }
     
+    if (vgmstream->coding_type==coding_EA_MT) {
+        free_ea_mt(vgmstream->codec_data);
+        vgmstream->codec_data = NULL;
+    }
+
 #ifdef VGM_USE_FFMPEG
     if (vgmstream->coding_type==coding_FFmpeg) {
         free_ffmpeg(vgmstream->codec_data);
@@ -1110,11 +1119,13 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_LSF:
             return 54;
         case coding_MTAF:
-            return 0x80*2;
+            return 128*2;
         case coding_MTA2:
-            return 0x80*2;
+            return 128*2;
         case coding_MC3:
             return 10;
+        case coding_EA_MT:
+            return 432;
         case coding_CRI_HCA:
             return clHCA_samplesPerBlock;
 #if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
@@ -1194,6 +1205,7 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
         case coding_G721:
         case coding_SNDS_IMA:
         case coding_OTNS_IMA:
+            return 0;
         case coding_UBI_IMA: /* variable (PCM then IMA) */
             return 0;
         case coding_NGC_AFC:
@@ -1219,7 +1231,7 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
         case coding_MAXIS_XA:
             return 0x0F*vgmstream->channels;
         case coding_EA_XA_V2:
-            return 1; /* the frame is variant in size (ADPCM frames of 0x0F or PCM frames) */
+            return 0; /* variable (ADPCM frames of 0x0f or PCM frames of 0x3d) */
         case coding_EA_XAS:
             return 0x4c*vgmstream->channels;
         case coding_WS:
@@ -1255,7 +1267,9 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
         case coding_MTA2:
             return 0x90;
         case coding_MC3:
-            return 4;
+            return 0x04;
+        case coding_EA_MT:
+            return 0; /* variable (frames of bit counts or PCM frames) */
         default:
             return 0;
     }
@@ -1847,6 +1861,13 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                         chan);
             }
             break;
+        case coding_EA_MT:
+            for (chan=0;chan<vgmstream->channels;chan++) {
+                decode_ea_mt(vgmstream, buffer+samples_written*vgmstream->channels+chan,
+                        vgmstream->channels, vgmstream->samples_into_block, samples_to_do,
+                        chan);
+            }
+            break;
         default:
             break;
     }
@@ -1920,6 +1941,10 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream) {
 
         if (vgmstream->coding_type==coding_CRI_HCA) {
             loop_hca(vgmstream);
+        }
+
+        if (vgmstream->coding_type==coding_EA_MT) {
+            seek_ea_mt(vgmstream, vgmstream->loop_start_sample);
         }
 
 #ifdef VGM_USE_VORBIS
@@ -2516,6 +2541,11 @@ int vgmstream_open_stream(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t s
             vgmstream->ch[ch].channel_start_offset =
                     vgmstream->ch[ch].offset = offset;
         }
+    }
+
+    /* EA-MT decoder is a bit finicky and needs this when channel offsets change */
+    if (vgmstream->coding_type == coding_EA_MT) {
+        flush_ea_mt(vgmstream);
     }
 
     return 1;

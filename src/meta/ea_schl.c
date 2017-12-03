@@ -140,7 +140,7 @@ VGMSTREAM * init_vgmstream_ea_bnk(STREAMFILE *streamFile) {
         goto fail;
 
     /* use header size as endianness flag */
-    if ((uint32_t)read_32bitLE(0x08,streamFile) > 0x00F00000) {
+    if ((uint32_t)read_32bitLE(0x08,streamFile) > 0x000F0000) { /* todo not very accurate */
         read_32bit = read_32bitBE;
         read_16bit = read_16bitBE;
     } else {
@@ -311,13 +311,11 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE *streamFile, ea_
 #ifdef VGM_USE_MPEG
         case EA_CODEC2_LAYER2:      /* MPEG Layer II, aka MP2 */
         case EA_CODEC2_LAYER3: {    /* MPEG Layer III, aka MP3 */
-            mpeg_custom_config cfg;
+            mpeg_custom_config cfg = {0};
             off_t mpeg_start_offset = is_bnk ?
                     start_offset :
                     get_ea_stream_mpeg_start_offset(streamFile, start_offset, ea);
             if (!mpeg_start_offset) goto fail;
-
-            memset(&cfg, 0, sizeof(mpeg_custom_config));
 
             /* layout is still blocks, but should work fine with the custom mpeg decoder */
             vgmstream->codec_data = init_mpeg_custom_codec_data(streamFile, mpeg_start_offset, &vgmstream->coding_type, vgmstream->channels, MPEG_EA, &cfg);
@@ -326,13 +324,11 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE *streamFile, ea_
         }
 
         case EA_CODEC2_EALAYER3: {  /* MP3 variant */
-            mpeg_custom_config cfg;
+            mpeg_custom_config cfg = {0};
             off_t mpeg_start_offset = is_bnk ?
                     start_offset :
                     get_ea_stream_mpeg_start_offset(streamFile, start_offset, ea);
             if (!mpeg_start_offset) goto fail;
-
-            memset(&cfg, 0, sizeof(mpeg_custom_config));
 
             /* layout is still blocks, but should work fine with the custom mpeg decoder */
             vgmstream->codec_data = init_mpeg_custom_codec_data(streamFile, mpeg_start_offset, &vgmstream->coding_type, vgmstream->channels, MPEG_EAL31, &cfg);
@@ -343,6 +339,12 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE *streamFile, ea_
 
         case EA_CODEC2_MT10:        /* MicroTalk (10:1 compression) */
         case EA_CODEC2_MT5:         /* MicroTalk (5:1 compression) */
+            vgmstream->coding_type = coding_EA_MT;
+            VGM_LOG("mt: codec=%x, cv=%x, v=%x\n", ea->codec2, ea->codec_version, ea->version);
+            vgmstream->codec_data = init_ea_mt(vgmstream->channels, ea->version == EA_VERSION_V3);
+            if (!vgmstream->codec_data) goto fail;
+            break;
+
         case EA_CODEC2_ATRAC3PLUS:  /* regular ATRAC3plus chunked in SCxx blocks, including RIFF header */
         default:
             VGM_LOG("EA SCHl: unknown codec2 0x%02x for platform 0x%02x\n", ea->codec2, ea->platform);
@@ -400,15 +402,6 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE *streamFile, ea_
                     }
                 }
                 break;
-        }
-
-        /* reset channel sub offset for codecs using it */
-        if (vgmstream->coding_type == coding_EA_XA
-                || vgmstream->coding_type == coding_EA_XA_int
-                || vgmstream->coding_type == coding_EA_XA_V2) {
-            for(i=0;i<vgmstream->channels;i++) {
-                vgmstream->ch[i].channel_start_offset = 0;
-            }
         }
     }
     else {

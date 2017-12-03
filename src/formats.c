@@ -489,6 +489,8 @@ static const coding_info coding_info_list[] = {
         {coding_NWA4,               "NWA DPCM Level 4"},
         {coding_NWA5,               "NWA DPCM Level 5"},
 
+        {coding_EA_MT,              "Electronic Arts MicroTalk"},
+
         {coding_CRI_HCA,            "CRI HCA"},
         
 #ifdef VGM_USE_VORBIS

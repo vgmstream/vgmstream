@@ -61,7 +61,7 @@ VGMSTREAM * init_vgmstream_flx(STREAMFILE *streamFile) {
     vgmstream->meta_type = meta_PC_FLX;
 
     switch(codec) {
-        case 0x00:  /* PCM */
+        case 0x00:  /* PCM (sfx) */
             vgmstream->coding_type = coding_PCM16LE;
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = 0x02;
@@ -69,7 +69,7 @@ VGMSTREAM * init_vgmstream_flx(STREAMFILE *streamFile) {
             vgmstream->num_samples = pcm_bytes_to_samples(data_size, channel_count, 16);
             break;
 
-        case 0x01:  /* EA-XA (music) */
+        case 0x01:  /* EA-XA (music, sfx) */
             vgmstream->coding_type = channel_count > 1 ? coding_EA_XA : coding_EA_XA_int;
             vgmstream->layout_type = layout_none;
 
@@ -79,6 +79,14 @@ VGMSTREAM * init_vgmstream_flx(STREAMFILE *streamFile) {
             break;
 
         case 0x02:  /* EA-MT (voices) */
+            vgmstream->coding_type = coding_EA_MT;
+            vgmstream->codec_data = init_ea_mt(vgmstream->channels, 0);
+            if (!vgmstream->codec_data) goto fail;
+
+            vgmstream->num_samples = read_32bitLE(start_offset,streamFile);
+            start_offset += 0x04;
+            break;
+
         default:
             VGM_LOG("FLX: unknown codec 0x%x\n", codec);
             goto fail;
@@ -90,6 +98,7 @@ VGMSTREAM * init_vgmstream_flx(STREAMFILE *streamFile) {
     /* open the file for reading */
     if ( !vgmstream_open_stream(vgmstream, streamFile, start_offset) )
         goto fail;
+
     return vgmstream;
 
 fail:

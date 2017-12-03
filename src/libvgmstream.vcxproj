@@ -437,6 +437,7 @@
     <ClCompile Include="coding\acm_decoder.c" />
     <ClCompile Include="coding\adx_decoder.c" />
     <ClCompile Include="coding\aica_decoder.c" />
+    <ClCompile Include="coding\ea_mt_decoder.c" />
     <ClCompile Include="coding\ea_xa_decoder.c" />
     <ClCompile Include="coding\ea_xas_decoder.c" />
     <ClCompile Include="coding\g719_decoder.c" />

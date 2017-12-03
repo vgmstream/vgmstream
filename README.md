@@ -108,9 +108,10 @@ are used in few games.
 - InterPlay ACM
 - Visual Art's NWA
 - CRI HCA
+- Electronic Arts MicroTalk
 - Xiph Vorbis (Ogg, FSB5, Wwise, OGL, Silicon Knights)
 - MPEG MP1/2/3 (standard, AHX, XVAG, FSB, AWC, P3D, etc)
-- Electronic Arts EALayer3 v1
+- Electronic Arts EALayer3
 - ITU-T G.722.1 (Polycom Siren 7)
 - ITU-T G.722.1 annex C (Polycom Siren 14)
 - ITU G.719 annex B (Polycom Siren 22)

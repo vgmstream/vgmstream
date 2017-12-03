@@ -161,6 +161,8 @@ typedef enum {
     coding_NWA4,
     coding_NWA5,
 
+    coding_EA_MT,           /* Electronic Arts MicroTalk (linear-predictive speech codec) */
+
     coding_CRI_HCA,         /* CRI High Compression Audio (MDCT-based) */
 
 #ifdef VGM_USE_VORBIS
@@ -1144,6 +1146,12 @@ typedef struct {
 } mp4_aac_codec_data;
 #endif
 #endif
+
+typedef struct {
+    int pcm_blocks;
+    int utk_context_size;
+    void** utk_context;
+} ea_mt_codec_data;
 
 
 /* -------------------------------------------------------------------------*/

@@ -823,6 +823,9 @@
     <ClCompile Include="coding\aica_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="coding\ea_mt_decoder.c">
+      <Filter>coding\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="coding\ea_xa_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>

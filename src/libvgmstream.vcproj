@@ -1398,6 +1398,10 @@
                     RelativePath=".\coding\coding_utils.c"
                     >
                 </File>
+                <File
+                    RelativePath=".\coding\ea_mt_decoder.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\coding\ea_xa_decoder.c"
 					>
