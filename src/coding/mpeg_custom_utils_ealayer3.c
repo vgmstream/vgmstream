@@ -104,6 +104,7 @@ int mpeg_custom_setup_init_ealayer3(STREAMFILE *streamFile, off_t start_offset, 
     ealayer3_bitstream is = {0};
     uint8_t ibuf[EALAYER3_EA_FRAME_BUFFER_SIZE];
 
+    //;VGM_LOG("init at %lx\n", start_offset);
 
     /* get first frame for info */
     {
@@ -431,16 +432,16 @@ static int ealayer3_rebuild_mpeg_frame(ealayer3_bitstream* is_0, ealayer3_frame_
     }
 
 
-#if 0 //todo broken free format detection for some MP3 in mpg123 < 1.25.8
     /* get bitrate: use "free format" (bigger bitrate) to avoid the need of bit reservoir
-     * this feature is in the spec but some decoders may not support it */
+     * this feature is in the spec but some decoders may not support it
+     * (free format detection is broken in some MP3 in mpg123 < 1.25.8 but works ok) */
     expected_bitrate_index = 0x00;
     if (eaf_0->mpeg1) {
         expected_frame_size = 144l * (320*2) * 1000l / eaf_0->sample_rate;
     } else {
         expected_frame_size =  72l * (160*2) * 1000l / eaf_0->sample_rate;
     }
-#else
+#if 0
     /* this uses max official bitrate (320/160) but some frames need more = complex bit reservoir */
     expected_bitrate_index = 0x0E;
     if (eaf_0->mpeg1) { /* 320: 44100=0x414, 48000=0x3C0, 32000=0x5A0 */
@@ -614,7 +615,7 @@ static int ealayer3_write_pcm_block(VGMSTREAMCHANNEL *stream, mpeg_codec_data *d
         }
 
 #if 0
-        /* todo supposed skip modes:
+        /* todo supposed skip modes (only seen 0x00):
          *
          * AB00CCCC CCCCCCCC  if A is set:  DDEEEEEE EEEEFFFF FFFFFFGG GGGGGGGG
          * D = BLOCKOFFSETMODE: IGNORE = 0x0, PRESERVE = 0x1, MUTE = 0x2, MAX = 0x3
