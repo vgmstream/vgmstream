@@ -177,7 +177,6 @@ void free_mpeg(mpeg_codec_data *data);
 void flush_mpeg(mpeg_codec_data * data);
 
 long mpeg_bytes_to_samples(long bytes, const mpeg_codec_data *data);
-void mpeg_set_error_logging(mpeg_codec_data * data, int enable);
 #endif
 
 #ifdef VGM_USE_G7221

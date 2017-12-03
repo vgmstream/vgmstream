@@ -101,6 +101,8 @@ mpeg_codec_data *init_mpeg_codec_data(STREAMFILE *streamfile, off_t start_offset
         if (channels_per_frame != channels)
             goto fail;
 
+        /* copy current as open_feed may invalidate until data is fed */
+        memcpy(&data->mi, &mi, sizeof(struct mpg123_frameinfo));
 
         /* reinit, to ignore the reading done */
         mpg123_open_feed(main_m);
@@ -592,23 +594,20 @@ void flush_mpeg(mpeg_codec_data * data) {
 long mpeg_bytes_to_samples(long bytes, const mpeg_codec_data *data) {
     /* if not found just return 0 and expect to fail (if used for num_samples) */
     if (!data->custom) {
-        struct mpg123_frameinfo mi;
-        mpg123_handle *m = data->m;
-
-        if (m == NULL || MPG123_OK != mpg123_info(m, &mi))
-            return 0;
-
         /* We would need to read all VBR frames headers to count samples */
-        if (mi.vbr != MPG123_CBR) //maybe abr_rate could be used to get an approx
+        if (data->mi.vbr != MPG123_CBR) { //maybe abr_rate could be used to get an approx
+            VGM_LOG("MPEG: vbr mp3 can't do bytes_to_samples\n");
             return 0;
+        }
 
-        return (int64_t)bytes * mi.rate * 8 / (mi.bitrate * 1000);
+        return (int64_t)bytes * data->mi.rate * 8 / (data->mi.bitrate * 1000);
     }
     else {
         return 0; /* a bit too complex for what is worth */
     }
 }
 
+#if 0
 /* disables/enables stderr output, for MPEG known to contain recoverable errors */
 void mpeg_set_error_logging(mpeg_codec_data * data, int enable) {
     if (!data->custom) {
@@ -621,5 +620,5 @@ void mpeg_set_error_logging(mpeg_codec_data * data, int enable) {
         }
     }
 }
-
+#endif
 #endif

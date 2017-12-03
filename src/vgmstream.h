@@ -934,6 +934,7 @@ typedef struct {
     int buffer_full; /* raw buffer has been filled */
     int buffer_used; /* raw buffer has been fed to the decoder */
     mpg123_handle *m; /* MPEG decoder */
+    struct mpg123_frameinfo mi; /* start info, so it's available even when resetting */
 
     /* for internal use, assumed to be constant for all frames */
     int channels_per_frame;
