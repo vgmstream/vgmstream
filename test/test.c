@@ -64,6 +64,7 @@ int main(int argc, char ** argv) {
     int i,j,k;
     int opt;
     /* config */
+    char * infilename = NULL;
     char * outfilename = NULL;
     char * outfilename_reset = NULL;
     int ignore_loop = 0;
@@ -156,6 +157,15 @@ int main(int argc, char ** argv) {
         return 1;
     }
 
+    infilename = argv[optind];
+
+#ifdef WIN32
+    /* make stdout output work with windows */
+    if (play_sdtout) {
+        _setmode(fileno(stdout),_O_BINARY);
+    }
+#endif
+
     if (play_forever && !play_sdtout) {
         fprintf(stderr,"A file of infinite size? Not likely.\n");
         return 1;
@@ -166,13 +176,6 @@ int main(int argc, char ** argv) {
         return 1;
     }
 
-#ifdef WIN32
-    /* make stdout output work with windows */
-    if (play_sdtout) {
-        _setmode(fileno(stdout),_O_BINARY);
-    }
-#endif
-
     if (ignore_loop && force_loop) {
         fprintf(stderr,"-e and -i are incompatible\n");
         return 1;
@@ -182,25 +185,27 @@ int main(int argc, char ** argv) {
         return 1;
     }
     if (force_loop && really_force_loop) {
-        fprintf(stderr,"-E and -e are somewhat redundant, are you confused?\n");
+        fprintf(stderr,"-E and -e are incompatible\n");
         return 1;
     }
 
     /* manually init streamfile to pass the stream index */
     {
-        //s = init_vgmstream(argv[optind]);
-        STREAMFILE *streamFile = open_stdio_streamfile(argv[optind]);
-        if (streamFile) {
-            streamFile->stream_index = stream_index;
-            vgmstream = init_vgmstream_from_STREAMFILE(streamFile);
-            close_streamfile(streamFile);
+        //s = init_vgmstream(infilename);
+        STREAMFILE *streamFile = open_stdio_streamfile(infilename);
+        if (!streamFile) {
+            fprintf(stderr,"file %s not found\n",infilename);
+            return 1;
         }
-    }
 
+        streamFile->stream_index = stream_index;
+        vgmstream = init_vgmstream_from_STREAMFILE(streamFile);
+        close_streamfile(streamFile);
 
-    if (!vgmstream) {
-        fprintf(stderr,"failed opening %s\n",argv[optind]);
-        return 1;
+        if (!vgmstream) {
+            fprintf(stderr,"failed opening %s\n",infilename);
+            return 1;
+        }
     }
 
     /* force only if there aren't already loop points */
@@ -274,10 +279,10 @@ int main(int argc, char ** argv) {
                 printf("set loop=0\n");
         }
         else if (print_metaonly) {
-            printf("metadata for %s\n",argv[optind]);
+            printf("metadata for %s\n",infilename);
         }
         else {
-            printf("decoding %s\n",argv[optind]);
+            printf("decoding %s\n",infilename);
         }
     }
     if (!play_sdtout && !print_adxencd && !print_oggenc && !print_batchvar) {
