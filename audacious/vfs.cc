@@ -100,8 +100,10 @@ STREAMFILE *open_vfs_by_VFSFILE(VFSFile *file, const char *path) {
 
 STREAMFILE *open_vfs(const char *path) {
   VFSFile *vfsFile = new VFSFile(path, "rb");
-  if (!vfsFile)
+  if (!vfsFile || !*vfsFile) {
+    delete vfsFile;
     return NULL;
+  }
 
   return open_vfs_by_VFSFILE(vfsFile, path);
 }
