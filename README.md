@@ -65,13 +65,13 @@ supports Winamp plugins you may also use ```in_vgmstream.dll``` instead.
 
 Because the XMPlay MP3 decoder incorrectly tries to play some vgmstream exts,
 you need to manually fix it by going to **options > plugins > input > vgmstream**
-and in the "priority filetypes" put: ```awc,ckd,fsb,genh,msf,p3d,rak,scd,xvag```
+and in the "priority filetypes" put: ```ahx,asf,awc,ckd,fsb,genh,msf,p3d,rak,scd,txth,xvag```
 
-### foo_input_vgmstream 
+### foo_input_vgmstream
 Every file should be installed automatically by the .fb2k-component bundle.
 
-### Audacious plugin 
-Needs to be manually built. Instructions can be found in the source files.
+### Audacious plugin
+Needs to be manually built. Instructions can be found in the build document.
 
 ## Supported codec types
 Quick list of codecs vgmstream supports, including many obscure ones that 
@@ -108,7 +108,7 @@ are used in few games.
 - InterPlay ACM
 - Visual Art's NWA
 - CRI HCA
-- Electronic Arts MicroTalk
+- Electronic Arts MicroTalk a.k.a. UTK or UMT
 - Xiph Vorbis (Ogg, FSB5, Wwise, OGL, Silicon Knights)
 - MPEG MP1/2/3 (standard, AHX, XVAG, FSB, AWC, P3D, etc)
 - Electronic Arts EALayer3
