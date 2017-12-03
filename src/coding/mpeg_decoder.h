@@ -21,8 +21,8 @@ int mpeg_custom_setup_init_default(STREAMFILE *streamFile, off_t start_offset, m
 int mpeg_custom_setup_init_ealayer3(STREAMFILE *streamFile, off_t start_offset, mpeg_codec_data *data, coding_t *coding_type);
 int mpeg_custom_setup_init_awc(STREAMFILE *streamFile, off_t start_offset, mpeg_codec_data *data, coding_t *coding_type);
 
-int mpeg_custom_parse_frame_default(VGMSTREAMCHANNEL *stream, mpeg_codec_data *data);
-int mpeg_custom_parse_frame_ahx(VGMSTREAMCHANNEL *stream, mpeg_codec_data *data);
+int mpeg_custom_parse_frame_default(VGMSTREAMCHANNEL *stream, mpeg_codec_data *data, int num_stream);
+int mpeg_custom_parse_frame_ahx(VGMSTREAMCHANNEL *stream, mpeg_codec_data *data, int num_stream);
 int mpeg_custom_parse_frame_ealayer3(VGMSTREAMCHANNEL *stream, mpeg_codec_data *data, int num_stream);
 int mpeg_custom_parse_frame_awc(VGMSTREAMCHANNEL *stream, mpeg_codec_data *data, int num_stream);
 

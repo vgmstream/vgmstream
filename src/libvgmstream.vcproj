@@ -357,7 +357,7 @@
 					>
 				</File>
                 <File
-                    RelativePath=".\meta\ea_snu.c"
+                    RelativePath=".\meta\ea_eaac.c"
                     >
                 </File>
 				<File
@@ -384,6 +384,10 @@
 					RelativePath=".\meta\ffw.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\meta\flx.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\fsb.c"
 					>
@@ -624,6 +628,10 @@
 				</File>
                 <File
                     RelativePath=".\meta\ngc_ulw.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\ngc_vid1.c"
                     >
                 </File>
 				<File
@@ -1199,6 +1207,10 @@
 					>
 				</File>
                 <File
+                    RelativePath=".\meta\vxn.c"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\waa_wac_wad_wam.c"
                     >
                 </File>
@@ -1386,6 +1398,10 @@
                     RelativePath=".\coding\coding_utils.c"
                     >
                 </File>
+                <File
+                    RelativePath=".\coding\ea_mt_decoder.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\coding\ea_xa_decoder.c"
 					>
@@ -1548,6 +1564,10 @@
                 </File>
                 <File
                     RelativePath=".\coding\vorbis_custom_utils_sk.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\coding\vorbis_custom_utils_vid1.c"
                     >
                 </File>
                 <File

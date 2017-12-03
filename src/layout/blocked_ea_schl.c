@@ -119,6 +119,17 @@ void block_update_ea_schl(off_t block_offset, VGMSTREAM * vgmstream) {
 
             break;
 
+        /* id, size, samples, offsets-per-channel, flag (0x01 = data start), data */
+        case coding_EA_MT:
+            for (i = 0; i < vgmstream->channels; i++) {
+                off_t channel_start = read_32bit(block_offset + 0x0C + (0x04*i),streamFile);
+                vgmstream->ch[i].offset = block_offset + 0x0C + (0x04*vgmstream->channels) + channel_start + 0x01;
+            }
+
+            /* flush decoder in every block change */
+            flush_ea_mt(vgmstream);
+            break;
+
 #ifdef VGM_USE_MPEG
         /* id, size, samples, offset?, unknown (null for MP2, some constant for all blocks for EALayer3) */
         case coding_MPEG_custom:
@@ -161,14 +172,4 @@ void block_update_ea_schl(off_t block_offset, VGMSTREAM * vgmstream) {
     vgmstream->next_block_offset = block_offset + block_size;
     vgmstream->current_block_samples = block_samples;
     vgmstream->current_block_size = 0; /* uses current_block_samples instead */
-
-
-    /* reset channel sub offset for codecs using it */
-    if (vgmstream->coding_type == coding_EA_XA
-            || vgmstream->coding_type == coding_EA_XA_int
-            || vgmstream->coding_type == coding_EA_XA_V2) {
-        for(i=0;i<vgmstream->channels;i++) {
-            vgmstream->ch[i].channel_start_offset=0;
-        }
-    }
 }

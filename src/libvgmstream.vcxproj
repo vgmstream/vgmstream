@@ -225,10 +225,11 @@
     <ClCompile Include="meta\ea_schl.c" />
     <ClCompile Include="meta\ea_schl_fixed.c" />
     <ClCompile Include="meta\ea_1snh.c" />
-    <ClCompile Include="meta\ea_snu.c" />
+    <ClCompile Include="meta\ea_eaac.c" />
     <ClCompile Include="meta\emff.c" />
     <ClCompile Include="meta\exakt_sc.c" />
     <ClCompile Include="meta\ffw.c" />
+    <ClCompile Include="meta\flx.c" />
     <ClCompile Include="meta\fsb.c" />
     <ClCompile Include="meta\fsb5.c" />
     <ClCompile Include="meta\gca.c" />
@@ -287,6 +288,7 @@
     <ClCompile Include="meta\ngc_tydsp.c" />
     <ClCompile Include="meta\ngc_ymf.c" />
     <ClCompile Include="meta\ngc_ulw.c" />
+    <ClCompile Include="meta\ngc_vid1.c" />
     <ClCompile Include="meta\nub_xma.c" />
     <ClCompile Include="meta\nwa.c" />
     <ClCompile Include="meta\ogg_vorbis_file.c" />
@@ -405,6 +407,7 @@
     <ClCompile Include="meta\ubi_sb.c" />
     <ClCompile Include="meta\vs.c" />
     <ClCompile Include="meta\vsf.c" />
+    <ClCompile Include="meta\vxn.c" />
     <ClCompile Include="meta\waa_wac_wad_wam.c" />
     <ClCompile Include="meta\wii_04sw.c" />
     <ClCompile Include="meta\wii_bns.c" />
@@ -434,6 +437,7 @@
     <ClCompile Include="coding\acm_decoder.c" />
     <ClCompile Include="coding\adx_decoder.c" />
     <ClCompile Include="coding\aica_decoder.c" />
+    <ClCompile Include="coding\ea_mt_decoder.c" />
     <ClCompile Include="coding\ea_xa_decoder.c" />
     <ClCompile Include="coding\ea_xas_decoder.c" />
     <ClCompile Include="coding\g719_decoder.c" />
@@ -464,6 +468,7 @@
     <ClCompile Include="coding\vorbis_custom_utils_fsb.c" />
     <ClCompile Include="coding\vorbis_custom_utils_ogl.c" />
     <ClCompile Include="coding\vorbis_custom_utils_sk.c" />
+    <ClCompile Include="coding\vorbis_custom_utils_vid1.c" />
     <ClCompile Include="coding\vorbis_custom_utils_wwise.c" />
     <ClCompile Include="coding\ws_decoder.c" />
     <ClCompile Include="coding\xa_decoder.c" />

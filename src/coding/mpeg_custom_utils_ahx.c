@@ -3,11 +3,12 @@
 #ifdef VGM_USE_MPEG
 #define MPEG_AHX_EXPECTED_FRAME_SIZE 0x414
 
-static int ahx_decrypt_type08(mpeg_codec_data *data);
+static int ahx_decrypt_type08(uint8_t * buffer, mpeg_custom_config *config);
 
 /* writes data to the buffer and moves offsets, transforming AHX frames as needed */
-int mpeg_custom_parse_frame_ahx(VGMSTREAMCHANNEL *stream, mpeg_codec_data *data) {
+int mpeg_custom_parse_frame_ahx(VGMSTREAMCHANNEL *stream, mpeg_codec_data *data, int num_stream) {
     /* 0xFFF5E0C0 header: frame size 0x414 (160kbps, 22050Hz) but they actually are much shorter */
+    mpeg_custom_stream *ms = data->streams[num_stream];
     size_t current_data_size = 0;
     size_t file_size = get_streamfile_size(stream->streamfile);
 
@@ -33,22 +34,22 @@ int mpeg_custom_parse_frame_ahx(VGMSTREAMCHANNEL *stream, mpeg_codec_data *data)
             next_offset++;
         }
     }
-    if (!current_data_size || current_data_size > data->buffer_size || current_data_size > MPEG_AHX_EXPECTED_FRAME_SIZE) {
+    if (!current_data_size || current_data_size > ms->buffer_size || current_data_size > MPEG_AHX_EXPECTED_FRAME_SIZE) {
         VGM_LOG("MPEG AHX: incorrect data_size 0x%x\n", current_data_size);
         goto fail;
     }
 
 
     /* 0-fill up to expected size to keep mpg123 happy */
-    data->bytes_in_buffer = read_streamfile(data->buffer,stream->offset,current_data_size,stream->streamfile);
-    memset(data->buffer + data->bytes_in_buffer,0, MPEG_AHX_EXPECTED_FRAME_SIZE - data->bytes_in_buffer);
-    data->bytes_in_buffer = MPEG_AHX_EXPECTED_FRAME_SIZE;
+    ms->bytes_in_buffer = read_streamfile(ms->buffer,stream->offset,current_data_size,stream->streamfile);
+    memset(ms->buffer + ms->bytes_in_buffer,0, MPEG_AHX_EXPECTED_FRAME_SIZE - ms->bytes_in_buffer);
+    ms->bytes_in_buffer = MPEG_AHX_EXPECTED_FRAME_SIZE;
 
 
     /* decrypt if needed */
     switch(data->config.encryption) {
         case 0x00: break;
-        case 0x08: ahx_decrypt_type08(data); break;
+        case 0x08: ahx_decrypt_type08(ms->buffer, &data->config); break;
         default:
             VGM_LOG("MPEG AHX: unknown encryption 0x%x\n", data->config.encryption);
             break; /* garbled frame */
@@ -66,7 +67,7 @@ fail:
 }
 
 /* Decrypts an AHX type 0x08 (keystring) encrypted frame. Algorithm by Thealexbarney */
-static int ahx_decrypt_type08(mpeg_codec_data *data) {
+static int ahx_decrypt_type08(uint8_t * buffer, mpeg_custom_config *config) {
     int i, index, encrypted_bits;
     uint32_t value;
     uint16_t current_key;
@@ -78,18 +79,18 @@ static int ahx_decrypt_type08(mpeg_codec_data *data) {
 
     /* read 2b from a bitstream offset to decrypt, and use it as an index to get the key.
      * AHX encrypted bitstream starts at 107b (0x0d*8+3), every frame, and seem to always use index 2 */
-    value = (uint32_t)get_32bitBE(data->buffer + 0x0d);
+    value = (uint32_t)get_32bitBE(buffer + 0x0d);
     index = (value >> (32-3-2)) & 0x03;
     switch(index) {
         case 0: current_key = 0; break;
-        case 1: current_key = data->config.cri_key1; break;
-        case 2: current_key = data->config.cri_key2; break;
-        case 3: current_key = data->config.cri_key3; break;
+        case 1: current_key = config->cri_key1; break;
+        case 2: current_key = config->cri_key2; break;
+        case 3: current_key = config->cri_key3; break;
         default: goto fail;
     }
 
     /* AHX for DC: 16b, normal: 6b (no idea, probably some Layer II field) */
-    encrypted_bits = data->config.cri_type == 0x10 ? 16 : 6;
+    encrypted_bits = config->cri_type == 0x10 ? 16 : 6;
 
     /* decrypt next bitstream 2b pairs, up to 16b (max key size):
      * - read 2b from bitstream (from higher to lower)
@@ -101,7 +102,7 @@ static int ahx_decrypt_type08(mpeg_codec_data *data) {
     }
 
     /* write output */
-    put_32bitBE(data->buffer + 0x0d, value);
+    put_32bitBE(buffer + 0x0d, value);
 
     return 1;
 fail:

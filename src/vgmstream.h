@@ -161,6 +161,8 @@ typedef enum {
     coding_NWA4,
     coding_NWA5,
 
+    coding_EA_MT,           /* Electronic Arts MicroTalk (linear-predictive speech codec) */
+
     coding_CRI_HCA,         /* CRI High Compression Audio (MDCT-based) */
 
 #ifdef VGM_USE_VORBIS
@@ -628,7 +630,12 @@ typedef enum {
     meta_PC_AST,            /* Dead Rising (PC) */
     meta_NAAC,              /* Namco AAC (3DS) */
     meta_UBI_SB,            /* Ubisoft banks */
-	meta_EZW,               /* EZ2DJ (Arcade) EZWAV */
+    meta_EZW,               /* EZ2DJ (Arcade) EZWAV */
+    meta_VXN,               /* Gameloft mobile games */
+    meta_EA_SNR_SNS,        /* Electronic Arts SNR+SNS (Burnout Paradise) */
+    meta_EA_SPS,            /* Electronic Arts SPS (Burnout Crash) */
+    meta_NGC_VID1,          /* Neversoft .ogg (Gun GC) */
+    meta_PC_FLX,            /* Ultima IX PC */
 
 #ifdef VGM_USE_VORBIS
     meta_OGG_VORBIS,        /* Ogg Vorbis */
@@ -801,11 +808,12 @@ typedef struct {
 
 /* custom Vorbis modes */
 typedef enum {
-    VORBIS_FSB,         /* simplified/external setup packets, custom packet headers */
-    VORBIS_WWISE,       /* many variations (custom setup, headers and data) */
-    VORBIS_OGL,         /* custom packet headers */
-    VORBIS_SK           /* "OggS" replaced by "SK" */
-  //VORBIS_LYN          /* two interleaved Ogg (including setup, duplicated) */
+    VORBIS_FSB,         /* FMOD FSB: simplified/external setup packets, custom packet headers */
+    VORBIS_WWISE,       /* Wwise WEM: many variations (custom setup, headers and data) */
+    VORBIS_OGL,         /* Shin'en OGL: custom packet headers */
+    VORBIS_SK,          /* Silicon Knights AUD: "OggS" replaced by "SK" */
+    VORBIS_VID1,        /* Neversoft VID1: custom packet blocks/headers */
+  //VORBIS_LYN          /* Ubisoft LyN: two interleaved Ogg (including setup, duplicated) */
 } vorbis_custom_t;
 
 /* config for Wwise Vorbis (3 types for flexibility though not all combinations exist) */
@@ -856,6 +864,9 @@ typedef struct {
     uint8_t prev_blockflag;         /* blockflag in the last decoded packet */
     /* Ogg-style Vorbis: packet within a page */
     int current_packet;
+    /* reference for page/blocks */
+    off_t block_offset;
+    size_t block_size;
 
 } vorbis_custom_codec_data;
 #endif
@@ -870,9 +881,10 @@ typedef enum {
     MPEG_FSB,               /* N streams of 1 data-frame+padding (=interleave) */
     MPEG_P3D,               /* N streams of fixed interleave (not frame-aligned) */
     MPEG_EA,                /* 1 stream (maybe N streams in absolute offsets?) */
-    MPEG_EAL31,             /* EALayer3 v1, custom frames with v1 header */
-    MPEG_EAL32P,            /* EALayer3 v2 "P" (PCM?), custom frames with v2 header */
-    MPEG_EAL32S,            /* EALayer3 v2 "S" (Spike?), custom frames with v2 header */
+    MPEG_EAL31,             /* EALayer3 v1 (SCHl), custom frames with v1 header */
+    MPEG_EAL31b,            /* EALayer3 v1 (SNS), custom frames with v1 header + minor changes */
+    MPEG_EAL32P,            /* EALayer3 v2 "PCM", custom frames with v2 header + bigger PCM blocks? */
+    MPEG_EAL32S,            /* EALayer3 v2 "Spike", custom frames with v2 header + smaller PCM blocks? */
     MPEG_LYN,               /* N streams of fixed interleave */
     MPEG_AWC                /* N streams in block layout (music) or absolute offsets (sfx) */
 } mpeg_custom_t;
@@ -894,6 +906,12 @@ typedef struct {
 
 /* represents a single MPEG stream */
 typedef struct {
+    /* per stream as sometimes mpg123 must be fed in passes if data is big enough (ex. EALayer3 multichannel) */
+    uint8_t *buffer; /* raw data buffer */
+    size_t buffer_size;
+    size_t bytes_in_buffer;
+    int buffer_full; /* raw buffer has been filled */
+    int buffer_used; /* raw buffer has been fed to the decoder */
     mpg123_handle *m; /* MPEG decoder */
 
     uint8_t *output_buffer; /* decoded samples from this stream (in bytes for mpg123) */
@@ -905,16 +923,18 @@ typedef struct {
     size_t current_size_target; /* max data, until something happens */
     size_t decode_to_discard;  /* discard from this stream only (for EALayer3 or AWC) */
 
+
 } mpeg_custom_stream;
 
 typedef struct {
-    uint8_t *buffer; /* internal raw data buffer */
+    /* regular/single MPEG internals */
+    uint8_t *buffer; /* raw data buffer */
     size_t buffer_size;
     size_t bytes_in_buffer;
     int buffer_full; /* raw buffer has been filled */
     int buffer_used; /* raw buffer has been fed to the decoder */
-
-    mpg123_handle *m; /* regular/single MPEG decoder */
+    mpg123_handle *m; /* MPEG decoder */
+    struct mpg123_frameinfo mi; /* start info, so it's available even when resetting */
 
     /* for internal use, assumed to be constant for all frames */
     int channels_per_frame;
@@ -1127,6 +1147,12 @@ typedef struct {
 } mp4_aac_codec_data;
 #endif
 #endif
+
+typedef struct {
+    int pcm_blocks;
+    int utk_context_size;
+    void** utk_context;
+} ea_mt_codec_data;
 
 
 /* -------------------------------------------------------------------------*/

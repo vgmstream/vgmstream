@@ -110,6 +110,7 @@ static const char* extension_list[] = {
     "fag",
     "ffw",
     "filp",
+    "flx",
     "fsb",
     "fwav",
 
@@ -179,6 +180,7 @@ static const char* extension_list[] = {
     "mihb",
     "mnstr",
     //"mp4", //common
+    "mpc", //FFmpeg, not parsed (musepack)
     "mpdsp",
     "mpds",
     "msa",
@@ -272,6 +274,7 @@ static const char* extension_list[] = {
     "snd",
     "snds",
     "sng",
+    "snr",
     "sns",
     "snu",
     "spd",
@@ -317,16 +320,17 @@ static const char* extension_list[] = {
     "vawx",
     "vb",
     "vbk",
+    "vds",
+    "vdm",
     "vgs",
     "vgv",
     "vig",
-    "vds",
-    "vdm",
     "vms",
     "voi",
     "vpk",
     "vs",
     "vsf",
+    "vxn",
 
     "waa",
     "wac",
@@ -484,6 +488,8 @@ static const coding_info coding_info_list[] = {
         {coding_NWA3,               "NWA DPCM Level 3"},
         {coding_NWA4,               "NWA DPCM Level 4"},
         {coding_NWA5,               "NWA DPCM Level 5"},
+
+        {coding_EA_MT,              "Electronic Arts MicroTalk"},
 
         {coding_CRI_HCA,            "CRI HCA"},
         
@@ -908,6 +914,12 @@ static const meta_info meta_info_list[] = {
         {meta_UBI_SB,               "Ubisoft SBx header"},
         {meta_NAAC,                 "Namco NAAC header"},
         {meta_EZW,                  "EZ2DJ EZWAVE header"},
+        {meta_VXN,                  "Gameloft VXN header"},
+        {meta_EA_SNR_SNS,           "Electronic Arts SNR+SNS header"},
+        {meta_EA_SPS,               "Electronic Arts SPS header"},
+        {meta_NGC_VID1,             "Neversoft VID1 header"},
+        {meta_PC_FLX,               "Ultima IX .FLX header"},
+
 
 #ifdef VGM_USE_VORBIS
         {meta_OGG_VORBIS,           "Ogg Vorbis"},

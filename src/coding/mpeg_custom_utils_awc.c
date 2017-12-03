@@ -170,7 +170,7 @@ int mpeg_custom_parse_frame_awc(VGMSTREAMCHANNEL *stream, mpeg_codec_data *data,
         goto fail;
     current_data_size = info.frame_size;
 
-    data->bytes_in_buffer = read_streamfile(data->buffer,stream->offset, current_data_size, stream->streamfile);
+    ms->bytes_in_buffer = read_streamfile(ms->buffer,stream->offset, current_data_size, stream->streamfile);
 
     stream->offset += current_data_size;
 
