@@ -1062,9 +1062,8 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_EA_XA:
         case coding_EA_XA_int:
         case coding_EA_XA_V2:
-            return 28;
-		case coding_MAXIS_XA:
-			return 14*vgmstream->channels;
+        case coding_MAXIS_XA:
+			return 28;
         case coding_EA_XAS:
             return 128;
         case coding_WS:
