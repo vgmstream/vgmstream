@@ -48,7 +48,10 @@ void str_snds_block_update(off_t block_offset, VGMSTREAM * vgmstream) {
             read_32bitBE(vgmstream->current_block_offset+4,
                     vgmstream->ch[0].streamfile);
 
-    for (i=0;i<vgmstream->channels;i++) {
-        vgmstream->ch[i].offset = vgmstream->current_block_offset + 0x18;
+    vgmstream->ch[0].offset = vgmstream->current_block_offset + 0x18;
+    if (vgmstream->channels > 1) {
+      for (i = 1; i < vgmstream->channels; i++) {
+        vgmstream->ch[i].offset = vgmstream->current_block_offset + 0x18 + i * vgmstream->interleave_block_size;
+      }
     }
 }
