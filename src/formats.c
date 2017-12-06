@@ -233,7 +233,8 @@ static const char* extension_list[] = {
     "rrds",
     "rsd",
     "rsf",
-    "rstm",
+    "rsm",
+    "rstm", //rsm header id
     "rvws",
     "rwar",
     "rwav",
