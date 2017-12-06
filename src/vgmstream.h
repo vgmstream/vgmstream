@@ -1155,6 +1155,45 @@ typedef struct {
 } ea_mt_codec_data;
 
 
+#if 0
+//possible future public/opaque API
+
+/* define standard C param call and name mangling (to avoid __stdcall / .defs) */
+#define VGMSTREAM_CALL __cdecl //needed?
+
+/* define external function types (during compilation) */
+#if defined(VGMSTREAM_EXPORT)
+    #define VGMSTREAM_API __declspec(dllexport) /* when exporting/creating vgmstream DLL */
+#elif defined(VGMSTREAM_IMPORT)
+    #define VGMSTREAM_API __declspec(dllimport) /* when importing/linking vgmstream DLL */
+#else
+    #define VGMSTREAM_API /* nothing, internal/default */
+#endif
+
+//VGMSTREAM_API void VGMSTREAM_CALL vgmstream_function(void);
+
+//info for opaque VGMSTREAM
+typedef struct {
+    int channels;
+    int sample_rate;
+    int num_samples;
+    int loop_start_sample;
+    int loop_end_sample;
+    int loop_flag;
+    int num_streams;
+    int current_sample;
+    int average_bitrate;
+} VGMSTREAM_INFO;
+void vgmstream_get_info(VGMSTREAM* vgmstream, VGMSTREAM_INFO *vgmstream_info);
+
+//or maybe
+enum vgmstream_value_t { VGMSTREAM_CHANNELS, VGMSTREAM_CURRENT_SAMPLE, ... };
+int vgmstream_get_info(VGMSTREAM* vgmstream, vgmstream_value_t type);
+// or
+int vgmstream_get_current_sample(VGMSTREAM* vgmstream);
+
+#endif
+
 /* -------------------------------------------------------------------------*/
 /* vgmstream "public" API                                                   */
 /* -------------------------------------------------------------------------*/
@@ -1174,7 +1213,7 @@ void close_vgmstream(VGMSTREAM * vgmstream);
 /* calculate the number of samples to be played based on looping parameters */
 int32_t get_vgmstream_play_samples(double looptimes, double fadeseconds, double fadedelayseconds, VGMSTREAM * vgmstream);
 
-/* render! */
+/* Decode data into sample buffer */
 void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstream);
 
 /* Write a description of the stream into array pointed by desc, which must be length bytes long.
@@ -1186,6 +1225,10 @@ int get_vgmstream_average_bitrate(VGMSTREAM * vgmstream);
 
 /* List supported formats and return elements in the list, for plugins that need to know. */
 const char ** vgmstream_get_formats(size_t * size);
+
+/* Force enable/disable internal looping. Should be done before playing anything,
+ * and not all codecs support arbitrary loop values ATM. */
+void vgmstream_force_loop(VGMSTREAM* vgmstream, int loop_flag, int loop_start_sample, int loop_end_sample);
 
 /* -------------------------------------------------------------------------*/
 /* vgmstream "private" API                                                  */

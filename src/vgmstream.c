@@ -897,7 +897,22 @@ int32_t get_vgmstream_play_samples(double looptimes, double fadeseconds, double 
     }
 }
 
-/* decode data into sample buffer */
+void vgmstream_force_loop(VGMSTREAM* vgmstream, int loop_flag, int loop_start_sample, int loop_end_sample) {
+    if (!vgmstream) return;
+
+    /* this requires a bit more messing with the VGMSTREAM than I'm comfortable with... */
+    if (loop_flag && !vgmstream->loop_flag && !vgmstream->loop_ch) {
+        vgmstream->loop_ch = calloc(vgmstream->channels,sizeof(VGMSTREAMCHANNEL));
+        /* loop_ch will be populated when decoded samples reach loop start */
+    }
+    vgmstream->loop_flag = loop_flag;
+    if (loop_flag) {
+        vgmstream->loop_start_sample = loop_start_sample;
+        vgmstream->loop_end_sample = loop_end_sample;
+    }
+}
+
+/* Decode data into sample buffer */
 void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstream) {
     switch (vgmstream->layout_type) {
         case layout_interleave:
