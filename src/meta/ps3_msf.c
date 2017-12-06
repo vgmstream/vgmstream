@@ -11,8 +11,8 @@ VGMSTREAM * init_vgmstream_ps3_msf(STREAMFILE *streamFile) {
     int loop_flag = 0, channel_count;
 
 
-    /* check extension, case insensitive */
-    if (!check_extensions(streamFile,"msf,at3")) goto fail; /* .at3: Silent Hill HD Collection */
+    /* check extension, case insensitive (.at3: Silent Hill HD Collection, .mp3: Darkstalkers Resurrection) */
+    if (!check_extensions(streamFile,"msf,at3,mp3")) goto fail;
 
     /* "WMSF" variation with a mini header over the MSFC header, same extension */
     if (read_32bitBE(0x00,streamFile) == 0x574D5346) {
