@@ -1,16 +1,5 @@
-#include "../vgmstream.h"
 #include "meta.h"
-#include "../util.h"
-
-typedef struct _AAXSTREAMFILE
-{
-  STREAMFILE sf;
-  STREAMFILE *real_file;
-  off_t start_physical_offset;
-  size_t file_size;
-} AAXSTREAMFILE;
-
-static STREAMFILE *open_aax_with_STREAMFILE(STREAMFILE *file,off_t start_offset,size_t file_size);
+#include "aax_streamfile.h"
 
 struct utf_query
 {
@@ -107,10 +96,9 @@ struct utf_table_info
 };
 
 
-/* Actual AAX init fcn */
+/* AAX - segmented ADX [Padora's Tower (Wii)] */
 VGMSTREAM * init_vgmstream_aax(STREAMFILE *streamFile) {
-    
-	VGMSTREAM * vgmstream = NULL;
+    VGMSTREAM * vgmstream = NULL;
     STREAMFILE * streamFileAAX = NULL;
     STREAMFILE * streamFileADX = NULL;
     char filename[PATH_LIMIT];
@@ -131,7 +119,7 @@ VGMSTREAM * init_vgmstream_aax(STREAMFILE *streamFile) {
     int channel_count = 0, segment_count;
     int sample_rate = 0;
 
-	int i;
+    int i;
 
 
     long aax_data_offset;
@@ -295,91 +283,6 @@ fail:
         free(data);
     }
     return NULL;
-}
-
-/* virtual file, a piece of the overall file */
-
-static size_t read_aax(AAXSTREAMFILE *streamfile,uint8_t *dest,off_t offset,size_t length)
-{
-  /* truncate at end of logical file */
-  if (offset+length > streamfile->file_size)
-  {
-      long signed_length = length;
-      signed_length = streamfile->file_size - offset;
-      if (signed_length < 0) signed_length = 0;
-      length = signed_length;
-  }
-  return read_streamfile(dest,
-          streamfile->start_physical_offset+offset,
-          length,streamfile->real_file);
-}
-
-static void close_aax(AAXSTREAMFILE *streamfile)
-{
-    free(streamfile);
-    return;
-}
-
-static size_t get_size_aax(AAXSTREAMFILE *streamfile)
-{
-  return 0;
-}
-
-static size_t get_offset_aax(AAXSTREAMFILE *streamfile)
-{
-  long offset = streamfile->real_file->get_offset(streamfile->real_file);
-  offset -= streamfile->start_physical_offset;
-  if (offset < 0) offset = 0;
-  if (offset > streamfile->file_size) offset = streamfile->file_size;
-
-  return offset;
-}
-
-static void get_name_aax(AAXSTREAMFILE *streamfile,char *buffer,size_t length)
-{
-  strncpy(buffer,"ARBITRARY.ADX",length);
-  buffer[length-1]='\0';
-}
-
-static STREAMFILE *open_aax_impl(AAXSTREAMFILE *streamfile,const char * const filename,size_t buffersize) 
-{
-  AAXSTREAMFILE *newfile;
-  if (strcmp(filename,"ARBITRARY.ADX"))
-      return NULL;
-
-  newfile = malloc(sizeof(AAXSTREAMFILE));
-  if (!newfile)
-      return NULL;
-  memcpy(newfile,streamfile,sizeof(AAXSTREAMFILE));
-  return &newfile->sf;
-}
-
-static STREAMFILE *open_aax_with_STREAMFILE(STREAMFILE *file,off_t start_offset,size_t file_size)
-{
-  AAXSTREAMFILE *streamfile = malloc(sizeof(AAXSTREAMFILE));
-
-  if (!streamfile)
-    return NULL;
-  
-  /* success, set our pointers */
-
-  streamfile->sf.read = (void*)read_aax;
-  streamfile->sf.get_size = (void*)get_size_aax;
-  streamfile->sf.get_offset = (void*)get_offset_aax;
-  streamfile->sf.get_name = (void*)get_name_aax;
-  streamfile->sf.get_realname = (void*)get_name_aax;
-  streamfile->sf.open = (void*)open_aax_impl;
-  streamfile->sf.close = (void*)close_aax;
-#ifdef PROFILE_STREAMFILE
-  streamfile->sf.get_bytes_read = NULL;
-  streamfile->sf.get_error_count = NULL;
-#endif
-
-  streamfile->real_file = file;
-  streamfile->start_physical_offset = start_offset;
-  streamfile->file_size = file_size;
-  
-  return &streamfile->sf;
 }
 
 /* @UTF table reading, abridged */
@@ -744,8 +647,7 @@ static struct offset_size_pair query_utf_data(STREAMFILE *infile, const long off
 
 /* CRI's UTF wrapper around DSP */
 VGMSTREAM * init_vgmstream_utf_dsp(STREAMFILE *streamFile) {
-    
-	VGMSTREAM * vgmstream = NULL;
+    VGMSTREAM * vgmstream = NULL;
     char filename[PATH_LIMIT];
     int table_error = 0;
 
@@ -843,4 +745,3 @@ fail:
     if (vgmstream) close_vgmstream(vgmstream);
     return NULL;
 }
-

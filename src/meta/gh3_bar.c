@@ -1,26 +1,10 @@
 #include "meta.h"
+#include "gh3_bar_streamfile.h"
 
-// Guitar Hero III Mobile .bar
-
-enum {BAR_KEY_LENGTH = 16};
-
-// don't know if this is unique, but seems accurate
-static const uint8_t bar_key[BAR_KEY_LENGTH] =
-   {0xbd,0x14,0x0e,0x0a,0x91,0xeb,0xaa,0xf6,
-    0x11,0x44,0x17,0xc2,0x1c,0xe4,0x66,0x80};
-
-typedef struct _BARSTREAM
-{
-    STREAMFILE sf;
-    STREAMFILE *real_file;
-} BARSTREAM;
-
-STREAMFILE *wrap_bar_STREAMFILE(STREAMFILE *file);
-
+/* Guitar Hero III Mobile .bar */
 VGMSTREAM * init_vgmstream_gh3_bar(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    // don't close, this is just the source streamFile wrapped
-    STREAMFILE* streamFileBAR = NULL;
+    STREAMFILE* streamFileBAR = NULL; // don't close, this is just the source streamFile wrapped
     char filename[PATH_LIMIT];
     off_t start_offset;
     off_t ch2_start_offset;
@@ -90,93 +74,4 @@ fail:
         free(streamFileBAR);
     if (vgmstream) close_vgmstream(vgmstream);
     return NULL;
-}
-
-static size_t read_bar(BARSTREAM *streamFile, uint8_t *dest, off_t offset, size_t length)
-{
-    off_t i;
-    size_t read_length =
-        streamFile->real_file->read(streamFile->real_file, dest, offset, length);
-
-    for (i = 0; i < read_length; i++)
-    {
-        dest[i] = dest[i] ^ bar_key[(i+offset)%BAR_KEY_LENGTH];
-    }
-
-    return read_length;
-}
-
-static size_t get_size_bar(BARSTREAM *streamFile)
-{
-    return streamFile->real_file->get_size(streamFile->real_file);
-}
-
-static size_t get_offset_bar(BARSTREAM *streamFile)
-{
-    return streamFile->real_file->get_offset(streamFile->real_file);
-}
-
-static void get_name_bar(BARSTREAM *streamFile, char *name, size_t length)
-{
-    return streamFile->real_file->get_name(streamFile->real_file, name, length);
-}
-
-static void get_realname_bar(BARSTREAM *streamFile, char *name, size_t length)
-{
-    return streamFile->real_file->get_realname(streamFile->real_file, name, length);
-}
-
-STREAMFILE *open_bar(BARSTREAM *streamFile, const char * const filename, size_t buffersize)
-{
-    STREAMFILE *newfile = streamFile->real_file->open(
-            streamFile->real_file,filename,buffersize);
-    if (!newfile)
-        return NULL;
-
-    return wrap_bar_STREAMFILE(newfile);
-}
-
-static void close_bar(BARSTREAM *streamFile)
-{
-    streamFile->real_file->close(streamFile->real_file);
-    free(streamFile);
-    return;
-}
-
-#ifdef PROFILE_STREAMFILE
-size_t get_bytes_read_bar(BARSTREAM *streamFile)
-{
-    return streamFile->real_file->get_bytes_read(streamFile->real_file);
-}
-
-int (*get_error_count)(BARSTREAM *streamFile)
-{
-    return streamFile->real_file->get_error_count(streamFile->real_file);
-}
-#endif
-
-STREAMFILE *wrap_bar_STREAMFILE(STREAMFILE *file)
-{
-    BARSTREAM *streamfile = malloc(sizeof(BARSTREAM));
-
-    if (!streamfile)
-        return NULL;
-    
-    memset(streamfile, 0, sizeof(BARSTREAM));
-
-    streamfile->sf.read = (void*)read_bar;
-    streamfile->sf.get_size = (void*)get_size_bar;
-    streamfile->sf.get_offset = (void*)get_offset_bar;
-    streamfile->sf.get_name = (void*)get_name_bar;
-    streamfile->sf.get_realname = (void*)get_realname_bar;
-    streamfile->sf.open = (void*)open_bar;
-    streamfile->sf.close = (void*)close_bar;
-#ifdef PROFILE_STREAMFILE
-    streamfile->sf.get_bytes_read = get_bytes_read_bar;
-    streamfile->sf.get_error_count = get_error_count_bar;
-#endif
-
-    streamfile->real_file = file;
-
-    return &streamfile->sf;
 }
