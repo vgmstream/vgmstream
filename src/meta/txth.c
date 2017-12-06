@@ -219,7 +219,8 @@ VGMSTREAM * init_vgmstream_txth(STREAMFILE *streamFile) {
                 vgmstream->interleave_block_size = txth.interleave;
             } else if (txth.channels > 1 && txth.codec_mode == 1) {
                 if (!txth.interleave) goto fail;
-                vgmstream->layout_type = layout_interleave_byte;
+                coding = coding_NGC_DSP_subint;
+                vgmstream->layout_type = layout_none;
                 vgmstream->interleave_block_size = txth.interleave;
             } else if (txth.channels == 1 || txth.codec_mode == 2) {
                 vgmstream->layout_type = layout_none;

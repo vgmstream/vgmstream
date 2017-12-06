@@ -88,11 +88,10 @@ static VGMSTREAM * init_vgmstream_kt_wiibgm_offset(STREAMFILE *streamFile, off_t
     vgmstream->loop_start_sample = read_32bitBE(offset+0x14, streamFile);
     vgmstream->loop_end_sample = vgmstream->num_samples;
 
-    vgmstream->coding_type = coding_NGC_DSP;
-    vgmstream->layout_type = layout_interleave_byte;
-    vgmstream->meta_type = meta_KT_WIIBGM;
-
+    vgmstream->coding_type = coding_NGC_DSP_subint;
+    vgmstream->layout_type = layout_none;
     vgmstream->interleave_block_size = 0x1;
+    vgmstream->meta_type = meta_KT_WIIBGM;
 
     dsp_read_coefs_be(vgmstream,streamFile, offset+0x5C, 0x60);
     start_offset = offset+0x800;
@@ -101,7 +100,7 @@ static VGMSTREAM * init_vgmstream_kt_wiibgm_offset(STREAMFILE *streamFile, off_t
         goto fail;
     return vgmstream;
 
-    fail:
-        close_vgmstream(vgmstream);
-        return NULL;
+fail:
+    close_vgmstream(vgmstream);
+    return NULL;
 }

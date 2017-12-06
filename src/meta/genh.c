@@ -208,8 +208,9 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
                 vgmstream->interleave_block_size = genh.interleave;
             } else if (genh.coef_interleave_type == 1) {
                 if (!genh.interleave) goto fail;
-                vgmstream->layout_type = layout_interleave_byte;
+                coding = coding_NGC_DSP_subint;
                 vgmstream->interleave_block_size = genh.interleave;
+                vgmstream->layout_type = layout_none;
             } else if (genh.coef_interleave_type == 2) {
                 vgmstream->layout_type = layout_none;
             }// else {

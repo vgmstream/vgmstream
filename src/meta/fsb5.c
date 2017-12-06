@@ -193,27 +193,22 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
             goto fail;
 
         case 0x01:  /* FMOD_SOUND_FORMAT_PCM8  [Anima - Gate of Memories (PC)] */
+            vgmstream->coding_type = coding_PCM8_U;
             vgmstream->layout_type = ChannelCount == 1 ? layout_none : layout_interleave;
             vgmstream->interleave_block_size = 0x01;
-            vgmstream->coding_type = coding_PCM8_U;
             break;
 
         case 0x02:  /* FMOD_SOUND_FORMAT_PCM16 */
-            if (ChannelCount == 1) {
-                vgmstream->layout_type = layout_none;
-            } else {
-                vgmstream->layout_type = layout_interleave;
-                vgmstream->interleave_block_size = 0x02;
-            }
-
             vgmstream->coding_type = coding_PCM16LE;
+            vgmstream->layout_type = ChannelCount == 1 ? layout_none : layout_interleave;
+            vgmstream->interleave_block_size = 0x02;
             break;
 
         case 0x03:  /* FMOD_SOUND_FORMAT_PCM24 */
-            goto fail;
+            goto fail; /* not used */
 
         case 0x04:  /* FMOD_SOUND_FORMAT_PCM32 */
-            goto fail;
+            goto fail; /* not used */
 
         case 0x05:  /* FMOD_SOUND_FORMAT_PCMFLOAT  [Anima - Gate of Memories (PC)] */
             vgmstream->coding_type = coding_PCMFLOAT;
@@ -222,31 +217,25 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
             break;
 
         case 0x06:  /* FMOD_SOUND_FORMAT_GCADPCM  [Sonic Boom - Fire and Ice (3DS)] */
-            if (ChannelCount == 1) {
-                vgmstream->layout_type = layout_none;
-            } else {
-                vgmstream->layout_type = layout_interleave_byte;
-                vgmstream->interleave_block_size = 0x02;
-            }
+            vgmstream->coding_type = coding_NGC_DSP_subint;
+            vgmstream->layout_type = layout_none;
+            vgmstream->interleave_block_size = 0x02;
 
             dsp_read_coefs_be(vgmstream,streamFile,DSPInfoStart,0x2E);
-            vgmstream->coding_type = coding_NGC_DSP;
             break;
 
         case 0x07:  /* FMOD_SOUND_FORMAT_IMAADPCM */
+            vgmstream->coding_type = (vgmstream->channels > 2) ? coding_FSB_IMA : coding_XBOX;
             vgmstream->layout_type = layout_none;
-            vgmstream->coding_type = coding_XBOX;
-            if (vgmstream->channels > 2) /* multichannel FSB IMA (interleaved header) */
-                vgmstream->coding_type = coding_FSB_IMA;
             break;
 
         case 0x08:  /* FMOD_SOUND_FORMAT_VAG */
-            goto fail;
+            goto fail; /* not used */
 
         case 0x09:  /* FMOD_SOUND_FORMAT_HEVAG */
+            vgmstream->coding_type = coding_HEVAG;
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = 0x10;
-            vgmstream->coding_type = coding_HEVAG;
             break;
 
 #ifdef VGM_USE_FFMPEG
@@ -270,9 +259,8 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
 
 #ifdef VGM_USE_MPEG
         case 0x0B: {/* FMOD_SOUND_FORMAT_MPEG */
-            mpeg_custom_config cfg;
+            mpeg_custom_config cfg = {0};
 
-            memset(&cfg, 0, sizeof(mpeg_custom_config));
             cfg.fsb_padding = (vgmstream->channels > 2 ? 16 : 4); /* observed default */
 
             vgmstream->codec_data = init_mpeg_custom_codec_data(streamFile, StartOffset, &vgmstream->coding_type, vgmstream->channels, MPEG_FSB, &cfg);
@@ -295,9 +283,8 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
 
 #ifdef VGM_USE_VORBIS
         case 0x0F: {/* FMOD_SOUND_FORMAT_VORBIS */
-            vorbis_custom_config cfg;
+            vorbis_custom_config cfg = {0};
 
-            memset(&cfg, 0, sizeof(vorbis_custom_config));
             cfg.channels = vgmstream->channels;
             cfg.sample_rate = vgmstream->sample_rate;
             cfg.setup_id = VorbisSetupId;
