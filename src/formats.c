@@ -526,7 +526,6 @@ static const layout_info layout_info_list[] = {
         {layout_none,                   "flat (no layout)"},
         {layout_interleave,             "interleave"},
         {layout_interleave_shortblock,  "interleave with short last block"},
-        {layout_interleave_byte,        "sub-frame interleave"},
         {layout_mxch_blocked,           "MxCh blocked"},
         {layout_ast_blocked,            "AST blocked"},
         {layout_halpst_blocked,         "HALPST blocked"},

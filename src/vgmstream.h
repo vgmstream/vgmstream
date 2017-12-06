@@ -209,7 +209,6 @@ typedef enum {
     /* interleave */
     layout_interleave,      /* equal interleave throughout the stream */
     layout_interleave_shortblock, /* interleave with a short last block */
-    layout_interleave_byte,  /* full byte interleave  */
 
     /* headered blocks */
     layout_ast_blocked,
@@ -1245,9 +1244,6 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream);
 /* In NDS IMA the frame size is the block size, so the last one is short */
 int get_vgmstream_samples_per_shortframe(VGMSTREAM * vgmstream);
 int get_vgmstream_shortframe_size(VGMSTREAM * vgmstream);
-
-/* Special case for to decode from a buffer */
-void decode_vgmstream_mem(VGMSTREAM * vgmstream, int samples_written, int samples_to_do, sample * buffer, uint8_t * data, int channel);
 
 /* Decode samples into the buffer. Assume that we have written samples_written into the
  * buffer already, and we have samples_to_do consecutive samples ahead of us. */
