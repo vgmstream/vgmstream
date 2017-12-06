@@ -1177,45 +1177,42 @@ int32_t get_vgmstream_play_samples(double looptimes, double fadeseconds, double 
 /* render! */
 void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstream);
 
-/* Write a description of the stream into array pointed by desc,
- * which must be length bytes long. Will always be null-terminated if length > 0 */
+/* Write a description of the stream into array pointed by desc, which must be length bytes long.
+ * Will always be null-terminated if length > 0 */
 void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length);
 
-/* Return the average bitrate in bps of all unique files contained within this
- * stream. Compares files by absolute paths. */
+/* Return the average bitrate in bps of all unique files contained within this stream. */
 int get_vgmstream_average_bitrate(VGMSTREAM * vgmstream);
 
-/* List of supported formats and elements in the list, for plugins that need to know. */
+/* List supported formats and return elements in the list, for plugins that need to know. */
 const char ** vgmstream_get_formats(size_t * size);
 
 /* -------------------------------------------------------------------------*/
 /* vgmstream "private" API                                                  */
 /* -------------------------------------------------------------------------*/
 
-/* allocate a VGMSTREAM and channel stuff */
+/* Allocate memory and setup a VGMSTREAM */
 VGMSTREAM * allocate_vgmstream(int channel_count, int looped);
 
-/* smallest self-contained group of samples is a frame */
+/* Get the number of samples of a single frame (smallest self-contained sample group, 1/N channels) */
 int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream);
-/* number of bytes per frame */
+/* Get the number of bytes of a single frame (smallest self-contained byte group, 1/N channels) */
 int get_vgmstream_frame_size(VGMSTREAM * vgmstream);
-/* in NDS IMA the frame size is the block size, so the last one is short */
+/* In NDS IMA the frame size is the block size, so the last one is short */
 int get_vgmstream_samples_per_shortframe(VGMSTREAM * vgmstream);
 int get_vgmstream_shortframe_size(VGMSTREAM * vgmstream);
 
-/* Assume that we have written samples_written into the buffer already, and we have samples_to_do consecutive
- * samples ahead of us. Decode those samples into the buffer. */
-void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to_do, sample * buffer);
-
-/* Assume additionally that we have samples_to_do consecutive samples in "data",
- * and this this is for channel number "channel" */
+/* Special case for to decode from a buffer */
 void decode_vgmstream_mem(VGMSTREAM * vgmstream, int samples_written, int samples_to_do, sample * buffer, uint8_t * data, int channel);
 
-/* calculate number of consecutive samples to do (taking into account stopping for loop start and end)  */
+/* Decode samples into the buffer. Assume that we have written samples_written into the
+ * buffer already, and we have samples_to_do consecutive samples ahead of us. */
+void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to_do, sample * buffer);
+
+/* Calculate number of consecutive samples to do (taking into account stopping for loop start and end) */
 int vgmstream_samples_to_do(int samples_this_block, int samples_per_frame, VGMSTREAM * vgmstream);
 
-/* Detect start and save values, also detect end and restore values. Only works on exact sample values.
- * Returns 1 if loop was done. */
+/* Detect loop start and save values, or detect loop end and restore (loop back). Returns 1 if loop was done. */
 int vgmstream_do_loop(VGMSTREAM * vgmstream);
 
 /* Open the stream for reading at offset (standarized taking into account layouts, channels and so on).

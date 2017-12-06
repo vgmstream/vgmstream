@@ -1,5 +1,5 @@
-#ifndef _GH3_BAR_STREAMFILE_H_
-#define _GH3_BAR_STREAMFILE_H_
+#ifndef _BAR_STREAMFILE_H_
+#define _BAR_STREAMFILE_H_
 #include "../streamfile.h"
 
 /* a streamfile wrapping another for decryption */
@@ -97,4 +97,4 @@ int (*get_error_count)(BARSTREAMFILE *streamFile) {
     return &streamfile->sf;
 }
 
-#endif /* _GH3_BAR_STREAMFILE_H_ */
+#endif /* _BAR_STREAMFILE_H_ */

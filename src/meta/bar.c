@@ -1,8 +1,8 @@
 #include "meta.h"
-#include "gh3_bar_streamfile.h"
+#include "bar_streamfile.h"
 
 /* Guitar Hero III Mobile .bar */
-VGMSTREAM * init_vgmstream_gh3_bar(STREAMFILE *streamFile) {
+VGMSTREAM * init_vgmstream_bar(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     STREAMFILE* streamFileBAR = NULL; // don't close, this is just the source streamFile wrapped
     char filename[PATH_LIMIT];

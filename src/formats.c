@@ -382,6 +382,7 @@ static const char* extension_list[] = {
     //, NULL //end mark
 };
 
+/* List supported formats and return elements in the list, for plugins that need to know. */
 const char ** vgmstream_get_formats(size_t * size) {
     *size = sizeof(extension_list) / sizeof(char*);
     return extension_list;

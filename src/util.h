@@ -61,16 +61,15 @@ static inline int get_low_nibble_signed(uint8_t n) {
     return nibble_to_int[n&0xf];
 }
 
-/* return a file's extension (a pointer to the first character of the
- * extension in the original filename or the ending null byte if no extension
- */
-const char * filename_extension(const char * filename);
-
 static inline int clamp16(int32_t val) {
-        if (val>32767) return 32767;
-            if (val<-32768) return -32768;
-                return val;
+    if (val>32767) return 32767;
+    if (val<-32768) return -32768;
+    return val;
 }
+
+/* return a file's extension (a pointer to the first character of the
+ * extension in the original filename or the ending null byte if no extension */
+const char * filename_extension(const char * filename);
 
 void swap_samples_le(sample *buf, int count);
 
