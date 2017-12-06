@@ -38,6 +38,7 @@ size_t ubi_ima_bytes_to_samples(size_t bytes, int channels, STREAMFILE *streamFi
 
 /* ngc_dsp_decoder */
 void decode_ngc_dsp(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
+void decode_ngc_dsp_subint(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel, int interleave);
 void decode_ngc_dsp_mem(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, uint8_t * mem);
 size_t dsp_bytes_to_samples(size_t bytes, int channels);
 int32_t dsp_nibbles_to_samples(int32_t nibbles);

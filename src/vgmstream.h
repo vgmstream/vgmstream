@@ -98,6 +98,7 @@ typedef enum {
     coding_CRI_ADX_enc_9,   /* CRI ADX, type 9 encryption (PSO2) */
 
     coding_NGC_DSP,         /* Nintendo DSP ADPCM */
+    coding_NGC_DSP_subint,  /* Nintendo DSP ADPCM with frame subinterframe */
     coding_NGC_DTK,         /* Nintendo DTK ADPCM (hardware disc), also called TRK or ADP */
     coding_NGC_AFC,         /* Nintendo AFC ADPCM */
 
@@ -730,7 +731,7 @@ typedef struct {
     int32_t loop_end_sample;    /* last sample of the loop (not included in the loop) */
 
     /* layouts/block */
-    size_t interleave_block_size;       /* interleave for this file */
+    size_t interleave_block_size;       /* interleave, or block/frame size (depending on the codec) */
     size_t interleave_smallblock_size;  /* smaller interleave for last block */
     size_t full_block_size;             /* fixed data size, from header (may include padding and other unusable data) */
 

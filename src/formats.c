@@ -429,6 +429,7 @@ static const coding_info coding_info_list[] = {
         {coding_CRI_ADX_enc_9,      "CRI ADX 4-bit ADPCM (type 9 encryption)"},
 
         {coding_NGC_DSP,            "Nintendo DSP 4-bit ADPCM"},
+        {coding_NGC_DSP_subint,     "Nintendo DSP 4-bit ADPCM (subinterleave)"},
         {coding_NGC_DTK,            "Nintendo DTK 4-bit ADPCM"},
         {coding_NGC_AFC,            "Nintendo AFC 4-bit ADPCM"},
 

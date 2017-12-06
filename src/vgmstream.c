@@ -994,6 +994,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_L5_555:
             return 32;
         case coding_NGC_DSP:
+        case coding_NGC_DSP_subint:
             return 14;
         case coding_PCM16LE:
         case coding_PCM16LE_XOR_int:
@@ -1146,7 +1147,9 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
         case coding_L5_555:
             return 18;
         case coding_NGC_DSP:
-            return 8;
+            return 0x08;
+        case coding_NGC_DSP_subint:
+            return 0x08 * vgmstream->channels;
         case coding_PCM16LE:
         case coding_PCM16LE_XOR_int:
         case coding_PCM16BE:
@@ -1340,6 +1343,14 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                 decode_ngc_dsp(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
                         samples_to_do);
+            }
+            break;
+        case coding_NGC_DSP_subint:
+            for (chan=0;chan<vgmstream->channels;chan++) {
+                decode_ngc_dsp_subint(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                        vgmstream->channels,vgmstream->samples_into_block,
+                        samples_to_do,
+                        chan, vgmstream->interleave_block_size);
             }
             break;
         case coding_PCM16LE:
