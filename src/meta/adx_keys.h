@@ -47,17 +47,17 @@ static const adxkey_info adxkey8_list[] = {
         /* unknown source */
         {0x586d,0x5d65,0x63eb, NULL,0},     // from guessadx (unique?)
 
-        /* Navel (Shuffle! On the Stage) */
-        {0x4969,0x5deb,0x467f, NULL,0},     // 2nd key from guessadx
+        /* Navel (Shuffle! On the Stage (PS2)) */
+        {0x4969,0x5deb,0x467f, "SHUF",0},
 
-        /* Success (Aoishiro) */
-        {0x4d65,0x5eb7,0x5dfd, NULL,0},     // 1st key from guessadx
+        /* Success (Aoishiro (PS2)) */
+        {0x4d65,0x5eb7,0x5dfd, "wakasugi",0},
 
         /* Sonic Team 2 (Sonic and the Black Knight) */
         {0x55b7,0x6191,0x5a77, "morio",0},
 
         /* Enterbrain (Amagami) */
-        {0x5a17,0x509f,0x5bfd, "mituba",0},
+        {0x5a17,0x509f,0x5bfd, "mituba",0}, /* also AHX key */
 
         /* Yamasa (Yamasa Digi Portable: Matsuri no Tatsujin) */
         {0x4c01,0x549d,0x676f, NULL,0},     // confirmed unique with guessadx
@@ -171,7 +171,7 @@ static const adxkey_info adxkey8_list[] = {
         /* Suzumiya Haruhi-chan no Mahjong (2011-07-07)(-)(Kadokawa Shoten)[PSP] */
         {0x5c33,0x4133,0x4ce7, NULL,0},     // ?
 
-        /* Storm Lover Natsu Koi!! (2011-08-04)(Vridge)(D3 Publisher) */
+        /* Storm Lover Natsu Koi!! (2011-08-04)(Vridge)(D3 Publisher)[PSP] */
         {0x4133,0x5a01,0x5723, NULL,0},     // ?
 
 };
