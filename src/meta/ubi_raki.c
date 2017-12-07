@@ -70,10 +70,11 @@ VGMSTREAM * init_vgmstream_ubi_raki(STREAMFILE *streamFile) {
     switch(((uint64_t)platform << 32) | type) {
 
         case 0x57696E2070636D20:    /* "Win pcm " */
+        case 0x4F72626970636D20:    /* "Orbipcm " (Orbis = PS4)*/
             /* chunks: "data" */
-            vgmstream->coding_type = little_endian ? coding_PCM16LE : coding_PCM16BE;
+            vgmstream->coding_type = coding_PCM16LE;
             vgmstream->layout_type = layout_interleave;
-            vgmstream->interleave_block_size = block_align;
+            vgmstream->interleave_block_size = block_align; /* usually 0x04 */
 
             vgmstream->num_samples = pcm_bytes_to_samples(data_size, channel_count, bits_per_sample);
             break;
@@ -88,7 +89,7 @@ VGMSTREAM * init_vgmstream_ubi_raki(STREAMFILE *streamFile) {
             break;
 
         case 0x5769692061647063:    /* "Wii adpc" */
-        case 0x4361666561647063:    /* "Cafeadpc" (WiiU) */
+        case 0x4361666561647063:    /* "Cafeadpc" (Cafe = WiiU) */
             /* chunks: "datS" (stereo), "datL" (mono or full interleave), "datR" (full interleave), "data" equivalents */
             vgmstream->coding_type = coding_NGC_DSP;
             vgmstream->layout_type = channel_count==1 ? layout_none : layout_interleave;
