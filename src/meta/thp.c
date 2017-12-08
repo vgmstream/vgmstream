@@ -87,7 +87,7 @@ VGMSTREAM * init_vgmstream_thp(STREAMFILE *streamFile) {
         }
     }
 
-    vgmstream->thpNextFrameSize=read_32bitBE(0x18,streamFile);
+    vgmstream->full_block_size = read_32bitBE(0x18,streamFile); /* block size of current block, changes every time */
     thp_block_update(start_offset,vgmstream);
 
     vgmstream->coding_type = coding_NGC_DSP;

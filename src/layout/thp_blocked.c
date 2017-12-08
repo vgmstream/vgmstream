@@ -12,8 +12,8 @@ void thp_block_update(off_t block_offset, VGMSTREAM * vgmstream) {
 	nextFrameSize=read_32bitBE(vgmstream->current_block_offset,streamFile);
 
 	vgmstream->next_block_offset = vgmstream->current_block_offset
-		                         + vgmstream->thpNextFrameSize;
-	vgmstream->thpNextFrameSize=nextFrameSize;
+		                         + vgmstream->full_block_size;
+	vgmstream->full_block_size = nextFrameSize;
 
 	start_offset=vgmstream->current_block_offset
 		         + read_32bitBE(vgmstream->current_block_offset+0x08,streamFile)+0x10;

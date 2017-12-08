@@ -732,7 +732,6 @@ typedef struct {
     /* layouts/block */
     size_t interleave_block_size;       /* interleave, or block/frame size (depending on the codec) */
     size_t interleave_smallblock_size;  /* smaller interleave for last block */
-    size_t full_block_size;             /* fixed data size, from header (may include padding and other unusable data) */
 
     /* channel state */
     VGMSTREAMCHANNEL * ch;          /* pointer to array of channels */
@@ -740,6 +739,7 @@ typedef struct {
     VGMSTREAMCHANNEL * loop_ch;     /* copies of channel status as they were at the loop point */
 
     /* layout/block state */
+    size_t full_block_size;         /* actual data size of an entire block (ie. may be fixed, include padding/headers, etc) */
     int32_t current_sample;         /* number of samples we've passed */
     int32_t samples_into_block;     /* number of samples into the current block */
     off_t current_block_offset;     /* start of this block (offset of block header) */
@@ -770,8 +770,6 @@ typedef struct {
     int8_t xa_get_high_nibble;      /* XA ADPCM: mono/stereo nibble selection (XA state could be simplified) */
 
     int32_t ws_output_size;         /* WS ADPCM: output bytes for this block */
-
-    int32_t thpNextFrameSize;       /* THP */
 
     void * start_vgmstream;         /* a copy of the VGMSTREAM as it was at the beginning of the stream (for AAX/AIX/SCD) */
 
