@@ -1,7 +1,7 @@
 export SHELL = /bin/sh
 export CFLAGS=-Wall -O3 -I../ext_includes -DUSE_ALLOCA -DVGM_USE_MAIATRAC3PLUS
 # -DVGM_USE_G7221 -DVGM_USE_G719 
-export LDFLAGS=-L../src -L ../ext_libs -lvgmstream -lvorbisfile -lmpg123 -lat3plusdecoder -lpthread -lm
+export LDFLAGS=-L../src -L ../ext_libs -lvgmstream -lvorbis -lvorbisfile -lmpg123 -lat3plusdecoder -lpthread -lm
 #-lg719_decode -lg7221_decode -lsiren_decode
 export CC=gcc
 export AR=ar
