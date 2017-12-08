@@ -180,7 +180,7 @@ static const char* extension_list[] = {
     "mihb",
     "mnstr",
     //"mp4", //common
-    "mpc", //FFmpeg, not parsed (musepack)
+    //"mpc", //FFmpeg, not parsed (musepack) //common
     "mpdsp",
     "mpds",
     "msa",
