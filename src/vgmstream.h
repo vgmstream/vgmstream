@@ -98,6 +98,7 @@ typedef enum {
     coding_CRI_ADX_enc_9,   /* CRI ADX, type 9 encryption (PSO2) */
 
     coding_NGC_DSP,         /* Nintendo DSP ADPCM */
+    coding_NGC_DSP_subint,  /* Nintendo DSP ADPCM with frame subinterframe */
     coding_NGC_DTK,         /* Nintendo DTK ADPCM (hardware disc), also called TRK or ADP */
     coding_NGC_AFC,         /* Nintendo AFC ADPCM */
 
@@ -208,7 +209,6 @@ typedef enum {
     /* interleave */
     layout_interleave,      /* equal interleave throughout the stream */
     layout_interleave_shortblock, /* interleave with a short last block */
-    layout_interleave_byte,  /* full byte interleave  */
 
     /* headered blocks */
     layout_ast_blocked,
@@ -242,6 +242,7 @@ typedef enum {
     layout_blocked_ea_sns,  /* newest Electronic Arts blocks, found in SNS/SNU/SPS/etc formats */
     layout_blocked_awc,     /* Rockstar AWC */
     layout_blocked_vgs,     /* Guitar Hero II (PS2) */
+    layout_blocked_vawx,    /* No More Heroes 6ch (PS3) */
 
     /* otherwise odd */
     layout_acm,             /* libacm layout */
@@ -730,9 +731,8 @@ typedef struct {
     int32_t loop_end_sample;    /* last sample of the loop (not included in the loop) */
 
     /* layouts/block */
-    size_t interleave_block_size;       /* interleave for this file */
+    size_t interleave_block_size;       /* interleave, or block/frame size (depending on the codec) */
     size_t interleave_smallblock_size;  /* smaller interleave for last block */
-    size_t full_block_size;             /* fixed data size, from header (may include padding and other unusable data) */
 
     /* channel state */
     VGMSTREAMCHANNEL * ch;          /* pointer to array of channels */
@@ -740,6 +740,7 @@ typedef struct {
     VGMSTREAMCHANNEL * loop_ch;     /* copies of channel status as they were at the loop point */
 
     /* layout/block state */
+    size_t full_block_size;         /* actual data size of an entire block (ie. may be fixed, include padding/headers, etc) */
     int32_t current_sample;         /* number of samples we've passed */
     int32_t samples_into_block;     /* number of samples into the current block */
     off_t current_block_offset;     /* start of this block (offset of block header) */
@@ -770,8 +771,6 @@ typedef struct {
     int8_t xa_get_high_nibble;      /* XA ADPCM: mono/stereo nibble selection (XA state could be simplified) */
 
     int32_t ws_output_size;         /* WS ADPCM: output bytes for this block */
-
-    int32_t thpNextFrameSize;       /* THP */
 
     void * start_vgmstream;         /* a copy of the VGMSTREAM as it was at the beginning of the stream (for AAX/AIX/SCD) */
 
@@ -1155,6 +1154,45 @@ typedef struct {
 } ea_mt_codec_data;
 
 
+#if 0
+//possible future public/opaque API
+
+/* define standard C param call and name mangling (to avoid __stdcall / .defs) */
+#define VGMSTREAM_CALL __cdecl //needed?
+
+/* define external function types (during compilation) */
+#if defined(VGMSTREAM_EXPORT)
+    #define VGMSTREAM_API __declspec(dllexport) /* when exporting/creating vgmstream DLL */
+#elif defined(VGMSTREAM_IMPORT)
+    #define VGMSTREAM_API __declspec(dllimport) /* when importing/linking vgmstream DLL */
+#else
+    #define VGMSTREAM_API /* nothing, internal/default */
+#endif
+
+//VGMSTREAM_API void VGMSTREAM_CALL vgmstream_function(void);
+
+//info for opaque VGMSTREAM
+typedef struct {
+    int channels;
+    int sample_rate;
+    int num_samples;
+    int loop_start_sample;
+    int loop_end_sample;
+    int loop_flag;
+    int num_streams;
+    int current_sample;
+    int average_bitrate;
+} VGMSTREAM_INFO;
+void vgmstream_get_info(VGMSTREAM* vgmstream, VGMSTREAM_INFO *vgmstream_info);
+
+//or maybe
+enum vgmstream_value_t { VGMSTREAM_CHANNELS, VGMSTREAM_CURRENT_SAMPLE, ... };
+int vgmstream_get_info(VGMSTREAM* vgmstream, vgmstream_value_t type);
+// or
+int vgmstream_get_current_sample(VGMSTREAM* vgmstream);
+
+#endif
+
 /* -------------------------------------------------------------------------*/
 /* vgmstream "public" API                                                   */
 /* -------------------------------------------------------------------------*/
@@ -1174,48 +1212,46 @@ void close_vgmstream(VGMSTREAM * vgmstream);
 /* calculate the number of samples to be played based on looping parameters */
 int32_t get_vgmstream_play_samples(double looptimes, double fadeseconds, double fadedelayseconds, VGMSTREAM * vgmstream);
 
-/* render! */
+/* Decode data into sample buffer */
 void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstream);
 
-/* Write a description of the stream into array pointed by desc,
- * which must be length bytes long. Will always be null-terminated if length > 0 */
+/* Write a description of the stream into array pointed by desc, which must be length bytes long.
+ * Will always be null-terminated if length > 0 */
 void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length);
 
-/* Return the average bitrate in bps of all unique files contained within this
- * stream. Compares files by absolute paths. */
+/* Return the average bitrate in bps of all unique files contained within this stream. */
 int get_vgmstream_average_bitrate(VGMSTREAM * vgmstream);
 
-/* List of supported formats and elements in the list, for plugins that need to know. */
+/* List supported formats and return elements in the list, for plugins that need to know. */
 const char ** vgmstream_get_formats(size_t * size);
+
+/* Force enable/disable internal looping. Should be done before playing anything,
+ * and not all codecs support arbitrary loop values ATM. */
+void vgmstream_force_loop(VGMSTREAM* vgmstream, int loop_flag, int loop_start_sample, int loop_end_sample);
 
 /* -------------------------------------------------------------------------*/
 /* vgmstream "private" API                                                  */
 /* -------------------------------------------------------------------------*/
 
-/* allocate a VGMSTREAM and channel stuff */
+/* Allocate memory and setup a VGMSTREAM */
 VGMSTREAM * allocate_vgmstream(int channel_count, int looped);
 
-/* smallest self-contained group of samples is a frame */
+/* Get the number of samples of a single frame (smallest self-contained sample group, 1/N channels) */
 int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream);
-/* number of bytes per frame */
+/* Get the number of bytes of a single frame (smallest self-contained byte group, 1/N channels) */
 int get_vgmstream_frame_size(VGMSTREAM * vgmstream);
-/* in NDS IMA the frame size is the block size, so the last one is short */
+/* In NDS IMA the frame size is the block size, so the last one is short */
 int get_vgmstream_samples_per_shortframe(VGMSTREAM * vgmstream);
 int get_vgmstream_shortframe_size(VGMSTREAM * vgmstream);
 
-/* Assume that we have written samples_written into the buffer already, and we have samples_to_do consecutive
- * samples ahead of us. Decode those samples into the buffer. */
+/* Decode samples into the buffer. Assume that we have written samples_written into the
+ * buffer already, and we have samples_to_do consecutive samples ahead of us. */
 void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to_do, sample * buffer);
 
-/* Assume additionally that we have samples_to_do consecutive samples in "data",
- * and this this is for channel number "channel" */
-void decode_vgmstream_mem(VGMSTREAM * vgmstream, int samples_written, int samples_to_do, sample * buffer, uint8_t * data, int channel);
-
-/* calculate number of consecutive samples to do (taking into account stopping for loop start and end)  */
+/* Calculate number of consecutive samples to do (taking into account stopping for loop start and end) */
 int vgmstream_samples_to_do(int samples_this_block, int samples_per_frame, VGMSTREAM * vgmstream);
 
-/* Detect start and save values, also detect end and restore values. Only works on exact sample values.
- * Returns 1 if loop was done. */
+/* Detect loop start and save values, or detect loop end and restore (loop back). Returns 1 if loop was done. */
 int vgmstream_do_loop(VGMSTREAM * vgmstream);
 
 /* Open the stream for reading at offset (standarized taking into account layouts, channels and so on).

@@ -888,15 +888,12 @@ fail:
 /* RSD6WADP */
 VGMSTREAM * init_vgmstream_rsd6wadp(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[PATH_LIMIT];
     off_t start_offset;
-
-	int loop_flag;
-	int channel_count;
+	int loop_flag, channel_count;
 
     /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("rsd",filename_extension(filename))) goto fail;
+    if (!check_extensions(streamFile,"rsd"))
+        goto fail;
 
     /* check header */
     if (read_32bitBE(0x0,streamFile) != 0x52534436) /* RSD6 */
@@ -906,54 +903,25 @@ VGMSTREAM * init_vgmstream_rsd6wadp(STREAMFILE *streamFile) {
 
     loop_flag = 0;
     channel_count = read_32bitLE(0x8,streamFile);
+    start_offset = 0x800;
     
 	/* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
-	/* fill in the vital statistics */
-  start_offset = 0x800;
 	vgmstream->channels = channel_count;
     vgmstream->sample_rate = read_32bitLE(0x10,streamFile);
-    vgmstream->coding_type = coding_NGC_DSP;
     vgmstream->num_samples = (get_streamfile_size(streamFile)-0x800)*28/16/channel_count;
-    if (loop_flag) {
-        vgmstream->loop_start_sample = loop_flag;
-        vgmstream->loop_end_sample = (get_streamfile_size(streamFile)-0x800)*28/16/channel_count;
-    }
 
-    vgmstream->layout_type = layout_interleave_byte; //layout_interleave;
-    vgmstream->interleave_block_size = 2; //read_32bitLE(0xC,streamFile);
+    vgmstream->coding_type = coding_NGC_DSP_subint;
+    vgmstream->layout_type = layout_none;
+    vgmstream->interleave_block_size = 0x02; //read_32bitLE(0xC,streamFile);
     vgmstream->meta_type = meta_RSD6WADP;
 
-    if (vgmstream->coding_type == coding_NGC_DSP) {
-        int i;
-        for (i=0;i<16;i++) {
-            vgmstream->ch[0].adpcm_coef[i] = read_16bitBE(0x1A4+i*2,streamFile);
-        }
-        if (vgmstream->channels) {
-            for (i=0;i<16;i++) {
-                vgmstream->ch[1].adpcm_coef[i] = read_16bitBE(0x1CC+i*2,streamFile);
-            }
-        }
-    }
-    /* open the file for reading */
-    {
-        int i;
-        STREAMFILE * file;
-        file = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-        if (!file) goto fail;
-        for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = file;
+    dsp_read_coefs_be(vgmstream,streamFile,0x1a4,0x28);
 
-            vgmstream->ch[i].channel_start_offset=
-                vgmstream->ch[i].offset=start_offset+
-                vgmstream->interleave_block_size*i;
-
-        }
-
-    }
-
+    if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
+        goto fail;
     return vgmstream;
 
 fail:

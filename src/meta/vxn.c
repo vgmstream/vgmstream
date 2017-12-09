@@ -55,6 +55,13 @@ VGMSTREAM * init_vgmstream_vxn(STREAMFILE *streamFile) {
     vgmstream->meta_type = meta_VXN;
 
     switch (codec) {
+        case 0x0001:    /* PCM */
+            if (bits != 16) goto fail;
+
+            vgmstream->coding_type = coding_PCM16LE;
+            vgmstream->interleave_block_size = block_align;
+            vgmstream->layout_type = layout_interleave;
+            break;
 
         case 0x0002:    /* MSADPCM (ex. Asphalt 7) */
             if (bits != 4) goto fail;

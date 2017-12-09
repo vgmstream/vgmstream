@@ -1,4 +1,5 @@
 #include "meta.h"
+#include "../layout/layout.h"
 #include "../coding/coding.h"
 
 
@@ -37,12 +38,11 @@ VGMSTREAM * init_vgmstream_vawx(STREAMFILE *streamFile) {
     switch(type) {
         case 2: /* VAG */
             vgmstream->coding_type = coding_PSX;
-            vgmstream->layout_type = layout_interleave;
+            vgmstream->layout_type = channel_count == 6 ? layout_blocked_vawx : layout_interleave ;
             vgmstream->interleave_block_size = 0x10;
 
             vgmstream->loop_start_sample = read_32bitBE(0x44,streamFile);
             vgmstream->loop_end_sample = read_32bitBE(0x48,streamFile);
-            /* todo 6ch has 0x8000 blocks and must skip last 0x20 each block (or, skip 0x20 every 0x1550*6 */
 
             break;
 
@@ -109,6 +109,9 @@ VGMSTREAM * init_vgmstream_vawx(STREAMFILE *streamFile) {
     /* open the file for reading */
     if ( !vgmstream_open_stream(vgmstream, streamFile, start_offset) )
         goto fail;
+
+    if (vgmstream->layout_type == layout_blocked_vawx)
+        block_update_vawx(start_offset,vgmstream);
 
     return vgmstream;
 

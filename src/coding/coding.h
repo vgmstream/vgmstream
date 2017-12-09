@@ -38,7 +38,7 @@ size_t ubi_ima_bytes_to_samples(size_t bytes, int channels, STREAMFILE *streamFi
 
 /* ngc_dsp_decoder */
 void decode_ngc_dsp(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
-void decode_ngc_dsp_mem(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, uint8_t * mem);
+void decode_ngc_dsp_subint(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel, int interleave);
 size_t dsp_bytes_to_samples(size_t bytes, int channels);
 int32_t dsp_nibbles_to_samples(int32_t nibbles);
 void dsp_read_coefs_be(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t offset, off_t spacing);
@@ -275,5 +275,20 @@ void xma2_parse_xma2_chunk(STREAMFILE *streamFile, off_t chunk_offset, int * cha
 
 size_t atrac3_bytes_to_samples(size_t bytes, int full_block_align);
 size_t atrac3plus_bytes_to_samples(size_t bytes, int full_block_align);
+
+
+
+/* An internal struct to pass around and simulate a bitstream. */
+typedef enum { BITSTREAM_MSF, BITSTREAM_VORBIS } vgm_bitstream_t;
+typedef struct {
+    uint8_t * buf;          /* buffer to read/write*/
+    size_t bufsize;         /* max size of the buffer */
+    off_t b_off;            /* current offset in bits inside the buffer */
+    off_t info_offset;      /* for logging */
+    vgm_bitstream_t mode;   /* read/write modes */
+} vgm_bitstream;
+
+int r_bits(vgm_bitstream * ib, int num_bits, uint32_t * value);
+int w_bits(vgm_bitstream * ob, int num_bits, uint32_t value);
 
 #endif /*_CODING_H*/

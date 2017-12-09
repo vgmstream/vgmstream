@@ -1,31 +1,14 @@
 #include "meta.h"
 #include "../coding/coding.h"
+#include "sqex_scd_streamfile.h"
 
-/* Square-Enix SCD (FF XIII, XIV) */
-
-/* special streamfile type to handle deinterleaving of complete files,
-  (based heavily on AIXSTREAMFILE */
-typedef struct _SCDINTSTREAMFILE
-{
-  STREAMFILE sf;
-  STREAMFILE *real_file;
-  const char * filename;
-  off_t start_physical_offset;
-  off_t current_logical_offset;
-  off_t interleave_block_size;
-  off_t stride_size;
-  size_t total_size;
-} SCDINTSTREAMFILE;
-
-static STREAMFILE *open_scdint_with_STREAMFILE(STREAMFILE *file, const char * filename, off_t start_offset, off_t interleave_block_size, off_t stride_size, size_t total_size);
 
 #ifdef VGM_USE_VORBIS
 static void scd_ogg_decrypt_v2_callback(void *ptr, size_t size, size_t nmemb, void *datasource, int bytes_read);
 static void scd_ogg_decrypt_v3_callback(void *ptr, size_t size, size_t nmemb, void *datasource, int bytes_read);
 #endif
 
-
-
+/* SCD - Square-Enix console games (FF XIII, XIV) */
 VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[PATH_LIMIT];
@@ -34,39 +17,39 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
     int32_t loop_start, loop_end;
 
     int target_stream = streamFile->stream_index;
-    int loop_flag = 0, channel_count, codec_id;
+    int loop_flag = 0, channel_count, codec_id, sample_rate;
     int aux_chunk_count;
 
     int32_t (*read_32bit)(off_t,STREAMFILE*) = NULL;
     int16_t (*read_16bit)(off_t,STREAMFILE*) = NULL;
 
+
     /* check extension, case insensitive */
     if ( !check_extensions(streamFile, "scd") ) goto fail;
-
     streamFile->get_name(streamFile,filename,sizeof(filename));
 
     /* SEDB */
-    if (read_32bitBE(0,streamFile) != 0x53454442) goto fail;
+    if (read_32bitBE(0x00,streamFile) != 0x53454442) goto fail;
     /* SSCF */
-    if (read_32bitBE(4,streamFile) != 0x53534346) goto fail;
+    if (read_32bitBE(0x04,streamFile) != 0x53534346) goto fail;
 
     /** main header section **/
-    if (read_32bitBE(8,streamFile) == 2 || /* version 2 BE, as seen in FFXIII demo for PS3 */
-        read_32bitBE(8,streamFile) == 3) { /* version 3 BE, as seen in FFXIII for PS3 */
+    if (read_32bitBE(0x08,streamFile) == 2 || /* version 2 BE, as seen in FFXIII demo for PS3 */
+        read_32bitBE(0x08,streamFile) == 3) { /* version 3 BE, as seen in FFXIII for PS3 */
 
         read_32bit = read_32bitBE;
         read_16bit = read_16bitBE;
         //size_offset = 0x14;
-    } else if (read_32bitLE(8,streamFile) == 3 || /* version 2/3 LE, as seen in FFXIV for PC (and others?) */
-               read_32bitLE(8,streamFile) == 2) {
+    } else if (read_32bitLE(0x08,streamFile) == 3 || /* version 2/3 LE, as seen in FFXIV for PC (and others?) */
+               read_32bitLE(0x08,streamFile) == 2) {
 
         read_32bit = read_32bitLE;
         read_16bit = read_16bitLE;
         //size_offset = 0x10;
     } else goto fail;
 
-    /*  0xc: probably 00=LE, 01=BE */
-    /*  0xd: unk (always 0x04) */
+    /*  0x0c: probably 0=LE, 1=BE */
+    /*  0x0d: unk (always 0x04) */
     tables_offset = read_16bit(0xe,streamFile);
 
 #if 0
@@ -97,14 +80,14 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
     meta_offset = read_32bit(headers_offset + (target_stream-1)*4,streamFile);
 
     /** stream header **/
-    stream_size = read_32bit(meta_offset + 0x0, streamFile);
-    channel_count = read_32bit(meta_offset+4,streamFile);
-    /* 0x8 sample rate */
-    codec_id = read_32bit(meta_offset+0xc,streamFile);
+    stream_size   = read_32bit(meta_offset+0x00, streamFile);
+    channel_count = read_32bit(meta_offset+0x04,streamFile);
+    sample_rate   = read_32bit(meta_offset+0x08,streamFile);
+    codec_id      = read_32bit(meta_offset+0x0c,streamFile);
 
-    loop_start = read_32bit(meta_offset+0x10,streamFile);
-    loop_end = read_32bit(meta_offset+0x14,streamFile);
-    loop_flag = (loop_end > 0);
+    loop_start    = read_32bit(meta_offset+0x10,streamFile);
+    loop_end      = read_32bit(meta_offset+0x14,streamFile);
+    loop_flag     = (loop_end > 0);
 
     post_meta_offset = meta_offset + 0x20;
     start_offset = post_meta_offset + read_32bit(meta_offset+0x18,streamFile);
@@ -123,18 +106,14 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
     }
 
 
-
 #ifdef VGM_USE_VORBIS
     /* special case using init_vgmstream_ogg_vorbis with callbacks */
-    if (codec_id == 0x6)
-    {
+    if (codec_id == 0x06) {
         VGMSTREAM * result = NULL;
         uint32_t seek_table_size, vorb_header_size;
         uint8_t xor_version, xor_byte;
-        vgm_vorbis_info_t inf;
+        vgm_vorbis_info_t inf = {0};
 
-
-        memset(&inf, 0, sizeof(inf));
         inf.loop_start = loop_start;
         inf.loop_end = loop_end;
         inf.loop_flag = loop_flag;
@@ -205,13 +184,12 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
 
     /* fill in the vital statistics */
     vgmstream->channels = channel_count;
-    vgmstream->sample_rate = read_32bit(meta_offset+8,streamFile);
+    vgmstream->sample_rate = sample_rate;
     vgmstream->num_streams = headers_entries;
     vgmstream->meta_type = meta_SQEX_SCD;
 
     switch (codec_id) {
-        case 0x1:
-            /* PCM */
+        case 0x01:      /* PCM */
             vgmstream->coding_type = coding_PCM16_int;
             vgmstream->layout_type = layout_none;
             vgmstream->num_samples = stream_size / 2 / channel_count;
@@ -221,124 +199,111 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
                 vgmstream->loop_end_sample = loop_end / 2 / channel_count;
             }
             break;
+
+        case 0x06:      /* OGG [Final Fantasy XIII-2 (PS3), Final Fantasy XIV (PC)] */
+            goto fail; /* handled above */
+
 #ifdef VGM_USE_MPEG
-        case 0x7:
-            /* MPEG */
-            {
-                mpeg_codec_data *mpeg_data = NULL;
-                coding_t ct;
+        case 0x07: {    /* MPEG [Final Fantasy XIII (PS3)] */
+            mpeg_codec_data *mpeg_data = NULL;
 
-                /* Drakengard 3, some Kingdom Hearts */
-                if (vgmstream->sample_rate == 47999)
-                    vgmstream->sample_rate = 48000;
-                if (vgmstream->sample_rate == 44099)
-                    vgmstream->sample_rate = 44100;
+            /* Drakengard 3, some Kingdom Hearts */
+            if (vgmstream->sample_rate == 47999)
+                vgmstream->sample_rate = 48000;
+            if (vgmstream->sample_rate == 44099)
+                vgmstream->sample_rate = 44100;
 
-                mpeg_data = init_mpeg_codec_data(streamFile, start_offset, &ct, vgmstream->channels);
-                if (!mpeg_data) goto fail;
-                vgmstream->codec_data = mpeg_data;
+            mpeg_data = init_mpeg_codec_data(streamFile, start_offset, &vgmstream->coding_type, vgmstream->channels);
+            if (!mpeg_data) goto fail;
+            vgmstream->codec_data = mpeg_data;
+            vgmstream->layout_type = layout_none;
 
-                vgmstream->coding_type = ct;
-                vgmstream->layout_type = layout_none;
-                vgmstream->num_samples = mpeg_bytes_to_samples(stream_size, mpeg_data);
-                vgmstream->num_samples -= vgmstream->num_samples%576;
-                if (loop_flag) {
-                    vgmstream->loop_start_sample = mpeg_bytes_to_samples(loop_start, mpeg_data);
-                    vgmstream->loop_start_sample -= vgmstream->loop_start_sample%576;
-                    vgmstream->loop_end_sample = mpeg_bytes_to_samples(loop_end, mpeg_data);
-                    vgmstream->loop_end_sample -= vgmstream->loop_end_sample%576;
-                }
-                vgmstream->interleave_block_size = 0;
+            vgmstream->num_samples = mpeg_bytes_to_samples(stream_size, mpeg_data);
+            vgmstream->num_samples -= vgmstream->num_samples%576;
+            if (loop_flag) {
+                vgmstream->loop_start_sample = mpeg_bytes_to_samples(loop_start, mpeg_data);
+                vgmstream->loop_start_sample -= vgmstream->loop_start_sample%576;
+                vgmstream->loop_end_sample = mpeg_bytes_to_samples(loop_end, mpeg_data);
+                vgmstream->loop_end_sample -= vgmstream->loop_end_sample%576;
             }
+            vgmstream->interleave_block_size = 0;
             break;
+        }
 #endif
-        case 0xC:
-            /* MS ADPCM */
+        case 0x0C:      /* MS ADPCM [Final Fantasy XIV (PC) sfx] */
             vgmstream->coding_type = coding_MSADPCM;
             vgmstream->layout_type = layout_none;
-            vgmstream->interleave_block_size = read_16bit(post_meta_offset+0xc,streamFile);
-            vgmstream->num_samples = msadpcm_bytes_to_samples(stream_size, vgmstream->interleave_block_size, vgmstream->channels);
+            vgmstream->interleave_block_size = read_16bit(post_meta_offset+0x0c,streamFile);
 
+            vgmstream->num_samples = msadpcm_bytes_to_samples(stream_size, vgmstream->interleave_block_size, vgmstream->channels);
             if (loop_flag) {
                 vgmstream->loop_start_sample = msadpcm_bytes_to_samples(loop_start, vgmstream->interleave_block_size, vgmstream->channels);
                 vgmstream->loop_end_sample = msadpcm_bytes_to_samples(loop_end, vgmstream->interleave_block_size, vgmstream->channels);
             }
             break;
 
-        case 0xA:   /* Dragon Quest X (Wii) */
-        case 0x15:  /* Dragon Quest X (Wii U) (no apparent differences except higher sample rate) */
-            /* GC/Wii DSP ADPCM */
-            {
-                STREAMFILE * file;
-                int i;
-                const off_t interleave_size = 0x800;
-                const off_t stride_size = interleave_size * channel_count;
+        case 0x0A:      /* DSP ADPCM [Dragon Quest X (Wii)] */
+        case 0x15: {    /* DSP ADPCM [Dragon Quest X (Wii U)] (no apparent differences except higher sample rate) */
+            STREAMFILE * file;
+            int i;
+            const off_t interleave_size = 0x800;
+            const off_t stride_size = interleave_size * channel_count;
+            size_t total_size;
+            scd_int_codec_data * data = NULL;
 
-                size_t total_size;
 
-                scd_int_codec_data * data = NULL;
+            vgmstream->coding_type = coding_NGC_DSP;
+            vgmstream->layout_type = layout_scd_int;
 
-                vgmstream->coding_type = coding_NGC_DSP;
-                vgmstream->layout_type = layout_scd_int;
-
-                /* a normal DSP header... */
-                vgmstream->num_samples = read_32bitBE(start_offset+0,streamFile);
-                total_size = (read_32bitBE(start_offset+4,streamFile)+1)/2;
-
-                if (loop_flag) {
-                    vgmstream->loop_start_sample = loop_start;
-                    vgmstream->loop_end_sample = loop_end+1;
-                }
-
-                /* verify other channel headers */
-                for (i = 1; i < channel_count; i++) {
-                    if (read_32bitBE(start_offset+interleave_size*i+0,streamFile) != vgmstream->num_samples ||
-                        (read_32bitBE(start_offset+4,streamFile)+1)/2 != total_size) {
-                        goto fail;
-                    }
-
-                }
-
-                /* the primary streamfile we'll be using */
-                file = streamFile->open(streamFile,filename,stride_size);
-                if (!file)
-                    goto fail;
-
-                vgmstream->ch[0].streamfile = file;
-
-                data = malloc(sizeof(scd_int_codec_data));
-                data->substream_count = channel_count;
-                data->substreams = calloc(channel_count, sizeof(VGMSTREAM *));
-                data->intfiles = calloc(channel_count, sizeof(STREAMFILE *));
-
-                vgmstream->codec_data = data;
-
-                for (i=0;i<channel_count;i++) {
-                    STREAMFILE * intfile =
-                        open_scdint_with_STREAMFILE(file, "ARBITRARY.DSP", start_offset+interleave_size*i, interleave_size, stride_size, total_size);
-                    if (!intfile)
-                        goto fail;
-
-                    data->substreams[i] = init_vgmstream_ngc_dsp_std(intfile);
-                    data->intfiles[i] = intfile;
-                    if (!data->substreams[i])
-                        goto fail;
-
-                    /* TODO: only handles mono substreams, though that's all we have with DSP */
-                    /* save start things so we can restart for seeking/looping */
-                    /* copy the channels */
-                    memcpy(data->substreams[i]->start_ch,data->substreams[i]->ch,sizeof(VGMSTREAMCHANNEL)*1);
-                    /* copy the whole VGMSTREAM */
-                    memcpy(data->substreams[i]->start_vgmstream,data->substreams[i],sizeof(VGMSTREAM));
-
-                }
-
+            /* a normal DSP header... */
+            total_size = (read_32bitBE(start_offset+0x04,streamFile)+1)/2;
+            vgmstream->num_samples = read_32bitBE(start_offset+0x00,streamFile);
+            if (loop_flag) {
+                vgmstream->loop_start_sample = loop_start;
+                vgmstream->loop_end_sample = loop_end+1;
             }
+
+            /* verify other channel headers */
+            for (i = 1; i < channel_count; i++) {
+                if (read_32bitBE(start_offset+interleave_size*i+0,streamFile) != vgmstream->num_samples ||
+                    (read_32bitBE(start_offset+4,streamFile)+1)/2 != total_size) {
+                    goto fail;
+                }
+            }
+
+            /* the primary streamfile we'll be using */
+            file = streamFile->open(streamFile,filename,stride_size);
+            if (!file) goto fail;
+
+            vgmstream->ch[0].streamfile = file;
+
+            data = malloc(sizeof(scd_int_codec_data));
+            data->substream_count = channel_count;
+            data->substreams = calloc(channel_count, sizeof(VGMSTREAM *));
+            data->intfiles = calloc(channel_count, sizeof(STREAMFILE *));
+
+            vgmstream->codec_data = data;
+
+            for (i=0;i<channel_count;i++) {
+                STREAMFILE * intfile =
+                    open_scdint_with_STREAMFILE(file, "ARBITRARY.DSP", start_offset+interleave_size*i, interleave_size, stride_size, total_size);
+                if (!intfile) goto fail;
+
+                data->substreams[i] = init_vgmstream_ngc_dsp_std(intfile);
+                data->intfiles[i] = intfile;
+                if (!data->substreams[i]) goto fail;
+
+                /* TODO: only handles mono substreams, though that's all we have with DSP */
+                /* save start things so we can restart for seeking/looping */
+                memcpy(data->substreams[i]->start_ch,data->substreams[i]->ch,sizeof(VGMSTREAMCHANNEL)*1);
+                memcpy(data->substreams[i]->start_vgmstream,data->substreams[i],sizeof(VGMSTREAM));
+            }
+
             break;
+        }
+
 #ifdef VGM_USE_FFMPEG
-        case 0xB:
-            /* XMA2 */ /* Lightning Returns SFX, FFXIII (X360) */
-            {
+        case 0x0B: {    /* XMA2 [Final Fantasy (X360), Lightning Returns (X360) sfx] */
                 ffmpeg_codec_data *ffmpeg_data = NULL;
                 uint8_t buf[200];
                 int32_t bytes;
@@ -356,44 +321,42 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
                 vgmstream->num_samples = ffmpeg_data->totalSamples;
                 vgmstream->loop_start_sample = loop_start;
                 vgmstream->loop_end_sample = loop_end;
-            }
             break;
+        }
 
-        case 0xE:
-            /* ATRAC3plus */ /* Lord of Arcana (PSP) */
-            {
-                ffmpeg_codec_data *ffmpeg_data = NULL;
+        case 0x0E: {    /* ATRAC3plus [Lord of Arcana (PSP)] */
+            ffmpeg_codec_data *ffmpeg_data = NULL;
 
-                /* full RIFF header at start_offset/post_meta_offset (same) */
-                ffmpeg_data = init_ffmpeg_offset(streamFile, start_offset,stream_size);
-                if (!ffmpeg_data) goto fail;
-                vgmstream->codec_data = ffmpeg_data;
-                vgmstream->coding_type = coding_FFmpeg;
-                vgmstream->layout_type = layout_none;
+            /* full RIFF header at start_offset/post_meta_offset (same) */
+            ffmpeg_data = init_ffmpeg_offset(streamFile, start_offset,stream_size);
+            if (!ffmpeg_data) goto fail;
+            vgmstream->codec_data = ffmpeg_data;
+            vgmstream->coding_type = coding_FFmpeg;
+            vgmstream->layout_type = layout_none;
 
-                vgmstream->num_samples = ffmpeg_data->totalSamples; /* fact samples */
-                vgmstream->loop_start_sample = loop_start;
-                vgmstream->loop_end_sample = loop_end;
+            vgmstream->num_samples = ffmpeg_data->totalSamples; /* fact samples */
+            vgmstream->loop_start_sample = loop_start;
+            vgmstream->loop_end_sample = loop_end;
 
-                /* manually read skip_samples if FFmpeg didn't do it */
-                if (ffmpeg_data->skipSamples <= 0) {
-                    off_t chunk_offset;
-                    size_t chunk_size, fact_skip_samples = 0;
-                    if (!find_chunk_le(streamFile, 0x66616374,start_offset+0xc,0, &chunk_offset,&chunk_size)) /* find "fact" */
-                        goto fail;
-                    if (chunk_size == 0x8) {
-                        fact_skip_samples  = read_32bitLE(chunk_offset+0x4, streamFile);
-                    } else if (chunk_size == 0xc) {
-                        fact_skip_samples  = read_32bitLE(chunk_offset+0x8, streamFile);
-                    }
-                    ffmpeg_set_skip_samples(ffmpeg_data, fact_skip_samples);
+            /* manually read skip_samples if FFmpeg didn't do it */
+            if (ffmpeg_data->skipSamples <= 0) {
+                off_t chunk_offset;
+                size_t chunk_size, fact_skip_samples = 0;
+                if (!find_chunk_le(streamFile, 0x66616374,start_offset+0xc,0, &chunk_offset,&chunk_size)) /* find "fact" */
+                    goto fail;
+                if (chunk_size == 0x8) {
+                    fact_skip_samples  = read_32bitLE(chunk_offset+0x4, streamFile);
+                } else if (chunk_size == 0xc) {
+                    fact_skip_samples  = read_32bitLE(chunk_offset+0x8, streamFile);
                 }
-                /* SCD loop/sample values are relative (without skip samples) vs RIFF (with skip samples), no need to adjust */
-
+                ffmpeg_set_skip_samples(ffmpeg_data, fact_skip_samples);
             }
-            break;
+            /* SCD loop/sample values are relative (without skip samples) vs RIFF (with skip samples), no need to adjust */
 
+            break;
+        }
 #endif
+
         default:
             VGM_LOG("SCD: unknown codec_id 0x%x\n", codec_id);
             goto fail;
@@ -410,131 +373,6 @@ fail:
     return NULL;
 }
 
-static STREAMFILE *open_scdint_impl(SCDINTSTREAMFILE *streamfile,const char * const filename,size_t buffersize) 
-{
-    SCDINTSTREAMFILE *newfile;
-
-    if (strcmp(filename, streamfile->filename))
-        return NULL;
-
-    newfile = malloc(sizeof(SCDINTSTREAMFILE));
-    if (!newfile)
-        return NULL;
-
-    memcpy(newfile,streamfile,sizeof(SCDINTSTREAMFILE));
-    return &newfile->sf;
-}
-
-static void close_scdint(SCDINTSTREAMFILE *streamfile)
-{
-    free(streamfile);
-    return;
-}
-
-static size_t get_size_scdint(SCDINTSTREAMFILE *streamfile)
-{
-    return streamfile->total_size;
-}
-
-static size_t get_offset_scdint(SCDINTSTREAMFILE *streamfile)
-{
-    return streamfile->current_logical_offset;
-}
-
-static void get_name_scdint(SCDINTSTREAMFILE *streamfile, char *buffer, size_t length)
-{
-    strncpy(buffer,streamfile->filename,length);
-    buffer[length-1]='\0';
-}
-
-static size_t read_scdint(SCDINTSTREAMFILE *streamfile, uint8_t *dest, off_t offset, size_t length)
-{
-    size_t sz = 0;
-
-    while (length > 0)
-    {
-        off_t to_read;
-        off_t length_available;
-        off_t block_num;
-        off_t intrablock_offset;
-        off_t physical_offset;
-
-
-        block_num = offset / streamfile->interleave_block_size;
-        intrablock_offset = offset % streamfile->interleave_block_size;
-        streamfile->current_logical_offset = offset;
-        physical_offset = streamfile->start_physical_offset + block_num * streamfile->stride_size + intrablock_offset;
-
-        length_available =
-                streamfile->interleave_block_size - intrablock_offset;
-
-        if (length < length_available)
-        {
-            to_read = length;
-        }
-        else
-        {
-            to_read = length_available;
-        }
-
-        if (to_read > 0)
-        {
-            size_t bytes_read;
-
-            bytes_read = read_streamfile(dest,
-                physical_offset,
-                to_read, streamfile->real_file);
-
-            sz += bytes_read;
-
-            streamfile->current_logical_offset = offset + bytes_read;
-
-            if (bytes_read != to_read)
-            {
-                /* an error which we will not attempt to handle here */
-                return sz;
-            }
-
-            dest += bytes_read;
-            offset += bytes_read;
-            length -= bytes_read;
-        }
-    }
-
-    return sz;
-}
-
-/* start_offset is for *this* interleaved stream */
-static STREAMFILE *open_scdint_with_STREAMFILE(STREAMFILE *file, const char * filename, off_t start_offset, off_t interleave_block_size, off_t stride_size, size_t total_size)
-{
-    SCDINTSTREAMFILE * scd = NULL;
-
-    /* _scdint funcs can't handle this case */
-    if (start_offset + total_size > file->get_size(file))
-        return NULL;
-    
-    scd = malloc(sizeof(SCDINTSTREAMFILE));
-    if (!scd)
-        return NULL;
-
-    scd->sf.read = (void*)read_scdint;
-    scd->sf.get_size = (void*)get_size_scdint;
-    scd->sf.get_offset = (void*)get_offset_scdint;
-    scd->sf.get_name = (void*)get_name_scdint;
-    scd->sf.get_realname = (void*)get_name_scdint;
-    scd->sf.open = (void*)open_scdint_impl;
-    scd->sf.close = (void*)close_scdint;
-
-    scd->real_file = file;
-    scd->filename = filename;
-    scd->start_physical_offset = start_offset;
-    scd->current_logical_offset = 0;
-    scd->interleave_block_size = interleave_block_size;
-    scd->stride_size = stride_size;
-    scd->total_size = total_size;
-
-    return &scd->sf;
-}
 
 #ifdef VGM_USE_VORBIS
 static void scd_ogg_decrypt_v2_callback(void *ptr, size_t size, size_t nmemb, void *datasource, int bytes_read) {

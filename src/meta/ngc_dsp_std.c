@@ -2070,8 +2070,8 @@ VGMSTREAM * init_vgmstream_wii_ndp(STREAMFILE *streamFile) {
     vgmstream->loop_end_sample =  dsp_nibbles_to_samples(
             ch0_header.loop_end_offset)+1;
 
-    vgmstream->coding_type = coding_NGC_DSP;
-    vgmstream->layout_type = layout_interleave_byte;
+    vgmstream->coding_type = coding_NGC_DSP_subint;
+    vgmstream->layout_type = layout_none;
     vgmstream->interleave_block_size = 0x4;
     vgmstream->meta_type = meta_WII_NDP;
 
@@ -2089,22 +2089,12 @@ VGMSTREAM * init_vgmstream_wii_ndp(STREAMFILE *streamFile) {
     vgmstream->ch[1].adpcm_history2_16 = ch1_header.initial_hist2;
 
     /* open the file for reading */
-    vgmstream->ch[0].streamfile = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-    if (!vgmstream->ch[0].streamfile)
-    	goto fail;
-    vgmstream->ch[0].channel_start_offset = vgmstream->ch[0].offset=ch1_start;
-    
-    vgmstream->ch[1].streamfile = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-    if (!vgmstream->ch[1].streamfile)
-    	goto fail;
-    vgmstream->ch[1].channel_start_offset = vgmstream->ch[1].offset=ch2_start;
-    
+    if (!vgmstream_open_stream(vgmstream,streamFile,ch1_start))
+        goto fail;
     return vgmstream;
 
-
 fail:
-    /* clean up anything we may have opened */
-    if (vgmstream) close_vgmstream(vgmstream);
+    close_vgmstream(vgmstream);
     return NULL;
 }
 

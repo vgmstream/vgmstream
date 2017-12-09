@@ -184,12 +184,17 @@ VGMSTREAM * init_vgmstream_ubi_sb(STREAMFILE *streamFile) {
             vgmstream->interleave_block_size = sb.stream_size / sb.channels;
             vgmstream->num_samples = ps_bytes_to_samples(sb.stream_size, sb.channels);
 
-            if (sb.channels > 1) { VGM_LOG("UBI SB: >1 channel\n"); goto fail; } //todo
             break;
 
 #ifdef VGM_USE_FFMPEG
         case FMT_AT3: {
             ffmpeg_codec_data *ffmpeg_data;
+
+            /* skip weird value (3, 4) in Brothers in Arms: D-Day (PSP) */
+            if (read_32bitBE(start_offset+0x04,streamData) == 0x52494646) {
+                start_offset += 0x04;
+                sb.stream_size -= 0x04;
+            }
 
             ffmpeg_data = init_ffmpeg_offset(streamData, start_offset, sb.stream_size);
             if ( !ffmpeg_data ) goto fail;
@@ -480,6 +485,7 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
     int is_sb5 = check_extensions(streamFile, "sb5"); /* PSP, 3DS? */
     //int is_sb6 = check_extensions(streamFile, "sb6"); /* PS3? */
     int is_sb7 = check_extensions(streamFile, "sb7"); /* Wii */
+    int is_biadd_psp = 0;
 
 
     /* The format varies with almost every game + platform (some kind of class serialization?),
@@ -551,6 +557,21 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
 
         sb->has_short_channels = 1;
         sb->has_internal_names = 1;
+        return 1;
+    }
+
+    /* Tom Clancy's Rainbow Six 3 (2003)(PS2) */
+    if (sb->version == 0x000A0007 && is_sb1) {
+        sb->section1_entry_size = 0x48;
+        sb->section2_entry_size = 0x6c;
+
+        sb->external_flag_offset = 0; /* no apparent flag */
+        sb->channels_offset      = 0x20;
+        sb->sample_rate_offset   = 0x24;
+        sb->num_samples_offset   = 0x30;
+        sb->stream_name_offset   = 0x40;
+        sb->stream_type_offset   = 0x68;
+
         return 1;
     }
 
@@ -649,13 +670,39 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
         return 1;
     }
 
-    /* Prince of Persia: Revelations (2005)(PSP) */
+    /* two games with same id; use project file as identifier */
     if (sb->version == 0x0012000C && is_sb4) {
+        STREAMFILE * streamTest = open_stream_name(streamFile, "BIAAUDIO.SP4");
+        if (streamTest) {
+            is_biadd_psp = 1;
+            close_streamfile(streamTest);
+        }
+    }
+
+    /* Prince of Persia: Revelations (2005)(PSP) */
+    if (sb->version == 0x0012000C && is_sb4 && !is_biadd_psp) {
         sb->section1_entry_size = 0x68;
         sb->section2_entry_size = 0x84;
 
         sb->external_flag_offset = 0x24;
         sb->num_samples_offset   = 0x30;
+        sb->sample_rate_offset   = 0x44;
+        sb->channels_offset      = 0x4c;
+        sb->stream_type_offset   = 0x50;
+        sb->stream_name_offset   = 0x54;
+
+        sb->has_internal_names = 1;
+        return 1;
+    }
+
+    /* Brothers in Arms - D-Day (2006)(PSP) */
+    if (sb->version == 0x0012000C && is_sb4 && is_biadd_psp) {
+        sb->section1_entry_size = 0x80;
+        sb->section2_entry_size = 0x94;
+
+        sb->stream_id_offset     = 0x0; //todo 0x1C or 0x20? table seems problematic
+        sb->external_flag_offset = 0x24;
+        sb->num_samples_offset   = 0; /* variable? */
         sb->sample_rate_offset   = 0x44;
         sb->channels_offset      = 0x4c;
         sb->stream_type_offset   = 0x50;
@@ -731,21 +778,6 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
         return 1;
     }
 
-    /* Red Steel (2006)(Wii) */
-    if (sb->version == 0x00180006 && is_sb7) { /* same as 0x00150000 */
-        sb->section1_entry_size = 0x68;
-        sb->section2_entry_size = 0x6c;
-
-        sb->external_flag_offset = 0x28; /* maybe 0x2c */
-        sb->num_samples_offset   = 0x3c;
-        sb->sample_rate_offset   = 0x50;
-        sb->channels_offset      = 0x58;
-        sb->stream_type_offset   = 0x5c;
-        sb->extra_name_offset    = 0x60;
-
-        return 1;
-    }
-
     /* Prince of Persia: Rival Swords (2007)(PSP) */
     if (sb->version == 0x00180005 && is_sb5) {
         sb->section1_entry_size = 0x48;
@@ -759,6 +791,51 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
         sb->stream_type_offset   = 0x48;
 
         sb->has_extra_name_flag = 1;
+        return 1;
+    }
+
+#if 0
+    /* Rainbow Six Vegas (2007)(PSP) */
+    if (sb->version == 0x00180006 && is_sb5) {
+        sb->section1_entry_size = 0x48;
+        sb->section2_entry_size = 0x54;
+
+        sb->external_flag_offset = 0;
+        sb->channels_offset      = 0x28;
+        sb->sample_rate_offset   = 0x2c;
+        //sb->num_samples_offset = 0x34 or 0x3c /* varies */
+        sb->extra_name_offset    = 0x44;
+        sb->stream_type_offset   = 0x48;
+
+        sb->has_extra_name_flag = 1;
+        sb->has_rotating_ids = 1;
+        return 1;
+    }
+
+    /* todo Rainbow Six Vegas changes:
+     * some streams use type 0x06 instead of 0x01, known values:
+     *   0x0c: header offset in extra table?
+     *   0x2c: stream size
+     *   0x30: stream offset
+     *   most other fields are fixed, comparing different files
+     * header is in the extra table, after the stream name (repeated?)
+     * (0x04: sample rate, 0x0c: channels, etc)
+     * stream data may be newer Ubi ADPCM (see DecUbiSnd)
+     */
+#endif
+
+    /* Red Steel (2006)(Wii) */
+    if (sb->version == 0x00180006 && is_sb7) { /* same as 0x00150000 */
+        sb->section1_entry_size = 0x68;
+        sb->section2_entry_size = 0x6c;
+
+        sb->external_flag_offset = 0x28; /* maybe 0x2c */
+        sb->num_samples_offset   = 0x3c;
+        sb->sample_rate_offset   = 0x50;
+        sb->channels_offset      = 0x58;
+        sb->stream_type_offset   = 0x5c;
+        sb->extra_name_offset    = 0x60;
+
         return 1;
     }
 

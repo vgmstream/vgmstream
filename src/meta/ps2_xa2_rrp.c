@@ -1,47 +1,39 @@
 #include "meta.h"
-#include "../util.h"
 
-/* VSF (from Musashi: Samurai Legend) */
-VGMSTREAM * init_vgmstream_ps2_vsf(STREAMFILE *streamFile) {
+
+/* XA2 (RC Revenge Pro) */
+VGMSTREAM * init_vgmstream_ps2_xa2_rrp(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[PATH_LIMIT];
     off_t start_offset;
 
-    int loop_flag;
-   int channel_count;
+    int loop_flag = 0;
+    int channel_count;
 
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("vsf",filename_extension(filename))) goto fail;
+    if (strcasecmp("xa2",filename_extension(filename))) goto fail;
 
     /* check header */
-    if (read_32bitBE(0x00,streamFile) != 0x56534600) /* "VSF" */
+    if (read_32bitBE(0xC,streamFile) != 0x00000000)
         goto fail;
 
-    loop_flag = (read_32bitLE(0x1c,streamFile)==0x13);
-	if(read_32bitLE(0x8,streamFile)==0x0) 
-		channel_count = 1;
-	else
-		channel_count = 2;
+    loop_flag = 0;
+    channel_count = read_32bitLE(0x0,streamFile);
 
-   /* build the VGMSTREAM */
+    /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
-   /* fill in the vital statistics */
+    /* fill in the vital statistics */
     start_offset = 0x800;
-   vgmstream->channels = channel_count;
+    vgmstream->channels = channel_count;
     vgmstream->sample_rate = 44100;
     vgmstream->coding_type = coding_PSX;
-    vgmstream->num_samples = read_32bitLE(0x10,streamFile)*28;
-    if (loop_flag) {
-        vgmstream->loop_start_sample = read_32bitLE(0x18,streamFile)*28;
-       vgmstream->loop_end_sample = vgmstream->num_samples;
-    }
-
+    vgmstream->num_samples = (get_streamfile_size(streamFile)-0x800)*28/16/channel_count;
     vgmstream->layout_type = layout_interleave;
-    vgmstream->interleave_block_size = 0x400;
-    vgmstream->meta_type = meta_PS2_VSF;
+    vgmstream->interleave_block_size = 0x1000;
+    vgmstream->meta_type = meta_PS2_XA2_RRP;
 
     /* open the file for reading */
     {
@@ -55,14 +47,13 @@ VGMSTREAM * init_vgmstream_ps2_vsf(STREAMFILE *streamFile) {
             vgmstream->ch[i].channel_start_offset=
                 vgmstream->ch[i].offset=start_offset+
                 vgmstream->interleave_block_size*i;
-
         }
     }
 
     return vgmstream;
 
-    /* clean up anything we may have opened */
 fail:
+    /* clean up anything we may have opened */
     if (vgmstream) close_vgmstream(vgmstream);
     return NULL;
 }

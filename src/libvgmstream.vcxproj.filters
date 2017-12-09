@@ -62,6 +62,18 @@
     <ClInclude Include="meta\adx_keys.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="meta\aax_streamfile.h">
+      <Filter>meta\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="meta\aix_streamfile.h">
+      <Filter>meta\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="meta\bar_streamfile.h">
+      <Filter>meta\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="meta\sqex_scd_streamfile.h">
+      <Filter>meta\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="meta\meta.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
@@ -133,7 +145,7 @@
     <ClCompile Include="meta\adx.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\afc_header.c">
+    <ClCompile Include="meta\afc.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\agsc.c">
@@ -241,7 +253,7 @@
     <ClCompile Include="meta\genh.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\gh3_bar.c">
+    <ClCompile Include="meta\bar.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\gsp_gsb.c">
@@ -392,6 +404,9 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ogl.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\omu.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\otm.c">
@@ -613,6 +628,9 @@
     <ClCompile Include="meta\ps2_xa2.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\ps2_xa2_rrp.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\ps2_xa30.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -734,6 +752,9 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\vsf.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\vsf_tta.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\vxn.c">
@@ -949,6 +970,9 @@
     <ClCompile Include="layout\blocked_vgs.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="layout\blocked_vawx.c">
+      <Filter>layout\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="layout\caf_blocked.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
@@ -980,9 +1004,6 @@
       <Filter>layout\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="layout\interleave.c">
-      <Filter>layout\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="layout\interleave_byte.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="layout\blocked_ivaud.c">

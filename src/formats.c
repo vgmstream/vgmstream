@@ -52,6 +52,7 @@ static const char* extension_list[] = {
     "bar",
     "bcstm",
     "bcwav",
+    "bd3", //txth/reserved [Elevator Action Deluxe (PS3)]
     "bdsp",
     "bfstm",
     "bfwav",
@@ -233,7 +234,8 @@ static const char* extension_list[] = {
     "rrds",
     "rsd",
     "rsf",
-    "rstm",
+    "rsm",
+    "rstm", //rsm header id
     "rvws",
     "rwar",
     "rwav",
@@ -258,6 +260,7 @@ static const char* extension_list[] = {
     "scd",
     "sck",
     "sd9",
+    "sdf",
     "sdt",
     "seg",
     "sf0",
@@ -382,6 +385,7 @@ static const char* extension_list[] = {
     //, NULL //end mark
 };
 
+/* List supported formats and return elements in the list, for plugins that need to know. */
 const char ** vgmstream_get_formats(size_t * size) {
     *size = sizeof(extension_list) / sizeof(char*);
     return extension_list;
@@ -427,6 +431,7 @@ static const coding_info coding_info_list[] = {
         {coding_CRI_ADX_enc_9,      "CRI ADX 4-bit ADPCM (type 9 encryption)"},
 
         {coding_NGC_DSP,            "Nintendo DSP 4-bit ADPCM"},
+        {coding_NGC_DSP_subint,     "Nintendo DSP 4-bit ADPCM (subinterleave)"},
         {coding_NGC_DTK,            "Nintendo DTK 4-bit ADPCM"},
         {coding_NGC_AFC,            "Nintendo AFC 4-bit ADPCM"},
 
@@ -523,7 +528,6 @@ static const layout_info layout_info_list[] = {
         {layout_none,                   "flat (no layout)"},
         {layout_interleave,             "interleave"},
         {layout_interleave_shortblock,  "interleave with short last block"},
-        {layout_interleave_byte,        "sub-frame interleave"},
         {layout_mxch_blocked,           "MxCh blocked"},
         {layout_ast_blocked,            "AST blocked"},
         {layout_halpst_blocked,         "HALPST blocked"},
@@ -560,6 +564,7 @@ static const layout_info layout_info_list[] = {
         {layout_blocked_ea_sns,         "blocked (EA SNS)"},
         {layout_blocked_awc,            "blocked (AWC)"},
         {layout_blocked_vgs,            "blocked (VGS)"},
+        {layout_blocked_vawx,           "blocked (VAWX)"},
 #ifdef VGM_USE_VORBIS
         {layout_ogg_vorbis,             "Ogg"},
 #endif

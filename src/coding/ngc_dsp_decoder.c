@@ -37,13 +37,11 @@ void decode_ngc_dsp(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspaci
 }
 
 /* read from memory rather than a file */
-void decode_ngc_dsp_mem(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, uint8_t * mem) {
+static void decode_ngc_dsp_subint_internal(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, uint8_t * mem) {
     int i=first_sample;
     int32_t sample_count;
 
-    int framesin = first_sample/14;
-
-    int8_t header = mem[framesin*8];
+    int8_t header = mem[0];
     int32_t scale = 1 << (header & 0xf);
     int coef_index = (header >> 4) & 0xf;
     int32_t hist1 = stream->adpcm_history1_16;
@@ -54,7 +52,7 @@ void decode_ngc_dsp_mem(VGMSTREAMCHANNEL * stream, sample * outbuf, int channels
     first_sample = first_sample%14;
 
     for (i=first_sample,sample_count=0; i<first_sample+samples_to_do; i++,sample_count+=channelspacing) {
-        int sample_byte = mem[framesin*8+1+i/2];
+        int sample_byte = mem[1 + i/2];
 
         outbuf[sample_count] = clamp16((
                  (((i&1?
@@ -71,6 +69,27 @@ void decode_ngc_dsp_mem(VGMSTREAMCHANNEL * stream, sample * outbuf, int channels
     stream->adpcm_history1_16 = hist1;
     stream->adpcm_history2_16 = hist2;
 }
+
+/* decode DSP with byte-interleaved frames (ex. 0x08: 1122112211221122) */
+void decode_ngc_dsp_subint(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel, int interleave) {
+    uint8_t sample_data[0x08];
+    int i;
+
+    int framesin = first_sample/14;
+
+    for (i=0; i < 0x08; i++) {
+        /* base + current frame + subint section + subint byte + channel adjust */
+        sample_data[i] = read_8bit(
+                stream->offset
+                + framesin*(0x08*channelspacing)
+                + i/interleave * interleave * channelspacing
+                + i%interleave
+                + interleave * channel, stream->streamfile);
+    }
+
+    decode_ngc_dsp_subint_internal(stream, outbuf, channelspacing, first_sample, samples_to_do, sample_data);
+}
+
 
 /*
  * The original DSP spec uses nibble counts for loop points, and some

@@ -17,8 +17,8 @@ VGMSTREAM * init_vgmstream_ea_snr_sns(STREAMFILE * streamFile) {
 
     /* SNR headers normally need an external SNS file, but some have data */
     if (get_streamfile_size(streamFile) > 0x10) {
-        /* for Burnout Paradise has this, not sure if extension */
-        off_t start_offset = (read_32bitBE(0x0c, streamFile) == 0) ? 0x0c : 0x08;
+        /* SNR with data (flag 0x40 not set), seen in Burnout Paradise, NFL2013 iOS */
+        off_t start_offset = (read_32bitBE(0x08, streamFile) == 0) ? 0x0c : 0x08;
 
         vgmstream = init_vgmstream_eaaudiocore_header(streamFile, streamFile, 0x00, start_offset, meta_EA_SNR_SNS);
         if (!vgmstream) goto fail;

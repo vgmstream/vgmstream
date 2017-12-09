@@ -18,8 +18,7 @@
  * Officially defined in "Microsoft Multimedia Standards Update" doc (RIFFNEW.pdf).
  */
 
-static const int32_t ADPCMTable[89] =
-{
+static const int ADPCMTable[89] = {
     7, 8, 9, 10, 11, 12, 13, 14,
     16, 17, 19, 21, 23, 25, 28, 31,
     34, 37, 41, 45, 50, 55, 60, 66,
@@ -34,8 +33,7 @@ static const int32_t ADPCMTable[89] =
     32767
 };
 
-static const int IMA_IndexTable[16] =
-{
+static const int IMA_IndexTable[16] = {
     -1, -1, -1, -1, 2, 4, 6, 8,
     -1, -1, -1, -1, 2, 4, 6, 8 
 };
@@ -45,17 +43,22 @@ static const int IMA_IndexTable[16] =
 static void std_ima_expand_nibble(VGMSTREAMCHANNEL * stream, off_t byte_offset, int nibble_shift, int32_t * hist1, int32_t * step_index) {
     int sample_nibble, sample_decoded, step, delta;
 
-    sample_nibble = (read_8bit(byte_offset,stream->streamfile) >> nibble_shift)&0xf;
-    sample_decoded = *hist1;
-    step = ADPCMTable[*step_index];
+    /* calculate diff = [signed] (step / 8) + (step / 4) + (step / 2) + (step) [when code = 4+2+1]
+     * simplified through math, using bitwise ops to avoid rounding:
+     *   diff = (code + 1/2) * (step / 4)
+     *   > diff = (step * nibble / 4) + (step / 8)
+     *     > diff = (((step * nibble) + (step / 2)) / 4) */
+
+    sample_nibble = (read_8bit(byte_offset,stream->streamfile) >> nibble_shift)&0xf; /* ADPCM code */
+    sample_decoded = *hist1; /* predictor value */
+    step = ADPCMTable[*step_index]; /* current step */
+
     delta = step >> 3;
     if (sample_nibble & 1) delta += step >> 2;
     if (sample_nibble & 2) delta += step >> 1;
     if (sample_nibble & 4) delta += step;
-    if (sample_nibble & 8)
-        sample_decoded -= delta;
-    else
-        sample_decoded += delta;
+    if (sample_nibble & 8) delta = -delta;
+    sample_decoded += delta;
 
     *hist1 = clamp16(sample_decoded);
     *step_index += IMA_IndexTable[sample_nibble];
@@ -63,21 +66,20 @@ static void std_ima_expand_nibble(VGMSTREAMCHANNEL * stream, off_t byte_offset, 
     if (*step_index > 88) *step_index=88;
 }
 
-/* Apple's IMA variation. Exactly the same except it uses 16b history (probably more sensitive to overflow/sign extend) */
+/* Apple's IMA variation. Exactly the same except it uses 16b history (probably more sensitive to overflow/sign extend?) */
 static void std_ima_expand_nibble_16(VGMSTREAMCHANNEL * stream, off_t byte_offset, int nibble_shift, int16_t * hist1, int32_t * step_index) {
     int sample_nibble, sample_decoded, step, delta;
 
     sample_nibble = (read_8bit(byte_offset,stream->streamfile) >> nibble_shift)&0xf;
     sample_decoded = *hist1;
     step = ADPCMTable[*step_index];
+
     delta = step >> 3;
     if (sample_nibble & 1) delta += step >> 2;
     if (sample_nibble & 2) delta += step >> 1;
     if (sample_nibble & 4) delta += step;
-    if (sample_nibble & 8)
-        sample_decoded -= delta;
-    else
-        sample_decoded += delta;
+    if (sample_nibble & 8) delta = -delta;
+    sample_decoded += delta;
 
     *hist1 = clamp16(sample_decoded); //no need for this actually
     *step_index += IMA_IndexTable[sample_nibble];
@@ -91,14 +93,12 @@ static void n3ds_ima_expand_nibble(VGMSTREAMCHANNEL * stream, off_t byte_offset,
 
     sample_nibble = (read_8bit(byte_offset,stream->streamfile) >> nibble_shift)&0xf;
     sample_decoded = *hist1;
+    step = ADPCMTable[*step_index];
 
     sample_decoded = sample_decoded << 3;
-    step = ADPCMTable[*step_index];
-    delta = step * (sample_nibble & 7) * 2 + step;
-    if (sample_nibble & 8)
-        sample_decoded -= delta;
-    else
-        sample_decoded += delta;
+    delta = step * (sample_nibble & 7) * 2 + step; /* custom */
+    if (sample_nibble & 8) delta = -delta;
+    sample_decoded += delta;
     sample_decoded = sample_decoded >> 3;
 
     *hist1 = clamp16(sample_decoded);
@@ -107,41 +107,41 @@ static void n3ds_ima_expand_nibble(VGMSTREAMCHANNEL * stream, off_t byte_offset,
     if (*step_index > 88) *step_index=88;
 }
 
-/* update step_index before doing current sample */
+/* The Incredibles PC, updates step_index before doing current sample */
 static void snds_ima_expand_nibble(VGMSTREAMCHANNEL * stream, off_t byte_offset, int nibble_shift, int32_t * hist1, int32_t * step_index) {
     int sample_nibble, sample_decoded, step, delta;
 
     sample_nibble = (read_8bit(byte_offset,stream->streamfile) >> nibble_shift)&0xf;
+    sample_decoded = *hist1;
 
     *step_index += IMA_IndexTable[sample_nibble];
     if (*step_index < 0) *step_index=0;
     if (*step_index > 88) *step_index=88;
 
     step = ADPCMTable[*step_index];
-    delta = (sample_nibble & 7) * step / 4 + step / 8;
-    if (sample_nibble & 8)
-        delta = -delta;
-    sample_decoded = *hist1 + delta;
+
+    delta = (sample_nibble & 7) * step / 4 + step / 8; /* standard IMA */
+    if (sample_nibble & 8) delta = -delta;
+    sample_decoded += delta;
 
     *hist1 = clamp16(sample_decoded);
 }
 
-/* algorithm by aluigi, unsure if it's a known IMA variation */
+/* Omikron: The Nomad Soul, algorithm by aluigi */
 static void otns_ima_expand_nibble(VGMSTREAMCHANNEL * stream, off_t byte_offset, int nibble_shift, int32_t * hist1, int32_t * step_index) {
     int sample_nibble, sample_decoded, step, delta;
 
     sample_nibble = (read_8bit(byte_offset,stream->streamfile) >> nibble_shift)&0xf;
     sample_decoded = *hist1;
     step = ADPCMTable[*step_index];
+
     delta = 0;
     if(sample_nibble & 4) delta = step << 2;
     if(sample_nibble & 2) delta += step << 1;
     if(sample_nibble & 1) delta += step;
     delta >>= 2;
-    if(sample_nibble & 8)
-        sample_decoded -= delta;
-    else
-        sample_decoded += delta;
+    if (sample_nibble & 8) delta = -delta;
+    sample_decoded += delta;
 
     *hist1 = clamp16(sample_decoded);
     *step_index += IMA_IndexTable[sample_nibble];
@@ -149,23 +149,22 @@ static void otns_ima_expand_nibble(VGMSTREAMCHANNEL * stream, off_t byte_offset,
     if (*step_index > 88) *step_index=88;
 }
 
-/* algorithm by Zench (https://bitbucket.org/Zenchreal/decubisnd) */
+/* Ubisoft games, algorithm by Zench (https://bitbucket.org/Zenchreal/decubisnd) */
 static void ubi_ima_expand_nibble(VGMSTREAMCHANNEL * stream, off_t byte_offset, int nibble_shift, int32_t * hist1, int32_t * step_index) {
     int sample_nibble, sample_decoded, step, delta;
 
     sample_nibble = (read_8bit(byte_offset,stream->streamfile) >> nibble_shift)&0xf;
-
+    sample_decoded = *hist1;
     step = ADPCMTable[*step_index];
+
+    delta = (((sample_nibble & 7) * 2 + 1) * step) >> 3; /* custom */
+    if (sample_nibble & 8) delta = -delta;
+    sample_decoded += delta;
+
+    *hist1 = clamp16(sample_decoded);
     *step_index += IMA_IndexTable[sample_nibble];
     if (*step_index < 0) *step_index=0;
     if (*step_index > 88) *step_index=88;
-
-    delta = (((sample_nibble & 7) * 2 + 1) * step) >> 3;
-    if (sample_nibble & 8)
-        delta = -delta;
-    sample_decoded = *hist1 + delta;
-
-    *hist1 = clamp16(sample_decoded);
 }
 
 /* ************************************ */

@@ -208,26 +208,16 @@ int main(int argc, char ** argv) {
         }
     }
 
-    /* force only if there aren't already loop points */
     if (force_loop && !vgmstream->loop_flag) {
-        /* this requires a bit more messing with the VGMSTREAM than I'm comfortable with... */
-        vgmstream->loop_flag=1;
-        vgmstream->loop_start_sample=0;
-        vgmstream->loop_end_sample=vgmstream->num_samples;
-        vgmstream->loop_ch=calloc(vgmstream->channels,sizeof(VGMSTREAMCHANNEL));
+        vgmstream_force_loop(vgmstream, 1, 0,vgmstream->num_samples);
     }
 
-    /* force even if there are loop points */
     if (really_force_loop) {
-        if (!vgmstream->loop_flag)
-            vgmstream->loop_ch=calloc(vgmstream->channels,sizeof(VGMSTREAMCHANNEL));
-        vgmstream->loop_flag=1;
-        vgmstream->loop_start_sample=0;
-        vgmstream->loop_end_sample=vgmstream->num_samples;
+        vgmstream_force_loop(vgmstream, 1, 0,vgmstream->num_samples);
     }
 
     if (ignore_loop) {
-        vgmstream->loop_flag=0;
+        vgmstream_force_loop(vgmstream, 0, 0,0);
     }
 
     if (play_sdtout) {
@@ -379,7 +369,8 @@ int main(int argc, char ** argv) {
         }
     }
 
-    if (write_lwav && vgmstream->loop_flag) { // Writing smpl chuck
+    /* Writing "smpl" chunck at the end */
+    if (write_lwav && vgmstream->loop_flag) {
         make_smpl_chunk((uint8_t*)buf, vgmstream->loop_start_sample, vgmstream->loop_end_sample);
         fwrite(buf,1,0x44,outfile);
     }
@@ -426,26 +417,16 @@ int main(int argc, char ** argv) {
 
         /* these manipulations are undone by reset */
 
-        /* force only if there aren't already loop points */
         if (force_loop && !vgmstream->loop_flag) {
-            /* this requires a bit more messing with the VGMSTREAM than I'm comfortable with... */
-            vgmstream->loop_flag=1;
-            vgmstream->loop_start_sample=0;
-            vgmstream->loop_end_sample=vgmstream->num_samples;
-            vgmstream->loop_ch=calloc(vgmstream->channels,sizeof(VGMSTREAMCHANNEL));
+            vgmstream_force_loop(vgmstream, 1, 0,vgmstream->num_samples);
         }
 
-        /* force even if there are loop points */
         if (really_force_loop) {
-            if (!vgmstream->loop_flag)
-                vgmstream->loop_ch=calloc(vgmstream->channels,sizeof(VGMSTREAMCHANNEL));
-            vgmstream->loop_flag=1;
-            vgmstream->loop_start_sample=0;
-            vgmstream->loop_end_sample=vgmstream->num_samples;
+            vgmstream_force_loop(vgmstream, 1, 0,vgmstream->num_samples);
         }
 
         if (ignore_loop) {
-            vgmstream->loop_flag=0;
+            vgmstream_force_loop(vgmstream, 0, 0,0);
         }
 
         /* decode */
@@ -521,7 +502,7 @@ static void make_wav_header(uint8_t * buf, int32_t sample_count, int32_t sample_
 }
 
 static void make_smpl_chunk(uint8_t * buf, int32_t loop_start, int32_t loop_end) {
-   int i;
+    int i;
 
     memcpy(buf+0, "smpl", 4);/* header */
     put_32bitLE(buf+4, 0x3c);/* size */

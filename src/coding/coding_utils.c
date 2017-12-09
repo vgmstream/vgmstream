@@ -835,3 +835,149 @@ size_t atrac3plus_bytes_to_samples(size_t bytes, int full_block_align) {
      * so (full_block_align / channels) DOESN'T give the size of a single channel (common in ATRAC3plus) */
     return (bytes / full_block_align) * 2048;
 }
+
+
+/* ******************************************** */
+/* BITSTREAM                                    */
+/* ******************************************** */
+
+
+/* Read bits (max 32) from buf and update the bit offset. Vorbis packs values in LSB order and byte by byte.
+ * (ex. from 2 bytes 00100111 00000001 we can could read 4b=0111 and 6b=010010, 6b=remainder (second value is split into the 2nd byte) */
+static int r_bits_vorbis(vgm_bitstream * ib, int num_bits, uint32_t * value) {
+    off_t off, pos;
+    int i, bit_buf, bit_val;
+    if (num_bits == 0) return 1;
+    if (num_bits > 32 || num_bits < 0 || ib->b_off + num_bits > ib->bufsize*8) goto fail;
+
+    *value = 0; /* set all bits to 0 */
+    off = ib->b_off / 8; /* byte offset */
+    pos = ib->b_off % 8; /* bit sub-offset */
+    for (i = 0; i < num_bits; i++) {
+        bit_buf = (1U << pos) & 0xFF;   /* bit check for buf */
+        bit_val = (1U << i);            /* bit to set in value */
+
+        if (ib->buf[off] & bit_buf)     /* is bit in buf set? */
+            *value |= bit_val;          /* set bit */
+
+        pos++;                          /* new byte starts */
+        if (pos%8 == 0) {
+            pos = 0;
+            off++;
+        }
+    }
+
+    ib->b_off += num_bits;
+    return 1;
+fail:
+    return 0;
+}
+
+/* Write bits (max 32) to buf and update the bit offset. Vorbis packs values in LSB order and byte by byte.
+ * (ex. writing 1101011010 from b_off 2 we get 01101011 00001101 (value split, and 11 in the first byte skipped)*/
+static int w_bits_vorbis(vgm_bitstream * ob, int num_bits, uint32_t value) {
+    off_t off, pos;
+    int i, bit_val, bit_buf;
+    if (num_bits == 0) return 1;
+    if (num_bits > 32 || num_bits < 0 || ob->b_off + num_bits > ob->bufsize*8) goto fail;
+
+
+    off = ob->b_off / 8; /* byte offset */
+    pos = ob->b_off % 8; /* bit sub-offset */
+    for (i = 0; i < num_bits; i++) {
+        bit_val = (1U << i);            /* bit check for value */
+        bit_buf = (1U << pos) & 0xFF;   /* bit to set in buf */
+
+        if (value & bit_val)            /* is bit in val set? */
+            ob->buf[off] |= bit_buf;    /* set bit */
+        else
+            ob->buf[off] &= ~bit_buf;   /* unset bit */
+
+        pos++;                          /* new byte starts */
+        if (pos%8 == 0) {
+            pos = 0;
+            off++;
+        }
+    }
+
+    ob->b_off += num_bits;
+    return 1;
+fail:
+    return 0;
+}
+
+
+/* Read bits (max 32) from buf and update the bit offset. Order is BE (MSF). */
+static int r_bits_msf(vgm_bitstream * ib, int num_bits, uint32_t * value) {
+    off_t off, pos;
+    int i, bit_buf, bit_val;
+    if (num_bits == 0) return 1;
+    if (num_bits > 32 || num_bits < 0 || ib->b_off + num_bits > ib->bufsize*8) goto fail;
+
+    *value = 0; /* set all bits to 0 */
+    off = ib->b_off / 8; /* byte offset */
+    pos = ib->b_off % 8; /* bit sub-offset */
+    for (i = 0; i < num_bits; i++) {
+        bit_buf = (1U << (8-1-pos)) & 0xFF;   /* bit check for buf */
+        bit_val = (1U << (num_bits-1-i));     /* bit to set in value */
+
+        if (ib->buf[off] & bit_buf)         /* is bit in buf set? */
+            *value |= bit_val;              /* set bit */
+
+        pos++;
+        if (pos%8 == 0) {                   /* new byte starts */
+            pos = 0;
+            off++;
+        }
+    }
+
+    ib->b_off += num_bits;
+    return 1;
+fail:
+    return 0;
+}
+
+/* Write bits (max 32) to buf and update the bit offset. Order is BE (MSF). */
+static int w_bits_msf(vgm_bitstream * ob, int num_bits, uint32_t value) {
+    off_t off, pos;
+    int i, bit_val, bit_buf;
+    if (num_bits == 0) return 1;
+    if (num_bits > 32 || num_bits < 0 || ob->b_off + num_bits > ob->bufsize*8) goto fail;
+
+
+    off = ob->b_off / 8; /* byte offset */
+    pos = ob->b_off % 8; /* bit sub-offset */
+    for (i = 0; i < num_bits; i++) {
+        bit_val = (1U << (num_bits-1-i));     /* bit check for value */
+        bit_buf = (1U << (8-1-pos)) & 0xFF;   /* bit to set in buf */
+
+        if (value & bit_val)                /* is bit in val set? */
+            ob->buf[off] |= bit_buf;        /* set bit */
+        else
+            ob->buf[off] &= ~bit_buf;       /* unset bit */
+
+        pos++;
+        if (pos%8 == 0) {                   /* new byte starts */
+            pos = 0;
+            off++;
+        }
+    }
+
+    ob->b_off += num_bits;
+    return 1;
+fail:
+    return 0;
+}
+
+int r_bits(vgm_bitstream * ib, int num_bits, uint32_t * value) {
+    if (ib->mode == BITSTREAM_VORBIS)
+        return r_bits_vorbis(ib,num_bits,value);
+    else
+        return r_bits_msf(ib,num_bits,value);
+}
+int w_bits(vgm_bitstream * ob, int num_bits, uint32_t value) {
+    if (ob->mode == BITSTREAM_VORBIS)
+        return w_bits_vorbis(ob,num_bits,value);
+    else
+        return w_bits_msf(ob,num_bits,value);
+}

@@ -219,7 +219,8 @@ VGMSTREAM * init_vgmstream_txth(STREAMFILE *streamFile) {
                 vgmstream->interleave_block_size = txth.interleave;
             } else if (txth.channels > 1 && txth.codec_mode == 1) {
                 if (!txth.interleave) goto fail;
-                vgmstream->layout_type = layout_interleave_byte;
+                coding = coding_NGC_DSP_subint;
+                vgmstream->layout_type = layout_none;
                 vgmstream->interleave_block_size = txth.interleave;
             } else if (txth.channels == 1 || txth.codec_mode == 2) {
                 vgmstream->layout_type = layout_none;
@@ -471,7 +472,13 @@ static int parse_keyval(STREAMFILE * streamFile, STREAMFILE * streamText, txth_h
         if (!parse_num(streamFile,val, &txth->codec_mode)) goto fail;
     }
     else if (0==strcmp(key,"interleave")) {
-        if (!parse_num(streamFile,val, &txth->interleave)) goto fail;
+        if (0==strcmp(val,"half_size")) {
+            txth->interleave = txth->data_size / txth->channels;
+            VGM_LOG("int=%x, ds=%x\n", txth->interleave, txth->data_size);
+        }
+        else {
+            if (!parse_num(streamFile,val, &txth->interleave)) goto fail;
+        }
     }
     else if (0==strcmp(key,"id_value")) {
         if (!parse_num(streamFile,val, &txth->id_value)) goto fail;

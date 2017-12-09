@@ -2,6 +2,7 @@
 #define _VORBIS_CUSTOM_DECODER_H_
 
 #include "../vgmstream.h"
+#include "../coding/coding.h"
 
 /* used by vorbis_custom_decoder.c, but scattered in other .c files */
 #ifdef VGM_USE_VORBIS
