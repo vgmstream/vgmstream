@@ -25,14 +25,6 @@
 #define EALAYER3_MAX_GRANULES  2
 #define EALAYER3_MAX_CHANNELS  2
 
-/* helper to simulate a bitstream */
-typedef struct {
-    uint8_t * buf;      /* buffer to read/write*/
-    size_t bufsize;     /* max size of the buffer */
-    off_t b_off;        /* current offset in bits inside the buffer */
-    off_t info_offset;  /* for logs */
-} ealayer3_bitstream;
-
 /* parsed info from a single EALayer3 frame */
 typedef struct {
     /* EALayer3 v1 header */
@@ -81,17 +73,13 @@ typedef struct {
 } ealayer3_frame_info;
 
 
-static int ealayer3_parse_frame(mpeg_codec_data *data, ealayer3_bitstream *is, ealayer3_frame_info * eaf);
-static int ealayer3_parse_frame_v1(ealayer3_bitstream *is, ealayer3_frame_info * eaf, int channels_per_frame, int is_v1b);
-static int ealayer3_parse_frame_v2(ealayer3_bitstream *is, ealayer3_frame_info * eaf);
-static int ealayer3_parse_frame_common(ealayer3_bitstream *is, ealayer3_frame_info * eaf);
-static int ealayer3_rebuild_mpeg_frame(ealayer3_bitstream* is_0, ealayer3_frame_info* eaf_0, ealayer3_bitstream* is_1, ealayer3_frame_info* eaf_1, ealayer3_bitstream* os);
+static int ealayer3_parse_frame(mpeg_codec_data *data, vgm_bitstream *is, ealayer3_frame_info * eaf);
+static int ealayer3_parse_frame_v1(vgm_bitstream *is, ealayer3_frame_info * eaf, int channels_per_frame, int is_v1b);
+static int ealayer3_parse_frame_v2(vgm_bitstream *is, ealayer3_frame_info * eaf);
+static int ealayer3_parse_frame_common(vgm_bitstream *is, ealayer3_frame_info * eaf);
+static int ealayer3_rebuild_mpeg_frame(vgm_bitstream* is_0, ealayer3_frame_info* eaf_0, vgm_bitstream* is_1, ealayer3_frame_info* eaf_1, vgm_bitstream* os);
 static int ealayer3_write_pcm_block(VGMSTREAMCHANNEL *stream, mpeg_codec_data *data, int num_stream, ealayer3_frame_info * eaf);
 static int ealayer3_skip_data(VGMSTREAMCHANNEL *stream, mpeg_codec_data *data, int num_stream, int at_start);
-
-static int r_bits(ealayer3_bitstream * iw, int num_bits, uint32_t * value);
-static int w_bits(ealayer3_bitstream * ow, int num_bits, uint32_t value);
-
 
 /* **************************************************************************** */
 /* EXTERNAL API                                                                 */
@@ -101,7 +89,7 @@ static int w_bits(ealayer3_bitstream * ow, int num_bits, uint32_t value);
 int mpeg_custom_setup_init_ealayer3(STREAMFILE *streamFile, off_t start_offset, mpeg_codec_data *data, coding_t *coding_type) {
     int ok;
     ealayer3_frame_info eaf;
-    ealayer3_bitstream is = {0};
+    vgm_bitstream is = {0};
     uint8_t ibuf[EALAYER3_EA_FRAME_BUFFER_SIZE];
 
     //;VGM_LOG("init at %lx\n", start_offset);
@@ -135,7 +123,7 @@ int mpeg_custom_parse_frame_ealayer3(VGMSTREAMCHANNEL *stream, mpeg_codec_data *
     off_t info_offset = stream->offset;
 
     ealayer3_frame_info eaf_0, eaf_1;
-    ealayer3_bitstream is_0 = {0}, is_1 = {0}, os = {0};
+    vgm_bitstream is_0 = {0}, is_1 = {0}, os = {0};
     uint8_t ibuf_0[EALAYER3_EA_FRAME_BUFFER_SIZE], ibuf_1[EALAYER3_EA_FRAME_BUFFER_SIZE];
 
     /* read first frame/granule, or PCM-only frame (found alone at the end of SCHl streams) */
@@ -213,7 +201,7 @@ fail:
 /* INTERNAL HELPERS                                                             */
 /* **************************************************************************** */
 
-static int ealayer3_parse_frame(mpeg_codec_data *data, ealayer3_bitstream *is, ealayer3_frame_info * eaf) {
+static int ealayer3_parse_frame(mpeg_codec_data *data, vgm_bitstream *is, ealayer3_frame_info * eaf) {
     int ok;
 
     /* make sure as there is re-parsing in loops */
@@ -235,7 +223,7 @@ fail:
 
 
 /* read V1"a" (in SCHl) and V1"b" (in SNS) EALayer3 frame */
-static int ealayer3_parse_frame_v1(ealayer3_bitstream *is, ealayer3_frame_info * eaf, int channels_per_frame, int is_v1b) {
+static int ealayer3_parse_frame_v1(vgm_bitstream *is, ealayer3_frame_info * eaf, int channels_per_frame, int is_v1b) {
     int ok;
 
     /* read EA-frame V1 header */
@@ -282,7 +270,7 @@ fail:
 
 /* read V2"PCM" and V2"Spike" EALayer3 frame (exactly the same but V2P seems to have bigger
  * PCM blocks and maybe smaller frames) */
-static int ealayer3_parse_frame_v2(ealayer3_bitstream *is, ealayer3_frame_info * eaf) {
+static int ealayer3_parse_frame_v2(vgm_bitstream *is, ealayer3_frame_info * eaf) {
     int ok;
 
     /* read EA-frame V2 header */
@@ -328,7 +316,7 @@ fail:
 
 
 /* parses an EALayer3 frame (common part) */
-static int ealayer3_parse_frame_common(ealayer3_bitstream *is, ealayer3_frame_info * eaf) {
+static int ealayer3_parse_frame_common(vgm_bitstream *is, ealayer3_frame_info * eaf) {
     /* index tables */
     static const int versions[4] = { /* MPEG 2.5 */ 3, /* reserved */ -1,  /* MPEG 2 */ 2, /* MPEG 1 */ 1 };
     static const int sample_rates[4][4] = { /* [version_index][sample rate index] */
@@ -412,7 +400,7 @@ fail:
 
 
 /* converts an EALAYER3 frame to a standard MPEG frame from pre-parsed info */
-static int ealayer3_rebuild_mpeg_frame(ealayer3_bitstream* is_0, ealayer3_frame_info* eaf_0, ealayer3_bitstream* is_1, ealayer3_frame_info* eaf_1, ealayer3_bitstream* os) {
+static int ealayer3_rebuild_mpeg_frame(vgm_bitstream* is_0, ealayer3_frame_info* eaf_0, vgm_bitstream* is_1, ealayer3_frame_info* eaf_1, vgm_bitstream* os) {
     uint32_t c = 0;
     int i,j;
     int expected_bitrate_index, expected_frame_size;
@@ -663,7 +651,7 @@ fail:
 static int ealayer3_skip_data(VGMSTREAMCHANNEL *stream, mpeg_codec_data *data, int num_stream, int at_start) {
     int ok, i;
     ealayer3_frame_info eaf;
-    ealayer3_bitstream is = {0};
+    vgm_bitstream is = {0};
     uint8_t ibuf[EALAYER3_EA_FRAME_BUFFER_SIZE];
     int skips = at_start ? num_stream : data->streams_size - 1 - num_stream;
 
@@ -680,70 +668,6 @@ static int ealayer3_skip_data(VGMSTREAMCHANNEL *stream, mpeg_codec_data *data, i
     }
     //;VGM_LOG("s%i: skipped %i frames, now at %lx\n", num_stream,skips,stream->offset);
 
-    return 1;
-fail:
-    return 0;
-}
-
-/* ********************************************* */
-
-/* Read bits (max 32) from buf and update the bit offset. Order is BE (MSF). */
-static int r_bits(ealayer3_bitstream * is, int num_bits, uint32_t * value) {
-    off_t off, pos;
-    int i, bit_buf, bit_val;
-    if (num_bits == 0) return 1;
-    if (num_bits > 32 || num_bits < 0 || is->b_off + num_bits > is->bufsize*8) goto fail;
-
-    *value = 0; /* set all bits to 0 */
-    off = is->b_off / 8; /* byte offset */
-    pos = is->b_off % 8; /* bit sub-offset */
-    for (i = 0; i < num_bits; i++) {
-        bit_buf = (1U << (8-1-pos)) & 0xFF;   /* bit check for buf */
-        bit_val = (1U << (num_bits-1-i));     /* bit to set in value */
-
-        if (is->buf[off] & bit_buf)         /* is bit in buf set? */
-            *value |= bit_val;              /* set bit */
-
-        pos++;
-        if (pos%8 == 0) {                   /* new byte starts */
-            pos = 0;
-            off++;
-        }
-    }
-
-    is->b_off += num_bits;
-    return 1;
-fail:
-    return 0;
-}
-
-/* Write bits (max 32) to buf and update the bit offset. Order is BE (MSF). */
-static int w_bits(ealayer3_bitstream * os, int num_bits, uint32_t value) {
-    off_t off, pos;
-    int i, bit_val, bit_buf;
-    if (num_bits == 0) return 1;
-    if (num_bits > 32 || num_bits < 0 || os->b_off + num_bits > os->bufsize*8) goto fail;
-
-
-    off = os->b_off / 8; /* byte offset */
-    pos = os->b_off % 8; /* bit sub-offset */
-    for (i = 0; i < num_bits; i++) {
-        bit_val = (1U << (num_bits-1-i));     /* bit check for value */
-        bit_buf = (1U << (8-1-pos)) & 0xFF;   /* bit to set in buf */
-
-        if (value & bit_val)                /* is bit in val set? */
-            os->buf[off] |= bit_buf;        /* set bit */
-        else
-            os->buf[off] &= ~bit_buf;       /* unset bit */
-
-        pos++;
-        if (pos%8 == 0) {                   /* new byte starts */
-            pos = 0;
-            off++;
-        }
-    }
-
-    os->b_off += num_bits;
     return 1;
 fail:
     return 0;

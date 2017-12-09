@@ -8,15 +8,6 @@
 /* DEFS                                                                         */
 /* **************************************************************************** */
 
-/* An internal struct to pass around and simulate a bitstream. */
-typedef struct {
-    uint8_t * buf;      /* buffer to read/write*/
-    size_t bufsize;     /* max size of the buffer */
-    off_t b_off;        /* current offset in bits inside the buffer */
-} vgm_bitstream;
-
-static int r_bits(vgm_bitstream * iw, int num_bits, uint32_t * value);
-
 static int get_packet_header(STREAMFILE *streamFile, off_t *offset, size_t *size);
 static int build_header_comment(uint8_t * buf, size_t bufsize);
 
@@ -137,6 +128,7 @@ static int get_packet_header(STREAMFILE *streamFile, off_t *offset, size_t *size
     ib.buf = ibuf;
     ib.bufsize = ibufsize;
     ib.b_off = 0;
+    ib.mode = BITSTREAM_VORBIS;
 
     /* read using Vorbis weird LSF */
     r_bits(&ib,  4,&size_bits);
@@ -152,37 +144,6 @@ static int get_packet_header(STREAMFILE *streamFile, off_t *offset, size_t *size
         ib.b_off += 8 - (ib.b_off % 8);
     *offset += (ib.b_off/8);
 
-    return 1;
-fail:
-    return 0;
-}
-
-/* Read bits (max 32) from buf and update the bit offset. Vorbis packs values in LSB order and byte by byte.
- * (ex. from 2 bytes 00100111 00000001 we can could read 4b=0111 and 6b=010010, 6b=remainder (second value is split into the 2nd byte) */
-static int r_bits(vgm_bitstream * ib, int num_bits, uint32_t * value) {
-    off_t off, pos;
-    int i, bit_buf, bit_val;
-    if (num_bits == 0) return 1;
-    if (num_bits > 32 || num_bits < 0 || ib->b_off + num_bits > ib->bufsize*8) goto fail;
-
-    *value = 0; /* set all bits to 0 */
-    off = ib->b_off / 8; /* byte offset */
-    pos = ib->b_off % 8; /* bit sub-offset */
-    for (i = 0; i < num_bits; i++) {
-        bit_buf = (1U << pos) & 0xFF;   /* bit check for buf */
-        bit_val = (1U << i);            /* bit to set in value */
-
-        if (ib->buf[off] & bit_buf)     /* is bit in buf set? */
-            *value |= bit_val;          /* set bit */
-
-        pos++;                          /* new byte starts */
-        if (pos%8 == 0) {
-            pos = 0;
-            off++;
-        }
-    }
-
-    ib->b_off += num_bits;
     return 1;
 fail:
     return 0;

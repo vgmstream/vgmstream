@@ -2,6 +2,7 @@
 #define _MPEG_DECODER_H_
 
 #include "../vgmstream.h"
+#include "../coding/coding.h"
 
 /* used by mpeg_decoder.c, but scattered in other .c files */
 #ifdef VGM_USE_MPEG

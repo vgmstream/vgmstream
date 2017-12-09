@@ -13,34 +13,23 @@
 /* DEFS                                                                         */
 /* **************************************************************************** */
 
-/* An internal struct to pass around and simulate a bitstream.
- * Mainly to keep code cleaner and somewhat closer to ww2ogg */
-typedef struct {
-    uint8_t * buf;      /* buffer to read/write*/
-    size_t bufsize;     /* max size of the buffer */
-    off_t b_off;        /* current offset in bits inside the buffer */
-} ww_bitstream;
-
 static int build_header_identification(uint8_t * buf, size_t bufsize, int channels, int sample_rate, int blocksize_short, int blocksize_long);
 static int build_header_comment(uint8_t * buf, size_t bufsize);
 static int get_packet_header(STREAMFILE *streamFile, off_t offset, wwise_header_t header_type, int * granulepos, size_t * packet_size, int big_endian);
 static int rebuild_packet(uint8_t * obuf, size_t obufsize, STREAMFILE *streamFile, off_t offset, vorbis_custom_codec_data * data, int big_endian);
 static int rebuild_setup(uint8_t * obuf, size_t obufsize, STREAMFILE *streamFile, off_t offset, vorbis_custom_codec_data * data, int big_endian, int channels);
 
-static int ww2ogg_generate_vorbis_packet(ww_bitstream * ow, ww_bitstream * iw, STREAMFILE *streamFile, off_t offset, vorbis_custom_codec_data * data, int big_endian);
-static int ww2ogg_generate_vorbis_setup(ww_bitstream * ow, ww_bitstream * iw, vorbis_custom_codec_data * data, int channels, size_t packet_size, STREAMFILE *streamFile);
-static int ww2ogg_codebook_library_copy(ww_bitstream * ow, ww_bitstream * iw);
-static int ww2ogg_codebook_library_rebuild(ww_bitstream * ow, ww_bitstream * iw, size_t cb_size, STREAMFILE *streamFile);
-static int ww2ogg_codebook_library_rebuild_by_id(ww_bitstream * ow, uint32_t codebook_id, wwise_setup_t setup_type, STREAMFILE *streamFile);
+static int ww2ogg_generate_vorbis_packet(vgm_bitstream * ow, vgm_bitstream * iw, STREAMFILE *streamFile, off_t offset, vorbis_custom_codec_data * data, int big_endian);
+static int ww2ogg_generate_vorbis_setup(vgm_bitstream * ow, vgm_bitstream * iw, vorbis_custom_codec_data * data, int channels, size_t packet_size, STREAMFILE *streamFile);
+static int ww2ogg_codebook_library_copy(vgm_bitstream * ow, vgm_bitstream * iw);
+static int ww2ogg_codebook_library_rebuild(vgm_bitstream * ow, vgm_bitstream * iw, size_t cb_size, STREAMFILE *streamFile);
+static int ww2ogg_codebook_library_rebuild_by_id(vgm_bitstream * ow, uint32_t codebook_id, wwise_setup_t setup_type, STREAMFILE *streamFile);
 static int ww2ogg_tremor_ilog(unsigned int v);
 static unsigned int ww2ogg_tremor_book_maptype1_quantvals(unsigned int entries, unsigned int dimensions);
 
 static int load_wvc(uint8_t * ibuf, size_t ibufsize, uint32_t codebook_id, wwise_setup_t setup_type, STREAMFILE *streamFile);
 static int load_wvc_file(uint8_t * buf, size_t bufsize, uint32_t codebook_id, STREAMFILE *streamFile);
 static int load_wvc_array(uint8_t * buf, size_t bufsize, uint32_t codebook_id, wwise_setup_t setup_type);
-
-static int r_bits(ww_bitstream * iw, int num_bits, uint32_t * value);
-static int w_bits(ww_bitstream * ow, int num_bits, uint32_t value);
 
 
 /* **************************************************************************** */
@@ -165,7 +154,7 @@ static int get_packet_header(STREAMFILE *streamFile, off_t offset, wwise_header_
 
 /* Transforms a Wwise data packet into a real Vorbis one (depending on config) */
 static int rebuild_packet(uint8_t * obuf, size_t obufsize, STREAMFILE *streamFile, off_t offset, vorbis_custom_codec_data * data, int big_endian) {
-    ww_bitstream ow, iw;
+    vgm_bitstream ow, iw;
     int rc, granulepos;
     size_t header_size, packet_size;
 
@@ -183,11 +172,13 @@ static int rebuild_packet(uint8_t * obuf, size_t obufsize, STREAMFILE *streamFil
     /* prepare helper structs */
     ow.buf = obuf;
     ow.bufsize = obufsize;
-    ow.b_off = 0 ;
+    ow.b_off = 0;
+    ow.mode = BITSTREAM_VORBIS;
 
     iw.buf = ibuf;
     iw.bufsize = ibufsize;
     iw.b_off = 0;
+    iw.mode = BITSTREAM_VORBIS;
 
     rc = ww2ogg_generate_vorbis_packet(&ow,&iw, streamFile,offset, data, big_endian);
     if (!rc) goto fail;
@@ -206,7 +197,7 @@ fail:
 
 /* Transforms a Wwise setup packet into a real Vorbis one (depending on config). */
 static int rebuild_setup(uint8_t * obuf, size_t obufsize, STREAMFILE *streamFile, off_t offset, vorbis_custom_codec_data * data, int big_endian, int channels) {
-    ww_bitstream ow, iw;
+    vgm_bitstream ow, iw;
     int rc, granulepos;
     size_t header_size, packet_size;
 
@@ -226,10 +217,12 @@ static int rebuild_setup(uint8_t * obuf, size_t obufsize, STREAMFILE *streamFile
     ow.buf = obuf;
     ow.bufsize = obufsize;
     ow.b_off = 0;
+    ow.mode = BITSTREAM_VORBIS;
 
     iw.buf = ibuf;
     iw.bufsize = ibufsize;
     iw.b_off = 0;
+    iw.mode = BITSTREAM_VORBIS;
 
     rc = ww2ogg_generate_vorbis_setup(&ow,&iw, data, channels, packet_size, streamFile);
     if (!rc) goto fail;
@@ -295,7 +288,7 @@ static int build_header_comment(uint8_t * buf, size_t bufsize) {
 
 /* Copy packet as-is or rebuild first byte if mod_packets is used.
  * (ref: https://www.xiph.org/vorbis/doc/Vorbis_I_spec.html#x1-720004.3) */
-static int ww2ogg_generate_vorbis_packet(ww_bitstream * ow, ww_bitstream * iw, STREAMFILE *streamFile, off_t offset, vorbis_custom_codec_data * data, int big_endian) {
+static int ww2ogg_generate_vorbis_packet(vgm_bitstream * ow, vgm_bitstream * iw, STREAMFILE *streamFile, off_t offset, vorbis_custom_codec_data * data, int big_endian) {
     int i,granule;
     size_t header_size, packet_size, data_size;
 
@@ -350,10 +343,13 @@ static int ww2ogg_generate_vorbis_packet(ww_bitstream * ow, ww_bitstream * iw, S
                     /* get next first byte to read next_mode_number */
                     uint32_t next_mode_number;
                     uint8_t nbuf[1];
-                    ww_bitstream nw;
+                    vgm_bitstream nw;
+
                     nw.buf = nbuf;
                     nw.bufsize = 1;
                     nw.b_off = 0;
+                    nw.mode = BITSTREAM_VORBIS;
+
 
                     if (read_streamfile(nw.buf, next_offset + next_header_size, nw.bufsize, streamFile) != nw.bufsize)
                         goto fail;
@@ -409,7 +405,7 @@ fail:
 
 /* Rebuild a Wwise setup (simplified with removed stuff), recreating all six setup parts.
  * (ref: https://www.xiph.org/vorbis/doc/Vorbis_I_spec.html#x1-650004.2.4) */
-static int ww2ogg_generate_vorbis_setup(ww_bitstream * ow, ww_bitstream * iw, vorbis_custom_codec_data * data, int channels, size_t packet_size, STREAMFILE *streamFile) {
+static int ww2ogg_generate_vorbis_setup(vgm_bitstream * ow, vgm_bitstream * iw, vorbis_custom_codec_data * data, int channels, size_t packet_size, STREAMFILE *streamFile) {
     int i,j,k;
     uint32_t codebook_count = 0, floor_count = 0, residue_count = 0;
     uint32_t codebook_count_less1 = 0;
@@ -798,7 +794,7 @@ fail:
 
 
 /* copies Vorbis codebooks (untouched, but size uncertain) */
-static int ww2ogg_codebook_library_copy(ww_bitstream * ow, ww_bitstream * iw) {
+static int ww2ogg_codebook_library_copy(vgm_bitstream * ow, vgm_bitstream * iw) {
     int i;
     uint32_t id = 0, dimensions = 0, entries = 0;
     uint32_t ordered = 0, lookup_type = 0;
@@ -914,7 +910,7 @@ fail:
 
 
 /* rebuilds a Wwise codebook into a Vorbis codebook */
-static int ww2ogg_codebook_library_rebuild(ww_bitstream * ow, ww_bitstream * iw, size_t cb_size, STREAMFILE *streamFile) {
+static int ww2ogg_codebook_library_rebuild(vgm_bitstream * ow, vgm_bitstream * iw, size_t cb_size, STREAMFILE *streamFile) {
     int i;
     uint32_t id = 0, dimensions = 0, entries = 0;
     uint32_t ordered = 0, lookup_type = 0;
@@ -1038,11 +1034,11 @@ fail:
 }
 
 /* rebuilds an external Wwise codebook referenced by id to a Vorbis codebook */
-static int ww2ogg_codebook_library_rebuild_by_id(ww_bitstream * ow, uint32_t codebook_id, wwise_setup_t setup_type, STREAMFILE *streamFile) {
+static int ww2ogg_codebook_library_rebuild_by_id(vgm_bitstream * ow, uint32_t codebook_id, wwise_setup_t setup_type, STREAMFILE *streamFile) {
     size_t ibufsize = 0x8000; /* arbitrary max size of a codebook */
     uint8_t ibuf[0x8000]; /* Wwise codebook buffer */
     size_t cb_size;
-    ww_bitstream iw;
+    vgm_bitstream iw;
 
     cb_size = load_wvc(ibuf,ibufsize, codebook_id, setup_type, streamFile);
     if (cb_size == 0) goto fail;
@@ -1050,6 +1046,7 @@ static int ww2ogg_codebook_library_rebuild_by_id(ww_bitstream * ow, uint32_t cod
     iw.buf = ibuf;
     iw.bufsize = ibufsize;
     iw.b_off = 0;
+    iw.mode = BITSTREAM_VORBIS;
 
     return ww2ogg_codebook_library_rebuild(ow, &iw, cb_size, streamFile);
 fail:
@@ -1225,72 +1222,6 @@ static int load_wvc_array(uint8_t * buf, size_t bufsize, uint32_t codebook_id, w
 
 fail:
 #endif
-    return 0;
-}
-
-/* ********************************************* */
-
-/* Read bits (max 32) from buf and update the bit offset. Vorbis packs values in LSB order and byte by byte.
- * (ex. from 2 bytes 00100111 00000001 we can could read 4b=0111 and 6b=010010, 6b=remainder (second value is split into the 2nd byte) */
-static int r_bits(ww_bitstream * iw, int num_bits, uint32_t * value) {
-    off_t off, pos;
-    int i, bit_buf, bit_val;
-    if (num_bits == 0) return 1;
-    if (num_bits > 32 || num_bits < 0 || iw->b_off + num_bits > iw->bufsize*8) goto fail;
-
-    *value = 0; /* set all bits to 0 */
-    off = iw->b_off / 8; /* byte offset */
-    pos = iw->b_off % 8; /* bit sub-offset */
-    for (i = 0; i < num_bits; i++) {
-        bit_buf = (1U << pos) & 0xFF;   /* bit check for buf */
-        bit_val = (1U << i);            /* bit to set in value */
-
-        if (iw->buf[off] & bit_buf)     /* is bit in buf set? */
-            *value |= bit_val;          /* set bit */
-
-        pos++;                          /* new byte starts */
-        if (pos%8 == 0) {
-            pos = 0;
-            off++;
-        }
-    }
-
-    iw->b_off += num_bits;
-    return 1;
-fail:
-    return 0;
-}
-
-/* Write bits (max 32) to buf and update the bit offset. Vorbis packs values in LSB order and byte by byte.
- * (ex. writing 1101011010 from b_off 2 we get 01101011 00001101 (value split, and 11 in the first byte skipped)*/
-static int w_bits(ww_bitstream * ow, int num_bits, uint32_t value) {
-    off_t off, pos;
-    int i, bit_val, bit_buf;
-    if (num_bits == 0) return 1;
-    if (num_bits > 32 || num_bits < 0 || ow->b_off + num_bits > ow->bufsize*8) goto fail;
-
-
-    off = ow->b_off / 8; /* byte offset */
-    pos = ow->b_off % 8; /* bit sub-offset */
-    for (i = 0; i < num_bits; i++) {
-        bit_val = (1U << i);            /* bit check for value */
-        bit_buf = (1U << pos) & 0xFF;   /* bit to set in buf */
-
-        if (value & bit_val)            /* is bit in val set? */
-            ow->buf[off] |= bit_buf;    /* set bit */
-        else
-            ow->buf[off] &= ~bit_buf;   /* unset bit */
-
-        pos++;                          /* new byte starts */
-        if (pos%8 == 0) {
-            pos = 0;
-            off++;
-        }
-    }
-
-    ow->b_off += num_bits;
-    return 1;
-fail:
     return 0;
 }
 
