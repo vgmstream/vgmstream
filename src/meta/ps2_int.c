@@ -27,6 +27,10 @@ VGMSTREAM * init_vgmstream_ps2_int(STREAMFILE *streamFile) {
 	else
 		channel_count = 4;
 
+	/* ignore A2M .int */
+	if (read_32bitBE(0x00,streamFile) == 0x41324D00) /* "A2M\0" */
+	    goto fail;
+
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,0);
     if (!vgmstream) goto fail;
