@@ -204,6 +204,22 @@
                     RelativePath=".\meta\hca_keys.h"
                     >
                 </File>
+                <File
+                    RelativePath=".\meta\aax_streamfile.h"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\aix_streamfile.h"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\bar_streamfile.h"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\sqex_scd_streamfile.h"
+                    >
+                </File>
 			</Filter>
 			<Filter
 				Name="Source Files"
@@ -229,7 +245,7 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\afc_header.c"
+					RelativePath=".\meta\afc.c"
 					>
 				</File>
 				<File
@@ -413,7 +429,7 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\gh3_bar.c"
+					RelativePath=".\meta\bar.c"
 					>
 				</File>
 				<File
@@ -660,6 +676,10 @@
 				</File>
                 <File
                     RelativePath=".\meta\ogl.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\omu.c"
                     >
                 </File>
 				<File
@@ -1002,6 +1022,10 @@
 					RelativePath=".\meta\ps2_xa2.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\meta\ps2_xa2_rrp.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\ps2_xa30.c"
 					>
@@ -1206,6 +1230,10 @@
 					RelativePath=".\meta\vsf.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\meta\vsf_tta.c"
+                    >
+                </File>
                 <File
                     RelativePath=".\meta\vxn.c"
                     >
@@ -1623,6 +1651,10 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\layout\blocked_vawx.c"
+                    >
+                </File>
+                <File
                     RelativePath=".\layout\blocked_vgs.c"
                     >
                 </File>
@@ -1664,10 +1696,6 @@
 				</File>
 				<File
 					RelativePath=".\layout\interleave.c"
-					>
-				</File>
-				<File
-					RelativePath=".\layout\interleave_byte.c"
 					>
 				</File>
 				<File
