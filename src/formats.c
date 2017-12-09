@@ -52,6 +52,7 @@ static const char* extension_list[] = {
     "bar",
     "bcstm",
     "bcwav",
+    "bd3", //txth/reserved [Elevator Action Deluxe (PS3)]
     "bdsp",
     "bfstm",
     "bfwav",
@@ -259,6 +260,7 @@ static const char* extension_list[] = {
     "scd",
     "sck",
     "sd9",
+    "sdf",
     "sdt",
     "seg",
     "sf0",
