@@ -564,6 +564,7 @@ static const layout_info layout_info_list[] = {
         {layout_blocked_ea_sns,         "blocked (EA SNS)"},
         {layout_blocked_awc,            "blocked (AWC)"},
         {layout_blocked_vgs,            "blocked (VGS)"},
+        {layout_blocked_vawx,           "blocked (VAWX)"},
 #ifdef VGM_USE_VORBIS
         {layout_ogg_vorbis,             "Ogg"},
 #endif
