@@ -637,6 +637,7 @@ typedef enum {
     meta_EA_SPS,            /* Electronic Arts SPS (Burnout Crash) */
     meta_NGC_VID1,          /* Neversoft .ogg (Gun GC) */
     meta_PC_FLX,            /* Ultima IX PC */
+	meta_MOGG,              /* Harmonix Music Systems MOGG Vorbis */
 
 #ifdef VGM_USE_VORBIS
     meta_OGG_VORBIS,        /* Ogg Vorbis */
