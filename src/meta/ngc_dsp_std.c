@@ -1214,6 +1214,7 @@ fail:
               Lego Indiana Jones - The Original Adventures (Wii)
               Lego Indiana Jones 2 - The Adventure Continues (Wii)
               Lego Star Wars - The Complete Saga (Wii)
+	          Lego The Lord of the Rings (Wii)
               The Chronicles of Narnia - Prince Caspian (Wii) */
 VGMSTREAM * init_vgmstream_wii_idsp(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
@@ -1249,6 +1250,14 @@ VGMSTREAM * init_vgmstream_wii_idsp(STREAMFILE *streamFile) {
 
         start_offset = 0xe0;
     }
+	else if (read_32bitBE(0x4, streamFile) == 3 && //Lego The Lord of the Rings (Wii)
+		read_32bitBE(0x8, streamFile) == 0x12c)
+	{
+		if (read_dsp_header(&ch0_header, 0x20, streamFile)) goto fail;
+		if (read_dsp_header(&ch1_header, 0x80, streamFile)) goto fail;
+
+		start_offset = 0xe0;
+	}
     else goto fail;
 
     interleave = read_32bitBE(0xc, streamFile);
