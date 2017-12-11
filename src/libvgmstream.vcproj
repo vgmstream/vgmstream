@@ -501,6 +501,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\meta\mogg.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\msvp.c"
 					>
 				</File>

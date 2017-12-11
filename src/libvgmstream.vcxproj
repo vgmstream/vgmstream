@@ -161,6 +161,7 @@
     <ClCompile Include="meta\lsf.c" />
     <ClCompile Include="meta\mattel_hyperscan.c" />
     <ClCompile Include="meta\mn_str.c" />
+    <ClCompile Include="meta\mogg.c" />
     <ClCompile Include="meta\mp4.c" />
     <ClCompile Include="meta\ngca.c" />
     <ClCompile Include="meta\nsw_opus.c" />
