@@ -48,8 +48,9 @@ VGMSTREAM * init_vgmstream_ea_sps(STREAMFILE * streamFile) {
     if (!check_extensions(streamFile,"sps"))
         goto fail;
 
-    /* seems to be fixed */
-    if ((read_32bitBE(0x00,streamFile) & 0xFFFFFF00) != 0x48000000)
+    /* Very hacky but the original check for 0x48000000 rejected some playable files */
+    if (((read_16bitBE(0x00,streamFile) & 0xFFFFFF00) != 0x4800) && 
+        ((read_8bit(0x00, streamFile) & 0xFFFFFF00) != 0x00))
         goto fail;
 
     start_offset = read_8bit(0x03, streamFile);
