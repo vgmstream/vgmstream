@@ -570,9 +570,6 @@ static const layout_info layout_info_list[] = {
 #ifdef VGM_USE_VORBIS
         {layout_ogg_vorbis,             "Ogg"},
 #endif
-#ifdef VGM_USE_MPEG
-        {layout_mpeg_custom,            "Custom MPEG Audio"},
-#endif
 };
 
 static const meta_info meta_info_list[] = {

@@ -208,7 +208,7 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
             mpeg_codec_data *mpeg_data = NULL;
             mpeg_custom_config cfg = {0};
 
-            cfg.interleave = 0x800; /* for multistream [Final Fantasy XIII-2 (PS3)] */
+            cfg.interleave = 0x800; /* for multistream [Final Fantasy XIII-2 (PS3)], otherwise ignored */
             cfg.data_size = stream_size;
 
             /* Drakengard 3, some Kingdom Hearts */
@@ -221,11 +221,9 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
             mpeg_data = init_mpeg_custom_codec_data(streamFile, start_offset, &vgmstream->coding_type, vgmstream->channels, MPEG_SCD, &cfg);
             if (!mpeg_data) goto fail;
             vgmstream->codec_data = mpeg_data;
-            /* to setup initial interleave in vgmstream_open_stream */
-            vgmstream->layout_type = layout_mpeg_custom;
-            vgmstream->interleave_block_size = cfg.interleave;
+            vgmstream->layout_type = layout_none;
 
-            vgmstream->num_samples = mpeg_bytes_to_samples(stream_size, mpeg_data);
+            vgmstream->num_samples = mpeg_bytes_to_samples(stream_size, mpeg_data); //todo test/fix
             vgmstream->num_samples -= vgmstream->num_samples%576;
             if (loop_flag) {
                 vgmstream->loop_start_sample = mpeg_bytes_to_samples(loop_start, mpeg_data);

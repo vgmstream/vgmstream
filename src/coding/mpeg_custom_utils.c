@@ -97,7 +97,9 @@ int mpeg_custom_parse_frame_default(VGMSTREAMCHANNEL *stream, mpeg_codec_data *d
     mpeg_frame_info info;
     size_t current_data_size = 0;
     size_t current_padding = 0;
-    size_t current_interleave = 0;
+    size_t current_interleave_pre = 0; /* interleaved data size before current stream */
+    size_t current_interleave_post = 0; /* interleaved data size after current stream */
+    size_t current_interleave = 0; /* interleave in this block (usually this + pre + post = interleave*streams = block) */
 
 
     /* Get data size to give to the decoder, per stream. Usually 1 frame at a time,
@@ -105,11 +107,18 @@ int mpeg_custom_parse_frame_default(VGMSTREAMCHANNEL *stream, mpeg_codec_data *d
     switch(data->type) {
 
         case MPEG_XVAG: /* frames of fixed size (though we could read frame info too) */
-            current_data_size = data->config.chunk_size;
             current_interleave = data->config.interleave; /* big interleave */
+            current_interleave_pre  = current_interleave*num_stream;
+            current_interleave_post = current_interleave*(data->streams_size-1) - current_interleave_pre;
+
+            current_data_size = data->config.chunk_size;
             break;
 
         case MPEG_FSB: /* frames with padding + interleave */
+            current_interleave = data->config.interleave; /* constant for multi-stream FSbs (1 frame + padding) */
+            current_interleave_pre  = current_interleave*num_stream;
+            current_interleave_post = current_interleave*(data->streams_size-1) - current_interleave_pre;
+
             if ( !mpeg_get_frame_info(stream->streamfile, stream->offset, &info) )
                 goto fail;
             current_data_size = info.frame_size;
@@ -122,9 +131,6 @@ int mpeg_custom_parse_frame_default(VGMSTREAMCHANNEL *stream, mpeg_codec_data *d
                         : 0;
             }
 
-            /* frame interleave (ie. read 1 data-frame, skip 1 data-frame per stream) */
-            current_interleave = data->config.interleave; /* constant for multi-stream FSbs */
-
             VGM_ASSERT(data->streams_size > 1 && current_interleave != current_data_size+current_padding,
                     "MPEG FSB: %i streams with non-constant interleave found @ 0x%08lx\n", data->streams_size, stream->offset);
             break;
@@ -132,18 +138,20 @@ int mpeg_custom_parse_frame_default(VGMSTREAMCHANNEL *stream, mpeg_codec_data *d
         case MPEG_P3D: /* fixed interleave, not frame-aligned (ie. blocks may end/start in part of a frame) */
         case MPEG_SCD:
             current_interleave = data->config.interleave;
-#if 0 //todo
+
+#if 1
             /* check if current interleave block is short */
             {
                 off_t block_offset = stream->offset - stream->channel_start_offset;
                 size_t next_block = data->streams_size*data->config.interleave;
 
-                if (data->config.data_size && block_offset + next_block >= data->config.data_size) {
-                    size_t short_interleave = (data->config.data_size % next_block) / data->streams_size;
-                    current_interleave = short_interleave;
-                }
+                if (data->config.data_size && block_offset + next_block >= data->config.data_size)
+                    current_interleave = (data->config.data_size % next_block) / data->streams_size; /* short_interleave*/
             }
 #endif
+            current_interleave_pre  = current_interleave*num_stream;
+            current_interleave_post = current_interleave*(data->streams_size-1) - current_interleave_pre;
+
             current_data_size = current_interleave;
             break;
 
@@ -158,38 +166,25 @@ int mpeg_custom_parse_frame_default(VGMSTREAMCHANNEL *stream, mpeg_codec_data *d
         goto fail;
     }
 
+    /* This assumes all streams' offsets start in the first stream, and advances
+     * the 'full interleaved block' at once, ex:
+     *  start at s0=0x00, s1=0x00, interleave=0x40 (block = 0x40*2=0x80)
+     *  @0x00 read 0x40 of s0, skip 0x40 of s1 (block of 0x80 done) > new offset = 0x80
+     *  @0x00 skip 0x40 of s0, read 0x40 of s1 (block of 0x80 done) > new offset = 0x800
+     */
 
-    /* read single frame */
-    ms->bytes_in_buffer = read_streamfile(ms->buffer,stream->offset, current_data_size, stream->streamfile);
+    /* read chunk (skipping other interleaves if needed) */
+    ms->bytes_in_buffer = read_streamfile(ms->buffer,stream->offset + current_interleave_pre, current_data_size, stream->streamfile);
 
 
-    /* update offsets */
+    /* update offsets and skip other streams */
     stream->offset += current_data_size + current_padding;
 
-    /* skip interleave once block is done, if defined */
-    if (current_interleave && ((stream->offset - stream->channel_start_offset) % current_interleave == 0)) {
-        stream->offset += current_interleave * (data->streams_size-1); /* skip a block each stream */
-
-#if 0 //todo fix last block interleave
-        int i;
-
-        /* skip other blocks one by one (to handle if next last block has short interleave) */
-        for (i = 0; i < data->streams_size - 1; i++) {
-            off_t block_offset = stream->offset - stream->channel_start_offset;
-            size_t next_block = data->streams_size*data->config.interleave;
-
-            if (data->config.data_size && block_offset + next_block >= data->config.data_size) {
-                /* other stream's data is in last block (short interleave) */
-                size_t short_interleave = (data->config.data_size % next_block) / data->streams_size;
-                stream->offset += short_interleave;
-            }
-            else {
-                /* other stream's data is in normal block (regular interleave) */
-                stream->offset += current_interleave;
-            }
-        }
-#endif
+    /* skip rest of block (interleave per stream) once this stream's interleaved data is done, if defined */
+    if (current_interleave && ((stream->offset - stream->channel_start_offset + current_interleave_pre + current_interleave_post) % current_interleave == 0)) {
+        stream->offset += current_interleave_pre + current_interleave_post;
     }
+
 
     return 1;
 fail:

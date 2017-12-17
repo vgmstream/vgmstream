@@ -145,18 +145,15 @@ VGMSTREAM * init_vgmstream_p3d(STREAMFILE *streamFile) {
 
 #ifdef VGM_USE_MPEG
         case 0x6D703300: {  /* "mp3\0" (PS3) */
-            mpeg_custom_config cfg;
+            mpeg_custom_config cfg = {0};
 
-            memset(&cfg, 0, sizeof(mpeg_custom_config));
             cfg.interleave = 0x400;
+            cfg.data_size = data_size;
             /* block_size * 3 = frame size (0x60*3=0x120 or 0x40*3=0xC0) but doesn't seem to have any significance) */
 
             vgmstream->codec_data = init_mpeg_custom_codec_data(streamFile, start_offset, &vgmstream->coding_type, vgmstream->channels, MPEG_P3D, &cfg);
             if (!vgmstream->codec_data) goto fail;
-
-            /* both to setup initial interleave in vgmstream_open_stream */
-            vgmstream->interleave_block_size = cfg.interleave;
-            vgmstream->layout_type = layout_mpeg_custom;
+            vgmstream->layout_type = layout_none;
             break;
         }
 #endif

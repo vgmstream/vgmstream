@@ -254,9 +254,6 @@ typedef enum {
 #ifdef VGM_USE_VORBIS
     layout_ogg_vorbis,      /* ogg vorbis file */
 #endif
-#ifdef VGM_USE_MPEG
-    layout_mpeg_custom,     /* usually straight data but may setup offset/interleave somehow */
-#endif
 } layout_t;
 
 /* The meta type specifies how we know what we know about the file.

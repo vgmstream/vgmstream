@@ -287,9 +287,8 @@ VGMSTREAM * init_vgmstream_fsb_offset(STREAMFILE *streamFile, off_t offset) {
     if (fsbh.mode & FSOUND_MPEG) {
         /* FSB3: ?; FSB4: Shatter, Way of the Samurai 3/4, Forza Horizon 1/2, Dragon Age Origins */
 #if defined(VGM_USE_MPEG)
-        mpeg_custom_config cfg;
+        mpeg_custom_config cfg = {0};
 
-        memset(&cfg, 0, sizeof(mpeg_custom_config));
         cfg.fsb_padding = (vgmstream->channels > 2 ? 16 :
             (fsbh.flags & FMOD_FSB_SOURCE_MPEG_PADDED4 ? 4 :
             (fsbh.flags & FMOD_FSB_SOURCE_MPEG_PADDED ? 2 : 0)));
@@ -299,10 +298,7 @@ VGMSTREAM * init_vgmstream_fsb_offset(STREAMFILE *streamFile, off_t offset) {
 
         vgmstream->codec_data = init_mpeg_custom_codec_data(streamFile, start_offset, &vgmstream->coding_type, vgmstream->channels, MPEG_FSB, &cfg);
         if (!vgmstream->codec_data) goto fail;
-
-        /* both to setup initial interleave in vgmstream_open_stream */
-        vgmstream->interleave_block_size = cfg.interleave;
-        vgmstream->layout_type = layout_mpeg_custom;
+        vgmstream->layout_type = layout_none;
 
 #else
         goto fail; /* FFmpeg can't properly read FSB4 or FMOD's 0-padded MPEG data @ start_offset */

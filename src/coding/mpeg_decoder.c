@@ -167,9 +167,6 @@ mpeg_codec_data *init_mpeg_custom_codec_data(STREAMFILE *streamFile, off_t start
     }
 
 
-    /* write output */
-    config->interleave = data->config.interleave; /* for FSB */
-
     return data;
 
 fail:
