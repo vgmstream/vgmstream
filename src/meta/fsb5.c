@@ -265,10 +265,7 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
 
             vgmstream->codec_data = init_mpeg_custom_codec_data(streamFile, StartOffset, &vgmstream->coding_type, vgmstream->channels, MPEG_FSB, &cfg);
             if (!vgmstream->codec_data) goto fail;
-
-            /* both to setup initial interleave in vgmstream_open_stream */
-            vgmstream->interleave_block_size = cfg.interleave;
-            vgmstream->layout_type = layout_mpeg_custom;
+            vgmstream->layout_type = layout_none;
             break;
         }
 #endif

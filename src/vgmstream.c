@@ -923,9 +923,6 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
 #ifdef VGM_USE_VORBIS
         case layout_ogg_vorbis:
 #endif
-#ifdef VGM_USE_MPEG
-        case layout_mpeg_custom:
-#endif
         case layout_none:
             render_vgmstream_nolayout(buffer,sample_count,vgmstream);
             break;

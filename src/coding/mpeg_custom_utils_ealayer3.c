@@ -150,6 +150,8 @@ int mpeg_custom_parse_frame_ealayer3(VGMSTREAMCHANNEL *stream, mpeg_codec_data *
 
 	}
 
+	// todo rarely there is a block between granules (ex. EAL3 v2P in FIFA 2016)
+
     /* get second frame/granule (MPEG1 only) if first granule was found */
     granule_found = 0;
     while (eaf_0.common_size && eaf_0.mpeg1 && !granule_found) {
@@ -665,6 +667,7 @@ static int ealayer3_skip_data(VGMSTREAMCHANNEL *stream, mpeg_codec_data *data, i
         if (!ok) goto fail;
 
         stream->offset += eaf.eaframe_size;
+        //;VGM_LOG("s%i: skipping %x, now at %lx\n", num_stream,eaf.eaframe_size,stream->offset);
     }
     //;VGM_LOG("s%i: skipped %i frames, now at %lx\n", num_stream,skips,stream->offset);
 

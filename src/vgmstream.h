@@ -254,9 +254,6 @@ typedef enum {
 #ifdef VGM_USE_VORBIS
     layout_ogg_vorbis,      /* ogg vorbis file */
 #endif
-#ifdef VGM_USE_MPEG
-    layout_mpeg_custom,     /* usually straight data but may setup offset/interleave somehow */
-#endif
 } layout_t;
 
 /* The meta type specifies how we know what we know about the file.
@@ -880,6 +877,7 @@ typedef enum {
     MPEG_XVAG,              /* N streams of fixed interleave (frame-aligned, several data-frames of fixed size) */
     MPEG_FSB,               /* N streams of 1 data-frame+padding (=interleave) */
     MPEG_P3D,               /* N streams of fixed interleave (not frame-aligned) */
+    MPEG_SCD,               /* N streams of fixed interleave (not frame-aligned) */
     MPEG_EA,                /* 1 stream (maybe N streams in absolute offsets?) */
     MPEG_EAL31,             /* EALayer3 v1 (SCHl), custom frames with v1 header */
     MPEG_EAL31b,            /* EALayer3 v1 (SNS), custom frames with v1 header + minor changes */
@@ -894,6 +892,7 @@ typedef struct {
     int channels; /* max channels */
     int fsb_padding; /* fsb padding mode */
     int chunk_size; /* size of a data portion */
+    int data_size; /* playable size */
     int interleave; /* size of stream interleave */
     int encryption; /* encryption mode */
     int big_endian;
@@ -939,6 +938,9 @@ typedef struct {
     /* for internal use, assumed to be constant for all frames */
     int channels_per_frame;
     int samples_per_frame;
+    /* for some calcs */
+    int bitrate_per_frame;
+    int sample_rate_per_frame;
 
     /* custom MPEG internals */
     int custom; /* flag */

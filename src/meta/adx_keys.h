@@ -3,7 +3,9 @@
 
 
 /* Tests each start/mult/add vs derived key8/9 (if provided), as most where brute forced.
- * Mainly for debugging purposes (info from VGAudio / ADX_Decoder) */
+ * Ie. uncommenting this and adding a new key8/key9 + compiling with VGM_DEBUG_OUTPUT
+ * will print its derived key (useful as games often use the same key for hca and adx type 9).
+ * Mainly for debugging purposes (info from VGAudio / ADX_Decoder). */
 //#define ADX_VERIFY_DERIVED_KEYS 1
 
 
@@ -198,6 +200,9 @@ static const adxkey_info adxkey9_list[] = {
 
         /* Yuuki Yuuna wa Yuusha de aru - Hanayui no Kirameki / Yuyuyui (iOS/Android) */
         {0x3f10,0x3651,0x6d31, NULL,4867249871962584729},   // 438BF1F883653699
+
+        // Super Robot Wars X-Omega (voices) [iOS/Android]
+        {0x5152,0x7979,0x152b, NULL,165521992944278},       // 0000968A97978A96
 
 };
 

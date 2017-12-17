@@ -167,9 +167,6 @@ mpeg_codec_data *init_mpeg_custom_codec_data(STREAMFILE *streamFile, off_t start
     }
 
 
-    /* write output */
-    config->interleave = data->config.interleave; /* for FSB */
-
     return data;
 
 fail:
@@ -383,7 +380,7 @@ static void decode_mpeg_custom_stream(VGMSTREAMCHANNEL *stream, mpeg_codec_data 
 
     /* extra EOF check for edge cases when the caller tries to read more samples than possible */
     if (!ms->buffer_full && stream->offset >= stream_size) {
-        VGM_LOG("MPEG: EOF found but more data is requested\n");
+        VGM_LOG("MPEG: EOF found but more data is requested in stream %i\n", num_stream);
         goto decode_fail;
     }
 
@@ -603,7 +600,12 @@ long mpeg_bytes_to_samples(long bytes, const mpeg_codec_data *data) {
         return (int64_t)bytes * data->mi.rate * 8 / (data->mi.bitrate * 1000);
     }
     else {
-        return 0; /* a bit too complex for what is worth */
+        /* needed for SCD */
+        if (data->streams_size && data->bitrate_per_frame) {
+            return (int64_t)(bytes / data->streams_size) * data->sample_rate_per_frame * 8 / (data->bitrate_per_frame * 1000);
+        }
+
+        return 0;
     }
 }
 

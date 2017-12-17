@@ -12,9 +12,9 @@ static void scd_ogg_decrypt_v3_callback(void *ptr, size_t size, size_t nmemb, vo
 VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[PATH_LIMIT];
-    off_t start_offset, tables_offset, headers_offset, meta_offset, post_meta_offset, stream_size;
+    off_t start_offset, tables_offset, headers_offset, meta_offset, post_meta_offset;
     int headers_entries;
-    int32_t loop_start, loop_end;
+    int32_t stream_size, loop_start, loop_end;
 
     int target_stream = streamFile->stream_index;
     int loop_flag = 0, channel_count, codec_id, sample_rate;
@@ -80,7 +80,7 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
     meta_offset = read_32bit(headers_offset + (target_stream-1)*4,streamFile);
 
     /** stream header **/
-    stream_size   = read_32bit(meta_offset+0x00, streamFile);
+    stream_size   = read_32bit(meta_offset+0x00,streamFile);
     channel_count = read_32bit(meta_offset+0x04,streamFile);
     sample_rate   = read_32bit(meta_offset+0x08,streamFile);
     codec_id      = read_32bit(meta_offset+0x0c,streamFile);
@@ -200,33 +200,33 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
             }
             break;
 
-        case 0x06:      /* OGG [Final Fantasy XIII-2 (PS3), Final Fantasy XIV (PC)] */
+        case 0x06:      /* OGG [Final Fantasy XIII-2 (PC), Final Fantasy XIV (PC)] */
             goto fail; /* handled above */
 
 #ifdef VGM_USE_MPEG
         case 0x07: {    /* MPEG [Final Fantasy XIII (PS3)] */
             mpeg_codec_data *mpeg_data = NULL;
+            mpeg_custom_config cfg = {0};
 
-            /* Drakengard 3, some Kingdom Hearts */
-            if (vgmstream->sample_rate == 47999)
-                vgmstream->sample_rate = 48000;
-            if (vgmstream->sample_rate == 44099)
-                vgmstream->sample_rate = 44100;
+            cfg.interleave = 0x800; /* for multistream [Final Fantasy XIII-2 (PS3)], otherwise ignored */
+            cfg.data_size = stream_size;
 
-            mpeg_data = init_mpeg_codec_data(streamFile, start_offset, &vgmstream->coding_type, vgmstream->channels);
+            mpeg_data = init_mpeg_custom_codec_data(streamFile, start_offset, &vgmstream->coding_type, vgmstream->channels, MPEG_SCD, &cfg);
             if (!mpeg_data) goto fail;
             vgmstream->codec_data = mpeg_data;
             vgmstream->layout_type = layout_none;
 
+            /* some Drakengard 3, Kingdom Hearts HD have adjusted sample rate (47999, 44099), for looping? */
+
             vgmstream->num_samples = mpeg_bytes_to_samples(stream_size, mpeg_data);
+            vgmstream->loop_start_sample = mpeg_bytes_to_samples(loop_start, mpeg_data);
+            vgmstream->loop_end_sample = mpeg_bytes_to_samples(loop_end, mpeg_data);
+
+            //todo find if this actually helps
             vgmstream->num_samples -= vgmstream->num_samples%576;
-            if (loop_flag) {
-                vgmstream->loop_start_sample = mpeg_bytes_to_samples(loop_start, mpeg_data);
-                vgmstream->loop_start_sample -= vgmstream->loop_start_sample%576;
-                vgmstream->loop_end_sample = mpeg_bytes_to_samples(loop_end, mpeg_data);
-                vgmstream->loop_end_sample -= vgmstream->loop_end_sample%576;
-            }
-            vgmstream->interleave_block_size = 0;
+            vgmstream->loop_start_sample -= vgmstream->loop_start_sample%576;
+            vgmstream->loop_end_sample -= vgmstream->loop_end_sample%576;
+
             break;
         }
 #endif

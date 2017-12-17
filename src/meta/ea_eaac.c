@@ -48,12 +48,10 @@ VGMSTREAM * init_vgmstream_ea_sps(STREAMFILE * streamFile) {
     if (!check_extensions(streamFile,"sps"))
         goto fail;
 
-    /* Very hacky but the original check for 0x48000000 rejected some playable files */
-    if (((read_16bitBE(0x00,streamFile) & 0xFFFFFF00) != 0x4800) && 
-        ((read_8bit(0x00, streamFile) & 0xFFFFFF00) != 0x00))
+    /* SPS block start: 0x00(1): block flag (header=0x48); 0x01(3): block size (usually 0x0c-0x14) */
+    if (read_8bit(0x00, streamFile) != 0x48)
         goto fail;
-
-    start_offset = read_8bit(0x03, streamFile);
+    start_offset = read_32bitBE(0x00, streamFile) & 0x00FFFFFF;
 
     vgmstream = init_vgmstream_eaaudiocore_header(streamFile, streamFile, 0x04, start_offset, meta_EA_SPS);
     if (!vgmstream) goto fail;

@@ -162,6 +162,7 @@ static const char* extension_list[] = {
     "leg",
     "lmp4", //fake extension, for MP4s
     "logg", //fake extension, for OGGs
+    "lopus", //fake extension, for OPUS
     "lpcm",
     "lps",
     "lsf",
@@ -568,9 +569,6 @@ static const layout_info layout_info_list[] = {
         {layout_blocked_vawx,           "blocked (VAWX)"},
 #ifdef VGM_USE_VORBIS
         {layout_ogg_vorbis,             "Ogg"},
-#endif
-#ifdef VGM_USE_MPEG
-        {layout_mpeg_custom,            "Custom MPEG Audio"},
 #endif
 };
 
