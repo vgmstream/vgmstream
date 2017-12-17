@@ -18,6 +18,8 @@ int mpeg_custom_setup_init_default(STREAMFILE *streamFile, off_t start_offset, m
     }
     data->channels_per_frame = info.channels;
     data->samples_per_frame = info.frame_samples;
+    data->bitrate_per_frame = info.bit_rate;
+    data->sample_rate_per_frame = info.sample_rate;
 
 
     /* extra checks per type */
@@ -50,6 +52,7 @@ int mpeg_custom_setup_init_default(STREAMFILE *streamFile, off_t start_offset, m
             break;
 
         case MPEG_P3D:
+        case MPEG_SCD:
             if (data->config.interleave <= 0)
                 goto fail; /* needs external fixed size */
             break;
@@ -127,9 +130,21 @@ int mpeg_custom_parse_frame_default(VGMSTREAMCHANNEL *stream, mpeg_codec_data *d
             break;
 
         case MPEG_P3D: /* fixed interleave, not frame-aligned (ie. blocks may end/start in part of a frame) */
-            current_data_size = data->config.interleave / 4; /* to ensure we don't feed mpg123 too much */
-            current_interleave = data->config.interleave; /* fixed interleave (0x400) */
-            //todo: last block is smaller that interleave, not sure how it's divided
+        case MPEG_SCD:
+            current_interleave = data->config.interleave;
+#if 0 //todo
+            /* check if current interleave block is short */
+            {
+                off_t block_offset = stream->offset - stream->channel_start_offset;
+                size_t next_block = data->streams_size*data->config.interleave;
+
+                if (data->config.data_size && block_offset + next_block >= data->config.data_size) {
+                    size_t short_interleave = (data->config.data_size % next_block) / data->streams_size;
+                    current_interleave = short_interleave;
+                }
+            }
+#endif
+            current_data_size = current_interleave;
             break;
 
         default: /* standard frames (CBR or VBR) */
@@ -154,6 +169,26 @@ int mpeg_custom_parse_frame_default(VGMSTREAMCHANNEL *stream, mpeg_codec_data *d
     /* skip interleave once block is done, if defined */
     if (current_interleave && ((stream->offset - stream->channel_start_offset) % current_interleave == 0)) {
         stream->offset += current_interleave * (data->streams_size-1); /* skip a block each stream */
+
+#if 0 //todo fix last block interleave
+        int i;
+
+        /* skip other blocks one by one (to handle if next last block has short interleave) */
+        for (i = 0; i < data->streams_size - 1; i++) {
+            off_t block_offset = stream->offset - stream->channel_start_offset;
+            size_t next_block = data->streams_size*data->config.interleave;
+
+            if (data->config.data_size && block_offset + next_block >= data->config.data_size) {
+                /* other stream's data is in last block (short interleave) */
+                size_t short_interleave = (data->config.data_size % next_block) / data->streams_size;
+                stream->offset += short_interleave;
+            }
+            else {
+                /* other stream's data is in normal block (regular interleave) */
+                stream->offset += current_interleave;
+            }
+        }
+#endif
     }
 
     return 1;
