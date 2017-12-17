@@ -2,7 +2,7 @@
 #include "../coding/coding.h"
 #include "../vgmstream.h"
 
-/* EA "SNS "blocks (most common in .SNS) */
+/* EA SNS/SPS blocks */
 void block_update_ea_sns(off_t block_offset, VGMSTREAM * vgmstream) {
     STREAMFILE* streamFile = vgmstream->ch[0].streamfile;
     uint32_t block_size, block_samples;
@@ -21,16 +21,10 @@ void block_update_ea_sns(off_t block_offset, VGMSTREAM * vgmstream) {
         return;
     }
 
-    /* 0x80: last block
-     * 0x40: new block for some codecs?
-     * 0x08: ?
-     * 0x04: new block for some codecs?
-     * 0x01: last block for some codecs?
-     * 0x00: none? */
-    if (block_size & 0xFF000000) {
-        //VGM_ASSERT(!(block_size & 0x80000000), "EA SNS: unknown flag found at %lx\n", block_offset);
-        block_size &= 0x00FFFFFF;
-    }
+    /* At 0x00(1): block flag
+     * - in SNS: 0x00=normal block, 0x80=last block (not mandatory)
+     * - in SPS: 0x48=header, 0x44=normal block, 0x45=last block (empty) */
+    block_size &= 0x00FFFFFF;
 
     for (i = 0; i < vgmstream->channels; i++) {
         off_t channel_start = 0x00;
