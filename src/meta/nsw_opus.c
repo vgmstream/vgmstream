@@ -11,7 +11,7 @@ VGMSTREAM * init_vgmstream_nsw_opus(STREAMFILE *streamFile) {
     off_t offset = 0;
 
     /* check extension, case insensitive */
-    if ( !check_extensions(streamFile,"opus")) /* no relation to Ogg Opus */
+    if ( !check_extensions(streamFile,"opus,lopus")) /* no relation to Ogg Opus */
         goto fail;
 
     /* variations, maybe custom */

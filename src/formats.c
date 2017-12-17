@@ -162,6 +162,7 @@ static const char* extension_list[] = {
     "leg",
     "lmp4", //fake extension, for MP4s
     "logg", //fake extension, for OGGs
+    "lopus", //fake extension, for OPUS
     "lpcm",
     "lps",
     "lsf",
