@@ -144,6 +144,9 @@ static const hcakey_info hcakey_list[] = {
         // Pro Evolution Soccer 2018 / Winning Eleven 2018 (Android)
         {14121473},                 // 0000000000D77A01
 
+        // Kirara Fantasia (Android/iOS)
+        {51408295487268137},        // 00B6A3928706E529
+
 };
 
 
