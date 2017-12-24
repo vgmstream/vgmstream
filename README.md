@@ -1,22 +1,26 @@
 # vgmstream
 
-This is vgmstream, a library for playing streamed audio from video games.
+This is vgmstream, a library for playing streamed (pre-recorded) audio
+from video games.
 
 There are multiple end-user bits:
-
 - a command line decoder called "test.exe"
 - a Winamp plugin called "in_vgmstream"
 - a foobar2000 component called "foo_input_vgmstream"
 - an XMPlay plugin called "xmp-vgmstream"
 - an Audacious plugin called "libvgmstream"
 
-## Needed files (for Windows)
-Since Ogg Vorbis, MPEG audio, and other external formats are supported, you
-will need to have certain DLL files.
+Help and newest builds can be found here: https://www.hcs64.com/
+
+Latest development is usually here: https://github.com/kode54/vgmstream/
+
+## Needed extra files (for Windows)
+Support for some codecs (Ogg Vorbis, MPEG audio, etc) is done with external
+libraries, so you will need to have certain DLL files.
 
 In the case of the foobar2000 component they are all bundled for convenience,
-or you can get them from here: https://github.com/kode54/vgmstream
-(also here: https://f.losno.co/vgmstream-win32-deps.zip, may not be latest).
+or you can get them here: https://github.com/kode54/vgmstream/tree/master/ext_libs
+(bundled here: https://f.losno.co/vgmstream-win32-deps.zip, may not be latest).
 
 Put ```libvorbis.dll```, ```libmpg123-0.dll```, ```libg7221_decode.dll```, ```libg719_decode.dll```,
 ```at3plusdecoder.dll```, ```avcodec-vgmstream-58.dll```, ```avformat-vgmstream-58.dll```, 
@@ -111,20 +115,25 @@ are used in few games.
 - Electronic Arts MicroTalk a.k.a. UTK or UMT
 - Xiph Vorbis (Ogg, FSB5, Wwise, OGL, Silicon Knights)
 - MPEG MP1/2/3 (standard, AHX, XVAG, FSB, AWC, P3D, etc)
-- Electronic Arts EALayer3
 - ITU-T G.722.1 (Polycom Siren 7)
 - ITU-T G.722.1 annex C (Polycom Siren 14)
 - ITU G.719 annex B (Polycom Siren 22)
-- FFmpeg codecs:
-    - ATRAC3, ATRAC3plus
-    - XMA
-    - WMA v1, WMA v2, WMAPro
-    - AAC
-    - Bink
-    - AC3/SPDIF
-    - Opus (Ogg, Switch)
-    - FLAC
-    - Others
+- Electronic Arts EALayer3
+- Electronic Arts EA-XMA
+- Sony ATRAC3, ATRAC3plus
+- Microsoft XMA1/2
+- Microsoft WMA v1, WMA v2, WMAPro
+- AAC
+- Bink
+- AC3/SPDIF
+- Xiph Opus (Ogg, Switch)
+- FLAC
+- Others
+
+Note that vgmstream doesn't (can't) reproduce in-game music 1:1, as internal
+resampling, filters, volume, etc, are not replicated. Some codecs are not
+fully accurate compared to the games due to minor bugs, but in most cases
+it isn't audible. 
 
 
 ## Supported file types
@@ -292,8 +301,6 @@ This list is not complete and many other files are supported.
 	- .brstm (GC DSP ADPCM, 8/16 bit PCM)
 	- .emff (PSX APDCM, GC DSP ADPCM)
 	- .fsb/wii (PSX ADPCM, GC DSP ADPCM, Xbox IMA ADPCM, MPEG audio, FSB Vorbis, MS XMA)
-	- .genh (lots)
-	- .txth (lots)
 	- .msf (PCM, PSX ADPCM, ATRAC3, MP3)
 	- .musx (PSX ADPCM, Xbox IMA ADPCM, DAT4 IMA ADPCM)
 	- .nwa (16 bit PCM, NWA DPCM)
@@ -357,6 +364,9 @@ This list is not complete and many other files are supported.
 	- .um3 (Ogg Vorbis)
 	- .xa (CD-ROM XA audio)
 	- .xma (MS XMA/XMA2)
+- artificial/generic headers:
+    - .genh (lots)
+    - .txth (lots)
 - loop assists:
 	- .mus (playlist for .acm)
 	- .pos (loop info for .wav: 32 bit LE loop start sample + loop end sample)
