@@ -119,8 +119,8 @@ int ffmpeg_custom_read_eaxma(ffmpeg_codec_data *data, uint8_t *buf, int buf_size
             virtual_base += data_size;
         }
 
-        /* exit on last block just in case, though should reach file size */
-        if (block_size & 0x80000000)
+        /* exit on last block just in case, though should reach real_size */
+        if ((block_size & 0x80000000) || (block_size & 0x45000000))
             break;
     }
 
@@ -199,10 +199,9 @@ size_t ffmpeg_get_eaxma_virtual_size(int channels, off_t real_offset, size_t rea
         /* 0x04(4): decoded samples */
         off_t packets_offset = real_offset + 0x08;
 
-        if ((block_size & 0xFF000000) && !(block_size & 0x80000000)) {
-            VGM_LOG("EA-XMA: unknown flag found at %lx\n", (off_t)real_offset);
-            goto fail;
-        }
+        /* At 0x00(1): block flag
+         * - in SNS: 0x00=normal block, 0x80=last block (not mandatory)
+         * - in SPS: 0x48=header, 0x44=normal block, 0x45=last block (empty) */
 
         max_packets = get_block_max_packets(num_streams, packets_offset, streamFile);
         if (max_packets == 0) goto fail;
@@ -213,7 +212,7 @@ size_t ffmpeg_get_eaxma_virtual_size(int channels, off_t real_offset, size_t rea
         real_offset += (block_size & 0x00FFFFFF);
 
         /* exit on last block just in case, though should reach real_size */
-        if (block_size & 0x80000000)
+        if ((block_size & 0x80000000) || (block_size & 0x45000000))
             break;
     }
 
