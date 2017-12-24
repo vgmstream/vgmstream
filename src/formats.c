@@ -423,6 +423,7 @@ static const coding_info coding_info_list[] = {
         {coding_PCM8_U_int,         "8-bit unsigned PCM with 1 byte interleave (block)"},
         {coding_PCM8_SB_int,        "8-bit PCM with sign bit, 1 byte interleave (block)"},
         {coding_ULAW,               "8-bit u-Law"},
+        {coding_ULAW_int,           "8-bit u-Law with 1 byte interleave (block)"},
         {coding_ALAW,               "8-bit a-Law"},
         {coding_PCMFLOAT,           "32-bit float PCM"},
 
