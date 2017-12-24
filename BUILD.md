@@ -9,7 +9,7 @@
 
 **MSVC / Visual Studio**: Microsoft's Visual C++ and MSBuild, bundled in either:
 - Visual Studio: https://www.visualstudio.com/downloads/
-  - Visual Studio Community 2015 should work (free, but must register after trial period)
+  - Visual Studio Community should work (free, but must register after trial period)
 - Visual C++ Build Tools (no IDE): http://landinghub.visualstudio.com/visual-cpp-build-tools
 
 **Git**: optional, to generate version numbers:
@@ -22,7 +22,7 @@
 **With GCC**: use the *./Makefile* in the root folder, see inside for options. For compilation flags check the *Makefile* in each folder.
 You need to manually rebuild if you change a *.h* file (use *make clean*).
 
-In Linux, Makefiles can be used to cross-compile with the MingW headers, but they aren't well prepared to generate native code at the moment. It should be fixable with some effort.
+In Linux, Makefiles can be used to cross-compile with the MingW headers, but may not be updated to generate native code at the moment. It should be fixable with some effort.
 
 Windows CMD example for test.exe:
 ```
@@ -38,7 +38,6 @@ mingw32-make.exe mingw_test -f Makefile ^
 ```
 
 **With MSVC**: open *./vgmstream_full.sln* and compile in Visual Studio, or use MSBuild in the command line. See the foobar2000 section for dependencies and CMD examples.
-
 
 ### foobar2000 plugin (foo\_input\_vgmstream)
 Requires MSVC (foobar/SDK only links to MSVC C++ DLLs) and these dependencies:
@@ -81,9 +80,9 @@ msbuild fb2k/foo_input_vgmstream.vcxproj ^
 ```
 
 ### Audacious plugin
-Requires the dev version of Audacious (and dependencies), automake/autoconf, and gcc/make (C++11).
+Requires the dev version of Audacious (and dependencies), automake/autoconf, and gcc/make (C++11). It must be compiled and installed into Audacious, where it should appear in the plugin list as "vgmstream".
 
-The plugin itself works with Audacious 3.5 or higher. New Audacious releases can break plugin compatibility so it may not work with the latest version unless adapted first.
+The plugin needs Audacious 3.5 or higher. New Audacious releases can break plugin compatibility so it may not work with the latest version unless adapted first.
 
 FFmpeg and other external libraries aren't enabled, thus some formats are not supported. libvorbis and libmpg123 can be disabled with -DVGM_DISABLE_VORBIS and -DVGM_DISABLE_MPEG.
 
@@ -128,10 +127,14 @@ git clean -fd
 
 ## Development
 
-### Structure
+### Code
 vgmstream uses C (C89 when possible), and C++ for the foobar2000 and Audacious plugins.
 
-C is restricted to features VS2010 can understand. This mainly means means declaring variables at the start of a { .. } block (declare+initialize is fine, as long as it doesn't reference variables declared in that block) and avoiding C99 like variable-length arrays (but others like // comments are fine).
+C should be restricted to features VS2010 understands. This mainly means declaring variables at the start of a { .. } block (declare+initialize is fine, as long as it doesn't reference variables declared in the same block) and avoiding C99 features like variable-length arrays (but certain others like // comments are fine).
+
+There are no hard coding rules but for consistency should follow general C conventions and the style used in most files: 4 spaces instead of tabs, underscore_and_lowercase_names, brackets starting in the same line (`if (..) { CRLF ... }`), etc. Some of the code may be a bit inefficient or duplicated at places, but it isn't much of a problem if gives clarity.
+
+### Structure
 
 ```
 ./                   docs, scripts
@@ -149,37 +152,81 @@ C is restricted to features VS2010 can understand. This mainly means means decla
 ```
 
 ### Overview
-vgmstream works by parsing a music stream header (*meta/*), preparing/demuxing data (*layout/*) and decoding the compressed data into listenable PCM samples (*coding/*).
+vgmstream works by parsing a music stream header (*meta/*), preparing/controlling data and sample buffers (*layout/*) and decoding the compressed data into listenable PCM samples (*coding/*).
 
 Very simplified it goes like this:
-- player (test.exe, plugin, etc) opens a file stream *[plugin's main/decode]*
+- player (test.exe, plugin, etc) opens a file stream (STREAMFILE) *[plugin's main/decode]*
 - init tries all parsers (metas) until one works *[init_vgmstream]*
-- parser reads header (channels, sample rate, loop points) and set ups a VGMSTREAM struct + layout/coding, if the format is correct *[init_vgmstream_(format-name)]*
-- player gets total_samples to play, based on the number of loops and other settings *[get_vgmstream_play_samples]*
+- parser reads header (channels, sample rate, loop points) and set ups the VGMSTREAM struct, if the format is correct *[init_vgmstream_(format-name)]*
+- player finds total_samples to play, based on the number of loops and other settings *[get_vgmstream_play_samples]*
 - player asks to fill a small sample buffer *[render_vgmstream]*
-- layout prepares byte offsets to read from the stream *[render_vgmstream_(layout)]*
+- layout prepares samples and offsets to read from the stream *[render_vgmstream_(layout)]*
 - decoder reads and decodes bytes into PCM samples *[decode_vgmstream_(coding)]*
 - player plays those samples, asks to fill sample buffer again, repeats (until total_samples)
 - layout moves offsets back to loop_start when loop_end is reached *[vgmstream_do_loop]*
-- close the VGMSTREAM once the stream is finished
+- player closes the VGMSTREAM once the stream is finished
 
-The VGMSTREAM struct created during holds the stream's parameters and decoder state (such as file streams, or offsets per channel).
+### Components
 
-### Adding new formats
-For new simple formats, assuming existing layout/coding:
-- *src/meta/(format-name).c*: create new init_vgmstream_(format-name) parser that tests the extension and header id, and reads all needed info from the stream header and inits the VGMSTREAM
+#### STREAMFILEs
+Structs with I/O callbacks that vgmstream uses in place of stdio/FILEs. All I/O must be done through STREAMFILEs as it lets plugins set up their own. This includes reading data or opening other STREAMFILEs (ex. when a header has companion files that need to be parsed, or during setup).
+
+Players should open a base STREAMFILE and pass it to init_vgmstream. Once it's done this STREAMFILE must be closed, as internally vgmstream opens its own copy (using the base one's callbacks).
+
+Custom STREAMFILEs wrapping base STREAMFILEs may be used for complex I/O cases (ex. if data needs decryption, or a file is composed of multiple sub-files).
+
+#### VGMSTREAM
+The VGMSTREAM (caps) is the main struct created during init when a file is successfully recognized and parsed. It holds the file's configuration (channels, sample rate, decoder, layout, samples, loop points, etc) and decoder state (STREAMFILEs, offsets per channel, current sample, etc), and is used to interact with the API.
+
+#### metas
+Metadata (header) parsers that identify and handle formats.
+
+To add a new one:
+- *src/meta/(format-name).c*: create new init_vgmstream_(format-name) parser that tests the extension and header id, reads all needed info from the stream header and sets up the VGMSTREAM
 - *src/meta/meta.h*: define parser's init
-- *src/vgmstream.h*: define meta description in the meta_t list
+- *src/vgmstream.h*: define meta type in the meta_t list
 - *src/vgmstream.c*: add parser init to the init list
-- *src/formats.c*: add new extension to the format list, add meta description
-- *fb2k/foo_filetypes.h*: add new extension to the file register list (optional)
+- *src/formats.c*: add new extension to the format list, add meta type description
 - *src/libvgmstream.vcproj/vcxproj/filters*: add to compile new (format-name).c parser in VS
 - if the format needs an external library don't forget to mark optional parts with: *#ifdef VGM_USE_X ... #endif*
 
-The new meta is usually named after the format's header id or main extension, possibly with prepended platform. Each file should parse one format (regardless of accepted extensions or decoders used) for consistency, but variations can be found as code evolved. Differents formats can use the same extension, this is not a problem as long as the header id or some other validation tells them apart. If the format is headerless and the extension isn't unique enough it may need a generic GENH/TXTH header instead of direct support. 
+Ultimately the meta must alloc the VGMSTREAM, set config and initial state. vgmstream needs the total number samples to work, so at times must convert from data sizes to samples (doing calculations or using helpers).
 
-A STREAMFILE is passed to init_vgmstream_(format-name) function, and I/O must be done using its functions and not STDIO/FILEs, as this lets plugins do their own I/O. This includes reading data from the header or opening other STREAMFILEs (if the header has companion files that need to be parsed).
+It also needs to open and assign to the VGMSTREAM one or several STREAMFILEs (usually reopening the base one, but could be any other file) to do I/O during decode, as well as setting the starting offsets of each channel and other values; this gives metas full flexibility at the cost of some repetition. The STREAMFILE passed to the meta will be discarded and its pointer must not be reused.
 
-When a parser is successful (allocates VGMSTREAM and sets values) it also needs to open and assign to the VGMSTREAM one or several STREAMFILEs (usually reopens the one passed, but could be any other file) to do I/O during decode. The STREAMFILE passed to the meta will be discarded and must not be reused.
+The .c file is usually named after the format's main extension or header id, optionally with affixes. Each file should parse one format and/or its variations (regardless of accepted extensions or decoders used) for consistency, but deviations may be found in the codebase. Sometimes a format is already parsed but not accepted due to bugs though.
 
-If it supports subsongs it should read and handle the stream index (subsong number) in the passed STREAMFILE, and report the number of subsongs in the VGMSTREAM, to signal the plugins this feature. The index is 1-based (first subsong is 1, not 0).
+Different formats may use the same extension but this isn't a problem as long as the header id or some other validation tells them apart, and should be implemented in separate .c files. If the format is headerless and the extension isn't unique enough it probably needs a generic GENH/TXTH header instead of direct support.
+
+If the format supports subsongs it should read the stream index (subsong number) in the passed STREAMFILE, and use it to parse a section of the file. Then it must report the number of subsongs in the VGMSTREAM, to signal this feature is enabled. The index is 1-based (first subsong is 1, 0 is default/first).
+
+#### layouts
+Layouts control most of the main logic:
+- receive external buffer to fill with PCM samples
+- detect when looping must be done
+- find max number of samples to do next decoder call (usually one frame, less if loop starts/ends)
+- call decoder
+- do post-process if necessary (move offsets, check stuff, etc)
+- repeat until buffer is filled
+
+Available layouts, depending on how codec data is laid out:
+- none/flat: straight data. Decoder should handle channel offsets and other details normally.
+- interleave: one data block per channel, mixed in configurable sizes. Once one channel block is fully decoded this layout skips the other channels, so the decoder only handles one at a time.
+- blocked: data is divided into blocks, often with a header. Layout detects when a block is done and asks a helper function to fix offsets (skipping the header and pointing to data per channel), depending on the block format.
+- others: uncommon cases may need its own custom layout (ex.- multistream/subfiles)
+
+The layout is used mainly depends on the decoder. MP3 data (that may have 1 or 2 channels per frame) uses the flat layout, while DSP ADPCM (that only decodes one channel at a time) is interleaved. In case of mono files either could be used as there won't be any actual difference.
+
+Layouts expect the VGMSTREAM to be properly initialized during the meta processing (channel offsets must point to each channel start offset).
+
+#### decoders
+Decoders take a sample buffer, convert data to PCM samples and fill one or multiple channels at a time, depending on the decoder itself. Usually its data is divided into frames with a number of samples, and should only need to do one frame at a time (when size is fixed/informed; vgmstream gives flexibility to the decoder), but must take into account that the sample buffer may be smaller than the frame samples, and that may start some samples into the frame.
+
+Every call the decoder will need to find out the current frame offset (usually per channel). This is usually done with a base channel offset (from the VGMSTREAM) plus deriving the frame number (thus sub-offset, but only if frames are fixed) through the current sample, or manually updating the channel offsets every frame. This second method is not suitable to use with the interleave layout as it advances the offsets assuming they didn't change (this is a limitation/bug at the moment). Similarly, the blocked layout cannot contain interleaved data, and must use alt decoders with internal interleave (also a current limitation). Thus, some decoders and layouts don't mix.
+ 
+If the decoder needs to keep state between calls it may use the VGMSTREAM for common values (like ADPCM history), or alloc a custom data struct. In that case the decoder should provide init/free functions so the meta or vgmstream may use. This is the case with decoders implemented using external libraries (*ext_libs*), as seen in *#ifdef VGM_USE_X ... #endif* sections.
+
+#### core
+The vgmstream core simply consists of functions gluing the above together and some helpers (ex.- extension list, loop adjust, etc). 
+
+The *Overview* section should give an idea about how it's used.

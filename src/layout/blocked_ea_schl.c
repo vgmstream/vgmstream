@@ -4,66 +4,58 @@
 
 /* set up for the block at the given offset */
 void block_update_ea_schl(off_t block_offset, VGMSTREAM * vgmstream) {
+    STREAMFILE* streamFile = vgmstream->ch[0].streamfile;
     int i;
     int new_schl = 0;
-    STREAMFILE* streamFile = vgmstream->ch[0].streamfile;
-    uint32_t id;
-    size_t file_size, block_size = 0, block_samples;
+    size_t block_size = 0, block_samples = 0;
     int32_t (*read_32bit)(off_t,STREAMFILE*) = vgmstream->codec_endian ? read_32bitBE : read_32bitLE;
-    //int16_t (*read_16bit)(off_t,STREAMFILE*) = vgmstream->codec_endian ? read_16bitBE : read_16bitLE;
+    size_t file_size = get_streamfile_size(streamFile);
 
 
-    /* find target block ID and skip the rest */
-    file_size = get_streamfile_size(streamFile);
     while (block_offset < file_size) {
-        id = read_32bitBE(block_offset+0x00,streamFile);
+        uint32_t id = read_32bitBE(block_offset+0x00,streamFile);
 
         block_size = read_32bitLE(block_offset+0x04,streamFile);
-        if (block_size > 0x00F00000) /* size is always LE, except in early SS/MAC */
+        if (block_size > 0x00F00000) /* size is always LE, except in early SAT/MAC */
             block_size = read_32bitBE(block_offset+0x04,streamFile);
 
-        /* SCxx blocks have size in the header, but others may not. To simplify we just try to find
-         * a SCDl (main data) every 0x04. EA sometimes concats many small files, so after a SCEl (end block)
-         * there may be a new SCHl + SCDl too, so this pretends they are a single stream. */
-        if (id == 0x5343446C) {  /* "SCDl" data block found */
+        block_samples = 0;
 
-            /* use num_samples from header if possible; don't calc as data may have padding (ex. PCM8) or not possible (ex. MP3) */
+        if (id == 0x5343446C || id == 0x5344454E) { /* "SCDl" "SDEN" audio data */
             switch(vgmstream->coding_type) {
                 case coding_PSX:
                     block_samples = ps_bytes_to_samples(block_size-0x10, vgmstream->channels);
                     break;
-
                 default:
                     block_samples = read_32bit(block_offset+0x08,streamFile);
                     break;
             }
-
-            /* guard against false positives (happens in "pIQT" blocks) */
-            if (block_size > 0xFFFF || block_samples > 0xFFFF) { /* observed max is ~0xf00 but who knows */
-                block_offset += 0x04;
-                continue;
-            }
-
-            break;
         }
-        else {
-            /* movie "pIQT" may be bigger than what block_size says, but seems to help */
-            if (id == 0x5343486C || id == 0x5343436C || id == 0x53434C6C || id == 0x70495154) { /* "SCHl" "SCCl" "SCLl" "SCEl" "pIQT" */
-                block_offset += block_size;
-            } else {
-                block_offset += 0x04;
+        else { /* any other chunk, audio ("SCHl" "SCCl" "SCLl" "SCEl" etc), or video ("pQGT" "pIQT "MADk" etc) */
+            /* padding between "SCEl" and next "SCHl" (when subfiles exist) */
+            if (id == 0x00000000) {
+                block_size = 0x04;
             }
 
-            if (id == 0x5343456C) { /* "SCEl" end block found */
-                block_offset += (block_offset % 0x04) == 0 ? 0 : 0x04 - (block_offset % 0x04); /* 32b-aligned, important */
-                /* Usually there is padding between SCEl and SCHl too (aligned to 0x80) */
-            }
-
-            if (id == 0x5343486C) { /* "SCHl", new subfile */
+            if (id == 0x5343486C || id == 0x5348454E) { /* "SCHl" "SHEN" end block */
                 new_schl = 1;
             }
+        }
 
-            continue;
+        /* guard against errors (happens in bad rips/endianness, observed max is vid ~0x20000) */
+        if (block_size == 0x00 || block_size > 0xFFFFF || block_samples > 0xFFFF) {
+            block_size = 0x04;
+            block_samples = 0;
+        }
+
+
+        if (block_samples) /* audio found */
+            break;
+        block_offset += block_size;
+
+        /* "SCEl" are aligned to 0x80 usually, but causes problems if not 32b-aligned (ex. Need for Speed 2 PC) */
+        if ((id == 0x5343456C || id == 0x5345454E) && block_offset % 0x04) {
+            block_offset += 0x04 - (block_offset % 0x04);
         }
     }
 

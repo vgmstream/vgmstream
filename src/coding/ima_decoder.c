@@ -792,7 +792,7 @@ size_t ms_ima_bytes_to_samples(size_t bytes, int block_align, int channels) {
 
 size_t ima_bytes_to_samples(size_t bytes, int channels) {
     /* 2 samples per byte (2 nibbles) in stereo or mono config */
-    return bytes / channels * 2;
+    return bytes * 2 / channels;
 }
 
 size_t ubi_ima_bytes_to_samples(size_t bytes, int channels, STREAMFILE *streamFile, off_t offset) {

@@ -4,36 +4,41 @@
 
 /* set up for the block at the given offset */
 void block_update_ea_1snh(off_t block_offset, VGMSTREAM * vgmstream) {
-    int i;
     STREAMFILE* streamFile = vgmstream->ch[0].streamfile;
-    uint32_t id;
-    size_t file_size, block_size = 0, block_header = 0;
+    int i;
+    size_t block_size = 0, block_header = 0;
     int32_t (*read_32bit)(off_t,STREAMFILE*) = vgmstream->codec_endian ? read_32bitBE : read_32bitLE;
+    size_t file_size = get_streamfile_size(streamFile);
 
 
-    /* find target block ID and skip the rest */
-    file_size = get_streamfile_size(streamFile);
     while (block_offset < file_size) {
-        id = read_32bitBE(block_offset+0x00,streamFile);
-        block_size = read_32bit(block_offset+0x04,streamFile); /* includes id/size */
-        block_header = 0x0;
+        uint32_t id = read_32bitBE(block_offset+0x00,streamFile);
 
-        if (id == 0x31534E68) {  /* "1SNh" header block found */
-            block_header = read_32bitBE(block_offset+0x08, streamFile) == 0x45414353 ? 0x28 : 0x2c; /* "EACS" */
-            if (block_header < block_size) /* sometimes has data */
-                break;
+        block_size  =   read_32bitLE(block_offset+0x04,streamFile);
+        if (block_size > 0x00F00000) /* BE in SAT, but one file may have both BE and LE chunks */
+            block_size = read_32bitBE(block_offset+0x04,streamFile);
+
+        block_header = 0;
+
+        if (id == 0x31534E68 || id == 0x53454144) {  /* "1SNh" "SEAD" audio header */
+            int is_sead = (id == 0x53454144);
+            int is_eacs = read_32bitBE(block_offset+0x08, streamFile) == 0x45414353;
+
+            block_header = is_eacs ? 0x28 : (is_sead ? 0x14 : 0x2c);
+            if (block_header >= block_size) /* sometimes has audio data after header */
+                block_header = 0;
         }
-
-        if (id == 0x31534E64) {  /* "1SNd" data block found */
+        else if (id == 0x31534E64 || id == 0x534E4443) {  /* "1SNd" "SNDC" audio data */
             block_header = 0x08;
+        }
+        else if (id == 0x00000000) {
             break;
         }
 
-        if (id == 0x00000000 || id == 0xFFFFFFFF) { /* EOF: possible? */
+        if (block_header) {
             break;
         }
 
-        /* any other blocks "1SNl" "1SNe" etc */ //todo parse movie blocks
         block_offset += block_size;
     }
 
@@ -45,6 +50,7 @@ void block_update_ea_1snh(off_t block_offset, VGMSTREAM * vgmstream) {
     /* set new channel offsets and block sizes */
     switch(vgmstream->coding_type) {
         case coding_PCM8_int:
+        case coding_ULAW_int:
             vgmstream->current_block_size /= vgmstream->channels;
             for (i=0;i<vgmstream->channels;i++) {
                 vgmstream->ch[i].offset = block_offset + block_header + i;
@@ -66,13 +72,24 @@ void block_update_ea_1snh(off_t block_offset, VGMSTREAM * vgmstream) {
             break;
 
         case coding_DVI_IMA:
-            vgmstream->current_block_size -= 0x14;
-            for(i = 0; i < vgmstream->channels; i++) {
-                off_t adpcm_offset = block_offset + block_header + 0x04;
-                vgmstream->ch[i].adpcm_step_index  = read_32bit(adpcm_offset + i*0x04, streamFile);
-                vgmstream->ch[i].adpcm_history1_32 = read_32bit(adpcm_offset + 0x04*vgmstream->channels + i*0x04, streamFile);
-                // todo some demuxed vids don't have ADPCM hist? not sure how to correctly detect
-                vgmstream->ch[i].offset = block_offset + block_header + 0x14;
+            if (vgmstream->codec_version == 1) { /* ADPCM hist */
+                vgmstream->current_block_samples = read_32bit(block_offset + block_header, streamFile);
+                vgmstream->current_block_size = 0; // - (0x04 + 0x08*vgmstream->channels); /* should be equivalent */
+
+                for(i = 0; i < vgmstream->channels; i++) {
+                    off_t adpcm_offset = block_offset + block_header + 0x04;
+                    vgmstream->ch[i].adpcm_step_index  = read_32bit(adpcm_offset + i*0x04 + 0x00*vgmstream->channels, streamFile);
+                    vgmstream->ch[i].adpcm_history1_32 = read_32bit(adpcm_offset + i*0x04 + 0x04*vgmstream->channels, streamFile);
+                    vgmstream->ch[i].offset = adpcm_offset + 0x08*vgmstream->channels;
+                }
+
+                VGM_ASSERT(vgmstream->current_block_samples != (block_size - block_header - 0x04 - 0x08*vgmstream->channels) * 2 / vgmstream->channels,
+                           "EA 1SHN blocked: different expected vs block num samples at %lx\n", block_offset);
+            }
+            else {
+                for(i = 0; i < vgmstream->channels; i++) {
+                    vgmstream->ch[i].offset = block_offset + block_header;
+                }
             }
             break;
 
