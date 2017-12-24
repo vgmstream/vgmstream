@@ -28,7 +28,7 @@
 #define EA_CODEC1_NONE          -1
 #define EA_CODEC1_PCM           0x00
 #define EA_CODEC1_VAG           0x01  // unsure
-#define EA_CODEC1_EAXA          0x07  // Need for Speed 2 PC, Fifa 98 SAT
+#define EA_CODEC1_EAXA          0x07  // Need for Speed 2 PC, FIFA 98 SAT
 #define EA_CODEC1_MT10          0x09
 //#define EA_CODEC1_N64         ?
 
@@ -91,11 +91,13 @@ VGMSTREAM * init_vgmstream_ea_schl(STREAMFILE *streamFile) {
         goto fail;
 
     /* check header */
-    /* EA's stream files are made of blocks called "chunks" (SCxx, presumably Sound Chunk xx)
-     * typically: SCHl=header, SCCl=count of SCDl, SCDl=data xN, SCLl=loop end, SCEl=stream end.
-     * The number/size of blocks is affected by: block rate setting, sample rate, channels, CPU location (SPU/main/DSP/others), etc */
-    if (read_32bitBE(0x00,streamFile) != 0x5343486C) /* "SCHl" */
+    if (read_32bitBE(0x00,streamFile) != 0x5343486C &&  /* "SCHl" */
+        read_32bitBE(0x00,streamFile) != 0x5348454E)    /* "SHEN" */
         goto fail;
+
+    /* stream is divided into blocks/chunks: SCHl=audio header, SCCl=count of SCDl, SCDl=data xN, SCLl=loop end, SCEl=end.
+     * Video uses various blocks (MVhd/MV0K/etc) and sometimes alt audio blocks (SHEN/SDEN/SEEN).
+     * The number/size is affected by: block rate setting, sample rate, channels, CPU location (SPU/main/DSP/others), etc */
 
     header_size = read_32bitLE(0x04,streamFile);
     if (header_size > 0x00F00000) /* size is always LE, except in early SS/MAC */
@@ -451,7 +453,7 @@ static int parse_variable_header(STREAMFILE* streamFile, ea_header* ea, off_t be
     memset(ea,0,sizeof(ea_header));
 
     /* null defaults as 0 can be valid */
-    ea->version  = EA_VERSION_NONE;
+    ea->version = EA_VERSION_NONE;
     ea->codec1 = EA_CODEC1_NONE;
     ea->codec2 = EA_CODEC2_NONE;
 
@@ -747,70 +749,73 @@ fail:
     return 0;
 }
 
-/* get total samples by parsing block headers, needed when multiple files are stitched together */
-/* Some EA files (.mus, .eam, .sng, etc) concat many small subfiles, used as mapped
- * music (.map/lin). We get total possible samples (counting all subfiles) and pretend
- * they are a single stream. Subfiles always share header, except num_samples. */
+/* Get total samples by parsing block headers, needed when multiple files are stitched together.
+ * Some EA files (.mus/eam/sng/etc) concat many small subfiles, used for interactive/mapped
+ * music (.map/lin). Subfiles always share header, except num_samples. */
 static int get_ea_stream_total_samples(STREAMFILE* streamFile, off_t start_offset, const ea_header* ea) {
     int num_samples = 0;
-    size_t file_size = get_streamfile_size(streamFile);
+    int new_schl = 0;
     off_t block_offset = start_offset;
+    size_t block_size, block_samples;
     int32_t (*read_32bit)(off_t,STREAMFILE*) = ea->big_endian ? read_32bitBE : read_32bitLE;
+    size_t file_size = get_streamfile_size(streamFile);
+
 
     while (block_offset < file_size) {
-        uint32_t id, block_size, block_samples;
-
-        id = read_32bitBE(block_offset+0x00,streamFile);
+        uint32_t id = read_32bitBE(block_offset+0x00,streamFile);
 
         block_size = read_32bitLE(block_offset+0x04,streamFile);
-        if (block_size > 0x00F00000) /* size is always LE, except in early SS/MAC */
+        if (block_size > 0x00F00000) /* size is always LE, except in early SAT/MAC */
             block_size = read_32bitBE(block_offset+0x04,streamFile);
 
-        /* SCxx blocks have size in the header, but others may not. To simplify we just try to
-         * find a SCDl (main data) every 0x04. EA sometimes concats many small files, so after a SCEl (end block)
-         * there may be a new SCHl + SCDl too, so this pretends they are a single stream. */
-        if (id == 0x5343446C) { /* "SCDl" data block found */
+        block_samples = 0;
 
-            /* use num_samples from header if possible */
+        if (id == 0x5343446C || id == 0x5344454E) { /* "SCDl" "SDEN" audio data */
             switch (ea->codec2) {
-                case EA_CODEC2_VAG:         /* PS-ADPCM */
+                case EA_CODEC2_VAG:
                     block_samples = ps_bytes_to_samples(block_size-0x10, ea->channels);
                     break;
-
                 default:
                     block_samples = read_32bit(block_offset+0x08,streamFile);
                     break;
             }
-
-            /* guard against false positives (happens in "pIQT" blocks) */
-            if (block_size > 0xFFFF || block_samples > 0xFFFF) { /* observed max is ~0xf00 but who knows */
-                block_offset += 0x04;
-                continue;
-            }
-
-            num_samples += block_samples;
-
-            block_offset += block_size; /* size includes header */
         }
-        else {
-            /* movie "pIQT" may be bigger than what block_size says, but seems to help */
-            if (id == 0x5343486C || id == 0x5343436C || id == 0x53434C6C || id == 0x70495154) { /* "SCHl" "SCCl" "SCLl" "SCEl" "pIQT" */
-                block_offset += block_size;
-            } else {
-                block_offset += 0x04;
+        else { /* any other chunk, audio ("SCHl" "SCCl" "SCLl" "SCEl" etc), or video ("pQGT" "pIQT "MADk" "MPCh" etc) */
+            /* padding between "SCEl" and next "SCHl" (when subfiles exist) */
+            if (id == 0x00000000) {
+                block_size = 0x04;
             }
 
-            if (id == 0x5343456C) {  /* "SCEl" end block found */
-                /* Usually there is padding between SCEl and SCHl (aligned to 0x80) */
-                block_offset += (block_offset % 0x04) == 0 ? 0 : 0x04 - (block_offset % 0x04); /* also 32b-aligned, important */
+            if (id == 0x5343486C || id == 0x5348454E) { /* "SCHl" "SHEN" end block */
+                new_schl = 1;
             }
+        }
 
-            block_offset += 0x04;
-            continue;
+        /* guard against errors (happens in bad rips/endianness, observed max is vid ~0x20000) */
+        if (block_size == 0x00 || block_size > 0xFFFFF || block_samples > 0xFFFF) {
+            VGM_LOG("EA SCHl: bad block size %x at %lx\n", block_size, block_offset);
+            block_size = 0x04;
+            block_samples = 0;
+        }
+
+        num_samples += block_samples;
+        block_offset += block_size;
+
+        /* "SCEl" are aligned to 0x80 usually, but causes problems if not 32b-aligned (ex. Need for Speed 2 PC) */
+        if ((id == 0x5343456C || id == 0x5345454E) && block_offset % 0x04) {
+            VGM_LOG_ONCE("EA SCHl: mis-aligned end offset found\n");
+            block_offset += 0x04 - (block_offset % 0x04);
         }
     }
 
-    return num_samples;
+    /* only use calculated samples with multiple subfiles (rarely header samples may be less due to padding) */
+    if (new_schl) {
+        ;VGM_LOG("EA SCHl: multiple SCHl found\n");
+        return num_samples;
+    }
+    else {
+        return 0;
+    }
 }
 
 /* find data start offset inside the first SCDl; not very elegant but oh well */
@@ -825,7 +830,7 @@ static off_t get_ea_stream_mpeg_start_offset(STREAMFILE* streamFile, off_t start
         id = read_32bitBE(block_offset+0x00,streamFile);
 
         block_size = read_32bitLE(block_offset+0x04,streamFile);
-        if (block_size > 0x00F00000) /* size is always LE, except in early SS/MAC */
+        if (block_size > 0x00F00000) /* size is always LE, except in early SAT/MAC */
             block_size = read_32bitBE(block_offset+0x04,streamFile);
 
         if (id == 0x5343446C) { /* "SCDl" data block found */
