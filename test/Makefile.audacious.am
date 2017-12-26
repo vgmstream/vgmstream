@@ -2,8 +2,15 @@
 
 bin_PROGRAMS = vgmstream-cli
 
+if HAVE_LIBAO
+bin_PROGRAMS += vgmstream123
+endif
+
 AM_CFLAGS = -I$(top_builddir) -I$(top_srcdir) -I$(top_srcdir)/ext_includes/ $(AO_CFLAGS)
 AM_MAKEFLAGS = -f Makefile.audacious
 
 vgmstream_cli_SOURCES = test.c
 vgmstream_cli_LDADD   = ../src/libvgmstream.la
+
+vgmstream123_SOURCES = vgmstream123.c
+vgmstream123_LDADD   = ../src/libvgmstream.la $(AO_LIBS)
