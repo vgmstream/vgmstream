@@ -787,7 +787,8 @@ void decode_ubi_ima(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspaci
 
 size_t ms_ima_bytes_to_samples(size_t bytes, int block_align, int channels) {
     /* MS IMA blocks have a 4 byte header per channel; 2 samples per byte (2 nibbles) */
-    return (bytes / block_align) * (block_align - 4 * channels) * 2 / channels;
+    return (bytes / block_align) * (block_align - 4 * channels) * 2 / channels
+            + ((bytes % block_align) ? ((bytes % block_align) - 4 * channels) * 2 / channels : 0);
 }
 
 size_t ima_bytes_to_samples(size_t bytes, int channels) {
