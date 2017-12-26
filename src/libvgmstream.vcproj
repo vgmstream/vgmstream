@@ -1342,6 +1342,10 @@
                     RelativePath=".\meta\xma.c"
                     >
                 </File>
+                <File
+                    RelativePath=".\meta\xnb.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\xss.c"
 					>
