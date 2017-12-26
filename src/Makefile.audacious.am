@@ -1,8 +1,8 @@
 ## audacious-vgmstream automake script
 
-noinst_LTLIBRARIES = libvgmstream.la
+lib_LTLIBRARIES = libvgmstream.la
 
-AM_CFLAGS = -Wall @CFLAGS@ -I$(top_builddir) -I$(top_srcdir) -I$(top_srcdir)/ext_includes/
+AM_CFLAGS = -I$(top_builddir) -I$(top_srcdir) -I$(top_srcdir)/ext_includes/
 AM_MAKEFLAGS=-f Makefile.audacious
 
 SUBDIRS = coding layout meta
@@ -11,5 +11,6 @@ SUBDIRS = coding layout meta
 libvgmstream_la_LDFLAGS = coding/libcoding.la layout/liblayout.la meta/libmeta.la
 libvgmstream_la_SOURCES = (auto-updated)
 libvgmstream_la_SOURCES += ../ext_libs/clHCA.c
+libvgmstream_la_LIBADD = $(AUDACIOUS_LIBS) $(GTK_LIBS) $(VORBISFILE_LIBS) $(VORBIS_LIBS) $(MPG123_LIBS) -lm
 EXTRA_DIST = (auto-updated)
 EXTRA_DIST += ../ext_includes/clHCA.h

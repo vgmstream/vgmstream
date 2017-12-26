@@ -3,6 +3,6 @@
 
 AM_MAKEFLAGS=-f Makefile.audacious
 
-SUBDIRS = src audacious
+SUBDIRS = src audacious test
 
-#EXTRA_DIST = include 
+EXTRA_DIST = version.h

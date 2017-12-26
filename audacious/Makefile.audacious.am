@@ -1,11 +1,12 @@
 ## audacious-vgmstream automake script
 
-lib_LTLIBRARIES = libvgmstream.la
+#inputplugindir = $(libdir)/audacious/$(INPUT_PLUGIN_DIR)
+inputplugindir = $(plugindir)/$(INPUT_PLUGIN_DIR)
 
-libdir = @plugindir@/@INPUT_PLUGIN_DIR@
+inputplugin_LTLIBRARIES = libvgmstream.la
 
 AM_MAKEFLAGS=-f Makefile.audacious
-AM_CXXFLAGS = -DVERSION=\"VGMSTREAM_VERSION\" -Wall -std=c++11 -fpermissive @CXXFLAGS@ -I$(top_builddir) -I$(top_srcdir) -I$(top_srcdir)/ext_includes/ @GTK_CFLAGS@
+AM_CXXFLAGS = -DVERSION=\"VGMSTREAM_VERSION\" -Wall -std=c++11 -fpermissive -I$(top_builddir) -I$(top_srcdir) -I$(top_srcdir)/ext_includes/ $(AUDACIOUS_CFLAGS) $(GTK_CFLAGS)
 AM_LIBS =
 
 # sources/headers are updated automatically by ./bootstrap script (not all headers are needed though)

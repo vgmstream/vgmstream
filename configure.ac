@@ -21,6 +21,10 @@ PKG_CHECK_MODULES(AUDACIOUS, [audacious >= 3.5.0],,
         [AC_MSG_ERROR([Cannot find audacious >= 3.5.0 correctly installed])]
 )
 
+PKG_CHECK_MODULES(VORBIS, [vorbis],,
+        [AC_MSG_ERROR([Cannot find libvorbis])]
+)
+
 PKG_CHECK_MODULES(VORBISFILE, [vorbisfile],,
         [AC_MSG_ERROR([Cannot find libvorbisfile])]
 )
@@ -33,8 +37,10 @@ PKG_CHECK_MODULES(GTK, [glib-2.0 >= 2.6.0 gtk+-2.0 >= 2.6.0 gthread-2.0 pango],
     , [AC_MSG_ERROR([Cannot find glib2/gtk2/pango])]
 )
 
-CFLAGS="$CFLAGS $AUDACIOUS_CFLAGS"
-LIBS="$LIBS $AUDACIOUS_LIBS $GTK_LIBS $VORBISFILE_LIBS $MPG123_LIBS"
+if test "_$GCC" = _yes
+then
+  CFLAGS="$CFLAGS -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unused-but-set-variable"
+fi
 
 plugindir=`pkg-config audacious --variable=plugin_dir`
 AC_SUBST(plugindir)
@@ -55,4 +61,5 @@ AC_OUTPUT([
   src/layout/Makefile.audacious
   src/meta/Makefile.audacious
   audacious/Makefile.audacious
+  test/Makefile.audacious
 ])
