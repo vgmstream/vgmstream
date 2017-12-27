@@ -37,6 +37,11 @@ PKG_CHECK_MODULES(GTK, [glib-2.0 >= 2.6.0 gtk+-2.0 >= 2.6.0 gthread-2.0 pango],
     , [AC_MSG_ERROR([Cannot find glib2/gtk2/pango])]
 )
 
+have_libao=no
+PKG_CHECK_MODULES(AO, [ao >= 1.1.0], have_libao=yes,
+        [AC_MSG_WARN([Cannot find libao - will not build vgmstream123])])
+AM_CONDITIONAL(HAVE_LIBAO, test "$have_libao" = yes)
+
 if test "_$GCC" = _yes
 then
   CFLAGS="$CFLAGS -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unused-but-set-variable"
