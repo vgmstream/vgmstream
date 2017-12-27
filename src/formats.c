@@ -156,6 +156,7 @@ static const char* extension_list[] = {
     "khv",
     "kovs",
     "kraw",
+    "ktss",
 
     "laac", //fake extension, for AAC (tri-Ace/FFmpeg)
     "lac3", //fake extension, for AC3
@@ -880,6 +881,7 @@ static const meta_info meta_info_list[] = {
         {meta_CSTM,                 "Nintendo 3DS CSTM Header"},
         {meta_FSTM,                 "Nintendo Wii U FSTM Header"},
         {meta_KT_WIIBGM,            "Koei Tecmo WiiBGM Header"},
+        {meta_KTSS,                 "Koei Tecmo Switch Sound Header"},
         {meta_3DS_IDSP,             "Nintendo IDSP Header"},
         {meta_WIIU_BTSND,           "Nintendo Wii U Menu Boot Sound"},
         {meta_MCA,                  "Capcom MCA header"},
@@ -901,6 +903,7 @@ static const meta_info meta_info_list[] = {
         {meta_GTD,                  "GTD/GHS header"},
         {meta_TA_AAC_X360,          "tri-Ace AAC (X360) header"},
         {meta_TA_AAC_PS3,           "tri-Ace AAC (PS3) header"},
+        {meta_TA_AAC_VORBIS,        "tri-Ace AAC (Mobile Vorbis) header"},
         {meta_PS3_MTA2,             "Konami MTA2 header"},
         {meta_NGC_ULW,              "Criterion ULW raw header"},
         {meta_PC_XA30,              "Reflections XA30 PC header"},

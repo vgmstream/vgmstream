@@ -594,6 +594,7 @@ typedef enum {
     meta_FSTM,              // Nintendo Wii U FSTM (caFe? Stream)
     meta_3DS_IDSP,          // Nintendo 3DS/Wii U IDSP
     meta_KT_WIIBGM,         // Koei Tecmo WiiBGM
+    meta_KTSS,              // Koei Tecmo Switch Sound
     meta_MCA,               /* Capcom MCA "MADP" */
     meta_XB3D_ADX,          /* Xenoblade Chronicles 3D ADX */
     meta_HCA,               /* CRI HCA */
@@ -611,8 +612,9 @@ typedef enum {
     meta_OGL,               /* Shin'en Wii/WiiU (Jett Rocket (Wii), FAST Racing NEO (WiiU)) */
     meta_MC3,               /* Paradigm games (T3 PS2, MX Rider PS2, MI: Operation Surma PS2) */
     meta_GTD,               /* Knights Contract (X360/PS3), Valhalla Knights 3 (PSV) */
-    meta_TA_AAC_X360,       /* tri-ace AAC (Star Ocean 4, End of Eternity, Infinite Undiscovery) */
-    meta_TA_AAC_PS3,        /* tri-ace AAC (Star Ocean International, Resonance of Fate) */
+    meta_TA_AAC_X360,       /* tri-Ace AAC (Star Ocean 4, End of Eternity, Infinite Undiscovery) */
+    meta_TA_AAC_PS3,        /* tri-Ace AAC (Star Ocean International, Resonance of Fate) */
+    meta_TA_AAC_VORBIS,     /* tri-Ace AAC (Star Ocean Anamnesis, Heaven x Inferno) */
     meta_PS3_MTA2,          /* Metal Gear Solid 4 MTA2 */
     meta_NGC_ULW,           /* Burnout 1 (GC only) */
     meta_PC_XA30,           /* Driver - Parallel Lines (PC) */

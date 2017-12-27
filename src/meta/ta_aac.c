@@ -208,3 +208,51 @@ fail:
     close_vgmstream(vgmstream);
     return NULL;
 }
+
+/* Android/iOS Variants (Star Ocean Anamnesis (APK v1.9.2), Heaven x Inferno (iOS)) */
+VGMSTREAM * init_vgmstream_ta_aac_mobile(STREAMFILE *streamFile) {
+#ifdef VGM_USE_VORBIS
+    off_t start_offset;
+    int loop_flag;
+    char filename[PATH_LIMIT];
+    int8_t codec_id;
+
+    streamFile->get_name(streamFile, filename, sizeof(filename));
+    /* check extension, case insensitive */
+    /* .aac: expected, .laac/ace: for players to avoid hijacking MP4/AAC */
+    if (!check_extensions(streamFile, "aac,laac,ace"))
+        goto fail;
+
+    if (read_32bitLE(0x00, streamFile) != 0x41414320)   /* "AAC " */
+        goto fail;
+
+    if (read_32bitLE(0xf0, streamFile) != 0x57415645)   /* "WAVE" */
+        goto fail;
+
+    codec_id = read_8bit(0x104, streamFile);
+    if (codec_id == 0xe) /* Vorbis */
+    {
+        vgm_vorbis_info_t inf;
+        VGMSTREAM * result = NULL;
+
+        memset(&inf, 0, sizeof(inf));
+        inf.layout_type = layout_ogg_vorbis;
+        inf.meta_type = meta_TA_AAC_VORBIS;
+        inf.loop_start = read_32bitLE(0x140, streamFile);
+        inf.loop_end = read_32bitLE(0x144, streamFile);
+        inf.loop_flag = inf.loop_end > inf.loop_start;
+        inf.loop_end_found = inf.loop_flag;
+
+        start_offset = read_32bitLE(0x120, streamFile);
+        result = init_vgmstream_ogg_vorbis_callbacks(streamFile, filename, NULL, start_offset, &inf);
+
+        if (result != NULL) {
+            return result;
+        }
+    }
+
+fail:
+    /* clean up anything we may have opened */
+#endif
+    return NULL;
+}
