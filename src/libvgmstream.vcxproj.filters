@@ -1171,7 +1171,7 @@
     <ClCompile Include="meta\akb.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="coding\at3_decoder.c">
+    <ClCompile Include="coding\at3plus_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\bcstm.c">

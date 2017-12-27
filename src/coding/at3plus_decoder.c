@@ -4,6 +4,20 @@
 #ifdef VGM_USE_MAIATRAC3PLUS
 #include "maiatrac3plus.h"
 
+maiatrac3plus_codec_data *init_at3plus() {
+
+    maiatrac3plus_codec_data *data = malloc(sizeof(maiatrac3plus_codec_data));
+    data->buffer = 0;
+    data->samples_discard = 0;
+    data->handle = Atrac3plusDecoder_openContext();
+    if (!data->handle) goto fail;
+
+    return data;
+
+fail:
+    return NULL;
+}
+
 void decode_at3plus(VGMSTREAM * vgmstream, sample * outbuf, int channelspacing, int32_t samples_to_do, int channel) {
     VGMSTREAMCHANNEL *ch = &vgmstream->ch[0];
     maiatrac3plus_codec_data *data = vgmstream->codec_data;
@@ -25,8 +39,7 @@ void decode_at3plus(VGMSTREAM * vgmstream, sample * outbuf, int channelspacing, 
 		data->samples_discard = 0;
     }
 
-    for (i = 0; i < samples_to_do; i++)
-    {
+    for (i = 0; i < samples_to_do; i++) {
         outbuf[i*channelspacing] = data->buffer[(first_sample+i)*data->channels+channel];
     }
 

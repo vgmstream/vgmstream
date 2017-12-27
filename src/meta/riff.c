@@ -445,11 +445,7 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
 #endif
 #ifdef VGM_USE_MAIATRAC3PLUS
         case coding_AT3plus: {
-            maiatrac3plus_codec_data *data = malloc(sizeof(maiatrac3plus_codec_data));
-            data->buffer = 0;
-            data->samples_discard = 0;
-            data->handle = Atrac3plusDecoder_openContext();
-            vgmstream->codec_data = data;
+            vgmstream->codec_data = init_at3plus();
 
             /* get rough total samples but favor fact_samples if available (skip isn't correctly handled for now) */
             vgmstream->num_samples = atrac3plus_bytes_to_samples(data_size, fmt.block_size);
