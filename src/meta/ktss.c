@@ -30,7 +30,7 @@ VGMSTREAM * init_vgmstream_ktss(STREAMFILE *streamFile) {
     vgmstream->loop_end_sample = vgmstream->loop_start_sample + loop_length;
 
     vgmstream->coding_type = coding_NGC_DSP;
-    vgmstream->layout_type = layout_interleave_byte;
+    vgmstream->layout_type = layout_interleave;
     vgmstream->meta_type = meta_KTSS;
 
     vgmstream->interleave_block_size = 0x8;
