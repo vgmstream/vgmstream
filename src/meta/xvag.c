@@ -80,16 +80,9 @@ VGMSTREAM * init_vgmstream_xvag(STREAMFILE *streamFile) {
             vgmstream->coding_type = coding_PSX;
 
             if (loop_flag) {
-                if (loop_start!=0) {
-                    vgmstream->loop_start_sample = ((((loop_start/vgmstream->interleave_block_size)-1)*vgmstream->interleave_block_size)/16*28)/channel_count;
-                    if(loop_start%vgmstream->interleave_block_size)
-                        vgmstream->loop_start_sample += (((loop_start%vgmstream->interleave_block_size)-1)/16*14*channel_count);
-                }
-                vgmstream->loop_end_sample = ((((loop_end/vgmstream->interleave_block_size)-1)*vgmstream->interleave_block_size)/16*28)/channel_count;
-                if (loop_end%vgmstream->interleave_block_size)
-                    vgmstream->loop_end_sample += (((loop_end%vgmstream->interleave_block_size)-1)/16*14*channel_count);
+                vgmstream->loop_start_sample = ps_bytes_to_samples(loop_start, vgmstream->channels);
+                vgmstream->loop_end_sample = ps_bytes_to_samples(loop_end, vgmstream->channels);
             }
-
             break;
         }
 
