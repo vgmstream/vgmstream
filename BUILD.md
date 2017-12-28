@@ -17,14 +17,14 @@
 
 ## Compiling modules
 
-### CLI (test.exe) / Winamp plugin (in_vgmstream) / XMPlay plugin (xmp-vgmstream)
+### CLI (test.exe/vgmstream-cli) / Winamp plugin (in_vgmstream) / XMPlay plugin (xmp-vgmstream)
 
 **With GCC**: use the *./Makefile* in the root folder, see inside for options. For compilation flags check the *Makefile* in each folder.
 You need to manually rebuild if you change a *.h* file (use *make clean*).
 
-In Linux, Makefiles can be used to cross-compile with the MingW headers, but may not be updated to generate native code at the moment. It should be fixable with some effort.
+In Linux, Makefiles can be used to cross-compile with the MingW headers, but may not be updated to generate native code at the moment. It should be fixable with some effort. Autotools should build it as vgmstream-cli instead (see the Audacious section).
 
-Windows CMD example for test.exe:
+Windows CMD example:
 ```
 prompt $P$G$_$S
 set PATH=C:\Program Files (x86)\Git\usr\bin;%PATH%
@@ -91,24 +91,24 @@ Windows builds aren't supported at the moment (should be possible but there are 
 
 Terminal example, assuming a Ubuntu-based Linux distribution:
 ```
-# get libraries
+# build requirements
 sudo apt-get update
-
-sudo apt-get install audacious
-
-sudo apt-get install git
 sudo apt-get install gcc g++ make
 sudo apt-get install autoconf automake libtool
-sudo apt-get install audacious-dev libmpg123-dev libvorbis-dev libglib2.0-dev libgtk2.0-dev libpango1.0-dev
+sudo apt-get install git
+# vgmstream dependencies
+sudo apt-get install libmpg123-dev libvorbis-dev
+# Audacious player and dependencies
+sudo apt-get install audacious  
+sudo apt-get install audacious-dev libglib2.0-dev libgtk2.0-dev libpango1.0-dev
 
-# check audacious version
+# check Audacious version >= 3.5
 pkg-config --modversion audacious
 
+# build
 git clone https://github.com/kode54/vgmstream
 cd vgmstream
 
-
-# build
 ./bootstrap
 ./configure
 make -f Makefile.audacious
@@ -117,13 +117,19 @@ make -f Makefile.audacious
 sudo make -f Makefile.audacious install
 
 
-# post-cleanup
+# optional post-cleanup
 make -f Makefile.audacious clean
 find . -name ".deps" -type d -exec rm -r "{}" \;
 ./unbootstrap
 ## WARNING, removes *all* untracked files not in .gitignore
 git clean -fd
 ```
+
+# vgmstream123 player
+Should be buildable with Autotools, much like the Audicious plugin, though requires libao (libao-dev).
+
+Windows builds aren't supported at the moment (source may need to be adapted for non-POSIX systems).
+
 
 ## Development
 
@@ -146,7 +152,7 @@ There are no hard coding rules but for consistency should follow general C conve
 ./src/coding/        format data decoders
 ./src/layout/        format data demuxers
 ./src/meta/          format header parsers
-./test/              test.exe CLI
+./test/              CLI tools
 ./winamp/            Winamp plugin
 ./xmplay/            XMPlay plugin
 ```
@@ -225,6 +231,22 @@ Decoders take a sample buffer, convert data to PCM samples and fill one or multi
 Every call the decoder will need to find out the current frame offset (usually per channel). This is usually done with a base channel offset (from the VGMSTREAM) plus deriving the frame number (thus sub-offset, but only if frames are fixed) through the current sample, or manually updating the channel offsets every frame. This second method is not suitable to use with the interleave layout as it advances the offsets assuming they didn't change (this is a limitation/bug at the moment). Similarly, the blocked layout cannot contain interleaved data, and must use alt decoders with internal interleave (also a current limitation). Thus, some decoders and layouts don't mix.
  
 If the decoder needs to keep state between calls it may use the VGMSTREAM for common values (like ADPCM history), or alloc a custom data struct. In that case the decoder should provide init/free functions so the meta or vgmstream may use. This is the case with decoders implemented using external libraries (*ext_libs*), as seen in *#ifdef VGM_USE_X ... #endif* sections.
+
+Adding a new decoder involves:
+- *src/coding/(decoder-name).c*: create `decode_x` function that decodes stream data into the passed sample buffer. If the codec requires custom internals it may need `init/reset/seek/free_x`, or other helper functions.
+- *src/coding/coding.h*: define decoder's functions.
+- *src/vgmstream.h*: define new coding type in the list. If the codec requires custom internals, define new `x_codec_data` struct.
+- *src/vgmstream.c: reset_vgmstream*: call `reset_x` if needed 
+- *src/vgmstream.c: close_vgmstream*: call `free_x` if needed
+- *src/vgmstream.c: get_vgmstream_samples_per_frame*: define so vgmstream only asks for N samples per decode_x call. May return 0 if variable/unknown/etc (decoder must handle setting arbitrary number of samples)
+- *src/vgmstream.c: get_vgmstream_frame_size*: define so vgmstream can do certain internal calculations. May return 0 if variable/unknown/etc, but blocked/interleave layouts will need to be used in a certain way.
+- *src/vgmstream.c: decode_vgmstream*: call `decode_x`, possibly once per channel if the decoder works with a channel at a time.
+- *src/vgmstream.c: vgmstream_do_loop*: call `seek_x` if needed
+- *src/vgmstream.c: reset_vgmstream*: call `reset_x` if needed
+- *src/formats.c*: add coding type description
+- *src/libvgmstream.vcproj/vcxproj/filters*: add to compile new (decoder-name).c parser in VS
+- *src/vgmstream.c*: add parser init to the init list
+- if the codec depends on a external library don't forget to mark parts with: *#ifdef VGM_USE_X ... #endif*
 
 #### core
 The vgmstream core simply consists of functions gluing the above together and some helpers (ex.- extension list, loop adjust, etc). 

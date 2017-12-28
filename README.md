@@ -4,11 +4,12 @@ This is vgmstream, a library for playing streamed (pre-recorded) audio
 from video games.
 
 There are multiple end-user bits:
-- a command line decoder called "test.exe"
+- a command line decoder called "test.exe/vgmstream-cli"
 - a Winamp plugin called "in_vgmstream"
 - a foobar2000 component called "foo_input_vgmstream"
 - an XMPlay plugin called "xmp-vgmstream"
 - an Audacious plugin called "libvgmstream"
+- a command line player called "vgmstream123"
 
 Help and newest builds can be found here: https://www.hcs64.com/
 
@@ -27,10 +28,10 @@ Put ```libvorbis.dll```, ```libmpg123-0.dll```, ```libg7221_decode.dll```, ```li
 ```avutil-vgmstream-56.dll``` and ```swresample-vgmstream-3.dll``` somewhere Windows can
 find them.
 
-For Winamp/XMPlay/test.exe this means in the directory with the .exe, or in a
-system directory, or any other directory in the PATH variable.
+For Winamp/XMPlay/command line this means in the directory with the main .exe,
+or in a system directory, or any other directory in the PATH variable.
 
-### test.exe
+### test.exe/vgmstream-cli
 ```
 Usage: test.exe [-o outfile.wav] [options] infile
 Options:
@@ -75,6 +76,9 @@ and in the "priority filetypes" put: ```ahx,asf,awc,ckd,fsb,genh,msf,p3d,rak,scd
 Every file should be installed automatically by the .fb2k-component bundle.
 
 ### Audacious plugin
+Needs to be manually built. Instructions can be found in the build document.
+
+### vgmstream123
 Needs to be manually built. Instructions can be found in the build document.
 
 ## Supported codec types
@@ -127,6 +131,7 @@ are used in few games.
 - Bink
 - AC3/SPDIF
 - Xiph Opus (Ogg, Switch)
+- Musepack
 - FLAC
 - Others
 
