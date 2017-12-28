@@ -183,6 +183,19 @@ static int read_fmt(int big_endian, STREAMFILE * streamFile, off_t current_chunk
                 goto fail;
 #endif
             }
+
+            /* ATRAC9 GUID 47E142D2-36BA-4d8d-88FC-61654F8C836C (D242E147 BA368D4D 88FC6165 4F8C836C) */
+            if (read_32bitBE(current_chunk+0x20,streamFile) == 0xD242E147 &&
+                read_32bitBE(current_chunk+0x24,streamFile) == 0xBA368D4D &&
+                read_32bitBE(current_chunk+0x28,streamFile) == 0x88FC6165 &&
+                read_32bitBE(current_chunk+0x2c,streamFile) == 0x4F8C836C) {
+#ifdef VGM_USE_ATRAC9
+                fmt->coding_type = coding_ATRAC9;
+#else
+                goto fail;
+#endif
+            }
+
             break;
 
         default:
@@ -218,7 +231,7 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
     off_t mwv_ctrl_offset = -1;
     int sns = 0; /* Ubisoft .sns LyN engine (Red Steel 2, Just Dance 3) */
     int at3 = 0; /* Sony ATRAC3 / ATRAC3plus */
-
+    int at9 = 0; /* Sony ATRAC9 */
 
     /* check extension, case insensitive
      * .da: The Great Battle VI (PS), .cd: Exector (PS), .med: Psi Ops (PC) */
@@ -231,12 +244,13 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
     else if ( check_extensions(streamFile, "sns") ) {
         sns = 1;
     }
-#if defined(VGM_USE_MAIATRAC3PLUS) || defined(VGM_USE_FFMPEG)
     /* .rws: Climax games (Silent Hill Origins PSP, Oblivion PSP), .aud: EA Replay */
     else if ( check_extensions(streamFile, "at3,rws,aud") ) {
         at3 = 1;
     }
-#endif
+    else if ( check_extensions(streamFile, "at9") ) {
+        at9 = 1;
+    }
     else {
         goto fail;
     }
@@ -323,10 +337,10 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
                 case 0x66616374:    /* fact */
                     if (sns && chunk_size == 0x10) {
                         fact_sample_count = read_32bitLE(current_chunk+0x08, streamFile);
-                    } else if (at3 && chunk_size == 0x08) {
+                    } else if ((at3 || at9) && chunk_size == 0x08) {
                         fact_sample_count = read_32bitLE(current_chunk+0x08, streamFile);
                         fact_sample_skip  = read_32bitLE(current_chunk+0x0c, streamFile);
-                    } else if (at3 && chunk_size == 0x0c) {
+                    } else if ((at3 || at9) && chunk_size == 0x0c) {
                         fact_sample_count = read_32bitLE(current_chunk+0x08, streamFile);
                         fact_sample_skip  = read_32bitLE(current_chunk+0x10, streamFile);
                     }
@@ -454,6 +468,27 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
             break;
         }
 #endif
+#ifdef VGM_USE_ATRAC9
+        case coding_ATRAC9: {
+            atrac9_config cfg = {0};
+
+            cfg.channels = vgmstream->channels;
+            cfg.config_data = read_32bitBE(fmt.offset+0x08+0x2c,streamFile);
+            cfg.encoder_delay = fact_sample_skip;
+
+            vgmstream->codec_data = init_atrac9(&cfg);
+            if (!vgmstream->codec_data) goto fail;
+
+            vgmstream->num_samples = fact_sample_count;
+            /* RIFF loop/sample values are absolute (with skip samples), adjust */
+            if (loop_flag) {
+                loop_start_offset -= fact_sample_skip;
+                loop_end_offset -= fact_sample_skip;
+            }
+
+            break;
+        }
+#endif
         default:
             goto fail;
     }
@@ -473,6 +508,9 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
 #endif
 #ifdef VGM_USE_MAIATRAC3PLUS
         case coding_AT3plus:
+#endif
+#ifdef VGM_USE_ATRAC9
+        case coding_ATRAC9:
 #endif
             vgmstream->layout_type = layout_none;
             vgmstream->interleave_block_size = fmt.block_size;

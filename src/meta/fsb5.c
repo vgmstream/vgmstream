@@ -6,13 +6,12 @@
 VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     off_t StartOffset = 0, NameOffset = 0;
-    off_t SampleHeaderStart = 0, DSPInfoStart = 0;
+    off_t SampleHeaderStart = 0, ExtraInfoStart = 0;
     size_t SampleHeaderLength, NameTableLength, SampleDataLength, BaseHeaderLength, StreamSize = 0;
 
     uint32_t NumSamples = 0, LoopStart = 0, LoopEnd = 0;
     int LoopFlag = 0, ChannelCount = 0, SampleRate = 0, CodingID;
     int TotalStreams, TargetStream = streamFile->stream_index;
-    uint32_t VorbisSetupId = 0;
     int i;
 
     /* check extension, case insensitive */
@@ -116,15 +115,16 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
                     case 0x06:  /* XMA seek table */
                         /* no need for it */
                         break;
-                    case 0x07:  /* DSP Info (Coeffs) */
-                        DSPInfoStart = ExtraFlagStart + 0x04;
+                    case 0x07:  /* DSP coeffs */
+                        ExtraInfoStart = ExtraFlagStart + 0x04;
                         break;
-                    case 0x09:  /* ATRAC9 data */
+                    case 0x09:  /* ATRAC9 config */
+                        ExtraInfoStart = ExtraFlagStart + 0x04;
                         break;
                     case 0x0a:  /* XWMA data */
                         break;
-                    case 0x0b:  /* Vorbis data */
-                        VorbisSetupId = (uint32_t)read_32bitLE(ExtraFlagStart+0x04,streamFile); /* crc32? */
+                    case 0x0b:  /* Vorbis setup ID and seek table */
+                        ExtraInfoStart = ExtraFlagStart + 0x04;
                         /* seek table format:
                          * 0x08: table_size (total_entries = seek_table_size / (4+4)), not counting this value; can be 0
                          * 0x0C: sample number (only some samples are saved in the table)
@@ -221,7 +221,7 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
             vgmstream->layout_type = layout_none;
             vgmstream->interleave_block_size = 0x02;
 
-            dsp_read_coefs_be(vgmstream,streamFile,DSPInfoStart,0x2E);
+	        dsp_read_coefs_be(vgmstream,streamFile,ExtraInfoStart,0x2E);
             break;
 
         case 0x07:  /* FMOD_SOUND_FORMAT_IMAADPCM */
@@ -272,8 +272,20 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
         case 0x0C:  /* FMOD_SOUND_FORMAT_CELT */
             goto fail;
 
-        case 0x0D:  /* FMOD_SOUND_FORMAT_AT9 */
-            goto fail;
+#ifdef VGM_USE_ATRAC9
+        case 0x0D: {/* FMOD_SOUND_FORMAT_AT9 */
+            atrac9_config cfg = {0};
+
+            cfg.channels = vgmstream->channels;
+            cfg.config_data = read_32bitBE(ExtraInfoStart,streamFile);
+
+            vgmstream->codec_data = init_atrac9(&cfg);
+            if (!vgmstream->codec_data) goto fail;
+            vgmstream->coding_type = coding_ATRAC9;
+            vgmstream->layout_type = layout_none;
+            break;
+        }
+#endif
 
         case 0x0E:  /* FMOD_SOUND_FORMAT_XWMA */
             goto fail;
@@ -284,7 +296,7 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
 
             cfg.channels = vgmstream->channels;
             cfg.sample_rate = vgmstream->sample_rate;
-            cfg.setup_id = VorbisSetupId;
+            cfg.setup_id = read_32bitLE(ExtraInfoStart,streamFile);
 
             vgmstream->layout_type = layout_none;
             vgmstream->coding_type = coding_VORBIS_custom;
