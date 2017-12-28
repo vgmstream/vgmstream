@@ -147,7 +147,78 @@ static const hcakey_info hcakey_list[] = {
         // Kirara Fantasia (Android/iOS)
         {51408295487268137},        // 00B6A3928706E529
 
-};
+        // A3! (iOS/Android)
+        {914306251},                // 00000000367F34CB
 
+        // Weekly Shonen Jump: Ore Collection! (iOS/Android)
+        {11708691},                 // 0000000000B2A913
+
+        // Monster Gear Versus (iOS/Android)
+        {0xB1E30F346415B475},       // B1E30F346415B475
+
+        // Yumeiro Cast (iOS/Android)
+        {14418},                    // 0000000000003852
+
+        // Ikki Tousen: Straight Striker (iOS/Android)
+        {1000},                     // 00000000000003E8
+
+        // Zero kara Hajimeru Mahou no Sho (iOS/Android)
+        {0xD2E836E662F20000},       // D2E836E662F20000
+
+        // Soul Reverse Zero (iOS/Android)
+        {2873513618},               // 00000000AB465692
+
+        // Jojo's Bizarre Adventure: Diamond Records (iOS/Android) [additional data]
+        {0x820212864CAB35DE},       // 820212864CAB35DE
+
+        // HUNTER x HUNTER: World Hunt (iOS/Android)
+        {71777214294589695},        // 00FF00FF00FF00FF
+
+        // \Comepri/ Comedy Prince (iOS/Android)
+        {201537197868},             // 0000002EEC8D972C
+
+        // Puzzle of Empires (iOS/Android)
+        {13687846},                 // 0000000000D0DC26
+
+        // Aozora Under Girls! (iOS/Android)
+        {4988006236073},            // 000004895C56FFA9
+
+        // Castle & Dragon (iOS/Android)
+        {20140528},                 // 00000000013351F0
+
+        // Uta no Prince sama Shining Live (iOS/Android)
+        {2122831366},               // 000000007E87D606
+
+        // Sevens Story (iOS/Android)
+        {629427372852},             // 000000928CCB8334
+
+        // MinGol: Everybody's Golf (iOS/Android)
+        {1430028151061218},         // 0005149A5FF67AE2
+
+        // AKB48 Group Tsui ni Koushiki Otoge demashita. (iOS/Android)
+        {831021912315111419},       // 0B886206BC1BA7FB
+
+        // Sen no Kaizoku (iOS/Android)
+        {81368371967},              // 00000012F1EED2FF
+
+        // I Chu (iOS/Android)
+        {13456},                    // 0000000000003490
+
+        // Shinobi Nightmare (iOS/Android)
+        {369481198260487572},       // 0520A93135808594
+
+        // Bungo Stray Dogs: Mayoi Inu Kaikitan (iOS/Android)
+        {1655728931134731873},      // 16FA54B0C09F7661
+
+        // Super Sentai Legend Wars (iOS/Android)
+        {4017992759667450},         // 000E4657D7266AFA
+
+        // Metal Saga: The Ark of Wastes (iOS/Android)
+        {100097101118097115},       // 01639DC87B30C6DB
+
+        // Taga Tame no Alchemist (iOS/Android)
+        {5047159794308},            // 00000497222AAA84
+
+};
 
 #endif/*_HCA_KEYS_H_*/
