@@ -213,6 +213,16 @@ void seek_at3plus(VGMSTREAM *vgmstream, int32_t num_sample);
 void free_at3plus(maiatrac3plus_codec_data *data);
 #endif
 
+#ifdef VGM_USE_ATRAC9
+/* atrac9_decoder */
+atrac9_codec_data *init_atrac9(atrac9_config *cfg);
+void decode_atrac9(VGMSTREAM *vgmstream, sample * outbuf, int32_t samples_to_do, int channels);
+void reset_atrac9(VGMSTREAM *vgmstream);
+void seek_atrac9(VGMSTREAM *vgmstream, int32_t num_sample);
+void free_atrac9(atrac9_codec_data *data);
+size_t atrac9_bytes_to_samples(size_t bytes, atrac9_codec_data *data);
+#endif
+
 #ifdef VGM_USE_FFMPEG
 /* ffmpeg_decoder */
 ffmpeg_codec_data * init_ffmpeg_offset(STREAMFILE *streamFile, uint64_t start, uint64_t size);

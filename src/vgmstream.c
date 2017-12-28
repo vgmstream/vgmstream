@@ -545,7 +545,13 @@ void reset_vgmstream(VGMSTREAM * vgmstream) {
 	    reset_at3plus(vgmstream);
 	}
 #endif
-    
+
+#ifdef VGM_USE_ATRAC9
+    if (vgmstream->coding_type==coding_ATRAC9) {
+        reset_atrac9(vgmstream);
+    }
+#endif
+
 #ifdef VGM_USE_FFMPEG
     if (vgmstream->coding_type==coding_FFmpeg) {
         reset_ffmpeg(vgmstream);
@@ -738,6 +744,13 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
 	    free_at3plus(vgmstream->codec_data);
         vgmstream->codec_data = NULL;
 	}
+#endif
+
+#ifdef VGM_USE_ATRAC9
+    if (vgmstream->coding_type == coding_ATRAC9) {
+        free_atrac9(vgmstream->codec_data);
+        vgmstream->codec_data = NULL;
+    }
 #endif
 
     if (vgmstream->coding_type==coding_ACM) {
@@ -1127,6 +1140,10 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
 		case coding_AT3plus:
 			return 2048 - ((maiatrac3plus_codec_data*)vgmstream->codec_data)->samples_discard;
 #endif
+#ifdef VGM_USE_ATRAC9
+        case coding_ATRAC9:
+            return 0; /* varies with config data, usually 256 or 1024 */
+#endif
         default:
             return 0;
     }
@@ -1255,6 +1272,10 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
             return 0x04;
         case coding_EA_MT:
             return 0; /* variable (frames of bit counts or PCM frames) */
+#ifdef VGM_USE_ATRAC9
+        case coding_ATRAC9:
+            return 0; /* varies with config data, usually 0x100-200 */
+#endif
         default:
             return 0;
     }
@@ -1771,6 +1792,14 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
 			}
 			break;
 #endif
+#ifdef VGM_USE_ATRAC9
+        case coding_ATRAC9:
+            decode_atrac9(vgmstream,
+                          buffer+samples_written*vgmstream->channels,
+                          samples_to_do,
+                          vgmstream->channels);
+            break;
+#endif
         case coding_ACM:
             /* handled in its own layout, here to quiet compiler */
             break;
@@ -1970,6 +1999,12 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream) {
 #ifdef VGM_USE_MAIATRAC3PLUS
         if (vgmstream->coding_type==coding_AT3plus) {
             seek_at3plus(vgmstream, vgmstream->loop_sample);
+        }
+#endif
+
+#ifdef VGM_USE_ATRAC9
+        if (vgmstream->coding_type==coding_ATRAC9) {
+            seek_atrac9(vgmstream, vgmstream->loop_sample);
         }
 #endif
 

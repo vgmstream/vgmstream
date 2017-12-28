@@ -22,6 +22,11 @@ enum { STREAM_NAME_SIZE = 255 }; /* reasonable max */
 #define VGM_USE_MPEG
 #endif
 
+#ifndef VGM_DISABLE_ATRAC9
+//#define VGM_USE_ATRAC9
+#endif
+
+
 /* disabled by default, defined on compile-time for builds that support it*/
 //#define VGM_USE_G7221
 //#define VGM_USE_G719
@@ -195,6 +200,10 @@ typedef enum {
 
 #ifdef VGM_USE_MAIATRAC3PLUS
 	coding_AT3plus,         /* Sony ATRAC3plus (MDCT-based) */
+#endif
+
+#ifdef VGM_USE_ATRAC9
+    coding_ATRAC9,          /* Sony ATRAC9 (MDCT-based) */
 #endif
 
 #ifdef VGM_USE_FFMPEG
@@ -978,6 +987,32 @@ typedef struct {
 	int samples_discard;
 	void *handle;
 } maiatrac3plus_codec_data;
+#endif
+
+#ifdef VGM_USE_ATRAC9
+typedef struct {
+    int channels; /* to detect weird multichannel */
+    uint32_t config_data; /* ATRAC9 config header */
+    int encoder_delay; /* initial samples to discard */
+
+    size_t interleave_skip; /* XVAG */
+    size_t subsong_skip; /* XVAG */
+} atrac9_config;
+
+typedef struct {
+    uint8_t *data_buffer;
+    size_t data_buffer_size;
+
+    sample *sample_buffer;
+    size_t samples_filled; /* number of samples in the buffer */
+    size_t samples_used; /* number of samples extracted from the buffer */
+
+    int samples_to_discard;
+
+    atrac9_config config;
+
+    void *handle; /* decoder handle */
+} atrac9_codec_data;
 #endif
 
 /* with one file this is also used for just ACM */
