@@ -221,11 +221,29 @@ static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE * streamHead, ST
             break;
         }
 #endif
+
+#if 0 //todo unknown variation
+#ifdef VGM_USE_ATRAC9
+        case 0x0a: {    /* EATrax */
+            atrac9_config cfg = {0};
+
+            cfg.channels = vgmstream->channels;
+            cfg.config_data = read_32bitBE(header_offset + 0x08,streamHead);
+            /* 0x0c: data size without blocks?, 0x10: frame size? (same as config data?) */
+
+            vgmstream->codec_data = init_atrac9(&cfg);
+            if (!vgmstream->codec_data) goto fail;
+            vgmstream->coding_type = coding_ATRAC9;
+            vgmstream->layout_type = layout_blocked_ea_sns;
+            break;
+        }
+#endif
+#endif
+
         case 0x00: /* "NONE" (internal 'codec not set' flag) */
         case 0x01: /* not used/reserved? Gca0/MP30/P6L0/P2B0/P2L0/P8S0/P8U0/PFN0? */
         case 0x08: /* ? */
         case 0x09: /* EASpeex (libspeex variant, base versions vary: 1.0.5, 1.2beta3) */
-        case 0x0a: /* EATrax (ATRAC9 variant, has deflated fillers a la EA-XMA) */
         case 0x0b: /* ? */
         case 0x0c: /* EAOpus (inside each SNS/SPS block is 16b frame size + standard? Opus packet) */
         case 0x0d: /* ? */

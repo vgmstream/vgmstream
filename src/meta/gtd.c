@@ -1,7 +1,7 @@
 #include "meta.h"
 #include "../coding/coding.h"
 
-typedef enum { XMA2 } gtd_codec;
+typedef enum { XMA2, ATRAC9 } gtd_codec;
 
 /* GTD - found in Knights Contract (X360, PS3), Valhalla Knights 3 (PSV) */
 VGMSTREAM * init_vgmstream_gtd(STREAMFILE *streamFile) {
@@ -10,6 +10,7 @@ VGMSTREAM * init_vgmstream_gtd(STREAMFILE *streamFile) {
     size_t data_size, chunk_size;
     int loop_flag, channel_count, sample_rate;
     int num_samples, loop_start_sample, loop_end_sample;
+    uint32_t at9_config_data;
     gtd_codec codec;
 
 
@@ -34,22 +35,34 @@ VGMSTREAM * init_vgmstream_gtd(STREAMFILE *streamFile) {
         data_size = read_32bitBE(0x5c,streamFile);
         /* 0x34(18): null,  0x54(4): seek table offset, 0x58(4): seek table size, 0x5c(8): null, 0x64: seek table */
 
-        stpr_offset = read_32bitBE(chunk_offset+0x54,streamFile) + read_32bitBE(chunk_offset+0x58,streamFile);;
+        stpr_offset = read_32bitBE(chunk_offset+0x54,streamFile) + read_32bitBE(chunk_offset+0x58,streamFile);
         if (read_32bitBE(stpr_offset,streamFile) == 0x53545052) { /* "STPR" */
             name_offset = stpr_offset + 0xB8; /* there are offsets fields but seems to work */
         }
 
         codec = XMA2;
     }
+    else if (0x34 + read_32bitLE(0x30,streamFile) + read_32bitLE(0x0c,streamFile) == get_streamfile_size(streamFile)) { /* ATRAC9 */
+
+        data_size = read_32bitLE(0x0c,streamFile);
+        start_offset = 0x34 + read_32bitLE(0x30,streamFile);
+        channel_count   = read_32bitLE(0x10,streamFile);
+        sample_rate     = read_32bitLE(0x14,streamFile);
+        at9_config_data = read_32bitBE(0x28,streamFile);
+        /* 0x18-0x28: fixed/unknown values */
+
+        stpr_offset = 0x2c;
+        if (read_32bitBE(stpr_offset,streamFile) == 0x53545052) { /* "STPR" */
+            name_offset = stpr_offset + 0xE8; /* there are offsets fields but seems to work */
+        }
+
+        codec = ATRAC9;
+    }
     else {
-        /* there are PSV (LE, ATRAC9 data) and PS3 (MSF inside?) variations, somewhat-but-not-quite similar */
-
-        /* for PSV: */
-        /* 0x0c: data_size, 0x10: channles, 0x14: sample rate, 0x18-0x2c: fixed and unknown values */
-        /* 0x2c: STPR chunk, with name_offset at + 0xE8 */
-
+        /* apparently there is a PS3 variation (MSF inside?) */
         goto fail;
     }
+
 
 
     /* build the VGMSTREAM */
@@ -57,7 +70,6 @@ VGMSTREAM * init_vgmstream_gtd(STREAMFILE *streamFile) {
     if (!vgmstream) goto fail;
 
     vgmstream->sample_rate = sample_rate;
-    vgmstream->num_samples = num_samples;
     vgmstream->loop_start_sample = loop_start_sample;
     vgmstream->loop_end_sample   = loop_end_sample;
     vgmstream->meta_type = meta_GTD;
@@ -77,9 +89,29 @@ VGMSTREAM * init_vgmstream_gtd(STREAMFILE *streamFile) {
             if ( !vgmstream->codec_data ) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
+
+            vgmstream->num_samples = num_samples;
             break;
         }
 #endif
+#ifdef VGM_USE_ATRAC9
+        case ATRAC9: {
+            atrac9_config cfg = {0};
+
+            cfg.channels = vgmstream->channels;
+            cfg.config_data = at9_config_data;
+
+            vgmstream->codec_data = init_atrac9(&cfg);
+            if (!vgmstream->codec_data) goto fail;
+            vgmstream->coding_type = coding_ATRAC9;
+            vgmstream->layout_type = layout_none;
+
+            vgmstream->num_samples = atrac9_bytes_to_samples(data_size, vgmstream->codec_data);
+            break;
+        }
+
+#endif
+
         default:
             goto fail;
     }

@@ -4,16 +4,18 @@
 
 static int ps_adpcm_find_loop_offsets(STREAMFILE *streamFile, int channel_count, off_t start_offset, off_t * loop_start, off_t * loop_end);
 
-/* XVAG - Sony's (second party?) format (God of War III, Ratchet & Clank Future, The Last of Us, Uncharted) */
+/* XVAG - Sony's Scream Tool/Stream Creator format (God of War III, Ratchet & Clank Future, The Last of Us, Uncharted) */
 VGMSTREAM * init_vgmstream_xvag(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     int32_t (*read_32bit)(off_t,STREAMFILE*) = NULL;
     int loop_flag = 0, channel_count, codec;
+    int big_endian;
+    int sample_rate, num_samples, multiplier;
+    int total_subsongs = 0, target_subsong = streamFile->stream_index;
 
     off_t start_offset, loop_start, loop_end, chunk_offset;
     off_t first_offset = 0x20;
-    int little_endian;
-    int sample_rate, num_samples, multiplier;
+    size_t chunk_size;
 
     /* check extension, case insensitive */
     if (!check_extensions(streamFile,"xvag")) goto fail;
@@ -22,18 +24,20 @@ VGMSTREAM * init_vgmstream_xvag(STREAMFILE *streamFile) {
     if (read_32bitBE(0x00,streamFile) != 0x58564147) /* "XVAG" */
         goto fail;
 
-    little_endian = read_8bit(0x07,streamFile)==0; /* empty start_offset > little endian */
-    if (little_endian) {
-        read_32bit = read_32bitLE;
-    } else {
+    /* empty start_offset > little endian (also, XVAGs of the same game can use BE or LE, oddly enough) */
+    big_endian = read_8bit(0x07,streamFile) != 0;
+    if (big_endian) {
         read_32bit = read_32bitBE;
+    } else {
+        read_32bit = read_32bitLE;
     }
 
     start_offset = read_32bit(0x04,streamFile);
     /* 0x08: flags? (&0x01=big endian?)  0x0a: version (chunk sizes vary) */
 
     /* "fmat": base format */
-    if (!find_chunk(streamFile, 0x666D6174,first_offset,0, &chunk_offset,NULL, !little_endian, 1)) goto fail; /*"fmat"*/
+    if (!find_chunk(streamFile, 0x666D6174,first_offset,0, &chunk_offset,&chunk_size, big_endian, 1)) /*"fmat"*/
+        goto fail;
     channel_count = read_32bit(chunk_offset+0x00,streamFile);
     codec = read_32bit(chunk_offset+0x04,streamFile);
     num_samples = read_32bit(chunk_offset+0x08,streamFile);
@@ -41,13 +45,21 @@ VGMSTREAM * init_vgmstream_xvag(STREAMFILE *streamFile) {
     multiplier = read_32bit(chunk_offset+0x10,streamFile);
     sample_rate = read_32bit(chunk_offset+0x14,streamFile);
     /* 0x18: datasize */
+    if (chunk_size > 0x1c) {
+        total_subsongs = read_32bit(chunk_offset+0x1c,streamFile); /* number of interleaved subsongs */
+        /* 0x20: number of multichannel substreams (for MPEG) */
+
+        if (target_subsong == 0) target_subsong = 1;
+        if (target_subsong < 0 || target_subsong > total_subsongs || total_subsongs < 1) goto fail;
+    }
+
 
     /* other chunks: */
     /* "cpan": pan/volume per channel */
     /* "0000": end chunk before start_offset */
 
-    //if ((uint16_t)read_16bitBE(start_offset,streamFile)==0xFFFB) codec = 0x08;
-    if (codec == 0x06) { /* todo not sure if there are any looping XVAGs */
+    /* some XVAG seem to do full loops, this should detect them as looping */
+    if (codec == 0x06) {
         loop_flag = ps_adpcm_find_loop_offsets(streamFile, channel_count, start_offset, &loop_start, &loop_end);
     }
 
@@ -57,6 +69,7 @@ VGMSTREAM * init_vgmstream_xvag(STREAMFILE *streamFile) {
 
     vgmstream->sample_rate = sample_rate;
     vgmstream->num_samples = num_samples;
+    vgmstream->num_streams = total_subsongs;
     vgmstream->meta_type = meta_XVAG;
 
     switch (codec) {
@@ -67,16 +80,9 @@ VGMSTREAM * init_vgmstream_xvag(STREAMFILE *streamFile) {
             vgmstream->coding_type = coding_PSX;
 
             if (loop_flag) {
-                if (loop_start!=0) {
-                    vgmstream->loop_start_sample = ((((loop_start/vgmstream->interleave_block_size)-1)*vgmstream->interleave_block_size)/16*28)/channel_count;
-                    if(loop_start%vgmstream->interleave_block_size)
-                        vgmstream->loop_start_sample += (((loop_start%vgmstream->interleave_block_size)-1)/16*14*channel_count);
-                }
-                vgmstream->loop_end_sample = ((((loop_end/vgmstream->interleave_block_size)-1)*vgmstream->interleave_block_size)/16*28)/channel_count;
-                if (loop_end%vgmstream->interleave_block_size)
-                    vgmstream->loop_end_sample += (((loop_end%vgmstream->interleave_block_size)-1)/16*14*channel_count);
+                vgmstream->loop_start_sample = ps_bytes_to_samples(loop_start, vgmstream->channels);
+                vgmstream->loop_end_sample = ps_bytes_to_samples(loop_end, vgmstream->channels);
             }
-
             break;
         }
 
@@ -86,8 +92,8 @@ VGMSTREAM * init_vgmstream_xvag(STREAMFILE *streamFile) {
 
             /* "mpin": mpeg info */
             /*  0x00/04: mpeg version/layer?  other: unknown or repeats of "fmat" */
-            if (!find_chunk(streamFile, 0x6D70696E,first_offset,0, &chunk_offset,NULL, !little_endian, 1))
-                goto fail; /*"mpin"*/
+            if (!find_chunk(streamFile, 0x6D70696E,first_offset,0, &chunk_offset,NULL, big_endian, 1)) /*"mpin"*/
+                goto fail;
 
             cfg.chunk_size = read_32bit(chunk_offset+0x1c,streamFile); /* fixed frame size */
             cfg.interleave = cfg.chunk_size * multiplier;
@@ -99,10 +105,38 @@ VGMSTREAM * init_vgmstream_xvag(STREAMFILE *streamFile) {
         }
 #endif
 
-        case 0x09: { /* ATRAC9: Sly Cooper and the Thievius Raccoonus */
+#ifdef VGM_USE_ATRAC9
+        case 0x09: { /* ATRAC9: Sly Cooper and the Thievius Raccoonus, The Last of Us Remastered */
+            atrac9_config cfg = {0};
+
             /* "a9in": ATRAC9 info */
-            goto fail;
+            /*  0x00: block align, 0x04: samples per block, 0x0c: fact num_samples (no change), 0x10: encoder delay1 */
+            if (!find_chunk(streamFile, 0x6139696E,first_offset,0, &chunk_offset,NULL, big_endian, 1)) /*"a9in"*/
+                goto fail;
+
+            cfg.channels = vgmstream->channels;
+            cfg.config_data = read_32bitBE(chunk_offset+0x08,streamFile);
+            cfg.encoder_delay = read_32bit(chunk_offset+0x14,streamFile);
+
+            /* Sly Cooper interleaves 'multiplier' superframes per subsong (all share config_data) */
+            cfg.interleave_skip = read_32bit(chunk_offset+0x00,streamFile) * multiplier;
+            cfg.subsong_skip = total_subsongs;
+            start_offset += (target_subsong-1) * cfg.interleave_skip * (cfg.subsong_skip-1);
+
+            /* The Last of Us Remastered has an AT9 RIFF header inside (same values, can be ignored) */
+            if (read_32bitBE(start_offset+0x00, streamFile) == 0x00000000 &&
+                read_32bitBE(start_offset+0x9c, streamFile) == 0x52494646) { /*"RIFF"*/
+                if (!find_chunk(streamFile, 0x64617461,start_offset+0x9c+0x0c,0, &start_offset,NULL, big_endian, 0)) /*"data"*/
+                    goto fail;
+            }
+
+            vgmstream->codec_data = init_atrac9(&cfg);
+            if (!vgmstream->codec_data) goto fail;
+            vgmstream->coding_type = coding_ATRAC9;
+            vgmstream->layout_type = layout_none;
+            break;
         }
+#endif
 
         default:
             goto fail;

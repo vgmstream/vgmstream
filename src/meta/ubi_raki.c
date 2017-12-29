@@ -7,7 +7,7 @@ VGMSTREAM * init_vgmstream_ubi_raki(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     off_t start_offset, off, fmt_offset;
     size_t header_size, data_size;
-    int little_endian;
+    int big_endian;
     int loop_flag, channel_count, block_align, bits_per_sample;
     uint32_t platform, type;
 
@@ -28,25 +28,33 @@ VGMSTREAM * init_vgmstream_ubi_raki(STREAMFILE *streamFile) {
     else
         goto fail;
 
-    /* endianness is given with the platform field, but this is more versatile */
-    little_endian = read_32bitBE(off+0x10,streamFile) > 0x00ffffff;
-    if (little_endian) {
-        read_32bit = read_32bitLE;
-        read_16bit = read_16bitLE;
-    } else {
-        read_32bit = read_32bitBE;
-        read_16bit = read_16bitBE;
-    }
-
     /* 0x04: version? (0x00, 0x07, 0x0a, etc); */
     platform = read_32bitBE(off+0x08,streamFile); /* string */
     type     = read_32bitBE(off+0x0c,streamFile); /* string */
+
+    switch(platform) {
+        case 0x57696920: /* "Wii " */
+        case 0x43616665: /* "Cafe" */
+        case 0x50533320: /* "PS3 " */
+        case 0x58333630: /* "X360" */
+            big_endian = 1;
+            read_32bit = read_32bitBE;
+            read_16bit = read_16bitBE;
+            break;
+        default:
+            big_endian = 0;
+            read_32bit = read_32bitLE;
+            read_16bit = read_16bitLE;
+            break;
+    }
+
     header_size  = read_32bit(off+0x10,streamFile);
     start_offset = read_32bit(off+0x14,streamFile);
     /* 0x18: number of chunks */
     /* 0x1c: unk */
 
-    /* The first chunk is always "fmt" and points to a RIFF "fmt" chunk (even for WiiU or PS3) */
+    /* the format has a chunk offset table, and the first one always "fmt" and points
+     * to a RIFF "fmt" chunk (even for WiiU or PS3) */
     if (read_32bitBE(off+0x20,streamFile) != 0x666D7420) goto fail; /*"fmt "*/
     fmt_offset = read_32bit(off+0x24,streamFile);
     //fmt_size = read_32bit(off+0x28,streamFile);
@@ -114,7 +122,7 @@ VGMSTREAM * init_vgmstream_ubi_raki(STREAMFILE *streamFile) {
             {
                 /* get coef offsets; could check "dspL" and "dspR" chunks after "fmt " better but whatevs (only "dspL" if mono) */
                 off_t dsp_coefs = read_32bitBE(off+0x30,streamFile); /* after "dspL"; spacing is consistent but could vary */
-                dsp_read_coefs(vgmstream,streamFile, dsp_coefs+0x1c, 0x60, !little_endian);
+                dsp_read_coefs(vgmstream,streamFile, dsp_coefs+0x1c, 0x60, big_endian);
                 /* dsp_coefs + 0x00-0x1c: ? (special coefs or adpcm history?) */
             }
 
@@ -123,7 +131,7 @@ VGMSTREAM * init_vgmstream_ubi_raki(STREAMFILE *streamFile) {
 
 #ifdef VGM_USE_MPEG
         case 0x505333206D703320: {  /* "PS3 mp3 " */
-            /* chunks: "MARK" optional seek table), "STRG" (optional description), "Msf " ("data" equivalent) */
+            /* chunks: "MARK" (optional seek table), "STRG" (optional description), "Msf " ("data" equivalent) */
             vgmstream->codec_data = init_mpeg_codec_data(streamFile, start_offset, &vgmstream->coding_type, vgmstream->channels);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->layout_type = layout_none;
@@ -153,9 +161,25 @@ VGMSTREAM * init_vgmstream_ubi_raki(STREAMFILE *streamFile) {
         }
 #endif
 
-        case 0x5649544161743920:    /*"VITAat9 "*/
+#ifdef VGM_USE_ATRAC9
+        case 0x5649544161743920: {  /*"VITAat9 "*/
             /* chunks: "fact" (equivalent to a RIFF "fact", num_samples + skip_samples), "data" */
-            goto fail;
+            atrac9_config cfg = {0};
+
+            cfg.channels = vgmstream->channels;
+            cfg.config_data = read_32bitBE(fmt_offset+0x2c,streamFile);
+            cfg.encoder_delay = read_32bit(fmt_offset+0x3c,streamFile);
+
+            vgmstream->codec_data = init_atrac9(&cfg);
+            if (!vgmstream->codec_data) goto fail;
+            vgmstream->coding_type = coding_ATRAC9;
+            vgmstream->layout_type = layout_none;
+
+            /* could get the "fact" offset but seems it always follows "fmt " */
+            vgmstream->num_samples = read_32bit(fmt_offset+0x34,streamFile);
+            break;
+        }
+#endif
 
         default:
             VGM_LOG("RAKI: unknown platform %x and type %x\n", platform, type);

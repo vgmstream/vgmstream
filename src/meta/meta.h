@@ -152,7 +152,7 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_rifx(STREAMFILE * streamFile);
 
-VGMSTREAM * init_vgmstream_xnbm(STREAMFILE * streamFile);
+VGMSTREAM * init_vgmstream_xnb(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_pos(STREAMFILE * streamFile);
 
