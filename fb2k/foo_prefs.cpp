@@ -1,14 +1,10 @@
 #ifdef _MSC_VER
 #define _CRT_SECURE_NO_DEPRECATE
 #endif
-#include <windows.h>
-#include <windowsx.h>
-#include <commctrl.h>
 #include <stdio.h>
 #include <io.h>
 
 #include <foobar2000.h>
-#include <helpers.h>
 #include <shared.h>
 #include "foo_prefs.h"
 extern "C" {
@@ -46,14 +42,13 @@ void input_vgmstream::load_settings()
 
 const char * vgmstream_prefs::get_name()
 {
-	return "vgmstream";
+	return input_vgmstream::g_get_name();
 }
 
 
 GUID vgmstream_prefs::get_guid()
 {
-	static const GUID guid = { 0x2b5d0302, 0x165b, 0x409c, { 0x94, 0x74, 0x2c, 0x8c, 0x2c, 0xd7, 0x6a, 0x25 } };;
-	return guid;
+	return input_vgmstream::g_get_preferences_guid();
 }
 
 

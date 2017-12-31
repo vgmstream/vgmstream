@@ -4,9 +4,9 @@
 #define _FOO_PREFS_H
 
 #include <foobar2000.h>
-#include <helpers.h>
 #include <shared.h>
-#include <ATLHelpers.h>
+#include <ATLHelpers/ATLHelpersLean.h>
+#include <ATLHelpers/misc.h>
 #include "resource.h"
 
 #define DEFAULT_FADE_SECONDS "10.00"

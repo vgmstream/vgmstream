@@ -2,14 +2,11 @@
 #define _CRT_SECURE_NO_DEPRECATE
 #endif
 
-#include <windows.h>
-#include <windowsx.h>
-#include <commctrl.h>
 #include <stdio.h>
 #include <io.h>
 
 #include <foobar2000.h>
-#include <helpers.h>
+#include <ATLHelpers/ATLHelpersLean.h>
 #include <shared.h>
 
 extern "C" {

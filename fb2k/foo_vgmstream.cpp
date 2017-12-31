@@ -5,14 +5,11 @@
 #ifdef _MSC_VER
 #define _CRT_SECURE_NO_DEPRECATE
 #endif
-#include <windows.h>
-#include <windowsx.h>
-#include <commctrl.h>
 #include <stdio.h>
 #include <io.h>
 
 #include <foobar2000.h>
-#include <helpers.h>
+#include <ATLHelpers/ATLHelpersLean.h>
 #include <shared.h>
 
 extern "C" {
@@ -361,7 +358,7 @@ void input_vgmstream::get_subsong_info(t_uint32 p_subsong, pfc::string_base & ti
         *length_in_ms = -1000;
         if (infostream) {
             *length_in_ms = get_vgmstream_play_samples(loop_count,fade_seconds,fade_delay_seconds,infostream)*1000LL/infostream->sample_rate;
-			infostream->loop_target = 0;
+            infostream->loop_target = 0;
             *sample_rate = infostream->sample_rate;
             *channels = infostream->channels;
             *total_samples = infostream->num_samples;
@@ -419,6 +416,27 @@ bool input_vgmstream::get_description_tag(pfc::string_base & temp, pfc::string_b
     return false;
 }
 
+GUID input_vgmstream::g_get_guid()
+{
+    static const GUID guid = { 0x9e7263c7, 0x4cdd, 0x482c,{ 0x9a, 0xec, 0x5e, 0x71, 0x28, 0xcb, 0xc3, 0x4 } };
+    return guid;
+}
+
+const char * input_vgmstream::g_get_name()
+{
+    return "vgmstream";
+}
+
+GUID input_vgmstream::g_get_preferences_guid()
+{
+    static const GUID guid = { 0x2b5d0302, 0x165b, 0x409c,{ 0x94, 0x74, 0x2c, 0x8c, 0x2c, 0xd7, 0x6a, 0x25 } };;
+    return guid;
+}
+
+bool input_vgmstream::g_is_low_merit()
+{
+    return true;
+}
 
 /* foobar plugin defs */
 static input_factory_t<input_vgmstream> g_input_vgmstream_factory;

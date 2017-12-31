@@ -3,7 +3,7 @@
 
 #define OUTBUF_SIZE     1024        /* Samples */
 
-class input_vgmstream {
+class input_vgmstream : public input_stubs {
     public:
         input_vgmstream();
         ~input_vgmstream();
@@ -28,6 +28,11 @@ class input_vgmstream {
 
         static bool g_is_our_content_type(const char * p_content_type);
         static bool g_is_our_path(const char * p_path,const char * p_extension);
+
+        static GUID g_get_guid();
+        static const char * g_get_name();
+        static GUID g_get_preferences_guid();
+        static bool g_is_low_merit();
 
     private:
         //service_ptr_t<file> m_file;
