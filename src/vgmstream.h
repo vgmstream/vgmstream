@@ -934,7 +934,6 @@ typedef struct {
     size_t current_size_target; /* max data, until something happens */
     size_t decode_to_discard;  /* discard from this stream only (for EALayer3 or AWC) */
 
-
 } mpeg_custom_stream;
 
 typedef struct {
@@ -992,7 +991,18 @@ typedef struct {
 #endif
 
 #ifdef VGM_USE_ATRAC9
+
+/* custom ATRAC9 modes */
+typedef enum {
+    ATRAC9_DEFAULT = 0, /* ATRAC9 standard */
+    ATRAC9_XVAG,        /* Sony XVAG: interleaved subsongs, Vita multichannel interleaves 2ch xN superframes */
+  //ATRAC9_FSB,         /* FMOD FSB: Vita multichannel interleaves 2ch xN superframes */
+  //ATRAC9_EATRAX,      /* EA EATrax: buffered ATRAC9 in SPS blocks (superframes can be split between blocks) */
+} atrac9_custom_t;
+
 typedef struct {
+    atrac9_custom_t type;
+
     int channels; /* to detect weird multichannel */
     uint32_t config_data; /* ATRAC9 config header */
     int encoder_delay; /* initial samples to discard */
