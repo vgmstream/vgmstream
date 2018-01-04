@@ -20,10 +20,6 @@ static int CLAMP(int value, int Minim, int Maxim)
     return value;
 }
 
-void xa_init_get_high_nibble(VGMSTREAM *vgmstream) {
-	vgmstream->xa_get_high_nibble=1;
-}
-
 void decode_xa(VGMSTREAM * vgmstream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
 
     VGMSTREAMCHANNEL * stream = &(vgmstream->ch[channel]);
