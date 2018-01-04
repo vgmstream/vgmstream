@@ -107,7 +107,7 @@ static const char* extension_list[] = {
     "emff",
     "enth",
     "exa",
-	"ezw",
+    "ezw",
 
     "fag",
     "ffw",
@@ -184,7 +184,7 @@ static const char* extension_list[] = {
     "mic",
     "mihb",
     "mnstr",
-	"mogg",
+    "mogg",
     //"mp4", //common
     //"mpc", //FFmpeg, not parsed (musepack) //common
     "mpdsp",
@@ -932,8 +932,7 @@ static const meta_info meta_info_list[] = {
         {meta_EA_SPS,               "Electronic Arts SPS header"},
         {meta_NGC_VID1,             "Neversoft VID1 header"},
         {meta_PC_FLX,               "Ultima IX .FLX header"},
-		{meta_MOGG,                 "Harmonix Music Systems MOGG Vorbis "},
-
+        {meta_MOGG,                 "Harmonix Music Systems MOGG Vorbis"},
 
 #ifdef VGM_USE_VORBIS
         {meta_OGG_VORBIS,           "Ogg Vorbis"},

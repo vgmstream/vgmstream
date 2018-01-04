@@ -111,7 +111,7 @@ typedef enum {
     coding_G721,            /* CCITT G.721 */
 
     coding_XA,              /* CD-ROM XA */
-    coding_PSX,				/* Sony PS ADPCM (VAG) */
+    coding_PSX,             /* Sony PS ADPCM (VAG) */
     coding_PSX_badflags,    /* Sony PS ADPCM with custom flag byte */
     coding_PSX_bmdx,        /* Sony PS ADPCM with BMDX encryption */
     coding_PSX_cfg,         /* Sony PS ADPCM with configurable frame size (FF XI, SGXD type 5, Bizarre Creations) */
@@ -126,7 +126,7 @@ typedef enum {
     coding_IMA,             /* IMA ADPCM (stereo or mono, low nibble first) */
     coding_IMA_int,         /* IMA ADPCM (mono/interleave, low nibble first) */
     coding_DVI_IMA,         /* DVI IMA ADPCM (stereo or mono, high nibble first) */
-    coding_DVI_IMA_int,		/* DVI IMA ADPCM (mono/interleave, high nibble first) */
+    coding_DVI_IMA_int,     /* DVI IMA ADPCM (mono/interleave, high nibble first) */
     coding_3DS_IMA,         /* 3DS IMA ADPCM */
     coding_MS_IMA,          /* Microsoft IMA ADPCM */
     coding_XBOX,            /* XBOX IMA ADPCM */
@@ -195,11 +195,11 @@ typedef enum {
 #endif
 
 #if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
-	coding_MP4_AAC,         /* AAC (MDCT-based) */
+    coding_MP4_AAC,         /* AAC (MDCT-based) */
 #endif
 
 #ifdef VGM_USE_MAIATRAC3PLUS
-	coding_AT3plus,         /* Sony ATRAC3plus (MDCT-based) */
+    coding_AT3plus,         /* Sony ATRAC3plus (MDCT-based) */
 #endif
 
 #ifdef VGM_USE_ATRAC9
@@ -259,7 +259,7 @@ typedef enum {
     layout_mus_acm,         /* mus has multi-files to deal with */
     layout_aix,             /* CRI AIX's wheels within wheels */
     layout_aax,             /* CRI AAX's wheels within databases */
-	layout_scd_int,         /* deinterleave done by the SCDINTSTREAMFILE */
+    layout_scd_int,         /* deinterleave done by the SCDINTSTREAMFILE */
 
 #ifdef VGM_USE_VORBIS
     layout_ogg_vorbis,      /* ogg vorbis file */
@@ -280,14 +280,14 @@ typedef enum {
     meta_DSP_JETTERS,       /* Bomberman Jetters .dsp */
     meta_DSP_MSS,           /* ? */
     meta_DSP_GCM,           /* ? */
-    meta_DSP_STR,			/* Conan .str files */
+    meta_DSP_STR,           /* Conan .str files */
     meta_DSP_SADB,          /* .sad */
     meta_DSP_WSI,           /* .wsi */
-    meta_DSP_WII_IDSP,		/* .gcm with IDSP header */
+    meta_DSP_WII_IDSP,      /* .gcm with IDSP header */
     meta_DSP_WII_MUS,       /* .mus */
-    meta_DSP_WII_WSD,		/* Phantom Brave (WII) */
-    meta_WII_NDP,		    /* Vertigo (Wii) */
-	meta_DSP_YGO,           /* Konami: Yu-Gi-Oh! The Falsebound Kingdom (NGC), Hikaru no Go 3 (NGC) */
+    meta_DSP_WII_WSD,       /* Phantom Brave (WII) */
+    meta_WII_NDP,           /* Vertigo (Wii) */
+    meta_DSP_YGO,           /* Konami: Yu-Gi-Oh! The Falsebound Kingdom (NGC), Hikaru no Go 3 (NGC) */
 
     /* Nintendo */
     meta_STRM,              /* Nintendo STRM */
@@ -298,15 +298,15 @@ typedef enum {
     meta_RWAR,              /* single-stream RWAR */
     meta_RWAV,              /* contents of RWAR */
     meta_CWAV,              /* contents of CWAR */
-	meta_FWAV,				/* contents of FWAR */
+    meta_FWAV,              /* contents of FWAR */
     meta_RSTM_SPM,          /* RSTM with 44->22khz hack */
     meta_THP,               /* THP movie files */
     meta_RSTM_shrunken,     /* Atlus' mutant shortened RSTM */
-	meta_NDS_SWAV,		    /* Asphalt Urban GT 1 & 2 */
-	meta_NDS_RRDS,		    /* Ridge Racer DS */
+    meta_NDS_SWAV,          /* Asphalt Urban GT 1 & 2 */
+    meta_NDS_RRDS,          /* Ridge Racer DS */
     meta_WII_BNS,           /* Wii BNS Banner Sound (similar to RSTM) */
     meta_STX,               /* Pikmin .stx */
-	meta_WIIU_BTSND,		/* Wii U Boot Sound */
+    meta_WIIU_BTSND,        /* Wii U Boot Sound */
 
     meta_ADX_03,            /* CRI ADX "type 03" */
     meta_ADX_04,            /* CRI ADX "type 04" */
@@ -319,157 +319,157 @@ typedef enum {
     meta_RSF,               /* Retro Studios RSF (Metroid Prime .rsf) [no header_id] */
     meta_HALPST,            /* HAL Labs HALPST */
     meta_GCSW,              /* GCSW (PCM) */
-    meta_CFN,				/* Namco CAF Audio File */
+    meta_CFN,               /* Namco CAF Audio File */
     meta_MYSPD,             /* U-Sing .myspd */
     meta_HIS,               /* Her Ineractive .his */
     meta_BNSF,              /* Bandai Namco Sound Format */
 
     meta_PSX_XA,            /* CD-ROM XA */
-    meta_PS2_SShd,			/* .ADS with SShd header */
-    meta_PS2_NPSF,			/* Namco Production Sound File */
+    meta_PS2_SShd,          /* .ADS with SShd header */
+    meta_PS2_NPSF,          /* Namco Production Sound File */
     meta_PS2_RXWS,          /* Sony games (Genji, Okage Shadow King, Arc The Lad Twilight of Spirits) */
-    meta_PS2_RAW,			/* RAW Interleaved Format */
-    meta_PS2_EXST,			/* Shadow of Colossus EXST */
-    meta_PS2_SVAG,			/* Konami SVAG */
-    meta_PS2_MIB,			/* MIB File */
-    meta_PS2_MIB_MIH,		/* MIB File + MIH Header*/
-    meta_PS2_MIC,			/* KOEI MIC File */
-    meta_PS2_VAGi,			/* VAGi Interleaved File */
-    meta_PS2_VAGp,			/* VAGp Mono File */
-    meta_PS2_VAGm,			/* VAGp Mono File */
-    meta_PS2_pGAV,			/* VAGp with Little Endian Header */
+    meta_PS2_RAW,           /* RAW Interleaved Format */
+    meta_PS2_EXST,          /* Shadow of Colossus EXST */
+    meta_PS2_SVAG,          /* Konami SVAG */
+    meta_PS2_MIB,           /* MIB File */
+    meta_PS2_MIB_MIH,       /* MIB File + MIH Header*/
+    meta_PS2_MIC,           /* KOEI MIC File */
+    meta_PS2_VAGi,          /* VAGi Interleaved File */
+    meta_PS2_VAGp,          /* VAGp Mono File */
+    meta_PS2_VAGm,          /* VAGp Mono File */
+    meta_PS2_pGAV,          /* VAGp with Little Endian Header */
     meta_PSX_GMS,           /* GMS File (used in PS1 & PS2) [no header_id] */
-    meta_PS2_STR,			/* Pacman STR+STH files */
-    meta_PS2_ILD,			/* ILD File */
-    meta_PS2_PNB,			/* PsychoNauts Bgm File */
-    meta_PS2_VAGs,			/* VAG Stereo from Kingdom Hearts */
-    meta_PS2_VPK,			/* VPK Audio File */
+    meta_PS2_STR,           /* Pacman STR+STH files */
+    meta_PS2_ILD,           /* ILD File */
+    meta_PS2_PNB,           /* PsychoNauts Bgm File */
+    meta_PS2_VAGs,          /* VAG Stereo from Kingdom Hearts */
+    meta_PS2_VPK,           /* VPK Audio File */
     meta_PS2_BMDX,          /* Beatmania thing */
     meta_PS2_IVB,           /* Langrisser 3 IVB */
     meta_PS2_SND,           /* some Might & Magics SSND header */
     meta_PS2_SVS,           /* Square SVS */
-    meta_XSS,				/* Dino Crisis 3 */
-    meta_SL3,				/* Test Drive Unlimited */
-    meta_HGC1,				/* Knights of the Temple 2 */
-    meta_AUS,				/* Various Capcom games */
-    meta_RWS,				/* RenderWare games (only when using RW Audio middleware) */
+    meta_XSS,               /* Dino Crisis 3 */
+    meta_SL3,               /* Test Drive Unlimited */
+    meta_HGC1,              /* Knights of the Temple 2 */
+    meta_AUS,               /* Various Capcom games */
+    meta_RWS,               /* RenderWare games (only when using RW Audio middleware) */
     meta_FSB1,              /* FMOD Sample Bank, version 1 */
     meta_FSB2,              /* FMOD Sample Bank, version 2 */
     meta_FSB3,              /* FMOD Sample Bank, version 3.0/3.1 */
     meta_FSB4,              /* FMOD Sample Bank, version 4 */
     meta_FSB5,              /* FMOD Sample Bank, version 5 */
-    meta_RWX,				/* Air Force Delta Storm (XBOX) */
-    meta_XWB,				/* Microsoft XACT framework (Xbox, X360, Windows) */
+    meta_RWX,               /* Air Force Delta Storm (XBOX) */
+    meta_XWB,               /* Microsoft XACT framework (Xbox, X360, Windows) */
     meta_PS2_XA30,          /* Driver - Parallel Lines (PS2) */
-    meta_MUSC,				/* Krome PS2 games */
-    meta_MUSX_V004,			/* Spyro Games, possibly more */
-    meta_MUSX_V005,			/* Spyro Games, possibly more */
-    meta_MUSX_V006,			/* Spyro Games, possibly more */
-    meta_MUSX_V010,			/* Spyro Games, possibly more */
-    meta_MUSX_V201,			/* Sphinx and the cursed Mummy */
-    meta_LEG,				/* Legaia 2 [no header_id] */
-    meta_FILP,				/* Resident Evil - Dead Aim */
-    meta_IKM,				/* Zwei! */
-    meta_SFS,				/* Baroque */
-    meta_BG00,				/* Ibara, Mushihimesama */
-    meta_PS2_RSTM,			/* Midnight Club 3 */
-    meta_PS2_KCES,			/* Dance Dance Revolution */
-    meta_PS2_DXH,			/* Tokobot Plus - Myteries of the Karakuri */
-    meta_PS2_PSH,			/* Dawn of Mana - Seiken Densetsu 4 */
-    meta_SCD_PCM,			/* Lunar - Eternal Blue */
-    meta_PS2_PCM,			/* Konami KCEJ East: Ephemeral Fantasia, Yu-Gi-Oh! The Duelists of the Roses, 7 Blades */
-    meta_PS2_RKV,			/* Legacy of Kain - Blood Omen 2 */
-    meta_PS2_PSW,			/* Rayman Raving Rabbids */
-    meta_PS2_VAS,			/* Pro Baseball Spirits 5 */
-    meta_PS2_TEC,			/* TECMO badflagged stream */
-    meta_PS2_ENTH,			/* Enthusia */
-    meta_SDT,				/* Baldur's Gate - Dark Alliance */
-    meta_NGC_TYDSP,			/* Ty - The Tasmanian Tiger */
-    meta_NGC_SWD,			/* Conflict - Desert Storm 1 & 2 */
+    meta_MUSC,              /* Krome PS2 games */
+    meta_MUSX_V004,         /* Spyro Games, possibly more */
+    meta_MUSX_V005,         /* Spyro Games, possibly more */
+    meta_MUSX_V006,         /* Spyro Games, possibly more */
+    meta_MUSX_V010,         /* Spyro Games, possibly more */
+    meta_MUSX_V201,         /* Sphinx and the cursed Mummy */
+    meta_LEG,               /* Legaia 2 [no header_id] */
+    meta_FILP,              /* Resident Evil - Dead Aim */
+    meta_IKM,               /* Zwei! */
+    meta_SFS,               /* Baroque */
+    meta_BG00,              /* Ibara, Mushihimesama */
+    meta_PS2_RSTM,          /* Midnight Club 3 */
+    meta_PS2_KCES,          /* Dance Dance Revolution */
+    meta_PS2_DXH,           /* Tokobot Plus - Myteries of the Karakuri */
+    meta_PS2_PSH,           /* Dawn of Mana - Seiken Densetsu 4 */
+    meta_SCD_PCM,           /* Lunar - Eternal Blue */
+    meta_PS2_PCM,           /* Konami KCEJ East: Ephemeral Fantasia, Yu-Gi-Oh! The Duelists of the Roses, 7 Blades */
+    meta_PS2_RKV,           /* Legacy of Kain - Blood Omen 2 */
+    meta_PS2_PSW,           /* Rayman Raving Rabbids */
+    meta_PS2_VAS,           /* Pro Baseball Spirits 5 */
+    meta_PS2_TEC,           /* TECMO badflagged stream */
+    meta_PS2_ENTH,          /* Enthusia */
+    meta_SDT,               /* Baldur's Gate - Dark Alliance */
+    meta_NGC_TYDSP,         /* Ty - The Tasmanian Tiger */
+    meta_NGC_SWD,           /* Conflict - Desert Storm 1 & 2 */
     meta_CAPDSP,            /* Capcom DSP Header [no header_id] */
-    meta_DC_STR,			/* SEGA Stream Asset Builder */
-    meta_DC_STR_V2,			/* variant of SEGA Stream Asset Builder */
-    meta_NGC_BH2PCM,		/* Bio Hazard 2 */
-    meta_SAT_SAP,			/* Bubble Symphony */
-    meta_DC_IDVI,			/* Eldorado Gate */
-    meta_KRAW,				/* Geometry Wars - Galaxies */
-    meta_PS2_OMU,			/* PS2 Int file with Header */
-    meta_PS2_XA2,			/* XG3 Extreme-G Racing */
-    meta_IDSP,				/* Chronicles of Narnia, Soul Calibur Legends, Mario Strikers Charged */
-	meta_SPT_SPD,			/* Various (SPT+SPT DSP) */
-    meta_ISH_ISD,			/* Various (ISH+ISD DSP) */
-    meta_GSP_GSB,			/* Tecmo games (Super Swing Golf 1 & 2, Quamtum Theory) */
-    meta_YDSP,				/* WWE Day of Reckoning */
+    meta_DC_STR,            /* SEGA Stream Asset Builder */
+    meta_DC_STR_V2,         /* variant of SEGA Stream Asset Builder */
+    meta_NGC_BH2PCM,        /* Bio Hazard 2 */
+    meta_SAT_SAP,           /* Bubble Symphony */
+    meta_DC_IDVI,           /* Eldorado Gate */
+    meta_KRAW,              /* Geometry Wars - Galaxies */
+    meta_PS2_OMU,           /* PS2 Int file with Header */
+    meta_PS2_XA2,           /* XG3 Extreme-G Racing */
+    meta_IDSP,              /* Chronicles of Narnia, Soul Calibur Legends, Mario Strikers Charged */
+    meta_SPT_SPD,           /* Various (SPT+SPT DSP) */
+    meta_ISH_ISD,           /* Various (ISH+ISD DSP) */
+    meta_GSP_GSB,           /* Tecmo games (Super Swing Golf 1 & 2, Quamtum Theory) */
+    meta_YDSP,              /* WWE Day of Reckoning */
     meta_FFCC_STR,          /* Final Fantasy: Crystal Chronicles */
     
-    meta_WAA_WAC_WAD_WAM,	/* Beyond Good & Evil */
-    meta_GCA,				/* Metal Slug Anthology */
-    meta_MSVP,				/* Popcap Hits */
-    meta_NGC_SSM,			/* Golden Gashbell Full Power */
-    meta_PS2_JOE,			/* Wall-E / Pixar games */
+    meta_WAA_WAC_WAD_WAM,   /* Beyond Good & Evil */
+    meta_GCA,               /* Metal Slug Anthology */
+    meta_MSVP,              /* Popcap Hits */
+    meta_NGC_SSM,           /* Golden Gashbell Full Power */
+    meta_PS2_JOE,           /* Wall-E / Pixar games */
 
-    meta_NGC_YMF,			/* WWE WrestleMania X8 */
+    meta_NGC_YMF,           /* WWE WrestleMania X8 */
     meta_SADL,              /* .sad */
     meta_PS2_CCC,           /* Tokyo Xtreme Racer DRIFT 2 */
     meta_PSX_FAG,           /* Jackie Chan - Stuntmaster */
     meta_PS2_MIHB,          /* Merged MIH+MIB */
     meta_NGC_PDT,           /* Mario Party 6 */
-    meta_DC_ASD,    		/* Miss Moonligh */
-    meta_NAOMI_SPSD,		/* Guilty Gear X */
+    meta_DC_ASD,            /* Miss Moonligh */
+    meta_NAOMI_SPSD,        /* Guilty Gear X */
     
-    meta_RSD2VAG,			/* RSD2VAG */
-    meta_RSD2PCMB,			/* RSD2PCMB */
-    meta_RSD2XADP,			/* RSD2XADP */
-	meta_RSD3VAG,			/* RSD3VAG */
-	meta_RSD3GADP,			/* RSD3GADP */
-    meta_RSD3PCM,		  	/* RSD3PCM */
-    meta_RSD3PCMB,			/* RSD3PCMB */
-    meta_RSD4PCMB,			/* RSD4PCMB */
-    meta_RSD4PCM,			/* RSD4PCM */
-	meta_RSD4RADP,			/* RSD4RADP */
-    meta_RSD4VAG,			/* RSD4VAG */
-    meta_RSD6VAG,			/* RSD6VAG */
-    meta_RSD6WADP,			/* RSD6WADP */
-    meta_RSD6XADP,			/* RSD6XADP */
-    meta_RSD6RADP,			/* RSD6RADP */
-	meta_RSD6OOGV,          /* RSD6OOGV */
+    meta_RSD2VAG,           /* RSD2VAG */
+    meta_RSD2PCMB,          /* RSD2PCMB */
+    meta_RSD2XADP,          /* RSD2XADP */
+    meta_RSD3VAG,           /* RSD3VAG */
+    meta_RSD3GADP,          /* RSD3GADP */
+    meta_RSD3PCM,           /* RSD3PCM */
+    meta_RSD3PCMB,          /* RSD3PCMB */
+    meta_RSD4PCMB,          /* RSD4PCMB */
+    meta_RSD4PCM,           /* RSD4PCM */
+    meta_RSD4RADP,          /* RSD4RADP */
+    meta_RSD4VAG,           /* RSD4VAG */
+    meta_RSD6VAG,           /* RSD6VAG */
+    meta_RSD6WADP,          /* RSD6WADP */
+    meta_RSD6XADP,          /* RSD6XADP */
+    meta_RSD6RADP,          /* RSD6RADP */
+    meta_RSD6OOGV,          /* RSD6OOGV */
     meta_RSD6XMA,           /* RSD6XMA */
 
-    meta_PS2_ASS,			/* ASS */
-    meta_PS2_SEG,			/* Eragon */
+    meta_PS2_ASS,           /* ASS */
+    meta_PS2_SEG,           /* Eragon */
     meta_XBOX_SEG,          /* Eragon */
-    meta_NDS_STRM_FFTA2,	/* Final Fantasy Tactics A2 */
-    meta_STR_ASR,			/* Donkey Kong Jet Race */
-    meta_ZWDSP,				/* Zack and Wiki */
-    meta_VGS,				/* Guitar Hero Encore - Rocks the 80s */
-    meta_DC_DCSW_DCS,		/* Evil Twin - Cypriens Chronicles (DC) */
-    meta_WII_SMP,			/* Mushroom Men - The Spore Wars */
+    meta_NDS_STRM_FFTA2,    /* Final Fantasy Tactics A2 */
+    meta_STR_ASR,           /* Donkey Kong Jet Race */
+    meta_ZWDSP,             /* Zack and Wiki */
+    meta_VGS,               /* Guitar Hero Encore - Rocks the 80s */
+    meta_DC_DCSW_DCS,       /* Evil Twin - Cypriens Chronicles (DC) */
+    meta_WII_SMP,           /* Mushroom Men - The Spore Wars */
     meta_WII_SNG,           /* Excite Trucks */
-    meta_EMFF_PS2,			/* Eidos Music File Format for PS2*/
-    meta_EMFF_NGC,			/* Eidos Music File Format for NGC/WII */
-    meta_SAT_BAKA,			/* Crypt Killer */
+    meta_EMFF_PS2,          /* Eidos Music File Format for PS2*/
+    meta_EMFF_NGC,          /* Eidos Music File Format for NGC/WII */
+    meta_SAT_BAKA,          /* Crypt Killer */
     meta_PS2_VSF,           /* Musashi: Samurai Legend */
-	meta_PS2_VSF_TTA,       /* Tiny Toon Adventures: Defenders of the Universe */
-	meta_ADS,               /* Gauntlet Dark Legends (GC) */
-	meta_PS2_SPS,           /* Ape Escape 2 */
+    meta_PS2_VSF_TTA,       /* Tiny Toon Adventures: Defenders of the Universe */
+    meta_ADS,               /* Gauntlet Dark Legends (GC) */
+    meta_PS2_SPS,           /* Ape Escape 2 */
     meta_PS2_XA2_RRP,       /* RC Revenge Pro */
     meta_NGC_DSP_KONAMI,    /* Konami DSP header, found in various games */
-	meta_UBI_CKD,           /* Ubisoft CKD RIFF header (Rayman Origins Wii) */
+    meta_UBI_CKD,           /* Ubisoft CKD RIFF header (Rayman Origins Wii) */
 
-    meta_XBOX_WAVM,			/* XBOX WAVM File */
-    meta_XBOX_RIFF,			/* XBOX RIFF/WAVE File */
-    meta_XBOX_WVS,			/* XBOX WVS */
-    meta_NGC_WVS,			/* Metal Arms - Glitch in the System */
-    meta_XBOX_MATX,			/* XBOX MATX */
-    meta_XBOX_XMU,			/* XBOX XMU */
-    meta_XBOX_XVAS,			/* XBOX VAS */
+    meta_XBOX_WAVM,         /* XBOX WAVM File */
+    meta_XBOX_RIFF,         /* XBOX RIFF/WAVE File */
+    meta_XBOX_WVS,          /* XBOX WVS */
+    meta_NGC_WVS,           /* Metal Arms - Glitch in the System */
+    meta_XBOX_MATX,         /* XBOX MATX */
+    meta_XBOX_XMU,          /* XBOX XMU */
+    meta_XBOX_XVAS,         /* XBOX VAS */
     
     meta_EA_SCHL,           /* Electronic Arts SCHl with variable header */
     meta_EA_SCHL_fixed,     /* Electronic Arts SCHl with fixed header */
     meta_EA_BNK,            /* Electronic Arts BNK */
     meta_EA_1SNH,           /* Electronic Arts 1SNh/EACS */
 
-    meta_RAW,				/* RAW PCM file */
+    meta_RAW,               /* RAW PCM file */
 
     meta_GENH,              /* generic header */
 
@@ -488,7 +488,7 @@ typedef enum {
     meta_RIFX_WAVE_smpl,    /* RIFX w/ loop data in smpl chunk */
     meta_XNB,               /* XNA Game Studio 4.0 */
     meta_PC_MXST,           /* Lego Island MxSt */
-	meta_SAB,		        /* Worms 4 Mayhem SAB+SOB file */
+    meta_SAB,               /* Worms 4 Mayhem SAB+SOB file */
     meta_NWA,               /* Visual Art's NWA */
     meta_NWA_NWAINFOINI,    /* Visual Art's NWA w/ NWAINFO.INI for looping */
     meta_NWA_GAMEEXEINI,    /* Visual Art's NWA w/ Gameexe.ini for looping */
@@ -497,24 +497,24 @@ typedef enum {
     meta_ACM,               /* InterPlay ACM header */
     meta_MUS_ACM,           /* MUS playlist of InterPlay ACM files */
     meta_DEC,               /* Falcom PC games (Xanadu Next, Gurumin) */
-    meta_VS,				/* Men in Black .vs */
+    meta_VS,                /* Men in Black .vs */
     meta_FFXI_BGW,          /* FFXI (PC) BGW */
     meta_FFXI_SPW,          /* FFXI (PC) SPW */
-    meta_STS_WII,			/* Shikigami No Shiro 3 STS Audio File */
-    meta_PS2_P2BT,			/* Pop'n'Music 7 Audio File */
-    meta_PS2_GBTS,			/* Pop'n'Music 9 Audio File */
+    meta_STS_WII,           /* Shikigami No Shiro 3 STS Audio File */
+    meta_PS2_P2BT,          /* Pop'n'Music 7 Audio File */
+    meta_PS2_GBTS,          /* Pop'n'Music 9 Audio File */
     meta_NGC_DSP_IADP,      /* Gamecube Interleave DSP */
-	meta_PS2_TK5,			/* Tekken 5 Stream Files */
-	meta_WII_STR,			/* House of The Dead Overkill STR+STH */
-	meta_PS2_MCG,			/* Gunvari MCG Files (was name .GCM on disk) */
+    meta_PS2_TK5,           /* Tekken 5 Stream Files */
+    meta_WII_STR,           /* House of The Dead Overkill STR+STH */
+    meta_PS2_MCG,           /* Gunvari MCG Files (was name .GCM on disk) */
     meta_ZSD,               /* Dragon Booster ZSD */
     meta_RedSpark,          /* "RedSpark" RSD (MadWorld) */
-	meta_PC_IVAUD,			/* .ivaud GTA IV */
-    meta_NDS_HWAS,			/* Spider-Man 3, Tony Hawk's Downhill Jam, possibly more... */
-	meta_NGC_LPS,			/* Rave Master (Groove Adventure Rave)(GC) */
-    meta_NAOMI_ADPCM,		/* NAOMI/NAOMI2 ARcade games */
-	meta_SD9,               /* beatmaniaIIDX16 - EMPRESS (Arcade) */
-	meta_2DX9,              /* beatmaniaIIDX16 - EMPRESS (Arcade) */
+    meta_PC_IVAUD,          /* .ivaud GTA IV */
+    meta_NDS_HWAS,          /* Spider-Man 3, Tony Hawk's Downhill Jam, possibly more... */
+    meta_NGC_LPS,           /* Rave Master (Groove Adventure Rave)(GC) */
+    meta_NAOMI_ADPCM,       /* NAOMI/NAOMI2 ARcade games */
+    meta_SD9,               /* beatmaniaIIDX16 - EMPRESS (Arcade) */
+    meta_2DX9,              /* beatmaniaIIDX16 - EMPRESS (Arcade) */
     meta_PS2_VGV,           /* Rune: Viking Warlord */
     meta_NGC_GCUB,          /* Sega Soccer Slam */
     meta_MAXIS_XA,          /* Sim City 3000 (PC) */
@@ -525,9 +525,9 @@ typedef enum {
     meta_PONA_3DO,          /* Policenauts (3DO) */
     meta_PONA_PSX,          /* Policenauts (PSX) */
     meta_XBOX_HLWAV,        /* Half Life 2 (XBOX) */
-	meta_PS2_AST,			/* Some KOEI game (PS2) */
-	meta_DMSG,				/* Nightcaster II - Equinox (XBOX) */
-    meta_NGC_DSP_AAAP,  	/* Turok: Evolution (NGC), Vexx (NGC) */
+    meta_PS2_AST,           /* Some KOEI game (PS2) */
+    meta_DMSG,              /* Nightcaster II - Equinox (XBOX) */
+    meta_NGC_DSP_AAAP,      /* Turok: Evolution (NGC), Vexx (NGC) */
     meta_PS2_STER,          /* Juuni Kokuki: Kakukaku Taru Ou Michi Beni Midori no Uka */
     meta_PS2_WB,            /* Shooting Love. ~TRIZEAL~ */
     meta_S14,               /* raw Siren 14, 24kbit mono */
@@ -539,7 +539,7 @@ typedef enum {
     meta_PS2_KHV,           /* Kingdom Hearts 2 VAG streams */
     meta_PC_SMP,            /* Ghostbusters PC .smp */
     meta_P3D,               /* Prototype P3D */
-	meta_PS2_TK1,           /* Tekken (NamCollection) */
+    meta_PS2_TK1,           /* Tekken (NamCollection) */
     meta_PS2_ADSC,          /* Kenka Bancho 2: Full Throttle */
     meta_NGC_BO2,           /* Blood Omen 2 (NGC) */
     meta_DSP_DDSP,          /* Various (2 dsp files stuck together */
@@ -552,10 +552,10 @@ typedef enum {
     meta_DSP_XIII,          /* XIII, possibly more (Ubisoft header???) */
     meta_DSP_CABELAS,       /* Cabelas games */
     meta_PS2_ADM,           /* Dragon Quest 5 */
-	meta_PS2_LPCM,          /* Ah! My Goddess */
+    meta_PS2_LPCM,          /* Ah! My Goddess */
     meta_DSP_BDSP,          /* Ah! My Goddess */
-	meta_PS2_VMS,           /* Autobahn Raser - Police Madness */
-	meta_XAU,			    /* XPEC Entertainment (Beat Down (PS2 Xbox), Spectral Force Chronicle (PS2)) */
+    meta_PS2_VMS,           /* Autobahn Raser - Police Madness */
+    meta_XAU,               /* XPEC Entertainment (Beat Down (PS2 Xbox), Spectral Force Chronicle (PS2)) */
     meta_GH3_BAR,           /* Guitar Hero III Mobile .bar */
     meta_FFW,               /* Freedom Fighters [NGC] */
     meta_DSP_DSPW,          /* Sengoku Basara 3 [WII] */
@@ -563,47 +563,47 @@ typedef enum {
     meta_SQEX_SCD,          /* Square-Enix SCD */
     meta_NGC_NST_DSP,       /* Animaniacs [NGC] */
     meta_BAF,               /* Bizarre Creations (Blur, James Bond) */
-	meta_XVAG,              /* Ratchet & Clank Future: Quest for Booty (PS3) */
-	meta_PS3_CPS,           /* Eternal Sonata (PS3) */
+    meta_XVAG,              /* Ratchet & Clank Future: Quest for Booty (PS3) */
+    meta_PS3_CPS,           /* Eternal Sonata (PS3) */
     meta_PS3_MSF,           /* MSF header */
-	meta_NUB_VAG,           /* Namco VAG from NUB archives */
-	meta_PS3_PAST,          /* Bakugan Battle Brawlers (PS3) */
+    meta_NUB_VAG,           /* Namco VAG from NUB archives */
+    meta_PS3_PAST,          /* Bakugan Battle Brawlers (PS3) */
     meta_SGXD,              /* Sony: Folklore, Genji, Tokyo Jungle (PS3), Brave Story, Kurohyo (PSP) */
-	meta_NGCA,              /* GoldenEye 007 (Wii) */
-	meta_WII_RAS,           /* Donkey Kong Country Returns (Wii) */
-	meta_PS2_SPM,           /* Lethal Skies Elite Pilot: Team SW */
-	meta_X360_TRA,			/* Def Jam Rapstar */
-	meta_PS2_VGS,			/* Princess Soft PS2 games */
-	meta_PS2_IAB,			/* Ueki no Housoku - Taosu ze Robert Juudan!! (PS2) */
-	meta_PS2_STRLR,         /* The Bouncer */
+    meta_NGCA,              /* GoldenEye 007 (Wii) */
+    meta_WII_RAS,           /* Donkey Kong Country Returns (Wii) */
+    meta_PS2_SPM,           /* Lethal Skies Elite Pilot: Team SW */
+    meta_X360_TRA,          /* Def Jam Rapstar */
+    meta_PS2_VGS,           /* Princess Soft PS2 games */
+    meta_PS2_IAB,           /* Ueki no Housoku - Taosu ze Robert Juudan!! (PS2) */
+    meta_PS2_STRLR,         /* The Bouncer */
     meta_LSF_N1NJ4N,        /* .lsf n1nj4n Fastlane Street Racing (iPhone) */
     meta_VAWX,              /* feelplus: No More Heroes Heroes Paradise, Moon Diver */
-    meta_PC_SNDS,           // Incredibles PC .snds
-    meta_PS2_WMUS,          // The Warriors (PS2)
-    meta_HYPERSCAN_KVAG,	// Hyperscan KVAG/BVG 
-    meta_IOS_PSND,          // Crash Bandicoot Nitro Kart 2 (iOS)
-    meta_BOS_ADP,           // ADP! (Balls of Steel, PC)
-    meta_OTNS_ADP,          // Omikron: The Nomad Soul .adp (PC/DC)
-    meta_EB_SFX,            // Excitebots .sfx
-    meta_EB_SF0,            // Excitebots .sf0
-	meta_PS3_KLBS,          // L@VE ONCE (PS3)
-    meta_PS2_MTAF,          // Metal Gear Solid 3 MTAF
-    meta_PS2_VAG1,          // Metal Gear Solid 3 VAG1
-    meta_PS2_VAG2,          // Metal Gear Solid 3 VAG2
-	meta_TUN,               // LEGO Racers (PC)
-	meta_WPD,               // Shuffle! (PC)
-	meta_MN_STR,            // Mini Ninjas (PC/PS3/WII)
-	meta_MSS,               // Guerilla: ShellShock Nam '67 (PS2/Xbox), Killzone (PS2)
-	meta_PS2_HSF,			// Lowrider (PS2)
-	meta_PS3_IVAG,			// Interleaved VAG files (PS3)
-	meta_PS2_2PFS,			// Konami: Mahoromatic: Moetto - KiraKira Maid-San, GANTZ (PS2)
-	meta_PS2_VBK,           // Disney's Stitch - Experiment 626
-    meta_OTM,               // Otomedius (Arcade)
-    meta_CSTM,              // Nintendo 3DS CSTM (Century Stream)
-    meta_FSTM,              // Nintendo Wii U FSTM (caFe? Stream)
-    meta_3DS_IDSP,          // Nintendo 3DS/Wii U IDSP
-    meta_KT_WIIBGM,         // Koei Tecmo WiiBGM
-    meta_KTSS,              // Koei Tecmo Switch Sound
+    meta_PC_SNDS,           /* Incredibles PC .snds */
+    meta_PS2_WMUS,          /* The Warriors (PS2) */
+    meta_HYPERSCAN_KVAG,    /* Hyperscan KVAG/BVG */
+    meta_IOS_PSND,          /* Crash Bandicoot Nitro Kart 2 (iOS) */
+    meta_BOS_ADP,           /* ADP! (Balls of Steel, PC) */
+    meta_OTNS_ADP,          /* Omikron: The Nomad Soul .adp (PC/DC) */
+    meta_EB_SFX,            /* Excitebots .sfx */
+    meta_EB_SF0,            /* Excitebots .sf0 */
+    meta_PS3_KLBS,          /* L@VE ONCE (PS3) */
+    meta_PS2_MTAF,          /* Metal Gear Solid 3 MTAF */
+    meta_PS2_VAG1,          /* Metal Gear Solid 3 VAG1 */
+    meta_PS2_VAG2,          /* Metal Gear Solid 3 VAG2 */
+    meta_TUN,               /* LEGO Racers (PC) */
+    meta_WPD,               /* Shuffle! (PC) */
+    meta_MN_STR,            /* Mini Ninjas (PC/PS3/WII) */
+    meta_MSS,               /* Guerilla: ShellShock Nam '67 (PS2/Xbox), Killzone (PS2) */
+    meta_PS2_HSF,           /* Lowrider (PS2) */
+    meta_PS3_IVAG,          /* Interleaved VAG files (PS3) */
+    meta_PS2_2PFS,          /* Konami: Mahoromatic: Moetto - KiraKira Maid-San, GANTZ (PS2) */
+    meta_PS2_VBK,           /* Disney's Stitch - Experiment 626 */
+    meta_OTM,               /* Otomedius (Arcade) */
+    meta_CSTM,              /* Nintendo 3DS CSTM (Century Stream) */
+    meta_FSTM,              /* Nintendo Wii U FSTM (caFe? Stream) */
+    meta_3DS_IDSP,          /* Nintendo 3DS/Wii U IDSP */
+    meta_KT_WIIBGM,         /* Koei Tecmo WiiBGM */
+    meta_KTSS,              /* Koei Tecmo Switch Sound */
     meta_MCA,               /* Capcom MCA "MADP" */
     meta_XB3D_ADX,          /* Xenoblade Chronicles 3D ADX */
     meta_HCA,               /* CRI HCA */
@@ -646,7 +646,7 @@ typedef enum {
     meta_EA_SPS,            /* Electronic Arts SPS (Burnout Crash) */
     meta_NGC_VID1,          /* Neversoft .ogg (Gun GC) */
     meta_PC_FLX,            /* Ultima IX PC */
-	meta_MOGG,              /* Harmonix Music Systems MOGG Vorbis */
+    meta_MOGG,              /* Harmonix Music Systems MOGG Vorbis */
 
 #ifdef VGM_USE_VORBIS
     meta_OGG_VORBIS,        /* Ogg Vorbis */
@@ -697,8 +697,8 @@ typedef struct {
         int32_t adpcm_history4_32;
     };
 
-	double adpcm_history1_double;
-	double adpcm_history2_double;
+    double adpcm_history1_double;
+    double adpcm_history2_double;
 
     int adpcm_step_index;       /* for IMA */
     int adpcm_scale;            /* for MS ADPCM */
@@ -775,8 +775,8 @@ typedef struct {
     int codec_endian;               /* little/big endian marker; name is left vague but usually means big endian */
     int codec_version;              /* flag for codecs with minor variations */
 
-    uint8_t xa_channel;				/* XA ADPCM: selected channel */
-    int32_t xa_sector_length;		/* XA ADPCM: XA block */
+    uint8_t xa_channel;             /* XA ADPCM: selected channel */
+    int32_t xa_sector_length;       /* XA ADPCM: XA block */
     uint8_t xa_headerless;          /* XA ADPCM: headerless XA */
     int8_t xa_get_high_nibble;      /* XA ADPCM: mono/stereo nibble selection (XA state could be simplified) */
 
@@ -784,7 +784,7 @@ typedef struct {
 
     void * start_vgmstream;         /* a copy of the VGMSTREAM as it was at the beginning of the stream (for AAX/AIX/SCD) */
 
-	/* Data the codec needs for the whole stream. This is for codecs too
+    /* Data the codec needs for the whole stream. This is for codecs too
      * different from vgmstream's structure to be reasonably shoehorned into
      * using the ch structures.
      * Note also that support must be added for resetting, looping and
@@ -983,10 +983,10 @@ typedef struct {
 
 #ifdef VGM_USE_MAIATRAC3PLUS
 typedef struct {
-	sample *buffer;
-	int channels;
-	int samples_discard;
-	void *handle;
+    sample *buffer;
+    int channels;
+    int samples_discard;
+    void *handle;
 } maiatrac3plus_codec_data;
 #endif
 
@@ -1178,22 +1178,22 @@ typedef struct {
 
 #ifdef VGM_USE_MP4V2
 typedef struct {
-	STREAMFILE *streamfile;
-	uint64_t start;
-	uint64_t offset;
-	uint64_t size;
+    STREAMFILE *streamfile;
+    uint64_t start;
+    uint64_t offset;
+    uint64_t size;
 } mp4_streamfile;
 
 #ifdef VGM_USE_FDKAAC
 typedef struct {
-	mp4_streamfile if_file;
-	MP4FileHandle h_mp4file;
-	MP4TrackId track_id;
-	unsigned long sampleId, numSamples;
-	UINT codec_init_data_size;
-	HANDLE_AACDECODER h_aacdecoder;
-	unsigned int sample_ptr, samples_per_frame, samples_discard;
-	INT_PCM sample_buffer[( (6) * (2048)*4 )];
+    mp4_streamfile if_file;
+    MP4FileHandle h_mp4file;
+    MP4TrackId track_id;
+    unsigned long sampleId, numSamples;
+    UINT codec_init_data_size;
+    HANDLE_AACDECODER h_aacdecoder;
+    unsigned int sample_ptr, samples_per_frame, samples_discard;
+    INT_PCM sample_buffer[( (6) * (2048)*4 )];
 } mp4_aac_codec_data;
 #endif
 #endif
