@@ -1,4 +1,4 @@
-## audacious-vgmstream automake script
+## vgmstream autotools script
 
 bin_PROGRAMS = vgmstream-cli
 
@@ -7,7 +7,7 @@ bin_PROGRAMS += vgmstream123
 endif
 
 AM_CFLAGS = -I$(top_builddir) -I$(top_srcdir) -I$(top_srcdir)/ext_includes/ $(AO_CFLAGS)
-AM_MAKEFLAGS = -f Makefile.audacious
+AM_MAKEFLAGS = -f Makefile.autotools
 
 vgmstream_cli_SOURCES = test.c
 vgmstream_cli_LDADD   = ../src/libvgmstream.la

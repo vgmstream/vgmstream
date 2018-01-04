@@ -60,11 +60,11 @@ AC_PATH_X
 AC_PATH_XTRA
 
 AC_OUTPUT([
-  Makefile.audacious
-  src/Makefile.audacious
-  src/coding/Makefile.audacious
-  src/layout/Makefile.audacious
-  src/meta/Makefile.audacious
-  audacious/Makefile.audacious
-  test/Makefile.audacious
+  Makefile.autotools
+  src/Makefile.autotools
+  src/coding/Makefile.autotools
+  src/layout/Makefile.autotools
+  src/meta/Makefile.autotools
+  audacious/Makefile.autotools
+  test/Makefile.autotools
 ])
