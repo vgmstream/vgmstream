@@ -134,6 +134,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="coding\at3plus_decoder.c" />
+    <ClCompile Include="coding\atrac9_decoder.c" />
     <ClCompile Include="coding\coding_utils.c" />
     <ClCompile Include="coding\ffmpeg_decoder.c" />
     <ClCompile Include="coding\ffmpeg_decoder_utils_bgw_atrac3.c" />
