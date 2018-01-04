@@ -6,12 +6,25 @@
 #define VAG_USE_INTEGER_TABLE   0
 
 /* PS ADPCM table (precalculated divs) */
-static const double VAG_f[5][2] = {
+static const double VAG_f[16][2] = {
         {   0.0        ,   0.0        },
         {  60.0 / 64.0 ,   0.0        },
         { 115.0 / 64.0 , -52.0 / 64.0 },
         {  98.0 / 64.0 , -55.0 / 64.0 },
-        { 122.0 / 64.0 , -60.0 / 64.0 }
+        { 122.0 / 64.0 , -60.0 / 64.0 },
+        /* extended table from PPSSPP (PSP emu), found by tests
+         * (only seen in inFamous PS3, very rare, possibly "SVAG" or "VAG-HE") */
+        {   0.0        ,   0.0        },
+        {   0.0        ,   0.0        },
+        {  52.0 / 64.0 ,   0.0        },
+        {  55.0 / 64.0 ,  -2.0 / 64.0 },
+        {  60.0 / 64.0 ,-125.0 / 64.0 },
+        {   0.0        ,   0.0        },
+        {   0.0        , -91.0 / 64.0 },
+        {   0.0        ,   0.0        },
+        {   2.0 / 64.0 ,-216.0 / 64.0 },
+        { 125.0 / 64.0 ,  -6.0 / 64.0 },
+        {   0.0        ,-151.0 / 64.0 },
 };
 #if VAG_USE_INTEGER_TABLE
 /* PS ADPCM table */
@@ -20,7 +33,19 @@ static const int8_t VAG_coefs[5][2] = {
         {  60 ,   0 },
         { 115 , -52 },
         {  98 , -55 },
-        { 122 , -60 }
+        { 122 , -60 },
+        /* extended */
+        {   0 ,   0 },
+        {   0 ,   0 },
+        {  52 ,   0 },
+        {  55 ,  -2 },
+        {  60 ,-125 },
+        {   0 ,   0 },
+        {   0 , -91 },
+        {   0 ,   0 },
+        {   2 ,-216 },
+        { 125 ,  -6 },
+        {   0 ,-151 },
 };
 #endif
 
