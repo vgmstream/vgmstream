@@ -274,7 +274,7 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
 
             cfg.fsb_padding = (vgmstream->channels > 2 ? 16 : 4); /* observed default */
 
-            vgmstream->codec_data = init_mpeg_custom_codec_data(streamFile, StartOffset, &vgmstream->coding_type, vgmstream->channels, MPEG_FSB, &cfg);
+            vgmstream->codec_data = init_mpeg_custom(streamFile, StartOffset, &vgmstream->coding_type, vgmstream->channels, MPEG_FSB, &cfg);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->layout_type = layout_none;
             break;
@@ -327,7 +327,7 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
 
             vgmstream->layout_type = layout_none;
             vgmstream->coding_type = coding_VORBIS_custom;
-            vgmstream->codec_data = init_vorbis_custom_codec_data(streamFile, StartOffset, VORBIS_FSB, &cfg);
+            vgmstream->codec_data = init_vorbis_custom(streamFile, StartOffset, VORBIS_FSB, &cfg);
             if (!vgmstream->codec_data) goto fail;
 
             break;

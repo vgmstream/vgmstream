@@ -57,7 +57,7 @@ VGMSTREAM * init_vgmstream_ngc_vid1(STREAMFILE *streamFile) {
 
         vgmstream->layout_type = layout_none;
         vgmstream->coding_type = coding_VORBIS_custom;
-        vgmstream->codec_data = init_vorbis_custom_codec_data(streamFile, header_offset + 0x20, VORBIS_VID1, &cfg);
+        vgmstream->codec_data = init_vorbis_custom(streamFile, header_offset + 0x20, VORBIS_VID1, &cfg);
         if (!vgmstream->codec_data) goto fail;
     }
 #else

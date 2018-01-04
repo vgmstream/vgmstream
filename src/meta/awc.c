@@ -74,7 +74,7 @@ VGMSTREAM * init_vgmstream_awc(STREAMFILE *streamFile) {
             cfg.chunk_size = awc.block_chunk;
             cfg.big_endian = awc.big_endian;
 
-            vgmstream->codec_data = init_mpeg_custom_codec_data(streamFile, awc.stream_offset, &vgmstream->coding_type, vgmstream->channels, MPEG_AWC, &cfg);
+            vgmstream->codec_data = init_mpeg_custom(streamFile, awc.stream_offset, &vgmstream->coding_type, vgmstream->channels, MPEG_AWC, &cfg);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->layout_type = layout_none;
 

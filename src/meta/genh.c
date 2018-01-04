@@ -239,7 +239,7 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
 #ifdef VGM_USE_MPEG
         case coding_MPEG_layer3:
             vgmstream->layout_type = layout_none;
-            vgmstream->codec_data = init_mpeg_codec_data(streamFile, genh.start_offset, &coding, vgmstream->channels);
+            vgmstream->codec_data = init_mpeg(streamFile, genh.start_offset, &coding, vgmstream->channels);
             if (!vgmstream->codec_data) goto fail;
 
             break;

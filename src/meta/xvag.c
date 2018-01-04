@@ -112,7 +112,7 @@ VGMSTREAM * init_vgmstream_xvag(STREAMFILE *streamFile) {
             cfg.chunk_size = read_32bit(chunk_offset+0x1c,streamFile); /* fixed frame size */
             cfg.interleave = cfg.chunk_size * multiplier;
 
-            vgmstream->codec_data = init_mpeg_custom_codec_data(streamFile, start_offset, &vgmstream->coding_type, vgmstream->channels, MPEG_XVAG, &cfg);
+            vgmstream->codec_data = init_mpeg_custom(streamFile, start_offset, &vgmstream->coding_type, vgmstream->channels, MPEG_XVAG, &cfg);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->layout_type = layout_none;
             break;
