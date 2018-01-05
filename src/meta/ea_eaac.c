@@ -214,7 +214,7 @@ static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE * streamHead, ST
             mpeg_custom_t type = (codec == 0x05 ? MPEG_EAL31b : (codec == 0x06) ? MPEG_EAL32P : MPEG_EAL32S);
 
             /* layout is still blocks, but should work fine with the custom mpeg decoder */
-            vgmstream->codec_data = init_mpeg_custom_codec_data(streamData, mpeg_start_offset, &vgmstream->coding_type, vgmstream->channels, type, &cfg);
+            vgmstream->codec_data = init_mpeg_custom(streamData, mpeg_start_offset, &vgmstream->coding_type, vgmstream->channels, type, &cfg);
             if (!vgmstream->codec_data) goto fail;
 
             vgmstream->layout_type = layout_blocked_ea_sns;

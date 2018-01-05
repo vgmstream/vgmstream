@@ -320,7 +320,7 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE *streamFile, ea_
             if (!mpeg_start_offset) goto fail;
 
             /* layout is still blocks, but should work fine with the custom mpeg decoder */
-            vgmstream->codec_data = init_mpeg_custom_codec_data(streamFile, mpeg_start_offset, &vgmstream->coding_type, vgmstream->channels, MPEG_EA, &cfg);
+            vgmstream->codec_data = init_mpeg_custom(streamFile, mpeg_start_offset, &vgmstream->coding_type, vgmstream->channels, MPEG_EA, &cfg);
             if (!vgmstream->codec_data) goto fail;
             break;
         }
@@ -333,7 +333,7 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE *streamFile, ea_
             if (!mpeg_start_offset) goto fail;
 
             /* layout is still blocks, but should work fine with the custom mpeg decoder */
-            vgmstream->codec_data = init_mpeg_custom_codec_data(streamFile, mpeg_start_offset, &vgmstream->coding_type, vgmstream->channels, MPEG_EAL31, &cfg);
+            vgmstream->codec_data = init_mpeg_custom(streamFile, mpeg_start_offset, &vgmstream->coding_type, vgmstream->channels, MPEG_EAL31, &cfg);
             if (!vgmstream->codec_data) goto fail;
             break;
         }

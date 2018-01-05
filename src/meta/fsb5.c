@@ -7,34 +7,40 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     off_t StartOffset = 0, NameOffset = 0;
     off_t SampleHeaderStart = 0, ExtraInfoStart = 0;
-    size_t SampleHeaderLength, NameTableLength, SampleDataLength, BaseHeaderLength, StreamSize = 0;
+    size_t SampleHeaderLength, NameTableLength, SampleDataLength, BaseHeaderLength, StreamSize = 0, ExtraInfoSize = 0;
 
     uint32_t NumSamples = 0, LoopStart = 0, LoopEnd = 0;
-    int LoopFlag = 0, ChannelCount = 0, SampleRate = 0, CodingID;
+    int LoopFlag = 0, ChannelCount = 0, Version, SampleRate = 0, CodingID;
     int TotalStreams, TargetStream = streamFile->stream_index;
     int i;
 
     /* check extension, case insensitive */
-    if (!check_extensions(streamFile,"fsb")) goto fail;
+    if (!check_extensions(streamFile,"fsb"))
+        goto fail;
 
-    if (read_32bitBE(0x00,streamFile) != 0x46534235) goto fail; /* "FSB5" */
+    if (read_32bitBE(0x00,streamFile) != 0x46534235) /* "FSB5" */
+        goto fail;
 
-    //v0 has extra flags at 0x1c and BaseHeaderLength = 0x40?
-    if (read_32bitLE(0x04,streamFile) != 0x01) goto fail; /* Version ID */
+    /* 0x00 is rare (seen in Tales from Space Vita) */
+    Version = read_32bitLE(0x04,streamFile);
+    if (Version != 0x00 && Version != 0x01) goto fail;
 
     TotalStreams       = read_32bitLE(0x08,streamFile);
     SampleHeaderLength = read_32bitLE(0x0C,streamFile);
     NameTableLength    = read_32bitLE(0x10,streamFile);
     SampleDataLength   = read_32bitLE(0x14,streamFile);
     CodingID = read_32bitLE(0x18,streamFile);
-    /* 0x1c (8): zero,  0x24 (16): hash,  0x34 (8): unk  */
-    BaseHeaderLength = 0x3C;
+    /* type 0x01 - 0x1c(8): zero,  0x24(16): hash,  0x34(8): unk
+     * type 0x00 has an extra field (always 0?) at 0x1c */
+    BaseHeaderLength = (Version==0x00) ? 0x40 : 0x3C;
 
-    SampleHeaderStart = BaseHeaderLength;
+    if ((SampleHeaderLength + NameTableLength + SampleDataLength + BaseHeaderLength) != get_streamfile_size(streamFile))
+        goto fail;
 
-    if ((SampleHeaderLength + NameTableLength + SampleDataLength + 0x3C) != get_streamfile_size(streamFile)) goto fail;
     if (TargetStream == 0) TargetStream = 1; /* default to 1 */
     if (TargetStream > TotalStreams || TotalStreams <= 0) goto fail;
+
+    SampleHeaderStart = BaseHeaderLength;
 
     /* find target stream header and data offset, and read all needed values for later use
      *  (reads one by one as the size of a single stream header is variable) */
@@ -112,6 +118,9 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
                         break;
                     case 0x04:  /* free comment, or maybe SFX info */
                         break;
+                    //case 0x05:  /* Unknown (32b) */
+                    //    /* found in Tearaway Vita, value 0, first stream only  */
+                    //    break;
                     case 0x06:  /* XMA seek table */
                         /* no need for it */
                         break;
@@ -120,6 +129,7 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
                         break;
                     case 0x09:  /* ATRAC9 config */
                         ExtraInfoStart = ExtraFlagStart + 0x04;
+                        ExtraInfoSize = ExtraFlagSize;
                         break;
                     case 0x0a:  /* XWMA data */
                         break;
@@ -132,7 +142,8 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
                          * (xN entries)
                          */
                         break;
-                    //case 0x0d:  /* Unknown value (32b), found in some XMA2 and Vorbis */
+                    //case 0x0d:  /* Unknown (32b) */
+                    //    /* found in some XMA2 and Vorbis */
                     //    break;
                     default:
                         VGM_LOG("FSB5: unknown extra flag 0x%x at 0x%04x (size 0x%x)\n", ExtraFlagType, ExtraFlagStart, ExtraFlagSize);
@@ -263,7 +274,7 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
 
             cfg.fsb_padding = (vgmstream->channels > 2 ? 16 : 4); /* observed default */
 
-            vgmstream->codec_data = init_mpeg_custom_codec_data(streamFile, StartOffset, &vgmstream->coding_type, vgmstream->channels, MPEG_FSB, &cfg);
+            vgmstream->codec_data = init_mpeg_custom(streamFile, StartOffset, &vgmstream->coding_type, vgmstream->channels, MPEG_FSB, &cfg);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->layout_type = layout_none;
             break;
@@ -277,7 +288,23 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
             atrac9_config cfg = {0};
 
             cfg.channels = vgmstream->channels;
-            cfg.config_data = read_32bitBE(ExtraInfoStart,streamFile);
+            switch(ExtraInfoSize) {
+                case 0x04: /* Little Big Planet 2ch (Vita), Guacamelee (Vita) */
+                    cfg.config_data = read_32bitBE(ExtraInfoStart,streamFile);
+                    break;
+                case 0x08: /* Day of the Tentacle Remastered (Vita) */
+                    /* 0x00: superframe size (also in config_data) */
+                    cfg.config_data = read_32bitBE(ExtraInfoStart+0x04,streamFile);
+                    break;
+                //case 0x0c: /* Little Big Planet 6ch (Vita) */
+                //    //todo: this is just 0x04 x3, in case of 4ch would be 0x08 --must improve detection
+                //    //each stream has its own config_data (but seem to be the same), interleaves 1 super frame per stream
+                //    break;
+                default:
+                    VGM_LOG("FSB5: unknown extra info size 0x%x\n", ExtraInfoSize);
+                    goto fail;
+            }
+            //cfg.encoder_delay = 0x100; //todo not used? num_samples seems to count all data
 
             vgmstream->codec_data = init_atrac9(&cfg);
             if (!vgmstream->codec_data) goto fail;
@@ -300,7 +327,7 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
 
             vgmstream->layout_type = layout_none;
             vgmstream->coding_type = coding_VORBIS_custom;
-            vgmstream->codec_data = init_vorbis_custom_codec_data(streamFile, StartOffset, VORBIS_FSB, &cfg);
+            vgmstream->codec_data = init_vorbis_custom(streamFile, StartOffset, VORBIS_FSB, &cfg);
             if (!vgmstream->codec_data) goto fail;
 
             break;

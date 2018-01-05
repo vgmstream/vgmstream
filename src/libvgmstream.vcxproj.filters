@@ -1174,6 +1174,9 @@
     <ClCompile Include="coding\at3plus_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="coding\atrac9_decoder.c">
+      <Filter>coding\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\bcstm.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>

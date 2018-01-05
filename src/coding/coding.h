@@ -80,7 +80,6 @@ size_t ps_bytes_to_samples(size_t bytes, int channels);
 
 /* xa_decoder */
 void decode_xa(VGMSTREAM * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel);
-void xa_init_get_high_nibble(VGMSTREAM * vgmstream);
 size_t xa_bytes_to_samples(size_t bytes, int channels, int is_blocked);
 
 /* ea_xa_decoder */
@@ -158,7 +157,7 @@ void seek_ogg_vorbis(VGMSTREAM *vgmstream, int32_t num_sample);
 void free_ogg_vorbis(ogg_vorbis_codec_data *data);
 
 /* vorbis_custom_decoder */
-vorbis_custom_codec_data * init_vorbis_custom_codec_data(STREAMFILE *streamfile, off_t start_offset, vorbis_custom_t type, vorbis_custom_config * config);
+vorbis_custom_codec_data *init_vorbis_custom(STREAMFILE *streamfile, off_t start_offset, vorbis_custom_t type, vorbis_custom_config * config);
 void decode_vorbis_custom(VGMSTREAM * vgmstream, sample * outbuf, int32_t samples_to_do, int channels);
 void reset_vorbis_custom(VGMSTREAM *vgmstream);
 void seek_vorbis_custom(VGMSTREAM *vgmstream, int32_t num_sample);
@@ -167,11 +166,9 @@ void free_vorbis_custom(vorbis_custom_codec_data *data);
 
 #ifdef VGM_USE_MPEG
 /* mpeg_decoder */
-mpeg_codec_data *init_mpeg_codec_data(STREAMFILE *streamfile, off_t start_offset, coding_t *coding_type, int channels);
-mpeg_codec_data *init_mpeg_custom_codec_data(STREAMFILE *streamFile, off_t start_offset, coding_t *coding_type, int channels, mpeg_custom_t custom_type, mpeg_custom_config *config);
-
+mpeg_codec_data *init_mpeg(STREAMFILE *streamfile, off_t start_offset, coding_t *coding_type, int channels);
+mpeg_codec_data *init_mpeg_custom(STREAMFILE *streamFile, off_t start_offset, coding_t *coding_type, int channels, mpeg_custom_t custom_type, mpeg_custom_config *config);
 void decode_mpeg(VGMSTREAM * vgmstream, sample * outbuf, int32_t samples_to_do, int channels);
-void decode_fake_mpeg2_l2(VGMSTREAMCHANNEL * stream, mpeg_codec_data * data, sample * outbuf, int32_t samples_to_do);
 void reset_mpeg(VGMSTREAM *vgmstream);
 void seek_mpeg(VGMSTREAM *vgmstream, int32_t num_sample);
 void free_mpeg(mpeg_codec_data *data);
@@ -225,9 +222,9 @@ size_t atrac9_bytes_to_samples(size_t bytes, atrac9_codec_data *data);
 
 #ifdef VGM_USE_FFMPEG
 /* ffmpeg_decoder */
-ffmpeg_codec_data * init_ffmpeg_offset(STREAMFILE *streamFile, uint64_t start, uint64_t size);
-ffmpeg_codec_data * init_ffmpeg_header_offset(STREAMFILE *streamFile, uint8_t * header, uint64_t header_size, uint64_t start, uint64_t size);
-ffmpeg_codec_data * init_ffmpeg_config(STREAMFILE *streamFile, uint8_t * header, uint64_t header_size, uint64_t start, uint64_t size, ffmpeg_custom_config * config);
+ffmpeg_codec_data *init_ffmpeg_offset(STREAMFILE *streamFile, uint64_t start, uint64_t size);
+ffmpeg_codec_data *init_ffmpeg_header_offset(STREAMFILE *streamFile, uint8_t * header, uint64_t header_size, uint64_t start, uint64_t size);
+ffmpeg_codec_data *init_ffmpeg_config(STREAMFILE *streamFile, uint8_t * header, uint64_t header_size, uint64_t start, uint64_t size, ffmpeg_custom_config * config);
 
 void decode_ffmpeg(VGMSTREAM *stream, sample * outbuf, int32_t samples_to_do, int channels);
 void reset_ffmpeg(VGMSTREAM *vgmstream);

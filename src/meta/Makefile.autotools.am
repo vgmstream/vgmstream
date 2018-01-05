@@ -1,9 +1,9 @@
-## audacious-vgmstream automake script
+## vgmstream autotools script
 
 noinst_LTLIBRARIES = libmeta.la
 
 AM_CFLAGS = -DVAR_ARRAYS -I$(top_builddir) -I$(top_srcdir) -I$(top_srcdir)/ext_includes/
-AM_MAKEFLAGS=-f Makefile.audacious
+AM_MAKEFLAGS=-f Makefile.autotools
 
 # sources/headers are updated automatically by ./bootstrap script (not all headers are needed though)
 libmeta_la_LDFLAGS =

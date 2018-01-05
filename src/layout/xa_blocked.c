@@ -8,13 +8,13 @@ void xa_block_update(off_t block_offset, VGMSTREAM * vgmstream) {
     int8_t currentChannel=0;
     int8_t subAudio=0;
 
-    xa_init_get_high_nibble(vgmstream);
+    vgmstream->xa_get_high_nibble = 1; /* reset nibble order */
 
     /* don't change this variable in the init process */
     if (vgmstream->samples_into_block != 0)
         vgmstream->xa_sector_length += 0x80;
 
-    /* XA mode2/form2 sector
+    /* XA mode2/form2 sector, size 0x930
      * 0x00: sync word
      * 0x0c: header = minute, second, sector, mode (always 0x02)
      * 0x10: subheader = file, channel (marker), submode flags, xa header
@@ -23,9 +23,10 @@ void xa_block_update(off_t block_offset, VGMSTREAM * vgmstream) {
      * 0x918: unused
      * 0x92c: EDC/checksum or null
      * 0x930: end
+     * (in non-blocked ISO 2048 mode1/data chunks are 0x800)
      */
 
-    /* submode flags (typical audio value = 0x64)
+    /* submode flag bits (typical audio value = 0x64)
      * - 7: end of file
      * - 6: real time mode
      * - 5: sector form (0=form1, 1=form2)

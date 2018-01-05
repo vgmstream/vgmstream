@@ -285,7 +285,7 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
                     }
                 }
 
-                vgmstream->codec_data = init_vorbis_custom_codec_data(streamFile, start_offset + setup_offset, VORBIS_WWISE, &cfg);
+                vgmstream->codec_data = init_vorbis_custom(streamFile, start_offset + setup_offset, VORBIS_WWISE, &cfg);
                 if (!vgmstream->codec_data) goto fail;
             }
             else {
@@ -330,11 +330,11 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
                 }
 
                 /* try with the selected codebooks */
-                vgmstream->codec_data = init_vorbis_custom_codec_data(streamFile, start_offset + setup_offset, VORBIS_WWISE, &cfg);
+                vgmstream->codec_data = init_vorbis_custom(streamFile, start_offset + setup_offset, VORBIS_WWISE, &cfg);
                 if (!vgmstream->codec_data) {
                     /* codebooks failed: try again with the other type */
                     cfg.setup_type  = is_wem ? EXTERNAL_CODEBOOKS : AOTUV603_CODEBOOKS;
-                    vgmstream->codec_data = init_vorbis_custom_codec_data(streamFile, start_offset + setup_offset, VORBIS_WWISE, &cfg);
+                    vgmstream->codec_data = init_vorbis_custom(streamFile, start_offset + setup_offset, VORBIS_WWISE, &cfg);
                     if (!vgmstream->codec_data) goto fail;
                 }
             }

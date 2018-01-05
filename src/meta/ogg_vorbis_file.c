@@ -189,7 +189,7 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
             strcasecmp("ogg",filename_extension(filename))) {
         if (!strcasecmp("um3",filename_extension(filename))) {
             um3_ogg = 1;
-        } else if (!strcasecmp("kovs",filename_extension(filename))) {
+        } else if (check_extensions(streamFile,"kvs,kovs")) { /* .kvs: Atelier Sophie, kovs: header id only? */
             kovs_ogg = 1;
         } else {
             goto fail;

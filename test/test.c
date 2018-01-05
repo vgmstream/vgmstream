@@ -33,7 +33,7 @@ static void usage(const char * name) {
     fprintf(stderr,"vgmstream test decoder " VERSION " " __DATE__ "\n"
           "Usage: %s [-o outfile.wav] [options] infile\n"
           "Options:\n"
-          "    -o outfile.wav: name of output .wav file, default is dump.wav\n"
+          "    -o outfile.wav: name of output .wav file, default is infile.wav\n"
           "    -l loop count: loop count, default 2.0\n"
           "    -f fade time: fade time (seconds) after N loops, default 10.0\n"
           "    -d fade delay: fade delay (seconds, default 0.0\n"
@@ -67,6 +67,7 @@ int main(int argc, char ** argv) {
     char * infilename = NULL;
     char * outfilename = NULL;
     char * outfilename_reset = NULL;
+    char outfilename_internal[PATH_LIMIT];
     int ignore_loop = 0;
     int force_loop = 0;
     int really_force_loop = 0;
@@ -228,8 +229,12 @@ int main(int argc, char ** argv) {
         outfile = stdout;
     }
     else if (!print_metaonly) {
-        if (!outfilename)
-            outfilename = "dump.wav";
+        if (!outfilename) {
+            strcpy(outfilename_internal, infilename);
+            strcat(outfilename_internal, ".wav");
+            outfilename = outfilename_internal;
+        }
+
         outfile = fopen(outfilename,"wb");
         if (!outfile) {
             fprintf(stderr,"failed to open %s for output\n",outfilename);
