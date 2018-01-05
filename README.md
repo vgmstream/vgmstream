@@ -35,7 +35,7 @@ or in a system directory, or any other directory in the PATH variable.
 ```
 Usage: test.exe [-o outfile.wav] [options] infile
 Options:
-    -o outfile.wav: name of output .wav file, default is dump.wav
+    -o outfile.wav: name of output .wav file, default is infile.wav
     -l loop count: loop count, default 2.0
     -f fade time: fade time (seconds), default 10.0
     -d fade delay: fade delay (seconds, default 0.0
@@ -57,6 +57,8 @@ Options:
 ```
 Typical usage would be: ```test -o happy.wav happy.adx``` to decode ```happy.adx``` to ```happy.wav```.
 
+Please follow the above instructions for installing the other files needed.
+
 ### in_vgmstream
 Drop the ```in_vgmstream.dll``` in your Winamp plugins directory. Please follow
 the above instructions for installing the other files needed.
@@ -76,10 +78,35 @@ and in the "priority filetypes" put: ```ahx,asf,awc,ckd,fsb,genh,msf,p3d,rak,scd
 Every file should be installed automatically by the .fb2k-component bundle.
 
 ### Audacious plugin
-Needs to be manually built. Instructions can be found in the build document.
+Needs to be manually built. Instructions can be found in the BUILD document.
 
 ### vgmstream123
-Needs to be manually built. Instructions can be found in the build document.
+Needs to be manually built. Instructions can be found in the BUILD document.
+
+```
+Usage: vgmstream123 [options] INFILE ...
+```
+
+The program is meant to be a simple stand-alone player, supporting playback
+of vgmstream files through libao. Files compressed with gzip/bzip2/xz also
+work, as identified by a .gz/.bz2/.xz extension. The file will be decompressed
+to a temp dir using the respective utility program (which must be installed
+and accessible) and then loaded.
+
+It also supports playlists, and will recognize a special extended-M3U tag
+specific to vgmstream of the following form:
+```
+#EXT-X-VGMSTREAM:LOOPCOUNT=2,FADETIME=10.0,FADEDELAY=0.0,STREAMINDEX=0
+```
+(Any subset of these four parameters may appear in the line, in any order)
+
+When this "magic comment" appears in the playlist before a vgmstream-compatible
+file, the given parameters will be applied to the playback of said file. This makes
+it feasible to play vgmstream files directly instead of needing to make "arranged"
+WAV/MP3 conversions ahead of time.
+
+The tag syntax follows the conventions established in Apple's HTTP Live Streaming
+standard, whose docs discuss extending M3U with arbitrary tags.
 
 ## Supported codec types
 Quick list of codecs vgmstream supports, including many obscure ones that 
@@ -95,7 +122,7 @@ are used in few games.
 - Nintendo AFC ADPCM
 - ITU-T G.721
 - CD-ROM XA ADPCM
-- Sony PSX ADPCM a.k.a VAG (badflags, bmdx, configurable)
+- Sony PSX ADPCM a.k.a VAG (standard, badflags, bmdx, configurable)
 - Sony HEVAG
 - Electronic Arts EA-XA (stereo, mono, Maxis)
 - Electronic Arts EA-XAS
@@ -125,6 +152,7 @@ are used in few games.
 - Electronic Arts EALayer3
 - Electronic Arts EA-XMA
 - Sony ATRAC3, ATRAC3plus
+- Sony ATRAC9
 - Microsoft XMA1/2
 - Microsoft WMA v1, WMA v2, WMAPro
 - AAC

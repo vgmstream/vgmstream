@@ -111,14 +111,14 @@ cd vgmstream
 
 ./bootstrap
 ./configure
-make -f Makefile.audacious
+make -f Makefile.autotools
 
 # copy to audacious plugins
-sudo make -f Makefile.audacious install
+sudo make -f Makefile.autotools install
 
 
 # optional post-cleanup
-make -f Makefile.audacious clean
+make -f Makefile.autotools clean
 find . -name ".deps" -type d -exec rm -r "{}" \;
 ./unbootstrap
 ## WARNING, removes *all* untracked files not in .gitignore
@@ -126,7 +126,7 @@ git clean -fd
 ```
 
 # vgmstream123 player
-Should be buildable with Autotools, much like the Audicious plugin, though requires libao (libao-dev).
+Should be buildable with Autotools, much like the Audacious plugin, though requires libao (libao-dev).
 
 Windows builds aren't supported at the moment (source may need to be adapted for non-POSIX systems).
 

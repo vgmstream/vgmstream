@@ -213,7 +213,6 @@ fail:
 VGMSTREAM * init_vgmstream_ta_aac_mobile(STREAMFILE *streamFile) {
 #ifdef VGM_USE_VORBIS
     off_t start_offset;
-    int loop_flag;
     char filename[PATH_LIMIT];
     int8_t codec_id;
 

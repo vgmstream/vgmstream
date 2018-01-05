@@ -1,9 +1,9 @@
-## audacious-vgmstream automake script
+## vgmstream autotools script
 
 lib_LTLIBRARIES = libvgmstream.la
 
 AM_CFLAGS = -I$(top_builddir) -I$(top_srcdir) -I$(top_srcdir)/ext_includes/
-AM_MAKEFLAGS=-f Makefile.audacious
+AM_MAKEFLAGS=-f Makefile.autotools
 
 SUBDIRS = coding layout meta
 

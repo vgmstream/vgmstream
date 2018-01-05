@@ -19,7 +19,7 @@ static void pcm_convert_float_to_16(vorbis_custom_codec_data * data, sample * ou
  *
  * Reference: https://www.xiph.org/vorbis/doc/libvorbis/overview.html
  */
-vorbis_custom_codec_data * init_vorbis_custom_codec_data(STREAMFILE *streamFile, off_t start_offset, vorbis_custom_t type, vorbis_custom_config * config) {
+vorbis_custom_codec_data * init_vorbis_custom(STREAMFILE *streamFile, off_t start_offset, vorbis_custom_t type, vorbis_custom_config * config) {
     vorbis_custom_codec_data * data = NULL;
     int ok;
 

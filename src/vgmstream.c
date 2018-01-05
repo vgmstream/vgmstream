@@ -17,10 +17,10 @@ static void try_dual_file_stereo(VGMSTREAM * opened_vgmstream, STREAMFILE *strea
 VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_adx,
     init_vgmstream_brstm,
-	init_vgmstream_bfwav,
-	init_vgmstream_bfstm,
-	init_vgmstream_mca,
-	init_vgmstream_btsnd,
+    init_vgmstream_bfwav,
+    init_vgmstream_bfstm,
+    init_vgmstream_mca,
+    init_vgmstream_btsnd,
     init_vgmstream_nds_strm,
     init_vgmstream_agsc,
     init_vgmstream_ngc_adpdtk,
@@ -31,7 +31,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_rs03,
     init_vgmstream_ngc_dsp_std,
     init_vgmstream_ngc_mdsp_std,
-	init_vgmstream_ngc_dsp_csmp,
+    init_vgmstream_ngc_dsp_csmp,
     init_vgmstream_cstr,
     init_vgmstream_gcsw,
     init_vgmstream_ps2_ads,
@@ -67,10 +67,10 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_sfl,
 #endif
 #if 0
-	init_vgmstream_mp4_aac,
+    init_vgmstream_mp4_aac,
 #endif
 #if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
-	init_vgmstream_akb,
+    init_vgmstream_akb,
 #endif
     init_vgmstream_sadb,
     init_vgmstream_ps2_bmdx,
@@ -117,7 +117,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_ps2_dxh,
     init_vgmstream_ps2_psh,
     init_vgmstream_scd_pcm,
-	init_vgmstream_ps2_pcm,
+    init_vgmstream_ps2_pcm,
     init_vgmstream_ps2_rkv,
     init_vgmstream_ps2_psw,
     init_vgmstream_ps2_vas,
@@ -162,13 +162,13 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_rsd2vag,
     init_vgmstream_rsd2pcmb,
     init_vgmstream_rsd2xadp,
-	init_vgmstream_rsd3vag,
-	init_vgmstream_rsd3gadp,
+    init_vgmstream_rsd3vag,
+    init_vgmstream_rsd3gadp,
     init_vgmstream_rsd3pcm,
-	init_vgmstream_rsd3pcmb,
+    init_vgmstream_rsd3pcmb,
     init_vgmstream_rsd4pcmb,
     init_vgmstream_rsd4pcm,
-	init_vgmstream_rsd4radp,
+    init_vgmstream_rsd4radp,
     init_vgmstream_rsd4vag,
     init_vgmstream_rsd6vag,
     init_vgmstream_rsd6wadp,
@@ -222,19 +222,19 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_ps2_sps,
     init_vgmstream_ps2_xa2_rrp,
     init_vgmstream_nds_hwas,
-	init_vgmstream_ngc_lps,
+    init_vgmstream_ngc_lps,
     init_vgmstream_ps2_snd,
     init_vgmstream_naomi_adpcm,
-	init_vgmstream_sd9,
-	init_vgmstream_2dx9,
-	init_vgmstream_dsp_ygo,
+    init_vgmstream_sd9,
+    init_vgmstream_2dx9,
+    init_vgmstream_dsp_ygo,
     init_vgmstream_ps2_vgv,
     init_vgmstream_ngc_gcub,
     init_vgmstream_maxis_xa,
     init_vgmstream_ngc_sck_dsp,
     init_vgmstream_apple_caff,
-	init_vgmstream_pc_mxst,
-	init_vgmstream_sab,
+    init_vgmstream_pc_mxst,
+    init_vgmstream_sab,
     init_vgmstream_exakt_sc,
     init_vgmstream_wii_bns,
     init_vgmstream_wii_was,
@@ -244,8 +244,8 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_stx,
     init_vgmstream_myspd,
     init_vgmstream_his,
-	init_vgmstream_ps2_ast,
-	init_vgmstream_dmsg,
+    init_vgmstream_ps2_ast,
+    init_vgmstream_dmsg,
     init_vgmstream_ngc_dsp_aaap,
     init_vgmstream_ngc_dsp_konami,
     init_vgmstream_ps2_ster,
@@ -261,8 +261,8 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_ngc_bo2,
     init_vgmstream_dsp_ddsp,
     init_vgmstream_p3d,
-	init_vgmstream_ps2_tk1,
-	init_vgmstream_ps2_adsc,
+    init_vgmstream_ps2_tk1,
+    init_vgmstream_ps2_adsc,
     init_vgmstream_ngc_dsp_mpds,
     init_vgmstream_dsp_str_ig,
     init_vgmstream_psx_mgav,
@@ -274,55 +274,55 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_dsp_xiii,
     init_vgmstream_dsp_cabelas,
     init_vgmstream_ps2_adm,
-	init_vgmstream_ps2_lpcm,
+    init_vgmstream_ps2_lpcm,
     init_vgmstream_dsp_bdsp,
-	init_vgmstream_ps2_vms,
-	init_vgmstream_xau,
+    init_vgmstream_ps2_vms,
+    init_vgmstream_xau,
     init_vgmstream_bar,
     init_vgmstream_ffw,
     init_vgmstream_dsp_dspw,
     init_vgmstream_ps2_jstm,
     init_vgmstream_xvag,
-	init_vgmstream_ps3_cps,
+    init_vgmstream_ps3_cps,
     init_vgmstream_sqex_scd,
     init_vgmstream_ngc_nst_dsp,
     init_vgmstream_baf,
     init_vgmstream_ps3_msf,
-	init_vgmstream_nub_vag,
-	init_vgmstream_ps3_past,
+    init_vgmstream_nub_vag,
+    init_vgmstream_ps3_past,
     init_vgmstream_sgxd,
-	init_vgmstream_ngca,
-	init_vgmstream_wii_ras,
-	init_vgmstream_ps2_spm,
-	init_vgmstream_x360_tra,
-	init_vgmstream_ps2_iab,
-	init_vgmstream_ps2_strlr,
+    init_vgmstream_ngca,
+    init_vgmstream_wii_ras,
+    init_vgmstream_ps2_spm,
+    init_vgmstream_x360_tra,
+    init_vgmstream_ps2_iab,
+    init_vgmstream_ps2_strlr,
     init_vgmstream_lsf_n1nj4n,
-	init_vgmstream_vawx,
+    init_vgmstream_vawx,
     init_vgmstream_pc_snds,
-	init_vgmstream_ps2_wmus,
-	init_vgmstream_hyperscan_kvag,
-	init_vgmstream_ios_psnd,
-	init_vgmstream_pc_adp_bos,
-	init_vgmstream_pc_adp_otns,
+    init_vgmstream_ps2_wmus,
+    init_vgmstream_hyperscan_kvag,
+    init_vgmstream_ios_psnd,
+    init_vgmstream_pc_adp_bos,
+    init_vgmstream_pc_adp_otns,
     init_vgmstream_eb_sfx,
     init_vgmstream_eb_sf0,
-	init_vgmstream_ps3_klbs,
+    init_vgmstream_ps3_klbs,
     init_vgmstream_ps2_mtaf,
-	init_vgmstream_tun,
-	init_vgmstream_wpd,
-	init_vgmstream_mn_str,
-	init_vgmstream_mss,
-	init_vgmstream_ps2_hsf,
-	init_vgmstream_ps3_ivag,
-	init_vgmstream_ps2_2pfs,
+    init_vgmstream_tun,
+    init_vgmstream_wpd,
+    init_vgmstream_mn_str,
+    init_vgmstream_mss,
+    init_vgmstream_ps2_hsf,
+    init_vgmstream_ps3_ivag,
+    init_vgmstream_ps2_2pfs,
     init_vgmstream_xnb,
-	init_vgmstream_rsd6oogv,
-	init_vgmstream_ubi_ckd,
-	init_vgmstream_ps2_vbk,
-	init_vgmstream_otm,
-	init_vgmstream_bcstm,
-	init_vgmstream_3ds_idsp,
+    init_vgmstream_rsd6oogv,
+    init_vgmstream_ubi_ckd,
+    init_vgmstream_ps2_vbk,
+    init_vgmstream_otm,
+    init_vgmstream_bcstm,
+    init_vgmstream_3ds_idsp,
     init_vgmstream_kt_g1l,
     init_vgmstream_kt_wiibgm,
     init_vgmstream_ktss,
@@ -372,7 +372,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_ea_sps,
     init_vgmstream_ngc_vid1,
     init_vgmstream_flx,
-	init_vgmstream_mogg,
+    init_vgmstream_mogg,
 
     init_vgmstream_txth,  /* should go at the end (lower priority) */
 #ifdef VGM_USE_FFMPEG
@@ -514,9 +514,9 @@ void reset_vgmstream(VGMSTREAM * vgmstream) {
     }
 
 #if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
-	if (vgmstream->coding_type==coding_MP4_AAC) {
-	    reset_mp4_aac(vgmstream);
-	}
+    if (vgmstream->coding_type==coding_MP4_AAC) {
+        reset_mp4_aac(vgmstream);
+    }
 #endif
 
 #ifdef VGM_USE_MPEG
@@ -543,9 +543,9 @@ void reset_vgmstream(VGMSTREAM * vgmstream) {
 #endif
 
 #ifdef VGM_USE_MAIATRAC3PLUS
-	if (vgmstream->coding_type==coding_AT3plus) {
-	    reset_at3plus(vgmstream);
-	}
+    if (vgmstream->coding_type==coding_AT3plus) {
+        reset_at3plus(vgmstream);
+    }
 #endif
 
 #ifdef VGM_USE_ATRAC9
@@ -709,10 +709,10 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
 #endif
 
 #if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
-	if (vgmstream->coding_type==coding_MP4_AAC) {
-	    free_mp4_aac(vgmstream->codec_data);
+    if (vgmstream->coding_type==coding_MP4_AAC) {
+        free_mp4_aac(vgmstream->codec_data);
         vgmstream->codec_data = NULL;
-	}
+    }
 #endif
 
 #ifdef VGM_USE_MPEG
@@ -742,10 +742,10 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
 #endif
 
 #ifdef VGM_USE_MAIATRAC3PLUS
-	if (vgmstream->coding_type == coding_AT3plus) {
-	    free_at3plus(vgmstream->codec_data);
+    if (vgmstream->coding_type == coding_AT3plus) {
+        free_at3plus(vgmstream->codec_data);
         vgmstream->codec_data = NULL;
-	}
+    }
 #endif
 
 #ifdef VGM_USE_ATRAC9
@@ -941,7 +941,7 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
         case layout_none:
             render_vgmstream_nolayout(buffer,sample_count,vgmstream);
             break;
-		case layout_mxch_blocked:
+        case layout_mxch_blocked:
         case layout_ast_blocked:
         case layout_halpst_blocked:
         case layout_xa_blocked:
@@ -964,8 +964,8 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
         case layout_psx_mgav_blocked:
         case layout_ps2_adm_blocked:
         case layout_dsp_bdsp_blocked:
-		case layout_tra_blocked:
-		case layout_ps2_iab_blocked:
+        case layout_tra_blocked:
+        case layout_ps2_iab_blocked:
         case layout_ps2_strlr_blocked:
         case layout_rws_blocked:
         case layout_hwas_blocked:
@@ -1001,7 +1001,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_CRI_ADX_exp:
         case coding_CRI_ADX_enc_8:
         case coding_CRI_ADX_enc_9:
-			return (vgmstream->interleave_block_size - 2) * 2;
+            return (vgmstream->interleave_block_size - 2) * 2;
         case coding_L5_555:
             return 32;
         case coding_NGC_DSP:
@@ -1072,14 +1072,14 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_PSX_cfg:
             return (vgmstream->interleave_block_size - 1) * 2; /* decodes 1 byte into 2 bytes */
         case coding_XBOX:
-		case coding_XBOX_int:
+        case coding_XBOX_int:
         case coding_FSB_IMA:
             return 64;
         case coding_EA_XA:
         case coding_EA_XA_int:
         case coding_EA_XA_V2:
         case coding_MAXIS_XA:
-			return 28;
+            return 28;
         case coding_EA_XAS:
             return 128;
         case coding_WS:
@@ -1115,7 +1115,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         {
             ffmpeg_codec_data *data = (ffmpeg_codec_data *) vgmstream->codec_data;
             if (data) { 
-	            /* must know the full block size for edge loops */
+                /* must know the full block size for edge loops */
                 return data->sampleBufferBlock;
             }
             return 0;
@@ -1135,12 +1135,12 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_CRI_HCA:
             return clHCA_samplesPerBlock;
 #if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
-		case coding_MP4_AAC:
-			return ((mp4_aac_codec_data*)vgmstream->codec_data)->samples_per_frame;
+        case coding_MP4_AAC:
+            return ((mp4_aac_codec_data*)vgmstream->codec_data)->samples_per_frame;
 #endif
 #ifdef VGM_USE_MAIATRAC3PLUS
-		case coding_AT3plus:
-			return 2048 - ((maiatrac3plus_codec_data*)vgmstream->codec_data)->samples_discard;
+        case coding_AT3plus:
+            return 2048 - ((maiatrac3plus_codec_data*)vgmstream->codec_data)->samples_discard;
 #endif
 #ifdef VGM_USE_ATRAC9
         case coding_ATRAC9:
@@ -1225,7 +1225,7 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
         case coding_XA:
             return 14*vgmstream->channels;
         case coding_XBOX:
-		case coding_XBOX_int:
+        case coding_XBOX_int:
         case coding_FSB_IMA:
             return 36;
         case coding_EA_XA:
@@ -1260,7 +1260,7 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
         case coding_G719:
 #endif
 #ifdef VGM_USE_MAIATRAC3PLUS
-		case coding_AT3plus:
+        case coding_AT3plus:
 #endif
 #ifdef VGM_USE_FFMPEG
         case coding_FFmpeg:
@@ -1627,11 +1627,11 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
             break;
 #endif
 #if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
-		case coding_MP4_AAC:
-			decode_mp4_aac(vgmstream->codec_data,
-				buffer+samples_written*vgmstream->channels,samples_to_do,
-				vgmstream->channels);
-			break;
+        case coding_MP4_AAC:
+            decode_mp4_aac(vgmstream->codec_data,
+                buffer+samples_written*vgmstream->channels,samples_to_do,
+                vgmstream->channels);
+            break;
 #endif
         case coding_SDX2:
             for (chan=0;chan<vgmstream->channels;chan++) {
@@ -1784,15 +1784,15 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
             break;
 #endif
 #ifdef VGM_USE_MAIATRAC3PLUS
-		case coding_AT3plus:
-			for (chan=0;chan<vgmstream->channels;chan++) {
-				decode_at3plus(vgmstream,
-					buffer+samples_written*vgmstream->channels+chan,
-					vgmstream->channels,
-					samples_to_do,
-					chan);
-			}
-			break;
+        case coding_AT3plus:
+            for (chan=0;chan<vgmstream->channels;chan++) {
+                decode_at3plus(vgmstream,
+                    buffer+samples_written*vgmstream->channels+chan,
+                    vgmstream->channels,
+                    samples_to_do,
+                    chan);
+            }
+            break;
 #endif
 #ifdef VGM_USE_ATRAC9
         case coding_ATRAC9:

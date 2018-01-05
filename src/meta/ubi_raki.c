@@ -132,7 +132,7 @@ VGMSTREAM * init_vgmstream_ubi_raki(STREAMFILE *streamFile) {
 #ifdef VGM_USE_MPEG
         case 0x505333206D703320: {  /* "PS3 mp3 " */
             /* chunks: "MARK" (optional seek table), "STRG" (optional description), "Msf " ("data" equivalent) */
-            vgmstream->codec_data = init_mpeg_codec_data(streamFile, start_offset, &vgmstream->coding_type, vgmstream->channels);
+            vgmstream->codec_data = init_mpeg(streamFile, start_offset, &vgmstream->coding_type, vgmstream->channels);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->layout_type = layout_none;
 

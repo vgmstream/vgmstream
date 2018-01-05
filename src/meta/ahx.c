@@ -64,7 +64,7 @@ VGMSTREAM * init_vgmstream_ahx(STREAMFILE *streamFile) {
         }
 
         vgmstream->layout_type = layout_none;
-        vgmstream->codec_data = init_mpeg_custom_codec_data(streamFile, start_offset, &vgmstream->coding_type, channel_count, MPEG_AHX, &cfg);
+        vgmstream->codec_data = init_mpeg_custom(streamFile, start_offset, &vgmstream->coding_type, channel_count, MPEG_AHX, &cfg);
         if (!vgmstream->codec_data) goto fail;
 #else
         goto fail;
