@@ -1,0 +1,7 @@
+LIBRARY libatrac9.dll
+EXPORTS
+Atrac9Decode
+Atrac9GetCodecInfo
+Atrac9GetHandle
+Atrac9InitDecoder
+Atrac9ReleaseHandle
