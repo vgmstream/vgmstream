@@ -22,18 +22,15 @@ enum { STREAM_NAME_SIZE = 255 }; /* reasonable max */
 #define VGM_USE_MPEG
 #endif
 
-#ifndef VGM_DISABLE_ATRAC9
-//#define VGM_USE_ATRAC9
-#endif
-
-
-/* disabled by default, defined on compile-time for builds that support it*/
+/* disabled by default, defined on compile-time for builds that support it */
 //#define VGM_USE_G7221
 //#define VGM_USE_G719
 //#define VGM_USE_MP4V2
 //#define VGM_USE_FDKAAC
 //#define VGM_USE_MAIATRAC3PLUS
 //#define VGM_USE_FFMPEG
+//#define VGM_USE_ATRAC9
+
 
 #ifdef VGM_USE_VORBIS
 #include <vorbis/vorbisfile.h>
@@ -46,6 +43,7 @@ enum { STREAM_NAME_SIZE = 255 }; /* reasonable max */
 #ifdef VGM_USE_G7221
 #include <g7221.h>
 #endif
+
 #ifdef VGM_USE_G719
 #include <g719.h>
 #endif
