@@ -219,6 +219,9 @@ static const hcakey_info hcakey_list[] = {
         // Taga Tame no Alchemist (iOS/Android)
         {5047159794308},            // 00000497222AAA84
 
+        // Shin Tennis no Ouji-sama: Rising Beat (iOS/Android)
+        {4902201417679},            // 0000047561F95FCF
+
 };
 
 #endif/*_HCA_KEYS_H_*/
