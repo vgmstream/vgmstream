@@ -1,6 +1,12 @@
-export SHELL = /bin/sh
-#export DLLTOOL=i586-mingw32msvc-dlltool
-export DLLTOOL=i686-w64-mingw32-dlltool
+#
+# external libs
+#
+
+# needed?
+ifneq ($(TARGET_OS),WIN32)
+$(error option must be built with TARGET_OS = WIN32)
+endif
+
 
 libvorbis.a: libvorbis.def
 	$(DLLTOOL) -d libvorbis.def -l libvorbis.a
@@ -30,7 +36,9 @@ libswresample.a: swresample-vgmstream-3.dll swresample-vgmstream-3.def
 	$(DLLTOOL) -D swresample-vgmstream-3.dll -d swresample-vgmstream-3.def -l libswresample.a
 
 libatrac9.a: libatrac9.dll libatrac9.def
-	$(DLLTOOL) -D libatrac9.dll -d libatrac9.ef -l libatrac9.a
+	$(DLLTOOL) -d libatrac9.dll -d libatrac9.def -l libatrac9.a
 
 clean:
-	rm -f libvorbis.a libmpg123-0.a libg7221_decode.a libg719_decode.a libat3plusdecoder.a libavcodec.a libavformat.a libavutil.a libswresample.a libatrac9.a
+	$(RMF) libvorbis.a libmpg123-0.a libg7221_decode.a libg719_decode.a libat3plusdecoder.a libavcodec.a libavformat.a libavutil.a libswresample.a libatrac9.a
+
+.PHONY: clean

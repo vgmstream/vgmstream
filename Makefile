@@ -1,8 +1,55 @@
-.PHONY: buildfullrelease buildrelease mingw_test mingw_winamp mingw_xmplay sourceball mingwbin
+###############################
+# vgmstream makefile
+###############################
 
-buildfullrelease: clean sourceball mingwbin
+### defs
+# currently aimed to WIN32 builds but vgmstream_cli should work for others (or use autotools instead)
+export TARGET_OS = WIN32
 
-buildrelease: clean mingwbin
+
+### tools
+RMF = rm -f
+
+ifeq ($(TARGET_OS),WIN32)
+  SHELL = sh
+  CC = gcc
+  AR = ar
+  STRIP = strip
+  WINDRES = windres
+  DLLTOOL = dlltool
+
+  # same thing, the above should be available
+  #CC = i686-w64-mingw32-gcc
+  #AR = i686-w64-mingw32-ar
+  #STRIP = i686-w64-mingw32-strip
+  #WINDRES = i686-w64-mingw32-windres
+  #DLLTOOL = i686-w64-mingw32-dlltool
+
+else
+  SHELL = /bin/sh
+  CC = gcc
+  AR = ar
+  STRIP = strip
+  WINDRES =
+  DLLTOOL =
+
+  # (old crosscompile, not used anymore?)
+  #CC = i586-mingw32msvc-gcc
+  #AR = i586-mingw32msvc-ar
+  #STRIP = i586-mingw32msvc-strip
+  #WINDRES = i586-mingw32msvc-windres
+  #DLLTOOL = i586-mingw32msvc-dlltool
+
+endif
+
+export RMF SHELL CC AR STRIP WINDRES DLLTOOL
+
+
+### targets
+
+buildrelease: clean bin
+
+buildfullrelease: clean sourceball bin
 
 sourceball:
 	rm -rf vgmstream-`./version.sh`
@@ -13,23 +60,29 @@ sourceball:
 	tar cvzf "vgmstream-`./version.sh`.tar.gz" vgmstream-`./version.sh`/*
 	rm -rf vgmstream-`./version.sh`
 
-mingwbin: mingw_test mingw_winamp mingw_xmplay
+bin mingwbin: vgmstream_cli winamp xmplay
 	zip -FS -j "vgmstream-`./version.sh`-test.zip" COPYING README.md test/test.exe winamp/in_vgmstream.dll xmplay/xmp-vgmstream.dll ext_libs/*.dll
 
-mingw_test:
-	$(MAKE) -C test -f Makefile.mingw test.exe
+vgmstream_cli mingw_test:
+	$(MAKE) -C test vgmstream_cli
 
-mingw_winamp:
-	$(MAKE) -C winamp in_vgmstream.dll
+#vgmstream123:
+#	$(MAKE) -C test vgmstream123
 
-mingw_xmplay:
-	$(MAKE) -C xmplay xmp-vgmstream.dll
+winamp mingw_winamp:
+	$(MAKE) -C winamp in_vgmstream
+
+xmplay mingw_xmplay:
+	$(MAKE) -C xmplay xmp_vgmstream
 
 clean:
-	rm -f vgmstream-*.zip
+	$(RMF) vgmstream-*.zip
 	$(MAKE) -C src clean
 	$(MAKE) -C test clean
-	$(MAKE) -C test -f Makefile.mingw clean
 	$(MAKE) -C winamp clean
 	$(MAKE) -C xmplay clean
-	$(MAKE) -C ext_libs -f Makefile.mingw clean
+	$(MAKE) -C ext_libs clean
+
+.PHONY: clean buildfullrelease buildrelease sourceball bin vgmstream_cli winamp xmplay mingwbin mingw_test mingw_winamp mingw_xmplay
+
+#deprecated: buildfullrelease sourceball mingwbin mingw_test mingw_winamp mingw_xmplay
