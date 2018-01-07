@@ -476,6 +476,10 @@
 					RelativePath=".\meta\kraw.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\meta\ktss.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\lsf.c"
 					>
