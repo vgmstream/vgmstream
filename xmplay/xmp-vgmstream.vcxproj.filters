@@ -15,21 +15,4 @@
       <UniqueIdentifier>{6505ad02-c535-487f-bcb4-745b0a6cb8e7}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
-  <ItemGroup>
-    <Library Include="..\ext_libs\at3plusdecoder.lib">
-      <Filter>External libraries</Filter>
-    </Library>
-    <Library Include="..\ext_libs\libg719_decode.lib">
-      <Filter>External libraries</Filter>
-    </Library>
-    <Library Include="..\ext_libs\libg7221_decode.lib">
-      <Filter>External libraries</Filter>
-    </Library>
-    <Library Include="..\ext_libs\libmpg123-0.lib">
-      <Filter>External libraries</Filter>
-    </Library>
-    <Library Include="..\ext_libs\libvorbis.lib">
-      <Filter>External libraries</Filter>
-    </Library>
-  </ItemGroup>
 </Project>
