@@ -82,7 +82,7 @@ VGMSTREAM * init_vgmstream_ubi_raki(STREAMFILE *streamFile) {
             /* chunks: "data" */
             vgmstream->coding_type = coding_PCM16LE;
             vgmstream->layout_type = layout_interleave;
-            vgmstream->interleave_block_size = block_align; /* usually 0x04 */
+            vgmstream->interleave_block_size = 0x2;
 
             vgmstream->num_samples = pcm_bytes_to_samples(data_size, channel_count, bits_per_sample);
             break;
