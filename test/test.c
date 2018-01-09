@@ -148,14 +148,14 @@ int main(int argc, char ** argv) {
                 break;
             default:
                 usage(argv[0]);
-                return 1;
+                return EXIT_FAILURE;
                 break;
         }
     }
 
     if (optind!=argc-1) {
         usage(argv[0]);
-        return 1;
+        return EXIT_FAILURE;
     }
 
     infilename = argv[optind];
@@ -169,25 +169,25 @@ int main(int argc, char ** argv) {
 
     if (play_forever && !play_sdtout) {
         fprintf(stderr,"A file of infinite size? Not likely.\n");
-        return 1;
+        return EXIT_FAILURE;
     }
 
     if (play_sdtout && (!play_wreckless && isatty(STDOUT_FILENO))) {
         fprintf(stderr,"Are you sure you want to output wave data to the terminal?\nIf so use -P instead of -p.\n");
-        return 1;
+        return EXIT_FAILURE;
     }
 
     if (ignore_loop && force_loop) {
         fprintf(stderr,"-e and -i are incompatible\n");
-        return 1;
+        return EXIT_FAILURE;
     }
     if (ignore_loop && really_force_loop) {
         fprintf(stderr,"-E and -i are incompatible\n");
-        return 1;
+        return EXIT_FAILURE;
     }
     if (force_loop && really_force_loop) {
         fprintf(stderr,"-E and -e are incompatible\n");
-        return 1;
+        return EXIT_FAILURE;
     }
 
     /* manually init streamfile to pass the stream index */
@@ -196,7 +196,7 @@ int main(int argc, char ** argv) {
         STREAMFILE *streamFile = open_stdio_streamfile(infilename);
         if (!streamFile) {
             fprintf(stderr,"file %s not found\n",infilename);
-            return 1;
+            return EXIT_FAILURE;
         }
 
         streamFile->stream_index = stream_index;
@@ -205,7 +205,7 @@ int main(int argc, char ** argv) {
 
         if (!vgmstream) {
             fprintf(stderr,"failed opening %s\n",infilename);
-            return 1;
+            return EXIT_FAILURE;
         }
     }
 
@@ -224,7 +224,7 @@ int main(int argc, char ** argv) {
     if (play_sdtout) {
         if (outfilename) {
             fprintf(stderr,"either -p or -o, make up your mind\n");
-            return 1;
+            return EXIT_FAILURE;
         }
         outfile = stdout;
     }
@@ -238,13 +238,13 @@ int main(int argc, char ** argv) {
         outfile = fopen(outfilename,"wb");
         if (!outfile) {
             fprintf(stderr,"failed to open %s for output\n",outfilename);
-            return 1;
+            return EXIT_FAILURE;
         }
     }
 
     if (play_forever && !vgmstream->loop_flag) {
         fprintf(stderr,"I could play a nonlooped track forever, but it wouldn't end well.");
-        return 1;
+        return EXIT_FAILURE;
     }
 
     if (!play_sdtout) {
@@ -289,14 +289,14 @@ int main(int argc, char ** argv) {
 
     if (print_metaonly) {
         close_vgmstream(vgmstream);
-        return 0;
+        return EXIT_SUCCESS;
     }
 
     buf = malloc(BUFSIZE*sizeof(sample)*vgmstream->channels);
     if (!buf) {
         fprintf(stderr,"failed allocating output buffer\n");
         close_vgmstream(vgmstream);
-        return 1;
+        return EXIT_FAILURE;
     }
 
     /* signal ignore fade for get_vgmstream_play_samples */
@@ -412,7 +412,7 @@ int main(int argc, char ** argv) {
         outfile = fopen(outfilename_reset,"wb");
         if (!outfile) {
             fprintf(stderr,"failed to open %s for output\n",outfilename_reset);
-            return 1;
+            return EXIT_FAILURE;
         }
         /* slap on a .wav header */
         make_wav_header((uint8_t*)buf, len_samples, vgmstream->sample_rate, vgmstream->channels);
@@ -472,7 +472,7 @@ int main(int argc, char ** argv) {
     close_vgmstream(vgmstream);
     free(buf);
 
-    return 0;
+    return EXIT_SUCCESS;
 }
 
 

@@ -108,6 +108,66 @@ WAV/MP3 conversions ahead of time.
 The tag syntax follows the conventions established in Apple's HTTP Live Streaming
 standard, whose docs discuss extending M3U with arbitrary tags.
 
+
+## Special cases
+vgmstream aims to support most file formats as-is, but some files require extra
+handling.
+
+### Renamed files
+A few extensions that vgmstream supports clash with common ones. Since players
+like foobar or Winamp don't react well to that, they may be renamed for
+vgmstream (mainly to get looping in some cases).
+- .ac3 to .lac3
+- .aac to .laac
+- .mp4 to .lmp4
+- .ogg to .logg
+- .opus to .lopus
+- .stm to .lstm
+- .wav to .lwav (or .xwav in rare original Xbox cases)
+Command line tools don't have this restriction and will accept the original
+filename.
+
+When extracting from a bigfile sometimes internal files don't have an actual
+name+extension. Those should be renamed to its proper/common extension, as the
+extractor program may guess wrong (like .wav instead of .at3 or .wem). If
+there is no known extension usually the header id is used instead.
+
+### Loop assists
+Some formats have companion files with external looping info, and should be
+left together.
+- .mus (playlist for .acm)
+- .pos (loop info for .wav: 32 bit LE loop start sample + loop end sample)
+- .sli (loop info for .ogg)
+- .sfl (loop info for .ogg)
+- .vgmstream + .pos (FFmpeg formats + loop assist)
+
+### Decryption keys
+Certain formats have encrypted data, and need a key to decrypt. vgmstream
+will try to find the correct key from a list, but it can be provided by
+a companion file:
+- .adx: .adxkey (derived 6 byte key, in start/mult/add format)
+- .ahx: .ahxkey (derived 6 byte key, in start/mult/add format)
+- .hca: .hcakey (8 byte decryption key, a 64-bit number)
+
+The key file can be ".(ext)key" (for the whole folder), or "(name).(ext)key"
+(for a single file). The format is made up to suit vgmstream.
+
+### Artificial/generic headers
+In some cases a file only has raw data, while important header info (codec type,
+sample rate, channels, etc) is stored in the .exe or other hard to locate places.
+
+Those can be played using an artificial header with info vgmstream needs.
+
+**GENH**: a byte header placed right before the original data, modyfing it.
+The resulting file must be (name).genh. Contains static header data.
+Programs like VGMToolbox can help to create GENH.
+  
+**TXTH**: a text header placed in an external file. The TXTH must be named
+".txth" or ".(ext).txth" (for the whole folder), or "(name.ext).txth" (for a
+single file). Contains dynamic text commands to read data from the original
+file, or static values.
+
+
 ## Supported codec types
 Quick list of codecs vgmstream supports, including many obscure ones that 
 are used in few games.

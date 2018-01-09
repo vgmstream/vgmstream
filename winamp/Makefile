@@ -1,43 +1,86 @@
-# optional parts
-VGM_ENABLE_FFMPEG=1
-ifeq ($(VGM_ENABLE_FFMPEG),1)
-FFMPEG_CC=-DVGM_USE_FFMPEG
-FFMPEG_LD=-lavcodec -lavformat -lavutil -lswresample
+#
+# Winamp plugin
+#
+
+ifneq ($(TARGET_OS),WIN32)
+$(error option must be built with TARGET_OS = WIN32)
 endif
 
-VGM_ENABLE_MAIATRAC3PLUS=0
+
+### main defs
+OUTPUT_WINAMP = in_vgmstream.dll
+
+CFLAGS += -Wall -O3 -DUSE_ALLOCA -DWIN32 -I../ext_includes $(EXTRA_CFLAGS)
+LDFLAGS += -L../src -L../ext_libs -lm -lvgmstream $(EXTRA_LDFLAGS)
+TARGET_EXT_LIBS = 
+
+
+### external libs
+ifeq ($(TARGET_OS),WIN32)
+
+VGM_ENABLE_VORBIS = 1
+ifeq ($(VGM_ENABLE_VORBIS),1)
+  #CFLAGS  += -DVGM_USE_VORBIS
+  LDFLAGS += -lvorbis
+  TARGET_EXT_LIBS += libvorbis.a
+else
+  CFLAGS  += -DVGM_DISABLE_VORBIS
+endif
+
+VGM_ENABLE_MPEG = 1
+ifeq ($(VGM_ENABLE_MPEG),1)
+  #CFLAGS  += -DVGM_USE_MPEG
+  LDFLAGS += -lmpg123-0
+  TARGET_EXT_LIBS += libmpg123-0.a
+else
+  CFLAGS  += -DVGM_DISABLE_MPEG
+endif
+
+VGM_ENABLE_G7221 = 1
+ifeq ($(VGM_ENABLE_G7221),1) 
+  CFLAGS  += -DVGM_USE_G7221
+  LDFLAGS += -lg7221_decode
+  TARGET_EXT_LIBS += libg7221_decode.a
+endif
+
+VGM_ENABLE_G719 = 1
+ifeq ($(VGM_ENABLE_G719),1) 
+  CFLAGS  += -DVGM_USE_G719
+  LDFLAGS += -lg719_decode
+  TARGET_EXT_LIBS += libg719_decode.a
+endif
+
+VGM_ENABLE_MAIATRAC3PLUS = 0
 ifeq ($(VGM_ENABLE_MAIATRAC3PLUS),1) 
-MAT3P_CC=-DVGM_USE_MAIATRAC3PLUS
-MAT3P_LD=-lat3plusdecoder
+  CFLAGS  += -DVGM_USE_MAIATRAC3PLUS
+  LDFLAGS += -lat3plusdecoder
+  TARGET_EXT_LIBS += libat3plusdecoder.a
 endif
 
-#MPEG_CC=-DVGM_USE_MPEG
-MPEG_LD=-lmpg123-0
-VGM_DISABLE_MPEG=0
-ifeq ($(VGM_DISABLE_MPEG),1)
-MPEG_CC=-DVGM_DISABLE_MPEG
-MPEG_LD=
+VGM_ENABLE_FFMPEG = 1
+ifeq ($(VGM_ENABLE_FFMPEG),1)
+  CFLAGS  += -DVGM_USE_FFMPEG
+  LDFLAGS += -lavcodec -lavformat -lavutil -lswresample
+  TARGET_EXT_LIBS += libavcodec.a libavformat.a libavutil.a libswresample.a
 endif
 
+VGM_ENABLE_ATRAC9 = 1
+ifeq ($(VGM_ENABLE_ATRAC9),1) 
+  CFLAGS  += -DVGM_USE_ATRAC9
+  LDFLAGS += -latrac9
+  TARGET_EXT_LIBS += libatrac9.a
+endif
 
-# config
-export SHELL = /bin/sh
-export CFLAGS=-Wall -O3 $(MPEG_CC) -DVGM_USE_G7221 -DVGM_USE_G719 $(MAT3P_CC) $(FFMPEG_CC) -DUSE_ALLOCA -DWIN32 -I../ext_includes $(EXTRA_CFLAGS)
-export LDFLAGS=-L../src -L../ext_libs -lvgmstream -lvorbis $(MPEG_LD) -lg7221_decode -lg719_decode $(MAT3P_LD) $(FFMPEG_LD) -lm $(EXTRA_LDFLAGS)
-export CC=i586-mingw32msvc-gcc
-export AR=i586-mingw32msvc-ar
-export STRIP=i586-mingw32msvc-strip
-export WINDRES=i586-mingw32msvc-windres
-#export CC=i686-w64-mingw32-gcc
-#export AR=i686-w64-mingw32-ar
-#export STRIP=i686-w64-mingw32-strip
-#export WINDRES=i686-w64-mingw32-windres
+endif #if WIN32
 
-.PHONY: libvgmstream.a libvorbis.a libmpg123-0.a libg7221_decode.a libg719_decode.a libat3plusdecoder.a libavcodec.a libavformat.a libavutil.a libswresample.a
+export CFLAGS LDFLAGS
 
-in_vgmstream.dll: libvgmstream.a libvorbis.a libmpg123-0.a libg7221_decode.a libg719_decode.a libat3plusdecoder.a libavcodec.a libavformat.a libavutil.a libswresample.a resource.o
-	$(CC) -shared -static-libgcc $(CFLAGS) "-DVERSION=\"`../version.sh`\"" in_vgmstream.c resource.o $(LDFLAGS) -o in_vgmstream.dll
-	$(STRIP) in_vgmstream.dll
+
+### targets
+
+in_vgmstream: libvgmstream.a  $(TARGET_EXT_LIBS) resource.o
+	$(CC) -shared -static-libgcc $(CFLAGS) "-DVERSION=\"`../version.sh`\"" in_vgmstream.c resource.o $(LDFLAGS) -o $(OUTPUT_WINAMP)
+	$(STRIP) $(OUTPUT_WINAMP)
 
 resource.o: resource.rc resource.h
 	$(WINDRES) -o resource.o resource.rc
@@ -45,32 +88,10 @@ resource.o: resource.rc resource.h
 libvgmstream.a:
 	$(MAKE) -C ../src $@
 
-libvorbis.a:
-	$(MAKE) -C ../ext_libs -f Makefile.mingw $@
-
-libmpg123-0.a:
-	$(MAKE) -C ../ext_libs -f Makefile.mingw $@
-
-libg7221_decode.a:
-	$(MAKE) -C ../ext_libs -f Makefile.mingw $@
-
-libg719_decode.a:
-	$(MAKE) -C ../ext_libs -f Makefile.mingw $@
-
-libat3plusdecoder.a:
-	$(MAKE) -C ../ext_libs -f Makefile.mingw $@
-
-libavcodec.a:
-	$(MAKE) -C ../ext_libs -f Makefile.mingw $@
-
-libavformat.a:
-	$(MAKE) -C ../ext_libs -f Makefile.mingw $@
-
-libavutil.a:
-	$(MAKE) -C ../ext_libs -f Makefile.mingw $@
-
-libswresample.a:
-	$(MAKE) -C ../ext_libs -f Makefile.mingw $@
+$(TARGET_EXT_LIBS):
+	$(MAKE) -C ../ext_libs $@
 
 clean:
-	rm -f in_vgmstream.dll resource.o
+	$(RMF) $(OUTPUT_WINAMP) resource.o
+
+.PHONY: clean in_vgmstream libvgmstream.a $(TARGET_EXT_LIBS)
