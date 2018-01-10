@@ -110,6 +110,30 @@ static void psychic_ogg_decryption_callback(void *ptr, size_t size, size_t nmemb
     }
 }
 
+static void sngw_ogg_decryption_callback(void *ptr, size_t size, size_t nmemb, void *datasource) {
+    size_t bytes_read = size*nmemb;
+    ogg_vorbis_streamfile * const ov_streamfile = datasource;
+    int i;
+    char *header_id = "OggS";
+    uint8_t key[4];
+
+    put_32bitBE(key, ov_streamfile->sngw_xor);
+
+    /* bytes are xor'd with key and nibble-swapped */
+    {
+        for (i = 0; i < bytes_read; i++) {
+            if (ov_streamfile->offset+i < 0x04) {
+                /* replace key in the first 4 bytes with "OggS" */
+                ((uint8_t*)ptr)[i] = (uint8_t)header_id[(ov_streamfile->offset + i) % 4];
+            }
+            else {
+                uint8_t val = ((uint8_t*)ptr)[i] ^ key[(ov_streamfile->offset + i) % 4];
+                ((uint8_t*)ptr)[i] = ((val << 4) & 0xf0) | ((val >> 4) & 0x0f);
+            }
+        }
+    }
+}
+
 
 /* Ogg Vorbis, by way of libvorbisfile; may contain loop comments */
 VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
@@ -121,6 +145,7 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
     int is_um3 = 0;
     int is_kovs = 0;
     int is_psychic = 0;
+    int is_sngw = 0;
 
 
     /* check extension */
@@ -130,6 +155,8 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
         is_um3 = 1;
     } else if (check_extensions(streamFile,"kvs,kovs")) { /* .kvs: Atelier Sophie (PC), kovs: header id only? */
         is_kovs = 1;
+    } else if (check_extensions(streamFile,"sngw")) { /* .sngw: Devil May Cry 4 SE (PC), Biohazard 6 (PC) */
+        is_sngw = 1;
     } else {
         goto fail;
     }
@@ -167,12 +194,23 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
         start_offset = 0x20;
     }
 
+    /* check SNGW (Capcom's MT Framework PC games), may be encrypted */
+    if (is_sngw) {
+        if (read_32bitBE(0x00,streamFile) != 0x4f676753) { /* "OggS" */
+            inf.sngw_xor = read_32bitBE(0x00,streamFile);
+            inf.decryption_callback = sngw_ogg_decryption_callback;
+        }
+    }
+
+
     if (is_um3) {
         inf.meta_type = meta_OGG_UM3;
     } else if (is_kovs) {
         inf.meta_type = meta_OGG_KOVS;
     } else if (is_psychic) {
         inf.meta_type = meta_OGG_PSYCH;
+    } else if (is_sngw) {
+        inf.meta_type = meta_OGG_SNGW;
     } else {
         inf.meta_type = meta_OGG_VORBIS;
     }
@@ -220,6 +258,7 @@ VGMSTREAM * init_vgmstream_ogg_vorbis_callbacks(STREAMFILE *streamFile, const ch
         temp_streamfile.decryption_callback = vgm_inf->decryption_callback;
         temp_streamfile.scd_xor = vgm_inf->scd_xor;
         temp_streamfile.scd_xor_length = vgm_inf->scd_xor_length;
+        temp_streamfile.sngw_xor = vgm_inf->sngw_xor;
 
         /* open the ogg vorbis file for testing */
         memset(&temp_ovf, 0, sizeof(temp_ovf));
@@ -245,6 +284,7 @@ VGMSTREAM * init_vgmstream_ogg_vorbis_callbacks(STREAMFILE *streamFile, const ch
         data->ov_streamfile.decryption_callback = vgm_inf->decryption_callback;
         data->ov_streamfile.scd_xor = vgm_inf->scd_xor;
         data->ov_streamfile.scd_xor_length = vgm_inf->scd_xor_length;
+        data->ov_streamfile.sngw_xor = vgm_inf->sngw_xor;
 
         /* open the ogg vorbis file for real */
         if (ov_open_callbacks(&data->ov_streamfile, &data->ogg_vorbis_file, NULL, 0, *callbacks_p))

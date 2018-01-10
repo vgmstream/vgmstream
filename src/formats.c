@@ -282,6 +282,7 @@ static const char* extension_list[] = {
     "snd",
     "snds",
     "sng",
+    "sngw",
     "snr",
     "sns",
     "snu",
@@ -933,16 +934,15 @@ static const meta_info meta_info_list[] = {
         {meta_NGC_VID1,             "Neversoft VID1 header"},
         {meta_PC_FLX,               "Ultima IX .FLX header"},
         {meta_MOGG,                 "Harmonix Music Systems MOGG Vorbis"},
-
-#ifdef VGM_USE_VORBIS
         {meta_OGG_VORBIS,           "Ogg Vorbis"},
         {meta_OGG_SLI,              "Ogg Vorbis with .sli (start,length) for looping"},
         {meta_OGG_SLI2,             "Ogg Vorbis with .sli (from,to) for looping"},
         {meta_OGG_SFL,              "Ogg Vorbis with SFPL for looping"},
-        {meta_OGG_UM3,              "Ogg Vorbis, Ultramarine3 'encryption'"},
-        {meta_OGG_KOVS,             "Ogg Vorbis, KOVS header"},
-        {meta_OGG_PSYCH,            "Ogg Vorbis, Psychic Software obfuscation"},
-    #endif
+        {meta_OGG_UM3,              "Ogg Vorbis (Ultramarine3)"},
+        {meta_OGG_KOVS,             "Ogg Vorbis (KOVS header)"},
+        {meta_OGG_PSYCH,            "Ogg Vorbis (Psychic Software)"},
+        {meta_OGG_SNGW,             "Ogg Vorbis (Capcom)"},
+
 #ifdef VGM_USE_MP4V2
         {meta_MP4,                  "AAC header"},
 #endif

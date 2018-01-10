@@ -645,16 +645,15 @@ typedef enum {
     meta_NGC_VID1,          /* Neversoft .ogg (Gun GC) */
     meta_PC_FLX,            /* Ultima IX PC */
     meta_MOGG,              /* Harmonix Music Systems MOGG Vorbis */
-
-#ifdef VGM_USE_VORBIS
     meta_OGG_VORBIS,        /* Ogg Vorbis */
     meta_OGG_SLI,           /* Ogg Vorbis file w/ companion .sli for looping */
     meta_OGG_SLI2,          /* Ogg Vorbis file w/ different styled .sli for looping */
     meta_OGG_SFL,           /* Ogg Vorbis file w/ .sfl (RIFF SFPL) for looping */
-    meta_OGG_UM3,           /* Ogg Vorbis with first 0x800 bytes XOR 0xFF */
-    meta_OGG_KOVS,          /* Ogg Vorbis with exta header and 0x100 bytes XOR */
-    meta_OGG_PSYCH,         /* Ogg Vorbis with all bytes -0x23*/
-#endif
+    meta_OGG_UM3,           /* Ogg Vorbis with optional first 0x800 bytes XOR 0xFF */
+    meta_OGG_KOVS,          /* Ogg Vorbis with extra header and 0x100 bytes XOR */
+    meta_OGG_PSYCH,         /* Ogg Vorbis with all bytes -0x23 */
+    meta_OGG_SNGW,          /* Ogg Vorbis with optional key XOR + nibble swap */
+
 #ifdef VGM_USE_MP4V2
     meta_MP4,               /* AAC (iOS) */
 #endif
@@ -798,11 +797,12 @@ typedef struct {
     ogg_int64_t size;
     ogg_int64_t other_header_bytes;
 
-    /* XOR setup (SCD) */
-    int decryption_enabled;
-    void (*decryption_callback)(void *ptr, size_t size, size_t nmemb, void *datasource, int bytes_read);
+    /* decryption setup */
+    void (*decryption_callback)(void *ptr, size_t size, size_t nmemb, void *datasource);
     uint8_t scd_xor;
     off_t scd_xor_length;
+    uint32_t sngw_xor;
+
 } ogg_vorbis_streamfile;
 
 typedef struct {
