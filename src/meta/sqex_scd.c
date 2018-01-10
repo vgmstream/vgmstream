@@ -4,8 +4,8 @@
 
 
 #ifdef VGM_USE_VORBIS
-static void scd_ogg_decrypt_v2_callback(void *ptr, size_t size, size_t nmemb, void *datasource, int bytes_read);
-static void scd_ogg_decrypt_v3_callback(void *ptr, size_t size, size_t nmemb, void *datasource, int bytes_read);
+static void scd_ogg_v2_decryption_callback(void *ptr, size_t size, size_t nmemb, void *datasource);
+static void scd_ogg_v3_decryption_callback(void *ptr, size_t size, size_t nmemb, void *datasource);
 #endif
 
 /* SCD - Square-Enix games (FF XIII, XIV) */
@@ -178,14 +178,12 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
                 return NULL; /* not actually encrypted, happens but should be handled above */
 
             if (xor_version == 2) {  /* header is XOR'ed using byte */
-                inf.decryption_enabled = 1;
-                inf.decryption_callback = scd_ogg_decrypt_v2_callback;
+                inf.decryption_callback = scd_ogg_v2_decryption_callback;
                 inf.scd_xor = xor_byte;
                 inf.scd_xor_length = vorb_header_size;
             }
             else if (xor_version == 3) { /* full file is XOR'ed using table */
-                inf.decryption_enabled = 1;
-                inf.decryption_callback = scd_ogg_decrypt_v3_callback;
+                inf.decryption_callback = scd_ogg_v3_decryption_callback;
                 inf.scd_xor = stream_size & 0xFF; /* xor_byte is not used? (also there is data at +0x03) */
                 inf.scd_xor_length = stream_size;
             }
@@ -412,7 +410,8 @@ fail:
 
 
 #ifdef VGM_USE_VORBIS
-static void scd_ogg_decrypt_v2_callback(void *ptr, size_t size, size_t nmemb, void *datasource, int bytes_read) {
+static void scd_ogg_v2_decryption_callback(void *ptr, size_t size, size_t nmemb, void *datasource) {
+    size_t bytes_read = size*nmemb;
     ogg_vorbis_streamfile * ov_streamfile = (ogg_vorbis_streamfile*)datasource;
 
     /* header is XOR'd with a constant byte */
@@ -429,9 +428,9 @@ static void scd_ogg_decrypt_v2_callback(void *ptr, size_t size, size_t nmemb, vo
     }
 }
 
-static void scd_ogg_decrypt_v3_callback(void *ptr, size_t size, size_t nmemb, void *datasource, int bytes_read) {
-    /* V3 decryption table found in the .exe */
-    static const uint8_t scd_ogg_v3_lookuptable[256] = { /* FF XIV Heavensward */
+static void scd_ogg_v3_decryption_callback(void *ptr, size_t size, size_t nmemb, void *datasource) {
+    /* V3 decryption table found in the .exe of FF XIV Heavensward */
+    static const uint8_t scd_ogg_v3_lookuptable[256] = {
         0x3A, 0x32, 0x32, 0x32, 0x03, 0x7E, 0x12, 0xF7, 0xB2, 0xE2, 0xA2, 0x67, 0x32, 0x32, 0x22, 0x32, // 00-0F
         0x32, 0x52, 0x16, 0x1B, 0x3C, 0xA1, 0x54, 0x7B, 0x1B, 0x97, 0xA6, 0x93, 0x1A, 0x4B, 0xAA, 0xA6, // 10-1F
         0x7A, 0x7B, 0x1B, 0x97, 0xA6, 0xF7, 0x02, 0xBB, 0xAA, 0xA6, 0xBB, 0xF7, 0x2A, 0x51, 0xBE, 0x03, // 20-2F
@@ -449,23 +448,25 @@ static void scd_ogg_decrypt_v3_callback(void *ptr, size_t size, size_t nmemb, vo
         0xE2, 0xA2, 0x67, 0x32, 0x32, 0x12, 0x32, 0xB2, 0x32, 0x32, 0x32, 0x32, 0x75, 0xA3, 0x26, 0x7B, // E0-EF
         0x83, 0x26, 0xF9, 0x83, 0x2E, 0xFF, 0xE3, 0x16, 0x7D, 0xC0, 0x1E, 0x63, 0x21, 0x07, 0xE3, 0x01, // F0-FF
     };
+
+    size_t bytes_read = size*nmemb;
     ogg_vorbis_streamfile *ov_streamfile = (ogg_vorbis_streamfile*)datasource;
 
     /* file is XOR'd with a table (algorithm and table by Ioncannon) */
     if (ov_streamfile->offset < ov_streamfile->scd_xor_length) {
         int i, num_crypt;
-        uint8_t byte1, byte2, xorByte;
+        uint8_t byte1, byte2, xor_byte;
 
         num_crypt = bytes_read;
         byte1 = ov_streamfile->scd_xor & 0x7F;
         byte2 = ov_streamfile->scd_xor & 0x3F;
 
         for (i = 0; i < num_crypt; i++) {
-            xorByte = scd_ogg_v3_lookuptable[(byte2 + ov_streamfile->offset + i) & 0xFF];
-            xorByte &= 0xFF;
-            xorByte ^= ((uint8_t*)ptr)[i];
-            xorByte ^= byte1;
-            ((uint8_t*)ptr)[i] = (uint8_t)xorByte;
+            xor_byte = scd_ogg_v3_lookuptable[(byte2 + ov_streamfile->offset + i) & 0xFF];
+            xor_byte &= 0xFF;
+            xor_byte ^= ((uint8_t*)ptr)[i];
+            xor_byte ^= byte1;
+            ((uint8_t*)ptr)[i] = (uint8_t)xor_byte;
         }
     }
 }

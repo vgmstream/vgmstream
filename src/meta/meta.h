@@ -99,9 +99,8 @@ typedef struct {
     meta_t meta_type;
     layout_t layout_type;
 
-    /* XOR setup (SCD) */
-    int decryption_enabled;
-    void (*decryption_callback)(void *ptr, size_t size, size_t nmemb, void *datasource, int bytes_read);
+    /* decryption setup */
+    void (*decryption_callback)(void *ptr, size_t size, size_t nmemb, void *datasource);
     uint8_t scd_xor;
     off_t scd_xor_length;
 
