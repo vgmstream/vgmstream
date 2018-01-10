@@ -270,7 +270,7 @@
     <ClCompile Include="meta\ngc_vid1.c" />
     <ClCompile Include="meta\nub_xma.c" />
     <ClCompile Include="meta\nwa.c" />
-    <ClCompile Include="meta\ogg_vorbis_file.c" />
+    <ClCompile Include="meta\ogg_vorbis.c" />
     <ClCompile Include="meta\ogl.c" />
     <ClCompile Include="meta\omu.c" />
     <ClCompile Include="meta\otm.c" />

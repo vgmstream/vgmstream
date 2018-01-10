@@ -679,7 +679,7 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\ogg_vorbis_file.c"
+					RelativePath=".\meta\ogg_vorbis.c"
 					>
 				</File>
                 <File

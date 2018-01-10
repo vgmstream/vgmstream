@@ -400,7 +400,7 @@
     <ClCompile Include="meta\nwa.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\ogg_vorbis_file.c">
+    <ClCompile Include="meta\ogg_vorbis.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ogl.c">
