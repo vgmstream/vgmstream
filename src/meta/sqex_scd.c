@@ -13,7 +13,7 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[PATH_LIMIT];
     off_t start_offset, tables_offset, meta_offset, post_meta_offset;
-    int32_t stream_size, loop_start, loop_end;
+    int32_t stream_size, subheader_size, loop_start, loop_end;
 
     int total_subsongs, target_subsong = streamFile->stream_index;
     int loop_flag = 0, channel_count, codec, sample_rate;
@@ -65,7 +65,7 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
     /* 0x00(2): table1/4 (unknown) entries */
     /* 0x02(2): table2 (unknown) entries */
     /* 0x04(2): table3 (headers) entries */
-    /* 0x06(2): related to table4/5 (unknown) */
+    /* 0x06(2): unknown, varies even for clone files */
 
     /* (implicit: table1 starts at 0x20) */
     /* 0x08: table2 (unknown) start offset */
@@ -87,7 +87,7 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
         total_subsongs = 0;
         meta_offset = 0;
 
-        /* manually find subsongs as entries can be dummy (ex. Final Fantasy Type-0 sfx banks) */
+        /* manually find subsongs as entries can be dummy (ex. sfx banks in FF XIV or FF Type-0) */
         for (i = 0; i < headers_entries; i++) {
             off_t header_offset = read_32bit(headers_offset + i*0x04,streamFile);
 
@@ -99,26 +99,27 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
                 meta_offset = header_offset;
         }
         if (meta_offset == 0) goto fail;
+        /* SCD can contain 0 entries too */
     }
 
-
     /** stream header **/
-    stream_size   = read_32bit(meta_offset+0x00,streamFile);
-    channel_count = read_32bit(meta_offset+0x04,streamFile);
-    sample_rate   = read_32bit(meta_offset+0x08,streamFile);
-    codec         = read_32bit(meta_offset+0x0c,streamFile);
+    stream_size     = read_32bit(meta_offset+0x00,streamFile);
+    channel_count   = read_32bit(meta_offset+0x04,streamFile);
+    sample_rate     = read_32bit(meta_offset+0x08,streamFile);
+    codec           = read_32bit(meta_offset+0x0c,streamFile);
 
-    loop_start    = read_32bit(meta_offset+0x10,streamFile);
-    loop_end      = read_32bit(meta_offset+0x14,streamFile);
-    loop_flag     = (loop_end > 0);
-
-    post_meta_offset = meta_offset + 0x20;
-    start_offset = post_meta_offset + read_32bit(meta_offset+0x18,streamFile);
+    loop_start      = read_32bit(meta_offset+0x10,streamFile);
+    loop_end        = read_32bit(meta_offset+0x14,streamFile);
+    subheader_size  = read_32bit(meta_offset+0x18,streamFile);
     aux_chunk_count = read_32bit(meta_offset+0x1c,streamFile);
-    /* 0x01e(e): unknown, seen in some FF XIV sfx (IMA) */
+    /* 0x01e(2): unknown, seen in some FF XIV sfx (MSADPCM) */
+
+    loop_flag       = (loop_end > 0);
+    post_meta_offset = meta_offset + 0x20;
+    start_offset = post_meta_offset + subheader_size;
 
     /* only "MARK" chunk is known (some FF XIV PS3 have "STBL" but it's not counted) */
-    if (aux_chunk_count > 1 && aux_chunk_count < 0xFFFF) { /* some FF XIV Heavensward IMA sfx has 0x01000000 */
+    if (aux_chunk_count > 1 && aux_chunk_count < 0xFFFF) { /* some FF XIV Heavensward IMA sfx have 0x01000000 */
         VGM_LOG("SCD: unknown aux chunk count %i\n", aux_chunk_count);
         goto fail;
     }
@@ -130,71 +131,52 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
 
 
 #ifdef VGM_USE_VORBIS
-    /* special case using init_vgmstream_ogg_vorbis with callbacks */
+    /* special case using init_vgmstream_ogg_vorbis */
     if (codec == 0x06) {
-        VGMSTREAM * result = NULL;
-        uint32_t seek_table_size, vorb_header_size;
-        uint8_t xor_version, xor_byte;
+        uint8_t ogg_version, ogg_byte;
         vgm_vorbis_info_t inf = {0};
 
-        inf.loop_start = loop_start;
-        inf.loop_end = loop_end;
-        inf.loop_flag = loop_flag;
-        inf.loop_end_found = loop_flag;
-        inf.loop_length_found = 0;
         inf.layout_type = layout_ogg_vorbis;
         inf.meta_type = meta_SQEX_SCD;
+        inf.total_subsongs = total_subsongs;
+        /* loop values are in bytes, let init_vgmstream_ogg_vorbis find loop comments instead */
 
-        /* the following could be simplified but it's not clear what field signals that seek table exists
-         * (seems that encrypted = always seek table, but maybe post_meta_offset+0x01 = 0x20) */
+        ogg_version = read_8bit(post_meta_offset + 0x00, streamFile);
+        /* 0x01(1): 0x20 in v2/3, this ogg miniheader size? */
+        ogg_byte    = read_8bit(post_meta_offset + 0x02, streamFile);
+        /* 0x03(1): ? in v3 */
 
-        /* try regular Ogg with default values */
-        {
-            result = init_vgmstream_ogg_vorbis_callbacks(streamFile, filename, NULL, start_offset, &inf);
-            if (result != NULL)
-                return result;
+        if (ogg_version == 0) { /* 0x10? header, then custom Vorbis header before regular Ogg (FF XIV PC v1) */
+            inf.stream_size = stream_size;
         }
+        else { /* 0x20 header, then seek table */
+            size_t seek_table_size  = read_32bit(post_meta_offset+0x10, streamFile);
+            size_t vorb_header_size = read_32bit(post_meta_offset+0x14, streamFile);
+            /* 0x18(4): ? (can be 0) */
 
-        /* skip seek table and try regular Ogg again */
-        {
-            seek_table_size  = read_32bit(post_meta_offset+0x10, streamFile);
-            vorb_header_size = read_32bit(post_meta_offset+0x14, streamFile);
-            if ((post_meta_offset-meta_offset) + seek_table_size + vorb_header_size != read_32bit(meta_offset+0x18, streamFile)) {
-                return NULL;
-            }
+            if ((post_meta_offset-meta_offset) + seek_table_size + vorb_header_size != subheader_size)
+                goto fail;
 
-            start_offset = post_meta_offset + 0x20 + seek_table_size;
+            inf.stream_size = vorb_header_size + stream_size;
+            start_offset = post_meta_offset + 0x20 + seek_table_size; /* subheader_size skips vorb_header */
 
-            result = init_vgmstream_ogg_vorbis_callbacks(streamFile, filename, NULL, start_offset, &inf);
-            if (result != NULL)
-                return result;
-        }
-
-        /* try encrypted Ogg (with seek table already skipped) */
-        {
-            xor_version = read_8bit(post_meta_offset + 0x00, streamFile);
-            xor_byte    = read_8bit(post_meta_offset + 0x02, streamFile);
-            if (xor_byte == 0)
-                return NULL; /* not actually encrypted, happens but should be handled above */
-
-            if (xor_version == 2) {  /* header is XOR'ed using byte */
+            if (ogg_version == 2) { /* header is XOR'ed using byte (FF XIV PC) */
                 inf.decryption_callback = scd_ogg_v2_decryption_callback;
-                inf.scd_xor = xor_byte;
+                inf.scd_xor = read_8bit(post_meta_offset + 0x02, streamFile);
                 inf.scd_xor_length = vorb_header_size;
             }
-            else if (xor_version == 3) { /* full file is XOR'ed using table */
+            else if (ogg_version == 3) { /* file is XOR'ed using table (FF XIV Heavensward PC)  */
                 inf.decryption_callback = scd_ogg_v3_decryption_callback;
-                inf.scd_xor = stream_size & 0xFF; /* xor_byte is not used? (also there is data at +0x03) */
-                inf.scd_xor_length = stream_size;
+                inf.scd_xor = stream_size & 0xFF; /* ogg_byte not used? */
+                inf.scd_xor_length = vorb_header_size + stream_size;
             }
             else {
-                VGM_LOG("SCD: unknown encryption 0x%x\n", xor_version);
-                return NULL;
+                VGM_LOG("SCD: unknown ogg_version 0x%x\n", ogg_version);
             }
-
-            /* hope this works */
-            return init_vgmstream_ogg_vorbis_callbacks(streamFile, filename, NULL, start_offset, &inf);
         }
+
+        /* actual Ogg init */
+        return init_vgmstream_ogg_vorbis_callbacks(streamFile, filename, NULL, start_offset, &inf);
     }
 #endif
 
@@ -268,6 +250,7 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
             vgmstream->coding_type = coding_MSADPCM;
             vgmstream->layout_type = layout_none;
             vgmstream->interleave_block_size = read_16bit(post_meta_offset+0x0c,streamFile);
+            /* in post_meta_offset is a WAVEFORMATEX (including coefs and all) */
 
             vgmstream->num_samples = msadpcm_bytes_to_samples(stream_size, vgmstream->interleave_block_size, vgmstream->channels);
             if (loop_flag) {
@@ -414,6 +397,10 @@ static void scd_ogg_v2_decryption_callback(void *ptr, size_t size, size_t nmemb,
     size_t bytes_read = size*nmemb;
     ogg_vorbis_streamfile * ov_streamfile = (ogg_vorbis_streamfile*)datasource;
 
+    /* no encryption, sometimes happens */
+    if (ov_streamfile->scd_xor == 0x00)
+        return;
+
     /* header is XOR'd with a constant byte */
     if (ov_streamfile->offset < ov_streamfile->scd_xor_length) {
         int i, num_crypt;
@@ -453,7 +440,7 @@ static void scd_ogg_v3_decryption_callback(void *ptr, size_t size, size_t nmemb,
     ogg_vorbis_streamfile *ov_streamfile = (ogg_vorbis_streamfile*)datasource;
 
     /* file is XOR'd with a table (algorithm and table by Ioncannon) */
-    if (ov_streamfile->offset < ov_streamfile->scd_xor_length) {
+    { //if (ov_streamfile->offset < ov_streamfile->scd_xor_length)
         int i, num_crypt;
         uint8_t byte1, byte2, xor_byte;
 
