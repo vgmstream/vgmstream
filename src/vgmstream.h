@@ -793,9 +793,9 @@ typedef struct {
 /* Ogg with Vorbis */
 typedef struct {
     STREAMFILE *streamfile;
-    ogg_int64_t offset;
-    ogg_int64_t size;
-    ogg_int64_t other_header_bytes;
+    ogg_int64_t start; /* file offset where the Ogg starts */
+    ogg_int64_t offset; /* virtual offset, from 0 to size */
+    ogg_int64_t size; /* virtual size of the Ogg */
 
     /* decryption setup */
     void (*decryption_callback)(void *ptr, size_t size, size_t nmemb, void *datasource);

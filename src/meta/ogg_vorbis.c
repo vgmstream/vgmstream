@@ -12,7 +12,14 @@ static size_t ov_read_func(void *ptr, size_t size, size_t nmemb, void * datasour
     ogg_vorbis_streamfile * const ov_streamfile = datasource;
     size_t bytes_read, items_read;
 
-    bytes_read = read_streamfile(ptr, ov_streamfile->offset + ov_streamfile->other_header_bytes, size * nmemb, ov_streamfile->streamfile);
+    off_t real_offset = ov_streamfile->start + ov_streamfile->offset;
+    size_t max_bytes = size * nmemb;
+
+    /* clamp for virtual filesize */
+    if (max_bytes > ov_streamfile->size - ov_streamfile->offset)
+        max_bytes = ov_streamfile->size - ov_streamfile->offset;
+
+    bytes_read = read_streamfile(ptr, real_offset, max_bytes, ov_streamfile->streamfile);
     items_read = bytes_read / size;
 
     /* may be encrypted */
@@ -37,7 +44,7 @@ static int ov_seek_func(void *datasource, ogg_int64_t offset, int whence) {
             base_offset = ov_streamfile->offset;
             break;
         case SEEK_END:
-            base_offset = ov_streamfile->size - ov_streamfile->other_header_bytes;
+            base_offset = ov_streamfile->size;
             break;
         default:
             return -1;
@@ -46,7 +53,7 @@ static int ov_seek_func(void *datasource, ogg_int64_t offset, int whence) {
 
 
     new_offset = base_offset + offset;
-    if (new_offset < 0 || new_offset > (ov_streamfile->size - ov_streamfile->other_header_bytes)) {
+    if (new_offset < 0 || new_offset > ov_streamfile->size) {
         return -1; /* *must* return -1 if stream is unseekable */
     } else {
         ov_streamfile->offset = new_offset;
@@ -222,7 +229,7 @@ fail:
     return NULL;
 }
 
-VGMSTREAM * init_vgmstream_ogg_vorbis_callbacks(STREAMFILE *streamFile, const char * filename, ov_callbacks *callbacks_p, off_t other_header_bytes, const vgm_vorbis_info_t *vgm_inf) {
+VGMSTREAM * init_vgmstream_ogg_vorbis_callbacks(STREAMFILE *streamFile, const char * filename, ov_callbacks *callbacks_p, off_t start, const vgm_vorbis_info_t *vgm_inf) {
     VGMSTREAM * vgmstream = NULL;
     ogg_vorbis_codec_data * data = NULL;
     OggVorbis_File *ovf = NULL;
@@ -252,9 +259,13 @@ VGMSTREAM * init_vgmstream_ogg_vorbis_callbacks(STREAMFILE *streamFile, const ch
         ogg_vorbis_streamfile temp_streamfile;
 
         temp_streamfile.streamfile = streamFile;
+
+        temp_streamfile.start = start;
         temp_streamfile.offset = 0;
-        temp_streamfile.size = get_streamfile_size(temp_streamfile.streamfile);
-        temp_streamfile.other_header_bytes = other_header_bytes;
+        temp_streamfile.size = vgm_inf->stream_size ?
+                vgm_inf->stream_size :
+                get_streamfile_size(temp_streamfile.streamfile) - start;
+
         temp_streamfile.decryption_callback = vgm_inf->decryption_callback;
         temp_streamfile.scd_xor = vgm_inf->scd_xor;
         temp_streamfile.scd_xor_length = vgm_inf->scd_xor_length;
@@ -278,9 +289,12 @@ VGMSTREAM * init_vgmstream_ogg_vorbis_callbacks(STREAMFILE *streamFile, const ch
         data->ov_streamfile.streamfile = streamFile->open(streamFile,filename, STREAMFILE_DEFAULT_BUFFER_SIZE);
         if (!data->ov_streamfile.streamfile) goto fail;
 
+        data->ov_streamfile.start = start;
         data->ov_streamfile.offset = 0;
-        data->ov_streamfile.size = get_streamfile_size(data->ov_streamfile.streamfile);
-        data->ov_streamfile.other_header_bytes = other_header_bytes;
+        data->ov_streamfile.size = vgm_inf->stream_size ?
+                vgm_inf->stream_size :
+                get_streamfile_size(data->ov_streamfile.streamfile) - start;
+
         data->ov_streamfile.decryption_callback = vgm_inf->decryption_callback;
         data->ov_streamfile.scd_xor = vgm_inf->scd_xor;
         data->ov_streamfile.scd_xor_length = vgm_inf->scd_xor_length;
@@ -364,6 +378,7 @@ VGMSTREAM * init_vgmstream_ogg_vorbis_callbacks(STREAMFILE *streamFile, const ch
     vgmstream->codec_data = data; /* store our fun extra datas */
     vgmstream->channels = vi->channels;
     vgmstream->sample_rate = vi->rate;
+    vgmstream->num_streams = vgm_inf->total_subsongs;
 
     vgmstream->num_samples = ov_pcm_total(ovf,-1); /* let libvorbisfile find total samples */
     if (loop_flag) {

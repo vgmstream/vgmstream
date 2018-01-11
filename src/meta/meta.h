@@ -99,6 +99,9 @@ typedef struct {
     meta_t meta_type;
     layout_t layout_type;
 
+    off_t stream_size;
+    int total_subsongs;
+
     /* decryption setup */
     void (*decryption_callback)(void *ptr, size_t size, size_t nmemb, void *datasource);
     uint8_t scd_xor;
