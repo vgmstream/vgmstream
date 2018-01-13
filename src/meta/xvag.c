@@ -14,7 +14,7 @@ VGMSTREAM * init_vgmstream_xvag(STREAMFILE *streamFile) {
     int sample_rate, num_samples, interleave_factor, multistreams = 0;
     int total_subsongs = 0, target_subsong = streamFile->stream_index;
 
-    off_t start_offset, loop_start, loop_end, chunk_offset;
+    off_t start_offset, loop_start = 0, loop_end = 0, chunk_offset;
     off_t first_offset = 0x20;
     size_t chunk_size;
 
