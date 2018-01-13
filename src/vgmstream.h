@@ -652,8 +652,9 @@ typedef enum {
     meta_OGG_SFL,           /* Ogg Vorbis file w/ .sfl (RIFF SFPL) for looping */
     meta_OGG_UM3,           /* Ogg Vorbis with optional first 0x800 bytes XOR 0xFF */
     meta_OGG_KOVS,          /* Ogg Vorbis with extra header and 0x100 bytes XOR */
-    meta_OGG_PSYCH,         /* Ogg Vorbis with all bytes -0x23 */
-    meta_OGG_SNGW,          /* Ogg Vorbis with optional key XOR + nibble swap */
+    meta_OGG_PSYCHIC,       /* Ogg Vorbis with all bytes -0x23 */
+    meta_OGG_SNGW,          /* Ogg Vorbis with optional key XOR + nibble swap (Capcom PC games) */
+    meta_OGG_ISD,           /* Ogg Vorbis with key XOR (Azure Striker Gunvolt PC) */
 
 #ifdef VGM_USE_MP4V2
     meta_MP4,               /* AAC (iOS) */

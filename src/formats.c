@@ -941,8 +941,9 @@ static const meta_info meta_info_list[] = {
         {meta_OGG_SFL,              "Ogg Vorbis with SFPL for looping"},
         {meta_OGG_UM3,              "Ogg Vorbis (Ultramarine3)"},
         {meta_OGG_KOVS,             "Ogg Vorbis (KOVS header)"},
-        {meta_OGG_PSYCH,            "Ogg Vorbis (Psychic Software)"},
+        {meta_OGG_PSYCHIC,          "Ogg Vorbis (Psychic Software)"},
         {meta_OGG_SNGW,             "Ogg Vorbis (Capcom)"},
+        {meta_OGG_ISD,              "Ogg Vorbis (ISD)"},
 
 #ifdef VGM_USE_MP4V2
         {meta_MP4,                  "AAC header"},

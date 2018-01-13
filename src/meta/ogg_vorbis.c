@@ -141,6 +141,21 @@ static void sngw_ogg_decryption_callback(void *ptr, size_t size, size_t nmemb, v
     }
 }
 
+static void isd_ogg_decryption_callback(void *ptr, size_t size, size_t nmemb, void *datasource) {
+    static const uint8_t key[16] = {
+            0xe0,0x00,0xe0,0x00,0xa0,0x00,0x00,0x00,0xe0,0x00,0xe0,0x80,0x40,0x40,0x40,0x00
+    };
+    size_t bytes_read = size*nmemb;
+    ogg_vorbis_streamfile * const ov_streamfile = datasource;
+    int i;
+
+    /* bytes are xor'd with key */
+    {
+        for (i = 0; i < bytes_read; i++)
+            ((uint8_t*)ptr)[i] ^= key[(ov_streamfile->offset + i) % 16];
+    }
+}
+
 
 /* Ogg Vorbis, by way of libvorbisfile; may contain loop comments */
 VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
@@ -153,6 +168,7 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
     int is_kovs = 0;
     int is_psychic = 0;
     int is_sngw = 0;
+    int is_isd = 0;
 
 
     /* check extension */
@@ -164,6 +180,8 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
         is_kovs = 1;
     } else if (check_extensions(streamFile,"sngw")) { /* .sngw: Devil May Cry 4 SE (PC), Biohazard 6 (PC) */
         is_sngw = 1;
+    } else if (check_extensions(streamFile,"isd")) { /* .isd: Azure Striker Gunvolt (PC) */
+        is_isd = 1;
     } else {
         goto fail;
     }
@@ -209,15 +227,30 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
         }
     }
 
+    /* check ISD (Gunvolt PC) */
+    if (is_isd) {
+        inf.decryption_callback = isd_ogg_decryption_callback;
+
+        //todo looping unknown, not in Ogg comments
+        // game has sound/GV_steam.* files with info about sound/stream/*.isd
+        //- .ish: constant id/names
+        //- .isl: unknown table, maybe looping?
+        //- .isf: format table, ordered like file numbers, 0x18 header with:
+        //   0x00(2): ?, 0x02(2): channels, 0x04: sample rate, 0x08: skip samples (in PCM bytes), always 32000
+        //   0x0c(2): PCM block size, 0x0e(2): PCM bps, 0x10: null, 0x18: samples (in PCM bytes)
+    }
+
 
     if (is_um3) {
         inf.meta_type = meta_OGG_UM3;
     } else if (is_kovs) {
         inf.meta_type = meta_OGG_KOVS;
     } else if (is_psychic) {
-        inf.meta_type = meta_OGG_PSYCH;
+        inf.meta_type = meta_OGG_PSYCHIC;
     } else if (is_sngw) {
         inf.meta_type = meta_OGG_SNGW;
+    } else if (is_isd) {
+        inf.meta_type = meta_OGG_ISD;
     } else {
         inf.meta_type = meta_OGG_VORBIS;
     }
