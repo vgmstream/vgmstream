@@ -17,7 +17,7 @@ static const char* extension_list[] = {
     "aaap",
     "aax",
     //"ac3", //FFmpeg, not parsed //common?
-    "ace", //fake, for tri-Ace's formats
+    "ace", //fake, for tri-Ace's formats (to be removed)
     "acm",
     "adm",
     "adp",
@@ -33,7 +33,7 @@ static const char* extension_list[] = {
     "aix",
     "akb",
     "al2",
-    "amts", //fake extension (to be removed)
+    "amts", //fake extension/header id for .stm (to be removed)
     "ao", //txth/reserved [Cloudphobia (PC)]
     "as4",
     "asd",
@@ -138,7 +138,7 @@ static const char* extension_list[] = {
     "iab",
     "iadp",
     "idsp",
-    "idvi", //fake extension (to be removed)
+    "idvi", //fake extension for .pcm (to be removed)
     "ikm",
     "ild",
     "int",
@@ -153,9 +153,10 @@ static const char* extension_list[] = {
     "jstm",
 
     "kces",
-    "kcey", //fake extension (to be removed)
+    "kcey", //fake extension/header id (to be removed)
     "khv",
-    "kovs",
+    "km9",
+    "kovs", //.kvs header id
     "kraw",
     "ktss",
     "kvs",
@@ -206,7 +207,7 @@ static const char* extension_list[] = {
     "ndp",
     "ngca",
     "nps",
-    "npsf", //fake extension (to be removed)
+    "npsf", //fake extension/header id for .nps (to be removed)
     "nus3bank",
     "nwa",
 
@@ -226,7 +227,7 @@ static const char* extension_list[] = {
     "pnb",
     "pona",
     "pos",
-    "ps2stm", //fake extension (to be removed)
+    "ps2stm", //fake extension for .stm (to be removed)
     "psh",
     "psnd",
     "psw",
@@ -944,6 +945,7 @@ static const meta_info meta_info_list[] = {
         {meta_OGG_PSYCHIC,          "Ogg Vorbis (Psychic Software)"},
         {meta_OGG_SNGW,             "Ogg Vorbis (Capcom)"},
         {meta_OGG_ISD,              "Ogg Vorbis (ISD)"},
+        {meta_KMA9,                 "Koei Tecmo KMA9 header"},
 
 #ifdef VGM_USE_MP4V2
         {meta_MP4,                  "AAC header"},

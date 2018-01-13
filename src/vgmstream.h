@@ -655,6 +655,7 @@ typedef enum {
     meta_OGG_PSYCHIC,       /* Ogg Vorbis with all bytes -0x23 */
     meta_OGG_SNGW,          /* Ogg Vorbis with optional key XOR + nibble swap (Capcom PC games) */
     meta_OGG_ISD,           /* Ogg Vorbis with key XOR (Azure Striker Gunvolt PC) */
+    meta_KMA9,              /* Koei Tecmo [Nobunaga no Yabou - Souzou (Vita)] */
 
 #ifdef VGM_USE_MP4V2
     meta_MP4,               /* AAC (iOS) */
@@ -996,6 +997,7 @@ typedef struct {
 typedef enum {
     ATRAC9_DEFAULT = 0, /* ATRAC9 standard */
     ATRAC9_XVAG,        /* Sony XVAG: interleaved subsongs, Vita multichannel interleaves 2ch xN superframes */
+    ATRAC9_KMA9,        /* Koei Tecmo KMA9: interleaved subsongs */
   //ATRAC9_FSB,         /* FMOD FSB: Vita multichannel interleaves 2ch xN superframes */
   //ATRAC9_EATRAX,      /* EA EATrax: buffered ATRAC9 in SPS blocks (superframes can be split between blocks) */
 } atrac9_custom_t;

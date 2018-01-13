@@ -472,6 +472,10 @@
 					RelativePath=".\meta\ivb.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\meta\kma9.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\kraw.c"
 					>

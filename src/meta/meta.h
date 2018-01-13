@@ -693,4 +693,6 @@ VGMSTREAM * init_vgmstream_flx(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_mogg(STREAMFILE * streamFile);
 
+VGMSTREAM * init_vgmstream_kma9(STREAMFILE * streamFile);
+
 #endif /*_META_H*/

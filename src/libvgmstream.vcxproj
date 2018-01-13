@@ -226,6 +226,7 @@
     <ClCompile Include="meta\ish_isd.c" />
     <ClCompile Include="meta\ivaud.c" />
     <ClCompile Include="meta\ivb.c" />
+    <ClCompile Include="meta\kma9.c" />
     <ClCompile Include="meta\kraw.c" />
     <ClCompile Include="meta\maxis_xa.c" />
     <ClCompile Include="meta\mc3.c" />

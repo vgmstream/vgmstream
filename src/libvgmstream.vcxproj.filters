@@ -283,6 +283,9 @@
     <ClCompile Include="meta\ivb.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\kma9.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\kraw.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
