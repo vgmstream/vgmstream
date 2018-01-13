@@ -251,6 +251,7 @@ typedef enum {
     layout_blocked_awc,     /* Rockstar AWC */
     layout_blocked_vgs,     /* Guitar Hero II (PS2) */
     layout_blocked_vawx,    /* No More Heroes 6ch (PS3) */
+    layout_blocked_xvag_subsong, /* XVAG subsongs [God of War III (PS4)] */
 
     /* otherwise odd */
     layout_acm,             /* libacm layout */

@@ -464,6 +464,7 @@
     <ClCompile Include="layout\blocked_ea_1snh.c" />
     <ClCompile Include="layout\blocked_vgs.c" />
     <ClCompile Include="layout\blocked_vawx.c" />
+    <ClCompile Include="layout\blocked_xvag.c" />
     <ClCompile Include="layout\caf_blocked.c" />
     <ClCompile Include="layout\blocked_dec.c" />
     <ClCompile Include="layout\blocked_ea_schl.c" />

@@ -575,6 +575,7 @@ static const layout_info layout_info_list[] = {
         {layout_blocked_awc,            "blocked (AWC)"},
         {layout_blocked_vgs,            "blocked (VGS)"},
         {layout_blocked_vawx,           "blocked (VAWX)"},
+        {layout_blocked_xvag_subsong,   "blocked (XVAG subsong)"},
 #ifdef VGM_USE_VORBIS
         {layout_ogg_vorbis,             "Ogg"},
 #endif

@@ -973,6 +973,9 @@
     <ClCompile Include="layout\blocked_vawx.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="layout\blocked_xvag.c">
+      <Filter>layout\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="layout\caf_blocked.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
