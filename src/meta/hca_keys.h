@@ -222,6 +222,9 @@ static const hcakey_info hcakey_list[] = {
         // Shin Tennis no Ouji-sama: Rising Beat (iOS/Android)
         {4902201417679},            // 0000047561F95FCF
 
+        // Kai-ri-Sei Million Arthur (Vita)
+        {1782351729464341796},      // 18BC2F7463867524
+
 };
 
 #endif/*_HCA_KEYS_H_*/
