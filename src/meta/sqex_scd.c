@@ -162,7 +162,7 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
 
             if (ogg_version == 2) { /* header is XOR'ed using byte (FF XIV PC) */
                 inf.decryption_callback = scd_ogg_v2_decryption_callback;
-                inf.scd_xor = read_8bit(post_meta_offset + 0x02, streamFile);
+                inf.scd_xor = ogg_byte;
                 inf.scd_xor_length = vorb_header_size;
             }
             else if (ogg_version == 3) { /* file is XOR'ed using table (FF XIV Heavensward PC)  */
