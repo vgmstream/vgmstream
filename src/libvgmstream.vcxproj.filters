@@ -283,6 +283,9 @@
     <ClCompile Include="meta\ivb.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\kma9.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\kraw.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -400,7 +403,7 @@
     <ClCompile Include="meta\nwa.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\ogg_vorbis_file.c">
+    <ClCompile Include="meta\ogg_vorbis.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ogl.c">
@@ -971,6 +974,9 @@
       <Filter>layout\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="layout\blocked_vawx.c">
+      <Filter>layout\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="layout\blocked_xvag.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="layout\caf_blocked.c">

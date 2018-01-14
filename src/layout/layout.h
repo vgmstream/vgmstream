@@ -66,6 +66,7 @@ void block_update_ea_sns(off_t block_offset, VGMSTREAM * vgmstream);
 void block_update_awc(off_t block_offset, VGMSTREAM * vgmstream);
 void block_update_vgs(off_t block_offset, VGMSTREAM * vgmstream);
 void block_update_vawx(off_t block_offset, VGMSTREAM * vgmstream);
+void block_update_xvag_subsong(off_t block_offset, VGMSTREAM * vgmstream);
 
 /* other layouts */
 void render_vgmstream_interleave(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstream);

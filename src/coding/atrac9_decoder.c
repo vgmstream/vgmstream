@@ -119,7 +119,9 @@ void decode_atrac9(VGMSTREAM *vgmstream, sample * outbuf, int32_t samples_to_do,
 
             /* postadjust */ //todo improve
             switch(data->config.type) {
-                case ATRAC9_XVAG: /* skip other subsong blocks in XVAG */
+                case ATRAC9_XVAG:
+                case ATRAC9_KMA9:
+                    /* skip other subsong blocks */
                     if (data->config.interleave_skip && ((stream->offset - stream->channel_start_offset) % data->config.interleave_skip == 0)) {
                         stream->offset += data->config.interleave_skip * (data->config.subsong_skip - 1);
                     }

@@ -226,6 +226,7 @@
     <ClCompile Include="meta\ish_isd.c" />
     <ClCompile Include="meta\ivaud.c" />
     <ClCompile Include="meta\ivb.c" />
+    <ClCompile Include="meta\kma9.c" />
     <ClCompile Include="meta\kraw.c" />
     <ClCompile Include="meta\maxis_xa.c" />
     <ClCompile Include="meta\mc3.c" />
@@ -270,7 +271,7 @@
     <ClCompile Include="meta\ngc_vid1.c" />
     <ClCompile Include="meta\nub_xma.c" />
     <ClCompile Include="meta\nwa.c" />
-    <ClCompile Include="meta\ogg_vorbis_file.c" />
+    <ClCompile Include="meta\ogg_vorbis.c" />
     <ClCompile Include="meta\ogl.c" />
     <ClCompile Include="meta\omu.c" />
     <ClCompile Include="meta\otm.c" />
@@ -464,6 +465,7 @@
     <ClCompile Include="layout\blocked_ea_1snh.c" />
     <ClCompile Include="layout\blocked_vgs.c" />
     <ClCompile Include="layout\blocked_vawx.c" />
+    <ClCompile Include="layout\blocked_xvag.c" />
     <ClCompile Include="layout\caf_blocked.c" />
     <ClCompile Include="layout\blocked_dec.c" />
     <ClCompile Include="layout\blocked_ea_schl.c" />

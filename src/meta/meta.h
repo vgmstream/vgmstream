@@ -99,11 +99,14 @@ typedef struct {
     meta_t meta_type;
     layout_t layout_type;
 
-    /* XOR setup (SCD) */
-    int decryption_enabled;
-    void (*decryption_callback)(void *ptr, size_t size, size_t nmemb, void *datasource, int bytes_read);
+    off_t stream_size;
+    int total_subsongs;
+
+    /* decryption setup */
+    void (*decryption_callback)(void *ptr, size_t size, size_t nmemb, void *datasource);
     uint8_t scd_xor;
     off_t scd_xor_length;
+    uint32_t sngw_xor;
 
 } vgm_vorbis_info_t;
 
@@ -689,5 +692,7 @@ VGMSTREAM * init_vgmstream_ngc_vid1(STREAMFILE * streamFile);
 VGMSTREAM * init_vgmstream_flx(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_mogg(STREAMFILE * streamFile);
+
+VGMSTREAM * init_vgmstream_kma9(STREAMFILE * streamFile);
 
 #endif /*_META_H*/

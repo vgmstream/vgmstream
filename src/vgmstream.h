@@ -251,6 +251,7 @@ typedef enum {
     layout_blocked_awc,     /* Rockstar AWC */
     layout_blocked_vgs,     /* Guitar Hero II (PS2) */
     layout_blocked_vawx,    /* No More Heroes 6ch (PS3) */
+    layout_blocked_xvag_subsong, /* XVAG subsongs [God of War III (PS4)] */
 
     /* otherwise odd */
     layout_acm,             /* libacm layout */
@@ -645,16 +646,17 @@ typedef enum {
     meta_NGC_VID1,          /* Neversoft .ogg (Gun GC) */
     meta_PC_FLX,            /* Ultima IX PC */
     meta_MOGG,              /* Harmonix Music Systems MOGG Vorbis */
-
-#ifdef VGM_USE_VORBIS
     meta_OGG_VORBIS,        /* Ogg Vorbis */
     meta_OGG_SLI,           /* Ogg Vorbis file w/ companion .sli for looping */
     meta_OGG_SLI2,          /* Ogg Vorbis file w/ different styled .sli for looping */
     meta_OGG_SFL,           /* Ogg Vorbis file w/ .sfl (RIFF SFPL) for looping */
-    meta_OGG_UM3,           /* Ogg Vorbis with first 0x800 bytes XOR 0xFF */
-    meta_OGG_KOVS,          /* Ogg Vorbis with exta header and 0x100 bytes XOR */
-    meta_OGG_PSYCH,         /* Ogg Vorbis with all bytes -0x23*/
-#endif
+    meta_OGG_UM3,           /* Ogg Vorbis with optional first 0x800 bytes XOR 0xFF */
+    meta_OGG_KOVS,          /* Ogg Vorbis with extra header and 0x100 bytes XOR */
+    meta_OGG_PSYCHIC,       /* Ogg Vorbis with all bytes -0x23 */
+    meta_OGG_SNGW,          /* Ogg Vorbis with optional key XOR + nibble swap (Capcom PC games) */
+    meta_OGG_ISD,           /* Ogg Vorbis with key XOR (Azure Striker Gunvolt PC) */
+    meta_KMA9,              /* Koei Tecmo [Nobunaga no Yabou - Souzou (Vita)] */
+
 #ifdef VGM_USE_MP4V2
     meta_MP4,               /* AAC (iOS) */
 #endif
@@ -794,15 +796,16 @@ typedef struct {
 /* Ogg with Vorbis */
 typedef struct {
     STREAMFILE *streamfile;
-    ogg_int64_t offset;
-    ogg_int64_t size;
-    ogg_int64_t other_header_bytes;
+    ogg_int64_t start; /* file offset where the Ogg starts */
+    ogg_int64_t offset; /* virtual offset, from 0 to size */
+    ogg_int64_t size; /* virtual size of the Ogg */
 
-    /* XOR setup (SCD) */
-    int decryption_enabled;
-    void (*decryption_callback)(void *ptr, size_t size, size_t nmemb, void *datasource, int bytes_read);
+    /* decryption setup */
+    void (*decryption_callback)(void *ptr, size_t size, size_t nmemb, void *datasource);
     uint8_t scd_xor;
     off_t scd_xor_length;
+    uint32_t sngw_xor;
+
 } ogg_vorbis_streamfile;
 
 typedef struct {
@@ -994,6 +997,7 @@ typedef struct {
 typedef enum {
     ATRAC9_DEFAULT = 0, /* ATRAC9 standard */
     ATRAC9_XVAG,        /* Sony XVAG: interleaved subsongs, Vita multichannel interleaves 2ch xN superframes */
+    ATRAC9_KMA9,        /* Koei Tecmo KMA9: interleaved subsongs */
   //ATRAC9_FSB,         /* FMOD FSB: Vita multichannel interleaves 2ch xN superframes */
   //ATRAC9_EATRAX,      /* EA EATrax: buffered ATRAC9 in SPS blocks (superframes can be split between blocks) */
 } atrac9_custom_t;

@@ -472,6 +472,10 @@
 					RelativePath=".\meta\ivb.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\meta\kma9.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\kraw.c"
 					>
@@ -679,7 +683,7 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\ogg_vorbis_file.c"
+					RelativePath=".\meta\ogg_vorbis.c"
 					>
 				</File>
                 <File
@@ -1668,6 +1672,10 @@
                 </File>
                 <File
                     RelativePath=".\layout\blocked_vgs.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\layout\blocked_xvag.c"
                     >
                 </File>
 				<File
