@@ -6,7 +6,7 @@ typedef enum { XMA2, ATRAC9 } gtd_codec;
 /* GTD - found in Knights Contract (X360, PS3), Valhalla Knights 3 (PSV) */
 VGMSTREAM * init_vgmstream_gtd(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    off_t start_offset, chunk_offset, stpr_offset, name_offset = 0;
+    off_t start_offset, chunk_offset, stpr_offset, name_offset = 0, loop_start_offset, loop_end_offset;
     size_t data_size, chunk_size;
     int loop_flag, channel_count, sample_rate;
     int num_samples, loop_start_sample, loop_end_sample;
@@ -48,6 +48,9 @@ VGMSTREAM * init_vgmstream_gtd(STREAMFILE *streamFile) {
         start_offset = 0x34 + read_32bitLE(0x30,streamFile);
         channel_count   = read_32bitLE(0x10,streamFile);
         sample_rate     = read_32bitLE(0x14,streamFile);
+        loop_start_offset = read_32bitLE(0x1c, streamFile);
+        loop_end_offset = read_32bitLE(0x20, streamFile);
+        loop_flag = loop_end_offset > loop_start_offset;
         at9_config_data = read_32bitBE(0x28,streamFile);
         /* 0x18-0x28: fixed/unknown values */
 
@@ -105,7 +108,10 @@ VGMSTREAM * init_vgmstream_gtd(STREAMFILE *streamFile) {
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_ATRAC9;
             vgmstream->layout_type = layout_none;
-
+            if (loop_flag) {
+                vgmstream->loop_start_sample = atrac9_bytes_to_samples(loop_start_offset - start_offset, vgmstream->codec_data);
+                vgmstream->loop_end_sample = atrac9_bytes_to_samples(loop_end_offset - start_offset, vgmstream->codec_data);
+            }
             vgmstream->num_samples = atrac9_bytes_to_samples(data_size, vgmstream->codec_data);
             break;
         }
