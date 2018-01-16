@@ -6,13 +6,27 @@
 VGMSTREAM * init_vgmstream_ktss(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     int loop_flag, channel_count;
-    int32_t loop_length;
+    int8_t version;
+    int32_t loop_length, coef_start_offset, coef_spacing;
     off_t start_offset;
 
     if (!check_extensions(streamFile, "ktss"))
         goto fail;
 
     if (read_32bitBE(0, streamFile) != 0x4B545353) /* "KTSS" */
+        goto fail;
+
+    /* check type details */
+    version = read_8bit(0x22, streamFile);
+    if (version == 1) {
+        coef_start_offset = 0x40;
+        coef_spacing = 0x2e;
+    }
+    else if (version == 3) { // Fire Emblem Warriors (Switch)
+        coef_start_offset = 0x5c;
+        coef_spacing = 0x60;
+    }
+    else
         goto fail;
 
     loop_length = read_32bitLE(0x38, streamFile);
@@ -35,7 +49,7 @@ VGMSTREAM * init_vgmstream_ktss(STREAMFILE *streamFile) {
 
     vgmstream->interleave_block_size = 0x8;
 
-    dsp_read_coefs_le(vgmstream, streamFile, 0x40, 0x2e);
+    dsp_read_coefs_le(vgmstream, streamFile, coef_start_offset, coef_spacing);
     start_offset = read_32bitLE(0x24, streamFile) + 0x20;
 
     if (!vgmstream_open_stream(vgmstream, streamFile, start_offset))
@@ -46,4 +60,3 @@ fail:
     close_vgmstream(vgmstream);
     return NULL;
 }
-
