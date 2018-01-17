@@ -63,7 +63,7 @@
       <PreprocessorDefinitions>WIN32;VGM_USE_FFMPEG;VGM_USE_G7221;VGM_USE_MP4V2;VGM_USE_FDKAAC;VGM_USE_MAIATRAC3PLUS;_DEBUG;_WINDOWS;_USRDLL;IN_VGMSTREAM_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
-      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
     </ClCompile>
@@ -86,7 +86,7 @@
     <ClCompile>
       <AdditionalIncludeDirectories>../ext_includes;../../qaac/mp4v2/include;../../fdk-aac/libSYS/include;../../fdk-aac/libAACdec/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_WIN32_WINNT=0x501;WIN32;VGM_USE_FFMPEG;VGM_USE_G7221;VGM_USE_MP4V2;VGM_USE_FDKAAC;VGM_USE_MAIATRAC3PLUS;NDEBUG;_WINDOWS;_USRDLL;IN_VGMSTREAM_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <FloatingPointModel>Fast</FloatingPointModel>
