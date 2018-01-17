@@ -95,7 +95,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <AdditionalIncludeDirectories>../ext_includes;..\..\foobar\foobar2000\SDK;..\..\foobar\foobar2000\shared;..\..\foobar\foobar2000;../../qaac/mp4v2/include;../../fdk-aac/libSYS/include;../../fdk-aac/libAACdec/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../ext_includes;..\..\foobar\foobar2000\SDK;..\..\foobar\foobar2000\shared;..\..\foobar\foobar2000;../../qaac/mp4v2/include;../../fdk-aac/libSYS/include;../../fdk-aac/libAACdec/include;../../WTL/Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_WIN32_WINNT=0x501;WIN32;VGM_USE_FFMPEG;VGM_USE_G7221;VGM_USE_MP4V2;VGM_USE_FDKAAC;VGM_USE_MAIATRAC3PLUS;NDEBUG;_WINDOWS;_USRDLL;IN_VGMSTREAM_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <PrecompiledHeader>
