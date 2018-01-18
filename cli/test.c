@@ -30,7 +30,7 @@ static void make_wav_header(uint8_t * buf, int32_t sample_count, int32_t sample_
 static void make_smpl_chunk(uint8_t * buf, int32_t loop_start, int32_t loop_end);
 
 static void usage(const char * name) {
-    fprintf(stderr,"vgmstream test decoder " VERSION " " __DATE__ "\n"
+    fprintf(stderr,"vgmstream CLI decoder " VERSION " " __DATE__ "\n"
           "Usage: %s [-o outfile.wav] [options] infile\n"
           "Options:\n"
           "    -o outfile.wav: name of output .wav file, default is infile.wav\n"

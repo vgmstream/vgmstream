@@ -32,7 +32,7 @@ set PATH=C:\Program Files (x86)\mingw-w64\i686-5.4.0-win32-sjlj-rt_v5-rev0\mingw
 
 cd vgmstream
 
-mingw32-make.exe mingw_test -f Makefile ^
+mingw32-make.exe vgmstream_cli -f Makefile ^
  VGM_ENABLE_FFMPEG=1 VGM_ENABLE_MAIATRAC3PLUS=0 ^
  SHELL=sh.exe CC=gcc.exe AR=ar.exe STRIP=strip.exe DLLTOOL=dlltool.exe WINDRES=windres.exe
 ```
@@ -145,6 +145,7 @@ There are no hard coding rules but for consistency should follow general C conve
 ```
 ./                   docs, scripts
 ./audacious/         Audacious plugin
+./cli/               CLI tools
 ./ext_includes/      external includes for compiling
 ./ext_libs/          external libs/DLLs for linking
 ./fb2k/              foobar2000 plugin
@@ -152,7 +153,6 @@ There are no hard coding rules but for consistency should follow general C conve
 ./src/coding/        format data decoders
 ./src/layout/        format data demuxers
 ./src/meta/          format header parsers
-./test/              CLI tools
 ./winamp/            Winamp plugin
 ./xmplay/            XMPlay plugin
 ```
