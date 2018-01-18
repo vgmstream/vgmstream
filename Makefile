@@ -66,8 +66,8 @@ bin mingwbin: vgmstream_cli winamp xmplay
 vgmstream_cli mingw_test:
 	$(MAKE) -C test vgmstream_cli
 
-#vgmstream123:
-#	$(MAKE) -C test vgmstream123
+vgmstream123:
+	$(MAKE) -C test vgmstream123
 
 winamp mingw_winamp:
 	$(MAKE) -C winamp in_vgmstream
