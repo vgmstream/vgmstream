@@ -22,10 +22,6 @@ typedef struct {
     uint8_t * buffer;       /* data buffer */
     size_t buffersize;      /* max buffer size */
     size_t filesize;        /* cached file size (max offset) */
-#ifdef PROFILE_STREAMFILE
-    size_t bytes_read;
-    int error_count;
-#endif
 } STDIOSTREAMFILE;
 
 static STREAMFILE * open_stdio_streamfile_buffer(const char * const filename, size_t buffersize);
@@ -77,9 +73,6 @@ static size_t read_the_rest(uint8_t * dest, off_t offset, size_t length, STDIOST
         /* position to new offset */
         if (fseeko(streamfile->infile,offset,SEEK_SET)) {
             streamfile->offset = streamfile->filesize;
-#ifdef PROFILE_STREAMFILE
-            streamfile->error_count++;
-#endif
             return 0; /* fail miserably (fseek shouldn't fail and reach this) */
         }
         streamfile->offset = offset;
@@ -93,15 +86,6 @@ static size_t read_the_rest(uint8_t * dest, off_t offset, size_t length, STDIOST
         /* fill the buffer */
         length_read = fread(streamfile->buffer,sizeof(uint8_t),streamfile->buffersize,streamfile->infile);
         streamfile->validsize = length_read;
-
-#ifdef PROFILE_STREAMFILE
-        if (ferror(streamfile->infile)) {
-            clearerr(streamfile->infile);
-            streamfile->error_count++;
-        }
-
-        streamfile->bytes_read += length_read;
-#endif
 
         /* if we can't get enough to satisfy the request (EOF) we give up */
         if (length_read < length_to_read) {
@@ -154,10 +138,6 @@ static size_t read_stdio(STDIOSTREAMFILE *streamfile,uint8_t * dest, off_t offse
     /* request outside buffer: new fread */
     {
         size_t length_read = read_the_rest(dest,offset,length,streamfile);
-#ifdef PROFILE_STREAMFILE
-        if (length_read < length) 
-            streamfile->error_count++;
-#endif
         return length_read;
     }
 }
@@ -180,15 +160,6 @@ static void get_name_stdio(STDIOSTREAMFILE *streamfile,char *buffer,size_t lengt
     strncpy(buffer,streamfile->name,length);
     buffer[length-1]='\0';
 }
-
-#ifdef PROFILE_STREAMFILE
-static size_t get_bytes_read_stdio(STDIOSTREAMFILE *streamFile) {
-    return streamFile->bytes_read;
-}
-static size_t get_error_count_stdio(STDIOSTREAMFILE *streamFile) {
-    return streamFile->error_count;
-}
-#endif
 
 static STREAMFILE *open_stdio(STDIOSTREAMFILE *streamFile,const char * const filename,size_t buffersize) {
     int newfd;
@@ -237,10 +208,6 @@ static STREAMFILE * open_stdio_streamfile_buffer_by_file(FILE *infile,const char
     streamfile->sf.get_realname = (void*)get_name_stdio;
     streamfile->sf.open = (void*)open_stdio;
     streamfile->sf.close = (void*)close_stdio;
-#ifdef PROFILE_STREAMFILE
-    streamfile->sf.get_bytes_read = (void*)get_bytes_read_stdio;
-    streamfile->sf.get_error_count = (void*)get_error_count_stdio;
-#endif
 
     streamfile->infile = infile;
     streamfile->buffersize = buffersize;

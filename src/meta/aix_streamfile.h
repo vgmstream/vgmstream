@@ -151,10 +151,6 @@ static STREAMFILE *open_aix_impl(AIXSTREAMFILE *streamfile,const char * const fi
     streamfile->sf.get_realname = (void*)get_name_aix;
     streamfile->sf.open = (void*)open_aix_impl;
     streamfile->sf.close = (void*)close_aix;
-#ifdef PROFILE_STREAMFILE
-    streamfile->sf.get_bytes_read = NULL;
-    streamfile->sf.get_error_count = NULL;
-#endif
 
     streamfile->real_file = file;
     streamfile->current_physical_offset = start_offset;

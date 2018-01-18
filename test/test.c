@@ -382,31 +382,6 @@ int main(int argc, char ** argv) {
     fclose(outfile);
     outfile = NULL;
 
-#ifdef PROFILE_STREAMFILE
-    {
-        size_t total_bytes_read = 0;
-        for (i=0;i<vgmstream->channels;i++) {
-            size_t bytes_read = get_streamfile_bytes_read(vgmstream->ch[i].streamfile);
-            size_t file_size = get_streamfile_size(vgmstream->ch[i].streamfile);
-            int error_count = get_streamfile_error_count(vgmstream->ch[i].streamfile);
-            int already_reported = 0;
-
-            /* see if we've reported this STREAMFILE already */
-            for (j=i-1;!already_reported && j>=0;j--) {
-                if (vgmstream->ch[j].streamfile == vgmstream->ch[i].streamfile) {
-                    already_reported=1;
-                }
-            }
-
-            if (already_reported) continue;
-
-            total_bytes_read += bytes_read;
-            fprintf(stderr,"ch%d: %lf%% (%d bytes read, file is %d bytes) %d errors\n",i,
-                    bytes_read*100.0/file_size,bytes_read,file_size,error_count);
-        }
-        fprintf(stderr,"total bytes read: %d\n",total_bytes_read);
-    }
-#endif
 
     if (outfilename_reset) {
         outfile = fopen(outfilename_reset,"wb");

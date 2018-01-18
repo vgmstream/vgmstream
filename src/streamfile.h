@@ -55,13 +55,8 @@ typedef struct _STREAMFILE {
     struct _STREAMFILE * (*open)(struct _STREAMFILE *,const char * const filename,size_t buffersize);
     void (*close)(struct _STREAMFILE *);
 
-#ifdef PROFILE_STREAMFILE
-    size_t (*get_bytes_read)(struct _STREAMFILE *);
-    int (*get_error_count)(struct _STREAMFILE *);
-#endif
 
-
-    /* Substream selection for files with multiple streams. Manually used in metas if supported.
+    /* Substream selection for files with subsongs. Manually used in metas if supported.
      * Not ideal here, but it's the simplest way to pass to all init_vgmstream_x functions. */
     int stream_index; /* 0=default/auto (first), 1=first, N=Nth */
 
@@ -89,23 +84,6 @@ static inline size_t get_streamfile_size(STREAMFILE * streamfile) {
     return streamfile->get_size(streamfile);
 }
 
-#ifdef PROFILE_STREAMFILE
-/* return how many bytes we read into buffers */
-static inline size_t get_streamfile_bytes_read(STREAMFILE * streamfile) {
-    if (streamfile->get_bytes_read)
-        return streamfile->get_bytes_read(streamfile);
-    else
-        return 0;
-}
-
-/* return how many times we encountered a read error */
-static inline int get_streamfile_error_count(STREAMFILE * streamfile) {
-    if (streamfile->get_error_count)
-        return streamfile->get_error_count(streamfile);
-    else
-        return 0;
-}
-#endif
 
 /* Sometimes you just need an int, and we're doing the buffering.
 * Note, however, that if these fail to read they'll return -1,
