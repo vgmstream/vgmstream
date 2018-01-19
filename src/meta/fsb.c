@@ -105,16 +105,7 @@ VGMSTREAM * init_vgmstream_fsb(STREAMFILE *streamFile) {
     return init_vgmstream_fsb_offset(streamFile, 0x0);
 }
 
-/* FSB4 with "\0WAV" Header, found in Deadly Creatures (Wii)
- * 16 byte header which holds the filesize
- * (unsure if this is from a proper rip) */
-VGMSTREAM * init_vgmstream_fsb4_wav(STREAMFILE *streamFile) {
-    if (read_32bitBE(0x00,streamFile) != 0x00574156) /* "\0WAV" */
-        return NULL;
-    return init_vgmstream_fsb_offset(streamFile, 0x10);
-}
-
-VGMSTREAM * init_vgmstream_fsb_offset(STREAMFILE *streamFile, off_t offset) {
+static VGMSTREAM * init_vgmstream_fsb_offset(STREAMFILE *streamFile, off_t offset) {
     VGMSTREAM * vgmstream = NULL;
     off_t start_offset;
     size_t custom_data_offset;
@@ -123,7 +114,7 @@ VGMSTREAM * init_vgmstream_fsb_offset(STREAMFILE *streamFile, off_t offset) {
 
     fsb_header fsbh;
 
-    /* check extensions (.bnk = Hard Corps Uprising PS3) */
+    /* check extensions (.wii: fsb4_wav? .bnk = Hard Corps Uprising PS3) */
     if ( !check_extensions(streamFile, "fsb,wii,bnk") )
         goto fail;
 
@@ -390,6 +381,37 @@ VGMSTREAM * init_vgmstream_fsb_offset(STREAMFILE *streamFile, off_t offset) {
     return vgmstream;
 
 fail:
+    close_vgmstream(vgmstream);
+    return NULL;
+}
+
+/* FSB4 with "\0WAV" Header, found in Deadly Creatures (Wii).
+ * Has a 0x10 BE header that holds the filesize (unsure if this is from a proper rip). */
+VGMSTREAM * init_vgmstream_fsb4_wav(STREAMFILE *streamFile) {
+    VGMSTREAM * vgmstream = NULL;
+    STREAMFILE *custom_streamFile = NULL;
+    off_t custom_start = 0x10;
+    size_t custom_size = get_streamfile_size(streamFile) - 0x10 - 0x10;
+
+    /* check extensions */
+    if ( !check_extensions(streamFile, "fsb,wii") )
+        goto fail;
+
+    if (read_32bitBE(0x00,streamFile) != 0x00574156) /* "\0WAV" */
+        goto fail;
+
+    /* parse FSB subfile */
+    custom_streamFile = open_clamp_streamfile(open_wrap_streamfile(streamFile), custom_start,custom_size);
+    if (!custom_streamFile) goto fail;
+
+    vgmstream = init_vgmstream_fsb_offset(custom_streamFile, 0);
+    if (!vgmstream) goto fail;
+
+    close_streamfile(custom_streamFile);
+    return vgmstream;
+
+fail:
+    close_streamfile(custom_streamFile);
     close_vgmstream(vgmstream);
     return NULL;
 }
