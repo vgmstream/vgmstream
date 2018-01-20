@@ -38,3 +38,7 @@ Release
 /xmplay/Debug
 /xmplay/Release
 /xmplay/*.dll
+/dependencies
+
+/**/test.zip
+/**/foo_input_vgmstream.fb2k-component

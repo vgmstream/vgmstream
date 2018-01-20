@@ -1,0 +1,11 @@
+version: 1.0.{build}
+image: Visual Studio 2017
+configuration: Release
+build_script:
+- ps: .\build.bat
+test: off
+artifacts:
+- path: Release/test.zip
+  name: test.zip
+- path: Release/foo_input_vgmstream.fb2k-component
+  name: foo_input_vgmstream.fb2k-component
