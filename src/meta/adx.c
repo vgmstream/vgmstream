@@ -249,7 +249,7 @@ static int find_key(STREAMFILE *file, uint8_t type, uint16_t *xor_start, uint16_
     {
         uint8_t keybuf[6];
 
-        if ( read_key_file(keybuf, 6, file) ) {
+        if (read_key_file(keybuf, 6, file) == 6) {
             *xor_start = get_16bitBE(keybuf+0);
             *xor_mult = get_16bitBE(keybuf+2);
             *xor_add = get_16bitBE(keybuf+4);

@@ -56,7 +56,7 @@ VGMSTREAM * init_vgmstream_ahx(STREAMFILE *streamFile) {
 
         if (cfg.encryption) {
             uint8_t keybuf[6];
-            if (read_key_file(keybuf, 6, streamFile)) {
+            if (read_key_file(keybuf, 6, streamFile) == 6) {
                 cfg.cri_key1 = get_16bitBE(keybuf+0);
                 cfg.cri_key2 = get_16bitBE(keybuf+2);
                 cfg.cri_key3 = get_16bitBE(keybuf+4);

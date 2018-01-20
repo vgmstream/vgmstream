@@ -546,17 +546,15 @@ STREAMFILE * open_stream_name(STREAMFILE *streamFile, const char * name) {
     return streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
 }
 
-/**
- * open file containing decryption keys and copy to buffer
- * tries combinations of keynames based on the original filename
- *
- * returns true if found and copied
- */
-int read_key_file(uint8_t * buf, size_t bufsize, STREAMFILE *streamFile) {
+/* Opens a file containing decryption keys and copies to buffer.
+ * Tries combinations of keynames based on the original filename.
+ * returns size of key if found and copied */
+size_t read_key_file(uint8_t * buf, size_t bufsize, STREAMFILE *streamFile) {
     char keyname[PATH_LIMIT];
     char filename[PATH_LIMIT];
     const char *path, *ext;
     STREAMFILE * streamFileKey = NULL;
+    size_t keysize;
 
     streamFile->get_name(streamFile,filename,sizeof(filename));
 
@@ -609,17 +607,17 @@ int read_key_file(uint8_t * buf, size_t bufsize, STREAMFILE *streamFile) {
     }
 
 found:
-    if (get_streamfile_size(streamFileKey) != bufsize) goto fail;
+    keysize = get_streamfile_size(streamFileKey);
+    if (keysize > bufsize) goto fail;
 
-    if (read_streamfile(buf, 0, bufsize, streamFileKey)!=bufsize) goto fail;
+    if (read_streamfile(buf, 0, keysize, streamFileKey) != keysize)
+        goto fail;
 
     close_streamfile(streamFileKey);
-
-    return 1;
+    return keysize;
 
 fail:
-    if (streamFileKey) close_streamfile(streamFileKey);
-
+    close_streamfile(streamFileKey);
     return 0;
 }
 
