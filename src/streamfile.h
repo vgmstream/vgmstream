@@ -68,9 +68,23 @@ STREAMFILE * open_stdio_streamfile(const char * filename);
 /* create a STREAMFILE from pre-opened file path */
 STREAMFILE * open_stdio_streamfile_by_file(FILE * file, const char * filename);
 
+/* A STREAMFILE that doesn't close the underlying stream.
+ * Calls to open won't wrap the new SF (assumes it needs to be closed).
+ * Can be used in metas to test custom IO without closing the external SF. */
+STREAMFILE *open_wrap_streamfile(STREAMFILE *streamfile);
+
+/* A STREAMFILE that clamps IO to a section of a larger stream.
+ * Can be used with subfiles inside a bigger file, so it looks standard to a meta. */
+STREAMFILE *open_clamp_streamfile(STREAMFILE *streamfile, off_t start, size_t size);
+
+/* A STREAMFILE with custom IO, that clamps IO to a section of a larger stream.
+ * Can be used with subfiles inside a bigger file, so it looks standard to a meta. */
+STREAMFILE *open_io_streamfile(STREAMFILE *streamfile, void* data, size_t data_size, void* read_callback);//void* size_callback, void* seek_callback);
+
 
 /* close a file, destroy the STREAMFILE object */
 static inline void close_streamfile(STREAMFILE * streamfile) {
+    if (streamfile==NULL) return;
     streamfile->close(streamfile);
 }
 
