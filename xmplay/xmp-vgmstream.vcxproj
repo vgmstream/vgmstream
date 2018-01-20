@@ -59,7 +59,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>../ext_includes;../../qaac/mp4v2/include;../../fdk-aac/libSYS/include;../../fdk-aac/libAACdec/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../ext_includes;../dependencies/qaac/mp4v2/include;../dependencies/fdk-aac/libSYS/include;../dependencies/fdk-aac/libAACdec/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;VGM_USE_FFMPEG;VGM_USE_G7221;VGM_USE_MP4V2;VGM_USE_FDKAAC;VGM_USE_MAIATRAC3PLUS;_DEBUG;_WINDOWS;_USRDLL;IN_VGMSTREAM_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -84,7 +84,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <AdditionalIncludeDirectories>../ext_includes;../../qaac/mp4v2/include;../../fdk-aac/libSYS/include;../../fdk-aac/libAACdec/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../ext_includes;../dependencies/qaac/mp4v2/include;../dependencies/fdk-aac/libSYS/include;../dependencies/fdk-aac/libAACdec/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_WIN32_WINNT=0x501;WIN32;VGM_USE_FFMPEG;VGM_USE_G7221;VGM_USE_MP4V2;VGM_USE_FDKAAC;VGM_USE_MAIATRAC3PLUS;NDEBUG;_WINDOWS;_USRDLL;IN_VGMSTREAM_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
@@ -123,10 +123,10 @@
     <None Include="xmpin.def" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\fdk-aac\msvc\fdk-aac.vcxproj">
+    <ProjectReference Include="..\dependencies\fdk-aac\msvc\fdk-aac.vcxproj">
       <Project>{308e2ad5-be31-4770-9441-a8d50f56895c}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\qaac\vcproject\mp4v2\mp4v2.vcxproj">
+    <ProjectReference Include="..\dependencies\qaac\vcproject\mp4v2\mp4v2.vcxproj">
       <Project>{86a064e2-c81b-4eee-8be0-a39a2e7c7c76}</Project>
     </ProjectReference>
     <ProjectReference Include="..\ext_libs\ext_libs.vcxproj">
