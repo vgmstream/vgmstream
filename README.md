@@ -1,6 +1,6 @@
 # vgmstream
 
-[![AppVeyor build status](https://ci.appveyor.com/api/projects/status/github/kode54/vgmstream?branch=master&svg=true "Build Status")][https://ci.appveyor.com/project/kode54/vgmstream/build/artifacts]
+![AppVeyor build status](https://ci.appveyor.com/api/projects/status/github/kode54/vgmstream?branch=master&svg=true "Build Status")]
 
 
 This is vgmstream, a library for playing streamed (pre-recorded) audio
