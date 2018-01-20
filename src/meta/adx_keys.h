@@ -176,6 +176,9 @@ static const adxkey_info adxkey8_list[] = {
         /* Storm Lover Natsu Koi!! (2011-08-04)(Vridge)(D3 Publisher)[PSP] */
         {0x4133,0x5a01,0x5723, NULL,0},     // ?
 
+        /* Shounen Onmyouji: Tsubasa yo Ima, Sora e Kaere [PS2] */
+        {0x55d9,0x46d3,0x5b01, NULL,0},     // ?
+
 };
 
 static const adxkey_info adxkey9_list[] = {
