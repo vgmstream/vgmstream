@@ -8,7 +8,7 @@
 - MSYS2 with the MinGW-w64_shell (32bit) package: https://msys2.github.io/
 
 **MSVC / Visual Studio**: Microsoft's Visual C++ and MSBuild, bundled in either:
-- Visual Studio: https://www.visualstudio.com/downloads/
+- Visual Studio 2017: https://www.visualstudio.com/downloads/
   - Visual Studio Community should work (free, but must register after trial period)
 - Visual C++ Build Tools (no IDE): http://landinghub.visualstudio.com/visual-cpp-build-tools
 
@@ -37,47 +37,23 @@ mingw32-make.exe mingw_test -f Makefile ^
  SHELL=sh.exe CC=gcc.exe AR=ar.exe STRIP=strip.exe DLLTOOL=dlltool.exe WINDRES=windres.exe
 ```
 
-**With MSVC**: open *./vgmstream_full.sln* and compile in Visual Studio, or use MSBuild in the command line. See the foobar2000 section for dependencies and CMD examples.
+**With MSVC**: To build in Visual Studio, run *./init-build.bat*, open *./vgmstream_full.sln* and compile. To build from the command line, run *./build.bat*.
+
+The build script will automatically handle obtaining dependencies and making the project changes listed in the foobar2000 section.
 
 ### foobar2000 plugin (foo\_input\_vgmstream)
 Requires MSVC (foobar/SDK only links to MSVC C++ DLLs) and these dependencies:
-- foobar2000 SDK, in *(vgmstream)/../foobar/*: http://www.foobar2000.org/SDK
-- FDK-AAC, in *(vgmstream)/../fdk-aac/*: https://github.com/kode54/fdk-aac
-- QAAC, in *(vgmstream)/../qaac/*: https://github.com/kode54/qaac
-- WTL (if needed), in *(vgmstream)/../WTL/*: http://wtl.sourceforge.net/
+- foobar2000 SDK, in *(vgmstream)/dependencies/foobar/*: http://www.foobar2000.org/SDK
+- FDK-AAC, in *(vgmstream)/dependencies/fdk-aac/*: https://github.com/kode54/fdk-aac
+- QAAC, in *(vgmstream)/dependencies/qaac/*: https://github.com/kode54/qaac
+- WTL (if needed), in *(vgmstream)/dependencies/WTL/*: http://wtl.sourceforge.net/
 
-Open *./vgmstream_full.sln* as a base, which expects the above dependencies. Then, depending on your VS version (like VS2015) you may need to manually do the following (in *Debug* and *Release* configurations):
-- Change each project's compiler version from VS2010 to your version (right click menu)
+The following project modifications are required:
 - For *foobar2000_ATL_helpers* add *../../../WTL/Include* to the compilers's *additional includes*
-- For *foo_input_vgmstream* add *../../WTL/Include* to the compilers's *additional includes*
-- For *foo_input_vgmstream* add *../../foobar/foobar2000/shared/shared.lib* to the linker's *additional dependencies*
 
-VS2013/VS2015/VS2017 may not be compatible with the SDK in release mode when some options are enabled due to compiler bugs.
 FDK-AAC/QAAC can be safely disabled by removing *VGM_USE_MP4V2* and *VGM_USE_FDKAAC* in the compiler/linker options and the project dependencies, MAIATRAC3 too, as FFmpeg is used instead to support their codecs.
 
-
-You can also use the command line to compile with MSBuild, if you don't want to touch the .vcxproj files, register VS2015 after trial, or only have VC++/MSBuild tools.
-
-Windows CMD example for foobar2000:
-```
-prompt $P$G$_$S
-set PATH=C:\Program Files (x86)\Git\usr\bin;%PATH%
-set PATH=C:\Program Files (x86)\MSBuild\14.0\Bin;%PATH%
-
-cd vgmstream
-
-set CL=/I"C:\projects\WTL\Include"
-set LINK="C:\projects\foobar\foobar2000\shared\shared.lib"
-
-msbuild fb2k/foo_input_vgmstream.vcxproj ^
- /t:Clean
-
-msbuild fb2k/foo_input_vgmstream.vcxproj ^
- /t:Build ^
- /p:Platform=Win32 ^
- /p:PlatformToolset=v140 ^
- /p:Configuration=Release
-```
+You can also use the command line to compile with MSBuild, if you don't want to touch the .vcxproj files, register VS2017 after trial, or only have VC++/MSBuild tools.
 
 ### Audacious plugin
 Requires the dev version of Audacious (and dependencies), automake/autoconf, and gcc/make (C++11). It must be compiled and installed into Audacious, where it should appear in the plugin list as "vgmstream".
