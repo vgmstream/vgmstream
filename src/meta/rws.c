@@ -159,10 +159,11 @@ VGMSTREAM * init_vgmstream_rws(STREAMFILE *streamFile) {
     vgmstream->full_block_size = block_size_total;
 
     switch(codec) {
+        case 0x17D21BD0:    /* PCM PC (17D21BD0 8735ED4E B9D9B8E8 6EA9B995) */
         case 0xD01BD217:    /* PCM X360 (D01BD217 35874EED B9D9B8E8 6EA9B995) */
-            /* ex. The Legend of Spyro (X360) */
+            /* ex. D.i.R.T. - Origin of the Species (PC), The Legend of Spyro (X360) */
             vgmstream->coding_type = coding_PCM16_int;
-            vgmstream->codec_endian = 1; /* big */
+            vgmstream->codec_endian = (codec == 0xD01BD217);
             vgmstream->interleave_block_size = 0x02; /* only used to setup channels */
 
             vgmstream->num_samples = pcm_bytes_to_samples(stream_size, channel_count, 16);
