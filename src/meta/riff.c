@@ -6,6 +6,10 @@
 
 /* RIFF - Resource Interchange File Format, standard container used in many games */
 
+#ifdef VGM_USE_VORBIS
+static VGMSTREAM *parse_riff_ogg(STREAMFILE * streamFile, off_t start_offset, size_t data_size);
+#endif
+
 /* return milliseconds */
 static long parse_adtl_marker(unsigned char * marker) {
     long hh,mm,ss,ms;
@@ -76,16 +80,17 @@ static void parse_adtl(off_t adtl_offset, off_t adtl_length, STREAMFILE  *stream
 typedef struct {
     off_t offset;
     off_t size;
+    uint32_t codec;
     int sample_rate;
     int channel_count;
     uint32_t block_size;
+    int bps;
 
     int coding_type;
     int interleave;
 } riff_fmt_chunk;
 
 static int read_fmt(int big_endian, STREAMFILE * streamFile, off_t current_chunk, riff_fmt_chunk * fmt, int sns, int mwv) {
-    int codec, bps;
     int32_t (*read_32bit)(off_t,STREAMFILE*) = big_endian ? read_32bitBE : read_32bitLE;
     int16_t (*read_16bit)(off_t,STREAMFILE*) = big_endian ? read_16bitBE : read_16bitLE;
 
@@ -97,12 +102,12 @@ static int read_fmt(int big_endian, STREAMFILE * streamFile, off_t current_chunk
     fmt->block_size = read_16bit(current_chunk+0x14,streamFile);
     fmt->interleave = 0;
 
-    bps = read_16bit(current_chunk+0x16,streamFile);
-    codec = (uint16_t)read_16bit(current_chunk+0x8,streamFile);
+    fmt->bps = read_16bit(current_chunk+0x16,streamFile);
+    fmt->codec = (uint16_t)read_16bit(current_chunk+0x8,streamFile);
 
-    switch (codec) {
+    switch (fmt->codec) {
         case 0x01: /* PCM */
-            switch (bps) {
+            switch (fmt->bps) {
                 case 16:
                     fmt->coding_type = big_endian ? coding_PCM16BE : coding_PCM16LE;
                     fmt->interleave = 2;
@@ -117,17 +122,17 @@ static int read_fmt(int big_endian, STREAMFILE * streamFile, off_t current_chunk
             break;
 
         case 0x02: /* MS ADPCM */
-            if (bps != 4) goto fail;
+            if (fmt->bps != 4) goto fail;
             fmt->coding_type = coding_MSADPCM;
             break;
 
         case 0x11:  /* MS IMA ADPCM */
-            if (bps != 4) goto fail;
+            if (fmt->bps != 4) goto fail;
             fmt->coding_type = coding_MS_IMA;
             break;
 
         case 0x69:  /* MS IMA ADPCM (XBOX) - Rayman Raving Rabbids 2 (PC) */
-            if (bps != 4) goto fail;
+            if (fmt->bps != 4) goto fail;
             fmt->coding_type = coding_MS_IMA;
             break;
 
@@ -136,9 +141,9 @@ static int read_fmt(int big_endian, STREAMFILE * streamFile, off_t current_chunk
             if (!check_extensions(streamFile,"med"))
                 goto fail;
 
-            if (bps == 4) /* normal MS IMA */
+            if (fmt->bps == 4) /* normal MS IMA */
                 fmt->coding_type = coding_MS_IMA;
-            else if (bps == 3) /* 3-bit MS IMA, used in a very few files */
+            else if (fmt->bps == 3) /* 3-bit MS IMA, used in a very few files */
                 goto fail; //fmt->coding_type = coding_MS_IMA_3BIT;
             else
                 goto fail;
@@ -150,11 +155,19 @@ static int read_fmt(int big_endian, STREAMFILE * streamFile, off_t current_chunk
             fmt->interleave = 0x12;
             break;
 
-        case 0x5050: /* Ubisoft .sns uses this for DSP */
+        case 0x5050: /* Ubisoft LyN engine's DSP */
             if (!sns) goto fail;
             fmt->coding_type = coding_NGC_DSP;
             fmt->interleave = 0x08;
             break;
+
+#ifdef VGM_USE_VORBIS
+        case 0x6771: /* Ogg Vorbis (mode 3+) */
+            fmt->coding_type = coding_ogg_vorbis;
+            break;
+#else
+            goto fail;
+#endif
 
         case 0x270: /* ATRAC3 */
 #ifdef VGM_USE_FFMPEG
@@ -264,8 +277,12 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
     riff_size = read_32bitLE(0x04,streamFile);
     file_size = get_streamfile_size(streamFile);
 
+    /* for some of Liar-soft's buggy RIFF+Ogg made with Soundforge [Shikkoku no Sharnoth (PC)] */
+    if (riff_size+0x08+0x01 == file_size)
+        riff_size += 0x01;
+
     /* check for truncated RIFF */
-    if (file_size < riff_size+8) goto fail;
+    if (file_size < riff_size+0x08) goto fail;
 
     /* read through chunks to verify format and find metadata */
     {
@@ -273,7 +290,10 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
 
         while (current_chunk < file_size && current_chunk < riff_size+8) {
             uint32_t chunk_type = read_32bitBE(current_chunk,streamFile);
-            off_t chunk_size = read_32bitLE(current_chunk+4,streamFile);
+            size_t chunk_size = read_32bitLE(current_chunk+4,streamFile);
+
+            if (fmt.codec == 0x6771 && chunk_type == 0x64617461) /* Liar-soft again */
+                chunk_size += (chunk_size%2) ? 0x01 : 0x00;
 
             if (current_chunk+8+chunk_size > file_size) goto fail;
 
@@ -370,6 +390,14 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
         goto fail;
 
 
+#ifdef VGM_USE_VORBIS
+    /* special case using init_vgmstream_ogg_vorbis */
+    if (fmt.coding_type == coding_ogg_vorbis) {
+        return parse_riff_ogg(streamFile, start_offset, data_size);
+    }
+#endif
+
+
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(fmt.channel_count,loop_flag);
     if (!vgmstream) goto fail;
@@ -385,10 +413,11 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
             vgmstream->num_samples = pcm_bytes_to_samples(data_size, vgmstream->channels, 8);
             break;
         case coding_L5_555:
+            if (!mwv) goto fail;
             vgmstream->num_samples = data_size / 0x12 / fmt.channel_count * 32;
 
             /* coefs */
-            if (mwv) {
+            {
                 int i, ch;
                 const int filter_order = 3;
                 int filter_count = read_32bitLE(mwv_pflt_offset+0x0c, streamFile);
@@ -415,10 +444,13 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
             vgmstream->num_samples = ms_ima_bytes_to_samples(data_size, fmt.block_size, fmt.channel_count);
             break;
         case coding_NGC_DSP:
-            //sample_count = dsp_bytes_to_samples(data_size, fmt.channel_count); /* expected from the "fact" chunk */
+            if (!sns) goto fail;
+            if (fact_sample_count <= 0) goto fail;
+            vgmstream->num_samples = fact_sample_count;
+            //vgmstream->num_samples = dsp_bytes_to_samples(data_size, fmt.channel_count);
 
             /* coefs */
-            if (sns) {
+            {
                 int i, ch;
                 static const int16_t coef[16] = { /* common codebook? */
                         0x04ab,0xfced,0x0789,0xfedf,0x09a2,0xfae5,0x0c90,0xfac1,
@@ -433,6 +465,7 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
             }
 
             break;
+
 #ifdef VGM_USE_FFMPEG
         case coding_FFmpeg: {
             ffmpeg_codec_data *ffmpeg_data = init_ffmpeg_offset(streamFile, 0x00, streamFile->get_size(streamFile));
@@ -491,11 +524,6 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
 #endif
         default:
             goto fail;
-    }
-    /* .sns uses fact chunk */
-    if (sns) {
-        if (-1 == fact_sample_count) goto fail;
-        vgmstream->num_samples = fact_sample_count;
     }
 
     /* coding, layout, interleave */
@@ -688,3 +716,98 @@ fail:
     close_vgmstream(vgmstream);
     return NULL;
 }
+
+
+#ifdef VGM_USE_VORBIS
+typedef struct {
+    off_t patch_offset;
+} riff_ogg_io_data;
+
+static size_t riff_ogg_io_read(STREAMFILE *streamfile, uint8_t *dest, off_t offset, size_t length, riff_ogg_io_data* data) {
+    size_t bytes_read = streamfile->read(streamfile, dest, offset, length);
+
+    /* has garbage init Oggs pages, patch bad flag */
+    if (data->patch_offset && data->patch_offset >= offset && data->patch_offset < offset + bytes_read) {
+        VGM_ASSERT(dest[data->patch_offset - offset] != 0x02, "RIFF Ogg: bad patch offset\n");
+        dest[data->patch_offset - offset] = 0x00;
+    }
+
+    return bytes_read;
+}
+
+/* special handling of Liar-soft's buggy RIFF+Ogg made with Soundforge [Shikkoku no Sharnoth (PC)] */
+static VGMSTREAM *parse_riff_ogg(STREAMFILE * streamFile, off_t start_offset, size_t data_size) {
+    off_t patch_offset = 0;
+    size_t real_size = data_size;
+
+    /* initial page flag is repeated and causes glitches in decoders, find bad offset */
+    {
+        off_t offset = start_offset + 0x04+0x02;
+        off_t offset_limit = start_offset + data_size; /* usually in the first 0x3000 but can be +0x100000 */
+
+        while (offset < offset_limit) {
+            if (read_32bitBE(offset+0x00, streamFile) == 0x4f676753 &&  /* "OggS" */
+                read_16bitBE(offset+0x04, streamFile) == 0x0002) {      /* start page flag */
+
+                //todo callback should patch on-the-fly by analyzing all "OggS", but is problematic due to arbitrary offsets
+                if (patch_offset) {
+                    VGM_LOG("RIFF Ogg: found multiple repeated start pages\n");
+                    return NULL;
+                }
+
+                patch_offset = offset /*- start_offset*/ + 0x04+0x01;
+            }
+            offset++; //todo could be optimized to do OggS page sizes
+        }
+    }
+
+    /* last pages don't have the proper flag and confuse decoders, find actual end */
+    {
+        size_t max_size = data_size;
+        off_t offset_limit = start_offset + data_size - 0x1000; /* not worth checking more, let decoder try */
+        off_t offset = start_offset + data_size - 0x1a;
+
+        while (offset > offset_limit) {
+            if (read_32bitBE(offset+0x00, streamFile) == 0x4f676753) { /* "OggS" */
+                if (read_16bitBE(offset+0x04, streamFile) == 0x0004) { /* last page flag */
+                    real_size = max_size;
+                    break;
+                } else {
+                    max_size = offset - start_offset; /* ignore bad pages */
+                }
+            }
+            offset--;
+        }
+    }
+
+    /* Soundforge includes fact_samples but should be equal to Ogg samples */
+
+    /* actual Ogg init with custom callback to patch weirdness */
+    {
+        VGMSTREAM *vgmstream = NULL;
+        STREAMFILE *custom_streamFile = NULL;
+        char filename[PATH_LIMIT];
+        vgm_vorbis_info_t inf = {0};
+        riff_ogg_io_data io_data = {0};
+        size_t io_data_size = sizeof(riff_ogg_io_data);
+
+
+        inf.layout_type = layout_ogg_vorbis;
+        inf.meta_type = meta_RIFF_WAVE;
+        inf.stream_size = real_size;
+        //inf.loop_flag = 0; /* not observed */
+
+        io_data.patch_offset = patch_offset;
+
+        custom_streamFile = open_io_streamfile(open_wrap_streamfile(streamFile), &io_data,io_data_size, riff_ogg_io_read);
+        if (!custom_streamFile) return NULL;
+
+        streamFile->get_name(streamFile,filename,sizeof(filename));
+        vgmstream = init_vgmstream_ogg_vorbis_callbacks(custom_streamFile, filename, NULL, start_offset, &inf);
+
+        close_streamfile(custom_streamFile);
+
+        return vgmstream;
+    }
+}
+#endif
