@@ -3,6 +3,6 @@
 
 AM_MAKEFLAGS=-f Makefile.autotools
 
-SUBDIRS = src audacious test
+SUBDIRS = src audacious cli
 
 EXTRA_DIST = version.h

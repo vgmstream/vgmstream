@@ -86,9 +86,6 @@ static size_t read_the_rest_foo(uint8_t * dest, off_t offset, size_t length, FOO
             //   return length_read;
         } catch (...) {
             streamfile->offset = streamfile->filesize;
-#ifdef PROFILE_STREAMFILE
-            streamfile->error_count++;
-#endif
             return 0; /* fail miserably (fseek shouldn't fail and reach this) */
         }
         streamfile->offset = offset;
@@ -103,16 +100,10 @@ static size_t read_the_rest_foo(uint8_t * dest, off_t offset, size_t length, FOO
         try {
             length_read = streamfile->m_file->read(streamfile->buffer,streamfile->buffersize,*streamfile->p_abort);
         } catch(...) {
-#ifdef PROFILE_STREAMFILE
-            streamfile->error_count++;
-#endif
             return 0; /* fail miserably */
         }
         streamfile->validsize = length_read;
 
-#ifdef PROFILE_STREAMFILE
-        streamfile->bytes_read += length_read;
-#endif
 
         /* if we can't get enough to satisfy the request (EOF) we give up */
         if (length_read < length_to_read) {
@@ -242,10 +233,6 @@ static STREAMFILE * open_foo_streamfile_buffer_by_file(service_ptr_t<file> m_fil
     streamfile->sf.get_realname = (void (__cdecl *)(_STREAMFILE *,char *,size_t)) get_name_foo;
     streamfile->sf.open = (_STREAMFILE *(__cdecl *)(_STREAMFILE *,const char *const ,size_t)) open_foo;
     streamfile->sf.close = (void (__cdecl *)(_STREAMFILE *)) close_foo;
-#ifdef PROFILE_STREAMFILE
-    streamfile->sf.get_bytes_read = (void*)get_bytes_read_stdio;
-    streamfile->sf.get_error_count = (void*)get_error_count_stdio;
-#endif
 
     streamfile->m_file = m_file;
 

@@ -695,4 +695,6 @@ VGMSTREAM * init_vgmstream_mogg(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_kma9(STREAMFILE * streamFile);
 
+VGMSTREAM * init_vgmstream_fsb_encrypted(STREAMFILE * streamFile);
+
 #endif /*_META_H*/

@@ -151,6 +151,7 @@ a companion file:
 - .adx: .adxkey (derived 6 byte key, in start/mult/add format)
 - .ahx: .ahxkey (derived 6 byte key, in start/mult/add format)
 - .hca: .hcakey (8 byte decryption key, a 64-bit number)
+- .fsb: .fsbkey (decryption key, in hex)
 
 The key file can be ".(ext)key" (for the whole folder), or "(name).(ext)key"
 (for a single file). The format is made up to suit vgmstream.
@@ -471,7 +472,8 @@ This list is not complete and many other files are supported.
 - other:
 	- .adxkey (decryption key for .adx, in start/mult/add format)
 	- .ahxkey (decryption key for .ahx, in start/mult/add format)
-	- .hcakey (decryption key for .hca, in HCA Decoder format)
+    - .hcakey (decryption key for .hca, in HCA Decoder format)
+    - .fsbkey (decryption key for .fsb, in hex)
 	- .vgmstream + .pos (FFmpeg formats + loop assist)
 
 Enjoy! *hcs*

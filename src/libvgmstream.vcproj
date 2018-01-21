@@ -205,6 +205,10 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\meta\fsb_keys.h"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\aax_streamfile.h"
                     >
                 </File>
@@ -412,6 +416,10 @@
 					RelativePath=".\meta\fsb5.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\meta\fsb_encrypted.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\g1l.c"
 					>

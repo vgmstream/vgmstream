@@ -62,15 +62,6 @@ static void close_bar(BARSTREAMFILE *streamFile) {
     return;
 }
 
-#ifdef PROFILE_STREAMFILE
-size_t get_bytes_read_bar(BARSTREAMFILE *streamFile) {
-    return streamFile->real_file->get_bytes_read(streamFile->real_file);
-}
-
-int (*get_error_count)(BARSTREAMFILE *streamFile) {
-    return streamFile->real_file->get_error_count(streamFile->real_file);
-}
-#endif
 
 /*static*/ STREAMFILE *wrap_bar_STREAMFILE(STREAMFILE *file) {
     BARSTREAMFILE *streamfile = malloc(sizeof(BARSTREAMFILE));
@@ -87,10 +78,6 @@ int (*get_error_count)(BARSTREAMFILE *streamFile) {
     streamfile->sf.get_realname = (void*)get_realname_bar;
     streamfile->sf.open = (void*)open_bar;
     streamfile->sf.close = (void*)close_bar;
-#ifdef PROFILE_STREAMFILE
-    streamfile->sf.get_bytes_read = get_bytes_read_bar;
-    streamfile->sf.get_error_count = get_error_count_bar;
-#endif
 
     streamfile->real_file = file;
 

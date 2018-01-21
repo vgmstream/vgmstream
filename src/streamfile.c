@@ -22,10 +22,6 @@ typedef struct {
     uint8_t * buffer;       /* data buffer */
     size_t buffersize;      /* max buffer size */
     size_t filesize;        /* cached file size (max offset) */
-#ifdef PROFILE_STREAMFILE
-    size_t bytes_read;
-    int error_count;
-#endif
 } STDIOSTREAMFILE;
 
 static STREAMFILE * open_stdio_streamfile_buffer(const char * const filename, size_t buffersize);
@@ -77,9 +73,6 @@ static size_t read_the_rest(uint8_t * dest, off_t offset, size_t length, STDIOST
         /* position to new offset */
         if (fseeko(streamfile->infile,offset,SEEK_SET)) {
             streamfile->offset = streamfile->filesize;
-#ifdef PROFILE_STREAMFILE
-            streamfile->error_count++;
-#endif
             return 0; /* fail miserably (fseek shouldn't fail and reach this) */
         }
         streamfile->offset = offset;
@@ -93,15 +86,6 @@ static size_t read_the_rest(uint8_t * dest, off_t offset, size_t length, STDIOST
         /* fill the buffer */
         length_read = fread(streamfile->buffer,sizeof(uint8_t),streamfile->buffersize,streamfile->infile);
         streamfile->validsize = length_read;
-
-#ifdef PROFILE_STREAMFILE
-        if (ferror(streamfile->infile)) {
-            clearerr(streamfile->infile);
-            streamfile->error_count++;
-        }
-
-        streamfile->bytes_read += length_read;
-#endif
 
         /* if we can't get enough to satisfy the request (EOF) we give up */
         if (length_read < length_to_read) {
@@ -154,10 +138,6 @@ static size_t read_stdio(STDIOSTREAMFILE *streamfile,uint8_t * dest, off_t offse
     /* request outside buffer: new fread */
     {
         size_t length_read = read_the_rest(dest,offset,length,streamfile);
-#ifdef PROFILE_STREAMFILE
-        if (length_read < length) 
-            streamfile->error_count++;
-#endif
         return length_read;
     }
 }
@@ -180,15 +160,6 @@ static void get_name_stdio(STDIOSTREAMFILE *streamfile,char *buffer,size_t lengt
     strncpy(buffer,streamfile->name,length);
     buffer[length-1]='\0';
 }
-
-#ifdef PROFILE_STREAMFILE
-static size_t get_bytes_read_stdio(STDIOSTREAMFILE *streamFile) {
-    return streamFile->bytes_read;
-}
-static size_t get_error_count_stdio(STDIOSTREAMFILE *streamFile) {
-    return streamFile->error_count;
-}
-#endif
 
 static STREAMFILE *open_stdio(STDIOSTREAMFILE *streamFile,const char * const filename,size_t buffersize) {
     int newfd;
@@ -237,10 +208,6 @@ static STREAMFILE * open_stdio_streamfile_buffer_by_file(FILE *infile,const char
     streamfile->sf.get_realname = (void*)get_name_stdio;
     streamfile->sf.open = (void*)open_stdio;
     streamfile->sf.close = (void*)close_stdio;
-#ifdef PROFILE_STREAMFILE
-    streamfile->sf.get_bytes_read = (void*)get_bytes_read_stdio;
-    streamfile->sf.get_error_count = (void*)get_error_count_stdio;
-#endif
 
     streamfile->infile = infile;
     streamfile->buffersize = buffersize;
@@ -280,6 +247,192 @@ STREAMFILE * open_stdio_streamfile_by_file(FILE * file, const char * filename) {
     return open_stdio_streamfile_buffer_by_file(file,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
 }
 
+/* **************************************************** */
+
+//todo stream_index: copy? pass? funtion? external?
+
+typedef struct {
+    STREAMFILE sf;
+
+    STREAMFILE *inner_sf;
+} WRAP_STREAMFILE;
+
+static size_t wrap_read(WRAP_STREAMFILE *streamfile, uint8_t * dest, off_t offset, size_t length) {
+    return streamfile->inner_sf->read(streamfile->inner_sf, dest, offset, length); /* default */
+}
+static size_t wrap_get_size(WRAP_STREAMFILE * streamfile) {
+    return streamfile->inner_sf->get_size(streamfile->inner_sf); /* default */
+}
+static size_t wrap_get_offset(WRAP_STREAMFILE * streamfile) {
+    return streamfile->inner_sf->get_offset(streamfile->inner_sf); /* default */
+}
+static void wrap_get_name(WRAP_STREAMFILE *streamfile, char *buffer, size_t length) {
+    streamfile->inner_sf->get_name(streamfile->inner_sf, buffer, length); /* default */
+}
+static void wrap_get_realname(WRAP_STREAMFILE *streamfile, char *buffer, size_t length) {
+    streamfile->inner_sf->get_realname(streamfile->inner_sf, buffer, length); /* default */
+}
+static void wrap_open(WRAP_STREAMFILE *streamfile, const char * const filename, size_t buffersize) {
+    streamfile->inner_sf->open(streamfile->inner_sf, filename, buffersize); /* default (don't wrap) */
+}
+static void wrap_close(WRAP_STREAMFILE *streamfile) {
+    //streamfile->inner_sf->close(streamfile->inner_sf); /* don't close */
+    free(streamfile);
+}
+
+STREAMFILE *open_wrap_streamfile(STREAMFILE *streamfile) {
+    WRAP_STREAMFILE *this_sf;
+
+    if (!streamfile) return NULL;
+
+    this_sf = calloc(1,sizeof(WRAP_STREAMFILE));
+    if (!this_sf) return NULL;
+
+    /* set callbacks and internals */
+    this_sf->sf.read = (void*)wrap_read;
+    this_sf->sf.get_size = (void*)wrap_get_size;
+    this_sf->sf.get_offset = (void*)wrap_get_offset;
+    this_sf->sf.get_name = (void*)wrap_get_name;
+    this_sf->sf.get_realname = (void*)wrap_get_realname;
+    this_sf->sf.open = (void*)wrap_open;
+    this_sf->sf.close = (void*)wrap_close;
+    this_sf->sf.stream_index = streamfile->stream_index;
+
+    this_sf->inner_sf = streamfile;
+
+    return &this_sf->sf;
+}
+
+/* **************************************************** */
+
+typedef struct {
+    STREAMFILE sf;
+
+    STREAMFILE *inner_sf;
+    off_t start;
+    size_t size;
+} CLAMP_STREAMFILE;
+
+static size_t clamp_read(CLAMP_STREAMFILE *streamfile, uint8_t *dest, off_t offset, size_t length) {
+    off_t inner_offset = streamfile->start + offset;
+    size_t clamp_length = length > (streamfile->size - offset) ? (streamfile->size - offset) : length;
+    return streamfile->inner_sf->read(streamfile->inner_sf, dest, inner_offset, clamp_length);
+}
+static size_t clamp_get_size(CLAMP_STREAMFILE *streamfile) {
+    return streamfile->size;
+}
+static off_t clamp_get_offset(CLAMP_STREAMFILE *streamfile) {
+    return streamfile->inner_sf->get_offset(streamfile->inner_sf) - streamfile->start;
+}
+static void clamp_get_name(CLAMP_STREAMFILE *streamfile, char *buffer, size_t length) {
+    streamfile->inner_sf->get_name(streamfile->inner_sf, buffer, length); /* default */
+}
+static void clamp_get_realname(CLAMP_STREAMFILE *streamfile, char *buffer, size_t length) {
+    streamfile->inner_sf->get_realname(streamfile->inner_sf, buffer, length); /* default */
+}
+static STREAMFILE *clamp_open(CLAMP_STREAMFILE *streamfile, const char * const filename, size_t buffersize) {
+    STREAMFILE *new_inner_sf = streamfile->inner_sf->open(streamfile->inner_sf,filename,buffersize);
+    return open_clamp_streamfile(new_inner_sf, streamfile->start, streamfile->size);
+}
+static void clamp_close(CLAMP_STREAMFILE *streamfile) {
+    streamfile->inner_sf->close(streamfile->inner_sf);
+    free(streamfile);
+}
+
+STREAMFILE *open_clamp_streamfile(STREAMFILE *streamfile, off_t start, size_t size) {
+    CLAMP_STREAMFILE *this_sf;
+
+    if (!streamfile || !size || start > size) return NULL;
+
+    this_sf = calloc(1,sizeof(CLAMP_STREAMFILE));
+    if (!this_sf) return NULL;
+
+    /* set callbacks and internals */
+    this_sf->sf.read = (void*)clamp_read;
+    this_sf->sf.get_size = (void*)clamp_get_size;
+    this_sf->sf.get_offset = (void*)clamp_get_offset;
+    this_sf->sf.get_name = (void*)clamp_get_name;
+    this_sf->sf.get_realname = (void*)clamp_get_realname;
+    this_sf->sf.open = (void*)clamp_open;
+    this_sf->sf.close = (void*)clamp_close;
+    this_sf->sf.stream_index = streamfile->stream_index;
+
+    this_sf->inner_sf = streamfile;
+    this_sf->start = start;
+    this_sf->size = size;
+
+    return &this_sf->sf;
+}
+
+/* **************************************************** */
+
+typedef struct {
+    STREAMFILE sf;
+
+    STREAMFILE *inner_sf;
+    void* data;
+    size_t data_size;
+    size_t (*read_callback)(STREAMFILE *, uint8_t *, off_t, size_t, void*);
+} IO_STREAMFILE;
+
+static size_t io_read(IO_STREAMFILE *streamfile, uint8_t *dest, off_t offset, size_t length) {
+    return streamfile->read_callback(streamfile->inner_sf, dest, offset, length, streamfile->data);
+}
+static size_t io_get_size(IO_STREAMFILE *streamfile) {
+    return streamfile->inner_sf->get_size(streamfile->inner_sf); /* default */
+}
+static off_t io_get_offset(IO_STREAMFILE *streamfile) {
+    return streamfile->inner_sf->get_offset(streamfile->inner_sf);  /* default */
+}
+static void io_get_name(IO_STREAMFILE *streamfile, char *buffer, size_t length) {
+    streamfile->inner_sf->get_name(streamfile->inner_sf, buffer, length); /* default */
+}
+static void io_get_realname(IO_STREAMFILE *streamfile, char *buffer, size_t length) {
+    streamfile->inner_sf->get_realname(streamfile->inner_sf, buffer, length); /* default */
+}
+static STREAMFILE *io_open(IO_STREAMFILE *streamfile, const char * const filename, size_t buffersize) {
+    STREAMFILE *new_inner_sf = streamfile->inner_sf->open(streamfile->inner_sf,filename,buffersize);
+    return open_io_streamfile(new_inner_sf, streamfile->data, streamfile->data_size, streamfile->read_callback);
+}
+static void io_close(IO_STREAMFILE *streamfile) {
+    streamfile->inner_sf->close(streamfile->inner_sf);
+    free(streamfile->data);
+    free(streamfile);
+}
+
+STREAMFILE *open_io_streamfile(STREAMFILE *streamfile, void* data, size_t data_size, void* read_callback) {
+    IO_STREAMFILE *this_sf;
+
+    if (!streamfile) return NULL;
+    if ((data && !data_size) || (!data && data_size)) return NULL;
+
+    this_sf = calloc(1,sizeof(IO_STREAMFILE));
+    if (!this_sf) return NULL;
+
+    /* set callbacks and internals */
+    this_sf->sf.read = (void*)io_read;
+    this_sf->sf.get_size = (void*)io_get_size;
+    this_sf->sf.get_offset = (void*)io_get_offset;
+    this_sf->sf.get_name = (void*)io_get_name;
+    this_sf->sf.get_realname = (void*)io_get_realname;
+    this_sf->sf.open = (void*)io_open;
+    this_sf->sf.close = (void*)io_close;
+    this_sf->sf.stream_index = streamfile->stream_index;
+
+    this_sf->inner_sf = streamfile;
+    if (data) {
+        this_sf->data = malloc(data_size);
+        if (!this_sf->data)  {
+            free(this_sf);
+            return NULL;
+        }
+        memcpy(this_sf->data, data, data_size);
+    }
+    this_sf->data_size = data_size;
+    this_sf->read_callback = read_callback;
+
+    return &this_sf->sf;
+}
 
 /* **************************************************** */
 
@@ -393,17 +546,15 @@ STREAMFILE * open_stream_name(STREAMFILE *streamFile, const char * name) {
     return streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
 }
 
-/**
- * open file containing decryption keys and copy to buffer
- * tries combinations of keynames based on the original filename
- *
- * returns true if found and copied
- */
-int read_key_file(uint8_t * buf, size_t bufsize, STREAMFILE *streamFile) {
+/* Opens a file containing decryption keys and copies to buffer.
+ * Tries combinations of keynames based on the original filename.
+ * returns size of key if found and copied */
+size_t read_key_file(uint8_t * buf, size_t bufsize, STREAMFILE *streamFile) {
     char keyname[PATH_LIMIT];
     char filename[PATH_LIMIT];
     const char *path, *ext;
     STREAMFILE * streamFileKey = NULL;
+    size_t keysize;
 
     streamFile->get_name(streamFile,filename,sizeof(filename));
 
@@ -456,17 +607,17 @@ int read_key_file(uint8_t * buf, size_t bufsize, STREAMFILE *streamFile) {
     }
 
 found:
-    if (get_streamfile_size(streamFileKey) != bufsize) goto fail;
+    keysize = get_streamfile_size(streamFileKey);
+    if (keysize > bufsize) goto fail;
 
-    if (read_streamfile(buf, 0, bufsize, streamFileKey)!=bufsize) goto fail;
+    if (read_streamfile(buf, 0, keysize, streamFileKey) != keysize)
+        goto fail;
 
     close_streamfile(streamFileKey);
-
-    return 1;
+    return keysize;
 
 fail:
-    if (streamFileKey) close_streamfile(streamFileKey);
-
+    close_streamfile(streamFileKey);
     return 0;
 }
 

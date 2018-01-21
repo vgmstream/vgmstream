@@ -66,5 +66,5 @@ AC_OUTPUT([
   src/layout/Makefile.autotools
   src/meta/Makefile.autotools
   audacious/Makefile.autotools
-  test/Makefile.autotools
+  cli/Makefile.autotools
 ])

@@ -54,7 +54,7 @@ VGMSTREAM * init_vgmstream_hca(STREAMFILE *streamFile) {
     /* find decryption key in external file or preloaded list */
     {
         uint8_t keybuf[8];
-        if ( read_key_file(keybuf, 8, streamFile) ) {
+        if (read_key_file(keybuf, 8, streamFile) == 8) {
             ciphKey2 = get_32bitBE(keybuf+0);
             ciphKey1 = get_32bitBE(keybuf+4);
         } else {

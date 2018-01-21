@@ -61,13 +61,13 @@ sourceball:
 	rm -rf vgmstream-`./version.sh`
 
 bin mingwbin: vgmstream_cli winamp xmplay
-	zip -FS -j "vgmstream-`./version.sh`-test.zip" COPYING README.md test/test.exe winamp/in_vgmstream.dll xmplay/xmp-vgmstream.dll ext_libs/*.dll
+	zip -FS -j "vgmstream-`./version.sh`-test.zip" COPYING README.md cli/test.exe winamp/in_vgmstream.dll xmplay/xmp-vgmstream.dll ext_libs/*.dll
 
 vgmstream_cli mingw_test:
-	$(MAKE) -C test vgmstream_cli
+	$(MAKE) -C cli vgmstream_cli
 
-#vgmstream123:
-#	$(MAKE) -C test vgmstream123
+vgmstream123:
+	$(MAKE) -C cli vgmstream123
 
 winamp mingw_winamp:
 	$(MAKE) -C winamp in_vgmstream
@@ -78,7 +78,7 @@ xmplay mingw_xmplay:
 clean:
 	$(RMF) vgmstream-*.zip
 	$(MAKE) -C src clean
-	$(MAKE) -C test clean
+	$(MAKE) -C cli clean
 	$(MAKE) -C winamp clean
 	$(MAKE) -C xmplay clean
 	$(MAKE) -C ext_libs clean

@@ -29,9 +29,9 @@ Release
 /fb2k/Release
 /src/Debug
 /src/Release
-/test/Debug
-/test/Release
-/test/*.exe
+/cli/Debug
+/cli/Release
+/cli/*.exe
 /winamp/Debug
 /winamp/Release
 /winamp/*.dll

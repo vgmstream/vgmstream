@@ -43,6 +43,19 @@
 # define VERSION "(unknown version)"
 #endif
 
+
+//TODO: improve WIN32 builds (some features/behaviors are missing but works)
+#ifdef WIN32
+#define getline(line, line_mem, f)  0
+#define mkdtemp(temp_dir)  0
+#define signal(sig, interrupt_handler)  /*nothing*/
+#define WIFSIGNALED(ret)  0
+#define WTERMSIG(ret)  0
+#define SIGQUIT  0
+#define SIGINT  0
+#define SIGHUP  0
+#endif
+
 /* If two interrupts (i.e. Ctrl-C) are received
  * within a span of this many seconds, then exit
  */

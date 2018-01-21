@@ -7,14 +7,23 @@
 
 ifeq ($(TARGET_OS),WIN32)
   OUTPUT_CLI = test.exe
+  OUTPUT_123 = vgmstream123.exe
 else
   OUTPUT_CLI = vgmstream-cli
+  OUTPUT_123 = vgmstream123
 endif
 
-# ? -DUSE_ALLOCA -DWIN32
+# -DUSE_ALLOCA
+ifeq ($(TARGET_OS),WIN32)
+  CFLAGS += -DWIN32
+endif
+
 CFLAGS += -Wall -O3 -DVAR_ARRAYS -I../ext_includes $(EXTRA_CFLAGS)
 LDFLAGS += -L../src -L../ext_libs -lm -lvgmstream $(EXTRA_LDFLAGS)
 TARGET_EXT_LIBS = 
+
+LIBAO_INC_PATH = ../../libao/include
+LIBAO_LIB_PATH = ../../libao/bin
 
 #ifdef VGM_DEBUG
 #  CFLAGS += -DVGM_DEBUG_OUTPUT -O0 -Werror=format-security -Wdeclaration-after-statement -Wvla
@@ -82,16 +91,15 @@ endif #if WIN32
 
 export CFLAGS LDFLAGS
 
-
 ### targets
 
 vgmstream_cli: libvgmstream.a $(TARGET_EXT_LIBS)
 	$(CC) $(CFLAGS) "-DVERSION=\"`../version.sh`\"" test.c $(LDFLAGS) -o $(OUTPUT_CLI)
 	$(STRIP) $(OUTPUT_CLI)
 
-#vgmstream123: libvgmstream.a $(TARGET_EXT_LIBS)
-#	$(CC) $(CFLAGS) "-DVERSION=\"`../version.sh`\"" test.c $(LDFLAGS) -lao -o $(OUTPUT_123)
-#	$(STRIP) $(OUTPUT_123)
+vgmstream123: libvgmstream.a $(TARGET_EXT_LIBS)
+	$(CC) $(CFLAGS) -I$(LIBAO_INC_PATH) "-DVERSION=\"`../version.sh`\"" vgmstream123.c $(LDFLAGS) -L$(LIBAO_LIB_PATH) -lao -o $(OUTPUT_123)
+	$(STRIP) $(OUTPUT_123)
 
 libvgmstream.a:
 	$(MAKE) -C ../src $@

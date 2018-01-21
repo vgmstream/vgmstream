@@ -32,7 +32,7 @@ set PATH=C:\Program Files (x86)\mingw-w64\i686-5.4.0-win32-sjlj-rt_v5-rev0\mingw
 
 cd vgmstream
 
-mingw32-make.exe mingw_test -f Makefile ^
+mingw32-make.exe vgmstream_cli -f Makefile ^
  VGM_ENABLE_FFMPEG=1 VGM_ENABLE_MAIATRAC3PLUS=0 ^
  SHELL=sh.exe CC=gcc.exe AR=ar.exe STRIP=strip.exe DLLTOOL=dlltool.exe WINDRES=windres.exe
 ```
@@ -43,7 +43,7 @@ The build script will automatically handle obtaining dependencies and making the
 
 ### foobar2000 plugin (foo\_input\_vgmstream)
 Requires MSVC (foobar/SDK only links to MSVC C++ DLLs) and these dependencies:
-- foobar2000 SDK, in *(vgmstream)/dependencies/foobar/*: http://www.foobar2000.org/SDK
+- foobar2000 SDK (2018), in *(vgmstream)/dependencies/foobar/*: http://www.foobar2000.org/SDK
 - FDK-AAC, in *(vgmstream)/dependencies/fdk-aac/*: https://github.com/kode54/fdk-aac
 - QAAC, in *(vgmstream)/dependencies/qaac/*: https://github.com/kode54/qaac
 - WTL (if needed), in *(vgmstream)/dependencies/WTL/*: http://wtl.sourceforge.net/
@@ -104,7 +104,7 @@ git clean -fd
 # vgmstream123 player
 Should be buildable with Autotools, much like the Audacious plugin, though requires libao (libao-dev).
 
-Windows builds aren't supported at the moment (source may need to be adapted for non-POSIX systems).
+Windows builds are possible with libao.dll and includes, but some features are disabled.
 
 
 ## Development
@@ -121,6 +121,7 @@ There are no hard coding rules but for consistency should follow general C conve
 ```
 ./                   docs, scripts
 ./audacious/         Audacious plugin
+./cli/               CLI tools
 ./ext_includes/      external includes for compiling
 ./ext_libs/          external libs/DLLs for linking
 ./fb2k/              foobar2000 plugin
@@ -128,7 +129,6 @@ There are no hard coding rules but for consistency should follow general C conve
 ./src/coding/        format data decoders
 ./src/layout/        format data demuxers
 ./src/meta/          format header parsers
-./test/              CLI tools
 ./winamp/            Winamp plugin
 ./xmplay/            XMPlay plugin
 ```

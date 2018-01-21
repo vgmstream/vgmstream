@@ -55,13 +55,8 @@ typedef struct _STREAMFILE {
     struct _STREAMFILE * (*open)(struct _STREAMFILE *,const char * const filename,size_t buffersize);
     void (*close)(struct _STREAMFILE *);
 
-#ifdef PROFILE_STREAMFILE
-    size_t (*get_bytes_read)(struct _STREAMFILE *);
-    int (*get_error_count)(struct _STREAMFILE *);
-#endif
 
-
-    /* Substream selection for files with multiple streams. Manually used in metas if supported.
+    /* Substream selection for files with subsongs. Manually used in metas if supported.
      * Not ideal here, but it's the simplest way to pass to all init_vgmstream_x functions. */
     int stream_index; /* 0=default/auto (first), 1=first, N=Nth */
 
@@ -73,9 +68,23 @@ STREAMFILE * open_stdio_streamfile(const char * filename);
 /* create a STREAMFILE from pre-opened file path */
 STREAMFILE * open_stdio_streamfile_by_file(FILE * file, const char * filename);
 
+/* A STREAMFILE that doesn't close the underlying stream.
+ * Calls to open won't wrap the new SF (assumes it needs to be closed).
+ * Can be used in metas to test custom IO without closing the external SF. */
+STREAMFILE *open_wrap_streamfile(STREAMFILE *streamfile);
+
+/* A STREAMFILE that clamps IO to a section of a larger stream.
+ * Can be used with subfiles inside a bigger file, so it looks standard to a meta. */
+STREAMFILE *open_clamp_streamfile(STREAMFILE *streamfile, off_t start, size_t size);
+
+/* A STREAMFILE with custom IO, that clamps IO to a section of a larger stream.
+ * Can be used with subfiles inside a bigger file, so it looks standard to a meta. */
+STREAMFILE *open_io_streamfile(STREAMFILE *streamfile, void* data, size_t data_size, void* read_callback);//void* size_callback, void* seek_callback);
+
 
 /* close a file, destroy the STREAMFILE object */
 static inline void close_streamfile(STREAMFILE * streamfile) {
+    if (streamfile==NULL) return;
     streamfile->close(streamfile);
 }
 
@@ -89,23 +98,6 @@ static inline size_t get_streamfile_size(STREAMFILE * streamfile) {
     return streamfile->get_size(streamfile);
 }
 
-#ifdef PROFILE_STREAMFILE
-/* return how many bytes we read into buffers */
-static inline size_t get_streamfile_bytes_read(STREAMFILE * streamfile) {
-    if (streamfile->get_bytes_read)
-        return streamfile->get_bytes_read(streamfile);
-    else
-        return 0;
-}
-
-/* return how many times we encountered a read error */
-static inline int get_streamfile_error_count(STREAMFILE * streamfile) {
-    if (streamfile->get_error_count)
-        return streamfile->get_error_count(streamfile);
-    else
-        return 0;
-}
-#endif
 
 /* Sometimes you just need an int, and we're doing the buffering.
 * Note, however, that if these fail to read they'll return -1,
@@ -163,7 +155,7 @@ STREAMFILE * open_stream_name(STREAMFILE *streamFile, const char * ext);
 
 int read_string(char * buf, size_t bufsize, off_t offset, STREAMFILE *streamFile);
 
-int read_key_file(uint8_t * buf, size_t bufsize, STREAMFILE *streamFile);
+size_t read_key_file(uint8_t * buf, size_t bufsize, STREAMFILE *streamFile);
 int read_pos_file(uint8_t * buf, size_t bufsize, STREAMFILE *streamFile);
 
 int check_extensions(STREAMFILE *streamFile, const char * cmp_exts);

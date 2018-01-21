@@ -72,10 +72,6 @@ static STREAMFILE *open_aax_with_STREAMFILE(STREAMFILE *file,off_t start_offset,
     streamfile->sf.get_realname = (void*)get_name_aax;
     streamfile->sf.open = (void*)open_aax_impl;
     streamfile->sf.close = (void*)close_aax;
-#ifdef PROFILE_STREAMFILE
-    streamfile->sf.get_bytes_read = NULL;
-    streamfile->sf.get_error_count = NULL;
-#endif
 
     streamfile->real_file = file;
     streamfile->start_physical_offset = start_offset;
