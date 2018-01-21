@@ -80,6 +80,9 @@
     <ClInclude Include="meta\hca_keys.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="meta\fsb_keys.h">
+      <Filter>meta\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="coding\acm_decoder.h">
       <Filter>coding\Header Files</Filter>
     </ClInclude>
@@ -242,6 +245,9 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\fsb5.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\fsb_encrypted.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\gca.c">

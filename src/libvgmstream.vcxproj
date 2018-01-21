@@ -98,6 +98,7 @@
     <ClInclude Include="meta\sqex_scd_streamfile.h" />
     <ClInclude Include="meta\meta.h" />
     <ClInclude Include="meta\hca_keys.h" />
+    <ClInclude Include="meta\fsb_keys.h" />
     <ClInclude Include="coding\acm_decoder.h" />
     <ClInclude Include="coding\coding.h" />
     <ClInclude Include="coding\ffmpeg_decoder_utils.h" />
@@ -213,6 +214,7 @@
     <ClCompile Include="meta\flx.c" />
     <ClCompile Include="meta\fsb.c" />
     <ClCompile Include="meta\fsb5.c" />
+    <ClCompile Include="meta\fsb_encrypted.c" />
     <ClCompile Include="meta\gca.c" />
     <ClCompile Include="meta\gcsw.c" />
     <ClCompile Include="meta\genh.c" />
