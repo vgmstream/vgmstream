@@ -122,14 +122,20 @@ VGMSTREAM * init_vgmstream_sxd(STREAMFILE *streamFile) {
         read_string(vgmstream->stream_name,STREAM_NAME_SIZE, name_offset,streamHeader);
 
     switch (codec) {
-        case 0x21:      /* HEVAG */
+        case 0x20:      /* PS-ADPCM [Hot Shots Golf: World Invitational (Vita) sfx] */
+            vgmstream->coding_type = coding_PSX;
+            vgmstream->layout_type = layout_interleave;
+            vgmstream->interleave_block_size = 0x10;
+            break;
+
+        case 0x21:      /* HEVAG [Gravity Rush (Vita) sfx] */
             vgmstream->coding_type = coding_HEVAG;
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = 0x10;
             break;
 
 #ifdef VGM_USE_ATRAC9
-        case 0x42: {    /* ATRAC9 */
+        case 0x42: {    /* ATRAC9 [Soul Sacrifice (Vita), Freedom Wars (Vita)] */
             atrac9_config cfg = {0};
 
             cfg.channels = vgmstream->channels;
@@ -144,7 +150,7 @@ VGMSTREAM * init_vgmstream_sxd(STREAMFILE *streamFile) {
 #endif
 
         default:
-            VGM_LOG("SXD: unknown codec 0x%x", codec);
+            VGM_LOG("SXD: unknown codec 0x%x\n", codec);
             goto fail;
     }
 
