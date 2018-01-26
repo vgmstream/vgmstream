@@ -11,7 +11,7 @@ VGMSTREAM * init_vgmstream_nsw_opus(STREAMFILE *streamFile) {
     off_t offset = 0;
 
     /* check extension, case insensitive */
-    if ( !check_extensions(streamFile,"opus,lopus")) /* no relation to Ogg Opus */
+    if ( !check_extensions(streamFile,"opus,lopus,nop")) /* no relation to Ogg Opus */
         goto fail;
 
     /* variations, maybe custom */
@@ -31,6 +31,16 @@ VGMSTREAM * init_vgmstream_nsw_opus(STREAMFILE *streamFile) {
         num_samples = read_32bitLE(0x00,streamFile);
         loop_start = read_32bitLE(0x08,streamFile);
         loop_end = read_32bitLE(0x0c,streamFile);
+    }
+    else if (read_32bitBE(0x00, streamFile) == 0x73616466 && read_32bitBE(0x08, streamFile) == 0x6f707573) { /* Xenoblade Chronicles 2 */
+        offset = read_32bitLE(0x1c, streamFile);
+
+        num_samples = read_32bitLE(0x28, streamFile);
+        loop_flag = read_8bit(0x19, streamFile);
+        if (loop_flag) {
+            loop_start = read_32bitLE(0x2c, streamFile);
+            loop_end = read_32bitLE(0x30, streamFile);
+            }
     }
     else {
         offset = 0x00;
