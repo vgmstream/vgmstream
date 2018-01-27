@@ -148,7 +148,7 @@ VGMSTREAM * init_vgmstream_sxd(STREAMFILE *streamFile) {
             break;
         }
 #endif
-
+      //case 0x28:      /* dummy codec? (found with 0 samples) */
         default:
             VGM_LOG("SXD: unknown codec 0x%x\n", codec);
             goto fail;
