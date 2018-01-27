@@ -162,6 +162,7 @@
     <ClCompile Include="meta\vawx.c" />
     <ClCompile Include="meta\seg.c" />
     <ClCompile Include="meta\sqex_scd.c" />
+    <ClCompile Include="meta\sqex_sead.c" />
     <ClCompile Include="meta\tun.c" />
     <ClCompile Include="meta\txth.c" />
     <ClCompile Include="meta\wii_ras.c" />

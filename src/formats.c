@@ -175,6 +175,7 @@ static const char* extension_list[] = {
     "lstm", //fake extension, for STMs
     "lwav", //fake extension, for WAVs
 
+    "mab",
     "matx",
     "mc3",
     "mca",
@@ -265,6 +266,7 @@ static const char* extension_list[] = {
     "sb5",
     "sb6",
     "sb7",
+    "sbin",
     "sc",
     "scd",
     "sck",
@@ -951,6 +953,8 @@ static const meta_info meta_info_list[] = {
         {meta_OGG_ISD,              "Ogg Vorbis (ISD)"},
         {meta_KMA9,                 "Koei Tecmo KMA9 header"},
         {meta_XWC,                  "Starbreeze XWC header"},
+        {meta_SQEX_SAB,             "Square-Enix SAB header"},
+        {meta_SQEX_MAB,             "Square-Enix MAB header"},
 
 #ifdef VGM_USE_MP4V2
         {meta_MP4,                  "AAC header"},

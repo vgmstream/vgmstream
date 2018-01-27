@@ -1129,6 +1129,9 @@
     <ClCompile Include="meta\sqex_scd.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\sqex_sead.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\seg.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>

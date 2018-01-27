@@ -657,6 +657,8 @@ typedef enum {
     meta_OGG_ISD,           /* Ogg Vorbis with encryption (Azure Striker Gunvolt PC) */
     meta_KMA9,              /* Koei Tecmo [Nobunaga no Yabou - Souzou (Vita)] */
     meta_XWC,               /* Starbreeze games */
+    meta_SQEX_SAB,          /* Square-Enix newest middleware (sound) */
+    meta_SQEX_MAB,          /* Square-Enix newest middleware (music) */
 
 #ifdef VGM_USE_MP4V2
     meta_MP4,               /* AAC (iOS) */
