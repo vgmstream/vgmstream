@@ -289,8 +289,9 @@ VGMSTREAM * init_vgmstream_fsb(STREAMFILE *streamFile) {
 
         vgmstream->coding_type = coding_XBOX;
         vgmstream->layout_type = layout_none;
-        /* "interleaved header" IMA, only used with >2ch (ex. Blade Kitten 5.1) */
-        if (vgmstream->channels > 2)
+        /* "interleaved header" IMA, only used with >2ch (ex. Blade Kitten 6ch)
+         * or (seemingly) when flag is used (ex. Dead to Rights 2 (Xbox) 2ch in FSB3.1 */
+        if (vgmstream->channels > 2 || (fsb.mode & FSOUND_MULTICHANNEL))
             vgmstream->coding_type = coding_FSB_IMA;
     }
     else if (fsb.mode & FSOUND_VAG) { /* FSB1: Jurassic Park Operation Genesis (PS2), FSB4: Spider Man Web of Shadows (PSP) */
