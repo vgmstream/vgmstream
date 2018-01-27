@@ -331,8 +331,18 @@ static void clamp_get_realname(CLAMP_STREAMFILE *streamfile, char *buffer, size_
     streamfile->inner_sf->get_realname(streamfile->inner_sf, buffer, length); /* default */
 }
 static STREAMFILE *clamp_open(CLAMP_STREAMFILE *streamfile, const char * const filename, size_t buffersize) {
-    STREAMFILE *new_inner_sf = streamfile->inner_sf->open(streamfile->inner_sf,filename,buffersize);
-    return open_clamp_streamfile(new_inner_sf, streamfile->start, streamfile->size);
+    char original_filename[PATH_LIMIT];
+    STREAMFILE *new_inner_sf;
+
+    new_inner_sf = streamfile->inner_sf->open(streamfile->inner_sf,filename,buffersize);
+    streamfile->inner_sf->get_name(streamfile->inner_sf, original_filename, PATH_LIMIT);//todo realname?
+
+    /* detect re-opening the file and don't clamp */
+    if (strcmp(filename, original_filename) == 0) {
+        return open_clamp_streamfile(new_inner_sf, streamfile->start, streamfile->size);
+    } else {
+        return new_inner_sf;
+    }
 }
 static void clamp_close(CLAMP_STREAMFILE *streamfile) {
     streamfile->inner_sf->close(streamfile->inner_sf);
@@ -343,6 +353,7 @@ STREAMFILE *open_clamp_streamfile(STREAMFILE *streamfile, off_t start, size_t si
     CLAMP_STREAMFILE *this_sf;
 
     if (!streamfile || !size || start > size) return NULL;
+    if (start + size > get_streamfile_size(streamfile)) return NULL;
 
     this_sf = calloc(1,sizeof(CLAMP_STREAMFILE));
     if (!this_sf) return NULL;
@@ -391,6 +402,7 @@ static void io_get_realname(IO_STREAMFILE *streamfile, char *buffer, size_t leng
     streamfile->inner_sf->get_realname(streamfile->inner_sf, buffer, length); /* default */
 }
 static STREAMFILE *io_open(IO_STREAMFILE *streamfile, const char * const filename, size_t buffersize) {
+    //todo should have some flag to decide if opening other files with IO
     STREAMFILE *new_inner_sf = streamfile->inner_sf->open(streamfile->inner_sf,filename,buffersize);
     return open_io_streamfile(new_inner_sf, streamfile->data, streamfile->data_size, streamfile->read_callback);
 }
@@ -430,6 +442,87 @@ STREAMFILE *open_io_streamfile(STREAMFILE *streamfile, void* data, size_t data_s
     }
     this_sf->data_size = data_size;
     this_sf->read_callback = read_callback;
+
+    return &this_sf->sf;
+}
+
+/* **************************************************** */
+
+typedef struct {
+    STREAMFILE sf;
+
+    STREAMFILE *inner_sf;
+    char fakename[PATH_LIMIT];
+} FAKENAME_STREAMFILE;
+
+static size_t fakename_read(FAKENAME_STREAMFILE *streamfile, uint8_t * dest, off_t offset, size_t length) {
+    return streamfile->inner_sf->read(streamfile->inner_sf, dest, offset, length); /* default */
+}
+static size_t fakename_get_size(FAKENAME_STREAMFILE * streamfile) {
+    return streamfile->inner_sf->get_size(streamfile->inner_sf); /* default */
+}
+static size_t fakename_get_offset(FAKENAME_STREAMFILE * streamfile) {
+    return streamfile->inner_sf->get_offset(streamfile->inner_sf); /* default */
+}
+static void fakename_get_name(FAKENAME_STREAMFILE *streamfile, char *buffer, size_t length) {
+    strncpy(buffer,streamfile->fakename,length);//todo safe ops
+    buffer[length-1]='\0';
+}
+static void fakename_get_realname(FAKENAME_STREAMFILE *streamfile, char *buffer, size_t length) {
+    fakename_get_name(streamfile, buffer, length);
+}
+static STREAMFILE *fakename_open(FAKENAME_STREAMFILE *streamfile, const char * const filename, size_t buffersize) {
+    /* detect re-opening the file */
+    if (strcmp(filename, streamfile->fakename) == 0) {
+        STREAMFILE *new_inner_sf;
+        char original_filename[PATH_LIMIT];
+
+        streamfile->inner_sf->get_name(streamfile->inner_sf, original_filename, PATH_LIMIT);//todo realname?
+        new_inner_sf = streamfile->inner_sf->open(streamfile->inner_sf, original_filename, buffersize);
+        return open_fakename_streamfile(new_inner_sf, streamfile->fakename, NULL);
+    }
+    else {
+        return streamfile->inner_sf->open(streamfile->inner_sf, filename, buffersize);
+    }
+}
+static void fakename_close(FAKENAME_STREAMFILE *streamfile) {
+    streamfile->inner_sf->close(streamfile->inner_sf);
+    free(streamfile);
+}
+
+STREAMFILE *open_fakename_streamfile(STREAMFILE *streamfile, char * fakename, char* fakeext) {
+    FAKENAME_STREAMFILE *this_sf;
+
+    if (!streamfile || (!fakename && !fakeext)) return NULL;
+
+    this_sf = calloc(1,sizeof(FAKENAME_STREAMFILE));
+    if (!this_sf) return NULL;
+
+    /* set callbacks and internals */
+    this_sf->sf.read = (void*)fakename_read;
+    this_sf->sf.get_size = (void*)fakename_get_size;
+    this_sf->sf.get_offset = (void*)fakename_get_offset;
+    this_sf->sf.get_name = (void*)fakename_get_name;
+    this_sf->sf.get_realname = (void*)fakename_get_realname;
+    this_sf->sf.open = (void*)fakename_open;
+    this_sf->sf.close = (void*)fakename_close;
+    this_sf->sf.stream_index = streamfile->stream_index;
+
+    this_sf->inner_sf = streamfile;
+
+    //todo use safe ops, this ain't easy
+    /* copy passed name or retain current, and swap extension if expected */
+    if (fakename) {
+        strcpy(this_sf->fakename,fakename);
+    } else {
+        streamfile->get_name(streamfile, this_sf->fakename, PATH_LIMIT);//todo realname?
+    }
+    if (fakeext) {
+        char * ext = strrchr(this_sf->fakename,'.');
+        if (ext != NULL)
+            ext[1] = '\0'; /* truncate past dot */
+        strcat(this_sf->fakename, fakeext);
+    }
 
     return &this_sf->sf;
 }
