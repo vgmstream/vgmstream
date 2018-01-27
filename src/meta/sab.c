@@ -8,8 +8,8 @@ static void get_stream_name(char * stream_name, STREAMFILE *streamFile, int targ
 VGMSTREAM * init_vgmstream_sab(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     off_t start_offset;
-    int loop_flag, channel_count = 0, is_stream, align, codec, sample_rate, data_size, loop_start, loop_end;
-    int total_streams, target_stream = streamFile->stream_index;
+    int loop_flag, channel_count = 0, is_stream, align, codec, sample_rate, stream_size, loop_start, loop_end;
+    int total_subsongs, target_subsong  = streamFile->stream_index;
 
     /* .sab: main, .sob: config/names */
     if (!check_extensions(streamFile,"sab"))
@@ -20,29 +20,29 @@ VGMSTREAM * init_vgmstream_sab(STREAMFILE *streamFile) {
         goto fail;
 
     is_stream = read_32bitLE(0x04,streamFile) & 0x04; /* other flags don't seem to matter */
-    total_streams = is_stream ? 1 : read_32bitLE(0x08,streamFile);
-    if (target_stream == 0) target_stream = 1;
-    if (target_stream < 0 || target_stream > total_streams || total_streams < 1) goto fail;
+    total_subsongs = is_stream ? 1 : read_32bitLE(0x08,streamFile);
+    if (target_subsong == 0) target_subsong = 1;
+    if (target_subsong < 0 || target_subsong > total_subsongs || total_subsongs < 1) goto fail;
 
     align = read_32bitLE(0x0c,streamFile); /* doubles as interleave */
 
     /* stream config */
-    codec         = read_32bitLE(0x18 + 0x1c*(target_stream-1) + 0x00,streamFile);
-    channel_count = read_32bitLE(0x18 + 0x1c*(target_stream-1) + 0x04,streamFile);
-    sample_rate   = read_32bitLE(0x18 + 0x1c*(target_stream-1) + 0x08,streamFile);
-    data_size     = read_32bitLE(0x18 + 0x1c*(target_stream-1) + 0x0c,streamFile);
-    loop_start    = read_32bitLE(0x18 + 0x1c*(target_stream-1) + 0x10,streamFile);
-    loop_end      = read_32bitLE(0x18 + 0x1c*(target_stream-1) + 0x14,streamFile);
+    codec         = read_32bitLE(0x18 + 0x1c*(target_subsong-1) + 0x00,streamFile);
+    channel_count = read_32bitLE(0x18 + 0x1c*(target_subsong-1) + 0x04,streamFile);
+    sample_rate   = read_32bitLE(0x18 + 0x1c*(target_subsong-1) + 0x08,streamFile);
+    stream_size   = read_32bitLE(0x18 + 0x1c*(target_subsong-1) + 0x0c,streamFile);
+    loop_start    = read_32bitLE(0x18 + 0x1c*(target_subsong-1) + 0x10,streamFile);
+    loop_end      = read_32bitLE(0x18 + 0x1c*(target_subsong-1) + 0x14,streamFile);
     loop_flag     = (loop_end > 0);
 
-    start_offset  = 0x18 + 0x1c*total_streams;
+    start_offset  = 0x18 + 0x1c*total_subsongs;
     if (start_offset % align)
         start_offset += align - (start_offset % align);
-    start_offset += read_32bitLE(0x18 + 0x1c*(target_stream-1) + 0x18,streamFile);
+    start_offset += read_32bitLE(0x18 + 0x1c*(target_subsong-1) + 0x18,streamFile);
 
     if (is_stream) {
         channel_count = read_32bitLE(0x08,streamFile); /* uncommon, but non-stream stereo exists */
-        data_size *= channel_count;
+        stream_size *= channel_count;
     }
 
     /* build the VGMSTREAM */
@@ -50,8 +50,8 @@ VGMSTREAM * init_vgmstream_sab(STREAMFILE *streamFile) {
     if (!vgmstream) goto fail;
 
     vgmstream->sample_rate = sample_rate;
-
-    vgmstream->num_streams = total_streams;
+    vgmstream->num_streams = total_subsongs;
+    vgmstream->stream_size = stream_size;
     vgmstream->meta_type = meta_SAB;
 
     switch(codec) {
@@ -60,7 +60,7 @@ VGMSTREAM * init_vgmstream_sab(STREAMFILE *streamFile) {
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = is_stream ? align : 0x02;
 
-            vgmstream->num_samples = pcm_bytes_to_samples(data_size, vgmstream->channels, 16);
+            vgmstream->num_samples = pcm_bytes_to_samples(stream_size, vgmstream->channels, 16);
             vgmstream->loop_start_sample = pcm_bytes_to_samples(loop_start, vgmstream->channels, 16);
             vgmstream->loop_end_sample = pcm_bytes_to_samples(loop_end, vgmstream->channels, 16);
 
@@ -71,7 +71,7 @@ VGMSTREAM * init_vgmstream_sab(STREAMFILE *streamFile) {
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = is_stream ? align : 0x10;
 
-            vgmstream->num_samples = ps_bytes_to_samples(data_size, vgmstream->channels);
+            vgmstream->num_samples = ps_bytes_to_samples(stream_size, vgmstream->channels);
             vgmstream->loop_start_sample = ps_bytes_to_samples(loop_start, vgmstream->channels);
             vgmstream->loop_end_sample = ps_bytes_to_samples(loop_end, vgmstream->channels);
             break;
@@ -81,7 +81,7 @@ VGMSTREAM * init_vgmstream_sab(STREAMFILE *streamFile) {
             vgmstream->layout_type = is_stream ? layout_interleave : layout_none;
             vgmstream->interleave_block_size = is_stream ? align : 0x00;
 
-            vgmstream->num_samples = ms_ima_bytes_to_samples(data_size, 0x24*vgmstream->channels, vgmstream->channels);
+            vgmstream->num_samples = ms_ima_bytes_to_samples(stream_size, 0x24*vgmstream->channels, vgmstream->channels);
             vgmstream->loop_start_sample = ms_ima_bytes_to_samples(loop_start, 0x24*vgmstream->channels, vgmstream->channels);
             vgmstream->loop_end_sample = ms_ima_bytes_to_samples(loop_end, 0x24*vgmstream->channels, vgmstream->channels);
             break;
@@ -91,7 +91,7 @@ VGMSTREAM * init_vgmstream_sab(STREAMFILE *streamFile) {
             goto fail;
     }
 
-    get_stream_name(vgmstream->stream_name, streamFile, target_stream);
+    get_stream_name(vgmstream->stream_name, streamFile, target_subsong);
 
     if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
         goto fail;

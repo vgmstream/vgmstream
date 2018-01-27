@@ -140,6 +140,7 @@ VGMSTREAM * init_vgmstream_sqex_sead(STREAMFILE * streamFile) {
 
     vgmstream->sample_rate = sample_rate;
     vgmstream->num_streams = total_subsongs;
+    vgmstream->stream_size = stream_size;
     vgmstream->meta_type = is_sab ? meta_SQEX_SAB : meta_SQEX_MAB;
 
     switch(codec) {
@@ -219,6 +220,7 @@ VGM_LOG("2\n");
             if (temp_vgmstream) {
                 /* loops can be slightly different (~1000 samples) but probably HCA's are more accurate */
                 temp_vgmstream->num_streams = vgmstream->num_streams;
+                temp_vgmstream->stream_size = vgmstream->stream_size;
                 temp_vgmstream->meta_type = vgmstream->meta_type;
 
                 close_streamfile(temp_streamFile);

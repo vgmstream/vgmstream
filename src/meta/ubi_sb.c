@@ -127,6 +127,7 @@ VGMSTREAM * init_vgmstream_ubi_sb(STREAMFILE *streamFile) {
 
     vgmstream->sample_rate = sb.sample_rate;
     vgmstream->num_streams = sb.total_streams;
+    vgmstream->stream_size = sb.stream_size;
     vgmstream->meta_type = meta_UBI_SB;
 
 

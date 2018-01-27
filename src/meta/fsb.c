@@ -100,7 +100,7 @@ VGMSTREAM * init_vgmstream_fsb(STREAMFILE *streamFile) {
     off_t start_offset;
     size_t custom_data_offset;
     int loop_flag = 0;
-    int target_stream = streamFile->stream_index;
+    int target_subsong = streamFile->stream_index;
     fsb_header fsb = {0};
 
 
@@ -185,8 +185,8 @@ VGMSTREAM * init_vgmstream_fsb(STREAMFILE *streamFile) {
         }
 
         if (fsb.sample_header_size < fsb.sample_header_min) goto fail;
-        if (target_stream == 0) target_stream = 1;
-        if (target_stream < 0 || target_stream > fsb.total_subsongs || fsb.total_subsongs < 1) goto fail;
+        if (target_subsong == 0) target_subsong = 1;
+        if (target_subsong < 0 || target_subsong > fsb.total_subsongs || fsb.total_subsongs < 1) goto fail;
 
         /* sample header (N-stream) */
         {
@@ -210,7 +210,7 @@ VGMSTREAM * init_vgmstream_fsb(STREAMFILE *streamFile) {
                 /* FSB3.1/4: 0x40:mindistance  0x44:maxdistance  0x48:varfreq/size_32bits  0x4c:varvol  0x4e:fsb.varpan */
                 /* FSB3/4: 0x50:extended_data size_32bits (not always given) */
 
-                if (i+1 == target_stream) /* d_off found */
+                if (i+1 == target_subsong) /* d_off found */
                     break;
 
                 s_off += stream_header_size;
@@ -259,6 +259,7 @@ VGMSTREAM * init_vgmstream_fsb(STREAMFILE *streamFile) {
     vgmstream->loop_start_sample = fsb.loop_start;
     vgmstream->loop_end_sample = fsb.loop_end;
     vgmstream->num_streams = fsb.total_subsongs;
+    vgmstream->stream_size = fsb.stream_size;
     vgmstream->meta_type = fsb.meta_type;
     if (fsb.name_offset)
         read_string(vgmstream->stream_name,fsb.name_size+1, fsb.name_offset,streamFile);

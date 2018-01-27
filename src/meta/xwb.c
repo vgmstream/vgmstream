@@ -354,6 +354,7 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
     vgmstream->loop_start_sample = xwb.loop_start_sample;
     vgmstream->loop_end_sample   = xwb.loop_end_sample;
     vgmstream->num_streams = xwb.streams;
+    vgmstream->stream_size = xwb.stream_size;
     vgmstream->meta_type = meta_XWB;
     get_xsb_name(vgmstream->stream_name,STREAM_NAME_SIZE, target_stream, &xwb, streamFile);
 

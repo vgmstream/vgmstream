@@ -274,6 +274,9 @@ VGMSTREAM * init_vgmstream_ogg_vorbis_callbacks(STREAMFILE *streamFile, const ch
     int32_t loop_length = vgm_inf->loop_length;
     int loop_end_found = vgm_inf->loop_end_found;
     int32_t loop_end = vgm_inf->loop_end;
+    size_t stream_size = vgm_inf->stream_size ?
+            vgm_inf->stream_size :
+            get_streamfile_size(streamFile) - start;
 
     ov_callbacks default_callbacks;
 
@@ -295,9 +298,7 @@ VGMSTREAM * init_vgmstream_ogg_vorbis_callbacks(STREAMFILE *streamFile, const ch
 
         temp_streamfile.start = start;
         temp_streamfile.offset = 0;
-        temp_streamfile.size = vgm_inf->stream_size ?
-                vgm_inf->stream_size :
-                get_streamfile_size(temp_streamfile.streamfile) - start;
+        temp_streamfile.size = stream_size;
 
         temp_streamfile.decryption_callback = vgm_inf->decryption_callback;
         temp_streamfile.scd_xor = vgm_inf->scd_xor;
@@ -324,9 +325,7 @@ VGMSTREAM * init_vgmstream_ogg_vorbis_callbacks(STREAMFILE *streamFile, const ch
 
         data->ov_streamfile.start = start;
         data->ov_streamfile.offset = 0;
-        data->ov_streamfile.size = vgm_inf->stream_size ?
-                vgm_inf->stream_size :
-                get_streamfile_size(data->ov_streamfile.streamfile) - start;
+        data->ov_streamfile.size = stream_size;
 
         data->ov_streamfile.decryption_callback = vgm_inf->decryption_callback;
         data->ov_streamfile.scd_xor = vgm_inf->scd_xor;
@@ -412,6 +411,7 @@ VGMSTREAM * init_vgmstream_ogg_vorbis_callbacks(STREAMFILE *streamFile, const ch
     vgmstream->channels = vi->channels;
     vgmstream->sample_rate = vi->rate;
     vgmstream->num_streams = vgm_inf->total_subsongs;
+    vgmstream->stream_size = stream_size;
 
     vgmstream->num_samples = ov_pcm_total(ovf,-1); /* let libvorbisfile find total samples */
     if (loop_flag) {

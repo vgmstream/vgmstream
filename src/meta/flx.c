@@ -7,7 +7,8 @@ VGMSTREAM * init_vgmstream_flx(STREAMFILE *streamFile) {
     off_t start_offset, stream_offset = 0;
     size_t data_size;
     int loop_flag, channel_count, codec;
-    int total_streams = 0, target_stream = streamFile->stream_index;
+    int total_subsongs = 0, target_subsong = streamFile->stream_index;
+    size_t stream_size = 0;
 
 
     /* check extensions (.flx: name of archive, files inside don't have extensions) */
@@ -24,23 +25,26 @@ VGMSTREAM * init_vgmstream_flx(STREAMFILE *streamFile) {
                 || read_32bitLE(0x58,streamFile) != get_streamfile_size(streamFile))
             goto fail;
 
-        if (target_stream == 0) target_stream = 1;
+        if (target_subsong == 0) target_subsong = 1;
 
         for (i = 0; i < entries; i++) {
             off_t entry_offset = read_32bitLE(offset + 0x00, streamFile);
-            /* 0x04: stream size */
+            size_t entry_size = read_32bitLE(offset + 0x04, streamFile);
             offset += 0x08;
 
             if (entry_offset != 0x00)
-                total_streams++; /* many entries are empty */
-            if (total_streams == target_stream && stream_offset == 0)
+                total_subsongs++; /* many entries are empty */
+            if (total_subsongs == target_subsong && stream_offset == 0) {
                 stream_offset = entry_offset; /* found but let's keep adding total_streams */
+                stream_size = entry_size;
+            }
         }
-        if (target_stream < 0 || target_stream > total_streams || total_streams < 1) goto fail;
+        if (target_subsong < 0 || target_subsong > total_subsongs || total_subsongs < 1) goto fail;
         if (stream_offset == 0x00) goto fail;
     }
     else {
         stream_offset = 0x00;
+        stream_size = get_streamfile_size(streamFile);
     }
 
     if (read_32bitLE(stream_offset + 0x30,streamFile) != 0x10)
@@ -57,7 +61,8 @@ VGMSTREAM * init_vgmstream_flx(STREAMFILE *streamFile) {
     if (!vgmstream) goto fail;
 
     vgmstream->sample_rate = read_32bitLE(stream_offset + 0x2c,streamFile);
-    vgmstream->num_streams = total_streams;
+    vgmstream->num_streams = total_subsongs;
+    vgmstream->stream_size = stream_size;
     vgmstream->meta_type = meta_PC_FLX;
 
     switch(codec) {

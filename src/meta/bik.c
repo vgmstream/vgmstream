@@ -2,13 +2,14 @@
 #include "../coding/coding.h"
 #include "../util.h"
 
-static int bink_get_info(STREAMFILE *streamFile, int * out_total_streams, int * out_channel_count, int * out_sample_rate, int * out_num_samples);
+static int bink_get_info(STREAMFILE *streamFile, int * out_total_streams, size_t *out_stream_size, int * out_channel_count, int * out_sample_rate, int * out_num_samples);
 
 /* BINK 1/2 - RAD Game Tools movies (audio/video format) */
 VGMSTREAM * init_vgmstream_bik(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    int channel_count = 0, loop_flag = 0, sample_rate = 0, num_samples = 0, total_streams = 0;
-    int stream_index = streamFile->stream_index;
+    int channel_count = 0, loop_flag = 0, sample_rate = 0, num_samples = 0;
+    int total_subsongs = 0, stream_index = streamFile->stream_index;
+    size_t stream_size;
 
 
     /* check extension, case insensitive (bika = manually demuxed audio) */
@@ -19,7 +20,7 @@ VGMSTREAM * init_vgmstream_bik(STREAMFILE *streamFile) {
         (read_32bitBE(0x00,streamFile) & 0xffffff00) != 0x4B423200 ) goto fail;
 
     /* find target stream info and samples */
-    if (!bink_get_info(streamFile, &total_streams, &channel_count, &sample_rate, &num_samples))
+    if (!bink_get_info(streamFile, &total_subsongs, &stream_size, &channel_count, &sample_rate, &num_samples))
         goto fail;
 
     /* build the VGMSTREAM */
@@ -29,7 +30,8 @@ VGMSTREAM * init_vgmstream_bik(STREAMFILE *streamFile) {
     vgmstream->layout_type = layout_none;
     vgmstream->sample_rate = sample_rate;
     vgmstream->num_samples = num_samples;
-    vgmstream->num_streams = total_streams;
+    vgmstream->num_streams = total_subsongs;
+    vgmstream->stream_size = stream_size;
     vgmstream->meta_type = meta_BINK;
 
 #ifdef VGM_USE_FFMPEG
@@ -58,12 +60,13 @@ fail:
  * as they are not in the main header. The header for BINK1 and 2 is the same.
  * (a ~3 min movie needs ~6000-7000 frames = fseeks, should be fast enough)
  */
-static int bink_get_info(STREAMFILE *streamFile, int * out_total_streams, int * out_channel_count, int * out_sample_rate, int * out_num_samples) {
+static int bink_get_info(STREAMFILE *streamFile, int * out_total_subsongs, size_t * out_stream_size, int * out_channel_count, int * out_sample_rate, int * out_num_samples) {
     uint32_t *offsets = NULL;
     uint32_t num_frames, num_samples_b = 0;
     off_t cur_offset;
     int i, j, sample_rate, channel_count;
-    int total_streams, target_stream = streamFile->stream_index;
+    int total_subsongs, target_subsong = streamFile->stream_index;
+    size_t stream_size = 0;
 
     size_t filesize = get_streamfile_size(streamFile);
     uint32_t signature = (read_32bitBE(0x00,streamFile) & 0xffffff00);
@@ -76,20 +79,20 @@ static int bink_get_info(STREAMFILE *streamFile, int * out_total_streams, int * 
     if (num_frames == 0 || num_frames > 0x100000) goto fail; /* something must be off (avoids big allocs below) */
 
     /* multichannel/multilanguage audio is usually N streams of stereo/mono, no way to know channel layout */
-    total_streams = read_32bitLE(0x28,streamFile);
-    if (target_stream == 0) target_stream = 1;
-    if (target_stream < 0 || target_stream > total_streams || total_streams < 1 || total_streams > 255) goto fail;
+    total_subsongs = read_32bitLE(0x28,streamFile);
+    if (target_subsong == 0) target_subsong = 1;
+    if (target_subsong < 0 || target_subsong > total_subsongs || total_subsongs < 1 || total_subsongs > 255) goto fail;
 
     /* find stream info and position in offset table */
     cur_offset = 0x2c;
     if ((signature == 0x42494B00 && (revision == 0x6b)) || /* k */
         (signature == 0x4B423200 && (revision == 0x69 || revision == 0x6a || revision == 0x6b))) /* i,j,k */
         cur_offset += 0x04; /* unknown v2 header field */
-    cur_offset += 0x04*total_streams; /* skip streams max packet bytes */
-    sample_rate   = (uint16_t)read_16bitLE(cur_offset+0x04*(target_stream-1)+0x00,streamFile);
-    channel_count = (uint16_t)read_16bitLE(cur_offset+0x04*(target_stream-1)+0x02,streamFile) & 0x2000 ? 2 : 1; /* stereo flag */
-    cur_offset += 0x04*total_streams; /* skip streams info */
-    cur_offset += 0x04*total_streams; /* skip streams ids */
+    cur_offset += 0x04*total_subsongs; /* skip streams max packet bytes */
+    sample_rate   = (uint16_t)read_16bitLE(cur_offset+0x04*(target_subsong-1)+0x00,streamFile);
+    channel_count = (uint16_t)read_16bitLE(cur_offset+0x04*(target_subsong-1)+0x02,streamFile) & 0x2000 ? 2 : 1; /* stereo flag */
+    cur_offset += 0x04*total_subsongs; /* skip streams info */
+    cur_offset += 0x04*total_subsongs; /* skip streams ids */
 
 
     /* read frame offsets in a buffer, to avoid fseeking to the table back and forth */
@@ -111,10 +114,11 @@ static int bink_get_info(STREAMFILE *streamFile, int * out_total_streams, int * 
         cur_offset = offsets[i];
 
         /* read audio packet headers per stream */
-        for (j=0; j < total_streams; j++) {
+        for (j=0; j < total_subsongs; j++) {
             uint32_t ap_size = read_32bitLE(cur_offset+0x00,streamFile); /* not counting this int */
 
-            if (j == target_stream-1) {
+            if (j == target_subsong-1) {
+                stream_size += 0x04 + ap_size;
                 if (ap_size > 0)
                     num_samples_b += read_32bitLE(cur_offset+0x04,streamFile); /* decoded samples in bytes */
                 break; /* next frame */
@@ -128,7 +132,8 @@ static int bink_get_info(STREAMFILE *streamFile, int * out_total_streams, int * 
     free(offsets);
 
 
-    if (out_total_streams)  *out_total_streams = total_streams;
+    if (out_total_subsongs) *out_total_subsongs = total_subsongs;
+    if (out_stream_size)    *out_stream_size = stream_size;
     if (out_sample_rate)    *out_sample_rate = sample_rate;
     if (out_channel_count)  *out_channel_count = channel_count;
     //todo returns a few more samples (~48) than binkconv.exe?
