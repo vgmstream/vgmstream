@@ -1483,10 +1483,6 @@
                     >
                 </File>
                 <File
-                    RelativePath=".\coding\ffmpeg_decoder_utils_bgw_atrac3.c"
-                    >
-                </File>
-                <File
                     RelativePath=".\coding\ffmpeg_decoder_utils_ea_xma.c"
                     >
                 </File>

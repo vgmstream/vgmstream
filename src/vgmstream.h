@@ -1098,7 +1098,6 @@ typedef enum {
     FFMPEG_STANDARD,        /* default FFmpeg */
     FFMPEG_SWITCH_OPUS,     /* Opus without Ogg layer */
     FFMPEG_EA_XMA,          /* XMA with padding removed and custom streams in SNS blocks */
-    FFMPEG_BGW_ATRAC3,      /* Encrypted raw ATRAC3 */
   //FFMPEG_EA_SCHL,         /* Normal header+data (ex. ATRAC3) in SCxx blocks */
   //FFMPEG_SFH,             /* ATRAC3plus header+data in SFH blocks */
   //FFMPEG_AWC_XMA,         /* XMA data in AWC blocks, 1 streams per channel */
@@ -1116,7 +1115,6 @@ typedef struct {
     /* internal sequences, when needed */
     int sequence;
     int samples_done;
-    uint8_t * key;
 } ffmpeg_custom_config;
 
 typedef struct {
