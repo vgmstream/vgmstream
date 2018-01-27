@@ -172,6 +172,9 @@
     <ClCompile Include="meta\atsl3.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\atx.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\baf.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>

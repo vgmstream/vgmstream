@@ -44,6 +44,7 @@ static const char* extension_list[] = {
     "at3",
     "at9",
     "atsl3",
+    "atx",
     "aud",
     "aus",
     "awc",

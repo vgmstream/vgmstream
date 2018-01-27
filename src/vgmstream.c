@@ -378,6 +378,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_xwc,
     init_vgmstream_atsl3,
     init_vgmstream_sps_n1,
+    init_vgmstream_atx,
 
     init_vgmstream_txth,  /* should go at the end (lower priority) */
 #ifdef VGM_USE_FFMPEG

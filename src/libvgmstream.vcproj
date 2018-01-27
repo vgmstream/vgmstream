@@ -280,6 +280,10 @@
                     RelativePath=".\meta\atsl3.c"
                     >
                 </File>
+                <File
+                    RelativePath=".\meta\atx.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\awc.c"
 					>
