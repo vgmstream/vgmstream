@@ -831,9 +831,9 @@ typedef enum {
 } vorbis_custom_t;
 
 /* config for Wwise Vorbis (3 types for flexibility though not all combinations exist) */
-typedef enum { HEADER_TRIAD, FULL_SETUP, INLINE_CODEBOOKS, EXTERNAL_CODEBOOKS, AOTUV603_CODEBOOKS } wwise_setup_t; /* Vorbis setup style */
-typedef enum { TYPE_8, TYPE_6, TYPE_2 } wwise_header_t; /* size of packet headers */
-typedef enum { STANDARD, MODIFIED } wwise_packet_t; /* type of Vorbis packets */
+typedef enum { WWV_HEADER_TRIAD, WWV_FULL_SETUP, WWV_INLINE_CODEBOOKS, WWV_EXTERNAL_CODEBOOKS, WWV_AOTUV603_CODEBOOKS } wwise_setup_t;
+typedef enum { WWV_TYPE_8, WWV_TYPE_6, WWV_TYPE_2 } wwise_header_t;
+typedef enum { WWV_STANDARD, WWV_MODIFIED } wwise_packet_t;
 
 typedef struct {
     /* to reconstruct init packets */
