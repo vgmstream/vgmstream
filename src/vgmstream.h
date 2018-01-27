@@ -650,12 +650,13 @@ typedef enum {
     meta_OGG_SLI,           /* Ogg Vorbis file w/ companion .sli for looping */
     meta_OGG_SLI2,          /* Ogg Vorbis file w/ different styled .sli for looping */
     meta_OGG_SFL,           /* Ogg Vorbis file w/ .sfl (RIFF SFPL) for looping */
-    meta_OGG_UM3,           /* Ogg Vorbis with optional first 0x800 bytes XOR 0xFF */
-    meta_OGG_KOVS,          /* Ogg Vorbis with extra header and 0x100 bytes XOR */
-    meta_OGG_PSYCHIC,       /* Ogg Vorbis with all bytes -0x23 */
-    meta_OGG_SNGW,          /* Ogg Vorbis with optional key XOR + nibble swap (Capcom PC games) */
-    meta_OGG_ISD,           /* Ogg Vorbis with key XOR (Azure Striker Gunvolt PC) */
+    meta_OGG_UM3,           /* Ogg Vorbis with optional encryption */
+    meta_OGG_KOVS,          /* Ogg Vorbis with encryption (Koei Tecmo Games) */
+    meta_OGG_PSYCHIC,       /* Ogg Vorbis with encryption */
+    meta_OGG_SNGW,          /* Ogg Vorbis with optional encryption (Capcom PC games) */
+    meta_OGG_ISD,           /* Ogg Vorbis with encryption (Azure Striker Gunvolt PC) */
     meta_KMA9,              /* Koei Tecmo [Nobunaga no Yabou - Souzou (Vita)] */
+    meta_XWC,               /* Starbreeze games */
 
 #ifdef VGM_USE_MP4V2
     meta_MP4,               /* AAC (iOS) */

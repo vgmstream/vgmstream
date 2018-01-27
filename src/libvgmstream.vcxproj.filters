@@ -835,6 +835,9 @@
     <ClCompile Include="meta\xwb.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\xwc.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\ydsp.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>

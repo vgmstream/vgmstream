@@ -1374,6 +1374,10 @@
 					RelativePath=".\meta\xwb.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\meta\xwc.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\ydsp.c"
 					>

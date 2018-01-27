@@ -377,6 +377,7 @@ static const char* extension_list[] = {
     "xvas",
     "xwav",
     "xwb",
+    "xwc",
     "xwm", //FFmpeg, not parsed (XWMA)
     "xwma", //FFmpeg, not parsed (XWMA)
     "xws",
@@ -947,6 +948,7 @@ static const meta_info meta_info_list[] = {
         {meta_OGG_SNGW,             "Ogg Vorbis (Capcom)"},
         {meta_OGG_ISD,              "Ogg Vorbis (ISD)"},
         {meta_KMA9,                 "Koei Tecmo KMA9 header"},
+        {meta_XWC,                  "Starbreeze XWC header"},
 
 #ifdef VGM_USE_MP4V2
         {meta_MP4,                  "AAC header"},
