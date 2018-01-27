@@ -34,10 +34,9 @@ VGMSTREAM * init_vgmstream_sps_n1(STREAMFILE *streamFile) {
             break;
 
         case 2: /* .at3 */
-            VGM_LOG("so=%lx, s=%x\n", subfile_offset,subfile_size );
             temp_streamFile = setup_sps_streamfile(streamFile, subfile_offset, subfile_size, "at3");
             if (!temp_streamFile) goto fail;
-            VGM_LOG("4\n");
+
             vgmstream = init_vgmstream_riff(temp_streamFile);
             if (!vgmstream) goto fail;
             break;
