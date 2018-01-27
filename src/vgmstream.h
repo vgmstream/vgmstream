@@ -737,6 +737,7 @@ typedef struct {
     int num_streams;        /* for multi-stream formats (0=not set/one stream, 1=one stream) */
     int stream_index;       /* selected stream (also 1-based) */
     char stream_name[STREAM_NAME_SIZE]; /* name of the current stream (info), if the file stores it and it's filled */
+    size_t stream_size;     /* info to properly calculate bitrate */
 
     /* looping */
     int loop_flag;              /* is this stream looped? */
