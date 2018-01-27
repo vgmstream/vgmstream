@@ -250,6 +250,8 @@ STREAMFILE * open_stdio_streamfile_by_file(FILE * file, const char * filename) {
 /* **************************************************** */
 
 //todo stream_index: copy? pass? funtion? external?
+//todo use realnames on reopen? simplify?
+//todo use safe string ops, this ain't easy
 
 typedef struct {
     STREAMFILE sf;
@@ -335,13 +337,13 @@ static STREAMFILE *clamp_open(CLAMP_STREAMFILE *streamfile, const char * const f
     STREAMFILE *new_inner_sf;
 
     new_inner_sf = streamfile->inner_sf->open(streamfile->inner_sf,filename,buffersize);
-    streamfile->inner_sf->get_name(streamfile->inner_sf, original_filename, PATH_LIMIT);//todo realname?
+    streamfile->inner_sf->get_name(streamfile->inner_sf, original_filename, PATH_LIMIT);
 
-    /* detect re-opening the file and don't clamp */
+    /* detect re-opening the file */
     if (strcmp(filename, original_filename) == 0) {
-        return open_clamp_streamfile(new_inner_sf, streamfile->start, streamfile->size);
+        return open_clamp_streamfile(new_inner_sf, streamfile->start, streamfile->size); /* clamp again */
     } else {
-        return new_inner_sf;
+        return new_inner_sf; /**/
     }
 }
 static void clamp_close(CLAMP_STREAMFILE *streamfile) {
@@ -465,7 +467,7 @@ static size_t fakename_get_offset(FAKENAME_STREAMFILE * streamfile) {
     return streamfile->inner_sf->get_offset(streamfile->inner_sf); /* default */
 }
 static void fakename_get_name(FAKENAME_STREAMFILE *streamfile, char *buffer, size_t length) {
-    strncpy(buffer,streamfile->fakename,length);//todo safe ops
+    strncpy(buffer,streamfile->fakename,length);
     buffer[length-1]='\0';
 }
 static void fakename_get_realname(FAKENAME_STREAMFILE *streamfile, char *buffer, size_t length) {
@@ -477,7 +479,7 @@ static STREAMFILE *fakename_open(FAKENAME_STREAMFILE *streamfile, const char * c
         STREAMFILE *new_inner_sf;
         char original_filename[PATH_LIMIT];
 
-        streamfile->inner_sf->get_name(streamfile->inner_sf, original_filename, PATH_LIMIT);//todo realname?
+        streamfile->inner_sf->get_name(streamfile->inner_sf, original_filename, PATH_LIMIT);
         new_inner_sf = streamfile->inner_sf->open(streamfile->inner_sf, original_filename, buffersize);
         return open_fakename_streamfile(new_inner_sf, streamfile->fakename, NULL);
     }
@@ -510,12 +512,11 @@ STREAMFILE *open_fakename_streamfile(STREAMFILE *streamfile, char * fakename, ch
 
     this_sf->inner_sf = streamfile;
 
-    //todo use safe ops, this ain't easy
     /* copy passed name or retain current, and swap extension if expected */
     if (fakename) {
         strcpy(this_sf->fakename,fakename);
     } else {
-        streamfile->get_name(streamfile, this_sf->fakename, PATH_LIMIT);//todo realname?
+        streamfile->get_name(streamfile, this_sf->fakename, PATH_LIMIT);
     }
     if (fakeext) {
         char * ext = strrchr(this_sf->fakename,'.');
@@ -525,6 +526,159 @@ STREAMFILE *open_fakename_streamfile(STREAMFILE *streamfile, char * fakename, ch
     }
 
     return &this_sf->sf;
+}
+
+/* **************************************************** */
+
+
+typedef struct {
+    STREAMFILE sf;
+
+    STREAMFILE **inner_sfs;
+    size_t inner_sfs_size;
+    size_t *sizes;
+    off_t size;
+    off_t offset;
+} MULTIFILE_STREAMFILE;
+
+static size_t multifile_read(MULTIFILE_STREAMFILE *streamfile, uint8_t * dest, off_t offset, size_t length) {
+    int i, segment = 0;
+    off_t segment_offset = 0;
+    size_t done = 0;
+
+    if (offset > streamfile->size) {
+        streamfile->offset = streamfile->size;
+        return 0;
+    }
+
+    /* map external offset to multifile offset */
+    for (i = 0; i < streamfile->inner_sfs_size; i++) {
+        size_t segment_size = streamfile->sizes[i];
+        /* check if offset falls in this segment */
+        if (offset >= segment_offset && offset < segment_offset + segment_size) {
+            segment = i;
+            segment_offset = offset - segment_offset;
+            break;
+        }
+
+        segment_offset += segment_size;
+    }
+
+    /* reads can span multiple segments */
+    while(done < length) {
+        if (segment >= streamfile->inner_sfs_size) /* over last segment, not fully done */
+            break;
+        /* reads over segment size are ok, will return smaller value and continue next segment */
+        done += streamfile->inner_sfs[segment]->read(streamfile->inner_sfs[segment], dest+done, segment_offset, length - done);
+        segment++;
+        segment_offset = 0;
+    }
+
+    streamfile->offset = offset + done;
+    return done;
+}
+static size_t multifile_get_size(MULTIFILE_STREAMFILE *streamfile) {
+    return streamfile->size;
+}
+static size_t multifile_get_offset(MULTIFILE_STREAMFILE * streamfile) {
+    return streamfile->offset;
+}
+static void multifile_get_name(MULTIFILE_STREAMFILE *streamfile, char *buffer, size_t length) {
+    streamfile->inner_sfs[0]->get_name(streamfile->inner_sfs[0], buffer, length);
+}
+static void multifile_get_realname(MULTIFILE_STREAMFILE *streamfile, char *buffer, size_t length) {
+    multifile_get_name(streamfile, buffer, length);
+}
+static STREAMFILE *multifile_open(MULTIFILE_STREAMFILE *streamfile, const char * const filename, size_t buffersize) {
+    char original_filename[PATH_LIMIT];
+    STREAMFILE *new_sf = NULL;
+    STREAMFILE **new_inner_sfs = NULL;
+    int i;
+
+    streamfile->inner_sfs[0]->get_name(streamfile->inner_sfs[0], original_filename, PATH_LIMIT);
+
+    /* detect re-opening the file */
+    if (strcmp(filename, original_filename) == 0) { /* same multifile */
+        new_inner_sfs = calloc(streamfile->inner_sfs_size, sizeof(STREAMFILE*));
+        if (!new_inner_sfs) goto fail;
+
+        for (i = 0; i < streamfile->inner_sfs_size; i++) {
+            streamfile->inner_sfs[i]->get_name(streamfile->inner_sfs[i], original_filename, PATH_LIMIT);
+            new_inner_sfs[i] = streamfile->inner_sfs[i]->open(streamfile->inner_sfs[i], original_filename, buffersize);
+            if (!new_inner_sfs[i]) goto fail;
+        }
+
+        new_sf = open_multifile_streamfile(new_inner_sfs, streamfile->inner_sfs_size);
+        if (!new_sf) goto fail;
+
+        return new_sf;
+    }
+    else {
+        return streamfile->inner_sfs[0]->open(streamfile->inner_sfs[0], filename, buffersize); /* regular file */
+    }
+
+fail:
+    if (new_inner_sfs) {
+        for (i = 0; i < streamfile->inner_sfs_size; i++)
+            close_streamfile(new_inner_sfs[i]);
+    }
+    free(new_inner_sfs);
+    return NULL;
+}
+static void multifile_close(MULTIFILE_STREAMFILE *streamfile) {
+    int i;
+    for (i = 0; i < streamfile->inner_sfs_size; i++) {
+        for (i = 0; i < streamfile->inner_sfs_size; i++)
+            close_streamfile(streamfile->inner_sfs[i]);
+    }
+    free(streamfile->inner_sfs);
+    free(streamfile->sizes);
+    free(streamfile);
+}
+
+STREAMFILE *open_multifile_streamfile(STREAMFILE **streamfiles, size_t streamfiles_size) {
+    MULTIFILE_STREAMFILE *this_sf;
+    int i;
+
+    if (!streamfiles || !streamfiles_size) return NULL;
+    for (i = 0; i < streamfiles_size; i++) {
+        if (!streamfiles[i]) return NULL;
+    }
+
+    this_sf = calloc(1,sizeof(MULTIFILE_STREAMFILE));
+    if (!this_sf) goto fail;
+
+    /* set callbacks and internals */
+    this_sf->sf.read = (void*)multifile_read;
+    this_sf->sf.get_size = (void*)multifile_get_size;
+    this_sf->sf.get_offset = (void*)multifile_get_offset;
+    this_sf->sf.get_name = (void*)multifile_get_name;
+    this_sf->sf.get_realname = (void*)multifile_get_realname;
+    this_sf->sf.open = (void*)multifile_open;
+    this_sf->sf.close = (void*)multifile_close;
+    this_sf->sf.stream_index = streamfiles[0]->stream_index;
+
+    this_sf->inner_sfs_size = streamfiles_size;
+    this_sf->inner_sfs = calloc(streamfiles_size, sizeof(STREAMFILE*));
+    if (!this_sf->inner_sfs) goto fail;
+    this_sf->sizes = calloc(streamfiles_size, sizeof(size_t));
+    if (!this_sf->sizes) goto fail;
+
+    for (i = 0; i < this_sf->inner_sfs_size; i++) {
+        this_sf->inner_sfs[i] = streamfiles[i];
+        this_sf->sizes[i] = streamfiles[i]->get_size(streamfiles[i]);
+        this_sf->size += this_sf->sizes[i];
+    }
+
+    return &this_sf->sf;
+
+fail:
+    if (this_sf) {
+        free(this_sf->inner_sfs);
+        free(this_sf->sizes);
+    }
+    free(this_sf);
+    return NULL;
 }
 
 /* **************************************************** */

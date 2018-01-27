@@ -87,6 +87,11 @@ STREAMFILE *open_io_streamfile(STREAMFILE *streamfile, void* data, size_t data_s
  * If the fakename is an existing file, open won't work on it as it'll reopen the fake-named streamfile. */
 STREAMFILE *open_fakename_streamfile(STREAMFILE *streamfile, char * fakename, char * fakeext);
 
+/* A streamfile formed from multiple streamfiles, their data joined during reads.
+ * Can be used when data is segmented in multiple separate files.
+ * The first streamfile is used to get names, stream index and so on. */
+STREAMFILE *open_multifile_streamfile(STREAMFILE **streamfiles, size_t streamfiles_size);
+
 
 /* close a file, destroy the STREAMFILE object */
 static inline void close_streamfile(STREAMFILE * streamfile) {
