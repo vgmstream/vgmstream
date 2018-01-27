@@ -104,8 +104,8 @@ VGMSTREAM * init_vgmstream_fsb(STREAMFILE *streamFile) {
     fsb_header fsb = {0};
 
 
-    /* check extensions (.wii: fsb4_wav? .bnk = Hard Corps Uprising PS3) */
-    if ( !check_extensions(streamFile, "fsb,wii,bnk") )
+    /* check extensions (.bnk = Hard Corps Uprising PS3) */
+    if ( !check_extensions(streamFile, "fsb,bnk") )
         goto fail;
 
     /* check header */
@@ -363,13 +363,15 @@ fail:
 }
 
 
+static STREAMFILE* setup_fsb4_wav_streamfile(STREAMFILE *streamfile, off_t subfile_offset, size_t subfile_size);
+
 /* FSB4 with "\0WAV" Header, found in Deadly Creatures (Wii).
  * Has a 0x10 BE header that holds the filesize (unsure if this is from a proper rip). */
 VGMSTREAM * init_vgmstream_fsb4_wav(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    STREAMFILE *custom_streamFile = NULL;
-    off_t custom_start = 0x10;
-    size_t custom_size = get_streamfile_size(streamFile) - 0x10 - 0x10; //todo
+    STREAMFILE *test_streamFile = NULL;
+    off_t subfile_start = 0x10;
+    size_t subfile_size = get_streamfile_size(streamFile) - 0x10 - 0x10; //todo
 
     /* check extensions */
     if ( !check_extensions(streamFile, "fsb,wii") )
@@ -379,17 +381,41 @@ VGMSTREAM * init_vgmstream_fsb4_wav(STREAMFILE *streamFile) {
         goto fail;
 
     /* parse FSB subfile */
-    custom_streamFile = open_clamp_streamfile(open_wrap_streamfile(streamFile), custom_start,custom_size);
-    if (!custom_streamFile) goto fail;
+    test_streamFile = setup_fsb4_wav_streamfile(streamFile, subfile_start,subfile_size);
+    if (!test_streamFile) goto fail;
 
-    vgmstream = init_vgmstream_fsb(custom_streamFile);
+    vgmstream = init_vgmstream_fsb(test_streamFile);
     if (!vgmstream) goto fail;
 
-    close_streamfile(custom_streamFile);
+    /* init the VGMSTREAM */
+    close_streamfile(test_streamFile);
     return vgmstream;
 
 fail:
-    close_streamfile(custom_streamFile);
+    close_streamfile(test_streamFile);
     close_vgmstream(vgmstream);
+    return NULL;
+}
+
+static STREAMFILE* setup_fsb4_wav_streamfile(STREAMFILE *streamFile, off_t subfile_offset, size_t subfile_size) {
+    STREAMFILE *temp_streamFile = NULL, *new_streamFile = NULL;
+
+    /* setup subfile */
+    new_streamFile = open_wrap_streamfile(streamFile);
+    if (!new_streamFile) goto fail;
+    temp_streamFile = new_streamFile;
+
+    new_streamFile = open_clamp_streamfile(temp_streamFile, subfile_offset,subfile_size);
+    if (!new_streamFile) goto fail;
+    temp_streamFile = new_streamFile;
+
+    new_streamFile = open_fakename_streamfile(temp_streamFile, NULL,"fsb");
+    if (!new_streamFile) goto fail;
+    temp_streamFile = new_streamFile;
+
+    return temp_streamFile;
+
+fail:
+    close_streamfile(temp_streamFile);
     return NULL;
 }
