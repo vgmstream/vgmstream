@@ -1182,6 +1182,10 @@
 					RelativePath=".\meta\sli.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\meta\sps_n1.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\spt_spd.c"
 					>

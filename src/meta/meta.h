@@ -700,4 +700,6 @@ VGMSTREAM * init_vgmstream_fsb_encrypted(STREAMFILE * streamFile);
 VGMSTREAM * init_vgmstream_xwc(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_atsl3(STREAMFILE *streamFile);
+
+VGMSTREAM * init_vgmstream_sps_n1(STREAMFILE *streamFile);
 #endif /*_META_H*/
