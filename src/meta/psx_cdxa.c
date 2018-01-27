@@ -39,20 +39,27 @@ VGMSTREAM * init_vgmstream_cdxa(STREAMFILE *streamFile) {
         }
     }
 
-    /* test first block (except when RIFF) */
+    /* test some blocks (except when RIFF) since other .XA/STR may start blank */
     if (start_offset == 0) {
-        int i, j;
+        int i, j, block;
+        off_t test_offset = start_offset;
+        size_t sector_size = (is_blocked ? 0x900 : 0x800);
+        size_t block_size = 0x80;
 
-        /* 0x80 frames for 1 sector (max ~0x800 for ISO mode)  */
-        for (i = 0; i < (0x800/0x80); i++) {
-            off_t test_offset = start_offset + (is_blocked ? 0x18 : 0x00) + 0x80*i;
+        for (block = 0; block < 3; block++) {
+            test_offset += (is_blocked ? 0x18 : 0x00); /* header */
 
-            /* ADPCM predictors should be 0..3 index */
-            for (j = 0; j < 16; j++) {
-                uint8_t header = read_8bit(test_offset + i, streamFile);
-                if (((header >> 4) & 0xF) > 3)
-                    goto fail;
+            for (i = 0; i < (sector_size/block_size); i++) {
+                /* first 0x10 ADPCM predictors should be 0..3 index */
+                for (j = 0; j < 16; j++) {
+                    uint8_t header = read_8bit(test_offset + i, streamFile);
+                    if (((header >> 4) & 0xF) > 3)
+                        goto fail;
+                }
+                test_offset += 0x80;
             }
+
+            test_offset += (is_blocked ? 0x18 : 0x00); /* footer */
         }
     }
 
