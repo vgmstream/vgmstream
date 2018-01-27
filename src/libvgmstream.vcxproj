@@ -186,6 +186,7 @@
     <ClCompile Include="meta\aix.c" />
     <ClCompile Include="meta\apple_caff.c" />
     <ClCompile Include="meta\ast.c" />
+    <ClCompile Include="meta\atsl3.c" />
     <ClCompile Include="meta\baf.c" />
     <ClCompile Include="meta\bgw.c" />
     <ClCompile Include="meta\bik.c" />

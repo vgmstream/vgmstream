@@ -352,7 +352,7 @@ static void clamp_close(CLAMP_STREAMFILE *streamfile) {
 STREAMFILE *open_clamp_streamfile(STREAMFILE *streamfile, off_t start, size_t size) {
     CLAMP_STREAMFILE *this_sf;
 
-    if (!streamfile || !size || start > size) return NULL;
+    if (!streamfile || !size) return NULL;
     if (start + size > get_streamfile_size(streamfile)) return NULL;
 
     this_sf = calloc(1,sizeof(CLAMP_STREAMFILE));
