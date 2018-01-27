@@ -8,10 +8,11 @@ VGMSTREAM * init_vgmstream_nsw_opus(STREAMFILE *streamFile) {
     off_t start_offset;
     int loop_flag = 0, channel_count;
     int num_samples = 0, loop_start = 0, loop_end = 0;
-    off_t offset = 0;
+    off_t offset = 0, data_offset;
+    size_t data_size;
 
     /* check extension, case insensitive */
-    if ( !check_extensions(streamFile,"opus,lopus")) /* no relation to Ogg Opus */
+    if ( !check_extensions(streamFile,"opus,lopus,nop")) /* no relation to Ogg Opus */
         goto fail;
 
     /* variations, maybe custom */
@@ -32,17 +33,33 @@ VGMSTREAM * init_vgmstream_nsw_opus(STREAMFILE *streamFile) {
         loop_start = read_32bitLE(0x08,streamFile);
         loop_end = read_32bitLE(0x0c,streamFile);
     }
+    else if (read_32bitBE(0x00, streamFile) == 0x73616466 && read_32bitBE(0x08, streamFile) == 0x6f707573) { /* Xenoblade Chronicles 2 */
+        offset = read_32bitLE(0x1c, streamFile);
+
+        num_samples = read_32bitLE(0x28, streamFile);
+        loop_flag = read_8bit(0x19, streamFile);
+        if (loop_flag) {
+            loop_start = read_32bitLE(0x2c, streamFile);
+            loop_end = read_32bitLE(0x30, streamFile);
+            }
+    }
     else {
         offset = 0x00;
     }
 
-    if (read_32bitBE(offset + 0x00,streamFile) != 0x01000080)
+    if ((uint32_t)read_32bitLE(offset + 0x00,streamFile) != 0x80000001)
         goto fail;
+    
+    channel_count = read_8bit(offset + 0x09, streamFile);
+    /* 0x0a: packet size if CBR, 0 if VBR */
+    data_offset = offset + read_32bitLE(offset + 0x10, streamFile);
 
-    start_offset = offset + 0x28;
-    channel_count = read_8bit(offset + 0x09,streamFile); /* assumed */
-    /* 0x0a: packet size if CBR?, other values: no idea */
+    if ((uint32_t)read_32bitLE(data_offset, streamFile) != 0x80000004)
+        goto fail;
+    
+    data_size = read_32bitLE(data_offset + 0x04, streamFile);
 
+    start_offset = data_offset + 0x08;
     loop_flag = (loop_end > 0); /* -1 when not set */
 
 
@@ -60,10 +77,9 @@ VGMSTREAM * init_vgmstream_nsw_opus(STREAMFILE *streamFile) {
 #ifdef VGM_USE_FFMPEG
     {
         uint8_t buf[0x100];
-        size_t bytes, skip, data_size;
+        size_t bytes, skip;
         ffmpeg_custom_config cfg;
 
-        data_size = get_streamfile_size(streamFile) - start_offset;
         skip = 0; //todo
 
         bytes = ffmpeg_make_opus_header(buf,0x100, vgmstream->channels, skip, vgmstream->sample_rate);

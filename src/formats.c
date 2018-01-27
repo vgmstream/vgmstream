@@ -206,6 +206,7 @@ static const char* extension_list[] = {
     "naac",
     "ndp",
     "ngca",
+    "nop",
     "nps",
     "npsf", //fake extension/header id for .nps (to be removed)
     "nus3bank",
