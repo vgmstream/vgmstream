@@ -81,6 +81,17 @@ STREAMFILE *open_clamp_streamfile(STREAMFILE *streamfile, off_t start, size_t si
  * Can be used with subfiles inside a bigger file, so it looks standard to a meta. */
 STREAMFILE *open_io_streamfile(STREAMFILE *streamfile, void* data, size_t data_size, void* read_callback);//void* size_callback, void* seek_callback);
 
+/* A STREAMFILE that reports a fake name, but still re-opens itself properly.
+ * Can be used to trick a meta's extension check (to call from another, with a modified SF).
+ * When fakename isn't supplied it's read from the streamfile, and the extension swapped with fakeext.
+ * If the fakename is an existing file, open won't work on it as it'll reopen the fake-named streamfile. */
+STREAMFILE *open_fakename_streamfile(STREAMFILE *streamfile, char * fakename, char * fakeext);
+
+/* A streamfile formed from multiple streamfiles, their data joined during reads.
+ * Can be used when data is segmented in multiple separate files.
+ * The first streamfile is used to get names, stream index and so on. */
+STREAMFILE *open_multifile_streamfile(STREAMFILE **streamfiles, size_t streamfiles_size);
+
 
 /* close a file, destroy the STREAMFILE object */
 static inline void close_streamfile(STREAMFILE * streamfile) {

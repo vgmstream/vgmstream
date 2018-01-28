@@ -276,6 +276,14 @@
 					RelativePath=".\meta\ast.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\meta\atsl3.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\atx.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\awc.c"
 					>
@@ -1178,6 +1186,10 @@
 					RelativePath=".\meta\sli.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\meta\sps_n1.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\spt_spd.c"
 					>
@@ -1186,6 +1198,10 @@
 					RelativePath=".\meta\sqex_scd.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\meta\sqex_sead.c"
+                    >
+                </File>
                 <File
                     RelativePath=".\meta\stm.c"
                     >
@@ -1374,6 +1390,10 @@
 					RelativePath=".\meta\xwb.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\meta\xwc.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\ydsp.c"
 					>
@@ -1468,10 +1488,6 @@
                 </File>
                 <File
                     RelativePath=".\coding\ffmpeg_decoder_utils_ea_schl.c"
-                    >
-                </File>
-                <File
-                    RelativePath=".\coding\ffmpeg_decoder_utils_bgw_atrac3.c"
                     >
                 </File>
                 <File

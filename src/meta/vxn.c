@@ -7,7 +7,7 @@ VGMSTREAM * init_vgmstream_vxn(STREAMFILE *streamFile) {
     int loop_flag = 0, channel_count, codec, sample_rate, block_align, bits, num_samples;
     off_t start_offset, stream_offset, chunk_offset, first_offset = 0x00;
     size_t stream_size;
-    int total_streams, target_stream = streamFile->stream_index;
+    int total_subsongs, target_subsong = streamFile->stream_index;
 
     /* check extensions */
     if (!check_extensions(streamFile,"vxn"))
@@ -31,13 +31,13 @@ VGMSTREAM * init_vgmstream_vxn(STREAMFILE *streamFile) {
      * (the "Plst" and "Rule" chunks may have order info) */
     if (!find_chunk_le(streamFile, 0x5365676D,first_offset,0, &chunk_offset,NULL))  /* "Segm" */
         goto fail;
-    total_streams = read_32bitLE(chunk_offset+0x00, streamFile);
-    if (target_stream == 0) target_stream = 1;
-    if (target_stream < 0 || target_stream > total_streams || total_streams < 1) goto fail;
+    total_subsongs = read_32bitLE(chunk_offset+0x00, streamFile);
+    if (target_subsong == 0) target_subsong = 1;
+    if (target_subsong < 0 || target_subsong > total_subsongs || total_subsongs < 1) goto fail;
 
-    stream_offset = read_32bitLE(chunk_offset+0x04 + (target_stream-1)*0x18 + 0x00, streamFile);
-    stream_size   = read_32bitLE(chunk_offset+0x04 + (target_stream-1)*0x18 + 0x04, streamFile);
-    num_samples   = read_32bitLE(chunk_offset+0x04 + (target_stream-1)*0x18 + 0x08, streamFile);
+    stream_offset = read_32bitLE(chunk_offset+0x04 + (target_subsong-1)*0x18 + 0x00, streamFile);
+    stream_size   = read_32bitLE(chunk_offset+0x04 + (target_subsong-1)*0x18 + 0x04, streamFile);
+    num_samples   = read_32bitLE(chunk_offset+0x04 + (target_subsong-1)*0x18 + 0x08, streamFile);
 
     if (!find_chunk_le(streamFile, 0x44617461,first_offset,0, &chunk_offset,NULL)) /* "Data" */
         goto fail;
@@ -50,8 +50,8 @@ VGMSTREAM * init_vgmstream_vxn(STREAMFILE *streamFile) {
 
     vgmstream->sample_rate = sample_rate;
     vgmstream->num_samples = num_samples;
-    vgmstream->num_streams = total_streams;
-
+    vgmstream->num_streams = total_subsongs;
+    vgmstream->stream_size = stream_size;
     vgmstream->meta_type = meta_VXN;
 
     switch (codec) {

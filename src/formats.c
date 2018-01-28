@@ -43,6 +43,8 @@ static const char* extension_list[] = {
     "ast",
     "at3",
     "at9",
+    "atsl3",
+    "atx",
     "aud",
     "aus",
     "awc",
@@ -173,6 +175,7 @@ static const char* extension_list[] = {
     "lstm", //fake extension, for STMs
     "lwav", //fake extension, for WAVs
 
+    "mab",
     "matx",
     "mc3",
     "mca",
@@ -263,6 +266,7 @@ static const char* extension_list[] = {
     "sb5",
     "sb6",
     "sb7",
+    "sbin",
     "sc",
     "scd",
     "sck",
@@ -377,6 +381,7 @@ static const char* extension_list[] = {
     "xvas",
     "xwav",
     "xwb",
+    "xwc",
     "xwm", //FFmpeg, not parsed (XWMA)
     "xwma", //FFmpeg, not parsed (XWMA)
     "xws",
@@ -474,7 +479,7 @@ static const coding_info coding_info_list[] = {
         {coding_APPLE_IMA4,         "Apple Quicktime 4-bit IMA ADPCM"},
         {coding_SNDS_IMA,           "Heavy Iron .snds 4-bit IMA ADPCM"},
         {coding_OTNS_IMA,           "Omikron: The Nomad Soul 4-bit IMA ADPCM"},
-        {coding_FSB_IMA,            "FSB multichannel 4-bit IMA ADPCM"},
+        {coding_FSB_IMA,            "FSB 4-bit IMA ADPCM"},
         {coding_WWISE_IMA,          "Audiokinetic Wwise 4-bit IMA ADPCM"},
         {coding_REF_IMA,            "Reflections 4-bit IMA ADPCM"},
         {coding_AWC_IMA,            "Rockstar AWC 4-bit IMA ADPCM"},
@@ -947,6 +952,9 @@ static const meta_info meta_info_list[] = {
         {meta_OGG_SNGW,             "Ogg Vorbis (Capcom)"},
         {meta_OGG_ISD,              "Ogg Vorbis (ISD)"},
         {meta_KMA9,                 "Koei Tecmo KMA9 header"},
+        {meta_XWC,                  "Starbreeze XWC header"},
+        {meta_SQEX_SAB,             "Square-Enix SAB header"},
+        {meta_SQEX_MAB,             "Square-Enix MAB header"},
 
 #ifdef VGM_USE_MP4V2
         {meta_MP4,                  "AAC header"},

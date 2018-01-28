@@ -7,10 +7,10 @@ VGMSTREAM * init_vgmstream_ps2_rxws(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     STREAMFILE * streamHeader = NULL;
     off_t start_offset, chunk_offset, name_offset = 0;
-    size_t data_size, chunk_size;
+    size_t stream_size, chunk_size;
     int loop_flag = 0, channel_count, is_separate = 0, type, sample_rate;
     int32_t loop_start, loop_end;
-    int total_streams, target_stream = streamFile->stream_index;
+    int total_subsongs, target_subsong = streamFile->stream_index;
 
     /* check extensions */
     /* .xws: header and data, .xwh+xwb: header + data (.bin+dat are also found in Wild Arms 4/5) */
@@ -46,14 +46,14 @@ VGMSTREAM * init_vgmstream_ps2_rxws(STREAMFILE *streamFile) {
 
 
     /* check multi-streams */
-    total_streams = read_32bitLE(chunk_offset+0x00,streamHeader);
-    if (target_stream == 0) target_stream = 1;
-    if (target_stream < 0 || target_stream > total_streams || total_streams < 1) goto fail;
+    total_subsongs = read_32bitLE(chunk_offset+0x00,streamHeader);
+    if (target_subsong == 0) target_subsong = 1;
+    if (target_subsong < 0 || target_subsong > total_subsongs || total_subsongs < 1) goto fail;
 
 
     /* read stream header */
     {
-        off_t header_offset = chunk_offset + 0x4 + 0x1c * (target_stream-1); /* position in FORM */
+        off_t header_offset = chunk_offset + 0x4 + 0x1c * (target_subsong-1); /* position in FORM */
         off_t stream_offset, next_stream_offset, data_offset = 0;
 
         type = read_8bit(header_offset+0x00, streamHeader);
@@ -83,22 +83,22 @@ VGMSTREAM * init_vgmstream_ps2_rxws(STREAMFILE *streamFile) {
             if (!data_offset) goto fail;
         }
 
-        if (target_stream == total_streams) {
+        if (target_subsong == total_subsongs) {
             next_stream_offset = data_offset + get_streamfile_size(is_separate ? streamFile : streamHeader);
         } else {
-            off_t next_header_offset = chunk_offset + 0x4 + 0x1c * (target_stream);
+            off_t next_header_offset = chunk_offset + 0x4 + 0x1c * (target_subsong);
             next_stream_offset = read_32bitLE(next_header_offset+0x10,streamHeader);
         }
 
-        data_size = next_stream_offset - stream_offset;
+        stream_size = next_stream_offset - stream_offset;
         start_offset = data_offset + stream_offset;
     }
 
     /* get stream name (always follows FORM) */
     if (read_32bitBE(0x10+0x10 + chunk_size,streamHeader) == 0x46545854) { /* "FTXT" */
         chunk_offset = 0x10+0x10 + chunk_size + 0x10;
-        if (read_32bitLE(chunk_offset+0x00,streamHeader) == total_streams) {
-            name_offset = chunk_offset + read_32bitLE(chunk_offset+0x04 + (target_stream-1)*0x04,streamHeader);
+        if (read_32bitLE(chunk_offset+0x00,streamHeader) == total_subsongs) {
+            name_offset = chunk_offset + read_32bitLE(chunk_offset+0x04 + (target_subsong-1)*0x04,streamHeader);
         }
     }
 
@@ -108,7 +108,8 @@ VGMSTREAM * init_vgmstream_ps2_rxws(STREAMFILE *streamFile) {
     if (!vgmstream) goto fail;
 
     vgmstream->sample_rate = sample_rate;
-    vgmstream->num_streams = total_streams;
+    vgmstream->num_streams = total_subsongs;
+    vgmstream->stream_size = stream_size;
     vgmstream->meta_type = meta_PS2_RXWS;
     if (name_offset)
         read_string(vgmstream->stream_name,STREAM_NAME_SIZE, name_offset,streamHeader);
@@ -143,10 +144,10 @@ VGMSTREAM * init_vgmstream_ps2_rxws(STREAMFILE *streamFile) {
             joint_stereo = 0;
             encoder_delay = 0x0;
 
-            bytes = ffmpeg_make_riff_atrac3(buf, 0x100, vgmstream->num_samples, data_size, vgmstream->channels, vgmstream->sample_rate, block_size, joint_stereo, encoder_delay);
+            bytes = ffmpeg_make_riff_atrac3(buf, 0x100, vgmstream->num_samples, stream_size, vgmstream->channels, vgmstream->sample_rate, block_size, joint_stereo, encoder_delay);
             if (bytes <= 0) goto fail;
 
-            vgmstream->codec_data = init_ffmpeg_header_offset(streamFile, buf,bytes, start_offset,data_size);
+            vgmstream->codec_data = init_ffmpeg_header_offset(streamFile, buf,bytes, start_offset,stream_size);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;

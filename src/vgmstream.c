@@ -375,6 +375,11 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_mogg,
     init_vgmstream_kma9,
     init_vgmstream_fsb_encrypted,
+    init_vgmstream_xwc,
+    init_vgmstream_atsl3,
+    init_vgmstream_sps_n1,
+    init_vgmstream_atx,
+    init_vgmstream_sqex_sead,
 
     init_vgmstream_txth,  /* should go at the end (lower priority) */
 #ifdef VGM_USE_FFMPEG
@@ -2195,6 +2200,11 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
     }
     concatn(length,desc,temp);
 
+    snprintf(temp,TEMPSIZE,
+            "\nbitrate: %d kbps",
+            get_vgmstream_average_bitrate(vgmstream) / 1000);
+    concatn(length,desc,temp);
+
     /* only interesting if more than one */
     if (vgmstream->num_streams > 1) {
         snprintf(temp,TEMPSIZE,
@@ -2443,9 +2453,11 @@ static STREAMFILE * get_vgmstream_average_bitrate_channel_streamfile(VGMSTREAM *
     return vgmstream->ch[channel].streamfile;
 }
 
+static int get_vgmstream_average_bitrate_from_size(size_t size, int sample_rate, int length_samples) {
+    return (int)((int64_t)size * 8 * sample_rate / length_samples);
+}
 static int get_vgmstream_average_bitrate_from_streamfile(STREAMFILE * streamfile, int sample_rate, int length_samples) {
-    // todo: not correct in subsongs or formats which only use part of the data
-    return (int)((int64_t)get_streamfile_size(streamfile) * 8 * sample_rate / length_samples);
+    return get_vgmstream_average_bitrate_from_size(get_streamfile_size(streamfile), sample_rate, length_samples);
 }
 
 /* Return the average bitrate in bps of all unique files contained within this stream. */
@@ -2462,6 +2474,11 @@ int get_vgmstream_average_bitrate(VGMSTREAM * vgmstream) {
 
     if (!sample_rate || !channels || !length_samples)
         return 0;
+
+    /* subsongs need to report this to properly calculate */
+    if (vgmstream->stream_size) {
+        return get_vgmstream_average_bitrate_from_size(vgmstream->stream_size, sample_rate, length_samples);
+    }
 
     if (channels >= 1) {
         streamFile = get_vgmstream_average_bitrate_channel_streamfile(vgmstream, 0);

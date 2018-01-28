@@ -11,7 +11,7 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
 
     uint32_t NumSamples = 0, LoopStart = 0, LoopEnd = 0;
     int LoopFlag = 0, ChannelCount = 0, Version, SampleRate = 0, CodingID;
-    int TotalStreams, TargetStream = streamFile->stream_index;
+    int TotalSubsongs, TargetSubsong = streamFile->stream_index;
     int i;
 
     /* check extension, case insensitive */
@@ -25,7 +25,7 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
     Version = read_32bitLE(0x04,streamFile);
     if (Version != 0x00 && Version != 0x01) goto fail;
 
-    TotalStreams       = read_32bitLE(0x08,streamFile);
+    TotalSubsongs      = read_32bitLE(0x08,streamFile);
     SampleHeaderLength = read_32bitLE(0x0C,streamFile);
     NameTableLength    = read_32bitLE(0x10,streamFile);
     SampleDataLength   = read_32bitLE(0x14,streamFile);
@@ -37,14 +37,14 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
     if ((SampleHeaderLength + NameTableLength + SampleDataLength + BaseHeaderLength) != get_streamfile_size(streamFile))
         goto fail;
 
-    if (TargetStream == 0) TargetStream = 1; /* default to 1 */
-    if (TargetStream > TotalStreams || TotalStreams <= 0) goto fail;
+    if (TargetSubsong == 0) TargetSubsong = 1; /* default to 1 */
+    if (TargetSubsong > TotalSubsongs || TotalSubsongs <= 0) goto fail;
 
     SampleHeaderStart = BaseHeaderLength;
 
     /* find target stream header and data offset, and read all needed values for later use
      *  (reads one by one as the size of a single stream header is variable) */
-    for (i = 1; i <= TotalStreams; i++) {
+    for (i = 1; i <= TotalSubsongs; i++) {
         off_t  DataStart = 0;
         size_t StreamHeaderLength = 0;
         uint32_t SampleMode1, SampleMode2;
@@ -156,11 +156,11 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
         }
 
         /* stream found */
-        if (i == TargetStream) {
+        if (i == TargetSubsong) {
             StartOffset = BaseHeaderLength + SampleHeaderLength + NameTableLength + DataStart;
 
             /* get stream size from next stream or datasize if there is only one */
-            if (i == TotalStreams) {
+            if (i == TotalSubsongs) {
                 StreamSize = SampleDataLength - DataStart;
             } else {
                 uint32_t NextSampleMode  = (uint32_t)read_32bitLE(SampleHeaderStart+StreamHeaderLength+0x00,streamFile);
@@ -178,7 +178,7 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
 
     /* get stream name */
     if (NameTableLength) {
-        NameOffset = BaseHeaderLength + SampleHeaderLength + read_32bitLE(BaseHeaderLength + SampleHeaderLength + 0x04*(TargetStream-1),streamFile);
+        NameOffset = BaseHeaderLength + SampleHeaderLength + read_32bitLE(BaseHeaderLength + SampleHeaderLength + 0x04*(TargetSubsong-1),streamFile);
     }
 
 
@@ -187,12 +187,13 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
     if (!vgmstream) goto fail;
 
     vgmstream->sample_rate = SampleRate;
-    vgmstream->num_streams = TotalStreams;
     vgmstream->num_samples = NumSamples;
     if (LoopFlag) {
         vgmstream->loop_start_sample = LoopStart;
         vgmstream->loop_end_sample = LoopEnd;
     }
+    vgmstream->num_streams = TotalSubsongs;
+    vgmstream->stream_size = StreamSize;
     vgmstream->meta_type = meta_FSB5;
     if (NameOffset)
         read_string(vgmstream->stream_name,STREAM_NAME_SIZE, NameOffset,streamFile);

@@ -100,12 +100,12 @@ VGMSTREAM * init_vgmstream_fsb(STREAMFILE *streamFile) {
     off_t start_offset;
     size_t custom_data_offset;
     int loop_flag = 0;
-    int target_stream = streamFile->stream_index;
+    int target_subsong = streamFile->stream_index;
     fsb_header fsb = {0};
 
 
-    /* check extensions (.wii: fsb4_wav? .bnk = Hard Corps Uprising PS3) */
-    if ( !check_extensions(streamFile, "fsb,wii,bnk") )
+    /* check extensions (.bnk = Hard Corps Uprising PS3) */
+    if ( !check_extensions(streamFile, "fsb,bnk") )
         goto fail;
 
     /* check header */
@@ -185,8 +185,8 @@ VGMSTREAM * init_vgmstream_fsb(STREAMFILE *streamFile) {
         }
 
         if (fsb.sample_header_size < fsb.sample_header_min) goto fail;
-        if (target_stream == 0) target_stream = 1;
-        if (target_stream < 0 || target_stream > fsb.total_subsongs || fsb.total_subsongs < 1) goto fail;
+        if (target_subsong == 0) target_subsong = 1;
+        if (target_subsong < 0 || target_subsong > fsb.total_subsongs || fsb.total_subsongs < 1) goto fail;
 
         /* sample header (N-stream) */
         {
@@ -210,7 +210,7 @@ VGMSTREAM * init_vgmstream_fsb(STREAMFILE *streamFile) {
                 /* FSB3.1/4: 0x40:mindistance  0x44:maxdistance  0x48:varfreq/size_32bits  0x4c:varvol  0x4e:fsb.varpan */
                 /* FSB3/4: 0x50:extended_data size_32bits (not always given) */
 
-                if (i+1 == target_stream) /* d_off found */
+                if (i+1 == target_subsong) /* d_off found */
                     break;
 
                 s_off += stream_header_size;
@@ -259,6 +259,7 @@ VGMSTREAM * init_vgmstream_fsb(STREAMFILE *streamFile) {
     vgmstream->loop_start_sample = fsb.loop_start;
     vgmstream->loop_end_sample = fsb.loop_end;
     vgmstream->num_streams = fsb.total_subsongs;
+    vgmstream->stream_size = fsb.stream_size;
     vgmstream->meta_type = fsb.meta_type;
     if (fsb.name_offset)
         read_string(vgmstream->stream_name,fsb.name_size+1, fsb.name_offset,streamFile);
@@ -289,8 +290,9 @@ VGMSTREAM * init_vgmstream_fsb(STREAMFILE *streamFile) {
 
         vgmstream->coding_type = coding_XBOX;
         vgmstream->layout_type = layout_none;
-        /* "interleaved header" IMA, only used with >2ch (ex. Blade Kitten 5.1) */
-        if (vgmstream->channels > 2)
+        /* "interleaved header" IMA, only used with >2ch (ex. Blade Kitten 6ch)
+         * or (seemingly) when flag is used (ex. Dead to Rights 2 (Xbox) 2ch in FSB3.1 */
+        if (vgmstream->channels > 2 || (fsb.mode & FSOUND_MULTICHANNEL))
             vgmstream->coding_type = coding_FSB_IMA;
     }
     else if (fsb.mode & FSOUND_VAG) { /* FSB1: Jurassic Park Operation Genesis (PS2), FSB4: Spider Man Web of Shadows (PSP) */
@@ -363,13 +365,15 @@ fail:
 }
 
 
+static STREAMFILE* setup_fsb4_wav_streamfile(STREAMFILE *streamfile, off_t subfile_offset, size_t subfile_size);
+
 /* FSB4 with "\0WAV" Header, found in Deadly Creatures (Wii).
  * Has a 0x10 BE header that holds the filesize (unsure if this is from a proper rip). */
 VGMSTREAM * init_vgmstream_fsb4_wav(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    STREAMFILE *custom_streamFile = NULL;
-    off_t custom_start = 0x10;
-    size_t custom_size = get_streamfile_size(streamFile) - 0x10 - 0x10; //todo
+    STREAMFILE *test_streamFile = NULL;
+    off_t subfile_start = 0x10;
+    size_t subfile_size = get_streamfile_size(streamFile) - 0x10 - 0x10; //todo
 
     /* check extensions */
     if ( !check_extensions(streamFile, "fsb,wii") )
@@ -379,17 +383,41 @@ VGMSTREAM * init_vgmstream_fsb4_wav(STREAMFILE *streamFile) {
         goto fail;
 
     /* parse FSB subfile */
-    custom_streamFile = open_clamp_streamfile(open_wrap_streamfile(streamFile), custom_start,custom_size);
-    if (!custom_streamFile) goto fail;
+    test_streamFile = setup_fsb4_wav_streamfile(streamFile, subfile_start,subfile_size);
+    if (!test_streamFile) goto fail;
 
-    vgmstream = init_vgmstream_fsb(custom_streamFile);
+    vgmstream = init_vgmstream_fsb(test_streamFile);
     if (!vgmstream) goto fail;
 
-    close_streamfile(custom_streamFile);
+    /* init the VGMSTREAM */
+    close_streamfile(test_streamFile);
     return vgmstream;
 
 fail:
-    close_streamfile(custom_streamFile);
+    close_streamfile(test_streamFile);
     close_vgmstream(vgmstream);
+    return NULL;
+}
+
+static STREAMFILE* setup_fsb4_wav_streamfile(STREAMFILE *streamFile, off_t subfile_offset, size_t subfile_size) {
+    STREAMFILE *temp_streamFile = NULL, *new_streamFile = NULL;
+
+    /* setup subfile */
+    new_streamFile = open_wrap_streamfile(streamFile);
+    if (!new_streamFile) goto fail;
+    temp_streamFile = new_streamFile;
+
+    new_streamFile = open_clamp_streamfile(temp_streamFile, subfile_offset,subfile_size);
+    if (!new_streamFile) goto fail;
+    temp_streamFile = new_streamFile;
+
+    new_streamFile = open_fakename_streamfile(temp_streamFile, NULL,"fsb");
+    if (!new_streamFile) goto fail;
+    temp_streamFile = new_streamFile;
+
+    return temp_streamFile;
+
+fail:
+    close_streamfile(temp_streamFile);
     return NULL;
 }

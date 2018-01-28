@@ -233,25 +233,25 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
                     case 0x28: /* early (~2009), ex. The Lord of the Rings: Conquest PC */
                         data_offsets = 0x18;
                         block_offsets = 0; /* no need, full headers are present */
-                        cfg.header_type = TYPE_8;
-                        cfg.packet_type = STANDARD;
-                        cfg.setup_type = HEADER_TRIAD;
+                        cfg.header_type = WWV_TYPE_8;
+                        cfg.packet_type = WWV_STANDARD;
+                        cfg.setup_type = WWV_HEADER_TRIAD;
                         break;
 
                     //case 0x32:  /* ? */
                     case 0x34:  /* common (2010~2011) */
                         data_offsets = 0x18;
                         block_offsets = 0x30;
-                        cfg.header_type = TYPE_6;
-                        cfg.packet_type = STANDARD;
-                        cfg.setup_type = EXTERNAL_CODEBOOKS; /* setup_type will be corrected later */
+                        cfg.header_type = WWV_TYPE_6;
+                        cfg.packet_type = WWV_STANDARD;
+                        cfg.setup_type = WWV_EXTERNAL_CODEBOOKS; /* setup_type will be corrected later */
                         break;
                     case 0x2a:  /* uncommon (mid 2011), ex. infamous 2 PS3 */
                         data_offsets = 0x10;
                         block_offsets = 0x28;
-                        cfg.header_type = TYPE_2;
-                        cfg.packet_type = MODIFIED;
-                        cfg.setup_type = EXTERNAL_CODEBOOKS;
+                        cfg.header_type = WWV_TYPE_2;
+                        cfg.packet_type = WWV_MODIFIED;
+                        cfg.setup_type = WWV_EXTERNAL_CODEBOOKS;
                         break;
                     default:
                         VGM_LOG("WWISE: unknown vorb size 0x%x\n", vorb_size);
@@ -277,11 +277,11 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
 
                     /* if the setup after header starts with "(data)BCV" it's an inline codebook) */
                     if ((id & 0x00FFFFFF) == 0x00424356) { /* 0"BCV" */
-                        cfg.setup_type = FULL_SETUP;
+                        cfg.setup_type = WWV_FULL_SETUP;
                     }
                     /* if the setup is suspiciously big it's probably trimmed inline codebooks */
                     else if (setup_size > 0x200) { /* an external setup it's ~0x100 max + some threshold */
-                        cfg.setup_type = INLINE_CODEBOOKS;
+                        cfg.setup_type = WWV_INLINE_CODEBOOKS;
                     }
                 }
 
@@ -297,13 +297,13 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
                     case 0x30:
                         data_offsets = 0x10;
                         block_offsets = 0x28;
-                        cfg.header_type = TYPE_2;
-                        cfg.packet_type = MODIFIED;
+                        cfg.header_type = WWV_TYPE_2;
+                        cfg.packet_type = WWV_MODIFIED;
 
                         /* setup not detectable by header, so we'll try both; hopefully libvorbis will reject wrong codebooks
                          * - standard: early (<2012), ex. The King of Fighters XIII X360 (2011/11), .ogg (cbs are from aoTuV, too)
                          * - aoTuV603: later (>2012), ex. Sonic & All-Stars Racing Transformed PC (2012/11), .wem */
-                        cfg.setup_type  = is_wem ? AOTUV603_CODEBOOKS : EXTERNAL_CODEBOOKS; /* aoTuV came along .wem */
+                        cfg.setup_type  = is_wem ? WWV_AOTUV603_CODEBOOKS : WWV_EXTERNAL_CODEBOOKS; /* aoTuV came along .wem */
                         break;
 
                     //case 0x2a: /* Rocksmith 2011 X360? */
@@ -326,14 +326,14 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
                     /* all blocksizes I've seen are 0x08+0x0B except Oddworld PSV, that uses 0x09+0x09
                      * (maybe lower spec machines = needs simpler packets) */
                     if (cfg.blocksize_0_exp == cfg.blocksize_1_exp)
-                        cfg.packet_type = STANDARD;
+                        cfg.packet_type = WWV_STANDARD;
                 }
 
                 /* try with the selected codebooks */
                 vgmstream->codec_data = init_vorbis_custom(streamFile, start_offset + setup_offset, VORBIS_WWISE, &cfg);
                 if (!vgmstream->codec_data) {
                     /* codebooks failed: try again with the other type */
-                    cfg.setup_type  = is_wem ? EXTERNAL_CODEBOOKS : AOTUV603_CODEBOOKS;
+                    cfg.setup_type  = is_wem ? WWV_EXTERNAL_CODEBOOKS : WWV_AOTUV603_CODEBOOKS;
                     vgmstream->codec_data = init_vorbis_custom(streamFile, start_offset + setup_offset, VORBIS_WWISE, &cfg);
                     if (!vgmstream->codec_data) goto fail;
                 }

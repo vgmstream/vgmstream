@@ -5,6 +5,7 @@
 VGMSTREAM * init_vgmstream_kma9(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     off_t start_offset;
+    size_t stream_size;
     int loop_flag, channel_count;
     int total_subsongs = 0, target_subsong = streamFile->stream_index;
 
@@ -25,7 +26,7 @@ VGMSTREAM * init_vgmstream_kma9(STREAMFILE *streamFile) {
     if (target_subsong == 0) target_subsong = 1;
     if (target_subsong < 0 || target_subsong > total_subsongs || total_subsongs < 1) goto fail;
     /* 0x0c: unknown */
-    /* 0x14: data size of each subsong */
+    stream_size = read_32bitLE(0x14,streamFile); /* per subsong */
 
 
     /* build the VGMSTREAM */
@@ -37,7 +38,7 @@ VGMSTREAM * init_vgmstream_kma9(STREAMFILE *streamFile) {
     vgmstream->loop_start_sample = read_32bitLE(0x24,streamFile); /* with skip_samples? */
     vgmstream->loop_end_sample = vgmstream->num_samples; /* 0x28 looks like end samples but isn't, no idea */
     vgmstream->num_streams = total_subsongs;
-
+    vgmstream->stream_size = stream_size;
     vgmstream->meta_type = meta_KMA9;
 
 #ifdef VGM_USE_ATRAC9

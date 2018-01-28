@@ -7,7 +7,7 @@ typedef struct {
     int is_encrypted;
     int is_music;
 
-    int total_streams;
+    int total_subsongs;
 
     int channel_count;
     int sample_rate;
@@ -47,7 +47,8 @@ VGMSTREAM * init_vgmstream_awc(STREAMFILE *streamFile) {
 
     vgmstream->sample_rate = awc.sample_rate;
     vgmstream->num_samples = awc.num_samples;
-    vgmstream->num_streams = awc.total_streams;
+    vgmstream->num_streams = awc.total_subsongs;
+    vgmstream->stream_size = awc.stream_size;
     vgmstream->meta_type = meta_AWC;
 
 
@@ -113,7 +114,7 @@ static int parse_awc_header(STREAMFILE* streamFile, awc_header* awc) {
     int i, ch, entries;
     uint32_t flags, info_header, tag_count = 0, tags_skip = 0;
     off_t off;
-    int target_stream = streamFile->stream_index;
+    int target_subsong = streamFile->stream_index;
 
     memset(awc,0,sizeof(awc_header));
 
@@ -161,13 +162,13 @@ static int parse_awc_header(STREAMFILE* streamFile, awc_header* awc) {
      * Music seems layered (N-1/2 stereo pairs), maybe set with events? */
     awc->is_music = (read_32bit(off + 0x00,streamFile) & 0x1FFFFFFF) == 0x00000000;
     if (awc->is_music) { /* all streams except id 0 is a channel */
-        awc->total_streams = 1;
-        target_stream = 1; /* we only need id 0, though channels may have its own tags/chunks */
+        awc->total_subsongs = 1;
+        target_subsong = 1; /* we only need id 0, though channels may have its own tags/chunks */
     }
     else { /* each stream is a single sound */
-        awc->total_streams = entries;
-        if (target_stream == 0) target_stream = 1;
-        if (target_stream < 0 || target_stream > awc->total_streams || awc->total_streams < 1) goto fail;
+        awc->total_subsongs = entries;
+        if (target_subsong == 0) target_subsong = 1;
+        if (target_subsong < 0 || target_subsong > awc->total_subsongs || awc->total_subsongs < 1) goto fail;
     }
 
 
@@ -176,7 +177,7 @@ static int parse_awc_header(STREAMFILE* streamFile, awc_header* awc) {
         info_header = read_32bit(off + 0x04*i, streamFile);
         tag_count   = (info_header >> 29) & 0x7; /* 3b */
         //id        = (info_header >>  0) & 0x1FFFFFFF; /* 29b */
-        if (target_stream-1 == i)
+        if (target_subsong-1 == i)
             break;
         tags_skip += tag_count; /* tags to skip to reach target's tags, in the next header */
     }

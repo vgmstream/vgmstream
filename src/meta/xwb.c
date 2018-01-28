@@ -9,7 +9,7 @@
 
 /* the x.x version is just to make it clearer, MS only classifies XACT as 1/2/3 */
 #define XACT1_0_MAX     1           /* Project Gotham Racing 2 (v1), Silent Hill 4 (v1) */
-#define XACT1_1_MAX     3           /* The King of Fighters 2003 (v3) */
+#define XACT1_1_MAX     3           /* Unreal Championship (v2), The King of Fighters 2003 (v3) */
 #define XACT2_0_MAX     34          /* Dead or Alive 4 (v17), Kameo (v23), Table Tennis (v34) */ // v35/36/37 too?
 #define XACT2_1_MAX     38          /* Prey (v38) */ // v39 too?
 #define XACT2_2_MAX     41          /* Blue Dragon (v40) */
@@ -354,47 +354,45 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
     vgmstream->loop_start_sample = xwb.loop_start_sample;
     vgmstream->loop_end_sample   = xwb.loop_end_sample;
     vgmstream->num_streams = xwb.streams;
+    vgmstream->stream_size = xwb.stream_size;
     vgmstream->meta_type = meta_XWB;
     get_xsb_name(vgmstream->stream_name,STREAM_NAME_SIZE, target_stream, &xwb, streamFile);
 
     switch(xwb.codec) {
-        case PCM:
-            vgmstream->coding_type = xwb.bits_per_sample == 0 ? coding_PCM8 :
+        case PCM: /* Unreal Championship (Xbox)[PCM8], KOF2003 (Xbox)[PCM16LE], Otomedius (X360)[PCM16BE] */
+            vgmstream->coding_type = xwb.bits_per_sample == 0 ? coding_PCM8_U :
                     (xwb.little_endian ? coding_PCM16LE : coding_PCM16BE);
             vgmstream->layout_type = xwb.channels > 1 ? layout_interleave : layout_none;
             vgmstream->interleave_block_size = xwb.bits_per_sample == 0 ? 0x01 : 0x02;
             break;
 
-        case XBOX_ADPCM:
+        case XBOX_ADPCM: /* Silent Hill 4 (Xbox) */
             vgmstream->coding_type = coding_XBOX;
             vgmstream->layout_type = layout_none;
             break;
 
-        case MS_ADPCM:
+        case MS_ADPCM: /* Persona 4 Ultimax (AC) */
             vgmstream->coding_type = coding_MSADPCM;
             vgmstream->layout_type = layout_none;
             vgmstream->interleave_block_size = (xwb.block_align + 22) * xwb.channels; /*22=CONVERSION_OFFSET (?)*/
             break;
 
 #ifdef VGM_USE_FFMPEG
-        case XMA1: {
-            ffmpeg_codec_data *ffmpeg_data = NULL;
+        case XMA1: { /* Kameo (X360) */
             uint8_t buf[100];
             int bytes;
 
             bytes = ffmpeg_make_riff_xma1(buf, 100, vgmstream->num_samples, xwb.stream_size, vgmstream->channels, vgmstream->sample_rate, 0);
             if (bytes <= 0) goto fail;
 
-            ffmpeg_data = init_ffmpeg_header_offset(streamFile, buf,bytes, xwb.stream_offset,xwb.stream_size);
-            if ( !ffmpeg_data ) goto fail;
-            vgmstream->codec_data = ffmpeg_data;
+            vgmstream->codec_data = init_ffmpeg_header_offset(streamFile, buf,bytes, xwb.stream_offset,xwb.stream_size);
+            if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
             break;
         }
 
-        case XMA2: {
-            ffmpeg_codec_data *ffmpeg_data = NULL;
+        case XMA2: { /* Blue Dragon (X360) */
             uint8_t buf[100];
             int bytes, block_size, block_count;
 
@@ -404,15 +402,14 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
             bytes = ffmpeg_make_riff_xma2(buf, 100, vgmstream->num_samples, xwb.stream_size, vgmstream->channels, vgmstream->sample_rate, block_count, block_size);
             if (bytes <= 0) goto fail;
 
-            ffmpeg_data = init_ffmpeg_header_offset(streamFile, buf,bytes, xwb.stream_offset,xwb.stream_size);
-            if ( !ffmpeg_data ) goto fail;
-            vgmstream->codec_data = ffmpeg_data;
+            vgmstream->codec_data = init_ffmpeg_header_offset(streamFile, buf,bytes, xwb.stream_offset,xwb.stream_size);
+            if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
             break;
         }
 
-        case WMA: { /* WMAudio1 (WMA v1) */
+        case WMA: { /* WMAudio1 (WMA v1): Prince of Persia 2 port (Xbox) */
             ffmpeg_codec_data *ffmpeg_data = NULL;
 
             ffmpeg_data = init_ffmpeg_offset(streamFile, xwb.stream_offset,xwb.stream_size);
@@ -427,8 +424,7 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
             break;
         }
 
-        case XWMA: { /* WMAudio2 (WMA v2), WMAudio3 (WMA Pro) */
-            ffmpeg_codec_data *ffmpeg_data = NULL;
+        case XWMA: { /* WMAudio2 (WMA v2): BlazBlue (X360), WMAudio3 (WMA Pro): ? */
             uint8_t buf[100];
             int bytes, bps_index, block_align, block_index, avg_bps, wma_codec;
 
@@ -444,15 +440,14 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
             bytes = ffmpeg_make_riff_xwma(buf, 100, wma_codec, xwb.stream_size, vgmstream->channels, vgmstream->sample_rate, avg_bps, block_align);
             if (bytes <= 0) goto fail;
 
-            ffmpeg_data = init_ffmpeg_header_offset(streamFile, buf,bytes, xwb.stream_offset,xwb.stream_size);
-            if ( !ffmpeg_data ) goto fail;
-            vgmstream->codec_data = ffmpeg_data;
+            vgmstream->codec_data = init_ffmpeg_header_offset(streamFile, buf,bytes, xwb.stream_offset,xwb.stream_size);
+            if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
             break;
         }
 
-        case ATRAC3: { /* Techland PS3 extension */
+        case ATRAC3: { /* Techland PS3 extension: Sniper Ghost Warrior (PS3) */
             uint8_t buf[200];
             int bytes;
 

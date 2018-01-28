@@ -95,6 +95,7 @@ void block_update_ea_schl(off_t block_offset, VGMSTREAM * vgmstream) {
 
         /* id, size, samples, hists-per-channel, stereo/interleaved data */
         case coding_EA_XA:
+      //case coding_EA_XA_V2: /* handled in default */
         case coding_EA_XA_int:
             for (i = 0; i < vgmstream->channels; i++) {
                 int is_interleaved = vgmstream->coding_type == coding_EA_XA_int;
@@ -106,7 +107,9 @@ void block_update_ea_schl(off_t block_offset, VGMSTREAM * vgmstream) {
 
                 /* the block can have padding so find the channel size from num_samples */
                 interleave = is_interleaved ? (block_samples / 28 * 0x0f) : 0;
-                vgmstream->ch[i].offset = block_offset + 0x0c + vgmstream->channels*0x04 + i*interleave;
+
+                /* NOT channels*0x04, as seen in Superbike 2000 (PC) EA-XA v1 mono vids */
+                vgmstream->ch[i].offset = block_offset + 0x0c + 2*0x04 + i*interleave;
             }
 
             break;
@@ -146,6 +149,7 @@ void block_update_ea_schl(off_t block_offset, VGMSTREAM * vgmstream) {
             for (i = 0; i < vgmstream->channels; i++) {
                 off_t channel_start = read_32bit(block_offset + 0x0C + (0x04*i),streamFile);
                 vgmstream->ch[i].offset = block_offset + 0x0C + (0x04*vgmstream->channels) + channel_start;
+                VGM_LOG("ch=%x, off=%lx\n", i, vgmstream->ch[i].offset);
             }
 
             /* read ADPCM history before each channel if needed (not actually read in sx.exe) */

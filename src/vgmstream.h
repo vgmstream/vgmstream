@@ -650,12 +650,15 @@ typedef enum {
     meta_OGG_SLI,           /* Ogg Vorbis file w/ companion .sli for looping */
     meta_OGG_SLI2,          /* Ogg Vorbis file w/ different styled .sli for looping */
     meta_OGG_SFL,           /* Ogg Vorbis file w/ .sfl (RIFF SFPL) for looping */
-    meta_OGG_UM3,           /* Ogg Vorbis with optional first 0x800 bytes XOR 0xFF */
-    meta_OGG_KOVS,          /* Ogg Vorbis with extra header and 0x100 bytes XOR */
-    meta_OGG_PSYCHIC,       /* Ogg Vorbis with all bytes -0x23 */
-    meta_OGG_SNGW,          /* Ogg Vorbis with optional key XOR + nibble swap (Capcom PC games) */
-    meta_OGG_ISD,           /* Ogg Vorbis with key XOR (Azure Striker Gunvolt PC) */
+    meta_OGG_UM3,           /* Ogg Vorbis with optional encryption */
+    meta_OGG_KOVS,          /* Ogg Vorbis with encryption (Koei Tecmo Games) */
+    meta_OGG_PSYCHIC,       /* Ogg Vorbis with encryption */
+    meta_OGG_SNGW,          /* Ogg Vorbis with optional encryption (Capcom PC games) */
+    meta_OGG_ISD,           /* Ogg Vorbis with encryption (Azure Striker Gunvolt PC) */
     meta_KMA9,              /* Koei Tecmo [Nobunaga no Yabou - Souzou (Vita)] */
+    meta_XWC,               /* Starbreeze games */
+    meta_SQEX_SAB,          /* Square-Enix newest middleware (sound) */
+    meta_SQEX_MAB,          /* Square-Enix newest middleware (music) */
 
 #ifdef VGM_USE_MP4V2
     meta_MP4,               /* AAC (iOS) */
@@ -734,6 +737,7 @@ typedef struct {
     int num_streams;        /* for multi-stream formats (0=not set/one stream, 1=one stream) */
     int stream_index;       /* selected stream (also 1-based) */
     char stream_name[STREAM_NAME_SIZE]; /* name of the current stream (info), if the file stores it and it's filled */
+    size_t stream_size;     /* info to properly calculate bitrate */
 
     /* looping */
     int loop_flag;              /* is this stream looped? */
@@ -827,9 +831,9 @@ typedef enum {
 } vorbis_custom_t;
 
 /* config for Wwise Vorbis (3 types for flexibility though not all combinations exist) */
-typedef enum { HEADER_TRIAD, FULL_SETUP, INLINE_CODEBOOKS, EXTERNAL_CODEBOOKS, AOTUV603_CODEBOOKS } wwise_setup_t; /* Vorbis setup style */
-typedef enum { TYPE_8, TYPE_6, TYPE_2 } wwise_header_t; /* size of packet headers */
-typedef enum { STANDARD, MODIFIED } wwise_packet_t; /* type of Vorbis packets */
+typedef enum { WWV_HEADER_TRIAD, WWV_FULL_SETUP, WWV_INLINE_CODEBOOKS, WWV_EXTERNAL_CODEBOOKS, WWV_AOTUV603_CODEBOOKS } wwise_setup_t;
+typedef enum { WWV_TYPE_8, WWV_TYPE_6, WWV_TYPE_2 } wwise_header_t;
+typedef enum { WWV_STANDARD, WWV_MODIFIED } wwise_packet_t;
 
 typedef struct {
     /* to reconstruct init packets */
@@ -1097,7 +1101,6 @@ typedef enum {
     FFMPEG_STANDARD,        /* default FFmpeg */
     FFMPEG_SWITCH_OPUS,     /* Opus without Ogg layer */
     FFMPEG_EA_XMA,          /* XMA with padding removed and custom streams in SNS blocks */
-    FFMPEG_BGW_ATRAC3,      /* Encrypted raw ATRAC3 */
   //FFMPEG_EA_SCHL,         /* Normal header+data (ex. ATRAC3) in SCxx blocks */
   //FFMPEG_SFH,             /* ATRAC3plus header+data in SFH blocks */
   //FFMPEG_AWC_XMA,         /* XMA data in AWC blocks, 1 streams per channel */
@@ -1115,7 +1118,6 @@ typedef struct {
     /* internal sequences, when needed */
     int sequence;
     int samples_done;
-    uint8_t * key;
 } ffmpeg_custom_config;
 
 typedef struct {

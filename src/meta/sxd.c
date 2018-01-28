@@ -7,13 +7,13 @@ VGMSTREAM * init_vgmstream_sxd(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     STREAMFILE * streamHeader = NULL;
     off_t start_offset, chunk_offset, first_offset = 0x60, name_offset = 0;
-    size_t chunk_size;
+    size_t chunk_size, stream_size = 0;
 
     int is_separate;
     int loop_flag, channels, codec;
     int sample_rate, num_samples, loop_start_sample, loop_end_sample;
     uint32_t at9_config_data = 0;
-    int total_streams, target_stream = streamFile->stream_index;
+    int total_subsongs, target_subsong = streamFile->stream_index;
 
 
     /* check extension, case insensitive */
@@ -38,16 +38,16 @@ VGMSTREAM * init_vgmstream_sxd(STREAMFILE *streamFile) {
     if (!find_chunk_le(streamHeader, 0x57415645,first_offset,0, &chunk_offset,&chunk_size)) goto fail; /* "WAVE" */
 
     /* check multi-streams (usually only in SFX containers) */
-    total_streams = read_32bitLE(chunk_offset+0x04,streamHeader);
-    if (target_stream == 0) target_stream = 1;
-    if (target_stream < 0 || target_stream > total_streams || total_streams < 1) goto fail;
+    total_subsongs = read_32bitLE(chunk_offset+0x04,streamHeader);
+    if (target_subsong == 0) target_subsong = 1;
+    if (target_subsong < 0 || target_subsong > total_subsongs || total_subsongs < 1) goto fail;
 
     /* read stream header */
     {
         off_t table_offset, header_offset, stream_offset;
 
         /* get target offset using table of relative offsets within WAVE */
-        table_offset  = chunk_offset + 0x08 + 4*(target_stream-1);
+        table_offset  = chunk_offset + 0x08 + 4*(target_subsong-1);
         header_offset = table_offset + read_32bitLE(table_offset,streamHeader);
 
         /* 0x00(4): type/location? (00/01=sxd/RAM?, 02/03=sxd2/stream?) */
@@ -59,7 +59,7 @@ VGMSTREAM * init_vgmstream_sxd(STREAMFILE *streamFile) {
         num_samples       = read_32bitLE(header_offset+0x14,streamHeader);
         loop_start_sample = read_32bitLE(header_offset+0x18,streamHeader);
         loop_end_sample   = read_32bitLE(header_offset+0x1c,streamHeader);
-        /* 0x20(4): data size */
+        stream_size       = read_32bitLE(header_offset+0x20,streamHeader);
         stream_offset     = read_32bitLE(header_offset+0x24,streamHeader);
 
         /* Extra data, variable sized and uses some kind of TLVs (HEVAG's is optional and much smaller).
@@ -100,7 +100,7 @@ VGMSTREAM * init_vgmstream_sxd(STREAMFILE *streamFile) {
         int num_entries = read_16bitLE(chunk_offset+0x04,streamHeader); /* can be bigger than streams */
         for (i = 0; i < num_entries; i++) {
             uint32_t index = (uint32_t)read_32bitLE(chunk_offset+0x08 + 0x08 + i*0x0c,streamHeader);
-            if (index+1 == target_stream) {
+            if (index+1 == target_subsong) {
                 name_offset = chunk_offset+0x08 + 0x00 + i*0x0c + read_32bitLE(chunk_offset+0x08 + 0x00 + i*0x0c,streamHeader);
                 break;
             }
@@ -116,7 +116,8 @@ VGMSTREAM * init_vgmstream_sxd(STREAMFILE *streamFile) {
     vgmstream->num_samples = num_samples;
     vgmstream->loop_start_sample = loop_start_sample;
     vgmstream->loop_end_sample = loop_end_sample;
-    vgmstream->num_streams = total_streams;
+    vgmstream->num_streams = total_subsongs;
+    vgmstream->stream_size = stream_size;
     vgmstream->meta_type = meta_SXD;
     if (name_offset)
         read_string(vgmstream->stream_name,STREAM_NAME_SIZE, name_offset,streamHeader);
@@ -148,7 +149,7 @@ VGMSTREAM * init_vgmstream_sxd(STREAMFILE *streamFile) {
             break;
         }
 #endif
-
+      //case 0x28:      /* dummy codec? (found with 0 samples) [Hot Shots Golf: World Invitational (Vita) sfx] */
         default:
             VGM_LOG("SXD: unknown codec 0x%x\n", codec);
             goto fail;

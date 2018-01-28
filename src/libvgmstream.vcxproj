@@ -112,7 +112,6 @@
     <ClCompile Include="coding\atrac9_decoder.c" />
     <ClCompile Include="coding\coding_utils.c" />
     <ClCompile Include="coding\ffmpeg_decoder.c" />
-    <ClCompile Include="coding\ffmpeg_decoder_utils_bgw_atrac3.c" />
     <ClCompile Include="coding\ffmpeg_decoder_utils_ea_xma.c" />
     <ClCompile Include="coding\ffmpeg_decoder_utils_switch_opus.c" />
     <ClCompile Include="coding\ffmpeg_decoder_utils.c" />
@@ -163,6 +162,7 @@
     <ClCompile Include="meta\vawx.c" />
     <ClCompile Include="meta\seg.c" />
     <ClCompile Include="meta\sqex_scd.c" />
+    <ClCompile Include="meta\sqex_sead.c" />
     <ClCompile Include="meta\tun.c" />
     <ClCompile Include="meta\txth.c" />
     <ClCompile Include="meta\wii_ras.c" />
@@ -186,6 +186,8 @@
     <ClCompile Include="meta\aix.c" />
     <ClCompile Include="meta\apple_caff.c" />
     <ClCompile Include="meta\ast.c" />
+    <ClCompile Include="meta\atsl3.c" />
+    <ClCompile Include="meta\atx.c" />
     <ClCompile Include="meta\baf.c" />
     <ClCompile Include="meta\bgw.c" />
     <ClCompile Include="meta\bik.c" />
@@ -376,6 +378,7 @@
     <ClCompile Include="meta\sdt.c" />
     <ClCompile Include="meta\sfl.c" />
     <ClCompile Include="meta\sli.c" />
+    <ClCompile Include="meta\sps_n1.c" />
     <ClCompile Include="meta\spt_spd.c" />
     <ClCompile Include="meta\stm.c" />
     <ClCompile Include="meta\str_asr.c" />
@@ -417,6 +420,7 @@
     <ClCompile Include="meta\xss.c" />
     <ClCompile Include="meta\xvag.c" />
     <ClCompile Include="meta\xwb.c" />
+    <ClCompile Include="meta\xwc.c" />
     <ClCompile Include="meta\ydsp.c" />
     <ClCompile Include="meta\zsd.c" />
     <ClCompile Include="meta\zwdsp.c" />

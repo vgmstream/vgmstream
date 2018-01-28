@@ -47,7 +47,7 @@ int vorbis_custom_setup_init_wwise(STREAMFILE *streamFile, off_t start_offset, v
     size_t header_size, packet_size;
     vorbis_custom_config cfg = data->config;
 
-    if (cfg.setup_type == HEADER_TRIAD) {
+    if (cfg.setup_type == WWV_HEADER_TRIAD) {
         /* read 3 Wwise packets with triad (id/comment/setup), each with a Wwise header */
         off_t offset = start_offset;
 
@@ -132,17 +132,17 @@ static int get_packet_header(STREAMFILE *streamFile, off_t offset, wwise_header_
 
     /* packet size doesn't include header size */
     switch(header_type) {
-        case TYPE_8: /* size 4+4 */
+        case WWV_TYPE_8: /* size 4+4 */
             *packet_size = (uint32_t)read_32bit(offset, streamFile);
             *granulepos = read_32bit(offset+4, streamFile);
             return 8;
 
-        case TYPE_6: /* size 4+2 */
+        case WWV_TYPE_6: /* size 4+2 */
             *packet_size = (uint16_t)read_16bit(offset, streamFile);
             *granulepos = read_32bit(offset+2, streamFile);
             return 6;
 
-        case TYPE_2: /* size 2 */
+        case WWV_TYPE_2: /* size 2 */
             *packet_size = (uint16_t)read_16bit(offset, streamFile);
             *granulepos = 0; /* granule is an arbitrary unit so we could use offset instead; libvorbis has no actually need it actually */
             return 2;
@@ -306,7 +306,7 @@ static int ww2ogg_generate_vorbis_packet(vgm_bitstream * ow, vgm_bitstream * iw,
     //VGM_ASSERT(granule < 0, "Wwise Vorbis: negative granule %i @ 0x%lx\n", granule, offset);
 
 
-    if (data->config.packet_type == MODIFIED) {
+    if (data->config.packet_type == WWV_MODIFIED) {
         /* rebuild first bits of packet type and window info (for the i-MDCT) */
         uint32_t packet_type = 0, mode_number = 0, remainder = 0;
 
@@ -423,13 +423,13 @@ static int ww2ogg_generate_vorbis_setup(vgm_bitstream * ow, vgm_bitstream * iw, 
     w_bits(ow,  8, codebook_count_less1);
     codebook_count = codebook_count_less1 + 1;
 
-    if (data->config.setup_type == FULL_SETUP) {
+    if (data->config.setup_type == WWV_FULL_SETUP) {
         /* rebuild Wwise codebooks: untouched */
         for (i = 0; i < codebook_count; i++) {
             if(!ww2ogg_codebook_library_copy(ow, iw)) goto fail;
         }
     }
-    else if (data->config.setup_type == INLINE_CODEBOOKS) {
+    else if (data->config.setup_type == WWV_INLINE_CODEBOOKS) {
         /* rebuild Wwise codebooks: inline in simplified format */
         for (i = 0; i < codebook_count; i++) {
             if(!ww2ogg_codebook_library_rebuild(ow, iw, 0, streamFile)) goto fail;
@@ -456,7 +456,7 @@ static int ww2ogg_generate_vorbis_setup(vgm_bitstream * ow, vgm_bitstream * iw, 
     w_bits(ow, 16, dummy_time_value);
 
 
-    if (data->config.setup_type == FULL_SETUP) {
+    if (data->config.setup_type == WWV_FULL_SETUP) {
         /* rest of setup is untouched, copy bits */
         uint32_t bitly = 0;
         uint32_t total_bits_read = iw->b_off;
@@ -1174,11 +1174,11 @@ static int load_wvc_array(uint8_t * buf, size_t bufsize, uint32_t codebook_id, w
         const wvc_info * wvc_list;
 
         switch (setup_type) {
-            case EXTERNAL_CODEBOOKS:
+            case WWV_EXTERNAL_CODEBOOKS:
                 wvc_list = wvc_list_standard;
                 list_length = sizeof(wvc_list_standard) / sizeof(wvc_info);
                 break;
-            case AOTUV603_CODEBOOKS:
+            case WWV_AOTUV603_CODEBOOKS:
                 wvc_list = wvc_list_aotuv603;
                 list_length = sizeof(wvc_list_standard) / sizeof(wvc_info);
                 break;

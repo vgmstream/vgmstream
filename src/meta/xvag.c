@@ -16,7 +16,7 @@ VGMSTREAM * init_vgmstream_xvag(STREAMFILE *streamFile) {
 
     off_t start_offset, loop_start = 0, loop_end = 0, chunk_offset;
     off_t first_offset = 0x20;
-    size_t chunk_size;
+    size_t chunk_size, stream_size;
 
     /* check extension, case insensitive */
     if (!check_extensions(streamFile,"xvag"))
@@ -51,7 +51,7 @@ VGMSTREAM * init_vgmstream_xvag(STREAMFILE *streamFile) {
 
     interleave_factor = read_32bit(chunk_offset+0x10,streamFile);
     sample_rate = read_32bit(chunk_offset+0x14,streamFile);
-    /* 0x18: datasize */
+    stream_size = read_32bit(chunk_offset+0x18,streamFile);
 
     /* extra data, seen in versions 0x61+ */
     if (chunk_size > 0x1c) {
@@ -86,6 +86,7 @@ VGMSTREAM * init_vgmstream_xvag(STREAMFILE *streamFile) {
     vgmstream->sample_rate = sample_rate;
     vgmstream->num_samples = num_samples;
     vgmstream->num_streams = total_subsongs;
+    vgmstream->stream_size = (stream_size / total_subsongs);
     vgmstream->meta_type = meta_XVAG;
 
     switch (codec) {

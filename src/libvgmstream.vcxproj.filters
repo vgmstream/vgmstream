@@ -169,6 +169,12 @@
     <ClCompile Include="meta\ast.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\atsl3.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\atx.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\baf.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -718,6 +724,9 @@
     <ClCompile Include="meta\sli.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\sps_n1.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\spt_spd.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -833,6 +842,9 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\xwb.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\xwc.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ydsp.c">
@@ -1117,6 +1129,9 @@
     <ClCompile Include="meta\sqex_scd.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\sqex_sead.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\seg.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -1211,9 +1226,6 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\ffmpeg_decoder.c">
-      <Filter>coding\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="coding\ffmpeg_decoder_utils_bgw_atrac3.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\ffmpeg_decoder_utils_ea_xma.c">

@@ -2,19 +2,17 @@
 #include "../coding/coding.h"
 
 
-/* SGXD - Sony/SCEI's format (SGB+SGH / SGD / SGX), found in:
- *  PS3: Genji, Folklore, Afrika (Short VAG), Tokyo Jungle
- *  PSP: Brave Story, Sarugetchu Sarusaru Daisakusen, Kurohyo 1/2, Pathwork Heroes */
+/* SGXD - Sony/SCEI's format (SGB+SGH / SGD / SGX) */
 VGMSTREAM * init_vgmstream_sgxd(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     STREAMFILE * streamHeader = NULL;
     off_t start_offset, data_offset, chunk_offset, name_offset = 0;
-    size_t data_size;
+    size_t stream_size;
 
     int is_sgx, is_sgb = 0;
     int loop_flag, channels, type;
     int sample_rate, num_samples, loop_start_sample, loop_end_sample;
-    int total_streams, target_stream = streamFile->stream_index;
+    int total_subsongs, target_subsong = streamFile->stream_index;
 
 
     /* check extension, case insensitive */
@@ -59,14 +57,14 @@ VGMSTREAM * init_vgmstream_sgxd(STREAMFILE *streamFile) {
     /* 0x04  SGX: unknown; SGD/SGH: chunk length,  0x08  null */
 
     /* check multi-streams (usually only SE containers; Puppeteer) */
-    total_streams = read_32bitLE(chunk_offset+0x04,streamHeader);
-    if (target_stream == 0) target_stream = 1;
-    if (target_stream < 0 || target_stream > total_streams || total_streams < 1) goto fail;
+    total_subsongs = read_32bitLE(chunk_offset+0x04,streamHeader);
+    if (target_subsong == 0) target_subsong = 1;
+    if (target_subsong < 0 || target_subsong > total_subsongs || total_subsongs < 1) goto fail;
 
     /* read stream header */
     {
         off_t stream_offset;
-        chunk_offset += 0x08 + 0x38 * (target_stream-1); /* position in target header*/
+        chunk_offset += 0x08 + 0x38 * (target_subsong-1); /* position in target header*/
 
         /* 0x00  ? (00/01/02) */
         if (!is_sgx) /* meaning unknown in .sgx; offset 0 = not a stream (a RGND sample) */
@@ -85,7 +83,7 @@ VGMSTREAM * init_vgmstream_sgxd(STREAMFILE *streamFile) {
         num_samples = read_32bitLE(chunk_offset+0x20,streamHeader);
         loop_start_sample = read_32bitLE(chunk_offset+0x24,streamHeader);
         loop_end_sample = read_32bitLE(chunk_offset+0x28,streamHeader);
-        data_size = read_32bitLE(chunk_offset+0x2c,streamHeader); /* stream size (without padding) / interleave (for type3) */
+        stream_size = read_32bitLE(chunk_offset+0x2c,streamHeader); /* stream size (without padding) / interleave (for type3) */
 
         if (is_sgx) {
             stream_offset = 0x0;
@@ -107,7 +105,8 @@ VGMSTREAM * init_vgmstream_sgxd(STREAMFILE *streamFile) {
     vgmstream->num_samples = num_samples;
     vgmstream->loop_start_sample = loop_start_sample;
     vgmstream->loop_end_sample = loop_end_sample;
-    vgmstream->num_streams = total_streams;
+    vgmstream->num_streams = total_subsongs;
+    vgmstream->stream_size = stream_size;
     vgmstream->meta_type = meta_SGXD;
     if (name_offset)
         read_string(vgmstream->stream_name,STREAM_NAME_SIZE, name_offset,streamHeader);
@@ -118,23 +117,23 @@ VGMSTREAM * init_vgmstream_sgxd(STREAMFILE *streamFile) {
         vgmstream->loop_end_sample -= 1;
 
     switch (type) {
-        case 0x03:      /* PS-ADPCM */
+        case 0x03:      /* PS-ADPCM [Genji (PS3), Ape Escape Move (PS3)]*/
             vgmstream->coding_type = coding_PSX;
             vgmstream->layout_type = layout_interleave;
             if (is_sgx || is_sgb) {
                 vgmstream->interleave_block_size = 0x10;
             } else { /* this only seems to happen with SFX */
-                vgmstream->interleave_block_size = data_size;
+                vgmstream->interleave_block_size = stream_size;
             }
 
             break;
 
 #ifdef VGM_USE_FFMPEG
-        case 0x04: {    /* ATRAC3plus */
+        case 0x04: {    /* ATRAC3plus [Kurohyo 1/2 (PSP), BraveStory (PSP)] */
             ffmpeg_codec_data *ffmpeg_data;
 
             /* internally has a RIFF header; but the SGXD  header / sample rate has priority over it (may not match) */
-            ffmpeg_data = init_ffmpeg_offset(streamFile, start_offset, data_size);
+            ffmpeg_data = init_ffmpeg_offset(streamFile, start_offset, stream_size);
             if ( !ffmpeg_data ) goto fail;
             vgmstream->codec_data = ffmpeg_data;
             vgmstream->coding_type = coding_FFmpeg;
@@ -158,7 +157,7 @@ VGMSTREAM * init_vgmstream_sgxd(STREAMFILE *streamFile) {
             break;
         }
 #endif
-        case 0x05:      /* Short PS-ADPCM */
+        case 0x05:      /* Short PS-ADPCM [Afrika (PS3)] */
             vgmstream->coding_type = coding_PSX_cfg;
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = 0x4;
@@ -166,10 +165,10 @@ VGMSTREAM * init_vgmstream_sgxd(STREAMFILE *streamFile) {
             break;
 
 #ifdef VGM_USE_FFMPEG
-        case 0x06: {    /* AC3 */
+        case 0x06: {    /* AC3 [Tokyo Jungle (PS3), Afrika (PS3)] */
             ffmpeg_codec_data *ffmpeg_data;
 
-            ffmpeg_data = init_ffmpeg_offset(streamFile, start_offset, data_size);
+            ffmpeg_data = init_ffmpeg_offset(streamFile, start_offset, stream_size);
             if ( !ffmpeg_data ) goto fail;
             vgmstream->codec_data = ffmpeg_data;
             vgmstream->coding_type = coding_FFmpeg;
