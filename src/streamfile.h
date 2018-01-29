@@ -15,8 +15,11 @@
 #include <sys/types.h>
 #include "streamtypes.h"
 #include "util.h"
+#if defined(ANDROID)
+#include <unistd.h>
+#endif
 
-#if defined(__MSVCRT__) || defined(_MSC_VER)
+#if (defined(__MSVCRT__) || defined(_MSC_VER)) && !defined(ANDROID)
 #include <io.h>
 #define fseeko fseek
 #define ftello ftell
