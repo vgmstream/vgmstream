@@ -798,7 +798,6 @@ static void get_xsb_name(char * buf, size_t maxsize, int target_stream, xwb_head
     /* get name offset */
     for (i = start_sound; i < xsb.xsb_sounds_count; i++) {
         xsb_sound *s = &(xsb.xsb_sounds[i]);
-        VGM_LOG("wa=%i, sel=%i, si=%i vs ti=%i\n", s->wavebank, cfg__selected_wavebank, s->stream_index, target_stream);
         if (s->wavebank == cfg__selected_wavebank-1
                 && s->stream_index == target_stream-1){
             name_offset = s->name_offset;

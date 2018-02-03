@@ -149,7 +149,6 @@ void block_update_ea_schl(off_t block_offset, VGMSTREAM * vgmstream) {
             for (i = 0; i < vgmstream->channels; i++) {
                 off_t channel_start = read_32bit(block_offset + 0x0C + (0x04*i),streamFile);
                 vgmstream->ch[i].offset = block_offset + 0x0C + (0x04*vgmstream->channels) + channel_start;
-                VGM_LOG("ch=%x, off=%lx\n", i, vgmstream->ch[i].offset);
             }
 
             /* read ADPCM history before each channel if needed (not actually read in sx.exe) */

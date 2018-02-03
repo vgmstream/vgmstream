@@ -342,7 +342,6 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE *streamFile, ea_
         case EA_CODEC2_MT10:        /* MicroTalk (10:1 compression) */
         case EA_CODEC2_MT5:         /* MicroTalk (5:1 compression) */
             vgmstream->coding_type = coding_EA_MT;
-            VGM_LOG("mt: codec=%x, cv=%x, v=%x\n", ea->codec2, ea->codec_version, ea->version);
             vgmstream->codec_data = init_ea_mt(vgmstream->channels, ea->version == EA_VERSION_V3);
             if (!vgmstream->codec_data) goto fail;
             break;
