@@ -166,6 +166,37 @@ VGMSTREAM * init_vgmstream_sqex_sead(STREAMFILE * streamFile) {
             break;
         }
 
+#ifdef VGM_USE_VORBIS
+        case 0x03: { /* OGG [Final Fantasy XV Benchmark sfx (PC)] */
+            VGMSTREAM *ogg_vgmstream = NULL;
+            vgm_vorbis_info_t inf = {0};
+            off_t subfile_offset = post_meta_offset + subheader_size;
+            char filename[PATH_LIMIT];
+
+            streamFile->get_name(streamFile,filename,sizeof(filename));
+
+            inf.layout_type = layout_ogg_vorbis;
+            inf.meta_type = vgmstream->meta_type;
+            inf.total_subsongs = total_subsongs;
+            inf.stream_size = stream_size;
+            /* post header has some kind of repeated values, config/table? */
+
+            ogg_vgmstream = init_vgmstream_ogg_vorbis_callbacks(streamFile, filename, NULL, subfile_offset, &inf);
+            if (ogg_vgmstream) {
+                ogg_vgmstream->num_streams = vgmstream->num_streams;
+                ogg_vgmstream->stream_size = vgmstream->stream_size;
+
+                close_vgmstream(vgmstream);
+                return ogg_vgmstream;
+            }
+            else {
+                goto fail;
+            }
+
+            break;
+        }
+#endif
+
 #ifdef VGM_USE_ATRAC9
         case 0x04: { /* ATRAC9 [Dragon Quest Builders (Vita), Final Fantaxy XV (PS4)] */
             atrac9_config cfg = {0};
