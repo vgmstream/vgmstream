@@ -7,8 +7,8 @@ static STREAMFILE* setup_sead_hca_streamfile(STREAMFILE *streamFile, off_t subfi
 /* SABF/MABF - Square Enix's "sead" audio games [Dragon Quest Builders (PS3), Dissidia Opera Omnia (mobile), FF XV (PS4)] */
 VGMSTREAM * init_vgmstream_sqex_sead(STREAMFILE * streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    off_t start_offset, mtrl_offset, meta_offset, post_meta_offset; //, info_offset, name_offset = 0;
-    size_t stream_size, subheader_size, special_size; //, name_size = 0;
+    off_t start_offset, tables_offset, mtrl_offset, meta_offset, post_meta_offset; //, info_offset, name_offset = 0;
+    size_t stream_size, descriptor_size, subheader_size, special_size; //, name_size = 0;
 
 
     int loop_flag = 0, channel_count, codec, sample_rate, loop_start, loop_end;
@@ -37,38 +37,43 @@ VGMSTREAM * init_vgmstream_sqex_sead(STREAMFILE * streamFile) {
     //    goto fail;
     /* 0x04(1): version? (usually 0x02, rarely 0x01, ex FF XV title) */
     /* 0x05(1): 0x00/01? */
-    /* 0x06(2): chunk size? (usually 0x10, rarely 0x20) */
-    if (read_16bitBE(0x06,streamFile) < 0x100) { /* use size as no apparent flag */
+    /* 0x06(2): version? (usually 0x10, rarely 0x20) */
+    if (read_16bitBE(0x06,streamFile) < 0x100) { /* use some value as no apparent flag */
         read_32bit = read_32bitBE;
         read_16bit = read_16bitBE;
     } else {
         read_32bit = read_32bitLE;
         read_16bit = read_16bitLE;
     }
-    /* 0x08(1): ?, 0x09(1): ?, 0x0a(2): ?  */
+    /* 0x08(1): version 0x04?, 0x0a(2): ?  */
+    descriptor_size = read_8bit(0x09,streamFile);
+
     if (read_32bit(0x0c,streamFile) != get_streamfile_size(streamFile))
         goto fail;
-    /* 0x10(10): file descriptor ("BGM", "Music", "SE", etc) */
+    /* 0x10(n): file descriptor ("BGM", "Music", "SE", etc, long names are ok), padded */
+    tables_offset = 0x10 + (descriptor_size + 0x01); /* string null seems counted for padding */
+    if (tables_offset % 0x10)
+        tables_offset += 0x10 - (tables_offset % 0x10);
 
 
     /** offset tables **/
     if (is_sab) {
-        if (read_32bitBE(0x20,streamFile) != 0x736E6420) goto fail; /* "snd " (info) */
-        if (read_32bitBE(0x30,streamFile) != 0x73657120) goto fail; /* "seq " (unknown) */
-        if (read_32bitBE(0x40,streamFile) != 0x74726B20) goto fail; /* "trk " (unknown) */
-        if (read_32bitBE(0x50,streamFile) != 0x6D74726C) goto fail; /* "mtrl" (headers/streams) */
-      //info_offset = read_32bit(0x28,streamFile);
-      //seq_offset  = read_32bit(0x38,streamFile);
-      //trk_offset  = read_32bit(0x48,streamFile);
-        mtrl_offset = read_32bit(0x58,streamFile);
+        if (read_32bitBE(tables_offset+0x00,streamFile) != 0x736E6420) goto fail; /* "snd " (info) */
+        if (read_32bitBE(tables_offset+0x10,streamFile) != 0x73657120) goto fail; /* "seq " (unknown) */
+        if (read_32bitBE(tables_offset+0x20,streamFile) != 0x74726B20) goto fail; /* "trk " (unknown) */
+        if (read_32bitBE(tables_offset+0x30,streamFile) != 0x6D74726C) goto fail; /* "mtrl" (headers/streams) */
+      //info_offset = read_32bit(tables_offset+0x08,streamFile);
+      //seq_offset  = read_32bit(tables_offset+0x18,streamFile);
+      //trk_offset  = read_32bit(tables_offset+0x28,streamFile);
+        mtrl_offset = read_32bit(tables_offset+0x38,streamFile);
     }
     else if (is_mab) {
-        if (read_32bitBE(0x20,streamFile) != 0x6D757363) goto fail; /* "musc" (info) */
-        if (read_32bitBE(0x30,streamFile) != 0x696E7374) goto fail; /* "inst" (unknown) */
-        if (read_32bitBE(0x40,streamFile) != 0x6D74726C) goto fail; /* "mtrl" (headers/streams) */
-      //info_offset = read_32bit(0x28,streamFile);
-      //inst_offset = read_32bit(0x38,streamFile);
-        mtrl_offset = read_32bit(0x48,streamFile);
+        if (read_32bitBE(tables_offset+0x00,streamFile) != 0x6D757363) goto fail; /* "musc" (info) */
+        if (read_32bitBE(tables_offset+0x10,streamFile) != 0x696E7374) goto fail; /* "inst" (unknown) */
+        if (read_32bitBE(tables_offset+0x20,streamFile) != 0x6D74726C) goto fail; /* "mtrl" (headers/streams) */
+      //info_offset = read_32bit(tables_offset+0x08,streamFile);
+      //inst_offset = read_32bit(tables_offset+0x18,streamFile);
+        mtrl_offset = read_32bit(tables_offset+0x28,streamFile);
     }
     else {
         goto fail;
