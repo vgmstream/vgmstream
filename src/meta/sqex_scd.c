@@ -12,12 +12,12 @@ static void scd_ogg_v3_decryption_callback(void *ptr, size_t size, size_t nmemb,
 VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[PATH_LIMIT];
-    off_t start_offset, tables_offset, meta_offset, post_meta_offset;
+    off_t start_offset, tables_offset, meta_offset, post_meta_offset, name_offset = 0;
     int32_t stream_size, subheader_size, loop_start, loop_end;
 
-    int total_subsongs, target_subsong = streamFile->stream_index;
     int loop_flag = 0, channel_count, codec, sample_rate;
-    int aux_chunk_count;
+    int version, target_entry, aux_chunk_count;
+    int total_subsongs, target_subsong = streamFile->stream_index;
 
     int32_t (*read_32bit)(off_t,STREAMFILE*) = NULL;
     int16_t (*read_16bit)(off_t,STREAMFILE*) = NULL;
@@ -33,24 +33,25 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
         read_32bitBE(0x04,streamFile) != 0x53534346)    /* "SSCF" */
         goto fail;
 
-    if (read_32bitBE(0x08,streamFile) == 2 || /* version 2 BE, as seen in FFXIII demo for PS3 */
-        read_32bitBE(0x08,streamFile) == 3) { /* version 3 BE, as seen in FFXIII for PS3 */
+    if (read_8bit(0x0c,streamFile) == 0x01) { /* big endian flag */
         //size_offset = 0x14;
         read_32bit = read_32bitBE;
         read_16bit = read_16bitBE;
-    }
-    else if (read_32bitLE(0x08,streamFile) == 2 || /* version 2/3 LE, as seen in FFXIV for PC (and others) */
-             read_32bitLE(0x08,streamFile) == 3) {
+    } else {
         //size_offset = 0x10;
         read_32bit = read_32bitLE;
         read_16bit = read_16bitLE;
     }
-    else {
-        goto fail;
-    }
 
-    /* 0x0c: probably 0=LE, 1=BE */
-    /* 0x0d: unknown (always 0x04) */
+    /* SSCF version? (older SSCFs from Crisis Core/FFXI X360 seem to be V3/2) */
+    if (read_8bit(0x0d,streamFile) != 0x04)
+        goto fail;
+
+    /* v2: FFXIII demo (PS3), FFT0 test files (PC); v3: common; v4: Kingdom Hearts 2.8 (PS4) */
+    version = read_32bit(0x08,streamFile);
+    if (version != 2 && version != 3 && version != 4)
+        goto fail;
+
     tables_offset = read_16bit(0x0e,streamFile); /* usually 0x30 or 0x20 */
 
 #if 0
@@ -74,7 +75,7 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
     /* 0x14: always null? */
     /* 0x18: table5? (unknown) start offset? */
     /* 0x1c: unknown, often null */
-    /* each table entry is an uint32_t offset */
+    /* each table entry is an uint32_t offset; after entries there is padding */
     /* if a table isn't present entries is 0 and offset points to next table */
 
     /* find meta_offset in table3 (headers) and total subsongs */
@@ -89,14 +90,16 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
 
         /* manually find subsongs as entries can be dummy (ex. sfx banks in FF XIV or FF Type-0) */
         for (i = 0; i < headers_entries; i++) {
-            off_t header_offset = read_32bit(headers_offset + i*0x04,streamFile);
+            off_t entry_offset = read_32bit(headers_offset + i*0x04,streamFile);
 
-            if (read_32bit(header_offset+0x0c,streamFile) == -1)
+            if (read_32bit(entry_offset+0x0c,streamFile) == -1)
                 continue; /* codec -1 when dummy */
 
             total_subsongs++;
-            if (!meta_offset && total_subsongs == target_subsong)
-                meta_offset = header_offset;
+            if (!meta_offset && total_subsongs == target_subsong) {
+                meta_offset = entry_offset;
+                target_entry = i;
+            }
         }
         if (meta_offset == 0) goto fail;
         /* SCD can contain 0 entries too */
@@ -129,10 +132,24 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
         post_meta_offset += read_32bit(post_meta_offset+0x04, streamFile);
     }
 
+    /* find name if possible */
+    if (version == 4) {
+        int info_entries    = read_16bit(tables_offset+0x00,streamFile);
+        int headers_entries = read_16bit(tables_offset+0x04,streamFile);
+        off_t info_offset   = tables_offset+0x20;
+
+        /* not very exact as table1 and table3 entries may differ in V3, not sure about V4 */
+        if (info_entries == headers_entries) {
+            off_t entry_offset = read_16bit(info_offset + 0x04*target_entry,streamFile);
+            name_offset = entry_offset+0x30;
+        }
+    }
+
 
 #ifdef VGM_USE_VORBIS
     /* special case using init_vgmstream_ogg_vorbis */
     if (codec == 0x06) {
+        VGMSTREAM *ogg_vgmstream;
         uint8_t ogg_version, ogg_byte;
         vgm_vorbis_info_t inf = {0};
 
@@ -176,7 +193,10 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
         }
 
         /* actual Ogg init */
-        return init_vgmstream_ogg_vorbis_callbacks(streamFile, filename, NULL, start_offset, &inf);
+        ogg_vgmstream = init_vgmstream_ogg_vorbis_callbacks(streamFile, filename, NULL, start_offset, &inf);
+        if (ogg_vgmstream && name_offset)
+            read_string(ogg_vgmstream->stream_name, PATH_LIMIT, name_offset, streamFile);
+        return ogg_vgmstream;
     }
 #endif
 
@@ -189,6 +209,8 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
     vgmstream->num_streams = total_subsongs;
     vgmstream->stream_size = stream_size;
     vgmstream->meta_type = meta_SQEX_SCD;
+    if (name_offset)
+        read_string(vgmstream->stream_name, PATH_LIMIT, name_offset, streamFile);
 
     switch (codec) {
         case 0x01:      /* PCM */
@@ -319,7 +341,7 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
         }
 
 #ifdef VGM_USE_FFMPEG
-        case 0x0B: {    /* XMA2 [Final Fantasy (X360), Lightning Returns (X360) sfx] */
+        case 0x0B: {    /* XMA2 [Final Fantasy (X360), Lightning Returns (X360) sfx, Kingdom Hearts 2.8 (X1)] */
                 ffmpeg_codec_data *ffmpeg_data = NULL;
                 uint8_t buf[200];
                 int32_t bytes;
@@ -369,6 +391,27 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
             }
             /* SCD loop/sample values are relative (without skip samples) vs RIFF (with skip samples), no need to adjust */
 
+            break;
+        }
+#endif
+
+#ifdef VGM_USE_ATRAC9
+        case 0x16: { /* ATRAC9 [Kingdom Hearts 2.8 (PS4)] */
+            atrac9_config cfg = {0};
+
+            /* post header has various typical ATRAC9 values */
+            cfg.channels = vgmstream->channels;
+            cfg.config_data = read_32bit(post_meta_offset+0x0c,streamFile);
+            cfg.encoder_delay = read_32bit(post_meta_offset+0x18,streamFile);
+
+            vgmstream->codec_data = init_atrac9(&cfg);
+            if (!vgmstream->codec_data) goto fail;
+            vgmstream->coding_type = coding_ATRAC9;
+            vgmstream->layout_type = layout_none;
+
+            vgmstream->num_samples = read_32bit(post_meta_offset+0x10,streamFile); /* loop values above are also weird and ignored */
+            vgmstream->loop_start_sample = read_32bit(post_meta_offset+0x20, streamFile) - (loop_flag ? cfg.encoder_delay : 0); //loop_start
+            vgmstream->loop_end_sample   = read_32bit(post_meta_offset+0x24, streamFile) - (loop_flag ? cfg.encoder_delay : 0); //loop_end
             break;
         }
 #endif
