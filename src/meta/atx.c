@@ -42,7 +42,7 @@ static STREAMFILE* setup_atx_streamfile(STREAMFILE *streamFile) {
     size_t filename_len;
     int i, num_segments = 0;
     size_t riff_size;
-VGM_LOG("1\n");
+
 
     if (read_16bitLE(0x1c,streamFile) != 0) goto fail; /* this must be first segment */
     if (read_16bitLE(0x1e,streamFile) < 1 || read_16bitLE(0x1e,streamFile) > ATX_MAX_SEGMENTS) goto fail;
@@ -57,7 +57,7 @@ VGM_LOG("1\n");
     for (i = 0; i < num_segments; i++) {
         off_t subfile_offset;
         size_t subfile_size;
-VGM_LOG("loop\n");
+
         filename[filename_len - 5] = ('0'+i+1); /* ghetto digit conversion */
         new_streamFile = open_stream_name(streamFile, filename);
         if (!new_streamFile) goto fail;
@@ -69,7 +69,7 @@ VGM_LOG("loop\n");
         /* parse block/segment header (other Media.Vision's files use it too) */
         subfile_offset = read_32bitLE(0x08,segment_streamFiles[i]); /* header size */
         subfile_size = read_32bitLE(0x14,segment_streamFiles[i]); /* can be 0 in other containers */
-VGM_LOG("subfile: %lx, %x\n", subfile_offset, subfile_size);
+
         if (read_16bitLE(0x1c,segment_streamFiles[i]) != i)
             goto fail; /* segment sequence */
         /* 0x04: block size (should match subfile_size in .ATX) */

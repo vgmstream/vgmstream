@@ -15,10 +15,15 @@ VGMSTREAM * init_vgmstream_ea_snr_sns(STREAMFILE * streamFile) {
     if (!check_extensions(streamFile,"snr"))
         goto fail;
 
-    /* SNR headers normally need an external SNS file, but some have data */
+    /* SNR headers normally need an external SNS file, but some have data [Burnout Paradise, NFL2013 (iOS)] */
     if (get_streamfile_size(streamFile) > 0x10) {
-        /* SNR with data (flag 0x40 not set), seen in Burnout Paradise, NFL2013 iOS */
-        off_t start_offset = (read_32bitBE(0x08, streamFile) == 0) ? 0x0c : 0x08;
+        off_t start_offset;
+
+        switch(read_8bit(0x04,streamFile)) { /* flags */
+            case 0x60: start_offset = 0x10; break;
+            case 0x20: start_offset = 0x0c; break;
+            default:   start_offset = 0x08; break;
+        }
 
         vgmstream = init_vgmstream_eaaudiocore_header(streamFile, streamFile, 0x00, start_offset, meta_EA_SNR_SNS);
         if (!vgmstream) goto fail;
@@ -31,11 +36,11 @@ VGMSTREAM * init_vgmstream_ea_snr_sns(STREAMFILE * streamFile) {
         if (!vgmstream) goto fail;
     }
 
-    if (streamData) close_streamfile(streamData);
+    close_streamfile(streamData);
     return vgmstream;
 
 fail:
-    if (streamData) close_streamfile(streamData);
+    close_streamfile(streamData);
     return NULL;
 }
 
@@ -119,7 +124,8 @@ static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE * streamHead, ST
     sample_rate = (uint16_t)read_16bitBE(header_offset + 0x02,streamHead);
     flags = (uint8_t)read_8bit(header_offset + 0x04,streamHead); /* upper nibble only? */
     num_samples = (uint32_t)read_32bitBE(header_offset + 0x04,streamHead) & 0x00FFFFFF;
-    /* optional, in some headers: 0x08: null?  0x0c: varies (ex. null, full size) */
+    /* rest is optional, depends on flags header used (ex. SNU and SPS may have bigger headers):
+     *  &0x20: 1 int (usually 0x00), &0x00/40: nothing, &0x60: 2 ints (usually 0x00 and 0x14) */
 
     /* V0: SNR+SNS, V1: SPR+SPS (not apparent differences) */
     if (version != 0 && version != 1) {
@@ -166,14 +172,14 @@ static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE * streamHead, ST
     /* EA decoder list and known internal FourCCs */
     switch(codec) {
 
-        case 0x02:      /* "P6B0": PCM16BE (NBA Jam Wii) */
+        case 0x02:      /* "P6B0": PCM16BE [NBA Jam (Wii)] */
             vgmstream->coding_type = coding_PCM16_int;
             vgmstream->codec_endian = 1;
             vgmstream->layout_type = layout_blocked_ea_sns;
             break;
 
 #ifdef VGM_USE_FFMPEG
-        case 0x03: {    /* "EXm0": EA-XMA (Dante's Inferno X360) */
+        case 0x03: {    /* "EXm0": EA-XMA [Dante's Inferno (X360)] */
             uint8_t buf[0x100];
             int bytes, block_size, block_count;
             size_t stream_size, virtual_size;
@@ -200,15 +206,15 @@ static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE * streamHead, ST
         }
 #endif
 
-        case 0x04:      /* "Xas1": EA-XAS (Dead Space PC/PS3) */
+        case 0x04:      /* "Xas1": EA-XAS [Dead Space (PC/PS3)] */
             vgmstream->coding_type = coding_EA_XAS;
             vgmstream->layout_type = layout_blocked_ea_sns;
             break;
 
 #ifdef VGM_USE_MPEG
-        case 0x05:      /* "EL31": EALayer3 v1 (Need for Speed: Hot Pursuit PS3) */
-        case 0x06:      /* "L32P": EALayer3 v2 "PCM" (Battlefield 1943 PS3) */
-        case 0x07: {    /* "L32S": EALayer3 v2 "Spike" (Dante's Inferno PS3) */
+        case 0x05:      /* "EL31": EALayer3 v1 [Need for Speed: Hot Pursuit (PS3)] */
+        case 0x06:      /* "L32P": EALayer3 v2 "PCM" [Battlefield 1943 (PS3)] */
+        case 0x07: {    /* "L32S": EALayer3 v2 "Spike" [Dante's Inferno (PS3)] */
             mpeg_custom_config cfg = {0};
             off_t mpeg_start_offset = start_offset + 0x08;
             mpeg_custom_t type = (codec == 0x05 ? MPEG_EAL31b : (codec == 0x06) ? MPEG_EAL32P : MPEG_EAL32S);
@@ -222,7 +228,13 @@ static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE * streamHead, ST
         }
 #endif
 
-#if 0 //todo unknown variation
+        case 0x08:      /* "Gca0"?: DSP [Need for Speed: Nitro sfx (Wii)] */
+            vgmstream->coding_type = coding_NGC_DSP;
+            vgmstream->layout_type = layout_blocked_ea_sns;
+            /* DSP coefs are read in the blocks */
+            break;
+
+#if 0 //todo buffered ATRAC9
 #ifdef VGM_USE_ATRAC9
         case 0x0a: {    /* EATrax */
             atrac9_config cfg = {0};
@@ -241,8 +253,7 @@ static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE * streamHead, ST
 #endif
 
         case 0x00: /* "NONE" (internal 'codec not set' flag) */
-        case 0x01: /* not used/reserved? Gca0/MP30/P6L0/P2B0/P2L0/P8S0/P8U0/PFN0? */
-        case 0x08: /* ? */
+        case 0x01: /* not used/reserved? /MP30/P6L0/P2B0/P2L0/P8S0/P8U0/PFN0? */
         case 0x09: /* EASpeex (libspeex variant, base versions vary: 1.0.5, 1.2beta3) */
         case 0x0b: /* ? */
         case 0x0c: /* EAOpus (inside each SNS/SPS block is 16b frame size + standard? Opus packet) */
