@@ -27,8 +27,8 @@ or you can get them here: https://github.com/kode54/vgmstream/tree/master/ext_li
 (bundled here: https://f.losno.co/vgmstream-win32-deps.zip, may not be latest).
 
 Put ```libvorbis.dll```, ```libmpg123-0.dll```, ```libg7221_decode.dll```, ```libg719_decode.dll```,
-```at3plusdecoder.dll```, ```avcodec-vgmstream-58.dll```, ```avformat-vgmstream-58.dll```, 
-```avutil-vgmstream-56.dll``` and ```swresample-vgmstream-3.dll``` somewhere Windows can
+```avcodec-vgmstream-58.dll```, ```avformat-vgmstream-58.dll```, ```avutil-vgmstream-56.dll```
+and ```swresample-vgmstream-3.dll``` somewhere Windows can
 find them.
 
 For Winamp/XMPlay/command line this means in the directory with the main .exe,

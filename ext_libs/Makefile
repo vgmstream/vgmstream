@@ -20,9 +20,6 @@ libg7221_decode.a: libg7221_decode.def
 libg719_decode.a: libg719_decode.def
 	$(DLLTOOL) -d libg719_decode.def -l libg719_decode.a
 
-libat3plusdecoder.a: at3plusdecoder.def
-	$(DLLTOOL) -d at3plusdecoder.def -l libat3plusdecoder.a
-
 libavcodec.a: avcodec-vgmstream-58.dll avcodec-vgmstream-58.def
 	$(DLLTOOL) -D avcodec-vgmstream-58.dll -d avcodec-vgmstream-58.def -l libavcodec.a
 
@@ -39,6 +36,6 @@ libatrac9.a: libatrac9.dll libatrac9.def
 	$(DLLTOOL) -D libatrac9.dll -d libatrac9.def -l libatrac9.a
 
 clean:
-	$(RMF) libvorbis.a libmpg123-0.a libg7221_decode.a libg719_decode.a libat3plusdecoder.a libavcodec.a libavformat.a libavutil.a libswresample.a libatrac9.a
+	$(RMF) libvorbis.a libmpg123-0.a libg7221_decode.a libg719_decode.a libavcodec.a libavformat.a libavutil.a libswresample.a libatrac9.a
 
 .PHONY: clean

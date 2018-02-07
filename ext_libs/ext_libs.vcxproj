@@ -51,11 +51,6 @@
   <ItemDefinitionGroup>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <CustomBuild Include="at3plusdecoder.def">
-      <Message>Building library stub</Message>
-      <Command>lib /def:at3plusdecoder.def /machine:x86</Command>
-      <Outputs>at3plusdecoder.lib;at3plusdecoder.exp;%(Outputs)</Outputs>
-    </CustomBuild>
     <CustomBuild Include="libmpg123-0.def">
       <Message>Building library stub</Message>
       <Command>lib /def:libmpg123-0.def /machine:x86
