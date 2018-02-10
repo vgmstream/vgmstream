@@ -36,30 +36,6 @@
 
 #define PLUGIN_DESCRIPTION "vgmstream plugin " VERSION " " __DATE__
 
-/* ************************************* */
-
-/* config */
-#define CONFIG_APP_NAME "vgmstream plugin"
-#define CONFIG_INI_NAME "plugin.ini"
-
-#define DEFAULT_FADE_SECONDS "10.00"
-#define DEFAULT_FADE_DELAY_SECONDS "0.00"
-#define DEFAULT_LOOP_COUNT "2.00"
-#define DEFAULT_THREAD_PRIORITY 3
-#define DEFAULT_LOOP_FOREVER 0
-#define DEFAULT_IGNORE_LOOP 0
-#define DEFAULT_DISABLE_SUBSONGS 0
-
-#define FADE_SECONDS_INI_ENTRY "fade_seconds"
-#define FADE_DELAY_SECONDS_INI_ENTRY "fade_delay"
-#define LOOP_COUNT_INI_ENTRY "loop_count"
-#define THREAD_PRIORITY_INI_ENTRY "thread_priority"
-#define LOOP_FOREVER_INI_ENTRY "loop_forever"
-#define IGNORE_LOOP_INI_ENTRY "ignore_loop"
-#define DISABLE_SUBSONGS_INI_ENTRY "disable_subsongs"
-
-char *priority_strings[] = {"Idle","Lowest","Below Normal","Normal","Above Normal","Highest (not recommended)","Time Critical (not recommended)"};
-int priority_values[] = {THREAD_PRIORITY_IDLE,THREAD_PRIORITY_LOWEST,THREAD_PRIORITY_BELOW_NORMAL,THREAD_PRIORITY_NORMAL,THREAD_PRIORITY_ABOVE_NORMAL,THREAD_PRIORITY_HIGHEST,THREAD_PRIORITY_TIME_CRITICAL};
 
 /* ************************************* */
 
@@ -72,19 +48,23 @@ DWORD WINAPI __stdcall decode(void *arg);
 #define EXT_BUFFER_SIZE 200
 char working_extension_list[EXTENSION_LIST_SIZE] = {0};
 
-/* plugin config */
-double fade_seconds;
-double fade_delay_seconds;
-double loop_count;
-int thread_priority;
-int loop_forever;
-int ignore_loop;
-int disable_subsongs;
+typedef struct {
+    double fade_seconds;
+    double fade_delay_seconds;
+    double loop_count;
+    int thread_priority;
+    int loop_forever;
+    int ignore_loop;
+    int disable_subsongs;
+    int downmix;
+} winamp_config;
+
+winamp_config config;
 
 /* plugin state */
 VGMSTREAM * vgmstream = NULL;
 HANDLE decode_thread_handle = INVALID_HANDLE_VALUE;
-short sample_buffer[576*2*2]; /* 576 16-bit samples, stereo, possibly doubled in size for DSP */
+short sample_buffer[(576*2) * 2]; /* at least 576 16-bit samples, stereo, doubled in case Winamp's DSP is active */
 
 int paused = 0;
 int decode_abort = 0;
@@ -93,6 +73,7 @@ int decode_pos_ms = 0;
 int decode_pos_samples = 0;
 int stream_length_samples = 0;
 int fade_samples = 0;
+int output_channels = 0;
 
 in_char lastfn[PATH_LIMIT] = {0}; /* name of the currently playing file */
 
@@ -162,10 +143,12 @@ static FILE* wa_fdopen(int fd) {
 #endif
 }
 
-
+/* ************************************* */
+/* IN_STREAMFILE                         */
+/* ************************************* */
 
 /* a STREAMFILE that operates via STDIOSTREAMFILE but handles Winamp's unicode (in_char) paths */
-typedef struct _WINAMP_STREAMFILE {
+typedef struct {
     STREAMFILE sf;
     STREAMFILE *stdiosf;
     FILE *infile_ref; /* pointer to the infile in stdiosf */
@@ -231,31 +214,31 @@ static void wasf_close(WINAMP_STREAMFILE *streamfile) {
 }
 
 static STREAMFILE *open_winamp_streamfile_by_file(FILE *infile, const char * path) {
-    WINAMP_STREAMFILE *streamfile = NULL;
+    WINAMP_STREAMFILE *this_sf = NULL;
     STREAMFILE *stdiosf = NULL;
 
-    streamfile = calloc(1,sizeof(WINAMP_STREAMFILE));
-    if (!streamfile) goto fail;
+    this_sf = calloc(1,sizeof(WINAMP_STREAMFILE));
+    if (!this_sf) goto fail;
 
     stdiosf = open_stdio_streamfile_by_file(infile,path);
     if (!stdiosf) goto fail;
 
-    streamfile->sf.read = (void*)wasf_read;
-    streamfile->sf.get_size = (void*)wasf_get_size;
-    streamfile->sf.get_offset = (void*)wasf_get_offset;
-    streamfile->sf.get_name = (void*)wasf_get_name;
-    streamfile->sf.get_realname = (void*)wasf_get_realname;
-    streamfile->sf.open = (void*)wasf_open;
-    streamfile->sf.close = (void*)wasf_close;
+    this_sf->sf.read = (void*)wasf_read;
+    this_sf->sf.get_size = (void*)wasf_get_size;
+    this_sf->sf.get_offset = (void*)wasf_get_offset;
+    this_sf->sf.get_name = (void*)wasf_get_name;
+    this_sf->sf.get_realname = (void*)wasf_get_realname;
+    this_sf->sf.open = (void*)wasf_open;
+    this_sf->sf.close = (void*)wasf_close;
 
-    streamfile->stdiosf = stdiosf;
-    streamfile->infile_ref = infile;
+    this_sf->stdiosf = stdiosf;
+    this_sf->infile_ref = infile;
 
-    return &streamfile->sf; /* pointer to STREAMFILE start = rest of the custom data follows */
+    return &this_sf->sf; /* pointer to STREAMFILE start = rest of the custom data follows */
 
 fail:
     close_streamfile(stdiosf);
-    free(streamfile);
+    free(this_sf);
     return NULL;
 }
 
@@ -297,7 +280,355 @@ static VGMSTREAM* init_vgmstream_winamp(const in_char *fn, int stream_index) {
     return vgmstream;
 }
 
+
 /* ************************************* */
+/* IN_CONFIG                             */
+/* ************************************* */
+
+/* Windows unicode, separate from Winamp's unicode flag */
+#ifdef UNICODE
+#define cfg_strncpy wcsncpy
+#define cfg_strncat wcsncat
+#define cfg_sprintf _swprintf
+#define cfg_sscanf swscanf
+#define cfg_strlen wcslen
+#define cfg_strrchr wcsrchr
+#else
+#define cfg_strncpy strncpy
+#define cfg_strncat strncat
+#define cfg_sprintf sprintf
+#define cfg_sscanf sscanf
+#define cfg_strlen strlen
+#define cfg_strrchr strrchr
+#endif
+
+/* converts from utf8 to utf16 (if unicode is active) */
+static void cfg_char_to_wchar(TCHAR *wdst, size_t wdstsize, const char *src) {
+#ifdef UNICODE
+    //int size_needed = MultiByteToWideChar(CP_UTF8,0, src,-1, NULL,0);
+    MultiByteToWideChar(CP_UTF8,0, src,-1, wdst,wdstsize);
+#else
+    strcpy(wdst,src);
+#endif
+}
+
+/* config */
+#define CONFIG_APP_NAME  TEXT("vgmstream plugin")
+#define CONFIG_INI_NAME  TEXT("plugin.ini")
+
+#define DEFAULT_FADE_SECONDS  TEXT("10.00")
+#define DEFAULT_FADE_DELAY_SECONDS  TEXT("0.00")
+#define DEFAULT_LOOP_COUNT  TEXT("2.00")
+#define DEFAULT_THREAD_PRIORITY  3
+#define DEFAULT_LOOP_FOREVER  0
+#define DEFAULT_IGNORE_LOOP  0
+#define DEFAULT_DISABLE_SUBSONGS  0
+#define DEFAULT_DOWNMIX  0
+
+#define INI_ENTRY_FADE_SECONDS  TEXT("fade_seconds")
+#define INI_ENTRY_FADE_DELAY_SECONDS  TEXT("fade_delay")
+#define INI_ENTRY_LOOP_COUNT  TEXT("loop_count")
+#define INI_ENTRY_THREAD_PRIORITY  TEXT("thread_priority")
+#define INI_ENTRY_LOOP_FOREVER  TEXT("loop_forever")
+#define INI_ENTRY_IGNORE_LOOP  TEXT("ignore_loop")
+#define INI_ENTRY_DISABLE_SUBSONGS  TEXT("disable_subsongs")
+#define INI_ENTRY_DOWNMIX  TEXT("downmix")
+
+TCHAR *priority_strings[] = {
+        TEXT("Idle"),
+        TEXT("Lowest"),
+        TEXT("Below Normal"),
+        TEXT("Normal"),
+        TEXT("Above Normal"),
+        TEXT("Highest (not recommended)"),
+        TEXT("Time Critical (not recommended)")
+};
+int priority_values[] = {
+        THREAD_PRIORITY_IDLE,
+        THREAD_PRIORITY_LOWEST,
+        THREAD_PRIORITY_BELOW_NORMAL,
+        THREAD_PRIORITY_NORMAL,
+        THREAD_PRIORITY_ABOVE_NORMAL,
+        THREAD_PRIORITY_HIGHEST,
+        THREAD_PRIORITY_TIME_CRITICAL
+};
+
+// todo finish UNICODE (requires IPC_GETINIDIRECTORYW from later SDKs to read the ini path properly)
+
+/* Winamp INI reader */
+static void GetINIFileName(TCHAR *iniFile) {
+    /* if we're running on a newer winamp version that better supports
+     * saving of settings to a per-user directory, use that directory - if not
+     * then just revert to the old behaviour */
+
+    if(IsWindow(input_module.hMainWindow) && SendMessage(input_module.hMainWindow, WM_WA_IPC,0,IPC_GETVERSION) >= 0x5000) {
+        TCHAR * iniDir = (TCHAR *)SendMessage(input_module.hMainWindow, WM_WA_IPC, 0, IPC_GETINIDIRECTORY);
+        cfg_strncpy(iniFile, iniDir, PATH_LIMIT);
+
+        cfg_strncat(iniFile, TEXT("\\Plugins\\"), PATH_LIMIT);
+
+        /* can't be certain that \Plugins already exists in the user dir */
+        CreateDirectory(iniFile,NULL);
+
+        cfg_strncat(iniFile, CONFIG_INI_NAME, PATH_LIMIT);
+    }
+    else {
+        TCHAR * lastSlash;
+
+        GetModuleFileName(NULL, iniFile, PATH_LIMIT);
+        lastSlash = cfg_strrchr(iniFile, TEXT('\\'));
+
+        *(lastSlash + 1) = 0;
+        cfg_strncat(iniFile, TEXT("Plugins\\") CONFIG_INI_NAME,PATH_LIMIT);
+    }
+}
+
+
+static void load_config() {
+    TCHAR iniFile[PATH_LIMIT];
+    TCHAR buf[256];
+    size_t buf_size = 256;
+    int consumed, res;
+
+    GetINIFileName(iniFile);
+
+    config.thread_priority = GetPrivateProfileInt(CONFIG_APP_NAME,INI_ENTRY_THREAD_PRIORITY,DEFAULT_THREAD_PRIORITY,iniFile);
+    if (config.thread_priority < 0 || config.thread_priority > 6) {
+        cfg_sprintf(buf, TEXT("%d"),DEFAULT_THREAD_PRIORITY);
+        WritePrivateProfileString(CONFIG_APP_NAME,INI_ENTRY_THREAD_PRIORITY,buf,iniFile);
+        config.thread_priority = DEFAULT_THREAD_PRIORITY;
+    }
+
+    GetPrivateProfileString(CONFIG_APP_NAME,INI_ENTRY_FADE_SECONDS,DEFAULT_FADE_SECONDS,buf,buf_size,iniFile);
+    res = cfg_sscanf(buf, TEXT("%lf%n"),&config.fade_seconds,&consumed);
+    if (res < 1 || consumed != cfg_strlen(buf) || config.fade_seconds < 0) {
+        WritePrivateProfileString(CONFIG_APP_NAME,INI_ENTRY_FADE_SECONDS,DEFAULT_FADE_SECONDS,iniFile);
+        cfg_sscanf(DEFAULT_FADE_SECONDS, TEXT("%lf"),&config.fade_seconds);
+    }
+
+    GetPrivateProfileString(CONFIG_APP_NAME,INI_ENTRY_FADE_DELAY_SECONDS,DEFAULT_FADE_DELAY_SECONDS,buf,buf_size,iniFile);
+    res = cfg_sscanf(buf, TEXT("%lf%n"),&config.fade_delay_seconds,&consumed);
+    if (res < 1 || consumed != cfg_strlen(buf)) {
+        WritePrivateProfileString(CONFIG_APP_NAME,INI_ENTRY_FADE_DELAY_SECONDS,DEFAULT_FADE_DELAY_SECONDS,iniFile);
+        cfg_sscanf(DEFAULT_FADE_DELAY_SECONDS, TEXT("%lf"),&config.fade_delay_seconds);
+    }
+
+    GetPrivateProfileString(CONFIG_APP_NAME,INI_ENTRY_LOOP_COUNT,DEFAULT_LOOP_COUNT,buf,buf_size,iniFile);
+    res = cfg_sscanf(buf, TEXT("%lf%n"),&config.loop_count,&consumed);
+    if (res < 1 || consumed != cfg_strlen(buf) || config.loop_count < 0) {
+        WritePrivateProfileString(CONFIG_APP_NAME,INI_ENTRY_LOOP_COUNT,DEFAULT_LOOP_COUNT,iniFile);
+        cfg_sscanf(DEFAULT_LOOP_COUNT, TEXT("%lf"),&config.loop_count);
+    }
+
+    config.loop_forever = GetPrivateProfileInt(CONFIG_APP_NAME,INI_ENTRY_LOOP_FOREVER,DEFAULT_LOOP_FOREVER,iniFile);
+    config.ignore_loop = GetPrivateProfileInt(CONFIG_APP_NAME,INI_ENTRY_IGNORE_LOOP,DEFAULT_IGNORE_LOOP,iniFile);
+    if (config.loop_forever && config.ignore_loop) {
+        cfg_sprintf(buf, TEXT("%d"),DEFAULT_LOOP_FOREVER);
+        WritePrivateProfileString(CONFIG_APP_NAME,INI_ENTRY_LOOP_FOREVER,buf,iniFile);
+        config.loop_forever = DEFAULT_LOOP_FOREVER;
+
+        cfg_sprintf(buf, TEXT("%d"),DEFAULT_IGNORE_LOOP);
+        WritePrivateProfileString(CONFIG_APP_NAME,INI_ENTRY_IGNORE_LOOP,buf,iniFile);
+        config.ignore_loop = DEFAULT_IGNORE_LOOP;
+    }
+
+    config.disable_subsongs = GetPrivateProfileInt(CONFIG_APP_NAME,INI_ENTRY_DISABLE_SUBSONGS,DEFAULT_DISABLE_SUBSONGS,iniFile);
+    //if (config.disable_subsongs < 0) { //unneeded?
+    //    sprintf(buf, TEXT("%d"),DEFAULT_DISABLE_SUBSONGS);
+    //    WritePrivateProfileString(CONFIG_APP_NAME,INI_ENTRY_DISABLE_SUBSONGS,buf,iniFile);
+    //    config.disable_subsongs = DEFAULT_DISABLE_SUBSONGS;
+    //}
+
+    config.downmix = GetPrivateProfileInt(CONFIG_APP_NAME,INI_ENTRY_DOWNMIX,DEFAULT_DOWNMIX,iniFile);
+    //if (config.downmix < 0) { //unneeded?
+    //    sprintf(buf, TEXT("%d"),DEFAULT_DOWNMIX);
+    //    WritePrivateProfileString(CONFIG_APP_NAME,INI_ENTRY_DOWNMIX,buf,iniFile);
+    //    config.downmix = DEFAULT_DOWNMIX;
+    //}
+}
+
+/* config dialog handler */
+INT_PTR CALLBACK configDlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+    TCHAR buf[256];
+    TCHAR iniFile[PATH_LIMIT];
+    static int mypri;
+    HANDLE hSlider;
+    size_t buf_size = 256;
+
+    switch (uMsg) {
+        case WM_CLOSE: /* hide dialog */
+            EndDialog(hDlg,TRUE);
+            return TRUE;
+
+        case WM_INITDIALOG: /* open dialog */
+            GetINIFileName(iniFile); //todo unneeded?
+
+            hSlider = GetDlgItem(hDlg,IDC_THREAD_PRIORITY_SLIDER);
+            SendMessage(hSlider, TBM_SETRANGE,
+                    (WPARAM) TRUE,                  /* redraw flag */
+                    (LPARAM) MAKELONG(1, 7));       /* min. & max. positions */
+            SendMessage(hSlider, TBM_SETPOS,
+                    (WPARAM) TRUE,                  /* redraw flag */
+                    (LPARAM) config.thread_priority+1);
+            mypri = config.thread_priority;
+            SetDlgItemText(hDlg,IDC_THREAD_PRIORITY_TEXT,priority_strings[config.thread_priority]);
+
+            cfg_sprintf(buf, TEXT("%.2lf"),config.fade_seconds);
+            SetDlgItemText(hDlg,IDC_FADE_SECONDS,buf);
+
+            cfg_sprintf(buf, TEXT("%.2lf"),config.fade_delay_seconds);
+            SetDlgItemText(hDlg,IDC_FADE_DELAY_SECONDS,buf);
+
+            cfg_sprintf(buf, TEXT("%.2lf"),config.loop_count);
+            SetDlgItemText(hDlg,IDC_LOOP_COUNT,buf);
+
+            if (config.loop_forever)
+                CheckDlgButton(hDlg,IDC_LOOP_FOREVER,BST_CHECKED);
+            else if (config.ignore_loop)
+                CheckDlgButton(hDlg,IDC_IGNORE_LOOP,BST_CHECKED);
+            else
+                CheckDlgButton(hDlg,IDC_LOOP_NORMALLY,BST_CHECKED);
+
+            if (config.disable_subsongs)
+                CheckDlgButton(hDlg,IDC_DISABLE_SUBSONGS,BST_CHECKED);
+
+            if (config.downmix)
+                CheckDlgButton(hDlg,IDC_DOWNMIX,BST_CHECKED);
+
+            break;
+
+        case WM_COMMAND: /* button presses */
+            switch (GET_WM_COMMAND_ID(wParam, lParam)) {
+                case IDOK: /* read and verify new values */
+                    {
+                        double temp_fade_seconds;
+                        double temp_fade_delay_seconds;
+                        double temp_loop_count;
+                        int consumed, res;
+
+                        GetDlgItemText(hDlg,IDC_FADE_SECONDS,buf,buf_size);
+                        res = cfg_sscanf(buf, TEXT("%lf%n"),&temp_fade_seconds,&consumed);
+                        if (res < 1 || consumed != cfg_strlen(buf) || temp_fade_seconds < 0) {
+                            MessageBox(hDlg,
+                                    TEXT("Invalid value for Fade Length\n")
+                                    TEXT("Must be a number greater than or equal to zero"),
+                                    TEXT("Error"),MB_OK|MB_ICONERROR);
+                            break;
+                        }
+
+                        GetDlgItemText(hDlg,IDC_FADE_DELAY_SECONDS,buf,buf_size);
+                        res = cfg_sscanf(buf, TEXT("%lf%n"),&temp_fade_delay_seconds,&consumed);
+                        if (res < 1 || consumed != cfg_strlen(buf)) {
+                            MessageBox(hDlg,
+                                    TEXT("Invalid value for Fade Delay\n")
+                                    TEXT("Must be a number"),
+                                    TEXT("Error"),MB_OK|MB_ICONERROR);
+                            break;
+                        }
+
+                        GetDlgItemText(hDlg,IDC_LOOP_COUNT,buf,buf_size);
+                        res = cfg_sscanf(buf, TEXT("%lf%n"),&temp_loop_count,&consumed);
+                        if (res < 1 || consumed != cfg_strlen(buf) || temp_loop_count < 0) {
+                            MessageBox(hDlg,
+                                    TEXT("Invalid value for Loop Count\n")
+                                    TEXT("Must be a number greater than or equal to zero"),
+                                    TEXT("Error"),MB_OK|MB_ICONERROR);
+                            break;
+                        }
+
+                        GetINIFileName(iniFile);
+
+                        config.thread_priority = mypri;
+                        cfg_sprintf(buf, TEXT("%d"),config.thread_priority);
+                        WritePrivateProfileString(CONFIG_APP_NAME,INI_ENTRY_THREAD_PRIORITY,buf,iniFile);
+
+                        config.fade_seconds = temp_fade_seconds;
+                        cfg_sprintf(buf, TEXT("%.2lf"),config.fade_seconds);
+                        WritePrivateProfileString(CONFIG_APP_NAME,INI_ENTRY_FADE_SECONDS,buf,iniFile);
+
+                        config.fade_delay_seconds = temp_fade_delay_seconds;
+                        cfg_sprintf(buf, TEXT("%.2lf"),config.fade_delay_seconds);
+                        WritePrivateProfileString(CONFIG_APP_NAME,INI_ENTRY_FADE_DELAY_SECONDS,buf,iniFile);
+
+                        config.loop_count = temp_loop_count;
+                        cfg_sprintf(buf, TEXT("%.2lf"),config.loop_count);
+                        WritePrivateProfileString(CONFIG_APP_NAME,INI_ENTRY_LOOP_COUNT,buf,iniFile);
+
+                        config.loop_forever = (IsDlgButtonChecked(hDlg,IDC_LOOP_FOREVER) == BST_CHECKED);
+                        cfg_sprintf(buf, TEXT("%d"),config.loop_forever);
+                        WritePrivateProfileString(CONFIG_APP_NAME,INI_ENTRY_LOOP_FOREVER,buf,iniFile);
+
+                        config.ignore_loop = (IsDlgButtonChecked(hDlg,IDC_IGNORE_LOOP) == BST_CHECKED);
+                        cfg_sprintf(buf, TEXT("%d"),config.ignore_loop);
+                        WritePrivateProfileString(CONFIG_APP_NAME,INI_ENTRY_IGNORE_LOOP,buf,iniFile);
+
+                        config.disable_subsongs = (IsDlgButtonChecked(hDlg,IDC_DISABLE_SUBSONGS) == BST_CHECKED);
+                        cfg_sprintf(buf, TEXT("%d"),config.disable_subsongs);
+                        WritePrivateProfileString(CONFIG_APP_NAME,INI_ENTRY_DISABLE_SUBSONGS,buf,iniFile);
+
+                        config.downmix = (IsDlgButtonChecked(hDlg,IDC_DOWNMIX) == BST_CHECKED);
+                        cfg_sprintf(buf, TEXT("%d"),config.downmix);
+                        WritePrivateProfileString(CONFIG_APP_NAME,INI_ENTRY_DOWNMIX,buf,iniFile);
+                    }
+
+                    EndDialog(hDlg,TRUE);
+                    break;
+
+                case IDCANCEL:
+                    EndDialog(hDlg,TRUE);
+                    break;
+
+                case IDC_DEFAULT_BUTTON:
+                    hSlider = GetDlgItem(hDlg,IDC_THREAD_PRIORITY_SLIDER);
+                    SendMessage(hSlider, TBM_SETRANGE,
+                            (WPARAM) TRUE,                  /* redraw flag */
+                            (LPARAM) MAKELONG(1, 7));       /* min. & max. positions */
+                    SendMessage(hSlider, TBM_SETPOS,
+                            (WPARAM) TRUE,                  /* redraw flag */
+                            (LPARAM) DEFAULT_THREAD_PRIORITY+1);
+                    mypri = DEFAULT_THREAD_PRIORITY;
+                    SetDlgItemText(hDlg,IDC_THREAD_PRIORITY_TEXT,priority_strings[mypri]);
+
+                    SetDlgItemText(hDlg,IDC_FADE_SECONDS,DEFAULT_FADE_SECONDS);
+                    SetDlgItemText(hDlg,IDC_FADE_DELAY_SECONDS,DEFAULT_FADE_DELAY_SECONDS);
+                    SetDlgItemText(hDlg,IDC_LOOP_COUNT,DEFAULT_LOOP_COUNT);
+
+                    CheckDlgButton(hDlg,IDC_LOOP_FOREVER,BST_UNCHECKED);
+                    CheckDlgButton(hDlg,IDC_IGNORE_LOOP,BST_UNCHECKED);
+                    CheckDlgButton(hDlg,IDC_LOOP_NORMALLY,BST_CHECKED);
+
+                    CheckDlgButton(hDlg,IDC_DISABLE_SUBSONGS,BST_UNCHECKED);
+                    CheckDlgButton(hDlg,IDC_DOWNMIX,BST_UNCHECKED);
+                    break;
+
+                default:
+                    return FALSE;
+            }
+            return FALSE;
+
+        case WM_HSCROLL: /* priority scroll */
+            if ((struct HWND__ *)lParam==GetDlgItem(hDlg,IDC_THREAD_PRIORITY_SLIDER)) {
+                if (LOWORD(wParam)==TB_THUMBPOSITION || LOWORD(wParam)==TB_THUMBTRACK) {
+                    mypri = HIWORD(wParam)-1;
+                }
+                else {
+                    mypri = SendMessage(GetDlgItem(hDlg,IDC_THREAD_PRIORITY_SLIDER),TBM_GETPOS,0,0)-1;
+                }
+                SetDlgItemText(hDlg,IDC_THREAD_PRIORITY_TEXT,priority_strings[mypri]);
+            }
+            break;
+
+        default:
+            return FALSE;
+    }
+
+    return TRUE;
+}
+
+
+/* ***************************************** */
+/* IN_VGMSTREAM UTILS                        */
+/* ***************************************** */
 
 /* makes a modified filename, suitable to pass parameters around */
 static void make_fn_subsong(in_char * dst, int dst_size, const in_char * filename, int stream_index) {
@@ -312,7 +643,7 @@ static int split_subsongs(const in_char * filename, int stream_index, VGMSTREAM 
     HWND hPlaylistWindow;
 
 
-    if (disable_subsongs || vgmstream->num_streams <= 1 || (vgmstream->num_streams > 1 && stream_index > 0))
+    if (config.disable_subsongs || vgmstream->num_streams <= 1 || (vgmstream->num_streams > 1 && stream_index > 0))
         return 0; /* no split if no subsongs or playing a subsong */
 
     hPlaylistWindow = (HWND)SendMessage(input_module.hMainWindow, WM_WA_IPC, IPC_GETWND_PE, IPC_GETWND);
@@ -383,42 +714,14 @@ static int parse_fn_int(const in_char * fn, const in_char * tag, int * num) {
 
 /* try to detect XMPlay, which can't interact with the playlist = no splitting */
 static int is_xmplay() {
-    if (GetModuleHandle("xmplay.exe"))
+    if (GetModuleHandle( TEXT("xmplay.exe") ))
         return 1;
-    if (GetModuleHandle("xmp-wadsp.dll"))
+    if (GetModuleHandle( TEXT("xmp-wadsp.dll") ))
         return 1;
-    if (GetModuleHandle("xmp-wma.dll"))
+    if (GetModuleHandle( TEXT("xmp-wma.dll") ))
         return 1;
 
     return 0;
-}
-
-/* ************************************* */
-
-/* Winamp INI reader */
-static void GetINIFileName(char * iniFile) {
-    /* if we're running on a newer winamp version that better supports
-     * saving of settings to a per-user directory, use that directory - if not
-     * then just revert to the old behaviour */
-
-    if(IsWindow(input_module.hMainWindow) && SendMessage(input_module.hMainWindow, WM_WA_IPC,0,IPC_GETVERSION) >= 0x5000) {
-        char * iniDir = (char *)SendMessage(input_module.hMainWindow, WM_WA_IPC, 0, IPC_GETINIDIRECTORY);
-        strncpy(iniFile, iniDir, PATH_LIMIT);
-
-        strncat(iniFile, "\\Plugins\\", PATH_LIMIT);
-        /* can't be certain that \Plugins already exists in the user dir */
-        CreateDirectory(iniFile,NULL);
-        strncat(iniFile, CONFIG_INI_NAME, PATH_LIMIT);
-    }
-    else {
-        char * lastSlash;
-
-        GetModuleFileName(NULL, iniFile, PATH_LIMIT);
-        lastSlash = strrchr(iniFile, '\\');
-
-        *(lastSlash + 1) = 0;
-        strncat(iniFile, "Plugins\\" CONFIG_INI_NAME,PATH_LIMIT);
-    }
 }
 
 /* Adds ext to Winamp's extension list */
@@ -507,77 +810,41 @@ static void get_title(in_char * dst, int dst_size, const in_char * fn, VGMSTREAM
     }
 }
 
+
+/* ***************************************** */
+/* IN_VGMSTREAM                              */
 /* ***************************************** */
 
 /* about dialog */
 void winamp_About(HWND hwndParent) {
-    MessageBox(hwndParent,
+    const char *ABOUT_TEXT =
             PLUGIN_DESCRIPTION "\n"
             "by hcs, FastElbja, manakoAT, bxaimc, snakemeat, soneek, kode54, bnnm and many others\n"
             "\n"
             "Winamp plugin by hcs, others\n"
             "\n"
             "https://github.com/kode54/vgmstream/\n"
-            "https://sourceforge.net/projects/vgmstream/ (original)"
-            ,"about in_vgmstream",MB_OK);
+            "https://sourceforge.net/projects/vgmstream/ (original)";
+
+    {
+        TCHAR buf[1024];
+        size_t buf_size = 1024;
+
+        cfg_char_to_wchar(buf, buf_size, ABOUT_TEXT);
+        MessageBox(hwndParent, buf,TEXT("about in_vgmstream"),MB_OK);
+    }
 }
 
 /* called at program init */
 void winamp_Init() {
-    char iniFile[PATH_LIMIT];
-    char buf[256];
-    int consumed;
 
+    /* get ini config */
+    load_config();
 
-    GetINIFileName(iniFile);
-
-    thread_priority = GetPrivateProfileInt(CONFIG_APP_NAME,THREAD_PRIORITY_INI_ENTRY,DEFAULT_THREAD_PRIORITY,iniFile);
-    if (thread_priority < 0 || thread_priority > 6) {
-        sprintf(buf,"%d",DEFAULT_THREAD_PRIORITY);
-        WritePrivateProfileString(CONFIG_APP_NAME,THREAD_PRIORITY_INI_ENTRY,buf,iniFile);
-        thread_priority = DEFAULT_THREAD_PRIORITY;
-    }
-
-    GetPrivateProfileString(CONFIG_APP_NAME,FADE_SECONDS_INI_ENTRY,DEFAULT_FADE_SECONDS,buf,sizeof(buf),iniFile);
-    if (sscanf(buf,"%lf%n",&fade_seconds,&consumed)<1 || consumed!=strlen(buf) || fade_seconds < 0) {
-        WritePrivateProfileString(CONFIG_APP_NAME,FADE_SECONDS_INI_ENTRY,DEFAULT_FADE_SECONDS,iniFile);
-        sscanf(DEFAULT_FADE_SECONDS,"%lf",&fade_seconds);
-    }
-
-    GetPrivateProfileString(CONFIG_APP_NAME,FADE_DELAY_SECONDS_INI_ENTRY,DEFAULT_FADE_DELAY_SECONDS,buf,sizeof(buf),iniFile);
-    if (sscanf(buf,"%lf%n",&fade_delay_seconds,&consumed)<1 || consumed!=strlen(buf)) {
-        WritePrivateProfileString(CONFIG_APP_NAME,FADE_DELAY_SECONDS_INI_ENTRY,DEFAULT_FADE_DELAY_SECONDS,iniFile);
-        sscanf(DEFAULT_FADE_DELAY_SECONDS,"%lf",&fade_delay_seconds);
-    }
-
-    GetPrivateProfileString(CONFIG_APP_NAME,LOOP_COUNT_INI_ENTRY,DEFAULT_LOOP_COUNT,buf,sizeof(buf),iniFile);
-    if (sscanf(buf,"%lf%n",&loop_count,&consumed)!=1 || consumed!=strlen(buf) || loop_count < 0) {
-        WritePrivateProfileString(CONFIG_APP_NAME,LOOP_COUNT_INI_ENTRY,DEFAULT_LOOP_COUNT,iniFile);
-        sscanf(DEFAULT_LOOP_COUNT,"%lf",&loop_count);
-    }
-
-    loop_forever = GetPrivateProfileInt(CONFIG_APP_NAME,LOOP_FOREVER_INI_ENTRY,DEFAULT_LOOP_FOREVER,iniFile);
-    ignore_loop = GetPrivateProfileInt(CONFIG_APP_NAME,IGNORE_LOOP_INI_ENTRY,DEFAULT_IGNORE_LOOP,iniFile);
-    if (loop_forever && ignore_loop) {
-        sprintf(buf,"%d",DEFAULT_LOOP_FOREVER);
-        WritePrivateProfileString(CONFIG_APP_NAME,LOOP_FOREVER_INI_ENTRY,buf,iniFile);
-        loop_forever = DEFAULT_LOOP_FOREVER;
-
-        sprintf(buf,"%d",DEFAULT_IGNORE_LOOP);
-        WritePrivateProfileString(CONFIG_APP_NAME,IGNORE_LOOP_INI_ENTRY,buf,iniFile);
-        ignore_loop = DEFAULT_IGNORE_LOOP;
-    }
-
-    disable_subsongs = GetPrivateProfileInt(CONFIG_APP_NAME,DISABLE_SUBSONGS_INI_ENTRY,DEFAULT_DISABLE_SUBSONGS,iniFile);
-    //if (disable_subsongs < 0) {
-    //    sprintf(buf,"%d",DEFAULT_DISABLE_SUBSONGS);
-    //    WritePrivateProfileString(CONFIG_APP_NAME,DISABLE_SUBSONGS_INI_ENTRY,buf,iniFile);
-    //    disable_subsongs = DEFAULT_DISABLE_SUBSONGS;
-    //}
 
     /* XMPlay with in_vgmstream doesn't support most IPC_x messages so no playlist manipulation */
     if (is_xmplay()) {
-        disable_subsongs = 1;
+        config.disable_subsongs = 1;
     }
 
     /* dynamically make a list of supported extensions */
@@ -619,26 +886,31 @@ int winamp_Play(const in_char *fn) {
     }
 
     /* config */
-    if (ignore_loop)
+    if (config.ignore_loop)
         vgmstream->loop_flag = 0;
+
+    output_channels = vgmstream->channels;
+    if (config.downmix)
+        output_channels = vgmstream->channels > 2 ? 2 : vgmstream->channels;
+
 
     /* save original name */
     wa_strncpy(lastfn,fn,PATH_LIMIT);
 
     /* open the output plugin */
-    max_latency = input_module.outMod->Open(vgmstream->sample_rate,vgmstream->channels, 16, 0, 0);
+    max_latency = input_module.outMod->Open(vgmstream->sample_rate,output_channels, 16, 0, 0);
     if (max_latency < 0) {
         close_vgmstream(vgmstream);
         vgmstream = NULL;
         return 1;
     }
 
-    /* set info display */ //TODO: actual bitrate
-    input_module.SetInfo(get_vgmstream_average_bitrate(vgmstream)/1000,vgmstream->sample_rate/1000,vgmstream->channels,1);
+    /* set info display */
+    input_module.SetInfo(get_vgmstream_average_bitrate(vgmstream)/1000, vgmstream->sample_rate/1000, output_channels, 1);
 
     /* setup visualization */
     input_module.SAVSAInit(max_latency,vgmstream->sample_rate);
-    input_module.VSASetInfo(vgmstream->sample_rate,vgmstream->channels);
+    input_module.VSASetInfo(vgmstream->sample_rate,output_channels);
 
     /* reset internals */
     decode_abort = 0;
@@ -646,8 +918,8 @@ int winamp_Play(const in_char *fn) {
     decode_pos_ms = 0;
     decode_pos_samples = 0;
     paused = 0;
-    stream_length_samples = get_vgmstream_play_samples(loop_count,fade_seconds,fade_delay_seconds,vgmstream);
-    fade_samples = (int)(fade_seconds * vgmstream->sample_rate);
+    stream_length_samples = get_vgmstream_play_samples(config.loop_count,config.fade_seconds,config.fade_delay_seconds,vgmstream);
+    fade_samples = (int)(config.fade_seconds * vgmstream->sample_rate);
 
     /* start */
     decode_thread_handle = CreateThread(
@@ -658,7 +930,7 @@ int winamp_Play(const in_char *fn) {
             0,      /* run thread immediately */
             NULL);  /* don't keep track of the thread id */
 
-    SetThreadPriority(decode_thread_handle,priority_values[thread_priority]);
+    SetThreadPriority(decode_thread_handle,priority_values[config.thread_priority]); //todo don't use priority values directly?
 
     return 0; /* success */
 }
@@ -730,15 +1002,16 @@ void winamp_SetPan(int pan) {
 /* display info box (ALT+3) */
 int winamp_InfoBox(const in_char *fn, HWND hwnd) {
     char description[1024] = {0};
+    size_t description_size = 1024;
 
-    concatn(sizeof(description),description,PLUGIN_DESCRIPTION "\n\n");
+    concatn(description_size,description,PLUGIN_DESCRIPTION "\n\n");
 
     if (!fn || !*fn) {
         /* no filename = current playing file */
         if (!vgmstream)
             return 0;
 
-        describe_vgmstream(vgmstream,description,sizeof(description));
+        describe_vgmstream(vgmstream,description,description_size);
     }
     else {
         /* some other file in playlist given by filename */
@@ -754,13 +1027,20 @@ int winamp_InfoBox(const in_char *fn, HWND hwnd) {
         if (!infostream)
             return 0;
 
-        describe_vgmstream(infostream,description,sizeof(description));
+        describe_vgmstream(infostream,description,description_size);
 
         close_vgmstream(infostream);
         infostream = NULL;
     }
 
-    MessageBox(hwnd,description,"Stream info",MB_OK);
+
+    {
+        TCHAR buf[1024] = {0};
+        size_t buf_size = 1024;
+
+        cfg_char_to_wchar(buf, buf_size, description);
+        MessageBox(hwnd,buf,TEXT("Stream info"),MB_OK);
+    }
     return 0;
 }
 
@@ -801,7 +1081,7 @@ void winamp_GetFileInfo(const in_char *fn, in_char *title, int *length_in_ms) {
         if (length_in_ms) {
             *length_in_ms = -1000;
             if (infostream) {
-                int num_samples = get_vgmstream_play_samples(loop_count,fade_seconds,fade_delay_seconds,infostream);
+                int num_samples = get_vgmstream_play_samples(config.loop_count,config.fade_seconds,config.fade_delay_seconds,infostream);
                 *length_in_ms = num_samples * 1000LL /infostream->sample_rate;
             }
         }
@@ -817,27 +1097,26 @@ void winamp_EQSet(int on, char data[10], int preamp) {
 
 /* the decode thread */
 DWORD WINAPI __stdcall decode(void *arg) {
-    /* channel count shouldn't change during decode */
-    int max_buffer_samples = sizeof(sample_buffer)/sizeof(sample_buffer[0])/2/vgmstream->channels;
-    int max_samples = get_vgmstream_play_samples(loop_count,fade_seconds,fade_delay_seconds,vgmstream);
+    int max_buffer_samples = sizeof(sample_buffer) / sizeof(sample_buffer[0]) / 2 / vgmstream->channels;
+    int max_samples = get_vgmstream_play_samples(config.loop_count,config.fade_seconds,config.fade_delay_seconds,vgmstream);
 
     while (!decode_abort) {
         int samples_to_do;
-        int l;
+        int output_bytes;
 
         if (decode_pos_samples + max_buffer_samples > stream_length_samples
-                && (!loop_forever || !vgmstream->loop_flag))
+                && (!config.loop_forever || !vgmstream->loop_flag))
             samples_to_do = stream_length_samples - decode_pos_samples;
         else
             samples_to_do = max_buffer_samples;
 
-        /* play 'till the end of this seek, or note if we're done seeking */
+        /* seek setup (max samples to skip if still seeking, mark done) */
         if (seek_needed_samples != -1) {
             /* reset if we need to seek backwards */
             if (seek_needed_samples < decode_pos_samples) {
                 reset_vgmstream(vgmstream);
 
-                if (ignore_loop)
+                if (config.ignore_loop)
                     vgmstream->loop_flag = 0;
 
                 decode_pos_samples = 0;
@@ -845,7 +1124,7 @@ DWORD WINAPI __stdcall decode(void *arg) {
             }
 
             /* adjust seeking past file, can happen using the right (->) key
-             * (should be done here and not in SetOutputTime due to threads/race condicions) */
+             * (should be done here and not in SetOutputTime due to threads/race conditions) */
             if (seek_needed_samples > max_samples) {
                 seek_needed_samples = max_samples;
             }
@@ -860,12 +1139,15 @@ DWORD WINAPI __stdcall decode(void *arg) {
                 seek_needed_samples = -1;
             }
 
+            /* flush Winamp buffers */
             input_module.outMod->Flush((int)decode_pos_ms);
         }
 
-        l = (samples_to_do*vgmstream->channels*2) << (input_module.dsp_isactive()?1:0);
+        output_bytes = (samples_to_do * output_channels * sizeof(short));
+        if (input_module.dsp_isactive())
+            output_bytes = output_bytes * 2; /* Winamp's DSP may need double samples */
 
-        if (samples_to_do == 0) {
+        if (samples_to_do == 0) { /* track finished */
             input_module.outMod->CanWrite();    /* ? */
             if (!input_module.outMod->IsPlaying()) {
                 PostMessage(input_module.hMainWindow, WM_WA_MPEG_EOF, 0,0); /* end */
@@ -873,18 +1155,18 @@ DWORD WINAPI __stdcall decode(void *arg) {
             }
             Sleep(10);
         }
-        else if (seek_needed_samples != -1) {
+        else if (seek_needed_samples != -1) { /* seek */
             render_vgmstream(sample_buffer,samples_to_do,vgmstream);
 
+            /* discard decoded samples and keep seeking */
             decode_pos_samples += samples_to_do;
             decode_pos_ms = decode_pos_samples * 1000LL / vgmstream->sample_rate;
         }
-        else if (input_module.outMod->CanWrite() >= l) {
-            /* let vgmstream do its thing */
+        else if (input_module.outMod->CanWrite() >= output_bytes) { /* decode */
             render_vgmstream(sample_buffer,samples_to_do,vgmstream);
 
-            /* fade! */
-            if (vgmstream->loop_flag && fade_samples > 0 && !loop_forever) {
+            /* fade near the end */
+            if (vgmstream->loop_flag && fade_samples > 0 && !config.loop_forever) {
                 int samples_into_fade = decode_pos_samples - (stream_length_samples - fade_samples);
                 if (samples_into_fade + samples_to_do > 0) {
                     int j,k;
@@ -900,187 +1182,48 @@ DWORD WINAPI __stdcall decode(void *arg) {
                 }
             }
 
-            input_module.SAAddPCMData((char*)sample_buffer,vgmstream->channels,16,decode_pos_ms);
-            input_module.VSAAddPCMData((char*)sample_buffer,vgmstream->channels,16,decode_pos_ms);
+            /* downmix enabled (useful when the stream's channels are too much for Winamp's output) */
+            if (config.downmix) {
+                short temp_buffer[(576*2) * 2];
+                int s, ch;
+
+                /* just copy the first channels for now */
+                for (s = 0; s < samples_to_do; s++) {
+                    for (ch = 0; ch < output_channels; ch++) {
+                        temp_buffer[s*output_channels + ch] = sample_buffer[s*vgmstream->channels + ch];
+                    }
+                }
+
+                /* copy back to global buffer */
+                memcpy(sample_buffer,temp_buffer, samples_to_do*output_channels*sizeof(short));
+            }
+
+            /* output samples */
+            input_module.SAAddPCMData((char*)sample_buffer,output_channels,16,decode_pos_ms);
+            input_module.VSAAddPCMData((char*)sample_buffer,output_channels,16,decode_pos_ms);
+
+            if (input_module.dsp_isactive()) { /* find out DSP's needs */
+                int dsp_output_samples = input_module.dsp_dosamples(sample_buffer,samples_to_do,16,output_channels,vgmstream->sample_rate);
+                output_bytes = dsp_output_samples * output_channels * sizeof(short);
+            }
+
+            input_module.outMod->Write((char*)sample_buffer, output_bytes);
+
             decode_pos_samples += samples_to_do;
             decode_pos_ms = decode_pos_samples*1000LL/vgmstream->sample_rate;
-            if (input_module.dsp_isactive())
-                l = input_module.dsp_dosamples(sample_buffer,samples_to_do,16,vgmstream->channels,vgmstream->sample_rate) * 2 * vgmstream->channels;
-
-            input_module.outMod->Write((char*)sample_buffer,l);
-        }   /* if we can write enough */
-        else {
+        }
+        else { /* can't write right now */
             Sleep(20);
         }
-    }   /* main loop */
-
-    return 0;
-}
-
-/* config dialog handler */
-INT_PTR CALLBACK configDlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam) {
-    char buf[256];
-    char iniFile[PATH_LIMIT];
-    static int mypri;
-    HANDLE hSlider;
-
-    switch (uMsg) { 
-        case WM_CLOSE:
-            EndDialog(hDlg,TRUE);
-            return TRUE;
-        case WM_INITDIALOG:
-            GetINIFileName(iniFile);
-
-            /* set CPU Priority slider */
-            hSlider=GetDlgItem(hDlg,IDC_THREAD_PRIORITY_SLIDER);
-            SendMessage(hSlider, TBM_SETRANGE,
-                    (WPARAM) TRUE,                  /* redraw flag */
-                    (LPARAM) MAKELONG(1, 7));       /* min. & max. positions */
-            SendMessage(hSlider, TBM_SETPOS, 
-                    (WPARAM) TRUE,                  /* redraw flag */
-                    (LPARAM) thread_priority+1);
-            mypri=thread_priority;
-            SetDlgItemText(hDlg,IDC_THREAD_PRIORITY_TEXT,priority_strings[thread_priority]);
-
-            sprintf(buf,"%.2lf",fade_seconds);
-            SetDlgItemText(hDlg,IDC_FADE_SECONDS,buf);
-            sprintf(buf,"%.2lf",fade_delay_seconds);
-            SetDlgItemText(hDlg,IDC_FADE_DELAY_SECONDS,buf);
-            sprintf(buf,"%.2lf",loop_count);
-            SetDlgItemText(hDlg,IDC_LOOP_COUNT,buf);
-
-            if (loop_forever)
-                CheckDlgButton(hDlg,IDC_LOOP_FOREVER,BST_CHECKED);
-            else if (ignore_loop)
-                CheckDlgButton(hDlg,IDC_IGNORE_LOOP,BST_CHECKED);
-            else
-                CheckDlgButton(hDlg,IDC_LOOP_NORMALLY,BST_CHECKED);
-
-            if (disable_subsongs)
-                CheckDlgButton(hDlg,IDC_DISABLE_SUBSONGS,BST_CHECKED);
-
-            break;
-        case WM_COMMAND:
-            switch (GET_WM_COMMAND_ID(wParam, lParam)) {
-                case IDOK:
-                    {
-                        double temp_fade_seconds;
-                        double temp_fade_delay_seconds;
-                        double temp_loop_count;
-                        int consumed;
-
-                        /* read and verify */
-                        GetDlgItemText(hDlg,IDC_FADE_SECONDS,buf,sizeof(buf));
-                        if (sscanf(buf,"%lf%n",&temp_fade_seconds,&consumed)<1
-                            || consumed!=strlen(buf) ||
-                            temp_fade_seconds<0) {
-                            MessageBox(hDlg,
-                                    "Invalid value for Fade Length\n"
-                                    "Must be a number greater than or equal to zero",
-                                    "Error",MB_OK|MB_ICONERROR);
-                            break;
-                        }
-
-                        GetDlgItemText(hDlg,IDC_FADE_DELAY_SECONDS,buf,sizeof(buf));
-                        if (sscanf(buf,"%lf%n",&temp_fade_delay_seconds,
-                            &consumed)<1 || consumed!=strlen(buf)) {
-                            MessageBox(hDlg,
-                                    "Invalid valid for Fade Delay\n"
-                                    "Must be a number",
-                                    "Error",MB_OK|MB_ICONERROR);
-                            break;
-                        }
-
-                        GetDlgItemText(hDlg,IDC_LOOP_COUNT,buf,sizeof(buf));
-                        if (sscanf(buf,"%lf%n",&temp_loop_count,&consumed)<1 ||
-                                consumed!=strlen(buf) ||
-                                temp_loop_count<0) {
-                            MessageBox(hDlg,
-                                    "Invalid value for Loop Count\n"
-                                    "Must be a number greater than or equal to zero",
-                                    "Error",MB_OK|MB_ICONERROR);
-                            break;
-                        }
-
-                        GetINIFileName(iniFile);
-
-                        thread_priority=mypri;
-                        sprintf(buf,"%d",thread_priority);
-                        WritePrivateProfileString(CONFIG_APP_NAME,THREAD_PRIORITY_INI_ENTRY,buf,iniFile);
-
-                        fade_seconds = temp_fade_seconds;
-                        sprintf(buf,"%.2lf",fade_seconds);
-                        WritePrivateProfileString(CONFIG_APP_NAME,FADE_SECONDS_INI_ENTRY,buf,iniFile);
-
-                        fade_delay_seconds = temp_fade_delay_seconds;
-                        sprintf(buf,"%.2lf",fade_delay_seconds);
-                        WritePrivateProfileString(CONFIG_APP_NAME,FADE_DELAY_SECONDS_INI_ENTRY,buf,iniFile);
-
-                        loop_count = temp_loop_count;
-                        sprintf(buf,"%.2lf",loop_count);
-                        WritePrivateProfileString(CONFIG_APP_NAME,LOOP_COUNT_INI_ENTRY,buf,iniFile);
-
-                        loop_forever = (IsDlgButtonChecked(hDlg,IDC_LOOP_FOREVER) == BST_CHECKED);
-                        sprintf(buf,"%d",loop_forever);
-                        WritePrivateProfileString(CONFIG_APP_NAME,LOOP_FOREVER_INI_ENTRY,buf,iniFile);
-
-                        ignore_loop = (IsDlgButtonChecked(hDlg,IDC_IGNORE_LOOP) == BST_CHECKED);
-                        sprintf(buf,"%d",ignore_loop);
-                        WritePrivateProfileString(CONFIG_APP_NAME,IGNORE_LOOP_INI_ENTRY,buf,iniFile);
-
-                        disable_subsongs = (IsDlgButtonChecked(hDlg,IDC_DISABLE_SUBSONGS) == BST_CHECKED);
-                        sprintf(buf,"%d",disable_subsongs);
-                        WritePrivateProfileString(CONFIG_APP_NAME,DISABLE_SUBSONGS_INI_ENTRY,buf,iniFile);
-                    }
-
-                    EndDialog(hDlg,TRUE);
-                    break;
-                case IDCANCEL:
-                    EndDialog(hDlg,TRUE);
-                    break;
-                case IDC_DEFAULT_BUTTON:
-                    /* set CPU Priority slider */
-                    hSlider=GetDlgItem(hDlg,IDC_THREAD_PRIORITY_SLIDER);
-                    SendMessage(hSlider, TBM_SETRANGE,
-                            (WPARAM) TRUE,                  /* redraw flag */
-                            (LPARAM) MAKELONG(1, 7));       /* min. & max. positions */
-                    SendMessage(hSlider, TBM_SETPOS, 
-                            (WPARAM) TRUE,                  /* redraw flag */
-                            (LPARAM) DEFAULT_THREAD_PRIORITY+1);
-                    mypri=DEFAULT_THREAD_PRIORITY;
-                    SetDlgItemText(hDlg,IDC_THREAD_PRIORITY_TEXT,priority_strings[mypri]);
-
-                    SetDlgItemText(hDlg,IDC_FADE_SECONDS,DEFAULT_FADE_SECONDS);
-                    SetDlgItemText(hDlg,IDC_FADE_DELAY_SECONDS,DEFAULT_FADE_DELAY_SECONDS);
-                    SetDlgItemText(hDlg,IDC_LOOP_COUNT,DEFAULT_LOOP_COUNT);
-
-                    CheckDlgButton(hDlg,IDC_LOOP_FOREVER,BST_UNCHECKED);
-                    CheckDlgButton(hDlg,IDC_IGNORE_LOOP,BST_UNCHECKED);
-                    CheckDlgButton(hDlg,IDC_LOOP_NORMALLY,BST_CHECKED);
-
-                    CheckDlgButton(hDlg,IDC_DISABLE_SUBSONGS,BST_UNCHECKED);
-                    break;
-                default:
-                    return FALSE;
-            }
-        case WM_HSCROLL:
-            if ((struct HWND__ *)lParam==GetDlgItem(hDlg,IDC_THREAD_PRIORITY_SLIDER)) {
-                if (LOWORD(wParam)==TB_THUMBPOSITION || LOWORD(wParam)==TB_THUMBTRACK) mypri=HIWORD(wParam)-1;
-                else mypri=SendMessage(GetDlgItem(hDlg,IDC_THREAD_PRIORITY_SLIDER),TBM_GETPOS,0,0)-1;
-                SetDlgItemText(hDlg,IDC_THREAD_PRIORITY_TEXT,priority_strings[mypri]);
-            }
-            break;
-        default:
-            return FALSE;
     }
 
-    return TRUE;
+    return 0;
 }
 
 /* configuration dialog */
 void winamp_Config(HWND hwndParent) {
     /* defined in resource.rc */
-    DialogBox(input_module.hDllInstance, (const char *)IDD_CONFIG, hwndParent, configDlgProc);
+    DialogBox(input_module.hDllInstance, (const TCHAR *)IDD_CONFIG, hwndParent, configDlgProc);
 }
 
 /* *********************************** */
