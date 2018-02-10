@@ -530,8 +530,8 @@ static int ealayer3_rebuild_mpeg_frame(vgm_bitstream* is_0, ealayer3_frame_info*
         VGM_LOG("MPEG EAL3: written 0x%lx but expected less than 0x%x at 0x%lx\n", os->b_off/8, expected_frame_size, os->info_offset);
     }
     else {
-        /* fill ancillary data (ignored) */
-        memset(os->buf + os->b_off/8, 0x77, expected_frame_size - os->b_off/8);
+        /* fill ancillary data (should be ignored, but 0x00 seems to improve mpg123's free bitrate detection) */
+        memset(os->buf + os->b_off/8, 0x00, expected_frame_size - os->b_off/8);
     }
 
     os->b_off = expected_frame_size*8;
