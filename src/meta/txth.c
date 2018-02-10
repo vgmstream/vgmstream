@@ -474,7 +474,6 @@ static int parse_keyval(STREAMFILE * streamFile, STREAMFILE * streamText, txth_h
     else if (0==strcmp(key,"interleave")) {
         if (0==strcmp(val,"half_size")) {
             txth->interleave = txth->data_size / txth->channels;
-            VGM_LOG("int=%x, ds=%x\n", txth->interleave, txth->data_size);
         }
         else {
             if (!parse_num(streamFile,val, &txth->interleave)) goto fail;
