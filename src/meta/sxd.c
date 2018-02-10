@@ -5,12 +5,12 @@
 /* SXD - Sony/SCE's SNDX lib format (cousin of SGXD) [Gravity Rush, Freedom Wars, Soul Sacrifice PSV] */
 VGMSTREAM * init_vgmstream_sxd(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    STREAMFILE * streamHeader = NULL;
+    STREAMFILE * streamHeader = NULL, *streamData = NULL;
     off_t start_offset, chunk_offset, first_offset = 0x60, name_offset = 0;
     size_t chunk_size, stream_size = 0;
 
-    int is_separate;
-    int loop_flag, channels, codec;
+    int is_dual, is_external;
+    int loop_flag, channels, codec, location;
     int sample_rate, num_samples, loop_start_sample, loop_end_sample;
     uint32_t at9_config_data = 0;
     int total_subsongs, target_subsong = streamFile->stream_index;
@@ -19,10 +19,10 @@ VGMSTREAM * init_vgmstream_sxd(STREAMFILE *streamFile) {
     /* check extension, case insensitive */
     /* .sxd: header+data (SXDF), .sxd1: header (SXDF) + .sxd2 = data (SXDS) */
     if (!check_extensions(streamFile,"sxd,sxd2")) goto fail;
-    is_separate = !check_extensions(streamFile,"sxd");
+    is_dual = !check_extensions(streamFile,"sxd");
 
     /* sxd1+sxd2: use sxd1 as header; otherwise use the current file as header */
-    if (is_separate) {
+    if (is_dual) {
         if (read_32bitBE(0x00,streamFile) != 0x53584453) /* "SXDS" */
             goto fail;
         streamHeader = open_stream_ext(streamFile, "sxd1");
@@ -50,10 +50,10 @@ VGMSTREAM * init_vgmstream_sxd(STREAMFILE *streamFile) {
         table_offset  = chunk_offset + 0x08 + 4*(target_subsong-1);
         header_offset = table_offset + read_32bitLE(table_offset,streamHeader);
 
-        /* 0x00(4): type/location? (00/01=sxd/RAM?, 02/03=sxd2/stream?) */
-        codec         = read_8bit   (header_offset+0x04,streamHeader);
-        channels      = read_8bit   (header_offset+0x05,streamHeader);
-        sample_rate   = read_32bitLE(header_offset+0x08,streamHeader);
+        location    = read_32bitLE(header_offset+0x00,streamHeader);
+        codec       = read_8bit   (header_offset+0x04,streamHeader);
+        channels    = read_8bit   (header_offset+0x05,streamHeader);
+        sample_rate = read_32bitLE(header_offset+0x08,streamHeader);
         /* 0x0c(4): unknown size? (0x4000/0x3999/0x3333/etc, not related to extra data) */
         /* 0x10(4): ? + volume? + pan? (can be 0 for music) */
         num_samples       = read_32bitLE(header_offset+0x14,streamHeader);
@@ -69,7 +69,7 @@ VGMSTREAM * init_vgmstream_sxd(STREAMFILE *streamFile) {
             off_t max_offset = chunk_offset + chunk_size;
 
             /* manually try to find certain tag, no idea about the actual format
-             * (most variable in Soul Sacrifice; extra size isn't found in the SXD AFAIK) */
+             * (most variable in Soul Sacrifice; extra data size isn't found in the header AFAIK) */
             while (extra_offset < max_offset) {
                 uint32_t tag = read_32bitBE(extra_offset, streamHeader);
                 if (tag == 0x0A010000 || tag == 0x0A010600) {
@@ -85,16 +85,33 @@ VGMSTREAM * init_vgmstream_sxd(STREAMFILE *streamFile) {
 
         loop_flag = loop_start_sample != -1 && loop_end_sample != -1;
 
-        /* from current offset in sxd, absolute in sxd2 */
-        if (is_separate) {
-            start_offset = stream_offset;
+        /* usually sxd=header+data and sxd1=header + sxd2=data, but rarely sxd1 contain data [The Last Guardian (PS4)] */
+        switch(location) { /* might not be exact but seems the only difference in TLG */
+            case 0x00: /* some Chaos Rings 2 sfx */
+            case 0x01: /* most common */
+            case 0x05: /* some Gradity Rush 2 sfx */
+                is_external = 0; /* RAM asset? */
+                break;
+
+            case 0x02: /* some Chaos Rings 3 sfx */
+            case 0x03: /* most common */
+                is_external = 1; /* stream asset? */
+                break;
+
+            default:
+                VGM_LOG("SXD: unknown location 0x%x\n", location);
+                goto fail;
+        }
+
+        if (is_external) {
+            start_offset = stream_offset; /* absolute if external */
         } else {
-            start_offset = header_offset+0x24 + stream_offset;
+            start_offset = header_offset+0x24 + stream_offset; /* from current entry offset if internal */
         }
     }
 
     /* get stream name (NAME is tied to REQD/cues, and SFX cues repeat WAVEs, but should work ok for streams) */
-    if (is_separate && find_chunk_le(streamHeader, 0x4E414D45,first_offset,0, &chunk_offset,NULL)) { /* "NAME" */
+    if (is_dual && find_chunk_le(streamHeader, 0x4E414D45,first_offset,0, &chunk_offset,NULL)) { /* "NAME" */
         /* table: relative offset (32b) + hash? (32b) + cue index (32b) */
         int i;
         int num_entries = read_16bitLE(chunk_offset+0x04,streamHeader); /* can be bigger than streams */
@@ -105,6 +122,22 @@ VGMSTREAM * init_vgmstream_sxd(STREAMFILE *streamFile) {
                 break;
             }
         }
+    }
+
+    if (is_external && !is_dual) {
+        VGM_LOG("SXD: found single sxd with external data\n");
+        goto fail;
+    }
+
+    if (is_external) {
+        streamData = streamFile;
+    } else {
+        streamData = streamHeader;
+    }
+
+    if (start_offset > get_streamfile_size(streamData)) {
+        VGM_LOG("SXD: wrong location?\n");
+        goto fail;
     }
 
 
@@ -136,7 +169,7 @@ VGMSTREAM * init_vgmstream_sxd(STREAMFILE *streamFile) {
             break;
 
 #ifdef VGM_USE_ATRAC9
-        case 0x42: {    /* ATRAC9 [Soul Sacrifice (Vita), Freedom Wars (Vita)] */
+        case 0x42: {    /* ATRAC9 [Soul Sacrifice (Vita), Freedom Wars (Vita), Gravity Rush 2 (PS4)] */
             atrac9_config cfg = {0};
 
             cfg.channels = vgmstream->channels;
@@ -157,14 +190,14 @@ VGMSTREAM * init_vgmstream_sxd(STREAMFILE *streamFile) {
 
 
     /* open the file for reading */
-    if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
+    if (!vgmstream_open_stream(vgmstream,streamData,start_offset))
         goto fail;
 
-    if (is_separate && streamHeader) close_streamfile(streamHeader);
+    if (is_dual) close_streamfile(streamHeader);
     return vgmstream;
 
 fail:
-    if (is_separate && streamHeader) close_streamfile(streamHeader);
+    if (is_dual) close_streamfile(streamHeader);
     close_vgmstream(vgmstream);
     return NULL;
 }

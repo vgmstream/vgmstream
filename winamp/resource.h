@@ -9,3 +9,4 @@
 #define IDC_THREAD_PRIORITY_TEXT        1007
 #define IDC_DEFAULT_BUTTON              1008
 #define IDC_DISABLE_SUBSONGS            1009
+#define IDC_DOWNMIX                     1010

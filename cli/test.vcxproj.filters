@@ -15,7 +15,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="test.c">
+    <ClCompile Include="vgmstream_cli.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
