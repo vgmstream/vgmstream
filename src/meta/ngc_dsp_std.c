@@ -620,7 +620,11 @@ VGMSTREAM * init_vgmstream_ngc_dsp_std_int(STREAMFILE *streamFile) {
             ch0_header.loop_flag != ch1_header.loop_flag ||
             ch0_header.loop_start_offset != ch1_header.loop_start_offset ||
             ch0_header.loop_end_offset != ch1_header.loop_end_offset
-       ) goto fail;
+       ) {
+        /* Timesplitters 2 GC's ts2_atom_smasher_44_fx.mss differs slightly in samples but plays ok */
+        if (meta_type != meta_DSP_MSS)
+            goto fail;
+    }
 
     if (ch0_header.loop_flag) {
         off_t loop_off;
