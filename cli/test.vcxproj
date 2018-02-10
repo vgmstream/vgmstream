@@ -121,7 +121,7 @@
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="test.c" />
+    <ClCompile Include="vgmstream_cli.c" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\dependencies\fdk-aac\msvc\fdk-aac.vcxproj">

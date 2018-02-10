@@ -9,7 +9,7 @@ endif
 AM_CFLAGS = -I$(top_builddir) -I$(top_srcdir) -I$(top_srcdir)/ext_includes/ $(AO_CFLAGS)
 AM_MAKEFLAGS = -f Makefile.autotools
 
-vgmstream_cli_SOURCES = test.c
+vgmstream_cli_SOURCES = vgmstream_cli.c
 vgmstream_cli_LDADD   = ../src/libvgmstream.la
 
 vgmstream123_SOURCES = vgmstream123.c

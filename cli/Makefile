@@ -94,7 +94,7 @@ export CFLAGS LDFLAGS
 ### targets
 
 vgmstream_cli: libvgmstream.a $(TARGET_EXT_LIBS)
-	$(CC) $(CFLAGS) "-DVERSION=\"`../version.sh`\"" test.c $(LDFLAGS) -o $(OUTPUT_CLI)
+	$(CC) $(CFLAGS) "-DVERSION=\"`../version.sh`\"" vgmstream_cli.c $(LDFLAGS) -o $(OUTPUT_CLI)
 	$(STRIP) $(OUTPUT_CLI)
 
 vgmstream123: libvgmstream.a $(TARGET_EXT_LIBS)
