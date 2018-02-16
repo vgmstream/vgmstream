@@ -9,7 +9,7 @@ VGMSTREAM * init_vgmstream_nsw_opus(STREAMFILE *streamFile) {
     int loop_flag = 0, channel_count;
     int num_samples = 0, loop_start = 0, loop_end = 0;
     off_t offset = 0, data_offset;
-    size_t data_size;
+    size_t data_size, skip = 0;
 
     /* check extension, case insensitive */
     if ( !check_extensions(streamFile,"opus,lopus,nop")) /* no relation to Ogg Opus */
@@ -53,6 +53,7 @@ VGMSTREAM * init_vgmstream_nsw_opus(STREAMFILE *streamFile) {
     channel_count = read_8bit(offset + 0x09, streamFile);
     /* 0x0a: packet size if CBR, 0 if VBR */
     data_offset = offset + read_32bitLE(offset + 0x10, streamFile);
+    skip = read_32bitLE(offset + 0x1c, streamFile);
 
     if ((uint32_t)read_32bitLE(data_offset, streamFile) != 0x80000004)
         goto fail;
@@ -77,10 +78,9 @@ VGMSTREAM * init_vgmstream_nsw_opus(STREAMFILE *streamFile) {
 #ifdef VGM_USE_FFMPEG
     {
         uint8_t buf[0x100];
-        size_t bytes, skip;
+        size_t bytes;
         ffmpeg_custom_config cfg;
-
-        skip = 0; //todo
+        ffmpeg_codec_data *ffmpeg_data;
 
         bytes = ffmpeg_make_opus_header(buf,0x100, vgmstream->channels, skip, vgmstream->sample_rate);
         if (bytes <= 0) goto fail;
@@ -88,14 +88,21 @@ VGMSTREAM * init_vgmstream_nsw_opus(STREAMFILE *streamFile) {
         memset(&cfg, 0, sizeof(ffmpeg_custom_config));
         cfg.type = FFMPEG_SWITCH_OPUS;
 
-        vgmstream->codec_data = init_ffmpeg_config(streamFile, buf,bytes, start_offset,data_size, &cfg);
-        if (!vgmstream->codec_data) goto fail;
+        ffmpeg_data = init_ffmpeg_config(streamFile, buf,bytes, start_offset,data_size, &cfg);
+        if (!ffmpeg_data) goto fail;
 
+        vgmstream->codec_data = ffmpeg_data;
         vgmstream->coding_type = coding_FFmpeg;
         vgmstream->layout_type = layout_none;
+        
+		if (ffmpeg_data->skipSamples <= 0) {
+			ffmpeg_set_skip_samples(ffmpeg_data, skip);
+		}
 
-        if (vgmstream->num_samples == 0)
-            vgmstream->num_samples = switch_opus_get_samples(start_offset, data_size, vgmstream->sample_rate, streamFile);
+		if (vgmstream->num_samples == 0) {
+            vgmstream->num_samples = switch_opus_get_samples(start_offset, data_size,
+                vgmstream->sample_rate, streamFile) - skip;
+		}
     }
 #else
     goto fail;

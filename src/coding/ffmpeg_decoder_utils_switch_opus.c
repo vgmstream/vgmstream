@@ -169,7 +169,7 @@ size_t switch_opus_get_samples(off_t offset, size_t data_size, int sample_rate, 
         uint8_t buf[4];
         size_t block_size = read_32bitBE(offset, streamFile);
 
-        read_streamfile(buf, offset+4, 4, streamFile);
+        read_streamfile(buf, offset+8, 4, streamFile);
         num_samples += get_opus_samples_per_frame(buf, sample_rate);
 
         offset += 0x08 + block_size;
