@@ -659,6 +659,7 @@ typedef enum {
     meta_XWC,               /* Starbreeze games */
     meta_SQEX_SAB,          /* Square-Enix newest middleware (sound) */
     meta_SQEX_MAB,          /* Square-Enix newest middleware (music) */
+    meta_OGG_L2SD,          /* Ogg Vorbis with obfuscation [Lineage II Chronicle 4 (PC)] */
 
 #ifdef VGM_USE_MP4V2
     meta_MP4,               /* AAC (iOS) */

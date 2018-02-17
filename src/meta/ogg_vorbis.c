@@ -156,6 +156,26 @@ static void isd_ogg_decryption_callback(void *ptr, size_t size, size_t nmemb, vo
     }
 }
 
+static void l2sd_ogg_decryption_callback(void *ptr, size_t size, size_t nmemb, void *datasource) {
+    size_t bytes_read = size*nmemb;
+    ogg_vorbis_streamfile * const ov_streamfile = datasource;
+    int i;
+    char *header_id = "OggS";
+
+    /* First "OggS" is changed */
+    {
+        for (i = 0; i < bytes_read; i++) {
+            if (ov_streamfile->offset+i < 0x04) {
+                /* replace key in the first 4 bytes with "OggS" */
+                ((uint8_t*)ptr)[i] = (uint8_t)header_id[(ov_streamfile->offset + i) % 4];
+            }
+            else {
+                break;
+            }
+        }
+    }
+}
+
 
 /* Ogg Vorbis, by way of libvorbisfile; may contain loop comments */
 VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
@@ -169,6 +189,7 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
     int is_psychic = 0;
     int is_sngw = 0;
     int is_isd = 0;
+    int is_l2sd = 0;
 
 
     /* check extension */
@@ -194,6 +215,10 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
         if (read_32bitBE(0x00,streamFile) == 0x2c444430) {
             is_psychic = 1;
             inf.decryption_callback = psychic_ogg_decryption_callback;
+        }
+        else if (read_32bitBE(0x00,streamFile) == 0x4C325344) { /* "L2SD" [Lineage II Chronicle 4 (PC)] */
+            is_l2sd = 1;
+            inf.decryption_callback = l2sd_ogg_decryption_callback;
         }
         else if (read_32bitBE(0x00,streamFile) != 0x4f676753) { /* "OggS" */
             goto fail; /* not known (ex. Wwise) */
@@ -251,6 +276,8 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
         inf.meta_type = meta_OGG_SNGW;
     } else if (is_isd) {
         inf.meta_type = meta_OGG_ISD;
+    } else if (is_l2sd) {
+        inf.meta_type = meta_OGG_L2SD;
     } else {
         inf.meta_type = meta_OGG_VORBIS;
     }
