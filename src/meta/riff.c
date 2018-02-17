@@ -131,12 +131,12 @@ static int read_fmt(int big_endian, STREAMFILE * streamFile, off_t current_chunk
             fmt->coding_type = coding_MS_IMA;
             break;
 
-        case 0x69:  /* MS IMA ADPCM (XBOX) - Rayman Raving Rabbids 2 (PC) */
+        case 0x69:  /* XBOX IMA ADPCM [Rayman Raving Rabbids 2 (PC) -- waa/wac/wam/wad?] */
             if (fmt->bps != 4) goto fail;
-            fmt->coding_type = coding_MS_IMA;
+            fmt->coding_type = coding_XBOX_IMA;
             break;
 
-        case 0x007A:  /* MS IMA ADPCM (LA Rush, Psi Ops PC) */
+        case 0x007A:  /* MS IMA ADPCM [LA Rush, Psi Ops (PC)] */
             /* 0x007A is apparently "Voxware SC3" but in .MED it's just MS-IMA */
             if (!check_extensions(streamFile,"med"))
                 goto fail;
@@ -228,8 +228,8 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
     size_t file_size, riff_size, data_size = 0;
     off_t start_offset = 0;
 
-    int fact_sample_count = -1;
-    int fact_sample_skip = -1;
+    int fact_sample_count = 0;
+    int fact_sample_skip = 0;
 
     int loop_flag = 0;
     long loop_start_ms = -1;
@@ -355,7 +355,9 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
                     mwv_ctrl_offset = current_chunk;
                     break;
                 case 0x66616374:    /* fact */
-                    if (sns && chunk_size == 0x10) {
+                    if (chunk_size == 0x04) { /* standard, usually found with ADPCM */
+                        fact_sample_count = read_32bitLE(current_chunk+0x08, streamFile);
+                    } else if (sns && chunk_size == 0x10) {
                         fact_sample_count = read_32bitLE(current_chunk+0x08, streamFile);
                     } else if ((at3 || at9) && chunk_size == 0x08) {
                         fact_sample_count = read_32bitLE(current_chunk+0x08, streamFile);
@@ -442,6 +444,9 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
             break;
         case coding_MS_IMA:
             vgmstream->num_samples = ms_ima_bytes_to_samples(data_size, fmt.block_size, fmt.channel_count);
+            break;
+        case coding_XBOX_IMA:
+            vgmstream->num_samples = xbox_ima_bytes_to_samples(data_size, fmt.channel_count);
             break;
         case coding_NGC_DSP:
             if (!sns) goto fail;

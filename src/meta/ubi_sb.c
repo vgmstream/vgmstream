@@ -155,9 +155,9 @@ VGMSTREAM * init_vgmstream_ubi_sb(STREAMFILE *streamFile) {
             break;
 
         case RAW_XBOX:
-            vgmstream->coding_type = coding_XBOX;
+            vgmstream->coding_type = coding_XBOX_IMA;
             vgmstream->layout_type = layout_none;
-            vgmstream->num_samples = ms_ima_bytes_to_samples(sb.stream_size, 0x24*sb.channels,sb.channels);
+            vgmstream->num_samples = xbox_ima_bytes_to_samples(sb.stream_size, sb.channels);
             break;
 
         case RAW_DSP:

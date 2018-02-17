@@ -18,6 +18,8 @@ VGMSTREAM * init_vgmstream_mss(STREAMFILE *streamFile) {
 
     loop_flag = 0;
     channel_count = read_16bitLE(0x16,streamFile);
+    if (read_32bitLE(0x18,streamFile) == 0x4800 && vgmstream->channels > 2)
+        channel_count = 2; //todo add support for interleave stereo streams
 
 	/* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
@@ -36,14 +38,12 @@ VGMSTREAM * init_vgmstream_mss(STREAMFILE *streamFile) {
     /* no other way to know */
     if (vgmstream->interleave_block_size == 0x4800) {
         /* interleaved stereo streams (2ch 0x4800 + 2ch 0x4800 = 4ch) */
-        vgmstream->coding_type = coding_XBOX;
+        vgmstream->coding_type = coding_XBOX_IMA;
         vgmstream->layout_type = layout_interleave;
 
         /* header values are somehow off? */
         data_size = get_streamfile_size(streamFile);
-        vgmstream->num_samples = ms_ima_bytes_to_samples(data_size, 0x24*vgmstream->channels, vgmstream->channels);
-
-        vgmstream->channels = 2; //todo add support for interleave stereo streams
+        vgmstream->num_samples = xbox_ima_bytes_to_samples(data_size, vgmstream->channels);
     }
     else {
         /* 0x800 interleave */

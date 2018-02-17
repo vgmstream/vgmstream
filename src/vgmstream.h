@@ -127,8 +127,8 @@ typedef enum {
     coding_DVI_IMA_int,     /* DVI IMA ADPCM (mono/interleave, high nibble first) */
     coding_3DS_IMA,         /* 3DS IMA ADPCM */
     coding_MS_IMA,          /* Microsoft IMA ADPCM */
-    coding_XBOX,            /* XBOX IMA ADPCM */
-    coding_XBOX_int,        /* XBOX IMA ADPCM (interleaved) */
+    coding_XBOX_IMA,        /* XBOX IMA ADPCM */
+    coding_XBOX_IMA_int,    /* XBOX IMA ADPCM (interleaved/mono) */
     coding_NDS_IMA,         /* IMA ADPCM w/ NDS layout */
     coding_DAT4_IMA,        /* Eurocom 'DAT4' IMA ADPCM */
     coding_RAD_IMA,         /* Radical IMA ADPCM */

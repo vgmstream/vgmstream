@@ -1,68 +1,50 @@
 #include "meta.h"
-#include "../util.h"
+#include "../coding/coding.h"
 
-/*
-   WVS (found in Metal Arms - Glitch in the System)
-   XBOX and GameCube
-*/
-
+/* WVS - found in Metal Arms - Glitch in the System (Xbox) */
 VGMSTREAM * init_vgmstream_xbox_wvs(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[PATH_LIMIT];
+    off_t start_offset;
+    int loop_flag, channel_count;
+    size_t data_size;
 
-    int loop_flag=0;
-	int channel_count;
-    int i;
 
-    /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("wvs",filename_extension(filename))) goto fail;
+    /* check extension */
+    if (!check_extensions(streamFile,"wvs"))
+        goto fail;
 
-	if((read_16bitLE(0x0C,streamFile)!=0x69) && 
-	   (read_16bitLE(0x08,streamFile)!=0x4400) && 
-	   (read_32bitLE(0x0,streamFile)!=get_streamfile_size(streamFile)+0x20))
-		goto fail;
+    if (read_16bitLE(0x0C,streamFile) != 0x69 &&    /* codec */
+        read_16bitLE(0x08,streamFile) != 0x4400)
+        goto fail;
 
-    /* Loop seems to be set if offset(0x0A) == 0x472C */
-	loop_flag = (read_16bitLE(0x0A,streamFile)==0x472C);
+    start_offset = 0x20;
+    data_size = read_32bitLE(0x00,streamFile);
+    loop_flag = (read_16bitLE(0x0a,streamFile) == 0x472C); /* loop seems to be like this */
+    channel_count = read_16bitLE(0x0e,streamFile); /* always stereo files */
     
-	/* Always stereo files */
-	channel_count=read_16bitLE(0x0E,streamFile);
-    
-	/* build the VGMSTREAM */
+    if (data_size + start_offset != get_streamfile_size(streamFile))
+        goto fail;
+
+    /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
-	/* fill in the vital statistics */
-	/* allways 2 channels @ 44100 Hz */
-	vgmstream->channels = channel_count;
     vgmstream->sample_rate = read_32bitLE(0x10,streamFile);
+    vgmstream->num_samples = xbox_ima_bytes_to_samples(data_size, vgmstream->channels);
+    vgmstream->loop_start_sample = 0;
+    vgmstream->loop_end_sample = vgmstream->num_samples;
 
-	vgmstream->coding_type = coding_XBOX;
-    vgmstream->num_samples = read_32bitLE(0,streamFile) / 36 * 64 / vgmstream->channels;
+    vgmstream->coding_type = coding_XBOX_IMA;
     vgmstream->layout_type = layout_none;
     vgmstream->meta_type = meta_XBOX_WVS;
 
-	if(loop_flag) {
-		vgmstream->loop_start_sample=0;
-		vgmstream->loop_end_sample=vgmstream->num_samples;
-	}
 
-    /* open the file for reading by each channel */
-    {
-        for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = streamFile->open(streamFile,filename,36);
-            vgmstream->ch[i].offset = 0x20;
-
-            if (!vgmstream->ch[i].streamfile) goto fail;
-        }
-    }
-
+    if (!vgmstream_open_stream(vgmstream, streamFile, start_offset))
+        goto fail;
     return vgmstream;
 
-    /* clean up anything we may have opened */
 fail:
-    if (vgmstream) close_vgmstream(vgmstream);
+    close_vgmstream(vgmstream);
     return NULL;
 }
 
@@ -75,7 +57,7 @@ VGMSTREAM * init_vgmstream_ngc_wvs(STREAMFILE *streamFile) {
     char filename[PATH_LIMIT];
     off_t start_offset;
     int loop_flag;
-	int channel_count;
+    int channel_count;
 
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
@@ -94,7 +76,7 @@ VGMSTREAM * init_vgmstream_ngc_wvs(STREAMFILE *streamFile) {
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
-	/* fill in the vital statistics */
+    /* fill in the vital statistics */
     start_offset = 0x60;
 
     if (channel_count == 1) {
@@ -103,8 +85,8 @@ VGMSTREAM * init_vgmstream_ngc_wvs(STREAMFILE *streamFile) {
         vgmstream->sample_rate = 44100;
     }
 
-	vgmstream->channels = channel_count;
-    
+    vgmstream->channels = channel_count;
+
     vgmstream->coding_type = coding_NGC_DSP;
     vgmstream->num_samples = (get_streamfile_size(streamFile)-start_offset)/8/channel_count*14; //(read_32bitBE(0x0C,streamFile)-start_offset)/8/channel_count*14;
     if (loop_flag) {

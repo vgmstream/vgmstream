@@ -142,74 +142,44 @@ fail:
 }
 
 
-
 /* RSD2XADP */
 VGMSTREAM * init_vgmstream_rsd2xadp(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[PATH_LIMIT];
     off_t start_offset;
+    int loop_flag, channel_count;
+    size_t data_size;
 
-	int loop_flag;
-	int channel_count;
-
-    /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("rsd",filename_extension(filename))) goto fail;
-
-    /* check header */
-    if (read_32bitBE(0x0,streamFile) != 0x52534432) /* RSD2 */
-		goto fail;
-	if (read_32bitBE(0x4,streamFile) != 0x58414450)	/* XADP */
+    /* check extension */
+    if (!check_extensions(streamFile,"rsd"))
         goto fail;
 
+    if (read_32bitBE(0x00,streamFile) != 0x52534432) /* RSD2 */
+        goto fail;
+    if (read_32bitBE(0x04,streamFile) != 0x58414450) /* XADP */
+        goto fail;
+
+    start_offset = read_32bitLE(0x18,streamFile); /* not sure about this */
+    data_size = get_streamfile_size(streamFile);
     loop_flag = 0;
-    channel_count = read_32bitLE(0x8,streamFile);
+    channel_count = read_32bitLE(0x08,streamFile);
     
-	/* build the VGMSTREAM */
+    /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
-	/* fill in the vital statistics */
-  start_offset = read_32bitLE(0x18,streamFile); /* not sure about this */
-	vgmstream->channels = channel_count;
     vgmstream->sample_rate = read_32bitLE(0x10,streamFile);
-    vgmstream->coding_type = coding_XBOX;
-    vgmstream->num_samples = (get_streamfile_size(streamFile)-start_offset)*64/36/channel_count;
-    if (loop_flag) {
-        vgmstream->loop_start_sample = loop_flag;
-        vgmstream->loop_end_sample = (get_streamfile_size(streamFile)-start_offset)*28/16/channel_count;
-    }
+    vgmstream->num_samples = xbox_ima_bytes_to_samples(data_size, vgmstream->channels);
 
+    vgmstream->coding_type = coding_XBOX_IMA;
     vgmstream->layout_type = layout_none;
     vgmstream->meta_type = meta_RSD2XADP;
 
-    /* open the file for reading */
-    {
-        int i;
-        STREAMFILE * file;
-        file = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-        if (!file) goto fail;
-        for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = file;
-
-   
-		if (vgmstream->coding_type == coding_XBOX) {
-				vgmstream->layout_type=layout_none;
-                vgmstream->ch[i].channel_start_offset=start_offset;
-            } else {
-                vgmstream->ch[i].channel_start_offset=
-                    start_offset+vgmstream->interleave_block_size*i;
-            }
-            vgmstream->ch[i].offset = vgmstream->ch[i].channel_start_offset;
-
-        }
-    }
-    
-	return vgmstream;
+    if (!vgmstream_open_stream(vgmstream, streamFile, start_offset))
+        goto fail;
+    return vgmstream;
 
 fail:
-    /* clean up anything we may have opened */
-    if (vgmstream) close_vgmstream(vgmstream);
+    close_vgmstream(vgmstream);
     return NULL;
 }
 
@@ -968,72 +938,44 @@ fail:
     return NULL;
 }
 
-/* RSD6XADP */
+/* RSD6XADP - from Crash Tag Team Racing (Xbox) */
 VGMSTREAM * init_vgmstream_rsd6xadp(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[PATH_LIMIT];
     off_t start_offset;
+    int loop_flag, channel_count;
+    size_t data_size;
 
-	int loop_flag;
-	int channel_count;
-
-    /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("rsd",filename_extension(filename))) goto fail;
-
-    /* check header */
-    if (read_32bitBE(0x0,streamFile) != 0x52534436) /* RSD6 */
-		goto fail;
-	if (read_32bitBE(0x4,streamFile) != 0x58414450)	/* XADP */
+    /* check extension */
+    if (!check_extensions(streamFile,"rsd"))
         goto fail;
 
+    if (read_32bitBE(0x0,streamFile) != 0x52534436) /* RSD6 */
+        goto fail;
+    if (read_32bitBE(0x4,streamFile) != 0x58414450)	/* XADP */
+        goto fail;
+
+    start_offset = 0x800;
+    data_size = get_streamfile_size(streamFile) - start_offset;
     loop_flag = 0;
     channel_count = read_32bitLE(0x8,streamFile);
-    
-	/* build the VGMSTREAM */
+
+    /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
-	/* fill in the vital statistics */
-  start_offset = 0x800;
-	vgmstream->channels = channel_count;
     vgmstream->sample_rate = read_32bitLE(0x10,streamFile);
-    vgmstream->coding_type = coding_XBOX;
-    vgmstream->num_samples = (get_streamfile_size(streamFile)-start_offset)*64/36/channel_count;
-    if (loop_flag) {
-        vgmstream->loop_start_sample = loop_flag;
-        vgmstream->loop_end_sample = (get_streamfile_size(streamFile)-start_offset)*28/16/channel_count;
-    }
+    vgmstream->num_samples = xbox_ima_bytes_to_samples(data_size, vgmstream->channels);
+
+    vgmstream->coding_type = coding_XBOX_IMA;
     vgmstream->layout_type = layout_none;
     vgmstream->meta_type = meta_RSD6XADP;
 
-    /* open the file for reading */
-    {
-        int i;
-        STREAMFILE * file;
-        file = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-        if (!file) goto fail;
-        for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = file;
-
-   
-		if (vgmstream->coding_type == coding_XBOX) {
-				vgmstream->layout_type=layout_none;
-                vgmstream->ch[i].channel_start_offset=start_offset;
-            } else {
-                vgmstream->ch[i].channel_start_offset=
-                    start_offset+vgmstream->interleave_block_size*i;
-            }
-            vgmstream->ch[i].offset = vgmstream->ch[i].channel_start_offset;
-
-        }
-    }
-    
-	return vgmstream;
+    if (!vgmstream_open_stream(vgmstream, streamFile, start_offset))
+        goto fail;
+    return vgmstream;
 
 fail:
-    /* clean up anything we may have opened */
-    if (vgmstream) close_vgmstream(vgmstream);
+    close_vgmstream(vgmstream);
     return NULL;
 }
 

@@ -1069,8 +1069,8 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_DVI_IMA_int:
         case coding_3DS_IMA:
             return 2;
-        case coding_XBOX:
-        case coding_XBOX_int:
+        case coding_XBOX_IMA:
+        case coding_XBOX_IMA_int:
         case coding_FSB_IMA:
             return 64;
         case coding_APPLE_IMA4:
@@ -1238,8 +1238,8 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
             return 0;
         case coding_UBI_IMA: /* variable (PCM then IMA) */
             return 0;
-        case coding_XBOX:
-        case coding_XBOX_int:
+        case coding_XBOX_IMA:
+        case coding_XBOX_IMA_int:
         case coding_FSB_IMA:
             return 0x24;
         case coding_APPLE_IMA4:
@@ -1493,14 +1493,14 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                         samples_to_do);
             }
             break;
-        case coding_XBOX:
+        case coding_XBOX_IMA:
             for (chan=0;chan<vgmstream->channels;chan++) {
                 decode_xbox_ima(vgmstream,&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
                         samples_to_do,chan);
             }
             break;
-        case coding_XBOX_int:
+        case coding_XBOX_IMA_int:
             for (chan=0;chan<vgmstream->channels;chan++) {
                 decode_xbox_ima_int(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
