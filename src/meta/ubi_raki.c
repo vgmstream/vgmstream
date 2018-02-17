@@ -78,7 +78,8 @@ VGMSTREAM * init_vgmstream_ubi_raki(STREAMFILE *streamFile) {
     switch(((uint64_t)platform << 32) | type) {
 
         case 0x57696E2070636D20:    /* "Win pcm " */
-        case 0x4F72626970636D20:    /* "Orbipcm " (Orbis = PS4)*/
+        case 0x4F72626970636D20:    /* "Orbipcm " (Orbis = PS4) */
+        case 0x4E78202070636D20:    /* "Nx  pcm " (Nx = Switch) */
             /* chunks: "data" */
             vgmstream->coding_type = coding_PCM16LE;
             vgmstream->layout_type = layout_interleave;
@@ -162,7 +163,7 @@ VGMSTREAM * init_vgmstream_ubi_raki(STREAMFILE *streamFile) {
 #endif
 
 #ifdef VGM_USE_ATRAC9
-        case 0x5649544161743920: {  /*"VITAat9 "*/
+        case 0x5649544161743920: {  /* "VITAat9 " */
             /* chunks: "fact" (equivalent to a RIFF "fact", num_samples + skip_samples), "data" */
             atrac9_config cfg = {0};
 
@@ -177,6 +178,48 @@ VGMSTREAM * init_vgmstream_ubi_raki(STREAMFILE *streamFile) {
 
             /* could get the "fact" offset but seems it always follows "fmt " */
             vgmstream->num_samples = read_32bit(fmt_offset+0x34,streamFile);
+            break;
+        }
+#endif
+
+#ifdef VGM_USE_FFMPEG
+        case 0x4E7820204E782020: {  /* "Nx  Nx  " */
+            /* chunks: "MARK" (optional seek table), "STRG" (optional description) */
+            uint8_t buf[0x100];
+            size_t bytes, skip, opus_size;
+            ffmpeg_custom_config cfg = {0};
+
+            /* a standard Switch Opus header */
+            skip = read_32bitLE(start_offset + 0x1c, streamFile);
+            opus_size = read_32bitLE(start_offset + 0x10, streamFile) + 0x08;
+            start_offset += opus_size;
+            data_size -= opus_size;
+
+            cfg.type = FFMPEG_SWITCH_OPUS;
+
+            bytes = ffmpeg_make_opus_header(buf,0x100, vgmstream->channels, skip, vgmstream->sample_rate);
+            if (bytes <= 0) goto fail;
+
+            vgmstream->codec_data = init_ffmpeg_config(streamFile, buf,bytes, start_offset,data_size, &cfg);
+            if (!vgmstream->codec_data) goto fail;
+            vgmstream->coding_type = coding_FFmpeg;
+            vgmstream->layout_type = layout_none;
+
+            if (((ffmpeg_codec_data*)vgmstream->codec_data)->skipSamples <= 0)
+                ffmpeg_set_skip_samples(vgmstream->codec_data, skip);
+
+            {
+                off_t chunk_offset = off + 0x20 + 0xc; /* after "fmt" */
+                while (chunk_offset < header_size) {
+                    if (read_32bitBE(chunk_offset,streamFile) == 0x4164496E) { /*"AdIn" additional info */
+                        off_t adin_offset = read_32bitLE(chunk_offset+0x04,streamFile);
+                        vgmstream->num_samples = read_32bitLE(adin_offset,streamFile);
+                        break;
+                    }
+                    chunk_offset += 0xc;
+                }
+            }
+
             break;
         }
 #endif
