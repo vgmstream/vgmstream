@@ -237,7 +237,7 @@ typedef enum {
     layout_gsb_blocked,
     layout_thp_blocked,
     layout_filp_blocked,
-    layout_psx_mgav_blocked,
+    layout_blocked_ea_swvr,
     layout_ps2_adm_blocked,
     layout_dsp_bdsp_blocked,
     layout_mxch_blocked,
@@ -544,7 +544,7 @@ typedef enum {
     meta_DSP_DDSP,          /* Various (2 dsp files stuck together */
     meta_NGC_DSP_MPDS,      /* Big Air Freestyle, Terminator 3 */
     meta_DSP_STR_IG,        /* Micro Machines, Superman Superman: Shadow of Apokolis */
-    meta_PSX_MGAV,          /* Future Cop L.A.P.D. */
+    meta_EA_SWVR,           /* Future Cop L.A.P.D., Freekstyle */
     meta_NGC_DSP_STH_STR,   /* SpongeBob Squarepants (NGC), Taz Wanted (NGC), Cubix (NGC), Tak (WII)*/
     meta_PS2_B1S,           /* 7 Wonders of the ancient world */
     meta_PS2_WAD,           /* The golden Compass */

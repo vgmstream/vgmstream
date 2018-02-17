@@ -1,77 +1,80 @@
 #include "meta.h"
 #include "../layout/layout.h"
-#include "../util.h"
+#include "../coding/coding.h"
 
-/* STR (Future Cop L.A.P.D.) */
-VGMSTREAM * init_vgmstream_psx_mgav(STREAMFILE *streamFile) {
+
+/* SWVR - from EA games [Future Cop L.A.P.D. (PS/PC), Freekstyle (PS2/GC), EA Sports Supercross (PS)] */
+VGMSTREAM * init_vgmstream_ea_swvr(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-		off_t start_offset;
-		off_t current_chunk;
-    char filename[PATH_LIMIT];
-    int loop_flag = 0;
-		int channel_count;
-    int dataBuffer = 0;
-    int i;
+    off_t start_offset;
+    int loop_flag = 0, channel_count;
+    int big_endian;
+    int32_t (*read_32bit)(off_t,STREAMFILE*) = NULL;
 
-    /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("str",filename_extension(filename))) goto fail;
 
-    /* check header */
-    if (read_32bitBE(0x00,streamFile) != 0x52565753) /* "RVWS" */
+    /* check extension */
+    if (!check_extensions(streamFile,"str"))
         goto fail;
 
+    /* check header */
+    if (read_32bitBE(0x00,streamFile) == 0x53575652) { /* "SWVR" (GC) */
+        big_endian = 1;
+        read_32bit = read_32bitBE;
+    }
+    else if (read_32bitBE(0x00,streamFile) == 0x52565753) { /* "RVWS" (PS/PS2) */
+        big_endian = 0;
+        read_32bit = read_32bitLE;
+    }
+    else {
+        goto fail;
+    }
+
+
+    start_offset = read_32bit(0x04,streamFile);
     loop_flag = 1;
     channel_count = 2;
-    
-		/* build the VGMSTREAM */
+
+
+    /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
-		/* fill in the vital statistics */
-    start_offset = read_32bitLE(0x4,streamFile);
-		vgmstream->channels = channel_count;
     vgmstream->sample_rate = 16000;
+    vgmstream->codec_endian = big_endian;
+
+    vgmstream->meta_type = meta_EA_SWVR;
+    vgmstream->layout_type = layout_blocked_ea_swvr;
+
     vgmstream->coding_type = coding_PSX;
-    vgmstream->layout_type = layout_psx_mgav_blocked;
-    vgmstream->meta_type = meta_PSX_MGAV;
 
-    /* open the file for reading */
+    if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
+        goto fail;
+
+
+    /* calculate samples */
     {
-        STREAMFILE * file;
-        file = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-        if (!file) goto fail;
-        for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = file;
-		}
-	}
-	
-        // calculate samples
-        current_chunk = start_offset;
-        vgmstream->num_samples = 0;
-        while ((current_chunk + start_offset) < (get_streamfile_size(streamFile)))
-        {
-          dataBuffer = (read_32bitBE(current_chunk,streamFile));
-          if (dataBuffer == 0x4D474156) /* "MGAV" */
-          {
-            psx_mgav_block_update(start_offset,vgmstream);
-            vgmstream->num_samples += vgmstream->current_block_size/16*28;
-            current_chunk += vgmstream->current_block_size + 0x1C;
-          }
-          current_chunk += 0x10;
-        }
+        off_t current_chunk = start_offset;
 
+        vgmstream->num_samples = 0;
+        while ((current_chunk + start_offset) < (get_streamfile_size(streamFile))) {
+            uint32_t block_id = (read_32bit(current_chunk,streamFile));
+            if (block_id == 0x5641474D) { /* "VAGM" */
+                block_update_ea_swvr(start_offset,vgmstream);
+                vgmstream->num_samples += vgmstream->current_block_size/16*28;
+                current_chunk += vgmstream->current_block_size + 0x1C;
+            }
+            current_chunk += 0x10;
+        }
+    }
 
     if (loop_flag) {
         vgmstream->loop_start_sample = 0;
         vgmstream->loop_end_sample = vgmstream->num_samples;
     }
 
-
     return vgmstream;
 
-    /* clean up anything we may have opened */
 fail:
-    if (vgmstream) close_vgmstream(vgmstream);
+    close_vgmstream(vgmstream);
     return NULL;
 }

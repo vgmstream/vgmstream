@@ -265,7 +265,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_ps2_adsc,
     init_vgmstream_ngc_dsp_mpds,
     init_vgmstream_dsp_str_ig,
-    init_vgmstream_psx_mgav,
+    init_vgmstream_ea_swvr,
     init_vgmstream_ngc_dsp_sth_str1,
     init_vgmstream_ngc_dsp_sth_str2,
     init_vgmstream_ngc_dsp_sth_str3,
@@ -968,7 +968,7 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
         case layout_thp_blocked:
         case layout_filp_blocked:
         case layout_blocked_ivaud:
-        case layout_psx_mgav_blocked:
+        case layout_blocked_ea_swvr:
         case layout_ps2_adm_blocked:
         case layout_dsp_bdsp_blocked:
         case layout_tra_blocked:

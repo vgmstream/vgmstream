@@ -490,7 +490,7 @@ VGMSTREAM * init_vgmstream_ngc_dsp_mpds(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_dsp_str_ig(STREAMFILE* streamFile);
 
-VGMSTREAM * init_vgmstream_psx_mgav(STREAMFILE* streamFile);
+VGMSTREAM * init_vgmstream_ea_swvr(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_ngc_dsp_sth_str1(STREAMFILE* streamFile);
 VGMSTREAM * init_vgmstream_ngc_dsp_sth_str2(STREAMFILE* streamFile);
