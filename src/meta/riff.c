@@ -547,6 +547,7 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
     switch (fmt.coding_type) {
         case coding_MSADPCM:
         case coding_MS_IMA:
+        case coding_XBOX_IMA:
 #ifdef VGM_USE_FFMPEG
         case coding_FFmpeg:
 #endif
