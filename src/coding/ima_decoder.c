@@ -719,7 +719,6 @@ void decode_wwise_ima(VGMSTREAM * vgmstream,VGMSTREAMCHANNEL * stream, sample * 
             std_ima_expand_nibble(stream, byte_offset,nibble_shift, &hist1, &step_index);
             outbuf[sample_count] = (short)(hist1);
             sample_count+=channelspacing;
-            //todo atenuation: apparently from hcs's analysis Wwise IMA decodes nibbles slightly different, reducing dbs
         }
     }
 
@@ -729,7 +728,23 @@ void decode_wwise_ima(VGMSTREAM * vgmstream,VGMSTREAMCHANNEL * stream, sample * 
     stream->adpcm_history1_32 = hist1;
     stream->adpcm_step_index = step_index;
 }
+//todo atenuation: apparently from hcs's analysis Wwise IMA expands nibbles slightly different, reducing clipping/dbs
+/*
+From Wwise_v2015.1.6_Build5553_SDK.Linux
+<_ZN13CAkADPCMCodec12DecodeSampleEiii>:
+  10:   83 e0 07                and    $0x7,%eax        ; sample
+  13:   01 c0                   add    %eax,%eax        ; sample*2
+  15:   83 c0 01                add    $0x1,%eax        ; sample*2+1
+  18:   0f af 45 e4             imul   -0x1c(%rbp),%eax ; (sample*2+1)*scale
+  1c:   8d 50 07                lea    0x7(%rax),%edx   ; result+7
+  1f:   85 c0                   test   %eax,%eax        ; result negative?
+  21:   0f 48 c2                cmovs  %edx,%eax        ; adjust if negative to fix rounding for below division
+  24:   c1 f8 03                sar    $0x3,%eax        ; (sample*2+1)*scale/8
 
+Different rounding model vs IMA's shift-and-add (also "adjust" step may be unnecessary).
+*/
+
+/* MS-IMA with possibly the XBOX-IMA model of even number of samples per block (more tests are needed) */
 void decode_awc_ima(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
     int i, sample_count;
 
