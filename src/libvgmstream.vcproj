@@ -1103,7 +1103,7 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\psx_str_mgav.c"
+					RelativePath=".\meta\ea_swvr.c"
 					>
 				</File>
 				<File
@@ -1771,7 +1771,7 @@
 					>
 				</File>
 				<File
-					RelativePath=".\layout\psx_mgav_blocked.c"
+					RelativePath=".\layout\blocked_ea_swvr.c"
 					>
 				</File>
                 <File
