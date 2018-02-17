@@ -194,11 +194,12 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
             break;
 
         case IMA: /* common */
-            /* slightly modified MS IMA with interleaved sub-blocks and LE/BE header */
+            /* slightly modified XBOX-IMA with interleaved sub-blocks and LE/BE header */
 
             /* Wwise uses common codecs (ex. 0x0002 MSADPCM) so this parser should go AFTER riff.c avoid misdetection */
 
             if (ww.bits_per_sample != 4) goto fail;
+            if (ww.block_align != 0x24 * ww.channels) goto fail;
             vgmstream->coding_type = coding_WWISE_IMA;
             vgmstream->layout_type = layout_none;
             vgmstream->interleave_block_size = ww.block_align;
@@ -207,7 +208,7 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
             if (ww.truncated) /* enough to get real samples */
                 ww.data_size = ww.file_size - ww.data_offset;
 
-            vgmstream->num_samples = ms_ima_bytes_to_samples(ww.data_size, ww.block_align, ww.channels);
+            vgmstream->num_samples = xbox_ima_bytes_to_samples(ww.data_size, ww.channels);
             break;
 
 #ifdef VGM_USE_VORBIS

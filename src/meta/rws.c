@@ -189,13 +189,13 @@ VGMSTREAM * init_vgmstream_rws(STREAMFILE *streamFile) {
             vgmstream->num_samples = dsp_bytes_to_samples(stream_size, channel_count);
             break;
 
-        case 0x936538EF:    /* MS-IMA PC   (936538EF 11B62D43 957FA71A DE44227A) */
-        case 0x2BA22F63:    /* MS-IMA Xbox (2BA22F63 DD118F45 AA27A5C3 46E9790E) */
+        case 0x936538EF:    /* XBOX-IMA PC   (936538EF 11B62D43 957FA71A DE44227A) */
+        case 0x2BA22F63:    /* XBOX-IMA Xbox (2BA22F63 DD118F45 AA27A5C3 46E9790E) */
             /* ex. Broken Sword 3 (PC), Jacked (PC/Xbox), Burnout 2 (Xbox) */
-            vgmstream->coding_type = coding_XBOX;
-            vgmstream->interleave_block_size = 0; /* uses regular XBOX/MS-IMA interleave */
+            vgmstream->coding_type = coding_XBOX_IMA; /* PC and Xbox share the same data */
+            vgmstream->interleave_block_size = 0;
 
-            vgmstream->num_samples = ms_ima_bytes_to_samples(stream_size, 0x24 * channel_count, channel_count);
+            vgmstream->num_samples = xbox_ima_bytes_to_samples(stream_size, channel_count);
             break;
 
         default:

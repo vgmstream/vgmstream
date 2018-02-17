@@ -126,18 +126,18 @@ static int read_fmt(int big_endian, STREAMFILE * streamFile, off_t current_chunk
             fmt->coding_type = coding_MSADPCM;
             break;
 
-        case 0x11:  /* MS IMA ADPCM */
+        case 0x11:  /* MS IMA ADPCM [Layton Brothers: Mystery Room (iOS/Android)] */
             if (fmt->bps != 4) goto fail;
             fmt->coding_type = coding_MS_IMA;
             break;
 
-        case 0x69:  /* MS IMA ADPCM (XBOX) - Rayman Raving Rabbids 2 (PC) */
+        case 0x69:  /* XBOX IMA ADPCM [Rayman Raving Rabbids 2 (PC) --maybe waa/wac/wam/wad?] */
             if (fmt->bps != 4) goto fail;
-            fmt->coding_type = coding_MS_IMA;
+            fmt->coding_type = coding_XBOX_IMA;
             break;
 
-        case 0x007A:  /* MS IMA ADPCM (LA Rush, Psi Ops PC) */
-            /* 0x007A is apparently "Voxware SC3" but in .MED it's just MS-IMA */
+        case 0x007A:  /* MS IMA ADPCM [LA Rush (PC), Psi Ops (PC)] */
+            /* 0x007A is apparently "Voxware SC3" but in .MED it's just MS-IMA (0x11) */
             if (!check_extensions(streamFile,"med"))
                 goto fail;
 
@@ -228,8 +228,8 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
     size_t file_size, riff_size, data_size = 0;
     off_t start_offset = 0;
 
-    int fact_sample_count = -1;
-    int fact_sample_skip = -1;
+    int fact_sample_count = 0;
+    int fact_sample_skip = 0;
 
     int loop_flag = 0;
     long loop_start_ms = -1;
@@ -246,9 +246,10 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
     int at3 = 0; /* Sony ATRAC3 / ATRAC3plus */
     int at9 = 0; /* Sony ATRAC9 */
 
-    /* check extension, case insensitive
-     * .da: The Great Battle VI (PS), .cd: Exector (PS), .med: Psi Ops (PC) */
-    if ( check_extensions(streamFile, "wav,lwav,da,cd,med") ) {
+
+    /* check extension */
+    /* .da: The Great Battle VI (PS), .cd: Exector (PS), .med: Psi Ops (PC), .snd: Layton Brothers (iOS/Android) */
+    if ( check_extensions(streamFile, "wav,lwav,da,cd,med,snd") ) {
         ;
     }
     else if ( check_extensions(streamFile, "mwv") ) {
@@ -355,7 +356,9 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
                     mwv_ctrl_offset = current_chunk;
                     break;
                 case 0x66616374:    /* fact */
-                    if (sns && chunk_size == 0x10) {
+                    if (chunk_size == 0x04) { /* standard, usually found with ADPCM */
+                        fact_sample_count = read_32bitLE(current_chunk+0x08, streamFile);
+                    } else if (sns && chunk_size == 0x10) {
                         fact_sample_count = read_32bitLE(current_chunk+0x08, streamFile);
                     } else if ((at3 || at9) && chunk_size == 0x08) {
                         fact_sample_count = read_32bitLE(current_chunk+0x08, streamFile);
@@ -380,13 +383,14 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
 
     if (!FormatChunkFound || !DataChunkFound) goto fail;
 
+	//todo improve detection using fmt sizes/values as Wwise's don't match the RIFF standard
     /* JUNK is an optional Wwise chunk, and Wwise hijacks the MSADPCM/MS_IMA/XBOX IMA ids (how nice).
      * To ensure their stuff is parsed in wwise.c we reject their JUNK, which they put almost always.
      * As JUNK is legal (if unusual) we only reject those codecs.
      * (ex. Cave PC games have PCM16LE + JUNK + smpl created by "Samplitude software") */
     if (JunkFound
             && check_extensions(streamFile,"wav,lwav") /* for some .MED IMA */
-            && (fmt.coding_type==coding_MSADPCM || fmt.coding_type==coding_MS_IMA))
+            && (fmt.coding_type==coding_MSADPCM /*|| fmt.coding_type==coding_MS_IMA*/ || fmt.coding_type==coding_XBOX_IMA))
         goto fail;
 
 
@@ -409,9 +413,11 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
         case coding_PCM16LE:
             vgmstream->num_samples = pcm_bytes_to_samples(data_size, fmt.channel_count, 16);
             break;
+
         case coding_PCM8_U_int:
             vgmstream->num_samples = pcm_bytes_to_samples(data_size, vgmstream->channels, 8);
             break;
+
         case coding_L5_555:
             if (!mwv) goto fail;
             vgmstream->num_samples = data_size / 0x12 / fmt.channel_count * 32;
@@ -437,12 +443,22 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
             }
 
             break;
+
         case coding_MSADPCM:
-            vgmstream->num_samples = msadpcm_bytes_to_samples(data_size, fmt.block_size, fmt.channel_count);
+            vgmstream->num_samples = fact_sample_count ? fact_sample_count :
+                    msadpcm_bytes_to_samples(data_size, fmt.block_size, fmt.channel_count);
             break;
+
         case coding_MS_IMA:
-            vgmstream->num_samples = ms_ima_bytes_to_samples(data_size, fmt.block_size, fmt.channel_count);
+            vgmstream->num_samples = fact_sample_count ? fact_sample_count :
+                    ms_ima_bytes_to_samples(data_size, fmt.block_size, fmt.channel_count);
             break;
+
+        case coding_XBOX_IMA:
+            vgmstream->num_samples = fact_sample_count ? fact_sample_count :
+                    xbox_ima_bytes_to_samples(data_size, fmt.channel_count);
+            break;
+
         case coding_NGC_DSP:
             if (!sns) goto fail;
             if (fact_sample_count <= 0) goto fail;
@@ -531,6 +547,7 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
     switch (fmt.coding_type) {
         case coding_MSADPCM:
         case coding_MS_IMA:
+        case coding_XBOX_IMA:
 #ifdef VGM_USE_FFMPEG
         case coding_FFmpeg:
 #endif

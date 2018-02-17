@@ -119,6 +119,7 @@ VGMSTREAM * init_vgmstream_ubi_sb(STREAMFILE *streamFile) {
         start_offset  = sb.main_size + sb.section1_size + sb.section2_size + sb.extra_size + sb.section3_size;
         start_offset += sb.stream_offset;
     }
+    //;VGM_LOG("start offset=%lx, external=%i\n", start_offset, sb.is_external);
 
 
     /* build the VGMSTREAM */
@@ -154,9 +155,9 @@ VGMSTREAM * init_vgmstream_ubi_sb(STREAMFILE *streamFile) {
             break;
 
         case RAW_XBOX:
-            vgmstream->coding_type = coding_XBOX;
+            vgmstream->coding_type = coding_XBOX_IMA;
             vgmstream->layout_type = layout_none;
-            vgmstream->num_samples = ms_ima_bytes_to_samples(sb.stream_size, 0x24*sb.channels,sb.channels);
+            vgmstream->num_samples = xbox_ima_bytes_to_samples(sb.stream_size, sb.channels);
             break;
 
         case RAW_DSP:
@@ -883,6 +884,22 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
         sb->stream_type_offset   = 0x5c;
         sb->extra_name_offset    = 0x58;
 
+        return 1;
+    }
+
+    /* Surf's Up (2007)(PC) */
+    if (sb->version == 0x00190005 && is_sb0) {
+        sb->section1_entry_size = 0x68;
+        sb->section2_entry_size = 0x74;
+
+        sb->external_flag_offset = 0x28; /* maybe 0x2c */
+        sb->channels_offset      = 0x3c;
+        sb->sample_rate_offset   = 0x40;
+        sb->num_samples_offset   = 0x48;
+        sb->stream_type_offset   = 0x5c;
+        sb->extra_name_offset    = 0x58;
+
+        sb->has_extra_name_flag = 1;
         return 1;
     }
 

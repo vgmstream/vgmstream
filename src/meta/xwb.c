@@ -295,11 +295,11 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
         }
     }
     else if (xwb.version <= XACT1_1_MAX && xwb.codec == XBOX_ADPCM) {
-        xwb.block_align = 0x24 * xwb.channels;
-        xwb.num_samples = ms_ima_bytes_to_samples(xwb.stream_size, xwb.block_align, xwb.channels);
+        xwb.block_align = 0x24 * xwb.channels; /* not really needed... */
+        xwb.num_samples = xbox_ima_bytes_to_samples(xwb.stream_size, xwb.channels);
         if (xwb.loop_flag) {
-            xwb.loop_start_sample = ms_ima_bytes_to_samples(xwb.loop_start, xwb.block_align, xwb.channels);
-            xwb.loop_end_sample   = ms_ima_bytes_to_samples(xwb.loop_start + xwb.loop_end, xwb.block_align, xwb.channels);
+            xwb.loop_start_sample = xbox_ima_bytes_to_samples(xwb.loop_start, xwb.channels);
+            xwb.loop_end_sample   = xbox_ima_bytes_to_samples(xwb.loop_start + xwb.loop_end, xwb.channels);
         }
     }
     else if (xwb.version <= XACT2_2_MAX && xwb.codec == MS_ADPCM && xwb.loop_flag) {
@@ -367,7 +367,7 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
             break;
 
         case XBOX_ADPCM: /* Silent Hill 4 (Xbox) */
-            vgmstream->coding_type = coding_XBOX;
+            vgmstream->coding_type = coding_XBOX_IMA;
             vgmstream->layout_type = layout_none;
             break;
 

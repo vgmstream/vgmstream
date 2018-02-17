@@ -472,7 +472,7 @@
     <ClCompile Include="meta\ps2_ast.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\ps2_aus.c">
+    <ClCompile Include="meta\aus.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ps2_b1s.c">
@@ -667,7 +667,7 @@
     <ClCompile Include="meta\psx_gms.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\psx_str_mgav.c">
+    <ClCompile Include="meta\ea_swvr.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\raw.c">
@@ -1045,7 +1045,7 @@
     <ClCompile Include="layout\ps2_adm_blocked.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="layout\psx_mgav_blocked.c">
+    <ClCompile Include="layout\blocked_ea_swvr.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="layout\rws_blocked.c">

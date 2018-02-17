@@ -294,7 +294,7 @@
     <ClCompile Include="meta\ps2_adsc.c" />
     <ClCompile Include="meta\ps2_ass.c" />
     <ClCompile Include="meta\ps2_ast.c" />
-    <ClCompile Include="meta\ps2_aus.c" />
+    <ClCompile Include="meta\aus.c" />
     <ClCompile Include="meta\ps2_b1s.c" />
     <ClCompile Include="meta\ps2_bg00.c" />
     <ClCompile Include="meta\ps2_bmdx.c" />
@@ -359,7 +359,7 @@
     <ClCompile Include="meta\psx_cdxa.c" />
     <ClCompile Include="meta\psx_fag.c" />
     <ClCompile Include="meta\psx_gms.c" />
-    <ClCompile Include="meta\psx_str_mgav.c" />
+    <ClCompile Include="meta\ea_swvr.c" />
     <ClCompile Include="meta\raw.c" />
     <ClCompile Include="meta\redspark.c" />
     <ClCompile Include="meta\riff.c" />
@@ -487,7 +487,7 @@
     <ClCompile Include="layout\mxch_blocked.c" />
     <ClCompile Include="layout\nolayout.c" />
     <ClCompile Include="layout\ps2_adm_blocked.c" />
-    <ClCompile Include="layout\psx_mgav_blocked.c" />
+    <ClCompile Include="layout\blocked_ea_swvr.c" />
     <ClCompile Include="layout\rws_blocked.c" />
     <ClCompile Include="layout\hwas_blocked.c" />
     <ClCompile Include="layout\str_snds_blocked.c" />

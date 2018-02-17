@@ -21,10 +21,6 @@ static const int ADPCMCoeffs[7][2] =
     { 392, -232 }
 };
 
-long msadpcm_bytes_to_samples(long bytes, int block_size, int channels) {
-    return bytes/block_size*((block_size-(7-1)*channels)*2/channels);
-}
-
 void decode_msadpcm_stereo(VGMSTREAM * vgmstream, sample * outbuf, int32_t first_sample, int32_t samples_to_do) {
     VGMSTREAMCHANNEL *ch1,*ch2;
     int i;
@@ -160,4 +156,9 @@ void decode_msadpcm_mono(VGMSTREAM * vgmstream, sample * outbuf, int32_t first_s
             outbuf++;
         }
     }
+}
+
+long msadpcm_bytes_to_samples(long bytes, int block_size, int channels) {
+    return (bytes / block_size) * (block_size - (7-1)*channels) * 2 / channels
+            + ((bytes % block_size) ? ((bytes % block_size) - (7-1)*channels) * 2 / channels : 0);
 }

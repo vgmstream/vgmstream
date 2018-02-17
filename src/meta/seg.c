@@ -1,7 +1,8 @@
 #include "meta.h"
-#include "../util.h"
+#include "../coding/coding.h"
 
-/* SEG (found in Eragon) */
+
+/* SEG - found in Eragon */
 VGMSTREAM * init_vgmstream_seg(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[PATH_LIMIT];
@@ -24,7 +25,7 @@ VGMSTREAM * init_vgmstream_seg(STREAMFILE *streamFile) {
     }
     else if (read_32bitBE(0x04,streamFile) == 0x78627800)   /* "xbx\0" */
     {
-        coding = coding_XBOX;
+        coding = coding_XBOX_IMA;
     }
     else goto fail;
 
@@ -60,9 +61,9 @@ VGMSTREAM * init_vgmstream_seg(STREAMFILE *streamFile) {
 		    vgmstream->interleave_block_size = 0x2000;
 	    }
     }
-    else if (coding_XBOX == coding)
+    else if (coding_XBOX_IMA == coding)
     {
-        vgmstream->num_samples = (read_32bitLE(0x0C,streamFile)-start_offset)/36/channel_count*64;
+        vgmstream->num_samples = xbox_ima_bytes_to_samples(read_32bitLE(0x0C,streamFile)-start_offset, channel_count);
         vgmstream->meta_type = meta_XBOX_SEG;
         vgmstream->layout_type = layout_none;
     }

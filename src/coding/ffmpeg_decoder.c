@@ -403,7 +403,7 @@ ffmpeg_codec_data * init_ffmpeg_config(STREAMFILE *streamFile, uint8_t * header,
     for (i = 0; i < data->formatCtx->nb_streams; ++i) {
         stream = data->formatCtx->streams[i];
 
-        if (stream->codecpar->codec_type == AVMEDIA_TYPE_AUDIO) {
+        if (stream->codecpar && stream->codecpar->codec_type == AVMEDIA_TYPE_AUDIO) {
             streamCount++;
 
             /* select Nth audio stream if specified, or first one */

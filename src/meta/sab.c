@@ -55,7 +55,7 @@ VGMSTREAM * init_vgmstream_sab(STREAMFILE *streamFile) {
     vgmstream->meta_type = meta_SAB;
 
     switch(codec) {
-        case 0x01:
+        case 0x01: /* PC */
             vgmstream->coding_type = coding_PCM16LE;
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = is_stream ? align : 0x02;
@@ -66,7 +66,7 @@ VGMSTREAM * init_vgmstream_sab(STREAMFILE *streamFile) {
 
             break;
 
-        case 0x04:
+        case 0x04: /* PS2 */
             vgmstream->coding_type = coding_PSX;
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = is_stream ? align : 0x10;
@@ -76,14 +76,14 @@ VGMSTREAM * init_vgmstream_sab(STREAMFILE *streamFile) {
             vgmstream->loop_end_sample = ps_bytes_to_samples(loop_end, vgmstream->channels);
             break;
 
-        case 0x08:
-            vgmstream->coding_type = is_stream ? coding_XBOX_int : coding_XBOX;
+        case 0x08: /* Xbox */
+            vgmstream->coding_type = is_stream ? coding_XBOX_IMA_int : coding_XBOX_IMA;
             vgmstream->layout_type = is_stream ? layout_interleave : layout_none;
             vgmstream->interleave_block_size = is_stream ? align : 0x00;
 
-            vgmstream->num_samples = ms_ima_bytes_to_samples(stream_size, 0x24*vgmstream->channels, vgmstream->channels);
-            vgmstream->loop_start_sample = ms_ima_bytes_to_samples(loop_start, 0x24*vgmstream->channels, vgmstream->channels);
-            vgmstream->loop_end_sample = ms_ima_bytes_to_samples(loop_end, 0x24*vgmstream->channels, vgmstream->channels);
+            vgmstream->num_samples = xbox_ima_bytes_to_samples(stream_size, vgmstream->channels);
+            vgmstream->loop_start_sample = xbox_ima_bytes_to_samples(loop_start, vgmstream->channels);
+            vgmstream->loop_end_sample = xbox_ima_bytes_to_samples(loop_end, vgmstream->channels);
             break;
 
         default:

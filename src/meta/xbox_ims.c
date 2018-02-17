@@ -29,8 +29,8 @@ VGMSTREAM * init_vgmstream_xbox_matx(STREAMFILE *streamFile) {
 	/* fill in the vital statistics */
 	vgmstream->channels = channel_count;
     vgmstream->sample_rate = read_16bitLE(0x06,streamFile) & 0xffff;
-	vgmstream->coding_type = coding_XBOX;
 
+	vgmstream->coding_type = coding_XBOX_IMA;
     vgmstream->layout_type = layout_matx_blocked;
     vgmstream->meta_type = meta_XBOX_MATX;
 

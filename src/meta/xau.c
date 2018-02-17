@@ -58,11 +58,11 @@ VGMSTREAM * init_vgmstream_xau(STREAMFILE *streamFile) {
 	            goto fail;
 
             vgmstream->sample_rate = read_32bitLE(0x58, streamFile);
-            vgmstream->num_samples = ms_ima_bytes_to_samples(read_32bitLE(start_offset-4, streamFile), read_16bitLE(0x60, streamFile), channel_count);
+            vgmstream->num_samples = xbox_ima_bytes_to_samples(read_32bitLE(start_offset-4, streamFile), channel_count);
             vgmstream->loop_start_sample = loop_start;
             vgmstream->loop_end_sample = loop_end;
 
-            vgmstream->coding_type = coding_XBOX;
+            vgmstream->coding_type = coding_XBOX_IMA;
             vgmstream->layout_type = layout_none;
             break;
 

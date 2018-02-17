@@ -31,7 +31,7 @@ VGMSTREAM * init_vgmstream_aus(STREAMFILE *streamFile) {
 	vgmstream->num_samples = read_32bitLE(0x08,streamFile);
 
 	if(read_16bitLE(0x06,streamFile)==0x02) {
-		vgmstream->coding_type = coding_XBOX;
+		vgmstream->coding_type = coding_XBOX_IMA;
 		vgmstream->layout_type=layout_none;
 	} else {
 		vgmstream->coding_type = coding_PSX;

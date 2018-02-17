@@ -95,7 +95,7 @@ VGMSTREAM * init_vgmstream_txth(STREAMFILE *streamFile) {
     /* type to coding conversion */
     switch (txth.codec) {
         case PSX:        coding = coding_PSX; break;
-        case XBOX:       coding = coding_XBOX; break;
+        case XBOX:       coding = coding_XBOX_IMA; break;
         case NGC_DTK:    coding = coding_NGC_DTK; break;
         case PCM16BE:    coding = coding_PCM16BE; break;
         case PCM16LE:    coding = coding_PCM16LE; break;
@@ -205,7 +205,7 @@ VGMSTREAM * init_vgmstream_txth(STREAMFILE *streamFile) {
             vgmstream->interleave_block_size = txth.interleave;
             vgmstream->layout_type = layout_none;
             break;
-        case coding_XBOX:
+        case coding_XBOX_IMA:
             vgmstream->layout_type = layout_none;
             break;
         case coding_NGC_DTK:
@@ -634,7 +634,7 @@ static int get_bytes_to_samples(txth_header * txth, uint32_t bytes) {
             if (!txth->interleave) return 0;
             return ms_ima_bytes_to_samples(bytes, txth->interleave, txth->channels);
         case XBOX:
-            return ms_ima_bytes_to_samples(bytes, 0x24 * txth->channels, txth->channels);
+            return xbox_ima_bytes_to_samples(bytes, txth->channels);
         case NGC_DSP:
             return dsp_bytes_to_samples(bytes, txth->channels);
         case PSX:

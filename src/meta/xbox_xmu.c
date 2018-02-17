@@ -1,65 +1,44 @@
 #include "meta.h"
-#include "../util.h"
+#include "../coding/coding.h"
 
-/* XMU
-
-   XMU (found in Alter Echo)
-*/
-
+/* XMU- found in Alter Echo (Xbox) */
 VGMSTREAM * init_vgmstream_xbox_xmu(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[PATH_LIMIT];
+    size_t start_offset;
+    int loop_flag, channel_count;
+    size_t data_size;
 
-    int loop_flag=0;
-	int channel_count;
-    int i;
+    /* check extension */
+    if (!check_extensions(streamFile,"xmu"))
+        goto fail;
 
-    /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("xmu",filename_extension(filename))) goto fail;
+    if (read_32bitBE(0x00,streamFile) != 0x584D5520 &&  /* "XMU " */
+        read_32bitBE(0x08,streamFile) != 0x46524D54)    /* "FRMT" */
+        goto fail;
 
-	if((read_32bitBE(0x00,streamFile)!=0x584D5520) && 
-	   (read_32bitBE(0x08,streamFile)!=0x46524D54))
-		goto fail;
+    start_offset = 0x800;
+    channel_count=read_8bit(0x14,streamFile); /* always stereo files */
+    loop_flag = read_8bit(0x16,streamFile); /* no Loop found atm */
+    data_size = read_32bitLE(0x7FC,streamFile); /* next to "DATA" */
 
-    /* No Loop found atm */
-	loop_flag = read_8bit(0x16,streamFile);;
-    
-	/* Always stereo files */
-	channel_count=read_8bit(0x14,streamFile);
-    
-	/* build the VGMSTREAM */
+    /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
-	/* fill in the vital statistics */
-	vgmstream->channels = channel_count;
     vgmstream->sample_rate = read_32bitLE(0x10,streamFile);
+    vgmstream->num_samples = xbox_ima_bytes_to_samples(data_size, vgmstream->channels);
+    vgmstream->loop_start_sample = 0;
+    vgmstream->loop_end_sample = vgmstream->num_samples;
 
-	vgmstream->coding_type = coding_XBOX;
-    vgmstream->num_samples = read_32bitLE(0x7FC,streamFile) / 36 * 64 / vgmstream->channels;
+    vgmstream->coding_type = coding_XBOX_IMA;
     vgmstream->layout_type = layout_none;
     vgmstream->meta_type = meta_XBOX_XMU;
 
-	if(loop_flag) {
-		vgmstream->loop_start_sample=0;
-		vgmstream->loop_end_sample=vgmstream->num_samples;
-	}
-	
-	/* open the file for reading by each channel */
-    {
-        for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = streamFile->open(streamFile,filename,36);
-            vgmstream->ch[i].offset = 0x800;
-
-            if (!vgmstream->ch[i].streamfile) goto fail;
-        }
-    }
-
+    if (!vgmstream_open_stream(vgmstream, streamFile, start_offset))
+        goto fail;
     return vgmstream;
 
-    /* clean up anything we may have opened */
 fail:
-    if (vgmstream) close_vgmstream(vgmstream);
+    close_vgmstream(vgmstream);
     return NULL;
 }

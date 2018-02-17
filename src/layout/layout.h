@@ -46,7 +46,7 @@ void filp_block_update(off_t block_offset, VGMSTREAM * vgmstream);
 
 void block_update_ivaud(off_t block_offset, VGMSTREAM * vgmstream);
 
-void psx_mgav_block_update(off_t block_offset, VGMSTREAM * vgmstream);
+void block_update_ea_swvr(off_t block_offset, VGMSTREAM * vgmstream);
 
 void ps2_adm_block_update(off_t block_offset, VGMSTREAM * vgmstream);
 

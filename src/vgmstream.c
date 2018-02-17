@@ -265,7 +265,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_ps2_adsc,
     init_vgmstream_ngc_dsp_mpds,
     init_vgmstream_dsp_str_ig,
-    init_vgmstream_psx_mgav,
+    init_vgmstream_ea_swvr,
     init_vgmstream_ngc_dsp_sth_str1,
     init_vgmstream_ngc_dsp_sth_str2,
     init_vgmstream_ngc_dsp_sth_str3,
@@ -968,7 +968,7 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
         case layout_thp_blocked:
         case layout_filp_blocked:
         case layout_blocked_ivaud:
-        case layout_psx_mgav_blocked:
+        case layout_blocked_ea_swvr:
         case layout_ps2_adm_blocked:
         case layout_dsp_bdsp_blocked:
         case layout_tra_blocked:
@@ -1010,11 +1010,17 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_CRI_ADX_enc_8:
         case coding_CRI_ADX_enc_9:
             return (vgmstream->interleave_block_size - 2) * 2;
-        case coding_L5_555:
-            return 32;
+
         case coding_NGC_DSP:
         case coding_NGC_DSP_subint:
             return 14;
+        case coding_NGC_AFC:
+            return 16;
+        case coding_NGC_DTK:
+            return 28;
+        case coding_G721:
+            return 1;
+
         case coding_PCM16LE:
         case coding_PCM16LE_XOR_int:
         case coding_PCM16BE:
@@ -1052,12 +1058,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_NWA5:
         case coding_SASSC:
             return 1;
-        case coding_NDS_IMA:
-        case coding_DAT4_IMA:
-                return (vgmstream->interleave_block_size-4)*2;
-        case coding_NGC_DTK:
-            return 28;
-        case coding_G721:
+
         case coding_IMA:
         case coding_DVI_IMA:
         case coding_SNDS_IMA:
@@ -1067,22 +1068,36 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_IMA_int:
         case coding_DVI_IMA_int:
         case coding_3DS_IMA:
-        case coding_AICA:
             return 2;
-        case coding_NGC_AFC:
-            return 16;
+        case coding_XBOX_IMA:
+        case coding_XBOX_IMA_int:
+        case coding_FSB_IMA:
+            return 64;
+        case coding_APPLE_IMA4:
+            return 64;
+        case coding_MS_IMA:
+        case coding_REF_IMA:
+            return ((vgmstream->interleave_block_size - 0x04*vgmstream->channels) * 2 / vgmstream->channels) + 1;
+        case coding_RAD_IMA:
+        case coding_WWISE_IMA:
+            return (vgmstream->interleave_block_size - 0x04*vgmstream->channels) * 2 / vgmstream->channels;
+        case coding_NDS_IMA:
+        case coding_DAT4_IMA:
+            return (vgmstream->interleave_block_size - 0x04) * 2;
+        case coding_AWC_IMA:
+            return (0x800 - 0x04) * 2;
+        case coding_RAD_IMA_mono:
+            return 32;
+
+        case coding_XA:
         case coding_PSX:
         case coding_PSX_badflags:
         case coding_PSX_bmdx:
         case coding_HEVAG:
-        case coding_XA:
             return 28;
         case coding_PSX_cfg:
             return (vgmstream->interleave_block_size - 1) * 2; /* decodes 1 byte into 2 bytes */
-        case coding_XBOX:
-        case coding_XBOX_int:
-        case coding_FSB_IMA:
-            return 64;
+
         case coding_EA_XA:
         case coding_EA_XA_int:
         case coding_EA_XA_V2:
@@ -1090,24 +1105,20 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
             return 28;
         case coding_EA_XAS:
             return 128;
-        case coding_WS:
-            /* only works if output sample size is 8 bit, which always is for WS ADPCM */
-            return vgmstream->ws_output_size;
+
         case coding_MSADPCM:
             return (vgmstream->interleave_block_size-(7-1)*vgmstream->channels)*2/vgmstream->channels;
-        case coding_APPLE_IMA4:
-            return 64;
-        case coding_MS_IMA:
-        case coding_RAD_IMA:
-        case coding_WWISE_IMA:
-        case coding_REF_IMA:
-            return (vgmstream->interleave_block_size-4*vgmstream->channels)*2/vgmstream->channels;
-        case coding_AWC_IMA:
-            return (0x800-4)*2;
-        case coding_RAD_IMA_mono:
-            return 32;
+        case coding_WS: /* only works if output sample size is 8 bit, which always is for WS ADPCM */
+            return vgmstream->ws_output_size;
+        case coding_AICA:
+            return 2;
         case coding_NDS_PROCYON:
             return 30;
+        case coding_L5_555:
+            return 32;
+        case coding_LSF:
+            return 54;
+
 #ifdef VGM_USE_G7221
         case coding_G7221C:
             return 32000/50;
@@ -1120,18 +1131,15 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
 #endif
 #ifdef VGM_USE_FFMPEG
         case coding_FFmpeg:
-        {
-            ffmpeg_codec_data *data = (ffmpeg_codec_data *) vgmstream->codec_data;
-            if (data) { 
-                /* must know the full block size for edge loops */
-                return data->sampleBufferBlock;
+            if (vgmstream->codec_data) {
+                ffmpeg_codec_data *data = (ffmpeg_codec_data*)vgmstream->codec_data;
+                return data->sampleBufferBlock; /* must know the full block size for edge loops */
             }
-            return 0;
-        }
+            else {
+                return 0;
+            }
             break;
 #endif
-        case coding_LSF:
-            return 54;
         case coding_MTAF:
             return 128*2;
         case coding_MTA2:
@@ -1168,17 +1176,23 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
         case coding_CRI_ADX_enc_8:
         case coding_CRI_ADX_enc_9:
             return vgmstream->interleave_block_size;
-        case coding_L5_555:
-            return 18;
+
         case coding_NGC_DSP:
             return 0x08;
         case coding_NGC_DSP_subint:
             return 0x08 * vgmstream->channels;
+        case coding_NGC_AFC:
+            return 0x09;
+        case coding_NGC_DTK:
+            return 0x20;
+        case coding_G721:
+            return 0;
+
         case coding_PCM16LE:
         case coding_PCM16LE_XOR_int:
         case coding_PCM16BE:
         case coding_PCM16_int:
-            return 2;
+            return 0x02;
         case coding_PCM8:
         case coding_PCM8_U:
         case coding_PCM8_int:
@@ -1187,9 +1201,10 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
         case coding_ULAW:
         case coding_ULAW_int:
         case coding_ALAW:
-            return 1;
+            return 0x01;
         case coding_PCMFLOAT:
-            return 4;
+            return 0x04;
+
         case coding_SDX2:
         case coding_SDX2_int:
         case coding_CBD2:
@@ -1200,7 +1215,14 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
         case coding_NWA4:
         case coding_NWA5:
         case coding_SASSC:
-            return 1;
+            return 0x01;
+
+        case coding_IMA:
+        case coding_IMA_int:
+        case coding_DVI_IMA:
+        case coding_DVI_IMA_int:
+        case coding_3DS_IMA:
+            return 0x01;
         case coding_MS_IMA:
         case coding_RAD_IMA:
         case coding_NDS_IMA:
@@ -1212,30 +1234,28 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
             return 0x800;
         case coding_RAD_IMA_mono:
             return 0x14;
-        case coding_NGC_DTK:
-            return 32;
-        case coding_G721:
         case coding_SNDS_IMA:
         case coding_OTNS_IMA:
             return 0;
         case coding_UBI_IMA: /* variable (PCM then IMA) */
             return 0;
-        case coding_NGC_AFC:
-            return 9;
+        case coding_XBOX_IMA:
+        case coding_XBOX_IMA_int:
+        case coding_FSB_IMA:
+            return 0x24;
+        case coding_APPLE_IMA4:
+            return 0x22;
+
+        case coding_XA:
+            return 0x0e*vgmstream->channels;
         case coding_PSX:
         case coding_PSX_badflags:
         case coding_PSX_bmdx:
         case coding_HEVAG:
-        case coding_NDS_PROCYON:
-            return 16;
+            return 0x10;
         case coding_PSX_cfg:
             return vgmstream->interleave_block_size;
-        case coding_XA:
-            return 14*vgmstream->channels;
-        case coding_XBOX:
-        case coding_XBOX_int:
-        case coding_FSB_IMA:
-            return 36;
+
         case coding_EA_XA:
             return 0x1E;
         case coding_EA_XA_int:
@@ -1246,20 +1266,20 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
             return 0; /* variable (ADPCM frames of 0x0f or PCM frames of 0x3d) */
         case coding_EA_XAS:
             return 0x4c*vgmstream->channels;
+
+        case coding_MSADPCM:
+            return vgmstream->interleave_block_size;
         case coding_WS:
             return vgmstream->current_block_size;
-        case coding_IMA:
-        case coding_IMA_int:
-        case coding_DVI_IMA:
-        case coding_DVI_IMA_int:
-        case coding_3DS_IMA:
-            return 0x01;
         case coding_AICA:
-            return 1;
-        case coding_APPLE_IMA4:
-            return 34;
+            return 0x01;
+        case coding_NDS_PROCYON:
+            return 0x10;
+        case coding_L5_555:
+            return 0x12;
         case coding_LSF:
-            return 28;
+            return 0x1C;
+
 #ifdef VGM_USE_G7221
         case coding_G7221C:
         case coding_G7221:
@@ -1273,7 +1293,6 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
 #ifdef VGM_USE_FFMPEG
         case coding_FFmpeg:
 #endif
-        case coding_MSADPCM:
         case coding_MTAF:
             return vgmstream->interleave_block_size;
         case coding_MTA2:
@@ -1286,7 +1305,7 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
         case coding_ATRAC9:
             return 0; /* varies with config data, usually 0x100-200 */
 #endif
-        default:
+        default: /* Vorbis, MPEG, ACM, etc */
             return 0;
     }
 }
@@ -1475,14 +1494,14 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                         samples_to_do);
             }
             break;
-        case coding_XBOX:
+        case coding_XBOX_IMA:
             for (chan=0;chan<vgmstream->channels;chan++) {
                 decode_xbox_ima(vgmstream,&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
                         samples_to_do,chan);
             }
             break;
-        case coding_XBOX_int:
+        case coding_XBOX_IMA_int:
             for (chan=0;chan<vgmstream->channels;chan++) {
                 decode_xbox_ima_int(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,

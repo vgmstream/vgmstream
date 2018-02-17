@@ -237,7 +237,7 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
             break;
 
         case 0x07:  /* FMOD_SOUND_FORMAT_IMAADPCM */
-            vgmstream->coding_type = (vgmstream->channels > 2) ? coding_FSB_IMA : coding_XBOX;
+            vgmstream->coding_type = (vgmstream->channels > 2) ? coding_FSB_IMA : coding_XBOX_IMA;
             vgmstream->layout_type = layout_none;
             break;
 

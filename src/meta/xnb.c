@@ -19,7 +19,8 @@ VGMSTREAM * init_vgmstream_xnb(STREAMFILE *streamFile) {
     if ((read_32bitBE(0,streamFile) & 0xFFFFFF00) != 0x584E4200) /* "XNB" */
         goto fail;
 
-    /* 0x04: platform: ‘w’ = Windows, ‘m’ = Windows Phone 7, ‘x’ = X360, 'a' = Android, 'P': PS4 */
+    /* XNA Studio platforms: 'w' = Windows, 'm' = Windows Phone 7, 'x' = X360
+     * MonoGame extensions: 'i' = iOS, 'a' = Android, 'X' = MacOSX, 'P': PS4, etc */
     platform = read_8bit(0x03,streamFile);
     big_endian = (platform == 'x');
 
@@ -28,8 +29,8 @@ VGMSTREAM * init_vgmstream_xnb(STREAMFILE *streamFile) {
 
     flags = read_8bit(0x05,streamFile);
   //if (flags & 0x01) goto fail; /* "HiDef profile" content (no actual difference) */
-    if (flags & 0x80) goto fail; /* compressed with XMemCompress (at 0x0a is decompressed size) */
-    if (flags & 0x40) goto fail; /* custom compression? seen in Square Heroes (PS4) */
+    if (flags & 0x80) goto fail; /* compressed with LZX/XMemCompress (at 0x0a is decompressed size) */
+    if (flags & 0x40) goto fail; /* compressed with LZ4, MonoGame extension [ex. Square Heroes (PS4)] */
 
     /* full size */
     if (read_32bitLE(0x06,streamFile) != get_streamfile_size(streamFile))

@@ -127,8 +127,8 @@ typedef enum {
     coding_DVI_IMA_int,     /* DVI IMA ADPCM (mono/interleave, high nibble first) */
     coding_3DS_IMA,         /* 3DS IMA ADPCM */
     coding_MS_IMA,          /* Microsoft IMA ADPCM */
-    coding_XBOX,            /* XBOX IMA ADPCM */
-    coding_XBOX_int,        /* XBOX IMA ADPCM (interleaved) */
+    coding_XBOX_IMA,        /* XBOX IMA ADPCM */
+    coding_XBOX_IMA_int,    /* XBOX IMA ADPCM (interleaved/mono) */
     coding_NDS_IMA,         /* IMA ADPCM w/ NDS layout */
     coding_DAT4_IMA,        /* Eurocom 'DAT4' IMA ADPCM */
     coding_RAD_IMA,         /* Radical IMA ADPCM */
@@ -237,7 +237,7 @@ typedef enum {
     layout_gsb_blocked,
     layout_thp_blocked,
     layout_filp_blocked,
-    layout_psx_mgav_blocked,
+    layout_blocked_ea_swvr,
     layout_ps2_adm_blocked,
     layout_dsp_bdsp_blocked,
     layout_mxch_blocked,
@@ -544,7 +544,7 @@ typedef enum {
     meta_DSP_DDSP,          /* Various (2 dsp files stuck together */
     meta_NGC_DSP_MPDS,      /* Big Air Freestyle, Terminator 3 */
     meta_DSP_STR_IG,        /* Micro Machines, Superman Superman: Shadow of Apokolis */
-    meta_PSX_MGAV,          /* Future Cop L.A.P.D. */
+    meta_EA_SWVR,           /* Future Cop L.A.P.D., Freekstyle */
     meta_NGC_DSP_STH_STR,   /* SpongeBob Squarepants (NGC), Taz Wanted (NGC), Cubix (NGC), Tak (WII)*/
     meta_PS2_B1S,           /* 7 Wonders of the ancient world */
     meta_PS2_WAD,           /* The golden Compass */
@@ -659,6 +659,7 @@ typedef enum {
     meta_XWC,               /* Starbreeze games */
     meta_SQEX_SAB,          /* Square-Enix newest middleware (sound) */
     meta_SQEX_MAB,          /* Square-Enix newest middleware (music) */
+    meta_OGG_L2SD,          /* Ogg Vorbis with obfuscation [Lineage II Chronicle 4 (PC)] */
 
 #ifdef VGM_USE_MP4V2
     meta_MP4,               /* AAC (iOS) */

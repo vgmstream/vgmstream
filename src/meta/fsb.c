@@ -288,7 +288,7 @@ VGMSTREAM * init_vgmstream_fsb(STREAMFILE *streamFile) {
         /* FSOUND_IMAADPCMSTEREO is "noninterleaved, true stereo IMA", but doesn't seem to be any different
          * (found in FSB4: Shatter, Blade Kitten (PC), Hard Corps: Uprising (PS3)) */
 
-        vgmstream->coding_type = coding_XBOX;
+        vgmstream->coding_type = coding_XBOX_IMA;
         vgmstream->layout_type = layout_none;
         /* "interleaved header" IMA, only used with >2ch (ex. Blade Kitten 6ch)
          * or (seemingly) when flag is used (ex. Dead to Rights 2 (Xbox) 2ch in FSB3.1 */
