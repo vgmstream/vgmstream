@@ -37,9 +37,6 @@ VGMSTREAM * init_vgmstream_awc(STREAMFILE *streamFile) {
     if (!parse_awc_header(streamFile, &awc))
         goto fail;
 
-    if (awc.is_encrypted)
-        goto fail;
-
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(awc.channel_count, 0);
@@ -156,6 +153,10 @@ static int parse_awc_header(STREAMFILE* streamFile, awc_header* awc) {
     if (flags & 0x00080000) /* encrypted data chunk (most of GTA5 PC) */
         awc->is_encrypted = 1;
 
+    if (awc->is_encrypted) {
+        VGM_LOG("AWC: encrypted data found\n");
+        goto fail;
+    }
 
     /* Music when the first id is 0 (base/fake entry with info for all channels), sfx pack otherwise.
      * sfx = N single streams, music = N-1 interleaved mono channels (even for MP3/XMA).
@@ -267,7 +268,7 @@ static int parse_awc_header(STREAMFILE* streamFile, awc_header* awc) {
     /* If music, data is divided into blocks of block_chunk size with padding.
      * Each block has a header/seek table and interleaved data for all channels */
     if (awc->is_music && read_32bit(awc->stream_offset, streamFile) != 0) {
-        VGM_LOG("AWC: music found, but block doesn't start with seek table\n");
+        VGM_LOG("AWC: music found, but block doesn't start with seek table at %lx\n", awc->stream_offset);
         goto fail;
     }
 
