@@ -1076,6 +1076,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_APPLE_IMA4:
             return 64;
         case coding_MS_IMA:
+            return ((vgmstream->interleave_block_size-4*vgmstream->channels) * 2 / vgmstream->channels) + 1;
         case coding_RAD_IMA:
         case coding_WWISE_IMA:
         case coding_REF_IMA:
