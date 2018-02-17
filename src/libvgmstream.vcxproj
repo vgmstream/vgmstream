@@ -294,7 +294,7 @@
     <ClCompile Include="meta\ps2_adsc.c" />
     <ClCompile Include="meta\ps2_ass.c" />
     <ClCompile Include="meta\ps2_ast.c" />
-    <ClCompile Include="meta\ps2_aus.c" />
+    <ClCompile Include="meta\aus.c" />
     <ClCompile Include="meta\ps2_b1s.c" />
     <ClCompile Include="meta\ps2_bg00.c" />
     <ClCompile Include="meta\ps2_bmdx.c" />

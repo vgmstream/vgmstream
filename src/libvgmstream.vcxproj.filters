@@ -472,7 +472,7 @@
     <ClCompile Include="meta\ps2_ast.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\ps2_aus.c">
+    <ClCompile Include="meta\aus.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ps2_b1s.c">
