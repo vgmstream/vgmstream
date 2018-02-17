@@ -60,7 +60,7 @@ VGMSTREAM * init_vgmstream_ads(STREAMFILE *streamFile) {
             vgmstream->channels = channel_count;
             vgmstream->sample_rate = read_32bitBE(0x0c,streamFile);
             vgmstream->coding_type = coding_XBOX_int;
-            vgmstream->num_samples = (read_32bitBE(0x24,streamFile) / 36 *64 / vgmstream->channels)-64; // to avoid the "pop" at the loop point
+            vgmstream->num_samples = (read_32bitBE(0x24,streamFile) / 36 *64 / vgmstream->channels);
             vgmstream->layout_type = channel_count == 1 ? layout_none : layout_interleave;
             vgmstream->interleave_block_size = 0x24;
             if (loop_flag) {
