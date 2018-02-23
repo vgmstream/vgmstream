@@ -481,6 +481,7 @@ typedef enum {
     meta_RIFF_WAVE_POS,     /* .wav + .pos for looping (Ys Complete PC) */
     meta_RIFF_WAVE_labl,    /* RIFF w/ loop Markers in LIST-adtl-labl */
     meta_RIFF_WAVE_smpl,    /* RIFF w/ loop data in smpl chunk */
+    meta_RIFF_WAVE_wsmp,    /* RIFF w/ loop data in wsmp chunk */
     meta_RIFF_WAVE_MWV,     /* .mwv RIFF w/ loop data in ctrl chunk pflt */
     meta_RIFF_WAVE_SNS,     /* .sns RIFF */
     meta_RIFX_WAVE,         /* RIFX, for big-endian WAVs */

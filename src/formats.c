@@ -700,6 +700,7 @@ static const meta_info meta_info_list[] = {
         {meta_PS2_PSH,              "Dawn of Mana - Seiken Densetsu 4 PSH Header"},
         {meta_RIFF_WAVE_labl,       "RIFF WAVE header with loop markers"},
         {meta_RIFF_WAVE_smpl,       "RIFF WAVE header with sample looping info"},
+        {meta_RIFF_WAVE_wsmp,       "RIFF WAVE header with wsmp looping info"},
         {meta_RIFX_WAVE,            "RIFX WAVE header"},
         {meta_RIFX_WAVE_smpl,       "RIFX WAVE header with sample looping info"},
         {meta_XNB,                  "Microsoft XNA Game Studio 4.0 header"},
