@@ -474,6 +474,7 @@ void decode_xbox_ima_int(VGMSTREAMCHANNEL * stream, sample * outbuf, int channel
         samples_to_do -= 1;
     }
 
+    /* decode nibbles (layout: all nibbles from one channel) */
     for (i=first_sample; i < first_sample + samples_to_do; i++) {
         off_t byte_offset = (stream->offset + 0x24*num_frame + 0x4) + (i-1)/2;
         int nibble_shift = ((i-1)&1?4:0); /* low nibble first */
@@ -510,6 +511,7 @@ void decode_nds_ima(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspaci
         if (step_index > 88) step_index=88;
     }
 
+    /* decode nibbles (layout: all nibbles from the channel) */
     for (i=first_sample,sample_count=0; i<first_sample+samples_to_do; i++,sample_count+=channelspacing) {
         off_t byte_offset = stream->offset + 0x04 + i/2;
         int nibble_shift = (i&1?4:0); /* low nibble first */
@@ -651,7 +653,7 @@ void decode_apple_ima4(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelsp
 
 /* XBOX-IMA with modified data layout */
 void decode_fsb_ima(VGMSTREAM * vgmstream, VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do,int channel) {
-    int i, sample_count;
+    int i, sample_count = 0;
     int32_t hist1 = stream->adpcm_history1_32;
     int step_index = stream->adpcm_step_index;
 
@@ -669,17 +671,24 @@ void decode_fsb_ima(VGMSTREAM * vgmstream, VGMSTREAMCHANNEL * stream, sample * o
         if (step_index < 0) step_index=0;
         if (step_index > 88) step_index=88;
 
-        //todo/* write header sample (even samples per block, skips last nibble) */
+        /* write header sample (even samples per block, skips last nibble) */
+        outbuf[sample_count] = (short)(hist1);
+        sample_count += channelspacing;
+        first_sample += 1;
+        samples_to_do -= 1;
     }
 
     /* decode nibbles (layout: 2 bytes/2*2 nibbles per channel) */
-    for (i=first_sample,sample_count=0; i<first_sample+samples_to_do; i++,sample_count+=channelspacing) {
-        off_t byte_offset = stream->offset + 0x04*vgmstream->channels + 0x02*channel + i/4*2*vgmstream->channels + (i%4)/2;
-        int nibble_shift = (i&1?4:0); /* low nibble first */
+    for (i = first_sample; i < first_sample + samples_to_do; i++) {
+        off_t byte_offset = stream->offset + 0x04*vgmstream->channels + 0x02*channel + (i-1)/4*2*vgmstream->channels + ((i-1)%4)/2;
+        int nibble_shift = ((i-1)&1?4:0); /* low nibble first */
 
-        //todo/* must skip last nibble per official decoder, probably not needed though */
-        std_ima_expand_nibble(stream, byte_offset,nibble_shift, &hist1, &step_index);
-        outbuf[sample_count] = (short)(hist1);
+        /* must skip last nibble per official decoder, probably not needed though */
+        if (i < block_samples) {
+            std_ima_expand_nibble(stream, byte_offset,nibble_shift, &hist1, &step_index);
+            outbuf[sample_count] = (short)(hist1);
+            sample_count += channelspacing;
+        }
     }
 
     /* internal interleave: increment offset on complete frame */
@@ -719,9 +728,10 @@ void decode_wwise_ima(VGMSTREAM * vgmstream, VGMSTREAMCHANNEL * stream, sample *
         samples_to_do -= 1;
     }
 
-    for (i=first_sample; i < first_sample + samples_to_do; i++) { /* first_sample + samples_to_do should be block_samples at most */
+    /* decode nibbles (layout: all nibbles from one channel) */
+    for (i = first_sample; i < first_sample + samples_to_do; i++) {
         off_t byte_offset = (stream->offset + 0x24*num_frame + 0x4) + (i-1)/2;
-        int nibble_shift = ((i-1)&1?4:0); //low nibble first
+        int nibble_shift = ((i-1)&1?4:0); /* low nibble first */
 
         /* must skip last nibble like other XBOX-IMAs, often needed (ex. Bayonetta 2 sfx) */
         if (i < block_samples) {
