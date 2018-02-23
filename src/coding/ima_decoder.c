@@ -39,15 +39,15 @@ static const int IMA_IndexTable[16] = {
 };
 
 
-/* Standard IMA (most common) */
+/* Original IMA expansion, using shift+ADDs to avoid MULs (slow back then) */
 static void std_ima_expand_nibble(VGMSTREAMCHANNEL * stream, off_t byte_offset, int nibble_shift, int32_t * hist1, int32_t * step_index) {
     int sample_nibble, sample_decoded, step, delta;
 
-    /* calculate diff = [signed] (step / 8) + (step / 4) + (step / 2) + (step) [when code = 4+2+1]
-     * simplified through math, using bitwise ops to avoid rounding:
-     *   diff = (code + 1/2) * (step / 4)
-     *   > diff = (step * nibble / 4) + (step / 8)
-     *     > diff = (((step * nibble) + (step / 2)) / 4) */
+    /* simplified through math from:
+     *  - diff = (code + 1/2) * (step / 4)
+     *   > diff = ((step * nibble) + (step / 2)) / 4
+     *    > diff = (step * nibble / 4) + (step / 8)
+     * final diff = [signed] (step / 8) + (step / 4) + (step / 2) + (step) [when code = 4+2+1] */
 
     sample_nibble = (read_8bit(byte_offset,stream->streamfile) >> nibble_shift)&0xf; /* ADPCM code */
     sample_decoded = *hist1; /* predictor value */
@@ -81,7 +81,33 @@ static void std_ima_expand_nibble_16(VGMSTREAMCHANNEL * stream, off_t byte_offse
     if (sample_nibble & 8) delta = -delta;
     sample_decoded += delta;
 
-    *hist1 = clamp16(sample_decoded); //no need for this actually
+    *hist1 = clamp16(sample_decoded); /* no need for this, actually */
+    *step_index += IMA_IndexTable[sample_nibble];
+    if (*step_index < 0) *step_index=0;
+    if (*step_index > 88) *step_index=88;
+}
+
+/* Original IMA expansion, but using MULs rather than shift+ADDs (faster for newer processors).
+ * There is minor rounding difference between ADD and MUL expansions, noticeable/propagated in non-headered IMAs. */
+static void std_ima_expand_nibble_mul(VGMSTREAMCHANNEL * stream, off_t byte_offset, int nibble_shift, int32_t * hist1, int32_t * step_index) {
+    int sample_nibble, sample_decoded, step, delta;
+
+    /* simplified through math from:
+     *  - diff = (code + 1/2) * (step / 4)
+     *   > diff = (code + 1/2) * step) / 4) * (2 / 2)
+     *    > diff = (code + 1/2) * 2 * step / 8
+     * final diff = [signed] ((code * 2 + 1) * step) / 8 */
+
+    sample_nibble = (read_8bit(byte_offset,stream->streamfile) >> nibble_shift)&0xf;
+    sample_decoded = *hist1;
+    step = ADPCMTable[*step_index];
+
+    delta = (sample_nibble & 0x7);
+    delta = ((delta * 2 + 1) * step) >> 3;
+    if (sample_nibble & 8) delta = -delta;
+    sample_decoded += delta;
+
+    *hist1 = clamp16(sample_decoded);
     *step_index += IMA_IndexTable[sample_nibble];
     if (*step_index < 0) *step_index=0;
     if (*step_index > 88) *step_index=88;
@@ -96,7 +122,8 @@ static void n3ds_ima_expand_nibble(VGMSTREAMCHANNEL * stream, off_t byte_offset,
     step = ADPCMTable[*step_index];
 
     sample_decoded = sample_decoded << 3;
-    delta = step * (sample_nibble & 7) * 2 + step; /* custom */
+    delta = (sample_nibble & 0x07);
+    delta = step * delta * 2 + step; /* custom */
     if (sample_nibble & 8) delta = -delta;
     sample_decoded += delta;
     sample_decoded = sample_decoded >> 3;
@@ -149,24 +176,6 @@ static void otns_ima_expand_nibble(VGMSTREAMCHANNEL * stream, off_t byte_offset,
     if (*step_index > 88) *step_index=88;
 }
 
-/* Ubisoft games, algorithm by Zench (https://bitbucket.org/Zenchreal/decubisnd) */
-static void ubi_ima_expand_nibble(VGMSTREAMCHANNEL * stream, off_t byte_offset, int nibble_shift, int32_t * hist1, int32_t * step_index) {
-    int sample_nibble, sample_decoded, step, delta;
-
-    sample_nibble = (read_8bit(byte_offset,stream->streamfile) >> nibble_shift)&0xf;
-    sample_decoded = *hist1;
-    step = ADPCMTable[*step_index];
-
-    delta = (((sample_nibble & 7) * 2 + 1) * step) >> 3; /* custom */
-    if (sample_nibble & 8) delta = -delta;
-    sample_decoded += delta;
-
-    *hist1 = clamp16(sample_decoded);
-    *step_index += IMA_IndexTable[sample_nibble];
-    if (*step_index < 0) *step_index=0;
-    if (*step_index > 88) *step_index=88;
-}
-
 /* ************************************ */
 /* DVI/IMA                              */
 /* ************************************ */
@@ -176,7 +185,6 @@ static void ubi_ima_expand_nibble(VGMSTREAMCHANNEL * stream, off_t byte_offset, 
  * For vgmstream, low nibble is called "IMA ADPCM" and high nibble is "DVI IMA ADPCM" (same thing though). */
 void decode_standard_ima(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel, int is_stereo, int is_high_first) {
     int i, sample_count = 0;
-
     int32_t hist1 = stream->adpcm_history1_32;
     int step_index = stream->adpcm_step_index;
 
@@ -186,7 +194,7 @@ void decode_standard_ima(VGMSTREAMCHANNEL * stream, sample * outbuf, int channel
     if (step_index < 0) step_index=0;
     if (step_index > 88) step_index=88;
 
-    /* decode nibbles */
+    /* decode nibbles (layout: varies) */
     for (i = first_sample; i < first_sample + samples_to_do; i++, sample_count += channelspacing) {
         off_t byte_offset = is_stereo ?
                 stream->offset + i :    /* stereo: one nibble per channel */
@@ -205,7 +213,6 @@ void decode_standard_ima(VGMSTREAMCHANNEL * stream, sample * outbuf, int channel
 
 void decode_3ds_ima(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
     int i, sample_count;
-
     int32_t hist1 = stream->adpcm_history1_32;
     int step_index = stream->adpcm_step_index;
 
@@ -227,7 +234,6 @@ void decode_3ds_ima(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspaci
 
 void decode_snds_ima(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
     int i, sample_count;
-
     int32_t hist1 = stream->adpcm_history1_32;
     int step_index = stream->adpcm_step_index;
 
@@ -249,7 +255,6 @@ void decode_snds_ima(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspac
 
 void decode_otns_ima(VGMSTREAM * vgmstream, VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
     int i, sample_count;
-
     int32_t hist1 = stream->adpcm_history1_32;
     int step_index = stream->adpcm_step_index;
 
@@ -275,20 +280,20 @@ void decode_otns_ima(VGMSTREAM * vgmstream, VGMSTREAMCHANNEL * stream, sample * 
 /* MS-IMA                               */
 /* ************************************ */
 
-/* IMA with variable-sized frames, header and custom nibble layout (outputs non-aligned number of samples).
+/* IMA with custom frame sizes, header and nibble layout. Outputs an odd number of samples per frame,
+ * so to simplify calcs this decodes full frames, thus hist doesn't need to be mantained.
  * Officially defined in "Microsoft Multimedia Standards Update" doc (RIFFNEW.pdf). */
 void decode_ms_ima(VGMSTREAM * vgmstream, VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
     int i, samples_read = 0, samples_done = 0, max_samples;
-
     int32_t hist1;// = stream->adpcm_history1_32;
     int step_index;// = stream->adpcm_step_index;
 
-    /* internal interleave (configurable size), mixed channels (4 byte per ch) */
+    /* internal interleave (configurable size), mixed channels */
     int block_samples = ((vgmstream->interleave_block_size - 0x04*vgmstream->channels) * 2 / vgmstream->channels) + 1;
     first_sample = first_sample % block_samples;
 
-    /* normal header (hist+step+reserved per channel) */
-    {
+    /* normal header (hist+step+reserved), per channel */
+    { //if (first_sample == 0) {
         off_t header_offset = stream->offset + 0x04*channel;
 
         hist1 =   read_16bitLE(header_offset+0x00,stream->streamfile);
@@ -296,7 +301,7 @@ void decode_ms_ima(VGMSTREAM * vgmstream, VGMSTREAMCHANNEL * stream, sample * ou
         if (step_index < 0) step_index = 0;
         if (step_index > 88) step_index = 88;
 
-        /* write header sample */
+        /* write header sample (odd samples per block) */
         if (samples_read >= first_sample && samples_done < samples_to_do) {
             outbuf[samples_done * channelspacing] = (short)hist1;
             samples_done++;
@@ -308,12 +313,12 @@ void decode_ms_ima(VGMSTREAM * vgmstream, VGMSTREAMCHANNEL * stream, sample * ou
     if (max_samples > samples_to_do + first_sample - samples_done)
         max_samples = samples_to_do + first_sample - samples_done; /* for smaller last block */
 
-    /* decode nibbles (layout: alternates 4*2 nibbles per channel) */
+    /* decode nibbles (layout: alternates 4 bytes/4*2 nibbles per channel) */
     for (i = 0; i < max_samples; i++) {
         off_t byte_offset = stream->offset + 0x04*vgmstream->channels + 0x04*channel + 0x04*vgmstream->channels*(i/8) + (i%8)/2;
         int nibble_shift = (i&1?4:0); /* low nibble first */
 
-        std_ima_expand_nibble(stream, byte_offset,nibble_shift, &hist1, &step_index);
+        std_ima_expand_nibble(stream, byte_offset,nibble_shift, &hist1, &step_index); /* original expand */
 
         if (samples_read >= first_sample && samples_done < samples_to_do) {
             outbuf[samples_done * channelspacing] = (short)(hist1);
@@ -331,24 +336,23 @@ void decode_ms_ima(VGMSTREAM * vgmstream, VGMSTREAMCHANNEL * stream, sample * ou
     //stream->adpcm_step_index = step_index;
 }
 
-/* Reflection's MS-IMA (some layout info from XA2WAV by Deniz Oezmen) */
+/* Reflection's MS-IMA with custom nibble layout (some info from XA2WAV by Deniz Oezmen) */
 void decode_ref_ima(VGMSTREAM * vgmstream, VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
     int i, samples_read = 0, samples_done = 0, max_samples;
-
     int32_t hist1;// = stream->adpcm_history1_32;
     int step_index;// = stream->adpcm_step_index;
 
-    /* internal interleave (configurable size), mixed channels (4 byte per ch) */
+    /* internal interleave (configurable size), mixed channels */
     int block_channel_size = (vgmstream->interleave_block_size - 0x04*vgmstream->channels) / vgmstream->channels;
     int block_samples = ((vgmstream->interleave_block_size - 0x04*vgmstream->channels) * 2 / vgmstream->channels) + 1;
     first_sample = first_sample % block_samples;
 
-    /* normal header (hist+step+reserved per channel) */
-    {
+    /* normal header (hist+step+reserved), per channel */
+    { //if (first_sample == 0) {
         off_t header_offset = stream->offset + 0x04*channel;
 
         hist1 =   read_16bitLE(header_offset+0x00,stream->streamfile);
-        step_index = read_8bit(header_offset+0x02,stream->streamfile); /* 0x03: reserved */
+        step_index = read_8bit(header_offset+0x02,stream->streamfile);
         if (step_index < 0) step_index = 0;
         if (step_index > 88) step_index = 88;
 
@@ -391,26 +395,25 @@ void decode_ref_ima(VGMSTREAM * vgmstream, VGMSTREAMCHANNEL * stream, sample * o
 /* XBOX-IMA                             */
 /* ************************************ */
 
-/* MS-IMA with fixed frame size, skips last sample per channel (for aligment) and custom multichannel nibble layout.
+/* MS-IMA with fixed frame size, and outputs an even number of samples per frame (skips last nibble).
  * For multichannel the layout is (I think) mixed stereo channels (ex. 6ch: 2ch + 2ch + 2ch) */
-void decode_xbox_ima(VGMSTREAM * vgmstream,VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do,int channel) {
+void decode_xbox_ima(VGMSTREAM * vgmstream, VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
     int i, sample_count;
-
     int32_t hist1 = stream->adpcm_history1_32;
     int step_index = stream->adpcm_step_index;
 
     off_t offset = stream->offset;
 
-    //internal interleave (0x20+4 size), mixed channels (4 byte per ch, mixed stereo)
+    /* internal interleave (fixed size), mixed channels */
     int block_samples = (vgmstream->channels==1) ?
-            32 :
-            32*(vgmstream->channels&2);//todo this can be zero in 4/5/8ch = SEGFAULT using % below
+            0x20 : /* mono */
+            0x20 * (vgmstream->channels%2); /* stereo */ //todo fix
     first_sample = first_sample % block_samples;
 
-    //normal header (per channel)
+    /* normal header (hist+step+reserved), per channel */
     if (first_sample == 0) {
         off_t header_offset;
-        header_offset = stream->offset + 4*(channel%2);
+        header_offset = stream->offset + 0x04*(channel%2);
 
         hist1 = read_16bitLE(header_offset,stream->streamfile);
         step_index = read_16bitLE(header_offset+2,stream->streamfile);
@@ -422,8 +425,8 @@ void decode_xbox_ima(VGMSTREAM * vgmstream,VGMSTREAMCHANNEL * stream, sample * o
         int nibble_shift;
 
         offset = (channelspacing==1) ?
-            stream->offset + 4*(channel%2) + 4 + i/8*4 + (i%8)/2 :
-            stream->offset + 4*(channel%2) + 4*2 + i/8*4*2 + (i%8)/2;
+            stream->offset + 0x04*(channel%2) + 4 + i/8*4 + (i%8)/2 :
+            stream->offset + 0x04*(channel%2) + 4*2 + i/8*4*2 + (i%8)/2;
         nibble_shift = (i&1?4:0); //low nibble first
 
         std_ima_expand_nibble(stream, offset,nibble_shift, &hist1, &step_index);
@@ -443,38 +446,39 @@ void decode_xbox_ima(VGMSTREAM * vgmstream,VGMSTREAMCHANNEL * stream, sample * o
     stream->adpcm_step_index = step_index;
 }
 
-/* mono XBOX-IMA ADPCM for interleave */
+/* mono XBOX-IMA ADPCM, used for interleave.
+ * Defined in Xbox's SDK. */
 void decode_xbox_ima_int(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
     int i, sample_count = 0, num_frame;
     int32_t hist1 = stream->adpcm_history1_32;
     int step_index = stream->adpcm_step_index;
 
-    //external interleave
+    /* external interleave (fixed size), mono */
     int block_samples = (0x24 - 0x4) * 2; /* block size - header, 2 samples per byte */
     num_frame = first_sample / block_samples;
     first_sample = first_sample % block_samples;
 
-    //normal header
+    /* normal header (hist+step+reserved), single channel */
     if (first_sample == 0) {
         off_t header_offset = stream->offset + 0x24*num_frame;
 
-        hist1 = read_16bitLE(header_offset,stream->streamfile);
-        step_index = read_8bit(header_offset+2,stream->streamfile);
+        hist1   = read_16bitLE(header_offset+0x00,stream->streamfile);
+        step_index = read_8bit(header_offset+0x02,stream->streamfile);
         if (step_index < 0) step_index=0;
         if (step_index > 88) step_index=88;
 
-        //must write history from header as last nibble/sample in block is almost always 0 / not encoded
+        /* write header sample (even samples per block, skips last nibble) */
         outbuf[sample_count] = (short)(hist1);
         sample_count += channelspacing;
         first_sample += 1;
         samples_to_do -= 1;
     }
 
-    for (i=first_sample; i < first_sample + samples_to_do; i++) { /* first_sample + samples_to_do should be block_samples at most */
+    for (i=first_sample; i < first_sample + samples_to_do; i++) {
         off_t byte_offset = (stream->offset + 0x24*num_frame + 0x4) + (i-1)/2;
-        int nibble_shift = ((i-1)&1?4:0); //low nibble first
+        int nibble_shift = ((i-1)&1?4:0); /* low nibble first */
 
-        //last nibble/sample in block is ignored (next header sample contains it)
+        /* must skip last nibble per spec, rarely needed though (ex. Gauntlet Dark Legacy) */
         if (i < block_samples) {
             std_ima_expand_nibble(stream, byte_offset,nibble_shift, &hist1, &step_index);
             outbuf[sample_count] = (short)(hist1);
@@ -486,39 +490,41 @@ void decode_xbox_ima_int(VGMSTREAMCHANNEL * stream, sample * outbuf, int channel
     stream->adpcm_step_index = step_index;
 }
 
+/* Similar to MS-IMA with even number of samples, header sample is not written (setup only).
+ * Apparently clamps to -32767 unlike standard's -32768 (probably not noticeable).
+ * Info here: http://problemkaputt.de/gbatek.htm#dssoundnotes */
 void decode_nds_ima(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
     int i, sample_count;
-
-    int32_t hist1 = stream->adpcm_history1_16;//todo unneeded 16?
+    int32_t hist1 = stream->adpcm_history1_32;
     int step_index = stream->adpcm_step_index;
 
-    //external interleave
+    /* external interleave (configurable size), mono */
 
-    //normal header
+    /* normal header (hist+step+reserved), single channel */
     if (first_sample == 0) {
         off_t header_offset = stream->offset;
 
         hist1 = read_16bitLE(header_offset,stream->streamfile);
         step_index = read_16bitLE(header_offset+2,stream->streamfile);
-
-        //todo clip step_index?
+        if (step_index < 0) step_index=0; /* probably pre-adjusted */
+        if (step_index > 88) step_index=88;
     }
 
     for (i=first_sample,sample_count=0; i<first_sample+samples_to_do; i++,sample_count+=channelspacing) {
-        off_t byte_offset = stream->offset + 4 + i/2;
-        int nibble_shift = (i&1?4:0); //low nibble first
+        off_t byte_offset = stream->offset + 0x04 + i/2;
+        int nibble_shift = (i&1?4:0); /* low nibble first */
 
+        //todo waveform has minor deviations using known expands
         std_ima_expand_nibble(stream, byte_offset,nibble_shift, &hist1, &step_index);
         outbuf[sample_count] = (short)(hist1);
     }
 
-    stream->adpcm_history1_16 = hist1;
+    stream->adpcm_history1_32 = hist1;
     stream->adpcm_step_index = step_index;
 }
 
 void decode_dat4_ima(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
     int i, sample_count;
-
     int32_t hist1 = stream->adpcm_history1_16;//todo unneeded 16?
     int step_index = stream->adpcm_step_index;
 
@@ -548,7 +554,6 @@ void decode_dat4_ima(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspac
 
 void decode_rad_ima(VGMSTREAM * vgmstream,VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do,int channel) {
     int i, sample_count;
-
     int32_t hist1 = stream->adpcm_history1_32;
     int step_index = stream->adpcm_step_index;
 
@@ -583,7 +588,6 @@ void decode_rad_ima(VGMSTREAM * vgmstream,VGMSTREAMCHANNEL * stream, sample * ou
 
 void decode_rad_ima_mono(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
     int i, sample_count;
-
     int32_t hist1 = stream->adpcm_history1_32;
     int step_index = stream->adpcm_step_index;
 
@@ -648,62 +652,67 @@ void decode_apple_ima4(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelsp
 /* XBOX-IMA with modified data layout */
 void decode_fsb_ima(VGMSTREAM * vgmstream, VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do,int channel) {
     int i, sample_count;
-
     int32_t hist1 = stream->adpcm_history1_32;
     int step_index = stream->adpcm_step_index;
 
-    //internal interleave
-    int block_samples = (0x24 - 4) * 2; /* block size - header, 2 samples per byte */
+    /* internal interleave (configurable size), mixed channels */
+    int block_samples = (0x24 - 0x4) * 2;
     first_sample = first_sample % block_samples;
 
-    //interleaved header (all hist per channel + all step_index per channel)
+    /* interleaved header (all hist per channel + all step_index+reserved per channel) */
     if (first_sample == 0) {
-        off_t hist_offset = stream->offset + 2*channel;
-        off_t step_offset = stream->offset + 2*channel + 2*vgmstream->channels;
+        off_t hist_offset = stream->offset + 0x02*channel + 0x00;
+        off_t step_offset = stream->offset + 0x02*channel + 0x02*vgmstream->channels;
 
-        hist1 = read_16bitLE(hist_offset,stream->streamfile);
+        hist1   = read_16bitLE(hist_offset,stream->streamfile);
         step_index = read_8bit(step_offset,stream->streamfile);
         if (step_index < 0) step_index=0;
         if (step_index > 88) step_index=88;
+
+        //todo/* write header sample (even samples per block, skips last nibble) */
     }
 
+    /* decode nibbles (layout: 2 bytes/2*2 nibbles per channel) */
     for (i=first_sample,sample_count=0; i<first_sample+samples_to_do; i++,sample_count+=channelspacing) {
-        off_t byte_offset = stream->offset + 4*vgmstream->channels + 2*channel + i/4*2*vgmstream->channels + (i%4)/2;//2-byte per channel
-        int nibble_shift = (i&1?4:0); //low nibble first
+        off_t byte_offset = stream->offset + 0x04*vgmstream->channels + 0x02*channel + i/4*2*vgmstream->channels + (i%4)/2;
+        int nibble_shift = (i&1?4:0); /* low nibble first */
 
+        //todo/* must skip last nibble per official decoder, probably not needed though */
         std_ima_expand_nibble(stream, byte_offset,nibble_shift, &hist1, &step_index);
         outbuf[sample_count] = (short)(hist1);
     }
 
-    //internal interleave: increment offset on complete frame
-    if (i == block_samples) stream->offset += 36*vgmstream->channels;
+    /* internal interleave: increment offset on complete frame */
+    if (i == block_samples) {
+        stream->offset += 0x24*vgmstream->channels;
+    }
 
     stream->adpcm_history1_32 = hist1;
     stream->adpcm_step_index = step_index;
 }
 
-/* XBOX-IMA with modified data layout */
-void decode_wwise_ima(VGMSTREAM * vgmstream,VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
-    int i, sample_count = 0;
-
+/* mono XBOX-IMA with header endianness and alt nibble expand (per hcs's decompilation) */
+void decode_wwise_ima(VGMSTREAM * vgmstream, VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
+    int i, sample_count = 0, num_frame;
     int32_t hist1 = stream->adpcm_history1_32;
     int step_index = stream->adpcm_step_index;
 
-    //internal interleave (configurable size), block-interleave multichannel (ex. if block is 0xD8 in 6ch: 6 blocks of 4+0x20)
-    int block_samples = (vgmstream->interleave_block_size - 4*vgmstream->channels) * 2 / vgmstream->channels;
+    /* external interleave (fixed size), mono */
+    int block_samples = (0x24 - 0x4) * 2;
+    num_frame = first_sample / block_samples;
     first_sample = first_sample % block_samples;
 
-    //block-interleaved header (1 header per channel block); can be LE or BE
+    /* normal header (hist+step+reserved), single channel */
     if (first_sample == 0) {
         int16_t (*read_16bit)(off_t,STREAMFILE*) = vgmstream->codec_endian ? read_16bitBE : read_16bitLE;
-        off_t header_offset = stream->offset + (vgmstream->interleave_block_size / vgmstream->channels)*channel;
+        off_t header_offset = stream->offset + 0x24*num_frame;
 
         hist1 = read_16bit(header_offset,stream->streamfile);
         step_index = read_8bit(header_offset+2,stream->streamfile);
         if (step_index < 0) step_index=0;
         if (step_index > 88) step_index=88;
 
-        //must write history from header as last nibble/sample in block is almost always 0 / not encoded
+        /* write header sample (even samples per block, skips last nibble) */
         outbuf[sample_count] = (short)(hist1);
         sample_count += channelspacing;
         first_sample += 1;
@@ -711,27 +720,22 @@ void decode_wwise_ima(VGMSTREAM * vgmstream,VGMSTREAMCHANNEL * stream, sample * 
     }
 
     for (i=first_sample; i < first_sample + samples_to_do; i++) { /* first_sample + samples_to_do should be block_samples at most */
-        off_t byte_offset = stream->offset + (vgmstream->interleave_block_size / vgmstream->channels)*channel + 4 + (i-1)/2;
+        off_t byte_offset = (stream->offset + 0x24*num_frame + 0x4) + (i-1)/2;
         int nibble_shift = ((i-1)&1?4:0); //low nibble first
 
-        //last nibble/sample in block is ignored (next header sample contains it)
+        /* must skip last nibble like other XBOX-IMAs, often needed (ex. Bayonetta 2 sfx) */
         if (i < block_samples) {
-            std_ima_expand_nibble(stream, byte_offset,nibble_shift, &hist1, &step_index);
+            std_ima_expand_nibble_mul(stream, byte_offset,nibble_shift, &hist1, &step_index);
             outbuf[sample_count] = (short)(hist1);
-            sample_count+=channelspacing;
+            sample_count += channelspacing;
         }
     }
-
-    //internal interleave: increment offset on complete frame
-    if (i == block_samples) stream->offset += vgmstream->interleave_block_size;
 
     stream->adpcm_history1_32 = hist1;
     stream->adpcm_step_index = step_index;
 }
-//todo atenuation: apparently from hcs's analysis Wwise IMA expands nibbles slightly different, reducing clipping/dbs
-/*
-From Wwise_v2015.1.6_Build5553_SDK.Linux
-<_ZN13CAkADPCMCodec12DecodeSampleEiii>:
+/* from hcs's analysis Wwise IMA expands nibbles slightly different, reducing dbs. Just "MUL" expand?
+<_ZN13CAkADPCMCodec12DecodeSampleEiii>: //From Wwise_v2015.1.6_Build5553_SDK.Linux
   10:   83 e0 07                and    $0x7,%eax        ; sample
   13:   01 c0                   add    %eax,%eax        ; sample*2
   15:   83 c0 01                add    $0x1,%eax        ; sample*2+1
@@ -740,8 +744,6 @@ From Wwise_v2015.1.6_Build5553_SDK.Linux
   1f:   85 c0                   test   %eax,%eax        ; result negative?
   21:   0f 48 c2                cmovs  %edx,%eax        ; adjust if negative to fix rounding for below division
   24:   c1 f8 03                sar    $0x3,%eax        ; (sample*2+1)*scale/8
-
-Different rounding model vs IMA's shift-and-add (also "adjust" step may be unnecessary).
 */
 
 /* MS-IMA with possibly the XBOX-IMA model of even number of samples per block (more tests are needed) */
@@ -832,7 +834,7 @@ void decode_ubi_ima(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspaci
                 (!(i%2) ? 4:0) :        /* mono mode (high first) */
                 (channel==0 ? 4:0);     /* stereo mode (high=L,low=R) */
 
-        ubi_ima_expand_nibble(stream, byte_offset,nibble_shift, &hist1, &step_index);
+        std_ima_expand_nibble_mul(stream, byte_offset,nibble_shift, &hist1, &step_index);
         outbuf[sample_count] = (short)(hist1); /* all samples are written */
     }
 
@@ -849,7 +851,7 @@ size_t ima_bytes_to_samples(size_t bytes, int channels) {
 }
 
 size_t ms_ima_bytes_to_samples(size_t bytes, int block_align, int channels) {
-    /* MS IMA blocks have a 4 byte header per channel; 2 samples per byte (2 nibbles) */
+    /* MS-IMA blocks have a 4 byte header per channel; 2 samples per byte (2 nibbles) */
     return (bytes / block_align) * ((block_align - 0x04*channels) * 2 / channels + 1)
             + ((bytes % block_align) ? (((bytes % block_align) - 0x04*channels) * 2 / channels + 1) : 0);
 }
@@ -858,7 +860,7 @@ size_t xbox_ima_bytes_to_samples(size_t bytes, int channels) {
     int block_align = 0x24 * channels;
     /* XBOX IMA blocks have a 4 byte header per channel; 2 samples per byte (2 nibbles) */
     return (bytes / block_align) * (block_align - 4 * channels) * 2 / channels
-            + ((bytes % block_align) ? ((bytes % block_align) - 4 * channels) * 2 / channels : 0); //todo probably not possible (aligned)
+            + ((bytes % block_align) ? ((bytes % block_align) - 4 * channels) * 2 / channels : 0); /* unlikely (encoder aligns) */
 }
 
 size_t ubi_ima_bytes_to_samples(size_t bytes, int channels, STREAMFILE *streamFile, off_t offset) {

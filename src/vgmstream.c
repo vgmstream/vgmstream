@@ -1072,6 +1072,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_XBOX_IMA:
         case coding_XBOX_IMA_int:
         case coding_FSB_IMA:
+        case coding_WWISE_IMA:
             return 64;
         case coding_APPLE_IMA4:
             return 64;
@@ -1079,7 +1080,6 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_REF_IMA:
             return ((vgmstream->interleave_block_size - 0x04*vgmstream->channels) * 2 / vgmstream->channels) + 1;
         case coding_RAD_IMA:
-        case coding_WWISE_IMA:
             return (vgmstream->interleave_block_size - 0x04*vgmstream->channels) * 2 / vgmstream->channels;
         case coding_NDS_IMA:
         case coding_DAT4_IMA:
@@ -1227,7 +1227,6 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
         case coding_RAD_IMA:
         case coding_NDS_IMA:
         case coding_DAT4_IMA:
-        case coding_WWISE_IMA:
         case coding_REF_IMA:
             return vgmstream->interleave_block_size;
         case coding_AWC_IMA:
@@ -1239,9 +1238,10 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
             return 0;
         case coding_UBI_IMA: /* variable (PCM then IMA) */
             return 0;
-        case coding_XBOX_IMA:
+        case coding_XBOX_IMA://todo frame size 0x48*channels?
         case coding_XBOX_IMA_int:
         case coding_FSB_IMA:
+        case coding_WWISE_IMA:
             return 0x24;
         case coding_APPLE_IMA4:
             return 0x22;
