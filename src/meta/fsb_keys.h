@@ -63,6 +63,9 @@ static const uint8_t key_inv[] = { 0x6D,0x69,0x6E,0x74,0x37,0x38,0x72,0x75,0x6E,
 /* Guitar Hero 3 */ //"5atu6w4zaw"
 static const uint8_t key_gh3[] = { 0x35,0x61,0x74,0x75,0x36,0x77,0x34,0x7A,0x61,0x77 };
 
+/* Supreme Commander 2 */ //"B2A7BB00"
+static const uint8_t key_sc2[] = { 0x42,0x32,0x41,0x37,0x42,0x42,0x30,0x30 };
+
 // Unknown:
 // - Battle: Los Angeles
 // - Guitar Hero: Warriors of Rock, DJ hero FSB
@@ -118,6 +121,10 @@ static const fsbkey_info fsbkey_list[] = {
         { 0,1, sizeof(key_gh3),key_gh3 },//untested
         { 1,0, sizeof(key_gh3),key_gh3 },//untested
         { 1,1, sizeof(key_gh3),key_gh3 },//untested
+        { 0,0, sizeof(key_sc2),key_sc2 },//untested
+        { 0,1, sizeof(key_sc2),key_sc2 },//untested
+        { 1,0, sizeof(key_sc2),key_sc2 },//untested
+        { 1,1, sizeof(key_sc2),key_sc2 },//untested
 
 };
 static const int fsbkey_list_count = sizeof(fsbkey_list) / sizeof(fsbkey_list[0]);
