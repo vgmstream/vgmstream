@@ -379,7 +379,7 @@ static const char* extension_list[] = {
     "xss",
     "xvag",
     "xvas",
-    "xwav",
+    "xwav",//fake, to be removed
     "xwb",
     "xwc",
     "xwm", //FFmpeg, not parsed (XWMA)

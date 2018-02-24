@@ -131,7 +131,7 @@ static int read_fmt(int big_endian, STREAMFILE * streamFile, off_t current_chunk
             fmt->coding_type = coding_MS_IMA;
             break;
 
-        case 0x69:  /* XBOX IMA ADPCM [Rayman Raving Rabbids 2 (PC) --maybe waa/wac/wam/wad?] */
+        case 0x69:  /* XBOX IMA ADPCM [Dynasty Warriors 5 (Xbox), Rayman Raving Rabbids 2 (PC) --maybe waa/wac/wam/wad?] */
             if (fmt->bps != 4) goto fail;
             fmt->coding_type = coding_XBOX_IMA;
             break;
@@ -247,8 +247,9 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
 
 
     /* check extension */
+    /* .lwav: to avoid hijacking .wav, .xwav: fake for Xbox games (unneded anymore) */
     /* .da: The Great Battle VI (PS), .cd: Exector (PS), .med: Psi Ops (PC), .snd: Layton Brothers (iOS/Android) */
-    if ( check_extensions(streamFile, "wav,lwav,da,cd,med,snd") ) {
+    if ( check_extensions(streamFile, "wav,lwav,xwav,da,cd,med,snd") ) {
         ;
     }
     else if ( check_extensions(streamFile, "mwv") ) {
@@ -280,6 +281,10 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
     /* for some of Liar-soft's buggy RIFF+Ogg made with Soundforge [Shikkoku no Sharnoth (PC)] */
     if (riff_size+0x08+0x01 == file_size)
         riff_size += 0x01;
+
+    /* some Xbox games do this [Dynasty Warriors 3 (Xbox), BloodRayne (Xbox)] */
+    if (riff_size == file_size && read_16bitLE(0x14,streamFile)==0x0069)
+        riff_size -= 0x08;
 
     /* check for truncated RIFF */
     if (file_size < riff_size+0x08) goto fail;
@@ -466,18 +471,21 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
             break;
 
         case coding_MSADPCM:
-            vgmstream->num_samples = fact_sample_count ? fact_sample_count :
-                    msadpcm_bytes_to_samples(data_size, fmt.block_size, fmt.channel_count);
+            vgmstream->num_samples = msadpcm_bytes_to_samples(data_size, fmt.block_size, fmt.channel_count);
+            if (fact_sample_count && fact_sample_count < vgmstream->num_samples)
+                vgmstream->num_samples = fact_sample_count;
             break;
 
         case coding_MS_IMA:
-            vgmstream->num_samples = fact_sample_count ? fact_sample_count :
-                    ms_ima_bytes_to_samples(data_size, fmt.block_size, fmt.channel_count);
+            vgmstream->num_samples = ms_ima_bytes_to_samples(data_size, fmt.block_size, fmt.channel_count);
+            if (fact_sample_count && fact_sample_count < vgmstream->num_samples)
+                vgmstream->num_samples = fact_sample_count;
             break;
 
         case coding_XBOX_IMA:
-            vgmstream->num_samples = fact_sample_count ? fact_sample_count :
-                    xbox_ima_bytes_to_samples(data_size, fmt.channel_count);
+            vgmstream->num_samples = xbox_ima_bytes_to_samples(data_size, fmt.channel_count);
+            if (fact_sample_count && fact_sample_count < vgmstream->num_samples)
+                vgmstream->num_samples = fact_sample_count; /* some (converted?) Xbox games have bigger fact_samples */
             break;
 
         case coding_NGC_DSP:
