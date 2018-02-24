@@ -642,7 +642,6 @@ static const meta_info meta_info_list[] = {
         {meta_PS2_ILD,              "ILD header"},
         {meta_PS2_PNB,              "assumed PNB (PsychoNauts Bgm File) by .pnb extension"},
         {meta_XBOX_WAVM,            "Xbox WAVM raw header"},
-        {meta_XBOX_RIFF,            "Microsoft XWAV RIFF header"},
         {meta_DSP_STR,              "assumed Conan Gamecube STR File by .str extension"},
         {meta_EA_SCHL,              "Electronic Arts SCHl header (variable)"},
         {meta_EA_SCHL_fixed,        "Electronic Arts SCHl header (fixed)"},

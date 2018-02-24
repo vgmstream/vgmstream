@@ -55,7 +55,6 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_ps2_ild,
     init_vgmstream_ps2_pnb,
     init_vgmstream_xbox_wavm,
-    init_vgmstream_xbox_xwav,
     init_vgmstream_ngc_str,
     init_vgmstream_ea_schl,
     init_vgmstream_caf,

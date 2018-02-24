@@ -413,7 +413,6 @@
     <ClCompile Include="meta\xbox_wavm.c" />
     <ClCompile Include="meta\xbox_xmu.c" />
     <ClCompile Include="meta\xbox_xvas.c" />
-    <ClCompile Include="meta\xbox_xwav.c" />
     <ClCompile Include="meta\x360_pasx.c" />
     <ClCompile Include="meta\xma.c" />
     <ClCompile Include="meta\xnb.c" />

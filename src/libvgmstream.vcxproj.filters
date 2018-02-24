@@ -832,9 +832,6 @@
     <ClCompile Include="meta\xbox_xvas.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\xbox_xwav.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="meta\xss.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>

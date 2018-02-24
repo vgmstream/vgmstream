@@ -456,7 +456,6 @@ typedef enum {
     meta_UBI_CKD,           /* Ubisoft CKD RIFF header (Rayman Origins Wii) */
 
     meta_XBOX_WAVM,         /* XBOX WAVM File */
-    meta_XBOX_RIFF,         /* XBOX RIFF/WAVE File */
     meta_XBOX_WVS,          /* XBOX WVS */
     meta_NGC_WVS,           /* Metal Arms - Glitch in the System */
     meta_XBOX_MATX,         /* XBOX MATX */
