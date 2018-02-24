@@ -33,14 +33,14 @@ VGMSTREAM * init_vgmstream_xbox_xwav(STREAMFILE *streamFile) {
 
     if (start_offset >= (off_t)get_streamfile_size(streamFile))
         goto fail;
-    start_offset += 0x04;
+    start_offset += 0x08;
 
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
-    vgmstream->num_samples = xbox_ima_bytes_to_samples(read_32bitLE(start_offset,streamFile), vgmstream->channels);
+    vgmstream->num_samples = xbox_ima_bytes_to_samples(read_32bitLE(start_offset-0x04,streamFile), vgmstream->channels);
     vgmstream->sample_rate = read_32bitLE(0x18,streamFile);
     if (loop_flag) {
         vgmstream->loop_start_sample = read_32bitLE(0x4C,streamFile);
@@ -51,38 +51,8 @@ VGMSTREAM * init_vgmstream_xbox_xwav(STREAMFILE *streamFile) {
     vgmstream->layout_type = layout_none;
     vgmstream->meta_type = meta_XBOX_RIFF;
 
-    //if (!vgmstream_open_stream(vgmstream, streamFile, start_offset))
-    //    goto fail;
-
-    //custom init
-    {
-        int i, ch;
-        char filename[PATH_LIMIT];
-        streamFile->get_name(streamFile,filename,sizeof(filename));
-
-        if (channel_count > 2) { /* multichannel interleaved init */
-            for (i=0, ch=0;i<channel_count;i++,ch++) {
-                if ((ch&2) && (i!=0)) {
-                    ch = 0;
-                    start_offset += 0x24*2;
-                }
-
-                vgmstream->ch[i].streamfile = streamFile->open(streamFile,filename,0x24);
-                vgmstream->ch[i].offset = start_offset + 0x04;
-
-                if (!vgmstream->ch[i].streamfile) goto fail;
-            }
-        }
-        else {
-            for (i=0; i < channel_count; i++) {
-                vgmstream->ch[i].streamfile = streamFile->open(streamFile,filename,0x24);
-                vgmstream->ch[i].offset = start_offset + 0x04;
-
-                if (!vgmstream->ch[i].streamfile) goto fail;
-            }
-        }
-    }
-
+    if (!vgmstream_open_stream(vgmstream, streamFile, start_offset))
+        goto fail;
     return vgmstream;
 
 fail:

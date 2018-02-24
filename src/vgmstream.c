@@ -1238,7 +1238,9 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
             return 0;
         case coding_UBI_IMA: /* variable (PCM then IMA) */
             return 0;
-        case coding_XBOX_IMA://todo frame size 0x48*channels?
+        case coding_XBOX_IMA:
+            //todo should be  0x48 when stereo, but blocked/interleave layout don't understand stereo codecs
+            return 0x24; //vgmstream->channels==1 ? 0x24 : 0x48;
         case coding_XBOX_IMA_int:
         case coding_FSB_IMA:
         case coding_WWISE_IMA:
@@ -2532,7 +2534,7 @@ int get_vgmstream_average_bitrate(VGMSTREAM * vgmstream) {
  * Inits vgmstreams' channels doing two things:
  * - sets the starting offset per channel (depending on the layout)
  * - opens its own streamfile from on a base one. One streamfile per channel may be open (to improve read/seeks).
- * Should be called in metas before returning the VGMSTREAM..
+ * Should be called in metas before returning the VGMSTREAM.
  */
 int vgmstream_open_stream(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t start_offset) {
     STREAMFILE * file;
