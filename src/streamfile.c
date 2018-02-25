@@ -1008,10 +1008,8 @@ int get_streamfile_filename(STREAMFILE *streamFile, char * buffer, size_t size) 
 
     //todo validate sizes and copy sensible max
     if (path) {
-        VGM_LOG("path\n");
         strcpy(buffer, path);
     } else {
-        VGM_LOG("no path\n");
         strcpy(buffer, foldername);
     }
     return 1;
