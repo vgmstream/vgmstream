@@ -627,7 +627,9 @@ VGMSTREAM * allocate_vgmstream(int channel_count, int looped) {
     VGMSTREAMCHANNEL * start_channels;
     VGMSTREAMCHANNEL * loop_channels;
 
-    if (channel_count <= 0) return NULL;
+    /* up to ~16 aren't too rare for multilayered files, more is probably a bug */
+    if (channel_count <= 0 || channel_count > 64)
+        return NULL;
 
     vgmstream = calloc(1,sizeof(VGMSTREAM));
     if (!vgmstream) return NULL;
