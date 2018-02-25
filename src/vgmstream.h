@@ -152,6 +152,7 @@ typedef enum {
     coding_MTAF,            /* Konami MTAF ADPCM */
     coding_MTA2,            /* Konami MTA2 ADPCM */
     coding_MC3,             /* Paradigm MC3 3-bit ADPCM */
+    coding_FADPCM,          /* FMOD FADPCM 4-bit ADCPM */
 
     /* others */
     coding_SDX2,            /* SDX2 2:1 Squareroot-Delta-Exact compression DPCM */
@@ -238,15 +239,15 @@ typedef enum {
     layout_thp_blocked,
     layout_filp_blocked,
     layout_blocked_ea_swvr,
-    layout_ps2_adm_blocked,
+    layout_blocked_adm,
     layout_dsp_bdsp_blocked,
     layout_mxch_blocked,
     layout_blocked_ivaud,   /* GTA IV .ivaud blocks */
     layout_tra_blocked,     /* DefJam Rapstar .tra blocks */
     layout_ps2_iab_blocked,
     layout_ps2_strlr_blocked,
-    layout_rws_blocked,
-    layout_hwas_blocked,
+    layout_blocked_rws,
+    layout_blocked_hwas,
     layout_blocked_ea_sns,  /* newest Electronic Arts blocks, found in SNS/SNU/SPS/etc formats */
     layout_blocked_awc,     /* Rockstar AWC */
     layout_blocked_vgs,     /* Guitar Hero II (PS2) */
@@ -456,7 +457,6 @@ typedef enum {
     meta_UBI_CKD,           /* Ubisoft CKD RIFF header (Rayman Origins Wii) */
 
     meta_XBOX_WAVM,         /* XBOX WAVM File */
-    meta_XBOX_RIFF,         /* XBOX RIFF/WAVE File */
     meta_XBOX_WVS,          /* XBOX WVS */
     meta_NGC_WVS,           /* Metal Arms - Glitch in the System */
     meta_XBOX_MATX,         /* XBOX MATX */
@@ -481,6 +481,7 @@ typedef enum {
     meta_RIFF_WAVE_POS,     /* .wav + .pos for looping (Ys Complete PC) */
     meta_RIFF_WAVE_labl,    /* RIFF w/ loop Markers in LIST-adtl-labl */
     meta_RIFF_WAVE_smpl,    /* RIFF w/ loop data in smpl chunk */
+    meta_RIFF_WAVE_wsmp,    /* RIFF w/ loop data in wsmp chunk */
     meta_RIFF_WAVE_MWV,     /* .mwv RIFF w/ loop data in ctrl chunk pflt */
     meta_RIFF_WAVE_SNS,     /* .sns RIFF */
     meta_RIFX_WAVE,         /* RIFX, for big-endian WAVs */
@@ -550,7 +551,7 @@ typedef enum {
     meta_PS2_WAD,           /* The golden Compass */
     meta_DSP_XIII,          /* XIII, possibly more (Ubisoft header???) */
     meta_DSP_CABELAS,       /* Cabelas games */
-    meta_PS2_ADM,           /* Dragon Quest 5 */
+    meta_PS2_ADM,           /* Dragon Quest V (PS2) */
     meta_PS2_LPCM,          /* Ah! My Goddess */
     meta_DSP_BDSP,          /* Ah! My Goddess */
     meta_PS2_VMS,           /* Autobahn Raser - Police Madness */

@@ -55,7 +55,6 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_ps2_ild,
     init_vgmstream_ps2_pnb,
     init_vgmstream_xbox_wavm,
-    init_vgmstream_xbox_xwav,
     init_vgmstream_ngc_str,
     init_vgmstream_ea_schl,
     init_vgmstream_caf,
@@ -628,7 +627,9 @@ VGMSTREAM * allocate_vgmstream(int channel_count, int looped) {
     VGMSTREAMCHANNEL * start_channels;
     VGMSTREAMCHANNEL * loop_channels;
 
-    if (channel_count <= 0) return NULL;
+    /* up to ~16 aren't too rare for multilayered files, more is probably a bug */
+    if (channel_count <= 0 || channel_count > 64)
+        return NULL;
 
     vgmstream = calloc(1,sizeof(VGMSTREAM));
     if (!vgmstream) return NULL;
@@ -969,13 +970,13 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
         case layout_filp_blocked:
         case layout_blocked_ivaud:
         case layout_blocked_ea_swvr:
-        case layout_ps2_adm_blocked:
+        case layout_blocked_adm:
         case layout_dsp_bdsp_blocked:
         case layout_tra_blocked:
         case layout_ps2_iab_blocked:
         case layout_ps2_strlr_blocked:
-        case layout_rws_blocked:
-        case layout_hwas_blocked:
+        case layout_blocked_rws:
+        case layout_blocked_hwas:
         case layout_blocked_ea_sns:
         case layout_blocked_awc:
         case layout_blocked_vgs:
@@ -1072,6 +1073,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_XBOX_IMA:
         case coding_XBOX_IMA_int:
         case coding_FSB_IMA:
+        case coding_WWISE_IMA:
             return 64;
         case coding_APPLE_IMA4:
             return 64;
@@ -1079,7 +1081,6 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_REF_IMA:
             return ((vgmstream->interleave_block_size - 0x04*vgmstream->channels) * 2 / vgmstream->channels) + 1;
         case coding_RAD_IMA:
-        case coding_WWISE_IMA:
             return (vgmstream->interleave_block_size - 0x04*vgmstream->channels) * 2 / vgmstream->channels;
         case coding_NDS_IMA:
         case coding_DAT4_IMA:
@@ -1146,6 +1147,8 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
             return 128*2;
         case coding_MC3:
             return 10;
+        case coding_FADPCM:
+            return 256; /* (0x8c - 0xc) * 2 */
         case coding_EA_MT:
             return 432;
         case coding_CRI_HCA:
@@ -1227,7 +1230,6 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
         case coding_RAD_IMA:
         case coding_NDS_IMA:
         case coding_DAT4_IMA:
-        case coding_WWISE_IMA:
         case coding_REF_IMA:
             return vgmstream->interleave_block_size;
         case coding_AWC_IMA:
@@ -1240,8 +1242,11 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
         case coding_UBI_IMA: /* variable (PCM then IMA) */
             return 0;
         case coding_XBOX_IMA:
+            //todo should be  0x48 when stereo, but blocked/interleave layout don't understand stereo codecs
+            return 0x24; //vgmstream->channels==1 ? 0x24 : 0x48;
         case coding_XBOX_IMA_int:
         case coding_FSB_IMA:
+        case coding_WWISE_IMA:
             return 0x24;
         case coding_APPLE_IMA4:
             return 0x22;
@@ -1299,6 +1304,8 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
             return 0x90;
         case coding_MC3:
             return 0x04;
+        case coding_FADPCM:
+            return 0x8c;
         case coding_EA_MT:
             return 0; /* variable (frames of bit counts or PCM frames) */
 #ifdef VGM_USE_ATRAC9
@@ -1914,6 +1921,13 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                 decode_mc3(vgmstream, &vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels, vgmstream->samples_into_block, samples_to_do,
                         chan);
+            }
+            break;
+        case coding_FADPCM:
+            for (chan=0;chan<vgmstream->channels;chan++) {
+                decode_fadpcm(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                        vgmstream->channels,vgmstream->samples_into_block,
+                        samples_to_do);
             }
             break;
         case coding_EA_MT:
@@ -2532,7 +2546,7 @@ int get_vgmstream_average_bitrate(VGMSTREAM * vgmstream) {
  * Inits vgmstreams' channels doing two things:
  * - sets the starting offset per channel (depending on the layout)
  * - opens its own streamfile from on a base one. One streamfile per channel may be open (to improve read/seeks).
- * Should be called in metas before returning the VGMSTREAM..
+ * Should be called in metas before returning the VGMSTREAM.
  */
 int vgmstream_open_stream(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t start_offset) {
     STREAMFILE * file;

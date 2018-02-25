@@ -131,8 +131,8 @@ void render_vgmstream_blocked(sample * buffer, int32_t sample_count, VGMSTREAM *
                 case layout_blocked_ea_swvr:
                     block_update_ea_swvr(vgmstream->next_block_offset,vgmstream);
                     break;
-                case layout_ps2_adm_blocked:
-                    ps2_adm_block_update(vgmstream->next_block_offset,vgmstream);
+                case layout_blocked_adm:
+                    block_update_adm(vgmstream->next_block_offset,vgmstream);
                     break;
                 case layout_dsp_bdsp_blocked:
                     dsp_bdsp_block_update(vgmstream->next_block_offset,vgmstream);
@@ -146,11 +146,11 @@ void render_vgmstream_blocked(sample * buffer, int32_t sample_count, VGMSTREAM *
                 case layout_ps2_strlr_blocked:
                     ps2_strlr_block_update(vgmstream->next_block_offset,vgmstream);
                     break;
-                case layout_rws_blocked:
-                    rws_block_update(vgmstream->next_block_offset,vgmstream);
+                case layout_blocked_rws:
+                    block_update_rws(vgmstream->next_block_offset,vgmstream);
                     break;
-                case layout_hwas_blocked:
-                    hwas_block_update(vgmstream->next_block_offset,vgmstream);
+                case layout_blocked_hwas:
+                    block_update_hwas(vgmstream->next_block_offset,vgmstream);
                     break;
                 case layout_blocked_ea_sns:
                     block_update_ea_sns(vgmstream->next_block_offset,vgmstream);

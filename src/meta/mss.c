@@ -18,7 +18,7 @@ VGMSTREAM * init_vgmstream_mss(STREAMFILE *streamFile) {
 
     loop_flag = 0;
     channel_count = read_16bitLE(0x16,streamFile);
-    if (read_32bitLE(0x18,streamFile) == 0x4800 && vgmstream->channels > 2)
+    if (read_32bitLE(0x18,streamFile) == 0x4800 && channel_count > 2)
         channel_count = 2; //todo add support for interleave stereo streams
 
 	/* build the VGMSTREAM */

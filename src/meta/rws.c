@@ -155,7 +155,7 @@ VGMSTREAM * init_vgmstream_rws(STREAMFILE *streamFile) {
     if (name_offset)
         read_string(vgmstream->stream_name,STREAM_NAME_SIZE, name_offset,streamFile);
 
-    vgmstream->layout_type = layout_rws_blocked;
+    vgmstream->layout_type = layout_blocked_rws;
     vgmstream->current_block_size = block_size / vgmstream->channels;
     vgmstream->full_block_size = block_size_total;
 
@@ -207,7 +207,7 @@ VGMSTREAM * init_vgmstream_rws(STREAMFILE *streamFile) {
     if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
         goto fail;
 
-    rws_block_update(start_offset, vgmstream); /* block init */
+    block_update_rws(start_offset, vgmstream); /* block init */
 
     return vgmstream;
 

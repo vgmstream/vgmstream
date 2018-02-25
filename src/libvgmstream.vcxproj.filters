@@ -832,9 +832,6 @@
     <ClCompile Include="meta\xbox_xvas.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\xbox_xwav.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="meta\xss.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -872,6 +869,9 @@
       <Filter>coding\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\ea_xas_decoder.c">
+      <Filter>coding\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="coding\fadpcm_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\g721_decoder.c">
@@ -1021,7 +1021,7 @@
     <ClCompile Include="layout\halpst_blocked.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="layout\hwas_blocked.c">
+    <ClCompile Include="layout\blocked_hwas.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="layout\ims_block.c">
@@ -1042,13 +1042,13 @@
     <ClCompile Include="layout\nolayout.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="layout\ps2_adm_blocked.c">
+    <ClCompile Include="layout\blocked_adm.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="layout\blocked_ea_swvr.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="layout\rws_blocked.c">
+    <ClCompile Include="layout\blocked_rws.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="layout\str_snds_blocked.c">

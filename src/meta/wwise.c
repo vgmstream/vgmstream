@@ -123,9 +123,9 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
                 //todo fix repeat looping
             }
         }
-        else if (find_chunk(streamFile, 0x4C495354,first_offset,0, &loop_offset,&loop_size, ww.big_endian, 0)) { /*"LIST", common */
-            //todo parse "adtl" (does it ever contain loop info in Wwise?)
-        }
+        //else if (find_chunk(streamFile, 0x4C495354,first_offset,0, &loop_offset,&loop_size, ww.big_endian, 0)) { /*"LIST", common */
+        //    /* usually contains "cue"s with sample positions for events (ex. Platinum Games) but no real looping info */
+        //}
 
         /* other Wwise specific: */
         //"JUNK": optional padding for usually aligment (0-size JUNK exists too)
@@ -194,15 +194,14 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
             break;
 
         case IMA: /* common */
-            /* slightly modified XBOX-IMA with interleaved sub-blocks and LE/BE header */
-
-            /* Wwise uses common codecs (ex. 0x0002 MSADPCM) so this parser should go AFTER riff.c avoid misdetection */
+            /* slightly modified XBOX-IMA */
+            /* Wwise reuses common codec ids (ex. 0x0002 MSADPCM) for IMA so this parser should go AFTER riff.c avoid misdetection */
 
             if (ww.bits_per_sample != 4) goto fail;
             if (ww.block_align != 0x24 * ww.channels) goto fail;
             vgmstream->coding_type = coding_WWISE_IMA;
-            vgmstream->layout_type = layout_none;
-            vgmstream->interleave_block_size = ww.block_align;
+            vgmstream->layout_type = layout_interleave;
+            vgmstream->interleave_block_size = ww.block_align / ww.channels;
             vgmstream->codec_endian = ww.big_endian;
 
             if (ww.truncated) /* enough to get real samples */
