@@ -846,6 +846,7 @@ static const meta_info meta_info_list[] = {
         {meta_DSP_XIII,             "XIII dsp header"},
         {meta_NGC_DSP_STH_STR,      "STH dsp header"},
         {meta_DSP_CABELAS,          "Cabelas games dsp header"},
+        {meta_PS2_ADM,              "Dragon Quest V .ADM raw header"},
         {meta_PS2_LPCM,             "LPCM header"},
         {meta_PS2_VMS,              "VMS Header"},
         {meta_XAU,                  "XPEC XAU header"},

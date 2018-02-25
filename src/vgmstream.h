@@ -551,7 +551,7 @@ typedef enum {
     meta_PS2_WAD,           /* The golden Compass */
     meta_DSP_XIII,          /* XIII, possibly more (Ubisoft header???) */
     meta_DSP_CABELAS,       /* Cabelas games */
-    meta_PS2_ADM,           /* Dragon Quest 5 */
+    meta_PS2_ADM,           /* Dragon Quest V (PS2) */
     meta_PS2_LPCM,          /* Ah! My Goddess */
     meta_DSP_BDSP,          /* Ah! My Goddess */
     meta_PS2_VMS,           /* Autobahn Raser - Police Madness */
