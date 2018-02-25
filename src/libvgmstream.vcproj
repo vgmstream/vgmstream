@@ -1759,7 +1759,7 @@
 					>
 				</File>
 				<File
-					RelativePath=".\layout\ps2_adm_blocked.c"
+					RelativePath=".\layout\blocked_adm.c"
 					>
 				</File>
 				<File
@@ -1775,11 +1775,11 @@
 					>
 				</File>
                 <File
-                    RelativePath=".\layout\rws_blocked.c"
+                    RelativePath=".\layout\blocked_rws.c"
                     >
                 </File>
                 <File
-                    RelativePath=".\layout\hwas_blocked.c"
+                    RelativePath=".\layout\blocked_hwas.c"
                     >
                 </File>
 				<File

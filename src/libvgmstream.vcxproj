@@ -486,10 +486,10 @@
     <ClCompile Include="layout\mus_acm_layout.c" />
     <ClCompile Include="layout\mxch_blocked.c" />
     <ClCompile Include="layout\nolayout.c" />
-    <ClCompile Include="layout\ps2_adm_blocked.c" />
+    <ClCompile Include="layout\blocked_adm.c" />
     <ClCompile Include="layout\blocked_ea_swvr.c" />
-    <ClCompile Include="layout\rws_blocked.c" />
-    <ClCompile Include="layout\hwas_blocked.c" />
+    <ClCompile Include="layout\blocked_rws.c" />
+    <ClCompile Include="layout\blocked_hwas.c" />
     <ClCompile Include="layout\str_snds_blocked.c" />
     <ClCompile Include="layout\thp_blocked.c" />
     <ClCompile Include="layout\vs_blocked.c" />
