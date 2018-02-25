@@ -1,6 +1,9 @@
 version: 1.0.{build}
 image: Visual Studio 2017
 configuration: Release
+init:
+- ps: new-itemproperty -path "HKLM:\SOFTWARE\Microsoft\.NETFramework\v4.0.30319" -name "SchUseStrongCrypto" -Value 1 -PropertyType "DWord";
+- ps: new-itemproperty -path "HKLM:\SOFTWARE\Wow6432Node\Microsoft\.NETFramework\v4.0.30319" -name "SchUseStrongCrypto" -Value 1 -PropertyType "DWord";
 build_script:
 - ps: .\build.bat
 test: off
