@@ -105,6 +105,7 @@ static const char* extension_list[] = {
     "dvi",
     "dxh",
 
+    "e4x",
     "eam",
     "emff",
     "enth",
