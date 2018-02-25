@@ -993,6 +993,29 @@ int get_streamfile_name(STREAMFILE *streamFile, char * buffer, size_t size) {
     streamFile->get_name(streamFile,buffer,size);
     return 1;
 }
+int get_streamfile_filename(STREAMFILE *streamFile, char * buffer, size_t size) {
+    char foldername[PATH_LIMIT];
+    const char *path;
+
+    streamFile->get_name(streamFile,foldername,sizeof(foldername));
+
+    //todo Windows CMD accepts both \\ and /, better way to handle this?
+    path = strrchr(foldername,'\\');
+    if (!path)
+        path = strrchr(foldername,'/');
+    if (path != NULL)
+        path = path+1;
+
+    //todo validate sizes and copy sensible max
+    if (path) {
+        VGM_LOG("path\n");
+        strcpy(buffer, path);
+    } else {
+        VGM_LOG("no path\n");
+        strcpy(buffer, foldername);
+    }
+    return 1;
+}
 int get_streamfile_path(STREAMFILE *streamFile, char * buffer, size_t size) {
     const char *path;
 
