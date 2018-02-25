@@ -970,13 +970,13 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
         case layout_filp_blocked:
         case layout_blocked_ivaud:
         case layout_blocked_ea_swvr:
-        case layout_ps2_adm_blocked:
+        case layout_blocked_adm:
         case layout_dsp_bdsp_blocked:
         case layout_tra_blocked:
         case layout_ps2_iab_blocked:
         case layout_ps2_strlr_blocked:
-        case layout_rws_blocked:
-        case layout_hwas_blocked:
+        case layout_blocked_rws:
+        case layout_blocked_hwas:
         case layout_blocked_ea_sns:
         case layout_blocked_awc:
         case layout_blocked_vgs:

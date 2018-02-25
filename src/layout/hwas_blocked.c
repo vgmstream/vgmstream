@@ -2,7 +2,7 @@
 #include "../vgmstream.h"
 
 /* a simple headerless block with special adpcm history handling */
-void hwas_block_update(off_t block_offset, VGMSTREAM * vgmstream) {
+void block_update_hwas(off_t block_offset, VGMSTREAM * vgmstream) {
     int i;
     size_t block_size;
 

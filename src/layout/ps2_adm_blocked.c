@@ -2,7 +2,7 @@
 #include "../vgmstream.h"
 
 /* blocks of 0x1000 with interleave 0x400 but also smaller last interleave */
-void ps2_adm_block_update(off_t block_offset, VGMSTREAM * vgmstream) {
+void block_update_adm(off_t block_offset, VGMSTREAM * vgmstream) {
     STREAMFILE* streamFile = vgmstream->ch[0].streamfile;
     int i, new_full_block;
     size_t block_size, interleave_size, interleave_data;

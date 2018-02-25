@@ -36,21 +36,21 @@ VGMSTREAM * init_vgmstream_ps2_adm(STREAMFILE *streamFile) {
     vgmstream->meta_type = meta_PS2_ADM;
 
     vgmstream->coding_type = coding_PSX;
-    vgmstream->layout_type = layout_ps2_adm_blocked;
+    vgmstream->layout_type = layout_blocked_adm;
 
     if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
         goto fail;
 
     /* calc num_samples as playable data size varies between files/blocks */
     vgmstream->num_samples = 0; //ps_bytes_to_samples(get_streamfile_size(streamFile), channel_count);
-    ps2_adm_block_update(start_offset,vgmstream);
+    block_update_adm(start_offset,vgmstream);
         while (vgmstream->next_block_offset < get_streamfile_size(streamFile)) {
         if (loop_flag && vgmstream->current_block_offset == loop_start_offset)
             vgmstream->loop_start_sample = vgmstream->num_samples;
 
         vgmstream->num_samples += ps_bytes_to_samples(vgmstream->current_block_size * channel_count, channel_count);
 
-        ps2_adm_block_update(vgmstream->next_block_offset,vgmstream);
+        block_update_adm(vgmstream->next_block_offset,vgmstream);
     }
 
 
@@ -58,7 +58,7 @@ VGMSTREAM * init_vgmstream_ps2_adm(STREAMFILE *streamFile) {
         vgmstream->loop_end_sample = vgmstream->num_samples;
 
 
-    ps2_adm_block_update(start_offset,vgmstream);
+    block_update_adm(start_offset,vgmstream);
     return vgmstream;
 
 fail:

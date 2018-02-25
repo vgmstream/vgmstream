@@ -239,15 +239,15 @@ typedef enum {
     layout_thp_blocked,
     layout_filp_blocked,
     layout_blocked_ea_swvr,
-    layout_ps2_adm_blocked,
+    layout_blocked_adm,
     layout_dsp_bdsp_blocked,
     layout_mxch_blocked,
     layout_blocked_ivaud,   /* GTA IV .ivaud blocks */
     layout_tra_blocked,     /* DefJam Rapstar .tra blocks */
     layout_ps2_iab_blocked,
     layout_ps2_strlr_blocked,
-    layout_rws_blocked,
-    layout_hwas_blocked,
+    layout_blocked_rws,
+    layout_blocked_hwas,
     layout_blocked_ea_sns,  /* newest Electronic Arts blocks, found in SNS/SNU/SPS/etc formats */
     layout_blocked_awc,     /* Rockstar AWC */
     layout_blocked_vgs,     /* Guitar Hero II (PS2) */
