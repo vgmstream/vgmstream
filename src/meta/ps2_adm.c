@@ -1,12 +1,15 @@
 #include "meta.h"
 #include "../layout/layout.h"
 #include "../coding/coding.h"
+#include <string.h>
+
+static int get_adm_loop_info(STREAMFILE *streamFile, off_t *loop_start_offset);
 
 /* .adm - from Dragon Quest V (PS2) */
 VGMSTREAM * init_vgmstream_ps2_adm(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     int channel_count, loop_flag = 0;
-    off_t start_offset;
+    off_t start_offset, loop_start_offset = 0;
 
     /* check extension, case insensitive */
     if (!check_extensions(streamFile,"adm"))
@@ -22,7 +25,7 @@ VGMSTREAM * init_vgmstream_ps2_adm(STREAMFILE *streamFile) {
     }
 
     start_offset = 0x00;
-    loop_flag = 0; /* files loop, but apparently no info in the .adm or in the .dat bigfile containing them */
+    loop_flag = get_adm_loop_info(streamFile, &loop_start_offset);
     channel_count = 2;
 
     /* build the VGMSTREAM */
@@ -41,10 +44,19 @@ VGMSTREAM * init_vgmstream_ps2_adm(STREAMFILE *streamFile) {
     /* calc num_samples as playable data size varies between files/blocks */
     vgmstream->num_samples = 0; //ps_bytes_to_samples(get_streamfile_size(streamFile), channel_count);
     ps2_adm_block_update(start_offset,vgmstream);
-    do {
+        while (vgmstream->next_block_offset < get_streamfile_size(streamFile)) {
+        if (loop_flag && vgmstream->current_block_offset == loop_start_offset)
+            vgmstream->loop_start_sample = vgmstream->num_samples;
+
         vgmstream->num_samples += ps_bytes_to_samples(vgmstream->current_block_size * channel_count, channel_count);
+
         ps2_adm_block_update(vgmstream->next_block_offset,vgmstream);
-    } while (vgmstream->next_block_offset < get_streamfile_size(streamFile));
+    }
+
+
+    if (loop_flag)
+        vgmstream->loop_end_sample = vgmstream->num_samples;
+
 
     ps2_adm_block_update(start_offset,vgmstream);
     return vgmstream;
@@ -52,4 +64,46 @@ VGMSTREAM * init_vgmstream_ps2_adm(STREAMFILE *streamFile) {
 fail:
     close_vgmstream(vgmstream);
     return NULL;
+}
+
+/* loops are not in the .ADM or .DAT bigfile containing them but in the exe; manually get them (a bit meh but whatevs) */
+static int get_adm_loop_info(STREAMFILE *streamFile, off_t *loop_start_offset) {
+    char file_name[PATH_LIMIT];
+    char index_name[PATH_LIMIT];
+    STREAMFILE *streamExe = NULL;
+    int i, name_index = -1, loop_flag;
+    off_t offset;
+
+    streamExe = open_stream_name(streamFile, "SLPM_655.55");
+    if (!streamExe) goto fail;
+
+    get_streamfile_filename(streamFile, file_name, PATH_LIMIT);
+
+    /* get file index from name list (file_name == index_name = index number */
+    offset = 0x23B3c0;
+    for (i = 0; i < 51; i++) {
+        read_string(index_name,0x20+1, offset,streamExe);
+
+        if (strcmp(index_name, file_name)==0) {
+            name_index = i;
+            break;
+        }
+        offset += 0x20;
+    }
+    if (name_index < 0)
+        goto fail;
+
+    /* get file info using index */
+    offset = 0x23BAEC + 0x1c*name_index;
+    loop_flag = (read_32bitLE(offset + 0x10, streamExe) == 0); /* 1: don't loop, 0: loop */
+    if (loop_flag) { /* loop flag */
+        *loop_start_offset = read_32bitLE(offset + 0x04, streamExe);
+    }
+    /* 0x08: num_samples/loop_end, 0x0c: sample rate (always 44100), 0x14/18: some size? */
+
+    close_streamfile(streamExe);
+    return loop_flag;
+fail:
+    close_streamfile(streamExe);
+    return 0;
 }
