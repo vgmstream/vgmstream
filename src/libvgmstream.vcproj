@@ -1479,6 +1479,10 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\coding\fadpcm_decoder.c"
+                    >
+                </File>
+                <File
                     RelativePath=".\coding\ffmpeg_decoder.c"
                     >
                 </File>

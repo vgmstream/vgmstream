@@ -871,6 +871,9 @@
     <ClCompile Include="coding\ea_xas_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="coding\fadpcm_decoder.c">
+      <Filter>coding\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="coding\g721_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>

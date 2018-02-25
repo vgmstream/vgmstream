@@ -110,7 +110,7 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
                         break;
                     case 0x03:  /* Loop Info */
                         LoopStart = read_32bitLE(ExtraFlagStart+0x04,streamFile);
-                        if (ExtraFlagSize > 0x04) /* probably no needed */
+                        if (ExtraFlagSize > 0x04) /* probably not needed */
                             LoopEnd = read_32bitLE(ExtraFlagStart+0x08,streamFile);
 
                         /* when start is 0 seems the song repeats with no real looping (ex. Sonic Boom Fire & Ice jingles) */
@@ -118,9 +118,9 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
                         break;
                     case 0x04:  /* free comment, or maybe SFX info */
                         break;
-                    //case 0x05:  /* Unknown (32b) */
-                    //    /* found in Tearaway Vita, value 0, first stream only  */
-                    //    break;
+                  //case 0x05:  /* Unknown (32b) */
+                  //    /* found in Tearaway Vita, value 0, first stream only */
+                  //    break;
                     case 0x06:  /* XMA seek table */
                         /* no need for it */
                         break;
@@ -142,11 +142,11 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
                          * (xN entries)
                          */
                         break;
-                    //case 0x0d:  /* Unknown (32b) */
-                    //    /* found in some XMA2 and Vorbis */
-                    //    break;
+                  //case 0x0d:  /* Unknown (32b) */
+                  //    /* found in some XMA2/Vorbis/FADPCM */
+                  //    break;
                     default:
-                        VGM_LOG("FSB5: unknown extra flag 0x%x at 0x%04x (size 0x%x)\n", ExtraFlagType, ExtraFlagStart, ExtraFlagSize);
+                        VGM_LOG("FSB5: unknown extra flag 0x%x at 0x%04x + 0x04 (size 0x%x)\n", ExtraFlagType, ExtraFlagStart, ExtraFlagSize);
                         break;
                 }
 
@@ -336,7 +336,10 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
 #endif
 
         case 0x10:  /* FMOD_SOUND_FORMAT_FADPCM */
-            goto fail;
+            vgmstream->coding_type = coding_FADPCM;
+            vgmstream->layout_type = layout_interleave;
+            vgmstream->interleave_block_size = 0x8c;
+            break;
 
         default:
             goto fail;

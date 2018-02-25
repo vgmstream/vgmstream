@@ -495,6 +495,7 @@ static const coding_info coding_info_list[] = {
         {coding_MTAF,               "Konami MTAF 4-bit ADPCM"},
         {coding_MTA2,               "Konami MTA2 4-bit ADPCM"},
         {coding_MC3,                "Paradigm MC3 3-bit ADPCM"},
+        {coding_FADPCM,             "FMOD FADPCM 4-bit ADCPM"},
 
         {coding_SDX2,               "Squareroot-delta-exact (SDX2) 8-bit DPCM"},
         {coding_SDX2_int,           "Squareroot-delta-exact (SDX2) 8-bit DPCM with 1 byte interleave"},

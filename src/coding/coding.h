@@ -136,6 +136,9 @@ void decode_mta2(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing,
 /* mc3_decoder */
 void decode_mc3(VGMSTREAM * vgmstream, VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel);
 
+/* fadpcm_decoder */
+void decode_fadpcm(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
+
 /* ea_mt_decoder*/
 ea_mt_codec_data *init_ea_mt(int channel_count, int type);
 void decode_ea_mt(VGMSTREAM * vgmstream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel);

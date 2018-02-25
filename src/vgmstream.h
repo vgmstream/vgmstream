@@ -152,6 +152,7 @@ typedef enum {
     coding_MTAF,            /* Konami MTAF ADPCM */
     coding_MTA2,            /* Konami MTA2 ADPCM */
     coding_MC3,             /* Paradigm MC3 3-bit ADPCM */
+    coding_FADPCM,          /* FMOD FADPCM 4-bit ADCPM */
 
     /* others */
     coding_SDX2,            /* SDX2 2:1 Squareroot-Delta-Exact compression DPCM */
