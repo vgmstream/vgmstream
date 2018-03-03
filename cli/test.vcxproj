@@ -52,7 +52,9 @@
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
-  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Label="UserMacros">
+    <DependenciesDir>../dependencies</DependenciesDir>
+  </PropertyGroup>
   <PropertyGroup>
     <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
     <CodeAnalysisRuleSet Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">AllRules.ruleset</CodeAnalysisRuleSet>
@@ -68,7 +70,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>../ext_libs/Getopt;../ext_includes;../dependencies/qaac/mp4v2/include;../dependencies/fdk-aac/libSYS/include;../dependencies/fdk-aac/libAACdec/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../ext_libs/Getopt;../ext_includes;$(DependenciesDir)/qaac/mp4v2/include;$(DependenciesDir)/fdk-aac/libSYS/include;$(DependenciesDir)/fdk-aac/libAACdec/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;VGM_USE_FFMPEG;VGM_USE_G7221;VGM_USE_MP4V2;VGM_USE_FDKAAC;_DEBUG;_WINDOWS;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -94,7 +96,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <AdditionalIncludeDirectories>../ext_libs/Getopt;../ext_includes;../dependencies/qaac/mp4v2/include;../dependencies/fdk-aac/libSYS/include;../dependencies/fdk-aac/libAACdec/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../ext_libs/Getopt;../ext_includes;$(DependenciesDir)/qaac/mp4v2/include;$(DependenciesDir)/fdk-aac/libSYS/include;$(DependenciesDir)/fdk-aac/libAACdec/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;VGM_USE_FFMPEG;VGM_USE_G7221;VGM_USE_MP4V2;VGM_USE_FDKAAC;NDEBUG;_WINDOWS;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <PrecompiledHeader>
