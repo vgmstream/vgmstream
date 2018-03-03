@@ -232,9 +232,9 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
     int fact_sample_skip = 0;
 
     int loop_flag = 0;
-    int loop_start_sample = 0, loop_end_sample = 0;
     long loop_start_ms = -1, loop_end_ms = -1;
-    off_t loop_start_offset = -1, loop_end_offset = -1;
+    int32_t loop_start_wsmp = -1, loop_end_wsmp = -1;
+    int32_t loop_start_smpl = -1, loop_end_smpl = -1;
 
     int FormatChunkFound = 0, DataChunkFound = 0, JunkFound = 0;
 
@@ -348,8 +348,8 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
                          * 0x2c: start, 0x30: end, 0x34: fraction, 0x38: play count */
                         if (read_32bitLE(current_chunk+0x08+0x28, streamFile)==0) {
                             loop_flag = 1;
-                            loop_start_offset = read_32bitLE(current_chunk+0x08+0x2c, streamFile);
-                            loop_end_offset   = read_32bitLE(current_chunk+0x08+0x30, streamFile);
+                            loop_start_smpl = read_32bitLE(current_chunk+0x08+0x2c, streamFile);
+                            loop_end_smpl   = read_32bitLE(current_chunk+0x08+0x30, streamFile);
                         }
                     }
                     break;
@@ -364,9 +364,9 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
                         /* 0x14: size, 0x18: loop type (0=forward, 1=release), 0x1c: loop start, 0x20: loop length */
                         if (read_32bitLE(current_chunk+0x08+0x18, streamFile)==0) {
                             loop_flag = 1;
-                            loop_start_sample = read_32bitLE(current_chunk+0x08+0x1c, streamFile);
-                            loop_end_sample   = read_32bitLE(current_chunk+0x08+0x20, streamFile);
-                            loop_end_sample  += loop_start_sample;
+                            loop_start_wsmp = read_32bitLE(current_chunk+0x08+0x1c, streamFile);
+                            loop_end_wsmp   = read_32bitLE(current_chunk+0x08+0x20, streamFile);
+                            loop_end_wsmp  += loop_start_wsmp;
                         }
                     }
                     break;
@@ -529,8 +529,8 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
 
                 /* RIFF loop/sample values are absolute (with skip samples), adjust */
                 if (loop_flag) {
-                    loop_start_offset -= ffmpeg_data->skipSamples;
-                    loop_end_offset -= ffmpeg_data->skipSamples;
+                    loop_start_smpl -= (int32_t)ffmpeg_data->skipSamples;
+                    loop_end_smpl   -= (int32_t)ffmpeg_data->skipSamples;
                 }
             }
             break;
@@ -561,8 +561,8 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
             vgmstream->num_samples = fact_sample_count;
             /* RIFF loop/sample values are absolute (with skip samples), adjust */
             if (loop_flag) {
-                loop_start_offset -= fact_sample_skip;
-                loop_end_offset -= fact_sample_skip;
+                loop_start_smpl -= fact_sample_skip;
+                loop_end_smpl   -= fact_sample_skip;
             }
 
             break;
@@ -604,14 +604,14 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
             vgmstream->loop_end_sample = (long long)loop_end_ms*fmt.sample_rate/1000;
             vgmstream->meta_type = meta_RIFF_WAVE_labl;
         }
-        else if (loop_start_offset >= 0) {
-            vgmstream->loop_start_sample = loop_start_offset;
-            vgmstream->loop_end_sample = loop_end_offset;
+        else if (loop_start_smpl >= 0) {
+            vgmstream->loop_start_sample = loop_start_smpl;
+            vgmstream->loop_end_sample = loop_end_smpl;
             vgmstream->meta_type = meta_RIFF_WAVE_smpl;
         }
-        else if (loop_start_sample >= 0) {
-            vgmstream->loop_start_sample = loop_start_sample;
-            vgmstream->loop_end_sample = loop_end_sample;
+        else if (loop_start_wsmp >= 0) {
+            vgmstream->loop_start_sample = loop_start_wsmp;
+            vgmstream->loop_end_sample = loop_end_wsmp;
             vgmstream->meta_type = meta_RIFF_WAVE_wsmp;
         }
         else if (mwv && mwv_ctrl_offset != -1) {

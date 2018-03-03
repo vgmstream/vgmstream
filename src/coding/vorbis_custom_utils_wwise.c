@@ -13,11 +13,11 @@
 /* DEFS                                                                         */
 /* **************************************************************************** */
 
-static int build_header_identification(uint8_t * buf, size_t bufsize, int channels, int sample_rate, int blocksize_short, int blocksize_long);
-static int build_header_comment(uint8_t * buf, size_t bufsize);
-static int get_packet_header(STREAMFILE *streamFile, off_t offset, wwise_header_t header_type, int * granulepos, size_t * packet_size, int big_endian);
-static int rebuild_packet(uint8_t * obuf, size_t obufsize, STREAMFILE *streamFile, off_t offset, vorbis_custom_codec_data * data, int big_endian);
-static int rebuild_setup(uint8_t * obuf, size_t obufsize, STREAMFILE *streamFile, off_t offset, vorbis_custom_codec_data * data, int big_endian, int channels);
+static size_t build_header_identification(uint8_t * buf, size_t bufsize, int channels, int sample_rate, int blocksize_short, int blocksize_long);
+static size_t build_header_comment(uint8_t * buf, size_t bufsize);
+static size_t get_packet_header(STREAMFILE *streamFile, off_t offset, wwise_header_t header_type, int * granulepos, size_t * packet_size, int big_endian);
+static size_t rebuild_packet(uint8_t * obuf, size_t obufsize, STREAMFILE *streamFile, off_t offset, vorbis_custom_codec_data * data, int big_endian);
+static size_t rebuild_setup(uint8_t * obuf, size_t obufsize, STREAMFILE *streamFile, off_t offset, vorbis_custom_codec_data * data, int big_endian, int channels);
 
 static int ww2ogg_generate_vorbis_packet(vgm_bitstream * ow, vgm_bitstream * iw, STREAMFILE *streamFile, off_t offset, vorbis_custom_codec_data * data, int big_endian);
 static int ww2ogg_generate_vorbis_setup(vgm_bitstream * ow, vgm_bitstream * iw, vorbis_custom_codec_data * data, int channels, size_t packet_size, STREAMFILE *streamFile);
@@ -126,7 +126,7 @@ fail:
 /* **************************************************************************** */
 
 /* loads info from a wwise packet header */
-static int get_packet_header(STREAMFILE *streamFile, off_t offset, wwise_header_t header_type, int * granulepos, size_t * packet_size, int big_endian) {
+static size_t get_packet_header(STREAMFILE *streamFile, off_t offset, wwise_header_t header_type, int * granulepos, size_t * packet_size, int big_endian) {
     int32_t (*read_32bit)(off_t,STREAMFILE*) = big_endian ? read_32bitBE : read_32bitLE;
     int16_t (*read_16bit)(off_t,STREAMFILE*) = big_endian ? read_16bitBE : read_16bitLE;
 
@@ -153,7 +153,7 @@ static int get_packet_header(STREAMFILE *streamFile, off_t offset, wwise_header_
 }
 
 /* Transforms a Wwise data packet into a real Vorbis one (depending on config) */
-static int rebuild_packet(uint8_t * obuf, size_t obufsize, STREAMFILE *streamFile, off_t offset, vorbis_custom_codec_data * data, int big_endian) {
+static size_t rebuild_packet(uint8_t * obuf, size_t obufsize, STREAMFILE *streamFile, off_t offset, vorbis_custom_codec_data * data, int big_endian) {
     vgm_bitstream ow, iw;
     int rc, granulepos;
     size_t header_size, packet_size;
@@ -196,7 +196,7 @@ fail:
 
 
 /* Transforms a Wwise setup packet into a real Vorbis one (depending on config). */
-static int rebuild_setup(uint8_t * obuf, size_t obufsize, STREAMFILE *streamFile, off_t offset, vorbis_custom_codec_data * data, int big_endian, int channels) {
+static size_t rebuild_setup(uint8_t * obuf, size_t obufsize, STREAMFILE *streamFile, off_t offset, vorbis_custom_codec_data * data, int big_endian, int channels) {
     vgm_bitstream ow, iw;
     int rc, granulepos;
     size_t header_size, packet_size;
@@ -238,8 +238,8 @@ fail:
     return 0;
 }
 
-static int build_header_identification(uint8_t * buf, size_t bufsize, int channels, int sample_rate, int blocksize_0_exp, int blocksize_1_exp) {
-    int bytes = 0x1e;
+static size_t build_header_identification(uint8_t * buf, size_t bufsize, int channels, int sample_rate, int blocksize_0_exp, int blocksize_1_exp) {
+    size_t bytes = 0x1e;
     uint8_t blocksizes;
 
     if (bytes > bufsize) return 0;
@@ -260,8 +260,8 @@ static int build_header_identification(uint8_t * buf, size_t bufsize, int channe
     return bytes;
 }
 
-static int build_header_comment(uint8_t * buf, size_t bufsize) {
-    int bytes = 0x19;
+static size_t build_header_comment(uint8_t * buf, size_t bufsize) {
+    size_t bytes = 0x19;
 
     if (bytes > bufsize) return 0;
 

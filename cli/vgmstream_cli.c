@@ -308,7 +308,7 @@ int main(int argc, char ** argv) {
     if (!play_sdtout && !print_adxencd && !print_oggenc && !print_batchvar) {
         printf("samples to play: %d (%.4lf seconds)\n", len_samples, (double)len_samples / vgmstream->sample_rate);
     }
-    fade_samples = fade_seconds * vgmstream->sample_rate;
+    fade_samples = (int32_t)(fade_seconds * vgmstream->sample_rate);
 
     if (loop_count > 0 && ignore_fade) {
         vgmstream->loop_target = (int)loop_count;
@@ -356,7 +356,7 @@ int main(int argc, char ** argv) {
                     if (samples_into_fade > 0) {
                         double fadedness = (double)(fade_samples-samples_into_fade)/fade_samples;
                         for (k = 0; k < vgmstream->channels; k++) {
-                            buf[j*vgmstream->channels+k] = buf[j*vgmstream->channels+k]*fadedness;
+                            buf[j*vgmstream->channels+k] = (sample)buf[j*vgmstream->channels+k]*fadedness;
                         }
                     }
                 }
@@ -423,7 +423,7 @@ int main(int argc, char ** argv) {
                         if (samples_into_fade > 0) {
                             double fadedness = (double)(fade_samples-samples_into_fade)/fade_samples;
                             for (k = 0; k < vgmstream->channels; k++) {
-                                buf[j*vgmstream->channels+k] = buf[j*vgmstream->channels+k]*fadedness;
+                                buf[j*vgmstream->channels+k] = (sample)buf[j*vgmstream->channels+k]*fadedness;
                             }
                         }
                     }

@@ -492,7 +492,7 @@ static void fakename_close(FAKENAME_STREAMFILE *streamfile) {
     free(streamfile);
 }
 
-STREAMFILE *open_fakename_streamfile(STREAMFILE *streamfile, char * fakename, char* fakeext) {
+STREAMFILE *open_fakename_streamfile(STREAMFILE *streamfile, const char * fakename, const char* fakeext) {
     FAKENAME_STREAMFILE *this_sf;
 
     if (!streamfile || (!fakename && !fakeext)) return NULL;

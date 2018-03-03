@@ -170,11 +170,11 @@ static off_t wasf_get_offset(WINAMP_STREAMFILE *streamfile) {
 }
 
 static void wasf_get_name(WINAMP_STREAMFILE *streamfile, char *buffer, size_t length) {
-    return streamfile->stdiosf->get_name(streamfile->stdiosf, buffer, length);
+    streamfile->stdiosf->get_name(streamfile->stdiosf, buffer, length);
 }
 
 static void wasf_get_realname(WINAMP_STREAMFILE *streamfile, char *buffer, size_t length) {
-    return streamfile->stdiosf->get_realname(streamfile->stdiosf, buffer, length);
+    streamfile->stdiosf->get_realname(streamfile->stdiosf, buffer, length);
 }
 
 static STREAMFILE *wasf_open(WINAMP_STREAMFILE *streamFile, const char *const filename, size_t buffersize) {

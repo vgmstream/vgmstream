@@ -912,9 +912,9 @@ int32_t get_vgmstream_play_samples(double looptimes, double fadeseconds, double 
                 + (vgmstream->num_samples - vgmstream->loop_end_sample);
         }
         else {
-            return vgmstream->loop_start_sample
+            return (int32_t)(vgmstream->loop_start_sample
                 + (vgmstream->loop_end_sample - vgmstream->loop_start_sample) * looptimes
-                + (fadedelayseconds + fadeseconds) * vgmstream->sample_rate;
+                + (fadedelayseconds + fadeseconds) * vgmstream->sample_rate);
         }
     }
     else {

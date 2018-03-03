@@ -451,7 +451,7 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
 
                 vgmstream->num_samples = msd.num_samples;
                 if (!vgmstream->num_samples)
-                    vgmstream->num_samples = ffmpeg_data->totalSamples; /* very wrong, from avg-br */
+                    vgmstream->num_samples = (int32_t)ffmpeg_data->totalSamples; /* very wrong, from avg-br */
                 //num_samples seem to be found in the last "seek" table entry too, as: entry / channels / 2
             }
 
@@ -470,7 +470,7 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
 
-            vgmstream->num_samples = ffmpeg_data->totalSamples;
+            vgmstream->num_samples = (int32_t)ffmpeg_data->totalSamples;
             break;
         }
 
