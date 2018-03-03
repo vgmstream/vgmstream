@@ -1279,6 +1279,10 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\meta\waf.c"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\wii_04sw.c"
                     >
                 </File>

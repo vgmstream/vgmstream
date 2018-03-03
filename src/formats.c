@@ -354,6 +354,7 @@ static const char* extension_list[] = {
     "waa",
     "wac",
     "wad",
+    "waf",
     "wam",
     "was",
     //"wav", //common
@@ -963,6 +964,7 @@ static const meta_info meta_info_list[] = {
         {meta_SQEX_SAB,             "Square-Enix SAB header"},
         {meta_SQEX_MAB,             "Square-Enix MAB header"},
         {meta_OGG_L2SD,             "Ogg Vorbis (L2SD)"},
+        {meta_WAF,                  "KID WAF header"},
 
 #ifdef VGM_USE_MP4V2
         {meta_MP4,                  "AAC header"},
