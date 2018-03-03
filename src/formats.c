@@ -730,7 +730,7 @@ static const meta_info meta_info_list[] = {
         {meta_NGC_YMF,              "YMF DSP Header"},
         {meta_PS2_CCC,              "CCC Header"},
         {meta_PSX_FAG,              "FAG Header"},
-        {meta_PS2_MIHB,             "Merged MIH+MIB"},
+        {meta_PS2_MIHB,             "MIH+MIB header"},
         {meta_DSP_WII_MUS,          "mus header"},
         {meta_WII_SNG,              "SNG DSP Header"},
         {meta_RSD2VAG,              "RSD2/VAG Header"},
