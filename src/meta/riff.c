@@ -248,8 +248,9 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
 
     /* check extension */
     /* .lwav: to avoid hijacking .wav, .xwav: fake for Xbox games (unneded anymore) */
-    /* .da: The Great Battle VI (PS), .cd: Exector (PS), .med: Psi Ops (PC), .snd: Layton Brothers (iOS/Android) */
-    if ( check_extensions(streamFile, "wav,lwav,xwav,da,cd,med,snd") ) {
+    /* .da: The Great Battle VI (PS), .cd: Exector (PS), .med: Psi Ops (PC), .snd: Layton Brothers (iOS/Android),
+     * .adx: Remember11 (PC) sfx */
+    if ( check_extensions(streamFile, "wav,lwav,xwav,da,cd,med,snd,adx") ) {
         ;
     }
     else if ( check_extensions(streamFile, "mwv") ) {
