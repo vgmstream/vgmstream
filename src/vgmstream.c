@@ -375,7 +375,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_kma9,
     init_vgmstream_fsb_encrypted,
     init_vgmstream_xwc,
-    init_vgmstream_atsl3,
+    init_vgmstream_atsl,
     init_vgmstream_sps_n1,
     init_vgmstream_atx,
     init_vgmstream_sqex_sead,
