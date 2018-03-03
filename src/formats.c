@@ -237,6 +237,7 @@ static const char* extension_list[] = {
     "psnd",
     "psw",
 
+    "rac", //txth/reserved [Manhunt (Xbox)]
     "rak",
     "ras",
     "raw",

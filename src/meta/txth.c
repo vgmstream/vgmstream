@@ -206,7 +206,15 @@ VGMSTREAM * init_vgmstream_txth(STREAMFILE *streamFile) {
             vgmstream->layout_type = layout_none;
             break;
         case coding_XBOX_IMA:
-            vgmstream->layout_type = layout_none;
+            if (txth.codec_mode == 1) {
+                if (!txth.interleave) goto fail; /* creates garbage */
+                coding = coding_XBOX_IMA_int;
+                vgmstream->layout_type = layout_interleave;
+                vgmstream->interleave_block_size = txth.interleave;
+            }
+            else {
+                vgmstream->layout_type = layout_none;
+            }
             break;
         case coding_NGC_DTK:
             if (vgmstream->channels != 2) goto fail;
