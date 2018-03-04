@@ -5,10 +5,11 @@
 **GCC / Make**: In Windows this means one of these two somewhere in PATH:
 - MinGW-w64 (32bit version): https://sourceforge.net/projects/mingw-w64/
   - Use this for easier standalone executables
+  - Latest online installer with any config should work (for example: gcc-7.2.0, i686, win32, sjlj).
 - MSYS2 with the MinGW-w64_shell (32bit) package: https://msys2.github.io/
 
 **MSVC / Visual Studio**: Microsoft's Visual C++ and MSBuild, bundled in either:
-- Visual Studio 2017: https://www.visualstudio.com/downloads/
+- Visual Studio (2015/2017/latest): https://www.visualstudio.com/downloads/
   - Visual Studio Community should work (free, but must register after trial period)
 - Visual C++ Build Tools (no IDE): http://landinghub.visualstudio.com/visual-cpp-build-tools
 
@@ -20,7 +21,7 @@
 ### CLI (test.exe/vgmstream-cli) / Winamp plugin (in_vgmstream) / XMPlay plugin (xmp-vgmstream)
 
 **With GCC**: use the *./Makefile* in the root folder, see inside for options. For compilation flags check the *Makefile* in each folder.
-You need to manually rebuild if you change a *.h* file (use *make clean*).
+You may need to manually rebuild if you change a *.h* file (use *make clean*).
 
 In Linux, Makefiles can be used to cross-compile with the MingW headers, but may not be updated to generate native code at the moment. It should be fixable with some effort. Autotools should build it as vgmstream-cli instead (see the Audacious section).
 
@@ -33,13 +34,15 @@ set PATH=C:\Program Files (x86)\mingw-w64\i686-5.4.0-win32-sjlj-rt_v5-rev0\mingw
 cd vgmstream
 
 mingw32-make.exe vgmstream_cli -f Makefile ^
- VGM_ENABLE_FFMPEG=1 VGM_ENABLE_MAIATRAC3PLUS=0 ^
+ VGM_ENABLE_FFMPEG=1 ^
  SHELL=sh.exe CC=gcc.exe AR=ar.exe STRIP=strip.exe DLLTOOL=dlltool.exe WINDRES=windres.exe
 ```
 
 **With MSVC**: To build in Visual Studio, run *./init-build.bat*, open *./vgmstream_full.sln* and compile. To build from the command line, run *./build.bat*.
 
-The build script will automatically handle obtaining dependencies and making the project changes listed in the foobar2000 section.
+The build script will automatically handle obtaining dependencies and making the project changes listed in the foobar2000 section (you may need to get some PowerShell .NET packages).
+
+You can also call MSBuild directly in the command line (see the foobar2000 section for dependencies and examples)
 
 ### foobar2000 plugin (foo\_input\_vgmstream)
 Requires MSVC (foobar/SDK only links to MSVC C++ DLLs) and these dependencies:
@@ -51,9 +54,31 @@ Requires MSVC (foobar/SDK only links to MSVC C++ DLLs) and these dependencies:
 The following project modifications are required:
 - For *foobar2000_ATL_helpers* add *../../../WTL/Include* to the compilers's *additional includes*
 
-FDK-AAC/QAAC can be safely disabled by removing *VGM_USE_MP4V2* and *VGM_USE_FDKAAC* in the compiler/linker options and the project dependencies, MAIATRAC3 too, as FFmpeg is used instead to support their codecs.
+FDK-AAC/QAAC can be safely disabled by removing *VGM_USE_MP4V2* and *VGM_USE_FDKAAC* in the compiler/linker options and the project dependencies, as FFmpeg is used instead to support their codecs.
 
-You can also use the command line to compile with MSBuild, if you don't want to touch the .vcxproj files, register VS2017 after trial, or only have VC++/MSBuild tools.
+You can also manually use the command line to compile with MSBuild, if you don't want to touch the .vcxproj files, register VS after trial, get PowerShell dependencies for the build script, or only have VC++/MSBuild tools.
+
+Windows CMD example for foobar2000:
+```
+prompt $P$G$_$S
+set PATH=C:\Program Files (x86)\Git\usr\bin;%PATH%
+set PATH=C:\Program Files (x86)\MSBuild\14.0\Bin;%PATH%
+
+cd vgmstream
+
+set CL=/I"C:\projects\WTL\Include"
+set LINK="C:\projects\foobar\foobar2000\shared\shared.lib"
+
+msbuild fb2k/foo_input_vgmstream.vcxproj ^
+ /t:Clean
+
+msbuild fb2k/foo_input_vgmstream.vcxproj ^
+ /t:Build ^
+ /p:Platform=Win32 ^
+ /p:PlatformToolset=v140 ^
+ /p:Configuration=Release ^
+ /p:DependenciesDir=../..
+```
 
 ### Audacious plugin
 Requires the dev version of Audacious (and dependencies), automake/autoconf, and gcc/make (C++11). It must be compiled and installed into Audacious, where it should appear in the plugin list as "vgmstream".

@@ -661,6 +661,7 @@ typedef enum {
     meta_SQEX_SAB,          /* Square-Enix newest middleware (sound) */
     meta_SQEX_MAB,          /* Square-Enix newest middleware (music) */
     meta_OGG_L2SD,          /* Ogg Vorbis with obfuscation [Lineage II Chronicle 4 (PC)] */
+    meta_WAF,               /* KID WAF [Ever 17 (PC)] */
 
 #ifdef VGM_USE_MP4V2
     meta_MP4,               /* AAC (iOS) */

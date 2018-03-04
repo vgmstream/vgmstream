@@ -43,7 +43,9 @@
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
-  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Label="UserMacros">
+    <DependenciesDir>../dependencies</DependenciesDir>
+  </PropertyGroup>
   <PropertyGroup>
     <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
     <CodeAnalysisRuleSet Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">AllRules.ruleset</CodeAnalysisRuleSet>
@@ -56,7 +58,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>../ext_includes;../dependencies/qaac/mp4v2/include;../dependencies/fdk-aac/libSYS/include;../dependencies/fdk-aac/libAACdec/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../ext_includes;$(DependenciesDir)/qaac/mp4v2/include;$(DependenciesDir)/fdk-aac/libSYS/include;$(DependenciesDir)/fdk-aac/libAACdec/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;VGM_USE_FFMPEG;VGM_USE_G7221;VGM_USE_G719;VGM_USE_MP4V2;VGM_USE_FDKAAC;VGM_USE_ATRAC9;USE_ALLOCA;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -70,7 +72,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <AdditionalIncludeDirectories>../ext_includes;../dependencies/qaac/mp4v2/include;../dependencies/fdk-aac/libSYS/include;../dependencies/fdk-aac/libAACdec/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../ext_includes;$(DependenciesDir)/qaac/mp4v2/include;$(DependenciesDir)/fdk-aac/libSYS/include;$(DependenciesDir)/fdk-aac/libAACdec/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_WIN32_WINNT=0x501;WIN32;VGM_USE_FFMPEG;VGM_USE_G7221;VGM_USE_G719;VGM_USE_MP4V2;VGM_USE_FDKAAC;VGM_USE_ATRAC9;USE_ALLOCA;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <PrecompiledHeader>
@@ -186,7 +188,7 @@
     <ClCompile Include="meta\aix.c" />
     <ClCompile Include="meta\apple_caff.c" />
     <ClCompile Include="meta\ast.c" />
-    <ClCompile Include="meta\atsl3.c" />
+    <ClCompile Include="meta\atsl.c" />
     <ClCompile Include="meta\atx.c" />
     <ClCompile Include="meta\baf.c" />
     <ClCompile Include="meta\bgw.c" />
@@ -397,6 +399,7 @@
     <ClCompile Include="meta\vsf_tta.c" />
     <ClCompile Include="meta\vxn.c" />
     <ClCompile Include="meta\waa_wac_wad_wam.c" />
+    <ClCompile Include="meta\waf.c" />
     <ClCompile Include="meta\wii_04sw.c" />
     <ClCompile Include="meta\wii_bns.c" />
     <ClCompile Include="meta\wii_mus.c" />

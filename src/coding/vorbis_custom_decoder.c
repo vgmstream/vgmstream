@@ -180,7 +180,7 @@ static void pcm_convert_float_to_16(vorbis_custom_codec_data * data, sample * ou
         sample *ptr = outbuf + i;
         float *mono = pcm[i];
         for (j = 0; j < samples_to_do; j++) {
-            int val = floor(mono[j] * 32767.f + .5f);
+            int val = (int)floor(mono[j] * 32767.f + .5f);
             if (val > 32767) val = 32767;
             if (val < -32768) val = -32768;
 

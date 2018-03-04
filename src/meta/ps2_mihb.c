@@ -1,72 +1,53 @@
 #include "meta.h"
-#include "../util.h"
+#include "../coding/coding.h"
 
-/* MIHB (Merged MIH+MIB) */
+/* MIC/MIHB - Merged MIH+MIB [Rogue Trooper (PS2), The Sims 2 (PS2)] */
 VGMSTREAM * init_vgmstream_ps2_mihb(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[PATH_LIMIT];
     off_t start_offset;
-    int mib_blocks;
-    int loop_flag = 0;
-    int channel_count;
+    size_t data_size, frame_size, frame_last, frame_count;
+    int channel_count, loop_flag;
 
-    /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("mihb",filename_extension(filename))) goto fail;
-
-    /* check header */
-    if (read_32bitBE(0x00,streamFile) != 0x40000000)
+    /* check extension */
+    /* .mic: Rebellion Dev. games, .mihb: assumed? */
+    if (!check_extensions(streamFile, "mic,mihb"))
+        goto fail;
+    if (read_32bitBE(0x00,streamFile) != 0x40000000) /* header size */
         goto fail;
 
-    mib_blocks = read_32bitLE(0x14,streamFile);
     loop_flag = 0;
     channel_count = read_32bitLE(0x08,streamFile);
-    
+    start_offset = 0x40;
+
+    /* frame_size * frame_count * channels = data_size, but last frame has less usable data */
+    {
+        /* 0x04(1): 0x20? */
+        frame_last  = (uint16_t)read_16bitLE(0x05,streamFile);
+        frame_size  = read_32bitLE(0x10,streamFile);
+        frame_count = read_32bitLE(0x14,streamFile);
+
+        data_size  = frame_count * frame_size;
+        data_size -= frame_last ? (frame_size-frame_last) : 0;
+        data_size *= channel_count;
+    }
+
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
-    /* fill in the vital statistics */
-    start_offset = 0x40;
-    vgmstream->channels = channel_count;
     vgmstream->sample_rate = read_32bitLE(0x0C,streamFile);
+    vgmstream->num_samples = ps_bytes_to_samples(data_size, channel_count);
+
+    vgmstream->meta_type = meta_PS2_MIHB;
     vgmstream->coding_type = coding_PSX;
-    vgmstream->num_samples = ((read_32bitLE(0x10,streamFile))*mib_blocks)*28/16;
-    if (loop_flag) {
-        vgmstream->loop_start_sample = 0;
-        vgmstream->loop_end_sample = ((read_32bitLE(0x10,streamFile))*mib_blocks)*28/16;
-    }
+    vgmstream->layout_type = layout_interleave;
+    vgmstream->interleave_block_size = frame_size;
 
-    
-    if (vgmstream->channels > 1) {
-        vgmstream->layout_type = layout_interleave;
-        vgmstream->interleave_block_size = read_32bitLE(0x10,streamFile);
-    } else {
-        vgmstream->layout_type = layout_none;
-    }
-        
-        vgmstream->meta_type = meta_PS2_MIHB;
-
-    /* open the file for reading */
-    {
-        int i;
-        STREAMFILE * file;
-        file = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-        if (!file) goto fail;
-        for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = file;
-
-            vgmstream->ch[i].channel_start_offset=
-                vgmstream->ch[i].offset=start_offset+
-                vgmstream->interleave_block_size*i;
-
-        }
-    }
-
+    if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
+        goto fail;
     return vgmstream;
 
-    /* clean up anything we may have opened */
 fail:
-    if (vgmstream) close_vgmstream(vgmstream);
+    close_vgmstream(vgmstream);
     return NULL;
 }

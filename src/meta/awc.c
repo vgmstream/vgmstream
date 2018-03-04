@@ -17,7 +17,7 @@ typedef struct {
     int block_chunk;
 
     off_t stream_offset;
-    off_t stream_size;
+    size_t stream_size;
 
 } awc_header;
 
@@ -187,12 +187,15 @@ static int parse_awc_header(STREAMFILE* streamFile, awc_header* awc) {
 
     /* get stream tags */
     for (i = 0; i < tag_count; i++) {
-        uint64_t tag_header, tag, size, offset;
+        uint64_t tag_header;
+        uint8_t tag;
+        size_t size;
+        off_t offset;
 
         tag_header = (uint64_t)read_64bit(off + 0x08*i,streamFile);
-        tag    = (tag_header >> 56) & 0xFF; /* 8b */
-        size   = (tag_header >> 28) & 0x0FFFFFFF; /* 28b */
-        offset = (tag_header >>  0) & 0x0FFFFFFF; /* 28b */
+        tag    = (uint8_t)((tag_header >> 56) & 0xFF); /* 8b */
+        size   =  (size_t)((tag_header >> 28) & 0x0FFFFFFF); /* 28b */
+        offset =   (off_t)((tag_header >>  0) & 0x0FFFFFFF); /* 28b */
 
         /* Tags are apparently part of a hash derived from a word ("data", "format", etc).
          * If music + 1ch, the header and data chunks can repeat for no reason (sometimes not even pointed). */

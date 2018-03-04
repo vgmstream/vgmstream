@@ -193,13 +193,13 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
 
 
     /* check extension */
-    if (check_extensions(streamFile,"ogg,logg")) { /* .ogg: standard/psychic, .logg: renamed for plugins */
+    if (check_extensions(streamFile,"ogg,logg,adx")) { /* .ogg: standard/psychic, .logg: renamed for plugins, .adx: KID [Remember11 (PC)] */
         is_ogg = 1;
     } else if (check_extensions(streamFile,"um3")) {
         is_um3 = 1;
     } else if (check_extensions(streamFile,"kvs,kovs")) { /* .kvs: Atelier Sophie (PC), kovs: header id only? */
         is_kovs = 1;
-    } else if (check_extensions(streamFile,"sngw")) { /* .sngw: Devil May Cry 4 SE (PC), Biohazard 6 (PC) */
+    } else if (check_extensions(streamFile,"sngw")) { /* .sngw: Capcom [Devil May Cry 4 SE (PC), Biohazard 6 (PC)] */
         is_sngw = 1;
     } else if (check_extensions(streamFile,"isd")) { /* .isd: Azure Striker Gunvolt (PC) */
         is_isd = 1;
@@ -390,7 +390,7 @@ VGMSTREAM * init_vgmstream_ogg_vorbis_callbacks(STREAMFILE *streamFile, const ch
                 loop_length = atol(strrchr(user_comment,'=')+1);
                 loop_length_found = 1;
             }
-            else if (strstr(user_comment,"title=-lps")==user_comment) { /* Memories Off #5 (PC) */
+            else if (strstr(user_comment,"title=-lps")==user_comment) { /* KID [Memories Off #5 (PC), Remember11 (PC)] */
                 loop_start = atol(user_comment+10);
                 loop_flag = (loop_start >= 0);
             }

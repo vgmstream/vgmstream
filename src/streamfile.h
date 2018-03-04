@@ -88,7 +88,7 @@ STREAMFILE *open_io_streamfile(STREAMFILE *streamfile, void* data, size_t data_s
  * Can be used to trick a meta's extension check (to call from another, with a modified SF).
  * When fakename isn't supplied it's read from the streamfile, and the extension swapped with fakeext.
  * If the fakename is an existing file, open won't work on it as it'll reopen the fake-named streamfile. */
-STREAMFILE *open_fakename_streamfile(STREAMFILE *streamfile, char * fakename, char * fakeext);
+STREAMFILE *open_fakename_streamfile(STREAMFILE *streamfile, const char * fakename, const char * fakeext);
 
 /* A streamfile formed from multiple streamfiles, their data joined during reads.
  * Can be used when data is segmented in multiple separate files.

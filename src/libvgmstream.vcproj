@@ -277,7 +277,7 @@
 					>
 				</File>
                 <File
-                    RelativePath=".\meta\atsl3.c"
+                    RelativePath=".\meta\atsl.c"
                     >
                 </File>
                 <File
@@ -1276,6 +1276,10 @@
                 </File>
                 <File
                     RelativePath=".\meta\waa_wac_wad_wam.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\waf.c"
                     >
                 </File>
                 <File

@@ -177,7 +177,7 @@ void decode_pcmfloat(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspac
         int sample_pcm;
 
         sample_float = (float*)&sample_int;
-        sample_pcm = floor((*sample_float) * 32767.f + .5f);
+        sample_pcm = (int)floor((*sample_float) * 32767.f + .5f);
 
         outbuf[sample_count] = clamp16(sample_pcm);
     }

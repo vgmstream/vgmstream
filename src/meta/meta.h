@@ -697,11 +697,13 @@ VGMSTREAM * init_vgmstream_fsb_encrypted(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_xwc(STREAMFILE *streamFile);
 
-VGMSTREAM * init_vgmstream_atsl3(STREAMFILE *streamFile);
+VGMSTREAM * init_vgmstream_atsl(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_sps_n1(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_atx(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_sqex_sead(STREAMFILE * streamFile);
+
+VGMSTREAM * init_vgmstream_waf(STREAMFILE * streamFile);
 #endif /*_META_H*/

@@ -375,10 +375,11 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_kma9,
     init_vgmstream_fsb_encrypted,
     init_vgmstream_xwc,
-    init_vgmstream_atsl3,
+    init_vgmstream_atsl,
     init_vgmstream_sps_n1,
     init_vgmstream_atx,
     init_vgmstream_sqex_sead,
+    init_vgmstream_waf,
 
     init_vgmstream_txth,  /* should go at the end (lower priority) */
 #ifdef VGM_USE_FFMPEG
@@ -911,9 +912,9 @@ int32_t get_vgmstream_play_samples(double looptimes, double fadeseconds, double 
                 + (vgmstream->num_samples - vgmstream->loop_end_sample);
         }
         else {
-            return vgmstream->loop_start_sample
+            return (int32_t)(vgmstream->loop_start_sample
                 + (vgmstream->loop_end_sample - vgmstream->loop_start_sample) * looptimes
-                + (fadedelayseconds + fadeseconds) * vgmstream->sample_rate;
+                + (fadedelayseconds + fadeseconds) * vgmstream->sample_rate);
         }
     }
     else {
