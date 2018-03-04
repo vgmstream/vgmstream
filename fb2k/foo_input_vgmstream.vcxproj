@@ -96,7 +96,7 @@
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-  <ClCompile>
+    <ClCompile>
       <AdditionalIncludeDirectories>../ext_includes;$(DependenciesDir)/WTL/Include;$(DependenciesDir)/foobar/foobar2000/SDK;$(DependenciesDir)/foobar/foobar2000/shared;$(DependenciesDir)/foobar/foobar2000;$(DependenciesDir)/qaac/mp4v2/include;$(DependenciesDir)/fdk-aac/libSYS/include;$(DependenciesDir)/fdk-aac/libAACdec/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;VGM_USE_FFMPEG;VGM_USE_G7221;VGM_USE_MP4V2;VGM_USE_FDKAAC;NDEBUG;_WINDOWS;_USRDLL;IN_VGMSTREAM_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
@@ -139,25 +139,25 @@
     <ClCompile Include="foo_vgmstream.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\fdk-aac\msvc\fdk-aac.vcxproj">
+    <ProjectReference Include="$(DependenciesDir)/fdk-aac/msvc/fdk-aac.vcxproj">
       <Project>{308e2ad5-be31-4770-9441-a8d50f56895c}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\foobar\foobar2000\ATLHelpers\foobar2000_ATL_helpers.vcxproj">
+    <ProjectReference Include="$(DependenciesDir)/foobar/foobar2000/ATLHelpers/foobar2000_ATL_helpers.vcxproj">
       <Project>{622e8b19-8109-4717-bd4d-9657aa78363e}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\foobar\foobar2000\foobar2000_component_client\foobar2000_component_client.vcxproj">
+    <ProjectReference Include="$(DependenciesDir)/foobar/foobar2000/foobar2000_component_client/foobar2000_component_client.vcxproj">
       <Project>{71ad2674-065b-48f5-b8b0-e1f9d3892081}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\foobar\foobar2000\helpers\foobar2000_sdk_helpers.vcxproj">
+    <ProjectReference Include="$(DependenciesDir)/foobar/foobar2000/helpers/foobar2000_sdk_helpers.vcxproj">
       <Project>{ee47764e-a202-4f85-a767-abdab4aff35f}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\foobar\foobar2000\SDK\foobar2000_SDK.vcxproj">
+    <ProjectReference Include="$(DependenciesDir)/foobar/foobar2000/SDK/foobar2000_SDK.vcxproj">
       <Project>{e8091321-d79d-4575-86ef-064ea1a4a20d}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\foobar\pfc\pfc.vcxproj">
+    <ProjectReference Include="$(DependenciesDir)/foobar/pfc/pfc.vcxproj">
       <Project>{ebfffb4e-261d-44d3-b89c-957b31a0bf9c}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\qaac\vcproject\mp4v2\mp4v2.vcxproj">
+    <ProjectReference Include="$(DependenciesDir)/qaac/vcproject/mp4v2/mp4v2.vcxproj">
       <Project>{86a064e2-c81b-4eee-8be0-a39a2e7c7c76}</Project>
     </ProjectReference>
     <ProjectReference Include="..\ext_libs\ext_libs.vcxproj">
