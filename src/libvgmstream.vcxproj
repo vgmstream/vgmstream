@@ -259,7 +259,7 @@
     <ClCompile Include="meta\ngc_adpdtk.c" />
     <ClCompile Include="meta\ngc_bh2pcm.c" />
     <ClCompile Include="meta\ngc_bo2.c" />
-    <ClCompile Include="meta\ngc_caf.c" />
+    <ClCompile Include="meta\caf.c" />
     <ClCompile Include="meta\ngc_dsp_konami.c" />
     <ClCompile Include="meta\ngc_dsp_mpds.c" />
     <ClCompile Include="meta\ngc_dsp_std.c" />
@@ -475,7 +475,7 @@
     <ClCompile Include="layout\blocked_vgs.c" />
     <ClCompile Include="layout\blocked_vawx.c" />
     <ClCompile Include="layout\blocked_xvag.c" />
-    <ClCompile Include="layout\caf_blocked.c" />
+    <ClCompile Include="layout\blocked_caf.c" />
     <ClCompile Include="layout\blocked_dec.c" />
     <ClCompile Include="layout\blocked_ea_schl.c" />
     <ClCompile Include="layout\blocked_ea_sns.c" />

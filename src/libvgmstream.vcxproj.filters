@@ -361,7 +361,7 @@
     <ClCompile Include="meta\ngc_bo2.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\ngc_caf.c">
+    <ClCompile Include="meta\caf.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ngc_dsp_konami.c">
@@ -1000,7 +1000,7 @@
     <ClCompile Include="layout\blocked_xvag.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="layout\caf_blocked.c">
+    <ClCompile Include="layout\blocked_caf.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="layout\blocked_dec.c">

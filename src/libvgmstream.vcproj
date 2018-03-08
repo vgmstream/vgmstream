@@ -615,7 +615,7 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\ngc_caf.c"
+					RelativePath=".\meta\caf.c"
 					>
 				</File>
 				<File
@@ -1707,7 +1707,7 @@
                     >
                 </File>
 				<File
-					RelativePath=".\layout\caf_blocked.c"
+					RelativePath=".\layout\blocked_caf.c"
 					>
 				</File>
 				<File
