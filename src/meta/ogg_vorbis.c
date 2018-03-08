@@ -455,7 +455,7 @@ VGMSTREAM * init_vgmstream_ogg_vorbis_callbacks(STREAMFILE *streamFile, const ch
             vgmstream->loop_end_sample = vgmstream->num_samples;
     }
 
-    vgmstream->coding_type = coding_ogg_vorbis;
+    vgmstream->coding_type = coding_OGG_VORBIS;
     vgmstream->layout_type = vgm_inf->layout_type;
     vgmstream->meta_type = vgm_inf->meta_type;
 

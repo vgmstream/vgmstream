@@ -503,7 +503,7 @@ void reset_vgmstream(VGMSTREAM * vgmstream) {
      * really hit the loop start. */
 
 #ifdef VGM_USE_VORBIS
-    if (vgmstream->coding_type==coding_ogg_vorbis) {
+    if (vgmstream->coding_type==coding_OGG_VORBIS) {
         reset_ogg_vorbis(vgmstream);
     }
 
@@ -689,7 +689,7 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
         return;
 
 #ifdef VGM_USE_VORBIS
-    if (vgmstream->coding_type==coding_ogg_vorbis) {
+    if (vgmstream->coding_type==coding_OGG_VORBIS) {
         free_ogg_vorbis(vgmstream->codec_data);
         vgmstream->codec_data = NULL;
     }
@@ -1038,7 +1038,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_PCMFLOAT:
             return 1;
 #ifdef VGM_USE_VORBIS
-        case coding_ogg_vorbis:
+        case coding_OGG_VORBIS:
         case coding_VORBIS_custom:
 #endif
 #ifdef VGM_USE_MPEG
@@ -1636,7 +1636,7 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
             }
             break;
 #ifdef VGM_USE_VORBIS
-        case coding_ogg_vorbis:
+        case coding_OGG_VORBIS:
             decode_ogg_vorbis(vgmstream->codec_data,
                     buffer+samples_written*vgmstream->channels,samples_to_do,
                     vgmstream->channels);
@@ -2019,7 +2019,7 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream) {
         }
 
 #ifdef VGM_USE_VORBIS
-        if (vgmstream->coding_type==coding_ogg_vorbis) {
+        if (vgmstream->coding_type==coding_OGG_VORBIS) {
             seek_ogg_vorbis(vgmstream, vgmstream->loop_sample);
         }
 
@@ -2429,7 +2429,7 @@ static int get_vgmstream_average_bitrate_channel_count(VGMSTREAM * vgmstream)
         return (data) ? data->substream_count : 0;
     }
 #ifdef VGM_USE_VORBIS
-    if (vgmstream->coding_type==coding_ogg_vorbis) {
+    if (vgmstream->coding_type==coding_OGG_VORBIS) {
         ogg_vorbis_codec_data *data = (ogg_vorbis_codec_data *) vgmstream->codec_data;
         return (data) ? 1 : 0;
     }
@@ -2463,7 +2463,7 @@ static STREAMFILE * get_vgmstream_average_bitrate_channel_streamfile(VGMSTREAM *
         return data->intfiles[channel];
     }
 #ifdef VGM_USE_VORBIS
-    if (vgmstream->coding_type==coding_ogg_vorbis) {
+    if (vgmstream->coding_type==coding_OGG_VORBIS) {
         ogg_vorbis_codec_data *data = (ogg_vorbis_codec_data *) vgmstream->codec_data;
         return data->ov_streamfile.streamfile;
     }

@@ -519,7 +519,7 @@ static const coding_info coding_info_list[] = {
         {coding_CRI_HCA,            "CRI HCA"},
         
 #ifdef VGM_USE_VORBIS
-        {coding_ogg_vorbis,         "Ogg Vorbis"},
+        {coding_OGG_VORBIS,         "Ogg Vorbis"},
         {coding_VORBIS_custom,      "Custom Vorbis"},
 #endif
 #ifdef VGM_USE_MPEG

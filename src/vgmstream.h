@@ -172,7 +172,7 @@ typedef enum {
     coding_CRI_HCA,         /* CRI High Compression Audio (MDCT-based) */
 
 #ifdef VGM_USE_VORBIS
-    coding_ogg_vorbis,      /* Xiph Vorbis with Ogg layer (MDCT-based) */
+    coding_OGG_VORBIS,      /* Xiph Vorbis with Ogg layer (MDCT-based) */
     coding_VORBIS_custom,   /* Xiph Vorbis with custom layer (MDCT-based) */
 #endif
 

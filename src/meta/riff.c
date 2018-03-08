@@ -163,7 +163,7 @@ static int read_fmt(int big_endian, STREAMFILE * streamFile, off_t current_chunk
 
 #ifdef VGM_USE_VORBIS
         case 0x6771: /* Ogg Vorbis (mode 3+) */
-            fmt->coding_type = coding_ogg_vorbis;
+            fmt->coding_type = coding_OGG_VORBIS;
             break;
 #else
             goto fail;
@@ -423,7 +423,7 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
 
 #ifdef VGM_USE_VORBIS
     /* special case using init_vgmstream_ogg_vorbis */
-    if (fmt.coding_type == coding_ogg_vorbis) {
+    if (fmt.coding_type == coding_OGG_VORBIS) {
         return parse_riff_ogg(streamFile, start_offset, data_size);
     }
 #endif
