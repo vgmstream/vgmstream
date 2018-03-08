@@ -225,7 +225,7 @@ typedef enum {
     layout_xa_blocked,
     layout_blocked_ea_schl,
     layout_blocked_ea_1snh,
-    layout_caf_blocked,
+    layout_blocked_caf,
     layout_wsi_blocked,
     layout_str_snds_blocked,
     layout_ws_aud_blocked,
@@ -319,7 +319,7 @@ typedef enum {
     meta_RSF,               /* Retro Studios RSF (Metroid Prime .rsf) [no header_id] */
     meta_HALPST,            /* HAL Labs HALPST */
     meta_GCSW,              /* GCSW (PCM) */
-    meta_CFN,               /* Namco CAF Audio File */
+    meta_CAF,               /* tri-Crescendo CAF */
     meta_MYSPD,             /* U-Sing .myspd */
     meta_HIS,               /* Her Ineractive .his */
     meta_BNSF,              /* Bandai Namco Sound Format */

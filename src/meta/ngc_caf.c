@@ -2,74 +2,64 @@
 #include "../layout/layout.h"
 #include "../util.h"
 
+/* CAF - from tri-Crescendo games [Baten Kaitos 1/2 (GC), Fragile (Wii)] */
 VGMSTREAM * init_vgmstream_caf(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[PATH_LIMIT];
-    
-	// Calculate sample length ...
-	int32_t	num_of_samples=0;
-	int32_t	block_count=0;
+    off_t start_offset, offset;
+    size_t file_size;
+    int channel_count, loop_flag;
+    int32_t num_samples = 0;
+    uint32_t loop_start = -1;
 
-	uint32_t loop_start=-1;
 
-	off_t	offset=0;
-	off_t	next_block;
-	off_t	file_length;
-    int i;
+    /* checks */
+    /* .caf: header id, .cfn: fake extension? , "" is accepted as files don't have extensions in the disc */
+    if (!check_extensions(streamFile,"caf,cfn,"))
+        goto fail;
+    if (read_32bitBE(0x00,streamFile) != 0x43414620) /* "CAF " */
+        goto fail;
 
-    /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("cfn",filename_extension(filename))) goto fail;
+    /* get total samples */
+    offset = 0;
+    file_size = get_streamfile_size(streamFile);
+    while (offset < file_size) {
+        off_t next_block = read_32bitBE(offset+0x04,streamFile);
+        num_samples += read_32bitBE(offset+0x14,streamFile)/8*14;
 
-    /* Check "CAF " ID */
-    if (read_32bitBE(0,streamFile)!=0x43414620) goto fail;
-
-	// Calculate sample length ...
-	file_length=(off_t)get_streamfile_size(streamFile);
-
-	do {
-		next_block=read_32bitBE(offset+0x04,streamFile);
-		num_of_samples+=read_32bitBE(offset+0x14,streamFile)/8*14;
-
-		if(read_32bitBE(offset+0x20,streamFile)==read_32bitBE(offset+0x08,streamFile)) {
-			loop_start=num_of_samples-read_32bitBE(offset+0x14,streamFile)/8*14;
-		}
-		offset+=next_block;
-		block_count++;
-	}  while(offset<file_length);
-
-    /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(2,(loop_start!=-1));    /* always stereo */
-    if (!vgmstream) goto fail;
-
-	vgmstream->channels=2;
-	vgmstream->sample_rate=32000;
-	vgmstream->num_samples=num_of_samples;
-
-	if(loop_start!=-1) {
-		vgmstream->loop_start_sample=loop_start;
-		vgmstream->loop_end_sample=num_of_samples;
-	}
-
-    vgmstream->coding_type = coding_NGC_DSP;
-    vgmstream->layout_type = layout_caf_blocked;
-    vgmstream->meta_type = meta_CFN;
-
-    /* open the file for reading by each channel */
-    {
-        for (i=0;i<2;i++) {
-            vgmstream->ch[i].streamfile = streamFile->open(streamFile,filename,0x8000);
-
-            if (!vgmstream->ch[i].streamfile) goto fail;
+        if(read_32bitBE(offset+0x20,streamFile)==read_32bitBE(offset+0x08,streamFile)) {
+            loop_start = num_samples - read_32bitBE(offset+0x14,streamFile)/8*14;
         }
+        offset += next_block;
     }
 
-	caf_block_update(0,vgmstream);
+    start_offset = 0x00;
+    channel_count = 2; /* always stereo */
+    loop_flag = (loop_start!=-1);
+
+
+    /* build the VGMSTREAM */
+    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+    if (!vgmstream) goto fail;
+
+    vgmstream->sample_rate = 32000;
+    vgmstream->num_samples = num_samples;
+    if (loop_flag) {
+        vgmstream->loop_start_sample = loop_start;
+        vgmstream->loop_end_sample = num_samples;
+    }
+
+    vgmstream->meta_type = meta_CAF;
+    vgmstream->coding_type = coding_NGC_DSP;
+    vgmstream->layout_type = layout_blocked_caf;
+
+    if ( !vgmstream_open_stream(vgmstream,streamFile,start_offset) )
+        goto fail;
+
+    block_update_caf(start_offset,vgmstream);
 
     return vgmstream;
 
-    /* clean up anything we may have opened */
 fail:
-    if (vgmstream) close_vgmstream(vgmstream);
+    close_vgmstream(vgmstream);
     return NULL;
 }
