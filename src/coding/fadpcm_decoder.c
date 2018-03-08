@@ -1,5 +1,5 @@
 #include "coding.h"
-#include "../util.h"
+
 
 /* FADPCM table */
 static const int8_t fadpcm_coefs[8][2] = {
@@ -20,7 +20,7 @@ void decode_fadpcm(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacin
     off_t frame_offset;
     int i, j, k;
     int block_samples, num_frame, samples_done = 0, sample_count = 0;
-    int coef_index[8], shift_factor[8];
+    uint32_t coefs, shifts;
     int32_t hist1; //= stream->adpcm_history1_32;
     int32_t hist2; //= stream->adpcm_history2_32;
 
@@ -32,29 +32,25 @@ void decode_fadpcm(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacin
     frame_offset = stream->offset + 0x8c*num_frame;
 
 
-    /* parse 0xc header */
-    {
-        uint32_t coefs, shifts;
-        coefs  = read_32bitLE(frame_offset + 0x00, stream->streamfile);
-        shifts = read_32bitLE(frame_offset + 0x04, stream->streamfile);
-        hist1  = read_16bitLE(frame_offset + 0x08, stream->streamfile);
-        hist2  = read_16bitLE(frame_offset + 0x0a, stream->streamfile);
-
-        for (i = 0; i < 8; i++) {
-            coef_index[i] = (coefs >> i*4) & 0x0f;
-            shift_factor[i] = (shifts >> i*4) & 0x0f;
-        }
-
-        /* header samples are not written to outbuf */
-    }
+    /* parse 0xc header (header samples are not written to outbuf) */
+    coefs  = read_32bitLE(frame_offset + 0x00, stream->streamfile);
+    shifts = read_32bitLE(frame_offset + 0x04, stream->streamfile);
+    hist1  = read_16bitLE(frame_offset + 0x08, stream->streamfile);
+    hist2  = read_16bitLE(frame_offset + 0x0a, stream->streamfile);
 
 
-    /* decode nibbles, grouped in 0x10 * 0x04 * 2 */
+    /* decode nibbles, grouped in 8 sets of 0x10 * 0x04 * 2 */
     for (i = 0; i < 8; i++) {
+        int32_t coef1, coef2, shift, coef_index, shift_factor;
         off_t group_offset = frame_offset + 0x0c + 0x10*i;
-        int32_t coef1 = fadpcm_coefs[(coef_index[i] % 0x07)][0]; /* indexes > 7 are repeats (ex. 0x9 is 0x2) */
-        int32_t coef2 = fadpcm_coefs[(coef_index[i] % 0x07)][1];
-        int32_t shift = 0x16 - shift_factor[i];
+
+        /* each set has its own coefs/shifts (indexes > 7 are repeat, ex. 0x9 is 0x2) */
+        coef_index   = ((coefs >> i*4) & 0x0f) % 0x07;
+        shift_factor = (shifts >> i*4) & 0x0f;
+
+        coef1 = fadpcm_coefs[coef_index][0];
+        coef2 = fadpcm_coefs[coef_index][1];
+        shift = 0x16 - shift_factor;
 
         for (j = 0; j < 4; j++) {
             uint32_t nibbles = read_32bitLE(group_offset + 0x04*j, stream->streamfile);
