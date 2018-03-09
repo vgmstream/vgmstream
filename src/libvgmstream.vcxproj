@@ -95,6 +95,7 @@
     <ClInclude Include="vgmstream.h" />
     <ClInclude Include="meta\adx_keys.h" />
     <ClInclude Include="meta\aax_streamfile.h" />
+    <ClInclude Include="meta\aax_utf.h" />
     <ClInclude Include="meta\aix_streamfile.h" />
     <ClInclude Include="meta\bar_streamfile.h" />
     <ClInclude Include="meta\sqex_scd_streamfile.h" />

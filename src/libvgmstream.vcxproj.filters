@@ -62,7 +62,7 @@
     <ClInclude Include="meta\adx_keys.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="meta\aax_streamfile.h">
+    <ClInclude Include="meta\aax_utf.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="meta\aix_streamfile.h">

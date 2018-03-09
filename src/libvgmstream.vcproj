@@ -213,6 +213,10 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\meta\aax_utf.h"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\aix_streamfile.h"
                     >
                 </File>
