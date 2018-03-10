@@ -601,13 +601,7 @@ void reset_vgmstream(VGMSTREAM * vgmstream) {
     }
 
     if (vgmstream->layout_type==layout_aax) {
-        aax_codec_data *data = vgmstream->codec_data;
-        int i;
-
-        data->current_segment = 0;
-        for (i=0;i<data->segment_count;i++) {
-            reset_vgmstream(data->adxs[i]);
-        }
+        reset_layout_aax(vgmstream->codec_data);
     }
 
     if (vgmstream->layout_type==layout_scd_int) {
@@ -825,24 +819,7 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
     }
 
     if (vgmstream->layout_type==layout_aax) {
-        aax_codec_data *data = (aax_codec_data *) vgmstream->codec_data;
-
-        if (data) {
-            if (data->adxs) {
-                int i;
-                for (i=0;i<data->segment_count;i++) {
-                    /* note that the close_streamfile won't do anything but deallocate itself,
-                     * there is only one open file in vgmstream->ch[0].streamfile */
-                    close_vgmstream(data->adxs[i]);
-                }
-                free(data->adxs);
-            }
-            if (data->sample_counts) {
-                free(data->sample_counts);
-            }
-
-            free(data);
-        }
+        free_layout_aax(vgmstream->codec_data);
         vgmstream->codec_data = NULL;
     }
 
@@ -2458,6 +2435,11 @@ static STREAMFILE * get_vgmstream_average_bitrate_channel_streamfile(VGMSTREAM *
 {
     //AAX, AIX, ACM?
 
+    if (vgmstream->layout_type==layout_aax) {
+        aax_codec_data *data = (aax_codec_data *) vgmstream->codec_data;
+        return data->segments[0]->ch[channel].streamfile; //todo not correct with multifile segments (ex. .ACM Ogg)
+    }
+
     if (vgmstream->layout_type==layout_scd_int) {
         scd_int_codec_data *data = (scd_int_codec_data *) vgmstream->codec_data;
         return data->intfiles[channel];
@@ -2557,7 +2539,7 @@ int vgmstream_open_stream(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t s
     int use_same_offset_per_channel = 0;
 
 
-    /* stream/offsets not needed, manages themselves */
+    /* stream/offsets not needed, manage themselves */
     if (vgmstream->layout_type == layout_aix ||
         vgmstream->layout_type == layout_aax ||
         vgmstream->layout_type == layout_scd_int)

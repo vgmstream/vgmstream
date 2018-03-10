@@ -28,7 +28,7 @@ static void close_aax(AAXSTREAMFILE *streamfile) {
 }
 
 static size_t get_size_aax(AAXSTREAMFILE *streamfile) {
-    return 0;
+    return get_streamfile_size(streamfile->real_file);
 }
 
 static size_t get_offset_aax(AAXSTREAMFILE *streamfile) {

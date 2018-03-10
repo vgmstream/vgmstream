@@ -1065,13 +1065,12 @@ typedef struct {
     VGMSTREAM **adxs;
 } aix_codec_data;
 
+/* for files made of segments, each a full subfile (VGMSTREAM) */
 typedef struct {
     int segment_count;
     int current_segment;
     int loop_segment;
-    /* one per segment */
-    int32_t *sample_counts;
-    VGMSTREAM **adxs;
+    VGMSTREAM **segments;
 } aax_codec_data;
 
 /* for compressed NWA */
