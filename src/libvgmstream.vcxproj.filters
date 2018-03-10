@@ -970,7 +970,7 @@
     <ClCompile Include="coding\xa_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="layout\aax_layout.c">
+    <ClCompile Include="layout\segmented.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="layout\aix_layout.c">

@@ -1667,7 +1667,7 @@
 				Name="Source Files"
 				>
 				<File
-					RelativePath=".\layout\aax_layout.c"
+					RelativePath=".\layout\segmented.c"
 					>
 				</File>
 				<File
