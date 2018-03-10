@@ -22,15 +22,21 @@ void decode_ogg_vorbis(ogg_vorbis_codec_data * data, sample * outbuf, int32_t sa
 
 
 void reset_ogg_vorbis(VGMSTREAM *vgmstream) {
+    OggVorbis_File *ogg_vorbis_file;
     ogg_vorbis_codec_data *data = vgmstream->codec_data;
-    OggVorbis_File *ogg_vorbis_file = &(data->ogg_vorbis_file);
+    if (!data) return;
+
+    ogg_vorbis_file = &(data->ogg_vorbis_file);
 
     ov_pcm_seek(ogg_vorbis_file, 0);
 }
 
 void seek_ogg_vorbis(VGMSTREAM *vgmstream, int32_t num_sample) {
+    OggVorbis_File *ogg_vorbis_file;
     ogg_vorbis_codec_data *data = (ogg_vorbis_codec_data *)(vgmstream->codec_data);
-    OggVorbis_File *ogg_vorbis_file = &(data->ogg_vorbis_file);
+    if (!data) return;
+
+    ogg_vorbis_file = &(data->ogg_vorbis_file);
 
     ov_pcm_seek_lap(ogg_vorbis_file, num_sample);
 }

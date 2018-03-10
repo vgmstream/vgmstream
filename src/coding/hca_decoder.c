@@ -2,7 +2,6 @@
 
 void decode_hca(hca_codec_data * data, sample * outbuf, int32_t samples_to_do, int channels) {
 	int samples_done = 0;
-
 	int32_t samples_remain = clHCA_samplesPerBlock - data->sample_ptr;
     
     void *hca_data = NULL;
@@ -84,7 +83,8 @@ void decode_hca(hca_codec_data * data, sample * outbuf, int32_t samples_to_do, i
 
 void reset_hca(VGMSTREAM *vgmstream) {
     hca_codec_data *data = vgmstream->codec_data;
-    /*clHCA *hca = (clHCA *)(data + 1);*/
+    if (!data) return;
+
     data->curblock = 0;
     data->sample_ptr = clHCA_samplesPerBlock;
     data->samples_discard = 0;
@@ -92,6 +92,8 @@ void reset_hca(VGMSTREAM *vgmstream) {
 
 void loop_hca(VGMSTREAM *vgmstream) {
     hca_codec_data *data = (hca_codec_data *)(vgmstream->codec_data);
+    if (!data) return;
+
     data->curblock = data->info.loopStart;
     data->sample_ptr = clHCA_samplesPerBlock;
     data->samples_discard = 0;

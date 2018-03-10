@@ -500,6 +500,7 @@ void free_mpeg(mpeg_codec_data *data) {
 void reset_mpeg(VGMSTREAM *vgmstream) {
     off_t input_offset;
     mpeg_codec_data *data = vgmstream->codec_data;
+    if (!data) return;
 
     /* reset multistream */ //todo check if stream offsets are properly reset
 
@@ -524,6 +525,7 @@ void reset_mpeg(VGMSTREAM *vgmstream) {
 void seek_mpeg(VGMSTREAM *vgmstream, int32_t num_sample) {
     off_t input_offset;
     mpeg_codec_data *data = vgmstream->codec_data;
+    if (!data) return;
 
     /* seek multistream */
     if (!data->custom) {

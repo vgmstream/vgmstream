@@ -207,6 +207,7 @@ void free_vorbis_custom(vorbis_custom_codec_data * data) {
 
 void reset_vorbis_custom(VGMSTREAM *vgmstream) {
     vorbis_custom_codec_data *data = vgmstream->codec_data;
+    if (!data) return;
 
     /* Seeking is provided by the Ogg layer, so with custom vorbis we'd need seek tables instead.
      * To avoid having to parse different formats we'll just discard until the expected sample */
@@ -216,6 +217,7 @@ void reset_vorbis_custom(VGMSTREAM *vgmstream) {
 
 void seek_vorbis_custom(VGMSTREAM *vgmstream, int32_t num_sample) {
     vorbis_custom_codec_data *data = vgmstream->codec_data;
+    if (!data) return;
 
     /* Seeking is provided by the Ogg layer, so with custom vorbis we'd need seek tables instead.
      * To avoid having to parse different formats we'll just discard until the expected sample */

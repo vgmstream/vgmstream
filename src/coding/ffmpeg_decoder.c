@@ -706,6 +706,7 @@ end:
 
 void reset_ffmpeg(VGMSTREAM *vgmstream) {
     ffmpeg_codec_data *data = (ffmpeg_codec_data *) vgmstream->codec_data;
+    if (!data) return;
 
     if (data->formatCtx) {
         avformat_seek_file(data->formatCtx, data->streamIndex, 0, 0, 0, AVSEEK_FLAG_ANY);
@@ -733,6 +734,7 @@ void reset_ffmpeg(VGMSTREAM *vgmstream) {
 void seek_ffmpeg(VGMSTREAM *vgmstream, int32_t num_sample) {
     ffmpeg_codec_data *data = (ffmpeg_codec_data *) vgmstream->codec_data;
     int64_t ts;
+    if (!data) return;
 
     /* Start from 0 and discard samples until loop_start (slower but not too noticeable).
      * Due to various FFmpeg quirks seeking to a sample is erratic in many formats (would need extra steps). */

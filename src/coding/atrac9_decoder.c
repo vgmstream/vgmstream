@@ -152,6 +152,7 @@ decode_fail:
 
 void reset_atrac9(VGMSTREAM *vgmstream) {
     atrac9_codec_data *data = vgmstream->codec_data;
+    if (!data) return;
 
     if (!data->handle)
         goto fail;
@@ -184,6 +185,7 @@ fail:
 
 void seek_atrac9(VGMSTREAM *vgmstream, int32_t num_sample) {
     atrac9_codec_data *data = vgmstream->codec_data;
+    if (!data) return;
 
     reset_atrac9(vgmstream);
 
@@ -196,8 +198,7 @@ void seek_atrac9(VGMSTREAM *vgmstream, int32_t num_sample) {
 }
 
 void free_atrac9(atrac9_codec_data *data) {
-    if (!data)
-        return;
+    if (!data) return;
 
     if (data->handle) Atrac9ReleaseHandle(data->handle);
     free(data->data_buffer);
