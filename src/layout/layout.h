@@ -72,10 +72,10 @@ void render_vgmstream_mus_acm(sample * buffer, int32_t sample_count, VGMSTREAM *
 
 void render_vgmstream_aix(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstream);
 
-void render_vgmstream_aax(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstream);
-aax_codec_data* init_layout_aax(int segment_count);
-void free_layout_aax(aax_codec_data *data);
-void reset_layout_aax(aax_codec_data *data);
+void render_vgmstream_segmented(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstream);
+segmented_layout_data* init_layout_segmented(int segment_count);
+void free_layout_segmented(segmented_layout_data *data);
+void reset_layout_segmented(segmented_layout_data *data);
 
 void render_vgmstream_scd_int(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstream);
 

@@ -258,7 +258,7 @@ typedef enum {
     layout_acm,             /* libacm layout */
     layout_mus_acm,         /* mus has multi-files to deal with */
     layout_aix,             /* CRI AIX's wheels within wheels */
-    layout_aax,             /* CRI AAX's wheels within databases */
+    layout_segmented,       /* song divided in segments, each a complete VGMSTREAM */
     layout_scd_int,         /* deinterleave done by the SCDINTSTREAMFILE */
 
 #ifdef VGM_USE_VORBIS
@@ -1075,7 +1075,7 @@ typedef struct {
     int current_segment;
     int loop_segment;
     VGMSTREAM **segments;
-} aax_codec_data;
+} segmented_layout_data;
 
 /* for compressed NWA */
 typedef struct {

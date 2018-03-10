@@ -602,8 +602,8 @@ void reset_vgmstream(VGMSTREAM * vgmstream) {
         }
     }
 
-    if (vgmstream->layout_type==layout_aax) {
-        reset_layout_aax(vgmstream->layout_data);
+    if (vgmstream->layout_type==layout_segmented) {
+        reset_layout_segmented(vgmstream->layout_data);
     }
 
     if (vgmstream->layout_type==layout_scd_int) {
@@ -820,8 +820,8 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
         vgmstream->codec_data = NULL;
     }
 
-    if (vgmstream->layout_type==layout_aax) {
-        free_layout_aax(vgmstream->layout_data);
+    if (vgmstream->layout_type==layout_segmented) {
+        free_layout_segmented(vgmstream->layout_data);
         vgmstream->codec_data = NULL;
     }
 
@@ -971,8 +971,8 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
         case layout_aix:
             render_vgmstream_aix(buffer,sample_count,vgmstream);
             break;
-        case layout_aax:
-            render_vgmstream_aax(buffer,sample_count,vgmstream);
+        case layout_segmented:
+            render_vgmstream_segmented(buffer,sample_count,vgmstream);
             break;
         case layout_scd_int:
             render_vgmstream_scd_int(buffer,sample_count,vgmstream);
@@ -2494,10 +2494,10 @@ int get_vgmstream_average_bitrate(VGMSTREAM * vgmstream) {
         return get_vgmstream_average_bitrate_from_size(vgmstream->stream_size, sample_rate, length_samples);
     }
 
-    /* AAX layout is handled differently as it has multiple sub-VGMSTREAMs (may include special codecs) */
+    /* segmented layout is handled differently as it has multiple sub-VGMSTREAMs (may include special codecs) */
     //todo not correct with multifile segments (ex. .ACM Ogg)
-    if (vgmstream->layout_type==layout_aax) {
-        aax_codec_data *data = (aax_codec_data *) vgmstream->layout_data;
+    if (vgmstream->layout_type==layout_segmented) {
+        segmented_layout_data *data = (segmented_layout_data *) vgmstream->layout_data;
         return get_vgmstream_average_bitrate(data->segments[0]);
     }
 
@@ -2549,7 +2549,7 @@ int vgmstream_open_stream(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t s
 
     /* stream/offsets not needed, manage themselves */
     if (vgmstream->layout_type == layout_aix ||
-        vgmstream->layout_type == layout_aax ||
+        vgmstream->layout_type == layout_segmented ||
         vgmstream->layout_type == layout_scd_int)
         return 1;
 

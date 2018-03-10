@@ -582,7 +582,7 @@ static const layout_info layout_info_list[] = {
         {layout_acm,                    "ACM blocked"},
         {layout_mus_acm,                "multiple ACM files, ACM blocked"},
         {layout_aix,                    "AIX interleave, internally 18-byte interleaved"},
-        {layout_aax,                    "AAX blocked, 18-byte interleaved"},
+        {layout_segmented,               "segmented"},
         {layout_scd_int,                "SCD multistream interleave"},
         {layout_blocked_ea_sns,         "blocked (EA SNS)"},
         {layout_blocked_awc,            "blocked (AWC)"},

@@ -2,13 +2,13 @@
 #include "../vgmstream.h"
 #include "../coding/coding.h"
 
-aax_codec_data* init_layout_aax(int segment_count) {
-    aax_codec_data *data = NULL;
+segmented_layout_data* init_layout_segmented(int segment_count) {
+    segmented_layout_data *data = NULL;
 
     if (segment_count <= 0 || segment_count > 255)
         goto fail;
 
-    data = calloc(1, sizeof(aax_codec_data));
+    data = calloc(1, sizeof(segmented_layout_data));
     if (!data) goto fail;
 
     data->segment_count = segment_count;
@@ -19,14 +19,14 @@ aax_codec_data* init_layout_aax(int segment_count) {
 
     return data;
 fail:
-    free_layout_aax(data);
+    free_layout_segmented(data);
     return NULL;
 }
 
 
-void render_vgmstream_aax(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstream) {
+void render_vgmstream_segmented(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstream) {
     int samples_written=0;
-    aax_codec_data *data = vgmstream->layout_data;
+    segmented_layout_data *data = vgmstream->layout_data;
     //int samples_per_frame = get_vgmstream_samples_per_frame(vgmstream);
 
     while (samples_written<sample_count) {
@@ -34,6 +34,8 @@ void render_vgmstream_aax(sample * buffer, int32_t sample_count, VGMSTREAM * vgm
         int samples_this_block = data->segments[data->current_segment]->num_samples;
 
         if (vgmstream->loop_flag && vgmstream_do_loop(vgmstream)) {
+            //todo can only loop in a segment start
+            // (for arbitrary values find loop segment from loop_start_sample, and skip N samples until loop start)
             data->current_segment = data->loop_segment;
 
             reset_vgmstream(data->segments[data->current_segment]);
@@ -65,7 +67,7 @@ void render_vgmstream_aax(sample * buffer, int32_t sample_count, VGMSTREAM * vgm
 }
 
 
-void free_layout_aax(aax_codec_data *data) {
+void free_layout_segmented(segmented_layout_data *data) {
     int i;
 
     if (!data)
@@ -82,7 +84,7 @@ void free_layout_aax(aax_codec_data *data) {
     free(data);
 }
 
-void reset_layout_aax(aax_codec_data *data) {
+void reset_layout_segmented(segmented_layout_data *data) {
     int i;
 
     if (!data)

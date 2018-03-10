@@ -17,7 +17,7 @@ VGMSTREAM * init_vgmstream_aax(STREAMFILE *streamFile) {
     int32_t sample_count, loop_start_sample = 0, loop_end_sample = 0;
     int segment_count, loop_segment = 0;
 
-    aax_codec_data *data = NULL;
+    segmented_layout_data *data = NULL;
     int table_error = 0;
     const long top_offset = 0x00;
     off_t segment_offset[MAX_SEGMENTS];
@@ -72,7 +72,7 @@ VGMSTREAM * init_vgmstream_aax(STREAMFILE *streamFile) {
     }
 
     /* init layout */
-    data = init_layout_aax(segment_count);
+    data = init_layout_segmented(segment_count);
     if (!data) goto fail;
 
     /* open each segment subfile */
@@ -138,7 +138,7 @@ VGMSTREAM * init_vgmstream_aax(STREAMFILE *streamFile) {
 
     vgmstream->meta_type = meta_AAX;
     vgmstream->coding_type = data->segments[0]->coding_type;
-    vgmstream->layout_type = layout_aax;
+    vgmstream->layout_type = layout_segmented;
 
     vgmstream->layout_data = data;
     data->loop_segment = loop_segment;
@@ -147,7 +147,7 @@ VGMSTREAM * init_vgmstream_aax(STREAMFILE *streamFile) {
 
 fail:
     close_vgmstream(vgmstream);
-    free_layout_aax(data);
+    free_layout_segmented(data);
     return NULL;
 }
 
