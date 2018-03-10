@@ -34,22 +34,10 @@ void render_vgmstream_aax(sample * buffer, int32_t sample_count, VGMSTREAM * vgm
         int samples_this_block = data->segments[data->current_segment]->num_samples;
 
         if (vgmstream->loop_flag && vgmstream_do_loop(vgmstream)) {
-            int i;
             data->current_segment = data->loop_segment;
 
             reset_vgmstream(data->segments[data->current_segment]);
 
-            /* carry over the history from the loop point */
-            if (data->loop_segment > 0)
-            {
-                for (i=0;i<data->segments[0]->channels;i++)
-                {
-                    data->segments[data->loop_segment]->ch[i].adpcm_history1_32 =
-                        data->segments[data->loop_segment-1]->ch[i].adpcm_history1_32;
-                    data->segments[data->loop_segment]->ch[i].adpcm_history2_32 =
-                        data->segments[data->loop_segment-1]->ch[i].adpcm_history2_32;
-                }
-            }
             vgmstream->samples_into_block = 0;
             continue;
         }
@@ -59,20 +47,10 @@ void render_vgmstream_aax(sample * buffer, int32_t sample_count, VGMSTREAM * vgm
         if (samples_written+samples_to_do > sample_count)
             samples_to_do=sample_count-samples_written;
 
-        if (samples_to_do == 0)
-        {
-            int i;
+        if (samples_to_do == 0) {
             data->current_segment++;
             reset_vgmstream(data->segments[data->current_segment]);
 
-            /* carry over the history from the previous segment */
-            for (i=0;i<data->segments[0]->channels;i++)
-            {
-                data->segments[data->current_segment]->ch[i].adpcm_history1_32 =
-                    data->segments[data->current_segment-1]->ch[i].adpcm_history1_32;
-                data->segments[data->current_segment]->ch[i].adpcm_history2_32 =
-                    data->segments[data->current_segment-1]->ch[i].adpcm_history2_32;
-            }
             vgmstream->samples_into_block = 0;
             continue;
         }
