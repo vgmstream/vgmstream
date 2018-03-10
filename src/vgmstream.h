@@ -797,6 +797,10 @@ typedef struct {
      * Note also that support must be added for resetting, looping and
      * closing for every codec that uses this, as it will not be handled. */
     void * codec_data;
+    /* Same, for special layouts.
+     * Reusing the above pointer causes bugs when it's using special layout + codec
+     * (vgmstream may try to free/loop/etc codec_data). */
+    void * layout_data;
 } VGMSTREAM;
 
 #ifdef VGM_USE_VORBIS

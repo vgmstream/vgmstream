@@ -570,10 +570,11 @@ void reset_vgmstream(VGMSTREAM * vgmstream) {
     if (vgmstream->coding_type==coding_ACM) {
         mus_acm_codec_data *data = vgmstream->codec_data;
         int i;
-
-        data->current_file = 0;
-        for (i=0;i<data->file_count;i++) {
-            acm_reset(data->files[i]);
+        if (data) {
+            data->current_file = 0;
+            for (i=0;i<data->file_count;i++) {
+                acm_reset(data->files[i]);
+            }
         }
     }
 
@@ -586,7 +587,8 @@ void reset_vgmstream(VGMSTREAM * vgmstream) {
             vgmstream->coding_type == coding_NWA5
        ) {
         nwa_codec_data *data = vgmstream->codec_data;
-        reset_nwa(data->nwa);
+        if (data)
+            reset_nwa(data->nwa);
     }
 
 
@@ -601,7 +603,7 @@ void reset_vgmstream(VGMSTREAM * vgmstream) {
     }
 
     if (vgmstream->layout_type==layout_aax) {
-        reset_layout_aax(vgmstream->codec_data);
+        reset_layout_aax(vgmstream->layout_data);
     }
 
     if (vgmstream->layout_type==layout_scd_int) {
@@ -819,7 +821,7 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
     }
 
     if (vgmstream->layout_type==layout_aax) {
-        free_layout_aax(vgmstream->codec_data);
+        free_layout_aax(vgmstream->layout_data);
         vgmstream->codec_data = NULL;
     }
 
@@ -2047,7 +2049,8 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream) {
             vgmstream->coding_type == coding_NWA5)
         {
             nwa_codec_data *data = vgmstream->codec_data;
-            seek_nwa(data->nwa, vgmstream->loop_sample);
+            if (data)
+                seek_nwa(data->nwa, vgmstream->loop_sample);
         }
 
         /* restore! */
@@ -2435,11 +2438,6 @@ static STREAMFILE * get_vgmstream_average_bitrate_channel_streamfile(VGMSTREAM *
 {
     //AAX, AIX, ACM?
 
-    if (vgmstream->layout_type==layout_aax) {
-        aax_codec_data *data = (aax_codec_data *) vgmstream->codec_data;
-        return data->segments[0]->ch[channel].streamfile; //todo not correct with multifile segments (ex. .ACM Ogg)
-    }
-
     if (vgmstream->layout_type==layout_scd_int) {
         scd_int_codec_data *data = (scd_int_codec_data *) vgmstream->codec_data;
         return data->intfiles[channel];
@@ -2485,16 +2483,26 @@ int get_vgmstream_average_bitrate(VGMSTREAM * vgmstream) {
     int bitrate = 0;
     int sample_rate = vgmstream->sample_rate;
     int length_samples = vgmstream->num_samples;
-    int channels = get_vgmstream_average_bitrate_channel_count(vgmstream);
+    int channels;
     STREAMFILE * streamFile;
 
-    if (!sample_rate || !channels || !length_samples)
+    if (!sample_rate || !length_samples)
         return 0;
 
     /* subsongs need to report this to properly calculate */
     if (vgmstream->stream_size) {
         return get_vgmstream_average_bitrate_from_size(vgmstream->stream_size, sample_rate, length_samples);
     }
+
+    /* AAX layout is handled differently as it has multiple sub-VGMSTREAMs (may include special codecs) */
+    //todo not correct with multifile segments (ex. .ACM Ogg)
+    if (vgmstream->layout_type==layout_aax) {
+        aax_codec_data *data = (aax_codec_data *) vgmstream->layout_data;
+        return get_vgmstream_average_bitrate(data->segments[0]);
+    }
+
+    channels = get_vgmstream_average_bitrate_channel_count(vgmstream);
+    if (!channels) return 0;
 
     if (channels >= 1) {
         streamFile = get_vgmstream_average_bitrate_channel_streamfile(vgmstream, 0);

@@ -1,8 +1,9 @@
 #include "meta.h"
 #include "../layout/layout.h"
 #include "../coding/coding.h"
-#include "aax_streamfile.h"
 #include "aax_utf.h"
+
+static STREAMFILE* setup_aax_streamfile(STREAMFILE *streamFile, off_t subfile_offset, size_t subfile_size, const char* fake_ext);
 
 
 #define MAX_SEGMENTS 2 /* usually segment0=intro, segment1=loop/main */
@@ -10,8 +11,7 @@
 /* AAX - segmented ADX [Bayonetta (PS3), Pandora's Tower (Wii), Catherine (X360), Binary Domain (PS3)] */
 VGMSTREAM * init_vgmstream_aax(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[PATH_LIMIT];
-    STREAMFILE * streamFileAAX = NULL;
+    int is_hca;
 
     int loop_flag = 0, channel_count = 0;
     int32_t sample_count, loop_start_sample = 0, loop_end_sample = 0;
@@ -51,7 +51,12 @@ VGMSTREAM * init_vgmstream_aax(STREAMFILE *streamFile) {
 
         if (result.name_offset+0x04 > aax_string_table_size)
             goto fail;
-        if (read_32bitBE(aax_string_table_offset + result.name_offset, streamFile) != 0x41415800) /* "AAX\0" */
+
+        if (read_32bitBE(aax_string_table_offset + result.name_offset, streamFile) == 0x41415800) /* "AAX\0" */
+            is_hca = 0;
+        else if (read_32bitBE(aax_string_table_offset + result.name_offset, streamFile) == 0x48434100) /* "HCA\0" */
+            is_hca = 1;
+        else
             goto fail;
 
         /* get offsets of constituent segments */
@@ -70,17 +75,14 @@ VGMSTREAM * init_vgmstream_aax(STREAMFILE *streamFile) {
     data = init_layout_aax(segment_count);
     if (!data) goto fail;
 
-    /* get temp file */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    streamFileAAX = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-    if (!streamFileAAX) goto fail;
-
     /* open each segment subfile */
     for (i = 0; i < segment_count; i++) {
-        STREAMFILE* temp_streamFile = open_aax_with_STREAMFILE(streamFileAAX,segment_offset[i],segment_size[i]);
+        STREAMFILE* temp_streamFile = setup_aax_streamfile(streamFile, segment_offset[i],segment_size[i], (is_hca ? "hca" : "adx"));
         if (!temp_streamFile) goto fail;
 
-        data->segments[i] = init_vgmstream_adx(temp_streamFile);
+        data->segments[i] = is_hca ?
+                init_vgmstream_hca(temp_streamFile) :
+                init_vgmstream_adx(temp_streamFile);
 
         close_streamfile(temp_streamFile);
 
@@ -138,15 +140,37 @@ VGMSTREAM * init_vgmstream_aax(STREAMFILE *streamFile) {
     vgmstream->coding_type = data->segments[0]->coding_type;
     vgmstream->layout_type = layout_aax;
 
-    vgmstream->codec_data = data;
+    vgmstream->layout_data = data;
     data->loop_segment = loop_segment;
 
     return vgmstream;
 
 fail:
-    close_streamfile(streamFileAAX);
     close_vgmstream(vgmstream);
     free_layout_aax(data);
+    return NULL;
+}
+
+static STREAMFILE* setup_aax_streamfile(STREAMFILE *streamFile, off_t subfile_offset, size_t subfile_size, const char* fake_ext) {
+    STREAMFILE *temp_streamFile = NULL, *new_streamFile = NULL;
+
+    /* setup subfile */
+    new_streamFile = open_wrap_streamfile(streamFile);
+    if (!new_streamFile) goto fail;
+    temp_streamFile = new_streamFile;
+
+    new_streamFile = open_clamp_streamfile(temp_streamFile, subfile_offset,subfile_size);
+    if (!new_streamFile) goto fail;
+    temp_streamFile = new_streamFile;
+
+    new_streamFile = open_fakename_streamfile(temp_streamFile, NULL,fake_ext);
+    if (!new_streamFile) goto fail;
+    temp_streamFile = new_streamFile;
+
+    return temp_streamFile;
+
+fail:
+    close_streamfile(temp_streamFile);
     return NULL;
 }
 

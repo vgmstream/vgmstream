@@ -26,7 +26,8 @@ fail:
 
 void render_vgmstream_aax(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstream) {
     int samples_written=0;
-    aax_codec_data *data = vgmstream->codec_data;
+    aax_codec_data *data = vgmstream->layout_data;
+    //int samples_per_frame = get_vgmstream_samples_per_frame(vgmstream);
 
     while (samples_written<sample_count) {
         int samples_to_do;
@@ -55,8 +56,6 @@ void render_vgmstream_aax(sample * buffer, int32_t sample_count, VGMSTREAM * vgm
 
         samples_to_do = vgmstream_samples_to_do(samples_this_block, 1, vgmstream);
 
-        /*printf("samples_to_do=%d,samples_this_block=%d,samples_written=%d,sample_count=%d\n",samples_to_do,samples_this_block,samples_written,sample_count);*/
-
         if (samples_written+samples_to_do > sample_count)
             samples_to_do=sample_count-samples_written;
 
@@ -64,7 +63,6 @@ void render_vgmstream_aax(sample * buffer, int32_t sample_count, VGMSTREAM * vgm
         {
             int i;
             data->current_segment++;
-            /*printf("advance to %d at %d samples\n",data->current_segment,vgmstream->current_sample);*/
             reset_vgmstream(data->segments[data->current_segment]);
 
             /* carry over the history from the previous segment */
