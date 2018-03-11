@@ -751,6 +751,7 @@ static const meta_info meta_info_list[] = {
         {meta_RSD6WADP,             "RSD6/WADP Header"},
         {meta_RSD6RADP,             "RSD6/RADP Header"},
         {meta_RSD6XMA,              "RSD6/XMA Header"},
+        {meta_RSD6AT3P,             "RSD6/AT3+ Header"},
         {meta_DC_ASD,               "ASD Header"},
         {meta_NAOMI_SPSD,           "SPSD Header"},
         {meta_FFXI_BGW,             "BGW BGMStream header"},

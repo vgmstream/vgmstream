@@ -434,6 +434,7 @@ typedef enum {
     meta_RSD6RADP,          /* RSD6RADP */
     meta_RSD6OOGV,          /* RSD6OOGV */
     meta_RSD6XMA,           /* RSD6XMA */
+    meta_RSD6AT3P,          /* RSD6AT3+ */
 
     meta_PS2_ASS,           /* ASS */
     meta_PS2_SEG,           /* Eragon */
