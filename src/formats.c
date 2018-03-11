@@ -245,6 +245,7 @@ static const char* extension_list[] = {
     "raw",
     "rkv",
     "rnd",
+    "rof",
     "rrds",
     "rsd",
     "rsf",
