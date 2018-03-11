@@ -74,6 +74,7 @@ void render_vgmstream_aix(sample * buffer, int32_t sample_count, VGMSTREAM * vgm
 
 void render_vgmstream_segmented(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstream);
 segmented_layout_data* init_layout_segmented(int segment_count);
+int setup_layout_segmented(segmented_layout_data* data);
 void free_layout_segmented(segmented_layout_data *data);
 void reset_layout_segmented(segmented_layout_data *data);
 

@@ -24,6 +24,49 @@ fail:
 }
 
 
+int setup_layout_segmented(segmented_layout_data* data) {
+    int i;
+
+    /* setup each VGMSTREAM (roughly equivalent to vgmstream.c's init_vgmstream_internal stuff) */
+    for (i = 0; i < data->segment_count; i++) {
+        if (!data->segments[i])
+            goto fail;
+
+        if (data->segments[i]->num_samples <= 0)
+            goto fail;
+
+        /* shouldn't happen */
+        if (data->segments[i]->loop_flag != 0) {
+            VGM_LOG("segmented layout: segment %i is looped\n", i);
+            data->segments[i]->loop_flag = 0;
+        }
+
+        if (i > 0) {
+            if (data->segments[i]->channels != data->segments[i-1]->channels)
+                goto fail;
+
+            /* a bit weird, but no matter */
+            if (data->segments[i]->sample_rate != data->segments[i-1]->sample_rate) {
+                VGM_LOG("segmented layout: segment %i has different sample rate\n", i);
+            }
+
+            //if (data->segments[i]->coding_type != data->segments[i-1]->coding_type)
+            //    goto fail; /* perfectly acceptable */
+        }
+
+
+        /* save start things so we can restart for seeking/looping */
+        memcpy(data->segments[i]->start_ch,data->segments[i]->ch,sizeof(VGMSTREAMCHANNEL)*data->segments[i]->channels);
+        memcpy(data->segments[i]->start_vgmstream,data->segments[i],sizeof(VGMSTREAM));
+    }
+
+
+    return 1;
+fail:
+    return 0; /* caller is expected to free */
+}
+
+
 void render_vgmstream_segmented(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstream) {
     int samples_written=0;
     segmented_layout_data *data = vgmstream->layout_data;

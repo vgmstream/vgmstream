@@ -161,14 +161,13 @@ VGMSTREAM * init_vgmstream_wave_segmented(STREAMFILE *streamFile) {
                     VGM_LOG("WAVE: unknown codec\n");
                     goto fail;
             }
-
-            //todo better memcpy (call setup_layout_segmented + validate segments, disable looping, etc?)
-
-            /* save start things so we can restart for seeking/looping */
-            memcpy(data->segments[i]->start_ch,data->segments[i]->ch,sizeof(VGMSTREAMCHANNEL)*data->segments[i]->channels);
-            memcpy(data->segments[i]->start_vgmstream,data->segments[i],sizeof(VGMSTREAM));
         }
     }
+
+    /* setup segmented VGMSTREAMs */
+    if (!setup_layout_segmented(data))
+        goto fail;
+
 
     /* parse samples */
     {

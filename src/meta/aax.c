@@ -86,23 +86,12 @@ VGMSTREAM * init_vgmstream_aax(STREAMFILE *streamFile) {
 
         close_streamfile(temp_streamFile);
 
-        if (!data->segments[i])
-            goto fail;
-        if (data->segments[i]->loop_flag != 0)
-            goto fail; /* should never happen (could be simply disabled tho) */
-        if (i > 0) {
-            if (data->segments[i]->channels != data->segments[i-1]->channels)
-                goto fail;
-            if (data->segments[i]->sample_rate != data->segments[i-1]->sample_rate)
-                goto fail;
-            if (data->segments[i]->coding_type != data->segments[i-1]->coding_type)
-                goto fail;
-        }
-
-        /* save start things so we can restart for seeking/looping */
-        memcpy(data->segments[i]->start_ch,data->segments[i]->ch,sizeof(VGMSTREAMCHANNEL)*data->segments[i]->channels);
-        memcpy(data->segments[i]->start_vgmstream,data->segments[i],sizeof(VGMSTREAM));
+        if (!data->segments[i]) goto fail;
     }
+
+    /* setup segmented VGMSTREAMs */
+    if (!setup_layout_segmented(data))
+        goto fail;
 
     /* get looping and samples */
     sample_count = 0;
