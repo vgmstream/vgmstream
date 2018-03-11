@@ -358,6 +358,7 @@ static const char* extension_list[] = {
     "wam",
     "was",
     //"wav", //common
+    "wave",
     "wavm",
     "wb",
     "wem",
@@ -582,7 +583,7 @@ static const layout_info layout_info_list[] = {
         {layout_acm,                    "ACM blocked"},
         {layout_mus_acm,                "multiple ACM files, ACM blocked"},
         {layout_aix,                    "AIX interleave, internally 18-byte interleaved"},
-        {layout_segmented,               "segmented"},
+        {layout_segmented,              "segmented"},
         {layout_scd_int,                "SCD multistream interleave"},
         {layout_blocked_ea_sns,         "blocked (EA SNS)"},
         {layout_blocked_awc,            "blocked (AWC)"},
@@ -965,6 +966,8 @@ static const meta_info meta_info_list[] = {
         {meta_SQEX_MAB,             "Square-Enix MAB header"},
         {meta_OGG_L2SD,             "Ogg Vorbis (L2SD)"},
         {meta_WAF,                  "KID WAF header"},
+        {meta_WAVE,                 "WayForward .WAVE header"},
+        {meta_WAVE_segmented,       "WayForward .WAVE header (segmented)"},
 
 #ifdef VGM_USE_MP4V2
         {meta_MP4,                  "AAC header"},

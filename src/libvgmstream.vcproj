@@ -1283,6 +1283,14 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\meta\wave_segmented.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\wave.c"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\wii_04sw.c"
                     >
                 </File>
