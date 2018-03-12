@@ -1081,3 +1081,76 @@ fail:
     if (vgmstream) close_vgmstream(vgmstream);
     return NULL;
 } 
+
+
+/* RSD6AT3+ [Crash of the Titans (PSP)] */
+VGMSTREAM * init_vgmstream_rsd6at3p(STREAMFILE *streamFile) {
+    VGMSTREAM * vgmstream = NULL;
+    off_t start_offset;
+    size_t data_size;
+    int loop_flag, channel_count;
+
+
+    /* check extension, case insensitive */
+    if (!check_extensions(streamFile,"rsd"))
+        goto fail;
+
+    /* check header */
+    if (read_32bitBE(0x0, streamFile) != 0x52534436) /* "RSD6" */
+        goto fail;
+    if (read_32bitBE(0x04,streamFile) != 0x4154332B) /* "AT3+" */
+        goto fail;
+
+    loop_flag = 0;
+    channel_count = read_32bitLE(0x8, streamFile);
+    start_offset = 0x800;
+    data_size = get_streamfile_size(streamFile) - start_offset;
+
+    /* build the VGMSTREAM */
+    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+    if (!vgmstream) goto fail;
+
+    vgmstream->meta_type = meta_RSD6AT3P;
+    vgmstream->sample_rate = read_32bitLE(0x10, streamFile);
+
+#ifdef VGM_USE_FFMPEG
+    {
+        ffmpeg_codec_data *ffmpeg_data = NULL;
+
+        /* full RIFF header at start_offset/post_meta_offset (same) */
+        ffmpeg_data = init_ffmpeg_offset(streamFile, start_offset,data_size);
+        if (!ffmpeg_data) goto fail;
+        vgmstream->codec_data = ffmpeg_data;
+        vgmstream->coding_type = coding_FFmpeg;
+        vgmstream->layout_type = layout_none;
+
+        if (channel_count != ffmpeg_data->channels) goto fail;
+
+        vgmstream->num_samples = ffmpeg_data->totalSamples; /* fact samples */
+
+        /* manually read skip_samples if FFmpeg didn't do it */
+        if (ffmpeg_data->skipSamples <= 0) {
+            off_t chunk_offset;
+            size_t chunk_size, fact_skip_samples = 0;
+            if (!find_chunk_le(streamFile, 0x66616374,start_offset+0xc,0, &chunk_offset,&chunk_size)) /* find "fact" */
+                goto fail;
+            if (chunk_size == 0x08) {
+                fact_skip_samples  = read_32bitLE(chunk_offset+0x4, streamFile);
+            } else if (chunk_size == 0xc) {
+                fact_skip_samples  = read_32bitLE(chunk_offset+0x8, streamFile);
+            }
+            ffmpeg_set_skip_samples(ffmpeg_data, fact_skip_samples);
+        }
+#else
+        goto fail;
+#endif
+    }
+
+    if (!vgmstream_open_stream(vgmstream, streamFile, start_offset))
+        goto fail;
+    return vgmstream;
+
+fail:
+    close_vgmstream(vgmstream);
+    return NULL;
+}

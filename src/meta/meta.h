@@ -307,6 +307,7 @@ VGMSTREAM * init_vgmstream_rsd6xadp(STREAMFILE * streamFile);
 VGMSTREAM * init_vgmstream_rsd6radp(STREAMFILE * streamFile);
 VGMSTREAM * init_vgmstream_rsd6oogv(STREAMFILE* streamFile);
 VGMSTREAM * init_vgmstream_rsd6xma(STREAMFILE *streamFile);
+VGMSTREAM * init_vgmstream_rsd6at3p(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_dc_asd(STREAMFILE * streamFile);
 
@@ -706,4 +707,8 @@ VGMSTREAM * init_vgmstream_atx(STREAMFILE *streamFile);
 VGMSTREAM * init_vgmstream_sqex_sead(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_waf(STREAMFILE * streamFile);
+
+VGMSTREAM * init_vgmstream_wave(STREAMFILE * streamFile);
+
+VGMSTREAM * init_vgmstream_wave_segmented(STREAMFILE * streamFile);
 #endif /*_META_H*/

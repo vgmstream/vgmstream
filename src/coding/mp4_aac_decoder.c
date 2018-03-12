@@ -86,6 +86,8 @@ void decode_mp4_aac(mp4_aac_codec_data * data, sample * outbuf, int32_t samples_
 
 void reset_mp4_aac(VGMSTREAM *vgmstream) {
     mp4_aac_codec_data *data = vgmstream->codec_data;
+    if (!data) return;
+
     data->sampleId = 0;
     data->sample_ptr = data->samples_per_frame;
     data->samples_discard = 0;
@@ -93,6 +95,8 @@ void reset_mp4_aac(VGMSTREAM *vgmstream) {
 
 void seek_mp4_aac(VGMSTREAM *vgmstream, int32_t num_sample) {
     mp4_aac_codec_data *data = (mp4_aac_codec_data *)(vgmstream->codec_data);
+    if (!data) return;
+
     data->sampleId = 0;
     data->sample_ptr = data->samples_per_frame;
     data->samples_discard = num_sample;

@@ -534,6 +534,8 @@ static void flush_ea_mt_internal(VGMSTREAM *vgmstream, int is_start) {
     int i;
     size_t bytes;
 
+    if (!data) return;
+
     /* the decoder needs to be notified when offsets change */
     for (i = 0; i < vgmstream->channels; i++) {
         UTKContext *ctx = data->utk_context[i];

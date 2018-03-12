@@ -52,6 +52,7 @@ void decode_g7221(VGMSTREAM * vgmstream, sample * outbuf, int channelspacing, in
 void reset_g7221(VGMSTREAM *vgmstream) {
     g7221_codec_data *data = vgmstream->codec_data;
     int i;
+    if (!data) return;
 
     for (i = 0; i < vgmstream->channels; i++)
     {

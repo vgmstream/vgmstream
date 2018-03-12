@@ -152,7 +152,7 @@ typedef enum {
     coding_MTAF,            /* Konami MTAF ADPCM */
     coding_MTA2,            /* Konami MTA2 ADPCM */
     coding_MC3,             /* Paradigm MC3 3-bit ADPCM */
-    coding_FADPCM,          /* FMOD FADPCM 4-bit ADCPM */
+    coding_FADPCM,          /* FMOD FADPCM 4-bit ADPCM */
 
     /* others */
     coding_SDX2,            /* SDX2 2:1 Squareroot-Delta-Exact compression DPCM */
@@ -172,7 +172,7 @@ typedef enum {
     coding_CRI_HCA,         /* CRI High Compression Audio (MDCT-based) */
 
 #ifdef VGM_USE_VORBIS
-    coding_ogg_vorbis,      /* Xiph Vorbis with Ogg layer (MDCT-based) */
+    coding_OGG_VORBIS,      /* Xiph Vorbis with Ogg layer (MDCT-based) */
     coding_VORBIS_custom,   /* Xiph Vorbis with custom layer (MDCT-based) */
 #endif
 
@@ -225,7 +225,7 @@ typedef enum {
     layout_xa_blocked,
     layout_blocked_ea_schl,
     layout_blocked_ea_1snh,
-    layout_caf_blocked,
+    layout_blocked_caf,
     layout_wsi_blocked,
     layout_str_snds_blocked,
     layout_ws_aud_blocked,
@@ -258,7 +258,7 @@ typedef enum {
     layout_acm,             /* libacm layout */
     layout_mus_acm,         /* mus has multi-files to deal with */
     layout_aix,             /* CRI AIX's wheels within wheels */
-    layout_aax,             /* CRI AAX's wheels within databases */
+    layout_segmented,       /* song divided in segments, each a complete VGMSTREAM */
     layout_scd_int,         /* deinterleave done by the SCDINTSTREAMFILE */
 
 #ifdef VGM_USE_VORBIS
@@ -319,7 +319,7 @@ typedef enum {
     meta_RSF,               /* Retro Studios RSF (Metroid Prime .rsf) [no header_id] */
     meta_HALPST,            /* HAL Labs HALPST */
     meta_GCSW,              /* GCSW (PCM) */
-    meta_CFN,               /* Namco CAF Audio File */
+    meta_CAF,               /* tri-Crescendo CAF */
     meta_MYSPD,             /* U-Sing .myspd */
     meta_HIS,               /* Her Ineractive .his */
     meta_BNSF,              /* Bandai Namco Sound Format */
@@ -434,6 +434,7 @@ typedef enum {
     meta_RSD6RADP,          /* RSD6RADP */
     meta_RSD6OOGV,          /* RSD6OOGV */
     meta_RSD6XMA,           /* RSD6XMA */
+    meta_RSD6AT3P,          /* RSD6AT3+ */
 
     meta_PS2_ASS,           /* ASS */
     meta_PS2_SEG,           /* Eragon */
@@ -662,6 +663,8 @@ typedef enum {
     meta_SQEX_MAB,          /* Square-Enix newest middleware (music) */
     meta_OGG_L2SD,          /* Ogg Vorbis with obfuscation [Lineage II Chronicle 4 (PC)] */
     meta_WAF,               /* KID WAF [Ever 17 (PC)] */
+    meta_WAVE,              /* WayForward "EngineBlack" games [Mighty Switch Force! (3DS)] */
+    meta_WAVE_segmented,    /* WayForward "EngineBlack" games, segmented [Shantae and the Pirate's Curse (PC)] */
 
 #ifdef VGM_USE_MP4V2
     meta_MP4,               /* AAC (iOS) */
@@ -797,6 +800,10 @@ typedef struct {
      * Note also that support must be added for resetting, looping and
      * closing for every codec that uses this, as it will not be handled. */
     void * codec_data;
+    /* Same, for special layouts.
+     * Reusing the above pointer causes bugs when it's using special layout + codec
+     * (vgmstream may try to free/loop/etc codec_data). */
+    void * layout_data;
 } VGMSTREAM;
 
 #ifdef VGM_USE_VORBIS
@@ -1065,14 +1072,13 @@ typedef struct {
     VGMSTREAM **adxs;
 } aix_codec_data;
 
+/* for files made of segments, each a full subfile (VGMSTREAM) */
 typedef struct {
     int segment_count;
     int current_segment;
     int loop_segment;
-    /* one per segment */
-    int32_t *sample_counts;
-    VGMSTREAM **adxs;
-} aax_codec_data;
+    VGMSTREAM **segments;
+} segmented_layout_data;
 
 /* for compressed NWA */
 typedef struct {

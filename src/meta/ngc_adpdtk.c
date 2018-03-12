@@ -2,17 +2,19 @@
 #include "meta.h"
 #include "../util.h"
 
+/* DTK - headerless Nintendo DTK file [Harvest Moon - Another Wonderful Life (GC), XGRA (GC)] */
 VGMSTREAM * init_vgmstream_ngc_adpdtk(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     off_t start_offset = 0;
     int channel_count = 2, loop_flag = 0; /* always stereo, no loop */
 
-    /* check extension, case insensitive */
-    if ( !check_extensions(streamFile,"dtk,adp"))
+    /* checks */
+    /* dtk: standard [XGRA (GC)], adp: standard [Harvest Moon AWL (GC)], wav/lwav: Alien Hominid (GC) */
+    if ( !check_extensions(streamFile,"dtk,adp,wav,lwav"))
         goto fail;
 
-    /* .adp files have no header, and the ext is common, so all we can do is look for valid first frames */
-    if (check_extensions(streamFile,"adp")) {
+    /* files have no header, and the ext is common, so all we can do is look for valid first frames */
+    if (check_extensions(streamFile,"adp,wav,lwav")) {
         int i;
         for (i = 0; i < 10; i++) { /* try a bunch of frames */
             if (read_8bit(0x00 + i*0x20,streamFile) != read_8bit(0x02 + i*0x20,streamFile) ||

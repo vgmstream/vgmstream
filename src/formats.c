@@ -88,7 +88,7 @@ static const char* extension_list[] = {
     "cbd2",
     "ccc",
     "cd",
-    "cfn",
+    "cfn", //fake extension/header id for .caf (to be removed)
     "ckd",
     "cnk",
     "cps",
@@ -245,6 +245,7 @@ static const char* extension_list[] = {
     "raw",
     "rkv",
     "rnd",
+    "rof",
     "rrds",
     "rsd",
     "rsf",
@@ -358,6 +359,7 @@ static const char* extension_list[] = {
     "wam",
     "was",
     //"wav", //common
+    "wave",
     "wavm",
     "wb",
     "wem",
@@ -500,7 +502,7 @@ static const coding_info coding_info_list[] = {
         {coding_MTAF,               "Konami MTAF 4-bit ADPCM"},
         {coding_MTA2,               "Konami MTA2 4-bit ADPCM"},
         {coding_MC3,                "Paradigm MC3 3-bit ADPCM"},
-        {coding_FADPCM,             "FMOD FADPCM 4-bit ADCPM"},
+        {coding_FADPCM,             "FMOD FADPCM 4-bit ADPCM"},
 
         {coding_SDX2,               "Squareroot-delta-exact (SDX2) 8-bit DPCM"},
         {coding_SDX2_int,           "Squareroot-delta-exact (SDX2) 8-bit DPCM with 1 byte interleave"},
@@ -519,7 +521,7 @@ static const coding_info coding_info_list[] = {
         {coding_CRI_HCA,            "CRI HCA"},
         
 #ifdef VGM_USE_VORBIS
-        {coding_ogg_vorbis,         "Ogg Vorbis"},
+        {coding_OGG_VORBIS,         "Ogg Vorbis"},
         {coding_VORBIS_custom,      "Custom Vorbis"},
 #endif
 #ifdef VGM_USE_MPEG
@@ -557,7 +559,7 @@ static const layout_info layout_info_list[] = {
         {layout_xa_blocked,             "CD-ROM XA"},
         {layout_blocked_ea_schl,        "blocked (EA SCHl)"},
         {layout_blocked_ea_1snh,        "blocked (EA 1SNh)"},
-        {layout_caf_blocked,            "CAF blocked"},
+        {layout_blocked_caf,            "blocked (CAF)"},
         {layout_wsi_blocked,            ".wsi blocked"},
         {layout_xvas_blocked,           ".xvas blocked"},
         {layout_str_snds_blocked,       ".str SNDS blocked"},
@@ -582,7 +584,7 @@ static const layout_info layout_info_list[] = {
         {layout_acm,                    "ACM blocked"},
         {layout_mus_acm,                "multiple ACM files, ACM blocked"},
         {layout_aix,                    "AIX interleave, internally 18-byte interleaved"},
-        {layout_aax,                    "AAX blocked, 18-byte interleaved"},
+        {layout_segmented,              "segmented"},
         {layout_scd_int,                "SCD multistream interleave"},
         {layout_blocked_ea_sns,         "blocked (EA SNS)"},
         {layout_blocked_awc,            "blocked (AWC)"},
@@ -651,7 +653,7 @@ static const meta_info meta_info_list[] = {
         {meta_DSP_STR,              "assumed Conan Gamecube STR File by .str extension"},
         {meta_EA_SCHL,              "Electronic Arts SCHl header (variable)"},
         {meta_EA_SCHL_fixed,        "Electronic Arts SCHl header (fixed)"},
-        {meta_CFN,                  "tri-Crescendo CAF Header"},
+        {meta_CAF,                  "tri-Crescendo CAF Header"},
         {meta_PS2_VPK,              "VPK Header"},
         {meta_GENH,                 "GENH Generic Header"},
         {meta_DSP_SADB,             "Procyon Studio SADB header"},
@@ -749,6 +751,7 @@ static const meta_info meta_info_list[] = {
         {meta_RSD6WADP,             "RSD6/WADP Header"},
         {meta_RSD6RADP,             "RSD6/RADP Header"},
         {meta_RSD6XMA,              "RSD6/XMA Header"},
+        {meta_RSD6AT3P,             "RSD6/AT3+ Header"},
         {meta_DC_ASD,               "ASD Header"},
         {meta_NAOMI_SPSD,           "SPSD Header"},
         {meta_FFXI_BGW,             "BGW BGMStream header"},
@@ -965,6 +968,8 @@ static const meta_info meta_info_list[] = {
         {meta_SQEX_MAB,             "Square-Enix MAB header"},
         {meta_OGG_L2SD,             "Ogg Vorbis (L2SD)"},
         {meta_WAF,                  "KID WAF header"},
+        {meta_WAVE,                 "WayForward .WAVE header"},
+        {meta_WAVE_segmented,       "WayForward .WAVE header (segmented)"},
 
 #ifdef VGM_USE_MP4V2
         {meta_MP4,                  "AAC header"},

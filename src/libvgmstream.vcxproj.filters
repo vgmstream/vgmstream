@@ -62,7 +62,7 @@
     <ClInclude Include="meta\adx_keys.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="meta\aax_streamfile.h">
+    <ClInclude Include="meta\aax_utf.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="meta\aix_streamfile.h">
@@ -361,7 +361,7 @@
     <ClCompile Include="meta\ngc_bo2.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\ngc_caf.c">
+    <ClCompile Include="meta\caf.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ngc_dsp_konami.c">
@@ -784,6 +784,12 @@
     <ClCompile Include="meta\waf.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\wave_segmented.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\wave.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\wii_04sw.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -970,7 +976,7 @@
     <ClCompile Include="coding\xa_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="layout\aax_layout.c">
+    <ClCompile Include="layout\segmented.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="layout\aix_layout.c">
@@ -1000,7 +1006,7 @@
     <ClCompile Include="layout\blocked_xvag.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="layout\caf_blocked.c">
+    <ClCompile Include="layout\blocked_caf.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="layout\blocked_dec.c">

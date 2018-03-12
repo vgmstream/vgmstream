@@ -209,7 +209,7 @@
                     >
                 </File>
                 <File
-                    RelativePath=".\meta\aax_streamfile.h"
+                    RelativePath=".\meta\aax_utf.h"
                     >
                 </File>
                 <File
@@ -615,7 +615,7 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\ngc_caf.c"
+					RelativePath=".\meta\caf.c"
 					>
 				</File>
 				<File
@@ -1283,6 +1283,14 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\meta\wave_segmented.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\wave.c"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\wii_04sw.c"
                     >
                 </File>
@@ -1667,7 +1675,7 @@
 				Name="Source Files"
 				>
 				<File
-					RelativePath=".\layout\aax_layout.c"
+					RelativePath=".\layout\segmented.c"
 					>
 				</File>
 				<File
@@ -1707,7 +1715,7 @@
                     >
                 </File>
 				<File
-					RelativePath=".\layout\caf_blocked.c"
+					RelativePath=".\layout\blocked_caf.c"
 					>
 				</File>
 				<File

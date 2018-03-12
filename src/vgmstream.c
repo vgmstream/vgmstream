@@ -380,6 +380,9 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_atx,
     init_vgmstream_sqex_sead,
     init_vgmstream_waf,
+    init_vgmstream_wave,
+    init_vgmstream_wave_segmented,
+    init_vgmstream_rsd6at3p,
 
     init_vgmstream_txth,  /* should go at the end (lower priority) */
 #ifdef VGM_USE_FFMPEG
@@ -503,7 +506,7 @@ void reset_vgmstream(VGMSTREAM * vgmstream) {
      * really hit the loop start. */
 
 #ifdef VGM_USE_VORBIS
-    if (vgmstream->coding_type==coding_ogg_vorbis) {
+    if (vgmstream->coding_type==coding_OGG_VORBIS) {
         reset_ogg_vorbis(vgmstream);
     }
 
@@ -570,10 +573,11 @@ void reset_vgmstream(VGMSTREAM * vgmstream) {
     if (vgmstream->coding_type==coding_ACM) {
         mus_acm_codec_data *data = vgmstream->codec_data;
         int i;
-
-        data->current_file = 0;
-        for (i=0;i<data->file_count;i++) {
-            acm_reset(data->files[i]);
+        if (data) {
+            data->current_file = 0;
+            for (i=0;i<data->file_count;i++) {
+                acm_reset(data->files[i]);
+            }
         }
     }
 
@@ -586,7 +590,8 @@ void reset_vgmstream(VGMSTREAM * vgmstream) {
             vgmstream->coding_type == coding_NWA5
        ) {
         nwa_codec_data *data = vgmstream->codec_data;
-        reset_nwa(data->nwa);
+        if (data)
+            reset_nwa(data->nwa);
     }
 
 
@@ -600,14 +605,8 @@ void reset_vgmstream(VGMSTREAM * vgmstream) {
         }
     }
 
-    if (vgmstream->layout_type==layout_aax) {
-        aax_codec_data *data = vgmstream->codec_data;
-        int i;
-
-        data->current_segment = 0;
-        for (i=0;i<data->segment_count;i++) {
-            reset_vgmstream(data->adxs[i]);
-        }
+    if (vgmstream->layout_type==layout_segmented) {
+        reset_layout_segmented(vgmstream->layout_data);
     }
 
     if (vgmstream->layout_type==layout_scd_int) {
@@ -689,7 +688,7 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
         return;
 
 #ifdef VGM_USE_VORBIS
-    if (vgmstream->coding_type==coding_ogg_vorbis) {
+    if (vgmstream->coding_type==coding_OGG_VORBIS) {
         free_ogg_vorbis(vgmstream->codec_data);
         vgmstream->codec_data = NULL;
     }
@@ -824,25 +823,8 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
         vgmstream->codec_data = NULL;
     }
 
-    if (vgmstream->layout_type==layout_aax) {
-        aax_codec_data *data = (aax_codec_data *) vgmstream->codec_data;
-
-        if (data) {
-            if (data->adxs) {
-                int i;
-                for (i=0;i<data->segment_count;i++) {
-                    /* note that the close_streamfile won't do anything but deallocate itself,
-                     * there is only one open file in vgmstream->ch[0].streamfile */
-                    close_vgmstream(data->adxs[i]);
-                }
-                free(data->adxs);
-            }
-            if (data->sample_counts) {
-                free(data->sample_counts);
-            }
-
-            free(data);
-        }
+    if (vgmstream->layout_type==layout_segmented) {
+        free_layout_segmented(vgmstream->layout_data);
         vgmstream->codec_data = NULL;
     }
 
@@ -956,7 +938,7 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
         case layout_xa_blocked:
         case layout_blocked_ea_schl:
         case layout_blocked_ea_1snh:
-        case layout_caf_blocked:
+        case layout_blocked_caf:
         case layout_wsi_blocked:
         case layout_str_snds_blocked:
         case layout_ws_aud_blocked:
@@ -992,8 +974,8 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
         case layout_aix:
             render_vgmstream_aix(buffer,sample_count,vgmstream);
             break;
-        case layout_aax:
-            render_vgmstream_aax(buffer,sample_count,vgmstream);
+        case layout_segmented:
+            render_vgmstream_segmented(buffer,sample_count,vgmstream);
             break;
         case layout_scd_int:
             render_vgmstream_scd_int(buffer,sample_count,vgmstream);
@@ -1038,7 +1020,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_PCMFLOAT:
             return 1;
 #ifdef VGM_USE_VORBIS
-        case coding_ogg_vorbis:
+        case coding_OGG_VORBIS:
         case coding_VORBIS_custom:
 #endif
 #ifdef VGM_USE_MPEG
@@ -1636,7 +1618,7 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
             }
             break;
 #ifdef VGM_USE_VORBIS
-        case coding_ogg_vorbis:
+        case coding_OGG_VORBIS:
             decode_ogg_vorbis(vgmstream->codec_data,
                     buffer+samples_written*vgmstream->channels,samples_to_do,
                     vgmstream->channels);
@@ -2019,7 +2001,7 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream) {
         }
 
 #ifdef VGM_USE_VORBIS
-        if (vgmstream->coding_type==coding_ogg_vorbis) {
+        if (vgmstream->coding_type==coding_OGG_VORBIS) {
             seek_ogg_vorbis(vgmstream, vgmstream->loop_sample);
         }
 
@@ -2070,7 +2052,8 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream) {
             vgmstream->coding_type == coding_NWA5)
         {
             nwa_codec_data *data = vgmstream->codec_data;
-            seek_nwa(data->nwa, vgmstream->loop_sample);
+            if (data)
+                seek_nwa(data->nwa, vgmstream->loop_sample);
         }
 
         /* restore! */
@@ -2429,7 +2412,7 @@ static int get_vgmstream_average_bitrate_channel_count(VGMSTREAM * vgmstream)
         return (data) ? data->substream_count : 0;
     }
 #ifdef VGM_USE_VORBIS
-    if (vgmstream->coding_type==coding_ogg_vorbis) {
+    if (vgmstream->coding_type==coding_OGG_VORBIS) {
         ogg_vorbis_codec_data *data = (ogg_vorbis_codec_data *) vgmstream->codec_data;
         return (data) ? 1 : 0;
     }
@@ -2463,7 +2446,7 @@ static STREAMFILE * get_vgmstream_average_bitrate_channel_streamfile(VGMSTREAM *
         return data->intfiles[channel];
     }
 #ifdef VGM_USE_VORBIS
-    if (vgmstream->coding_type==coding_ogg_vorbis) {
+    if (vgmstream->coding_type==coding_OGG_VORBIS) {
         ogg_vorbis_codec_data *data = (ogg_vorbis_codec_data *) vgmstream->codec_data;
         return data->ov_streamfile.streamfile;
     }
@@ -2503,16 +2486,26 @@ int get_vgmstream_average_bitrate(VGMSTREAM * vgmstream) {
     int bitrate = 0;
     int sample_rate = vgmstream->sample_rate;
     int length_samples = vgmstream->num_samples;
-    int channels = get_vgmstream_average_bitrate_channel_count(vgmstream);
+    int channels;
     STREAMFILE * streamFile;
 
-    if (!sample_rate || !channels || !length_samples)
+    if (!sample_rate || !length_samples)
         return 0;
 
     /* subsongs need to report this to properly calculate */
     if (vgmstream->stream_size) {
         return get_vgmstream_average_bitrate_from_size(vgmstream->stream_size, sample_rate, length_samples);
     }
+
+    /* segmented layout is handled differently as it has multiple sub-VGMSTREAMs (may include special codecs) */
+    //todo not correct with multifile segments (ex. .ACM Ogg)
+    if (vgmstream->layout_type==layout_segmented) {
+        segmented_layout_data *data = (segmented_layout_data *) vgmstream->layout_data;
+        return get_vgmstream_average_bitrate(data->segments[0]);
+    }
+
+    channels = get_vgmstream_average_bitrate_channel_count(vgmstream);
+    if (!channels) return 0;
 
     if (channels >= 1) {
         streamFile = get_vgmstream_average_bitrate_channel_streamfile(vgmstream, 0);
@@ -2557,9 +2550,9 @@ int vgmstream_open_stream(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t s
     int use_same_offset_per_channel = 0;
 
 
-    /* stream/offsets not needed, manages themselves */
+    /* stream/offsets not needed, manage themselves */
     if (vgmstream->layout_type == layout_aix ||
-        vgmstream->layout_type == layout_aax ||
+        vgmstream->layout_type == layout_segmented ||
         vgmstream->layout_type == layout_scd_int)
         return 1;
 

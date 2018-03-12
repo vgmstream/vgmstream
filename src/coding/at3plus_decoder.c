@@ -51,6 +51,7 @@ void decode_at3plus(VGMSTREAM * vgmstream, sample * outbuf, int channelspacing, 
 
 void reset_at3plus(VGMSTREAM *vgmstream) {
     maiatrac3plus_codec_data *data = vgmstream->codec_data;
+    if (!data) return;
 
     if (data->handle)
         Atrac3plusDecoder_closeContext(data->handle);
@@ -62,6 +63,8 @@ void seek_at3plus(VGMSTREAM *vgmstream, int32_t num_sample) {
     int blocks_to_skip = num_sample / 2048;
     int samples_to_discard = num_sample % 2048;
     maiatrac3plus_codec_data *data = (maiatrac3plus_codec_data *)(vgmstream->codec_data);
+    if (!data) return;
+
     vgmstream->loop_ch[0].offset =
         vgmstream->loop_ch[0].channel_start_offset +
         vgmstream->interleave_block_size * blocks_to_skip;

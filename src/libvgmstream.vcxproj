@@ -94,7 +94,7 @@
     <ClInclude Include="util.h" />
     <ClInclude Include="vgmstream.h" />
     <ClInclude Include="meta\adx_keys.h" />
-    <ClInclude Include="meta\aax_streamfile.h" />
+    <ClInclude Include="meta\aax_utf.h" />
     <ClInclude Include="meta\aix_streamfile.h" />
     <ClInclude Include="meta\bar_streamfile.h" />
     <ClInclude Include="meta\sqex_scd_streamfile.h" />
@@ -259,7 +259,7 @@
     <ClCompile Include="meta\ngc_adpdtk.c" />
     <ClCompile Include="meta\ngc_bh2pcm.c" />
     <ClCompile Include="meta\ngc_bo2.c" />
-    <ClCompile Include="meta\ngc_caf.c" />
+    <ClCompile Include="meta\caf.c" />
     <ClCompile Include="meta\ngc_dsp_konami.c" />
     <ClCompile Include="meta\ngc_dsp_mpds.c" />
     <ClCompile Include="meta\ngc_dsp_std.c" />
@@ -400,6 +400,8 @@
     <ClCompile Include="meta\vxn.c" />
     <ClCompile Include="meta\waa_wac_wad_wam.c" />
     <ClCompile Include="meta\waf.c" />
+    <ClCompile Include="meta\wave_segmented.c" />
+    <ClCompile Include="meta\wave.c" />
     <ClCompile Include="meta\wii_04sw.c" />
     <ClCompile Include="meta\wii_bns.c" />
     <ClCompile Include="meta\wii_mus.c" />
@@ -465,7 +467,7 @@
     <ClCompile Include="coding\vorbis_custom_utils_wwise.c" />
     <ClCompile Include="coding\ws_decoder.c" />
     <ClCompile Include="coding\xa_decoder.c" />
-    <ClCompile Include="layout\aax_layout.c" />
+    <ClCompile Include="layout\segmented.c" />
     <ClCompile Include="layout\aix_layout.c" />
     <ClCompile Include="layout\ast_blocked.c" />
     <ClCompile Include="layout\bdsp_blocked.c" />
@@ -475,7 +477,7 @@
     <ClCompile Include="layout\blocked_vgs.c" />
     <ClCompile Include="layout\blocked_vawx.c" />
     <ClCompile Include="layout\blocked_xvag.c" />
-    <ClCompile Include="layout\caf_blocked.c" />
+    <ClCompile Include="layout\blocked_caf.c" />
     <ClCompile Include="layout\blocked_dec.c" />
     <ClCompile Include="layout\blocked_ea_schl.c" />
     <ClCompile Include="layout\blocked_ea_sns.c" />

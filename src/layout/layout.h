@@ -17,8 +17,7 @@ void xa_block_update(off_t block_offset, VGMSTREAM * vgmstream);
 
 void block_update_ea_schl(off_t block_offset, VGMSTREAM * vgmstream);
 void block_update_ea_1snh(off_t block_offset, VGMSTREAM * vgmstream);
-
-void caf_block_update(off_t block_offset, VGMSTREAM * vgmstream);
+void block_update_caf(off_t block_offset, VGMSTREAM * vgmstream);
 
 void wsi_block_update(off_t block_offset, VGMSTREAM * vgmstream);
 
@@ -73,7 +72,11 @@ void render_vgmstream_mus_acm(sample * buffer, int32_t sample_count, VGMSTREAM *
 
 void render_vgmstream_aix(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstream);
 
-void render_vgmstream_aax(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstream);
+void render_vgmstream_segmented(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstream);
+segmented_layout_data* init_layout_segmented(int segment_count);
+int setup_layout_segmented(segmented_layout_data* data);
+void free_layout_segmented(segmented_layout_data *data);
+void reset_layout_segmented(segmented_layout_data *data);
 
 void render_vgmstream_scd_int(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstream);
 

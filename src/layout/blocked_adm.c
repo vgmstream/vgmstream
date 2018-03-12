@@ -25,7 +25,6 @@ void block_update_adm(off_t block_offset, VGMSTREAM * vgmstream) {
             /* check if unused line (all blocks should only use flags 0x06/0x03/0x02) */
             if (read_32bitLE(next_block_offset, streamFile) == 0x00000000) {
                 interleave_data -= 0x10;
-                next_block_offset -= 0x10;
             }
             else {
                 break;

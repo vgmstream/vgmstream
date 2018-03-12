@@ -193,7 +193,8 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
 
 
     /* check extension */
-    if (check_extensions(streamFile,"ogg,logg,adx")) { /* .ogg: standard/psychic, .logg: renamed for plugins, .adx: KID [Remember11 (PC)] */
+    /* .ogg: standard/psychic, .logg: renamed for plugins, .adx: KID [Remember11 (PC)], .rof: The Rhythm of Fighters (Mobile) */
+    if (check_extensions(streamFile,"ogg,logg,adx,rof")) {
         is_ogg = 1;
     } else if (check_extensions(streamFile,"um3")) {
         is_um3 = 1;
@@ -455,7 +456,7 @@ VGMSTREAM * init_vgmstream_ogg_vorbis_callbacks(STREAMFILE *streamFile, const ch
             vgmstream->loop_end_sample = vgmstream->num_samples;
     }
 
-    vgmstream->coding_type = coding_ogg_vorbis;
+    vgmstream->coding_type = coding_OGG_VORBIS;
     vgmstream->layout_type = vgm_inf->layout_type;
     vgmstream->meta_type = vgm_inf->meta_type;
 

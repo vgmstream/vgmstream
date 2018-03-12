@@ -53,6 +53,7 @@ void decode_g719(VGMSTREAM * vgmstream, sample * outbuf, int channelspacing, int
 void reset_g719(VGMSTREAM *vgmstream) {
     g719_codec_data *data = vgmstream->codec_data;
     int i;
+    if (!data) return;
 
     for (i = 0; i < vgmstream->channels; i++)
     {
