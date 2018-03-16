@@ -88,7 +88,8 @@ VGMSTREAM * init_vgmstream_musx_v005(STREAMFILE *streamFile) {
 
 
     /* checks */
-    if (!check_extensions(streamFile, "musx"))
+    /* .sfx: Batman Begins, .musx: header id */
+    if (!check_extensions(streamFile, "musx,sfx"))
         goto fail;
     if (read_32bitBE(0x00,streamFile) != 0x4D555358) /* "MUSX" */
         goto fail;
@@ -158,26 +159,26 @@ fail:
 }
 
 
-/* MUSX (Version 006) */
+/* MUSX (Version 006) [Batman Begins (GC)] */
 VGMSTREAM * init_vgmstream_musx_v006(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[PATH_LIMIT];
-    int loop_flag;
-    int channel_count;
     off_t start_offset;
+    int loop_flag, channel_count;
 
-    /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("musx",filename_extension(filename))) goto fail;
 
-    /* check header */
+    /* checks */
+    /* .sfx: Batman Begins, .musx: header id */
+    if (!check_extensions(streamFile, "sfx,musx"))
+        goto fail;
     if (read_32bitBE(0x00,streamFile) != 0x4D555358) /* "MUSX" */
         goto fail;
-    if (read_32bitBE(0x08,streamFile) != 0x06000000) /* "0x06000000" */
+    if (read_32bitBE(0x08,streamFile) != 0x06000000)
         goto fail;
 
     loop_flag = (read_32bitLE(0x840,streamFile)!=0xFFFFFFFF);
     channel_count = 2;
+
+    //todo some files (ex. Batman Begins) have a subsong table at 0x800, not sure what signals it (flags at 0x04/0x14?)
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
@@ -200,6 +201,8 @@ VGMSTREAM * init_vgmstream_musx_v006(STREAMFILE *streamFile) {
             break;
         case 0x47435F5F: /* GC__ */
             start_offset = read_32bitBE(0x28,streamFile);
+            if (start_offset == 0 || start_offset == 0xABABABAB) goto fail; /* some are empty */
+
             vgmstream->channels = channel_count;
             vgmstream->sample_rate = 32000;
             vgmstream->coding_type = coding_DAT4_IMA;
@@ -216,22 +219,9 @@ VGMSTREAM * init_vgmstream_musx_v006(STREAMFILE *streamFile) {
             goto fail;
     }
 
-    /* open the file for reading */
-    {
-        int i;
-        STREAMFILE * file;
-        file = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-        if (!file) goto fail;
-        for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = file;
 
-            vgmstream->ch[i].channel_start_offset=
-                vgmstream->ch[i].offset=start_offset+
-                vgmstream->interleave_block_size*i;
-
-        }
-    }
-
+    if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
+        goto fail;
     return vgmstream;
 
 fail:
