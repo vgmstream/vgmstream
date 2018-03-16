@@ -197,6 +197,7 @@ static const char* extension_list[] = {
     "mpdsp",
     "mpds",
     "msa",
+    "msd",
     "msf",
     "mss",
     "msvp",
