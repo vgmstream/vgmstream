@@ -1,4 +1,5 @@
 #include "meta.h"
+#include "../layout/layout.h"
 #include "../coding/coding.h"
 #include "../coding/acm_decoder.h"
 #include <stdlib.h>
@@ -18,13 +19,13 @@ static void clean_mus(char** mus_filenames, int file_count);
 /* .MUS - playlist for InterPlay games [Planescape: Torment (PC), Baldur's Gate -Enhanced Edition- (PC)] */
 VGMSTREAM * init_vgmstream_mus_acm(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    mus_acm_codec_data *data = NULL;
+    segmented_layout_data *data = NULL;
 
     int channel_count, loop_flag = 0, loop_start_index = -1, loop_end_index = -1;
     int32_t num_samples = 0, loop_start_samples = 0, loop_end_samples = 0;
 
     char** mus_filenames = NULL;
-    int i, file_count = 0;
+    int i, segment_count = 0;
 
 
     /* checks */
@@ -32,63 +33,66 @@ VGMSTREAM * init_vgmstream_mus_acm(STREAMFILE *streamFile) {
         goto fail;
 
     /* get file paths from the .MUS text file */
-    mus_filenames = parse_mus(streamFile, &file_count, &loop_flag, &loop_start_index, &loop_end_index);
+    mus_filenames = parse_mus(streamFile, &segment_count, &loop_flag, &loop_start_index, &loop_end_index);
     if (!mus_filenames) goto fail;
 
-    /* init decoder */
-    data = init_acm(file_count);
+    /* init layout */
+    data = init_layout_segmented(segment_count);
     if (!data) goto fail;
 
-    /* open each file */
-    for (i = 0; i < file_count; i++) {
-        ACMStream *acm_stream = NULL;
+    /* open each segment subfile */
+    for (i = 0; i < segment_count; i++) {
+        STREAMFILE* temp_streamFile = streamFile->open(streamFile, mus_filenames[i], STREAMFILE_DEFAULT_BUFFER_SIZE);
+        if (!temp_streamFile) goto fail;
 
-        if (acm_open_decoder(&acm_stream,streamFile,mus_filenames[i]) != ACM_OK)
-            goto fail;
+        data->segments[i] = init_vgmstream_acm(temp_streamFile);
 
-        data->files[i]=acm_stream;
+        close_streamfile(temp_streamFile);
+
+        if (!data->segments[i]) goto fail;
+
 
         if (i==loop_start_index)
             loop_start_samples = num_samples;
         if (i==loop_end_index)
             loop_end_samples   = num_samples;
 
-        num_samples += data->files[i]->total_values / data->files[i]->info.channels;
-
-        if (i > 0) {
-            if (data->files[i]->info.channels != data->files[i-1]->info.channels ||
-                data->files[i]->info.rate     != data->files[i-1]->info.rate) goto fail;
-        }
+        num_samples += data->segments[i]->num_samples;
     }
 
     if (i==loop_end_index)
         loop_end_samples = num_samples;
 
-    channel_count = data->files[0]->info.channels;
+    /* setup segmented VGMSTREAMs */
+    if (!setup_layout_segmented(data))
+        goto fail;
+
+
+    channel_count = data->segments[0]->channels;
+
+
+    /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
-    vgmstream->sample_rate = data->files[0]->info.rate;
+    vgmstream->sample_rate = data->segments[0]->sample_rate;
     vgmstream->num_samples = num_samples;
     vgmstream->loop_start_sample = loop_start_samples;
     vgmstream->loop_end_sample = loop_end_samples;
 
     vgmstream->meta_type = meta_MUS_ACM;
-    vgmstream->coding_type = coding_ACM;
-    vgmstream->layout_type = layout_mus_acm;
+    vgmstream->coding_type = data->segments[0]->coding_type;
+    vgmstream->layout_type = layout_segmented;
 
-    data->loop_start_file = loop_start_index;
-    data->loop_end_file = loop_end_index;
-    /*data->end_file = -1;*/
+    vgmstream->layout_data = data;
+    data->loop_segment = loop_start_index;
 
-    vgmstream->codec_data = data;
-
-    clean_mus(mus_filenames, file_count);
+    clean_mus(mus_filenames, segment_count);
     return vgmstream;
 
 fail:
-    clean_mus(mus_filenames, file_count);
-    free_acm(data);
+    clean_mus(mus_filenames, segment_count);
+    free_layout_segmented(data);
     close_vgmstream(vgmstream);
     return NULL;
 }

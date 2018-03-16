@@ -700,7 +700,7 @@ static const meta_info meta_info_list[] = {
         {meta_BG00,                 "Falcom BG00 Header"},
         {meta_PS2_RSTM,             "Rockstar Games RSTM Header"},
         {meta_ACM,                  "InterPlay ACM Header"},
-        {meta_MUS_ACM,              "MUS playlist and multiple InterPlay ACM Headered files"},
+        {meta_MUS_ACM,              "InterPlay MUS ACM header"},
         {meta_PS2_KCES,             "Konami KCES Header"},
         {meta_PS2_DXH,              "Tokobot Plus DXH Header"},
         {meta_PS2_PSH,              "Dawn of Mana - Seiken Densetsu 4 PSH Header"},
