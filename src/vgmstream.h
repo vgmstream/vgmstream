@@ -1041,20 +1041,10 @@ typedef struct {
 } atrac9_codec_data;
 #endif
 
-/* with one file this is also used for just ACM */
+/* libacm interface */
 typedef struct {
-    int file_count;
-    int current_file;
-    /* the index we return to upon loop completion */
-    int loop_start_file;
-    /* one after the index of the last file, typically
-     * will be equal to file_count */
-    int loop_end_file;
-    /* Upon exit from a loop, which file to play. */
-    /* -1 if there is no such file */
-    /*int end_file;*/
-    ACMStream **files;
-} mus_acm_codec_data;
+    ACMStream *file;
+} acm_codec_data;
 
 #define AIX_BUFFER_SIZE 0x1000
 /* AIXery */

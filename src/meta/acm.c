@@ -6,7 +6,7 @@
 VGMSTREAM * init_vgmstream_acm(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     int loop_flag = 0, channel_count, sample_rate, num_samples;
-    mus_acm_codec_data *data = NULL;
+    acm_codec_data *data = NULL;
 
 
     /* checks */
@@ -17,23 +17,13 @@ VGMSTREAM * init_vgmstream_acm(STREAMFILE *streamFile) {
 
 
     /* init decoder */
-    data = init_acm(1);
-    if (!data) goto fail;
-
-    /* open and parse the file before creating the vgmstream */
     {
-        ACMStream *acm_stream = NULL;
-        char filename[PATH_LIMIT];
+        data = init_acm(streamFile);
+        if (!data) goto fail;
 
-        streamFile->get_name(streamFile,filename,sizeof(filename));
-        if (acm_open_decoder(&acm_stream,streamFile,filename) != ACM_OK)
-            goto fail;
-
-        data->files[0] = acm_stream;
-
-        channel_count = acm_stream->info.channels;
-        sample_rate = acm_stream->info.rate;
-        num_samples = acm_stream->total_values / acm_stream->info.channels;
+        channel_count = data->file->info.channels;
+        sample_rate = data->file->info.rate;
+        num_samples = data->file->total_values / data->file->info.channels;
     }
 
 

@@ -822,20 +822,19 @@ void acm_reset(ACMStream *acm)
  * interface to vgmstream
  ***********************************************/
 
-mus_acm_codec_data *init_acm(int files) {
-    mus_acm_codec_data* data = NULL;
+acm_codec_data *init_acm(STREAMFILE *streamFile) {
+    acm_codec_data* data = NULL;
+    ACMStream *acm_stream = NULL;
+    char filename[PATH_LIMIT];
 
-    if (files == 0)
-        goto fail;
-
-    data = calloc(1,sizeof(mus_acm_codec_data));
+    data = calloc(1,sizeof(acm_codec_data));
     if (!data) goto fail;
 
-    data->files = calloc(files,sizeof(ACMStream *));
-    if (!data->files) goto fail;
+    streamFile->get_name(streamFile,filename,sizeof(filename));
+    if (acm_open_decoder(&acm_stream,streamFile,filename) != ACM_OK)
+        goto fail;
 
-    data->file_count = files;
-    data->current_file = 0;
+    data->file = acm_stream;
 
     return data;
 
@@ -844,8 +843,10 @@ fail:
     return NULL;
 }
 
-void decode_acm(ACMStream * acm, sample * outbuf, int32_t samples_to_do, int channelspacing) {
+void decode_acm(acm_codec_data *data, sample * outbuf, int32_t samples_to_do, int channelspacing) {
+    ACMStream * acm = data->file;
     int32_t samples_read = 0;
+
     while (samples_read < samples_to_do) {
         int32_t bytes_read_just_now = acm_read(
                 acm,
@@ -862,30 +863,18 @@ void decode_acm(ACMStream * acm, sample * outbuf, int32_t samples_to_do, int cha
 }
 
 void reset_acm(VGMSTREAM *vgmstream) {
-    mus_acm_codec_data *data = vgmstream->codec_data;
-    int i;
-    if (data) {
-        data->current_file = 0;
-        for (i=0;i<data->file_count;i++) {
-            acm_reset(data->files[i]);
-        }
+    acm_codec_data *data = vgmstream->codec_data;
+
+    if (data && data->file) {
+        acm_reset(data->file);
     }
 }
 
-void free_acm(mus_acm_codec_data *data) {
+void free_acm(acm_codec_data *data) {
     if (data) {
-        if (data->files) {
-            int i;
-            for (i = 0; i < data->file_count; i++) {
-                /* shouldn't be duplicates */
-                if (data->files[i]) {
-                    acm_close(data->files[i]);
-                }
-
-            }
-            free(data->files);
+        if (data->file) {
+            acm_close(data->file);
         }
-
         free(data);
     }
 }

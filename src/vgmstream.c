@@ -1791,16 +1791,11 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                           vgmstream->channels);
             break;
 #endif
-        case coding_ACM: { //single ACM
-            mus_acm_codec_data *data = vgmstream->codec_data;
-            ACMStream *acm;
-
-            acm = data->files[data->current_file];
-            decode_acm(acm,
+        case coding_ACM:
+            decode_acm(vgmstream->codec_data,
                     buffer+samples_written*vgmstream->channels,
                     samples_to_do, vgmstream->channels);
             break;
-        }
         case coding_NWA0:
         case coding_NWA1:
         case coding_NWA2:
