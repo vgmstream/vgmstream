@@ -2377,12 +2377,25 @@ static int get_vgmstream_average_bitrate_channel_count(VGMSTREAM * vgmstream)
 /* average bitrate helper */
 static STREAMFILE * get_vgmstream_average_bitrate_channel_streamfile(VGMSTREAM * vgmstream, int channel)
 {
-    //AAX, AIX, ACM?
+    //AAX, AIX?
 
     if (vgmstream->layout_type==layout_scd_int) {
         scd_int_codec_data *data = (scd_int_codec_data *) vgmstream->codec_data;
         return data->intfiles[channel];
     }
+
+    if (vgmstream->coding_type==coding_NWA) {
+        nwa_codec_data *data = (nwa_codec_data *) vgmstream->codec_data;
+        if (data && data->nwa)
+        return data->nwa->file;
+    }
+
+    if (vgmstream->coding_type==coding_ACM) {
+        acm_codec_data *data = (acm_codec_data *) vgmstream->codec_data;
+        if (data && data->file)
+        return data->file->streamfile;
+    }
+
 #ifdef VGM_USE_VORBIS
     if (vgmstream->coding_type==coding_OGG_VORBIS) {
         ogg_vorbis_codec_data *data = (ogg_vorbis_codec_data *) vgmstream->codec_data;
