@@ -581,7 +581,6 @@ static const layout_info layout_info_list[] = {
         {layout_blocked_rws,            "blocked (RWS)"},
         {layout_blocked_hwas,           "blocked (HWAS)"},
         {layout_tra_blocked,            "TRA blocked"},
-        {layout_acm,                    "ACM blocked"},
         {layout_mus_acm,                "multiple ACM files, ACM blocked"},
         {layout_aix,                    "AIX interleave, internally 18-byte interleaved"},
         {layout_segmented,              "segmented"},

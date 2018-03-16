@@ -967,7 +967,6 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
         case layout_blocked_xvag_subsong:
             render_vgmstream_blocked(buffer,sample_count,vgmstream);
             break;
-        case layout_acm:
         case layout_mus_acm:
             render_vgmstream_mus_acm(buffer,sample_count,vgmstream);
             break;
@@ -1819,9 +1818,16 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                           vgmstream->channels);
             break;
 #endif
-        case coding_ACM:
-            /* handled in its own layout, here to quiet compiler */
+        case coding_ACM: {
+            mus_acm_codec_data *data = vgmstream->codec_data;
+            ACMStream *acm;
+            
+            acm = data->files[data->current_file];
+            decode_acm(acm,
+                    buffer+samples_written*vgmstream->channels,
+                    samples_to_do, vgmstream->channels);
             break;
+        }
         case coding_NWA0:
         case coding_NWA1:
         case coding_NWA2:

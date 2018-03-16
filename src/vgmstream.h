@@ -255,7 +255,6 @@ typedef enum {
     layout_blocked_xvag_subsong, /* XVAG subsongs [God of War III (PS4)] */
 
     /* otherwise odd */
-    layout_acm,             /* libacm layout */
     layout_mus_acm,         /* mus has multi-files to deal with */
     layout_aix,             /* CRI AIX's wheels within wheels */
     layout_segmented,       /* song divided in segments, each a complete VGMSTREAM */
