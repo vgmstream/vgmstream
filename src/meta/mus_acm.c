@@ -16,7 +16,7 @@
 static char** parse_mus(STREAMFILE *streamFile, int *out_file_count, int *out_loop_flag, int *out_loop_start_index, int *out_loop_end_index);
 static void clean_mus(char** mus_filenames, int file_count);
 
-/* .MUS - playlist for InterPlay games [Planescape: Torment (PC), Baldur's Gate -Enhanced Edition- (PC)] */
+/* .MUS - playlist for InterPlay games [Planescape: Torment (PC), Baldur's Gate Enhanced Edition (PC)] */
 VGMSTREAM * init_vgmstream_mus_acm(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     segmented_layout_data *data = NULL;
@@ -45,8 +45,18 @@ VGMSTREAM * init_vgmstream_mus_acm(STREAMFILE *streamFile) {
         STREAMFILE* temp_streamFile = streamFile->open(streamFile, mus_filenames[i], STREAMFILE_DEFAULT_BUFFER_SIZE);
         if (!temp_streamFile) goto fail;
 
-        data->segments[i] = init_vgmstream_acm(temp_streamFile);
-
+        /* find .ACM type */
+        switch(read_32bitBE(0x00,temp_streamFile)) {
+            case 0x97280301: /* ACM header id [Planescape: Torment (PC)]  */
+                data->segments[i] = init_vgmstream_acm(temp_streamFile);
+                break;
+            case 0x4F676753: /* "OggS" [Planescape: Torment Enhanced Edition (PC)] */
+                data->segments[i] = init_vgmstream_ogg_vorbis(temp_streamFile);
+                break;
+            default:
+                data->segments[i] = NULL;
+                break;
+        }
         close_streamfile(temp_streamFile);
 
         if (!data->segments[i]) goto fail;
