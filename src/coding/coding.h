@@ -102,7 +102,10 @@ void decode_cbd2_int(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspac
 void decode_ws(VGMSTREAM * vgmstream, int channel, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
 
 /* acm_decoder */
+mus_acm_codec_data *init_acm(int files);
 void decode_acm(ACMStream * acm, sample * outbuf, int32_t samples_to_do, int channelspacing);
+void reset_acm(VGMSTREAM *vgmstream);
+void free_acm(mus_acm_codec_data *data);
 
 /* nwa_decoder */
 void decode_nwa(NWAData *nwa, sample *outbuf, int32_t samples_to_do);

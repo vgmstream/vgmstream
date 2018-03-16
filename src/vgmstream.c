@@ -571,14 +571,7 @@ void reset_vgmstream(VGMSTREAM * vgmstream) {
 #endif
 
     if (vgmstream->coding_type==coding_ACM) {
-        mus_acm_codec_data *data = vgmstream->codec_data;
-        int i;
-        if (data) {
-            data->current_file = 0;
-            for (i=0;i<data->file_count;i++) {
-                acm_reset(data->files[i]);
-            }
-        }
+        reset_acm(vgmstream);
     }
 
     if (
@@ -764,25 +757,8 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
 #endif
 
     if (vgmstream->coding_type==coding_ACM) {
-        mus_acm_codec_data *data = (mus_acm_codec_data *) vgmstream->codec_data;
-
-        if (data) {
-            if (data->files) {
-                int i;
-                for (i=0; i<data->file_count; i++) {
-                    /* shouldn't be duplicates */
-                    if (data->files[i]) {
-                        acm_close(data->files[i]);
-                        data->files[i] = NULL;
-                    }
-                }
-                free(data->files);
-                data->files = NULL;
-            }
-
-            free(vgmstream->codec_data);
-            vgmstream->codec_data = NULL;
-        }
+        free_acm(vgmstream->codec_data);
+        vgmstream->codec_data = NULL;
     }
 
     if (
@@ -1818,10 +1794,10 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                           vgmstream->channels);
             break;
 #endif
-        case coding_ACM: {
+        case coding_ACM: { //single ACM
             mus_acm_codec_data *data = vgmstream->codec_data;
             ACMStream *acm;
-            
+
             acm = data->files[data->current_file];
             decode_acm(acm,
                     buffer+samples_written*vgmstream->channels,

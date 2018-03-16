@@ -1,10 +1,8 @@
-#include "../vgmstream.h"
 #include "meta.h"
-#include "../util.h"
+#include "../coding/coding.h"
 #include "../coding/acm_decoder.h"
 
-/* InterPlay ACM */
-/* The real work is done by libacm */
+/* ACM - InterPlay infinity engine games [Planescape: Torment (PC), Baldur's Gate (PC)] */
 VGMSTREAM * init_vgmstream_acm(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     int loop_flag = 0, channel_count, sample_rate, num_samples;
@@ -19,15 +17,8 @@ VGMSTREAM * init_vgmstream_acm(STREAMFILE *streamFile) {
 
 
     /* init decoder */
-    {
-        data = calloc(1,sizeof(mus_acm_codec_data));
-        if (!data) goto fail;
-
-        data->current_file = 0;
-        data->file_count = 1;
-        data->files = calloc(data->file_count,sizeof(ACMStream *));
-        if (!data->files) goto fail;
-    }
+    data = init_acm(1);
+    if (!data) goto fail;
 
     /* open and parse the file before creating the vgmstream */
     {
@@ -62,16 +53,7 @@ VGMSTREAM * init_vgmstream_acm(STREAMFILE *streamFile) {
     return vgmstream;
 
 fail:
-    if (data && (!vgmstream || !vgmstream->codec_data)) {
-        if (data) {
-            int i;
-            for (i = 0; i < data->file_count; i++) {
-                acm_close(data->files[i]);
-            }
-            free(data->files);
-            free(data);
-        }
-    }
+    free_acm(data);
     close_vgmstream(vgmstream);
     return NULL;
 }
