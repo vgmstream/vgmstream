@@ -574,14 +574,7 @@ void reset_vgmstream(VGMSTREAM * vgmstream) {
         reset_acm(vgmstream);
     }
 
-    if (
-            vgmstream->coding_type == coding_NWA0 ||
-            vgmstream->coding_type == coding_NWA1 ||
-            vgmstream->coding_type == coding_NWA2 ||
-            vgmstream->coding_type == coding_NWA3 ||
-            vgmstream->coding_type == coding_NWA4 ||
-            vgmstream->coding_type == coding_NWA5
-       ) {
+    if (vgmstream->coding_type == coding_NWA) {
         nwa_codec_data *data = vgmstream->codec_data;
         if (data)
             reset_nwa(data->nwa);
@@ -761,18 +754,10 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
         vgmstream->codec_data = NULL;
     }
 
-    if (
-            vgmstream->coding_type == coding_NWA0 ||
-            vgmstream->coding_type == coding_NWA1 ||
-            vgmstream->coding_type == coding_NWA2 ||
-            vgmstream->coding_type == coding_NWA3 ||
-            vgmstream->coding_type == coding_NWA4 ||
-            vgmstream->coding_type == coding_NWA5
-       ) {
+    if (vgmstream->coding_type == coding_NWA) {
         nwa_codec_data *data = (nwa_codec_data *) vgmstream->codec_data;
         close_nwa(data->nwa);
         free(data);
-
         vgmstream->codec_data = NULL;
     }
 
@@ -1006,12 +991,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_SDX2_int:
         case coding_CBD2:
         case coding_ACM:
-        case coding_NWA0:
-        case coding_NWA1:
-        case coding_NWA2:
-        case coding_NWA3:
-        case coding_NWA4:
-        case coding_NWA5:
+        case coding_NWA:
         case coding_SASSC:
             return 1;
 
@@ -1166,12 +1146,7 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
         case coding_SDX2:
         case coding_SDX2_int:
         case coding_CBD2:
-        case coding_NWA0:
-        case coding_NWA1:
-        case coding_NWA2:
-        case coding_NWA3:
-        case coding_NWA4:
-        case coding_NWA5:
+        case coding_NWA:
         case coding_SASSC:
             return 0x01;
 
@@ -1796,12 +1771,7 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                     buffer+samples_written*vgmstream->channels,
                     samples_to_do, vgmstream->channels);
             break;
-        case coding_NWA0:
-        case coding_NWA1:
-        case coding_NWA2:
-        case coding_NWA3:
-        case coding_NWA4:
-        case coding_NWA5:
+        case coding_NWA:
             decode_nwa(((nwa_codec_data*)vgmstream->codec_data)->nwa,
                     buffer+samples_written*vgmstream->channels,
                     samples_to_do
@@ -2018,13 +1988,7 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream) {
         }
 #endif
 
-        if (vgmstream->coding_type == coding_NWA0 ||
-            vgmstream->coding_type == coding_NWA1 ||
-            vgmstream->coding_type == coding_NWA2 ||
-            vgmstream->coding_type == coding_NWA3 ||
-            vgmstream->coding_type == coding_NWA4 ||
-            vgmstream->coding_type == coding_NWA5)
-        {
+        if (vgmstream->coding_type == coding_NWA) {
             nwa_codec_data *data = vgmstream->codec_data;
             if (data)
                 seek_nwa(data->nwa, vgmstream->loop_sample);

@@ -160,12 +160,7 @@ typedef enum {
     coding_CBD2,            /* CBD2 2:1 Cuberoot-Delta-Exact compression DPCM */
     coding_CBD2_int,        /* CBD2 2:1 Cuberoot-Delta-Exact compression, with sample-level interleave  */
     coding_ACM,             /* InterPlay ACM */
-    coding_NWA0,            /* Visual Art's NWA (compressed at various levels) */
-    coding_NWA1,
-    coding_NWA2,
-    coding_NWA3,
-    coding_NWA4,
-    coding_NWA5,
+    coding_NWA,             /* VisualArt's NWA */
 
     coding_EA_MT,           /* Electronic Arts MicroTalk (linear-predictive speech codec) */
 
