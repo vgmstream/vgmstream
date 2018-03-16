@@ -943,9 +943,6 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
         case layout_blocked_xvag_subsong:
             render_vgmstream_blocked(buffer,sample_count,vgmstream);
             break;
-        case layout_mus_acm:
-            render_vgmstream_mus_acm(buffer,sample_count,vgmstream);
-            break;
         case layout_aix:
             render_vgmstream_aix(buffer,sample_count,vgmstream);
             break;

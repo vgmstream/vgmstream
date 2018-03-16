@@ -1759,10 +1759,6 @@
 					>
 				</File>
 				<File
-					RelativePath=".\layout\mus_acm_layout.c"
-					>
-				</File>
-				<File
 					RelativePath=".\layout\mxch_blocked.c"
 					>
 				</File>

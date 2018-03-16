@@ -1042,9 +1042,6 @@
     <ClCompile Include="layout\blocked_ivaud.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="layout\mus_acm_layout.c">
-      <Filter>layout\Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="layout\mxch_blocked.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
