@@ -205,9 +205,10 @@ are used in few games.
 - SDX2 2:1 Squareroot-Delta-Exact compression DPCM
 - CBD2 2:1 Cuberoot-Delta-Exact compression DPCM
 - InterPlay ACM
-- Visual Art's NWA
+- VisualArt's NWA
 - CRI HCA
 - Electronic Arts MicroTalk a.k.a. UTK or UMT
+- FMOD FADPCM 4-bit ADPCM
 - Xiph Vorbis (Ogg, FSB5, Wwise, OGL, Silicon Knights)
 - MPEG MP1/2/3 (standard, AHX, XVAG, FSB, AWC, P3D, etc)
 - ITU-T G.722.1 (Polycom Siren 7)

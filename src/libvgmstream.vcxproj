@@ -488,7 +488,6 @@
     <ClCompile Include="layout\ims_block.c" />
     <ClCompile Include="layout\interleave.c" />
     <ClCompile Include="layout\blocked_ivaud.c" />
-    <ClCompile Include="layout\mus_acm_layout.c" />
     <ClCompile Include="layout\mxch_blocked.c" />
     <ClCompile Include="layout\nolayout.c" />
     <ClCompile Include="layout\blocked_adm.c" />

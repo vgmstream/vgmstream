@@ -1,170 +1,160 @@
 #include "meta.h"
-#include "../util.h"
+#include "../coding/coding.h"
 
-/* Apple Core Audio Format */
-
+/* Apple Core Audio Format File - from iOS games [Vectros (iOS), Ridge Racer Accelerated (iOS)] */
 VGMSTREAM * init_vgmstream_apple_caff(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[PATH_LIMIT];
+    off_t start_offset = 0, chunk_offset;
+    size_t file_size, data_size = 0;
+    int loop_flag, channel_count = 0, sample_rate = 0;
 
-    off_t start_offset = 0;
-    off_t data_size = 0;
-    off_t sample_count = 0;
-    off_t interleave = 0;
-    int sample_rate = -1, unused_frames = 0;
-    int channel_count = 0;
-    
-    off_t file_length;
-    off_t chunk_offset = 8;
-    int found_desc = 0, found_pakt = 0, found_data = 0;
+    int found_desc = 0 /*, found_pakt = 0*/, found_data = 0;
+    uint32_t codec = 0 /*, codec_flags = 0*/;
+    uint32_t bytes_per_packet = 0, samples_per_packet = 0, channels_per_packet = 0, bits_per_sample = 0;
+    int valid_samples = 0 /*, priming_samples = 0, unused_samples = 0*/;
 
-    /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("caf",filename_extension(filename))) goto fail;
 
-    /* check "caff" id */
-    if (read_32bitBE(0,streamFile)!=0x63616666) goto fail;
-    /* check version, flags */
-    if (read_32bitBE(4,streamFile)!=0x00010000) goto fail;
+    /* checks */
+    if (!check_extensions(streamFile, "caf"))
+        goto fail;
 
-    file_length = (off_t)get_streamfile_size(streamFile);
+    if (read_32bitBE(0x00,streamFile) != 0x63616666) /* "caff" */
+        goto fail;
+    if (read_32bitBE(0x04,streamFile) != 0x00010000) /* version/flags */
+        goto fail;
 
-    while (chunk_offset < file_length)
-    {
-        /* high half of size (expect 0s) */
-        if (read_32bitBE(chunk_offset+4,streamFile) != 0) goto fail;
+    file_size = get_streamfile_size(streamFile);
+    chunk_offset = 0x08;
 
-        /* handle chunk type */
-        switch (read_32bitBE(chunk_offset,streamFile))
-        {
-            case 0x64657363:    /* desc */
+    while (chunk_offset < file_size) {
+        uint32_t chunk_type = read_32bitBE(chunk_offset+0x00,streamFile);
+        uint32_t chunk_size = (uint32_t)read_64bitBE(chunk_offset+0x04,streamFile);
+        chunk_offset += 0x0c;
+
+        switch (chunk_type) {
+
+            case 0x64657363: /* "desc" */
                 found_desc = 1;
-                {
-                    /* rather than put a convoluted conversion here for
-                       portability, just look it up */
-                    uint32_t sratefloat = read_32bitBE(chunk_offset+0x0c, streamFile);
-                    if (read_32bitBE(chunk_offset+0x10, streamFile) != 0) goto fail;
-                    switch (sratefloat)
-                    {
-					    case 0x40D19400:
-							sample_rate = 18000;
-							break;
-                        case 0x40D58880:
-                            sample_rate = 22050;
-                            break;
-                        case 0x40DF4000:
-                            sample_rate = 32000;
-                            break;
-                        case 0x40E58880:
-                            sample_rate = 44100;
-                            break;
-                        case 0x40E77000:
-                            sample_rate = 48000;
-                            break;
-                        default:
-                            goto fail;
-                    }
-                }
 
                 {
-                    uint32_t bytes_per_packet, frames_per_packet, channels_per_frame, bits_per_channel;
-                    uint32_t codec_4cc = read_32bitBE(chunk_offset+0x14, streamFile);
-                    /* only supporting ima4 for now */
-                    if (codec_4cc != 0x696d6134) goto fail;
+                    uint64_t sample_long = (uint64_t)read_64bitBE(chunk_offset+0x00, streamFile);
+                    double* sample_double; /* double sample rate, double the fun */
 
-                    /* format flags */
-                    if (read_32bitBE(chunk_offset+0x18, streamFile) != 0) goto fail;
-                    bytes_per_packet = read_32bitBE(chunk_offset+0x1c, streamFile);
-                    frames_per_packet = read_32bitBE(chunk_offset+0x20, streamFile);
-                    channels_per_frame = read_32bitBE(chunk_offset+0x24, streamFile);
-                    bits_per_channel = read_32bitBE(chunk_offset+0x28, streamFile);
-
-                    interleave = bytes_per_packet / channels_per_frame;
-                    channel_count = channels_per_frame;
-                    if (channels_per_frame != 1 && channels_per_frame != 2)
-                        goto fail;
-                    /* ima4-specific */
-                    if (frames_per_packet != 64) goto fail;
-                    if ((frames_per_packet / 2 + 2) * channels_per_frame !=
-                        bytes_per_packet) goto fail;
-                    if (bits_per_channel != 0) goto fail;
+                    sample_double = (double*)&sample_long;
+                    sample_rate = (int)(*sample_double);
                 }
+
+                codec = read_32bitBE(chunk_offset+0x08, streamFile);
+                //codec_flags         = read_32bitBE(chunk_offset+0x0c, streamFile);
+                bytes_per_packet    = read_32bitBE(chunk_offset+0x10, streamFile);
+                samples_per_packet  = read_32bitBE(chunk_offset+0x14, streamFile);
+                channels_per_packet = read_32bitBE(chunk_offset+0x18, streamFile);
+                bits_per_sample     = read_32bitBE(chunk_offset+0x1C, streamFile);
                 break;
-            case 0x70616b74:    /* pakt */
-                found_pakt = 1;
-                /* 64-bit packet table size, 0 for constant bitrate */
-                if (
-                    read_32bitBE(chunk_offset+0x0c,streamFile) != 0 ||
-                    read_32bitBE(chunk_offset+0x10,streamFile) != 0) goto fail;
-                /* high half of valid frames count */
-                if (read_32bitBE(chunk_offset+0x14,streamFile) != 0) goto fail;
-                /* frame count */
-                sample_count = read_32bitBE(chunk_offset+0x18,streamFile);
-                /* priming frames */
-                if (read_32bitBE(chunk_offset+0x1c,streamFile) != 0) goto fail;
-                /* remainder (unused) frames */
-                unused_frames = read_32bitBE(chunk_offset+0x20,streamFile);
+
+            case 0x70616b74:    /* "pakt" */
+                //found_pakt = 1;
+
+                //packets_table_size = (uint32_t)read_64bitBE(chunk_offset+0x00,streamFile); /* 0 for constant bitrate */
+                valid_samples = (uint32_t)read_64bitBE(chunk_offset+0x08,streamFile);
+                //priming_samples = read_32bitBE(chunk_offset+0x10,streamFile); /* encoder delay samples */
+                //unused_samples = read_32bitBE(chunk_offset+0x14,streamFile); /* footer samples */
                 break;
-            case 0x66726565:    /* free */
-                /* padding, ignore */
-                break;
-            case 0x64617461:    /* data */
-                if (read_32bitBE(chunk_offset+12,streamFile) != 1) goto fail;
+
+            case 0x64617461: /* "data" */
                 found_data = 1;
-                start_offset = chunk_offset + 16;
-                data_size = read_32bitBE(chunk_offset+8,streamFile) - 4;
+
+                /* 0x00: version? 0x00/0x01 */
+                start_offset = chunk_offset + 0x04;
+                data_size = chunk_size - 0x4;
                 break;
-            default:
-                goto fail;
+
+            default: /*  "free" "kuki" "info" "chan" etc: ignore */
+                break;
         }
 
         /* done with chunk */
-        chunk_offset += 12 + read_32bitBE(chunk_offset+8,streamFile);
+        chunk_offset += chunk_size;
     }
 
-    if (!found_pakt || !found_desc || !found_data) goto fail;
-    if (start_offset == 0 || data_size == 0 || sample_count == 0 ||
-        sample_rate == -1 || channel_count == 0) goto fail;
+    if (!found_desc || !found_data)
+        goto fail;
+    if (start_offset == 0 || data_size == 0)
+        goto fail;
 
-    /* ima4-specific */
-    /* check for full packets */
-    if (data_size % (interleave*channel_count) != 0) goto fail;
-    if ((sample_count+unused_frames)%((interleave-2)*2) != 0) goto fail;
-    /* check that all packets are accounted for */
-    if (data_size/interleave/channel_count !=
-        (sample_count+unused_frames)/((interleave-2)*2)) goto fail;
 
-    vgmstream = allocate_vgmstream(channel_count,0);
+    loop_flag = 0;
+    channel_count = channels_per_packet;
+
+
+    /* build the VGMSTREAM */
+    vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
-    vgmstream->channels = channel_count;
     vgmstream->sample_rate = sample_rate;
-    vgmstream->num_samples = sample_count;
-    /* ima4-specific */
-    vgmstream->coding_type = coding_APPLE_IMA4;
-    if (channel_count == 2)
-        vgmstream->layout_type = layout_interleave;
-    else
-        vgmstream->layout_type = layout_none;
-    vgmstream->interleave_block_size = interleave;
     vgmstream->meta_type = meta_CAFF;
 
-    /* open the file for reading by each channel */
-    {
-        int i;
-        for (i=0;i<channel_count;i++)
-        {
-            vgmstream->ch[i].streamfile = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-            if (!vgmstream->ch[i].streamfile) goto fail;
+    switch(codec) {
+        case 0x6C70636D: /* "lpcm" */
+            vgmstream->num_samples = valid_samples;
+            if (!vgmstream->num_samples)
+                vgmstream->num_samples = pcm_bytes_to_samples(data_size, channel_count, bits_per_sample);
 
-            vgmstream->ch[i].offset =
-                vgmstream->ch[i].channel_start_offset =
-                start_offset + interleave * i;
-        }
+            //todo check codec_flags for BE/LE, signed/etc
+            if (bits_per_sample == 8) {
+                vgmstream->coding_type = coding_PCM8;
+            }
+            else {
+                goto fail;
+            }
+            vgmstream->layout_type = layout_interleave;
+            vgmstream->interleave_block_size = bytes_per_packet / channels_per_packet;
+
+            break;
+
+        case 0x696D6134: /* "ima4" */
+            vgmstream->num_samples = valid_samples;
+            if (!vgmstream->num_samples) /* rare [Endless Fables 2 (iOS) */
+                vgmstream->num_samples = apple_ima4_bytes_to_samples(data_size, channel_count);
+
+            vgmstream->coding_type = coding_APPLE_IMA4;
+            vgmstream->layout_type = layout_interleave;
+            vgmstream->interleave_block_size = bytes_per_packet / channels_per_packet;
+
+            /* ima4 defaults */
+            //if (channels_per_packet != 1 && channels_per_packet != 2)
+            //    goto fail;
+            if (samples_per_packet != 64)
+                goto fail;
+            if ((samples_per_packet / 2 + 2) * channels_per_packet != bytes_per_packet)
+                goto fail;
+            if (bits_per_sample != 0 && bits_per_sample != 4) /* 4 is rare too [Endless Fables 2 (iOS) */
+                goto fail;
+
+            /* check for full packets and that all packets are accounted for */
+            //if (found_pakt) {
+            //    if (data_size % (vgmstream->interleave_block_size*channel_count) != 0)
+            //        goto fail;
+            //    if ((valid_samples+unused_samples)%((vgmstream->interleave_block_size-2)*2) != 0)
+            //        goto fail;
+            //    if (data_size/vgmstream->interleave_block_size/channel_count !=
+            //            (valid_samples+unused_samples)/((vgmstream->interleave_block_size-2)*2))
+            //        goto fail;
+            //}
+
+            break;
+
+        default: /* "aac " "alac" etc: probably parsed by FFMpeg...  */
+            VGM_LOG("CAFF: unknown codec %x\n", codec);
+            goto fail;
     }
+goto fail;
 
+    if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
+        goto fail;
     return vgmstream;
+
 fail:
-    if (vgmstream) close_vgmstream(vgmstream);
+    close_vgmstream(vgmstream);
     return NULL;
 }

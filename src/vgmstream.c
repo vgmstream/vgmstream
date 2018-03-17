@@ -571,24 +571,10 @@ void reset_vgmstream(VGMSTREAM * vgmstream) {
 #endif
 
     if (vgmstream->coding_type==coding_ACM) {
-        mus_acm_codec_data *data = vgmstream->codec_data;
-        int i;
-        if (data) {
-            data->current_file = 0;
-            for (i=0;i<data->file_count;i++) {
-                acm_reset(data->files[i]);
-            }
-        }
+        reset_acm(vgmstream);
     }
 
-    if (
-            vgmstream->coding_type == coding_NWA0 ||
-            vgmstream->coding_type == coding_NWA1 ||
-            vgmstream->coding_type == coding_NWA2 ||
-            vgmstream->coding_type == coding_NWA3 ||
-            vgmstream->coding_type == coding_NWA4 ||
-            vgmstream->coding_type == coding_NWA5
-       ) {
+    if (vgmstream->coding_type == coding_NWA) {
         nwa_codec_data *data = vgmstream->codec_data;
         if (data)
             reset_nwa(data->nwa);
@@ -764,39 +750,14 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
 #endif
 
     if (vgmstream->coding_type==coding_ACM) {
-        mus_acm_codec_data *data = (mus_acm_codec_data *) vgmstream->codec_data;
-
-        if (data) {
-            if (data->files) {
-                int i;
-                for (i=0; i<data->file_count; i++) {
-                    /* shouldn't be duplicates */
-                    if (data->files[i]) {
-                        acm_close(data->files[i]);
-                        data->files[i] = NULL;
-                    }
-                }
-                free(data->files);
-                data->files = NULL;
-            }
-
-            free(vgmstream->codec_data);
-            vgmstream->codec_data = NULL;
-        }
+        free_acm(vgmstream->codec_data);
+        vgmstream->codec_data = NULL;
     }
 
-    if (
-            vgmstream->coding_type == coding_NWA0 ||
-            vgmstream->coding_type == coding_NWA1 ||
-            vgmstream->coding_type == coding_NWA2 ||
-            vgmstream->coding_type == coding_NWA3 ||
-            vgmstream->coding_type == coding_NWA4 ||
-            vgmstream->coding_type == coding_NWA5
-       ) {
+    if (vgmstream->coding_type == coding_NWA) {
         nwa_codec_data *data = (nwa_codec_data *) vgmstream->codec_data;
         close_nwa(data->nwa);
         free(data);
-
         vgmstream->codec_data = NULL;
     }
 
@@ -967,10 +928,6 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
         case layout_blocked_xvag_subsong:
             render_vgmstream_blocked(buffer,sample_count,vgmstream);
             break;
-        case layout_acm:
-        case layout_mus_acm:
-            render_vgmstream_mus_acm(buffer,sample_count,vgmstream);
-            break;
         case layout_aix:
             render_vgmstream_aix(buffer,sample_count,vgmstream);
             break;
@@ -1034,12 +991,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_SDX2_int:
         case coding_CBD2:
         case coding_ACM:
-        case coding_NWA0:
-        case coding_NWA1:
-        case coding_NWA2:
-        case coding_NWA3:
-        case coding_NWA4:
-        case coding_NWA5:
+        case coding_NWA:
         case coding_SASSC:
             return 1;
 
@@ -1194,12 +1146,7 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
         case coding_SDX2:
         case coding_SDX2_int:
         case coding_CBD2:
-        case coding_NWA0:
-        case coding_NWA1:
-        case coding_NWA2:
-        case coding_NWA3:
-        case coding_NWA4:
-        case coding_NWA5:
+        case coding_NWA:
         case coding_SASSC:
             return 0x01;
 
@@ -1820,14 +1767,11 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
             break;
 #endif
         case coding_ACM:
-            /* handled in its own layout, here to quiet compiler */
+            decode_acm(vgmstream->codec_data,
+                    buffer+samples_written*vgmstream->channels,
+                    samples_to_do, vgmstream->channels);
             break;
-        case coding_NWA0:
-        case coding_NWA1:
-        case coding_NWA2:
-        case coding_NWA3:
-        case coding_NWA4:
-        case coding_NWA5:
+        case coding_NWA:
             decode_nwa(((nwa_codec_data*)vgmstream->codec_data)->nwa,
                     buffer+samples_written*vgmstream->channels,
                     samples_to_do
@@ -2044,13 +1988,7 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream) {
         }
 #endif
 
-        if (vgmstream->coding_type == coding_NWA0 ||
-            vgmstream->coding_type == coding_NWA1 ||
-            vgmstream->coding_type == coding_NWA2 ||
-            vgmstream->coding_type == coding_NWA3 ||
-            vgmstream->coding_type == coding_NWA4 ||
-            vgmstream->coding_type == coding_NWA5)
-        {
+        if (vgmstream->coding_type == coding_NWA) {
             nwa_codec_data *data = vgmstream->codec_data;
             if (data)
                 seek_nwa(data->nwa, vgmstream->loop_sample);
@@ -2439,12 +2377,25 @@ static int get_vgmstream_average_bitrate_channel_count(VGMSTREAM * vgmstream)
 /* average bitrate helper */
 static STREAMFILE * get_vgmstream_average_bitrate_channel_streamfile(VGMSTREAM * vgmstream, int channel)
 {
-    //AAX, AIX, ACM?
+    //AAX, AIX?
 
     if (vgmstream->layout_type==layout_scd_int) {
         scd_int_codec_data *data = (scd_int_codec_data *) vgmstream->codec_data;
         return data->intfiles[channel];
     }
+
+    if (vgmstream->coding_type==coding_NWA) {
+        nwa_codec_data *data = (nwa_codec_data *) vgmstream->codec_data;
+        if (data && data->nwa)
+        return data->nwa->file;
+    }
+
+    if (vgmstream->coding_type==coding_ACM) {
+        acm_codec_data *data = (acm_codec_data *) vgmstream->codec_data;
+        if (data && data->file)
+        return data->file->streamfile;
+    }
+
 #ifdef VGM_USE_VORBIS
     if (vgmstream->coding_type==coding_OGG_VORBIS) {
         ogg_vorbis_codec_data *data = (ogg_vorbis_codec_data *) vgmstream->codec_data;

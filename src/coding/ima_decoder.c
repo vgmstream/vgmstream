@@ -867,6 +867,12 @@ size_t xbox_ima_bytes_to_samples(size_t bytes, int channels) {
             + ((bytes % block_align) ? ((bytes % block_align) - 4 * channels) * 2 / channels : 0); /* unlikely (encoder aligns) */
 }
 
+size_t apple_ima4_bytes_to_samples(size_t bytes, int channels) {
+    int block_align = 0x22 * channels;
+    return (bytes / block_align) * (block_align - 0x02*channels) * 2 / channels
+            + ((bytes % block_align) ? ((bytes % block_align) - 0x02*channels) * 2 / channels : 0);
+}
+
 size_t ubi_ima_bytes_to_samples(size_t bytes, int channels, STREAMFILE *streamFile, off_t offset) {
     int version, big_endian, header_samples;
     int16_t (*read_16bit)(off_t,STREAMFILE*) = NULL;

@@ -280,22 +280,12 @@ VGMSTREAM * init_vgmstream_nwa(STREAMFILE *streamFile) {
         switch (comp_level)
         {
             case 0:
-                vgmstream->coding_type = coding_NWA0;
-                break;
             case 1:
-                vgmstream->coding_type = coding_NWA1;
-                break;
             case 2:
-                vgmstream->coding_type = coding_NWA2;
-                break;
             case 3:
-                vgmstream->coding_type = coding_NWA3;
-                break;
             case 4:
-                vgmstream->coding_type = coding_NWA4;
-                break;
             case 5:
-                vgmstream->coding_type = coding_NWA5;
+                vgmstream->coding_type = coding_NWA;
                 break;
             default:
                 goto fail;

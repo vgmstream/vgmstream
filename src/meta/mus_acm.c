@@ -1,7 +1,6 @@
-#include "../vgmstream.h"
 #include "meta.h"
-#include "../util.h"
-#include "../streamfile.h"
+#include "../layout/layout.h"
+#include "../coding/coding.h"
 #include "../coding/acm_decoder.h"
 #include <stdlib.h>
 #include <string.h>
@@ -13,11 +12,107 @@
 #define DIRSEP '/'
 #endif
 
-#define NAME_LENGTH PATH_LIMIT 
+
+static char** parse_mus(STREAMFILE *streamFile, int *out_file_count, int *out_loop_flag, int *out_loop_start_index, int *out_loop_end_index);
+static void clean_mus(char** mus_filenames, int file_count);
+
+/* .MUS - playlist for InterPlay games [Planescape: Torment (PC), Baldur's Gate Enhanced Edition (PC)] */
+VGMSTREAM * init_vgmstream_mus_acm(STREAMFILE *streamFile) {
+    VGMSTREAM * vgmstream = NULL;
+    segmented_layout_data *data = NULL;
+
+    int channel_count, loop_flag = 0, loop_start_index = -1, loop_end_index = -1;
+    int32_t num_samples = 0, loop_start_samples = 0, loop_end_samples = 0;
+
+    char** mus_filenames = NULL;
+    int i, segment_count = 0;
+
+
+    /* checks */
+    if (!check_extensions(streamFile, "mus"))
+        goto fail;
+
+    /* get file paths from the .MUS text file */
+    mus_filenames = parse_mus(streamFile, &segment_count, &loop_flag, &loop_start_index, &loop_end_index);
+    if (!mus_filenames) goto fail;
+
+    /* init layout */
+    data = init_layout_segmented(segment_count);
+    if (!data) goto fail;
+
+    /* open each segment subfile */
+    for (i = 0; i < segment_count; i++) {
+        STREAMFILE* temp_streamFile = streamFile->open(streamFile, mus_filenames[i], STREAMFILE_DEFAULT_BUFFER_SIZE);
+        if (!temp_streamFile) goto fail;
+
+        /* find .ACM type */
+        switch(read_32bitBE(0x00,temp_streamFile)) {
+            case 0x97280301: /* ACM header id [Planescape: Torment (PC)]  */
+                data->segments[i] = init_vgmstream_acm(temp_streamFile);
+                break;
+            case 0x4F676753: /* "OggS" [Planescape: Torment Enhanced Edition (PC)] */
+                data->segments[i] = init_vgmstream_ogg_vorbis(temp_streamFile);
+                break;
+            default:
+                data->segments[i] = NULL;
+                break;
+        }
+        close_streamfile(temp_streamFile);
+
+        if (!data->segments[i]) goto fail;
+
+
+        if (i==loop_start_index)
+            loop_start_samples = num_samples;
+        if (i==loop_end_index)
+            loop_end_samples   = num_samples;
+
+        num_samples += data->segments[i]->num_samples;
+    }
+
+    if (i==loop_end_index)
+        loop_end_samples = num_samples;
+
+    /* setup segmented VGMSTREAMs */
+    if (!setup_layout_segmented(data))
+        goto fail;
+
+
+    channel_count = data->segments[0]->channels;
+
+
+    /* build the VGMSTREAM */
+    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+    if (!vgmstream) goto fail;
+
+    vgmstream->sample_rate = data->segments[0]->sample_rate;
+    vgmstream->num_samples = num_samples;
+    vgmstream->loop_start_sample = loop_start_samples;
+    vgmstream->loop_end_sample = loop_end_samples;
+
+    vgmstream->meta_type = meta_MUS_ACM;
+    vgmstream->coding_type = data->segments[0]->coding_type;
+    vgmstream->layout_type = layout_segmented;
+
+    vgmstream->layout_data = data;
+    data->loop_segment = loop_start_index;
+
+    clean_mus(mus_filenames, segment_count);
+    return vgmstream;
+
+fail:
+    clean_mus(mus_filenames, segment_count);
+    free_layout_segmented(data);
+    close_vgmstream(vgmstream);
+    return NULL;
+}
+
+/* .mus text file parsing */
+
+#define NAME_LENGTH PATH_LIMIT
 
 static int exists(char *filename, STREAMFILE *streamfile) {
-    STREAMFILE * temp = 
-        streamfile->open(streamfile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
+    STREAMFILE * temp = streamfile->open(streamfile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
     if (!temp) return 0;
 
     close_streamfile(temp);
@@ -91,57 +186,40 @@ fail:
     return 1;
 }
 
-/* MUS playlist for InterPlay ACM */
-VGMSTREAM * init_vgmstream_mus_acm(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
-    ACMStream *acm_stream = NULL;
-    mus_acm_codec_data *data = NULL;
+static char** parse_mus(STREAMFILE *streamFile, int *out_file_count, int *out_loop_flag, int *out_loop_start_index, int *out_loop_end_index) {
+    char** names = NULL;
 
     char filename[NAME_LENGTH];
     char line_buffer[NAME_LENGTH];
     char * end_ptr;
     char name_base[NAME_LENGTH];
-    char (*names)[NAME_LENGTH] = NULL;
     char dir_name[NAME_LENGTH];
     char subdir_name[NAME_LENGTH];
 
-    int i;
-    int loop_flag = 0;
-	int channel_count;
     int file_count;
     size_t line_bytes;
     int whole_line_read = 0;
     off_t mus_offset = 0;
 
-    int loop_end_index = -1;
-    int loop_start_index = -1;
-    int32_t loop_start_samples = -1;
-    int32_t loop_end_samples = -1;
+    int i;
+    int loop_flag = 0, loop_start_index = -1, loop_end_index = -1;
 
-    int32_t total_samples = 0;
-
-    /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("mus",filename_extension(filename))) goto fail;
 
     /* read file name base */
-    line_bytes = get_streamfile_text_line(sizeof(line_buffer),line_buffer,
-            mus_offset, streamFile, &whole_line_read);
+    line_bytes = get_streamfile_text_line(sizeof(line_buffer),line_buffer, mus_offset, streamFile, &whole_line_read);
     if (!whole_line_read) goto fail;
     mus_offset += line_bytes;
     memcpy(name_base,line_buffer,sizeof(name_base));
 
     /* uppercase name_base */
     {
-        int i;
-        for (i=0;name_base[i];i++) name_base[i]=toupper(name_base[i]);
+        int j;
+        for (j=0;name_base[j];j++)
+            name_base[j] = toupper(name_base[j]);
     }
 
-    /*printf("name base: %s\n",name_base);*/
-
     /* read track entry count */
-    line_bytes = get_streamfile_text_line(sizeof(line_buffer),line_buffer,
-            mus_offset, streamFile, &whole_line_read);
+    line_bytes = get_streamfile_text_line(sizeof(line_buffer),line_buffer, mus_offset, streamFile, &whole_line_read);
     if (!whole_line_read) goto fail;
     if (line_buffer[0] == '\0') goto fail;
     mus_offset += line_bytes;
@@ -149,24 +227,26 @@ VGMSTREAM * init_vgmstream_mus_acm(STREAMFILE *streamFile) {
     /* didn't parse whole line as an integer (optional opening whitespace) */
     if (*end_ptr != '\0') goto fail;
 
-    /*printf("entries: %d\n",file_count);*/
-
-    names = calloc(file_count,sizeof(names[0]));
+    /* set names */
+    names = calloc(file_count,sizeof(char*)); /* array of strings (size NAME_LENGTH) */
     if (!names) goto fail;
 
+    for (i = 0; i < file_count; i++) {
+        names[i] = calloc(1,sizeof(char)*NAME_LENGTH);
+        if (!names[i]) goto fail;
+    }
+
     dir_name[0]='\0';
+    streamFile->get_name(streamFile,filename,sizeof(filename));
     concatn(sizeof(dir_name),dir_name,filename);
 
+    /* find directory name for the directory contianing the MUS */
     {
-        /* find directory name for the directory contianing the MUS */
-        char * last_slash;
-        last_slash = strrchr(dir_name,DIRSEP);
+        char * last_slash = strrchr(dir_name,DIRSEP);
         if (last_slash != NULL) {
-            /* trim off the file name */
-            last_slash[1]='\0';
+            last_slash[1]='\0'; /* trim off the file name */
         } else {
-            /* no dir name? annihilate! */
-            dir_name[0] = '\0';
+            dir_name[0] = '\0'; /* no dir name? annihilate! */
         }
     }
 
@@ -180,7 +260,8 @@ VGMSTREAM * init_vgmstream_mus_acm(STREAMFILE *streamFile) {
         char loop_name_temp[NAME_LENGTH];
         char loop_name_base[NAME_LENGTH];
         char loop_name[NAME_LENGTH];
-        for (i=0;i<file_count;i++)
+
+        for (i = 0; i < file_count; i++)
         {
             int fields_matched;
             line_bytes =
@@ -191,7 +272,6 @@ VGMSTREAM * init_vgmstream_mus_acm(STREAMFILE *streamFile) {
 
             fields_matched = sscanf(line_buffer,"%s %s %s",name,
                     loop_name_base_temp,loop_name_temp);
-
 
             if (fields_matched < 1) goto fail;
             if (fields_matched == 3 && loop_name_base_temp[0] != '@' && loop_name_temp[0] != '@')
@@ -222,14 +302,15 @@ VGMSTREAM * init_vgmstream_mus_acm(STREAMFILE *streamFile) {
             {
                 /* uppercase */
                 int j;
-                for (j=0;j<strlen(name);j++) name[j]=toupper(name[j]);
+                for (j=0;j<strlen(name);j++)
+                    name[j]=toupper(name[j]);
             }
 
             /* try looking in the common directory */
             names[i][0] = '\0';
-            concatn(sizeof(names[0]),names[i],dir_name);
-            concatn(sizeof(names[0]),names[i],name);
-            concatn(sizeof(names[0]),names[i],".ACM");
+            concatn(NAME_LENGTH,names[i],dir_name);
+            concatn(NAME_LENGTH,names[i],name);
+            concatn(NAME_LENGTH,names[i],".ACM");
 
             if (!exists(names[i],streamFile)) {
 
@@ -242,16 +323,14 @@ VGMSTREAM * init_vgmstream_mus_acm(STREAMFILE *streamFile) {
                 }
 
                 names[i][0] = '\0';
-                concatn(sizeof(names[0]),names[i],dir_name);
-                concatn(sizeof(names[0]),names[i],subdir_name);
-                concatn(sizeof(names[0]),names[i],name_base);
-                concatn(sizeof(names[0]),names[i],name);
-                concatn(sizeof(names[0]),names[i],".ACM");
+                concatn(NAME_LENGTH,names[i],dir_name);
+                concatn(NAME_LENGTH,names[i],subdir_name);
+                concatn(NAME_LENGTH,names[i],name_base);
+                concatn(NAME_LENGTH,names[i],name);
+                concatn(NAME_LENGTH,names[i],".ACM");
 
                 if (!exists(names[i],streamFile)) goto fail;
             }
-
-            /*printf("%2d %s\n",i,names[i]);*/
         }
 
         if (loop_end_index != -1) {
@@ -263,18 +342,15 @@ VGMSTREAM * init_vgmstream_mus_acm(STREAMFILE *streamFile) {
             concatn(sizeof(target_name),target_name,loop_name_base);
             concatn(sizeof(target_name),target_name,loop_name);
             concatn(sizeof(target_name),target_name,".ACM");
-            /*printf("looking for loop %s\n",target_name);*/
 
             for (i=0;i<file_count;i++) {
-                if (!strcmp(target_name,names[i]))
-                {
+                if (!strcmp(target_name,names[i])) {
                     loop_start_index = i;
                     break;
                 }
             }
 
             if (loop_start_index != -1) {
-                /*printf("loop from %d to %d\n",loop_end_index,loop_start_index);*/
                 /*if (loop_start_index < file_count-1) loop_start_index++;*/
                 loop_end_index++;
                 loop_flag = 1;
@@ -283,78 +359,25 @@ VGMSTREAM * init_vgmstream_mus_acm(STREAMFILE *streamFile) {
         }
     }
 
-    /* set up the struct to track the files */
-    data = calloc(1,sizeof(mus_acm_codec_data));
-    if (!data) goto fail;
+    *out_loop_start_index = loop_start_index;
+    *out_loop_end_index = loop_end_index;
+    *out_loop_flag = loop_flag;
+    *out_file_count = file_count;
 
-    data->files = calloc(file_count,sizeof(ACMStream *));
-    if (!data->files) {
-        free(data); data = NULL;
-        goto fail;
-    }
 
-    /* open each file... */
-    for (i=0;i<file_count;i++) {
-
-        /* gonna do this a little backwards, open and parse the file
-           before creating the vgmstream */
-
-        if (acm_open_decoder(&acm_stream,streamFile,names[i]) != ACM_OK) {
-            goto fail;
-        }
-
-        data->files[i]=acm_stream;
-
-        if (i==loop_start_index) loop_start_samples = total_samples;
-        if (i==loop_end_index)   loop_end_samples   = total_samples;
-
-        total_samples += acm_stream->total_values / acm_stream->info.channels;
-
-        if (i>0) {
-            if (acm_stream->info.channels != data->files[0]->info.channels ||
-                acm_stream->info.rate     != data->files[0]->info.rate) goto fail;
-        }
-    }
-
-    if (i==loop_end_index)   loop_end_samples   = total_samples;
-
-    channel_count = data->files[0]->info.channels;
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
-    if (!vgmstream) goto fail;
-
-    vgmstream->channels = channel_count;
-    vgmstream->sample_rate = data->files[0]->info.rate;
-    vgmstream->coding_type = coding_ACM;
-    vgmstream->num_samples = total_samples;
-    vgmstream->loop_start_sample = loop_start_samples;
-    vgmstream->loop_end_sample = loop_end_samples;
-    vgmstream->layout_type = layout_mus_acm;
-    vgmstream->meta_type = meta_MUS_ACM;
-
-    data->file_count = file_count;
-    data->current_file = 0;
-    data->loop_start_file = loop_start_index;
-    data->loop_end_file = loop_end_index;
-    /*data->end_file = -1;*/
-
-    vgmstream->codec_data = data;
-
-    free(names);
-
-    return vgmstream;
-
-    /* clean up anything we may have opened */
+    return names;
 fail:
-    if (data) {
-        int i;
-        for (i=0;i<data->file_count;i++) {
-            if (data->files[i]) {
-                acm_close(data->files[i]);
-                data->files[i] = NULL;
-            }
-        }
-    }
-    if (names) free(names);
-    if (vgmstream) close_vgmstream(vgmstream);
+    clean_mus(names, file_count);
     return NULL;
+}
+
+static void clean_mus(char** mus_filenames, int file_count) {
+    int i;
+
+    if (!mus_filenames) return;
+
+    for (i = 0; i < file_count; i++) {
+        free(mus_filenames[i]);
+    }
+    free(mus_filenames);
 }

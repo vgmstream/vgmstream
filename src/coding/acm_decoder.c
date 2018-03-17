@@ -817,23 +817,65 @@ void acm_reset(ACMStream *acm)
     memset(acm->wrapbuf, 0, acm->wrapbuf_len * sizeof(int));
 }
 
-/* interface to vgmstream */
-void decode_acm(ACMStream * acm, sample * outbuf,
-        int32_t samples_to_do, int channelspacing) {
+
+/***********************************************
+ * interface to vgmstream
+ ***********************************************/
+
+acm_codec_data *init_acm(STREAMFILE *streamFile) {
+    acm_codec_data* data = NULL;
+    ACMStream *acm_stream = NULL;
+    char filename[PATH_LIMIT];
+
+    data = calloc(1,sizeof(acm_codec_data));
+    if (!data) goto fail;
+
+    streamFile->get_name(streamFile,filename,sizeof(filename));
+    if (acm_open_decoder(&acm_stream,streamFile,filename) != ACM_OK)
+        goto fail;
+
+    data->file = acm_stream;
+
+    return data;
+
+fail:
+    free_acm(data);
+    return NULL;
+}
+
+void decode_acm(acm_codec_data *data, sample * outbuf, int32_t samples_to_do, int channelspacing) {
+    ACMStream * acm = data->file;
     int32_t samples_read = 0;
+
     while (samples_read < samples_to_do) {
-        int32_t bytes_read_just_now;
-        bytes_read_just_now = 
-            acm_read(acm,(char*)(
-                        outbuf+samples_read*channelspacing),
-                    (samples_to_do-samples_read)*sizeof(sample)*
-                    channelspacing,0,2,1);
+        int32_t bytes_read_just_now = acm_read(
+                acm,
+                (char*)(outbuf+samples_read*channelspacing),
+                (samples_to_do-samples_read)*sizeof(sample)*channelspacing,
+                0,2,1);
 
         if (bytes_read_just_now > 0) {
-            samples_read +=
-                bytes_read_just_now/sizeof(sample)/channelspacing;
+            samples_read += bytes_read_just_now/sizeof(sample)/channelspacing;
         } else {
             return;
         }
     }
 }
+
+void reset_acm(VGMSTREAM *vgmstream) {
+    acm_codec_data *data = vgmstream->codec_data;
+
+    if (data && data->file) {
+        acm_reset(data->file);
+    }
+}
+
+void free_acm(acm_codec_data *data) {
+    if (data) {
+        if (data->file) {
+            acm_close(data->file);
+        }
+        free(data);
+    }
+}
+
