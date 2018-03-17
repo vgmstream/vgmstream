@@ -807,7 +807,7 @@ static const meta_info meta_info_list[] = {
         {meta_NGC_GCUB,             "GCub Header"},
         {meta_NGC_SCK_DSP,          "The Scorpion King SCK Header"},
         {meta_NGC_SWD,              "PSF + Standard DSP Headers"},
-        {meta_CAFF,                 "Apple Core Audio Format Header"},
+        {meta_CAFF,                 "Apple Core Audio Format File header"},
         {meta_PC_MXST,              "Lego Island MxSt Header"},
         {meta_SAB,                  "Team17 SAB header"},
         {meta_MAXIS_XA,             "Maxis XAI/XAJ Header"},
@@ -962,8 +962,8 @@ static const meta_info meta_info_list[] = {
         {meta_SQEX_MAB,             "Square-Enix MAB header"},
         {meta_OGG_L2SD,             "Ogg Vorbis (L2SD)"},
         {meta_WAF,                  "KID WAF header"},
-        {meta_WAVE,                 "WayForward .WAVE header"},
-        {meta_WAVE_segmented,       "WayForward .WAVE header (segmented)"},
+        {meta_WAVE,                 "EngineBlack .WAVE header"},
+        {meta_WAVE_segmented,       "EngineBlack .WAVE header (segmented)"},
 
 #ifdef VGM_USE_MP4V2
         {meta_MP4,                  "AAC header"},
