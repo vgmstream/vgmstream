@@ -368,7 +368,7 @@ typedef enum {
     meta_PS2_RSTM,          /* Midnight Club 3 */
     meta_PS2_KCES,          /* Dance Dance Revolution */
     meta_PS2_DXH,           /* Tokobot Plus - Myteries of the Karakuri */
-    meta_PS2_PSH,           /* Dawn of Mana - Seiken Densetsu 4 */
+    meta_PS2_PSH,           /* Square Enix PSH/VSV (Dawn of Mana/KH Re:CoM) */
     meta_SCD_PCM,           /* Lunar - Eternal Blue */
     meta_PS2_PCM,           /* Konami KCEJ East: Ephemeral Fantasia, Yu-Gi-Oh! The Duelists of the Roses, 7 Blades */
     meta_PS2_RKV,           /* Legacy of Kain - Blood Omen 2 */
