@@ -11,6 +11,7 @@ EXPORTS
     av_aes_ctr_get_iv
     av_aes_ctr_increment_iv
     av_aes_ctr_init
+    av_aes_ctr_set_full_iv
     av_aes_ctr_set_iv
     av_aes_ctr_set_random_iv
     av_aes_init
@@ -175,6 +176,7 @@ EXPORTS
     av_frame_make_writable
     av_frame_move_ref
     av_frame_new_side_data
+    av_frame_new_side_data_from_buf
     av_frame_ref
     av_frame_remove_side_data
     av_frame_set_best_effort_timestamp

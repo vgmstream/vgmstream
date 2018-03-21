@@ -615,6 +615,7 @@ enum AVCodecID {
     AV_CODEC_ID_PAF_AUDIO,
     AV_CODEC_ID_ON2AVC,
     AV_CODEC_ID_DSS_SP,
+    AV_CODEC_ID_CODEC2,
 
     AV_CODEC_ID_FFWAVESYNTH = 0x15800,
     AV_CODEC_ID_SONIC,
@@ -634,6 +635,8 @@ enum AVCodecID {
     AV_CODEC_ID_ATRAC3PAL,
     AV_CODEC_ID_DOLBY_E,
     AV_CODEC_ID_APTX,
+    AV_CODEC_ID_APTX_HD,
+    AV_CODEC_ID_SBC,
 
     /* subtitle codecs */
     AV_CODEC_ID_FIRST_SUBTITLE = 0x17000,          ///< A dummy ID pointing at the start of subtitle codecs.
@@ -767,7 +770,7 @@ typedef struct AVCodecDescriptor {
  * Note: If the first 23 bits of the additional bytes are not 0, then damaged
  * MPEG bitstreams could cause overread and segfault.
  */
-#define AV_INPUT_BUFFER_PADDING_SIZE 32
+#define AV_INPUT_BUFFER_PADDING_SIZE 64
 
 /**
  * @ingroup lavc_encoding
@@ -1044,6 +1047,20 @@ typedef struct RcOverride{
  * Codec is lossless.
  */
 #define AV_CODEC_CAP_LOSSLESS         0x80000000
+
+/**
+ * Codec is backed by a hardware implementation. Typically used to
+ * identify a non-hwaccel hardware decoder. For information about hwaccels, use
+ * avcodec_get_hw_config() instead.
+ */
+#define AV_CODEC_CAP_HARDWARE            (1 << 18)
+
+/**
+ * Codec is potentially backed by a hardware implementation, but not
+ * necessarily. This is used instead of AV_CODEC_CAP_HARDWARE, if the
+ * implementation provides some sort of internal fallback.
+ */
+#define AV_CODEC_CAP_HYBRID              (1 << 19)
 
 /**
  * Pan Scan area.
@@ -2903,6 +2920,14 @@ typedef struct AVCodecContext {
 #define FF_PROFILE_HEVC_MAIN_STILL_PICTURE          3
 #define FF_PROFILE_HEVC_REXT                        4
 
+#define FF_PROFILE_MJPEG_HUFFMAN_BASELINE_DCT            0xc0
+#define FF_PROFILE_MJPEG_HUFFMAN_EXTENDED_SEQUENTIAL_DCT 0xc1
+#define FF_PROFILE_MJPEG_HUFFMAN_PROGRESSIVE_DCT         0xc2
+#define FF_PROFILE_MJPEG_HUFFMAN_LOSSLESS                0xc3
+#define FF_PROFILE_MJPEG_JPEG_LS                         0xf7
+
+#define FF_PROFILE_SBC_MSBC                         1
+
     /**
      * level
      * - encoding: Set by user.
@@ -3240,6 +3265,20 @@ typedef struct AVCodecContext {
      * (with the display dimensions being determined by the crop_* fields).
      */
     int apply_cropping;
+
+    /*
+     * Video decoding only.  Sets the number of extra hardware frames which
+     * the decoder will allocate for use by the caller.  This must be set
+     * before avcodec_open2() is called.
+     *
+     * Some hardware decoders require all frames that they will use for
+     * output to be defined in advance before decoding starts.  For such
+     * decoders, the hardware frame pool must therefore be of a fixed size.
+     * The extra frames set here are on top of any number that the decoder
+     * needs internally in order to operate normally (for example, frames
+     * used as reference pictures).
+     */
+    int extra_hw_frames;
 } AVCodecContext;
 
 #if FF_API_CODEC_GET_SET
@@ -3377,6 +3416,18 @@ typedef struct AVCodec {
     const AVClass *priv_class;              ///< AVClass for the private context
     const AVProfile *profiles;              ///< array of recognized profiles, or NULL if unknown, array is terminated by {FF_PROFILE_UNKNOWN}
 
+    /**
+     * Group name of the codec implementation.
+     * This is a short symbolic name of the wrapper backing this codec. A
+     * wrapper uses some kind of external implementation for the codec, such
+     * as an external library, or a codec implementation provided by the OS or
+     * the hardware.
+     * If this field is NULL, this is a builtin, libavcodec native codec.
+     * If non-NULL, this will be the suffix in AVCodec.name in most cases
+     * (usually AVCodec.name will be of the form "<codec_name>_<wrapper_name>").
+     */
+    const char *wrapper_name;
+
     /*****************************************************************
      * No fields below this line are part of the public API. They
      * may not be used outside of libavcodec and can be changed and
@@ -3413,6 +3464,9 @@ typedef struct AVCodec {
 
     /**
      * Initialize codec static data, called from avcodec_register().
+     *
+     * This is not intended for time consuming operations as it is
+     * run for every codec regardless of that codec being used.
      */
     void (*init_static_data)(struct AVCodec *codec);
 
@@ -3953,11 +4007,25 @@ typedef struct AVCodecParameters {
 } AVCodecParameters;
 
 /**
+ * Iterate over all registered codecs.
+ *
+ * @param opaque a pointer where libavcodec will store the iteration state. Must
+ *               point to NULL to start the iteration.
+ *
+ * @return the next registered codec or NULL when the iteration is
+ *         finished
+ */
+const AVCodec *av_codec_iterate(void **opaque);
+
+#if FF_API_NEXT
+/**
  * If c is NULL, returns the first registered codec,
  * if c is non-NULL, returns the next registered codec after c,
  * or NULL if c is the last one.
  */
+attribute_deprecated
 AVCodec *av_codec_next(const AVCodec *c);
+#endif
 
 /**
  * Return the LIBAVCODEC_VERSION_INT constant.
@@ -3974,6 +4042,7 @@ const char *avcodec_configuration(void);
  */
 const char *avcodec_license(void);
 
+#if FF_API_NEXT
 /**
  * Register the codec codec and initialize libavcodec.
  *
@@ -3982,6 +4051,7 @@ const char *avcodec_license(void);
  *
  * @see avcodec_register_all()
  */
+attribute_deprecated
 void avcodec_register(AVCodec *codec);
 
 /**
@@ -3994,7 +4064,9 @@ void avcodec_register(AVCodec *codec);
  * @see av_register_codec_parser
  * @see av_register_bitstream_filter
  */
+attribute_deprecated
 void avcodec_register_all(void);
+#endif
 
 /**
  * Allocate an AVCodecContext and set its fields to default values. The
@@ -5094,8 +5166,21 @@ typedef struct AVCodecParser {
     struct AVCodecParser *next;
 } AVCodecParser;
 
+/**
+ * Iterate over all registered codec parsers.
+ *
+ * @param opaque a pointer where libavcodec will store the iteration state. Must
+ *               point to NULL to start the iteration.
+ *
+ * @return the next registered codec parser or NULL when the iteration is
+ *         finished
+ */
+const AVCodecParser *av_parser_iterate(void **opaque);
+
+attribute_deprecated
 AVCodecParser *av_parser_next(const AVCodecParser *c);
 
+attribute_deprecated
 void av_register_codec_parser(AVCodecParser *parser);
 AVCodecParserContext *av_parser_init(int codec_id);
 
@@ -5671,7 +5756,7 @@ attribute_deprecated
 void av_bitstream_filter_close(AVBitStreamFilterContext *bsf);
 /**
  * @deprecated the old bitstream filtering API (using AVBitStreamFilterContext)
- * is deprecated. Use av_bsf_next() from the new bitstream filtering API (using
+ * is deprecated. Use av_bsf_iterate() from the new bitstream filtering API (using
  * AVBSFContext).
  */
 attribute_deprecated
@@ -5693,7 +5778,11 @@ const AVBitStreamFilter *av_bsf_get_by_name(const char *name);
  * @return the next registered bitstream filter or NULL when the iteration is
  *         finished
  */
+const AVBitStreamFilter *av_bsf_iterate(void **opaque);
+#if FF_API_NEXT
+attribute_deprecated
 const AVBitStreamFilter *av_bsf_next(void **opaque);
+#endif
 
 /**
  * Allocate a context for a given bitstream filter. The caller must fill in the
@@ -5904,9 +5993,11 @@ attribute_deprecated
 AVHWAccel *av_hwaccel_next(const AVHWAccel *hwaccel);
 #endif
 
-
+#if FF_API_LOCKMGR
 /**
  * Lock operation used by lockmgr
+ *
+ * @deprecated Deprecated together with av_lockmgr_register().
  */
 enum AVLockOp {
   AV_LOCK_CREATE,  ///< Create a mutex
@@ -5937,8 +6028,13 @@ enum AVLockOp {
  *           mechanism (i.e. do not use a single static object to
  *           implement your lock manager). If cb is set to NULL the
  *           lockmgr will be unregistered.
+ *
+ * @deprecated This function does nothing, and always returns 0. Be sure to
+ *             build with thread support to get basic thread safety.
  */
+attribute_deprecated
 int av_lockmgr_register(int (*cb)(void **mutex, enum AVLockOp op));
+#endif
 
 /**
  * Get the type of the given codec.
