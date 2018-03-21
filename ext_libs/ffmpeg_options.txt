@@ -7,7 +7,6 @@
 --disable-doc
 --disable-ffplay
 --disable-ffprobe
---disable-ffserver
 --disable-avdevice
 --disable-ffmpeg
 --disable-postproc
