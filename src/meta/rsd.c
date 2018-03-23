@@ -935,7 +935,7 @@ fail:
     return NULL;
 }
 
-/* RSD6XADP - from Crash Tag Team Racing (Xbox) */
+/* RSD6XADP - from Crash Tag Team Racing (Xbox), Scarface (Xbox) */
 VGMSTREAM * init_vgmstream_rsd6xadp(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     off_t start_offset;
@@ -963,9 +963,10 @@ VGMSTREAM * init_vgmstream_rsd6xadp(STREAMFILE *streamFile) {
     vgmstream->sample_rate = read_32bitLE(0x10,streamFile);
     vgmstream->num_samples = xbox_ima_bytes_to_samples(data_size, vgmstream->channels);
 
-    vgmstream->coding_type = coding_XBOX_IMA;
-    vgmstream->layout_type = layout_none;
     vgmstream->meta_type = meta_RSD6XADP;
+    vgmstream->coding_type = (channel_count > 2) ? coding_XBOX_IMA_mch : coding_XBOX_IMA;
+    vgmstream->layout_type = layout_none;
+
 
     if (!vgmstream_open_stream(vgmstream, streamFile, start_offset))
         goto fail;
