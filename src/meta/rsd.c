@@ -1079,7 +1079,6 @@ fail:
     return NULL;
 } 
 
-
 /* RSD6AT3+ [Crash of the Titans (PSP)] */
 VGMSTREAM * init_vgmstream_rsd6at3p(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
@@ -1093,13 +1092,13 @@ VGMSTREAM * init_vgmstream_rsd6at3p(STREAMFILE *streamFile) {
         goto fail;
 
     /* check header */
-    if (read_32bitBE(0x0, streamFile) != 0x52534436) /* "RSD6" */
+    if (read_32bitBE(0x00,streamFile) != 0x52534436) /* "RSD6" */
         goto fail;
     if (read_32bitBE(0x04,streamFile) != 0x4154332B) /* "AT3+" */
         goto fail;
 
     loop_flag = 0;
-    channel_count = read_32bitLE(0x8, streamFile);
+    channel_count = read_32bitLE(0x08, streamFile);
     start_offset = 0x800;
     data_size = get_streamfile_size(streamFile) - start_offset;
 
@@ -1114,7 +1113,7 @@ VGMSTREAM * init_vgmstream_rsd6at3p(STREAMFILE *streamFile) {
     {
         ffmpeg_codec_data *ffmpeg_data = NULL;
 
-        /* full RIFF header at start_offset/post_meta_offset (same) */
+        /* full RIFF header at start_offset */
         ffmpeg_data = init_ffmpeg_offset(streamFile, start_offset,data_size);
         if (!ffmpeg_data) goto fail;
         vgmstream->codec_data = ffmpeg_data;
@@ -1138,6 +1137,63 @@ VGMSTREAM * init_vgmstream_rsd6at3p(STREAMFILE *streamFile) {
             }
             ffmpeg_set_skip_samples(ffmpeg_data, fact_skip_samples);
         }
+#else
+        goto fail;
+#endif
+    }
+
+    if (!vgmstream_open_stream(vgmstream, streamFile, start_offset))
+        goto fail;
+    return vgmstream;
+
+fail:
+    close_vgmstream(vgmstream);
+    return NULL;
+}
+
+
+/* RSD6WMA [Scarface (Xbox)] */
+VGMSTREAM * init_vgmstream_rsd6wma(STREAMFILE *streamFile) {
+    VGMSTREAM * vgmstream = NULL;
+    off_t start_offset;
+    size_t data_size;
+    int loop_flag, channel_count;
+
+
+    /* checks */
+    if (!check_extensions(streamFile,"rsd"))
+        goto fail;
+    if (read_32bitBE(0x00,streamFile) != 0x52534436) /* "RSD6" */
+        goto fail;
+    if (read_32bitBE(0x04,streamFile) != 0x574D4120) /* "WMA " */
+        goto fail;
+
+    loop_flag = 0;
+    channel_count = read_32bitLE(0x08, streamFile);
+    start_offset = 0x800;
+    data_size = get_streamfile_size(streamFile) - start_offset;
+
+    /* build the VGMSTREAM */
+    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+    if (!vgmstream) goto fail;
+
+    vgmstream->meta_type = meta_RSD6WMA;
+    //vgmstream->num_samples = read_32bitLE(start_offset + 0x00, streamFile); /* ? */
+    vgmstream->sample_rate = read_32bitLE(start_offset + 0x04, streamFile);
+
+#ifdef VGM_USE_FFMPEG
+    {
+        ffmpeg_codec_data *ffmpeg_data = NULL;
+
+        /* mini header + WMA header at start_offset */
+        ffmpeg_data = init_ffmpeg_offset(streamFile, start_offset+0x08,data_size);
+        if (!ffmpeg_data) goto fail;
+        vgmstream->codec_data = ffmpeg_data;
+        vgmstream->coding_type = coding_FFmpeg;
+        vgmstream->layout_type = layout_none;
+
+        vgmstream->num_samples = (int32_t)ffmpeg_data->totalSamples; /* probably an estimation */
+
 #else
         goto fail;
 #endif

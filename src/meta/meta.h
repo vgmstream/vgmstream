@@ -307,6 +307,7 @@ VGMSTREAM * init_vgmstream_rsd6radp(STREAMFILE * streamFile);
 VGMSTREAM * init_vgmstream_rsd6oogv(STREAMFILE* streamFile);
 VGMSTREAM * init_vgmstream_rsd6xma(STREAMFILE *streamFile);
 VGMSTREAM * init_vgmstream_rsd6at3p(STREAMFILE * streamFile);
+VGMSTREAM * init_vgmstream_rsd6wma(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_dc_asd(STREAMFILE * streamFile);
 
