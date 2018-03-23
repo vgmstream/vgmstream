@@ -24,6 +24,7 @@ struct dsp_header {
     uint16_t loop_ps;
     int16_t loop_hist1;
     int16_t loop_hist2;
+    /* later/mdsp extension */
     int16_t channel_count;
     int16_t block_size;
 };
@@ -581,67 +582,6 @@ fail:
     return NULL;
 }
 
-/* str: a very simple header format with implicit loop values
- * it's allways in interleaved stereo format
- */
-VGMSTREAM * init_vgmstream_ngc_str(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
-    char filename[PATH_LIMIT];
-
-    const off_t start_offset = 0x60;
-    int i;
-
-    /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("str",filename_extension(filename))) goto fail;
-
-    /* always 0xFAAF0001 @ offset 0 */
-    if (read_32bitBE(0x00,streamFile)!=0xFAAF0001) goto fail;
-
-    /* build the VGMSTREAM */
-    /* always loop & stereo */
-    vgmstream = allocate_vgmstream(2,1);
-    if (!vgmstream) goto fail;
-
-    /* fill in the vital statistics */
-    vgmstream->num_samples = read_32bitBE(0x08,streamFile);
-    vgmstream->sample_rate = read_32bitBE(0x04,streamFile);
-
-    /* always loop to the beginning */
-    vgmstream->loop_start_sample=0;
-    vgmstream->loop_end_sample=vgmstream->num_samples;
-
-    vgmstream->coding_type = coding_NGC_DSP;
-    vgmstream->layout_type = layout_interleave;
-    vgmstream->interleave_block_size = read_32bitBE(0x0C,streamFile);
-    vgmstream->meta_type = meta_DSP_STR;
-
-    /* coeffs */
-    for (i=0;i<16;i++) {
-        vgmstream->ch[0].adpcm_coef[i] = read_16bitBE(0x10+(i*2),streamFile);
-        vgmstream->ch[1].adpcm_coef[i] = read_16bitBE(0x30+(i*2),streamFile);
-    }
-    
-    /* open the file for reading */
-    for (i=0;i<2;i++) {
-        vgmstream->ch[i].streamfile = streamFile->open(streamFile,filename,
-                vgmstream->interleave_block_size);
-
-        if (!vgmstream->ch[i].streamfile) goto fail;
-
-        vgmstream->ch[i].channel_start_offset=
-            vgmstream->ch[i].offset=start_offset+
-            vgmstream->interleave_block_size*i;
-    }
-
-    return vgmstream;
-
-fail:
-    /* clean up anything we may have opened */
-    if (vgmstream) close_vgmstream(vgmstream);
-    return NULL;
-}
-
 /* a bunch of formats that are identical except for file extension,
  * but have different interleaves */
 VGMSTREAM * init_vgmstream_ngc_dsp_std_int(STREAMFILE *streamFile) {
@@ -882,7 +822,6 @@ fail:
 #define SADB_MAX_CHANNELS 2
 /* sadb - Procyon Studio header + interleaved dsp [Shiren the Wanderer 3 (Wii), Disaster: Day of Crisis (Wii)] */
 VGMSTREAM * init_vgmstream_sadb(STREAMFILE *streamFile) {
-
     VGMSTREAM * vgmstream = NULL;
     off_t start_offset, header_offset;
     size_t header_spacing, interleave;

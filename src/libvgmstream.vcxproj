@@ -271,6 +271,7 @@
     <ClCompile Include="meta\ngc_pdt.c" />
     <ClCompile Include="meta\ngc_sck_dsp.c" />
     <ClCompile Include="meta\ngc_ssm.c" />
+    <ClCompile Include="meta\ngc_str_cauldron.c" />
     <ClCompile Include="meta\ngc_tydsp.c" />
     <ClCompile Include="meta\ngc_ymf.c" />
     <ClCompile Include="meta\ngc_ulw.c" />

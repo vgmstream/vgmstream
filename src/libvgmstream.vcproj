@@ -662,6 +662,10 @@
 					RelativePath=".\meta\ngc_ssm.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\meta\ngc_str_cauldron.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\ngc_tydsp.c"
 					>

@@ -397,6 +397,9 @@
     <ClCompile Include="meta\ngc_ssm.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\ngc_str_cauldron.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\ngc_tydsp.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
