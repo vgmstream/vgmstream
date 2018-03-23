@@ -291,6 +291,7 @@ static const char* extension_list[] = {
     "sli",
     "smp",
     "smpl", //fake extension (to be removed)
+    "smv",
     "snd",
     "snds",
     "sng",
@@ -963,6 +964,7 @@ static const meta_info meta_info_list[] = {
         {meta_WAF,                  "KID WAF header"},
         {meta_WAVE,                 "EngineBlack .WAVE header"},
         {meta_WAVE_segmented,       "EngineBlack .WAVE header (segmented)"},
+        {meta_SMV,                  "Cho Aniki Zero .SMV header"},
 
 #ifdef VGM_USE_MP4V2
         {meta_MP4,                  "AAC header"},

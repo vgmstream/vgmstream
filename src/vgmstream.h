@@ -657,6 +657,7 @@ typedef enum {
     meta_WAF,               /* KID WAF [Ever 17 (PC)] */
     meta_WAVE,              /* WayForward "EngineBlack" games [Mighty Switch Force! (3DS)] */
     meta_WAVE_segmented,    /* WayForward "EngineBlack" games, segmented [Shantae and the Pirate's Curse (PC)] */
+    meta_SMV,               /* Cho Aniki Zero (PSP) */
 
 #ifdef VGM_USE_MP4V2
     meta_MP4,               /* AAC (iOS) */

@@ -1191,6 +1191,10 @@
 					>
 				</File>
                 <File
+                    RelativePath=".\meta\smv.c"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\sps_n1.c"
                     >
                 </File>
