@@ -221,7 +221,7 @@ typedef enum {
     layout_blocked_ea_schl,
     layout_blocked_ea_1snh,
     layout_blocked_caf,
-    layout_wsi_blocked,
+    layout_blocked_wsi,
     layout_str_snds_blocked,
     layout_ws_aud_blocked,
     layout_matx_blocked,
