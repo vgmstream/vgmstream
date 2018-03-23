@@ -499,7 +499,7 @@
     <ClCompile Include="layout\thp_blocked.c" />
     <ClCompile Include="layout\vs_blocked.c" />
     <ClCompile Include="layout\ws_aud_blocked.c" />
-    <ClCompile Include="layout\wsi_blocked.c" />
+    <ClCompile Include="layout\blocked_wsi.c" />
     <ClCompile Include="layout\xa_blocked.c" />
     <ClCompile Include="layout\xvas_block.c" />
     <ClCompile Include="..\ext_libs\clHCA.c" />

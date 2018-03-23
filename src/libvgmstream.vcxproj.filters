@@ -1072,7 +1072,7 @@
     <ClCompile Include="layout\ws_aud_blocked.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="layout\wsi_blocked.c">
+    <ClCompile Include="layout\blocked_wsi.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="layout\xa_blocked.c">
