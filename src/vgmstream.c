@@ -1004,6 +1004,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_3DS_IMA:
             return 2;
         case coding_XBOX_IMA:
+        case coding_XBOX_IMA_mch:
         case coding_XBOX_IMA_int:
         case coding_FSB_IMA:
         case coding_WWISE_IMA:
@@ -1173,9 +1174,11 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
             //todo should be  0x48 when stereo, but blocked/interleave layout don't understand stereo codecs
             return 0x24; //vgmstream->channels==1 ? 0x24 : 0x48;
         case coding_XBOX_IMA_int:
-        case coding_FSB_IMA:
         case coding_WWISE_IMA:
             return 0x24;
+        case coding_XBOX_IMA_mch:
+        case coding_FSB_IMA:
+            return 0x24 * vgmstream->channels;
         case coding_APPLE_IMA4:
             return 0x22;
 
@@ -1431,7 +1434,14 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
             break;
         case coding_XBOX_IMA:
             for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_xbox_ima(vgmstream,&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                decode_xbox_ima(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                        vgmstream->channels,vgmstream->samples_into_block,
+                        samples_to_do,chan);
+            }
+            break;
+        case coding_XBOX_IMA_mch:
+            for (chan=0;chan<vgmstream->channels;chan++) {
+                decode_xbox_ima_mch(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
                         samples_to_do,chan);
             }

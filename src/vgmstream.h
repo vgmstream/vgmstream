@@ -128,6 +128,7 @@ typedef enum {
     coding_3DS_IMA,         /* 3DS IMA ADPCM */
     coding_MS_IMA,          /* Microsoft IMA ADPCM */
     coding_XBOX_IMA,        /* XBOX IMA ADPCM */
+    coding_XBOX_IMA_mch,    /* XBOX IMA ADPCM (multichannel) */
     coding_XBOX_IMA_int,    /* XBOX IMA ADPCM (interleaved/mono) */
     coding_NDS_IMA,         /* IMA ADPCM w/ NDS layout */
     coding_DAT4_IMA,        /* Eurocom 'DAT4' IMA ADPCM */

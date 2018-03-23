@@ -479,6 +479,7 @@ static const coding_info coding_info_list[] = {
         {coding_3DS_IMA,            "3DS IMA 4-bit ADPCM"},
         {coding_MS_IMA,             "Microsoft 4-bit IMA ADPCM"},
         {coding_XBOX_IMA,           "XBOX 4-bit IMA ADPCM"},
+        {coding_XBOX_IMA_mch,       "XBOX 4-bit IMA ADPCM (multichannel)"},
         {coding_XBOX_IMA_int,       "XBOX 4-bit IMA ADPCM (mono/interleave)"},
         {coding_NDS_IMA,            "NDS-style 4-bit IMA ADPCM"},
         {coding_DAT4_IMA,           "Eurocom DAT4 4-bit IMA ADPCM"},
