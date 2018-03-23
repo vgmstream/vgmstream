@@ -95,7 +95,6 @@ typedef struct {
     int loop_end_found;
     int32_t loop_end;
     meta_t meta_type;
-    layout_t layout_type;
 
     off_t stream_size;
     int total_subsongs;
@@ -106,9 +105,9 @@ typedef struct {
     off_t scd_xor_length;
     uint32_t sngw_xor;
 
-} vgm_vorbis_info_t;
+} ogg_vorbis_meta_info_t;
 
-VGMSTREAM * init_vgmstream_ogg_vorbis_callbacks(STREAMFILE *streamFile, const char * filename, ov_callbacks *callbacks, off_t other_header_bytes, const vgm_vorbis_info_t *vgm_inf);
+VGMSTREAM * init_vgmstream_ogg_vorbis_callbacks(STREAMFILE *streamFile, ov_callbacks *callbacks, off_t other_header_bytes, const ogg_vorbis_meta_info_t *ovmi);
 
 VGMSTREAM * init_vgmstream_sli_ogg(STREAMFILE * streamFile);
 #endif

@@ -179,8 +179,7 @@ static void l2sd_ogg_decryption_callback(void *ptr, size_t size, size_t nmemb, v
 
 /* Ogg Vorbis, by way of libvorbisfile; may contain loop comments */
 VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
-    char filename[PATH_LIMIT];
-    vgm_vorbis_info_t inf = {0};
+    ogg_vorbis_meta_info_t ovmi = {0};
     off_t start_offset = 0;
 
     int is_ogg = 0;
@@ -210,7 +209,6 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
     } else {
         goto fail;
     }
-    streamFile->get_name(streamFile,filename,sizeof(filename));
 
     /* check standard Ogg Vorbis */
     if (is_ogg) {
@@ -218,11 +216,11 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
         /* check Psychic Software obfuscation (Darkwind: War on Wheels PC) */
         if (read_32bitBE(0x00,streamFile) == 0x2c444430) {
             is_psychic = 1;
-            inf.decryption_callback = psychic_ogg_decryption_callback;
+            ovmi.decryption_callback = psychic_ogg_decryption_callback;
         }
         else if (read_32bitBE(0x00,streamFile) == 0x4C325344) { /* "L2SD" [Lineage II Chronicle 4 (PC)] */
             is_l2sd = 1;
-            inf.decryption_callback = l2sd_ogg_decryption_callback;
+            ovmi.decryption_callback = l2sd_ogg_decryption_callback;
         }
         else if (read_32bitBE(0x00,streamFile) != 0x4f676753) { /* "OggS" */
             goto fail; /* not known (ex. Wwise) */
@@ -232,7 +230,7 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
     /* check "Ultramarine3" (???), may be encrypted */
     if (is_um3) {
         if (read_32bitBE(0x00,streamFile) != 0x4f676753) { /* "OggS" */
-            inf.decryption_callback = um3_ogg_decryption_callback;
+            ovmi.decryption_callback = um3_ogg_decryption_callback;
         }
     }
 
@@ -241,9 +239,9 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
         if (read_32bitBE(0x00,streamFile) != 0x4b4f5653) { /* "KOVS" */
             goto fail;
         }
-        inf.loop_start = read_32bitLE(0x08,streamFile);
-        inf.loop_flag = (inf.loop_start != 0);
-        inf.decryption_callback = kovs_ogg_decryption_callback;
+        ovmi.loop_start = read_32bitLE(0x08,streamFile);
+        ovmi.loop_flag = (ovmi.loop_start != 0);
+        ovmi.decryption_callback = kovs_ogg_decryption_callback;
 
         start_offset = 0x20;
     }
@@ -251,14 +249,14 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
     /* check SNGW (Capcom's MT Framework PC games), may be encrypted */
     if (is_sngw) {
         if (read_32bitBE(0x00,streamFile) != 0x4f676753) { /* "OggS" */
-            inf.sngw_xor = read_32bitBE(0x00,streamFile);
-            inf.decryption_callback = sngw_ogg_decryption_callback;
+            ovmi.sngw_xor = read_32bitBE(0x00,streamFile);
+            ovmi.decryption_callback = sngw_ogg_decryption_callback;
         }
     }
 
     /* check ISD (Gunvolt PC) */
     if (is_isd) {
-        inf.decryption_callback = isd_ogg_decryption_callback;
+        ovmi.decryption_callback = isd_ogg_decryption_callback;
 
         //todo looping unknown, not in Ogg comments
         // game has sound/GV_steam.* files with info about sound/stream/*.isd
@@ -271,42 +269,41 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
 
 
     if (is_um3) {
-        inf.meta_type = meta_OGG_UM3;
+        ovmi.meta_type = meta_OGG_UM3;
     } else if (is_kovs) {
-        inf.meta_type = meta_OGG_KOVS;
+        ovmi.meta_type = meta_OGG_KOVS;
     } else if (is_psychic) {
-        inf.meta_type = meta_OGG_PSYCHIC;
+        ovmi.meta_type = meta_OGG_PSYCHIC;
     } else if (is_sngw) {
-        inf.meta_type = meta_OGG_SNGW;
+        ovmi.meta_type = meta_OGG_SNGW;
     } else if (is_isd) {
-        inf.meta_type = meta_OGG_ISD;
+        ovmi.meta_type = meta_OGG_ISD;
     } else if (is_l2sd) {
-        inf.meta_type = meta_OGG_L2SD;
+        ovmi.meta_type = meta_OGG_L2SD;
     } else {
-        inf.meta_type = meta_OGG_VORBIS;
+        ovmi.meta_type = meta_OGG_VORBIS;
     }
-    inf.layout_type = layout_ogg_vorbis;
 
-    return init_vgmstream_ogg_vorbis_callbacks(streamFile, filename, NULL, start_offset, &inf);
+    return init_vgmstream_ogg_vorbis_callbacks(streamFile, NULL, start_offset, &ovmi);
 
 fail:
     return NULL;
 }
 
-VGMSTREAM * init_vgmstream_ogg_vorbis_callbacks(STREAMFILE *streamFile, const char * filename, ov_callbacks *callbacks_p, off_t start, const vgm_vorbis_info_t *vgm_inf) {
+VGMSTREAM * init_vgmstream_ogg_vorbis_callbacks(STREAMFILE *streamFile, ov_callbacks *callbacks_p, off_t start, const ogg_vorbis_meta_info_t *ovmi) {
     VGMSTREAM * vgmstream = NULL;
     ogg_vorbis_codec_data * data = NULL;
     OggVorbis_File *ovf = NULL;
     vorbis_info *vi;
 
-    int loop_flag = vgm_inf->loop_flag;
-    int32_t loop_start = vgm_inf->loop_start;
-    int loop_length_found = vgm_inf->loop_length_found;
-    int32_t loop_length = vgm_inf->loop_length;
-    int loop_end_found = vgm_inf->loop_end_found;
-    int32_t loop_end = vgm_inf->loop_end;
-    size_t stream_size = vgm_inf->stream_size ?
-            vgm_inf->stream_size :
+    int loop_flag = ovmi->loop_flag;
+    int32_t loop_start = ovmi->loop_start;
+    int loop_length_found = ovmi->loop_length_found;
+    int32_t loop_length = ovmi->loop_length;
+    int loop_end_found = ovmi->loop_end_found;
+    int32_t loop_end = ovmi->loop_end;
+    size_t stream_size = ovmi->stream_size ?
+            ovmi->stream_size :
             get_streamfile_size(streamFile) - start;
 
     ov_callbacks default_callbacks;
@@ -331,10 +328,10 @@ VGMSTREAM * init_vgmstream_ogg_vorbis_callbacks(STREAMFILE *streamFile, const ch
         temp_streamfile.offset = 0;
         temp_streamfile.size = stream_size;
 
-        temp_streamfile.decryption_callback = vgm_inf->decryption_callback;
-        temp_streamfile.scd_xor = vgm_inf->scd_xor;
-        temp_streamfile.scd_xor_length = vgm_inf->scd_xor_length;
-        temp_streamfile.sngw_xor = vgm_inf->sngw_xor;
+        temp_streamfile.decryption_callback = ovmi->decryption_callback;
+        temp_streamfile.scd_xor = ovmi->scd_xor;
+        temp_streamfile.scd_xor_length = ovmi->scd_xor_length;
+        temp_streamfile.sngw_xor = ovmi->sngw_xor;
 
         /* open the ogg vorbis file for testing */
         memset(&temp_ovf, 0, sizeof(temp_ovf));
@@ -348,9 +345,12 @@ VGMSTREAM * init_vgmstream_ogg_vorbis_callbacks(STREAMFILE *streamFile, const ch
 
     /* proceed to init codec_data and reopen a STREAMFILE for this stream */
     {
+        char filename[PATH_LIMIT];
+
         data = calloc(1,sizeof(ogg_vorbis_codec_data));
         if (!data) goto fail;
 
+        streamFile->get_name(streamFile,filename,sizeof(filename));
         data->ov_streamfile.streamfile = streamFile->open(streamFile,filename, STREAMFILE_DEFAULT_BUFFER_SIZE);
         if (!data->ov_streamfile.streamfile) goto fail;
 
@@ -358,10 +358,10 @@ VGMSTREAM * init_vgmstream_ogg_vorbis_callbacks(STREAMFILE *streamFile, const ch
         data->ov_streamfile.offset = 0;
         data->ov_streamfile.size = stream_size;
 
-        data->ov_streamfile.decryption_callback = vgm_inf->decryption_callback;
-        data->ov_streamfile.scd_xor = vgm_inf->scd_xor;
-        data->ov_streamfile.scd_xor_length = vgm_inf->scd_xor_length;
-        data->ov_streamfile.sngw_xor = vgm_inf->sngw_xor;
+        data->ov_streamfile.decryption_callback = ovmi->decryption_callback;
+        data->ov_streamfile.scd_xor = ovmi->scd_xor;
+        data->ov_streamfile.scd_xor_length = ovmi->scd_xor_length;
+        data->ov_streamfile.sngw_xor = ovmi->sngw_xor;
 
         /* open the ogg vorbis file for real */
         if (ov_open_callbacks(&data->ov_streamfile, &data->ogg_vorbis_file, NULL, 0, *callbacks_p))
@@ -441,7 +441,7 @@ VGMSTREAM * init_vgmstream_ogg_vorbis_callbacks(STREAMFILE *streamFile, const ch
     vgmstream->codec_data = data; /* store our fun extra datas */
     vgmstream->channels = vi->channels;
     vgmstream->sample_rate = vi->rate;
-    vgmstream->num_streams = vgm_inf->total_subsongs;
+    vgmstream->num_streams = ovmi->total_subsongs;
     vgmstream->stream_size = stream_size;
 
     vgmstream->num_samples = ov_pcm_total(ovf,-1); /* let libvorbisfile find total samples */
@@ -460,8 +460,8 @@ VGMSTREAM * init_vgmstream_ogg_vorbis_callbacks(STREAMFILE *streamFile, const ch
     }
 
     vgmstream->coding_type = coding_OGG_VORBIS;
-    vgmstream->layout_type = vgm_inf->layout_type;
-    vgmstream->meta_type = vgm_inf->meta_type;
+    vgmstream->layout_type = layout_none;
+    vgmstream->meta_type = ovmi->meta_type;
 
     return vgmstream;
 

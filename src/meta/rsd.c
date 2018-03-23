@@ -903,12 +903,11 @@ fail:
 /* RSD6OGG */
 VGMSTREAM * init_vgmstream_rsd6oogv(STREAMFILE *streamFile) {
 #ifdef VGM_USE_VORBIS
-    char filename[PATH_LIMIT];
     off_t start_offset;
 
-    /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("rsd",filename_extension(filename))) goto fail;
+    /* check extension */
+    if (!check_extensions(streamFile, "rsd"))
+        goto fail;
 
     /* check header */
     if (read_32bitBE(0x0,streamFile) != 0x52534436) /* RSD6 */
@@ -917,15 +916,13 @@ VGMSTREAM * init_vgmstream_rsd6oogv(STREAMFILE *streamFile) {
         goto fail;
 
     {
-        vgm_vorbis_info_t inf;
+	    ogg_vorbis_meta_info_t ovmi = {0};
         VGMSTREAM * result = NULL;
 
-        memset(&inf, 0, sizeof(inf));
-        inf.layout_type = layout_ogg_vorbis;
-        inf.meta_type = meta_RSD6OOGV;
+        ovmi.meta_type = meta_RSD6OOGV;
 
         start_offset = 0x800;
-		result = init_vgmstream_ogg_vorbis_callbacks(streamFile, filename, NULL, start_offset, &inf);
+		result = init_vgmstream_ogg_vorbis_callbacks(streamFile, NULL, start_offset, &ovmi);
 
         if (result != NULL) {
             return result;

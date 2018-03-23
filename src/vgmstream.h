@@ -254,9 +254,6 @@ typedef enum {
     layout_segmented,       /* song divided in segments, each a complete VGMSTREAM */
     layout_scd_int,         /* deinterleave done by the SCDINTSTREAMFILE */
 
-#ifdef VGM_USE_VORBIS
-    layout_ogg_vorbis,      /* ogg vorbis file */
-#endif
 } layout_t;
 
 /* The meta type specifies how we know what we know about the file.

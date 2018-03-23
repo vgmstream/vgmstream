@@ -585,9 +585,6 @@ static const layout_info layout_info_list[] = {
         {layout_blocked_vgs,            "blocked (VGS)"},
         {layout_blocked_vawx,           "blocked (VAWX)"},
         {layout_blocked_xvag_subsong,   "blocked (XVAG subsong)"},
-#ifdef VGM_USE_VORBIS
-        {layout_ogg_vorbis,             "Ogg"},
-#endif
 };
 
 static const meta_info meta_info_list[] = {

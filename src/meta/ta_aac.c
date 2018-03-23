@@ -213,10 +213,8 @@ fail:
 VGMSTREAM * init_vgmstream_ta_aac_mobile(STREAMFILE *streamFile) {
 #ifdef VGM_USE_VORBIS
     off_t start_offset;
-    char filename[PATH_LIMIT];
     int8_t codec_id;
 
-    streamFile->get_name(streamFile, filename, sizeof(filename));
     /* check extension, case insensitive */
     /* .aac: expected, .laac/ace: for players to avoid hijacking MP4/AAC */
     if (!check_extensions(streamFile, "aac,laac,ace"))
@@ -231,19 +229,17 @@ VGMSTREAM * init_vgmstream_ta_aac_mobile(STREAMFILE *streamFile) {
     codec_id = read_8bit(0x104, streamFile);
     if (codec_id == 0xe) /* Vorbis */
     {
-        vgm_vorbis_info_t inf;
+        ogg_vorbis_meta_info_t ovmi = {0};
         VGMSTREAM * result = NULL;
 
-        memset(&inf, 0, sizeof(inf));
-        inf.layout_type = layout_ogg_vorbis;
-        inf.meta_type = meta_TA_AAC_VORBIS;
-        inf.loop_start = read_32bitLE(0x140, streamFile);
-        inf.loop_end = read_32bitLE(0x144, streamFile);
-        inf.loop_flag = inf.loop_end > inf.loop_start;
-        inf.loop_end_found = inf.loop_flag;
+        ovmi.meta_type = meta_TA_AAC_VORBIS;
+        ovmi.loop_start = read_32bitLE(0x140, streamFile);
+        ovmi.loop_end = read_32bitLE(0x144, streamFile);
+        ovmi.loop_flag = ovmi.loop_end > ovmi.loop_start;
+        ovmi.loop_end_found = ovmi.loop_flag;
 
         start_offset = read_32bitLE(0x120, streamFile);
-        result = init_vgmstream_ogg_vorbis_callbacks(streamFile, filename, NULL, start_offset, &inf);
+        result = init_vgmstream_ogg_vorbis_callbacks(streamFile, NULL, start_offset, &ovmi);
 
         if (result != NULL) {
             return result;

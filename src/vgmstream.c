@@ -887,9 +887,6 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
         case layout_interleave_shortblock:
             render_vgmstream_interleave(buffer,sample_count,vgmstream);
             break;
-#ifdef VGM_USE_VORBIS
-        case layout_ogg_vorbis:
-#endif
         case layout_none:
             render_vgmstream_nolayout(buffer,sample_count,vgmstream);
             break;

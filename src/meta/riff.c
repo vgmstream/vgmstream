@@ -838,15 +838,13 @@ static VGMSTREAM *parse_riff_ogg(STREAMFILE * streamFile, off_t start_offset, si
     {
         VGMSTREAM *vgmstream = NULL;
         STREAMFILE *custom_streamFile = NULL;
-        char filename[PATH_LIMIT];
-        vgm_vorbis_info_t inf = {0};
+        ogg_vorbis_meta_info_t ovmi = {0};
         riff_ogg_io_data io_data = {0};
         size_t io_data_size = sizeof(riff_ogg_io_data);
 
 
-        inf.layout_type = layout_ogg_vorbis;
-        inf.meta_type = meta_RIFF_WAVE;
-        inf.stream_size = real_size;
+        ovmi.meta_type = meta_RIFF_WAVE;
+        ovmi.stream_size = real_size;
         //inf.loop_flag = 0; /* not observed */
 
         io_data.patch_offset = patch_offset;
@@ -854,8 +852,7 @@ static VGMSTREAM *parse_riff_ogg(STREAMFILE * streamFile, off_t start_offset, si
         custom_streamFile = open_io_streamfile(open_wrap_streamfile(streamFile), &io_data,io_data_size, riff_ogg_io_read);
         if (!custom_streamFile) return NULL;
 
-        streamFile->get_name(streamFile,filename,sizeof(filename));
-        vgmstream = init_vgmstream_ogg_vorbis_callbacks(custom_streamFile, filename, NULL, start_offset, &inf);
+        vgmstream = init_vgmstream_ogg_vorbis_callbacks(custom_streamFile, NULL, start_offset, &ovmi);
 
         close_streamfile(custom_streamFile);
 
