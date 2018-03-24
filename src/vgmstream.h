@@ -618,7 +618,7 @@ typedef enum {
     meta_GTD,               /* Knights Contract (X360/PS3), Valhalla Knights 3 (PSV) */
     meta_TA_AAC_X360,       /* tri-Ace AAC (Star Ocean 4, End of Eternity, Infinite Undiscovery) */
     meta_TA_AAC_PS3,        /* tri-Ace AAC (Star Ocean International, Resonance of Fate) */
-    meta_TA_AAC_VORBIS,     /* tri-Ace AAC (Star Ocean Anamnesis, Heaven x Inferno) */
+    meta_TA_AAC_MOBILE,     /* tri-Ace AAC (Star Ocean Anamnesis, Heaven x Inferno) */
     meta_PS3_MTA2,          /* Metal Gear Solid 4 MTA2 */
     meta_NGC_ULW,           /* Burnout 1 (GC only) */
     meta_PC_XA30,           /* Driver - Parallel Lines (PC) */

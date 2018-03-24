@@ -924,7 +924,7 @@ static const meta_info meta_info_list[] = {
         {meta_GTD,                  "GTD/GHS header"},
         {meta_TA_AAC_X360,          "tri-Ace AAC (X360) header"},
         {meta_TA_AAC_PS3,           "tri-Ace AAC (PS3) header"},
-        {meta_TA_AAC_VORBIS,        "tri-Ace AAC (Mobile Vorbis) header"},
+        {meta_TA_AAC_MOBILE,        "tri-Ace AAC (Mobile) header"},
         {meta_PS3_MTA2,             "Konami MTA2 header"},
         {meta_NGC_ULW,              "Criterion ULW raw header"},
         {meta_PC_XA30,              "Reflections XA30 PC header"},
