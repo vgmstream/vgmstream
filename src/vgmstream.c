@@ -69,7 +69,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_mp4_aac,
 #endif
 #if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
-    init_vgmstream_akb,
+    init_vgmstream_akb_mp4,
 #endif
     init_vgmstream_sadb,
     init_vgmstream_ps2_bmdx,
@@ -330,8 +330,8 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_ps2_vds_vdm,
     init_vgmstream_x360_cxs,
     init_vgmstream_dsp_adx,
-    init_vgmstream_akb_multi,
-    init_vgmstream_akb2_multi,
+    init_vgmstream_akb,
+    init_vgmstream_akb2,
 #ifdef VGM_USE_FFMPEG
     init_vgmstream_mp4_aac_ffmpeg,
 #endif

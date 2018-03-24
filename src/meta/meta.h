@@ -125,7 +125,7 @@ VGMSTREAM * init_vgmstream_mp4_aac_ffmpeg(STREAMFILE * streamFile);
 VGMSTREAM * init_vgmstream_mp4_aac(STREAMFILE * streamFile);
 VGMSTREAM * init_vgmstream_mp4_aac_offset(STREAMFILE *streamFile, uint64_t start, uint64_t size);
 
-VGMSTREAM * init_vgmstream_akb(STREAMFILE *streamFile);
+VGMSTREAM * init_vgmstream_akb_mp4(STREAMFILE *streamFile);
 #endif
 
 VGMSTREAM * init_vgmstream_sfl(STREAMFILE * streamFile);
@@ -622,8 +622,8 @@ VGMSTREAM * init_vgmstream_x360_cxs(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_dsp_adx(STREAMFILE *streamFile);
 
-VGMSTREAM * init_vgmstream_akb_multi(STREAMFILE *streamFile);
-VGMSTREAM * init_vgmstream_akb2_multi(STREAMFILE *streamFile);
+VGMSTREAM * init_vgmstream_akb(STREAMFILE *streamFile);
+VGMSTREAM * init_vgmstream_akb2(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_x360_ast(STREAMFILE *streamFile);
 
