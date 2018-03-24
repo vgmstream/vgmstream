@@ -1483,7 +1483,7 @@
 					>
 				</File>
 				<File
-					RelativePath=".\coding\aica_decoder.c"
+					RelativePath=".\coding\yamaha_decoder.c"
 					>
 				</File>
                 <File

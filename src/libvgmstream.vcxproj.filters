@@ -877,7 +877,7 @@
     <ClCompile Include="coding\adx_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="coding\aica_decoder.c">
+    <ClCompile Include="coding\yamaha_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\ea_mt_decoder.c">
