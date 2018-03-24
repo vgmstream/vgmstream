@@ -418,6 +418,9 @@
     <ClCompile Include="meta\nwa.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\nxap.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\ogg_vorbis.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>

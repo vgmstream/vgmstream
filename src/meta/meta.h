@@ -714,4 +714,6 @@ VGMSTREAM * init_vgmstream_wave_segmented(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_smv(STREAMFILE * streamFile);
 
+VGMSTREAM * init_vgmstream_nxap(STREAMFILE * streamFile);
+
 #endif /*_META_H*/

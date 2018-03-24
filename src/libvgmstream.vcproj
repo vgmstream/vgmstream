@@ -702,6 +702,10 @@
 					RelativePath=".\meta\nwa.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\meta\nxap.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\ogg_vorbis.c"
 					>

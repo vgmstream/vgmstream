@@ -657,9 +657,10 @@ typedef enum {
     meta_SQEX_MAB,          /* Square-Enix newest middleware (music) */
     meta_OGG_L2SD,          /* Ogg Vorbis with obfuscation [Lineage II Chronicle 4 (PC)] */
     meta_WAF,               /* KID WAF [Ever 17 (PC)] */
-    meta_WAVE,              /* WayForward "EngineBlack" games [Mighty Switch Force! (3DS)] */
-    meta_WAVE_segmented,    /* WayForward "EngineBlack" games, segmented [Shantae and the Pirate's Curse (PC)] */
+    meta_WAVE,              /* EngineBlack games [Mighty Switch Force! (3DS)] */
+    meta_WAVE_segmented,    /* EngineBlack games, segmented [Shantae and the Pirate's Curse (PC)] */
     meta_SMV,               /* Cho Aniki Zero (PSP) */
+    meta_NXAP,              /* Nex Entertainment games [Time Crisis 4 (PS3), Time Crisis Razing Storm (PS3)] */
 
 #ifdef VGM_USE_MP4V2
     meta_MP4,               /* AAC (iOS) */
