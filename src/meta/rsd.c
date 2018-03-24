@@ -1141,10 +1141,10 @@ VGMSTREAM * init_vgmstream_rsd6at3p(STREAMFILE *streamFile) {
             }
             ffmpeg_set_skip_samples(ffmpeg_data, fact_skip_samples);
         }
-#else
-        goto fail;
-#endif
     }
+#else
+    goto fail;
+#endif
 
     if (!vgmstream_open_stream(vgmstream, streamFile, start_offset))
         goto fail;
