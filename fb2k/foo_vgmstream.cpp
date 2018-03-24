@@ -154,7 +154,7 @@ void input_vgmstream::get_info(t_uint32 p_subsong, file_info & p_info, abort_cal
     if (get_description_tag(temp,description,"encoding: ")) p_info.info_set("codec",temp);
     if (get_description_tag(temp,description,"layout: ")) p_info.info_set("layout",temp);
     if (get_description_tag(temp,description,"interleave: ",' ')) p_info.info_set("interleave",temp);
-    if (get_description_tag(temp,description,"last block interleave:",' ')) p_info.info_set("interleave_last_block",temp);
+    if (get_description_tag(temp,description,"interleave last block:",' ')) p_info.info_set("interleave_last_block",temp);
 
     if (get_description_tag(temp,description,"block size: ")) p_info.info_set("block_size",temp);
     if (get_description_tag(temp,description,"metadata from: ")) p_info.info_set("metadata_source",temp);

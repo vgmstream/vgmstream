@@ -2147,7 +2147,7 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
 
         if (vgmstream->interleave_last_block_size) {
             snprintf(temp,TEMPSIZE,
-                    "last block interleave: %#x bytes\n",
+                    "interleave last block: %#x bytes\n",
                     (int32_t)vgmstream->interleave_last_block_size);
             concatn(length,desc,temp);
         }
