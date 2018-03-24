@@ -1048,6 +1048,10 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
             return vgmstream->ws_output_size;
         case coding_AICA:
             return 2;
+        case coding_YAMAHA:
+            return (0x40-0x04*vgmstream->channels) * 2 / vgmstream->channels;
+        case coding_YAMAHA_NXAP:
+            return (0x40-0x04) * 2;
         case coding_NDS_PROCYON:
             return 30;
         case coding_L5_555:
@@ -1210,6 +1214,9 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
             return vgmstream->current_block_size;
         case coding_AICA:
             return 0x01;
+        case coding_YAMAHA:
+        case coding_YAMAHA_NXAP:
+            return 0x40;
         case coding_NDS_PROCYON:
             return 0x10;
         case coding_L5_555:
@@ -1804,6 +1811,20 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
         case coding_AICA:
             for (chan=0;chan<vgmstream->channels;chan++) {
                 decode_aica(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                        vgmstream->channels,vgmstream->samples_into_block,
+                        samples_to_do);
+            }
+            break;
+        case coding_YAMAHA:
+            for (chan=0;chan<vgmstream->channels;chan++) {
+                decode_yamaha(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                        vgmstream->channels,vgmstream->samples_into_block,
+                        samples_to_do, chan);
+            }
+            break;
+        case coding_YAMAHA_NXAP:
+            for (chan=0;chan<vgmstream->channels;chan++) {
+                decode_yamaha_nxap(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
                         samples_to_do);
             }

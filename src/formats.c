@@ -498,6 +498,8 @@ static const coding_info coding_info_list[] = {
         {coding_MSADPCM,            "Microsoft 4-bit ADPCM"},
         {coding_WS,                 "Westwood Studios VBR ADPCM"},
         {coding_AICA,               "Yamaha AICA 4-bit ADPCM"},
+        {coding_YAMAHA,             "Yamaha 4-bit ADPCM"},
+        {coding_YAMAHA_NXAP,        "Yamaha NXAP 4-bit ADPCM"},
         {coding_NDS_PROCYON,        "Procyon Studio Digital Sound Elements NDS 4-bit APDCM"},
         {coding_L5_555,             "Level-5 0x555 4-bit ADPCM"},
         {coding_SASSC,              "Activision / EXAKT SASSC 8-bit DPCM"},
@@ -965,6 +967,7 @@ static const meta_info meta_info_list[] = {
         {meta_WAVE,                 "EngineBlack .WAVE header"},
         {meta_WAVE_segmented,       "EngineBlack .WAVE header (segmented)"},
         {meta_SMV,                  "Cho Aniki Zero .SMV header"},
+        {meta_NXAP,                 "Nex NXAP header"},
 
 #ifdef VGM_USE_MP4V2
         {meta_MP4,                  "AAC header"},

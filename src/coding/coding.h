@@ -117,8 +117,11 @@ void decode_msadpcm_stereo(VGMSTREAM * vgmstream, sample * outbuf, int32_t first
 void decode_msadpcm_mono(VGMSTREAM * vgmstream, sample * outbuf, int32_t first_sample, int32_t samples_to_do);
 long msadpcm_bytes_to_samples(long bytes, int block_size, int channels);
 
-/* aica_decoder */
+/* yamaha_decoder */
 void decode_aica(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
+void decode_yamaha(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel);
+void decode_yamaha_nxap(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
+size_t yamaha_bytes_to_samples(size_t bytes, int channels);
 
 /* nds_procyon_decoder */
 void decode_nds_procyon(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);

@@ -146,6 +146,8 @@ typedef enum {
     coding_MSADPCM,         /* Microsoft ADPCM */
     coding_WS,              /* Westwood Studios VBR ADPCM */
     coding_AICA,            /* Yamaha AICA ADPCM */
+    coding_YAMAHA,          /* Yamaha ADPCM */
+    coding_YAMAHA_NXAP,     /* Yamaha ADPCM (NXAP variation) */
     coding_NDS_PROCYON,     /* Procyon Studio ADPCM */
     coding_L5_555,          /* Level-5 0x555 ADPCM */
     coding_SASSC,           /* Activision EXAKT SASSC DPCM */
