@@ -86,7 +86,7 @@ VGMSTREAM * init_vgmstream_akb(STREAMFILE *streamFile) {
 
 
     switch (codec) {
-        case 0x02: { /* MSAPDCM [various SFX] */
+        case 0x02: { /* MSAPDCM [Dragon Quest II (iOS) sfx] */
             vgmstream->coding_type = coding_MSADPCM;
             vgmstream->layout_type = layout_none;
             vgmstream->interleave_block_size = read_16bitLE(extradata_offset + 0x02,streamFile);
@@ -101,7 +101,7 @@ VGMSTREAM * init_vgmstream_akb(STREAMFILE *streamFile) {
         }
 
 #ifdef VGM_USE_VORBIS
-        case 0x05: { /* Ogg Vorbis [Final Fantasy VI, Dragon Quest II-VI] */
+        case 0x05: { /* Ogg Vorbis [Final Fantasy VI (iOS), Dragon Quest II-VI (iOS)] */
             VGMSTREAM *ogg_vgmstream = NULL;
             ogg_vorbis_meta_info_t ovmi = {0};
 
@@ -123,7 +123,7 @@ VGMSTREAM * init_vgmstream_akb(STREAMFILE *streamFile) {
 #elif defined(VGM_USE_FFMPEG)
         /* Alt decoding without libvorbis (minor number of beginning samples difference).
          * Otherwise same output with (inaudible) +-1 lower byte differences due to rounding. */
-        case 0x05: { /* Ogg Vorbis [Final Fantasy VI, Dragon Quest II-VI] */
+        case 0x05: { /* Ogg Vorbis [Final Fantasy VI (iOS), Dragon Quest II-VI (iOS)] */
             ffmpeg_codec_data *ffmpeg_data;
 
             ffmpeg_data = init_ffmpeg_offset(streamFile, start_offset,stream_size);
