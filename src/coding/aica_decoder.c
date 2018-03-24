@@ -22,6 +22,10 @@ void decode_aica(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing,
     int32_t hist1 = stream->adpcm_history1_16;
     int step_size = stream->adpcm_step_index;
 
+    /* no header (external setup), pre-clamp for wrong values */
+    if (step_size < 0x7f) step_size = 0x7f;
+    if (step_size > 0x6000) step_size = 0x6000;
+
     for (i=first_sample,sample_count=0; i<first_sample+samples_to_do; i++,sample_count+=channelspacing) {
         int sample_nibble, sample_decoded, sample_delta;
         off_t byte_offset = (stream->offset) + i/2;
