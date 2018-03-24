@@ -887,7 +887,6 @@ void vgmstream_force_loop(VGMSTREAM* vgmstream, int loop_flag, int loop_start_sa
 void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstream) {
     switch (vgmstream->layout_type) {
         case layout_interleave:
-        case layout_interleave_shortblock:
             render_vgmstream_interleave(buffer,sample_count,vgmstream);
             break;
         case layout_none:
@@ -1261,7 +1260,7 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
 int get_vgmstream_samples_per_shortframe(VGMSTREAM * vgmstream) {
     switch (vgmstream->coding_type) {
         case coding_NDS_IMA:
-            return (vgmstream->interleave_smallblock_size-4)*2;
+            return (vgmstream->interleave_last_block_size-4)*2;
         default:
             return get_vgmstream_samples_per_frame(vgmstream);
     }
@@ -1269,7 +1268,7 @@ int get_vgmstream_samples_per_shortframe(VGMSTREAM * vgmstream) {
 int get_vgmstream_shortframe_size(VGMSTREAM * vgmstream) {
     switch (vgmstream->coding_type) {
         case coding_NDS_IMA:
-            return vgmstream->interleave_smallblock_size;
+            return vgmstream->interleave_last_block_size;
         default:
             return get_vgmstream_frame_size(vgmstream);
     }
@@ -2140,17 +2139,16 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             "\n");
     concatn(length,desc,temp);
 
-    if (vgmstream->layout_type == layout_interleave
-            || vgmstream->layout_type == layout_interleave_shortblock) {
+    if (vgmstream->layout_type == layout_interleave) {
         snprintf(temp,TEMPSIZE,
                 "interleave: %#x bytes\n",
                 (int32_t)vgmstream->interleave_block_size);
         concatn(length,desc,temp);
 
-        if (vgmstream->layout_type == layout_interleave_shortblock) {
+        if (vgmstream->interleave_last_block_size) {
             snprintf(temp,TEMPSIZE,
                     "last block interleave: %#x bytes\n",
-                    (int32_t)vgmstream->interleave_smallblock_size);
+                    (int32_t)vgmstream->interleave_last_block_size);
             concatn(length,desc,temp);
         }
     }
@@ -2300,7 +2298,7 @@ static void try_dual_file_stereo(VGMSTREAM * opened_vgmstream, STREAMFILE *strea
             /* check even if the layout doesn't use them, because it is
              * difficult to determine when it does, and they should be zero otherwise, anyway */
             new_vgmstream->interleave_block_size == opened_vgmstream->interleave_block_size &&
-            new_vgmstream->interleave_smallblock_size == opened_vgmstream->interleave_smallblock_size)) {
+            new_vgmstream->interleave_last_block_size == opened_vgmstream->interleave_last_block_size)) {
         goto fail;
     }
 

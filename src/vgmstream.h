@@ -215,7 +215,6 @@ typedef enum {
 
     /* interleave */
     layout_interleave,      /* equal interleave throughout the stream */
-    layout_interleave_shortblock, /* interleave with a short last block */
 
     /* headered blocks */
     layout_ast_blocked,
@@ -748,7 +747,7 @@ typedef struct {
 
     /* layouts/block */
     size_t interleave_block_size;       /* interleave, or block/frame size (depending on the codec) */
-    size_t interleave_smallblock_size;  /* smaller interleave for last block */
+    size_t interleave_last_block_size;  /* smaller interleave for last block */
 
     /* channel state */
     VGMSTREAMCHANNEL * ch;          /* pointer to array of channels */

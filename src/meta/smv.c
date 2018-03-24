@@ -36,9 +36,9 @@ VGMSTREAM * init_vgmstream_smv(STREAMFILE *streamFile) {
 
     vgmstream->meta_type = meta_SMV;
     vgmstream->coding_type = coding_PSX;
-    vgmstream->layout_type = layout_interleave_shortblock;
+    vgmstream->layout_type = layout_interleave;
     vgmstream->interleave_block_size = read_32bitLE(0x04, streamFile);
-    vgmstream->interleave_smallblock_size = read_32bitLE(0x0c, streamFile);
+    vgmstream->interleave_last_block_size = read_32bitLE(0x0c, streamFile);
 
     if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
         goto fail;

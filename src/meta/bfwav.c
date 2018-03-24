@@ -123,15 +123,10 @@ VGMSTREAM * init_vgmstream_bfwav(STREAMFILE *streamFile) {
 	{
 		int i;
 		for (i = 0; i<channel_count; i++) {
-			if (vgmstream->layout_type == layout_interleave_shortblock)
-				vgmstream->ch[i].streamfile = streamFile->open(streamFile, filename,
-				vgmstream->interleave_block_size);
-			else if (vgmstream->layout_type == layout_interleave)
-				vgmstream->ch[i].streamfile = streamFile->open(streamFile, filename,
-				STREAMFILE_DEFAULT_BUFFER_SIZE);
+		    if (vgmstream->layout_type == layout_interleave)
+				vgmstream->ch[i].streamfile = streamFile->open(streamFile, filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
 			else
-				vgmstream->ch[i].streamfile = streamFile->open(streamFile, filename,
-				0x1000);
+				vgmstream->ch[i].streamfile = streamFile->open(streamFile, filename,0x1000);
 
 			if (!vgmstream->ch[i].streamfile) goto fail;
 

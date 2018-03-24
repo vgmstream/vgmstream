@@ -552,7 +552,11 @@ static const coding_info coding_info_list[] = {
 static const layout_info layout_info_list[] = {
         {layout_none,                   "flat (no layout)"},
         {layout_interleave,             "interleave"},
-        {layout_interleave_shortblock,  "interleave with short last block"},
+
+        {layout_segmented,              "segmented"},
+        {layout_aix,                    "AIX interleave, internally 18-byte interleaved"},
+        {layout_scd_int,                "SCD multistream interleave"},
+
         {layout_mxch_blocked,           "MxCh blocked"},
         {layout_ast_blocked,            "AST blocked"},
         {layout_halpst_blocked,         "HALPST blocked"},
@@ -581,9 +585,6 @@ static const layout_info layout_info_list[] = {
         {layout_blocked_rws,            "blocked (RWS)"},
         {layout_blocked_hwas,           "blocked (HWAS)"},
         {layout_tra_blocked,            "TRA blocked"},
-        {layout_aix,                    "AIX interleave, internally 18-byte interleaved"},
-        {layout_segmented,              "segmented"},
-        {layout_scd_int,                "SCD multistream interleave"},
         {layout_blocked_ea_sns,         "blocked (EA SNS)"},
         {layout_blocked_awc,            "blocked (AWC)"},
         {layout_blocked_vgs,            "blocked (VGS)"},
