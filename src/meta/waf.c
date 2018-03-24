@@ -5,12 +5,12 @@
 VGMSTREAM * init_vgmstream_waf(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     off_t start_offset;
-	int loop_flag, channel_count;
+    int loop_flag, channel_count;
 
 
-    /* check extension */
-	if (!check_extensions(streamFile, "waf"))
-	    goto fail;
+    /* checks */
+    if (!check_extensions(streamFile, "waf"))
+        goto fail;
 
     if (read_32bitBE(0x00,streamFile) != 0x57414600) /* "WAF\0" "*/
         goto fail;
@@ -21,7 +21,7 @@ VGMSTREAM * init_vgmstream_waf(STREAMFILE *streamFile) {
     loop_flag  = 0;
     start_offset = 0x38;
 
-	/* build the VGMSTREAM */
+    /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count, loop_flag);
     if (!vgmstream) goto fail;
 
@@ -33,8 +33,8 @@ VGMSTREAM * init_vgmstream_waf(STREAMFILE *streamFile) {
     vgmstream->num_samples = msadpcm_bytes_to_samples(read_32bitLE(0x34,streamFile), vgmstream->interleave_block_size, channel_count);
     /* 0x04: null?, 0x0c: avg br, 0x12: bps, 0x14: s_p_f, 0x16~34: count + standard MSADPCM coefs (a modified RIFF fmt) */
 
-	if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
-	    goto fail;
+    if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
+        goto fail;
     return vgmstream;
 
 fail:
