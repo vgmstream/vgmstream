@@ -17,8 +17,9 @@ VGMSTREAM * init_vgmstream_ps2_vag(STREAMFILE *streamFile) {
     int channel_count = 0;
     int is_swag = 0;
 
-    /* check extension (.swag: Frantix PSP, .str: Ben10 Galactic Racing, .vig: MX vs. ATV Untamed PS2) */
-    if ( !check_extensions(streamFile,"vag,swag,str,vig") )
+    /* checks */
+    /* .swag: Frantix (PSP), .str: Ben10 Galactic Racing, .vig: MX vs. ATV Untamed (PS2) .l/r: Crash Nitro Kart (PS2) */
+    if ( !check_extensions(streamFile,"vag,swag,str,vig,l,r") )
         goto fail;
 
     /* check VAG Header */

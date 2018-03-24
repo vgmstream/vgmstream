@@ -2221,7 +2221,8 @@ static void try_dual_file_stereo(VGMSTREAM * opened_vgmstream, STREAMFILE *strea
         {"l","r"},
         {"left","right"},
         {"Left","Right"},
-        {".V0",".V1"},
+        {".V0",".V1"}, /* Homura (PS2) */
+        {".L",".R"}, /* Crash Nitro Racing (PS2) */
         {"_0","_1"}, //unneeded?
     };
     char new_filename[PATH_LIMIT];

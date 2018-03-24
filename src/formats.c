@@ -166,6 +166,7 @@ static const char* extension_list[] = {
     "ktss",
     "kvs",
 
+    "l",
     "laac", //fake extension, for AAC (tri-Ace/FFmpeg)
     "lac3", //fake extension, for AC3
     "leg",
@@ -240,6 +241,7 @@ static const char* extension_list[] = {
     "psnd",
     "psw",
 
+    "r",
     "rac", //txth/reserved [Manhunt (Xbox)]
     "rak",
     "ras",
