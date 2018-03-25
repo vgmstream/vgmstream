@@ -611,10 +611,6 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\ngc_bo2.c"
-					>
-				</File>
-				<File
 					RelativePath=".\meta\caf.c"
 					>
 				</File>

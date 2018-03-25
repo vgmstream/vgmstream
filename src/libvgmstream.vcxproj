@@ -258,7 +258,6 @@
     <ClCompile Include="meta\nds_swav.c" />
     <ClCompile Include="meta\ngc_adpdtk.c" />
     <ClCompile Include="meta\ngc_bh2pcm.c" />
-    <ClCompile Include="meta\ngc_bo2.c" />
     <ClCompile Include="meta\caf.c" />
     <ClCompile Include="meta\ngc_dsp_konami.c" />
     <ClCompile Include="meta\ngc_dsp_mpds.c" />

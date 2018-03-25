@@ -358,9 +358,6 @@
     <ClCompile Include="meta\ngc_bh2pcm.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\ngc_bo2.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="meta\caf.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>

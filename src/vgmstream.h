@@ -370,7 +370,7 @@ typedef enum {
     meta_PS2_PSH,           /* Dawn of Mana - Seiken Densetsu 4 */
     meta_SCD_PCM,           /* Lunar - Eternal Blue */
     meta_PS2_PCM,           /* Konami KCEJ East: Ephemeral Fantasia, Yu-Gi-Oh! The Duelists of the Roses, 7 Blades */
-    meta_PS2_RKV,           /* Legacy of Kain - Blood Omen 2 */
+    meta_PS2_RKV,           /* Legacy of Kain - Blood Omen 2 (PS2) */
     meta_PS2_PSW,           /* Rayman Raving Rabbids */
     meta_PS2_VAS,           /* Pro Baseball Spirits 5 */
     meta_PS2_TEC,           /* TECMO badflagged stream */
@@ -535,7 +535,7 @@ typedef enum {
     meta_P3D,               /* Prototype P3D */
     meta_PS2_TK1,           /* Tekken (NamCollection) */
     meta_PS2_ADSC,          /* Kenka Bancho 2: Full Throttle */
-    meta_NGC_BO2,           /* Blood Omen 2 (NGC) */
+    meta_NGC_RKV,           /* Legacy of Kain - Blood Omen 2 (GC) */
     meta_DSP_DDSP,          /* Various (2 dsp files stuck together */
     meta_NGC_DSP_MPDS,      /* Big Air Freestyle, Terminator 3 */
     meta_DSP_STR_IG,        /* Micro Machines, Superman Superman: Shadow of Apokolis */
