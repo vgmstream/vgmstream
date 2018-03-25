@@ -35,6 +35,11 @@ typedef struct {
     size_t base_size;
     off_t entry_offset;
     size_t entry_size;
+    off_t names_offset;
+    size_t names_size;
+    size_t names_entry_size;
+    off_t extra_offset;
+    size_t extra_size;
     off_t data_offset;
     size_t data_size;
 
@@ -63,7 +68,7 @@ typedef struct {
     uint32_t loop_end_sample;
 } xwb_header;
 
-static void get_xsb_name(char * buf, size_t maxsize, int target_subsong, xwb_header * xwb, STREAMFILE *streamFile);
+static void get_name(char * buf, size_t maxsize, int target_subsong, xwb_header * xwb, STREAMFILE *streamFile);
 
 
 /* XWB - XACT Wave Bank (Microsoft SDK format for XBOX/XBOX360/Windows) */
@@ -100,12 +105,20 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
     /* read segment offsets (SEGIDX) */
     if (xwb.version <= XACT1_0_MAX) {
         xwb.total_subsongs = read_32bit(0x0c, streamFile);
-        /* 0x10: bank name */
+        /* 0x10: bank name (size 0x10) */
+        xwb.base_offset     = 0;
+        xwb.base_size       = 0;
+        xwb.entry_offset    = 0x50;
+        xwb.entry_size      = xwb.entry_elem_size * xwb.total_subsongs;
         xwb.entry_elem_size = 0x14;
-        xwb.entry_offset= 0x50;
-        xwb.entry_size  = xwb.entry_elem_size * xwb.total_subsongs;
-        xwb.data_offset = xwb.entry_offset + xwb.entry_size;
-        xwb.data_size   = get_streamfile_size(streamFile) - xwb.data_offset;
+        xwb.data_offset     = xwb.entry_offset + xwb.entry_size;
+        xwb.data_size       = get_streamfile_size(streamFile) - xwb.data_offset;
+
+        xwb.names_offset    = 0;
+        xwb.names_size      = 0;
+        xwb.names_entry_size= 0;
+        xwb.extra_offset    = 0;
+        xwb.extra_size      = 0;
     }
     else {
         off = xwb.version <= XACT2_2_MAX ? 0x08 : 0x0c;
@@ -113,10 +126,32 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
         xwb.base_size   = read_32bit(off+0x04, streamFile);
         xwb.entry_offset= read_32bit(off+0x08, streamFile);//ENTRYMETADATA
         xwb.entry_size  = read_32bit(off+0x0c, streamFile);
-        /* go to last segment (XACT2/3 have 5 segments, XACT1 4) */
-        //0x10: XACT1/2: ENTRYNAMES,  XACT3: SEEKTABLES
-        //0x14: XACT1: none (ENTRYWAVEDATA), XACT2: EXTRA, XACT3: ENTRYNAMES
-        suboff = xwb.version <= XACT1_1_MAX ? 0x08 : 0x08+0x08;
+
+        /* read extra segments (values can be 0 == no segment) */
+        if (xwb.version <= XACT1_1_MAX) {
+            xwb.names_offset    = read_32bit(off+0x10, streamFile);//ENTRYNAMES
+            xwb.names_size      = read_32bit(off+0x14, streamFile);
+            xwb.names_entry_size= 0x40;
+            xwb.extra_offset    = 0;
+            xwb.extra_size      = 0;
+            suboff = 0x04*2;
+        }
+        else if (xwb.version <= XACT2_1_MAX) {
+            xwb.names_offset    = read_32bit(off+0x10, streamFile);//ENTRYNAMES
+            xwb.names_size      = read_32bit(off+0x14, streamFile);
+            xwb.names_entry_size= 0x40;
+            xwb.extra_offset    = read_32bit(off+0x18, streamFile);//EXTRA
+            xwb.extra_size      = read_32bit(off+0x1c, streamFile);
+            suboff = 0x04*2 + 0x04*2;
+        } else {
+            xwb.extra_offset    = read_32bit(off+0x10, streamFile);//SEEKTABLES
+            xwb.extra_size      = read_32bit(off+0x14, streamFile);
+            xwb.names_offset    = read_32bit(off+0x18, streamFile);//ENTRYNAMES
+            xwb.names_size      = read_32bit(off+0x1c, streamFile);
+            xwb.names_entry_size= 0x40;
+            suboff = 0x04*2 + 0x04*2;
+        }
+
         xwb.data_offset = read_32bit(off+0x10+suboff, streamFile);//ENTRYWAVEDATA
         xwb.data_size   = read_32bit(off+0x14+suboff, streamFile);
 
@@ -127,7 +162,7 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
         off = xwb.base_offset;
         xwb.base_flags  = (uint32_t)read_32bit(off+0x00, streamFile);
         xwb.total_subsongs = read_32bit(off+0x04, streamFile);
-        /* 0x08 bank_name */
+        /* 0x08: bank name (size 0x40) */
         suboff = 0x08 + (xwb.version <= XACT1_1_MAX ? 0x10 : 0x40);
         xwb.entry_elem_size = read_32bit(off+suboff+0x00, streamFile);
         /* suboff+0x04: meta name entry size */
@@ -315,8 +350,7 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
     else if (xwb.version <= XACT2_1_MAX && (xwb.codec == XMA1 || xwb.codec == XMA2) &&  xwb.loop_flag) {
 	    /* v38: byte offset, v40+: sample offset, v39: ? */
         /* need to manually find sample offsets, thanks to Microsoft dumb headers */
-        ms_sample_data msd;
-        memset(&msd,0,sizeof(ms_sample_data));
+        ms_sample_data msd = {0};
 
         msd.xma_version = xwb.codec == XMA1 ? 1 : 2;
         msd.channels    = xwb.channels;
@@ -360,7 +394,7 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
     vgmstream->num_streams = xwb.total_subsongs;
     vgmstream->stream_size = xwb.stream_size;
     vgmstream->meta_type = meta_XWB;
-    get_xsb_name(vgmstream->stream_name,STREAM_NAME_SIZE, target_subsong, &xwb, streamFile);
+    get_name(vgmstream->stream_name,STREAM_NAME_SIZE, target_subsong, &xwb, streamFile);
 
     switch(xwb.codec) {
         case PCM: /* Unreal Championship (Xbox)[PCM8], KOF2003 (Xbox)[PCM16LE], Otomedius (X360)[PCM16BE] */
@@ -497,6 +531,24 @@ fail:
 
 
 /* ****************************************************************************** */
+
+/* try to get the stream name in the .xwb, though they are very rarely included */
+static int get_xwb_name(char * buf, size_t maxsize, int target_subsong, xwb_header * xwb, STREAMFILE *streamFile) {
+    int read;
+
+    if (!xwb->names_offset || !xwb->names_size || xwb->names_entry_size > maxsize)
+        goto fail;
+
+    read = read_string(buf,xwb->names_entry_size, xwb->names_offset + xwb->names_entry_size*(target_subsong-1),streamFile);
+    if (read <= 0) goto fail;
+
+    return 1;
+
+fail:
+    return 0;
+}
+
+/* ****************************************************************************** */
 /* XSB parsing from xwb_split (mostly untouched), could be improved */
 
 #define XSB_XACT1_MAX   11
@@ -539,23 +591,18 @@ typedef struct {
 
 
 /* try to find the stream name in a companion XSB file, a comically complex cue format. */
-static void get_xsb_name(char * buf, size_t maxsize, int target_subsong, xwb_header * xwb, STREAMFILE *streamXwb) {
+static int get_xsb_name(char * buf, size_t maxsize, int target_subsong, xwb_header * xwb, STREAMFILE *streamXwb) {
     STREAMFILE *streamFile = NULL;
     int i,j, start_sound, cfg__start_sound = 0, cfg__selected_wavebank = 0;
     int xsb_version;
     off_t off, suboff, name_offset = 0;
     int32_t (*read_32bit)(off_t,STREAMFILE*) = NULL;
     int16_t (*read_16bit)(off_t,STREAMFILE*) = NULL;
-    xsb_header xsb;
-
-    memset(&xsb,0,sizeof(xsb_header)); /* before any "fail"! */
+    xsb_header xsb = {0};
 
 
     streamFile = open_stream_ext(streamXwb, "xsb");
     if (!streamFile) goto fail;
-
-    //todo try common names (xwb and xsb often are named slightly differently using a common convention)
-
 
     /* check header */
     if ((read_32bitBE(0x00,streamFile) != 0x5344424B) &&    /* "SDBK" (LE) */
@@ -817,6 +864,25 @@ static void get_xsb_name(char * buf, size_t maxsize, int target_subsong, xwb_hea
 fail:
     free(xsb.xsb_sounds);
     free(xsb.xsb_wavebanks);
-    if (streamFile) close_streamfile(streamFile);
-    return;
+    close_streamfile(streamFile);
+
+    return (name_offset);
+}
+
+static void get_name(char * buf, size_t maxsize, int target_subsong, xwb_header * xwb, STREAMFILE *streamFile) {
+    int name_found;
+
+    /* try inside this xwb */
+    name_found = get_xwb_name(buf, maxsize, target_subsong, xwb, streamFile);
+    if (name_found) return;
+
+    /* try again in external .xsb */
+    get_xsb_name(buf, maxsize, target_subsong, xwb, streamFile);
+
+
+    //todo try again with common names (xwb and xsb often are named slightly differently using a common convention):
+    // InGameMusic.xwb + ingamemusic.xsb
+    // UIMusicBank.xwb + UISoundBank.xsb
+    // NB_BGM_m0100_WB.xwb + NB_BGM_m0100_SB.xsb
+    // Wave Bank.xwb + Sound Bank.xsb
 }
