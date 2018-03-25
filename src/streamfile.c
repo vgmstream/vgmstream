@@ -628,8 +628,9 @@ fail:
 static void multifile_close(MULTIFILE_STREAMFILE *streamfile) {
     int i;
     for (i = 0; i < streamfile->inner_sfs_size; i++) {
-        for (i = 0; i < streamfile->inner_sfs_size; i++)
+        for (i = 0; i < streamfile->inner_sfs_size; i++) {
             close_streamfile(streamfile->inner_sfs[i]);
+        }
     }
     free(streamfile->inner_sfs);
     free(streamfile->sizes);
