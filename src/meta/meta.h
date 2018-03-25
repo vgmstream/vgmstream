@@ -95,7 +95,6 @@ typedef struct {
     int loop_end_found;
     int32_t loop_end;
     meta_t meta_type;
-    layout_t layout_type;
 
     off_t stream_size;
     int total_subsongs;
@@ -106,9 +105,9 @@ typedef struct {
     off_t scd_xor_length;
     uint32_t sngw_xor;
 
-} vgm_vorbis_info_t;
+} ogg_vorbis_meta_info_t;
 
-VGMSTREAM * init_vgmstream_ogg_vorbis_callbacks(STREAMFILE *streamFile, const char * filename, ov_callbacks *callbacks, off_t other_header_bytes, const vgm_vorbis_info_t *vgm_inf);
+VGMSTREAM * init_vgmstream_ogg_vorbis_callbacks(STREAMFILE *streamFile, ov_callbacks *callbacks, off_t other_header_bytes, const ogg_vorbis_meta_info_t *ovmi);
 
 VGMSTREAM * init_vgmstream_sli_ogg(STREAMFILE * streamFile);
 #endif
@@ -126,7 +125,7 @@ VGMSTREAM * init_vgmstream_mp4_aac_ffmpeg(STREAMFILE * streamFile);
 VGMSTREAM * init_vgmstream_mp4_aac(STREAMFILE * streamFile);
 VGMSTREAM * init_vgmstream_mp4_aac_offset(STREAMFILE *streamFile, uint64_t start, uint64_t size);
 
-VGMSTREAM * init_vgmstream_akb(STREAMFILE *streamFile);
+VGMSTREAM * init_vgmstream_akb_mp4(STREAMFILE *streamFile);
 #endif
 
 VGMSTREAM * init_vgmstream_sfl(STREAMFILE * streamFile);
@@ -308,6 +307,7 @@ VGMSTREAM * init_vgmstream_rsd6radp(STREAMFILE * streamFile);
 VGMSTREAM * init_vgmstream_rsd6oogv(STREAMFILE* streamFile);
 VGMSTREAM * init_vgmstream_rsd6xma(STREAMFILE *streamFile);
 VGMSTREAM * init_vgmstream_rsd6at3p(STREAMFILE * streamFile);
+VGMSTREAM * init_vgmstream_rsd6wma(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_dc_asd(STREAMFILE * streamFile);
 
@@ -477,7 +477,7 @@ VGMSTREAM * init_vgmstream_ps2_khv(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_pc_smp(STREAMFILE* streamFile);
 
-VGMSTREAM * init_vgmstream_ngc_bo2(STREAMFILE* streamFile);
+VGMSTREAM * init_vgmstream_ngc_rkv(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_dsp_ddsp(STREAMFILE* streamFile);
 
@@ -622,8 +622,8 @@ VGMSTREAM * init_vgmstream_x360_cxs(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_dsp_adx(STREAMFILE *streamFile);
 
-VGMSTREAM * init_vgmstream_akb_multi(STREAMFILE *streamFile);
-VGMSTREAM * init_vgmstream_akb2_multi(STREAMFILE *streamFile);
+VGMSTREAM * init_vgmstream_akb(STREAMFILE *streamFile);
+VGMSTREAM * init_vgmstream_akb2(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_x360_ast(STREAMFILE *streamFile);
 
@@ -646,6 +646,7 @@ VGMSTREAM * init_vgmstream_gtd(STREAMFILE *streamFile);
 VGMSTREAM * init_vgmstream_ta_aac_x360(STREAMFILE *streamFile);
 VGMSTREAM * init_vgmstream_ta_aac_ps3(STREAMFILE *streamFile);
 VGMSTREAM * init_vgmstream_ta_aac_mobile(STREAMFILE *streamFile);
+VGMSTREAM * init_vgmstream_ta_aac_mobile_vorbis(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_ps3_mta2(STREAMFILE *streamFile);
 
@@ -711,4 +712,9 @@ VGMSTREAM * init_vgmstream_waf(STREAMFILE * streamFile);
 VGMSTREAM * init_vgmstream_wave(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_wave_segmented(STREAMFILE * streamFile);
+
+VGMSTREAM * init_vgmstream_smv(STREAMFILE * streamFile);
+
+VGMSTREAM * init_vgmstream_nxap(STREAMFILE * streamFile);
+
 #endif /*_META_H*/

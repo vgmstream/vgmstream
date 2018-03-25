@@ -121,22 +121,14 @@ VGMSTREAM * init_vgmstream_bfstm(STREAMFILE *streamFile) {
 	}
 
 	vgmstream->coding_type = coding_type;
-	if (channel_count == 1)
-		vgmstream->layout_type = layout_none;
-	else
-	{
-		if (ima)
-			vgmstream->layout_type = layout_interleave;
-		else
-			vgmstream->layout_type = layout_interleave_shortblock;
-	}
+    vgmstream->layout_type = (channel_count == 1) ? layout_none : layout_interleave;
 	vgmstream->meta_type = meta_FSTM;
 
 	if (ima)
 		vgmstream->interleave_block_size = 0x200;
 	else {
 		vgmstream->interleave_block_size = read_32bit(info_offset + 0x34, streamFile);
-		vgmstream->interleave_smallblock_size = read_32bit(info_offset + 0x44, streamFile);
+		vgmstream->interleave_last_block_size = read_32bit(info_offset + 0x44, streamFile);
 	}
 
 	if (vgmstream->coding_type == coding_NGC_DSP) {

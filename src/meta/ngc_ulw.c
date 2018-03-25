@@ -14,29 +14,20 @@ VGMSTREAM * init_vgmstream_ngc_ulw(STREAMFILE *streamFile) {
 
     /* raw data, the info is in the filename (really!) */
     {
-        char* path;
-        char basename[PATH_LIMIT];
-        char filename[PATH_LIMIT];
+        char filename[PATH_LIMIT] = {0};
 
-        /* get base name */
-        streamFile->get_name(streamFile,filename,sizeof(filename));
-        path = strrchr(filename,DIR_SEPARATOR);
-        if (path!=NULL)
-            path = path+1;
-        else
-            path = filename;
-        strcpy(basename,path);
+        get_streamfile_filename(streamFile, filename,PATH_LIMIT);
 
         /* first letter gives the channels */
-        if (basename[0]=='M') /* Mono */
+        if (filename[0]=='M') /* Mono */
             channel_count = 1; 
-        else if (basename[0]=='S' || basename[0]=='D') /* Stereo/Dolby */
+        else if (filename[0]=='S' || filename[0]=='D') /* Stereo/Dolby */
             channel_count = 2;
         else
             goto fail;
 
         /* not very robust but meh (other tracks don't loop) */
-        if (strcmp(basename,"MMenu.ulw")==0 || strcmp(basename,"DMenu.ulw")==0) {
+        if (strcmp(filename,"MMenu.ulw")==0 || strcmp(filename,"DMenu.ulw")==0) {
             loop_flag = 1;
         }
     }

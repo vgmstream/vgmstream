@@ -9,12 +9,10 @@ VGMSTREAM * init_vgmstream_wii_04sw(STREAMFILE *streamFile) {
     size_t file_size, data_size;
 
 
-    /* check extension, case insensitive */
+    /* checks */
     /* ".04sw" is just the ID, the real filename inside the file uses .XA */
     if (!check_extensions(streamFile,"xa,04sw"))
         goto fail;
-
-    /* check header */
     if (read_32bitBE(0x00,streamFile) != 0x30345357) /* "04SW" */
         goto fail;
 
@@ -39,9 +37,9 @@ VGMSTREAM * init_vgmstream_wii_04sw(STREAMFILE *streamFile) {
     vgmstream->num_samples = read_32bitBE(0x04,streamFile);
 
     vgmstream->coding_type = coding_NGC_DSP;
-    vgmstream->layout_type = channel_count == 1 ? layout_none : layout_interleave_shortblock;
+    vgmstream->layout_type = channel_count == 1 ? layout_none : layout_interleave;
     vgmstream->interleave_block_size = 0x8000;
-    vgmstream->interleave_smallblock_size = (read_32bitBE(0x08,streamFile) / 2 % vgmstream->interleave_block_size + 7) / 8 * 8;
+    vgmstream->interleave_last_block_size = (read_32bitBE(0x08,streamFile) / 2 % vgmstream->interleave_block_size + 7) / 8 * 8;
 
     dsp_read_coefs_be(vgmstream,streamFile,0x20, 0x60);
     /* the initial history offset seems different thatn standard DSP and possibly always zero */
@@ -50,10 +48,8 @@ VGMSTREAM * init_vgmstream_wii_04sw(STREAMFILE *streamFile) {
     /* the rest of the header has unknown values (several repeats) and the filename */
 
 
-    /* open the file for reading */
     if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
         goto fail;
-
     return vgmstream;
 
 fail:

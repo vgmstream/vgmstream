@@ -611,10 +611,6 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\ngc_bo2.c"
-					>
-				</File>
-				<File
 					RelativePath=".\meta\caf.c"
 					>
 				</File>
@@ -662,6 +658,10 @@
 					RelativePath=".\meta\ngc_ssm.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\meta\ngc_str_cauldron.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\ngc_tydsp.c"
 					>
@@ -698,6 +698,10 @@
 					RelativePath=".\meta\nwa.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\meta\nxap.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\ogg_vorbis.c"
 					>
@@ -1187,6 +1191,10 @@
 					>
 				</File>
                 <File
+                    RelativePath=".\meta\smv.c"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\sps_n1.c"
                     >
                 </File>
@@ -1471,7 +1479,7 @@
 					>
 				</File>
 				<File
-					RelativePath=".\coding\aica_decoder.c"
+					RelativePath=".\coding\yamaha_decoder.c"
 					>
 				</File>
                 <File
@@ -1815,7 +1823,7 @@
 					>
 				</File>
 				<File
-					RelativePath=".\layout\wsi_blocked.c"
+					RelativePath=".\layout\blocked_wsi.c"
 					>
 				</File>
 				<File

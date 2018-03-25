@@ -24,6 +24,7 @@ struct dsp_header {
     uint16_t loop_ps;
     int16_t loop_hist1;
     int16_t loop_hist2;
+    /* later/mdsp extension */
     int16_t channel_count;
     int16_t block_size;
 };
@@ -158,8 +159,10 @@ VGMSTREAM * init_vgmstream_ngc_dsp_std(STREAMFILE *streamFile) {
     int i;
 
     /* check extension, case insensitive */
+    /* .dsp: standard, .adp: Dr. Muto (GC) mono files */
     streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("dsp",filename_extension(filename))) goto fail;
+    if (strcasecmp("dsp",filename_extension(filename)) &&
+        strcasecmp("adp", filename_extension(filename))) goto fail;
 
     if (read_dsp_header(&header, 0, streamFile)) goto fail;
 
@@ -301,11 +304,11 @@ VGMSTREAM * init_vgmstream_ngc_mdsp_std(STREAMFILE *streamFile) {
         vgmstream->loop_end_sample = vgmstream->num_samples;
 
     vgmstream->coding_type = coding_NGC_DSP;
-    vgmstream->layout_type = channel_count == 1 ? layout_none : layout_interleave_shortblock;
+    vgmstream->layout_type = channel_count == 1 ? layout_none : layout_interleave;
     vgmstream->meta_type = meta_DSP_STD;
     vgmstream->interleave_block_size = header.block_size * 8;
     if (vgmstream->interleave_block_size)
-        vgmstream->interleave_smallblock_size = (header.nibble_count / 2 % vgmstream->interleave_block_size + 7) / 8 * 8;
+        vgmstream->interleave_last_block_size = (header.nibble_count / 2 % vgmstream->interleave_block_size + 7) / 8 * 8;
 
     for (i = 0; i < channel_count; i++) {
         if (read_dsp_header(&header, header_size * i, streamFile)) goto fail;
@@ -581,67 +584,6 @@ fail:
     return NULL;
 }
 
-/* str: a very simple header format with implicit loop values
- * it's allways in interleaved stereo format
- */
-VGMSTREAM * init_vgmstream_ngc_str(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
-    char filename[PATH_LIMIT];
-
-    const off_t start_offset = 0x60;
-    int i;
-
-    /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("str",filename_extension(filename))) goto fail;
-
-    /* always 0xFAAF0001 @ offset 0 */
-    if (read_32bitBE(0x00,streamFile)!=0xFAAF0001) goto fail;
-
-    /* build the VGMSTREAM */
-    /* always loop & stereo */
-    vgmstream = allocate_vgmstream(2,1);
-    if (!vgmstream) goto fail;
-
-    /* fill in the vital statistics */
-    vgmstream->num_samples = read_32bitBE(0x08,streamFile);
-    vgmstream->sample_rate = read_32bitBE(0x04,streamFile);
-
-    /* always loop to the beginning */
-    vgmstream->loop_start_sample=0;
-    vgmstream->loop_end_sample=vgmstream->num_samples;
-
-    vgmstream->coding_type = coding_NGC_DSP;
-    vgmstream->layout_type = layout_interleave;
-    vgmstream->interleave_block_size = read_32bitBE(0x0C,streamFile);
-    vgmstream->meta_type = meta_DSP_STR;
-
-    /* coeffs */
-    for (i=0;i<16;i++) {
-        vgmstream->ch[0].adpcm_coef[i] = read_16bitBE(0x10+(i*2),streamFile);
-        vgmstream->ch[1].adpcm_coef[i] = read_16bitBE(0x30+(i*2),streamFile);
-    }
-    
-    /* open the file for reading */
-    for (i=0;i<2;i++) {
-        vgmstream->ch[i].streamfile = streamFile->open(streamFile,filename,
-                vgmstream->interleave_block_size);
-
-        if (!vgmstream->ch[i].streamfile) goto fail;
-
-        vgmstream->ch[i].channel_start_offset=
-            vgmstream->ch[i].offset=start_offset+
-            vgmstream->interleave_block_size*i;
-    }
-
-    return vgmstream;
-
-fail:
-    /* clean up anything we may have opened */
-    if (vgmstream) close_vgmstream(vgmstream);
-    return NULL;
-}
-
 /* a bunch of formats that are identical except for file extension,
  * but have different interleaves */
 VGMSTREAM * init_vgmstream_ngc_dsp_std_int(STREAMFILE *streamFile) {
@@ -882,7 +824,6 @@ fail:
 #define SADB_MAX_CHANNELS 2
 /* sadb - Procyon Studio header + interleaved dsp [Shiren the Wanderer 3 (Wii), Disaster: Day of Crisis (Wii)] */
 VGMSTREAM * init_vgmstream_sadb(STREAMFILE *streamFile) {
-
     VGMSTREAM * vgmstream = NULL;
     off_t start_offset, header_offset;
     size_t header_spacing, interleave;
@@ -936,180 +877,103 @@ fail:
     return NULL;
 }
 
-/* .wsi as found in Alone in the Dark for Wii */
-/* These appear to be standard .dsp, but interleaved in a blocked format */
-
+#define WSI_MAX_CHANNELS 2
+/* .wsi - blocked dsp [Alone in the Dark (Wii)] */
 VGMSTREAM * init_vgmstream_wsi(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[PATH_LIMIT];
-    struct dsp_header header[2];
-    off_t start_offset[2];
-
+    off_t start_offset, header_offset;
+    size_t header_spacing;
+    struct dsp_header ch_header[WSI_MAX_CHANNELS];
     int channel_count;
-    size_t est_block_size = 0;
 
-    /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("wsi",filename_extension(filename))) goto fail;
+    /* checks */
+    if (!check_extensions(streamFile, "wsi"))
+        goto fail;
 
     /* I don't know if this is actually the channel count, or a block type
-       for the first block. Won't know until I see a mono .wsi */
+     * for the first block. Won't know until I see a mono .wsi */
     channel_count = read_32bitBE(0x04,streamFile);
-
-    /* I've only allocated two headers, and I want to be alerted if a mono
-      .wsi shows up */
     if (channel_count != 2) goto fail;
 
     /* check for consistent block headers */
     {
-        off_t check_offset;
+        off_t block_offset;
         off_t block_size_has_been;
         int i;
        
-        check_offset = read_32bitBE(0x0,streamFile);
-        if (check_offset < 8) goto fail;
+        block_offset = read_32bitBE(0x00,streamFile);
+        if (block_offset < 0x08) goto fail;
 
-        block_size_has_been = check_offset;
+        block_size_has_been = block_offset;
 
         /* check 4 blocks, to get an idea */
-        for (i=0;i<4*channel_count;i++) {
-            off_t block_size;
-            block_size = read_32bitBE(check_offset,streamFile);
+        for (i = 0; i < 4*channel_count; i++) {
+            off_t block_size = read_32bitBE(block_offset,streamFile);
 
-            /* expect at least the block header */
-            if (block_size < 0x10) goto fail;
+            if (block_size < 0x10)
+                goto fail; /* expect at least the block header */
+            if (i%channel_count+1 != read_32bitBE(block_offset+0x08,streamFile))
+                goto fail; /* expect the channel numbers to alternate */
 
-            /* expect the channel numbers to alternate */
-            if (i%channel_count+1 != read_32bitBE(check_offset+8,streamFile)) goto fail;
+            if (i%channel_count==0)
+                block_size_has_been = block_size;
+            else if (block_size != block_size_has_been)
+                goto fail; /* expect every block in a set of channels to have the same size */
 
-            /* expect every block in a set of channels to have the same size */
-            if (i%channel_count==0) block_size_has_been = block_size;
-            else if (block_size != block_size_has_been) goto fail;
-
-            /* get an estimate of block size for buffer sizing */
-            if (block_size > est_block_size) est_block_size = block_size;
-
-            check_offset += block_size;
+            block_offset += block_size;
         }
     }
 
-    /* look at DSP headers */
+    start_offset = read_32bitBE(0x00, streamFile);
+    header_offset = start_offset + 0x10;
+    header_spacing = read_32bitBE(start_offset,streamFile);
 
-    {
-        off_t check_offset;
-        int i;
-
-        check_offset = read_32bitBE(0x0,streamFile);
-
-        for (i=0;i<channel_count;i++) {
-            off_t block_size;
-
-            block_size = read_32bitBE(check_offset,streamFile);
-
-            /* make sure block is actually big enough to hold the dsp header
-               and beginning of first frame */
-            if (block_size < 0x61+0x10) goto fail;
-            if (read_dsp_header(&header[i], check_offset+0x10, streamFile)) goto fail;
-
-            start_offset[i] = check_offset + 0x60+0x10;
-
-            /* check initial predictor/scale */
-            if (header[i].initial_ps != (uint8_t)read_8bit(check_offset+0x60+0x10,streamFile))
-                goto fail;
-
-            /* check type==0 and gain==0 */
-            if (header[i].format || header[i].gain)
-                goto fail;
-
-#if 0
-            /* difficult to use this with blocks, but might be worth doing */
-            if (header[i].loop_flag) {
-                off_t loop_off;
-                /* check loop predictor/scale */
-                loop_off = header[i].loop_start_offset/16*8;
-                if (header[i].loop_ps != (uint8_t)read_8bit(start_offset+loop_off,streamFile))
-                    goto fail;
-            }
-#endif
-
-            check_offset += block_size;
-        }
-    } /* done looking at headers */
-
-    /* check for agreement (two channels only) */
-    if (
-            header[0].sample_count != header[1].sample_count ||
-            header[0].nibble_count != header[1].nibble_count ||
-            header[0].sample_rate != header[1].sample_rate ||
-            header[0].loop_flag != header[1].loop_flag ||
-            header[0].loop_start_offset != header[1].loop_start_offset ||
-            header[0].loop_end_offset != header[1].loop_end_offset
-       ) goto fail;
+    /* read dsp */
+    if (!dsp_load_header(ch_header, channel_count, streamFile,header_offset,header_spacing)) goto fail;
+    if (!check_dsp_format(ch_header, channel_count)) goto fail;
+    if (!check_dsp_samples(ch_header, channel_count)) goto fail;
+    //if (!check_dsp_initial_ps(ch_header, channel_count, streamFile,start_offset,interleave)) goto fail;
+    //if (!check_dsp_loop_ps(ch_header, channel_count, streamFile,start_offset,interleave)) goto fail;
 
 
-    vgmstream = allocate_vgmstream(channel_count,header[0].loop_flag);
+    /* build the VGMSTREAM */
+    vgmstream = allocate_vgmstream(channel_count,ch_header[0].loop_flag);
     if (!vgmstream) goto fail;
 
-    /* fill in the vital statistics */
-    /* incomplete last frame is missing */
-    vgmstream->num_samples = header[0].sample_count/14*14;
-    vgmstream->sample_rate = header[0].sample_rate;
+    vgmstream->sample_rate = ch_header[0].sample_rate;
 
-    vgmstream->loop_start_sample = dsp_nibbles_to_samples(
-            header[0].loop_start_offset);
-    vgmstream->loop_end_sample =  dsp_nibbles_to_samples(
-            header[0].loop_end_offset)+1;
-
-    /* don't know why, but it does happen*/
-    if (vgmstream->loop_end_sample > vgmstream->num_samples)
+    vgmstream->num_samples = ch_header[0].sample_count / 14 * 14; /* remove incomplete last frame */
+    vgmstream->loop_start_sample = dsp_nibbles_to_samples(ch_header[0].loop_start_offset);
+    vgmstream->loop_end_sample =  dsp_nibbles_to_samples(ch_header[0].loop_end_offset)+1;
+    if (vgmstream->loop_end_sample > vgmstream->num_samples) /* don't know why, but it does happen*/
         vgmstream->loop_end_sample = vgmstream->num_samples;
 
-    vgmstream->coding_type = coding_NGC_DSP;
-    vgmstream->layout_type = layout_wsi_blocked;
     vgmstream->meta_type = meta_DSP_WSI;
+    vgmstream->coding_type = coding_NGC_DSP;
+    vgmstream->layout_type = layout_blocked_wsi;
 
-    /* coeffs */
-    {
-        int i,j;
-        for (j=0;j<channel_count;j++) {
-            for (i=0;i<16;i++) {
-                vgmstream->ch[j].adpcm_coef[i] = header[j].coef[i];
-            }
-
-            /* initial history */
-            /* always 0 that I've ever seen, but for completeness... */
-            vgmstream->ch[j].adpcm_history1_16 = header[j].initial_hist1;
-            vgmstream->ch[j].adpcm_history2_16 = header[j].initial_hist2;
-        }
-    }
+    setup_vgmstream_dsp(vgmstream, ch_header);
 
 
-    /* open the file for reading */
-    vgmstream->ch[0].streamfile = streamFile->open(streamFile,filename,est_block_size*4);
+    if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
+        goto fail;
 
-    if (!vgmstream->ch[0].streamfile) goto fail;
+    block_update_wsi(start_offset,vgmstream);
 
-    wsi_block_update(read_32bitBE(0,streamFile),vgmstream);
-
+    /* first block has DSP header */
     {
         int i;
 
-        for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = vgmstream->ch[0].streamfile;
-            vgmstream->ch[i].channel_start_offset=
-                vgmstream->ch[i].offset=start_offset[i];
+        vgmstream->current_block_size -= 0x60;
+        for (i = 0; i < vgmstream->channels; i++) {
+            vgmstream->ch[i].offset += 0x60;
         }
-
     }
-
-    /* first block isn't full of musics */
-    vgmstream->current_block_size -= 0x60;
 
     return vgmstream;
 
 fail:
-    /* clean up anything we may have opened */
-    if (vgmstream) close_vgmstream(vgmstream);
+    close_vgmstream(vgmstream);
     return NULL;
 }
 
@@ -1970,119 +1834,60 @@ fail:
     return NULL;
 }
 
-
-/* dual dsp header with additional "iadp" header, found in Dr. Muto (NGC) */
+#define IADP_MAX_CHANNELS 2
+/* iadp - custom header + interleaved dsp [Dr. Muto (GC)] */
 VGMSTREAM * init_vgmstream_ngc_dsp_iadp(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[PATH_LIMIT];
-    struct dsp_header ch0_header,ch1_header;
-    off_t ch1_header_start, ch2_header_start, ch1_start, ch2_start;
+    off_t start_offset, header_offset;
+    size_t header_spacing, interleave;
     int channel_count;
-    int i;
+    struct dsp_header ch_header[IADP_MAX_CHANNELS];
 
-    /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("iadp",filename_extension(filename)))
+
+    /* checks */
+    /* .adp: actual extension, .iadp: header id */
+    if (!check_extensions(streamFile, "adp,iadp"))
+        goto fail;
+    if (read_32bitBE(0x00,streamFile) != 0x69616470) /* "iadp" */
         goto fail;
     
-    /* check header */
-    if (read_32bitBE(0x0,streamFile) != 0x69616470) /* iadp */
-        goto fail;
-    
-    channel_count = read_32bitBE(0x4,streamFile);
-    
-    if (channel_count != 0x2)
-        goto fail;
+    channel_count = read_32bitBE(0x04,streamFile);
+    if (channel_count != IADP_MAX_CHANNELS) goto fail;
 
-    
-    ch1_header_start = 0x20;
-    ch2_header_start = 0x80;
-    ch1_start = read_32bitBE(0x1C,streamFile);
-    ch2_start = ch1_start + read_32bitBE(0x8,streamFile);
+    header_offset = 0x20;
+    header_spacing = 0x60;
+    start_offset = read_32bitBE(0x1C,streamFile);
+    interleave = read_32bitBE(0x08,streamFile);
 
-    /* get DSP headers */
-    if (read_dsp_header(&ch0_header, ch1_header_start, streamFile)) goto fail;
-    if (read_dsp_header(&ch1_header, ch2_header_start, streamFile)) goto fail;
-    
-    /* check initial predictor/scale */
-    if (ch0_header.initial_ps != (uint8_t)read_8bit(ch1_start, streamFile))
-      goto fail;
-    if (ch1_header.initial_ps != (uint8_t)read_8bit(ch2_start, streamFile))
-      goto fail;
-
-    /* check type==0 and gain==0 */
-    if (ch0_header.format || ch0_header.gain)
-      goto fail;
-    if (ch1_header.format || ch1_header.gain)
-      goto fail;
-
-    /* check for agreement */
-    if (
-            ch0_header.sample_count != ch1_header.sample_count ||
-            ch0_header.nibble_count != ch1_header.nibble_count ||
-            ch0_header.sample_rate != ch1_header.sample_rate ||
-            ch0_header.loop_flag != ch1_header.loop_flag ||
-            ch0_header.loop_start_offset != ch1_header.loop_start_offset ||
-            ch0_header.loop_end_offset != ch1_header.loop_end_offset
-       ) goto fail;
-
-    if (ch0_header.loop_flag)
-    {
-        off_t loop_off;
-        /* check loop predictor/scale */
-        loop_off = ch0_header.loop_start_offset/16*8;
-
-        if (ch0_header.loop_ps != (uint8_t)read_8bit(ch1_start+loop_off,streamFile))
-          goto fail;
-        if (ch1_header.loop_ps != (uint8_t)read_8bit(ch2_start+loop_off,streamFile))
-          goto fail;
-    }
+    /* read dsp */
+    if (!dsp_load_header(ch_header, channel_count, streamFile,header_offset,header_spacing)) goto fail;
+    if (!check_dsp_format(ch_header, channel_count)) goto fail;
+    if (!check_dsp_samples(ch_header, channel_count)) goto fail;
+    if (!check_dsp_initial_ps(ch_header, channel_count, streamFile,start_offset,interleave)) goto fail;
+    if (!check_dsp_loop_ps(ch_header, channel_count, streamFile,start_offset,interleave)) goto fail;
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,ch0_header.loop_flag);
+    vgmstream = allocate_vgmstream(channel_count,ch_header[0].loop_flag);
     if (!vgmstream) goto fail;
     
-    /* fill in the vital statistics */
-    vgmstream->num_samples = ch0_header.sample_count;
-    vgmstream->sample_rate = ch0_header.sample_rate;
+    vgmstream->sample_rate = ch_header[0].sample_rate;
+    vgmstream->num_samples = ch_header[0].sample_count;
+    vgmstream->loop_start_sample = dsp_nibbles_to_samples(ch_header[0].loop_start_offset);
+    vgmstream->loop_end_sample   = dsp_nibbles_to_samples(ch_header[0].loop_end_offset)+1;
 
-    vgmstream->loop_start_sample = dsp_nibbles_to_samples(ch0_header.loop_start_offset);
-    vgmstream->loop_end_sample =  dsp_nibbles_to_samples(ch0_header.loop_end_offset)+1;
-
+    vgmstream->meta_type = meta_NGC_DSP_IADP;
     vgmstream->coding_type = coding_NGC_DSP;
     vgmstream->interleave_block_size = read_32bitBE(0x8,streamFile);
     vgmstream->layout_type = layout_interleave;
-    vgmstream->meta_type = meta_NGC_DSP_IADP;
+    setup_vgmstream_dsp(vgmstream, ch_header);
 
-    /* coeffs */
-    for (i=0;i<16;i++) {
-        vgmstream->ch[0].adpcm_coef[i] = ch0_header.coef[i];
-        vgmstream->ch[1].adpcm_coef[i] = ch1_header.coef[i];
-    }
-    
-    /* initial history */
-    /* always 0 that I've ever seen, but for completeness... */
-    vgmstream->ch[0].adpcm_history1_16 = ch0_header.initial_hist1;
-    vgmstream->ch[0].adpcm_history2_16 = ch0_header.initial_hist2;
-    vgmstream->ch[1].adpcm_history1_16 = ch1_header.initial_hist1;
-    vgmstream->ch[1].adpcm_history2_16 = ch1_header.initial_hist2;
 
-    /* open the file for reading */
-    vgmstream->ch[0].streamfile = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-    if (!vgmstream->ch[0].streamfile)
+    if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
         goto fail;
-    vgmstream->ch[0].channel_start_offset = vgmstream->ch[0].offset=ch1_start;
-    
-    vgmstream->ch[1].streamfile = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-    if (!vgmstream->ch[1].streamfile)
-        goto fail;
-    vgmstream->ch[1].channel_start_offset = vgmstream->ch[1].offset=ch2_start;
-    
     return vgmstream;
 
 fail:
-    /* clean up anything we may have opened */
-    if (vgmstream) close_vgmstream(vgmstream);
+    close_vgmstream(vgmstream);
     return NULL;
 }
 

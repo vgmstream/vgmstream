@@ -4,7 +4,7 @@
 
 #define MAX_SEGMENTS 4
 
-/* .WAVE - WayForward "EngineBlack" games, segmented [Shantae and the Pirate's Curse (PC/3DS), TMNT: Danger of the Ooze (PS3/3DS)] */
+/* .WAVE - "EngineBlack" games, segmented [Shantae and the Pirate's Curse (PC/3DS), TMNT: Danger of the Ooze (PS3/3DS)] */
 VGMSTREAM * init_vgmstream_wave_segmented(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     off_t segments_offset;
@@ -135,18 +135,15 @@ VGMSTREAM * init_vgmstream_wave_segmented(STREAMFILE *streamFile) {
                 }
 
                 case 0x04: { /* "vorbis" */
-                    char filename[PATH_LIMIT];
-                    vgm_vorbis_info_t ovi = {0};
+                    ogg_vorbis_meta_info_t ovmi = {0};
 
                     segment_offset = read_32bit(table_offset, streamFile);
                     segment_size = read_32bitBE(segment_offset, streamFile); /* always BE */
 
-                    ovi.layout_type = layout_ogg_vorbis;
-                    ovi.meta_type = meta_WAVE;
-                    ovi.stream_size = segment_size;
+                    ovmi.meta_type = meta_WAVE;
+                    ovmi.stream_size = segment_size;
 
-                    streamFile->get_name(streamFile,filename,sizeof(filename));
-                    data->segments[i] = init_vgmstream_ogg_vorbis_callbacks(streamFile, filename, NULL, segment_offset+0x04, &ovi);
+                    data->segments[i] = init_vgmstream_ogg_vorbis_callbacks(streamFile, NULL, segment_offset+0x04, &ovmi);
                     if (!data->segments[i]) goto fail;
 
                     if (data->segments[i]->num_samples != segment_samples) {

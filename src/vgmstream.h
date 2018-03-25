@@ -128,6 +128,7 @@ typedef enum {
     coding_3DS_IMA,         /* 3DS IMA ADPCM */
     coding_MS_IMA,          /* Microsoft IMA ADPCM */
     coding_XBOX_IMA,        /* XBOX IMA ADPCM */
+    coding_XBOX_IMA_mch,    /* XBOX IMA ADPCM (multichannel) */
     coding_XBOX_IMA_int,    /* XBOX IMA ADPCM (interleaved/mono) */
     coding_NDS_IMA,         /* IMA ADPCM w/ NDS layout */
     coding_DAT4_IMA,        /* Eurocom 'DAT4' IMA ADPCM */
@@ -145,6 +146,8 @@ typedef enum {
     coding_MSADPCM,         /* Microsoft ADPCM */
     coding_WS,              /* Westwood Studios VBR ADPCM */
     coding_AICA,            /* Yamaha AICA ADPCM */
+    coding_YAMAHA,          /* Yamaha ADPCM */
+    coding_YAMAHA_NXAP,     /* Yamaha ADPCM (NXAP variation) */
     coding_NDS_PROCYON,     /* Procyon Studio ADPCM */
     coding_L5_555,          /* Level-5 0x555 ADPCM */
     coding_SASSC,           /* Activision EXAKT SASSC DPCM */
@@ -212,7 +215,6 @@ typedef enum {
 
     /* interleave */
     layout_interleave,      /* equal interleave throughout the stream */
-    layout_interleave_shortblock, /* interleave with a short last block */
 
     /* headered blocks */
     layout_ast_blocked,
@@ -221,7 +223,7 @@ typedef enum {
     layout_blocked_ea_schl,
     layout_blocked_ea_1snh,
     layout_blocked_caf,
-    layout_wsi_blocked,
+    layout_blocked_wsi,
     layout_str_snds_blocked,
     layout_ws_aud_blocked,
     layout_matx_blocked,
@@ -254,9 +256,6 @@ typedef enum {
     layout_segmented,       /* song divided in segments, each a complete VGMSTREAM */
     layout_scd_int,         /* deinterleave done by the SCDINTSTREAMFILE */
 
-#ifdef VGM_USE_VORBIS
-    layout_ogg_vorbis,      /* ogg vorbis file */
-#endif
 } layout_t;
 
 /* The meta type specifies how we know what we know about the file.
@@ -371,7 +370,7 @@ typedef enum {
     meta_PS2_PSH,           /* Dawn of Mana - Seiken Densetsu 4 */
     meta_SCD_PCM,           /* Lunar - Eternal Blue */
     meta_PS2_PCM,           /* Konami KCEJ East: Ephemeral Fantasia, Yu-Gi-Oh! The Duelists of the Roses, 7 Blades */
-    meta_PS2_RKV,           /* Legacy of Kain - Blood Omen 2 */
+    meta_PS2_RKV,           /* Legacy of Kain - Blood Omen 2 (PS2) */
     meta_PS2_PSW,           /* Rayman Raving Rabbids */
     meta_PS2_VAS,           /* Pro Baseball Spirits 5 */
     meta_PS2_TEC,           /* TECMO badflagged stream */
@@ -428,6 +427,7 @@ typedef enum {
     meta_RSD6OOGV,          /* RSD6OOGV */
     meta_RSD6XMA,           /* RSD6XMA */
     meta_RSD6AT3P,          /* RSD6AT3+ */
+    meta_RSD6WMA,           /* RSD6WMA */
 
     meta_PS2_ASS,           /* ASS */
     meta_PS2_SEG,           /* Eragon */
@@ -535,7 +535,7 @@ typedef enum {
     meta_P3D,               /* Prototype P3D */
     meta_PS2_TK1,           /* Tekken (NamCollection) */
     meta_PS2_ADSC,          /* Kenka Bancho 2: Full Throttle */
-    meta_NGC_BO2,           /* Blood Omen 2 (NGC) */
+    meta_NGC_RKV,           /* Legacy of Kain - Blood Omen 2 (GC) */
     meta_DSP_DDSP,          /* Various (2 dsp files stuck together */
     meta_NGC_DSP_MPDS,      /* Big Air Freestyle, Terminator 3 */
     meta_DSP_STR_IG,        /* Micro Machines, Superman Superman: Shadow of Apokolis */
@@ -617,7 +617,7 @@ typedef enum {
     meta_GTD,               /* Knights Contract (X360/PS3), Valhalla Knights 3 (PSV) */
     meta_TA_AAC_X360,       /* tri-Ace AAC (Star Ocean 4, End of Eternity, Infinite Undiscovery) */
     meta_TA_AAC_PS3,        /* tri-Ace AAC (Star Ocean International, Resonance of Fate) */
-    meta_TA_AAC_VORBIS,     /* tri-Ace AAC (Star Ocean Anamnesis, Heaven x Inferno) */
+    meta_TA_AAC_MOBILE,     /* tri-Ace AAC (Star Ocean Anamnesis, Heaven x Inferno) */
     meta_PS3_MTA2,          /* Metal Gear Solid 4 MTA2 */
     meta_NGC_ULW,           /* Burnout 1 (GC only) */
     meta_PC_XA30,           /* Driver - Parallel Lines (PC) */
@@ -656,8 +656,10 @@ typedef enum {
     meta_SQEX_MAB,          /* Square-Enix newest middleware (music) */
     meta_OGG_L2SD,          /* Ogg Vorbis with obfuscation [Lineage II Chronicle 4 (PC)] */
     meta_WAF,               /* KID WAF [Ever 17 (PC)] */
-    meta_WAVE,              /* WayForward "EngineBlack" games [Mighty Switch Force! (3DS)] */
-    meta_WAVE_segmented,    /* WayForward "EngineBlack" games, segmented [Shantae and the Pirate's Curse (PC)] */
+    meta_WAVE,              /* EngineBlack games [Mighty Switch Force! (3DS)] */
+    meta_WAVE_segmented,    /* EngineBlack games, segmented [Shantae and the Pirate's Curse (PC)] */
+    meta_SMV,               /* Cho Aniki Zero (PSP) */
+    meta_NXAP,              /* Nex Entertainment games [Time Crisis 4 (PS3), Time Crisis Razing Storm (PS3)] */
 
 #ifdef VGM_USE_MP4V2
     meta_MP4,               /* AAC (iOS) */
@@ -745,7 +747,7 @@ typedef struct {
 
     /* layouts/block */
     size_t interleave_block_size;       /* interleave, or block/frame size (depending on the codec) */
-    size_t interleave_smallblock_size;  /* smaller interleave for last block */
+    size_t interleave_last_block_size;  /* smaller interleave for last block */
 
     /* channel state */
     VGMSTREAMCHANNEL * ch;          /* pointer to array of channels */

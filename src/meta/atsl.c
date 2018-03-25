@@ -9,16 +9,16 @@ VGMSTREAM * init_vgmstream_atsl(STREAMFILE *streamFile) {
     VGMSTREAM *vgmstream = NULL;
     STREAMFILE *temp_streamFile = NULL;
     int total_subsongs, target_subsong = streamFile->stream_index;
-    int type, big_endian = 0;
+    int type, big_endian = 0, entries;
     atsl_codec codec;
     const char* fake_ext;
-    off_t subfile_offset;
-    size_t subfile_size, header_size;
+    off_t subfile_offset = 0;
+    size_t subfile_size = 0, header_size;
     int32_t (*read_32bit)(off_t,STREAMFILE*) = NULL;
 
 
-    /* check extensions
-     * .atsl: header id (for G1L extractions), .atsl3: PS3 games, .atsl4: PS4 games */
+    /* checks */
+    /* .atsl: header id (for G1L extractions), .atsl3: PS3 games, .atsl4: PS4 games */
     if ( !check_extensions(streamFile,"atsl,atsl3,atsl4"))
         goto fail;
     if (read_32bitBE(0x00,streamFile) != 0x4154534C) /* "ATSL" */
@@ -27,17 +27,11 @@ VGMSTREAM * init_vgmstream_atsl(STREAMFILE *streamFile) {
     /* main header (LE) */
     header_size = read_32bitLE(0x04,streamFile);
     /* 0x08/0c: flags?, 0x10: fixed? (0x03E8) */
-    total_subsongs = read_32bitLE(0x14,streamFile);
+    entries = read_32bitLE(0x14,streamFile);
     /* 0x18: 0x28, or 0x30 (rarer) */
     /* 0x1c: null, 0x20: subheader size, 0x24/28: null */
 
-    //todo: sometimes entries are repeated/dummy and point to the first entry
-    if (target_subsong == 0) target_subsong = 1;
-    if (target_subsong > total_subsongs || total_subsongs <= 0) goto fail;
-
-
-    /* Type byte may be wrong (could need header id tests instead).
-     * Example flags at 0x08/0x0c:
+    /* Type byte may be wrong (could need header id tests instead). Example flags at 0x08/0x0c:
      * - 00010101 00020001  .atsl3 from One Piece Pirate Warriors (PS3)[ATRAC3]
      * - 00000201 00020001  .atsl3 from Fist of North Star: Ken's Rage 2 (PS3)[ATRAC3]
      *   00000301 00020101  (same)
@@ -68,12 +62,47 @@ VGMSTREAM * init_vgmstream_atsl(STREAMFILE *streamFile) {
     read_32bit = big_endian ? read_32bitBE : read_32bitLE;
 
 
-    /* entry header (machine endianness) */
-    /* 0x00: id */
-    subfile_offset = read_32bit(header_size + (target_subsong-1)*0x28 + 0x04,streamFile);
-    subfile_size   = read_32bit(header_size + (target_subsong-1)*0x28 + 0x08,streamFile);
-    /* 0x08+: sample rate/num_samples/loop_start/etc, matching subfile header */
-    /* some kind of seek/switch table follows (optional, found in .atsl3) */
+    /* entries can point to the same file, count unique only */
+    {
+        int i,j;
+
+        total_subsongs = 0;
+        if (target_subsong == 0) target_subsong = 1;
+
+        /* parse entry header (in machine endianness) */
+        for (i = 0; i < entries; i++) {
+            int is_unique = 1;
+
+            off_t entry_offset = read_32bit(header_size + i*0x28 + 0x04,streamFile);
+            size_t entry_size  = read_32bit(header_size + i*0x28 + 0x08,streamFile);
+            /* 0x00: id?, 0x08+: sample rate/num_samples/loop_start/etc, matching subfile header */
+
+            /* check if current entry was repeated in a prev entry */
+            for (j = 0; j < i; j++)  {
+                off_t prev_offset = read_32bit(header_size + j*0x28 + 0x04,streamFile);
+                if (prev_offset == entry_offset) {
+                    is_unique = 0;
+                    break;
+                }
+            }
+            if (!is_unique)
+                continue;
+
+            total_subsongs++;
+
+            /* target GET, but keep going to count subsongs */
+            if (!subfile_offset && target_subsong == total_subsongs) {
+                subfile_offset = entry_offset;
+                subfile_size   = entry_size;
+            }
+        }
+    }
+    if (target_subsong > total_subsongs || total_subsongs <= 0) goto fail;
+    if (!subfile_offset || !subfile_size) goto fail;
+
+
+    /* some kind of seek/switch table may follow (optional, found in .atsl3) */
+
 
     temp_streamFile = setup_atsl_streamfile(streamFile, subfile_offset,subfile_size, fake_ext);
     if (!temp_streamFile) goto fail;

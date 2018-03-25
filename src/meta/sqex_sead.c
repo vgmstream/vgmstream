@@ -187,19 +187,15 @@ VGMSTREAM * init_vgmstream_sqex_sead(STREAMFILE * streamFile) {
 #ifdef VGM_USE_VORBIS
         case 0x03: { /* OGG [Final Fantasy XV Benchmark sfx (PC)] */
             VGMSTREAM *ogg_vgmstream = NULL;
-            vgm_vorbis_info_t inf = {0};
+            ogg_vorbis_meta_info_t ovmi = {0};
             off_t subfile_offset = extradata_offset + extradata_size;
-            char filename[PATH_LIMIT];
 
-            streamFile->get_name(streamFile,filename,sizeof(filename));
-
-            inf.layout_type = layout_ogg_vorbis;
-            inf.meta_type = vgmstream->meta_type;
-            inf.total_subsongs = total_subsongs;
-            inf.stream_size = stream_size;
+            ovmi.meta_type = vgmstream->meta_type;
+            ovmi.total_subsongs = total_subsongs;
+            ovmi.stream_size = stream_size;
             /* post header has some kind of repeated values, config/table? */
 
-            ogg_vgmstream = init_vgmstream_ogg_vorbis_callbacks(streamFile, filename, NULL, subfile_offset, &inf);
+            ogg_vgmstream = init_vgmstream_ogg_vorbis_callbacks(streamFile, NULL, subfile_offset, &ovmi);
             if (ogg_vgmstream) {
                 ogg_vgmstream->num_streams = vgmstream->num_streams;
                 ogg_vgmstream->stream_size = vgmstream->stream_size;
