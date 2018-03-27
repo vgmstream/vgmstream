@@ -912,7 +912,7 @@ static const meta_info meta_info_list[] = {
         {meta_XB3D_ADX,             "Xenoblade 3D ADX header"},
         {meta_HCA,                  "CRI MiddleWare HCA Header"},
         {meta_PS2_SVAG_SNK,         "SNK SVAG header"},
-        {meta_PS2_VDS_VDM,          "Graffiti Kingdom VDS/VDM header"},
+        {meta_PS2_VDS_VDM,          "Procyon Studio VDS/VDM header"},
         {meta_X360_CXS,             "tri-Crescendo CXS header"},
         {meta_AKB,                  "Square-Enix AKB header"},
         {meta_NUB_XMA,              "Namco NUB XMA header"},
