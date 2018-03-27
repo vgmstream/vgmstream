@@ -1029,7 +1029,6 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_XA:
         case coding_PSX:
         case coding_PSX_badflags:
-        case coding_PSX_bmdx:
         case coding_HEVAG:
             return 28;
         case coding_PSX_cfg:
@@ -1192,7 +1191,6 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
             return 0x0e*vgmstream->channels;
         case coding_PSX:
         case coding_PSX_badflags:
-        case coding_PSX_bmdx:
         case coding_HEVAG:
             return 0x10;
         case coding_PSX_cfg:
@@ -1514,13 +1512,6 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
         case coding_PSX_badflags:
             for (chan=0;chan<vgmstream->channels;chan++) {
                 decode_psx_badflags(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do);
-            }
-            break;
-        case coding_PSX_bmdx:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_psx_bmdx(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
                         samples_to_do);
             }
@@ -1953,7 +1944,6 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream) {
             vgmstream->meta_type == meta_DSP_RS03 ||
             vgmstream->meta_type == meta_DSP_CSTR ||
             vgmstream->coding_type == coding_PSX ||
-            vgmstream->coding_type == coding_PSX_bmdx ||
             vgmstream->coding_type == coding_PSX_badflags) {
             int i;
             for (i=0;i<vgmstream->channels;i++) {

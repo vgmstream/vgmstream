@@ -111,7 +111,6 @@ typedef enum {
     coding_XA,              /* CD-ROM XA */
     coding_PSX,             /* Sony PS ADPCM (VAG) */
     coding_PSX_badflags,    /* Sony PS ADPCM with custom flag byte */
-    coding_PSX_bmdx,        /* Sony PS ADPCM with BMDX encryption */
     coding_PSX_cfg,         /* Sony PS ADPCM with configurable frame size (FF XI, SGXD type 5, Bizarre Creations) */
     coding_HEVAG,           /* Sony PSVita ADPCM */
 
@@ -716,10 +715,6 @@ typedef struct {
     uint16_t adx_mult;
     uint16_t adx_add;
 
-    /* BMDX encryption */
-    uint8_t bmdx_xor;
-    uint8_t bmdx_add;
-    
     /* generic encryption */
     uint16_t key_xor;
 } VGMSTREAMCHANNEL;

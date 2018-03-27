@@ -465,7 +465,6 @@ static const coding_info coding_info_list[] = {
         {coding_XA,                 "CD-ROM XA 4-bit ADPCM"},
         {coding_PSX,                "Playstation 4-bit ADPCM"},
         {coding_PSX_badflags,       "Playstation 4-bit ADPCM (bad flags)"},
-        {coding_PSX_bmdx,           "Playstation 4-bit ADPCM (BMDX encryption)"},
         {coding_PSX_cfg,            "Playstation 4-bit ADPCM (configurable)"},
         {coding_HEVAG,              "Playstation Vita HEVAG 4-bit ADPCM"},
 
