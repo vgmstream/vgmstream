@@ -436,7 +436,6 @@ typedef struct {
 
 static const coding_info coding_info_list[] = {
         {coding_PCM16LE,            "Little Endian 16-bit PCM"},
-        {coding_PCM16LE_XOR_int,    "Little Endian 16-bit PCM with 2 byte interleave and XOR obfuscation"},
         {coding_PCM16BE,            "Big Endian 16-bit PCM"},
         {coding_PCM16_int,          "16-bit PCM with 2 byte interleave (block)"},
         {coding_PCM8,               "8-bit PCM"},

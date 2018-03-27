@@ -78,7 +78,6 @@ enum { STREAM_NAME_SIZE = 255 }; /* reasonable max */
 typedef enum {
     /* PCM */
     coding_PCM16LE,         /* little endian 16-bit PCM */
-    coding_PCM16LE_XOR_int, /* little endian 16-bit PCM with sample-level xor (for blocks) */
     coding_PCM16BE,         /* big endian 16-bit PCM */
     coding_PCM16_int,       /* 16-bit PCM with sample-level interleave (for blocks) */
 
@@ -715,8 +714,6 @@ typedef struct {
     uint16_t adx_mult;
     uint16_t adx_add;
 
-    /* generic encryption */
-    uint16_t key_xor;
 } VGMSTREAMCHANNEL;
 
 /* main vgmstream info */
