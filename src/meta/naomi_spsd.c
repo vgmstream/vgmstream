@@ -34,7 +34,7 @@ VGMSTREAM * init_vgmstream_naomi_spsd(STREAMFILE *streamFile) {
             vgmstream->coding_type = coding_PCM8;
             break;
         case 0x03:
-            vgmstream->coding_type = coding_AICA;
+            vgmstream->coding_type = coding_AICA_int;
             break;
         default:
             goto fail;

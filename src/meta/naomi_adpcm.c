@@ -31,7 +31,7 @@ VGMSTREAM * init_vgmstream_naomi_adpcm(STREAMFILE *streamFile) {
     start_offset = 0x40;
 	vgmstream->channels = channel_count;
     vgmstream->sample_rate = 44100;
-    vgmstream->coding_type = coding_AICA;
+    vgmstream->coding_type = coding_AICA_int;
     vgmstream->num_samples = (get_streamfile_size(streamFile)-start_offset);
     if (loop_flag) {
         vgmstream->loop_start_sample = 0;

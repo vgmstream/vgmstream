@@ -127,11 +127,11 @@ typedef enum {
     coding_MS_IMA,          /* Microsoft IMA ADPCM */
     coding_XBOX_IMA,        /* XBOX IMA ADPCM */
     coding_XBOX_IMA_mch,    /* XBOX IMA ADPCM (multichannel) */
-    coding_XBOX_IMA_int,    /* XBOX IMA ADPCM (interleaved/mono) */
+    coding_XBOX_IMA_int,    /* XBOX IMA ADPCM (mono/interleave) */
     coding_NDS_IMA,         /* IMA ADPCM w/ NDS layout */
     coding_DAT4_IMA,        /* Eurocom 'DAT4' IMA ADPCM */
     coding_RAD_IMA,         /* Radical IMA ADPCM */
-    coding_RAD_IMA_mono,    /* Radical IMA ADPCM, mono (for interleave) */
+    coding_RAD_IMA_mono,    /* Radical IMA ADPCM (mono/interleave) */
     coding_APPLE_IMA4,      /* Apple Quicktime IMA4 */
     coding_SNDS_IMA,        /* Heavy Iron Studios .snds IMA ADPCM */
     coding_OTNS_IMA,        /* Omikron The Nomad Soul IMA ADPCM */
@@ -143,7 +143,7 @@ typedef enum {
 
     coding_MSADPCM,         /* Microsoft ADPCM */
     coding_WS,              /* Westwood Studios VBR ADPCM */
-    coding_AICA,            /* Yamaha AICA ADPCM */
+    coding_AICA_int,        /* Yamaha AICA ADPCM (mono/interleave) */
     coding_YAMAHA,          /* Yamaha ADPCM */
     coding_YAMAHA_NXAP,     /* Yamaha ADPCM (NXAP variation) */
     coding_NDS_PROCYON,     /* Procyon Studio ADPCM */
