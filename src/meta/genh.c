@@ -95,7 +95,7 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
         case MPEG:       coding = coding_MPEG_layer3; break; /* we later find out exactly which */
 #endif
         case IMA:        coding = coding_IMA; break;
-        case AICA:       coding = coding_AICA_int; break;
+        case AICA:       coding = coding_AICA; break;
         case MSADPCM:    coding = coding_MSADPCM; break;
         case NGC_DSP:    coding = coding_NGC_DSP; break;
         case PCM8_U_int: coding = coding_PCM8_U_int; break;
@@ -139,7 +139,7 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
         case coding_PSX_badflags:
         case coding_DVI_IMA:
         case coding_IMA:
-        case coding_AICA_int:
+        case coding_AICA:
         case coding_APPLE_IMA4:
             vgmstream->interleave_block_size = genh.interleave;
             if (vgmstream->channels > 1)
@@ -157,6 +157,8 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
                         coding = coding_DVI_IMA_int;
                     if (coding == coding_IMA)
                         coding = coding_IMA_int;
+                    if (coding == coding_AICA)
+                        coding = coding_AICA_int;
                 }
 
                 /* to avoid endless loops */
@@ -173,7 +175,7 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
             }
 
             /* setup adpcm */
-            if (coding == coding_AICA_int) {
+            if (coding == coding_AICA || coding == coding_AICA_int) {
                 int i;
                 for (i=0;i<vgmstream->channels;i++) {
                     vgmstream->ch[i].adpcm_step_index = 0x7f;
