@@ -751,7 +751,7 @@ static const meta_info meta_info_list[] = {
         {meta_RSD6AT3P,             "Radical RSD6/AT3+ header"},
         {meta_RSD6WMA,              "Radical RSD6/WMA header"},
         {meta_DC_ASD,               "ASD Header"},
-        {meta_NAOMI_SPSD,           "SPSD Header"},
+        {meta_NAOMI_SPSD,           "Naomi SPSD header"},
         {meta_FFXI_BGW,             "BGW BGMStream header"},
         {meta_FFXI_SPW,             "SPW SeWave header"},
         {meta_PS2_ASS,              "ASS Header"},

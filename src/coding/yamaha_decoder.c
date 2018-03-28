@@ -15,7 +15,7 @@ static const int scale_delta[16] = {
 };
 
 
-/* Yamaha AICA ADPCM, as seen in Naomi/Dreamcast. Possibly like RIFF codec 0x20 or used in older arcade sound chips. */
+/* raw Yamaha ADPCM a.k.a AICA as it's mainly used in Naomi/Dreamcast (also in RIFF and older arcade sound chips). */
 void decode_aica(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel, int is_stereo) {
     int i, sample_count;
 
@@ -143,6 +143,11 @@ void decode_yamaha_nxap(VGMSTREAMCHANNEL * stream, sample * outbuf, int channels
 
     stream->adpcm_history1_32 = hist1;
     stream->adpcm_step_index = step_size;
+}
+
+size_t aica_bytes_to_samples(size_t bytes, int channels) {
+    /* 2 samples per byte (2 nibbles) in stereo or mono config */
+    return bytes * 2 / channels;
 }
 
 size_t yamaha_bytes_to_samples(size_t bytes, int channels) {
