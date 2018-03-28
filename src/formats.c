@@ -349,6 +349,7 @@ static const char* extension_list[] = {
     "vgs",
     "vgv",
     "vig",
+    "vis", //txth/reserved [AirForce Delta (PS2)]
     "vms",
     "voi",
     "vpk",
