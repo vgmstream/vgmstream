@@ -119,7 +119,7 @@ static int get_falcom_looping(STREAMFILE *streamFile, int *out_loop_start, int *
         goto end;
     }
 
-    get_streamfile_name(streamFile,filename,TXT_LINE_MAX);
+    get_streamfile_filename(streamFile,filename,TXT_LINE_MAX);
 
     /* read line by line */
     while (txt_offset < get_streamfile_size(streamText)) {
