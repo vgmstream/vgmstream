@@ -30,31 +30,40 @@ struct dsp_header {
 };
 
 /* read the above struct; returns nonzero on failure */
-static int read_dsp_header(struct dsp_header *header, off_t offset, STREAMFILE *file) {
+static int read_dsp_header_endian(struct dsp_header *header, off_t offset, STREAMFILE *streamFile, int big_endian) {
+    int32_t (*get_32bit)(uint8_t *) = big_endian ? get_32bitBE : get_32bitLE;
+    int16_t (*get_16bit)(uint8_t *) = big_endian ? get_16bitBE : get_16bitLE;
     int i;
     uint8_t buf[0x4e]; /* usually padded out to 0x60 */
-    if (read_streamfile(buf, offset, 0x4e, file) != 0x4e)
+
+    if (read_streamfile(buf, offset, 0x4e, streamFile) != 0x4e)
         return 1;
-    header->sample_count =      get_32bitBE(buf+0x00);
-    header->nibble_count =      get_32bitBE(buf+0x04);
-    header->sample_rate =       get_32bitBE(buf+0x08);
-    header->loop_flag =         get_16bitBE(buf+0x0c);
-    header->format =            get_16bitBE(buf+0x0e);
-    header->loop_start_offset = get_32bitBE(buf+0x10);
-    header->loop_end_offset =   get_32bitBE(buf+0x14);
-    header->ca =                get_32bitBE(buf+0x18);
+    header->sample_count =      get_32bit(buf+0x00);
+    header->nibble_count =      get_32bit(buf+0x04);
+    header->sample_rate =       get_32bit(buf+0x08);
+    header->loop_flag =         get_16bit(buf+0x0c);
+    header->format =            get_16bit(buf+0x0e);
+    header->loop_start_offset = get_32bit(buf+0x10);
+    header->loop_end_offset =   get_32bit(buf+0x14);
+    header->ca =                get_32bit(buf+0x18);
     for (i=0; i < 16; i++)
-        header->coef[i] =       get_16bitBE(buf+0x1c+i*0x2);
-    header->gain =              get_16bitBE(buf+0x3c);
-    header->initial_ps =        get_16bitBE(buf+0x3e);
-    header->initial_hist1 =     get_16bitBE(buf+0x40);
-    header->initial_hist2 =     get_16bitBE(buf+0x42);
-    header->loop_ps =           get_16bitBE(buf+0x44);
-    header->loop_hist1 =        get_16bitBE(buf+0x46);
-    header->loop_hist2 =        get_16bitBE(buf+0x48);
-    header->channel_count =     get_16bitBE(buf+0x4a);
-    header->block_size =        get_16bitBE(buf+0x4c);
+        header->coef[i] =       get_16bit(buf+0x1c+i*0x02);
+    header->gain =              get_16bit(buf+0x3c);
+    header->initial_ps =        get_16bit(buf+0x3e);
+    header->initial_hist1 =     get_16bit(buf+0x40);
+    header->initial_hist2 =     get_16bit(buf+0x42);
+    header->loop_ps =           get_16bit(buf+0x44);
+    header->loop_hist1 =        get_16bit(buf+0x46);
+    header->loop_hist2 =        get_16bit(buf+0x48);
+    header->channel_count =     get_16bit(buf+0x4a);
+    header->block_size =        get_16bit(buf+0x4c);
     return 0;
+}
+static int read_dsp_header(struct dsp_header *header, off_t offset, STREAMFILE *file) {
+    return read_dsp_header_endian(header, offset, file, 1);
+}
+static int read_dsp_header_le(struct dsp_header *header, off_t offset, STREAMFILE *file) {
+    return read_dsp_header_endian(header, offset, file, 0);
 }
 
 
@@ -189,6 +198,92 @@ VGMSTREAM * init_vgmstream_ngc_dsp_std(STREAMFILE *streamFile) {
         }
     }
         
+    if (header.loop_flag) {
+        off_t loop_off;
+        /* check loop predictor/scale */
+        loop_off = header.loop_start_offset/16*8;
+        if (header.loop_ps != (uint8_t)read_8bit(start_offset+loop_off,streamFile)) {
+            /* rarely won't match (ex ESPN 2002), not sure if header or calc problem, but doesn't seem to matter
+             *  (there may be a "click" when looping, or loop values may be too big and loop disabled anyway) */
+            VGM_LOG("DSP (std): bad loop_predictor\n");
+            //header.loop_flag = 0;
+            //goto fail;
+        }
+    }
+
+
+    /* build the VGMSTREAM */
+    vgmstream = allocate_vgmstream(channel_count,header.loop_flag);
+    if (!vgmstream) goto fail;
+
+    vgmstream->sample_rate = header.sample_rate;
+    vgmstream->num_samples = header.sample_count;
+    vgmstream->loop_start_sample = dsp_nibbles_to_samples(header.loop_start_offset);
+    vgmstream->loop_end_sample   = dsp_nibbles_to_samples(header.loop_end_offset)+1;
+    if (vgmstream->loop_end_sample > vgmstream->num_samples) /* don't know why, but it does happen */
+        vgmstream->loop_end_sample = vgmstream->num_samples;
+
+    vgmstream->meta_type = meta_DSP_STD;
+    vgmstream->coding_type = coding_NGC_DSP;
+    vgmstream->layout_type = layout_none;
+
+    {
+        /* adpcm coeffs/history */
+        for (i = 0; i < 16; i++)
+            vgmstream->ch[0].adpcm_coef[i] = header.coef[i];
+        vgmstream->ch[0].adpcm_history1_16 = header.initial_hist1;
+        vgmstream->ch[0].adpcm_history2_16 = header.initial_hist2;
+    }
+
+    if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
+        goto fail;
+    return vgmstream;
+
+fail:
+    close_vgmstream(vgmstream);
+    return NULL;
+}
+
+/* .dsp - little endian dsp, possibly main Switch .dsp [LEGO Worlds (Switch)] */
+VGMSTREAM * init_vgmstream_ngc_dsp_std_le(STREAMFILE *streamFile) {
+    VGMSTREAM * vgmstream = NULL;
+    struct dsp_header header;
+    const size_t header_size = 0x60;
+    off_t start_offset;
+    int i, channel_count;
+
+    /* checks */
+    /* .adpcm: LEGO Worlds */
+    if (!check_extensions(streamFile, "adpcm"))
+        goto fail;
+
+    if (read_dsp_header_le(&header, 0x00, streamFile))
+        goto fail;
+
+    channel_count = 1;
+    start_offset = header_size;
+
+    if (header.initial_ps != (uint8_t)read_8bit(start_offset,streamFile))
+        goto fail; /* check initial predictor/scale */
+    if (header.format || header.gain)
+        goto fail; /* check type==0 and gain==0 */
+
+    /* Check for a matching second header. If we find one and it checks
+     * out thoroughly, we're probably not dealing with a genuine mono DSP.
+     * In many cases these will pass all the other checks, including the
+     * predictor/scale check if the first byte is 0 */
+    {
+        struct dsp_header header2;
+        read_dsp_header_le(&header2, header_size, streamFile);
+
+        if (header.sample_count == header2.sample_count &&
+            header.nibble_count == header2.nibble_count &&
+            header.sample_rate == header2.sample_rate &&
+            header.loop_flag == header2.loop_flag) {
+            goto fail;
+        }
+    }
+
     if (header.loop_flag) {
         off_t loop_off;
         /* check loop predictor/scale */
