@@ -1179,7 +1179,7 @@ VGMSTREAM * init_vgmstream_rsd6wma(STREAMFILE *streamFile) {
     if (!vgmstream) goto fail;
 
     vgmstream->meta_type = meta_RSD6WMA;
-    //vgmstream->num_samples = read_32bitLE(start_offset + 0x00, streamFile); /* ? */
+    //vgmstream->num_samples = read_32bitLE(start_offset + 0x00, streamFile) / channel_count / 2; /* may be PCM data size, but not exact */
     vgmstream->sample_rate = read_32bitLE(start_offset + 0x04, streamFile);
 
 #ifdef VGM_USE_FFMPEG
@@ -1193,12 +1193,11 @@ VGMSTREAM * init_vgmstream_rsd6wma(STREAMFILE *streamFile) {
         vgmstream->coding_type = coding_FFmpeg;
         vgmstream->layout_type = layout_none;
 
-        vgmstream->num_samples = (int32_t)ffmpeg_data->totalSamples; /* probably an estimation */
-
+        vgmstream->num_samples = (int32_t)ffmpeg_data->totalSamples; /* an estimation, sometimes cuts files a bit early */
+    }
 #else
         goto fail;
 #endif
-    }
 
     if (!vgmstream_open_stream(vgmstream, streamFile, start_offset))
         goto fail;
