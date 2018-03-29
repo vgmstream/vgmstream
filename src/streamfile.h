@@ -167,7 +167,7 @@ size_t get_streamfile_text_line(int dst_length, char * dst, off_t offset, STREAM
 STREAMFILE * open_stream_ext(STREAMFILE *streamFile, const char * ext);
 STREAMFILE * open_stream_name(STREAMFILE *streamFile, const char * ext);
 
-int read_string(char * buf, size_t bufsize, off_t offset, STREAMFILE *streamFile);
+size_t read_string(char * buf, size_t bufsize, off_t offset, STREAMFILE *streamFile);
 
 size_t read_key_file(uint8_t * buf, size_t bufsize, STREAMFILE *streamFile);
 

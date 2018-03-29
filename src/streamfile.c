@@ -740,17 +740,17 @@ size_t get_streamfile_text_line(int dst_length, char * dst, off_t offset, STREAM
 }
 
 
-/* reads a c-string, up to maxsize or NULL, returning size. buf is optional. */
-int read_string(char * buf, size_t maxsize, off_t offset, STREAMFILE *streamFile) {
-    int i;
+/* reads a c-string (ANSI only), up to maxsize or NULL, returning size. buf is optional (works as get_string_size). */
+size_t read_string(char * buf, size_t maxsize, off_t offset, STREAMFILE *streamFile) {
+    size_t pos;
 
-    for (i=0; i < maxsize; i++) {
-        char c = read_8bit(offset + i, streamFile);
-        if (buf) buf[i] = c;
+    for (pos = 0; pos < maxsize; pos++) {
+        char c = read_8bit(offset + pos, streamFile);
+        if (buf) buf[pos] = c;
         if (c == '\0')
-            return i;
-        if (i+1 == maxsize) { /* null at maxsize and don't validate (expected to be garbage) */
-            if (buf) buf[i] = '\0';
+            return pos;
+        if (pos+1 == maxsize) { /* null at maxsize and don't validate (expected to be garbage) */
+            if (buf) buf[pos] = '\0';
             return maxsize;
         }
         if (c < 0x20 || c > 0xA5)

@@ -41,7 +41,7 @@ VGMSTREAM * init_vgmstream_xnb(STREAMFILE *streamFile) {
     {
         char reader_name[255+1];
         off_t current_offset = 0x0a;
-        int reader_string_len;
+        size_t reader_string_len;
         uint32_t fmt_chunk_size;
         const char * type_sound =  "Microsoft.Xna.Framework.Content.SoundEffectReader"; /* partial "fmt" chunk or XMA */
         //const char * type_song =  "Microsoft.Xna.Framework.Content.SongReader"; /* just references a companion .wma */
