@@ -721,4 +721,6 @@ VGMSTREAM * init_vgmstream_ea_wve_au00(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_ea_wve_ad10(STREAMFILE * streamFile);
 
+VGMSTREAM * init_vgmstream_sthd(STREAMFILE * streamFile);
+
 #endif /*_META_H*/

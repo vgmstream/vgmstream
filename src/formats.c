@@ -596,6 +596,7 @@ static const layout_info layout_info_list[] = {
         {layout_blocked_xvag_subsong,   "blocked (XVAG subsong)"},
         {layout_blocked_ea_wve_au00,    "blocked (EA WVE au00)"},
         {layout_blocked_ea_wve_ad10,    "blocked (EA WVE Ad10)"},
+        {layout_blocked_sthd,           "blocked (STHD)"},
 };
 
 static const meta_info meta_info_list[] = {
@@ -977,6 +978,7 @@ static const meta_info meta_info_list[] = {
         {meta_NXAP,                 "Nex NXAP header"},
         {meta_EA_WVE_AU00,          "Electronic Arts WVE (au00) header"},
         {meta_EA_WVE_AD10,          "Electronic Arts WVE (Ad10) header"},
+        {meta_STHD,                 "Dream Factory STHD header"},
 
 #ifdef VGM_USE_MP4V2
         {meta_MP4,                  "AAC header"},
