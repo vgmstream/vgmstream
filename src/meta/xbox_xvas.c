@@ -37,13 +37,13 @@ VGMSTREAM * init_vgmstream_xbox_xvas(STREAMFILE *streamFile) {
     }
 
     vgmstream->coding_type = coding_XBOX_IMA;
-    vgmstream->layout_type = layout_xvas_blocked;
+    vgmstream->layout_type = layout_blocked_xvas;
     vgmstream->meta_type = meta_XBOX_XVAS;
 
     if (!vgmstream_open_stream(vgmstream, streamFile, start_offset))
         goto fail;
 
-    xvas_block_update(start_offset,vgmstream);
+    block_update_xvas(start_offset,vgmstream);
     return vgmstream;
 
 fail:

@@ -105,7 +105,7 @@ VGMSTREAM * init_vgmstream_cdxa(STREAMFILE *streamFile) {
     vgmstream->xa_channel = xa_channel;
 
     vgmstream->coding_type = coding_XA;
-    vgmstream->layout_type = layout_xa_blocked;
+    vgmstream->layout_type = layout_blocked_xa;
     vgmstream->meta_type = meta_PSX_XA;
 
     if (is_blocked)
@@ -115,7 +115,7 @@ VGMSTREAM * init_vgmstream_cdxa(STREAMFILE *streamFile) {
     if ( !vgmstream_open_stream(vgmstream, streamFile, start_offset) )
         goto fail;
 
-    xa_block_update(start_offset,vgmstream);
+    block_update_xa(start_offset,vgmstream);
 
     return vgmstream;
 

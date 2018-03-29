@@ -7,53 +7,32 @@
 /* blocked layouts */
 void render_vgmstream_blocked(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstream);
 
-void ast_block_update(off_t block_ofset, VGMSTREAM * vgmstream);
-
-void mxch_block_update(off_t block_ofset, VGMSTREAM * vgmstream);
-
-void halpst_block_update(off_t block_ofset, VGMSTREAM * vgmstream);
-
-void xa_block_update(off_t block_offset, VGMSTREAM * vgmstream);
-
+void block_update_ast(off_t block_ofset, VGMSTREAM * vgmstream);
+void block_update_mxch(off_t block_ofset, VGMSTREAM * vgmstream);
+void block_update_halpst(off_t block_ofset, VGMSTREAM * vgmstream);
+void block_update_xa(off_t block_offset, VGMSTREAM * vgmstream);
 void block_update_ea_schl(off_t block_offset, VGMSTREAM * vgmstream);
 void block_update_ea_1snh(off_t block_offset, VGMSTREAM * vgmstream);
 void block_update_caf(off_t block_offset, VGMSTREAM * vgmstream);
 void block_update_wsi(off_t block_offset, VGMSTREAM * vgmstream);
-
-void str_snds_block_update(off_t block_offset, VGMSTREAM * vgmstream);
-
-void ws_aud_block_update(off_t block_offset, VGMSTREAM * vgmstream);
-
-void matx_block_update(off_t block_offset, VGMSTREAM * vgmstream);
-
+void block_update_str_snds(off_t block_offset, VGMSTREAM * vgmstream);
+void block_update_ws_aud(off_t block_offset, VGMSTREAM * vgmstream);
+void block_update_matx(off_t block_offset, VGMSTREAM * vgmstream);
 void block_update_dec(off_t block_offset, VGMSTREAM * vgmstream);
-
-void vs_block_update(off_t block_offset, VGMSTREAM * vgmstream);
-
-void emff_ps2_block_update(off_t block_offset, VGMSTREAM * vgmstream);
-
-void emff_ngc_block_update(off_t block_offset, VGMSTREAM * vgmstream);
-
-void gsb_block_update(off_t block_offset, VGMSTREAM * vgmstream);
-
-void xvas_block_update(off_t block_offset, VGMSTREAM * vgmstream);
-
-void thp_block_update(off_t block_offset, VGMSTREAM * vgmstream);
-
-void filp_block_update(off_t block_offset, VGMSTREAM * vgmstream);
-
+void block_update_vs(off_t block_offset, VGMSTREAM * vgmstream);
+void block_update_emff_ps2(off_t block_offset, VGMSTREAM * vgmstream);
+void block_update_emff_ngc(off_t block_offset, VGMSTREAM * vgmstream);
+void block_update_gsb(off_t block_offset, VGMSTREAM * vgmstream);
+void block_update_xvas(off_t block_offset, VGMSTREAM * vgmstream);
+void block_update_thp(off_t block_offset, VGMSTREAM * vgmstream);
+void block_update_filp(off_t block_offset, VGMSTREAM * vgmstream);
 void block_update_ivaud(off_t block_offset, VGMSTREAM * vgmstream);
 void block_update_ea_swvr(off_t block_offset, VGMSTREAM * vgmstream);
 void block_update_adm(off_t block_offset, VGMSTREAM * vgmstream);
-
-void dsp_bdsp_block_update(off_t block_offset, VGMSTREAM * vgmstream);
-
-void tra_block_update(off_t block_offset, VGMSTREAM * vgmstream);
-
-void ps2_iab_block_update(off_t block_offset, VGMSTREAM * vgmstream);
-
-void ps2_strlr_block_update(off_t block_offset, VGMSTREAM * vgmstream);
-
+void block_update_bdsp(off_t block_offset, VGMSTREAM * vgmstream);
+void block_update_tra(off_t block_offset, VGMSTREAM * vgmstream);
+void block_update_ps2_iab(off_t block_offset, VGMSTREAM * vgmstream);
+void block_update_ps2_strlr(off_t block_offset, VGMSTREAM * vgmstream);
 void block_update_rws(off_t block_offset, VGMSTREAM * vgmstream);
 void block_update_hwas(off_t block_offset, VGMSTREAM * vgmstream);
 void block_update_ea_sns(off_t block_offset, VGMSTREAM * vgmstream);

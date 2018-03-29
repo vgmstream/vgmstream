@@ -31,7 +31,7 @@ VGMSTREAM * init_vgmstream_xbox_matx(STREAMFILE *streamFile) {
     vgmstream->sample_rate = read_16bitLE(0x06,streamFile) & 0xffff;
 
 	vgmstream->coding_type = coding_XBOX_IMA;
-    vgmstream->layout_type = layout_matx_blocked;
+    vgmstream->layout_type = layout_blocked_matx;
     vgmstream->meta_type = meta_XBOX_MATX;
 
     /* open the file for reading by each channel */
@@ -43,15 +43,15 @@ VGMSTREAM * init_vgmstream_xbox_matx(STREAMFILE *streamFile) {
     }
 
 	/* Calc num_samples */
-	matx_block_update(0,vgmstream);
+	block_update_matx(0,vgmstream);
 	vgmstream->num_samples=0;
 
 	do {
 		vgmstream->num_samples += vgmstream->current_block_size/36*64;
-		matx_block_update(vgmstream->next_block_offset,vgmstream);
+		block_update_matx(vgmstream->next_block_offset,vgmstream);
 	} while (vgmstream->next_block_offset<get_streamfile_size(streamFile));
 
-	matx_block_update(0,vgmstream);
+	block_update_matx(0,vgmstream);
     return vgmstream;
 
     /* clean up anything we may have opened */

@@ -2,7 +2,7 @@
 #include "../vgmstream.h"
 
 /* set up for the block at the given offset */
-void ws_aud_block_update(off_t block_offset, VGMSTREAM * vgmstream) {
+void block_update_ws_aud(off_t block_offset, VGMSTREAM * vgmstream) {
     int i;
     vgmstream->current_block_offset = block_offset;
     vgmstream->current_block_size = read_16bitLE(

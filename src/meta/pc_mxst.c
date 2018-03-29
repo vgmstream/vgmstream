@@ -179,7 +179,7 @@ VGMSTREAM * init_vgmstream_pc_mxst(STREAMFILE *streamFile) {
 	/* fill in the vital statistics */
 	vgmstream->channels = channel_count;
     vgmstream->sample_rate = sample_rate;
-    vgmstream->layout_type = layout_mxch_blocked;
+    vgmstream->layout_type = layout_blocked_mxch;
 	
     vgmstream->meta_type = meta_PC_MXST;
 	if(bits_per_sample == 8)
@@ -207,7 +207,7 @@ VGMSTREAM * init_vgmstream_pc_mxst(STREAMFILE *streamFile) {
         }
 
     }
-    mxch_block_update(start_offset, vgmstream);
+    block_update_mxch(start_offset, vgmstream);
 
     return vgmstream;
 

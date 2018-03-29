@@ -122,7 +122,7 @@ VGMSTREAM * init_vgmstream_str_snds(STREAMFILE *streamFile) {
         default:
             goto fail;
     }
-    vgmstream->layout_type = layout_str_snds_blocked;
+    vgmstream->layout_type = layout_blocked_str_snds;
     vgmstream->meta_type = meta_STR_SNDS;
 
     /* channels and loop flag are set by allocate_vgmstream */
@@ -144,7 +144,7 @@ VGMSTREAM * init_vgmstream_str_snds(STREAMFILE *streamFile) {
     }
 
     /* start me up */
-    str_snds_block_update(0,vgmstream);
+    block_update_str_snds(0,vgmstream);
 
     return vgmstream;
 

@@ -2,7 +2,7 @@
 #include "../vgmstream.h"
 
 /* set up for the block at the given offset */
-void gsb_block_update(off_t block_offset, VGMSTREAM * vgmstream) {
+void block_update_gsb(off_t block_offset, VGMSTREAM * vgmstream) {
     int i;
     int block_header_size = 0x20; /*from header*/
     int block_channel_size = 0x8000; /*from header, per channel*/

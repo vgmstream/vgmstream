@@ -994,10 +994,10 @@
     <ClCompile Include="layout\aix_layout.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="layout\ast_blocked.c">
+    <ClCompile Include="layout\blocked_ast.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="layout\bdsp_blocked.c">
+    <ClCompile Include="layout\blocked_bdsp.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="layout\blocked.c">
@@ -1036,22 +1036,22 @@
     <ClCompile Include="layout\blocked_ea_sns.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="layout\emff_blocked.c">
+    <ClCompile Include="layout\blocked_emff.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="layout\filp_blocked.c">
+    <ClCompile Include="layout\blocked_filp.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="layout\gsb_blocked.c">
+    <ClCompile Include="layout\blocked_gsb.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="layout\halpst_blocked.c">
+    <ClCompile Include="layout\blocked_halpst.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="layout\blocked_hwas.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="layout\ims_block.c">
+    <ClCompile Include="layout\blocked_matx.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="layout\interleave.c">
@@ -1060,7 +1060,7 @@
     <ClCompile Include="layout\blocked_ivaud.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="layout\mxch_blocked.c">
+    <ClCompile Include="layout\blocked_mxch.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="layout\nolayout.c">
@@ -1075,25 +1075,28 @@
     <ClCompile Include="layout\blocked_rws.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="layout\str_snds_blocked.c">
+    <ClCompile Include="layout\blocked_sthd.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="layout\thp_blocked.c">
+    <ClCompile Include="layout\blocked_str_snds.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="layout\vs_blocked.c">
+    <ClCompile Include="layout\blocked_thp.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="layout\ws_aud_blocked.c">
+    <ClCompile Include="layout\blocked_vs.c">
+      <Filter>layout\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="layout\blocked_ws_aud.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="layout\blocked_wsi.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="layout\xa_blocked.c">
+    <ClCompile Include="layout\blocked_xa.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="layout\xvas_block.c">
+    <ClCompile Include="layout\blocked_xvas.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\nub_vag.c">
@@ -1129,13 +1132,13 @@
     <ClCompile Include="meta\ps2_iab.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="layout\ps2_strlr_blocked.c">
+    <ClCompile Include="layout\blocked_ps2_strlr.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="layout\ps2_iab_blocked.c">
+    <ClCompile Include="layout\blocked_ps2_iab.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="layout\tra_blocked.c">
+    <ClCompile Include="layout\blocked_tra.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\lsf_decoder.c">
@@ -1154,6 +1157,9 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\sqex_sead.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\sthd.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\seg.c">

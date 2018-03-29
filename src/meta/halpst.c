@@ -91,7 +91,7 @@ VGMSTREAM * init_vgmstream_halpst(STREAMFILE *streamFile) {
     }
 
     vgmstream->coding_type = coding_NGC_DSP;
-    vgmstream->layout_type = layout_halpst_blocked;
+    vgmstream->layout_type = layout_blocked_halpst;
     vgmstream->meta_type = meta_HALPST;
 
     /* load decode coefs */
@@ -120,7 +120,7 @@ VGMSTREAM * init_vgmstream_halpst(STREAMFILE *streamFile) {
     }
 
     /* start me up */
-    halpst_block_update(header_length,vgmstream);
+    block_update_halpst(header_length,vgmstream);
 
     return vgmstream;
 

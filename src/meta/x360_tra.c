@@ -38,7 +38,7 @@ VGMSTREAM * init_vgmstream_x360_tra(STREAMFILE *streamFile) {
 
 	vgmstream->coding_type = coding_DVI_IMA_int;
     vgmstream->num_samples = (int32_t)(get_streamfile_size(streamFile) - ((get_streamfile_size(streamFile)/0x204)*4));
-    vgmstream->layout_type = layout_tra_blocked;
+    vgmstream->layout_type = layout_blocked_tra;
 	
     vgmstream->meta_type = meta_X360_TRA;
 
@@ -51,7 +51,7 @@ VGMSTREAM * init_vgmstream_x360_tra(STREAMFILE *streamFile) {
         }
     }
 
-	tra_block_update(0,vgmstream);
+	block_update_tra(0,vgmstream);
     return vgmstream;
 
     /* clean up anything we may have opened */

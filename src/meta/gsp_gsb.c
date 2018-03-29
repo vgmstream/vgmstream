@@ -63,7 +63,7 @@ VGMSTREAM * init_vgmstream_gsp_gsb(STREAMFILE *streamFile) {
             size_t num_blocks;
 
             vgmstream->coding_type = coding_NGC_DSP;
-            vgmstream->layout_type = layout_gsb_blocked;
+            vgmstream->layout_type = layout_blocked_gsb;
 
             if (!find_chunk_be(streamFileGSP, 0x47434558,first_offset,1, &chunk_offset,NULL)) goto fail; /*"GCEX"*/
 

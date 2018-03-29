@@ -36,7 +36,7 @@ VGMSTREAM * init_vgmstream_ps2_iab(STREAMFILE *streamFile) {
     vgmstream->sample_rate = read_32bitLE(0x4,streamFile);
     vgmstream->coding_type = coding_PSX;
 
-    vgmstream->layout_type = layout_ps2_iab_blocked;
+    vgmstream->layout_type = layout_blocked_ps2_iab;
     vgmstream->interleave_block_size = read_32bitLE(0xC, streamFile);
     vgmstream->meta_type = meta_PS2_IAB;
     
@@ -50,16 +50,16 @@ VGMSTREAM * init_vgmstream_ps2_iab(STREAMFILE *streamFile) {
     }
 
     /* Calc num_samples */
-    ps2_iab_block_update(start_offset, vgmstream);
+    block_update_ps2_iab(start_offset, vgmstream);
     vgmstream->num_samples=0;
 
     do 
 	{    
 		vgmstream->num_samples += 0x4000 * 14 / 16;
-        ps2_iab_block_update(vgmstream->next_block_offset, vgmstream);
+        block_update_ps2_iab(vgmstream->next_block_offset, vgmstream);
     } while (vgmstream->next_block_offset < get_streamfile_size(streamFile));
 
-    ps2_iab_block_update(start_offset, vgmstream);
+    block_update_ps2_iab(start_offset, vgmstream);
 
     return vgmstream;
 

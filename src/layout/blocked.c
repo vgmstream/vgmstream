@@ -65,20 +65,20 @@ void render_vgmstream_blocked(sample * buffer, int32_t sample_count, VGMSTREAM *
         if (vgmstream->samples_into_block==samples_this_block
                 /*&& vgmstream->current_sample < vgmstream->num_samples*/) { /* don't go past last block */
             switch (vgmstream->layout_type) {
-                case layout_ast_blocked:
-                    ast_block_update(vgmstream->next_block_offset,vgmstream);
+                case layout_blocked_ast:
+                    block_update_ast(vgmstream->next_block_offset,vgmstream);
                     break;
-                case layout_mxch_blocked:
-                    mxch_block_update(vgmstream->next_block_offset,vgmstream);
+                case layout_blocked_mxch:
+                    block_update_mxch(vgmstream->next_block_offset,vgmstream);
                     break;
-                case layout_halpst_blocked:
+                case layout_blocked_halpst:
                     if (vgmstream->next_block_offset>=0)
-                        halpst_block_update(vgmstream->next_block_offset,vgmstream);
+                        block_update_halpst(vgmstream->next_block_offset,vgmstream);
                     else
                         vgmstream->current_block_offset = -1;
                     break;
-                case layout_xa_blocked:
-                    xa_block_update(vgmstream->next_block_offset,vgmstream);
+                case layout_blocked_xa:
+                    block_update_xa(vgmstream->next_block_offset,vgmstream);
                     break;
                 case layout_blocked_ea_schl:
                     block_update_ea_schl(vgmstream->next_block_offset,vgmstream);
@@ -92,38 +92,38 @@ void render_vgmstream_blocked(sample * buffer, int32_t sample_count, VGMSTREAM *
                 case layout_blocked_wsi:
                     block_update_wsi(vgmstream->next_block_offset,vgmstream);
                     break;
-                case layout_str_snds_blocked:
-                    str_snds_block_update(vgmstream->next_block_offset,vgmstream);
+                case layout_blocked_str_snds:
+                    block_update_str_snds(vgmstream->next_block_offset,vgmstream);
                     break;
-                case layout_ws_aud_blocked:
-                    ws_aud_block_update(vgmstream->next_block_offset,vgmstream);
+                case layout_blocked_ws_aud:
+                    block_update_ws_aud(vgmstream->next_block_offset,vgmstream);
                     break;
-                case layout_matx_blocked:
-                    matx_block_update(vgmstream->next_block_offset,vgmstream);
+                case layout_blocked_matx:
+                    block_update_matx(vgmstream->next_block_offset,vgmstream);
                     break;
                 case layout_blocked_dec:
                     block_update_dec(vgmstream->next_block_offset,vgmstream);
                     break;
-                case layout_emff_ps2_blocked:
-                    emff_ps2_block_update(vgmstream->next_block_offset,vgmstream);
+                case layout_blocked_emff_ps2:
+                    block_update_emff_ps2(vgmstream->next_block_offset,vgmstream);
                     break;
-                case layout_emff_ngc_blocked:
-                    emff_ngc_block_update(vgmstream->next_block_offset,vgmstream);
+                case layout_blocked_emff_ngc:
+                    block_update_emff_ngc(vgmstream->next_block_offset,vgmstream);
                     break;
-                case layout_gsb_blocked:
-                    gsb_block_update(vgmstream->next_block_offset,vgmstream);
+                case layout_blocked_gsb:
+                    block_update_gsb(vgmstream->next_block_offset,vgmstream);
                     break;
-                case layout_vs_blocked:
-                    vs_block_update(vgmstream->next_block_offset,vgmstream);
+                case layout_blocked_vs:
+                    block_update_vs(vgmstream->next_block_offset,vgmstream);
                     break;
-                case layout_xvas_blocked:
-                    xvas_block_update(vgmstream->next_block_offset,vgmstream);
+                case layout_blocked_xvas:
+                    block_update_xvas(vgmstream->next_block_offset,vgmstream);
                     break;
-                case layout_thp_blocked:
-                    thp_block_update(vgmstream->next_block_offset,vgmstream);
+                case layout_blocked_thp:
+                    block_update_thp(vgmstream->next_block_offset,vgmstream);
                     break;
-                case layout_filp_blocked:
-                    filp_block_update(vgmstream->next_block_offset,vgmstream);
+                case layout_blocked_filp:
+                    block_update_filp(vgmstream->next_block_offset,vgmstream);
                     break;
                 case layout_blocked_ivaud:
                     block_update_ivaud(vgmstream->next_block_offset,vgmstream);
@@ -134,17 +134,17 @@ void render_vgmstream_blocked(sample * buffer, int32_t sample_count, VGMSTREAM *
                 case layout_blocked_adm:
                     block_update_adm(vgmstream->next_block_offset,vgmstream);
                     break;
-                case layout_dsp_bdsp_blocked:
-                    dsp_bdsp_block_update(vgmstream->next_block_offset,vgmstream);
+                case layout_blocked_bdsp:
+                    block_update_bdsp(vgmstream->next_block_offset,vgmstream);
                     break;
-                case layout_tra_blocked:
-                    tra_block_update(vgmstream->next_block_offset,vgmstream);
+                case layout_blocked_tra:
+                    block_update_tra(vgmstream->next_block_offset,vgmstream);
                     break;
-                case layout_ps2_iab_blocked:
-                    ps2_iab_block_update(vgmstream->next_block_offset,vgmstream);
+                case layout_blocked_ps2_iab:
+                    block_update_ps2_iab(vgmstream->next_block_offset,vgmstream);
                     break;
-                case layout_ps2_strlr_blocked:
-                    ps2_strlr_block_update(vgmstream->next_block_offset,vgmstream);
+                case layout_blocked_ps2_strlr:
+                    block_update_ps2_strlr(vgmstream->next_block_offset,vgmstream);
                     break;
                 case layout_blocked_rws:
                     block_update_rws(vgmstream->next_block_offset,vgmstream);

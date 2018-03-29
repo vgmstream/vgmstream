@@ -2,7 +2,7 @@
 #include "../vgmstream.h"
 
 /* set up for the block at the given offset */
-void emff_ps2_block_update(off_t block_offset, VGMSTREAM * vgmstream) {
+void block_update_emff_ps2(off_t block_offset, VGMSTREAM * vgmstream) {
     int i;
 
 	vgmstream->current_block_offset = block_offset;
@@ -17,7 +17,7 @@ void emff_ps2_block_update(off_t block_offset, VGMSTREAM * vgmstream) {
     }
 }
 
-void emff_ngc_block_update(off_t block_offset, VGMSTREAM * vgmstream) {
+void block_update_emff_ngc(off_t block_offset, VGMSTREAM * vgmstream) {
     int i;
 
 	vgmstream->current_block_offset = block_offset;

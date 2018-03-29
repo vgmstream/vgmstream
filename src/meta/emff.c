@@ -44,7 +44,7 @@ VGMSTREAM * init_vgmstream_emff_ps2(STREAMFILE *streamFile) {
     vgmstream->channels = channel_count;
     vgmstream->coding_type = coding_PSX;
 
-    vgmstream->layout_type = layout_emff_ps2_blocked;
+    vgmstream->layout_type = layout_blocked_emff_ps2;
     vgmstream->interleave_block_size = 0x10;
     vgmstream->meta_type = meta_EMFF_PS2;
 
@@ -59,7 +59,7 @@ VGMSTREAM * init_vgmstream_emff_ps2(STREAMFILE *streamFile) {
     }
 
     /* Calc num_samples */
-    emff_ps2_block_update(start_offset,vgmstream);
+    block_update_emff_ps2(start_offset,vgmstream);
     vgmstream->num_samples = read_32bitLE(0x8,streamFile);
     if (loop_flag) {
         vgmstream->loop_start_sample = (read_32bitLE(0x28,streamFile)-start_offset)*28/16/channel_count;
@@ -148,7 +148,7 @@ VGMSTREAM * init_vgmstream_emff_ngc(STREAMFILE *streamFile) {
         goto fail;
     }
 
-    vgmstream->layout_type = layout_emff_ngc_blocked;
+    vgmstream->layout_type = layout_blocked_emff_ngc;
     vgmstream->interleave_block_size = 0x10;
     vgmstream->meta_type = meta_EMFF_NGC;
 
@@ -163,7 +163,7 @@ VGMSTREAM * init_vgmstream_emff_ngc(STREAMFILE *streamFile) {
     }
 
     /* Calc num_samples */
-    emff_ngc_block_update(start_offset,vgmstream);
+    block_update_emff_ngc(start_offset,vgmstream);
     vgmstream->num_samples = read_32bitBE(0x8,streamFile);;
     if (loop_flag) {
         vgmstream->loop_start_sample = (read_32bitBE(0x28,streamFile))*14/8/channel_count;

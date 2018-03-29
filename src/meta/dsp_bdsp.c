@@ -35,7 +35,7 @@ VGMSTREAM * init_vgmstream_dsp_bdsp(STREAMFILE *streamFile) {
 #endif
 
 
-        vgmstream->layout_type = layout_dsp_bdsp_blocked;
+        vgmstream->layout_type = layout_blocked_bdsp;
         vgmstream->interleave_block_size = 0x8;
         vgmstream->meta_type = meta_DSP_BDSP;
     
@@ -64,17 +64,17 @@ VGMSTREAM * init_vgmstream_dsp_bdsp(STREAMFILE *streamFile) {
 
     /* Calc num_samples */
     start_offset = 0x0;
-    dsp_bdsp_block_update(start_offset,vgmstream);
+    block_update_bdsp(start_offset,vgmstream);
     vgmstream->num_samples=0;
 
     do
     {
       vgmstream->num_samples += vgmstream->current_block_size*14/8;
-      dsp_bdsp_block_update(vgmstream->next_block_offset,vgmstream);
+      block_update_bdsp(vgmstream->next_block_offset,vgmstream);
     }
     while (vgmstream->next_block_offset<get_streamfile_size(streamFile));
 
-    dsp_bdsp_block_update(start_offset,vgmstream);
+    block_update_bdsp(start_offset,vgmstream);
 
 
     return vgmstream;

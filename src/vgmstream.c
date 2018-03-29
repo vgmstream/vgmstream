@@ -896,32 +896,32 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
         case layout_none:
             render_vgmstream_nolayout(buffer,sample_count,vgmstream);
             break;
-        case layout_mxch_blocked:
-        case layout_ast_blocked:
-        case layout_halpst_blocked:
-        case layout_xa_blocked:
+        case layout_blocked_mxch:
+        case layout_blocked_ast:
+        case layout_blocked_halpst:
+        case layout_blocked_xa:
         case layout_blocked_ea_schl:
         case layout_blocked_ea_1snh:
         case layout_blocked_caf:
         case layout_blocked_wsi:
-        case layout_str_snds_blocked:
-        case layout_ws_aud_blocked:
-        case layout_matx_blocked:
+        case layout_blocked_str_snds:
+        case layout_blocked_ws_aud:
+        case layout_blocked_matx:
         case layout_blocked_dec:
-        case layout_vs_blocked:
-        case layout_emff_ps2_blocked:
-        case layout_emff_ngc_blocked:
-        case layout_gsb_blocked:
-        case layout_xvas_blocked:
-        case layout_thp_blocked:
-        case layout_filp_blocked:
+        case layout_blocked_vs:
+        case layout_blocked_emff_ps2:
+        case layout_blocked_emff_ngc:
+        case layout_blocked_gsb:
+        case layout_blocked_xvas:
+        case layout_blocked_thp:
+        case layout_blocked_filp:
         case layout_blocked_ivaud:
         case layout_blocked_ea_swvr:
         case layout_blocked_adm:
-        case layout_dsp_bdsp_blocked:
-        case layout_tra_blocked:
-        case layout_ps2_iab_blocked:
-        case layout_ps2_strlr_blocked:
+        case layout_blocked_bdsp:
+        case layout_blocked_tra:
+        case layout_blocked_ps2_iab:
+        case layout_blocked_ps2_strlr:
         case layout_blocked_rws:
         case layout_blocked_hwas:
         case layout_blocked_ea_sns:
