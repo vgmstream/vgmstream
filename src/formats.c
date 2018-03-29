@@ -201,6 +201,7 @@ static const char* extension_list[] = {
     "msd",
     "msf",
     "mss",
+    "msv", //txh/reserved [Fight Club (PS2)]
     "msvp",
     "mta2",
     "mtaf",
