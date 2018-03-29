@@ -772,7 +772,7 @@ STREAMFILE * open_stream_ext(STREAMFILE *streamFile, const char * ext) {
     return streamFile->open(streamFile,filename_ext,STREAMFILE_DEFAULT_BUFFER_SIZE);
 }
 
-/* Opens an stream using the passed name (in the same folder) */
+/* Opens an stream using the passed name, in the same folder */
 STREAMFILE * open_stream_name(STREAMFILE *streamFile, const char * name) {
     char foldername[PATH_LIMIT];
     char filename[PATH_LIMIT];
@@ -871,9 +871,8 @@ fail:
 
 
 /**
- * checks if the stream filename is one of the extensions (comma-separated, ex. "adx" or "adx,aix")
- *
- * returns 0 on failure
+ * Checks if the stream filename is one of the extensions (comma-separated, ex. "adx" or "adx,aix").
+ * Empty is ok to accept files without extension ("", "adx,,aix"). Returns 0 on failure
  */
 int check_extensions(STREAMFILE *streamFile, const char * cmp_exts) {
     char filename[PATH_LIMIT];
@@ -948,13 +947,14 @@ int find_chunk(STREAMFILE *streamFile, uint32_t chunk_id, off_t start_offset, in
     return 0;
 }
 
-int get_streamfile_name(STREAMFILE *streamFile, char * buffer, size_t size) {
+void get_streamfile_name(STREAMFILE *streamFile, char * buffer, size_t size) {
     streamFile->get_name(streamFile,buffer,size);
-    return 1;
 }
-int get_streamfile_filename(STREAMFILE *streamFile, char * buffer, size_t size) {
+/* copies the filename without path */
+void get_streamfile_filename(STREAMFILE *streamFile, char * buffer, size_t size) {
     char foldername[PATH_LIMIT];
     const char *path;
+
 
     streamFile->get_name(streamFile,foldername,sizeof(foldername));
 
@@ -971,9 +971,8 @@ int get_streamfile_filename(STREAMFILE *streamFile, char * buffer, size_t size) 
     } else {
         strcpy(buffer, foldername);
     }
-    return 1;
 }
-int get_streamfile_path(STREAMFILE *streamFile, char * buffer, size_t size) {
+void get_streamfile_path(STREAMFILE *streamFile, char * buffer, size_t size) {
     const char *path;
 
     streamFile->get_name(streamFile,buffer,size);
@@ -986,11 +985,8 @@ int get_streamfile_path(STREAMFILE *streamFile, char * buffer, size_t size) {
     } else {
         buffer[0] = '\0';
     }
-
-    return 1;
 }
-int get_streamfile_ext(STREAMFILE *streamFile, char * filename, size_t size) {
+void get_streamfile_ext(STREAMFILE *streamFile, char * filename, size_t size) {
     streamFile->get_name(streamFile,filename,size);
     strcpy(filename, filename_extension(filename));
-    return 1;
 }

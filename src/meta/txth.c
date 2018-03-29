@@ -385,14 +385,14 @@ static STREAMFILE * open_txth(STREAMFILE * streamFile) {
     STREAMFILE * streamText;
 
     /* try "(path/)(name.ext).txth" */
-    if (!get_streamfile_name(streamFile,filename,PATH_LIMIT)) goto fail;
+    get_streamfile_name(streamFile,filename,PATH_LIMIT);
     strcat(filename, ".txth");
     streamText = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
     if (streamText) return streamText;
 
     /* try "(path/)(.ext).txth" */
-    if (!get_streamfile_path(streamFile,filename,PATH_LIMIT)) goto fail;
-    if (!get_streamfile_ext(streamFile,fileext,PATH_LIMIT)) goto fail;
+    get_streamfile_path(streamFile,filename,PATH_LIMIT);
+    get_streamfile_ext(streamFile,fileext,PATH_LIMIT);
     strcat(filename,".");
     strcat(filename, fileext);
     strcat(filename, ".txth");
@@ -400,14 +400,13 @@ static STREAMFILE * open_txth(STREAMFILE * streamFile) {
     if (streamText) return streamText;
 
     /* try "(path/).txth" */
-    if (!get_streamfile_path(streamFile,filename,PATH_LIMIT)) goto fail;
+    get_streamfile_path(streamFile,filename,PATH_LIMIT);
     strcat(filename, ".txth");
     streamText = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
     if (streamText) return streamText;
 
-fail:
     /* not found */
-    return 0;
+    return NULL;
 }
 
 /* Simple text parser of "key = value" lines.
