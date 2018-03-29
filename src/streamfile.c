@@ -684,6 +684,37 @@ fail:
 
 /* **************************************************** */
 
+STREAMFILE * open_streamfile_by_ext(STREAMFILE *streamFile, const char * ext) {
+    char filename_ext[PATH_LIMIT];
+
+    streamFile->get_name(streamFile,filename_ext,sizeof(filename_ext));
+    strcpy(filename_ext + strlen(filename_ext) - strlen(filename_extension(filename_ext)), ext);
+
+    return streamFile->open(streamFile,filename_ext,STREAMFILE_DEFAULT_BUFFER_SIZE);
+}
+
+STREAMFILE * open_streamfile_by_filename(STREAMFILE *streamFile, const char * name) {
+    char foldername[PATH_LIMIT];
+    char filename[PATH_LIMIT];
+    const char *path;
+
+    streamFile->get_name(streamFile,foldername,sizeof(foldername));
+
+    path = strrchr(foldername,DIR_SEPARATOR);
+    if (path!=NULL) path = path+1;
+
+    if (path) {
+        strcpy(filename, foldername);
+        filename[path-foldername] = '\0';
+        strcat(filename, name);
+    } else {
+        strcpy(filename, name);
+    }
+
+    return streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
+}
+
+
 /* Read a line into dst. The source files are lines separated by CRLF (Windows) / LF (Unux) / CR (Mac).
  * The line will be null-terminated and CR/LF removed if found.
  *
@@ -762,37 +793,6 @@ fail:
     return 0;
 }
 
-/* Opens an stream using the base streamFile name plus a new extension (ex. for headers in a separate file) */
-STREAMFILE * open_stream_ext(STREAMFILE *streamFile, const char * ext) {
-    char filename_ext[PATH_LIMIT];
-
-    streamFile->get_name(streamFile,filename_ext,sizeof(filename_ext));
-    strcpy(filename_ext + strlen(filename_ext) - strlen(filename_extension(filename_ext)), ext);
-
-    return streamFile->open(streamFile,filename_ext,STREAMFILE_DEFAULT_BUFFER_SIZE);
-}
-
-/* Opens an stream using the passed name, in the same folder */
-STREAMFILE * open_stream_name(STREAMFILE *streamFile, const char * name) {
-    char foldername[PATH_LIMIT];
-    char filename[PATH_LIMIT];
-    const char *path;
-
-    streamFile->get_name(streamFile,foldername,sizeof(foldername));
-
-    path = strrchr(foldername,DIR_SEPARATOR);
-    if (path!=NULL) path = path+1;
-
-    if (path) {
-        strcpy(filename, foldername);
-        filename[path-foldername] = '\0';
-        strcat(filename, name);
-    } else {
-        strcpy(filename, name);
-    }
-
-    return streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-}
 
 /* Opens a file containing decryption keys and copies to buffer.
  * Tries combinations of keynames based on the original filename.

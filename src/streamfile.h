@@ -65,41 +65,51 @@ typedef struct _STREAMFILE {
 
 } STREAMFILE;
 
-/* create a STREAMFILE from path */
-STREAMFILE * open_stdio_streamfile(const char * filename);
+/* Opens a standard STREAMFILE, opening from path.
+ * Uses stdio (FILE) for operations, thus plugins may not want to use it. */
+STREAMFILE *open_stdio_streamfile(const char * filename);
 
-/* create a STREAMFILE from pre-opened file path */
-STREAMFILE * open_stdio_streamfile_by_file(FILE * file, const char * filename);
+/* Opens a standard STREAMFILE from a pre-opened FILE. */
+STREAMFILE *open_stdio_streamfile_by_file(FILE * file, const char * filename);
 
-/* A STREAMFILE that doesn't close the underlying stream.
+/* Opens a STREAMFILE that doesn't close the underlying streamfile.
  * Calls to open won't wrap the new SF (assumes it needs to be closed).
  * Can be used in metas to test custom IO without closing the external SF. */
 STREAMFILE *open_wrap_streamfile(STREAMFILE *streamfile);
 
-/* A STREAMFILE that clamps IO to a section of a larger stream.
- * Can be used with subfiles inside a bigger file, so it looks standard to a meta. */
+/* Opens a STREAMFILE that clamps reads to a section of a larger streamfile.
+ * Can be used with subfiles inside a bigger file (to fool metas, or to simplify custom IO). */
 STREAMFILE *open_clamp_streamfile(STREAMFILE *streamfile, off_t start, size_t size);
 
-/* A STREAMFILE with custom IO, that clamps IO to a section of a larger stream.
- * Can be used with subfiles inside a bigger file, so it looks standard to a meta. */
+/* Opens a STREAMFILE that uses custom IO for streamfile reads.
+ * Can be used to modify data on the fly (ex. decryption), or even transform it from a format to another. */
 STREAMFILE *open_io_streamfile(STREAMFILE *streamfile, void* data, size_t data_size, void* read_callback);//void* size_callback, void* seek_callback);
 
-/* A STREAMFILE that reports a fake name, but still re-opens itself properly.
+/* Opens a STREAMFILE that reports a fake name, but still re-opens itself properly.
  * Can be used to trick a meta's extension check (to call from another, with a modified SF).
  * When fakename isn't supplied it's read from the streamfile, and the extension swapped with fakeext.
  * If the fakename is an existing file, open won't work on it as it'll reopen the fake-named streamfile. */
 STREAMFILE *open_fakename_streamfile(STREAMFILE *streamfile, const char * fakename, const char * fakeext);
 
-/* A streamfile formed from multiple streamfiles, their data joined during reads.
+//todo probably could simply use custom IO
+/* Opens streamfile formed from multiple streamfiles, their data joined during reads.
  * Can be used when data is segmented in multiple separate files.
  * The first streamfile is used to get names, stream index and so on. */
 STREAMFILE *open_multifile_streamfile(STREAMFILE **streamfiles, size_t streamfiles_size);
 
+/* Opens a STREAMFILE from a base pathname + new extension
+ * Can be used to get companion headers. */
+STREAMFILE * open_streamfile_by_ext(STREAMFILE *streamFile, const char * ext);
+
+/* Opens a STREAMFILE from a base path + new filename
+ * Can be used to get companion files. */
+STREAMFILE * open_streamfile_by_filename(STREAMFILE *streamFile, const char * filename);
+
 
 /* close a file, destroy the STREAMFILE object */
 static inline void close_streamfile(STREAMFILE * streamfile) {
-    if (streamfile==NULL) return;
-    streamfile->close(streamfile);
+    if (streamfile!=NULL)
+        streamfile->close(streamfile);
 }
 
 /* read from a file, returns number of bytes read */
@@ -163,9 +173,6 @@ static inline int8_t read_8bit(off_t offset, STREAMFILE * streamfile) {
 /* various STREAMFILE helpers functions */
 
 size_t get_streamfile_text_line(int dst_length, char * dst, off_t offset, STREAMFILE * streamfile, int *line_done_ptr);
-
-STREAMFILE * open_stream_ext(STREAMFILE *streamFile, const char * ext);
-STREAMFILE * open_stream_name(STREAMFILE *streamFile, const char * ext);
 
 size_t read_string(char * buf, size_t bufsize, off_t offset, STREAMFILE *streamFile);
 

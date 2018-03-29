@@ -109,7 +109,7 @@ static void get_stream_name(char * stream_name, STREAMFILE *streamFile, int targ
     size_t name_size = 0;
     off_t name_offset = 0x10;
 
-    streamInfo = open_stream_ext(streamFile, "sob");
+    streamInfo = open_streamfile_by_ext(streamFile, "sob");
     if (!streamInfo) goto end;
     if (read_32bitBE(0x00,streamInfo) != 0x43544632) /* "CTF2" */
         goto end;

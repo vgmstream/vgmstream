@@ -16,7 +16,7 @@ VGMSTREAM * init_vgmstream_gsp_gsb(STREAMFILE *streamFile) {
     if (!check_extensions(streamFile,"gsb"))
         goto fail;
 
-    streamFileGSP = open_stream_ext(streamFile, "gsp");
+    streamFileGSP = open_streamfile_by_ext(streamFile, "gsp");
     if (!streamFileGSP) goto fail;
 
     /* check header */

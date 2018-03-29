@@ -601,7 +601,7 @@ static int get_xsb_name(char * buf, size_t maxsize, int target_subsong, xwb_head
     xsb_header xsb = {0};
 
 
-    streamFile = open_stream_ext(streamXwb, "xsb");
+    streamFile = open_streamfile_by_ext(streamXwb, "xsb");
     if (!streamFile) goto fail;
 
     /* check header */

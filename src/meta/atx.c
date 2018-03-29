@@ -59,7 +59,7 @@ static STREAMFILE* setup_atx_streamfile(STREAMFILE *streamFile) {
         size_t subfile_size;
 
         filename[filename_len - 5] = ('0'+i+1); /* ghetto digit conversion */
-        new_streamFile = open_stream_name(streamFile, filename);
+        new_streamFile = open_streamfile_by_filename(streamFile, filename);
         if (!new_streamFile) goto fail;
         segment_streamFiles[i] = new_streamFile;
 

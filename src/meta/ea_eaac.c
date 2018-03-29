@@ -29,7 +29,7 @@ VGMSTREAM * init_vgmstream_ea_snr_sns(STREAMFILE * streamFile) {
         if (!vgmstream) goto fail;
     }
     else {
-        streamData = open_stream_ext(streamFile,"sns");
+        streamData = open_streamfile_by_ext(streamFile,"sns");
         if (!streamData) goto fail;
 
         vgmstream = init_vgmstream_eaaudiocore_header(streamFile, streamData, 0x00, 0x00, meta_EA_SNR_SNS);

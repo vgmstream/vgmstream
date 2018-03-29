@@ -24,7 +24,7 @@ VGMSTREAM * init_vgmstream_sgxd(STREAMFILE *streamFile) {
 
     /* SGB+SGH: use SGH as header; otherwise use the current file as header */
     if (is_sgb) {
-        streamHeader = open_stream_ext(streamFile, "sgh");
+        streamHeader = open_streamfile_by_ext(streamFile, "sgh");
         if (!streamHeader) goto fail;
     } else {
         streamHeader = streamFile;

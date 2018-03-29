@@ -90,7 +90,7 @@ VGMSTREAM * init_vgmstream_ubi_sb(STREAMFILE *streamFile) {
     if (sb.autodetect_external) { /* works most of the time but could give false positives */
         VGM_LOG("UBI SB: autodetecting external stream '%s'\n", sb.stream_name);
 
-        streamData = open_stream_name(streamFile,sb.stream_name);
+        streamData = open_streamfile_by_filename(streamFile,sb.stream_name);
         if (!streamData) {
             streamData = streamFile; /* assume internal */
             if (sb.stream_size > get_streamfile_size(streamData)) {
@@ -102,7 +102,7 @@ VGMSTREAM * init_vgmstream_ubi_sb(STREAMFILE *streamFile) {
         }
     }
     else if (sb.is_external) {
-        streamData = open_stream_name(streamFile,sb.stream_name);
+        streamData = open_streamfile_by_filename(streamFile,sb.stream_name);
         if (!streamData) {
             VGM_LOG("UBI SB: external stream '%s' not found\n", sb.stream_name);
             goto fail;
@@ -674,7 +674,7 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
 
     /* two games with same id; use project file as identifier */
     if (sb->version == 0x0012000C && is_sb4) {
-        STREAMFILE * streamTest = open_stream_name(streamFile, "BIAAUDIO.SP4");
+        STREAMFILE * streamTest = open_streamfile_by_filename(streamFile, "BIAAUDIO.SP4");
         if (streamTest) {
             is_biadd_psp = 1;
             close_streamfile(streamTest);
