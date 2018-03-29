@@ -388,6 +388,14 @@
                     RelativePath=".\meta\ea_eaac.c"
                     >
                 </File>
+                <File
+                    RelativePath=".\meta\ea_wve_au00.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\ea_wve_ad10.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\emff.c"
 					>
@@ -1708,6 +1716,14 @@
                 </File>
                 <File
                     RelativePath=".\layout\blocked_ea_1snh.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\layout\blocked_ea_wve_au00.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\layout\blocked_ea_wve_ad10.c"
                     >
                 </File>
                 <File

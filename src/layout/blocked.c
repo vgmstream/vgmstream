@@ -167,6 +167,12 @@ void render_vgmstream_blocked(sample * buffer, int32_t sample_count, VGMSTREAM *
                 case layout_blocked_xvag_subsong:
                     block_update_xvag_subsong(vgmstream->next_block_offset,vgmstream);
                     break;
+                case layout_blocked_ea_wve_au00:
+                    block_update_ea_wve_au00(vgmstream->next_block_offset,vgmstream);
+                    break;
+                case layout_blocked_ea_wve_ad10:
+                    block_update_ea_wve_ad10(vgmstream->next_block_offset,vgmstream);
+                    break;
                 default:
                     break;
             }

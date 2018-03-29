@@ -212,6 +212,8 @@
     <ClCompile Include="meta\ea_schl_fixed.c" />
     <ClCompile Include="meta\ea_1snh.c" />
     <ClCompile Include="meta\ea_eaac.c" />
+    <ClCompile Include="meta\ea_wve_au00.c" />
+    <ClCompile Include="meta\ea_wve_ad10.c" />
     <ClCompile Include="meta\emff.c" />
     <ClCompile Include="meta\exakt_sc.c" />
     <ClCompile Include="meta\ffw.c" />
@@ -483,6 +485,8 @@
     <ClCompile Include="layout\blocked_dec.c" />
     <ClCompile Include="layout\blocked_ea_schl.c" />
     <ClCompile Include="layout\blocked_ea_sns.c" />
+    <ClCompile Include="layout\blocked_ea_wve_au00.c" />
+    <ClCompile Include="layout\blocked_ea_wve_ad10.c" />
     <ClCompile Include="layout\emff_blocked.c" />
     <ClCompile Include="layout\filp_blocked.c" />
     <ClCompile Include="layout\gsb_blocked.c" />

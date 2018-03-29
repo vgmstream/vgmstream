@@ -249,6 +249,8 @@ typedef enum {
     layout_blocked_vgs,     /* Guitar Hero II (PS2) */
     layout_blocked_vawx,    /* No More Heroes 6ch (PS3) */
     layout_blocked_xvag_subsong, /* XVAG subsongs [God of War III (PS4)] */
+    layout_blocked_ea_wve_au00, /* EA WVE au00 blocks */
+    layout_blocked_ea_wve_ad10, /* EA WVE Ad10 blocks */
 
     /* otherwise odd */
     layout_aix,             /* CRI AIX's wheels within wheels */
@@ -659,6 +661,8 @@ typedef enum {
     meta_WAVE_segmented,    /* EngineBlack games, segmented [Shantae and the Pirate's Curse (PC)] */
     meta_SMV,               /* Cho Aniki Zero (PSP) */
     meta_NXAP,              /* Nex Entertainment games [Time Crisis 4 (PS3), Time Crisis Razing Storm (PS3)] */
+    meta_EA_WVE_AU00,       /* Electronic Arts PS movies [Future Cop - L.A.P.D. (PS), Supercross 2000 (PS)] */
+    meta_EA_WVE_AD10,       /* Electronic Arts PS movies [Wing Commander 3/4 (PS)] */
 
 #ifdef VGM_USE_MP4V2
     meta_MP4,               /* AAC (iOS) */

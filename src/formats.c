@@ -376,6 +376,7 @@ static const char* extension_list[] = {
     "wsd",
     "wsi",
     "wv2", //txth/reserved [Slave Zero (PC)]
+    "wve",
     "wvs",
 
     "xa",
@@ -592,6 +593,8 @@ static const layout_info layout_info_list[] = {
         {layout_blocked_vgs,            "blocked (VGS)"},
         {layout_blocked_vawx,           "blocked (VAWX)"},
         {layout_blocked_xvag_subsong,   "blocked (XVAG subsong)"},
+        {layout_blocked_ea_wve_au00,    "blocked (EA WVE au00)"},
+        {layout_blocked_ea_wve_ad10,    "blocked (EA WVE Ad10)"},
 };
 
 static const meta_info meta_info_list[] = {
@@ -971,6 +974,8 @@ static const meta_info meta_info_list[] = {
         {meta_WAVE_segmented,       "EngineBlack .WAVE header (segmented)"},
         {meta_SMV,                  "Cho Aniki Zero .SMV header"},
         {meta_NXAP,                 "Nex NXAP header"},
+        {meta_EA_WVE_AU00,          "Electronic Arts WVE (au00) header"},
+        {meta_EA_WVE_AD10,          "Electronic Arts WVE (Ad10) header"},
 
 #ifdef VGM_USE_MP4V2
         {meta_MP4,                  "AAC header"},
