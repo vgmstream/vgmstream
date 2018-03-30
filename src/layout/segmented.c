@@ -1,70 +1,5 @@
 #include "layout.h"
 #include "../vgmstream.h"
-#include "../coding/coding.h"
-
-segmented_layout_data* init_layout_segmented(int segment_count) {
-    segmented_layout_data *data = NULL;
-
-    if (segment_count <= 0 || segment_count > 255)
-        goto fail;
-
-    data = calloc(1, sizeof(segmented_layout_data));
-    if (!data) goto fail;
-
-    data->segment_count = segment_count;
-    data->current_segment = 0;
-
-    data->segments = calloc(segment_count, sizeof(VGMSTREAM*));
-    if (!data->segments) goto fail;
-
-    return data;
-fail:
-    free_layout_segmented(data);
-    return NULL;
-}
-
-
-int setup_layout_segmented(segmented_layout_data* data) {
-    int i;
-
-    /* setup each VGMSTREAM (roughly equivalent to vgmstream.c's init_vgmstream_internal stuff) */
-    for (i = 0; i < data->segment_count; i++) {
-        if (!data->segments[i])
-            goto fail;
-
-        if (data->segments[i]->num_samples <= 0)
-            goto fail;
-
-        /* shouldn't happen */
-        if (data->segments[i]->loop_flag != 0) {
-            VGM_LOG("segmented layout: segment %i is looped\n", i);
-            data->segments[i]->loop_flag = 0;
-        }
-
-        if (i > 0) {
-            if (data->segments[i]->channels != data->segments[i-1]->channels)
-                goto fail;
-
-            /* a bit weird, but no matter */
-            if (data->segments[i]->sample_rate != data->segments[i-1]->sample_rate) {
-                VGM_LOG("segmented layout: segment %i has different sample rate\n", i);
-            }
-
-            //if (data->segments[i]->coding_type != data->segments[i-1]->coding_type)
-            //    goto fail; /* perfectly acceptable */
-        }
-
-
-        /* save start things so we can restart for seeking/looping */
-        memcpy(data->segments[i]->start_ch,data->segments[i]->ch,sizeof(VGMSTREAMCHANNEL)*data->segments[i]->channels);
-        memcpy(data->segments[i]->start_vgmstream,data->segments[i],sizeof(VGMSTREAM));
-    }
-
-
-    return 1;
-fail:
-    return 0; /* caller is expected to free */
-}
 
 
 void render_vgmstream_segmented(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstream) {
@@ -110,6 +45,69 @@ void render_vgmstream_segmented(sample * buffer, int32_t sample_count, VGMSTREAM
 }
 
 
+segmented_layout_data* init_layout_segmented(int segment_count) {
+    segmented_layout_data *data = NULL;
+
+    if (segment_count <= 0 || segment_count > 255)
+        goto fail;
+
+    data = calloc(1, sizeof(segmented_layout_data));
+    if (!data) goto fail;
+
+    data->segment_count = segment_count;
+    data->current_segment = 0;
+
+    data->segments = calloc(segment_count, sizeof(VGMSTREAM*));
+    if (!data->segments) goto fail;
+
+    return data;
+fail:
+    free_layout_segmented(data);
+    return NULL;
+}
+
+int setup_layout_segmented(segmented_layout_data* data) {
+    int i;
+
+    /* setup each VGMSTREAM (roughly equivalent to vgmstream.c's init_vgmstream_internal stuff) */
+    for (i = 0; i < data->segment_count; i++) {
+        if (!data->segments[i])
+            goto fail;
+
+        if (data->segments[i]->num_samples <= 0)
+            goto fail;
+
+        /* shouldn't happen */
+        if (data->segments[i]->loop_flag != 0) {
+            VGM_LOG("segmented layout: segment %i is looped\n", i);
+            data->segments[i]->loop_flag = 0;
+        }
+
+        if (i > 0) {
+            if (data->segments[i]->channels != data->segments[i-1]->channels)
+                goto fail;
+
+            /* a bit weird, but no matter */
+            if (data->segments[i]->sample_rate != data->segments[i-1]->sample_rate) {
+                VGM_LOG("segmented layout: segment %i has different sample rate\n", i);
+            }
+
+            //if (data->segments[i]->coding_type != data->segments[i-1]->coding_type)
+            //    goto fail; /* perfectly acceptable */
+        }
+
+
+        /* save start things so we can restart for seeking/looping */
+        memcpy(data->segments[i]->start_ch,data->segments[i]->ch,sizeof(VGMSTREAMCHANNEL)*data->segments[i]->channels);
+        memcpy(data->segments[i]->start_vgmstream,data->segments[i],sizeof(VGMSTREAM));
+    }
+
+
+    return 1;
+fail:
+    return 0; /* caller is expected to free */
+}
+
 void free_layout_segmented(segmented_layout_data *data) {
     int i;
 
@@ -118,8 +116,6 @@ void free_layout_segmented(segmented_layout_data *data) {
 
     if (data->segments) {
         for (i = 0; i < data->segment_count; i++) {
-            /* note that the close_streamfile won't do anything but deallocate itself,
-             * there is only one open file in vgmstream->ch[0].streamfile */
             close_vgmstream(data->segments[i]);
         }
         free(data->segments);
