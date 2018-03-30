@@ -26,8 +26,7 @@ extern char * optarg;
 extern int optind, opterr, optopt;
 
 
-static void make_wav_header(uint8_t * buf, int32_t sample_count, int32_t sample_rate, int channels);
-static void make_smpl_chunk(uint8_t * buf, int32_t loop_start, int32_t loop_end);
+static size_t make_wav_header(uint8_t * buf, size_t buf_size, int32_t sample_count, int32_t sample_rate, int channels, int smpl_chunk, int32_t loop_start, int32_t loop_end);
 
 static void usage(const char * name) {
     fprintf(stderr,"vgmstream CLI decoder " VERSION " " __DATE__ "\n"
@@ -316,16 +315,23 @@ int main(int argc, char ** argv) {
 
 
     /* slap on a .wav header */
-    if (only_stereo != -1) {
-        make_wav_header((uint8_t*)buf, len_samples, vgmstream->sample_rate, 2);
-    } else {
-        make_wav_header((uint8_t*)buf, len_samples, vgmstream->sample_rate, vgmstream->channels);
+    {
+        uint8_t wav_buf[0x100];
+        int channels = (only_stereo != -1) ? 2 : vgmstream->channels;
+        int smpl_chunk = (write_lwav && vgmstream->loop_flag);
+        size_t bytes_done;
+
+        bytes_done = make_wav_header(wav_buf,0x100,
+                len_samples, vgmstream->sample_rate, channels,
+                smpl_chunk, vgmstream->loop_start_sample, vgmstream->loop_end_sample);
+
+        /* once "smpl" with loops is written we don't want actual file looping */
+        if (smpl_chunk) {
+            vgmstream_force_loop(vgmstream, 0, 0,0);
+        }
+
+        fwrite(wav_buf,sizeof(uint8_t),bytes_done,outfile);
     }
-    if (write_lwav && vgmstream->loop_flag) { // Adding space for smpl chunk at end
-        int32_t bytecount = get_32bitLE((uint8_t*)buf + 4);
-        put_32bitLE((uint8_t*)buf + 4, bytecount + 0x44);
-    }
-    fwrite(buf,1,0x2c,outfile);
 
     /* decode forever */
     while (play_forever) {
@@ -374,11 +380,6 @@ int main(int argc, char ** argv) {
         }
     }
 
-    /* Writing "smpl" chunck at the end */
-    if (write_lwav && vgmstream->loop_flag) {
-        make_smpl_chunk((uint8_t*)buf, vgmstream->loop_start_sample, vgmstream->loop_end_sample);
-        fwrite(buf,1,0x44,outfile);
-    }
     fclose(outfile);
     outfile = NULL;
 
@@ -389,9 +390,6 @@ int main(int argc, char ** argv) {
             fprintf(stderr,"failed to open %s for output\n",outfilename_reset);
             return EXIT_FAILURE;
         }
-        /* slap on a .wav header */
-        make_wav_header((uint8_t*)buf, len_samples, vgmstream->sample_rate, vgmstream->channels);
-        fwrite(buf,1,0x2c,outfile);
 
         reset_vgmstream(vgmstream);
 
@@ -407,6 +405,29 @@ int main(int argc, char ** argv) {
 
         if (ignore_loop) {
             vgmstream_force_loop(vgmstream, 0, 0,0);
+        }
+
+        /* slap on a .wav header */
+        {
+            uint8_t wav_buf[0x100];
+            int channels = (only_stereo != -1) ? 2 : vgmstream->channels;
+            int smpl_chunk = (write_lwav && vgmstream->loop_flag);
+            size_t bytes_done;
+
+            bytes_done = make_wav_header(wav_buf,0x100,
+                    len_samples, vgmstream->sample_rate, channels,
+                    smpl_chunk, vgmstream->loop_start_sample, vgmstream->loop_end_sample);
+
+            /* once "smpl" with looping is written we don't want actual file looping */
+            if (smpl_chunk) {
+                vgmstream_force_loop(vgmstream, 0, 0,0);
+            }
+
+            if (write_lwav && vgmstream->loop_flag) { // Adding space for smpl chunk at end
+                int32_t bytecount = get_32bitLE((uint8_t*)buf + 4);
+                put_32bitLE((uint8_t*)buf + 4, bytecount + 0x44);
+            }
+            fwrite(wav_buf,sizeof(uint8_t),bytes_done,outfile);
         }
 
         /* decode */
@@ -452,35 +473,6 @@ int main(int argc, char ** argv) {
 
 
 
-/**
- * make a header for PCM .wav
- * buffer must be 0x2c bytes
- */
-static void make_wav_header(uint8_t * buf, int32_t sample_count, int32_t sample_rate, int channels) {
-    size_t bytecount;
-
-    bytecount = sample_count*channels*sizeof(sample);
-
-    memcpy(buf+0, "RIFF", 4); /* RIFF header */
-    put_32bitLE(buf+4, (int32_t)(bytecount+0x2c-8)); /* size of RIFF */
-
-    memcpy(buf+8, "WAVE", 4); /* WAVE header */
-
-    memcpy(buf+0xc, "fmt ", 4); /* WAVE fmt chunk */
-    put_32bitLE(buf+0x10, 0x10); /* size of WAVE fmt chunk */
-    put_16bitLE(buf+0x14, 1); /* compression code 1=PCM */
-    put_16bitLE(buf+0x16, channels); /* channel count */
-    put_32bitLE(buf+0x18, sample_rate); /* sample rate */
-    put_32bitLE(buf+0x1c, sample_rate*channels*sizeof(sample)); /* bytes per second */
-    put_16bitLE(buf+0x20, (int16_t)(channels*sizeof(sample))); /* block align */
-    put_16bitLE(buf+0x22, sizeof(sample)*8); /* significant bits per sample */
-
-    /* PCM has no extra format bytes, so we don't even need to specify a count */
-
-    memcpy(buf+0x24, "data", 4); /* WAVE data chunk */
-    put_32bitLE(buf+0x28, (int32_t)bytecount); /* size of WAVE data chunk */
-}
-
 static void make_smpl_chunk(uint8_t * buf, int32_t loop_start, int32_t loop_end) {
     int i;
 
@@ -499,4 +491,45 @@ static void make_smpl_chunk(uint8_t * buf, int32_t loop_start, int32_t loop_end)
     put_32bitLE(buf+56, loop_end);
     put_32bitLE(buf+60, 0);
     put_32bitLE(buf+64, 0);
+}
+
+/* make a RIFF header for .wav */
+static size_t make_wav_header(uint8_t * buf, size_t buf_size, int32_t sample_count, int32_t sample_rate, int channels, int smpl_chunk, int32_t loop_start, int32_t loop_end) {
+    size_t data_size, header_size;
+
+    data_size = sample_count*channels*sizeof(sample);
+    header_size = 0x2c;
+    if (smpl_chunk)
+        header_size += 0x3c+ 0x08;
+
+    if (header_size > buf_size)
+        goto fail;
+
+    memcpy(buf+0x00, "RIFF", 4); /* RIFF header */
+    put_32bitLE(buf+4, (int32_t)(header_size - 0x08 + data_size)); /* size of RIFF */
+
+    memcpy(buf+0x08, "WAVE", 4); /* WAVE header */
+
+    memcpy(buf+0x0c, "fmt ", 4); /* WAVE fmt chunk */
+    put_32bitLE(buf+0x10, 0x10); /* size of WAVE fmt chunk */
+    put_16bitLE(buf+0x14, 1); /* compression code 1=PCM */
+    put_16bitLE(buf+0x16, channels); /* channel count */
+    put_32bitLE(buf+0x18, sample_rate); /* sample rate */
+    put_32bitLE(buf+0x1c, sample_rate*channels*sizeof(sample)); /* bytes per second */
+    put_16bitLE(buf+0x20, (int16_t)(channels*sizeof(sample))); /* block align */
+    put_16bitLE(buf+0x22, sizeof(sample)*8); /* significant bits per sample */
+
+    if (smpl_chunk) {
+        make_smpl_chunk(buf+0x24, loop_start, loop_end);
+        memcpy(buf+0x24+0x3c+0x08, "data", 0x04); /* WAVE data chunk */
+        put_32bitLE(buf+0x28+0x3c+0x08, (int32_t)data_size); /* size of WAVE data chunk */
+    }
+    else {
+        memcpy(buf+0x24, "data", 0x04); /* WAVE data chunk */
+        put_32bitLE(buf+0x28, (int32_t)data_size); /* size of WAVE data chunk */
+    }
+
+    return header_size;
+fail:
+    return 0;
 }
