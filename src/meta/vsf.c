@@ -4,25 +4,22 @@
 /* VSF (from Musashi: Samurai Legend) */
 VGMSTREAM * init_vgmstream_ps2_vsf(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[PATH_LIMIT];
     off_t start_offset;
-
-    int loop_flag;
-   int channel_count;
+    int loop_flag, channel_count;
 
     /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("vsf",filename_extension(filename))) goto fail;
+    if (!check_extensions(streamFile, "vsf"))
+        goto fail;
 
     /* check header */
     if (read_32bitBE(0x00,streamFile) != 0x56534600) /* "VSF" */
         goto fail;
 
     loop_flag = (read_32bitLE(0x1c,streamFile)==0x13);
-	if(read_32bitLE(0x8,streamFile)==0x0) 
-		channel_count = 1;
-	else
-		channel_count = 2;
+    if(read_8bit(0x1C,streamFile)==0x0) 
+        channel_count = 1;
+    else
+        channel_count = 2;
 
    /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
@@ -44,25 +41,12 @@ VGMSTREAM * init_vgmstream_ps2_vsf(STREAMFILE *streamFile) {
     vgmstream->meta_type = meta_PS2_VSF;
 
     /* open the file for reading */
-    {
-        int i;
-        STREAMFILE * file;
-        file = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-        if (!file) goto fail;
-        for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = file;
-
-            vgmstream->ch[i].channel_start_offset=
-                vgmstream->ch[i].offset=start_offset+
-                vgmstream->interleave_block_size*i;
-
-        }
-    }
-
+    if (!vgmstream_open_stream(vgmstream, streamFile, start_offset))
+        goto fail;
     return vgmstream;
 
     /* clean up anything we may have opened */
 fail:
-    if (vgmstream) close_vgmstream(vgmstream);
+    close_vgmstream(vgmstream);
     return NULL;
 }

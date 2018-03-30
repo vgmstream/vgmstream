@@ -1,11 +1,10 @@
 #include "meta.h"
 #include "../util.h"
 
-/* PSH (from Dawn of Mana - Seiken Densetsu 4) */
+/* PSH (from Dawn of Mana - Seiken Densetsu 4, Kingdom Hearts Re:Chain of Memories) */
 /* probably Square Vag Stream */
 VGMSTREAM * init_vgmstream_ps2_psh(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[PATH_LIMIT];
     off_t start_offset;
 	uint8_t	testBuffer[0x10];
 	off_t	loopEnd = 0;
@@ -16,8 +15,8 @@ VGMSTREAM * init_vgmstream_ps2_psh(STREAMFILE *streamFile) {
 	int channel_count;
 
     /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("psh",filename_extension(filename))) goto fail;
+    if (!check_extensions(streamFile, "psh,vsv")) // vsv seems to be official extension
+        goto fail;
 
     /* check header */
     if (read_16bitBE(0x02,streamFile) != 0x6400)
@@ -65,25 +64,12 @@ VGMSTREAM * init_vgmstream_ps2_psh(STREAMFILE *streamFile) {
     vgmstream->meta_type = meta_PS2_PSH;
 
     /* open the file for reading */
-    {
-        int i;
-        STREAMFILE * file;
-        file = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-        if (!file) goto fail;
-        for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = file;
-
-            vgmstream->ch[i].channel_start_offset=
-                vgmstream->ch[i].offset=start_offset+
-                vgmstream->interleave_block_size*i;
-
-        }
-    }
-
+    if (!vgmstream_open_stream(vgmstream, streamFile, start_offset))
+        goto fail;
     return vgmstream;
 
     /* clean up anything we may have opened */
 fail:
-    if (vgmstream) close_vgmstream(vgmstream);
+    close_vgmstream(vgmstream);
     return NULL;
 }
