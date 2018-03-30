@@ -980,10 +980,8 @@ static const meta_info meta_info_list[] = {
         {meta_EA_WVE_AU00,          "Electronic Arts WVE (au00) header"},
         {meta_EA_WVE_AD10,          "Electronic Arts WVE (Ad10) header"},
         {meta_STHD,                 "Dream Factory STHD header"},
+        {meta_MP4,                  "MP4/AAC header"},
 
-#ifdef VGM_USE_MP4V2
-        {meta_MP4,                  "AAC header"},
-#endif
 #ifdef VGM_USE_FFMPEG
         {meta_FFmpeg,               "FFmpeg supported file format"},
 #endif
