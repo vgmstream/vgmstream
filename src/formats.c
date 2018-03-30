@@ -351,7 +351,7 @@ static const char* extension_list[] = {
     "vpk",
     "vs",
     "vsf",
-	"vsv", // official extension for PSH? TODO: recheck Dawn of Mana
+    "vsv", // official extension for PSH? TODO: recheck Dawn of Mana
     "vxn",
 
     "waa",

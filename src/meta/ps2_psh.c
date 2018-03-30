@@ -14,9 +14,9 @@ VGMSTREAM * init_vgmstream_ps2_psh(STREAMFILE *streamFile) {
 	int loop_flag;
 	int channel_count;
 
-	/* check extension, case insensitive */
-	if (!check_extensions(streamFile, "psh,vsv")) // vsv seems to be official extension
-		goto fail;
+    /* check extension, case insensitive */
+    if (!check_extensions(streamFile, "psh,vsv")) // vsv seems to be official extension
+        goto fail;
 
     /* check header */
     if (read_16bitBE(0x02,streamFile) != 0x6400)
@@ -64,12 +64,12 @@ VGMSTREAM * init_vgmstream_ps2_psh(STREAMFILE *streamFile) {
     vgmstream->meta_type = meta_PS2_PSH;
 
     /* open the file for reading */
-	if (!vgmstream_open_stream(vgmstream, streamFile, start_offset))
-		goto fail;
-	return vgmstream;
+    if (!vgmstream_open_stream(vgmstream, streamFile, start_offset))
+        goto fail;
+    return vgmstream;
 
-	/* clean up anything we may have opened */
+    /* clean up anything we may have opened */
 fail:
-	close_vgmstream(vgmstream);
-	return NULL;
+    close_vgmstream(vgmstream);
+    return NULL;
 }
