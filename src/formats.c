@@ -237,7 +237,7 @@ static const char* extension_list[] = {
     "pona",
     "pos",
     "ps2stm", //fake extension for .stm (to be removed)
-    "psh",
+    "psh", // fake extension for VSV(?) Dawn of Mana needs to be checked again
     "psnd",
     "psw",
 
@@ -354,6 +354,7 @@ static const char* extension_list[] = {
     "vpk",
     "vs",
     "vsf",
+    "vsv", // official extension for PSH? TODO: recheck Dawn of Mana
     "vxn",
 
     "waa",
@@ -702,7 +703,7 @@ static const meta_info meta_info_list[] = {
         {meta_MUS_ACM,              "InterPlay MUS ACM header"},
         {meta_PS2_KCES,             "Konami KCES Header"},
         {meta_PS2_DXH,              "Tokobot Plus DXH Header"},
-        {meta_PS2_PSH,              "Dawn of Mana - Seiken Densetsu 4 PSH Header"},
+        {meta_PS2_PSH,              "Square Enix PSH/VSV Header"},
         {meta_RIFF_WAVE_labl,       "RIFF WAVE header with loop markers"},
         {meta_RIFF_WAVE_smpl,       "RIFF WAVE header with sample looping info"},
         {meta_RIFF_WAVE_wsmp,       "RIFF WAVE header with wsmp looping info"},

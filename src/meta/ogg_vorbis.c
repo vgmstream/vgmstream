@@ -386,7 +386,8 @@ VGMSTREAM * init_vgmstream_ogg_vorbis_callbacks(STREAMFILE *streamFile, ov_callb
                 strstr(user_comment,"LOOPSTART=")==user_comment ||
                 strstr(user_comment,"um3.stream.looppoint.start=")==user_comment ||
                 strstr(user_comment,"LOOP_BEGIN=")==user_comment || /* Hatsune Miku: Project Diva F (PS3) */
-                strstr(user_comment,"LoopStart=")==user_comment) {  /* Devil May Cry 4 (PC) */
+                strstr(user_comment,"LoopStart=")==user_comment ||  /* Devil May Cry 4 (PC) */
+                strstr(user_comment,"XIPH_CUE_LOOPSTART=")==user_comment) {  /* Super Mario Run (Android) */
                 loop_start = atol(strrchr(user_comment,'=')+1);
                 loop_flag = (loop_start >= 0);
             }
@@ -430,6 +431,12 @@ VGMSTREAM * init_vgmstream_ogg_vorbis_callbacks(STREAMFILE *streamFile, ov_callb
                 loop_flag = 1;
                 loop_end_found = 1;
             }
+            else if (strstr(user_comment, "XIPH_CUE_LOOPEND=") == user_comment) { /* XIPH_CUE_LOOPSTART pair */
+                if (loop_flag) {
+                    loop_length = atol(strrchr(user_comment, '=') + 1) - loop_start;
+                    loop_length_found = 1;
+                }
+			}
         }
     }
 
