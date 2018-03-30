@@ -559,8 +559,8 @@ static const layout_info layout_info_list[] = {
         {layout_interleave,             "interleave"},
 
         {layout_segmented,              "segmented"},
-        {layout_aix,                    "AIX interleave, internally 18-byte interleaved"},
-        {layout_scd_int,                "SCD multistream interleave"},
+        {layout_layered,                "layered"},
+        {layout_aix,                    "AIX"},
 
         {layout_blocked_mxch,           "blocked (MxCh)"},
         {layout_blocked_ast,            "blocked (AST)"},

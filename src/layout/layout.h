@@ -57,6 +57,10 @@ int setup_layout_segmented(segmented_layout_data* data);
 void free_layout_segmented(segmented_layout_data *data);
 void reset_layout_segmented(segmented_layout_data *data);
 
-void render_vgmstream_scd_int(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstream);
+void render_vgmstream_layered(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstream);
+layered_layout_data* init_layout_layered(int layer_count);
+int setup_layout_layered(layered_layout_data* data);
+void free_layout_layered(layered_layout_data *data);
+void reset_layout_layered(layered_layout_data *data);
 
 #endif

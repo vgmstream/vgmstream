@@ -1,5 +1,6 @@
 #include "meta.h"
 #include "../coding/coding.h"
+#include "../layout/layout.h"
 #include "sqex_scd_streamfile.h"
 
 
@@ -279,52 +280,53 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
 
         case 0x0A:      /* DSP ADPCM [Dragon Quest X (Wii)] */
         case 0x15: {    /* DSP ADPCM [Dragon Quest X (Wii U)] (no apparent differences except higher sample rate) */
-            int i;
             const off_t interleave_size = 0x800;
             const off_t stride_size = interleave_size * channel_count;
+            int i;
             size_t total_size;
-            scd_int_codec_data * data = NULL;
+            layered_layout_data * data = NULL;
 
-
+            /* interleaved DSPs including the header (so the first 0x800 is 0x60 header + 0x740 data)
+             * so interleave layout can't used; we'll setup de-interleaving streamfiles as layers/channels instead */
+            //todo this could be simplified using a block layout or adding interleave_first_block
             vgmstream->coding_type = coding_NGC_DSP;
-            vgmstream->layout_type = layout_scd_int;
+            vgmstream->layout_type = layout_layered;
 
-            /* a normal DSP header... */
-            total_size = (read_32bitBE(start_offset+0x04,streamFile)+1)/2;
-            vgmstream->num_samples = read_32bitBE(start_offset+0x00,streamFile);
-            if (loop_flag) {
-                vgmstream->loop_start_sample = loop_start;
-                vgmstream->loop_end_sample = loop_end+1;
-            }
+            /* read from the first DSP header and verify other channel headers */
+            {
+                total_size = (read_32bitBE(start_offset+0x04,streamFile)+1)/2; /* rounded nibbles / 2 */
+                vgmstream->num_samples = read_32bitBE(start_offset+0x00,streamFile);
+                if (loop_flag) {
+                    vgmstream->loop_start_sample = loop_start;
+                    vgmstream->loop_end_sample = loop_end+1;
+                }
 
-            /* verify other channel headers */
-            for (i = 1; i < channel_count; i++) {
-                if (read_32bitBE(start_offset+interleave_size*i+0,streamFile) != vgmstream->num_samples ||
-                    (read_32bitBE(start_offset+4,streamFile)+1)/2 != total_size) {
-                    goto fail;
+                for (i = 1; i < channel_count; i++) {
+                    if ((read_32bitBE(start_offset+4,streamFile)+1)/2 != total_size ||
+                        read_32bitBE(start_offset+interleave_size*i+0x00,streamFile) != vgmstream->num_samples) {
+                        goto fail;
+                    }
                 }
             }
 
-            data = malloc(sizeof(scd_int_codec_data));
-            data->substream_count = channel_count;
-            data->substreams = calloc(channel_count, sizeof(VGMSTREAM *));
+            /* init layout */
+            data = init_layout_layered(channel_count);
+            if (!data) goto fail;
+            vgmstream->layout_data = data;
 
-            vgmstream->codec_data = data;
-
-            for (i=0;i<channel_count;i++) {
+            /* open each layer subfile */
+            for (i = 0; i < channel_count; i++) {
                 STREAMFILE* temp_streamFile = setup_scd_dsp_streamfile(streamFile, start_offset+interleave_size*i, interleave_size, stride_size, total_size);
                 if (!temp_streamFile) goto fail;
 
-                data->substreams[i] = init_vgmstream_ngc_dsp_std(temp_streamFile);
+                data->layers[i] = init_vgmstream_ngc_dsp_std(temp_streamFile);
                 close_streamfile(temp_streamFile);
-                if (!data->substreams[i]) goto fail;
-
-                /* TODO: only handles mono substreams, though that's all we have with DSP */
-
-                /* save start things so we can restart for seeking/looping */
-                memcpy(data->substreams[i]->start_ch,data->substreams[i]->ch,sizeof(VGMSTREAMCHANNEL)*1);
-                memcpy(data->substreams[i]->start_vgmstream,data->substreams[i],sizeof(VGMSTREAM));
+                if (!data->layers[i]) goto fail;
             }
+
+            /* setup layered VGMSTREAMs */
+            if (!setup_layout_layered(data))
+                goto fail;
 
             break;
         }

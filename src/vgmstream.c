@@ -603,13 +603,8 @@ void reset_vgmstream(VGMSTREAM * vgmstream) {
         reset_layout_segmented(vgmstream->layout_data);
     }
 
-    if (vgmstream->layout_type==layout_scd_int) {
-        scd_int_codec_data *data = vgmstream->codec_data;
-        int i;
-
-        for (i=0;i<data->substream_count;i++) {
-            reset_vgmstream(data->substreams[i]);
-        }
+    if (vgmstream->layout_type==layout_layered) {
+        reset_layout_layered(vgmstream->layout_data);
     }
 }
 
@@ -794,24 +789,12 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
 
     if (vgmstream->layout_type==layout_segmented) {
         free_layout_segmented(vgmstream->layout_data);
-        vgmstream->codec_data = NULL;
+        vgmstream->layout_data = NULL;
     }
 
-    if (vgmstream->layout_type==layout_scd_int) {
-        scd_int_codec_data *data = (scd_int_codec_data *) vgmstream->codec_data;
-
-        if (data) {
-            if (data->substreams) {
-                int i;
-                for (i=0;i<data->substream_count;i++) {
-                    close_vgmstream(data->substreams[i]);
-                }
-                free(data->substreams);
-            }
-
-            free(data);
-        }
-        vgmstream->codec_data = NULL;
+    if (vgmstream->layout_type==layout_layered) {
+        free_layout_layered(vgmstream->layout_data);
+        vgmstream->layout_data = NULL;
     }
 
 
@@ -937,8 +920,8 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
         case layout_segmented:
             render_vgmstream_segmented(buffer,sample_count,vgmstream);
             break;
-        case layout_scd_int:
-            render_vgmstream_scd_int(buffer,sample_count,vgmstream);
+        case layout_layered:
+            render_vgmstream_layered(buffer,sample_count,vgmstream);
             break;
         default:
             break;
@@ -2366,9 +2349,9 @@ static int get_vgmstream_average_bitrate_channel_count(VGMSTREAM * vgmstream)
 {
     //AAX, AIX, ACM?
 
-    if (vgmstream->layout_type==layout_scd_int) {
-        scd_int_codec_data *data = (scd_int_codec_data *) vgmstream->codec_data;
-        return (data) ? data->substream_count : 0;
+    if (vgmstream->layout_type==layout_layered) {
+        layered_layout_data *data = (layered_layout_data *) vgmstream->layout_data;
+        return (data) ? data->layer_count : 0;
     }
 #ifdef VGM_USE_VORBIS
     if (vgmstream->coding_type==coding_OGG_VORBIS) {
@@ -2400,9 +2383,9 @@ static STREAMFILE * get_vgmstream_average_bitrate_channel_streamfile(VGMSTREAM *
 {
     //AAX, AIX?
 
-    if (vgmstream->layout_type==layout_scd_int) {
-        scd_int_codec_data *data = (scd_int_codec_data *) vgmstream->codec_data;
-        return data->substreams[channel]->ch[0].streamfile;
+    if (vgmstream->layout_type==layout_layered) {
+        layered_layout_data *data = (layered_layout_data *) vgmstream->layout_data;
+        return data->layers[channel]->ch[0].streamfile;
     }
 
     if (vgmstream->coding_type==coding_NWA) {
@@ -2525,7 +2508,7 @@ int vgmstream_open_stream(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t s
     /* stream/offsets not needed, manage themselves */
     if (vgmstream->layout_type == layout_aix ||
         vgmstream->layout_type == layout_segmented ||
-        vgmstream->layout_type == layout_scd_int)
+        vgmstream->layout_type == layout_layered)
         return 1;
 
 #ifdef VGM_USE_FFMPEG

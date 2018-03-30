@@ -255,8 +255,8 @@ typedef enum {
 
     /* otherwise odd */
     layout_aix,             /* CRI AIX's wheels within wheels */
-    layout_segmented,       /* song divided in segments, each a complete VGMSTREAM */
-    layout_scd_int,         /* deinterleave done by the SCDINTSTREAMFILE */
+    layout_segmented,       /* song divided in segments (song sections) */
+    layout_layered,         /* song divided in layers (song channels) */
 
 } layout_t;
 
@@ -1056,24 +1056,25 @@ typedef struct {
     VGMSTREAM **adxs;
 } aix_codec_data;
 
-/* for files made of segments, each a full subfile (VGMSTREAM) */
+/* for files made of "vertical" segments, one per section of a song (using a complete sub-VGMSTREAM) */
 typedef struct {
     int segment_count;
+    VGMSTREAM **segments;
     int current_segment;
     int loop_segment;
-    VGMSTREAM **segments;
 } segmented_layout_data;
+
+/* for files made of "horizontal" layers, one per group of channels (using a complete sub-VGMSTREAM) */
+typedef struct {
+    int layer_count;
+    VGMSTREAM **layers;
+} layered_layout_data;
 
 /* for compressed NWA */
 typedef struct {
     NWAData *nwa;
 } nwa_codec_data;
 
-/* SQEX SCD interleaved */
-typedef struct {
-    int substream_count;
-    VGMSTREAM **substreams;
-} scd_int_codec_data;
 
 typedef struct {
     STREAMFILE *streamfile;
