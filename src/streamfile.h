@@ -46,7 +46,8 @@
 #endif
 
 /* struct representing a file with callbacks. Code should use STREAMFILEs and not std C functions
- * to do file operations, as plugins may need to provide their own callbacks. */
+ * to do file operations, as plugins may need to provide their own callbacks.
+ * Reads from arbitrary offsets, meaning internally may need fseek equivalents during reads. */
 typedef struct _STREAMFILE {
     size_t (*read)(struct _STREAMFILE *,uint8_t * dest, off_t offset, size_t length);
     size_t (*get_size)(struct _STREAMFILE *);
@@ -83,7 +84,7 @@ STREAMFILE *open_clamp_streamfile(STREAMFILE *streamfile, off_t start, size_t si
 
 /* Opens a STREAMFILE that uses custom IO for streamfile reads.
  * Can be used to modify data on the fly (ex. decryption), or even transform it from a format to another. */
-STREAMFILE *open_io_streamfile(STREAMFILE *streamfile, void* data, size_t data_size, void* read_callback);//void* size_callback, void* seek_callback);
+STREAMFILE *open_io_streamfile(STREAMFILE *streamfile, void* data, size_t data_size, void* read_callback, void* size_callback);
 
 /* Opens a STREAMFILE that reports a fake name, but still re-opens itself properly.
  * Can be used to trick a meta's extension check (to call from another, with a modified SF).

@@ -92,7 +92,7 @@ static STREAMFILE* setup_jstm_streamfile(STREAMFILE *streamFile, off_t start_off
     if (!new_streamFile) goto fail;
     temp_streamFile = new_streamFile;
 
-    new_streamFile = open_io_streamfile(temp_streamFile, &io_data,io_data_size, jstm_decryption_read);
+    new_streamFile = open_io_streamfile(temp_streamFile, &io_data,io_data_size, jstm_decryption_read,NULL);
     if (!new_streamFile) goto fail;
     temp_streamFile = new_streamFile;
 
