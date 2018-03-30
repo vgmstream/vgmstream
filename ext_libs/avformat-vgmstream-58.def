@@ -5,6 +5,7 @@ EXPORTS
     av_codec_get_id
     av_codec_get_tag
     av_codec_get_tag2
+    av_demuxer_iterate
     av_demuxer_open
     av_dump_format
     av_filename_number_test
@@ -47,6 +48,7 @@ EXPORTS
     av_interleaved_write_frame
     av_interleaved_write_uncoded_frame
     av_match_ext
+    av_muxer_iterate
     av_new_program
     av_oformat_next
     av_pkt_dump_log2
@@ -163,11 +165,5 @@ EXPORTS
     avpriv_io_delete
     avpriv_io_move
     avpriv_new_chapter
+    avpriv_register_devices
     avpriv_set_pts_info
-    ffio_open_dyn_packet_buf
-    ffio_set_buf_size
-    ffurl_close
-    ffurl_closep
-    ffurl_open
-    ffurl_open_whitelist
-    ffurl_write

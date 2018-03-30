@@ -1,88 +1,55 @@
 #include "meta.h"
 #include "../util.h"
 
-/* SPSD (Guilty Gear X [NAOMI GD-ROM]) */
+/* SPSD - Naomi GD-ROM streams [Guilty Gear X (Naomi), Crazy Taxi (Naomi), Virtua Tennis 2 (Naomi)] */
 VGMSTREAM * init_vgmstream_naomi_spsd(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[PATH_LIMIT];
     off_t start_offset;
-    int coding;
-    int loop_flag;
-	  int channel_count;
+    size_t data_size;
+    int loop_flag, channel_count;
 
-    /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("spsd",filename_extension(filename))) goto fail;
 
-    /* check header */
+    /* checks */
+    if (!check_extensions(streamFile, "spsd"))
+        goto fail;
     if (read_32bitBE(0x00,streamFile) != 0x53505344) /* "SPSD" */
         goto fail;
 
     loop_flag = 0;
     channel_count = 2;
-	  
+
+    start_offset = 0x40;
+    data_size = get_streamfile_size(streamFile) - start_offset;
+
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
-	  /* fill in the vital statistics */
-    start_offset = 0x40;
-    vgmstream->channels = channel_count;
     vgmstream->sample_rate = (uint16_t)read_16bitLE(0x2A,streamFile);
-    
-  switch (read_8bit(0x8,streamFile))
-  {
-  case 0x01:
-      coding = coding_PCM8;
-    break;
-  case 0x03:
-      coding = coding_AICA;
-    break;
-      default:
-        goto fail;
-  }
-
-    vgmstream->coding_type = coding;
     vgmstream->num_samples = read_32bitLE(0x0C,streamFile);
 
-#if 0
-	  if (loop_flag)
-    {
-        vgmstream->loop_start_sample = 0;
-        vgmstream->loop_end_sample = read_32bitLE(0x0C,streamFile);
-    }
-#endif
-
-    vgmstream->interleave_block_size = 0x2000;
-    if (channel_count > 1) {
-        vgmstream->interleave_smallblock_size = ((get_streamfile_size(streamFile)-start_offset)%(vgmstream->channels*vgmstream->interleave_block_size))/vgmstream->channels;
-        vgmstream->layout_type = layout_interleave_shortblock;
-    } else {
-        vgmstream->layout_type = layout_none;
-    }
-
     vgmstream->meta_type = meta_NAOMI_SPSD;
-
-    /* open the file for reading */
-    {
-        int i;
-        STREAMFILE * file;
-        file = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-        if (!file) goto fail;
-        for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = file;
-
-            vgmstream->ch[i].channel_start_offset=
-                vgmstream->ch[i].offset=start_offset+
-                vgmstream->interleave_block_size*i;
-            	vgmstream->ch[i].adpcm_step_index = 0x7f;   /* AICA */
-        }
+    switch (read_8bit(0x08,streamFile)) {
+        case 0x01: /* [Virtua Tennis 2 (Naomi)] */
+            vgmstream->coding_type = coding_PCM8;
+            break;
+        case 0x03:
+            vgmstream->coding_type = coding_AICA;
+            break;
+        default:
+            goto fail;
     }
+    vgmstream->layout_type = layout_interleave;
+    vgmstream->interleave_block_size = 0x2000;
+    if (vgmstream->interleave_block_size)
+        vgmstream->interleave_last_block_size = (data_size % (vgmstream->interleave_block_size*vgmstream->channels)) / vgmstream->channels;
 
+
+    if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
+        goto fail;
     return vgmstream;
 
-    /* clean up anything we may have opened */
 fail:
-    if (vgmstream) close_vgmstream(vgmstream);
+    close_vgmstream(vgmstream);
     return NULL;
 }

@@ -10,12 +10,12 @@ void render_vgmstream_interleave(sample * buffer, int32_t sample_count, VGMSTREA
 
     samples_this_block = vgmstream->interleave_block_size / frame_size * samples_per_frame;
 
-    if (vgmstream->layout_type == layout_interleave_shortblock &&
+    if (vgmstream->interleave_last_block_size && vgmstream->channels > 1 &&
         vgmstream->current_sample - vgmstream->samples_into_block + samples_this_block> vgmstream->num_samples) {
         frame_size = get_vgmstream_shortframe_size(vgmstream);
         samples_per_frame = get_vgmstream_samples_per_shortframe(vgmstream);
 
-        samples_this_block = vgmstream->interleave_smallblock_size / frame_size * samples_per_frame;
+        samples_this_block = vgmstream->interleave_last_block_size / frame_size * samples_per_frame;
     }
 
     while (samples_written<sample_count) {
@@ -23,7 +23,7 @@ void render_vgmstream_interleave(sample * buffer, int32_t sample_count, VGMSTREA
 
         if (vgmstream->loop_flag && vgmstream_do_loop(vgmstream)) {
             /* we assume that the loop is not back into a short block */
-            if (vgmstream->layout_type == layout_interleave_shortblock) {
+            if (vgmstream->interleave_last_block_size && vgmstream->channels > 1) {
                 frame_size = get_vgmstream_frame_size(vgmstream);
                 samples_per_frame = get_vgmstream_samples_per_frame(vgmstream);
                 samples_this_block = vgmstream->interleave_block_size / frame_size * samples_per_frame;
@@ -45,14 +45,14 @@ void render_vgmstream_interleave(sample * buffer, int32_t sample_count, VGMSTREA
 
         if (vgmstream->samples_into_block==samples_this_block) {
             int chan;
-            if (vgmstream->layout_type == layout_interleave_shortblock &&
+            if (vgmstream->interleave_last_block_size && vgmstream->channels > 1 &&
                 vgmstream->current_sample + samples_this_block > vgmstream->num_samples) {
                 frame_size = get_vgmstream_shortframe_size(vgmstream);
                 samples_per_frame = get_vgmstream_samples_per_shortframe(vgmstream);
 
-                samples_this_block = vgmstream->interleave_smallblock_size / frame_size * samples_per_frame;
+                samples_this_block = vgmstream->interleave_last_block_size / frame_size * samples_per_frame;
                 for (chan=0;chan<vgmstream->channels;chan++)
-                    vgmstream->ch[chan].offset+=vgmstream->interleave_block_size*(vgmstream->channels-chan)+vgmstream->interleave_smallblock_size*chan;
+                    vgmstream->ch[chan].offset+=vgmstream->interleave_block_size*(vgmstream->channels-chan)+vgmstream->interleave_last_block_size*chan;
             } else {
 
                 for (chan=0;chan<vgmstream->channels;chan++)

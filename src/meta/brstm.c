@@ -91,10 +91,7 @@ VGMSTREAM * init_vgmstream_brstm(STREAMFILE *streamFile) {
     vgmstream->loop_end_sample = vgmstream->num_samples;
 
     vgmstream->coding_type = coding_type;
-    if (channel_count==1)
-        vgmstream->layout_type = layout_none;
-    else
-        vgmstream->layout_type = layout_interleave_shortblock;
+    vgmstream->layout_type = (channel_count == 1) ? layout_none : layout_interleave;
     vgmstream->meta_type = meta_RSTM;
     if (atlus_shrunken_head)
         vgmstream->meta_type = meta_RSTM_shrunken;
@@ -105,7 +102,7 @@ VGMSTREAM * init_vgmstream_brstm(STREAMFILE *streamFile) {
     }
 
     vgmstream->interleave_block_size = read_32bitBE(head_offset+0x38,streamFile);
-    vgmstream->interleave_smallblock_size = read_32bitBE(head_offset+0x48,streamFile);
+    vgmstream->interleave_last_block_size = read_32bitBE(head_offset+0x48,streamFile);
 
     if (vgmstream->coding_type == coding_NGC_DSP) {
         off_t coef_offset;
@@ -139,12 +136,7 @@ VGMSTREAM * init_vgmstream_brstm(STREAMFILE *streamFile) {
     {
         int i;
         for (i=0;i<channel_count;i++) {
-            if (vgmstream->layout_type==layout_interleave_shortblock)
-                vgmstream->ch[i].streamfile = streamFile->open(streamFile,filename,
-                    vgmstream->interleave_block_size);
-            else
-                vgmstream->ch[i].streamfile = streamFile->open(streamFile,filename,
-                    0x1000);
+            vgmstream->ch[i].streamfile = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
 
             if (!vgmstream->ch[i].streamfile) goto fail;
 

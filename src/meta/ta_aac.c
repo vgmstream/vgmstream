@@ -210,13 +210,11 @@ fail:
 }
 
 /* Android/iOS Variants (Star Ocean Anamnesis (APK v1.9.2), Heaven x Inferno (iOS)) */
-VGMSTREAM * init_vgmstream_ta_aac_mobile(STREAMFILE *streamFile) {
+VGMSTREAM * init_vgmstream_ta_aac_mobile_vorbis(STREAMFILE *streamFile) {
 #ifdef VGM_USE_VORBIS
     off_t start_offset;
-    char filename[PATH_LIMIT];
     int8_t codec_id;
 
-    streamFile->get_name(streamFile, filename, sizeof(filename));
     /* check extension, case insensitive */
     /* .aac: expected, .laac/ace: for players to avoid hijacking MP4/AAC */
     if (!check_extensions(streamFile, "aac,laac,ace"))
@@ -231,19 +229,17 @@ VGMSTREAM * init_vgmstream_ta_aac_mobile(STREAMFILE *streamFile) {
     codec_id = read_8bit(0x104, streamFile);
     if (codec_id == 0xe) /* Vorbis */
     {
-        vgm_vorbis_info_t inf;
+        ogg_vorbis_meta_info_t ovmi = {0};
         VGMSTREAM * result = NULL;
 
-        memset(&inf, 0, sizeof(inf));
-        inf.layout_type = layout_ogg_vorbis;
-        inf.meta_type = meta_TA_AAC_VORBIS;
-        inf.loop_start = read_32bitLE(0x140, streamFile);
-        inf.loop_end = read_32bitLE(0x144, streamFile);
-        inf.loop_flag = inf.loop_end > inf.loop_start;
-        inf.loop_end_found = inf.loop_flag;
+        ovmi.meta_type = meta_TA_AAC_MOBILE;
+        ovmi.loop_start = read_32bitLE(0x140, streamFile);
+        ovmi.loop_end = read_32bitLE(0x144, streamFile);
+        ovmi.loop_flag = ovmi.loop_end > ovmi.loop_start;
+        ovmi.loop_end_found = ovmi.loop_flag;
 
         start_offset = read_32bitLE(0x120, streamFile);
-        result = init_vgmstream_ogg_vorbis_callbacks(streamFile, filename, NULL, start_offset, &inf);
+        result = init_vgmstream_ogg_vorbis_callbacks(streamFile, NULL, start_offset, &ovmi);
 
         if (result != NULL) {
             return result;
@@ -253,5 +249,67 @@ VGMSTREAM * init_vgmstream_ta_aac_mobile(STREAMFILE *streamFile) {
 fail:
     /* clean up anything we may have opened */
 #endif
+    return NULL;
+}
+
+/* Android/iOS Variants, before they switched to Vorbis (Star Ocean Anamnesis (Android), Heaven x Inferno (iOS)) */
+VGMSTREAM * init_vgmstream_ta_aac_mobile(STREAMFILE *streamFile) {
+    VGMSTREAM * vgmstream = NULL;
+    off_t start_offset;
+    int channel_count, loop_flag, codec;
+    size_t data_size;
+
+
+    /* check extension, case insensitive */
+    /* .aac: expected, .laac/ace: for players to avoid hijacking MP4/AAC */
+    if (!check_extensions(streamFile, "aac,laac,ace"))
+        goto fail;
+
+    if (read_32bitLE(0x00, streamFile) != 0x41414320)   /* "AAC " */
+        goto fail;
+
+    if (read_32bitLE(0xf0, streamFile) != 0x57415645)   /* "WAVE" */
+        goto fail;
+
+    codec = read_8bit(0x104, streamFile);
+    channel_count = read_8bit(0x105, streamFile);
+    /* 0x106: 0x01?, 0x107: 0x10? */
+    data_size = read_32bitLE(0x10c, streamFile); /* usable data only, cuts last frame */
+    start_offset = read_32bitLE(0x120, streamFile);
+    /* 0x124: full data size */
+    loop_flag = (read_32bitLE(0x134, streamFile) > 0);
+
+
+    /* build the VGMSTREAM */
+    vgmstream = allocate_vgmstream(channel_count, loop_flag);
+    if (!vgmstream) goto fail;
+
+    vgmstream->sample_rate = read_32bitLE(0x108, streamFile);
+    vgmstream->meta_type = meta_TA_AAC_MOBILE;
+
+    switch(codec) {
+        case 0x0d:
+            if (read_32bitLE(0x144, streamFile) != 0x40) goto fail; /* frame size */
+            if (read_32bitLE(0x148, streamFile) != (0x40-0x04*channel_count)*2 / channel_count) goto fail; /* frame samples */
+            if (channel_count > 2) goto fail; /* unknown data layout */
+
+            vgmstream->coding_type = coding_YAMAHA;
+            vgmstream->layout_type = layout_none;
+
+            vgmstream->num_samples = yamaha_bytes_to_samples(data_size, channel_count);
+            vgmstream->loop_start_sample = yamaha_bytes_to_samples(read_32bitLE(0x130, streamFile), channel_count);;
+            vgmstream->loop_end_sample = yamaha_bytes_to_samples(read_32bitLE(0x134, streamFile), channel_count);;
+            break;
+
+        default:
+            goto fail;
+    }
+
+    if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
+        goto fail;
+    return vgmstream;
+
+fail:
+    close_vgmstream(vgmstream);
     return NULL;
 }

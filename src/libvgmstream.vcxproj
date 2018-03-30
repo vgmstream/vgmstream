@@ -258,7 +258,6 @@
     <ClCompile Include="meta\nds_swav.c" />
     <ClCompile Include="meta\ngc_adpdtk.c" />
     <ClCompile Include="meta\ngc_bh2pcm.c" />
-    <ClCompile Include="meta\ngc_bo2.c" />
     <ClCompile Include="meta\caf.c" />
     <ClCompile Include="meta\ngc_dsp_konami.c" />
     <ClCompile Include="meta\ngc_dsp_mpds.c" />
@@ -271,12 +270,14 @@
     <ClCompile Include="meta\ngc_pdt.c" />
     <ClCompile Include="meta\ngc_sck_dsp.c" />
     <ClCompile Include="meta\ngc_ssm.c" />
+    <ClCompile Include="meta\ngc_str_cauldron.c" />
     <ClCompile Include="meta\ngc_tydsp.c" />
     <ClCompile Include="meta\ngc_ymf.c" />
     <ClCompile Include="meta\ngc_ulw.c" />
     <ClCompile Include="meta\ngc_vid1.c" />
     <ClCompile Include="meta\nub_xma.c" />
     <ClCompile Include="meta\nwa.c" />
+    <ClCompile Include="meta\nxap.c" />
     <ClCompile Include="meta\ogg_vorbis.c" />
     <ClCompile Include="meta\ogl.c" />
     <ClCompile Include="meta\omu.c" />
@@ -380,6 +381,7 @@
     <ClCompile Include="meta\sdt.c" />
     <ClCompile Include="meta\sfl.c" />
     <ClCompile Include="meta\sli.c" />
+    <ClCompile Include="meta\smv.c" />
     <ClCompile Include="meta\sps_n1.c" />
     <ClCompile Include="meta\spt_spd.c" />
     <ClCompile Include="meta\stm.c" />
@@ -430,7 +432,7 @@
     <ClCompile Include="meta\zwdsp.c" />
     <ClCompile Include="coding\acm_decoder.c" />
     <ClCompile Include="coding\adx_decoder.c" />
-    <ClCompile Include="coding\aica_decoder.c" />
+    <ClCompile Include="coding\yamaha_decoder.c" />
     <ClCompile Include="coding\ea_mt_decoder.c" />
     <ClCompile Include="coding\ea_xa_decoder.c" />
     <ClCompile Include="coding\ea_xas_decoder.c" />
@@ -498,7 +500,7 @@
     <ClCompile Include="layout\thp_blocked.c" />
     <ClCompile Include="layout\vs_blocked.c" />
     <ClCompile Include="layout\ws_aud_blocked.c" />
-    <ClCompile Include="layout\wsi_blocked.c" />
+    <ClCompile Include="layout\blocked_wsi.c" />
     <ClCompile Include="layout\xa_blocked.c" />
     <ClCompile Include="layout\xvas_block.c" />
     <ClCompile Include="..\ext_libs\clHCA.c" />

@@ -358,9 +358,6 @@
     <ClCompile Include="meta\ngc_bh2pcm.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\ngc_bo2.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="meta\caf.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -397,6 +394,9 @@
     <ClCompile Include="meta\ngc_ssm.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\ngc_str_cauldron.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\ngc_tydsp.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -413,6 +413,9 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\nwa.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\nxap.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ogg_vorbis.c">
@@ -724,6 +727,9 @@
     <ClCompile Include="meta\sli.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\smv.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\sps_n1.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -868,7 +874,7 @@
     <ClCompile Include="coding\adx_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="coding\aica_decoder.c">
+    <ClCompile Include="coding\yamaha_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\ea_mt_decoder.c">
@@ -1069,7 +1075,7 @@
     <ClCompile Include="layout\ws_aud_blocked.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="layout\wsi_blocked.c">
+    <ClCompile Include="layout\blocked_wsi.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="layout\xa_blocked.c">

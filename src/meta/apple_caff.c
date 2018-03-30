@@ -145,10 +145,8 @@ VGMSTREAM * init_vgmstream_apple_caff(STREAMFILE *streamFile) {
             break;
 
         default: /* "aac " "alac" etc: probably parsed by FFMpeg...  */
-            VGM_LOG("CAFF: unknown codec %x\n", codec);
             goto fail;
     }
-goto fail;
 
     if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
         goto fail;

@@ -229,8 +229,8 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
                 /* older Wwise (~<2012) */
 
                 switch(vorb_size) {
-                    //case 0x2C: /* early (~2009), some EVE Online Apocrypha files? */
-                    case 0x28: /* early (~2009), ex. The Lord of the Rings: Conquest PC */
+                    case 0x2C: /* earliest (~2009), ex. UFC Undisputed 2009 (PS3), some EVE Online Apocrypha files? */
+                    case 0x28: /* early (~2009), ex. The Lord of the Rings: Conquest (PC) */
                         data_offsets = 0x18;
                         block_offsets = 0; /* no need, full headers are present */
                         cfg.header_type = WWV_TYPE_8;
@@ -589,15 +589,15 @@ fail:
 0x31 (1): blocksize_0_exp (large)
 0x32 (2): empty
 
-"vorb" size 0x28 / 0x2a
+"vorb" size 0x28 / 0x2c / 0x2a
 0x00 (4): num_samples
 0x04 (4): data start offset after seek table+setup, or loop start when "smpl" is present
 0x08 (4): data end offset after seek table (setup+packets), or loop end when "smpl" is present
-0x0c (2): ? (small, 0..~0x400)
+0x0c (2): ? (small, 0..~0x400) [(4) when size is 0x2C]
 0x10 (4): setup_offset within data (0 = no seek table)
 0x14 (4): audio_offset within data
 0x18 (2): biggest packet size (not including header)?
-0x1a (2): ? (small, N..~0x100) uLastGranuleExtra?
+0x1a (2): ? (small, N..~0x100) uLastGranuleExtra? [(4) when size is 0x2C]
 0x1c (4): ? (mid, 0~0x5000) dwDecodeAllocSize?
 0x20 (4): ? (mid, 0~0x5000) dwDecodeX64AllocSize?
 0x24 (4): parent bank/event id? uHashCodebook? (shared by several .wem a game, but not all need to share it)

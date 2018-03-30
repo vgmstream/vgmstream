@@ -11,6 +11,7 @@ EXPORTS
     av_bsf_get_class
     av_bsf_get_null_filter
     av_bsf_init
+    av_bsf_iterate
     av_bsf_list_alloc
     av_bsf_list_append
     av_bsf_list_append2
@@ -30,6 +31,7 @@ EXPORTS
     av_codec_get_seek_preroll
     av_codec_is_decoder
     av_codec_is_encoder
+    av_codec_iterate
     av_codec_next
     av_codec_set_chroma_intra_matrix
     av_codec_set_codec_descriptor
@@ -100,6 +102,7 @@ EXPORTS
     av_parser_change
     av_parser_close
     av_parser_init
+    av_parser_iterate
     av_parser_next
     av_parser_parse2
     av_picture_copy
@@ -195,10 +198,17 @@ EXPORTS
     avpriv_dca_convert_bitstream
     avpriv_dca_parse_core_frame_header
     avpriv_dca_sample_rates
+    avpriv_exif_decode_ifd
     avpriv_find_pix_fmt
     avpriv_find_start_code
     avpriv_get_raw_pix_fmt_tags
-    avpriv_lock_avformat
+    avpriv_mjpeg_bits_ac_chrominance
+    avpriv_mjpeg_bits_ac_luminance
+    avpriv_mjpeg_bits_dc_chrominance
+    avpriv_mjpeg_bits_dc_luminance
+    avpriv_mjpeg_val_ac_chrominance
+    avpriv_mjpeg_val_ac_luminance
+    avpriv_mjpeg_val_dc
     avpriv_mpa_bitrate_tab
     avpriv_mpa_freq_tab
     avpriv_mpeg4audio_get_config
@@ -210,5 +220,4 @@ EXPORTS
     avpriv_split_xiph_headers
     avpriv_tak_parse_streaminfo
     avpriv_toupper4
-    avpriv_unlock_avformat
     avsubtitle_free

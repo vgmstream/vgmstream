@@ -69,7 +69,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_mp4_aac,
 #endif
 #if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
-    init_vgmstream_akb,
+    init_vgmstream_akb_mp4,
 #endif
     init_vgmstream_sadb,
     init_vgmstream_ps2_bmdx,
@@ -257,7 +257,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_ps2_voi,
     init_vgmstream_ps2_khv,
     init_vgmstream_pc_smp,
-    init_vgmstream_ngc_bo2,
+    init_vgmstream_ngc_rkv,
     init_vgmstream_dsp_ddsp,
     init_vgmstream_p3d,
     init_vgmstream_ps2_tk1,
@@ -330,8 +330,8 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_ps2_vds_vdm,
     init_vgmstream_x360_cxs,
     init_vgmstream_dsp_adx,
-    init_vgmstream_akb_multi,
-    init_vgmstream_akb2_multi,
+    init_vgmstream_akb,
+    init_vgmstream_akb2,
 #ifdef VGM_USE_FFMPEG
     init_vgmstream_mp4_aac_ffmpeg,
 #endif
@@ -350,6 +350,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_ta_aac_x360,
     init_vgmstream_ta_aac_ps3,
     init_vgmstream_ta_aac_mobile,
+    init_vgmstream_ta_aac_mobile_vorbis,
     init_vgmstream_ps3_mta2,
     init_vgmstream_ngc_ulw,
     init_vgmstream_pc_xa30,
@@ -383,6 +384,9 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_wave,
     init_vgmstream_wave_segmented,
     init_vgmstream_rsd6at3p,
+    init_vgmstream_rsd6wma,
+    init_vgmstream_smv,
+    init_vgmstream_nxap,
 
     init_vgmstream_txth,  /* should go at the end (lower priority) */
 #ifdef VGM_USE_FFMPEG
@@ -884,12 +888,8 @@ void vgmstream_force_loop(VGMSTREAM* vgmstream, int loop_flag, int loop_start_sa
 void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstream) {
     switch (vgmstream->layout_type) {
         case layout_interleave:
-        case layout_interleave_shortblock:
             render_vgmstream_interleave(buffer,sample_count,vgmstream);
             break;
-#ifdef VGM_USE_VORBIS
-        case layout_ogg_vorbis:
-#endif
         case layout_none:
             render_vgmstream_nolayout(buffer,sample_count,vgmstream);
             break;
@@ -900,7 +900,7 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
         case layout_blocked_ea_schl:
         case layout_blocked_ea_1snh:
         case layout_blocked_caf:
-        case layout_wsi_blocked:
+        case layout_blocked_wsi:
         case layout_str_snds_blocked:
         case layout_ws_aud_blocked:
         case layout_matx_blocked:
@@ -1006,6 +1006,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_3DS_IMA:
             return 2;
         case coding_XBOX_IMA:
+        case coding_XBOX_IMA_mch:
         case coding_XBOX_IMA_int:
         case coding_FSB_IMA:
         case coding_WWISE_IMA:
@@ -1048,6 +1049,10 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
             return vgmstream->ws_output_size;
         case coding_AICA:
             return 2;
+        case coding_YAMAHA:
+            return (0x40-0x04*vgmstream->channels) * 2 / vgmstream->channels;
+        case coding_YAMAHA_NXAP:
+            return (0x40-0x04) * 2;
         case coding_NDS_PROCYON:
             return 30;
         case coding_L5_555:
@@ -1175,9 +1180,11 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
             //todo should be  0x48 when stereo, but blocked/interleave layout don't understand stereo codecs
             return 0x24; //vgmstream->channels==1 ? 0x24 : 0x48;
         case coding_XBOX_IMA_int:
-        case coding_FSB_IMA:
         case coding_WWISE_IMA:
             return 0x24;
+        case coding_XBOX_IMA_mch:
+        case coding_FSB_IMA:
+            return 0x24 * vgmstream->channels;
         case coding_APPLE_IMA4:
             return 0x22;
 
@@ -1208,6 +1215,9 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
             return vgmstream->current_block_size;
         case coding_AICA:
             return 0x01;
+        case coding_YAMAHA:
+        case coding_YAMAHA_NXAP:
+            return 0x40;
         case coding_NDS_PROCYON:
             return 0x10;
         case coding_L5_555:
@@ -1251,7 +1261,7 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
 int get_vgmstream_samples_per_shortframe(VGMSTREAM * vgmstream) {
     switch (vgmstream->coding_type) {
         case coding_NDS_IMA:
-            return (vgmstream->interleave_smallblock_size-4)*2;
+            return (vgmstream->interleave_last_block_size-4)*2;
         default:
             return get_vgmstream_samples_per_frame(vgmstream);
     }
@@ -1259,7 +1269,7 @@ int get_vgmstream_samples_per_shortframe(VGMSTREAM * vgmstream) {
 int get_vgmstream_shortframe_size(VGMSTREAM * vgmstream) {
     switch (vgmstream->coding_type) {
         case coding_NDS_IMA:
-            return vgmstream->interleave_smallblock_size;
+            return vgmstream->interleave_last_block_size;
         default:
             return get_vgmstream_frame_size(vgmstream);
     }
@@ -1433,7 +1443,14 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
             break;
         case coding_XBOX_IMA:
             for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_xbox_ima(vgmstream,&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                decode_xbox_ima(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                        vgmstream->channels,vgmstream->samples_into_block,
+                        samples_to_do,chan);
+            }
+            break;
+        case coding_XBOX_IMA_mch:
+            for (chan=0;chan<vgmstream->channels;chan++) {
+                decode_xbox_ima_mch(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
                         samples_to_do,chan);
             }
@@ -1799,6 +1816,20 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                         samples_to_do);
             }
             break;
+        case coding_YAMAHA:
+            for (chan=0;chan<vgmstream->channels;chan++) {
+                decode_yamaha(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                        vgmstream->channels,vgmstream->samples_into_block,
+                        samples_to_do, chan);
+            }
+            break;
+        case coding_YAMAHA_NXAP:
+            for (chan=0;chan<vgmstream->channels;chan++) {
+                decode_yamaha_nxap(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                        vgmstream->channels,vgmstream->samples_into_block,
+                        samples_to_do);
+            }
+            break;
         case coding_NDS_PROCYON:
             for (chan=0;chan<vgmstream->channels;chan++) {
                 decode_nds_procyon(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
@@ -2109,17 +2140,16 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             "\n");
     concatn(length,desc,temp);
 
-    if (vgmstream->layout_type == layout_interleave
-            || vgmstream->layout_type == layout_interleave_shortblock) {
+    if (vgmstream->layout_type == layout_interleave) {
         snprintf(temp,TEMPSIZE,
                 "interleave: %#x bytes\n",
                 (int32_t)vgmstream->interleave_block_size);
         concatn(length,desc,temp);
 
-        if (vgmstream->layout_type == layout_interleave_shortblock) {
+        if (vgmstream->interleave_last_block_size) {
             snprintf(temp,TEMPSIZE,
-                    "last block interleave: %#x bytes\n",
-                    (int32_t)vgmstream->interleave_smallblock_size);
+                    "interleave last block: %#x bytes\n",
+                    (int32_t)vgmstream->interleave_last_block_size);
             concatn(length,desc,temp);
         }
     }
@@ -2192,7 +2222,8 @@ static void try_dual_file_stereo(VGMSTREAM * opened_vgmstream, STREAMFILE *strea
         {"l","r"},
         {"left","right"},
         {"Left","Right"},
-        {".V0",".V1"},
+        {".V0",".V1"}, /* Homura (PS2) */
+        {".L",".R"}, /* Crash Nitro Racing (PS2) */
         {"_0","_1"}, //unneeded?
     };
     char new_filename[PATH_LIMIT];
@@ -2269,7 +2300,7 @@ static void try_dual_file_stereo(VGMSTREAM * opened_vgmstream, STREAMFILE *strea
             /* check even if the layout doesn't use them, because it is
              * difficult to determine when it does, and they should be zero otherwise, anyway */
             new_vgmstream->interleave_block_size == opened_vgmstream->interleave_block_size &&
-            new_vgmstream->interleave_smallblock_size == opened_vgmstream->interleave_smallblock_size)) {
+            new_vgmstream->interleave_last_block_size == opened_vgmstream->interleave_last_block_size)) {
         goto fail;
     }
 
