@@ -11,7 +11,6 @@ static void scd_ogg_v3_decryption_callback(void *ptr, size_t size, size_t nmemb,
 /* SCD - Square-Enix games (FF XIII, XIV) */
 VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[PATH_LIMIT];
     off_t start_offset, tables_offset, meta_offset, extradata_offset, name_offset = 0;
     int32_t stream_size, extradata_size, loop_start, loop_end;
 
@@ -26,7 +25,6 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
     /* check extension, case insensitive */
     if ( !check_extensions(streamFile, "scd") )
         goto fail;
-    streamFile->get_name(streamFile,filename,sizeof(filename));
 
     /** main header **/
     if (read_32bitBE(0x00,streamFile) != 0x53454442 &&  /* "SEDB" */
@@ -281,7 +279,6 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
 
         case 0x0A:      /* DSP ADPCM [Dragon Quest X (Wii)] */
         case 0x15: {    /* DSP ADPCM [Dragon Quest X (Wii U)] (no apparent differences except higher sample rate) */
-            STREAMFILE * file;
             int i;
             const off_t interleave_size = 0x800;
             const off_t stride_size = interleave_size * channel_count;
@@ -308,28 +305,22 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
                 }
             }
 
-            /* the primary streamfile we'll be using */
-            file = streamFile->open(streamFile,filename,stride_size);
-            if (!file) goto fail;
-
-            vgmstream->ch[0].streamfile = file;
-
             data = malloc(sizeof(scd_int_codec_data));
             data->substream_count = channel_count;
             data->substreams = calloc(channel_count, sizeof(VGMSTREAM *));
-            data->intfiles = calloc(channel_count, sizeof(STREAMFILE *));
 
             vgmstream->codec_data = data;
 
             for (i=0;i<channel_count;i++) {
-                STREAMFILE * intfile = setup_scd_dsp_streamfile(file, start_offset+interleave_size*i, interleave_size, stride_size, total_size);
-                if (!intfile) goto fail;
+                STREAMFILE* temp_streamFile = setup_scd_dsp_streamfile(streamFile, start_offset+interleave_size*i, interleave_size, stride_size, total_size);
+                if (!temp_streamFile) goto fail;
 
-                data->substreams[i] = init_vgmstream_ngc_dsp_std(intfile);
-                data->intfiles[i] = intfile;
+                data->substreams[i] = init_vgmstream_ngc_dsp_std(temp_streamFile);
+                close_streamfile(temp_streamFile);
                 if (!data->substreams[i]) goto fail;
 
                 /* TODO: only handles mono substreams, though that's all we have with DSP */
+
                 /* save start things so we can restart for seeking/looping */
                 memcpy(data->substreams[i]->start_ch,data->substreams[i]->ch,sizeof(VGMSTREAMCHANNEL)*1);
                 memcpy(data->substreams[i]->start_vgmstream,data->substreams[i],sizeof(VGMSTREAM));

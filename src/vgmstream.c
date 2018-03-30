@@ -804,13 +804,9 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
             if (data->substreams) {
                 int i;
                 for (i=0;i<data->substream_count;i++) {
-                    /* note that the close_streamfile won't do anything but deallocate itself,
-                     * there is only one open file in vgmstream->ch[0].streamfile */
                     close_vgmstream(data->substreams[i]);
-                    if(data->intfiles[i]) close_streamfile(data->intfiles[i]);
                 }
                 free(data->substreams);
-                free(data->intfiles);
             }
 
             free(data);
@@ -2406,7 +2402,7 @@ static STREAMFILE * get_vgmstream_average_bitrate_channel_streamfile(VGMSTREAM *
 
     if (vgmstream->layout_type==layout_scd_int) {
         scd_int_codec_data *data = (scd_int_codec_data *) vgmstream->codec_data;
-        return data->intfiles[channel];
+        return data->substreams[channel]->ch[0].streamfile;
     }
 
     if (vgmstream->coding_type==coding_NWA) {

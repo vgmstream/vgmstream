@@ -1073,7 +1073,6 @@ typedef struct {
 typedef struct {
     int substream_count;
     VGMSTREAM **substreams;
-    STREAMFILE **intfiles;
 } scd_int_codec_data;
 
 typedef struct {
