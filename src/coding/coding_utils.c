@@ -297,15 +297,9 @@ fail:
 int ffmpeg_make_riff_xma2_from_xma2_chunk(uint8_t * buf, size_t buf_size, off_t xma2_offset, size_t xma2_size, size_t data_size, STREAMFILE *streamFile) {
     uint8_t chunk[0x100];
     size_t riff_size;
-    size_t xma2_final_size = xma2_size;
-    int xma2_chunk_version = read_8bit(xma2_offset,streamFile);
 
-    /* FFmpeg can't parse v3 "XMA2" chunks so we'll have to extend (8 bytes in the middle) */
-    if (xma2_chunk_version == 3)
-        xma2_final_size += 0x8;
-    riff_size = 4+4+ 4 + 4+4+xma2_final_size + 4+4;
-
-    if (buf_size < riff_size || xma2_final_size > 0x100)
+    riff_size = 4+4+ 4 + 4+4+xma2_size + 4+4;
+    if (buf_size < riff_size || xma2_size > 0x100)
         goto fail;
     if (read_streamfile(chunk,xma2_offset,xma2_size, streamFile) != xma2_size)
         goto fail;
@@ -316,20 +310,11 @@ int ffmpeg_make_riff_xma2_from_xma2_chunk(uint8_t * buf, size_t buf_size, off_t 
     memcpy(buf+0x08, "WAVE", 4);
 
     memcpy(buf+0x0c, "XMA2", 4);
-    put_32bitLE(buf+0x10, xma2_final_size);
-    if (xma2_chunk_version == 3) {
-        /* old XMA2 v3: change to v4 (extra 8 bytes in the middle); always BE */
-        put_8bit   (buf+0x14 + 0x00, 4); /* v4 */
-        memcpy     (buf+0x14 + 0x01, chunk+1, 0xF); /* first v3 part (fixed) */
-        put_32bitBE(buf+0x14 + 0x10, 0x000010D6); /* extra v4 BE: "EncodeOptions" (not used by FFmpeg) */
-        put_32bitBE(buf+0x14 + 0x14, 0); /* extra v4 BE: "PsuedoBytesPerSec" (not used by FFmpeg) */
-        memcpy     (buf+0x14 + 0x18, chunk+0x10, xma2_size - 0x10); /* second v3 part (variable size) */
-    } else {
-        memcpy(buf+0x14, chunk, xma2_size);
-    }
+    put_32bitLE(buf+0x10, xma2_size);
+    memcpy(buf+0x14, chunk, xma2_size);
 
-    memcpy(buf+0x14+xma2_final_size, "data", 4);
-    put_32bitLE(buf+0x14+xma2_final_size+4, data_size); /* data size */
+    memcpy(buf+0x14+xma2_size, "data", 4);
+    put_32bitLE(buf+0x14+xma2_size+4, data_size); /* data size */
 
     return riff_size;
 
