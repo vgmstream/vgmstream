@@ -123,7 +123,7 @@
     <ClCompile Include="coding\mta2_decoder.c" />
     <ClCompile Include="layout\blocked_ps2_iab.c" />
     <ClCompile Include="layout\blocked_ps2_strlr.c" />
-    <ClCompile Include="layout\scd_int_layout.c" />
+    <ClCompile Include="layout\layered.c" />
     <ClCompile Include="layout\blocked_tra.c" />
     <ClCompile Include="meta\akb.c" />
     <ClCompile Include="meta\awc.c" />

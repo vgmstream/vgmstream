@@ -1823,7 +1823,7 @@
                     >
                 </File>
 				<File
-					RelativePath=".\layout\scd_int_layout.c"
+					RelativePath=".\layout\layered.c"
 					>
 				</File>
 				<File

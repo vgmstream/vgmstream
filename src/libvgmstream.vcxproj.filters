@@ -1210,7 +1210,7 @@
     <ClCompile Include="meta\ps2_hsf.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="layout\scd_int_layout.c">
+    <ClCompile Include="layout\layered.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ps2_2pfs.c">
