@@ -322,8 +322,7 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
             vgmstream->codec_data = data;
 
             for (i=0;i<channel_count;i++) {
-                STREAMFILE * intfile =
-                    open_scdint_with_STREAMFILE(file, "ARBITRARY.DSP", start_offset+interleave_size*i, interleave_size, stride_size, total_size);
+                STREAMFILE * intfile = setup_scd_dsp_streamfile(file, start_offset+interleave_size*i, interleave_size, stride_size, total_size);
                 if (!intfile) goto fail;
 
                 data->substreams[i] = init_vgmstream_ngc_dsp_std(intfile);
