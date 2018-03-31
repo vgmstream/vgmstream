@@ -1,6 +1,7 @@
 #include "meta.h"
 #include "../layout/layout.h"
 #include "../coding/coding.h"
+#include "ea_eaac_eatrax_streamfile.h"
 
 /* EAAudioCore formats, EA's current audio middleware */
 
@@ -114,6 +115,7 @@ fail:
  * Some .SNR include stream data, while .SPS have headers so .SPH is optional. */
 static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE * streamHead, STREAMFILE * streamData, off_t header_offset, off_t start_offset, meta_t meta_type) {
     VGMSTREAM * vgmstream = NULL;
+    STREAMFILE* temp_streamFile = NULL;
     int channel_count, loop_flag = 0, version, codec, channel_config, sample_rate, flags;
     uint32_t num_samples, loop_start = 0, loop_end = 0;
 
@@ -234,22 +236,28 @@ static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE * streamHead, ST
             /* DSP coefs are read in the blocks */
             break;
 
-#if 0 //todo buffered ATRAC9
 #ifdef VGM_USE_ATRAC9
         case 0x0a: {    /* EATrax */
             atrac9_config cfg = {0};
+            size_t total_size;
 
             cfg.channels = vgmstream->channels;
             cfg.config_data = read_32bitBE(header_offset + 0x08,streamHead);
-            /* 0x0c: data size without blocks?, 0x10: frame size? (same as config data?) */
+            /* 0x10: frame size? (same as config data?) */
+            total_size = read_32bitLE(header_offset + 0x0c,streamHead); /* actual data size without blocks, LE b/c why make sense */
 
             vgmstream->codec_data = init_atrac9(&cfg);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_ATRAC9;
-            vgmstream->layout_type = layout_blocked_ea_sns;
+            vgmstream->layout_type = layout_none;
+
+            /* EATrax is "buffered" ATRAC9, uses custom IO since it's kind of complex to add to the decoder */
+            start_offset = 0x00; /* must point to header start */
+            temp_streamFile = setup_eatrax_streamfile(streamData, total_size);
+            if (!temp_streamFile) goto fail;
+
             break;
         }
-#endif
 #endif
 
         case 0x00: /* "NONE" (internal 'codec not set' flag) */
@@ -266,9 +274,10 @@ static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE * streamHead, ST
     }
 
 
-    /* open the file for reading by each channel */
-    if (!vgmstream_open_stream(vgmstream,streamData,start_offset))
+    if (!vgmstream_open_stream(vgmstream,temp_streamFile ? temp_streamFile : streamData,start_offset))
         goto fail;
+
+    close_streamfile(temp_streamFile);
 
     if (vgmstream->layout_type == layout_blocked_ea_sns)
         block_update_ea_sns(start_offset, vgmstream);
@@ -276,6 +285,7 @@ static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE * streamHead, ST
     return vgmstream;
 
 fail:
+    close_streamfile(temp_streamFile);
     close_vgmstream(vgmstream);
     return NULL;
 }
