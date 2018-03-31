@@ -217,7 +217,15 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\meta\awc_xma_streamfile.h"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\bar_streamfile.h"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\ea_eaac_eatrax_streamfile.h"
                     >
                 </File>
                 <File

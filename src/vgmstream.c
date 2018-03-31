@@ -466,7 +466,7 @@ static VGMSTREAM * init_vgmstream_internal(STREAMFILE *streamFile) {
         /* check FFmpeg streams here, for lack of a better place */
         if (vgmstream->coding_type == coding_FFmpeg) {
             ffmpeg_codec_data *data = (ffmpeg_codec_data *) vgmstream->codec_data;
-            if (data->streamCount && !vgmstream->num_streams) {
+            if (data && data->streamCount && !vgmstream->num_streams) {
                 vgmstream->num_streams = data->streamCount;
             }
         }
