@@ -666,6 +666,7 @@ typedef enum {
     meta_EA_WVE_AD10,       /* Electronic Arts PS movies [Wing Commander 3/4 (PS)] */
     meta_STHD,              /* STHD .stx [Kakuto Chojin (Xbox)] */
     meta_MP4,               /* MP4/AAC */
+    meta_PCM_SRE,           /* .PCM+SRE [Viewtiful Joe (PS2)] */
 
 #ifdef VGM_USE_FFMPEG
     meta_FFmpeg,

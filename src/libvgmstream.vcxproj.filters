@@ -454,6 +454,9 @@
     <ClCompile Include="meta\pc_xa30.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\pcm_sre.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\scd_pcm.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
