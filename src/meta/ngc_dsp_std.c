@@ -80,18 +80,24 @@ static void setup_vgmstream_dsp(VGMSTREAM* vgmstream, struct dsp_header* ch_head
     }
 }
 
-static int dsp_load_header(struct dsp_header* ch_header, int channels, STREAMFILE *streamFile, off_t offset, size_t spacing) {
+static int dsp_load_header_endian(struct dsp_header* ch_header, int channels, STREAMFILE *streamFile, off_t offset, size_t spacing, int big_endian) {
     int i;
 
     /* load standard dsp header per channel */
     for (i = 0; i < channels; i++) {
-        if (read_dsp_header(&ch_header[i], offset + i*spacing, streamFile))
+        if (read_dsp_header_endian(&ch_header[i], offset + i*spacing, streamFile, big_endian))
             goto fail;
     }
 
     return 1;
 fail:
     return 0;
+}
+static int dsp_load_header(struct dsp_header* ch_header, int channels, STREAMFILE *streamFile, off_t offset, size_t spacing) {
+    return dsp_load_header_endian(ch_header, channels, streamFile, offset, spacing, 1);
+}
+static int dsp_load_header_le(struct dsp_header* ch_header, int channels, STREAMFILE *streamFile, off_t offset, size_t spacing) {
+    return dsp_load_header_endian(ch_header, channels, streamFile, offset, spacing, 0);
 }
 static int check_dsp_format(struct dsp_header* ch_header, int channels) {
     int i;
@@ -1283,7 +1289,7 @@ fail:
 }
 
 #define WSD_MAX_CHANNELS 2
-/* .wsd - Custom heade + full interleaved dsp [Phantom Brave (Wii)] */
+/* .wsd - Custom header + full interleaved dsp [Phantom Brave (Wii)] */
 VGMSTREAM * init_vgmstream_wii_wsd(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     off_t start_offset, header_offset;
@@ -2050,6 +2056,66 @@ VGMSTREAM * init_vgmstream_ngc_dsp_csmp(STREAMFILE *streamFile) {
     vgmstream->ch[0].channel_start_offset=
          vgmstream->ch[0].offset=current_offset + start_offset;
 
+    return vgmstream;
+
+fail:
+    close_vgmstream(vgmstream);
+    return NULL;
+}
+
+#define MCADPCM_MAX_CHANNELS 2
+/* .mcadpcm - Custom header + full interleaved dsp [Skyrim (Switch)] */
+VGMSTREAM * init_vgmstream_dsp_mcadpcm(STREAMFILE *streamFile) {
+    VGMSTREAM * vgmstream = NULL;
+    off_t start_offset, header_offset;
+    size_t header_spacing, interleave;
+    int channel_count;
+    struct dsp_header ch_header[MCADPCM_MAX_CHANNELS];
+
+    /* checks */
+    if (!check_extensions(streamFile, "mcadpcm"))
+        goto fail;
+VGM_LOG("1\n");
+    if (read_32bitLE(0x08,streamFile) != read_32bitLE(0x10,streamFile)) /* dsp sizes */
+        goto fail;
+VGM_LOG("2\n");
+    channel_count = read_32bitLE(0x00,streamFile);
+    if (channel_count > MCADPCM_MAX_CHANNELS) goto fail;
+
+    header_offset =  read_32bitLE(0x04,streamFile);
+    header_spacing = read_32bitLE(0x08,streamFile); /* technically dsp size but eh */
+    start_offset = header_offset + 0x60;
+    interleave = header_spacing;
+VGM_LOG("3\n");
+    /* read dsp */
+    if (!dsp_load_header_le(ch_header, channel_count, streamFile,header_offset,header_spacing)) goto fail;
+VGM_LOG("4\n");
+    if (!check_dsp_format(ch_header, channel_count)) goto fail;
+VGM_LOG("5\n");
+    if (!check_dsp_samples(ch_header, channel_count)) goto fail;
+VGM_LOG("6\n");
+    if (!check_dsp_initial_ps(ch_header, channel_count, streamFile,start_offset,interleave)) goto fail;
+VGM_LOG("7\n");
+    if (!check_dsp_loop_ps(ch_header, channel_count, streamFile,start_offset,interleave)) goto fail;
+VGM_LOG("8\n");
+
+    /* build the VGMSTREAM */
+    vgmstream = allocate_vgmstream(channel_count,ch_header[0].loop_flag);
+    if (!vgmstream) goto fail;
+
+    vgmstream->sample_rate = ch_header[0].sample_rate;
+    vgmstream->num_samples = ch_header[0].sample_count;
+    vgmstream->loop_start_sample = dsp_nibbles_to_samples(ch_header[0].loop_start_offset);
+    vgmstream->loop_end_sample   = dsp_nibbles_to_samples(ch_header[0].loop_end_offset)+1;
+
+    vgmstream->meta_type = meta_DSP_MCADPCM;
+    vgmstream->coding_type = coding_NGC_DSP;
+    vgmstream->layout_type = layout_interleave;
+    vgmstream->interleave_block_size = interleave;
+    setup_vgmstream_dsp(vgmstream, ch_header);
+
+    if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
+        goto fail;
     return vgmstream;
 
 fail:

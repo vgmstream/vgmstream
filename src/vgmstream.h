@@ -667,6 +667,7 @@ typedef enum {
     meta_STHD,              /* STHD .stx [Kakuto Chojin (Xbox)] */
     meta_MP4,               /* MP4/AAC */
     meta_PCM_SRE,           /* .PCM+SRE [Viewtiful Joe (PS2)] */
+    meta_DSP_MCADPCM,       /* Skyrim (Switch) */
 
 #ifdef VGM_USE_FFMPEG
     meta_FFmpeg,

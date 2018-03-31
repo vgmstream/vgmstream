@@ -183,6 +183,7 @@ static const char* extension_list[] = {
     "matx",
     "mc3",
     "mca",
+    "mcadpcm",
     "mcg",
     "mds",
     "mdsp",
@@ -982,6 +983,7 @@ static const meta_info meta_info_list[] = {
         {meta_STHD,                 "Dream Factory STHD header"},
         {meta_MP4,                  "MP4/AAC header"},
         {meta_PCM_SRE,              "Capcom .PCM+SRE header"},
+        {meta_DSP_MCADPCM,          "Bethesda .mcadpcm header"},
 
 #ifdef VGM_USE_FFMPEG
         {meta_FFmpeg,               "FFmpeg supported file format"},
