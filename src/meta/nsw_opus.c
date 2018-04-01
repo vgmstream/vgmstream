@@ -16,7 +16,7 @@ VGMSTREAM * init_vgmstream_nsw_opus(STREAMFILE *streamFile) {
         goto fail;
 
     /* variations, maybe custom */
-    if (read_32bitBE(0x00,streamFile) == 0x01000080) { /* Lego City Undercover */
+    if (read_32bitBE(0x00,streamFile) == 0x01000080) { /* standard, Lego City Undercover */
         offset = 0x00;
     }
     else if ((read_32bitBE(0x04,streamFile) == 0x00000000 && read_32bitBE(0x0c,streamFile) == 0x00000000) ||
@@ -26,12 +26,17 @@ VGMSTREAM * init_vgmstream_nsw_opus(STREAMFILE *streamFile) {
         loop_start = read_32bitLE(0x00,streamFile);
         loop_end = read_32bitLE(0x08,streamFile);
     }
-    else if (read_32bitLE(0x04,streamFile) == 0x02) { /* Ultra Street Fighter II */
+    else if (read_32bitLE(0x04,streamFile) == 0x01 ||
+             read_32bitLE(0x04,streamFile) == 0x02) { /* Ultra Street Fighter II, RE: Revelations */
         offset = read_32bitLE(0x1c,streamFile);
 
         num_samples = read_32bitLE(0x00,streamFile);
+        /* 0x04: channels, 6 uses interleaved streams (2ch+2ch+2ch) */
         loop_start = read_32bitLE(0x08,streamFile);
         loop_end = read_32bitLE(0x0c,streamFile);
+        /* 0x10: frame size (with extra data) */
+        /* 0x14: extra chunk count (each of 0x08, after 0x30) */
+        /* 0x18: null */
     }
     else if (read_32bitBE(0x00, streamFile) == 0x73616466 && read_32bitBE(0x08, streamFile) == 0x6f707573) { /* Xenoblade Chronicles 2 */
         offset = read_32bitLE(0x1c, streamFile);
