@@ -124,8 +124,8 @@ static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE * streamHead, ST
     codec   = (read_8bit(header_offset + 0x00,streamHead) >> 0) & 0xf;
     channel_config = read_8bit(header_offset + 0x01,streamHead);
     sample_rate = (uint16_t)read_16bitBE(header_offset + 0x02,streamHead);
-    flags = (uint8_t)read_8bit(header_offset + 0x04,streamHead); /* upper nibble only? */
-    num_samples = (uint32_t)read_32bitBE(header_offset + 0x04,streamHead) & 0x00FFFFFF;
+    flags = (uint8_t)read_8bit(header_offset + 0x04,streamHead) & 0xFE; //todo upper nibble only? (the first bit is part of size)
+    num_samples = (uint32_t)read_32bitBE(header_offset + 0x04,streamHead) & 0x01FFFFFF;
     /* rest is optional, depends on flags header used (ex. SNU and SPS may have bigger headers):
      *  &0x20: 1 int (usually 0x00), &0x00/40: nothing, &0x60: 2 ints (usually 0x00 and 0x14) */
 
@@ -135,9 +135,10 @@ static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE * streamHead, ST
         goto fail;
     }
 
-    /* 0x40: stream asset, 0x20: full loop, 0x00: default/RAM asset, 0x01: loop? */
+    /* 0x40: stream asset, 0x20: full loop, 0x00: default/RAM asset */
     if (flags != 0x60 && flags != 0x40 && flags != 0x20 && flags != 0x00) {
         VGM_LOG("EA SNS/SPS: unknown flag 0x%02x\n", flags);
+        goto fail;
     }
 
     /* seen in sfx and Dead Space ambient tracks */
