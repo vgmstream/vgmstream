@@ -2,7 +2,7 @@
 #include "../vgmstream.h"
 
 /* set up for the block at the given offset */
-void thp_block_update(off_t block_offset, VGMSTREAM * vgmstream) {
+void block_update_thp(off_t block_offset, VGMSTREAM * vgmstream) {
     int i,j;
 	STREAMFILE *streamFile=vgmstream->ch[0].streamfile;
 	off_t	start_offset;

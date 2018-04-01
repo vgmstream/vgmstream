@@ -15,8 +15,8 @@ static const int scale_delta[16] = {
 };
 
 
-/* Yamaha AICA ADPCM, as seen in Dreamcast. Possibly like RIFF codec 0x20 or used in older arcade sound chips. */
-void decode_aica(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
+/* raw Yamaha ADPCM a.k.a AICA as it's mainly used in Naomi/Dreamcast (also in RIFF and older arcade sound chips). */
+void decode_aica(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel, int is_stereo) {
     int i, sample_count;
 
     int32_t hist1 = stream->adpcm_history1_16;
@@ -28,8 +28,12 @@ void decode_aica(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing,
 
     for (i=first_sample,sample_count=0; i<first_sample+samples_to_do; i++,sample_count+=channelspacing) {
         int sample_nibble, sample_decoded, sample_delta;
-        off_t byte_offset = (stream->offset) + i/2;
-        int nibble_shift = (i&1?4:0); /* low nibble first */
+        off_t byte_offset = is_stereo ?
+                stream->offset + i :    /* stereo: one nibble per channel */
+                stream->offset + i/2;   /* mono: consecutive nibbles */
+        int nibble_shift = is_stereo ?
+                (!(channel&1) ? 0:4) :  /* even = low/L, odd = high/R */
+                (!(i&1) ? 0:4);         /* low nibble first */
 
         /* Yamaha/AICA expand, but same result as IMA's (((delta * 2 + 1) * step) >> 3) */
         sample_nibble = ((read_8bit(byte_offset,stream->streamfile) >> nibble_shift))&0xf;
@@ -139,6 +143,11 @@ void decode_yamaha_nxap(VGMSTREAMCHANNEL * stream, sample * outbuf, int channels
 
     stream->adpcm_history1_32 = hist1;
     stream->adpcm_step_index = step_size;
+}
+
+size_t aica_bytes_to_samples(size_t bytes, int channels) {
+    /* 2 samples per byte (2 nibbles) in stereo or mono config */
+    return bytes * 2 / channels;
 }
 
 size_t yamaha_bytes_to_samples(size_t bytes, int channels) {

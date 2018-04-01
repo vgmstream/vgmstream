@@ -383,16 +383,22 @@ typedef struct {
     STREAMFILE sf;
 
     STREAMFILE *inner_sf;
-    void* data;
+    void* data; /* state for custom reads, malloc'ed + copied on open (to re-open streamfiles cleanly) */
     size_t data_size;
-    size_t (*read_callback)(STREAMFILE *, uint8_t *, off_t, size_t, void*);
+    size_t (*read_callback)(STREAMFILE *, uint8_t *, off_t, size_t, void*); /* custom read to modify data before copying into buffer */
+    size_t (*size_callback)(STREAMFILE *, void*); /* size when custom reads make data smaller/bigger than underlying streamfile */
+    //todo would need to make sure re-opened streamfiles work with this, maybe should use init_data_callback per call
+    //size_t (*close_data_callback)(STREAMFILE *, void*); /* called during close, allows to free stuff in data */
 } IO_STREAMFILE;
 
 static size_t io_read(IO_STREAMFILE *streamfile, uint8_t *dest, off_t offset, size_t length) {
     return streamfile->read_callback(streamfile->inner_sf, dest, offset, length, streamfile->data);
 }
 static size_t io_get_size(IO_STREAMFILE *streamfile) {
-    return streamfile->inner_sf->get_size(streamfile->inner_sf); /* default */
+    if (streamfile->size_callback)
+        return streamfile->size_callback(streamfile->inner_sf, streamfile->data);
+    else
+        return streamfile->inner_sf->get_size(streamfile->inner_sf); /* default */
 }
 static off_t io_get_offset(IO_STREAMFILE *streamfile) {
     return streamfile->inner_sf->get_offset(streamfile->inner_sf);  /* default */
@@ -406,7 +412,7 @@ static void io_get_realname(IO_STREAMFILE *streamfile, char *buffer, size_t leng
 static STREAMFILE *io_open(IO_STREAMFILE *streamfile, const char * const filename, size_t buffersize) {
     //todo should have some flag to decide if opening other files with IO
     STREAMFILE *new_inner_sf = streamfile->inner_sf->open(streamfile->inner_sf,filename,buffersize);
-    return open_io_streamfile(new_inner_sf, streamfile->data, streamfile->data_size, streamfile->read_callback);
+    return open_io_streamfile(new_inner_sf, streamfile->data, streamfile->data_size, streamfile->read_callback, streamfile->size_callback);
 }
 static void io_close(IO_STREAMFILE *streamfile) {
     streamfile->inner_sf->close(streamfile->inner_sf);
@@ -414,7 +420,7 @@ static void io_close(IO_STREAMFILE *streamfile) {
     free(streamfile);
 }
 
-STREAMFILE *open_io_streamfile(STREAMFILE *streamfile, void* data, size_t data_size, void* read_callback) {
+STREAMFILE *open_io_streamfile(STREAMFILE *streamfile, void* data, size_t data_size, void* read_callback, void* size_callback) {
     IO_STREAMFILE *this_sf;
 
     if (!streamfile) return NULL;
@@ -444,6 +450,7 @@ STREAMFILE *open_io_streamfile(STREAMFILE *streamfile, void* data, size_t data_s
     }
     this_sf->data_size = data_size;
     this_sf->read_callback = read_callback;
+    this_sf->size_callback = size_callback;
 
     return &this_sf->sf;
 }
@@ -684,6 +691,37 @@ fail:
 
 /* **************************************************** */
 
+STREAMFILE * open_streamfile_by_ext(STREAMFILE *streamFile, const char * ext) {
+    char filename_ext[PATH_LIMIT];
+
+    streamFile->get_name(streamFile,filename_ext,sizeof(filename_ext));
+    strcpy(filename_ext + strlen(filename_ext) - strlen(filename_extension(filename_ext)), ext);
+
+    return streamFile->open(streamFile,filename_ext,STREAMFILE_DEFAULT_BUFFER_SIZE);
+}
+
+STREAMFILE * open_streamfile_by_filename(STREAMFILE *streamFile, const char * name) {
+    char foldername[PATH_LIMIT];
+    char filename[PATH_LIMIT];
+    const char *path;
+
+    streamFile->get_name(streamFile,foldername,sizeof(foldername));
+
+    path = strrchr(foldername,DIR_SEPARATOR);
+    if (path!=NULL) path = path+1;
+
+    if (path) {
+        strcpy(filename, foldername);
+        filename[path-foldername] = '\0';
+        strcat(filename, name);
+    } else {
+        strcpy(filename, name);
+    }
+
+    return streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
+}
+
+
 /* Read a line into dst. The source files are lines separated by CRLF (Windows) / LF (Unux) / CR (Mac).
  * The line will be null-terminated and CR/LF removed if found.
  *
@@ -740,17 +778,17 @@ size_t get_streamfile_text_line(int dst_length, char * dst, off_t offset, STREAM
 }
 
 
-/* reads a c-string, up to maxsize or NULL, returning size. buf is optional. */
-int read_string(char * buf, size_t maxsize, off_t offset, STREAMFILE *streamFile) {
-    int i;
+/* reads a c-string (ANSI only), up to maxsize or NULL, returning size. buf is optional (works as get_string_size). */
+size_t read_string(char * buf, size_t maxsize, off_t offset, STREAMFILE *streamFile) {
+    size_t pos;
 
-    for (i=0; i < maxsize; i++) {
-        char c = read_8bit(offset + i, streamFile);
-        if (buf) buf[i] = c;
+    for (pos = 0; pos < maxsize; pos++) {
+        char c = read_8bit(offset + pos, streamFile);
+        if (buf) buf[pos] = c;
         if (c == '\0')
-            return i;
-        if (i+1 == maxsize) { /* null at maxsize and don't validate (expected to be garbage) */
-            if (buf) buf[i] = '\0';
+            return pos;
+        if (pos+1 == maxsize) { /* null at maxsize and don't validate (expected to be garbage) */
+            if (buf) buf[pos] = '\0';
             return maxsize;
         }
         if (c < 0x20 || c > 0xA5)
@@ -762,37 +800,6 @@ fail:
     return 0;
 }
 
-/* Opens an stream using the base streamFile name plus a new extension (ex. for headers in a separate file) */
-STREAMFILE * open_stream_ext(STREAMFILE *streamFile, const char * ext) {
-    char filename_ext[PATH_LIMIT];
-
-    streamFile->get_name(streamFile,filename_ext,sizeof(filename_ext));
-    strcpy(filename_ext + strlen(filename_ext) - strlen(filename_extension(filename_ext)), ext);
-
-    return streamFile->open(streamFile,filename_ext,STREAMFILE_DEFAULT_BUFFER_SIZE);
-}
-
-/* Opens an stream using the passed name (in the same folder) */
-STREAMFILE * open_stream_name(STREAMFILE *streamFile, const char * name) {
-    char foldername[PATH_LIMIT];
-    char filename[PATH_LIMIT];
-    const char *path;
-
-    streamFile->get_name(streamFile,foldername,sizeof(foldername));
-
-    path = strrchr(foldername,DIR_SEPARATOR);
-    if (path!=NULL) path = path+1;
-
-    if (path) {
-        strcpy(filename, foldername);
-        filename[path-foldername] = '\0';
-        strcat(filename, name);
-    } else {
-        strcpy(filename, name);
-    }
-
-    return streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-}
 
 /* Opens a file containing decryption keys and copies to buffer.
  * Tries combinations of keynames based on the original filename.
@@ -869,53 +876,10 @@ fail:
     return 0;
 }
 
-/**
- * open file containing looping data and copy to buffer
- *
- * returns true if found and copied
- */
-int read_pos_file(uint8_t * buf, size_t bufsize, STREAMFILE *streamFile) {
-    char posname[PATH_LIMIT];
-    char filename[PATH_LIMIT];
-    /*size_t bytes_read;*/
-    STREAMFILE * streamFilePos= NULL;
-
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-
-    if (strlen(filename)+4 > sizeof(posname)) goto fail;
-
-    /* try to open a posfile using variations: "(name.ext).pos" */
-    {
-        strcpy(posname, filename);
-        strcat(posname, ".pos");
-        streamFilePos = streamFile->open(streamFile,posname,STREAMFILE_DEFAULT_BUFFER_SIZE);
-        if (streamFilePos) goto found;
-
-        goto fail;
-    }
-
-found:
-    //if (get_streamfile_size(streamFilePos) != bufsize) goto fail;
-
-    /* allow pos files to be of different sizes in case of new features, just fill all we can */
-    memset(buf, 0, bufsize);
-    read_streamfile(buf, 0, bufsize, streamFilePos);
-
-    close_streamfile(streamFilePos);
-
-    return 1;
-
-fail:
-    if (streamFilePos) close_streamfile(streamFilePos);
-
-    return 0;
-}
-
 
 /**
- * checks if the stream filename is one of the extensions (comma-separated, ex. "adx" or "adx,aix")
- *
- * returns 0 on failure
+ * Checks if the stream filename is one of the extensions (comma-separated, ex. "adx" or "adx,aix").
+ * Empty is ok to accept files without extension ("", "adx,,aix"). Returns 0 on failure
  */
 int check_extensions(STREAMFILE *streamFile, const char * cmp_exts) {
     char filename[PATH_LIMIT];
@@ -990,13 +954,14 @@ int find_chunk(STREAMFILE *streamFile, uint32_t chunk_id, off_t start_offset, in
     return 0;
 }
 
-int get_streamfile_name(STREAMFILE *streamFile, char * buffer, size_t size) {
+void get_streamfile_name(STREAMFILE *streamFile, char * buffer, size_t size) {
     streamFile->get_name(streamFile,buffer,size);
-    return 1;
 }
-int get_streamfile_filename(STREAMFILE *streamFile, char * buffer, size_t size) {
+/* copies the filename without path */
+void get_streamfile_filename(STREAMFILE *streamFile, char * buffer, size_t size) {
     char foldername[PATH_LIMIT];
     const char *path;
+
 
     streamFile->get_name(streamFile,foldername,sizeof(foldername));
 
@@ -1013,9 +978,8 @@ int get_streamfile_filename(STREAMFILE *streamFile, char * buffer, size_t size) 
     } else {
         strcpy(buffer, foldername);
     }
-    return 1;
 }
-int get_streamfile_path(STREAMFILE *streamFile, char * buffer, size_t size) {
+void get_streamfile_path(STREAMFILE *streamFile, char * buffer, size_t size) {
     const char *path;
 
     streamFile->get_name(streamFile,buffer,size);
@@ -1028,11 +992,8 @@ int get_streamfile_path(STREAMFILE *streamFile, char * buffer, size_t size) {
     } else {
         buffer[0] = '\0';
     }
-
-    return 1;
 }
-int get_streamfile_ext(STREAMFILE *streamFile, char * filename, size_t size) {
+void get_streamfile_ext(STREAMFILE *streamFile, char * filename, size_t size) {
     streamFile->get_name(streamFile,filename,size);
     strcpy(filename, filename_extension(filename));
-    return 1;
 }

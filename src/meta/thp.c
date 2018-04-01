@@ -88,10 +88,10 @@ VGMSTREAM * init_vgmstream_thp(STREAMFILE *streamFile) {
     }
 
     vgmstream->full_block_size = read_32bitBE(0x18,streamFile); /* block size of current block, changes every time */
-    thp_block_update(start_offset,vgmstream);
+    block_update_thp(start_offset,vgmstream);
 
     vgmstream->coding_type = coding_NGC_DSP;
-    vgmstream->layout_type = layout_thp_blocked;
+    vgmstream->layout_type = layout_blocked_thp;
     vgmstream->meta_type = meta_THP;
 
     return vgmstream;

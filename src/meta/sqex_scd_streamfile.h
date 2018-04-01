@@ -2,72 +2,30 @@
 #define _SQEX_SCD_STREAMFILE_H_
 #include "../streamfile.h"
 
-/* special streamfile type to handle deinterleaving of complete files (based heavily on AIXSTREAMFILE */
 
-typedef struct _SCDINTSTREAMFILE {
-    STREAMFILE sf;
-    STREAMFILE *real_file;
-    const char * filename;
-    off_t start_physical_offset;
-    off_t current_logical_offset;
-    off_t interleave_block_size;
-    off_t stride_size;
-    size_t total_size;
-} SCDINTSTREAMFILE;
+typedef struct {
+    off_t start_physical_offset; /* interleaved data start, for this substream */
+    size_t interleave_block_size; /* max size that can be read before encountering other substreams */
+    size_t stride_size; /* step size between interleave blocks (interleave*channels) */
+    size_t total_size; /* final size of the deinterleaved substream */
+} scd_dsp_io_data;
 
 
-/*static*/ STREAMFILE *open_scdint_with_STREAMFILE(STREAMFILE *file, const char * filename, off_t start_offset, off_t interleave_block_size, off_t stride_size, size_t total_size);
-
-
-static STREAMFILE *open_scdint_impl(SCDINTSTREAMFILE *streamfile,const char * const filename,size_t buffersize) {
-    SCDINTSTREAMFILE *newfile;
-
-    if (strcmp(filename, streamfile->filename))
-        return NULL;
-
-    newfile = malloc(sizeof(SCDINTSTREAMFILE));
-    if (!newfile)
-        return NULL;
-
-    memcpy(newfile,streamfile,sizeof(SCDINTSTREAMFILE));
-    return &newfile->sf;
-}
-
-static void close_scdint(SCDINTSTREAMFILE *streamfile) {
-    free(streamfile);
-    return;
-}
-
-static size_t get_size_scdint(SCDINTSTREAMFILE *streamfile) {
-    return streamfile->total_size;
-}
-
-static size_t get_offset_scdint(SCDINTSTREAMFILE *streamfile) {
-    return streamfile->current_logical_offset;
-}
-
-static void get_name_scdint(SCDINTSTREAMFILE *streamfile, char *buffer, size_t length) {
-    strncpy(buffer,streamfile->filename,length);
-    buffer[length-1]='\0';
-}
-
-static size_t read_scdint(SCDINTSTREAMFILE *streamfile, uint8_t *dest, off_t offset, size_t length) {
-    size_t sz = 0;
+/* Handles deinterleaving of complete files, skipping portions or other substreams. */
+static size_t scd_dsp_io_read(STREAMFILE *streamfile, uint8_t *dest, off_t offset, size_t length, scd_dsp_io_data* data) {
+    size_t total_read = 0;
 
     while (length > 0) {
-        off_t to_read;
-        off_t length_available;
+        size_t to_read;
+        size_t length_available;
         off_t block_num;
         off_t intrablock_offset;
         off_t physical_offset;
 
-
-        block_num = offset / streamfile->interleave_block_size;
-        intrablock_offset = offset % streamfile->interleave_block_size;
-        streamfile->current_logical_offset = offset;
-        physical_offset = streamfile->start_physical_offset + block_num * streamfile->stride_size + intrablock_offset;
-
-        length_available = streamfile->interleave_block_size - intrablock_offset;
+        block_num = offset / data->interleave_block_size;
+        intrablock_offset = offset % data->interleave_block_size;
+        physical_offset = data->start_physical_offset + block_num*data->stride_size + intrablock_offset;
+        length_available = data->interleave_block_size - intrablock_offset;
 
         if (length < length_available) {
             to_read = length;
@@ -79,16 +37,11 @@ static size_t read_scdint(SCDINTSTREAMFILE *streamfile, uint8_t *dest, off_t off
         if (to_read > 0) {
             size_t bytes_read;
 
-            bytes_read = read_streamfile(dest,
-                physical_offset,
-                to_read, streamfile->real_file);
-
-            sz += bytes_read;
-
-            streamfile->current_logical_offset = offset + bytes_read;
+            bytes_read = read_streamfile(dest, physical_offset, to_read, streamfile);
+            total_read += bytes_read;
 
             if (bytes_read != to_read) {
-                return sz; /* an error which we will not attempt to handle here */
+                return total_read;
             }
 
             dest += bytes_read;
@@ -97,38 +50,43 @@ static size_t read_scdint(SCDINTSTREAMFILE *streamfile, uint8_t *dest, off_t off
         }
     }
 
-    return sz;
+    return total_read;
 }
 
-/* start_offset is for *this* interleaved stream */
-/*static*/ STREAMFILE *open_scdint_with_STREAMFILE(STREAMFILE *file, const char * filename, off_t start_offset, off_t interleave_block_size, off_t stride_size, size_t total_size) {
-    SCDINTSTREAMFILE * scd = NULL;
+static size_t scd_dsp_io_size(STREAMFILE *streamfile, scd_dsp_io_data* data) {
+    return data->total_size;
+}
 
-    /* _scdint funcs can't handle this case */
-    if (start_offset + total_size > file->get_size(file))
-        return NULL;
 
-    scd = malloc(sizeof(SCDINTSTREAMFILE));
-    if (!scd)
-        return NULL;
+static STREAMFILE* setup_scd_dsp_streamfile(STREAMFILE *streamFile, off_t start_offset, size_t interleave_block_size, size_t stride_size, size_t total_size) {
+    STREAMFILE *temp_streamFile = NULL, *new_streamFile = NULL;
+    scd_dsp_io_data io_data = {0};
+    size_t io_data_size = sizeof(scd_dsp_io_data);
 
-    scd->sf.read = (void*)read_scdint;
-    scd->sf.get_size = (void*)get_size_scdint;
-    scd->sf.get_offset = (void*)get_offset_scdint;
-    scd->sf.get_name = (void*)get_name_scdint;
-    scd->sf.get_realname = (void*)get_name_scdint;
-    scd->sf.open = (void*)open_scdint_impl;
-    scd->sf.close = (void*)close_scdint;
+    io_data.start_physical_offset = start_offset;
+    io_data.interleave_block_size = interleave_block_size;
+    io_data.stride_size = stride_size;
+    io_data.total_size = total_size;
 
-    scd->real_file = file;
-    scd->filename = filename;
-    scd->start_physical_offset = start_offset;
-    scd->current_logical_offset = 0;
-    scd->interleave_block_size = interleave_block_size;
-    scd->stride_size = stride_size;
-    scd->total_size = total_size;
 
-    return &scd->sf;
+    /* setup subfile */
+    new_streamFile = open_wrap_streamfile(streamFile);
+    if (!new_streamFile) goto fail;
+    temp_streamFile = new_streamFile;
+
+    new_streamFile = open_io_streamfile(temp_streamFile, &io_data,io_data_size, scd_dsp_io_read,scd_dsp_io_size);
+    if (!new_streamFile) goto fail;
+    temp_streamFile = new_streamFile;
+
+    new_streamFile = open_fakename_streamfile(temp_streamFile, NULL,"dsp");
+    if (!new_streamFile) goto fail;
+    temp_streamFile = new_streamFile;
+
+    return temp_streamFile;
+
+fail:
+    close_streamfile(temp_streamFile);
+    return NULL;
 }
 
 #endif /* _SCD_STREAMFILE_H_ */

@@ -16,7 +16,7 @@ VGMSTREAM * init_vgmstream_gsp_gsb(STREAMFILE *streamFile) {
     if (!check_extensions(streamFile,"gsb"))
         goto fail;
 
-    streamFileGSP = open_stream_ext(streamFile, "gsp");
+    streamFileGSP = open_streamfile_by_ext(streamFile, "gsp");
     if (!streamFileGSP) goto fail;
 
     /* check header */
@@ -63,7 +63,7 @@ VGMSTREAM * init_vgmstream_gsp_gsb(STREAMFILE *streamFile) {
             size_t num_blocks;
 
             vgmstream->coding_type = coding_NGC_DSP;
-            vgmstream->layout_type = layout_gsb_blocked;
+            vgmstream->layout_type = layout_blocked_gsb;
 
             if (!find_chunk_be(streamFileGSP, 0x47434558,first_offset,1, &chunk_offset,NULL)) goto fail; /*"GCEX"*/
 

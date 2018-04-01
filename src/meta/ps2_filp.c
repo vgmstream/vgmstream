@@ -37,7 +37,7 @@ VGMSTREAM * init_vgmstream_filp(STREAMFILE *streamFile) {
     vgmstream->channels = channel_count;
     vgmstream->sample_rate = read_32bitLE(0x110,streamFile);
     vgmstream->coding_type = coding_PSX;
-    vgmstream->layout_type = layout_filp_blocked;
+    vgmstream->layout_type = layout_blocked_filp;
     vgmstream->meta_type = meta_FILP;
 
     /* open the file for reading */
@@ -50,7 +50,7 @@ VGMSTREAM * init_vgmstream_filp(STREAMFILE *streamFile) {
         }
     }
 
-    filp_block_update(start_offset,vgmstream);
+    block_update_filp(start_offset,vgmstream);
     vgmstream->num_samples = read_32bitLE(0x10C,streamFile)/16*28;
     if (loop_flag) {
         vgmstream->loop_start_sample = 0;

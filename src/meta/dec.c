@@ -103,23 +103,23 @@ static int get_falcom_looping(STREAMFILE *streamFile, int *out_loop_start, int *
 
 
     /* try one of the many loop files */
-    if ((streamText = open_stream_name(streamFile,"bgm.tbl")) != NULL) {
+    if ((streamText = open_streamfile_by_filename(streamFile,"bgm.tbl")) != NULL) {
         type = XANADU_NEXT;
     }
-    else if ((streamText = open_stream_name(streamFile,"bgm.scr")) != NULL) {
+    else if ((streamText = open_streamfile_by_filename(streamFile,"bgm.scr")) != NULL) {
         type = ZWEI;
     }
-    else if ((streamText = open_stream_name(streamFile,"loop.txt")) != NULL) { /* actual name in Shift JIS, 0x838B815B8376 */
+    else if ((streamText = open_streamfile_by_filename(streamFile,"loop.txt")) != NULL) { /* actual name in Shift JIS, 0x838B815B8376 */
         type = DINOSAUR_RESURRECTION;
     }
-    else if ((streamText = open_stream_name(streamFile,"map.itm")) != NULL) {
+    else if ((streamText = open_streamfile_by_filename(streamFile,"map.itm")) != NULL) {
         type = GURUMIN;
     }
     else {
         goto end;
     }
 
-    get_streamfile_name(streamFile,filename,TXT_LINE_MAX);
+    get_streamfile_filename(streamFile,filename,TXT_LINE_MAX);
 
     /* read line by line */
     while (txt_offset < get_streamfile_size(streamText)) {

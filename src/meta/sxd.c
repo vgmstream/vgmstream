@@ -25,7 +25,7 @@ VGMSTREAM * init_vgmstream_sxd(STREAMFILE *streamFile) {
     if (is_dual) {
         if (read_32bitBE(0x00,streamFile) != 0x53584453) /* "SXDS" */
             goto fail;
-        streamHeader = open_stream_ext(streamFile, "sxd1");
+        streamHeader = open_streamfile_by_ext(streamFile, "sxd1");
         if (!streamHeader) goto fail;
     } else {
         streamHeader = streamFile;

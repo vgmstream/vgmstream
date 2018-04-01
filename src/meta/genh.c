@@ -157,6 +157,8 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
                         coding = coding_DVI_IMA_int;
                     if (coding == coding_IMA)
                         coding = coding_IMA_int;
+                    if (coding == coding_AICA)
+                        coding = coding_AICA_int;
                 }
 
                 /* to avoid endless loops */
@@ -173,7 +175,7 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
             }
 
             /* setup adpcm */
-            if (coding == coding_AICA) {
+            if (coding == coding_AICA || coding == coding_AICA_int) {
                 int i;
                 for (i=0;i<vgmstream->channels;i++) {
                     vgmstream->ch[i].adpcm_step_index = 0x7f;

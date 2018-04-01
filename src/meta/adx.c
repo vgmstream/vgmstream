@@ -28,8 +28,10 @@ VGMSTREAM * init_vgmstream_adx(STREAMFILE *streamFile) {
     uint16_t xor_start=0,xor_mult=0,xor_add=0;
 
 
-    /* check extension, case insensitive */
-    if (!check_extensions(streamFile,"adx")) goto fail;
+    /* checks*/
+    /* .adx: standard, .adp: Headhunter (DC) */
+    if (!check_extensions(streamFile,"adx,adp"))
+        goto fail;
 
     /* check first 2 bytes */
     if ((uint16_t)read_16bitBE(0x00,streamFile)!=0x8000) goto fail;

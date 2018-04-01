@@ -74,7 +74,7 @@ static int get_adm_loop_info(STREAMFILE *streamFile, off_t *loop_start_offset) {
     int i, name_index = -1, loop_flag;
     off_t offset;
 
-    streamExe = open_stream_name(streamFile, "SLPM_655.55");
+    streamExe = open_streamfile_by_filename(streamFile, "SLPM_655.55");
     if (!streamExe) goto fail;
 
     get_streamfile_filename(streamFile, file_name, PATH_LIMIT);

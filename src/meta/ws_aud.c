@@ -100,7 +100,7 @@ VGMSTREAM * init_vgmstream_ws_aud(STREAMFILE *streamFile) {
         vgmstream->meta_type = meta_WS_AUD_old;
     }
 
-    vgmstream->layout_type = layout_ws_aud_blocked;
+    vgmstream->layout_type = layout_blocked_ws_aud;
 
     /* open the file for reading by each channel */
     {
@@ -118,9 +118,9 @@ VGMSTREAM * init_vgmstream_ws_aud(STREAMFILE *streamFile) {
 
     /* start me up */
     if (new_type) {
-        ws_aud_block_update(0xc,vgmstream);
+        block_update_ws_aud(0xc,vgmstream);
     } else {
-        ws_aud_block_update(0x8,vgmstream);
+        block_update_ws_aud(0x8,vgmstream);
     }
 
     return vgmstream;

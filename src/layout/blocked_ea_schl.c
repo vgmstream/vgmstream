@@ -21,7 +21,7 @@ void block_update_ea_schl(off_t block_offset, VGMSTREAM * vgmstream) {
 
         block_samples = 0;
 
-        if (id == 0x5343446C || id == 0x5344454E) { /* "SCDl" "SDEN" audio data */
+        if (id == 0x5343446C || id == 0x5344454E || id == 0x53444652) { /* "SCDl" "SDEN" "SDFR" audio data */
             switch(vgmstream->coding_type) {
                 case coding_PSX:
                     block_samples = ps_bytes_to_samples(block_size-0x10, vgmstream->channels);
@@ -37,7 +37,7 @@ void block_update_ea_schl(off_t block_offset, VGMSTREAM * vgmstream) {
                 block_size = 0x04;
             }
 
-            if (id == 0x5343486C || id == 0x5348454E) { /* "SCHl" "SHEN" end block */
+            if (id == 0x5343486C || id == 0x5348454E || id == 0x53484652) { /* "SCHl" "SHEN" "SHFR" end block */
                 new_schl = 1;
             }
         }
@@ -53,8 +53,8 @@ void block_update_ea_schl(off_t block_offset, VGMSTREAM * vgmstream) {
             break;
         block_offset += block_size;
 
-        /* "SCEl" are aligned to 0x80 usually, but causes problems if not 32b-aligned (ex. Need for Speed 2 PC) */
-        if ((id == 0x5343456C || id == 0x5345454E) && block_offset % 0x04) {
+        /* "SCEl" "SEEN" "SEFR" are aligned to 0x80 usually, but causes problems if not 32b-aligned (ex. Need for Speed 2 PC) */
+        if ((id == 0x5343456C || id == 0x5345454E || id == 0x53454652) && block_offset % 0x04) {
             block_offset += 0x04 - (block_offset % 0x04);
         }
     }

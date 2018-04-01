@@ -2,7 +2,7 @@
 #include "../coding/coding.h"
 
 static STREAMFILE* setup_atsl_streamfile(STREAMFILE *streamFile, off_t subfile_offset, size_t subfile_size, const char* fake_ext);
-typedef enum { ATRAC3, ATRAC9, KOVS } atsl_codec;
+typedef enum { ATRAC3, ATRAC9, KOVS, KTSS } atsl_codec;
 
 /* .ATSL - Koei Tecmo audio container [One Piece Pirate Warriors (PS3), Warriors All-Stars (PC)] */
 VGMSTREAM * init_vgmstream_atsl(STREAMFILE *streamFile) {
@@ -39,6 +39,7 @@ VGMSTREAM * init_vgmstream_atsl(STREAMFILE *streamFile) {
      * - 00060301 00040301  atsl in G1L from One Piece Pirate Warriors 3 (Vita)[ATRAC9]
      * - 00060301 00010301  atsl in G1L from One Piece Pirate Warriors 3 (PC)[KOVS]
      * - 000A0301 00010501  atsl in G1L from Warriors All-Stars (PC)[KOVS]
+     * - 000B0301 00080601  atsl in G1l from Sengoku Musou Sanada Maru (Switch)[KTSS]
      */
     type = read_8bit(0x0d, streamFile);
     switch(type) {
@@ -56,7 +57,12 @@ VGMSTREAM * init_vgmstream_atsl(STREAMFILE *streamFile) {
             codec = ATRAC9;
             fake_ext = "at9";
             break;
+        case 0x08:
+            codec = KTSS;
+            fake_ext = "ktss";
+            break;
         default:
+            VGM_LOG("ATSL: unknown type %x\n", type);
             goto fail;
     }
     read_32bit = big_endian ? read_32bitBE : read_32bitLE;
@@ -116,6 +122,10 @@ VGMSTREAM * init_vgmstream_atsl(STREAMFILE *streamFile) {
             break;
         case KOVS:
             vgmstream = init_vgmstream_ogg_vorbis(temp_streamFile);
+            if (!vgmstream) goto fail;
+            break;
+        case KTSS:
+            vgmstream = init_vgmstream_ktss(temp_streamFile);
             if (!vgmstream) goto fail;
             break;
         default:

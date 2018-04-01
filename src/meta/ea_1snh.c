@@ -35,11 +35,11 @@ VGMSTREAM * init_vgmstream_ea_1snh(STREAMFILE *streamFile) {
     ea_header ea = {0};
 
 
-    /* check extension (.asf/as4: common, cnk: some PS games) */
-    if (!check_extensions(streamFile,"asf,as4,cnk"))
+    /* checks */
+    /* .asf/as4: common, cnk: some PS games, .sng: fake for plugins (to mimic EA SCHl's common extension) */
+    if (!check_extensions(streamFile,"asf,as4,cnk,sng"))
         goto fail;
 
-    /* check header (first block) */
     if (read_32bitBE(0x00,streamFile) != 0x31534E68 &&  /* "1SNh" */
         read_32bitBE(0x00,streamFile) != 0x53454144)    /* "SEAD" */
         goto fail;

@@ -92,7 +92,7 @@ VGMSTREAM * init_vgmstream_dc_dcsw_dcs(STREAMFILE *streamFile) {
         vgmstream->interleave_block_size = 0x4000;
     }
 
-    vgmstream->coding_type = coding_AICA;
+    vgmstream->coding_type = coding_AICA_int;
     vgmstream->meta_type = meta_DC_DCSW_DCS;
     
     /* open the file for reading by each channel */

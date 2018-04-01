@@ -240,7 +240,7 @@ VGMSTREAM * init_vgmstream_mp4_aac_ffmpeg(STREAMFILE *streamFile) {
     vgmstream->codec_data = ffmpeg_data;
     vgmstream->coding_type = coding_FFmpeg;
     vgmstream->layout_type = layout_none;
-    vgmstream->meta_type = meta_FFmpeg;
+    vgmstream->meta_type = meta_MP4;
 
     vgmstream->num_samples = ffmpeg_data->totalSamples;
     vgmstream->sample_rate = ffmpeg_data->sampleRate;

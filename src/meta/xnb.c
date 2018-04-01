@@ -41,7 +41,7 @@ VGMSTREAM * init_vgmstream_xnb(STREAMFILE *streamFile) {
     {
         char reader_name[255+1];
         off_t current_offset = 0x0a;
-        int reader_string_len;
+        size_t reader_string_len;
         uint32_t fmt_chunk_size;
         const char * type_sound =  "Microsoft.Xna.Framework.Content.SoundEffectReader"; /* partial "fmt" chunk or XMA */
         //const char * type_song =  "Microsoft.Xna.Framework.Content.SongReader"; /* just references a companion .wma */
@@ -76,6 +76,7 @@ VGMSTREAM * init_vgmstream_xnb(STREAMFILE *streamFile) {
             codec         = read_16bit(current_offset+0x00, streamFile);
             channel_count = read_16bit(current_offset+0x02, streamFile);
             sample_rate   = read_32bit(current_offset+0x04, streamFile);
+            /* 0x08: byte rate */
             block_size    = read_16bit(current_offset+0x0c, streamFile);
             bps           = read_16bit(current_offset+0x0e, streamFile);
 
@@ -102,6 +103,10 @@ VGMSTREAM * init_vgmstream_xnb(STREAMFILE *streamFile) {
 
     switch (codec) {
         case 0x01: /* Dragon's Blade (Android) */
+            /* null in Metagalactic Blitz (PC) */
+            if (!block_size)
+                block_size = (bps == 8 ? 0x01 : 0x02) * channel_count;
+
             vgmstream->coding_type = bps == 8 ? coding_PCM8_U_int : coding_PCM16LE;
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = block_size / channel_count;
@@ -109,6 +114,7 @@ VGMSTREAM * init_vgmstream_xnb(STREAMFILE *streamFile) {
             break;
 
         case 0x02: /* White Noise Online (PC) */
+            if (!block_size) goto fail;
             vgmstream->coding_type = coding_MSADPCM;
             vgmstream->layout_type = layout_none;
             vgmstream->interleave_block_size = block_size;
@@ -116,6 +122,7 @@ VGMSTREAM * init_vgmstream_xnb(STREAMFILE *streamFile) {
             break;
 
         case 0x11:
+            if (!block_size) goto fail;
             vgmstream->coding_type = coding_MS_IMA;
             vgmstream->layout_type = layout_none;
             vgmstream->interleave_block_size = block_size;

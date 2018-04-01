@@ -168,6 +168,8 @@ VGMSTREAM * init_vgmstream_txth(STREAMFILE *streamFile) {
                         coding = coding_DVI_IMA_int;
                     if (coding == coding_IMA)
                         coding = coding_IMA_int;
+                    if (coding == coding_AICA)
+                        coding = coding_AICA_int;
                 }
 
                 /* to avoid endless loops */
@@ -176,7 +178,8 @@ VGMSTREAM * init_vgmstream_txth(STREAMFILE *streamFile) {
                         coding == coding_PSX_badflags ||
                         coding == coding_IMA_int ||
                         coding == coding_DVI_IMA_int ||
-                        coding == coding_SDX2_int) ) {
+                        coding == coding_SDX2_int ||
+                        coding == coding_AICA_int) ) {
                     goto fail;
                 }
             } else {
@@ -184,7 +187,7 @@ VGMSTREAM * init_vgmstream_txth(STREAMFILE *streamFile) {
             }
 
             /* setup adpcm */
-            if (coding == coding_AICA) {
+            if (coding == coding_AICA || coding == coding_AICA_int) {
                 int i;
                 for (i=0;i<vgmstream->channels;i++) {
                     vgmstream->ch[i].adpcm_step_index = 0x7f;
@@ -382,14 +385,14 @@ static STREAMFILE * open_txth(STREAMFILE * streamFile) {
     STREAMFILE * streamText;
 
     /* try "(path/)(name.ext).txth" */
-    if (!get_streamfile_name(streamFile,filename,PATH_LIMIT)) goto fail;
+    get_streamfile_name(streamFile,filename,PATH_LIMIT);
     strcat(filename, ".txth");
     streamText = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
     if (streamText) return streamText;
 
     /* try "(path/)(.ext).txth" */
-    if (!get_streamfile_path(streamFile,filename,PATH_LIMIT)) goto fail;
-    if (!get_streamfile_ext(streamFile,fileext,PATH_LIMIT)) goto fail;
+    get_streamfile_path(streamFile,filename,PATH_LIMIT);
+    get_streamfile_ext(streamFile,fileext,PATH_LIMIT);
     strcat(filename,".");
     strcat(filename, fileext);
     strcat(filename, ".txth");
@@ -397,14 +400,13 @@ static STREAMFILE * open_txth(STREAMFILE * streamFile) {
     if (streamText) return streamText;
 
     /* try "(path/).txth" */
-    if (!get_streamfile_path(streamFile,filename,PATH_LIMIT)) goto fail;
+    get_streamfile_path(streamFile,filename,PATH_LIMIT);
     strcat(filename, ".txth");
     streamText = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
     if (streamText) return streamText;
 
-fail:
     /* not found */
-    return 0;
+    return NULL;
 }
 
 /* Simple text parser of "key = value" lines.

@@ -24,7 +24,7 @@ VGMSTREAM * init_vgmstream_ps2_rxws(STREAMFILE *streamFile) {
             (read_32bitBE(0x00,streamFile) == 0x444E4257))      /* "DNBW" (BE) */
             goto fail;
 
-        streamHeader = open_stream_ext(streamFile, "xwh");
+        streamHeader = open_streamfile_by_ext(streamFile, "xwh");
         if (!streamHeader) goto fail;
     } else {
         streamHeader = streamFile;

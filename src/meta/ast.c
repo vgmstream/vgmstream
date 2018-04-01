@@ -59,7 +59,7 @@ VGMSTREAM * init_vgmstream_ast(STREAMFILE *streamFile) {
     vgmstream->loop_end_sample = read_32bitBE(0x1c,streamFile);
 
     vgmstream->coding_type = coding_type;
-    vgmstream->layout_type = layout_ast_blocked;
+    vgmstream->layout_type = layout_blocked_ast;
     vgmstream->meta_type = meta_AST;
 
     /* open the file for reading by each channel */
@@ -80,7 +80,7 @@ VGMSTREAM * init_vgmstream_ast(STREAMFILE *streamFile) {
     }
 
     /* start me up */
-    ast_block_update(0x40,vgmstream);
+    block_update_ast(0x40,vgmstream);
 
     return vgmstream;
 

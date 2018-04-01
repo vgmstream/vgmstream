@@ -42,7 +42,7 @@ VGMSTREAM * init_vgmstream_vs(STREAMFILE *streamFile) {
     }
 #endif
 
-	vgmstream->layout_type = layout_vs_blocked;
+	vgmstream->layout_type = layout_blocked_vs;
 	vgmstream->meta_type = meta_VS;
 
     
@@ -55,15 +55,15 @@ VGMSTREAM * init_vgmstream_vs(STREAMFILE *streamFile) {
     }
 	
 	/* Calc num_samples */
-	vs_block_update(start_offset,vgmstream);
+	block_update_vs(start_offset,vgmstream);
 	vgmstream->num_samples=0;
 
 	do {
 		vgmstream->num_samples += vgmstream->current_block_size*28/16;
-		vs_block_update(vgmstream->next_block_offset,vgmstream);
+		block_update_vs(vgmstream->next_block_offset,vgmstream);
 	} while (vgmstream->next_block_offset<get_streamfile_size(streamFile));
 
-	vs_block_update(start_offset,vgmstream);
+	block_update_vs(start_offset,vgmstream);
     	
 
     return vgmstream;

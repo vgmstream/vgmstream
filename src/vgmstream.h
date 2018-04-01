@@ -78,7 +78,6 @@ enum { STREAM_NAME_SIZE = 255 }; /* reasonable max */
 typedef enum {
     /* PCM */
     coding_PCM16LE,         /* little endian 16-bit PCM */
-    coding_PCM16LE_XOR_int, /* little endian 16-bit PCM with sample-level xor (for blocks) */
     coding_PCM16BE,         /* big endian 16-bit PCM */
     coding_PCM16_int,       /* 16-bit PCM with sample-level interleave (for blocks) */
 
@@ -111,7 +110,6 @@ typedef enum {
     coding_XA,              /* CD-ROM XA */
     coding_PSX,             /* Sony PS ADPCM (VAG) */
     coding_PSX_badflags,    /* Sony PS ADPCM with custom flag byte */
-    coding_PSX_bmdx,        /* Sony PS ADPCM with BMDX encryption */
     coding_PSX_cfg,         /* Sony PS ADPCM with configurable frame size (FF XI, SGXD type 5, Bizarre Creations) */
     coding_HEVAG,           /* Sony PSVita ADPCM */
 
@@ -129,11 +127,11 @@ typedef enum {
     coding_MS_IMA,          /* Microsoft IMA ADPCM */
     coding_XBOX_IMA,        /* XBOX IMA ADPCM */
     coding_XBOX_IMA_mch,    /* XBOX IMA ADPCM (multichannel) */
-    coding_XBOX_IMA_int,    /* XBOX IMA ADPCM (interleaved/mono) */
+    coding_XBOX_IMA_int,    /* XBOX IMA ADPCM (mono/interleave) */
     coding_NDS_IMA,         /* IMA ADPCM w/ NDS layout */
     coding_DAT4_IMA,        /* Eurocom 'DAT4' IMA ADPCM */
     coding_RAD_IMA,         /* Radical IMA ADPCM */
-    coding_RAD_IMA_mono,    /* Radical IMA ADPCM, mono (for interleave) */
+    coding_RAD_IMA_mono,    /* Radical IMA ADPCM (mono/interleave) */
     coding_APPLE_IMA4,      /* Apple Quicktime IMA4 */
     coding_SNDS_IMA,        /* Heavy Iron Studios .snds IMA ADPCM */
     coding_OTNS_IMA,        /* Omikron The Nomad Soul IMA ADPCM */
@@ -145,7 +143,8 @@ typedef enum {
 
     coding_MSADPCM,         /* Microsoft ADPCM */
     coding_WS,              /* Westwood Studios VBR ADPCM */
-    coding_AICA,            /* Yamaha AICA ADPCM */
+    coding_AICA,            /* Yamaha AICA ADPCM (stereo) */
+    coding_AICA_int,        /* Yamaha AICA ADPCM (mono/interleave) */
     coding_YAMAHA,          /* Yamaha ADPCM */
     coding_YAMAHA_NXAP,     /* Yamaha ADPCM (NXAP variation) */
     coding_NDS_PROCYON,     /* Procyon Studio ADPCM */
@@ -217,32 +216,32 @@ typedef enum {
     layout_interleave,      /* equal interleave throughout the stream */
 
     /* headered blocks */
-    layout_ast_blocked,
-    layout_halpst_blocked,
-    layout_xa_blocked,
+    layout_blocked_ast,
+    layout_blocked_halpst,
+    layout_blocked_xa,
     layout_blocked_ea_schl,
     layout_blocked_ea_1snh,
     layout_blocked_caf,
     layout_blocked_wsi,
-    layout_str_snds_blocked,
-    layout_ws_aud_blocked,
-    layout_matx_blocked,
+    layout_blocked_str_snds,
+    layout_blocked_ws_aud,
+    layout_blocked_matx,
     layout_blocked_dec,
-    layout_xvas_blocked,
-    layout_vs_blocked,
-    layout_emff_ps2_blocked,
-    layout_emff_ngc_blocked,
-    layout_gsb_blocked,
-    layout_thp_blocked,
-    layout_filp_blocked,
+    layout_blocked_xvas,
+    layout_blocked_vs,
+    layout_blocked_emff_ps2,
+    layout_blocked_emff_ngc,
+    layout_blocked_gsb,
+    layout_blocked_thp,
+    layout_blocked_filp,
     layout_blocked_ea_swvr,
     layout_blocked_adm,
-    layout_dsp_bdsp_blocked,
-    layout_mxch_blocked,
+    layout_blocked_bdsp,
+    layout_blocked_mxch,
     layout_blocked_ivaud,   /* GTA IV .ivaud blocks */
-    layout_tra_blocked,     /* DefJam Rapstar .tra blocks */
-    layout_ps2_iab_blocked,
-    layout_ps2_strlr_blocked,
+    layout_blocked_tra,     /* DefJam Rapstar .tra blocks */
+    layout_blocked_ps2_iab,
+    layout_blocked_ps2_strlr,
     layout_blocked_rws,
     layout_blocked_hwas,
     layout_blocked_ea_sns,  /* newest Electronic Arts blocks, found in SNS/SNU/SPS/etc formats */
@@ -250,11 +249,14 @@ typedef enum {
     layout_blocked_vgs,     /* Guitar Hero II (PS2) */
     layout_blocked_vawx,    /* No More Heroes 6ch (PS3) */
     layout_blocked_xvag_subsong, /* XVAG subsongs [God of War III (PS4)] */
+    layout_blocked_ea_wve_au00, /* EA WVE au00 blocks */
+    layout_blocked_ea_wve_ad10, /* EA WVE Ad10 blocks */
+    layout_blocked_sthd, /* Dream Factory STHD */
 
     /* otherwise odd */
     layout_aix,             /* CRI AIX's wheels within wheels */
-    layout_segmented,       /* song divided in segments, each a complete VGMSTREAM */
-    layout_scd_int,         /* deinterleave done by the SCDINTSTREAMFILE */
+    layout_segmented,       /* song divided in segments (song sections) */
+    layout_layered,         /* song divided in layers (song channels) */
 
 } layout_t;
 
@@ -660,10 +662,13 @@ typedef enum {
     meta_WAVE_segmented,    /* EngineBlack games, segmented [Shantae and the Pirate's Curse (PC)] */
     meta_SMV,               /* Cho Aniki Zero (PSP) */
     meta_NXAP,              /* Nex Entertainment games [Time Crisis 4 (PS3), Time Crisis Razing Storm (PS3)] */
+    meta_EA_WVE_AU00,       /* Electronic Arts PS movies [Future Cop - L.A.P.D. (PS), Supercross 2000 (PS)] */
+    meta_EA_WVE_AD10,       /* Electronic Arts PS movies [Wing Commander 3/4 (PS)] */
+    meta_STHD,              /* STHD .stx [Kakuto Chojin (Xbox)] */
+    meta_MP4,               /* MP4/AAC */
+    meta_PCM_SRE,           /* .PCM+SRE [Viewtiful Joe (PS2)] */
+    meta_DSP_MCADPCM,       /* Skyrim (Switch) */
 
-#ifdef VGM_USE_MP4V2
-    meta_MP4,               /* AAC (iOS) */
-#endif
 #ifdef VGM_USE_FFMPEG
     meta_FFmpeg,
 #endif
@@ -716,12 +721,6 @@ typedef struct {
     uint16_t adx_mult;
     uint16_t adx_add;
 
-    /* BMDX encryption */
-    uint8_t bmdx_xor;
-    uint8_t bmdx_add;
-    
-    /* generic encryption */
-    uint16_t key_xor;
 } VGMSTREAMCHANNEL;
 
 /* main vgmstream info */
@@ -1057,25 +1056,25 @@ typedef struct {
     VGMSTREAM **adxs;
 } aix_codec_data;
 
-/* for files made of segments, each a full subfile (VGMSTREAM) */
+/* for files made of "vertical" segments, one per section of a song (using a complete sub-VGMSTREAM) */
 typedef struct {
     int segment_count;
+    VGMSTREAM **segments;
     int current_segment;
     int loop_segment;
-    VGMSTREAM **segments;
 } segmented_layout_data;
+
+/* for files made of "horizontal" layers, one per group of channels (using a complete sub-VGMSTREAM) */
+typedef struct {
+    int layer_count;
+    VGMSTREAM **layers;
+} layered_layout_data;
 
 /* for compressed NWA */
 typedef struct {
     NWAData *nwa;
 } nwa_codec_data;
 
-/* SQEX SCD interleaved */
-typedef struct {
-    int substream_count;
-    VGMSTREAM **substreams;
-    STREAMFILE **intfiles;
-} scd_int_codec_data;
 
 typedef struct {
     STREAMFILE *streamfile;

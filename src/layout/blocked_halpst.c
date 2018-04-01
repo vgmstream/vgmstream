@@ -2,7 +2,7 @@
 #include "../vgmstream.h"
 
 /* set up for the block at the given offset */
-void halpst_block_update(off_t block_offset, VGMSTREAM * vgmstream) {
+void block_update_halpst(off_t block_offset, VGMSTREAM * vgmstream) {
     int i, header_length;
     /* header length must be a multiple of 0x20 */
     header_length = (4+8*vgmstream->channels+0x1f)/0x20*0x20;

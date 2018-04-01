@@ -534,13 +534,13 @@ fail:
 
 /* try to get the stream name in the .xwb, though they are very rarely included */
 static int get_xwb_name(char * buf, size_t maxsize, int target_subsong, xwb_header * xwb, STREAMFILE *streamFile) {
-    int read;
+    size_t read;
 
     if (!xwb->names_offset || !xwb->names_size || xwb->names_entry_size > maxsize)
         goto fail;
 
     read = read_string(buf,xwb->names_entry_size, xwb->names_offset + xwb->names_entry_size*(target_subsong-1),streamFile);
-    if (read <= 0) goto fail;
+    if (read == 0) goto fail;
 
     return 1;
 
@@ -601,7 +601,7 @@ static int get_xsb_name(char * buf, size_t maxsize, int target_subsong, xwb_head
     xsb_header xsb = {0};
 
 
-    streamFile = open_stream_ext(streamXwb, "xsb");
+    streamFile = open_streamfile_by_ext(streamXwb, "xsb");
     if (!streamFile) goto fail;
 
     /* check header */

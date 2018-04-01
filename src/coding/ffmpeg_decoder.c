@@ -364,6 +364,10 @@ ffmpeg_codec_data * init_ffmpeg_config(STREAMFILE *streamFile, uint8_t * header,
         memcpy(&data->config, config, sizeof(ffmpeg_custom_config));
     }
 
+    /* ignore bad combos */
+    if ((header && !header_size) || (!header && header_size))
+        goto fail;
+
     /* fake header to trick FFmpeg into demuxing/decoding the stream */
     if (header_size > 0) {
         data->header_size = header_size;

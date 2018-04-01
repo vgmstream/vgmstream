@@ -2,7 +2,7 @@
 #include "../vgmstream.h"
 
 /* set up for the block at the given offset */
-void vs_block_update(off_t block_offset, VGMSTREAM * vgmstream) {
+void block_update_vs(off_t block_offset, VGMSTREAM * vgmstream) {
     int i;
 
     for (i=0;i<vgmstream->channels;i++) {

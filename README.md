@@ -122,11 +122,12 @@ like foobar or Winamp don't react well to that, they may be renamed for
 vgmstream (mainly to get looping in some cases).
 - .ac3 to .lac3
 - .aac to .laac
+- .asf to .sng (EA formats)
 - .mp4 to .lmp4
 - .ogg to .logg
 - .opus to .lopus
 - .stm to .lstm
-- .wav to .lwav (or .xwav in rare original Xbox cases)
+- .wav to .lwav
 Command line tools don't have this restriction and will accept the original
 filename.
 

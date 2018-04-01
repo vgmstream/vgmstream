@@ -106,15 +106,22 @@ static int read_fmt(int big_endian, STREAMFILE * streamFile, off_t current_chunk
     fmt->codec = (uint16_t)read_16bit(current_chunk+0x8,streamFile);
 
     switch (fmt->codec) {
+        case 0x00:  /* Yamaha ADPCM (raw) [Headhunter (DC), Bomber hehhe (DC)] (unofficial) */
+            if (fmt->bps != 4) goto fail;
+            if (fmt->block_size != 0x02*fmt->channel_count) goto fail;
+            fmt->coding_type = coding_AICA_int;
+            fmt->interleave = 0x01;
+            break;
+
         case 0x01: /* PCM */
             switch (fmt->bps) {
                 case 16:
                     fmt->coding_type = big_endian ? coding_PCM16BE : coding_PCM16LE;
-                    fmt->interleave = 2;
+                    fmt->interleave = 0x02;
                     break;
                 case 8:
                     fmt->coding_type = coding_PCM8_U_int;
-                    fmt->interleave = 1;
+                    fmt->interleave = 0x01;
                     break;
                 default:
                     goto fail;
@@ -131,12 +138,17 @@ static int read_fmt(int big_endian, STREAMFILE * streamFile, off_t current_chunk
             fmt->coding_type = coding_MS_IMA;
             break;
 
+        case 0x20:  /* Yamaha ADPCM (raw) [Takuyo/Dynamix/etc DC games] */
+            if (fmt->bps != 4) goto fail;
+            fmt->coding_type = coding_AICA;
+            break;
+
         case 0x69:  /* XBOX IMA ADPCM [Dynasty Warriors 5 (Xbox), Rayman Raving Rabbids 2 (PC) --maybe waa/wac/wam/wad?] */
             if (fmt->bps != 4) goto fail;
             fmt->coding_type = coding_XBOX_IMA;
             break;
 
-        case 0x007A:  /* MS IMA ADPCM [LA Rush (PC), Psi Ops (PC)] */
+        case 0x007A:  /* MS IMA ADPCM [LA Rush (PC), Psi Ops (PC)] (unofficial) */
             /* 0x007A is apparently "Voxware SC3" but in .MED it's just MS-IMA (0x11) */
             if (!check_extensions(streamFile,"med"))
                 goto fail;
@@ -149,13 +161,13 @@ static int read_fmt(int big_endian, STREAMFILE * streamFile, off_t current_chunk
                 goto fail;
             break;
 
-        case 0x0555: /* Level-5 0x555 ADPCM */
+        case 0x0555: /* Level-5 0x555 ADPCM (unofficial) */
             if (!mwv) goto fail;
             fmt->coding_type = coding_L5_555;
             fmt->interleave = 0x12;
             break;
 
-        case 0x5050: /* Ubisoft LyN engine's DSP */
+        case 0x5050: /* Ubisoft LyN engine's DSP (unofficial) */
             if (!sns) goto fail;
             fmt->coding_type = coding_NGC_DSP;
             fmt->interleave = 0x08;
@@ -249,8 +261,9 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
     /* check extension */
     /* .lwav: to avoid hijacking .wav, .xwav: fake for Xbox games (unneded anymore) */
     /* .da: The Great Battle VI (PS), .cd: Exector (PS), .med: Psi Ops (PC), .snd: Layton Brothers (iOS/Android),
-     * .adx: Remember11 (PC) sfx */
-    if ( check_extensions(streamFile, "wav,lwav,xwav,da,cd,med,snd,adx") ) {
+     * .adx: Remember11 (PC) sfx
+     * .adp: Headhunter (DC) */
+    if ( check_extensions(streamFile, "wav,lwav,xwav,da,cd,med,snd,adx,adp") ) {
         ;
     }
     else if ( check_extensions(streamFile, "mwv") ) {
@@ -286,6 +299,10 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
     /* some Xbox games do this [Dynasty Warriors 3 (Xbox), BloodRayne (Xbox)] */
     if (riff_size == file_size && read_16bitLE(0x14,streamFile)==0x0069)
         riff_size -= 0x08;
+    /* some Dreamcast/Naomi games do this [Headhunter (DC), Bomber hehhe (DC)] */
+    if (riff_size + 0x04 == file_size && read_16bitLE(0x14,streamFile)==0x0000)
+        riff_size -= 0x04;
+
 
     /* check for truncated RIFF */
     if (file_size < riff_size+0x08) goto fail;
@@ -315,6 +332,10 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
                         sns,
                         mwv))
                         goto fail;
+
+                    /* some Dreamcast/Naomi games again [Headhunter (DC), Bomber hehhe (DC)] */
+                    if (fmt.codec == 0x0000 && chunk_size == 0x12)
+                        chunk_size += 0x02;
                     break;
 
                 case 0x64617461:    /* "data" */
@@ -483,6 +504,11 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
                 vgmstream->num_samples = fact_sample_count;
             break;
 
+        case coding_AICA:
+        case coding_AICA_int:
+            vgmstream->num_samples = aica_bytes_to_samples(data_size, fmt.channel_count);
+            break;
+
         case coding_XBOX_IMA:
             vgmstream->num_samples = xbox_ima_bytes_to_samples(data_size, fmt.channel_count);
             if (fact_sample_count && fact_sample_count < vgmstream->num_samples)
@@ -577,6 +603,7 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
     switch (fmt.coding_type) {
         case coding_MSADPCM:
         case coding_MS_IMA:
+        case coding_AICA:
         case coding_XBOX_IMA:
 #ifdef VGM_USE_FFMPEG
         case coding_FFmpeg:
@@ -849,7 +876,7 @@ static VGMSTREAM *parse_riff_ogg(STREAMFILE * streamFile, off_t start_offset, si
 
         io_data.patch_offset = patch_offset;
 
-        custom_streamFile = open_io_streamfile(open_wrap_streamfile(streamFile), &io_data,io_data_size, riff_ogg_io_read);
+        custom_streamFile = open_io_streamfile(open_wrap_streamfile(streamFile), &io_data,io_data_size, riff_ogg_io_read,NULL);
         if (!custom_streamFile) return NULL;
 
         vgmstream = init_vgmstream_ogg_vorbis_callbacks(custom_streamFile, NULL, start_offset, &ovmi);

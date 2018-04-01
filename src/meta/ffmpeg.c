@@ -3,6 +3,8 @@
 
 #ifdef VGM_USE_FFMPEG
 
+static int read_pos_file(uint8_t * buf, size_t bufsize, STREAMFILE *streamFile);
+
 /**
  * Generic init FFmpeg and vgmstream for any file supported by FFmpeg.
  * Called by vgmstream when trying to identify the file type (if the player allows it).
@@ -73,6 +75,49 @@ fail:
     }
     
     return NULL;
+}
+
+
+/**
+ * open file containing looping data and copy to buffer
+ *
+ * returns true if found and copied
+ */
+int read_pos_file(uint8_t * buf, size_t bufsize, STREAMFILE *streamFile) {
+    char posname[PATH_LIMIT];
+    char filename[PATH_LIMIT];
+    /*size_t bytes_read;*/
+    STREAMFILE * streamFilePos= NULL;
+
+    streamFile->get_name(streamFile,filename,sizeof(filename));
+
+    if (strlen(filename)+4 > sizeof(posname)) goto fail;
+
+    /* try to open a posfile using variations: "(name.ext).pos" */
+    {
+        strcpy(posname, filename);
+        strcat(posname, ".pos");
+        streamFilePos = streamFile->open(streamFile,posname,STREAMFILE_DEFAULT_BUFFER_SIZE);
+        if (streamFilePos) goto found;
+
+        goto fail;
+    }
+
+found:
+    //if (get_streamfile_size(streamFilePos) != bufsize) goto fail;
+
+    /* allow pos files to be of different sizes in case of new features, just fill all we can */
+    memset(buf, 0, bufsize);
+    read_streamfile(buf, 0, bufsize, streamFilePos);
+
+    close_streamfile(streamFilePos);
+
+    return 1;
+
+fail:
+    if (streamFilePos) close_streamfile(streamFilePos);
+
+    return 0;
 }
 
 #endif

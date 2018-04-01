@@ -46,7 +46,7 @@ VGMSTREAM * init_vgmstream_ps2_strlr(STREAMFILE *streamFile) {
     vgmstream->sample_rate = 48000;
     vgmstream->coding_type = coding_PSX;
 
-    vgmstream->layout_type = layout_ps2_strlr_blocked;
+    vgmstream->layout_type = layout_blocked_ps2_strlr;
     //vgmstream->interleave_block_size = read_32bitLE(0xC, streamFile);
     vgmstream->meta_type = meta_PS2_STRLR;
     
@@ -60,16 +60,16 @@ VGMSTREAM * init_vgmstream_ps2_strlr(STREAMFILE *streamFile) {
     }
 
     /* Calc num_samples */
-    ps2_strlr_block_update(start_offset, vgmstream);
+    block_update_ps2_strlr(start_offset, vgmstream);
     vgmstream->num_samples=0;
 
     do
 	{
 		vgmstream->num_samples += vgmstream->current_block_size * 14 / 16;
-        ps2_strlr_block_update(vgmstream->next_block_offset, vgmstream);
+        block_update_ps2_strlr(vgmstream->next_block_offset, vgmstream);
     } while (vgmstream->next_block_offset < get_streamfile_size(streamFile));
 
-    ps2_strlr_block_update(start_offset, vgmstream);
+    block_update_ps2_strlr(start_offset, vgmstream);
 
     return vgmstream;
 
