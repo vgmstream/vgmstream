@@ -2075,29 +2075,24 @@ VGMSTREAM * init_vgmstream_dsp_mcadpcm(STREAMFILE *streamFile) {
     /* checks */
     if (!check_extensions(streamFile, "mcadpcm"))
         goto fail;
-VGM_LOG("1\n");
     if (read_32bitLE(0x08,streamFile) != read_32bitLE(0x10,streamFile)) /* dsp sizes */
         goto fail;
-VGM_LOG("2\n");
+
     channel_count = read_32bitLE(0x00,streamFile);
     if (channel_count > MCADPCM_MAX_CHANNELS) goto fail;
 
     header_offset =  read_32bitLE(0x04,streamFile);
-    header_spacing = read_32bitLE(0x08,streamFile); /* technically dsp size but eh */
+    header_spacing = read_32bitLE(0x0c,streamFile) - header_offset; /* channel 2 start */
     start_offset = header_offset + 0x60;
     interleave = header_spacing;
-VGM_LOG("3\n");
+
     /* read dsp */
     if (!dsp_load_header_le(ch_header, channel_count, streamFile,header_offset,header_spacing)) goto fail;
-VGM_LOG("4\n");
     if (!check_dsp_format(ch_header, channel_count)) goto fail;
-VGM_LOG("5\n");
     if (!check_dsp_samples(ch_header, channel_count)) goto fail;
-VGM_LOG("6\n");
     if (!check_dsp_initial_ps(ch_header, channel_count, streamFile,start_offset,interleave)) goto fail;
-VGM_LOG("7\n");
     if (!check_dsp_loop_ps(ch_header, channel_count, streamFile,start_offset,interleave)) goto fail;
-VGM_LOG("8\n");
+
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,ch_header[0].loop_flag);
