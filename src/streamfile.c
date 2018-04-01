@@ -168,7 +168,7 @@ static STREAMFILE *open_stdio(STDIOSTREAMFILE *streamFile,const char * const fil
 
     if (!filename)
         return NULL;
-
+#if !defined (__ANDROID__)
     // if same name, duplicate the file pointer we already have open
     if (!strcmp(streamFile->name,filename)) {
         if (((newfd = dup(fileno(streamFile->infile))) >= 0) &&
@@ -182,6 +182,7 @@ static STREAMFILE *open_stdio(STDIOSTREAMFILE *streamFile,const char * const fil
             fclose(newfile);
         }
     }
+#endif    
     // a normal open, open a new file
     return open_stdio_streamfile_buffer(filename,buffersize);
 }
