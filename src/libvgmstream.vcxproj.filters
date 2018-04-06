@@ -799,7 +799,7 @@
     <ClCompile Include="meta\vxn.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\waa_wac_wad_wam.c">
+    <ClCompile Include="meta\ubi_jade.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\waf.c">

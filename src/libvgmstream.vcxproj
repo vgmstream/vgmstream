@@ -406,7 +406,7 @@
     <ClCompile Include="meta\vsf.c" />
     <ClCompile Include="meta\vsf_tta.c" />
     <ClCompile Include="meta\vxn.c" />
-    <ClCompile Include="meta\waa_wac_wad_wam.c" />
+    <ClCompile Include="meta\ubi_jade.c" />
     <ClCompile Include="meta\waf.c" />
     <ClCompile Include="meta\wave_segmented.c" />
     <ClCompile Include="meta\wave.c" />
