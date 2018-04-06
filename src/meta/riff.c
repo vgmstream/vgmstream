@@ -143,7 +143,7 @@ static int read_fmt(int big_endian, STREAMFILE * streamFile, off_t current_chunk
             fmt->coding_type = coding_AICA;
             break;
 
-        case 0x69:  /* XBOX IMA ADPCM [Dynasty Warriors 5 (Xbox), Rayman Raving Rabbids 2 (PC) --maybe waa/wac/wam/wad?] */
+        case 0x69:  /* XBOX IMA ADPCM [Dynasty Warriors 5 (Xbox)] */
             if (fmt->bps != 4) goto fail;
             fmt->coding_type = coding_XBOX_IMA;
             break;
@@ -221,7 +221,7 @@ static int read_fmt(int big_endian, STREAMFILE * streamFile, off_t current_chunk
 #endif
             }
 
-            break;
+            goto fail;
 
         default:
             goto fail;
@@ -439,6 +439,14 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
     if (JunkFound
             && check_extensions(streamFile,"wav,lwav") /* for some .MED IMA */
             && (fmt.coding_type==coding_MSADPCM /*|| fmt.coding_type==coding_MS_IMA*/ || fmt.coding_type==coding_XBOX_IMA))
+        goto fail;
+
+    /* ignore Beyond Good & Evil HD PS3 evil reuse of PCM codec */
+    if (fmt.coding_type == coding_PCM16LE &&
+            read_32bitBE(start_offset+0x00, streamFile) == 0x4D534643 && /* "MSF\43" */
+            read_32bitBE(start_offset+0x34, streamFile) == 0xFFFFFFFF && /* always */
+            read_32bitBE(start_offset+0x38, streamFile) == 0xFFFFFFFF &&
+            read_32bitBE(start_offset+0x3c, streamFile) == 0xFFFFFFFF)
         goto fail;
 
 
