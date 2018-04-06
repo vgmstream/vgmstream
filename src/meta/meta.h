@@ -319,7 +319,8 @@ VGMSTREAM * init_vgmstream_spw(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_ps2_ass(STREAMFILE * streamFile);
 
-VGMSTREAM * init_vgmstream_waa_wac_wad_wam(STREAMFILE * streamFile);
+VGMSTREAM * init_vgmstream_ubi_jade(STREAMFILE * streamFile);
+VGMSTREAM * init_vgmstream_ubi_jade_container(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_seg(STREAMFILE * streamFile);
 

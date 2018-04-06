@@ -395,13 +395,11 @@ typedef enum {
     meta_GSP_GSB,           /* Tecmo games (Super Swing Golf 1 & 2, Quamtum Theory) */
     meta_YDSP,              /* WWE Day of Reckoning */
     meta_FFCC_STR,          /* Final Fantasy: Crystal Chronicles */
-    
-    meta_WAA_WAC_WAD_WAM,   /* Beyond Good & Evil */
+    meta_JADE_RIFF,         /* Beyond Good & Evil, Rayman Raving Rabbids */
     meta_GCA,               /* Metal Slug Anthology */
     meta_MSVP,              /* Popcap Hits */
     meta_NGC_SSM,           /* Golden Gashbell Full Power */
     meta_PS2_JOE,           /* Wall-E / Pixar games */
-
     meta_NGC_YMF,           /* WWE WrestleMania X8 */
     meta_SADL,              /* .sad */
     meta_PS2_CCC,           /* Tokyo Xtreme Racer DRIFT 2 */

@@ -764,7 +764,7 @@ static const meta_info meta_info_list[] = {
         {meta_FFXI_SPW,             "SPW SeWave header"},
         {meta_PS2_ASS,              "ASS Header"},
         {meta_IDSP,                 "IDSP Header"},
-        {meta_WAA_WAC_WAD_WAM,      "WAA/WAC/WAD/WAM RIFF Header"},
+        {meta_JADE_RIFF,            "Ubisoft Jade RIFF header"},
         {meta_PS2_SEG,              "SEG (PS2) Header"},
         {meta_XBOX_SEG,             "SEG (XBOX) Header"},
         {meta_NDS_STRM_FFTA2,       "Final Fantasy Tactics A2 RIFF Header"},
