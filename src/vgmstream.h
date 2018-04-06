@@ -373,7 +373,6 @@ typedef enum {
     meta_SCD_PCM,           /* Lunar - Eternal Blue */
     meta_PS2_PCM,           /* Konami KCEJ East: Ephemeral Fantasia, Yu-Gi-Oh! The Duelists of the Roses, 7 Blades */
     meta_PS2_RKV,           /* Legacy of Kain - Blood Omen 2 (PS2) */
-    meta_PS2_PSW,           /* Rayman Raving Rabbids */
     meta_PS2_VAS,           /* Pro Baseball Spirits 5 */
     meta_PS2_TEC,           /* TECMO badflagged stream */
     meta_PS2_ENTH,          /* Enthusia */

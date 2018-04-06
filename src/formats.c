@@ -241,7 +241,7 @@ static const char* extension_list[] = {
     "ps2stm", //fake extension for .stm (to be removed)
     "psh", // fake extension for VSV(?) Dawn of Mana needs to be checked again
     "psnd",
-    "psw",
+    "psw", //fake extension for .wam
 
     "r",
     "rac", //txth/reserved [Manhunt (Xbox)]
@@ -719,7 +719,6 @@ static const meta_info meta_info_list[] = {
         {meta_SCD_PCM,              "Lunar: Eternal Blue .PCM header"},
         {meta_PS2_PCM,              "Konami KCEJ East .PCM header"},
         {meta_PS2_RKV,              "Legacy of Kain - Blood Omen 2 RKV PS2 header"},
-        {meta_PS2_PSW,              "Rayman Raving Rabbids Riff Container File"},
         {meta_PS2_VAS,              "Pro Baseball Spirits 5 VAS Header"},
         {meta_PS2_TEC,              "assumed TECMO badflagged stream by .tec extension"},
         {meta_XBOX_WVS,             "Metal Arms WVS Header (XBOX)"},

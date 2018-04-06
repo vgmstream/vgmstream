@@ -334,7 +334,6 @@
     <ClCompile Include="meta\ps2_pcm.c" />
     <ClCompile Include="meta\ps2_pnb.c" />
     <ClCompile Include="meta\ps2_psh.c" />
-    <ClCompile Include="meta\ps2_psw.c" />
     <ClCompile Include="meta\ps2_rnd.c" />
     <ClCompile Include="meta\ps2_rstm.c" />
     <ClCompile Include="meta\ps2_rxws.c" />

@@ -959,10 +959,6 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\ps2_psw.c"
-					>
-				</File>
-				<File
 					RelativePath=".\meta\ps2_rnd.c"
 					>
 				</File>
