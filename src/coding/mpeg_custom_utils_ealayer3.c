@@ -638,7 +638,7 @@ fail:
 }
 
 
-/* Skip EA-frames from other streams for multichannel (interleaved 1 EA-frame per stream).
+/* Skip EA-frames from other streams for .sns/sps multichannel (interleaved 1 EA-frame per stream).
  * Due to EALayer3 being in blocks and other complexities (we can't go past a block) all
  * streams's offsets should start in the first stream's EA-frame.
  *
@@ -649,6 +649,8 @@ fail:
  * - skip one EA-frame per following streams until offset is in first stream's EA-frame
  *   (ie. 1st stream skips 2, 2nd stream skips 1, 3rd stream skips 0)
  * - repeat again for granule1
+ *
+ * EALayer3 v1 in SCHl uses external offsets and 1ch multichannel instead.
  */
 static int ealayer3_skip_data(VGMSTREAMCHANNEL *stream, mpeg_codec_data *data, int num_stream, int at_start) {
     int ok, i;
@@ -657,6 +659,9 @@ static int ealayer3_skip_data(VGMSTREAMCHANNEL *stream, mpeg_codec_data *data, i
     uint8_t ibuf[EALAYER3_EA_FRAME_BUFFER_SIZE];
     int skips = at_start ? num_stream : data->streams_size - 1 - num_stream;
 
+    /* v1 does multichannel with set offsets */
+    if (data->type == MPEG_EAL31)
+        return 1;
 
     for (i = 0; i < skips; i++) {
         is.buf = ibuf;
