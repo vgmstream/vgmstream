@@ -198,6 +198,7 @@ static const char* extension_list[] = {
     //"mpc", //FFmpeg, not parsed (musepack) //common
     "mpdsp",
     "mpds",
+    "ms",
     "msa",
     "msd",
     "msf",
@@ -292,6 +293,7 @@ static const char* extension_list[] = {
     "sgd",
     "sgx",
     "sl3",
+    "slb", //txth/reserved [THE Nekomura no Hitobito (PS2)]
     "sli",
     "smp",
     "smpl", //fake extension (to be removed)
@@ -347,6 +349,7 @@ static const char* extension_list[] = {
     "vawx",
     "vb",
     "vbk",
+    "vbx", //txth/reserved [THE Taxi 2 (PS2)]
     "vds",
     "vdm",
     "vgs",
@@ -683,7 +686,7 @@ static const meta_info meta_info_list[] = {
         {meta_AUS,                  "Capcom AUS Header"},
         {meta_RWS,                  "RenderWare RWS header"},
         {meta_EA_1SNH,              "Electronic Arts 1SNh/EACS header"},
-        {meta_SL3,                  "SL3 Header"},
+        {meta_SL3,                  "Atari Melbourne House SL3 header"},
         {meta_FSB1,                 "FMOD Sample Bank (FSB1) Header"},
         {meta_FSB2,                 "FMOD Sample Bank (FSB2) Header"},
         {meta_FSB3,                 "FMOD Sample Bank (FSB3) Header"},
