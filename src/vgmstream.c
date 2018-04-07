@@ -2388,11 +2388,6 @@ static STREAMFILE * get_vgmstream_average_bitrate_channel_streamfile(VGMSTREAM *
 {
     //AAX, AIX?
 
-    if (vgmstream->layout_type==layout_layered) {
-        layered_layout_data *data = (layered_layout_data *) vgmstream->layout_data;
-        return data->layers[channel]->ch[0].streamfile;
-    }
-
     if (vgmstream->coding_type==coding_NWA) {
         nwa_codec_data *data = (nwa_codec_data *) vgmstream->codec_data;
         if (data && data->nwa)
@@ -2463,6 +2458,11 @@ int get_vgmstream_average_bitrate(VGMSTREAM * vgmstream) {
         segmented_layout_data *data = (segmented_layout_data *) vgmstream->layout_data;
         return get_vgmstream_average_bitrate(data->segments[0]);
     }
+    if (vgmstream->layout_type==layout_layered) {
+        layered_layout_data *data = (layered_layout_data *) vgmstream->layout_data;
+        return get_vgmstream_average_bitrate(data->layers[0]);
+    }
+
 
     channels = get_vgmstream_average_bitrate_channel_count(vgmstream);
     if (!channels) return 0;
