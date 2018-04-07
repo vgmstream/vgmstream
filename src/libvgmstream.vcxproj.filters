@@ -1234,6 +1234,9 @@
     <ClCompile Include="meta\mp4.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\msb_msh.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="coding\mp4_aac_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>

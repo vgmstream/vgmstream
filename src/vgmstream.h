@@ -665,6 +665,7 @@ typedef enum {
     meta_PCM_SRE,           /* .PCM+SRE [Viewtiful Joe (PS2)] */
     meta_DSP_MCADPCM,       /* Skyrim (Switch) */
     meta_UBI_LYN,           /* Ubisoft LyN engine [The Adventures of Tintin (multi)] */
+    meta_MSB_MSH,           /* sfx companion of MIH+MIB */
 
 #ifdef VGM_USE_FFMPEG
     meta_FFmpeg,

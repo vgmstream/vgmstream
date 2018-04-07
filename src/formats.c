@@ -200,6 +200,7 @@ static const char* extension_list[] = {
     "mpds",
     "ms",
     "msa",
+    "msb",
     "msd",
     "msf",
     "mss",
@@ -987,6 +988,7 @@ static const meta_info meta_info_list[] = {
         {meta_PCM_SRE,              "Capcom .PCM+SRE header"},
         {meta_DSP_MCADPCM,          "Bethesda .mcadpcm header"},
         {meta_UBI_LYN,              "Ubisoft LyN RIFF header"},
+        {meta_MSB_MSH,              "Sony MSB+MSH header"},
 
 #ifdef VGM_USE_FFMPEG
         {meta_FFmpeg,               "FFmpeg supported file format"},

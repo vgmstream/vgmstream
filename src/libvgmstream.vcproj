@@ -934,6 +934,14 @@
 					RelativePath=".\meta\ps2_msa.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\meta\mp4.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\msb_msh.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\mss.c"
 					>

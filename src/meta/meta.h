@@ -732,4 +732,6 @@ VGMSTREAM * init_vgmstream_dsp_mcadpcm(STREAMFILE *streamFile);
 VGMSTREAM * init_vgmstream_ubi_lyn(STREAMFILE * streamFile);
 VGMSTREAM * init_vgmstream_ubi_lyn_container(STREAMFILE * streamFile);
 
+VGMSTREAM * init_vgmstream_msb_msh(STREAMFILE * streamFile);
+
 #endif /*_META_H*/
