@@ -665,6 +665,7 @@ typedef enum {
     meta_MP4,               /* MP4/AAC */
     meta_PCM_SRE,           /* .PCM+SRE [Viewtiful Joe (PS2)] */
     meta_DSP_MCADPCM,       /* Skyrim (Switch) */
+    meta_UBI_LYN,           /* Ubisoft LyN engine [The Adventures of Tintin (multi)] */
 
 #ifdef VGM_USE_FFMPEG
     meta_FFmpeg,
@@ -964,6 +965,7 @@ typedef struct {
     mpeg_custom_t type; /* mpeg subtype */
     mpeg_custom_config config; /* config depending on the mode */
 
+    size_t default_buffer_size;
     mpeg_custom_stream **streams; /* array of MPEG streams (ex. 2ch+2ch) */
     size_t streams_size;
 

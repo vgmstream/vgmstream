@@ -100,6 +100,7 @@
     <ClInclude Include="meta\bar_streamfile.h" />
     <ClInclude Include="meta\ea_eaac_eatrax_streamfile.h" />
     <ClInclude Include="meta\sqex_scd_streamfile.h" />
+    <ClInclude Include="meta\ubi_lyn_ogg_streamfile.h" />
     <ClInclude Include="meta\meta.h" />
     <ClInclude Include="meta\hca_keys.h" />
     <ClInclude Include="meta\fsb_keys.h" />
@@ -399,6 +400,7 @@
     <ClCompile Include="meta\thp.c" />
     <ClCompile Include="meta\vgs.c" />
     <ClCompile Include="meta\ubi_ckd.c" />
+    <ClCompile Include="meta\ubi_lyn.c" />
     <ClCompile Include="meta\ubi_raki.c" />
     <ClCompile Include="meta\ubi_sb.c" />
     <ClCompile Include="meta\vs.c" />

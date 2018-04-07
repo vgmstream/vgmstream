@@ -232,6 +232,10 @@
                     RelativePath=".\meta\sqex_scd_streamfile.h"
                     >
                 </File>
+                <File
+                    RelativePath=".\meta\ubi_lyn_ogg_streamfile.h"
+                    >
+                </File>
 			</Filter>
 			<Filter
 				Name="Source Files"
@@ -1274,6 +1278,10 @@
 					RelativePath=".\meta\ubi_ckd.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\meta\ubi_lyn.c"
+                    >
+                </File>
                 <File
                     RelativePath=".\meta\ubi_raki.c"
                     >

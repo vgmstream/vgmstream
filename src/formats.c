@@ -303,6 +303,7 @@ static const char* extension_list[] = {
     "snr",
     "sns",
     "snu",
+    "son",
     "spd",
     "spm",
     "sps",
@@ -983,6 +984,7 @@ static const meta_info meta_info_list[] = {
         {meta_MP4,                  "MP4/AAC header"},
         {meta_PCM_SRE,              "Capcom .PCM+SRE header"},
         {meta_DSP_MCADPCM,          "Bethesda .mcadpcm header"},
+        {meta_UBI_LYN,              "Ubisoft LyN RIFF header"},
 
 #ifdef VGM_USE_FFMPEG
         {meta_FFmpeg,               "FFmpeg supported file format"},
