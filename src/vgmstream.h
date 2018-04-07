@@ -666,6 +666,7 @@ typedef enum {
     meta_DSP_MCADPCM,       /* Skyrim (Switch) */
     meta_UBI_LYN,           /* Ubisoft LyN engine [The Adventures of Tintin (multi)] */
     meta_MSB_MSH,           /* sfx companion of MIH+MIB */
+    meta_OGG_RPGMV,         /* Ogg Vorbis with encryption [RPG Maker MV games (PC)] */
 
 #ifdef VGM_USE_FFMPEG
     meta_FFmpeg,
@@ -883,6 +884,8 @@ typedef struct {
     /* reference for page/blocks */
     off_t block_offset;
     size_t block_size;
+
+    int prev_block_samples;     /* count for optimization */
 
 } vorbis_custom_codec_data;
 #endif

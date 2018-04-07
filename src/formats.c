@@ -989,6 +989,7 @@ static const meta_info meta_info_list[] = {
         {meta_DSP_MCADPCM,          "Bethesda .mcadpcm header"},
         {meta_UBI_LYN,              "Ubisoft LyN RIFF header"},
         {meta_MSB_MSH,              "Sony MSB+MSH header"},
+        {meta_OGG_RPGMV,             "Ogg Vorbis (RPGMV header)"},
 
 #ifdef VGM_USE_FFMPEG
         {meta_FFmpeg,               "FFmpeg supported file format"},

@@ -176,6 +176,29 @@ static void l2sd_ogg_decryption_callback(void *ptr, size_t size, size_t nmemb, v
     }
 }
 
+static void rpgmvo_ogg_decryption_callback(void *ptr, size_t size, size_t nmemb, void *datasource) {
+    static const uint8_t header[16] = { /* OggS, packet type, granule, stream id(empty) */
+            0x4F,0x67,0x67,0x53,0x00,0x02,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00
+    };
+    size_t bytes_read = size*nmemb;
+    ogg_vorbis_streamfile * const ov_streamfile = datasource;
+    int i;
+
+    /* first 0x10 are xor'd with a key, but the header can be easily reconstructed
+     * (key is also in (game)/www/data/System.json "encryptionKey") */
+    for (i = 0; i < bytes_read; i++) {
+        if (ov_streamfile->offset+i < 0x10) {
+            ((uint8_t*)ptr)[i] = header[(ov_streamfile->offset + i) % 16];
+
+            /* last two bytes are the stream id, get from next OggS */
+            if (ov_streamfile->offset+i == 0x0e)
+                ((uint8_t*)ptr)[i] = read_8bit(0x58, ov_streamfile->streamfile);
+            if (ov_streamfile->offset+i == 0x0f)
+                ((uint8_t*)ptr)[i] = read_8bit(0x59, ov_streamfile->streamfile);
+        }
+    }
+}
+
 
 /* Ogg Vorbis, by way of libvorbisfile; may contain loop comments */
 VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
@@ -189,6 +212,7 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
     int is_sngw = 0;
     int is_isd = 0;
     int is_l2sd = 0;
+    int is_rpgmvo = 0;
 
 
     /* check extension */
@@ -206,6 +230,8 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
         is_sngw = 1;
     } else if (check_extensions(streamFile,"isd")) { /* .isd: Azure Striker Gunvolt (PC) */
         is_isd = 1;
+    } else if (check_extensions(streamFile,"rpgmvo")) { /* .rpgmvo: RPG Maker MV games (PC) */
+        is_rpgmvo = 1;
     } else {
         goto fail;
     }
@@ -267,6 +293,18 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
         //   0x0c(2): PCM block size, 0x0e(2): PCM bps, 0x10: null, 0x18: samples (in PCM bytes)
     }
 
+    /* check RPGMKVO (RPG Maker MV), header + minor encryption */
+    if (is_rpgmvo) {
+        if (read_32bitBE(0x00,streamFile) != 0x5250474D &&  /* "RPGM" */
+            read_32bitBE(0x00,streamFile) != 0x56000000) {  /* "V\0\0\0" */
+            goto fail;
+        }
+        ovmi.decryption_callback = rpgmvo_ogg_decryption_callback;
+
+        start_offset = 0x10;
+    }
+
+
 
     if (is_um3) {
         ovmi.meta_type = meta_OGG_UM3;
@@ -280,6 +318,8 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
         ovmi.meta_type = meta_OGG_ISD;
     } else if (is_l2sd) {
         ovmi.meta_type = meta_OGG_L2SD;
+    } else if (is_rpgmvo) {
+        ovmi.meta_type = meta_OGG_RPGMV;
     } else {
         ovmi.meta_type = meta_OGG_VORBIS;
     }
