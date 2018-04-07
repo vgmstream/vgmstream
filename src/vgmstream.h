@@ -394,7 +394,7 @@ typedef enum {
     meta_GSP_GSB,           /* Tecmo games (Super Swing Golf 1 & 2, Quamtum Theory) */
     meta_YDSP,              /* WWE Day of Reckoning */
     meta_FFCC_STR,          /* Final Fantasy: Crystal Chronicles */
-    meta_JADE_RIFF,         /* Beyond Good & Evil, Rayman Raving Rabbids */
+    meta_UBI_JADE,          /* Beyond Good & Evil, Rayman Raving Rabbids */
     meta_GCA,               /* Metal Slug Anthology */
     meta_MSVP,              /* Popcap Hits */
     meta_NGC_SSM,           /* Golden Gashbell Full Power */
@@ -476,7 +476,6 @@ typedef enum {
     meta_RIFF_WAVE_smpl,    /* RIFF w/ loop data in smpl chunk */
     meta_RIFF_WAVE_wsmp,    /* RIFF w/ loop data in wsmp chunk */
     meta_RIFF_WAVE_MWV,     /* .mwv RIFF w/ loop data in ctrl chunk pflt */
-    meta_RIFF_WAVE_SNS,     /* .sns RIFF */
     meta_RIFX_WAVE,         /* RIFX, for big-endian WAVs */
     meta_RIFX_WAVE_smpl,    /* RIFX w/ loop data in smpl chunk */
     meta_XNB,               /* XNA Game Studio 4.0 */

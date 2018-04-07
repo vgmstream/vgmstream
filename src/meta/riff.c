@@ -90,7 +90,7 @@ typedef struct {
     int interleave;
 } riff_fmt_chunk;
 
-static int read_fmt(int big_endian, STREAMFILE * streamFile, off_t current_chunk, riff_fmt_chunk * fmt, int sns, int mwv) {
+static int read_fmt(int big_endian, STREAMFILE * streamFile, off_t current_chunk, riff_fmt_chunk * fmt, int mwv) {
     int32_t (*read_32bit)(off_t,STREAMFILE*) = big_endian ? read_32bitBE : read_32bitLE;
     int16_t (*read_16bit)(off_t,STREAMFILE*) = big_endian ? read_16bitBE : read_16bitLE;
 
@@ -165,12 +165,6 @@ static int read_fmt(int big_endian, STREAMFILE * streamFile, off_t current_chunk
             if (!mwv) goto fail;
             fmt->coding_type = coding_L5_555;
             fmt->interleave = 0x12;
-            break;
-
-        case 0x5050: /* Ubisoft LyN engine's DSP (unofficial) */
-            if (!sns) goto fail;
-            fmt->coding_type = coding_NGC_DSP;
-            fmt->interleave = 0x08;
             break;
 
 #ifdef VGM_USE_VORBIS
@@ -253,7 +247,6 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
     int mwv = 0; /* Level-5 .mwv (Dragon Quest VIII, Rogue Galaxy) */
     off_t mwv_pflt_offset = -1;
     off_t mwv_ctrl_offset = -1;
-    int sns = 0; /* Ubisoft .sns LyN engine (Red Steel 2, Just Dance 3) */
     int at3 = 0; /* Sony ATRAC3 / ATRAC3plus */
     int at9 = 0; /* Sony ATRAC9 */
 
@@ -268,9 +261,6 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
     }
     else if ( check_extensions(streamFile, "mwv") ) {
         mwv = 1;
-    }
-    else if ( check_extensions(streamFile, "sns") ) {
-        sns = 1;
     }
     /* .rws: Climax games (Silent Hill Origins PSP, Oblivion PSP), .aud: EA Replay */
     else if ( check_extensions(streamFile, "at3,rws,aud") ) {
@@ -329,7 +319,6 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
                         streamFile,
                         current_chunk,
                         &fmt,
-                        sns,
                         mwv))
                         goto fail;
 
@@ -395,8 +384,8 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
                 case 0x66616374:    /* "fact" */
                     if (chunk_size == 0x04) { /* standard, usually found with ADPCM */
                         fact_sample_count = read_32bitLE(current_chunk+0x08, streamFile);
-                    } else if (sns && chunk_size == 0x10) {
-                        fact_sample_count = read_32bitLE(current_chunk+0x08, streamFile);
+                    } else if (chunk_size == 0x10 && read_32bitBE(current_chunk+0x08+0x04, streamFile) == 0x4C794E20) { /* "LyN " */
+                        goto fail; /* parsed elsewhere */
                     } else if ((at3 || at9) && chunk_size == 0x08) {
                         fact_sample_count = read_32bitLE(current_chunk+0x08, streamFile);
                         fact_sample_skip  = read_32bitLE(current_chunk+0x0c, streamFile);
@@ -523,29 +512,6 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
                 vgmstream->num_samples = fact_sample_count; /* some (converted?) Xbox games have bigger fact_samples */
             break;
 
-        case coding_NGC_DSP:
-            if (!sns) goto fail;
-            if (fact_sample_count <= 0) goto fail;
-            vgmstream->num_samples = fact_sample_count;
-            //vgmstream->num_samples = dsp_bytes_to_samples(data_size, fmt.channel_count);
-
-            /* coefs */
-            {
-                int i, ch;
-                static const int16_t coef[16] = { /* common codebook? */
-                        0x04ab,0xfced,0x0789,0xfedf,0x09a2,0xfae5,0x0c90,0xfac1,
-                        0x084d,0xfaa4,0x0982,0xfdf7,0x0af6,0xfafa,0x0be6,0xfbf5
-                };
-
-                for (ch = 0; ch < fmt.channel_count; ch++) {
-                    for (i = 0; i < 16; i++) {
-                        vgmstream->ch[ch].adpcm_coef[i] = coef[i];
-                    }
-                }
-            }
-
-            break;
-
 #ifdef VGM_USE_FFMPEG
         case coding_FFmpeg: {
             ffmpeg_codec_data *ffmpeg_data = init_ffmpeg_offset(streamFile, 0x00, streamFile->get_size(streamFile));
@@ -657,9 +623,6 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
     if (mwv) {
         vgmstream->meta_type = meta_RIFF_WAVE_MWV;
     }
-    if (sns) {
-        vgmstream->meta_type = meta_RIFF_WAVE_SNS;
-    }
 
 
     if ( !vgmstream_open_stream(vgmstream,streamFile,start_offset) )
@@ -722,7 +685,6 @@ VGMSTREAM * init_vgmstream_rifx(STREAMFILE *streamFile) {
                         streamFile,
                         current_chunk,
                         &fmt,
-                        0,  /* sns == false */
                         0)) /* mwv == false */
                         goto fail;
 

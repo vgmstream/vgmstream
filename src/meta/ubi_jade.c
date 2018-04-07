@@ -4,7 +4,7 @@
 static STREAMFILE* setup_jade_streamfile(STREAMFILE *streamFile, off_t subfile_offset, size_t subfile_size, const char* fake_ext);
 static int get_loop_points(STREAMFILE *streamFile, int *out_loop_start, int *out_loop_end);
 
-/* Jade RIFF - from Jade engine games [Beyond Good & Evil (multi), Rayman Raving Rabbids 1/2 (multi)] */
+/* Jade RIFF - from Ubisoft Jade engine games [Beyond Good & Evil (multi), Rayman Raving Rabbids 1/2 (multi)] */
 VGMSTREAM * init_vgmstream_ubi_jade(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     off_t start_offset, first_offset = 0xc;
@@ -21,7 +21,7 @@ VGMSTREAM * init_vgmstream_ubi_jade(STREAMFILE *streamFile) {
     if (!check_extensions(streamFile,"waa,wac,wad,wam,wav,lwav,psw"))
         goto fail;
 
-    /* an slightly twisted RIFF with custom codecs */
+    /* a slightly twisted RIFF with custom codecs */
     if (read_32bitBE(0x00,streamFile) != 0x52494646 ||  /* "RIFF" */
         read_32bitBE(0x08,streamFile) != 0x57415645)    /* "WAVE" */
         goto fail;
@@ -101,7 +101,7 @@ VGMSTREAM * init_vgmstream_ubi_jade(STREAMFILE *streamFile) {
     if (!vgmstream) goto fail;
 
     vgmstream->sample_rate = sample_rate;
-    vgmstream->meta_type = meta_JADE_RIFF;
+    vgmstream->meta_type = meta_UBI_JADE;
     if (is_jade_v2) {
         vgmstream->loop_start_sample = loop_start;
         vgmstream->loop_end_sample = loop_end;
