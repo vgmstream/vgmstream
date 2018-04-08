@@ -58,7 +58,11 @@ int mpeg_custom_setup_init_default(STREAMFILE *streamFile, off_t start_offset, m
             break;
 
         case MPEG_LYN:
-            goto fail; /* not fully implemented */
+            if (data->config.interleave <= 0)
+                goto fail; /* needs external fixed size */
+            data->default_buffer_size = data->config.interleave;
+            //todo simplify/unify XVAG/P3D/SCD/LYN and just feed arbitrary chunks to the decoder
+            break;
 
         case MPEG_STANDARD:
         case MPEG_AHX:
@@ -137,9 +141,9 @@ int mpeg_custom_parse_frame_default(VGMSTREAMCHANNEL *stream, mpeg_codec_data *d
 
         case MPEG_P3D: /* fixed interleave, not frame-aligned (ie. blocks may end/start in part of a frame) */
         case MPEG_SCD:
+        case MPEG_LYN:
             current_interleave = data->config.interleave;
 
-#if 1
             /* check if current interleave block is short */
             {
                 off_t block_offset = stream->offset - stream->channel_start_offset;
@@ -148,7 +152,7 @@ int mpeg_custom_parse_frame_default(VGMSTREAMCHANNEL *stream, mpeg_codec_data *d
                 if (data->config.data_size && block_offset + next_block >= data->config.data_size)
                     current_interleave = (data->config.data_size % next_block) / data->streams_size; /* short_interleave*/
             }
-#endif
+
             current_interleave_pre  = current_interleave*num_stream;
             current_interleave_post = current_interleave*(data->streams_size-1) - current_interleave_pre;
 
@@ -162,7 +166,7 @@ int mpeg_custom_parse_frame_default(VGMSTREAMCHANNEL *stream, mpeg_codec_data *d
             break;
     }
     if (!current_data_size || current_data_size > ms->buffer_size) {
-        VGM_LOG("MPEG: incorrect data_size 0x%x\n", current_data_size);
+        VGM_LOG("MPEG: incorrect data_size 0x%x vs buffer 0x%x\n", current_data_size, ms->buffer_size);
         goto fail;
     }
 

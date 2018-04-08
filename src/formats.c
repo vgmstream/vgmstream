@@ -198,7 +198,9 @@ static const char* extension_list[] = {
     //"mpc", //FFmpeg, not parsed (musepack) //common
     "mpdsp",
     "mpds",
+    "ms",
     "msa",
+    "msb",
     "msd",
     "msf",
     "mss",
@@ -241,7 +243,7 @@ static const char* extension_list[] = {
     "ps2stm", //fake extension for .stm (to be removed)
     "psh", // fake extension for VSV(?) Dawn of Mana needs to be checked again
     "psnd",
-    "psw",
+    "psw", //fake extension for .wam
 
     "r",
     "rac", //txth/reserved [Manhunt (Xbox)]
@@ -292,6 +294,7 @@ static const char* extension_list[] = {
     "sgd",
     "sgx",
     "sl3",
+    "slb", //txth/reserved [THE Nekomura no Hitobito (PS2)]
     "sli",
     "smp",
     "smpl", //fake extension (to be removed)
@@ -303,6 +306,7 @@ static const char* extension_list[] = {
     "snr",
     "sns",
     "snu",
+    "son",
     "spd",
     "spm",
     "sps",
@@ -346,6 +350,7 @@ static const char* extension_list[] = {
     "vawx",
     "vb",
     "vbk",
+    "vbx", //txth/reserved [THE Taxi 2 (PS2)]
     "vds",
     "vdm",
     "vgs",
@@ -682,7 +687,7 @@ static const meta_info meta_info_list[] = {
         {meta_AUS,                  "Capcom AUS Header"},
         {meta_RWS,                  "RenderWare RWS header"},
         {meta_EA_1SNH,              "Electronic Arts 1SNh/EACS header"},
-        {meta_SL3,                  "SL3 Header"},
+        {meta_SL3,                  "Atari Melbourne House SL3 header"},
         {meta_FSB1,                 "FMOD Sample Bank (FSB1) Header"},
         {meta_FSB2,                 "FMOD Sample Bank (FSB2) Header"},
         {meta_FSB3,                 "FMOD Sample Bank (FSB3) Header"},
@@ -719,7 +724,6 @@ static const meta_info meta_info_list[] = {
         {meta_SCD_PCM,              "Lunar: Eternal Blue .PCM header"},
         {meta_PS2_PCM,              "Konami KCEJ East .PCM header"},
         {meta_PS2_RKV,              "Legacy of Kain - Blood Omen 2 RKV PS2 header"},
-        {meta_PS2_PSW,              "Rayman Raving Rabbids Riff Container File"},
         {meta_PS2_VAS,              "Pro Baseball Spirits 5 VAS Header"},
         {meta_PS2_TEC,              "assumed TECMO badflagged stream by .tec extension"},
         {meta_XBOX_WVS,             "Metal Arms WVS Header (XBOX)"},
@@ -764,7 +768,7 @@ static const meta_info meta_info_list[] = {
         {meta_FFXI_SPW,             "SPW SeWave header"},
         {meta_PS2_ASS,              "ASS Header"},
         {meta_IDSP,                 "IDSP Header"},
-        {meta_WAA_WAC_WAD_WAM,      "WAA/WAC/WAD/WAM RIFF Header"},
+        {meta_UBI_JADE,             "Ubisoft Jade RIFF header"},
         {meta_PS2_SEG,              "SEG (PS2) Header"},
         {meta_XBOX_SEG,             "SEG (XBOX) Header"},
         {meta_NDS_STRM_FFTA2,       "Final Fantasy Tactics A2 RIFF Header"},
@@ -790,7 +794,6 @@ static const meta_info meta_info_list[] = {
         {meta_NGC_DSP_IADP,         "IADP Header"},
         {meta_RSTM_shrunken,        "Nintendo RSTM header, corrupted by Atlus"},
         {meta_RIFF_WAVE_MWV,        "RIFF WAVE header with .mwv flavoring"},
-        {meta_RIFF_WAVE_SNS,        "RIFF WAVE header with .sns flavoring"},
         {meta_FFCC_STR,             "Final Fantasy: Crystal Chronicles STR header"},
         {meta_SAT_BAKA,             "BAKA header from Crypt Killer"},
         {meta_NDS_SWAV,             "SWAV Header"},
@@ -984,6 +987,9 @@ static const meta_info meta_info_list[] = {
         {meta_MP4,                  "MP4/AAC header"},
         {meta_PCM_SRE,              "Capcom .PCM+SRE header"},
         {meta_DSP_MCADPCM,          "Bethesda .mcadpcm header"},
+        {meta_UBI_LYN,              "Ubisoft LyN RIFF header"},
+        {meta_MSB_MSH,              "Sony MSB+MSH header"},
+        {meta_OGG_RPGMV,             "Ogg Vorbis (RPGMV header)"},
 
 #ifdef VGM_USE_FFMPEG
         {meta_FFmpeg,               "FFmpeg supported file format"},

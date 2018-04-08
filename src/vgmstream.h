@@ -373,7 +373,6 @@ typedef enum {
     meta_SCD_PCM,           /* Lunar - Eternal Blue */
     meta_PS2_PCM,           /* Konami KCEJ East: Ephemeral Fantasia, Yu-Gi-Oh! The Duelists of the Roses, 7 Blades */
     meta_PS2_RKV,           /* Legacy of Kain - Blood Omen 2 (PS2) */
-    meta_PS2_PSW,           /* Rayman Raving Rabbids */
     meta_PS2_VAS,           /* Pro Baseball Spirits 5 */
     meta_PS2_TEC,           /* TECMO badflagged stream */
     meta_PS2_ENTH,          /* Enthusia */
@@ -395,13 +394,11 @@ typedef enum {
     meta_GSP_GSB,           /* Tecmo games (Super Swing Golf 1 & 2, Quamtum Theory) */
     meta_YDSP,              /* WWE Day of Reckoning */
     meta_FFCC_STR,          /* Final Fantasy: Crystal Chronicles */
-    
-    meta_WAA_WAC_WAD_WAM,   /* Beyond Good & Evil */
+    meta_UBI_JADE,          /* Beyond Good & Evil, Rayman Raving Rabbids */
     meta_GCA,               /* Metal Slug Anthology */
     meta_MSVP,              /* Popcap Hits */
     meta_NGC_SSM,           /* Golden Gashbell Full Power */
     meta_PS2_JOE,           /* Wall-E / Pixar games */
-
     meta_NGC_YMF,           /* WWE WrestleMania X8 */
     meta_SADL,              /* .sad */
     meta_PS2_CCC,           /* Tokyo Xtreme Racer DRIFT 2 */
@@ -479,7 +476,6 @@ typedef enum {
     meta_RIFF_WAVE_smpl,    /* RIFF w/ loop data in smpl chunk */
     meta_RIFF_WAVE_wsmp,    /* RIFF w/ loop data in wsmp chunk */
     meta_RIFF_WAVE_MWV,     /* .mwv RIFF w/ loop data in ctrl chunk pflt */
-    meta_RIFF_WAVE_SNS,     /* .sns RIFF */
     meta_RIFX_WAVE,         /* RIFX, for big-endian WAVs */
     meta_RIFX_WAVE_smpl,    /* RIFX w/ loop data in smpl chunk */
     meta_XNB,               /* XNA Game Studio 4.0 */
@@ -668,6 +664,9 @@ typedef enum {
     meta_MP4,               /* MP4/AAC */
     meta_PCM_SRE,           /* .PCM+SRE [Viewtiful Joe (PS2)] */
     meta_DSP_MCADPCM,       /* Skyrim (Switch) */
+    meta_UBI_LYN,           /* Ubisoft LyN engine [The Adventures of Tintin (multi)] */
+    meta_MSB_MSH,           /* sfx companion of MIH+MIB */
+    meta_OGG_RPGMV,         /* Ogg Vorbis with encryption [RPG Maker MV games (PC)] */
 
 #ifdef VGM_USE_FFMPEG
     meta_FFmpeg,
@@ -886,6 +885,8 @@ typedef struct {
     off_t block_offset;
     size_t block_size;
 
+    int prev_block_samples;     /* count for optimization */
+
 } vorbis_custom_codec_data;
 #endif
 
@@ -967,6 +968,7 @@ typedef struct {
     mpeg_custom_t type; /* mpeg subtype */
     mpeg_custom_config config; /* config depending on the mode */
 
+    size_t default_buffer_size;
     mpeg_custom_stream **streams; /* array of MPEG streams (ex. 2ch+2ch) */
     size_t streams_size;
 

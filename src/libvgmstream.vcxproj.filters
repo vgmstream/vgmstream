@@ -80,6 +80,9 @@
     <ClInclude Include="meta\sqex_scd_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="meta\ubi_lyn_ogg_streamfile.h">
+      <Filter>meta\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="meta\meta.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
@@ -583,9 +586,6 @@
     <ClCompile Include="meta\ps2_psh.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\ps2_psw.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="meta\ps2_rnd.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -781,6 +781,9 @@
     <ClCompile Include="meta\ubi_ckd.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\ubi_lyn.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\ubi_raki.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -799,7 +802,7 @@
     <ClCompile Include="meta\vxn.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\waa_wac_wad_wam.c">
+    <ClCompile Include="meta\ubi_jade.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\waf.c">
@@ -1229,6 +1232,9 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\mp4.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\msb_msh.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\mp4_aac_decoder.c">

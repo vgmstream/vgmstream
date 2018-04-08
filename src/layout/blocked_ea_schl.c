@@ -126,14 +126,22 @@ void block_update_ea_schl(off_t block_offset, VGMSTREAM * vgmstream) {
             break;
 
 #ifdef VGM_USE_MPEG
-        /* id, size, samples, offset?, unknown (null for MP2, some constant for all blocks for EALayer3) */
+        /* id, size, samples, offsets, unknown (null for MP2, some size/config for EALayer3; only if not >2ch) */
         case coding_MPEG_custom:
         case coding_MPEG_layer1:
         case coding_MPEG_layer2:
         case coding_MPEG_layer3:
         case coding_MPEG_ealayer3:
             for (i = 0; i < vgmstream->channels; i++) {
-                off_t channel_start = read_32bit(block_offset + 0x0C,streamFile);
+                off_t channel_start;
+
+                /* EALayer3 6ch uses 1ch*6 with offsets, no flag in header [Medal of Honor 2010 (PC) movies] */
+                if (vgmstream->channels > 2) {
+                    channel_start = read_32bit(block_offset + 0x0C + 0x04*i,streamFile);
+                } else {
+                    channel_start = read_32bit(block_offset + 0x0C,streamFile);
+                }
+
                 vgmstream->ch[i].offset = block_offset + 0x0C + (0x04*vgmstream->channels) + channel_start;
             }
 

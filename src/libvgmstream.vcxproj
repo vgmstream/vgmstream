@@ -100,6 +100,7 @@
     <ClInclude Include="meta\bar_streamfile.h" />
     <ClInclude Include="meta\ea_eaac_eatrax_streamfile.h" />
     <ClInclude Include="meta\sqex_scd_streamfile.h" />
+    <ClInclude Include="meta\ubi_lyn_ogg_streamfile.h" />
     <ClInclude Include="meta\meta.h" />
     <ClInclude Include="meta\hca_keys.h" />
     <ClInclude Include="meta\fsb_keys.h" />
@@ -143,6 +144,7 @@
     <ClCompile Include="meta\mn_str.c" />
     <ClCompile Include="meta\mogg.c" />
     <ClCompile Include="meta\mp4.c" />
+    <ClCompile Include="meta\msb_msh.c" />
     <ClCompile Include="meta\ngca.c" />
     <ClCompile Include="meta\nsw_opus.c" />
     <ClCompile Include="meta\nub_vag.c" />
@@ -334,7 +336,6 @@
     <ClCompile Include="meta\ps2_pcm.c" />
     <ClCompile Include="meta\ps2_pnb.c" />
     <ClCompile Include="meta\ps2_psh.c" />
-    <ClCompile Include="meta\ps2_psw.c" />
     <ClCompile Include="meta\ps2_rnd.c" />
     <ClCompile Include="meta\ps2_rstm.c" />
     <ClCompile Include="meta\ps2_rxws.c" />
@@ -400,13 +401,14 @@
     <ClCompile Include="meta\thp.c" />
     <ClCompile Include="meta\vgs.c" />
     <ClCompile Include="meta\ubi_ckd.c" />
+    <ClCompile Include="meta\ubi_lyn.c" />
     <ClCompile Include="meta\ubi_raki.c" />
     <ClCompile Include="meta\ubi_sb.c" />
     <ClCompile Include="meta\vs.c" />
     <ClCompile Include="meta\vsf.c" />
     <ClCompile Include="meta\vsf_tta.c" />
     <ClCompile Include="meta\vxn.c" />
-    <ClCompile Include="meta\waa_wac_wad_wam.c" />
+    <ClCompile Include="meta\ubi_jade.c" />
     <ClCompile Include="meta\waf.c" />
     <ClCompile Include="meta\wave_segmented.c" />
     <ClCompile Include="meta\wave.c" />

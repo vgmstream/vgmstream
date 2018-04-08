@@ -232,6 +232,10 @@
                     RelativePath=".\meta\sqex_scd_streamfile.h"
                     >
                 </File>
+                <File
+                    RelativePath=".\meta\ubi_lyn_ogg_streamfile.h"
+                    >
+                </File>
 			</Filter>
 			<Filter
 				Name="Source Files"
@@ -930,6 +934,14 @@
 					RelativePath=".\meta\ps2_msa.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\meta\mp4.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\msb_msh.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\mss.c"
 					>
@@ -956,10 +968,6 @@
 				</File>
 				<File
 					RelativePath=".\meta\ps2_psh.c"
-					>
-				</File>
-				<File
-					RelativePath=".\meta\ps2_psw.c"
 					>
 				</File>
 				<File
@@ -1279,6 +1287,10 @@
 					>
 				</File>
                 <File
+                    RelativePath=".\meta\ubi_lyn.c"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\ubi_raki.c"
                     >
                 </File>
@@ -1307,7 +1319,7 @@
                     >
                 </File>
                 <File
-                    RelativePath=".\meta\waa_wac_wad_wam.c"
+                    RelativePath=".\meta\ubi_jade.c"
                     >
                 </File>
                 <File

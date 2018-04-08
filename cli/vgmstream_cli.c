@@ -77,7 +77,7 @@ int main(int argc, char ** argv) {
     int print_adxencd = 0;
     int print_oggenc = 0;
     int print_batchvar = 0;
-    int write_lwav = 0;
+    int write_lwav = 0, write_lwav_loop_start = 0, write_lwav_loop_end = 0;
     int only_stereo = -1;
     int stream_index = 0;
     double loop_count = 2.0;
@@ -220,6 +220,12 @@ int main(int argc, char ** argv) {
         vgmstream_force_loop(vgmstream, 0, 0,0);
     }
 
+    if (write_lwav) {
+        write_lwav_loop_start = vgmstream->loop_start_sample;
+        write_lwav_loop_end = vgmstream->loop_end_sample;
+        vgmstream_force_loop(vgmstream, 0, 0,0);
+    }
+
     if (play_sdtout) {
         if (outfilename) {
             fprintf(stderr,"either -p or -o, make up your mind\n");
@@ -318,17 +324,11 @@ int main(int argc, char ** argv) {
     {
         uint8_t wav_buf[0x100];
         int channels = (only_stereo != -1) ? 2 : vgmstream->channels;
-        int smpl_chunk = (write_lwav && vgmstream->loop_flag);
         size_t bytes_done;
 
         bytes_done = make_wav_header(wav_buf,0x100,
                 len_samples, vgmstream->sample_rate, channels,
-                smpl_chunk, vgmstream->loop_start_sample, vgmstream->loop_end_sample);
-
-        /* once "smpl" with loops is written we don't want actual file looping */
-        if (smpl_chunk) {
-            vgmstream_force_loop(vgmstream, 0, 0,0);
-        }
+                write_lwav, write_lwav_loop_start, write_lwav_loop_end);
 
         fwrite(wav_buf,sizeof(uint8_t),bytes_done,outfile);
     }
@@ -407,26 +407,22 @@ int main(int argc, char ** argv) {
             vgmstream_force_loop(vgmstream, 0, 0,0);
         }
 
+        if (write_lwav) {
+            write_lwav_loop_start = vgmstream->loop_start_sample;
+            write_lwav_loop_end = vgmstream->loop_end_sample;
+            vgmstream_force_loop(vgmstream, 0, 0,0);
+        }
+
         /* slap on a .wav header */
         {
             uint8_t wav_buf[0x100];
             int channels = (only_stereo != -1) ? 2 : vgmstream->channels;
-            int smpl_chunk = (write_lwav && vgmstream->loop_flag);
             size_t bytes_done;
 
             bytes_done = make_wav_header(wav_buf,0x100,
                     len_samples, vgmstream->sample_rate, channels,
-                    smpl_chunk, vgmstream->loop_start_sample, vgmstream->loop_end_sample);
+                    write_lwav, write_lwav_loop_start, write_lwav_loop_end);
 
-            /* once "smpl" with looping is written we don't want actual file looping */
-            if (smpl_chunk) {
-                vgmstream_force_loop(vgmstream, 0, 0,0);
-            }
-
-            if (write_lwav && vgmstream->loop_flag) { // Adding space for smpl chunk at end
-                int32_t bytecount = get_32bitLE((uint8_t*)buf + 4);
-                put_32bitLE((uint8_t*)buf + 4, bytecount + 0x44);
-            }
             fwrite(wav_buf,sizeof(uint8_t),bytes_done,outfile);
         }
 
@@ -499,7 +495,7 @@ static size_t make_wav_header(uint8_t * buf, size_t buf_size, int32_t sample_cou
 
     data_size = sample_count*channels*sizeof(sample);
     header_size = 0x2c;
-    if (smpl_chunk)
+    if (smpl_chunk && loop_end)
         header_size += 0x3c+ 0x08;
 
     if (header_size > buf_size)
@@ -519,7 +515,7 @@ static size_t make_wav_header(uint8_t * buf, size_t buf_size, int32_t sample_cou
     put_16bitLE(buf+0x20, (int16_t)(channels*sizeof(sample))); /* block align */
     put_16bitLE(buf+0x22, sizeof(sample)*8); /* significant bits per sample */
 
-    if (smpl_chunk) {
+    if (smpl_chunk && loop_end) {
         make_smpl_chunk(buf+0x24, loop_start, loop_end);
         memcpy(buf+0x24+0x3c+0x08, "data", 0x04); /* WAVE data chunk */
         put_32bitLE(buf+0x28+0x3c+0x08, (int32_t)data_size); /* size of WAVE data chunk */
