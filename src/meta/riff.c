@@ -198,6 +198,7 @@ static int read_fmt(int big_endian, STREAMFILE * streamFile, off_t current_chunk
                 fmt->block_size = (bztmp & 0x3FF) * 8 + 8; //should match fmt->block_size
 #elif defined(VGM_USE_FFMPEG)
                 fmt->coding_type = coding_FFmpeg;
+                break;
 #else
                 goto fail;
 #endif
@@ -210,12 +211,13 @@ static int read_fmt(int big_endian, STREAMFILE * streamFile, off_t current_chunk
                 read_32bitBE(current_chunk+0x2c,streamFile) == 0x4F8C836C) {
 #ifdef VGM_USE_ATRAC9
                 fmt->coding_type = coding_ATRAC9;
+                break;
 #else
                 goto fail;
 #endif
             }
 
-            goto fail;
+            goto fail; /* unknown GUID */
 
         default:
             goto fail;
