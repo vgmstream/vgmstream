@@ -2075,14 +2075,16 @@ VGMSTREAM * init_vgmstream_dsp_mcadpcm(STREAMFILE *streamFile) {
     /* checks */
     if (!check_extensions(streamFile, "mcadpcm"))
         goto fail;
-    if (read_32bitLE(0x08,streamFile) != read_32bitLE(0x10,streamFile)) /* dsp sizes */
-        goto fail;
+
+    /* could validate dsp sizes but only with +1ch, should be done below in check_dsp_samples */
+    //if (read_32bitLE(0x08,streamFile) != read_32bitLE(0x10,streamFile))
+    //   goto fail;
 
     channel_count = read_32bitLE(0x00,streamFile);
     if (channel_count > MCADPCM_MAX_CHANNELS) goto fail;
 
     header_offset =  read_32bitLE(0x04,streamFile);
-    header_spacing = read_32bitLE(0x0c,streamFile) - header_offset; /* channel 2 start */
+    header_spacing = channel_count == 1 ? 0 : read_32bitLE(0x0c,streamFile) - header_offset; /* channel 2 start, only with Nch */
     start_offset = header_offset + 0x60;
     interleave = header_spacing;
 
@@ -2105,7 +2107,7 @@ VGMSTREAM * init_vgmstream_dsp_mcadpcm(STREAMFILE *streamFile) {
 
     vgmstream->meta_type = meta_DSP_MCADPCM;
     vgmstream->coding_type = coding_NGC_DSP;
-    vgmstream->layout_type = layout_interleave;
+    vgmstream->layout_type = channel_count == 1 ? layout_none : layout_interleave;
     vgmstream->interleave_block_size = interleave;
     setup_vgmstream_dsp(vgmstream, ch_header);
 
