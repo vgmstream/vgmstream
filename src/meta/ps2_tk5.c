@@ -71,8 +71,7 @@ VGMSTREAM * init_vgmstream_ps2_tk1(STREAMFILE *streamFile) {
     int loop_flag = 0, channel_count;
 
     /* checks */
-    /* .ovb: actual extension, tk1: fake extension */
-    if (!check_extensions(streamFile, "ovb,tk1"))
+    if (!check_extensions(streamFile, "ovb"))
         goto fail;
 
     if (read_32bitBE(0x00,streamFile) != 0x544B3553)

@@ -231,6 +231,7 @@ static const char* extension_list[] = {
     "omu",
     //"opus", //common
     "otm",
+    "ovb",
 
     "p1d", //txth/reserved [Farming Simulator 18 (3DS)]
     "p2bt",
@@ -336,7 +337,6 @@ static const char* extension_list[] = {
 
     "tec",
     "thp",
-    "tk1",
     "tk5",
     "tra",
     "tun",
