@@ -103,7 +103,7 @@ typedef struct {
     void (*decryption_callback)(void *ptr, size_t size, size_t nmemb, void *datasource);
     uint8_t scd_xor;
     off_t scd_xor_length;
-    uint32_t sngw_xor;
+    uint32_t xor_value;
 
 } ogg_vorbis_meta_info_t;
 

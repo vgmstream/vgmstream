@@ -667,6 +667,7 @@ typedef enum {
     meta_UBI_LYN,           /* Ubisoft LyN engine [The Adventures of Tintin (multi)] */
     meta_MSB_MSH,           /* sfx companion of MIH+MIB */
     meta_OGG_RPGMV,         /* Ogg Vorbis with encryption [RPG Maker MV games (PC)] */
+    meta_OGG_ENO,           /* Ogg Vorbis with encryption [Metronomicon (PC)] */
 
 #ifdef VGM_USE_FFMPEG
     meta_FFmpeg,
@@ -811,7 +812,7 @@ typedef struct {
     void (*decryption_callback)(void *ptr, size_t size, size_t nmemb, void *datasource);
     uint8_t scd_xor;
     off_t scd_xor_length;
-    uint32_t sngw_xor;
+    uint32_t xor_value;
 
 } ogg_vorbis_streamfile;
 
