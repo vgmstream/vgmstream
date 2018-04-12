@@ -254,6 +254,7 @@ static const char* extension_list[] = {
     "rkv",
     "rnd",
     "rof",
+    "rpgmvo",
     "rrds",
     "rsd",
     "rsf",
