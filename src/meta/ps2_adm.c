@@ -11,7 +11,7 @@ VGMSTREAM * init_vgmstream_ps2_adm(STREAMFILE *streamFile) {
     int channel_count, loop_flag = 0;
     off_t start_offset, loop_start_offset = 0;
 
-    /* check extension, case insensitive */
+    /* checks */
     if (!check_extensions(streamFile,"adm"))
         goto fail;
 
@@ -34,7 +34,6 @@ VGMSTREAM * init_vgmstream_ps2_adm(STREAMFILE *streamFile) {
 
     vgmstream->sample_rate = 44100;
     vgmstream->meta_type = meta_PS2_ADM;
-
     vgmstream->coding_type = coding_PSX;
     vgmstream->layout_type = layout_blocked_adm;
 
@@ -42,21 +41,20 @@ VGMSTREAM * init_vgmstream_ps2_adm(STREAMFILE *streamFile) {
         goto fail;
 
     /* calc num_samples as playable data size varies between files/blocks */
-    vgmstream->num_samples = 0; //ps_bytes_to_samples(get_streamfile_size(streamFile), channel_count);
-    block_update_adm(start_offset,vgmstream);
-        while (vgmstream->next_block_offset < get_streamfile_size(streamFile)) {
-        if (loop_flag && vgmstream->current_block_offset == loop_start_offset)
-            vgmstream->loop_start_sample = vgmstream->num_samples;
+    {
+        vgmstream->next_block_offset = start_offset;
+        do {
+            block_update_adm(vgmstream->next_block_offset,vgmstream);
 
-        vgmstream->num_samples += ps_bytes_to_samples(vgmstream->current_block_size * channel_count, channel_count);
+            if (loop_flag && vgmstream->current_block_offset == loop_start_offset)
+                vgmstream->loop_start_sample = vgmstream->num_samples;
+            vgmstream->num_samples += ps_bytes_to_samples(vgmstream->current_block_size, 1);
+        }
+        while (vgmstream->next_block_offset < get_streamfile_size(streamFile));
 
-        block_update_adm(vgmstream->next_block_offset,vgmstream);
+        if (loop_flag)
+            vgmstream->loop_end_sample = vgmstream->num_samples;
     }
-
-
-    if (loop_flag)
-        vgmstream->loop_end_sample = vgmstream->num_samples;
-
 
     block_update_adm(start_offset,vgmstream);
     return vgmstream;

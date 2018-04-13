@@ -43,17 +43,16 @@ VGMSTREAM * init_vgmstream_sthd(STREAMFILE *streamFile) {
         int loop_end_block   = (uint16_t)read_16bitLE(0x1c,streamFile);
         int block_count = 1; /* header block = 0 */
 
-        vgmstream->num_samples = 0;
-        block_update_sthd(start_offset,vgmstream);
+        vgmstream->next_block_offset = start_offset;
         do {
+            block_update_sthd(vgmstream->next_block_offset,vgmstream);
+
             if (block_count == loop_start_block)
                 vgmstream->loop_start_sample = vgmstream->num_samples;
             if (block_count == loop_end_block)
                 vgmstream->loop_end_sample = vgmstream->num_samples;
 
             vgmstream->num_samples += xbox_ima_bytes_to_samples(vgmstream->current_block_size, 1);
-            block_update_sthd(vgmstream->next_block_offset,vgmstream);
-
             block_count++;
         }
         while (vgmstream->next_block_offset < get_streamfile_size(streamFile));
