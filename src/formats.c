@@ -887,7 +887,7 @@ static const meta_info meta_info_list[] = {
         {meta_PS2_SPM,              "SPM header"},
         {meta_X360_TRA,             "Terminal Reality .TRA raw header"},
         {meta_PS2_VGS,              "Princess Soft VGS header"},
-        {meta_PS2_IAB,              "IAB header"},
+        {meta_PS2_IAB,              "Runtime .IAB header"},
         {meta_PS2_STRLR,            "STR L/R header"},
         {meta_LSF_N1NJ4N,           ".lsf !n1nj4n header"},
         {meta_VAWX,                 "feelplus VAWX header"},
