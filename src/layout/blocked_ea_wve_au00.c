@@ -6,10 +6,11 @@
 void block_update_ea_wve_au00(off_t block_offset, VGMSTREAM * vgmstream) {
     STREAMFILE* streamFile = vgmstream->ch[0].streamfile;
     int i;
-    size_t channel_size = 0;
-    uint32_t block_id = read_32bitBE(block_offset+0x00, streamFile);
-    size_t block_size = read_32bitBE(block_offset+0x04, streamFile);
+    size_t block_size, channel_size = 0;
+    uint32_t block_id;
 
+    block_id   = read_32bitBE(block_offset+0x00, streamFile);
+    block_size = read_32bitBE(block_offset+0x04, streamFile);
 
     /* accept "au00/au01" audio block/footer */
     if (block_id == 0x61753030 || block_id == 0x61753031) {
