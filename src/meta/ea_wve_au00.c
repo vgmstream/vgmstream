@@ -10,7 +10,8 @@ VGMSTREAM * init_vgmstream_ea_wve_au00(STREAMFILE *streamFile) {
 
 
     /* checks */
-    if (!check_extensions(streamFile, "wve"))
+    /* .wve: common, .fsv: Future Cop LAPD (PS1) */
+    if (!check_extensions(streamFile, "wve,fsv"))
         goto fail;
     if (read_32bitBE(0x00,streamFile) != 0x564C4330) /* "VLC0" */
         goto fail;
@@ -50,7 +51,6 @@ VGMSTREAM * init_vgmstream_ea_wve_au00(STREAMFILE *streamFile) {
     }
 
     block_update_ea_wve_au00(start_offset, vgmstream);
-
     return vgmstream;
 
 fail:

@@ -120,6 +120,7 @@ static const char* extension_list[] = {
     "filp",
     "flx",
     "fsb",
+    "fsv",
     "fwav",
 
     "g1l",
