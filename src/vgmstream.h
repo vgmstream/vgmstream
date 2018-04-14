@@ -669,6 +669,7 @@ typedef enum {
     meta_OGG_RPGMV,         /* Ogg Vorbis with encryption [RPG Maker MV games (PC)] */
     meta_OGG_ENO,           /* Ogg Vorbis with encryption [Metronomicon (PC)] */
     meta_TXTP,              /* generic text playlist */
+    meta_SMC_SMH,           /* Wangan Midnight (System 246) */
 
 #ifdef VGM_USE_FFMPEG
     meta_FFmpeg,

@@ -1219,6 +1219,10 @@
 					>
 				</File>
                 <File
+                    RelativePath=".\meta\smc_smh.c"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\smv.c"
                     >
                 </File>

@@ -300,6 +300,7 @@ static const char* extension_list[] = {
     "sl3",
     "slb", //txth/reserved [THE Nekomura no Hitobito (PS2)]
     "sli",
+    "smc",
     "smp",
     "smpl", //fake extension (to be removed)
     "smv",
@@ -997,6 +998,7 @@ static const meta_info meta_info_list[] = {
         {meta_OGG_RPGMV,            "Ogg Vorbis (RPGMV header)"},
         {meta_OGG_ENO,              "Ogg Vorbis (ENO header)"},
         {meta_TXTP,                 "TXTP generic header"},
+        {meta_SMC_SMH,              "Genki SMC+SMH header"},
 
 #ifdef VGM_USE_FFMPEG
         {meta_FFmpeg,               "FFmpeg supported file format"},
