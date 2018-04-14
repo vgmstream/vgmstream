@@ -397,6 +397,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_ubi_lyn,
     init_vgmstream_ubi_lyn_container,
     init_vgmstream_msb_msh,
+    init_vgmstream_txtp,
 
     init_vgmstream_txth,  /* should go at the end (lower priority) */
 #ifdef VGM_USE_FFMPEG
@@ -477,7 +478,9 @@ static VGMSTREAM * init_vgmstream_internal(STREAMFILE *streamFile) {
 #endif
 
         /* save info */
-        vgmstream->stream_index = streamFile->stream_index;
+        /* stream_index 0 may be used by plugins to signal "vgmstream default" (IOW don't force to 1) */
+        if (!vgmstream->stream_index)
+            vgmstream->stream_index = streamFile->stream_index;
 
         /* save start things so we can restart for seeking */
         memcpy(vgmstream->start_ch,vgmstream->ch,sizeof(VGMSTREAMCHANNEL)*vgmstream->channels);
@@ -931,6 +934,20 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
             break;
         default:
             break;
+    }
+
+
+    /* channel bitmask to silence non-set channels (up to 32)
+     * can be used for 'crossfading subsongs' or layered channels, where a set of channels make a song section */
+    if (vgmstream->channel_mask) {
+        int ch,s;
+        for (s = 0; s < sample_count; s++) {
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                if ((vgmstream->channel_mask >> ch) & 1)
+                    continue;
+                buffer[s*vgmstream->channels + ch] = 0;
+            }
+        }
     }
 }
 

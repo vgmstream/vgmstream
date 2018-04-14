@@ -668,6 +668,7 @@ typedef enum {
     meta_MSB_MSH,           /* sfx companion of MIH+MIB */
     meta_OGG_RPGMV,         /* Ogg Vorbis with encryption [RPG Maker MV games (PC)] */
     meta_OGG_ENO,           /* Ogg Vorbis with encryption [Metronomicon (PC)] */
+    meta_TXTP,              /* generic text playlist */
 
 #ifdef VGM_USE_FFMPEG
     meta_FFmpeg,
@@ -738,6 +739,7 @@ typedef struct {
     int stream_index;       /* selected stream (also 1-based) */
     char stream_name[STREAM_NAME_SIZE]; /* name of the current stream (info), if the file stores it and it's filled */
     size_t stream_size;     /* info to properly calculate bitrate */
+    uint32_t channel_mask;  /* to silence crossfading subsongs/layers */
 
     /* looping */
     int loop_flag;              /* is this stream looped? */

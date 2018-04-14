@@ -342,6 +342,7 @@ static const char* extension_list[] = {
     "tk5",
     "tra",
     "tun",
+    "txtp",
     "tydsp",
 
     "ulw",
@@ -669,7 +670,7 @@ static const meta_info meta_info_list[] = {
         {meta_EA_SCHL_fixed,        "Electronic Arts SCHl header (fixed)"},
         {meta_CAF,                  "tri-Crescendo CAF Header"},
         {meta_PS2_VPK,              "VPK Header"},
-        {meta_GENH,                 "GENH Generic Header"},
+        {meta_GENH,                 "GENH generic header"},
         {meta_DSP_SADB,             "Procyon Studio SADB header"},
         {meta_SADL,                 "Procyon Studio SADL header"},
         {meta_PS2_BMDX,             "Beatmania .bmdx header"},
@@ -946,7 +947,7 @@ static const meta_info meta_info_list[] = {
         {meta_NGC_ULW,              "Criterion ULW raw header"},
         {meta_PC_XA30,              "Reflections XA30 PC header"},
         {meta_WII_04SW,             "Reflections 04SW header"},
-        {meta_TXTH,                 "TXTH Generic Header"},
+        {meta_TXTH,                 "TXTH generic header"},
         {meta_EA_BNK,               "Electronic Arts BNK header"},
         {meta_SK_AUD,               "Silicon Knights AUD header"},
         {meta_AHX,                  "CRI AHX header"},
@@ -995,6 +996,7 @@ static const meta_info meta_info_list[] = {
         {meta_MSB_MSH,              "Sony MSB+MSH header"},
         {meta_OGG_RPGMV,            "Ogg Vorbis (RPGMV header)"},
         {meta_OGG_ENO,              "Ogg Vorbis (ENO header)"},
+        {meta_TXTP,                 "TXTP generic header"},
 
 #ifdef VGM_USE_FFMPEG
         {meta_FFmpeg,               "FFmpeg supported file format"},
