@@ -112,7 +112,7 @@ VGMSTREAM * init_vgmstream_apple_caff(STREAMFILE *streamFile) {
 
             break;
 
-        case 0x696D6134: /* "ima4" */
+        case 0x696D6134: /* "ima4" [Vectros (iOS), Dragon Quest (iOS)] */
             vgmstream->num_samples = valid_samples;
             if (!vgmstream->num_samples) /* rare [Endless Fables 2 (iOS) */
                 vgmstream->num_samples = apple_ima4_bytes_to_samples(data_size, channel_count);
@@ -144,7 +144,9 @@ VGMSTREAM * init_vgmstream_apple_caff(STREAMFILE *streamFile) {
 
             break;
 
-        default: /* "aac " "alac" etc: probably parsed by FFMpeg...  */
+        case 0x61616320: /* "aac " [Ridge Racer Accelerated (iOS)] */
+        case 0x616C6163: /* "alac" [Chrono Trigger v1 (iOS)] */
+        default: /* should be parsed by FFMpeg in its meta (involves parsing complex chunks) */
             goto fail;
     }
 

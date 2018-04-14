@@ -171,6 +171,10 @@ Programs like VGMToolbox can help to create GENH.
 ".txth" or ".(ext).txth" (for the whole folder), or "(name.ext).txth" (for a
 single file). Contains dynamic text commands to read data from the original
 file, or static values.
+  
+**TXTP**: a text playlist that works as a single song. Can contain a list of
+filenames to play as one (ex. "intro.vag" "loop.vag"), name with subsong index
+(ex. bgm.sxd#10), or mask channels to only play some (ex. "song.adx#c1,2").
 
 
 ## Supported codec types
