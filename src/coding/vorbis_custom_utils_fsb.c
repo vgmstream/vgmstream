@@ -146,17 +146,17 @@ static int build_header_comment(uint8_t * buf, size_t bufsize) {
 static int build_header_setup(uint8_t * buf, size_t bufsize, uint32_t setup_id, STREAMFILE *streamFile) {
     int bytes;
 
-    /* try to load from external files first */
+    /* try to locate from the precompiled list */
+    bytes = load_fvs_array(buf, bufsize, setup_id, streamFile);
+    if (bytes)
+        return bytes;
+
+    /* try to load from external files */
     bytes = load_fvs_file_single(buf, bufsize, setup_id, streamFile);
     if (bytes)
         return bytes;
 
     bytes = load_fvs_file_multi(buf, bufsize, setup_id, streamFile);
-    if (bytes)
-        return bytes;
-
-    /* try to locate from the precompiled list */
-    bytes = load_fvs_array(buf, bufsize, setup_id, streamFile);
     if (bytes)
         return bytes;
 

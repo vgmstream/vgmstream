@@ -1098,13 +1098,13 @@ static unsigned int ww2ogg_tremor_book_maptype1_quantvals(unsigned int entries, 
 static int load_wvc(uint8_t * ibuf, size_t ibufsize, uint32_t codebook_id, wwise_setup_t setup_type, STREAMFILE *streamFile) {
     size_t bytes;
 
-    /* try to load from external file (ignoring type, just use file if found) */
-    bytes = load_wvc_file(ibuf, ibufsize, codebook_id, streamFile);
+    /* try to locate from the precompiled list */
+    bytes = load_wvc_array(ibuf, ibufsize, codebook_id, setup_type);
     if (bytes)
         return bytes;
 
-    /* try to locate from the precompiled list */
-    bytes = load_wvc_array(ibuf, ibufsize, codebook_id, setup_type);
+    /* try to load from external file (ignoring type, just use file if found) */
+    bytes = load_wvc_file(ibuf, ibufsize, codebook_id, streamFile);
     if (bytes)
         return bytes;
 
