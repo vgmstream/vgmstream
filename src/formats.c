@@ -324,6 +324,7 @@ static const char* extension_list[] = {
     //"stm", //common
     "stma", //fake extension (to be removed)
     "str",
+    "stream",
     "strm",
     "sts",
     "stx",
