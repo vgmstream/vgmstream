@@ -643,8 +643,10 @@ static int split_subsongs(const in_char * filename, int stream_index, VGMSTREAM 
     HWND hPlaylistWindow;
 
 
-    if (config.disable_subsongs || vgmstream->num_streams <= 1 || (vgmstream->num_streams > 1 && stream_index > 0))
-        return 0; /* no split if no subsongs or playing a subsong */
+    if (config.disable_subsongs || vgmstream->num_streams <= 1)
+        return 0; /* don't split if no subsongs */
+    if (stream_index > 0 || vgmstream->stream_index > 0)
+        return 0; /* no split if already playing subsong */
 
     hPlaylistWindow = (HWND)SendMessage(input_module.hMainWindow, WM_WA_IPC, IPC_GETWND_PE, IPC_GETWND);
     playlist_index = SendMessage(input_module.hMainWindow,WM_WA_IPC,0,IPC_GETLISTPOS);
