@@ -42,6 +42,7 @@ class input_vgmstream : public input_stubs {
         /* state */
         VGMSTREAM * vgmstream;
         t_uint32 subsong;
+        bool direct_subsong;
 
         bool decoding;
         int paused;
