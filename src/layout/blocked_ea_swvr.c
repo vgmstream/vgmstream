@@ -61,19 +61,16 @@ void block_update_ea_swvr(off_t block_offset, VGMSTREAM * vgmstream) {
             dsp_read_coefs_be(vgmstream, streamFile, block_offset+0x18, 0x00);
             //todo adpcm history?
             break;
-//todo unknown ADPCM (PC)
-#if 0
+
         case 0x4D534943: /* "MSIC" */
             header_size = 0x1c;
             channel_size = (block_size - header_size) / vgmstream->channels;
-            //todo adpcm history?
             break;
         case 0x53484F43: /* "SHOC" (a generic block but hopefully has PC sounds) */
-            header_size = 0x18;
+            header_size = 0x14; //todo the first block is 0x18
             channel_size = (block_size - header_size) / vgmstream->channels;
-            //todo adpcm history?
             break;
-#endif
+
         case 0x46494C4C: /* "FILL" (FILLs do that up to 0x6000, but at 0x5FFC don't actually have size) */
             if ((block_offset + 0x04) % 0x6000 == 0)
                 block_size = 0x04;
@@ -93,7 +90,7 @@ void block_update_ea_swvr(off_t block_offset, VGMSTREAM * vgmstream) {
     vgmstream->current_block_offset = block_offset;
     vgmstream->next_block_offset = block_offset + block_size;
 
-    interleave = /*vgmstream->coding_type == coding_IMA ? 0 :*/ channel_size;
+    interleave = vgmstream->coding_type == coding_PCM8_U_int ? 0x1 : channel_size;
     for (i = 0; i < vgmstream->channels; i++) {
         vgmstream->ch[i].offset = block_offset + header_size + interleave*i;
     }

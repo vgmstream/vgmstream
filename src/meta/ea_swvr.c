@@ -68,7 +68,7 @@ VGMSTREAM * init_vgmstream_ea_swvr(STREAMFILE *streamFile) {
                 sample_rate = 24000;
             }
             else {
-                sample_rate = 16000;
+                sample_rate = 14008;
             }
             channel_count = 2;
             break;
@@ -78,7 +78,7 @@ VGMSTREAM * init_vgmstream_ea_swvr(STREAMFILE *streamFile) {
                 sample_rate = 24000;
             }
             else {
-                sample_rate = 12000;
+                sample_rate = 14008;
             }
             channel_count = 1;
             break;
@@ -93,19 +93,16 @@ VGMSTREAM * init_vgmstream_ea_swvr(STREAMFILE *streamFile) {
             channel_count = 1;
             sample_rate = 24000;
             break;
-//todo unknown ADPCM (PC)
-#if 0
         case 0x4D534943: /* "MSIC" */
-            coding = coding_IMA;
+            coding = coding_PCM8_U_int;
             channel_count = 2;
-            sample_rate = 16000;
+            sample_rate = 14008;
             break;
         case 0x53484F43: /* "SHOC" (a generic block but hopefully has PC sounds) */
-            coding = coding_IMA;
+            coding = coding_PCM8_U_int;
             channel_count = 1;
-            sample_rate = 8000;
+            sample_rate = 14008;
             break;
-#endif
         default:
             VGM_LOG("EA SWVR: unknown block id\n");
             goto fail;
@@ -143,9 +140,10 @@ VGMSTREAM * init_vgmstream_ea_swvr(STREAMFILE *streamFile) {
         do {
             block_update_ea_swvr(vgmstream->next_block_offset,vgmstream);
             switch(vgmstream->coding_type) {
-                case coding_PSX:     num_samples = ps_bytes_to_samples(vgmstream->current_block_size,1); break;
-                case coding_NGC_DSP: num_samples = dsp_bytes_to_samples(vgmstream->current_block_size,1); break;
-                default:             num_samples = 0; break;
+                case coding_PSX:     	num_samples = ps_bytes_to_samples(vgmstream->current_block_size,1); break;
+                case coding_NGC_DSP: 	num_samples = dsp_bytes_to_samples(vgmstream->current_block_size,1); break;
+                case coding_PCM8_U_int: num_samples = pcm_bytes_to_samples(vgmstream->current_block_size,1,8); break;
+                default:             	num_samples = 0; break;
             }
             vgmstream->num_samples += num_samples;
         }
