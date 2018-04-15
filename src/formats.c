@@ -110,6 +110,7 @@ static const char* extension_list[] = {
     "e4x",
     "eam",
     "emff",
+    "eno",
     "enth",
     "exa",
     "ezw",
@@ -119,6 +120,7 @@ static const char* extension_list[] = {
     "filp",
     "flx",
     "fsb",
+    "fsv",
     "fwav",
 
     "g1l",
@@ -230,6 +232,7 @@ static const char* extension_list[] = {
     "omu",
     //"opus", //common
     "otm",
+    "ovb",
 
     "p1d", //txth/reserved [Farming Simulator 18 (3DS)]
     "p2bt",
@@ -253,6 +256,7 @@ static const char* extension_list[] = {
     "rkv",
     "rnd",
     "rof",
+    "rpgmvo",
     "rrds",
     "rsd",
     "rsf",
@@ -296,6 +300,7 @@ static const char* extension_list[] = {
     "sl3",
     "slb", //txth/reserved [THE Nekomura no Hitobito (PS2)]
     "sli",
+    "smc",
     "smp",
     "smpl", //fake extension (to be removed)
     "smv",
@@ -320,6 +325,7 @@ static const char* extension_list[] = {
     //"stm", //common
     "stma", //fake extension (to be removed)
     "str",
+    "stream",
     "strm",
     "sts",
     "stx",
@@ -334,10 +340,10 @@ static const char* extension_list[] = {
 
     "tec",
     "thp",
-    "tk1",
     "tk5",
     "tra",
     "tun",
+    "txtp",
     "tydsp",
 
     "ulw",
@@ -665,7 +671,7 @@ static const meta_info meta_info_list[] = {
         {meta_EA_SCHL_fixed,        "Electronic Arts SCHl header (fixed)"},
         {meta_CAF,                  "tri-Crescendo CAF Header"},
         {meta_PS2_VPK,              "VPK Header"},
-        {meta_GENH,                 "GENH Generic Header"},
+        {meta_GENH,                 "GENH generic header"},
         {meta_DSP_SADB,             "Procyon Studio SADB header"},
         {meta_SADL,                 "Procyon Studio SADL header"},
         {meta_PS2_BMDX,             "Beatmania .bmdx header"},
@@ -885,7 +891,7 @@ static const meta_info meta_info_list[] = {
         {meta_PS2_SPM,              "SPM header"},
         {meta_X360_TRA,             "Terminal Reality .TRA raw header"},
         {meta_PS2_VGS,              "Princess Soft VGS header"},
-        {meta_PS2_IAB,              "IAB header"},
+        {meta_PS2_IAB,              "Runtime .IAB header"},
         {meta_PS2_STRLR,            "STR L/R header"},
         {meta_LSF_N1NJ4N,           ".lsf !n1nj4n header"},
         {meta_VAWX,                 "feelplus VAWX header"},
@@ -942,7 +948,7 @@ static const meta_info meta_info_list[] = {
         {meta_NGC_ULW,              "Criterion ULW raw header"},
         {meta_PC_XA30,              "Reflections XA30 PC header"},
         {meta_WII_04SW,             "Reflections 04SW header"},
-        {meta_TXTH,                 "TXTH Generic Header"},
+        {meta_TXTH,                 "TXTH generic header"},
         {meta_EA_BNK,               "Electronic Arts BNK header"},
         {meta_SK_AUD,               "Silicon Knights AUD header"},
         {meta_AHX,                  "CRI AHX header"},
@@ -989,7 +995,10 @@ static const meta_info meta_info_list[] = {
         {meta_DSP_MCADPCM,          "Bethesda .mcadpcm header"},
         {meta_UBI_LYN,              "Ubisoft LyN RIFF header"},
         {meta_MSB_MSH,              "Sony MSB+MSH header"},
-        {meta_OGG_RPGMV,             "Ogg Vorbis (RPGMV header)"},
+        {meta_OGG_RPGMV,            "Ogg Vorbis (RPGMV header)"},
+        {meta_OGG_ENO,              "Ogg Vorbis (ENO header)"},
+        {meta_TXTP,                 "TXTP generic header"},
+        {meta_SMC_SMH,              "Genki SMC+SMH header"},
 
 #ifdef VGM_USE_FFMPEG
         {meta_FFmpeg,               "FFmpeg supported file format"},

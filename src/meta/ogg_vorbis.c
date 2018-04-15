@@ -124,7 +124,7 @@ static void sngw_ogg_decryption_callback(void *ptr, size_t size, size_t nmemb, v
     char *header_id = "OggS";
     uint8_t key[4];
 
-    put_32bitBE(key, ov_streamfile->sngw_xor);
+    put_32bitBE(key, ov_streamfile->xor_value);
 
     /* bytes are xor'd with key and nibble-swapped */
     {
@@ -199,6 +199,17 @@ static void rpgmvo_ogg_decryption_callback(void *ptr, size_t size, size_t nmemb,
     }
 }
 
+static void eno_ogg_decryption_callback(void *ptr, size_t size, size_t nmemb, void *datasource) {
+    size_t bytes_read = size*nmemb;
+    ogg_vorbis_streamfile * const ov_streamfile = datasource;
+    int i;
+
+    /* bytes are xor'd with key */
+    for (i = 0; i < bytes_read; i++) {
+        ((uint8_t*)ptr)[i] ^= (uint8_t)ov_streamfile->xor_value;
+    }
+}
+
 
 /* Ogg Vorbis, by way of libvorbisfile; may contain loop comments */
 VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
@@ -213,6 +224,7 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
     int is_isd = 0;
     int is_l2sd = 0;
     int is_rpgmvo = 0;
+    int is_eno = 0;
 
 
     /* check extension */
@@ -232,6 +244,8 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
         is_isd = 1;
     } else if (check_extensions(streamFile,"rpgmvo")) { /* .rpgmvo: RPG Maker MV games (PC) */
         is_rpgmvo = 1;
+    } else if (check_extensions(streamFile,"eno")) { /* .eno: Metronomicon (PC) */
+        is_eno = 1;
     } else {
         goto fail;
     }
@@ -275,7 +289,7 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
     /* check SNGW (Capcom's MT Framework PC games), may be encrypted */
     if (is_sngw) {
         if (read_32bitBE(0x00,streamFile) != 0x4f676753) { /* "OggS" */
-            ovmi.sngw_xor = read_32bitBE(0x00,streamFile);
+            ovmi.xor_value = read_32bitBE(0x00,streamFile);
             ovmi.decryption_callback = sngw_ogg_decryption_callback;
         }
     }
@@ -304,6 +318,13 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
         start_offset = 0x10;
     }
 
+    /* check ENO [Metronomicon (PC)] */
+    if (is_eno) {
+        /* first byte probably derives into xor key, but this works too */
+        ovmi.xor_value = read_8bit(0x05,streamFile); /* always zero = easy key */
+        ovmi.decryption_callback = eno_ogg_decryption_callback;
+        start_offset = 0x01;
+    }
 
 
     if (is_um3) {
@@ -320,6 +341,8 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
         ovmi.meta_type = meta_OGG_L2SD;
     } else if (is_rpgmvo) {
         ovmi.meta_type = meta_OGG_RPGMV;
+    } else if (is_eno) {
+        ovmi.meta_type = meta_OGG_ENO;
     } else {
         ovmi.meta_type = meta_OGG_VORBIS;
     }
@@ -371,7 +394,7 @@ VGMSTREAM * init_vgmstream_ogg_vorbis_callbacks(STREAMFILE *streamFile, ov_callb
         temp_streamfile.decryption_callback = ovmi->decryption_callback;
         temp_streamfile.scd_xor = ovmi->scd_xor;
         temp_streamfile.scd_xor_length = ovmi->scd_xor_length;
-        temp_streamfile.sngw_xor = ovmi->sngw_xor;
+        temp_streamfile.xor_value = ovmi->xor_value;
 
         /* open the ogg vorbis file for testing */
         memset(&temp_ovf, 0, sizeof(temp_ovf));
@@ -401,7 +424,7 @@ VGMSTREAM * init_vgmstream_ogg_vorbis_callbacks(STREAMFILE *streamFile, ov_callb
         data->ov_streamfile.decryption_callback = ovmi->decryption_callback;
         data->ov_streamfile.scd_xor = ovmi->scd_xor;
         data->ov_streamfile.scd_xor_length = ovmi->scd_xor_length;
-        data->ov_streamfile.sngw_xor = ovmi->sngw_xor;
+        data->ov_streamfile.xor_value = ovmi->xor_value;
 
         /* open the ogg vorbis file for real */
         if (ov_open_callbacks(&data->ov_streamfile, &data->ogg_vorbis_file, NULL, 0, *callbacks_p))

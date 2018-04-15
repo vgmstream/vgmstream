@@ -10,7 +10,8 @@ VGMSTREAM * init_vgmstream_ea_wve_au00(STREAMFILE *streamFile) {
 
 
     /* checks */
-    if (!check_extensions(streamFile, "wve"))
+    /* .wve: common, .fsv: Future Cop LAPD (PS1) */
+    if (!check_extensions(streamFile, "wve,fsv"))
         goto fail;
     if (read_32bitBE(0x00,streamFile) != 0x564C4330) /* "VLC0" */
         goto fail;
@@ -41,18 +42,15 @@ VGMSTREAM * init_vgmstream_ea_wve_au00(STREAMFILE *streamFile) {
 
     /* calc num_samples manually */
     {
-        vgmstream->num_samples = 0;
-        block_update_ea_wve_au00(start_offset,vgmstream);
+        vgmstream->next_block_offset = start_offset;
         do {
-            /* ps_cfg_bytes_to_samples */
-            vgmstream->num_samples += vgmstream->current_block_size / vgmstream->interleave_block_size*channel_count * 28 / channel_count;
             block_update_ea_wve_au00(vgmstream->next_block_offset,vgmstream);
+            vgmstream->num_samples += ps_cfg_bytes_to_samples(vgmstream->current_block_size, vgmstream->interleave_block_size, 1);
         }
         while (vgmstream->next_block_offset < get_streamfile_size(streamFile));
     }
 
     block_update_ea_wve_au00(start_offset, vgmstream);
-
     return vgmstream;
 
 fail:

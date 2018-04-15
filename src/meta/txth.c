@@ -1,7 +1,6 @@
 #include "meta.h"
 #include "../coding/coding.h"
 #include "../layout/layout.h"
-#include "../util.h"
 
 #define TXT_LINE_MAX 0x2000
 
@@ -81,6 +80,11 @@ VGMSTREAM * init_vgmstream_txth(STREAMFILE *streamFile) {
     txth_header txth = {0};
     coding_t coding;
     int i, j;
+
+
+    /* reject .txth as the CLI can open and decode with itself */
+    if (check_extensions(streamFile, "txth"))
+        goto fail;
 
     /* no need for ID or ext checks -- if a .TXTH exists all is good
      * (player still needs to accept the streamfile's ext, so at worst rename to .vgmstream) */

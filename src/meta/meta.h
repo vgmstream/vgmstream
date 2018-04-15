@@ -103,7 +103,7 @@ typedef struct {
     void (*decryption_callback)(void *ptr, size_t size, size_t nmemb, void *datasource);
     uint8_t scd_xor;
     off_t scd_xor_length;
-    uint32_t sngw_xor;
+    uint32_t xor_value;
 
 } ogg_vorbis_meta_info_t;
 
@@ -733,5 +733,9 @@ VGMSTREAM * init_vgmstream_ubi_lyn(STREAMFILE * streamFile);
 VGMSTREAM * init_vgmstream_ubi_lyn_container(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_msb_msh(STREAMFILE * streamFile);
+
+VGMSTREAM * init_vgmstream_txtp(STREAMFILE * streamFile);
+
+VGMSTREAM * init_vgmstream_smc_smh(STREAMFILE * streamFile);
 
 #endif /*_META_H*/

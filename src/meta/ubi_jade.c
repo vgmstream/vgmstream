@@ -40,6 +40,18 @@ VGMSTREAM * init_vgmstream_ubi_jade(STREAMFILE *streamFile) {
     if (!find_chunk(streamFile, 0x64617461,first_offset,0, &data_offset,&data_size, 0, 0)) /* "data" */
         goto fail;
 
+    /* ignore LyN RIFF (needed as codec 0xFFFE is reused) */
+    {
+        off_t fact_offset;
+        size_t fact_size;
+
+        if (find_chunk(streamFile, 0x66616374,first_offset,0, &fact_offset,&fact_size, 0, 0)) { /* "fact" */
+            if (fact_size == 0x10 && read_32bitBE(fact_offset+0x04, streamFile) == 0x4C794E20) /* "LyN " */
+                goto fail; /* parsed elsewhere */
+            /* Jade doesn't use "fact", though */
+        }
+    }
+
 
     /* parse format */
     {

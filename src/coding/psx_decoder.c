@@ -211,5 +211,9 @@ void decode_psx_configurable(VGMSTREAMCHANNEL * stream, sample * outbuf, int cha
 
 
 size_t ps_bytes_to_samples(size_t bytes, int channels) {
-    return bytes / channels / 16 * 28;
+    return bytes / channels / 0x10 * 28;
+}
+
+size_t ps_cfg_bytes_to_samples(size_t bytes, size_t frame_size, int channels) {
+    return bytes / channels / frame_size * 28;
 }

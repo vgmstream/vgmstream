@@ -139,7 +139,8 @@ vgmstream uses C (C89 when possible), and C++ for the foobar2000 and Audacious p
 
 C should be restricted to features VS2010 understands. This mainly means declaring variables at the start of a { .. } block (declare+initialize is fine, as long as it doesn't reference variables declared in the same block) and avoiding C99 features like variable-length arrays (but certain others like // comments are fine).
 
-There are no hard coding rules but for consistency should follow general C conventions and the style used in most files: 4 spaces instead of tabs, underscore_and_lowercase_names, brackets starting in the same line (`if (..) { CRLF ... }`), etc. Some of the code may be a bit inefficient or duplicated at places, but it isn't much of a problem if gives clarity.
+There are no hard coding rules but for consistency should follow general C conventions and the style used in most files: 4 spaces instead of tabs, underscore_and_lowercase_names, brackets starting in the same line (`if (..) { CRLF ... }`), etc. Some of the code may be a bit inefficient or duplicated at places, but it isn't much of a problem if gives clarity. vgmstream's performance is fast enough (as it mainly deals with playing songs in real time) so that favors clarity over optimization. Similarly some code may segfault or even cause infinite loops on bad data, but it's fixed as encountered rather than worrying to much about improbable cases.
+
 
 ### Structure
 
@@ -180,7 +181,9 @@ Structs with I/O callbacks that vgmstream uses in place of stdio/FILEs. All I/O 
 
 Players should open a base STREAMFILE and pass it to init_vgmstream. Once it's done this STREAMFILE must be closed, as internally vgmstream opens its own copy (using the base one's callbacks).
 
-Custom STREAMFILEs wrapping base STREAMFILEs may be used for complex I/O cases (ex. if data needs decryption, or a file is composed of multiple sub-files).
+For optimization purposes vgmstream may open a copy of the FILE per channel, as each has its own I/O buffer, and channel data can be too separate to fit a single buffer.  
+
+Custom STREAMFILEs wrapping base STREAMFILEs may be used for complex I/O cases (ex. if data needs decryption, parts needs to be skipped on the fly, or a file is composed of multiple sub-files), as some codecs are not easy to feed chunked data.
 
 #### VGMSTREAM
 The VGMSTREAM (caps) is the main struct created during init when a file is successfully recognized and parsed. It holds the file's configuration (channels, sample rate, decoder, layout, samples, loop points, etc) and decoder state (STREAMFILEs, offsets per channel, current sample, etc), and is used to interact with the API.

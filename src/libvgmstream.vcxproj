@@ -172,6 +172,7 @@
     <ClCompile Include="meta\sthd.c" />
     <ClCompile Include="meta\tun.c" />
     <ClCompile Include="meta\txth.c" />
+    <ClCompile Include="meta\txtp.c" />
     <ClCompile Include="meta\wii_ras.c" />
     <ClCompile Include="meta\wpd.c" />
     <ClCompile Include="meta\x360_ast.c" />
@@ -388,6 +389,7 @@
     <ClCompile Include="meta\sdt.c" />
     <ClCompile Include="meta\sfl.c" />
     <ClCompile Include="meta\sli.c" />
+    <ClCompile Include="meta\smc_smh.c" />
     <ClCompile Include="meta\smv.c" />
     <ClCompile Include="meta\sps_n1.c" />
     <ClCompile Include="meta\spt_spd.c" />

@@ -37,11 +37,10 @@ VGMSTREAM * init_vgmstream_ea_wve_ad10(STREAMFILE *streamFile) {
 
     /* calc num_samples manually */
     {
-        vgmstream->num_samples = 0;
-        block_update_ea_wve_ad10(start_offset,vgmstream);
+        vgmstream->next_block_offset = start_offset;
         do {
-            vgmstream->num_samples += ps_bytes_to_samples(vgmstream->current_block_size, 1);
             block_update_ea_wve_ad10(vgmstream->next_block_offset,vgmstream);
+            vgmstream->num_samples += ps_bytes_to_samples(vgmstream->current_block_size, 1);
         }
         while (vgmstream->next_block_offset < get_streamfile_size(streamFile));
     }

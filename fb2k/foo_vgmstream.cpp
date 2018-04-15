@@ -39,7 +39,8 @@ extern "C" {
 
 input_vgmstream::input_vgmstream() {
     vgmstream = NULL;
-    subsong = 1;
+    subsong = 0; // 0 = not set, will be properly changed on first setup_vgmstream
+    direct_subsong = false;
 
     decoding = false;
     paused = 0;
@@ -64,6 +65,7 @@ input_vgmstream::~input_vgmstream() {
     vgmstream = NULL;
 }
 
+// called first when a new file is opened
 void input_vgmstream::open(service_ptr_t<file> p_filehint,const char * p_path,t_input_open_reason p_reason,abort_callback & p_abort) {
 
     if (!p_path) { // shouldn't be possible
@@ -104,6 +106,7 @@ void input_vgmstream::open(service_ptr_t<file> p_filehint,const char * p_path,t_
     }
 }
 
+// called after opening file (possibly per subsong too)
 unsigned input_vgmstream::get_subsong_count() {
     // if the plugin uses input_factory_t template and returns > 1 here when adding a song to the playlist,
     // foobar will automagically "unpack" it by calling decode_initialize/get_info with all subsong indexes.
@@ -115,6 +118,11 @@ unsigned input_vgmstream::get_subsong_count() {
     int subsong_count = vgmstream->num_streams;
     if (subsong_count == 0)
         subsong_count = 1; // most formats don't have subsongs
+
+    // pretend we don't have subsongs as we don't want foobar to unpack the rest
+    if (direct_subsong)
+        subsong_count = 1;
+
     return subsong_count;
 }
 
@@ -167,12 +175,12 @@ t_filestats input_vgmstream::get_file_stats(abort_callback & p_abort) {
     return stats;
 }
 
-
+// called right before actually playing (decoding) a song/subsong
 void input_vgmstream::decode_initialize(t_uint32 p_subsong, unsigned p_flags, abort_callback & p_abort) {
     force_ignore_loop = !!(p_flags & input_flag_no_looping);
 
-    // if subsong changes recreate vgmstream (subsong is only used on init)
-    if (subsong != p_subsong) {
+    // if subsong changes recreate vgmstream
+    if (subsong != p_subsong && !direct_subsong) {
         subsong = p_subsong;
         setup_vgmstream(p_abort);
     }
@@ -331,6 +339,17 @@ void input_vgmstream::setup_vgmstream(abort_callback & p_abort) {
         return;
     }
 
+    // default subsong is 0, meaning first init (vgmstream should open first stream, but not set stream_index).
+    // if the stream_index is already set, then the subsong was opened directly by some means (txtp, playlist, etc).
+    // add flag as in that case we only want to play the subsong but not unpack subsongs (which foobar does by default).
+    if (subsong == 0 && vgmstream->stream_index > 0) {
+        subsong = vgmstream->stream_index;
+        direct_subsong = true;
+    }
+    if (subsong == 0)
+        subsong = 1;
+
+
     if (ignore_loop)
         vgmstream->loop_flag = 0;
 
@@ -348,7 +367,9 @@ void input_vgmstream::get_subsong_info(t_uint32 p_subsong, pfc::string_base & ti
     char temp[1024];
 
     // reuse current vgmstream if not querying a new subsong
-    if (subsong != p_subsong) {
+    // if it's a direct subsong then subsong may be N while p_subsong 1
+    // there is no need to recreate the infostream, there is only one subsong used
+    if (subsong != p_subsong && !direct_subsong) {
         infostream = init_vgmstream_foo(p_subsong, filename, p_abort);
     } else {
         // vgmstream ready as get_info is valid after open() with any reason
@@ -386,7 +407,7 @@ void input_vgmstream::get_subsong_info(t_uint32 p_subsong, pfc::string_base & ti
         title.set_string(p, e - p);
 
         if (!disable_subsongs && infostream && infostream->num_streams > 1) {
-            sprintf(temp,"#%d",p_subsong);
+            sprintf(temp,"#%d",infostream->stream_index);
             title += temp;
 
             if (infostream->stream_name[0] != '\0') {
@@ -397,7 +418,7 @@ void input_vgmstream::get_subsong_info(t_uint32 p_subsong, pfc::string_base & ti
     }
 
     // and only close if was querying a new subsong
-    if (subsong != p_subsong) {
+    if (subsong != p_subsong && !direct_subsong) {
         close_vgmstream(infostream);
         infostream = NULL;
     }
