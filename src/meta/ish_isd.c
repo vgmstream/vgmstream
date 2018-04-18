@@ -1,91 +1,60 @@
 #include "meta.h"
-#include "../util.h"
+#include "../coding/coding.h"
 
-/*
-ISH+ISD
-*/
-
+/* ISH+ISD - from various games [Chaos Field (GC), Pokemon XD - Gale of Darkness (GC)] */
 VGMSTREAM * init_vgmstream_ish_isd(STREAMFILE *streamFile) {
-
     VGMSTREAM * vgmstream = NULL;
-    STREAMFILE * streamFileISH = NULL;
-    char filename[PATH_LIMIT];
-    char filenameISH[PATH_LIMIT];
-    int i;
-    int channel_count;
-    int loop_flag;
+    STREAMFILE * streamHeader = NULL;
+    off_t start_offset;
+    int channel_count, loop_flag;
 
-    /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("isd",filename_extension(filename))) goto fail;
 
-    strcpy(filenameISH,filename);
-    strcpy(filenameISH+strlen(filenameISH)-3,"ish");
-
-    streamFileISH = streamFile->open(streamFile,filenameISH,STREAMFILE_DEFAULT_BUFFER_SIZE);
-    if (!streamFileISH) goto fail;
-
-    /* check header */
-    if (read_32bitBE(0x00,streamFileISH) != 0x495F5346) /* "I_SF" */
+    /* checks */
+    if (!check_extensions(streamFile, "isd"))
         goto fail;
-    
-    channel_count = read_32bitBE(0x14,streamFileISH);
-    loop_flag = (read_32bitBE(0x1C,streamFileISH) !=0);
+
+    streamHeader = open_streamfile_by_ext(streamFile,"ish");
+    if (!streamHeader) goto fail;
+
+    if (read_32bitBE(0x00,streamHeader) != 0x495F5346) /* "I_SF" */
+        goto fail;
+
+    channel_count = read_32bitBE(0x14,streamHeader);
+    loop_flag = (read_32bitBE(0x1C,streamHeader) != 0);
+    start_offset = 0;
+
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
-    /* fill in the vital statistics */
-    vgmstream->channels = channel_count;
-    vgmstream->sample_rate = read_32bitBE(0x08,streamFileISH);
-    vgmstream->num_samples=read_32bitBE(0x0C,streamFileISH);
-    vgmstream->coding_type = coding_NGC_DSP;
-    if(loop_flag) {
-        vgmstream->loop_start_sample = read_32bitBE(0x20,streamFileISH)*14/8/channel_count;
-        vgmstream->loop_end_sample = read_32bitBE(0x24,streamFileISH)*14/8/channel_count;
-    }	
-
-    if (channel_count == 1) {
-        vgmstream->layout_type = layout_none;
-    } else if (channel_count == 2) {
-        vgmstream->layout_type = layout_interleave;
-        vgmstream->interleave_block_size = read_32bitBE(0x18,streamFileISH);
+    vgmstream->sample_rate = read_32bitBE(0x08,streamHeader);
+    vgmstream->num_samples = read_32bitBE(0x0C,streamHeader);
+    if (loop_flag) {
+        vgmstream->loop_start_sample = read_32bitBE(0x20,streamHeader)*14 / 0x08 /channel_count;
+        vgmstream->loop_end_sample = read_32bitBE(0x24,streamHeader)*14 / 0x08 / channel_count;
     }
 
     vgmstream->meta_type = meta_ISH_ISD;
-    
-    /* open the file for reading by each channel */
-    {
-        for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = streamFile->open(streamFile,filename,vgmstream->interleave_block_size);
-            
-        if (!vgmstream->ch[i].streamfile) goto fail;
-            vgmstream->ch[i].channel_start_offset=
-            vgmstream->ch[i].offset=i*vgmstream->interleave_block_size;
-        }
-    }
-    
-    
-    if (vgmstream->coding_type == coding_NGC_DSP) {
-        int i;
-        for (i=0;i<16;i++) {
-            vgmstream->ch[0].adpcm_coef[i] = read_16bitBE(0x40+i*2,streamFileISH);
-        }
-        if (vgmstream->channels == 2) {
-            for (i=0;i<16;i++) {
-                vgmstream->ch[1].adpcm_coef[i] = read_16bitBE(0x80+i*2,streamFileISH);
-            }
-        }
+    vgmstream->coding_type = coding_NGC_DSP;
+    if (channel_count == 1) {
+        vgmstream->layout_type = layout_none;
+    } else {
+        vgmstream->layout_type = layout_interleave;
+        vgmstream->interleave_block_size = read_32bitBE(0x18,streamHeader);
     }
 
-    close_streamfile(streamFileISH); streamFileISH=NULL;
-    
+    dsp_read_coefs_be(vgmstream,streamHeader,0x40,0x40);
+
+
+    if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
+        goto fail;
+
+    close_streamfile(streamHeader);
     return vgmstream;
 
-    /* clean up anything we may have opened */
 fail:
-    if (streamFileISH) close_streamfile(streamFileISH);
-    if (vgmstream) close_vgmstream(vgmstream);
+    close_streamfile(streamHeader);
+    close_vgmstream(vgmstream);
     return NULL;
 }
