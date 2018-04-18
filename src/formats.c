@@ -19,6 +19,7 @@ static const char* extension_list[] = {
     //"ac3", //FFmpeg, not parsed //common?
     "ace", //fake, for tri-Ace's formats (to be removed)
     "acm",
+    "ad", //txth/reserved [Xenosaga Freaks (PS2)]
     "adm",
     "adp",
     "adpcm",
