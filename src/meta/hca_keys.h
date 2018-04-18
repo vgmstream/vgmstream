@@ -228,6 +228,9 @@ static const hcakey_info hcakey_list[] = {
         // Dx2 Shin Megami Tensei Liberation (iOS/Android)
         {118714477},                // 000000000713706D
 
+        // Oira (Cygames) [iOS/Android]
+        {46460622},                 // 0000000002C4EECE
+
 };
 
 #endif/*_HCA_KEYS_H_*/
