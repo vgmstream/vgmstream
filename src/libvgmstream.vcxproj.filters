@@ -74,7 +74,7 @@
     <ClInclude Include="meta\bar_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="meta\ea_eaac_eatrax_streamfile.h">
+    <ClInclude Include="meta\ea_eaac_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="meta\sqex_scd_streamfile.h">

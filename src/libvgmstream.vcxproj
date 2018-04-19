@@ -98,7 +98,7 @@
     <ClInclude Include="meta\aix_streamfile.h" />
     <ClInclude Include="meta\awc_xma_streamfile.h" />
     <ClInclude Include="meta\bar_streamfile.h" />
-    <ClInclude Include="meta\ea_eaac_eatrax_streamfile.h" />
+    <ClInclude Include="meta\ea_eaac_streamfile.h" />
     <ClInclude Include="meta\sqex_scd_streamfile.h" />
     <ClInclude Include="meta\ubi_lyn_ogg_streamfile.h" />
     <ClInclude Include="meta\meta.h" />

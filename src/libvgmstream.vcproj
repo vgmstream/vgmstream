@@ -225,7 +225,7 @@
                     >
                 </File>
                 <File
-                    RelativePath=".\meta\ea_eaac_eatrax_streamfile.h"
+                    RelativePath=".\meta\ea_eaac_streamfile.h"
                     >
                 </File>
                 <File
