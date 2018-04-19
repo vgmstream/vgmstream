@@ -1,7 +1,7 @@
 #include "meta.h"
 #include "../layout/layout.h"
 #include "../coding/coding.h"
-#include "ea_eaac_eatrax_streamfile.h"
+#include "ea_eaac_streamfile.h"
 
 /* EAAudioCore formats, EA's current audio middleware */
 
@@ -129,7 +129,7 @@ static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE * streamHead, ST
     /* rest is optional, depends on flags header used (ex. SNU and SPS may have bigger headers):
      *  &0x20: 1 int (usually 0x00), &0x00/40: nothing, &0x60: 2 ints (usually 0x00 and 0x14) */
 
-    /* V0: SNR+SNS, V1: SPR+SPS (not apparent differences) */
+    /* V0: SNR+SNS, V1: SPR+SPS (not apparent differences, other than the block flags used) */
     if (version != 0 && version != 1) {
         VGM_LOG("EA SNS/SPS: unknown version\n");
         goto fail;
@@ -219,14 +219,20 @@ static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE * streamHead, ST
         case 0x06:      /* "L32P": EALayer3 v2 "PCM" [Battlefield 1943 (PS3)] */
         case 0x07: {    /* "L32S": EALayer3 v2 "Spike" [Dante's Inferno (PS3)] */
             mpeg_custom_config cfg = {0};
-            off_t mpeg_start_offset = start_offset + 0x08;
             mpeg_custom_t type = (codec == 0x05 ? MPEG_EAL31b : (codec == 0x06) ? MPEG_EAL32P : MPEG_EAL32S);
 
-            /* layout is still blocks, but should work fine with the custom mpeg decoder */
-            vgmstream->codec_data = init_mpeg_custom(streamData, mpeg_start_offset, &vgmstream->coding_type, vgmstream->channels, type, &cfg);
-            if (!vgmstream->codec_data) goto fail;
+            /* remove blocks on reads for some edge cases in L32P and to properly apply discard modes
+             * (otherwise, and removing discards, it'd work with layout_blocked_ea_sns) */
+            temp_streamFile = setup_eaac_streamfile(streamData, version, codec, start_offset, 0);
+            if (!temp_streamFile) goto fail;
 
-            vgmstream->layout_type = layout_blocked_ea_sns;
+            start_offset = 0x00; /* must point to the custom streamfile's beginning */
+
+            /* layout is still blocks, but should work fine with the custom mpeg decoder */
+            vgmstream->codec_data = init_mpeg_custom(temp_streamFile, start_offset, &vgmstream->coding_type, vgmstream->channels, type, &cfg);
+            if (!vgmstream->codec_data) goto fail;
+            vgmstream->layout_type = layout_none;
+
             break;
         }
 #endif
@@ -253,10 +259,10 @@ static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE * streamHead, ST
             vgmstream->layout_type = layout_none;
 
             /* EATrax is "buffered" ATRAC9, uses custom IO since it's kind of complex to add to the decoder */
-            start_offset = 0x00; /* must point to header start */
-            temp_streamFile = setup_eatrax_streamfile(streamData, total_size);
+            temp_streamFile = setup_eaac_streamfile(streamData, version, codec, start_offset, total_size);
             if (!temp_streamFile) goto fail;
 
+            start_offset = 0x00; /* must point to the custom streamfile's beginning */
             break;
         }
 #endif
@@ -278,11 +284,10 @@ static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE * streamHead, ST
     if (!vgmstream_open_stream(vgmstream,temp_streamFile ? temp_streamFile : streamData,start_offset))
         goto fail;
 
-    close_streamfile(temp_streamFile);
-
     if (vgmstream->layout_type == layout_blocked_ea_sns)
         block_update_ea_sns(start_offset, vgmstream);
 
+    close_streamfile(temp_streamFile);
     return vgmstream;
 
 fail:
