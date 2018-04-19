@@ -768,10 +768,13 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
     }
 
     if (vgmstream->coding_type == coding_NWA) {
-        nwa_codec_data *data = (nwa_codec_data *) vgmstream->codec_data;
-        close_nwa(data->nwa);
-        free(data);
-        vgmstream->codec_data = NULL;
+        if (vgmstream->codec_data) {
+            nwa_codec_data *data = (nwa_codec_data *) vgmstream->codec_data;
+            if (data->nwa)
+                close_nwa(data->nwa);
+            free(data);
+            vgmstream->codec_data = NULL;
+        }
     }
 
 
@@ -2516,7 +2519,7 @@ int get_vgmstream_average_bitrate(VGMSTREAM * vgmstream) {
 
 
 /**
- * Inits vgmstreams' channels doing two things:
+ * Inits vgmstream, doing two things:
  * - sets the starting offset per channel (depending on the layout)
  * - opens its own streamfile from on a base one. One streamfile per channel may be open (to improve read/seeks).
  * Should be called in metas before returning the VGMSTREAM.
@@ -2529,14 +2532,18 @@ int vgmstream_open_stream(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t s
     int use_same_offset_per_channel = 0;
 
 
-    /* stream/offsets not needed, manage themselves */
+    /* stream/offsets not needed, managed by layout */
     if (vgmstream->layout_type == layout_aix ||
         vgmstream->layout_type == layout_segmented ||
         vgmstream->layout_type == layout_layered)
         return 1;
 
+    /* stream/offsets not needed, managed by decoder */
+    if (vgmstream->coding_type == coding_NWA)
+        return 1;
+
 #ifdef VGM_USE_FFMPEG
-    /* stream/offsets not needed, FFmpeg manages itself */
+    /* stream/offsets not needed, managed by decoder */
     if (vgmstream->coding_type == coding_FFmpeg)
         return 1;
 #endif
