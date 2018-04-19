@@ -70,6 +70,11 @@ STREAMFILE *open_stdio_streamfile(const char * filename);
 /* Opens a standard STREAMFILE from a pre-opened FILE. */
 STREAMFILE *open_stdio_streamfile_by_file(FILE * file, const char * filename);
 
+/* Opens a STREAMFILE that does buffered IO.
+ * Can be used when the underlying IO may be slow (like when using custom IO).
+ * Buffer size is optional. */
+STREAMFILE *open_buffer_streamfile(STREAMFILE *streamfile, size_t buffer_size);
+
 /* Opens a STREAMFILE that doesn't close the underlying streamfile.
  * Calls to open won't wrap the new SF (assumes it needs to be closed).
  * Can be used in metas to test custom IO without closing the external SF. */
