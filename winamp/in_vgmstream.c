@@ -173,10 +173,6 @@ static void wasf_get_name(WINAMP_STREAMFILE *streamfile, char *buffer, size_t le
     streamfile->stdiosf->get_name(streamfile->stdiosf, buffer, length);
 }
 
-static void wasf_get_realname(WINAMP_STREAMFILE *streamfile, char *buffer, size_t length) {
-    streamfile->stdiosf->get_realname(streamfile->stdiosf, buffer, length);
-}
-
 static STREAMFILE *wasf_open(WINAMP_STREAMFILE *streamFile, const char *const filename, size_t buffersize) {
     int newfd;
     FILE *newfile;
@@ -227,7 +223,6 @@ static STREAMFILE *open_winamp_streamfile_by_file(FILE *infile, const char * pat
     this_sf->sf.get_size = (void*)wasf_get_size;
     this_sf->sf.get_offset = (void*)wasf_get_offset;
     this_sf->sf.get_name = (void*)wasf_get_name;
-    this_sf->sf.get_realname = (void*)wasf_get_realname;
     this_sf->sf.open = (void*)wasf_open;
     this_sf->sf.close = (void*)wasf_close;
 

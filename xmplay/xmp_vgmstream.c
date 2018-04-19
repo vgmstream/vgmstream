@@ -127,7 +127,6 @@ static STREAMFILE *open_xmplay_streamfile_by_xmpfile(XMPFILE infile, const char 
     streamfile->sf.get_size = (void*)xmpsf_get_size;
     streamfile->sf.get_offset = (void*)xmpsf_get_offset;
     streamfile->sf.get_name = (void*)xmpsf_get_name;
-    streamfile->sf.get_realname = (void*)xmpsf_get_name;
     streamfile->sf.open = (void*)xmpsf_open;
     streamfile->sf.close = (void*)xmpsf_close;
     streamfile->infile = infile;

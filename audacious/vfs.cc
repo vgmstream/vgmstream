@@ -11,8 +11,8 @@ typedef struct _VFSSTREAMFILE {
   STREAMFILE sf;
   VFSFile *vfsFile;
   off_t offset;
-  char name[260];
-  char realname[260];
+  char name[32768];
+  //char realname[32768];
 } VFSSTREAMFILE;
 
 static STREAMFILE *open_vfs_by_VFSFILE(VFSFile *file, const char *path);
@@ -53,12 +53,6 @@ static void get_name_vfs(VFSSTREAMFILE *streamfile, char *buffer,
   buffer[length - 1] = '\0';
 }
 
-static void get_realname_vfs(VFSSTREAMFILE *streamfile, char *buffer,
-                             size_t length) {
-  strncpy(buffer, streamfile->realname, length);
-  buffer[length - 1] = '\0';
-}
-
 static STREAMFILE *open_vfs_impl(VFSSTREAMFILE *streamfile,
                                  const char *const filename,
                                  size_t buffersize) {
@@ -80,7 +74,6 @@ STREAMFILE *open_vfs_by_VFSFILE(VFSFile *file, const char *path) {
   streamfile->sf.get_size = get_size_vfs;
   streamfile->sf.get_offset = get_offset_vfs;
   streamfile->sf.get_name = get_name_vfs;
-  streamfile->sf.get_realname = get_realname_vfs;
   streamfile->sf.open = open_vfs_impl;
   streamfile->sf.close = close_vfs;
 
@@ -88,12 +81,16 @@ STREAMFILE *open_vfs_by_VFSFILE(VFSFile *file, const char *path) {
   streamfile->offset = 0;
   strncpy(streamfile->name, path, sizeof(streamfile->name));
   streamfile->name[sizeof(streamfile->name) - 1] = '\0';
-  {
-    gchar *realname = g_filename_from_uri(path, NULL, NULL);
-    strncpy(streamfile->realname, realname, sizeof(streamfile->realname));
-    streamfile->realname[sizeof(streamfile->realname) - 1] = '\0';
-    g_free(realname);
-  }
+
+  // for reference, actual file path ("name" has protocol path, file://...).
+  // name should work for all situations but in case it's needed again maybe
+  // get_name should always return realname, as it's used to open companion VFSFiles
+  //{
+  //  gchar *realname = g_filename_from_uri(path, NULL, NULL);
+  //  strncpy(streamfile->realname, realname, sizeof(streamfile->realname));
+  //  streamfile->realname[sizeof(streamfile->realname) - 1] = '\0';
+  //  g_free(realname);
+  //}
 
   return &streamfile->sf;
 }

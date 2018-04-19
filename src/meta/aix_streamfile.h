@@ -148,7 +148,6 @@ static STREAMFILE *open_aix_impl(AIXSTREAMFILE *streamfile,const char * const fi
     streamfile->sf.get_size = (void*)get_size_aix;
     streamfile->sf.get_offset = (void*)get_offset_aix;
     streamfile->sf.get_name = (void*)get_name_aix;
-    streamfile->sf.get_realname = (void*)get_name_aix;
     streamfile->sf.open = (void*)open_aix_impl;
     streamfile->sf.close = (void*)close_aix;
 
