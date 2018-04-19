@@ -120,10 +120,10 @@ static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE * streamHead, ST
     uint32_t num_samples, loop_start = 0, loop_end = 0;
 
     /* EA SNR/SPH header */
-    version = (read_8bit(header_offset + 0x00,streamHead) >> 4) & 0xf;
-    codec   = (read_8bit(header_offset + 0x00,streamHead) >> 0) & 0xf;
-    channel_config = read_8bit(header_offset + 0x01,streamHead);
-    sample_rate = (uint16_t)read_16bitBE(header_offset + 0x02,streamHead);
+    version = (read_8bit(header_offset + 0x00,streamHead) >> 4) & 0x0F;
+    codec   = (read_8bit(header_offset + 0x00,streamHead) >> 0) & 0x0F;
+    channel_config = read_8bit(header_offset + 0x01,streamHead) & 0xFE;
+    sample_rate = read_32bitBE(header_offset + 0x00,streamHead) & 0x1FFFF; /* some Dead Space 2 (PC) uses 96000 */
     flags = (uint8_t)read_8bit(header_offset + 0x04,streamHead) & 0xFE; //todo upper nibble only? (the first bit is part of size)
     num_samples = (uint32_t)read_32bitBE(header_offset + 0x04,streamHead) & 0x01FFFFFF;
     /* rest is optional, depends on flags header used (ex. SNU and SPS may have bigger headers):
