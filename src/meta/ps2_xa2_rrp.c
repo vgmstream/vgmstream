@@ -15,7 +15,7 @@ VGMSTREAM * init_vgmstream_ps2_xa2_rrp(STREAMFILE *streamFile) {
     if (strcasecmp("xa2",filename_extension(filename))) goto fail;
 
     /* check header */
-    if (read_32bitBE(0xC,streamFile) != 0x00000000)
+    if (read_32bitBE(0x50,streamFile) != 0x00000000)
         goto fail;
 
     loop_flag = 0;
@@ -32,6 +32,9 @@ VGMSTREAM * init_vgmstream_ps2_xa2_rrp(STREAMFILE *streamFile) {
     vgmstream->coding_type = coding_PSX;
     vgmstream->num_samples = (get_streamfile_size(streamFile)-0x800)*28/16/channel_count;
     vgmstream->layout_type = layout_interleave;
+    if (channel_count > 2)
+        vgmstream->interleave_block_size = 0x400;
+    else
     vgmstream->interleave_block_size = 0x1000;
     vgmstream->meta_type = meta_PS2_XA2_RRP;
 
