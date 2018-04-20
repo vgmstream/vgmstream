@@ -670,6 +670,7 @@ typedef enum {
     meta_OGG_ENO,           /* Ogg Vorbis with encryption [Metronomicon (PC)] */
     meta_TXTP,              /* generic text playlist */
     meta_SMC_SMH,           /* Wangan Midnight (System 246) */
+    meta_OGG_YS8,           /* Ogg Vorbis with encryption (Ys VIII PC) */
 
 #ifdef VGM_USE_FFMPEG
     meta_FFmpeg,

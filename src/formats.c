@@ -1000,6 +1000,7 @@ static const meta_info meta_info_list[] = {
         {meta_OGG_ENO,              "Ogg Vorbis (ENO header)"},
         {meta_TXTP,                 "TXTP generic header"},
         {meta_SMC_SMH,              "Genki SMC+SMH header"},
+        {meta_OGG_YS8,              "Ogg Vorbis (Ys VIII header)"},
 
 #ifdef VGM_USE_FFMPEG
         {meta_FFmpeg,               "FFmpeg supported file format"},
