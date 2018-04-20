@@ -99,6 +99,7 @@
     <ClInclude Include="meta\awc_xma_streamfile.h" />
     <ClInclude Include="meta\bar_streamfile.h" />
     <ClInclude Include="meta\ea_eaac_streamfile.h" />
+    <ClInclude Include="meta\ppst_streamfile.h" />
     <ClInclude Include="meta\sqex_scd_streamfile.h" />
     <ClInclude Include="meta\ubi_lyn_ogg_streamfile.h" />
     <ClInclude Include="meta\meta.h" />
@@ -300,6 +301,7 @@
     <ClCompile Include="meta\scd_pcm.c" />
     <ClCompile Include="meta\pona.c" />
     <ClCompile Include="meta\pos.c" />
+    <ClCompile Include="meta\ppst.c" />
     <ClCompile Include="meta\ps2_vds_vdm.c" />
     <ClCompile Include="meta\ps2_adm.c" />
     <ClCompile Include="meta\ps2_ads.c" />

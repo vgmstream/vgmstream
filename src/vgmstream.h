@@ -671,6 +671,7 @@ typedef enum {
     meta_TXTP,              /* generic text playlist */
     meta_SMC_SMH,           /* Wangan Midnight (System 246) */
     meta_OGG_YS8,           /* Ogg Vorbis with encryption (Ys VIII PC) */
+    meta_PPST,              /* PPST [Parappa the Rapper (PSP)] */
 
 #ifdef VGM_USE_FFMPEG
     meta_FFmpeg,

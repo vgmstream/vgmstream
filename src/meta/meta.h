@@ -740,4 +740,6 @@ VGMSTREAM * init_vgmstream_smc_smh(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_ea_sps_fb(STREAMFILE *streamFile);
 
+VGMSTREAM * init_vgmstream_ppst(STREAMFILE *streamFile);
+
 #endif /*_META_H*/

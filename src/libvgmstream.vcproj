@@ -229,6 +229,10 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\meta\ppst_streamfile.h"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\sqex_scd_streamfile.h"
                     >
                 </File>
@@ -794,6 +798,10 @@
 					RelativePath=".\meta\pos.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\meta\ppst.c"
+                    >
+                </File>
                 <File
                     RelativePath=".\meta\ps2_vds_vdm.c"
                     >
