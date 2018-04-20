@@ -176,7 +176,7 @@ static int add_filename(txtp_header * txtp, char *filename) {
                         channel_mask |= (1 << (ch-1));
 
                     config += n;
-                    if (config[0]== ',')
+                    if (config[0]== ',' || config[0]== '-') /* "-" for PowerShell, may have problems with "," */
                         config++;
                     else if (config[0] != '\0')
                         break;
