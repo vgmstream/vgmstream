@@ -1002,6 +1002,7 @@ static const meta_info meta_info_list[] = {
         {meta_SMC_SMH,              "Genki SMC+SMH header"},
         {meta_OGG_YS8,              "Ogg Vorbis (Ys VIII header)"},
         {meta_PPST,                 "Parappa PPST header"},
+        {meta_OPUS_PPP,             "AT9 OPUS header"},
 
 #ifdef VGM_USE_FFMPEG
         {meta_FFmpeg,               "FFmpeg supported file format"},

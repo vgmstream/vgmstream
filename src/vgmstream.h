@@ -672,6 +672,7 @@ typedef enum {
     meta_SMC_SMH,           /* Wangan Midnight (System 246) */
     meta_OGG_YS8,           /* Ogg Vorbis with encryption (Ys VIII PC) */
     meta_PPST,              /* PPST [Parappa the Rapper (PSP)] */
+    meta_OPUS_PPP,          /* .at9 Opus [Penny-Punching Princess (Switch)] */
 
 #ifdef VGM_USE_FFMPEG
     meta_FFmpeg,
