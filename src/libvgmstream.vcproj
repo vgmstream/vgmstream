@@ -707,7 +707,7 @@
 					>
 				</File>
                 <File
-                    RelativePath=".\meta\nsw_opus.c"
+                    RelativePath=".\meta\opus.c"
                     >
                 </File>
 				<File
