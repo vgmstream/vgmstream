@@ -272,8 +272,8 @@ typedef enum {
     meta_DSP_AGSC,          /* Retro: Metroid Prime 2 title */
     meta_DSP_MPDSP,         /* Monopoly Party single header stereo */
     meta_DSP_JETTERS,       /* Bomberman Jetters .dsp */
-    meta_DSP_MSS,           /* ? */
-    meta_DSP_GCM,           /* ? */
+    meta_DSP_MSS,           /* Free Radical GC games */
+    meta_DSP_GCM,           /* some of Traveller's Tales games */
     meta_DSP_STR,           /* Conan .str files */
     meta_DSP_SADB,          /* .sad */
     meta_DSP_WSI,           /* .wsi */
