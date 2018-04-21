@@ -147,10 +147,12 @@ int mpeg_custom_parse_frame_ealayer3(VGMSTREAMCHANNEL *stream, mpeg_codec_data *
 
         if (!ealayer3_skip_data(stream, data, num_stream, 0))
             goto fail;
-
 	}
 
-	// todo rarely there is a block between granules (ex. EAL3 v2P in FIFA 2016)
+	/* In EAL3 V2P sometimes there is a new SNS/SPS block between granules. Instead of trying to fix it here
+	 * or in blocked layout (too complex/patchy), SNS/SPS uses a custom streamfile that simply removes all
+	 * block headers, so this parser only sees raw EALayer3 data. It also discards samples, which confuses
+	 * blocked layout calculations */
 
     /* get second frame/granule (MPEG1 only) if first granule was found */
     granule_found = 0;
@@ -298,7 +300,7 @@ static int ealayer3_parse_frame_v2(vgm_bitstream *is, ealayer3_frame_info * eaf)
         if (!ok) goto fail;
     }
     VGM_ASSERT(eaf->v2_extended_flag && eaf->v2_common_size == 0, "EA EAL3: v2 empty frame\n"); /* seen in V2S */
-    VGM_ASSERT(eaf->v2_extended_flag && eaf->v2_mode_value > 0, "EA EAL3: v2_mode=%x with 0x%x\n", eaf->v2_mode, eaf->v2_mode_value);
+    VGM_ASSERT(eaf->v2_extended_flag && eaf->v2_mode_value > 0, "EA EAL3: v2_mode=%x with value=0x%x\n", eaf->v2_mode, eaf->v2_mode_value);
     //VGM_ASSERT(eaf->v2_pcm_number > 0, "EA EAL3: v2_pcm_number 0x%x\n", eaf->v2_pcm_number);
 
     eaf->pcm_size = (2*eaf->v2_pcm_number * eaf->channels);
@@ -550,8 +552,6 @@ static int ealayer3_write_pcm_block(VGMSTREAMCHANNEL *stream, mpeg_codec_data *d
     size_t bytes_filled;
     int i;
 
-    if (!eaf->pcm_size)
-        return 1;
 
     bytes_filled = sizeof(sample)*ms->samples_filled*data->channels_per_frame;
     if (bytes_filled + eaf->pcm_size > ms->output_buffer_size) {
@@ -561,6 +561,9 @@ static int ealayer3_write_pcm_block(VGMSTREAMCHANNEL *stream, mpeg_codec_data *d
 
 
     if (eaf->v1_pcm_number) {
+        if (!eaf->pcm_size)
+            return 1;
+
         VGM_ASSERT(eaf->v1_pcm_decode_discard > 576, "MPEG EAL3: big discard %i at 0x%lx\n", eaf->v1_pcm_decode_discard, stream->offset);
         VGM_ASSERT(eaf->v1_pcm_number > 0x100, "MPEG EAL3: big samples %i at 0x%lx\n", eaf->v1_pcm_number, stream->offset);
 
@@ -583,6 +586,7 @@ static int ealayer3_write_pcm_block(VGMSTREAMCHANNEL *stream, mpeg_codec_data *d
                     decode_to_discard = data->samples_per_frame;//+ eaf->v1_pcm_number;
             }
             else {
+                // todo also discard
                 if (decode_to_discard == 0) /* seems ok? */
                     decode_to_discard += data->samples_per_frame;//+ eaf->v1_pcm_number;
                 else if (decode_to_discard == 576) /* untested */
@@ -594,17 +598,6 @@ static int ealayer3_write_pcm_block(VGMSTREAMCHANNEL *stream, mpeg_codec_data *d
 
     if (eaf->v2_extended_flag) {
 
-        if (eaf->v2_pcm_number) {
-            /* read + write PCM block samples (always BE) */
-            for (i = 0; i < eaf->v2_pcm_number * data->channels_per_frame; i++) {
-                off_t pcm_offset = stream->offset + eaf->pre_size + eaf->common_size + sizeof(sample)*i;
-                int16_t pcm_sample = read_16bitBE(pcm_offset,stream->streamfile);
-                put_16bitLE(ms->output_buffer + bytes_filled + sizeof(sample)*i, pcm_sample);
-            }
-            ms->samples_filled += eaf->v2_pcm_number;
-        }
-
-#if 0
         /* todo supposed skip modes (only seen 0x00):
          *
          * AB00CCCC CCCCCCCC  if A is set:  DDEEEEEE EEEEFFFF FFFFFFGG GGGGGGGG
@@ -620,16 +613,27 @@ static int ealayer3_write_pcm_block(VGMSTREAMCHANNEL *stream, mpeg_codec_data *d
          *   if 3: 576
          */
 
+        //;VGM_LOG("EA EAL3 v2: off=%lx, mode=%x, value=%x, pcm=%x, size=%x\n", stream->offset, eaf->v2_mode, eaf->v2_mode_value, eaf->v2_pcm_number, eaf->v2_common_size);
+
+        if (eaf->v2_pcm_number) {
+            /* read + write PCM block samples (always BE) */
+            for (i = 0; i < eaf->v2_pcm_number * data->channels_per_frame; i++) {
+                off_t pcm_offset = stream->offset + eaf->pre_size + eaf->common_size + sizeof(sample)*i;
+                int16_t pcm_sample = read_16bitBE(pcm_offset,stream->streamfile);
+                put_16bitLE(ms->output_buffer + bytes_filled + sizeof(sample)*i, pcm_sample);
+            }
+            ms->samples_filled += eaf->v2_pcm_number;
+        }
+
         /* modify decoded samples depending on flag */
         if (eaf->v2_mode == 0x00) {
-            size_t decode_to_discard = eaf->v2_mode_value;
+            size_t decode_to_discard = eaf->v2_mode_value; /* (usually 0 in V2P, varies in V2S) */
+            if (decode_to_discard == 0)
+                decode_to_discard = 576;
 
-            if (decode_to_discard == 576)
-                decode_to_discard = data->samples_per_frame;//+ eaf->v2_pcm_number;
-
+            //todo output seems correct-ish but reaches file end and tries to parse more frames
             ms->decode_to_discard += decode_to_discard;
         }
-#endif
     }
 
     return 1;
