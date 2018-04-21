@@ -46,7 +46,7 @@ VGMSTREAM * init_vgmstream_opus_ppp(STREAMFILE *streamFile) {
         temp_streamFile = setup_opus_ppp_streamfile(streamFile, segment_offset,segment_size, "opus");
         if (!temp_streamFile) goto fail;
 
-        data->segments[i] = init_vgmstream_nsw_opus(temp_streamFile);
+        data->segments[i] = init_vgmstream_opus_std(temp_streamFile);
         close_streamfile(temp_streamFile);
         if (!data->segments[i]) goto fail;
 
