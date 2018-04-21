@@ -28,7 +28,7 @@ VGMSTREAM * init_vgmstream_ppst(STREAMFILE *streamFile) {
             total_subsongs++;
             offset += 0x08;
         }
-VGM_LOG("st=%lx\n", total_subsongs);
+
         if (target_subsong == 0) target_subsong = 1;
         if (target_subsong < 0 || target_subsong > total_subsongs || total_subsongs < 1) goto fail;
     }

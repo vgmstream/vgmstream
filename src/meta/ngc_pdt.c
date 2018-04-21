@@ -25,7 +25,6 @@ VGMSTREAM * init_vgmstream_ngc_pdt(STREAMFILE *streamFile) {
         read_32bitBE(0x0c,streamFile) != 0x04)
         goto fail;
 
-//VGM_LOG("1\n");
     entries = read_16bitBE(0x02,streamFile);
     entries_offset = read_32bitBE(0x10,streamFile);
     coefs_offset   = read_32bitBE(0x14,streamFile);
@@ -74,7 +73,6 @@ VGMSTREAM * init_vgmstream_ngc_pdt(STREAMFILE *streamFile) {
         }
     }
 
-//VGM_LOG("header: %lx\n", header_offset);//todo
     /* parse header */
     {
         uint8_t flags;

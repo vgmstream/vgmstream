@@ -70,7 +70,6 @@ static size_t jstm_decryption_read(STREAMFILE *streamfile, uint8_t *dest, off_t 
     /* decrypt data (xor) */
     for (i = 0; i < bytes_read; i++) {
         if (offset+i >= data->start_offset) {
-            //VGM_LOG("xor %x to %x\n", dest[i], dest[i] ^ 0x5A);getchar();
             dest[i] = dest[i] ^ 0x5A;
         }
     }
