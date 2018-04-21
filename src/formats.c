@@ -92,6 +92,7 @@ static const char* extension_list[] = {
     "ckd",
     "cnk",
     "cps",
+    "cvs",
     "cxs",
 
     "da",

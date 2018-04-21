@@ -74,7 +74,8 @@ VGMSTREAM * init_vgmstream_ps2_mib(STREAMFILE *streamFile) {
 
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("mib",filename_extension(filename)) && 
+    if (strcasecmp("cvs",filename_extension(filename)) &&
+        strcasecmp("mib",filename_extension(filename)) && 
 		strcasecmp("mi4",filename_extension(filename)) && 
 		strcasecmp("vb",filename_extension(filename))  &&
 		strcasecmp("xag",filename_extension(filename))) goto fail;
@@ -268,7 +269,8 @@ VGMSTREAM * init_vgmstream_ps2_mib(STREAMFILE *streamFile) {
 			vgmstream->sample_rate = 44100;
 		}
 
-		if(!strcasecmp("vb",filename_extension(filename))) 
+		if (!strcasecmp("cvs", filename_extension(filename)) ||
+            !strcasecmp("vb",filename_extension(filename))) 
 		{
 			vgmstream->layout_type = layout_none;
 			vgmstream->interleave_block_size=0;
