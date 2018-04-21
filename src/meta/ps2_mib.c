@@ -76,9 +76,10 @@ VGMSTREAM * init_vgmstream_ps2_mib(STREAMFILE *streamFile) {
     streamFile->get_name(streamFile,filename,sizeof(filename));
     if (strcasecmp("cvs",filename_extension(filename)) &&
         strcasecmp("mib",filename_extension(filename)) && 
-		strcasecmp("mi4",filename_extension(filename)) && 
-		strcasecmp("vb",filename_extension(filename))  &&
-		strcasecmp("xag",filename_extension(filename))) goto fail;
+        strcasecmp("mi4",filename_extension(filename)) &&
+        strcasecmp("snds",filename_extension(filename))&&
+        strcasecmp("vb",filename_extension(filename))  &&
+        strcasecmp("xag",filename_extension(filename))) goto fail;
 
 	/* check for .MIH file */
 	strcpy(filenameMIH,filename);
@@ -263,6 +264,12 @@ VGMSTREAM * init_vgmstream_ps2_mib(STREAMFILE *streamFile) {
 
 		if(!strcasecmp("mi4",filename_extension(filename)))
 			vgmstream->sample_rate = 48000;
+
+		//Heavy Iron Studios SNDS (The Incredibles)
+		//Do a bogus check to avoid clashing with PC_SNDS IMA
+		if(!strcasecmp("snds", filename_extension(filename)) &&
+          (read_32bitBE(0x0, streamFile) == 0x00000000))
+            vgmstream->sample_rate = 48000;
 
 		if(!strcasecmp("xag",filename_extension(filename))) {
 			vgmstream->channels=2;
