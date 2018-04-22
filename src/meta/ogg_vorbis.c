@@ -515,7 +515,7 @@ VGMSTREAM * init_vgmstream_ogg_vorbis_callbacks(STREAMFILE *streamFile, ov_callb
                 }
 			}
 
-            ;VGM_LOG("OGG: user_comment=%s\n", user_comment);
+            //;VGM_LOG("OGG: user_comment=%s\n", user_comment);
         }
     }
 
