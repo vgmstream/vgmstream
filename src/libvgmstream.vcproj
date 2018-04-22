@@ -229,6 +229,10 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\meta\opus_interleave_streamfile.h"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\ppst_streamfile.h"
                     >
                 </File>

@@ -77,6 +77,9 @@
     <ClInclude Include="meta\ea_eaac_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="meta\opus_interleave_streamfile.h">
+      <Filter>meta\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="meta\ppst_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>

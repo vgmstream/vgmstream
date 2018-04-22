@@ -1,6 +1,8 @@
 #include "meta.h"
 #include "../util.h"
 #include "../coding/coding.h"
+#include "../layout/layout.h"
+#include "opus_interleave_streamfile.h"
 
 /* Nintendo OPUS - from Switch games, including header variations (not the same as Ogg Opus) */
 
@@ -128,6 +130,7 @@ fail:
 
 /* Capcom variation [Ultra Street Fighter II (Switch), Resident Evil: Revelations (Switch)] */
 VGMSTREAM * init_vgmstream_opus_capcom(STREAMFILE *streamFile) {
+    VGMSTREAM *vgmstream = NULL;
     off_t offset = 0;
     int num_samples = 0, loop_start = 0, loop_end = 0;
     int channel_count;
@@ -137,22 +140,72 @@ VGMSTREAM * init_vgmstream_opus_capcom(STREAMFILE *streamFile) {
         goto fail;
 
     channel_count = read_32bitLE(0x04,streamFile);
-    if (channel_count != 0x01 && channel_count != 0x02)
-        goto fail;
+    if (channel_count != 1 && channel_count != 2 && channel_count != 6)
+        goto fail; /* unknown stream layout */
 
     num_samples = read_32bitLE(0x00,streamFile);
     /* 0x04: channels, >2 uses interleaved streams (2ch+2ch+2ch) */
     loop_start = read_32bitLE(0x08,streamFile);
     loop_end = read_32bitLE(0x0c,streamFile);
     /* 0x10: frame size (with extra data) */
-    /* 0x14: extra chunk count (each of 0x08, after 0x30) */
+    /* 0x14: extra chunk count */
     /* 0x18: null */
     offset = read_32bitLE(0x1c,streamFile);
     /* 0x20-8: config? (0x0077C102 04000000 E107070C) */
     /* 0x2c: some size? */
+    /* 0x30+: extra chunks (0x00: 0x7f, 0x04: num_sample), alt loop starts/regions? */
 
-    return init_vgmstream_opus(streamFile, meta_OPUS, offset, num_samples,loop_start,loop_end);
+    if (channel_count == 6) {
+        /* 2ch multistream hacky-hacks, don't try this at home. We'll end up with:
+         * main vgmstream > N vgmstream layers > substream IO deinterleaver > opus meta > Opus IO transmogrifier (phew) */
+        //todo deinterleave has some problems with reading after total_size
+        layered_layout_data* data = NULL;
+        int layers = channel_count / 2;
+        int i;
+        int loop_flag = (loop_end > 0);
+
+
+        /* build the VGMSTREAM */
+        vgmstream = allocate_vgmstream(channel_count,loop_flag);
+        if (!vgmstream) goto fail;
+
+        vgmstream->layout_type = layout_layered;
+
+        /* init layout */
+        data = init_layout_layered(layers);
+        if (!data) goto fail;
+        vgmstream->layout_data = data;
+
+        /* open each layer subfile */
+        for (i = 0; i < layers; i++) {
+            STREAMFILE* temp_streamFile = setup_opus_interleave_streamfile(streamFile, offset+0x28*i, layers);
+            if (!temp_streamFile) goto fail;
+
+            data->layers[i] = init_vgmstream_opus(temp_streamFile, meta_OPUS, 0x00, num_samples,loop_start,loop_end);
+            close_streamfile(temp_streamFile);
+            if (!data->layers[i]) goto fail;
+        }
+
+        /* setup layered VGMSTREAMs */
+        if (!setup_layout_layered(data))
+            goto fail;
+
+        vgmstream->sample_rate = data->layers[0]->sample_rate;
+        vgmstream->num_samples = data->layers[0]->num_samples;
+        vgmstream->loop_start_sample = data->layers[0]->loop_start_sample;
+        vgmstream->loop_end_sample = data->layers[0]->loop_end_sample;
+        vgmstream->meta_type = meta_OPUS;
+        vgmstream->coding_type = data->layers[0]->coding_type;
+
+        return vgmstream;
+    }
+    else {
+        return init_vgmstream_opus(streamFile, meta_OPUS, offset, num_samples,loop_start,loop_end);
+    }
+
+
 fail:
+    close_vgmstream(vgmstream);
     return NULL;
 }
 
