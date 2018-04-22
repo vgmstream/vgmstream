@@ -1,34 +1,42 @@
 #include "layout.h"
 #include "../vgmstream.h"
 
-/* TODO: currently only properly handles mono substreams */
 /* TODO: there must be a reasonable way to respect the loop settings, as
    the substreams are in their own little world.
    Currently the VGMSTREAMs layers loop internally and the external/base VGMSTREAM
    doesn't actually loop, and would ignore any altered values/loop_flag. */
 
-#define INTERLEAVE_BUF_SIZE 512
+#define LAYER_BUF_SIZE 512
+#define LAYER_MAX_CHANNELS 6 /* at least 2, but let's be generous */
 
 
 void render_vgmstream_layered(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstream) {
-    sample interleave_buf[INTERLEAVE_BUF_SIZE];
+    sample interleave_buf[LAYER_BUF_SIZE*LAYER_MAX_CHANNELS];
     int32_t samples_done = 0;
     layered_layout_data *data = vgmstream->layout_data;
 
     while (samples_done < sample_count) {
-        int32_t samples_to_do = INTERLEAVE_BUF_SIZE;
-        int c;
+        int32_t samples_to_do = LAYER_BUF_SIZE;
+        int layer;
+
         if (samples_to_do > sample_count - samples_done)
             samples_to_do = sample_count - samples_done;
 
-        for (c=0; c < data->layer_count; c++) {
-            int32_t i;
+        for (layer = 0; layer < data->layer_count; layer++) {
+            int s,l_ch;
+            int layer_channels = data->layers[layer]->channels;
 
-            render_vgmstream(interleave_buf, samples_to_do, data->layers[c]);
+            render_vgmstream(interleave_buf, samples_to_do, data->layers[layer]);
 
-            for (i=0; i < samples_to_do; i++) {
-                buffer[(samples_done+i)*data->layer_count + c] = interleave_buf[i];
+            for (l_ch = 0; l_ch < layer_channels; l_ch++) {
+                for (s = 0; s < samples_to_do; s++) {
+                    size_t layer_sample = s*layer_channels + l_ch;
+                    size_t buffer_sample = (samples_done+s)*vgmstream->channels + (layer*layer_channels+l_ch);
+
+                    buffer[buffer_sample] = interleave_buf[layer_sample];
+                }
             }
+
         }
 
         samples_done += samples_to_do;
@@ -67,8 +75,7 @@ int setup_layout_layered(layered_layout_data* data) {
         if (data->layers[i]->num_samples <= 0)
             goto fail;
 
-        //todo only mono at the moment
-        if (data->layers[i]->channels != 1)
+        if (data->layers[i]->channels > LAYER_MAX_CHANNELS)
             goto fail;
 
         if (i > 0) {
