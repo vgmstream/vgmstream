@@ -6,12 +6,6 @@
 #include "vgmstream.h"
 
 
-/* On EOF reads we can return length 0, or ignore and return the requested length + 0-set the buffer.
- * Some decoders don't check for EOF and may decode garbage if returned 0, as read_Nbit() funcs return -1.
- * Only matters for metas that get num_samples wrong (bigger than total data). */
-#define STREAMFILE_IGNORE_EOF 0
-
-
 /* a STREAMFILE that operates via standard IO using a buffer */
 typedef struct {
     STREAMFILE sf;          /* callbacks */
@@ -27,20 +21,26 @@ typedef struct {
 static STREAMFILE * open_stdio_streamfile_buffer(const char * const filename, size_t buffersize);
 static STREAMFILE * open_stdio_streamfile_buffer_by_file(FILE *infile,const char * const filename, size_t buffersize);
 
-static size_t read_the_rest(uint8_t * dest, off_t offset, size_t length, STDIOSTREAMFILE * streamfile) {
-    size_t length_read_total=0;
+static size_t read_stdio(STDIOSTREAMFILE *streamfile,uint8_t * dest, off_t offset, size_t length) {
+    size_t length_read_total = 0;
+
+    if (!streamfile || !dest || length <= 0 || offset < 0)
+        return 0;
 
     /* is the part of the requested length in the buffer? */
     if (offset >= streamfile->offset && offset < streamfile->offset + streamfile->validsize) {
-        size_t length_read;
+        size_t length_to_read;
         off_t offset_into_buffer = offset - streamfile->offset;
-        length_read = streamfile->validsize - offset_into_buffer;
 
-        memcpy(dest,streamfile->buffer + offset_into_buffer,length_read);
-        length_read_total += length_read;
-        length -= length_read;
-        offset += length_read;
-        dest += length_read;
+        length_to_read = streamfile->validsize - offset_into_buffer;
+        if (length_to_read > length)
+            length_to_read = length;
+
+        memcpy(dest,streamfile->buffer + offset_into_buffer,length_to_read);
+        length_read_total += length_to_read;
+        length -= length_to_read;
+        offset += length_to_read;
+        dest += length_to_read;
     }
 
     /* What would make more sense here is to read the whole request
@@ -49,25 +49,18 @@ static size_t read_the_rest(uint8_t * dest, off_t offset, size_t length, STDIOST
      * The destination buffer is supposed to be much smaller than the
      * STREAMFILE buffer, though. Maybe we should only ever return up
      * to the buffer size to avoid having to deal with things like this
-     * which are outside of my intended use.
-     */
+     * which are outside of my intended use. */
+
     /* read the rest of the requested length */
     while (length > 0) {
-        size_t length_to_read;
-        size_t length_read;
+        size_t length_to_read, length_read;
         streamfile->validsize = 0; /* buffer is empty now */
 
         /* request outside file: ignore to avoid seek/read */
         if (offset > streamfile->filesize) {
             streamfile->offset = streamfile->filesize;
             VGM_LOG_ONCE("ERROR: reading over filesize 0x%x @ 0x%lx + 0x%x (buggy meta?)\n", streamfile->filesize, offset, length);
-
-#if STREAMFILE_IGNORE_EOF
-            memset(dest,0,length); /* dest is already shifted */
-            return length_read_total + length; /* partially-read + 0-set buffer */
-#else
             return length_read_total; /* partially-read buffer */
-#endif
         }
 
         /* position to new offset */
@@ -90,13 +83,7 @@ static size_t read_the_rest(uint8_t * dest, off_t offset, size_t length, STDIOST
         /* if we can't get enough to satisfy the request (EOF) we give up */
         if (length_read < length_to_read) {
             memcpy(dest,streamfile->buffer,length_read);
-
-#if STREAMFILE_IGNORE_EOF
-            memset(dest+length_read,0,length-length_read);
-            return length_read_total + length; /* partially-read + 0-set buffer */
-#else
             return length_read_total + length_read; /* partially-read buffer */
-#endif
         }
 
         /* use the new buffer */
@@ -108,38 +95,6 @@ static size_t read_the_rest(uint8_t * dest, off_t offset, size_t length, STDIOST
     }
 
     return length_read_total;
-}
-
-static size_t read_stdio(STDIOSTREAMFILE *streamfile,uint8_t * dest, off_t offset, size_t length) {
-
-    if (!streamfile || !dest || length<=0)
-        return 0;
-
-    /* request outside file: ignore to avoid seek/read in read_the_rest() */
-    if (offset > streamfile->filesize) {
-        streamfile->offset = streamfile->filesize;
-        VGM_LOG_ONCE("ERROR: offset over filesize 0x%x @ 0x%lx + 0x%x (buggy meta?)\n", streamfile->filesize, offset, length);
-
-#if STREAMFILE_IGNORE_EOF
-        memset(dest,0,length);
-        return length; /* 0-set buffer */
-#else
-        return 0; /* nothing to read */
-#endif
-    }
-
-    /* just copy if entire request is within the buffer */
-    if (offset >= streamfile->offset && offset + length <= streamfile->offset + streamfile->validsize) {
-        off_t offset_into_buffer = offset - streamfile->offset;
-        memcpy(dest,streamfile->buffer + offset_into_buffer,length);
-        return length;
-    }
-
-    /* request outside buffer: new fread */
-    {
-        size_t length_read = read_the_rest(dest,offset,length,streamfile);
-        return length_read;
-    }
 }
 
 static void close_stdio(STDIOSTREAMFILE * streamfile) {
@@ -206,7 +161,6 @@ static STREAMFILE * open_stdio_streamfile_buffer_by_file(FILE *infile,const char
     streamfile->sf.get_size = (void*)get_size_stdio;
     streamfile->sf.get_offset = (void*)get_offset_stdio;
     streamfile->sf.get_name = (void*)get_name_stdio;
-    streamfile->sf.get_realname = (void*)get_name_stdio;
     streamfile->sf.open = (void*)open_stdio;
     streamfile->sf.close = (void*)close_stdio;
 
@@ -250,6 +204,145 @@ STREAMFILE * open_stdio_streamfile_by_file(FILE * file, const char * filename) {
 
 /* **************************************************** */
 
+typedef struct {
+    STREAMFILE sf;
+
+    STREAMFILE *inner_sf;
+    off_t offset;           /* current buffer data start */
+    uint8_t * buffer;       /* data buffer */
+    size_t buffersize;      /* max buffer size */
+    size_t validsize;       /* current buffer size */
+    size_t filesize;        /* buffered file size */
+} BUFFER_STREAMFILE;
+
+
+static size_t buffer_read(BUFFER_STREAMFILE *streamfile, uint8_t * dest, off_t offset, size_t length) {
+    size_t length_read_total = 0;
+
+    if (!streamfile || !dest || length <= 0 || offset < 0)
+        return 0;
+
+    /* is the part of the requested length in the buffer? */
+    if (offset >= streamfile->offset && offset < streamfile->offset + streamfile->validsize) {
+        size_t length_to_read;
+        off_t offset_into_buffer = offset - streamfile->offset;
+
+        length_to_read = streamfile->validsize - offset_into_buffer;
+        if (length_to_read > length)
+            length_to_read = length;
+
+        memcpy(dest,streamfile->buffer + offset_into_buffer,length_to_read);
+        length_read_total += length_to_read;
+        length -= length_to_read;
+        offset += length_to_read;
+        dest += length_to_read;
+    }
+
+    /* What would make more sense here is to read the whole request
+     * at once into the dest buffer, as it must be large enough, and then
+     * copy some part of that into our own buffer.
+     * The destination buffer is supposed to be much smaller than the
+     * STREAMFILE buffer, though. Maybe we should only ever return up
+     * to the buffer size to avoid having to deal with things like this
+     * which are outside of my intended use. */
+
+    /* read the rest of the requested length */
+    while (length > 0) {
+        size_t length_to_read, length_read;
+        streamfile->validsize = 0; /* buffer is empty now */
+
+        /* request outside file: ignore to avoid seek/read */
+        if (offset > streamfile->filesize) {
+            streamfile->offset = streamfile->filesize;
+            VGM_LOG_ONCE("ERROR: reading over filesize 0x%x @ 0x%lx + 0x%x (buggy meta?)\n", streamfile->filesize, offset, length);
+            return length_read_total; /* partially-read buffer */
+        }
+
+        streamfile->offset = offset;
+
+        /* decide how much must be read this time */
+        if (length > streamfile->buffersize)
+            length_to_read = streamfile->buffersize;
+        else
+            length_to_read = length;
+
+        /* fill the buffer */
+        length_read = streamfile->inner_sf->read(streamfile->inner_sf, streamfile->buffer, streamfile->offset, streamfile->buffersize);
+        streamfile->validsize = length_read;
+
+        /* if we can't get enough to satisfy the request (EOF) we give up */
+        if (length_read < length_to_read) {
+            memcpy(dest,streamfile->buffer,length_read);
+            return length_read_total + length_read; /* partially-read buffer */
+        }
+
+        /* use the new buffer */
+        memcpy(dest,streamfile->buffer,length_to_read);
+        length_read_total += length_to_read;
+        length -= length_to_read;
+        dest += length_to_read;
+        offset += length_to_read;
+    }
+
+    return length_read_total;
+}
+static size_t buffer_get_size(BUFFER_STREAMFILE * streamfile) {
+    return streamfile->filesize; /* cache */
+}
+static size_t buffer_get_offset(BUFFER_STREAMFILE * streamfile) {
+    return streamfile->offset; /* cache */ //todo internal offset?
+}
+static void buffer_get_name(BUFFER_STREAMFILE *streamfile, char *buffer, size_t length) {
+    streamfile->inner_sf->get_name(streamfile->inner_sf, buffer, length); /* default */
+}
+static STREAMFILE *buffer_open(BUFFER_STREAMFILE *streamfile, const char * const filename, size_t buffersize) {
+    STREAMFILE *new_inner_sf = streamfile->inner_sf->open(streamfile->inner_sf,filename,buffersize);
+    return open_buffer_streamfile(new_inner_sf, buffersize); /* original buffer size is preferable? */
+}
+static void buffer_close(BUFFER_STREAMFILE *streamfile) {
+    streamfile->inner_sf->close(streamfile->inner_sf);
+    free(streamfile->buffer);
+    free(streamfile);
+}
+
+STREAMFILE *open_buffer_streamfile(STREAMFILE *streamfile, size_t buffer_size) {
+    BUFFER_STREAMFILE *this_sf = NULL;
+
+    if (!streamfile) goto fail;
+
+    this_sf = calloc(1,sizeof(BUFFER_STREAMFILE));
+    if (!this_sf) goto fail;
+
+    this_sf->buffersize = buffer_size;
+    if (this_sf->buffersize == 0)
+        this_sf->buffersize = STREAMFILE_DEFAULT_BUFFER_SIZE;
+
+    this_sf->buffer = calloc(this_sf->buffersize,1);
+    if (!this_sf->buffer) goto fail;
+
+    /* set callbacks and internals */
+    this_sf->sf.read = (void*)buffer_read;
+    this_sf->sf.get_size = (void*)buffer_get_size;
+    this_sf->sf.get_offset = (void*)buffer_get_offset;
+    this_sf->sf.get_name = (void*)buffer_get_name;
+    this_sf->sf.open = (void*)buffer_open;
+    this_sf->sf.close = (void*)buffer_close;
+    this_sf->sf.stream_index = streamfile->stream_index;
+
+    this_sf->inner_sf = streamfile;
+
+    this_sf->filesize = streamfile->get_size(streamfile);
+
+    return &this_sf->sf;
+
+fail:
+    if (this_sf) free(this_sf->buffer);
+    free(this_sf);
+    return NULL;
+}
+
+/* **************************************************** */
+
 //todo stream_index: copy? pass? funtion? external?
 //todo use realnames on reopen? simplify?
 //todo use safe string ops, this ain't easy
@@ -272,9 +365,6 @@ static size_t wrap_get_offset(WRAP_STREAMFILE * streamfile) {
 static void wrap_get_name(WRAP_STREAMFILE *streamfile, char *buffer, size_t length) {
     streamfile->inner_sf->get_name(streamfile->inner_sf, buffer, length); /* default */
 }
-static void wrap_get_realname(WRAP_STREAMFILE *streamfile, char *buffer, size_t length) {
-    streamfile->inner_sf->get_realname(streamfile->inner_sf, buffer, length); /* default */
-}
 static void wrap_open(WRAP_STREAMFILE *streamfile, const char * const filename, size_t buffersize) {
     streamfile->inner_sf->open(streamfile->inner_sf, filename, buffersize); /* default (don't wrap) */
 }
@@ -296,7 +386,6 @@ STREAMFILE *open_wrap_streamfile(STREAMFILE *streamfile) {
     this_sf->sf.get_size = (void*)wrap_get_size;
     this_sf->sf.get_offset = (void*)wrap_get_offset;
     this_sf->sf.get_name = (void*)wrap_get_name;
-    this_sf->sf.get_realname = (void*)wrap_get_realname;
     this_sf->sf.open = (void*)wrap_open;
     this_sf->sf.close = (void*)wrap_close;
     this_sf->sf.stream_index = streamfile->stream_index;
@@ -329,9 +418,6 @@ static off_t clamp_get_offset(CLAMP_STREAMFILE *streamfile) {
 }
 static void clamp_get_name(CLAMP_STREAMFILE *streamfile, char *buffer, size_t length) {
     streamfile->inner_sf->get_name(streamfile->inner_sf, buffer, length); /* default */
-}
-static void clamp_get_realname(CLAMP_STREAMFILE *streamfile, char *buffer, size_t length) {
-    streamfile->inner_sf->get_realname(streamfile->inner_sf, buffer, length); /* default */
 }
 static STREAMFILE *clamp_open(CLAMP_STREAMFILE *streamfile, const char * const filename, size_t buffersize) {
     char original_filename[PATH_LIMIT];
@@ -366,7 +452,6 @@ STREAMFILE *open_clamp_streamfile(STREAMFILE *streamfile, off_t start, size_t si
     this_sf->sf.get_size = (void*)clamp_get_size;
     this_sf->sf.get_offset = (void*)clamp_get_offset;
     this_sf->sf.get_name = (void*)clamp_get_name;
-    this_sf->sf.get_realname = (void*)clamp_get_realname;
     this_sf->sf.open = (void*)clamp_open;
     this_sf->sf.close = (void*)clamp_close;
     this_sf->sf.stream_index = streamfile->stream_index;
@@ -407,9 +492,6 @@ static off_t io_get_offset(IO_STREAMFILE *streamfile) {
 static void io_get_name(IO_STREAMFILE *streamfile, char *buffer, size_t length) {
     streamfile->inner_sf->get_name(streamfile->inner_sf, buffer, length); /* default */
 }
-static void io_get_realname(IO_STREAMFILE *streamfile, char *buffer, size_t length) {
-    streamfile->inner_sf->get_realname(streamfile->inner_sf, buffer, length); /* default */
-}
 static STREAMFILE *io_open(IO_STREAMFILE *streamfile, const char * const filename, size_t buffersize) {
     //todo should have some flag to decide if opening other files with IO
     STREAMFILE *new_inner_sf = streamfile->inner_sf->open(streamfile->inner_sf,filename,buffersize);
@@ -435,7 +517,6 @@ STREAMFILE *open_io_streamfile(STREAMFILE *streamfile, void* data, size_t data_s
     this_sf->sf.get_size = (void*)io_get_size;
     this_sf->sf.get_offset = (void*)io_get_offset;
     this_sf->sf.get_name = (void*)io_get_name;
-    this_sf->sf.get_realname = (void*)io_get_realname;
     this_sf->sf.open = (void*)io_open;
     this_sf->sf.close = (void*)io_close;
     this_sf->sf.stream_index = streamfile->stream_index;
@@ -478,9 +559,6 @@ static void fakename_get_name(FAKENAME_STREAMFILE *streamfile, char *buffer, siz
     strncpy(buffer,streamfile->fakename,length);
     buffer[length-1]='\0';
 }
-static void fakename_get_realname(FAKENAME_STREAMFILE *streamfile, char *buffer, size_t length) {
-    fakename_get_name(streamfile, buffer, length);
-}
 static STREAMFILE *fakename_open(FAKENAME_STREAMFILE *streamfile, const char * const filename, size_t buffersize) {
     /* detect re-opening the file */
     if (strcmp(filename, streamfile->fakename) == 0) {
@@ -513,7 +591,6 @@ STREAMFILE *open_fakename_streamfile(STREAMFILE *streamfile, const char * fakena
     this_sf->sf.get_size = (void*)fakename_get_size;
     this_sf->sf.get_offset = (void*)fakename_get_offset;
     this_sf->sf.get_name = (void*)fakename_get_name;
-    this_sf->sf.get_realname = (void*)fakename_get_realname;
     this_sf->sf.open = (void*)fakename_open;
     this_sf->sf.close = (void*)fakename_close;
     this_sf->sf.stream_index = streamfile->stream_index;
@@ -594,9 +671,6 @@ static size_t multifile_get_offset(MULTIFILE_STREAMFILE * streamfile) {
 static void multifile_get_name(MULTIFILE_STREAMFILE *streamfile, char *buffer, size_t length) {
     streamfile->inner_sfs[0]->get_name(streamfile->inner_sfs[0], buffer, length);
 }
-static void multifile_get_realname(MULTIFILE_STREAMFILE *streamfile, char *buffer, size_t length) {
-    multifile_get_name(streamfile, buffer, length);
-}
 static STREAMFILE *multifile_open(MULTIFILE_STREAMFILE *streamfile, const char * const filename, size_t buffersize) {
     char original_filename[PATH_LIMIT];
     STREAMFILE *new_sf = NULL;
@@ -662,7 +736,6 @@ STREAMFILE *open_multifile_streamfile(STREAMFILE **streamfiles, size_t streamfil
     this_sf->sf.get_size = (void*)multifile_get_size;
     this_sf->sf.get_offset = (void*)multifile_get_offset;
     this_sf->sf.get_name = (void*)multifile_get_name;
-    this_sf->sf.get_realname = (void*)multifile_get_realname;
     this_sf->sf.open = (void*)multifile_open;
     this_sf->sf.close = (void*)multifile_close;
     this_sf->sf.stream_index = streamfiles[0]->stream_index;

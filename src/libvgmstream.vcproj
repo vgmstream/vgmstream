@@ -225,7 +225,15 @@
                     >
                 </File>
                 <File
-                    RelativePath=".\meta\ea_eaac_eatrax_streamfile.h"
+                    RelativePath=".\meta\ea_eaac_streamfile.h"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\opus_interleave_streamfile.h"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\ppst_streamfile.h"
                     >
                 </File>
                 <File
@@ -703,7 +711,7 @@
 					>
 				</File>
                 <File
-                    RelativePath=".\meta\nsw_opus.c"
+                    RelativePath=".\meta\opus.c"
                     >
                 </File>
 				<File
@@ -732,6 +740,10 @@
                 </File>
                 <File
                     RelativePath=".\meta\omu.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\opus_ppp.c"
                     >
                 </File>
 				<File
@@ -794,6 +806,10 @@
 					RelativePath=".\meta\pos.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\meta\ppst.c"
+                    >
+                </File>
                 <File
                     RelativePath=".\meta\ps2_vds_vdm.c"
                     >

@@ -272,8 +272,8 @@ typedef enum {
     meta_DSP_AGSC,          /* Retro: Metroid Prime 2 title */
     meta_DSP_MPDSP,         /* Monopoly Party single header stereo */
     meta_DSP_JETTERS,       /* Bomberman Jetters .dsp */
-    meta_DSP_MSS,           /* ? */
-    meta_DSP_GCM,           /* ? */
+    meta_DSP_MSS,           /* Free Radical GC games */
+    meta_DSP_GCM,           /* some of Traveller's Tales games */
     meta_DSP_STR,           /* Conan .str files */
     meta_DSP_SADB,          /* .sad */
     meta_DSP_WSI,           /* .wsi */
@@ -627,7 +627,7 @@ typedef enum {
     meta_BINK,              /* RAD Game Tools BINK audio/video */
     meta_EA_SNU,            /* Electronic Arts SNU (Dead Space) */
     meta_AWC,               /* Rockstar AWC (GTA5, RDR) */
-    meta_NSW_OPUS,          /* Lego City Undercover (Switch) */
+    meta_OPUS,              /* Nintendo Opus [Lego City Undercover (Switch)] */
     meta_PC_AL2,            /* Conquest of Elysium 3 (PC) */
     meta_PC_AST,            /* Dead Rising (PC) */
     meta_NAAC,              /* Namco AAC (3DS) */
@@ -670,6 +670,9 @@ typedef enum {
     meta_OGG_ENO,           /* Ogg Vorbis with encryption [Metronomicon (PC)] */
     meta_TXTP,              /* generic text playlist */
     meta_SMC_SMH,           /* Wangan Midnight (System 246) */
+    meta_OGG_YS8,           /* Ogg Vorbis with encryption (Ys VIII PC) */
+    meta_PPST,              /* PPST [Parappa the Rapper (PSP)] */
+    meta_OPUS_PPP,          /* .at9 Opus [Penny-Punching Princess (Switch)] */
 
 #ifdef VGM_USE_FFMPEG
     meta_FFmpeg,

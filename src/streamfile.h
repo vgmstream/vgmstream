@@ -51,8 +51,6 @@ typedef struct _STREAMFILE {
     off_t (*get_offset)(struct _STREAMFILE *);    
     /* for dual-file support */
     void (*get_name)(struct _STREAMFILE *,char *name,size_t length);
-    /* for when the "name" is encoded specially, this is the actual user visible name */
-    void (*get_realname)(struct _STREAMFILE *,char *name,size_t length);
     struct _STREAMFILE * (*open)(struct _STREAMFILE *,const char * const filename,size_t buffersize);
     void (*close)(struct _STREAMFILE *);
 
@@ -69,6 +67,11 @@ STREAMFILE *open_stdio_streamfile(const char * filename);
 
 /* Opens a standard STREAMFILE from a pre-opened FILE. */
 STREAMFILE *open_stdio_streamfile_by_file(FILE * file, const char * filename);
+
+/* Opens a STREAMFILE that does buffered IO.
+ * Can be used when the underlying IO may be slow (like when using custom IO).
+ * Buffer size is optional. */
+STREAMFILE *open_buffer_streamfile(STREAMFILE *streamfile, size_t buffer_size);
 
 /* Opens a STREAMFILE that doesn't close the underlying streamfile.
  * Calls to open won't wrap the new SF (assumes it needs to be closed).

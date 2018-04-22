@@ -119,7 +119,7 @@ VGMSTREAM * init_vgmstream_p3d(STREAMFILE *streamFile) {
             break;
 
         default:
-            VGM_LOG("unknown codec 0x%04x\n", codec);
+            VGM_LOG("P3D: unknown codec 0x%04x\n", codec);
             goto fail;
     }
 
@@ -175,7 +175,7 @@ VGMSTREAM * init_vgmstream_p3d(STREAMFILE *streamFile) {
 #endif
 
         default:
-            VGM_LOG("unknown codec 0x%04x\n", codec);
+            VGM_LOG("P3D: unknown codec 0x%04x\n", codec);
             goto fail;
     }
 

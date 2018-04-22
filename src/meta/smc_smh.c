@@ -33,7 +33,6 @@ VGMSTREAM * init_vgmstream_smc_smh(STREAMFILE *streamFile) {
     sample_rate   = read_32bitLE(header_offset+0x08, streamHeader);
     /* 0x0c(2): always 0x10, frame size? */
     channel_count = read_16bitLE(header_offset+0x0e, streamHeader);
-
     loop_flag = 0;
 
 
@@ -53,10 +52,10 @@ VGMSTREAM * init_vgmstream_smc_smh(STREAMFILE *streamFile) {
     vgmstream->interleave_block_size = read_32bitLE(0x04, streamHeader);
 
 
-    close_streamfile(streamHeader);
-
     if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
         goto fail;
+
+    close_streamfile(streamHeader);
     return vgmstream;
 
 fail:

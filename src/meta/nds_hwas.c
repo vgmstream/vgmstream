@@ -8,7 +8,8 @@ VGMSTREAM * init_vgmstream_nds_hwas(STREAMFILE *streamFile) {
     off_t start_offset;
     int channel_count, loop_flag = 0;
 
-    /* check extension, case insensitive (made-up extension) */
+    /* checks */
+    /* .hwas: usually in archives but also found named (ex. Guitar Hero On Tour) */
     if (!check_extensions(streamFile,"hwas"))
         goto fail;
 

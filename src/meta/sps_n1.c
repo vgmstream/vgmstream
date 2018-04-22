@@ -44,9 +44,6 @@ VGMSTREAM * init_vgmstream_sps_n1(STREAMFILE *streamFile) {
             goto fail;
     }
 
-    //VGM_LOG(vgmstream->num_samples != num_samples,
-    //        "SPS: sps num_samples and subfile num_samples don't match\n");
-    //vgmstream->num_samples = num_samples; //todo adjusted for MAIATRAC3
     vgmstream->sample_rate = sample_rate; /* .vag header doesn't match */
 
     close_streamfile(temp_streamFile);

@@ -98,7 +98,9 @@
     <ClInclude Include="meta\aix_streamfile.h" />
     <ClInclude Include="meta\awc_xma_streamfile.h" />
     <ClInclude Include="meta\bar_streamfile.h" />
-    <ClInclude Include="meta\ea_eaac_eatrax_streamfile.h" />
+    <ClInclude Include="meta\ea_eaac_streamfile.h" />
+    <ClInclude Include="meta\ppst_streamfile.h" />
+    <ClInclude Include="meta\opus_interleave_streamfile.h" />
     <ClInclude Include="meta\sqex_scd_streamfile.h" />
     <ClInclude Include="meta\ubi_lyn_ogg_streamfile.h" />
     <ClInclude Include="meta\meta.h" />
@@ -146,7 +148,7 @@
     <ClCompile Include="meta\mp4.c" />
     <ClCompile Include="meta\msb_msh.c" />
     <ClCompile Include="meta\ngca.c" />
-    <ClCompile Include="meta\nsw_opus.c" />
+    <ClCompile Include="meta\opus.c" />
     <ClCompile Include="meta\nub_vag.c" />
     <ClCompile Include="meta\pc_adp.c" />
     <ClCompile Include="meta\pc_adp_otns.c" />
@@ -289,6 +291,7 @@
     <ClCompile Include="meta\ogg_vorbis.c" />
     <ClCompile Include="meta\ogl.c" />
     <ClCompile Include="meta\omu.c" />
+    <ClCompile Include="meta\opus_ppp.c" />
     <ClCompile Include="meta\otm.c" />
     <ClCompile Include="meta\p3d.c" />
     <ClCompile Include="meta\pc_al2.c" />
@@ -300,6 +303,7 @@
     <ClCompile Include="meta\scd_pcm.c" />
     <ClCompile Include="meta\pona.c" />
     <ClCompile Include="meta\pos.c" />
+    <ClCompile Include="meta\ppst.c" />
     <ClCompile Include="meta\ps2_vds_vdm.c" />
     <ClCompile Include="meta\ps2_adm.c" />
     <ClCompile Include="meta\ps2_ads.c" />

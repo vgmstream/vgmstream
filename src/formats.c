@@ -19,6 +19,7 @@ static const char* extension_list[] = {
     //"ac3", //FFmpeg, not parsed //common?
     "ace", //fake, for tri-Ace's formats (to be removed)
     "acm",
+    "ad", //txth/reserved [Xenosaga Freaks (PS2)]
     "adm",
     "adp",
     "adpcm",
@@ -957,7 +958,7 @@ static const meta_info meta_info_list[] = {
         {meta_BINK,                 "RAD Game Tools Bink header"},
         {meta_EA_SNU,               "Electronic Arts SNU header"},
         {meta_AWC,                  "Rockstar AWC header"},
-        {meta_NSW_OPUS,             "Nintendo Switch OPUS header"},
+        {meta_OPUS,                 "Nintendo Switch OPUS header"},
         {meta_PC_AL2,               "Illwinter Game Design AL2 raw header"},
         {meta_PC_AST,               "Capcom AST (PC) header"},
         {meta_UBI_SB,               "Ubisoft SBx header"},
@@ -1000,6 +1001,9 @@ static const meta_info meta_info_list[] = {
         {meta_OGG_ENO,              "Ogg Vorbis (ENO header)"},
         {meta_TXTP,                 "TXTP generic header"},
         {meta_SMC_SMH,              "Genki SMC+SMH header"},
+        {meta_OGG_YS8,              "Ogg Vorbis (Ys VIII header)"},
+        {meta_PPST,                 "Parappa PPST header"},
+        {meta_OPUS_PPP,             "AT9 OPUS header"},
 
 #ifdef VGM_USE_FFMPEG
         {meta_FFmpeg,               "FFmpeg supported file format"},

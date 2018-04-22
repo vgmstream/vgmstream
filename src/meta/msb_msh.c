@@ -72,12 +72,11 @@ VGMSTREAM * init_vgmstream_msb_msh(STREAMFILE *streamFile) {
     vgmstream->interleave_block_size = 0x10;
 
 
-    close_streamfile(streamHeader);
-
     if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
         goto fail;
-    return vgmstream;
 
+    close_streamfile(streamHeader);
+    return vgmstream;
 
 fail:
     close_streamfile(streamHeader);

@@ -230,7 +230,6 @@ static STREAMFILE * open_foo_streamfile_buffer_by_file(service_ptr_t<file> m_fil
     streamfile->sf.get_size = (size_t (__cdecl *)(_STREAMFILE *)) get_size_foo;
     streamfile->sf.get_offset = (off_t (__cdecl *)(_STREAMFILE *)) get_offset_foo;
     streamfile->sf.get_name = (void (__cdecl *)(_STREAMFILE *,char *,size_t)) get_name_foo;
-    streamfile->sf.get_realname = (void (__cdecl *)(_STREAMFILE *,char *,size_t)) get_name_foo;
     streamfile->sf.open = (_STREAMFILE *(__cdecl *)(_STREAMFILE *,const char *const ,size_t)) open_foo;
     streamfile->sf.close = (void (__cdecl *)(_STREAMFILE *)) close_foo;
 
