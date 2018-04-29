@@ -208,7 +208,7 @@ static const adxkey_info adxkey9_list[] = {
         {0x5152,0x7979,0x152b, NULL,165521992944278},       // 0000968A97978A96
 
         // AKA to BLUE (Android)
-        {0x03fc,0x7979,0x152b, NULL,0},                     // guessed with VGAudio (possible key: 1FE0748978 / 136909719928)
+        {0x03fc,0x0749,0x12EF, NULL,0},                     // guessed with VGAudio (possible key: 1FE0748978 / 136909719928)
       //{0x0c03,0x0749,0x1459, NULL,0},                     // 2nd guess (possible key: 6018748A2D / 412727151149)
 };
 
