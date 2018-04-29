@@ -1306,6 +1306,10 @@
                     RelativePath=".\meta\txtp.c"
                     >
                 </File>
+                <File
+                    RelativePath=".\meta\ubi_bao.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\ubi_ckd.c"
 					>

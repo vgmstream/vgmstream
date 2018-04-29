@@ -178,6 +178,7 @@ static const char* extension_list[] = {
     "logg", //fake extension, for OGGs
     "lopus", //fake extension, for OPUS
     "lpcm",
+    "lpk",
     "lps",
     "lsf",
     "lstm", //fake extension, for STMs
@@ -242,6 +243,7 @@ static const char* extension_list[] = {
     "past",
     "pcm",
     "pdt",
+    "pk",
     "pnb",
     "pona",
     "pos",
@@ -1004,6 +1006,7 @@ static const meta_info meta_info_list[] = {
         {meta_OGG_YS8,              "Ogg Vorbis (Ys VIII header)"},
         {meta_PPST,                 "Parappa PPST header"},
         {meta_OPUS_PPP,             "AT9 OPUS header"},
+        {meta_UBI_BAO,              "Ubisoft BAO header"},
 
 #ifdef VGM_USE_FFMPEG
         {meta_FFmpeg,               "FFmpeg supported file format"},
