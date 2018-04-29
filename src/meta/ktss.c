@@ -10,7 +10,7 @@ VGMSTREAM * init_vgmstream_ktss(STREAMFILE *streamFile) {
     int32_t loop_length, coef_start_offset, coef_spacing;
     off_t start_offset;
 
-    if (!check_extensions(streamFile, "ktss"))
+    if (!check_extensions(streamFile, "kns,ktss"))
         goto fail;
 
     if (read_32bitBE(0, streamFile) != 0x4B545353) /* "KTSS" */

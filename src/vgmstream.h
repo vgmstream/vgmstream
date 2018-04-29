@@ -595,7 +595,7 @@ typedef enum {
     meta_FSTM,              /* Nintendo Wii U FSTM (caFe? Stream) */
     meta_3DS_IDSP,          /* Nintendo 3DS/Wii U IDSP */
     meta_KT_WIIBGM,         /* Koei Tecmo WiiBGM */
-    meta_KTSS,              /* Koei Tecmo Switch Sound */
+    meta_KTSS,              /* Koei Tecmo Nintendo Stream (KNS) */
     meta_MCA,               /* Capcom MCA "MADP" */
     meta_XB3D_ADX,          /* Xenoblade Chronicles 3D ADX */
     meta_HCA,               /* CRI HCA */

@@ -166,8 +166,9 @@ static const char* extension_list[] = {
     "khv",
     "km9",
     "kovs", //.kvs header id
+    "kns",
     "kraw",
-    "ktss",
+    "ktss", //.kns header id
     "kvs",
 
     "l",
@@ -923,7 +924,7 @@ static const meta_info meta_info_list[] = {
         {meta_CSTM,                 "Nintendo 3DS CSTM Header"},
         {meta_FSTM,                 "Nintendo Wii U FSTM Header"},
         {meta_KT_WIIBGM,            "Koei Tecmo WiiBGM Header"},
-        {meta_KTSS,                 "Koei Tecmo Switch Sound Header"},
+        {meta_KTSS,                 "Koei Tecmo Nintendo Stream KTSS Header"},
         {meta_3DS_IDSP,             "Nintendo IDSP Header"},
         {meta_WIIU_BTSND,           "Nintendo Wii U Menu Boot Sound"},
         {meta_MCA,                  "Capcom MCA header"},
