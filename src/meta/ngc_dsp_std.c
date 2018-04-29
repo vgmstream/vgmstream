@@ -655,6 +655,8 @@ VGMSTREAM * init_vgmstream_3ds_idsp(STREAMFILE *streamFile) {
     dspm.header_spacing = read_32bitBE(offset+0x24,streamFile);
     dspm.start_offset = read_32bitBE(offset+0x28,streamFile) + offset;
     dspm.interleave = read_32bitBE(offset+0x1c,streamFile); /* usually 0x10 */
+    if (dspm.interleave == 0) /* Taiko no Tatsujin: Atsumete Tomodachi Daisakusen (WiiU) */
+        dspm.interleave = read_32bitBE(offset+0x2c,streamFile); /* half interleave, use channel size */
 
     dspm.meta_type = meta_3DS_IDSP;
     return init_vgmstream_dsp_common(streamFile, &dspm);
