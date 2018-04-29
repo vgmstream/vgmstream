@@ -87,7 +87,7 @@ VGMSTREAM * init_vgmstream_ea_schl(STREAMFILE *streamFile) {
 
     /* check extension; exts don't seem enforced by EA's tools, but usually:
      * STR/ASF/MUS ~early, EAM ~mid, SNG/AUD ~late, rest uncommon/one game (ex. STRM: MySims Kingdom Wii) */
-    if (!check_extensions(streamFile,"str,asf,mus,eam,sng,aud,sx,strm,xa,xsf,exa,stm,ast"))
+    if (!check_extensions(streamFile,"str,asf,mus,eam,sng,aud,sx,strm,xa,xsf,exa,stm,ast,trj,trm"))
         goto fail;
 
     /* check header */

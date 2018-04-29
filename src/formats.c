@@ -346,6 +346,8 @@ static const char* extension_list[] = {
     "thp",
     "tk5",
     "tra",
+    "trj",
+    "trm",
     "tun",
     "txtp",
     "tydsp",
