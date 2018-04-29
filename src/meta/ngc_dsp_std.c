@@ -1340,3 +1340,31 @@ VGMSTREAM * init_vgmstream_dsp_mcadpcm(STREAMFILE *streamFile) {
 fail:
     return NULL;
 }
+
+/* .switch_audio - UE4 standard LE header + full interleaved dsp [Gal Gun 2 (Switch)] */
+VGMSTREAM * init_vgmstream_dsp_switch_audio(STREAMFILE *streamFile) {
+    dsp_meta dspm = {0};
+
+    /* checks */
+    /* .switch_audio: possibly UE4 class name rather than extension, .dsp: assumed */
+    if (!check_extensions(streamFile, "switch_audio,dsp"))
+        goto fail;
+
+    /* manual double header test */
+    if (read_32bitLE(0x00, streamFile) == read_32bitLE(get_streamfile_size(streamFile) / 2, streamFile))
+        dspm.channel_count = 2;
+    else
+        dspm.channel_count = 1;
+    dspm.max_channels = 2;
+    dspm.little_endian = 1;
+
+    dspm.header_offset = 0x00;
+    dspm.header_spacing = get_streamfile_size(streamFile) / dspm.channel_count;
+    dspm.start_offset = dspm.header_offset + 0x60;
+    dspm.interleave = dspm.header_spacing;
+
+    dspm.meta_type = meta_DSP_SWITCH_AUDIO;
+    return init_vgmstream_dsp_common(streamFile, &dspm);
+fail:
+    return NULL;
+}
