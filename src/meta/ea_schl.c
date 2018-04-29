@@ -82,7 +82,7 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE *streamFile, ea_
 VGMSTREAM * init_vgmstream_ea_schl(STREAMFILE *streamFile) {
     off_t start_offset, header_offset;
     size_t header_size;
-    ea_header ea;
+    ea_header ea = {0};
 
 
     /* check extension; exts don't seem enforced by EA's tools, but usually:
@@ -121,7 +121,7 @@ fail:
 VGMSTREAM * init_vgmstream_ea_bnk(STREAMFILE *streamFile) {
     off_t start_offset, header_offset, offset, table_offset;
     size_t header_size;
-    ea_header ea;
+    ea_header ea = {0};
     int32_t (*read_32bit)(off_t,STREAMFILE*) = NULL;
     int16_t (*read_16bit)(off_t,STREAMFILE*) = NULL;
     int i, bnk_version;
@@ -285,7 +285,11 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE *streamFile, ea_
             break;
 
         case EA_CODEC2_S16LE:       /* PCM16LE */
-            vgmstream->coding_type = coding_PCM16LE;
+            if (ea->version > 0) {
+                vgmstream->coding_type = coding_PCM16LE;
+            } else { /* Need for Speed III: Hot Pursuit (PC) */
+                vgmstream->coding_type = coding_PCM16_int;
+            }
             break;
 
         case EA_CODEC2_VAG:         /* PS-ADPCM */
@@ -450,7 +454,6 @@ static int parse_variable_header(STREAMFILE* streamFile, ea_header* ea, off_t be
     uint32_t platform_id;
     int is_header_end = 0;
 
-    memset(ea,0,sizeof(ea_header));
 
     /* null defaults as 0 can be valid */
     ea->version = EA_VERSION_NONE;
@@ -468,7 +471,7 @@ static int parse_variable_header(STREAMFILE* streamFile, ea_header* ea, off_t be
         offset += 4 + 4; /* GSTRs have an extra field (config?): ex. 0x01000000, 0x010000D8 BE */
     }
     else if ((platform_id & 0xFFFF0000) == 0x50540000) { /* "PT" = PlaTform */
-        ea->platform = (uint8_t)read_16bitLE(offset + 2,streamFile);
+        ea->platform = (uint16_t)read_16bitLE(offset + 2,streamFile);
         offset += 4;
     }
     else {

@@ -93,6 +93,14 @@ void block_update_ea_schl(off_t block_offset, VGMSTREAM * vgmstream) {
 
             break;
 
+        /* id, size, samples */
+        case coding_PCM16_int:
+            for (i = 0; i < vgmstream->channels; i++) {
+                vgmstream->ch[i].offset = block_offset + 0x0c + (i*0x02);
+            }
+
+            break;
+
         /* id, size, samples, hists-per-channel, stereo/interleaved data */
         case coding_EA_XA:
       //case coding_EA_XA_V2: /* handled in default */
