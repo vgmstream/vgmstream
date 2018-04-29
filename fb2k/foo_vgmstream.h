@@ -61,6 +61,7 @@ class input_vgmstream : public input_stubs {
         bool force_ignore_loop;
         int ignore_loop;
         bool disable_subsongs;
+        int downmix_channels;
 
         /* helpers */
         VGMSTREAM * init_vgmstream_foo(t_uint32 p_subsong, const char * const filename, abort_callback & p_abort);

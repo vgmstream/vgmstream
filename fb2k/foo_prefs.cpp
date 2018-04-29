@@ -20,6 +20,7 @@ static const GUID guid_cfg_LoopCount = { 0xfc8dfd72, 0xfae8, 0x44cc, { 0xbe, 0x9
 static const GUID guid_cfg_FadeLength = { 0x61da7ef1, 0x56a5, 0x4368, { 0xae, 0x6, 0xec, 0x6f, 0xd7, 0xe6, 0x15, 0x5d } };
 static const GUID guid_cfg_FadeDelay = { 0x73907787, 0xaf49, 0x4659, { 0x96, 0x8e, 0x9f, 0x70, 0xa1, 0x62, 0x49, 0xc4 } };
 static const GUID guid_cfg_DisableSubsongs = { 0xa8cdd664, 0xb32b, 0x4a36, { 0x83, 0x07, 0xa0, 0x4c, 0xcd, 0x52, 0xa3, 0x7c } };
+static const GUID guid_cfg_DownmixChannels = { 0x5a0e65dd, 0xeb37, 0x4c67, { 0x9a, 0xb1, 0x3f, 0xb0, 0xc9, 0x7e, 0xb0, 0xe0 } };
 
 static cfg_bool cfg_LoopForever(guid_cfg_LoopForever, DEFAULT_LOOP_FOREVER);
 static cfg_bool cfg_IgnoreLoop(guid_cfg_IgnoreLoop, DEFAULT_IGNORE_LOOP);
@@ -27,6 +28,7 @@ static cfg_string cfg_LoopCount(guid_cfg_LoopCount, DEFAULT_LOOP_COUNT);
 static cfg_string cfg_FadeLength(guid_cfg_FadeLength, DEFAULT_FADE_SECONDS);
 static cfg_string cfg_FadeDelay(guid_cfg_FadeDelay, DEFAULT_FADE_DELAY_SECONDS);
 static cfg_bool cfg_DisableSubsongs(guid_cfg_DisableSubsongs, DEFAULT_DISABLE_SUBSONGS);
+static cfg_string cfg_DownmixChannels(guid_cfg_DownmixChannels, DEFAULT_DOWNMIX_CHANNELS);
 
 // Needs to be here in rder to access the static config
 void input_vgmstream::load_settings()
@@ -38,6 +40,7 @@ void input_vgmstream::load_settings()
 	loop_forever = cfg_LoopForever;
 	ignore_loop = cfg_IgnoreLoop;
     disable_subsongs = cfg_DisableSubsongs;
+    sscanf(cfg_DownmixChannels.get_ptr(),"%d",&downmix_channels);
 }
 
 const char * vgmstream_prefs::get_name()
@@ -70,6 +73,8 @@ BOOL vgmstreamPreferences::OnInitDialog(CWindow, LPARAM)
 
 	CheckDlgButton(IDC_DISABLE_SUBSONGS, cfg_DisableSubsongs?BST_CHECKED:BST_UNCHECKED);
 
+    uSetDlgItemText(m_hWnd, IDC_DOWNMIX_CHANNELS, cfg_DownmixChannels);
+
 	return TRUE;
 }
 
@@ -93,6 +98,8 @@ void vgmstreamPreferences::reset()
 	uSetDlgItemText(m_hWnd, IDC_FADE_DELAY_SECONDS, DEFAULT_FADE_DELAY_SECONDS);
 
     CheckDlgButton(IDC_DISABLE_SUBSONGS, DEFAULT_DISABLE_SUBSONGS?BST_CHECKED:BST_UNCHECKED);
+
+    uSetDlgItemText(m_hWnd, IDC_DOWNMIX_CHANNELS, DEFAULT_DOWNMIX_CHANNELS);
 }
 
 
@@ -107,6 +114,7 @@ void vgmstreamPreferences::apply()
 	double temp_fade_delay_seconds;
 	double temp_loop_count;
 	int consumed;
+    int temp_downmix_channels;
 
 	pfc::string buf;
 	buf = uGetDlgItemText(m_hWnd, IDC_FADE_SECONDS);
@@ -141,6 +149,18 @@ void vgmstreamPreferences::apply()
 				"Error",MB_OK|MB_ICONERROR);
 		return;
 	} else cfg_FadeDelay = buf.get_ptr();
+
+    buf = uGetDlgItemText(m_hWnd, IDC_DOWNMIX_CHANNELS);
+    if (sscanf(buf.get_ptr(),"%d%n",&temp_downmix_channels,&consumed)<1
+        || consumed!=strlen(buf.get_ptr()) ||
+        temp_downmix_channels<0) {
+        uMessageBox(m_hWnd,
+                "Invalid value for Downmix Channels\n"
+                "Must be a number greater than or equal to zero",
+                "Error",MB_OK|MB_ICONERROR);
+        return;
+    } else cfg_DownmixChannels = buf.get_ptr();
+
 }
 
 
@@ -165,6 +185,9 @@ bool vgmstreamPreferences::HasChanged()
 	if(FadeLength != uGetDlgItemText(m_hWnd, IDC_FADE_SECONDS)) return true;
 	if(FadeDelay != uGetDlgItemText(m_hWnd, IDC_FADE_DELAY_SECONDS)) return true;
 	if(LoopCount != uGetDlgItemText(m_hWnd, IDC_LOOP_COUNT)) return true;
+
+    pfc::string DownmixChannels(cfg_DownmixChannels);
+    if(DownmixChannels != uGetDlgItemText(m_hWnd, IDC_DOWNMIX_CHANNELS)) return true;
 
 	return FALSE;
 }
