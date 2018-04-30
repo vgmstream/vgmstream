@@ -405,6 +405,8 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_ea_sps_fb,
     init_vgmstream_ppst,
     init_vgmstream_opus_ppp,
+    init_vgmstream_ubi_bao_pk,
+    init_vgmstream_dsp_switch_audio,
 
     init_vgmstream_txth,  /* should go at the end (lower priority) */
 #ifdef VGM_USE_FFMPEG

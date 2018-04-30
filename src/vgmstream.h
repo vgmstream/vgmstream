@@ -673,6 +673,8 @@ typedef enum {
     meta_OGG_YS8,           /* Ogg Vorbis with encryption (Ys VIII PC) */
     meta_PPST,              /* PPST [Parappa the Rapper (PSP)] */
     meta_OPUS_PPP,          /* .at9 Opus [Penny-Punching Princess (Switch)] */
+    meta_UBI_BAO,           /* Ubisoft BAO */
+    meta_DSP_SWITCH_AUDIO,  /* Gal Gun 2 (Switch) */
 
 #ifdef VGM_USE_FFMPEG
     meta_FFmpeg,

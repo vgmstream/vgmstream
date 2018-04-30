@@ -26,7 +26,7 @@ static const adxkey_info adxkey8_list[] = {
         {0x49e1,0x4a57,0x553d, "karaage",0},
 
         /* Grasshopper Manufacture 0 (Blood+) */
-        {0x5f5d,0x58bd,0x55ed, NULL,0},     // estimated
+        {0x5f5d,0x58bd,0x55ed, NULL,0},     // estimated (keystring not in ELF?)
 
         /* Grasshopper Manufacture 1 (Killer7) */
         {0x50fb,0x5803,0x5701, "GHM",0},
@@ -132,7 +132,7 @@ static const adxkey_info adxkey8_list[] = {
         {0x6731,0x645d,0x566b, NULL,0},     // confirmed unique with guessadx
 
         /* Shakugan no Shana (2006)(Vridge)(Media Works)[PS2] */
-        {0x5fc5,0x63d9,0x599f, NULL,0},     // confirmed unique with guessadx
+        {0x5fc5,0x63d9,0x599f, "FUZETSU",0},
 
         /* Uragiri wa Boku no Namae o Shitteiru (2010)(Kadokawa Shoten)[PS2] */
         {0x4c73,0x4d8d,0x5827, NULL,0},     // confirmed unique with guessadx
@@ -207,6 +207,9 @@ static const adxkey_info adxkey9_list[] = {
         // Super Robot Wars X-Omega (voices) [iOS/Android]
         {0x5152,0x7979,0x152b, NULL,165521992944278},       // 0000968A97978A96
 
+        // AKA to BLUE (Android)
+        {0x03fc,0x0749,0x12EF, NULL,0},                     // guessed with VGAudio (possible key: 1FE0748978 / 136909719928)
+      //{0x0c03,0x0749,0x1459, NULL,0},                     // 2nd guess (possible key: 6018748A2D / 412727151149)
 };
 
 static const int adxkey8_list_count = sizeof(adxkey8_list) / sizeof(adxkey8_list[0]);

@@ -179,6 +179,7 @@ static const char* extension_list[] = {
     "logg", //fake extension, for OGGs
     "lopus", //fake extension, for OPUS
     "lpcm",
+    "lpk",
     "lps",
     "lsf",
     "lstm", //fake extension, for STMs
@@ -243,6 +244,7 @@ static const char* extension_list[] = {
     "past",
     "pcm",
     "pdt",
+    "pk",
     "pnb",
     "pona",
     "pos",
@@ -337,6 +339,7 @@ static const char* extension_list[] = {
     "swag",
     "swav",
     "swd",
+    "switch_audio"
     "sx",
     "sxd",
     "sxd2",
@@ -345,6 +348,8 @@ static const char* extension_list[] = {
     "thp",
     "tk5",
     "tra",
+    "trj",
+    "trm",
     "tun",
     "txtp",
     "tydsp",
@@ -484,7 +489,7 @@ static const coding_info coding_info_list[] = {
         {coding_PSX,                "Playstation 4-bit ADPCM"},
         {coding_PSX_badflags,       "Playstation 4-bit ADPCM (bad flags)"},
         {coding_PSX_cfg,            "Playstation 4-bit ADPCM (configurable)"},
-        {coding_HEVAG,              "Playstation Vita HEVAG 4-bit ADPCM"},
+        {coding_HEVAG,              "Sony HEVAG 4-bit ADPCM"},
 
         {coding_EA_XA,              "Electronic Arts EA-XA 4-bit ADPCM v1"},
         {coding_EA_XA_int,          "Electronic Arts EA-XA 4-bit ADPCM v1 (mono/interleave)"},
@@ -1005,6 +1010,8 @@ static const meta_info meta_info_list[] = {
         {meta_OGG_YS8,              "Ogg Vorbis (Ys VIII header)"},
         {meta_PPST,                 "Parappa PPST header"},
         {meta_OPUS_PPP,             "AT9 OPUS header"},
+        {meta_UBI_BAO,              "Ubisoft BAO header"},
+        {meta_DSP_SWITCH_AUDIO,     "UE4 Switch Audio header"},
 
 #ifdef VGM_USE_FFMPEG
         {meta_FFmpeg,               "FFmpeg supported file format"},

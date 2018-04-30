@@ -406,6 +406,7 @@
     <ClCompile Include="meta\ta_aac.c" />
     <ClCompile Include="meta\thp.c" />
     <ClCompile Include="meta\vgs.c" />
+    <ClCompile Include="meta\ubi_bao.c" />
     <ClCompile Include="meta\ubi_ckd.c" />
     <ClCompile Include="meta\ubi_lyn.c" />
     <ClCompile Include="meta\ubi_raki.c" />

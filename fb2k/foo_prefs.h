@@ -15,6 +15,7 @@
 #define DEFAULT_LOOP_FOREVER false
 #define DEFAULT_IGNORE_LOOP false
 #define DEFAULT_DISABLE_SUBSONGS false
+#define DEFAULT_DOWNMIX_CHANNELS "8"
 
 class vgmstreamPreferences : public CDialogImpl<vgmstreamPreferences>, public preferences_page_instance {
 public:
@@ -42,6 +43,7 @@ public:
 		COMMAND_HANDLER_EX(IDC_FADE_DELAY_SECONDS, EN_CHANGE, OnEditChange)
 		COMMAND_HANDLER_EX(IDC_LOOP_COUNT, EN_CHANGE, OnEditChange)
         COMMAND_HANDLER_EX(IDC_DISABLE_SUBSONGS, BN_CLICKED, OnEditChange)
+        COMMAND_HANDLER_EX(IDC_DOWNMIX_CHANNELS, EN_CHANGE, OnEditChange)
 	END_MSG_MAP()
 private:
 	BOOL OnInitDialog(CWindow, LPARAM);

@@ -56,6 +56,7 @@ input_vgmstream::input_vgmstream() {
     loop_forever = false;
     ignore_loop = 0;
     disable_subsongs = false;
+    downmix_channels = 0;
 
     load_settings();
 }
@@ -228,8 +229,38 @@ bool input_vgmstream::decode_run(audio_chunk & p_chunk,abort_callback & p_abort)
             }
         }
 
-        bytes = (samples_to_do*vgmstream->channels * sizeof(sample_buffer[0]));
-        p_chunk.set_data_fixedpoint((char*)sample_buffer, bytes, vgmstream->sample_rate, vgmstream->channels, 16, audio_chunk::g_guess_channel_config(vgmstream->channels));
+        /* downmix enabled (foobar refuses to do more than 8 channels) */
+        if (downmix_channels > 0 && downmix_channels < vgmstream->channels) {
+            short temp_buffer[OUTBUF_SIZE];
+            int s, ch;
+
+            for (s = 0; s < samples_to_do; s++) {
+                /* copy channels up to max */
+                for (ch = 0; ch < downmix_channels; ch++) {
+                    temp_buffer[s*downmix_channels + ch] = sample_buffer[s*vgmstream->channels + ch];
+                }
+                /* then mix the rest */
+                for (ch = downmix_channels; ch < vgmstream->channels; ch++) {
+                    int downmix_ch = ch % downmix_channels;
+                    int new_sample = ((int)temp_buffer[s*downmix_channels + downmix_ch] + (int)sample_buffer[s*vgmstream->channels + ch]);
+                    new_sample = (int)(new_sample * 0.7); /* limit clipping without removing too much loudness... hopefully */
+                    if (new_sample > 32767) new_sample = 32767;
+                    else if (new_sample < -32768) new_sample = -32768;
+                    temp_buffer[s*downmix_channels + downmix_ch] = (short)new_sample;
+                }
+            }
+
+            /* copy back to global buffer... in case of multithreading stuff? */
+            memcpy(sample_buffer,temp_buffer, samples_to_do*downmix_channels*sizeof(short));
+
+            bytes = (samples_to_do*downmix_channels * sizeof(sample_buffer[0]));
+            p_chunk.set_data_fixedpoint((char*)sample_buffer, bytes, vgmstream->sample_rate, downmix_channels, 16, audio_chunk::g_guess_channel_config(downmix_channels));
+        }
+        else {
+            bytes = (samples_to_do*vgmstream->channels * sizeof(sample_buffer[0]));
+            p_chunk.set_data_fixedpoint((char*)sample_buffer, bytes, vgmstream->sample_rate, vgmstream->channels, 16, audio_chunk::g_guess_channel_config(vgmstream->channels));
+        }
+
 
         decode_pos_samples+=samples_to_do;
         decode_pos_ms=decode_pos_samples*1000LL/vgmstream->sample_rate;
@@ -407,7 +438,10 @@ void input_vgmstream::get_subsong_info(t_uint32 p_subsong, pfc::string_base & ti
         title.set_string(p, e - p);
 
         if (!disable_subsongs && infostream && infostream->num_streams > 1) {
-            sprintf(temp,"#%d",infostream->stream_index);
+            int info_subsong = infostream->stream_index;
+            if (info_subsong==0)
+                info_subsong = 1;
+            sprintf(temp,"#%d",info_subsong);
             title += temp;
 
             if (infostream->stream_name[0] != '\0') {
