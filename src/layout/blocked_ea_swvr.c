@@ -82,7 +82,7 @@ void block_update_ea_swvr(off_t block_offset, VGMSTREAM * vgmstream) {
             break;
 
         default: /* ignore, 0 samples */
-            VGM_LOG("EA SWVR: ignored 0x%08x at 0x%lx\n", block_id, block_offset);
+            //;VGM_LOG("EA SWVR: ignored 0x%08x at 0x%lx\n", block_id, block_offset);
             break;
     }
 
