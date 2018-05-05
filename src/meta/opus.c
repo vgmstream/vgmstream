@@ -233,3 +233,29 @@ VGMSTREAM * init_vgmstream_opus_nop(STREAMFILE *streamFile) {
 fail:
     return NULL;
 }
+
+/* Shin'en variation [Fast RMX (Switch)] */
+VGMSTREAM * init_vgmstream_opus_shinen(STREAMFILE *streamFile) {
+    off_t offset = 0;
+    int num_samples = 0, loop_start = 0, loop_end = 0;
+
+    /* checks */
+    if ( !check_extensions(streamFile,"opus"))
+        goto fail;
+
+    if (read_32bitBE(0x08,streamFile) != 0x01000080)
+        goto fail;
+
+    offset = 0x08;
+    num_samples = 0;
+    loop_start = read_32bitLE(0x00,streamFile);
+    loop_end = read_32bitLE(0x04,streamFile); /* 0 if no loop */
+
+    if (loop_start > loop_end)
+        goto fail; /* just in case */
+
+    return init_vgmstream_opus(streamFile, meta_OPUS, offset, num_samples,loop_start,loop_end);
+fail:
+    return NULL;
+}
+

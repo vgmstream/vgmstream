@@ -55,6 +55,9 @@ VGMSTREAM * init_vgmstream_ea_swvr(STREAMFILE *streamFile) {
     else if (read_32bit(start_offset+0x10, streamFile) == 0x53484452) /* "SHDR" (Future Cop PC) */
         start_offset += read_32bit(start_offset+0x04, streamFile);
 
+    if (read_32bit(start_offset+0x00, streamFile) == 0x46494C4C) /* "FILL" (Freekstyle) */
+        start_offset += read_32bit(start_offset+0x04, streamFile);
+
     total_subsongs = 1;
     block_id = read_32bit(start_offset, streamFile);
 
@@ -65,7 +68,7 @@ VGMSTREAM * init_vgmstream_ea_swvr(STREAMFILE *streamFile) {
             coding = coding_PSX;
             if (read_16bit(start_offset+0x1a, streamFile) == 0x0024) {
                 total_subsongs = read_32bit(start_offset+0x0c, streamFile)+1;
-                sample_rate = 24000;
+                sample_rate = 22050;
             }
             else {
                 sample_rate = 14008;
@@ -75,7 +78,7 @@ VGMSTREAM * init_vgmstream_ea_swvr(STREAMFILE *streamFile) {
         case 0x56414742: /* "VAGB" */
             coding = coding_PSX;
             if (read_16bit(start_offset+0x1a, streamFile) == 0x6400) {
-                sample_rate = 24000;
+                sample_rate = 22050;
             }
             else {
                 sample_rate = 14008;
@@ -85,13 +88,13 @@ VGMSTREAM * init_vgmstream_ea_swvr(STREAMFILE *streamFile) {
         case 0x4453504D: /* "DSPM" */
             coding = coding_NGC_DSP;
             total_subsongs = read_32bit(start_offset+0x0c, streamFile)+1;
-            sample_rate = 24000;
+            sample_rate = 22050;
             channel_count = 2;
             break;
         case 0x44535042: /* "DSPB" */
             coding = coding_NGC_DSP;
             channel_count = 1;
-            sample_rate = 24000;
+            sample_rate = 22050;
             break;
         case 0x4D534943: /* "MSIC" */
             coding = coding_PCM8_U_int;

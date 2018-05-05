@@ -18,6 +18,8 @@ typedef struct {
 
     size_t loop_start_segment;
     size_t loop_end_segment;
+
+    size_t is_layered;
 } txtp_header;
 
 static txtp_header* parse_txtp(STREAMFILE* streamFile);
@@ -28,7 +30,9 @@ static void clean_txtp(txtp_header* txtp);
 VGMSTREAM * init_vgmstream_txtp(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     txtp_header* txtp = NULL;
-    segmented_layout_data *data = NULL;
+    segmented_layout_data *data_s = NULL;
+    layered_layout_data * data_l = NULL;
+    int i;
 
 
     /* checks */
@@ -56,16 +60,14 @@ VGMSTREAM * init_vgmstream_txtp(STREAMFILE *streamFile) {
 
         vgmstream->channel_mask = txtp->entry[0].channel_mask;
     }
-    else {
-        /* multi file */
-        int num_samples, loop_start_sample = 0, loop_end_sample = 0;
-        int i;
-        int loop_flag, channel_count;
+    else if (txtp->is_layered) {
+        /* layered multi file */
+        int channel_count = 0, loop_flag;
 
 
         /* init layout */
-        data = init_layout_segmented(txtp->entry_count);
-        if (!data) goto fail;
+        data_l = init_layout_layered(txtp->entry_count);
+        if (!data_l) goto fail;
 
         /* open each segment subfile */
         for (i = 0; i < txtp->entry_count; i++) {
@@ -73,15 +75,61 @@ VGMSTREAM * init_vgmstream_txtp(STREAMFILE *streamFile) {
             if (!temp_streamFile) goto fail;
             temp_streamFile->stream_index = txtp->entry[i].subsong;
 
-            data->segments[i] = init_vgmstream_from_STREAMFILE(temp_streamFile);
+            data_l->layers[i] = init_vgmstream_from_STREAMFILE(temp_streamFile);
             close_streamfile(temp_streamFile);
-            if (!data->segments[i]) goto fail;
+            if (!data_l->layers[i]) goto fail;
 
-            data->segments[i]->channel_mask = txtp->entry[0].channel_mask;
+            channel_count += data_l->layers[i]->channels;
+        }
+
+        /* setup layered VGMSTREAMs */
+        if (!setup_layout_layered(data_l))
+            goto fail;
+
+        loop_flag = data_l->layers[0]->loop_flag;
+
+        /* build the VGMSTREAM */
+        vgmstream = allocate_vgmstream(channel_count,loop_flag);
+        if (!vgmstream) goto fail;
+
+        vgmstream->sample_rate = data_l->layers[0]->sample_rate;
+        vgmstream->num_samples = data_l->layers[0]->num_samples;
+        vgmstream->loop_start_sample = data_l->layers[0]->loop_start_sample;
+        vgmstream->loop_end_sample = data_l->layers[0]->loop_end_sample;
+
+        vgmstream->meta_type = meta_TXTP;
+        vgmstream->coding_type = data_l->layers[0]->coding_type;
+        vgmstream->layout_type = layout_layered;
+
+        vgmstream->channel_mask = txtp->entry[0].channel_mask;
+
+        vgmstream->layout_data = data_l;
+    }
+    else {
+        /* segmented multi file */
+        int num_samples, loop_start_sample = 0, loop_end_sample = 0;
+        int loop_flag, channel_count;
+
+
+        /* init layout */
+        data_s = init_layout_segmented(txtp->entry_count);
+        if (!data_s) goto fail;
+
+        /* open each segment subfile */
+        for (i = 0; i < txtp->entry_count; i++) {
+            STREAMFILE* temp_streamFile = open_streamfile_by_filename(streamFile, txtp->entry[i].filename);
+            if (!temp_streamFile) goto fail;
+            temp_streamFile->stream_index = txtp->entry[i].subsong;
+
+            data_s->segments[i] = init_vgmstream_from_STREAMFILE(temp_streamFile);
+            close_streamfile(temp_streamFile);
+            if (!data_s->segments[i]) goto fail;
+
+            data_s->segments[i]->channel_mask = txtp->entry[0].channel_mask;
         }
 
         /* setup segmented VGMSTREAMs */
-        if (!setup_layout_segmented(data))
+        if (!setup_layout_segmented(data_s))
             goto fail;
 
         /* get looping and samples */
@@ -89,37 +137,37 @@ VGMSTREAM * init_vgmstream_txtp(STREAMFILE *streamFile) {
             txtp->loop_end_segment = txtp->entry_count;
         loop_flag = (txtp->loop_start_segment > 0 && txtp->loop_start_segment <= txtp->entry_count);
         num_samples = 0;
-        for (i = 0; i < data->segment_count; i++) {
+        for (i = 0; i < data_s->segment_count; i++) {
 
             if (loop_flag && txtp->loop_start_segment == i+1) {
                 loop_start_sample = num_samples;
             }
 
-            num_samples += data->segments[i]->num_samples;
+            num_samples += data_s->segments[i]->num_samples;
 
             if (loop_flag && txtp->loop_end_segment == i+1) {
                 loop_end_sample = num_samples;
             }
         }
 
-        channel_count = data->segments[0]->channels;
+        channel_count = data_s->segments[0]->channels;
 
         /* build the VGMSTREAM */
         vgmstream = allocate_vgmstream(channel_count,loop_flag);
         if (!vgmstream) goto fail;
 
-        vgmstream->sample_rate = data->segments[0]->sample_rate;
+        vgmstream->sample_rate = data_s->segments[0]->sample_rate;
         vgmstream->num_samples = num_samples;
         vgmstream->loop_start_sample = loop_start_sample;
         vgmstream->loop_end_sample = loop_end_sample;
 
         vgmstream->meta_type = meta_TXTP;
-        vgmstream->coding_type = data->segments[0]->coding_type;
+        vgmstream->coding_type = data_s->segments[0]->coding_type;
         vgmstream->layout_type = layout_segmented;
 
-        vgmstream->layout_data = data;
+        vgmstream->layout_data = data_s;
         if (loop_flag)
-            data->loop_segment = txtp->loop_start_segment-1;
+            data_s->loop_segment = txtp->loop_start_segment-1;
     }
 
 
@@ -129,7 +177,8 @@ VGMSTREAM * init_vgmstream_txtp(STREAMFILE *streamFile) {
 fail:
     clean_txtp(txtp);
     close_vgmstream(vgmstream);
-    free_layout_segmented(data);
+    free_layout_segmented(data_s);
+    free_layout_layered(data_l);
     return NULL;
 }
 
@@ -266,6 +315,14 @@ static int parse_keyval(txtp_header * txtp, const char * key, const char * val) 
     }
     else if (0==strcmp(key,"loop_end_segment")) {
         if (!parse_num(val, &txtp->loop_end_segment)) goto fail;
+    }
+    if (0==strcmp(key,"mode")) {
+        if (0==strcmp(val,"layers")) {
+            txtp->is_layered = 1;
+        }
+        else {
+            goto fail;
+        }
     }
     else {
         VGM_LOG("TXTP: unknown key=%s, val=%s\n", key,val);
