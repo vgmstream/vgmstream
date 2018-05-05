@@ -367,6 +367,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_opus_n1,
     init_vgmstream_opus_capcom,
     init_vgmstream_opus_nop,
+    init_vgmstream_opus_shinen,
     init_vgmstream_pc_al2,
     init_vgmstream_pc_ast,
     init_vgmstream_naac,
