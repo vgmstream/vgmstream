@@ -56,7 +56,7 @@ typedef struct {
     int loop_forever;
     int ignore_loop;
     int disable_subsongs;
-    int downmix;
+    int downmix_channels;
 } winamp_config;
 
 winamp_config config;
@@ -318,7 +318,7 @@ static void cfg_char_to_wchar(TCHAR *wdst, size_t wdstsize, const char *src) {
 #define DEFAULT_LOOP_FOREVER  0
 #define DEFAULT_IGNORE_LOOP  0
 #define DEFAULT_DISABLE_SUBSONGS  0
-#define DEFAULT_DOWNMIX  0
+#define DEFAULT_DOWNMIX_CHANNELS  0
 
 #define INI_ENTRY_FADE_SECONDS  TEXT("fade_seconds")
 #define INI_ENTRY_FADE_DELAY_SECONDS  TEXT("fade_delay")
@@ -327,7 +327,7 @@ static void cfg_char_to_wchar(TCHAR *wdst, size_t wdstsize, const char *src) {
 #define INI_ENTRY_LOOP_FOREVER  TEXT("loop_forever")
 #define INI_ENTRY_IGNORE_LOOP  TEXT("ignore_loop")
 #define INI_ENTRY_DISABLE_SUBSONGS  TEXT("disable_subsongs")
-#define INI_ENTRY_DOWNMIX  TEXT("downmix")
+#define INI_ENTRY_DOWNMIX_CHANNELS  TEXT("downmix_channels")
 
 TCHAR *priority_strings[] = {
         TEXT("Idle"),
@@ -434,12 +434,13 @@ static void load_config() {
     //    config.disable_subsongs = DEFAULT_DISABLE_SUBSONGS;
     //}
 
-    config.downmix = GetPrivateProfileInt(CONFIG_APP_NAME,INI_ENTRY_DOWNMIX,DEFAULT_DOWNMIX,iniFile);
-    //if (config.downmix < 0) { //unneeded?
-    //    sprintf(buf, TEXT("%d"),DEFAULT_DOWNMIX);
-    //    WritePrivateProfileString(CONFIG_APP_NAME,INI_ENTRY_DOWNMIX,buf,iniFile);
-    //    config.downmix = DEFAULT_DOWNMIX;
-    //}
+    config.downmix_channels = GetPrivateProfileInt(CONFIG_APP_NAME,INI_ENTRY_DOWNMIX_CHANNELS,DEFAULT_DOWNMIX_CHANNELS,iniFile);
+    if (config.downmix_channels < 0) {
+        cfg_sprintf(buf, TEXT("%d"),DEFAULT_DOWNMIX_CHANNELS);
+        WritePrivateProfileString(CONFIG_APP_NAME,INI_ENTRY_DOWNMIX_CHANNELS,buf,iniFile);
+        config.downmix_channels = DEFAULT_DOWNMIX_CHANNELS;
+    }
+
 }
 
 /* config dialog handler */
@@ -487,8 +488,8 @@ INT_PTR CALLBACK configDlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
             if (config.disable_subsongs)
                 CheckDlgButton(hDlg,IDC_DISABLE_SUBSONGS,BST_CHECKED);
 
-            if (config.downmix)
-                CheckDlgButton(hDlg,IDC_DOWNMIX,BST_CHECKED);
+            cfg_sprintf(buf, TEXT("%d"),config.downmix_channels);
+            SetDlgItemText(hDlg,IDC_DOWNMIX_CHANNELS,buf);
 
             break;
 
@@ -499,6 +500,7 @@ INT_PTR CALLBACK configDlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
                         double temp_fade_seconds;
                         double temp_fade_delay_seconds;
                         double temp_loop_count;
+                        int temp_downmix_channels;
                         int consumed, res;
 
                         GetDlgItemText(hDlg,IDC_FADE_SECONDS,buf,buf_size);
@@ -531,6 +533,17 @@ INT_PTR CALLBACK configDlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
                             break;
                         }
 
+                        GetDlgItemText(hDlg,IDC_DOWNMIX_CHANNELS,buf,buf_size);
+                        res = cfg_sscanf(buf, TEXT("%d%n"),&temp_downmix_channels,&consumed);
+                        if (res < 1 || consumed != cfg_strlen(buf) || temp_downmix_channels < 0) {
+                            MessageBox(hDlg,
+                                    TEXT("Invalid value for Downmix Channels\n")
+                                    TEXT("Must be a number greater than or equal to zero"),
+                                    TEXT("Error"),MB_OK|MB_ICONERROR);
+                            break;
+                        }
+
+
                         GetINIFileName(iniFile);
 
                         config.thread_priority = mypri;
@@ -561,9 +574,13 @@ INT_PTR CALLBACK configDlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
                         cfg_sprintf(buf, TEXT("%d"),config.disable_subsongs);
                         WritePrivateProfileString(CONFIG_APP_NAME,INI_ENTRY_DISABLE_SUBSONGS,buf,iniFile);
 
-                        config.downmix = (IsDlgButtonChecked(hDlg,IDC_DOWNMIX) == BST_CHECKED);
-                        cfg_sprintf(buf, TEXT("%d"),config.downmix);
-                        WritePrivateProfileString(CONFIG_APP_NAME,INI_ENTRY_DOWNMIX,buf,iniFile);
+                        config.loop_count = temp_loop_count;
+                        cfg_sprintf(buf, TEXT("%.2lf"),config.loop_count);
+                        WritePrivateProfileString(CONFIG_APP_NAME,INI_ENTRY_LOOP_COUNT,buf,iniFile);
+
+                        config.downmix_channels = temp_downmix_channels;
+                        cfg_sprintf(buf, TEXT("%d"),config.downmix_channels);
+                        WritePrivateProfileString(CONFIG_APP_NAME,INI_ENTRY_DOWNMIX_CHANNELS,buf,iniFile);
                     }
 
                     EndDialog(hDlg,TRUE);
@@ -593,7 +610,7 @@ INT_PTR CALLBACK configDlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
                     CheckDlgButton(hDlg,IDC_LOOP_NORMALLY,BST_CHECKED);
 
                     CheckDlgButton(hDlg,IDC_DISABLE_SUBSONGS,BST_UNCHECKED);
-                    CheckDlgButton(hDlg,IDC_DOWNMIX,BST_UNCHECKED);
+                    SetDlgItemText(hDlg,IDC_DOWNMIX_CHANNELS,DEFAULT_DOWNMIX_CHANNELS);
                     break;
 
                 default:
@@ -887,8 +904,8 @@ int winamp_Play(const in_char *fn) {
         vgmstream->loop_flag = 0;
 
     output_channels = vgmstream->channels;
-    if (config.downmix)
-        output_channels = vgmstream->channels > 2 ? 2 : vgmstream->channels;
+    if (config.downmix_channels > 0 && config.downmix_channels < vgmstream->channels)
+        output_channels = config.downmix_channels;
 
 
     /* save original name */
@@ -1180,19 +1197,28 @@ DWORD WINAPI __stdcall decode(void *arg) {
             }
 
             /* downmix enabled (useful when the stream's channels are too much for Winamp's output) */
-            if (config.downmix) {
+            if (config.downmix_channels > 0 && config.downmix_channels < vgmstream->channels) {
                 short temp_buffer[(576*2) * 2];
                 int s, ch;
 
-                /* just copy the first channels for now */
                 for (s = 0; s < samples_to_do; s++) {
-                    for (ch = 0; ch < output_channels; ch++) {
-                        temp_buffer[s*output_channels + ch] = sample_buffer[s*vgmstream->channels + ch];
+                    /* copy channels up to max */
+                    for (ch = 0; ch < config.downmix_channels; ch++) {
+                        temp_buffer[s*config.downmix_channels + ch] = sample_buffer[s*vgmstream->channels + ch];
+                    }
+                    /* then mix the rest */
+                    for (ch = config.downmix_channels; ch < vgmstream->channels; ch++) {
+                        int downmix_ch = ch % config.downmix_channels;
+                        int new_sample = ((int)temp_buffer[s*config.downmix_channels + downmix_ch] + (int)sample_buffer[s*vgmstream->channels + ch]);
+                        new_sample = (int)(new_sample * 0.7); /* limit clipping without removing too much loudness... hopefully */
+                        if (new_sample > 32767) new_sample = 32767;
+                        else if (new_sample < -32768) new_sample = -32768;
+                        temp_buffer[s*config.downmix_channels + downmix_ch] = (short)new_sample;
                     }
                 }
 
-                /* copy back to global buffer */
-                memcpy(sample_buffer,temp_buffer, samples_to_do*output_channels*sizeof(short));
+                /* copy back to global buffer... in case of multithreading stuff? */
+                memcpy(sample_buffer,temp_buffer, samples_to_do*config.downmix_channels*sizeof(short));
             }
 
             /* output samples */
