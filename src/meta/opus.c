@@ -240,7 +240,7 @@ VGMSTREAM * init_vgmstream_opus_shinen(STREAMFILE *streamFile) {
     int num_samples = 0, loop_start = 0, loop_end = 0;
 
     /* checks */
-    if ( !check_extensions(streamFile,"opus"))
+    if ( !check_extensions(streamFile,"opus,lopus"))
         goto fail;
 
     if (read_32bitBE(0x08,streamFile) != 0x01000080)
