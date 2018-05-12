@@ -353,6 +353,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_ta_aac_ps3,
     init_vgmstream_ta_aac_mobile,
     init_vgmstream_ta_aac_mobile_vorbis,
+    init_vgmstream_ta_aac_vita,
     init_vgmstream_ps3_mta2,
     init_vgmstream_ngc_ulw,
     init_vgmstream_pc_xa30,

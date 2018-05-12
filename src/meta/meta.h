@@ -647,6 +647,7 @@ VGMSTREAM * init_vgmstream_ta_aac_x360(STREAMFILE *streamFile);
 VGMSTREAM * init_vgmstream_ta_aac_ps3(STREAMFILE *streamFile);
 VGMSTREAM * init_vgmstream_ta_aac_mobile(STREAMFILE *streamFile);
 VGMSTREAM * init_vgmstream_ta_aac_mobile_vorbis(STREAMFILE *streamFile);
+VGMSTREAM * init_vgmstream_ta_aac_vita(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_ps3_mta2(STREAMFILE *streamFile);
 
