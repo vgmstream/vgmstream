@@ -261,8 +261,8 @@ VGMSTREAM * init_vgmstream_ta_aac_mobile(STREAMFILE *streamFile) {
 
 
     /* check extension, case insensitive */
-    /* .aac: expected, .laac/ace: for players to avoid hijacking MP4/AAC */
-    if (!check_extensions(streamFile, "aac,laac,ace"))
+    /* .aac: expected, .laac: for players to avoid hijacking MP4/AAC */
+    if (!check_extensions(streamFile, "aac,laac"))
         goto fail;
 
     if (read_32bitLE(0x00, streamFile) != 0x41414320)   /* "AAC " */
@@ -297,13 +297,76 @@ VGMSTREAM * init_vgmstream_ta_aac_mobile(STREAMFILE *streamFile) {
             vgmstream->layout_type = layout_none;
 
             vgmstream->num_samples = yamaha_bytes_to_samples(data_size, channel_count);
-            vgmstream->loop_start_sample = yamaha_bytes_to_samples(read_32bitLE(0x130, streamFile), channel_count);;
-            vgmstream->loop_end_sample = yamaha_bytes_to_samples(read_32bitLE(0x134, streamFile), channel_count);;
+            vgmstream->loop_start_sample = yamaha_bytes_to_samples(read_32bitLE(0x130, streamFile), channel_count);
+            vgmstream->loop_end_sample = yamaha_bytes_to_samples(read_32bitLE(0x134, streamFile), channel_count);
             break;
 
         default:
             goto fail;
     }
+
+    if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
+        goto fail;
+    return vgmstream;
+
+fail:
+    close_vgmstream(vgmstream);
+    return NULL;
+}
+
+/* Vita variants [Judas Code (Vita)] */
+VGMSTREAM * init_vgmstream_ta_aac_vita(STREAMFILE *streamFile) {
+    VGMSTREAM * vgmstream = NULL;
+    off_t start_offset;
+    int channel_count, loop_flag;
+
+
+    /* check extension, case insensitive */
+    /* .aac: expected, .laac: for players to avoid hijacking MP4/AAC */
+    if (!check_extensions(streamFile, "aac,laac"))
+        goto fail;
+
+    if (read_32bitLE(0x00, streamFile) != 0x41414320)   /* "AAC " */
+        goto fail;
+    if (read_32bitLE(0x14, streamFile) != 0x56495441)   /* "VITA" */
+        goto fail;
+    if (read_32bitLE(0x10d0, streamFile) != 0x57415645)   /* "WAVE" */
+        goto fail;
+
+    /* there is a bunch of chunks but we simplify */
+
+    /* 0x10E4: codec 0x08? */
+    channel_count = read_8bit(0x10E5, streamFile);
+    start_offset = read_32bitLE(0x1100, streamFile);
+    loop_flag = (read_32bitLE(0x1114, streamFile) > 0);
+
+
+    /* build the VGMSTREAM */
+    vgmstream = allocate_vgmstream(channel_count, loop_flag);
+    if (!vgmstream) goto fail;
+
+    vgmstream->sample_rate = read_32bitLE(0x10e8, streamFile);
+    vgmstream->meta_type = meta_TA_AAC_VITA;
+
+#ifdef VGM_USE_ATRAC9
+    {
+        atrac9_config cfg = {0};
+
+        cfg.channels = vgmstream->channels;
+        cfg.encoder_delay = read_32bitLE(0x1124,streamFile);
+        cfg.config_data = read_32bitBE(0x1128,streamFile);
+
+        vgmstream->codec_data = init_atrac9(&cfg);
+        if (!vgmstream->codec_data) goto fail;
+        vgmstream->coding_type = coding_ATRAC9;
+        vgmstream->layout_type = layout_none;
+
+        vgmstream->num_samples = atrac9_bytes_to_samples(read_32bitLE(0x10EC, streamFile), vgmstream->codec_data);
+        vgmstream->num_samples -= cfg.encoder_delay;
+        vgmstream->loop_start_sample = atrac9_bytes_to_samples(read_32bitLE(0x1110, streamFile), vgmstream->codec_data);
+        vgmstream->loop_end_sample = atrac9_bytes_to_samples(read_32bitLE(0x1114, streamFile), vgmstream->codec_data);
+    }
+#endif
 
     if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
         goto fail;

@@ -675,6 +675,7 @@ typedef enum {
     meta_OPUS_PPP,          /* .at9 Opus [Penny-Punching Princess (Switch)] */
     meta_UBI_BAO,           /* Ubisoft BAO */
     meta_DSP_SWITCH_AUDIO,  /* Gal Gun 2 (Switch) */
+    meta_TA_AAC_VITA,       /* tri-Ace AAC (Judas Code) */
 
 #ifdef VGM_USE_FFMPEG
     meta_FFmpeg,
