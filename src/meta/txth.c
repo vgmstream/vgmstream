@@ -63,6 +63,8 @@ typedef struct {
     uint32_t coef_big_endian;
     uint32_t coef_mode;
 
+    int num_samples_data_size;
+
 } txth_header;
 
 static STREAMFILE * open_txth(STREAMFILE * streamFile);
@@ -343,25 +345,29 @@ VGMSTREAM * init_vgmstream_txth(STREAMFILE *streamFile) {
     }
 
 #ifdef VGM_USE_FFMPEG
-    if (txth.sample_type_bytes && (txth.codec == XMA1 || txth.codec == XMA2)) {
+    if ((txth.sample_type_bytes || txth.num_samples_data_size) && (txth.codec == XMA1 || txth.codec == XMA2)) {
         /* manually find sample offsets */
-        ms_sample_data msd;
-        memset(&msd,0,sizeof(ms_sample_data));
+        ms_sample_data msd = {0};
 
         msd.xma_version = 1;
         msd.channels = txth.channels;
         msd.data_offset = txth.start_offset;
         msd.data_size = txth.data_size;
-        msd.loop_flag = txth.loop_flag;
-        msd.loop_start_b = txth.loop_start_sample;
-        msd.loop_end_b   = txth.loop_end_sample;
-        msd.loop_start_subframe = txth.loop_adjust & 0xF; /* lower 4b: subframe where the loop starts, 0..4 */
-        msd.loop_end_subframe   = txth.loop_adjust >> 4;  /* upper 4b: subframe where the loop ends, 0..3 */
+        if (txth.sample_type_bytes) {
+            msd.loop_flag = txth.loop_flag;
+            msd.loop_start_b = txth.loop_start_sample;
+            msd.loop_end_b   = txth.loop_end_sample;
+            msd.loop_start_subframe = txth.loop_adjust & 0xF; /* lower 4b: subframe where the loop starts, 0..4 */
+            msd.loop_end_subframe   = txth.loop_adjust >> 4;  /* upper 4b: subframe where the loop ends, 0..3 */
+        }
 
         xma_get_samples(&msd, streamFile);
+
         vgmstream->num_samples = msd.num_samples;
-        vgmstream->loop_start_sample = msd.loop_start_sample;
-        vgmstream->loop_end_sample = msd.loop_end_sample;
+        if (txth.sample_type_bytes) {
+            vgmstream->loop_start_sample = msd.loop_start_sample;
+            vgmstream->loop_end_sample = msd.loop_end_sample;
+        }
         //skip_samples = msd.skip_samples; //todo add skip samples
     }
 #endif
@@ -524,6 +530,7 @@ static int parse_keyval(STREAMFILE * streamFile, STREAMFILE * streamText, txth_h
     else if (0==strcmp(key,"num_samples")) {
         if (0==strcmp(val,"data_size")) {
             txth->num_samples = get_bytes_to_samples(txth, txth->data_size);
+            txth->num_samples_data_size = 1;
         }
         else {
             if (!parse_num(streamFile,val, &txth->num_samples)) goto fail;

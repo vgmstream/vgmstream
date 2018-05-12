@@ -190,7 +190,7 @@ int ffmpeg_make_riff_xma1(uint8_t * buf, size_t buf_size, size_t sample_count, s
         put_32bitLE(buf+off+0x08, 0); /* loop start */
         put_32bitLE(buf+off+0x0c, 0); /* loop end */
         put_8bit   (buf+off+0x10, 0); /* loop subframe */
-        put_8bit   (buf+off+0x11, channels);
+        put_8bit   (buf+off+0x11, stream_channels);
         put_16bitLE(buf+off+0x12, speakers);
     }
 
