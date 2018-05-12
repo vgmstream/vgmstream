@@ -274,6 +274,7 @@ static const char* extension_list[] = {
     "rwsd",
     "rwx",
     "rxw",
+    "rxx", //txth/reserved [Full Auto (X360)]
 
     "s14",
     "sab",
