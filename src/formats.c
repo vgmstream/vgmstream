@@ -250,7 +250,6 @@ static const char* extension_list[] = {
     "pos",
     "ps2stm", //fake extension for .stm (to be removed)
     "psh", // fake extension for VSV(?) Dawn of Mana needs to be checked again
-    "psi", // PSI Metadata for Opus - BlazBlue: Cross Tag Battle (Switch), Maybe others?
     "psnd",
     "psw", //fake extension for .wam
 
