@@ -9,6 +9,7 @@ VGMSTREAM * init_vgmstream_ktss(STREAMFILE *streamFile) {
     int8_t version;
     int32_t loop_length, coef_start_offset, coef_spacing;
     off_t start_offset;
+    int8_t channelMultiplier;
 
     if (!check_extensions(streamFile, "kns,ktss"))
         goto fail;
@@ -31,7 +32,15 @@ VGMSTREAM * init_vgmstream_ktss(STREAMFILE *streamFile) {
 
     loop_length = read_32bitLE(0x38, streamFile);
     loop_flag = loop_length > 0;
-    channel_count = read_8bit(0x29, streamFile);
+
+    // For unknown reasons, a channel multiplier is necessary in Hyrule Warriors (Switch)
+    // It seems to be present in other Koei Tecmo KNS but the channel count was always
+    // explicitly defined in the 0x29 byte. Here, 10 channel files have '2' in 0x29*
+    // and '5' in 0x28 whereas previous titles usually contained '1'
+    // This is super meh on KT's part but whatever
+    channelMultiplier = read_8bit(0x28, streamFile);
+
+    channel_count = read_8bit(0x29, streamFile) * channelMultiplier;
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count, loop_flag);
