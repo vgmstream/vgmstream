@@ -629,18 +629,25 @@ VGMSTREAM * init_vgmstream_3ds_idsp(STREAMFILE *streamFile) {
 
     /* try NUS3BANK container */
     if (read_32bitBE(0x00,streamFile) == 0x4E555333) { /* "NUS3" */
-        offset  = 0x14 + read_32bitLE(0x10, streamFile); /* header size */
-        offset += read_32bitLE(0x1C, streamFile) + 0x08;
-        offset += read_32bitLE(0x24, streamFile) + 0x08;
-        offset += read_32bitLE(0x2C, streamFile) + 0x08;
-        offset += read_32bitLE(0x34, streamFile) + 0x08;
-        offset += read_32bitLE(0x3C, streamFile) + 0x08;
-        offset += read_32bitLE(0x44, streamFile) + 0x08;
-        offset += 0x08;
+        int i, chunk_count;
+
+        offset = 0x14 + read_32bitLE(0x10, streamFile); /* TOC size */
+        chunk_count = read_32bitLE(0x14, streamFile); /* rarely not 7 (ex. SMB U's snd_bgm_CRS12_Simple_Result_Final) */
+
+        for (i = 0; i < chunk_count; i++) {
+            if (read_32bitBE(0x18 + i*0x08 + 0x00, streamFile) == 0x5041434B) { /* "PACK" */
+                offset += 0x08;
+                break; /* contains "IDSP", should appear last anyway */
+            }
+            else {
+                offset += 0x08 + read_32bitLE(0x18 + i*0x08 + 0x04, streamFile);
+            }
+        }
     }
     else {
         offset = 0x00;
     }
+
 
     if (read_32bitBE(offset,streamFile) != 0x49445350) /* "IDSP" */
         goto fail;
