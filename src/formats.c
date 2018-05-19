@@ -1014,7 +1014,7 @@ static const meta_info meta_info_list[] = {
         {meta_UBI_BAO,              "Ubisoft BAO header"},
         {meta_DSP_SWITCH_AUDIO,     "UE4 Switch Audio header"},
         {meta_TA_AAC_VITA,          "tri-Ace AAC (Vita) header"},
-		{meta_DSP_SADF,             "Procyon Studio SADF header"},
+        {meta_DSP_SADF,             "Procyon Studio SADF header"},
 
 #ifdef VGM_USE_FFMPEG
         {meta_FFmpeg,               "FFmpeg supported file format"},

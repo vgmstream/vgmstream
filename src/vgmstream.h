@@ -282,7 +282,7 @@ typedef enum {
     meta_DSP_WII_WSD,       /* Phantom Brave (WII) */
     meta_WII_NDP,           /* Vertigo (Wii) */
     meta_DSP_YGO,           /* Konami: Yu-Gi-Oh! The Falsebound Kingdom (NGC), Hikaru no Go 3 (NGC) */
-	meta_DSP_SADF,          /* Procyon Studio SADF - Xenoblade Chronicles 2 (Switch) */
+    meta_DSP_SADF,          /* Procyon Studio SADF - Xenoblade Chronicles 2 (Switch) */
 
     /* Nintendo */
     meta_STRM,              /* Nintendo STRM */
