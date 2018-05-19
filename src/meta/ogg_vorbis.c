@@ -215,6 +215,17 @@ static void ys8_ogg_decryption_callback(void *ptr, size_t size, size_t nmemb, vo
     }
 }
 
+static void gwm_ogg_decryption_callback(void *ptr, size_t size, size_t nmemb, void *datasource) {
+    size_t bytes_read = size*nmemb;
+    ogg_vorbis_streamfile * const ov_streamfile = datasource;
+    int i;
+
+    /* bytes are xor'd with key */
+    for (i = 0; i < bytes_read; i++) {
+        ((uint8_t*)ptr)[i] ^= (uint8_t)ov_streamfile->xor_value;
+    }
+}
+
 /* Ogg Vorbis, by way of libvorbisfile; may contain loop comments */
 VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
     ogg_vorbis_meta_info_t ovmi = {0};
@@ -227,6 +238,7 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
     int is_isd = 0;
     int is_rpgmvo = 0;
     int is_eno = 0;
+    int is_gwm = 0;
 
 
     /* check extension */
@@ -248,6 +260,8 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
         is_rpgmvo = 1;
     } else if (check_extensions(streamFile,"eno")) { /* .eno: Metronomicon (PC) */
         is_eno = 1;
+    } else if (check_extensions(streamFile,"gwm")) { /* .gwm: Adagio: Cloudburst (PC) */
+        is_gwm = 1;
     } else {
         goto fail;
     }
@@ -339,6 +353,14 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
         ovmi.meta_type = meta_OGG_ENO;
 
         start_offset = 0x01;
+    }
+
+
+    /* check GWM [Adagio: Cloudburst (PC)], encrypted */
+    if (is_gwm) {
+        ovmi.xor_value = 0x5D;
+        ovmi.decryption_callback = gwm_ogg_decryption_callback;
+        ovmi.meta_type = meta_OGG_GWM;
     }
 
 

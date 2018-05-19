@@ -676,6 +676,7 @@ typedef enum {
     meta_UBI_BAO,           /* Ubisoft BAO */
     meta_DSP_SWITCH_AUDIO,  /* Gal Gun 2 (Switch) */
     meta_TA_AAC_VITA,       /* tri-Ace AAC (Judas Code) */
+    meta_OGG_GWM,           /* Ogg Vorbis with encryption [Metronomicon (PC)] */
 
 #ifdef VGM_USE_FFMPEG
     meta_FFmpeg,
