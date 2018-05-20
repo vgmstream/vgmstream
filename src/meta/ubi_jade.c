@@ -122,8 +122,9 @@ VGMSTREAM * init_vgmstream_ubi_jade(STREAMFILE *streamFile) {
     switch(codec) {
 
         case 0x0069: /* Xbox */
-            if (block_size != 0x24*channel_count)
-                goto fail;
+            if (fmt_size != 0x12) goto fail;
+            if (block_size != 0x24*channel_count) goto fail;
+
             vgmstream->coding_type = coding_XBOX_IMA;
             vgmstream->layout_type = layout_none;
 
@@ -136,8 +137,9 @@ VGMSTREAM * init_vgmstream_ubi_jade(STREAMFILE *streamFile) {
             break;
 
         case 0xFFFF: /* PS2 */
-            if (block_size != 0x10)
-                goto fail;
+            if (fmt_size != 0x12) goto fail;
+            if (block_size != 0x10) goto fail;
+
             vgmstream->coding_type = coding_PSX;
             vgmstream->layout_type = layout_interleave;
 
@@ -159,8 +161,9 @@ VGMSTREAM * init_vgmstream_ubi_jade(STREAMFILE *streamFile) {
             break;
 
         case 0xFFFE: /* GC/Wii */
-            if (block_size != 0x08)
-                goto fail;
+            if (fmt_size != 0x12) goto fail;
+            if (block_size != 0x08) goto fail;
+
             vgmstream->coding_type = coding_NGC_DSP;
             vgmstream->layout_type = layout_interleave;
 
@@ -201,8 +204,9 @@ VGMSTREAM * init_vgmstream_ubi_jade(STREAMFILE *streamFile) {
             break;
 
         case 0x0002: /* PC */
-            if (block_size != 0x24*channel_count)
-                goto fail;
+            if (fmt_size != 0x12) goto fail;
+            if (block_size != 0x24*channel_count) goto fail;
+
             vgmstream->coding_type = coding_MSADPCM;
             vgmstream->layout_type = layout_none;
             vgmstream->interleave_block_size = 0x24*channel_count;
@@ -219,8 +223,8 @@ VGMSTREAM * init_vgmstream_ubi_jade(STREAMFILE *streamFile) {
             VGMSTREAM *temp_vgmstream = NULL;
             STREAMFILE *temp_streamFile = NULL;
 
-            if (block_size != 0x02*channel_count)
-                goto fail;
+            if (fmt_size != 0x10) goto fail;
+            if (block_size != 0x02*channel_count) goto fail;
 
             /* a MSF (usually ATRAC3) masquerading as PCM */
             if (read_32bitBE(start_offset, streamFile) != 0x4D534643) /* "MSF\43" */
