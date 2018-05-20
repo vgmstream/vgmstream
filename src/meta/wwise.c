@@ -40,7 +40,7 @@ typedef struct {
 /* Wwise - Audiokinetic Wwise (Wave Works Interactive Sound Engine) middleware */
 VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    wwise_header ww;
+    wwise_header ww = {0};
     off_t start_offset, first_offset = 0xc;
     int32_t (*read_32bit)(off_t,STREAMFILE*) = NULL;
     int16_t (*read_16bit)(off_t,STREAMFILE*) = NULL;
@@ -57,7 +57,6 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
         (read_32bitBE(0x08,streamFile) != 0x58574D41))      /* "XWMA" */
         goto fail;
 
-    memset(&ww,0,sizeof(wwise_header));
 
     ww.big_endian = read_32bitBE(0x00,streamFile) == 0x52494658;/* RIFX */
     if (ww.big_endian) { /* Wwise honors machine's endianness (PC=RIFF, X360=RIFX --unlike XMA) */
@@ -165,10 +164,19 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
             VGM_LOG("WWISE: unknown codec 0x%x \n", ww.format);
             goto fail;
     }
+
     /* fix for newer Wwise DSP with coefs: Epic Mickey 2 (Wii), Batman Arkham Origins Blackgate (3DS) */
     if (ww.format == 0x0002 && ww.extra_size == 0x0c + ww.channels * 0x2e) {
         ww.codec = DSP;
     }
+    else if (ww.format == 0x0002 && ww.block_align == 0x104 * ww.channels) {
+        //ww.codec = SWITCH_ADPCM;
+        /* unknown codec, found in Bayonetta 2 (Switch)
+         * frames of 0x104 per ch, possibly frame header is hist1(2)/hist2(2)/predictor(1)
+         * (may write 2 header samples + FF*2 nibbles = 0x200 samples per block?) */
+        goto fail;
+    }
+
 
     /* Some Wwise files (ex. Oddworld PSV, Bayonetta 2 WiiU, often in BGM.bnk) are truncated mirrors of another file.
      * They come in RAM banks, probably to play the beginning while the rest of the real stream loads.
@@ -196,6 +204,7 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
     switch(ww.codec) {
         case PCM: /* common */
             /* normally riff.c has priority but it's needed when .wem is used */
+            if (ww.fmt_size != 0x10 && ww.fmt_size != 0x18) goto fail; /* old, new */
             if (ww.bits_per_sample != 16) goto fail;
 
             vgmstream->coding_type = (ww.big_endian ? coding_PCM16BE : coding_PCM16LE);
@@ -209,8 +218,10 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
             /* slightly modified XBOX-IMA */
             /* Wwise reuses common codec ids (ex. 0x0002 MSADPCM) for IMA so this parser should go AFTER riff.c avoid misdetection */
 
+            if (ww.fmt_size != 0x28 && ww.fmt_size != 0x18) goto fail; /* old, new */
             if (ww.bits_per_sample != 4) goto fail;
             if (ww.block_align != 0x24 * ww.channels) goto fail;
+
             vgmstream->coding_type = coding_WWISE_IMA;
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = ww.block_align / ww.channels;
@@ -227,9 +238,8 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
             /* Wwise uses custom Vorbis, which changed over time (config must be detected to pass to the decoder). */
             off_t vorb_offset, data_offsets, block_offsets;
             size_t vorb_size, setup_offset, audio_offset;
-            vorbis_custom_config cfg;
+            vorbis_custom_config cfg = {0};
 
-            memset(&cfg, 0, sizeof(vorbis_custom_config));
             cfg.channels = ww.channels;
             cfg.sample_rate = ww.sample_rate;
             cfg.big_endian = ww.big_endian;
@@ -369,11 +379,12 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
             size_t wiih_size;
             int i;
 
+            //if (ww.fmt_size != 0x28 && ww.fmt_size != ?) goto fail; /* old, new */
             if (ww.bits_per_sample != 4) goto fail;
 
             vgmstream->coding_type = coding_NGC_DSP;
             vgmstream->layout_type = layout_interleave;
-            vgmstream->interleave_block_size = 0x8; /* ww.block_align = 0x8 in older Wwise, samples per block in newer Wwise */
+            vgmstream->interleave_block_size = 0x08; /* ww.block_align = 0x8 in older Wwise, samples per block in newer Wwise */
 
             /* find coef position */
             if (find_chunk(streamFile, 0x57696948,first_offset,0, &wiih_offset,&wiih_size, ww.big_endian, 0)) { /*"WiiH"*/ /* older Wwise */
@@ -406,6 +417,7 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
             off_t xma2_offset;
             size_t xma2_size;
 
+            if (ww.fmt_size != 0x20 && ww.fmt_size != 0x34 && ww.fmt_size != 0x40) goto fail; /* XMA1, XMA2old, XMA2new */
             if (!ww.big_endian) goto fail; /* must be Wwise (real XMA are LE and parsed elsewhere) */
 
             if (find_chunk(streamFile, 0x584D4132,first_offset,0, &xma2_offset,&xma2_size, ww.big_endian, 0)) { /*"XMA2"*/ /* older Wwise */
@@ -413,7 +425,6 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
             } else { /* newer Wwise */
                 bytes = ffmpeg_make_riff_xma_from_fmt_chunk(buf,0x100, ww.fmt_offset, ww.fmt_size, ww.data_size, streamFile, ww.big_endian);
             }
-            if (bytes <= 0) goto fail;
 
             vgmstream->codec_data = init_ffmpeg_header_offset(streamFile, buf,bytes, ww.data_offset,ww.data_size);
             if ( !vgmstream->codec_data ) goto fail;
@@ -435,11 +446,10 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
             uint8_t buf[0x100];
             int bytes;
 
+            if (ww.fmt_size != 0x18) goto fail;
             if (!ww.big_endian) goto fail; /* must be from Wwise X360 (PC LE XWMA is parsed elsewhere) */
 
             bytes = ffmpeg_make_riff_xwma(buf,0x100, ww.format, ww.data_size, vgmstream->channels, vgmstream->sample_rate, ww.average_bps, ww.block_align);
-            if (bytes <= 0) goto fail;
-
             ffmpeg_data = init_ffmpeg_header_offset(streamFile, buf,bytes, ww.data_offset,ww.data_size);
             if ( !ffmpeg_data ) goto fail;
             vgmstream->codec_data = ffmpeg_data;
@@ -449,8 +459,7 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
 
             /* manually find total samples, why don't they put this in the header is beyond me */
             {
-                ms_sample_data msd;
-                memset(&msd,0,sizeof(ms_sample_data));
+                ms_sample_data msd = {0};
 
                 msd.channels = ww.channels;
                 msd.data_offset = ww.data_offset;
@@ -472,6 +481,8 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
 
         case AAC: {     /* iOS/Mac */
             ffmpeg_codec_data * ffmpeg_data = NULL;
+
+            if (ww.fmt_size != 0x24) goto fail;
             if (ww.block_align != 0 || ww.bits_per_sample != 0) goto fail;
 
             /* extra: size 0x12, unknown values */
@@ -489,7 +500,7 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
         case OPUS: {    /* Switch */
             uint8_t buf[0x100];
             size_t bytes, skip;
-            ffmpeg_custom_config cfg;
+            ffmpeg_custom_config cfg = {0};
 
             /* values up to 0x14 seem fixed and similar to HEVAG's (block_align 0x02/04, bits_per_sample 0x10) */
             if (ww.fmt_size == 0x28) {
@@ -508,13 +519,10 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
 
             skip = 0; /* Wwise doesn't seem to use it? (0x138 /0x3E8 ~default) */
 
-            bytes = ffmpeg_make_opus_header(buf,0x100, ww.channels, skip, ww.sample_rate);
-            if (bytes <= 0) goto fail;
-
-            memset(&cfg, 0, sizeof(ffmpeg_custom_config));
             cfg.type = FFMPEG_SWITCH_OPUS;
             //cfg.big_endian = ww.big_endian; /* internally BE */
 
+            bytes = ffmpeg_make_opus_header(buf,0x100, ww.channels, skip, ww.sample_rate);
             vgmstream->codec_data = init_ffmpeg_config(streamFile, buf,bytes, start_offset,ww.data_size, &cfg);
             if (!vgmstream->codec_data) goto fail;
 
@@ -529,6 +537,7 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
             //ww.bits_per_sample; /* unknown (0x10) */
             //if (ww.bits_per_sample != 4) goto fail;
 
+            if (ww.fmt_size != 0x18) goto fail;
             if (ww.big_endian) goto fail;
 
             /* extra_data: size 0x06, @0x00: samples per block (0x1c), @0x04: channel config */
@@ -543,6 +552,8 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
 #ifdef VGM_USE_ATRAC9
         case ATRAC9: {  /* PSV/PS4 */
             atrac9_config cfg = {0};
+
+            if (ww.fmt_size != 0x24) goto fail;
             if (ww.extra_size != 0x12) goto fail;
 
             cfg.channels = vgmstream->channels;

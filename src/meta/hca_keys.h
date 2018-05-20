@@ -231,6 +231,9 @@ static const hcakey_info hcakey_list[] = {
         // Oira (Cygames) [iOS/Android]
         {46460622},                 // 0000000002C4EECE
 
+        // Dragon Ball Legends (Bandai Namco) [iOS/Android]
+        {7335633962698440504},      // 65CD683924EE7F38
+
 };
 
 #endif/*_HCA_KEYS_H_*/

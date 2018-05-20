@@ -215,6 +215,17 @@ static void ys8_ogg_decryption_callback(void *ptr, size_t size, size_t nmemb, vo
     }
 }
 
+static void gwm_ogg_decryption_callback(void *ptr, size_t size, size_t nmemb, void *datasource) {
+    size_t bytes_read = size*nmemb;
+    ogg_vorbis_streamfile * const ov_streamfile = datasource;
+    int i;
+
+    /* bytes are xor'd with key */
+    for (i = 0; i < bytes_read; i++) {
+        ((uint8_t*)ptr)[i] ^= (uint8_t)ov_streamfile->xor_value;
+    }
+}
+
 /* Ogg Vorbis, by way of libvorbisfile; may contain loop comments */
 VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
     ogg_vorbis_meta_info_t ovmi = {0};
@@ -223,17 +234,15 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
     int is_ogg = 0;
     int is_um3 = 0;
     int is_kovs = 0;
-    int is_psychic = 0;
     int is_sngw = 0;
     int is_isd = 0;
-    int is_l2sd = 0;
     int is_rpgmvo = 0;
     int is_eno = 0;
-    int is_ys8 = 0;
+    int is_gwm = 0;
 
 
     /* check extension */
-    /* .ogg: standard/psychic, .logg: renamed for plugins,
+    /* .ogg: standard/various, .logg: renamed for plugins,
      * .adx: KID [Remember11 (PC)],
      * .rof: The Rhythm of Fighters (Mobile)
      * .acm: Planescape Torment Enhanced Edition (PC) */
@@ -251,26 +260,32 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
         is_rpgmvo = 1;
     } else if (check_extensions(streamFile,"eno")) { /* .eno: Metronomicon (PC) */
         is_eno = 1;
+    } else if (check_extensions(streamFile,"gwm")) { /* .gwm: Adagio: Cloudburst (PC) */
+        is_gwm = 1;
     } else {
         goto fail;
     }
 
-    /* check standard Ogg Vorbis */
+    /* check standard Ogg Vorbis and variations */
     if (is_ogg) {
-        if (read_32bitBE(0x00,streamFile) == 0x2c444430) { /* Psychic Software obfuscation [Darkwind: War on Wheels (PC)] */
-            is_psychic = 1;
+        if (read_32bitBE(0x00,streamFile) == 0x2c444430) { /* Psychic Software [Darkwind: War on Wheels (PC)] */
             ovmi.decryption_callback = psychic_ogg_decryption_callback;
+            ovmi.meta_type = meta_OGG_PSYCHIC;
         }
         else if (read_32bitBE(0x00,streamFile) == 0x4C325344) { /* "L2SD" [Lineage II Chronicle 4 (PC)] */
-            is_l2sd = 1;
             ovmi.decryption_callback = l2sd_ogg_decryption_callback;
+            ovmi.meta_type = meta_OGG_L2SD;
         }
         else if (read_32bitBE(0x00,streamFile) == 0x048686C5) { /* XOR'ed + bitswapped "OggS" [Ys VIII (PC)] */
-            is_ys8 = 1;
+            ovmi.xor_value = 0xF0;
             ovmi.decryption_callback = ys8_ogg_decryption_callback;
+            ovmi.meta_type = meta_OGG_YS8;
         }
-        else if (read_32bitBE(0x00,streamFile) != 0x4f676753) { /* "OggS" */
-            goto fail; /* unknown/not ogg (ex. Wwise) */
+        else if (read_32bitBE(0x00,streamFile) == 0x4f676753) { /* "OggS" */
+            ovmi.meta_type = meta_OGG_VORBIS;
+        }
+        else {
+            goto fail; /* unknown/not Ogg Vorbis (ex. Wwise) */
         }
     }
 
@@ -279,9 +294,10 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
         if (read_32bitBE(0x00,streamFile) != 0x4f676753) { /* "OggS" */
             ovmi.decryption_callback = um3_ogg_decryption_callback;
         }
+        ovmi.meta_type = meta_OGG_UM3;
     }
 
-    /* check KOVS (Koei Tecmo games), encrypted and has an actual header */
+    /* check KOVS (Koei Tecmo games), header + encrypted */
     if (is_kovs) {
         if (read_32bitBE(0x00,streamFile) != 0x4b4f5653) { /* "KOVS" */
             goto fail;
@@ -289,6 +305,7 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
         ovmi.loop_start = read_32bitLE(0x08,streamFile);
         ovmi.loop_flag = (ovmi.loop_start != 0);
         ovmi.decryption_callback = kovs_ogg_decryption_callback;
+        ovmi.meta_type = meta_OGG_KOVS;
 
         start_offset = 0x20;
     }
@@ -299,11 +316,13 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
             ovmi.xor_value = read_32bitBE(0x00,streamFile);
             ovmi.decryption_callback = sngw_ogg_decryption_callback;
         }
+        ovmi.meta_type = meta_OGG_SNGW;
     }
 
-    /* check ISD (Gunvolt PC) */
+    /* check ISD [Gunvolt (PC)], encrypted */
     if (is_isd) {
         ovmi.decryption_callback = isd_ogg_decryption_callback;
+        ovmi.meta_type = meta_OGG_ISD;
 
         //todo looping unknown, not in Ogg comments
         // game has sound/GV_steam.* files with info about sound/stream/*.isd
@@ -314,52 +333,36 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
         //   0x0c(2): PCM block size, 0x0e(2): PCM bps, 0x10: null, 0x18: samples (in PCM bytes)
     }
 
-    /* check RPGMKVO (RPG Maker MV), header + minor encryption */
+    /* check RPGMKVO [RPG Maker MV (PC)], header + partially encrypted */
     if (is_rpgmvo) {
         if (read_32bitBE(0x00,streamFile) != 0x5250474D &&  /* "RPGM" */
             read_32bitBE(0x00,streamFile) != 0x56000000) {  /* "V\0\0\0" */
             goto fail;
         }
         ovmi.decryption_callback = rpgmvo_ogg_decryption_callback;
+        ovmi.meta_type = meta_OGG_RPGMV;
 
         start_offset = 0x10;
     }
 
-    /* check ENO [Metronomicon (PC)] */
+    /* check ENO [Metronomicon (PC)], key + encrypted */
     if (is_eno) {
         /* first byte probably derives into xor key, but this works too */
         ovmi.xor_value = read_8bit(0x05,streamFile); /* always zero = easy key */
         ovmi.decryption_callback = eno_ogg_decryption_callback;
+        ovmi.meta_type = meta_OGG_ENO;
+
         start_offset = 0x01;
     }
 
-    /* check Ys VIII (PC) */
-    if (is_ys8) {
-        ovmi.xor_value = 0xF0;
-        ovmi.decryption_callback = ys8_ogg_decryption_callback;
+
+    /* check GWM [Adagio: Cloudburst (PC)], encrypted */
+    if (is_gwm) {
+        ovmi.xor_value = 0x5D;
+        ovmi.decryption_callback = gwm_ogg_decryption_callback;
+        ovmi.meta_type = meta_OGG_GWM;
     }
 
-    if (is_um3) {
-        ovmi.meta_type = meta_OGG_UM3;
-    } else if (is_kovs) {
-        ovmi.meta_type = meta_OGG_KOVS;
-    } else if (is_psychic) {
-        ovmi.meta_type = meta_OGG_PSYCHIC;
-    } else if (is_sngw) {
-        ovmi.meta_type = meta_OGG_SNGW;
-    } else if (is_isd) {
-        ovmi.meta_type = meta_OGG_ISD;
-    } else if (is_l2sd) {
-        ovmi.meta_type = meta_OGG_L2SD;
-    } else if (is_rpgmvo) {
-        ovmi.meta_type = meta_OGG_RPGMV;
-    } else if (is_eno) {
-        ovmi.meta_type = meta_OGG_ENO;
-    } else if (is_ys8) {
-        ovmi.meta_type = meta_OGG_YS8;
-    } else {
-        ovmi.meta_type = meta_OGG_VORBIS;
-    }
 
     return init_vgmstream_ogg_vorbis_callbacks(streamFile, NULL, start_offset, &ovmi);
 
