@@ -316,7 +316,7 @@ static int parse_keyval(txtp_header * txtp, const char * key, const char * val) 
     else if (0==strcmp(key,"loop_end_segment")) {
         if (!parse_num(val, &txtp->loop_end_segment)) goto fail;
     }
-    if (0==strcmp(key,"mode")) {
+    else if (0==strcmp(key,"mode")) {
         if (0==strcmp(val,"layers")) {
             txtp->is_layered = 1;
         }
