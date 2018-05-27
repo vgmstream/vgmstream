@@ -26,7 +26,7 @@ static const int wma_block_align_index[17] = {
 };
 
 
-typedef enum { PCM, XBOX_ADPCM, MS_ADPCM, XMA1, XMA2, WMA, XWMA, ATRAC3, OGG, DSP } xact_codec;
+typedef enum { PCM, XBOX_ADPCM, MS_ADPCM, XMA1, XMA2, WMA, XWMA, ATRAC3, OGG, DSP, ATRAC9_RIFF } xact_codec;
 typedef struct {
     int little_endian;
     int version;
@@ -70,6 +70,7 @@ typedef struct {
 } xwb_header;
 
 static void get_name(char * buf, size_t maxsize, int target_subsong, xwb_header * xwb, STREAMFILE *streamFile);
+static STREAMFILE* setup_subfile_streamfile(STREAMFILE *streamFile, off_t subfile_offset, size_t subfile_size, const char* fake_ext);
 
 
 /* XWB - XACT Wave Bank (Microsoft SDK format for XBOX/XBOX360/Windows) */
@@ -293,37 +294,44 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
         }
     }
 
-    /* Techland's bizarre format hijack (Nail'd, Sniper: Ghost Warrior PS3).
-     * Somehow they used XWB + ATRAC3 in their PS3 games, very creative */
+
+    /* format hijacks from creative devs, using non-official codecs */
     if (xwb.version == XACT_TECHLAND && xwb.codec == XMA2 /* XACT_TECHLAND used in their X360 games too */
-            && (xwb.block_align == 0x60 || xwb.block_align == 0x98 || xwb.block_align == 0xc0) ) {
-        xwb.codec = ATRAC3; /* standard ATRAC3 blocks sizes; no other way to identify (other than reading data) */
+            && (xwb.block_align == 0x60 || xwb.block_align == 0x98 || xwb.block_align == 0xc0) ) { /* standard ATRAC3 blocks sizes */
+        /* Techland ATRAC3 [Nail'd (PS3), Sniper: Ghost Warrior (PS3)] */
+        xwb.codec = ATRAC3;
 
         /* num samples uses a modified entry_info format (maybe skip samples + samples? sfx use the standard format)
          * ignore for now and just calc max samples */
         xwb.num_samples = atrac3_bytes_to_samples(xwb.stream_size, xwb.block_align * xwb.channels);
     }
-
-    /* Oddworld: Stranger's Wrath iOS/Android format hijack, with changed meanings */
-    if (xwb.codec == OGG) {
+    else if (xwb.codec == OGG) {
+        /* Oddworld: Stranger's Wrath (iOS/Android) */
         xwb.num_samples = xwb.stream_size / (2 * xwb.channels); /* uncompressed bytes */
         xwb.stream_size = xwb.loop_end;
         xwb.loop_start = 0;
         xwb.loop_end = 0;
     }
-
-    /* Stardew Valley (Switch) format hijack, with full interleaved DSPs (including headers) */
-    if (xwb.version == XACT3_0_MAX && xwb.codec == XMA2
-            && xwb.bits_per_sample == 0x01 && xwb.block_align == 0x04 && xwb.data_size == 0x55951c1c) {
+    else if (xwb.version == XACT3_0_MAX && xwb.codec == XMA2
+            && xwb.bits_per_sample == 0x01 && xwb.block_align == 0x04
+            && xwb.data_size == 0x55951c1c) { /* some kind of id? */
+        /* Stardew Valley (Switch), full interleaved DSPs (including headers) */
         xwb.codec = DSP;
     }
+    else if (xwb.version == XACT3_0_MAX && xwb.codec == XMA2
+            && xwb.bits_per_sample == 0x01 && xwb.block_align == 0x04
+            && xwb.data_size == 0x4e0a1000) { /* some kind of id? */
+        /* Stardew Valley (Vita), standard RIFF with ATRAC9 */
+        xwb.codec = ATRAC9_RIFF;
+    }
+
 
     /* test loop after the above fixes */
     xwb.loop_flag = (xwb.loop_end > 0 || xwb.loop_end_sample > xwb.loop_start)
         && !(xwb.entry_flags & WAVEBANKENTRY_FLAGS_IGNORELOOP);
 
     /* Oddworld OGG the data_size value is size of uncompressed bytes instead;  DSP uses some id/config as value */
-    if (xwb.codec != OGG && xwb.codec != DSP) {
+    if (xwb.codec != OGG && xwb.codec != DSP && xwb.codec != ATRAC9_RIFF) {
         /* some low-q rips don't remove padding, relax validation a bit */
         if (xwb.data_offset + xwb.data_size > get_streamfile_size(streamFile))
             goto fail;
@@ -516,7 +524,6 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
             vgmstream->layout_type = layout_none;
             break;
         }
-
 #endif
 
         case DSP: { /* Stardew Valley (Switch) extension */
@@ -529,6 +536,30 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
             xwb.stream_offset += 0x60; /* skip DSP header */
             break;
         }
+
+#ifdef VGM_USE_ATRAC9
+        case ATRAC9_RIFF: { /* Stardew Valley (Vita) extension */
+            VGMSTREAM *temp_vgmstream = NULL;
+            STREAMFILE *temp_streamFile = NULL;
+
+            /* standard RIFF, use subfile (seems doesn't use xwb loops) */
+            VGM_ASSERT(xwb.loop_flag, "XWB: RIFF ATRAC9 loop flag found\n");
+
+            temp_streamFile = setup_subfile_streamfile(streamFile, xwb.stream_offset,xwb.stream_size, "at9");
+            if (!temp_streamFile) goto fail;
+
+            temp_vgmstream = init_vgmstream_riff(temp_streamFile);
+            close_streamfile(temp_streamFile);
+            if (!temp_vgmstream) goto fail;
+
+            temp_vgmstream->num_streams = vgmstream->num_streams;
+            temp_vgmstream->stream_size = vgmstream->stream_size;
+            temp_vgmstream->meta_type = vgmstream->meta_type;
+
+            close_vgmstream(vgmstream);
+            return temp_vgmstream;
+        }
+#endif
 
         default:
             goto fail;
@@ -546,6 +577,30 @@ fail:
     return NULL;
 }
 
+/* ****************************************************************************** */
+
+static STREAMFILE* setup_subfile_streamfile(STREAMFILE *streamFile, off_t subfile_offset, size_t subfile_size, const char* fake_ext) {
+    STREAMFILE *temp_streamFile = NULL, *new_streamFile = NULL;
+
+    /* setup subfile */
+    new_streamFile = open_wrap_streamfile(streamFile);
+    if (!new_streamFile) goto fail;
+    temp_streamFile = new_streamFile;
+
+    new_streamFile = open_clamp_streamfile(temp_streamFile, subfile_offset,subfile_size);
+    if (!new_streamFile) goto fail;
+    temp_streamFile = new_streamFile;
+
+    new_streamFile = open_fakename_streamfile(temp_streamFile, NULL,fake_ext);
+    if (!new_streamFile) goto fail;
+    temp_streamFile = new_streamFile;
+
+    return temp_streamFile;
+
+fail:
+    close_streamfile(temp_streamFile);
+    return NULL;
+}
 
 /* ****************************************************************************** */
 
