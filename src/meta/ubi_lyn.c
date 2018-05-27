@@ -159,12 +159,9 @@ VGMSTREAM * init_vgmstream_ubi_lyn(STREAMFILE *streamFile) {
             mpeg_custom_config cfg = {0};
             int i;
 
-            if (read_32bitLE(start_offset+0x00,streamFile) != 2) /* id? */
-               goto fail;
-
             cfg.interleave = read_32bitLE(start_offset+0x04,streamFile);
-            cfg.chunk_size = read_32bitLE(start_offset+0x08,streamFile);
-            /* 0x08: frame size, 0x0c: frame per interleave, 0x10: samples per frame */
+            cfg.chunk_size = read_32bitLE(start_offset+0x08,streamFile); /* frame size (not counting MPEG padding?) */
+            /* 0x00: id? (2=Tintin, 3=Michael Jackson), 0x0c: frame per interleave, 0x10: samples per frame */
 
             /* skip seek tables and find actual start */
             start_offset += 0x14;

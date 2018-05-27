@@ -147,7 +147,8 @@ mpeg_codec_data *init_mpeg_custom(STREAMFILE *streamFile, off_t start_offset, co
 
     if (channels <= 0 || channels > 16) goto fail; /* arbitrary max */
     if (channels < data->channels_per_frame) goto fail;
-    if (data->default_buffer_size > 0x8000) goto fail;
+    //todo simplify/unify XVAG/P3D/SCD/LYN and just feed arbitrary chunks to the decoder
+    if (data->default_buffer_size > 0x10000) goto fail; /* max for some Ubi Lyn */
 
 
     /* init streams */

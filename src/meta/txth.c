@@ -687,13 +687,15 @@ static int get_bytes_to_samples(txth_header * txth, uint32_t bytes) {
             if (!txth->interleave) return 0;
             return bytes / txth->interleave * 256 * txth->channels;
 
-        /* untested */
         case IMA:
         case DVI_IMA:
+            return ima_bytes_to_samples(bytes, txth->channels);
+        case AICA:
+            return aica_bytes_to_samples(bytes, txth->channels);
+
+        /* untested */
         case SDX2:
             return bytes;
-        case AICA:
-            return bytes * 2 / txth->channels;
         case NGC_DTK:
             return bytes / 32 * 28; /* always stereo? */
         case APPLE_IMA4:
