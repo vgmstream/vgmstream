@@ -259,6 +259,7 @@ static const char* extension_list[] = {
     "rak",
     "ras",
     "raw",
+    "rda", //FFmpeg/reserved [Rhythm Destruction (PC)]
     "rkv",
     "rnd",
     "rof",
@@ -294,7 +295,7 @@ static const char* extension_list[] = {
     "scd",
     "sck",
     "sd9",
-    "sdf",
+    "sdf", //txth/reserved [Gummy Bears Mini Golf (3DS), Agent Hugo - Lemoon Twist (PS2)]
     "sdt",
     "seg",
     "sf0",
