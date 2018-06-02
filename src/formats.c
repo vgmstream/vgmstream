@@ -28,9 +28,11 @@ static const char* extension_list[] = {
     "afc",
     "agsc",
     "ahx",
-    "aifc",
-    "aifcl",
+    //"aif", //common
+    "aifc", //common?
+    "aifcl", //fake extension, for AIF???
     //"aiff", //common
+    "aiffl", //fake extension, for AIF???
     "aix",
     "akb",
     "al2",
@@ -687,8 +689,8 @@ static const meta_info meta_info_list[] = {
         {meta_SADL,                 "Procyon Studio SADL header"},
         {meta_PS2_BMDX,             "Beatmania .bmdx header"},
         {meta_DSP_WSI,              "Alone in the Dark .WSI header"},
-        {meta_AIFC,                 "Audio Interchange File Format AIFF-C"},
-        {meta_AIFF,                 "Audio Interchange File Format"},
+        {meta_AIFC,                 "Apple AIFF-C (Audio Interchange File Format) header"},
+        {meta_AIFF,                 "Apple AIFF (Audio Interchange File Format) header"},
         {meta_STR_SNDS,             ".str SNDS SHDR chunk"},
         {meta_WS_AUD,               "Westwood Studios .aud header"},
         {meta_WS_AUD_old,           "Westwood Studios .aud (old) header"},
@@ -798,7 +800,7 @@ static const meta_info meta_info_list[] = {
         {meta_YDSP,                 "Yuke's DSP (YDSP) Header"},
         {meta_MSVP,                 "MSVP Header"},
         {meta_NGC_SSM,              "SSM DSP Header"},
-        {meta_PS2_JOE,              "Disney/Pixar JOE Header"},
+        {meta_PS2_JOE,              "Asobo Studio .JOE header"},
         {meta_VGS,                  "Guitar Hero VGS Header"},
         {meta_DC_DCSW_DCS,          "Evil Twin DCS file with helper"},
         {meta_WII_SMP,              "SMP DSP Header"},
