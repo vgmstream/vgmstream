@@ -238,7 +238,7 @@ static int add_filename(txtp_header * txtp, char *filename) {
                 if (sscanf(config, "%d~%d", &subsong_start, &subsong_end) == 2) {
                     if (subsong_start > 0 && subsong_end > 0) {
                         range_start = subsong_start-1;
-                        range_end = subsong_end-1;
+                        range_end = subsong_end;
                     }
                 }
                 else if (sscanf(config, "%u", &subsong_start) == 1) {

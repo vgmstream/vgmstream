@@ -43,6 +43,7 @@ void block_update_xvag_subsong(off_t block_offset, VGMSTREAM * vgmstream);
 void block_update_ea_wve_au00(off_t block_offset, VGMSTREAM * vgmstream);
 void block_update_ea_wve_ad10(off_t block_offset, VGMSTREAM * vgmstream);
 void block_update_sthd(off_t block_offset, VGMSTREAM * vgmstream);
+void block_update_h4m(off_t block_offset, VGMSTREAM * vgmstream);
 
 /* other layouts */
 void render_vgmstream_interleave(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstream);

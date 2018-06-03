@@ -484,6 +484,10 @@
                     RelativePath=".\meta\gtd.c"
                     >
                 </File>
+                <File
+                    RelativePath=".\meta\h4m.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\halpst.c"
 					>
@@ -1822,6 +1826,10 @@
 					RelativePath=".\layout\blocked_gsb.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\layout\blocked_h4m.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\layout\blocked_halpst.c"
 					>

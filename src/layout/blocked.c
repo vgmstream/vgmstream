@@ -202,6 +202,9 @@ static void block_update(VGMSTREAM * vgmstream) {
         case layout_blocked_sthd:
             block_update_sthd(vgmstream->next_block_offset,vgmstream);
             break;
+        case layout_blocked_h4m:
+            block_update_h4m(vgmstream->next_block_offset,vgmstream);
+            break;
         default:
             break;
     }
