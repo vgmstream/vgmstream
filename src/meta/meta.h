@@ -754,4 +754,7 @@ VGMSTREAM * init_vgmstream_ubi_bao_pk(STREAMFILE *streamFile);
 VGMSTREAM * init_vgmstream_dsp_switch_audio(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_dsp_sadf(STREAMFILE *streamFile);
+
+VGMSTREAM * init_vgmstream_h4m(STREAMFILE *streamFile);
+
 #endif /*_META_H*/

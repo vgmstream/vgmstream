@@ -410,6 +410,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_ubi_bao_pk,
     init_vgmstream_dsp_switch_audio,
     init_vgmstream_dsp_sadf,
+    init_vgmstream_h4m,
 
     init_vgmstream_txth,  /* should go at the end (lower priority) */
 #ifdef VGM_USE_FFMPEG
@@ -936,6 +937,7 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
         case layout_blocked_ea_wve_au00:
         case layout_blocked_ea_wve_ad10:
         case layout_blocked_sthd:
+        case layout_blocked_h4m:
             render_vgmstream_blocked(buffer,sample_count,vgmstream);
             break;
         case layout_aix:

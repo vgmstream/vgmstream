@@ -235,6 +235,7 @@
     <ClCompile Include="meta\bar.c" />
     <ClCompile Include="meta\gsp_gsb.c" />
     <ClCompile Include="meta\gtd.c" />
+    <ClCompile Include="meta\h4m.c" />
     <ClCompile Include="meta\halpst.c" />
     <ClCompile Include="meta\hca.c" />
     <ClCompile Include="meta\his.c" />
@@ -503,6 +504,7 @@
     <ClCompile Include="layout\blocked_emff.c" />
     <ClCompile Include="layout\blocked_filp.c" />
     <ClCompile Include="layout\blocked_gsb.c" />
+    <ClCompile Include="layout\blocked_h4m.c" />
     <ClCompile Include="layout\blocked_halpst.c" />
     <ClCompile Include="layout\blocked_matx.c" />
     <ClCompile Include="layout\interleave.c" />

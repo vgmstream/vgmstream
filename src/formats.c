@@ -139,6 +139,7 @@ static const char* extension_list[] = {
     "gtd",
     "gwm",
 
+    "h4m",
     "hca",
     "hgc1",
     "his",
@@ -623,6 +624,7 @@ static const layout_info layout_info_list[] = {
         {layout_blocked_ea_wve_au00,    "blocked (EA WVE au00)"},
         {layout_blocked_ea_wve_ad10,    "blocked (EA WVE Ad10)"},
         {layout_blocked_sthd,           "blocked (STHD)"},
+        {layout_blocked_h4m,            "blocked (H4M)"},
 };
 
 static const meta_info meta_info_list[] = {
@@ -1020,6 +1022,7 @@ static const meta_info meta_info_list[] = {
         {meta_TA_AAC_VITA,          "tri-Ace AAC (Vita) header"},
         {meta_OGG_GWM,              "Ogg Vorbis (GWM header)"},
         {meta_DSP_SADF,             "Procyon Studio SADF header"},
+        {meta_H4M,                  "Hudson HVQM4 header"},
 
 #ifdef VGM_USE_FFMPEG
         {meta_FFmpeg,               "FFmpeg supported file format"},
