@@ -234,6 +234,9 @@ static const hcakey_info hcakey_list[] = {
         // Dragon Ball Legends (Bandai Namco) [iOS/Android]
         {7335633962698440504},      // 65CD683924EE7F38
 
+        // Princess Connect Re:Dive (iOS/Android/PC)
+        {3201512},      // 000000000030D9E8
+
 };
 
 #endif/*_HCA_KEYS_H_*/
