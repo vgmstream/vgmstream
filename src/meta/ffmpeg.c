@@ -17,11 +17,15 @@ VGMSTREAM * init_vgmstream_ffmpeg_offset(STREAMFILE *streamFile, uint64_t start,
     VGMSTREAM *vgmstream = NULL;
     int loop_flag = 0;
     int32_t loop_start = 0, loop_end = 0, num_samples = 0;
+    int total_subsongs, target_subsong = streamFile->stream_index;
 
     /* init ffmpeg */
     ffmpeg_codec_data *data = init_ffmpeg_offset(streamFile, start, size);
     if (!data) return NULL;
 
+    total_subsongs = data->streamCount;
+    if (target_subsong == 0) target_subsong = 1;
+    if (target_subsong < 0 || target_subsong > total_subsongs || total_subsongs < 1) goto fail;
 
     /* try to get .pos data */
     {
