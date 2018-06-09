@@ -1,7 +1,7 @@
 #include "meta.h"
 #include "../coding/coding.h"
 
-/* MSB+MSH - Sony sfx container companion of MIH+MIB [namCollection - Ace Combat 2 (PS2) sfx, EyeToy Play (PS2)] */
+/* MSB+MSH - SCEE MultiStream flat bank [namCollection: Ace Combat 2 (PS2) sfx, EyeToy Play (PS2)] */
 VGMSTREAM * init_vgmstream_msb_msh(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     STREAMFILE * streamHeader = NULL;

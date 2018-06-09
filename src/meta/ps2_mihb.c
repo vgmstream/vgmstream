@@ -1,7 +1,7 @@
 #include "meta.h"
 #include "../coding/coding.h"
 
-/* MIC/MIHB - Merged MIH+MIB [Rogue Trooper (PS2), The Sims 2 (PS2)] */
+/* MIC/MIHB - SCEE MultiStream interleaved bank (merged MIH+MIB) [Rogue Trooper (PS2), The Sims 2 (PS2)] */
 VGMSTREAM * init_vgmstream_ps2_mihb(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     off_t start_offset;
@@ -9,7 +9,7 @@ VGMSTREAM * init_vgmstream_ps2_mihb(STREAMFILE *streamFile) {
     int channel_count, loop_flag;
 
     /* check extension */
-    /* .mic: Rebellion Dev. games, .mihb: assumed? */
+    /* .mic: official extension, .mihb: assumed? */
     if (!check_extensions(streamFile, "mic,mihb"))
         goto fail;
     if (read_32bitBE(0x00,streamFile) != 0x40000000) /* header size */
@@ -21,7 +21,7 @@ VGMSTREAM * init_vgmstream_ps2_mihb(STREAMFILE *streamFile) {
 
     /* frame_size * frame_count * channels = data_size, but last frame has less usable data */
     {
-        /* 0x04(1): 0x20? */
+        /* 0x04: padding (0x20, MIH header must be multiple of 0x40) */
         frame_last  = (uint16_t)read_16bitLE(0x05,streamFile);
         frame_size  = read_32bitLE(0x10,streamFile);
         frame_count = read_32bitLE(0x14,streamFile);

@@ -4,7 +4,7 @@
 static int check_psadpcm(STREAMFILE *streamFile);
 
 
-/* MIB+MIH - from namCollection: Ace Combat 2 (PS2), Rampage - Total Destruction (PS2) */
+/* MIB+MIH - SCEE MultiStream interleaved bank (header+data) [namCollection: Ace Combat 2 (PS2), Rampage: Total Destruction (PS2)] */
 /* headerless PS-ADPCM - from Katamary Damacy (PS2), Air (PS2), Aladdin: Nasira's Revenge (PS1)
  * (guesses interleave and channels by testing data and using the file extension, and finds
  * loops in PS-ADPCM flags; this is a crutch for convenience, consider using GENH/TXTH instead). */
