@@ -34,11 +34,9 @@ VGMSTREAM * init_vgmstream_ps2_joe(STREAMFILE *streamFile) {
     }
     else if (data_size == file_size - 0x10
             && unknown1 == 0xCCCCCCCC && unknown2 == 0xCCCCCCCC) { /* The Mummy: The Animated Series */
-        data_size = data_size / 2;
         interleave = 0x8000;
     }
     else if (data_size == file_size - 0x4020) { /* CT Special Forces (and all games beyond) */
-        data_size = data_size / 2;
         interleave = unknown1; /* always 0? */
         if (!interleave)
             interleave = 0x10;
