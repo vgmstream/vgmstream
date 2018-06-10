@@ -66,6 +66,8 @@ if %OP_SEARCH%=="" (
 
 REM # process start
 set TIME_START=%time%
+set FILES_OK=0
+set FILES_KO=0
 echo VRTS: start @%TIME_START%
 
 REM # search for files
@@ -80,7 +82,7 @@ for /f "delims=" %%x in ('%CMD_DIR% ^| %CMD_FIND%') do (
         call :process_file "!CMD_FILE!"
     ) else (
         call :performance_file "!CMD_FILE!"
-    )    
+    )
 )
 
 REM # find time elapsed
@@ -94,9 +96,10 @@ for /F "tokens=1-4 delims=:.," %%a in ("%TIME_END%") do (
 set /A TIME_ELAPSED_S=(TIME_END_S-TIME_START_S)/100
 set /A TIME_ELAPSED_C=(TIME_END_S-TIME_START_S)%%100
 
- 
+
 REM # process end (ok)
 echo VRTS: done @%TIME_END% (%TIME_ELAPSED_S%,%TIME_ELAPSED_C%s)
+echo VRTS: ok=%FILES_OK%, ko=%FILES_KO% 
 
 goto exit
 
@@ -113,7 +116,7 @@ REM # ########################################################################
     set CMD_FILE=%1
     set CMD_FILE=%CMD_FILE:"=%
     REM echo VTRS: file %CMD_FILE%
-   
+
     REM # old/new temp output
     set WAV_OLD=%CMD_FILE%.old.wav
     set TXT_OLD=%CMD_FILE%.old.txt
@@ -142,7 +145,7 @@ REM # ########################################################################
     %CMP_WAV% 1> nul 2>&1
     set CMP_WAV_ERROR=0
     if %ERRORLEVEL% NEQ 0  set CMP_WAV_ERROR=1
-    
+
     %CMP_TXT% 1> nul 2>&1
     set CMP_TXT_ERROR=0
     if %ERRORLEVEL% NEQ 0  set CMP_TXT_ERROR=1
@@ -154,6 +157,7 @@ REM # ########################################################################
         ) else (
             call :echo_color %C_E% "%CMD_FILE%" "wav diffs"
         )
+        set /a "FILES_KO+=1"
     ) else (
         if %CMP_TXT_ERROR% EQU 1 (
             call :echo_color %C_W% "%CMD_FILE%" "txt diffs"
@@ -162,6 +166,7 @@ REM # ########################################################################
                 call :echo_color %C_O% "%CMD_FILE%" "no diffs"
             )
         )
+        set /a "FILES_OK+=1"
     )
 
     REM # delete temp files
@@ -189,7 +194,7 @@ REM # ########################################################################
     set CMD_FILE=%1
     set CMD_FILE=%CMD_FILE:"=%
     REM echo VTRS: file %CMD_FILE%
-   
+
     REM # new temp output
     set WAV_NEW=%CMD_FILE%.test.wav
     set CMD_VGM_NEW="%OP_CMD_NEW%" -o "%WAV_NEW%" "%CMD_FILE%"

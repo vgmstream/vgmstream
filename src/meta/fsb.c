@@ -216,8 +216,9 @@ VGMSTREAM * init_vgmstream_fsb(STREAMFILE *streamFile) {
                 s_off += stream_header_size;
                 d_off += fsb.stream_size; /* there is no offset so manually count */
 
-                /* IMAs streams have weird end padding (maybe: FSB3=no padding, FSB4=always padding) */
-                if ((fsb.mode & FSOUND_IMAADPCM) && (fsb.flags & FMOD_FSB_SOURCE_MPEG_PADDED4)) {
+                /* some subsongs offsets need padding (most FSOUND_IMAADPCM, few MPEG too [Hard Reset (PC) subsong 5])
+                 * other PADDED4 may set it (ex. XMA) but don't seem to use it and work fine */
+                if (fsb.flags & FMOD_FSB_SOURCE_MPEG_PADDED4) {
                     if (d_off % 0x20)
                         d_off += 0x20 - (d_off % 0x20);
                 }

@@ -122,7 +122,8 @@ VGMSTREAM * init_vgmstream_ubi_jade(STREAMFILE *streamFile) {
     switch(codec) {
 
         case 0x0069: /* Xbox */
-            if (fmt_size != 0x12) goto fail;
+            /* Peter Jackson's King Kong uses 0x14 (other versions don't) */
+            if (fmt_size != 0x12 && fmt_size != 0x14) goto fail;
             if (block_size != 0x24*channel_count) goto fail;
 
             vgmstream->coding_type = coding_XBOX_IMA;
