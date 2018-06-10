@@ -1,201 +1,172 @@
 #include "meta.h"
 #include "../util.h"
 
-/* Sony .ADS with SShd & SSbd Headers */
-
+/* .ADS - Sony's "Audio Stream" format [Edit Racing (PS2), Evergrace II (PS2), Pri-Saga! Portable (PSP)] */
 VGMSTREAM * init_vgmstream_ps2_ads(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[PATH_LIMIT];
-
-    int loop_flag=0;
-    int channel_count;
+    int loop_flag, channel_count;
     off_t start_offset;
-    off_t check_offset;
-    int32_t streamSize;
+    size_t stream_size;
+    uint32_t loop_start, loop_end;
 
-    uint8_t    testBuffer[0x10];
-    uint8_t isPCM = 0;
 
-    off_t    readOffset = 0;
-    off_t    loopEnd = 0;
-
-    int i;
-
-    /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("ads",filename_extension(filename)) && 
-        strcasecmp("ss2",filename_extension(filename))) goto fail;
-
-    /* check SShd Header */
-    if (read_32bitBE(0x00,streamFile) != 0x53536864)
+    /* checks */
+    /* .ads: actual extension
+     * .ss2: demuxed videos (fake?)
+     * .pcm: Taisho Mononoke Ibunroku (PS2)
+     * .adx: Armored Core 3 (PS2) */
+    if (!check_extensions(streamFile, "ads,ss2,pcm,adx"))
         goto fail;
 
-    /* check SSbd Header */
-    if (read_32bitBE(0x20,streamFile) != 0x53536264)
+    if (read_32bitBE(0x00,streamFile) != 0x53536864 &&  /* "SShd" */
+        read_32bitBE(0x20,streamFile) != 0x53536264)    /* "SSbd" */
         goto fail;
+    /* 0x04: header size, always 0x20 */
 
-    /* check if file is not corrupt */
+
+    /* check if file is not corrupt */ //todo ???
     /* seems the Gran Turismo 4 ADS files are considered corrupt,*/
     /* so I changed it to adapt the stream size if that's the case */
     /* instead of failing playing them at all*/
-    streamSize = read_32bitLE(0x24,streamFile);
-    
-    if (get_streamfile_size(streamFile) < (size_t)(streamSize + 0x28))
-    {
-        streamSize = get_streamfile_size(streamFile) - 0x28;
+    stream_size = read_32bitLE(0x24,streamFile); /* body size */
+    if (stream_size + 0x28 >= get_streamfile_size(streamFile)) {
+        stream_size = get_streamfile_size(streamFile) - 0x28;
     }
 
-    /* check loop */    
-    if ((read_32bitLE(0x1C,streamFile) == 0xFFFFFFFF) ||
-        ((read_32bitLE(0x18,streamFile) == 0) && (read_32bitLE(0x1C,streamFile) == 0)))
-    {
+    /* check loop */
+    loop_start = read_32bitLE(0x18,streamFile);
+    loop_end = read_32bitLE(0x1C,streamFile);
+
+    //todo should loop if loop_start > 0 and loop_end == -1
+    if ((loop_end == 0xFFFFFFFF) || (loop_start == 0 && loop_end == 0)) {
         loop_flag = 0;
     }
-    else
-    {
+    else {
         loop_flag = 1;
     }
 
-    channel_count=read_32bitLE(0x10,streamFile);
+    channel_count = read_32bitLE(0x10,streamFile);
+
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
-    /* fill in the vital statistics */
-    vgmstream->channels = read_32bitLE(0x10,streamFile);
     vgmstream->sample_rate = read_32bitLE(0x0C,streamFile);
 
-    /* Check for Compression Scheme */
-    vgmstream->coding_type = coding_PSX;
-    vgmstream->num_samples = ((streamSize-0x40)/16*28)/vgmstream->channels;
-
-    /* SS2 container with RAW Interleaved PCM */
-    if (read_32bitLE(0x08,streamFile)!=0x10) 
-    {
-
-        vgmstream->coding_type=coding_PCM16LE;
-        vgmstream->num_samples = streamSize/2/vgmstream->channels;
+    //todo use proper flags
+    if (read_32bitLE(0x08,streamFile)!=0x10) {
+        vgmstream->coding_type = coding_PCM16LE;
+        vgmstream->num_samples = stream_size/2/vgmstream->channels;
+    } else {
+        vgmstream->coding_type = coding_PSX;
+        vgmstream->num_samples = ((stream_size-0x40)/16*28)/vgmstream->channels; //todo don't - 0x40?
     }
 
-    vgmstream->interleave_block_size = read_32bitLE(0x14,streamFile);
+    vgmstream->interleave_block_size = read_32bitLE(0x14,streamFile); /* set even in mono */
     vgmstream->layout_type = layout_interleave;
     vgmstream->meta_type = meta_PS2_SShd;
 
-    /* Get loop point values */
-    if(vgmstream->loop_flag) {
-        if((read_32bitLE(0x1C,streamFile)*0x10*vgmstream->channels+0x800)==get_streamfile_size(streamFile))
-        {
-            // Search for Loop Value
-            readOffset=(off_t)get_streamfile_size(streamFile)-(4*vgmstream->interleave_block_size);
+    /* loops */
+    if (vgmstream->loop_flag) {
+        if ((loop_end*0x10*vgmstream->channels+0x800) == get_streamfile_size(streamFile)) {
+            /* full loop? */ //todo needed???
+            uint8_t testBuffer[0x10];
+            off_t readOffset = 0, loopEndOffset = 0;
 
+            readOffset = (off_t)get_streamfile_size(streamFile)-(4*vgmstream->interleave_block_size);
             do {
-                readOffset+=(off_t)read_streamfile(testBuffer,readOffset,0x10,streamFile);
+                readOffset += (off_t)read_streamfile(testBuffer,readOffset,0x10,streamFile);
 
-                // Loop End ...
                 if(testBuffer[0x01]==0x01) {
-                    if(loopEnd==0) loopEnd = readOffset-0x10;
+                    if(loopEndOffset==0)
+                        loopEndOffset = readOffset-0x10;
                     break;
                 }
 
             } while (streamFile->get_offset(streamFile)<(int32_t)get_streamfile_size(streamFile));
 
             vgmstream->loop_start_sample = 0;
-            vgmstream->loop_end_sample = (loopEnd/(vgmstream->interleave_block_size)*vgmstream->interleave_block_size)/16*28;
-            vgmstream->loop_end_sample += (loopEnd%vgmstream->interleave_block_size)/16*28;
+            vgmstream->loop_end_sample = (loopEndOffset/(vgmstream->interleave_block_size)*vgmstream->interleave_block_size)/16*28;
+            vgmstream->loop_end_sample += (loopEndOffset%vgmstream->interleave_block_size)/16*28;
             vgmstream->loop_end_sample /=vgmstream->channels;
-
-        } else {
-            if(read_32bitLE(0x1C,streamFile)<=vgmstream->num_samples) {
-                vgmstream->loop_start_sample = read_32bitLE(0x18,streamFile);
-                vgmstream->loop_end_sample = read_32bitLE(0x1C,streamFile);
+        }
+        else {
+            if (loop_end <= vgmstream->num_samples) {
+                /* assume loops are samples */
+                vgmstream->loop_start_sample = loop_start;
+                vgmstream->loop_end_sample = loop_end;
             } else {
-                vgmstream->loop_start_sample = (read_32bitLE(0x18,streamFile)*0x10)/16*28/vgmstream->channels;;
-                vgmstream->loop_end_sample = (read_32bitLE(0x1C,streamFile)*0x10)/16*28/vgmstream->channels;
+                /* assume loops are addresses (official definition) */ //todo use interleave instead of 0x10?
+                vgmstream->loop_start_sample = (loop_start*0x10)/16*28/vgmstream->channels;
+                vgmstream->loop_end_sample = (loop_end*0x10)/16*28/vgmstream->channels;
             }
         }
-    }
 
-    /* don't know why, but it does happen, in ps2 too :( */
-    if (vgmstream->loop_end_sample > vgmstream->num_samples)
-        vgmstream->loop_end_sample = vgmstream->num_samples;
-    {
-        start_offset=0x28;
+        /* don't know why, but it does happen, in ps2 too :( */ //todo what
+        if (vgmstream->loop_end_sample > vgmstream->num_samples)
+            vgmstream->loop_end_sample = vgmstream->num_samples;
     }
 
 
-    if ((streamSize * 2) == (get_streamfile_size(streamFile) - 0x18))
-    {
-        // True Fortune PS2
-        streamSize = (read_32bitLE(0x24,streamFile) * 2) - 0x10;
-        vgmstream->num_samples = streamSize / 16 * 28 / vgmstream->channels;
+    /* adjust */
+    start_offset = 0x28;
+
+    if ((stream_size * 2) == (get_streamfile_size(streamFile) - 0x18)) {
+        /* True Fortune (PS2) with weird stream size */ //todo try to move
+        stream_size = (read_32bitLE(0x24,streamFile) * 2) - 0x10;
+        vgmstream->num_samples = stream_size / 16 * 28 / vgmstream->channels;
     }
-    else if(get_streamfile_size(streamFile) - read_32bitLE(0x24,streamFile) >= 0x800)
-    {
-        // Hack for files with start_offset = 0x800
-        start_offset=0x800;
+    else if(get_streamfile_size(streamFile) - read_32bitLE(0x24,streamFile) >= 0x800) {
+        /* Hack for files with start_offset = 0x800 (ex. Taisho Mononoke Ibunroku) */
+        start_offset = 0x800;
     }
 
-    if((vgmstream->coding_type == coding_PSX) && (start_offset==0x28))
-    {
-        start_offset=0x800;
+    if (vgmstream->coding_type == coding_PSX && start_offset == 0x28) {
+        int i;
+        start_offset = 0x800;
 
-        for(i=0;i<0x1f6;i+=4)
-        {
-            if(read_32bitLE(0x28+(i*4),streamFile)!=0)
-            {
-                start_offset=0x28;
+        for (i=0; i < 0x1f6; i += 4) {
+            if (read_32bitLE(0x28+(i*4),streamFile)!=0) {
+                start_offset = 0x28;
                 break;
             }
         }
     }
 
-    // check if we got a real pcm (ex: Clock Tower 3)
-    if(vgmstream->coding_type==coding_PCM16LE)
-    {
-        check_offset=start_offset;
-        do
-        {
-            if(read_8bit(check_offset+1,streamFile)>7)
-            {
+    //todo should adjust num samples after changing start_offset and stream_size?
+
+
+    /* check if we got a real pcm by checking PS-ADPCM flags (ex: Clock Tower 3) */
+    //todo check format 0x02 instead
+    if (vgmstream->coding_type==coding_PCM16LE) {
+        uint8_t isPCM = 0;
+        off_t check_offset;
+
+        check_offset = start_offset;
+        do {
+            if (read_8bit(check_offset+1,streamFile)>7) {
                 isPCM=1;
                 break;
             }
-            else
-            {
+            else {
                 check_offset+=0x10;
             }
 
         } while (check_offset<get_streamfile_size(streamFile));
 
-        if(!isPCM)
-        {
+        if (!isPCM) {
             vgmstream->num_samples=(get_streamfile_size(streamFile)-start_offset)/16*28/vgmstream->channels;
             vgmstream->coding_type=coding_PSX;
         }
     }
 
-    /* expect pcm format allways start @ 0x800, don't know if it's true :P */
-    /*if(vgmstream->coding_type == coding_PCM16LE)
-        start_offset=0x800;*/
 
-    /* open the file for reading by each channel */
-    {
-        for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = streamFile->open(streamFile,filename,0x8000);
-
-            if (!vgmstream->ch[i].streamfile) goto fail;
-
-            vgmstream->ch[i].channel_start_offset=
-                vgmstream->ch[i].offset=
-                (off_t)(start_offset+vgmstream->interleave_block_size*i);
-        }
-    }
-
+    if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
+        goto fail;
     return vgmstream;
 
-    /* clean up anything we may have opened */
 fail:
-    if (vgmstream) close_vgmstream(vgmstream);
+    close_vgmstream(vgmstream);
     return NULL;
 }

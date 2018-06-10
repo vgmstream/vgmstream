@@ -648,7 +648,7 @@ static const meta_info meta_info_list[] = {
         {meta_DSP_STD,              "Standard Nintendo DSP header"},
         {meta_DSP_CSTR,             "Namco Cstr header"},
         {meta_GCSW,                 "GCSW header"},
-        {meta_PS2_SShd,             "SShd header"},
+        {meta_PS2_SShd,             "Sony ADS header"},
         {meta_PS2_NPSF,             "Namco Production Sound File (NPSF) header"},
         {meta_RWSD,                 "Nintendo RWSD header (single stream)"},
         {meta_RWAR,                 "Nintendo RWAR header (single RWAV stream)"},
