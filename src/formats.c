@@ -208,6 +208,7 @@ static const char* extension_list[] = {
     //"mpc", //FFmpeg, not parsed (musepack) //common
     "mpdsp",
     "mpds",
+    "mps", //txh/reserved
     "ms",
     "msa",
     "msb",
