@@ -2,8 +2,8 @@
 #define _FSB_KEYS_H_
 
 typedef struct {
-    int is_fsb5;
-    int is_alt;
+    int is_fsb5; /* FSB5 or FSB4/3*/
+    int is_alt; /* alt XOR mode (seemingly not tied to FSB version or anything) */
     size_t fsbkey_size;
     const uint8_t *fsbkey;
 } fsbkey_info;
@@ -69,6 +69,9 @@ static const uint8_t key_sc2[] = { 0x42,0x32,0x41,0x37,0x42,0x42,0x30,0x30 };
 /* Cookie Run: Ovenbreak */ //"ghfxhslrghfxhslr"
 static const uint8_t key_cro[] = { 0x67,0x68,0x66,0x78,0x68,0x73,0x6C,0x72,0x67,0x68,0x66,0x78,0x68,0x73,0x6C,0x72 };
 
+/* Monster Jam (PS2) */ //"truck/impact/carbody"
+static const uint8_t key_mtj[] = { 0x74,0x72,0x75,0x63,0x6B,0x2F,0x69,0x6D,0x70,0x61,0x63,0x74,0x2F,0x63,0x61,0x72,0x62,0x6F,0x64,0x79 };
+
 // Unknown:
 // - Battle: Los Angeles
 // - Guitar Hero: Warriors of Rock, DJ hero FSB
@@ -129,6 +132,7 @@ static const fsbkey_info fsbkey_list[] = {
         { 1,0, sizeof(key_sc2),key_sc2 },//untested
         { 1,1, sizeof(key_sc2),key_sc2 },//untested
         { 1,0, sizeof(key_cro),key_cro },
+        { 0,1, sizeof(key_mtj),key_mtj },// FSB3
 
 };
 static const int fsbkey_list_count = sizeof(fsbkey_list) / sizeof(fsbkey_list[0]);
