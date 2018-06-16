@@ -42,14 +42,14 @@ void render_vgmstream_blocked(sample * buffer, int32_t sample_count, VGMSTREAM *
             break; /* probable infinite loop otherwise */
         }
 
-        /* samples_this_block = 0 is allowed (empty block), will do nothing then move to next block */
-
         samples_to_do = vgmstream_samples_to_do(samples_this_block, samples_per_frame, vgmstream);
         if (samples_written + samples_to_do > sample_count)
             samples_to_do = sample_count - samples_written;
 
         if (vgmstream->current_block_offset >= 0) {
-            decode_vgmstream(vgmstream, samples_written, samples_to_do, buffer);
+            /* samples_this_block = 0 is allowed (empty block): do nothing then move to next block */
+            if (samples_to_do > 0)
+                decode_vgmstream(vgmstream, samples_written, samples_to_do, buffer);
         }
         else {
             /* block end signal (used in halpst): partially 0-set buffer */
