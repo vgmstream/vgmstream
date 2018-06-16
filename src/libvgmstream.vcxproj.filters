@@ -499,9 +499,6 @@
     <ClCompile Include="meta\ps2_ads.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\ps2_adsc.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="meta\ps2_ass.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>

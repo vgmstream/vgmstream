@@ -534,7 +534,6 @@ typedef enum {
     meta_PC_SMP,            /* Ghostbusters PC .smp */
     meta_P3D,               /* Prototype P3D */
     meta_PS2_TK1,           /* Tekken (NamCollection) */
-    meta_PS2_ADSC,          /* Kenka Bancho 2: Full Throttle */
     meta_NGC_RKV,           /* Legacy of Kain - Blood Omen 2 (GC) */
     meta_DSP_DDSP,          /* Various (2 dsp files stuck together */
     meta_NGC_DSP_MPDS,      /* Big Air Freestyle, Terminator 3 */
