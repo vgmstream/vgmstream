@@ -411,6 +411,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_dsp_switch_audio,
     init_vgmstream_dsp_sadf,
     init_vgmstream_h4m,
+    init_vgmstream_ps2_ads_container,
 
     init_vgmstream_txth,  /* should go at the end (lower priority) */
 #ifdef VGM_USE_FFMPEG
