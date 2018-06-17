@@ -208,7 +208,7 @@ static const char* extension_list[] = {
     //"mpc", //FFmpeg, not parsed (musepack) //common
     "mpdsp",
     "mpds",
-    "mps", //txh/reserved
+    "mps", //txh/reserved [Scandal (PS2)]
     "ms",
     "msa",
     "msb",
@@ -876,7 +876,6 @@ static const meta_info meta_info_list[] = {
         {meta_DSP_DDSP,             ".DDSP header"},
         {meta_P3D,                  "Radical P3D header"},
         {meta_PS2_TK1,              "Tekken TK5STRM1 Header"},
-        {meta_PS2_ADSC,             "ADSC Header"},
         {meta_NGC_DSP_MPDS,         "MPDS DSP header"},
         {meta_DSP_STR_IG,           "Infogrames .DSP header"},
         {meta_EA_SWVR,              "Electronic Arts SWVR header"},

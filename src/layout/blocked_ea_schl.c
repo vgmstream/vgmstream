@@ -2,45 +2,59 @@
 #include "../coding/coding.h"
 #include "../vgmstream.h"
 
-/* set up for the block at the given offset */
+/* parse EA style blocks, id+size+samples+data */
 void block_update_ea_schl(off_t block_offset, VGMSTREAM * vgmstream) {
     STREAMFILE* streamFile = vgmstream->ch[0].streamfile;
     int i;
     int new_schl = 0;
-    size_t block_size = 0, block_samples = 0;
+    size_t block_size, block_samples;
     int32_t (*read_32bit)(off_t,STREAMFILE*) = vgmstream->codec_endian ? read_32bitBE : read_32bitLE;
-    size_t file_size = get_streamfile_size(streamFile);
 
 
-    while (block_offset < file_size) {
-        uint32_t id = read_32bitBE(block_offset+0x00,streamFile);
+    /* EOF reads: signal we have nothing and let the layout fail */
+    if (block_offset >= get_streamfile_size(streamFile)) {
+        vgmstream->current_block_offset = block_offset;
+        vgmstream->next_block_offset = block_offset;
+        vgmstream->current_block_samples = -1;
+        return;
+    }
+
+    /* read a single block */
+    {
+        uint32_t block_id = read_32bitBE(block_offset+0x00,streamFile);
 
         block_size = read_32bitLE(block_offset+0x04,streamFile);
         if (block_size > 0x00F00000) /* size is always LE, except in early SAT/MAC */
             block_size = read_32bitBE(block_offset+0x04,streamFile);
 
-        block_samples = 0;
-
-        if (id == 0x5343446C || id == 0x5344454E || id == 0x53444652) { /* "SCDl" "SDEN" "SDFR" audio data */
-            switch(vgmstream->coding_type) {
-                case coding_PSX:
+        switch(block_id) {
+            case 0x5343446C: /* "SCDl" */
+            case 0x5344454E: /* "SDEN" */
+            case 0x53444652: /* "SDFR" */
+            case 0x53444745: /* "SDGE" */
+            case 0x53444954: /* "SDIT" */
+            case 0x53445350: /* "SDSP" */
+            case 0x53445255: /* "SDRU" */
+            case 0x53444A41: /* "SDJA" */
+                /* audio chunk */
+                if (vgmstream->coding_type == coding_PSX)
                     block_samples = ps_bytes_to_samples(block_size-0x10, vgmstream->channels);
-                    break;
-                default:
+                else
                     block_samples = read_32bit(block_offset+0x08,streamFile);
-                    break;
-            }
+                break;
+            default:
+                /* ignore other chunks (audio "SCHl/SCCl/...", video "pIQT/MADk/...", etc) */
+                block_samples = 0; /* layout ignores this */
+                break;
         }
-        else { /* any other chunk, audio ("SCHl" "SCCl" "SCLl" "SCEl" etc), or video ("pQGT" "pIQT "MADk" etc) */
-            /* padding between "SCEl" and next "SCHl" (when subfiles exist) */
-            if (id == 0x00000000) {
-                block_size = 0x04;
-            }
 
-            if (id == 0x5343486C || id == 0x5348454E || id == 0x53484652) { /* "SCHl" "SHEN" "SHFR" end block */
-                new_schl = 1;
-            }
-        }
+        /* "SCHl" start block (movie "SHxx" shouldn't use multi files) */
+        if (block_id == 0x5343486C)
+            new_schl = 1;
+
+        /* padding between "SCEl" and next "SCHl" (when subfiles exist) */
+        if (block_id == 0x00000000)
+            block_size = 0x04;
 
         /* guard against errors (happens in bad rips/endianness, observed max is vid ~0x20000) */
         if (block_size == 0x00 || block_size > 0xFFFFF || block_samples > 0xFFFF) {
@@ -48,23 +62,10 @@ void block_update_ea_schl(off_t block_offset, VGMSTREAM * vgmstream) {
             block_samples = 0;
         }
 
-
-        if (block_samples) /* audio found */
-            break;
-        block_offset += block_size;
-
-        /* "SCEl" "SEEN" "SEFR" are aligned to 0x80 usually, but causes problems if not 32b-aligned (ex. Need for Speed 2 PC) */
-        if ((id == 0x5343456C || id == 0x5345454E || id == 0x53454652) && block_offset % 0x04) {
-            block_offset += 0x04 - (block_offset % 0x04);
+        /* "SCEl" end chunk should be 32b-aligned, fixes some multi-SCHl [ex. Need for Speed 2 (PC) .eam] */
+        if (((block_offset + block_size) % 0x04) && block_id == 0x5343456C) {
+            block_size += 0x04 - ((block_offset + block_size) % 0x04);
         }
-    }
-
-    /* EOF reads: pretend we have samples to please the layout (unsure if this helps) */
-    if (block_offset >= file_size) {
-        vgmstream->current_block_offset = block_offset;
-        vgmstream->next_block_offset = block_offset + 0x04;
-        vgmstream->current_block_samples = vgmstream->num_samples;
-        return;
     }
 
 

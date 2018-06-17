@@ -126,17 +126,17 @@ VGMSTREAM * init_vgmstream_fsb(STREAMFILE *streamFile) {
 
         /* sample header (first stream only, not sure if there are multi-FSB1) */
         {
-            off_t s_off = fsb.base_header_size;
+            off_t header_offset = fsb.base_header_size;
 
-            fsb.name_offset = s_off;
+            fsb.name_offset = header_offset;
             fsb.name_size   = 0x20;
-            fsb.num_samples = read_32bitLE(s_off+0x20,streamFile);
-            fsb.stream_size = read_32bitLE(s_off+0x24,streamFile);
-            fsb.sample_rate = read_32bitLE(s_off+0x28,streamFile);
+            fsb.num_samples = read_32bitLE(header_offset+0x20,streamFile);
+            fsb.stream_size = read_32bitLE(header_offset+0x24,streamFile);
+            fsb.sample_rate = read_32bitLE(header_offset+0x28,streamFile);
             /* 0x2c:?  0x2e:?  0x30:?  0x32:? */
-            fsb.mode        = read_32bitLE(s_off+0x34,streamFile);
-            fsb.loop_start  = read_32bitLE(s_off+0x38,streamFile);
-            fsb.loop_end    = read_32bitLE(s_off+0x3c,streamFile);
+            fsb.mode        = read_32bitLE(header_offset+0x34,streamFile);
+            fsb.loop_start  = read_32bitLE(header_offset+0x38,streamFile);
+            fsb.loop_end    = read_32bitLE(header_offset+0x3c,streamFile);
 
             fsb.channels = (fsb.mode & FSOUND_STEREO) ? 2 : 1;
             if (fsb.loop_end > fsb.num_samples) /* this seems common... */
@@ -191,42 +191,55 @@ VGMSTREAM * init_vgmstream_fsb(STREAMFILE *streamFile) {
         /* sample header (N-stream) */
         {
             int i;
-            off_t s_off = fsb.base_header_size;
-            off_t d_off = fsb.base_header_size + fsb.sample_header_size;
+            off_t header_offset = fsb.base_header_size;
+            off_t data_offset = fsb.base_header_size + fsb.sample_header_size;
 
             /* find target_stream header (variable sized) */
             for (i = 0; i < fsb.total_subsongs; i++) {
-                size_t stream_header_size = (uint16_t)read_16bitLE(s_off+0x00,streamFile);
-                fsb.name_offset = s_off+0x02;
-                fsb.name_size   = 0x20-0x02;
-                fsb.num_samples = read_32bitLE(s_off+0x20,streamFile);
-                fsb.stream_size = read_32bitLE(s_off+0x24,streamFile);
-                fsb.loop_start  = read_32bitLE(s_off+0x28,streamFile);
-                fsb.loop_end    = read_32bitLE(s_off+0x2c,streamFile);
-                fsb.mode        = read_32bitLE(s_off+0x30,streamFile);
-                fsb.sample_rate = read_32bitLE(s_off+0x34,streamFile);
-                /* 0x38:defvol  0x3a:defpan  0x3c:defpri */
-                fsb.channels = read_16bitLE(s_off+0x3e,streamFile);
-                /* FSB3.1/4: 0x40:mindistance  0x44:maxdistance  0x48:varfreq/size_32bits  0x4c:varvol  0x4e:fsb.varpan */
-                /* FSB3/4: 0x50:extended_data size_32bits (not always given) */
+                size_t stream_header_size;
 
-                if (i+1 == target_subsong) /* d_off found */
+                if ((fsb.flags & FMOD_FSB_SOURCE_BASICHEADERS) && i > 0) {
+                    /* miniheader, all subsongs reuse first header [rare, ex. Biker Mice from Mars (PS2)] */
+                    stream_header_size = 0x08;
+                    fsb.num_samples = read_32bitLE(header_offset+0x00,streamFile);
+                    fsb.stream_size = read_32bitLE(header_offset+0x04,streamFile);
+                    fsb.loop_start = 0;
+                    fsb.loop_end = 0;
+                }
+                else {
+                    /* subsong header for normal files */
+                    stream_header_size = (uint16_t)read_16bitLE(header_offset+0x00,streamFile);
+                    fsb.name_offset = header_offset+0x02;
+                    fsb.name_size   = 0x20-0x02;
+                    fsb.num_samples = read_32bitLE(header_offset+0x20,streamFile);
+                    fsb.stream_size = read_32bitLE(header_offset+0x24,streamFile);
+                    fsb.loop_start  = read_32bitLE(header_offset+0x28,streamFile);
+                    fsb.loop_end    = read_32bitLE(header_offset+0x2c,streamFile);
+                    fsb.mode        = read_32bitLE(header_offset+0x30,streamFile);
+                    fsb.sample_rate = read_32bitLE(header_offset+0x34,streamFile);
+                    /* 0x38:defvol  0x3a:defpan  0x3c:defpri */
+                    fsb.channels = read_16bitLE(header_offset+0x3e,streamFile);
+                    /* FSB3.1/4: 0x40:mindistance  0x44:maxdistance  0x48:varfreq/size_32bits  0x4c:varvol  0x4e:fsb.varpan */
+                    /* FSB3/4: 0x50:extended_data size_32bits (not always given) */
+                }
+
+                if (i+1 == target_subsong) /* final data_offset found */
                     break;
 
-                s_off += stream_header_size;
-                d_off += fsb.stream_size; /* there is no offset so manually count */
+                header_offset += stream_header_size;
+                data_offset += fsb.stream_size; /* there is no offset so manually count */
 
                 /* some subsongs offsets need padding (most FSOUND_IMAADPCM, few MPEG too [Hard Reset (PC) subsong 5])
                  * other PADDED4 may set it (ex. XMA) but don't seem to use it and work fine */
                 if (fsb.flags & FMOD_FSB_SOURCE_MPEG_PADDED4) {
-                    if (d_off % 0x20)
-                        d_off += 0x20 - (d_off % 0x20);
+                    if (data_offset % 0x20)
+                        data_offset += 0x20 - (data_offset % 0x20);
                 }
             }
             if (i > fsb.total_subsongs) goto fail; /* not found */
 
-            start_offset = d_off;
-            custom_data_offset = s_off + fsb.sample_header_min; /* DSP coefs, seek tables, etc */
+            start_offset = data_offset;
+            custom_data_offset = header_offset + fsb.sample_header_min; /* DSP coefs, seek tables, etc */
         }
     }
 
@@ -247,7 +260,7 @@ VGMSTREAM * init_vgmstream_fsb(STREAMFILE *streamFile) {
             && fsb.num_samples < 20*fsb.sample_rate)                  /* seconds, lame but no other way to know */
         loop_flag = 0;
 
-    /* ping-pong looping = no looping? (forward > reverse > forward) */
+    /* ping-pong looping = no looping? (forward > reverse > forward) [ex. Biker Mice from Mars (PS2)] */
     VGM_ASSERT(fsb.mode & FSOUND_LOOP_BIDI, "FSB BIDI looping found\n");
 
 

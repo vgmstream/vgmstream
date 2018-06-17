@@ -64,8 +64,9 @@ VGMSTREAM * init_vgmstream_ubi_lyn(STREAMFILE *streamFile) {
         }
     }
 
-    /* most songs simply repeat, loop if it looks long enough */
-    loop_flag = (num_samples > 20*sample_rate); /* in seconds */
+    /* most songs simply repeat; loop if it looks long enough,
+     * but not too long (ex. Michael Jackson The Experience songs) */
+    loop_flag = (num_samples > 20*sample_rate && num_samples < 60*3*sample_rate); /* in seconds */
     start_offset = data_offset;
 
 
@@ -245,6 +246,10 @@ VGMSTREAM * init_vgmstream_ubi_lyn_container(STREAMFILE *streamFile) {
     if (read_32bitBE(0x00,streamFile) == 0x4C795345 && /* "LySE" */
         read_32bitBE(0x14,streamFile) == 0x52494646) { /* "RIFF" */
         subfile_offset = 0x14; /* Adventures of Tintin */
+    }
+    else if (read_32bitBE(0x20,streamFile) == 0x4C795345 && /* "LySE" */
+             read_32bitBE(0x34,streamFile) == 0x52494646) { /* "RIFF" */
+        subfile_offset = 0x34; /* Michael Jackson The Experience (Wii) */
     }
     else if (read_32bitLE(0x00,streamFile)+0x20 == get_streamfile_size(streamFile) &&
              read_32bitBE(0x20,streamFile) == 0x52494646) { /* "RIFF" */

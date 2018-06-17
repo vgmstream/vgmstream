@@ -308,7 +308,6 @@
     <ClCompile Include="meta\ps2_vds_vdm.c" />
     <ClCompile Include="meta\ps2_adm.c" />
     <ClCompile Include="meta\ps2_ads.c" />
-    <ClCompile Include="meta\ps2_adsc.c" />
     <ClCompile Include="meta\ps2_ass.c" />
     <ClCompile Include="meta\ps2_ast.c" />
     <ClCompile Include="meta\aus.c" />

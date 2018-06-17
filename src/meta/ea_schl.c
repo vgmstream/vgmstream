@@ -73,7 +73,7 @@ typedef struct {
 
 static int parse_variable_header(STREAMFILE* streamFile, ea_header* ea, off_t begin_offset, int max_length);
 static uint32_t read_patch(STREAMFILE* streamFile, off_t* offset);
-static int get_ea_stream_total_samples(STREAMFILE* streamFile, off_t start_offset, const ea_header* ea);
+static int get_ea_stream_total_samples(STREAMFILE* streamFile, off_t start_offset, VGMSTREAM* vgmstream);
 static off_t get_ea_stream_mpeg_start_offset(STREAMFILE* streamFile, off_t start_offset, const ea_header* ea);
 static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE *streamFile, ea_header *ea, off_t start_offset, int is_bnk, int total_streams);
 
@@ -93,11 +93,16 @@ VGMSTREAM * init_vgmstream_ea_schl(STREAMFILE *streamFile) {
     /* check header */
     if (read_32bitBE(0x00,streamFile) != 0x5343486C &&  /* "SCHl" */
         read_32bitBE(0x00,streamFile) != 0x5348454E &&  /* "SHEN" */
-        read_32bitBE(0x00,streamFile) != 0x53484652)    /* "SHFR" */
+        read_32bitBE(0x00,streamFile) != 0x53484652 &&  /* "SHFR" */
+        read_32bitBE(0x00,streamFile) != 0x53484745 &&  /* "SHGE" */
+        read_32bitBE(0x00,streamFile) != 0x53484954 &&  /* "SHIT" */
+        read_32bitBE(0x00,streamFile) != 0x53485350 &&  /* "SHSP" */
+        read_32bitBE(0x00,streamFile) != 0x53485255 &&  /* "SHRU" */
+        read_32bitBE(0x00,streamFile) != 0x53484A41)    /* "SHJA" */
         goto fail;
 
-    /* stream is divided into blocks/chunks: SCHl=audio header, SCCl=count of SCDl, SCDl=data xN, SCLl=loop end, SCEl=end.
-     * Video uses various blocks (MVhd/MV0K/etc) and sometimes alt audio blocks (SHxx/SCxx/SDxx/SExx where XX=language, EN/FR).
+    /* Stream is divided into blocks/chunks: SCHl=audio header, SCCl=count of SCDl, SCDl=data xN, SCLl=loop end, SCEl=end.
+     * Video uses picture blocks (MVhd/MV0K/etc) and sometimes multiaudio blocks (SHxx/SCxx/SDxx/SExx where xx=language=EN/FR/GE/IT/SP/RU/JA).
      * The number/size is affected by: block rate setting, sample rate, channels, CPU location (SPU/main/DSP/others), etc */
 
     header_size = read_32bitLE(0x04,streamFile);
@@ -362,13 +367,6 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE *streamFile, ea_
     if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
         goto fail;
 
-    /* fix num_samples for streams with multiple SCHl */
-    if (!is_bnk) {
-        int total_samples = get_ea_stream_total_samples(streamFile, start_offset, ea);
-        if (total_samples > vgmstream->num_samples)
-           vgmstream->num_samples = total_samples;
-    }
-
 
     if (is_bnk) {
         /* setup channel offsets */
@@ -411,6 +409,11 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE *streamFile, ea_
         }
     }
     else {
+        /* fix num_samples for streams with multiple SCHl */
+        int total_samples = get_ea_stream_total_samples(streamFile, start_offset, vgmstream);
+        if (total_samples > vgmstream->num_samples)
+            vgmstream->num_samples = total_samples;
+
         /* setup first block to update offsets */
         block_update_ea_schl(start_offset,vgmstream);
     }
@@ -755,60 +758,22 @@ fail:
 /* Get total samples by parsing block headers, needed when multiple files are stitched together.
  * Some EA files (.mus/eam/sng/etc) concat many small subfiles, used for interactive/mapped
  * music (.map/lin). Subfiles always share header, except num_samples. */
-static int get_ea_stream_total_samples(STREAMFILE* streamFile, off_t start_offset, const ea_header* ea) {
+static int get_ea_stream_total_samples(STREAMFILE* streamFile, off_t start_offset, VGMSTREAM* vgmstream) {
     int num_samples = 0;
     int new_schl = 0;
-    off_t block_offset = start_offset;
-    size_t block_size, block_samples;
-    int32_t (*read_32bit)(off_t,STREAMFILE*) = ea->big_endian ? read_32bitBE : read_32bitLE;
-    size_t file_size = get_streamfile_size(streamFile);
 
-
-    while (block_offset < file_size) {
-        uint32_t id = read_32bitBE(block_offset+0x00,streamFile);
-
-        block_size = read_32bitLE(block_offset+0x04,streamFile);
-        if (block_size > 0x00F00000) /* size is always LE, except in early SAT/MAC */
-            block_size = read_32bitBE(block_offset+0x04,streamFile);
-
-        block_samples = 0;
-
-        if (id == 0x5343446C || id == 0x5344454E || id == 0x53444652) { /* "SCDl" "SDEN" "SDFR" audio data */
-            switch (ea->codec2) {
-                case EA_CODEC2_VAG:
-                    block_samples = ps_bytes_to_samples(block_size-0x10, ea->channels);
-                    break;
-                default:
-                    block_samples = read_32bit(block_offset+0x08,streamFile);
-                    break;
-            }
-        }
-        else { /* any other chunk, audio ("SCHl" "SCCl" "SCLl" "SCEl" etc), or video ("pQGT" "pIQT "MADk" "MPCh" etc) */
-            /* padding between "SCEl" and next "SCHl" (when subfiles exist) */
-            if (id == 0x00000000) {
-                block_size = 0x04;
-            }
-
-            if (id == 0x5343486C || id == 0x5348454E || id == 0x53484652) { /* "SCHl" "SHEN" "SHFR" end block */
+    /* calc num_samples as playable data size varies between files/blocks */
+    {
+        vgmstream->next_block_offset = start_offset;
+        do {
+            uint32_t block_id = read_32bitBE(vgmstream->next_block_offset+0x00,streamFile);
+            if (block_id == 0x5343486C) /* "SCHl" start block (movie "SHxx" shouldn't use multi files) */
                 new_schl = 1;
-            }
-        }
 
-        /* guard against errors (happens in bad rips/endianness, observed max is vid ~0x20000) */
-        if (block_size == 0x00 || block_size > 0xFFFFF || block_samples > 0xFFFF) {
-            VGM_LOG("EA SCHl: bad block size %x at %lx\n", block_size, block_offset);
-            block_size = 0x04;
-            block_samples = 0;
+            block_update_ea_schl(vgmstream->next_block_offset,vgmstream);
+            num_samples += vgmstream->current_block_samples;
         }
-
-        num_samples += block_samples;
-        block_offset += block_size;
-
-        /* "SCEl" "SEEN" "SEFR" are aligned to 0x80 usually, but causes problems if not 32b-aligned (ex. Need for Speed 2 PC) */
-        if ((id == 0x5343456C || id == 0x5345454E || id == 0x53454652) && block_offset % 0x04) {
-            VGM_LOG_ONCE("EA SCHl: mis-aligned end offset found\n");
-            block_offset += 0x04 - (block_offset % 0x04);
-        }
+        while (vgmstream->next_block_offset < get_streamfile_size(streamFile));
     }
 
     /* only use calculated samples with multiple subfiles (rarely header samples may be less due to padding) */
@@ -828,22 +793,31 @@ static off_t get_ea_stream_mpeg_start_offset(STREAMFILE* streamFile, off_t start
     int32_t (*read_32bit)(off_t,STREAMFILE*) = ea->big_endian ? read_32bitBE : read_32bitLE;
 
     while (block_offset < file_size) {
-        uint32_t id, block_size;
+        uint32_t block_id, block_size;
+        off_t offset;
 
-        id = read_32bitBE(block_offset+0x00,streamFile);
+        block_id = read_32bitBE(block_offset+0x00,streamFile);
 
         block_size = read_32bitLE(block_offset+0x04,streamFile);
         if (block_size > 0x00F00000) /* size is always LE, except in early SAT/MAC */
             block_size = read_32bitBE(block_offset+0x04,streamFile);
 
-        if (id == 0x5343446C || id == 0x5344454E || id == 0x53444652) { /* "SCDl/SDEN/SDFR" data block found */
-            off_t offset = read_32bit(block_offset+0x0c,streamFile); /* first value seems ok, second is something else in EALayer3 */
-            return block_offset + 0x0c + ea->channels*0x04 + offset;
-        } else if (id == 0x5343436C || id == 0x5343454E || id == 0x53434652) { /* "SCCl/SCEN/SCFR" data count found */
-            block_offset += block_size; /* size includes header */
-            continue;
-        } else {
-            goto fail;
+        switch(block_id) {
+            case 0x5343446C: /* "SCDl" */
+            case 0x5344454E: /* "SDEN" */
+            case 0x53444652: /* "SDFR" */
+            case 0x53444745: /* "SDGE" */
+            case 0x53444954: /* "SDIT" */
+            case 0x53445350: /* "SDSP" */
+            case 0x53445255: /* "SDRU" */
+            case 0x53444A41: /* "SDJA" */
+                offset = read_32bit(block_offset+0x0c,streamFile); /* first value seems ok, second is something else in EALayer3 */
+                return block_offset + 0x0c + ea->channels*0x04 + offset;
+            case 0x00000000:
+                goto fail; /* just in case */
+            default:
+                block_offset += block_size; /* size includes header */
+                break;
         }
     }
 

@@ -417,7 +417,8 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
             off_t xma2_offset;
             size_t xma2_size;
 
-            if (ww.fmt_size != 0x20 && ww.fmt_size != 0x34 && ww.fmt_size != 0x40) goto fail; /* XMA1, XMA2old, XMA2new */
+            /* endian check should be enough */
+            //if (ww.fmt_size != ...) goto fail; /* XMA1 0x20, XMA2old: 0x34, XMA2new: 0x40, XMA2 Guitar Hero Live/padded: 0x64, etc */
             if (!ww.big_endian) goto fail; /* must be Wwise (real XMA are LE and parsed elsewhere) */
 
             if (find_chunk(streamFile, 0x584D4132,first_offset,0, &xma2_offset,&xma2_size, ww.big_endian, 0)) { /*"XMA2"*/ /* older Wwise */
