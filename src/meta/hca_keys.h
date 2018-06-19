@@ -237,6 +237,9 @@ static const hcakey_info hcakey_list[] = {
         // Princess Connect Re:Dive (iOS/Android/PC)
         {3201512},      // 000000000030D9E8
 
+        // PriPara: All Idol Perfect Stage (Takara Tomy) [Switch]
+		{217735759},      // 000000000CFA624F
+
 };
 
 #endif/*_HCA_KEYS_H_*/
