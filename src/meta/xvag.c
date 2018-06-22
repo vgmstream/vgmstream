@@ -18,10 +18,6 @@ VGMSTREAM * init_vgmstream_xvag(STREAMFILE *streamFile) {
     off_t first_offset = 0x20;
     size_t chunk_size, stream_size;
 
-    /* check extension, case insensitive */
-    if (!check_extensions(streamFile,"xvag"))
-        goto fail;
-
     /* check header */
     if (read_32bitBE(0x00,streamFile) != 0x58564147) /* "XVAG" */
         goto fail;
