@@ -5,6 +5,9 @@ Param(
     [string]$Task
 )
 
+# https://stackoverflow.com/a/41618979/9919772
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+
 $solution = "vgmstream_full.sln"
 $vswhere = "dependencies/vswhere.exe"
 $config = "/p:Configuration=Release"
