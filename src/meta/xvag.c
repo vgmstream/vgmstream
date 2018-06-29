@@ -19,7 +19,7 @@ VGMSTREAM * init_vgmstream_xvag(STREAMFILE *streamFile) {
     size_t chunk_size, stream_size;
 
     /* check extension, case insensitive */
-    if (!check_extensions(streamFile,"xvag"))
+    if (!check_extensions(streamFile,"xvag,"))
         goto fail;
 
     /* check header */

@@ -341,6 +341,11 @@ bool input_vgmstream::g_is_our_path(const char * p_path,const char * p_extension
             return 1;
     }
 
+    if (strlen(p_extension) <= 0) {
+        // Last Of Us speech files have no file extension
+        return 1;
+    }
+
     return 0;
 }
 
