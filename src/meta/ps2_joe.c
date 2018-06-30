@@ -5,16 +5,13 @@
 VGMSTREAM * init_vgmstream_ps2_joe(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     off_t start_offset;
+    int channel_count, loop_flag, sample_rate, num_samples;
     size_t file_size, data_size, unknown1, unknown2, interleave;
-    int loop_flag;
-    int channel_count;
+
 
     /* checks */
     if (!check_extensions(streamFile, "joe"))
         goto fail;
-
-    loop_flag = 1;
-    channel_count = 2;
 
     file_size = get_streamfile_size(streamFile);
     data_size = read_32bitLE(0x04,streamFile);
@@ -48,14 +45,20 @@ VGMSTREAM * init_vgmstream_ps2_joe(STREAMFILE *streamFile) {
 
     start_offset = file_size - data_size;
 
+    channel_count = 2;
+    sample_rate = read_32bitLE(0x00,streamFile);
+    num_samples = ps_bytes_to_samples(data_size, channel_count);
+
+    /* most songs simply repeat except a few jingles (PS-ADPCM flags are always set) */
+    loop_flag = (num_samples > 20*sample_rate); /* in seconds */
+
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
-    vgmstream->sample_rate = read_32bitLE(0x00,streamFile);
-    vgmstream->coding_type = coding_PSX;
-    vgmstream->num_samples = ps_bytes_to_samples(data_size, channel_count);
+    vgmstream->sample_rate = sample_rate;
+    vgmstream->num_samples = num_samples;
 
     //todo improve, not working 100% with early .joe
     {
@@ -103,6 +106,7 @@ VGMSTREAM * init_vgmstream_ps2_joe(STREAMFILE *streamFile) {
         }
     }
 
+    vgmstream->coding_type = coding_PSX;
     vgmstream->layout_type = layout_interleave;
     vgmstream->interleave_block_size = interleave;
     vgmstream->meta_type = meta_PS2_JOE;

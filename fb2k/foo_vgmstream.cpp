@@ -21,6 +21,7 @@ extern "C" {
 #ifndef VERSION
 #include "../version.h"
 #endif
+
 #ifndef VERSION
 #define PLUGIN_VERSION  __DATE__
 #else
@@ -144,6 +145,8 @@ void input_vgmstream::get_info(t_uint32 p_subsong, file_info & p_info, abort_cal
     if (get_subsong_count() > 1) {
         p_info.meta_set("TITLE",temp);
     }
+
+    p_info.info_set("vgmstream version",PLUGIN_VERSION);
 
     p_info.info_set_int("samplerate", samplerate);
     p_info.info_set_int("channels", channels);

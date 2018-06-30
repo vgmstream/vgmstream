@@ -2,16 +2,28 @@
 #include "util.h"
 #include "streamtypes.h"
 
-const char * filename_extension(const char * filename) {
-    const char * ext;
+const char * filename_extension(const char * pathname) {
+    const char * filename;
+    const char * extension;
 
-    /* You know what would be nice? strrchrnul().
-     * Instead I have to do it myself. */
-    ext = strrchr(filename,'.');
-    if (ext==NULL) ext=filename+strlen(filename); /* point to null, i.e. an empty string for the extension */
-    else ext=ext+1; /* skip the dot */
+    /* get basename + extension */
+    filename = pathname;
+#if 0
+    //must detect empty extensions in folders with . in the name; not too important and DIR_SEPARATOR could improved
+    filename = strrchr(pathname, DIR_SEPARATOR);
+    if (filename == NULL)
+        filename = pathname; /* pathname has no separators (single filename) */
+    else
+        filename++; /* skip the separator */
+#endif
 
-    return ext;
+    extension = strrchr(filename,'.');
+    if (extension==NULL)
+        extension = filename+strlen(filename); /* point to null, i.e. an empty string for the extension */
+    else
+        extension++; /* skip the dot */
+
+    return extension;
 }
 
 /* unused */

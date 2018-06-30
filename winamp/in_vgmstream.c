@@ -43,7 +43,7 @@
 In_Module input_module;
 DWORD WINAPI __stdcall decode(void *arg);
 
-/* Winamp Play extension list, needed to accept/play and associate extensions in Windows */
+/* Winamp Play extension list, to accept and associate extensions in Windows */
 #define EXTENSION_LIST_SIZE   (0x2000 * 6)
 #define EXT_BUFFER_SIZE 200
 char working_extension_list[EXTENSION_LIST_SIZE] = {0};
@@ -88,6 +88,7 @@ in_char lastfn[PATH_LIMIT] = {0}; /* name of the currently playing file */
 #define wa_strchr wcschr
 #define wa_sscanf swscanf
 #define wa_snprintf _snwprintf
+#define wa_strrchr wcsrchr
 #define wa_fileinfo fileinfoW
 #define wa_IPC_PE_INSERTFILENAME IPC_PE_INSERTFILENAMEW
 #define wa_L(x) L ##x
@@ -99,6 +100,7 @@ in_char lastfn[PATH_LIMIT] = {0}; /* name of the currently playing file */
 #define wa_strchr strchr
 #define wa_sscanf sscanf
 #define wa_snprintf snprintf
+#define wa_strrchr strrchr
 #define wa_fileinfo fileinfo
 #define wa_IPC_PE_INSERTFILENAME IPC_PE_INSERTFILENAME
 #define wa_L(x) x
@@ -777,7 +779,9 @@ static void add_extension(int length, char * dst, const char * ext) {
 }
 
 /* Creates Winamp's extension list, a single string that ends with \0\0.
- * Each extension must be in this format: "extension\0Description\0" */
+ * Each extension must be in this format: "extension\0Description\0"
+ * The list is used to accept extensions by default when IsOurFile returns 0, and to register file types.
+ * It could be ignored/empty and just detect in IsOurFile instead. */
 static void build_extension_list() {
     const char ** ext_list;
     size_t ext_list_len;
@@ -871,7 +875,29 @@ void winamp_Quit() {
 
 /* called before extension checks, to allow detection of mms://, etc */
 int winamp_IsOurFile(const in_char *fn) {
-    return 0; /* we don't recognize protocols */
+    const in_char *filename;
+    const in_char *extension;
+
+    /* get basename + extension */
+    filename = fn;
+#if 0
+    //must detect empty extensions in folders with . in the name; doesn't work ok?
+    filename = wa_strrchr(fn, wa_L('\\'));
+    if (filename == NULL)
+        filename = fn;
+    else
+        filename++;
+#endif
+    extension = wa_strrchr(filename, wa_L('.'));
+    if (extension == NULL)
+        return 1; /* extensionless, try to play it */
+    else
+        extension++;
+
+    /* returning 0 here means it only accepts the extensions in working_extension_list */
+    /* it's possible to ignore the list and manually accept extensions, like foobar's g_is_our_path */
+
+    return 0;
 }
 
 /* request to start playing a file */

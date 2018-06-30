@@ -313,6 +313,7 @@ static int parse_sb_header(ubi_sb_header * sb, STREAMFILE *streamFile) {
         /* ignore non-audio entry (other types seem to have config data) */
         if (read_32bit(offset + 0x04, streamFile) != 0x01)
             continue;
+        //;VGM_LOG("SB at %lx\n", offset);
 
         /* weird case when there is no internal substream ID and just seem to rotate every time type changes, joy */
         if (sb->has_rotating_ids) { /* assumes certain configs can't happen in this case */
@@ -779,6 +780,23 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
 
         return 1;
     }
+#if 0
+    /* Far cry: Instincts - Evolution (2006)(Xbox) */
+    if (sb->version == 0x00170000 && is_sb2) {
+        sb->section1_entry_size = 0x48;
+        sb->section2_entry_size = 0x6c;
+
+        sb->external_flag_offset = 0;
+        sb->num_samples_offset   = 0x28;
+        sb->stream_id_offset     = 0;
+        sb->sample_rate_offset   = 0x3c;
+        sb->channels_offset      = 0x44;
+        sb->stream_type_offset   = 0x48;
+        sb->extra_name_offset    = 0x58;
+
+        return 1;
+    }
+#endif
 
     /* Prince of Persia: Rival Swords (2007)(PSP) */
     if (sb->version == 0x00180005 && is_sb5) {

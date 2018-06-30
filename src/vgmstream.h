@@ -679,6 +679,7 @@ typedef enum {
     meta_TA_AAC_VITA,       /* tri-Ace AAC (Judas Code) */
     meta_OGG_GWM,           /* Ogg Vorbis with encryption [Metronomicon (PC)] */
     meta_H4M,               /* Hudson HVQM4 video [Resident Evil 0 (GC), Tales of Symphonia (GC)] */
+    meta_OGG_MUS,           /* Ogg Vorbis with encryption [Redux - Dark Matters (PC)] */
 
 #ifdef VGM_USE_FFMPEG
     meta_FFmpeg,
