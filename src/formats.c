@@ -1,13 +1,16 @@
 #include "vgmstream.h"
 
-//#define VGM_REGISTER_TYPE(extension) ...
-//#define VGM_REGISTER_TYPE_COMMON(extension) ... /* for common extensions like aiff */
 
+/* defines the list of accepted extensions. vgmstream doesn't use it internally so it's here
+ * to inform plugins that need it. Common extensions are commented out to avoid stealing them. */
 
-/* some extensions could be #ifdef but no really needed */
+/* some extensions require external libraries and could be #ifdef, no really needed */
 /* some formats marked as "not parsed" mean they'll go through FFmpeg, the header/extension is not parsed */
 
+
 static const char* extension_list[] = {
+    //"", /* vgmstream can plays extensionless files too, but plugins must accept them manually */
+
     "04sw",
     "2dx9",
     "2pfs",
@@ -437,7 +440,7 @@ static const char* extension_list[] = {
     "zsd",
     "zwdsp",
 
-    "vgmstream"
+    "vgmstream" /* fake extension, catch-all for FFmpeg/txth/etc */
 
     //, NULL //end mark
 };
