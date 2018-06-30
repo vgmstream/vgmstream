@@ -38,6 +38,7 @@ static const char* extension_list[] = {
     "al2",
     "amts", //fake extension/header id for .stm (to be removed)
     "ao", //txth/reserved [Cloudphobia (PC)]
+    "apc", //txth/reserved [MegaRace 3 (PC)]
     "as4",
     "asd",
     "asf",
@@ -367,6 +368,7 @@ static const char* extension_list[] = {
     "v0",
     //"v1", //dual channel with v0
     "vag",
+    "vai", //txth/reserved [Ratatouille (GC)]
     "vas",
     "vawx",
     "vb",
