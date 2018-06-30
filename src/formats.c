@@ -909,7 +909,7 @@ static const meta_info meta_info_list[] = {
         {meta_X360_TRA,             "Terminal Reality .TRA raw header"},
         {meta_PS2_VGS,              "Princess Soft VGS header"},
         {meta_PS2_IAB,              "Runtime .IAB header"},
-        {meta_PS2_STRLR,            "STR L/R header"},
+        {meta_PS2_STRLR,            "The Bouncer STR header"},
         {meta_LSF_N1NJ4N,           ".lsf !n1nj4n header"},
         {meta_VAWX,                 "feelplus VAWX header"},
         {meta_PC_SNDS,              "assumed Heavy Iron IMA by .snds extension"},

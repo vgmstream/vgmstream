@@ -1,19 +1,17 @@
 #include "layout.h"
 #include "../vgmstream.h"
 
-/* set up for the block at the given offset */
+/* The Bouncer STRx blocks, one block per channel when stereo */
 void block_update_ps2_strlr(off_t block_offset, VGMSTREAM * vgmstream) {
+    STREAMFILE* streamFile = vgmstream->ch[0].streamfile;
     int i;
 
-	vgmstream->current_block_offset = block_offset;
-	vgmstream->current_block_size = read_32bitLE(
-			vgmstream->current_block_offset+0x4,
-			vgmstream->ch[0].streamfile)*2;
-	vgmstream->next_block_offset = vgmstream->current_block_offset+vgmstream->current_block_size+0x40;
-	//vgmstream->current_block_size/=vgmstream->channels;
+    vgmstream->current_block_offset = block_offset;
+    vgmstream->current_block_size = read_32bitLE(block_offset+0x04,streamFile); /* can be smaller than 0x800 */
+    vgmstream->next_block_offset = block_offset + 0x800*vgmstream->channels;
+    /* 0x08: number of remaning blocks, 0x10: some id/size? (shared in all blocks) */
 
-	for (i=0;i<vgmstream->channels;i++) {
-        vgmstream->ch[i].offset = vgmstream->current_block_offset+0x20+(0x800*i);
-		
+    for (i = 0; i < vgmstream->channels; i++) {
+        vgmstream->ch[i].offset = block_offset + 0x20 + 0x800*i;
     }
 }
