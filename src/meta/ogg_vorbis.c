@@ -226,6 +226,28 @@ static void gwm_ogg_decryption_callback(void *ptr, size_t size, size_t nmemb, vo
     }
 }
 
+static void mus_ogg_decryption_callback(void *ptr, size_t size, size_t nmemb, void *datasource) {
+    static const uint8_t key[16] = {
+            0x21,0x4D,0x6F,0x01,0x20,0x4C,0x6E,0x02,0x1F,0x4B,0x6D,0x03,0x20,0x4C,0x6E,0x02
+    };
+
+    size_t bytes_read = size*nmemb;
+    ogg_vorbis_streamfile * const ov_streamfile = datasource;
+    int i;
+    char *header_id = "OggS";
+
+    /* bytes are xor'd with key, first "OggS" is changed */
+    for (i = 0; i < bytes_read; i++) {
+        if (ov_streamfile->offset+i < 0x04) { /* if decrypted gives "Mus " */
+            ((uint8_t*)ptr)[i] = (uint8_t)header_id[(ov_streamfile->offset + i) % 4];
+        }
+        else {
+            ((uint8_t*)ptr)[i] ^= key[(ov_streamfile->offset + i) % sizeof(key)];
+        }
+    }
+}
+
+
 /* Ogg Vorbis, by way of libvorbisfile; may contain loop comments */
 VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
     ogg_vorbis_meta_info_t ovmi = {0};
@@ -239,6 +261,7 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
     int is_rpgmvo = 0;
     int is_eno = 0;
     int is_gwm = 0;
+    int is_mus = 0;
 
 
     /* check extension */
@@ -262,6 +285,8 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
         is_eno = 1;
     } else if (check_extensions(streamFile,"gwm")) { /* .gwm: Adagio: Cloudburst (PC) */
         is_gwm = 1;
+    } else if (check_extensions(streamFile,"mus")) { /* .mus: Redux -  Dark Matters (PC) */
+        is_mus = 1;
     } else {
         goto fail;
     }
@@ -355,12 +380,17 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
         start_offset = 0x01;
     }
 
-
     /* check GWM [Adagio: Cloudburst (PC)], encrypted */
     if (is_gwm) {
         ovmi.xor_value = 0x5D;
         ovmi.decryption_callback = gwm_ogg_decryption_callback;
         ovmi.meta_type = meta_OGG_GWM;
+    }
+
+    /* check .mus [Redux - Dark Matters (PC)], encrypted */
+    if (is_mus) {
+        ovmi.decryption_callback = mus_ogg_decryption_callback;
+        ovmi.meta_type = meta_OGG_MUS;
     }
 
 

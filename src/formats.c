@@ -1025,6 +1025,7 @@ static const meta_info meta_info_list[] = {
         {meta_OGG_GWM,              "Ogg Vorbis (GWM header)"},
         {meta_DSP_SADF,             "Procyon Studio SADF header"},
         {meta_H4M,                  "Hudson HVQM4 header"},
+        {meta_OGG_MUS,              "Ogg Vorbis (MUS header)"},
 
 #ifdef VGM_USE_FFMPEG
         {meta_FFmpeg,               "FFmpeg supported file format"},
