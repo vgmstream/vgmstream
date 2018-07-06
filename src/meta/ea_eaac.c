@@ -108,22 +108,25 @@ fail:
     return NULL;
 }
 
-/* .SPS? - from Frostbite engine games? [Need for Speed Rivals (PS4)], v1 header */
+/* .SPS - from Frostbite engine games, v1 header */
 VGMSTREAM * init_vgmstream_ea_sps_fb(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     off_t start_offset = 0, header_offset = 0, sps_offset, max_offset;
 
     /* checks */
-    /* assumed to be .sps (no extensions in the archives) */
+    /* should be .sps once extracted (filenames are hashed) */
     if (!check_extensions(streamFile,"sps"))
         goto fail;
-    if (read_32bitBE(0x00,streamFile) != 0x011006C0)
+    if (read_32bitBE(0x00,streamFile) != 0x011006C0 &&  /* Need for Speed Rivals (PS4) */
+        read_32bitBE(0x00,streamFile) != 0x01100000)    /* Need for Speed: The Run (PC) */
         goto fail;
 
+    /* file has a Frostbite descriptor (SoundWaveAsset segments) data before actual .sps, exact size unknown.
+     * 0x00: segments/flags/sizes? 0x04: SegmentLength?, 0x08: SeekTableOffset?, 0x0c: mini SPS header
+     * rest: unknown fields? may be padded? (ex. 0x22 > 0x24, 0x1d > 0x20 */
 
-    /* file has some kind of data before .sps, exact offset unknown.
-     * Actual offsets are probably somewhere but for now just manually search. */
-    sps_offset = read_32bitBE(0x08, streamFile); /* points to some kind of table, number of entries unknown */
+    /* actual offsets are probably somewhere but for now just manually search. */
+    sps_offset = read_32bitBE(0x08, streamFile); /* seek table, number of entries unknown */
     max_offset = sps_offset + 0x3000;
     if (max_offset > get_streamfile_size(streamFile))
         max_offset = get_streamfile_size(streamFile);
@@ -171,7 +174,7 @@ static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE * streamHead, ST
     /* rest is optional, depends on flags header used (ex. SNU and SPS may have bigger headers):
      *  &0x20: 1 int (usually 0x00), &0x00/40: nothing, &0x60: 2 ints (usually 0x00 and 0x14) */
 
-    /* V0: SNR+SNS, V1: SPR+SPS (not apparent differences, other than the block flags used) */
+    /* V0: SNR+SNS, V1: SPR+SPS (no apparent differences, other than the block flags used) */
     if (version != 0 && version != 1) {
         VGM_LOG("EA SNS/SPS: unknown version\n");
         goto fail;
