@@ -46,13 +46,12 @@ static VGMSTREAM * init_vgmstream_opus(STREAMFILE *streamFile, meta_t meta_type,
     {
         uint8_t buf[0x100];
         size_t bytes;
-        ffmpeg_custom_config cfg;
+        ffmpeg_custom_config cfg = {0};
         ffmpeg_codec_data *ffmpeg_data;
 
         bytes = ffmpeg_make_opus_header(buf,0x100, vgmstream->channels, skip, vgmstream->sample_rate);
         if (bytes <= 0) goto fail;
 
-        memset(&cfg, 0, sizeof(ffmpeg_custom_config));
         cfg.type = FFMPEG_SWITCH_OPUS;
 
         ffmpeg_data = init_ffmpeg_config(streamFile, buf,bytes, start_offset,data_size, &cfg);

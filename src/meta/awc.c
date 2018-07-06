@@ -28,7 +28,7 @@ static int parse_awc_header(STREAMFILE* streamFile, awc_header* awc);
 /* AWC - from RAGE (Rockstar Advanced Game Engine) audio (Red Dead Redemption, Max Payne 3, GTA5) */
 VGMSTREAM * init_vgmstream_awc(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    awc_header awc;
+    awc_header awc = {0};
 
     /* check extension */
     if (!check_extensions(streamFile,"awc"))
@@ -137,8 +137,7 @@ VGMSTREAM * init_vgmstream_awc(STREAMFILE *streamFile) {
 #endif
 #ifdef VGM_USE_MPEG
         case 0x07: {    /* MPEG (PS3) */
-            mpeg_custom_config cfg;
-            memset(&cfg, 0, sizeof(mpeg_custom_config));
+            mpeg_custom_config cfg = {0};
 
             cfg.chunk_size = awc.block_chunk;
             cfg.big_endian = awc.big_endian;
@@ -182,8 +181,6 @@ static int parse_awc_header(STREAMFILE* streamFile, awc_header* awc) {
     uint32_t flags, info_header, tag_count = 0, tags_skip = 0;
     off_t off;
     int target_subsong = streamFile->stream_index;
-
-    memset(awc,0,sizeof(awc_header));
 
 
     /* check header */

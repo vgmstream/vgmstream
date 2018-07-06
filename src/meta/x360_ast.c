@@ -39,8 +39,7 @@ VGMSTREAM * init_vgmstream_x360_ast(STREAMFILE *streamFile) {
 
     {
         /* manually find sample offsets (XMA1 nonsense again) */
-        ms_sample_data msd;
-        memset(&msd,0,sizeof(ms_sample_data));
+        ms_sample_data msd = {0};
 
         msd.xma_version = 1;
         msd.channels = channel_count;

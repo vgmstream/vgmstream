@@ -429,8 +429,8 @@ VGMSTREAM * init_vgmstream_ogg_vorbis_callbacks(STREAMFILE *streamFile, ov_callb
 
     /* test if this is a proper Ogg Vorbis file, with the current (from init_x) STREAMFILE */
     {
-        OggVorbis_File temp_ovf;
-        ogg_vorbis_streamfile temp_streamfile;
+        OggVorbis_File temp_ovf = {0};
+        ogg_vorbis_streamfile temp_streamfile = {0};
 
         temp_streamfile.streamfile = streamFile;
 
@@ -444,7 +444,6 @@ VGMSTREAM * init_vgmstream_ogg_vorbis_callbacks(STREAMFILE *streamFile, ov_callb
         temp_streamfile.xor_value = ovmi->xor_value;
 
         /* open the ogg vorbis file for testing */
-        memset(&temp_ovf, 0, sizeof(temp_ovf));
         if (ov_test_callbacks(&temp_streamfile, &temp_ovf, NULL, 0, *callbacks_p))
             goto fail;
 
