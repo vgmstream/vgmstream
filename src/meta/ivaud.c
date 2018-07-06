@@ -84,15 +84,17 @@ fail:
     return NULL;
 }
 
-/* Parse Rockstar's .ivaud header (much info from SparksIV). */
+/* Parse Rockstar's .ivaud header (much info from SparkIV). */
 static int parse_ivaud_header(STREAMFILE* streamFile, ivaud_header* ivaud) {
-    off_t block_table_offset, channel_table_offset, channel_info_offset;
+    int target_subsong = streamFile->stream_index;
 
 
-    /* use bank's block_count to detect */
+    /* use bank's stream count to detect */
     ivaud->is_music = (read_32bitLE(0x10,streamFile) == 0);
 
     if (ivaud->is_music)  {
+        off_t block_table_offset, channel_table_offset, channel_info_offset;
+
         /* music header */
         block_table_offset = read_32bitLE(0x00,streamFile); /* 64b */
         ivaud->block_count = read_32bitLE(0x08,streamFile);
@@ -115,11 +117,10 @@ static int parse_ivaud_header(STREAMFILE* streamFile, ivaud_header* ivaud) {
         /* 0x0c(4): size */
 
         /* channel info (one entry per channel) */
-        /* 0x00(8): offset to unknown data? */
+        /* 0x00(8): offset within data (should be 0) */
         /* 0x08(4): hash */
-        /* 0x0c(4): samples in bytes? */
-        ivaud->num_samples = read_32bitLE(channel_info_offset+0x10,streamFile); /* data size? (double of 0x0c) */ //todo
-        //num_samples = read_32bitLE(channel_info_offset+0x10,streamFile); /* data size? (double of 0x0c) */ //todo
+        /* 0x0c(4): half num_samples? */
+        ivaud->num_samples = read_32bitLE(channel_info_offset+0x10,streamFile);
         /* 0x14(4): unknown (-1) */
         /* 0x18(2): sample rate */
         /* 0x1a(2): unknown */
@@ -138,8 +139,54 @@ static int parse_ivaud_header(STREAMFILE* streamFile, ivaud_header* ivaud) {
         ivaud->stream_size = get_streamfile_size(streamFile);
     }
     else {
+        off_t stream_table_offset, stream_info_offset, stream_entry_offset;
+
         /* bank header */
-        goto fail;
+        stream_table_offset = read_32bitLE(0x00,streamFile); /* 64b */
+        /* 0x08(8): header size? start offset? */
+        ivaud->total_subsongs = read_32bitLE(0x10,streamFile);
+        /* 0x14(4): unknown */
+        ivaud->stream_offset = read_32bitLE(0x18,streamFile); /* base start_offset */
+
+        if (target_subsong == 0) target_subsong = 1;
+        if (target_subsong < 0 || target_subsong > ivaud->total_subsongs || ivaud->total_subsongs < 1) goto fail;
+
+        if (stream_table_offset != 0x1c)
+            goto fail;
+        stream_info_offset = stream_table_offset + 0x10*ivaud->total_subsongs;
+
+        /* stream table (one entry per stream, points to stream info) */
+        stream_entry_offset = read_32bitLE(stream_table_offset + 0x10*(target_subsong-1) + 0x00,streamFile); /* within stream info */
+        /* 0x00(8): offset within stream_info_offset */
+        /* 0x08(4): hash */
+        /* 0x0c(4): size */
+
+        /* stream info (one entry per stream) */
+        ivaud->stream_offset += read_32bitLE(stream_info_offset+stream_entry_offset+0x00,streamFile); /* 64b, within data */
+        /* 0x08(4): hash */
+        /* 0x0c(4): half num_samples? */
+        ivaud->num_samples = read_32bitLE(stream_info_offset+stream_entry_offset+0x10,streamFile);
+        /* 0x14(4): unknown (-1) */
+        ivaud->sample_rate = (uint16_t)read_16bitLE(stream_info_offset+stream_entry_offset+0x18,streamFile);
+        /* 0x1a(2): unknown */
+        ivaud->codec = read_32bitLE(stream_info_offset+stream_entry_offset+0x1c,streamFile);
+        /* (when codec is IMA) */
+        /* 0x20(8): adpcm states offset, 0x38: num states? (reference for seeks?) */
+        /* rest: unknown data */
+
+        ivaud->channel_count = 1;
+
+        /* ghetto size calculator (could substract offsets but streams are not ordered) */
+        switch(ivaud->codec) {
+            case 0x0001:
+                ivaud->stream_size = ivaud->num_samples * 2; /* double 16b PCM */
+                break;
+            case 0x0400:
+                ivaud->stream_size = ivaud->num_samples / 2; /* half nibbles */
+                break;
+            default:
+                break;
+        }
     }
 
 
