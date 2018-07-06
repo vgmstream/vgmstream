@@ -350,11 +350,19 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE *streamFile, ea_
 #endif
 
         case EA_CODEC2_MT10:        /* MicroTalk (10:1 compression) */
-        case EA_CODEC2_MT5:         /* MicroTalk (5:1 compression) */
+        case EA_CODEC2_MT5: {       /* MicroTalk (5:1 compression) */
+            int use_pcm_blocks = 0;
+
+            if (ea->version == EA_VERSION_V3 || (ea->version == EA_VERSION_V2 && 
+                (ea->platform == EA_PLATFORM_PC || ea->platform == EA_PLATFORM_MAC))) {
+                use_pcm_blocks = 1;
+            }
+
             vgmstream->coding_type = coding_EA_MT;
-            vgmstream->codec_data = init_ea_mt(vgmstream->channels, ea->version == EA_VERSION_V3);
+            vgmstream->codec_data = init_ea_mt(vgmstream->channels, use_pcm_blocks);
             if (!vgmstream->codec_data) goto fail;
             break;
+        }
 
         case EA_CODEC2_ATRAC3PLUS:  /* regular ATRAC3plus chunked in SCxx blocks, including RIFF header */
         default:
