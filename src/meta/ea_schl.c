@@ -517,6 +517,7 @@ static int parse_variable_header(STREAMFILE* streamFile, ea_header* ea, off_t be
             case 0x13: /* effect bus (0..127) */
             case 0x14: /* emdedded user data (free size/value) */
             case 0x19: /* related to playback envelope (BNK only) */
+            case 0x1A: /* unknown and very rare, size 0 (BNK only) [SSX3 (PC)] */
             case 0x1B: /* unknown (movie only?) */
             case 0x1C: /* initial envelope volume (BNK only) */
             case 0x24: /* master random detune range (BNK only) */
@@ -616,7 +617,7 @@ static int parse_variable_header(STREAMFILE* streamFile, ea_header* ea, off_t be
             case 0x9F: /* azimuth ch4 */
             case 0xA6: /* azimuth ch5 */
             case 0xA7: /* azimuth ch6 */
-            case 0xA1: /* unknown and very rare, always 0x02 (FIFA 2001 PS2) */
+            case 0xA1: /* unknown and very rare, always 0x02 [FIFA 2001 (PS2)] */
                 read_patch(streamFile, &offset);
                 break;
 
