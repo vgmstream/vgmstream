@@ -32,8 +32,7 @@ VGMSTREAM * init_vgmstream_sk_aud(STREAMFILE *streamFile) {
 
 #ifdef VGM_USE_VORBIS
     {
-        vorbis_custom_config cfg;
-        memset(&cfg, 0, sizeof(vorbis_custom_config));
+        vorbis_custom_config cfg = {0};
 
         vgmstream->layout_type = layout_none;
         vgmstream->coding_type = coding_VORBIS_custom;

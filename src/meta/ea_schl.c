@@ -350,11 +350,19 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE *streamFile, ea_
 #endif
 
         case EA_CODEC2_MT10:        /* MicroTalk (10:1 compression) */
-        case EA_CODEC2_MT5:         /* MicroTalk (5:1 compression) */
+        case EA_CODEC2_MT5: {       /* MicroTalk (5:1 compression) */
+            int use_pcm_blocks = 0;
+
+            if (ea->version == EA_VERSION_V3 || (ea->version == EA_VERSION_V2 && 
+                (ea->platform == EA_PLATFORM_PC || ea->platform == EA_PLATFORM_MAC))) {
+                use_pcm_blocks = 1;
+            }
+
             vgmstream->coding_type = coding_EA_MT;
-            vgmstream->codec_data = init_ea_mt(vgmstream->channels, ea->version == EA_VERSION_V3);
+            vgmstream->codec_data = init_ea_mt(vgmstream->channels, use_pcm_blocks);
             if (!vgmstream->codec_data) goto fail;
             break;
+        }
 
         case EA_CODEC2_ATRAC3PLUS:  /* regular ATRAC3plus chunked in SCxx blocks, including RIFF header */
         default:
@@ -509,6 +517,7 @@ static int parse_variable_header(STREAMFILE* streamFile, ea_header* ea, off_t be
             case 0x13: /* effect bus (0..127) */
             case 0x14: /* emdedded user data (free size/value) */
             case 0x19: /* related to playback envelope (BNK only) */
+            case 0x1A: /* unknown and very rare, size 0 (BNK only) [SSX3 (PC)] */
             case 0x1B: /* unknown (movie only?) */
             case 0x1C: /* initial envelope volume (BNK only) */
             case 0x24: /* master random detune range (BNK only) */
@@ -608,7 +617,7 @@ static int parse_variable_header(STREAMFILE* streamFile, ea_header* ea, off_t be
             case 0x9F: /* azimuth ch4 */
             case 0xA6: /* azimuth ch5 */
             case 0xA7: /* azimuth ch6 */
-            case 0xA1: /* unknown and very rare, always 0x02 (FIFA 2001 PS2) */
+            case 0xA1: /* unknown and very rare, always 0x02 [FIFA 2001 (PS2)] */
                 read_patch(streamFile, &offset);
                 break;
 

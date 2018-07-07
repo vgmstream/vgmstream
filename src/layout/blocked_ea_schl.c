@@ -69,6 +69,16 @@ void block_update_ea_schl(off_t block_offset, VGMSTREAM * vgmstream) {
     }
 
 
+    vgmstream->current_block_offset = block_offset;
+    vgmstream->next_block_offset = block_offset + block_size;
+    vgmstream->current_block_samples = block_samples;
+    vgmstream->current_block_size = 0; /* uses current_block_samples instead */
+
+    /* no need to setup offsets (plus could read over filesize near EOF) */
+    if (block_samples == 0)
+        return;
+
+
     /* set new channel offsets and ADPCM history */
     /* ADPCM hist could be considered part of the stream/decoder (some EAXA decoders call it "EAXA R1" when it has hist), and BNKs
      * (with no blocks) may also have them in the first offset, but also may not. To simplify we just read them here. */
@@ -179,9 +189,4 @@ void block_update_ea_schl(off_t block_offset, VGMSTREAM * vgmstream) {
 
             break;
     }
-
-    vgmstream->current_block_offset = block_offset;
-    vgmstream->next_block_offset = block_offset + block_size;
-    vgmstream->current_block_samples = block_samples;
-    vgmstream->current_block_size = 0; /* uses current_block_samples instead */
 }

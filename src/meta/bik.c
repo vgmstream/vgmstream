@@ -36,8 +36,8 @@ VGMSTREAM * init_vgmstream_bik(STREAMFILE *streamFile) {
 
 #ifdef VGM_USE_FFMPEG
     {
-        ffmpeg_custom_config cfg;
-        memset(&cfg, 0, sizeof(ffmpeg_custom_config));
+        ffmpeg_custom_config cfg = {0};
+
         cfg.stream_index = stream_index;
 
         vgmstream->codec_data = init_ffmpeg_config(streamFile, NULL,0, 0x0,get_streamfile_size(streamFile), &cfg);

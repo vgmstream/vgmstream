@@ -48,9 +48,8 @@ VGMSTREAM * init_vgmstream_ahx(STREAMFILE *streamFile) {
 
     {
 #ifdef VGM_USE_MPEG
-        mpeg_custom_config cfg;
+        mpeg_custom_config cfg = {0};
 
-        memset(&cfg, 0, sizeof(mpeg_custom_config));
         cfg.encryption = read_8bit(0x13,streamFile); /* 0x08 = keyword encryption */
         cfg.cri_type = type;
 

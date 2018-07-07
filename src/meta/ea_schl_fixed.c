@@ -26,7 +26,7 @@ VGMSTREAM * init_vgmstream_ea_schl_fixed(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     off_t start_offset;
     size_t header_size;
-    ea_header ea;
+    ea_header ea = {0};
 
 
     /* check extension */
@@ -93,8 +93,6 @@ fail:
 
 static int parse_fixed_header(STREAMFILE* streamFile, ea_header* ea, off_t begin_offset) {
     off_t offset = begin_offset;
-
-    memset(ea,0,sizeof(ea_header));
 
     if (read_32bitBE(offset+0x00, streamFile) != 0x5041546C &&      /* "PATl" */
         read_32bitBE(offset+0x38, streamFile) != 0x544D706C)        /* "TMpl" */

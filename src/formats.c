@@ -834,7 +834,7 @@ static const meta_info meta_info_list[] = {
         {meta_PS2_MCG,              "Gunvari MCG Header"},
         {meta_ZSD,                  "ZSD Header"},
         {meta_RedSpark,             "RedSpark Header"},
-        {meta_PC_IVAUD,             "assumed GTA IV Audio file by .ivaud extension"},
+        {meta_IVAUD,                "Rockstar .ivaud header"},
         {meta_DSP_WII_WSD,          ".WSD header"},
         {meta_WII_NDP,              "Icon Games NDP header"},
         {meta_PS2_SPS,              "Ape Escape 2 SPS Header"},

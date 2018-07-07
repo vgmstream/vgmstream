@@ -68,8 +68,7 @@ VGMSTREAM * init_vgmstream_xma(STREAMFILE *streamFile) {
 
     /* fix samples; for now only XMA1 is fixed, but XMA2 num_samples don't include skip samples and xmaencode.exe doesn't use it */
     if (is_xma1) {
-        ms_sample_data msd;
-        memset(&msd,0,sizeof(ms_sample_data));
+        ms_sample_data msd = {0};
 
         msd.xma_version = is_xma1 ? 1 : 2;
         msd.channels    = channel_count;
