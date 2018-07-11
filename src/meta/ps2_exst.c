@@ -24,7 +24,7 @@ VGMSTREAM * init_vgmstream_ps2_exst(STREAMFILE *streamFile) {
 
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("sts",filename_extension(filename))) goto fail;
+    if (strcasecmp("x",filename_extension(filename))) goto fail;
 
     /* check EXST Header */
     if (read_32bitBE(0x00,streamFile) != 0x45585354)
@@ -45,12 +45,12 @@ VGMSTREAM * init_vgmstream_ps2_exst(STREAMFILE *streamFile) {
 
     /* Compression Scheme */
     vgmstream->coding_type = coding_PSX;
-    vgmstream->num_samples = (read_32bitLE(0x14,streamFile)*0x400)/16*28;
+    vgmstream->num_samples = ps_bytes_to_samples((read_32bitLE(0x14,streamFile)*0x400));
 
     /* Get loop point values */
     if(vgmstream->loop_flag) {
-        vgmstream->loop_start_sample = (read_32bitLE(0x10,streamFile)*0x400)/16*28;
-        vgmstream->loop_end_sample = (read_32bitLE(0x14,streamFile)*0x400)/16*28;
+        vgmstream->loop_start_sample = ps_bytes_to_samples((read_32bitLE(0x10,streamFile)*0x400));
+        vgmstream->loop_end_sample = ps_bytes_to_samples((read_32bitLE(0x14,streamFile)*0x400));
     }
 
     vgmstream->interleave_block_size = 0x400;
