@@ -204,7 +204,7 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
     switch(ww.codec) {
         case PCM: /* common */
             /* normally riff.c has priority but it's needed when .wem is used */
-            if (ww.fmt_size != 0x10 && ww.fmt_size != 0x18) goto fail; /* old, new */
+            if (ww.fmt_size != 0x10 && ww.fmt_size != 0x18 && ww.fmt_size != 0x28) goto fail; /* old, new/Limbo (PC) */
             if (ww.bits_per_sample != 16) goto fail;
 
             vgmstream->coding_type = (ww.big_endian ? coding_PCM16BE : coding_PCM16LE);
