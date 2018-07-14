@@ -117,7 +117,8 @@ VGMSTREAM * init_vgmstream_ea_sps_fb(STREAMFILE *streamFile) {
     /* should be .sps once extracted (filenames are hashed) */
     if (!check_extensions(streamFile,"sps"))
         goto fail;
-    if (read_32bitBE(0x00,streamFile) != 0x011006C0 &&  /* Need for Speed Rivals (PS4) */
+    if (read_32bitBE(0x00,streamFile) != 0x011006C0 &&  /* Need for Speed: The Run (PS3), Need for Speed: Rivals (PS4) */
+        read_32bitBE(0x00,streamFile) != 0x01100180 &&  /* Need for Speed: The Run (X360) */
         read_32bitBE(0x00,streamFile) != 0x01100000)    /* Need for Speed: The Run (PC) */
         goto fail;
 
