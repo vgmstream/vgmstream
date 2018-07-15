@@ -347,6 +347,7 @@ static const char* extension_list[] = {
     "stx",
     "svag",
     "svs",
+    "svg", //txth/reserved [Hunter: The Reckoning - Wayward (PS2)]
     "swag",
     "swav",
     "swd",

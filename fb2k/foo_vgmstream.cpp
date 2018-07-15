@@ -209,7 +209,7 @@ bool input_vgmstream::decode_run(audio_chunk & p_chunk,abort_callback & p_abort)
 
         if (samples_to_do /*< DECODE_SIZE*/ == 0) {
             decoding = false;
-            return false;
+            return false; /* EOF, didn't decode samples in this call */
         }
 
 
@@ -268,7 +268,7 @@ bool input_vgmstream::decode_run(audio_chunk & p_chunk,abort_callback & p_abort)
         decode_pos_samples+=samples_to_do;
         decode_pos_ms=decode_pos_samples*1000LL/vgmstream->sample_rate;
 
-        return samples_to_do==max_buffer_samples;
+        return true; /* decoded in this call (sample_buffer or less) */
     }
 }
 

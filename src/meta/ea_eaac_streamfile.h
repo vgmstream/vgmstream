@@ -39,7 +39,7 @@ static size_t eaac_io_read(STREAMFILE *streamfile, uint8_t *dest, off_t offset, 
         off_t intrablock_offset, intradata_offset;
         uint32_t block_flag, block_size, data_size, skip_size;
 
-        block_flag =    read_8bit(data->physical_offset+0x00,streamfile);
+        block_flag = (uint8_t)read_8bit(data->physical_offset+0x00,streamfile);
         block_size = read_32bitBE(data->physical_offset+0x00,streamfile) & 0x00FFFFFF;
 
         if (data->version == 1 && block_flag == 0x48) {
@@ -47,7 +47,7 @@ static size_t eaac_io_read(STREAMFILE *streamfile, uint8_t *dest, off_t offset, 
             continue; /* skip header block */
         }
         if (data->version == 1 && block_flag == 0x45)
-            return total_read; /* stop on last block (always empty) */
+            break; /* stop on last block (always empty) */
 
         switch(data->codec) {
 #if 0
@@ -92,13 +92,13 @@ static size_t eaac_io_read(STREAMFILE *streamfile, uint8_t *dest, off_t offset, 
         if (to_read > length)
             to_read = length;
         if (to_read == 0)
-            return total_read; /* should never happen... */
+            break; /* should never happen... */
 
         /* finally read and move buffer/offsets */
         bytes_read = read_streamfile(dest, data->physical_offset + intrablock_offset, to_read, streamfile);
         total_read += bytes_read;
         if (bytes_read != to_read)
-            return total_read; /* couldn't read fully */
+            break; /* couldn't read fully */
 
         dest += bytes_read;
         offset += bytes_read;
@@ -131,7 +131,7 @@ static size_t eaac_io_size(STREAMFILE *streamfile, eaac_io_data* data) {
     while (physical_offset < max_physical_offset) {
         uint32_t block_flag, block_size, data_size;
 
-        block_flag =    read_8bit(physical_offset+0x00,streamfile);
+        block_flag = (uint8_t)read_8bit(physical_offset+0x00,streamfile);
         block_size = read_32bitBE(physical_offset+0x00,streamfile) & 0x00FFFFFF;
 
         if (data->version == 0 && block_flag != 0x00 && block_flag != 0x80)

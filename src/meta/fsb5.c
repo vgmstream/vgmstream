@@ -34,8 +34,10 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
      * type 0x00 has an extra field (always 0?) at 0x1c */
     BaseHeaderLength = (Version==0x00) ? 0x40 : 0x3C;
 
-    if ((SampleHeaderLength + NameTableLength + SampleDataLength + BaseHeaderLength) != get_streamfile_size(streamFile))
+    if ((SampleHeaderLength + NameTableLength + SampleDataLength + BaseHeaderLength) != get_streamfile_size(streamFile)) {
+        VGM_LOG("FSB5: bad size (%x + %x + %x + %x != %x)\n", SampleHeaderLength, NameTableLength, SampleDataLength, BaseHeaderLength, get_streamfile_size(streamFile));
         goto fail;
+    }
 
     if (TargetSubsong == 0) TargetSubsong = 1; /* default to 1 */
     if (TargetSubsong > TotalSubsongs || TotalSubsongs <= 0) goto fail;
