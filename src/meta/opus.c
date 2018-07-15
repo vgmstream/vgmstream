@@ -272,3 +272,30 @@ fail:
     return NULL;
 }
 
+/* Bandai Namco Opus (found in NUS3Banks) [Taiko no Tatsujin: Nintendo Switch Version!] */
+VGMSTREAM * init_vgmstream_opus_nus3(STREAMFILE *streamFile) {
+    off_t offset = 0;
+    int num_samples = 0, loop_start = 0, loop_end = 0, loop_flag;
+
+    /* checks */
+    if (!check_extensions(streamFile, "lopus"))
+        goto fail;
+    if (read_32bitBE(0x00, streamFile) != 0x4F505553) /* "OPUS" */
+        goto fail;
+
+	/* Here's an interesting quirk, OPUS header contains big endian values
+       while the Nintendo Opus header and data that follows remain little endian as usual */
+    offset = read_32bitBE(0x20, streamFile);
+    num_samples = read_32bitBE(0x08, streamFile);
+
+	/* Check if there's a loop end value to determine loop_flag*/
+    loop_flag = read_32bitBE(0x18, streamFile);
+    if (loop_flag) {
+        loop_start = read_32bitBE(0x14, streamFile);
+        loop_end = read_32bitBE(0x18, streamFile);
+    }
+
+    return init_vgmstream_opus(streamFile, meta_OPUS, offset, num_samples, loop_start, loop_end);
+fail:
+    return NULL;
+}
