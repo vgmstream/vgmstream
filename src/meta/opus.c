@@ -299,3 +299,36 @@ VGMSTREAM * init_vgmstream_opus_nus3(STREAMFILE *streamFile) {
 fail:
     return NULL;
 }
+
+/* Nihon Falcom NLSD Opus [Ys VIII: Lacrimosa of Dana (Switch)]
+   Similar to Nippon Ichi Software "AT9" Opus (Penny Punching Princess (Switch)
+   Unlike Penny Punching Princess, this is not segmented */
+VGMSTREAM * init_vgmstream_opus_nlsd(STREAMFILE *streamFile) {
+    off_t offset = 0;
+    int num_samples = 0, loop_start = 0, loop_end = 0, loop_flag;
+
+    /* checks */
+    if (!check_extensions(streamFile, "nlsd"))
+        goto fail;
+    /* File type check - DSP is 0x8, Opus is 0x9 */
+    if (read_32bitBE(0x00, streamFile) != 0x09000000)
+        goto fail;
+
+	offset = 0x1C;
+    num_samples = read_32bitLE(0x0C, streamFile);
+
+    /* Check if there's a loop_end "adjuster" value to determine loop_flag
+       Setting loop_flag to loop_start would work too but it may cause conflicts
+       With files that may have a 0 sample loop_start. */
+    // Not sure why this is a thing but let's roll with it.
+    loop_flag = read_32bitLE(0x18, streamFile);
+    if (loop_flag) {
+        loop_start = read_32bitLE(0x10, streamFile);
+        /* They were being really creative here */
+        loop_end = (num_samples - read_32bitLE(0x18, streamFile));
+    }
+
+    return init_vgmstream_opus(streamFile, meta_OPUS, offset, num_samples, loop_start, loop_end);
+fail:
+    return NULL;
+}
