@@ -19,6 +19,7 @@ static const char* extension_list[] = {
     "aa3", //FFmpeg, not parsed (ATRAC3/ATRAC3PLUS/MP3/LPCM/WMA)
     "aaap",
     "aax",
+	"abk",
     //"ac3", //FFmpeg, not parsed //common?
     "ace", //fake, for tri-Ace's formats (to be removed)
     "acm",

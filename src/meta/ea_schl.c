@@ -72,6 +72,7 @@ typedef struct {
     int codec_version;
 } ea_header;
 
+static VGMSTREAM * parse_bnk_header(STREAMFILE *streamFile, off_t offset);
 static int parse_variable_header(STREAMFILE* streamFile, ea_header* ea, off_t begin_offset, int max_length);
 static uint32_t read_patch(STREAMFILE* streamFile, off_t* offset);
 static int get_ea_stream_total_samples(STREAMFILE* streamFile, off_t start_offset, VGMSTREAM* vgmstream);
@@ -123,7 +124,6 @@ fail:
     return NULL;
 }
 
-/* EA BNK with variable header - from EA games SFXs; also created by sx.exe */
 VGMSTREAM * init_vgmstream_ea_bnk(STREAMFILE *streamFile) {
     off_t start_offset, header_offset, test_offset, offset, table_offset;
     size_t header_size;
@@ -147,6 +147,46 @@ VGMSTREAM * init_vgmstream_ea_bnk(STREAMFILE *streamFile) {
         offset = 0x100; /* Harry Potter and the Goblet of Fire (PS2) .mus have weird extra 0x100 bytes */
     else
         goto fail;
+
+    return parse_bnk_header(streamFile, offset);
+    
+fail:
+    return NULL;
+}
+
+/* EA ABK - contains embedded BNK file */
+VGMSTREAM * init_vgmstream_ea_abk(STREAMFILE *streamFile) {
+    off_t bnk_offset;
+
+    /* check extension */
+    if (!check_extensions(streamFile, "abk"))
+        goto fail;
+
+    if (read_32bitBE(0x00,streamFile) != 0x41424B43) /* "ABKC" */
+        goto fail;
+
+    bnk_offset = read_32bitLE(0x20,streamFile);
+    if (bnk_offset == 0) /* TODO: handle streamed version (ABK/AST) */
+        goto fail;
+
+    if (read_32bitBE(bnk_offset,streamFile) != 0x424E4B6C)  /* "BNKl" */
+        goto fail;
+
+    return parse_bnk_header(streamFile,bnk_offset);
+
+fail:
+    return NULL;
+}
+
+/* EA BNK with variable header - from EA games SFXs; also created by sx.exe */
+static VGMSTREAM * parse_bnk_header(STREAMFILE *streamFile, off_t offset) {
+    off_t start_offset, header_offset, test_offset, table_offset;
+    size_t header_size;
+    ea_header ea = {0};
+    int32_t (*read_32bit)(off_t,STREAMFILE*) = NULL;
+    int16_t (*read_16bit)(off_t,STREAMFILE*) = NULL;
+    int i, bnk_version;
+    int total_streams, real_streams = 0, target_stream = streamFile->stream_index;
 
     /* use header size as endianness flag */
     if (guess_endianness32bit(offset + 0x08,streamFile)) {
@@ -189,7 +229,7 @@ VGMSTREAM * init_vgmstream_ea_bnk(STREAMFILE *streamFile) {
             real_streams++;
 
             if (target_stream == real_streams)
-                header_offset = test_offset + offset + table_offset + 0x04 * i;
+                header_offset = offset + table_offset + 0x04 * i + test_offset;
         }
     }
 
