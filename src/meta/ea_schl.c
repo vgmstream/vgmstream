@@ -149,7 +149,7 @@ VGMSTREAM * init_vgmstream_ea_bnk(STREAMFILE *streamFile) {
         goto fail;
 
     /* use header size as endianness flag */
-    if ((uint32_t)read_32bitLE(0x08,streamFile) > 0x000F0000) { /* todo not very accurate */
+    if (guess_endianness32bit(offset + 0x08,streamFile)) {
         read_32bit = read_32bitBE;
         read_16bit = read_16bitBE;
     } else {

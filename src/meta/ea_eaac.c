@@ -89,7 +89,7 @@ VGMSTREAM * init_vgmstream_ea_snu(STREAMFILE *streamFile) {
      * 0x0c(4): some sub-offset? (0x20, found when @0x01 is set) */
 
     /* use start_offset as endianness flag */
-    if ((uint32_t)read_32bitLE(0x08,streamFile) > 0x0000FFFF) {
+    if (guess_endianness32bit(0x08,streamFile)) {
         read_32bit = read_32bitBE;
     } else {
         read_32bit = read_32bitLE;
