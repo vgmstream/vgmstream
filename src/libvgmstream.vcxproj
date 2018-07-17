@@ -195,6 +195,7 @@
     <ClCompile Include="meta\aifc.c" />
     <ClCompile Include="meta\aix.c" />
     <ClCompile Include="meta\apple_caff.c" />
+    <ClCompile Include="meta\asf.c" />
     <ClCompile Include="meta\ast.c" />
     <ClCompile Include="meta\atsl.c" />
     <ClCompile Include="meta\atx.c" />
@@ -447,6 +448,7 @@
     <ClCompile Include="meta\zwdsp.c" />
     <ClCompile Include="coding\acm_decoder.c" />
     <ClCompile Include="coding\adx_decoder.c" />
+    <ClCompile Include="coding\asf_decoder.c" />
     <ClCompile Include="coding\yamaha_decoder.c" />
     <ClCompile Include="coding\ea_mt_decoder.c" />
     <ClCompile Include="coding\ea_xa_decoder.c" />
