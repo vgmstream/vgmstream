@@ -178,6 +178,11 @@ VGMSTREAM * init_vgmstream_ea_abk(STREAMFILE *streamFile) {
             num_sounds = read_32bitLE(table_offset, streamFile);
             for (k = 0; k < num_sounds; k++) {
                 entry_offset = table_offset + 0x04 + 0x0C * k;
+                sound_type = read_8bit(entry_offset, streamFile);
+
+                /* some of these dummies pointing at sound 0 in BNK */
+                if (sound_type == 0x00 && read_32bitLE(entry_offset + 0x04, streamFile) == 0)
+                    continue;
 
                 total_sounds++;
                 if (target_stream == total_sounds)
