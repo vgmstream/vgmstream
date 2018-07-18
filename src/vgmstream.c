@@ -358,6 +358,8 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_pc_xa30,
     init_vgmstream_wii_04sw,
     init_vgmstream_ea_bnk,
+    init_vgmstream_ea_abk,
+    init_vgmstream_ea_hdr,
     init_vgmstream_ea_schl_fixed,
     init_vgmstream_sk_aud,
     init_vgmstream_stm,

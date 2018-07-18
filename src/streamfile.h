@@ -171,6 +171,16 @@ static inline int8_t read_8bit(off_t offset, STREAMFILE * streamfile) {
     return buf[0];
 }
 
+/* guess byte endianness from a given value, return true if big endian and false if little endian */
+/* TODO: possibly improve */
+static inline int guess_endianness16bit(off_t offset, STREAMFILE * streamfile) {
+    return ((uint16_t)read_16bitLE(offset,streamfile) > (uint16_t)read_16bitBE(offset,streamfile)) ? 1 : 0;
+}
+
+static inline int guess_endianness32bit(off_t offset, STREAMFILE * streamfile) {
+    return ((uint32_t)read_32bitLE(offset,streamfile) > (uint32_t)read_32bitBE(offset,streamfile)) ? 1 : 0;
+}
+
 /* various STREAMFILE helpers functions */
 
 size_t get_streamfile_text_line(int dst_length, char * dst, off_t offset, STREAMFILE * streamfile, int *line_done_ptr);

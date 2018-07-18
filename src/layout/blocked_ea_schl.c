@@ -23,9 +23,10 @@ void block_update_ea_schl(off_t block_offset, VGMSTREAM * vgmstream) {
     {
         uint32_t block_id = read_32bitBE(block_offset+0x00,streamFile);
 
-        block_size = read_32bitLE(block_offset+0x04,streamFile);
-        if (block_size > 0x00F00000) /* size is always LE, except in early SAT/MAC */
-            block_size = read_32bitBE(block_offset+0x04,streamFile);
+        if (guess_endianness32bit(block_offset + 0x04,streamFile)) /* size is always LE, except in early SS/MAC */
+            block_size = read_32bitBE(block_offset + 0x04,streamFile);
+        else
+            block_size = read_32bitLE(block_offset + 0x04,streamFile);
 
         switch(block_id) {
             case 0x5343446C: /* "SCDl" */
