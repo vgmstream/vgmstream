@@ -758,4 +758,6 @@ VGMSTREAM * init_vgmstream_dsp_sadf(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_h4m(STREAMFILE *streamFile);
 
+VGMSTREAM * init_vgmstream_asf(STREAMFILE *streamFile);
+
 #endif /*_META_H*/

@@ -39,10 +39,16 @@ int ffmpeg_custom_read_eaxma(ffmpeg_codec_data *data, uint8_t *buf, int buf_size
     /* read and transform SNS/EA-XMA blocks into XMA packets */
     while (buf_done < buf_size) {
         int s, p, bytes_to_copy, max_packets;
-        size_t data_size = 0, gap_size = 0;
-        size_t block_size = read_32bitBE(real_offset, data->streamfile);
-        /* 0x04(4): decoded samples */
-        off_t packets_offset = real_offset + 0x08;
+        size_t block_size, data_size = 0, gap_size = 0;
+        uint32_t block_flag;
+        off_t packets_offset;
+
+        block_flag = (uint8_t)read_8bit(real_offset+0x00,data->streamfile);
+        block_size = read_32bitBE(real_offset+0x00,data->streamfile) & 0x00FFFFFF;
+        packets_offset = real_offset + 0x08; /* 0x04(4): decoded samples */
+
+        if (block_flag == 0x45) /* exit on last block just in case, though should reach real_size */
+            break;
 
         max_packets = get_block_max_packets(num_streams, packets_offset, data->streamfile);
         if (max_packets == 0) goto fail;
@@ -115,12 +121,11 @@ int ffmpeg_custom_read_eaxma(ffmpeg_codec_data *data, uint8_t *buf, int buf_size
 
         /* move when block is fully done */
         if (data_size == bytes_to_copy + gap_size) {
-            real_offset += (block_size & 0x00FFFFFF);
+            real_offset += block_size;
             virtual_base += data_size;
         }
 
-        /* exit on last block just in case, though should reach real_size */
-        if ((block_size & 0x80000000) || (block_size & 0x45000000))
+        if (block_flag == 0x80) /* exit on last block just in case, though should reach real_size */
             break;
     }
 
@@ -153,10 +158,16 @@ int64_t ffmpeg_custom_seek_eaxma(ffmpeg_codec_data *data, int64_t virtual_offset
 
     /* find target block */
     while (virtual_base < seek_virtual_offset) {
-        size_t data_size, extra_size = 0;
-        size_t block_size = read_32bitBE(real_offset, data->streamfile);
+        size_t block_size, data_size, extra_size = 0;
+        uint32_t block_flag;
 
-        data_size = (block_size & 0x00FFFFFF) - 0x0c;
+        block_flag = (uint8_t)read_8bit(real_offset+0x00,data->streamfile);
+        block_size = read_32bitBE(real_offset+0x00,data->streamfile) & 0x00FFFFFF;
+
+        if (block_flag == 0x45) /* exit on last block just in case (v1/SPS, empty) */
+            break;
+
+        data_size = block_size - 0x0c;
         if (data_size % EAXMA_XMA_PACKET_SIZE)
             extra_size = EAXMA_XMA_PACKET_SIZE - (data_size % EAXMA_XMA_PACKET_SIZE);
 
@@ -164,8 +175,11 @@ int64_t ffmpeg_custom_seek_eaxma(ffmpeg_codec_data *data, int64_t virtual_offset
         if (data_size + extra_size > seek_virtual_offset)
             break;
 
-        real_offset += (block_size & 0x00FFFFFF);
+        real_offset += block_size;
         virtual_base += data_size + extra_size;
+
+        if (block_flag == 0x80) /* exit on last block just in case (v0/SNS, full) */
+            break;
     }
 
     /* closest we can use for reads */
@@ -195,13 +209,16 @@ size_t ffmpeg_get_eaxma_virtual_size(int channels, off_t real_offset, size_t rea
     /* count all SNS/EAXMA blocks size + padding size */
     while (real_offset < real_end_offset) {
         int max_packets;
-        size_t block_size = read_32bitBE(real_offset + 0x00, streamFile);
-        /* 0x04(4): decoded samples */
-        off_t packets_offset = real_offset + 0x08;
+        uint32_t block_flag, block_size;
+        off_t packets_offset;
 
-        /* At 0x00(1): block flag
-         * - in SNS: 0x00=normal block, 0x80=last block (not mandatory)
-         * - in SPS: 0x48=header, 0x44=normal block, 0x45=last block (empty) */
+        block_flag = (uint8_t)read_8bit(real_offset+0x00,streamFile);
+        block_size = read_32bitBE(real_offset+0x00,streamFile) & 0x00FFFFFF;
+        packets_offset = real_offset + 0x08; /* 0x04(4): decoded samples */
+
+        if (block_flag == 0x45) /* exit on last block just in case (v1/SPS, empty) */
+            break;
+
 
         max_packets = get_block_max_packets(num_streams, packets_offset, streamFile);
         if (max_packets == 0) goto fail;
@@ -209,10 +226,9 @@ size_t ffmpeg_get_eaxma_virtual_size(int channels, off_t real_offset, size_t rea
         /* fixed data_size per block for multichannel, see reads */
         virtual_size += max_packets * num_streams * EAXMA_XMA_PACKET_SIZE;
 
-        real_offset += (block_size & 0x00FFFFFF);
+        real_offset += block_size;
 
-        /* exit on last block just in case, though should reach real_size */
-        if ((block_size & 0x80000000) || (block_size & 0x45000000))
+        if (block_flag == 0x80) /* exit on last block just in case (v0/SNS, full) */
             break;
     }
 
