@@ -133,10 +133,11 @@ fail:
 
 /* EA ABK - contains embedded BNK file or references streams in AST file */
 VGMSTREAM * init_vgmstream_ea_abk(STREAMFILE *streamFile) {
-    int bnk_target_stream, total_sounds = 0, target_stream = streamFile->stream_index;
+    int bnk_target_stream, is_dupe, total_sounds = 0, target_stream = streamFile->stream_index;
     off_t bnk_offset, header_table_offset, base_offset, value_offset, table_offset, entry_offset, target_entry_offset, schl_offset;
-    uint32_t i, j, k, num_sounds;
+    uint32_t i, j, k, num_sounds, total_sound_tables;
     uint8_t version, sound_type, num_tables, num_entries;
+    off_t sound_table_offsets[0x2000];
     STREAMFILE * astData = NULL;
     VGMSTREAM * vgmstream;
 
@@ -163,6 +164,7 @@ VGMSTREAM * init_vgmstream_ea_abk(STREAMFILE *streamFile) {
     num_tables = read_8bit(0x0A, streamFile);
     header_table_offset = read_32bitLE(0x1C, streamFile);
     target_entry_offset = 0;
+    total_sound_tables = 0;
 
     for (i = 0; i < num_tables; i++) {
         num_entries = read_8bit(header_table_offset + 0x24, streamFile);
@@ -172,10 +174,22 @@ VGMSTREAM * init_vgmstream_ea_abk(STREAMFILE *streamFile) {
             value_offset = read_32bitLE(header_table_offset + 0x3C + 0x04 * j, streamFile);
             table_offset = read_32bitLE(base_offset + value_offset + 0x04, streamFile);
 
-            /* For some reason there are duplicate entries pointing at the same table for BNK sounds */
-            /* I'm not sure what to do about these */
-            /* Can't just ignore them since there may be multiple BNK tables */
+            /* For some reason, there are duplicate entries pointing at the same sound tables */
+            is_dupe = 0;
+            for (k = 0; k < total_sound_tables; k++)
+            {
+                if (table_offset==sound_table_offsets[k])
+                {
+                    is_dupe = 1;
+                    break;
+                }
+            }
+
+            if (is_dupe) continue;
+
+            sound_table_offsets[total_sound_tables++] = table_offset;
             num_sounds = read_32bitLE(table_offset, streamFile);
+
             for (k = 0; k < num_sounds; k++) {
                 entry_offset = table_offset + 0x04 + 0x0C * k;
                 sound_type = read_8bit(entry_offset, streamFile);
