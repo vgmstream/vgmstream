@@ -73,7 +73,7 @@ typedef struct {
 } ea_header;
 
 static VGMSTREAM * parse_schl_block(STREAMFILE *streamFile, off_t offset, int total_streams);
-static VGMSTREAM * parse_bnk_header(STREAMFILE *streamFile, off_t offset);
+static VGMSTREAM * parse_bnk_header(STREAMFILE *streamFile, off_t offset, int target_stream, int total_streams);
 static int parse_variable_header(STREAMFILE* streamFile, ea_header* ea, off_t begin_offset, int max_length);
 static uint32_t read_patch(STREAMFILE* streamFile, off_t* offset);
 static int get_ea_stream_total_samples(STREAMFILE* streamFile, off_t start_offset, VGMSTREAM* vgmstream);
@@ -125,7 +125,7 @@ VGMSTREAM * init_vgmstream_ea_bnk(STREAMFILE *streamFile) {
     else
         goto fail;
 
-    return parse_bnk_header(streamFile, offset);
+    return parse_bnk_header(streamFile, offset, streamFile->stream_index, 0);
     
 fail:
     return NULL;
@@ -133,50 +133,100 @@ fail:
 
 /* EA ABK - contains embedded BNK file or references streams in AST file */
 VGMSTREAM * init_vgmstream_ea_abk(STREAMFILE *streamFile) {
-    off_t bnk_offset, unk_table_size, stream_table_offset, schl_offset;
-    int total_streams, target_stream = streamFile->stream_index;
-    STREAMFILE * astData;
+    off_t bnk_offset, header_table_offset, base_offset, value_offset, table_offset, entry_offset, target_entry_offset, schl_offset;
+    int i, j, k, bnk_target_stream, total_sounds = 0, target_stream = streamFile->stream_index;
+    int32_t num_entries, num_sounds;
+    int8_t version, sound_type, num_tables;
+    STREAMFILE * astData = NULL;
     VGMSTREAM * vgmstream;
 
     /* check extension */
     if (!check_extensions(streamFile, "abk"))
         goto fail;
 
-    if (read_32bitBE(0x00,streamFile) != 0x41424B43) /* "ABKC" */
+    if (read_32bitBE(0x00, streamFile) != 0x41424B43) /* "ABKC" */
         goto fail;
 
-    bnk_offset = read_32bitLE(0x20,streamFile);
-    if (bnk_offset != 0) {
-        /* normal version */
+    version = read_8bit(0x06, streamFile);
+    if (version > 0x01)
+        goto fail;
+    
+    bnk_offset = read_32bitLE(0x20, streamFile);
+    if (bnk_offset) {
         if (read_32bitBE(bnk_offset, streamFile) != 0x424E4B6C)  /* "BNKl" */
             goto fail;
-
-        return parse_bnk_header(streamFile, bnk_offset);
     }
-    else {
-        /* streamed version */
+
+    if (target_stream == 0) target_stream = 1;
+    if (target_stream < 0) goto fail;
+
+    num_tables = read_8bit(0x0A, streamFile);
+    header_table_offset = read_32bitLE(0x1C, streamFile);
+    target_entry_offset = 0;
+
+    for (i = 0; i < num_tables; i++) {
+        num_entries = read_8bit(header_table_offset + 0x24, streamFile);
+        base_offset = read_32bitLE(header_table_offset + 0x2C, streamFile);
+
+        for (j = 0; j < num_entries; j++) {
+            value_offset = read_32bitLE(header_table_offset + 0x3C + 0x04 * j, streamFile);
+            table_offset = read_32bitLE(base_offset + value_offset + 0x04, streamFile);
+
+            /* For some reason there are duplicate entries pointing at the same table for BNK sounds */
+            /* I'm not sure what to do about these */
+            /* Can't just ignore them since there may be multiple BNK tables */
+            num_sounds = read_32bitLE(table_offset, streamFile);
+            for (k = 0; k < num_sounds; k++) {
+                entry_offset = table_offset + 0x04 + 0x0C * k;
+
+                total_sounds++;
+                if (target_stream == total_sounds)
+                    target_entry_offset = entry_offset;
+            }
+        }
+
+        header_table_offset += 0x3C + num_entries * 0x04;
+    }
+
+    if (target_entry_offset == 0) goto fail;
+
+    /* 0x00: type (0x00 - normal, 0x01 - streamed, 0x02 - streamed and prefetched(?) */
+    /* 0x01: ??? */
+    /* 0x04: index for normal sounds, offset for streamed sounds */
+    /* 0x08: offset for prefetched sounds */
+    sound_type = read_8bit(target_entry_offset, streamFile);
+    
+    switch (sound_type) {
+    case 0x00:
+        bnk_target_stream = read_32bitLE(target_entry_offset + 0x04, streamFile) + 1;
+        vgmstream = parse_bnk_header(streamFile, bnk_offset, bnk_target_stream, total_sounds);
+        if (!vgmstream) goto fail;
+        break;
+
+    case 0x01:
+    case 0x02:
         astData = open_streamfile_by_ext(streamFile, "ast");
         if (!astData) goto fail;
 
-        /* skip uknown table */
-        unk_table_size = read_32bitLE(0x8c, streamFile);
-        stream_table_offset = read_32bitLE(0x98 + unk_table_size, streamFile);
-        total_streams = read_32bitLE(stream_table_offset, streamFile);
+        if (sound_type == 0x01)
+            schl_offset = read_32bitLE(target_entry_offset + 0x04, streamFile);
+        else
+            schl_offset = read_32bitLE(target_entry_offset + 0x08, streamFile);
 
-        if (target_stream == 0) target_stream = 1;
-        if (target_stream < 0 || target_stream > total_streams || total_streams < 1) goto fail;
-
-        /* entry structure: 0x00: always 1, 0x04: offset, 0x08: always 0 */
-        schl_offset = read_32bitLE(stream_table_offset + 0x04 + 0x0C * (target_stream-1) + 0x04, streamFile);
-        if (read_32bitBE(schl_offset,astData) != 0x5343486C) /* "SCHl */
+        if (read_32bitBE(schl_offset, astData) != 0x5343486C) /* "SCHl */
             goto fail;
 
-        vgmstream = parse_schl_block(astData, schl_offset, total_streams);
+        vgmstream = parse_schl_block(astData, schl_offset, total_sounds);
         if (!vgmstream) goto fail;
+        break;
 
-        close_streamfile(astData);
-        return vgmstream;
+    default:
+        goto fail;
+        break;
     }
+
+    close_streamfile(astData);
+    return vgmstream;
 
 fail:
     close_streamfile(astData);
@@ -209,14 +259,14 @@ fail:
 }
 
 /* EA BNK with variable header - from EA games SFXs; also created by sx.exe */
-static VGMSTREAM * parse_bnk_header(STREAMFILE *streamFile, off_t offset) {
-    off_t start_offset, header_offset, test_offset, table_offset;
+static VGMSTREAM * parse_bnk_header(STREAMFILE *streamFile, off_t offset, int target_stream, int total_streams) {
+    off_t header_offset, start_offset, test_offset, table_offset;
     size_t header_size;
     ea_header ea = {0};
     int32_t (*read_32bit)(off_t,STREAMFILE*) = NULL;
     int16_t (*read_16bit)(off_t,STREAMFILE*) = NULL;
     int i, bnk_version;
-    int total_streams, real_streams = 0, target_stream = streamFile->stream_index;
+    int total_bnk_sounds, real_bnk_sounds = 0;
 
     /* use header size as endianness flag */
     if (guess_endianness32bit(offset + 0x08,streamFile)) {
@@ -228,7 +278,7 @@ static VGMSTREAM * parse_bnk_header(STREAMFILE *streamFile, off_t offset) {
     }
 
     bnk_version = read_8bit(offset + 0x04,streamFile);
-    total_streams = read_16bit(offset + 0x06,streamFile);
+    total_bnk_sounds = read_16bit(offset + 0x06,streamFile);
 
     /* check multi-streams */
     switch(bnk_version) {
@@ -250,20 +300,29 @@ static VGMSTREAM * parse_bnk_header(STREAMFILE *streamFile, off_t offset) {
     }
 
     if (target_stream == 0) target_stream = 1;
+    header_offset = 0;
 
-    for (i = 0; i < total_streams; i++) {
+    for (i = 0; i < total_bnk_sounds; i++) {
         /* some of these are dummies with zero offset */
         test_offset = read_32bit(offset + table_offset + 0x04 * i, streamFile);
 
         if (test_offset != 0) {
-            real_streams++;
+            real_bnk_sounds++;
 
-            if (target_stream == real_streams)
-                header_offset = offset + table_offset + 0x04 * i + test_offset;
+            /* ABK points at absolute indexes, i.e. with dummies included */
+            if (total_streams != 0) {
+                if (target_stream - 1 == i)
+                    header_offset = offset + table_offset + 0x04 * i + test_offset;
+            }
+            else {
+                /* Ignore dummy streams when opening standalone BNK files */
+                if (target_stream == real_bnk_sounds)
+                    header_offset = offset + table_offset + 0x04 * i + test_offset;
+            }
         }
     }
 
-    if (target_stream < 0 || target_stream > real_streams || real_streams < 1) goto fail;
+    if (target_stream < 0 || header_offset == 0 || real_bnk_sounds < 1) goto fail;
 
     if (!parse_variable_header(streamFile,&ea, header_offset, header_size - header_offset))
         goto fail;
@@ -286,7 +345,7 @@ static VGMSTREAM * parse_bnk_header(STREAMFILE *streamFile, off_t offset) {
 
 
     /* rest is common */
-    return init_vgmstream_ea_variable_header(streamFile, &ea, start_offset, bnk_version, real_streams);
+    return init_vgmstream_ea_variable_header(streamFile, &ea, start_offset, bnk_version, total_streams ? total_streams : real_bnk_sounds);
 
 fail:
     return NULL;
