@@ -720,6 +720,8 @@ static int parse_variable_header(STREAMFILE* streamFile, ea_header* ea, off_t be
             case 0x22:
             case 0x23:
             case 0x24: /* master random detune range (BNK only) */
+            case 0x25: /* unknown */
+            case 0x26: /* unknown, rare [FIFA 07 (Xbox)] */
                 read_patch(streamFile, &offset);
                 break;
 
