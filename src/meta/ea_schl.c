@@ -712,6 +712,13 @@ static int parse_variable_header(STREAMFILE* streamFile, ea_header* ea, off_t be
             case 0x1A: /* unknown and very rare, size 0 (BNK only) [SSX3 (PS2)] */
             case 0x1B: /* unknown (movie only?) */
             case 0x1C: /* initial envelope volume (BNK only) */
+            case 0x1D: /* unknown, rare [NASCAR 06 (Xbox)] */
+            case 0x1E:
+            case 0x1F:
+            case 0x20:
+            case 0x21:
+            case 0x22:
+            case 0x23:
             case 0x24: /* master random detune range (BNK only) */
                 read_patch(streamFile, &offset);
                 break;
