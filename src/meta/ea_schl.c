@@ -133,10 +133,10 @@ fail:
 
 /* EA ABK - contains embedded BNK file or references streams in AST file */
 VGMSTREAM * init_vgmstream_ea_abk(STREAMFILE *streamFile) {
+    int bnk_target_stream, total_sounds = 0, target_stream = streamFile->stream_index;
     off_t bnk_offset, header_table_offset, base_offset, value_offset, table_offset, entry_offset, target_entry_offset, schl_offset;
-    int i, j, k, bnk_target_stream, total_sounds = 0, target_stream = streamFile->stream_index;
-    int32_t num_entries, num_sounds;
-    int8_t version, sound_type, num_tables;
+    uint32_t i, j, k, num_sounds;
+    uint8_t version, sound_type, num_tables, num_entries;
     STREAMFILE * astData = NULL;
     VGMSTREAM * vgmstream;
 
@@ -235,6 +235,55 @@ VGMSTREAM * init_vgmstream_ea_abk(STREAMFILE *streamFile) {
 
 fail:
     close_streamfile(astData);
+    return NULL;
+}
+
+/* EA HDR/DAT combo - frequently used for storing speech */
+VGMSTREAM * init_vgmstream_ea_hdr(STREAMFILE *streamFile) {
+    int target_stream = streamFile->stream_index;
+    uint8_t userdata_size, total_sounds;
+    uint32_t total_size;
+    off_t schl_offset;
+    STREAMFILE *datFile = NULL, *sthFile = NULL;
+    VGMSTREAM *vgmstream;
+
+    /* No nice way to validate these so we do what we can */
+    sthFile = open_streamfile_by_ext(streamFile, "sth");
+    if (sthFile) goto fail; /* newer version using SNR/SNS */
+
+    datFile = open_streamfile_by_ext(streamFile, "dat");
+    if (!datFile) goto fail;
+
+    /* 0x00: hash */
+    /* 0x02: sub-ID (used for different police voices in NFS games) */
+    /* 0x04: userdata size (low nibble) */
+    /* 0x05: number of files */
+    /* 0x06: ??? */
+    /* 0x08: combined size of all sounds without padding divided by 0x0100 */
+    /* 0x0C: table start */
+    userdata_size = read_8bit(0x04, streamFile) & 0x0F;
+    total_sounds = read_8bit(0x05, streamFile);
+
+    if (target_stream == 0) target_stream = 1;
+    if (target_stream < 0 || total_sounds == 0 || target_stream > total_sounds) goto fail;
+
+    total_size = (uint32_t)read_16bitLE(0x08, streamFile) * 0x0100;
+    if (total_size > get_streamfile_size(datFile)) goto fail;
+
+    schl_offset = (off_t)read_16bitBE(0x0C + (0x02+userdata_size) * (target_stream-1), streamFile) * 0x0100;
+    if (read_32bitBE(schl_offset, datFile) != 0x5343486C) /* "SCHl */
+        goto fail;
+
+    vgmstream = parse_schl_block(datFile, schl_offset, total_sounds);
+    if (!vgmstream) goto fail;
+
+    close_streamfile(datFile);
+    return vgmstream;
+
+fail:
+    close_streamfile(datFile);
+    close_streamfile(sthFile);
+
     return NULL;
 }
 

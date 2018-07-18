@@ -146,6 +146,7 @@ static const char* extension_list[] = {
 
     "h4m",
     "hca",
+    "hdr",
     "hgc1",
     "his",
     "hlwav",
