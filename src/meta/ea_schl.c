@@ -393,7 +393,7 @@ static VGMSTREAM * parse_bnk_header(STREAMFILE *streamFile, off_t offset, int ta
 
     /* special case found in some tests (pcstream had hist, pcbnk no hist, no patch diffs)
      * I think this works but what decides if hist is used or not a secret to everybody */
-    if (ea.codec2 == EA_CODEC2_EAXA && ea.codec1 == EA_CODEC1_NONE && ea.version == EA_VERSION_V1) {
+    if (ea.codec2 == EA_CODEC2_EAXA && ea.codec1 == EA_CODEC1_NONE && ea.version >= EA_VERSION_V1) {
         ea.codec_version = 0;
     }
 
