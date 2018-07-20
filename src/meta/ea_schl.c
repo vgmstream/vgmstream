@@ -743,10 +743,12 @@ static int parse_variable_header(STREAMFILE* streamFile, ea_header* ea, off_t be
             case 0x0F: /* random volume range (BNK only) */
             case 0x10: /* detune (BNK only) */
             case 0x11: /* random detune range (BNK only) */
+            case 0x12: /* unknown, rare (BNK only) [Need for Speed III: Hot Pursuit (PS1)] */
             case 0x13: /* effect bus (0..127) */
             case 0x14: /* emdedded user data (free size/value) */
+            case 0x15: /* unknown, rare (BNK only) [Need for Speed: High Stakes (PS1)] */
             case 0x19: /* related to playback envelope (BNK only) */
-            case 0x1A: /* unknown and very rare, size 0 (BNK only) [SSX3 (PS2)] */
+            case 0x1A: /* unknown and very rare (BNK only) [SSX 3 (PS2)] */
             case 0x1B: /* unknown (movie only?) */
             case 0x1C: /* initial envelope volume (BNK only) */
             case 0x1D: /* unknown, rare [NASCAR 06 (Xbox)] */
@@ -849,6 +851,7 @@ static int parse_variable_header(STREAMFILE* streamFile, ea_header* ea, off_t be
             case 0x8D: /* unknown, rare [FIFA 07 (GC)] */
             case 0x8E:
             case 0x92: /* bytes per sample? */
+            case 0x93: /* unknown (BNK only) [Need for Speed III: Hot Pursuit (PC)] */
             case 0x98: /* embedded time stretch 1 (long data for who-knows-what) */
             case 0x99: /* embedded time stretch 2 */
             case 0x9C: /* azimuth ch1 */
