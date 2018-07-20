@@ -185,6 +185,7 @@ static const char* extension_list[] = {
     "laac", //fake extension, for AAC (tri-Ace/FFmpeg)
     "lac3", //fake extension, for AC3
     "leg",
+    "lflac", //fake extension, FFmpeg, not parsed, use with .pos pair for fun
     "lmp4", //fake extension, for MP4s
     "logg", //fake extension, for OGGs
     "lopus", //fake extension, for OPUS

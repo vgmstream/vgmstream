@@ -546,6 +546,11 @@ VGMSTREAM * init_vgmstream_ogg_vorbis_callbacks(STREAMFILE *streamFile, ov_callb
                     loop_length_found = 1;
                 }
 			}
+            else if (strstr(user_comment, "omment=") == user_comment) { /* Air (Android) */
+                sscanf(strstr(user_comment, "=LOOPSTART=") + 11, "%d,LOOPEND=%d", &loop_start, &loop_end);
+                loop_flag = 1;
+                loop_end_found = 1;
+            }
 
             //;VGM_LOG("OGG: user_comment=%s\n", user_comment);
         }
