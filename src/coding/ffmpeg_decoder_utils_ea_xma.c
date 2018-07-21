@@ -199,7 +199,7 @@ int64_t ffmpeg_custom_size_eaxma(ffmpeg_codec_data *data) {
 }
 
 /* needed to know in meta for fake RIFF */
-size_t ffmpeg_get_eaxma_virtual_size(int channels, off_t real_offset, size_t real_size, STREAMFILE *streamFile) {
+size_t ffmpeg_get_eaxma_virtual_size(int channels, int streamed, off_t real_offset, size_t real_size, STREAMFILE *streamFile) {
     size_t virtual_size = 0;
     size_t real_end_offset = real_offset + real_size;
     /* EA-XMA always uses late XMA2 streams (2ch + ... + 1/2ch) */
@@ -219,7 +219,6 @@ size_t ffmpeg_get_eaxma_virtual_size(int channels, off_t real_offset, size_t rea
         if (block_flag == 0x45) /* exit on last block just in case (v1/SPS, empty) */
             break;
 
-
         max_packets = get_block_max_packets(num_streams, packets_offset, streamFile);
         if (max_packets == 0) goto fail;
 
@@ -228,7 +227,7 @@ size_t ffmpeg_get_eaxma_virtual_size(int channels, off_t real_offset, size_t rea
 
         real_offset += block_size;
 
-        if (block_flag == 0x80) /* exit on last block just in case (v0/SNS, full) */
+        if (!streamed || block_flag == 0x80) /* exit on last block just in case (v0/SNS, full) */
             break;
     }
 

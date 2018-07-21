@@ -11,6 +11,7 @@ typedef struct {
     /* config */
     int version;
     int codec;
+    int streamed;
     off_t start_offset;
     size_t total_size; /* size of the resulting substream */
 } eaac_io_data;
@@ -110,7 +111,7 @@ static size_t eaac_io_read(STREAMFILE *streamfile, uint8_t *dest, off_t offset, 
             data->logical_offset += data_size;
         }
 
-        if (data->version == 0 && block_flag == 0x80)
+        if (data->version == 0 && (!data->streamed || block_flag == 0x80))
             break; /* stop on last block */
     }
 
@@ -170,7 +171,7 @@ static size_t eaac_io_size(STREAMFILE *streamfile, eaac_io_data* data) {
         physical_offset += block_size;
         total_size += data_size;
 
-        if (data->version == 0 && block_flag == 0x80)
+        if (data->version == 0 && (!data->streamed || block_flag == 0x80))
             break; /* stop on last block */
     }
 
@@ -184,7 +185,7 @@ static size_t eaac_io_size(STREAMFILE *streamfile, eaac_io_data* data) {
  * - EALayer3: MPEG granule 1 can go in the next block (in V2"P" mainly, others could use layout blocked_sns)
  * - EATrax: ATRAC9 frames can be split between blooks
  */
-static STREAMFILE* setup_eaac_streamfile(STREAMFILE *streamFile, int version, int codec, off_t start_offset, size_t total_size) {
+static STREAMFILE* setup_eaac_streamfile(STREAMFILE *streamFile, int version, int codec, int streamed, off_t start_offset, size_t total_size) {
     STREAMFILE *temp_streamFile = NULL, *new_streamFile = NULL;
     eaac_io_data io_data = {0};
     size_t io_data_size = sizeof(eaac_io_data);
@@ -192,6 +193,7 @@ static STREAMFILE* setup_eaac_streamfile(STREAMFILE *streamFile, int version, in
     io_data.version = version;
     io_data.codec = codec;
     io_data.start_offset = start_offset;
+    io_data.streamed = streamed;
     io_data.total_size = total_size; /* optional */
     io_data.physical_offset = start_offset;
 
