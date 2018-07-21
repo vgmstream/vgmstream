@@ -959,6 +959,26 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
     }
 
 
+    /* swap channels if set, to create custom channel mappings */
+    if (vgmstream->channel_mappings_on) {
+        int ch_from,ch_to,s;
+        sample temp;
+        for (s = 0; s < sample_count; s++) {
+            for (ch_from = 0; ch_from < vgmstream->channels; ch_from++) {
+                if (ch_from > 32)
+                    continue;
+
+                ch_to = vgmstream->channel_mappings[ch_from];
+                if (ch_to < 1 || ch_to > 32 || ch_to > vgmstream->channels-1 || ch_from == ch_to)
+                    continue;
+
+                temp = buffer[s*vgmstream->channels + ch_from];
+                buffer[s*vgmstream->channels + ch_from] = buffer[s*vgmstream->channels + ch_to];
+                buffer[s*vgmstream->channels + ch_to] = temp;
+            }
+        }
+    }
+
     /* channel bitmask to silence non-set channels (up to 32)
      * can be used for 'crossfading subsongs' or layered channels, where a set of channels make a song section */
     if (vgmstream->channel_mask) {

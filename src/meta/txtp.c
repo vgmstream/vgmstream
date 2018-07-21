@@ -9,6 +9,8 @@ typedef struct {
     char filename[TXT_LINE_MAX];
     int subsong;
     uint32_t channel_mask;
+    int channel_mappings_on;
+    int channel_mappings[32];
 } txtp_entry;
 
 typedef struct {
@@ -59,6 +61,13 @@ VGMSTREAM * init_vgmstream_txtp(STREAMFILE *streamFile) {
         if (!vgmstream) goto fail;
 
         vgmstream->channel_mask = txtp->entry[0].channel_mask;
+
+        vgmstream->channel_mappings_on = txtp->entry[0].channel_mappings_on;
+        if(vgmstream->channel_mappings_on) {
+            for (i = 0; i < 32; i++) {
+                vgmstream->channel_mappings[i] = txtp->entry[0].channel_mappings[i];
+            }
+        }
     }
     else if (txtp->is_layered) {
         /* layered multi file */
@@ -102,6 +111,13 @@ VGMSTREAM * init_vgmstream_txtp(STREAMFILE *streamFile) {
         vgmstream->layout_type = layout_layered;
 
         vgmstream->channel_mask = txtp->entry[0].channel_mask;
+
+        vgmstream->channel_mappings_on = txtp->entry[0].channel_mappings_on;
+        if (vgmstream->channel_mappings_on) {
+            for (i = 0; i < 32; i++) {
+                vgmstream->channel_mappings[i] = txtp->entry[0].channel_mappings[i];
+            }
+        }
 
         vgmstream->layout_data = data_l;
     }
@@ -186,6 +202,8 @@ fail:
 static int add_filename(txtp_header * txtp, char *filename) {
     int i;
     uint32_t channel_mask = 0;
+    int channel_mappings_on = 0;
+    int channel_mappings[32] = {0};
     size_t range_start, range_end;
 
     //;VGM_LOG("TXTP: filename=%s\n", filename);
@@ -193,7 +211,9 @@ static int add_filename(txtp_header * txtp, char *filename) {
     /* parse config:
      * - file.ext#2 = play subsong 2
      * - file.ext#2~10 = play subsongs in 2 to 10 range
-     * - file.ext#c1,2 = play channels 1,2 */
+     * - file.ext#c1,2 = play channels 1,2
+     * - file.ext#m1-2,3-4 = swaps channels 1<>2 and 3<>4
+     */
     {
         char *config;
 
@@ -213,6 +233,7 @@ static int add_filename(txtp_header * txtp, char *filename) {
             config[0] = '\0';
             config++;
 
+            //todo: alt long words, s or number=subsong
 
             if (config[0] == 'c') {
                 /* mask channels */
@@ -221,7 +242,7 @@ static int add_filename(txtp_header * txtp, char *filename) {
                 config++;
                 channel_mask = 0;
                 while (sscanf(config, "%d%n", &ch,&n) == 1) {
-                    if (ch > 0 && ch < 32)
+                    if (ch > 0 && ch <= 32)
                         channel_mask |= (1 << (ch-1));
 
                     config += n;
@@ -230,6 +251,35 @@ static int add_filename(txtp_header * txtp, char *filename) {
                     else if (config[0] != '\0')
                         break;
                 };
+            }
+            else if (config[0] == 'm') {
+                /* channel mappings */
+                int n, ch_from = 0, ch_to = 0;
+
+                config++;
+                channel_mappings_on = 1;
+
+                while (config[0] != '\0') {
+                    if (sscanf(config, "%d%n", &ch_from, &n) != 1)
+                        break;
+                    config += n;
+                    if (config[0]== ',' || config[0]== '-')
+                        config++;
+                    else if (config[0] != '\0')
+                        break;
+
+                    if (sscanf(config, "%d%n", &ch_to, &n) != 1)
+                        break;
+                    config += n;
+                    if (config[0]== ',' || config[0]== '-')
+                        config++;
+                    else if (config[0] != '\0')
+                        break;
+
+                    if (ch_from > 0 && ch_from <= 32 && ch_to > 0 && ch_to <= 32) {
+                        channel_mappings[ch_from-1] = ch_to-1;
+                    }
+               }
             }
             else {
                 /* subsong range */
@@ -287,7 +337,16 @@ static int add_filename(txtp_header * txtp, char *filename) {
         memset(&txtp->entry[txtp->entry_count],0, sizeof(txtp_entry));
 
         strcpy(txtp->entry[txtp->entry_count].filename, filename);
+
         txtp->entry[txtp->entry_count].channel_mask = channel_mask;
+
+        if (channel_mappings_on) {
+            int ch;
+            txtp->entry[txtp->entry_count].channel_mappings_on = channel_mappings_on;
+            for (ch = 0; ch < 32; ch++) {
+                txtp->entry[txtp->entry_count].channel_mappings[ch] = channel_mappings[ch];
+            }
+        }
         txtp->entry[txtp->entry_count].subsong = (i+1);
         txtp->entry_count++;
     }
