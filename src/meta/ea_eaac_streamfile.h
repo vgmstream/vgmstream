@@ -125,7 +125,7 @@ static size_t eaac_io_size(STREAMFILE *streamfile, eaac_io_data* data) {
         return data->total_size;
 
     physical_offset = data->start_offset;
-    max_physical_offset = get_streamfile_size(streamfile) - data->start_offset;
+    max_physical_offset = get_streamfile_size(streamfile);
 
     /* get size of the underlying, non-blocked data */
     while (physical_offset < max_physical_offset) {
@@ -172,6 +172,11 @@ static size_t eaac_io_size(STREAMFILE *streamfile, eaac_io_data* data) {
 
         if (data->version == 0 && block_flag == 0x80)
             break; /* stop on last block */
+    }
+
+    if (total_size > get_streamfile_size(streamfile)) {
+        VGM_LOG("EA SCHL: wrong streamfile total_size\n");
+        total_size = 0;
     }
 
     data->total_size = total_size;
