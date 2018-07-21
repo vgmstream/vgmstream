@@ -29,7 +29,7 @@
 #define EA_CODEC1_NONE          -1
 #define EA_CODEC1_PCM           0x00
 #define EA_CODEC1_VAG           0x01  // unsure
-#define EA_CODEC1_EAXA          0x07  // Need for Speed 2 PC, FIFA 98 SAT
+#define EA_CODEC1_EAXA          0x07  // Need for Speed II (PC), FIFA 98 (SAT)
 #define EA_CODEC1_MT10          0x09
 //#define EA_CODEC1_N64         ?
 
@@ -165,7 +165,8 @@ VGMSTREAM * init_vgmstream_ea_abk(STREAMFILE *streamFile) {
     }
 
     if (target_stream == 0) target_stream = 1;
-    if (target_stream < 0) goto fail;
+    if (target_stream < 0)
+        goto fail;
 
     num_tables = read_16bit(0x0A, streamFile);
     header_table_offset = read_32bit(0x1C, streamFile);
@@ -192,7 +193,8 @@ VGMSTREAM * init_vgmstream_ea_abk(STREAMFILE *streamFile) {
                 }
             }
 
-            if (is_dupe) continue;
+            if (is_dupe)
+                continue;
 
             sound_table_offsets[total_sound_tables++] = table_offset;
             num_sounds = read_32bit(table_offset, streamFile);
@@ -214,7 +216,8 @@ VGMSTREAM * init_vgmstream_ea_abk(STREAMFILE *streamFile) {
         header_table_offset += 0x3C + num_entries * 0x04;
     }
 
-    if (target_entry_offset == 0) goto fail;
+    if (target_entry_offset == 0)
+        goto fail;
 
     /* 0x00: type (0x00 - normal, 0x01 - streamed, 0x02 - streamed and prefetched(?) */
     /* 0x01: ??? */
@@ -224,21 +227,24 @@ VGMSTREAM * init_vgmstream_ea_abk(STREAMFILE *streamFile) {
     
     switch (sound_type) {
     case 0x00:
-        if (!bnk_offset) goto fail;
+        if (!bnk_offset)
+            goto fail;
 
         if (read_32bitBE(bnk_offset, streamFile) != 0x424E4B6C && /* "BNKl" */
-            read_32bitBE(bnk_offset,streamFile) != 0x424E4B62) /* BNKb */
+            read_32bitBE(bnk_offset, streamFile) != 0x424E4B62) /* BNKb */
             goto fail;
 
         bnk_target_stream = read_32bit(target_entry_offset + 0x04, streamFile) + 1;
         vgmstream = parse_bnk_header(streamFile, bnk_offset, bnk_target_stream, total_sounds);
-        if (!vgmstream) goto fail;
+        if (!vgmstream)
+            goto fail;
         break;
 
     case 0x01:
     case 0x02:
         astData = open_streamfile_by_ext(streamFile, "ast");
-        if (!astData) goto fail;
+        if (!astData)
+            goto fail;
 
         if (sound_type == 0x01)
             schl_offset = read_32bit(target_entry_offset + 0x04, streamFile);
@@ -249,7 +255,8 @@ VGMSTREAM * init_vgmstream_ea_abk(STREAMFILE *streamFile) {
             goto fail;
 
         vgmstream = parse_schl_block(astData, schl_offset, total_sounds);
-        if (!vgmstream) goto fail;
+        if (!vgmstream)
+            goto fail;
         break;
 
     default:
@@ -266,37 +273,86 @@ fail:
 }
 
 /* EA HDR/DAT combo - frequently used for storing speech */
-VGMSTREAM * init_vgmstream_ea_hdr(STREAMFILE *streamFile) {
+VGMSTREAM * init_vgmstream_ea_hdr_dat(STREAMFILE *streamFile) {
     int target_stream = streamFile->stream_index;
     uint8_t userdata_size, total_sounds;
-    size_t total_size;
-    off_t schl_offset;
-    STREAMFILE *datFile = NULL, *sthFile = NULL;
+    off_t schl_offset, offset_mult;
+    STREAMFILE *datFile = NULL;
     VGMSTREAM *vgmstream;
-    int32_t (*read_32bit)(off_t,STREAMFILE*);
-    int16_t (*read_16bit)(off_t,STREAMFILE*);
 
-    /* No nice way to validate these so we do what we can */
-    sthFile = open_streamfile_by_ext(streamFile, "sth");
-    if (sthFile) goto fail; /* newer version using SNR/SNS */
-
-    datFile = open_streamfile_by_ext(streamFile, "dat");
-    if (!datFile) goto fail;
-
-    /* 0x00: hash */
+    /* main header's endianness is platform-native but we only care about one byte values */
+    /* 0x00: ID */
     /* 0x02: sub-ID (used for different police voices in NFS games) */
     /* 0x04: userdata size (low nibble) */
     /* 0x05: number of files */
     /* 0x06: ??? */
+    /* 0x07: offset multiplier flag */
     /* 0x08: combined size of all sounds without padding divided by 0x0100 */
     /* 0x0C: table start */
+
+    /* no nice way to validate these so we do what we can */
+    /* must be accompanied by DAT file with SCHl sounds */
+    datFile = open_streamfile_by_ext(streamFile, "dat");
+    if (!datFile)
+        goto fail;
+
+    if (read_32bitBE(0x00, datFile) != 0x5343486C) /* "SCHl */
+        goto fail;
+
     userdata_size = read_8bit(0x04, streamFile) & 0x0F;
     total_sounds = read_8bit(0x05, streamFile);
+    offset_mult = (off_t)read_8bit(0x07, streamFile) * 0x0100 + 0x0100;
 
     if (target_stream == 0) target_stream = 1;
-    if (target_stream < 0 || total_sounds == 0 || target_stream > total_sounds) goto fail;
+    if (target_stream < 0 || total_sounds == 0 || target_stream > total_sounds)
+        goto fail;
 
-    if (guess_endianness16bit(0x08,streamFile)) {
+    /* offsets are always big endian */
+    schl_offset = (off_t)read_16bitBE(0x0C + (0x02+userdata_size) * (target_stream-1), streamFile) * offset_mult;
+    if (read_32bitBE(schl_offset, datFile) != 0x5343486C) /* "SCHl */
+        goto fail;
+
+    vgmstream = parse_schl_block(datFile, schl_offset, total_sounds);
+    if (!vgmstream)
+        goto fail;
+
+    close_streamfile(datFile);
+    return vgmstream;
+
+fail:
+    close_streamfile(datFile);
+    return NULL;
+}
+
+/* EA IDX/BIG combo - used for storing speech, it's basically a set of HDR/DAT compiled into one file */
+VGMSTREAM * init_vgmstream_ea_idx_big(STREAMFILE *streamFile) {
+    int target_stream = streamFile->stream_index, total_sounds, subsound_index;
+    uint32_t num_hdr;
+    uint32_t i;
+    uint16_t hdr_id, hdr_subid;
+    uint8_t userdata_size, hdr_sounds;
+    off_t entry_offset, hdr_offset, base_offset, schl_offset, offset_mult;
+    size_t hdr_size;
+    char stream_name[STREAM_NAME_SIZE];
+    STREAMFILE *bigFile = NULL;
+    VGMSTREAM *vgmstream = NULL;
+    int32_t (*read_32bit)(off_t,STREAMFILE*);
+    int16_t (*read_16bit)(off_t,STREAMFILE*);
+
+    /* seems to always start with 0x00000001 */
+    if (read_32bitLE(0x00, streamFile) != 0x00000001 &&
+        read_32bitBE(0x00, streamFile) != 0x00000001)
+        goto fail;
+
+    bigFile = open_streamfile_by_ext(streamFile, "big");
+    if (!bigFile)
+        goto fail;
+
+    if (read_32bitBE(0x00, bigFile) != 0x5343486C) /* "SCHl */
+        goto fail;
+
+    /* use number of files for endianness check */
+    if (guess_endianness32bit(0x04,streamFile)) {
         read_32bit = read_32bitBE;
         read_16bit = read_16bitBE;
     } else {
@@ -304,24 +360,57 @@ VGMSTREAM * init_vgmstream_ea_hdr(STREAMFILE *streamFile) {
         read_16bit = read_16bitLE;
     }
 
-    total_size = (size_t)read_16bit(0x08, streamFile) * 0x0100;
-    if (total_size > get_streamfile_size(datFile)) goto fail;
-
-    /* offsets are always big endian */
-    schl_offset = (off_t)read_16bitBE(0x0C + (0x02+userdata_size) * (target_stream-1), streamFile) * 0x0100;
-    if (read_32bitBE(schl_offset, datFile) != 0x5343486C) /* "SCHl */
+    num_hdr = read_32bit(0x04, streamFile);
+    if (read_32bit(0x54,streamFile) != num_hdr)
         goto fail;
 
-    vgmstream = parse_schl_block(datFile, schl_offset, total_sounds);
-    if (!vgmstream) goto fail;
+    if (target_stream == 0) target_stream = 1;
+    schl_offset = 0;
+    total_sounds = 0;
+    schl_offset = 0xFFFFFFFF;
 
-    close_streamfile(datFile);
+    for (i = 0; i < num_hdr; i++) {
+        entry_offset = 0x58 + 0x10 * i;
+        hdr_size = read_32bit(entry_offset + 0x04, streamFile);
+        hdr_offset = read_32bit(entry_offset + 0x08, streamFile);
+        base_offset = read_32bit(entry_offset + 0x0C, streamFile);
+
+        hdr_id = read_16bit(hdr_offset + 0x00, streamFile);
+        hdr_subid = read_16bit(hdr_offset + 0x02, streamFile);
+        userdata_size = read_8bit(hdr_offset + 0x04, streamFile) & 0x0F;
+        hdr_sounds = read_8bit(hdr_offset + 0x05, streamFile);
+        offset_mult = (off_t)read_8bit(hdr_offset + 0x07, streamFile) * 0x0100 + 0x0100;
+        
+        if (target_stream > total_sounds && target_stream <= total_sounds + hdr_sounds) {
+            schl_offset = base_offset + (off_t)read_16bitBE(hdr_offset + 0x0C + (0x02+userdata_size) * (target_stream-total_sounds-1), streamFile) * offset_mult;
+            subsound_index = target_stream - total_sounds;
+
+            /* There are no filenames but we can add IDs to stream name for better organization */
+            if (hdr_subid != 0xFFFF) 
+                snprintf(stream_name, STREAM_NAME_SIZE, "%03d_%02d_%d", hdr_id, hdr_subid, subsound_index);
+            else
+                snprintf(stream_name, STREAM_NAME_SIZE, "%03d_%d", hdr_id, subsound_index);
+        }
+
+        total_sounds += hdr_sounds;
+    }
+
+    if (schl_offset == 0xFFFFFFFF)
+        goto fail;
+
+    if (read_32bitBE(schl_offset, bigFile) != 0x5343486C) /* "SCHl */
+        goto fail;
+
+    vgmstream = parse_schl_block(bigFile, schl_offset, total_sounds);
+    if (!vgmstream)
+        goto fail;
+
+    strncpy(vgmstream->stream_name, stream_name, STREAM_NAME_SIZE);
+    close_streamfile(bigFile);
     return vgmstream;
 
 fail:
-    close_streamfile(datFile);
-    close_streamfile(sthFile);
-
+    close_streamfile(bigFile);
     return NULL;
 }
 
@@ -338,12 +427,12 @@ static VGMSTREAM * parse_schl_block(STREAMFILE *streamFile, off_t offset, int to
 
     header_offset = offset + 0x08;
 
-    if (!parse_variable_header(streamFile, &ea, header_offset, header_size))
+    if (!parse_variable_header(streamFile, &ea, header_offset, header_size - 0x08))
         goto fail;
 
     start_offset = offset + header_size; /* starts in "SCCl" (skipped in block layout) or very rarely "SCDl" and maybe movie blocks */
 
-                                         /* rest is common */
+    /* rest is common */
     return init_vgmstream_ea_variable_header(streamFile, &ea, start_offset, 0, total_streams);
 
 fail:
@@ -374,7 +463,7 @@ static VGMSTREAM * parse_bnk_header(STREAMFILE *streamFile, off_t offset, int ta
 
     /* check multi-streams */
     switch(bnk_version) {
-        case 0x02: /* early (Need For Speed PC, Fifa 98 SS) */
+        case 0x02: /* early [Need For Speed II (PC), FIFA 98 (SAT)] */
             table_offset = 0x0c;
             header_size = read_32bit(offset + 0x08,streamFile); /* full size */
             break;
