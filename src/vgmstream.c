@@ -1535,21 +1535,14 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
             for (chan=0;chan<vgmstream->channels;chan++) {
                 decode_psx(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do);
+                        samples_to_do, 0);
             }
             break;
         case coding_PSX_badflags:
             for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_psx_badflags(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                decode_psx(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do);
-            }
-            break;
-        case coding_HEVAG:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_hevag(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do);
+                        samples_to_do, 1);
             }
             break;
         case coding_PSX_cfg:
@@ -1557,6 +1550,13 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                 decode_psx_configurable(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
                         samples_to_do, vgmstream->interleave_block_size);
+            }
+            break;
+        case coding_HEVAG:
+            for (chan=0;chan<vgmstream->channels;chan++) {
+                decode_hevag(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                        vgmstream->channels,vgmstream->samples_into_block,
+                        samples_to_do);
             }
             break;
         case coding_XA:
