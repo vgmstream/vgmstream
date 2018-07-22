@@ -1,66 +1,40 @@
-#include <ctype.h>
 #include "meta.h"
-#include "../util.h"
 
-#ifdef WIN32
-#define DIRSEP '\\'
-#else
-#define DIRSEP '/'
-#endif
 
-/* .pos is a tiny file with loop points, and the same base name as a .wav */
-
+/* .pos - loop points for .wav [Ys I Complete (PC); reused for manual looping] */
 VGMSTREAM * init_vgmstream_pos(STREAMFILE *streamFile) {
-    
-	VGMSTREAM * vgmstream = NULL;
-    STREAMFILE * streamFileWAV = NULL;
-    char filename[PATH_LIMIT];
-	char filenameWAV[PATH_LIMIT];
+    VGMSTREAM * vgmstream = NULL;
+    STREAMFILE * streamData = NULL;
+    int32_t loop_start, loop_end;
 
-	int i;
 
-    /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("pos",filename_extension(filename))) goto fail;
+    /* checks */
+    if (!check_extensions(streamFile,"pos"))
+        goto fail;
+    if (get_streamfile_size(streamFile) != 0x08)
+        goto fail;
 
-	/* check for .WAV file */
-	strcpy(filenameWAV,filename);
-	strcpy(filenameWAV+strlen(filenameWAV)-3,"wav");
-
-	streamFileWAV = streamFile->open(streamFile,filenameWAV,STREAMFILE_DEFAULT_BUFFER_SIZE);
-	if (!streamFileWAV) {
-        /* try again, ucase */
-        for (i=strlen(filenameWAV);i>=0&&filenameWAV[i]!=DIRSEP;i--)
-            filenameWAV[i]=toupper(filenameWAV[i]);
-
-        streamFileWAV = streamFile->open(streamFile,filenameWAV,STREAMFILE_DEFAULT_BUFFER_SIZE);
-        if (!streamFileWAV) goto fail;
-    }
+    streamData = open_streamfile_by_ext(streamFile, "wav");
+    if (!streamData) goto fail;
 
     /* let the real initer do the parsing */
-    vgmstream = init_vgmstream_riff(streamFileWAV);
+    vgmstream = init_vgmstream_riff(streamData);
     if (!vgmstream) goto fail;
 
-    close_streamfile(streamFileWAV);
-    streamFileWAV = NULL;
+    close_streamfile(streamData);
+    streamData = NULL;
 
-    /* install loops */
-    if (!vgmstream->loop_flag) {
-        vgmstream->loop_flag = 1;
-        vgmstream->loop_ch = calloc(vgmstream->channels,
-                sizeof(VGMSTREAMCHANNEL));
-        if (!vgmstream->loop_ch) goto fail;
-    }
+    /* install loops (wrong values are validated later) */
+    loop_start = read_32bitLE(0x00,streamFile);
+    loop_end = read_32bitLE(0x04,streamFile);
+    vgmstream_force_loop(vgmstream, 1, loop_start, loop_end);
 
-    vgmstream->loop_start_sample = read_32bitLE(0,streamFile);
-    vgmstream->loop_end_sample = read_32bitLE(4,streamFile);
     vgmstream->meta_type = meta_RIFF_WAVE_POS;
 
     return vgmstream;
 
-    /* clean up anything we may have opened */
 fail:
-    if (streamFileWAV) close_streamfile(streamFileWAV);
-    if (vgmstream) close_vgmstream(vgmstream);
+    close_streamfile(streamData);
+    close_vgmstream(vgmstream);
     return NULL;
 }

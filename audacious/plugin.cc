@@ -197,7 +197,7 @@ bool VgmstreamPlugin::play(const char *filename, VFSFile &file) {
     rate = get_vgmstream_average_bitrate(vgmstream);
 
     set_stream_bitrate(rate);
-    open_audio(FMT_S16_LE, vgmstream->sample_rate, 2);
+    open_audio(FMT_S16_LE, vgmstream->sample_rate, vgmstream->channels);
 
     int fade_samples = vgmstream_cfg.fade_length * vgmstream->sample_rate;
     while (!check_stop()) {

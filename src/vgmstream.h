@@ -747,12 +747,14 @@ typedef struct {
     layout_t layout_type;   /* type of layout for data */
     meta_t meta_type;       /* how we know the metadata */
 
-    /* subsongs */
-    int num_streams;        /* for multi-stream formats (0=not set/one stream, 1=one stream) */
-    int stream_index;       /* selected stream (also 1-based) */
+    /* subsongs and internal config */
+    int num_streams;            /* for multi-stream formats (0=not set/one stream, 1=one stream) */
+    int stream_index;           /* selected stream (also 1-based) */
     char stream_name[STREAM_NAME_SIZE]; /* name of the current stream (info), if the file stores it and it's filled */
-    size_t stream_size;     /* info to properly calculate bitrate */
-    uint32_t channel_mask;  /* to silence crossfading subsongs/layers */
+    size_t stream_size;         /* info to properly calculate bitrate */
+    uint32_t channel_mask;      /* to silence crossfading subsongs/layers */
+    int channel_mappings_on;    /* channel mappings are active */
+    int channel_mappings[32];   /* swap channel "i" with "[i]" */
 
     /* looping */
     int loop_flag;              /* is this stream looped? */

@@ -99,6 +99,7 @@
     <ClInclude Include="meta\awc_xma_streamfile.h" />
     <ClInclude Include="meta\bar_streamfile.h" />
     <ClInclude Include="meta\ea_eaac_streamfile.h" />
+    <ClInclude Include="meta\ea_schl_streamfile.h" />
     <ClInclude Include="meta\ppst_streamfile.h" />
     <ClInclude Include="meta\opus_interleave_streamfile.h" />
     <ClInclude Include="meta\sqex_scd_streamfile.h" />
