@@ -146,10 +146,9 @@ void decode_xa(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, i
 
 size_t xa_bytes_to_samples(size_t bytes, int channels, int is_blocked) {
     if (is_blocked) {
-        //todo with -0x10 misses the last sector, not sure if bug or feature
-        return ((bytes - 0x10) / 0x930) * (0x900 - 18*0x10) * 2 / channels;
+        return (bytes / 0x930) * (28*8/ channels) * 18;
     }
     else {
-        return ((bytes / 0x80)*0xE0) / 2;
+        return (bytes / 0x80) * (28*8 / channels) * 18;
     }
 }
