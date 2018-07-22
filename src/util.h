@@ -77,14 +77,14 @@ void concatn(int length, char * dst, const char * src);
 
 
 /* Simple stdout logging for debugging and regression testing purposes.
- * Needs C99 variadic macros, uses do..while to force ; as statement */
+ * Needs C99 variadic macros, uses do..while to force ";" as statement */
 #ifdef VGM_DEBUG_OUTPUT
 
 /* equivalent to printf when condition is true */
 #define VGM_ASSERT(condition, ...) \
-    do { if (condition) printf(__VA_ARGS__); } while (0)
+    do { if (condition) {printf(__VA_ARGS__);} } while (0)
 #define VGM_ASSERT_ONCE(condition, ...) \
-    do { static int written; if (!written) { if (condition) printf(__VA_ARGS__); written = 1; }  } while (0)
+    do { static int written; if (!written) { if (condition) {printf(__VA_ARGS__); written = 1;} }  } while (0)
 /* equivalent to printf */
 #define VGM_LOG(...) \
     do { printf(__VA_ARGS__); } while (0)
@@ -110,6 +110,7 @@ void concatn(int length, char * dst, const char * src);
 #else/*VGM_DEBUG_OUTPUT*/
 
 #define VGM_ASSERT(condition, ...) /* nothing */
+#define VGM_ASSERT_ONCE(condition, ...) /* nothing */
 #define VGM_LOG(...) /* nothing */
 #define VGM_LOG_ONCE(...) /* nothing */
 #define VGM_LOGF() /* nothing */

@@ -962,6 +962,26 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
     }
 
 
+    /* swap channels if set, to create custom channel mappings */
+    if (vgmstream->channel_mappings_on) {
+        int ch_from,ch_to,s;
+        sample temp;
+        for (s = 0; s < sample_count; s++) {
+            for (ch_from = 0; ch_from < vgmstream->channels; ch_from++) {
+                if (ch_from > 32)
+                    continue;
+
+                ch_to = vgmstream->channel_mappings[ch_from];
+                if (ch_to < 1 || ch_to > 32 || ch_to > vgmstream->channels-1 || ch_from == ch_to)
+                    continue;
+
+                temp = buffer[s*vgmstream->channels + ch_from];
+                buffer[s*vgmstream->channels + ch_from] = buffer[s*vgmstream->channels + ch_to];
+                buffer[s*vgmstream->channels + ch_to] = temp;
+            }
+        }
+    }
+
     /* channel bitmask to silence non-set channels (up to 32)
      * can be used for 'crossfading subsongs' or layered channels, where a set of channels make a song section */
     if (vgmstream->channel_mask) {
@@ -1538,21 +1558,14 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
             for (chan=0;chan<vgmstream->channels;chan++) {
                 decode_psx(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do);
+                        samples_to_do, 0);
             }
             break;
         case coding_PSX_badflags:
             for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_psx_badflags(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                decode_psx(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do);
-            }
-            break;
-        case coding_HEVAG:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_hevag(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do);
+                        samples_to_do, 1);
             }
             break;
         case coding_PSX_cfg:
@@ -1560,6 +1573,13 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                 decode_psx_configurable(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
                         samples_to_do, vgmstream->interleave_block_size);
+            }
+            break;
+        case coding_HEVAG:
+            for (chan=0;chan<vgmstream->channels;chan++) {
+                decode_hevag(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                        vgmstream->channels,vgmstream->samples_into_block,
+                        samples_to_do);
             }
             break;
         case coding_XA:

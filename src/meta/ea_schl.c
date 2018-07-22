@@ -1,6 +1,7 @@
 #include "meta.h"
 #include "../layout/layout.h"
 #include "../coding/coding.h"
+#include "ea_schl_streamfile.h"
 
 /* header version */
 #define EA_VERSION_NONE         -1
@@ -47,7 +48,7 @@
 #define EA_CODEC2_MT5           0x16
 #define EA_CODEC2_EALAYER3      0x17
 #define EA_CODEC2_ATRAC3PLUS    0x1B /* Medal of Honor Heroes 2 (PSP) */
-//todo #define EA_CODEC2_ATRAC9 0x-- /* supposedly exists */
+
 
 #define EA_MAX_CHANNELS  6
 
@@ -181,6 +182,7 @@ VGMSTREAM * init_vgmstream_ea_abk(STREAMFILE *streamFile) {
     for (i = 0; i < num_tables; i++) {
         num_entries = read_8bit(header_table_offset + 0x24, streamFile);
         base_offset = read_32bit(header_table_offset + 0x2C, streamFile);
+        if (num_entries == 0xff) goto fail; /* EOF read */
 
         for (j = 0; j < num_entries; j++) {
             value_offset = read_32bit(header_table_offset + 0x3C + 0x04 * j, streamFile);
@@ -202,6 +204,7 @@ VGMSTREAM * init_vgmstream_ea_abk(STREAMFILE *streamFile) {
 
             sound_table_offsets[total_sound_tables++] = table_offset;
             num_sounds = read_32bit(table_offset, streamFile);
+            if (num_sounds == 0xffffffff) goto fail; /* EOF read */
 
             for (k = 0; k < num_sounds; k++) {
                 entry_offset = table_offset + 0x04 + 0x0C * k;
@@ -524,6 +527,7 @@ static VGMSTREAM * parse_bnk_header(STREAMFILE *streamFile, off_t offset, int ta
     start_offset = ea.offsets[0]; /* first channel, presumably needed for MPEG */
 
     /* special case found in some tests (pcstream had hist, pcbnk no hist, no patch diffs)
+     * Later console games don't need hist [FIFA 07 (Xbox): V3, NASCAR 06 (Xbox): V2].
      * I think this works but what decides if hist is used or not a secret to everybody */
     if (ea.codec2 == EA_CODEC2_EAXA && ea.codec1 == EA_CODEC1_NONE && ea.version >= EA_VERSION_V1) {
         ea.codec_version = 0;
@@ -586,6 +590,7 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE *streamFile, ea_
     }
 
     vgmstream->num_streams = total_streams;
+    //vgmstream->stream_size = ; //todo needed for kbps info
 
     /* EA usually implements their codecs in all platforms (PS2/WII do EAXA/MT/EALAYER3) and
      * favors them over platform's natives (ex. EAXA vs VAG/DSP).
@@ -687,12 +692,29 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE *streamFile, ea_
             break;
         }
 
-        case EA_CODEC2_ATRAC3PLUS:  /* regular ATRAC3plus chunked in SCxx blocks, including RIFF header */
+        case EA_CODEC2_ATRAC3PLUS: { /* regular ATRAC3plus chunked in SCxx blocks, including RIFF header */
+            STREAMFILE* temp_streamFile = NULL;
+
+            /* remove blocks on reads to feed FFmpeg a clean .at3 */
+            temp_streamFile = setup_schl_streamfile(streamFile, ea->codec2, ea->channels, start_offset, 0);
+            if (!temp_streamFile) goto fail;
+
+            start_offset = 0x00; /* must point to the custom streamfile's beginning */
+
+            //todo fix encoder delay
+            vgmstream->codec_data = init_ffmpeg_offset(temp_streamFile, 0x00, get_streamfile_size(temp_streamFile));
+            close_streamfile(temp_streamFile);
+            if (!vgmstream->codec_data) goto fail;
+
+            vgmstream->coding_type = coding_FFmpeg;
+            vgmstream->layout_type = layout_none;
+            break;
+        }
+
         default:
             VGM_LOG("EA SCHl: unknown codec2 0x%02x for platform 0x%02x\n", ea->codec2, ea->platform);
             goto fail;
     }
-
 
     /* open files; channel offsets are updated below */
     if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
@@ -739,7 +761,8 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE *streamFile, ea_
                 break;
         }
     }
-    else {
+    else if (vgmstream->layout_type == layout_blocked_ea_schl) {
+        /* regular SCHls, except ATRAC3plus */
         if (total_streams == 0) {
             /* HACK: fix num_samples for streams with multiple SCHl. Need to eventually get rid of this */
             int total_samples = get_ea_stream_total_samples(streamFile, start_offset, vgmstream);
@@ -966,7 +989,6 @@ static int parse_variable_header(STREAMFILE* streamFile, ea_header* ea, off_t be
             default:
                 VGM_LOG("EA SCHl: unknown patch 0x%02x at 0x%04lx\n", patch_type, (offset-1));
                 goto fail;
-                break;
         }
     }
 

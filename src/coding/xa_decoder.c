@@ -3,7 +3,7 @@
 
 // todo this is based on Kazzuya's old code; different emus (PCSX, Mame, Mednafen, etc) do
 //  XA coefs int math in different ways (see comments below), not be 100% accurate.
-// May be implemented like the SNES/SPC700 BRR (see BSNES' brr.cpp, hardware-tested).
+// May be implemented like the SNES/SPC700 BRR.
 
 /* XA ADPCM gain values */
 static const double K0[4] = { 0.0, 0.9375, 1.796875,  1.53125 };
@@ -35,6 +35,8 @@ static int IK1(int fid) { return ((int)((-K1[fid]) * (1 << 10))); }
  * PS1 XA is apparently upsampled and interpolated to 44100, vgmstream doesn't simulate this.
  *
  * Info (Green Book): https://www.lscdweb.com/data/downloadables/2/8/cdi_may94_r2.pdf
+ * BRR info (no$sns): http://problemkaputt.de/fullsnes.htm#snesapudspbrrsamples
+ *           (bsnes): https://gitlab.com/higan/higan/blob/master/higan/sfc/dsp/brr.cpp
  */
 void decode_xa(VGMSTREAM * vgmstream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
     static int head_table[8] = {0,2,8,10};

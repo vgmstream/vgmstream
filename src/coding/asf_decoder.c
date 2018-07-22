@@ -1,13 +1,13 @@
 #include "coding.h"
 
 
-/* Decodec Argonaut's ASF ADPCM codec. Algorithm follows Croc2_asf2raw.exe, and the waveform
+/* Decodes Argonaut's ASF ADPCM codec. Algorithm follows Croc2_asf2raw.exe, and the waveform
  * looks almost correct, but should reverse engineer asfcodec.adl (DLL) for accuracy. */
 void decode_asf(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
     off_t frame_offset;
     int i, frames_in, sample_count = 0;
     size_t bytes_per_frame, samples_per_frame;
-    uint32_t shift, mode;
+    uint8_t shift, mode;
     int32_t hist1 = stream->adpcm_history1_32;
     int32_t hist2 = stream->adpcm_history2_32;
 
@@ -17,12 +17,12 @@ void decode_asf(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, 
     frames_in = first_sample / samples_per_frame;
     first_sample = first_sample % samples_per_frame;
 
-    /* parse header */
+    /* parse frame header */
     frame_offset = stream->offset + bytes_per_frame*frames_in;
-    shift = (read_8bit(frame_offset+0x00,stream->streamfile) >> 4) & 0xf;
-    mode = (read_8bit(frame_offset+0x00,stream->streamfile) >> 0) & 0xf;
+    shift = ((uint8_t)read_8bit(frame_offset+0x00,stream->streamfile) >> 4) & 0xf;
+    mode  = ((uint8_t)read_8bit(frame_offset+0x00,stream->streamfile) >> 0) & 0xf;
 
-    /* decoder nibbles */
+    /* decode nibbles */
     for (i = first_sample; i < first_sample + samples_to_do; i++) {
         int32_t new_sample;
         uint8_t nibbles = (uint8_t)read_8bit(frame_offset+0x01 + i/2,stream->streamfile);
@@ -50,7 +50,7 @@ void decode_asf(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, 
         }
 
         //new_sample = clamp16(new_sample); /* must not */
-        new_sample = new_sample & 0xFFFF; /* probably unnecessary */
+        new_sample = new_sample & 0xFFFF; /* probably unnecessary and only casting is needed */
 
         outbuf[sample_count] = new_sample;
         sample_count += channelspacing;
