@@ -155,7 +155,8 @@ VGMSTREAM * init_vgmstream_ea_abk(STREAMFILE *streamFile) {
 
     version = read_32bitBE(0x04, streamFile);
     if (version != 0x01010000 &&
-        version != 0x01010100)
+        version != 0x01010100 &&
+        version != 0x02010202)
         goto fail;
 
     /* use table offset to check endianness */
@@ -216,6 +217,8 @@ VGMSTREAM * init_vgmstream_ea_abk(STREAMFILE *streamFile) {
             }
         }
 
+        /* there can be another set of values, don't know what they mean */
+        num_entries += read_8bit(header_table_offset + 0x27, streamFile);
         header_table_offset += 0x3C + num_entries * 0x04;
     }
 
