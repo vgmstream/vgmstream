@@ -708,7 +708,8 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE *streamFile, ea_
             }
             else
             {
-                vgmstream->codec_data = init_ffmpeg_offset(streamFile, start_offset, get_streamfile_size(streamFile) - start_offset);
+                size_t riff_size = read_32bitLE(start_offset + 0x04, streamFile) + 0x08;
+                vgmstream->codec_data = init_ffmpeg_offset(streamFile, start_offset, riff_size);
                 if (!vgmstream->codec_data) goto fail;
             }
 
