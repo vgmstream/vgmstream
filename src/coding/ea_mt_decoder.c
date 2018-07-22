@@ -549,6 +549,9 @@ static void flush_ea_mt_internal(VGMSTREAM *vgmstream, int is_start) {
         ctx->ptr = ctx->buffer;
         ctx->end = ctx->buffer + bytes;
         ctx->bits_count = 0;
+
+        if (is_start)
+            ctx->parsed_header = 0;
     }
 }
 
