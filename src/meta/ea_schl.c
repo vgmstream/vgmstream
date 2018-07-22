@@ -693,18 +693,24 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE *streamFile, ea_
         }
 
         case EA_CODEC2_ATRAC3PLUS: { /* regular ATRAC3plus chunked in SCxx blocks, including RIFF header */
-            STREAMFILE* temp_streamFile = NULL;
+            if (!is_bnk) {
+                STREAMFILE* temp_streamFile = NULL;
+                /* remove blocks on reads to feed FFmpeg a clean .at3 */
+                temp_streamFile = setup_schl_streamfile(streamFile, ea->codec2, ea->channels, start_offset, 0);
+                if (!temp_streamFile) goto fail;
 
-            /* remove blocks on reads to feed FFmpeg a clean .at3 */
-            temp_streamFile = setup_schl_streamfile(streamFile, ea->codec2, ea->channels, start_offset, 0);
-            if (!temp_streamFile) goto fail;
+                start_offset = 0x00; /* must point to the custom streamfile's beginning */
 
-            start_offset = 0x00; /* must point to the custom streamfile's beginning */
-
-            //todo fix encoder delay
-            vgmstream->codec_data = init_ffmpeg_offset(temp_streamFile, 0x00, get_streamfile_size(temp_streamFile));
-            close_streamfile(temp_streamFile);
-            if (!vgmstream->codec_data) goto fail;
+                //todo fix encoder delay
+                vgmstream->codec_data = init_ffmpeg_offset(temp_streamFile, start_offset, get_streamfile_size(temp_streamFile));
+                close_streamfile(temp_streamFile);
+                if (!vgmstream->codec_data) goto fail;
+            }
+            else
+            {
+                vgmstream->codec_data = init_ffmpeg_offset(streamFile, start_offset, get_streamfile_size(streamFile) - start_offset);
+                if (!vgmstream->codec_data) goto fail;
+            }
 
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
