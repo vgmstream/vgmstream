@@ -1077,6 +1077,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
             return 32;
 
         case coding_XA:
+            return 28*8 / vgmstream->channels; /* 8 subframes per frame, mono/stereo */
         case coding_PSX:
         case coding_PSX_badflags:
         case coding_HEVAG:
@@ -1241,7 +1242,7 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
             return 0x22;
 
         case coding_XA:
-            return 0x0e*vgmstream->channels;
+            return 0x80;
         case coding_PSX:
         case coding_PSX_badflags:
         case coding_HEVAG:
@@ -1581,7 +1582,7 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
             break;
         case coding_XA:
             for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_xa(vgmstream,buffer+samples_written*vgmstream->channels+chan,
+                decode_xa(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
                         samples_to_do,chan);
             }

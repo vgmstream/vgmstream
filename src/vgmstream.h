@@ -796,11 +796,6 @@ typedef struct {
     int codec_endian;               /* little/big endian marker; name is left vague but usually means big endian */
     int codec_version;              /* flag for codecs with minor variations */
 
-    uint8_t xa_channel;             /* XA ADPCM: selected channel */
-    int32_t xa_sector_length;       /* XA ADPCM: XA block */
-    uint8_t xa_headerless;          /* XA ADPCM: headerless XA */
-    int8_t xa_get_high_nibble;      /* XA ADPCM: mono/stereo nibble selection (XA state could be simplified) */
-
     int32_t ws_output_size;         /* WS ADPCM: output bytes for this block */
 
     void * start_vgmstream;         /* a copy of the VGMSTREAM as it was at the beginning of the stream (for AAX/AIX/SCD) */
