@@ -524,6 +524,7 @@
     <ClCompile Include="layout\blocked_ws_aud.c" />
     <ClCompile Include="layout\blocked_wsi.c" />
     <ClCompile Include="layout\blocked_xa.c" />
+    <ClCompile Include="layout\blocked_xa_aiff.c" />
     <ClCompile Include="layout\blocked_xvas.c" />
     <ClCompile Include="..\ext_libs\clHCA.c" />
   </ItemGroup>

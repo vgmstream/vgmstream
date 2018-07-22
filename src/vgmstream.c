@@ -943,6 +943,7 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
         case layout_blocked_ea_wve_ad10:
         case layout_blocked_sthd:
         case layout_blocked_h4m:
+        case layout_blocked_xa_aiff:
             render_vgmstream_blocked(buffer,sample_count,vgmstream);
             break;
         case layout_aix:

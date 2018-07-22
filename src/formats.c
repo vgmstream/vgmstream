@@ -637,6 +637,7 @@ static const layout_info layout_info_list[] = {
         {layout_blocked_ea_wve_ad10,    "blocked (EA WVE Ad10)"},
         {layout_blocked_sthd,           "blocked (STHD)"},
         {layout_blocked_h4m,            "blocked (H4M)"},
+        {layout_blocked_xa_aiff,        "blocked (XA AIFF)"},
 };
 
 static const meta_info meta_info_list[] = {
