@@ -7,7 +7,7 @@
 
 static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE * streamHead, STREAMFILE * streamData, off_t header_offset, off_t start_offset, meta_t meta_type);
 static size_t get_snr_size(STREAMFILE *streamFile, off_t offset);
-static VGMSTREAM *parse_s10a_header(STREAMFILE *streamFile, off_t offset);
+static VGMSTREAM *parse_s10a_header(STREAMFILE *streamFile, off_t offset, uint16_t target_index);
 
 /* .SNR+SNS - from EA latest games (~2008-2013), v0 header */
 VGMSTREAM * init_vgmstream_ea_snr_sns(STREAMFILE * streamFile) {
@@ -150,10 +150,10 @@ fail:
     return NULL;
 }
 
-/* EA HDR/STH/DAT - used for storing speech in some newer games */
+/* EA HDR/STH/DAT - seen in early 7th-gen games, used for storing speech */
 VGMSTREAM * init_vgmstream_ea_hdr_sth_dat(STREAMFILE *streamFile) {
     int target_stream = streamFile->stream_index;
-    uint8_t userdata_size, total_sounds, block_id, flags;
+    uint8_t userdata_size, total_sounds, block_id;
     uint8_t i;
     off_t snr_offset, sns_offset;
     size_t file_size, block_size;
@@ -209,7 +209,6 @@ VGMSTREAM * init_vgmstream_ea_hdr_sth_dat(STREAMFILE *streamFile) {
 
     for (i = 0; i < total_sounds; i++) {
         snr_offset = (off_t)read_16bitBE(0x10 + (0x02+userdata_size) * i, streamFile) + 0x04;
-        flags = (read_8bit(snr_offset + 0x04, sthFile) >> 4) & 0x0F;
 
         if (i == target_stream - 1)
             break;
@@ -228,13 +227,8 @@ VGMSTREAM * init_vgmstream_ea_hdr_sth_dat(STREAMFILE *streamFile) {
 
             sns_offset += block_size;
 
-            if (flags & 4) {
-                if (block_id == 0x80)
-                    break;
-            }
-            else {
+            if (block_id == 0x80)
                 break;
-            }
         }
     }
 
@@ -260,9 +254,9 @@ fail:
 VGMSTREAM * init_vgmstream_ea_abk_new(STREAMFILE *streamFile) {
     int is_dupe, total_sounds = 0, target_stream = streamFile->stream_index;
     off_t bnk_offset, header_table_offset, base_offset, value_offset, table_offset, entry_offset;
-    uint32_t i, j, k, num_sounds, total_sound_tables;
+    uint32_t i, j, k, version, num_sounds, total_sound_tables;
     uint16_t num_tables, bnk_index, bnk_target_index;
-    uint8_t version, num_entries;
+    uint8_t num_entries;
     off_t sound_table_offsets[0x2000];
     STREAMFILE *astData = NULL;
     VGMSTREAM *vgmstream;
@@ -276,8 +270,8 @@ VGMSTREAM * init_vgmstream_ea_abk_new(STREAMFILE *streamFile) {
     if (read_32bitBE(0x00, streamFile) != 0x41424B43) /* "ABKC" */
         goto fail;
 
-    version = read_8bit(0x06, streamFile);
-    if (version != 0x02)
+    version = read_32bitBE(0x04, streamFile);
+    if (version != 0x01010202)
         goto fail;
 
     /* use table offset to check endianness */
@@ -357,7 +351,6 @@ fail:
 
 /* EA S10A header - seen inside new ABK files. Putting it here in case it's encountered stand-alone. */
 static VGMSTREAM * parse_s10a_header(STREAMFILE *streamFile, off_t offset, uint16_t target_index) {
-    int i;
     uint32_t header, num_sounds;
     off_t snr_offset, sns_offset;
 

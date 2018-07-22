@@ -131,13 +131,15 @@ fail:
     return NULL;
 }
 
-/* EA ABK - contains embedded BNK file or references streams in AST file */
+/* EA ABK - common soundbank format in 6th-gen games, can reference RAM and streamed assets */
+/* RAM assets are stored in embedded BNK file */
+/* streamed assets are stored externally in AST file (mostly seen in earlier 6th games) */
 VGMSTREAM * init_vgmstream_ea_abk(STREAMFILE *streamFile) {
     int bnk_target_stream, is_dupe, total_sounds = 0, target_stream = streamFile->stream_index;
     off_t bnk_offset, header_table_offset, base_offset, value_offset, table_offset, entry_offset, target_entry_offset, schl_offset;
-    uint32_t i, j, k, num_sounds, total_sound_tables;
+    uint32_t i, j, k, version, num_sounds, total_sound_tables;
     uint16_t num_tables;
-    uint8_t version, sound_type, num_entries;
+    uint8_t sound_type, num_entries;
     off_t sound_table_offsets[0x2000];
     STREAMFILE * astData = NULL;
     VGMSTREAM * vgmstream;
@@ -151,8 +153,9 @@ VGMSTREAM * init_vgmstream_ea_abk(STREAMFILE *streamFile) {
     if (read_32bitBE(0x00, streamFile) != 0x41424B43) /* "ABKC" */
         goto fail;
 
-    version = read_8bit(0x06, streamFile);
-    if (version > 0x01)
+    version = read_32bitBE(0x04, streamFile);
+    if (version != 0x01010000 &&
+        version != 0x01010100)
         goto fail;
 
     /* use table offset to check endianness */
@@ -272,7 +275,7 @@ fail:
     return NULL;
 }
 
-/* EA HDR/DAT combo - frequently used for storing speech */
+/* EA HDR/DAT combo - seen in late 6th-gen games, used for storing speech and other streamed sounds (except for music) */
 VGMSTREAM * init_vgmstream_ea_hdr_dat(STREAMFILE *streamFile) {
     int target_stream = streamFile->stream_index;
     uint8_t userdata_size, total_sounds;
@@ -324,7 +327,7 @@ fail:
     return NULL;
 }
 
-/* EA IDX/BIG combo - used for storing speech, it's basically a set of HDR/DAT compiled into one file */
+/* EA IDX/BIG combo - basically a set of HDR/DAT compiled into one file */
 VGMSTREAM * init_vgmstream_ea_idx_big(STREAMFILE *streamFile) {
     int target_stream = streamFile->stream_index, total_sounds, subsound_index;
     uint32_t num_hdr;
