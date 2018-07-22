@@ -7,7 +7,7 @@
 
 static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE * streamHead, STREAMFILE * streamData, off_t header_offset, off_t start_offset, meta_t meta_type);
 static size_t get_snr_size(STREAMFILE *streamFile, off_t offset);
-static VGMSTREAM *parse_s10a_header(STREAMFILE *streamFile, off_t offset, uint16_t target_index);
+static VGMSTREAM *parse_s10a_header(STREAMFILE *streamFile, off_t offset, uint16_t target_index, off_t ast_offset);
 
 /* .SNR+SNS - from EA latest games (~2008-2013), v0 header */
 VGMSTREAM * init_vgmstream_ea_snr_sns(STREAMFILE * streamFile) {
@@ -251,12 +251,14 @@ fail:
     return NULL;
 }
 
+/* EA ABK - ABK header seems to be same as in the old games but the sound table is different and it contains SNR/SNS sounds instead */
 VGMSTREAM * init_vgmstream_ea_abk_new(STREAMFILE *streamFile) {
     int is_dupe, total_sounds = 0, target_stream = streamFile->stream_index;
-    off_t bnk_offset, header_table_offset, base_offset, value_offset, table_offset, entry_offset;
+    off_t bnk_offset, header_table_offset, base_offset, unk_struct_offset, table_offset, snd_entry_offset, ast_offset;
+    off_t num_entries_off, base_offset_off, entries_off, sound_table_offset_off;
     uint32_t i, j, k, version, num_sounds, total_sound_tables;
     uint16_t num_tables, bnk_index, bnk_target_index;
-    uint8_t num_entries;
+    uint8_t num_entries, extra_entries;
     off_t sound_table_offsets[0x2000];
     STREAMFILE *astData = NULL;
     VGMSTREAM *vgmstream;
@@ -293,13 +295,34 @@ VGMSTREAM * init_vgmstream_ea_abk_new(STREAMFILE *streamFile) {
     total_sound_tables = 0;
     bnk_target_index = 0xFFFF;
 
+    /* set up some common values */
+    if (header_table_offset == 0x5C) {
+        /* the usual variant */
+        num_entries_off = 0x24;
+        base_offset_off = 0x2C;
+        entries_off = 0x3C;
+        sound_table_offset_off = 0x04;
+    }
+    else if (header_table_offset == 0x78) {
+        /* FIFA 08 has a bunch of extra zeroes all over the place, don't know what's up with that */
+        num_entries_off = 0x40;
+        base_offset_off = 0x54;
+        entries_off = 0x68;
+        sound_table_offset_off = 0x0C;
+    }
+    else {
+        goto fail;
+    }
+
     for (i = 0; i < num_tables; i++) {
-        num_entries = read_8bit(header_table_offset + 0x24, streamFile);
-        base_offset = read_32bit(header_table_offset + 0x2C, streamFile);
+        num_entries = read_8bit(header_table_offset + num_entries_off, streamFile);
+        extra_entries = read_8bit(header_table_offset + num_entries_off + 0x03, streamFile);
+        base_offset = read_32bit(header_table_offset + base_offset_off, streamFile);
+        if (num_entries == 0xff) goto fail; /* EOF read */
 
         for (j = 0; j < num_entries; j++) {
-            value_offset = read_32bit(header_table_offset + 0x3C + 0x04 * j, streamFile);
-            table_offset = read_32bit(base_offset + value_offset + 0x04, streamFile);
+            unk_struct_offset = read_32bit(header_table_offset + entries_off + 0x04 * j, streamFile);
+            table_offset = read_32bit(base_offset + unk_struct_offset + sound_table_offset_off, streamFile);
 
             /* For some reason, there are duplicate entries pointing at the same sound tables */
             is_dupe = 0;
@@ -317,28 +340,35 @@ VGMSTREAM * init_vgmstream_ea_abk_new(STREAMFILE *streamFile) {
 
             sound_table_offsets[total_sound_tables++] = table_offset;
             num_sounds = read_32bit(table_offset, streamFile);
+            if (num_sounds == 0xffffffff) goto fail; /* EOF read */
 
             for (k = 0; k < num_sounds; k++) {
-                entry_offset = table_offset + 0x04 + 0x0C * k;
-                bnk_index = read_16bit(entry_offset + 0x00, streamFile);
+                /* 0x00: sound index */
+                /* 0x02: ??? */
+                /* 0x04: ??? */
+                /* 0x08: streamed data offset */
+                snd_entry_offset = table_offset + 0x04 + 0x0C * k;
+                bnk_index = read_16bit(snd_entry_offset + 0x00, streamFile);
 
                 /* some of these are dummies */
                 if (bnk_index == 0xFFFF)
                     continue;
 
                 total_sounds++;
-                if (target_stream == total_sounds)
+                if (target_stream == total_sounds) {
                     bnk_target_index = bnk_index;
+                    ast_offset = read_32bit(snd_entry_offset + 0x08, streamFile);
+                }
             }
         }
 
-        header_table_offset += 0x3C + num_entries * 0x04;
+        header_table_offset += entries_off + num_entries * 0x04 + extra_entries * 0x04;
     }
 
     if (bnk_target_index == 0xFFFF)
         goto fail;
     
-    vgmstream = parse_s10a_header(streamFile, bnk_offset, bnk_target_index);
+    vgmstream = parse_s10a_header(streamFile, bnk_offset, bnk_target_index, ast_offset);
     if (!vgmstream)
         goto fail;
 
@@ -350,9 +380,11 @@ fail:
 }
 
 /* EA S10A header - seen inside new ABK files. Putting it here in case it's encountered stand-alone. */
-static VGMSTREAM * parse_s10a_header(STREAMFILE *streamFile, off_t offset, uint16_t target_index) {
+static VGMSTREAM * parse_s10a_header(STREAMFILE *streamFile, off_t offset, uint16_t target_index, off_t ast_offset) {
     uint32_t header, num_sounds;
     off_t snr_offset, sns_offset;
+    STREAMFILE *astFile = NULL;
+    VGMSTREAM *vgmstream;
 
     /* header is always big endian */
     /* 0x00 - header magic */
@@ -368,11 +400,35 @@ static VGMSTREAM * parse_s10a_header(STREAMFILE *streamFile, off_t offset, uint1
         goto fail;
 
     snr_offset = offset + read_32bitBE(offset + 0x0C + 0x04 * target_index, streamFile);
-    sns_offset = snr_offset + get_snr_size(streamFile, snr_offset);
 
-    return init_vgmstream_eaaudiocore_header(streamFile, streamFile, snr_offset, sns_offset, meta_EA_SNR_SNS);
+    if (ast_offset == 0xFFFFFFFF) {
+        /* RAM asset */
+        sns_offset = snr_offset + get_snr_size(streamFile, snr_offset);
+        vgmstream = init_vgmstream_eaaudiocore_header(streamFile, streamFile, snr_offset, sns_offset, meta_EA_SNR_SNS);
+        if (!vgmstream)
+            goto fail;
+    }
+    else {
+        /* streamed asset */
+        astFile = open_streamfile_by_ext(streamFile, "ast");
+        if (!astFile)
+            goto fail;
+
+        if (read_32bitBE(0x00, astFile) != 0x53313053) /* "S10S" */
+            goto fail;
+
+        sns_offset = ast_offset;
+        vgmstream = init_vgmstream_eaaudiocore_header(streamFile, astFile, snr_offset, sns_offset, meta_EA_SNR_SNS);
+        if (!vgmstream)
+            goto fail;
+
+        close_streamfile(astFile);
+    }
+
+    return vgmstream;
 
 fail:
+    close_streamfile(astFile);
     return NULL;
 }
 
