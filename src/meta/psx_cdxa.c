@@ -11,8 +11,9 @@ VGMSTREAM * init_vgmstream_cdxa(STREAMFILE *streamFile) {
     size_t file_size = get_streamfile_size(streamFile);
 
     /* checks
-     * .xa: common, .str: sometimes (mainly videos) */
-    if ( !check_extensions(streamFile,"xa,str") )
+     * .xa: common, .str: sometimes (mainly videos)
+     * .adp: Phantasy Star Collection (SAT) raw XA */
+    if ( !check_extensions(streamFile,"xa,str,adp") )
         goto fail;
 
     /* Proper XA comes in raw (BIN 2352 mode2/form2) CD sectors, that contain XA subheaders.
@@ -33,7 +34,7 @@ VGMSTREAM * init_vgmstream_cdxa(STREAMFILE *streamFile) {
             is_blocked = 1;
             start_offset = 0x00;
         }
-        else { /* headerless and incorrectly ripped */
+        else { /* headerless and possibly incorrectly ripped */
             is_blocked = 0;
             start_offset = 0x00;
         }
@@ -50,17 +51,26 @@ VGMSTREAM * init_vgmstream_cdxa(STREAMFILE *streamFile) {
             test_offset += (is_blocked ? 0x18 : 0x00); /* header */
 
             for (i = 0; i < (sector_size/block_size); i++) {
-                /* first 0x10 ADPCM filter index should be 0..3 */
+                /* XA headers checks: filter indexes should be 0..3, and shifts 0..C */
                 for (j = 0; j < 16; j++) {
                     uint8_t header = (uint8_t)read_8bit(test_offset + i, streamFile);
-                    if (((header >> 4) & 0xF) > 3)
+                    if (((header >> 4) & 0xF) > 0x03)
+                        goto fail;
+                    if (((header >> 0) & 0xF) > 0x0c)
                         goto fail;
                 }
+                /* XA headers pairs are repeated */
+                if (read_32bitBE(test_offset+0x00,streamFile) != read_32bitBE(test_offset+0x04,streamFile) ||
+                    read_32bitBE(test_offset+0x08,streamFile) != read_32bitBE(test_offset+0x0c,streamFile))
+                    goto fail;
+
                 test_offset += 0x80;
             }
 
             test_offset += (is_blocked ? 0x18 : 0x00); /* footer */
         }
+        /* (the above could get fooled by files with many 0s at the beginning;
+         * this could be detected as blank XA frames should have have 0c0c0c0c... headers */
     }
 
 
@@ -99,9 +109,29 @@ VGMSTREAM * init_vgmstream_cdxa(STREAMFILE *streamFile) {
         }
     }
     else {
-        /* headerless, probably will sound wrong */
-        channel_count = 2;
-        sample_rate = 37800;
+        /* headerless */
+        if (check_extensions(streamFile,"adp")) {
+            /* Phantasy Star Collection (SAT) raw files */
+            /* most are stereo, though a few (mainly sfx banks, sometimes using .bin) are mono */
+
+            char filename[PATH_LIMIT] = {0};
+            get_streamfile_filename(streamFile, filename,PATH_LIMIT);
+
+            /* detect PS1 mono files, very lame but whatevs, no way to detect XA mono/stereo */
+            if (filename[0]=='P' && filename[1]=='S' && filename[2]=='1' && filename[3]=='S') {
+                channel_count = 1;
+                sample_rate = 22050;
+            }
+            else {
+                channel_count = 2;
+                sample_rate = 44100;
+            }
+        }
+        else {
+            /* incorrectly ripped standard XA */
+            channel_count = 2;
+            sample_rate = 37800;
+        }
     }
 
 

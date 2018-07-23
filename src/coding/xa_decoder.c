@@ -149,6 +149,6 @@ size_t xa_bytes_to_samples(size_t bytes, int channels, int is_blocked) {
         return (bytes / 0x930) * (28*8/ channels) * 18;
     }
     else {
-        return (bytes / 0x80) * (28*8 / channels) * 18;
+        return (bytes / 0x80) * (28*8 / channels);
     }
 }
