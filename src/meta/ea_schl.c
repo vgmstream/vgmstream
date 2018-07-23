@@ -157,6 +157,7 @@ VGMSTREAM * init_vgmstream_ea_abk(STREAMFILE *streamFile) {
     version = read_32bitBE(0x04, streamFile);
     if (version != 0x01010000 &&
         version != 0x01010100 &&
+        version != 0x02010100 &&
         version != 0x02010202)
         goto fail;
 
