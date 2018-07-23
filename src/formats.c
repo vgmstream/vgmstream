@@ -32,6 +32,7 @@ static const char* extension_list[] = {
     "afc",
     "agsc",
     "ahx",
+    "ai",
     //"aif", //common
     "aifc", //common?
     "aifcl", //fake extension, for AIF???
