@@ -526,13 +526,10 @@ static VGMSTREAM * parse_bnk_header(STREAMFILE *streamFile, off_t offset, int ta
 
     start_offset = ea.offsets[0]; /* first channel, presumably needed for MPEG */
 
-    /* special case found in some tests (pcstream had hist, pcbnk no hist, no patch diffs)
-     * Later console games don't need hist [FIFA 07 (Xbox): V3, NASCAR 06 (Xbox): V2].
-     * I think this works but what decides if hist is used or not a secret to everybody */
-    if (ea.codec2 == EA_CODEC2_EAXA && ea.codec1 == EA_CODEC1_NONE && ea.version >= EA_VERSION_V1) {
+    /* it looks like BNKs never store ADPCM history for EA-XA */
+    if (ea.codec2 == EA_CODEC2_EAXA) {
         ea.codec_version = 0;
     }
-
 
     /* rest is common */
     return init_vgmstream_ea_variable_header(streamFile, &ea, start_offset, bnk_version, total_streams ? total_streams : real_bnk_sounds);
@@ -744,28 +741,13 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE *streamFile, ea_
             }
         }
 
-        /* setup ADPCM hist */
-        switch(vgmstream->coding_type) {
-            /* id, size, samples, hists-per-channel, stereo/interleaved data */
-            case coding_EA_XA:
-                /* read ADPCM history from all channels before data (not actually read in sx.exe) */
-                for (i = 0; i < vgmstream->channels; i++) {
-                    //vgmstream->ch[i].adpcm_history1_32 = read_16bit(block_offset + 0x0C + (i*0x04) + 0x00,streamFile);
-                    //vgmstream->ch[i].adpcm_history2_32 = read_16bit(block_offset + 0x0C + (i*0x04) + 0x02,streamFile);
-                    vgmstream->ch[i].offset += vgmstream->channels*0x04;
-                }
-                break;
-
-            default:
-                /* read ADPCM history before each channel if needed (not actually read in sx.exe) */
-                if (vgmstream->codec_version == 1) {
-                    for (i = 0; i < vgmstream->channels; i++) {
-                        //vgmstream->ch[i].adpcm_history1_32 = read_16bit(vgmstream->ch[i].offset+0x00,streamFile);
-                        //vgmstream->ch[i].adpcm_history3_32 = read_16bit(vgmstream->ch[i].offset+0x02,streamFile);
-                        vgmstream->ch[i].offset += 4;
-                    }
-                }
-                break;
+        /* read ADPCM history before each channel if needed (not actually read in sx.exe) */
+        if (vgmstream->codec_version == 1) {
+            for (i = 0; i < vgmstream->channels; i++) {
+                //vgmstream->ch[i].adpcm_history1_32 = read_16bit(vgmstream->ch[i].offset+0x00,streamFile);
+                //vgmstream->ch[i].adpcm_history3_32 = read_16bit(vgmstream->ch[i].offset+0x02,streamFile);
+                vgmstream->ch[i].offset += 4;
+            }
         }
     }
     else if (vgmstream->layout_type == layout_blocked_ea_schl) {
@@ -1128,7 +1110,6 @@ static int parse_variable_header(STREAMFILE* streamFile, ea_header* ea, off_t be
             ea->codec_version = 1;
         }
     }
-
 
     return offset;
 
