@@ -9,7 +9,7 @@ VGMSTREAM * init_vgmstream_sxd(STREAMFILE *streamFile) {
     off_t start_offset, chunk_offset, first_offset = 0x60, name_offset = 0;
     size_t chunk_size, stream_size = 0;
 
-    int is_dual, is_external;
+    int is_dual = 0, is_external = 0;
     int loop_flag, channels, codec, location;
     int sample_rate, num_samples, loop_start_sample, loop_end_sample;
     uint32_t at9_config_data = 0;

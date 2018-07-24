@@ -159,6 +159,7 @@ static const char* extension_list[] = {
     "iadp",
     "idsp",
     "idvi", //fake extension for .pcm (to be removed)
+    "idx",
     "ikm",
     "ild",
     "int",

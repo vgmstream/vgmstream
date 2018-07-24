@@ -251,7 +251,7 @@ void ffmpeg_set_skip_samples(ffmpeg_codec_data * data, int skip_samples);
 
 
 size_t ffmpeg_make_opus_header(uint8_t * buf, int buf_size, int channels, int skip, int sample_rate);
-size_t ffmpeg_get_eaxma_virtual_size(int channels, off_t real_offset, size_t real_size, STREAMFILE *streamFile);
+size_t ffmpeg_get_eaxma_virtual_size(int channels, int streamed, off_t real_offset, size_t real_size, STREAMFILE *streamFile);
 
 size_t switch_opus_get_samples(off_t offset, size_t data_size, int sample_rate, STREAMFILE *streamFile);
 
