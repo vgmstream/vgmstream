@@ -1922,6 +1922,10 @@
 					RelativePath=".\layout\blocked_xa.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\layout\blocked_xa_aiff.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\layout\blocked_xvas.c"
 					>

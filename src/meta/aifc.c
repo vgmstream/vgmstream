@@ -26,8 +26,7 @@ static uint32_t read80bitSANE(off_t offset, STREAMFILE *streamFile) {
     return mantissa*((buf[0]&0x80)?-1:1);
 }
 
-static uint32_t find_marker(STREAMFILE *streamFile, off_t MarkerChunkOffset,
-        int marker_id) {
+static uint32_t find_marker(STREAMFILE *streamFile, off_t MarkerChunkOffset, int marker_id) {
     uint16_t marker_count;
     int i;
     off_t marker_offset;
@@ -52,72 +51,59 @@ static uint32_t find_marker(STREAMFILE *streamFile, off_t MarkerChunkOffset,
 /* Audio Interchange File Format AIFF/AIFF-C - from Mac/3DO games */
 VGMSTREAM * init_vgmstream_aifc(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-
-    off_t file_size = -1;
-    int channel_count = 0;
-    int sample_count = 0;
-    int sample_size = 0;
-    int sample_rate = 0;
-    int coding_type = -1;
-    off_t start_offset = -1;
-    int interleave = -1;
+    off_t start_offset = 0;
+    size_t file_size;
+    coding_t coding_type = 0;
+    int channel_count = 0, sample_count = 0, sample_size = 0, sample_rate = 0;
+    int interleave = 0;
 
     int loop_flag = 0;
-    int32_t loop_start = -1;
-    int32_t loop_end = -1;
+    int32_t loop_start = 0, loop_end = 0;
 
-    int AIFFext = 0;
-    int AIFCext = 0;
-    int AIFF = 0;
-    int AIFC = 0;
-    int FormatVersionChunkFound = 0;
-    int CommonChunkFound = 0;
-    int SoundDataChunkFound = 0;
-    int MarkerChunkFound = 0;
-    off_t MarkerChunkOffset = -1;
-    int InstrumentChunkFound =0;
-    off_t InstrumentChunkOffset = -1;
+    int is_aiff_ext = 0, is_aifc_ext = 0, is_aiff = 0, is_aifc = 0;
+    int FormatVersionChunkFound = 0, CommonChunkFound = 0, SoundDataChunkFound = 0, MarkerChunkFound = 0, InstrumentChunkFound = 0;
+    off_t MarkerChunkOffset = -1, InstrumentChunkOffset = -1;
 
 
     /* checks */
     /* .aif: common (AIFF or AIFC), .aiff: common AIFF, .aifc: common AIFC
-     * .cbd2: M2 games, .bgm: Super Street Fighter II Turbo (3DO), aifcl/aiffl: for plugins? */
+     * .cbd2: M2 games
+     * .bgm: Super Street Fighter II Turbo (3DO)
+     * .acm: Crusader - No Remorse (SAT)
+     * .adp: Sonic Jam (SAT)
+     * .ai: Dragon Force (SAT)
+     * .aifcl/aiffl: for plugins? */
     if (check_extensions(streamFile, "aif")) {
-        AIFCext = 1;
-        AIFFext = 1;
+        is_aifc_ext = 1;
+        is_aiff_ext = 1;
     }
     else if (check_extensions(streamFile, "aifc,aifcl,afc,cbd2,bgm")) {
-        AIFCext = 1;
+        is_aifc_ext = 1;
     }
-    else if (check_extensions(streamFile, "aiff,aiffl")) {
-        AIFFext = 1;
-    }
-    else {
-        goto fail;
-    }
-
-    /* check header */
-    if ((uint32_t)read_32bitBE(0,streamFile)==0x464F524D &&  /* "FORM" */
-        /* check that file = header (8) + data */
-        (uint32_t)read_32bitBE(4,streamFile)+8==get_streamfile_size(streamFile))
-    {
-        if ((uint32_t)read_32bitBE(8,streamFile)==0x41494643) /* "AIFC" */
-        {
-            if (!AIFCext) goto fail;
-            AIFC = 1;
-        }
-        else if ((uint32_t)read_32bitBE(8,streamFile)==0x41494646) /* "AIFF" */
-        {
-            if (!AIFFext) goto fail;
-            AIFF = 1;
-        }
-        else goto fail;
+    else if (check_extensions(streamFile, "aiff,acm,adp,ai,aiffl")) {
+        is_aiff_ext = 1;
     }
     else {
         goto fail;
     }
 
     file_size = get_streamfile_size(streamFile);
+    if ((uint32_t)read_32bitBE(0x00,streamFile) != 0x464F524D &&  /* "FORM" */
+        (uint32_t)read_32bitBE(0x04,streamFile)+0x08 != file_size)
+        goto fail;
+
+    if ((uint32_t)read_32bitBE(0x08,streamFile) == 0x41494643) { /* "AIFC" */
+        if (!is_aifc_ext) goto fail;
+        is_aifc = 1;
+    }
+    else if ((uint32_t)read_32bitBE(0x08,streamFile) == 0x41494646) { /* "AIFF" */
+        if (!is_aiff_ext) goto fail;
+        is_aiff = 1;
+    }
+    else {
+        goto fail;
+    }
+
 
     /* read through chunks to verify format and find metadata */
     {
@@ -125,7 +111,7 @@ VGMSTREAM * init_vgmstream_aifc(STREAMFILE *streamFile) {
 
         while (current_chunk < file_size) {
             uint32_t chunk_type = read_32bitBE(current_chunk,streamFile);
-            off_t chunk_size = read_32bitBE(current_chunk+4,streamFile);
+            off_t chunk_size = read_32bitBE(current_chunk+0x04,streamFile);
 
             /* chunks must be padded to an even number of bytes but chunk
              * size does not include that padding */
@@ -136,14 +122,14 @@ VGMSTREAM * init_vgmstream_aifc(STREAMFILE *streamFile) {
             switch(chunk_type) {
                 case 0x46564552:    /* "FVER" (version info) */
                     if (FormatVersionChunkFound) goto fail;
-                    if (AIFF) goto fail; /* plain AIFF shouldn't have */
+                    if (is_aiff) goto fail; /* plain AIFF shouldn't have */
                     FormatVersionChunkFound = 1;
 
                     /* specific size */
                     if (chunk_size != 4) goto fail;
 
                     /* Version 1 of AIFF-C spec timestamp */
-                    if ((uint32_t)read_32bitBE(current_chunk+8,streamFile) != 0xA2805140) goto fail;
+                    if ((uint32_t)read_32bitBE(current_chunk+0x08,streamFile) != 0xA2805140) goto fail;
                     break;
 
                 case 0x434F4D4D:    /* "COMM" (main header) */
@@ -153,11 +139,11 @@ VGMSTREAM * init_vgmstream_aifc(STREAMFILE *streamFile) {
                     channel_count = read_16bitBE(current_chunk+8,streamFile);
                     if (channel_count <= 0) goto fail;
 
-                    sample_count = (uint32_t)read_32bitBE(current_chunk+0x0a,streamFile); /* number of blocks, actually */
+                    sample_count = (uint32_t)read_32bitBE(current_chunk+0x0a,streamFile); /* sometimes number of blocks */
                     sample_size = read_16bitBE(current_chunk+0x0e,streamFile);
                     sample_rate = read80bitSANE(current_chunk+0x10,streamFile);
 
-                    if (AIFC) {
+                    if (is_aifc) {
                         switch (read_32bitBE(current_chunk+0x1a,streamFile)) {
                             case 0x53445832:    /* "SDX2" [3DO games: Super Street Fighter II Turbo (3DO), etc] */
                                 coding_type = coding_SDX2;
@@ -171,7 +157,7 @@ VGMSTREAM * init_vgmstream_aifc(STREAMFILE *streamFile) {
                                 coding_type = coding_DVI_IMA_int;
                                 if (channel_count != 1) break; /* don't know how stereo DVI is laid out */
                                 break;
-                            case 0x696D6134:    /* "ima4"  [Alida (PC) Lunar SSS (iOS)] */
+                            case 0x696D6134:    /* "ima4"  [Alida (PC), Lunar SSS (iOS)] */
                                 coding_type = coding_APPLE_IMA4;
                                 interleave = 0x22;
                                 sample_count = sample_count * ((interleave-0x2)*2);
@@ -182,7 +168,7 @@ VGMSTREAM * init_vgmstream_aifc(STREAMFILE *streamFile) {
                         }
                         /* string size and human-readable AIFF-C codec follows */
                     }
-                    else if (AIFF) {
+                    else if (is_aiff) {
                         switch (sample_size) {
                             case 8:
                                 coding_type = coding_PCM8;
@@ -192,6 +178,9 @@ VGMSTREAM * init_vgmstream_aifc(STREAMFILE *streamFile) {
                                 coding_type = coding_PCM16BE;
                                 interleave = 2;
                                 break;
+                            case 4: /* Crusader: No Remorse (SAT), Road Rash (3DO) */
+                                coding_type = coding_XA;
+                                break;
                             default:
                                 VGM_LOG("AIFF: unknown codec\n");
                                 goto fail;
@@ -200,10 +189,12 @@ VGMSTREAM * init_vgmstream_aifc(STREAMFILE *streamFile) {
                     break;
 
                 case 0x53534E44:    /* "SSND" (main data) */
+                case 0x4150434D:    /* "APCM" (main data for XA) */
                     if (SoundDataChunkFound) goto fail;
                     SoundDataChunkFound = 1;
 
-                    start_offset = current_chunk + 16 + read_32bitBE(current_chunk+8,streamFile);
+                    start_offset = current_chunk + 0x10 + read_32bitBE(current_chunk+0x08,streamFile);
+                    /* when "APCM" XA frame size is at 0x0c, fixed to 0x914 */
                     break;
 
                 case 0x4D41524B:    /* "MARK" (loops) */
@@ -229,10 +220,10 @@ VGMSTREAM * init_vgmstream_aifc(STREAMFILE *streamFile) {
         }
     }
 
-    if (AIFC) {
+    if (is_aifc) {
         if (!FormatVersionChunkFound || !CommonChunkFound || !SoundDataChunkFound)
             goto fail;
-    } else if (AIFF) {
+    } else if (is_aiff) {
         if (!CommonChunkFound || !SoundDataChunkFound)
             goto fail;
     }
@@ -260,7 +251,8 @@ VGMSTREAM * init_vgmstream_aifc(STREAMFILE *streamFile) {
                  * We shouldn't have a loop point that overflows an int32_t
                  * anyway. */
                 loop_flag = 1;
-                if (loop_start==loop_end) loop_flag = 0;
+                if (loop_start==loop_end)
+                    loop_flag = 0;
             }
         }
     }
@@ -276,17 +268,28 @@ VGMSTREAM * init_vgmstream_aifc(STREAMFILE *streamFile) {
     vgmstream->loop_end_sample = loop_end;
 
     vgmstream->coding_type = coding_type;
-    vgmstream->layout_type = (channel_count > 1) ? layout_interleave : layout_none;
-    vgmstream->interleave_block_size = interleave;
+    if (coding_type == coding_XA) {
+        vgmstream->layout_type = layout_blocked_xa_aiff;
+        /* AIFF XA can use sample rates other than 37800/18900 */
+        /* some Crusader: No Remorse tracks have XA headers with incorrect 0xFF, rip bug/encoder feature? */
+    }
+    else {
+        vgmstream->layout_type = (channel_count > 1) ? layout_interleave : layout_none;
+        vgmstream->interleave_block_size = interleave;
+    }
 
-    if (AIFC)
+    if (is_aifc)
         vgmstream->meta_type = meta_AIFC;
-    else if (AIFF)
+    else if (is_aiff)
         vgmstream->meta_type = meta_AIFF;
 
 
     if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
         goto fail;
+
+    if (vgmstream->layout_type == layout_blocked_xa_aiff)
+        block_update_xa_aiff(start_offset,vgmstream);
+
     return vgmstream;
 
 fail:

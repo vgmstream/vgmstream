@@ -254,6 +254,7 @@ typedef enum {
     layout_blocked_ea_wve_ad10, /* EA WVE Ad10 blocks */
     layout_blocked_sthd, /* Dream Factory STHD */
     layout_blocked_h4m, /* H4M video */
+    layout_blocked_xa_aiff, /* XA in AIFF files [Crusader: No Remorse (SAT), Road Rash (3DO)] */
 
     /* otherwise odd */
     layout_aix,             /* CRI AIX's wheels within wheels */
@@ -795,11 +796,6 @@ typedef struct {
     /* decoder specific */
     int codec_endian;               /* little/big endian marker; name is left vague but usually means big endian */
     int codec_version;              /* flag for codecs with minor variations */
-
-    uint8_t xa_channel;             /* XA ADPCM: selected channel */
-    int32_t xa_sector_length;       /* XA ADPCM: XA block */
-    uint8_t xa_headerless;          /* XA ADPCM: headerless XA */
-    int8_t xa_get_high_nibble;      /* XA ADPCM: mono/stereo nibble selection (XA state could be simplified) */
 
     int32_t ws_output_size;         /* WS ADPCM: output bytes for this block */
 

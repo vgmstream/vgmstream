@@ -7,12 +7,13 @@ VGMSTREAM * init_vgmstream_cdxa(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     off_t start_offset;
     int loop_flag = 0, channel_count, sample_rate;
-    int xa_channel=0;
     int is_blocked;
     size_t file_size = get_streamfile_size(streamFile);
 
-    /* check extension (.xa: common, .str: sometimes used) */
-    if ( !check_extensions(streamFile,"xa,str") )
+    /* checks
+     * .xa: common, .str: sometimes (mainly videos)
+     * .adp: Phantasy Star Collection (SAT) raw XA */
+    if ( !check_extensions(streamFile,"xa,str,adp") )
         goto fail;
 
     /* Proper XA comes in raw (BIN 2352 mode2/form2) CD sectors, that contain XA subheaders.
@@ -33,7 +34,7 @@ VGMSTREAM * init_vgmstream_cdxa(STREAMFILE *streamFile) {
             is_blocked = 1;
             start_offset = 0x00;
         }
-        else { /* headerless */
+        else { /* headerless and possibly incorrectly ripped */
             is_blocked = 0;
             start_offset = 0x00;
         }
@@ -50,29 +51,35 @@ VGMSTREAM * init_vgmstream_cdxa(STREAMFILE *streamFile) {
             test_offset += (is_blocked ? 0x18 : 0x00); /* header */
 
             for (i = 0; i < (sector_size/block_size); i++) {
-                /* first 0x10 ADPCM predictors should be 0..3 index */
+                /* XA headers checks: filter indexes should be 0..3, and shifts 0..C */
                 for (j = 0; j < 16; j++) {
-                    uint8_t header = read_8bit(test_offset + i, streamFile);
-                    if (((header >> 4) & 0xF) > 3)
+                    uint8_t header = (uint8_t)read_8bit(test_offset + i, streamFile);
+                    if (((header >> 4) & 0xF) > 0x03)
+                        goto fail;
+                    if (((header >> 0) & 0xF) > 0x0c)
                         goto fail;
                 }
+                /* XA headers pairs are repeated */
+                if (read_32bitBE(test_offset+0x00,streamFile) != read_32bitBE(test_offset+0x04,streamFile) ||
+                    read_32bitBE(test_offset+0x08,streamFile) != read_32bitBE(test_offset+0x0c,streamFile))
+                    goto fail;
+
                 test_offset += 0x80;
             }
 
             test_offset += (is_blocked ? 0x18 : 0x00); /* footer */
         }
+        /* (the above could get fooled by files with many 0s at the beginning;
+         * this could be detected as blank XA frames should have have 0c0c0c0c... headers */
     }
 
 
     /* data is ok: parse header */
     if (is_blocked) {
-        uint8_t xa_header;
-
         /* parse 0x18 sector header (also see xa_blocked.c)  */
-        xa_channel = read_8bit(start_offset + 0x11,streamFile);
-        xa_header  = read_8bit(start_offset + 0x13,streamFile);
+        uint8_t xa_header = (uint8_t)read_8bit(start_offset + 0x13,streamFile);
 
-        switch((xa_header >> 0) & 3) { /* 0..1: stereo */
+        switch((xa_header >> 0) & 3) { /* 0..1: mono/stereo */
             case 0: channel_count = 1; break;
             case 1: channel_count = 2; break;
             default: goto fail;
@@ -82,16 +89,49 @@ VGMSTREAM * init_vgmstream_cdxa(STREAMFILE *streamFile) {
             case 1: sample_rate = 18900; break;
             default: goto fail;
         }
-        VGM_ASSERT(((xa_header >> 4) & 3) == 1, /* 4..5: bits per sample (0=4, 1=8) */
-                "XA: 8 bits per sample mode found\n"); /* spec only? */
-        /* 6: emphasis (applies a filter but apparently not used by games)
-         *   XA is also filtered when resampled to 44100 during output, differently from PS-ADPCM */
-        /* 7: reserved */
+        switch((xa_header >> 4) & 3) { /* 4..5: bits per sample (0=4, 1=8) */
+            case 0: break;
+            default: /* PS1 games only do 4b */
+                VGM_LOG("XA: unknown bits per sample found\n");
+                goto fail;
+        }
+        switch((xa_header >> 6) & 1) { /* 6: emphasis (applies a filter) */
+            case 0: break;
+            default: /*  shouldn't be used by games */
+                VGM_LOG("XA: unknown emphasis found\n");
+                 break;
+        }
+        switch((xa_header >> 7) & 1) { /* 7: reserved */
+            case 0: break;
+            default:
+                VGM_LOG("XA: unknown reserved bit found\n");
+                 break;
+        }
     }
     else {
-        /* headerless, probably will go wrong */
-        channel_count = 2;
-        sample_rate = 44100; /* not 37800? */
+        /* headerless */
+        if (check_extensions(streamFile,"adp")) {
+            /* Phantasy Star Collection (SAT) raw files */
+            /* most are stereo, though a few (mainly sfx banks, sometimes using .bin) are mono */
+
+            char filename[PATH_LIMIT] = {0};
+            get_streamfile_filename(streamFile, filename,PATH_LIMIT);
+
+            /* detect PS1 mono files, very lame but whatevs, no way to detect XA mono/stereo */
+            if (filename[0]=='P' && filename[1]=='S' && filename[2]=='1' && filename[3]=='S') {
+                channel_count = 1;
+                sample_rate = 22050;
+            }
+            else {
+                channel_count = 2;
+                sample_rate = 44100;
+            }
+        }
+        else {
+            /* incorrectly ripped standard XA */
+            channel_count = 2;
+            sample_rate = 37800;
+        }
     }
 
 
@@ -100,23 +140,19 @@ VGMSTREAM * init_vgmstream_cdxa(STREAMFILE *streamFile) {
     if (!vgmstream) goto fail;
 
     vgmstream->sample_rate = sample_rate;
+    //todo do block_updates to find num_samples? (to skip non-audio blocks)
     vgmstream->num_samples = xa_bytes_to_samples(file_size - start_offset, channel_count, is_blocked);
-    vgmstream->xa_headerless = !is_blocked;
-    vgmstream->xa_channel = xa_channel;
 
-    vgmstream->coding_type = coding_XA;
-    vgmstream->layout_type = layout_blocked_xa;
     vgmstream->meta_type = meta_PSX_XA;
-
-    if (is_blocked)
-        start_offset += 0x18; /* move to first frame (hack for xa_blocked.c) */
+    vgmstream->coding_type = coding_XA;
+    vgmstream->layout_type = is_blocked ? layout_blocked_xa : layout_none;
 
     /* open the file for reading */
     if ( !vgmstream_open_stream(vgmstream, streamFile, start_offset) )
         goto fail;
 
-    block_update_xa(start_offset,vgmstream);
-
+    if (vgmstream->layout_type == layout_blocked_xa)
+        block_update_xa(start_offset,vgmstream);
     return vgmstream;
 
 fail:
