@@ -363,6 +363,7 @@ static const char* extension_list[] = {
     "sxd2",
 
     "tec",
+    "tgq",
     "thp",
     "tk5",
     "tra",
@@ -374,6 +375,7 @@ static const char* extension_list[] = {
 
     "ulw",
     "um3",
+    "uv",
 
     "v0",
     //"v1", //dual channel with v0
