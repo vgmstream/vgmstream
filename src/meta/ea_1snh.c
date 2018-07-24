@@ -37,7 +37,7 @@ VGMSTREAM * init_vgmstream_ea_1snh(STREAMFILE *streamFile) {
 
     /* checks */
     /* .asf/as4: common, cnk: some PS games, .sng: fake for plugins (to mimic EA SCHl's common extension) */
-    /* .uv: some SAT games, .tgq: ditto  */
+    /* .uv, .tgq: some SAT games  */
     if (!check_extensions(streamFile,"asf,as4,cnk,sng,uv,tgq"))
         goto fail;
 
