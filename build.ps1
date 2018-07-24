@@ -101,7 +101,7 @@ function Build
         }
         if($env:APPVEYOR_REPO_BRANCH -ne "master") { $branch = ".$env:APPVEYOR_REPO_BRANCH" }
         $version = "$commit$prNum$branch"
-        Update-AppveyorBuild -Version $version
+        Update-AppveyorBuild -Version $version -errorAction SilentlyContinue
     }
 
     if(!(Test-Path $vswhere)) { Init }
