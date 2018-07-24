@@ -3,6 +3,7 @@
 
 /* Decodes Argonaut's ASF ADPCM codec. Algorithm follows Croc2_asf2raw.exe, and the waveform
  * looks almost correct, but should reverse engineer asfcodec.adl (DLL) for accuracy. */
+#define carry(a, b) (((uint32_t)(a) > (uint32_t)((a) + (b))))
 void decode_asf(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
     off_t frame_offset;
     int i, frames_in, sample_count = 0;
@@ -30,17 +31,15 @@ void decode_asf(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, 
         new_sample = i&1 ? /* high nibble first */
                 get_low_nibble_signed(nibbles):
                 get_high_nibble_signed(nibbles);
-        new_sample = new_sample << shift;
+        new_sample = new_sample << (shift + 6);
 
         switch(mode) {
             case 0x00:
-                new_sample = new_sample + hist1;
-                //new_sample = (new_sample + (hist1 << 6)) >> 6; /* maybe? */
+                new_sample = (new_sample + (hist1 << 6)) >> 6;
                 break;
 
             case 0x04:
-                new_sample = new_sample + hist1*2 - hist2;
-                //new_sample = (new_sample + (hist1 << 7) - (hist2 << 6)) >> 6; /* maybe? */
+                new_sample = (new_sample + (hist1 << 7) - (hist2 << 6)) >> 6;
                 break;
 
             default: /* other modes (ex 0x02/09) seem only at last frame as 0 */
@@ -50,9 +49,8 @@ void decode_asf(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, 
         }
 
         //new_sample = clamp16(new_sample); /* must not */
-        new_sample = new_sample & 0xFFFF; /* probably unnecessary and only casting is needed */
 
-        outbuf[sample_count] = new_sample;
+        outbuf[sample_count] = (int16_t)new_sample;
         sample_count += channelspacing;
 
         hist2 = hist1;
