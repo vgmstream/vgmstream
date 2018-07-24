@@ -954,6 +954,7 @@ static int parse_variable_header(STREAMFILE* streamFile, ea_header* ea, off_t be
                 break;
 
             case 0x8A: /* long padding (always 0x00000000) */
+            case 0x8B: /* also padding? [Need for Speed: Hot Pursuit 2 (PC)] */
             case 0x8C: /* flags (ex. play type = 01=static/02=dynamic | spatialize = 20=pan/etc) */
                        /* (ex. PS1 VAG=0, PS2 PCM/LAYER2=4, GC EAXA=4, 3DS DSP=512, Xbox EAXA=36, N64 BLK=05E800, N64 MT10=01588805E800) */
             case 0x8D: /* unknown, rare [FIFA 07 (GC)] */
