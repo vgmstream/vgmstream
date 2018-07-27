@@ -213,7 +213,7 @@ VGMSTREAM * init_vgmstream_ea_hdr_sth_dat(STREAMFILE *streamFile) {
         if (i == target_stream - 1)
             break;
 
-        while (true) {
+        while (1) {
             if (sns_offset >= file_size)
                 goto fail;
 
@@ -254,13 +254,12 @@ fail:
 /* EA ABK - ABK header seems to be same as in the old games but the sound table is different and it contains SNR/SNS sounds instead */
 VGMSTREAM * init_vgmstream_ea_abk_new(STREAMFILE *streamFile) {
     int is_dupe, total_sounds = 0, target_stream = streamFile->stream_index;
-    off_t bnk_offset, header_table_offset, base_offset, unk_struct_offset, table_offset, snd_entry_offset, ast_offset;
+    off_t bnk_offset, header_table_offset, base_offset, unk_struct_offset, table_offset, snd_entry_offset, ast_offset = 0;
     off_t num_entries_off, base_offset_off, entries_off, sound_table_offset_off;
     uint32_t i, j, k, version, num_sounds, total_sound_tables;
     uint16_t num_tables, bnk_index, bnk_target_index;
     uint8_t num_entries, extra_entries;
     off_t sound_table_offsets[0x2000];
-    STREAMFILE *astData = NULL;
     VGMSTREAM *vgmstream;
     int32_t (*read_32bit)(off_t,STREAMFILE*);
     int16_t (*read_16bit)(off_t,STREAMFILE*);
@@ -365,7 +364,7 @@ VGMSTREAM * init_vgmstream_ea_abk_new(STREAMFILE *streamFile) {
         header_table_offset += entries_off + num_entries * 0x04 + extra_entries * 0x04;
     }
 
-    if (bnk_target_index == 0xFFFF)
+    if (bnk_target_index == 0xFFFF || ast_offset == 0)
         goto fail;
     
     vgmstream = parse_s10a_header(streamFile, bnk_offset, bnk_target_index, ast_offset);
