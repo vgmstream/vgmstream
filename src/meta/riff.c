@@ -258,8 +258,9 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
     /* .da: The Great Battle VI (PS), .cd: Exector (PS), .med: Psi Ops (PC), .snd: Layton Brothers (iOS/Android),
      * .adx: Remember11 (PC) sfx
      * .adp: Headhunter (DC)
-     * .xss: Spider-Man The Movie (Xbox) */
-    if ( check_extensions(streamFile, "wav,lwav,xwav,da,cd,med,snd,adx,adp,xss") ) {
+     * .xss: Spider-Man The Movie (Xbox)
+     * .xsew: Mega Man X Legacy Collections (PC) */
+    if ( check_extensions(streamFile, "wav,lwav,xwav,da,cd,med,snd,adx,adp,xss,xsew") ) {
         ;
     }
     else if ( check_extensions(streamFile, "mwv") ) {

@@ -265,8 +265,8 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
 
 
     /* check extension */
-    /* .ogg: standard/various, .logg: renamed for plugins,
-     * .adx: KID [Remember11 (PC)],
+    /* .ogg: standard/various, .logg: renamed for plugins
+     * .adx: KID [Remember11 (PC)]
      * .rof: The Rhythm of Fighters (Mobile)
      * .acm: Planescape Torment Enhanced Edition (PC) */
     if (check_extensions(streamFile,"ogg,logg,adx,rof,acm")) {
@@ -285,7 +285,7 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
         is_eno = 1;
     } else if (check_extensions(streamFile,"gwm")) { /* .gwm: Adagio: Cloudburst (PC) */
         is_gwm = 1;
-    } else if (check_extensions(streamFile,"mus")) { /* .mus: Redux -  Dark Matters (PC) */
+    } else if (check_extensions(streamFile,"mus")) { /* .mus: Redux - Dark Matters (PC) */
         is_mus = 1;
     } else {
         goto fail;
@@ -545,11 +545,24 @@ VGMSTREAM * init_vgmstream_ogg_vorbis_callbacks(STREAMFILE *streamFile, ov_callb
                     loop_length = atol(strrchr(user_comment, '=') + 1) - loop_start;
                     loop_length_found = 1;
                 }
-			}
+            }
             else if (strstr(user_comment, "omment=") == user_comment) { /* Air (Android) */
                 sscanf(strstr(user_comment, "=LOOPSTART=") + 11, "%d,LOOPEND=%d", &loop_start, &loop_end);
                 loop_flag = 1;
                 loop_end_found = 1;
+            }
+            else if (strstr(user_comment,"MarkerNum=0002")==user_comment) { /* Megaman X Legacy Collection: MMX1/2/3 (PC) flag */
+                /* uses LoopStart=-1 LoopEnd=-1, then 3 secuential comments: "MarkerNum" + "M=7F(start)" + "M=7F(end)" */
+                loop_flag = 1;
+            }
+            else if (strstr(user_comment,"M=7F")==user_comment) { /* Megaman X Legacy Collection: MMX1/2/3 (PC) start/end */
+                if (loop_flag && loop_start < 0) { /* LoopStart should set as -1 before */
+                    sscanf(user_comment,"M=7F%x", &loop_start);
+                }
+                else if (loop_flag && loop_start >= 0) {
+                    sscanf(user_comment,"M=7F%x", &loop_end);
+                    loop_end_found = 1;
+                }
             }
 
             //;VGM_LOG("OGG: user_comment=%s\n", user_comment);

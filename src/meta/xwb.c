@@ -111,8 +111,8 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
         xwb.base_offset     = 0;
         xwb.base_size       = 0;
         xwb.entry_offset    = 0x50;
-        xwb.entry_size      = xwb.entry_elem_size * xwb.total_subsongs;
         xwb.entry_elem_size = 0x14;
+        xwb.entry_size      = xwb.entry_elem_size * xwb.total_subsongs;
         xwb.data_offset     = xwb.entry_offset + xwb.entry_size;
         xwb.data_size       = get_streamfile_size(streamFile) - xwb.data_offset;
 

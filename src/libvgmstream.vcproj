@@ -1474,6 +1474,10 @@
                     RelativePath=".\meta\xvag.c"
                     >
                 </File>
+                <File
+                    RelativePath=".\meta\xmd.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\xwb.c"
 					>
@@ -1714,6 +1718,10 @@
 					RelativePath=".\coding\xa_decoder.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\coding\xmd_decoder.c"
+                    >
+                </File>
                 <File
                     RelativePath=".\coding\vorbis_custom_decoder.c"
                     >

@@ -432,11 +432,13 @@ static const char* extension_list[] = {
     "xmu",
     "xnb",
     "xsf",
+    "xsew",
     "xss",
     "xvag",
     "xvas",
     "xwav",//fake, to be removed
     "xwb",
+    "xmd",
     "xwc",
     "xwm", //FFmpeg, not parsed (XWMA)
     "xwma", //FFmpeg, not parsed (XWMA)
@@ -555,6 +557,7 @@ static const coding_info coding_info_list[] = {
         {coding_MC3,                "Paradigm MC3 3-bit ADPCM"},
         {coding_FADPCM,             "FMOD FADPCM 4-bit ADPCM"},
         {coding_ASF,                "Argonaut ASF 4-bit ADPCM"},
+        {coding_XMD,                "Konami XMD 4-bit ADPCM"},
 
         {coding_SDX2,               "Squareroot-delta-exact (SDX2) 8-bit DPCM"},
         {coding_SDX2_int,           "Squareroot-delta-exact (SDX2) 8-bit DPCM with 1 byte interleave"},
@@ -1041,6 +1044,7 @@ static const meta_info meta_info_list[] = {
         {meta_H4M,                  "Hudson HVQM4 header"},
         {meta_OGG_MUS,              "Ogg Vorbis (MUS header)"},
         {meta_ASF,                  "Argonaut ASF header"},
+        {meta_XMD,                  "Konami XMD header"},
 
 #ifdef VGM_USE_FFMPEG
         {meta_FFmpeg,               "FFmpeg supported file format"},
