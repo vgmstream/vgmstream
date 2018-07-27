@@ -432,6 +432,7 @@ static const char* extension_list[] = {
     "xmu",
     "xnb",
     "xsf",
+    "xsew",
     "xss",
     "xvag",
     "xvas",
