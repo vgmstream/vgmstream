@@ -442,6 +442,7 @@
     <ClCompile Include="meta\xnb.c" />
     <ClCompile Include="meta\xss.c" />
     <ClCompile Include="meta\xvag.c" />
+    <ClCompile Include="meta\xmd.c" />
     <ClCompile Include="meta\xwb.c" />
     <ClCompile Include="meta\xwc.c" />
     <ClCompile Include="meta\ydsp.c" />
@@ -487,6 +488,7 @@
     <ClCompile Include="coding\vorbis_custom_utils_wwise.c" />
     <ClCompile Include="coding\ws_decoder.c" />
     <ClCompile Include="coding\xa_decoder.c" />
+    <ClCompile Include="coding\xmd_decoder.c" />
     <ClCompile Include="layout\segmented.c" />
     <ClCompile Include="layout\aix_layout.c" />
     <ClCompile Include="layout\blocked_ast.c" />

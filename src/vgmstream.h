@@ -156,6 +156,7 @@ typedef enum {
     coding_MC3,             /* Paradigm MC3 3-bit ADPCM */
     coding_FADPCM,          /* FMOD FADPCM 4-bit ADPCM */
     coding_ASF,             /* Argonaut ASF 4-bit ADPCM */
+    coding_XMD,             /* Konami XMD 4-bit ADPCM */
 
     /* others */
     coding_SDX2,            /* SDX2 2:1 Squareroot-Delta-Exact compression DPCM */
@@ -683,6 +684,7 @@ typedef enum {
     meta_H4M,               /* Hudson HVQM4 video [Resident Evil 0 (GC), Tales of Symphonia (GC)] */
     meta_OGG_MUS,           /* Ogg Vorbis with encryption [Redux - Dark Matters (PC)] */
     meta_ASF,               /* Argonaut ASF [Croc 2 (PC)] */
+    meta_XMD,               /* Konami XMD [Silent Hill 4 (Xbox), Castlevania: Curse of Darkness (Xbox)] */
 
 #ifdef VGM_USE_FFMPEG
     meta_FFmpeg,
