@@ -30,7 +30,7 @@
 #define EA_CODEC1_NONE          -1
 #define EA_CODEC1_PCM           0x00
 #define EA_CODEC1_VAG           0x01  // unsure
-#define EA_CODEC1_EAXA          0x07  // Need for Speed II (PC), FIFA 98 (SAT)
+#define EA_CODEC1_EAXA          0x07
 #define EA_CODEC1_MT10          0x09
 //#define EA_CODEC1_N64         ?
 
@@ -47,10 +47,32 @@
 #define EA_CODEC2_XBOXADPCM     0x14
 #define EA_CODEC2_MT5           0x16
 #define EA_CODEC2_EALAYER3      0x17
-#define EA_CODEC2_ATRAC3PLUS    0x1B /* Medal of Honor Heroes 2 (PSP) */
+#define EA_CODEC2_ATRAC3PLUS    0x1B
 
+/* Block headers, SCxy - where x is block ID and y is endianness flag (always 'l'?) */
+#define EA_BLOCKID_HEADER       0x5343486C /* "SCHl" */
+#define EA_BLOCKID_COUNT        0x5343436C /* "SCCl" */
+#define EA_BLOCKID_DATA         0x5343446C /* "SCDl" */
+#define EA_BLOCKID_END          0x5343456C /* "SCEl" */
 
-#define EA_MAX_CHANNELS  6
+/* Localized block headers, Sxyy - where x is block ID and yy is lang code (e.g. "SHEN"), used in videos */
+#define EA_BLOCKID_LOC_HEADER   0x53480000 /* "SH" */
+#define EA_BLOCKID_LOC_COUNT    0x53430000 /* "SC" */
+#define EA_BLOCKID_LOC_DATA     0x53440000 /* "SD" */
+#define EA_BLOCKID_LOC_END      0x53450000 /* "SE" */
+
+#define EA_BLOCKID_LOC_EN       0x0000454E
+#define EA_BLOCKID_LOC_FR       0x00004652
+#define EA_BLOCKID_LOC_GE       0x00004745
+#define EA_BLOCKID_LOC_IT       0x00004954
+#define EA_BLOCKID_LOC_SP       0x00005350
+#define EA_BLOCKID_LOC_RU       0x00005255
+#define EA_BLOCKID_LOC_JA       0x00004A41
+
+#define EA_BNK_HEADER_LE        0x424E4B6C /* "BNKl" */
+#define EA_BNK_HEADER_BE        0x424E4B62 /* "BNKb" */
+
+#define EA_MAX_CHANNELS         6
 
 typedef struct {
     int32_t num_samples;
@@ -89,14 +111,14 @@ VGMSTREAM * init_vgmstream_ea_schl(STREAMFILE *streamFile) {
         goto fail;
 
     /* check header */
-    if (read_32bitBE(0x00,streamFile) != 0x5343486C &&  /* "SCHl" */
-        read_32bitBE(0x00,streamFile) != 0x5348454E &&  /* "SHEN" */
-        read_32bitBE(0x00,streamFile) != 0x53484652 &&  /* "SHFR" */
-        read_32bitBE(0x00,streamFile) != 0x53484745 &&  /* "SHGE" */
-        read_32bitBE(0x00,streamFile) != 0x53484954 &&  /* "SHIT" */
-        read_32bitBE(0x00,streamFile) != 0x53485350 &&  /* "SHSP" */
-        read_32bitBE(0x00,streamFile) != 0x53485255 &&  /* "SHRU" */
-        read_32bitBE(0x00,streamFile) != 0x53484A41)    /* "SHJA" */
+    if (read_32bitBE(0x00,streamFile) != EA_BLOCKID_HEADER &&  /* "SCHl" */
+        read_32bitBE(0x00,streamFile) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_EN) &&  /* "SHEN" */
+        read_32bitBE(0x00,streamFile) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_FR) &&  /* "SHFR" */
+        read_32bitBE(0x00,streamFile) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_GE) &&  /* "SHGE" */
+        read_32bitBE(0x00,streamFile) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_IT) &&  /* "SHIT" */
+        read_32bitBE(0x00,streamFile) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_SP) &&  /* "SHSP" */
+        read_32bitBE(0x00,streamFile) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_RU) &&  /* "SHRU" */
+        read_32bitBE(0x00,streamFile) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_JA))    /* "SHJA" */
         goto fail;
 
     /* Stream is divided into blocks/chunks: SCHl=audio header, SCCl=count of SCDl, SCDl=data xN, SCLl=loop end, SCEl=end.
@@ -118,10 +140,10 @@ VGMSTREAM * init_vgmstream_ea_bnk(STREAMFILE *streamFile) {
         goto fail;
 
     /* check header (doesn't use EA blocks, otherwise very similar to SCHl) */
-    if (read_32bitBE(0x00,streamFile) == 0x424E4B6C ||  /* "BNKl" (common) */
-        read_32bitBE(0x00,streamFile) == 0x424E4B62)    /* "BNKb" (FIFA 98 SS) */
+    if (read_32bitBE(0x00,streamFile) == EA_BNK_HEADER_LE ||
+        read_32bitBE(0x00,streamFile) == EA_BNK_HEADER_BE)
         offset = 0;
-    else if (read_32bitBE(0x100,streamFile) == 0x424E4B6C)  /* "BNKl" (common) */
+    else if (read_32bitBE(0x100,streamFile) == EA_BNK_HEADER_LE)
         offset = 0x100; /* Harry Potter and the Goblet of Fire (PS2) .mus have weird extra 0x100 bytes */
     else
         goto fail;
@@ -134,7 +156,7 @@ fail:
 
 /* EA ABK - common soundbank format in 6th-gen games, can reference RAM and streamed assets */
 /* RAM assets are stored in embedded BNK file */
-/* streamed assets are stored externally in AST file (mostly seen in earlier 6th games) */
+/* streamed assets are stored externally in AST file (mostly seen in earlier 6th-gen games) */
 VGMSTREAM * init_vgmstream_ea_abk(STREAMFILE *streamFile) {
     int bnk_target_stream, is_dupe, total_sounds = 0, target_stream = streamFile->stream_index;
     off_t bnk_offset, header_table_offset, base_offset, value_offset, table_offset, entry_offset, target_entry_offset, schl_offset;
@@ -210,7 +232,7 @@ VGMSTREAM * init_vgmstream_ea_abk(STREAMFILE *streamFile) {
 
             for (k = 0; k < num_sounds; k++) {
                 entry_offset = table_offset + 0x04 + 0x0C * k;
-                sound_type = read_8bit(entry_offset, streamFile);
+                sound_type = read_8bit(entry_offset + 0x00, streamFile);
 
                 /* some of these dummies pointing at sound 0 in BNK */
                 if (sound_type == 0x00 && read_32bit(entry_offset + 0x04, streamFile) == 0)
@@ -234,15 +256,15 @@ VGMSTREAM * init_vgmstream_ea_abk(STREAMFILE *streamFile) {
     /* 0x01: ??? */
     /* 0x04: index for normal sounds, offset for streamed sounds */
     /* 0x08: offset for prefetched sounds */
-    sound_type = read_8bit(target_entry_offset, streamFile);
+    sound_type = read_8bit(target_entry_offset + 0x00, streamFile);
     
     switch (sound_type) {
     case 0x00:
         if (!bnk_offset)
             goto fail;
 
-        if (read_32bitBE(bnk_offset, streamFile) != 0x424E4B6C && /* "BNKl" */
-            read_32bitBE(bnk_offset, streamFile) != 0x424E4B62) /* BNKb */
+        if (read_32bitBE(bnk_offset, streamFile) != EA_BNK_HEADER_LE &&
+            read_32bitBE(bnk_offset, streamFile) != EA_BNK_HEADER_BE)
             goto fail;
 
         bnk_target_stream = read_32bit(target_entry_offset + 0x04, streamFile) + 1;
@@ -262,7 +284,7 @@ VGMSTREAM * init_vgmstream_ea_abk(STREAMFILE *streamFile) {
         else
             schl_offset = read_32bit(target_entry_offset + 0x08, streamFile);
 
-        if (read_32bitBE(schl_offset, astData) != 0x5343486C) /* "SCHl */
+        if (read_32bitBE(schl_offset, astData) != EA_BLOCKID_HEADER)
             goto fail;
 
         vgmstream = parse_schl_block(astData, schl_offset, total_sounds);
@@ -294,7 +316,8 @@ VGMSTREAM * init_vgmstream_ea_hdr_dat(STREAMFILE *streamFile) {
     /* main header's endianness is platform-native but we only care about one byte values */
     /* 0x00: ID */
     /* 0x02: sub-ID (used for different police voices in NFS games) */
-    /* 0x04: userdata size (low nibble) */
+    /* 0x04: (low nibble) userdata size */
+    /* 0x04: (high nibble) ??? */
     /* 0x05: number of files */
     /* 0x06: ??? */
     /* 0x07: offset multiplier flag */
@@ -307,7 +330,7 @@ VGMSTREAM * init_vgmstream_ea_hdr_dat(STREAMFILE *streamFile) {
     if (!datFile)
         goto fail;
 
-    if (read_32bitBE(0x00, datFile) != 0x5343486C) /* "SCHl */
+    if (read_32bitBE(0x00, datFile) != EA_BLOCKID_HEADER)
         goto fail;
 
     userdata_size = read_8bit(0x04, streamFile) & 0x0F;
@@ -320,7 +343,7 @@ VGMSTREAM * init_vgmstream_ea_hdr_dat(STREAMFILE *streamFile) {
 
     /* offsets are always big endian */
     schl_offset = (off_t)read_16bitBE(0x0C + (0x02+userdata_size) * (target_stream-1), streamFile) * offset_mult;
-    if (read_32bitBE(schl_offset, datFile) != 0x5343486C) /* "SCHl */
+    if (read_32bitBE(schl_offset, datFile) != EA_BLOCKID_HEADER)
         goto fail;
 
     vgmstream = parse_schl_block(datFile, schl_offset, total_sounds);
@@ -338,8 +361,7 @@ fail:
 /* EA IDX/BIG combo - basically a set of HDR/DAT compiled into one file */
 VGMSTREAM * init_vgmstream_ea_idx_big(STREAMFILE *streamFile) {
     int target_stream = streamFile->stream_index, total_sounds, subsound_index;
-    uint32_t num_hdr;
-    uint32_t i;
+    uint32_t i, num_hdr;
     uint16_t hdr_id, hdr_subid;
     uint8_t userdata_size, hdr_sounds;
     off_t entry_offset, hdr_offset, base_offset, schl_offset, offset_mult;
@@ -359,7 +381,7 @@ VGMSTREAM * init_vgmstream_ea_idx_big(STREAMFILE *streamFile) {
     if (!bigFile)
         goto fail;
 
-    if (read_32bitBE(0x00, bigFile) != 0x5343486C) /* "SCHl */
+    if (read_32bitBE(0x00, bigFile) != EA_BLOCKID_HEADER)
         goto fail;
 
     /* use number of files for endianness check */
@@ -409,7 +431,7 @@ VGMSTREAM * init_vgmstream_ea_idx_big(STREAMFILE *streamFile) {
     if (schl_offset == 0xFFFFFFFF)
         goto fail;
 
-    if (read_32bitBE(schl_offset, bigFile) != 0x5343486C) /* "SCHl */
+    if (read_32bitBE(schl_offset, bigFile) != EA_BLOCKID_HEADER)
         goto fail;
 
     vgmstream = parse_schl_block(bigFile, schl_offset, total_sounds);
@@ -474,7 +496,7 @@ static VGMSTREAM * parse_bnk_header(STREAMFILE *streamFile, off_t offset, int ta
 
     /* check multi-streams */
     switch(bnk_version) {
-        case 0x02: /* early [Need For Speed II (PC), FIFA 98 (SAT)] */
+        case 0x02: /* early [Need For Speed II (PC/PS1), FIFA 98 (PC/PS1/SAT)] */
             table_offset = 0x0c;
             header_size = read_32bit(offset + 0x08,streamFile); /* full size */
             break;
@@ -691,7 +713,7 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE *streamFile, ea_
             break;
         }
 
-        case EA_CODEC2_ATRAC3PLUS: { /* regular ATRAC3plus chunked in SCxx blocks, including RIFF header */
+        case EA_CODEC2_ATRAC3PLUS: { /* regular ATRAC3plus chunked in SCxx blocks, including RIFF header [Medal of Honor Heroes 2 (PSP)] */
             if (!is_bnk) {
                 STREAMFILE* temp_streamFile = NULL;
                 /* remove blocks on reads to feed FFmpeg a clean .at3 */
@@ -1132,7 +1154,7 @@ static int get_ea_stream_total_samples(STREAMFILE* streamFile, off_t start_offse
         vgmstream->next_block_offset = start_offset;
         do {
             uint32_t block_id = read_32bitBE(vgmstream->next_block_offset+0x00,streamFile);
-            if (block_id == 0x5343486C) /* "SCHl" start block (movie "SHxx" shouldn't use multi files) */
+            if (block_id == EA_BLOCKID_HEADER) /* "SCHl" start block (movie "SHxx" shouldn't use multi files) */
                 new_schl = 1;
 
             block_update_ea_schl(vgmstream->next_block_offset,vgmstream);
@@ -1168,14 +1190,14 @@ static off_t get_ea_stream_mpeg_start_offset(STREAMFILE* streamFile, off_t start
             block_size = read_32bitBE(block_offset+0x04,streamFile);
 
         switch(block_id) {
-            case 0x5343446C: /* "SCDl" */
-            case 0x5344454E: /* "SDEN" */
-            case 0x53444652: /* "SDFR" */
-            case 0x53444745: /* "SDGE" */
-            case 0x53444954: /* "SDIT" */
-            case 0x53445350: /* "SDSP" */
-            case 0x53445255: /* "SDRU" */
-            case 0x53444A41: /* "SDJA" */
+            case EA_BLOCKID_DATA: /* "SCDl" */
+            case EA_BLOCKID_LOC_DATA | EA_BLOCKID_LOC_EN: /* "SDEN" */
+            case EA_BLOCKID_LOC_DATA | EA_BLOCKID_LOC_FR: /* "SDFR" */
+            case EA_BLOCKID_LOC_DATA | EA_BLOCKID_LOC_GE: /* "SDGE" */
+            case EA_BLOCKID_LOC_DATA | EA_BLOCKID_LOC_IT: /* "SDIT" */
+            case EA_BLOCKID_LOC_DATA | EA_BLOCKID_LOC_SP: /* "SDSP" */
+            case EA_BLOCKID_LOC_DATA | EA_BLOCKID_LOC_RU: /* "SDRU" */
+            case EA_BLOCKID_LOC_DATA | EA_BLOCKID_LOC_JA: /* "SDJA" */
                 offset = read_32bit(block_offset+0x0c,streamFile); /* first value seems ok, second is something else in EALayer3 */
                 return block_offset + 0x0c + ea->channels*0x04 + offset;
             case 0x00000000:

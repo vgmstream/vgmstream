@@ -5,6 +5,33 @@
 
 /* EAAudioCore formats, EA's current audio middleware */
 
+#define EAAC_VERSION_V0                 0x00 /* SNR/SNS */
+#define EAAC_VERSION_V1                 0x01 /* SPS */
+
+#define EAAC_CODEC_NONE                 0x00 /* internal 'codec not set' flag */
+#define EAAC_CODEC_RESERVED             0x01 /* not used/reserved? /MP30/P6L0/P2B0/P2L0/P8S0/P8U0/PFN0? */
+#define EAAC_CODEC_PCM                  0x02
+#define EAAC_CODEC_EAXMA                0x03
+#define EAAC_CODEC_XAS                  0x04
+#define EAAC_CODEC_EALAYER3_V1          0x05
+#define EAAC_CODEC_EALAYER3_V2_PCM      0x06
+#define EAAC_CODEC_EALAYER3_V2_SPIKE    0x07
+#define EAAC_CODEC_DSP                  0x08
+#define EAAC_CODEC_EASPEEX              0x09
+#define EAAC_CODEC_EATRAX               0x0a
+#define EAAC_CODEC_EAOPUS               0x0c
+
+#define EAAC_FLAG_NONE                  0x00
+#define EAAC_FLAG_LOOPED                0x02
+#define EAAC_FLAG_STREAMED              0x04
+
+#define EAAC_BLOCKID0_DATA              0x00
+#define EAAC_BLOCKID0_END               0x80
+
+#define EAAC_BLOCKID1_HEADER            0x48 /* 'H' */
+#define EAAC_BLOCKID1_DATA              0x44 /* 'D' */
+#define EAAC_BLOCKID1_END               0x45 /* 'E' */
+
 static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE * streamHead, STREAMFILE * streamData, off_t header_offset, off_t start_offset, meta_t meta_type);
 static size_t get_snr_size(STREAMFILE *streamFile, off_t offset);
 static VGMSTREAM *parse_s10a_header(STREAMFILE *streamFile, off_t offset, uint16_t target_index, off_t ast_offset);
@@ -50,7 +77,7 @@ VGMSTREAM * init_vgmstream_ea_sps(STREAMFILE * streamFile) {
         goto fail;
 
     /* SPS block start: 0x00(1): block flag (header=0x48); 0x01(3): block size (usually 0x0c-0x14) */
-    if (read_8bit(0x00, streamFile) != 0x48)
+    if (read_8bit(0x00, streamFile) != EAAC_BLOCKID1_HEADER)
         goto fail;
     start_offset = read_32bitBE(0x00, streamFile) & 0x00FFFFFF;
 
@@ -150,111 +177,10 @@ fail:
     return NULL;
 }
 
-/* EA HDR/STH/DAT - seen in early 7th-gen games, used for storing speech */
-VGMSTREAM * init_vgmstream_ea_hdr_sth_dat(STREAMFILE *streamFile) {
-    int target_stream = streamFile->stream_index;
-    uint8_t userdata_size, total_sounds, block_id;
-    uint8_t i;
-    off_t snr_offset, sns_offset;
-    size_t file_size, block_size;
-    STREAMFILE *datFile = NULL, *sthFile = NULL;
-    VGMSTREAM *vgmstream;
-
-    /* 0x00: ID */
-    /* 0x02: userdata size */
-    /* 0x03: number of files */
-    /* 0x04: sub-ID (used for different police voices in NFS games) */
-    /* 0x08: alt number of files? */
-    /* 0x09: zero */
-    /* 0x0A: ??? */
-    /* 0x0C: zero */
-    /* 0x10: table start */
-
-    sthFile = open_streamfile_by_ext(streamFile, "sth");
-    if (!sthFile)
-        goto fail;
-
-    datFile = open_streamfile_by_ext(streamFile, "dat");
-    if (!datFile)
-        goto fail;
-
-    /* STH always starts with the first offset of zero */
-    sns_offset = read_32bitLE(0x00, sthFile);
-    if (sns_offset != 0)
-        goto fail;
-
-    /* check if DAT starts with a correct SNS block */
-    block_id = read_8bit(0x00, datFile);
-    if (block_id != 0x00 && block_id != 0x80)
-        goto fail;
-
-    userdata_size = read_8bit(0x02, streamFile);
-    total_sounds = read_8bit(0x03, streamFile);
-    if (read_8bit(0x08, streamFile) > total_sounds)
-        goto fail;
-
-    if (target_stream == 0) target_stream = 1;
-    if (target_stream < 0 || total_sounds == 0 || target_stream > total_sounds)
-        goto fail;
-
-    /* offsets in HDR are always big endian */
-    //snr_offset = (off_t)read_16bitBE(0x10 + (0x02+userdata_size) * (target_stream-1), streamFile) + 0x04;
-    //sns_offset = read_32bit(snr_offset, sthFile);
-
-    /* we can't reliably detect byte endianness so we're going to find the sound the hacky way */
-    /* go through blocks until we reach the goal sound */
-    file_size = get_streamfile_size(datFile);
-    snr_offset = 0;
-    sns_offset = 0;
-
-    for (i = 0; i < total_sounds; i++) {
-        snr_offset = (off_t)read_16bitBE(0x10 + (0x02+userdata_size) * i, streamFile) + 0x04;
-
-        if (i == target_stream - 1)
-            break;
-
-        while (1) {
-            if (sns_offset >= file_size)
-                goto fail;
-
-            block_id = read_8bit(sns_offset, datFile);
-            block_size = read_32bitBE(sns_offset, datFile) & 0x00FFFFFF;
-            if (block_size == 0)
-                goto fail;
-
-            if (block_id != 0x00 && block_id != 0x80)
-                goto fail;
-
-            sns_offset += block_size;
-
-            if (block_id == 0x80)
-                break;
-        }
-    }
-
-    block_id = read_8bit(sns_offset, datFile);
-    if (block_id != 0x00 && block_id != 0x80)
-        goto fail;
-
-    vgmstream = init_vgmstream_eaaudiocore_header(sthFile, datFile, snr_offset, sns_offset, meta_EA_SNR_SNS);
-    if (!vgmstream)
-        goto fail;
-
-    vgmstream->num_streams = total_sounds;
-    close_streamfile(sthFile);
-    close_streamfile(datFile);
-    return vgmstream;
-
-fail:
-    close_streamfile(sthFile);
-    close_streamfile(datFile);
-    return NULL;
-}
-
 /* EA ABK - ABK header seems to be same as in the old games but the sound table is different and it contains SNR/SNS sounds instead */
 VGMSTREAM * init_vgmstream_ea_abk_new(STREAMFILE *streamFile) {
     int is_dupe, total_sounds = 0, target_stream = streamFile->stream_index;
-    off_t bnk_offset, header_table_offset, base_offset, unk_struct_offset, table_offset, snd_entry_offset, ast_offset = 0;
+    off_t bnk_offset, header_table_offset, base_offset, unk_struct_offset, table_offset, snd_entry_offset, ast_offset;
     off_t num_entries_off, base_offset_off, entries_off, sound_table_offset_off;
     uint32_t i, j, k, version, num_sounds, total_sound_tables;
     uint16_t num_tables, bnk_index, bnk_target_index;
@@ -293,6 +219,7 @@ VGMSTREAM * init_vgmstream_ea_abk_new(STREAMFILE *streamFile) {
     bnk_offset = read_32bit(0x20, streamFile);
     total_sound_tables = 0;
     bnk_target_index = 0xFFFF;
+    ast_offset = 0;
 
     /* set up some common values */
     if (header_table_offset == 0x5C) {
@@ -431,6 +358,107 @@ fail:
     return NULL;
 }
 
+/* EA HDR/STH/DAT - seen in early 7th-gen games, used for storing speech */
+VGMSTREAM * init_vgmstream_ea_hdr_sth_dat(STREAMFILE *streamFile) {
+    int target_stream = streamFile->stream_index;
+    uint32_t i;
+    uint8_t userdata_size, total_sounds, block_id;
+    off_t snr_offset, sns_offset;
+    size_t file_size, block_size;
+    STREAMFILE *datFile = NULL, *sthFile = NULL;
+    VGMSTREAM *vgmstream;
+
+    /* 0x00: ID */
+    /* 0x02: userdata size */
+    /* 0x03: number of files */
+    /* 0x04: sub-ID (used for different police voices in NFS games) */
+    /* 0x08: alt number of files? */
+    /* 0x09: zero */
+    /* 0x0A: ??? */
+    /* 0x0C: zero */
+    /* 0x10: table start */
+
+    sthFile = open_streamfile_by_ext(streamFile, "sth");
+    if (!sthFile)
+        goto fail;
+
+    datFile = open_streamfile_by_ext(streamFile, "dat");
+    if (!datFile)
+        goto fail;
+
+    /* STH always starts with the first offset of zero */
+    sns_offset = read_32bitLE(0x00, sthFile);
+    if (sns_offset != 0)
+        goto fail;
+
+    /* check if DAT starts with a correct SNS block */
+    block_id = read_8bit(0x00, datFile);
+    if (block_id != EAAC_BLOCKID0_DATA && block_id != EAAC_BLOCKID0_END)
+        goto fail;
+
+    userdata_size = read_8bit(0x02, streamFile);
+    total_sounds = read_8bit(0x03, streamFile);
+    if (read_8bit(0x08, streamFile) > total_sounds)
+        goto fail;
+
+    if (target_stream == 0) target_stream = 1;
+    if (target_stream < 0 || total_sounds == 0 || target_stream > total_sounds)
+        goto fail;
+
+    /* offsets in HDR are always big endian */
+    //snr_offset = (off_t)read_16bitBE(0x10 + (0x02+userdata_size) * (target_stream-1), streamFile) + 0x04;
+    //sns_offset = read_32bit(snr_offset, sthFile);
+
+    /* we can't reliably detect byte endianness so we're going to find the sound the hacky way */
+    /* go through blocks until we reach the goal sound */
+    file_size = get_streamfile_size(datFile);
+    snr_offset = 0;
+    sns_offset = 0;
+
+    for (i = 0; i < total_sounds; i++) {
+        snr_offset = (off_t)read_16bitBE(0x10 + (0x02+userdata_size) * i, streamFile) + 0x04;
+
+        if (i == target_stream - 1)
+            break;
+
+        while (1) {
+            if (sns_offset >= file_size)
+                goto fail;
+
+            block_id = read_8bit(sns_offset, datFile);
+            block_size = read_32bitBE(sns_offset, datFile) & 0x00FFFFFF;
+            if (block_size == 0)
+                goto fail;
+
+            if (block_id != EAAC_BLOCKID0_DATA && block_id != EAAC_BLOCKID0_END)
+                goto fail;
+
+            sns_offset += block_size;
+
+            if (block_id == EAAC_BLOCKID0_END)
+                break;
+        }
+    }
+
+    block_id = read_8bit(sns_offset, datFile);
+    if (block_id != EAAC_BLOCKID0_DATA && block_id != EAAC_BLOCKID0_END)
+        goto fail;
+
+    vgmstream = init_vgmstream_eaaudiocore_header(sthFile, datFile, snr_offset, sns_offset, meta_EA_SNR_SNS);
+    if (!vgmstream)
+        goto fail;
+
+    vgmstream->num_streams = total_sounds;
+    close_streamfile(sthFile);
+    close_streamfile(datFile);
+    return vgmstream;
+
+fail:
+    close_streamfile(sthFile);
+    close_streamfile(datFile);
+    return NULL;
+}
+
 /* EA newest header from RwAudioCore (RenderWare?) / EAAudioCore library (still generated by sx.exe).
  * Audio "assets" come in separate RAM headers (.SNR/SPH) and raw blocked streams (.SNS/SPS),
  * or together in pseudoformats (.SNU, .SBR+.SBS banks, .AEMS, .MUS, etc).
@@ -454,32 +482,32 @@ static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE * streamHead, ST
     codec   = (header1 >> 24) & 0x0F;
     channel_config = (header1 >> 18) & 0x3F;
     sample_rate = (header1 & 0x03FFFF); /* some Dead Space 2 (PC) uses 96000 */
-    flags = (header2 >> 28) & 0x0F; // TODO: maybe even 3 bits and not 4?
+    flags = (header2 >> 28) & 0x0F; /* TODO: maybe even 3 bits and not 4? */
     num_samples = (header2 & 0x0FFFFFFF);
     /* rest is optional, depends on flags header used (ex. SNU and SPS may have bigger headers): */
     /* 0x02: loop start sample, 0x00/04: nothing, 0x06: loop start sample and loop start block offset */
 
     /* V0: SNR+SNS, V1: SPR+SPS (no apparent differences, other than the block flags used) */
-    if (version != 0 && version != 1) {
+    if (version != EAAC_VERSION_V0 && version != EAAC_VERSION_V1) {
         VGM_LOG("EA SNS/SPS: unknown version\n");
         goto fail;
     }
 
-    /* 0x04: stream asset, 0x02: full loop, 0x00: default/RAM asset */
-    if (flags != 0x06 && flags != 0x04 && flags != 0x02 && flags != 0x00) {
-        VGM_LOG("EA SNS/SPS: unknown flag 0x%02x\n", flags);
+    if (flags != EAAC_FLAG_NONE &&
+        !(flags & (EAAC_FLAG_LOOPED | EAAC_FLAG_STREAMED))) {
+        VGM_LOG("EA SNS/SPS: unknown flags 0x%02x\n", flags);
         goto fail;
     }
 
     /* TODO: Properly implement looping, needed for Need for Speed: World (PC) */
-    if (flags & 0x02) {
+    if (flags & EAAC_FLAG_LOOPED) {
         loop_flag = 1;
         loop_start = 0;
         loop_end = num_samples;
     }
     
     /* Non-streamed sounds are stored as a single block */
-    streamed = (flags & 0x04) != 0;
+    streamed = (flags & EAAC_FLAG_STREAMED) != 0;
 
     /* accepted channel configs only seem to be mono/stereo/quad/5.1/7.1 */
     /* fail with unknown values just in case */
@@ -508,14 +536,14 @@ static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE * streamHead, ST
     /* EA decoder list and known internal FourCCs */
     switch(codec) {
 
-        case 0x02:      /* "P6B0": PCM16BE [NBA Jam (Wii)] */
+        case EAAC_CODEC_PCM:      /* "P6B0": PCM16BE [NBA Jam (Wii)] */
             vgmstream->coding_type = coding_PCM16_int;
             vgmstream->codec_endian = 1;
             vgmstream->layout_type = layout_blocked_ea_sns;
             break;
 
 #ifdef VGM_USE_FFMPEG
-        case 0x03: {    /* "EXm0": EA-XMA [Dante's Inferno (X360)] */
+        case EAAC_CODEC_EAXMA: {    /* "EXm0": EA-XMA [Dante's Inferno (X360)] */
             uint8_t buf[0x100];
             int bytes, block_size, block_count;
             size_t stream_size, virtual_size;
@@ -542,15 +570,15 @@ static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE * streamHead, ST
         }
 #endif
 
-        case 0x04:      /* "Xas1": EA-XAS [Dead Space (PC/PS3)] */
+        case EAAC_CODEC_XAS:      /* "Xas1": EA-XAS [Dead Space (PC/PS3)] */
             vgmstream->coding_type = coding_EA_XAS;
             vgmstream->layout_type = layout_blocked_ea_sns;
             break;
 
 #ifdef VGM_USE_MPEG
-        case 0x05:      /* "EL31": EALayer3 v1 [Need for Speed: Hot Pursuit (PS3)] */
-        case 0x06:      /* "L32P": EALayer3 v2 "PCM" [Battlefield 1943 (PS3)] */
-        case 0x07: {    /* "L32S": EALayer3 v2 "Spike" [Dante's Inferno (PS3)] */
+        case EAAC_CODEC_EALAYER3_V1:            /* "EL31": EALayer3 v1 [Need for Speed: Hot Pursuit (PS3)] */
+        case EAAC_CODEC_EALAYER3_V2_PCM:        /* "L32P": EALayer3 v2 "PCM" [Battlefield 1943 (PS3)] */
+        case EAAC_CODEC_EALAYER3_V2_SPIKE: {    /* "L32S": EALayer3 v2 "Spike" [Dante's Inferno (PS3)] */
             mpeg_custom_config cfg = {0};
             mpeg_custom_t type = (codec == 0x05 ? MPEG_EAL31b : (codec == 0x06) ? MPEG_EAL32P : MPEG_EAL32S);
 
@@ -570,14 +598,14 @@ static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE * streamHead, ST
         }
 #endif
 
-        case 0x08:      /* "Gca0"?: DSP [Need for Speed: Nitro sfx (Wii)] */
+        case EAAC_CODEC_DSP:      /* "Gca0"?: DSP [Need for Speed: Nitro sfx (Wii)] */
             vgmstream->coding_type = coding_NGC_DSP;
             vgmstream->layout_type = layout_blocked_ea_sns;
             /* DSP coefs are read in the blocks */
             break;
 
 #ifdef VGM_USE_ATRAC9
-        case 0x0a: {    /* EATrax */
+        case EAAC_CODEC_EATRAX: {    /* EATrax */
             atrac9_config cfg = {0};
             size_t total_size;
 
@@ -600,14 +628,10 @@ static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE * streamHead, ST
         }
 #endif
 
-        case 0x00: /* "NONE" (internal 'codec not set' flag) */
-        case 0x01: /* not used/reserved? /MP30/P6L0/P2B0/P2L0/P8S0/P8U0/PFN0? */
-        case 0x09: /* EASpeex (libspeex variant, base versions vary: 1.0.5, 1.2beta3) */
-        case 0x0b: /* ? */
-        case 0x0c: /* EAOpus (inside each SNS/SPS block is 16b frame size + standard? Opus packet) */
-        case 0x0d: /* ? */
-        case 0x0e: /* ? */
-        case 0x0f: /* ? */
+        case EAAC_CODEC_EASPEEX: /* EASpeex (libspeex variant, base versions vary: 1.0.5, 1.2beta3) */
+            /* TODO */
+        case EAAC_CODEC_EAOPUS: /* EAOpus (inside each SNS/SPS block is 16b frame size + standard? Opus packet) */
+            /* TODO */
         default:
             VGM_LOG("EA SNS/SPS: unknown codec 0x%02x\n", codec);
             goto fail;
@@ -631,8 +655,8 @@ fail:
 
 static size_t get_snr_size(STREAMFILE *streamFile, off_t offset) {
     switch (read_8bit(offset + 0x04, streamFile) >> 4 & 0x0F) { /* flags */
-    case 0x06: return 0x10;
-    case 0x02: return 0x0C;
-    default:   return 0x08;
+    case EAAC_FLAG_LOOPED | EAAC_FLAG_STREAMED:     return 0x10;
+    case EAAC_FLAG_LOOPED:                          return 0x0C;
+    default:                                        return 0x08;
     }
 }
