@@ -140,8 +140,6 @@ VGMSTREAM * init_vgmstream_cdxa(STREAMFILE *streamFile) {
     if (!vgmstream) goto fail;
 
     vgmstream->sample_rate = sample_rate;
-    //todo do block_updates to find num_samples? (to skip non-audio blocks)
-    vgmstream->num_samples = xa_bytes_to_samples(file_size - start_offset, channel_count, is_blocked);
 
     vgmstream->meta_type = meta_PSX_XA;
     vgmstream->coding_type = coding_XA;
@@ -150,6 +148,21 @@ VGMSTREAM * init_vgmstream_cdxa(STREAMFILE *streamFile) {
     /* open the file for reading */
     if ( !vgmstream_open_stream(vgmstream, streamFile, start_offset) )
         goto fail;
+
+
+    if (is_blocked) {
+        /* calc num_samples as blocks may be empty or smaller than usual depending on flags */
+        vgmstream->next_block_offset = start_offset;
+        do {
+            block_update_xa(vgmstream->next_block_offset,vgmstream);
+            vgmstream->num_samples += vgmstream->current_block_samples;
+        }
+        while (vgmstream->next_block_offset < get_streamfile_size(streamFile));
+
+    }
+    else {
+        vgmstream->num_samples = xa_bytes_to_samples(file_size - start_offset, channel_count, is_blocked);
+    }
 
     if (vgmstream->layout_type == layout_blocked_xa)
         block_update_xa(start_offset,vgmstream);
