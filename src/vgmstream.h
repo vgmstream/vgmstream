@@ -141,7 +141,8 @@ typedef enum {
     coding_AWC_IMA,         /* Rockstar AWC IMA ADPCM */
     coding_UBI_IMA,         /* Ubisoft IMA ADPCM */
 
-    coding_MSADPCM,         /* Microsoft ADPCM */
+    coding_MSADPCM,         /* Microsoft ADPCM (stereo/mono) */
+    coding_MSADPCM_ck,      /* Microsoft ADPCM (Cricket Audio variation) */
     coding_WS,              /* Westwood Studios VBR ADPCM */
     coding_AICA,            /* Yamaha AICA ADPCM (stereo) */
     coding_AICA_int,        /* Yamaha AICA ADPCM (mono/interleave) */
@@ -685,6 +686,8 @@ typedef enum {
     meta_OGG_MUS,           /* Ogg Vorbis with encryption [Redux - Dark Matters (PC)] */
     meta_ASF,               /* Argonaut ASF [Croc 2 (PC)] */
     meta_XMD,               /* Konami XMD [Silent Hill 4 (Xbox), Castlevania: Curse of Darkness (Xbox)] */
+    meta_CKS,               /* Cricket Audio stream [Part Time UFO (Android), Mega Man 1-6 (Android)] */
+    meta_CKB,               /* Cricket Audio bank [Fire Emblem Heroes (Android), Mega Man 1-6 (Android)] */
 
 #ifdef VGM_USE_FFMPEG
     meta_FFmpeg,

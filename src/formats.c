@@ -4,7 +4,7 @@
 /* defines the list of accepted extensions. vgmstream doesn't use it internally so it's here
  * to inform plugins that need it. Common extensions are commented out to avoid stealing them. */
 
-/* some extensions require external libraries and could be #ifdef, no really needed */
+/* some extensions require external libraries and could be #ifdef, not really needed */
 /* some formats marked as "not parsed" mean they'll go through FFmpeg, the header/extension is not parsed */
 
 
@@ -98,7 +98,9 @@ static const char* extension_list[] = {
     "ccc",
     "cd",
     "cfn", //fake extension/header id for .caf (to be removed)
+    "ckb",
     "ckd",
+    "cks",
     "cnk",
     "cps",
     "cvs",
@@ -543,6 +545,7 @@ static const coding_info coding_info_list[] = {
         {coding_UBI_IMA,            "Ubisoft 4-bit IMA ADPCM"},
 
         {coding_MSADPCM,            "Microsoft 4-bit ADPCM"},
+        {coding_MSADPCM_ck,         "Microsoft 4-bit ADPCM (Cricket Audio)"},
         {coding_WS,                 "Westwood Studios VBR ADPCM"},
         {coding_AICA,               "Yamaha AICA 4-bit ADPCM"},
         {coding_AICA_int,           "Yamaha AICA 4-bit ADPCM (mono/interleave)"},
@@ -1045,6 +1048,8 @@ static const meta_info meta_info_list[] = {
         {meta_OGG_MUS,              "Ogg Vorbis (MUS header)"},
         {meta_ASF,                  "Argonaut ASF header"},
         {meta_XMD,                  "Konami XMD header"},
+        {meta_CKS,                  "Cricket Audio CKS header"},
+        {meta_CKB,                  "Cricket Audio CKB header"},
 
 #ifdef VGM_USE_FFMPEG
         {meta_FFmpeg,               "FFmpeg supported file format"},

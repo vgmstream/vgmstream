@@ -356,6 +356,10 @@
 					RelativePath=".\meta\capdsp.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\meta\ck.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\cstr.c"
 					>
