@@ -1,7 +1,8 @@
 #include "coding.h"
 
 
-/* Decodes Konami XMD from Xbox games (algorithm info from xmd2wav/xmddecode.dll). */
+/* Decodes Konami XMD from Xbox games.
+ * Algorithm reverse engineered from SH4/CV:CoD's xbe (byte-accurate). */
 void decode_xmd(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, size_t frame_size) {
     off_t frame_offset;
     int i, frames_in, sample_count = 0, samples_done = 0;
@@ -42,10 +43,9 @@ void decode_xmd(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, 
         new_sample = i&1 ? /* low nibble first */
                 get_high_nibble_signed(nibbles):
                  get_low_nibble_signed(nibbles);
-        new_sample = (new_sample*(scale<<14) + (hist1*0x7298) - (hist2*0x3350)) >> 14;
-        /* Coefs are similar to XA's filter 2, but using those creates hissing in some songs.
+        /* Coefs are based on XA's filter 2 (using those creates hissing in some songs though)
          * ex. 1.796875 * (1 << 14) = 0x7300, -0.8125 * (1 << 14) = -0x3400 */
-        //new_sample = (int32_t)(new_sample*scale + hist1*1.796875 + hist2*-0.8125);
+        new_sample = (new_sample*(scale<<14) + (hist1*0x7298) - (hist2*0x3350)) >> 14;
 
         //new_sample = clamp16(new_sample); /* not needed */
         if (sample_count >= first_sample && samples_done < samples_to_do) {
