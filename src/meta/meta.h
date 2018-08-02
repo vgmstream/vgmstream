@@ -679,6 +679,7 @@ VGMSTREAM * init_vgmstream_opus_nop(STREAMFILE * streamFile);
 VGMSTREAM * init_vgmstream_opus_shinen(STREAMFILE * streamFile);
 VGMSTREAM * init_vgmstream_opus_nus3(STREAMFILE * streamFile);
 VGMSTREAM * init_vgmstream_opus_nlsd(STREAMFILE * streamFile);
+VGMSTREAM * init_vgmstream_opus_nxa(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_pc_al2(STREAMFILE * streamFile);
 
