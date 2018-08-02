@@ -771,4 +771,6 @@ VGMSTREAM * init_vgmstream_xmd(STREAMFILE *streamFile);
 VGMSTREAM * init_vgmstream_cks(STREAMFILE *streamFile);
 VGMSTREAM * init_vgmstream_ckb(STREAMFILE *streamFile);
 
+VGMSTREAM * init_vgmstream_wv6(STREAMFILE *streamFile);
+
 #endif /*_META_H*/

@@ -1414,6 +1414,10 @@
 					RelativePath=".\meta\ws_aud.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\meta\wv6.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\wvs.c"
 					>

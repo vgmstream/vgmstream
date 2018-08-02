@@ -422,6 +422,7 @@ static const char* extension_list[] = {
     "wsd",
     "wsi",
     "wv2", //txth/reserved [Slave Zero (PC)]
+    "wv6",
     "wve",
     "wvs",
 
@@ -528,6 +529,10 @@ static const coding_info coding_info_list[] = {
         {coding_DVI_IMA,            "Intel DVI 4-bit IMA ADPCM"},
         {coding_DVI_IMA_int,        "Intel DVI 4-bit IMA ADPCM (mono/interleave)"},
         {coding_3DS_IMA,            "3DS IMA 4-bit ADPCM"},
+        {coding_SNDS_IMA,           "Heavy Iron .snds 4-bit IMA ADPCM"},
+        {coding_OTNS_IMA,           "Omikron: The Nomad Soul 4-bit IMA ADPCM"},
+        {coding_WV6_IMA,            "Gorilla Systems WV6 4-bit IMA ADPCM"},
+
         {coding_MS_IMA,             "Microsoft 4-bit IMA ADPCM"},
         {coding_XBOX_IMA,           "XBOX 4-bit IMA ADPCM"},
         {coding_XBOX_IMA_mch,       "XBOX 4-bit IMA ADPCM (multichannel)"},
@@ -537,8 +542,6 @@ static const coding_info coding_info_list[] = {
         {coding_RAD_IMA,            "Radical 4-bit IMA ADPCM"},
         {coding_RAD_IMA_mono,       "Radical 4-bit IMA ADPCM (mono/interleave)"},
         {coding_APPLE_IMA4,         "Apple Quicktime 4-bit IMA ADPCM"},
-        {coding_SNDS_IMA,           "Heavy Iron .snds 4-bit IMA ADPCM"},
-        {coding_OTNS_IMA,           "Omikron: The Nomad Soul 4-bit IMA ADPCM"},
         {coding_FSB_IMA,            "FSB 4-bit IMA ADPCM"},
         {coding_WWISE_IMA,          "Audiokinetic Wwise 4-bit IMA ADPCM"},
         {coding_REF_IMA,            "Reflections 4-bit IMA ADPCM"},
@@ -1051,6 +1054,7 @@ static const meta_info meta_info_list[] = {
         {meta_XMD,                  "Konami XMD header"},
         {meta_CKS,                  "Cricket Audio CKS header"},
         {meta_CKB,                  "Cricket Audio CKB header"},
+        {meta_WV6,                  "Gorilla Systems WV6 header"},
 
 #ifdef VGM_USE_FFMPEG
         {meta_FFmpeg,               "FFmpeg supported file format"},

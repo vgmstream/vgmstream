@@ -423,6 +423,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_xmd,
     init_vgmstream_cks,
     init_vgmstream_ckb,
+    init_vgmstream_wv6,
 
     init_vgmstream_txth,  /* should go at the end (lower priority) */
 #ifdef VGM_USE_FFMPEG
@@ -1062,6 +1063,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_IMA_int:
         case coding_DVI_IMA_int:
         case coding_3DS_IMA:
+        case coding_WV6_IMA:
             return 2;
         case coding_XBOX_IMA:
         case coding_XBOX_IMA_mch:
@@ -1225,6 +1227,7 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
         case coding_DVI_IMA:
         case coding_DVI_IMA_int:
         case coding_3DS_IMA:
+        case coding_WV6_IMA:
             return 0x01;
         case coding_MS_IMA:
         case coding_RAD_IMA:
@@ -1238,7 +1241,7 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
             return 0x14;
         case coding_SNDS_IMA:
         case coding_OTNS_IMA:
-            return 0;
+            return 0; //todo: 0x01?
         case coding_UBI_IMA: /* variable (PCM then IMA) */
             return 0;
         case coding_XBOX_IMA:
@@ -1715,6 +1718,13 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
         case coding_3DS_IMA:
             for (chan=0;chan<vgmstream->channels;chan++) {
                 decode_3ds_ima(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                        vgmstream->channels,vgmstream->samples_into_block,
+                        samples_to_do);
+            }
+            break;
+        case coding_WV6_IMA:
+            for (chan=0;chan<vgmstream->channels;chan++) {
+                decode_wv6_ima(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
                         samples_to_do);
             }

@@ -124,6 +124,10 @@ typedef enum {
     coding_DVI_IMA,         /* DVI IMA ADPCM (stereo or mono, high nibble first) */
     coding_DVI_IMA_int,     /* DVI IMA ADPCM (mono/interleave, high nibble first) */
     coding_3DS_IMA,         /* 3DS IMA ADPCM */
+    coding_SNDS_IMA,        /* Heavy Iron Studios .snds IMA ADPCM */
+    coding_OTNS_IMA,        /* Omikron The Nomad Soul IMA ADPCM */
+    coding_WV6_IMA,         /* Gorilla Systems WV6 4-bit IMA ADPCM */
+
     coding_MS_IMA,          /* Microsoft IMA ADPCM */
     coding_XBOX_IMA,        /* XBOX IMA ADPCM */
     coding_XBOX_IMA_mch,    /* XBOX IMA ADPCM (multichannel) */
@@ -133,8 +137,6 @@ typedef enum {
     coding_RAD_IMA,         /* Radical IMA ADPCM */
     coding_RAD_IMA_mono,    /* Radical IMA ADPCM (mono/interleave) */
     coding_APPLE_IMA4,      /* Apple Quicktime IMA4 */
-    coding_SNDS_IMA,        /* Heavy Iron Studios .snds IMA ADPCM */
-    coding_OTNS_IMA,        /* Omikron The Nomad Soul IMA ADPCM */
     coding_FSB_IMA,         /* FMOD's FSB multichannel IMA ADPCM */
     coding_WWISE_IMA,       /* Audiokinetic Wwise IMA ADPCM */
     coding_REF_IMA,         /* Reflections IMA ADPCM */
@@ -688,6 +690,7 @@ typedef enum {
     meta_XMD,               /* Konami XMD [Silent Hill 4 (Xbox), Castlevania: Curse of Darkness (Xbox)] */
     meta_CKS,               /* Cricket Audio stream [Part Time UFO (Android), Mega Man 1-6 (Android)] */
     meta_CKB,               /* Cricket Audio bank [Fire Emblem Heroes (Android), Mega Man 1-6 (Android)] */
+    meta_WV6,               /* Gorilla Systems PC games */
 
 #ifdef VGM_USE_FFMPEG
     meta_FFmpeg,
