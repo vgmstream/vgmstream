@@ -143,19 +143,14 @@ static STREAMFILE *open_stdio(STDIOSTREAMFILE *streamFile,const char * const fil
 }
 
 static STREAMFILE * open_stdio_streamfile_buffer_by_file(FILE *infile,const char * const filename, size_t buffersize) {
-    uint8_t * buffer;
-    STDIOSTREAMFILE * streamfile;
+    uint8_t * buffer = NULL;
+    STDIOSTREAMFILE * streamfile = NULL;
 
     buffer = calloc(buffersize,1);
-    if (!buffer) {
-        return NULL;
-    }
+    if (!buffer) goto fail;
 
     streamfile = calloc(1,sizeof(STDIOSTREAMFILE));
-    if (!streamfile) {
-        free(buffer);
-        return NULL;
-    }
+    if (!streamfile) goto fail;
 
     streamfile->sf.read = (void*)read_stdio;
     streamfile->sf.get_size = (void*)get_size_stdio;
@@ -175,7 +170,19 @@ static STREAMFILE * open_stdio_streamfile_buffer_by_file(FILE *infile,const char
     fseeko(streamfile->infile,0,SEEK_END);
     streamfile->filesize = ftello(streamfile->infile);
 
+    /* some compilers/flags may use ftell, which only handles up to ~2.14GB
+     * (possible for banks like FSB, though unlikely). */
+    if (streamfile->filesize == 0xFFFFFFFF) { /* -1 on error */
+        VGM_LOG("STREAMFILE: ftell error\n");
+        goto fail; /* can be ignored but may result in strange/unexpected behaviors */
+    }
+
     return &streamfile->sf;
+
+fail:
+    free(buffer);
+    free(streamfile);
+    return NULL;
 }
 
 static STREAMFILE * open_stdio_streamfile_buffer(const char * const filename, size_t buffersize) {
