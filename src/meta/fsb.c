@@ -230,7 +230,7 @@ VGMSTREAM * init_vgmstream_fsb(STREAMFILE *streamFile) {
                 data_offset += fsb.stream_size; /* there is no offset so manually count */
 
                 /* some subsongs offsets need padding (most FSOUND_IMAADPCM, few MPEG too [Hard Reset (PC) subsong 5])
-                 * other PADDED4 may set it (ex. XMA) but don't seem to use it and work fine */
+                 * other codecs may set PADDED4 (ex. XMA) but don't seem to need it and work fine */
                 if (fsb.flags & FMOD_FSB_SOURCE_MPEG_PADDED4) {
                     if (data_offset % 0x20)
                         data_offset += 0x20 - (data_offset % 0x20);
@@ -252,12 +252,12 @@ VGMSTREAM * init_vgmstream_fsb(STREAMFILE *streamFile) {
                "FSB wrong head/data_size found (expected 0x%x vs 0x%x)\n",
                fsb.base_header_size + fsb.sample_header_size + fsb.data_size, streamFile->get_size(streamFile));
 
-    /* Loops unless disabled. FMOD default seems full loops (0/num_samples-1) without flags, for repeating tracks
+    /* Loops unless disabled. FMOD default seems to be full loops (0/num_samples-1) without flags, for repeating tracks
      * that should loop and jingles/sfx that shouldn't. We'll try to disable looping if it looks jingly enough. */
     loop_flag = !(fsb.mode & FSOUND_LOOP_OFF);
     if(!(fsb.mode & FSOUND_LOOP_NORMAL)                             /* rarely set */
-            && fsb.loop_start+fsb.loop_end+1 == fsb.num_samples   /* full loop */
-            && fsb.num_samples < 20*fsb.sample_rate)                  /* seconds, lame but no other way to know */
+            && fsb.loop_start+fsb.loop_end+1 == fsb.num_samples     /* full loop */
+            && fsb.num_samples < 20*fsb.sample_rate)                /* in seconds (lame but no other way to know) */
         loop_flag = 0;
 
     /* ping-pong looping = no looping? (forward > reverse > forward) [ex. Biker Mice from Mars (PS2)] */
@@ -280,7 +280,7 @@ VGMSTREAM * init_vgmstream_fsb(STREAMFILE *streamFile) {
 
 
     /* parse codec */
-    if (fsb.mode & FSOUND_MPEG) { /* FSB4: Shatter, Way of the Samurai 3/4 (PS3) */
+    if (fsb.mode & FSOUND_MPEG) { /* FSB4: Shatter (PS3), Way of the Samurai 3/4 (PS3) */
 #if defined(VGM_USE_MPEG)
         mpeg_custom_config cfg = {0};
 
@@ -288,33 +288,38 @@ VGMSTREAM * init_vgmstream_fsb(STREAMFILE *streamFile) {
             (fsb.flags & FMOD_FSB_SOURCE_MPEG_PADDED4 ? 4 :
             (fsb.flags & FMOD_FSB_SOURCE_MPEG_PADDED ? 2 : 0)));
 
-        //VGM_ASSERT(fsb.mode & FSOUND_MPEG_LAYER2, "FSB FSOUND_MPEG_LAYER2 found\n");/* not always set anyway */
-        VGM_ASSERT(fsb.mode & FSOUND_IGNORETAGS, "FSB FSOUND_IGNORETAGS found\n");
-
         vgmstream->codec_data = init_mpeg_custom(streamFile, start_offset, &vgmstream->coding_type, vgmstream->channels, MPEG_FSB, &cfg);
         if (!vgmstream->codec_data) goto fail;
         vgmstream->layout_type = layout_none;
+
+        //VGM_ASSERT(fsb.mode & FSOUND_MPEG_LAYER2, "FSB FSOUND_MPEG_LAYER2 found\n");/* not always set anyway */
+        VGM_ASSERT(fsb.mode & FSOUND_IGNORETAGS, "FSB FSOUND_IGNORETAGS found\n");
 #else
         goto fail; /* FFmpeg can't properly read FSB4 or FMOD's 0-padded MPEG data @ start_offset */
 #endif
     }
-    else if (fsb.mode & FSOUND_IMAADPCM) { /* FSB3: Bioshock (PC); FSB4: Blade Kitten (PC) */
-        /* FSOUND_IMAADPCMSTEREO is "noninterleaved, true stereo IMA", but doesn't seem to be any different
-         * (found in FSB4: Shatter, Blade Kitten (PC), Hard Corps: Uprising (PS3)) */
-
+    else if (fsb.mode & FSOUND_IMAADPCM) { /* FSB3: Bioshock (PC), FSB4: Blade Kitten (PC) */
         vgmstream->coding_type = coding_XBOX_IMA;
         vgmstream->layout_type = layout_none;
         /* "interleaved header" IMA, only used with >2ch (ex. Blade Kitten 6ch)
-         * or (seemingly) when flag is used (ex. Dead to Rights 2 (Xbox) 2ch in FSB3.1 */
+         * or (seemingly) when flag is used (ex. Dead to Rights 2 (Xbox) 2ch in FSB3.1) */
         if (vgmstream->channels > 2 || (fsb.mode & FSOUND_MULTICHANNEL))
             vgmstream->coding_type = coding_FSB_IMA;
+
+        /* FSOUND_IMAADPCMSTEREO is "noninterleaved, true stereo IMA", but doesn't seem to be any different
+         * (found in FSB4: Shatter, Blade Kitten (PC), Hard Corps: Uprising (PS3)) */
     }
     else if (fsb.mode & FSOUND_VAG) { /* FSB1: Jurassic Park Operation Genesis (PS2), FSB4: Spider Man Web of Shadows (PSP) */
         vgmstream->coding_type = coding_PSX;
         vgmstream->layout_type = layout_interleave;
-        vgmstream->interleave_block_size = 0x10;
+        if (fsb.flags & FMOD_FSB_SOURCE_NOTINTERLEAVED) {
+            vgmstream->interleave_block_size = fsb.stream_size / fsb.channels;
+        }
+        else {
+            vgmstream->interleave_block_size = 0x10;
+        }
     }
-    else if (fsb.mode & FSOUND_XMA) { /* FSB4: Armored Core V (X360), Hard Corps (X360) */
+    else if (fsb.mode & FSOUND_XMA) { /* FSB3: The Bourne Conspiracy 2008 (X360), FSB4: Armored Core V (X360), Hard Corps (X360) */
 #if defined(VGM_USE_FFMPEG)
         uint8_t buf[0x100];
         size_t bytes, block_size, block_count;
@@ -323,8 +328,6 @@ VGMSTREAM * init_vgmstream_fsb(STREAMFILE *streamFile) {
         block_count = fsb.stream_size / block_size; /* not accurate but not needed (custom_data_offset+0x14 -1?) */
 
         bytes = ffmpeg_make_riff_xma2(buf, 0x100, fsb.num_samples, fsb.stream_size, fsb.channels, fsb.sample_rate, block_count, block_size);
-        if (bytes <= 0) goto fail;
-
         vgmstream->codec_data = init_ffmpeg_header_offset(streamFile, buf,bytes, start_offset,fsb.stream_size);
         if (!vgmstream->codec_data) goto fail;
         vgmstream->coding_type = coding_FFmpeg;
@@ -333,38 +336,35 @@ VGMSTREAM * init_vgmstream_fsb(STREAMFILE *streamFile) {
         goto fail;
 #endif
     }
-    else if (fsb.mode & FSOUND_GCADPCM) {
-        /* FSB3: ?; FSB4: de Blob (Wii), Night at the Museum, M. Night Shyamalan Avatar: The Last Airbender */
-        vgmstream->coding_type = coding_NGC_DSP_subint;
-        vgmstream->layout_type = layout_none;
-        vgmstream->interleave_block_size = 0x2;
+    else if (fsb.mode & FSOUND_GCADPCM) { /* FSB3: Metroid Prime 3 (GC), FSB4: de Blob (Wii) */
+        if (fsb.flags & FMOD_FSB_SOURCE_NOTINTERLEAVED) { /* [de Blob (Wii) sfx)] */
+            vgmstream->coding_type = coding_NGC_DSP;
+            vgmstream->layout_type = layout_interleave;
+            vgmstream->interleave_block_size = fsb.stream_size / fsb.channels;
+        }
+        else {
+            vgmstream->coding_type = coding_NGC_DSP_subint;
+            vgmstream->layout_type = layout_none;
+            vgmstream->interleave_block_size = 0x2;
+        }
         dsp_read_coefs_be(vgmstream, streamFile, custom_data_offset, 0x2e);
     }
     else if (fsb.mode & FSOUND_CELT) { /* FSB4: War Thunder (PC), The Witcher 2 (PC) */
-        VGM_LOG("FSB4 FSOUND_CELT found\n");
+        VGM_LOG("FSB4: FSOUND_CELT found\n");
         goto fail;
     }
-    else { /* PCM */
-        if (fsb.mode & FSOUND_8BITS) {
-            vgmstream->coding_type = (fsb.mode & FSOUND_UNSIGNED) ? coding_PCM8_U : coding_PCM8;
-            vgmstream->layout_type = layout_interleave;
-            vgmstream->interleave_block_size = 0x1;
-        }
-        else { /* Rocket Knight (PC), Another Century's Episode R (PS3), Toy Story 3 (Wii)  */
-            /* sometimes FSOUND_STEREO/FSOUND_MONO is not set (ex. Dead Space iOS),
-             * or only STEREO/MONO but not FSOUND_8BITS/FSOUND_16BITS is set */
-            vgmstream->coding_type = (fsb.flags & FMOD_FSB_SOURCE_BIGENDIANPCM) ? coding_PCM16BE : coding_PCM16LE;
-            vgmstream->layout_type = layout_interleave;
-            vgmstream->interleave_block_size = 0x2;
-        }
-    }
-
-    /* full channel interleave, used in short streams (ex. de Blob Wii SFXs) */
-    if (fsb.channels > 1 && (fsb.flags & FMOD_FSB_SOURCE_NOTINTERLEAVED)) {
-        if (vgmstream->coding_type == coding_NGC_DSP_subint)
-            vgmstream->coding_type = coding_NGC_DSP;
+    else if (fsb.mode & FSOUND_8BITS) { /* assumed, no games known */
+        vgmstream->coding_type = (fsb.mode & FSOUND_UNSIGNED) ? coding_PCM8_U : coding_PCM8;
         vgmstream->layout_type = layout_interleave;
-        vgmstream->interleave_block_size = fsb.stream_size / fsb.channels;
+        vgmstream->interleave_block_size = 0x1;
+    }
+    else { /* (PCM16) FSB4: Rocket Knight (PC), Another Century's Episode R (PS3), Toy Story 3 (Wii) */
+        vgmstream->coding_type = (fsb.flags & FMOD_FSB_SOURCE_BIGENDIANPCM) ? coding_PCM16BE : coding_PCM16LE;
+        vgmstream->layout_type = layout_interleave;
+        vgmstream->interleave_block_size = 0x2;
+
+        /* sometimes FSOUND_MONO/FSOUND_STEREO is not set (ex. Dead Space iOS),
+         * or only STEREO/MONO but not FSOUND_8BITS/FSOUND_16BITS is set */
     }
 
 
