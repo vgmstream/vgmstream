@@ -690,6 +690,7 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE *streamFile, ea_
             break;
         }
 
+#ifdef VGM_USE_FFMPEG
         case EA_CODEC2_ATRAC3PLUS: { /* regular ATRAC3plus chunked in SCxx blocks, including RIFF header */
             if (!is_bnk) {
                 STREAMFILE* temp_streamFile = NULL;
@@ -715,6 +716,7 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE *streamFile, ea_
             vgmstream->layout_type = layout_none;
             break;
         }
+#endif
 
         default:
             VGM_LOG("EA SCHl: unknown codec2 0x%02x for platform 0x%02x\n", ea->codec2, ea->platform);
