@@ -468,13 +468,13 @@ static int parse_bao(ubi_bao_header * bao, STREAMFILE *streamFile, off_t offset)
             break;
 
         case 0x00230008: /* Splinter Cell: Conviction (PC) */
-			bao->stream_size  = read_32bit(offset+header_size+0x08, streamFile);
+            bao->stream_size  = read_32bit(offset+header_size+0x08, streamFile);
             bao->stream_id    = read_32bit(offset+header_size+0x24, streamFile);
             bao->is_external  = read_32bit(offset+header_size+0x38, streamFile);
             bao->channels     = read_32bit(offset+header_size+0x54, streamFile);
             bao->sample_rate  = read_32bit(offset+header_size+0x5c, streamFile);
-			if (read_32bit(offset+header_size+0x44, streamFile) & 0x01) { /* single flag? */
-                bao->num_samples  = read_32bit(offset+header_size+0x6c, streamFile);
+            if (read_32bit(offset+header_size+0x44, streamFile) & 0x01) { /* single flag? */
+                   bao->num_samples  = read_32bit(offset+header_size+0x6c, streamFile);
             }
             else {
                 bao->num_samples  = read_32bit(offset+header_size+0x64, streamFile);
