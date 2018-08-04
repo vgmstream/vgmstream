@@ -218,7 +218,6 @@
     <ClCompile Include="meta\dmsg_segh.c" />
     <ClCompile Include="meta\dsp_adx.c" />
     <ClCompile Include="meta\dsp_bdsp.c" />
-    <ClCompile Include="meta\dsp_sth_str.c" />
     <ClCompile Include="meta\ea_schl.c" />
     <ClCompile Include="meta\ea_schl_fixed.c" />
     <ClCompile Include="meta\ea_1snh.c" />
@@ -353,7 +352,6 @@
     <ClCompile Include="meta\ps2_snd.c" />
     <ClCompile Include="meta\ps2_sps.c" />
     <ClCompile Include="meta\ps2_ster.c" />
-    <ClCompile Include="meta\ps2_str.c" />
     <ClCompile Include="meta\ps2_svag.c" />
     <ClCompile Include="meta\ps2_svag_snk.c" />
     <ClCompile Include="meta\ps2_tec.c" />
@@ -403,6 +401,7 @@
     <ClCompile Include="meta\stm.c" />
     <ClCompile Include="meta\str_asr.c" />
     <ClCompile Include="meta\str_snds.c" />
+    <ClCompile Include="meta\str_wav.c" />
     <ClCompile Include="meta\stx.c" />
     <ClCompile Include="meta\svs.c" />
     <ClCompile Include="meta\sxd.c" />
@@ -427,7 +426,6 @@
     <ClCompile Include="meta\wii_mus.c" />
     <ClCompile Include="meta\wii_smp.c" />
     <ClCompile Include="meta\wii_sng.c" />
-    <ClCompile Include="meta\wii_str.c" />
     <ClCompile Include="meta\wii_sts.c" />
     <ClCompile Include="meta\ws_aud.c" />
     <ClCompile Include="meta\wv6.c" />

@@ -52,7 +52,6 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_raw,
     init_vgmstream_ps2_vag,
     init_vgmstream_psx_gms,
-    init_vgmstream_ps2_str,
     init_vgmstream_ps2_ild,
     init_vgmstream_ps2_pnb,
     init_vgmstream_xbox_wavm,
@@ -212,7 +211,6 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_ps2_tk5,
     init_vgmstream_ps2_vsf_tta,
     init_vgmstream_ads,
-    init_vgmstream_wii_str,
     init_vgmstream_ps2_mcg,
     init_vgmstream_zsd,
     init_vgmstream_ps2_vgs,
@@ -266,9 +264,6 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_ngc_dsp_mpds,
     init_vgmstream_dsp_str_ig,
     init_vgmstream_ea_swvr,
-    init_vgmstream_ngc_dsp_sth_str1,
-    init_vgmstream_ngc_dsp_sth_str2,
-    init_vgmstream_ngc_dsp_sth_str3,
     init_vgmstream_ps2_b1s,
     init_vgmstream_ps2_wad,
     init_vgmstream_dsp_xiii,
@@ -424,6 +419,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_cks,
     init_vgmstream_ckb,
     init_vgmstream_wv6,
+    init_vgmstream_str_wav,
 
     init_vgmstream_txth,  /* should go at the end (lower priority) */
 #ifdef VGM_USE_FFMPEG

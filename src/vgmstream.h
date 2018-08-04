@@ -341,7 +341,7 @@ typedef enum {
     meta_PS2_VAGm,          /* VAGp Mono File */
     meta_PS2_pGAV,          /* VAGp with Little Endian Header */
     meta_PSX_GMS,           /* GMS File (used in PS1 & PS2) [no header_id] */
-    meta_PS2_STR,           /* Pacman STR+STH files */
+    meta_STR_WAV,           /* Blitz Games STR+WAV files */
     meta_PS2_ILD,           /* ILD File */
     meta_PS2_PNB,           /* PsychoNauts Bgm File */
     meta_PS2_VAGs,          /* VAG Stereo from Kingdom Hearts */
@@ -505,7 +505,6 @@ typedef enum {
     meta_PS2_GBTS,          /* Pop'n'Music 9 Audio File */
     meta_NGC_DSP_IADP,      /* Gamecube Interleave DSP */
     meta_PS2_TK5,           /* Tekken 5 Stream Files */
-    meta_WII_STR,           /* House of The Dead Overkill STR+STH */
     meta_PS2_MCG,           /* Gunvari MCG Files (was name .GCM on disk) */
     meta_ZSD,               /* Dragon Booster ZSD */
     meta_RedSpark,          /* "RedSpark" RSD (MadWorld) */
@@ -545,7 +544,6 @@ typedef enum {
     meta_NGC_DSP_MPDS,      /* Big Air Freestyle, Terminator 3 */
     meta_DSP_STR_IG,        /* Micro Machines, Superman Superman: Shadow of Apokolis */
     meta_EA_SWVR,           /* Future Cop L.A.P.D., Freekstyle */
-    meta_NGC_DSP_STH_STR,   /* SpongeBob Squarepants (NGC), Taz Wanted (NGC), Cubix (NGC), Tak (WII)*/
     meta_PS2_B1S,           /* 7 Wonders of the ancient world */
     meta_PS2_WAD,           /* The golden Compass */
     meta_DSP_XIII,          /* XIII, possibly more (Ubisoft header???) */
