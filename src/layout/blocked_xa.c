@@ -28,25 +28,33 @@ void block_update_xa(off_t block_offset, VGMSTREAM * vgmstream) {
             (uint8_t)read_8bit(block_offset + 0x930 + 0x11,streamFile),
             "XA block: subchannel change at %lx\n", block_offset);
 
-    /* submode flag bits (typical audio value = 0x64)
-     * - 7: end of file
-     * - 6: real time mode
-     * - 5: sector form (0=form1, 1=form2)
-     * - 4: trigger (for application)
-     * - 3: data sector
-     * - 2: audio sector
-     * - 1: video sector
-     * - 0: end of audio
+    /* submode flag bits (typical audio value = 0x64 01100100)
+     * - 7 (0x80 10000000): end of file
+     * - 6 (0x40 01000000): real time mode
+     * - 5 (0x20 00100000): sector form (0=form1, 1=form2)
+     * - 4 (0x10 00010000): trigger (for application)
+     * - 3 (0x08 00001000): data sector
+     * - 2 (0x04 00000100): audio sector
+     * - 1 (0x02 00000010): video sector
+     * - 0 (0x01 00000001): end of audio
      */
     xa_submode = (uint8_t)read_8bit(block_offset + 0x12,streamFile);
 
     /* audio sector must set/not set certain flags, as per spec */
-    if ((xa_submode & 0x20) && !(xa_submode & 0x08) && (xa_submode & 0x04) && !(xa_submode & 0x02) ) {
-        block_samples = (28*8 / vgmstream->channels) * 18; /* size 0x900, 18 frames of size 0x80 with 8 subframes of 28 samples */
+    if (!(xa_submode & 0x08) && (xa_submode & 0x04) && !(xa_submode & 0x02)) {
+        if (xa_submode & 0x20) {
+            /* form2 audio: size 0x900, 18 frames of size 0x80 with 8 subframes of 28 samples */
+            block_samples = (28*8 / vgmstream->channels) * 18;
+        }
+        else { /* rare, found with empty audio [Glint Glitters (PS1), Dance! Dance! Dance! (PS1)] */
+            /* form1 audio: size 0x800, 16 frames of size 0x80 with 8 subframes of 28 samples (rest is garbage/other data) */
+            block_samples = (28*8 / vgmstream->channels) * 16;
+        }
     }
     else {
+        ;VGM_ASSERT_ONCE(block_offset < get_streamfile_size(streamFile),
+                "XA block: non audio block found at %lx\n", block_offset);
         block_samples = 0; /* not an audio sector */
-        ;VGM_LOG("XA block: non audio block found at %lx\n", block_offset);
     }
 
     vgmstream->current_block_offset = block_offset;

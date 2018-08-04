@@ -63,14 +63,18 @@ VGMSTREAM * init_vgmstream_cdxa(STREAMFILE *streamFile) {
                 if (read_32bitBE(test_offset+0x00,streamFile) != read_32bitBE(test_offset+0x04,streamFile) ||
                     read_32bitBE(test_offset+0x08,streamFile) != read_32bitBE(test_offset+0x0c,streamFile))
                     goto fail;
+                /* blank frames should always use 0x0c0c0c0c (due to how shift works) */
+                if (read_32bitBE(test_offset+0x00,streamFile) == 0 &&
+                    read_32bitBE(test_offset+0x04,streamFile) == 0 &&
+                    read_32bitBE(test_offset+0x08,streamFile) == 0 &&
+                    read_32bitBE(test_offset+0x0c,streamFile) == 0)
+                    goto fail;
 
                 test_offset += 0x80;
             }
 
             test_offset += (is_blocked ? 0x18 : 0x00); /* footer */
         }
-        /* (the above could get fooled by files with many 0s at the beginning;
-         * this could be detected as blank XA frames should have have 0c0c0c0c... headers */
     }
 
 
@@ -140,8 +144,6 @@ VGMSTREAM * init_vgmstream_cdxa(STREAMFILE *streamFile) {
     if (!vgmstream) goto fail;
 
     vgmstream->sample_rate = sample_rate;
-    //todo do block_updates to find num_samples? (to skip non-audio blocks)
-    vgmstream->num_samples = xa_bytes_to_samples(file_size - start_offset, channel_count, is_blocked);
 
     vgmstream->meta_type = meta_PSX_XA;
     vgmstream->coding_type = coding_XA;
@@ -150,6 +152,21 @@ VGMSTREAM * init_vgmstream_cdxa(STREAMFILE *streamFile) {
     /* open the file for reading */
     if ( !vgmstream_open_stream(vgmstream, streamFile, start_offset) )
         goto fail;
+
+
+    if (is_blocked) {
+        /* calc num_samples as blocks may be empty or smaller than usual depending on flags */
+        vgmstream->next_block_offset = start_offset;
+        do {
+            block_update_xa(vgmstream->next_block_offset,vgmstream);
+            vgmstream->num_samples += vgmstream->current_block_samples;
+        }
+        while (vgmstream->next_block_offset < get_streamfile_size(streamFile));
+
+    }
+    else {
+        vgmstream->num_samples = xa_bytes_to_samples(file_size - start_offset, channel_count, is_blocked);
+    }
 
     if (vgmstream->layout_type == layout_blocked_xa)
         block_update_xa(start_offset,vgmstream);

@@ -124,6 +124,10 @@ typedef enum {
     coding_DVI_IMA,         /* DVI IMA ADPCM (stereo or mono, high nibble first) */
     coding_DVI_IMA_int,     /* DVI IMA ADPCM (mono/interleave, high nibble first) */
     coding_3DS_IMA,         /* 3DS IMA ADPCM */
+    coding_SNDS_IMA,        /* Heavy Iron Studios .snds IMA ADPCM */
+    coding_OTNS_IMA,        /* Omikron The Nomad Soul IMA ADPCM */
+    coding_WV6_IMA,         /* Gorilla Systems WV6 4-bit IMA ADPCM */
+
     coding_MS_IMA,          /* Microsoft IMA ADPCM */
     coding_XBOX_IMA,        /* XBOX IMA ADPCM */
     coding_XBOX_IMA_mch,    /* XBOX IMA ADPCM (multichannel) */
@@ -133,15 +137,14 @@ typedef enum {
     coding_RAD_IMA,         /* Radical IMA ADPCM */
     coding_RAD_IMA_mono,    /* Radical IMA ADPCM (mono/interleave) */
     coding_APPLE_IMA4,      /* Apple Quicktime IMA4 */
-    coding_SNDS_IMA,        /* Heavy Iron Studios .snds IMA ADPCM */
-    coding_OTNS_IMA,        /* Omikron The Nomad Soul IMA ADPCM */
     coding_FSB_IMA,         /* FMOD's FSB multichannel IMA ADPCM */
     coding_WWISE_IMA,       /* Audiokinetic Wwise IMA ADPCM */
     coding_REF_IMA,         /* Reflections IMA ADPCM */
     coding_AWC_IMA,         /* Rockstar AWC IMA ADPCM */
     coding_UBI_IMA,         /* Ubisoft IMA ADPCM */
 
-    coding_MSADPCM,         /* Microsoft ADPCM */
+    coding_MSADPCM,         /* Microsoft ADPCM (stereo/mono) */
+    coding_MSADPCM_ck,      /* Microsoft ADPCM (Cricket Audio variation) */
     coding_WS,              /* Westwood Studios VBR ADPCM */
     coding_AICA,            /* Yamaha AICA ADPCM (stereo) */
     coding_AICA_int,        /* Yamaha AICA ADPCM (mono/interleave) */
@@ -338,7 +341,7 @@ typedef enum {
     meta_PS2_VAGm,          /* VAGp Mono File */
     meta_PS2_pGAV,          /* VAGp with Little Endian Header */
     meta_PSX_GMS,           /* GMS File (used in PS1 & PS2) [no header_id] */
-    meta_PS2_STR,           /* Pacman STR+STH files */
+    meta_STR_WAV,           /* Blitz Games STR+WAV files */
     meta_PS2_ILD,           /* ILD File */
     meta_PS2_PNB,           /* PsychoNauts Bgm File */
     meta_PS2_VAGs,          /* VAG Stereo from Kingdom Hearts */
@@ -502,7 +505,6 @@ typedef enum {
     meta_PS2_GBTS,          /* Pop'n'Music 9 Audio File */
     meta_NGC_DSP_IADP,      /* Gamecube Interleave DSP */
     meta_PS2_TK5,           /* Tekken 5 Stream Files */
-    meta_WII_STR,           /* House of The Dead Overkill STR+STH */
     meta_PS2_MCG,           /* Gunvari MCG Files (was name .GCM on disk) */
     meta_ZSD,               /* Dragon Booster ZSD */
     meta_RedSpark,          /* "RedSpark" RSD (MadWorld) */
@@ -542,7 +544,6 @@ typedef enum {
     meta_NGC_DSP_MPDS,      /* Big Air Freestyle, Terminator 3 */
     meta_DSP_STR_IG,        /* Micro Machines, Superman Superman: Shadow of Apokolis */
     meta_EA_SWVR,           /* Future Cop L.A.P.D., Freekstyle */
-    meta_NGC_DSP_STH_STR,   /* SpongeBob Squarepants (NGC), Taz Wanted (NGC), Cubix (NGC), Tak (WII)*/
     meta_PS2_B1S,           /* 7 Wonders of the ancient world */
     meta_PS2_WAD,           /* The golden Compass */
     meta_DSP_XIII,          /* XIII, possibly more (Ubisoft header???) */
@@ -685,6 +686,9 @@ typedef enum {
     meta_OGG_MUS,           /* Ogg Vorbis with encryption [Redux - Dark Matters (PC)] */
     meta_ASF,               /* Argonaut ASF [Croc 2 (PC)] */
     meta_XMD,               /* Konami XMD [Silent Hill 4 (Xbox), Castlevania: Curse of Darkness (Xbox)] */
+    meta_CKS,               /* Cricket Audio stream [Part Time UFO (Android), Mega Man 1-6 (Android)] */
+    meta_CKB,               /* Cricket Audio bank [Fire Emblem Heroes (Android), Mega Man 1-6 (Android)] */
+    meta_WV6,               /* Gorilla Systems PC games */
 
 #ifdef VGM_USE_FFMPEG
     meta_FFmpeg,

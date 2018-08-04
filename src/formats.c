@@ -4,7 +4,7 @@
 /* defines the list of accepted extensions. vgmstream doesn't use it internally so it's here
  * to inform plugins that need it. Common extensions are commented out to avoid stealing them. */
 
-/* some extensions require external libraries and could be #ifdef, no really needed */
+/* some extensions require external libraries and could be #ifdef, not really needed */
 /* some formats marked as "not parsed" mean they'll go through FFmpeg, the header/extension is not parsed */
 
 
@@ -98,7 +98,9 @@ static const char* extension_list[] = {
     "ccc",
     "cd",
     "cfn", //fake extension/header id for .caf (to be removed)
+    "ckb",
     "ckd",
+    "cks",
     "cnk",
     "cps",
     "cvs",
@@ -420,6 +422,7 @@ static const char* extension_list[] = {
     "wsd",
     "wsi",
     "wv2", //txth/reserved [Slave Zero (PC)]
+    "wv6",
     "wve",
     "wvs",
 
@@ -526,6 +529,10 @@ static const coding_info coding_info_list[] = {
         {coding_DVI_IMA,            "Intel DVI 4-bit IMA ADPCM"},
         {coding_DVI_IMA_int,        "Intel DVI 4-bit IMA ADPCM (mono/interleave)"},
         {coding_3DS_IMA,            "3DS IMA 4-bit ADPCM"},
+        {coding_SNDS_IMA,           "Heavy Iron .snds 4-bit IMA ADPCM"},
+        {coding_OTNS_IMA,           "Omikron: The Nomad Soul 4-bit IMA ADPCM"},
+        {coding_WV6_IMA,            "Gorilla Systems WV6 4-bit IMA ADPCM"},
+
         {coding_MS_IMA,             "Microsoft 4-bit IMA ADPCM"},
         {coding_XBOX_IMA,           "XBOX 4-bit IMA ADPCM"},
         {coding_XBOX_IMA_mch,       "XBOX 4-bit IMA ADPCM (multichannel)"},
@@ -535,8 +542,6 @@ static const coding_info coding_info_list[] = {
         {coding_RAD_IMA,            "Radical 4-bit IMA ADPCM"},
         {coding_RAD_IMA_mono,       "Radical 4-bit IMA ADPCM (mono/interleave)"},
         {coding_APPLE_IMA4,         "Apple Quicktime 4-bit IMA ADPCM"},
-        {coding_SNDS_IMA,           "Heavy Iron .snds 4-bit IMA ADPCM"},
-        {coding_OTNS_IMA,           "Omikron: The Nomad Soul 4-bit IMA ADPCM"},
         {coding_FSB_IMA,            "FSB 4-bit IMA ADPCM"},
         {coding_WWISE_IMA,          "Audiokinetic Wwise 4-bit IMA ADPCM"},
         {coding_REF_IMA,            "Reflections 4-bit IMA ADPCM"},
@@ -544,6 +549,7 @@ static const coding_info coding_info_list[] = {
         {coding_UBI_IMA,            "Ubisoft 4-bit IMA ADPCM"},
 
         {coding_MSADPCM,            "Microsoft 4-bit ADPCM"},
+        {coding_MSADPCM_ck,         "Microsoft 4-bit ADPCM (Cricket Audio)"},
         {coding_WS,                 "Westwood Studios VBR ADPCM"},
         {coding_AICA,               "Yamaha AICA 4-bit ADPCM"},
         {coding_AICA_int,           "Yamaha AICA 4-bit ADPCM (mono/interleave)"},
@@ -698,7 +704,7 @@ static const meta_info meta_info_list[] = {
         {meta_PS2_VAGm,             "Sony VAG Mono header (VAGm)"},
         {meta_PS2_pGAV,             "Sony VAG Stereo Little Endian header (pGAV)"},
         {meta_PSX_GMS,              "assumed Grandia GMS file by .gms extension"},
-        {meta_PS2_STR,              "assumed STR + STH File by .str & .sth extension"},
+        {meta_STR_WAV,              "Blitz Games STR+WAV header"},
         {meta_PS2_ILD,              "ILD header"},
         {meta_PS2_PNB,              "assumed PNB (PsychoNauts Bgm File) by .pnb extension"},
         {meta_XBOX_WAVM,            "Xbox WAVM raw header"},
@@ -845,7 +851,6 @@ static const meta_info meta_info_list[] = {
         {meta_PS2_SND,              "Might and Magic SSND Header"},
         {meta_PS2_VSF_TTA,          "VSF with SMSS Header"},
         {meta_ADS,                  "dhSS Header"},
-        {meta_WII_STR,              "HOTD Overkill - STR+STH WII Header"},
         {meta_PS2_MCG,              "Gunvari MCG Header"},
         {meta_ZSD,                  "ZSD Header"},
         {meta_RedSpark,             "RedSpark Header"},
@@ -902,7 +907,6 @@ static const meta_info meta_info_list[] = {
         {meta_PS2_B1S,              "B1S header"},
         {meta_PS2_WAD,              "WAD header"},
         {meta_DSP_XIII,             "XIII dsp header"},
-        {meta_NGC_DSP_STH_STR,      "STH dsp header"},
         {meta_DSP_CABELAS,          "Cabelas games dsp header"},
         {meta_PS2_ADM,              "Dragon Quest V .ADM raw header"},
         {meta_PS2_LPCM,             "LPCM header"},
@@ -1046,6 +1050,9 @@ static const meta_info meta_info_list[] = {
         {meta_OGG_MUS,              "Ogg Vorbis (MUS header)"},
         {meta_ASF,                  "Argonaut ASF header"},
         {meta_XMD,                  "Konami XMD header"},
+        {meta_CKS,                  "Cricket Audio CKS header"},
+        {meta_CKB,                  "Cricket Audio CKB header"},
+        {meta_WV6,                  "Gorilla Systems WV6 header"},
 
 #ifdef VGM_USE_FFMPEG
         {meta_FFmpeg,               "FFmpeg supported file format"},

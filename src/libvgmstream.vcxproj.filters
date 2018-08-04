@@ -214,6 +214,9 @@
     <ClCompile Include="meta\capdsp.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\ck.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\cstr.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -239,9 +242,6 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\dsp_bdsp.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="meta\dsp_sth_str.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ea_schl.c">
@@ -631,9 +631,6 @@
     <ClCompile Include="meta\ps2_ster.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\ps2_str.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="meta\ps2_svag.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -781,6 +778,9 @@
     <ClCompile Include="meta\str_snds.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\str_wav.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\stx.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -853,13 +853,13 @@
     <ClCompile Include="meta\wii_sng.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\wii_str.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="meta\wii_sts.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ws_aud.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\wv6.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\wvs.c">

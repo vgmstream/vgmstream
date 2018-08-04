@@ -356,6 +356,10 @@
 					RelativePath=".\meta\capdsp.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\meta\ck.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\cstr.c"
 					>
@@ -394,10 +398,6 @@
                 </File>
 				<File
 					RelativePath=".\meta\dsp_bdsp.c"
-					>
-				</File>
-				<File
-					RelativePath=".\meta\dsp_sth_str.c"
 					>
 				</File>
 				<File
@@ -1035,10 +1035,6 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\ps2_str.c"
-					>
-				</File>
-				<File
 					RelativePath=".\meta\ps2_strlr.c"
 					>
 				</File>
@@ -1282,6 +1278,10 @@
 					RelativePath=".\meta\str_snds.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\meta\str_wav.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\stx.c"
 					>
@@ -1395,10 +1395,6 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\wii_str.c"
-					>
-				</File>
-				<File
 					RelativePath=".\meta\wii_sts.c"
 					>
 				</File>
@@ -1410,6 +1406,10 @@
 					RelativePath=".\meta\ws_aud.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\meta\wv6.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\wvs.c"
 					>

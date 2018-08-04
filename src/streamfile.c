@@ -143,19 +143,14 @@ static STREAMFILE *open_stdio(STDIOSTREAMFILE *streamFile,const char * const fil
 }
 
 static STREAMFILE * open_stdio_streamfile_buffer_by_file(FILE *infile,const char * const filename, size_t buffersize) {
-    uint8_t * buffer;
-    STDIOSTREAMFILE * streamfile;
+    uint8_t * buffer = NULL;
+    STDIOSTREAMFILE * streamfile = NULL;
 
     buffer = calloc(buffersize,1);
-    if (!buffer) {
-        return NULL;
-    }
+    if (!buffer) goto fail;
 
     streamfile = calloc(1,sizeof(STDIOSTREAMFILE));
-    if (!streamfile) {
-        free(buffer);
-        return NULL;
-    }
+    if (!streamfile) goto fail;
 
     streamfile->sf.read = (void*)read_stdio;
     streamfile->sf.get_size = (void*)get_size_stdio;
@@ -175,7 +170,19 @@ static STREAMFILE * open_stdio_streamfile_buffer_by_file(FILE *infile,const char
     fseeko(streamfile->infile,0,SEEK_END);
     streamfile->filesize = ftello(streamfile->infile);
 
+    /* some compilers/flags may use ftell, which only handles up to ~2.14GB
+     * (possible for banks like FSB, though unlikely). */
+    if (streamfile->filesize == 0xFFFFFFFF) { /* -1 on error */
+        VGM_LOG("STREAMFILE: ftell error\n");
+        goto fail; /* can be ignored but may result in strange/unexpected behaviors */
+    }
+
     return &streamfile->sf;
+
+fail:
+    free(buffer);
+    free(streamfile);
+    return NULL;
 }
 
 static STREAMFILE * open_stdio_streamfile_buffer(const char * const filename, size_t buffersize) {
@@ -765,6 +772,10 @@ fail:
 
 /* **************************************************** */
 
+STREAMFILE * open_streamfile(STREAMFILE *streamFile, const char * pathname) {
+    return streamFile->open(streamFile,pathname,STREAMFILE_DEFAULT_BUFFER_SIZE);
+}
+
 STREAMFILE * open_streamfile_by_ext(STREAMFILE *streamFile, const char * ext) {
     char filename_ext[PATH_LIMIT];
 
@@ -1028,6 +1039,7 @@ int find_chunk(STREAMFILE *streamFile, uint32_t chunk_id, off_t start_offset, in
     return 0;
 }
 
+/* copies name as-is (may include full path included) */
 void get_streamfile_name(STREAMFILE *streamFile, char * buffer, size_t size) {
     streamFile->get_name(streamFile,buffer,size);
 }
@@ -1053,6 +1065,18 @@ void get_streamfile_filename(STREAMFILE *streamFile, char * buffer, size_t size)
         strcpy(buffer, foldername);
     }
 }
+/* copies the filename without path or extension */
+void get_streamfile_basename(STREAMFILE *streamFile, char * buffer, size_t size) {
+    char *ext;
+
+    get_streamfile_filename(streamFile,buffer,size);
+
+    ext = strrchr(buffer,'.');
+    if (ext) {
+        ext[0] = '\0'; /* remove .ext from buffer */
+    }
+}
+/* copies path removing name (NULL when if filename has no path) */
 void get_streamfile_path(STREAMFILE *streamFile, char * buffer, size_t size) {
     const char *path;
 

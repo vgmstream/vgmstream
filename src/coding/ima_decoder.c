@@ -169,6 +169,25 @@ static void otns_ima_expand_nibble(VGMSTREAMCHANNEL * stream, off_t byte_offset,
     if (*step_index > 88) *step_index=88;
 }
 
+/* Fairly OddParents (PC) .WV6: minor variation, reverse engineered from the .exe */
+static void wv6_ima_expand_nibble(VGMSTREAMCHANNEL * stream, off_t byte_offset, int nibble_shift, int32_t * hist1, int32_t * step_index) {
+    int sample_nibble, sample_decoded, step, delta;
+
+    sample_nibble = (read_8bit(byte_offset,stream->streamfile) >> nibble_shift)&0xf;
+    sample_decoded = *hist1;
+    step = ADPCMTable[*step_index];
+
+    delta = (sample_nibble & 0x7);
+    delta = ((delta * step) >> 3) + ((delta * step) >> 2);
+    if (sample_nibble & 8) delta = -delta;
+    sample_decoded += delta;
+
+    *hist1 = clamp16(sample_decoded);
+    *step_index += IMA_IndexTable[sample_nibble];
+    if (*step_index < 0) *step_index=0;
+    if (*step_index > 88) *step_index=88;
+}
+
 /* ************************************ */
 /* DVI/IMA                              */
 /* ************************************ */
@@ -262,6 +281,28 @@ void decode_otns_ima(VGMSTREAM * vgmstream, VGMSTREAMCHANNEL * stream, sample * 
                     (channel==0?4:0); //low=ch0, high=ch1 (this is correct compared to vids)
 
         otns_ima_expand_nibble(stream, byte_offset,nibble_shift, &hist1, &step_index);
+        outbuf[sample_count] = (short)(hist1);
+    }
+
+    stream->adpcm_history1_32 = hist1;
+    stream->adpcm_step_index = step_index;
+}
+
+/* WV6 IMA, DVI IMA with custom nibble expand */
+void decode_wv6_ima(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
+    int i, sample_count;
+    int32_t hist1 = stream->adpcm_history1_32;
+    int step_index = stream->adpcm_step_index;
+
+    //external interleave
+
+    //no header
+
+    for (i=first_sample,sample_count=0; i<first_sample+samples_to_do; i++,sample_count+=channelspacing) {
+        off_t byte_offset = stream->offset + i/2;
+        int nibble_shift = (i&1?0:4); //high nibble first
+
+        wv6_ima_expand_nibble(stream, byte_offset,nibble_shift, &hist1, &step_index);
         outbuf[sample_count] = (short)(hist1);
     }
 

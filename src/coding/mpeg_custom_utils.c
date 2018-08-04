@@ -127,12 +127,33 @@ int mpeg_custom_parse_frame_default(VGMSTREAMCHANNEL *stream, mpeg_codec_data *d
                 goto fail;
             current_data_size = info.frame_size;
 
-            /* get FSB padding for Layer III or multichannel Layer II (Layer I doesn't seem to be supported)
+            /* get FSB padding for Layer III or multichannel Layer II (Layer I isn't supported by FMOD).
              * Padding sometimes contains garbage like the next frame header so we can't feed it to mpg123 or it gets confused. */
             if ((info.layer == 3 && data->config.fsb_padding) || data->config.fsb_padding == 16) {
                 current_padding = (current_data_size % data->config.fsb_padding)
                         ? data->config.fsb_padding - (current_data_size % data->config.fsb_padding)
                         : 0;
+
+                /* Rare Mafia II (PS3) bug (GP_0701_music multilang only): some frame paddings "4" are incorrect,
+                 * calcs give 0xD0+0x00 but need 0xD0+0x04 (unlike all other fsbs, which never do that).
+                 * FMOD tools decode fine, so they may be doing special detection too, since even
+                 * re-encoding the same file and using the same FSB flags/modes won't trigger the bug. */
+                if (info.layer == 3 && data->config.fsb_padding == 4 && current_data_size == 0xD0) {
+                    uint32_t next_header;
+                    off_t next_offset;
+
+                    next_offset = stream->offset + current_data_size + current_padding;
+                    if (current_interleave && ((next_offset - stream->channel_start_offset + current_interleave_pre + current_interleave_post) % current_interleave == 0)) {
+                        next_offset += current_interleave_pre + current_interleave_post;
+                    }
+
+                    next_header = read_32bitBE(next_offset, stream->streamfile);
+                    if ((next_header & 0xFFE00000) != 0xFFE00000) { /* doesn't land in a proper frame, fix sizes and hope */
+                        VGM_LOG_ONCE("MPEG FSB: stream with wrong padding found\n");
+                        current_padding = 0x04;
+                    }
+                }
+
             }
 
             VGM_ASSERT(data->streams_size > 1 && current_interleave != current_data_size+current_padding,
@@ -267,9 +288,9 @@ int mpeg_get_frame_info(STREAMFILE *streamfile, off_t offset, mpeg_frame_info * 
 
     /* calculate frame length (from hcs's fsb_mpeg) */
     switch (info->frame_samples) {
-        case 384:  info->frame_size = (12l  * info->bit_rate * 1000l / info->sample_rate + padding) * 4; break;
-        case 576:  info->frame_size = (72l  * info->bit_rate * 1000l / info->sample_rate + padding); break;
-        case 1152: info->frame_size = (144l * info->bit_rate * 1000l / info->sample_rate + padding); break;
+        case 384:  info->frame_size = (12l  * info->bit_rate * 1000l / info->sample_rate + padding) * 4; break; /* 384/32 = 12 */
+        case 576:  info->frame_size = (72l  * info->bit_rate * 1000l / info->sample_rate + padding); break; /* 576/8 = 72 */
+        case 1152: info->frame_size = (144l * info->bit_rate * 1000l / info->sample_rate + padding); break; /* 1152/8 = 144 */
         default: goto fail;
     }
 
