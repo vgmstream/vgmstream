@@ -108,13 +108,11 @@ static VGMSTREAM * init_vgmstream_ubi_bao_main(ubi_bao_header * bao, STREAMFILE 
     vgmstream->meta_type = meta_UBI_BAO;
 
     switch(bao->codec) {
-#if 0
         case UBI_ADPCM: {
             vgmstream->coding_type = coding_UBI_IMA;
             vgmstream->layout_type = layout_none;
             break;
         }
-#endif
 
         case RAW_PCM:
             vgmstream->coding_type = coding_PCM16LE; /* always LE even on Wii */
@@ -465,6 +463,29 @@ static int parse_bao(ubi_bao_header * bao, STREAMFILE *streamFile, off_t offset)
             if (read_32bit(offset+header_size+0x20, streamFile) & 0x10) {
                 VGM_LOG("UBI BAO: possible full loop at %lx\n", offset);
                 /* RIFFs may have "smpl" and this flag, even when data shouldn't loop... */
+            }
+
+            break;
+
+        case 0x00230008: /* Splinter Cell: Conviction (PC) */
+			bao->stream_size  = read_32bit(offset+header_size+0x08, streamFile);
+            bao->stream_id    = read_32bit(offset+header_size+0x24, streamFile);
+            bao->is_external  = read_32bit(offset+header_size+0x38, streamFile);
+            bao->channels     = read_32bit(offset+header_size+0x54, streamFile);
+            bao->sample_rate  = read_32bit(offset+header_size+0x5c, streamFile);
+			if (read_32bit(offset+header_size+0x44, streamFile) & 0x01) { /* single flag? */
+                bao->num_samples  = read_32bit(offset+header_size+0x6c, streamFile);
+            }
+            else {
+                bao->num_samples  = read_32bit(offset+header_size+0x64, streamFile);
+            }
+            bao->header_codec = read_32bit(offset+header_size+0x74, streamFile);
+
+            switch (bao->header_codec) {
+                case 0x01: bao->codec = RAW_PCM; break;
+                case 0x02: bao->codec = UBI_ADPCM; break;
+                case 0x03: bao->codec = FMT_OGG; break;
+                default: VGM_LOG("UBI BAO: unknown codec at %lx\n", offset); goto fail;
             }
 
             break;
