@@ -397,7 +397,7 @@ static STREAMFILE * open_txth(STREAMFILE * streamFile) {
     /* try "(path/)(name.ext).txth" */
     get_streamfile_name(streamFile,filename,PATH_LIMIT);
     strcat(filename, ".txth");
-    streamText = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
+    streamText = open_streamfile(streamFile,filename);
     if (streamText) return streamText;
 
     /* try "(path/)(.ext).txth" */
@@ -406,13 +406,13 @@ static STREAMFILE * open_txth(STREAMFILE * streamFile) {
     strcat(filename,".");
     strcat(filename, fileext);
     strcat(filename, ".txth");
-    streamText = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
+    streamText = open_streamfile(streamFile,filename);
     if (streamText) return streamText;
 
     /* try "(path/).txth" */
     get_streamfile_path(streamFile,filename,PATH_LIMIT);
     strcat(filename, ".txth");
-    streamText = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
+    streamText = open_streamfile(streamFile,filename);
     if (streamText) return streamText;
 
     /* not found */
