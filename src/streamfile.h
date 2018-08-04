@@ -98,6 +98,10 @@ STREAMFILE *open_fakename_streamfile(STREAMFILE *streamfile, const char * fakena
  * The first streamfile is used to get names, stream index and so on. */
 STREAMFILE *open_multifile_streamfile(STREAMFILE **streamfiles, size_t streamfiles_size);
 
+/* Opens a STREAMFILE from a (path)+filename.
+ * Just a wrapper, to avoid having to access the STREAMFILE's callbacks directly. */
+STREAMFILE * open_streamfile(STREAMFILE *streamFile, const char * pathname);
+
 /* Opens a STREAMFILE from a base pathname + new extension
  * Can be used to get companion headers. */
 STREAMFILE * open_streamfile_by_ext(STREAMFILE *streamFile, const char * ext);
@@ -197,6 +201,7 @@ int find_chunk(STREAMFILE *streamFile, uint32_t chunk_id, off_t start_offset, in
 
 void get_streamfile_name(STREAMFILE *streamFile, char * buffer, size_t size);
 void get_streamfile_filename(STREAMFILE *streamFile, char * buffer, size_t size);
+void get_streamfile_basename(STREAMFILE *streamFile, char * buffer, size_t size);
 void get_streamfile_path(STREAMFILE *streamFile, char * buffer, size_t size);
 void get_streamfile_ext(STREAMFILE *streamFile, char * filename, size_t size);
 #endif
