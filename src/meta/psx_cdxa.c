@@ -63,14 +63,18 @@ VGMSTREAM * init_vgmstream_cdxa(STREAMFILE *streamFile) {
                 if (read_32bitBE(test_offset+0x00,streamFile) != read_32bitBE(test_offset+0x04,streamFile) ||
                     read_32bitBE(test_offset+0x08,streamFile) != read_32bitBE(test_offset+0x0c,streamFile))
                     goto fail;
+                /* blank frames should always use 0x0c0c0c0c (due to how shift works) */
+                if (read_32bitBE(test_offset+0x00,streamFile) == 0 &&
+                    read_32bitBE(test_offset+0x04,streamFile) == 0 &&
+                    read_32bitBE(test_offset+0x08,streamFile) == 0 &&
+                    read_32bitBE(test_offset+0x0c,streamFile) == 0)
+                    goto fail;
 
                 test_offset += 0x80;
             }
 
             test_offset += (is_blocked ? 0x18 : 0x00); /* footer */
         }
-        /* (the above could get fooled by files with many 0s at the beginning;
-         * this could be detected as blank XA frames should have have 0c0c0c0c... headers */
     }
 
 
