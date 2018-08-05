@@ -12,9 +12,14 @@ typedef struct {
     size_t header_size;
     size_t stream_size;
     off_t stream_offset;
+    size_t prefetch_size;
+    off_t prefetch_offset;
+    size_t main_size;
+    off_t main_offset;
     uint32_t stream_id;
     off_t extradata_offset;
     int is_external;
+    int is_prefetched;
 
     int header_codec;
     int num_samples;
@@ -78,24 +83,52 @@ fail:
 static VGMSTREAM * init_vgmstream_ubi_bao_main(ubi_bao_header * bao, STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     STREAMFILE *streamData = NULL;
+    STREAMFILE *temp_streamfile = NULL;
+    STREAMFILE *stream_segments[2] = { 0 };
     off_t start_offset;
     int loop_flag = 0;
 
-
     /* open external stream if needed */
-    if (bao->is_external) {
+    if (bao->is_prefetched) {
+        /* need to join prefetched and streamed part */
+        temp_streamfile = open_wrap_streamfile(streamFile);
+        if (!temp_streamfile)
+            goto fail;
+
+        stream_segments[0] = open_clamp_streamfile(temp_streamfile, bao->prefetch_offset, bao->prefetch_size);
+        if (!stream_segments[0]) {
+            close_streamfile(temp_streamfile);
+            goto fail;
+        }
+
+        temp_streamfile = open_streamfile_by_filename(streamFile, bao->resource_name);
+        if (!temp_streamfile) {
+            VGM_LOG("UBI BAO: external stream '%s' not found\n", bao->resource_name);
+            goto fail;
+        }
+
+        stream_segments[1] = open_clamp_streamfile(temp_streamfile, bao->main_offset, bao->main_size);
+        if (!stream_segments[1]) {
+            close_streamfile(temp_streamfile);
+            goto fail;
+        }
+
+        streamData = open_multifile_streamfile(stream_segments, 2);
+        start_offset = 0x00;
+    }
+    else if (bao->is_external) {
         streamData = open_streamfile_by_filename(streamFile,bao->resource_name);
         if (!streamData) {
             VGM_LOG("UBI BAO: external stream '%s' not found\n", bao->resource_name);
             goto fail;
         }
+
+        start_offset = bao->stream_offset;
     }
     else {
         streamData = streamFile;
+        start_offset = bao->stream_offset;
     }
-
-    start_offset = bao->stream_offset;
-
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(bao->channels,loop_flag);
@@ -217,7 +250,20 @@ static VGMSTREAM * init_vgmstream_ubi_bao_main(ubi_bao_header * bao, STREAMFILE 
     return vgmstream;
 
 fail:
-    if (bao->is_external && streamData) close_streamfile(streamData);
+    if (bao->is_prefetched) {
+        if (streamData) {
+            close_streamfile(streamData);
+        }
+        else {
+            close_streamfile(stream_segments[0]);
+            close_streamfile(stream_segments[1]);
+        }
+    }
+    else if (bao->is_external) {
+        if (streamData) {
+            close_streamfile(streamData);
+        }
+    }
     close_vgmstream(vgmstream);
     return NULL;
 }
@@ -277,6 +323,27 @@ static int parse_pk_header(ubi_bao_header * bao, STREAMFILE *streamFile) {
 
     /* get stream pointed by header */
     if (bao->is_external) {
+        if (bao->prefetch_size) {
+            /* some sounds have a prefetched bit stored internally with the remaining streamed part stored externally */
+            bao->is_prefetched = 1;
+
+            bao_offset = index_header_size + index_size;
+            for (i = 0; i < index_entries; i++) {
+                uint32_t bao_id = read_32bitLE(index_header_size + 0x08 * i + 0x00, streamFile);
+                size_t bao_size = read_32bitLE(index_header_size + 0x08 * i + 0x04, streamFile);
+
+                if (bao_id == bao->stream_id) {
+                    bao->prefetch_offset = bao_offset + bao->header_size;
+                    break;
+                }
+
+                bao_offset += bao_size;
+            }
+
+            if (!bao->prefetch_offset)
+                goto fail;
+        }
+
         /* parse resource table, LE (may be empty, or exist even with nothing in the file) */
         off_t offset;
         int resources_count = read_32bitLE(resources_offset+0x00, streamFile);
@@ -293,26 +360,16 @@ static int parse_pk_header(ubi_bao_header * bao, STREAMFILE *streamFile) {
                 bao->stream_offset = resource_offset + bao->header_size;
                 read_string(bao->resource_name,255, resources_offset + 0x04+0x04 + name_offset, streamFile);
 
-                VGM_ASSERT(bao->stream_size != resource_size - bao->header_size, "UBI BAO: stream vs resource size mismatch\n");
+                if (bao->is_prefetched) {
+                    bao->main_offset = resource_offset + bao->header_size;
+                    bao->main_size = resource_size - bao->header_size;
+                    VGM_ASSERT(bao->stream_size != bao->main_size + bao->prefetch_size, "UBI BAO: stream vs resource size mismatch\n");
+                }
+                else {
+                    VGM_ASSERT(bao->stream_size != resource_size - bao->header_size, "UBI BAO: stream vs resource size mismatch\n");
+                }
                 break;
             }
-        }
-
-
-        //todo find flag and fix
-        /* some songs divide data in internal+external resource and data may be split arbitrarily,
-         * must join on reads (needs multifile_streamfile); resources may use block layout in XMA too */
-        bao_offset = index_header_size + index_size;
-        for (i = 0; i < index_entries; i++) {
-            uint32_t bao_id = read_32bitLE(index_header_size+0x08*i+0x00, streamFile);
-            size_t bao_size = read_32bitLE(index_header_size+0x08*i+0x04, streamFile);
-
-            if (bao_id == bao->stream_id) {
-                VGM_LOG("UBI BAO: found internal+external at offset=%lx\n",bao_offset);
-                goto fail;
-            }
-
-            bao_offset += bao_size;
         }
     }
     else {
@@ -487,6 +544,9 @@ static int parse_bao(ubi_bao_header * bao, STREAMFILE *streamFile, off_t offset)
                 case 0x03: bao->codec = FMT_OGG; break;
                 default: VGM_LOG("UBI BAO: unknown codec at %lx\n", offset); goto fail;
             }
+
+            /* TODO: find this value for the rest of the games */
+            bao->prefetch_size = read_32bit(offset+header_size+0x84, streamFile);
 
             break;
 
