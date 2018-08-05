@@ -171,11 +171,24 @@ static VGMSTREAM * init_vgmstream_ubi_bao_main(ubi_bao_header * bao, STREAMFILE 
         case RAW_XMA2: {
             uint8_t buf[0x100];
             size_t bytes, chunk_size;
+            off_t xma_skip;
 
             chunk_size = (bao->codec == RAW_XMA1) ? 0x20 : 0x34;
 
-            bytes = ffmpeg_make_riff_xma_from_fmt_chunk(buf,0x100, bao->extradata_offset,chunk_size, bao->stream_size, streamFile, 1);
-            vgmstream->codec_data = init_ffmpeg_header_offset(streamData, buf,bytes, start_offset,bao->stream_size);
+            if (bao->is_external) {
+                /* external sounds have XMA header followed by a bunch of weird data before audio start */
+                /* can't find its size anywhere so use XMA frame size to detect it - lame but works */
+                xma_skip = vgmstream->stream_size % 0x800;
+                start_offset += xma_skip;
+                vgmstream->stream_size -= xma_skip;
+
+                bytes = ffmpeg_make_riff_xma_from_fmt_chunk(buf, 0x100, 0x00, chunk_size, vgmstream->stream_size, streamData, 1);
+            }
+            else {
+                bytes = ffmpeg_make_riff_xma_from_fmt_chunk(buf, 0x100, bao->extradata_offset, chunk_size, vgmstream->stream_size, streamFile, 1);
+            }
+            
+            vgmstream->codec_data = init_ffmpeg_header_offset(streamData, buf, bytes, start_offset, vgmstream->stream_size);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
@@ -190,7 +203,7 @@ static VGMSTREAM * init_vgmstream_ubi_bao_main(ubi_bao_header * bao, STREAMFILE 
             joint_stereo = 0;
             encoder_delay = 0x00;//todo not correct
 
-            bytes = ffmpeg_make_riff_atrac3(buf,0x100, vgmstream->num_samples, bao->stream_size, vgmstream->channels, vgmstream->sample_rate, block_size, joint_stereo, encoder_delay);
+            bytes = ffmpeg_make_riff_atrac3(buf,0x100, vgmstream->num_samples, vgmstream->stream_size, vgmstream->channels, vgmstream->sample_rate, block_size, joint_stereo, encoder_delay);
             vgmstream->codec_data = init_ffmpeg_header_offset(streamData, buf,bytes, start_offset,bao->stream_size);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
