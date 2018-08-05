@@ -175,8 +175,8 @@ static VGMSTREAM * init_vgmstream_ubi_bao_main(ubi_bao_header * bao, STREAMFILE 
             chunk_size = (bao->codec == RAW_XMA1) ? 0x20 : 0x34;
 
             bytes = ffmpeg_make_riff_xma_from_fmt_chunk(buf,0x100, bao->extradata_offset,chunk_size, bao->stream_size, streamFile, 1);
-            vgmstream->codec_data = init_ffmpeg_header_offset(streamFile, buf,bytes, start_offset,bao->stream_size);
-            if ( !vgmstream->codec_data ) goto fail;
+            vgmstream->codec_data = init_ffmpeg_header_offset(streamData, buf,bytes, start_offset,bao->stream_size);
+            if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
             break;
@@ -191,7 +191,7 @@ static VGMSTREAM * init_vgmstream_ubi_bao_main(ubi_bao_header * bao, STREAMFILE 
             encoder_delay = 0x00;//todo not correct
 
             bytes = ffmpeg_make_riff_atrac3(buf,0x100, vgmstream->num_samples, bao->stream_size, vgmstream->channels, vgmstream->sample_rate, block_size, joint_stereo, encoder_delay);
-            vgmstream->codec_data = init_ffmpeg_header_offset(streamFile, buf,bytes, start_offset,bao->stream_size);
+            vgmstream->codec_data = init_ffmpeg_header_offset(streamData, buf,bytes, start_offset,bao->stream_size);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
@@ -545,7 +545,6 @@ static int parse_bao(ubi_bao_header * bao, STREAMFILE *streamFile, off_t offset)
                 default: VGM_LOG("UBI BAO: unknown codec at %lx\n", offset); goto fail;
             }
 
-            /* TODO: find this value for the rest of the games */
             bao->prefetch_size = read_32bit(offset+header_size+0x84, streamFile);
 
             break;
@@ -573,6 +572,8 @@ static int parse_bao(ubi_bao_header * bao, STREAMFILE *streamFile, off_t offset)
                 case 0x06: bao->codec = RAW_AT3; break;
                 default: VGM_LOG("UBI BAO: unknown codec at %lx\n", offset); goto fail;
             }
+
+            bao->prefetch_size = read_32bit(offset + header_size + 0x78, streamFile);
 
             if (bao->header_codec == 0x04 && !bao->is_external) {
                 bao->extradata_offset = offset+header_size + 0x8c; /* XMA header */
