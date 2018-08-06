@@ -34,6 +34,7 @@ typedef struct {
 static int parse_bao(ubi_bao_header * bao, STREAMFILE *streamFile, off_t offset);
 static int parse_pk_header(ubi_bao_header * bao, STREAMFILE *streamFile);
 static VGMSTREAM * init_vgmstream_ubi_bao_main(ubi_bao_header * bao, STREAMFILE *streamFile);
+static STREAMFILE * setup_bao_streamfile(ubi_bao_header *bao, STREAMFILE *streamFile);
 
 
 /* .PK - packages with BAOs from Ubisoft's sound engine ("DARE") games in 2008+ */
@@ -81,55 +82,14 @@ fail:
 #endif
 
 
-static VGMSTREAM * init_vgmstream_ubi_bao_main(ubi_bao_header * bao, STREAMFILE *streamFile) {
+static VGMSTREAM * init_vgmstream_ubi_bao_main(ubi_bao_header * bao, STREAMFILE * streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    STREAMFILE *streamData = NULL;
-    STREAMFILE *temp_streamfile = NULL;
-    STREAMFILE *stream_segments[2] = { 0 };
-    off_t start_offset;
+    STREAMFILE * streamData = NULL;
+    off_t start_offset = 0x00;
     int loop_flag = 0;
 
-    /* open external stream if needed */
-    if (bao->is_prefetched) {
-        /* need to join prefetched and streamed part */
-        temp_streamfile = open_wrap_streamfile(streamFile);
-        if (!temp_streamfile)
-            goto fail;
-
-        stream_segments[0] = open_clamp_streamfile(temp_streamfile, bao->prefetch_offset, bao->prefetch_size);
-        if (!stream_segments[0]) {
-            close_streamfile(temp_streamfile);
-            goto fail;
-        }
-
-        temp_streamfile = open_streamfile_by_filename(streamFile, bao->resource_name);
-        if (!temp_streamfile) {
-            VGM_LOG("UBI BAO: external stream '%s' not found\n", bao->resource_name);
-            goto fail;
-        }
-
-        stream_segments[1] = open_clamp_streamfile(temp_streamfile, bao->main_offset, bao->main_size);
-        if (!stream_segments[1]) {
-            close_streamfile(temp_streamfile);
-            goto fail;
-        }
-
-        streamData = open_multifile_streamfile(stream_segments, 2);
-        start_offset = 0x00;
-    }
-    else if (bao->is_external) {
-        streamData = open_streamfile_by_filename(streamFile,bao->resource_name);
-        if (!streamData) {
-            VGM_LOG("UBI BAO: external stream '%s' not found\n", bao->resource_name);
-            goto fail;
-        }
-
-        start_offset = bao->stream_offset;
-    }
-    else {
-        streamData = streamFile;
-        start_offset = bao->stream_offset;
-    }
+    streamData = setup_bao_streamfile(bao, streamFile);
+    if (!streamData) goto fail;
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(bao->channels,loop_flag);
@@ -164,7 +124,7 @@ static VGMSTREAM * init_vgmstream_ubi_bao_main(ubi_bao_header * bao, STREAMFILE 
             vgmstream->coding_type = coding_NGC_DSP;
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = bao->stream_size / bao->channels;
-            dsp_read_coefs_be(vgmstream,streamFile,bao->extradata_offset+0x10, 0x40);
+            dsp_read_coefs_be(vgmstream, streamFile, bao->extradata_offset + 0x10, 0x40);
             break;
 
 #ifdef VGM_USE_FFMPEG
@@ -173,53 +133,61 @@ static VGMSTREAM * init_vgmstream_ubi_bao_main(ubi_bao_header * bao, STREAMFILE 
             uint8_t buf[0x100];
             uint32_t num_frames;
             size_t bytes, chunk_size, frame_size, data_size;
+            int is_fmt_chunk;
             STREAMFILE *header_data;
             off_t header_offset;
 
             if (bao->version == 0x00230008) {
                 chunk_size = 0x2c;
+                is_fmt_chunk = 0;
             }
             else {
                 chunk_size = (bao->codec == RAW_XMA1) ? 0x20 : 0x34;
+                is_fmt_chunk = 1;
             }
 
             if (bao->is_external) {
-                /* external sounds have XMA header followed by a bunch of weird data before audio start */
-                /* first there's XMA header chunk, after that: */
+                /* external XMA sounds have a custom header */
+                /* first there's XMA2/FMT chunk, after that: */
                 /* 0x00: some low number like 0x01 or 0x04 */
                 /* 0x04: number of frames */
                 /* 0x08: frame size (always 0x800) */
-                /* then there's a set of rising numbers followed by some junk?.. */
+                /* then there's a set of rising numbers followed by some weird data?.. */
                 /* calculate true XMA size and use that get data start offset */
                 num_frames = read_32bitBE(start_offset + chunk_size + 0x04, streamData);
                 frame_size = read_32bitBE(start_offset + chunk_size + 0x08, streamData);
 
                 data_size = num_frames * frame_size;
                 start_offset += bao->stream_size - data_size;
-                vgmstream->stream_size = data_size;
+            }
+            else {
+                data_size = bao->stream_size;
+                start_offset = 0x00;
             }
 
             /* XMA header is stored in 0x20 header for internal sounds and before audio data for external sounds */
             if (bao->is_external) {
                 header_data = streamData;
-                header_offset = bao->is_prefetched ? 0x00 : bao->stream_offset;
+                header_offset = 0x00;
             }
             else {
                 header_data = streamFile;
                 header_offset = bao->extradata_offset;
             }
 
-            if (bao->version == 0x00230008) {
-                bytes = ffmpeg_make_riff_xma2_from_xma2_chunk(buf, 0x100, header_offset, chunk_size, vgmstream->stream_size, header_data);
+            if (is_fmt_chunk) {
+                bytes = ffmpeg_make_riff_xma_from_fmt_chunk(buf, 0x100, header_offset, chunk_size, data_size, header_data, 1);
             }
             else {
-                bytes = ffmpeg_make_riff_xma_from_fmt_chunk(buf, 0x100, header_offset, chunk_size, vgmstream->stream_size, header_data, 1);
+                bytes = ffmpeg_make_riff_xma2_from_xma2_chunk(buf, 0x100, header_offset, chunk_size, data_size, header_data);
             }
-            
-            vgmstream->codec_data = init_ffmpeg_header_offset(streamData, buf, bytes, start_offset, vgmstream->stream_size);
+
+            vgmstream->codec_data = init_ffmpeg_header_offset(streamData, buf, bytes, start_offset, data_size);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
+
+            vgmstream->stream_size = data_size;
             break;
         }
 
@@ -231,8 +199,8 @@ static VGMSTREAM * init_vgmstream_ubi_bao_main(ubi_bao_header * bao, STREAMFILE 
             joint_stereo = 0;
             encoder_delay = 0x00;//todo not correct
 
-            bytes = ffmpeg_make_riff_atrac3(buf,0x100, vgmstream->num_samples, vgmstream->stream_size, vgmstream->channels, vgmstream->sample_rate, block_size, joint_stereo, encoder_delay);
-            vgmstream->codec_data = init_ffmpeg_header_offset(streamData, buf,bytes, start_offset,bao->stream_size);
+            bytes = ffmpeg_make_riff_atrac3(buf, 0x100, vgmstream->num_samples, vgmstream->stream_size, vgmstream->channels, vgmstream->sample_rate, block_size, joint_stereo, encoder_delay);
+            vgmstream->codec_data = init_ffmpeg_header_offset(streamData, buf, bytes, start_offset, bao->stream_size);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
@@ -243,7 +211,7 @@ static VGMSTREAM * init_vgmstream_ubi_bao_main(ubi_bao_header * bao, STREAMFILE 
             ffmpeg_codec_data *ffmpeg_data;
 
             ffmpeg_data = init_ffmpeg_offset(streamData, start_offset, bao->stream_size);
-            if ( !ffmpeg_data ) goto fail;
+            if (!ffmpeg_data) goto fail;
             vgmstream->codec_data = ffmpeg_data;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
@@ -252,12 +220,13 @@ static VGMSTREAM * init_vgmstream_ubi_bao_main(ubi_bao_header * bao, STREAMFILE 
             if (ffmpeg_data->skipSamples <= 0) {
                 off_t chunk_offset;
                 size_t chunk_size, fact_skip_samples = 0;
-                if (!find_chunk_le(streamData, 0x66616374,start_offset+0xc,0, &chunk_offset,&chunk_size)) /* find "fact" */
+                if (!find_chunk_le(streamData, 0x66616374, start_offset + 0xc, 0, &chunk_offset, &chunk_size)) /* find "fact" */
                     goto fail;
                 if (chunk_size == 0x8) {
-                    fact_skip_samples  = read_32bitLE(chunk_offset+0x4, streamData);
-                } else if (chunk_size == 0xc) {
-                    fact_skip_samples  = read_32bitLE(chunk_offset+0x8, streamData);
+                    fact_skip_samples = read_32bitLE(chunk_offset + 0x4, streamData);
+                }
+                else if (chunk_size == 0xc) {
+                    fact_skip_samples = read_32bitLE(chunk_offset + 0x8, streamData);
                 }
                 ffmpeg_set_skip_samples(ffmpeg_data, fact_skip_samples);
             }
@@ -268,7 +237,7 @@ static VGMSTREAM * init_vgmstream_ubi_bao_main(ubi_bao_header * bao, STREAMFILE 
             ffmpeg_codec_data *ffmpeg_data;
 
             ffmpeg_data = init_ffmpeg_offset(streamData, start_offset, bao->stream_size);
-            if ( !ffmpeg_data ) goto fail;
+            if (!ffmpeg_data) goto fail;
             vgmstream->codec_data = ffmpeg_data;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
@@ -284,27 +253,14 @@ static VGMSTREAM * init_vgmstream_ubi_bao_main(ubi_bao_header * bao, STREAMFILE 
     }
 
     /* open the file for reading (can be an external stream, different from the current .pk) */
-    if ( !vgmstream_open_stream(vgmstream, streamData, start_offset) )
+    if (!vgmstream_open_stream(vgmstream, streamData, start_offset))
         goto fail;
 
-    if (bao->is_external && streamData) close_streamfile(streamData);
+    close_streamfile(streamData);
     return vgmstream;
 
 fail:
-    if (bao->is_prefetched) {
-        if (streamData) {
-            close_streamfile(streamData);
-        }
-        else {
-            close_streamfile(stream_segments[0]);
-            close_streamfile(stream_segments[1]);
-        }
-    }
-    else if (bao->is_external) {
-        if (streamData) {
-            close_streamfile(streamData);
-        }
-    }
+    close_streamfile(streamData);
     close_vgmstream(vgmstream);
     return NULL;
 }
@@ -643,4 +599,64 @@ static int parse_bao(ubi_bao_header * bao, STREAMFILE *streamFile, off_t offset)
     return 1;
 fail:
     return 0;
+}
+
+static STREAMFILE * setup_bao_streamfile(ubi_bao_header *bao, STREAMFILE *streamFile) {
+    STREAMFILE *new_streamFile = NULL;
+    STREAMFILE *temp_streamFile = NULL;
+    STREAMFILE *stream_segments[2] = { 0 };
+
+    if (bao->is_prefetched) {
+        /* need to join prefetched and streamed part as they're stored separately */
+        new_streamFile = open_wrap_streamfile(streamFile);
+        if (!new_streamFile) goto fail;
+        temp_streamFile = new_streamFile;
+
+        new_streamFile = open_clamp_streamfile(temp_streamFile, bao->prefetch_offset, bao->prefetch_size);
+        if (!new_streamFile) goto fail;
+        stream_segments[0] = new_streamFile;
+        temp_streamFile = NULL;
+
+        /* open external file */
+        new_streamFile = open_streamfile_by_filename(streamFile, bao->resource_name);
+        if (!new_streamFile) { VGM_LOG("UBI BAO: external stream '%s' not found\n", bao->resource_name); goto fail; }
+        temp_streamFile = new_streamFile;
+
+        new_streamFile = open_clamp_streamfile(temp_streamFile, bao->main_offset, bao->main_size);
+        if (!new_streamFile) goto fail;
+        stream_segments[1] = new_streamFile;
+        temp_streamFile = NULL;
+
+        new_streamFile = open_multifile_streamfile(stream_segments, 2);
+        if (!new_streamFile) goto fail;
+        temp_streamFile = new_streamFile;
+    }
+    else if (bao->is_external) {
+        /* open external file */
+        new_streamFile = open_streamfile_by_filename(streamFile, bao->resource_name);
+        if (!new_streamFile) { VGM_LOG("UBI BAO: external stream '%s' not found\n", bao->resource_name); goto fail; }
+        temp_streamFile = new_streamFile;
+
+        new_streamFile = open_clamp_streamfile(temp_streamFile, bao->stream_offset, bao->stream_size);
+        if (!new_streamFile) goto fail;
+        temp_streamFile = new_streamFile;
+    }
+    else {
+        new_streamFile = open_wrap_streamfile(streamFile);
+        if (!new_streamFile) goto fail;
+        temp_streamFile = new_streamFile;
+
+        new_streamFile = open_clamp_streamfile(temp_streamFile, bao->stream_offset, bao->stream_size);
+        if (!new_streamFile) goto fail;
+        temp_streamFile = new_streamFile;
+    }
+
+    return temp_streamFile;
+
+fail:
+    close_streamfile(stream_segments[0]);
+    close_streamfile(stream_segments[1]);
+    close_streamfile(temp_streamFile);
+
+    return NULL;
 }
