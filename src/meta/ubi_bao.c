@@ -151,11 +151,12 @@ static VGMSTREAM * init_vgmstream_ubi_bao_main(ubi_bao_header * bao, STREAMFILE 
                 /* first there's XMA2/FMT chunk, after that: */
                 /* 0x00: some low number like 0x01 or 0x04 */
                 /* 0x04: number of frames */
-                /* 0x08: frame size (always 0x800) */
+                /* 0x08: frame size (not always present?) */
                 /* then there's a set of rising numbers followed by some weird data?.. */
                 /* calculate true XMA size and use that get data start offset */
                 num_frames = read_32bitBE(start_offset + chunk_size + 0x04, streamData);
-                frame_size = read_32bitBE(start_offset + chunk_size + 0x08, streamData);
+                //frame_size = read_32bitBE(start_offset + chunk_size + 0x08, streamData);
+                frame_size = 0x800;
 
                 data_size = num_frames * frame_size;
                 start_offset += bao->stream_size - data_size;
