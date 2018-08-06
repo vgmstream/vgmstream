@@ -320,25 +320,26 @@ static int parse_pk_header(ubi_bao_header * bao, STREAMFILE *streamFile) {
 
     /* get stream pointed by header */
     if (bao->is_external) {
-        if (bao->prefetch_size) {
-            /* some sounds have a prefetched bit stored internally with the remaining streamed part stored externally */
-            bao->is_prefetched = 1;
+        /* some sounds have a prefetched bit stored internally with the remaining streamed part stored externally */
+        bao_offset = index_header_size + index_size;
+        for (i = 0; i < index_entries; i++) {
+            uint32_t bao_id = read_32bitLE(index_header_size + 0x08 * i + 0x00, streamFile);
+            size_t bao_size = read_32bitLE(index_header_size + 0x08 * i + 0x04, streamFile);
 
-            bao_offset = index_header_size + index_size;
-            for (i = 0; i < index_entries; i++) {
-                uint32_t bao_id = read_32bitLE(index_header_size + 0x08 * i + 0x00, streamFile);
-                size_t bao_size = read_32bitLE(index_header_size + 0x08 * i + 0x04, streamFile);
-
-                if (bao_id == bao->stream_id) {
-                    bao->prefetch_offset = bao_offset + bao->header_size;
-                    break;
-                }
-
-                bao_offset += bao_size;
+            if (bao_id == bao->stream_id) {
+                bao->prefetch_offset = bao_offset + bao->header_size;
+                break;
             }
 
-            if (!bao->prefetch_offset)
-                goto fail;
+            bao_offset += bao_size;
+        }
+
+        if (bao->prefetch_size) {
+            if (bao->prefetch_offset == 0) goto fail;
+            bao->is_prefetched = 1;
+        }
+        else {
+            if (bao->prefetch_offset != 0) goto fail;
         }
 
         /* parse resource table, LE (may be empty, or exist even with nothing in the file) */
@@ -371,13 +372,15 @@ static int parse_pk_header(ubi_bao_header * bao, STREAMFILE *streamFile) {
     }
     else {
         /* find within index */
-
         bao_offset = index_header_size + index_size;
         for (i = 0; i < index_entries; i++) {
             uint32_t bao_id = read_32bitLE(index_header_size+0x08*i+0x00, streamFile);
             size_t bao_size = read_32bitLE(index_header_size+0x08*i+0x04, streamFile);
 
             if (bao_id == bao->stream_id) {
+                /* in some cases, stream size value from 0x20 header can be bigger than */
+                /* the actual audio chunk o_O [Rayman Raving Rabbids: TV Party (Wii)] */
+                bao->stream_size = bao_size - bao->header_size;
                 bao->stream_offset = bao_offset + bao->header_size; /* relative, adjust to skip descriptor */
                 break;
             }
@@ -465,7 +468,7 @@ static int parse_bao(ubi_bao_header * bao, STREAMFILE *streamFile, off_t offset)
     bao->version = bao_version;
 
     switch(bao->version) {
-
+        case 0x001F0008: /* Rayman Raving Rabbids: TV Party (Wii)-pk */
         case 0x001F0011: /* Naruto: The Broken Bond (X360)-pk */
         case 0x0022000D: /* Just Dance (Wii)-pk */
             bao->stream_size  = read_32bit(offset+header_size+0x08, streamFile);
@@ -473,15 +476,24 @@ static int parse_bao(ubi_bao_header * bao, STREAMFILE *streamFile, off_t offset)
             bao->is_external  = read_32bit(offset+header_size+0x28, streamFile); /* maybe 0x30 */
             bao->channels     = read_32bit(offset+header_size+0x44, streamFile);
             bao->sample_rate  = read_32bit(offset+header_size+0x4c, streamFile);
-            bao->num_samples  = read_32bit(offset+header_size+0x54, streamFile);
+            if (read_32bit(offset + header_size + 0x34, streamFile) & 0x01) { /* single flag? */
+                bao->num_samples = read_32bit(offset + header_size + 0x5c, streamFile);
+            }
+            else {
+                bao->num_samples = read_32bit(offset + header_size + 0x54, streamFile);
+            }
             bao->header_codec = read_32bit(offset+header_size+0x64, streamFile);
 
             switch(bao->header_codec) {
                 case 0x01: bao->codec = RAW_PCM; break;
+                //case 0x02: bao->codec = FMT_OGG; break;
+                case 0x03: bao->codec = UBI_ADPCM; break;
                 case 0x05: bao->codec = RAW_XMA1; break;
                 case 0x09: bao->codec = RAW_DSP; break;
                 default: VGM_LOG("UBI BAO: unknown codec at %lx\n", offset); goto fail;
             }
+
+            bao->prefetch_size = read_32bit(offset + header_size + 0x74, streamFile);
 
             //todo use flags?
             if (bao->header_codec == 0x09) {
@@ -570,6 +582,8 @@ static int parse_bao(ubi_bao_header * bao, STREAMFILE *streamFile, off_t offset)
 
             switch(bao->header_codec) {
                 case 0x01: bao->codec = RAW_PCM; break;
+                case 0x02: bao->codec = UBI_ADPCM; break; /* assumed */
+                case 0x03: bao->codec = FMT_OGG; break; /* assumed */
                 case 0x04: bao->codec = RAW_XMA2; break;
                 case 0x05: bao->codec = RAW_PSX; break;
                 case 0x06: bao->codec = RAW_AT3; break;
