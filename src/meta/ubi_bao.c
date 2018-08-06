@@ -4,6 +4,7 @@
 
 typedef enum { NONE = 0, UBI_ADPCM, RAW_PCM, RAW_PSX, RAW_XMA1, RAW_XMA2, RAW_AT3, FMT_AT3, RAW_DSP, FMT_OGG } ubi_bao_codec;
 typedef struct {
+    int version;
     ubi_bao_codec codec;
     int big_endian;
     int total_subsongs;
@@ -170,22 +171,49 @@ static VGMSTREAM * init_vgmstream_ubi_bao_main(ubi_bao_header * bao, STREAMFILE 
         case RAW_XMA1:
         case RAW_XMA2: {
             uint8_t buf[0x100];
-            size_t bytes, chunk_size;
-            off_t xma_skip;
+            uint32_t num_frames;
+            size_t bytes, chunk_size, frame_size, data_size;
+            STREAMFILE *header_data;
+            off_t header_offset;
 
-            chunk_size = (bao->codec == RAW_XMA1) ? 0x20 : 0x34;
+            if (bao->version == 0x00230008) {
+                chunk_size = 0x2c;
+            }
+            else {
+                chunk_size = (bao->codec == RAW_XMA1) ? 0x20 : 0x34;
+            }
 
             if (bao->is_external) {
                 /* external sounds have XMA header followed by a bunch of weird data before audio start */
-                /* can't find its size anywhere so use XMA frame size to detect it - lame but works */
-                xma_skip = vgmstream->stream_size % 0x800;
-                start_offset += xma_skip;
-                vgmstream->stream_size -= xma_skip;
+                /* first there's XMA header chunk, after that: */
+                /* 0x00: some low number like 0x01 or 0x04 */
+                /* 0x04: number of frames */
+                /* 0x08: frame size (always 0x800) */
+                /* then there's a set of rising numbers followed by some junk?.. */
+                /* calculate true XMA size and use that get data start offset */
+                num_frames = read_32bitBE(start_offset + chunk_size + 0x04, streamData);
+                frame_size = read_32bitBE(start_offset + chunk_size + 0x08, streamData);
 
-                bytes = ffmpeg_make_riff_xma_from_fmt_chunk(buf, 0x100, 0x00, chunk_size, vgmstream->stream_size, streamData, 1);
+                data_size = num_frames * frame_size;
+                start_offset += bao->stream_size - data_size;
+                vgmstream->stream_size = data_size;
+            }
+
+            /* XMA header is stored in 0x20 header for internal sounds and before audio data for external sounds */
+            if (bao->is_external) {
+                header_data = streamData;
+                header_offset = bao->is_prefetched ? 0x00 : bao->stream_offset;
             }
             else {
-                bytes = ffmpeg_make_riff_xma_from_fmt_chunk(buf, 0x100, bao->extradata_offset, chunk_size, vgmstream->stream_size, streamFile, 1);
+                header_data = streamFile;
+                header_offset = bao->extradata_offset;
+            }
+
+            if (bao->version == 0x00230008) {
+                bytes = ffmpeg_make_riff_xma2_from_xma2_chunk(buf, 0x100, header_offset, chunk_size, vgmstream->stream_size, header_data);
+            }
+            else {
+                bytes = ffmpeg_make_riff_xma_from_fmt_chunk(buf, 0x100, header_offset, chunk_size, vgmstream->stream_size, header_data, 1);
             }
             
             vgmstream->codec_data = init_ffmpeg_header_offset(streamData, buf, bytes, start_offset, vgmstream->stream_size);
@@ -478,8 +506,9 @@ static int parse_bao(ubi_bao_header * bao, STREAMFILE *streamFile, off_t offset)
      * - extra data per codec (ex. XMA header in some versions) */
     //todo skip tables when getting extradata
     ;VGM_LOG("BAO header at %lx\n", offset);
+    bao->version = bao_version;
 
-    switch(bao_version) {
+    switch(bao->version) {
 
         case 0x001F0011: /* Naruto: The Broken Bond (X360)-pk */
         case 0x0022000D: /* Just Dance (Wii)-pk */
@@ -537,14 +566,14 @@ static int parse_bao(ubi_bao_header * bao, STREAMFILE *streamFile, off_t offset)
 
             break;
 
-        case 0x00230008: /* Splinter Cell: Conviction (PC) */
+        case 0x00230008: /* Splinter Cell: Conviction (X360/PC) */
             bao->stream_size  = read_32bit(offset+header_size+0x08, streamFile);
             bao->stream_id    = read_32bit(offset+header_size+0x24, streamFile);
             bao->is_external  = read_32bit(offset+header_size+0x38, streamFile);
             bao->channels     = read_32bit(offset+header_size+0x54, streamFile);
             bao->sample_rate  = read_32bit(offset+header_size+0x5c, streamFile);
             if (read_32bit(offset+header_size+0x44, streamFile) & 0x01) { /* single flag? */
-                   bao->num_samples  = read_32bit(offset+header_size+0x6c, streamFile);
+                bao->num_samples  = read_32bit(offset+header_size+0x6c, streamFile);
             }
             else {
                 bao->num_samples  = read_32bit(offset+header_size+0x64, streamFile);
@@ -555,10 +584,15 @@ static int parse_bao(ubi_bao_header * bao, STREAMFILE *streamFile, off_t offset)
                 case 0x01: bao->codec = RAW_PCM; break;
                 case 0x02: bao->codec = UBI_ADPCM; break;
                 case 0x03: bao->codec = FMT_OGG; break;
+                case 0x04: bao->codec = RAW_XMA2; break;
                 default: VGM_LOG("UBI BAO: unknown codec at %lx\n", offset); goto fail;
             }
 
             bao->prefetch_size = read_32bit(offset+header_size+0x84, streamFile);
+
+            if (bao->header_codec == 0x04 && !bao->is_external) {
+                bao->extradata_offset = offset + header_size + 0x8c; /* XMA header */
+            }
 
             break;
 
