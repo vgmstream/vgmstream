@@ -133,17 +133,17 @@ static VGMSTREAM * init_vgmstream_ubi_bao_main(ubi_bao_header * bao, STREAMFILE 
             uint8_t buf[0x100];
             uint32_t num_frames;
             size_t bytes, chunk_size, frame_size, data_size;
-            int is_fmt_chunk;
+            int is_xma2_old;
             STREAMFILE *header_data;
             off_t header_offset;
 
             if (bao->version == 0x00230008) {
                 chunk_size = 0x2c;
-                is_fmt_chunk = 0;
+                is_xma2_old = 1;
             }
             else {
                 chunk_size = (bao->codec == RAW_XMA1) ? 0x20 : 0x34;
-                is_fmt_chunk = 1;
+                is_xma2_old = 0;
             }
 
             if (bao->is_external) {
@@ -159,7 +159,7 @@ static VGMSTREAM * init_vgmstream_ubi_bao_main(ubi_bao_header * bao, STREAMFILE 
                 frame_size = 0x800;
 
                 data_size = num_frames * frame_size;
-                start_offset += bao->stream_size - data_size;
+                start_offset = bao->stream_size - data_size;
             }
             else {
                 data_size = bao->stream_size;
@@ -176,11 +176,11 @@ static VGMSTREAM * init_vgmstream_ubi_bao_main(ubi_bao_header * bao, STREAMFILE 
                 header_offset = bao->extradata_offset;
             }
 
-            if (is_fmt_chunk) {
-                bytes = ffmpeg_make_riff_xma_from_fmt_chunk(buf, 0x100, header_offset, chunk_size, data_size, header_data, 1);
+            if (is_xma2_old) {
+                bytes = ffmpeg_make_riff_xma2_from_xma2_chunk(buf, 0x100, header_offset, chunk_size, data_size, header_data);
             }
             else {
-                bytes = ffmpeg_make_riff_xma2_from_xma2_chunk(buf, 0x100, header_offset, chunk_size, data_size, header_data);
+                bytes = ffmpeg_make_riff_xma_from_fmt_chunk(buf, 0x100, header_offset, chunk_size, data_size, header_data, 1);
             }
 
             vgmstream->codec_data = init_ffmpeg_header_offset(streamData, buf, bytes, start_offset, data_size);
