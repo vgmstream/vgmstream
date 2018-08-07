@@ -296,6 +296,9 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
     /* some Dreamcast/Naomi games do this [Headhunter (DC), Bomber hehhe (DC)] */
     if (riff_size + 0x04 == file_size && read_16bitLE(0x14,streamFile)==0x0000)
         riff_size -= 0x04;
+    /* some PC games do this [Halo 2 (PC)] */
+    if (riff_size + 0x04 == file_size && read_16bitLE(0x14,streamFile)==0x0069)
+        riff_size -= 0x04;
 
 
     /* check for truncated RIFF */
