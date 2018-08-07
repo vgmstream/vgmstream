@@ -39,17 +39,17 @@ static STREAMFILE * setup_bao_streamfile(ubi_bao_header *bao, STREAMFILE *stream
 
 /* .PK - packages with BAOs from Ubisoft's sound engine ("DARE") games in 2008+ */
 VGMSTREAM * init_vgmstream_ubi_bao_pk(STREAMFILE *streamFile) {
-    ubi_bao_header bao = {0};
+    ubi_bao_header bao = { 0 };
 
     /* checks */
     if (!check_extensions(streamFile, "pk,lpk"))
         goto fail;
 
-    /* .pk+spk (or .lpk+lspk) is a database-like format, evolved from Ubi sb0/sm0+sp0. 
+    /* .pk+spk (or .lpk+lspk) is a database-like format, evolved from Ubi sb0/sm0+sp0.
      * .pk has "BAO" headers pointing to internal or external .spk resources (also BAOs). */
 
-    /* main parse */
-    if ( !parse_pk_header(&bao, streamFile) )
+     /* main parse */
+    if (!parse_pk_header(&bao, streamFile))
         goto fail;
 
     return init_vgmstream_ubi_bao_main(&bao, streamFile);
@@ -60,7 +60,7 @@ fail:
 #if 0
 /* .BAO - files with a single BAO from Ubisoft's sound engine ("DARE") games in 2008+ */
 VGMSTREAM * init_vgmstream_ubi_bao_file(STREAMFILE *streamFile) {
-    ubi_bao_header bao = {0};
+    ubi_bao_header bao = { 0 };
 
     /* checks */
     if (!check_extensions(streamFile, "bao"))
@@ -71,8 +71,8 @@ VGMSTREAM * init_vgmstream_ubi_bao_file(STREAMFILE *streamFile) {
      * The bigfile acts as index, but external files can be opened as are named after their id.
      * Extension isn't always given but is .bao in some games. */
 
-    /* main parse */
-    if ( !parse_bao_header(&bao, streamFile) )
+     /* main parse */
+    if (!parse_bao_header(&bao, streamFile))
         goto fail;
 
     return init_vgmstream_ubi_bao_main(&bao, streamFile);
@@ -92,7 +92,7 @@ static VGMSTREAM * init_vgmstream_ubi_bao_main(ubi_bao_header * bao, STREAMFILE 
     if (!streamData) goto fail;
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(bao->channels,loop_flag);
+    vgmstream = allocate_vgmstream(bao->channels, loop_flag);
     if (!vgmstream) goto fail;
 
     vgmstream->num_samples = bao->num_samples;
@@ -101,7 +101,7 @@ static VGMSTREAM * init_vgmstream_ubi_bao_main(ubi_bao_header * bao, STREAMFILE 
     vgmstream->stream_size = bao->stream_size;
     vgmstream->meta_type = meta_UBI_BAO;
 
-    switch(bao->codec) {
+    switch (bao->codec) {
         case UBI_ADPCM: {
             vgmstream->coding_type = coding_UBI_IMA;
             vgmstream->layout_type = layout_none;
@@ -138,12 +138,12 @@ static VGMSTREAM * init_vgmstream_ubi_bao_main(ubi_bao_header * bao, STREAMFILE 
             off_t header_offset;
 
             if (bao->version == 0x00230008) {
-                chunk_size = 0x2c;
                 is_xma2_old = 1;
+                chunk_size = 0x2c;
             }
             else {
-                chunk_size = (bao->codec == RAW_XMA1) ? 0x20 : 0x34;
                 is_xma2_old = 0;
+                chunk_size = (bao->codec == RAW_XMA1) ? 0x20 : 0x34;
             }
 
             if (bao->is_external) {
