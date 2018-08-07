@@ -4,6 +4,7 @@
 
 typedef enum { NONE = 0, UBI_ADPCM, RAW_PCM, RAW_PSX, RAW_XMA1, RAW_XMA2, RAW_AT3, FMT_AT3, RAW_DSP, FMT_OGG } ubi_bao_codec;
 typedef struct {
+    int version;
     ubi_bao_codec codec;
     int big_endian;
     int total_subsongs;
@@ -12,9 +13,14 @@ typedef struct {
     size_t header_size;
     size_t stream_size;
     off_t stream_offset;
+    size_t prefetch_size;
+    off_t prefetch_offset;
+    size_t main_size;
+    off_t main_offset;
     uint32_t stream_id;
     off_t extradata_offset;
     int is_external;
+    int is_prefetched;
 
     int header_codec;
     int num_samples;
@@ -28,21 +34,22 @@ typedef struct {
 static int parse_bao(ubi_bao_header * bao, STREAMFILE *streamFile, off_t offset);
 static int parse_pk_header(ubi_bao_header * bao, STREAMFILE *streamFile);
 static VGMSTREAM * init_vgmstream_ubi_bao_main(ubi_bao_header * bao, STREAMFILE *streamFile);
+static STREAMFILE * setup_bao_streamfile(ubi_bao_header *bao, STREAMFILE *streamFile);
 
 
 /* .PK - packages with BAOs from Ubisoft's sound engine ("DARE") games in 2008+ */
 VGMSTREAM * init_vgmstream_ubi_bao_pk(STREAMFILE *streamFile) {
-    ubi_bao_header bao = {0};
+    ubi_bao_header bao = { 0 };
 
     /* checks */
     if (!check_extensions(streamFile, "pk,lpk"))
         goto fail;
 
-    /* .pk+spk (or .lpk+lspk) is a database-like format, evolved from Ubi sb0/sm0+sp0. 
+    /* .pk+spk (or .lpk+lspk) is a database-like format, evolved from Ubi sb0/sm0+sp0.
      * .pk has "BAO" headers pointing to internal or external .spk resources (also BAOs). */
 
-    /* main parse */
-    if ( !parse_pk_header(&bao, streamFile) )
+     /* main parse */
+    if (!parse_pk_header(&bao, streamFile))
         goto fail;
 
     return init_vgmstream_ubi_bao_main(&bao, streamFile);
@@ -53,7 +60,7 @@ fail:
 #if 0
 /* .BAO - files with a single BAO from Ubisoft's sound engine ("DARE") games in 2008+ */
 VGMSTREAM * init_vgmstream_ubi_bao_file(STREAMFILE *streamFile) {
-    ubi_bao_header bao = {0};
+    ubi_bao_header bao = { 0 };
 
     /* checks */
     if (!check_extensions(streamFile, "bao"))
@@ -64,8 +71,8 @@ VGMSTREAM * init_vgmstream_ubi_bao_file(STREAMFILE *streamFile) {
      * The bigfile acts as index, but external files can be opened as are named after their id.
      * Extension isn't always given but is .bao in some games. */
 
-    /* main parse */
-    if ( !parse_bao_header(&bao, streamFile) )
+     /* main parse */
+    if (!parse_bao_header(&bao, streamFile))
         goto fail;
 
     return init_vgmstream_ubi_bao_main(&bao, streamFile);
@@ -75,30 +82,17 @@ fail:
 #endif
 
 
-static VGMSTREAM * init_vgmstream_ubi_bao_main(ubi_bao_header * bao, STREAMFILE *streamFile) {
+static VGMSTREAM * init_vgmstream_ubi_bao_main(ubi_bao_header * bao, STREAMFILE * streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    STREAMFILE *streamData = NULL;
-    off_t start_offset;
+    STREAMFILE * streamData = NULL;
+    off_t start_offset = 0x00;
     int loop_flag = 0;
 
-
-    /* open external stream if needed */
-    if (bao->is_external) {
-        streamData = open_streamfile_by_filename(streamFile,bao->resource_name);
-        if (!streamData) {
-            VGM_LOG("UBI BAO: external stream '%s' not found\n", bao->resource_name);
-            goto fail;
-        }
-    }
-    else {
-        streamData = streamFile;
-    }
-
-    start_offset = bao->stream_offset;
-
+    streamData = setup_bao_streamfile(bao, streamFile);
+    if (!streamData) goto fail;
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(bao->channels,loop_flag);
+    vgmstream = allocate_vgmstream(bao->channels, loop_flag);
     if (!vgmstream) goto fail;
 
     vgmstream->num_samples = bao->num_samples;
@@ -107,14 +101,12 @@ static VGMSTREAM * init_vgmstream_ubi_bao_main(ubi_bao_header * bao, STREAMFILE 
     vgmstream->stream_size = bao->stream_size;
     vgmstream->meta_type = meta_UBI_BAO;
 
-    switch(bao->codec) {
-#if 0
+    switch (bao->codec) {
         case UBI_ADPCM: {
             vgmstream->coding_type = coding_UBI_IMA;
             vgmstream->layout_type = layout_none;
             break;
         }
-#endif
 
         case RAW_PCM:
             vgmstream->coding_type = coding_PCM16LE; /* always LE even on Wii */
@@ -132,22 +124,71 @@ static VGMSTREAM * init_vgmstream_ubi_bao_main(ubi_bao_header * bao, STREAMFILE 
             vgmstream->coding_type = coding_NGC_DSP;
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = bao->stream_size / bao->channels;
-            dsp_read_coefs_be(vgmstream,streamFile,bao->extradata_offset+0x10, 0x40);
+            dsp_read_coefs_be(vgmstream, streamFile, bao->extradata_offset + 0x10, 0x40);
             break;
 
 #ifdef VGM_USE_FFMPEG
         case RAW_XMA1:
         case RAW_XMA2: {
             uint8_t buf[0x100];
-            size_t bytes, chunk_size;
+            uint32_t num_frames;
+            size_t bytes, chunk_size, frame_size, data_size;
+            int is_xma2_old;
+            STREAMFILE *header_data;
+            off_t header_offset;
 
-            chunk_size = (bao->codec == RAW_XMA1) ? 0x20 : 0x34;
+            if (bao->version == 0x00230008) {
+                is_xma2_old = 1;
+                chunk_size = 0x2c;
+            }
+            else {
+                is_xma2_old = 0;
+                chunk_size = (bao->codec == RAW_XMA1) ? 0x20 : 0x34;
+            }
 
-            bytes = ffmpeg_make_riff_xma_from_fmt_chunk(buf,0x100, bao->extradata_offset,chunk_size, bao->stream_size, streamFile, 1);
-            vgmstream->codec_data = init_ffmpeg_header_offset(streamFile, buf,bytes, start_offset,bao->stream_size);
-            if ( !vgmstream->codec_data ) goto fail;
+            if (bao->is_external) {
+                /* external XMA sounds have a custom header */
+                /* first there's XMA2/FMT chunk, after that: */
+                /* 0x00: some low number like 0x01 or 0x04 */
+                /* 0x04: number of frames */
+                /* 0x08: frame size (not always present?) */
+                /* then there's a set of rising numbers followed by some weird data?.. */
+                /* calculate true XMA size and use that get data start offset */
+                num_frames = read_32bitBE(start_offset + chunk_size + 0x04, streamData);
+                //frame_size = read_32bitBE(start_offset + chunk_size + 0x08, streamData);
+                frame_size = 0x800;
+
+                data_size = num_frames * frame_size;
+                start_offset = bao->stream_size - data_size;
+            }
+            else {
+                data_size = bao->stream_size;
+                start_offset = 0x00;
+            }
+
+            /* XMA header is stored in 0x20 header for internal sounds and before audio data for external sounds */
+            if (bao->is_external) {
+                header_data = streamData;
+                header_offset = 0x00;
+            }
+            else {
+                header_data = streamFile;
+                header_offset = bao->extradata_offset;
+            }
+
+            if (is_xma2_old) {
+                bytes = ffmpeg_make_riff_xma2_from_xma2_chunk(buf, 0x100, header_offset, chunk_size, data_size, header_data);
+            }
+            else {
+                bytes = ffmpeg_make_riff_xma_from_fmt_chunk(buf, 0x100, header_offset, chunk_size, data_size, header_data, 1);
+            }
+
+            vgmstream->codec_data = init_ffmpeg_header_offset(streamData, buf, bytes, start_offset, data_size);
+            if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
+
+            vgmstream->stream_size = data_size;
             break;
         }
 
@@ -159,8 +200,8 @@ static VGMSTREAM * init_vgmstream_ubi_bao_main(ubi_bao_header * bao, STREAMFILE 
             joint_stereo = 0;
             encoder_delay = 0x00;//todo not correct
 
-            bytes = ffmpeg_make_riff_atrac3(buf,0x100, vgmstream->num_samples, bao->stream_size, vgmstream->channels, vgmstream->sample_rate, block_size, joint_stereo, encoder_delay);
-            vgmstream->codec_data = init_ffmpeg_header_offset(streamFile, buf,bytes, start_offset,bao->stream_size);
+            bytes = ffmpeg_make_riff_atrac3(buf, 0x100, vgmstream->num_samples, vgmstream->stream_size, vgmstream->channels, vgmstream->sample_rate, block_size, joint_stereo, encoder_delay);
+            vgmstream->codec_data = init_ffmpeg_header_offset(streamData, buf, bytes, start_offset, bao->stream_size);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
@@ -171,7 +212,7 @@ static VGMSTREAM * init_vgmstream_ubi_bao_main(ubi_bao_header * bao, STREAMFILE 
             ffmpeg_codec_data *ffmpeg_data;
 
             ffmpeg_data = init_ffmpeg_offset(streamData, start_offset, bao->stream_size);
-            if ( !ffmpeg_data ) goto fail;
+            if (!ffmpeg_data) goto fail;
             vgmstream->codec_data = ffmpeg_data;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
@@ -180,12 +221,13 @@ static VGMSTREAM * init_vgmstream_ubi_bao_main(ubi_bao_header * bao, STREAMFILE 
             if (ffmpeg_data->skipSamples <= 0) {
                 off_t chunk_offset;
                 size_t chunk_size, fact_skip_samples = 0;
-                if (!find_chunk_le(streamData, 0x66616374,start_offset+0xc,0, &chunk_offset,&chunk_size)) /* find "fact" */
+                if (!find_chunk_le(streamData, 0x66616374, start_offset + 0xc, 0, &chunk_offset, &chunk_size)) /* find "fact" */
                     goto fail;
                 if (chunk_size == 0x8) {
-                    fact_skip_samples  = read_32bitLE(chunk_offset+0x4, streamData);
-                } else if (chunk_size == 0xc) {
-                    fact_skip_samples  = read_32bitLE(chunk_offset+0x8, streamData);
+                    fact_skip_samples = read_32bitLE(chunk_offset + 0x4, streamData);
+                }
+                else if (chunk_size == 0xc) {
+                    fact_skip_samples = read_32bitLE(chunk_offset + 0x8, streamData);
                 }
                 ffmpeg_set_skip_samples(ffmpeg_data, fact_skip_samples);
             }
@@ -196,7 +238,7 @@ static VGMSTREAM * init_vgmstream_ubi_bao_main(ubi_bao_header * bao, STREAMFILE 
             ffmpeg_codec_data *ffmpeg_data;
 
             ffmpeg_data = init_ffmpeg_offset(streamData, start_offset, bao->stream_size);
-            if ( !ffmpeg_data ) goto fail;
+            if (!ffmpeg_data) goto fail;
             vgmstream->codec_data = ffmpeg_data;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
@@ -212,14 +254,14 @@ static VGMSTREAM * init_vgmstream_ubi_bao_main(ubi_bao_header * bao, STREAMFILE 
     }
 
     /* open the file for reading (can be an external stream, different from the current .pk) */
-    if ( !vgmstream_open_stream(vgmstream, streamData, start_offset) )
+    if (!vgmstream_open_stream(vgmstream, streamData, start_offset))
         goto fail;
 
-    if (bao->is_external && streamData) close_streamfile(streamData);
+    close_streamfile(streamData);
     return vgmstream;
 
 fail:
-    if (bao->is_external && streamData) close_streamfile(streamData);
+    close_streamfile(streamData);
     close_vgmstream(vgmstream);
     return NULL;
 }
@@ -279,6 +321,28 @@ static int parse_pk_header(ubi_bao_header * bao, STREAMFILE *streamFile) {
 
     /* get stream pointed by header */
     if (bao->is_external) {
+        /* some sounds have a prefetched bit stored internally with the remaining streamed part stored externally */
+        bao_offset = index_header_size + index_size;
+        for (i = 0; i < index_entries; i++) {
+            uint32_t bao_id = read_32bitLE(index_header_size + 0x08 * i + 0x00, streamFile);
+            size_t bao_size = read_32bitLE(index_header_size + 0x08 * i + 0x04, streamFile);
+
+            if (bao_id == bao->stream_id) {
+                bao->prefetch_offset = bao_offset + bao->header_size;
+                break;
+            }
+
+            bao_offset += bao_size;
+        }
+
+        if (bao->prefetch_size) {
+            if (bao->prefetch_offset == 0) goto fail;
+            bao->is_prefetched = 1;
+        }
+        else {
+            if (bao->prefetch_offset != 0) goto fail;
+        }
+
         /* parse resource table, LE (may be empty, or exist even with nothing in the file) */
         off_t offset;
         int resources_count = read_32bitLE(resources_offset+0x00, streamFile);
@@ -295,37 +359,29 @@ static int parse_pk_header(ubi_bao_header * bao, STREAMFILE *streamFile) {
                 bao->stream_offset = resource_offset + bao->header_size;
                 read_string(bao->resource_name,255, resources_offset + 0x04+0x04 + name_offset, streamFile);
 
-                VGM_ASSERT(bao->stream_size != resource_size - bao->header_size, "UBI BAO: stream vs resource size mismatch\n");
+                if (bao->is_prefetched) {
+                    bao->main_offset = resource_offset + bao->header_size;
+                    bao->main_size = resource_size - bao->header_size;
+                    VGM_ASSERT(bao->stream_size != bao->main_size + bao->prefetch_size, "UBI BAO: stream vs resource size mismatch\n");
+                }
+                else {
+                    VGM_ASSERT(bao->stream_size != resource_size - bao->header_size, "UBI BAO: stream vs resource size mismatch\n");
+                }
                 break;
             }
-        }
-
-
-        //todo find flag and fix
-        /* some songs divide data in internal+external resource and data may be split arbitrarily,
-         * must join on reads (needs multifile_streamfile); resources may use block layout in XMA too */
-        bao_offset = index_header_size + index_size;
-        for (i = 0; i < index_entries; i++) {
-            uint32_t bao_id = read_32bitLE(index_header_size+0x08*i+0x00, streamFile);
-            size_t bao_size = read_32bitLE(index_header_size+0x08*i+0x04, streamFile);
-
-            if (bao_id == bao->stream_id) {
-                VGM_LOG("UBI BAO: found internal+external at offset=%lx\n",bao_offset);
-                goto fail;
-            }
-
-            bao_offset += bao_size;
         }
     }
     else {
         /* find within index */
-
         bao_offset = index_header_size + index_size;
         for (i = 0; i < index_entries; i++) {
             uint32_t bao_id = read_32bitLE(index_header_size+0x08*i+0x00, streamFile);
             size_t bao_size = read_32bitLE(index_header_size+0x08*i+0x04, streamFile);
 
             if (bao_id == bao->stream_id) {
+                /* in some cases, stream size value from 0x20 header can be bigger than */
+                /* the actual audio chunk o_O [Rayman Raving Rabbids: TV Party (Wii)] */
+                bao->stream_size = bao_size - bao->header_size;
                 bao->stream_offset = bao_offset + bao->header_size; /* relative, adjust to skip descriptor */
                 break;
             }
@@ -410,9 +466,10 @@ static int parse_bao(ubi_bao_header * bao, STREAMFILE *streamFile, off_t offset)
      * - extra data per codec (ex. XMA header in some versions) */
     //todo skip tables when getting extradata
     ;VGM_LOG("BAO header at %lx\n", offset);
+    bao->version = bao_version;
 
-    switch(bao_version) {
-
+    switch(bao->version) {
+        case 0x001F0008: /* Rayman Raving Rabbids: TV Party (Wii)-pk */
         case 0x001F0011: /* Naruto: The Broken Bond (X360)-pk */
         case 0x0022000D: /* Just Dance (Wii)-pk */
             bao->stream_size  = read_32bit(offset+header_size+0x08, streamFile);
@@ -420,15 +477,24 @@ static int parse_bao(ubi_bao_header * bao, STREAMFILE *streamFile, off_t offset)
             bao->is_external  = read_32bit(offset+header_size+0x28, streamFile); /* maybe 0x30 */
             bao->channels     = read_32bit(offset+header_size+0x44, streamFile);
             bao->sample_rate  = read_32bit(offset+header_size+0x4c, streamFile);
-            bao->num_samples  = read_32bit(offset+header_size+0x54, streamFile);
+            if (read_32bit(offset + header_size + 0x34, streamFile) & 0x01) { /* single flag? */
+                bao->num_samples = read_32bit(offset + header_size + 0x5c, streamFile);
+            }
+            else {
+                bao->num_samples = read_32bit(offset + header_size + 0x54, streamFile);
+            }
             bao->header_codec = read_32bit(offset+header_size+0x64, streamFile);
 
             switch(bao->header_codec) {
                 case 0x01: bao->codec = RAW_PCM; break;
+                //case 0x02: bao->codec = FMT_OGG; break;
+                case 0x03: bao->codec = UBI_ADPCM; break;
                 case 0x05: bao->codec = RAW_XMA1; break;
                 case 0x09: bao->codec = RAW_DSP; break;
                 default: VGM_LOG("UBI BAO: unknown codec at %lx\n", offset); goto fail;
             }
+
+            bao->prefetch_size = read_32bit(offset + header_size + 0x74, streamFile);
 
             //todo use flags?
             if (bao->header_codec == 0x09) {
@@ -469,6 +535,36 @@ static int parse_bao(ubi_bao_header * bao, STREAMFILE *streamFile, off_t offset)
 
             break;
 
+        case 0x00230008: /* Splinter Cell: Conviction (X360/PC) */
+            bao->stream_size  = read_32bit(offset+header_size+0x08, streamFile);
+            bao->stream_id    = read_32bit(offset+header_size+0x24, streamFile);
+            bao->is_external  = read_32bit(offset+header_size+0x38, streamFile);
+            bao->channels     = read_32bit(offset+header_size+0x54, streamFile);
+            bao->sample_rate  = read_32bit(offset+header_size+0x5c, streamFile);
+            if (read_32bit(offset+header_size+0x44, streamFile) & 0x01) { /* single flag? */
+                bao->num_samples  = read_32bit(offset+header_size+0x6c, streamFile);
+            }
+            else {
+                bao->num_samples  = read_32bit(offset+header_size+0x64, streamFile);
+            }
+            bao->header_codec = read_32bit(offset+header_size+0x74, streamFile);
+
+            switch (bao->header_codec) {
+                case 0x01: bao->codec = RAW_PCM; break;
+                case 0x02: bao->codec = UBI_ADPCM; break;
+                case 0x03: bao->codec = FMT_OGG; break;
+                case 0x04: bao->codec = RAW_XMA2; break;
+                default: VGM_LOG("UBI BAO: unknown codec at %lx\n", offset); goto fail;
+            }
+
+            bao->prefetch_size = read_32bit(offset+header_size+0x84, streamFile);
+
+            if (bao->header_codec == 0x04 && !bao->is_external) {
+                bao->extradata_offset = offset + header_size + 0x8c; /* XMA header */
+            }
+
+            break;
+
         case 0x00250108: /* Scott Pilgrim vs the World (PS3/X360)-pk */
         case 0x0025010A: /* Prince of Persia: The Forgotten Sands (PS3/X360)-file */
             bao->stream_size  = read_32bit(offset+header_size+0x08, streamFile);
@@ -487,11 +583,15 @@ static int parse_bao(ubi_bao_header * bao, STREAMFILE *streamFile, off_t offset)
 
             switch(bao->header_codec) {
                 case 0x01: bao->codec = RAW_PCM; break;
+                case 0x02: bao->codec = UBI_ADPCM; break; /* assumed */
+                case 0x03: bao->codec = FMT_OGG; break; /* assumed */
                 case 0x04: bao->codec = RAW_XMA2; break;
                 case 0x05: bao->codec = RAW_PSX; break;
                 case 0x06: bao->codec = RAW_AT3; break;
                 default: VGM_LOG("UBI BAO: unknown codec at %lx\n", offset); goto fail;
             }
+
+            bao->prefetch_size = read_32bit(offset + header_size + 0x78, streamFile);
 
             if (bao->header_codec == 0x04 && !bao->is_external) {
                 bao->extradata_offset = offset+header_size + 0x8c; /* XMA header */
@@ -514,4 +614,64 @@ static int parse_bao(ubi_bao_header * bao, STREAMFILE *streamFile, off_t offset)
     return 1;
 fail:
     return 0;
+}
+
+static STREAMFILE * setup_bao_streamfile(ubi_bao_header *bao, STREAMFILE *streamFile) {
+    STREAMFILE *new_streamFile = NULL;
+    STREAMFILE *temp_streamFile = NULL;
+    STREAMFILE *stream_segments[2] = { 0 };
+
+    if (bao->is_prefetched) {
+        /* need to join prefetched and streamed part as they're stored separately */
+        new_streamFile = open_wrap_streamfile(streamFile);
+        if (!new_streamFile) goto fail;
+        temp_streamFile = new_streamFile;
+
+        new_streamFile = open_clamp_streamfile(temp_streamFile, bao->prefetch_offset, bao->prefetch_size);
+        if (!new_streamFile) goto fail;
+        stream_segments[0] = new_streamFile;
+        temp_streamFile = NULL;
+
+        /* open external file */
+        new_streamFile = open_streamfile_by_filename(streamFile, bao->resource_name);
+        if (!new_streamFile) { VGM_LOG("UBI BAO: external stream '%s' not found\n", bao->resource_name); goto fail; }
+        temp_streamFile = new_streamFile;
+
+        new_streamFile = open_clamp_streamfile(temp_streamFile, bao->main_offset, bao->main_size);
+        if (!new_streamFile) goto fail;
+        stream_segments[1] = new_streamFile;
+        temp_streamFile = NULL;
+
+        new_streamFile = open_multifile_streamfile(stream_segments, 2);
+        if (!new_streamFile) goto fail;
+        temp_streamFile = new_streamFile;
+    }
+    else if (bao->is_external) {
+        /* open external file */
+        new_streamFile = open_streamfile_by_filename(streamFile, bao->resource_name);
+        if (!new_streamFile) { VGM_LOG("UBI BAO: external stream '%s' not found\n", bao->resource_name); goto fail; }
+        temp_streamFile = new_streamFile;
+
+        new_streamFile = open_clamp_streamfile(temp_streamFile, bao->stream_offset, bao->stream_size);
+        if (!new_streamFile) goto fail;
+        temp_streamFile = new_streamFile;
+    }
+    else {
+        new_streamFile = open_wrap_streamfile(streamFile);
+        if (!new_streamFile) goto fail;
+        temp_streamFile = new_streamFile;
+
+        new_streamFile = open_clamp_streamfile(temp_streamFile, bao->stream_offset, bao->stream_size);
+        if (!new_streamFile) goto fail;
+        temp_streamFile = new_streamFile;
+    }
+
+    return temp_streamFile;
+
+fail:
+    close_streamfile(stream_segments[0]);
+    close_streamfile(stream_segments[1]);
+    close_streamfile(temp_streamFile);
+
+    return NULL;
 }
