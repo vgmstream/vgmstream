@@ -1102,7 +1102,7 @@ static int parse_variable_header(STREAMFILE* streamFile, ea_header* ea, off_t be
             case EA_PLATFORM_X360:      ea->sample_rate = 44100; break;
             case EA_PLATFORM_PSP:       ea->sample_rate = 22050; break;
             case EA_PLATFORM_PS3:       ea->sample_rate = 44100; break;
-            //case EA_PLATFORM_3DS:     ea->sample_rate = 44100; break;//todo (not 22050/16000)
+            case EA_PLATFORM_3DS:       ea->sample_rate = 32000; break;
             default:
                 VGM_LOG("EA SCHl: unknown default sample rate for platform 0x%02x\n", ea->platform);
                 goto fail;
