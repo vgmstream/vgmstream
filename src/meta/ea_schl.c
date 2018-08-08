@@ -199,6 +199,12 @@ VGMSTREAM * init_vgmstream_ea_abk(STREAMFILE *streamFile) {
     target_entry_offset = 0;
     total_sound_tables = 0;
 
+    /* check to avoid clashing with the newer ABK format */
+    if (bnk_offset &&
+        read_32bitBE(bnk_offset, streamFile) != EA_BNK_HEADER_LE &&
+        read_32bitBE(bnk_offset, streamFile) != EA_BNK_HEADER_BE)
+        goto fail;
+
     for (i = 0; i < num_tables; i++) {
         num_entries = read_8bit(header_table_offset + 0x24, streamFile);
         base_offset = read_32bit(header_table_offset + 0x2C, streamFile);

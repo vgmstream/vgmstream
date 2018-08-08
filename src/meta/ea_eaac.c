@@ -198,7 +198,8 @@ VGMSTREAM * init_vgmstream_ea_abk_new(STREAMFILE *streamFile) {
         goto fail;
 
     version = read_32bitBE(0x04, streamFile);
-    if (version != 0x01010202)
+    if (version != 0x01010100 &&
+        version != 0x01010202)
         goto fail;
 
     /* use table offset to check endianness */
@@ -220,6 +221,9 @@ VGMSTREAM * init_vgmstream_ea_abk_new(STREAMFILE *streamFile) {
     total_sound_tables = 0;
     bnk_target_index = 0xFFFF;
     ast_offset = 0;
+
+    if (!bnk_offset || read_32bitBE(bnk_offset, streamFile) != 0x53313041) /* "S10A" */
+        goto fail;
 
     /* set up some common values */
     if (header_table_offset == 0x5C) {
