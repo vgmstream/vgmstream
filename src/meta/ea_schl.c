@@ -143,6 +143,8 @@ VGMSTREAM * init_vgmstream_ea_bnk(STREAMFILE *streamFile) {
     /* check header (doesn't use EA blocks, otherwise very similar to SCHl) */
     if (read_32bitBE(0x100,streamFile) == EA_BNK_HEADER_LE)
         offset = 0x100; /* Harry Potter and the Goblet of Fire (PS2) .mus have weird extra 0x100 bytes */
+    else
+        offset = 0x00;
 
     return parse_bnk_header(streamFile, offset, streamFile->stream_index, 0);
     
