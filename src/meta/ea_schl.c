@@ -175,6 +175,7 @@ VGMSTREAM * init_vgmstream_ea_abk(STREAMFILE *streamFile) {
     version = read_32bitBE(0x04, streamFile);
     if (version != 0x01010000 &&
         version != 0x01010100 &&
+        version != 0x01010200 &&
         version != 0x02010000 &&
         version != 0x02010100 &&
         version != 0x02010202)
@@ -767,15 +768,6 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE *streamFile, ea_
                 vgmstream->ch[i].offset = ea->offsets[i];
             }
         }
-
-        /* read ADPCM history before each channel if needed (not actually read in sx.exe) */
-        if (vgmstream->codec_version & 0x01) {
-            for (i = 0; i < vgmstream->channels; i++) {
-                //vgmstream->ch[i].adpcm_history1_32 = read_16bit(vgmstream->ch[i].offset+0x00,streamFile);
-                //vgmstream->ch[i].adpcm_history3_32 = read_16bit(vgmstream->ch[i].offset+0x02,streamFile);
-                vgmstream->ch[i].offset += 4;
-            }
-        }
     }
     else if (vgmstream->layout_type == layout_blocked_ea_schl) {
         /* regular SCHls, except ATRAC3plus */
@@ -1137,7 +1129,7 @@ static int parse_variable_header(STREAMFILE* streamFile, ea_header* ea, off_t be
             /* V0, V1: always */
             /* V2: consoles only */
             /* V3: never */
-            if (ea->version == EA_VERSION_V1) {
+            if (ea->version <= EA_VERSION_V1) {
                 ea->codec_version |= 0x01;
             }
             else if (ea->version == EA_VERSION_V2) {
