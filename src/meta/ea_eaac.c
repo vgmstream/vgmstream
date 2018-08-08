@@ -307,18 +307,17 @@ fail:
 
 /* EA S10A header - seen inside new ABK files. Putting it here in case it's encountered stand-alone. */
 static VGMSTREAM * parse_s10a_header(STREAMFILE *streamFile, off_t offset, uint16_t target_index, off_t ast_offset) {
-    uint32_t header, num_sounds;
+    uint32_t num_sounds;
     off_t snr_offset, sns_offset;
     STREAMFILE *astFile = NULL;
     VGMSTREAM *vgmstream;
 
     /* header is always big endian */
-    /* 0x00 - header magic */
-    /* 0x04 - zero */
-    /* 0x08 - number of files */
-    /* 0x0C - offsets table */
-    header = read_32bitBE(offset + 0x00, streamFile);
-    if (header != 0x53313041) /* "S10A" */
+    /* 0x00: header magic */
+    /* 0x04: zero */
+    /* 0x08: number of files */
+    /* 0x0C: offsets table */
+    if (read_32bitBE(offset + 0x00, streamFile) != 0x53313041) /* "S10A" */
         goto fail;
 
     num_sounds = read_32bitBE(offset + 0x08, streamFile);
