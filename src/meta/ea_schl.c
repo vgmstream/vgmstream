@@ -485,11 +485,11 @@ static VGMSTREAM * parse_bnk_header(STREAMFILE *streamFile, off_t offset, int ta
 
     /* check header */
     /* BNK header endianness is platform-native */
-    if (read_32bitBE(start_offset + 0x00, streamFile) == EA_BNK_HEADER_BE) {
+    if (read_32bitBE(offset + 0x00, streamFile) == EA_BNK_HEADER_BE) {
         read_32bit = read_32bitBE;
         read_16bit = read_16bitBE;
     }
-    else if (read_32bitBE(start_offset + 0x00, streamFile) == EA_BNK_HEADER_LE) {
+    else if (read_32bitBE(offset + 0x00, streamFile) == EA_BNK_HEADER_LE) {
         read_32bit = read_32bitLE;
         read_16bit = read_16bitLE;
     }
