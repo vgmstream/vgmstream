@@ -42,7 +42,7 @@ VGMSTREAM * init_vgmstream_ps2_vpk(STREAMFILE *streamFile) {
         vgmstream->loop_end_sample = vgmstream->num_samples;
     }
 
-    vgmstream->interleave_block_size = read_32bitLE(0x0C,streamFile)/vgmstream->channels;
+    vgmstream->interleave_block_size = read_32bitLE(0x0C,streamFile)/2;
     vgmstream->layout_type = layout_interleave;
     vgmstream->meta_type = meta_PS2_VPK;
 
