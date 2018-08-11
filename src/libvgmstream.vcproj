@@ -1063,7 +1063,7 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\ps2_vag.c"
+					RelativePath=".\meta\vag.c"
 					>
 				</File>
 				<File

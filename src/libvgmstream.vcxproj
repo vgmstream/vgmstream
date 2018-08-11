@@ -359,7 +359,7 @@
     <ClCompile Include="meta\ps2_svag_snk.c" />
     <ClCompile Include="meta\ps2_tec.c" />
     <ClCompile Include="meta\ps2_tk5.c" />
-    <ClCompile Include="meta\ps2_vag.c" />
+    <ClCompile Include="meta\vag.c" />
     <ClCompile Include="meta\ps2_vas.c" />
     <ClCompile Include="meta\ps2_vbk.c" />
     <ClCompile Include="meta\ps2_vgs.c" />
