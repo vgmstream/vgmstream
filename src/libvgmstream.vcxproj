@@ -100,6 +100,8 @@
     <ClInclude Include="meta\bar_streamfile.h" />
     <ClInclude Include="meta\ea_eaac_streamfile.h" />
     <ClInclude Include="meta\ea_schl_streamfile.h" />
+    <ClInclude Include="meta\fsb_interleave_streamfile.h" />
+    <ClInclude Include="meta\fsb5_interleave_streamfile.h" />
     <ClInclude Include="meta\ppst_streamfile.h" />
     <ClInclude Include="meta\opus_interleave_streamfile.h" />
     <ClInclude Include="meta\sqex_scd_streamfile.h" />
@@ -118,6 +120,7 @@
   <ItemGroup>
     <ClCompile Include="coding\at3plus_decoder.c" />
     <ClCompile Include="coding\atrac9_decoder.c" />
+    <ClCompile Include="coding\celt_fsb_decoder.c" />
     <ClCompile Include="coding\coding_utils.c" />
     <ClCompile Include="coding\ffmpeg_decoder.c" />
     <ClCompile Include="coding\ffmpeg_decoder_utils_ea_xma.c" />

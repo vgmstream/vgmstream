@@ -602,6 +602,9 @@ static const coding_info coding_info_list[] = {
 #ifdef VGM_USE_ATRAC9
         {coding_ATRAC9,             "ATRAC9"},
 #endif
+#ifdef VGM_USE_CELT
+        {coding_CELT_FSB,           "Custom CELT"},
+#endif
 #ifdef VGM_USE_FFMPEG
         {coding_FFmpeg,             "FFmpeg"},
 #endif

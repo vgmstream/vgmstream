@@ -1,6 +1,8 @@
 #include "meta.h"
 #include "../coding/coding.h"
-#include "../util.h"
+#include "../layout/layout.h"
+#include "fsb5_interleave_streamfile.h"
+
 
 typedef struct {
     int total_subsongs;
@@ -8,7 +10,7 @@ typedef struct {
     int codec;
     int flags;
 
-    int channel_count;
+    int channels;
     int sample_rate;
     int32_t num_samples;
     int32_t loop_start;
@@ -29,6 +31,9 @@ typedef struct {
     off_t name_offset;
 } fsb5_header;
 
+/* ********************************************************************************** */
+
+static layered_layout_data* build_layered_fsb5_celt(STREAMFILE *streamFile, fsb5_header* fsb5, celt_lib_t version);
 
 /* FSB5 - FMOD Studio multiplatform format */
 VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
@@ -92,10 +97,10 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
 
         /* get channels */
         switch ((sample_mode1 >> 5) & 0x03) { /* bits1: 7..6 (2) */
-            case 0:  fsb5.channel_count = 1; break;
-            case 1:  fsb5.channel_count = 2; break;
-            case 2:  fsb5.channel_count = 6; break; /* some Dark Souls 2 MPEG; some IMA ADPCM */
-            case 3:  fsb5.channel_count = 8; break; /* some IMA ADPCM */
+            case 0:  fsb5.channels = 1; break;
+            case 1:  fsb5.channels = 2; break;
+            case 2:  fsb5.channels = 6; break; /* some Dark Souls 2 MPEG; some IMA ADPCM */
+            case 3:  fsb5.channels = 8; break; /* some IMA ADPCM */
             /* other channels (ex. 4/10/12ch) use 0 here + set extra flags */
             default: /* not possible */
                 goto fail;
@@ -132,7 +137,7 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
 
                 switch(extraflag_type) {
                     case 0x01:  /* channels */
-                        fsb5.channel_count = read_8bit(extraflag_offset+0x04,streamFile);
+                        fsb5.channels = read_8bit(extraflag_offset+0x04,streamFile);
                         break;
                     case 0x02:  /* sample rate */
                         fsb5.sample_rate = read_32bitLE(extraflag_offset+0x04,streamFile);
@@ -220,7 +225,7 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
 
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(fsb5.channel_count,fsb5.loop_flag);
+    vgmstream = allocate_vgmstream(fsb5.channels,fsb5.loop_flag);
     if (!vgmstream) goto fail;
 
     vgmstream->sample_rate = fsb5.sample_rate;
@@ -241,13 +246,13 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
 
         case 0x01:  /* FMOD_SOUND_FORMAT_PCM8  [Anima - Gate of Memories (PC)] */
             vgmstream->coding_type = coding_PCM8_U;
-            vgmstream->layout_type = fsb5.channel_count == 1 ? layout_none : layout_interleave;
+            vgmstream->layout_type = fsb5.channels == 1 ? layout_none : layout_interleave;
             vgmstream->interleave_block_size = 0x01;
             break;
 
         case 0x02:  /* FMOD_SOUND_FORMAT_PCM16  [Shantae Risky's Revenge (PC)] */
             vgmstream->coding_type = (fsb5.flags & 0x01) ? coding_PCM16BE : coding_PCM16LE;
-            vgmstream->layout_type = fsb5.channel_count == 1 ? layout_none : layout_interleave;
+            vgmstream->layout_type = fsb5.channels == 1 ? layout_none : layout_interleave;
             vgmstream->interleave_block_size = 0x02;
             break;
 
@@ -261,7 +266,7 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
 
         case 0x05:  /* FMOD_SOUND_FORMAT_PCMFLOAT  [Anima: Gate of Memories (PC)] */
             vgmstream->coding_type = coding_PCMFLOAT;
-            vgmstream->layout_type = (fsb5.channel_count == 1) ? layout_none : layout_interleave;
+            vgmstream->layout_type = (fsb5.channels == 1) ? layout_none : layout_interleave;
             vgmstream->interleave_block_size = 0x04;
             break;
 
@@ -269,7 +274,7 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
             if (fsb5.flags & 0x02) { /* non-interleaved mode */
                 vgmstream->coding_type = coding_NGC_DSP;
                 vgmstream->layout_type = layout_interleave;
-                vgmstream->interleave_block_size = (fsb5.stream_size / fsb5.channel_count);
+                vgmstream->interleave_block_size = (fsb5.stream_size / fsb5.channels);
             }
             else {
                 vgmstream->coding_type = coding_NGC_DSP_subint;
@@ -288,7 +293,7 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
             vgmstream->coding_type = coding_PSX;
             vgmstream->layout_type = layout_interleave;
             if (fsb5.flags & 0x02) { /* non-interleaved mode */
-                vgmstream->interleave_block_size = (fsb5.stream_size / fsb5.channel_count);
+                vgmstream->interleave_block_size = (fsb5.stream_size / fsb5.channels);
             }
             else {
                 vgmstream->interleave_block_size = 0x10;
@@ -331,8 +336,22 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
         }
 #endif
 
+#ifdef VGM_USE_CELT
         case 0x0C:  /* FMOD_SOUND_FORMAT_CELT  [BIT.TRIP Presents Runner2 (PC), Full Bore (PC)] */
-            goto fail;
+            if (fsb5.channels > 2) { /* multistreams */
+                vgmstream->layout_data = build_layered_fsb5_celt(streamFile, &fsb5, CELT_0_11_0);
+                if (!vgmstream->layout_data) goto fail;
+                vgmstream->coding_type = coding_CELT_FSB;
+                vgmstream->layout_type = layout_layered;
+            }
+            else {
+                vgmstream->codec_data = init_celt_fsb(vgmstream->channels, CELT_0_11_0);
+                if (!vgmstream->codec_data) goto fail;
+                vgmstream->coding_type = coding_CELT_FSB;
+                vgmstream->layout_type = layout_none;
+            }
+            break;
+#endif
 
 #ifdef VGM_USE_ATRAC9
         case 0x0D: {/* FMOD_SOUND_FORMAT_AT9 */
@@ -420,5 +439,71 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
 
 fail:
     close_vgmstream(vgmstream);
+    return NULL;
+}
+
+static layered_layout_data* build_layered_fsb5_celt(STREAMFILE *streamFile, fsb5_header* fsb5, celt_lib_t version) {
+    layered_layout_data* data = NULL;
+    STREAMFILE* temp_streamFile = NULL;
+    int i, layers = (fsb5->channels+1) / 2;
+    size_t interleave;
+
+    if (read_32bitBE(fsb5->stream_offset+0x00,streamFile) != 0x17C30DF3) /* FSB CELT frame ID */
+        goto fail;
+    interleave = 0x04+0x04+read_32bitLE(fsb5->stream_offset+0x04,streamFile); /* frame size */
+
+    //todo unknown interleave for max quality odd channel streams (found in test files)
+    /* FSB5 odd channels use 2ch+2ch...+1ch streams, and the last only goes up to 0x17a, and other
+     * streams only use that max (doesn't happen for smaller frames, even channels, or FSB4)
+     * however streams other than the last seem to be padded with 0s somehow and wont work */
+    if (interleave > 0x17a && (fsb5->channels % 2 == 1))
+        interleave = 0x17a;
+
+
+    /* init layout */
+    data = init_layout_layered(layers);
+    if (!data) goto fail;
+
+    /* open each layer subfile (1/2ch CELT streams: 2ch+2ch..+1ch or 2ch+2ch..+2ch) */
+    for (i = 0; i < layers; i++) {
+        int layer_channels = (i+1 == layers && fsb5->channels % 2 == 1)
+                ? 1 : 2; /* last layer can be 1/2ch */
+
+        /* build the layer VGMSTREAM */
+        data->layers[i] = allocate_vgmstream(layer_channels, fsb5->loop_flag);
+        if (!data->layers[i]) goto fail;
+
+        data->layers[i]->sample_rate = fsb5->sample_rate;
+        data->layers[i]->num_samples = fsb5->num_samples;
+        data->layers[i]->loop_start_sample = fsb5->loop_start;
+        data->layers[i]->loop_end_sample = fsb5->loop_end;
+
+#ifdef VGM_USE_CELT
+        data->layers[i]->codec_data = init_celt_fsb(layer_channels, version);
+        if (!data->layers[i]->codec_data) goto fail;
+        data->layers[i]->coding_type = coding_CELT_FSB;
+        data->layers[i]->layout_type = layout_none;
+#else
+        goto fail;
+#endif
+
+        temp_streamFile = setup_fsb5_interleave_streamfile(streamFile, fsb5->stream_offset, fsb5->stream_size, layers, i, FSB5_INT_CELT, interleave);
+        if (!temp_streamFile) goto fail;
+
+        if ( !vgmstream_open_stream(data->layers[i], temp_streamFile, 0x00) ) {
+            goto fail;
+        }
+    }
+
+    /* setup layered VGMSTREAMs */
+    if (!setup_layout_layered(data))
+        goto fail;
+    close_streamfile(temp_streamFile);
+    return data;
+
+fail:
+    close_streamfile(temp_streamFile);
+    for (i = 0; i < layers; i++)
+        close_vgmstream(data->layers[i]);
     return NULL;
 }

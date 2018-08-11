@@ -30,6 +30,7 @@ enum { STREAM_NAME_SIZE = 255 }; /* reasonable max */
 //#define VGM_USE_MAIATRAC3PLUS
 //#define VGM_USE_FFMPEG
 //#define VGM_USE_ATRAC9
+//#define VGM_USE_CELT
 
 
 #ifdef VGM_USE_VORBIS
@@ -205,6 +206,10 @@ typedef enum {
 
 #ifdef VGM_USE_ATRAC9
     coding_ATRAC9,          /* Sony ATRAC9 (MDCT-based) */
+#endif
+
+#ifdef VGM_USE_CELT
+    coding_CELT_FSB,        /* Custom Xiph CELT (MDCT-based) */
 #endif
 
 #ifdef VGM_USE_FFMPEG
@@ -1028,8 +1033,6 @@ typedef enum {
     ATRAC9_DEFAULT = 0, /* ATRAC9 standard */
     ATRAC9_XVAG,        /* Sony XVAG: interleaved subsongs, Vita multichannel interleaves 2ch xN superframes */
     ATRAC9_KMA9,        /* Koei Tecmo KMA9: interleaved subsongs */
-  //ATRAC9_FSB,         /* FMOD FSB: Vita multichannel interleaves 2ch xN superframes */
-  //ATRAC9_EATRAX,      /* EA EATrax: buffered ATRAC9 in SPS blocks (superframes can be split between blocks) */
 } atrac9_custom_t;
 
 typedef struct {
@@ -1057,6 +1060,11 @@ typedef struct {
 
     void *handle; /* decoder handle */
 } atrac9_codec_data;
+#endif
+
+#ifdef VGM_USE_CELT
+typedef enum { CELT_0_06_1,CELT_0_11_0} celt_lib_t;
+typedef struct celt_codec_data celt_codec_data;
 #endif
 
 /* libacm interface */

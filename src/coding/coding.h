@@ -243,6 +243,15 @@ void free_atrac9(atrac9_codec_data *data);
 size_t atrac9_bytes_to_samples(size_t bytes, atrac9_codec_data *data);
 #endif
 
+#ifdef VGM_USE_CELT
+/* celt_fsb_decoder */
+celt_codec_data *init_celt_fsb(int channels, celt_lib_t version);
+void decode_celt_fsb(VGMSTREAM *vgmstream, sample * outbuf, int32_t samples_to_do, int channels);
+void reset_celt_fsb(VGMSTREAM *vgmstream);
+void seek_celt_fsb(VGMSTREAM *vgmstream, int32_t num_sample);
+void free_celt_fsb(celt_codec_data *data);
+#endif
+
 #ifdef VGM_USE_FFMPEG
 /* ffmpeg_decoder */
 ffmpeg_codec_data *init_ffmpeg_offset(STREAMFILE *streamFile, uint64_t start, uint64_t size);
