@@ -29,6 +29,7 @@ typedef struct {
 
     char resource_name[255];
     int types_count[9];
+    int subtypes_count[9];
 } ubi_bao_header;
 
 static int parse_bao(ubi_bao_header * bao, STREAMFILE *streamFile, off_t offset);
@@ -311,6 +312,8 @@ static int parse_pk_header(ubi_bao_header * bao, STREAMFILE *streamFile) {
 
     ;VGM_LOG("BAO types: 10=%i,20=%i,30=%i,40=%i,50=%i,70=%i,80=%i\n",
             bao->types_count[1],bao->types_count[2],bao->types_count[3],bao->types_count[4],bao->types_count[5],bao->types_count[7],bao->types_count[8]);
+    ;VGM_LOG("BAO 0x20 subtypes: 01=%i,02=%i,03=%i,04=%i,05=%i,06=%i,07=%i,08=%i\n",
+            bao->types_count[1],bao->subtypes_count[2],bao->subtypes_count[3],bao->subtypes_count[4],bao->subtypes_count[5],bao->subtypes_count[6],bao->subtypes_count[7],bao->subtypes_count[8]);
 
     if (bao->total_subsongs == 0) {
         VGM_LOG("UBI BAO: no streams\n");
@@ -321,6 +324,10 @@ static int parse_pk_header(ubi_bao_header * bao, STREAMFILE *streamFile) {
 
     /* get stream pointed by header */
     if (bao->is_external) {
+        off_t offset;
+        int resources_count;
+        size_t strings_size;
+
         /* some sounds have a prefetched bit stored internally with the remaining streamed part stored externally */
         bao_offset = index_header_size + index_size;
         for (i = 0; i < index_entries; i++) {
@@ -344,9 +351,8 @@ static int parse_pk_header(ubi_bao_header * bao, STREAMFILE *streamFile) {
         }
 
         /* parse resource table, LE (may be empty, or exist even with nothing in the file) */
-        off_t offset;
-        int resources_count = read_32bitLE(resources_offset+0x00, streamFile);
-        size_t strings_size = read_32bitLE(resources_offset+0x04, streamFile);
+        resources_count = read_32bitLE(resources_offset+0x00, streamFile);
+        strings_size = read_32bitLE(resources_offset+0x04, streamFile);
 
         offset = resources_offset + 0x04+0x04 + strings_size;
         for (i = 0; i < resources_count; i++) {
@@ -405,7 +411,7 @@ fail:
 /* parse a single BAO (binary audio object) descriptor */
 static int parse_bao(ubi_bao_header * bao, STREAMFILE *streamFile, off_t offset) {
     int32_t (*read_32bit)(off_t,STREAMFILE*) = NULL;
-    uint32_t bao_version, descriptor_type;
+    uint32_t bao_version, descriptor_type, descriptor_subtype;
     size_t header_size;
     int target_subsong = streamFile->stream_index;
     
@@ -426,7 +432,7 @@ static int parse_bao(ubi_bao_header * bao, STREAMFILE *streamFile, off_t offset)
     /* 0x18: null */
     /* 0x1c: null */
     descriptor_type = read_32bit(offset+0x20, streamFile);
-    /* 0x28: subtype? usually 0x02/0x01, games may crash if changed */
+    descriptor_subtype = read_32bit(offset+header_size+0x04, streamFile); /* games may crash if changed */
     
     /* for debugging purposes */
     switch(descriptor_type) {
@@ -435,18 +441,35 @@ static int parse_bao(ubi_bao_header * bao, STREAMFILE *streamFile, off_t offset)
         case 0x30000000: bao->types_count[3]++; break; /* internal stream (in .pk) */
         case 0x40000000: bao->types_count[4]++; break; /* package info? */
         case 0x50000000: bao->types_count[5]++; break; /* external stream (in .spk) */
-        case 0x70000000: bao->types_count[7]++; break; /* project info? (sometimes special id 0x7fffffff)*/
+        case 0x70000000: bao->types_count[7]++; break; /* project info? (sometimes special id 0x7fffffff) */
         case 0x80000000: bao->types_count[8]++; break; /* unknown (some id/info?) */
         default:
-            VGM_LOG("UBI BAO: unknown descriptor type at %lx\n", offset);
+            VGM_LOG("UBI BAO: unknown type %x at %lx (%lx)\n", descriptor_type, offset, offset+0x20);
             goto fail;
     }
 
     /* only parse headers */
     if (descriptor_type != 0x20000000)
         return 1;
-    /* ignore other header subtypes, 0x01=sound header, 0x04=info? (like Ubi .sb0) */
-    if (read_32bit(offset+header_size+0x04, streamFile) != 0x01)
+
+    /* for debugging purposes */
+    switch(descriptor_subtype) {
+        case 0x00000001: bao->subtypes_count[1]++; break; /* standard */
+        case 0x00000002: bao->subtypes_count[2]++; break; /* multilayer??? related to other header BAOs? */
+        case 0x00000003: bao->subtypes_count[3]++; break; /* related to other header BAOs? */
+        case 0x00000004: bao->subtypes_count[4]++; break; /* related to other header BAOs? */
+        case 0x00000005: bao->subtypes_count[5]++; break; /* related to other header BAOs? */
+        case 0x00000006: bao->subtypes_count[6]++; break; /* some multilayer/table? may contain sounds??? */
+        case 0x00000007: bao->subtypes_count[7]++; break; /* related to other header BAOs? */
+        case 0x00000008: bao->subtypes_count[8]++; break; /* ? (almost empty with some unknown value) */
+        default:
+            VGM_LOG("UBI BAO: unknown subtype %x at %lx (%lx)\n", descriptor_subtype, offset, offset+header_size+0x04);
+            goto fail;
+    }
+    //;VGM_ASSERT(descriptor_subtype != 0x01, "UBI BAO: subtype %x at %lx (%lx)\n", descriptor_subtype, offset, offset+header_size+0x04);
+
+    /* ignore unknown subtypes */
+    if (descriptor_subtype != 0x01)
         return 1;
 
     bao->total_subsongs++;
@@ -457,14 +480,13 @@ static int parse_bao(ubi_bao_header * bao, STREAMFILE *streamFile, off_t offset)
 
     /* parse BAO per version. Structure is mostly the same with some extra fields.
      * - descriptor id (ignored by game)
-     * - type (may crash on game startup if changed)
+     * - subtype (may crash on game startup if changed)
      * - stream size
      * - stream id, corresponding to an internal (0x30) or external (0x50) stream
      * - various flags/config fields
      * - channels, ?, sample rate, average bit rate?, samples, full stream_size?, codec, etc
      * - subtable entries, subtable size (may contain offsets/ids, cues, etc)
      * - extra data per codec (ex. XMA header in some versions) */
-    //todo skip tables when getting extradata
     ;VGM_LOG("BAO header at %lx\n", offset);
     bao->version = bao_version;
 
@@ -496,14 +518,12 @@ static int parse_bao(ubi_bao_header * bao, STREAMFILE *streamFile, off_t offset)
 
             bao->prefetch_size = read_32bit(offset + header_size + 0x74, streamFile);
 
-            //todo use flags?
-            if (bao->header_codec == 0x09) {
+            if (bao->codec == RAW_DSP) {
                 bao->extradata_offset = offset+header_size+0x80; /* mini DSP header */
             }
-            if (bao->header_codec == 0x05 && !bao->is_external) {
+            if (bao->codec == RAW_XMA1 && !bao->is_external) {
                 bao->extradata_offset = offset+header_size + 0x7c; /* XMA header */
             }
-            //todo external XMA may use blocked layout + layered layout
 
             break;
 
@@ -559,7 +579,7 @@ static int parse_bao(ubi_bao_header * bao, STREAMFILE *streamFile, off_t offset)
 
             bao->prefetch_size = read_32bit(offset+header_size+0x84, streamFile);
 
-            if (bao->header_codec == 0x04 && !bao->is_external) {
+            if (bao->codec == RAW_XMA2 && !bao->is_external) {
                 bao->extradata_offset = offset + header_size + 0x8c; /* XMA header */
             }
 
@@ -593,7 +613,7 @@ static int parse_bao(ubi_bao_header * bao, STREAMFILE *streamFile, off_t offset)
 
             bao->prefetch_size = read_32bit(offset + header_size + 0x78, streamFile);
 
-            if (bao->header_codec == 0x04 && !bao->is_external) {
+            if (bao->codec == RAW_XMA2 && !bao->is_external) {
                 bao->extradata_offset = offset+header_size + 0x8c; /* XMA header */
             }
 
