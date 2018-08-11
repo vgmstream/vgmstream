@@ -17,7 +17,7 @@ void render_vgmstream_layered(sample * buffer, int32_t sample_count, VGMSTREAM *
 
     while (samples_done < sample_count) {
         int32_t samples_to_do = LAYER_BUF_SIZE;
-        int layer;
+        int layer, ch = 0;
 
         if (samples_to_do > sample_count - samples_done)
             samples_to_do = sample_count - samples_done;
@@ -31,13 +31,14 @@ void render_vgmstream_layered(sample * buffer, int32_t sample_count, VGMSTREAM *
             for (l_ch = 0; l_ch < layer_channels; l_ch++) {
                 for (s = 0; s < samples_to_do; s++) {
                     size_t layer_sample = s*layer_channels + l_ch;
-                    size_t buffer_sample = (samples_done+s)*vgmstream->channels + (layer*layer_channels+l_ch);
+                    size_t buffer_sample = (samples_done+s)*vgmstream->channels + ch;
 
                     buffer[buffer_sample] = interleave_buf[layer_sample];
                 }
+                ch++;
             }
-
         }
+
 
         samples_done += samples_to_do;
     }
