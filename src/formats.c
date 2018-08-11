@@ -9,11 +9,12 @@
 
 
 static const char* extension_list[] = {
-    //"", /* vgmstream can plays extensionless files too, but plugins must accept them manually */
+    //"", /* vgmstream can play extensionless files too, but plugins must accept them manually */
 
     "04sw",
     "2dx9",
     "2pfs",
+    "800",
 
     //"aac", //common, also tri-Ace's
     "aa3", //FFmpeg, not parsed (ATRAC3/ATRAC3PLUS/MP3/LPCM/WMA)

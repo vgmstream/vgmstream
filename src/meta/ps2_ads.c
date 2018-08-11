@@ -18,8 +18,9 @@ VGMSTREAM * init_vgmstream_ps2_ads(STREAMFILE *streamFile) {
      * .ss2: demuxed videos (fake?)
      * .pcm: Taisho Mononoke Ibunroku (PS2)
      * .adx: Armored Core 3 (PS2)
-     * [no actual extension]: MotoGP (PS2) */
-    if (!check_extensions(streamFile, "ads,ss2,pcm,adx,"))
+     * [no actual extension]: MotoGP (PS2)
+     * .800: Mobile Suit Gundam: The One Year War (PS2) */
+    if (!check_extensions(streamFile, "ads,ss2,pcm,adx,,800"))
         goto fail;
 
     if (read_32bitBE(0x00,streamFile) != 0x53536864 &&  /* "SShd" */
@@ -197,7 +198,6 @@ VGMSTREAM * init_vgmstream_ps2_ads(STREAMFILE *streamFile) {
                 loop_start_sample = loop_start;
                 loop_end_sample = loop_end;
                 is_loop_samples = 1;
-                VGM_LOG("1\n");
             }
         }
 
