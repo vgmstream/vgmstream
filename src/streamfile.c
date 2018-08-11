@@ -1095,3 +1095,31 @@ void get_streamfile_ext(STREAMFILE *streamFile, char * filename, size_t size) {
     streamFile->get_name(streamFile,filename,size);
     strcpy(filename, filename_extension(filename));
 }
+
+/* debug util, mainly for custom IO testing */
+void dump_streamfile(STREAMFILE *streamFile, const char* out) {
+    off_t offset = 0;
+    FILE *f = NULL;
+
+    if (out) {
+        f = fopen(out,"wb");
+        if (!f) return;
+    }
+
+    VGM_LOG("dump streamfile, size: %x\n", get_streamfile_size(streamFile));
+    while (offset < get_streamfile_size(streamFile)) {
+        uint8_t buffer[0x8000];
+        size_t read;
+
+        read = read_streamfile(buffer,offset,0x8000,streamFile);
+        if (out)
+            fwrite(buffer,sizeof(uint8_t),read, f);
+        else
+            VGM_LOGB(buffer,read,0);
+        offset += read;
+    }
+
+    if (out) {
+        fclose(f);
+    }
+}
