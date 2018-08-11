@@ -251,8 +251,8 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
                 /* older Wwise (~<2012) */
 
                 switch(vorb_size) {
-                    case 0x2C: /* earliest (~2009), ex. UFC Undisputed 2009 (PS3), some EVE Online Apocrypha files? */
-                    case 0x28: /* early (~2009), ex. The Lord of the Rings: Conquest (PC) */
+                    case 0x2C: /* earliest (~2009), [UFC Undisputed 2009 (PS3), some EVE Online Apocrypha (PC)?] */
+                    case 0x28: /* early (~2009) [The Lord of the Rings: Conquest (PC)] */
                         data_offsets = 0x18;
                         block_offsets = 0; /* no need, full headers are present */
                         cfg.header_type = WWV_TYPE_8;
@@ -260,21 +260,23 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
                         cfg.setup_type = WWV_HEADER_TRIAD;
                         break;
 
-                    //case 0x32:  /* ? */
                     case 0x34:  /* common (2010~2011) */
+                    case 0x32:  /* very rare (mid 2011) [Saints Row the 3rd (PC)] */
                         data_offsets = 0x18;
                         block_offsets = 0x30;
                         cfg.header_type = WWV_TYPE_6;
                         cfg.packet_type = WWV_STANDARD;
                         cfg.setup_type = WWV_EXTERNAL_CODEBOOKS; /* setup_type will be corrected later */
                         break;
-                    case 0x2a:  /* uncommon (mid 2011), ex. infamous 2 PS3 */
+
+                    case 0x2a:  /* uncommon (mid 2011), [inFamous 2 (PS3)] */
                         data_offsets = 0x10;
                         block_offsets = 0x28;
                         cfg.header_type = WWV_TYPE_2;
                         cfg.packet_type = WWV_MODIFIED;
                         cfg.setup_type = WWV_EXTERNAL_CODEBOOKS;
                         break;
+
                     default:
                         VGM_LOG("WWISE: unknown vorb size 0x%x\n", vorb_size);
                         goto fail;
