@@ -1,5 +1,5 @@
-#ifndef _OPUS_CAPCOM_STREAMFILE_H_
-#define _OPUS_CAPCOM_STREAMFILE_H_
+#ifndef _OPUS_INTERLEAVE_STREAMFILE_H_
+#define _OPUS_INTERLEAVE_STREAMFILE_H_
 #include "../streamfile.h"
 
 
@@ -10,7 +10,6 @@ typedef struct {
     int skip_frames; /* frames to skip from other streams at points */
 
     /* config */
-    int version;
     int streams;
     off_t start_offset; /* pointing to the stream's beginning */
     size_t total_size; /* size of the resulting substream */
@@ -111,7 +110,7 @@ static size_t opus_interleave_io_size(STREAMFILE *streamfile, opus_interleave_io
 }
 
 
-/* Prepares custom IO for multistream Opus, interleaves 1 packet per stream */
+/* Prepares custom IO for multistream, interleaves 1 packet per stream */
 static STREAMFILE* setup_opus_interleave_streamfile(STREAMFILE *streamFile, off_t start_offset, int streams) {
     STREAMFILE *temp_streamFile = NULL, *new_streamFile = NULL;
     opus_interleave_io_data io_data = {0};
@@ -143,4 +142,4 @@ fail:
     return NULL;
 }
 
-#endif /* _OPUS_CAPCOM_STREAMFILE_H_ */
+#endif /* _OPUS_INTERLEAVE_STREAMFILE_H_ */
