@@ -35,7 +35,7 @@ VGMSTREAM * init_vgmstream_bgw(STREAMFILE *streamFile) {
     /*0x2c: unk (vol?) */
     /*0x2d: unk (0x10?) */
     channel_count = read_8bit(0x2e,streamFile);
-    block_align = read_8bit(0x2f,streamFile);
+    block_align = (uint8_t)read_8bit(0x2f,streamFile);
 
     if (file_size != get_streamfile_size(streamFile))
         goto fail;
