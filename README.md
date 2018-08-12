@@ -26,10 +26,18 @@ In the case of the foobar2000 component they are all bundled for convenience,
 or you can get them here: https://github.com/kode54/vgmstream/tree/master/ext_libs
 (bundled here: https://f.losno.co/vgmstream-win32-deps.zip, may not be latest).
 
-Put ```libvorbis.dll```, ```libmpg123-0.dll```, ```libg7221_decode.dll```, ```libg719_decode.dll```,
-```avcodec-vgmstream-58.dll```, ```avformat-vgmstream-58.dll```, ```avutil-vgmstream-56.dll```, ```swresample-vgmstream-3.dll```
-and ```libatrac9.dll``` somewhere Windows can
-find them.
+Put the following files somewhere Windows can find them:
+- `libvorbis.dll`
+- `libmpg123-0.dll`
+- `libg7221_decode.dll`
+- `libg719_decode.dll`
+- `avcodec-vgmstream-58.dll`
+- `avformat-vgmstream-58.dll`
+- `avutil-vgmstream-56.dll`
+- `swresample-vgmstream-3.dll`
+- `libatrac9.dll`
+- `libcelt-0061.dll`
+- `libcelt-0110.dll`
 
 For Winamp/XMPlay/command line this means in the directory with the main .exe,
 or in a system directory, or any other directory in the PATH variable.
@@ -48,7 +56,7 @@ Options:
     -c: loop forever (continuously)
     -m: print metadata only, don't decode
     -x: decode and print adxencd command line to encode as ADX
-    -g: decode and print oggenc command line to encode as OGG
+2    -g: decode and print oggenc command line to encode as OGG
     -b: decode and print batch variable commands
     -L: append a smpl chunk and create a looping wav
     -e: force end-to-end looping
@@ -124,6 +132,7 @@ vgmstream (mainly to get looping in some cases).
 - .ac3 to .lac3
 - .aif to .aiffl or .aifcl 
 - .asf to .sng (EA formats)
+- .flac to .lflac
 - .mp4 to .lmp4
 - .ogg to .logg
 - .opus to .lopus
@@ -192,16 +201,16 @@ are used in few games.
 - Nintendo AFC ADPCM
 - ITU-T G.721
 - CD-ROM XA ADPCM
-- Sony PSX ADPCM a.k.a VAG (standard, badflags, bmdx, configurable)
+- Sony PSX ADPCM a.k.a VAG (standard, badflags, configurable)
 - Sony HEVAG
 - Electronic Arts EA-XA (stereo, mono, Maxis)
 - Electronic Arts EA-XAS
 - DVI/IMA ADPCM (stereo/mono + high/low nibble, 3DS, Omikron, SNDS, etc)
-- Microsoft MS IMA ADPCM (standard, Xbox, NDS, Radical, Wwise, FSB, etc)
-- Microsoft MS ADPCM
-- Westwood VBR ADPCM 
-- Yamaha AICA ADPCM 
-- Procyon Studio ADPCM 
+- Microsoft MS IMA ADPCM (standard, Xbox, NDS, Radical, Wwise, FSB, WV6, etc)
+- Microsoft MS ADPCM (standard, Cricket Audio)
+- Westwood VBR ADPCM
+- Yamaha AICA ADPCM
+- Procyon Studio ADPCM
 - Level-5 0x555 ADPCM
 - Activision EXAKT SASSC DPCM
 - lsf ADPCM
@@ -215,6 +224,8 @@ are used in few games.
 - CRI HCA
 - Electronic Arts MicroTalk a.k.a. UTK or UMT
 - FMOD FADPCM 4-bit ADPCM
+- Konami XMD 4-bit ADPCM
+- Argonaut ASF 4-bit ADPCM
 - Xiph Vorbis (Ogg, FSB5, Wwise, OGL, Silicon Knights)
 - MPEG MP1/2/3 (standard, AHX, XVAG, FSB, AWC, P3D, etc)
 - ITU-T G.722.1 (Polycom Siren 7)
@@ -230,6 +241,7 @@ are used in few games.
 - Bink
 - AC3/SPDIF
 - Xiph Opus (Ogg, Switch)
+- Xiph CELT (FSB)
 - Musepack
 - FLAC
 - Others
