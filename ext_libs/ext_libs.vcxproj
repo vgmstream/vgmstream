@@ -95,15 +95,20 @@
       <Command>lib /def:swresample-vgmstream-3.def /machine:x86 /out:swresample.lib</Command>
       <Outputs>swresample.lib;swresample.exp;%(Outputs)</Outputs>
     </CustomBuild>
-  </ItemGroup>
-  <ItemGroup>
     <CustomBuild Include="libatrac9.def">
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">lib /def:libatrac9.def /machine:x86 /out:libatrac9.lib</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">lib /def:libatrac9.def /machine:x86 /out:libatrac9.lib</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Building library stub</Message>
-      <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Building library stub</Message>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">libatrac9.lib;libatrac9.exp;%(Outputs)</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">libatrac9.lib;libatrac9.exp;%(Outputs)</Outputs>
+      <Message>Building library stub</Message>
+      <Command>lib /def:libatrac9.def /machine:x86 /out:libatrac9.lib</Command>
+      <Outputs>libatrac9.lib;libatrac9.exp;%(Outputs)</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="libcelt-0061.def">
+      <Message>Building library stub</Message>
+      <Command>lib /def:libcelt-0061.def /machine:x86 /out:libcelt-0061.lib</Command>
+      <Outputs>libcelt-0061.lib;libcelt-0061.exp;%(Outputs)</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="libcelt-0110.def">
+      <Message>Building library stub</Message>
+      <Command>lib /def:libcelt-0110.def /machine:x86 /out:libcelt-0110.lib</Command>
+      <Outputs>libcelt-0110.lib;libcelt-0110.exp;%(Outputs)</Outputs>
     </CustomBuild>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
