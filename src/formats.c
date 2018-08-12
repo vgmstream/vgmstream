@@ -9,11 +9,12 @@
 
 
 static const char* extension_list[] = {
-    //"", /* vgmstream can plays extensionless files too, but plugins must accept them manually */
+    //"", /* vgmstream can play extensionless files too, but plugins must accept them manually */
 
     "04sw",
     "2dx9",
     "2pfs",
+    "800",
 
     //"aac", //common, also tri-Ace's
     "aa3", //FFmpeg, not parsed (ATRAC3/ATRAC3PLUS/MP3/LPCM/WMA)
@@ -421,6 +422,7 @@ static const char* extension_list[] = {
     "wpd",
     "wsd",
     "wsi",
+    "wua",
     "wv2", //txth/reserved [Slave Zero (PC)]
     "wv6",
     "wve",
@@ -601,6 +603,9 @@ static const coding_info coding_info_list[] = {
 #ifdef VGM_USE_ATRAC9
         {coding_ATRAC9,             "ATRAC9"},
 #endif
+#ifdef VGM_USE_CELT
+        {coding_CELT_FSB,           "Custom CELT"},
+#endif
 #ifdef VGM_USE_FFMPEG
         {coding_FFmpeg,             "FFmpeg"},
 #endif
@@ -695,7 +700,7 @@ static const meta_info meta_info_list[] = {
         {meta_DSP_JETTERS,          "Double DSP header stereo by _lr.dsp extension"},
         {meta_DSP_MSS,              "Double DSP header stereo by .mss extension"},
         {meta_DSP_GCM,              "Double DSP header stereo by .gcm extension"},
-        {meta_DSP_WII_IDSP,         "Wii IDSP Double DSP header"},
+        {meta_IDSP_TT,              "Traveller's Tales IDSP header"},
         {meta_RSTM_SPM,             "Nintendo RSTM header and .brstmspm extension"},
         {meta_RAW,                  "assumed RAW PCM file by .raw extension"},
         {meta_PS2_VAGi,             "Sony VAG Interleaved header (VAGi)"},
@@ -712,7 +717,7 @@ static const meta_info meta_info_list[] = {
         {meta_EA_SCHL,              "Electronic Arts SCHl header (variable)"},
         {meta_EA_SCHL_fixed,        "Electronic Arts SCHl header (fixed)"},
         {meta_CAF,                  "tri-Crescendo CAF Header"},
-        {meta_PS2_VPK,              "VPK Header"},
+        {meta_VPK,                  "SCE America VPK Header"},
         {meta_GENH,                 "GENH generic header"},
         {meta_DSP_SADB,             "Procyon Studio SADB header"},
         {meta_SADL,                 "Procyon Studio SADL header"},
@@ -815,7 +820,9 @@ static const meta_info meta_info_list[] = {
         {meta_FFXI_BGW,             "BGW BGMStream header"},
         {meta_FFXI_SPW,             "SPW SeWave header"},
         {meta_PS2_ASS,              "ASS Header"},
-        {meta_IDSP,                 "IDSP Header"},
+        {meta_NUB_IDSP,             "Namco NUB IDSP header"},
+        {meta_IDSP_NL,              "Next Level IDSP header"},
+        {meta_IDSP_IE,              "Inevitable Entertainment IDSP Header"},
         {meta_UBI_JADE,             "Ubisoft Jade RIFF header"},
         {meta_PS2_SEG,              "SEG (PS2) Header"},
         {meta_XBOX_SEG,             "SEG (XBOX) Header"},

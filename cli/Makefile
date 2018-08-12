@@ -87,6 +87,13 @@ ifeq ($(VGM_ENABLE_ATRAC9),1)
   TARGET_EXT_LIBS += libatrac9.a
 endif
 
+VGM_ENABLE_CELT = 1
+ifeq ($(VGM_ENABLE_CELT),1) 
+  CFLAGS  += -DVGM_USE_CELT
+  LDFLAGS += -lcelt-0061 -lcelt-0110
+  TARGET_EXT_LIBS += libcelt-0061.a libcelt-0110.a
+endif
+
 endif #if WIN32
 
 export CFLAGS LDFLAGS

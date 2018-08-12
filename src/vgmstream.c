@@ -141,13 +141,13 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_sat_sap,
     init_vgmstream_dc_idvi,
     init_vgmstream_ps2_rnd,
-    init_vgmstream_wii_idsp,
+    init_vgmstream_idsp_tt,
     init_vgmstream_kraw,
     init_vgmstream_ps2_omu,
     init_vgmstream_ps2_xa2,
-    init_vgmstream_idsp2,
-    init_vgmstream_idsp3,
-    init_vgmstream_idsp4,
+    init_vgmstream_nub_idsp,
+    init_vgmstream_idsp_nl,
+    init_vgmstream_idsp_ie,
     init_vgmstream_ngc_ymf,
     init_vgmstream_sadl,
     init_vgmstream_ps2_ccc,
@@ -603,6 +603,12 @@ void reset_vgmstream(VGMSTREAM * vgmstream) {
     }
 #endif
 
+#ifdef VGM_USE_CELT
+    if (vgmstream->coding_type==coding_CELT_FSB) {
+        reset_celt_fsb(vgmstream);
+    }
+#endif
+
 #ifdef VGM_USE_FFMPEG
     if (vgmstream->coding_type==coding_FFmpeg) {
         reset_ffmpeg(vgmstream);
@@ -779,6 +785,13 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
 #ifdef VGM_USE_ATRAC9
     if (vgmstream->coding_type == coding_ATRAC9) {
         free_atrac9(vgmstream->codec_data);
+        vgmstream->codec_data = NULL;
+    }
+#endif
+
+#ifdef VGM_USE_CELT
+    if (vgmstream->coding_type == coding_CELT_FSB) {
+        free_celt_fsb(vgmstream->codec_data);
         vgmstream->codec_data = NULL;
     }
 #endif
@@ -1169,6 +1182,10 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_ATRAC9:
             return 0; /* varies with config data, usually 256 or 1024 */
 #endif
+#ifdef VGM_USE_CELT
+        case coding_CELT_FSB:
+            return 0; /* 512? */
+#endif
         default:
             return 0;
     }
@@ -1320,6 +1337,10 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
 #ifdef VGM_USE_ATRAC9
         case coding_ATRAC9:
             return 0; /* varies with config data, usually 0x100-200 */
+#endif
+#ifdef VGM_USE_CELT
+        case coding_CELT_FSB:
+            return 0; /* varies, usually 0x80-100 */
 #endif
         default: /* Vorbis, MPEG, ACM, etc */
             return 0;
@@ -1845,6 +1866,14 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                           vgmstream->channels);
             break;
 #endif
+#ifdef VGM_USE_CELT
+        case coding_CELT_FSB:
+            decode_celt_fsb(vgmstream,
+                          buffer+samples_written*vgmstream->channels,
+                          samples_to_do,
+                          vgmstream->channels);
+            break;
+#endif
         case coding_ACM:
             decode_acm(vgmstream->codec_data,
                     buffer+samples_written*vgmstream->channels,
@@ -2088,6 +2117,12 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream) {
 #ifdef VGM_USE_ATRAC9
         if (vgmstream->coding_type==coding_ATRAC9) {
             seek_atrac9(vgmstream, vgmstream->loop_sample);
+        }
+#endif
+
+#ifdef VGM_USE_CELT
+        if (vgmstream->coding_type==coding_CELT_FSB) {
+            seek_celt_fsb(vgmstream, vgmstream->loop_sample);
         }
 #endif
 

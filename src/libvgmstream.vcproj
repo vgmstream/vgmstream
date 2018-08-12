@@ -233,6 +233,14 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\meta\fsb_interleave_streamfile.h"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\fsb5_interleave_streamfile.h"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\opus_interleave_streamfile.h"
                     >
                 </File>
@@ -1055,7 +1063,7 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\ps2_vag.c"
+					RelativePath=".\meta\vag.c"
 					>
 				</File>
 				<File
@@ -1083,7 +1091,7 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\ps2_vpk.c"
+					RelativePath=".\meta\vpk.c"
 					>
 				</File>
 				<File

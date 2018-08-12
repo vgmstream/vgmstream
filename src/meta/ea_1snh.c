@@ -184,7 +184,7 @@ static void set_ea_1snh_num_samples(STREAMFILE* streamFile, off_t start_offset, 
         else if (id == 0x31534E64 || id == 0x534E4443) {  /* "1SNd" "SNDC" audio data */
             block_header = 0x08;
         }
-        else if (id == 0x00000000) {
+        else if (id == 0x00000000 || id == 0xFFFFFFFF || id == 0x31534E65) { /* EOF or "1SNe" */
             break;
         }
         else if (id == 0x31534E6C) {  /* "1SNl" loop point found */

@@ -11,12 +11,23 @@ void block_update_ea_1snh(off_t block_offset, VGMSTREAM * vgmstream) {
     size_t file_size = get_streamfile_size(streamFile);
 
 
+    /* EOF reads: signal we have nothing and let the layout fail */
+    if (block_offset >= file_size) {
+        vgmstream->current_block_offset = block_offset;
+        vgmstream->next_block_offset = block_offset;
+        vgmstream->current_block_samples = -1;
+        return;
+    }
+
+
     while (block_offset < file_size) {
         uint32_t id = read_32bitBE(block_offset+0x00,streamFile);
 
-        block_size  =   read_32bitLE(block_offset+0x04,streamFile);
-        if (block_size > 0x00F00000) /* BE in SAT, but one file may have both BE and LE chunks */
+        /* BE in SAT, but one file may have both BE and LE chunks [FIFA 98 (SAT): movie LE, audio BE] */
+        if (guess_endianness32bit(block_offset+0x04,streamFile))
             block_size = read_32bitBE(block_offset+0x04,streamFile);
+        else
+            block_size = read_32bitLE(block_offset+0x04,streamFile);
 
         block_header = 0;
 
@@ -31,7 +42,8 @@ void block_update_ea_1snh(off_t block_offset, VGMSTREAM * vgmstream) {
         else if (id == 0x31534E64 || id == 0x534E4443) {  /* "1SNd" "SNDC" audio data */
             block_header = 0x08;
         }
-        else if (id == 0x00000000) {
+        else if (id == 0x00000000 || id == 0xFFFFFFFF || id == 0x31534E65) { /* EOF or "1SNe" */
+            vgmstream->current_block_samples = -1;
             break;
         }
 
@@ -42,9 +54,13 @@ void block_update_ea_1snh(off_t block_offset, VGMSTREAM * vgmstream) {
         block_offset += block_size;
     }
 
+    VGM_LOG("of=%lx, next=%lx, data=%x\n", block_offset, block_offset + block_size, block_size);//getchar();
+
     vgmstream->current_block_offset = block_offset;
     vgmstream->next_block_offset    = block_offset + block_size;
     vgmstream->current_block_size   = block_size - block_header;
+    if (vgmstream->current_block_samples == -1)
+        return;
 
 
     /* set new channel offsets and block sizes */

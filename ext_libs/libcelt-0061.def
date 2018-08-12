@@ -1,0 +1,8 @@
+LIBRARY libcelt-0061.dll
+EXPORTS
+celt_0061_decode
+celt_0061_decoder_create
+celt_0061_decoder_destroy
+celt_0061_mode_create
+celt_0061_mode_destroy
+celt_0061_mode_info

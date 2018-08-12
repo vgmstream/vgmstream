@@ -11,6 +11,7 @@ atrac9_codec_data *init_atrac9(atrac9_config *cfg) {
     atrac9_codec_data *data = NULL;
 
     data = calloc(1, sizeof(atrac9_codec_data));
+    if (!data) goto fail;
 
     data->handle = Atrac9GetHandle();
     if (!data->handle) goto fail;
@@ -41,6 +42,7 @@ atrac9_codec_data *init_atrac9(atrac9_config *cfg) {
     return data;
 
 fail:
+    free_atrac9(data);
     return NULL;
 }
 

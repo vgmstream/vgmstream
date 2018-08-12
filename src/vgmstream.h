@@ -30,6 +30,7 @@ enum { STREAM_NAME_SIZE = 255 }; /* reasonable max */
 //#define VGM_USE_MAIATRAC3PLUS
 //#define VGM_USE_FFMPEG
 //#define VGM_USE_ATRAC9
+//#define VGM_USE_CELT
 
 
 #ifdef VGM_USE_VORBIS
@@ -207,6 +208,10 @@ typedef enum {
     coding_ATRAC9,          /* Sony ATRAC9 (MDCT-based) */
 #endif
 
+#ifdef VGM_USE_CELT
+    coding_CELT_FSB,        /* Custom Xiph CELT (MDCT-based) */
+#endif
+
 #ifdef VGM_USE_FFMPEG
     coding_FFmpeg,          /* Formats handled by FFmpeg (ATRAC3, XMA, AC3, etc) */
 #endif
@@ -284,7 +289,7 @@ typedef enum {
     meta_DSP_STR,           /* Conan .str files */
     meta_DSP_SADB,          /* .sad */
     meta_DSP_WSI,           /* .wsi */
-    meta_DSP_WII_IDSP,      /* .gcm with IDSP header */
+    meta_IDSP_TT,           /* Traveller's Tales games */
     meta_DSP_WII_MUS,       /* .mus */
     meta_DSP_WII_WSD,       /* Phantom Brave (WII) */
     meta_WII_NDP,           /* Vertigo (Wii) */
@@ -345,7 +350,7 @@ typedef enum {
     meta_PS2_ILD,           /* ILD File */
     meta_PS2_PNB,           /* PsychoNauts Bgm File */
     meta_PS2_VAGs,          /* VAG Stereo from Kingdom Hearts */
-    meta_PS2_VPK,           /* VPK Audio File */
+    meta_VPK,               /* VPK Audio File */
     meta_PS2_BMDX,          /* Beatmania thing */
     meta_PS2_IVB,           /* Langrisser 3 IVB */
     meta_PS2_SND,           /* some Might & Magics SSND header */
@@ -396,7 +401,9 @@ typedef enum {
     meta_KRAW,              /* Geometry Wars - Galaxies */
     meta_PS2_OMU,           /* PS2 Int file with Header */
     meta_PS2_XA2,           /* XG3 Extreme-G Racing */
-    meta_IDSP,              /* Chronicles of Narnia, Soul Calibur Legends, Mario Strikers Charged */
+    meta_NUB_IDSP,          /* Soul Calibur Legends (Wii) */
+    meta_IDSP_NL,           /* Mario Strikers Charged (Wii) */
+    meta_IDSP_IE,           /* Defencer (GC) */
     meta_SPT_SPD,           /* Various (SPT+SPT DSP) */
     meta_ISH_ISD,           /* Various (ISH+ISD DSP) */
     meta_GSP_GSB,           /* Tecmo games (Super Swing Golf 1 & 2, Quamtum Theory) */
@@ -1028,8 +1035,6 @@ typedef enum {
     ATRAC9_DEFAULT = 0, /* ATRAC9 standard */
     ATRAC9_XVAG,        /* Sony XVAG: interleaved subsongs, Vita multichannel interleaves 2ch xN superframes */
     ATRAC9_KMA9,        /* Koei Tecmo KMA9: interleaved subsongs */
-  //ATRAC9_FSB,         /* FMOD FSB: Vita multichannel interleaves 2ch xN superframes */
-  //ATRAC9_EATRAX,      /* EA EATrax: buffered ATRAC9 in SPS blocks (superframes can be split between blocks) */
 } atrac9_custom_t;
 
 typedef struct {
@@ -1057,6 +1062,11 @@ typedef struct {
 
     void *handle; /* decoder handle */
 } atrac9_codec_data;
+#endif
+
+#ifdef VGM_USE_CELT
+typedef enum { CELT_0_06_1,CELT_0_11_0} celt_lib_t;
+typedef struct celt_codec_data celt_codec_data;
 #endif
 
 /* libacm interface */

@@ -381,6 +381,10 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
         xwb.loop_start_sample = msd.loop_start_sample;
         xwb.loop_end_sample   = msd.loop_end_sample;
 
+        /* for XWB v22 (and below?) this seems normal [Project Gotham Racing (X360)] */
+        if (xwb.num_samples == 0)
+            xwb.num_samples   = msd.num_samples;
+
         // todo fix properly (XWB loop_start/end seem to count padding samples while XMA1 RIFF doesn't)
         //this doesn't seem ok because can fall within 0 to 512 (ie.- first frame, 384)
         //if (xwb.loop_start_sample) xwb.loop_start_sample -= 512;
