@@ -503,7 +503,6 @@ static layered_layout_data* build_layered_fsb5_celt(STREAMFILE *streamFile, fsb5
 
 fail:
     close_streamfile(temp_streamFile);
-    for (i = 0; i < layers; i++)
-        close_vgmstream(data->layers[i]);
+    free_layout_layered(data);
     return NULL;
 }
