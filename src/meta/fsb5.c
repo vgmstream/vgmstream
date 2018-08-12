@@ -33,7 +33,9 @@ typedef struct {
 
 /* ********************************************************************************** */
 
+#ifdef VGM_USE_CELT
 static layered_layout_data* build_layered_fsb5_celt(STREAMFILE *streamFile, fsb5_header* fsb5, celt_lib_t version);
+#endif
 static layered_layout_data* build_layered_fsb5_atrac9(STREAMFILE *streamFile, fsb5_header* fsb5, off_t configs_offset, size_t configs_size);
 
 /* FSB5 - FMOD Studio multiplatform format */
@@ -454,6 +456,7 @@ fail:
     return NULL;
 }
 
+#ifdef VGM_USE_CELT
 static layered_layout_data* build_layered_fsb5_celt(STREAMFILE *streamFile, fsb5_header* fsb5, celt_lib_t version) {
     layered_layout_data* data = NULL;
     STREAMFILE* temp_streamFile = NULL;
@@ -490,14 +493,10 @@ static layered_layout_data* build_layered_fsb5_celt(STREAMFILE *streamFile, fsb5
         data->layers[i]->loop_start_sample = fsb5->loop_start;
         data->layers[i]->loop_end_sample = fsb5->loop_end;
 
-#ifdef VGM_USE_CELT
         data->layers[i]->codec_data = init_celt_fsb(layer_channels, version);
         if (!data->layers[i]->codec_data) goto fail;
         data->layers[i]->coding_type = coding_CELT_FSB;
         data->layers[i]->layout_type = layout_none;
-#else
-        goto fail;
-#endif
 
         temp_streamFile = setup_fsb5_interleave_streamfile(streamFile, fsb5->stream_offset, fsb5->stream_size, layers, i, FSB5_INT_CELT, interleave);
         if (!temp_streamFile) goto fail;
@@ -517,6 +516,7 @@ fail:
     free_layout_layered(data);
     return NULL;
 }
+#endif
 
 static layered_layout_data* build_layered_fsb5_atrac9(STREAMFILE *streamFile, fsb5_header* fsb5, off_t configs_offset, size_t configs_size) {
     layered_layout_data* data = NULL;
