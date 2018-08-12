@@ -35,7 +35,13 @@ libswresample.a: swresample-vgmstream-3.dll swresample-vgmstream-3.def
 libatrac9.a: libatrac9.dll libatrac9.def
 	$(DLLTOOL) -D libatrac9.dll -d libatrac9.def -l libatrac9.a
 
+libcelt-0061.a: libcelt-0061.dll libcelt-0061.def
+	$(DLLTOOL) -D libcelt-0061.dll -d libcelt-0061.def -l libcelt-0061.a
+
+libcelt-0110.a: libcelt-0110.dll libcelt-0110.def
+	$(DLLTOOL) -D libcelt-0110.dll -d libcelt-0110.def -l libcelt-0110.a
+
 clean:
-	$(RMF) libvorbis.a libmpg123-0.a libg7221_decode.a libg719_decode.a libavcodec.a libavformat.a libavutil.a libswresample.a libatrac9.a
+	$(RMF) libvorbis.a libmpg123-0.a libg7221_decode.a libg719_decode.a libavcodec.a libavformat.a libavutil.a libswresample.a libatrac9.a libcelt-0061.a libcelt-0110.a
 
 .PHONY: clean
