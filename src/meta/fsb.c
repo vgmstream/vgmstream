@@ -103,7 +103,9 @@ typedef struct {
 
 /* ********************************************************************************** */
 
+#ifdef VGM_USE_CELT
 static layered_layout_data* build_layered_fsb_celt(STREAMFILE *streamFile, fsb_header* fsb, celt_lib_t version);
+#endif
 
 /* FSB1~4 - from games using FMOD audio middleware */
 VGMSTREAM * init_vgmstream_fsb(STREAMFILE *streamFile) {
@@ -452,6 +454,7 @@ fail:
     return NULL;
 }
 
+#ifdef VGM_USE_CELT
 static layered_layout_data* build_layered_fsb_celt(STREAMFILE *streamFile, fsb_header* fsb, celt_lib_t version) {
     layered_layout_data* data = NULL;
     STREAMFILE* temp_streamFile = NULL;
@@ -504,6 +507,7 @@ fail:
     free_layout_layered(data);
     return NULL;
 }
+#endif
 
 /* ****************************************** */
 

@@ -33,7 +33,9 @@ typedef struct {
 
 /* ********************************************************************************** */
 
+#ifdef VGM_USE_CELT
 static layered_layout_data* build_layered_fsb5_celt(STREAMFILE *streamFile, fsb5_header* fsb5, celt_lib_t version);
+#endif
 static layered_layout_data* build_layered_fsb5_atrac9(STREAMFILE *streamFile, fsb5_header* fsb5, off_t configs_offset, size_t configs_size);
 
 /* FSB5 - FMOD Studio multiplatform format */
@@ -454,6 +456,7 @@ fail:
     return NULL;
 }
 
+#ifdef VGM_USE_CELT
 static layered_layout_data* build_layered_fsb5_celt(STREAMFILE *streamFile, fsb5_header* fsb5, celt_lib_t version) {
     layered_layout_data* data = NULL;
     STREAMFILE* temp_streamFile = NULL;
@@ -517,6 +520,7 @@ fail:
     free_layout_layered(data);
     return NULL;
 }
+#endif
 
 static layered_layout_data* build_layered_fsb5_atrac9(STREAMFILE *streamFile, fsb5_header* fsb5, off_t configs_offset, size_t configs_size) {
     layered_layout_data* data = NULL;
