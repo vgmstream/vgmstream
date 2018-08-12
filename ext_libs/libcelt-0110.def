@@ -1,0 +1,8 @@
+LIBRARY libcelt-0110.dll
+EXPORTS
+celt_0110_decode
+celt_0110_decoder_create_custom
+celt_0110_decoder_destroy
+celt_0110_mode_create
+celt_0110_mode_destroy
+celt_0110_mode_info
