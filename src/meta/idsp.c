@@ -1,11 +1,9 @@
 #include "meta.h"
-#include "../util.h"
 
-/*    "idsp/IDSP"
-    Soul Calibur Legends (Wii)
-    Sky Crawlers: Innocent Aces (Wii)
-*/
-VGMSTREAM * init_vgmstream_idsp2(STREAMFILE *streamFile) {
+//todo cleanup
+
+/* "idsp" - from Namco's Wii NUB archives [Soul Calibur Legends (Wii), Sky Crawlers: Innocent Aces (Wii)] */
+VGMSTREAM * init_vgmstream_nub_idsp(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[PATH_LIMIT];
     int loop_flag;
@@ -18,8 +16,8 @@ VGMSTREAM * init_vgmstream_idsp2(STREAMFILE *streamFile) {
     if (strcasecmp("idsp",filename_extension(filename))) goto fail;
 
     /* check header */
-    if (read_32bitBE(0x00,streamFile) != 0x69647370 || /* "idsp" */
-        read_32bitBE(0xBC,streamFile) != 0x49445350) /* IDSP */
+    if (read_32bitBE(0x00,streamFile) != 0x69647370 ||  /* "idsp" */
+        read_32bitBE(0xBC,streamFile) != 0x49445350)    /* "IDSP" */
         goto fail;
 
     loop_flag = read_32bitBE(0x20,streamFile);
@@ -56,7 +54,7 @@ VGMSTREAM * init_vgmstream_idsp2(STREAMFILE *streamFile) {
         }
     }
 
-    vgmstream->meta_type = meta_IDSP;
+    vgmstream->meta_type = meta_NUB_IDSP;
 
     {
         if (vgmstream->coding_type == coding_NGC_DSP) {
@@ -94,9 +92,8 @@ fail:
     return NULL;
 }
 
-/* IDSP (Mario Strikers Charged)
-    - Single "IDSP" header... */
-VGMSTREAM * init_vgmstream_idsp3(STREAMFILE *streamFile) {
+/* IDSP - from Next Level games [Mario Strikers Charged (Wii)] */
+VGMSTREAM * init_vgmstream_idsp_nl(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[PATH_LIMIT];
     int loop_flag = 1;
@@ -133,7 +130,7 @@ VGMSTREAM * init_vgmstream_idsp3(STREAMFILE *streamFile) {
     vgmstream->interleave_last_block_size = ((vgmstream->num_samples/7*8)%(vgmstream->interleave_block_size)/vgmstream->channels);
     vgmstream->layout_type = layout_interleave;
 
-    vgmstream->meta_type = meta_IDSP;
+    vgmstream->meta_type = meta_IDSP_NL;
 
     if (vgmstream->coding_type == coding_NGC_DSP) {
         int i;
@@ -170,8 +167,8 @@ fail:
     return NULL;
 }
 
-/* IDSP (Defender NGC) */
-VGMSTREAM * init_vgmstream_idsp4(STREAMFILE *streamFile) {
+/* IDSP - from Inevitable Entertainment games [Defender (GC)] */
+VGMSTREAM * init_vgmstream_idsp_ie(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[PATH_LIMIT];
     int loop_flag = 0;
@@ -212,7 +209,7 @@ VGMSTREAM * init_vgmstream_idsp4(STREAMFILE *streamFile) {
         vgmstream->interleave_block_size = read_32bitBE(0x10,streamFile);
     }
     
-    vgmstream->meta_type = meta_IDSP;
+    vgmstream->meta_type = meta_IDSP_IE;
 
     {
         int i;

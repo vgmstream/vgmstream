@@ -868,7 +868,7 @@ fail:
 }
 
 /* IDSP - Traveller's Tales header + interleaved dsps [Lego Batman (Wii), Lego Dimensions (Wii U)] */
-VGMSTREAM * init_vgmstream_wii_idsp(STREAMFILE *streamFile) {
+VGMSTREAM * init_vgmstream_idsp_tt(STREAMFILE *streamFile) {
     dsp_meta dspm = {0};
     int version_main, version_sub;
 

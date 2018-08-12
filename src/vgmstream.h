@@ -401,7 +401,9 @@ typedef enum {
     meta_KRAW,              /* Geometry Wars - Galaxies */
     meta_PS2_OMU,           /* PS2 Int file with Header */
     meta_PS2_XA2,           /* XG3 Extreme-G Racing */
-    meta_IDSP,              /* Chronicles of Narnia, Soul Calibur Legends, Mario Strikers Charged */
+    meta_NUB_IDSP,          /* Soul Calibur Legends (Wii) */
+    meta_IDSP_NL,           /* Mario Strikers Charged (Wii) */
+    meta_IDSP_IE,           /* Defencer (GC) */
     meta_SPT_SPD,           /* Various (SPT+SPT DSP) */
     meta_ISH_ISD,           /* Various (ISH+ISD DSP) */
     meta_GSP_GSB,           /* Tecmo games (Super Swing Golf 1 & 2, Quamtum Theory) */
