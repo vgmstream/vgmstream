@@ -479,14 +479,10 @@ static layered_layout_data* build_layered_fsb_celt(STREAMFILE *streamFile, fsb_h
         data->layers[i]->loop_start_sample = fsb->loop_start;
         data->layers[i]->loop_end_sample = fsb->loop_end;
 
-#ifdef VGM_USE_CELT
         data->layers[i]->codec_data = init_celt_fsb(layer_channels, version);
         if (!data->layers[i]->codec_data) goto fail;
         data->layers[i]->coding_type = coding_CELT_FSB;
         data->layers[i]->layout_type = layout_none;
-#else
-        goto fail;
-#endif
 
         temp_streamFile = setup_fsb_interleave_streamfile(streamFile, fsb->stream_offset, fsb->stream_size, layers, i, FSB_INT_CELT);
         if (!temp_streamFile) goto fail;
