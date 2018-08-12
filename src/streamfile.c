@@ -1098,6 +1098,7 @@ void get_streamfile_ext(STREAMFILE *streamFile, char * filename, size_t size) {
 
 /* debug util, mainly for custom IO testing */
 void dump_streamfile(STREAMFILE *streamFile, const char* out) {
+#ifdef VGM_DEBUG_OUTPUT
     off_t offset = 0;
     FILE *f = NULL;
 
@@ -1122,4 +1123,5 @@ void dump_streamfile(STREAMFILE *streamFile, const char* out) {
     if (out) {
         fclose(f);
     }
+#endif
 }
