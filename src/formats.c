@@ -716,7 +716,7 @@ static const meta_info meta_info_list[] = {
         {meta_EA_SCHL,              "Electronic Arts SCHl header (variable)"},
         {meta_EA_SCHL_fixed,        "Electronic Arts SCHl header (fixed)"},
         {meta_CAF,                  "tri-Crescendo CAF Header"},
-        {meta_PS2_VPK,              "VPK Header"},
+        {meta_VPK,                  "SCE America VPK Header"},
         {meta_GENH,                 "GENH generic header"},
         {meta_DSP_SADB,             "Procyon Studio SADB header"},
         {meta_SADL,                 "Procyon Studio SADL header"},
