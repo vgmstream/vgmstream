@@ -670,7 +670,7 @@
     <ClCompile Include="meta\ps2_voi.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\ps2_vpk.c">
+    <ClCompile Include="meta\vpk.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ps2_wad.c">

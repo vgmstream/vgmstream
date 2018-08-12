@@ -366,7 +366,7 @@
     <ClCompile Include="meta\ps2_vgv.c" />
     <ClCompile Include="meta\ps2_vms.c" />
     <ClCompile Include="meta\ps2_voi.c" />
-    <ClCompile Include="meta\ps2_vpk.c" />
+    <ClCompile Include="meta\vpk.c" />
     <ClCompile Include="meta\ps2_wad.c" />
     <ClCompile Include="meta\ps2_wb.c" />
     <ClCompile Include="meta\ps2_xa2.c" />

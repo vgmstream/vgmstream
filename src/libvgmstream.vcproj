@@ -1091,7 +1091,7 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\ps2_vpk.c"
+					RelativePath=".\meta\vpk.c"
 					>
 				</File>
 				<File
