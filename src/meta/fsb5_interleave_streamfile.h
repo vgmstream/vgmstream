@@ -169,9 +169,9 @@ static STREAMFILE* setup_fsb5_interleave_streamfile(STREAMFILE *streamFile, off_
     io_data.interleave = interleave;
     io_data.stream_count = stream_count;
     io_data.stream_number = stream_number;
-    io_data.stream_size = stream_size;
+    io_data.stream_size = stream_size; /* full size for all streams */
 
-    io_data.total_size = fsb_interleave_io_size(streamFile, &io_data); /* force init */
+    io_data.total_size = fsb_interleave_io_size(streamFile, &io_data); /* force init, size of a single stream */
 
     if (io_data.total_size == 0 || io_data.total_size > io_data.stream_size) {
         VGM_LOG("FSB5 INTERLEAVE: wrong total_size %x vs %x\n", io_data.total_size,io_data.stream_size);

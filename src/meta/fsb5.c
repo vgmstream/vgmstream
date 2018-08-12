@@ -34,6 +34,7 @@ typedef struct {
 /* ********************************************************************************** */
 
 static layered_layout_data* build_layered_fsb5_celt(STREAMFILE *streamFile, fsb5_header* fsb5, celt_lib_t version);
+static layered_layout_data* build_layered_fsb5_atrac9(STREAMFILE *streamFile, fsb5_header* fsb5, off_t configs_offset, size_t configs_size);
 
 /* FSB5 - FMOD Studio multiplatform format */
 VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
@@ -337,8 +338,10 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
 #endif
 
 #ifdef VGM_USE_CELT
-        case 0x0C:  /* FMOD_SOUND_FORMAT_CELT  [BIT.TRIP Presents Runner2 (PC), Full Bore (PC)] */
-            if (fsb5.channels > 2) { /* multistreams */
+        case 0x0C: {  /* FMOD_SOUND_FORMAT_CELT  [BIT.TRIP Presents Runner2 (PC), Full Bore (PC)] */
+            int is_multistream = fsb5.channels > 2;
+
+            if (is_multistream) {
                 vgmstream->layout_data = build_layered_fsb5_celt(streamFile, &fsb5, CELT_0_11_0);
                 if (!vgmstream->layout_data) goto fail;
                 vgmstream->coding_type = coding_CELT_FSB;
@@ -351,35 +354,44 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
                 vgmstream->layout_type = layout_none;
             }
             break;
+        }
 #endif
 
 #ifdef VGM_USE_ATRAC9
         case 0x0D: {/* FMOD_SOUND_FORMAT_AT9 */
-            atrac9_config cfg = {0};
+            int is_multistream;
+            off_t configs_offset = fsb5.extradata_offset;
+            size_t configs_size = fsb5.extradata_size;
 
-            cfg.channels = vgmstream->channels;
-            switch(fsb5.extradata_size) {
-                case 0x04: /* Little Big Planet 2ch (Vita), Guacamelee (Vita) */
-                    cfg.config_data = read_32bitBE(fsb5.extradata_offset,streamFile);
-                    break;
-                case 0x08: /* Day of the Tentacle Remastered (Vita) */
-                    /* 0x00: superframe size (also in config_data) */
-                    cfg.config_data = read_32bitBE(fsb5.extradata_offset+0x04,streamFile);
-                    break;
-                //case 0x0c: /* Little Big Planet 6ch (Vita) */
-                //    //todo: this is just 0x04 x3, in case of 4ch would be 0x08 --must improve detection
-                //    //each stream has its own config_data (but seem to be the same), interleaves 1 super frame per stream
-                //    break;
-                default:
-                    VGM_LOG("FSB5: unknown extra info size 0x%x\n", fsb5.extradata_size);
-                    goto fail;
+
+            /* skip frame size in newer FSBs [Day of the Tentacle Remastered (Vita), Tearaway Unfolded (PS4)] */
+            if (configs_size >= 0x08 && (uint8_t)read_8bit(configs_offset, streamFile) != 0xFE) { /* ATRAC9 sync */
+                configs_offset += 0x04;
+                configs_size -= 0x04;
             }
-            //cfg.encoder_delay = 0x100; //todo not used? num_samples seems to count all data
 
-            vgmstream->codec_data = init_atrac9(&cfg);
-            if (!vgmstream->codec_data) goto fail;
-            vgmstream->coding_type = coding_ATRAC9;
-            vgmstream->layout_type = layout_none;
+            is_multistream = (configs_size / 0x04) > 1;
+
+            if (is_multistream) {
+                /* multichannel made of various streams [Little Big Planet (Vita)] */
+                vgmstream->layout_data = build_layered_fsb5_atrac9(streamFile, &fsb5, configs_offset, configs_size);
+                if (!vgmstream->layout_data) goto fail;
+                vgmstream->coding_type = coding_ATRAC9;
+                vgmstream->layout_type = layout_layered;
+            }
+            else {
+                /* standard ATRAC9, can be multichannel [Tearaway Unfolded (PS4)] */
+                atrac9_config cfg = {0};
+
+                cfg.channels = vgmstream->channels;
+                cfg.config_data = read_32bitBE(configs_offset,streamFile);
+                //cfg.encoder_delay = 0x100; //todo not used? num_samples seems to count all data
+
+                vgmstream->codec_data = init_atrac9(&cfg);
+                if (!vgmstream->codec_data) goto fail;
+                vgmstream->coding_type = coding_ATRAC9;
+                vgmstream->layout_type = layout_none;
+            }
             break;
         }
 #endif
@@ -490,9 +502,83 @@ static layered_layout_data* build_layered_fsb5_celt(STREAMFILE *streamFile, fsb5
         temp_streamFile = setup_fsb5_interleave_streamfile(streamFile, fsb5->stream_offset, fsb5->stream_size, layers, i, FSB5_INT_CELT, interleave);
         if (!temp_streamFile) goto fail;
 
-        if ( !vgmstream_open_stream(data->layers[i], temp_streamFile, 0x00) ) {
+        if (!vgmstream_open_stream(data->layers[i], temp_streamFile, 0x00))
             goto fail;
+    }
+
+    /* setup layered VGMSTREAMs */
+    if (!setup_layout_layered(data))
+        goto fail;
+    close_streamfile(temp_streamFile);
+    return data;
+
+fail:
+    close_streamfile(temp_streamFile);
+    free_layout_layered(data);
+    return NULL;
+}
+
+static layered_layout_data* build_layered_fsb5_atrac9(STREAMFILE *streamFile, fsb5_header* fsb5, off_t configs_offset, size_t configs_size) {
+    layered_layout_data* data = NULL;
+    STREAMFILE* temp_streamFile = NULL;
+    int i, layers = (configs_size / 0x04);
+    size_t interleave = 0;
+
+
+    /* init layout */
+    data = init_layout_layered(layers);
+    if (!data) goto fail;
+
+    /* open each layer subfile (2ch+2ch..+1/2ch) */
+    for (i = 0; i < layers; i++) {
+        uint32_t config = read_32bitBE(configs_offset + 0x04*i, streamFile);
+        int channel_index, layer_channels;
+        size_t frame_size;
+
+
+        /* parse ATRAC9 config (see VGAudio docs) */
+        channel_index = ((config >> 17) & 0x7);
+        frame_size = (((config >> 5) & 0x7FF) + 1) * (1 << ((config >> 3) & 0x2)); /* frame size * superframe index */
+        if (channel_index > 2)
+            goto fail; /* only 1/2ch expected */
+
+        layer_channels = (channel_index==0) ? 1 : 2;
+        if (interleave == 0)
+            interleave = frame_size;
+        //todo in test files with 2ch+..+1ch interleave is off (uses some strange padding)
+
+
+        /* build the layer VGMSTREAM */
+        data->layers[i] = allocate_vgmstream(layer_channels, fsb5->loop_flag);
+        if (!data->layers[i]) goto fail;
+
+        data->layers[i]->sample_rate = fsb5->sample_rate;
+        data->layers[i]->num_samples = fsb5->num_samples;
+        data->layers[i]->loop_start_sample = fsb5->loop_start;
+        data->layers[i]->loop_end_sample = fsb5->loop_end;
+
+#ifdef VGM_USE_ATRAC9
+        {
+            atrac9_config cfg = {0};
+
+            cfg.channels = layer_channels;
+            cfg.config_data = config;
+            //cfg.encoder_delay = 0x100; //todo not used? num_samples seems to count all data
+
+            data->layers[i]->codec_data = init_atrac9(&cfg);
+            if (!data->layers[i]->codec_data) goto fail;
+            data->layers[i]->coding_type = coding_ATRAC9;
+            data->layers[i]->layout_type = layout_none;
         }
+#else
+        goto fail;
+#endif
+
+        temp_streamFile = setup_fsb5_interleave_streamfile(streamFile, fsb5->stream_offset, fsb5->stream_size, layers, i, FSB5_INT_ATRAC9, interleave);
+        if (!temp_streamFile) goto fail;
+
+        if (!vgmstream_open_stream(data->layers[i], temp_streamFile, 0x00))
+            goto fail;
     }
 
     /* setup layered VGMSTREAMs */
