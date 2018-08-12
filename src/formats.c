@@ -422,6 +422,7 @@ static const char* extension_list[] = {
     "wpd",
     "wsd",
     "wsi",
+    "wua",
     "wv2", //txth/reserved [Slave Zero (PC)]
     "wv6",
     "wve",
@@ -699,7 +700,7 @@ static const meta_info meta_info_list[] = {
         {meta_DSP_JETTERS,          "Double DSP header stereo by _lr.dsp extension"},
         {meta_DSP_MSS,              "Double DSP header stereo by .mss extension"},
         {meta_DSP_GCM,              "Double DSP header stereo by .gcm extension"},
-        {meta_DSP_WII_IDSP,         "Wii IDSP Double DSP header"},
+        {meta_IDSP_TT,              "Traveller's Tales IDSP header"},
         {meta_RSTM_SPM,             "Nintendo RSTM header and .brstmspm extension"},
         {meta_RAW,                  "assumed RAW PCM file by .raw extension"},
         {meta_PS2_VAGi,             "Sony VAG Interleaved header (VAGi)"},

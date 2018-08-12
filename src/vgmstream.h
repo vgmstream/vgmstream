@@ -289,7 +289,7 @@ typedef enum {
     meta_DSP_STR,           /* Conan .str files */
     meta_DSP_SADB,          /* .sad */
     meta_DSP_WSI,           /* .wsi */
-    meta_DSP_WII_IDSP,      /* .gcm with IDSP header */
+    meta_IDSP_TT,           /* Traveller's Tales games */
     meta_DSP_WII_MUS,       /* .mus */
     meta_DSP_WII_WSD,       /* Phantom Brave (WII) */
     meta_WII_NDP,           /* Vertigo (Wii) */
