@@ -103,7 +103,9 @@ typedef struct {
 
 /* ********************************************************************************** */
 
+#ifdef VGM_USE_CELT
 static layered_layout_data* build_layered_fsb_celt(STREAMFILE *streamFile, fsb_header* fsb, celt_lib_t version);
+#endif
 
 /* FSB1~4 - from games using FMOD audio middleware */
 VGMSTREAM * init_vgmstream_fsb(STREAMFILE *streamFile) {
@@ -452,6 +454,7 @@ fail:
     return NULL;
 }
 
+#ifdef VGM_USE_CELT
 static layered_layout_data* build_layered_fsb_celt(STREAMFILE *streamFile, fsb_header* fsb, celt_lib_t version) {
     layered_layout_data* data = NULL;
     STREAMFILE* temp_streamFile = NULL;
@@ -476,14 +479,10 @@ static layered_layout_data* build_layered_fsb_celt(STREAMFILE *streamFile, fsb_h
         data->layers[i]->loop_start_sample = fsb->loop_start;
         data->layers[i]->loop_end_sample = fsb->loop_end;
 
-#ifdef VGM_USE_CELT
         data->layers[i]->codec_data = init_celt_fsb(layer_channels, version);
         if (!data->layers[i]->codec_data) goto fail;
         data->layers[i]->coding_type = coding_CELT_FSB;
         data->layers[i]->layout_type = layout_none;
-#else
-        goto fail;
-#endif
 
         temp_streamFile = setup_fsb_interleave_streamfile(streamFile, fsb->stream_offset, fsb->stream_size, layers, i, FSB_INT_CELT);
         if (!temp_streamFile) goto fail;
@@ -504,6 +503,7 @@ fail:
     free_layout_layered(data);
     return NULL;
 }
+#endif
 
 /* ****************************************** */
 
