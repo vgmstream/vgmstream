@@ -424,6 +424,7 @@
     <ClCompile Include="meta\waf.c" />
     <ClCompile Include="meta\wave_segmented.c" />
     <ClCompile Include="meta\wave.c" />
+    <ClCompile Include="meta\wavebatch.c" />
     <ClCompile Include="meta\wii_04sw.c" />
     <ClCompile Include="meta\wii_bns.c" />
     <ClCompile Include="meta\wii_mus.c" />

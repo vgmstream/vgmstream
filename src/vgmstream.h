@@ -696,6 +696,7 @@ typedef enum {
     meta_CKS,               /* Cricket Audio stream [Part Time UFO (Android), Mega Man 1-6 (Android)] */
     meta_CKB,               /* Cricket Audio bank [Fire Emblem Heroes (Android), Mega Man 1-6 (Android)] */
     meta_WV6,               /* Gorilla Systems PC games */
+    meta_WAVEBATCH,         /* Firebrand Games */
 
 #ifdef VGM_USE_FFMPEG
     meta_FFmpeg,

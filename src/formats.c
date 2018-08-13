@@ -412,6 +412,7 @@ static const char* extension_list[] = {
     "was",
     //"wav", //common
     "wave",
+    "wavebatch",
     "wavm",
     "wb",
     "wem",
@@ -1060,6 +1061,7 @@ static const meta_info meta_info_list[] = {
         {meta_CKS,                  "Cricket Audio CKS header"},
         {meta_CKB,                  "Cricket Audio CKB header"},
         {meta_WV6,                  "Gorilla Systems WV6 header"},
+        {meta_WAVEBATCH,            "Firebrand Games WBAT header"},
 
 #ifdef VGM_USE_FFMPEG
         {meta_FFmpeg,               "FFmpeg supported file format"},

@@ -1379,6 +1379,10 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\meta\wavebatch.c"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\wii_04sw.c"
                     >
                 </File>

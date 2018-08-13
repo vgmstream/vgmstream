@@ -767,4 +767,6 @@ VGMSTREAM * init_vgmstream_wv6(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_str_wav(STREAMFILE *streamFile);
 
+VGMSTREAM * init_vgmstream_wavebatch(STREAMFILE *streamFile);
+
 #endif /*_META_H*/
