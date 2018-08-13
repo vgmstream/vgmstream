@@ -184,7 +184,7 @@ VGMSTREAM * init_vgmstream_ea_abk_new(STREAMFILE *streamFile) {
     int is_dupe, total_sounds = 0, target_stream = streamFile->stream_index;
     off_t bnk_offset, header_table_offset, base_offset, unk_struct_offset, table_offset, snd_entry_offset, ast_offset;
     off_t num_entries_off, base_offset_off, entries_off, sound_table_offset_off;
-    uint32_t i, j, k, version, num_sounds, total_sound_tables;
+    uint32_t i, j, k, num_sounds, total_sound_tables;
     uint16_t num_tables, bnk_index, bnk_target_index;
     uint8_t num_entries, extra_entries;
     off_t sound_table_offsets[0x2000];
@@ -197,10 +197,6 @@ VGMSTREAM * init_vgmstream_ea_abk_new(STREAMFILE *streamFile) {
         goto fail;
 
     if (read_32bitBE(0x00, streamFile) != 0x41424B43) /* "ABKC" */
-        goto fail;
-
-    version = read_32bitBE(0x04, streamFile);
-    if (version != 0x01010202)
         goto fail;
 
     /* use table offset to check endianness */
@@ -222,6 +218,9 @@ VGMSTREAM * init_vgmstream_ea_abk_new(STREAMFILE *streamFile) {
     total_sound_tables = 0;
     bnk_target_index = 0xFFFF;
     ast_offset = 0;
+
+    if (!bnk_offset || read_32bitBE(bnk_offset, streamFile) != 0x53313041) /* "S10A" */
+        goto fail;
 
     /* set up some common values */
     if (header_table_offset == 0x5C) {
@@ -309,18 +308,17 @@ fail:
 
 /* EA S10A header - seen inside new ABK files. Putting it here in case it's encountered stand-alone. */
 static VGMSTREAM * parse_s10a_header(STREAMFILE *streamFile, off_t offset, uint16_t target_index, off_t ast_offset) {
-    uint32_t header, num_sounds;
+    uint32_t num_sounds;
     off_t snr_offset, sns_offset;
     STREAMFILE *astFile = NULL;
     VGMSTREAM *vgmstream;
 
     /* header is always big endian */
-    /* 0x00 - header magic */
-    /* 0x04 - zero */
-    /* 0x08 - number of files */
-    /* 0x0C - offsets table */
-    header = read_32bitBE(offset + 0x00, streamFile);
-    if (header != 0x53313041) /* "S10A" */
+    /* 0x00: header magic */
+    /* 0x04: zero */
+    /* 0x08: number of files */
+    /* 0x0C: offsets table */
+    if (read_32bitBE(offset + 0x00, streamFile) != 0x53313041) /* "S10A" */
         goto fail;
 
     num_sounds = read_32bitBE(offset + 0x08, streamFile);
