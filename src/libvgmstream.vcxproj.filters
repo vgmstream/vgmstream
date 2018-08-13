@@ -316,6 +316,9 @@
     <ClCompile Include="meta\hca.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\hd3_bd3.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\his.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>

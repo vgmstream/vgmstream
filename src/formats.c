@@ -67,7 +67,7 @@ static const char* extension_list[] = {
     "bar",
     "bcstm",
     "bcwav",
-    "bd3", //txth/reserved [Elevator Action Deluxe (PS3)]
+    "bd3",
     "bdsp",
     "bfstm",
     "bfwav",
@@ -1062,6 +1062,7 @@ static const meta_info meta_info_list[] = {
         {meta_CKB,                  "Cricket Audio CKB header"},
         {meta_WV6,                  "Gorilla Systems WV6 header"},
         {meta_WAVEBATCH,            "Firebrand Games WBAT header"},
+        {meta_HD3_BD3,              "Sony HD3+BD3 header"},
 
 #ifdef VGM_USE_FFMPEG
         {meta_FFmpeg,               "FFmpeg supported file format"},

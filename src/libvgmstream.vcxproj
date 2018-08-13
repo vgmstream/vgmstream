@@ -243,6 +243,7 @@
     <ClCompile Include="meta\h4m.c" />
     <ClCompile Include="meta\halpst.c" />
     <ClCompile Include="meta\hca.c" />
+    <ClCompile Include="meta\hd3_bd3.c" />
     <ClCompile Include="meta\his.c" />
     <ClCompile Include="meta\idsp.c" />
     <ClCompile Include="meta\ish_isd.c" />

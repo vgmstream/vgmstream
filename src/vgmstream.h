@@ -697,6 +697,7 @@ typedef enum {
     meta_CKB,               /* Cricket Audio bank [Fire Emblem Heroes (Android), Mega Man 1-6 (Android)] */
     meta_WV6,               /* Gorilla Systems PC games */
     meta_WAVEBATCH,         /* Firebrand Games */
+    meta_HD3_BD3,           /* Sony PS3 bank */
 
 #ifdef VGM_USE_FFMPEG
     meta_FFmpeg,

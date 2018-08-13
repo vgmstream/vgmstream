@@ -512,6 +512,10 @@
 					RelativePath=".\meta\hca.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\meta\hd3_bd3.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\his.c"
 					>
