@@ -1,6 +1,4 @@
 #include "meta.h"
-#include "../util.h"
-#include "../stack_alloc.h"
 #include "../coding/coding.h"
 
 VGMSTREAM * init_vgmstream_ktss(STREAMFILE *streamFile) {
