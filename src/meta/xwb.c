@@ -708,17 +708,17 @@ static int get_xsb_name(char * buf, size_t maxsize, int target_subsong, xwb_head
 
     off = 0;
     if (xsb_version <= XSB_XACT1_MAX) {
-        xsb.xsb_wavebanks_count = 1; //read_8bit(0x22, streamFile);
-        xsb.xsb_sounds_count = read_16bit(0x1e, streamFile);//@ 0x1a? 0x1c?
+        xsb.xsb_wavebanks_count = 1; //(uint8_t)read_8bit(0x22, streamFile);
+        xsb.xsb_sounds_count = (uint16_t)read_16bit(0x1e, streamFile);//@ 0x1a? 0x1c?
         //xsb.xsb_names_size   = 0;
         //xsb.xsb_names_offset = 0;
         xsb.xsb_nameoffsets_offset = 0;
         xsb.xsb_sounds_offset = 0x38;
     } else if (xsb_version <= XSB_XACT2_MAX) {
-        xsb.xsb_simple_sounds_count = read_16bit(0x09, streamFile);
-        xsb.xsb_complex_sounds_count = read_16bit(0x0B, streamFile);
-        xsb.xsb_wavebanks_count = read_8bit(0x11, streamFile);
-        xsb.xsb_sounds_count = read_16bit(0x12, streamFile);
+        xsb.xsb_simple_sounds_count = (uint16_t)read_16bit(0x09, streamFile);
+        xsb.xsb_complex_sounds_count = (uint16_t)read_16bit(0x0B, streamFile);
+        xsb.xsb_wavebanks_count = (uint8_t)read_8bit(0x11, streamFile);
+        xsb.xsb_sounds_count = (uint16_t)read_16bit(0x12, streamFile);
         //0x14: 16b unk
         //xsb.xsb_names_size   = read_32bit(0x16, streamFile);
         xsb.xsb_simple_sounds_offset = read_32bit(0x1a, streamFile);
@@ -727,9 +727,9 @@ static int get_xsb_name(char * buf, size_t maxsize, int target_subsong, xwb_head
         xsb.xsb_nameoffsets_offset = read_32bit(0x3a, streamFile);
         xsb.xsb_sounds_offset = read_32bit(0x3e, streamFile);
     } else {
-        xsb.xsb_simple_sounds_count = read_16bit(0x13, streamFile);
-        xsb.xsb_complex_sounds_count = read_16bit(0x15, streamFile);
-        xsb.xsb_wavebanks_count = read_8bit(0x1b, streamFile);
+        xsb.xsb_simple_sounds_count = (uint16_t)read_16bit(0x13, streamFile);
+        xsb.xsb_complex_sounds_count = (uint16_t)read_16bit(0x15, streamFile);
+        xsb.xsb_wavebanks_count = (uint8_t)read_8bit(0x1b, streamFile);
         xsb.xsb_sounds_count = read_16bit(0x1c, streamFile);
         //xsb.xsb_names_size   = read_32bit(0x1e, streamFile);
         xsb.xsb_simple_sounds_offset = read_32bit(0x22, streamFile);
@@ -773,17 +773,17 @@ static int get_xsb_name(char * buf, size_t maxsize, int target_subsong, xwb_head
                 goto fail;
             }
 
-            s->wavebank     = 0; //read_8bit(off+suboff + 0x02, streamFile);
-            s->stream_index = read_16bit(off+0x02, streamFile);
+            s->wavebank     = 0; //(uint8_t)read_8bit(off+suboff + 0x02, streamFile);
+            s->stream_index = (uint16_t)read_16bit(off+0x02, streamFile);
             s->sound_offset = off;
-            s->name_offset  = read_16bit(off+0x04, streamFile);
+            s->name_offset  = (uint16_t)read_16bit(off+0x04, streamFile);
         }
         else {
             /* Each XSB sound has a variable size and somewhere inside is the stream/wavebank index.
              * Various flags control the sound layout, but I can't make sense of them so quick hack instead */
             flag = read_8bit(off+0x00, streamFile);
             //0x01 16b unk, 0x03: 8b unk 04: 16b unk, 06: 8b unk
-            size = read_16bit(off+0x07, streamFile);
+            size = (uint16_t)read_16bit(off+0x07, streamFile);
 
             if (!(flag & 0x01)) { /* simple sound */
                 suboff = 0x09;
@@ -792,7 +792,7 @@ static int get_xsb_name(char * buf, size_t maxsize, int target_subsong, xwb_head
                 if (flag==0x01 || flag==0x03 || flag==0x05 || flag==0x07) {
                     if (size == 0x49) { //grotesque hack for Eschatos (these flags are way too complex)
                         suboff = 0x23;
-                    } else if (size % 2 == 1 && read_16bit(off+size-0x2, streamFile)!=0) {
+                    } else if (size % 2 == 1 && (uint16_t)read_16bit(off+size-0x2, streamFile)!=0) {
                         suboff = size - 0x08 - 0x07; //7 unk bytes at the end
                     } else {
                         suboff = size - 0x08;
@@ -805,8 +805,8 @@ static int get_xsb_name(char * buf, size_t maxsize, int target_subsong, xwb_head
                 }
             }
 
-            s->stream_index = read_16bit(off+suboff + 0x00, streamFile);
-            s->wavebank     =  read_8bit(off+suboff + 0x02, streamFile);
+            s->stream_index = (uint16_t)read_16bit(off+suboff + 0x00, streamFile);
+            s->wavebank     =   (uint8_t)read_8bit(off+suboff + 0x02, streamFile);
             s->sound_offset = off;
         }
 
