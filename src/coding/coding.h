@@ -313,6 +313,7 @@ void wma_get_samples(ms_sample_data * msd, STREAMFILE *streamFile, int block_ali
 void xma1_parse_fmt_chunk(STREAMFILE *streamFile, off_t chunk_offset, int * channels, int * sample_rate, int * loop_flag, int32_t * loop_start_b, int32_t * loop_end_b, int32_t * loop_subframe, int be);
 void xma2_parse_fmt_chunk_extra(STREAMFILE *streamFile, off_t chunk_offset, int * loop_flag, int32_t * out_num_samples, int32_t * out_loop_start_sample, int32_t * out_loop_end_sample, int be);
 void xma2_parse_xma2_chunk(STREAMFILE *streamFile, off_t chunk_offset, int * channels, int * sample_rate, int * loop_flag, int32_t * num_samples, int32_t * loop_start_sample, int32_t * loop_end_sample);
+int riff_get_fact_skip_samples(STREAMFILE * streamFile, off_t start_offset);
 
 size_t atrac3_bytes_to_samples(size_t bytes, int full_block_align);
 size_t atrac3plus_bytes_to_samples(size_t bytes, int full_block_align);

@@ -1125,19 +1125,8 @@ VGMSTREAM * init_vgmstream_rsd6at3p(STREAMFILE *streamFile) {
 
         vgmstream->num_samples = ffmpeg_data->totalSamples; /* fact samples */
 
-        /* manually read skip_samples if FFmpeg didn't do it */
-        if (ffmpeg_data->skipSamples <= 0) {
-            off_t chunk_offset;
-            size_t chunk_size, fact_skip_samples = 0;
-            if (!find_chunk_le(streamFile, 0x66616374,start_offset+0xc,0, &chunk_offset,&chunk_size)) /* find "fact" */
-                goto fail;
-            if (chunk_size == 0x08) {
-                fact_skip_samples  = read_32bitLE(chunk_offset+0x4, streamFile);
-            } else if (chunk_size == 0xc) {
-                fact_skip_samples  = read_32bitLE(chunk_offset+0x8, streamFile);
-            }
-            ffmpeg_set_skip_samples(ffmpeg_data, fact_skip_samples);
-        }
+        if (ffmpeg_data->skipSamples <= 0) /* in case FFmpeg didn't get them */
+            ffmpeg_set_skip_samples(ffmpeg_data, riff_get_fact_skip_samples(streamFile, start_offset));
     }
 #else
     goto fail;
