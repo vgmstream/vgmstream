@@ -12,7 +12,7 @@ typedef struct {
 
 
 /* Handles deinterleaving of complete files, skipping portions or other substreams. */
-static size_t scd_dsp_io_read(STREAMFILE *streamfile, uint8_t *dest, off_t offset, size_t length, lyn_ogg_io_data* data) {
+static size_t lyn_ogg_io_read(STREAMFILE *streamfile, uint8_t *dest, off_t offset, size_t length, lyn_ogg_io_data* data) {
     size_t total_read = 0;
 
     while (length > 0) {
@@ -53,7 +53,7 @@ static size_t scd_dsp_io_read(STREAMFILE *streamfile, uint8_t *dest, off_t offse
     return total_read;
 }
 
-static size_t scd_dsp_io_size(STREAMFILE *streamfile, lyn_ogg_io_data* data) {
+static size_t lyn_ogg_io_size(STREAMFILE *streamfile, lyn_ogg_io_data* data) {
     return data->total_size;
 }
 
@@ -74,7 +74,7 @@ static STREAMFILE* setup_lyn_ogg_streamfile(STREAMFILE *streamFile, off_t start_
     if (!new_streamFile) goto fail;
     temp_streamFile = new_streamFile;
 
-    new_streamFile = open_io_streamfile(temp_streamFile, &io_data,io_data_size, scd_dsp_io_read,scd_dsp_io_size);
+    new_streamFile = open_io_streamfile(temp_streamFile, &io_data,io_data_size, lyn_ogg_io_read,lyn_ogg_io_size);
     if (!new_streamFile) goto fail;
     temp_streamFile = new_streamFile;
 

@@ -18,7 +18,10 @@ VGMSTREAM * init_vgmstream_xvag(STREAMFILE *streamFile) {
     off_t first_offset = 0x20;
     size_t chunk_size, stream_size;
 
-    /* check extension, case insensitive */
+
+    /* checks */
+    /* .xvag: standard
+     * (extensionless): The Last Of Us (PS3) speech files */
     if (!check_extensions(streamFile,"xvag,"))
         goto fail;
 
@@ -40,6 +43,7 @@ VGMSTREAM * init_vgmstream_xvag(STREAMFILE *streamFile) {
      * 0x0a: always 0?
      * 0x0b: version-flag? (0x5f/0x60/0x61/0x62/etc) */
 
+
     /* "fmat": base format (always first) */
     if (!find_chunk(streamFile, 0x666D6174,first_offset,0, &chunk_offset,&chunk_size, big_endian, 1)) /*"fmat"*/
         goto fail;
@@ -57,7 +61,7 @@ VGMSTREAM * init_vgmstream_xvag(STREAMFILE *streamFile) {
     if (chunk_size > 0x1c) {
         /* number of interleaved subsong layers */
         total_subsongs = read_32bit(chunk_offset+0x1c,streamFile);
-        /* number of interleaved bitstreams per layer (multistreams * channels_per_stream = channels) */
+        /* number of interleaved streams per layer (multistreams * channels_per_stream = channels) */
         multistreams   = read_32bit(chunk_offset+0x20,streamFile);
     }
     else {
@@ -79,6 +83,7 @@ VGMSTREAM * init_vgmstream_xvag(STREAMFILE *streamFile) {
         loop_flag = ps_adpcm_find_loop_offsets(streamFile, channel_count, start_offset, &loop_start, &loop_end);
     }
 
+
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
@@ -90,8 +95,8 @@ VGMSTREAM * init_vgmstream_xvag(STREAMFILE *streamFile) {
     vgmstream->meta_type = meta_XVAG;
 
     switch (codec) {
-        case 0x06:      /* VAG (PS ADPCM): God of War III (PS3), Uncharted 1/2 (PS3), Ratchet and Clank Future (PS3) */
-        case 0x07:      /* SVAG? (PS ADPCM with extended table): inFamous 1 (PS3) */
+        case 0x06:      /* VAG (PS-ADPCM): God of War III (PS3), Uncharted 1/2 (PS3), Ratchet and Clank Future (PS3) */
+        case 0x07:      /* SVAG? (PS-ADPCM with extended table?): inFamous 1 (PS3) */
             if (multistreams > 1 && multistreams != vgmstream->channels) goto fail;
             if (total_subsongs > 1 && multistreams > 1) goto fail;
             if (total_subsongs > 1 && vgmstream->channels > 1) goto fail; /* unknown layout */
@@ -144,11 +149,14 @@ VGMSTREAM * init_vgmstream_xvag(STREAMFILE *streamFile) {
 #ifdef VGM_USE_ATRAC9
         case 0x09: { /* ATRAC9: Sly Cooper and the Thievius Raccoonus (Vita), The Last of Us Remastered (PS4) */
             atrac9_config cfg = {0};
+            size_t frame_size;
 
             /* "a9in": ATRAC9 info */
-            /*  0x00: block align, 0x04: samples per block, 0x0c: fact num_samples (no change), 0x10: encoder delay1 */
+            /*  0x00: frame size, 0x04: samples per frame, 0x0c: fact num_samples (no change), 0x10: encoder delay1 */
             if (!find_chunk(streamFile, 0x6139696E,first_offset,0, &chunk_offset,NULL, big_endian, 1)) /*"a9in"*/
                 goto fail;
+
+            frame_size = read_32bit(chunk_offset+0x00,streamFile);
 
             cfg.type = ATRAC9_XVAG;
             cfg.channels = vgmstream->channels;
@@ -156,11 +164,12 @@ VGMSTREAM * init_vgmstream_xvag(STREAMFILE *streamFile) {
             cfg.encoder_delay = read_32bit(chunk_offset+0x14,streamFile);
 
             if (total_subsongs > 1 && multistreams > 1) {
+                VGM_LOG("XVAG: unknown %i subsongs and %i multistreams\n", total_subsongs, multistreams);
                 goto fail; /* not known */
             }
             else if (total_subsongs > 1) {
                 /* interleaves 'multiplier' superframes per subsong (all share config_data) */
-                cfg.interleave_skip = read_32bit(chunk_offset+0x00,streamFile) * interleave_factor;
+                cfg.interleave_skip = frame_size * interleave_factor;
                 cfg.subsong_skip = total_subsongs;
                 /* start in subsong's first superframe */
                 start_offset += (target_subsong-1) * cfg.interleave_skip * (cfg.subsong_skip-1);
@@ -168,6 +177,7 @@ VGMSTREAM * init_vgmstream_xvag(STREAMFILE *streamFile) {
             else if (multistreams > 1) {
                 /* Vita multichannel (flower) interleaves streams like MPEG
                  * PS4 (The Last of Us) uses ATRAC9's multichannel directly instead (multistreams==1) */
+                VGM_LOG("XVAG: unknown %i multistreams of size %x\n", multistreams, frame_size * interleave_factor);
                 goto fail;//todo add
             }
             //if (multistreams == vgmstream->channels) goto fail;
