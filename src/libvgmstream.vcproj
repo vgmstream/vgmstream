@@ -750,6 +750,10 @@
                     RelativePath=".\meta\nub_xma.c"
                     >
                 </File>
+                <File
+                    RelativePath=".\meta\nus3bank.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\nwa.c"
 					>

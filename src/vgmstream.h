@@ -605,7 +605,7 @@ typedef enum {
     meta_OTM,               /* Otomedius (Arcade) */
     meta_CSTM,              /* Nintendo 3DS CSTM (Century Stream) */
     meta_FSTM,              /* Nintendo Wii U FSTM (caFe? Stream) */
-    meta_3DS_IDSP,          /* Nintendo 3DS/Wii U IDSP */
+    meta_IDSP_NUS3,         /* Namco 3DS/Wii U IDSP */
     meta_KT_WIIBGM,         /* Koei Tecmo WiiBGM */
     meta_KTSS,              /* Koei Tecmo Nintendo Stream (KNS) */
     meta_MCA,               /* Capcom MCA "MADP" */

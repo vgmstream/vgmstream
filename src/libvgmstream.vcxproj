@@ -294,6 +294,7 @@
     <ClCompile Include="meta\ngc_ulw.c" />
     <ClCompile Include="meta\ngc_vid1.c" />
     <ClCompile Include="meta\nub_xma.c" />
+    <ClCompile Include="meta\nus3bank.c" />
     <ClCompile Include="meta\nwa.c" />
     <ClCompile Include="meta\nxap.c" />
     <ClCompile Include="meta\ogg_vorbis.c" />

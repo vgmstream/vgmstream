@@ -969,7 +969,7 @@ static const meta_info meta_info_list[] = {
         {meta_FSTM,                 "Nintendo FSTM Header"},
         {meta_KT_WIIBGM,            "Koei Tecmo WiiBGM Header"},
         {meta_KTSS,                 "Koei Tecmo Nintendo Stream KTSS Header"},
-        {meta_3DS_IDSP,             "Nintendo IDSP Header"},
+        {meta_IDSP_NUS3,            "Namco NUS3 IDSP header"},
         {meta_WIIU_BTSND,           "Nintendo Wii U Menu Boot Sound"},
         {meta_MCA,                  "Capcom MCA header"},
         {meta_XB3D_ADX,             "Xenoblade 3D ADX header"},
