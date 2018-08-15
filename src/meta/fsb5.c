@@ -33,9 +33,7 @@ typedef struct {
 
 /* ********************************************************************************** */
 
-#ifdef VGM_USE_CELT
-static layered_layout_data* build_layered_fsb5_celt(STREAMFILE *streamFile, fsb5_header* fsb5, celt_lib_t version);
-#endif
+static layered_layout_data* build_layered_fsb5_celt(STREAMFILE *streamFile, fsb5_header* fsb5);
 static layered_layout_data* build_layered_fsb5_atrac9(STREAMFILE *streamFile, fsb5_header* fsb5, off_t configs_offset, size_t configs_size);
 
 /* FSB5 - FMOD Studio multiplatform format */
@@ -344,7 +342,7 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
             int is_multistream = fsb5.channels > 2;
 
             if (is_multistream) {
-                vgmstream->layout_data = build_layered_fsb5_celt(streamFile, &fsb5, CELT_0_11_0);
+                vgmstream->layout_data = build_layered_fsb5_celt(streamFile, &fsb5);
                 if (!vgmstream->layout_data) goto fail;
                 vgmstream->coding_type = coding_CELT_FSB;
                 vgmstream->layout_type = layout_layered;
@@ -456,8 +454,8 @@ fail:
     return NULL;
 }
 
-#ifdef VGM_USE_CELT
-static layered_layout_data* build_layered_fsb5_celt(STREAMFILE *streamFile, fsb5_header* fsb5, celt_lib_t version) {
+
+static layered_layout_data* build_layered_fsb5_celt(STREAMFILE *streamFile, fsb5_header* fsb5) {
     layered_layout_data* data = NULL;
     STREAMFILE* temp_streamFile = NULL;
     int i, layers = (fsb5->channels+1) / 2;
@@ -494,7 +492,7 @@ static layered_layout_data* build_layered_fsb5_celt(STREAMFILE *streamFile, fsb5
         data->layers[i]->loop_end_sample = fsb5->loop_end;
 
 #ifdef VGM_USE_CELT
-        data->layers[i]->codec_data = init_celt_fsb(layer_channels, version);
+        data->layers[i]->codec_data = init_celt_fsb(layer_channels, CELT_0_11_0);
         if (!data->layers[i]->codec_data) goto fail;
         data->layers[i]->coding_type = coding_CELT_FSB;
         data->layers[i]->layout_type = layout_none;
@@ -520,7 +518,7 @@ fail:
     free_layout_layered(data);
     return NULL;
 }
-#endif
+
 
 static layered_layout_data* build_layered_fsb5_atrac9(STREAMFILE *streamFile, fsb5_header* fsb5, off_t configs_offset, size_t configs_size) {
     layered_layout_data* data = NULL;

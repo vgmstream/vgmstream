@@ -103,9 +103,7 @@ typedef struct {
 
 /* ********************************************************************************** */
 
-#ifdef VGM_USE_CELT
-static layered_layout_data* build_layered_fsb_celt(STREAMFILE *streamFile, fsb_header* fsb, celt_lib_t version);
-#endif
+static layered_layout_data* build_layered_fsb_celt(STREAMFILE *streamFile, fsb_header* fsb, int is_new_lib);
 
 /* FSB1~4 - from games using FMOD audio middleware */
 VGMSTREAM * init_vgmstream_fsb(STREAMFILE *streamFile) {
@@ -385,7 +383,7 @@ VGMSTREAM * init_vgmstream_fsb(STREAMFILE *streamFile) {
 
 #ifdef VGM_USE_CELT
         case CELT: { /* FSB4: War Thunder (PC), The Witcher 2 (PC), Vessel (PC) */
-            celt_lib_t version;
+            int is_new_lib;
 
             /* get libcelt version (set in the first subsong only, but try all extradata just in case) */
             if (fsb.first_extradata_offset || fsb.extradata_offset) {
@@ -393,8 +391,8 @@ VGMSTREAM * init_vgmstream_fsb(STREAMFILE *streamFile) {
                         (uint32_t)read_32bitLE(fsb.first_extradata_offset, streamFile) :
                         (uint32_t)read_32bitLE(fsb.extradata_offset, streamFile);;
                 switch(lib) {
-                    case 0x80000009: version = CELT_0_06_1; break; /* War Thunder (PC) */
-                    case 0x80000010: version = CELT_0_11_0; break; /* Vessel (PC) */
+                    case 0x80000009: is_new_lib = 0; break; /* War Thunder (PC) */
+                    case 0x80000010: is_new_lib = 1; break; /* Vessel (PC) */
                     default: VGM_LOG("FSB: unknown CELT lib 0x%x\n", lib); goto fail;
                 }
             }
@@ -402,20 +400,20 @@ VGMSTREAM * init_vgmstream_fsb(STREAMFILE *streamFile) {
                 /* split FSBs? try to guess from observed bitstreams */
                 uint16_t frame = (uint16_t)read_16bitBE(fsb.stream_offset+0x04+0x04,streamFile);
                 if ((frame & 0xF000) == 0x6000 || frame == 0xFFFE) {
-                    version = CELT_0_11_0;
+                    is_new_lib = 1;
                 } else {
-                    version = CELT_0_06_1;
+                    is_new_lib = 0;
                 }
             }
 
             if (fsb.channels > 2) { /* multistreams */
-                vgmstream->layout_data = build_layered_fsb_celt(streamFile, &fsb, version);
+                vgmstream->layout_data = build_layered_fsb_celt(streamFile, &fsb, is_new_lib);
                 if (!vgmstream->layout_data) goto fail;
                 vgmstream->coding_type = coding_CELT_FSB;
                 vgmstream->layout_type = layout_layered;
             }
             else {
-                vgmstream->codec_data = init_celt_fsb(vgmstream->channels, version);
+                vgmstream->codec_data = init_celt_fsb(vgmstream->channels, is_new_lib ? CELT_0_11_0 : CELT_0_06_1);
                 if (!vgmstream->codec_data) goto fail;
                 vgmstream->coding_type = coding_CELT_FSB;
                 vgmstream->layout_type = layout_none;
@@ -455,7 +453,7 @@ fail:
 }
 
 #ifdef VGM_USE_CELT
-static layered_layout_data* build_layered_fsb_celt(STREAMFILE *streamFile, fsb_header* fsb, celt_lib_t version) {
+static layered_layout_data* build_layered_fsb_celt(STREAMFILE *streamFile, fsb_header* fsb, int is_new_lib) {
     layered_layout_data* data = NULL;
     STREAMFILE* temp_streamFile = NULL;
     int i, layers = (fsb->channels+1) / 2;
@@ -480,7 +478,7 @@ static layered_layout_data* build_layered_fsb_celt(STREAMFILE *streamFile, fsb_h
         data->layers[i]->loop_end_sample = fsb->loop_end;
 
 #ifdef VGM_USE_CELT
-        data->layers[i]->codec_data = init_celt_fsb(layer_channels, version);
+        data->layers[i]->codec_data = init_celt_fsb(layer_channels, is_new_lib ? CELT_0_11_0 : CELT_0_06_1);
         if (!data->layers[i]->codec_data) goto fail;
         data->layers[i]->coding_type = coding_CELT_FSB;
         data->layers[i]->layout_type = layout_none;
