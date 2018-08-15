@@ -348,6 +348,10 @@
                     RelativePath=".\meta\bik.c"
                     >
                 </File>
+                <File
+                    RelativePath=".\meta\bnk_sony.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\bnsf.c"
 					>

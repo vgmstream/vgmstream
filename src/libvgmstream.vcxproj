@@ -206,6 +206,7 @@
     <ClCompile Include="meta\baf.c" />
     <ClCompile Include="meta\bgw.c" />
     <ClCompile Include="meta\bik.c" />
+    <ClCompile Include="meta\bnk_sony.c" />
     <ClCompile Include="meta\bnsf.c" />
     <ClCompile Include="meta\brstm.c" />
     <ClCompile Include="meta\btsnd.c" />

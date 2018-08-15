@@ -771,4 +771,6 @@ VGMSTREAM * init_vgmstream_wavebatch(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_hd3_bd3(STREAMFILE *streamFile);
 
+VGMSTREAM * init_vgmstream_bnk_sony(STREAMFILE *streamFile);
+
 #endif /*_META_H*/

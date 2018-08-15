@@ -698,6 +698,7 @@ typedef enum {
     meta_WV6,               /* Gorilla Systems PC games */
     meta_WAVEBATCH,         /* Firebrand Games */
     meta_HD3_BD3,           /* Sony PS3 bank */
+    meta_BNK_SONY,          /* Sony Scream Tool bank */
 
 #ifdef VGM_USE_FFMPEG
     meta_FFmpeg,
