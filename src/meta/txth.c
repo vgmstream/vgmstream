@@ -315,8 +315,10 @@ VGMSTREAM * init_vgmstream_txth(STREAMFILE *streamFile) {
                     bytes = ffmpeg_make_riff_xma1(buf, 100, vgmstream->num_samples, txth.data_size, vgmstream->channels, vgmstream->sample_rate, xma_stream_mode);
                 }
                 else if (txth.codec == XMA2) {
-                    int block_size = txth.interleave ? txth.interleave : 2048;
-                    int block_count = txth.data_size / block_size;
+                    int block_count, block_size;
+
+                    block_size = txth.interleave ? txth.interleave : 2048;
+                    block_count = txth.data_size / block_size;
 
                     bytes = ffmpeg_make_riff_xma2(buf, 200, vgmstream->num_samples, txth.data_size, vgmstream->channels, vgmstream->sample_rate, block_count, block_size);
                 }
@@ -493,6 +495,7 @@ static int parse_keyval(STREAMFILE * streamFile, STREAMFILE * streamText, txth_h
     }
     else if (0==strcmp(key,"interleave")) {
         if (0==strcmp(val,"half_size")) {
+            if (txth->channels == 0) goto fail;
             txth->interleave = txth->data_size / txth->channels;
         }
         else {
@@ -708,7 +711,7 @@ static int get_bytes_to_samples(txth_header * txth, uint32_t bytes) {
         case SDX2:
             return bytes;
         case NGC_DTK:
-            return bytes / 32 * 28; /* always stereo? */
+            return bytes / 0x20 * 28; /* always stereo */
         case APPLE_IMA4:
             if (!txth->interleave) return 0;
             return (bytes / txth->interleave) * (txth->interleave - 2) * 2;
