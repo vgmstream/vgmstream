@@ -2677,6 +2677,13 @@ int vgmstream_open_stream(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t s
         use_streamfile_per_channel = 1;
     }
 
+    /* if blocked layout (implicit) use multiple streamfiles; using only one leads to
+     * lots of buffer-trashing, with all the jumping around in the block layout */
+    if (vgmstream->layout_type != layout_none && vgmstream->layout_type != layout_interleave) {
+        use_streamfile_per_channel = 1;
+    }
+
+
     /* for mono or codecs like IMA (XBOX, MS IMA, MS ADPCM) where channels work with the same bytes */
     if (vgmstream->layout_type == layout_none) {
         use_same_offset_per_channel = 1;
