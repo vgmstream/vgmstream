@@ -68,7 +68,7 @@ int ffmpeg_custom_read_switch_opus(ffmpeg_codec_data *data, uint8_t *buf, int bu
             gap_size = virtual_offset - virtual_base; /* might start a few bytes into the block */
 
         if (data_size + extra_size > 0x8000) {
-            VGM_LOG("WW OPUS: total size bigger than buffer at %lx\n", (off_t)real_offset);
+            VGM_LOG("OPUS: total size bigger than buffer at %lx\n", (off_t)real_offset);
             return 0;
         }
 
@@ -164,6 +164,11 @@ size_t switch_opus_get_samples(off_t offset, size_t data_size, int sample_rate, 
     size_t num_samples = 0;
     off_t end_offset = offset + data_size;
 
+    if (end_offset > get_streamfile_size(streamFile)) {
+        VGM_LOG("OPUS: wrong end offset found\n");
+        end_offset = get_streamfile_size(streamFile);
+    }
+
     /* count by reading all frames */
     while (offset < end_offset) {
         uint8_t buf[4];
@@ -258,7 +263,7 @@ static size_t make_oggs_page(uint8_t * buf, int buf_size, size_t data_size, int 
 
 
     if (0x1b + (data_size/0xFF + 1) + data_size > buf_size) {
-        VGM_LOG("WW OPUS: buffer can't hold OggS page\n");
+        VGM_LOG("OPUS: buffer can't hold OggS page\n");
         goto fail;
     }
 
@@ -311,7 +316,7 @@ static size_t make_opus_header(uint8_t * buf, int buf_size, int channels, int sk
     int channel_papping_family = 0;
 
     if (header_size > buf_size) {
-        VGM_LOG("WW OPUS: buffer can't hold header\n");
+        VGM_LOG("OPUS: buffer can't hold header\n");
         goto fail;
     }
 
@@ -341,7 +346,7 @@ static size_t make_opus_comment(uint8_t * buf, int buf_size) {
     comment_size = 0x14 + vendor_string_length + user_comment_0_length;
 
     if (comment_size > buf_size) {
-        VGM_LOG("WW OPUS: buffer can't hold comment\n");
+        VGM_LOG("OPUS: buffer can't hold comment\n");
         goto fail;
     }
 

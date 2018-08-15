@@ -378,6 +378,10 @@ ffmpeg_codec_data * init_ffmpeg_config(STREAMFILE *streamFile, uint8_t * header,
     data->real_start = start;
     data->real_offset = data->real_start;
     data->real_size = size;
+    if (data->real_start + data->real_size > get_streamfile_size(streamFile)) {
+        VGM_LOG("FFmpeg: wrong start+size found\n");
+        data->real_size = get_streamfile_size(streamFile) - data->real_start;
+    }
     data->virtual_offset = 0;
     data->virtual_size = ffmpeg_size(data);
     data->virtual_base = 0;
