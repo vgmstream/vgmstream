@@ -503,6 +503,14 @@ static VGMSTREAM * init_vgmstream_internal(STREAMFILE *streamFile) {
         }
 #endif
 
+        /* files can have thousands subsongs, but let's put a limit */
+        if (vgmstream->num_streams < 0 || vgmstream->num_streams > 65535) {
+            VGM_LOG("VGMSTREAM: wrong num_streams (ns=%i)\n", vgmstream->num_streams);
+            close_vgmstream(vgmstream);
+            continue;
+        }
+
+
         /* save info */
         /* stream_index 0 may be used by plugins to signal "vgmstream default" (IOW don't force to 1) */
         if (!vgmstream->stream_index)
