@@ -1,15 +1,31 @@
 #include "meta.h"
+#include "../coding/coding.h"
+
+
+/* Regions seem mostly for in-game purposes and are not very listenable on its own.
+ * Also, sample start is slightly off since vgmstream can't start in the middle of block ATM.
+ * Otherwise this kinda works, but for now it's just a test. */
+#define BFSTM_ENABLE_REGION_SUBSONGS 0
+#define BFSTM_ENABLE_REGION_FORCE_LOOPS 0 /* this makes sense in SM3D World, but not in Zelda BotW) */
+
+#if BFSTM_ENABLE_REGION_SUBSONGS
+static off_t bfstm_set_regions(STREAMFILE *streamFile, VGMSTREAM *vgmstream, int region_count, off_t regn_offset, int codec, int big_endian);
+#endif
 
 
 /* BFSTM - Nintendo Wii U format */
 VGMSTREAM * init_vgmstream_bfstm(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     off_t start_offset;
-    off_t info_offset = 0, data_offset = 0; //, regn_offset = 0;
-    int channel_count, loop_flag, codec; //, region_count;
+    off_t info_offset = 0, data_offset = 0;
+    int channel_count, loop_flag, codec;
     int big_endian;
     int32_t (*read_32bit)(off_t,STREAMFILE*) = NULL;
     int16_t (*read_16bit)(off_t,STREAMFILE*) = NULL;
+#if BFSTM_ENABLE_REGION_SUBSONGS
+    off_t regn_offset = 0;
+    int  region_count;
+#endif
 
 
     /* checks */
@@ -45,7 +61,9 @@ VGMSTREAM * init_vgmstream_bfstm(STREAMFILE *streamFile) {
                 case 0x4000: info_offset = read_32bit(0x14+i*0x0c+0x04, streamFile); break;
                 case 0x4001: /* seek_offset = read_32bit(0x14+i*0x0c+0x04, streamFile); */ break;
                 case 0x4002: data_offset = read_32bit(0x14+i*0x0c+0x04, streamFile); break;
-                case 0x4003: /* regn_offset = read_32bit(0x14+i*0x0c+0x04, streamFile); */ break;
+#if BFSTM_ENABLE_REGION_SUBSONGS
+                case 0x4003: regn_offset = read_32bit(0x14+i*0x0c+0x04, streamFile); break;
+#endif
                 case 0x4004: /* pdat_offset = read_32bit(0x14+i*0x0c+0x04, streamFile); */ break; /* prefetch data */
                 default:
                     break;
@@ -62,7 +80,9 @@ VGMSTREAM * init_vgmstream_bfstm(STREAMFILE *streamFile) {
     codec = read_8bit(info_offset + 0x20, streamFile);
     loop_flag = read_8bit(info_offset + 0x21, streamFile);
     channel_count = read_8bit(info_offset + 0x22, streamFile);
-    //region_count = read_8bit(info_offset + 0x23, streamFile);
+#if BFSTM_ENABLE_REGION_SUBSONGS
+    region_count = read_8bit(info_offset + 0x23, streamFile);
+#endif
 
 
     start_offset = data_offset + 0x20;
@@ -113,8 +133,9 @@ VGMSTREAM * init_vgmstream_bfstm(STREAMFILE *streamFile) {
     }
 
 
-    //regions seem mostly for in-game purposes and are not very listenable, otherwise this kinda works
-    //start_offset += bfstm_set_regions(streamFile, vgmstream, region_count, regn_offset, codec);
+#if BFSTM_ENABLE_REGION_SUBSONGS
+    start_offset += bfstm_set_regions(streamFile, vgmstream, region_count, regn_offset, codec, big_endian);
+#endif
 
     if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
         goto fail;
@@ -125,68 +146,87 @@ fail:
     return NULL;
 }
 
-#if 0
+
+#if BFSTM_ENABLE_REGION_SUBSONGS
 /* Newer .bfstm may have multiple regions, that are sample sections of some meaning,
  *  like loop parts (Super Mario 3D World), or dynamic subsongs (Zelda: BotW)
  * We'll hack them in as subsongs (though seem mostly activated by game events) */
-static off_t bfstm_set_regions(STREAMFILE *streamFile, VGMSTREAM *vgmstream, int region_count, off_t regn_offset, int codec) {
-    off_t start_offset = 0;
+static off_t bfstm_set_regions(STREAMFILE *streamFile, VGMSTREAM *vgmstream, int region_count, off_t regn_offset, int codec, int big_endian) {
+    off_t start_offset;
+    size_t stream_size;
+    int total_subsongs, target_subsong = streamFile->stream_index;
+    int32_t (*read_32bit)(off_t,STREAMFILE*) = big_endian ? read_32bitBE : read_32bitLE;
+    int16_t (*read_16bit)(off_t,STREAMFILE*) = big_endian ? read_16bitLE : read_16bitLE;
 
-    /* REGN section subsong hack */
-    if (region_count > 0 && regn_offset != 0 && codec == 0x02) {
-        size_t stream_size;
-        int total_subsongs, target_subsong = streamFile->stream_index;
 
-        if (read_32bitBE(regn_offset, streamFile) != 0x5245474E) /* "REGN" */
-            goto fail;
+    if (region_count <= 0 && regn_offset == 0 && codec != 0x02)
+        goto fail;
+    if (read_32bitBE(regn_offset, streamFile) != 0x5245474E) /* "REGN" */
+        goto fail;
 
-        /* pretend each region is a subsong, but use first subsong as the whole file,
-         * since regions may not map all samples */
-        total_subsongs = region_count + 1;
-        if (target_subsong == 0) target_subsong = 1;
-        if (target_subsong < 0 || target_subsong > total_subsongs || total_subsongs < 1) goto fail;
+    /* pretend each region is a subsong, but use first subsong as the whole file,
+     * since regions may not map all samples */
+    total_subsongs = region_count + 1;
+    if (target_subsong == 0) target_subsong = 1;
+    if (target_subsong < 0 || target_subsong > total_subsongs || total_subsongs < 1) goto fail;
 
-        if (target_subsong > 1) {
-            int i;
-            off_t region_start, region_end;
-            size_t sample_start = read_32bit(regn_offset + 0x20 + (target_subsong-2)*0x100+0x00, streamFile);
-            size_t sample_end   = read_32bit(regn_offset + 0x20 + (target_subsong-2)*0x100+0x04, streamFile) + 1;
-            off_t adpcm_offset  = regn_offset + 0x20 + (target_subsong-2)*0x100+0x08;
-            /* rest is padding up to 0x100 */
+    if (target_subsong > 1) {
+        int sample_aligned = 0, sample_skip = 0;
+        int i;
+        off_t region_start, region_end;
+        size_t block_size;
+        size_t sample_start = read_32bit(regn_offset + 0x20 + (target_subsong-2)*0x100+0x00, streamFile);
+        size_t sample_end   = read_32bit(regn_offset + 0x20 + (target_subsong-2)*0x100+0x04, streamFile) + 1;
+        off_t adpcm_offset  = regn_offset + 0x20 + (target_subsong-2)*0x100+0x08;
+        /* rest is padding up to 0x100 */
 
-            /* samples-to-bytes, approximate since samples could land in the middle of a frame, meh */
-            region_start = sample_start / 14 * vgmstream->channels * 0x08;
-            region_end = sample_end / 14 * vgmstream->channels * 0x08;
-            stream_size = region_end - region_start;
+        /* samples-to-bytes, approximate since samples could land in the middle of a 0x08 frame */
+        region_start = sample_start / 14 * vgmstream->channels * 0x08;
+        region_end = sample_end / 14 * vgmstream->channels * 0x08;
+        stream_size = region_end - region_start;
+        //;VGM_LOG("BFSTM: region offset start=%lx, end=%lx\n", region_start, region_end);
 
-            /* align to blocks or causes funny sounds, but the bigger the interleave the less
-             * accurate this is (with 0x2000 can be off by ~4600 samples) */
-            if (region_start % (vgmstream->interleave_block_size*vgmstream->channels))
-                region_start -= region_start % (vgmstream->interleave_block_size*vgmstream->channels);
+        /* align to block start or interleave causes funny sounds, but the bigger the interleave
+         * the less accurate this is (with 0x2000 align can be off by ~4600 samples per channel) */
+        //todo could be fixed with interleave_first_block
+        block_size = (vgmstream->interleave_block_size*vgmstream->channels);
+        if (region_start % block_size) {
+            region_start -= region_start % block_size; /* now aligned */
+            //;VGM_LOG("BFSTM: new region start=%lx\n", region_start);
 
-            start_offset += region_start;
-
-            if (sample_end != vgmstream->num_samples) /* not exact but... */
-                vgmstream->interleave_last_block_size = 0;
-
-            vgmstream->num_samples = sample_end - sample_start;
-            vgmstream->loop_start_sample = 0;
-            vgmstream->loop_end_sample = vgmstream->num_samples;
-            /* maybe loops should be enabled/disabled with regions? */
-
-            /* this won't make sense after aligning, whatevs, doesn't sound too bad */
-            for (i = 0; i < vgmstream->channels; i++) {
-                vgmstream->ch[i].adpcm_history1_16 = read_16bit(adpcm_offset+0x02+0x00, streamFile);
-                vgmstream->ch[i].adpcm_history2_16 = read_16bit(adpcm_offset+0x02+0x02, streamFile);
-            }
-        }
-        else {
-            stream_size = get_streamfile_size(streamFile);
+            /* get position of our block (close but smaller than sample_start) */
+            sample_aligned = dsp_bytes_to_samples(region_start, vgmstream->channels);
+            /* and how many samples to skip until actual sample_start */
+            sample_skip = (sample_start - sample_aligned);
         }
 
-        vgmstream->num_streams = total_subsongs;
-        vgmstream->stream_size = stream_size;
+        //;VGM_LOG("BFSTM: region align=%i, skip=%i, start=%i, end=%i\n", sample_aligned, sample_skip, sample_start, sample_end);
+        start_offset = region_start;
+
+        if (sample_end != vgmstream->num_samples) /* not exact but... */
+            vgmstream->interleave_last_block_size = 0;
+
+        vgmstream->num_samples = sample_skip + (sample_end - sample_start);
+        vgmstream->loop_start_sample = sample_skip;
+        vgmstream->loop_end_sample = vgmstream->num_samples;
+#if BFSTM_ENABLE_REGION_FORCE_LOOPS
+        vgmstream_force_loop(vgmstream, 1, vgmstream->loop_start_sample, vgmstream->loop_end_sample);
+#endif
+        /* maybe loops should be disabled with some regions? */
+
+        /* this won't make sense after aligning, whatevs, doesn't sound too bad */
+        for (i = 0; i < vgmstream->channels; i++) {
+            vgmstream->ch[i].adpcm_history1_16 = read_16bit(adpcm_offset+0x02+0x00, streamFile);
+            vgmstream->ch[i].adpcm_history2_16 = read_16bit(adpcm_offset+0x02+0x02, streamFile);
+        }
     }
+    else {
+        start_offset = 0;
+        stream_size = get_streamfile_size(streamFile);
+    }
+
+    vgmstream->num_streams = total_subsongs;
+    vgmstream->stream_size = stream_size;
 
     return start_offset;
 fail:
