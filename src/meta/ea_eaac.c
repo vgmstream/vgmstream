@@ -330,6 +330,7 @@ static VGMSTREAM * parse_s10a_header(STREAMFILE *streamFile, off_t offset, uint1
     if (ast_offset == 0xFFFFFFFF) {
         /* RAM asset */
         sns_offset = snr_offset + get_snr_size(streamFile, snr_offset);
+        ;VGM_LOG("EA S10A: RAM at sns=%lx, sns=%lx\n", snr_offset, sns_offset);
         vgmstream = init_vgmstream_eaaudiocore_header(streamFile, streamFile, snr_offset, sns_offset, meta_EA_SNR_SNS);
         if (!vgmstream)
             goto fail;
@@ -344,6 +345,7 @@ static VGMSTREAM * parse_s10a_header(STREAMFILE *streamFile, off_t offset, uint1
             goto fail;
 
         sns_offset = ast_offset;
+        ;VGM_LOG("EA S10A: stream at sns=%lx, sns=%lx\n", snr_offset, sns_offset);
         vgmstream = init_vgmstream_eaaudiocore_header(streamFile, astFile, snr_offset, sns_offset, meta_EA_SNR_SNS);
         if (!vgmstream)
             goto fail;
@@ -519,20 +521,22 @@ static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE * streamHead, ST
         goto fail;
     }
 
+    /* Non-streamed sounds are stored as a single block (may not set block end flags) */
+    eaac.streamed = (eaac.flags & EAAC_FLAG_STREAMED) != 0;
+
     /* get loops (fairly involved due to the multiple layouts and mutant streamfiles)
-     * full loops aren't too uncommon [Dead Space (PC) sfx/ambiance],
+     * full loops aren't too uncommon [Dead Space (PC) stream sfx/ambiance, FIFA 98 (PS3) RAM sfx],
      * while actual looping is very rare [Need for Speed: World (PC)] */
     if (eaac.flags & EAAC_FLAG_LOOPED) {
         eaac.loop_flag = 1;
-
         eaac.loop_start = read_32bitBE(header_offset+0x08, streamHead);
         eaac.loop_end = eaac.num_samples;
 
-        //todo header size always depends on flags or is implicit by loop values? see get_snr_size
-        if (eaac.loop_start > 0)
-            eaac.loop_offset = read_32bitBE(header_offset+0x0c, streamHead); /* normal loop */
+        /* RAM assets only have one block, even if they (rarely) set loop_start > 0 */
+        if (eaac.streamed)
+            eaac.loop_offset = read_32bitBE(header_offset+0x0c, streamHead);
         else
-            eaac.loop_offset = eaac.stream_offset; /* full loop */
+            eaac.loop_offset = eaac.stream_offset; /* implicit */
 
         //todo EATrax has extra values in header, which would coexist with loop values
         if (eaac.codec == EAAC_CODEC_EATRAX) {
@@ -547,9 +551,6 @@ static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE * streamHead, ST
             goto fail;
         }
     }
-
-    /* Non-streamed sounds are stored as a single block (may not set block end flags) */
-    eaac.streamed = (eaac.flags & EAAC_FLAG_STREAMED) != 0;
 
     /* accepted channel configs only seem to be mono/stereo/quad/5.1/7.1, from debug strings */
     switch(eaac.channel_config) {
@@ -629,7 +630,7 @@ static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE * streamHead, ST
 
             start_offset = 0x00; /* must point to the custom streamfile's beginning */
 
-            if (eaac.loop_start > 0) { /* special (if hacky) loop handling, see comments */
+            if (eaac.streamed && eaac.loop_start > 0) { /* special (if hacky) loop handling, see comments */
                 segmented_layout_data *data = build_segmented_eaaudiocore_looping(streamData, &eaac);
                 if (!data) goto fail;
                 vgmstream->layout_data = data;

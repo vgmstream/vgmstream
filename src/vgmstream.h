@@ -605,7 +605,7 @@ typedef enum {
     meta_OTM,               /* Otomedius (Arcade) */
     meta_CSTM,              /* Nintendo 3DS CSTM (Century Stream) */
     meta_FSTM,              /* Nintendo Wii U FSTM (caFe? Stream) */
-    meta_3DS_IDSP,          /* Nintendo 3DS/Wii U IDSP */
+    meta_IDSP_NUS3,         /* Namco 3DS/Wii U IDSP */
     meta_KT_WIIBGM,         /* Koei Tecmo WiiBGM */
     meta_KTSS,              /* Koei Tecmo Nintendo Stream (KNS) */
     meta_MCA,               /* Capcom MCA "MADP" */
@@ -696,6 +696,9 @@ typedef enum {
     meta_CKS,               /* Cricket Audio stream [Part Time UFO (Android), Mega Man 1-6 (Android)] */
     meta_CKB,               /* Cricket Audio bank [Fire Emblem Heroes (Android), Mega Man 1-6 (Android)] */
     meta_WV6,               /* Gorilla Systems PC games */
+    meta_WAVEBATCH,         /* Firebrand Games */
+    meta_HD3_BD3,           /* Sony PS3 bank */
+    meta_BNK_SONY,          /* Sony Scream Tool bank */
 
 #ifdef VGM_USE_FFMPEG
     meta_FFmpeg,

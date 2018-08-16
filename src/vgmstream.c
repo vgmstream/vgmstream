@@ -317,7 +317,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_ps2_vbk,
     init_vgmstream_otm,
     init_vgmstream_bcstm,
-    init_vgmstream_3ds_idsp,
+    init_vgmstream_idsp_nus3,
     init_vgmstream_kt_g1l,
     init_vgmstream_kt_wiibgm,
     init_vgmstream_ktss,
@@ -420,6 +420,10 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_ckb,
     init_vgmstream_wv6,
     init_vgmstream_str_wav,
+    init_vgmstream_wavebatch,
+    init_vgmstream_hd3_bd3,
+    init_vgmstream_bnk_sony,
+    init_vgmstream_nus3bank,
 
     init_vgmstream_txth,  /* should go at the end (lower priority) */
 #ifdef VGM_USE_FFMPEG
@@ -498,6 +502,14 @@ static VGMSTREAM * init_vgmstream_internal(STREAMFILE *streamFile) {
             }
         }
 #endif
+
+        /* files can have thousands subsongs, but let's put a limit */
+        if (vgmstream->num_streams < 0 || vgmstream->num_streams > 65535) {
+            VGM_LOG("VGMSTREAM: wrong num_streams (ns=%i)\n", vgmstream->num_streams);
+            close_vgmstream(vgmstream);
+            continue;
+        }
+
 
         /* save info */
         /* stream_index 0 may be used by plugins to signal "vgmstream default" (IOW don't force to 1) */
@@ -654,8 +666,10 @@ VGMSTREAM * allocate_vgmstream(int channel_count, int looped) {
     VGMSTREAMCHANNEL * loop_channels;
 
     /* up to ~16 aren't too rare for multilayered files, more is probably a bug */
-    if (channel_count <= 0 || channel_count > 64)
+    if (channel_count <= 0 || channel_count > 64) {
+        VGM_LOG("VGMSTREAM: error allocating %i channels\n", channel_count);
         return NULL;
+    }
 
     vgmstream = calloc(1,sizeof(VGMSTREAM));
     if (!vgmstream) return NULL;
@@ -2670,6 +2684,13 @@ int vgmstream_open_stream(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t s
     if (vgmstream->interleave_block_size * vgmstream->channels >= STREAMFILE_DEFAULT_BUFFER_SIZE) {
         use_streamfile_per_channel = 1;
     }
+
+    /* if blocked layout (implicit) use multiple streamfiles; using only one leads to
+     * lots of buffer-trashing, with all the jumping around in the block layout */
+    if (vgmstream->layout_type != layout_none && vgmstream->layout_type != layout_interleave) {
+        use_streamfile_per_channel = 1;
+    }
+
 
     /* for mono or codecs like IMA (XBOX, MS IMA, MS ADPCM) where channels work with the same bytes */
     if (vgmstream->layout_type == layout_none) {

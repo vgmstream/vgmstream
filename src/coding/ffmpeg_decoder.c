@@ -24,7 +24,7 @@ static void g_init_ffmpeg() {
         g_ffmpeg_initialized = 1;
         av_log_set_flags(AV_LOG_SKIP_REPEATED);
         av_log_set_level(AV_LOG_ERROR);
-        av_register_all();
+        //av_register_all(); /* not needed in newer versions */
         g_ffmpeg_initialized = 2;
     }
 }
@@ -378,6 +378,10 @@ ffmpeg_codec_data * init_ffmpeg_config(STREAMFILE *streamFile, uint8_t * header,
     data->real_start = start;
     data->real_offset = data->real_start;
     data->real_size = size;
+    if (data->real_start + data->real_size > get_streamfile_size(streamFile)) {
+        VGM_LOG("FFmpeg: wrong start+size found\n");
+        data->real_size = get_streamfile_size(streamFile) - data->real_start;
+    }
     data->virtual_offset = 0;
     data->virtual_size = ffmpeg_size(data);
     data->virtual_base = 0;
@@ -434,7 +438,7 @@ ffmpeg_codec_data * init_ffmpeg_config(STREAMFILE *streamFile, uint8_t * header,
 
     if ((errcode = avcodec_parameters_to_context(data->codecCtx, codecPar)) < 0) goto fail;
 
-    av_codec_set_pkt_timebase(data->codecCtx, stream->time_base);
+    //av_codec_set_pkt_timebase(data->codecCtx, stream->time_base); /* deprecated and seemingly not needed */
 
     data->codec = avcodec_find_decoder(data->codecCtx->codec_id);
     if (!data->codec) goto fail;

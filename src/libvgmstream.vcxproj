@@ -206,6 +206,7 @@
     <ClCompile Include="meta\baf.c" />
     <ClCompile Include="meta\bgw.c" />
     <ClCompile Include="meta\bik.c" />
+    <ClCompile Include="meta\bnk_sony.c" />
     <ClCompile Include="meta\bnsf.c" />
     <ClCompile Include="meta\brstm.c" />
     <ClCompile Include="meta\btsnd.c" />
@@ -243,6 +244,7 @@
     <ClCompile Include="meta\h4m.c" />
     <ClCompile Include="meta\halpst.c" />
     <ClCompile Include="meta\hca.c" />
+    <ClCompile Include="meta\hd3_bd3.c" />
     <ClCompile Include="meta\his.c" />
     <ClCompile Include="meta\idsp.c" />
     <ClCompile Include="meta\ish_isd.c" />
@@ -292,6 +294,7 @@
     <ClCompile Include="meta\ngc_ulw.c" />
     <ClCompile Include="meta\ngc_vid1.c" />
     <ClCompile Include="meta\nub_xma.c" />
+    <ClCompile Include="meta\nus3bank.c" />
     <ClCompile Include="meta\nwa.c" />
     <ClCompile Include="meta\nxap.c" />
     <ClCompile Include="meta\ogg_vorbis.c" />
@@ -424,6 +427,7 @@
     <ClCompile Include="meta\waf.c" />
     <ClCompile Include="meta\wave_segmented.c" />
     <ClCompile Include="meta\wave.c" />
+    <ClCompile Include="meta\wavebatch.c" />
     <ClCompile Include="meta\wii_04sw.c" />
     <ClCompile Include="meta\wii_bns.c" />
     <ClCompile Include="meta\wii_mus.c" />

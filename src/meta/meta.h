@@ -3,7 +3,7 @@
 
 #include "../vgmstream.h"
 
-VGMSTREAM * init_vgmstream_3ds_idsp(STREAMFILE *streamFile);
+VGMSTREAM * init_vgmstream_idsp_nus3(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_adx(STREAMFILE *streamFile);
 
@@ -766,5 +766,13 @@ VGMSTREAM * init_vgmstream_ckb(STREAMFILE *streamFile);
 VGMSTREAM * init_vgmstream_wv6(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_str_wav(STREAMFILE *streamFile);
+
+VGMSTREAM * init_vgmstream_wavebatch(STREAMFILE *streamFile);
+
+VGMSTREAM * init_vgmstream_hd3_bd3(STREAMFILE *streamFile);
+
+VGMSTREAM * init_vgmstream_bnk_sony(STREAMFILE *streamFile);
+
+VGMSTREAM * init_vgmstream_nus3bank(STREAMFILE *streamFile);
 
 #endif /*_META_H*/

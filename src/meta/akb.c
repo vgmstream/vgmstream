@@ -188,7 +188,7 @@ VGMSTREAM * init_vgmstream_akb2(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     off_t start_offset, material_offset, extradata_offset;
     size_t material_size, extradata_size, stream_size;
-    int loop_flag = 0, channel_count, encryption_flag, codec, sample_rate, num_samples, loop_start, loop_end;
+    int loop_flag = 0, channel_count, encryption_flag, codec, sample_rate, /*num_samples, loop_start,*/ loop_end;
     int total_subsongs, target_subsong = streamFile->stream_index;
 
     /* check extensions */
@@ -232,9 +232,9 @@ VGMSTREAM * init_vgmstream_akb2(STREAMFILE *streamFile) {
     material_size   = read_16bitLE(material_offset+0x04,streamFile);
     sample_rate     = (uint16_t)read_16bitLE(material_offset+0x06,streamFile);
     stream_size     = read_32bitLE(material_offset+0x08,streamFile);
-    num_samples     = read_32bitLE(material_offset+0x0c,streamFile);
+  //num_samples     = read_32bitLE(material_offset+0x0c,streamFile);
 
-    loop_start      = read_32bitLE(material_offset+0x10,streamFile);
+  //loop_start      = read_32bitLE(material_offset+0x10,streamFile);
     loop_end        = read_32bitLE(material_offset+0x14,streamFile);
     extradata_size  = read_32bitLE(material_offset+0x18,streamFile);
     /* rest: ? (empty or 0x3f80) */
@@ -309,8 +309,8 @@ VGMSTREAM * init_vgmstream_akb2(STREAMFILE *streamFile) {
 
             /* When loop_flag num_samples may be much larger than real num_samples (it's fine when looping is off)
              * Actual num_samples would be loop_end_sample+1, but more testing is needed */
-            vgmstream->num_samples = num_samples;
-            vgmstream->loop_start_sample = loop_start;
+            vgmstream->num_samples       = read_32bitLE(material_offset+0x0c,streamFile);//num_samples;
+            vgmstream->loop_start_sample = read_32bitLE(material_offset+0x10,streamFile);//loop_start;
             vgmstream->loop_end_sample   = loop_end;
             break;
         }

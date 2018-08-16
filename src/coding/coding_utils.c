@@ -804,6 +804,23 @@ void xma2_parse_xma2_chunk(STREAMFILE *streamFile, off_t chunk_offset, int * cha
     if (channels) *channels = total_channels;
 }
 
+/* manually read from "fact" chunk */
+int riff_get_fact_skip_samples(STREAMFILE * streamFile, off_t start_offset) {
+    off_t chunk_offset;
+    size_t chunk_size, fact_skip_samples = 0;
+    if (!find_chunk_le(streamFile, 0x66616374, start_offset + 0x0c, 0, &chunk_offset, &chunk_size)) /* find "fact" */
+        goto fail;
+    if (chunk_size == 0x8) {
+        fact_skip_samples = read_32bitLE(chunk_offset + 0x4, streamFile);
+    }
+    else if (chunk_size == 0xc) {
+        fact_skip_samples = read_32bitLE(chunk_offset + 0x8, streamFile);
+    }
+
+    return fact_skip_samples;
+fail:
+    return 0; /* meh */
+}
 
 /* ******************************************** */
 /* OTHER STUFF                                  */

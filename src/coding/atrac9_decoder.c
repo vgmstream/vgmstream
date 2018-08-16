@@ -221,4 +221,36 @@ size_t atrac9_bytes_to_samples(size_t bytes, atrac9_codec_data *data) {
 fail:
     return 0;
 }
+
+int atrac9_parse_config(uint32_t atrac9_config, int *out_sample_rate, int *out_channels, size_t *out_frame_size) {
+    static const int sample_rate_table[16] = {
+            11025, 12000, 16000, 22050, 24000, 32000, 44100, 48000,
+            44100, 48000, 64000, 88200, 96000,128000,176400,192000
+    };
+    static const int channel_table[8] = {
+            1, 2, 2, 6, 8, 4, 0, 0
+    };
+
+    uint32_t sync             = (atrac9_config >> 24) & 0xff; /* 8b */
+    uint8_t sample_rate_index = (atrac9_config >> 20) & 0x0f; /* 4b */
+    uint8_t channels_index    = (atrac9_config >> 17) & 0x07; /* 3b */
+    /* uint8_t validation bit = (atrac9_config >> 16) & 0x01; */ /* 1b */
+    size_t frame_size         = (atrac9_config >>  5) & 0x7FF; /* 11b */
+    size_t superframe_index   = (atrac9_config >>  3) & 0x3; /* 2b */
+    /* uint8_t unused         = (atrac9_config >>  0) & 0x7);*/ /* 3b */
+
+    if (sync != 0xFE)
+        goto fail;
+    if (out_sample_rate)
+        *out_sample_rate = sample_rate_table[sample_rate_index];
+    if (out_channels)
+        *out_channels = channel_table[channels_index];
+    if (out_frame_size)
+        *out_frame_size = (frame_size+1) * (1 << superframe_index);
+
+    return 1;
+fail:
+    return 0;
+}
+
 #endif

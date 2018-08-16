@@ -348,6 +348,10 @@
                     RelativePath=".\meta\bik.c"
                     >
                 </File>
+                <File
+                    RelativePath=".\meta\bnk_sony.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\bnsf.c"
 					>
@@ -512,6 +516,10 @@
 					RelativePath=".\meta\hca.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\meta\hd3_bd3.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\his.c"
 					>
@@ -740,6 +748,10 @@
 				</File>
                 <File
                     RelativePath=".\meta\nub_xma.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\nus3bank.c"
                     >
                 </File>
 				<File
@@ -1376,6 +1388,10 @@
                 </File>
                 <File
                     RelativePath=".\meta\wave.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\wavebatch.c"
                     >
                 </File>
                 <File

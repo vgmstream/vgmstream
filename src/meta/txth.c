@@ -47,7 +47,7 @@ typedef struct {
     int data_size_set;
     uint32_t start_offset;
 
-    int sample_type_bytes;
+    int sample_type;
     uint32_t num_samples;
     uint32_t loop_start_sample;
     uint32_t loop_end_sample;
@@ -315,8 +315,10 @@ VGMSTREAM * init_vgmstream_txth(STREAMFILE *streamFile) {
                     bytes = ffmpeg_make_riff_xma1(buf, 100, vgmstream->num_samples, txth.data_size, vgmstream->channels, vgmstream->sample_rate, xma_stream_mode);
                 }
                 else if (txth.codec == XMA2) {
-                    int block_size = txth.interleave ? txth.interleave : 2048;
-                    int block_count = txth.data_size / block_size;
+                    int block_count, block_size;
+
+                    block_size = txth.interleave ? txth.interleave : 2048;
+                    block_count = txth.data_size / block_size;
 
                     bytes = ffmpeg_make_riff_xma2(buf, 200, vgmstream->num_samples, txth.data_size, vgmstream->channels, vgmstream->sample_rate, block_count, block_size);
                 }
@@ -345,7 +347,7 @@ VGMSTREAM * init_vgmstream_txth(STREAMFILE *streamFile) {
     }
 
 #ifdef VGM_USE_FFMPEG
-    if ((txth.sample_type_bytes || txth.num_samples_data_size) && (txth.codec == XMA1 || txth.codec == XMA2)) {
+    if ((txth.sample_type==1 || txth.num_samples_data_size) && (txth.codec == XMA1 || txth.codec == XMA2)) {
         /* manually find sample offsets */
         ms_sample_data msd = {0};
 
@@ -353,7 +355,7 @@ VGMSTREAM * init_vgmstream_txth(STREAMFILE *streamFile) {
         msd.channels = txth.channels;
         msd.data_offset = txth.start_offset;
         msd.data_size = txth.data_size;
-        if (txth.sample_type_bytes) {
+        if (txth.sample_type==1) {
             msd.loop_flag = txth.loop_flag;
             msd.loop_start_b = txth.loop_start_sample;
             msd.loop_end_b   = txth.loop_end_sample;
@@ -364,7 +366,7 @@ VGMSTREAM * init_vgmstream_txth(STREAMFILE *streamFile) {
         xma_get_samples(&msd, streamFile);
 
         vgmstream->num_samples = msd.num_samples;
-        if (txth.sample_type_bytes) {
+        if (txth.sample_type==1) {
             vgmstream->loop_start_sample = msd.loop_start_sample;
             vgmstream->loop_end_sample = msd.loop_end_sample;
         }
@@ -493,6 +495,7 @@ static int parse_keyval(STREAMFILE * streamFile, STREAMFILE * streamText, txth_h
     }
     else if (0==strcmp(key,"interleave")) {
         if (0==strcmp(val,"half_size")) {
+            if (txth->channels == 0) goto fail;
             txth->interleave = txth->data_size / txth->channels;
         }
         else {
@@ -523,8 +526,9 @@ static int parse_keyval(STREAMFILE * streamFile, STREAMFILE * streamText, txth_h
         txth->data_size_set = 1;
     }
     else if (0==strcmp(key,"sample_type")) {
-        if (0==strcmp(val,"bytes")) txth->sample_type_bytes = 1;
-        else if (0==strcmp(val,"samples")) txth->sample_type_bytes = 0;
+        if (0==strcmp(val,"samples")) txth->sample_type = 0;
+        else if (0==strcmp(val,"bytes")) txth->sample_type = 1;
+        else if (0==strcmp(val,"blocks")) txth->sample_type = 2;
         else goto fail;
     }
     else if (0==strcmp(key,"num_samples")) {
@@ -534,14 +538,18 @@ static int parse_keyval(STREAMFILE * streamFile, STREAMFILE * streamText, txth_h
         }
         else {
             if (!parse_num(streamFile,val, &txth->num_samples)) goto fail;
-            if (txth->sample_type_bytes)
+            if (txth->sample_type==1)
                 txth->num_samples = get_bytes_to_samples(txth, txth->num_samples);
+            if (txth->sample_type==2)
+                txth->num_samples = get_bytes_to_samples(txth, txth->num_samples * (txth->interleave*txth->channels));
         }
     }
     else if (0==strcmp(key,"loop_start_sample")) {
         if (!parse_num(streamFile,val, &txth->loop_start_sample)) goto fail;
-        if (txth->sample_type_bytes)
+        if (txth->sample_type==1)
             txth->loop_start_sample = get_bytes_to_samples(txth, txth->loop_start_sample);
+        if (txth->sample_type==2)
+            txth->loop_start_sample = get_bytes_to_samples(txth, txth->loop_start_sample * (txth->interleave*txth->channels));
         if (txth->loop_adjust)
             txth->loop_start_sample += txth->loop_adjust;
     }
@@ -551,8 +559,10 @@ static int parse_keyval(STREAMFILE * streamFile, STREAMFILE * streamText, txth_h
         }
         else {
             if (!parse_num(streamFile,val, &txth->loop_end_sample)) goto fail;
-            if (txth->sample_type_bytes)
+            if (txth->sample_type==1)
                 txth->loop_end_sample = get_bytes_to_samples(txth, txth->loop_end_sample);
+            if (txth->sample_type==2)
+                txth->loop_end_sample = get_bytes_to_samples(txth, txth->loop_end_sample * (txth->interleave*txth->channels));
         }
         if (txth->loop_adjust)
             txth->loop_end_sample += txth->loop_adjust;
@@ -560,13 +570,17 @@ static int parse_keyval(STREAMFILE * streamFile, STREAMFILE * streamText, txth_h
     else if (0==strcmp(key,"skip_samples")) {
         if (!parse_num(streamFile,val, &txth->skip_samples)) goto fail;
         txth->skip_samples_set = 1;
-        if (txth->sample_type_bytes)
+        if (txth->sample_type==1)
             txth->skip_samples = get_bytes_to_samples(txth, txth->skip_samples);
+        if (txth->sample_type==2)
+            txth->skip_samples = get_bytes_to_samples(txth, txth->skip_samples * (txth->interleave*txth->channels));
     }
     else if (0==strcmp(key,"loop_adjust")) {
         if (!parse_num(streamFile,val, &txth->loop_adjust)) goto fail;
-        if (txth->sample_type_bytes)
+        if (txth->sample_type==1)
             txth->loop_adjust = get_bytes_to_samples(txth, txth->loop_adjust);
+        if (txth->sample_type==2)
+            txth->loop_adjust = get_bytes_to_samples(txth, txth->loop_adjust * (txth->interleave*txth->channels));
     }
     else if (0==strcmp(key,"loop_flag")) {
         if (!parse_num(streamFile,val, &txth->loop_flag)) goto fail;
@@ -697,7 +711,7 @@ static int get_bytes_to_samples(txth_header * txth, uint32_t bytes) {
         case SDX2:
             return bytes;
         case NGC_DTK:
-            return bytes / 32 * 28; /* always stereo? */
+            return bytes / 0x20 * 28; /* always stereo */
         case APPLE_IMA4:
             if (!txth->interleave) return 0;
             return (bytes / txth->interleave) * (txth->interleave - 2) * 2;

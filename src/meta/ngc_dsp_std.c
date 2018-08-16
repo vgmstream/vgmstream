@@ -1,8 +1,7 @@
 #include "meta.h"
 #include "../layout/layout.h"
 #include "../coding/coding.h"
-#include "../util.h"
-#include "../stack_alloc.h"
+
 
 /* If these variables are packed properly in the struct (one after another)
  * then this is actually how they are laid out in the file, albeit big-endian */
@@ -619,54 +618,30 @@ fail:
     return NULL;
 }
 
-/* IDSP - Namco header + interleaved dsp [SSB4 (3DS), Tekken Tag Tournament 2 (WiiU)] */
-VGMSTREAM * init_vgmstream_3ds_idsp(STREAMFILE *streamFile) {
+/* IDSP - Namco header (from NUS3) + interleaved dsp [SSB4 (3DS), Tekken Tag Tournament 2 (WiiU)] */
+VGMSTREAM * init_vgmstream_idsp_nus3(STREAMFILE *streamFile) {
     dsp_meta dspm = {0};
-    off_t offset;
 
     /* checks */
-    if (!check_extensions(streamFile, "idsp,nus3bank"))
+    if (!check_extensions(streamFile, "idsp"))
         goto fail;
-
-    /* try NUS3BANK container */
-    if (read_32bitBE(0x00,streamFile) == 0x4E555333) { /* "NUS3" */
-        int i, chunk_count;
-
-        offset = 0x14 + read_32bitLE(0x10, streamFile); /* TOC size */
-        chunk_count = read_32bitLE(0x14, streamFile); /* rarely not 7 (ex. SMB U's snd_bgm_CRS12_Simple_Result_Final) */
-
-        for (i = 0; i < chunk_count; i++) {
-            if (read_32bitBE(0x18 + i*0x08 + 0x00, streamFile) == 0x5041434B) { /* "PACK" */
-                offset += 0x08;
-                break; /* contains "IDSP", should appear last anyway */
-            }
-            else {
-                offset += 0x08 + read_32bitLE(0x18 + i*0x08 + 0x04, streamFile);
-            }
-        }
-    }
-    else {
-        offset = 0x00;
-    }
-
-
-    if (read_32bitBE(offset,streamFile) != 0x49445350) /* "IDSP" */
+    if (read_32bitBE(0x00,streamFile) != 0x49445350) /* "IDSP" */
         goto fail;
     /* 0x0c: sample rate, 0x10: num_samples, 0x14: loop_start_sample, 0x18: loop_start_sample */
 
-    dspm.channel_count = read_32bitBE(offset+0x08, streamFile);
+    dspm.channel_count = read_32bitBE(0x08, streamFile);
     dspm.max_channels = 8;
     /* games do adjust loop_end if bigger than num_samples (only happens in user-created IDSPs) */
     dspm.fix_looping = 1;
 
-    dspm.header_offset = read_32bitBE(offset+0x20,streamFile) + offset;
-    dspm.header_spacing = read_32bitBE(offset+0x24,streamFile);
-    dspm.start_offset = read_32bitBE(offset+0x28,streamFile) + offset;
-    dspm.interleave = read_32bitBE(offset+0x1c,streamFile); /* usually 0x10 */
+    dspm.header_offset = read_32bitBE(0x20,streamFile);
+    dspm.header_spacing = read_32bitBE(0x24,streamFile);
+    dspm.start_offset = read_32bitBE(0x28,streamFile);
+    dspm.interleave = read_32bitBE(0x1c,streamFile); /* usually 0x10 */
     if (dspm.interleave == 0) /* Taiko no Tatsujin: Atsumete Tomodachi Daisakusen (WiiU) */
-        dspm.interleave = read_32bitBE(offset+0x2c,streamFile); /* half interleave, use channel size */
+        dspm.interleave = read_32bitBE(0x2c,streamFile); /* half interleave, use channel size */
 
-    dspm.meta_type = meta_3DS_IDSP;
+    dspm.meta_type = meta_IDSP_NUS3;
     return init_vgmstream_dsp_common(streamFile, &dspm);
 fail:
     return NULL;

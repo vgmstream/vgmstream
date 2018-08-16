@@ -108,7 +108,7 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE *streamFile, ea_
 VGMSTREAM * init_vgmstream_ea_schl(STREAMFILE *streamFile) {
     /* check extension; exts don't seem enforced by EA's tools, but usually:
      * STR/ASF/MUS ~early, EAM ~mid, SNG/AUD ~late, rest uncommon/one game (ex. STRM: MySims Kingdom Wii) */
-    if (!check_extensions(streamFile,"str,asf,mus,eam,sng,aud,sx,strm,xa,xsf,exa,stm,ast,trj,trm"))
+    if (!check_extensions(streamFile,"str,asf,mus,eam,sng,aud,sx,strm,xa,xsf,exa,stm,trj,trm"))
         goto fail;
 
     /* check header */
@@ -357,7 +357,7 @@ VGMSTREAM * init_vgmstream_ea_idx_big(STREAMFILE *streamFile) {
     uint16_t hdr_id, hdr_subid;
     uint8_t userdata_size, hdr_sounds;
     off_t entry_offset, hdr_offset, base_offset, schl_offset, offset_mult;
-    size_t hdr_size;
+    //size_t hdr_size;
     char stream_name[STREAM_NAME_SIZE];
     STREAMFILE *bigFile = NULL;
     VGMSTREAM *vgmstream = NULL;
@@ -396,7 +396,7 @@ VGMSTREAM * init_vgmstream_ea_idx_big(STREAMFILE *streamFile) {
 
     for (i = 0; i < num_hdr; i++) {
         entry_offset = 0x58 + 0x10 * i;
-        hdr_size = read_32bit(entry_offset + 0x04, streamFile);
+        //hdr_size = read_32bit(entry_offset + 0x04, streamFile);
         hdr_offset = read_32bit(entry_offset + 0x08, streamFile);
         base_offset = read_32bit(entry_offset + 0x0C, streamFile);
 
@@ -709,7 +709,10 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE *streamFile, ea_
         }
 
 #ifdef VGM_USE_FFMPEG
-        case EA_CODEC2_ATRAC3PLUS: { /* regular ATRAC3plus chunked in SCxx blocks, including RIFF header [Medal of Honor Heroes 2 (PSP)] */
+        case EA_CODEC2_ATRAC3PLUS: {
+            ffmpeg_codec_data *ffmpeg_data;
+
+            /* regular ATRAC3plus chunked in SCxx blocks, including RIFF header [Medal of Honor Heroes 2 (PSP)] */
             if (!is_bnk) {
                 STREAMFILE* temp_streamFile = NULL;
                 /* remove blocks on reads to feed FFmpeg a clean .at3 */
@@ -718,20 +721,22 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE *streamFile, ea_
 
                 start_offset = 0x00; /* must point to the custom streamfile's beginning */
 
-                //todo fix encoder delay
-                vgmstream->codec_data = init_ffmpeg_offset(temp_streamFile, start_offset, get_streamfile_size(temp_streamFile));
+                ffmpeg_data = init_ffmpeg_offset(temp_streamFile, start_offset, get_streamfile_size(temp_streamFile));
                 close_streamfile(temp_streamFile);
-                if (!vgmstream->codec_data) goto fail;
+                if (!ffmpeg_data) goto fail;
             }
-            else
-            {
+            else {
                 size_t riff_size = read_32bitLE(start_offset + 0x04, streamFile) + 0x08;
-                vgmstream->codec_data = init_ffmpeg_offset(streamFile, start_offset, riff_size);
-                if (!vgmstream->codec_data) goto fail;
+                ffmpeg_data = init_ffmpeg_offset(streamFile, start_offset, riff_size);
+                if (!ffmpeg_data) goto fail;
             }
 
+            vgmstream->codec_data = ffmpeg_data;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
+
+            if (ffmpeg_data->skipSamples <= 0) /* in case FFmpeg didn't get them */
+                ffmpeg_set_skip_samples(ffmpeg_data, riff_get_fact_skip_samples(streamFile, start_offset));
             break;
         }
 #endif
