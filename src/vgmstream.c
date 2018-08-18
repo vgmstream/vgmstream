@@ -921,11 +921,30 @@ void vgmstream_force_loop(VGMSTREAM* vgmstream, int loop_flag, int loop_start_sa
         vgmstream->loop_ch = calloc(vgmstream->channels,sizeof(VGMSTREAMCHANNEL));
         /* loop_ch will be populated when decoded samples reach loop start */
     }
+    else {
+        /* not important though */
+        free(vgmstream->loop_ch);
+        vgmstream->loop_ch = NULL;
+    }
+
     vgmstream->loop_flag = loop_flag;
     if (loop_flag) {
         vgmstream->loop_start_sample = loop_start_sample;
         vgmstream->loop_end_sample = loop_end_sample;
+    } else {
+        vgmstream->loop_start_sample = 0;
+        vgmstream->loop_end_sample = 0;
     }
+
+    /* propagate changes to layouts that need them */
+    if (vgmstream->layout_type == layout_layered) {
+        int i;
+        layered_layout_data *data = vgmstream->layout_data;
+        for (i = 0; i < data->layer_count; i++) {
+            vgmstream_force_loop(data->layers[i], loop_flag, loop_start_sample, loop_end_sample);
+        }
+    }
+    /* segmented layout only works (ATM) with exact/header loop, full loop or no loop */
 }
 
 /* Decode data into sample buffer */
