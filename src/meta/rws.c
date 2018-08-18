@@ -10,25 +10,32 @@ typedef struct {
     int channel_count;
     int codec;
     int sample_rate;
+
     int total_segments;
+    int target_segment;
+    off_t segment_offset;
+    size_t segment_size;
+    off_t segment_name_offset;
+
     int total_layers;
+    int target_layer;
+    off_t layer_offset;
+    size_t layer_size;
+    off_t layer_name_offset;
 
     size_t file_size;
     size_t header_size;
     size_t data_size;
-    size_t stream_size_full;
-    size_t stream_size;
-    size_t stream_size_expected;
-
-    size_t block_size;
-    size_t block_size_total;
-
     off_t data_offset;
 
-    off_t coefs_offset;
-    off_t stream_offset;
-    off_t name_offset;
+    //size_t stream_size;
+    size_t block_size;
+    size_t block_size_total;
+    size_t stream_size_full;
 
+    off_t coefs_offset;
+
+    int use_segment_subsongs; /* otherwise play the whole thing */
 } rws_header;
 
 
@@ -36,13 +43,16 @@ typedef struct {
 VGMSTREAM * init_vgmstream_rws(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     off_t start_offset, offset;
-    int32_t (*read_32bit)(off_t,STREAMFILE*) = NULL;
+    off_t stream_offset, name_offset;
+    size_t stream_size;
     int loop_flag;
-    int total_subsongs, target_subsong = streamFile->stream_index;
     int i;
+    int total_subsongs, target_subsong = streamFile->stream_index;
     rws_header rws = {0};
+    int32_t (*read_32bit)(off_t,STREAMFILE*) = NULL;
 
-    /* check */
+
+    /* checks */
     if (!check_extensions(streamFile,"rws"))
         goto fail;
 
@@ -72,14 +82,17 @@ VGMSTREAM * init_vgmstream_rws(STREAMFILE *streamFile) {
     offset = 0x0c + 0x0c;
 
 
-    /* get base header */
+    /* base header */
     /* 0x00: actual header size (less than chunk size),  0x04/08/10: sizes of various sections?,  0x14/18/24/2C: commands?
      * 0x1c: null?  0x30: 0x800?,  0x34: block_size_total?, 0x38: data offset,  0x3c: 0?, 0x40-50: file uuid */
     read_32bit = (read_32bitLE(offset+0x00,streamFile) > rws.header_size) ? read_32bitBE : read_32bitLE; /* GC/Wii/X360 = BE */
     rws.total_segments = read_32bit(offset+0x20,streamFile);
     rws.total_layers   = read_32bit(offset+0x28,streamFile);
+    if (rws.total_segments > 1 && rws.total_layers > 1) {
+        VGM_LOG("RWS: unknown segments+layers layout\n");
+    }
 
-    /* skip audio file name */
+    /* audio file name */
     offset += 0x50 + get_rws_string_size(offset+0x50, streamFile);
 
 
@@ -93,52 +106,77 @@ VGMSTREAM * init_vgmstream_rws(STREAMFILE *streamFile) {
      * they are treated as subsongs. Similarly segments can be treated as subsongs in some cases.
      * They don't seem used at the same time, though could be possible. */
 
-    total_subsongs = rws.total_layers;
+    /* Use either layers or segments as subsongs (with layers having priority). This divides Nana (PS2)
+     * or Max Payne 2 (PS2) intro+main, so it could be adjusted to >2 (>4 for Max Payne 2) if undesired */
     if (target_subsong == 0) target_subsong = 1;
+
+    rws.use_segment_subsongs = (rws.total_layers == 1 && rws.total_segments > 1);
+    if (rws.use_segment_subsongs) {
+        rws.target_layer = 1;
+        rws.target_segment = target_subsong;
+        total_subsongs = rws.total_segments;
+    }
+    else {
+        rws.target_layer = target_subsong;
+        rws.target_segment = 0; /* none = play all */
+        total_subsongs = rws.total_layers;
+    }
+
     if (target_subsong < 0 || target_subsong > total_subsongs || total_subsongs < 1) goto fail;
 
 
-    /* get segment info, for all streams */
-    /* 0x00/04/0c: command?,  0x18: full segment size (including all streams),  0x1c: offset, others: ?) */
+    /* segment info, for all layers */
+    /* 0x00/04/0c: command?,  0x18: full segment size (including padding),  0x1c: offset, others: ?) */
     for (i = 0; i < rws.total_segments; i++) {
+        if (i+1 == rws.target_segment) {
+            rws.segment_offset = read_32bit(offset + 0x20*i + 0x1c,streamFile);
+        }
         rws.stream_size_full += read_32bit(offset + 0x20*i + 0x18,streamFile);
     }
     offset += 0x20 * rws.total_segments;
 
-
-    /* get usable segment sizes (usually ok but sometimes > stream_size), per stream */
-    for (i = 0; i < rws.total_segments; i++) { /* sum usable segment sizes (no padding) */
-        rws.stream_size += read_32bit(offset + 0x04*i + 0x04*rws.total_segments*(target_subsong-1),streamFile);
+    /* usable segment/layer sizes (assumed either one, sometimes incorrect size?) */
+    for (i = 0; i < (rws.total_segments * rws.total_layers); i++) { /* sum usable segment sizes (no padding) */
+        size_t usable_size = read_32bit(offset + 0x04*i,streamFile); /* size without padding */
+        if (i+1 == rws.target_segment) {
+            rws.segment_size = usable_size;
+        }
+        if (i+1 == rws.target_layer || rws.total_layers == 1) {
+            rws.layer_size += usable_size;
+        }
     }
     offset += 0x04 * (rws.total_segments * rws.total_layers);
 
-    /* skip segment uuids */
+    /* segment uuids */
     offset += 0x10 * rws.total_segments;
 
-    /* skip segment names */
+    /* segment names */
     for (i = 0; i < rws.total_segments; i++) {
+        if (i+1 == rws.target_segment) {
+            rws.segment_name_offset = offset;
+        }
         offset += get_rws_string_size(offset, streamFile);
     }
 
 
-    /* get stream layout */
+    /* layer info */
     /* 0x00/04/14: command?, 0x08: null?  0x0c: related to samples per frame? (XADPCM=07, VAG=1C, DSP=0E, PCM=01)
      * 0x24: offset within data chunk, 0x1c: codec related?,  others: ?) */
     for (i = 0; i < rws.total_layers; i++) { /* get block_sizes */
-        rws.block_size_total += read_32bit(offset + 0x10 + 0x28*i, streamFile); /* for all streeams, to skip during decode */
-        if (i+1 == target_subsong) {
+        rws.block_size_total += read_32bit(offset + 0x10 + 0x28*i, streamFile); /* for all layers, to skip during decode */
+        if (i+1 == rws.target_layer) {
             //block_size_full = read_32bit(off + 0x10 + 0x28*i, streamFile); /* with padding, can be different per stream */
             rws.block_size = read_32bit(offset + 0x20 + 0x28*i, streamFile); /* without padding */
-            rws.stream_offset = read_32bit(offset + 0x24 + 0x28*i, streamFile); /* within data */
+            rws.layer_offset = read_32bit(offset + 0x24 + 0x28*i, streamFile); /* within data */
         }
     }
     offset += 0x28 * rws.total_layers;
 
-    /* get stream config */
+    /* layer config */
     /* 0x04: command?,  0x0c(1): bits per sample,  others: null? */
     for (i = 0; i < rws.total_layers; i++) { /* size depends on codec so we must parse it */
         int prev_codec = 0;
-        if (i+1 == target_subsong) {
+        if (i+1 == rws.target_layer) {
             rws.sample_rate   = read_32bit(offset+0x00, streamFile);
             //unk_size        = read_32bit(off+0x08, streamFile); /* segment size again? loop-related? */
             rws.channel_count =  read_8bit(offset+0x0d, streamFile);
@@ -147,9 +185,9 @@ VGMSTREAM * init_vgmstream_rws(STREAMFILE *streamFile) {
         prev_codec = read_32bitBE(offset+0x1c, streamFile);
         offset += 0x2c;
 
-        if (prev_codec == 0xF86215B0) { /* if codec is DSP there is an extra field per stream */
+        if (prev_codec == 0xF86215B0) { /* if codec is DSP there is an extra field per layer */
             /* 0x00: approx num samples?  0x04: approx size/loop related? (can be 0) */
-            if (i+1 == target_subsong) {
+            if (i+1 == rws.target_layer) {
                 rws.coefs_offset = offset + 0x1c;
             }
             offset += 0x60;
@@ -158,31 +196,47 @@ VGMSTREAM * init_vgmstream_rws(STREAMFILE *streamFile) {
         offset += 0x04; /* padding/garbage */
     }
 
-    /* skip stream uuids */
+    /* layer uuids */
     offset += 0x10 * rws.total_layers;
 
-    /* get stream name */
+    /* layer names */
     for (i = 0; i < rws.total_layers; i++) {
-        if (i+1 == target_subsong) {
-            rws.name_offset = offset;
+        if (i+1 == rws.target_layer) {
+            rws.layer_name_offset = offset;
         }
         offset += get_rws_string_size(offset, streamFile);
     }
 
+
     /* rest is padding/garbage until chunk end (may contain strings and weird stuff) */
     // ...
 
-    start_offset = rws.data_offset + 0x0c + rws.stream_offset;
 
-    /* sometimes it's wrong for no apparent reason (probably a bug in RWS) */
-    rws.stream_size_expected = (rws.stream_size_full / rws.block_size_total) * (rws.block_size * rws.total_layers) / rws.total_layers;
-    if (rws.stream_size > rws.stream_size_expected) {
-        VGM_LOG("RWS: readjusting wrong stream size %x vs expected %x\n", rws.stream_size, rws.stream_size_expected);
-        rws.stream_size = rws.stream_size_expected;
+    if (rws.use_segment_subsongs) {
+        stream_offset = rws.segment_offset;
+        stream_size = rws.segment_size;
+        name_offset = rws.segment_name_offset;
+    }
+    else {
+        stream_offset = rws.layer_offset;
+        stream_size = rws.layer_size;
+        name_offset = rws.layer_name_offset;
+    }
+    start_offset = rws.data_offset + 0x0c + stream_offset;
+
+
+    /* sometimes it's wrong in XBOX-IMA for no apparent reason (probably a bug in RWS) */
+    if (!rws.use_segment_subsongs) {
+        size_t stream_size_expected = (rws.stream_size_full / rws.block_size_total) * (rws.block_size * rws.total_layers) / rws.total_layers;
+        if (stream_size > stream_size_expected) {
+            VGM_LOG("RWS: readjusting wrong stream size %x vs expected %x\n", stream_size, stream_size_expected);
+            stream_size = stream_size_expected;
+        }
     }
 
 
     loop_flag = 0; /* RWX doesn't seem to include actual looping (so devs may fake it with segments) */
+
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(rws.channel_count,loop_flag);
@@ -190,10 +244,10 @@ VGMSTREAM * init_vgmstream_rws(STREAMFILE *streamFile) {
 
     vgmstream->sample_rate = rws.sample_rate;
     vgmstream->num_streams = total_subsongs;
-    vgmstream->stream_size = rws.stream_size;
+    vgmstream->stream_size = stream_size;
     vgmstream->meta_type = meta_RWS;
-    if (rws.name_offset)
-        read_string(vgmstream->stream_name,STREAM_NAME_SIZE, rws.name_offset,streamFile);
+    if (name_offset)
+        read_string(vgmstream->stream_name,STREAM_NAME_SIZE, name_offset,streamFile);
 
     vgmstream->layout_type = layout_blocked_rws;
     vgmstream->current_block_size = rws.block_size / vgmstream->channels;
@@ -207,7 +261,7 @@ VGMSTREAM * init_vgmstream_rws(STREAMFILE *streamFile) {
             vgmstream->codec_endian = (rws.codec == 0xD01BD217); /* X360: BE */
             vgmstream->interleave_block_size = 0x02; /* only used to setup channels */
 
-            vgmstream->num_samples = pcm_bytes_to_samples(rws.stream_size, rws.channel_count, 16);
+            vgmstream->num_samples = pcm_bytes_to_samples(stream_size, rws.channel_count, 16);
             break;
 
         case 0x9897EAD9:    /* PS-ADPCM PS2 (9897EAD9 BCBB7B44 96B26547 59102E16) */
@@ -215,7 +269,7 @@ VGMSTREAM * init_vgmstream_rws(STREAMFILE *streamFile) {
             vgmstream->coding_type = coding_PSX;
             vgmstream->interleave_block_size = rws.block_size / 2;
 
-            vgmstream->num_samples = ps_bytes_to_samples(rws.stream_size, rws.channel_count);
+            vgmstream->num_samples = ps_bytes_to_samples(stream_size, rws.channel_count);
             break;
 
         case 0xF86215B0:    /* DSP GC/Wii (F86215B0 31D54C29 BD37CDBF 9BD10C53) */
@@ -226,7 +280,7 @@ VGMSTREAM * init_vgmstream_rws(STREAMFILE *streamFile) {
             /* get coefs (all channels share them so 0 spacing; also seem fixed for all RWS) */
             dsp_read_coefs_be(vgmstream,streamFile,rws.coefs_offset, 0);
 
-            vgmstream->num_samples = dsp_bytes_to_samples(rws.stream_size, rws.channel_count);
+            vgmstream->num_samples = dsp_bytes_to_samples(stream_size, rws.channel_count);
             break;
 
         case 0x936538EF:    /* XBOX-IMA PC   (936538EF 11B62D43 957FA71A DE44227A) */
@@ -235,7 +289,7 @@ VGMSTREAM * init_vgmstream_rws(STREAMFILE *streamFile) {
             vgmstream->coding_type = coding_XBOX_IMA; /* PC and Xbox share the same data */
             vgmstream->interleave_block_size = 0;
 
-            vgmstream->num_samples = xbox_ima_bytes_to_samples(rws.stream_size, rws.channel_count);
+            vgmstream->num_samples = xbox_ima_bytes_to_samples(stream_size, rws.channel_count);
             break;
 
         default:
