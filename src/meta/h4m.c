@@ -46,15 +46,16 @@ VGMSTREAM * init_vgmstream_h4m(STREAMFILE *streamFile) {
     /* 0x3a: unk3A (0 or 0x12) */
     /* 0x3b: unk3B (0) */
     channel_count = read_8bit(0x3c,streamFile);
-    if (read_8bit(0x3d,streamFile) != 16) /* bitdepth */ //todo Pikmin not working
-        goto fail;
-    format = read_8bit(0x3e,streamFile); /* flags? */
+    if (read_8bit(0x3d,streamFile) != 16) /* bitdepth */
+        goto fail; //todo Pikmin (GC) is using some kind of variable blocks
+    format = (uint8_t)read_8bit(0x3e,streamFile); /* flags? */
     extra_tracks = read_8bit(0x3f,streamFile);
     sample_rate = read_32bitBE(0x40,streamFile);
 
     loop_flag  = 0;
 
-    total_subsongs = extra_tracks + 1; /* tracks for languages [Pokemon Channel], or sometimes used to fake multichannel [Tales of Symphonia] */
+    /* tracks for languages [Pokemon Channel], or sometimes used to fake multichannel [Tales of Symphonia] */
+    total_subsongs = extra_tracks + 1;
     if (target_subsong == 0) target_subsong = 1;
     if (target_subsong < 0 || target_subsong > total_subsongs || total_subsongs < 1) goto fail;
 
@@ -72,9 +73,10 @@ VGMSTREAM * init_vgmstream_h4m(STREAMFILE *streamFile) {
 
     switch(format & 0x7F) {
         case 0x00:
-            vgmstream->coding_type = coding_DVI_IMA; //todo H4M_IMA
+            vgmstream->coding_type = coding_H4M_IMA;
             break;
-        /* no games known to use this, h4m_audio_decode may decode them */
+
+        /* no games known to use these, h4m_audio_decode may decode them */
         case 0x01: /* Uncompressed PCM */
         case 0x04: /* 8-bit (A)DPCM */
         default:
@@ -93,6 +95,7 @@ VGMSTREAM * init_vgmstream_h4m(STREAMFILE *streamFile) {
             vgmstream->num_samples += vgmstream->current_block_samples;
         }
         while (vgmstream->next_block_offset < get_streamfile_size(streamFile));
+        vgmstream->full_block_size = 0; /* extra cleanup for H4M */
     }
 
     block_update_h4m(start_offset, vgmstream);

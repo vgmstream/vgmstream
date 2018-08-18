@@ -144,6 +144,8 @@ typedef enum {
     coding_AWC_IMA,         /* Rockstar AWC IMA ADPCM */
     coding_UBI_IMA,         /* Ubisoft IMA ADPCM */
 
+    coding_H4M_IMA,         /* H4M IMA ADPCM (stereo or mono, high nibble first) */
+
     coding_MSADPCM,         /* Microsoft ADPCM (stereo/mono) */
     coding_MSADPCM_ck,      /* Microsoft ADPCM (Cricket Audio variation) */
     coding_WS,              /* Westwood Studios VBR ADPCM */
@@ -860,7 +862,6 @@ typedef enum {
     VORBIS_OGL,         /* Shin'en OGL: custom packet headers */
     VORBIS_SK,          /* Silicon Knights AUD: "OggS" replaced by "SK" */
     VORBIS_VID1,        /* Neversoft VID1: custom packet blocks/headers */
-  //VORBIS_LYN          /* Ubisoft LyN: two interleaved Ogg (including setup, duplicated) */
 } vorbis_custom_t;
 
 /* config for Wwise Vorbis (3 types for flexibility though not all combinations exist) */
@@ -1129,9 +1130,6 @@ typedef enum {
     FFMPEG_STANDARD,        /* default FFmpeg */
     FFMPEG_SWITCH_OPUS,     /* Opus without Ogg layer */
     FFMPEG_EA_XMA,          /* XMA with padding removed and custom streams in SNS blocks */
-  //FFMPEG_EA_SCHL,         /* Normal header+data (ex. ATRAC3) in SCxx blocks */
-  //FFMPEG_SFH,             /* ATRAC3plus header+data in SFH blocks */
-  //FFMPEG_AWC_XMA,         /* XMA data in AWC blocks, 1 streams per channel */
 } ffmpeg_custom_t;
 
 /* config for the above modes */

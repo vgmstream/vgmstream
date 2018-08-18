@@ -1108,6 +1108,8 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
             return (0x800 - 0x04) * 2;
         case coding_RAD_IMA_mono:
             return 32;
+        case coding_H4M_IMA:
+            return 0; /* variable (block-controlled) */
 
         case coding_XA:
             return 28*8 / vgmstream->channels; /* 8 subframes per frame, mono/stereo */
@@ -1282,6 +1284,8 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
             return 0x24 * vgmstream->channels;
         case coding_APPLE_IMA4:
             return 0x22;
+        case coding_H4M_IMA:
+            return 0x00; /* variable (block-controlled) */
 
         case coding_XA:
             return 0x80;
@@ -1814,6 +1818,15 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                 decode_ubi_ima(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
                         samples_to_do,chan);
+            }
+            break;
+        case coding_H4M_IMA:
+            for (chan=0;chan<vgmstream->channels;chan++) {
+                uint16_t frame_format = (uint16_t)((vgmstream->codec_version >> 8) & 0xFFFF);
+
+                decode_h4m_ima(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                        vgmstream->channels,vgmstream->samples_into_block,
+                        samples_to_do, chan, frame_format);
             }
             break;
 

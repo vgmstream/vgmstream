@@ -552,6 +552,8 @@ static const coding_info coding_info_list[] = {
         {coding_AWC_IMA,            "Rockstar AWC 4-bit IMA ADPCM"},
         {coding_UBI_IMA,            "Ubisoft 4-bit IMA ADPCM"},
 
+        {coding_H4M_IMA,            "Hudson HVQM4 4-bit IMA ADPCM"},
+
         {coding_MSADPCM,            "Microsoft 4-bit ADPCM"},
         {coding_MSADPCM_ck,         "Microsoft 4-bit ADPCM (Cricket Audio)"},
         {coding_WS,                 "Westwood Studios VBR ADPCM"},
