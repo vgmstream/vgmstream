@@ -589,7 +589,6 @@ VGMSTREAM * init_vgmstream_ogg_vorbis_callbacks(STREAMFILE *streamFile, ov_callb
             vgmstream->loop_end_sample = loop_end;
         else
             vgmstream->loop_end_sample = vgmstream->num_samples;
-        vgmstream->loop_flag = loop_flag;
 
         if (vgmstream->loop_end_sample > vgmstream->num_samples)
             vgmstream->loop_end_sample = vgmstream->num_samples;
