@@ -42,38 +42,19 @@ void block_update_h4m(off_t block_offset, VGMSTREAM * vgmstream) {
             block_size = 0x08 + frame_size;
             block_samples = frame_samples;
 
-
             /* skip data from other audio tracks */
-            if (vgmstream->num_streams) {
+            if (vgmstream->num_streams > 1 && vgmstream->stream_index > 1) {
                 uint32_t audio_bytes = frame_size - 0x04;
-                block_skip += (audio_bytes / vgmstream->num_streams) * vgmstream->stream_index;
+                block_skip += (audio_bytes / vgmstream->num_streams) * (vgmstream->stream_index-1);
             }
 
-            //VGM_ASSERT(frame_format < 1 && frame_format > 3, "H4M: unknown frame_format %x at %lx\n", frame_format, block_offset);
             VGM_ASSERT(frame_format == 1, "H4M: unknown frame_format %x at %lx\n", frame_format, block_offset);
 
-            //todo handle in the decoder?
-            //todo right channel first?
-            /* get ADPCM hist (usually every new block) */
-            for (i = 0; i < vgmstream->channels; i++) {
-                if (frame_format == 1) { /* combined hist+index */
-                    vgmstream->ch[i].adpcm_history1_32 = read_16bitBE(block_offset + block_skip + 0x02*i + 0x00,streamFile) & 0xFFFFFF80;
-                    vgmstream->ch[i].adpcm_step_index = read_8bit(block_offset + block_skip + 0x02*i + 0x01,streamFile) & 0x7f;
-                    vgmstream->ch[i].offset = block_offset + block_skip + 0x02*vgmstream->channels;
-                }
-                else if (frame_format == 3) { /* separate hist+index */
-                    vgmstream->ch[i].adpcm_history1_32 = read_16bitBE(block_offset + block_skip + 0x03*i + 0x00,streamFile);
-                    vgmstream->ch[i].adpcm_step_index = read_8bit(block_offset + block_skip + 0x03*i + 0x02,streamFile);
-                    vgmstream->ch[i].offset = block_offset + block_skip + 0x03*vgmstream->channels;
-                }
-                else if (frame_format == 2) { /* no hist/index */
-                    vgmstream->ch[i].offset = block_offset + block_skip;
-                }
-            }
+            /* pass current mode to the decoder */
+            vgmstream->codec_version = (frame_format << 8) | (vgmstream->codec_version & 0xFF);
 
-            //todo temp hack, at it must write header sample and ignore the last nibble to get fully correct output
-            if (frame_format == 1 || frame_format == 3) {
-                block_samples--;
+            for (i = 0; i < vgmstream->channels; i++) {
+                vgmstream->ch[i].offset = block_offset + block_skip;
             }
         }
         else {

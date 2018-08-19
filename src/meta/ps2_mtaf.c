@@ -79,7 +79,7 @@ VGMSTREAM * init_vgmstream_ps2_mtaf(STREAMFILE *streamFile) {
 
         streamFile->get_name(streamFile,filename,sizeof(filename));
         for (i = 0; i < channel_count; i++) {
-            STREAMFILE * file = streamFile->open(streamFile,filename,vgmstream->interleave_block_size);
+            STREAMFILE * file = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
             if (!file) goto fail;
             vgmstream->ch[i].streamfile = file;
             vgmstream->ch[i].channel_start_offset = vgmstream->ch[i].offset = start_offset + vgmstream->interleave_block_size*2*(i/2);

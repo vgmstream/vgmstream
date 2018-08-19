@@ -108,8 +108,7 @@ VGMSTREAM * init_vgmstream_aix(STREAMFILE *streamFile) {
         }
     }
 
-    /*streamFileAIX = streamFile->open(streamFile,filename,sample_rate*0.0375*2/32*18segment_count);*/
-    streamFileAIX = streamFile->open(streamFile,filename,sample_rate*0.1*segment_count);
+    streamFileAIX = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
     if (!streamFileAIX) goto fail;
 
     data = malloc(sizeof(aix_codec_data));

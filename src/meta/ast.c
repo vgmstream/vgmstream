@@ -12,7 +12,6 @@ VGMSTREAM * init_vgmstream_ast(STREAMFILE *streamFile) {
     int channel_count;
     int loop_flag;
 
-    size_t max_block;
 
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
@@ -33,7 +32,7 @@ VGMSTREAM * init_vgmstream_ast(STREAMFILE *streamFile) {
     codec_number = read_16bitBE(8,streamFile);
     loop_flag = read_16bitBE(0xe,streamFile);
     channel_count = read_16bitBE(0xc,streamFile);
-    max_block = read_32bitBE(0x20,streamFile);
+    /*max_block = read_32bitBE(0x20,streamFile);*/
 
     switch (codec_number) {
         case 0:
@@ -66,14 +65,7 @@ VGMSTREAM * init_vgmstream_ast(STREAMFILE *streamFile) {
     {
         int i;
         for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = streamFile->open(streamFile,filename,
-                    (i==0?
-                     max_block+0x20-4: /* first buffer a bit bigger to 
-                                         read block header without
-                                         inefficiency */
-                     max_block
-                    )
-                    );
+            vgmstream->ch[i].streamfile = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
 
             if (!vgmstream->ch[i].streamfile) goto fail;
         }

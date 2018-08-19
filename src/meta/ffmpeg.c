@@ -46,13 +46,11 @@ VGMSTREAM * init_vgmstream_ffmpeg_offset(STREAMFILE *streamFile, uint64_t start,
     vgmstream = allocate_vgmstream(data->channels, loop_flag);
     if (!vgmstream) goto fail;
     
-    vgmstream->loop_flag = loop_flag;
-    vgmstream->codec_data = data;
-    vgmstream->channels = data->channels;
     vgmstream->sample_rate = data->sampleRate;
+    vgmstream->meta_type = meta_FFMPEG;
     vgmstream->coding_type = coding_FFmpeg;
+    vgmstream->codec_data = data;
     vgmstream->layout_type = layout_none;
-    vgmstream->meta_type = meta_FFmpeg;
 
     if (!num_samples) {
         num_samples = data->totalSamples;
@@ -64,10 +62,9 @@ VGMSTREAM * init_vgmstream_ffmpeg_offset(STREAMFILE *streamFile, uint64_t start,
         vgmstream->loop_end_sample = loop_end;
     }
 
-    /* this may happen for some streams if FFmpeg can't determine it */
+    /* this may happen for some streams if FFmpeg can't determine it (ex. AAC) */
     if (vgmstream->num_samples <= 0)
         goto fail;
-
 
     return vgmstream;
     

@@ -49,7 +49,7 @@ VGMSTREAM * init_vgmstream_vs(STREAMFILE *streamFile) {
 	/* open the file for reading */
 	{
         for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = streamFile->open(streamFile,filename,0x2000);
+            vgmstream->ch[i].streamfile = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
             if (!vgmstream->ch[i].streamfile) goto fail;
         }
     }

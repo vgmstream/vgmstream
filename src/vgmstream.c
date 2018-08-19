@@ -424,6 +424,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_hd3_bd3,
     init_vgmstream_bnk_sony,
     init_vgmstream_nus3bank,
+    init_vgmstream_scd_sscf,
 
     init_vgmstream_txth,  /* should go at the end (lower priority) */
 #ifdef VGM_USE_FFMPEG
@@ -921,11 +922,30 @@ void vgmstream_force_loop(VGMSTREAM* vgmstream, int loop_flag, int loop_start_sa
         vgmstream->loop_ch = calloc(vgmstream->channels,sizeof(VGMSTREAMCHANNEL));
         /* loop_ch will be populated when decoded samples reach loop start */
     }
+    else {
+        /* not important though */
+        free(vgmstream->loop_ch);
+        vgmstream->loop_ch = NULL;
+    }
+
     vgmstream->loop_flag = loop_flag;
     if (loop_flag) {
         vgmstream->loop_start_sample = loop_start_sample;
         vgmstream->loop_end_sample = loop_end_sample;
+    } else {
+        vgmstream->loop_start_sample = 0;
+        vgmstream->loop_end_sample = 0;
     }
+
+    /* propagate changes to layouts that need them */
+    if (vgmstream->layout_type == layout_layered) {
+        int i;
+        layered_layout_data *data = vgmstream->layout_data;
+        for (i = 0; i < data->layer_count; i++) {
+            vgmstream_force_loop(data->layers[i], loop_flag, loop_start_sample, loop_end_sample);
+        }
+    }
+    /* segmented layout only works (ATM) with exact/header loop, full loop or no loop */
 }
 
 /* Decode data into sample buffer */
@@ -1108,6 +1128,8 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
             return (0x800 - 0x04) * 2;
         case coding_RAD_IMA_mono:
             return 32;
+        case coding_H4M_IMA:
+            return 0; /* variable (block-controlled) */
 
         case coding_XA:
             return 28*8 / vgmstream->channels; /* 8 subframes per frame, mono/stereo */
@@ -1282,6 +1304,8 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
             return 0x24 * vgmstream->channels;
         case coding_APPLE_IMA4:
             return 0x22;
+        case coding_H4M_IMA:
+            return 0x00; /* variable (block-controlled) */
 
         case coding_XA:
             return 0x80;
@@ -1814,6 +1838,15 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                 decode_ubi_ima(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
                         samples_to_do,chan);
+            }
+            break;
+        case coding_H4M_IMA:
+            for (chan=0;chan<vgmstream->channels;chan++) {
+                uint16_t frame_format = (uint16_t)((vgmstream->codec_version >> 8) & 0xFFFF);
+
+                decode_h4m_ima(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                        vgmstream->channels,vgmstream->samples_into_block,
+                        samples_to_do, chan, frame_format);
             }
             break;
 

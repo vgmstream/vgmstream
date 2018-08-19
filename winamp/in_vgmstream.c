@@ -926,8 +926,9 @@ int winamp_Play(const in_char *fn) {
     }
 
     /* config */
-    if (config.ignore_loop)
-        vgmstream->loop_flag = 0;
+    if (config.ignore_loop) {
+        vgmstream_force_loop(vgmstream, 0, 0,0);
+    }
 
     output_channels = vgmstream->channels;
     if (config.downmix_channels > 0 && config.downmix_channels < vgmstream->channels)
@@ -1067,6 +1068,10 @@ int winamp_InfoBox(const in_char *fn, HWND hwnd) {
         if (!infostream)
             return 0;
 
+        if (config.ignore_loop) {
+            vgmstream_force_loop(infostream, 0, 0,0);
+        }
+
         describe_vgmstream(infostream,description,description_size);
 
         close_vgmstream(infostream);
@@ -1114,6 +1119,10 @@ void winamp_GetFileInfo(const in_char *fn, in_char *title, int *length_in_ms) {
         infostream = init_vgmstream_winamp(filename, stream_index);
         if (!infostream) return;
 
+        if (config.ignore_loop) {
+            vgmstream_force_loop(infostream, 0, 0,0);
+        }
+
         if (title) {
             get_title(title,GETFILEINFO_TITLE_LENGTH, fn, infostream);
         }
@@ -1156,8 +1165,9 @@ DWORD WINAPI __stdcall decode(void *arg) {
             if (seek_needed_samples < decode_pos_samples) {
                 reset_vgmstream(vgmstream);
 
-                if (config.ignore_loop)
-                    vgmstream->loop_flag = 0;
+                if (config.ignore_loop) {
+                    vgmstream_force_loop(vgmstream, 0, 0,0);
+                }
 
                 decode_pos_samples = 0;
                 decode_pos_ms = 0;

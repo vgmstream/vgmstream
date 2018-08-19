@@ -280,7 +280,7 @@ VGMSTREAM * init_vgmstream_cstr(STREAMFILE *streamFile) {
     {
         int i;
         for (i=0;i<2;i++) {
-            vgmstream->ch[i].streamfile = streamFile->open(streamFile,filename,interleave);
+            vgmstream->ch[i].streamfile = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
 
             if (!vgmstream->ch[i].streamfile) goto fail;
 

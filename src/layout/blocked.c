@@ -37,7 +37,14 @@ void render_vgmstream_blocked(sample * buffer, int32_t sample_count, VGMSTREAM *
 
         /* probably block bug or EOF, next calcs would give wrong values and buffer segfaults */
         if (samples_this_block < 0) {
-            VGM_LOG("layout_blocked: wrong block at 0x%lx\n", vgmstream->current_block_offset);
+            VGM_LOG("layout_blocked: wrong block samples at 0x%lx\n", vgmstream->current_block_offset);
+            memset(buffer + samples_written*vgmstream->channels, 0, (sample_count - samples_written) * vgmstream->channels * sizeof(sample));
+            break; /* probable infinite loop otherwise */
+        }
+
+        /* probably block bug or EOF, block functions won't be able to read anything useful */
+        if (vgmstream->current_block_offset < 0 || vgmstream->current_block_offset == 0xFFFFFFFF) {
+            VGM_LOG("layout_blocked: wrong block offset found\n");
             memset(buffer + samples_written*vgmstream->channels, 0, (sample_count - samples_written) * vgmstream->channels * sizeof(sample));
             break; /* probable infinite loop otherwise */
         }
@@ -46,17 +53,9 @@ void render_vgmstream_blocked(sample * buffer, int32_t sample_count, VGMSTREAM *
         if (samples_written + samples_to_do > sample_count)
             samples_to_do = sample_count - samples_written;
 
-        if (vgmstream->current_block_offset >= 0) {
-            /* samples_this_block = 0 is allowed (empty block): do nothing then move to next block */
-            if (samples_to_do > 0)
-                decode_vgmstream(vgmstream, samples_written, samples_to_do, buffer);
-        }
-        else {
-            /* block end signal (used in halpst): partially 0-set buffer */
-            int i;
-            for (i = samples_written*vgmstream->channels; i < (samples_written+samples_to_do)*vgmstream->channels; i++) {
-                buffer[i]=0;
-            }
+        /* samples_this_block = 0 is allowed (empty block, do nothing then move to next block) */
+        if (samples_to_do > 0) {
+            decode_vgmstream(vgmstream, samples_written, samples_to_do, buffer);
         }
 
         samples_written += samples_to_do;
@@ -98,10 +97,7 @@ static void block_update(VGMSTREAM * vgmstream) {
             block_update_mxch(vgmstream->next_block_offset,vgmstream);
             break;
         case layout_blocked_halpst:
-            if (vgmstream->next_block_offset>=0)
-                block_update_halpst(vgmstream->next_block_offset,vgmstream);
-            else
-                vgmstream->current_block_offset = -1;
+            block_update_halpst(vgmstream->next_block_offset,vgmstream);
             break;
         case layout_blocked_xa:
             block_update_xa(vgmstream->next_block_offset,vgmstream);

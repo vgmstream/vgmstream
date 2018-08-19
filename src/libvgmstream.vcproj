@@ -1279,6 +1279,10 @@
 					>
 				</File>
                 <File
+                    RelativePath=".\meta\sqex_scd_sscf.c"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\sqex_sead.c"
                     >
                 </File>

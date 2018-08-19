@@ -552,6 +552,8 @@ static const coding_info coding_info_list[] = {
         {coding_AWC_IMA,            "Rockstar AWC 4-bit IMA ADPCM"},
         {coding_UBI_IMA,            "Ubisoft 4-bit IMA ADPCM"},
 
+        {coding_H4M_IMA,            "Hudson HVQM4 4-bit IMA ADPCM"},
+
         {coding_MSADPCM,            "Microsoft 4-bit ADPCM"},
         {coding_MSADPCM_ck,         "Microsoft 4-bit ADPCM (Cricket Audio)"},
         {coding_WS,                 "Westwood Studios VBR ADPCM"},
@@ -977,6 +979,7 @@ static const meta_info meta_info_list[] = {
         {meta_HCA,                  "CRI MiddleWare HCA Header"},
         {meta_PS2_SVAG_SNK,         "SNK SVAG header"},
         {meta_PS2_VDS_VDM,          "Procyon Studio VDS/VDM header"},
+        {meta_FFMPEG,               "FFmpeg supported file format"},
         {meta_X360_CXS,             "tri-Crescendo CXS header"},
         {meta_AKB,                  "Square-Enix AKB header"},
         {meta_NUB_XMA,              "Namco NUB XMA header"},
@@ -1065,10 +1068,8 @@ static const meta_info meta_info_list[] = {
         {meta_WAVEBATCH,            "Firebrand Games WBAT header"},
         {meta_HD3_BD3,              "Sony HD3+BD3 header"},
         {meta_BNK_SONY,             "Sony BNK header"},
+        {meta_SCD_SSCF,             "Square-Enix SCD (SSCF) header"},
 
-#ifdef VGM_USE_FFMPEG
-        {meta_FFmpeg,               "FFmpeg supported file format"},
-#endif
 };
 
 

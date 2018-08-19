@@ -107,8 +107,8 @@ static size_t get_size_stdio(STDIOSTREAMFILE * streamfile) {
     return streamfile->filesize;
 }
 
-static off_t get_offset_stdio(STDIOSTREAMFILE *streamFile) {
-    return streamFile->offset;
+static off_t get_offset_stdio(STDIOSTREAMFILE *streamfile) {
+    return streamfile->offset;
 }
 
 static void get_name_stdio(STDIOSTREAMFILE *streamfile,char *buffer,size_t length) {
@@ -215,7 +215,8 @@ typedef struct {
     STREAMFILE sf;
 
     STREAMFILE *inner_sf;
-    off_t offset;           /* current buffer data start */
+    off_t offset;           /* last read offset (info) */
+    off_t buffer_offset;    /* current buffer data start */
     uint8_t * buffer;       /* data buffer */
     size_t buffersize;      /* max buffer size */
     size_t validsize;       /* current buffer size */
@@ -230,9 +231,9 @@ static size_t buffer_read(BUFFER_STREAMFILE *streamfile, uint8_t * dest, off_t o
         return 0;
 
     /* is the part of the requested length in the buffer? */
-    if (offset >= streamfile->offset && offset < streamfile->offset + streamfile->validsize) {
+    if (offset >= streamfile->buffer_offset && offset < streamfile->buffer_offset + streamfile->validsize) {
         size_t length_to_read;
-        off_t offset_into_buffer = offset - streamfile->offset;
+        off_t offset_into_buffer = offset - streamfile->buffer_offset;
 
         length_to_read = streamfile->validsize - offset_into_buffer;
         if (length_to_read > length)
@@ -245,27 +246,21 @@ static size_t buffer_read(BUFFER_STREAMFILE *streamfile, uint8_t * dest, off_t o
         dest += length_to_read;
     }
 
-    /* What would make more sense here is to read the whole request
-     * at once into the dest buffer, as it must be large enough, and then
-     * copy some part of that into our own buffer.
-     * The destination buffer is supposed to be much smaller than the
-     * STREAMFILE buffer, though. Maybe we should only ever return up
-     * to the buffer size to avoid having to deal with things like this
-     * which are outside of my intended use. */
 
     /* read the rest of the requested length */
     while (length > 0) {
-        size_t length_to_read, length_read;
-        streamfile->validsize = 0; /* buffer is empty now */
+        size_t length_to_read;
 
-        /* request outside file: ignore to avoid seek/read */
-        if (offset > streamfile->filesize) {
-            streamfile->offset = streamfile->filesize;
-            VGM_LOG_ONCE("ERROR: reading over filesize 0x%x @ 0x%lx + 0x%x (buggy meta?)\n", streamfile->filesize, offset, length);
-            return length_read_total; /* partially-read buffer */
+        /* ignore requests at EOF */
+        if (offset >= streamfile->filesize) {
+            //offset = streamfile->filesize; /* seems fseek doesn't clamp offset */ //todo once
+            VGM_ASSERT_ONCE(offset > streamfile->filesize, "BUFFER: reading over filesize 0x%x @ 0x%lx + 0x%x\n", streamfile->filesize, offset, length);
+            break;
         }
 
-        streamfile->offset = offset;
+        /* fill the buffer (being here means offset is outside buffer thus empty) */
+        streamfile->buffer_offset = offset;
+        streamfile->validsize = streamfile->inner_sf->read(streamfile->inner_sf, streamfile->buffer, streamfile->buffer_offset, streamfile->buffersize);
 
         /* decide how much must be read this time */
         if (length > streamfile->buffersize)
@@ -273,31 +268,30 @@ static size_t buffer_read(BUFFER_STREAMFILE *streamfile, uint8_t * dest, off_t o
         else
             length_to_read = length;
 
-        /* fill the buffer */
-        length_read = streamfile->inner_sf->read(streamfile->inner_sf, streamfile->buffer, streamfile->offset, streamfile->buffersize);
-        streamfile->validsize = length_read;
-
-        /* if we can't get enough to satisfy the request (EOF) we give up */
-        if (length_read < length_to_read) {
-            memcpy(dest,streamfile->buffer,length_read);
-            return length_read_total + length_read; /* partially-read buffer */
+        /* give up on partial reads (EOF) */
+        if (streamfile->validsize < length_to_read) {
+            memcpy(dest,streamfile->buffer,streamfile->validsize);
+            offset += streamfile->validsize;
+            length_read_total += streamfile->validsize;
+            break;
         }
 
         /* use the new buffer */
         memcpy(dest,streamfile->buffer,length_to_read);
+        offset += length_to_read;
         length_read_total += length_to_read;
         length -= length_to_read;
         dest += length_to_read;
-        offset += length_to_read;
     }
 
+    streamfile->offset = offset; /* last fread offset */
     return length_read_total;
 }
 static size_t buffer_get_size(BUFFER_STREAMFILE * streamfile) {
     return streamfile->filesize; /* cache */
 }
 static size_t buffer_get_offset(BUFFER_STREAMFILE * streamfile) {
-    return streamfile->offset; /* cache */ //todo internal offset?
+    return streamfile->offset; /* cache */
 }
 static void buffer_get_name(BUFFER_STREAMFILE *streamfile, char *buffer, size_t length) {
     streamfile->inner_sf->get_name(streamfile->inner_sf, buffer, length); /* default */

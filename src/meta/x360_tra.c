@@ -45,7 +45,7 @@ VGMSTREAM * init_vgmstream_x360_tra(STREAMFILE *streamFile) {
     /* open the file for reading by each channel */
     {
         for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = streamFile->open(streamFile,filename,36);
+            vgmstream->ch[i].streamfile = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
 
             if (!vgmstream->ch[i].streamfile) goto fail;
         }
