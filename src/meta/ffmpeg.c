@@ -47,7 +47,7 @@ VGMSTREAM * init_vgmstream_ffmpeg_offset(STREAMFILE *streamFile, uint64_t start,
     if (!vgmstream) goto fail;
     
     vgmstream->sample_rate = data->sampleRate;
-    vgmstream->meta_type = meta_FFmpeg;
+    vgmstream->meta_type = meta_FFMPEG;
     vgmstream->coding_type = coding_FFmpeg;
     vgmstream->codec_data = data;
     vgmstream->layout_type = layout_none;

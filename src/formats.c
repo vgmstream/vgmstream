@@ -979,6 +979,7 @@ static const meta_info meta_info_list[] = {
         {meta_HCA,                  "CRI MiddleWare HCA Header"},
         {meta_PS2_SVAG_SNK,         "SNK SVAG header"},
         {meta_PS2_VDS_VDM,          "Procyon Studio VDS/VDM header"},
+        {meta_FFMPEG,               "FFmpeg supported file format"},
         {meta_X360_CXS,             "tri-Crescendo CXS header"},
         {meta_AKB,                  "Square-Enix AKB header"},
         {meta_NUB_XMA,              "Namco NUB XMA header"},
@@ -1069,9 +1070,6 @@ static const meta_info meta_info_list[] = {
         {meta_BNK_SONY,             "Sony BNK header"},
         {meta_SCD_SSCF,             "Square-Enix SCD (SSCF) header"},
 
-#ifdef VGM_USE_FFMPEG
-        {meta_FFmpeg,               "FFmpeg supported file format"},
-#endif
 };
 
 

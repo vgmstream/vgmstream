@@ -615,6 +615,7 @@ typedef enum {
     meta_HCA,               /* CRI HCA */
     meta_PS2_SVAG_SNK,      /* SNK PS2 SVAG */
     meta_PS2_VDS_VDM,       /* Graffiti Kingdom */
+    meta_FFMPEG,            /* any file supported by FFmpeg */
     meta_X360_CXS,          /* Eternal Sonata (Xbox 360) */
     meta_AKB,               /* SQEX iOS */
     meta_NUB_XMA,           /* Namco XMA from NUB archives */
@@ -703,9 +704,6 @@ typedef enum {
     meta_BNK_SONY,          /* Sony Scream Tool bank */
     meta_SCD_SSCF,          /* Square Enix SCD old version */
 
-#ifdef VGM_USE_FFMPEG
-    meta_FFmpeg,
-#endif
 } meta_t;
 
 
