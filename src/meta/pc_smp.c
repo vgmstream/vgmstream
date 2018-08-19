@@ -74,8 +74,7 @@ VGMSTREAM * init_vgmstream_pc_smp(STREAMFILE *streamFile) {
     {
         int i;
 
-        vgmstream->ch[0].streamfile = streamFile->open(streamFile,filename,
-                channel_count*interleave*2);
+        vgmstream->ch[0].streamfile = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
         if (!vgmstream->ch[0].streamfile) goto fail;
 
         for (i=0;i<channel_count;i++) {

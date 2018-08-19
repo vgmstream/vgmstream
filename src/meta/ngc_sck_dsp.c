@@ -65,7 +65,7 @@ VGMSTREAM * init_vgmstream_ngc_sck_dsp(STREAMFILE *streamFile) {
     {
         for (i=0;i<channel_count;i++) {
             /* Not sure, i'll put a fake value here for now */
-            vgmstream->ch[i].streamfile = streamFile->open(streamFileDSP,filenameDSP,0x8000);
+            vgmstream->ch[i].streamfile = streamFile->open(streamFileDSP,filenameDSP,STREAMFILE_DEFAULT_BUFFER_SIZE);
             vgmstream->ch[i].offset = 0;
 
             if (!vgmstream->ch[i].streamfile) goto fail;

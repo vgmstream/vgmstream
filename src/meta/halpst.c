@@ -14,8 +14,6 @@ VGMSTREAM * init_vgmstream_halpst(STREAMFILE *streamFile) {
     int32_t samples_l,samples_r;
     int32_t start_sample = 0;
 
-    size_t max_block;
-
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
     if (strcasecmp("hps",filename_extension(filename))) goto fail;
@@ -27,7 +25,7 @@ VGMSTREAM * init_vgmstream_halpst(STREAMFILE *streamFile) {
     
     /* details */
     channel_count = read_32bitBE(0xc,streamFile);
-    max_block = read_32bitBE(0x10,streamFile)/channel_count;
+    /*max_block = read_32bitBE(0x10,streamFile)/channel_count;*/
 
     if (channel_count > 2) {
         /* align the header length needed for the extra channels */
@@ -106,14 +104,7 @@ VGMSTREAM * init_vgmstream_halpst(STREAMFILE *streamFile) {
     {
         int i;
         for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = streamFile->open(streamFile,filename,
-                    (i==0?
-                     max_block+0x20: /* first buffer a bit bigger to 
-                                        read block header without
-                                        inefficiency */
-                     max_block
-                    )
-                    );
+            vgmstream->ch[i].streamfile = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
 
             if (!vgmstream->ch[i].streamfile) goto fail;
         }

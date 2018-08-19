@@ -46,7 +46,7 @@ VGMSTREAM * init_vgmstream_afc(STREAMFILE *streamFile) {
         int i;
 
         /* both channels use same buffer, as interleave is so small */
-        chstreamfile = streamFile->open(streamFile,filename,9*channel_count*0x100);
+        chstreamfile = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
         if (!chstreamfile) goto fail;
 
         for (i=0;i<channel_count;i++) {
