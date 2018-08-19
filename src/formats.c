@@ -1067,6 +1067,7 @@ static const meta_info meta_info_list[] = {
         {meta_WAVEBATCH,            "Firebrand Games WBAT header"},
         {meta_HD3_BD3,              "Sony HD3+BD3 header"},
         {meta_BNK_SONY,             "Sony BNK header"},
+        {meta_SCD_SSCF,             "Square-Enix SCD (SSCF) header"},
 
 #ifdef VGM_USE_FFMPEG
         {meta_FFmpeg,               "FFmpeg supported file format"},

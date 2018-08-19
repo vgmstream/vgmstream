@@ -701,6 +701,7 @@ typedef enum {
     meta_WAVEBATCH,         /* Firebrand Games */
     meta_HD3_BD3,           /* Sony PS3 bank */
     meta_BNK_SONY,          /* Sony Scream Tool bank */
+    meta_SCD_SSCF,          /* Square Enix SCD old version */
 
 #ifdef VGM_USE_FFMPEG
     meta_FFmpeg,

@@ -424,6 +424,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_hd3_bd3,
     init_vgmstream_bnk_sony,
     init_vgmstream_nus3bank,
+    init_vgmstream_scd_sscf,
 
     init_vgmstream_txth,  /* should go at the end (lower priority) */
 #ifdef VGM_USE_FFMPEG

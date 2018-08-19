@@ -775,4 +775,6 @@ VGMSTREAM * init_vgmstream_bnk_sony(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_nus3bank(STREAMFILE *streamFile);
 
+VGMSTREAM * init_vgmstream_scd_sscf(STREAMFILE *streamFile);
+
 #endif /*_META_H*/
