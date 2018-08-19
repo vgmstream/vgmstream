@@ -76,6 +76,17 @@ static size_t read_stdio(STDIOSTREAMFILE *streamfile,uint8_t * dest, off_t offse
         else
             length_to_read = length;
 
+#ifdef _MSC_VER
+        /* Workaround a bug that appears when compiling witn MSVC.
+        * This bug is dertiministic and seemingly appears randomly
+        * after seeking.
+        * It results in fread returning data from the wrong
+        * area of the file.
+        * HPS is one format that is almost always affected
+        * by this.  */
+        fseek(streamfile->infile, ftell(streamfile->infile), SEEK_SET);
+#endif
+
         /* fill the buffer */
         length_read = fread(streamfile->buffer,sizeof(uint8_t),streamfile->buffersize,streamfile->infile);
         streamfile->validsize = length_read;
