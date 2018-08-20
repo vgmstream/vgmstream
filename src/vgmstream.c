@@ -2690,7 +2690,7 @@ int get_vgmstream_average_bitrate(VGMSTREAM * vgmstream) {
  * Should be called in metas before returning the VGMSTREAM.
  */
 int vgmstream_open_stream(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t start_offset) {
-    STREAMFILE * file;
+    STREAMFILE * file = NULL;
     char filename[PATH_LIMIT];
     int ch;
     int use_streamfile_per_channel = 0;

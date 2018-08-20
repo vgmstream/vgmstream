@@ -430,7 +430,7 @@ static int parse_txth(STREAMFILE * streamFile, STREAMFILE * streamText, txth_hea
     txth->data_size = get_streamfile_size(streamFile); /* for later use */
 
     /* skip BOM if needed */
-    if (read_16bitLE(0x00, streamText) == 0xFFFE || read_16bitLE(0x00, streamText) == 0xFEFF)
+    if ((uint16_t)read_16bitLE(0x00, streamText) == 0xFFFE || (uint16_t)read_16bitLE(0x00, streamText) == 0xFEFF)
         txt_offset = 0x02;
 
     /* read lines */

@@ -134,6 +134,7 @@ VGMSTREAM * init_vgmstream_wave_segmented(STREAMFILE *streamFile) {
                     break;
                 }
 
+#ifdef VGM_USE_VORBIS
                 case 0x04: { /* "vorbis" */
                     ogg_vorbis_meta_info_t ovmi = {0};
 
@@ -153,6 +154,7 @@ VGMSTREAM * init_vgmstream_wave_segmented(STREAMFILE *streamFile) {
 
                     break;
                 }
+#endif
 
                 default: /* others: s16be/s16le/mp3 as referenced in the exe? */
                     VGM_LOG("WAVE: unknown codec\n");

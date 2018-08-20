@@ -8,7 +8,7 @@ VGMSTREAM * init_vgmstream_bnk_sony(STREAMFILE *streamFile) {
     off_t start_offset, stream_offset, name_offset = 0;
     size_t stream_size;
     off_t sblk_offset, data_offset;
-    int channel_count, loop_flag, sample_rate, codec;
+    int channel_count = 0, loop_flag, sample_rate, codec;
     int version;
     uint32_t atrac9_info = 0;
     int loop_start = 0, loop_length = 0;

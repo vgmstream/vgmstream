@@ -50,9 +50,11 @@ VGMSTREAM * init_vgmstream_mus_acm(STREAMFILE *streamFile) {
             case 0x97280301: /* ACM header id [Planescape: Torment (PC)]  */
                 data->segments[i] = init_vgmstream_acm(temp_streamFile);
                 break;
+#ifdef VGM_USE_VORBIS
             case 0x4F676753: /* "OggS" [Planescape: Torment Enhanced Edition (PC)] */
                 data->segments[i] = init_vgmstream_ogg_vorbis(temp_streamFile);
                 break;
+#endif
             default:
                 data->segments[i] = NULL;
                 break;

@@ -422,7 +422,7 @@ static txtp_header* parse_txtp(STREAMFILE* streamFile) {
 
 
     /* skip BOM if needed */
-    if (read_16bitLE(0x00, streamFile) == 0xFFFE || read_16bitLE(0x00, streamFile) == 0xFEFF)
+    if ((uint16_t)read_16bitLE(0x00, streamFile) == 0xFFFE || (uint16_t)read_16bitLE(0x00, streamFile) == 0xFEFF)
         txt_offset = 0x02;
 
     /* read lines */
