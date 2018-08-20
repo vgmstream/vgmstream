@@ -4,13 +4,13 @@
 
 ### defs
 # currently aimed to WIN32 builds but vgmstream_cli should work for others (or use autotools instead)
-export TARGET_OS = WIN32
-
+export TARGET_OS = $(OS)
+ 
 
 ### tools
 RMF = rm -f
 
-ifeq ($(TARGET_OS),WIN32)
+ifeq ($(TARGET_OS),Windows_NT)
   SHELL = sh
   CC = gcc
   AR = ar

@@ -10,19 +10,10 @@ enum { STREAM_NAME_SIZE = 255 }; /* reasonable max */
 
 #include "streamfile.h"
 
-/* Due mostly to licensing issues, Vorbis, MPEG, G.722.1, etc decoding is
- * done by external libraries.
- * If someone wants to do a standalone build, they can do it by simply
- * removing these defines (and the references to the libraries in the Makefile) */
-#ifndef VGM_DISABLE_VORBIS
-#define VGM_USE_VORBIS
-#endif
-
-#ifndef VGM_DISABLE_MPEG
-#define VGM_USE_MPEG
-#endif
-
-/* disabled by default, defined on compile-time for builds that support it */
+/* Due mostly to licensing issues, Vorbis, MPEG, G.722.1, etc decoding is done by external libraries.
+ * Libs are disabled by default, defined on compile-time for builds that support it */
+//#define VGM_USE_VORBIS
+//#define VGM_USE_MPEG
 //#define VGM_USE_G7221
 //#define VGM_USE_G719
 //#define VGM_USE_MP4V2
