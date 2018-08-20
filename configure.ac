@@ -1,8 +1,8 @@
-dnl audacious-vgmstream m4 script 
+dnl automake-vgmstream m4 script 
 dnl Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.53)
-AC_INIT(audacious-vgmstream,1.3.0)
+AC_INIT(automake-vgmstream,1.3.0)
 AM_INIT_AUTOMAKE([subdir-objects])
 AC_CONFIG_HEADERS(audacious/config.h)
 AM_DISABLE_STATIC
@@ -17,20 +17,26 @@ AM_PROG_LIBTOOL
 AC_PATH_X
 AC_PATH_XTRA
 
+have_vorbis=no
+PKG_CHECK_MODULES(VORBIS, [vorbis], have_vorbis=yes,
+        [AC_MSG_WARN([Cannot find libvorbis - will not enable Vorbis formats])]
+)
+AM_CONDITIONAL(HAVE_VORBIS, test "$have_vorbis" = yes)
+
+have_vorbisfile=no
+PKG_CHECK_MODULES(VORBISFILE, [vorbisfile], have_vorbisfile=yes,
+        [AC_MSG_WARN([Cannot find libvorbisfile - will not enable Vorbis formats])]
+)
+AM_CONDITIONAL(HAVE_VORBISFILE, test "$have_vorbisfile" = yes)
+
+have_libmpg123=no
+PKG_CHECK_MODULES(MPG123, [libmpg123], have_libmpg123=yes,
+        [AC_MSG_WARN([Cannot find libmpg123 - will not enable MPEG formats])]
+)
+AM_CONDITIONAL(HAVE_LIBMPG123, test "$have_libmpg123" = yes)
+
 PKG_CHECK_MODULES(AUDACIOUS, [audacious >= 3.5.0],,
         [AC_MSG_ERROR([Cannot find audacious >= 3.5.0 correctly installed])]
-)
-
-PKG_CHECK_MODULES(VORBIS, [vorbis],,
-        [AC_MSG_ERROR([Cannot find libvorbis])]
-)
-
-PKG_CHECK_MODULES(VORBISFILE, [vorbisfile],,
-        [AC_MSG_ERROR([Cannot find libvorbisfile])]
-)
-
-PKG_CHECK_MODULES(MPG123, [libmpg123],,
-        [AC_MSG_ERROR([Cannot find libmpg123])]
 )
 
 PKG_CHECK_MODULES(GTK, [glib-2.0 >= 2.6.0 gtk+-2.0 >= 2.6.0 gthread-2.0 pango],

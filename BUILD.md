@@ -85,7 +85,7 @@ Requires the dev version of Audacious (and dependencies), automake/autoconf, and
 
 The plugin needs Audacious 3.5 or higher. New Audacious releases can break plugin compatibility so it may not work with the latest version unless adapted first.
 
-FFmpeg and other external libraries aren't enabled, thus some formats are not supported. libvorbis and libmpg123 can be disabled with -DVGM_DISABLE_VORBIS and -DVGM_DISABLE_MPEG.
+libvorbis and libmpg123 will be used if found, while FFmpeg and other external libraries aren't enabled, thus some formats won't work.
 
 Windows builds aren't supported at the moment (should be possible but there are complex dependency chains).
 
