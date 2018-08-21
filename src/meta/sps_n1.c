@@ -29,7 +29,7 @@ VGMSTREAM * init_vgmstream_sps_n1(STREAMFILE *streamFile) {
             temp_streamFile = setup_sps_streamfile(streamFile, subfile_offset, subfile_size, "vag");
             if (!temp_streamFile) goto fail;
 
-            vgmstream = init_vgmstream_ps2_vag(temp_streamFile);
+            vgmstream = init_vgmstream_vag(temp_streamFile);
             if (!vgmstream) goto fail;
             break;
 

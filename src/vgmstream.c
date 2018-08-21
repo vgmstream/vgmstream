@@ -50,7 +50,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_ps2_mic,
     init_vgmstream_ngc_dsp_std_int,
     init_vgmstream_raw,
-    init_vgmstream_ps2_vag,
+    init_vgmstream_vag,
     init_vgmstream_psx_gms,
     init_vgmstream_ps2_ild,
     init_vgmstream_ps2_pnb,
@@ -2388,8 +2388,8 @@ static void try_dual_file_stereo(VGMSTREAM * opened_vgmstream, STREAMFILE *strea
         {"left","right"},
         {"Left","Right"},
         {".V0",".V1"}, /* Homura (PS2) */
-        {".L",".R"}, /* Crash Nitro Racing (PS2) */
-        {"_0","_1"}, //unneeded?
+        {".L",".R"}, /* Crash Nitro Racing (PS2), Gradius V (PS2) */
+        {"_0","_1"}, //fake for Homura/unneeded?
     };
     char new_filename[PATH_LIMIT];
     char * ext;
