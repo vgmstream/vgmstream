@@ -1139,10 +1139,6 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\ps3_klbs.c"
-					>
-				</File>
-				<File
 					RelativePath=".\meta\ps3_msf.c"
 					>
 				</File>

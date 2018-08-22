@@ -302,7 +302,6 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_pc_adp_otns,
     init_vgmstream_eb_sfx,
     init_vgmstream_eb_sf0,
-    init_vgmstream_ps3_klbs,
     init_vgmstream_ps2_mtaf,
     init_vgmstream_tun,
     init_vgmstream_wpd,

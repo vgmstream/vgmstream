@@ -951,7 +951,6 @@ static const meta_info meta_info_list[] = {
         {meta_OTNS_ADP,             "Omikron: The Nomad Soul ADP header"},
         {meta_EB_SFX,               "Excitebots .sfx header"},
         {meta_EB_SF0,               "assumed Excitebots .sf0 by extension"},
-        {meta_PS3_KLBS,             "klBS Header"},
         {meta_PS2_MTAF,             "Konami MTAF header"},
         {meta_PS2_VAG1,             "Konami VAG1 header"},
         {meta_PS2_VAG2,             "Konami VAG2 header"},

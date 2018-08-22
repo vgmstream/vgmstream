@@ -563,8 +563,6 @@ VGMSTREAM * init_vgmstream_pc_adp_otns(STREAMFILE* streamFile);
 VGMSTREAM * init_vgmstream_eb_sfx(STREAMFILE* streamFile);
 VGMSTREAM * init_vgmstream_eb_sf0(STREAMFILE* streamFile);
 
-VGMSTREAM * init_vgmstream_ps3_klbs(STREAMFILE* streamFile);
-
 VGMSTREAM * init_vgmstream_ps2_mtaf(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_tun(STREAMFILE* streamFile);
