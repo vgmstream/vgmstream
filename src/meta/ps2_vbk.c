@@ -1,111 +1,66 @@
 #include "meta.h"
-#include "../util.h"
+#include "../coding/coding.h"
 
-//#include <windows.h>
-//#include <tchar.h>
 
-/* VBK (from Disney's Stitch - Experiment 626) */
-
-VGMSTREAM * init_vgmstream_ps2_vbk(STREAMFILE *streamFile) 
-{
+/* VBK - from Disney's Stitch - Experiment 626 (PS2) */
+VGMSTREAM * init_vgmstream_ps2_vbk(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-	char filename[PATH_LIMIT];
-	off_t start_offset;
-	uint8_t	testBuffer[0x10];
-	off_t	loopStart = 0;
-	off_t	loopEnd = 0;
-	off_t	readOffset = 0;
-	size_t	fileLength;
-	int loop_flag;
-	int channel_count;
+    off_t start_offset, header_offset, stream_offset;
+    size_t stream_size, interleave;
+    int loop_flag, channel_count, sample_rate;
+    int32_t num_samples, loop_start = 0, loop_end = 0;
+    int total_subsongs, target_subsong = streamFile->stream_index;
 
-    //_TCHAR szBuffer[100];
 
-    /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("vbk",filename_extension(filename))) goto fail;
-
-    /* check header */
-    if (read_32bitBE(0x00,streamFile) != 0x2E56424B) /* .VBK */
+    /* checks */
+    if (!check_extensions(streamFile, "vbk"))
         goto fail;
+    if (read_32bitBE(0x00,streamFile) != 0x2E56424B) /* ".VBK" */
+        goto fail;
+    /* 0x04: version? always 0x02? */
+    start_offset = read_32bitLE(0x0C, streamFile);
+    /* 0x10: file size */
 
-    loop_flag = 1;
-    channel_count = read_32bitLE(0x28,streamFile) + 1;
+    total_subsongs = read_32bitLE(0x08,streamFile);
+    if (target_subsong == 0) target_subsong = 1;
+    if (target_subsong < 0 || target_subsong > total_subsongs || total_subsongs < 1) goto fail;
 
-	//_stprintf(szBuffer, _T("%x"), channel_count);
-	//MessageBox(NULL, szBuffer, _T("Foo"), MB_OK);
+    header_offset = 0x14 + (target_subsong-1)*0x18;
 
-	/* build the VGMSTREAM */
+    stream_size   = read_32bitLE(header_offset+0x00,streamFile);
+    /* 0x04: id? */
+    stream_offset = read_32bitLE(header_offset+0x08,streamFile);
+    sample_rate   = read_32bitLE(header_offset+0x0c,streamFile);
+    interleave    = read_32bitLE(header_offset+0x10,streamFile);
+    channel_count = read_32bitLE(header_offset+0x14,streamFile) + 1; /* 4ch is common, 1ch sfx too */
+    start_offset += stream_offset;
+
+    num_samples = ps_bytes_to_samples(stream_size,channel_count);
+    loop_flag = ps_find_loop_offsets(streamFile, start_offset, stream_size, channel_count, interleave, &loop_start, &loop_end);
+    loop_flag = loop_flag && (num_samples > 10*sample_rate); /* disable looping for smaller files (in seconds) */
+
+
+    /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
-	/* fill in the vital statistics */
-    fileLength = get_streamfile_size(streamFile);
-	start_offset = read_32bitLE(0x0C, streamFile);
-	vgmstream->channels = channel_count;
-    vgmstream->sample_rate = read_32bitLE(0x20,streamFile);
-    vgmstream->coding_type = coding_PSX;
-	vgmstream->num_samples = (fileLength - start_offset)*28/16/channel_count;
-		
-	// get loop start
-	do {
-		
-		readOffset+=(off_t)read_streamfile(testBuffer,readOffset,0x10,streamFile); 
-
-		if(testBuffer[0x01]==0x06) 
-		{
-			loopStart = readOffset-0x10;
-			break;
-		}
-
-	} while (streamFile->get_offset(streamFile)<(int32_t)fileLength);
-	
-	
-	// get loop end
-	readOffset = fileLength - 0x10;
-	
-	do {		
-		readOffset-=(off_t)read_streamfile(testBuffer,readOffset,0x10,streamFile); 
-
-		/* Loop End */
-		if(testBuffer[0x01]==0x03) 
-		{
-			loopEnd = readOffset-0x10;
-			break;
-		}
-	} while (readOffset > 0);
-
-	loop_flag = 1;
-	vgmstream->loop_start_sample = (loopStart-start_offset)*28/16/channel_count;
-    vgmstream->loop_end_sample = (loopEnd-start_offset)*28/16/channel_count;
-
-    vgmstream->layout_type = layout_interleave;
-    vgmstream->interleave_block_size = read_32bitLE(0x24,streamFile);
     vgmstream->meta_type = meta_PS2_VBK;
+    vgmstream->sample_rate = sample_rate;
+    vgmstream->num_samples = num_samples;
+    vgmstream->loop_start_sample = loop_start;
+    vgmstream->loop_end_sample = loop_end;
+    vgmstream->num_streams = total_subsongs;
+    vgmstream->stream_size = stream_size;
 
-    /* open the file for reading */
-    {
-        int i;
-        STREAMFILE * file;
-        file = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-        if (!file) goto fail;
-        
-		for (i=0;i<channel_count;i++) 
-		{
-            vgmstream->ch[i].streamfile = file;
+    vgmstream->coding_type = coding_PSX;
+    vgmstream->layout_type = layout_interleave;
+    vgmstream->interleave_block_size = interleave;
 
-            vgmstream->ch[i].channel_start_offset=
-                vgmstream->ch[i].offset=start_offset+
-                vgmstream->interleave_block_size*i;
-
-        }
-    }
-
+    if (!vgmstream_open_stream(vgmstream, streamFile, start_offset))
+        goto fail;
     return vgmstream;
 
-    /* clean up anything we may have opened */
 fail:
-    if (vgmstream) close_vgmstream(vgmstream);
+    close_vgmstream(vgmstream);
     return NULL;
 }
-
