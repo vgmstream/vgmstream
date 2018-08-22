@@ -41,16 +41,13 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_cdxa,
     init_vgmstream_ps2_rxws,
     init_vgmstream_ps2_rxw,
-    init_vgmstream_ps2_int,
     init_vgmstream_ngc_dsp_stm,
     init_vgmstream_ps2_exst,
     init_vgmstream_ps2_svag,
     init_vgmstream_mib_mih,
-    init_vgmstream_ps2_mib,
     init_vgmstream_ngc_mpdsp,
     init_vgmstream_ps2_mic,
     init_vgmstream_ngc_dsp_std_int,
-    init_vgmstream_raw,
     init_vgmstream_vag,
     init_vgmstream_psx_gms,
     init_vgmstream_ps2_ild,
@@ -426,9 +423,13 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_nus3bank,
     init_vgmstream_scd_sscf,
 
-    init_vgmstream_txth,  /* should go at the end (lower priority) */
+    /* lowest priority metas (TXTH should go before raw formats) */
+    init_vgmstream_txth,            /* proper parsers should supersede TXTH, once added */
+    init_vgmstream_ps2_int,         /* .int raw PS-ADPCM */
+    init_vgmstream_ps_headerless,   /* tries to detect a bunch of PS-ADPCM formats */
+    init_vgmstream_raw,             /* .raw PCM */
 #ifdef VGM_USE_FFMPEG
-    init_vgmstream_ffmpeg, /* should go at the end (lowest priority) */
+    init_vgmstream_ffmpeg,          /* may play anything incorrectly, since FFmpeg doesn't check extensions */
 #endif
 };
 
@@ -479,7 +480,7 @@ static VGMSTREAM * init_vgmstream_internal(STREAMFILE *streamFile) {
                     (vgmstream->meta_type == meta_GENH) ||
                     (vgmstream->meta_type == meta_TXTH) ||
                     (vgmstream->meta_type == meta_KRAW) ||
-                    (vgmstream->meta_type == meta_PS2_MIB) ||
+                    (vgmstream->meta_type == meta_PS_HEADERLESS) ||
                     (vgmstream->meta_type == meta_NGC_LPS) ||
                     (vgmstream->meta_type == meta_DSP_YGO) ||
                     (vgmstream->meta_type == meta_DSP_AGSC) ||

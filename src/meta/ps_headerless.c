@@ -7,7 +7,7 @@ static int check_psadpcm(STREAMFILE *streamFile);
 /* headerless PS-ADPCM - from Katamary Damacy (PS2), Air (PS2), Aladdin: Nasira's Revenge (PS1)
  * (guesses interleave and channels by testing data and using the file extension, and finds
  * loops in PS-ADPCM flags; this is a crutch for convenience, consider using GENH/TXTH instead). */
-VGMSTREAM * init_vgmstream_ps2_mib(STREAMFILE *streamFile) {
+VGMSTREAM * init_vgmstream_ps_headerless(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     off_t start_offset = 0x00;
     char filename[PATH_LIMIT];
@@ -275,12 +275,10 @@ VGMSTREAM * init_vgmstream_ps2_mib(STREAMFILE *streamFile) {
         vgmstream->loop_end_sample-=(emptySamples*channel_count);
     }
 
-    vgmstream->meta_type = meta_PS2_MIB;
-    //if (vgmstream->loop_end_sample) goto fail;
+    vgmstream->meta_type = meta_PS_HEADERLESS;
+
     if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
         goto fail;
-
-
     return vgmstream;
 
 fail:

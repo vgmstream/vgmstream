@@ -59,7 +59,7 @@ VGMSTREAM * init_vgmstream_ps2_exst(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_ps2_svag(STREAMFILE *streamFile);
 
-VGMSTREAM * init_vgmstream_ps2_mib(STREAMFILE *streamFile);
+VGMSTREAM * init_vgmstream_ps_headerless(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_mib_mih(STREAMFILE *streamFile);
 
