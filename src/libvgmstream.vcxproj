@@ -341,7 +341,7 @@
     <ClCompile Include="meta\ps2_leg.c" />
     <ClCompile Include="meta\ps2_lpcm.c" />
     <ClCompile Include="meta\ps2_mcg.c" />
-    <ClCompile Include="meta\ps2_mib.c" />
+    <ClCompile Include="meta\ps_headerless.c" />
     <ClCompile Include="meta\ps2_mic.c" />
     <ClCompile Include="meta\ps2_mihb.c" />
     <ClCompile Include="meta\ps2_msa.c" />

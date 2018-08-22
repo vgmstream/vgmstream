@@ -967,7 +967,7 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\ps2_mib.c"
+					RelativePath=".\meta\ps_headerless.c"
 					>
 				</File>
 				<File
