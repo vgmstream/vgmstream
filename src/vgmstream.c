@@ -292,7 +292,6 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_ps2_strlr,
     init_vgmstream_lsf_n1nj4n,
     init_vgmstream_vawx,
-    init_vgmstream_pc_snds,
     init_vgmstream_ps2_wmus,
     init_vgmstream_hyperscan_kvag,
     init_vgmstream_ios_psnd,
@@ -427,6 +426,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_txth,            /* proper parsers should supersede TXTH, once added */
     init_vgmstream_ps2_int,         /* .int raw PS-ADPCM */
     init_vgmstream_ps_headerless,   /* tries to detect a bunch of PS-ADPCM formats */
+    init_vgmstream_pc_snds,         /* .snds PC, after ps_headerless */
     init_vgmstream_raw,             /* .raw PCM */
 #ifdef VGM_USE_FFMPEG
     init_vgmstream_ffmpeg,          /* may play anything incorrectly, since FFmpeg doesn't check extensions */
