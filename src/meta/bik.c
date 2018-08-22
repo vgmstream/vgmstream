@@ -12,8 +12,11 @@ VGMSTREAM * init_vgmstream_bik(STREAMFILE *streamFile) {
     size_t stream_size;
 
 
-    /* check extension, case insensitive (bika = manually demuxed audio) */
-    if (!check_extensions(streamFile,"bik,bika,bik2,bik2a,bk2,bk2a")) goto fail;
+    /* checks */
+    /* .bik/bik2/bk2: standard
+     * .bika = fake extension for demuxed audio */
+    if (!check_extensions(streamFile,"bik,bika,bik2,bk2"))
+        goto fail;
 
     /* check header "BIK" (bink 1) or "KB2" (bink 2), followed by version-char (audio is the same for both) */
     if ((read_32bitBE(0x00,streamFile) & 0xffffff00) != 0x42494B00 &&
