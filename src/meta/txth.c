@@ -57,6 +57,7 @@ typedef struct {
 
     uint32_t loop_flag;
     int loop_flag_set;
+    int loop_flag_auto;
 
     uint32_t coef_offset;
     uint32_t coef_spacing;
@@ -130,6 +131,13 @@ VGMSTREAM * init_vgmstream_txth(STREAMFILE *streamFile) {
 #endif
         default:
             goto fail;
+    }
+
+    /* try to autodetect PS-ADPCM loop data */
+    if (txth.loop_flag_auto && coding == coding_PSX) {
+        size_t data_size = get_streamfile_size(streamFile) - txth.start_offset;
+        txth.loop_flag = ps_find_loop_offsets(streamFile, txth.start_offset, data_size, txth.channels, txth.interleave,
+                (int32_t*)&txth.loop_start_sample, (int32_t*)&txth.loop_end_sample);
     }
 
 
@@ -583,8 +591,13 @@ static int parse_keyval(STREAMFILE * streamFile, STREAMFILE * streamText, txth_h
             txth->loop_adjust = get_bytes_to_samples(txth, txth->loop_adjust * (txth->interleave*txth->channels));
     }
     else if (0==strcmp(key,"loop_flag")) {
-        if (!parse_num(streamFile,val, &txth->loop_flag)) goto fail;
-        txth->loop_flag_set = 1;
+        if (0==strcmp(val,"auto"))  {
+            txth->loop_flag_auto = 1;
+        }
+        else {
+            if (!parse_num(streamFile,val, &txth->loop_flag)) goto fail;
+            txth->loop_flag_set = 1;
+        }
     }
     else if (0==strcmp(key,"coef_offset")) {
         if (!parse_num(streamFile,val, &txth->coef_offset)) goto fail;
@@ -600,6 +613,9 @@ static int parse_keyval(STREAMFILE * streamFile, STREAMFILE * streamText, txth_h
         else if (!parse_num(streamFile,val, &txth->coef_big_endian)) goto fail;
     }
     else if (0==strcmp(key,"coef_mode")) {
+        if (!parse_num(streamFile,val, &txth->coef_mode)) goto fail;
+    }
+    else if (0==strcmp(key,"psx_loops")) {
         if (!parse_num(streamFile,val, &txth->coef_mode)) goto fail;
     }
     else {
