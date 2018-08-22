@@ -1270,6 +1270,9 @@
     <ClCompile Include="meta\wpd.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\mib_mih.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\mn_str.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>

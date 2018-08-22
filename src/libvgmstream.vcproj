@@ -576,6 +576,10 @@
 					RelativePath=".\meta\mca.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\meta\mib_mih.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\mn_str.c"
 					>
