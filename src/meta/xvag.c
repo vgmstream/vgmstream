@@ -3,8 +3,6 @@
 #include "../layout/layout.h"
 
 
-static int ps_adpcm_find_loop_offsets(STREAMFILE *streamFile, int channel_count, off_t start_offset, off_t * loop_start, off_t * loop_end);
-
 /* XVAG - Sony's Scream Tool/Stream Creator format (God of War III, Ratchet & Clank Future, The Last of Us, Uncharted) */
 VGMSTREAM * init_vgmstream_xvag(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
@@ -16,7 +14,7 @@ VGMSTREAM * init_vgmstream_xvag(STREAMFILE *streamFile) {
 
     off_t start_offset, loop_start = 0, loop_end = 0, chunk_offset;
     off_t first_offset = 0x20;
-    size_t chunk_size, stream_size;
+    size_t chunk_size, data_size;
 
 
     /* checks */
@@ -55,7 +53,7 @@ VGMSTREAM * init_vgmstream_xvag(STREAMFILE *streamFile) {
 
     interleave_factor = read_32bit(chunk_offset+0x10,streamFile);
     sample_rate = read_32bit(chunk_offset+0x14,streamFile);
-    stream_size = read_32bit(chunk_offset+0x18,streamFile);
+    data_size = read_32bit(chunk_offset+0x18,streamFile); /* not always accurate */
 
     /* extra data, seen in versions 0x61+ */
     if (chunk_size > 0x1c) {
@@ -77,10 +75,13 @@ VGMSTREAM * init_vgmstream_xvag(STREAMFILE *streamFile) {
     /* "cues": cue/labels (rare) */
     /* "0000": end chunk before start_offset */
 
-    /* some XVAG seem to do full loops, this should detect them as looping (basically tests is last frame is empty) */
-    //todo remove, looping seems external and specified in Scream Tool's bank formats
+    /* XVAG has no looping, but some PS3 PS-ADPCM seems to do full loops (without data flags) */
     if (codec == 0x06 && total_subsongs == 1) {
-        loop_flag = ps_adpcm_find_loop_offsets(streamFile, channel_count, start_offset, &loop_start, &loop_end);
+        size_t file_size = get_streamfile_size(streamFile);
+        /* simply test if last frame is not empty = may loop */
+        loop_flag = (read_8bit(file_size - 0x01, streamFile) != 0);
+        loop_start = 0;
+        loop_end = file_size - start_offset;
     }
 
 
@@ -91,7 +92,7 @@ VGMSTREAM * init_vgmstream_xvag(STREAMFILE *streamFile) {
     vgmstream->sample_rate = sample_rate;
     vgmstream->num_samples = num_samples;
     vgmstream->num_streams = total_subsongs;
-    vgmstream->stream_size = (stream_size / total_subsongs);
+    vgmstream->stream_size = (data_size / total_subsongs);
     vgmstream->meta_type = meta_XVAG;
 
     switch (codec) {
@@ -208,80 +209,4 @@ VGMSTREAM * init_vgmstream_xvag(STREAMFILE *streamFile) {
 fail:
     if (vgmstream) close_vgmstream(vgmstream);
     return NULL;
-}
-
-
-static int ps_adpcm_find_loop_offsets(STREAMFILE *streamFile, int channel_count, off_t start_offset, off_t * loop_start, off_t * loop_end) {
-    uint8_t testBuffer[0x10];
-    int     loopStartPointsCount=0;
-    int     loopEndPointsCount=0;
-    off_t   readOffset = 0;
-    off_t   loopStartPoints[0x10];
-    off_t   loopEndPoints[0x10];
-
-    off_t   loopStart = 0;
-    off_t   loopEnd = 0;
-    off_t fileLength;
-    int loop_flag = 0;
-
-    readOffset=start_offset;
-    fileLength = get_streamfile_size(streamFile);
-
-    // get the loops the same way we get on .MIB
-    do {
-        readOffset+=(off_t)read_streamfile(testBuffer,readOffset,0x10,streamFile);
-
-        // Loop Start ...
-        if(testBuffer[0x01]==0x06) {
-            if(loopStartPointsCount<0x10) {
-                loopStartPoints[loopStartPointsCount] = readOffset-0x10;
-                loopStartPointsCount++;
-            }
-        }
-
-        // Loop End ...
-        if(((testBuffer[0x01]==0x03) && (testBuffer[0x03]!=0x77)) || (testBuffer[0x01]==0x01)) {
-            if(loopEndPointsCount<0x10) {
-                loopEndPoints[loopEndPointsCount] = readOffset; //-0x10;
-                loopEndPointsCount++;
-            }
-        }
-
-    } while (readOffset<((int32_t)fileLength));
-
-    // Calc Loop Points & Interleave ...
-    if(loopStartPointsCount>=channel_count) {
-        // can't get more then 0x10 loop point !
-        if((loopStartPointsCount<=0x0F) && (loopStartPointsCount>=2)) {
-            // Always took the first 2 loop points
-            loopStart=loopStartPoints[1]-start_offset;
-            loop_flag=1;
-        } else {
-            loopStart=0;
-        }
-    }
-
-    if(loopEndPointsCount>=channel_count) {
-        // can't get more then 0x10 loop point !
-        if((loopEndPointsCount<=0x0F) && (loopEndPointsCount>=2)) {
-            loop_flag=1;
-            loopEnd=loopEndPoints[loopEndPointsCount-1]-start_offset;
-        } else {
-            loopEnd=0;
-        }
-    }
-
-    // as i can get on the header if a song is looped or not
-    // if try to take the loop marker on the file
-    // if the last byte of the file is = 00 is assume that the song is not looped
-    // i know that i can cover 95% of the file, but can't work on some of them
-    if(read_8bit((fileLength-1),streamFile)==0)
-        loop_flag=0;
-
-    if (loop_flag) {
-        *loop_start = loopStart;
-        *loop_end = loopEnd;
-    }
-
-    return loop_flag;
 }
