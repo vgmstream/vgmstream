@@ -92,6 +92,9 @@
     <ClInclude Include="meta\ppst_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="meta\ps2_psh_streamfile.h">
+      <Filter>meta\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="meta\sqex_scd_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>

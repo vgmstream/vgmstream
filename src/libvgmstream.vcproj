@@ -249,6 +249,10 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\meta\ps2_psh_streamfile.h"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\sqex_scd_streamfile.h"
                     >
                 </File>
