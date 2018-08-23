@@ -34,7 +34,7 @@ void block_update_h4m(off_t block_offset, VGMSTREAM * vgmstream) {
             uint32_t frame_samples = read_32bitBE(block_offset+0x08, streamFile);
             size_t block_skip;
 
-            if (vgmstream->codec_version & 0x80) {
+            if (vgmstream->codec_config & 0x80) {
                 frame_samples /= 2; /* ??? */
             }
 
@@ -51,7 +51,7 @@ void block_update_h4m(off_t block_offset, VGMSTREAM * vgmstream) {
             VGM_ASSERT(frame_format == 1, "H4M: unknown frame_format %x at %lx\n", frame_format, block_offset);
 
             /* pass current mode to the decoder */
-            vgmstream->codec_version = (frame_format << 8) | (vgmstream->codec_version & 0xFF);
+            vgmstream->codec_config = (frame_format << 8) | (vgmstream->codec_config & 0xFF);
 
             for (i = 0; i < vgmstream->channels; i++) {
                 vgmstream->ch[i].offset = block_offset + block_skip;

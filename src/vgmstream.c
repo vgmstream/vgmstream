@@ -1827,7 +1827,7 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
             break;
         case coding_H4M_IMA:
             for (chan=0;chan<vgmstream->channels;chan++) {
-                uint16_t frame_format = (uint16_t)((vgmstream->codec_version >> 8) & 0xFFFF);
+                uint16_t frame_format = (uint16_t)((vgmstream->codec_config >> 8) & 0xFFFF);
 
                 decode_h4m_ima(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,

@@ -88,7 +88,7 @@ void block_update_ea_1snh(off_t block_offset, VGMSTREAM * vgmstream) {
             break;
 
         case coding_DVI_IMA:
-            if (vgmstream->codec_version == 1) { /* ADPCM hist */
+            if (vgmstream->codec_config == 1) { /* ADPCM hist */
                 vgmstream->current_block_samples = read_32bit(block_offset + block_header, streamFile);
                 vgmstream->current_block_size = 0; // - (0x04 + 0x08*vgmstream->channels); /* should be equivalent */
 

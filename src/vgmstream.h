@@ -801,7 +801,7 @@ typedef struct {
 
     /* decoder specific */
     int codec_endian;               /* little/big endian marker; name is left vague but usually means big endian */
-    int codec_version;              /* flag for codecs with minor variations */
+    int codec_config;               /* flags for codecs or layouts with minor variations; meaning is up to the user */
 
     int32_t ws_output_size;         /* WS ADPCM: output bytes for this block */
 

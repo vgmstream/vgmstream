@@ -67,7 +67,7 @@ VGMSTREAM * init_vgmstream_h4m(STREAMFILE *streamFile) {
     vgmstream->sample_rate = sample_rate;
     vgmstream->num_streams = total_subsongs;
     vgmstream->stream_size = get_streamfile_size(streamFile) / total_subsongs; /* approx... */
-    vgmstream->codec_version = format; /* for blocks */
+    vgmstream->codec_config = format; /* for blocks */
     vgmstream->meta_type = meta_H4M;
     vgmstream->layout_type = layout_blocked_h4m;
 
