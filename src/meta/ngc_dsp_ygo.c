@@ -39,6 +39,7 @@ VGMSTREAM * init_vgmstream_dsp_ygo(STREAMFILE *streamFile) {
     vgmstream->num_samples = read_32bitBE(0x20,streamFile);
     vgmstream->layout_type = layout_none;
     vgmstream->meta_type = meta_DSP_YGO;
+    vgmstream->allow_dual_stereo = 1;
     if (loop_flag) {
         vgmstream->loop_start_sample = (read_32bitBE(0x30,streamFile)*14/16);
         vgmstream->loop_end_sample = (read_32bitBE(0x34,streamFile)*14/16);

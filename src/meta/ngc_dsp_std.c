@@ -348,6 +348,7 @@ VGMSTREAM * init_vgmstream_ngc_dsp_std(STREAMFILE *streamFile) {
         vgmstream->loop_end_sample = vgmstream->num_samples;
 
     vgmstream->meta_type = meta_DSP_STD;
+    vgmstream->allow_dual_stereo = 1; /* very common in .dsp */
     vgmstream->coding_type = coding_NGC_DSP;
     vgmstream->layout_type = layout_none;
 

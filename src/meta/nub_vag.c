@@ -32,6 +32,7 @@ VGMSTREAM * init_vgmstream_nub_vag(STREAMFILE *streamFile) {
 
     vgmstream->layout_type = layout_none;
     vgmstream->meta_type = meta_NUB_VAG;
+    vgmstream->allow_dual_stereo = 1;
 
     start_offset = 0xC0;
 

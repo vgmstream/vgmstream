@@ -384,6 +384,7 @@ VGMSTREAM * init_vgmstream_txth(STREAMFILE *streamFile) {
 
     vgmstream->coding_type = coding;
     vgmstream->meta_type = meta_TXTH;
+    vgmstream->allow_dual_stereo = 1;
 
 
     if ( !vgmstream_open_stream(vgmstream,streamFile,txth.start_offset) )

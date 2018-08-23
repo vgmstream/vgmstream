@@ -276,6 +276,7 @@ VGMSTREAM * init_vgmstream_ps_headerless(STREAMFILE *streamFile) {
     }
 
     vgmstream->meta_type = meta_PS_HEADERLESS;
+    vgmstream->allow_dual_stereo = 1;
 
     if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
         goto fail;

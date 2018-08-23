@@ -474,23 +474,7 @@ static VGMSTREAM * init_vgmstream_internal(STREAMFILE *streamFile) {
         }
 
         /* test if candidate for dual stereo */
-        if (vgmstream->channels == 1 && (
-                    (vgmstream->meta_type == meta_DSP_STD) ||
-                    (vgmstream->meta_type == meta_PS2_VAGp) ||
-                    (vgmstream->meta_type == meta_GENH) ||
-                    (vgmstream->meta_type == meta_TXTH) ||
-                    (vgmstream->meta_type == meta_KRAW) ||
-                    (vgmstream->meta_type == meta_PS_HEADERLESS) ||
-                    (vgmstream->meta_type == meta_NGC_LPS) ||
-                    (vgmstream->meta_type == meta_DSP_YGO) ||
-                    (vgmstream->meta_type == meta_DSP_AGSC) ||
-                    (vgmstream->meta_type == meta_PS2_SMPL) ||
-                    (vgmstream->meta_type == meta_NGCA) ||
-                    (vgmstream->meta_type == meta_NUB_VAG) ||
-                    (vgmstream->meta_type == meta_SPT_SPD) ||
-                    (vgmstream->meta_type == meta_EB_SFX) ||
-                    (vgmstream->meta_type == meta_CWAV)
-                    )) {
+        if (vgmstream->channels == 1 && vgmstream->allow_dual_stereo == 1) {
             try_dual_file_stereo(vgmstream, streamFile, init_vgmstream_functions[i]);
         }
 

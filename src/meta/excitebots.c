@@ -82,6 +82,7 @@ VGMSTREAM * init_vgmstream_eb_sfx(STREAMFILE *streamFile) {
 
     vgmstream->layout_type = layout_none;
     vgmstream->meta_type = meta_EB_SFX;
+    vgmstream->allow_dual_stereo = 1;
 
     /* open the file for reading */
     {

@@ -11,7 +11,7 @@ VGMSTREAM * init_vgmstream_vag(STREAMFILE *streamFile) {
     int channel_count = 0, loop_flag, sample_rate;
     uint32_t vag_id, version;
     int32_t loop_start_sample = 0, loop_end_sample = 0;
-    //int allow_dual_stereo = 0;
+    int allow_dual_stereo = 0;
 
 
     /* checks */
@@ -195,7 +195,7 @@ VGMSTREAM * init_vgmstream_vag(STREAMFILE *streamFile) {
 
                 channel_count = 1;
                 loop_flag = ps_find_loop_offsets_full(streamFile, start_offset, channel_size*channel_count, channel_count, interleave, &loop_start_sample, &loop_end_sample);
-                //allow_dual_stereo = 1; /* often found with external L/R files */
+                allow_dual_stereo = 1; /* often found with external L/R files */
             }
             break;
 
@@ -209,6 +209,8 @@ VGMSTREAM * init_vgmstream_vag(STREAMFILE *streamFile) {
     if (!vgmstream) goto fail;
 
     vgmstream->meta_type = meta_type;
+    vgmstream->allow_dual_stereo = allow_dual_stereo;
+
     vgmstream->sample_rate = sample_rate;
     vgmstream->num_samples = ps_bytes_to_samples(channel_size,1);
     vgmstream->loop_start_sample = loop_start_sample;

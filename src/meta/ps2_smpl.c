@@ -8,11 +8,11 @@ VGMSTREAM * init_vgmstream_ps2_smpl(STREAMFILE *streamFile) {
     int loop_flag, channel_count;
     size_t channel_size;
 
-    /* check extension (.v0: left channel, .v1: right channel, .smpl: header id) */
+    /* checks*/
+    /* .v0: left channel, .v1: right channel
+     * .smpl: header id */
     if ( !check_extensions(streamFile,"v0,v1,smpl") )
        goto fail;
-
-    /* check header */
     if (read_32bitBE(0x00,streamFile) != 0x534D504C) /* "SMPL" */
         goto fail;
 
@@ -31,13 +31,12 @@ VGMSTREAM * init_vgmstream_ps2_smpl(STREAMFILE *streamFile) {
     vgmstream->loop_end_sample = vgmstream->num_samples;
 
     vgmstream->meta_type = meta_PS2_SMPL;
+    vgmstream->allow_dual_stereo = 1;
     vgmstream->coding_type = coding_PSX;
     vgmstream->layout_type = layout_none;
 
-    /* always, but can be null or used as special string */
     read_string(vgmstream->stream_name,0x10+1, 0x20,streamFile);
 
-    /* open the file for reading */
     if ( !vgmstream_open_stream(vgmstream, streamFile, start_offset) )
         goto fail;
     return vgmstream;

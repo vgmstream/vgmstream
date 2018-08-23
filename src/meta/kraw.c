@@ -37,6 +37,7 @@ VGMSTREAM * init_vgmstream_kraw(STREAMFILE *streamFile) {
 
     vgmstream->layout_type = layout_none;
     vgmstream->meta_type = meta_KRAW;
+    vgmstream->allow_dual_stereo = 1;
 
     /* open the file for reading */
     {

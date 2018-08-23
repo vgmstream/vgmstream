@@ -757,10 +757,11 @@ typedef struct {
     int num_streams;            /* for multi-stream formats (0=not set/one stream, 1=one stream) */
     int stream_index;           /* selected stream (also 1-based) */
     char stream_name[STREAM_NAME_SIZE]; /* name of the current stream (info), if the file stores it and it's filled */
-    size_t stream_size;         /* info to properly calculate bitrate */
+    size_t stream_size;         /* info to properly calculate bitrate in case of subsongs */
     uint32_t channel_mask;      /* to silence crossfading subsongs/layers */
     int channel_mappings_on;    /* channel mappings are active */
     int channel_mappings[32];   /* swap channel "i" with "[i]" */
+    int allow_dual_stereo;      /* search for dual stereo (file_L.ext + file_R.ext = single stereo file) */
 
     /* looping */
     int loop_flag;              /* is this stream looped? */
@@ -804,7 +805,7 @@ typedef struct {
 
     int32_t ws_output_size;         /* WS ADPCM: output bytes for this block */
 
-    void * start_vgmstream;         /* a copy of the VGMSTREAM as it was at the beginning of the stream (for AAX/AIX/SCD) */
+    void * start_vgmstream;         /* a copy of the VGMSTREAM as it was at the beginning of the stream (for custom layouts) */
 
     /* Data the codec needs for the whole stream. This is for codecs too
      * different from vgmstream's structure to be reasonably shoehorned into
@@ -812,9 +813,7 @@ typedef struct {
      * Note also that support must be added for resetting, looping and
      * closing for every codec that uses this, as it will not be handled. */
     void * codec_data;
-    /* Same, for special layouts.
-     * Reusing the above pointer causes bugs when it's using special layout + codec
-     * (vgmstream may try to free/loop/etc codec_data). */
+    /* Same, for special layouts. layout_data + codec_data may exist at the same time. */
     void * layout_data;
 } VGMSTREAM;
 
