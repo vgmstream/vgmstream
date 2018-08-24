@@ -1129,7 +1129,7 @@
     <ClCompile Include="layout\blocked_mxch.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="layout\nolayout.c">
+    <ClCompile Include="layout\flat.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="layout\blocked_adm.c">

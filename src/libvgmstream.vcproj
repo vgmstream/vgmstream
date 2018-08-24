@@ -1899,7 +1899,7 @@
 					>
 				</File>
 				<File
-					RelativePath=".\layout\nolayout.c"
+					RelativePath=".\layout\flat.c"
 					>
 				</File>
 				<File
