@@ -138,9 +138,9 @@ REM # ########################################################################
         )
     )
 
-    REM # compare files (doesn't use /b for speedup, somehow)
-    set CMP_WAV=fc /a /lb1 "%WAV_OLD%" "%WAV_NEW%"
-    set CMP_TXT=fc /a /lb1 "%TXT_OLD%" "%TXT_NEW%"
+    REM # compare files (without /b may to be faster for small files?)
+    set CMP_WAV=fc /a /b "%WAV_OLD%" "%WAV_NEW%"
+    set CMP_TXT=fc /a /b "%TXT_OLD%" "%TXT_NEW%"
 
     %CMP_WAV% 1> nul 2>&1
     set CMP_WAV_ERROR=0
