@@ -1,7 +1,7 @@
 #include "layout.h"
 #include "../vgmstream.h"
 
-void render_vgmstream_nolayout(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstream) {
+void render_vgmstream_flat(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstream) {
     int samples_written=0;
 
     const int samples_this_block = vgmstream->num_samples;

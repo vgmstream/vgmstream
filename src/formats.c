@@ -614,7 +614,7 @@ static const coding_info coding_info_list[] = {
 };
 
 static const layout_info layout_info_list[] = {
-        {layout_none,                   "flat (no layout)"},
+        {layout_none,                   "flat"},
         {layout_interleave,             "interleave"},
 
         {layout_segmented,              "segmented"},

@@ -49,7 +49,7 @@ void block_update_xa_aiff(off_t block_offset, VGMSTREAM * vgmstream);
 /* other layouts */
 void render_vgmstream_interleave(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstream);
 
-void render_vgmstream_nolayout(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstream);
+void render_vgmstream_flat(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstream);
 
 void render_vgmstream_aix(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstream);
 

@@ -940,7 +940,7 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
             render_vgmstream_interleave(buffer,sample_count,vgmstream);
             break;
         case layout_none:
-            render_vgmstream_nolayout(buffer,sample_count,vgmstream);
+            render_vgmstream_flat(buffer,sample_count,vgmstream);
             break;
         case layout_blocked_mxch:
         case layout_blocked_ast:
