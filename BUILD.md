@@ -200,7 +200,7 @@ To add a new one:
 - *src/libvgmstream.vcproj/vcxproj/filters*: add to compile new (format-name).c parser in VS
 - if the format needs an external library don't forget to mark optional parts with: *#ifdef VGM_USE_X ... #endif*
 
-Ultimately the meta must alloc the VGMSTREAM, set config and initial state. vgmstream needs the total number samples to work, so at times must convert from data sizes to samples (doing calculations or using helpers).
+Ultimately the meta must alloc the VGMSTREAM, set config and initial state. vgmstream needs the total of number samples to work, so at times must convert from data sizes to samples (doing calculations or using helpers).
 
 It also needs to open and assign to the VGMSTREAM one or several STREAMFILEs (usually reopening the base one, but could be any other file) to do I/O during decode, as well as setting the starting offsets of each channel and other values; this gives metas full flexibility at the cost of some repetition. The STREAMFILE passed to the meta will be discarded and its pointer must not be reused.
 
@@ -208,7 +208,7 @@ The .c file is usually named after the format's main extension or header id, opt
 
 Different formats may use the same extension but this isn't a problem as long as the header id or some other validation tells them apart, and should be implemented in separate .c files. If the format is headerless and the extension isn't unique enough it probably needs a generic GENH/TXTH header instead of direct support.
 
-If the format supports subsongs it should read the stream index (subsong number) in the passed STREAMFILE, and use it to parse a section of the file. Then it must report the number of subsongs in the VGMSTREAM, to signal this feature is enabled. The index is 1-based (first subsong is 1, 0 is default/first).
+If the format supports subsongs it should read the stream index (subsong number) in the passed STREAMFILE, and use it to parse a section of the file. Then it must report the number of subsongs in the VGMSTREAM, to signal this feature is enabled. The index is 1-based (first subsong is 1, 0 is default/first). This makes possible to directly use bank-like formats like .FSB, and while vgmstream could technically support any container (like generic bigfiles or even .zip) it should be restricted to files that actually are audio banks.
 
 #### layouts
 Layouts control most of the main logic:
@@ -225,7 +225,7 @@ Available layouts, depending on how codec data is laid out:
 - blocked: data is divided into blocks, often with a header. Layout detects when a block is done and asks a helper function to fix offsets (skipping the header and pointing to data per channel), depending on the block format.
 - others: uncommon cases may need its own custom layout (ex.- multistream/subfiles)
 
-The layout is used mainly depends on the decoder. MP3 data (that may have 1 or 2 channels per frame) uses the flat layout, while DSP ADPCM (that only decodes one channel at a time) is interleaved. In case of mono files either could be used as there won't be any actual difference.
+The layout used mainly depends on the decoder. MP3 data (that may have 1 or 2 channels per frame) uses flat layout, while DSP ADPCM (that only decodes one channel at a time) is interleaved. In case of mono files either could be used as there won't be any actual difference.
 
 Layouts expect the VGMSTREAM to be properly initialized during the meta processing (channel offsets must point to each channel start offset).
 

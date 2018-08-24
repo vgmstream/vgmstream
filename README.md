@@ -56,7 +56,7 @@ Options:
     -c: loop forever (continuously)
     -m: print metadata only, don't decode
     -x: decode and print adxencd command line to encode as ADX
-2    -g: decode and print oggenc command line to encode as OGG
+    -g: decode and print oggenc command line to encode as OGG
     -b: decode and print batch variable commands
     -L: append a smpl chunk and create a looping wav
     -e: force end-to-end looping
@@ -64,7 +64,7 @@ Options:
     -r outfile2.wav: output a second time after resetting
     -2 N: only output the Nth (first is 0) set of stereo channels
     -F: don't fade after N loops and play the rest of the stream
-    -s N: select subtream N, if the format supports multiple streams
+    -s N: select subsong N, if the format supports multiple subsongs
 ```
 Typical usage would be: ```test -o happy.wav happy.adx``` to decode ```happy.adx``` to ```happy.wav```.
 

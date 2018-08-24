@@ -50,7 +50,7 @@ static void usage(const char * name) {
           "    -r outfile2.wav: output a second time after resetting\n"
           "    -2 N: only output the Nth (first is 0) set of stereo channels\n"
           "    -F: don't fade after N loops and play the rest of the stream\n"
-          "    -s N: select subtream N, if the format supports multiple streams\n"
+          "    -s N: select subsong N, if the format supports multiple subsongs\n"
             ,name);
 }
 
