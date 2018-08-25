@@ -101,6 +101,9 @@
     <ClInclude Include="meta\ubi_lyn_ogg_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="meta\xvag_streamfile.h">
+      <Filter>meta\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="meta\meta.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>

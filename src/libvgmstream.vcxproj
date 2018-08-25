@@ -106,7 +106,7 @@
     <ClInclude Include="meta\ps2_psh_streamfile.h" />
     <ClInclude Include="meta\opus_interleave_streamfile.h" />
     <ClInclude Include="meta\sqex_scd_streamfile.h" />
-    <ClInclude Include="meta\ubi_lyn_ogg_streamfile.h" />
+    <ClInclude Include="meta\xvag_streamfile.h" />
     <ClInclude Include="meta\meta.h" />
     <ClInclude Include="meta\hca_keys.h" />
     <ClInclude Include="meta\fsb_keys.h" />

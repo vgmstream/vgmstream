@@ -260,6 +260,10 @@
                     RelativePath=".\meta\ubi_lyn_ogg_streamfile.h"
                     >
                 </File>
+                <File
+                    RelativePath=".\meta\xvag_streamfile.h"
+                    >
+                </File>
 			</Filter>
 			<Filter
 				Name="Source Files"

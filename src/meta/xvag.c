@@ -1,6 +1,7 @@
 #include "meta.h"
 #include "../coding/coding.h"
 #include "../layout/layout.h"
+#include "xvag_streamfile.h"
 
 
 typedef struct {
@@ -23,9 +24,13 @@ typedef struct {
     off_t stream_offset;
 } xvag_header;
 
+static int init_xvag_atrac9(STREAMFILE *streamFile, VGMSTREAM* vgmstream, xvag_header * xvag, off_t chunk_offset);
+static layered_layout_data* build_layered_xvag(STREAMFILE *streamFile, xvag_header * xvag, off_t chunk_offset, off_t start_offset);
+
 /* XVAG - Sony's Scream Tool/Stream Creator format (God of War III, Ratchet & Clank Future, The Last of Us, Uncharted) */
 VGMSTREAM * init_vgmstream_xvag(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
+    STREAMFILE* temp_streamFile = NULL;
     xvag_header xvag = {0};
     int32_t (*read_32bit)(off_t,STREAMFILE*) = NULL;
     off_t start_offset, chunk_offset, first_offset = 0x20;
@@ -165,9 +170,6 @@ VGMSTREAM * init_vgmstream_xvag(STREAMFILE *streamFile) {
 
 #ifdef VGM_USE_ATRAC9
         case 0x09: { /* ATRAC9: Sly Cooper and the Thievius Raccoonus (Vita), The Last of Us Remastered (PS4) */
-            atrac9_config cfg = {0};
-            size_t frame_size;
-
             if (xvag.subsongs > 1 && xvag.layers > 1) goto fail;
 
             /* "a9in": ATRAC9 info */
@@ -175,30 +177,27 @@ VGMSTREAM * init_vgmstream_xvag(STREAMFILE *streamFile) {
             if (!find_chunk(streamFile, 0x6139696E,first_offset,0, &chunk_offset,NULL, xvag.big_endian, 1)) /*"a9in"*/
                 goto fail;
 
-            frame_size = read_32bit(chunk_offset+0x00,streamFile);
+            if (xvag.layers > 1) {
+                /* some Vita/PS4 multichannel [flower (Vita), Uncharted Collection (PS4)]. PS4 ATRAC9 also
+                 * does single-stream >2ch, but this can do configs ATRAC9 can't, like 5ch/14ch/etc */
+                vgmstream->layout_data = build_layered_xvag(streamFile, &xvag, chunk_offset, start_offset);
+                if (!vgmstream->layout_data) goto fail;
+                vgmstream->coding_type = coding_ATRAC9;
+                vgmstream->layout_type = layout_layered;
 
-            cfg.type = ATRAC9_XVAG;
-            cfg.channels = vgmstream->channels;
-            cfg.config_data = read_32bitBE(chunk_offset+0x08,streamFile);
-            cfg.encoder_delay = read_32bit(chunk_offset+0x14,streamFile);
-
-            if (xvag.subsongs > 1) {
-                /* interleaves 'multiplier' superframes per subsong (all share config_data) */
-                cfg.interleave_skip = frame_size * xvag.factor;
-                cfg.subsong_skip = xvag.subsongs;
-                /* start in subsong's first superframe */
-                start_offset += (target_subsong-1) * cfg.interleave_skip * (cfg.subsong_skip-1);
+                break;
             }
-            else if (xvag.layers > 1) {
-                /* Vita multichannel, or multilanguage [flower (Vita), Uncharted Collection (PS4)] */
-                VGM_LOG("XVAG: unknown %i multistreams of size %x\n", xvag.layers, frame_size * xvag.factor);
-                goto fail;//todo add
+            else {
+                /* interleaved subsongs (section layers) */
+                size_t frame_size = read_32bit(chunk_offset+0x00,streamFile);
+
+                if (!init_xvag_atrac9(streamFile, vgmstream, &xvag, chunk_offset))
+                    goto fail;
+                temp_streamFile = setup_xvag_streamfile(streamFile, start_offset, frame_size*xvag.factor,frame_size, (target_subsong-1), total_subsongs);
+                if (!temp_streamFile) goto fail;
+                start_offset = 0;
             }
 
-            vgmstream->codec_data = init_atrac9(&cfg);
-            if (!vgmstream->codec_data) goto fail;
-            vgmstream->coding_type = coding_ATRAC9;
-            vgmstream->layout_type = layout_none;
             break;
         }
 #endif
@@ -209,15 +208,92 @@ VGMSTREAM * init_vgmstream_xvag(STREAMFILE *streamFile) {
 
 
     /* open the file for reading */
-    if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
+    if (!vgmstream_open_stream(vgmstream,temp_streamFile ? temp_streamFile : streamFile,start_offset))
         goto fail;
 
     if (vgmstream->layout_type == layout_blocked_xvag_subsong)
         block_update_xvag_subsong(start_offset, vgmstream);
 
+    close_streamfile(temp_streamFile);
     return vgmstream;
 
 fail:
+    close_streamfile(temp_streamFile);
     close_vgmstream(vgmstream);
+    return NULL;
+}
+
+#ifdef VGM_USE_ATRAC9
+static int init_xvag_atrac9(STREAMFILE *streamFile, VGMSTREAM* vgmstream, xvag_header * xvag, off_t chunk_offset) {
+    int32_t (*read_32bit)(off_t,STREAMFILE*) = xvag->big_endian ? read_32bitBE : read_32bitLE;
+    atrac9_config cfg = {0};
+
+    cfg.channels = vgmstream->channels;
+    cfg.config_data = read_32bitBE(chunk_offset+0x08,streamFile);
+    cfg.encoder_delay = read_32bit(chunk_offset+0x14,streamFile);
+
+    vgmstream->codec_data = init_atrac9(&cfg);
+    if (!vgmstream->codec_data) goto fail;
+    vgmstream->coding_type = coding_ATRAC9;
+    vgmstream->layout_type = layout_none;
+
+    return 1;
+fail:
+    return 0;
+}
+#endif
+
+static layered_layout_data* build_layered_xvag(STREAMFILE *streamFile, xvag_header * xvag, off_t chunk_offset, off_t start_offset) {
+    layered_layout_data* data = NULL;
+    STREAMFILE* temp_streamFile = NULL;
+    int32_t (*read_32bit)(off_t,STREAMFILE*) = xvag->big_endian ? read_32bitBE : read_32bitLE;
+    int i, layers = xvag->layers;
+
+
+    /* init layout */
+    data = init_layout_layered(layers);
+    if (!data) goto fail;
+
+    /* interleaves frames per substreams */
+    for (i = 0; i < layers; i++) {
+        int layer_channels = xvag->channels / layers; /* all streams must be equal (XVAG limitation) */
+
+        /* build the layer VGMSTREAM */
+        data->layers[i] = allocate_vgmstream(layer_channels, xvag->loop_flag);
+        if (!data->layers[i]) goto fail;
+
+        data->layers[i]->sample_rate = xvag->sample_rate;
+        data->layers[i]->num_samples = xvag->num_samples;
+
+        switch(xvag->codec) {
+#ifdef VGM_USE_ATRAC9
+            case 0x09: {
+                size_t frame_size = read_32bit(chunk_offset+0x00,streamFile);
+
+                if (!init_xvag_atrac9(streamFile, data->layers[i], xvag, chunk_offset))
+                    goto fail;
+                temp_streamFile = setup_xvag_streamfile(streamFile, start_offset, frame_size*xvag->factor,frame_size, i, layers);
+                if (!temp_streamFile) goto fail;
+                break;
+            }
+#endif
+            default:
+                goto fail;
+        }
+
+        if ( !vgmstream_open_stream(data->layers[i], temp_streamFile, 0x00) ) {
+            goto fail;
+        }
+    }
+
+    /* setup layered VGMSTREAMs */
+    if (!setup_layout_layered(data))
+        goto fail;
+    close_streamfile(temp_streamFile);
+    return data;
+
+fail:
+    close_streamfile(temp_streamFile);
+    free_layout_layered(data);
     return NULL;
 }
