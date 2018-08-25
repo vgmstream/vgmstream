@@ -1057,7 +1057,6 @@ typedef struct {
     int segment_count;
     VGMSTREAM **segments;
     int current_segment;
-    int loop_segment;
 } segmented_layout_data;
 
 /* for files made of "horizontal" layers, one per group of channels (using a complete sub-VGMSTREAM) */

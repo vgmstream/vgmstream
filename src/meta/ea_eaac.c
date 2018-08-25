@@ -755,8 +755,6 @@ static segmented_layout_data* build_segmented_eaaudiocore_looping(STREAMFILE *st
     /* setup segmented VGMSTREAMs */
     if (!setup_layout_segmented(data))
         goto fail;
-    data->loop_segment = 1;
-
     return data;
 
 fail:

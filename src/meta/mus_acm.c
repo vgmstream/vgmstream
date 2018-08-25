@@ -95,9 +95,7 @@ VGMSTREAM * init_vgmstream_mus_acm(STREAMFILE *streamFile) {
     vgmstream->meta_type = meta_MUS_ACM;
     vgmstream->coding_type = data->segments[0]->coding_type;
     vgmstream->layout_type = layout_segmented;
-
     vgmstream->layout_data = data;
-    data->loop_segment = loop_start_index;
 
     clean_mus(mus_filenames, segment_count);
     return vgmstream;

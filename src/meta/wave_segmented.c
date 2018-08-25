@@ -207,10 +207,7 @@ VGMSTREAM * init_vgmstream_wave_segmented(STREAMFILE *streamFile) {
     /* .wave can mix codecs, usually first segment is a small ADPCM section) */
     vgmstream->coding_type = (segment_count == 1 ? data->segments[0]->coding_type : data->segments[1]->coding_type);
     vgmstream->layout_type = layout_segmented;
-
     vgmstream->layout_data = data;
-    if (loop_flag)
-        data->loop_segment = (loop_start_segment);
 
     return vgmstream;
 

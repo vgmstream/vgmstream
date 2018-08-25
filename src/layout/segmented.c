@@ -16,10 +16,27 @@ void render_vgmstream_segmented(sample * buffer, int32_t sample_count, VGMSTREAM
 
 
         if (vgmstream->loop_flag && vgmstream_do_loop(vgmstream)) {
-            /* handle looping, moving to loop segment */
-            //todo can only loop in a segment start
-            // (for arbitrary values find loop segment from loop_start_sample, and skip N samples until loop start)
-            data->current_segment = data->loop_segment;
+            /* handle looping, finding loop segment */
+            int loop_segment = 0, samples = 0, loop_samples_skip = 0;
+            while (samples < vgmstream->num_samples) {
+                int32_t segment_samples = data->segments[loop_segment]->num_samples;
+                if (vgmstream->loop_start_sample >= samples && vgmstream->loop_start_sample < samples + segment_samples) {
+                    loop_samples_skip = vgmstream->loop_start_sample - samples;
+                    break; /* loop_start falls within loop_segment's samples */
+                }
+                samples += segment_samples;
+                loop_segment++;
+            }
+            if (loop_segment == data->segment_count) {
+                VGM_LOG("segmented_layout: can't find loop segment\n");
+                loop_segment = 0;
+            }
+            if (loop_samples_skip > 0) {
+                VGM_LOG("segmented_layout: loop starts after %i samples\n", loop_samples_skip);
+                //todo skip/fix, but probably won't happen
+            }
+
+            data->current_segment = loop_segment;
             reset_vgmstream(data->segments[data->current_segment]);
             vgmstream->samples_into_block = 0;
             continue;
