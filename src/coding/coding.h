@@ -244,7 +244,7 @@ void reset_atrac9(VGMSTREAM *vgmstream);
 void seek_atrac9(VGMSTREAM *vgmstream, int32_t num_sample);
 void free_atrac9(atrac9_codec_data *data);
 size_t atrac9_bytes_to_samples(size_t bytes, atrac9_codec_data *data);
-int atrac9_parse_config(uint32_t atrac9_config, int *out_sample_rate, int *out_channels, size_t *out_frame_size);
+//int atrac9_parse_config(uint32_t atrac9_config, int *out_sample_rate, int *out_channels, size_t *out_frame_size);
 #endif
 
 #ifdef VGM_USE_CELT

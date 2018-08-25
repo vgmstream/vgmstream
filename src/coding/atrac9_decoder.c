@@ -207,6 +207,7 @@ fail:
     return 0;
 }
 
+#if 0 //not needed (for now)
 int atrac9_parse_config(uint32_t atrac9_config, int *out_sample_rate, int *out_channels, size_t *out_frame_size) {
     static const int sample_rate_table[16] = {
             11025, 12000, 16000, 22050, 24000, 32000, 44100, 48000,
@@ -237,5 +238,5 @@ int atrac9_parse_config(uint32_t atrac9_config, int *out_sample_rate, int *out_c
 fail:
     return 0;
 }
-
+#endif
 #endif

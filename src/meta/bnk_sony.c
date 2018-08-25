@@ -229,22 +229,22 @@ VGMSTREAM * init_vgmstream_bnk_sony(STREAMFILE *streamFile) {
                 extradata_size = 0x08 + read_32bit(start_offset+0x04,streamFile); /* 0x14 for AT9 */
 
                 switch(type) {
-#ifdef VGM_USE_ATRAC9
-                    case 0x02: /* ATRAC9 mono? */
-                    case 0x05: /* ATRAC9 stereo? */
+                    case 0x02: /* ATRAC9 mono */
+                    case 0x05: /* ATRAC9 stereo */
                         if (read_32bit(start_offset+0x08,streamFile) + 0x08 != extradata_size) /* repeat? */
                             goto fail;
+                        sample_rate = 48000; /* seems ok */
+                        channel_count = (type == 0x02) ? 1 : 2;
+
                         atrac9_info = (uint32_t)read_32bitBE(start_offset+0x0c,streamFile);
                         /* 0x10: null? */
                         loop_length = read_32bit(start_offset+0x14,streamFile);
                         loop_start  = read_32bit(start_offset+0x18,streamFile);
                         loop_end = loop_start + loop_length; /* loop_start is -1 if not set */
 
-                        /* get from AT9 config just in case, but probably: sr=48000 / codec 0x02=1ch, 0x05=2ch */
-                        atrac9_parse_config(atrac9_info, &sample_rate, &channel_count, NULL);
                         codec = ATRAC9;
                         break;
-#endif
+
                     default:
                         VGM_LOG("BNK: unknown type %x\n", type);
                         goto fail;
@@ -259,32 +259,32 @@ VGMSTREAM * init_vgmstream_bnk_sony(STREAMFILE *streamFile) {
                 /* 0x0c: null? */
 
                 switch(type) {
-#ifdef VGM_USE_ATRAC9
-                    case 0x02: /* ATRAC9 mono? */
-                    case 0x05: /* ATRAC9 stereo? */
+                    case 0x02: /* ATRAC9 mono */
+                    case 0x05: /* ATRAC9 stereo */
                         if (read_32bit(start_offset+0x10,streamFile) + 0x10 != extradata_size) /* repeat? */
                             goto fail;
+                        sample_rate = 48000; /* seems ok */
+                        channel_count = (type == 0x02) ? 1 : 2;
+
                         atrac9_info = (uint32_t)read_32bitBE(start_offset+0x14,streamFile);
                         /* 0x18: null? */
                         /* 0x1c: channels? */
                         /* 0x20: null? */
-                        interleave = 0x02;
 
                         loop_length = read_32bit(start_offset+0x24,streamFile);
                         loop_start = read_32bit(start_offset+0x28,streamFile);
                         loop_end = loop_start + loop_length; /* loop_start is -1 if not set */
 
-                        /* get from AT9 config just in case, but probably: sr=48000 / codec 0x02=1ch, 0x05=2ch */
-                        atrac9_parse_config(atrac9_info, &sample_rate, &channel_count, NULL);
                         codec = ATRAC9;
                         break;
-#endif
+
                     case 0x01: /* PCM16LE mono? (NekoBuro/Polara sfx) */
                     case 0x04: /* PCM16LE stereo? (NekoBuro/Polara sfx) */
                         sample_rate = 48000; /* seems ok */
                         /* 0x10: null? */
                         channel_count = read_32bit(start_offset+0x14,streamFile);
                         interleave = 0x02;
+
                         loop_start = read_32bit(start_offset+0x18,streamFile);
                         loop_length = read_32bit(start_offset+0x1c,streamFile);
                         loop_end = loop_start + loop_length; /* loop_start is -1 if not set */
