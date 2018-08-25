@@ -23,6 +23,10 @@ void render_vgmstream_interleave(sample * buffer, int32_t sample_count, VGMSTREA
         samples_this_block = vgmstream->interleave_last_block_size / frame_size * samples_per_frame;
     }
 
+    /* mono interleaved stream with no layout set, just behave like flat layout */
+    if (samples_this_block == 0 && vgmstream->channels == 1)
+        samples_this_block = vgmstream->num_samples;
+
 
     while (samples_written < sample_count) {
         int samples_to_do; 
@@ -33,6 +37,8 @@ void render_vgmstream_interleave(sample * buffer, int32_t sample_count, VGMSTREA
                 frame_size = get_vgmstream_frame_size(vgmstream);
                 samples_per_frame = get_vgmstream_samples_per_frame(vgmstream);
                 samples_this_block = vgmstream->interleave_block_size / frame_size * samples_per_frame;
+                if (samples_this_block == 0 && vgmstream->channels == 1)
+                    samples_this_block = vgmstream->num_samples;
             }
             continue;
         }
@@ -41,7 +47,11 @@ void render_vgmstream_interleave(sample * buffer, int32_t sample_count, VGMSTREA
         if (samples_to_do > sample_count - samples_written)
             samples_to_do = sample_count - samples_written;
 
-        //todo test if (samples to do == 0)
+        if (samples_to_do == 0) { /* happens when interleave is not set */
+            VGM_LOG("layout_interleave: wrong samples_to_do found\n");
+            memset(buffer + samples_written*vgmstream->channels, 0, (sample_count - samples_written) * vgmstream->channels * sizeof(sample));
+            break;
+        }
 
         decode_vgmstream(vgmstream, samples_written, samples_to_do, buffer);
 
@@ -60,6 +70,8 @@ void render_vgmstream_interleave(sample * buffer, int32_t sample_count, VGMSTREA
                 frame_size = get_vgmstream_shortframe_size(vgmstream);
                 samples_per_frame = get_vgmstream_samples_per_shortframe(vgmstream);
                 samples_this_block = vgmstream->interleave_last_block_size / frame_size * samples_per_frame;
+                if (samples_this_block == 0 && vgmstream->channels == 1)
+                    samples_this_block = vgmstream->num_samples;
 
                 for (ch = 0; ch < vgmstream->channels; ch++) {
                     off_t skip = vgmstream->interleave_block_size*(vgmstream->channels-ch) +
