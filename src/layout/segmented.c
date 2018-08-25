@@ -42,8 +42,7 @@ void render_vgmstream_segmented(sample * buffer, int32_t sample_count, VGMSTREAM
             continue;
         }
 
-        /* decode samples */
-        samples_to_do = vgmstream_samples_to_do(samples_this_block, 1, vgmstream); //todo should use a buffer
+        samples_to_do = vgmstream_samples_to_do(samples_this_block, sample_count, vgmstream);
         if (samples_to_do > sample_count - samples_written)
             samples_to_do = sample_count - samples_written;
 
