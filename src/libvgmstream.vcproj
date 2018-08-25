@@ -241,6 +241,10 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\meta\kma9_streamfile.h"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\opus_interleave_streamfile.h"
                     >
                 </File>
