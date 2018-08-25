@@ -66,13 +66,12 @@ static size_t eaac_io_read(STREAMFILE *streamfile, uint8_t *dest, off_t offset, 
             }
 
             switch(data->codec) {
-#if 0
                 case 0x03: { /* EA-XMA */
                     /* block format: 0x04=num-samples, (size*4 + N XMA packets) per stream (with 1/2ch XMA headers) */
                     int i;
 
                     data->skip_size = 0x04 + 0x04;
-                    for (i = 0; i < data->stream_number - 1; i++) {
+                    for (i = 0; i < data->stream_number; i++) {
                         data->skip_size += read_32bitBE(data->physical_offset+data->skip_size, streamfile) / 4;
                     }
                     data->data_size = read_32bitBE(data->physical_offset+data->skip_size, streamfile) / 4; /* why size*4...? */
@@ -82,7 +81,7 @@ static size_t eaac_io_read(STREAMFILE *streamfile, uint8_t *dest, off_t offset, 
                         data->extra_size = XMA_FRAME_SIZE - (data->data_size % XMA_FRAME_SIZE);
                     break;
                 }
-#endif
+
                 case 0x05: /* EALayer3 v1 */
                 case 0x06: /* EALayer3 v2 "PCM" */
                 case 0x07: /* EALayer3 v2 "Spike" */
@@ -121,7 +120,6 @@ static size_t eaac_io_read(STREAMFILE *streamfile, uint8_t *dest, off_t offset, 
             bytes_consumed = offset - data->logical_offset;
 
             switch(data->codec) {
-#if 0
                 case 0x03: { /* EA-XMA */
                     if (bytes_consumed < data->data_size) { /* offset falls within actual data */
                         to_read = data->data_size - bytes_consumed;
@@ -138,7 +136,7 @@ static size_t eaac_io_read(STREAMFILE *streamfile, uint8_t *dest, off_t offset, 
                     }
                     break;
                 }
-#endif
+
                 default:
                     to_read = data->data_size - bytes_consumed;
                     if (to_read > length)
@@ -175,7 +173,7 @@ static size_t eaac_io_size(STREAMFILE *streamfile, eaac_io_data* data) {
     /* get size of the logical stream */
     while (physical_offset < max_physical_offset) {
         uint32_t block_flag, block_size, data_size, skip_size;
-        //int i;
+        int i;
 
         block_flag = (uint8_t)read_8bit(physical_offset+0x00,streamfile);
         block_size = read_32bitBE(physical_offset+0x00,streamfile) & 0x00FFFFFF;
@@ -193,10 +191,9 @@ static size_t eaac_io_size(STREAMFILE *streamfile, eaac_io_data* data) {
             break; /* unknown block */
 
         switch(data->codec) {
-#if 0
             case 0x03: /* EA-XMA */
                 skip_size = 0x04 + 0x04;
-                for (i = 0; i < data->stream_number - 1; i++) {
+                for (i = 0; i < data->stream_number; i++) {
                     skip_size += read_32bitBE(physical_offset + skip_size, streamfile) / 4; /* why size*4...? */
                 }
                 data_size = read_32bitBE(physical_offset + skip_size, streamfile) / 4;
@@ -205,7 +202,7 @@ static size_t eaac_io_size(STREAMFILE *streamfile, eaac_io_data* data) {
                 if (data_size % XMA_FRAME_SIZE)
                     data_size += XMA_FRAME_SIZE - (data_size % XMA_FRAME_SIZE); /* extra padding */
                 break;
-#endif
+
             case 0x05: /* EALayer3 v1 */
             case 0x06: /* EALayer3 v2 "PCM" */
             case 0x07: /* EALayer3 v2 "Spike" */
@@ -239,6 +236,12 @@ static size_t eaac_io_size(STREAMFILE *streamfile, eaac_io_data* data) {
             break; /* stop on last block */
     }
 
+    /* logical size can be bigger in EA-XMA though */
+    if (physical_offset > get_streamfile_size(streamfile)) {
+        VGM_LOG("EA EAAC: wrong size %lx\n", physical_offset);
+        return 0;
+    }
+
     data->logical_size = logical_size;
     return data->logical_size;
 }
@@ -263,11 +266,6 @@ static STREAMFILE* setup_eaac_streamfile(STREAMFILE *streamFile, int version, in
     io_data.stream_offset = stream_offset;
     io_data.physical_offset = stream_offset;
     io_data.logical_size = eaac_io_size(streamFile, &io_data); /* force init */
-
-    if (io_data.logical_size > get_streamfile_size(streamFile)) {
-        VGM_LOG("EA EAAC: wrong logical size\n");
-        goto fail;
-    }
 
     /* setup subfile */
     new_streamFile = open_wrap_streamfile(streamFile);
