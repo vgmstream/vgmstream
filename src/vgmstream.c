@@ -2248,8 +2248,14 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
     switch (vgmstream->coding_type) {
 #ifdef VGM_USE_FFMPEG
         case coding_FFmpeg: {
-            ffmpeg_codec_data *data = (ffmpeg_codec_data *) vgmstream->codec_data;
-            if (vgmstream->codec_data) {
+            ffmpeg_codec_data *data = (ffmpeg_codec_data *)vgmstream->codec_data;
+            if (!data && vgmstream->layout_data) {
+                layered_layout_data* layout_data = vgmstream->layout_data;
+                if (layout_data->layers[0]->coding_type == coding_FFmpeg)
+                    data = layout_data->layers[0]->codec_data;
+            }
+
+            if (data) {
                 if (data->codec && data->codec->long_name) {
                     snprintf(temp,TEMPSIZE,"%s",data->codec->long_name);
                 } else if (data->codec && data->codec->name) {
@@ -2289,7 +2295,7 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             "\n");
     concatn(length,desc,temp);
 
-    if (vgmstream->layout_type == layout_interleave) {
+    if (vgmstream->layout_type == layout_interleave && vgmstream->channels > 1) {
         snprintf(temp,TEMPSIZE,
                 "interleave: %#x bytes\n",
                 (int32_t)vgmstream->interleave_block_size);
@@ -2303,7 +2309,7 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         }
     }
 
-    /* codecs with blocks + headers (there are more, this is a start) */
+    /* codecs with configurable frame size */
     if (vgmstream->layout_type == layout_none && vgmstream->interleave_block_size > 0) {
         switch (vgmstream->coding_type) {
             case coding_MSADPCM:
@@ -2312,8 +2318,9 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             case coding_MC3:
             case coding_WWISE_IMA:
             case coding_REF_IMA:
+            case coding_PSX_cfg:
                 snprintf(temp,TEMPSIZE,
-                        "block size: %#x bytes\n",
+                        "frame size: %#x bytes\n",
                         (int32_t)vgmstream->interleave_block_size);
                 concatn(length,desc,temp);
                 break;
