@@ -1019,39 +1019,13 @@ typedef struct {
 #endif
 
 #ifdef VGM_USE_ATRAC9
-
-/* custom ATRAC9 modes */
-typedef enum {
-    ATRAC9_DEFAULT = 0, /* ATRAC9 standard */
-    ATRAC9_XVAG,        /* Sony XVAG: interleaved subsongs, Vita multichannel interleaves 2ch xN superframes */
-    ATRAC9_KMA9,        /* Koei Tecmo KMA9: interleaved subsongs */
-} atrac9_custom_t;
-
+/* ATRAC9 config */
 typedef struct {
-    atrac9_custom_t type;
-
-    int channels; /* to detect weird multichannel */
-    uint32_t config_data; /* ATRAC9 config header */
-    int encoder_delay; /* initial samples to discard */
-
-    size_t interleave_skip; /* XVAG */
-    size_t subsong_skip; /* XVAG */
+    int channels;           /* to detect weird multichannel */
+    uint32_t config_data;   /* ATRAC9 config header */
+    int encoder_delay;      /* initial samples to discard */
 } atrac9_config;
-
-typedef struct {
-    uint8_t *data_buffer;
-    size_t data_buffer_size;
-
-    sample *sample_buffer;
-    size_t samples_filled; /* number of samples in the buffer */
-    size_t samples_used; /* number of samples extracted from the buffer */
-
-    int samples_to_discard;
-
-    atrac9_config config;
-
-    void *handle; /* decoder handle */
-} atrac9_codec_data;
+typedef struct atrac9_codec_data atrac9_codec_data;
 #endif
 
 #ifdef VGM_USE_CELT

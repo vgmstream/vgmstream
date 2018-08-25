@@ -4,6 +4,22 @@
 #include "libatrac9.h"
 
 
+/* opaque struct */
+struct atrac9_codec_data {
+    uint8_t *data_buffer;
+    size_t data_buffer_size;
+
+    sample *sample_buffer;
+    size_t samples_filled; /* number of samples in the buffer */
+    size_t samples_used; /* number of samples extracted from the buffer */
+
+    int samples_to_discard;
+
+    atrac9_config config;
+    void *handle; /* decoder handle */
+};
+
+
 atrac9_codec_data *init_atrac9(atrac9_config *cfg) {
     int status;
     uint8_t config_data[4];
@@ -93,23 +109,6 @@ void decode_atrac9(VGMSTREAM *vgmstream, sample * outbuf, int32_t samples_to_do,
             status = Atrac9GetCodecInfo(data->handle, &info);
             if (status < 0) goto decode_fail;
 
-
-            /* preadjust */ //todo improve
-            switch(data->config.type) {
-                case ATRAC9_XVAG:
-                    /* PS4 (ex. The Last of Us) has a RIFF AT9 (can be ignored) instead of the first superframe.
-                     * As subsongs do too, needs to be skipped here instead of adjusting start_offset */
-                    if (stream->offset == stream->channel_start_offset) {
-                        if (read_32bitBE(stream->offset, stream->streamfile) == 0x00000000  /* padding before RIFF */
-                                && read_32bitBE(stream->offset + info.superframeSize - 0x08,stream->streamfile) == 0x64617461) { /* RIFF's "data" */
-                            stream->offset += info.superframeSize;
-                        }
-                    }
-                    break;
-                default:
-                    break;
-            }
-
             /* read one raw block (superframe) and advance offsets */
             bytes = read_streamfile(data->data_buffer,stream->offset, info.superframeSize,stream->streamfile);
             if (bytes != data->data_buffer_size) {
@@ -118,20 +117,6 @@ void decode_atrac9(VGMSTREAM *vgmstream, sample * outbuf, int32_t samples_to_do,
             }
 
             stream->offset += bytes;
-
-            /* postadjust */ //todo improve
-            switch(data->config.type) {
-                case ATRAC9_XVAG:
-                case ATRAC9_KMA9:
-                    /* skip other subsong blocks */
-                    if (data->config.interleave_skip && ((stream->offset - stream->channel_start_offset) % data->config.interleave_skip == 0)) {
-                        stream->offset += data->config.interleave_skip * (data->config.subsong_skip - 1);
-                    }
-                    break;
-                default:
-                    break;
-            }
-
 
             /* decode all frames in the superframe block */
             for (iframe = 0; iframe < info.framesInSuperframe; iframe++) {

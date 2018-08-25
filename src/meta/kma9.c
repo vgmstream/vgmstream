@@ -47,7 +47,6 @@ VGMSTREAM * init_vgmstream_kma9(STREAMFILE *streamFile) {
     {
         atrac9_config cfg = {0};
 
-        cfg.type = ATRAC9_DEFAULT;
         cfg.channels = vgmstream->channels;
         cfg.encoder_delay = read_32bitLE(0x20,streamFile);
         cfg.config_data = read_32bitBE(0x5c,streamFile);
