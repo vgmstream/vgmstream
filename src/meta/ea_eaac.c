@@ -638,7 +638,7 @@ static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE * streamHead, ST
                 vgmstream->layout_type = layout_segmented;
             }
             else {
-                temp_streamFile = setup_eaac_streamfile(streamData, eaac.version, eaac.codec, eaac.streamed, eaac.stream_offset,0);
+                temp_streamFile = setup_eaac_streamfile(streamData, eaac.version, eaac.codec, eaac.streamed,0,0, eaac.stream_offset);
                 if (!temp_streamFile) goto fail;
 
                 vgmstream->codec_data = init_mpeg_custom(temp_streamFile, start_offset, &vgmstream->coding_type, vgmstream->channels, type, &cfg);
@@ -659,7 +659,6 @@ static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE * streamHead, ST
 #ifdef VGM_USE_ATRAC9
         case EAAC_CODEC_EATRAX: { /* EATrax (unknown FourCC) [Need for Speed: Most Wanted (Vita)] */
             atrac9_config cfg = {0};
-            size_t total_size;
 
             /* EATrax is "buffered" ATRAC9, uses custom IO since it's kind of complex to add to the decoder */
 
@@ -668,14 +667,15 @@ static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE * streamHead, ST
             cfg.channels = eaac.channels;
             cfg.config_data = read_32bitBE(header_offset + 0x08,streamHead);
             /* 0x10: frame size? (same as config data?) */
-            total_size = read_32bitLE(header_offset + 0x0c,streamHead); /* actual data size without blocks, LE b/c why make sense */
+            /* actual data size without blocks, LE b/c why make sense (but don't use it in case of truncated files) */
+            //total_size = read_32bitLE(header_offset + 0x0c,streamHead);
 
             vgmstream->codec_data = init_atrac9(&cfg);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_ATRAC9;
             vgmstream->layout_type = layout_none;
 
-            temp_streamFile = setup_eaac_streamfile(streamData, eaac.version, eaac.codec, eaac.streamed, eaac.stream_offset, total_size);
+            temp_streamFile = setup_eaac_streamfile(streamData, eaac.version, eaac.codec, eaac.streamed,0,0, eaac.stream_offset);
             if (!temp_streamFile) goto fail;
 
             break;
@@ -729,7 +729,6 @@ static segmented_layout_data* build_segmented_eaaudiocore_looping(STREAMFILE *st
     segmented_layout_data *data = NULL;
     STREAMFILE* temp_streamFile[2] = {0};
     off_t offsets[2] = { eaac->stream_offset, eaac->loop_offset };
-    off_t sizes[2] = { eaac->stream_offset + eaac->loop_offset, 0}; /* 0 = let streamfile guess */
     int num_samples[2] = { eaac->loop_start, eaac->num_samples - eaac->loop_start};
     int segment_count = 2; /* intro/loop */
     int i;
@@ -740,7 +739,7 @@ static segmented_layout_data* build_segmented_eaaudiocore_looping(STREAMFILE *st
     if (!data) goto fail;
 
     for (i = 0; i < segment_count; i++) {
-        temp_streamFile[i] = setup_eaac_streamfile(streamData, eaac->version,eaac->codec,eaac->streamed, offsets[i], sizes[i]);
+        temp_streamFile[i] = setup_eaac_streamfile(streamData, eaac->version,eaac->codec,eaac->streamed,0,0, offsets[i]);
         if (!temp_streamFile[i]) goto fail;
 
         data->segments[i] = allocate_vgmstream(eaac->channels, 0);
