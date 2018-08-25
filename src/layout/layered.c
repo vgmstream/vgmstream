@@ -1,37 +1,41 @@
 #include "layout.h"
 #include "../vgmstream.h"
 
-/* TODO: there must be a reasonable way to respect the loop settings, as
-   the substreams are in their own little world.
-   Currently the VGMSTREAMs layers loop internally and the external/base VGMSTREAM
-   doesn't actually loop, and would ignore any altered values/loop_flag. */
 
+/* NOTE: if loop settings change the layered vgmstreams must be notified (preferably using vgmstream_force_loop) */
 #define LAYER_BUF_SIZE 512
 #define LAYER_MAX_CHANNELS 6 /* at least 2, but let's be generous */
 
-
+/* Decodes samples for layered streams.
+ * Similar to interleave layout, but decodec samples are mixed from complete vgmstreams, each
+ * with custom codecs and different number of channels, creating a single super-vgmstream.
+ * Usually combined with custom streamfiles to handle data interleaved in weird ways. */
 void render_vgmstream_layered(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstream) {
-    sample interleave_buf[LAYER_BUF_SIZE*LAYER_MAX_CHANNELS];
-    int32_t samples_done = 0;
+    int samples_written = 0;
     layered_layout_data *data = vgmstream->layout_data;
+    sample interleave_buf[LAYER_BUF_SIZE*LAYER_MAX_CHANNELS];
 
-    while (samples_done < sample_count) {
-        int32_t samples_to_do = LAYER_BUF_SIZE;
+
+    while (samples_written < sample_count) {
+        int samples_to_do = LAYER_BUF_SIZE;
         int layer, ch = 0;
 
-        if (samples_to_do > sample_count - samples_done)
-            samples_to_do = sample_count - samples_done;
+        if (samples_to_do > sample_count - samples_written)
+            samples_to_do = sample_count - samples_written;
 
         for (layer = 0; layer < data->layer_count; layer++) {
-            int s,l_ch;
+            int s, layer_ch;
             int layer_channels = data->layers[layer]->channels;
+
+            /* each layer will handle its own looping internally */
 
             render_vgmstream(interleave_buf, samples_to_do, data->layers[layer]);
 
-            for (l_ch = 0; l_ch < layer_channels; l_ch++) {
+            /* mix layer samples to main samples */
+            for (layer_ch = 0; layer_ch < layer_channels; layer_ch++) {
                 for (s = 0; s < samples_to_do; s++) {
-                    size_t layer_sample = s*layer_channels + l_ch;
-                    size_t buffer_sample = (samples_done+s)*vgmstream->channels + ch;
+                    size_t layer_sample = s*layer_channels + layer_ch;
+                    size_t buffer_sample = (samples_written+s)*vgmstream->channels + ch;
 
                     buffer[buffer_sample] = interleave_buf[layer_sample];
                 }
@@ -39,8 +43,9 @@ void render_vgmstream_layered(sample * buffer, int32_t sample_count, VGMSTREAM *
             }
         }
 
-
-        samples_done += samples_to_do;
+        samples_written += samples_to_do;
+        vgmstream->current_sample = data->layers[0]->current_sample; /* just in case it's used for info */
+        //vgmstream->samples_into_block = 0; /* handled in each layer */
     }
 }
 

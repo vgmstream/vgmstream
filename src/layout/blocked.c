@@ -1,16 +1,20 @@
 #include "layout.h"
 #include "../vgmstream.h"
 
+
 static void block_update(VGMSTREAM * vgmstream);
 
+/* Decodes samples for blocked streams.
+ * Data is divided into headered blocks with a bunch of data. The layout calls external helper functions
+ * when a block is decoded, and those must parse the new block and move offsets accordingly. */
 void render_vgmstream_blocked(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstream) {
-    int samples_written=0;
+    int samples_written = 0;
+    int frame_size, samples_per_frame, samples_this_block;
 
-    int frame_size = get_vgmstream_frame_size(vgmstream);
-    int samples_per_frame = get_vgmstream_samples_per_frame(vgmstream);
-    int samples_this_block;
+    frame_size = get_vgmstream_frame_size(vgmstream);
+    samples_per_frame = get_vgmstream_samples_per_frame(vgmstream);
+    samples_this_block = 0;
 
-    /* get samples in the current block */
     if (vgmstream->current_block_samples) {
         samples_this_block = vgmstream->current_block_samples;
     } else if (frame_size == 0) { /* assume 4 bit */ //TODO: get_vgmstream_frame_size() really should return bits... */
@@ -19,12 +23,13 @@ void render_vgmstream_blocked(sample * buffer, int32_t sample_count, VGMSTREAM *
         samples_this_block = vgmstream->current_block_size / frame_size * samples_per_frame;
     }
 
-    /* decode all samples */
+
     while (samples_written < sample_count) {
         int samples_to_do; 
 
+
         if (vgmstream->loop_flag && vgmstream_do_loop(vgmstream)) {
-            /* on loop those values are changed */
+            /* handle looping, readjust back to loop start values */
             if (vgmstream->current_block_samples) {
                 samples_this_block = vgmstream->current_block_samples;
             } else if (frame_size == 0) { /* assume 4 bit */ //TODO: get_vgmstream_frame_size() really should return bits... */
@@ -35,26 +40,26 @@ void render_vgmstream_blocked(sample * buffer, int32_t sample_count, VGMSTREAM *
             continue;
         }
 
-        /* probably block bug or EOF, next calcs would give wrong values and buffer segfaults */
         if (samples_this_block < 0) {
+            /* probably block bug or EOF, next calcs would give wrong values/segfaults/infinite loop */
             VGM_LOG("layout_blocked: wrong block samples at 0x%lx\n", vgmstream->current_block_offset);
             memset(buffer + samples_written*vgmstream->channels, 0, (sample_count - samples_written) * vgmstream->channels * sizeof(sample));
-            break; /* probable infinite loop otherwise */
+            break;
         }
 
-        /* probably block bug or EOF, block functions won't be able to read anything useful */
         if (vgmstream->current_block_offset < 0 || vgmstream->current_block_offset == 0xFFFFFFFF) {
+            /* probably block bug or EOF, block functions won't be able to read anything useful/infinite loop */
             VGM_LOG("layout_blocked: wrong block offset found\n");
             memset(buffer + samples_written*vgmstream->channels, 0, (sample_count - samples_written) * vgmstream->channels * sizeof(sample));
-            break; /* probable infinite loop otherwise */
+            break;
         }
 
         samples_to_do = vgmstream_samples_to_do(samples_this_block, samples_per_frame, vgmstream);
-        if (samples_written + samples_to_do > sample_count)
+        if (samples_to_do > sample_count - samples_written)
             samples_to_do = sample_count - samples_written;
 
-        /* samples_this_block = 0 is allowed (empty block, do nothing then move to next block) */
         if (samples_to_do > 0) {
+            /* samples_this_block = 0 is allowed (empty block, do nothing then move to next block) */
             decode_vgmstream(vgmstream, samples_written, samples_to_do, buffer);
         }
 
@@ -64,15 +69,13 @@ void render_vgmstream_blocked(sample * buffer, int32_t sample_count, VGMSTREAM *
 
 
         /* move to next block when all samples are consumed */
-        if (vgmstream->samples_into_block==samples_this_block
-                /*&& vgmstream->current_sample < vgmstream->num_samples*/) { /* don't go past last block */
+        if (vgmstream->samples_into_block == samples_this_block
+                /*&& vgmstream->current_sample < vgmstream->num_samples*/) { /* don't go past last block */ //todo
             block_update(vgmstream);
 
-            /* for VBR these may change */
+            /* update since these may change each block */
             frame_size = get_vgmstream_frame_size(vgmstream);
             samples_per_frame = get_vgmstream_samples_per_frame(vgmstream);
-
-            /* get samples in the current block */
             if (vgmstream->current_block_samples) {
                 samples_this_block = vgmstream->current_block_samples;
             } else if (frame_size == 0) { /* assume 4 bit */ //TODO: get_vgmstream_frame_size() really should return bits... */
@@ -87,7 +90,7 @@ void render_vgmstream_blocked(sample * buffer, int32_t sample_count, VGMSTREAM *
     }
 }
 
-
+/* helper functions to parse new block */
 static void block_update(VGMSTREAM * vgmstream) {
     switch (vgmstream->layout_type) {
         case layout_blocked_ast:

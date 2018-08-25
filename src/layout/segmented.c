@@ -2,35 +2,38 @@
 #include "../vgmstream.h"
 
 
+/* Decodes samples for segmented streams.
+ * Chains together sequential vgmstreams, for data divided into separate sections or files
+ * (like one part for intro and other for loop segments, which may even use different codecs). */
 void render_vgmstream_segmented(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstream) {
-    int samples_written=0;
+    int samples_written = 0;
     segmented_layout_data *data = vgmstream->layout_data;
-    //int samples_per_frame = get_vgmstream_samples_per_frame(vgmstream);
 
-    while (samples_written<sample_count) {
+
+    while (samples_written < sample_count) {
         int samples_to_do;
         int samples_this_block = data->segments[data->current_segment]->num_samples;
 
+
         if (vgmstream->loop_flag && vgmstream_do_loop(vgmstream)) {
+            /* handle looping, moving to loop segment */
             //todo can only loop in a segment start
             // (for arbitrary values find loop segment from loop_start_sample, and skip N samples until loop start)
             data->current_segment = data->loop_segment;
-
             reset_vgmstream(data->segments[data->current_segment]);
-
             vgmstream->samples_into_block = 0;
             continue;
         }
 
-        samples_to_do = vgmstream_samples_to_do(samples_this_block, 1, vgmstream);
+        /* decode samples */
+        samples_to_do = vgmstream_samples_to_do(samples_this_block, 1, vgmstream); //todo should use a buffer
+        if (samples_to_do > sample_count - samples_written)
+            samples_to_do = sample_count - samples_written;
 
-        if (samples_written+samples_to_do > sample_count)
-            samples_to_do=sample_count-samples_written;
-
+        /* detect segment change and restart */
         if (samples_to_do == 0) {
             data->current_segment++;
             reset_vgmstream(data->segments[data->current_segment]);
-
             vgmstream->samples_into_block = 0;
             continue;
         }
@@ -40,7 +43,7 @@ void render_vgmstream_segmented(sample * buffer, int32_t sample_count, VGMSTREAM
 
         samples_written += samples_to_do;
         vgmstream->current_sample += samples_to_do;
-        vgmstream->samples_into_block+=samples_to_do;
+        vgmstream->samples_into_block += samples_to_do;
     }
 }
 

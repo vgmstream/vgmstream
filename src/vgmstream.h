@@ -779,8 +779,8 @@ typedef struct {
 
     /* layout/block state */
     size_t full_block_size;         /* actual data size of an entire block (ie. may be fixed, include padding/headers, etc) */
-    int32_t current_sample;         /* number of samples we've passed */
-    int32_t samples_into_block;     /* number of samples into the current block */
+    int32_t current_sample;         /* number of samples we've passed (for loop detection) */
+    int32_t samples_into_block;     /* number of samples into the current block/interleave/segment/etc */
     off_t current_block_offset;     /* start of this block (offset of block header) */
     size_t current_block_size;      /* size in usable bytes of the block we're in now (used to calculate num_samples per block) */
     size_t current_block_samples;   /* size in samples of the block we're in now (used over current_block_size if possible) */
