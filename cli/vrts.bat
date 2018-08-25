@@ -30,6 +30,8 @@ REM # -nc: don't report correct files
 set OP_NOCORRECT=
 REM # -p: performance test (decode with new exe and no comparison done)
 set OP_PERFORMANCE=
+REM # -fc <exe>: file comparer (Windows's FC is slow)
+set OP_CMD_FC=fc /a /b
 
 
 REM # parse options
@@ -42,6 +44,7 @@ if "%~1"=="-r"  set OP_RECURSIVE=/s
 if "%~1"=="-nd" set OP_NODELETE=true
 if "%~1"=="-nc" set OP_NOCORRECT=true
 if "%~1"=="-p"  set OP_PERFORMANCE=true
+if "%~1"=="-fc" set OP_CMD_FC=%2
 shift
 goto set_options
 :end_options
@@ -139,8 +142,8 @@ REM # ########################################################################
     )
 
     REM # compare files (without /b may to be faster for small files?)
-    set CMP_WAV=fc /a /b "%WAV_OLD%" "%WAV_NEW%"
-    set CMP_TXT=fc /a /b "%TXT_OLD%" "%TXT_NEW%"
+    set CMP_WAV=%OP_CMD_FC% "%WAV_OLD%" "%WAV_NEW%"
+    set CMP_TXT=%OP_CMD_FC% "%TXT_OLD%" "%TXT_NEW%"
 
     %CMP_WAV% 1> nul 2>&1
     set CMP_WAV_ERROR=0
