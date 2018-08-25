@@ -18,7 +18,7 @@ ifeq ($(TARGET_OS),Windows_NT)
   CFLAGS += -DWIN32
 endif
 
-CFLAGS += -Wall -O3 -DVAR_ARRAYS -I../ext_includes $(EXTRA_CFLAGS)
+CFLAGS += -Wall -Werror=format-security -Wdeclaration-after-statement -Wvla -O3 -DVAR_ARRAYS -I../ext_includes $(EXTRA_CFLAGS)
 LDFLAGS += -L../src -L../ext_libs -lvgmstream $(EXTRA_LDFLAGS) -lm
 TARGET_EXT_LIBS = 
 
@@ -26,7 +26,7 @@ LIBAO_INC_PATH = ../../libao/include
 LIBAO_LIB_PATH = ../../libao/bin
 
 #ifdef VGM_DEBUG
-#  CFLAGS += -DVGM_DEBUG_OUTPUT -O0 -Werror=format-security -Wdeclaration-after-statement -Wvla
+#  CFLAGS += -DVGM_DEBUG_OUTPUT -O0
 #  CFLAGS += -Wold-style-definition -Woverflow -Wpointer-arith -Wstrict-prototypes -pedantic -std=gnu90 -fstack-protector -Wformat
 #endif
 

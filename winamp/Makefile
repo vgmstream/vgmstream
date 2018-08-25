@@ -11,7 +11,7 @@ endif
 ### main defs
 OUTPUT_WINAMP = in_vgmstream.dll
 
-CFLAGS += -Wall -O3 -DUSE_ALLOCA -DWIN32 -I../ext_includes $(EXTRA_CFLAGS)
+CFLAGS += -Wall -Werror=format-security -Wdeclaration-after-statement -Wvla -O3 -DUSE_ALLOCA -DWIN32 -I../ext_includes $(EXTRA_CFLAGS)
 LDFLAGS += -L../src -L../ext_libs -lm -lvgmstream $(EXTRA_LDFLAGS)
 TARGET_EXT_LIBS = 
 
