@@ -254,19 +254,26 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
 
 
     /* check extension */
-    /* .lwav: to avoid hijacking .wav, .xwav: fake for Xbox games (unneded anymore) */
-    /* .da: The Great Battle VI (PS), .cd: Exector (PS), .med: Psi Ops (PC), .snd: Layton Brothers (iOS/Android),
+    /* .lwav: to avoid hijacking .wav
+     * .xwav: fake for Xbox games (not needed anymore)
+     * .da: The Great Battle VI (PS1)
+     * .dax: Love Game's - Wai Wai Tennis (PS1)
+     * .cd: Exector (PS)
+     * .med: Psi Ops (PC)
+     * .snd: Layton Brothers (iOS/Android)
      * .adx: Remember11 (PC) sfx
      * .adp: Headhunter (DC)
      * .xss: Spider-Man The Movie (Xbox)
      * .xsew: Mega Man X Legacy Collections (PC) */
-    if ( check_extensions(streamFile, "wav,lwav,xwav,da,cd,med,snd,adx,adp,xss,xsew") ) {
+    if ( check_extensions(streamFile, "wav,lwav,xwav,da,dax,cd,med,snd,adx,adp,xss,xsew") ) {
         ;
     }
     else if ( check_extensions(streamFile, "mwv") ) {
         mwv = 1;
     }
-    /* .rws: Climax games (Silent Hill Origins PSP, Oblivion PSP), .aud: EA Replay */
+    /* .at3: standard
+     * .rws: Climax games (Silent Hill Origins PSP, Oblivion PSP)
+     * .aud: EA Replay */
     else if ( check_extensions(streamFile, "at3,rws,aud") ) {
         at3 = 1;
     }
