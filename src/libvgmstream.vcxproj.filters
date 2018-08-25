@@ -1339,9 +1339,6 @@
     <ClCompile Include="coding\ffmpeg_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="coding\ffmpeg_decoder_utils_ea_xma.c">
-      <Filter>coding\Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="coding\ffmpeg_decoder_utils_switch_opus.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>

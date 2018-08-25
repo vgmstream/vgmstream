@@ -1623,10 +1623,6 @@
                     >
                 </File>
                 <File
-                    RelativePath=".\coding\ffmpeg_decoder_utils_ea_xma.c"
-                    >
-                </File>
-                <File
                     RelativePath=".\coding\ffmpeg_decoder_utils_switch_opus.c"
                     >
                 </File>
