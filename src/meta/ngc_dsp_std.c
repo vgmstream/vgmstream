@@ -93,9 +93,9 @@ static int dsp_load_header_endian(struct dsp_header* ch_header, int channels, ST
 fail:
     return 0;
 }
-static int dsp_load_header(struct dsp_header* ch_header, int channels, STREAMFILE *streamFile, off_t offset, size_t spacing) {
-    return dsp_load_header_endian(ch_header, channels, streamFile, offset, spacing, 1);
-}
+//static int dsp_load_header(struct dsp_header* ch_header, int channels, STREAMFILE *streamFile, off_t offset, size_t spacing) {
+//    return dsp_load_header_endian(ch_header, channels, streamFile, offset, spacing, 1);
+//}
 //static int dsp_load_header_le(struct dsp_header* ch_header, int channels, STREAMFILE *streamFile, off_t offset, size_t spacing) {
 //    return dsp_load_header_endian(ch_header, channels, streamFile, offset, spacing, 0);
 //}
@@ -714,107 +714,6 @@ fail:
     close_vgmstream(vgmstream);
     return NULL;
 }
-
-#define WSI_MAX_CHANNELS 2
-/* .wsi - blocked dsp [Alone in the Dark (Wii)] */
-VGMSTREAM * init_vgmstream_wsi(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
-    off_t start_offset, header_offset;
-    size_t header_spacing;
-    struct dsp_header ch_header[WSI_MAX_CHANNELS];
-    int channel_count;
-
-    /* checks */
-    if (!check_extensions(streamFile, "wsi"))
-        goto fail;
-
-    /* I don't know if this is actually the channel count, or a block type
-     * for the first block. Won't know until I see a mono .wsi */
-    channel_count = read_32bitBE(0x04,streamFile);
-    if (channel_count != 2) goto fail;
-
-    /* check for consistent block headers */
-    {
-        off_t block_offset;
-        off_t block_size_has_been;
-        int i;
-       
-        block_offset = read_32bitBE(0x00,streamFile);
-        if (block_offset < 0x08) goto fail;
-
-        block_size_has_been = block_offset;
-
-        /* check 4 blocks, to get an idea */
-        for (i = 0; i < 4*channel_count; i++) {
-            off_t block_size = read_32bitBE(block_offset,streamFile);
-
-            if (block_size < 0x10)
-                goto fail; /* expect at least the block header */
-            if (i%channel_count+1 != read_32bitBE(block_offset+0x08,streamFile))
-                goto fail; /* expect the channel numbers to alternate */
-
-            if (i%channel_count==0)
-                block_size_has_been = block_size;
-            else if (block_size != block_size_has_been)
-                goto fail; /* expect every block in a set of channels to have the same size */
-
-            block_offset += block_size;
-        }
-    }
-
-    start_offset = read_32bitBE(0x00, streamFile);
-    header_offset = start_offset + 0x10;
-    header_spacing = read_32bitBE(start_offset,streamFile);
-
-    /* read dsp */
-    if (!dsp_load_header(ch_header, channel_count, streamFile,header_offset,header_spacing)) goto fail;
-    if (!check_dsp_format(ch_header, channel_count)) goto fail;
-    if (!check_dsp_samples(ch_header, channel_count)) goto fail;
-    //if (!check_dsp_initial_ps(ch_header, channel_count, streamFile,start_offset,interleave)) goto fail;
-    //if (!check_dsp_loop_ps(ch_header, channel_count, streamFile,start_offset,interleave)) goto fail;
-
-
-    /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,ch_header[0].loop_flag);
-    if (!vgmstream) goto fail;
-
-    vgmstream->sample_rate = ch_header[0].sample_rate;
-
-    vgmstream->num_samples = ch_header[0].sample_count / 14 * 14; /* remove incomplete last frame */
-    vgmstream->loop_start_sample = dsp_nibbles_to_samples(ch_header[0].loop_start_offset);
-    vgmstream->loop_end_sample =  dsp_nibbles_to_samples(ch_header[0].loop_end_offset)+1;
-    if (vgmstream->loop_end_sample > vgmstream->num_samples) /* don't know why, but it does happen*/
-        vgmstream->loop_end_sample = vgmstream->num_samples;
-
-    vgmstream->meta_type = meta_DSP_WSI;
-    vgmstream->coding_type = coding_NGC_DSP;
-    vgmstream->layout_type = layout_blocked_wsi;
-
-    setup_vgmstream_dsp(vgmstream, ch_header);
-
-
-    if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
-        goto fail;
-
-    block_update_wsi(start_offset,vgmstream);
-
-    /* first block has DSP header */
-    {
-        int i;
-
-        vgmstream->current_block_size -= 0x60;
-        for (i = 0; i < vgmstream->channels; i++) {
-            vgmstream->ch[i].offset += 0x60;
-        }
-    }
-
-    return vgmstream;
-
-fail:
-    close_vgmstream(vgmstream);
-    return NULL;
-}
-
 
 /* SWD - PSF chunks + interleaved dsps [Conflict: Desert Storm 1 & 2] */
 VGMSTREAM * init_vgmstream_ngc_swd(STREAMFILE *streamFile) {

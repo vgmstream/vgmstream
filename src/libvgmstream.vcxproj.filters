@@ -883,6 +883,9 @@
     <ClCompile Include="meta\ws_aud.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\wsi.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\wv6.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>

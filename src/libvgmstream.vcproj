@@ -1442,10 +1442,14 @@
 					RelativePath=".\meta\wpd.c"
 					>
 				</File>
-				<File
-					RelativePath=".\meta\ws_aud.c"
-					>
-				</File>
+                <File
+                    RelativePath=".\meta\ws_aud.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\wsi.c"
+                    >
+                </File>
                 <File
                     RelativePath=".\meta\wv6.c"
                     >
