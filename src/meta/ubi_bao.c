@@ -420,7 +420,7 @@ static int parse_bao(ubi_bao_header * bao, STREAMFILE *streamFile, off_t offset)
     /* 0x18: null */
     /* 0x1c: null */
     descriptor_type = read_32bit(offset+0x20, streamFile);
-    descriptor_subtype = read_32bit(offset+header_size+0x04, streamFile); /* games may crash if changed */
+    descriptor_subtype = read_32bit(offset+header_size+0x04, streamFile);
     
     /* for debugging purposes */
     switch(descriptor_type) {
@@ -457,7 +457,7 @@ static int parse_bao(ubi_bao_header * bao, STREAMFILE *streamFile, off_t offset)
     //;VGM_ASSERT(descriptor_subtype != 0x01, "UBI BAO: subtype %x at %lx (%lx)\n", descriptor_subtype, offset, offset+header_size+0x04);
 
     /* ignore unknown subtypes */
-    if (descriptor_subtype != 0x01)
+    if (descriptor_subtype != 0x00000001)
         return 1;
 
     bao->total_subsongs++;
@@ -543,7 +543,7 @@ static int parse_bao(ubi_bao_header * bao, STREAMFILE *streamFile, off_t offset)
 
             break;
 
-        case 0x00230008: /* Splinter Cell: Conviction (X360/PC) */
+        case 0x00230008: /* Splinter Cell: Conviction (X360/PC)-pk */
             bao->stream_size  = read_32bit(offset+header_size+0x08, streamFile);
             bao->stream_id    = read_32bit(offset+header_size+0x24, streamFile);
             bao->is_external  = read_32bit(offset+header_size+0x38, streamFile);
@@ -612,7 +612,7 @@ static int parse_bao(ubi_bao_header * bao, STREAMFILE *streamFile, off_t offset)
         case 0x001F0010: /* Prince of Persia 2008 (PS3/X360)-file, Far Cry 2 (PS3)-file */
         case 0x00280306: /* Far Cry 3: Blood Dragon (X360)-file */
         case 0x00290106: /* Splinter Cell Blacklist? */
-        default:
+        default: /* others possibly using BAO: Avatar X360/PS3/PC, Just Dance, Watch_Dogs, Far Cry Primal, Far Cry 4 */
             VGM_LOG("UBI BAO: unknown BAO version at %lx\n", offset);
             goto fail;
     }

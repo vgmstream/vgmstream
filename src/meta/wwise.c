@@ -172,8 +172,9 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
     else if (ww.format == 0x0002 && ww.block_align == 0x104 * ww.channels) {
         //ww.codec = SWITCH_ADPCM;
         /* unknown codec, found in Bayonetta 2 (Switch)
-         * frames of 0x104 per ch, possibly frame header is hist1(2)/hist2(2)/predictor(1)
-         * (may write 2 header samples + FF*2 nibbles = 0x200 samples per block?) */
+         * frames of 0x104 per ch, possibly frame header is hist1(2)/hist2(2)/index(1)
+         * (may write 2 header samples + FF*2 nibbles = 0x200 samples per block?)
+         * index only goes up to ~0xb, may be a shift/scale value */
         goto fail;
     }
 
