@@ -386,6 +386,7 @@
     <ClCompile Include="meta\ea_swvr.c" />
     <ClCompile Include="meta\raw.c" />
     <ClCompile Include="meta\redspark.c" />
+    <ClCompile Include="meta\rfrm.c" />
     <ClCompile Include="meta\riff.c" />
     <ClCompile Include="meta\rkv.c" />
     <ClCompile Include="meta\rs03.c" />

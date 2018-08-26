@@ -1198,10 +1198,14 @@
 					RelativePath=".\meta\raw.c"
 					>
 				</File>
-				<File
-					RelativePath=".\meta\redspark.c"
-					>
-				</File>
+                <File
+                    RelativePath=".\meta\redspark.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\rfrm.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\riff.c"
 					>

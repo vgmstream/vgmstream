@@ -730,6 +730,9 @@
     <ClCompile Include="meta\redspark.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\rfrm.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\riff.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>

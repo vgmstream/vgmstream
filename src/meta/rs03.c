@@ -27,11 +27,11 @@ VGMSTREAM * init_vgmstream_rs03(STREAMFILE *streamFile) {
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
-    vgmstream->sample_rate = read_32bitBE(0xc,streamFile);
-    vgmstream->num_samples = read_32bitBE(8,streamFile);
+    vgmstream->sample_rate = read_32bitBE(0x0c,streamFile);
+    vgmstream->num_samples = read_32bitBE(0x08,streamFile);
     if (loop_flag) {
-        vgmstream->loop_start_sample = read_32bitBE(0x18,streamFile)/8*14;
-        vgmstream->loop_end_sample = read_32bitBE(0x1c,streamFile)/8*14;
+        vgmstream->loop_start_sample = dsp_bytes_to_samples(read_32bitBE(0x18,streamFile), 1);
+        vgmstream->loop_end_sample = dsp_bytes_to_samples(read_32bitBE(0x1c,streamFile), 1);
     }
 
     vgmstream->meta_type = meta_DSP_RS03;

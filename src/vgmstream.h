@@ -268,13 +268,14 @@ typedef enum {
 /* The meta type specifies how we know what we know about the file.
  * We may know because of a header we read, some of it may have been guessed from filenames, etc. */
 typedef enum {
-    /* DSP-specific */
+
     meta_DSP_STD,           /* Nintendo standard GC ADPCM (DSP) header */
-    meta_DSP_CSMP,          /* Retro: Metroid Prime 3, Donkey Kong Country Returns */
     meta_DSP_CSTR,          /* Star Fox Assault "Cstr" */
     meta_DSP_RS03,          /* Retro: Metroid Prime 2 "RS03" */
     meta_DSP_STM,           /* Paper Mario 2 STM */
-    meta_DSP_AGSC,          /* Retro: Metroid Prime 2 title */
+    meta_AGSC,              /* Retro: Metroid Prime 2 title */
+    meta_CSMP,              /* Retro: Metroid Prime 3 (Wii), Donkey Kong Country Returns (Wii) */
+    meta_RFRM,              /* Retro: Donkey Kong Country Tropical Freeze (Wii U) */
     meta_DSP_MPDSP,         /* Monopoly Party single header stereo */
     meta_DSP_JETTERS,       /* Bomberman Jetters .dsp */
     meta_DSP_MSS,           /* Free Radical GC games */
@@ -289,7 +290,6 @@ typedef enum {
     meta_DSP_YGO,           /* Konami: Yu-Gi-Oh! The Falsebound Kingdom (NGC), Hikaru no Go 3 (NGC) */
     meta_DSP_SADF,          /* Procyon Studio SADF - Xenoblade Chronicles 2 (Switch) */
 
-    /* Nintendo */
     meta_STRM,              /* Nintendo STRM */
     meta_RSTM,              /* Nintendo RSTM (Revolution Stream, similar to STRM) */
     meta_AFC,               /* AFC */

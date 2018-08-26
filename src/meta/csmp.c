@@ -32,7 +32,7 @@ VGMSTREAM * init_vgmstream_csmp(STREAMFILE *streamFile) {
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
-    vgmstream->meta_type = meta_DSP_CSMP;
+    vgmstream->meta_type = meta_CSMP;
     vgmstream->sample_rate = read_32bitBE(chunk_offset+0x08,streamFile);
     vgmstream->num_samples = read_32bitBE(chunk_offset+0x00,streamFile);
     vgmstream->loop_start_sample = dsp_nibbles_to_samples(read_32bitBE(chunk_offset+0x10,streamFile));
@@ -53,4 +53,3 @@ fail:
     close_vgmstream(vgmstream);
     return NULL;
 }
-
