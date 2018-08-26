@@ -77,11 +77,13 @@ typedef struct {
     size_t header_spacing;          /* distance between DSP header of other channels */
     off_t start_offset;             /* data start */
     size_t interleave;              /* distance between data of other channels */
+    size_t interleave_last;         /* same, in the last block */
 
     meta_t meta_type;
 
     /* hacks */
     int force_loop;                 /* force full loop */
+    int force_loop_seconds;         /* force loop, but must be longer than this (to catch jingles) */
     int fix_looping;                /* fix loop end going past num_samples */
     int fix_loop_start;             /* weird files with bad loop start */
     int single_header;              /* all channels share header, thus totals are off */
@@ -177,8 +179,13 @@ static VGMSTREAM * init_vgmstream_dsp_common(STREAMFILE *streamFile, dsp_meta *d
     /* all done, must be DSP */
 
     loop_flag = ch_header[0].loop_flag;
-    if (dspm->force_loop)
+    if (!loop_flag && dspm->force_loop) {
         loop_flag = 1;
+        if (dspm->force_loop_seconds &&
+                ch_header[0].sample_count < dspm->force_loop_seconds*ch_header[0].sample_rate) {
+            loop_flag = 0;
+        }
+    }
 
 
     /* build the VGMSTREAM */
@@ -198,6 +205,7 @@ static VGMSTREAM * init_vgmstream_dsp_common(STREAMFILE *streamFile, dsp_meta *d
     if (dspm->interleave == 0 || vgmstream->coding_type == coding_NGC_DSP_subint)
         vgmstream->layout_type = layout_none;
     vgmstream->interleave_block_size = dspm->interleave;
+    vgmstream->interleave_last_block_size = dspm->interleave_last;
 
     {
         /* set coefs and initial history (usually 0) */
@@ -747,6 +755,43 @@ fail:
     return NULL;
 }
 
+/* IDSP - from Next Level games [Super Mario Strikers (GC), Mario Strikers: Charged (Wii)] */
+VGMSTREAM * init_vgmstream_idsp_nl(STREAMFILE *streamFile) {
+    dsp_meta dspm = {0};
+
+    /* checks */
+    if (!check_extensions(streamFile, "idsp"))
+        goto fail;
+    if (read_32bitBE(0x00,streamFile) != 0x49445350) /* "IDSP" */
+        goto fail;
+
+    dspm.channel_count = 2;
+    dspm.max_channels = 2;
+
+    dspm.header_offset =  0x0c;
+    dspm.header_spacing = 0x60;
+    dspm.start_offset = dspm.header_offset + dspm.header_spacing*dspm.channel_count;
+    dspm.interleave = read_32bitBE(0x04,streamFile);
+    /* 0x08: usable channel size */
+    {
+        size_t stream_size = get_streamfile_size(streamFile);
+        if (read_32bitBE(stream_size - 0x04,streamFile) == 0x30303030)
+            stream_size -= 0x14; /* remove padding */
+        stream_size -= dspm.start_offset;
+
+        dspm.interleave_last = (stream_size / dspm.channel_count) % dspm.interleave;
+    }
+
+    dspm.fix_looping = 1;
+    dspm.force_loop = 1;
+    dspm.force_loop_seconds = 15;
+
+    dspm.meta_type = meta_IDSP_NL;
+    return init_vgmstream_dsp_common(streamFile, &dspm);
+fail:
+    return NULL;
+}
+
 /* .wsd - Custom header + full interleaved dsp [Phantom Brave (Wii)] */
 VGMSTREAM * init_vgmstream_wii_wsd(STREAMFILE *streamFile) {
     dsp_meta dspm = {0};
@@ -889,7 +934,8 @@ fail:
     return NULL;
 }
 
-/* Cabela's series (Magic Wand dev?) - header + interleaved dsp [Cabela's Big Game Hunt 2005 Adventures (GC), Cabela's Outdoor Adventures (GC)] */
+/* Cabela's series (Magic Wand dev?) - header + interleaved dsp
+ *  [Cabela's Big Game Hunt 2005 Adventures (GC), Cabela's Outdoor Adventures (GC)] */
 VGMSTREAM * init_vgmstream_dsp_cabelas(STREAMFILE *streamFile) {
     dsp_meta dspm = {0};
 
