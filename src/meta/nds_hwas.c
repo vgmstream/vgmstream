@@ -12,8 +12,6 @@ VGMSTREAM * init_vgmstream_nds_hwas(STREAMFILE *streamFile) {
     /* .hwas: usually in archives but also found named (ex. Guitar Hero On Tour) */
     if (!check_extensions(streamFile,"hwas"))
         goto fail;
-
-    /* check header */
     if (read_32bitBE(0x00,streamFile) != 0x73617768) /* "sawh" */
         goto fail;
 
@@ -27,23 +25,18 @@ VGMSTREAM * init_vgmstream_nds_hwas(STREAMFILE *streamFile) {
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
+    vgmstream->meta_type = meta_NDS_HWAS;
     vgmstream->sample_rate = read_32bitLE(0x08,streamFile);
     vgmstream->num_samples = ima_bytes_to_samples(read_32bitLE(0x14,streamFile), channel_count);
     vgmstream->loop_start_sample = ima_bytes_to_samples(read_32bitLE(0x10,streamFile), channel_count); //assumed, always 0
     vgmstream->loop_end_sample = ima_bytes_to_samples(read_32bitLE(0x18,streamFile), channel_count);
 
-    vgmstream->meta_type = meta_NDS_HWAS;
-
     vgmstream->coding_type = coding_IMA_int;
     vgmstream->layout_type = layout_blocked_hwas;
     vgmstream->full_block_size = read_32bitLE(0x04,streamFile); /* usually 0x2000, 0x4000 or 0x8000 */
 
-    /* open the file for reading by each channel */
     if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
         goto fail;
-
-    block_update_hwas(start_offset, vgmstream);
-
     return vgmstream;
 
 fail:

@@ -54,9 +54,6 @@ VGMSTREAM * init_vgmstream_caf(STREAMFILE *streamFile) {
 
     if ( !vgmstream_open_stream(vgmstream,streamFile,start_offset) )
         goto fail;
-
-    block_update_caf(start_offset,vgmstream);
-
     return vgmstream;
 
 fail:

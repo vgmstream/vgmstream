@@ -97,12 +97,9 @@ VGMSTREAM * init_vgmstream_ea_1snh(STREAMFILE *streamFile) {
             goto fail;
     }
 
-    /* open files; channel offsets are updated below */
+
     if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
         goto fail;
-
-    block_update_ea_1snh(start_offset,vgmstream);
-
     return vgmstream;
 
 fail:

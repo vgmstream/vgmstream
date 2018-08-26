@@ -103,10 +103,6 @@ VGMSTREAM * init_vgmstream_vawx(STREAMFILE *streamFile) {
 
     if ( !vgmstream_open_stream(vgmstream, streamFile, start_offset) )
         goto fail;
-
-    if (vgmstream->layout_type == layout_blocked_vawx)
-        block_update_vawx(start_offset,vgmstream);
-
     return vgmstream;
 
 fail:

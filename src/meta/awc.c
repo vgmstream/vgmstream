@@ -156,13 +156,8 @@ VGMSTREAM * init_vgmstream_awc(STREAMFILE *streamFile) {
     }
 
 
-    /* open files; channel offsets are updated below */
     if (!vgmstream_open_stream(vgmstream,streamFile,awc.stream_offset))
         goto fail;
-
-    if (vgmstream->layout_type == layout_blocked_awc)
-        block_update_awc(awc.stream_offset, vgmstream);
-
     return vgmstream;
 
 fail:

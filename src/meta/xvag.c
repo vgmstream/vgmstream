@@ -207,13 +207,8 @@ VGMSTREAM * init_vgmstream_xvag(STREAMFILE *streamFile) {
     }
 
 
-    /* open the file for reading */
     if (!vgmstream_open_stream(vgmstream,temp_streamFile ? temp_streamFile : streamFile,start_offset))
         goto fail;
-
-    if (vgmstream->layout_type == layout_blocked_xvag_subsong)
-        block_update_xvag_subsong(start_offset, vgmstream);
-
     close_streamfile(temp_streamFile);
     return vgmstream;
 

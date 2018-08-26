@@ -158,18 +158,16 @@ VGMSTREAM * init_vgmstream_cdxa(STREAMFILE *streamFile) {
         /* calc num_samples as blocks may be empty or smaller than usual depending on flags */
         vgmstream->next_block_offset = start_offset;
         do {
-            block_update_xa(vgmstream->next_block_offset,vgmstream);
+            block_update(vgmstream->next_block_offset,vgmstream);
             vgmstream->num_samples += vgmstream->current_block_samples;
         }
         while (vgmstream->next_block_offset < get_streamfile_size(streamFile));
-
+        block_update(start_offset,vgmstream);
     }
     else {
         vgmstream->num_samples = xa_bytes_to_samples(file_size - start_offset, channel_count, is_blocked);
     }
 
-    if (vgmstream->layout_type == layout_blocked_xa)
-        block_update_xa(start_offset,vgmstream);
     return vgmstream;
 
 fail:

@@ -2,7 +2,7 @@
 #include "../layout/layout.h"
 
 
-/* for reading integers inexplicably packed into 80 bit floats */
+/* for reading integers inexplicably packed into 80-bit ('double extended') floats */
 static uint32_t read80bitSANE(off_t offset, STREAMFILE *streamFile) {
     uint8_t buf[10];
     int32_t exponent;
@@ -286,10 +286,6 @@ VGMSTREAM * init_vgmstream_aifc(STREAMFILE *streamFile) {
 
     if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
         goto fail;
-
-    if (vgmstream->layout_type == layout_blocked_xa_aiff)
-        block_update_xa_aiff(start_offset,vgmstream);
-
     return vgmstream;
 
 fail:

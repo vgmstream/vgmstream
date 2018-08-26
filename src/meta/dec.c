@@ -13,14 +13,16 @@ VGMSTREAM * init_vgmstream_dec(STREAMFILE *streamFile) {
     int loop_flag, channel_count, sample_rate, loop_start = 0, loop_end = 0;
 
 
-    /* check extension (.dec: main, .de2: Gurumin) */
+    /* checks
+     * .dec: main,
+     * .de2: Gurumin (PC) */
     if ( !check_extensions(streamFile,"dec,de2") )
         goto fail;
 
     /* Gurumin has extra data, maybe related to rhythm (~0x50000) */
     if (check_extensions(streamFile,"de2")) {
         /* still not sure what this is for, but consistently 0xb */
-        if (read_32bitLE(0x04,streamFile) != 0xb) goto fail;
+        if (read_32bitLE(0x04,streamFile) != 0x0b) goto fail;
 
         /* legitimate! really! */
         riff_off = 0x10 + (read_32bitLE(0x0c,streamFile) ^ read_32bitLE(0x04,streamFile));
@@ -67,6 +69,7 @@ VGMSTREAM * init_vgmstream_dec(STREAMFILE *streamFile) {
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
+    vgmstream->meta_type = meta_DEC;
     vgmstream->sample_rate = sample_rate;
     vgmstream->num_samples = pcm_size / 2 / channel_count;
     vgmstream->loop_start_sample = loop_start;
@@ -76,14 +79,8 @@ VGMSTREAM * init_vgmstream_dec(STREAMFILE *streamFile) {
     vgmstream->interleave_block_size = 0x800;
     vgmstream->layout_type = layout_blocked_dec;
 
-    vgmstream->meta_type = meta_DEC;
-
-    /* open the file for reading */
     if ( !vgmstream_open_stream(vgmstream, streamFile, start_offset) )
         goto fail;
-
-    block_update_dec(start_offset, vgmstream);
-
     return vgmstream;
 
 fail:

@@ -676,10 +676,6 @@ static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE * streamHead, ST
 
     if (!vgmstream_open_stream(vgmstream,temp_streamFile ? temp_streamFile : streamData,start_offset))
         goto fail;
-
-    if (vgmstream->layout_type == layout_blocked_ea_sns)
-        block_update_ea_sns(start_offset, vgmstream);
-
     close_streamfile(temp_streamFile);
     return vgmstream;
 

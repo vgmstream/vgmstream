@@ -242,10 +242,10 @@ VGMSTREAM * init_vgmstream_rws(STREAMFILE *streamFile) {
     vgmstream = allocate_vgmstream(rws.channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
+    vgmstream->meta_type = meta_RWS;
     vgmstream->sample_rate = rws.sample_rate;
     vgmstream->num_streams = total_subsongs;
     vgmstream->stream_size = stream_size;
-    vgmstream->meta_type = meta_RWS;
     if (name_offset)
         read_string(vgmstream->stream_name,STREAM_NAME_SIZE, name_offset,streamFile);
 
@@ -300,9 +300,6 @@ VGMSTREAM * init_vgmstream_rws(STREAMFILE *streamFile) {
 
     if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
         goto fail;
-
-    block_update_rws(start_offset, vgmstream);
-
     return vgmstream;
 
 fail:

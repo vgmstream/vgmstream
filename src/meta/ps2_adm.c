@@ -32,8 +32,8 @@ VGMSTREAM * init_vgmstream_ps2_adm(STREAMFILE *streamFile) {
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
-    vgmstream->sample_rate = 44100;
     vgmstream->meta_type = meta_PS2_ADM;
+    vgmstream->sample_rate = 44100;
     vgmstream->coding_type = coding_PSX;
     vgmstream->layout_type = layout_blocked_adm;
 
@@ -44,19 +44,18 @@ VGMSTREAM * init_vgmstream_ps2_adm(STREAMFILE *streamFile) {
     {
         vgmstream->next_block_offset = start_offset;
         do {
-            block_update_adm(vgmstream->next_block_offset,vgmstream);
-
+            block_update(vgmstream->next_block_offset,vgmstream);
             if (loop_flag && vgmstream->current_block_offset == loop_start_offset)
                 vgmstream->loop_start_sample = vgmstream->num_samples;
             vgmstream->num_samples += ps_bytes_to_samples(vgmstream->current_block_size, 1);
         }
         while (vgmstream->next_block_offset < get_streamfile_size(streamFile));
+        block_update(start_offset,vgmstream);
 
         if (loop_flag)
             vgmstream->loop_end_sample = vgmstream->num_samples;
     }
 
-    block_update_adm(start_offset,vgmstream);
     return vgmstream;
 
 fail:
