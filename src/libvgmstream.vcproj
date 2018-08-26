@@ -384,6 +384,10 @@
                     RelativePath=".\meta\ck.c"
                     >
                 </File>
+                <File
+                    RelativePath=".\meta\csmp.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\cstr.c"
 					>

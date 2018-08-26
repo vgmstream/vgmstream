@@ -229,7 +229,7 @@
     <ClCompile Include="meta\capdsp.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\ck.c">
+    <ClCompile Include="meta\csmp.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\cstr.c">
