@@ -2751,6 +2751,9 @@ int vgmstream_open_stream(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t s
         }
     }
 
+    /* init first block for blocked layout (if not blocked this will do nothing) */
+    block_update(start_offset, vgmstream);
+
     /* EA-MT decoder is a bit finicky and needs this when channel offsets change */
     if (vgmstream->coding_type == coding_EA_MT) {
         flush_ea_mt(vgmstream);
