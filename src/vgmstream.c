@@ -1391,457 +1391,397 @@ int get_vgmstream_shortframe_size(VGMSTREAM * vgmstream) {
 /* Decode samples into the buffer. Assume that we have written samples_written into the
  * buffer already, and we have samples_to_do consecutive samples ahead of us. */
 void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to_do, sample * buffer) {
-    int chan;
+    int ch;
 
     switch (vgmstream->coding_type) {
         case coding_CRI_ADX:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_adx(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do,
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_adx(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do,
                         vgmstream->interleave_block_size);
             }
 
             break;
         case coding_CRI_ADX_exp:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_adx_exp(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do,
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_adx_exp(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do,
                         vgmstream->interleave_block_size);
             }
 
             break;
         case coding_CRI_ADX_fixed:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_adx_fixed(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do,
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_adx_fixed(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do,
                         vgmstream->interleave_block_size);
             }
 
             break;
         case coding_CRI_ADX_enc_8:
         case coding_CRI_ADX_enc_9:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_adx_enc(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do,
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_adx_enc(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do,
                         vgmstream->interleave_block_size);
             }
 
             break;
         case coding_NGC_DSP:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_ngc_dsp(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do);
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_ngc_dsp(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do);
             }
             break;
         case coding_NGC_DSP_subint:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_ngc_dsp_subint(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do,
-                        chan, vgmstream->interleave_block_size);
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_ngc_dsp_subint(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do,
+                        ch, vgmstream->interleave_block_size);
             }
             break;
 
         case coding_PCM16LE:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_pcm16le(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do);
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_pcm16le(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do);
             }
             break;
         case coding_PCM16BE:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_pcm16be(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do);
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_pcm16be(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do);
             }
             break;
         case coding_PCM16_int:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_pcm16_int(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do,
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_pcm16_int(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do,
                         vgmstream->codec_endian);
             }
             break;
         case coding_PCM8:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_pcm8(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do);
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_pcm8(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do);
             }
             break;
         case coding_PCM8_int:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_pcm8_int(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do);
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_pcm8_int(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do);
             }
             break;
         case coding_PCM8_U:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_pcm8_unsigned(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do);
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_pcm8_unsigned(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do);
             }
             break;
         case coding_PCM8_U_int:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_pcm8_unsigned_int(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do);
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_pcm8_unsigned_int(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do);
             }
             break;
         case coding_PCM8_SB:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_pcm8_sb(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do);
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_pcm8_sb(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do);
             }
             break;
 
         case coding_ULAW:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_ulaw(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do);
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_ulaw(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do);
             }
             break;
         case coding_ULAW_int:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_ulaw_int(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do);
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_ulaw_int(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do);
             }
             break;
         case coding_ALAW:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_alaw(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do);
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_alaw(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do);
             }
             break;
         case coding_PCMFLOAT:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_pcmfloat(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do,
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_pcmfloat(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do,
                         vgmstream->codec_endian);
             }
             break;
 
         case coding_NDS_IMA:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_nds_ima(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do);
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_nds_ima(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do);
             }
             break;
         case coding_DAT4_IMA:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_dat4_ima(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do);
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_dat4_ima(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do);
             }
             break;
         case coding_XBOX_IMA:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_xbox_ima(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do,chan);
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_xbox_ima(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do, ch);
             }
             break;
         case coding_XBOX_IMA_mch:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_xbox_ima_mch(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do,chan);
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_xbox_ima_mch(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do, ch);
             }
             break;
         case coding_XBOX_IMA_int:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_xbox_ima_int(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do,chan);
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_xbox_ima_int(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do, ch);
             }
             break;
         case coding_MS_IMA:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_ms_ima(vgmstream,&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do,chan);
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_ms_ima(vgmstream,&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do, ch);
             }
             break;
         case coding_RAD_IMA:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_rad_ima(vgmstream,&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do,chan);
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_rad_ima(vgmstream,&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do, ch);
             }
             break;
         case coding_RAD_IMA_mono:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_rad_ima_mono(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do);
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_rad_ima_mono(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do);
             }
             break;
         case coding_NGC_DTK:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_ngc_dtk(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do,chan);
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_ngc_dtk(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do, ch);
             }
             break;
         case coding_G721:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_g721(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do);
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_g721(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do);
             }
             break;
         case coding_NGC_AFC:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_ngc_afc(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do);
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_ngc_afc(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do);
             }
             break;
         case coding_PSX:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_psx(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do, 0);
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_psx(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do, 0);
             }
             break;
         case coding_PSX_badflags:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_psx(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do, 1);
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_psx(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do, 1);
             }
             break;
         case coding_PSX_cfg:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_psx_configurable(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do, vgmstream->interleave_block_size);
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_psx_configurable(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do, vgmstream->interleave_block_size);
             }
             break;
         case coding_HEVAG:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_hevag(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do);
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_hevag(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do);
             }
             break;
         case coding_XA:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_xa(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do,chan);
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_xa(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do, ch);
             }
             break;
         case coding_EA_XA:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_ea_xa(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do,chan);
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_ea_xa(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do, ch);
             }
             break;
         case coding_EA_XA_int:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_ea_xa_int(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do,chan);
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_ea_xa_int(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do, ch);
             }
             break;
         case coding_EA_XA_V2:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_ea_xa_v2(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do,chan);
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_ea_xa_v2(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do, ch);
             }
             break;
         case coding_MAXIS_XA:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_maxis_xa(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do,chan);
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_maxis_xa(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do, ch);
             }
             break;
         case coding_EA_XAS:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_ea_xas(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do,chan);
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_ea_xas(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do, ch);
             }
             break;
 #ifdef VGM_USE_VORBIS
         case coding_OGG_VORBIS:
-            decode_ogg_vorbis(vgmstream->codec_data,
-                    buffer+samples_written*vgmstream->channels,samples_to_do,
-                    vgmstream->channels);
+            decode_ogg_vorbis(vgmstream->codec_data, buffer+samples_written*vgmstream->channels,
+                    samples_to_do,vgmstream->channels);
             break;
 
         case coding_VORBIS_custom:
-            decode_vorbis_custom(vgmstream,
-                    buffer+samples_written*vgmstream->channels,samples_to_do,
-                    vgmstream->channels);
+            decode_vorbis_custom(vgmstream, buffer+samples_written*vgmstream->channels,
+                    samples_to_do,vgmstream->channels);
             break;
 #endif
         case coding_CRI_HCA:
-            decode_hca(vgmstream->codec_data,
-                buffer+samples_written*vgmstream->channels,samples_to_do,
-                vgmstream->channels);
+            decode_hca(vgmstream->codec_data, buffer+samples_written*vgmstream->channels,
+                    samples_to_do,vgmstream->channels);
             break;
 #ifdef VGM_USE_FFMPEG
         case coding_FFmpeg:
             decode_ffmpeg(vgmstream,
-                          buffer+samples_written*vgmstream->channels,
-                          samples_to_do,
-                          vgmstream->channels);
+                          buffer+samples_written*vgmstream->channels,samples_to_do,vgmstream->channels);
             break;
 #endif
 #if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
         case coding_MP4_AAC:
-            decode_mp4_aac(vgmstream->codec_data,
-                buffer+samples_written*vgmstream->channels,samples_to_do,
-                vgmstream->channels);
+            decode_mp4_aac(vgmstream->codec_data, buffer+samples_written*vgmstream->channels,
+                    samples_to_do,vgmstream->channels);
             break;
 #endif
         case coding_SDX2:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_sdx2(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do);
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_sdx2(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do);
             }
             break;
         case coding_SDX2_int:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_sdx2_int(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do);
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_sdx2_int(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do);
             }
             break;
         case coding_CBD2:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_cbd2(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do);
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_cbd2(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do);
             }
             break;
         case coding_CBD2_int:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_cbd2_int(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do);
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_cbd2_int(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do);
             }
             break;
         case coding_IMA:
         case coding_IMA_int:
         case coding_DVI_IMA:
         case coding_DVI_IMA_int:
-            for (chan=0;chan<vgmstream->channels;chan++) {
+            for (ch = 0; ch < vgmstream->channels; ch++) {
                 int is_stereo = (vgmstream->channels > 1 && vgmstream->coding_type == coding_IMA)
                         || (vgmstream->channels > 1 && vgmstream->coding_type == coding_DVI_IMA);
                 int is_high_first = vgmstream->coding_type == coding_DVI_IMA || vgmstream->coding_type == coding_DVI_IMA_int;
 
-                decode_standard_ima(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do, chan, is_stereo, is_high_first);
+                decode_standard_ima(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do, ch,
+                        is_stereo, is_high_first);
             }
             break;
         case coding_3DS_IMA:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_3ds_ima(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do);
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_3ds_ima(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do);
             }
             break;
         case coding_WV6_IMA:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_wv6_ima(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do);
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_wv6_ima(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do);
             }
             break;
         case coding_APPLE_IMA4:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_apple_ima4(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do);
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_apple_ima4(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do);
             }
             break;
         case coding_SNDS_IMA:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_snds_ima(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do,chan);
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_snds_ima(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do, ch);
             }
             break;
         case coding_OTNS_IMA:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_otns_ima(vgmstream, &vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do,chan);
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_otns_ima(vgmstream, &vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do, ch);
             }
             break;
         case coding_FSB_IMA:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_fsb_ima(vgmstream, &vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do,chan);
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_fsb_ima(vgmstream, &vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do, ch);
             }
             break;
         case coding_WWISE_IMA:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_wwise_ima(vgmstream,&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do,chan);
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_wwise_ima(vgmstream,&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do, ch);
             }
             break;
         case coding_REF_IMA:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_ref_ima(vgmstream,&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do,chan);
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_ref_ima(vgmstream,&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do, ch);
             }
             break;
         case coding_AWC_IMA:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_awc_ima(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do);
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_awc_ima(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do);
             }
             break;
         case coding_UBI_IMA:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_ubi_ima(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do,chan);
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_ubi_ima(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do, ch);
             }
             break;
         case coding_H4M_IMA:
-            for (chan=0;chan<vgmstream->channels;chan++) {
+            for (ch = 0; ch < vgmstream->channels; ch++) {
                 uint16_t frame_format = (uint16_t)((vgmstream->codec_config >> 8) & 0xFFFF);
 
-                decode_h4m_ima(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do, chan, frame_format);
+                decode_h4m_ima(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do, ch,
+                        frame_format);
             }
             break;
 
         case coding_WS:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_ws(vgmstream,chan,buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do);
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_ws(vgmstream,ch,buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do);
             }
             break;
 
@@ -1851,194 +1791,159 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
         case coding_MPEG_layer1:
         case coding_MPEG_layer2:
         case coding_MPEG_layer3:
-            decode_mpeg(
-                    vgmstream,
-                    buffer+samples_written*vgmstream->channels,
-                    samples_to_do,
-                    vgmstream->channels);
+            decode_mpeg(vgmstream,buffer+samples_written*vgmstream->channels,
+                    samples_to_do,vgmstream->channels);
             break;
 #endif
 #ifdef VGM_USE_G7221
         case coding_G7221:
         case coding_G7221C:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_g7221(vgmstream,
-                    buffer+samples_written*vgmstream->channels+chan,
-                    vgmstream->channels,
-                    samples_to_do,
-                    chan);
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_g7221(vgmstream, buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,samples_to_do, ch);
             }
             break;
 #endif
 #ifdef VGM_USE_G719
         case coding_G719:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_g719(vgmstream,
-                    buffer+samples_written*vgmstream->channels+chan,
-                    vgmstream->channels,
-                    samples_to_do,
-                    chan);
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_g719(vgmstream, buffer+samples_written*vgmstream->channels+ch,
+                    vgmstream->channels,samples_to_do, ch);
             }
             break;
 #endif
 #ifdef VGM_USE_MAIATRAC3PLUS
         case coding_AT3plus:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_at3plus(vgmstream,
-                    buffer+samples_written*vgmstream->channels+chan,
-                    vgmstream->channels,
-                    samples_to_do,
-                    chan);
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_at3plus(vgmstream, buffer+samples_written*vgmstream->channels+ch,
+                    vgmstream->channels,samples_to_do, ch);
             }
             break;
 #endif
 #ifdef VGM_USE_ATRAC9
         case coding_ATRAC9:
-            decode_atrac9(vgmstream,
-                          buffer+samples_written*vgmstream->channels,
-                          samples_to_do,
-                          vgmstream->channels);
+            decode_atrac9(vgmstream, buffer+samples_written*vgmstream->channels,
+                    samples_to_do,vgmstream->channels);
             break;
 #endif
 #ifdef VGM_USE_CELT
         case coding_CELT_FSB:
-            decode_celt_fsb(vgmstream,
-                          buffer+samples_written*vgmstream->channels,
-                          samples_to_do,
-                          vgmstream->channels);
+            decode_celt_fsb(vgmstream, buffer+samples_written*vgmstream->channels,
+                    samples_to_do,vgmstream->channels);
             break;
 #endif
         case coding_ACM:
-            decode_acm(vgmstream->codec_data,
-                    buffer+samples_written*vgmstream->channels,
+            decode_acm(vgmstream->codec_data, buffer+samples_written*vgmstream->channels,
                     samples_to_do, vgmstream->channels);
             break;
         case coding_NWA:
             decode_nwa(((nwa_codec_data*)vgmstream->codec_data)->nwa,
-                    buffer+samples_written*vgmstream->channels,
-                    samples_to_do
-                    );
+                    buffer+samples_written*vgmstream->channels, samples_to_do);
             break;
         case coding_MSADPCM:
             if (vgmstream->channels == 2) {
                 decode_msadpcm_stereo(vgmstream,buffer+samples_written*vgmstream->channels,
-                        vgmstream->samples_into_block,
-                        samples_to_do);
+                        vgmstream->samples_into_block,samples_to_do);
             }
             else if (vgmstream->channels == 1) {
                 decode_msadpcm_mono(vgmstream,buffer+samples_written*vgmstream->channels,
-                        vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do,0);
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do, 0);
             }
             break;
         case coding_MSADPCM_ck:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_msadpcm_ck(vgmstream,buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do, chan);
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_msadpcm_ck(vgmstream,buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block, samples_to_do, ch);
             }
             break;
         case coding_AICA:
         case coding_AICA_int:
-            for (chan=0;chan<vgmstream->channels;chan++) {
+            for (ch = 0; ch < vgmstream->channels; ch++) {
                 int is_stereo = (vgmstream->channels > 1 && vgmstream->coding_type == coding_AICA);
 
-                decode_aica(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do, chan, is_stereo);
+                decode_aica(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do, ch,
+                        is_stereo);
             }
             break;
         case coding_YAMAHA:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_yamaha(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do, chan);
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_yamaha(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do, ch);
             }
             break;
         case coding_YAMAHA_NXAP:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_yamaha_nxap(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do);
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_yamaha_nxap(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do);
             }
             break;
         case coding_NDS_PROCYON:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_nds_procyon(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do);
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_nds_procyon(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do);
             }
             break;
         case coding_L5_555:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_l5_555(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do);
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_l5_555(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do);
             }
-
             break;
         case coding_SASSC:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_SASSC(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do);
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_SASSC(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do);
             }
 
             break;
         case coding_LSF:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_lsf(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do);
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_lsf(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do);
             }
             break;
         case coding_MTAF:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_mtaf(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels, vgmstream->samples_into_block, samples_to_do,
-                        chan, vgmstream->channels);
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_mtaf(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels, vgmstream->samples_into_block, samples_to_do, ch);
             }
             break;
         case coding_MTA2:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_mta2(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels, vgmstream->samples_into_block, samples_to_do,
-                        chan);
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_mta2(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels, vgmstream->samples_into_block, samples_to_do, ch);
             }
             break;
         case coding_MC3:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_mc3(vgmstream, &vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels, vgmstream->samples_into_block, samples_to_do,
-                        chan);
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_mc3(vgmstream, &vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels, vgmstream->samples_into_block, samples_to_do, ch);
             }
             break;
         case coding_FADPCM:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_fadpcm(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do);
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_fadpcm(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do);
             }
             break;
         case coding_ASF:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_asf(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do);
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_asf(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do);
             }
             break;
         case coding_XMD:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_xmd(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do, vgmstream->interleave_block_size);
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_xmd(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do,
+                        vgmstream->interleave_block_size);
             }
             break;
         case coding_EA_MT:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_ea_mt(vgmstream, buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels, vgmstream->samples_into_block, samples_to_do,
-                        chan);
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_ea_mt(vgmstream, buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels, vgmstream->samples_into_block, samples_to_do, ch);
             }
             break;
         default:
