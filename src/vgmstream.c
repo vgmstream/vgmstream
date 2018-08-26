@@ -1054,10 +1054,10 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_PCM16BE:
         case coding_PCM16_int:
         case coding_PCM8:
-        case coding_PCM8_U:
         case coding_PCM8_int:
-        case coding_PCM8_SB_int:
+        case coding_PCM8_U:
         case coding_PCM8_U_int:
+        case coding_PCM8_SB:
         case coding_ULAW:
         case coding_ULAW_int:
         case coding_ALAW:
@@ -1238,10 +1238,10 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
         case coding_PCM16_int:
             return 0x02;
         case coding_PCM8:
-        case coding_PCM8_U:
         case coding_PCM8_int:
-        case coding_PCM8_SB_int:
+        case coding_PCM8_U:
         case coding_PCM8_U_int:
+        case coding_PCM8_SB:
         case coding_ULAW:
         case coding_ULAW_int:
         case coding_ALAW:
@@ -1446,16 +1446,17 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                         chan, vgmstream->interleave_block_size);
             }
             break;
+
         case coding_PCM16LE:
             for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_pcm16LE(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                decode_pcm16le(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
                         samples_to_do);
             }
             break;
         case coding_PCM16BE:
             for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_pcm16BE(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                decode_pcm16be(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
                         samples_to_do);
             }
@@ -1475,13 +1476,6 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                         samples_to_do);
             }
             break;
-        case coding_PCM8_U:
-            for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_pcm8_unsigned(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
-                        vgmstream->channels,vgmstream->samples_into_block,
-                        samples_to_do);
-            }
-            break;
         case coding_PCM8_int:
             for (chan=0;chan<vgmstream->channels;chan++) {
                 decode_pcm8_int(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
@@ -1489,9 +1483,9 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                         samples_to_do);
             }
             break;
-        case coding_PCM8_SB_int:
+        case coding_PCM8_U:
             for (chan=0;chan<vgmstream->channels;chan++) {
-                decode_pcm8_sb_int(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                decode_pcm8_unsigned(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
                         vgmstream->channels,vgmstream->samples_into_block,
                         samples_to_do);
             }
@@ -1503,6 +1497,14 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                         samples_to_do);
             }
             break;
+        case coding_PCM8_SB:
+            for (chan=0;chan<vgmstream->channels;chan++) {
+                decode_pcm8_sb(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,
+                        vgmstream->channels,vgmstream->samples_into_block,
+                        samples_to_do);
+            }
+            break;
+
         case coding_ULAW:
             for (chan=0;chan<vgmstream->channels;chan++) {
                 decode_ulaw(&vgmstream->ch[chan],buffer+samples_written*vgmstream->channels+chan,

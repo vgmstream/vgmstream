@@ -77,7 +77,7 @@ typedef enum {
     coding_PCM8_int,        /* 8-bit PCM with sample-level interleave (for blocks) */
     coding_PCM8_U,          /* 8-bit PCM, unsigned (0x80 = 0) */
     coding_PCM8_U_int,      /* 8-bit PCM, unsigned (0x80 = 0) with sample-level interleave (for blocks) */
-    coding_PCM8_SB_int,     /* 8-bit PCM, sign bit (others are 2's complement) with sample-level interleave (for blocks) */
+    coding_PCM8_SB,         /* 8-bit PCM, sign bit (others are 2's complement) */
 
     coding_ULAW,            /* 8-bit u-Law (non-linear PCM) */
     coding_ULAW_int,        /* 8-bit u-Law (non-linear PCM) with sample-level interleave (for blocks) */
