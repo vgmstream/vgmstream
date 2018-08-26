@@ -109,8 +109,6 @@ typedef struct {
 } ogg_vorbis_meta_info_t;
 
 VGMSTREAM * init_vgmstream_ogg_vorbis_callbacks(STREAMFILE *streamFile, ov_callbacks *callbacks, off_t other_header_bytes, const ogg_vorbis_meta_info_t *ovmi);
-
-VGMSTREAM * init_vgmstream_sli_ogg(STREAMFILE * streamFile);
 #endif
 
 VGMSTREAM * init_vgmstream_hca(STREAMFILE *streamFile);
@@ -129,7 +127,9 @@ VGMSTREAM * init_vgmstream_mp4_aac_offset(STREAMFILE *streamFile, uint64_t start
 VGMSTREAM * init_vgmstream_akb_mp4(STREAMFILE *streamFile);
 #endif
 
-VGMSTREAM * init_vgmstream_sfl(STREAMFILE * streamFile);
+VGMSTREAM * init_vgmstream_sli_ogg(STREAMFILE * streamFile);
+
+VGMSTREAM * init_vgmstream_sfl_ogg(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_sadb(STREAMFILE *streamFile);
 

@@ -60,9 +60,9 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_genh,
 #ifdef VGM_USE_VORBIS
     init_vgmstream_ogg_vorbis,
-    init_vgmstream_sli_ogg,
-    init_vgmstream_sfl,
 #endif
+    init_vgmstream_sli_ogg,
+    init_vgmstream_sfl_ogg,
 #if 0
     init_vgmstream_mp4_aac,
 #endif
