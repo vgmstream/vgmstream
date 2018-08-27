@@ -121,7 +121,7 @@
 				Optimization="2"
 				EnableIntrinsicFunctions="true"
 				AdditionalIncludeDirectories="..\ext_libs\Getopt;..\ext_includes"
-				PreprocessorDefinitions="WIN32;VGM_USE_G7221;NDEBUG;_CONSOLE"
+				PreprocessorDefinitions="WIN32;VGM_USE_VORBIS;VGM_USE_MPEG;VGM_USE_G7221;NDEBUG;_CONSOLE"
 				RuntimeLibrary="2"
 				EnableFunctionLevelLinking="true"
 				UsePrecompiledHeader="0"

@@ -40,13 +40,13 @@ VGMSTREAM * init_vgmstream_ps2_iab(STREAMFILE *streamFile) {
     {
         vgmstream->next_block_offset = start_offset;
         do {
-            block_update_ps2_iab(vgmstream->next_block_offset, vgmstream);
+            block_update(vgmstream->next_block_offset, vgmstream);
             vgmstream->num_samples += ps_bytes_to_samples(vgmstream->current_block_size, 1);
         }
         while (vgmstream->next_block_offset < get_streamfile_size(streamFile));
+        block_update(start_offset, vgmstream);
     }
 
-    block_update_ps2_iab(start_offset, vgmstream);
     return vgmstream;
 
 fail:

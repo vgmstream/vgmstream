@@ -35,7 +35,9 @@ VGMSTREAM * init_vgmstream_ngc_mpdsp(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_ngc_dsp_std_int(STREAMFILE *streamFile);
 
-VGMSTREAM * init_vgmstream_ngc_dsp_csmp(STREAMFILE *streamFile);
+VGMSTREAM * init_vgmstream_csmp(STREAMFILE *streamFile);
+
+VGMSTREAM * init_vgmstream_rfrm(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_ps2_ads(STREAMFILE *streamFile);
 VGMSTREAM * init_vgmstream_ps2_ads_container(STREAMFILE *streamFile);
@@ -59,13 +61,15 @@ VGMSTREAM * init_vgmstream_ps2_exst(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_ps2_svag(STREAMFILE *streamFile);
 
-VGMSTREAM * init_vgmstream_ps2_mib(STREAMFILE *streamFile);
+VGMSTREAM * init_vgmstream_ps_headerless(STREAMFILE *streamFile);
+
+VGMSTREAM * init_vgmstream_mib_mih(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_ps2_mic(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_raw(STREAMFILE *streamFile);
 
-VGMSTREAM * init_vgmstream_ps2_vag(STREAMFILE *streamFile);
+VGMSTREAM * init_vgmstream_vag(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_psx_gms(STREAMFILE *streamFile);
 
@@ -107,8 +111,6 @@ typedef struct {
 } ogg_vorbis_meta_info_t;
 
 VGMSTREAM * init_vgmstream_ogg_vorbis_callbacks(STREAMFILE *streamFile, ov_callbacks *callbacks, off_t other_header_bytes, const ogg_vorbis_meta_info_t *ovmi);
-
-VGMSTREAM * init_vgmstream_sli_ogg(STREAMFILE * streamFile);
 #endif
 
 VGMSTREAM * init_vgmstream_hca(STREAMFILE *streamFile);
@@ -127,7 +129,9 @@ VGMSTREAM * init_vgmstream_mp4_aac_offset(STREAMFILE *streamFile, uint64_t start
 VGMSTREAM * init_vgmstream_akb_mp4(STREAMFILE *streamFile);
 #endif
 
-VGMSTREAM * init_vgmstream_sfl(STREAMFILE * streamFile);
+VGMSTREAM * init_vgmstream_sli_ogg(STREAMFILE * streamFile);
+
+VGMSTREAM * init_vgmstream_sfl_ogg(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_sadb(STREAMFILE *streamFile);
 
@@ -562,8 +566,6 @@ VGMSTREAM * init_vgmstream_pc_adp_otns(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_eb_sfx(STREAMFILE* streamFile);
 VGMSTREAM * init_vgmstream_eb_sf0(STREAMFILE* streamFile);
-
-VGMSTREAM * init_vgmstream_ps3_klbs(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_ps2_mtaf(STREAMFILE* streamFile);
 

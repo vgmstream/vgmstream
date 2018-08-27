@@ -5,7 +5,7 @@
 
 ### main defs
 
-ifeq ($(TARGET_OS),WIN32)
+ifeq ($(TARGET_OS),Windows_NT)
   OUTPUT_CLI = test.exe
   OUTPUT_123 = vgmstream123.exe
 else
@@ -14,42 +14,38 @@ else
 endif
 
 # -DUSE_ALLOCA
-ifeq ($(TARGET_OS),WIN32)
+ifeq ($(TARGET_OS),Windows_NT)
   CFLAGS += -DWIN32
 endif
 
-CFLAGS += -Wall -O3 -DVAR_ARRAYS -I../ext_includes $(EXTRA_CFLAGS)
-LDFLAGS += -L../src -L../ext_libs -lm -lvgmstream $(EXTRA_LDFLAGS)
+CFLAGS += -Wall -Werror=format-security -Wdeclaration-after-statement -Wvla -O3 -DVAR_ARRAYS -I../ext_includes $(EXTRA_CFLAGS)
+LDFLAGS += -L../src -L../ext_libs -lvgmstream $(EXTRA_LDFLAGS) -lm
 TARGET_EXT_LIBS = 
 
 LIBAO_INC_PATH = ../../libao/include
 LIBAO_LIB_PATH = ../../libao/bin
 
 #ifdef VGM_DEBUG
-#  CFLAGS += -DVGM_DEBUG_OUTPUT -O0 -Werror=format-security -Wdeclaration-after-statement -Wvla
+#  CFLAGS += -DVGM_DEBUG_OUTPUT -O0
 #  CFLAGS += -Wold-style-definition -Woverflow -Wpointer-arith -Wstrict-prototypes -pedantic -std=gnu90 -fstack-protector -Wformat
 #endif
 
 
 ### external libs
-ifeq ($(TARGET_OS),WIN32)
+ifeq ($(TARGET_OS),Windows_NT)
 
 VGM_ENABLE_VORBIS = 1
 ifeq ($(VGM_ENABLE_VORBIS),1)
-  #CFLAGS  += -DVGM_USE_VORBIS
+  CFLAGS  += -DVGM_USE_VORBIS
   LDFLAGS += -lvorbis
   TARGET_EXT_LIBS += libvorbis.a
-else
-  CFLAGS  += -DVGM_DISABLE_VORBIS
 endif
 
 VGM_ENABLE_MPEG = 1
 ifeq ($(VGM_ENABLE_MPEG),1)
-  #CFLAGS  += -DVGM_USE_MPEG
+  CFLAGS  += -DVGM_USE_MPEG
   LDFLAGS += -lmpg123-0
   TARGET_EXT_LIBS += libmpg123-0.a
-else
-  CFLAGS  += -DVGM_DISABLE_MPEG
 endif
 
 VGM_ENABLE_G7221 = 1

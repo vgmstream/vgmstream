@@ -83,13 +83,15 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
 
 
     /* checks */
-    if (!check_extensions(streamFile,"xwb"))
+    /* .xwb: standard
+     * .xna: Touhou Makukasai ~ Fantasy Danmaku Festival (PC) */
+    if (!check_extensions(streamFile,"xwb,xna"))
         goto fail;
     if ((read_32bitBE(0x00,streamFile) != 0x57424E44) &&    /* "WBND" (LE) */
         (read_32bitBE(0x00,streamFile) != 0x444E4257))      /* "DNBW" (BE) */
         goto fail;
 
-    xwb.little_endian = read_32bitBE(0x00,streamFile) == 0x57424E44;/* WBND */
+    xwb.little_endian = read_32bitBE(0x00,streamFile) == 0x57424E44; /* WBND */
     if (xwb.little_endian) {
         read_32bit = read_32bitLE;
     } else {

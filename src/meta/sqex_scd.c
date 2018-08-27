@@ -257,11 +257,12 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
             vgmstream->loop_start_sample = mpeg_bytes_to_samples(loop_start, mpeg_data);
             vgmstream->loop_end_sample = mpeg_bytes_to_samples(loop_end, mpeg_data);
 
-            //todo find if this actually helps
-            vgmstream->num_samples -= vgmstream->num_samples%576;
-            vgmstream->loop_start_sample -= vgmstream->loop_start_sample%576;
-            vgmstream->loop_end_sample -= vgmstream->loop_end_sample%576;
-
+            /* somehow loops offsets aren't always frame-aligned, and the code below supposedly helped,
+             * but there isn't much difference since MPEG loops are rough (1152-aligned). Seems it
+             * would help more loop_start - ~1000, loop_end + ~1000 (ex. FFXIII-2 music_SunMizu.ps3.scd) */
+            //vgmstream->num_samples -= vgmstream->num_samples % 576;
+            //vgmstream->loop_start_sample -= vgmstream->loop_start_sample % 576;
+            //vgmstream->loop_end_sample -= vgmstream->loop_end_sample % 576;
             break;
         }
 #endif

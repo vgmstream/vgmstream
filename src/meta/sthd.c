@@ -28,8 +28,9 @@ VGMSTREAM * init_vgmstream_sthd(STREAMFILE *streamFile) {
     vgmstream = allocate_vgmstream(channel_count, loop_flag);
     if (!vgmstream) goto fail;
 
-    vgmstream->sample_rate = read_32bitLE(0x20, streamFile); /* repeated ~8 times? */
     vgmstream->meta_type = meta_STHD;
+    vgmstream->sample_rate = read_32bitLE(0x20, streamFile); /* repeated ~8 times? */
+
     vgmstream->coding_type = coding_XBOX_IMA_int;
     vgmstream->layout_type = layout_blocked_sthd;
 
@@ -45,8 +46,7 @@ VGMSTREAM * init_vgmstream_sthd(STREAMFILE *streamFile) {
 
         vgmstream->next_block_offset = start_offset;
         do {
-            block_update_sthd(vgmstream->next_block_offset,vgmstream);
-
+            block_update(vgmstream->next_block_offset,vgmstream);
             if (block_count == loop_start_block)
                 vgmstream->loop_start_sample = vgmstream->num_samples;
             if (block_count == loop_end_block)
@@ -56,9 +56,8 @@ VGMSTREAM * init_vgmstream_sthd(STREAMFILE *streamFile) {
             block_count++;
         }
         while (vgmstream->next_block_offset < get_streamfile_size(streamFile));
+        block_update(start_offset, vgmstream);
     }
-
-    block_update_sthd(start_offset, vgmstream);
 
     return vgmstream;
 

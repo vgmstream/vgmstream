@@ -9,10 +9,10 @@ VGMSTREAM * init_vgmstream_xbox_xvas(STREAMFILE *streamFile) {
     int loop_flag, channel_count;
     size_t data_size;
 
-    /* check extension */
+
+    /* checks */
     if (!check_extensions(streamFile,"xvas"))
         goto fail;
-
     if (read_32bitLE(0x00,streamFile) != 0x69 && /* codec */
         read_32bitLE(0x08,streamFile) != 0x48)   /* block size (probably 0x24 for mono) */
         goto fail;
@@ -23,10 +23,12 @@ VGMSTREAM * init_vgmstream_xbox_xvas(STREAMFILE *streamFile) {
     data_size = read_32bitLE(0x24,streamFile);
     data_size -= (data_size / 0x20000) * 0x20; /* blocks of 0x20000 with padding */
 
+
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
+    vgmstream->meta_type = meta_XBOX_XVAS;
     vgmstream->sample_rate = read_32bitLE(0x0c,streamFile);
     vgmstream->num_samples = xbox_ima_bytes_to_samples(data_size, vgmstream->channels);
     if(loop_flag) {
@@ -38,12 +40,9 @@ VGMSTREAM * init_vgmstream_xbox_xvas(STREAMFILE *streamFile) {
 
     vgmstream->coding_type = coding_XBOX_IMA;
     vgmstream->layout_type = layout_blocked_xvas;
-    vgmstream->meta_type = meta_XBOX_XVAS;
 
     if (!vgmstream_open_stream(vgmstream, streamFile, start_offset))
         goto fail;
-
-    block_update_xvas(start_offset,vgmstream);
     return vgmstream;
 
 fail:

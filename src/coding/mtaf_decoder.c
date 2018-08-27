@@ -125,7 +125,7 @@ static void mtaf_block_update(VGMSTREAMCHANNEL * stream) {
 }
 #endif
 
-void decode_mtaf(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel, int channels) {
+void decode_mtaf(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
     int32_t sample_count;
     int i;
     int c = channel%2; /* global channel to track channel */

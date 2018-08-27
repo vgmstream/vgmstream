@@ -93,7 +93,7 @@ typedef struct {
 
     int big_endian;
     int loop_flag;
-    int codec_version;
+    int codec_config;
 } ea_header;
 
 static VGMSTREAM * parse_schl_block(STREAMFILE *streamFile, off_t offset, int total_streams);
@@ -447,7 +447,7 @@ static VGMSTREAM * parse_schl_block(STREAMFILE *streamFile, off_t offset, int to
 
     if (guess_endianness32bit(offset + 0x04, streamFile)) { /* size is always LE, except in early SS/MAC */
         header_size = read_32bitBE(offset + 0x04, streamFile);
-        ea.codec_version |= 0x02;
+        ea.codec_config |= 0x02;
     }
     else {
         header_size = read_32bitLE(offset + 0x04, streamFile);
@@ -573,7 +573,7 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE *streamFile, ea_
     vgmstream->loop_end_sample = ea->loop_end;
 
     vgmstream->codec_endian = ea->big_endian;
-    vgmstream->codec_version = ea->codec_version;
+    vgmstream->codec_config = ea->codec_config;
 
     vgmstream->meta_type = is_bnk ? meta_EA_BNK : meta_EA_SCHL;
 
@@ -1120,7 +1120,7 @@ static int parse_variable_header(STREAMFILE* streamFile, ea_header* ea, off_t be
     if (!is_bnk) {
         if (ea->codec2 == EA_CODEC2_GCADPCM) {
             if (ea->platform == EA_PLATFORM_3DS)
-                ea->codec_version |= 0x01;
+                ea->codec_config |= 0x01;
         }
         else if (ea->codec2 == EA_CODEC2_EAXA) {
             /* EA-XA has ADPCM hist in earlier versions */
@@ -1128,11 +1128,11 @@ static int parse_variable_header(STREAMFILE* streamFile, ea_header* ea, off_t be
             /* V2: consoles only */
             /* V3: never */
             if (ea->version <= EA_VERSION_V1) {
-                ea->codec_version |= 0x01;
+                ea->codec_config |= 0x01;
             }
             else if (ea->version == EA_VERSION_V2) {
                 if (ea->platform == EA_PLATFORM_PS2 || ea->platform == EA_PLATFORM_GC_WII || ea->platform == EA_PLATFORM_XBOX)
-                    ea->codec_version |= 0x01;
+                    ea->codec_config |= 0x01;
             }
         }
     }

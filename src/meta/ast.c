@@ -2,82 +2,60 @@
 #include "../layout/layout.h"
 #include "../util.h"
 
+/* .AST - from Nintendo games [Super Mario Galaxy (Wii), Pac-Man Vs (GC)] */
 VGMSTREAM * init_vgmstream_ast(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[PATH_LIMIT];
-
-    coding_t coding_type;
-
-    int codec_number;
-    int channel_count;
-    int loop_flag;
+    off_t start_offset;
+    int loop_flag, channel_count, codec;
 
 
-    /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("ast",filename_extension(filename))) goto fail;
-
-    /* check header */
-    if ((uint32_t)read_32bitBE(0,streamFile)!=0x5354524D || /* "STRM" */
-            read_16bitBE(0xa,streamFile)!=0x10 ||
-            /* check that file = header (0x40) + data */
-            read_32bitBE(4,streamFile)+0x40!=get_streamfile_size(streamFile))
+    /* checks */
+    if (!check_extensions(streamFile, "ast"))
         goto fail;
-    
-    /* check for a first block */
-    if (read_32bitBE(0x40,streamFile)!=0x424C434B)  /* "BLCK" */
+    if (read_32bitBE(0x00,streamFile) != 0x5354524D) /* "STRM" */
+        goto fail;
+    if (read_16bitBE(0x0a,streamFile) != 0x10) /* ? */
         goto fail;
 
-    /* check type details */
-    codec_number = read_16bitBE(8,streamFile);
-    loop_flag = read_16bitBE(0xe,streamFile);
-    channel_count = read_16bitBE(0xc,streamFile);
-    /*max_block = read_32bitBE(0x20,streamFile);*/
+    if (read_32bitBE(0x04,streamFile)+0x40 != get_streamfile_size(streamFile))
+        goto fail;
+    codec         = read_16bitBE(0x08,streamFile);
+    channel_count = read_16bitBE(0x0c,streamFile);
+    loop_flag     = read_16bitBE(0x0e,streamFile);
+    //max_block   = read_32bitBE(0x20,streamFile);
 
-    switch (codec_number) {
-        case 0:
-            coding_type = coding_NGC_AFC;
+    start_offset = 0x40;
+    if (read_32bitBE(start_offset,streamFile) != 0x424C434B)  /* "BLCK" */
+        goto fail;
+
+
+    /* build the VGMSTREAM */
+    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+    if (!vgmstream) goto fail;
+
+    vgmstream->meta_type = meta_AST;
+    vgmstream->sample_rate = read_32bitBE(0x10,streamFile);
+    vgmstream->num_samples = read_32bitBE(0x14,streamFile);
+    vgmstream->loop_start_sample = read_32bitBE(0x18,streamFile);
+    vgmstream->loop_end_sample = read_32bitBE(0x1c,streamFile);
+
+    vgmstream->layout_type = layout_blocked_ast;
+    switch (codec) {
+        case 0x00: /* , Pikmin 2 (GC) */
+            vgmstream->coding_type = coding_NGC_AFC;
             break;
-        case 1:
-            coding_type = coding_PCM16BE;
+        case 0x01: /* Mario Kart: Double Dash!! (GC) */
+            vgmstream->coding_type = coding_PCM16BE;
             break;
         default:
             goto fail;
     }
 
-    /* build the VGMSTREAM */
-
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
-    if (!vgmstream) goto fail;
-
-    /* fill in the vital statistics */
-    vgmstream->num_samples = read_32bitBE(0x14,streamFile);
-    vgmstream->sample_rate = read_32bitBE(0x10,streamFile);
-    /* channels and loop flag are set by allocate_vgmstream */
-    vgmstream->loop_start_sample = read_32bitBE(0x18,streamFile);
-    vgmstream->loop_end_sample = read_32bitBE(0x1c,streamFile);
-
-    vgmstream->coding_type = coding_type;
-    vgmstream->layout_type = layout_blocked_ast;
-    vgmstream->meta_type = meta_AST;
-
-    /* open the file for reading by each channel */
-    {
-        int i;
-        for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-
-            if (!vgmstream->ch[i].streamfile) goto fail;
-        }
-    }
-
-    /* start me up */
-    block_update_ast(0x40,vgmstream);
-
+    if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
+        goto fail;
     return vgmstream;
 
-    /* clean up anything we may have opened */
 fail:
-    if (vgmstream) close_vgmstream(vgmstream);
+    close_vgmstream(vgmstream);
     return NULL;
 }

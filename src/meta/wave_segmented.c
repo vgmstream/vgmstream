@@ -134,6 +134,7 @@ VGMSTREAM * init_vgmstream_wave_segmented(STREAMFILE *streamFile) {
                     break;
                 }
 
+#ifdef VGM_USE_VORBIS
                 case 0x04: { /* "vorbis" */
                     ogg_vorbis_meta_info_t ovmi = {0};
 
@@ -153,6 +154,7 @@ VGMSTREAM * init_vgmstream_wave_segmented(STREAMFILE *streamFile) {
 
                     break;
                 }
+#endif
 
                 default: /* others: s16be/s16le/mp3 as referenced in the exe? */
                     VGM_LOG("WAVE: unknown codec\n");
@@ -205,10 +207,7 @@ VGMSTREAM * init_vgmstream_wave_segmented(STREAMFILE *streamFile) {
     /* .wave can mix codecs, usually first segment is a small ADPCM section) */
     vgmstream->coding_type = (segment_count == 1 ? data->segments[0]->coding_type : data->segments[1]->coding_type);
     vgmstream->layout_type = layout_segmented;
-
     vgmstream->layout_data = data;
-    if (loop_flag)
-        data->loop_segment = (loop_start_segment);
 
     return vgmstream;
 

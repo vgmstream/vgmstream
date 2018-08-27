@@ -180,10 +180,7 @@ VGMSTREAM * init_vgmstream_txtp(STREAMFILE *streamFile) {
         vgmstream->meta_type = meta_TXTP;
         vgmstream->coding_type = data_s->segments[0]->coding_type;
         vgmstream->layout_type = layout_segmented;
-
         vgmstream->layout_data = data_s;
-        if (loop_flag)
-            data_s->loop_segment = txtp->loop_start_segment-1;
     }
 
 
@@ -422,7 +419,7 @@ static txtp_header* parse_txtp(STREAMFILE* streamFile) {
 
 
     /* skip BOM if needed */
-    if (read_16bitLE(0x00, streamFile) == 0xFFFE || read_16bitLE(0x00, streamFile) == 0xFEFF)
+    if ((uint16_t)read_16bitLE(0x00, streamFile) == 0xFFFE || (uint16_t)read_16bitLE(0x00, streamFile) == 0xFEFF)
         txt_offset = 0x02;
 
     /* read lines */

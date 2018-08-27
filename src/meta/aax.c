@@ -15,7 +15,7 @@ VGMSTREAM * init_vgmstream_aax(STREAMFILE *streamFile) {
 
     int loop_flag = 0, channel_count = 0;
     int32_t sample_count, loop_start_sample = 0, loop_end_sample = 0;
-    int segment_count, loop_segment = 0;
+    int segment_count;
 
     segmented_layout_data *data = NULL;
     int table_error = 0;
@@ -102,7 +102,6 @@ VGMSTREAM * init_vgmstream_aax(STREAMFILE *streamFile) {
 
         if (!loop_flag && segment_loop_flag) {
             loop_start_sample = sample_count;
-            loop_segment = i;
         }
 
         sample_count += data->segments[i]->num_samples;
@@ -130,7 +129,6 @@ VGMSTREAM * init_vgmstream_aax(STREAMFILE *streamFile) {
     vgmstream->layout_type = layout_segmented;
 
     vgmstream->layout_data = data;
-    data->loop_segment = loop_segment;
 
     return vgmstream;
 

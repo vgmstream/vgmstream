@@ -10,19 +10,10 @@ enum { STREAM_NAME_SIZE = 255 }; /* reasonable max */
 
 #include "streamfile.h"
 
-/* Due mostly to licensing issues, Vorbis, MPEG, G.722.1, etc decoding is
- * done by external libraries.
- * If someone wants to do a standalone build, they can do it by simply
- * removing these defines (and the references to the libraries in the Makefile) */
-#ifndef VGM_DISABLE_VORBIS
-#define VGM_USE_VORBIS
-#endif
-
-#ifndef VGM_DISABLE_MPEG
-#define VGM_USE_MPEG
-#endif
-
-/* disabled by default, defined on compile-time for builds that support it */
+/* Due mostly to licensing issues, Vorbis, MPEG, G.722.1, etc decoding is done by external libraries.
+ * Libs are disabled by default, defined on compile-time for builds that support it */
+//#define VGM_USE_VORBIS
+//#define VGM_USE_MPEG
 //#define VGM_USE_G7221
 //#define VGM_USE_G719
 //#define VGM_USE_MP4V2
@@ -86,7 +77,7 @@ typedef enum {
     coding_PCM8_int,        /* 8-bit PCM with sample-level interleave (for blocks) */
     coding_PCM8_U,          /* 8-bit PCM, unsigned (0x80 = 0) */
     coding_PCM8_U_int,      /* 8-bit PCM, unsigned (0x80 = 0) with sample-level interleave (for blocks) */
-    coding_PCM8_SB_int,     /* 8-bit PCM, sign bit (others are 2's complement) with sample-level interleave (for blocks) */
+    coding_PCM8_SB,         /* 8-bit PCM, sign bit (others are 2's complement) */
 
     coding_ULAW,            /* 8-bit u-Law (non-linear PCM) */
     coding_ULAW_int,        /* 8-bit u-Law (non-linear PCM) with sample-level interleave (for blocks) */
@@ -277,13 +268,14 @@ typedef enum {
 /* The meta type specifies how we know what we know about the file.
  * We may know because of a header we read, some of it may have been guessed from filenames, etc. */
 typedef enum {
-    /* DSP-specific */
+
     meta_DSP_STD,           /* Nintendo standard GC ADPCM (DSP) header */
-    meta_DSP_CSMP,          /* Retro: Metroid Prime 3, Donkey Kong Country Returns */
     meta_DSP_CSTR,          /* Star Fox Assault "Cstr" */
     meta_DSP_RS03,          /* Retro: Metroid Prime 2 "RS03" */
     meta_DSP_STM,           /* Paper Mario 2 STM */
-    meta_DSP_AGSC,          /* Retro: Metroid Prime 2 title */
+    meta_AGSC,              /* Retro: Metroid Prime 2 title */
+    meta_CSMP,              /* Retro: Metroid Prime 3 (Wii), Donkey Kong Country Returns (Wii) */
+    meta_RFRM,              /* Retro: Donkey Kong Country Tropical Freeze (Wii U) */
     meta_DSP_MPDSP,         /* Monopoly Party single header stereo */
     meta_DSP_JETTERS,       /* Bomberman Jetters .dsp */
     meta_DSP_MSS,           /* Free Radical GC games */
@@ -298,7 +290,6 @@ typedef enum {
     meta_DSP_YGO,           /* Konami: Yu-Gi-Oh! The Falsebound Kingdom (NGC), Hikaru no Go 3 (NGC) */
     meta_DSP_SADF,          /* Procyon Studio SADF - Xenoblade Chronicles 2 (Switch) */
 
-    /* Nintendo */
     meta_STRM,              /* Nintendo STRM */
     meta_RSTM,              /* Nintendo RSTM (Revolution Stream, similar to STRM) */
     meta_AFC,               /* AFC */
@@ -340,18 +331,16 @@ typedef enum {
     meta_PS2_RAW,           /* RAW Interleaved Format */
     meta_PS2_EXST,          /* Shadow of Colossus EXST */
     meta_PS2_SVAG,          /* Konami SVAG */
-    meta_PS2_MIB,           /* MIB File */
+    meta_PS_HEADERLESS,     /* headerless PS-ADPCM */
     meta_PS2_MIB_MIH,       /* MIB File + MIH Header*/
     meta_PS2_MIC,           /* KOEI MIC File */
     meta_PS2_VAGi,          /* VAGi Interleaved File */
     meta_PS2_VAGp,          /* VAGp Mono File */
-    meta_PS2_VAGm,          /* VAGp Mono File */
     meta_PS2_pGAV,          /* VAGp with Little Endian Header */
     meta_PSX_GMS,           /* GMS File (used in PS1 & PS2) [no header_id] */
     meta_STR_WAV,           /* Blitz Games STR+WAV files */
     meta_PS2_ILD,           /* ILD File */
     meta_PS2_PNB,           /* PsychoNauts Bgm File */
-    meta_PS2_VAGs,          /* VAG Stereo from Kingdom Hearts */
     meta_VPK,               /* VPK Audio File */
     meta_PS2_BMDX,          /* Beatmania thing */
     meta_PS2_IVB,           /* Langrisser 3 IVB */
@@ -592,7 +581,6 @@ typedef enum {
     meta_OTNS_ADP,          /* Omikron: The Nomad Soul .adp (PC/DC) */
     meta_EB_SFX,            /* Excitebots .sfx */
     meta_EB_SF0,            /* Excitebots .sf0 */
-    meta_PS3_KLBS,          /* L@VE ONCE (PS3) */
     meta_PS2_MTAF,          /* Metal Gear Solid 3 MTAF */
     meta_PS2_VAG1,          /* Metal Gear Solid 3 VAG1 */
     meta_PS2_VAG2,          /* Metal Gear Solid 3 VAG2 */
@@ -769,10 +757,11 @@ typedef struct {
     int num_streams;            /* for multi-stream formats (0=not set/one stream, 1=one stream) */
     int stream_index;           /* selected stream (also 1-based) */
     char stream_name[STREAM_NAME_SIZE]; /* name of the current stream (info), if the file stores it and it's filled */
-    size_t stream_size;         /* info to properly calculate bitrate */
+    size_t stream_size;         /* info to properly calculate bitrate in case of subsongs */
     uint32_t channel_mask;      /* to silence crossfading subsongs/layers */
     int channel_mappings_on;    /* channel mappings are active */
     int channel_mappings[32];   /* swap channel "i" with "[i]" */
+    int allow_dual_stereo;      /* search for dual stereo (file_L.ext + file_R.ext = single stereo file) */
 
     /* looping */
     int loop_flag;              /* is this stream looped? */
@@ -790,8 +779,8 @@ typedef struct {
 
     /* layout/block state */
     size_t full_block_size;         /* actual data size of an entire block (ie. may be fixed, include padding/headers, etc) */
-    int32_t current_sample;         /* number of samples we've passed */
-    int32_t samples_into_block;     /* number of samples into the current block */
+    int32_t current_sample;         /* number of samples we've passed (for loop detection) */
+    int32_t samples_into_block;     /* number of samples into the current block/interleave/segment/etc */
     off_t current_block_offset;     /* start of this block (offset of block header) */
     size_t current_block_size;      /* size in usable bytes of the block we're in now (used to calculate num_samples per block) */
     size_t current_block_samples;   /* size in samples of the block we're in now (used over current_block_size if possible) */
@@ -812,11 +801,11 @@ typedef struct {
 
     /* decoder specific */
     int codec_endian;               /* little/big endian marker; name is left vague but usually means big endian */
-    int codec_version;              /* flag for codecs with minor variations */
+    int codec_config;               /* flags for codecs or layouts with minor variations; meaning is up to the user */
 
     int32_t ws_output_size;         /* WS ADPCM: output bytes for this block */
 
-    void * start_vgmstream;         /* a copy of the VGMSTREAM as it was at the beginning of the stream (for AAX/AIX/SCD) */
+    void * start_vgmstream;         /* a copy of the VGMSTREAM as it was at the beginning of the stream (for custom layouts) */
 
     /* Data the codec needs for the whole stream. This is for codecs too
      * different from vgmstream's structure to be reasonably shoehorned into
@@ -824,9 +813,7 @@ typedef struct {
      * Note also that support must be added for resetting, looping and
      * closing for every codec that uses this, as it will not be handled. */
     void * codec_data;
-    /* Same, for special layouts.
-     * Reusing the above pointer causes bugs when it's using special layout + codec
-     * (vgmstream may try to free/loop/etc codec_data). */
+    /* Same, for special layouts. layout_data + codec_data may exist at the same time. */
     void * layout_data;
 } VGMSTREAM;
 
@@ -1032,39 +1019,13 @@ typedef struct {
 #endif
 
 #ifdef VGM_USE_ATRAC9
-
-/* custom ATRAC9 modes */
-typedef enum {
-    ATRAC9_DEFAULT = 0, /* ATRAC9 standard */
-    ATRAC9_XVAG,        /* Sony XVAG: interleaved subsongs, Vita multichannel interleaves 2ch xN superframes */
-    ATRAC9_KMA9,        /* Koei Tecmo KMA9: interleaved subsongs */
-} atrac9_custom_t;
-
+/* ATRAC9 config */
 typedef struct {
-    atrac9_custom_t type;
-
-    int channels; /* to detect weird multichannel */
-    uint32_t config_data; /* ATRAC9 config header */
-    int encoder_delay; /* initial samples to discard */
-
-    size_t interleave_skip; /* XVAG */
-    size_t subsong_skip; /* XVAG */
+    int channels;           /* to detect weird multichannel */
+    uint32_t config_data;   /* ATRAC9 config header */
+    int encoder_delay;      /* initial samples to discard */
 } atrac9_config;
-
-typedef struct {
-    uint8_t *data_buffer;
-    size_t data_buffer_size;
-
-    sample *sample_buffer;
-    size_t samples_filled; /* number of samples in the buffer */
-    size_t samples_used; /* number of samples extracted from the buffer */
-
-    int samples_to_discard;
-
-    atrac9_config config;
-
-    void *handle; /* decoder handle */
-} atrac9_codec_data;
+typedef struct atrac9_codec_data atrac9_codec_data;
 #endif
 
 #ifdef VGM_USE_CELT
@@ -1096,7 +1057,6 @@ typedef struct {
     int segment_count;
     VGMSTREAM **segments;
     int current_segment;
-    int loop_segment;
 } segmented_layout_data;
 
 /* for files made of "horizontal" layers, one per group of channels (using a complete sub-VGMSTREAM) */
@@ -1128,7 +1088,6 @@ typedef struct {
 typedef enum {
     FFMPEG_STANDARD,        /* default FFmpeg */
     FFMPEG_SWITCH_OPUS,     /* Opus without Ogg layer */
-    FFMPEG_EA_XMA,          /* XMA with padding removed and custom streams in SNS blocks */
 } ffmpeg_custom_t;
 
 /* config for the above modes */

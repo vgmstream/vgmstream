@@ -2,141 +2,184 @@
 #define _EA_EAAC_STREAMFILE_H_
 #include "../streamfile.h"
 
+#define XMA_FRAME_SIZE 0x800
 
 typedef struct {
-    /* state */
-    off_t logical_offset; /* offset that corresponds to physical_offset */
-    off_t physical_offset; /* actual file offset */
-
     /* config */
     int version;
     int codec;
     int streamed;
-    off_t start_offset;
-    size_t total_size; /* size of the resulting substream */
+    int stream_number;
+    int stream_count;
+    off_t stream_offset;
+
+    /* state */
+    off_t logical_offset;   /* offset that corresponds to physical_offset */
+    off_t physical_offset;  /* actual file offset */
+
+    uint32_t block_flag;    /* current block flags */
+    size_t block_size;      /* current block size */
+    size_t skip_size;       /* size to skip from a block start to reach data start */
+    size_t data_size;       /* logical size of the block */
+    size_t extra_size;      /* extra padding/etc size of the block */
+
+    size_t logical_size;
 } eaac_io_data;
 
 
 /* Reads skipping EA's block headers, so the resulting data is smaller or larger than physical data.
- * physical/logical_offset should always be at the start of a block and only advance when a block is fully done */
+ * physical/logical_offset will be at the start of a block and only advance when a block is done */
 static size_t eaac_io_read(STREAMFILE *streamfile, uint8_t *dest, off_t offset, size_t length, eaac_io_data* data) {
     size_t total_read = 0;
 
     /* ignore bad reads */
-    if (offset < 0 || offset > data->total_size) {
+    if (offset < 0 || offset > data->logical_size) {
         return total_read;
     }
 
     /* previous offset: re-start as we can't map logical<>physical offsets
      * (kinda slow as it trashes buffers, but shouldn't happen often) */
     if (offset < data->logical_offset) {
-        data->physical_offset = data->start_offset;
+        data->physical_offset = data->stream_offset;
         data->logical_offset = 0x00;
+        data->data_size = 0;
+        data->extra_size = 0;
     }
 
-    /* read doing one EA block at a time */
+    /* read blocks, one at a time */
     while (length > 0) {
-        size_t to_read, bytes_read;
-        off_t intrablock_offset, intradata_offset;
-        uint32_t block_flag, block_size, data_size, skip_size;
 
-        block_flag = (uint8_t)read_8bit(data->physical_offset+0x00,streamfile);
-        block_size = read_32bitBE(data->physical_offset+0x00,streamfile) & 0x00FFFFFF;
-
-        if (data->version == 1 && block_flag == 0x48) {
-            data->physical_offset += block_size;
-            continue; /* skip header block */
+        /* ignore EOF (implicitly handles block end flags) */
+        if (data->logical_offset >= data->logical_size) {
+            break;
         }
-        if (data->version == 1 && block_flag == 0x45)
-            break; /* stop on last block (always empty) */
 
-        switch(data->codec) {
+        /* process new block */
+        if (data->data_size == 0) {
+            data->block_flag = (uint8_t)read_8bit(data->physical_offset+0x00,streamfile);
+            data->block_size = read_32bitBE(data->physical_offset+0x00,streamfile) & 0x00FFFFFF;
+
+            /* ignore header block */
+            if (data->version == 1 && data->block_flag == 0x48) {
+                data->physical_offset += data->block_size;
+                continue;
+            }
+
+            switch(data->codec) {
+                case 0x03: { /* EA-XMA */
+                    /* block format: 0x04=num-samples, (size*4 + N XMA packets) per stream (with 1/2ch XMA headers) */
+                    int i;
+
+                    data->skip_size = 0x04 + 0x04;
+                    for (i = 0; i < data->stream_number; i++) {
+                        data->skip_size += read_32bitBE(data->physical_offset+data->skip_size, streamfile) / 4;
+                    }
+                    data->data_size = read_32bitBE(data->physical_offset+data->skip_size, streamfile) / 4; /* why size*4...? */
+                    data->skip_size += 0x04; /* skip mini header */
+                    data->data_size -= 0x04; /* remove mini header */
+                    if (data->data_size % XMA_FRAME_SIZE)
+                        data->extra_size = XMA_FRAME_SIZE - (data->data_size % XMA_FRAME_SIZE);
+                    break;
+                }
+
+                case 0x05: /* EALayer3 v1 */
+                case 0x06: /* EALayer3 v2 "PCM" */
+                case 0x07: /* EALayer3 v2 "Spike" */
+                    data->skip_size = 0x08;
+                    data->data_size = data->block_size - data->skip_size;
+                    break;
+
+                case 0x0a: /* EATrax */
+                    data->skip_size = 0x08;
+                    data->data_size = read_32bitBE(data->physical_offset+0x04,streamfile); /* also block_size - 0x08 */
+                    break;
 #if 0
-            case 0x03:
-                data_size = block_size - ???;
-                extra_size = (data_size % 0x800); /* deflated padding */
-
-
-                skip_size = 0x08 + 0x04*data->stream_count;
-                break;
+                case 0x0c: /* EA Opus */
+                    data->skip_size = 0x08;
+                    data->data_size = data->block_size - data->skip_size;
+                    break;
 #endif
-
-            case 0x05: /* EALayer3 v1 */
-            case 0x06: /* EALayer3 v2 "PCM" */
-            case 0x07: /* EALayer3 v2 "Spike" */
-                data_size = block_size - 0x08;
-                skip_size = 0x08;
-                break;
-
-            case 0x0a: /* EATrax */
-                data_size = read_32bitBE(data->physical_offset+0x04,streamfile); /* should be block_size - 0x08 */
-                skip_size = 0x08;
-                break;
-
-            default:
-                return total_read;
+                default:
+                    return total_read;
+            }
         }
 
-        /* requested offset is outside current block, try next */
-        if (offset >= data->logical_offset + data_size) {
-            data->physical_offset += block_size;
-            data->logical_offset += data_size;
+        /* move to next block */
+        if (offset >= data->logical_offset + data->data_size + data->extra_size) {
+            data->physical_offset += data->block_size;
+            data->logical_offset += data->data_size + data->extra_size;
+            data->data_size = 0;
+            data->extra_size = 0;
             continue;
         }
 
-        /* reads could fall in the middle of the block */
-        intradata_offset = offset - data->logical_offset;
-        intrablock_offset = skip_size + intradata_offset;
+        /* read data */
+        {
+            size_t bytes_consumed, bytes_done, to_read;
 
-        /* clamp reads up to this block's end */
-        to_read = (data_size - intradata_offset);
-        if (to_read > length)
-            to_read = length;
-        if (to_read == 0)
-            break; /* should never happen... */
+            bytes_consumed = offset - data->logical_offset;
 
-        /* finally read and move buffer/offsets */
-        bytes_read = read_streamfile(dest, data->physical_offset + intrablock_offset, to_read, streamfile);
-        total_read += bytes_read;
-        if (bytes_read != to_read)
-            break; /* couldn't read fully */
+            switch(data->codec) {
+                case 0x03: { /* EA-XMA */
+                    if (bytes_consumed < data->data_size) { /* offset falls within actual data */
+                        to_read = data->data_size - bytes_consumed;
+                        if (to_read > length)
+                            to_read = length;
+                        bytes_done = read_streamfile(dest, data->physical_offset + data->skip_size + bytes_consumed, to_read, streamfile);
+                    }
+                    else { /* offset falls within logical padded data */
+                        to_read = data->data_size + data->extra_size - bytes_consumed;
+                        if (to_read > length)
+                            to_read = length;
+                        memset(dest, 0xFF, to_read); /* no real need though, padding is ignored */
+                        bytes_done = to_read;
+                    }
+                    break;
+                }
 
-        dest += bytes_read;
-        offset += bytes_read;
-        length -= bytes_read;
+                default:
+                    to_read = data->data_size - bytes_consumed;
+                    if (to_read > length)
+                        to_read = length;
+                    bytes_done = read_streamfile(dest, data->physical_offset + data->skip_size + bytes_consumed, to_read, streamfile);
+                    break;
+            }
 
-        /* block fully read, go next */
-        if (intradata_offset + bytes_read == data_size) {
-            data->physical_offset += block_size;
-            data->logical_offset += data_size;
+            total_read += bytes_done;
+            dest += bytes_done;
+            offset += bytes_done;
+            length -= bytes_done;
+
+            if (bytes_done != to_read || bytes_done == 0) {
+                break; /* error/EOF */
+            }
         }
-
-        if (data->version == 0 && (!data->streamed || block_flag == 0x80))
-            break; /* stop on last block */
     }
 
     return total_read;
 }
 
+
 static size_t eaac_io_size(STREAMFILE *streamfile, eaac_io_data* data) {
     off_t physical_offset, max_physical_offset;
-    size_t total_size = 0;
+    size_t logical_size = 0;
 
-    if (data->total_size)
-        return data->total_size;
+    if (data->logical_size)
+        return data->logical_size;
 
-    physical_offset = data->start_offset;
+    physical_offset = data->stream_offset;
     max_physical_offset = get_streamfile_size(streamfile);
 
-    /* get size of the underlying, non-blocked data */
+    /* get size of the logical stream */
     while (physical_offset < max_physical_offset) {
-        uint32_t block_flag, block_size, data_size;
+        uint32_t block_flag, block_size, data_size, skip_size;
+        int i;
 
         block_flag = (uint8_t)read_8bit(physical_offset+0x00,streamfile);
         block_size = read_32bitBE(physical_offset+0x00,streamfile) & 0x00FFFFFF;
 
         if (data->version == 0 && block_flag != 0x00 && block_flag != 0x80)
-            break; /* data/end block expected */
+            break; /* unknown block */
 
         if (data->version == 1 && block_flag == 0x48) {
             physical_offset += block_size;
@@ -145,15 +188,21 @@ static size_t eaac_io_size(STREAMFILE *streamfile, eaac_io_data* data) {
         if (data->version == 1 && block_flag == 0x45)
             break; /* stop on last block (always empty) */
         if (data->version == 1 && block_flag != 0x44)
-            break; /* data block expected */
+            break; /* unknown block */
 
         switch(data->codec) {
-#if 0
-            case 0x03:
-                data_size = block_size - ???;
-                data_size += (data_size % 0x800); /* deflated padding */
+            case 0x03: /* EA-XMA */
+                skip_size = 0x04 + 0x04;
+                for (i = 0; i < data->stream_number; i++) {
+                    skip_size += read_32bitBE(physical_offset + skip_size, streamfile) / 4; /* why size*4...? */
+                }
+                data_size = read_32bitBE(physical_offset + skip_size, streamfile) / 4;
+                skip_size += 0x04; /* skip mini header */
+                data_size -= 0x04; /* remove mini header */
+                if (data_size % XMA_FRAME_SIZE)
+                    data_size += XMA_FRAME_SIZE - (data_size % XMA_FRAME_SIZE); /* extra padding */
                 break;
-#endif
+
             case 0x05: /* EALayer3 v1 */
             case 0x06: /* EALayer3 v2 "PCM" */
             case 0x07: /* EALayer3 v2 "Spike" */
@@ -161,46 +210,62 @@ static size_t eaac_io_size(STREAMFILE *streamfile, eaac_io_data* data) {
                 break;
 
             case 0x0a: /* EATrax */
-                data_size = read_32bitBE(physical_offset+0x04,streamfile); /* should be block_size - 0x08 */
+                data_size = read_32bitBE(physical_offset+0x04,streamfile); /* also block_size - 0x08 */
                 break;
+#if 0
+            case 0x0c: { /* EAOpus */
+                size_t done;
+                data_size = 0;
+                while (done < block_size - 0x08) {
+                    size_t packet_size = read_16bitBE(physical_offset+0x08+done,streamfile);
+                    done += 0x02 + packet_size;
+                    data_size = 0x1a + packet_size; /* OggS page per Opus packet */
+                }
+                break;
+            }
+#endif
 
             default:
                 return 0;
         }
 
         physical_offset += block_size;
-        total_size += data_size;
+        logical_size += data_size;
 
         if (data->version == 0 && (!data->streamed || block_flag == 0x80))
             break; /* stop on last block */
     }
 
-    if (total_size > get_streamfile_size(streamfile)) {
-        VGM_LOG("EA SCHL: wrong streamfile total_size\n");
-        total_size = 0;
+    /* logical size can be bigger in EA-XMA though */
+    if (physical_offset > get_streamfile_size(streamfile)) {
+        VGM_LOG("EA EAAC: wrong size %lx\n", physical_offset);
+        return 0;
     }
 
-    data->total_size = total_size;
-    return data->total_size;
+    data->logical_size = logical_size;
+    return data->logical_size;
 }
 
 
 /* Prepares custom IO for some blocked EAAudioCore formats, that need clean reads without block headers:
- * - EA-XMA: deflated XMA in multistreams (separate 2ch frames)
+ * - EA-XMA: deflated XMA in multistreams (separate 1/2ch packets)
  * - EALayer3: MPEG granule 1 can go in the next block (in V2"P" mainly, others could use layout blocked_sns)
  * - EATrax: ATRAC9 frames can be split between blooks
+ * - EAOpus:
  */
-static STREAMFILE* setup_eaac_streamfile(STREAMFILE *streamFile, int version, int codec, int streamed, off_t start_offset, size_t total_size) {
+static STREAMFILE* setup_eaac_streamfile(STREAMFILE *streamFile, int version, int codec, int streamed, int stream_number, int stream_count, off_t stream_offset) {
     STREAMFILE *temp_streamFile = NULL, *new_streamFile = NULL;
     eaac_io_data io_data = {0};
     size_t io_data_size = sizeof(eaac_io_data);
 
     io_data.version = version;
     io_data.codec = codec;
-    io_data.start_offset = start_offset;
     io_data.streamed = streamed;
-    io_data.total_size = total_size; /* optional */
-    io_data.physical_offset = start_offset;
+    io_data.stream_number = stream_number;
+    io_data.stream_count = stream_count;
+    io_data.stream_offset = stream_offset;
+    io_data.physical_offset = stream_offset;
+    io_data.logical_size = eaac_io_size(streamFile, &io_data); /* force init */
 
     /* setup subfile */
     new_streamFile = open_wrap_streamfile(streamFile);

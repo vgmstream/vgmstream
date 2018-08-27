@@ -3,8 +3,8 @@
 #
 
 # needed?
-ifneq ($(TARGET_OS),WIN32)
-$(error option must be built with TARGET_OS = WIN32)
+ifneq ($(TARGET_OS),Windows_NT)
+$(error option must be built with TARGET_OS = Windows_NT)
 endif
 
 

@@ -1,20 +1,21 @@
 #include "meta.h"
 #include "../coding/coding.h"
+#include "kma9_streamfile.h"
 
-/* KMA9 - Koei Tecmo's custom ATRAC9 [Nobunaga no Yabou - Souzou (Vita)] */
+
+/* KMA9 - Koei Tecmo's interleaved ATRAC9 [Nobunaga no Yabou - Souzou (Vita)] */
 VGMSTREAM * init_vgmstream_kma9(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
+    STREAMFILE* temp_streamFile = NULL;
     off_t start_offset;
-    size_t stream_size;
+    size_t stream_size, interleave;
     int loop_flag, channel_count;
     int total_subsongs = 0, target_subsong = streamFile->stream_index;
 
 
-    /* check extension */
+    /* checks */
     if ( !check_extensions(streamFile,"km9") )
         goto fail;
-
-    /* check header */
     if (read_32bitBE(0x00,streamFile) != 0x4B4D4139) /* "KMA9" */
         goto fail;
 
@@ -26,6 +27,7 @@ VGMSTREAM * init_vgmstream_kma9(STREAMFILE *streamFile) {
     if (target_subsong == 0) target_subsong = 1;
     if (target_subsong < 0 || target_subsong > total_subsongs || total_subsongs < 1) goto fail;
     /* 0x0c: unknown */
+    interleave = read_32bitLE(0x10,streamFile); /* 1 superframe */
     stream_size = read_32bitLE(0x14,streamFile); /* per subsong */
 
 
@@ -45,14 +47,9 @@ VGMSTREAM * init_vgmstream_kma9(STREAMFILE *streamFile) {
     {
         atrac9_config cfg = {0};
 
-        cfg.type = ATRAC9_KMA9;
         cfg.channels = vgmstream->channels;
-        cfg.config_data = read_32bitBE(0x5c,streamFile);
         cfg.encoder_delay = read_32bitLE(0x20,streamFile);
-
-        cfg.interleave_skip = read_32bitLE(0x10,streamFile); /* 1 superframe */
-        cfg.subsong_skip = total_subsongs;
-        start_offset += (target_subsong-1) * cfg.interleave_skip * (cfg.subsong_skip-1);
+        cfg.config_data = read_32bitBE(0x5c,streamFile);
 
         vgmstream->codec_data = init_atrac9(&cfg);
         if (!vgmstream->codec_data) goto fail;
@@ -63,17 +60,24 @@ VGMSTREAM * init_vgmstream_kma9(STREAMFILE *streamFile) {
             vgmstream->loop_start_sample -= cfg.encoder_delay;
             //vgmstream->loop_end_sample -= cfg.encoder_delay;
         }
+
+        /* KMA9 interleaves one ATRAC9 frame per subsong */
+        temp_streamFile = setup_kma9_streamfile(streamFile, start_offset, stream_size, interleave, (target_subsong-1), total_subsongs);
+        if (!temp_streamFile) goto fail;
+        start_offset = 0;
     }
 #else
     goto fail;
 #endif
 
     /* open the file for reading */
-    if ( !vgmstream_open_stream(vgmstream, streamFile, start_offset) )
+    if ( !vgmstream_open_stream(vgmstream, temp_streamFile, start_offset) )
         goto fail;
+    close_streamfile(temp_streamFile);
     return vgmstream;
 
 fail:
+    close_streamfile(temp_streamFile);
     close_vgmstream(vgmstream);
     return NULL;
 }

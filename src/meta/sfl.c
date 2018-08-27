@@ -1,12 +1,118 @@
-#include "../vgmstream.h"
+#include "meta.h"
+
+static void parse_adtl(off_t adtl_offset, off_t adtl_length, STREAMFILE  *streamFile, long *loop_start, long *loop_end, int *loop_flag);
+
+
+/* .sfl - odd RIFF-formatted files that go along with .ogg [Hanachirasu (PC), Touhou 10.5 (PC)] */
+VGMSTREAM * init_vgmstream_sfl_ogg(STREAMFILE *streamFile) {
+    VGMSTREAM * vgmstream = NULL;
+    STREAMFILE * streamData = NULL;
+    int loop_flag = 0;
+    long loop_start_ms = -1;
+    long loop_end_ms = -1;
+
+
+    /* checks */
+    if (!check_extensions(streamFile, "sfl"))
+        goto fail;
+    if (read_32bitBE(0x00,streamFile) != 0x52494646) /* "RIFF" */
+        goto fail;
+    if (read_32bitBE(0x08,streamFile) != 0x5346504C) /* "SFPL" */
+        goto fail;
+
+    {
+        /* try with file.ogg.sfl=header and file.ogg=data [Hanachirasu (PC)] */
+        char basename[PATH_LIMIT];
+        get_streamfile_basename(streamFile,basename,PATH_LIMIT);
+        streamData = open_streamfile_by_filename(streamFile, basename);
+        if (!streamData) {
+            /* try again with file.sfl=header + file.ogg=daba */
+            streamData = open_streamfile_by_ext(streamFile,"ogg");
+            if (!streamData) goto fail;
+        }
+        else {
+            if (!check_extensions(streamData, "ogg"))
+                goto fail;
+        }
+    }
 
 #ifdef VGM_USE_VORBIS
+    /* let the real initer do the parsing */
+    vgmstream = init_vgmstream_ogg_vorbis(streamData);
+    if (!vgmstream) goto fail;
+    vgmstream->meta_type = meta_OGG_SFL;
+#else
+    goto fail;
+#endif
 
-#include "meta.h"
-#include "../layout/layout.h"
-#include "../util.h"
+    /* read through chunks to verify format and find metadata */
+    {
+        size_t riff_size, file_size;
+        off_t current_chunk = 0x0c; /* start with first chunk */
 
-/* .sfl, odd RIFF-formatted files that go along with oggs */
+        riff_size = read_32bitLE(0x04,streamFile);
+        file_size = get_streamfile_size(streamFile);
+        if (file_size < riff_size+0x08)
+            goto fail;
+
+        while (current_chunk < file_size) {
+            uint32_t chunk_type = read_32bitBE(current_chunk+0x00,streamFile);
+            off_t chunk_size    = read_32bitLE(current_chunk+0x04,streamFile);
+
+            /* There seem to be a few bytes left over, included in the
+             * RIFF but not enough to make a new chunk. */
+            if (current_chunk+0x08 > file_size) break;
+
+            if (current_chunk+0x08+chunk_size > file_size)
+                goto fail;
+
+            switch(chunk_type) {
+                case 0x4C495354: /* "LIST" */
+                    switch (read_32bitBE(current_chunk+0x08, streamFile)) {
+                        case 0x6164746C: /* "adtl" */
+                            /* yay, atdl is its own little world */
+                            parse_adtl(current_chunk + 0x08, chunk_size, streamFile,
+                                    &loop_start_ms,&loop_end_ms,&loop_flag);
+                            break;
+                        default:
+                            break;
+                    }
+                    break;
+                default:
+                    break;
+            }
+            current_chunk += 0x08+chunk_size;
+        }
+    }
+
+    /* install loops */
+    if (loop_flag) {
+        int loop_start = (long long)loop_start_ms * vgmstream->sample_rate / 1000;
+        int loop_end = (long long)loop_end_ms * vgmstream->sample_rate / 1000;
+        vgmstream_force_loop(vgmstream,loop_flag,loop_start, loop_end);
+    }
+    /* sfl .ogg often has song endings (use the base .ogg for those) */
+
+    close_streamfile(streamData);
+    return vgmstream;
+
+fail:
+    close_streamfile(streamData);
+    close_vgmstream(vgmstream);
+    return NULL;
+}
+
+/* return milliseconds */
+static long parse_adtl_marker(unsigned char * marker) {
+    long hh,mm,ss,ms;
+
+    if (memcmp("Marker ",marker,7)) return -1;
+
+    if (4 != sscanf((char*)marker+7,"%ld:%ld:%ld.%ld",&hh,&mm,&ss,&ms))
+        return -1;
+
+    return ((hh*60+mm)*60+ss)*1000+ms;
+}
 
 /* return milliseconds */
 static int parse_region(unsigned char * region, long *start, long *end) {
@@ -22,161 +128,67 @@ static int parse_region(unsigned char * region, long *start, long *end) {
 
     *start = ((start_hh*60+start_mm)*60+start_ss)*1000+start_ms;
     *end = ((end_hh*60+end_mm)*60+end_ss)*1000+end_ms;
-
     return 0;
 }
 
 /* loop points have been found hiding here */
-static void parse_adtl(off_t adtl_offset, off_t adtl_length, STREAMFILE  *streamFile,
-        long *loop_start, long *loop_end, int *loop_flag) {
-    int loop_found = 0;
+static void parse_adtl(off_t adtl_offset, off_t adtl_length, STREAMFILE  *streamFile, long *loop_start, long *loop_end, int *loop_flag) {
+    int loop_start_found = 0;
+    int loop_end_found = 0;
+    off_t current_chunk = adtl_offset+0x04;
 
-    off_t current_chunk = adtl_offset+4;
+    while (current_chunk < adtl_offset + adtl_length) {
+        uint32_t chunk_type = read_32bitBE(current_chunk+0x00,streamFile);
+        off_t chunk_size    = read_32bitLE(current_chunk+0x04,streamFile);
 
-    while (current_chunk < adtl_offset+adtl_length) {
-        uint32_t chunk_type = read_32bitBE(current_chunk,streamFile);
-        off_t chunk_size = read_32bitLE(current_chunk+4,streamFile);
-
-        if (current_chunk+8+chunk_size > adtl_offset+adtl_length) return;
+        if (current_chunk+0x08+chunk_size > adtl_offset+adtl_length)
+            return;
 
         switch(chunk_type) {
-            case 0x6c61626c:    /* labl */
-                {
-                    unsigned char *labelcontent;
-                    labelcontent = malloc(chunk_size-4);
-                    if (!labelcontent) return;
-                    if (read_streamfile(labelcontent,current_chunk+0xc,
-                                chunk_size-4,streamFile)!=chunk_size-4) {
-                        free(labelcontent);
-                        return;
-                    }
-
-                    if (!loop_found &&
-                                parse_region(labelcontent,loop_start,loop_end)>=0)
-                    {
-                        loop_found = 1;
-                    }
-
+            case 0x6c61626c: { /* "labl" */
+                unsigned char *labelcontent = malloc(chunk_size-0x04);
+                if (!labelcontent) return;
+                if (read_streamfile(labelcontent,current_chunk+0x0c, chunk_size-0x04,streamFile) != chunk_size-0x04) {
                     free(labelcontent);
+                    return;
                 }
+
+                switch (read_32bitLE(current_chunk+8,streamFile)) {
+                    case 1:
+                        if (!loop_start_found && (*loop_start = parse_adtl_marker(labelcontent)) >= 0)
+                            loop_start_found = 1;
+
+                        if (!loop_start_found && !loop_end_found  && parse_region(labelcontent,loop_start,loop_end) >= 0) {
+                            loop_start_found = 1;
+                            loop_end_found = 1;
+                        }
+
+                        break;
+                    case 2:
+                        if (!loop_end_found && (*loop_end = parse_adtl_marker(labelcontent)) >= 0)
+                            loop_end_found = 1;
+                        break;
+                    default:
+                        break;
+                }
+
+                free(labelcontent);
                 break;
+            }
             default:
                 break;
         }
 
-        current_chunk += 8 + chunk_size;
+        current_chunk += 0x08 + chunk_size;
     }
 
-    if (loop_found) *loop_flag = 1;
+    if (loop_start_found && loop_end_found)
+        *loop_flag = 1;
+
+    /* labels don't seem to be consistently ordered */
+    if (*loop_start > *loop_end) {
+        long temp = *loop_start;
+        *loop_start = *loop_end;
+        *loop_end = temp;
+    }
 }
-
-VGMSTREAM * init_vgmstream_sfl(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
-    STREAMFILE * streamFileOGG = NULL;
-    char filenameOGG[PATH_LIMIT];
-    char filename[PATH_LIMIT];
-
-    off_t file_size = -1;
-
-    int loop_flag = 0;
-    long loop_start_ms = -1;
-    long loop_end_ms = -1;
-    uint32_t riff_size;
-
-    /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("sfl",filename_extension(filename))) goto fail;
-
-    /* check header */
-    if ((uint32_t)read_32bitBE(0,streamFile)!=0x52494646) /* "RIFF" */
-        goto fail;
-    /* check for SFPL form */
-    if ((uint32_t)read_32bitBE(8,streamFile)!=0x5346504C) /* "SFPL" */
-        goto fail;
-
-   /* check for .OGG file */
-    strcpy(filenameOGG,filename);
-    strcpy(filenameOGG+strlen(filenameOGG)-3,"ogg");
-
-    streamFileOGG = streamFile->open(streamFile,filenameOGG,STREAMFILE_DEFAULT_BUFFER_SIZE);
-    if (!streamFileOGG) {
-        goto fail;
-    }
-
-    /* let the real initer do the parsing */
-    vgmstream = init_vgmstream_ogg_vorbis(streamFileOGG);
-    if (!vgmstream) goto fail;
-
-    close_streamfile(streamFileOGG);
-    streamFileOGG = NULL;
-
-    /* now that we have an ogg, proceed with parsing the .sfl */
-    riff_size = read_32bitLE(4,streamFile);
-    file_size = get_streamfile_size(streamFile);
-
-    /* check for tructated RIFF */
-    if (file_size < riff_size+8) goto fail;
-
-    /* read through chunks to verify format and find metadata */
-    {
-        off_t current_chunk = 0xc; /* start with first chunk */
-
-        while (current_chunk < file_size) {
-            uint32_t chunk_type = read_32bitBE(current_chunk,streamFile);
-            off_t chunk_size = read_32bitLE(current_chunk+4,streamFile);
-
-            /* There seem to be a few bytes left over, included in the
-             * RIFF but not enough to make a new chunk.
-             */
-            if (current_chunk+8 > file_size) break;
-
-            if (current_chunk+8+chunk_size > file_size) goto fail;
-
-            switch(chunk_type) {
-                case 0x4C495354:    /* LIST */
-                    /* what lurks within?? */
-                    switch (read_32bitBE(current_chunk + 8, streamFile)) {
-                        case 0x6164746C:    /* adtl */
-                            /* yay, atdl is its own little world */
-                            parse_adtl(current_chunk + 8, chunk_size,
-                                    streamFile,
-                                    &loop_start_ms,&loop_end_ms,&loop_flag);
-                            break;
-                        default:
-                            break;
-                    }
-                    break;
-                default:
-                    /* ignorance is bliss */
-                    break;
-            }
-
-            current_chunk += 8+chunk_size;
-        }
-    }
-
-    if (loop_flag) {
-        /* install loops */
-        if (!vgmstream->loop_flag) {
-            vgmstream->loop_flag = 1;
-            vgmstream->loop_ch = calloc(vgmstream->channels,
-                    sizeof(VGMSTREAMCHANNEL));
-            if (!vgmstream->loop_ch) goto fail;
-        }
-
-        vgmstream->loop_start_sample = (long long)loop_start_ms*vgmstream->sample_rate/1000;
-        vgmstream->loop_end_sample = (long long)loop_end_ms*vgmstream->sample_rate/1000;
-    }
-
-    vgmstream->meta_type = meta_OGG_SFL;
-
-    return vgmstream;
-
-    /* clean up anything we may have opened */
-fail:
-    if (streamFileOGG) close_streamfile(streamFileOGG);
-    if (vgmstream) close_vgmstream(vgmstream);
-    return NULL;
-}
-
-#endif

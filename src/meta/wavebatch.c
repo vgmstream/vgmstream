@@ -98,6 +98,12 @@ VGMSTREAM * init_vgmstream_wavebatch(STREAMFILE *streamFile) {
             vgmstream->interleave_block_size = 0x02;
             break;
 
+        case 0x01: /* PCM8 [Cars 2 (3DS)] */
+            vgmstream->coding_type = coding_PCM8;
+            vgmstream->layout_type = layout_interleave;
+            vgmstream->interleave_block_size = 0x01;
+            break;
+
         case 0x02: { /* DSP [WRC FIA World Rally Championship (3DS)] */
             size_t config_size = (0x20+0x14)*channel_count + (0x0c)*channel_count; /* coefs+hist + padding */
 
@@ -113,7 +119,7 @@ VGMSTREAM * init_vgmstream_wavebatch(STREAMFILE *streamFile) {
         }
 
         default:
-            VGM_LOG("WAVEBATCH: unknown codec\n");
+            VGM_LOG("WAVEBATCH: unknown codec %x\n", codec);
             goto fail;
     }
 

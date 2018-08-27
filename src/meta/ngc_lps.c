@@ -37,6 +37,7 @@ VGMSTREAM * init_vgmstream_ngc_lps(STREAMFILE *streamFile) {
 
     vgmstream->layout_type = layout_none;
     vgmstream->meta_type = meta_NGC_LPS;
+    vgmstream->allow_dual_stereo = 1;
 
     if (vgmstream->coding_type == coding_NGC_DSP) {
         int i;

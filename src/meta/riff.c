@@ -13,6 +13,7 @@ static VGMSTREAM *parse_riff_ogg(STREAMFILE * streamFile, off_t start_offset, si
 /* return milliseconds */
 static long parse_adtl_marker(unsigned char * marker) {
     long hh,mm,ss,ms;
+
     if (memcmp("Marker ",marker,7)) return -1;
 
     if (4 != sscanf((char*)marker+7,"%ld:%ld:%ld.%ld",&hh,&mm,&ss,&ms))
@@ -25,31 +26,31 @@ static long parse_adtl_marker(unsigned char * marker) {
 static void parse_adtl(off_t adtl_offset, off_t adtl_length, STREAMFILE  *streamFile, long *loop_start, long *loop_end, int *loop_flag) {
     int loop_start_found = 0;
     int loop_end_found = 0;
-    off_t current_chunk = adtl_offset+4;
+    off_t current_chunk = adtl_offset+0x04;
 
-    while (current_chunk < adtl_offset+adtl_length) {
-        uint32_t chunk_type = read_32bitBE(current_chunk,streamFile);
-        off_t chunk_size = read_32bitLE(current_chunk+4,streamFile);
+    while (current_chunk < adtl_offset + adtl_length) {
+        uint32_t chunk_type = read_32bitBE(current_chunk+0x00,streamFile);
+        off_t chunk_size    = read_32bitLE(current_chunk+0x04,streamFile);
 
-        if (current_chunk+8+chunk_size > adtl_offset+adtl_length) return;
+        if (current_chunk+0x08+chunk_size > adtl_offset+adtl_length)
+            return;
 
         switch(chunk_type) {
-            case 0x6c61626c: {  /* labl */
-                unsigned char *labelcontent;
-                labelcontent = malloc(chunk_size-4);
+            case 0x6c61626c: { /* "labl" */
+                unsigned char *labelcontent = malloc(chunk_size-0x04);
                 if (!labelcontent) return;
-                if (read_streamfile(labelcontent,current_chunk+0xc, chunk_size-4,streamFile)!=chunk_size-4) {
+                if (read_streamfile(labelcontent,current_chunk+0x0c, chunk_size-0x04,streamFile) != chunk_size-0x04) {
                     free(labelcontent);
                     return;
                 }
 
                 switch (read_32bitLE(current_chunk+8,streamFile)) {
                     case 1:
-                        if (!loop_start_found && (*loop_start = parse_adtl_marker(labelcontent))>=0)
+                        if (!loop_start_found && (*loop_start = parse_adtl_marker(labelcontent)) >= 0)
                             loop_start_found = 1;
                         break;
                     case 2:
-                        if (!loop_end_found && (*loop_end = parse_adtl_marker(labelcontent))>=0)
+                        if (!loop_end_found && (*loop_end = parse_adtl_marker(labelcontent)) >= 0)
                             loop_end_found = 1;
                         break;
                     default:
@@ -254,19 +255,26 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
 
 
     /* check extension */
-    /* .lwav: to avoid hijacking .wav, .xwav: fake for Xbox games (unneded anymore) */
-    /* .da: The Great Battle VI (PS), .cd: Exector (PS), .med: Psi Ops (PC), .snd: Layton Brothers (iOS/Android),
+    /* .lwav: to avoid hijacking .wav
+     * .xwav: fake for Xbox games (not needed anymore)
+     * .da: The Great Battle VI (PS1)
+     * .dax: Love Game's - Wai Wai Tennis (PS1)
+     * .cd: Exector (PS)
+     * .med: Psi Ops (PC)
+     * .snd: Layton Brothers (iOS/Android)
      * .adx: Remember11 (PC) sfx
      * .adp: Headhunter (DC)
      * .xss: Spider-Man The Movie (Xbox)
      * .xsew: Mega Man X Legacy Collections (PC) */
-    if ( check_extensions(streamFile, "wav,lwav,xwav,da,cd,med,snd,adx,adp,xss,xsew") ) {
+    if ( check_extensions(streamFile, "wav,lwav,xwav,da,dax,cd,med,snd,adx,adp,xss,xsew") ) {
         ;
     }
     else if ( check_extensions(streamFile, "mwv") ) {
         mwv = 1;
     }
-    /* .rws: Climax games (Silent Hill Origins PSP, Oblivion PSP), .aud: EA Replay */
+    /* .at3: standard
+     * .rws: Climax games (Silent Hill Origins PSP, Oblivion PSP)
+     * .aud: EA Replay */
     else if ( check_extensions(streamFile, "at3,rws,aud") ) {
         at3 = 1;
     }

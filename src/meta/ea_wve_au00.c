@@ -28,8 +28,8 @@ VGMSTREAM * init_vgmstream_ea_wve_au00(STREAMFILE *streamFile) {
     vgmstream = allocate_vgmstream(channel_count, loop_flag);
     if (!vgmstream) goto fail;
 
-    vgmstream->sample_rate = 22050;
     vgmstream->meta_type = meta_EA_WVE_AU00;
+    vgmstream->sample_rate = 22050;
 
     /* You'd think they'd use coding_EA_XA_int but instead it's PS-ADPCM without flags and 0x0f frame size
      * (equivalent to configurable PS-ADPCM), surely to shoehorn EA-XA sizes into the PS1 hardware decoder */
@@ -44,13 +44,13 @@ VGMSTREAM * init_vgmstream_ea_wve_au00(STREAMFILE *streamFile) {
     {
         vgmstream->next_block_offset = start_offset;
         do {
-            block_update_ea_wve_au00(vgmstream->next_block_offset,vgmstream);
+            block_update(vgmstream->next_block_offset,vgmstream);
             vgmstream->num_samples += ps_cfg_bytes_to_samples(vgmstream->current_block_size, vgmstream->interleave_block_size, 1);
         }
         while (vgmstream->next_block_offset < get_streamfile_size(streamFile));
+        block_update(start_offset, vgmstream);
     }
 
-    block_update_ea_wve_au00(start_offset, vgmstream);
     return vgmstream;
 
 fail:

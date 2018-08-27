@@ -62,14 +62,14 @@ void decode_ngc_dtk(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspaci
 void decode_ngc_afc(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
 
 /* pcm_decoder */
-void decode_pcm16LE(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
-void decode_pcm16BE(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
+void decode_pcm16le(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
+void decode_pcm16be(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
 void decode_pcm16_int(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int big_endian);
 void decode_pcm8(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
 void decode_pcm8_int(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
-void decode_pcm8_sb_int(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
-void decode_pcm8_unsigned_int(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
 void decode_pcm8_unsigned(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
+void decode_pcm8_unsigned_int(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
+void decode_pcm8_sb(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
 void decode_ulaw(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
 void decode_ulaw_int(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
 void decode_alaw(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
@@ -79,6 +79,8 @@ size_t pcm_bytes_to_samples(size_t bytes, int channels, int bits_per_sample);
 /* psx_decoder */
 void decode_psx(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int is_badflags);
 void decode_psx_configurable(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int frame_size);
+int ps_find_loop_offsets(STREAMFILE *streamFile, off_t start_offset, size_t data_size, int channels, size_t interleave, int32_t * out_loop_start, int32_t * out_loop_end);
+int ps_find_loop_offsets_full(STREAMFILE *streamFile, off_t start_offset, size_t data_size, int channels, size_t interleave, int32_t * out_loop_start, int32_t * out_loop_end);
 size_t ps_bytes_to_samples(size_t bytes, int channels);
 size_t ps_cfg_bytes_to_samples(size_t bytes, size_t frame_size, int channels);
 
@@ -142,7 +144,7 @@ void decode_SASSC(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing
 void decode_lsf(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
 
 /* mtaf_decoder */
-void decode_mtaf(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel, int channels);
+void decode_mtaf(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel);
 
 /* mta2_decoder */
 void decode_mta2(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel);
@@ -242,7 +244,7 @@ void reset_atrac9(VGMSTREAM *vgmstream);
 void seek_atrac9(VGMSTREAM *vgmstream, int32_t num_sample);
 void free_atrac9(atrac9_codec_data *data);
 size_t atrac9_bytes_to_samples(size_t bytes, atrac9_codec_data *data);
-int atrac9_parse_config(uint32_t atrac9_config, int *out_sample_rate, int *out_channels, size_t *out_frame_size);
+//int atrac9_parse_config(uint32_t atrac9_config, int *out_sample_rate, int *out_channels, size_t *out_frame_size);
 #endif
 
 #ifdef VGM_USE_CELT
@@ -269,7 +271,6 @@ void ffmpeg_set_skip_samples(ffmpeg_codec_data * data, int skip_samples);
 
 
 size_t ffmpeg_make_opus_header(uint8_t * buf, int buf_size, int channels, int skip, int sample_rate);
-size_t ffmpeg_get_eaxma_virtual_size(int channels, int streamed, off_t real_offset, size_t real_size, STREAMFILE *streamFile);
 
 size_t switch_opus_get_samples(off_t offset, size_t data_size, int sample_rate, STREAMFILE *streamFile);
 

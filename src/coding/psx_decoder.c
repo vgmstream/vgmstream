@@ -40,16 +40,6 @@ static const int ps_adpcm_coefs_i[5][2] = {
  * Some official PC tools decode using float coefs (from the spec), as does this code, but
  * consoles/games/libs would vary (PS1 could do it in hardware using BRR/XA's logic, FMOD/PS3
  * may use int math in software, etc). There are inaudible rounding diffs between implementations.
- *
- * Optional bit flag combinations in the header control the SPU:
- *  0x0 (0000): Nothing
- *  0x1 (0001): End marker + decode
- *  0x2 (0010): Loop region
- *  0x3 (0011): Loop end
- *  0x4 (0100): Start marker
- *  0x6 (0110): Loop start
- *  0x7 (0111): End marker + don't decode
- *  0x5/8+ (1NNN): Not valid
  */
 
 /* standard PS-ADPCM (float math version) */
@@ -162,6 +152,122 @@ void decode_psx_configurable(VGMSTREAMCHANNEL * stream, sample * outbuf, int cha
     stream->adpcm_history2_32 = hist2;
 }
 
+
+/* Find loop samples in PS-ADPCM data and return if the file loops.
+ *
+ * PS-ADPCM/VAG has optional bit flags that control looping in the SPU.
+ * Possible combinations (as usually defined in Sony's docs):
+ * - 0x0 (0000): Normal decode
+ * - 0x1 (0001): End marker (last frame)
+ * - 0x2 (0010): Loop region (marks files that *may* have loop flags somewhere)
+ * - 0x3 (0011): Loop end (jump to loop address)
+ * - 0x4 (0100): Start marker
+ * - 0x5 (0101): Same as 0x07? Extremely rare [Blood Omen: Legacy of Kain (PS1)]
+ * - 0x6 (0110): Loop start (save loop address)
+ * - 0x7 (0111): End marker and don't decode
+ * - 0x8+(1NNN): Not valid
+ */
+static int ps_find_loop_offsets_internal(STREAMFILE *streamFile, off_t start_offset, size_t data_size, int channels, size_t interleave, int32_t * out_loop_start, int32_t * out_loop_end, int config) {
+    int num_samples = 0, loop_start = 0, loop_end = 0;
+    int loop_start_found = 0, loop_end_found = 0;
+    off_t offset = start_offset;
+    off_t max_offset = start_offset + data_size;
+    size_t interleave_consumed = 0;
+    int detect_full_loops = config & 1;
+
+
+    while (offset < max_offset) {
+        uint8_t flag = (uint8_t)read_8bit(offset+0x01,streamFile) & 0x0F; /* lower nibble only (for HEVAG) */
+
+        /* theoretically possible and would use last 0x06 */
+        VGM_ASSERT_ONCE(loop_start_found && flag == 0x06, "PS LOOPS: multiple loop start found at %lx\n", offset);
+
+        if (flag == 0x06 && !loop_start_found) {
+            loop_start = num_samples; /* loop start before this frame */
+            loop_start_found = 1;
+        }
+
+        if (flag == 0x03 && !loop_end) {
+            loop_end = num_samples + 28; /* loop end after this frame */
+            loop_end_found = 1;
+
+            /* ignore strange case in Commandos (PS2), has many loop starts and ends */
+            if (channels == 1
+                    && offset + 0x10 < max_offset
+                    && ((uint8_t)read_8bit(offset+0x11,streamFile) & 0x0F) == 0x06) {
+                loop_end = 0;
+                loop_end_found = 0;
+            }
+
+            if (loop_start_found && loop_end_found)
+               break;
+        }
+
+        /* hack for some games that don't have loop points but do full loops,
+         * if there is a "partial" 0x07 end flag pretend it wants to loop
+         * (sometimes this will loop non-looping tracks, and won't loop all repeating files) */
+        if (flag == 0x01 && detect_full_loops) {
+            static const uint8_t eof1[0x10] = {0x00,0x07,0x77,0x77,0x77,0x77,0x77,0x77,0x77,0x77,0x77,0x77,0x77,0x77,0x77,0x77}; /* common */
+            static const uint8_t eof2[0x10] = {0x00,0x07,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00};
+          //static const uint8_t eofx[0x10] = {0x07,0x00,0x77,0x77,0x77,0x77,0x77,0x77,0x77,0x77,0x77,0x77,0x77,0x77,0x77,0x77}; /* sometimes loops */
+          //static const uint8_t eofx[0x10] = {0xNN,0x07,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00}; /* sometimes loops */
+            uint8_t buf[0x10];
+
+            int read = read_streamfile(buf,offset+0x10,0x10,streamFile);
+
+            if (read > 0
+                    /* also test some extra stuff */
+                    && buf[0] != 0x00 /* skip padding */
+                    && buf[0] != 0x0c
+                    && buf[0] != 0x3c /* skip Ecco the Dolphin (PS2), Ratchet & Clank 2 (PS2), lame hack */
+                    ) {
+
+                /* assume full loop if there isn't an EOF tag after current frame */
+                if (memcmp(buf,eof1,0x10) != 0 && memcmp(buf,eof2,0x10) != 0) {
+                    loop_start = 28; /* skip first frame as it's null in PS-ADPCM */
+                    loop_end = num_samples + 28; /* loop end after this frame */
+                    loop_start_found = 1;
+                    loop_end_found = 1;
+                    //;VGM_LOG("PS LOOPS: full loop found\n");
+                    break;
+                }
+            }
+        }
+
+
+        num_samples += 28;
+        offset += 0x10;
+
+        /* skip other channels */
+        interleave_consumed += 0x10;
+        if (interleave_consumed == interleave) {
+            interleave_consumed = 0;
+            offset += interleave*(channels - 1);
+        }
+    }
+
+    VGM_ASSERT(loop_start_found && !loop_end_found, "PS LOOPS: found loop start but not loop end\n");
+    VGM_ASSERT(loop_end_found && !loop_start_found, "PS LOOPS: found loop end but not loop start\n");
+    //;VGM_LOG("PS LOOPS: start=%i, end=%i\n", loop_start, loop_end);
+
+    /* From Sony's docs: if only loop_end is set loop back to "phoneme region start", but in practice doesn't */
+    if (loop_start_found && loop_end_found) {
+        *out_loop_start = loop_start;
+        *out_loop_end = loop_end;
+        return 1;
+    }
+
+    return 0; /* no loop */
+}
+
+int ps_find_loop_offsets(STREAMFILE *streamFile, off_t start_offset, size_t data_size, int channels, size_t interleave, int32_t * out_loop_start, int32_t * out_loop_end) {
+    return ps_find_loop_offsets_internal(streamFile, start_offset, data_size, channels, interleave, out_loop_start, out_loop_end, 0);
+}
+
+int ps_find_loop_offsets_full(STREAMFILE *streamFile, off_t start_offset, size_t data_size, int channels, size_t interleave, int32_t * out_loop_start, int32_t * out_loop_end) {
+    return ps_find_loop_offsets_internal(streamFile, start_offset, data_size, channels, interleave, out_loop_start, out_loop_end, 1);
+}
+
 size_t ps_bytes_to_samples(size_t bytes, int channels) {
     return bytes / channels / 0x10 * 28;
 }
@@ -169,3 +275,4 @@ size_t ps_bytes_to_samples(size_t bytes, int channels) {
 size_t ps_cfg_bytes_to_samples(size_t bytes, size_t frame_size, int channels) {
     return bytes / channels / frame_size * 28;
 }
+

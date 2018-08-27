@@ -5,7 +5,8 @@
 VGMSTREAM * init_vgmstream_ps2_joe(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     off_t start_offset;
-    int channel_count, loop_flag, sample_rate, num_samples;
+    int channel_count, loop_flag, sample_rate;
+    int32_t num_samples, loop_start = 0, loop_end = 0;
     size_t file_size, data_size, unknown1, unknown2, interleave;
 
 
@@ -20,37 +21,41 @@ VGMSTREAM * init_vgmstream_ps2_joe(STREAMFILE *streamFile) {
 
     /* detect version */
     if (data_size/2 == file_size - 0x10
-            && unknown1 == 0x0045039A && unknown2 == 0x00108920) { /* Super Farm */
+            && unknown1 == 0x0045039A && unknown2 == 0x00108920) { /* Super Farm (PS2) */
         data_size = data_size / 2;
         interleave = 0x4000;
+        start_offset = 0x10;
     }
     else if (data_size/2 == file_size - 0x10
-            && unknown1 == 0xCCCCCCCC && unknown2 == 0xCCCCCCCC) { /* Sitting Ducks */
+            && unknown1 == 0xCCCCCCCC && unknown2 == 0xCCCCCCCC) { /* Sitting Ducks (PS2) */
         data_size = data_size / 2;
         interleave = 0x8000;
+        start_offset = 0x10;
     }
     else if (data_size == file_size - 0x10
-            && unknown1 == 0xCCCCCCCC && unknown2 == 0xCCCCCCCC) { /* The Mummy: The Animated Series */
+            && unknown1 == 0xCCCCCCCC && unknown2 == 0xCCCCCCCC) { /* The Mummy: The Animated Series (PS2) */
         interleave = 0x8000;
+        start_offset = 0x10;
     }
-    else if (data_size == file_size - 0x4020) { /* CT Special Forces (and all games beyond) */
+    else if (data_size == file_size - 0x4020) { /* CT Special Forces (PS2), and all games beyond */
         interleave = unknown1; /* always 0? */
         if (!interleave)
             interleave = 0x10;
-        /* header padding contains garbage */
+        start_offset = 0x4020; /* header padding contains garbage */
     }
     else {
         goto fail;
     }
 
-    start_offset = file_size - data_size;
-
+    //start_offset = file_size - data_size; /* also ok */
     channel_count = 2;
     sample_rate = read_32bitLE(0x00,streamFile);
     num_samples = ps_bytes_to_samples(data_size, channel_count);
 
+
+    loop_flag = ps_find_loop_offsets(streamFile, start_offset, data_size, channel_count, interleave,&loop_start, &loop_end);
     /* most songs simply repeat except a few jingles (PS-ADPCM flags are always set) */
-    loop_flag = (num_samples > 20*sample_rate); /* in seconds */
+    loop_flag = loop_flag && (num_samples > 20*sample_rate); /* in seconds */
 
 
     /* build the VGMSTREAM */
@@ -59,52 +64,8 @@ VGMSTREAM * init_vgmstream_ps2_joe(STREAMFILE *streamFile) {
 
     vgmstream->sample_rate = sample_rate;
     vgmstream->num_samples = num_samples;
-
-    //todo improve, not working 100% with early .joe
-    {
-        uint8_t testBuffer[0x10];
-        off_t blockOffset = 0;
-        off_t sampleOffset = 0;
-        off_t readOffset = 0;
-        off_t loopStart = 0, loopEnd = 0;
-
-        readOffset = start_offset;
-        do {
-            off_t blockRead = (off_t)read_streamfile(testBuffer,readOffset,0x10,streamFile);
-
-            readOffset += blockRead;
-            blockOffset += blockRead;
-
-            if (blockOffset >= interleave) {
-                readOffset += interleave;
-                blockOffset -= interleave;
-            }
-
-            /* Loop Start */
-            if(testBuffer[0x01]==0x06) {
-                if(loopStart == 0)
-                    loopStart = sampleOffset;
-                /* break; */
-            }
-
-            sampleOffset += 28;
-
-            /* Loop End */
-            if(testBuffer[0x01]==0x03) {
-                if(loopEnd == 0)
-                    loopEnd = sampleOffset;
-                /* break; */
-            }
-
-        } while (streamFile->get_offset(streamFile)<(int32_t)file_size);
-
-        if (loopStart == 0 && loopEnd == 0) {
-            vgmstream->loop_flag = 0;
-        } else {
-            vgmstream->loop_start_sample = loopStart;
-            vgmstream->loop_end_sample = loopEnd;
-        }
-    }
+    vgmstream->loop_start_sample = loop_start;
+    vgmstream->loop_end_sample = loop_end;
 
     vgmstream->coding_type = coding_PSX;
     vgmstream->layout_type = layout_interleave;

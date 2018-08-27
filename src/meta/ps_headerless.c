@@ -4,13 +4,11 @@
 static int check_psadpcm(STREAMFILE *streamFile);
 
 
-/* MIB+MIH - SCEE MultiStream interleaved bank (header+data) [namCollection: Ace Combat 2 (PS2), Rampage: Total Destruction (PS2)] */
 /* headerless PS-ADPCM - from Katamary Damacy (PS2), Air (PS2), Aladdin: Nasira's Revenge (PS1)
  * (guesses interleave and channels by testing data and using the file extension, and finds
  * loops in PS-ADPCM flags; this is a crutch for convenience, consider using GENH/TXTH instead). */
-VGMSTREAM * init_vgmstream_ps2_mib(STREAMFILE *streamFile) {
+VGMSTREAM * init_vgmstream_ps_headerless(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    STREAMFILE * streamFileMIH = NULL;
     off_t start_offset = 0x00;
     char filename[PATH_LIMIT];
 
@@ -31,8 +29,6 @@ VGMSTREAM * init_vgmstream_ps2_mib(STREAMFILE *streamFile) {
     int     loopToEnd=0;
     int     forceNoLoop=0;
     int     gotEmptyLine=0;
-
-    uint8_t gotMIH=0;
 
     int i, channel_count=0;
 
@@ -57,14 +53,6 @@ VGMSTREAM * init_vgmstream_ps2_mib(STREAMFILE *streamFile) {
     /* test if raw PS-ADPCM */
     if (!check_psadpcm(streamFile))
         goto fail;
-
-
-    /* .MIB may come with a .MIH header file */
-    if (strcasecmp("mib",filename_extension(filename))==0) {
-        streamFileMIH = open_streamfile_by_ext(streamFile,"mih");
-        if (streamFileMIH)
-            gotMIH = 1;
-    }
 
 
     fileLength = get_streamfile_size(streamFile);
@@ -137,7 +125,7 @@ VGMSTREAM * init_vgmstream_ps2_mib(STREAMFILE *streamFile) {
                 }
             }
 
-        } while (streamFile->get_offset(streamFile)<((int32_t)fileLength));
+        } while (readOffset<((int32_t)fileLength));
     }
 
     if(testBuffer[0]==0x0c && testBuffer[1]==0)
@@ -145,9 +133,6 @@ VGMSTREAM * init_vgmstream_ps2_mib(STREAMFILE *streamFile) {
 
     if(channel_count==0)
         channel_count=1;
-
-    if(gotMIH)
-        channel_count=read_32bitLE(0x08,streamFileMIH);
 
     // force no loop
     if(!strcasecmp("vb",filename_extension(filename)))
@@ -229,34 +214,25 @@ VGMSTREAM * init_vgmstream_ps2_mib(STREAMFILE *streamFile) {
     vgmstream->coding_type = coding_PSX;
     vgmstream->layout_type = (channel_count == 1) ? layout_none : layout_interleave;
 
-    if(gotMIH) {
-        // Read stuff from the MIH file
-        vgmstream->sample_rate = read_32bitLE(0x0C,streamFileMIH);
-        vgmstream->interleave_block_size = read_32bitLE(0x10,streamFileMIH);
-        vgmstream->num_samples=((read_32bitLE(0x10,streamFileMIH)*
-                                (read_32bitLE(0x14,streamFileMIH)-1)*2)+
-                                ((read_32bitLE(0x04,streamFileMIH)>>8)*2))/16*28/2;
-    } else {
-        vgmstream->interleave_block_size = interleave;
+    vgmstream->interleave_block_size = interleave;
 
-        if(!strcasecmp("mib",filename_extension(filename)))
-            vgmstream->sample_rate = 44100;
+    if(!strcasecmp("mib",filename_extension(filename)))
+        vgmstream->sample_rate = 44100;
 
-        if(!strcasecmp("mi4",filename_extension(filename)))
-            vgmstream->sample_rate = 48000;
+    if(!strcasecmp("mi4",filename_extension(filename)))
+        vgmstream->sample_rate = 48000;
 
-        if(!strcasecmp("snds", filename_extension(filename)))
-            vgmstream->sample_rate = 48000;
+    if(!strcasecmp("snds", filename_extension(filename)))
+        vgmstream->sample_rate = 48000;
 
-        if(!strcasecmp("xag",filename_extension(filename)))
-            vgmstream->sample_rate = 44100;
+    if(!strcasecmp("xag",filename_extension(filename)))
+        vgmstream->sample_rate = 44100;
 
-        if (!strcasecmp("cvs", filename_extension(filename)) ||
-            !strcasecmp("vb",filename_extension(filename))) 
-            vgmstream->sample_rate = 22050;
+    if (!strcasecmp("cvs", filename_extension(filename)) ||
+        !strcasecmp("vb",filename_extension(filename)))
+        vgmstream->sample_rate = 22050;
 
-        vgmstream->num_samples = (int32_t)(fileLength/16/channel_count*28);
-    }
+    vgmstream->num_samples = (int32_t)(fileLength/16/channel_count*28);
 
     if(loopEnd!=0) {
         if(vgmstream->channels==1) {
@@ -299,17 +275,14 @@ VGMSTREAM * init_vgmstream_ps2_mib(STREAMFILE *streamFile) {
         vgmstream->loop_end_sample-=(emptySamples*channel_count);
     }
 
-    vgmstream->meta_type = gotMIH ? meta_PS2_MIB_MIH : meta_PS2_MIB;
+    vgmstream->meta_type = meta_PS_HEADERLESS;
+    vgmstream->allow_dual_stereo = 1;
 
     if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
         goto fail;
-
-
-    close_streamfile(streamFileMIH);
     return vgmstream;
 
 fail:
-    close_streamfile(streamFileMIH);
     close_vgmstream(vgmstream);
     return NULL;
 }

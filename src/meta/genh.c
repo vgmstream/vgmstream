@@ -325,6 +325,7 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
 
     vgmstream->coding_type = coding;
     vgmstream->meta_type = meta_GENH;
+    vgmstream->allow_dual_stereo = 1;
 
 
     if ( !vgmstream_open_stream(vgmstream,streamFile,genh.start_offset) )

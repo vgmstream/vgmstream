@@ -5,26 +5,25 @@
 
 typedef struct {
     /* config */
+    int channel;
+    int channel_count;
+    size_t block_size;
     off_t stream_offset;
     size_t stream_size;
-    int channel_count;
-    int channel;
-    size_t chunk_size;
 
     /* state */
-    off_t logical_offset; /* offset that corresponds to physical_offset */
-    off_t physical_offset; /* actual file offset */
-    off_t next_block_offset; /* physical offset of the next block start */
-    off_t last_offset; /* physical offset of where the last block ended */
-    size_t current_data_size;
-    size_t current_consumed_size;
+    off_t logical_offset;   /* offset that corresponds to physical_offset */
+    off_t physical_offset;  /* actual file offset */
 
-    size_t total_size; /* size of the resulting XMA data */
+    size_t skip_size;       /* size to skip from a block start to reach data start */
+    size_t data_size;       /* logical size of the block  */
+
+    size_t logical_size;
 } awc_xma_io_data;
 
 
 static size_t get_block_header_size(STREAMFILE *streamFile, off_t offset, awc_xma_io_data *data);
-static size_t get_repeated_data_size(STREAMFILE *streamFile, off_t new_offset, off_t last_offset);
+static size_t get_repeated_data_size(STREAMFILE *streamFile, off_t next_offset, size_t repeat_samples);
 static size_t get_block_skip_count(STREAMFILE *streamFile, off_t offset, int channel);
 
 /* Reads plain XMA data of a single stream. Each block has a header and channels have different num_samples/frames.
@@ -35,7 +34,7 @@ static size_t awc_xma_io_read(STREAMFILE *streamfile, uint8_t *dest, off_t offse
     size_t frame_size = 0x800;
 
     /* ignore bad reads */
-    if (offset < 0 || offset > data->total_size) {
+    if (offset < 0 || offset > data->logical_size) {
         return 0;
     }
 
@@ -44,97 +43,84 @@ static size_t awc_xma_io_read(STREAMFILE *streamfile, uint8_t *dest, off_t offse
     if (offset < data->logical_offset) {
         data->logical_offset = 0x00;
         data->physical_offset = data->stream_offset;
-        data->next_block_offset = 0;
-        data->last_offset = 0;
-        data->current_data_size = 0;
-        data->current_consumed_size = 0;
+        data->data_size = 0;
     }
 
-    /* read from block, moving to next when all data is consumed */
+    /* read blocks, one at a time */
     while (length > 0) {
-        size_t to_read, bytes_read;
 
-        /* new block */
-        if (data->current_data_size == 0) {
+        /* ignore EOF */
+        if (data->logical_offset >= data->logical_size) {
+            break;
+        }
+
+        /* process new block */
+        if (data->data_size == 0) {
             size_t header_size    = get_block_header_size(streamfile, data->physical_offset, data);
             /* header table entries = frames... I hope */
-            size_t skip_size      = get_block_skip_count(streamfile, data->physical_offset, data->channel) * frame_size;
+            size_t others_size    = get_block_skip_count(streamfile, data->physical_offset, data->channel) * frame_size;
           //size_t skip_size      = read_32bitBE(data->physical_offset + 0x10*data->channel + 0x00, streamfile) * frame_size;
             size_t data_size      = read_32bitBE(data->physical_offset + 0x10*data->channel + 0x04, streamfile) * frame_size;
             size_t repeat_samples = read_32bitBE(data->physical_offset + 0x10*data->channel + 0x08, streamfile);
             size_t repeat_size    = 0;
 
+
             /* if there are repeat samples current block repeats some frames from last block, find out size */
-            if (repeat_samples && data->last_offset) {
-                off_t data_offset = data->physical_offset + header_size + skip_size;
-                repeat_size = get_repeated_data_size(streamfile, data_offset, data->last_offset);
+            if (repeat_samples) {
+                off_t data_offset = data->physical_offset + header_size + others_size;
+                repeat_size = get_repeated_data_size(streamfile, data_offset, repeat_samples);
             }
 
-            data->next_block_offset = data->physical_offset + data->chunk_size;
-            data->physical_offset += header_size + skip_size + repeat_size; /* data start */
-            data->current_data_size = data_size - repeat_size; /* readable max in this block */
-            data->current_consumed_size = 0;
+            data->skip_size = header_size + others_size + repeat_size;
+            data->data_size = data_size - repeat_size;
+        }
+
+        /* move to next block */
+        if (offset >= data->logical_offset + data->data_size) {
+            data->physical_offset += data->block_size;
+            data->logical_offset += data->data_size;
+            data->data_size = 0;
             continue;
         }
 
-        /* block end, go next */
-        if (data->current_consumed_size == data->current_data_size) {
-            data->last_offset = data->physical_offset; /* where last block ended */
-            data->physical_offset = data->next_block_offset;
-            data->current_data_size = 0;
-            continue;
+        /* read data */
+        {
+            size_t bytes_consumed, bytes_done, to_read;
+
+            bytes_consumed = offset - data->logical_offset;
+
+            to_read = data->data_size - bytes_consumed;
+            if (to_read > length)
+                to_read = length;
+            bytes_done = read_streamfile(dest, data->physical_offset + data->skip_size + bytes_consumed, to_read, streamfile);
+
+            offset += bytes_done;
+            total_read += bytes_done;
+            length -= bytes_done;
+            dest += bytes_done;
+
+            if (bytes_done != to_read || bytes_done == 0) {
+                break; /* error/EOF */
+            }
         }
 
-        /* requested offset is further along, pretend we consumed data and try again */
-        if (offset > data->logical_offset) {
-            size_t to_consume = offset - data->logical_offset;
-            if (to_consume > data->current_data_size - data->current_consumed_size)
-                to_consume = data->current_data_size - data->current_consumed_size;
-
-            data->physical_offset += to_consume;
-            data->logical_offset += to_consume;
-            data->current_consumed_size += to_consume;
-            continue;
-        }
-
-        /* clamp reads up to this block's end */
-        to_read = (data->current_data_size - data->current_consumed_size);
-        if (to_read > length)
-            to_read = length;
-        if (to_read == 0)
-            return total_read; /* should never happen... */
-
-        /* finally read and move buffer/offsets */
-        bytes_read = read_streamfile(dest, data->physical_offset, to_read, streamfile);
-        total_read += bytes_read;
-        if (bytes_read != to_read)
-            return total_read; /* couldn't read fully */
-
-        dest += bytes_read;
-        offset += bytes_read;
-        length -= bytes_read;
-
-        data->physical_offset += bytes_read;
-        data->logical_offset += bytes_read;
-        data->current_consumed_size += bytes_read;
     }
 
     return total_read;
 }
 
 static size_t awc_xma_io_size(STREAMFILE *streamfile, awc_xma_io_data* data) {
-    off_t physical_offset, max_physical_offset, last_offset;
+    off_t physical_offset, max_physical_offset;
     size_t frame_size = 0x800;
-    size_t total_size = 0;
+    size_t logical_size = 0;
 
-    if (data->total_size)
-        return data->total_size;
+    if (data->logical_size)
+        return data->logical_size;
 
     physical_offset = data->stream_offset;
     max_physical_offset = data->stream_offset + data->stream_size;
-    last_offset = 0;
 
-    /* read blocks and sum final size */
+    /* get size of the logical stream */
     while (physical_offset < max_physical_offset) {
         size_t header_size    = get_block_header_size(streamfile, physical_offset, data);
         /* header table entries = frames... I hope */
@@ -145,33 +131,38 @@ static size_t awc_xma_io_size(STREAMFILE *streamfile, awc_xma_io_data* data) {
         size_t repeat_size    = 0;
 
         /* if there are repeat samples current block repeats some frames from last block, find out size */
-        if (repeat_samples && last_offset) {
+        if (repeat_samples) {
             off_t data_offset = physical_offset + header_size + skip_size;
-            repeat_size = get_repeated_data_size(streamfile, data_offset, last_offset);
+            repeat_size = get_repeated_data_size(streamfile, data_offset, repeat_samples);
         }
 
-        last_offset = physical_offset + header_size + skip_size + data_size;
-        total_size += data_size - repeat_size;
-        physical_offset += data->chunk_size;
+        logical_size += data_size - repeat_size;
+        physical_offset += data->block_size;
     }
 
-    data->total_size = total_size;
-    return data->total_size;
+    data->logical_size = logical_size;
+    return data->logical_size;
 }
 
 
 /* Prepares custom IO for AWC XMA, which is interleaved XMA in AWC blocks */
-static STREAMFILE* setup_awc_xma_streamfile(STREAMFILE *streamFile, off_t stream_offset, size_t stream_size, size_t chunk_size, int channel_count, int channel) {
+static STREAMFILE* setup_awc_xma_streamfile(STREAMFILE *streamFile, off_t stream_offset, size_t stream_size, size_t block_size, int channel_count, int channel) {
     STREAMFILE *temp_streamFile = NULL, *new_streamFile = NULL;
     awc_xma_io_data io_data = {0};
     size_t io_data_size = sizeof(awc_xma_io_data);
 
+    io_data.channel = channel;
+    io_data.channel_count = channel_count;
     io_data.stream_offset = stream_offset;
     io_data.stream_size = stream_size;
-    io_data.chunk_size = chunk_size;
-    io_data.channel_count = channel_count;
-    io_data.channel = channel;
+    io_data.block_size = block_size;
     io_data.physical_offset = stream_offset;
+    io_data.logical_size = awc_xma_io_size(streamFile, &io_data); /* force init */
+
+    if (io_data.logical_size > io_data.stream_size) {
+        VGM_LOG("AWC XMA: wrong logical size\n");
+        goto fail;
+    }
 
     /* setup subfile */
     new_streamFile = open_wrap_streamfile(streamFile);
@@ -182,7 +173,10 @@ static STREAMFILE* setup_awc_xma_streamfile(STREAMFILE *streamFile, off_t stream
     if (!new_streamFile) goto fail;
     temp_streamFile = new_streamFile;
 
-    //todo maybe should force to read filesize once
+    new_streamFile = open_buffer_streamfile(new_streamFile,0);
+    if (!new_streamFile) goto fail;
+    temp_streamFile = new_streamFile;
+
     return temp_streamFile;
 
 fail:
@@ -209,35 +203,29 @@ static size_t get_block_header_size(STREAMFILE *streamFile, off_t offset, awc_xm
 
 
 /* find data that repeats in the beginning of a new block at the end of last block */
-static size_t get_repeated_data_size(STREAMFILE *streamFile, off_t new_offset, off_t last_offset) {
-    uint8_t new_frame[0x800];/* buffer to avoid fseek back and forth */
-    size_t frame_size = 0x800;
-    off_t offset;
-    int i;
+static size_t get_repeated_data_size(STREAMFILE *streamFile, off_t next_offset, size_t repeat_samples) {
+    const size_t frame_size = 0x800;
+    const size_t samples_per_subframe = 512;
+    size_t samples_this_frame;
+    uint8_t subframes;
 
-    /* read block first frame */
-    if (read_streamfile(new_frame,new_offset, frame_size,streamFile) != frame_size)
-        goto fail;
+    //todo: fix this
+    /* Repeat samples are the number of decoded samples to discard, but in this streamfile we can't do that.
+     * Also XMA is VBR, and may encode silent frames with up to 63 subframes yet we may have few repeat samples.
+     * We could find out how many subframes of 512 samples to skip, then adjust the XMA frame header, though
+     * output will be slightly off since subframes are related.
+     *
+     * For now just skip a full frame depending on the number of subframes vs repeat samples.
+     * Most files work ok-ish but channels may desync slightly. */
 
-    /* find the frame in last bytes of prev block */
-    offset = last_offset - 0x4000; /* typical max is 1 frame of ~0x800, no way to know exact size */
-    while (offset < last_offset) {
-        /* compare frame vs prev block data */
-        for (i = 0; i < frame_size; i++) {
-            if ((uint8_t)read_8bit(offset+i,streamFile) != new_frame[i])
-                break;
-        }
-
-        /* frame fully compared? */
-        if (i == frame_size)
-            return last_offset - offset;
-        else
-            offset += i+1;
+    subframes = ((uint8_t)read_8bit(next_offset,streamFile) >> 2) & 0x3F; /* peek into frame header */
+    samples_this_frame = subframes*samples_per_subframe;
+    if (repeat_samples >= (int)(samples_this_frame*0.13)) { /* skip mosts */
+        return frame_size;
     }
-
-fail:
-    VGM_LOG("AWC: can't find repeat size, new=0x%08lx, last=0x%08lx\n", new_offset, last_offset);
-    return 0; /* keep on truckin' */
+    else {
+        return 0;
+    }
 }
 
 /* header has a skip value, but somehow it's sometimes bigger than expected (WHY!?!?) so just sum all */

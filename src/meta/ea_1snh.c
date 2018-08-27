@@ -21,7 +21,7 @@ typedef struct {
     int big_endian;
     int loop_flag;
     int is_sead;
-    int codec_version;
+    int codec_config;
 } ea_header;
 
 static int parse_header(STREAMFILE* streamFile, ea_header* ea, off_t begin_offset);
@@ -85,7 +85,7 @@ VGMSTREAM * init_vgmstream_ea_1snh(STREAMFILE *streamFile) {
         case EA_CODEC_IMA: /* Need for Speed II (PC) */
             if (ea.bits && ea.bits!=2) goto fail; /* only in EACS */
             vgmstream->coding_type = coding_DVI_IMA; /* stereo/mono, high nibble first */
-            vgmstream->codec_version = ea.codec_version;
+            vgmstream->codec_config = ea.codec_config;
             break;
 
         case EA_CODEC_PSX: /* Need for Speed (PS) */
@@ -97,12 +97,9 @@ VGMSTREAM * init_vgmstream_ea_1snh(STREAMFILE *streamFile) {
             goto fail;
     }
 
-    /* open files; channel offsets are updated below */
+
     if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
         goto fail;
-
-    block_update_ea_1snh(start_offset,vgmstream);
-
     return vgmstream;
 
 fail:
@@ -127,7 +124,7 @@ static int parse_header(STREAMFILE* streamFile, ea_header* ea, off_t offset) {
         VGM_ASSERT(ea->type != 0, "EA EACS: unknown type\n"); /* block type? */
 
         if (ea->codec == EA_CODEC_IMA)
-            ea->codec_version = get_ea_1snh_ima_version(streamFile, 0x00, ea);
+            ea->codec_config = get_ea_1snh_ima_version(streamFile, 0x00, ea);
     }
     else if (ea->is_sead) {
         /* alt subheader (found in some PC videos) */
@@ -136,7 +133,7 @@ static int parse_header(STREAMFILE* streamFile, ea_header* ea, off_t offset) {
         ea->codec       = read_32bit(offset+0x08, streamFile);
 
         if (ea->codec == EA_CODEC_IMA)
-            ea->codec_version = get_ea_1snh_ima_version(streamFile, 0x00, ea);
+            ea->codec_config = get_ea_1snh_ima_version(streamFile, 0x00, ea);
 
         set_ea_1snh_num_samples(streamFile, 0x00, ea);
         if (ea->loop_start_offset) /* offset found, now find actual start sample */
@@ -198,7 +195,7 @@ static void set_ea_1snh_num_samples(STREAMFILE* streamFile, off_t start_offset, 
                     block_samples = ps_bytes_to_samples(block_size - block_header, ea->channels);
                     break;
                 case EA_CODEC_IMA:
-                    if (ea->codec_version == 1)
+                    if (ea->codec_config == 1)
                         block_samples = read_32bit(block_offset + block_header, streamFile);
                     else
                         block_samples = ima_bytes_to_samples(block_size - block_header, ea->channels);

@@ -75,14 +75,8 @@ VGMSTREAM * init_vgmstream_ea_schl_fixed(STREAMFILE *streamFile) {
     }
 
 
-    /* open files; channel offsets are updated below */
     if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
         goto fail;
-
-    /* setup first block to update offsets */
-    block_update_ea_schl(start_offset,vgmstream);
-
-
     return vgmstream;
 
 fail:

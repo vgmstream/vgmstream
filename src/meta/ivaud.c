@@ -73,10 +73,6 @@ VGMSTREAM * init_vgmstream_ivaud(STREAMFILE *streamFile) {
 
     if (!vgmstream_open_stream(vgmstream,streamFile,ivaud.stream_offset))
         goto fail;
-
-    if (vgmstream->layout_type == layout_blocked_ivaud)
-        block_update_ivaud(ivaud.stream_offset, vgmstream);
-
     return vgmstream;
 
 fail:

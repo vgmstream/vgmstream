@@ -41,7 +41,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				AdditionalIncludeDirectories="../ext_includes"
-				PreprocessorDefinitions="WIN32;VGM_USE_FFMPEG;VGM_USE_G7221;VGM_USE_G719;USE_ALLOCA;_DEBUG;_LIB;"
+				PreprocessorDefinitions="WIN32;VGM_USE_VORBIS;VGM_USE_MPEG;VGM_USE_FFMPEG;VGM_USE_G7221;VGM_USE_G719;USE_ALLOCA;_DEBUG;_LIB;"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
@@ -103,7 +103,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				AdditionalIncludeDirectories="../ext_includes"
-				PreprocessorDefinitions="WIN32;VGM_USE_FFMPEG;VGM_USE_G7221;VGM_USE_G719;USE_ALLOCA;NDEBUG;_LIB;"
+				PreprocessorDefinitions="WIN32;VGM_USE_VORBIS;VGM_USE_MPEG;VGM_USE_FFMPEG;VGM_USE_G7221;VGM_USE_G719;USE_ALLOCA;NDEBUG;_LIB;"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
@@ -241,6 +241,10 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\meta\kma9_streamfile.h"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\opus_interleave_streamfile.h"
                     >
                 </File>
@@ -249,11 +253,19 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\meta\ps2_psh_streamfile.h"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\sqex_scd_streamfile.h"
                     >
                 </File>
                 <File
                     RelativePath=".\meta\ubi_lyn_ogg_streamfile.h"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\xvag_streamfile.h"
                     >
                 </File>
 			</Filter>
@@ -370,6 +382,10 @@
 				</File>
                 <File
                     RelativePath=".\meta\ck.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\csmp.c"
                     >
                 </File>
 				<File
@@ -576,6 +592,10 @@
 					RelativePath=".\meta\mca.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\meta\mib_mih.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\mn_str.c"
 					>
@@ -963,7 +983,7 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\ps2_mib.c"
+					RelativePath=".\meta\ps_headerless.c"
 					>
 				</File>
 				<File
@@ -1139,10 +1159,6 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\ps3_klbs.c"
-					>
-				</File>
-				<File
 					RelativePath=".\meta\ps3_msf.c"
 					>
 				</File>
@@ -1182,10 +1198,14 @@
 					RelativePath=".\meta\raw.c"
 					>
 				</File>
-				<File
-					RelativePath=".\meta\redspark.c"
-					>
-				</File>
+                <File
+                    RelativePath=".\meta\redspark.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\rfrm.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\riff.c"
 					>
@@ -1430,10 +1450,14 @@
 					RelativePath=".\meta\wpd.c"
 					>
 				</File>
-				<File
-					RelativePath=".\meta\ws_aud.c"
-					>
-				</File>
+                <File
+                    RelativePath=".\meta\ws_aud.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\wsi.c"
+                    >
+                </File>
                 <File
                     RelativePath=".\meta\wv6.c"
                     >
@@ -1616,10 +1640,6 @@
                 </File>
                 <File
                     RelativePath=".\coding\ffmpeg_decoder_utils_ea_schl.c"
-                    >
-                </File>
-                <File
-                    RelativePath=".\coding\ffmpeg_decoder_utils_ea_xma.c"
                     >
                 </File>
                 <File
@@ -1895,7 +1915,7 @@
 					>
 				</File>
 				<File
-					RelativePath=".\layout\nolayout.c"
+					RelativePath=".\layout\flat.c"
 					>
 				</File>
 				<File

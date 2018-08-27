@@ -11,6 +11,17 @@ SUBDIRS = coding layout meta
 libvgmstream_la_LDFLAGS = coding/libcoding.la layout/liblayout.la meta/libmeta.la
 libvgmstream_la_SOURCES = (auto-updated)
 libvgmstream_la_SOURCES += ../ext_libs/clHCA.c
-libvgmstream_la_LIBADD = $(AUDACIOUS_LIBS) $(GTK_LIBS) $(VORBISFILE_LIBS) $(VORBIS_LIBS) $(MPG123_LIBS) -lm
+libvgmstream_la_LIBADD = $(AUDACIOUS_LIBS) $(GTK_LIBS) -lm
 EXTRA_DIST = (auto-updated)
 EXTRA_DIST += ../ext_includes/clHCA.h
+
+if HAVE_VORBIS
+if HAVE_VORBISFILE
+AM_CFLAGS += -DVGM_USE_VORBIS
+libvgmstream_la_LIBADD += $(VORBISFILE_LIBS) $(VORBIS_LIBS)
+endif
+endif
+if HAVE_LIBMPG123
+AM_CFLAGS += -DVGM_USE_MPEG
+libvgmstream_la_LIBADD += $(MPG123_LIBS)
+endif

@@ -42,7 +42,8 @@ VGMSTREAM * init_vgmstream_agsc(STREAMFILE *streamFile) {
 
     vgmstream->coding_type = coding_NGC_DSP;
     vgmstream->layout_type = layout_none;
-    vgmstream->meta_type = meta_DSP_AGSC;
+    vgmstream->meta_type = meta_AGSC;
+    vgmstream->allow_dual_stereo = 1;
 
     for (i=0;i<16;i++) {
         vgmstream->ch[0].adpcm_coef[i]=read_16bitBE(header_offset+0xf6+i*2,streamFile);

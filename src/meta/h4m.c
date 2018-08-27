@@ -67,7 +67,7 @@ VGMSTREAM * init_vgmstream_h4m(STREAMFILE *streamFile) {
     vgmstream->sample_rate = sample_rate;
     vgmstream->num_streams = total_subsongs;
     vgmstream->stream_size = get_streamfile_size(streamFile) / total_subsongs; /* approx... */
-    vgmstream->codec_version = format; /* for blocks */
+    vgmstream->codec_config = format; /* for blocks */
     vgmstream->meta_type = meta_H4M;
     vgmstream->layout_type = layout_blocked_h4m;
 
@@ -89,16 +89,17 @@ VGMSTREAM * init_vgmstream_h4m(STREAMFILE *streamFile) {
 
     /* calc num_samples manually */
     {
+        vgmstream->stream_index = target_subsong; /* extra setup for H4M */
+        vgmstream->full_block_size = 0; /* extra setup for H4M */
         vgmstream->next_block_offset = start_offset;
         do {
-            block_update_h4m(vgmstream->next_block_offset,vgmstream);
+            block_update(vgmstream->next_block_offset,vgmstream);
             vgmstream->num_samples += vgmstream->current_block_samples;
         }
         while (vgmstream->next_block_offset < get_streamfile_size(streamFile));
         vgmstream->full_block_size = 0; /* extra cleanup for H4M */
+        block_update(start_offset, vgmstream);
     }
-
-    block_update_h4m(start_offset, vgmstream);
 
     return vgmstream;
 

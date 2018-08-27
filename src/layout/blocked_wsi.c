@@ -6,6 +6,7 @@ void block_update_wsi(off_t block_offset, VGMSTREAM * vgmstream) {
     STREAMFILE* streamFile = vgmstream->ch[0].streamfile;
     int i;
     off_t channel_block_size;
+    //int is_first_offset =
 
 
     /* assume that all channels have the same size for this block */
@@ -17,5 +18,15 @@ void block_update_wsi(off_t block_offset, VGMSTREAM * vgmstream) {
 
     for (i = 0; i < vgmstream->channels; i++) {
         vgmstream->ch[i].offset = block_offset + channel_block_size*i + 0x10;
+    }
+
+    /* first block has DSP header, remove */
+    if (block_offset == vgmstream->ch[0].channel_start_offset) {
+        int i;
+
+        vgmstream->current_block_size -= 0x60;
+        for (i = 0; i < vgmstream->channels; i++) {
+            vgmstream->ch[i].offset += 0x60;
+        }
     }
 }

@@ -2,38 +2,35 @@
 # XMPlay plugin
 #
 
-ifneq ($(TARGET_OS),WIN32)
-$(error option must be built with TARGET_OS = WIN32)
+
+ifneq ($(TARGET_OS),Windows_NT)
+$(error option must be built with TARGET_OS = Windows_NT)
 endif
 
 
 ### main defs
 OUTPUT_XMPLAY = xmp-vgmstream.dll
 
-CFLAGS += -Wall -O3 -DUSE_ALLOCA -DWIN32 -I../ext_includes $(EXTRA_CFLAGS)
+CFLAGS += -Wall -Werror=format-security -Wdeclaration-after-statement -Wvla -O3 -DUSE_ALLOCA -DWIN32 -I../ext_includes $(EXTRA_CFLAGS)
 LDFLAGS += -L../src -L../ext_libs -lm -lvgmstream $(EXTRA_LDFLAGS)
 TARGET_EXT_LIBS = 
 
 
 ### external libs
-ifeq ($(TARGET_OS),WIN32)
+ifeq ($(TARGET_OS),Windows_NT)
 
 VGM_ENABLE_VORBIS = 1
 ifeq ($(VGM_ENABLE_VORBIS),1)
-  #CFLAGS  += -DVGM_USE_VORBIS
+  CFLAGS  += -DVGM_USE_VORBIS
   LDFLAGS += -lvorbis
   TARGET_EXT_LIBS += libvorbis.a
-else
-  CFLAGS  += -DVGM_DISABLE_VORBIS
 endif
 
 VGM_ENABLE_MPEG = 1
 ifeq ($(VGM_ENABLE_MPEG),1)
-  #CFLAGS  += -DVGM_USE_MPEG
+  CFLAGS  += -DVGM_USE_MPEG
   LDFLAGS += -lmpg123-0
   TARGET_EXT_LIBS += libmpg123-0.a
-else
-  CFLAGS  += -DVGM_DISABLE_MPEG
 endif
 
 VGM_ENABLE_G7221 = 1

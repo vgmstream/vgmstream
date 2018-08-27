@@ -84,9 +84,7 @@ VGMSTREAM * init_vgmstream_opus_ppp(STREAMFILE *streamFile) {
     vgmstream->meta_type = meta_OPUS_PPP;
     vgmstream->coding_type = data->segments[0]->coding_type;
     vgmstream->layout_type = layout_segmented;
-
     vgmstream->layout_data = data;
-    data->loop_segment = loop_start_segment;
 
     return vgmstream;
 

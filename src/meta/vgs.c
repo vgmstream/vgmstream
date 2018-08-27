@@ -50,25 +50,22 @@ VGMSTREAM * init_vgmstream_vgs(STREAMFILE *streamFile) {
         channel_count++;
     }
 
+    start_offset = 0x80;
+
     
 	/* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
-    start_offset = 0x80;
+    vgmstream->meta_type = meta_VGS;
     vgmstream->sample_rate = sample_rate;
     vgmstream->num_samples = ps_bytes_to_samples(channel_size*channel_count, channel_count);
 
     vgmstream->coding_type = coding_PSX_badflags; /* flag = stream/channel number */
     vgmstream->layout_type = layout_blocked_vgs;
-    vgmstream->meta_type = meta_VGS;
 
-
-    /* open files; channel offsets are updated below */
     if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
         goto fail;
-    block_update_vgs(start_offset, vgmstream);
-
     return vgmstream;
 fail:
     close_vgmstream(vgmstream);

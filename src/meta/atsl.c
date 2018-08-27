@@ -120,10 +120,12 @@ VGMSTREAM * init_vgmstream_atsl(STREAMFILE *streamFile) {
             vgmstream = init_vgmstream_riff(temp_streamFile);
             if (!vgmstream) goto fail;
             break;
+#ifdef VGM_USE_VORBIS
         case KOVS:
             vgmstream = init_vgmstream_ogg_vorbis(temp_streamFile);
             if (!vgmstream) goto fail;
             break;
+#endif
         case KTSS:
             vgmstream = init_vgmstream_ktss(temp_streamFile);
             if (!vgmstream) goto fail;

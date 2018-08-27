@@ -115,7 +115,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				AdditionalIncludeDirectories="../ext_includes"
-				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;IN_VGMSTREAM_EXPORTS;"
+				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;IN_VGMSTREAM_EXPORTS;VGM_USE_VORBIS;VGM_USE_MPEG;VGM_USE_G7221"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"

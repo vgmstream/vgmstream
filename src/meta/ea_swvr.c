@@ -61,7 +61,7 @@ VGMSTREAM * init_vgmstream_ea_swvr(STREAMFILE *streamFile) {
     total_subsongs = 1;
     block_id = read_32bit(start_offset, streamFile);
 
-    /* files are basically headerless so we inspect blocks the first block
+    /* files are basically headerless so we inspect the first block
      * Freekstyle uses multiblocks/subsongs (though some subsongs may be clones?) */
     switch(block_id) {
         case 0x5641474D: /* "VAGM" */
@@ -121,12 +121,12 @@ VGMSTREAM * init_vgmstream_ea_swvr(STREAMFILE *streamFile) {
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
+    vgmstream->meta_type = meta_EA_SWVR;
     vgmstream->sample_rate = sample_rate;
     vgmstream->codec_endian = big_endian;
     vgmstream->num_streams = total_subsongs;
     vgmstream->stream_size = get_streamfile_size(streamFile) / total_subsongs; /* approx... */
 
-    vgmstream->meta_type = meta_EA_SWVR;
     vgmstream->coding_type = coding;
     vgmstream->layout_type = layout_blocked_ea_swvr;
     /* DSP coefs are loaded per block */
@@ -141,7 +141,7 @@ VGMSTREAM * init_vgmstream_ea_swvr(STREAMFILE *streamFile) {
         vgmstream->stream_index = target_subsong; /* needed to skip other subsong-blocks */
         vgmstream->next_block_offset = start_offset;
         do {
-            block_update_ea_swvr(vgmstream->next_block_offset,vgmstream);
+            block_update(vgmstream->next_block_offset,vgmstream);
             switch(vgmstream->coding_type) {
                 case coding_PSX:     	num_samples = ps_bytes_to_samples(vgmstream->current_block_size,1); break;
                 case coding_NGC_DSP: 	num_samples = dsp_bytes_to_samples(vgmstream->current_block_size,1); break;
@@ -151,6 +151,7 @@ VGMSTREAM * init_vgmstream_ea_swvr(STREAMFILE *streamFile) {
             vgmstream->num_samples += num_samples;
         }
         while (vgmstream->next_block_offset < get_streamfile_size(streamFile));
+        block_update(start_offset, vgmstream);
     }
 
     if (loop_flag) {
@@ -158,7 +159,6 @@ VGMSTREAM * init_vgmstream_ea_swvr(STREAMFILE *streamFile) {
         vgmstream->loop_end_sample = vgmstream->num_samples;
     }
 
-    block_update_ea_swvr(start_offset, vgmstream);
     return vgmstream;
 
 fail:

@@ -71,7 +71,8 @@ VGMSTREAM * init_vgmstream_spt_spd(STREAMFILE *streamFile) {
     }
 
     vgmstream->meta_type = meta_SPT_SPD;
-	
+    vgmstream->allow_dual_stereo = 1;
+
     /* open the file for reading */
     {
         for (i=0;i<channel_count;i++) {
