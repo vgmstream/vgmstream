@@ -101,7 +101,7 @@ static VGMSTREAM * init_vgmstream_dsp_common(STREAMFILE *streamFile, dsp_meta *d
     int loop_flag;
     struct dsp_header ch_header[COMMON_DSP_MAX_CHANNELS];
 
-VGM_LOG("1\n");
+
     if (dspm->channel_count > dspm->max_channels)
         goto fail;
     if (dspm->channel_count > COMMON_DSP_MAX_CHANNELS)
@@ -114,7 +114,6 @@ VGM_LOG("1\n");
                 goto fail;
         }
     }
-    VGM_LOG("2\n");
 
     /* fix bad/fixed value in loop start */
     if (dspm->fix_loop_start) {
@@ -123,7 +122,6 @@ VGM_LOG("1\n");
                 ch_header[i].loop_start_offset = 0x00;
         }
     }
-    VGM_LOG("3\n");
 
     /* check type==0 and gain==0 */
     {
@@ -132,7 +130,6 @@ VGM_LOG("1\n");
                 goto fail;
         }
     }
-    VGM_LOG("4\n");
 
     /* check for agreement between channels */
     if (!dspm->ignore_header_agreement) {
@@ -147,7 +144,6 @@ VGM_LOG("1\n");
             }
         }
     }
-    VGM_LOG("5\n");
 
     /* check expected initial predictor/scale */
     {
@@ -161,7 +157,6 @@ VGM_LOG("1\n");
                 goto fail;
         }
     }
-    VGM_LOG("6\n");
 
     /* check expected loop predictor/scale */
     if (ch_header[0].loop_flag) {
@@ -175,12 +170,12 @@ VGM_LOG("1\n");
                 loop_offset = loop_offset / 16 * 8;
                 loop_offset = (loop_offset / dspm->interleave * dspm->interleave * channels) + (loop_offset % dspm->interleave);
             }
-VGM_LOG("%x vs %lx\n", ch_header[i].loop_ps, dspm->start_offset + i*dspm->interleave + loop_offset);
+
             if (ch_header[i].loop_ps != (uint8_t)read_8bit(dspm->start_offset + i*dspm->interleave + loop_offset,streamFile))
                 goto fail;
         }
     }
-    VGM_LOG("7\n");
+
 
     /* all done, must be DSP */
 
@@ -785,7 +780,8 @@ VGMSTREAM * init_vgmstream_idsp_nl(STREAMFILE *streamFile) {
             stream_size -= 0x14; /* remove padding */
         stream_size -= dspm.start_offset;
 
-        dspm.interleave_last = (stream_size / dspm.channel_count) % dspm.interleave;
+        if (dspm.interleave)
+            dspm.interleave_last = (stream_size / dspm.channel_count) % dspm.interleave;
     }
 
     dspm.fix_looping = 1;
