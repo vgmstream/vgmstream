@@ -370,7 +370,10 @@
     <ClCompile Include="meta\his.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\idsp.c">
+    <ClCompile Include="meta\nub_idsp.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\idsp_ie.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ish_isd.c">

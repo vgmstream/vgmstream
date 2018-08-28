@@ -588,10 +588,14 @@
 					RelativePath=".\meta\his.c"
 					>
 				</File>
-				<File
-					RelativePath=".\meta\idsp.c"
-					>
-				</File>
+                <File
+                    RelativePath=".\meta\idsp_ie.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\nub_idsp.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\ios_psnd.c"
 					>

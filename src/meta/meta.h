@@ -280,6 +280,7 @@ VGMSTREAM * init_vgmstream_ps2_omu(STREAMFILE *streamFile);
 VGMSTREAM * init_vgmstream_ps2_xa2(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_nub_idsp(STREAMFILE * streamFile);
+
 VGMSTREAM * init_vgmstream_idsp_ie(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_ngc_ymf(STREAMFILE * streamFile);

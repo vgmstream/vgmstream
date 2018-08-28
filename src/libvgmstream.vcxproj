@@ -261,7 +261,8 @@
     <ClCompile Include="meta\hca.c" />
     <ClCompile Include="meta\hd3_bd3.c" />
     <ClCompile Include="meta\his.c" />
-    <ClCompile Include="meta\idsp.c" />
+    <ClCompile Include="meta\idsp_ie.c" />
+    <ClCompile Include="meta\nub_idsp.c" />
     <ClCompile Include="meta\ish_isd.c" />
     <ClCompile Include="meta\ivaud.c" />
     <ClCompile Include="meta\ivb.c" />
