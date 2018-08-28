@@ -408,7 +408,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_opus_ppp,
     init_vgmstream_ubi_bao_pk,
     init_vgmstream_dsp_switch_audio,
-    init_vgmstream_dsp_sadf,
+    init_vgmstream_sadf,
     init_vgmstream_h4m,
     init_vgmstream_ps2_ads_container,
     init_vgmstream_asf,
@@ -422,8 +422,27 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_bnk_sony,
     init_vgmstream_nus3bank,
     init_vgmstream_scd_sscf,
+    init_vgmstream_dsp_vag,
+    init_vgmstream_dsp_itl_ch,
 
-    /* lowest priority metas (TXTH should go before raw formats) */
+    init_vgmstream_a2m,
+    init_vgmstream_ahv,
+    init_vgmstream_msv,
+    init_vgmstream_sdf_ps2,
+    init_vgmstream_svg,
+    init_vgmstream_vis,
+
+    init_vgmstream_sdf_3ds,
+    init_vgmstream_vai,
+
+    init_vgmstream_aif_asobo,
+    init_vgmstream_ao,
+    init_vgmstream_apc,
+    init_vgmstream_wv2,
+    init_vgmstream_xau_konami,
+
+
+    /* lowest priority metas (should go after all metas, and TXTH should go before raw formats) */
     init_vgmstream_txth,            /* proper parsers should supersede TXTH, once added */
     init_vgmstream_ps2_int,         /* .int raw PS-ADPCM */
     init_vgmstream_ps_headerless,   /* tries to detect a bunch of PS-ADPCM formats */

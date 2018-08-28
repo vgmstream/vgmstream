@@ -101,7 +101,7 @@ static VGMSTREAM * init_vgmstream_dsp_common(STREAMFILE *streamFile, dsp_meta *d
     int loop_flag;
     struct dsp_header ch_header[COMMON_DSP_MAX_CHANNELS];
 
-
+VGM_LOG("1\n");
     if (dspm->channel_count > dspm->max_channels)
         goto fail;
     if (dspm->channel_count > COMMON_DSP_MAX_CHANNELS)
@@ -114,6 +114,7 @@ static VGMSTREAM * init_vgmstream_dsp_common(STREAMFILE *streamFile, dsp_meta *d
                 goto fail;
         }
     }
+    VGM_LOG("2\n");
 
     /* fix bad/fixed value in loop start */
     if (dspm->fix_loop_start) {
@@ -122,6 +123,7 @@ static VGMSTREAM * init_vgmstream_dsp_common(STREAMFILE *streamFile, dsp_meta *d
                 ch_header[i].loop_start_offset = 0x00;
         }
     }
+    VGM_LOG("3\n");
 
     /* check type==0 and gain==0 */
     {
@@ -130,6 +132,7 @@ static VGMSTREAM * init_vgmstream_dsp_common(STREAMFILE *streamFile, dsp_meta *d
                 goto fail;
         }
     }
+    VGM_LOG("4\n");
 
     /* check for agreement between channels */
     if (!dspm->ignore_header_agreement) {
@@ -144,6 +147,7 @@ static VGMSTREAM * init_vgmstream_dsp_common(STREAMFILE *streamFile, dsp_meta *d
             }
         }
     }
+    VGM_LOG("5\n");
 
     /* check expected initial predictor/scale */
     {
@@ -157,6 +161,7 @@ static VGMSTREAM * init_vgmstream_dsp_common(STREAMFILE *streamFile, dsp_meta *d
                 goto fail;
         }
     }
+    VGM_LOG("6\n");
 
     /* check expected loop predictor/scale */
     if (ch_header[0].loop_flag) {
@@ -170,11 +175,12 @@ static VGMSTREAM * init_vgmstream_dsp_common(STREAMFILE *streamFile, dsp_meta *d
                 loop_offset = loop_offset / 16 * 8;
                 loop_offset = (loop_offset / dspm->interleave * dspm->interleave * channels) + (loop_offset % dspm->interleave);
             }
-
+VGM_LOG("%x vs %lx\n", ch_header[i].loop_ps, dspm->start_offset + i*dspm->interleave + loop_offset);
             if (ch_header[i].loop_ps != (uint8_t)read_8bit(dspm->start_offset + i*dspm->interleave + loop_offset,streamFile))
                 goto fail;
         }
     }
+    VGM_LOG("7\n");
 
     /* all done, must be DSP */
 
@@ -629,7 +635,7 @@ fail:
 }
 
 /* sadf - Procyon Studio Header Variant [Xenoblade Chronicles 2 (Switch)] (sfx) */
-VGMSTREAM * init_vgmstream_dsp_sadf(STREAMFILE *streamFile) {
+VGMSTREAM * init_vgmstream_sadf(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     int  channel_count, loop_flag;
     off_t start_offset;
@@ -1107,6 +1113,59 @@ VGMSTREAM * init_vgmstream_dsp_switch_audio(STREAMFILE *streamFile) {
     dspm.interleave = dspm.header_spacing;
 
     dspm.meta_type = meta_DSP_SWITCH_AUDIO;
+    return init_vgmstream_dsp_common(streamFile, &dspm);
+fail:
+    return NULL;
+}
+
+/* .vag - from Penny-Punching Princess (Switch) sfx */
+VGMSTREAM * init_vgmstream_dsp_vag(STREAMFILE *streamFile) {
+    dsp_meta dspm = {0};
+
+    /* checks */
+    if (!check_extensions(streamFile, "vag"))
+        goto fail;
+    if (read_32bitBE(0x00,streamFile) != 0x08000000) /* file type? OPUSs had 09 */
+        goto fail;
+    if (read_32bitLE(0x08,streamFile) != read_32bitLE(0x24,streamFile)) /* header has various repeated values */
+        goto fail;
+
+    dspm.channel_count = 1;
+    dspm.max_channels = 1;
+    dspm.little_endian = 1;
+
+    dspm.header_offset = 0x1c;
+    dspm.header_spacing = 0x60;
+    dspm.start_offset = dspm.header_offset + dspm.header_spacing*dspm.channel_count;
+    dspm.interleave = 0;
+
+    dspm.fix_loop_start = 1;
+
+    dspm.meta_type = meta_DSP_VAG;
+    return init_vgmstream_dsp_common(streamFile, &dspm);
+fail:
+    return NULL;
+}
+
+/* .itl - from Chanrinko Hero (GC) */
+VGMSTREAM * init_vgmstream_dsp_itl_ch(STREAMFILE *streamFile) {
+    dsp_meta dspm = {0};
+
+    /* checks */
+    if (!check_extensions(streamFile, "itl"))
+        goto fail;
+
+    dspm.channel_count = 2;
+    dspm.max_channels = 2;
+
+    dspm.header_offset = 0x00;
+    dspm.header_spacing = 0x60;
+    dspm.start_offset = dspm.header_offset + dspm.header_spacing*dspm.channel_count;
+    dspm.interleave = 0x23C0;
+
+    dspm.fix_looping = 1;
+
+    dspm.meta_type = meta_DSP_ITL;
     return init_vgmstream_dsp_common(streamFile, &dspm);
 fail:
     return NULL;

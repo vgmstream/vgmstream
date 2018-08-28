@@ -272,10 +272,58 @@
 			<Filter
 				Name="Source Files"
 				>
-				<File
-					RelativePath=".\meta\2dx9.c"
-					>
-				</File>
+                <File
+                    RelativePath=".\meta\2dx9.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\ahv.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\a2m.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\msv.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\sdf.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\svg.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\vis.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\vai.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\aif_asobo.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\ao.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\apc.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\wv2.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\xau_konami.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\aax.c"
 					>
