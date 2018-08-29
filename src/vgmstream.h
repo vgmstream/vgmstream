@@ -1091,15 +1091,18 @@ typedef struct {
 
 typedef struct {
     STREAMFILE *streamfile;
-    uint64_t start;
-    //uint64_t size;
     clHCA_stInfo info;
-    unsigned int curblock;
-    unsigned int sample_ptr;
-    unsigned int samples_discard;
+
     signed short *sample_buffer;
-    void* handle;
+    size_t samples_filled;
+    size_t samples_consumed;
+    size_t samples_to_discard;
+
     void* data_buffer;
+
+    unsigned int current_block;
+
+    void* handle;
 } hca_codec_data;
 
 #ifdef VGM_USE_FFMPEG

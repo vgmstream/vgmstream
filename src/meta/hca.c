@@ -26,7 +26,6 @@ VGMSTREAM * init_vgmstream_hca(STREAMFILE *streamFile) {
     if (clHCA_isOurFile1(header_buffer, header_size) < 0)
         goto fail;
 
-
     /* init vgmstream context */
     hca_data = init_hca(streamFile);
 
@@ -48,6 +47,7 @@ VGMSTREAM * init_vgmstream_hca(STREAMFILE *streamFile) {
         goto fail;
     if (clHCA_getInfo(hca_data->handle, &hca_data->info) < 0) /* copy important header values to info struct */
         goto fail;
+    reset_hca(hca_data);
 
 
     /* build the VGMSTREAM */
@@ -56,9 +56,18 @@ VGMSTREAM * init_vgmstream_hca(STREAMFILE *streamFile) {
 
     vgmstream->meta_type = meta_HCA;
     vgmstream->sample_rate = hca_data->info.samplingRate;
-    vgmstream->num_samples = hca_data->info.blockCount * hca_data->info.samplesPerBlock;
-    vgmstream->loop_start_sample = hca_data->info.loopStartBlock * hca_data->info.samplesPerBlock;
-    vgmstream->loop_end_sample = hca_data->info.loopEndBlock * hca_data->info.samplesPerBlock;
+
+    vgmstream->num_samples = hca_data->info.blockCount * hca_data->info.samplesPerBlock -
+            hca_data->info.encoderDelay - hca_data->info.encoderPadding;
+    vgmstream->loop_start_sample = hca_data->info.loopStartBlock * hca_data->info.samplesPerBlock -
+            hca_data->info.encoderDelay + hca_data->info.loopStartDelay;
+    vgmstream->loop_end_sample = hca_data->info.loopEndBlock * hca_data->info.samplesPerBlock -
+            hca_data->info.encoderDelay + (hca_data->info.samplesPerBlock - hca_data->info.loopEndPadding);
+    /* After loop end CRI's encoder removes the rest of the original samples and puts some
+     * garbage in the last frame that should be ignored. Optionally it can encode fully preserving
+     * the file too, but it isn't detectable, so we'll allow the whole thing just in case */
+    //if (vgmstream->loop_end_sample && vgmstream->num_samples > vgmstream->loop_end_sample)
+    //    vgmstream->num_samples = vgmstream->loop_end_sample;
 
     vgmstream->coding_type = coding_CRI_HCA;
     vgmstream->layout_type = layout_none;
@@ -101,9 +110,8 @@ static void find_hca_key(hca_codec_data * hca_data, uint8_t * header_buffer, int
 
 
         /* re-init HCA with the current key as buffer becomes invalid (probably can be simplified) */
-        hca_data->curblock = 0;
-        hca_data->sample_ptr = clHCA_samplesPerBlock;
-        if (read_streamfile(header_buffer, hca_data->start, header_size, hca_data->streamfile) != header_size)
+        reset_hca(hca_data);
+        if (read_streamfile(header_buffer, 0x00, header_size, hca_data->streamfile) != header_size)
             continue;
 
         clHCA_clear(hca_data->handle, keycode_lower, keycode_upper);
@@ -156,10 +164,9 @@ static void find_hca_key(hca_codec_data * hca_data, uint8_t * header_buffer, int
         //    break;
     }
 
-    /* reset HCA */
-    hca_data->curblock = 0;
-    hca_data->sample_ptr = clHCA_samplesPerBlock;
-    read_streamfile(header_buffer, hca_data->start, header_size, hca_data->streamfile);
+    /* reset HCA header */
+    hca_data->current_block = 0;
+    read_streamfile(header_buffer, 0x00, header_size, hca_data->streamfile);
 
 end:
     VGM_ASSERT(min_clip_count > 0, "HCA: best key=%08x%08x (clips=%i)\n", best_keycode_upper,best_keycode_lower, min_clip_count);

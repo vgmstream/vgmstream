@@ -573,7 +573,7 @@ void reset_vgmstream(VGMSTREAM * vgmstream) {
 #endif
 
     if (vgmstream->coding_type==coding_CRI_HCA) {
-        reset_hca(vgmstream);
+        reset_hca(vgmstream->codec_data);
     }
 
     if (vgmstream->coding_type==coding_EA_MT) {
@@ -1210,7 +1210,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_EA_MT:
             return 432;
         case coding_CRI_HCA:
-            return clHCA_samplesPerBlock;
+            return 0; /* 1024 - delay/padding (which can be bigger than 1024) */
 #if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
         case coding_MP4_AAC:
             return ((mp4_aac_codec_data*)vgmstream->codec_data)->samples_per_frame;
@@ -2038,7 +2038,7 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream) {
         /* prepare certain codecs' internal state for looping */
 
         if (vgmstream->coding_type==coding_CRI_HCA) {
-            loop_hca(vgmstream);
+            loop_hca(vgmstream->codec_data);
         }
 
         if (vgmstream->coding_type==coding_EA_MT) {
