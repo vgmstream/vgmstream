@@ -785,8 +785,13 @@ int clHCA_getInfo(clHCA *hca, clHCA_stInfo *info){
 	info->blockSize=hca->_blockSize;
 	info->blockCount=hca->_blockCount;
 	info->loopEnabled=hca->_loopFlg;
-	info->loopStart=hca->_loopStart;
-	info->loopEnd=hca->_loopEnd;
+	info->loopStartBlock=hca->_loopStart;
+	info->loopEndBlock=hca->_loopEnd;
+    info->loopStartDelay=hca->_loop_r01;
+    info->loopEndPadding=hca->_loop_r02;
+    info->encoderDelay=hca->_fmt_r01;
+    info->encoderPadding=hca->_fmt_r02;
+    info->samplesPerBlock = 0x80 * 8;
 	info->comment=hca->_comm_comment;
 	return 0;
 }

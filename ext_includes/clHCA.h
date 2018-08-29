@@ -49,8 +49,13 @@ typedef struct clHCA_stInfo {
 	unsigned int blockSize;
 	unsigned int blockCount;
 	unsigned int loopEnabled;
-	unsigned int loopStart;
-	unsigned int loopEnd;
+	unsigned int loopStartBlock;
+	unsigned int loopEndBlock;
+    unsigned int loopStartDelay;    /* samples in block before loop starts */
+    unsigned int loopEndPadding;    /* samples in block after loop ends */
+    unsigned int encoderDelay;      /* samples appended to the beginning */
+    unsigned int encoderPadding;    /* samples appended to the end */
+    unsigned int samplesPerBlock;
 	const char *comment;
 } clHCA_stInfo;
 

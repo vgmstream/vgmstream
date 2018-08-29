@@ -56,9 +56,9 @@ VGMSTREAM * init_vgmstream_hca(STREAMFILE *streamFile) {
 
     vgmstream->meta_type = meta_HCA;
     vgmstream->sample_rate = hca_data->info.samplingRate;
-    vgmstream->num_samples = hca_data->info.blockCount * clHCA_samplesPerBlock;
-    vgmstream->loop_start_sample = hca_data->info.loopStart * clHCA_samplesPerBlock;
-    vgmstream->loop_end_sample = hca_data->info.loopEnd * clHCA_samplesPerBlock;
+    vgmstream->num_samples = hca_data->info.blockCount * hca_data->info.samplesPerBlock;
+    vgmstream->loop_start_sample = hca_data->info.loopStartBlock * hca_data->info.samplesPerBlock;
+    vgmstream->loop_end_sample = hca_data->info.loopEndBlock * hca_data->info.samplesPerBlock;
 
     vgmstream->coding_type = coding_CRI_HCA;
     vgmstream->layout_type = layout_none;

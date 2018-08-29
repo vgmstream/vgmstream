@@ -130,7 +130,7 @@ void loop_hca(VGMSTREAM *vgmstream) {
     hca_codec_data *data = (hca_codec_data *)(vgmstream->codec_data);
     if (!data) return;
 
-    data->curblock = data->info.loopStart;
+    data->curblock = data->info.loopStartBlock;
     data->sample_ptr = clHCA_samplesPerBlock;
     data->samples_discard = 0;
 }
