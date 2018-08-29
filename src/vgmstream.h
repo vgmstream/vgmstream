@@ -1097,8 +1097,9 @@ typedef struct {
     unsigned int curblock;
     unsigned int sample_ptr;
     unsigned int samples_discard;
-    signed short sample_buffer[clHCA_samplesPerBlock * 16];
-    //clHCA * hca exists here (pre-alloc'ed)
+    signed short *sample_buffer;
+    void* handle;
+    void* data_buffer;
 } hca_codec_data;
 
 #ifdef VGM_USE_FFMPEG

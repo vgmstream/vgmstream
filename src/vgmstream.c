@@ -1676,7 +1676,7 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
 #endif
         case coding_CRI_HCA:
             decode_hca(vgmstream->codec_data, buffer+samples_written*vgmstream->channels,
-                    samples_to_do,vgmstream->channels);
+                    samples_to_do);
             break;
 #ifdef VGM_USE_FFMPEG
         case coding_FFmpeg:

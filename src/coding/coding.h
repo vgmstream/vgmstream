@@ -170,7 +170,8 @@ void seek_ea_mt(VGMSTREAM * vgmstream, int32_t num_sample);
 void free_ea_mt(ea_mt_codec_data *data);
 
 /* hca_decoder */
-void decode_hca(hca_codec_data * data, sample * outbuf, int32_t samples_to_do, int channels);
+hca_codec_data *init_hca(STREAMFILE *streamFile);
+void decode_hca(hca_codec_data * data, sample * outbuf, int32_t samples_to_do);
 void reset_hca(VGMSTREAM *vgmstream);
 void loop_hca(VGMSTREAM *vgmstream);
 void free_hca(hca_codec_data * data);
