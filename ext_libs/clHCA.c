@@ -1,8 +1,15 @@
 /**
- * HCA DECODER
+ * clHCA DECODER
+ *
+ * - Original decompilation and C++ decoder by nyaga
+ *     https://github.com/Nyagamon/HCADecoder
+ * - Ported to C by kode54
+   *   https://gist.github.com/kode54/ce2bf799b445002e125f06ed833903c0
+ * - Cleaned up by bnnm using Thealexbarney's VGAudio decoder as reference
+ *     https://github.com/Thealexbarney/VGAudio
  */
 
-/* TODO: fixes
+/* TODO:
  * - improve portability on types and float casts, sizeof(int) isn't necessarily sizeof(float)
  * - check "packed_noise_level" vs VGAudio (CriHcaPacking.UnpackFrameHeader), weird behaviour
  * - check "delta decode" vs VGAudio (CriHcaPacking.DeltaDecode), may be setting wrong values on bad data
@@ -18,10 +25,6 @@
 #include <stdlib.h>
 #include <memory.h>
 
-#ifdef _MSC_VER
-#define inline __inline
-#endif
-
 #define HCA_MASK  0x7F7F7F7F /* chunk obfuscation when the HCA is encrypted (ciph type > 0) */
 #define HCA_SUBFRAMES_PER_FRAME  8
 #define HCA_SAMPLES_PER_SUBFRAME  128
@@ -30,89 +33,8 @@
 
 #define HCA_MAX_CHANNELS  16 /* internal max? in practice only 8 can be encoded */
 
-
-/* Disables some optimizations from the original decompilation, mainly avoiding dereferences in some loops.
- * Mostly as a test (the compiler may generate similar code anyway), probably deleted later */
-#define HCA_DISABLE_OPTIMIZATIONS 0
-
 //--------------------------------------------------
-// header definitions
-//--------------------------------------------------
-typedef struct stHeader {
-    unsigned int hca;
-    unsigned short version;
-    unsigned short header_size;
-} stHeader;
-typedef struct stFormat {
-    unsigned int fmt;
-    unsigned int channels : 8;
-    unsigned int sample_rate : 24;
-    unsigned int frame_count;
-    unsigned short encoder_delay;
-    unsigned short encoder_padding;
-} stFormat;
-typedef struct stCompress {
-    unsigned int comp;
-    unsigned short frame_size;
-    unsigned char min_resolution;
-    unsigned char max_resolution;
-    unsigned char track_count;
-    unsigned char channel_config;
-    unsigned char total_band_count;
-    unsigned char base_band_count;
-    unsigned char stereo_band_count;
-    unsigned char bands_per_hfr_group;
-    unsigned char reserved1;
-    unsigned char reserved2;
-} stCompress;
-typedef struct stDecode {
-    unsigned int dec;
-    unsigned short frame_size;
-    unsigned char min_resolution;
-    unsigned char max_resolution;
-    unsigned char total_band_count;
-    unsigned char base_band_count;
-    unsigned char track_count : 4;
-    unsigned char channel_config : 4;
-    unsigned char stereo_type;
-} stDecode;
-typedef struct stVBR {
-    unsigned int vbr;
-    unsigned short max_frame_size;
-    unsigned short noise_level;
-} stVBR;
-typedef struct stATH {
-    unsigned int ath;
-    unsigned short type;
-} stATH;
-typedef struct stLoop {
-    unsigned int loop;
-    unsigned int loop_start_frame;
-    unsigned int loop_end_frame;
-    unsigned short loop_start_delay;
-    unsigned short loop_end_padding;
-} stLoop;
-typedef struct stCipher {
-    unsigned int ciph;
-    unsigned short type;
-} stCipher;
-typedef struct stRVA {
-    unsigned int rva;
-    float volume;
-} stRVA;
-typedef struct stComment {
-    unsigned int comm;
-    unsigned char len;
-  //char comment[]; /* variable, null terminated */
-} stComment;
-typedef struct stPadding {
-    unsigned int pad;
-  //unsigned char *padding; /* variable, up to header_size */
-} stPadding;
-
-
-//--------------------------------------------------
-// lib config/state
+// Decoder config/state
 //--------------------------------------------------
 typedef enum { DISCRETE = 0, STEREO_PRIMARY = 1, STEREO_SECONDARY = 2 } channel_type_t;
 typedef struct stChannel {
@@ -174,8 +96,7 @@ typedef struct clHCA {
     unsigned int loop_flag;
     /* ciph chunk */
     unsigned int ciph_type;
-    unsigned int ciph_key_u;
-    unsigned int ciph_key_l;
+    unsigned long long keycode;
     /* rva chunk */
     float rva_volume;
     /* comm chunk */
@@ -219,10 +140,11 @@ static const unsigned short crc16_lookup_table[256] = {
     0x0220,0x8225,0x822F,0x022A,0x823B,0x023E,0x0234,0x8231,0x8213,0x0216,0x021C,0x8219,0x0208,0x820D,0x8207,0x0202,
 };
 
-static unsigned short crc16_checksum(const unsigned char *data, int size) {
-    int i;
+static unsigned short crc16_checksum(const unsigned char *data, unsigned int size) {
+    unsigned int i;
     unsigned short sum = 0;
 
+    /* HCA header/frames should always have checksum 0 (checksum(size-16b) = last 16b) */
     for (i = 0; i < size; i++) {
         sum = (sum << 8) ^ crc16_lookup_table[(sum >> 8) ^ data[i]];
     }
@@ -238,7 +160,7 @@ static void bitreader_init(clData *br, const void *data, int size) {
     br->bit = 0;
 }
 
-static unsigned int bitreader_check(clData *br, int bitsize) {
+static unsigned int bitreader_peek(clData *br, int bitsize) {
     const unsigned int bit = br->bit;
     const unsigned int bit_rem = bit & 7;
     const unsigned int size = br->size;
@@ -298,7 +220,7 @@ static unsigned int bitreader_check(clData *br, int bitsize) {
 }
 
 static unsigned int bitreader_read(clData *br, int bitsize) {
-    unsigned int v = bitreader_check(br, bitsize);
+    unsigned int v = bitreader_peek(br, bitsize);
     br->bit += bitsize;
     return v;
 }
@@ -322,16 +244,16 @@ int clHCA_isOurFile0(const void *data) {
         return -1;
 
     bitreader_init(&br, data, 8);
-    if ((bitreader_check(&br, 32) & HCA_MASK) == 0x48434100) {/*'HCA\0'*/
+    if ((bitreader_peek(&br, 32) & HCA_MASK) == 0x48434100) {/*'HCA\0'*/
         bitreader_skip(&br, 32 + 16);
-        return bitreader_check(&br, 16);
+        return bitreader_peek(&br, 16);
     }
     return -1;
 }
 
 int clHCA_isOurFile1(const void *data, unsigned int size) {
     int minsize;
-    if (!data || size < 8)
+    if (!data || size < 0x08)
         return -1;
     minsize = clHCA_isOurFile0(data);
     if (minsize < 0 || (unsigned int) minsize > size)
@@ -367,7 +289,7 @@ void clHCA_DecodeSamples16(clHCA *hca, signed short *samples) {
     const float scale = 32768.0f;
     float f;
     signed int s;
-    int i, j, k;
+    unsigned int i, j, k;
 
     for (i = 0; i < HCA_SUBFRAMES_PER_FRAME; i++) {
         for (j = 0; j < HCA_SAMPLES_PER_SUBFRAME; j++) {
@@ -392,10 +314,9 @@ void clHCA_DecodeSamples16(clHCA *hca, signed short *samples) {
 //--------------------------------------------------
 // Allocation and creation
 //--------------------------------------------------
-static void clHCA_constructor(clHCA *hca, unsigned int key_lower, unsigned int key_upper) {
+static void clHCA_constructor(clHCA *hca, unsigned int keycode_upper, unsigned int keycode_lower) {
     memset(hca, 0, sizeof(*hca));
-    hca->ciph_key_u = key_upper;
-    hca->ciph_key_l = key_lower;
+    hca->keycode = ((long long)(keycode_upper & 0xFFFFFFFF) << 32) | (keycode_lower & 0xFFFFFFFF);
     hca->is_valid = 0;
     hca->comment = 0;
 }
@@ -409,18 +330,18 @@ int clHCA_sizeof() {
     return sizeof(clHCA);
 }
 
-void clHCA_clear(clHCA *hca, unsigned int ciphKey1, unsigned int ciphKey2) {
-    clHCA_constructor(hca, ciphKey1, ciphKey2);
+void clHCA_clear(clHCA *hca, unsigned int keycode_lower, unsigned int keycode_upper) {
+    clHCA_constructor(hca, keycode_upper, keycode_lower);
 }
 
 void clHCA_done(clHCA *hca) {
     clHCA_destructor(hca);
 }
 
-clHCA * clHCA_new(unsigned int ciphKey1, unsigned int ciphKey2) {
+clHCA * clHCA_new(unsigned int keycode_lower, unsigned int keycode_upper) {
     clHCA *hca = (clHCA *) malloc(clHCA_sizeof());
     if (hca) {
-        clHCA_constructor(hca, ciphKey1, ciphKey2);
+        clHCA_constructor(hca, keycode_upper, keycode_lower);
     }
     return hca;
 }
@@ -482,9 +403,9 @@ static const unsigned char ath_base_curve[656] = {
     0xEF,0xF0,0xF1,0xF2,0xF3,0xF4,0xF5,0xF7,0xF8,0xF9,0xFA,0xFB,0xFC,0xFD,0xFF,0xFF,
 };
 
-static void ath_init0(unsigned char *ath_table) {
+static void ath_init0(unsigned char *ath_curve) {
     /* disable curve */
-    memset(ath_table, 0, HCA_SAMPLES_PER_SUBFRAME);
+    memset(ath_curve, 0, sizeof(ath_curve[0]) * HCA_SAMPLES_PER_SUBFRAME);
 }
 
 static void ath_init1(unsigned char *ath_curve, unsigned int sample_rate) {
@@ -496,7 +417,7 @@ static void ath_init1(unsigned char *ath_curve, unsigned int sample_rate) {
         index = acc >> 13;
 
         if (index >= 654) {
-            memset(ath_curve+i, 0xFF, 0x80 - i);
+            memset(ath_curve+i, 0xFF, sizeof(ath_curve[0]) * (HCA_SAMPLES_PER_SUBFRAME - i));
             break;
         }
         ath_curve[i] = ath_base_curve[index];
@@ -522,17 +443,11 @@ static int ath_init(unsigned char *ath_curve, int type, unsigned int sample_rate
 // Encryption
 //--------------------------------------------------
 static void cipher_decrypt(unsigned char *cipher_table, unsigned char *data, int size) {
-#if HCA_DISABLE_OPTIMIZATIONS
     unsigned int i;
+
     for (i = 0; i < size; i++) {
         data[i] = cipher_table[data[i]];
     }
-#else
-    unsigned char *data_ = data;
-    for (data_ = (unsigned char *) data; size > 0; data_++, size--) {
-        *data_ = cipher_table[*data_];
-    }
-#endif
 }
 
 static void cipher_init0(unsigned char *cipher_table) {
@@ -572,13 +487,11 @@ static void cipher_init56_create_table(unsigned char *r, unsigned char key) {
     }
 }
 
-static void cipher_init56(unsigned char *cipher_table, unsigned int keycode_lower, unsigned int keycode_upper) {
+static void cipher_init56(unsigned char *cipher_table, unsigned long long keycode) {
     unsigned char kc[8];
     unsigned char seed[16];
     unsigned char base[256], base_r[16], base_c[16];
     unsigned int r, c;
-
-    unsigned long long keycode = ((long long)keycode_upper << 32) | keycode_lower;
 
     /* 56bit keycode encryption (given as a uint64_t number, but upper 8b aren't used) */
 
@@ -637,8 +550,8 @@ static void cipher_init56(unsigned char *cipher_table, unsigned int keycode_lowe
     }
 }
 
-static int cipher_init(unsigned char *cipher_table, int type, unsigned int keycode_lower, unsigned int keycode_upper) {
-    if (!(keycode_upper | keycode_lower))
+static int cipher_init(unsigned char *cipher_table, int type, unsigned long long keycode) {
+    if (!(keycode))
         type = 0;
 
     switch (type) {
@@ -649,7 +562,7 @@ static int cipher_init(unsigned char *cipher_table, int type, unsigned int keyco
         cipher_init1(cipher_table);
         break;
     case 56:
-        cipher_init56(cipher_table, keycode_lower, keycode_upper);
+        cipher_init56(cipher_table, keycode);
         break;
     default:
         return -1;
@@ -660,10 +573,9 @@ static int cipher_init(unsigned char *cipher_table, int type, unsigned int keyco
 //--------------------------------------------------
 // Parse
 //--------------------------------------------------
-static inline unsigned int header_ceil2(unsigned int a, unsigned int b) {
+static unsigned int header_ceil2(unsigned int a, unsigned int b) {
     return (b > 0) ? (a / b + ((a % b) ? 1 : 0)) : 0;
 }
-
 
 static int clHCA_DecodeHeader(clHCA *hca, void *data, unsigned int size) {
     clData br;
@@ -673,7 +585,7 @@ static int clHCA_DecodeHeader(clHCA *hca, void *data, unsigned int size) {
 
     hca->is_valid = 0;
 
-    if (size < sizeof(stHeader))
+    if (size < 0x08)
         return -1;
 
     bitreader_init(&br, data, size);
@@ -681,7 +593,7 @@ static int clHCA_DecodeHeader(clHCA *hca, void *data, unsigned int size) {
     /* read header chunks */
 
     /* HCA base header */
-    if ((bitreader_check(&br, 32) & HCA_MASK) == 0x48434100) { /* "HCA\0" */
+    if ((bitreader_peek(&br, 32) & HCA_MASK) == 0x48434100) { /* "HCA\0" */
         bitreader_skip(&br, 32);
         hca->version = bitreader_read(&br, 16);
         hca->header_size = bitreader_read(&br, 16);
@@ -699,14 +611,14 @@ static int clHCA_DecodeHeader(clHCA *hca, void *data, unsigned int size) {
         if (crc16_checksum(data,hca->header_size))
             return -1;
 
-        size -= sizeof(stHeader);
+        size -= 0x08;
     }
     else {
         return -1;
     }
 
     /* format info */
-    if (size >= sizeof(stFormat) && (bitreader_check(&br, 32) & HCA_MASK) == 0x666D7400) { /* "fmt\0" */
+    if (size >= 0x10 && (bitreader_peek(&br, 32) & HCA_MASK) == 0x666D7400) { /* "fmt\0" */
         bitreader_skip(&br, 32);
         hca->channels = bitreader_read(&br, 8);
         hca->sample_rate = bitreader_read(&br, 24);
@@ -723,14 +635,14 @@ static int clHCA_DecodeHeader(clHCA *hca, void *data, unsigned int size) {
         if (!(hca->sample_rate >= 1 && hca->sample_rate <= 0x7FFFFF)) /* encoder max seems 48000 */
             return -1;
 
-        size -= sizeof(stFormat);
+        size -= 0x10;
     }
     else {
         return -1;
     }
 
     /* compression (v2.0) or decode (v1.x) info */
-    if (size >= sizeof(stCompress) && (bitreader_check(&br, 32) & HCA_MASK) == 0x636F6D70) { /* "comp" */
+    if (size >= 0x10 && (bitreader_peek(&br, 32) & HCA_MASK) == 0x636F6D70) { /* "comp" */
         bitreader_skip(&br, 32);
         hca->frame_size = bitreader_read(&br, 16);
         hca->min_resolution = bitreader_read(&br, 8);
@@ -744,9 +656,9 @@ static int clHCA_DecodeHeader(clHCA *hca, void *data, unsigned int size) {
         hca->reserved1 = bitreader_read(&br, 8);
         hca->reserved2 = bitreader_read(&br, 8);
 
-        size -= sizeof(stCompress);
+        size -= 0x10;
     }
-    else if (size >= sizeof(stDecode) && (bitreader_check(&br, 32) & HCA_MASK) == 0x64656300) { /* "dec\0" */
+    else if (size >= 0x0c && (bitreader_peek(&br, 32) & HCA_MASK) == 0x64656300) { /* "dec\0" */
         bitreader_skip(&br, 32);
         hca->frame_size = bitreader_read(&br, 16);
         hca->min_resolution = bitreader_read(&br, 8);
@@ -762,14 +674,14 @@ static int clHCA_DecodeHeader(clHCA *hca, void *data, unsigned int size) {
         hca->stereo_band_count = hca->total_band_count - hca->base_band_count;
         hca->bands_per_hfr_group = 0;
 
-        size -= sizeof(stDecode);
+        size -= 0x0c;
     }
     else {
         return -1;
     }
 
     /* VBR (variable bit rate) info */
-    if (size >= sizeof(stVBR) && (bitreader_check(&br, 32) & HCA_MASK) == 0x76627200) { /* "vbr\0" */
+    if (size >= 0x08 && (bitreader_peek(&br, 32) & HCA_MASK) == 0x76627200) { /* "vbr\0" */
         bitreader_skip(&br, 32);
         hca->vbr_max_frame_size = bitreader_read(&br, 16);
         hca->vbr_noise_Level = bitreader_read(&br, 16);
@@ -777,7 +689,7 @@ static int clHCA_DecodeHeader(clHCA *hca, void *data, unsigned int size) {
         if (!(hca->frame_size == 0 && hca->vbr_max_frame_size > 8 && hca->vbr_max_frame_size <= 0x1FF))
             return -1;
 
-        size -= sizeof(stVBR);
+        size -= 0x08;
     }
     else {
         /* removed in v2.0, probably unused in v1.x */
@@ -786,17 +698,17 @@ static int clHCA_DecodeHeader(clHCA *hca, void *data, unsigned int size) {
     }
 
     /* ATH (Absolute Threshold of Hearing) info */
-    if (size >= sizeof(stATH) && (bitreader_check(&br, 32) & HCA_MASK) == 0x61746800) { /* "ath\0" */
+    if (size >= 0x06 && (bitreader_peek(&br, 32) & HCA_MASK) == 0x61746800) { /* "ath\0" */
         bitreader_skip(&br, 32);
         hca->ath_type = bitreader_read(&br, 16);
     }
     else {
-        /* removed? in v2.0, default in v1.x (maybe only ever used in v1.1) */
+        /* removed in v2.0, default in v1.x (maybe only ever used in v1.1) */
         hca->ath_type = (hca->version < 0x200) ? 1 : 0;
     }
 
     /* loop info */
-    if (size >= sizeof(stLoop) && (bitreader_check(&br, 32) & HCA_MASK) == 0x6C6F6F70) { /* "loop" */
+    if (size >= 0x10 && (bitreader_peek(&br, 32) & HCA_MASK) == 0x6C6F6F70) { /* "loop" */
         bitreader_skip(&br, 32);
         hca->loop_start_frame = bitreader_read(&br, 32);
         hca->loop_end_frame = bitreader_read(&br, 32);
@@ -809,7 +721,7 @@ static int clHCA_DecodeHeader(clHCA *hca, void *data, unsigned int size) {
                 && hca->loop_end_frame < hca->frame_count))
             return -1;
 
-        size -= sizeof(stLoop);
+        size -= 0x10;
     }
     else {
         hca->loop_start_frame = 0;
@@ -821,21 +733,21 @@ static int clHCA_DecodeHeader(clHCA *hca, void *data, unsigned int size) {
     }
 
     /* cipher/encryption info */
-    if (size >= sizeof(stCipher) && (bitreader_check(&br, 32) & HCA_MASK) == 0x63697068) { /* "ciph" */
+    if (size >= 0x06 && (bitreader_peek(&br, 32) & HCA_MASK) == 0x63697068) { /* "ciph" */
         bitreader_skip(&br, 32);
         hca->ciph_type = bitreader_read(&br, 16);
 
         if (!(hca->ciph_type == 0 || hca->ciph_type == 1 || hca->ciph_type == 56))
             return -1;
 
-        size -= sizeof(stCipher);
+        size -= 0x06;
     }
     else {
         hca->ciph_type = 0;
     }
 
     /* RVA (relative volume adjustment) info */
-    if (size >= sizeof(stRVA) && (bitreader_check(&br, 32) & HCA_MASK) == 0x72766100) { /* "rva\0" */
+    if (size >= 0x08 && (bitreader_peek(&br, 32) & HCA_MASK) == 0x72766100) { /* "rva\0" */
         union {
             unsigned int i;
             float f;
@@ -844,13 +756,13 @@ static int clHCA_DecodeHeader(clHCA *hca, void *data, unsigned int size) {
         rva_volume_cast.i = bitreader_read(&br, 32);
         hca->rva_volume = rva_volume_cast.f;
 
-        size -= sizeof(stRVA);
+        size -= 0x08;
     } else {
         hca->rva_volume = 1;
     }
 
     /* comment */
-    if (size >= sizeof(stComment) && (bitreader_check(&br, 32) & HCA_MASK) == 0x636F6D6D) {/* "comm" */
+    if (size >= 0x05 && (bitreader_peek(&br, 32) & HCA_MASK) == 0x636F6D6D) {/* "comm" */
         unsigned int i;
         char *temp;
         bitreader_skip(&br, 32);
@@ -867,7 +779,7 @@ static int clHCA_DecodeHeader(clHCA *hca, void *data, unsigned int size) {
             hca->comment[i] = bitreader_read(&br, 8);
         hca->comment[i] = '\0'; /* should be null terminated but make sure */
 
-        size -= sizeof(stComment) + hca->comment_len;
+        size -= 0x05 + hca->comment_len;
     }
     else {
         hca->comment_len = 0;
@@ -875,7 +787,7 @@ static int clHCA_DecodeHeader(clHCA *hca, void *data, unsigned int size) {
     }
 
     /* padding info */
-    if (size >= sizeof(stPadding) && (bitreader_check(&br, 32) & HCA_MASK) == 0x70616400) { /* "pad\0" */
+    if (size >= 0x04 && (bitreader_peek(&br, 32) & HCA_MASK) == 0x70616400) { /* "pad\0" */
         size -= (size - 0x02); /* fills up to header_size, sans checksum */
     }
 
@@ -897,7 +809,7 @@ static int clHCA_DecodeHeader(clHCA *hca, void *data, unsigned int size) {
 
     if (ath_init(hca->ath_curve, hca->ath_type, hca->sample_rate) < 0)
         return -1;
-    if (cipher_init(hca->cipher_table, hca->ciph_type, hca->ciph_key_l, hca->ciph_key_u) < 0)
+    if (cipher_init(hca->cipher_table, hca->ciph_type, hca->keycode) < 0)
         return -1;
 
     hca->hfr_group_count = header_ceil2(
@@ -1145,13 +1057,13 @@ static void decode1_unpack_channel(stChannel *ch, clData *br,
         }
         else {
             /* no scalefactors */
-            memset(ch->scalefactors, 0, 0x80);
+            memset(ch->scalefactors, 0, sizeof(ch->scalefactors[0]) * HCA_SAMPLES_PER_SUBFRAME);
         }
     }
 
     if (ch->type == STEREO_SECONDARY) {
         /* read intensity */
-        unsigned char intensity_value = bitreader_check(br, 4);
+        unsigned char intensity_value = bitreader_peek(br, 4);
 
         ch->intensity[0] = intensity_value;
         if (intensity_value < 15) { /* 15 may be an invalid value? */
@@ -1189,7 +1101,7 @@ static void decode1_unpack_channel(stChannel *ch, clData *br,
             }
             ch->resolution[i] = new_resolution;
         }
-        memset(&ch->resolution[csf_count], 0, 0x80 - csf_count);
+        memset(&ch->resolution[csf_count], 0, sizeof(ch->resolution[0]) * (HCA_SAMPLES_PER_SUBFRAME - csf_count));
     }
 
     /* calculate gain */
@@ -1261,7 +1173,7 @@ static void decode2_dequantize_coefficients(stChannel *ch, clData *br) {
     }
 
     /* clean rest of spectra */
-    memset(&ch->spectra[csf_count], 0, sizeof(float) * (0x80 - csf_count));
+    memset(&ch->spectra[csf_count], 0, sizeof(ch->spectra[0]) * (HCA_SAMPLES_PER_SUBFRAME - csf_count));
 }
 
 //--------------------------------------------------
@@ -1343,7 +1255,6 @@ static void decode4_apply_intensity_stereo(stChannel *ch_pair, int subframe,
     {
         float ratio_l = decode4_intensity_ratio_table[ ch_pair[1].intensity[subframe] ];
         float ratio_r = ratio_l - 2.0f;
-#if HCA_DISABLE_OPTIMIZATIONS
         float *sp_l = ch_pair[0].spectra;
         float *sp_r = ch_pair[1].spectra;
         unsigned int band;
@@ -1352,19 +1263,6 @@ static void decode4_apply_intensity_stereo(stChannel *ch_pair, int subframe,
             sp_r[band] = sp_l[band] * ratio_r;
             sp_l[band] = sp_l[band] * ratio_l;
         }
-#else
-        float *sp0 = &ch_pair[0].spectra[base_band_count];
-        float *sp1 = &ch_pair[1].spectra[base_band_count];
-        unsigned int i;
-        unsigned int max_band = total_band_count - base_band_count;
-
-        for (i = 0; i < max_band; i++) {
-            *sp1 = (*sp0) * ratio_r;
-            *sp0 = (*sp0) * ratio_l;
-            sp1++;
-            sp0++;
-        }
-#endif
     }
 }
 
@@ -1528,9 +1426,9 @@ static const unsigned int decode5_imdct_window_int[128] = {
 static const float *decode5_imdct_window = (const float *)decode5_imdct_window_int;
 
 static void decoder5_run_imdct(stChannel *ch, int subframe) {
-    const static int size = HCA_SAMPLES_PER_SUBFRAME;
-    const static int half = HCA_SAMPLES_PER_SUBFRAME / 2;
-    const static int mdct_bits = HCA_MDCT_BITS;
+    const static unsigned int size = HCA_SAMPLES_PER_SUBFRAME;
+    const static unsigned int half = HCA_SAMPLES_PER_SUBFRAME / 2;
+    const static unsigned int mdct_bits = HCA_MDCT_BITS;
 
 
     /* apply DCT-IV to dequantized spectra */
@@ -1606,19 +1504,8 @@ static void decoder5_run_imdct(stChannel *ch, int subframe) {
 
         /* copy dct */
         /* (with the above optimization spectra is already modified, so this is redundant) */
-        {
-#if HCA_DISABLE_OPTIMIZATIONS
-            for (i = 0; i < size; i++) {
-                ch->dct[i] = ch->spectra[i];
-            }
-#else
-            float *dct = ch->dct;
-            const float *spectra = ch->spectra;
-
-            for (i = 0; i < size; i++) {
-                *(dct++) = *(spectra++);
-            }
-#endif
+        for (i = 0; i < size; i++) {
+            ch->dct[i] = ch->spectra[i];
         }
     }
 
@@ -1626,15 +1513,14 @@ static void decoder5_run_imdct(stChannel *ch, int subframe) {
     {
         unsigned int i;
 
-#if HCA_DISABLE_OPTIMIZATIONS
-        /* over-optimized IMDCT (see below for standard function), slightly faster (saves ~3 secs when decoding ~150 files) */
         for (i = 0; i < half; i++) {
             ch->wave[subframe][i] = decode5_imdct_window[i] * ch->dct[i + half] + ch->imdct_previous[i];
             ch->wave[subframe][i + half] = decode5_imdct_window[i + half] * ch->dct[size - 1 - i] - ch->imdct_previous[i + half];
             ch->imdct_previous[i] = decode5_imdct_window[size - 1 - i] * ch->dct[half - i - 1];
             ch->imdct_previous[i + half] = decode5_imdct_window[half - i - 1] * ch->dct[i];
         }
-#else
+#if 0
+        /* over-optimized IMDCT (for reference), barely noticeable even when decoding hundred of files */
         const float *imdct_window = decode5_imdct_window;
         const float *dct;
         float *imdct_previous;
