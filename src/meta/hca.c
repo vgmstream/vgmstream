@@ -2,52 +2,34 @@
 #include "hca_keys.h"
 #include "../coding/coding.h"
 
-static void find_hca_key(hca_codec_data * hca_data, uint8_t * header_buffer, int header_size, unsigned int * out_keycode_upper, unsigned int * out_keycode_lower);
+static void find_hca_key(hca_codec_data * hca_data, unsigned long long * out_keycode);
 
 VGMSTREAM * init_vgmstream_hca(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    uint8_t header_buffer[0x8000]; /* hca header buffer data (probably max ~0x400) */
-
-    hca_codec_data * hca_data = NULL; /* vgmstream HCA context */
-    unsigned int keycode_upper, keycode_lower;
-    int header_size;
+    hca_codec_data * hca_data = NULL;
+    unsigned long long keycode = 0;
 
     /* checks */
     if ( !check_extensions(streamFile, "hca"))
         return NULL;
-
-    /* init header */
-    if (read_streamfile(header_buffer, 0x00, 0x08, streamFile) != 0x08)
-        goto fail;
-    header_size = clHCA_isOurFile0(header_buffer);
-    if (header_size < 0 || header_size > 0x8000) goto fail;
-
-    if (read_streamfile(header_buffer, 0x00, header_size, streamFile) != header_size) goto fail;
-    if (clHCA_isOurFile1(header_buffer, header_size) < 0)
+    if (((uint32_t)read_32bitBE(0x00,streamFile) & 0x7f7f7f7f) != 0x48434100) /* "HCA\0", possibly masked */
         goto fail;
 
-    /* init vgmstream context */
+    /* init vgmstream and library's context, will validate the HCA */
     hca_data = init_hca(streamFile);
-
+    if (!hca_data) goto fail;
 
     /* find decryption key in external file or preloaded list */
     {
         uint8_t keybuf[8];
         if (read_key_file(keybuf, 8, streamFile) == 8) {
-            keycode_upper = get_32bitBE(keybuf+0);
-            keycode_lower = get_32bitBE(keybuf+4);
+            keycode = (uint64_t)get_64bitBE(keybuf+0x00);
         } else {
-            find_hca_key(hca_data, header_buffer, header_size, &keycode_upper, &keycode_lower);
+            find_hca_key(hca_data, &keycode);
         }
-    }
 
-    /* re-init decoder with key (as it must be supplied on header read) */
-    clHCA_clear(hca_data->handle, keycode_lower, keycode_upper);
-    if (clHCA_Decode(hca_data->handle, header_buffer, header_size, 0) < 0) /* read header at 0x00 */
-        goto fail;
-    if (clHCA_getInfo(hca_data->handle, &hca_data->info) < 0) /* copy important header values to info struct */
-        goto fail;
-    reset_hca(hca_data);
+        clHCA_SetKey(hca_data->handle, keycode); //maybe should be done through hca_decoder.c?
+    }
 
 
     /* build the VGMSTREAM */
@@ -87,58 +69,40 @@ fail:
 
 /* Tries to find the decryption key from a list. Simply decodes a few frames and checks if there aren't too many
  * clipped samples, as it's common for invalid keys (though possible with valid keys in poorly mastered files). */
-static void find_hca_key(hca_codec_data * hca_data, uint8_t * header_buffer, int header_size, unsigned int * out_keycode_upper, unsigned int * out_keycode_lower) {
-    sample *testbuf = NULL;
-    int i, j, bufsize = 0, tempsize;
-    size_t keys_length = sizeof(hcakey_list) / sizeof(hcakey_info);
-
+static void find_hca_key(hca_codec_data * hca_data, unsigned long long * out_keycode) {
+    const size_t keys_length = sizeof(hcakey_list) / sizeof(hcakey_info);
+    sample *test_samples = NULL;
+    size_t buffer_samples = hca_data->info.samplesPerBlock * hca_data->info.channelCount;
+    unsigned long long best_keycode;
+    int i;
     int min_clip_count = -1;
-    /* defaults to PSO2 key, most common */
-    unsigned int best_keycode_upper = 0xCC554639;
-    unsigned int best_keycode_lower = 0x30DBE1AB;
+
+
+    test_samples = malloc(sizeof(sample) * buffer_samples);
+    if (!test_samples)
+        return; /* ??? */
+
+    best_keycode = 0xCC55463930DBE1AB; /* defaults to PSO2 key, most common */
 
 
     /* find a candidate key */
     for (i = 0; i < keys_length; i++) {
         int clip_count = 0, sample_count = 0;
         int frame = 0, s;
+        unsigned long long keycode = (unsigned long long)hcakey_list[i].key;
 
-        unsigned int keycode_upper, keycode_lower;
-        uint64_t key = hcakey_list[i].key;
-        keycode_upper = (key >> 32) & 0xFFFFFFFF;
-        keycode_lower = (key >>  0) & 0xFFFFFFFF;
-
-
-        /* re-init HCA with the current key as buffer becomes invalid (probably can be simplified) */
+        clHCA_SetKey(hca_data->handle, keycode);
         reset_hca(hca_data);
-        if (read_streamfile(header_buffer, 0x00, header_size, hca_data->streamfile) != header_size)
-            continue;
-
-        clHCA_clear(hca_data->handle, keycode_lower, keycode_upper);
-        if (clHCA_Decode(hca_data->handle, header_buffer, header_size, 0) < 0)
-            continue;
-        if (clHCA_getInfo(hca_data->handle, &hca_data->info) < 0)
-            continue;
-
-        tempsize = sizeof(sample) * clHCA_samplesPerBlock * hca_data->info.channelCount;
-        if (tempsize > bufsize) { /* should happen once */
-            sample *temp = (sample *)realloc(testbuf, tempsize);
-            if (!temp) goto end;
-            testbuf = temp;
-            bufsize = tempsize;
-        }
 
         /* test enough frames, but not too many */
         while (frame < HCA_KEY_MAX_TEST_FRAMES && frame < hca_data->info.blockCount) {
-            j = clHCA_samplesPerBlock;
-            decode_hca(hca_data, testbuf, j);
+            decode_hca(hca_data, test_samples, hca_data->info.samplesPerBlock);
 
-            j *= hca_data->info.channelCount;
-            for (s = 0; s < j; s++) {
-                if (testbuf[s] != 0x0000 && testbuf[s] != 0xFFFF)
+            for (s = 0; s < buffer_samples; s++) {
+                if (test_samples[s] != 0 && test_samples[s] != -1)
                     sample_count++; /* ignore upper/lower blank samples */
 
-                if (testbuf[s] == 0x7FFF || testbuf[s] == 0x8000)
+                if (test_samples[s] == 32767 || test_samples[s] == -32768)
                     clip_count++; /* upper/lower clip */
             }
 
@@ -152,8 +116,7 @@ static void find_hca_key(hca_codec_data * hca_data, uint8_t * header_buffer, int
 
         if (min_clip_count < 0 || clip_count < min_clip_count) {
             min_clip_count = clip_count;
-            best_keycode_upper = keycode_upper;
-            best_keycode_lower = keycode_lower;
+            best_keycode = keycode;
         }
 
         if (min_clip_count == 0)
@@ -164,13 +127,11 @@ static void find_hca_key(hca_codec_data * hca_data, uint8_t * header_buffer, int
         //    break;
     }
 
-    /* reset HCA header */
-    hca_data->current_block = 0;
-    read_streamfile(header_buffer, 0x00, header_size, hca_data->streamfile);
+    VGM_ASSERT(min_clip_count > 0,
+            "HCA: best key=%08x%08x (clips=%i)\n",
+            (uint32_t)((best_keycode >> 32) & 0xFFFFFFFF), (uint32_t)(best_keycode & 0xFFFFFFFF), min_clip_count);
 
-end:
-    VGM_ASSERT(min_clip_count > 0, "HCA: best key=%08x%08x (clips=%i)\n", best_keycode_upper,best_keycode_lower, min_clip_count);
-    *out_keycode_upper = best_keycode_upper;
-    *out_keycode_lower = best_keycode_lower;
-    free(testbuf);
+    reset_hca(hca_data);
+    *out_keycode = best_keycode;
+    free(test_samples);
 }
