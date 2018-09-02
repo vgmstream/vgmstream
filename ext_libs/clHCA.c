@@ -403,7 +403,8 @@ static void ath_init1(unsigned char *ath_curve, unsigned int sample_rate) {
     unsigned int acc = 0;
 
     /* scale ATH curve depending on frequency */
-    for (i = 0; i < HCA_SAMPLES_PER_SUBFRAME; i++, acc += sample_rate) { //todo add accumulator before to fix ATH
+    for (i = 0; i < HCA_SAMPLES_PER_SUBFRAME; i++) {
+        acc += sample_rate;
         index = acc >> 13;
 
         if (index >= 654) {
