@@ -424,17 +424,14 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_scd_sscf,
     init_vgmstream_dsp_vag,
     init_vgmstream_dsp_itl_ch,
-
     init_vgmstream_a2m,
     init_vgmstream_ahv,
     init_vgmstream_msv,
     init_vgmstream_sdf_ps2,
     init_vgmstream_svg,
     init_vgmstream_vis,
-
     init_vgmstream_sdf_3ds,
     init_vgmstream_vai,
-
     init_vgmstream_aif_asobo,
     init_vgmstream_ao,
     init_vgmstream_apc,

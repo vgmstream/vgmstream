@@ -22,7 +22,6 @@ VGMSTREAM * init_vgmstream_xau_konami(STREAMFILE *streamFile) {
 
     start_offset = 0x60 + read_32bitLE(0x34,streamFile);
     header_offset = 0x60 + 0x20 + 0x40*0; /* target subsong */
-VGM_LOG("ok=%lx\n",header_offset);
 
     if (read_32bitBE(header_offset+0x00,streamFile) != 0x52494646) /* "RIFF" */
         goto fail;
