@@ -12,7 +12,7 @@
 /* TODO:
  * - improve portability on types and float casts, sizeof(int) isn't necessarily sizeof(float)
  * - check "packed_noise_level" vs VGAudio (CriHcaPacking.UnpackFrameHeader), weird behaviour
- * - check "delta decode" vs VGAudio (CriHcaPacking.DeltaDecode), may be setting wrong values on bad data
+ * - check "delta scalefactors" vs VGAudio (CriHcaPacking.DeltaDecode), may be setting wrong values on bad data
  * - check "read intensity" vs VGAudio (CriHcaPacking.ReadIntensity), skips intensities if first is 15
  * - simplify DCT4 code
  * - add extra validations: encoder_delay/padding < sample_count, bands/totals (max: 128?), track count==1, etc
@@ -42,9 +42,9 @@ typedef struct stChannel {
     /* HCA channel config */
     int type; /* discrete / stereo-primary / stereo-secondary */
     unsigned int coded_scalefactor_count; /* scalefactors used (depending on channel type) */
+    unsigned char *hfr_scales; /* high frequency scales, pointing to higher scalefactors (simplification) */
 
     /* subframe state */
-    unsigned char *hfr_scales; /* high frequency scales, pointing to higher scalefactors (simplification) */
     unsigned char intensity[HCA_SUBFRAMES_PER_FRAME];       /* intensity indexes (value max: 15 / 4b) */
     unsigned char scalefactors[HCA_SAMPLES_PER_SUBFRAME];   /* scale indexes (value max: 64 / 6b)*/
     unsigned char resolution[HCA_SAMPLES_PER_SUBFRAME];     /* resolution indexes (value max: 15 / 4b) */
@@ -262,15 +262,16 @@ int clHCA_getInfo(clHCA *hca, clHCA_stInfo *info) {
     info->channelCount = hca->channels;
     info->blockSize = hca->frame_size;
     info->blockCount = hca->frame_count;
+    info->encoderDelay = hca->encoder_delay;
+    info->encoderPadding = hca->encoder_padding;
     info->loopEnabled = hca->loop_flag;
     info->loopStartBlock = hca->loop_start_frame;
     info->loopEndBlock = hca->loop_end_frame;
     info->loopStartDelay = hca->loop_start_delay;
     info->loopEndPadding = hca->loop_end_padding;
-    info->encoderDelay = hca->encoder_delay;
-    info->encoderPadding = hca->encoder_padding;
     info->samplesPerBlock = HCA_SAMPLES_PER_FRAME;
     info->comment = hca->comment;
+    info->encryptionEnabled = hca->ciph_type == 56; /* keycode encryption */
     return 0;
 }
 
@@ -692,7 +693,7 @@ int clHCA_DecodeHeader(clHCA *hca, void *data, unsigned int size) {
         hca->ath_type = bitreader_read(&br, 16);
     }
     else {
-        /* removed in v2.0, default in v1.x (maybe only ever used in v1.1) */
+        /* removed in v2.0, default in v1.x (maybe only used in v1.1, as v1.2/v1.3 set ath_type = 0) */
         hca->ath_type = (hca->version < 0x200) ? 1 : 0;
     }
 
@@ -912,10 +913,74 @@ void clHCA_SetKey(clHCA *hca, unsigned long long keycode) {
     }
 }
 
+int clHCA_TestBlock(clHCA *hca, void *data, unsigned int size) {
+    const float scale = 32768.0f;
+    unsigned int ch, sf, s;
+    int status;
+    int clips = 0, blanks = 0;
+    float fsample;
+    signed int psample;
+
+    /* return if decode fails (happens sometimes with wrong keys) */
+    status = clHCA_DecodeBlock(hca, data, size);
+    if (status < 0)
+        return -1;
+
+    /* check decode results */
+    for (ch = 0; ch < hca->channels; ch++) {
+        for (sf = 0; sf < HCA_SUBFRAMES_PER_FRAME; sf++) {
+            for (s = 0; s < HCA_SAMPLES_PER_SUBFRAME; s++) {
+                fsample = hca->channel[ch].wave[sf][s];
+                psample = (signed int) (fsample * scale);
+                if (fsample > 1.0f || fsample < -1.0f)
+                    clips++;
+                else if (psample == 0 || psample == -1)
+                    blanks++;
+            }
+        }
+    }
+
+    /* the more clips the less likely block was correctly decrypted */
+    if (clips > 0)
+        return clips;
+    /* if block is silent result is not useful */
+    if (blanks == hca->channels * HCA_SUBFRAMES_PER_FRAME * HCA_SAMPLES_PER_SUBFRAME)
+        return 0;
+
+    /* block may be correct (but wrong keys can get this too) */
+    return 1;
+}
+
+
+#if 0
+// it'd seem like resetting IMDCT (others get overwritten) would matter when restarting the
+// stream from 0, but doesn't seem any different, maybe because the first frame acts as setup/empty
+void clHCA_DecodeReset(clHCA * hca) {
+    unsigned int i;
+
+    if (!hca || !hca->is_valid)
+        return;
+
+    for (i = 0; i < hca->channels; i++) {
+        stChannel *ch = &hca->channel[i];
+
+        memset(ch->intensity, 0, sizeof(ch->intensity[0]) * HCA_SUBFRAMES_PER_FRAME);
+        memset(ch->scalefactors, 0, sizeof(ch->scalefactors[0]) * HCA_SAMPLES_PER_SUBFRAME);
+        memset(ch->resolution, 0, sizeof(ch->resolution[0]) * HCA_SAMPLES_PER_SUBFRAME);
+        memset(ch->gain, 0, sizeof(ch->gain[0]) * HCA_SAMPLES_PER_SUBFRAME);
+        memset(ch->spectra, 0, sizeof(ch->spectra[0]) * HCA_SAMPLES_PER_SUBFRAME);
+        memset(ch->temp, 0, sizeof(ch->temp[0]) * HCA_SAMPLES_PER_SUBFRAME);
+        memset(ch->dct, 0, sizeof(ch->dct[0]) * HCA_SAMPLES_PER_SUBFRAME);
+        memset(ch->imdct_previous, 0, sizeof(ch->imdct_previous[0]) * HCA_SAMPLES_PER_SUBFRAME);
+        memset(ch->wave, 0, sizeof(ch->wave[0][0]) * HCA_SUBFRAMES_PER_FRAME * HCA_SUBFRAMES_PER_FRAME);
+    }
+}
+#endif
+
 //--------------------------------------------------
 // Decode
 //--------------------------------------------------
-static void decode1_unpack_channel(stChannel *ch, clData *br,
+static int decode1_unpack_channel(stChannel *ch, clData *br,
         unsigned int hfr_group_count, unsigned int packed_noise_level, const unsigned char *ath_curve);
 
 static void decode2_dequantize_coefficients(stChannel *ch, clData *br);
@@ -960,8 +1025,10 @@ int clHCA_DecodeBlock(clHCA *hca, void *data, unsigned int size) {
         unsigned int packed_noise_level = (frame_acceptable_noise_level << 8) - frame_evaluation_boundary;
 
         for (ch = 0; ch < hca->channels; ch++) {
-            decode1_unpack_channel(&hca->channel[ch], &br,
+            int unpack = decode1_unpack_channel(&hca->channel[ch], &br,
                     hca->hfr_group_count, packed_noise_level, hca->ath_curve);
+            if (unpack < 0)
+                return -1;
         }
     }
 
@@ -989,6 +1056,11 @@ int clHCA_DecodeBlock(clHCA *hca, void *data, unsigned int size) {
         for (ch = 0; ch < hca->channels; ch++) {
             decoder5_run_imdct(&hca->channel[ch], subframe);
         }
+    }
+
+    /* should read all frame sans checksum at most */
+    if (br.bit > br.size - 16) {
+        return -1;
     }
 
     return 0;
@@ -1029,7 +1101,7 @@ static const unsigned int decode1_quantizer_step_size_int[16] = {
 };
 static const float *decode1_quantizer_step_size = (const float *)decode1_quantizer_step_size_int;
 
-static void decode1_unpack_channel(stChannel *ch, clData *br,
+static int decode1_unpack_channel(stChannel *ch, clData *br,
         unsigned int hfr_group_count, unsigned int packed_noise_level, const unsigned char *ath_curve) {
     unsigned int i;
     const unsigned int csf_count = ch->coded_scalefactor_count;
@@ -1046,16 +1118,23 @@ static void decode1_unpack_channel(stChannel *ch, clData *br,
             }
         }
         else if (scalefactor_delta_bits > 0) {
-            /* delta decode */
-            unsigned char expected_delta = (1 << scalefactor_delta_bits) - 1;
-            unsigned char extra_delta = expected_delta >> 1;
+            /* delta scalefactors */
+            const unsigned char expected_delta = (1 << scalefactor_delta_bits) - 1;
+            const unsigned char extra_delta = expected_delta >> 1;
             unsigned char scalefactor_prev = bitreader_read(br, 6);
 
             ch->scalefactors[0] = scalefactor_prev;
             for (i = 1; i < csf_count; i++) {
                 unsigned char delta = bitreader_read(br, scalefactor_delta_bits);
-                if (delta != expected_delta) { //??? may give negative escalefactors on wrong values???
-                    scalefactor_prev += delta - extra_delta; /* delta scalefactors */
+
+                if (delta != expected_delta) {
+                    /* may happen with bad keycodes, scalefactors must be 6b indexes */
+                    int scalefactor_test = (int)scalefactor_prev + ((int)delta - (int)extra_delta);
+                    if (scalefactor_test < 0 || scalefactor_test > 64) {
+                        return -1;
+                    }
+
+                    scalefactor_prev += delta - extra_delta;
                 } else {
                     scalefactor_prev = bitreader_read(br, 6);
                 }
@@ -1073,11 +1152,15 @@ static void decode1_unpack_channel(stChannel *ch, clData *br,
         unsigned char intensity_value = bitreader_peek(br, 4);
 
         ch->intensity[0] = intensity_value;
-        if (intensity_value < 15) { /* 15 may be an invalid value? */
+        if (intensity_value < 15) {
             for (i = 0; i < HCA_SUBFRAMES_PER_FRAME; i++) {
                 ch->intensity[i] = bitreader_read(br, 4);
             }
         }
+        /* 15 may be an invalid value? */
+        //else {
+        //    return -1;
+        //}
     }
     else {
         /* read hfr scalefactors */
@@ -1120,6 +1203,8 @@ static void decode1_unpack_channel(stChannel *ch, clData *br,
             ch->gain[i] = scalefactor_scale * resolution_scale;
         }
     }
+
+    return 0;
 }
 
 //--------------------------------------------------

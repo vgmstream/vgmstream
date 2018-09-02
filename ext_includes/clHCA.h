@@ -36,16 +36,16 @@ typedef struct clHCA_stInfo {
 	unsigned int channelCount;
 	unsigned int blockSize;
 	unsigned int blockCount;
-
+    unsigned int encoderDelay;      /* samples appended to the beginning */
+    unsigned int encoderPadding;    /* samples appended to the end */
 	unsigned int loopEnabled;
 	unsigned int loopStartBlock;
 	unsigned int loopEndBlock;
     unsigned int loopStartDelay;    /* samples in block before loop starts */
     unsigned int loopEndPadding;    /* samples in block after loop ends */
-    unsigned int encoderDelay;      /* samples appended to the beginning */
-    unsigned int encoderPadding;    /* samples appended to the end */
     unsigned int samplesPerBlock;   /* should be 1024 */
 	const char *comment;
+	unsigned int encryptionEnabled; /* requires keycode */
 
 	/* Derived sample formulas:
 	 * - sample count: blockCount*samplesPerBlock - encoderDelay - encoderPadding;
@@ -59,11 +59,6 @@ typedef struct clHCA_stInfo {
  * Returns 0 on success, <0 on failure. */
 int clHCA_getInfo(clHCA *, clHCA_stInfo *out);
 
-/* Sets a 64 bit encryption key, to properly decode blocks. This may be called
- * multiple times to change the key, before or after clHCA_DecodeHeader.
- * Key is ignored if the file is not encrypted. */
-void clHCA_SetKey(clHCA *, unsigned long long keycode);
-
 /* Decodes a single frame, from data after headerSize. Should be called after
  * clHCA_DecodeHeader and size must be at least blockSize long.
  * Returns 0 on success, <0 on failure. */
@@ -74,6 +69,17 @@ int clHCA_DecodeBlock(clHCA *, void *data, unsigned int size);
  * next decode. Buffer must be at least (samplesPerBlock*channels) long. */
 void clHCA_ReadSamples16(clHCA *, signed short * outSamples);
 
+/* Sets a 64 bit encryption key, to properly decode blocks. This may be called
+ * multiple times to change the key, before or after clHCA_DecodeHeader.
+ * Key is ignored if the file is not encrypted. */
+void clHCA_SetKey(clHCA *, unsigned long long keycode);
+
+/* Tests a single frame for validity, mainly to test if current key is correct.
+ * Returns <0 on incorrect block (wrong key), 0 on silent block (not useful to determine)
+ * and >0 if block is correct (the closer to 1 the more likely).
+ * Incorrect keys may give a few valid frames, so it's best to test a number of them
+ * and select the key with scores closer to 1. */
+int clHCA_TestBlock(clHCA *hca, void *data, unsigned int size);
 
 #ifdef __cplusplus
 }

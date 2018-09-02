@@ -175,6 +175,7 @@ void decode_hca(hca_codec_data * data, sample * outbuf, int32_t samples_to_do);
 void reset_hca(hca_codec_data * data);
 void loop_hca(hca_codec_data * data);
 void free_hca(hca_codec_data * data);
+int test_hca_key(hca_codec_data * data, unsigned long long keycode);
 
 #ifdef VGM_USE_VORBIS
 /* ogg_vorbis_decoder */

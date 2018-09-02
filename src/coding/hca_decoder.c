@@ -106,7 +106,7 @@ void decode_hca(hca_codec_data * data, sample * outbuf, int32_t samples_to_do) {
             /* decode frame */
             status = clHCA_DecodeBlock(data->handle, (void*)(data->data_buffer), blockSize);
             if (status < 0) {
-                VGM_LOG("HCA: decode fail at %lx", offset);
+                VGM_LOG("HCA: decode fail at %lx\n", offset);
                 break;
             }
 
@@ -119,7 +119,6 @@ void decode_hca(hca_codec_data * data, sample * outbuf, int32_t samples_to_do) {
         }
     }
 }
-
 
 void reset_hca(hca_codec_data * data) {
     if (!data) return;
@@ -148,4 +147,62 @@ void free_hca(hca_codec_data * data) {
     free(data->data_buffer);
     free(data->sample_buffer);
     free(data);
+}
+
+
+#define HCA_KEY_MAX_BLANK_FRAMES 15         /* ignored up to N blank frames (not uncommon to have ~10, if more something is off) */
+#define HCA_KEY_MAX_TEST_FRAMES  10         /* 5~15 should be enough, but mostly silent or badly mastered files may need more */
+#define HCA_KEY_MAX_ACCEPTABLE_SCORE  300   /* unlikely to work correctly, 10~30 may be ok */
+
+/* Test a number of frames if key decrypts correctly.
+ * Returns score: <0: error/wrong, 0: unknown/silent file, >0: good (the closest to 1 the better) */
+int test_hca_key(hca_codec_data * data, unsigned long long keycode) {
+    size_t test_frame = 0, current_frame = 0, blank_frames = 0;
+    int total_score = 0;
+    const unsigned int blockSize = data->info.blockSize;
+
+
+    clHCA_SetKey(data->handle, keycode);
+
+    while (test_frame < HCA_KEY_MAX_TEST_FRAMES && current_frame < data->info.blockCount) {
+        off_t offset = data->info.headerSize + current_frame * blockSize;
+        int score;
+        size_t bytes;
+
+        /* read frame */
+        bytes = read_streamfile(data->data_buffer, offset, blockSize, data->streamfile);
+        if (bytes != blockSize) {
+            total_score = -1;
+            break;
+        }
+
+        /* test frame */
+        score = clHCA_TestBlock(data->handle, (void*)(data->data_buffer), blockSize);
+        if (score < 0) {
+            total_score = -1;
+            break;
+        }
+
+        current_frame++;
+
+        /* skip blank block at the beginning */
+        if (score == 0 && blank_frames < HCA_KEY_MAX_BLANK_FRAMES) {
+            blank_frames++;
+            continue;
+        }
+
+        test_frame++;
+        total_score += score;
+
+        /* too far, don't bother checking more frames */
+        if (total_score > HCA_KEY_MAX_ACCEPTABLE_SCORE)
+            break;
+    }
+
+    /* signal best possible score */
+    if (total_score > 0 && total_score <= HCA_KEY_MAX_TEST_FRAMES) {
+        total_score = 1;
+    }
+
+    return total_score;
 }

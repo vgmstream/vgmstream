@@ -20,7 +20,7 @@ VGMSTREAM * init_vgmstream_hca(STREAMFILE *streamFile) {
     if (!hca_data) goto fail;
 
     /* find decryption key in external file or preloaded list */
-    {
+    if (hca_data->info.encryptionEnabled) {
         uint8_t keybuf[8];
         if (read_key_file(keybuf, 8, streamFile) == 8) {
             keycode = (uint64_t)get_64bitBE(keybuf+0x00);
@@ -63,75 +63,46 @@ fail:
 }
 
 
-#define HCA_KEY_MAX_TEST_CLIPS   400   /* hopefully nobody masters files with more that a handful... */
-#define HCA_KEY_MAX_TEST_FRAMES  100   /* ~102400 samples */
-#define HCA_KEY_MAX_TEST_SAMPLES 10240 /* ~10 frames of non-blank samples */
-
-/* Tries to find the decryption key from a list. Simply decodes a few frames and checks if there aren't too many
- * clipped samples, as it's common for invalid keys (though possible with valid keys in poorly mastered files). */
+/* Try to find the decryption key from a list. */
 static void find_hca_key(hca_codec_data * hca_data, unsigned long long * out_keycode) {
     const size_t keys_length = sizeof(hcakey_list) / sizeof(hcakey_info);
-    sample *test_samples = NULL;
-    size_t buffer_samples = hca_data->info.samplesPerBlock * hca_data->info.channelCount;
     unsigned long long best_keycode;
+    int best_score = -1;
     int i;
-    int min_clip_count = -1;
-
-
-    test_samples = malloc(sizeof(sample) * buffer_samples);
-    if (!test_samples)
-        return; /* ??? */
 
     best_keycode = 0xCC55463930DBE1AB; /* defaults to PSO2 key, most common */
 
 
     /* find a candidate key */
     for (i = 0; i < keys_length; i++) {
-        int clip_count = 0, sample_count = 0;
-        int frame = 0, s;
+        int score;
         unsigned long long keycode = (unsigned long long)hcakey_list[i].key;
 
-        clHCA_SetKey(hca_data->handle, keycode);
-        reset_hca(hca_data);
+        score = test_hca_key(hca_data, keycode);
 
-        /* test enough frames, but not too many */
-        while (frame < HCA_KEY_MAX_TEST_FRAMES && frame < hca_data->info.blockCount) {
-            decode_hca(hca_data, test_samples, hca_data->info.samplesPerBlock);
+        //;VGM_LOG("HCA: test key=%08x%08x, score=%i\n",
+        //        (uint32_t)((keycode >> 32) & 0xFFFFFFFF), (uint32_t)(keycode & 0xFFFFFFFF), score);
 
-            for (s = 0; s < buffer_samples; s++) {
-                if (test_samples[s] != 0 && test_samples[s] != -1)
-                    sample_count++; /* ignore upper/lower blank samples */
+        /* wrong key */
+        if (score < 0)
+            continue;
 
-                if (test_samples[s] == 32767 || test_samples[s] == -32768)
-                    clip_count++; /* upper/lower clip */
-            }
-
-            if (clip_count > HCA_KEY_MAX_TEST_CLIPS)
-                break; /* too many, don't bother */
-            if (sample_count >= HCA_KEY_MAX_TEST_SAMPLES)
-                break; /* enough non-blank samples tested */
-
-            frame++;
-        }
-
-        if (min_clip_count < 0 || clip_count < min_clip_count) {
-            min_clip_count = clip_count;
+        /* score 0 is not trustable, update too if something better is found */
+        if (best_score < 0 || score < best_score || (best_score == 0 && score == 1)) {
+            best_score = score;
             best_keycode = keycode;
         }
 
-        if (min_clip_count == 0)
-            break; /* can't get better than this */
-
-        /* a few clips is normal, but some invalid keys may give low numbers too */
-        //if (clip_count < 10)
-        //    break;
+        /* best possible score */
+        if (score == 1) {
+            break;
+        }
     }
 
-    VGM_ASSERT(min_clip_count > 0,
-            "HCA: best key=%08x%08x (clips=%i)\n",
-            (uint32_t)((best_keycode >> 32) & 0xFFFFFFFF), (uint32_t)(best_keycode & 0xFFFFFFFF), min_clip_count);
+    //;VGM_LOG("HCA: best key=%08x%08x (score=%i)\n",
+    //        (uint32_t)((best_keycode >> 32) & 0xFFFFFFFF), (uint32_t)(best_keycode & 0xFFFFFFFF), best_score);
 
-    reset_hca(hca_data);
+    VGM_ASSERT(best_score > 1, "HCA: best key=%08x%08x (score=%i)\n",
+            (uint32_t)((best_keycode >> 32) & 0xFFFFFFFF), (uint32_t)(best_keycode & 0xFFFFFFFF), best_score);
     *out_keycode = best_keycode;
-    free(test_samples);
 }
