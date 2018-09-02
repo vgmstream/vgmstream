@@ -1072,7 +1072,7 @@
     <ClCompile Include="coding\psx_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="coding\SASSC_decoder.c">
+    <ClCompile Include="coding\sassc_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\sdx2_decoder.c">

@@ -1803,7 +1803,7 @@
 					>
 				</File>
 				<File
-					RelativePath=".\coding\SASSC_decoder.c"
+					RelativePath=".\coding\sassc_decoder.c"
 					>
 				</File>
 				<File
