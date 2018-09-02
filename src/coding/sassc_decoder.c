@@ -63,7 +63,7 @@ int32_t SASSC_steps[256] =
   -53261,  -54797,  -56333,  -57870,  -59406,  -60942,  -62479,   64015,
 };
 
-void decode_SASSC(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
+void decode_sassc(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
     int i;
     int32_t sample_count;
     int32_t hist = stream->adpcm_history1_32;

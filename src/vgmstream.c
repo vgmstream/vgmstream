@@ -1909,7 +1909,7 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
             break;
         case coding_SASSC:
             for (ch = 0; ch < vgmstream->channels; ch++) {
-                decode_SASSC(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                decode_sassc(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
                         vgmstream->channels,vgmstream->samples_into_block,samples_to_do);
             }
 
