@@ -691,6 +691,21 @@ typedef enum {
     meta_HD3_BD3,           /* Sony PS3 bank */
     meta_BNK_SONY,          /* Sony Scream Tool bank */
     meta_SCD_SSCF,          /* Square Enix SCD old version */
+    meta_DSP_VAG,           /* Penny-Punching Princess (Switch) sfx */
+    meta_DSP_ITL,           /* Charinko Hero (GC) */
+    meta_A2M,               /* Scooby-Doo! Unmasked (PS2) */
+    meta_AHV,               /* Headhunter (PS2) */
+    meta_MSV,               /* Fight Club (PS2) */
+    meta_SDF_PS2,           /* Agent Hugo - Lemoon Twist (PS2) */
+    meta_SVG,               /* Hunter - The Reckoning - Wayward (PS2) */
+    meta_VIS,               /* AirForce Delta Strike (PS2) */
+    meta_VAI,               /* Ratatouille (GC) */
+    meta_SDF_3DS,           /* Gummy Bears Mini Golf (3DS) */
+    meta_AIF_ASOBO,         /* Ratatouille (PC) */
+    meta_AO,                /* Cloudphobia (PC) */
+    meta_APC,               /* MegaRace 3 (PC) */
+    meta_WV2,               /* Slave Zero (PC) */
+    meta_XAU_KONAMI,        /* Yu-Gi-Oh - The Dawn of Destiny (Xbox) */
 
 } meta_t;
 
@@ -1073,14 +1088,18 @@ typedef struct {
 
 typedef struct {
     STREAMFILE *streamfile;
-    uint64_t start;
-    //uint64_t size;
     clHCA_stInfo info;
-    unsigned int curblock;
-    unsigned int sample_ptr;
-    unsigned int samples_discard;
-    signed short sample_buffer[clHCA_samplesPerBlock * 16];
-    //clHCA * hca exists here (pre-alloc'ed)
+
+    signed short *sample_buffer;
+    size_t samples_filled;
+    size_t samples_consumed;
+    size_t samples_to_discard;
+
+    void* data_buffer;
+
+    unsigned int current_block;
+
+    void* handle;
 } hca_codec_data;
 
 #ifdef VGM_USE_FFMPEG

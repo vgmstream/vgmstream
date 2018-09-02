@@ -1,153 +1,37 @@
-# vgmstream
+# vgmstream development help
 
-## Compilation requirements
-
-**GCC / Make**: In Windows this means one of these two somewhere in PATH:
-- MinGW-w64 (32bit version): https://sourceforge.net/projects/mingw-w64/
-  - Use this for easier standalone executables
-  - Latest online installer with any config should work (for example: gcc-7.2.0, i686, win32, sjlj).
-- MSYS2 with the MinGW-w64_shell (32bit) package: https://msys2.github.io/
-
-**MSVC / Visual Studio**: Microsoft's Visual C++ and MSBuild, bundled in either:
-- Visual Studio (2015/2017/latest): https://www.visualstudio.com/downloads/
-  - Visual Studio Community should work (free, but must register after trial period)
-- Visual C++ Build Tools (no IDE): http://landinghub.visualstudio.com/visual-cpp-build-tools
-
-**Git**: optional, to generate version numbers:
-- Git for Windows: https://git-scm.com/download/win
-
-## Compiling modules
-
-### CLI (test.exe/vgmstream-cli) / Winamp plugin (in_vgmstream) / XMPlay plugin (xmp-vgmstream)
-
-**With GCC**: use the *./Makefile* in the root folder, see inside for options. For compilation flags check the *Makefile* in each folder.
-You may need to manually rebuild if you change a *.h* file (use *make clean*).
-
-In Linux, Makefiles can be used to cross-compile with the MingW headers, but may not be updated to generate native code at the moment. It should be fixable with some effort. Autotools should build it as vgmstream-cli instead (see the Audacious section).
-
-Windows CMD example:
-```
-prompt $P$G$_$S
-set PATH=C:\Program Files (x86)\Git\usr\bin;%PATH%
-set PATH=C:\Program Files (x86)\mingw-w64\i686-5.4.0-win32-sjlj-rt_v5-rev0\mingw32\bin;%PATH%
-
-cd vgmstream
-
-mingw32-make.exe vgmstream_cli -f Makefile ^
- VGM_ENABLE_FFMPEG=1 ^
- SHELL=sh.exe CC=gcc.exe AR=ar.exe STRIP=strip.exe DLLTOOL=dlltool.exe WINDRES=windres.exe
-```
-
-**With MSVC**: To build in Visual Studio, run *./init-build.bat*, open *./vgmstream_full.sln* and compile. To build from the command line, run *./build.bat*.
-
-The build script will automatically handle obtaining dependencies and making the project changes listed in the foobar2000 section (you may need to get some PowerShell .NET packages).
-
-You can also call MSBuild directly in the command line (see the foobar2000 section for dependencies and examples)
-
-### foobar2000 plugin (foo\_input\_vgmstream)
-Requires MSVC (foobar/SDK only links to MSVC C++ DLLs) and these dependencies:
-- foobar2000 SDK (2018), in *(vgmstream)/dependencies/foobar/*: http://www.foobar2000.org/SDK
-- FDK-AAC, in *(vgmstream)/dependencies/fdk-aac/*: https://github.com/kode54/fdk-aac
-- QAAC, in *(vgmstream)/dependencies/qaac/*: https://github.com/kode54/qaac
-- WTL (if needed), in *(vgmstream)/dependencies/WTL/*: http://wtl.sourceforge.net/
-
-The following project modifications are required:
-- For *foobar2000_ATL_helpers* add *../../../WTL/Include* to the compilers's *additional includes*
-
-FDK-AAC/QAAC can be safely disabled by removing *VGM_USE_MP4V2* and *VGM_USE_FDKAAC* in the compiler/linker options and the project dependencies, as FFmpeg is used instead to support their codecs.
-
-You can also manually use the command line to compile with MSBuild, if you don't want to touch the .vcxproj files, register VS after trial, get PowerShell dependencies for the build script, or only have VC++/MSBuild tools.
-
-Windows CMD example for foobar2000:
-```
-prompt $P$G$_$S
-set PATH=C:\Program Files (x86)\Git\usr\bin;%PATH%
-set PATH=C:\Program Files (x86)\MSBuild\14.0\Bin;%PATH%
-
-cd vgmstream
-
-set CL=/I"C:\projects\WTL\Include"
-set LINK="C:\projects\foobar\foobar2000\shared\shared.lib"
-
-msbuild fb2k/foo_input_vgmstream.vcxproj ^
- /t:Clean
-
-msbuild fb2k/foo_input_vgmstream.vcxproj ^
- /t:Build ^
- /p:Platform=Win32 ^
- /p:PlatformToolset=v140 ^
- /p:Configuration=Release ^
- /p:DependenciesDir=../..
-```
-
-### Audacious plugin
-Requires the dev version of Audacious (and dependencies), automake/autoconf, and gcc/make (C++11). It must be compiled and installed into Audacious, where it should appear in the plugin list as "vgmstream".
-
-The plugin needs Audacious 3.5 or higher. New Audacious releases can break plugin compatibility so it may not work with the latest version unless adapted first.
-
-libvorbis and libmpg123 will be used if found, while FFmpeg and other external libraries aren't enabled, thus some formats won't work.
-
-Windows builds aren't supported at the moment (should be possible but there are complex dependency chains).
-
-
-Terminal example, assuming a Ubuntu-based Linux distribution:
-```
-# build requirements
-sudo apt-get update
-sudo apt-get install gcc g++ make
-sudo apt-get install autoconf automake libtool
-sudo apt-get install git
-# vgmstream dependencies
-sudo apt-get install libmpg123-dev libvorbis-dev
-# Audacious player and dependencies
-sudo apt-get install audacious  
-sudo apt-get install audacious-dev libglib2.0-dev libgtk2.0-dev libpango1.0-dev
-
-# check Audacious version >= 3.5
-pkg-config --modversion audacious
-
-# build
-git clone https://github.com/kode54/vgmstream
-cd vgmstream
-
-./bootstrap
-./configure
-make -f Makefile.autotools
-
-# copy to audacious plugins
-sudo make -f Makefile.autotools install
-
-
-# optional post-cleanup
-make -f Makefile.autotools clean
-find . -name ".deps" -type d -exec rm -r "{}" \;
-./unbootstrap
-## WARNING, removes *all* untracked files not in .gitignore
-git clean -fd
-```
-
-# vgmstream123 player
-Should be buildable with Autotools, much like the Audacious plugin, though requires libao (libao-dev).
-
-Windows builds are possible with libao.dll and includes, but some features are disabled.
-
-
-## Development
-
-### Code
+## Code
 vgmstream uses C (C89 when possible), and C++ for the foobar2000 and Audacious plugins.
 
 C should be restricted to features VS2010 understands. This mainly means declaring variables at the start of a { .. } block (declare+initialize is fine, as long as it doesn't reference variables declared in the same block) and avoiding C99 features like variable-length arrays (but certain others like // comments are fine).
 
-There are no hard coding rules but for consistency should follow general C conventions and the style used in most files: 4 spaces instead of tabs, underscore_and_lowercase_names, brackets starting in the same line (`if (..) { CRLF ... }`), etc. Some of the code may be a bit inefficient or duplicated at places, but it isn't much of a problem if gives clarity. vgmstream's performance is fast enough (as it mainly deals with playing songs in real time) so that favors clarity over optimization. Similarly some code may segfault or even cause infinite loops on bad data, but it's fixed as encountered rather than worrying to much about improbable cases.
+There are no hard coding rules but for consistency one could follow the style used in most files:
+- general C conventions
+- 4 spaces instead of tabs
+- underscore_and_lowercase_names instead of CamelCase
+- /* C89 comments */ for general comments, //C99 comments for special comments (like disabling code but leaving it there for visibility)
+- brackets starting in the same line 
+  ex `if (..) { CRLF ... }`
+- line length ~100, more is ok for 'noise code' (uninteresting calcs or function defs)
+- offsets/sizes in hex, counts/numbers in decimal
+- test functions may return 1=ok, 0=ko for simplicity.
+- free(ptr) no need to NULL-check per standard, close_stuff(ptr) should follow when possible
+- lowercase_helper_structs, UPPERCASE_MAIN_STRUCTS
+- spaces in calcs/ifs/etc may be added as desired for clarity
+  ex. `if (simple_check)` or `if ( complex_and_important_stuff(weird + weird) )`
+
+But other styles may be found, this isn't very important as most files are isolated.
+
+Some of the code may be a bit inefficient or duplicated at places, but it isn't much of a problem if gives clarity. vgmstream's performance is fast enough (as it mainly deals with playing songs in real time) so that favors clarity over optimization. Similarly, some code may segfault or even cause infinite loops on bad data, but it's fixed as encountered rather than worrying too much about improbable cases.
 
 
-### Structure
+## Structure
 
 ```
-./                   docs, scripts
+./                   scripts
 ./audacious/         Audacious plugin
 ./cli/               CLI tools
+./doc/               docs
 ./ext_includes/      external includes for compiling
 ./ext_libs/          external libs/DLLs for linking
 ./fb2k/              foobar2000 plugin
@@ -159,7 +43,7 @@ There are no hard coding rules but for consistency should follow general C conve
 ./xmplay/            XMPlay plugin
 ```
 
-### Overview
+## Overview
 vgmstream works by parsing a music stream header (*meta/*), preparing/controlling data and sample buffers (*layout/*) and decoding the compressed data into listenable PCM samples (*coding/*).
 
 Very simplified it goes like this:
@@ -174,21 +58,29 @@ Very simplified it goes like this:
 - layout moves offsets back to loop_start when loop_end is reached *[vgmstream_do_loop]*
 - player closes the VGMSTREAM once the stream is finished
 
-### Components
+vgsmtream's main code (located in src) may be considered "libvgmstream", and plugins interface it through vgmstream.h, mainly the part commented as "vgmstream public API". There isn't a clean external API at the moment, this may be improved later.
 
-#### STREAMFILEs
+## Components
+
+### STREAMFILEs
 Structs with I/O callbacks that vgmstream uses in place of stdio/FILEs. All I/O must be done through STREAMFILEs as it lets plugins set up their own. This includes reading data or opening other STREAMFILEs (ex. when a header has companion files that need to be parsed, or during setup).
 
 Players should open a base STREAMFILE and pass it to init_vgmstream. Once it's done this STREAMFILE must be closed, as internally vgmstream opens its own copy (using the base one's callbacks).
 
-For optimization purposes vgmstream may open a copy of the FILE per channel, as each has its own I/O buffer, and channel data can be too separate to fit a single buffer.  
+For optimization purposes vgmstream may open a copy of the FILE per channel, as each has its own I/O buffer, and channel data can be too separate to fit a single buffer.
 
-Custom STREAMFILEs wrapping base STREAMFILEs may be used for complex I/O cases (ex. if data needs decryption, parts needs to be skipped on the fly, or a file is composed of multiple sub-files), as some codecs are not easy to feed chunked data.
+Custom STREAMFILEs wrapping base STREAMFILEs may be used for complex I/O cases:
+- file is a container of another format (`fakename/clamp_streamfile`)
+- data needs decryption (`io_streamfile`)
+- data must be expanded/reduced on the fly for codecs that are not easy to feed chunked data (`io_streamfile`)
+- data is divided in multiple physical files, but must be read as a single (`multifile_streamfile`)
+Certain metas combine those streamfiles together with special layouts to support very complex cases, that would require massive changes in vgmstream to support in a cleaner (possible undesirable) way.
 
-#### VGMSTREAM
+
+### VGMSTREAM
 The VGMSTREAM (caps) is the main struct created during init when a file is successfully recognized and parsed. It holds the file's configuration (channels, sample rate, decoder, layout, samples, loop points, etc) and decoder state (STREAMFILEs, offsets per channel, current sample, etc), and is used to interact with the API.
 
-#### metas
+### metas
 Metadata (header) parsers that identify and handle formats.
 
 To add a new one:
@@ -210,7 +102,7 @@ Different formats may use the same extension but this isn't a problem as long as
 
 If the format supports subsongs it should read the stream index (subsong number) in the passed STREAMFILE, and use it to parse a section of the file. Then it must report the number of subsongs in the VGMSTREAM, to signal this feature is enabled. The index is 1-based (first subsong is 1, 0 is default/first). This makes possible to directly use bank-like formats like .FSB, and while vgmstream could technically support any container (like generic bigfiles or even .zip) it should be restricted to files that actually are audio banks.
 
-#### layouts
+### layouts
 Layouts control most of the main logic:
 - receive external buffer to fill with PCM samples
 - detect when looping must be done
@@ -220,20 +112,22 @@ Layouts control most of the main logic:
 - repeat until buffer is filled
 
 Available layouts, depending on how codec data is laid out:
-- none/flat: straight data. Decoder should handle channel offsets and other details normally.
+- flat: straight data. Decoder should handle channel offsets and other details normally.
 - interleave: one data block per channel, mixed in configurable sizes. Once one channel block is fully decoded this layout skips the other channels, so the decoder only handles one at a time.
 - blocked: data is divided into blocks, often with a header. Layout detects when a block is done and asks a helper function to fix offsets (skipping the header and pointing to data per channel), depending on the block format.
-- others: uncommon cases may need its own custom layout (ex.- multistream/subfiles)
+- segmented: file is divided into consecutive but separate segments, each one is setup as a fully separate VGMSTREAM.
+- layered: file is divided into multichannel layers that play at the same time, each one is setup as a fully separate VGMSTREAM.
+- others: uncommon cases may need its own custom layout, but may be dealt with using custom IO STREAMFILEs instead.
 
 The layout used mainly depends on the decoder. MP3 data (that may have 1 or 2 channels per frame) uses flat layout, while DSP ADPCM (that only decodes one channel at a time) is interleaved. In case of mono files either could be used as there won't be any actual difference.
 
 Layouts expect the VGMSTREAM to be properly initialized during the meta processing (channel offsets must point to each channel start offset).
 
-#### decoders
+### decoders
 Decoders take a sample buffer, convert data to PCM samples and fill one or multiple channels at a time, depending on the decoder itself. Usually its data is divided into frames with a number of samples, and should only need to do one frame at a time (when size is fixed/informed; vgmstream gives flexibility to the decoder), but must take into account that the sample buffer may be smaller than the frame samples, and that may start some samples into the frame.
 
 Every call the decoder will need to find out the current frame offset (usually per channel). This is usually done with a base channel offset (from the VGMSTREAM) plus deriving the frame number (thus sub-offset, but only if frames are fixed) through the current sample, or manually updating the channel offsets every frame. This second method is not suitable to use with the interleave layout as it advances the offsets assuming they didn't change (this is a limitation/bug at the moment). Similarly, the blocked layout cannot contain interleaved data, and must use alt decoders with internal interleave (also a current limitation). Thus, some decoders and layouts don't mix.
- 
+
 If the decoder needs to keep state between calls it may use the VGMSTREAM for common values (like ADPCM history), or alloc a custom data struct. In that case the decoder should provide init/free functions so the meta or vgmstream may use. This is the case with decoders implemented using external libraries (*ext_libs*), as seen in *#ifdef VGM_USE_X ... #endif* sections.
 
 Adding a new decoder involves:
@@ -252,7 +146,7 @@ Adding a new decoder involves:
 - *src/vgmstream.c*: add parser init to the init list
 - if the codec depends on a external library don't forget to mark parts with: *#ifdef VGM_USE_X ... #endif*
 
-#### core
+### core
 The vgmstream core simply consists of functions gluing the above together and some helpers (ex.- extension list, loop adjust, etc). 
 
 The *Overview* section should give an idea about how it's used.

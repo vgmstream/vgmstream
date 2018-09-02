@@ -140,6 +140,14 @@ VGMSTREAM * init_vgmstream_adx(STREAMFILE *streamFile) {
          * 0x00 (4): "AINF";  0x04 (4): size;  0x08 (10): str_id
          * 0x18 (2): volume (0=base/max?, negative=reduce)
          * 0x1c (2): pan l;   0x1e (2): pan r (0=base, max +-128) */
+
+        /* CINF header info (very rare, found after loops) [Sakura Taisen 3 (PS2)]
+         * 0x00 (4): "CINF"
+         * 0x04 (4): size
+         * 0x08 (4): "ASO ", unknown
+         * 0x28 (4): "SND ", unknown
+         * 0x48 (-): file name, null terminated
+         */
     }
     else if (version_signature == 0x0500) {  /* found in some SFD: Buggy Heat, appears to have no loop */
         header_type = meta_ADX_05;

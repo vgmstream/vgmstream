@@ -137,8 +137,8 @@ void decode_nds_procyon(VGMSTREAMCHANNEL * stream, sample * outbuf, int channels
 /* l5_555_decoder */
 void decode_l5_555(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
 
-/* SASSC_decoder */
-void decode_SASSC(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
+/* sassc_decoder */
+void decode_sassc(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
 
 /* lsf_decode */
 void decode_lsf(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
@@ -170,10 +170,12 @@ void seek_ea_mt(VGMSTREAM * vgmstream, int32_t num_sample);
 void free_ea_mt(ea_mt_codec_data *data);
 
 /* hca_decoder */
-void decode_hca(hca_codec_data * data, sample * outbuf, int32_t samples_to_do, int channels);
-void reset_hca(VGMSTREAM *vgmstream);
-void loop_hca(VGMSTREAM *vgmstream);
+hca_codec_data *init_hca(STREAMFILE *streamFile);
+void decode_hca(hca_codec_data * data, sample * outbuf, int32_t samples_to_do);
+void reset_hca(hca_codec_data * data);
+void loop_hca(hca_codec_data * data);
 void free_hca(hca_codec_data * data);
+int test_hca_key(hca_codec_data * data, unsigned long long keycode);
 
 #ifdef VGM_USE_VORBIS
 /* ogg_vorbis_decoder */

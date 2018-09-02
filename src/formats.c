@@ -33,6 +33,7 @@ static const char* extension_list[] = {
     "afc",
     "agsc",
     "ahx",
+    "ahv",
     "ai",
     //"aif", //common
     "aifc", //common?
@@ -43,8 +44,8 @@ static const char* extension_list[] = {
     "akb",
     "al2",
     "amts", //fake extension/header id for .stm (to be removed)
-    "ao", //txth/reserved [Cloudphobia (PC)]
-    "apc", //txth/reserved [MegaRace 3 (PC)]
+    "ao",
+    "apc",
     "as4",
     "asd",
     "asf",
@@ -167,10 +168,11 @@ static const char* extension_list[] = {
     "int",
     "isd",
     "isws",
-    "itl", //txth/reserved [Charinko Hero (GC)]
+    "itl",
     "ivaud",
     "ivag",
     "ivb",
+    "ivs", //txth/reserved [Burnout 2 (PS2)]
 
     "joe",
     "jstm",
@@ -227,7 +229,7 @@ static const char* extension_list[] = {
     "msd",
     "msf",
     "mss",
-    "msv", //txh/reserved [Fight Club (PS2)]
+    "msv",
     "msvp",
     "mta2",
     "mtaf",
@@ -313,7 +315,7 @@ static const char* extension_list[] = {
     "scd",
     "sck",
     "sd9",
-    "sdf", //txth/reserved [Gummy Bears Mini Golf (3DS), Agent Hugo - Lemoon Twist (PS2)]
+    "sdf",
     "sdt",
     "seg",
     "sf0",
@@ -357,7 +359,7 @@ static const char* extension_list[] = {
     "stx",
     "svag",
     "svs",
-    "svg", //txth/reserved [Hunter: The Reckoning - Wayward (PS2)]
+    "svg",
     "swag",
     "swav",
     "swd",
@@ -384,7 +386,7 @@ static const char* extension_list[] = {
     "v0",
     //"v1", //dual channel with v0
     "vag",
-    "vai", //txth/reserved [Ratatouille (GC)]
+    "vai",
     "vas",
     "vawx",
     "vb",
@@ -395,7 +397,7 @@ static const char* extension_list[] = {
     "vgs",
     "vgv",
     "vig",
-    "vis", //txth/reserved [AirForce Delta (PS2)]
+    "vis",
     "vms",
     "voi",
     "vpk",
@@ -424,7 +426,7 @@ static const char* extension_list[] = {
     "wsd",
     "wsi",
     "wua",
-    "wv2", //txth/reserved [Slave Zero (PC)]
+    "wv2",
     "wv6",
     "wve",
     "wvs",
@@ -695,7 +697,7 @@ static const meta_info meta_info_list[] = {
         {meta_PS2_RXWS,             "Sony RXWS header"},
         {meta_PS2_RAW,              ".int PCM raw header"},
         {meta_PS2_OMU,              "Alter Echo OMU Header"},
-        {meta_DSP_STM,              "Nintendo STM header"},
+        {meta_DSP_STM,              "Intelligent Systems STM header"},
         {meta_PS2_EXST,             "Sony EXST header"},
         {meta_PS2_SVAG,             "Konami SVAG header"},
         {meta_PS_HEADERLESS,        "Headerless PS-ADPCM raw header"},
@@ -974,7 +976,7 @@ static const meta_info meta_info_list[] = {
         {meta_WIIU_BTSND,           "Nintendo Wii U Menu Boot Sound"},
         {meta_MCA,                  "Capcom MCA header"},
         {meta_XB3D_ADX,             "Xenoblade 3D ADX header"},
-        {meta_HCA,                  "CRI MiddleWare HCA Header"},
+        {meta_HCA,                  "CRI HCA header"},
         {meta_PS2_SVAG_SNK,         "SNK SVAG header"},
         {meta_PS2_VDS_VDM,          "Procyon Studio VDS/VDM header"},
         {meta_FFMPEG,               "FFmpeg supported file format"},
@@ -1067,6 +1069,21 @@ static const meta_info meta_info_list[] = {
         {meta_HD3_BD3,              "Sony HD3+BD3 header"},
         {meta_BNK_SONY,             "Sony BNK header"},
         {meta_SCD_SSCF,             "Square-Enix SCD (SSCF) header"},
+        {meta_DSP_VAG,              ".VAG DSP header"},
+        {meta_DSP_ITL,              ".ITL DSP header"},
+        {meta_A2M,                  "Artificial Mind & Movement A2M header"},
+        {meta_AHV,                  "Amuze AHV header"},
+        {meta_MSV,                  "Sony MultiStream MSV header"},
+        {meta_SDF_PS2,              "Beyond Reality PS2 SDF header"},
+        {meta_SVG,                  "High Voltage SVG header"},
+        {meta_VIS,                  "Konami VIS header"},
+        {meta_SDF_3DS,              "Beyond Reality 3DS SDF header"},
+        {meta_VAI,                  "Asobo Studio .VAI header"},
+        {meta_AIF_ASOBO,            "Asobo Studio .AIF header"},
+        {meta_AO,                   "AlphaOgg .AO header"},
+        {meta_APC,                  "Cryo APC header"},
+        {meta_WV2,                  "Infogrames North America WAV2 header"},
+        {meta_XAU_KONAMI,           "Konami XAU header"},
 
 };
 

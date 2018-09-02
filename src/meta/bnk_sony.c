@@ -66,6 +66,7 @@ VGMSTREAM * init_vgmstream_bnk_sony(STREAMFILE *streamFile) {
 
         switch(version) {
             case 0x03: /* L@ove Once - Mermaid's Tears (PS3) */
+            case 0x04: /* Test banks */
             case 0x09: /* Puyo Puyo Tetris (PS4) */
                 section_entries  = (uint16_t)read_16bit(sblk_offset+0x16,streamFile); /* entry size: ~0x0c */
                 material_entries = (uint16_t)read_16bit(sblk_offset+0x18,streamFile); /* entry size: ~0x08 */
@@ -155,6 +156,7 @@ VGMSTREAM * init_vgmstream_bnk_sony(STREAMFILE *streamFile) {
         /* parse names */
         switch(version) {
           //case 0x03: /* different format? */
+          //case 0x04: /* different format? */
             case 0x09:
             case 0x0d:
                 /* find if this sound has an assigned name in table1 */
@@ -205,6 +207,7 @@ VGMSTREAM * init_vgmstream_bnk_sony(STREAMFILE *streamFile) {
 
         switch(version) {
             case 0x03:
+            case 0x04:
                 sample_rate = 48000; /* seems ok */
                 channel_count = 1;
 
@@ -255,7 +258,7 @@ VGMSTREAM * init_vgmstream_bnk_sony(STREAMFILE *streamFile) {
                 type = read_16bit(start_offset+0x00,streamFile);
                 if (read_32bit(start_offset+0x04,streamFile) != 0x01) /* type? */
                     goto fail;
-                extradata_size = 0x10 + read_32bit(start_offset+0x08,streamFile); /* 0x80 for AT9, 0x10 for PCM */
+                extradata_size = 0x10 + read_32bit(start_offset+0x08,streamFile); /* 0x80 for AT9, 0x10 for PCM/PS-ADPCM */
                 /* 0x0c: null? */
 
                 switch(type) {
@@ -290,6 +293,19 @@ VGMSTREAM * init_vgmstream_bnk_sony(STREAMFILE *streamFile) {
                         loop_end = loop_start + loop_length; /* loop_start is -1 if not set */
 
                         codec = PCM16;
+                        break;
+
+                    case 0x00: /* PS-ADPCM (test banks) */
+                        sample_rate = 48000; /* seems ok */
+                        /* 0x10: null? */
+                        channel_count = read_32bit(start_offset+0x14,streamFile);
+                        interleave = 0x02;
+
+                        loop_start = read_32bit(start_offset+0x18,streamFile);
+                        loop_length = read_32bit(start_offset+0x1c,streamFile);
+                        loop_end = loop_start + loop_length; /* loop_start is -1 if not set */
+
+                        codec = PSX;
                         break;
 
                     default:

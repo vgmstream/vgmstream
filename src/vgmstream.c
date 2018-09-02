@@ -408,7 +408,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_opus_ppp,
     init_vgmstream_ubi_bao_pk,
     init_vgmstream_dsp_switch_audio,
-    init_vgmstream_dsp_sadf,
+    init_vgmstream_sadf,
     init_vgmstream_h4m,
     init_vgmstream_ps2_ads_container,
     init_vgmstream_asf,
@@ -422,8 +422,24 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_bnk_sony,
     init_vgmstream_nus3bank,
     init_vgmstream_scd_sscf,
+    init_vgmstream_dsp_vag,
+    init_vgmstream_dsp_itl_ch,
+    init_vgmstream_a2m,
+    init_vgmstream_ahv,
+    init_vgmstream_msv,
+    init_vgmstream_sdf_ps2,
+    init_vgmstream_svg,
+    init_vgmstream_vis,
+    init_vgmstream_sdf_3ds,
+    init_vgmstream_vai,
+    init_vgmstream_aif_asobo,
+    init_vgmstream_ao,
+    init_vgmstream_apc,
+    init_vgmstream_wv2,
+    init_vgmstream_xau_konami,
 
-    /* lowest priority metas (TXTH should go before raw formats) */
+
+    /* lowest priority metas (should go after all metas, and TXTH should go before raw formats) */
     init_vgmstream_txth,            /* proper parsers should supersede TXTH, once added */
     init_vgmstream_ps2_int,         /* .int raw PS-ADPCM */
     init_vgmstream_ps_headerless,   /* tries to detect a bunch of PS-ADPCM formats */
@@ -554,7 +570,7 @@ void reset_vgmstream(VGMSTREAM * vgmstream) {
 #endif
 
     if (vgmstream->coding_type==coding_CRI_HCA) {
-        reset_hca(vgmstream);
+        reset_hca(vgmstream->codec_data);
     }
 
     if (vgmstream->coding_type==coding_EA_MT) {
@@ -1191,7 +1207,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_EA_MT:
             return 432;
         case coding_CRI_HCA:
-            return clHCA_samplesPerBlock;
+            return 0; /* 1024 - delay/padding (which can be bigger than 1024) */
 #if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
         case coding_MP4_AAC:
             return ((mp4_aac_codec_data*)vgmstream->codec_data)->samples_per_frame;
@@ -1657,7 +1673,7 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
 #endif
         case coding_CRI_HCA:
             decode_hca(vgmstream->codec_data, buffer+samples_written*vgmstream->channels,
-                    samples_to_do,vgmstream->channels);
+                    samples_to_do);
             break;
 #ifdef VGM_USE_FFMPEG
         case coding_FFmpeg:
@@ -1893,7 +1909,7 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
             break;
         case coding_SASSC:
             for (ch = 0; ch < vgmstream->channels; ch++) {
-                decode_SASSC(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                decode_sassc(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
                         vgmstream->channels,vgmstream->samples_into_block,samples_to_do);
             }
 
@@ -2019,7 +2035,7 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream) {
         /* prepare certain codecs' internal state for looping */
 
         if (vgmstream->coding_type==coding_CRI_HCA) {
-            loop_hca(vgmstream);
+            loop_hca(vgmstream->codec_data);
         }
 
         if (vgmstream->coding_type==coding_EA_MT) {

@@ -179,6 +179,9 @@ static const adxkey_info adxkey8_list[] = {
         /* Shounen Onmyouji: Tsubasa yo Ima, Sora e Kaere [PS2] */
         {0x55d9,0x46d3,0x5b01, "SONMYOJI",0},
 
+        /* Girls Bravo: Romance 15's [PS2] */
+        {0x658f,0x4a89,0x5213, "GBRAVO",0},
+
 };
 
 static const adxkey_info adxkey9_list[] = {
