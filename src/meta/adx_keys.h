@@ -182,6 +182,9 @@ static const adxkey_info adxkey8_list[] = {
         /* Girls Bravo: Romance 15's [PS2] */
         {0x658f,0x4a89,0x5213, "GBRAVO",0},
 
+        /* Kashimashi! Girl Meets Girl - Hajimete no Natsu Monogatari (PS2) */
+        {0x6109,0x5135,0x673f, "KASHIM",0},
+
 };
 
 static const adxkey_info adxkey9_list[] = {
