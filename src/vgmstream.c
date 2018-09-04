@@ -2618,7 +2618,9 @@ int vgmstream_open_stream(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t s
         return 1;
 
     /* stream/offsets not needed, managed by decoder */
-    if (vgmstream->coding_type == coding_NWA)
+    if (vgmstream->coding_type == coding_NWA ||
+        vgmstream->coding_type == coding_ACM ||
+        vgmstream->coding_type == coding_CRI_HCA)
         return 1;
 
 #ifdef VGM_USE_FFMPEG
