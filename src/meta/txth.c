@@ -223,14 +223,16 @@ VGMSTREAM * init_vgmstream_txth(STREAMFILE *streamFile) {
             vgmstream->layout_type = layout_none;
             break;
         case coding_XBOX_IMA:
-            if (txth.codec_mode == 1) {
-                if (!txth.interleave) goto fail; /* creates garbage */
+            if (txth.codec_mode == 1) { /* mono interleave */
                 coding = coding_XBOX_IMA_int;
                 vgmstream->layout_type = layout_interleave;
                 vgmstream->interleave_block_size = txth.interleave;
             }
-            else {
-                vgmstream->layout_type = layout_none;
+            else { /* 1ch mono, or stereo interleave */
+                vgmstream->layout_type = txth.interleave ? layout_interleave : layout_none;
+                vgmstream->interleave_block_size = txth.interleave;
+                if (vgmstream->channels > 2 && vgmstream->channels % 2 != 0)
+                    goto fail; /* only 2ch+..+2ch layout is known */
             }
             break;
         case coding_NGC_DTK:

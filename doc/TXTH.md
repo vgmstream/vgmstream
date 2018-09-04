@@ -62,7 +62,7 @@ A text file with the above commands must be saved as ".vag.txth" or ".txth", not
 # - IMA            IMA ADPCM
 # - AICA           Yamaha AICA ADPCM (Dreamcast)
 # - MSADPCM        Microsoft ADPCM (Windows)
-# - NGC_DSP        Nintengo GameCube ADPCM
+# - NGC_DSP        Nintendo GameCube ADPCM
 # - PCM8_U_int     PCM RAW 8bit unsigned (interleaved)
 # - PSX_bf         PlayStation ADPCM with bad flags
 # - MS_IMA         Microsoft IMA ADPCM
@@ -79,7 +79,7 @@ codec = (codec string)
 # - NGC_DSP: 0=normal interleave, 1=byte interleave, 2=no interleave
 # - ATRAC3: 0=autodetect joint stereo, 1=force joint stereo, 2=force normal stereo
 # - XMA1|XMA2: 0=dual multichannel (2ch xN), 1=single multichannel (1ch xN)
-# - XBOX: 0=standard, 1=force mono/interleave mode
+# - XBOX: 0=standard (mono or stereo interleave), 1=force mono interleave mode
 # - others: ignored
 codec_mode = (number)
  
