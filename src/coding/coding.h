@@ -111,7 +111,7 @@ void decode_ws(VGMSTREAM * vgmstream, int channel, sample * outbuf, int channels
 /* acm_decoder */
 acm_codec_data *init_acm();
 void decode_acm(acm_codec_data *data, sample * outbuf, int32_t samples_to_do, int channelspacing);
-void reset_acm(VGMSTREAM *vgmstream);
+void reset_acm(acm_codec_data *data);
 void free_acm(acm_codec_data *data);
 
 /* nwa_decoder */

@@ -631,7 +631,7 @@ void reset_vgmstream(VGMSTREAM * vgmstream) {
 #endif
 
     if (vgmstream->coding_type==coding_ACM) {
-        reset_acm(vgmstream);
+        reset_acm(vgmstream->codec_data);
     }
 
     if (vgmstream->coding_type == coding_NWA) {
@@ -2496,8 +2496,8 @@ static STREAMFILE * get_vgmstream_average_bitrate_channel_streamfile(VGMSTREAM *
 
     if (vgmstream->coding_type==coding_ACM) {
         acm_codec_data *data = (acm_codec_data *) vgmstream->codec_data;
-        if (data && data->file)
-        return data->file->streamfile;
+        if (data && data->handle)
+        return data->streamfile;
     }
 
 #ifdef VGM_USE_VORBIS

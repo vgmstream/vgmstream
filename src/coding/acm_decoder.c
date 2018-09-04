@@ -824,17 +824,18 @@ void acm_reset(ACMStream *acm)
 
 acm_codec_data *init_acm(STREAMFILE *streamFile) {
     acm_codec_data* data = NULL;
-    ACMStream *acm_stream = NULL;
+    ACMStream *handle = NULL;
     char filename[PATH_LIMIT];
 
     data = calloc(1,sizeof(acm_codec_data));
     if (!data) goto fail;
 
     streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (acm_open_decoder(&acm_stream,streamFile,filename) != ACM_OK)
+    if (acm_open_decoder(&handle,streamFile,filename) != ACM_OK)
         goto fail;
 
-    data->file = acm_stream;
+    data->handle = handle;
+    data->streamfile = handle->streamfile;
 
     return data;
 
@@ -844,7 +845,7 @@ fail:
 }
 
 void decode_acm(acm_codec_data *data, sample * outbuf, int32_t samples_to_do, int channelspacing) {
-    ACMStream * acm = data->file;
+    ACMStream * acm = data->handle;
     int32_t samples_read = 0;
 
     while (samples_read < samples_to_do) {
@@ -862,20 +863,20 @@ void decode_acm(acm_codec_data *data, sample * outbuf, int32_t samples_to_do, in
     }
 }
 
-void reset_acm(VGMSTREAM *vgmstream) {
-    acm_codec_data *data = vgmstream->codec_data;
+void reset_acm(acm_codec_data *data) {
 
-    if (data && data->file) {
-        acm_reset(data->file);
+    if (data && data->handle) {
+        acm_reset(data->handle);
     }
 }
 
 void free_acm(acm_codec_data *data) {
     if (data) {
-        if (data->file) {
-            acm_close(data->file);
+        if (data->handle) {
+            acm_close(data->handle);
         }
         free(data);
+        //close_streamfile(data->streamfile); /* already done */
     }
 }
 

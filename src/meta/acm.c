@@ -18,12 +18,14 @@ VGMSTREAM * init_vgmstream_acm(STREAMFILE *streamFile) {
 
     /* init decoder */
     {
+        ACMStream *handle;
         data = init_acm(streamFile);
         if (!data) goto fail;
 
-        channel_count = data->file->info.channels;
-        sample_rate = data->file->info.rate;
-        num_samples = data->file->total_values / data->file->info.channels;
+        handle = data->handle;
+        channel_count = handle->info.channels;
+        sample_rate = handle->info.rate;
+        num_samples = handle->total_values / handle->info.channels;
     }
 
 

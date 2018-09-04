@@ -62,7 +62,6 @@ enum { STREAM_NAME_SIZE = 255 }; /* reasonable max */
 #include <clHCA.h>
 
 #include "coding/g72x_state.h"
-#include "coding/acm_decoder.h"
 #include "coding/nwa_decoder.h"
 
 
@@ -1050,7 +1049,8 @@ typedef struct celt_codec_data celt_codec_data;
 
 /* libacm interface */
 typedef struct {
-    ACMStream *file;
+    STREAMFILE *streamfile;
+    void *handle;
 } acm_codec_data;
 
 #define AIX_BUFFER_SIZE 0x1000
