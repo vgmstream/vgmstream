@@ -116,7 +116,7 @@
     <ClInclude Include="meta\fsb_keys.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="coding\acm_decoder.h">
+    <ClInclude Include="coding\acm_decoder_libacm.h">
       <Filter>coding\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="coding\coding.h">
@@ -986,6 +986,12 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\acm_decoder.c">
+      <Filter>coding\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="coding\acm_decoder_decode.c">
+      <Filter>coding\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="coding\acm_decoder_util.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\adx_decoder.c">

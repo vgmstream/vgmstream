@@ -111,7 +111,7 @@
     <ClInclude Include="meta\meta.h" />
     <ClInclude Include="meta\hca_keys.h" />
     <ClInclude Include="meta\fsb_keys.h" />
-    <ClInclude Include="coding\acm_decoder.h" />
+    <ClInclude Include="coding\acm_decoder_libacm.h" />
     <ClInclude Include="coding\coding.h" />
     <ClInclude Include="coding\ffmpeg_decoder_utils.h" />
     <ClInclude Include="coding\fsb_vorbis_data.h" />
@@ -474,6 +474,8 @@
     <ClCompile Include="meta\zsd.c" />
     <ClCompile Include="meta\zwdsp.c" />
     <ClCompile Include="coding\acm_decoder.c" />
+    <ClCompile Include="coding\acm_decoder_decode.c" />
+    <ClCompile Include="coding\acm_decoder_util.c" />
     <ClCompile Include="coding\adx_decoder.c" />
     <ClCompile Include="coding\asf_decoder.c" />
     <ClCompile Include="coding\yamaha_decoder.c" />

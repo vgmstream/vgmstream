@@ -1611,7 +1611,7 @@
 				Name="Header Files"
 				>
 				<File
-					RelativePath=".\coding\acm_decoder.h"
+					RelativePath=".\coding\acm_decoder_libacm.h"
 					>
 				</File>
                 <File
@@ -1654,10 +1654,14 @@
 					RelativePath=".\coding\acm_decoder.c"
 					>
 				</File>
-				<File
-					RelativePath=".\coding\adx_decoder.c"
-					>
-				</File>
+                <File
+                    RelativePath=".\coding\acm_decoder_decode.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\coding\acm_decoder_util.c"
+                    >
+                </File>
                 <File
                     RelativePath=".\coding\asf_decoder.c"
                     >

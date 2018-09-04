@@ -1,7 +1,5 @@
 #include "meta.h"
 #include "../layout/layout.h"
-#include "../coding/coding.h"
-#include "../coding/acm_decoder.h"
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>

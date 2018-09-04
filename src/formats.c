@@ -413,6 +413,7 @@ static const char* extension_list[] = {
     "wam",
     "was",
     //"wav", //common
+    "wavc",
     "wave",
     "wavebatch",
     "wavm",

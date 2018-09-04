@@ -1051,6 +1051,7 @@ typedef struct celt_codec_data celt_codec_data;
 typedef struct {
     STREAMFILE *streamfile;
     void *handle;
+    void *io_config;
 } acm_codec_data;
 
 #define AIX_BUFFER_SIZE 0x1000
