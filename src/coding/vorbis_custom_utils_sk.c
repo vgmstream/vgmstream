@@ -70,10 +70,15 @@ int vorbis_custom_parse_packet_sk(VGMSTREAMCHANNEL *stream, vorbis_custom_codec_
     off_t packet_offset = 0;
     size_t packet_size = 0;
     int page_packets;
+    int res;
 
     /* read OggS/SK page and get current packet */
-    if (!get_page_info(stream->streamfile, stream->offset, &packet_offset, &packet_size, &page_packets, data->current_packet)) goto fail;
+    res = get_page_info(stream->streamfile, stream->offset, &packet_offset, &packet_size, &page_packets, data->current_packet);
     data->current_packet++;
+    if (!res || packet_size > data->buffer_size) {
+        VGM_LOG("FSB Vorbis: wrong packet (0x%x) @ %lx\n", packet_size, stream->offset);
+        goto fail;
+    }
 
     /* read raw block */
     data->op.bytes = read_streamfile(data->buffer, packet_offset, packet_size, stream->streamfile);
