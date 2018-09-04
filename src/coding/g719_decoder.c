@@ -1,7 +1,7 @@
 #include "coding.h"
 
 #ifdef VGM_USE_G719
-#define G719_MAX_CODES (960/8) /* max frame 0xF0 uint8s = 0xF0/2 uint16s = 960/8 */
+#define G719_MAX_CODES ((1280/8)) /* in int16, so max frame size is (value/8)*2 (known values: 0xF0=common, 0x140=rare) */
 
 
 g719_codec_data *init_g719(int channel_count, int frame_size) {
