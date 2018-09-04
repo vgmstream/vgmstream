@@ -10,7 +10,7 @@
 
 #define MAX_TEST_FRAMES (INT_MAX/0x8000)
 
-static int find_key(STREAMFILE *file, uint8_t type, uint16_t *xor_start, uint16_t *xor_mult, uint16_t *xor_add);
+static int find_adx_key(STREAMFILE *streamFile, uint8_t type, uint16_t *xor_start, uint16_t *xor_mult, uint16_t *xor_add);
 
 /* ADX - CRI Middleware format */
 VGMSTREAM * init_vgmstream_adx(STREAMFILE *streamFile) {
@@ -75,13 +75,13 @@ VGMSTREAM * init_vgmstream_adx(STREAMFILE *streamFile) {
 
     /* encryption */
     if (version_signature == 0x0408) {
-        if (find_key(streamFile, 8, &xor_start, &xor_mult, &xor_add)) {
+        if (find_adx_key(streamFile, 8, &xor_start, &xor_mult, &xor_add)) {
             coding_type = coding_CRI_ADX_enc_8;
             version_signature = 0x0400;
         }
     }
     else if (version_signature == 0x0409) {
-        if (find_key(streamFile, 9, &xor_start, &xor_mult, &xor_add)) {
+        if (find_adx_key(streamFile, 9, &xor_start, &xor_mult, &xor_add)) {
             coding_type = coding_CRI_ADX_enc_9;
             version_signature = 0x0400;
         }
@@ -246,20 +246,19 @@ fail:
 
 
 /* return 0 if not found, 1 if found and set parameters */
-static int find_key(STREAMFILE *file, uint8_t type, uint16_t *xor_start, uint16_t *xor_mult, uint16_t *xor_add)
-{
+static int find_adx_key(STREAMFILE *streamFile, uint8_t type, uint16_t *xor_start, uint16_t *xor_mult, uint16_t *xor_add) {
     uint16_t * scales = NULL;
     uint16_t * prescales = NULL;
-    int bruteframe=0,bruteframecount=-1;
+    int bruteframe = 0, bruteframe_count = -1;
     int startoff, endoff;
-    int rc = 0;
+    int i, rc = 0;
 
 
     /* try to find key in external file first */
     {
         uint8_t keybuf[6];
 
-        if (read_key_file(keybuf, 6, file) == 6) {
+        if (read_key_file(keybuf, 6, streamFile) == 6) {
             *xor_start = get_16bitBE(keybuf+0);
             *xor_mult = get_16bitBE(keybuf+2);
             *xor_add = get_16bitBE(keybuf+4);
@@ -267,86 +266,80 @@ static int find_key(STREAMFILE *file, uint8_t type, uint16_t *xor_start, uint16_
         }
     }
 
-
-    /* guess key from the tables */
-    startoff=read_16bitBE(2, file)+4;
-    endoff=(read_32bitBE(12, file)+31)/32*18*read_8bit(7, file)+startoff;
-
-    /* how many scales? */
+    /* setup totals */
     {
-        int framecount=(endoff-startoff)/18;
-        if (framecount<bruteframecount || bruteframecount<0)
-            bruteframecount=framecount;
+        int frame_count;
+
+        startoff = read_16bitBE(2, streamFile) + 4;
+        endoff = (read_32bitBE(12, streamFile) + 31) / 32 * 18 * read_8bit(7, streamFile) + startoff;
+
+        frame_count = (endoff - startoff) / 18;
+        if (frame_count < bruteframe_count || bruteframe_count < 0)
+            bruteframe_count = frame_count;
     }
 
     /* find longest run of nonzero frames */
     {
-        int longest=-1,longest_length=-1;
-        int i;
-        int length=0;
-        for (i=0;i<bruteframecount;i++) {
-            static const unsigned char zeroes[18]={0};
+        int longest = -1, longest_length = -1;
+        int length = 0;
+        for (i = 0; i < bruteframe_count; i++) {
+            static const unsigned char zeroes[18] = {0};
             unsigned char buf[18];
-            read_streamfile(buf, startoff+i*18, 18, file);
-            if (memcmp(zeroes,buf,18)) length++;
-            else length=0;
+            read_streamfile(buf, startoff + i * 18, 18, streamFile);
+            if (memcmp(zeroes, buf, 18))
+                length++;
+            else
+                length = 0;
             if (length > longest_length) {
-                longest_length=length;
-                longest=i-length+1;
-                if (longest_length >= 0x8000) break;
+                longest_length = length;
+                longest = i - length + 1;
+                if (longest_length >= 0x8000)
+                    break;
             }
         }
-        if (longest==-1) {
+        if (longest == -1) {
             goto find_key_cleanup;
         }
-        bruteframecount = longest_length;
+        bruteframe_count = longest_length;
         bruteframe = longest;
     }
 
+    /* try to guess key */
     {
-        /* try to guess key */
         const adxkey_info * keys = NULL;
         int keycount = 0, keymask = 0;
         int scales_to_do;
         int key_id;
 
         /* allocate storage for scales */
-        scales_to_do = (bruteframecount > MAX_TEST_FRAMES ? MAX_TEST_FRAMES : bruteframecount);
+        scales_to_do = (bruteframe_count > MAX_TEST_FRAMES ? MAX_TEST_FRAMES : bruteframe_count);
         scales = malloc(scales_to_do*sizeof(uint16_t));
-        if (!scales) {
-            goto find_key_cleanup;
-        }
+        if (!scales) goto find_key_cleanup;
+
         /* prescales are those scales before the first frame we test
          * against, we use these to compute the actual start */
         if (bruteframe > 0) {
-            int i;
             /* allocate memory for the prescales */
             prescales = malloc(bruteframe*sizeof(uint16_t));
-            if (!prescales) {
-                goto find_key_cleanup;
-            }
+            if (!prescales) goto find_key_cleanup;
+
             /* read the prescales */
             for (i=0; i<bruteframe; i++) {
-                prescales[i] = read_16bitBE(startoff+i*18, file);
+                prescales[i] = read_16bitBE(startoff+i*18, streamFile);
             }
         }
 
         /* read in the scales */
-        {
-            int i;
-            for (i=0; i < scales_to_do; i++) {
-                scales[i] = read_16bitBE(startoff+(bruteframe+i)*18, file);
-            }
+        for (i=0; i < scales_to_do; i++) {
+            scales[i] = read_16bitBE(startoff+(bruteframe+i)*18, streamFile);
         }
 
-        if (type == 8)
-        {
+        if (type == 8) {
             keys = adxkey8_list;
             keycount = adxkey8_list_count;
             keymask = 0x6000;
         }
-        else if (type == 9)
-        {
+        else if (type == 9) {
             /* smarter XOR as seen in PSO2. The scale is technically 13 bits,
              * but the maximum value assigned by the encoder is 0x1000.
              * This is written to the ADX file as 0xFFF, leaving the high bit
@@ -356,50 +349,70 @@ static int find_key(STREAMFILE *file, uint8_t type, uint16_t *xor_start, uint16_
             keymask = 0x1000;
         }
 
-        /* guess each of the keys */
-        for (key_id=0;key_id<keycount;key_id++) {
-            /* test pre-scales */
-            uint16_t xor = keys[key_id].start;
-            uint16_t mult = keys[key_id].mult;
-            uint16_t add = keys[key_id].add;
-            int i;
+        /* try all keys until one decrypts correctly vs expected values */
+        for (key_id = 0; key_id < keycount; key_id++) {
+            uint16_t key_xor, key_mul, key_add;
+            uint16_t xor, mul, add;
 
-#ifdef ADX_VERIFY_DERIVED_KEYS
+            /* get pre-derived XOR values or derive if needed */
+            if (keys[key_id].start || keys[key_id].mult || keys[key_id].add) {
+                key_xor = keys[key_id].start;
+                key_mul = keys[key_id].mult;
+                key_add = keys[key_id].add;
+            }
+            else if (type == 8 && keys[key_id].key8) {
+                derive_adx_key8(keys[key_id].key8, &key_xor, &key_mul, &key_add);
+            }
+            else if (type == 9 && keys[key_id].key9) {
+                derive_adx_key9(keys[key_id].key9, &key_xor, &key_mul, &key_add);
+            }
+            else {
+                VGM_LOG("ADX: incorrectly defined key id=%i\n", key_id);
+                continue;
+            }
+            /* temp test values */
+            xor = key_xor;
+            mul = key_mul;
+            add = key_add;
+
+#if 0
+            /* derive and print all keys in the list, quick validity test */
             {
-                uint16_t test_start, test_mult, test_add;
+                uint16_t test_xor, test_mul, test_add;
+                xor = keys[key_id].start;
+                mul = keys[key_id].mult;
+                add = keys[key_id].add;
                 if (type == 8 && keys[key_id].key8) {
-                    process_cri_key8(keys[key_id].key8, &test_start, &test_mult, &test_add);
+                    derive_adx_key8(keys[key_id].key8, &test_xor, &test_mul, &test_add);
                     VGM_LOG("key8: pre=%04x %04x %04x vs calc=%04x %04x %04x = %s (\"%s\")\n",
-                            xor,mult,add, test_start,test_mult,test_add, xor==test_start && mult==test_mult && add==test_add ? "ok" : "ko", keys[key_id].key8);
+                            xor,mul,add, test_xor,test_mul,test_add,
+                            xor==test_xor && mul==test_mul && add==test_add ? "ok" : "ko", keys[key_id].key8);
                 }
                 else if (type == 9 && keys[key_id].key9) {
-                    process_cri_key9(keys[key_id].key9, &test_start, &test_mult, &test_add);
+                    derive_adx_key9(keys[key_id].key9, &test_xor, &test_mul, &test_add);
                     VGM_LOG("key9: pre=%04x %04x %04x vs calc=%04x %04x %04x = %s (%"PRIu64")\n",
-                            xor,mult,add, test_start,test_mult,test_add, xor==test_start && mult==test_mult && add==test_add ? "ok" : "ko", keys[key_id].key9);
+                            xor,mul,add, test_xor,test_mul,test_add,
+                            xor==test_xor && mul==test_mul && add==test_add ? "ok" : "ko", keys[key_id].key9);
                 }
                 continue;
             }
 #endif
 
-            for (i=0;i<bruteframe &&
-                ((prescales[i]&keymask)==(xor&keymask) ||
-                    prescales[i]==0);
-                i++) {
-                xor = xor * mult + add;
-            }
 
-            if (i == bruteframe)
-            {
-                /* test */
-                for (i=0;i<scales_to_do &&
-                    (scales[i]&keymask)==(xor&keymask);i++) {
-                    xor = xor * mult + add;
+            /* test vs prescales while xor looks valid */
+            for (i = 0; i < bruteframe && ((prescales[i] & keymask) == (xor & keymask) || prescales[i] == 0); i++) {
+                xor = xor * mul + add;
+            }
+            if (i == bruteframe) {
+                /* test vs scales while xor looks valid */
+                for (i = 0; i < scales_to_do && (scales[i] & keymask) == (xor & keymask); i++) {
+                    xor = xor * mul + add;
                 }
-                if (i == scales_to_do)
-                {
-                    *xor_start = keys[key_id].start;
-                    *xor_mult = keys[key_id].mult;
-                    *xor_add = keys[key_id].add;
+                /* key is good */
+                if (i == scales_to_do) {
+                    *xor_start = key_xor;
+                    *xor_mult = key_mul;
+                    *xor_add = key_add;
 
                     rc = 1;
                     goto find_key_cleanup;
@@ -409,8 +422,7 @@ static int find_key(STREAMFILE *file, uint8_t type, uint16_t *xor_start, uint16_
     }
 
 find_key_cleanup:
-    if (scales) free(scales);
-    if (prescales) free(prescales);
+    free(scales);
+    free(prescales);
     return rc;
 }
-
