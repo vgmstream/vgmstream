@@ -205,12 +205,7 @@ static int add_filename(txtp_header * txtp, char *filename) {
 
     //;VGM_LOG("TXTP: filename=%s\n", filename);
 
-    /* parse config:
-     * - file.ext#2 = play subsong 2
-     * - file.ext#2~10 = play subsongs in 2 to 10 range
-     * - file.ext#c1,2 = play channels 1,2
-     * - file.ext#m1-2,3-4 = swaps channels 1<>2 and 3<>4
-     */
+    /* parse config: file.ext#(command) */
     {
         char *config;
 
@@ -230,10 +225,10 @@ static int add_filename(txtp_header * txtp, char *filename) {
             config[0] = '\0';
             config++;
 
-            //todo: alt long words, s or number=subsong
 
             if (config[0] == 'c') {
-                /* mask channels */
+                /* channel mask */
+                /* - file.ext#c1,2 = play channels 1,2 */
                 int n, ch;
 
                 config++;
@@ -251,6 +246,7 @@ static int add_filename(txtp_header * txtp, char *filename) {
             }
             else if (config[0] == 'm') {
                 /* channel mappings */
+                /* - file.ext#m1-2,3-4 = swaps channels 1<>2 and 3<>4 */
                 int n, ch_from = 0, ch_to = 0;
 
                 config++;
@@ -278,9 +274,16 @@ static int add_filename(txtp_header * txtp, char *filename) {
                     }
                }
             }
-            else {
-                /* subsong range */
+            else if (config[0] == 's' || (config[0] >= '0' && config[0] <= '9')) {
+                /* subsongs */
+                /* - file.ext#2 = play subsong 2 */
+                /* - file.ext#s3 = play subsong 3 */
+                /* - file.ext#2~10 = play subsong range */
+
                 int subsong_start = 0, subsong_end = 0;
+
+                if (config[0]== 's')
+                    config++;
 
                 if (sscanf(config, "%d~%d", &subsong_start, &subsong_end) == 2) {
                     if (subsong_start > 0 && subsong_end > 0) {
@@ -297,6 +300,10 @@ static int add_filename(txtp_header * txtp, char *filename) {
                 else {
                     config = NULL; /* wrong config, ignore */
                 }
+            }
+            else {
+                VGM_LOG("TXTP: unknown command\n");
+                goto fail;
             }
 
         } while (config != NULL);
