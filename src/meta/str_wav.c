@@ -120,8 +120,10 @@ VGMSTREAM * init_vgmstream_str_wav(STREAMFILE *streamFile) {
 
         case XBOX:
             vgmstream->coding_type = coding_XBOX_IMA;
-            vgmstream->layout_type = layout_none;
-            if (strwav.channels > 2) goto fail; //todo multistreams are 2ch*N interleaved using ~0xD000
+            vgmstream->layout_type = layout_interleave; /* interleaved stereo for >2ch*/
+            vgmstream->interleave_block_size = strwav.interleave;
+            if (vgmstream->channels > 2 && vgmstream->channels % 2 != 0)
+                goto fail; /* only 2ch+..+2ch layout is known */
             break;
 
 #ifdef VGM_USE_FFMPEG
@@ -190,7 +192,7 @@ static int parse_header(STREAMFILE* streamHeader, strwav_header* strwav) {
         strwav->interleave  = 0;
 
         strwav->codec = WMA;
-        ;VGM_LOG("STR+WAV: header Fuzion Frenzy (Xbox)\n");
+        //;VGM_LOG("STR+WAV: header Fuzion Frenzy (Xbox)\n");
         return 1;
     }
 
@@ -213,7 +215,7 @@ static int parse_header(STREAMFILE* streamHeader, strwav_header* strwav) {
 
         strwav->coefs_offset = 0xdc;
         strwav->codec = DSP;
-        ;VGM_LOG("STR+WAV: header Taz: Wanted (GC)\n");
+        //;VGM_LOG("STR+WAV: header Taz: Wanted (GC)\n");
         return 1;
     }
 
@@ -231,10 +233,10 @@ static int parse_header(STREAMFILE* streamHeader, strwav_header* strwav) {
 
         strwav->channels    = read_32bitLE(0x70,streamHeader) * (strwav->flags & 0x02 ? 2 : 1); /* tracks of 2/1ch */
         strwav->loop_flag   = strwav->flags & 0x01;
-        strwav->interleave  = strwav->channels > 2 ? 0xD000 : 0x0;
+        strwav->interleave  = 0xD800/2;
 
         strwav->codec = XBOX;
-        ;VGM_LOG("STR+WAV: header The Fairly OddParents (Xbox)\n");
+        //;VGM_LOG("STR+WAV: header The Fairly OddParents (Xbox)\n");
         return 1;
     }
 
@@ -257,32 +259,10 @@ static int parse_header(STREAMFILE* streamHeader, strwav_header* strwav) {
 
         strwav->dsps_table = 0xe0;
         strwav->codec = DSP;
-        ;VGM_LOG("STR+WAV: header Bad Boys II (GC)\n");
+        //;VGM_LOG("STR+WAV: header Bad Boys II (GC)\n");
         return 1;
     }
-#if 0
-    if ( read_32bitBE(0x04,streamHeader) == 0x00000800 &&
-         read_32bitBE(0x24,streamHeader) == read_32bitBE(0xb0,streamHeader) && /* sample rate repeat */
-         read_32bitBE(0x24,streamHeader) == read_32bitBE(read_32bitBE(0xf0,streamHeader)+0x08,streamHeader) && /* sample rate vs 1st DSP header */
-         read_32bitBE(0x28,streamHeader) == 0x10 &&
-         read_32bitBE(0xc0,streamHeader)*0x04 + read_32bitBE(0xc4,streamHeader) == header_size /* variable + variable */
-         ) {
-        strwav->num_samples = read_32bitBE(0x20,streamHeader);
-        strwav->sample_rate = read_32bitBE(0x24,streamHeader);
-        strwav->flags       = read_32bitBE(0x2c,streamHeader);
-        strwav->loop_start  = read_32bitBE(0xd8,streamHeader);
-        strwav->loop_end    = read_32bitBE(0xdc,streamHeader);
 
-        strwav->channels    = read_32bitBE(0x70,streamHeader) * read_32bitBE(0x88,streamHeader); /* tracks of Nch */
-        strwav->loop_flag   = strwav->flags & 0x01;
-        strwav->interleave  = strwav->channels > 2 ? 0x8000 : 0x10000;
-
-        strwav->dsps_table = 0xf0;
-        strwav->codec = DSP;
-        ;VGM_LOG("STR+WAV: header Pac-Man World 3 (GC)\n");
-        return 1;
-    }
-#endif
     /* Bad Boys II (PS2)[2004] */
     /* Pac-Man World 3 (PS2)[2005] */
     if ((read_32bitBE(0x04,streamHeader) == 0x00000800 ||
@@ -303,7 +283,7 @@ static int parse_header(STREAMFILE* streamHeader, strwav_header* strwav) {
         strwav->interleave  = strwav->channels > 2 ? 0x4000 : 0x8000;
 
         strwav->codec = PSX;
-        ;VGM_LOG("STR+WAV: header Bad Boys II (PS2)\n");
+        //;VGM_LOG("STR+WAV: header Bad Boys II (PS2)\n");
         return 1;
     }
 
@@ -324,7 +304,7 @@ static int parse_header(STREAMFILE* streamHeader, strwav_header* strwav) {
         strwav->interleave  = strwav->channels > 2 ? 0x4000 : 0x8000;
 
         strwav->codec = PSX;
-        ;VGM_LOG("STR+WAV: header Zapper (PS2)\n");
+        //;VGM_LOG("STR+WAV: header Zapper (PS2)\n");
         return 1;
     }
 
@@ -346,7 +326,7 @@ static int parse_header(STREAMFILE* streamHeader, strwav_header* strwav) {
 
         strwav->dsps_table = 0xe0;
         strwav->codec = DSP;
-        ;VGM_LOG("STR+WAV: header Zapper (GC)\n");
+        //;VGM_LOG("STR+WAV: header Zapper (GC)\n");
         return 1;
     }
 
@@ -372,7 +352,7 @@ static int parse_header(STREAMFILE* streamHeader, strwav_header* strwav) {
 
         strwav->dsps_table = 0xf0;
         strwav->codec = DSP;
-        ;VGM_LOG("STR+WAV: header SpongeBob SquarePants (GC)\n");
+        //;VGM_LOG("STR+WAV: header SpongeBob SquarePants (GC)\n");
         return 1;
     }
 
@@ -394,7 +374,7 @@ static int parse_header(STREAMFILE* streamHeader, strwav_header* strwav) {
         strwav->interleave  = strwav->channels > 4 ? 0x4000 : 0x8000;
 
         strwav->codec = PSX;
-        ;VGM_LOG("STR+WAV: header SpongeBob SquarePants (PS2)\n");
+        //;VGM_LOG("STR+WAV: header SpongeBob SquarePants (PS2)\n");
         return 1;
     }
 
@@ -415,7 +395,7 @@ static int parse_header(STREAMFILE* streamHeader, strwav_header* strwav) {
         strwav->interleave  = strwav->channels > 4 ? 0x4000 : 0x8000;
 
         strwav->codec = PSX;
-        ;VGM_LOG("STR+WAV: header Tak (PS2)\n");
+        //;VGM_LOG("STR+WAV: header Tak (PS2)\n");
         return 1;
     }
 
@@ -439,7 +419,7 @@ static int parse_header(STREAMFILE* streamHeader, strwav_header* strwav) {
 
         strwav->coefs_table = 0x7c;
         strwav->codec = DSP;
-        ;VGM_LOG("STR+WAV: header Tak (Wii)\n");
+        //;VGM_LOG("STR+WAV: header Tak (Wii)\n");
         return 1;
     }
 

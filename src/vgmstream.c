@@ -1547,20 +1547,17 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
             }
             break;
         case coding_XBOX_IMA:
+        case coding_XBOX_IMA_int:
             for (ch = 0; ch < vgmstream->channels; ch++) {
+                int is_stereo = (vgmstream->channels > 1 && vgmstream->coding_type == coding_XBOX_IMA);
                 decode_xbox_ima(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
-                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do, ch);
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do, ch,
+                        is_stereo);
             }
             break;
         case coding_XBOX_IMA_mch:
             for (ch = 0; ch < vgmstream->channels; ch++) {
                 decode_xbox_ima_mch(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
-                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do, ch);
-            }
-            break;
-        case coding_XBOX_IMA_int:
-            for (ch = 0; ch < vgmstream->channels; ch++) {
-                decode_xbox_ima_int(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
                         vgmstream->channels,vgmstream->samples_into_block,samples_to_do, ch);
             }
             break;
@@ -2611,6 +2608,7 @@ int vgmstream_open_stream(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t s
     int ch;
     int use_streamfile_per_channel = 0;
     int use_same_offset_per_channel = 0;
+    int is_stereo_codec = 0;
 
 
     /* stream/offsets not needed, managed by layout */
@@ -2640,12 +2638,15 @@ int vgmstream_open_stream(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t s
         use_streamfile_per_channel = 1;
     }
 
-
     /* for mono or codecs like IMA (XBOX, MS IMA, MS ADPCM) where channels work with the same bytes */
     if (vgmstream->layout_type == layout_none) {
         use_same_offset_per_channel = 1;
     }
 
+    /* stereo codecs interleave in 2ch pairs (interleave size should still be: full_block_size / channels) */
+    if (vgmstream->layout_type == layout_interleave && vgmstream->coding_type == coding_XBOX_IMA) {
+        is_stereo_codec = 1;
+    }
 
     streamFile->get_name(streamFile,filename,sizeof(filename));
     /* open the file for reading by each channel */
@@ -2659,6 +2660,10 @@ int vgmstream_open_stream(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t s
             off_t offset;
             if (use_same_offset_per_channel) {
                 offset = start_offset;
+            } else if (is_stereo_codec) {
+                int ch_mod = (ch & 1) ? ch - 1 : ch; /* adjust odd channels (ch 0,1,2,3,4,5 > ch 0,0,2,2,4,4) */
+                offset = start_offset + vgmstream->interleave_block_size*ch_mod;
+                //VGM_LOG("ch%i offset=%lx\n", ch,offset);
             } else {
                 offset = start_offset + vgmstream->interleave_block_size*ch;
             }

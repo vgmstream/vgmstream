@@ -612,6 +612,15 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
             break;
     }
 
+    /* Dynasty Warriors 5 (Xbox) 6ch interleaves stereo frames, probably not official */
+    if (vgmstream->coding_type == coding_XBOX_IMA && vgmstream->channels > 2) {
+        vgmstream->layout_type = layout_interleave;
+        vgmstream->interleave_block_size = 0x24; /* block_size / channels */
+        if (vgmstream->channels > 2 && vgmstream->channels % 2 != 0)
+            goto fail; /* only 2ch+..+2ch layout is known */
+    }
+
+
     /* meta, loops */
     vgmstream->meta_type = meta_RIFF_WAVE;
     if (loop_flag) {

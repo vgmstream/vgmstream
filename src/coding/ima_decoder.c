@@ -430,22 +430,26 @@ void decode_ref_ima(VGMSTREAM * vgmstream, VGMSTREAMCHANNEL * stream, sample * o
 /* ************************************ */
 
 /* MS-IMA with fixed frame size, and outputs an even number of samples per frame (skips last nibble).
- * Defined in Xbox's SDK. Multichannel interleaves 2ch*N/2, or 1ch*N with odd num_channels
- * (seen in some Koei .wav, could be simplified as interleaved stereo) --unsure if official. */
-void decode_xbox_ima(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
-    int i, sample_count = 0;
+ * Defined in Xbox's SDK. Usable in mono or stereo modes (both suitable for interleaved multichannel). */
+void decode_xbox_ima(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel, int is_stereo) {
+    int i, frames_in, sample_pos = 0, block_samples, frame_size;
     int32_t hist1 = stream->adpcm_history1_32;
     int step_index = stream->adpcm_step_index;
+    off_t frame_offset;
 
-    /* internal interleave (fixed size), mixed channels */
-    int block_samples = (0x24-0x4) * 2;
+    /* external interleave (fixed size), stereo/mono */
+    block_samples = (0x24 - 0x4) * 2;
+    frames_in = first_sample / block_samples;
     first_sample = first_sample % block_samples;
+    frame_size = is_stereo ? 0x24*2 : 0x24;
 
-    /* normal header (hist+step+reserved), per stereo/mono channel in blocks */
+    frame_offset = stream->offset + frame_size*frames_in;
+
+    /* normal header (hist+step+reserved), stereo/mono */
     if (first_sample == 0) {
-        off_t header_offset = (channelspacing & 1) ?
-                stream->offset + 0x24*(channel) + 0x00:
-                stream->offset + 0x48*(channel/2) + 0x04*(channel%2);
+        off_t header_offset = is_stereo ?
+                frame_offset + 0x04*(channel % 2) :
+                frame_offset + 0x00;
 
         hist1   = read_16bitLE(header_offset+0x00,stream->streamfile);
         step_index = read_8bit(header_offset+0x02,stream->streamfile);
@@ -453,30 +457,25 @@ void decode_xbox_ima(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspac
         if (step_index > 88) step_index=88;
 
         /* write header sample (even samples per block, skips last nibble) */
-        outbuf[sample_count] = (short)(hist1);
-        sample_count += channelspacing;
+        outbuf[sample_pos] = (short)(hist1);
+        sample_pos += channelspacing;
         first_sample += 1;
         samples_to_do -= 1;
     }
 
-    /* decode nibbles (layout: alternates 4 bytes/4*2 nibbles per channel, in stereo blocks) */
+    /* decode nibbles (layout: straight in mono or 4 bytes per channel in stereo) */
     for (i = first_sample; i < first_sample + samples_to_do; i++) {
-        off_t byte_offset = (channelspacing & 1) ?
-                (stream->offset + 0x24*(channel) + 0x04) + (i-1)/2:
-                (stream->offset + 0x48*(channel/2) + 0x04*2) + 0x04*(channel%2) + 0x04*2*((i-1)/8) + ((i-1)%8)/2;
-        int nibble_shift = ((i-1)&1?4:0); /* low nibble first */
+        off_t byte_offset = is_stereo ?
+                frame_offset + 0x04*2 + 0x04*(channel % 2) + 0x04*2*((i-1)/8) + ((i-1)%8)/2 :
+                frame_offset + 0x04   + (i-1)/2;
+        int nibble_shift = (!((i-1)&1)   ? 0:4);   /* low first */
 
-        /* must skip last nibble per official decoder, probably not needed though */
+        /* must skip last nibble per spec, rarely needed though (ex. Gauntlet Dark Legacy) */
         if (i < block_samples) {
             std_ima_expand_nibble(stream, byte_offset,nibble_shift, &hist1, &step_index);
-            outbuf[sample_count] = (short)(hist1);
-            sample_count += channelspacing;
+            outbuf[sample_pos] = (short)(hist1);
+            sample_pos += channelspacing;
         }
-    }
-
-    /* internal interleave: increment offset on complete frame */
-    if (i == block_samples) {
-        stream->offset += 0x24*channelspacing;
     }
 
     stream->adpcm_history1_32 = hist1;
@@ -516,50 +515,6 @@ void decode_xbox_ima_mch(VGMSTREAMCHANNEL * stream, sample * outbuf, int channel
         int nibble_shift = ((i-1)&1?4:0); /* low nibble first */
 
         /* must skip last nibble per spec, rarely needed though */
-        if (i < block_samples) {
-            std_ima_expand_nibble(stream, byte_offset,nibble_shift, &hist1, &step_index);
-            outbuf[sample_count] = (short)(hist1);
-            sample_count += channelspacing;
-        }
-    }
-
-    stream->adpcm_history1_32 = hist1;
-    stream->adpcm_step_index = step_index;
-}
-
-/* Mono XBOX-IMA ADPCM, used for interleave. Also defined in Xbox's SDK. */
-void decode_xbox_ima_int(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
-    int i, sample_count = 0, num_frame;
-    int32_t hist1 = stream->adpcm_history1_32;
-    int step_index = stream->adpcm_step_index;
-
-    /* external interleave (fixed size), mono */
-    int block_samples = (0x24 - 0x4) * 2;
-    num_frame = first_sample / block_samples;
-    first_sample = first_sample % block_samples;
-
-    /* normal header (hist+step+reserved), single channel */
-    if (first_sample == 0) {
-        off_t header_offset = stream->offset + 0x24*num_frame;
-
-        hist1   = read_16bitLE(header_offset+0x00,stream->streamfile);
-        step_index = read_8bit(header_offset+0x02,stream->streamfile);
-        if (step_index < 0) step_index=0;
-        if (step_index > 88) step_index=88;
-
-        /* write header sample (even samples per block, skips last nibble) */
-        outbuf[sample_count] = (short)(hist1);
-        sample_count += channelspacing;
-        first_sample += 1;
-        samples_to_do -= 1;
-    }
-
-    /* decode nibbles (layout: all nibbles from one channel) */
-    for (i = first_sample; i < first_sample + samples_to_do; i++) {
-        off_t byte_offset = (stream->offset + 0x24*num_frame + 0x4) + (i-1)/2;
-        int nibble_shift = ((i-1)&1?4:0); /* low nibble first */
-
-        /* must skip last nibble per spec, rarely needed though (ex. Gauntlet Dark Legacy) */
         if (i < block_samples) {
             std_ima_expand_nibble(stream, byte_offset,nibble_shift, &hist1, &step_index);
             outbuf[sample_count] = (short)(hist1);
