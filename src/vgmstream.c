@@ -545,7 +545,8 @@ VGMSTREAM * init_vgmstream_from_STREAMFILE(STREAMFILE *streamFile) {
     return init_vgmstream_internal(streamFile);
 }
 
-/* Reset a VGMSTREAM to its state at the start of playback.
+/* Reset a VGMSTREAM to its state at the start of playback
+ * (when a plugin needs to seek back to zero, for instance).
  * Note that this does not reset the constituent STREAMFILES. */
 void reset_vgmstream(VGMSTREAM * vgmstream) {
     /* copy the vgmstream back into itself */
@@ -924,7 +925,7 @@ void vgmstream_force_loop(VGMSTREAM* vgmstream, int loop_flag, int loop_start_sa
         vgmstream->loop_ch = calloc(vgmstream->channels,sizeof(VGMSTREAMCHANNEL));
         /* loop_ch will be populated when decoded samples reach loop start */
     }
-    else {
+    else if (!loop_flag && vgmstream->loop_flag) {
         /* not important though */
         free(vgmstream->loop_ch);
         vgmstream->loop_ch = NULL;
