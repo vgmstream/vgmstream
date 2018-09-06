@@ -147,7 +147,7 @@ static void snds_ima_expand_nibble(VGMSTREAMCHANNEL * stream, off_t byte_offset,
     *hist1 = clamp16(sample_decoded);
 }
 
-/* Omikron: The Nomad Soul, algorithm by aluigi */
+/* Omikron: The Nomad Soul, algorithm from the .exe */
 static void otns_ima_expand_nibble(VGMSTREAMCHANNEL * stream, off_t byte_offset, int nibble_shift, int32_t * hist1, int32_t * step_index) {
     int sample_nibble, sample_decoded, step, delta;
 
@@ -156,8 +156,8 @@ static void otns_ima_expand_nibble(VGMSTREAMCHANNEL * stream, off_t byte_offset,
     step = ADPCMTable[*step_index];
 
     delta = 0;
-    if(sample_nibble & 4) delta = step << 2;
-    if(sample_nibble & 2) delta += step << 1;
+    if(sample_nibble & 4) delta = step * 4;
+    if(sample_nibble & 2) delta += step * 2;
     if(sample_nibble & 1) delta += step;
     delta >>= 2;
     if (sample_nibble & 8) delta = -delta;
