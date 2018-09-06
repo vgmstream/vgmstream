@@ -908,7 +908,7 @@ static const meta_info meta_info_list[] = {
         {meta_SSS,                  "Namco .SSS raw header"},
         {meta_PS2_GCM,              "GCM 'MCG' Header"},
         {meta_PS2_SMPL,             "Homura SMPL header"},
-        {meta_PS2_MSA,              "Psyvariar -Complete Edition- MSA header"},
+        {meta_PS2_MSA,              "Success .MSA header"},
         {meta_PC_SMP,               "Ghostbusters .smp Header"},
         {meta_NGC_PDT,              "Hudson .PDT header"},
         {meta_NGC_RKV,              "Legacy of Kain - Blood Omen 2 RKV GC header"},
