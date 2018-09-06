@@ -118,6 +118,7 @@ typedef enum {
     coding_SNDS_IMA,        /* Heavy Iron Studios .snds IMA ADPCM */
     coding_OTNS_IMA,        /* Omikron The Nomad Soul IMA ADPCM */
     coding_WV6_IMA,         /* Gorilla Systems WV6 4-bit IMA ADPCM */
+    coding_ALP_IMA,         /* High Voltage ALP 4-bit IMA ADPCM */
 
     coding_MS_IMA,          /* Microsoft IMA ADPCM */
     coding_XBOX_IMA,        /* XBOX IMA ADPCM */
@@ -768,15 +769,18 @@ typedef struct {
     layout_t layout_type;   /* type of layout for data */
     meta_t meta_type;       /* how we know the metadata */
 
-    /* subsongs and internal config */
+    /* subsongs */
     int num_streams;            /* for multi-stream formats (0=not set/one stream, 1=one stream) */
     int stream_index;           /* selected stream (also 1-based) */
     char stream_name[STREAM_NAME_SIZE]; /* name of the current stream (info), if the file stores it and it's filled */
     size_t stream_size;         /* info to properly calculate bitrate in case of subsongs */
+    /* config */
+    int allow_dual_stereo;      /* search for dual stereo (file_L.ext + file_R.ext = single stereo file) */
     uint32_t channel_mask;      /* to silence crossfading subsongs/layers */
     int channel_mappings_on;    /* channel mappings are active */
     int channel_mappings[32];   /* swap channel "i" with "[i]" */
-    int allow_dual_stereo;      /* search for dual stereo (file_L.ext + file_R.ext = single stereo file) */
+    double config_loops;        /* appropriate number of loops (config request for players) */
+    int config_nofade;          /* continue normally after target loop count (config request for players) */
 
     /* looping */
     int loop_flag;              /* is this stream looped? */
