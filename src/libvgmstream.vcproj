@@ -460,10 +460,14 @@
 					RelativePath=".\meta\dc_str.c"
 					>
 				</File>
-				<File
-					RelativePath=".\meta\dec.c"
-					>
-				</File>
+                <File
+                    RelativePath=".\meta\dec.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\derf.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\dmsg_segh.c"
 					>
@@ -1672,6 +1676,10 @@
 				</File>
                 <File
                     RelativePath=".\coding\coding_utils.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\coding\derf_decoder.c"
                     >
                 </File>
                 <File

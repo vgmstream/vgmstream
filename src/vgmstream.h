@@ -133,7 +133,6 @@ typedef enum {
     coding_REF_IMA,         /* Reflections IMA ADPCM */
     coding_AWC_IMA,         /* Rockstar AWC IMA ADPCM */
     coding_UBI_IMA,         /* Ubisoft IMA ADPCM */
-
     coding_H4M_IMA,         /* H4M IMA ADPCM (stereo or mono, high nibble first) */
 
     coding_MSADPCM,         /* Microsoft ADPCM (stereo/mono) */
@@ -145,7 +144,6 @@ typedef enum {
     coding_YAMAHA_NXAP,     /* Yamaha ADPCM (NXAP variation) */
     coding_NDS_PROCYON,     /* Procyon Studio ADPCM */
     coding_L5_555,          /* Level-5 0x555 ADPCM */
-    coding_SASSC,           /* Activision EXAKT SASSC DPCM */
     coding_LSF,             /* lsf ADPCM (Fastlane Street Racing iPhone)*/
     coding_MTAF,            /* Konami MTAF ADPCM */
     coding_MTA2,            /* Konami MTA2 ADPCM */
@@ -159,6 +157,8 @@ typedef enum {
     coding_SDX2_int,        /* SDX2 2:1 Squareroot-Delta-Exact compression with sample-level interleave */
     coding_CBD2,            /* CBD2 2:1 Cuberoot-Delta-Exact compression DPCM */
     coding_CBD2_int,        /* CBD2 2:1 Cuberoot-Delta-Exact compression, with sample-level interleave  */
+    coding_SASSC,           /* Activision EXAKT SASSC 8-bit DPCM */
+    coding_DERF,            /* DERF 8-bit DPCM */
     coding_ACM,             /* InterPlay ACM */
     coding_NWA,             /* VisualArt's NWA */
 
@@ -705,6 +705,7 @@ typedef enum {
     meta_APC,               /* MegaRace 3 (PC) */
     meta_WV2,               /* Slave Zero (PC) */
     meta_XAU_KONAMI,        /* Yu-Gi-Oh - The Dawn of Destiny (Xbox) */
+    meta_DERF,              /* Stupid Invaders (PC) */
 
 } meta_t;
 

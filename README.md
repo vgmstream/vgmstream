@@ -212,20 +212,21 @@ are used in few games.
 - Yamaha AICA ADPCM
 - Procyon Studio ADPCM
 - Level-5 0x555 ADPCM
-- Activision EXAKT SASSC DPCM
 - lsf ADPCM
 - Konami MTAF ADPCM
 - Konami MTA2 ADPCM
 - Paradigm MC3 ADPCM
-- SDX2 2:1 Squareroot-Delta-Exact compression DPCM
-- CBD2 2:1 Cuberoot-Delta-Exact compression DPCM
-- InterPlay ACM
-- VisualArt's NWA
-- CRI HCA
-- Electronic Arts MicroTalk a.k.a. UTK or UMT
 - FMOD FADPCM 4-bit ADPCM
 - Konami XMD 4-bit ADPCM
 - Argonaut ASF 4-bit ADPCM
+- SDX2 2:1 Squareroot-Delta-Exact compression DPCM
+- CBD2 2:1 Cuberoot-Delta-Exact compression DPCM
+- Activision EXAKT SASSC DPCM
+- Xilam DERF DPCM
+- InterPlay ACM
+- VisualArt's NWA
+- Electronic Arts MicroTalk a.k.a. UTK or UMT
+- CRI HCA
 - Xiph Vorbis (Ogg, FSB5, Wwise, OGL, Silicon Knights)
 - MPEG MP1/2/3 (standard, AHX, XVAG, FSB, AWC, P3D, etc)
 - ITU-T G.722.1 (Polycom Siren 7)

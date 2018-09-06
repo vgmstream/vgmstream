@@ -437,6 +437,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_apc,
     init_vgmstream_wv2,
     init_vgmstream_xau_konami,
+    init_vgmstream_derf,
 
 
     /* lowest priority metas (should go after all metas, and TXTH should go before raw formats) */
@@ -1096,6 +1097,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_SDX2_int:
         case coding_CBD2:
         case coding_ACM:
+        case coding_DERF:
         case coding_NWA:
         case coding_SASSC:
             return 1;
@@ -1270,6 +1272,7 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
         case coding_SDX2:
         case coding_SDX2_int:
         case coding_CBD2:
+        case coding_DERF:
         case coding_NWA:
         case coding_SASSC:
             return 0x01;
@@ -1709,6 +1712,13 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                         vgmstream->channels,vgmstream->samples_into_block,samples_to_do);
             }
             break;
+        case coding_DERF:
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_derf(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do);
+            }
+            break;
+
         case coding_IMA:
         case coding_IMA_int:
         case coding_DVI_IMA:

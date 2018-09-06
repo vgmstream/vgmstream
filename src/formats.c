@@ -566,7 +566,6 @@ static const coding_info coding_info_list[] = {
         {coding_YAMAHA_NXAP,        "Yamaha NXAP 4-bit ADPCM"},
         {coding_NDS_PROCYON,        "Procyon Studio Digital Sound Elements NDS 4-bit APDCM"},
         {coding_L5_555,             "Level-5 0x555 4-bit ADPCM"},
-        {coding_SASSC,              "Activision / EXAKT SASSC 8-bit DPCM"},
         {coding_LSF,                "lsf 4-bit ADPCM"},
         {coding_MTAF,               "Konami MTAF 4-bit ADPCM"},
         {coding_MTA2,               "Konami MTA2 4-bit ADPCM"},
@@ -579,6 +578,8 @@ static const coding_info coding_info_list[] = {
         {coding_SDX2_int,           "Squareroot-delta-exact (SDX2) 8-bit DPCM with 1 byte interleave"},
         {coding_CBD2,               "Cuberoot-delta-exact (CBD2) 8-bit DPCM"},
         {coding_CBD2_int,           "Cuberoot-delta-exact (CBD2) 8-bit DPCM with 1 byte interleave"},
+        {coding_SASSC,              "Activision / EXAKT SASSC 8-bit DPCM"},
+        {coding_DERF,               "Xilam DERF 8-bit DPCM"},
         {coding_ACM,                "InterPlay ACM"},
         {coding_NWA,                "VisualArt's NWA DPCM"},
 
@@ -1085,6 +1086,7 @@ static const meta_info meta_info_list[] = {
         {meta_APC,                  "Cryo APC header"},
         {meta_WV2,                  "Infogrames North America WAV2 header"},
         {meta_XAU_KONAMI,           "Konami XAU header"},
+        {meta_DERF,                 "Xilam DERF header"},
 
 };
 

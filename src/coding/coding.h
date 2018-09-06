@@ -160,6 +160,10 @@ void decode_asf(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, 
 /* xmd_decoder */
 void decode_xmd(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, size_t frame_size);
 
+/* derf_decoder */
+void decode_derf(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
+
+
 /* ea_mt_decoder*/
 ea_mt_codec_data *init_ea_mt(int channel_count, int type);
 void decode_ea_mt(VGMSTREAM * vgmstream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel);
@@ -276,6 +280,7 @@ size_t ffmpeg_make_opus_header(uint8_t * buf, int buf_size, int channels, int sk
 size_t switch_opus_get_samples(off_t offset, size_t data_size, int sample_rate, STREAMFILE *streamFile);
 
 #endif
+
 
 /* coding_utils */
 int ffmpeg_fmt_chunk_swap_endian(uint8_t * chunk, size_t chunk_size, uint16_t codec);
