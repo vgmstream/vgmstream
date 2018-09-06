@@ -31,28 +31,28 @@ static size_t make_wav_header(uint8_t * buf, size_t buf_size, int32_t sample_cou
 
 static void usage(const char * name) {
     fprintf(stderr,"vgmstream CLI decoder " VERSION " " __DATE__ "\n"
-          "Usage: %s [-o outfile.wav] [options] infile\n"
-          "Options:\n"
-          "    -o outfile.wav: name of output .wav file, default is infile.wav\n"
-          "    -l loop count: loop count, default 2.0\n"
-          "    -f fade time: fade time (seconds) after N loops, default 10.0\n"
-          "    -d fade delay: fade delay (seconds, default 0.0\n"
-          "    -i: ignore looping information and play the whole stream once\n"
-          "    -p: output to stdout (for piping into another program)\n"
-          "    -P: output to stdout even if stdout is a terminal\n"
-          "    -c: loop forever (continuously)\n"
-          "    -m: print metadata only, don't decode\n"
-          "    -x: decode and print adxencd command line to encode as ADX\n"
-          "    -g: decode and print oggenc command line to encode as OGG\n"
-          "    -b: decode and print batch variable commands\n"
-          "    -L: append a smpl chunk and create a looping wav\n"
-          "    -e: force end-to-end looping\n"
-          "    -E: force end-to-end looping even if file has real loop points\n"
-          "    -r outfile2.wav: output a second time after resetting for testing\n"
-          "    -2 N: only output the Nth (first is 0) set of stereo channels\n"
-          "    -F: don't fade after N loops and play the rest of the stream\n"
-          "    -s N: select subsong N, if the format supports multiple subsongs\n"
-            ,name);
+            "Usage: %s [-o outfile.wav] [options] infile\n"
+            "Options:\n"
+            "    -o outfile.wav: name of output .wav file, default infile.wav\n"
+            "    -l loop count: loop count, default 2.0\n"
+            "    -f fade time: fade time in seconds after N loops, default 10.0\n"
+            "    -d fade delay: fade delay in seconds, default 0.0\n"
+            "    -F: don't fade after N loops and play the rest of the stream\n"
+            "    -i: ignore looping information and play the whole stream once\n"
+            "    -e: force end-to-end looping\n"
+            "    -E: force end-to-end looping even if file has real loop points\n"
+            "    -s N: select subsong N, if the format supports multiple subsongs\n"
+            "    -m: print metadata only, don't decode\n"
+            "    -L: append a smpl chunk and create a looping wav\n"
+            "    -r outfile2.wav: output a second time after resetting (for testing)\n"
+            "    -2 N: only output the Nth (first is 0) set of stereo channels\n"
+            "    -p: output to stdout (for piping into another program)\n"
+            "    -P: output to stdout even if stdout is a terminal\n"
+            "    -c: loop forever (continuously) to stdout\n"
+            "    -x: decode and print adxencd command line to encode as ADX\n"
+            "    -g: decode and print oggenc command line to encode as OGG\n"
+            "    -b: decode and print batch variable commands\n"
+            , name);
 }
 
 
@@ -92,8 +92,8 @@ static int parse_config(cli_config *cfg, int argc, char ** argv) {
     cfg->loop_count = 2.0;
     cfg->fade_seconds = 10.0;
 
-
-    //opterr = 0; /* don't print errors to stdout */ //todo test
+    /* don't let getopt print errors to stdout automatically */
+    opterr = 0;
 
     /* read config */
     while ((opt = getopt(argc, argv, "o:l:f:d:ipPcmxeLEFr:gb2:s:")) != -1) {
@@ -157,51 +157,55 @@ static int parse_config(cli_config *cfg, int argc, char ** argv) {
                 cfg->stream_index = atoi(optarg);
                 break;
             case '?':
-                //fprintf(stderr, "Unknown option number %i\n", optopt); //todo test
-                return EXIT_FAILURE;
+                fprintf(stderr, "Unknown option -%c found\n", optopt);
+                goto fail;
             default:
                 usage(argv[0]);
-                return EXIT_FAILURE;
+                goto fail;
         }
     }
 
     /* filename goes last */
     if (optind != argc - 1) {
         usage(argv[0]);
-        return EXIT_FAILURE;
+        goto fail;
     }
     cfg->infilename = argv[optind];
 
 
+    return 1;
+fail:
     return 0;
 }
 
 static int validate_config(cli_config *cfg) {
-    if (cfg->play_forever && !cfg->play_sdtout) {
-        fprintf(stderr,"A file of infinite size? Not likely.\n");
-        return EXIT_FAILURE;
-    }
     if (cfg->play_sdtout && (!cfg->play_wreckless && isatty(STDOUT_FILENO))) {
         fprintf(stderr,"Are you sure you want to output wave data to the terminal?\nIf so use -P instead of -p.\n");
-        return EXIT_FAILURE;
+        goto fail;
+    }
+    if (cfg->play_forever && !cfg->play_sdtout) {
+        fprintf(stderr,"-c must use -p or -P\n");
+        goto fail;
     }
     if (cfg->ignore_loop && cfg->force_loop) {
         fprintf(stderr,"-e and -i are incompatible\n");
-        return EXIT_FAILURE;
+        goto fail;
     }
     if (cfg->ignore_loop && cfg->really_force_loop) {
         fprintf(stderr,"-E and -i are incompatible\n");
-        return EXIT_FAILURE;
+        goto fail;
     }
     if (cfg->force_loop && cfg->really_force_loop) {
         fprintf(stderr,"-E and -e are incompatible\n");
-        return EXIT_FAILURE;
+        goto fail;
     }
     if (cfg->play_sdtout && cfg->outfilename) {
         fprintf(stderr,"either -p or -o, make up your mind\n");
-        return EXIT_FAILURE;
+        goto fail;
     }
 
+    return 1;
+fail:
     return 0;
 }
 
@@ -249,22 +253,47 @@ static void print_info(VGMSTREAM * vgmstream, cli_config *cfg) {
 }
 
 static void apply_config(VGMSTREAM * vgmstream, cli_config *cfg) {
+
+    /* change loop stuff, in no particular order */
     if (cfg->force_loop && !vgmstream->loop_flag) {
         vgmstream_force_loop(vgmstream, 1, 0,vgmstream->num_samples);
     }
-
     if (cfg->really_force_loop) {
         vgmstream_force_loop(vgmstream, 1, 0,vgmstream->num_samples);
     }
-
     if (cfg->ignore_loop) {
         vgmstream_force_loop(vgmstream, 0, 0,0);
     }
 
+    /* write loops in the wav, but don't actually loop it */
     if (cfg->write_lwav) {
         cfg->lwav_loop_start = vgmstream->loop_start_sample;
         cfg->lwav_loop_end = vgmstream->loop_end_sample;
         vgmstream_force_loop(vgmstream, 0, 0,0);
+    }
+
+    /* loop N times, but also play stream end instead of fading out */
+    if (cfg->loop_count > 0 && cfg->ignore_fade) {
+        //todo use function
+        vgmstream->loop_target = (int)cfg->loop_count; /* round loop count as it's meaningless otherwise */
+        cfg->fade_seconds = -1.0; /* hack/signal for get_vgmstream_play_samples */
+    }
+}
+
+void apply_fade(sample * buf, VGMSTREAM * vgmstream, int to_get, int i, int len_samples, int fade_samples) {
+    if (vgmstream->loop_flag && fade_samples > 0) {
+        int samples_into_fade = i - (len_samples - fade_samples);
+        if (samples_into_fade + to_get > 0) {
+            int j, k;
+            for (j = 0; j < to_get; j++, samples_into_fade++) {
+                if (samples_into_fade > 0) {
+                    double fadedness = (double)(fade_samples - samples_into_fade) / fade_samples;
+                    for (k = 0; k < vgmstream->channels; k++) {
+                        buf[j*vgmstream->channels+k] = (sample)buf[j*vgmstream->channels+k]*fadedness;
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -276,17 +305,15 @@ int main(int argc, char ** argv) {
     sample * buf = NULL;
     int32_t len_samples;
     int32_t fade_samples;
-
-    int i, j, k;
-    int res;
+    int i, j;
 
     cli_config cfg = {0};
+    int res;
 
 
     /* read args */
     res = parse_config(&cfg, argc, argv);
-    if (res != 0)
-        return res;
+    if (!res) goto fail;
 
 #ifdef WIN32
     /* make stdout output work with windows */
@@ -296,8 +323,7 @@ int main(int argc, char ** argv) {
 #endif
 
     res = validate_config(&cfg);
-    if (res != 0)
-        return res;
+    if (!res) goto fail;
 
 
     /* open streamfile and pass subsong */
@@ -306,7 +332,7 @@ int main(int argc, char ** argv) {
         STREAMFILE *streamFile = open_stdio_streamfile(cfg.infilename);
         if (!streamFile) {
             fprintf(stderr,"file %s not found\n",cfg.infilename);
-            return EXIT_FAILURE;
+            goto fail;
         }
 
         streamFile->stream_index = cfg.stream_index;
@@ -315,13 +341,18 @@ int main(int argc, char ** argv) {
 
         if (!vgmstream) {
             fprintf(stderr,"failed opening %s\n",cfg.infilename);
-            return EXIT_FAILURE;
+            goto fail;
         }
     }
 
 
     /* modify the VGMSTREAM if needed */
     apply_config(vgmstream, &cfg);
+
+    if (cfg.play_forever && (!vgmstream->loop_flag || vgmstream->loop_target > 0)) {
+        fprintf(stderr,"I could play a nonlooped track forever, but it wouldn't end well.");
+        goto fail;
+    }
 
 
     /* prepare output */
@@ -339,35 +370,24 @@ int main(int argc, char ** argv) {
         outfile = fopen(cfg.outfilename,"wb");
         if (!outfile) {
             fprintf(stderr,"failed to open %s for output\n",cfg.outfilename);
-            return EXIT_FAILURE;
+            goto fail;
         }
-    }
-
-    if (cfg.play_forever && !vgmstream->loop_flag) {
-        fprintf(stderr,"I could play a nonlooped track forever, but it wouldn't end well.");
-        return EXIT_FAILURE;
     }
 
 
     /* print file info (or batch commands, depending on config) */
     print_info(vgmstream, &cfg);
     if (cfg.print_metaonly) {
+        if (!cfg.play_sdtout)
+            fclose(outfile);
         close_vgmstream(vgmstream);
         return EXIT_SUCCESS;
     }
 
-    /* signal ignore fade for get_vgmstream_play_samples */
-    if (cfg.loop_count > 0 && cfg.ignore_fade) {
-        cfg.fade_seconds = -1.0;
-    }
-    if (cfg.loop_count > 0 && cfg.ignore_fade) {
-        vgmstream->loop_target = (int)cfg.loop_count; /* round loop count as it's meaningless otherwise */
-    }
 
-
-    /* get info */
+    /* get final play config */
     len_samples = get_vgmstream_play_samples(cfg.loop_count,cfg.fade_seconds,cfg.fade_delay_seconds,vgmstream);
-    fade_samples = (int32_t)(cfg.fade_seconds * vgmstream->sample_rate);
+    fade_samples = (int32_t)(cfg.fade_seconds < 0 ? 0 : cfg.fade_seconds * vgmstream->sample_rate);
 
     if (!cfg.play_sdtout && !cfg.print_adxencd && !cfg.print_oggenc && !cfg.print_batchvar) {
         printf("samples to play: %d (%.4lf seconds)\n", len_samples, (double)len_samples / vgmstream->sample_rate);
@@ -378,8 +398,7 @@ int main(int argc, char ** argv) {
     buf = malloc(BUFFER_SAMPLES*sizeof(sample)*vgmstream->channels);
     if (!buf) {
         fprintf(stderr,"failed allocating output buffer\n");
-        close_vgmstream(vgmstream);
-        return EXIT_FAILURE;
+        goto fail;;
     }
 
     /* slap on a .wav header */
@@ -417,23 +436,11 @@ int main(int argc, char ** argv) {
     for (i = 0; i < len_samples; i += BUFFER_SAMPLES) {
         int to_get = BUFFER_SAMPLES;
         if (i + BUFFER_SAMPLES > len_samples)
-            to_get = len_samples-i;
+            to_get = len_samples - i;
 
         render_vgmstream(buf,to_get,vgmstream);
 
-        if (vgmstream->loop_flag && fade_samples > 0) {
-            int samples_into_fade = i - (len_samples - fade_samples);
-            if (samples_into_fade + to_get > 0) {
-                for (j = 0; j < to_get; j++, samples_into_fade++) {
-                    if (samples_into_fade > 0) {
-                        double fadedness = (double)(fade_samples-samples_into_fade)/fade_samples;
-                        for (k = 0; k < vgmstream->channels; k++) {
-                            buf[j*vgmstream->channels+k] = (sample)buf[j*vgmstream->channels+k]*fadedness;
-                        }
-                    }
-                }
-            }
-        }
+        apply_fade(buf, vgmstream, to_get, i, len_samples, fade_samples);
 
         swap_samples_le(buf,vgmstream->channels*to_get); /* write PC endian */
         if (cfg.only_stereo != -1) {
@@ -449,12 +456,12 @@ int main(int argc, char ** argv) {
     outfile = NULL;
 
 
-    /* try again with (for testing reset_vgmstream, simulating a seek to 0) */
+    /* try again with (for testing reset_vgmstream, simulates a seek to 0) */
     if (cfg.outfilename_reset) {
         outfile = fopen(cfg.outfilename_reset,"wb");
         if (!outfile) {
             fprintf(stderr,"failed to open %s for output\n",cfg.outfilename_reset);
-            return EXIT_FAILURE;
+            goto fail;
         }
 
         reset_vgmstream(vgmstream);
@@ -480,23 +487,11 @@ int main(int argc, char ** argv) {
         for (i = 0; i < len_samples; i += BUFFER_SAMPLES) {
             int to_get = BUFFER_SAMPLES;
             if (i + BUFFER_SAMPLES > len_samples)
-                to_get = len_samples-i;
+                to_get = len_samples - i;
 
             render_vgmstream(buf,to_get,vgmstream);
 
-            if (vgmstream->loop_flag && fade_samples > 0) {
-                int samples_into_fade = i - (len_samples - fade_samples);
-                if (samples_into_fade + to_get > 0) {
-                    for (j = 0; j < to_get; j++, samples_into_fade++) {
-                        if (samples_into_fade > 0) {
-                            double fadedness = (double)(fade_samples-samples_into_fade)/fade_samples;
-                            for (k = 0; k < vgmstream->channels; k++) {
-                                buf[j*vgmstream->channels+k] = (sample)buf[j*vgmstream->channels+k]*fadedness;
-                            }
-                        }
-                    }
-                }
-            }
+            apply_fade(buf, vgmstream, to_get, i, len_samples, fade_samples);
 
             swap_samples_le(buf,vgmstream->channels*to_get); /* write PC endian */
             if (cfg.only_stereo != -1) {
@@ -515,6 +510,12 @@ int main(int argc, char ** argv) {
     free(buf);
 
     return EXIT_SUCCESS;
+
+fail:
+    if (!cfg.play_sdtout)
+        fclose(outfile);
+    close_vgmstream(vgmstream);
+    return EXIT_FAILURE;
 }
 
 
