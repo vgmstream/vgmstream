@@ -897,20 +897,19 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
 /* calculate samples based on player's config */
 int32_t get_vgmstream_play_samples(double looptimes, double fadeseconds, double fadedelayseconds, VGMSTREAM * vgmstream) {
     if (vgmstream->loop_flag) {
-        if (fadeseconds < 0) { /* a bit hack-y to avoid signature change */
+        if (vgmstream->loop_target == (int)looptimes) { /* set externally, as this function is info-only */
             /* Continue playing the file normally after looping, instead of fading.
              * Most files cut abruply after the loop, but some do have proper endings.
              * With looptimes = 1 this option should give the same output vs loop disabled */
             int loop_count = (int)looptimes; /* no half loops allowed */
-            //vgmstream->loop_target = loop_count; /* handled externally, as this is into-only */
             return vgmstream->loop_start_sample
                 + (vgmstream->loop_end_sample - vgmstream->loop_start_sample) * loop_count
                 + (vgmstream->num_samples - vgmstream->loop_end_sample);
         }
         else {
-            return (int32_t)(vgmstream->loop_start_sample
+            return vgmstream->loop_start_sample
                 + (vgmstream->loop_end_sample - vgmstream->loop_start_sample) * looptimes
-                + (fadedelayseconds + fadeseconds) * vgmstream->sample_rate);
+                + (fadedelayseconds + fadeseconds) * vgmstream->sample_rate;
         }
     }
     else {
@@ -951,6 +950,22 @@ void vgmstream_force_loop(VGMSTREAM* vgmstream, int loop_flag, int loop_start_sa
     }
     /* segmented layout only works (ATM) with exact/header loop, full loop or no loop */
 }
+
+void vgmstream_set_loop_target(VGMSTREAM* vgmstream, int loop_target) {
+    if (!vgmstream) return;
+
+    vgmstream->loop_target = loop_target; /* loop count must be rounded (int) as otherwise target is meaningless */
+
+    /* propagate changes to layouts that need them */
+    if (vgmstream->layout_type == layout_layered) {
+        int i;
+        layered_layout_data *data = vgmstream->layout_data;
+        for (i = 0; i < data->layer_count; i++) {
+            vgmstream_set_loop_target(data->layers[i], loop_target);
+        }
+    }
+}
+
 
 /* Decode data into sample buffer */
 void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstream) {

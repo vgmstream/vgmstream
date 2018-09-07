@@ -11,6 +11,13 @@ typedef struct {
     uint32_t channel_mask;
     int channel_mappings_on;
     int channel_mappings[32];
+
+    double config_loop_count;
+    double config_fade_time;
+    double config_fade_delay;
+    int config_ignore_loop;
+    int config_force_loop;
+    int config_ignore_fade;
 } txtp_entry;
 
 typedef struct {
@@ -26,9 +33,10 @@ typedef struct {
 
 static txtp_header* parse_txtp(STREAMFILE* streamFile);
 static void clean_txtp(txtp_header* txtp);
+static void set_config(VGMSTREAM *vgmstream, txtp_entry *current);
 
 
-/* TXTP - an artificial playlist-like format to play segmented files with config */
+/* TXTP - an artificial playlist-like format to play files with segments/layers/config */
 VGMSTREAM * init_vgmstream_txtp(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     txtp_header* txtp = NULL;
@@ -184,6 +192,9 @@ VGMSTREAM * init_vgmstream_txtp(STREAMFILE *streamFile) {
     }
 
 
+    /* loop settings apply to the resulting vgmstream, so config based on first entry */
+    set_config(vgmstream, &txtp->entry[0]);
+
     clean_txtp(txtp);
     return vgmstream;
 
@@ -195,13 +206,30 @@ fail:
     return NULL;
 }
 
+static void set_config(VGMSTREAM *vgmstream, txtp_entry *current) {
+    vgmstream->config_loop_count = current->config_loop_count;
+    vgmstream->config_fade_time = current->config_fade_time;
+    vgmstream->config_fade_delay = current->config_fade_delay;
+    vgmstream->config_ignore_loop = current->config_ignore_loop;
+    vgmstream->config_force_loop = current->config_force_loop;
+    vgmstream->config_ignore_fade = current->config_ignore_fade;
+}
+
+/* ********************************** */
+
+static void get_double(const char * config, double *value) {
+    int n;
+    if (sscanf(config, "%lf%n", value,&n) != 1) {
+        *value = 0;
+    }
+}
 
 static int add_filename(txtp_header * txtp, char *filename) {
-    int i;
-    uint32_t channel_mask = 0;
-    int channel_mappings_on = 0;
-    int channel_mappings[32] = {0};
+    int i, n;
+    txtp_entry cfg = {0};
     size_t range_start, range_end;
+    const char separator = '#';
+
 
     //;VGM_LOG("TXTP: filename=%s\n", filename);
 
@@ -209,33 +237,37 @@ static int add_filename(txtp_header * txtp, char *filename) {
     {
         char *config;
 
-        /* position in base extension */
-        config = strrchr(filename,'.');
-        if (!config) /* needed...? */
+        /* find config start (filenames and config can contain multiple dots and #,
+         * so this may be fooled by certain patterns of . and #) */
+        config = strchr(filename, '.'); /* first dot (may be a false positive) */
+        if (!config) /* extensionless */
+            config = filename;
+        config = strchr(config,separator); /* next should be config (hopefully right after extension) */
+        if (!config) /* no config */
             config = filename;
 
         range_start = 0;
         range_end = 1;
         do {
             /* get config pointer but remove config from filename */
-            config = strchr(config, '#');
+            config = strchr(config, separator);
             if (!config)
                 continue;
+            //;VGM_LOG("TXTP: config=%s\n", config);
 
             config[0] = '\0';
             config++;
 
 
             if (config[0] == 'c') {
-                /* channel mask */
-                /* - file.ext#c1,2 = play channels 1,2 */
-                int n, ch;
+                /* channel mask: file.ext#c1,2 = play channels 1,2 and mutes rest */
+                int ch;
 
                 config++;
-                channel_mask = 0;
+                cfg.channel_mask = 0;
                 while (sscanf(config, "%d%n", &ch,&n) == 1) {
                     if (ch > 0 && ch <= 32)
-                        channel_mask |= (1 << (ch-1));
+                        cfg.channel_mask |= (1 << (ch-1));
 
                     config += n;
                     if (config[0]== ',' || config[0]== '-') /* "-" for PowerShell, may have problems with "," */
@@ -245,12 +277,11 @@ static int add_filename(txtp_header * txtp, char *filename) {
                 };
             }
             else if (config[0] == 'm') {
-                /* channel mappings */
-                /* - file.ext#m1-2,3-4 = swaps channels 1<>2 and 3<>4 */
-                int n, ch_from = 0, ch_to = 0;
+                /* channel mappings: file.ext#m1-2,3-4 = swaps channels 1<>2 and 3<>4 */
+                int ch_from = 0, ch_to = 0;
 
                 config++;
-                channel_mappings_on = 1;
+                cfg.channel_mappings_on = 1;
 
                 while (config[0] != '\0') {
                     if (sscanf(config, "%d%n", &ch_from, &n) != 1)
@@ -270,21 +301,16 @@ static int add_filename(txtp_header * txtp, char *filename) {
                         break;
 
                     if (ch_from > 0 && ch_from <= 32 && ch_to > 0 && ch_to <= 32) {
-                        channel_mappings[ch_from-1] = ch_to-1;
+                        cfg.channel_mappings[ch_from-1] = ch_to-1;
                     }
                }
             }
             else if (config[0] == 's' || (config[0] >= '0' && config[0] <= '9')) {
-                /* subsongs */
-                /* - file.ext#2 = play subsong 2 */
-                /* - file.ext#s3 = play subsong 3 */
-                /* - file.ext#2~10 = play subsong range */
-
+                /* subsongs: file.ext#s2 = play subsong 2, file.ext#2~10 = play subsong range */
                 int subsong_start = 0, subsong_end = 0;
 
                 if (config[0]== 's')
                     config++;
-
                 if (sscanf(config, "%d~%d", &subsong_start, &subsong_end) == 2) {
                     if (subsong_start > 0 && subsong_end > 0) {
                         range_start = subsong_start-1;
@@ -301,9 +327,36 @@ static int add_filename(txtp_header * txtp, char *filename) {
                     config = NULL; /* wrong config, ignore */
                 }
             }
+            else if (config[0] == 'i') {
+                config++;
+                cfg.config_ignore_loop = 1;
+            }
+            else if (config[0] == 'E') {
+                config++;
+                cfg.config_force_loop = 1;
+            }
+            else if (config[0] == 'F') {
+                config++;
+                cfg.config_ignore_fade = 1;
+            }
+            else if (config[0] == 'l') {
+                config++;
+                get_double(config, &cfg.config_loop_count);
+            }
+            else if (config[0] == 'f') {
+                config++;
+                get_double(config, &cfg.config_fade_time);
+            }
+            else if (config[0] == 'd') {
+                config++;
+                get_double(config, &cfg.config_fade_delay);
+            }
+            else if (config[0] == ' ') {
+                continue; /* likely a comment, find next # */
+            }
             else {
-                VGM_LOG("TXTP: unknown command\n");
-                goto fail;
+                //;VGM_LOG("TXTP: unknown command '%c'\n", config[0]);
+                break; /* also possibly a comment too */
             }
 
         } while (config != NULL);
@@ -327,6 +380,8 @@ static int add_filename(txtp_header * txtp, char *filename) {
 
     /* add filesnames */
     for (i = range_start; i < range_end; i++){
+        txtp_entry *current;
+
         /* resize in steps if not enough */
         if (txtp->entry_count+1 > txtp->entry_max) {
             txtp_entry *temp_entry;
@@ -338,20 +393,29 @@ static int add_filename(txtp_header * txtp, char *filename) {
         }
 
         /* new entry */
-        memset(&txtp->entry[txtp->entry_count],0, sizeof(txtp_entry));
+        current = &txtp->entry[txtp->entry_count];
+        memset(current,0, sizeof(txtp_entry));
+        strcpy(current->filename, filename);
 
-        strcpy(txtp->entry[txtp->entry_count].filename, filename);
+        current->subsong = (i+1);
 
-        txtp->entry[txtp->entry_count].channel_mask = channel_mask;
+        current->channel_mask = cfg.channel_mask;
 
-        if (channel_mappings_on) {
+        if (cfg.channel_mappings_on) {
             int ch;
-            txtp->entry[txtp->entry_count].channel_mappings_on = channel_mappings_on;
+            current->channel_mappings_on = cfg.channel_mappings_on;
             for (ch = 0; ch < 32; ch++) {
-                txtp->entry[txtp->entry_count].channel_mappings[ch] = channel_mappings[ch];
+                current->channel_mappings[ch] = cfg.channel_mappings[ch];
             }
         }
-        txtp->entry[txtp->entry_count].subsong = (i+1);
+
+        current->config_loop_count = cfg.config_loop_count;
+        current->config_fade_time = cfg.config_fade_time;
+        current->config_fade_delay = cfg.config_fade_delay;
+        current->config_ignore_loop = cfg.config_ignore_loop;
+        current->config_force_loop = cfg.config_force_loop;
+        current->config_ignore_fade = cfg.config_ignore_fade;
+
         txtp->entry_count++;
     }
 

@@ -762,34 +762,42 @@ typedef struct {
 /* main vgmstream info */
 typedef struct {
     /* basics */
-    int32_t num_samples;    /* the actual number of samples in this stream */
-    int32_t sample_rate;    /* sample rate in Hz */
-    int channels;           /* number of channels */
-    coding_t coding_type;   /* type of encoding */
-    layout_t layout_type;   /* type of layout for data */
-    meta_t meta_type;       /* how we know the metadata */
-
-    /* subsongs */
-    int num_streams;            /* for multi-stream formats (0=not set/one stream, 1=one stream) */
-    int stream_index;           /* selected stream (also 1-based) */
-    char stream_name[STREAM_NAME_SIZE]; /* name of the current stream (info), if the file stores it and it's filled */
-    size_t stream_size;         /* info to properly calculate bitrate in case of subsongs */
-    /* config */
-    int allow_dual_stereo;      /* search for dual stereo (file_L.ext + file_R.ext = single stereo file) */
-    uint32_t channel_mask;      /* to silence crossfading subsongs/layers */
-    int channel_mappings_on;    /* channel mappings are active */
-    int channel_mappings[32];   /* swap channel "i" with "[i]" */
-    double config_loops;        /* appropriate number of loops (config request for players) */
-    int config_nofade;          /* continue normally after target loop count (config request for players) */
+    int32_t num_samples;            /* the actual max number of samples */
+    int32_t sample_rate;            /* sample rate in Hz */
+    int channels;                   /* number of channels */
+    coding_t coding_type;           /* type of encoding */
+    layout_t layout_type;           /* type of layout */
+    meta_t meta_type;               /* type of metadata */
 
     /* looping */
-    int loop_flag;              /* is this stream looped? */
-    int32_t loop_start_sample;  /* first sample of the loop (included in the loop) */
-    int32_t loop_end_sample;    /* last sample of the loop (not included in the loop) */
+    int loop_flag;                  /* is this stream looped? */
+    int32_t loop_start_sample;      /* first sample of the loop (included in the loop) */
+    int32_t loop_end_sample;        /* last sample of the loop (not included in the loop) */
 
     /* layouts/block */
-    size_t interleave_block_size;       /* interleave, or block/frame size (depending on the codec) */
-    size_t interleave_last_block_size;  /* smaller interleave for last block */
+    size_t interleave_block_size;   /* interleave, or block/frame size (depending on the codec) */
+    size_t interleave_last_block_size; /* smaller interleave for last block */
+
+    /* subsongs */
+    int num_streams;                /* for multi-stream formats (0=not set/one stream, 1=one stream) */
+    int stream_index;               /* selected subsong (also 1-based) */
+    size_t stream_size;             /* info to properly calculate bitrate in case of subsongs */
+    char stream_name[STREAM_NAME_SIZE]; /* name of the current stream (info), if the file stores it and it's filled */
+
+    /* config */
+    int allow_dual_stereo;          /* search for dual stereo (file_L.ext + file_R.ext = single stereo file) */
+    uint32_t channel_mask;          /* to silence crossfading subsongs/layers */
+    int channel_mappings_on;        /* channel mappings are active */
+    int channel_mappings[32];       /* swap channel "i" with "[i]" */
+    /* config requests, players must read and honor these values */
+    /* (ideally internally would work as a player, but for now player must do it manually) */
+    double config_loop_count;
+    double config_fade_time;
+    double config_fade_delay;
+    int config_ignore_loop;
+    int config_force_loop;
+    int config_ignore_fade;
+
 
     /* channel state */
     VGMSTREAMCHANNEL * ch;          /* pointer to array of channels */
@@ -814,13 +822,12 @@ typedef struct {
 
     /* loop state */
     int hit_loop;                   /* have we seen the loop yet? */
-    /* counters for "loop + play end of the stream instead of fading" (not used/needed otherwise) */
-    int loop_count;                 /* number of complete loops (1=looped once) */
-    int loop_target;                /* max loops before continuing with the stream end */
+    int loop_count;                 /* counter of complete loops (1=looped once) */
+    int loop_target;                /* max loops before continuing with the stream end (loops forever if not set) */
 
     /* decoder specific */
     int codec_endian;               /* little/big endian marker; name is left vague but usually means big endian */
-    int codec_config;               /* flags for codecs or layouts with minor variations; meaning is up to the user */
+    int codec_config;               /* flags for codecs or layouts with minor variations; meaning is up to the codec */
 
     int32_t ws_output_size;         /* WS ADPCM: output bytes for this block */
 
@@ -1286,12 +1293,16 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length);
 /* Return the average bitrate in bps of all unique files contained within this stream. */
 int get_vgmstream_average_bitrate(VGMSTREAM * vgmstream);
 
-/* List supported formats and return elements in the list, for plugins that need to know. */
+/* List supported formats and return elements in the list, for plugins that need to know.
+ * The list disables some common formats that may conflict (.wav, .ogg, etc). */
 const char ** vgmstream_get_formats(size_t * size);
 
 /* Force enable/disable internal looping. Should be done before playing anything,
  * and not all codecs support arbitrary loop values ATM. */
 void vgmstream_force_loop(VGMSTREAM* vgmstream, int loop_flag, int loop_start_sample, int loop_end_sample);
+
+/* Set number of max loops to do, then play up to stream end (for songs with proper endings) */
+void vgmstream_set_loop_target(VGMSTREAM* vgmstream, int loop_target);
 
 /* -------------------------------------------------------------------------*/
 /* vgmstream "private" API                                                  */
