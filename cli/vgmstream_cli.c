@@ -74,8 +74,8 @@ typedef struct {
     int only_stereo;
     int stream_index;
     double loop_count;
-    double fade_seconds;
-    double fade_delay_seconds;
+    double fade_time;
+    double fade_delay;
     int ignore_fade;
 
     /* not quite config but eh */
@@ -90,7 +90,7 @@ static int parse_config(cli_config *cfg, int argc, char ** argv) {
     /* non-zero defaults */
     cfg->only_stereo = -1;
     cfg->loop_count = 2.0;
-    cfg->fade_seconds = 10.0;
+    cfg->fade_time = 10.0;
 
     /* don't let getopt print errors to stdout automatically */
     opterr = 0;
@@ -105,10 +105,10 @@ static int parse_config(cli_config *cfg, int argc, char ** argv) {
                 cfg->loop_count = atof(optarg);
                 break;
             case 'f':
-                cfg->fade_seconds = atof(optarg);
+                cfg->fade_time = atof(optarg);
                 break;
             case 'd':
-                cfg->fade_delay_seconds = atof(optarg);
+                cfg->fade_delay = atof(optarg);
                 break;
             case 'i':
                 cfg->ignore_loop = 1;
@@ -254,6 +254,26 @@ static void print_info(VGMSTREAM * vgmstream, cli_config *cfg) {
 
 static void apply_config(VGMSTREAM * vgmstream, cli_config *cfg) {
 
+    /* honor suggested config, if any (note that defined order matters) */
+    if (vgmstream->config_loop_count) {
+        cfg->loop_count = vgmstream->config_loop_count;
+    }
+    if (vgmstream->config_fade_delay) {
+        cfg->fade_delay = vgmstream->config_fade_delay;
+    }
+    if (vgmstream->config_fade_delay) {
+        cfg->fade_time = vgmstream->config_fade_time;
+    }
+    if (vgmstream->config_force_loop) {
+        cfg->really_force_loop = 1;
+    }
+    if (vgmstream->config_ignore_loop) {
+        cfg->ignore_loop = 1;
+    }
+    if (vgmstream->config_ignore_fade) {
+        cfg->ignore_fade = 1;
+    }
+
     /* change loop stuff, in no particular order */
     if (cfg->force_loop && !vgmstream->loop_flag) {
         vgmstream_force_loop(vgmstream, 1, 0,vgmstream->num_samples);
@@ -265,18 +285,16 @@ static void apply_config(VGMSTREAM * vgmstream, cli_config *cfg) {
         vgmstream_force_loop(vgmstream, 0, 0,0);
     }
 
+    /* loop N times, but also play stream end instead of fading out */
+    if (cfg->loop_count > 0 && cfg->ignore_fade) {
+        vgmstream_set_loop_target(vgmstream, (int)cfg->loop_count);
+    }
+
     /* write loops in the wav, but don't actually loop it */
     if (cfg->write_lwav) {
         cfg->lwav_loop_start = vgmstream->loop_start_sample;
         cfg->lwav_loop_end = vgmstream->loop_end_sample;
         vgmstream_force_loop(vgmstream, 0, 0,0);
-    }
-
-    /* loop N times, but also play stream end instead of fading out */
-    if (cfg->loop_count > 0 && cfg->ignore_fade) {
-        //todo use function
-        vgmstream->loop_target = (int)cfg->loop_count; /* round loop count as it's meaningless otherwise */
-        cfg->fade_seconds = -1.0; /* hack/signal for get_vgmstream_play_samples */
     }
 }
 
@@ -386,8 +404,8 @@ int main(int argc, char ** argv) {
 
 
     /* get final play config */
-    len_samples = get_vgmstream_play_samples(cfg.loop_count,cfg.fade_seconds,cfg.fade_delay_seconds,vgmstream);
-    fade_samples = (int32_t)(cfg.fade_seconds < 0 ? 0 : cfg.fade_seconds * vgmstream->sample_rate);
+    len_samples = get_vgmstream_play_samples(cfg.loop_count,cfg.fade_time,cfg.fade_delay,vgmstream);
+    fade_samples = (int32_t)(cfg.fade_time < 0 ? 0 : cfg.fade_time * vgmstream->sample_rate);
 
     if (!cfg.play_sdtout && !cfg.print_adxencd && !cfg.print_oggenc && !cfg.print_batchvar) {
         printf("samples to play: %d (%.4lf seconds)\n", len_samples, (double)len_samples / vgmstream->sample_rate);
