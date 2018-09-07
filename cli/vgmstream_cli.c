@@ -44,7 +44,6 @@ static void usage(const char * name) {
             "    -s N: select subsong N, if the format supports multiple subsongs\n"
             "    -m: print metadata only, don't decode\n"
             "    -L: append a smpl chunk and create a looping wav\n"
-            "    -r outfile2.wav: output a second time after resetting (for testing)\n"
             "    -2 N: only output the Nth (first is 0) set of stereo channels\n"
             "    -p: output to stdout (for piping into another program)\n"
             "    -P: output to stdout even if stdout is a terminal\n"
@@ -52,6 +51,7 @@ static void usage(const char * name) {
             "    -x: decode and print adxencd command line to encode as ADX\n"
             "    -g: decode and print oggenc command line to encode as OGG\n"
             "    -b: decode and print batch variable commands\n"
+            "    -r: output a second file after resetting (for testing)\n"
             , name);
 }
 
@@ -59,7 +59,6 @@ static void usage(const char * name) {
 typedef struct {
     char * infilename;
     char * outfilename;
-    char * outfilename_reset;
     int ignore_loop;
     int force_loop;
     int really_force_loop;
@@ -70,6 +69,7 @@ typedef struct {
     int print_adxencd;
     int print_oggenc;
     int print_batchvar;
+    int test_reset;
     int write_lwav;
     int only_stereo;
     int stream_index;
@@ -96,7 +96,7 @@ static int parse_config(cli_config *cfg, int argc, char ** argv) {
     opterr = 0;
 
     /* read config */
-    while ((opt = getopt(argc, argv, "o:l:f:d:ipPcmxeLEFr:gb2:s:")) != -1) {
+    while ((opt = getopt(argc, argv, "o:l:f:d:ipPcmxeLEFrgb2:s:")) != -1) {
         switch (opt) {
             case 'o':
                 cfg->outfilename = optarg;
@@ -145,7 +145,7 @@ static int parse_config(cli_config *cfg, int argc, char ** argv) {
                 cfg->write_lwav = 1;
                 break;
             case 'r':
-                cfg->outfilename_reset = optarg;
+                cfg->test_reset = 1;
                 break;
             case '2':
                 cfg->only_stereo = atoi(optarg);
@@ -475,10 +475,14 @@ int main(int argc, char ** argv) {
 
 
     /* try again with (for testing reset_vgmstream, simulates a seek to 0) */
-    if (cfg.outfilename_reset) {
-        outfile = fopen(cfg.outfilename_reset,"wb");
+    if (cfg.test_reset) {
+        char outfilename_temp[PATH_LIMIT];
+        strcpy(outfilename_temp, cfg.outfilename);
+        strcat(outfilename_temp, ".reset.wav");
+
+        outfile = fopen(outfilename_temp,"wb");
         if (!outfile) {
-            fprintf(stderr,"failed to open %s for output\n",cfg.outfilename_reset);
+            fprintf(stderr,"failed to open %s for output\n",outfilename_temp);
             goto fail;
         }
 
