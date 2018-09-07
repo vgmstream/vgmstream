@@ -48,18 +48,32 @@ DWORD WINAPI __stdcall decode(void *arg);
 #define EXT_BUFFER_SIZE 200
 char working_extension_list[EXTENSION_LIST_SIZE] = {0};
 
+/* defaults */
 typedef struct {
     double fade_seconds;
     double fade_delay_seconds;
     double loop_count;
-    int thread_priority;
-    int loop_forever;
     int ignore_loop;
+    int loop_forever;
+    int thread_priority;
     int disable_subsongs;
     int downmix_channels;
-} winamp_config;
+} winamp_settings;
 
-winamp_config config;
+/* current song settings */
+typedef struct {
+    int song_play_forever;
+    double song_loop_count;
+    double song_fade_time;
+    double song_fade_delay;
+    int song_ignore_loop;
+    int song_really_force_loop;
+    int song_ignore_fade;
+} winamp_song_config;
+
+winamp_settings settings;
+winamp_song_config config;
+
 
 /* plugin state */
 VGMSTREAM * vgmstream = NULL;
@@ -74,6 +88,7 @@ int decode_pos_samples = 0;
 int stream_length_samples = 0;
 int fade_samples = 0;
 int output_channels = 0;
+
 
 in_char lastfn[PATH_LIMIT] = {0}; /* name of the currently playing file */
 
@@ -389,58 +404,58 @@ static void load_config() {
 
     GetINIFileName(iniFile);
 
-    config.thread_priority = GetPrivateProfileInt(CONFIG_APP_NAME,INI_ENTRY_THREAD_PRIORITY,DEFAULT_THREAD_PRIORITY,iniFile);
-    if (config.thread_priority < 0 || config.thread_priority > 6) {
+    settings.thread_priority = GetPrivateProfileInt(CONFIG_APP_NAME,INI_ENTRY_THREAD_PRIORITY,DEFAULT_THREAD_PRIORITY,iniFile);
+    if (settings.thread_priority < 0 || settings.thread_priority > 6) {
         cfg_sprintf(buf, TEXT("%d"),DEFAULT_THREAD_PRIORITY);
         WritePrivateProfileString(CONFIG_APP_NAME,INI_ENTRY_THREAD_PRIORITY,buf,iniFile);
-        config.thread_priority = DEFAULT_THREAD_PRIORITY;
+        settings.thread_priority = DEFAULT_THREAD_PRIORITY;
     }
 
     GetPrivateProfileString(CONFIG_APP_NAME,INI_ENTRY_FADE_SECONDS,DEFAULT_FADE_SECONDS,buf,buf_size,iniFile);
-    res = cfg_sscanf(buf, TEXT("%lf%n"),&config.fade_seconds,&consumed);
-    if (res < 1 || consumed != cfg_strlen(buf) || config.fade_seconds < 0) {
+    res = cfg_sscanf(buf, TEXT("%lf%n"),&settings.fade_seconds,&consumed);
+    if (res < 1 || consumed != cfg_strlen(buf) || settings.fade_seconds < 0) {
         WritePrivateProfileString(CONFIG_APP_NAME,INI_ENTRY_FADE_SECONDS,DEFAULT_FADE_SECONDS,iniFile);
-        cfg_sscanf(DEFAULT_FADE_SECONDS, TEXT("%lf"),&config.fade_seconds);
+        cfg_sscanf(DEFAULT_FADE_SECONDS, TEXT("%lf"),&settings.fade_seconds);
     }
 
     GetPrivateProfileString(CONFIG_APP_NAME,INI_ENTRY_FADE_DELAY_SECONDS,DEFAULT_FADE_DELAY_SECONDS,buf,buf_size,iniFile);
-    res = cfg_sscanf(buf, TEXT("%lf%n"),&config.fade_delay_seconds,&consumed);
+    res = cfg_sscanf(buf, TEXT("%lf%n"),&settings.fade_delay_seconds,&consumed);
     if (res < 1 || consumed != cfg_strlen(buf)) {
         WritePrivateProfileString(CONFIG_APP_NAME,INI_ENTRY_FADE_DELAY_SECONDS,DEFAULT_FADE_DELAY_SECONDS,iniFile);
-        cfg_sscanf(DEFAULT_FADE_DELAY_SECONDS, TEXT("%lf"),&config.fade_delay_seconds);
+        cfg_sscanf(DEFAULT_FADE_DELAY_SECONDS, TEXT("%lf"),&settings.fade_delay_seconds);
     }
 
     GetPrivateProfileString(CONFIG_APP_NAME,INI_ENTRY_LOOP_COUNT,DEFAULT_LOOP_COUNT,buf,buf_size,iniFile);
-    res = cfg_sscanf(buf, TEXT("%lf%n"),&config.loop_count,&consumed);
-    if (res < 1 || consumed != cfg_strlen(buf) || config.loop_count < 0) {
+    res = cfg_sscanf(buf, TEXT("%lf%n"),&settings.loop_count,&consumed);
+    if (res < 1 || consumed != cfg_strlen(buf) || settings.loop_count < 0) {
         WritePrivateProfileString(CONFIG_APP_NAME,INI_ENTRY_LOOP_COUNT,DEFAULT_LOOP_COUNT,iniFile);
-        cfg_sscanf(DEFAULT_LOOP_COUNT, TEXT("%lf"),&config.loop_count);
+        cfg_sscanf(DEFAULT_LOOP_COUNT, TEXT("%lf"),&settings.loop_count);
     }
 
-    config.loop_forever = GetPrivateProfileInt(CONFIG_APP_NAME,INI_ENTRY_LOOP_FOREVER,DEFAULT_LOOP_FOREVER,iniFile);
-    config.ignore_loop = GetPrivateProfileInt(CONFIG_APP_NAME,INI_ENTRY_IGNORE_LOOP,DEFAULT_IGNORE_LOOP,iniFile);
-    if (config.loop_forever && config.ignore_loop) {
+    settings.loop_forever = GetPrivateProfileInt(CONFIG_APP_NAME,INI_ENTRY_LOOP_FOREVER,DEFAULT_LOOP_FOREVER,iniFile);
+    settings.ignore_loop = GetPrivateProfileInt(CONFIG_APP_NAME,INI_ENTRY_IGNORE_LOOP,DEFAULT_IGNORE_LOOP,iniFile);
+    if (settings.loop_forever && settings.ignore_loop) {
         cfg_sprintf(buf, TEXT("%d"),DEFAULT_LOOP_FOREVER);
         WritePrivateProfileString(CONFIG_APP_NAME,INI_ENTRY_LOOP_FOREVER,buf,iniFile);
-        config.loop_forever = DEFAULT_LOOP_FOREVER;
+        settings.loop_forever = DEFAULT_LOOP_FOREVER;
 
         cfg_sprintf(buf, TEXT("%d"),DEFAULT_IGNORE_LOOP);
         WritePrivateProfileString(CONFIG_APP_NAME,INI_ENTRY_IGNORE_LOOP,buf,iniFile);
-        config.ignore_loop = DEFAULT_IGNORE_LOOP;
+        settings.ignore_loop = DEFAULT_IGNORE_LOOP;
     }
 
-    config.disable_subsongs = GetPrivateProfileInt(CONFIG_APP_NAME,INI_ENTRY_DISABLE_SUBSONGS,DEFAULT_DISABLE_SUBSONGS,iniFile);
-    //if (config.disable_subsongs < 0) { //unneeded?
+    settings.disable_subsongs = GetPrivateProfileInt(CONFIG_APP_NAME,INI_ENTRY_DISABLE_SUBSONGS,DEFAULT_DISABLE_SUBSONGS,iniFile);
+    //if (settings.disable_subsongs < 0) { //unneeded?
     //    sprintf(buf, TEXT("%d"),DEFAULT_DISABLE_SUBSONGS);
     //    WritePrivateProfileString(CONFIG_APP_NAME,INI_ENTRY_DISABLE_SUBSONGS,buf,iniFile);
-    //    config.disable_subsongs = DEFAULT_DISABLE_SUBSONGS;
+    //    settings.disable_subsongs = DEFAULT_DISABLE_SUBSONGS;
     //}
 
-    config.downmix_channels = GetPrivateProfileInt(CONFIG_APP_NAME,INI_ENTRY_DOWNMIX_CHANNELS,DEFAULT_DOWNMIX_CHANNELS,iniFile);
-    if (config.downmix_channels < 0) {
+    settings.downmix_channels = GetPrivateProfileInt(CONFIG_APP_NAME,INI_ENTRY_DOWNMIX_CHANNELS,DEFAULT_DOWNMIX_CHANNELS,iniFile);
+    if (settings.downmix_channels < 0) {
         cfg_sprintf(buf, TEXT("%d"),DEFAULT_DOWNMIX_CHANNELS);
         WritePrivateProfileString(CONFIG_APP_NAME,INI_ENTRY_DOWNMIX_CHANNELS,buf,iniFile);
-        config.downmix_channels = DEFAULT_DOWNMIX_CHANNELS;
+        settings.downmix_channels = DEFAULT_DOWNMIX_CHANNELS;
     }
 
 }
@@ -467,30 +482,30 @@ INT_PTR CALLBACK configDlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
                     (LPARAM) MAKELONG(1, 7));       /* min. & max. positions */
             SendMessage(hSlider, TBM_SETPOS,
                     (WPARAM) TRUE,                  /* redraw flag */
-                    (LPARAM) config.thread_priority+1);
-            mypri = config.thread_priority;
-            SetDlgItemText(hDlg,IDC_THREAD_PRIORITY_TEXT,priority_strings[config.thread_priority]);
+                    (LPARAM) settings.thread_priority+1);
+            mypri = settings.thread_priority;
+            SetDlgItemText(hDlg,IDC_THREAD_PRIORITY_TEXT,priority_strings[settings.thread_priority]);
 
-            cfg_sprintf(buf, TEXT("%.2lf"),config.fade_seconds);
+            cfg_sprintf(buf, TEXT("%.2lf"),settings.fade_seconds);
             SetDlgItemText(hDlg,IDC_FADE_SECONDS,buf);
 
-            cfg_sprintf(buf, TEXT("%.2lf"),config.fade_delay_seconds);
+            cfg_sprintf(buf, TEXT("%.2lf"),settings.fade_delay_seconds);
             SetDlgItemText(hDlg,IDC_FADE_DELAY_SECONDS,buf);
 
-            cfg_sprintf(buf, TEXT("%.2lf"),config.loop_count);
+            cfg_sprintf(buf, TEXT("%.2lf"),settings.loop_count);
             SetDlgItemText(hDlg,IDC_LOOP_COUNT,buf);
 
-            if (config.loop_forever)
+            if (settings.loop_forever)
                 CheckDlgButton(hDlg,IDC_LOOP_FOREVER,BST_CHECKED);
-            else if (config.ignore_loop)
+            else if (settings.ignore_loop)
                 CheckDlgButton(hDlg,IDC_IGNORE_LOOP,BST_CHECKED);
             else
                 CheckDlgButton(hDlg,IDC_LOOP_NORMALLY,BST_CHECKED);
 
-            if (config.disable_subsongs)
+            if (settings.disable_subsongs)
                 CheckDlgButton(hDlg,IDC_DISABLE_SUBSONGS,BST_CHECKED);
 
-            cfg_sprintf(buf, TEXT("%d"),config.downmix_channels);
+            cfg_sprintf(buf, TEXT("%d"),settings.downmix_channels);
             SetDlgItemText(hDlg,IDC_DOWNMIX_CHANNELS,buf);
 
             break;
@@ -548,40 +563,40 @@ INT_PTR CALLBACK configDlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 
                         GetINIFileName(iniFile);
 
-                        config.thread_priority = mypri;
-                        cfg_sprintf(buf, TEXT("%d"),config.thread_priority);
+                        settings.thread_priority = mypri;
+                        cfg_sprintf(buf, TEXT("%d"),settings.thread_priority);
                         WritePrivateProfileString(CONFIG_APP_NAME,INI_ENTRY_THREAD_PRIORITY,buf,iniFile);
 
-                        config.fade_seconds = temp_fade_seconds;
-                        cfg_sprintf(buf, TEXT("%.2lf"),config.fade_seconds);
+                        settings.fade_seconds = temp_fade_seconds;
+                        cfg_sprintf(buf, TEXT("%.2lf"),settings.fade_seconds);
                         WritePrivateProfileString(CONFIG_APP_NAME,INI_ENTRY_FADE_SECONDS,buf,iniFile);
 
-                        config.fade_delay_seconds = temp_fade_delay_seconds;
-                        cfg_sprintf(buf, TEXT("%.2lf"),config.fade_delay_seconds);
+                        settings.fade_delay_seconds = temp_fade_delay_seconds;
+                        cfg_sprintf(buf, TEXT("%.2lf"),settings.fade_delay_seconds);
                         WritePrivateProfileString(CONFIG_APP_NAME,INI_ENTRY_FADE_DELAY_SECONDS,buf,iniFile);
 
-                        config.loop_count = temp_loop_count;
-                        cfg_sprintf(buf, TEXT("%.2lf"),config.loop_count);
+                        settings.loop_count = temp_loop_count;
+                        cfg_sprintf(buf, TEXT("%.2lf"),settings.loop_count);
                         WritePrivateProfileString(CONFIG_APP_NAME,INI_ENTRY_LOOP_COUNT,buf,iniFile);
 
-                        config.loop_forever = (IsDlgButtonChecked(hDlg,IDC_LOOP_FOREVER) == BST_CHECKED);
-                        cfg_sprintf(buf, TEXT("%d"),config.loop_forever);
+                        settings.loop_forever = (IsDlgButtonChecked(hDlg,IDC_LOOP_FOREVER) == BST_CHECKED);
+                        cfg_sprintf(buf, TEXT("%d"),settings.loop_forever);
                         WritePrivateProfileString(CONFIG_APP_NAME,INI_ENTRY_LOOP_FOREVER,buf,iniFile);
 
-                        config.ignore_loop = (IsDlgButtonChecked(hDlg,IDC_IGNORE_LOOP) == BST_CHECKED);
-                        cfg_sprintf(buf, TEXT("%d"),config.ignore_loop);
+                        settings.ignore_loop = (IsDlgButtonChecked(hDlg,IDC_IGNORE_LOOP) == BST_CHECKED);
+                        cfg_sprintf(buf, TEXT("%d"),settings.ignore_loop);
                         WritePrivateProfileString(CONFIG_APP_NAME,INI_ENTRY_IGNORE_LOOP,buf,iniFile);
 
-                        config.disable_subsongs = (IsDlgButtonChecked(hDlg,IDC_DISABLE_SUBSONGS) == BST_CHECKED);
-                        cfg_sprintf(buf, TEXT("%d"),config.disable_subsongs);
+                        settings.disable_subsongs = (IsDlgButtonChecked(hDlg,IDC_DISABLE_SUBSONGS) == BST_CHECKED);
+                        cfg_sprintf(buf, TEXT("%d"),settings.disable_subsongs);
                         WritePrivateProfileString(CONFIG_APP_NAME,INI_ENTRY_DISABLE_SUBSONGS,buf,iniFile);
 
-                        config.loop_count = temp_loop_count;
-                        cfg_sprintf(buf, TEXT("%.2lf"),config.loop_count);
+                        settings.loop_count = temp_loop_count;
+                        cfg_sprintf(buf, TEXT("%.2lf"),settings.loop_count);
                         WritePrivateProfileString(CONFIG_APP_NAME,INI_ENTRY_LOOP_COUNT,buf,iniFile);
 
-                        config.downmix_channels = temp_downmix_channels;
-                        cfg_sprintf(buf, TEXT("%d"),config.downmix_channels);
+                        settings.downmix_channels = temp_downmix_channels;
+                        cfg_sprintf(buf, TEXT("%d"),settings.downmix_channels);
                         WritePrivateProfileString(CONFIG_APP_NAME,INI_ENTRY_DOWNMIX_CHANNELS,buf,iniFile);
                     }
 
@@ -657,7 +672,7 @@ static int split_subsongs(const in_char * filename, int stream_index, VGMSTREAM 
     HWND hPlaylistWindow;
 
 
-    if (config.disable_subsongs || vgmstream->num_streams <= 1)
+    if (settings.disable_subsongs || vgmstream->num_streams <= 1)
         return 0; /* don't split if no subsongs */
     if (stream_index > 0 || vgmstream->stream_index > 0)
         return 0; /* no split if already playing subsong */
@@ -828,6 +843,60 @@ static void get_title(in_char * dst, int dst_size, const in_char * fn, VGMSTREAM
     }
 }
 
+static void set_config_defaults(winamp_song_config *current) {
+    current->song_play_forever = settings.loop_forever;
+    current->song_loop_count = settings.loop_count;
+    current->song_fade_time = settings.fade_seconds;
+    current->song_fade_delay = settings.fade_delay_seconds;
+    current->song_ignore_loop = settings.ignore_loop;
+    current->song_really_force_loop = 0;
+    current->song_ignore_fade = 0;
+}
+
+static void apply_config(VGMSTREAM * vgmstream, winamp_song_config *current) {
+
+    /* honor suggested config, if any (defined order matters)
+     * note that ignore_fade and play_forever should take priority */
+    if (vgmstream->config_loop_count) {
+        current->song_loop_count = vgmstream->config_loop_count;
+    }
+    if (vgmstream->config_fade_delay) {
+        current->song_fade_delay = vgmstream->config_fade_delay;
+    }
+    if (vgmstream->config_fade_time) {
+        current->song_fade_time = vgmstream->config_fade_time;
+    }
+    if (vgmstream->config_force_loop) {
+        current->song_really_force_loop = 1;
+    }
+    if (vgmstream->config_ignore_loop) {
+        current->song_ignore_loop = 1;
+    }
+    if (vgmstream->config_ignore_fade) {
+        current->song_ignore_fade = 1;
+    }
+
+    /* remove non-compatible options */
+    if (current->song_play_forever) {
+        current->song_ignore_fade = 0;
+        current->song_ignore_loop = 0;
+    }
+
+    /* change loop stuff, in no particular order */
+    if (current->song_really_force_loop) {
+        vgmstream_force_loop(vgmstream, 1, 0,vgmstream->num_samples);
+    }
+    if (current->song_ignore_loop) {
+        vgmstream_force_loop(vgmstream, 0, 0,0);
+        current->song_fade_time = 0;
+    }
+
+    /* loop N times, but also play stream end instead of fading out */
+    if (current->song_loop_count > 0 && current->song_ignore_fade) {
+        vgmstream_set_loop_target(vgmstream, (int)current->song_loop_count);
+    }
+}
+
 
 /* ***************************************** */
 /* IN_VGMSTREAM                              */
@@ -862,7 +931,7 @@ void winamp_Init() {
 
     /* XMPlay with in_vgmstream doesn't support most IPC_x messages so no playlist manipulation */
     if (is_xmplay()) {
-        config.disable_subsongs = 1;
+        settings.disable_subsongs = 1;
     }
 
     /* dynamically make a list of supported extensions */
@@ -900,6 +969,7 @@ int winamp_IsOurFile(const in_char *fn) {
     return 0;
 }
 
+
 /* request to start playing a file */
 int winamp_Play(const in_char *fn) {
     int max_latency;
@@ -926,13 +996,12 @@ int winamp_Play(const in_char *fn) {
     }
 
     /* config */
-    if (config.ignore_loop) {
-        vgmstream_force_loop(vgmstream, 0, 0,0);
-    }
+    set_config_defaults(&config);
+    apply_config(vgmstream, &config);
 
     output_channels = vgmstream->channels;
-    if (config.downmix_channels > 0 && config.downmix_channels < vgmstream->channels)
-        output_channels = config.downmix_channels;
+    if (settings.downmix_channels > 0 && settings.downmix_channels < vgmstream->channels)
+        output_channels = settings.downmix_channels;
 
 
     /* save original name */
@@ -959,8 +1028,8 @@ int winamp_Play(const in_char *fn) {
     decode_pos_ms = 0;
     decode_pos_samples = 0;
     paused = 0;
-    stream_length_samples = get_vgmstream_play_samples(config.loop_count,config.fade_seconds,config.fade_delay_seconds,vgmstream);
-    fade_samples = (int)(config.fade_seconds * vgmstream->sample_rate);
+    stream_length_samples = get_vgmstream_play_samples(config.song_loop_count,config.song_fade_time,config.song_fade_delay,vgmstream);
+    fade_samples = (int)(config.song_fade_time * vgmstream->sample_rate);
 
     /* start */
     decode_thread_handle = CreateThread(
@@ -971,7 +1040,7 @@ int winamp_Play(const in_char *fn) {
             0,      /* run thread immediately */
             NULL);  /* don't keep track of the thread id */
 
-    SetThreadPriority(decode_thread_handle,priority_values[config.thread_priority]); //todo don't use priority values directly?
+    SetThreadPriority(decode_thread_handle,priority_values[settings.thread_priority]); //todo don't use priority values directly?
 
     return 0; /* success */
 }
@@ -1057,6 +1126,7 @@ int winamp_InfoBox(const in_char *fn, HWND hwnd) {
     else {
         /* some other file in playlist given by filename */
         VGMSTREAM * infostream = NULL;
+        winamp_song_config infoconfig = {0};
         in_char filename[PATH_LIMIT];
         int stream_index = 0;
 
@@ -1065,12 +1135,10 @@ int winamp_InfoBox(const in_char *fn, HWND hwnd) {
         parse_fn_int(fn, wa_L("$s"), &stream_index);
 
         infostream = init_vgmstream_winamp(filename, stream_index);
-        if (!infostream)
-            return 0;
+        if (!infostream) return 0;
 
-        if (config.ignore_loop) {
-            vgmstream_force_loop(infostream, 0, 0,0);
-        }
+        set_config_defaults(&infoconfig);
+        apply_config(infostream, &infoconfig);
 
         describe_vgmstream(infostream,description,description_size);
 
@@ -1109,6 +1177,7 @@ void winamp_GetFileInfo(const in_char *fn, in_char *title, int *length_in_ms) {
     else {
         /* some other file in playlist given by filename */
         VGMSTREAM * infostream = NULL;
+        winamp_song_config infoconfig = {0};
         in_char filename[PATH_LIMIT];
         int stream_index = 0;
 
@@ -1119,9 +1188,8 @@ void winamp_GetFileInfo(const in_char *fn, in_char *title, int *length_in_ms) {
         infostream = init_vgmstream_winamp(filename, stream_index);
         if (!infostream) return;
 
-        if (config.ignore_loop) {
-            vgmstream_force_loop(infostream, 0, 0,0);
-        }
+        set_config_defaults(&infoconfig);
+        apply_config(infostream, &infoconfig);
 
         if (title) {
             get_title(title,GETFILEINFO_TITLE_LENGTH, fn, infostream);
@@ -1130,7 +1198,7 @@ void winamp_GetFileInfo(const in_char *fn, in_char *title, int *length_in_ms) {
         if (length_in_ms) {
             *length_in_ms = -1000;
             if (infostream) {
-                int num_samples = get_vgmstream_play_samples(config.loop_count,config.fade_seconds,config.fade_delay_seconds,infostream);
+                int num_samples = get_vgmstream_play_samples(infoconfig.song_loop_count,infoconfig.song_fade_time,infoconfig.song_fade_delay,infostream);
                 *length_in_ms = num_samples * 1000LL /infostream->sample_rate;
             }
         }
@@ -1147,14 +1215,14 @@ void winamp_EQSet(int on, char data[10], int preamp) {
 /* the decode thread */
 DWORD WINAPI __stdcall decode(void *arg) {
     int max_buffer_samples = sizeof(sample_buffer) / sizeof(sample_buffer[0]) / 2 / vgmstream->channels;
-    int max_samples = get_vgmstream_play_samples(config.loop_count,config.fade_seconds,config.fade_delay_seconds,vgmstream);
+    int max_samples = stream_length_samples;
 
     while (!decode_abort) {
         int samples_to_do;
         int output_bytes;
 
         if (decode_pos_samples + max_buffer_samples > stream_length_samples
-                && (!config.loop_forever || !vgmstream->loop_flag))
+                && (!settings.loop_forever || !vgmstream->loop_flag))
             samples_to_do = stream_length_samples - decode_pos_samples;
         else
             samples_to_do = max_buffer_samples;
@@ -1164,10 +1232,7 @@ DWORD WINAPI __stdcall decode(void *arg) {
             /* reset if we need to seek backwards */
             if (seek_needed_samples < decode_pos_samples) {
                 reset_vgmstream(vgmstream);
-
-                if (config.ignore_loop) {
-                    vgmstream_force_loop(vgmstream, 0, 0,0);
-                }
+                apply_config(vgmstream, &config); /* config is undone by reset */
 
                 decode_pos_samples = 0;
                 decode_pos_ms = 0;
@@ -1216,7 +1281,7 @@ DWORD WINAPI __stdcall decode(void *arg) {
             render_vgmstream(sample_buffer,samples_to_do,vgmstream);
 
             /* fade near the end */
-            if (vgmstream->loop_flag && fade_samples > 0 && !config.loop_forever) {
+            if (vgmstream->loop_flag && fade_samples > 0 && !settings.loop_forever) {
                 int samples_into_fade = decode_pos_samples - (stream_length_samples - fade_samples);
                 if (samples_into_fade + samples_to_do > 0) {
                     int j,k;
@@ -1233,28 +1298,28 @@ DWORD WINAPI __stdcall decode(void *arg) {
             }
 
             /* downmix enabled (useful when the stream's channels are too much for Winamp's output) */
-            if (config.downmix_channels > 0 && config.downmix_channels < vgmstream->channels) {
+            if (settings.downmix_channels > 0 && settings.downmix_channels < vgmstream->channels) {
                 short temp_buffer[(576*2) * 2];
                 int s, ch;
 
                 for (s = 0; s < samples_to_do; s++) {
                     /* copy channels up to max */
-                    for (ch = 0; ch < config.downmix_channels; ch++) {
-                        temp_buffer[s*config.downmix_channels + ch] = sample_buffer[s*vgmstream->channels + ch];
+                    for (ch = 0; ch < settings.downmix_channels; ch++) {
+                        temp_buffer[s*settings.downmix_channels + ch] = sample_buffer[s*vgmstream->channels + ch];
                     }
                     /* then mix the rest */
-                    for (ch = config.downmix_channels; ch < vgmstream->channels; ch++) {
-                        int downmix_ch = ch % config.downmix_channels;
-                        int new_sample = ((int)temp_buffer[s*config.downmix_channels + downmix_ch] + (int)sample_buffer[s*vgmstream->channels + ch]);
+                    for (ch = settings.downmix_channels; ch < vgmstream->channels; ch++) {
+                        int downmix_ch = ch % settings.downmix_channels;
+                        int new_sample = ((int)temp_buffer[s*settings.downmix_channels + downmix_ch] + (int)sample_buffer[s*vgmstream->channels + ch]);
                         new_sample = (int)(new_sample * 0.7); /* limit clipping without removing too much loudness... hopefully */
                         if (new_sample > 32767) new_sample = 32767;
                         else if (new_sample < -32768) new_sample = -32768;
-                        temp_buffer[s*config.downmix_channels + downmix_ch] = (short)new_sample;
+                        temp_buffer[s*settings.downmix_channels + downmix_ch] = (short)new_sample;
                     }
                 }
 
                 /* copy back to global buffer... in case of multithreading stuff? */
-                memcpy(sample_buffer,temp_buffer, samples_to_do*config.downmix_channels*sizeof(short));
+                memcpy(sample_buffer,temp_buffer, samples_to_do*settings.downmix_channels*sizeof(short));
             }
 
             /* output samples */

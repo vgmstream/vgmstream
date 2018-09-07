@@ -254,7 +254,8 @@ static void print_info(VGMSTREAM * vgmstream, cli_config *cfg) {
 
 static void apply_config(VGMSTREAM * vgmstream, cli_config *cfg) {
 
-    /* honor suggested config, if any (note that defined order matters) */
+    /* honor suggested config, if any (defined order matters)
+     * note that ignore_fade and play_forever should take priority */
     if (vgmstream->config_loop_count) {
         cfg->loop_count = vgmstream->config_loop_count;
     }
@@ -274,7 +275,13 @@ static void apply_config(VGMSTREAM * vgmstream, cli_config *cfg) {
         cfg->ignore_fade = 1;
     }
 
-    /* change loop stuff, in no particular order */
+    /* remove non-compatible options */
+    if (cfg->play_forever) {
+        cfg->ignore_fade = 0;
+        cfg->ignore_loop = 0;
+    }
+
+    /* change vgmstream's loop stuff (ignore loop goes last) */
     if (cfg->force_loop && !vgmstream->loop_flag) {
         vgmstream_force_loop(vgmstream, 1, 0,vgmstream->num_samples);
     }
@@ -288,6 +295,7 @@ static void apply_config(VGMSTREAM * vgmstream, cli_config *cfg) {
     /* loop N times, but also play stream end instead of fading out */
     if (cfg->loop_count > 0 && cfg->ignore_fade) {
         vgmstream_set_loop_target(vgmstream, (int)cfg->loop_count);
+        cfg->fade_time = 0;
     }
 
     /* write loops in the wav, but don't actually loop it */
