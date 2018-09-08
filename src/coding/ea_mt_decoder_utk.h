@@ -7,11 +7,10 @@
 /* Note: This struct assumes a member alignment of 4 bytes.
 ** This matters when pitch_lag > 216 on the first subframe of any given frame. */
 typedef struct UTKContext {
-    uint8_t buffer[4096]; //vgmstream extra
-    STREAMFILE * streamfile; //vgmstream extra
-    unsigned int offset; //vgmstream extra
-
-    FILE *fp;
+    uint8_t *buffer;
+    size_t buffer_size;
+    void *arg;
+    size_t (*read_callback)(void *dest, int size, void *arg);
     const uint8_t *ptr, *end;
 
     int parsed_header;
@@ -131,14 +130,9 @@ static int utk_read_byte(UTKContext *ctx)
     if (ctx->ptr < ctx->end)
         return *ctx->ptr++;
 
-    //vgmstream extra: this reads from FILE if static buffer was exhausted, now from a context buffer and STREAMFILE instead
-    if (ctx->streamfile) { //if (ctx->fp) {
-        //static uint8_t buffer[4096];
-        //size_t bytes_copied = fread(buffer, 1, sizeof(buffer), ctx->fp);
-        size_t bytes_copied = read_streamfile(ctx->buffer, ctx->offset, sizeof(ctx->buffer), ctx->streamfile);
-
-        ctx->offset += bytes_copied;
-        if (bytes_copied > 0 && bytes_copied <= sizeof(ctx->buffer)) {
+    if (ctx->read_callback) {
+        size_t bytes_copied = ctx->read_callback(ctx->buffer, ctx->buffer_size, ctx->arg);
+        if (bytes_copied > 0 && bytes_copied <= ctx->buffer_size) {
             ctx->ptr = ctx->buffer;
             ctx->end = ctx->buffer + bytes_copied;
             return *ctx->ptr++;
@@ -394,9 +388,10 @@ static void utk_init(UTKContext *ctx)
     memset(ctx, 0, sizeof(*ctx));
 }
 
-static void utk_reset(UTKContext *ctx) //vgmstream extra
+static void utk_reset(UTKContext *ctx)
 {
-    /* resets the internal state, leaving the external config/buffers set */
+    /* resets the internal state, leaving the external config/buffers
+     * untouched (could be reset externally or using utk_set_x) */
     ctx->parsed_header = 0;
     ctx->bits_value = 0;
     ctx->bits_count = 0;
@@ -408,10 +403,14 @@ static void utk_reset(UTKContext *ctx) //vgmstream extra
     memset(ctx->adapt_cb, 0, sizeof(ctx->adapt_cb));
     memset(ctx->decompressed_frame, 0, sizeof(ctx->decompressed_frame));
 }
-#if 0 //vgmstream extra
-static void utk_set_fp(UTKContext *ctx, FILE *fp)
+
+static void utk_set_callback(UTKContext *ctx, uint8_t *buffer, size_t buffer_size, void *arg, size_t (*read_callback)(void *, int , void *))
 {
-    ctx->fp = fp;
+    /* prepares for external reading */
+    ctx->buffer = buffer;
+    ctx->buffer_size = buffer_size;
+    ctx->arg = arg;
+    ctx->read_callback = read_callback;
 
     /* reset the bit reader */
     ctx->bits_count = 0;
@@ -419,13 +418,14 @@ static void utk_set_fp(UTKContext *ctx, FILE *fp)
 
 static void utk_set_ptr(UTKContext *ctx, const uint8_t *ptr, const uint8_t *end)
 {
+    /* sets the pointer to an external data buffer (can also be used to
+     * reset the buffered data if set to ptr/end 0) */
     ctx->ptr = ptr;
     ctx->end = end;
 
     /* reset the bit reader */
     ctx->bits_count = 0;
 }
-#endif
 
 /*
 ** MicroTalk Revision 3 decoding function.
@@ -453,34 +453,17 @@ static int utk_rev3_decode_frame(UTKContext *ctx)
         ** crafted MT5:1 file can crash sx.exe.
         ** We will throw an error instead. */
         if (offset < 0 || offset > 432) {
-            //fprintf(stderr, "error: invalid PCM offset %d\n", offset);
-            //exit(EXIT_FAILURE);
-            return -1; //vgmstream extra
+            return -1; /* invalid PCM offset */
         }
         if (count < 0 || count > 432 - offset) {
-            //fprintf(stderr, "error: invalid PCM count %d\n", count);
-            //exit(EXIT_FAILURE);
-            return -2; //vgmstream extra
+            return -2; /* invalid PCM count */
         }
 
         for (i = 0; i < count; i++)
             ctx->decompressed_frame[offset+i] = (float)utk_read_i16(ctx);
     }
 
-    return 0; //vgmstream extra
+    return 0;
 }
 
-#if 0 //vgmstream extra
-static const char * utk_get_error_string(int error)
-{
-    switch(error) {
-    case -1:
-        return "invalid rev3 PCM offset";
-    case -2:
-        return "invalid rev3 PCM count";
-    default:
-        return "unknown error";
-    }
-}
-#endif
 #endif /* _EA_MT_DECODER_UTK_H_ */

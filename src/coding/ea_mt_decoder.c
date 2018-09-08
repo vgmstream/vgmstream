@@ -17,7 +17,12 @@
 #define UTK_MAX(x,y) ((x)>(y)?(x):(y))
 #define UTK_CLAMP(x,min,max) UTK_MIN(UTK_MAX(x,min),max)
 
+#define UTK_BUFFER_SIZE 0x1000
+
 struct ea_mt_codec_data {
+    STREAMFILE *streamfile;
+    uint8_t buffer[UTK_BUFFER_SIZE];
+    off_t offset;
     int pcm_blocks;
     int samples_filled;
     int samples_used;
@@ -26,6 +31,8 @@ struct ea_mt_codec_data {
     int samples_discard;
     void* utk_context;
 };
+
+static size_t ea_mt_read_callback(void *dest, int size, void *arg);
 
 
 ea_mt_codec_data *init_ea_mt(int channels, int pcm_blocks, int reset_sample) {
@@ -42,6 +49,8 @@ ea_mt_codec_data *init_ea_mt(int channels, int pcm_blocks, int reset_sample) {
 
         data[i].pcm_blocks = pcm_blocks;
         data[i].reset_sample = reset_sample;
+
+        utk_set_callback(data[i].utk_context, data[i].buffer, UTK_BUFFER_SIZE, &data[i], &ea_mt_read_callback);
     }
 
     return data;
@@ -121,7 +130,6 @@ void decode_ea_mt(VGMSTREAM * vgmstream, sample * outbuf, int channelspacing, in
 static void flush_ea_mt_offsets(VGMSTREAM *vgmstream, int is_start, int samples_discard) {
     ea_mt_codec_data *data = vgmstream->codec_data;
     int i;
-    size_t bytes;
 
     if (!data) return;
 
@@ -133,20 +141,16 @@ static void flush_ea_mt_offsets(VGMSTREAM *vgmstream, int is_start, int samples_
     for (i = 0; i < vgmstream->channels; i++) {
         UTKContext* ctx = data[i].utk_context;
 
-        ctx->streamfile = vgmstream->ch[i].streamfile; /* maybe should keep its own STREAMFILE? */
+        data[i].streamfile = vgmstream->ch[i].streamfile; /* maybe should keep its own STREAMFILE? */
         if (is_start)
-            ctx->offset = vgmstream->ch[i].channel_start_offset;
+            data[i].offset = vgmstream->ch[i].channel_start_offset;
         else
-            ctx->offset = vgmstream->ch[i].offset;
-        //todo no need to read, allow to do it manually?
-        bytes = read_streamfile(ctx->buffer,ctx->offset,sizeof(ctx->buffer),ctx->streamfile);
-        ctx->offset = ctx->offset + bytes;
+            data[i].offset = vgmstream->ch[i].offset;
 
-        ctx->ptr = ctx->buffer;
-        ctx->end = ctx->buffer + bytes;
-        ctx->bits_count = 0;
+        utk_set_ptr(ctx, 0, 0); /* reset the buffer reader */
 
         if (is_start) {
+            //utk_reset(ctx); //todo
             ctx->parsed_header = 0;
             data[i].samples_done = 0;
         }
@@ -178,4 +182,17 @@ void free_ea_mt(ea_mt_codec_data *data, int channels) {
         free(data[i].utk_context);
     }
     free(data);
+}
+
+/* ********************** */
+
+static size_t ea_mt_read_callback(void *dest, int size, void *arg) {
+    ea_mt_codec_data *ch_data = arg;
+    int bytes_read;
+
+    bytes_read = read_streamfile(dest,ch_data->offset,size,ch_data->streamfile);
+    ch_data->offset += bytes_read;
+
+    return bytes_read;
+
 }
