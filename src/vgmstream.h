@@ -1218,10 +1218,15 @@ typedef struct {
 #endif
 #endif
 
+
 typedef struct {
     int pcm_blocks;
-    int utk_context_size;
-    void** utk_context;
+    int samples_filled;
+    int samples_used;
+    int reset_sample;
+    int samples_done;
+    int samples_discard;
+    void* utk_context;
 } ea_mt_codec_data;
 
 
@@ -1244,15 +1249,15 @@ typedef struct {
 
 //info for opaque VGMSTREAM
 typedef struct {
-    int channels;
-    int sample_rate;
-    int num_samples;
-    int loop_start_sample;
-    int loop_end_sample;
-    int loop_flag;
-    int num_streams;
-    int current_sample;
-    int average_bitrate;
+    const int channels;
+    const int sample_rate;
+    const int num_samples;
+    const int loop_start_sample;
+    const int loop_end_sample;
+    const int loop_flag;
+    const int num_streams;
+    const int current_sample;
+    const int average_bitrate;
 } VGMSTREAM_INFO;
 void vgmstream_get_info(VGMSTREAM* vgmstream, VGMSTREAM_INFO *vgmstream_info);
 

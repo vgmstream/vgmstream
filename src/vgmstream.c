@@ -750,7 +750,7 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
     }
 
     if (vgmstream->coding_type==coding_EA_MT) {
-        free_ea_mt(vgmstream->codec_data);
+        free_ea_mt(vgmstream->codec_data, vgmstream->channels);
         vgmstream->codec_data = NULL;
     }
 
@@ -1224,7 +1224,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_XMD:
             return (vgmstream->interleave_block_size - 0x06)*2 + 2;
         case coding_EA_MT:
-            return 432;
+            return 0; /* 432, but variable in looped files */
         case coding_CRI_HCA:
             return 0; /* 1024 - delay/padding (which can be bigger than 1024) */
 #if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
@@ -1992,7 +1992,7 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
         case coding_EA_MT:
             for (ch = 0; ch < vgmstream->channels; ch++) {
                 decode_ea_mt(vgmstream, buffer+samples_written*vgmstream->channels+ch,
-                        vgmstream->channels, vgmstream->samples_into_block, samples_to_do, ch);
+                        vgmstream->channels, samples_to_do, ch);
             }
             break;
         default:

@@ -703,7 +703,7 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE *streamFile, ea_
             }
 
             vgmstream->coding_type = coding_EA_MT;
-            vgmstream->codec_data = init_ea_mt(vgmstream->channels, use_pcm_blocks);
+            vgmstream->codec_data = init_ea_mt(vgmstream->channels, use_pcm_blocks, ea->loop_start);
             if (!vgmstream->codec_data) goto fail;
             break;
         }

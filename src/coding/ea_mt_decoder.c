@@ -13,20 +13,13 @@
 /* ************************************************************************************************* */
 #define UTK_BUFFER_SIZE 0x4000
 
-//#define UTK_MAKE_U32(a,b,c,d) ((a)|((b)<<8)|((c)<<16)|((d)<<24))
-#define UTK_ROUND(x) ((x) >= 0.0f ? ((x)+0.5f) : ((x)-0.5f))
-#define UTK_MIN(x,y) ((x)<(y)?(x):(y))
-#define UTK_MAX(x,y) ((x)>(y)?(x):(y))
-#define UTK_CLAMP(x,min,max) UTK_MIN(UTK_MAX(x,min),max)
-
 
 /* Note: This struct assumes a member alignment of 4 bytes.
 ** This matters when pitch_lag > 216 on the first subframe of any given frame. */
 typedef struct UTKContext {
     uint8_t buffer[UTK_BUFFER_SIZE]; //vgmstream extra
     STREAMFILE * streamfile; //vgmstream extra
-    off_t offset; //vgmstream extra
-    int samples_filled; //vgmstream extra
+    unsigned int offset; //vgmstream extra
     //FILE *fp; //vgmstream extra
     const uint8_t *ptr, *end;
     int parsed_header;
@@ -47,7 +40,7 @@ enum {
 };
 
 static const float utk_rc_table[64] = {
-    0.0f,
+    +0.0f,
     -.99677598476409912109375f, -.99032700061798095703125f, -.983879029750823974609375f, -.977430999279022216796875f,
     -.970982015132904052734375f, -.964533984661102294921875f, -.958085000514984130859375f, -.9516370296478271484375f,
     -.930754005908966064453125f, -.904959976673126220703125f, -.879167020320892333984375f, -.853372991085052490234375f,
@@ -56,7 +49,7 @@ static const float utk_rc_table[64] = {
     -.567460000514984130859375f, -.515873014926910400390625f, -.4642859995365142822265625f, -.4126980006694793701171875f,
     -.361110985279083251953125f, -.309523999691009521484375f, -.257937014102935791015625f, -.20634900033473968505859375f,
     -.1547619998455047607421875f, -.10317499935626983642578125f, -.05158700048923492431640625f,
-    0.0f,
+    +0.0f,
     +.05158700048923492431640625f, +.10317499935626983642578125f, +.1547619998455047607421875f, +.20634900033473968505859375f,
     +.257937014102935791015625f, +.309523999691009521484375f, +.361110985279083251953125f, +.4126980006694793701171875f,
     +.4642859995365142822265625f, +.515873014926910400390625f, +.567460000514984130859375f, +.61904799938201904296875f,
@@ -64,7 +57,7 @@ static const float utk_rc_table[64] = {
     +.775991976261138916015625f, +.801786005496978759765625f, +.827579021453857421875f, +.853372991085052490234375f,
     +.879167020320892333984375f, +.904959976673126220703125f, +.930754005908966064453125f, +.9516370296478271484375f,
     +.958085000514984130859375f, +.964533984661102294921875f, +.970982015132904052734375f, +.977430999279022216796875f,
-    +.983879029750823974609375f, +.99032700061798095703125f, +.99677598476409912109375
+    +.983879029750823974609375f, +.99032700061798095703125f, +.99677598476409912109375f
 };
 
 static const uint8_t utk_codebooks[2][256] = {
@@ -469,114 +462,171 @@ static void utk_rev3_decode_frame(UTKContext *ctx)
 
 /* ************************************************************************************************* */
 
-ea_mt_codec_data *init_ea_mt(int channel_count, int pcm_blocks) {
+//#define UTK_MAKE_U32(a,b,c,d) ((a)|((b)<<8)|((c)<<16)|((d)<<24))
+#define UTK_ROUND(x) ((x) >= 0.0f ? ((x)+0.5f) : ((x)-0.5f))
+#define UTK_MIN(x,y) ((x)<(y)?(x):(y))
+#define UTK_MAX(x,y) ((x)>(y)?(x):(y))
+#define UTK_CLAMP(x,min,max) UTK_MIN(UTK_MAX(x,min),max)
+
+
+ea_mt_codec_data *init_ea_mt(int channels, int pcm_blocks, int reset_sample) {
     ea_mt_codec_data *data = NULL;
     int i;
 
-    data = calloc(channel_count, sizeof(ea_mt_codec_data));
+    data = calloc(channels, sizeof(ea_mt_codec_data)); /* one decoder per channel */
     if (!data) goto fail;
 
-    data->pcm_blocks = pcm_blocks;
-    data->utk_context_size = channel_count;
+    for (i = 0; i < channels; i++) {
+        data[i].utk_context = calloc(1, sizeof(UTKContext));
+        if (!data[i].utk_context) goto fail;
+        utk_init(data[i].utk_context);
 
-    data->utk_context = calloc(channel_count, sizeof(UTKContext*));
-    if (!data->utk_context) goto fail;
-
-    for (i = 0; i < channel_count; i++) {
-        data->utk_context[i] = calloc(1, sizeof(UTKContext));
-        if (!data->utk_context[i]) goto fail;
-        utk_init(data->utk_context[i]);
+        data[i].pcm_blocks = pcm_blocks;
+        data[i].reset_sample = reset_sample;
     }
 
     return data;
 
 fail:
-    free_ea_mt(data);
+    free_ea_mt(data, channels);
     return NULL;
 }
 
-void decode_ea_mt(VGMSTREAM * vgmstream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
+void decode_ea_mt(VGMSTREAM * vgmstream, sample * outbuf, int channelspacing, int32_t samples_to_do, int channel) {
+    int i;
     ea_mt_codec_data *data = vgmstream->codec_data;
-    int i, sample_count = 0, frame_samples;
-    UTKContext* ctx = data->utk_context[channel];
+    ea_mt_codec_data *ch_data = &data[channel];
+    UTKContext* ctx = ch_data->utk_context;
+    int samples_done = 0;
 
-    /* Use the above decoder, which expects pointers to read data. Since EA-MT frames aren't
-     * byte-aligned, reading new buffer data is decided by the decoder. When decoding starts
-     * or a SCHl block changes flush_ea_mt must be called to reset the state.
-     * A bit hacky but would need some restructuring otherwise. */
 
-    frame_samples = 432;
-    first_sample = first_sample % frame_samples;
+    while (samples_done < samples_to_do) {
 
-    /* don't decode again if we didn't consume the current frame.
-     * UTKContext saves the sample buffer, and can't re-decode a frame */
-    if (!ctx->samples_filled) {
-        if (data->pcm_blocks)
-            utk_rev3_decode_frame(ctx);
-        else
-            utk_decode_frame(ctx);
-        ctx->samples_filled = 1;
+        if (ch_data->samples_filled) {
+            /* consume current frame */
+            int samples_to_get = ch_data->samples_filled;
+
+            /* don't go past loop, to reset decoder */
+            if (ch_data->reset_sample > 0 && ch_data->samples_done < ch_data->reset_sample &&
+                    ch_data->samples_done + samples_to_get > ch_data->reset_sample)
+                samples_to_get = ch_data->reset_sample - ch_data->samples_done;
+
+            if (ch_data->samples_discard) {
+                /* discard samples for looping */
+                if (samples_to_get > ch_data->samples_discard)
+                    samples_to_get = ch_data->samples_discard;
+                ch_data->samples_discard -= samples_to_get;
+            }
+            else {
+                /* get max samples and copy */
+                if (samples_to_get > samples_to_do - samples_done)
+                    samples_to_get = samples_to_do - samples_done;
+
+                for (i = ch_data->samples_used; i < ch_data->samples_used + samples_to_get; i++) {
+                    int pcm = UTK_ROUND(ctx->decompressed_frame[i]);
+                    outbuf[0] = (int16_t)UTK_CLAMP(pcm, -32768, 32767);
+                    outbuf += channelspacing;
+                }
+
+                samples_done += samples_to_get;
+            }
+
+            /* mark consumed samples */
+            ch_data->samples_used += samples_to_get;
+            ch_data->samples_filled -= samples_to_get;
+            ch_data->samples_done += samples_to_get;
+
+            /* Loops in EA-MT are done with fully separate intro/loop substreams. We must
+             * notify the decoder when a new substream begins (even with looping disabled). */
+            if (ch_data->reset_sample > 0 && ch_data->samples_done == ch_data->reset_sample) {
+                ch_data->samples_filled = 0;
+
+                /* todo call decoder init (all fields must be reset, for some edge cases) */
+                ctx->parsed_header = 0;
+                ctx->bits_value = 0;
+                ctx->bits_count = 0;
+                ctx->reduced_bw = 0;
+                ctx->multipulse_thresh = 0;
+                memset(ctx->fixed_gains, 0, sizeof(ctx->fixed_gains));
+                memset(ctx->rc, 0, sizeof(ctx->rc));
+                memset(ctx->synth_history, 0, sizeof(ctx->synth_history));
+                memset(ctx->adapt_cb, 0, sizeof(ctx->adapt_cb));
+                memset(ctx->decompressed_frame, 0, sizeof(ctx->decompressed_frame));
+
+                //todo when loop start is < 432 decoder seems to have problems
+            }
+        }
+        else {
+            /* new frame */
+            if (ch_data->pcm_blocks)
+                utk_rev3_decode_frame(ctx);
+            else
+                utk_decode_frame(ctx);
+
+            ch_data->samples_used = 0;
+            ch_data->samples_filled = 432;
+        }
     }
-
-    /* copy samples */
-    for (i = first_sample; i < first_sample+samples_to_do; i++) {
-        int x = UTK_ROUND(ctx->decompressed_frame[i]);
-        outbuf[sample_count] = (int16_t)UTK_CLAMP(x, -32768, 32767);
-        sample_count += channelspacing;
-    }
-
-    if (i == frame_samples)
-        ctx->samples_filled = 0;
 }
 
-static void flush_ea_mt_internal(VGMSTREAM *vgmstream, int is_start) {
+static void flush_ea_mt_offsets(VGMSTREAM *vgmstream, int is_start, int samples_discard) {
     ea_mt_codec_data *data = vgmstream->codec_data;
     int i;
     size_t bytes;
 
     if (!data) return;
 
-    /* the decoder needs to be notified when offsets change */
+
+    /* EA-MT frames are VBR (not byte-aligned?), so utk_decoder reads new buffer data automatically.
+     * When decoding starts or a SCHl block changes, flush_ea_mt must be called to reset the state.
+     * A bit hacky but would need some restructuring otherwise. */
+
     for (i = 0; i < vgmstream->channels; i++) {
-        UTKContext *ctx = data->utk_context[i];
+        UTKContext* ctx = data[i].utk_context;
 
-        ctx->streamfile = vgmstream->ch[i].streamfile;
-        ctx->offset = is_start ? vgmstream->ch[i].channel_start_offset : vgmstream->ch[i].offset;
-        ctx->samples_filled = 0;
-
+        ctx->streamfile = vgmstream->ch[i].streamfile; /* maybe should keep its own STREAMFILE? */
+        if (is_start)
+            ctx->offset = vgmstream->ch[i].channel_start_offset;
+        else
+            ctx->offset = vgmstream->ch[i].offset;
+        //todo no need to read, allow to do it manually?
         bytes = read_streamfile(ctx->buffer,ctx->offset,sizeof(ctx->buffer),ctx->streamfile);
-        ctx->offset += sizeof(ctx->buffer);
+        ctx->offset = ctx->offset + bytes;
+
         ctx->ptr = ctx->buffer;
         ctx->end = ctx->buffer + bytes;
         ctx->bits_count = 0;
 
-        if (is_start)
+        if (is_start) {
             ctx->parsed_header = 0;
+            data[i].samples_done = 0;
+        }
+
+        data[i].samples_filled = 0;
+        data[i].samples_discard = samples_discard;
     }
 }
 
 void flush_ea_mt(VGMSTREAM *vgmstream) {
-    flush_ea_mt_internal(vgmstream, 0);
+    flush_ea_mt_offsets(vgmstream, 0, 0);
 }
 
 void reset_ea_mt(VGMSTREAM *vgmstream) {
-    flush_ea_mt_internal(vgmstream, 1);
+    flush_ea_mt_offsets(vgmstream, 1, 0);
 }
 
 void seek_ea_mt(VGMSTREAM * vgmstream, int32_t num_sample) {
-    flush_ea_mt_internal(vgmstream, 1);
-    //todo discard loop (though this should be adecuate as probably only uses full loops, if at all)
+    flush_ea_mt_offsets(vgmstream, 1, num_sample);
 }
 
-void free_ea_mt(ea_mt_codec_data *data) {
+void free_ea_mt(ea_mt_codec_data *data, int channels) {
     int i;
 
     if (!data)
         return;
 
-    for (i = 0; i < data->utk_context_size; i++) {
-        free(data->utk_context[i]);
+    for (i = 0; i < channels; i++) {
+        free(data[i].utk_context);
     }
-    free(data->utk_context);
     free(data);
 }
