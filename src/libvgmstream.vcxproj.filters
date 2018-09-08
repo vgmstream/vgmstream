@@ -122,6 +122,9 @@
     <ClInclude Include="coding\coding.h">
       <Filter>coding\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="coding\ea_mt_decoder_utk.h">
+      <Filter>coding\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="coding\ffmpeg_decoder_utils.h">
       <Filter>coding\Header Files</Filter>
     </ClInclude>

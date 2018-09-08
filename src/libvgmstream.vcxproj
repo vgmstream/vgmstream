@@ -113,6 +113,7 @@
     <ClInclude Include="meta\fsb_keys.h" />
     <ClInclude Include="coding\acm_decoder_libacm.h" />
     <ClInclude Include="coding\coding.h" />
+    <ClInclude Include="coding\ea_mt_decoder_utk.h" />
     <ClInclude Include="coding\ffmpeg_decoder_utils.h" />
     <ClInclude Include="coding\fsb_vorbis_data.h" />
     <ClInclude Include="coding\g72x_state.h" />

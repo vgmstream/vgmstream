@@ -1218,16 +1218,7 @@ typedef struct {
 #endif
 #endif
 
-
-typedef struct {
-    int pcm_blocks;
-    int samples_filled;
-    int samples_used;
-    int reset_sample;
-    int samples_done;
-    int samples_discard;
-    void* utk_context;
-} ea_mt_codec_data;
+typedef struct ea_mt_codec_data ea_mt_codec_data;
 
 
 #if 0
