@@ -36,10 +36,6 @@ enum { STREAM_NAME_SIZE = 255 }; /* reasonable max */
 #include <g7221.h>
 #endif
 
-#ifdef VGM_USE_G719
-#include <g719.h>
-#endif
-
 #ifdef VGM_USE_MP4V2
 #define MP4V2_NO_STDINT_DEFS
 #include <mp4v2/mp4v2.h>
@@ -1031,7 +1027,8 @@ typedef struct {
 #ifdef VGM_USE_G719
 typedef struct {
    sample buffer[960];
-   g719_handle *handle;
+   void *handle;
+   int16_t *code_buffer;
 } g719_codec_data;
 #endif
 

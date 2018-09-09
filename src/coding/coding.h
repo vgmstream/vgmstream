@@ -221,8 +221,8 @@ void free_g7221(VGMSTREAM *vgmstream);
 /* g719_decoder */
 g719_codec_data *init_g719(int channel_count, int frame_size);
 void decode_g719(VGMSTREAM *vgmstream, sample * outbuf, int channelspacing, int32_t samples_to_do, int channel);
-void reset_g719(VGMSTREAM *vgmstream);
-void free_g719(VGMSTREAM *vgmstream);
+void reset_g719(g719_codec_data * data, int channels);
+void free_g719(g719_codec_data * data, int channels);
 #endif
 
 #if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)

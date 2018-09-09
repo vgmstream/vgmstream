@@ -604,7 +604,7 @@ void reset_vgmstream(VGMSTREAM * vgmstream) {
 
 #ifdef VGM_USE_G719
     if (vgmstream->coding_type==coding_G719) {
-        reset_g719(vgmstream);
+        reset_g719(vgmstream->codec_data, vgmstream->channels);
     }
 #endif
 
@@ -789,7 +789,7 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
 
 #ifdef VGM_USE_G719
     if (vgmstream->coding_type == coding_G719) {
-        free_g719(vgmstream);
+        free_g719(vgmstream->codec_data, vgmstream->channels);
         vgmstream->codec_data = NULL;
     }
 #endif
