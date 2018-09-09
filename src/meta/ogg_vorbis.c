@@ -268,8 +268,9 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
     /* .ogg: standard/various, .logg: renamed for plugins
      * .adx: KID [Remember11 (PC)]
      * .rof: The Rhythm of Fighters (Mobile)
-     * .acm: Planescape Torment Enhanced Edition (PC) */
-    if (check_extensions(streamFile,"ogg,logg,adx,rof,acm")) {
+     * .acm: Planescape Torment Enhanced Edition (PC)
+     * .sod: Zone 4 (PC) */
+    if (check_extensions(streamFile,"ogg,logg,adx,rof,acm,sod")) {
         is_ogg = 1;
     } else if (check_extensions(streamFile,"um3")) {
         is_um3 = 1;

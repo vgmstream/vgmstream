@@ -339,6 +339,7 @@ static const char* extension_list[] = {
     "snr",
     "sns",
     "snu",
+    "sod",
     "son",
     "spd",
     "spm",
