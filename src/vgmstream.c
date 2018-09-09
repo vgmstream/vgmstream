@@ -2533,16 +2533,17 @@ static int get_vgmstream_average_bitrate_from_streamfile(STREAMFILE * streamfile
 
 /* Return the average bitrate in bps of all unique files contained within this stream. */
 int get_vgmstream_average_bitrate(VGMSTREAM * vgmstream) {
-    char path_current[PATH_LIMIT];
-    char path_compare[PATH_LIMIT];
+    STREAMFILE *streamfiles[64];
+    const size_t streamfiles_max = 64; /* arbitrary max, */
+    size_t streamfiles_size = 0;
+    size_t streams_size = 0;
+    unsigned int ch, sub;
 
-    unsigned int i, j;
     int bitrate = 0;
     int sample_rate = vgmstream->sample_rate;
     int length_samples = vgmstream->num_samples;
-    int channels = vgmstream->channels;
 
-    if (!sample_rate || !length_samples || !channels)
+    if (!sample_rate || !length_samples)
         return 0;
 
     /* subsongs need to report this to properly calculate */
@@ -2550,34 +2551,69 @@ int get_vgmstream_average_bitrate(VGMSTREAM * vgmstream) {
         return get_vgmstream_average_bitrate_from_size(vgmstream->stream_size, sample_rate, length_samples);
     }
 
-    /* segmented layout is handled differently as it has multiple sub-VGMSTREAMs (may include special codecs) */
-    //todo not correct with multifile segments (ex. .ACM Ogg)
+
+    /* make a list of used streamfiles (repeats will be filtered below) */
     if (vgmstream->layout_type==layout_segmented) {
         segmented_layout_data *data = (segmented_layout_data *) vgmstream->layout_data;
-        return get_vgmstream_average_bitrate(data->segments[0]);
-    }
-    if (vgmstream->layout_type==layout_layered) {
-        layered_layout_data *data = (layered_layout_data *) vgmstream->layout_data;
-        return get_vgmstream_average_bitrate(data->layers[0]);
-    }
-
-    /* compares files by absolute paths, so bitrate doesn't multiply when the same STREAMFILE is reopened per channel */
-    for (i = 0; i < channels; i++) {
-        STREAMFILE * currentFile = get_vgmstream_average_bitrate_channel_streamfile(vgmstream, i);
-        if (!currentFile) continue;
-        get_streamfile_name(currentFile, path_current, sizeof(path_current));
-
-        for (j = 0; j < i; j++) {
-            STREAMFILE * compareFile = get_vgmstream_average_bitrate_channel_streamfile(vgmstream, j);
-            if (!compareFile) continue;
-            get_streamfile_name(compareFile, path_compare, sizeof(path_compare));
-
-            if (strcmp(path_current, path_compare) != 0)
-                break;
+        for (sub = 0; sub < data->segment_count; sub++) {
+            streams_size += data->segments[sub]->stream_size;
+            for (ch = 0; ch < data->segments[sub]->channels; ch++) {
+                if (streamfiles_size >= streamfiles_max) continue;
+                streamfiles[streamfiles_size] = get_vgmstream_average_bitrate_channel_streamfile(data->segments[sub], ch);
+                streamfiles_size++;
+            }
         }
+    }
+    else if (vgmstream->layout_type==layout_layered) {
+        layered_layout_data *data = vgmstream->layout_data;
+        for (sub = 0; sub < data->layer_count; sub++) {
+            streams_size += data->layers[sub]->stream_size;
+            for (ch = 0; ch < data->layers[sub]->channels; ch++) {
+                if (streamfiles_size >= streamfiles_max) continue;
+                streamfiles[streamfiles_size] = get_vgmstream_average_bitrate_channel_streamfile(data->layers[sub], ch);
+                streamfiles_size++;
+            }
+        }
+    }
+    else {
+        for (ch = 0; ch < vgmstream->channels; ch++) {
+            if (streamfiles_size >= streamfiles_max)
+                continue;
+            streamfiles[streamfiles_size] = get_vgmstream_average_bitrate_channel_streamfile(vgmstream, ch);
+            streamfiles_size++;
+        }
+    }
 
-        if (j == i) { /* current STREAMFILE hasn't appeared in a previous channel */
-            bitrate += get_vgmstream_average_bitrate_from_streamfile(currentFile, sample_rate, length_samples);
+    /* could have a sum of all sub-VGMSTREAMs */
+    if (streams_size) {
+        return get_vgmstream_average_bitrate_from_size(streams_size, sample_rate, length_samples);
+    }
+
+    /* compare files by absolute paths, so bitrate doesn't multiply when the same STREAMFILE is
+     * reopened per channel, also skipping repeated pointers. */
+    {
+        char path_current[PATH_LIMIT];
+        char path_compare[PATH_LIMIT];
+        unsigned int i, j;
+
+        for (i = 0; i < streamfiles_size; i++) {
+            STREAMFILE * currentFile = streamfiles[i];
+            if (!currentFile) continue;
+            get_streamfile_name(currentFile, path_current, sizeof(path_current));
+
+            for (j = 0; j < i; j++) {
+                STREAMFILE * compareFile = streamfiles[j];
+                if (!compareFile) continue;
+                if (currentFile == compareFile)
+                    break;
+                get_streamfile_name(compareFile, path_compare, sizeof(path_compare));
+                if (strcmp(path_current, path_compare) == 0)
+                    break;
+            }
+
+            if (i == j) { /* current STREAMFILE hasn't appeared previously */
+                bitrate += get_vgmstream_average_bitrate_from_streamfile(currentFile, sample_rate, length_samples);
+            }
         }
     }
 
