@@ -103,7 +103,7 @@ int mpeg_custom_setup_init_ealayer3(STREAMFILE *streamFile, off_t start_offset, 
         ok = ealayer3_parse_frame(data, &is, &eaf);
         if (!ok) goto fail;
     }
-    VGM_ASSERT(!eaf.mpeg1, "MPEG EAL3: mpeg2 found at 0x%lx\n", start_offset); /* untested */
+    //;VGM_ASSERT(!eaf.mpeg1, "MPEG EAL3: mpeg2 found at 0x%lx\n", start_offset); /* rare [FIFA 08 (PS3) abk] */
 
     *coding_type = coding_MPEG_ealayer3;
     data->channels_per_frame = eaf.channels;
