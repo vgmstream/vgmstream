@@ -753,15 +753,31 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE *streamFile, ea_
 
     if (is_bnk) {
         /* setup channel offsets */
-        if (vgmstream->coding_type == coding_EA_XA) { /* shared */
+        if (vgmstream->coding_type == coding_EA_XA) {
+            /* shared (stereo/mono codec) */
             for (i = 0; i < vgmstream->channels; i++) {
                 vgmstream->ch[i].offset = ea->offsets[0];
             }
-        //} else if (vgmstream->layout_type == layout_interleave) { /* interleaved */
+        }
+        //else if (vgmstream->layout_type == layout_interleave) { /* interleaved */
         //    for (i = 0; i < vgmstream->channels; i++) {
         //        vgmstream->ch[i].offset = ea->offsets[0] + vgmstream->interleave_block_size*i;
         //    }
-        } else { /* absolute */
+        //}
+        else if (vgmstream->coding_type == coding_PCM16_int && ea->version == 0) {
+            /* Need for Speed 2 (PC) bad offsets */
+            for (i = 0; i < vgmstream->channels; i++) {
+                vgmstream->ch[i].offset = ea->offsets[0] + 0x02*i;
+            }
+        }
+        else if (vgmstream->coding_type == coding_PCM8 && ea->platform == EA_PLATFORM_PS2 && ea->version == 3) {
+            /* SSX3 (PS2) weird 0x10 mini header (codec/loop start/loop end/samples) */
+            for (i = 0; i < vgmstream->channels; i++) {
+                vgmstream->ch[i].offset = ea->offsets[0] + 0x10;
+            }
+        }
+        else {
+            /* absolute */
             for (i = 0; i < vgmstream->channels; i++) {
                 vgmstream->ch[i].offset = ea->offsets[i];
             }
@@ -775,9 +791,6 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE *streamFile, ea_
             if (total_samples > vgmstream->num_samples)
                 vgmstream->num_samples = total_samples;
         }
-
-        /* setup first block to update offsets */
-        block_update_ea_schl(start_offset,vgmstream);
     }
 
     return vgmstream;
@@ -856,7 +869,7 @@ static int parse_variable_header(STREAMFILE* streamFile, ea_header* ea, off_t be
 
             case 0x05: /* unknown (usually 0x50 except Madden NFL 3DS: 0x3e800) */
             case 0x06: /* priority (0..100, always 0x65 for streams, others for BNKs; rarely ommited) */
-            case 0x07: /* unknown (BNK only: 36|3A) */
+            case 0x07: /* unknown (BNK only: 36|3A|40) */
             case 0x08: /* release envelope (BNK only) */
             case 0x09: /* related to playback envelope (BNK only) */
             case 0x0A: /* bend range (BNK only) */
@@ -889,7 +902,6 @@ static int parse_variable_header(STREAMFILE* streamFile, ea_header* ea, off_t be
                 break;
 
             case 0xFC: /* padding for alignment between patches */
-            case 0xFE: /* padding? (actually exists?) */
             case 0xFD: /* info section start marker */
                 break;
 
@@ -991,6 +1003,12 @@ static int parse_variable_header(STREAMFILE* streamFile, ea_header* ea, off_t be
 
             case 0xFF: /* header end (then 0-padded so it's 32b aligned) */
                 is_header_end = 1;
+                break;
+            case 0xFE: /* info subsection start marker (rare [SSX3 (PS2)]) */
+                is_header_end = 1;
+                /* Signals that another info section starts, redefining codec/samples/offsets/etc
+                 * (previous header values should be cleared first as not everything is overwritten).
+                 * This subsection seems the same as a next or prev PT subsong, so it's ignored. */
                 break;
 
             default:
@@ -1148,7 +1166,7 @@ fail:
  * music (.map/lin). Subfiles always share header, except num_samples. */
 static int get_ea_stream_total_samples(STREAMFILE* streamFile, off_t start_offset, VGMSTREAM* vgmstream) {
     int num_samples = 0;
-    int new_schl = 0;
+    int multiple_schl = 0;
 
     /* calc num_samples as playable data size varies between files/blocks */
     {
@@ -1156,16 +1174,19 @@ static int get_ea_stream_total_samples(STREAMFILE* streamFile, off_t start_offse
         do {
             uint32_t block_id = read_32bitBE(vgmstream->next_block_offset+0x00,streamFile);
             if (block_id == EA_BLOCKID_HEADER) /* "SCHl" start block (movie "SHxx" shouldn't use multi files) */
-                new_schl = 1;
+                multiple_schl = 1;
 
             block_update_ea_schl(vgmstream->next_block_offset,vgmstream);
             num_samples += vgmstream->current_block_samples;
         }
         while (vgmstream->next_block_offset < get_streamfile_size(streamFile));
+
+    	/* reset after getting samples */
+	    block_update(start_offset,vgmstream);
     }
 
     /* only use calculated samples with multiple subfiles (rarely header samples may be less due to padding) */
-    if (new_schl) {
+    if (multiple_schl) {
         ;VGM_LOG("EA SCHl: multiple SCHl found\n");
         return num_samples;
     }
