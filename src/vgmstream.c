@@ -2485,79 +2485,42 @@ fail:
     return;
 }
 
-/* average bitrate helper */
-static int get_vgmstream_average_bitrate_channel_count(VGMSTREAM * vgmstream)
-{
-    //AAX, AIX, ACM?
-
-    if (vgmstream->layout_type==layout_layered) {
-        layered_layout_data *data = (layered_layout_data *) vgmstream->layout_data;
-        return (data) ? data->layer_count : 0;
-    }
-#ifdef VGM_USE_VORBIS
-    if (vgmstream->coding_type==coding_OGG_VORBIS) {
-        ogg_vorbis_codec_data *data = (ogg_vorbis_codec_data *) vgmstream->codec_data;
-        return (data) ? 1 : 0;
-    }
-#endif
-    if (vgmstream->coding_type==coding_CRI_HCA) {
-        hca_codec_data *data = (hca_codec_data *) vgmstream->codec_data;
-        return (data) ? 1 : 0;
-    }
-#ifdef VGM_USE_FFMPEG
-    if (vgmstream->coding_type==coding_FFmpeg) {
-        ffmpeg_codec_data *data = (ffmpeg_codec_data *) vgmstream->codec_data;
-        return (data) ? 1 : 0;
-    }
-#endif
-#if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
-    if (vgmstream->coding_type==coding_MP4_AAC) {
-        mp4_aac_codec_data *data = (mp4_aac_codec_data *) vgmstream->codec_data;
-        return (data) ? 1 : 0;
-    }
-#endif
-    return vgmstream->channels;
-}
-
-/* average bitrate helper */
-static STREAMFILE * get_vgmstream_average_bitrate_channel_streamfile(VGMSTREAM * vgmstream, int channel)
-{
-    //AAX, AIX?
+/* average bitrate helper to get STREAMFILE for a channel, since some codecs may use their own */
+static STREAMFILE * get_vgmstream_average_bitrate_channel_streamfile(VGMSTREAM * vgmstream, int channel) {
 
     if (vgmstream->coding_type==coding_NWA) {
-        nwa_codec_data *data = (nwa_codec_data *) vgmstream->codec_data;
-        if (data && data->nwa)
-        return data->nwa->file;
+        nwa_codec_data *data = vgmstream->codec_data;
+        return (data && data->nwa) ? data->nwa->file : NULL;
     }
 
     if (vgmstream->coding_type==coding_ACM) {
-        acm_codec_data *data = (acm_codec_data *) vgmstream->codec_data;
-        if (data && data->handle)
-        return data->streamfile;
+        acm_codec_data *data = vgmstream->codec_data;
+        return (data && data->handle) ? data->streamfile : NULL;
     }
 
 #ifdef VGM_USE_VORBIS
     if (vgmstream->coding_type==coding_OGG_VORBIS) {
-        ogg_vorbis_codec_data *data = (ogg_vorbis_codec_data *) vgmstream->codec_data;
-        return data->ov_streamfile.streamfile;
+        ogg_vorbis_codec_data *data = vgmstream->codec_data;
+        return data ? data->ov_streamfile.streamfile : NULL;
     }
 #endif
     if (vgmstream->coding_type==coding_CRI_HCA) {
-        hca_codec_data *data = (hca_codec_data *) vgmstream->codec_data;
-        return data->streamfile;
+        hca_codec_data *data = vgmstream->codec_data;
+        return data ? data->streamfile : NULL;
     }
 #ifdef VGM_USE_FFMPEG
     if (vgmstream->coding_type==coding_FFmpeg) {
-        ffmpeg_codec_data *data = (ffmpeg_codec_data *) vgmstream->codec_data;
-        return data->streamfile;
+        ffmpeg_codec_data *data = vgmstream->codec_data;
+        return data ? data->streamfile : NULL;
     }
 #endif
 #if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
     if (vgmstream->coding_type==coding_MP4_AAC) {
-        mp4_aac_codec_data *data = (mp4_aac_codec_data *) vgmstream->codec_data;
-        return data->if_file.streamfile;
+        mp4_aac_codec_data *data = vgmstream->codec_data;
+        return data ? data->if_file.streamfile : NULL;
     }
 #endif
+
     return vgmstream->ch[channel].streamfile;
 }
 
@@ -2577,10 +2540,9 @@ int get_vgmstream_average_bitrate(VGMSTREAM * vgmstream) {
     int bitrate = 0;
     int sample_rate = vgmstream->sample_rate;
     int length_samples = vgmstream->num_samples;
-    int channels;
-    STREAMFILE * streamFile;
+    int channels = vgmstream->channels;
 
-    if (!sample_rate || !length_samples)
+    if (!sample_rate || !length_samples || !channels)
         return 0;
 
     /* subsongs need to report this to properly calculate */
@@ -2599,33 +2561,24 @@ int get_vgmstream_average_bitrate(VGMSTREAM * vgmstream) {
         return get_vgmstream_average_bitrate(data->layers[0]);
     }
 
+    /* compares files by absolute paths, so bitrate doesn't multiply when the same STREAMFILE is reopened per channel */
+    for (i = 0; i < channels; i++) {
+        STREAMFILE * currentFile = get_vgmstream_average_bitrate_channel_streamfile(vgmstream, i);
+        if (!currentFile) continue;
+        get_streamfile_name(currentFile, path_current, sizeof(path_current));
 
-    channels = get_vgmstream_average_bitrate_channel_count(vgmstream);
-    if (!channels) return 0;
-
-    if (channels >= 1) {
-        streamFile = get_vgmstream_average_bitrate_channel_streamfile(vgmstream, 0);
-        if (streamFile) {
-            bitrate += get_vgmstream_average_bitrate_from_streamfile(streamFile, sample_rate, length_samples);
-        }
-    }
-
-    /* Compares files by absolute paths, so bitrate doesn't multiply when the same STREAMFILE is reopened per channel */
-    for (i = 1; i < channels; ++i) {
-        streamFile = get_vgmstream_average_bitrate_channel_streamfile(vgmstream, i);
-        if (!streamFile)
-            continue;
-        streamFile->get_name(streamFile, path_current, sizeof(path_current));
-        for (j = 0; j < i; ++j) {
+        for (j = 0; j < i; j++) {
             STREAMFILE * compareFile = get_vgmstream_average_bitrate_channel_streamfile(vgmstream, j);
-            if (!compareFile)
-                continue;
-            streamFile->get_name(compareFile, path_compare, sizeof(path_compare));
-            if (!strcmp(path_current, path_compare))
+            if (!compareFile) continue;
+            get_streamfile_name(compareFile, path_compare, sizeof(path_compare));
+
+            if (strcmp(path_current, path_compare) != 0)
                 break;
         }
-        if (j == i)
-            bitrate += get_vgmstream_average_bitrate_from_streamfile(streamFile, sample_rate, length_samples);
+
+        if (j == i) { /* current STREAMFILE hasn't appeared in a previous channel */
+            bitrate += get_vgmstream_average_bitrate_from_streamfile(currentFile, sample_rate, length_samples);
+        }
     }
 
     return bitrate;
