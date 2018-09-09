@@ -502,9 +502,7 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
         }
 
         case OPUS: {    /* Switch */
-            uint8_t buf[0x100];
-            size_t bytes, skip;
-            ffmpeg_custom_config cfg = {0};
+            size_t skip = 0; /* Wwise doesn't seem to use it? (0x138 /0x3E8 ~default) */
 
             /* values up to 0x14 seem fixed and similar to HEVAG's (block_align 0x02/04, bits_per_sample 0x10) */
             if (ww.fmt_size == 0x28) {
@@ -521,15 +519,8 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
                 goto fail;
             }
 
-            skip = 0; /* Wwise doesn't seem to use it? (0x138 /0x3E8 ~default) */
-
-            cfg.type = FFMPEG_SWITCH_OPUS;
-            //cfg.big_endian = ww.big_endian; /* internally BE */
-
-            bytes = ffmpeg_make_opus_header(buf,0x100, ww.channels, skip, ww.sample_rate);
-            vgmstream->codec_data = init_ffmpeg_config(streamFile, buf,bytes, start_offset,ww.data_size, &cfg);
+            vgmstream->codec_data = init_ffmpeg_switch_opus(streamFile, start_offset,ww.data_size, vgmstream->channels, skip, vgmstream->sample_rate);
             if (!vgmstream->codec_data) goto fail;
-
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
             break;

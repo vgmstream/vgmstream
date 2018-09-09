@@ -1117,7 +1117,6 @@ typedef struct {
 /* Custom FFMPEG modes */
 typedef enum {
     FFMPEG_STANDARD,        /* default FFmpeg */
-    FFMPEG_SWITCH_OPUS,     /* Opus without Ogg layer */
 } ffmpeg_custom_t;
 
 /* config for the above modes */

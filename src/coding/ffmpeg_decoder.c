@@ -220,7 +220,6 @@ static int ffmpeg_read(void *opaque, uint8_t *buf, int buf_size) {
 
     /* main read */
     switch(data->config.type) {
-        case FFMPEG_SWITCH_OPUS:    ret = ffmpeg_custom_read_switch_opus(data, buf, buf_size); break;
         default:                    ret = ffmpeg_custom_read_standard(data, buf, buf_size); break;
     }
     data->virtual_offset += ret;
@@ -285,7 +284,6 @@ static int64_t ffmpeg_seek(void *opaque, int64_t offset, int whence) {
 
     /* main seek */
     switch(data->config.type) {
-        case FFMPEG_SWITCH_OPUS:    offset = ffmpeg_custom_seek_switch_opus(data, offset); break;
         default:                    offset = ffmpeg_custom_seek_standard(data, offset); break;
     }
     data->virtual_offset = offset;
@@ -299,7 +297,6 @@ static int64_t ffmpeg_seek(void *opaque, int64_t offset, int whence) {
 static int64_t ffmpeg_size(ffmpeg_codec_data * data) {
     int64_t bytes;
     switch(data->config.type) {
-        case FFMPEG_SWITCH_OPUS:    bytes = ffmpeg_custom_size_switch_opus(data); break;
         default:                    bytes = ffmpeg_custom_size_standard(data); break;
     }
 

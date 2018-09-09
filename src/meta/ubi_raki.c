@@ -185,9 +185,7 @@ VGMSTREAM * init_vgmstream_ubi_raki(STREAMFILE *streamFile) {
 #ifdef VGM_USE_FFMPEG
         case 0x4E7820204E782020: {  /* "Nx  Nx  " */
             /* chunks: "MARK" (optional seek table), "STRG" (optional description) */
-            uint8_t buf[0x100];
-            size_t bytes, skip, opus_size;
-            ffmpeg_custom_config cfg = {0};
+            size_t skip, opus_size;
 
             /* a standard Switch Opus header */
             skip = read_32bitLE(start_offset + 0x1c, streamFile);
@@ -195,18 +193,10 @@ VGMSTREAM * init_vgmstream_ubi_raki(STREAMFILE *streamFile) {
             start_offset += opus_size;
             data_size -= opus_size;
 
-            cfg.type = FFMPEG_SWITCH_OPUS;
-
-            bytes = ffmpeg_make_opus_header(buf,0x100, vgmstream->channels, skip, vgmstream->sample_rate);
-            if (bytes <= 0) goto fail;
-
-            vgmstream->codec_data = init_ffmpeg_config(streamFile, buf,bytes, start_offset,data_size, &cfg);
+            vgmstream->codec_data = init_ffmpeg_switch_opus(streamFile, start_offset,data_size, vgmstream->channels, skip, vgmstream->sample_rate);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
-
-            if (((ffmpeg_codec_data*)vgmstream->codec_data)->skipSamples <= 0)
-                ffmpeg_set_skip_samples(vgmstream->codec_data, skip);
 
             {
                 off_t chunk_offset = off + 0x20 + 0xc; /* after "fmt" */

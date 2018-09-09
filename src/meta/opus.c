@@ -35,39 +35,23 @@ static VGMSTREAM * init_vgmstream_opus(STREAMFILE *streamFile, meta_t meta_type,
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
+    vgmstream->meta_type = meta_type;
     vgmstream->sample_rate = read_32bitLE(offset + 0x0c,streamFile);
-    vgmstream->meta_type = meta_OPUS;
 
     vgmstream->num_samples = num_samples;
     vgmstream->loop_start_sample = loop_start;
     vgmstream->loop_end_sample = loop_end;
+    vgmstream->stream_size = data_size; /* to avoid inflated sizes from fake OggS IO */
 
 #ifdef VGM_USE_FFMPEG
     {
-        uint8_t buf[0x100];
-        size_t bytes;
-        ffmpeg_custom_config cfg = {0};
-        ffmpeg_codec_data *ffmpeg_data;
-
-        bytes = ffmpeg_make_opus_header(buf,0x100, vgmstream->channels, skip, vgmstream->sample_rate);
-        if (bytes <= 0) goto fail;
-
-        cfg.type = FFMPEG_SWITCH_OPUS;
-
-        ffmpeg_data = init_ffmpeg_config(streamFile, buf,bytes, start_offset,data_size, &cfg);
-        if (!ffmpeg_data) goto fail;
-
-        vgmstream->codec_data = ffmpeg_data;
+        vgmstream->codec_data = init_ffmpeg_switch_opus(streamFile, start_offset,data_size, vgmstream->channels, skip, vgmstream->sample_rate);
+        if (!vgmstream->codec_data) goto fail;
         vgmstream->coding_type = coding_FFmpeg;
         vgmstream->layout_type = layout_none;
 
-        if (ffmpeg_data->skipSamples <= 0) {
-            ffmpeg_set_skip_samples(ffmpeg_data, skip);
-        }
-
         if (vgmstream->num_samples == 0) {
-            vgmstream->num_samples = switch_opus_get_samples(start_offset, data_size,
-                vgmstream->sample_rate, streamFile) - skip;
+            vgmstream->num_samples = switch_opus_get_samples(start_offset, data_size, vgmstream->sample_rate, streamFile) - skip;
         }
     }
 #else
@@ -95,13 +79,12 @@ VGMSTREAM * init_vgmstream_opus_std(STREAMFILE *streamFile) {
     if (!check_extensions(streamFile,"opus,lopus"))
         goto fail;
 
+    offset = 0x00;
+
     /* BlazBlue: Cross Tag Battle (Switch) PSI Metadata for corresponding Opus */
     /* Maybe future Arc System Works games will use this too? */
     PSIFile = open_streamfile_by_ext(streamFile, "psi");
-
-    offset = 0x00;
-
-    if (PSIFile){
+    if (PSIFile) {
         num_samples = read_32bitLE(0x8C, PSIFile);
         loop_start = read_32bitLE(0x84, PSIFile);
         loop_end = read_32bitLE(0x88, PSIFile);
@@ -171,7 +154,6 @@ VGMSTREAM * init_vgmstream_opus_capcom(STREAMFILE *streamFile) {
     if (channel_count == 6) {
         /* 2ch multistream hacky-hacks, don't try this at home. We'll end up with:
          * main vgmstream > N vgmstream layers > substream IO deinterleaver > opus meta > Opus IO transmogrifier (phew) */
-        //todo deinterleave has some problems with reading after total_size
         layered_layout_data* data = NULL;
         int layers = channel_count / 2;
         int i;
@@ -359,36 +341,19 @@ VGMSTREAM * init_vgmstream_opus_nxa(STREAMFILE *streamFile) {
     vgmstream = allocate_vgmstream(channel_count, loop_flag);
     if (!vgmstream) goto fail;
 
+    vgmstream->meta_type = meta_OPUS;
     vgmstream->num_samples = read_32bitLE(0x20, streamFile);
     vgmstream->sample_rate = read_32bitLE(0x0C, streamFile);
-    vgmstream->meta_type = meta_OPUS;
 
 #ifdef VGM_USE_FFMPEG
     {
-        uint8_t buf[0x100];
-        size_t bytes;
-        ffmpeg_custom_config cfg = { 0 };
-        ffmpeg_codec_data *ffmpeg_data;
-
-        bytes = ffmpeg_make_opus_header(buf, 0x100, vgmstream->channels, skip, vgmstream->sample_rate);
-        if (bytes <= 0) goto fail;
-
-        cfg.type = FFMPEG_SWITCH_OPUS;
-
-        ffmpeg_data = init_ffmpeg_config(streamFile, buf, bytes, start_offset, data_size, &cfg);
-        if (!ffmpeg_data) goto fail;
-
-        vgmstream->codec_data = ffmpeg_data;
+        vgmstream->codec_data = init_ffmpeg_switch_opus(streamFile, start_offset, data_size, vgmstream->channels, skip, vgmstream->sample_rate);
+        if (!vgmstream->codec_data) goto fail;
         vgmstream->coding_type = coding_FFmpeg;
         vgmstream->layout_type = layout_none;
 
-        if (ffmpeg_data->skipSamples <= 0) {
-            ffmpeg_set_skip_samples(ffmpeg_data, skip);
-        }
-
         if (vgmstream->num_samples == 0) {
-            vgmstream->num_samples = switch_opus_get_samples(start_offset, data_size,
-            vgmstream->sample_rate, streamFile) - skip;
+            vgmstream->num_samples = switch_opus_get_samples(start_offset, data_size,                     vgmstream->sample_rate, streamFile) - skip;
         }
     }
 #else
