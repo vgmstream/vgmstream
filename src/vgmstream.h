@@ -703,6 +703,7 @@ typedef enum {
     meta_WV2,               /* Slave Zero (PC) */
     meta_XAU_KONAMI,        /* Yu-Gi-Oh - The Dawn of Destiny (Xbox) */
     meta_DERF,              /* Stupid Invaders (PC) */
+    meta_UTK,
 
 } meta_t;
 

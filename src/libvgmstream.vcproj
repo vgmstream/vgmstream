@@ -1434,6 +1434,10 @@
                     RelativePath=".\meta\ubi_sb.c"
                     >
                 </File>
+                <File
+                    RelativePath=".\meta\utk.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\vgs.c"
 					>

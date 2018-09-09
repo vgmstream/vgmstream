@@ -886,6 +886,9 @@
     <ClCompile Include="meta\ubi_sb.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\utk.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\vs.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>

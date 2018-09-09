@@ -438,6 +438,7 @@
     <ClCompile Include="meta\ubi_lyn.c" />
     <ClCompile Include="meta\ubi_raki.c" />
     <ClCompile Include="meta\ubi_sb.c" />
+    <ClCompile Include="meta\utk.c" />
     <ClCompile Include="meta\vs.c" />
     <ClCompile Include="meta\vsf.c" />
     <ClCompile Include="meta\vsf_tta.c" />

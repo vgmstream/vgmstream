@@ -382,6 +382,7 @@ static const char* extension_list[] = {
 
     "ulw",
     "um3",
+    "utk",
     "uv",
 
     "v0",
@@ -1089,6 +1090,7 @@ static const meta_info meta_info_list[] = {
         {meta_WV2,                  "Infogrames North America WAV2 header"},
         {meta_XAU_KONAMI,           "Konami XAU header"},
         {meta_DERF,                 "Xilam DERF header"},
+        {meta_UTK,                  "Maxis UTK header"},
 
 };
 

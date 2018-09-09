@@ -787,4 +787,6 @@ VGMSTREAM * init_vgmstream_xau_konami(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_derf(STREAMFILE *streamFile);
 
+VGMSTREAM * init_vgmstream_utk(STREAMFILE *streamFile);
+
 #endif /*_META_H*/
