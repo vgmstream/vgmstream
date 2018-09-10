@@ -830,10 +830,14 @@
                     RelativePath=".\meta\nus3bank.c"
                     >
                 </File>
-				<File
-					RelativePath=".\meta\nwa.c"
-					>
-				</File>
+                <File
+                    RelativePath=".\meta\nwa.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\nxa.c"
+                    >
+                </File>
                 <File
                     RelativePath=".\meta\nxap.c"
                     >

@@ -1091,6 +1091,7 @@ static const meta_info meta_info_list[] = {
         {meta_XAU_KONAMI,           "Konami XAU header"},
         {meta_DERF,                 "Xilam DERF header"},
         {meta_UTK,                  "Maxis UTK header"},
+        {meta_NXA,                  "Entergram NXA header"},
 
 };
 

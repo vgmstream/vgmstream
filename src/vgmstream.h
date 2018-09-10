@@ -704,6 +704,7 @@ typedef enum {
     meta_XAU_KONAMI,        /* Yu-Gi-Oh - The Dawn of Destiny (Xbox) */
     meta_DERF,              /* Stupid Invaders (PC) */
     meta_UTK,
+    meta_NXA,
 
 } meta_t;
 
