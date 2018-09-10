@@ -23,10 +23,12 @@ struct ea_mt_codec_data {
     STREAMFILE *streamfile;
     uint8_t buffer[UTK_BUFFER_SIZE];
     off_t offset;
+    off_t loop_offset;
+    int loop_sample;
+
     int pcm_blocks;
     int samples_filled;
     int samples_used;
-    int reset_sample;
     int samples_done;
     int samples_discard;
     void* utk_context;
@@ -34,8 +36,11 @@ struct ea_mt_codec_data {
 
 static size_t ea_mt_read_callback(void *dest, int size, void *arg);
 
+ea_mt_codec_data *init_ea_mt(int channels, int pcm_blocks) {
+    return init_ea_mt_loops(channels, pcm_blocks, 0, NULL);
+}
 
-ea_mt_codec_data *init_ea_mt(int channels, int pcm_blocks, int reset_sample) {
+ea_mt_codec_data *init_ea_mt_loops(int channels, int pcm_blocks, int loop_sample, off_t *loop_offsets) {
     ea_mt_codec_data *data = NULL;
     int i;
 
@@ -48,7 +53,9 @@ ea_mt_codec_data *init_ea_mt(int channels, int pcm_blocks, int reset_sample) {
         utk_init(data[i].utk_context);
 
         data[i].pcm_blocks = pcm_blocks;
-        data[i].reset_sample = reset_sample;
+        data[i].loop_sample = loop_sample;
+        if (loop_offsets)
+            data[i].loop_offset = loop_offsets[i];
 
         utk_set_callback(data[i].utk_context, data[i].buffer, UTK_BUFFER_SIZE, &data[i], &ea_mt_read_callback);
     }
@@ -75,9 +82,9 @@ void decode_ea_mt(VGMSTREAM * vgmstream, sample * outbuf, int channelspacing, in
             int samples_to_get = ch_data->samples_filled;
 
             /* don't go past loop, to reset decoder */
-            if (ch_data->reset_sample > 0 && ch_data->samples_done < ch_data->reset_sample &&
-                    ch_data->samples_done + samples_to_get > ch_data->reset_sample)
-                samples_to_get = ch_data->reset_sample - ch_data->samples_done;
+            if (ch_data->loop_sample > 0 && ch_data->samples_done < ch_data->loop_sample &&
+                    ch_data->samples_done + samples_to_get > ch_data->loop_sample)
+                samples_to_get = ch_data->loop_sample - ch_data->samples_done;
 
             if (ch_data->samples_discard) {
                 /* discard samples for looping */
@@ -106,12 +113,14 @@ void decode_ea_mt(VGMSTREAM * vgmstream, sample * outbuf, int channelspacing, in
 
             /* Loops in EA-MT are done with fully separate intro/loop substreams. We must
              * notify the decoder when a new substream begins (even with looping disabled). */
-            if (ch_data->reset_sample > 0 && ch_data->samples_done == ch_data->reset_sample) {
+            if (ch_data->loop_sample > 0 && ch_data->samples_done == ch_data->loop_sample) {
                 ch_data->samples_filled = 0;
+				ch_data->samples_discard = 0;
 
+				/* offset is usually at loop_offset here, but not always (ex. loop_sample < 432) */
+                ch_data->offset = ch_data->loop_offset;
+                utk_set_ptr(ctx, 0, 0); /* reset the buffer reader */
                 utk_reset(ctx); /* decoder init (all fields must be reset, for some edge cases) */
-
-                //todo when loop start is < 432 decoder seems to have problems
             }
         }
         else {
@@ -146,11 +155,10 @@ static void flush_ea_mt_offsets(VGMSTREAM *vgmstream, int is_start, int samples_
             data[i].offset = vgmstream->ch[i].channel_start_offset;
         else
             data[i].offset = vgmstream->ch[i].offset;
-
         utk_set_ptr(ctx, 0, 0); /* reset the buffer reader */
 
         if (is_start) {
-            //utk_reset(ctx); //todo
+            utk_reset(ctx);
             ctx->parsed_header = 0;
             data[i].samples_done = 0;
         }

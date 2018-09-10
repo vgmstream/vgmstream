@@ -34,7 +34,7 @@ VGMSTREAM * init_vgmstream_utk(STREAMFILE *streamFile) {
     vgmstream->num_samples = read_32bitLE(0x04, streamFile) / 2; /* PCM size */
     vgmstream->coding_type = coding_EA_MT;
     vgmstream->layout_type = layout_none;
-    vgmstream->codec_data = init_ea_mt(vgmstream->channels, 0, 0);
+    vgmstream->codec_data = init_ea_mt(vgmstream->channels, 0);
     if (!vgmstream->codec_data) goto fail;
 
     if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))

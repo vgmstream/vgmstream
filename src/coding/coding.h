@@ -166,7 +166,8 @@ void decode_derf(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing,
 
 
 /* ea_mt_decoder*/
-ea_mt_codec_data *init_ea_mt(int channels, int type, int reset_sample);
+ea_mt_codec_data *init_ea_mt(int channels, int type);
+ea_mt_codec_data *init_ea_mt_loops(int channels, int pcm_blocks, int loop_sample, off_t *loop_offsets);
 void decode_ea_mt(VGMSTREAM * vgmstream, sample * outbuf, int channelspacing, int32_t samples_to_do, int channel);
 void reset_ea_mt(VGMSTREAM * vgmstream);
 void flush_ea_mt(VGMSTREAM *vgmstream);

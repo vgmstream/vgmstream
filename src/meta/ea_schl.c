@@ -90,6 +90,7 @@ typedef struct {
 
     off_t offsets[EA_MAX_CHANNELS];
     off_t coefs[EA_MAX_CHANNELS];
+    off_t loops[EA_MAX_CHANNELS];
 
     int big_endian;
     int loop_flag;
@@ -594,7 +595,7 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE *streamFile, ea_
             }
         }
         else if (vgmstream->channels > 1 && ea->codec2 == EA_CODEC2_GCADPCM && ea->offsets[0] == ea->offsets[1]) {
-            /* pcstream+gcadpcm with sx.exe v2, this is probably an bug (even with this parts of the wave are off) */
+            /* pcstream+gcadpcm with sx.exe v2, this is probably a bug (even with this parts of the wave are off) */
             int interleave = (vgmstream->num_samples / 14 * 8); /* full interleave */
             for (i = 0; i < vgmstream->channels; i++) {
                 ea->offsets[i] = ea->offsets[0] + interleave*i;
@@ -702,8 +703,15 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE *streamFile, ea_
                 use_pcm_blocks = 1;
             }
 
+            /* make relative loops absolute for the decoder */
+            if (ea->loop_flag) {
+                for (i = 0; i < vgmstream->channels; i++) {
+                    ea->loops[i] += ea->offsets[0];
+                }
+            }
+
             vgmstream->coding_type = coding_EA_MT;
-            vgmstream->codec_data = init_ea_mt(vgmstream->channels, use_pcm_blocks, ea->loop_start);
+            vgmstream->codec_data = init_ea_mt_loops(vgmstream->channels, use_pcm_blocks, ea->loop_start, ea->loops);
             if (!vgmstream->codec_data) goto fail;
             break;
         }
@@ -861,6 +869,8 @@ static int parse_variable_header(STREAMFILE* streamFile, ea_header* ea, off_t be
         uint8_t patch_type = read_8bit(offset,streamFile);
         offset++;
 
+        //;off_t test_offset = offset;
+        //;VGM_LOG("EA SCHl: patch=%02x at %lx, value=%x\n", patch_type, offset-1, read_patch(streamFile, &test_offset));
         switch(patch_type) {
             case 0x00: /* signals non-default block rate and maybe other stuff; or padding after 0xFF */
                 if (!is_header_end)
@@ -873,7 +883,7 @@ static int parse_variable_header(STREAMFILE* streamFile, ea_header* ea, off_t be
             case 0x08: /* release envelope (BNK only) */
             case 0x09: /* related to playback envelope (BNK only) */
             case 0x0A: /* bend range (BNK only) */
-            case 0x0B: /* unknown (always 0x02) */
+            case 0x0B: /* bank channels (or, offsets[] size; defaults to 1 if not present, removed in sx.exe v3) */
             case 0x0C: /* pan offset (BNK only) */
             case 0x0D: /* random pan offset range (BNK only) */
             case 0x0E: /* volume (BNK only) */
@@ -885,19 +895,17 @@ static int parse_variable_header(STREAMFILE* streamFile, ea_header* ea, off_t be
             case 0x14: /* emdedded user data (free size/value) */
             case 0x15: /* unknown, rare (BNK only) [Need for Speed: High Stakes (PS1)] */
             case 0x19: /* related to playback envelope (BNK only) */
-            case 0x1A: /* unknown and very rare (BNK only) [SSX 3 (PS2)] */
             case 0x1B: /* unknown (movie only?) */
             case 0x1C: /* initial envelope volume (BNK only) */
             case 0x1D: /* unknown, rare [NASCAR 06 (Xbox)] */
-            case 0x1E:
+            case 0x1E: /* related to ch1? (BNK only) */
             case 0x1F:
             case 0x20:
-            case 0x21:
+            case 0x21: /* related to ch2? (BNK only) */
             case 0x22:
             case 0x23:
             case 0x24: /* master random detune range (BNK only) */
             case 0x25: /* unknown */
-            case 0x26: /* unknown, rare [FIFA 07 (Xbox)] */
                 read_patch(streamFile, &offset);
                 break;
 
@@ -933,7 +941,7 @@ static int parse_variable_header(STREAMFILE* streamFile, ea_header* ea, off_t be
                 ea->loop_start = read_patch(streamFile, &offset);
                 break;
             case 0x87: /* loop end sample */
-                ea->loop_end = read_patch(streamFile, &offset);
+                ea->loop_end = read_patch(streamFile, &offset) + 1; /* sx.exe does +1 */
                 break;
 
             /* channel offsets (BNK only), can be the equal for all channels or interleaved; not necessarily contiguous */
@@ -979,6 +987,25 @@ static int parse_variable_header(STREAMFILE* streamFile, ea_header* ea, off_t be
             case 0xAD: /* DSP coefs ch6 */
                 ea->coefs[5] = offset+1;
                 read_patch(streamFile, &offset);
+                break;
+
+            case 0x1A: /* EA-MT/EA-XA relative loop offset of ch1 */
+                ea->loops[0] = read_patch(streamFile, &offset);
+                break;
+            case 0x26: /* EA-MT/EA-XA relative loop offset of ch2 */
+                ea->loops[1] = read_patch(streamFile, &offset);
+                break;
+            case 0x27: /* EA-MT/EA-XA relative loop offset of ch3 */
+                ea->loops[2] = read_patch(streamFile, &offset);
+                break;
+            case 0x28: /* EA-MT/EA-XA relative loop offset of ch4 */
+                ea->loops[3] = read_patch(streamFile, &offset);
+                break;
+            case 0x29: /* EA-MT/EA-XA relative loop offset of ch5 */
+                ea->loops[4] = read_patch(streamFile, &offset);
+                break;
+            case 0x2a: /* EA-MT/EA-XA relative loop offset of ch6 */
+                ea->loops[5] = read_patch(streamFile, &offset);
                 break;
 
             case 0x8A: /* long padding (always 0x00000000) */
