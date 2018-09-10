@@ -1630,10 +1630,6 @@
                     RelativePath=".\coding\ea_mt_decoder_utk.h"
                     >
                 </File>
-                <File
-                    RelativePath=".\coding\ffmpeg_decoder_utils.h"
-                    >
-                </File>
 				<File
 					RelativePath=".\coding\g72x_state.h"
 					>
@@ -1716,10 +1712,6 @@
                 </File>
                 <File
                     RelativePath=".\coding\ffmpeg_decoder_utils_switch_opus.c"
-                    >
-                </File>
-                <File
-                    RelativePath=".\coding\ffmpeg_decoder_utils.c"
                     >
                 </File>
 				<File

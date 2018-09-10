@@ -125,9 +125,6 @@
     <ClInclude Include="coding\ea_mt_decoder_utk.h">
       <Filter>coding\Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="coding\ffmpeg_decoder_utils.h">
-      <Filter>coding\Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="coding\fsb_vorbis_data.h">
       <Filter>coding\Header Files</Filter>
     </ClInclude>
@@ -1412,9 +1409,6 @@
       <Filter>coding\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\ffmpeg_decoder_utils_switch_opus.c">
-      <Filter>coding\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="coding\ffmpeg_decoder_utils.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\coding_utils.c">

@@ -1114,40 +1114,18 @@ typedef struct {
 } hca_codec_data;
 
 #ifdef VGM_USE_FFMPEG
-/* Custom FFMPEG modes */
-typedef enum {
-    FFMPEG_STANDARD,        /* default FFmpeg */
-} ffmpeg_custom_t;
-
-/* config for the above modes */
-typedef struct {
-    int stream_index; /* FFmpeg's sub-stream (as opposed to an internal stream in custom read/seeks) */
-    int codec_endian;
-    int channels;
-
-    ffmpeg_custom_t type; /* ffmpeg subtype */
-    size_t virtual_size; /* external value, if meta needs to know/supply it */
-
-    /* internal sequences, when needed */
-    int sequence;
-    int samples_done;
-} ffmpeg_custom_config;
-
 typedef struct {
     /*** IO internals ***/
     STREAMFILE *streamfile;
 
-    uint64_t real_start;        // absolute start within the streamfile
-    uint64_t real_offset;       // absolute offset within the streamfile
-    uint64_t real_size;         // max size within the streamfile
-    uint64_t virtual_offset;    // computed offset FFmpeg sees (including fake header)
-    uint64_t virtual_size;      // computed size FFmpeg sees (including fake header)
-    uint64_t virtual_base;      // info/base virtual_offset equivalent to current real_offset, block aligned (*not* including fake header)
+    uint64_t start;             // absolute start within the streamfile
+    uint64_t offset;            // absolute offset within the streamfile
+    uint64_t size;              // max size within the streamfile
+    uint64_t logical_offset;    // computed offset FFmpeg sees (including fake header)
+    uint64_t logical_size;      // computed size FFmpeg sees (including fake header)
     
     uint64_t header_size;       // fake header (parseable by FFmpeg) prepended on reads
     uint8_t *header_insert_block; // fake header data (ie. RIFF)
-
-    ffmpeg_custom_config config; /* custom config/state */
 
     /*** "public" API (read-only) ***/
     // stream info

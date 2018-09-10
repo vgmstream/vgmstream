@@ -2,15 +2,14 @@
 #include "../coding/coding.h"
 #include "../util.h"
 
-static int bink_get_info(STREAMFILE *streamFile, int * out_total_streams, size_t *out_stream_size, int * out_channel_count, int * out_sample_rate, int * out_num_samples);
+static int bink_get_info(STREAMFILE *streamFile, int target_subsong, int * out_total_streams, size_t *out_stream_size, int * out_channel_count, int * out_sample_rate, int * out_num_samples);
 
 /* BINK 1/2 - RAD Game Tools movies (audio/video format) */
 VGMSTREAM * init_vgmstream_bik(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     int channel_count = 0, loop_flag = 0, sample_rate = 0, num_samples = 0;
-    int total_subsongs = 0, stream_index = streamFile->stream_index;
+    int total_subsongs = 0, target_subsong = streamFile->stream_index;
     size_t stream_size;
-
 
     /* checks */
     /* .bik/bik2/bk2: standard
@@ -23,7 +22,7 @@ VGMSTREAM * init_vgmstream_bik(STREAMFILE *streamFile) {
         (read_32bitBE(0x00,streamFile) & 0xffffff00) != 0x4B423200 ) goto fail;
 
     /* find target stream info and samples */
-    if (!bink_get_info(streamFile, &total_subsongs, &stream_size, &channel_count, &sample_rate, &num_samples))
+    if (!bink_get_info(streamFile, target_subsong, &total_subsongs, &stream_size, &channel_count, &sample_rate, &num_samples))
         goto fail;
 
     /* build the VGMSTREAM */
@@ -39,11 +38,9 @@ VGMSTREAM * init_vgmstream_bik(STREAMFILE *streamFile) {
 
 #ifdef VGM_USE_FFMPEG
     {
-        ffmpeg_custom_config cfg = {0};
+        /* target_subsong should be passed with the streamFile */
 
-        cfg.stream_index = stream_index;
-
-        vgmstream->codec_data = init_ffmpeg_config(streamFile, NULL,0, 0x0,get_streamfile_size(streamFile), &cfg);
+        vgmstream->codec_data = init_ffmpeg_header_offset(streamFile, NULL,0, 0x0,get_streamfile_size(streamFile));
         if (!vgmstream->codec_data) goto fail;
         vgmstream->coding_type = coding_FFmpeg;
     }
@@ -63,12 +60,12 @@ fail:
  * as they are not in the main header. The header for BINK1 and 2 is the same.
  * (a ~3 min movie needs ~6000-7000 frames = fseeks, should be fast enough)
  */
-static int bink_get_info(STREAMFILE *streamFile, int * out_total_subsongs, size_t * out_stream_size, int * out_channel_count, int * out_sample_rate, int * out_num_samples) {
+static int bink_get_info(STREAMFILE *streamFile, int target_subsong, int * out_total_subsongs, size_t * out_stream_size, int * out_channel_count, int * out_sample_rate, int * out_num_samples) {
     uint32_t *offsets = NULL;
     uint32_t num_frames, num_samples_b = 0;
     off_t cur_offset;
     int i, j, sample_rate, channel_count;
-    int total_subsongs, target_subsong = streamFile->stream_index;
+    int total_subsongs;
     size_t stream_size = 0;
 
     size_t filesize = get_streamfile_size(streamFile);
