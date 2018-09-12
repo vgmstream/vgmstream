@@ -16,6 +16,13 @@
 **Git**: optional, to generate version numbers:
 - Git for Windows: https://git-scm.com/download/win
 
+**autotools**: optional, indirectly used by some libs.
+- For Windows you must include GCC and Linux's sh tool in some form in PATH. 
+  - The simplest would be installing MinGW-w64 for GCC.exe and Git for sh.exe, and making PATH point their bin dir. 
+  - ex. `C:/i686-7.1.0-win32-sjlj-rt_v5-rev2/mingw32/bin` and `C:/Git/bin`
+- Both must be installed/copied in a dir without spaces
+
+
 ## Compiling modules
 
 ### CLI (test.exe/vgmstream-cli) / Winamp plugin (in_vgmstream) / XMPlay plugin (xmp-vgmstream)
@@ -126,7 +133,112 @@ find . -name ".deps" -type d -exec rm -r "{}" \;
 git clean -fd
 ```
 
-# vgmstream123 player
+### vgmstream123 player
 Should be buildable with Autotools, much like the Audacious plugin, though requires libao (libao-dev).
 
 Windows builds are possible with libao.dll and includes, but some features are disabled.
+
+
+## External libraries
+Support for some codecs is done with external libs, instead of copying their code in vgmstream. There are various reasons for this:
+- each lib may have complex or conflicting ways to compile that aren't simple to duplicate
+- their sources can be quite big and undesirable to include in full
+- libs usually only compile with either GCC or MSVC, while vgmstream supports both compilers, so linking to the generated binary is much easier
+- not all licenses used by libs may allow to copy their code
+- simplifies maintenance and updating
+
+They are compiled in their own sources, and the resulting binary is linked by vgmstream using a few of their symbols.
+
+Currently only Windows builds can use external libraries, as vgmstream only includes generated 32-bit DLLs, but it should be fixable for others systems with some effort (libs are enabled on compile time). Ideally vgmstream could use libs compiled as static code (thus eliminating the need of DLLs), but involves a bunch of changes.
+
+Below is a quick explanation of each library and how to compile binaries from them. Unless mentioned, their latest version should be ok to use, though included DLLs may be a bit older.
+
+
+### libvorbis
+Adds support for Vorbis (inside Ogg and custom containers).
+- Source: http://downloads.xiph.org/releases/vorbis/libvorbis-1.3.6.zip
+- DLL: `libvorbis.dll`
+
+Should be buildable with MSVC (in /win32 dir are .sln files) or autotools (use `autogen.sh`).
+
+
+### mpg123
+Adds support for MPEG (MP1/MP2/MP3).
+- Source: https://sourceforge.net/projects/mpg123/files/mpg123/1.25.10/
+- Builds: http://www.mpg123.de/download/win32/1.25.10/
+- DLL: `libmpg123-0.dll`
+
+Must use autotools (sh configure, make, make install), though some scripts simplify the process: `makedll.sh`, `windows-builds.sh`.
+
+
+### libg7221_decode
+Adds support for ITU-T G.722.1 and G.722.1 annex C (standardization of Polycom Siren 7/14).
+- Source: https://github.com/kode54/libg7221_decode
+- DLL: `libg7221_decode.dll`
+
+Requires MSVC (use `g719.sln`).
+
+### libg719_decode
+Adds support for ITU-T G.719 (standardization of Polycom Siren 22).
+- Source: https://github.com/kode54/libg719_decode
+- DLL: `libg719_decode.dll`
+
+Requires MSVC (use `g719.sln`).
+
+
+### FFmpeg
+Adds support for multiple codecs: ATRAC3, ATRAC3plus, XMA1/2, WMA v1, WMA v2, WMAPro, AAC, Bink, AC3/SPDIF, Opus, Musepack, FLAC, etc (also Vorbis and MPEG for certain cases).
+- Source: https://github.com/FFmpeg/FFmpeg/
+- DLLs: `avcodec-vgmstream-58.dll`, `avformat-vgmstream-58.dll`, `avutil-vgmstream-56.dll`, `swresample-vgmstream-3.dll`
+
+vgmstream's FFmpeg builds remove many unnecessary parts of FFmpeg to trim down its gigantic size, and are also built with the "vgmstream-" preffix. Current options can be seen in `ffmpeg_options.txt`.
+
+For GCC simply use autotools (configure, make, make install), passing to `configure` the above options.
+
+For MSCV it can be done through a helper: https://github.com/jb-alvarado/media-autobuild_suite
+
+
+### LibAtrac9
+Adds support for ATRAC9.
+- Source: https://github.com/Thealexbarney/LibAtrac9
+- DLL: `libatrac9.dll`
+
+Use MSCV and `libatrac9.sln`.
+
+
+### libcelt
+Adds support for FSB CELT versions 0.6.1 and 0.11.0.
+- DLL: `libcelt-0061.dll`, `libcelt-0110.dll`
+- Source (0.6.1): http://downloads.us.xiph.org/releases/celt/celt-0.6.1.tar.gz
+- Source (0.11.0): http://downloads.xiph.org/releases/celt/celt-0.11.0.tar.gz
+
+FSB uses two incompatible, older libcelt versions. Both libraries export the same symbols so normally can't coexist together. To get them working we need to make sure symbols are renamed first. This may be solved in various ways:
+- using dynamic loading (LoadLibrary) but for portability it isn't an option
+- It may be possible to link+rename using .def files
+- Linux/Mingw's objcopy to (supposedly) rename DLL symbols
+- Use GCC's preprocessor to rename functions on compile
+- Rename functions in the source code directly.
+
+To compile we use autotools with GCC preprocessor renaming:
+- in the celt-0.6.1 dir:
+  ```
+  # creates Makefiles with Automake
+  sh.exe ./configure
+  
+  # LDFLAGS are needed to create the .dll (Automake whinning)
+  # CFLAGS rename a few CELT functions (we don't import the rest so they won't clash)
+  mingw32-make.exe clean
+  mingw32-make.exe LDFLAGS="-no-undefined" AM_CFLAGS="-Dcelt_decode=celt_0061_decode -Dcelt_decoder_create=celt_0061_decoder_create -Dcelt_decoder_destroy=celt_0061_decoder_destroy -Dcelt_mode_create=celt_0061_mode_create -Dcelt_mode_destroy=celt_0061_mode_destroy -Dcelt_mode_info=celt_0061_mode_info"
+  ```
+- in the celt-0.11.0 dir:
+  ```
+  # creates Makefiles with Automake
+  sh.exe ./configure
+
+  # LDFLAGS are needed to create the .dll (Automake whinning)
+  # CFLAGS rename a few CELT functions (notice one is different vs 0.6.1), CUSTOM_MODES is also a must.
+  mingw32-make.exe clean
+  mingw32-make.exe LDFLAGS="-no-undefined" AM_CFLAGS="-DCUSTOM_MODES=1 -Dcelt_decode=celt_0110_decode -Dcelt_decoder_create_custom=celt_0110_decoder_create_custom -Dcelt_decoder_destroy=celt_0110_decoder_destroy -Dcelt_mode_create=celt_0110_mode_create -Dcelt_mode_destroy=celt_0110_mode_destroy -Dcelt_mode_info=celt_0110_mode_info"
+  ```
+- take the .dlls from celt-x.x.x/libcelt/.libs, and rename libcelt.dll to libcelt-0061.dll and libcelt-0110.dll respectively.
+- Finally the includes. libcelt gives "celt.h" "celt_types.h" "celt_header.h", but since we renamed a few functions we have a simpler custom .h with minimal renamed symbols.

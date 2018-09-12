@@ -1,6 +1,6 @@
 # TXTP FORMAT
 
-TXTP is a mini-playlist file for various purposes, mainly to make more playable certain games that use uncommon ways to play their audio.
+TXTP is a text file with commands, to improve support for games using audio in certain uncommon or undesirable ways. It's in the form of a mini-playlist or a wrapper with play settings.
 
 Simply create a file named `(filename).txtp`, and inside write the commands described below.
 
