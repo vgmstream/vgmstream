@@ -179,6 +179,9 @@ static const adxkey_info adxkey8_list[] = {
         /* Kashimashi! Girl Meets Girl - Hajimete no Natsu Monogatari (PS2) */
         {0x6109,0x5135,0x673f, "KASHIM",0},
 
+        /* Bakumatsu Renka - Karyuu Kenshiden (PS2) */
+        {0x4919,0x612d,0x4919, "RENRENKA22",0},
+
 };
 
 static const adxkey_info adxkey9_list[] = {
