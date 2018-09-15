@@ -116,13 +116,13 @@
     <ClInclude Include="meta\fsb_keys.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="coding\acm_decoder.h">
+    <ClInclude Include="coding\acm_decoder_libacm.h">
       <Filter>coding\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="coding\coding.h">
       <Filter>coding\Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="coding\ffmpeg_decoder_utils.h">
+    <ClInclude Include="coding\ea_mt_decoder_utk.h">
       <Filter>coding\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="coding\fsb_vorbis_data.h">
@@ -290,6 +290,9 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\dec.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\derf.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\dmsg_segh.c">
@@ -506,6 +509,9 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\nwa.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\nxa.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\nxap.c">
@@ -880,6 +886,9 @@
     <ClCompile Include="meta\ubi_sb.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\utk.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\vs.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -988,6 +997,12 @@
     <ClCompile Include="coding\acm_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="coding\acm_decoder_decode.c">
+      <Filter>coding\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="coding\acm_decoder_util.c">
+      <Filter>coding\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="coding\adx_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
@@ -995,6 +1010,9 @@
       <Filter>coding\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\yamaha_decoder.c">
+      <Filter>coding\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="coding\derf_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\ea_mt_decoder.c">
@@ -1394,9 +1412,6 @@
       <Filter>coding\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\ffmpeg_decoder_utils_switch_opus.c">
-      <Filter>coding\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="coding\ffmpeg_decoder_utils.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\coding_utils.c">

@@ -60,14 +60,14 @@ int vorbis_custom_parse_packet_fsb(VGMSTREAMCHANNEL *stream, vorbis_custom_codec
     /* get next packet size from the FSB 16b header (doesn't count this 16b) */
     data->op.bytes = (uint16_t)read_16bitLE(stream->offset, stream->streamfile);
     stream->offset += 2;
-    if (data->op.bytes == 0 || data->op.bytes == 0xFFFF) {
+    if (data->op.bytes == 0 || data->op.bytes == 0xFFFF || data->op.bytes > data->buffer_size) {
         VGM_LOG("FSB Vorbis: wrong packet (0x%lx) @ %lx\n", data->op.bytes, stream->offset-2);
         goto fail; /* EOF or end padding */
     }
 
     /* read raw block */
     bytes = read_streamfile(data->buffer,stream->offset, data->op.bytes,stream->streamfile);
-    stream->offset += bytes;
+    stream->offset += data->op.bytes;
     if (bytes != data->op.bytes) {
         VGM_LOG("Wwise Vorbis: wrong bytes (0x%lx) @ %lx\n", data->op.bytes, stream->offset-bytes);
         goto fail; /* wrong packet? */

@@ -85,6 +85,7 @@ VGMSTREAM * init_vgmstream_flx(STREAMFILE *streamFile) {
 
         case 0x02:  /* EA-MT (voices) */
             vgmstream->coding_type = coding_EA_MT;
+            vgmstream->layout_type = layout_none;
             vgmstream->codec_data = init_ea_mt(vgmstream->channels, 0);
             if (!vgmstream->codec_data) goto fail;
 

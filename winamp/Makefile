@@ -3,8 +3,12 @@
 #
 
 
+# cross-compile
 ifneq ($(TARGET_OS),Windows_NT)
-$(error option must be built with TARGET_OS = Windows_NT)
+export CC=i586-mingw32msvc-gcc
+export AR=i586-mingw32msvc-ar
+export STRIP=i586-mingw32msvc-strip
+export WINDRES=i586-mingw32msvc-windres
 endif
 
 
@@ -17,7 +21,6 @@ TARGET_EXT_LIBS =
 
 
 ### external libs
-ifeq ($(TARGET_OS),Windows_NT)
 
 VGM_ENABLE_VORBIS = 1
 ifeq ($(VGM_ENABLE_VORBIS),1)
@@ -75,7 +78,6 @@ ifeq ($(VGM_ENABLE_CELT),1)
   TARGET_EXT_LIBS += libcelt-0061.a libcelt-0110.a
 endif
 
-endif #if WIN32
 
 export CFLAGS LDFLAGS
 

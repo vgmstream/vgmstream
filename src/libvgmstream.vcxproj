@@ -111,9 +111,9 @@
     <ClInclude Include="meta\meta.h" />
     <ClInclude Include="meta\hca_keys.h" />
     <ClInclude Include="meta\fsb_keys.h" />
-    <ClInclude Include="coding\acm_decoder.h" />
+    <ClInclude Include="coding\acm_decoder_libacm.h" />
     <ClInclude Include="coding\coding.h" />
-    <ClInclude Include="coding\ffmpeg_decoder_utils.h" />
+    <ClInclude Include="coding\ea_mt_decoder_utk.h" />
     <ClInclude Include="coding\fsb_vorbis_data.h" />
     <ClInclude Include="coding\g72x_state.h" />
     <ClInclude Include="coding\nwa_decoder.h" />
@@ -126,7 +126,6 @@
     <ClCompile Include="coding\coding_utils.c" />
     <ClCompile Include="coding\ffmpeg_decoder.c" />
     <ClCompile Include="coding\ffmpeg_decoder_utils_switch_opus.c" />
-    <ClCompile Include="coding\ffmpeg_decoder_utils.c" />
     <ClCompile Include="coding\lsf_decoder.c" />
     <ClCompile Include="coding\mp4_aac_decoder.c" />
     <ClCompile Include="coding\mtaf_decoder.c" />
@@ -234,6 +233,7 @@
     <ClCompile Include="meta\dc_kcey.c" />
     <ClCompile Include="meta\dc_str.c" />
     <ClCompile Include="meta\dec.c" />
+    <ClCompile Include="meta\derf.c" />
     <ClCompile Include="meta\dmsg_segh.c" />
     <ClCompile Include="meta\dsp_adx.c" />
     <ClCompile Include="meta\dsp_bdsp.c" />
@@ -312,6 +312,7 @@
     <ClCompile Include="meta\nub_xma.c" />
     <ClCompile Include="meta\nus3bank.c" />
     <ClCompile Include="meta\nwa.c" />
+    <ClCompile Include="meta\nxa.c" />
     <ClCompile Include="meta\nxap.c" />
     <ClCompile Include="meta\ogg_vorbis.c" />
     <ClCompile Include="meta\ogl.c" />
@@ -436,6 +437,7 @@
     <ClCompile Include="meta\ubi_lyn.c" />
     <ClCompile Include="meta\ubi_raki.c" />
     <ClCompile Include="meta\ubi_sb.c" />
+    <ClCompile Include="meta\utk.c" />
     <ClCompile Include="meta\vs.c" />
     <ClCompile Include="meta\vsf.c" />
     <ClCompile Include="meta\vsf_tta.c" />
@@ -474,9 +476,12 @@
     <ClCompile Include="meta\zsd.c" />
     <ClCompile Include="meta\zwdsp.c" />
     <ClCompile Include="coding\acm_decoder.c" />
+    <ClCompile Include="coding\acm_decoder_decode.c" />
+    <ClCompile Include="coding\acm_decoder_util.c" />
     <ClCompile Include="coding\adx_decoder.c" />
     <ClCompile Include="coding\asf_decoder.c" />
     <ClCompile Include="coding\yamaha_decoder.c" />
+    <ClCompile Include="coding\derf_decoder.c" />
     <ClCompile Include="coding\ea_mt_decoder.c" />
     <ClCompile Include="coding\ea_xa_decoder.c" />
     <ClCompile Include="coding\ea_xas_decoder.c" />

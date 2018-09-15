@@ -1,7 +1,7 @@
 #include "meta.h"
 #include "../coding/coding.h"
 
-/* .AIF - from Asobo Studio games [Ratatouille (PC)] */
+/* .AIF - from Asobo Studio games [Ratatouille (PC), WALL-E (PC), Up (PC)] */
 VGMSTREAM * init_vgmstream_aif_asobo(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     off_t start_offset;
@@ -16,7 +16,9 @@ VGMSTREAM * init_vgmstream_aif_asobo(STREAMFILE *streamFile) {
     if ((uint16_t)read_16bitLE(0x00,streamFile) != 0x69) /* Xbox codec */
         goto fail;
 
-    channel_count = read_16bitLE(0x02,streamFile); /* assumed */
+    channel_count = read_16bitLE(0x02,streamFile); /* assumed, only stereo is known */
+    if (channel_count != 2) goto fail;
+
     /* 0x08: ? */
     if ((uint16_t)read_16bitLE(0x0c,streamFile) != 0x24*channel_count) /* Xbox block */
         goto fail;

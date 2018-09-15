@@ -1,6 +1,6 @@
 # TXTP FORMAT
 
-TXTP is a mini-playlist file for various purposes, mainly to make more playable certain games that use uncommon ways to play their audio.
+TXTP is a text file with commands, to improve support for games using audio in certain uncommon or undesirable ways. It's in the form of a mini-playlist or a wrapper with play settings.
 
 Simply create a file named `(filename).txtp`, and inside write the commands described below.
 
@@ -27,6 +27,8 @@ loop_end_segment = 2 # optional, default is last
 # select subsong 12
 bigfiles/bgm.sxd2#12 #relative paths are ok too for TXTP
 
+#bigfiles/bgm.sxd2#s12 # "sN" is al alt for subsong
+
 # single files loop normally by default
 # if loop segment is defined it forces a full loop (0..num_samples)
 #loop_start_segment = 1
@@ -44,6 +46,7 @@ amb_fx.sb0#121 #notice "#" works as config or comment
 loop_start_segment = 3
 ```
 
+
 ### Channel mask for channel subsongs/layers
 - __Final Fantasy XIII-2__: _music_Home_01.ps3.txtp_
 ```
@@ -58,6 +61,7 @@ music_Home.ps3.scd#c3,4
 
 # song still has 4 channels, just mutes some
 ```
+
 
 ### Multilayered songs
 
@@ -93,10 +97,47 @@ file1.ext#m2-3  # "FL BL FR BR" to "FL FR BL BR"
 file2.ext#m2-3,4-5,4-6  # ogg "FL CN FR BL BR SB" to wav "FL FR CN SB BL BR"
 ```
 
+
+### Custom play settings
+Those setting should override player's defaults if set (except "loop forever"). They are equivalent to some test.exe options.
+
+- __God Hand (PS2)__: _boss2_3ningumi_ver6.txtp_ (each line is a separate TXTP)
+´´´
+# set number of loops
+boss2_3ningumi_ver6.adx#l3
+
+# set fade time (in seconds)
+boss2_3ningumi_ver6.adx#f10.5
+
+# set fade delay (in seconds)
+boss2_3ningumi_ver6.adx#d0.5
+
+# ignore and disable loops
+boss2_3ningumi_ver6.adx#i
+
+# don't fade out and instead play the song ending after
+boss2_3ningumi_ver6.adx#F  # this song has a nice stop
+
+# force full loops from end-to-end
+boss2_3ningumi_ver6.adx#E
+
+# settings can be combined
+boss2_3ningumi_ver6.adx#l2#F  # 2 loops + ending
+
+# settings can be combined
+boss2_3ningumi_ver6.adx#l1.5#d1#f5
+
+# boss2_3ningumi_ver6.adx#l1.0#F  # this is equivalent to #i
+´´´´
+
+For segments and layers the first file defines looping options.
+
+
 ### Force plugin extensions
 vgmstream supports a few common extensions that confuse plugins, like .wav/ogg/aac/opus/etc, so for them those extensions are disabled and are expected to be renamed to .lwav/logg/laac/lopus/etc. TXTP can make plugins play those disabled extensions, since it calls files directly by filename.
 
 Combined with TXTH, this can also be used for extensions that aren't normally accepted by vgmstream.
+
 
 ### TXTP combos
 TXTP may even reference other TXTP, or files that require TXTH, for extra complex cases. Each file defined in TXTP is internally parsed like it was a completely separate file, so there is a bunch of valid ways to mix them.
@@ -104,10 +145,12 @@ TXTP may even reference other TXTP, or files that require TXTH, for extra comple
 
 ## Mini TXTP
 
-To simplify TXTP creation, if the .txtp is empty (0 bytes) its filename is used directly as a command.
+To simplify TXTP creation, if the .txtp is empty (0 bytes) its filename is used directly as a command. Note that extension is also included (since vgmstream needs a full filename).
 - _bgm.sxd2#12.txtp_: plays subsong 12
 - _Ryoshima Coast 1 & 2.aix#c1,2.txtp_: channel mask
+- _boss2_3ningumi_ver6.adx#l2#F.txtp_: loop twice then play song end file normally
 - etc
+
 
 ## Other examples
 

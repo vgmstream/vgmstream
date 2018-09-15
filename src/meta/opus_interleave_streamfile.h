@@ -4,15 +4,16 @@
 
 
 typedef struct {
-    /* state */
-    off_t logical_offset; /* offset that corresponds to physical_offset */
-    off_t physical_offset; /* actual file offset */
-    int skip_frames; /* frames to skip from other streams at points */
-
     /* config */
     int streams;
-    off_t start_offset; /* pointing to the stream's beginning */
-    size_t total_size; /* size of the resulting substream */
+    off_t stream_offset;
+
+    /* state */
+    off_t logical_offset;       /* offset that corresponds to physical_offset */
+    off_t physical_offset;      /* actual file offset */
+    int skip_frames;            /* frames to skip from other streams at points */
+
+    size_t logical_size;
 } opus_interleave_io_data;
 
 
@@ -21,35 +22,33 @@ static size_t opus_interleave_io_read(STREAMFILE *streamfile, uint8_t *dest, off
     size_t total_read = 0;
 
     /* ignore bad reads */
-    if (offset < 0 || offset > data->total_size) {
+    if (offset < 0 || offset > data->logical_size) {
         return total_read;
     }
 
-    /* previous offset: re-start as we can't map logical<>physical offsets, since it may be VBR
-     * (kinda slow as it trashes buffers, but shouldn't happen often) */
+    /* previous offset: re-start as we can't map logical<>physical offsets (may be VBR) */
     if (offset < data->logical_offset) {
-        data->physical_offset = data->start_offset;
+        data->physical_offset = data->stream_offset;
         data->logical_offset = 0x00;
+        data->skip_frames = 0;
     }
 
     /* read doing one frame at a time */
     while (length > 0) {
-        size_t to_read, bytes_read;
-        off_t intrablock_offset, intradata_offset;
-        uint32_t data_size;
+        size_t data_size;
 
-        data_size = read_32bitBE(data->physical_offset+0x00,streamfile);
-
-        //if (offset >= data->total_size) //todo fix
-        //    return total_read;
-
-        /* Nintendo Opus header rather than a frame */
-        if ((uint32_t)data_size == 0x01000080) {
-            data_size = read_32bitLE(data->physical_offset+0x10,streamfile);
-            data_size += 0x08;
+        /* ignore EOF */
+        if (data->logical_offset >= data->logical_size) {
+            break;
         }
-        else {
-            data_size += 0x08;
+
+        /* process block (must be read every time since skip frame sizes may vary) */
+        {
+            data_size = read_32bitBE(data->physical_offset,streamfile);
+            if ((uint32_t)data_size == 0x01000080) //todo not ok if offset between 0 and header_size
+                data_size = read_32bitLE(data->physical_offset+0x10,streamfile) + 0x08;
+            else
+                data_size += 0x08;
         }
 
         /* skip frames from other streams */
@@ -59,7 +58,7 @@ static size_t opus_interleave_io_read(STREAMFILE *streamfile, uint8_t *dest, off
             continue;
         }
 
-        /* requested offset is outside current block, try next */
+        /* move to next block */
         if (offset >= data->logical_offset + data_size) {
             data->physical_offset += data_size;
             data->logical_offset += data_size;
@@ -67,32 +66,24 @@ static size_t opus_interleave_io_read(STREAMFILE *streamfile, uint8_t *dest, off
             continue;
         }
 
-        /* reads could fall in the middle of the block */
-        intradata_offset = offset - data->logical_offset;
-        intrablock_offset = intradata_offset;
+        /* read data */
+        {
+            size_t bytes_consumed, bytes_done, to_read;
 
-        /* clamp reads up to this block's end */
-        to_read = (data_size - intradata_offset);
-        if (to_read > length)
-            to_read = length;
-        if (to_read == 0)
-            return total_read; /* should never happen... */
+            bytes_consumed = offset - data->logical_offset;
+            to_read = data_size - bytes_consumed;
+            if (to_read > length)
+                to_read = length;
+            bytes_done = read_streamfile(dest, data->physical_offset + bytes_consumed, to_read, streamfile);
 
-        /* finally read and move buffer/offsets */
-        bytes_read = read_streamfile(dest, data->physical_offset + intrablock_offset, to_read, streamfile);
-        total_read += bytes_read;
-        if (bytes_read != to_read)
-            return total_read; /* couldn't read fully */
+            offset += bytes_done;
+            total_read += bytes_done;
+            length -= bytes_done;
+            dest += bytes_done;
 
-        dest += bytes_read;
-        offset += bytes_read;
-        length -= bytes_read;
-
-        /* block fully read, go next */
-        if (intradata_offset + bytes_read == data_size) {
-            data->physical_offset += data_size;
-            data->logical_offset += data_size;
-            data->skip_frames = data->streams - 1;
+            if (bytes_done != to_read || bytes_done == 0) {
+                break; /* error/EOF */
+            }
         }
     }
 
@@ -102,11 +93,12 @@ static size_t opus_interleave_io_read(STREAMFILE *streamfile, uint8_t *dest, off
 static size_t opus_interleave_io_size(STREAMFILE *streamfile, opus_interleave_io_data* data) {
     off_t info_offset;
 
-    if (data->total_size)
-        return data->total_size;
+    if (data->logical_size)
+        return data->logical_size;
 
-    info_offset = read_32bitLE(data->start_offset+0x10,streamfile);
-    return read_32bitLE(data->start_offset + info_offset+0x04,streamfile);
+    info_offset = read_32bitLE(data->stream_offset+0x10,streamfile);
+    data->logical_size = (0x08+info_offset) + read_32bitLE(data->stream_offset+info_offset+0x04,streamfile);
+    return data->logical_size;
 }
 
 
@@ -116,11 +108,10 @@ static STREAMFILE* setup_opus_interleave_streamfile(STREAMFILE *streamFile, off_
     opus_interleave_io_data io_data = {0};
     size_t io_data_size = sizeof(opus_interleave_io_data);
 
-    io_data.start_offset = start_offset;
+    io_data.stream_offset = start_offset;
     io_data.streams = streams;
     io_data.physical_offset = start_offset;
-    io_data.total_size = opus_interleave_io_size(streamFile, &io_data); /* force init */
-
+    io_data.logical_size = opus_interleave_io_size(streamFile, &io_data); /* force init */
 
     /* setup subfile */
     new_streamFile = open_wrap_streamfile(streamFile);

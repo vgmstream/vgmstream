@@ -460,10 +460,14 @@
 					RelativePath=".\meta\dc_str.c"
 					>
 				</File>
-				<File
-					RelativePath=".\meta\dec.c"
-					>
-				</File>
+                <File
+                    RelativePath=".\meta\dec.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\derf.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\dmsg_segh.c"
 					>
@@ -826,10 +830,14 @@
                     RelativePath=".\meta\nus3bank.c"
                     >
                 </File>
-				<File
-					RelativePath=".\meta\nwa.c"
-					>
-				</File>
+                <File
+                    RelativePath=".\meta\nwa.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\nxa.c"
+                    >
+                </File>
                 <File
                     RelativePath=".\meta\nxap.c"
                     >
@@ -1430,6 +1438,10 @@
                     RelativePath=".\meta\ubi_sb.c"
                     >
                 </File>
+                <File
+                    RelativePath=".\meta\utk.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\vgs.c"
 					>
@@ -1611,7 +1623,7 @@
 				Name="Header Files"
 				>
 				<File
-					RelativePath=".\coding\acm_decoder.h"
+					RelativePath=".\coding\acm_decoder_libacm.h"
 					>
 				</File>
                 <File
@@ -1619,7 +1631,7 @@
                     >
                 </File>
                 <File
-                    RelativePath=".\coding\ffmpeg_decoder_utils.h"
+                    RelativePath=".\coding\ea_mt_decoder_utk.h"
                     >
                 </File>
 				<File
@@ -1654,10 +1666,14 @@
 					RelativePath=".\coding\acm_decoder.c"
 					>
 				</File>
-				<File
-					RelativePath=".\coding\adx_decoder.c"
-					>
-				</File>
+                <File
+                    RelativePath=".\coding\acm_decoder_decode.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\coding\acm_decoder_util.c"
+                    >
+                </File>
                 <File
                     RelativePath=".\coding\asf_decoder.c"
                     >
@@ -1668,6 +1684,10 @@
 				</File>
                 <File
                     RelativePath=".\coding\coding_utils.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\coding\derf_decoder.c"
                     >
                 </File>
                 <File
@@ -1696,10 +1716,6 @@
                 </File>
                 <File
                     RelativePath=".\coding\ffmpeg_decoder_utils_switch_opus.c"
-                    >
-                </File>
-                <File
-                    RelativePath=".\coding\ffmpeg_decoder_utils.c"
                     >
                 </File>
 				<File

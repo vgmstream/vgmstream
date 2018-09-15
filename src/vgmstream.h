@@ -36,10 +36,6 @@ enum { STREAM_NAME_SIZE = 255 }; /* reasonable max */
 #include <g7221.h>
 #endif
 
-#ifdef VGM_USE_G719
-#include <g719.h>
-#endif
-
 #ifdef VGM_USE_MP4V2
 #define MP4V2_NO_STDINT_DEFS
 #include <mp4v2/mp4v2.h>
@@ -62,7 +58,6 @@ enum { STREAM_NAME_SIZE = 255 }; /* reasonable max */
 #include <clHCA.h>
 
 #include "coding/g72x_state.h"
-#include "coding/acm_decoder.h"
 #include "coding/nwa_decoder.h"
 
 
@@ -119,6 +114,7 @@ typedef enum {
     coding_SNDS_IMA,        /* Heavy Iron Studios .snds IMA ADPCM */
     coding_OTNS_IMA,        /* Omikron The Nomad Soul IMA ADPCM */
     coding_WV6_IMA,         /* Gorilla Systems WV6 4-bit IMA ADPCM */
+    coding_ALP_IMA,         /* High Voltage ALP 4-bit IMA ADPCM */
 
     coding_MS_IMA,          /* Microsoft IMA ADPCM */
     coding_XBOX_IMA,        /* XBOX IMA ADPCM */
@@ -134,7 +130,6 @@ typedef enum {
     coding_REF_IMA,         /* Reflections IMA ADPCM */
     coding_AWC_IMA,         /* Rockstar AWC IMA ADPCM */
     coding_UBI_IMA,         /* Ubisoft IMA ADPCM */
-
     coding_H4M_IMA,         /* H4M IMA ADPCM (stereo or mono, high nibble first) */
 
     coding_MSADPCM,         /* Microsoft ADPCM (stereo/mono) */
@@ -146,7 +141,6 @@ typedef enum {
     coding_YAMAHA_NXAP,     /* Yamaha ADPCM (NXAP variation) */
     coding_NDS_PROCYON,     /* Procyon Studio ADPCM */
     coding_L5_555,          /* Level-5 0x555 ADPCM */
-    coding_SASSC,           /* Activision EXAKT SASSC DPCM */
     coding_LSF,             /* lsf ADPCM (Fastlane Street Racing iPhone)*/
     coding_MTAF,            /* Konami MTAF ADPCM */
     coding_MTA2,            /* Konami MTA2 ADPCM */
@@ -160,6 +154,8 @@ typedef enum {
     coding_SDX2_int,        /* SDX2 2:1 Squareroot-Delta-Exact compression with sample-level interleave */
     coding_CBD2,            /* CBD2 2:1 Cuberoot-Delta-Exact compression DPCM */
     coding_CBD2_int,        /* CBD2 2:1 Cuberoot-Delta-Exact compression, with sample-level interleave  */
+    coding_SASSC,           /* Activision EXAKT SASSC 8-bit DPCM */
+    coding_DERF,            /* DERF 8-bit DPCM */
     coding_ACM,             /* InterPlay ACM */
     coding_NWA,             /* VisualArt's NWA */
 
@@ -706,6 +702,9 @@ typedef enum {
     meta_APC,               /* MegaRace 3 (PC) */
     meta_WV2,               /* Slave Zero (PC) */
     meta_XAU_KONAMI,        /* Yu-Gi-Oh - The Dawn of Destiny (Xbox) */
+    meta_DERF,              /* Stupid Invaders (PC) */
+    meta_UTK,
+    meta_NXA,
 
 } meta_t;
 
@@ -761,31 +760,42 @@ typedef struct {
 /* main vgmstream info */
 typedef struct {
     /* basics */
-    int32_t num_samples;    /* the actual number of samples in this stream */
-    int32_t sample_rate;    /* sample rate in Hz */
-    int channels;           /* number of channels */
-    coding_t coding_type;   /* type of encoding */
-    layout_t layout_type;   /* type of layout for data */
-    meta_t meta_type;       /* how we know the metadata */
-
-    /* subsongs and internal config */
-    int num_streams;            /* for multi-stream formats (0=not set/one stream, 1=one stream) */
-    int stream_index;           /* selected stream (also 1-based) */
-    char stream_name[STREAM_NAME_SIZE]; /* name of the current stream (info), if the file stores it and it's filled */
-    size_t stream_size;         /* info to properly calculate bitrate in case of subsongs */
-    uint32_t channel_mask;      /* to silence crossfading subsongs/layers */
-    int channel_mappings_on;    /* channel mappings are active */
-    int channel_mappings[32];   /* swap channel "i" with "[i]" */
-    int allow_dual_stereo;      /* search for dual stereo (file_L.ext + file_R.ext = single stereo file) */
+    int32_t num_samples;            /* the actual max number of samples */
+    int32_t sample_rate;            /* sample rate in Hz */
+    int channels;                   /* number of channels */
+    coding_t coding_type;           /* type of encoding */
+    layout_t layout_type;           /* type of layout */
+    meta_t meta_type;               /* type of metadata */
 
     /* looping */
-    int loop_flag;              /* is this stream looped? */
-    int32_t loop_start_sample;  /* first sample of the loop (included in the loop) */
-    int32_t loop_end_sample;    /* last sample of the loop (not included in the loop) */
+    int loop_flag;                  /* is this stream looped? */
+    int32_t loop_start_sample;      /* first sample of the loop (included in the loop) */
+    int32_t loop_end_sample;        /* last sample of the loop (not included in the loop) */
 
     /* layouts/block */
-    size_t interleave_block_size;       /* interleave, or block/frame size (depending on the codec) */
-    size_t interleave_last_block_size;  /* smaller interleave for last block */
+    size_t interleave_block_size;   /* interleave, or block/frame size (depending on the codec) */
+    size_t interleave_last_block_size; /* smaller interleave for last block */
+
+    /* subsongs */
+    int num_streams;                /* for multi-stream formats (0=not set/one stream, 1=one stream) */
+    int stream_index;               /* selected subsong (also 1-based) */
+    size_t stream_size;             /* info to properly calculate bitrate in case of subsongs */
+    char stream_name[STREAM_NAME_SIZE]; /* name of the current stream (info), if the file stores it and it's filled */
+
+    /* config */
+    int allow_dual_stereo;          /* search for dual stereo (file_L.ext + file_R.ext = single stereo file) */
+    uint32_t channel_mask;          /* to silence crossfading subsongs/layers */
+    int channel_mappings_on;        /* channel mappings are active */
+    int channel_mappings[32];       /* swap channel "i" with "[i]" */
+    /* config requests, players must read and honor these values */
+    /* (ideally internally would work as a player, but for now player must do it manually) */
+    double config_loop_count;
+    double config_fade_time;
+    double config_fade_delay;
+    int config_ignore_loop;
+    int config_force_loop;
+    int config_ignore_fade;
+
 
     /* channel state */
     VGMSTREAMCHANNEL * ch;          /* pointer to array of channels */
@@ -810,13 +820,12 @@ typedef struct {
 
     /* loop state */
     int hit_loop;                   /* have we seen the loop yet? */
-    /* counters for "loop + play end of the stream instead of fading" (not used/needed otherwise) */
-    int loop_count;                 /* number of complete loops (1=looped once) */
-    int loop_target;                /* max loops before continuing with the stream end */
+    int loop_count;                 /* counter of complete loops (1=looped once) */
+    int loop_target;                /* max loops before continuing with the stream end (loops forever if not set) */
 
     /* decoder specific */
     int codec_endian;               /* little/big endian marker; name is left vague but usually means big endian */
-    int codec_config;               /* flags for codecs or layouts with minor variations; meaning is up to the user */
+    int codec_config;               /* flags for codecs or layouts with minor variations; meaning is up to the codec */
 
     int32_t ws_output_size;         /* WS ADPCM: output bytes for this block */
 
@@ -1020,7 +1029,8 @@ typedef struct {
 #ifdef VGM_USE_G719
 typedef struct {
    sample buffer[960];
-   g719_handle *handle;
+   void *handle;
+   int16_t *code_buffer;
 } g719_codec_data;
 #endif
 
@@ -1050,7 +1060,9 @@ typedef struct celt_codec_data celt_codec_data;
 
 /* libacm interface */
 typedef struct {
-    ACMStream *file;
+    STREAMFILE *streamfile;
+    void *handle;
+    void *io_config;
 } acm_codec_data;
 
 #define AIX_BUFFER_SIZE 0x1000
@@ -1103,41 +1115,18 @@ typedef struct {
 } hca_codec_data;
 
 #ifdef VGM_USE_FFMPEG
-/* Custom FFMPEG modes */
-typedef enum {
-    FFMPEG_STANDARD,        /* default FFmpeg */
-    FFMPEG_SWITCH_OPUS,     /* Opus without Ogg layer */
-} ffmpeg_custom_t;
-
-/* config for the above modes */
-typedef struct {
-    int stream_index; /* FFmpeg's sub-stream (as opposed to an internal stream in custom read/seeks) */
-    int codec_endian;
-    int channels;
-
-    ffmpeg_custom_t type; /* ffmpeg subtype */
-    size_t virtual_size; /* external value, if meta needs to know/supply it */
-
-    /* internal sequences, when needed */
-    int sequence;
-    int samples_done;
-} ffmpeg_custom_config;
-
 typedef struct {
     /*** IO internals ***/
     STREAMFILE *streamfile;
 
-    uint64_t real_start;        // absolute start within the streamfile
-    uint64_t real_offset;       // absolute offset within the streamfile
-    uint64_t real_size;         // max size within the streamfile
-    uint64_t virtual_offset;    // computed offset FFmpeg sees (including fake header)
-    uint64_t virtual_size;      // computed size FFmpeg sees (including fake header)
-    uint64_t virtual_base;      // info/base virtual_offset equivalent to current real_offset, block aligned (*not* including fake header)
+    uint64_t start;             // absolute start within the streamfile
+    uint64_t offset;            // absolute offset within the streamfile
+    uint64_t size;              // max size within the streamfile
+    uint64_t logical_offset;    // computed offset FFmpeg sees (including fake header)
+    uint64_t logical_size;      // computed size FFmpeg sees (including fake header)
     
     uint64_t header_size;       // fake header (parseable by FFmpeg) prepended on reads
     uint8_t *header_insert_block; // fake header data (ie. RIFF)
-
-    ffmpeg_custom_config config; /* custom config/state */
 
     /*** "public" API (read-only) ***/
     // stream info
@@ -1205,11 +1194,7 @@ typedef struct {
 #endif
 #endif
 
-typedef struct {
-    int pcm_blocks;
-    int utk_context_size;
-    void** utk_context;
-} ea_mt_codec_data;
+typedef struct ea_mt_codec_data ea_mt_codec_data;
 
 
 #if 0
@@ -1231,15 +1216,15 @@ typedef struct {
 
 //info for opaque VGMSTREAM
 typedef struct {
-    int channels;
-    int sample_rate;
-    int num_samples;
-    int loop_start_sample;
-    int loop_end_sample;
-    int loop_flag;
-    int num_streams;
-    int current_sample;
-    int average_bitrate;
+    const int channels;
+    const int sample_rate;
+    const int num_samples;
+    const int loop_start_sample;
+    const int loop_end_sample;
+    const int loop_flag;
+    const int num_streams;
+    const int current_sample;
+    const int average_bitrate;
 } VGMSTREAM_INFO;
 void vgmstream_get_info(VGMSTREAM* vgmstream, VGMSTREAM_INFO *vgmstream_info);
 
@@ -1280,12 +1265,16 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length);
 /* Return the average bitrate in bps of all unique files contained within this stream. */
 int get_vgmstream_average_bitrate(VGMSTREAM * vgmstream);
 
-/* List supported formats and return elements in the list, for plugins that need to know. */
+/* List supported formats and return elements in the list, for plugins that need to know.
+ * The list disables some common formats that may conflict (.wav, .ogg, etc). */
 const char ** vgmstream_get_formats(size_t * size);
 
 /* Force enable/disable internal looping. Should be done before playing anything,
  * and not all codecs support arbitrary loop values ATM. */
 void vgmstream_force_loop(VGMSTREAM* vgmstream, int loop_flag, int loop_start_sample, int loop_end_sample);
+
+/* Set number of max loops to do, then play up to stream end (for songs with proper endings) */
+void vgmstream_set_loop_target(VGMSTREAM* vgmstream, int loop_target);
 
 /* -------------------------------------------------------------------------*/
 /* vgmstream "private" API                                                  */

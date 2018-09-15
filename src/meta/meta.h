@@ -761,19 +761,32 @@ VGMSTREAM * init_vgmstream_nus3bank(STREAMFILE *streamFile);
 VGMSTREAM * init_vgmstream_scd_sscf(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_a2m(STREAMFILE *streamFile);
+
 VGMSTREAM * init_vgmstream_ahv(STREAMFILE *streamFile);
+
 VGMSTREAM * init_vgmstream_msv(STREAMFILE *streamFile);
+
 VGMSTREAM * init_vgmstream_sdf_ps2(STREAMFILE *streamFile);
+VGMSTREAM * init_vgmstream_sdf_3ds(STREAMFILE *streamFile);
+
 VGMSTREAM * init_vgmstream_svg(STREAMFILE *streamFile);
+
 VGMSTREAM * init_vgmstream_vis(STREAMFILE *streamFile);
 
-VGMSTREAM * init_vgmstream_sdf_3ds(STREAMFILE *streamFile);
 VGMSTREAM * init_vgmstream_vai(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_aif_asobo(STREAMFILE *streamFile);
+
 VGMSTREAM * init_vgmstream_ao(STREAMFILE *streamFile);
+
 VGMSTREAM * init_vgmstream_apc(STREAMFILE *streamFile);
+
 VGMSTREAM * init_vgmstream_wv2(STREAMFILE *streamFile);
+
 VGMSTREAM * init_vgmstream_xau_konami(STREAMFILE *streamFile);
+
+VGMSTREAM * init_vgmstream_derf(STREAMFILE *streamFile);
+
+VGMSTREAM * init_vgmstream_utk(STREAMFILE *streamFile);
 
 #endif /*_META_H*/

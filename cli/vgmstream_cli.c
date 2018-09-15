@@ -20,8 +20,9 @@
 #define VERSION "(unknown version)"
 #endif
 
-#define BUFSIZE 0x8000
+#define BUFFER_SAMPLES 0x8000
 
+/* getopt globals (the horror...) */
 extern char * optarg;
 extern int optind, opterr, optopt;
 
@@ -30,353 +31,450 @@ static size_t make_wav_header(uint8_t * buf, size_t buf_size, int32_t sample_cou
 
 static void usage(const char * name) {
     fprintf(stderr,"vgmstream CLI decoder " VERSION " " __DATE__ "\n"
-          "Usage: %s [-o outfile.wav] [options] infile\n"
-          "Options:\n"
-          "    -o outfile.wav: name of output .wav file, default is infile.wav\n"
-          "    -l loop count: loop count, default 2.0\n"
-          "    -f fade time: fade time (seconds) after N loops, default 10.0\n"
-          "    -d fade delay: fade delay (seconds, default 0.0\n"
-          "    -i: ignore looping information and play the whole stream once\n"
-          "    -p: output to stdout (for piping into another program)\n"
-          "    -P: output to stdout even if stdout is a terminal\n"
-          "    -c: loop forever (continuously)\n"
-          "    -m: print metadata only, don't decode\n"
-          "    -x: decode and print adxencd command line to encode as ADX\n"
-          "    -g: decode and print oggenc command line to encode as OGG\n"
-          "    -b: decode and print batch variable commands\n"
-          "    -L: append a smpl chunk and create a looping wav\n"
-          "    -e: force end-to-end looping\n"
-          "    -E: force end-to-end looping even if file has real loop points\n"
-          "    -r outfile2.wav: output a second time after resetting\n"
-          "    -2 N: only output the Nth (first is 0) set of stereo channels\n"
-          "    -F: don't fade after N loops and play the rest of the stream\n"
-          "    -s N: select subsong N, if the format supports multiple subsongs\n"
-            ,name);
+            "Usage: %s [-o outfile.wav] [options] infile\n"
+            "Options:\n"
+            "    -o outfile.wav: name of output .wav file, default infile.wav\n"
+            "    -l loop count: loop count, default 2.0\n"
+            "    -f fade time: fade time in seconds after N loops, default 10.0\n"
+            "    -d fade delay: fade delay in seconds, default 0.0\n"
+            "    -F: don't fade after N loops and play the rest of the stream\n"
+            "    -i: ignore looping information and play the whole stream once\n"
+            "    -e: force end-to-end looping\n"
+            "    -E: force end-to-end looping even if file has real loop points\n"
+            "    -s N: select subsong N, if the format supports multiple subsongs\n"
+            "    -m: print metadata only, don't decode\n"
+            "    -L: append a smpl chunk and create a looping wav\n"
+            "    -2 N: only output the Nth (first is 0) set of stereo channels\n"
+            "    -p: output to stdout (for piping into another program)\n"
+            "    -P: output to stdout even if stdout is a terminal\n"
+            "    -c: loop forever (continuously) to stdout\n"
+            "    -x: decode and print adxencd command line to encode as ADX\n"
+            "    -g: decode and print oggenc command line to encode as OGG\n"
+            "    -b: decode and print batch variable commands\n"
+            "    -r: output a second file after resetting (for testing)\n"
+            , name);
 }
 
-int main(int argc, char ** argv) {
-    VGMSTREAM * vgmstream = NULL;
-    FILE * outfile = NULL;
-    sample * buf = NULL;
-    int32_t len_samples;
-    int32_t fade_samples;
-    int i,j,k;
-    int opt;
-    /* config */
-    char * infilename = NULL;
-    char * outfilename = NULL;
-    char * outfilename_reset = NULL;
-    char outfilename_internal[PATH_LIMIT];
-    int ignore_loop = 0;
-    int force_loop = 0;
-    int really_force_loop = 0;
-    int play_sdtout = 0;
-    int play_wreckless = 0;
-    int play_forever = 0;
-    int print_metaonly = 0;
-    int print_adxencd = 0;
-    int print_oggenc = 0;
-    int print_batchvar = 0;
-    int write_lwav = 0, write_lwav_loop_start = 0, write_lwav_loop_end = 0;
-    int only_stereo = -1;
-    int stream_index = 0;
-    double loop_count = 2.0;
-    double fade_seconds = 10.0;
-    double fade_delay_seconds = 0.0;
-    int ignore_fade = 0;
 
-    while ((opt = getopt(argc, argv, "o:l:f:d:ipPcmxeLEFr:gb2:s:")) != -1) {
+typedef struct {
+    char * infilename;
+    char * outfilename;
+    int ignore_loop;
+    int force_loop;
+    int really_force_loop;
+    int play_sdtout;
+    int play_wreckless;
+    int play_forever;
+    int print_metaonly;
+    int print_adxencd;
+    int print_oggenc;
+    int print_batchvar;
+    int test_reset;
+    int write_lwav;
+    int only_stereo;
+    int stream_index;
+    double loop_count;
+    double fade_time;
+    double fade_delay;
+    int ignore_fade;
+
+    /* not quite config but eh */
+    int lwav_loop_start;
+    int lwav_loop_end;
+} cli_config;
+
+
+static int parse_config(cli_config *cfg, int argc, char ** argv) {
+    int opt;
+
+    /* non-zero defaults */
+    cfg->only_stereo = -1;
+    cfg->loop_count = 2.0;
+    cfg->fade_time = 10.0;
+
+    /* don't let getopt print errors to stdout automatically */
+    opterr = 0;
+
+    /* read config */
+    while ((opt = getopt(argc, argv, "o:l:f:d:ipPcmxeLEFrgb2:s:")) != -1) {
         switch (opt) {
             case 'o':
-                outfilename = optarg;
+                cfg->outfilename = optarg;
                 break;
             case 'l':
-                loop_count = atof(optarg);
+                cfg->loop_count = atof(optarg);
                 break;
             case 'f':
-                fade_seconds = atof(optarg);
+                cfg->fade_time = atof(optarg);
                 break;
             case 'd':
-                fade_delay_seconds = atof(optarg);
+                cfg->fade_delay = atof(optarg);
                 break;
             case 'i':
-                ignore_loop = 1;
+                cfg->ignore_loop = 1;
                 break;
             case 'p':
-                play_sdtout = 1;
+                cfg->play_sdtout = 1;
                 break;
             case 'P':
-                play_wreckless = 1;
-                play_sdtout = 1;
+                cfg->play_wreckless = 1;
+                cfg->play_sdtout = 1;
                 break;
             case 'c':
-                play_forever = 1;
+                cfg->play_forever = 1;
                 break;
             case 'm':
-                print_metaonly = 1;
+                cfg->print_metaonly = 1;
                 break;
             case 'x':
-                print_adxencd = 1;
+                cfg->print_adxencd = 1;
                 break;
             case 'g':
-                print_oggenc = 1;
+                cfg->print_oggenc = 1;
                 break;
             case 'b':
-                print_batchvar = 1;
+                cfg->print_batchvar = 1;
                 break;
             case 'e':
-                force_loop = 1;
+                cfg->force_loop = 1;
                 break;
             case 'E':
-                really_force_loop = 1;
+                cfg->really_force_loop = 1;
                 break;
             case 'L':
-                write_lwav = 1;
+                cfg->write_lwav = 1;
                 break;
             case 'r':
-                outfilename_reset = optarg;
+                cfg->test_reset = 1;
                 break;
             case '2':
-                only_stereo = atoi(optarg);
+                cfg->only_stereo = atoi(optarg);
                 break;
             case 'F':
-                ignore_fade = 1;
+                cfg->ignore_fade = 1;
                 break;
             case 's':
-                stream_index = atoi(optarg);
+                cfg->stream_index = atoi(optarg);
                 break;
+            case '?':
+                fprintf(stderr, "Unknown option -%c found\n", optopt);
+                goto fail;
             default:
                 usage(argv[0]);
-                return EXIT_FAILURE;
-                break;
+                goto fail;
         }
     }
 
-    if (optind!=argc-1) {
+    /* filename goes last */
+    if (optind != argc - 1) {
         usage(argv[0]);
-        return EXIT_FAILURE;
+        goto fail;
     }
+    cfg->infilename = argv[optind];
 
-    infilename = argv[optind];
 
-#ifdef WIN32
-    /* make stdout output work with windows */
-    if (play_sdtout) {
-        _setmode(fileno(stdout),_O_BINARY);
-    }
-#endif
+    return 1;
+fail:
+    return 0;
+}
 
-    if (play_forever && !play_sdtout) {
-        fprintf(stderr,"A file of infinite size? Not likely.\n");
-        return EXIT_FAILURE;
-    }
-
-    if (play_sdtout && (!play_wreckless && isatty(STDOUT_FILENO))) {
+static int validate_config(cli_config *cfg) {
+    if (cfg->play_sdtout && (!cfg->play_wreckless && isatty(STDOUT_FILENO))) {
         fprintf(stderr,"Are you sure you want to output wave data to the terminal?\nIf so use -P instead of -p.\n");
-        return EXIT_FAILURE;
+        goto fail;
     }
-
-    if (ignore_loop && force_loop) {
+    if (cfg->play_forever && !cfg->play_sdtout) {
+        fprintf(stderr,"-c must use -p or -P\n");
+        goto fail;
+    }
+    if (cfg->ignore_loop && cfg->force_loop) {
         fprintf(stderr,"-e and -i are incompatible\n");
-        return EXIT_FAILURE;
+        goto fail;
     }
-    if (ignore_loop && really_force_loop) {
+    if (cfg->ignore_loop && cfg->really_force_loop) {
         fprintf(stderr,"-E and -i are incompatible\n");
-        return EXIT_FAILURE;
+        goto fail;
     }
-    if (force_loop && really_force_loop) {
+    if (cfg->force_loop && cfg->really_force_loop) {
         fprintf(stderr,"-E and -e are incompatible\n");
-        return EXIT_FAILURE;
+        goto fail;
+    }
+    if (cfg->play_sdtout && cfg->outfilename) {
+        fprintf(stderr,"either -p or -o, make up your mind\n");
+        goto fail;
     }
 
-    /* manually init streamfile to pass the stream index */
-    {
-        //s = init_vgmstream(infilename);
-        STREAMFILE *streamFile = open_stdio_streamfile(infilename);
-        if (!streamFile) {
-            fprintf(stderr,"file %s not found\n",infilename);
-            return EXIT_FAILURE;
-        }
+    return 1;
+fail:
+    return 0;
+}
 
-        streamFile->stream_index = stream_index;
-        vgmstream = init_vgmstream_from_STREAMFILE(streamFile);
-        close_streamfile(streamFile);
-
-        if (!vgmstream) {
-            fprintf(stderr,"failed opening %s\n",infilename);
-            return EXIT_FAILURE;
-        }
-    }
-
-    if (force_loop && !vgmstream->loop_flag) {
-        vgmstream_force_loop(vgmstream, 1, 0,vgmstream->num_samples);
-    }
-
-    if (really_force_loop) {
-        vgmstream_force_loop(vgmstream, 1, 0,vgmstream->num_samples);
-    }
-
-    if (ignore_loop) {
-        vgmstream_force_loop(vgmstream, 0, 0,0);
-    }
-
-    if (write_lwav) {
-        write_lwav_loop_start = vgmstream->loop_start_sample;
-        write_lwav_loop_end = vgmstream->loop_end_sample;
-        vgmstream_force_loop(vgmstream, 0, 0,0);
-    }
-
-    if (play_sdtout) {
-        if (outfilename) {
-            fprintf(stderr,"either -p or -o, make up your mind\n");
-            return EXIT_FAILURE;
-        }
-        outfile = stdout;
-    }
-    else if (!print_metaonly) {
-        if (!outfilename) {
-            strcpy(outfilename_internal, infilename);
-            strcat(outfilename_internal, ".wav");
-            outfilename = outfilename_internal;
-        }
-
-        outfile = fopen(outfilename,"wb");
-        if (!outfile) {
-            fprintf(stderr,"failed to open %s for output\n",outfilename);
-            return EXIT_FAILURE;
-        }
-    }
-
-    if (play_forever && !vgmstream->loop_flag) {
-        fprintf(stderr,"I could play a nonlooped track forever, but it wouldn't end well.");
-        return EXIT_FAILURE;
-    }
-
-    if (!play_sdtout) {
-        if (print_adxencd) {
+static void print_info(VGMSTREAM * vgmstream, cli_config *cfg) {
+    if (!cfg->play_sdtout) {
+        if (cfg->print_adxencd) {
             printf("adxencd");
-            if (!print_metaonly)
-                printf(" \"%s\"",outfilename);
+            if (!cfg->print_metaonly)
+                printf(" \"%s\"",cfg->outfilename);
             if (vgmstream->loop_flag)
                 printf(" -lps%d -lpe%d",vgmstream->loop_start_sample,vgmstream->loop_end_sample);
             printf("\n");
         }
-        else if (print_oggenc) {
+        else if (cfg->print_oggenc) {
             printf("oggenc");
-            if (!print_metaonly)
-                printf(" \"%s\"",outfilename);
+            if (!cfg->print_metaonly)
+                printf(" \"%s\"",cfg->outfilename);
             if (vgmstream->loop_flag)
                 printf(" -c LOOPSTART=%d -c LOOPLENGTH=%d",vgmstream->loop_start_sample, vgmstream->loop_end_sample-vgmstream->loop_start_sample);
             printf("\n");
         }
-        else if (print_batchvar) {
-            if (!print_metaonly)
-                printf("set fname=\"%s\"\n",outfilename);
+        else if (cfg->print_batchvar) {
+            if (!cfg->print_metaonly)
+                printf("set fname=\"%s\"\n",cfg->outfilename);
             printf("set tsamp=%d\nset chan=%d\n", vgmstream->num_samples, vgmstream->channels);
             if (vgmstream->loop_flag)
                 printf("set lstart=%d\nset lend=%d\nset loop=1\n", vgmstream->loop_start_sample, vgmstream->loop_end_sample);
             else
                 printf("set loop=0\n");
         }
-        else if (print_metaonly) {
-            printf("metadata for %s\n",infilename);
+        else if (cfg->print_metaonly) {
+            printf("metadata for %s\n",cfg->infilename);
         }
         else {
-            printf("decoding %s\n",infilename);
+            printf("decoding %s\n",cfg->infilename);
         }
     }
-    if (!play_sdtout && !print_adxencd && !print_oggenc && !print_batchvar) {
+
+    if (!cfg->play_sdtout && !cfg->print_adxencd && !cfg->print_oggenc && !cfg->print_batchvar) {
         char description[1024];
-        description[0]='\0';
+        description[0] = '\0';
         describe_vgmstream(vgmstream,description,1024);
         printf("%s\n",description);
     }
+}
 
-    if (print_metaonly) {
-        close_vgmstream(vgmstream);
-        return EXIT_SUCCESS;
+static void apply_config(VGMSTREAM * vgmstream, cli_config *cfg) {
+
+    /* honor suggested config, if any (defined order matters)
+     * note that ignore_fade and play_forever should take priority */
+    if (vgmstream->config_loop_count) {
+        cfg->loop_count = vgmstream->config_loop_count;
+    }
+    if (vgmstream->config_fade_delay) {
+        cfg->fade_delay = vgmstream->config_fade_delay;
+    }
+    if (vgmstream->config_fade_delay) {
+        cfg->fade_time = vgmstream->config_fade_time;
+    }
+    if (vgmstream->config_force_loop) {
+        cfg->really_force_loop = 1;
+    }
+    if (vgmstream->config_ignore_loop) {
+        cfg->ignore_loop = 1;
+    }
+    if (vgmstream->config_ignore_fade) {
+        cfg->ignore_fade = 1;
     }
 
-    buf = malloc(BUFSIZE*sizeof(sample)*vgmstream->channels);
-    if (!buf) {
-        fprintf(stderr,"failed allocating output buffer\n");
-        close_vgmstream(vgmstream);
-        return EXIT_FAILURE;
+    /* remove non-compatible options */
+    if (cfg->play_forever) {
+        cfg->ignore_fade = 0;
+        cfg->ignore_loop = 0;
     }
 
-    /* signal ignore fade for get_vgmstream_play_samples */
-    if (loop_count > 0 && ignore_fade) {
-        fade_seconds = -1.0;
+    /* change vgmstream's loop stuff (ignore loop goes last) */
+    if (cfg->force_loop && !vgmstream->loop_flag) {
+        vgmstream_force_loop(vgmstream, 1, 0,vgmstream->num_samples);
+    }
+    if (cfg->really_force_loop) {
+        vgmstream_force_loop(vgmstream, 1, 0,vgmstream->num_samples);
+    }
+    if (cfg->ignore_loop) {
+        vgmstream_force_loop(vgmstream, 0, 0,0);
     }
 
-    len_samples = get_vgmstream_play_samples(loop_count,fade_seconds,fade_delay_seconds,vgmstream);
-    if (!play_sdtout && !print_adxencd && !print_oggenc && !print_batchvar) {
-        printf("samples to play: %d (%.4lf seconds)\n", len_samples, (double)len_samples / vgmstream->sample_rate);
-    }
-    fade_samples = (int32_t)(fade_seconds * vgmstream->sample_rate);
-
-    if (loop_count > 0 && ignore_fade) {
-        vgmstream->loop_target = (int)loop_count;
+    /* loop N times, but also play stream end instead of fading out */
+    if (cfg->loop_count > 0 && cfg->ignore_fade) {
+        vgmstream_set_loop_target(vgmstream, (int)cfg->loop_count);
+        cfg->fade_time = 0;
     }
 
-
-    /* slap on a .wav header */
-    {
-        uint8_t wav_buf[0x100];
-        int channels = (only_stereo != -1) ? 2 : vgmstream->channels;
-        size_t bytes_done;
-
-        bytes_done = make_wav_header(wav_buf,0x100,
-                len_samples, vgmstream->sample_rate, channels,
-                write_lwav, write_lwav_loop_start, write_lwav_loop_end);
-
-        fwrite(wav_buf,sizeof(uint8_t),bytes_done,outfile);
+    /* write loops in the wav, but don't actually loop it */
+    if (cfg->write_lwav) {
+        cfg->lwav_loop_start = vgmstream->loop_start_sample;
+        cfg->lwav_loop_end = vgmstream->loop_end_sample;
+        vgmstream_force_loop(vgmstream, 0, 0,0);
     }
+}
 
-    /* decode forever */
-    while (play_forever) {
-        render_vgmstream(buf,BUFSIZE,vgmstream);
-        swap_samples_le(buf,vgmstream->channels*BUFSIZE);
-
-        /* do proper little endian samples */
-        if (only_stereo != -1) {
-            for (j = 0; j < BUFSIZE; j++) {
-                fwrite(buf+j*vgmstream->channels+(only_stereo*2),sizeof(sample),2,outfile);
-            }
-        } else {
-            fwrite(buf,sizeof(sample)*vgmstream->channels,BUFSIZE,outfile);
-        }
-    }
-
-    /* decode */
-    for (i = 0; i < len_samples; i += BUFSIZE) {
-        int toget = BUFSIZE;
-        if (i + BUFSIZE > len_samples)
-            toget = len_samples-i;
-        render_vgmstream(buf,toget,vgmstream);
-
-        if (vgmstream->loop_flag && fade_samples > 0) {
-            int samples_into_fade = i - (len_samples - fade_samples);
-            if (samples_into_fade + toget > 0) {
-                for (j = 0; j < toget; j++, samples_into_fade++) {
-                    if (samples_into_fade > 0) {
-                        double fadedness = (double)(fade_samples-samples_into_fade)/fade_samples;
-                        for (k = 0; k < vgmstream->channels; k++) {
-                            buf[j*vgmstream->channels+k] = (sample)buf[j*vgmstream->channels+k]*fadedness;
-                        }
+void apply_fade(sample * buf, VGMSTREAM * vgmstream, int to_get, int i, int len_samples, int fade_samples) {
+    if (vgmstream->loop_flag && fade_samples > 0) {
+        int samples_into_fade = i - (len_samples - fade_samples);
+        if (samples_into_fade + to_get > 0) {
+            int j, k;
+            for (j = 0; j < to_get; j++, samples_into_fade++) {
+                if (samples_into_fade > 0) {
+                    double fadedness = (double)(fade_samples - samples_into_fade) / fade_samples;
+                    for (k = 0; k < vgmstream->channels; k++) {
+                        buf[j*vgmstream->channels+k] = (sample)buf[j*vgmstream->channels+k]*fadedness;
                     }
                 }
             }
         }
+    }
+}
 
-        /* do proper little endian samples */
-        swap_samples_le(buf,vgmstream->channels*toget);
-        if (only_stereo != -1) {
-            for (j = 0; j < toget; j++) {
-                fwrite(buf+j*vgmstream->channels+(only_stereo*2),sizeof(sample),2,outfile);
+int main(int argc, char ** argv) {
+    VGMSTREAM * vgmstream = NULL;
+    FILE * outfile = NULL;
+    char outfilename_temp[PATH_LIMIT];
+
+    sample * buf = NULL;
+    int32_t len_samples;
+    int32_t fade_samples;
+    int i, j;
+
+    cli_config cfg = {0};
+    int res;
+
+
+    /* read args */
+    res = parse_config(&cfg, argc, argv);
+    if (!res) goto fail;
+
+#ifdef WIN32
+    /* make stdout output work with windows */
+    if (cfg.play_sdtout) {
+        _setmode(fileno(stdout),_O_BINARY);
+    }
+#endif
+
+    res = validate_config(&cfg);
+    if (!res) goto fail;
+
+
+    /* open streamfile and pass subsong */
+    {
+        //s = init_vgmstream(infilename);
+        STREAMFILE *streamFile = open_stdio_streamfile(cfg.infilename);
+        if (!streamFile) {
+            fprintf(stderr,"file %s not found\n",cfg.infilename);
+            goto fail;
+        }
+
+        streamFile->stream_index = cfg.stream_index;
+        vgmstream = init_vgmstream_from_STREAMFILE(streamFile);
+        close_streamfile(streamFile);
+
+        if (!vgmstream) {
+            fprintf(stderr,"failed opening %s\n",cfg.infilename);
+            goto fail;
+        }
+    }
+
+
+    /* modify the VGMSTREAM if needed */
+    apply_config(vgmstream, &cfg);
+
+    if (cfg.play_forever && (!vgmstream->loop_flag || vgmstream->loop_target > 0)) {
+        fprintf(stderr,"I could play a nonlooped track forever, but it wouldn't end well.");
+        goto fail;
+    }
+
+
+    /* prepare output */
+    if (cfg.play_sdtout) {
+        outfile = stdout;
+    }
+    else if (!cfg.print_metaonly) {
+        if (!cfg.outfilename) {
+            /* note that outfilename_temp must persist outside this block, hence the external array */
+            strcpy(outfilename_temp, cfg.infilename);
+            strcat(outfilename_temp, ".wav");
+            cfg.outfilename = outfilename_temp;
+        }
+
+        outfile = fopen(cfg.outfilename,"wb");
+        if (!outfile) {
+            fprintf(stderr,"failed to open %s for output\n",cfg.outfilename);
+            goto fail;
+        }
+    }
+
+
+    /* print file info (or batch commands, depending on config) */
+    print_info(vgmstream, &cfg);
+    if (cfg.print_metaonly) {
+        if (!cfg.play_sdtout)
+            fclose(outfile);
+        close_vgmstream(vgmstream);
+        return EXIT_SUCCESS;
+    }
+
+
+    /* get final play config */
+    len_samples = get_vgmstream_play_samples(cfg.loop_count,cfg.fade_time,cfg.fade_delay,vgmstream);
+    fade_samples = (int32_t)(cfg.fade_time < 0 ? 0 : cfg.fade_time * vgmstream->sample_rate);
+
+    if (!cfg.play_sdtout && !cfg.print_adxencd && !cfg.print_oggenc && !cfg.print_batchvar) {
+        printf("samples to play: %d (%.4lf seconds)\n", len_samples, (double)len_samples / vgmstream->sample_rate);
+    }
+
+
+    /* last init */
+    buf = malloc(BUFFER_SAMPLES*sizeof(sample)*vgmstream->channels);
+    if (!buf) {
+        fprintf(stderr,"failed allocating output buffer\n");
+        goto fail;;
+    }
+
+    /* slap on a .wav header */
+    {
+        uint8_t wav_buf[0x100];
+        int channels = (cfg.only_stereo != -1) ? 2 : vgmstream->channels;
+        size_t bytes_done;
+
+        bytes_done = make_wav_header(wav_buf,0x100,
+                len_samples, vgmstream->sample_rate, channels,
+                cfg.write_lwav, cfg.lwav_loop_start, cfg.lwav_loop_end);
+
+        fwrite(wav_buf,sizeof(uint8_t),bytes_done,outfile);
+    }
+
+
+    /* decode forever */
+    while (cfg.play_forever) {
+        int to_get = BUFFER_SAMPLES;
+
+        render_vgmstream(buf,to_get,vgmstream);
+
+        swap_samples_le(buf,vgmstream->channels*to_get); /* write PC endian */
+        if (cfg.only_stereo != -1) {
+            for (j = 0; j < to_get; j++) {
+                fwrite(buf+j*vgmstream->channels+(cfg.only_stereo*2),sizeof(sample),2,outfile);
             }
         } else {
-            fwrite(buf,sizeof(sample)*vgmstream->channels,toget,outfile);
+            fwrite(buf,sizeof(sample)*vgmstream->channels,to_get,outfile);
+        }
+    }
+
+
+    /* decode */
+    for (i = 0; i < len_samples; i += BUFFER_SAMPLES) {
+        int to_get = BUFFER_SAMPLES;
+        if (i + BUFFER_SAMPLES > len_samples)
+            to_get = len_samples - i;
+
+        render_vgmstream(buf,to_get,vgmstream);
+
+        apply_fade(buf, vgmstream, to_get, i, len_samples, fade_samples);
+
+        swap_samples_le(buf,vgmstream->channels*to_get); /* write PC endian */
+        if (cfg.only_stereo != -1) {
+            for (j = 0; j < to_get; j++) {
+                fwrite(buf+j*vgmstream->channels+(cfg.only_stereo*2),sizeof(sample),2,outfile);
+            }
+        } else {
+            fwrite(buf,sizeof(sample)*vgmstream->channels,to_get,outfile);
         }
     }
 
@@ -384,77 +482,54 @@ int main(int argc, char ** argv) {
     outfile = NULL;
 
 
-    if (outfilename_reset) {
-        outfile = fopen(outfilename_reset,"wb");
+    /* try again with (for testing reset_vgmstream, simulates a seek to 0) */
+    if (cfg.test_reset) {
+        char outfilename_temp[PATH_LIMIT];
+        strcpy(outfilename_temp, cfg.outfilename);
+        strcat(outfilename_temp, ".reset.wav");
+
+        outfile = fopen(outfilename_temp,"wb");
         if (!outfile) {
-            fprintf(stderr,"failed to open %s for output\n",outfilename_reset);
-            return EXIT_FAILURE;
+            fprintf(stderr,"failed to open %s for output\n",outfilename_temp);
+            goto fail;
         }
 
         reset_vgmstream(vgmstream);
 
-        /* these manipulations are undone by reset */
+        /* vgmstream manipulations are undone by reset */
+        apply_config(vgmstream, &cfg);
 
-        if (force_loop && !vgmstream->loop_flag) {
-            vgmstream_force_loop(vgmstream, 1, 0,vgmstream->num_samples);
-        }
-
-        if (really_force_loop) {
-            vgmstream_force_loop(vgmstream, 1, 0,vgmstream->num_samples);
-        }
-
-        if (ignore_loop) {
-            vgmstream_force_loop(vgmstream, 0, 0,0);
-        }
-
-        if (write_lwav) {
-            write_lwav_loop_start = vgmstream->loop_start_sample;
-            write_lwav_loop_end = vgmstream->loop_end_sample;
-            vgmstream_force_loop(vgmstream, 0, 0,0);
-        }
 
         /* slap on a .wav header */
         {
             uint8_t wav_buf[0x100];
-            int channels = (only_stereo != -1) ? 2 : vgmstream->channels;
+            int channels = (cfg.only_stereo != -1) ? 2 : vgmstream->channels;
             size_t bytes_done;
 
             bytes_done = make_wav_header(wav_buf,0x100,
                     len_samples, vgmstream->sample_rate, channels,
-                    write_lwav, write_lwav_loop_start, write_lwav_loop_end);
+                    cfg.write_lwav, cfg.lwav_loop_start, cfg.lwav_loop_end);
 
             fwrite(wav_buf,sizeof(uint8_t),bytes_done,outfile);
         }
 
         /* decode */
-        for (i = 0; i < len_samples; i += BUFSIZE) {
-            int toget=BUFSIZE;
-            if (i + BUFSIZE > len_samples)
-                toget = len_samples-i;
-            render_vgmstream(buf,toget,vgmstream);
+        for (i = 0; i < len_samples; i += BUFFER_SAMPLES) {
+            int to_get = BUFFER_SAMPLES;
+            if (i + BUFFER_SAMPLES > len_samples)
+                to_get = len_samples - i;
 
-            if (vgmstream->loop_flag && fade_samples > 0) {
-                int samples_into_fade = i - (len_samples - fade_samples);
-                if (samples_into_fade + toget > 0) {
-                    for (j = 0; j < toget; j++, samples_into_fade++) {
-                        if (samples_into_fade > 0) {
-                            double fadedness = (double)(fade_samples-samples_into_fade)/fade_samples;
-                            for (k = 0; k < vgmstream->channels; k++) {
-                                buf[j*vgmstream->channels+k] = (sample)buf[j*vgmstream->channels+k]*fadedness;
-                            }
-                        }
-                    }
-                }
-            }
+            render_vgmstream(buf,to_get,vgmstream);
 
-            /* do proper little endian samples */
-            swap_samples_le(buf,vgmstream->channels*toget);
-            if (only_stereo != -1) {
-                for (j = 0; j < toget; j++) {
-                    fwrite(buf+j*vgmstream->channels+(only_stereo*2),sizeof(sample),2,outfile);
+            apply_fade(buf, vgmstream, to_get, i, len_samples, fade_samples);
+
+            swap_samples_le(buf,vgmstream->channels*to_get); /* write PC endian */
+            if (cfg.only_stereo != -1) {
+                for (j = 0; j < to_get; j++) {
+                    fwrite(buf+j*vgmstream->channels+(cfg.only_stereo*2),sizeof(sample),2,outfile);
                 }
             } else {
-                fwrite(buf,sizeof(sample)*vgmstream->channels,toget,outfile);
+                fwrite(buf,sizeof(sample)*vgmstream->channels,to_get,outfile);
             }
         }
         fclose(outfile);
@@ -465,6 +540,12 @@ int main(int argc, char ** argv) {
     free(buf);
 
     return EXIT_SUCCESS;
+
+fail:
+    if (!cfg.play_sdtout)
+        fclose(outfile);
+    close_vgmstream(vgmstream);
+    return EXIT_FAILURE;
 }
 
 

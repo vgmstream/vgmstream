@@ -90,6 +90,7 @@ typedef struct {
 
     off_t offsets[EA_MAX_CHANNELS];
     off_t coefs[EA_MAX_CHANNELS];
+    off_t loops[EA_MAX_CHANNELS];
 
     int big_endian;
     int loop_flag;
@@ -594,7 +595,7 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE *streamFile, ea_
             }
         }
         else if (vgmstream->channels > 1 && ea->codec2 == EA_CODEC2_GCADPCM && ea->offsets[0] == ea->offsets[1]) {
-            /* pcstream+gcadpcm with sx.exe v2, this is probably an bug (even with this parts of the wave are off) */
+            /* pcstream+gcadpcm with sx.exe v2, this is probably a bug (even with this parts of the wave are off) */
             int interleave = (vgmstream->num_samples / 14 * 8); /* full interleave */
             for (i = 0; i < vgmstream->channels; i++) {
                 ea->offsets[i] = ea->offsets[0] + interleave*i;
@@ -702,8 +703,15 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE *streamFile, ea_
                 use_pcm_blocks = 1;
             }
 
+            /* make relative loops absolute for the decoder */
+            if (ea->loop_flag) {
+                for (i = 0; i < vgmstream->channels; i++) {
+                    ea->loops[i] += ea->offsets[0];
+                }
+            }
+
             vgmstream->coding_type = coding_EA_MT;
-            vgmstream->codec_data = init_ea_mt(vgmstream->channels, use_pcm_blocks);
+            vgmstream->codec_data = init_ea_mt_loops(vgmstream->channels, use_pcm_blocks, ea->loop_start, ea->loops);
             if (!vgmstream->codec_data) goto fail;
             break;
         }
@@ -753,15 +761,31 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE *streamFile, ea_
 
     if (is_bnk) {
         /* setup channel offsets */
-        if (vgmstream->coding_type == coding_EA_XA) { /* shared */
+        if (vgmstream->coding_type == coding_EA_XA) {
+            /* shared (stereo/mono codec) */
             for (i = 0; i < vgmstream->channels; i++) {
                 vgmstream->ch[i].offset = ea->offsets[0];
             }
-        //} else if (vgmstream->layout_type == layout_interleave) { /* interleaved */
+        }
+        //else if (vgmstream->layout_type == layout_interleave) { /* interleaved */
         //    for (i = 0; i < vgmstream->channels; i++) {
         //        vgmstream->ch[i].offset = ea->offsets[0] + vgmstream->interleave_block_size*i;
         //    }
-        } else { /* absolute */
+        //}
+        else if (vgmstream->coding_type == coding_PCM16_int && ea->version == 0) {
+            /* Need for Speed 2 (PC) bad offsets */
+            for (i = 0; i < vgmstream->channels; i++) {
+                vgmstream->ch[i].offset = ea->offsets[0] + 0x02*i;
+            }
+        }
+        else if (vgmstream->coding_type == coding_PCM8 && ea->platform == EA_PLATFORM_PS2 && ea->version == 3) {
+            /* SSX3 (PS2) weird 0x10 mini header (codec/loop start/loop end/samples) */
+            for (i = 0; i < vgmstream->channels; i++) {
+                vgmstream->ch[i].offset = ea->offsets[0] + 0x10;
+            }
+        }
+        else {
+            /* absolute */
             for (i = 0; i < vgmstream->channels; i++) {
                 vgmstream->ch[i].offset = ea->offsets[i];
             }
@@ -775,9 +799,6 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE *streamFile, ea_
             if (total_samples > vgmstream->num_samples)
                 vgmstream->num_samples = total_samples;
         }
-
-        /* setup first block to update offsets */
-        block_update_ea_schl(start_offset,vgmstream);
     }
 
     return vgmstream;
@@ -848,6 +869,8 @@ static int parse_variable_header(STREAMFILE* streamFile, ea_header* ea, off_t be
         uint8_t patch_type = read_8bit(offset,streamFile);
         offset++;
 
+        //;off_t test_offset = offset;
+        //;VGM_LOG("EA SCHl: patch=%02x at %lx, value=%x\n", patch_type, offset-1, read_patch(streamFile, &test_offset));
         switch(patch_type) {
             case 0x00: /* signals non-default block rate and maybe other stuff; or padding after 0xFF */
                 if (!is_header_end)
@@ -856,11 +879,11 @@ static int parse_variable_header(STREAMFILE* streamFile, ea_header* ea, off_t be
 
             case 0x05: /* unknown (usually 0x50 except Madden NFL 3DS: 0x3e800) */
             case 0x06: /* priority (0..100, always 0x65 for streams, others for BNKs; rarely ommited) */
-            case 0x07: /* unknown (BNK only: 36|3A) */
+            case 0x07: /* unknown (BNK only: 36|3A|40) */
             case 0x08: /* release envelope (BNK only) */
             case 0x09: /* related to playback envelope (BNK only) */
             case 0x0A: /* bend range (BNK only) */
-            case 0x0B: /* unknown (always 0x02) */
+            case 0x0B: /* bank channels (or, offsets[] size; defaults to 1 if not present, removed in sx.exe v3) */
             case 0x0C: /* pan offset (BNK only) */
             case 0x0D: /* random pan offset range (BNK only) */
             case 0x0E: /* volume (BNK only) */
@@ -872,24 +895,21 @@ static int parse_variable_header(STREAMFILE* streamFile, ea_header* ea, off_t be
             case 0x14: /* emdedded user data (free size/value) */
             case 0x15: /* unknown, rare (BNK only) [Need for Speed: High Stakes (PS1)] */
             case 0x19: /* related to playback envelope (BNK only) */
-            case 0x1A: /* unknown and very rare (BNK only) [SSX 3 (PS2)] */
             case 0x1B: /* unknown (movie only?) */
             case 0x1C: /* initial envelope volume (BNK only) */
             case 0x1D: /* unknown, rare [NASCAR 06 (Xbox)] */
-            case 0x1E:
+            case 0x1E: /* related to ch1? (BNK only) */
             case 0x1F:
             case 0x20:
-            case 0x21:
+            case 0x21: /* related to ch2? (BNK only) */
             case 0x22:
             case 0x23:
             case 0x24: /* master random detune range (BNK only) */
             case 0x25: /* unknown */
-            case 0x26: /* unknown, rare [FIFA 07 (Xbox)] */
                 read_patch(streamFile, &offset);
                 break;
 
             case 0xFC: /* padding for alignment between patches */
-            case 0xFE: /* padding? (actually exists?) */
             case 0xFD: /* info section start marker */
                 break;
 
@@ -921,7 +941,7 @@ static int parse_variable_header(STREAMFILE* streamFile, ea_header* ea, off_t be
                 ea->loop_start = read_patch(streamFile, &offset);
                 break;
             case 0x87: /* loop end sample */
-                ea->loop_end = read_patch(streamFile, &offset);
+                ea->loop_end = read_patch(streamFile, &offset) + 1; /* sx.exe does +1 */
                 break;
 
             /* channel offsets (BNK only), can be the equal for all channels or interleaved; not necessarily contiguous */
@@ -969,6 +989,25 @@ static int parse_variable_header(STREAMFILE* streamFile, ea_header* ea, off_t be
                 read_patch(streamFile, &offset);
                 break;
 
+            case 0x1A: /* EA-MT/EA-XA relative loop offset of ch1 */
+                ea->loops[0] = read_patch(streamFile, &offset);
+                break;
+            case 0x26: /* EA-MT/EA-XA relative loop offset of ch2 */
+                ea->loops[1] = read_patch(streamFile, &offset);
+                break;
+            case 0x27: /* EA-MT/EA-XA relative loop offset of ch3 */
+                ea->loops[2] = read_patch(streamFile, &offset);
+                break;
+            case 0x28: /* EA-MT/EA-XA relative loop offset of ch4 */
+                ea->loops[3] = read_patch(streamFile, &offset);
+                break;
+            case 0x29: /* EA-MT/EA-XA relative loop offset of ch5 */
+                ea->loops[4] = read_patch(streamFile, &offset);
+                break;
+            case 0x2a: /* EA-MT/EA-XA relative loop offset of ch6 */
+                ea->loops[5] = read_patch(streamFile, &offset);
+                break;
+
             case 0x8A: /* long padding (always 0x00000000) */
             case 0x8B: /* also padding? [Need for Speed: Hot Pursuit 2 (PC)] */
             case 0x8C: /* flags (ex. play type = 01=static/02=dynamic | spatialize = 20=pan/etc) */
@@ -991,6 +1030,12 @@ static int parse_variable_header(STREAMFILE* streamFile, ea_header* ea, off_t be
 
             case 0xFF: /* header end (then 0-padded so it's 32b aligned) */
                 is_header_end = 1;
+                break;
+            case 0xFE: /* info subsection start marker (rare [SSX3 (PS2)]) */
+                is_header_end = 1;
+                /* Signals that another info section starts, redefining codec/samples/offsets/etc
+                 * (previous header values should be cleared first as not everything is overwritten).
+                 * This subsection seems the same as a next or prev PT subsong, so it's ignored. */
                 break;
 
             default:
@@ -1148,7 +1193,7 @@ fail:
  * music (.map/lin). Subfiles always share header, except num_samples. */
 static int get_ea_stream_total_samples(STREAMFILE* streamFile, off_t start_offset, VGMSTREAM* vgmstream) {
     int num_samples = 0;
-    int new_schl = 0;
+    int multiple_schl = 0;
 
     /* calc num_samples as playable data size varies between files/blocks */
     {
@@ -1156,16 +1201,19 @@ static int get_ea_stream_total_samples(STREAMFILE* streamFile, off_t start_offse
         do {
             uint32_t block_id = read_32bitBE(vgmstream->next_block_offset+0x00,streamFile);
             if (block_id == EA_BLOCKID_HEADER) /* "SCHl" start block (movie "SHxx" shouldn't use multi files) */
-                new_schl = 1;
+                multiple_schl = 1;
 
             block_update_ea_schl(vgmstream->next_block_offset,vgmstream);
             num_samples += vgmstream->current_block_samples;
         }
         while (vgmstream->next_block_offset < get_streamfile_size(streamFile));
+
+    	/* reset after getting samples */
+	    block_update(start_offset,vgmstream);
     }
 
     /* only use calculated samples with multiple subfiles (rarely header samples may be less due to padding) */
-    if (new_schl) {
+    if (multiple_schl) {
         ;VGM_LOG("EA SCHl: multiple SCHl found\n");
         return num_samples;
     }

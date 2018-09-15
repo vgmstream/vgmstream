@@ -68,7 +68,7 @@ int vorbis_custom_parse_packet_vid1(VGMSTREAMCHANNEL *stream, vorbis_custom_code
 
     /* get packet info the VID1 header */
     get_packet_header(stream->streamfile, &stream->offset, (uint32_t*)&data->op.bytes);
-    if (data->op.bytes == 0) {
+    if (data->op.bytes == 0 || data->op.bytes > data->buffer_size) {
         VGM_LOG("VID1 Vorbis: wrong packet (0x%lx) @ %lx\n", data->op.bytes, stream->offset);
         goto fail; /* EOF or end padding */
     }

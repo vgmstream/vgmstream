@@ -55,7 +55,7 @@ int vorbis_custom_parse_packet_ogl(VGMSTREAMCHANNEL *stream, vorbis_custom_codec
     /* get next packet size from the OGL 16b header (upper 14b) */
     data->op.bytes = (uint16_t)read_16bitLE(stream->offset, stream->streamfile) >> 2;
     stream->offset += 2;
-    if (data->op.bytes == 0 || data->op.bytes == 0xFFFF) {
+    if (data->op.bytes == 0 || data->op.bytes == 0xFFFF || data->op.bytes > data->buffer_size) {
         VGM_LOG("OGL Vorbis: wrong packet (0x%lx) @ %lx\n", data->op.bytes, stream->offset-2);
         goto fail; /* EOF or end padding */
     }

@@ -339,6 +339,7 @@ static const char* extension_list[] = {
     "snr",
     "sns",
     "snu",
+    "sod",
     "son",
     "spd",
     "spm",
@@ -381,6 +382,7 @@ static const char* extension_list[] = {
 
     "ulw",
     "um3",
+    "utk",
     "uv",
 
     "v0",
@@ -413,6 +415,7 @@ static const char* extension_list[] = {
     "wam",
     "was",
     //"wav", //common
+    "wavc",
     "wave",
     "wavebatch",
     "wavm",
@@ -538,6 +541,7 @@ static const coding_info coding_info_list[] = {
         {coding_SNDS_IMA,           "Heavy Iron .snds 4-bit IMA ADPCM"},
         {coding_OTNS_IMA,           "Omikron: The Nomad Soul 4-bit IMA ADPCM"},
         {coding_WV6_IMA,            "Gorilla Systems WV6 4-bit IMA ADPCM"},
+        {coding_ALP_IMA,            "High Voltage ALP 4-bit IMA ADPCM"},
 
         {coding_MS_IMA,             "Microsoft 4-bit IMA ADPCM"},
         {coding_XBOX_IMA,           "XBOX 4-bit IMA ADPCM"},
@@ -565,7 +569,6 @@ static const coding_info coding_info_list[] = {
         {coding_YAMAHA_NXAP,        "Yamaha NXAP 4-bit ADPCM"},
         {coding_NDS_PROCYON,        "Procyon Studio Digital Sound Elements NDS 4-bit APDCM"},
         {coding_L5_555,             "Level-5 0x555 4-bit ADPCM"},
-        {coding_SASSC,              "Activision / EXAKT SASSC 8-bit DPCM"},
         {coding_LSF,                "lsf 4-bit ADPCM"},
         {coding_MTAF,               "Konami MTAF 4-bit ADPCM"},
         {coding_MTA2,               "Konami MTA2 4-bit ADPCM"},
@@ -578,6 +581,8 @@ static const coding_info coding_info_list[] = {
         {coding_SDX2_int,           "Squareroot-delta-exact (SDX2) 8-bit DPCM with 1 byte interleave"},
         {coding_CBD2,               "Cuberoot-delta-exact (CBD2) 8-bit DPCM"},
         {coding_CBD2_int,           "Cuberoot-delta-exact (CBD2) 8-bit DPCM with 1 byte interleave"},
+        {coding_SASSC,              "Activision / EXAKT SASSC 8-bit DPCM"},
+        {coding_DERF,               "Xilam DERF 8-bit DPCM"},
         {coding_ACM,                "InterPlay ACM"},
         {coding_NWA,                "VisualArt's NWA DPCM"},
 
@@ -906,7 +911,7 @@ static const meta_info meta_info_list[] = {
         {meta_SSS,                  "Namco .SSS raw header"},
         {meta_PS2_GCM,              "GCM 'MCG' Header"},
         {meta_PS2_SMPL,             "Homura SMPL header"},
-        {meta_PS2_MSA,              "Psyvariar -Complete Edition- MSA header"},
+        {meta_PS2_MSA,              "Success .MSA header"},
         {meta_PC_SMP,               "Ghostbusters .smp Header"},
         {meta_NGC_PDT,              "Hudson .PDT header"},
         {meta_NGC_RKV,              "Legacy of Kain - Blood Omen 2 RKV GC header"},
@@ -1084,6 +1089,9 @@ static const meta_info meta_info_list[] = {
         {meta_APC,                  "Cryo APC header"},
         {meta_WV2,                  "Infogrames North America WAV2 header"},
         {meta_XAU_KONAMI,           "Konami XAU header"},
+        {meta_DERF,                 "Xilam DERF header"},
+        {meta_UTK,                  "Maxis UTK header"},
+        {meta_NXA,                  "Entergram NXA header"},
 
 };
 
