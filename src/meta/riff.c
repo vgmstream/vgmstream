@@ -244,6 +244,7 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
     long loop_start_ms = -1, loop_end_ms = -1;
     int32_t loop_start_wsmp = -1, loop_end_wsmp = -1;
     int32_t loop_start_smpl = -1, loop_end_smpl = -1;
+    int32_t loop_start_cue = -1;
 
     int FormatChunkFound = 0, DataChunkFound = 0, JunkFound = 0;
 
@@ -418,6 +419,18 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
                     if (!mwv) break;
                     loop_flag = read_32bitLE(current_chunk+0x08, streamFile);
                     mwv_ctrl_offset = current_chunk;
+                    break;
+
+                case 0x63756520:    /* "cue " (used in Source Engine for storing loop points) */
+                    if (fmt.coding_type == coding_PCM16LE || fmt.coding_type == coding_MSADPCM) {
+                        uint32_t num_cues = read_32bitLE(current_chunk + 0x08, streamFile);
+
+                        if (num_cues == 1 || num_cues == 2) {
+                            // The second cue sets loop end point but it's not actually used by the engine.
+                            loop_flag = 1;
+                            loop_start_cue = read_32bitLE(current_chunk + 0x20, streamFile);
+                        }
+                    }
                     break;
 
                 case 0x4A554E4B:    /* "JUNK" */
@@ -641,6 +654,10 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
         }
         else if (mwv && mwv_ctrl_offset != -1) {
             vgmstream->loop_start_sample = read_32bitLE(mwv_ctrl_offset+12, streamFile);
+            vgmstream->loop_end_sample = vgmstream->num_samples;
+        }
+        else if (loop_start_cue != -1) {
+            vgmstream->loop_start_sample = loop_start_cue;
             vgmstream->loop_end_sample = vgmstream->num_samples;
         }
     }
