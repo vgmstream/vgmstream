@@ -103,6 +103,7 @@ static const char* extension_list[] = {
     "cks",
     "cnk",
     "cps",
+    "csmp",
     "cvs",
     "cxs",
 
