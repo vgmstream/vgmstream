@@ -597,8 +597,7 @@ void reset_vgmstream(VGMSTREAM * vgmstream) {
 #endif
 
 #ifdef VGM_USE_G7221
-    if (vgmstream->coding_type==coding_G7221 ||
-        vgmstream->coding_type==coding_G7221C) {
+    if (vgmstream->coding_type==coding_G7221C) {
         reset_g7221(vgmstream);
     }
 #endif
@@ -781,8 +780,7 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
 #endif
 
 #ifdef VGM_USE_G7221
-    if (vgmstream->coding_type == coding_G7221 ||
-        vgmstream->coding_type == coding_G7221C) {
+    if (vgmstream->coding_type == coding_G7221C) {
         free_g7221(vgmstream);
         vgmstream->codec_data = NULL;
     }
@@ -1193,9 +1191,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
 
 #ifdef VGM_USE_G7221
         case coding_G7221C:
-            return 32000/50;
-        case coding_G7221:
-            return 16000/50;
+            return 32000/50; /* Siren7: 16000/50 */
 #endif
 #ifdef VGM_USE_G719
         case coding_G719:
@@ -1371,7 +1367,6 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
 
 #ifdef VGM_USE_G7221
         case coding_G7221C:
-        case coding_G7221:
 #endif
 #ifdef VGM_USE_G719
         case coding_G719:
@@ -1846,7 +1841,6 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
             break;
 #endif
 #ifdef VGM_USE_G7221
-        case coding_G7221:
         case coding_G7221C:
             for (ch = 0; ch < vgmstream->channels; ch++) {
                 decode_g7221(vgmstream, buffer+samples_written*vgmstream->channels+ch,

@@ -172,7 +172,7 @@ Must use autotools (sh configure, make, make install), though some scripts simpl
 
 
 ### libg7221_decode
-Adds support for ITU-T G.722.1 and G.722.1 annex C (standardization of Polycom Siren 7/14).
+Adds support for ITU-T G.722.1 annex C (standardization of Polycom Siren 14).
 - Source: https://github.com/kode54/libg7221_decode
 - DLL: `libg7221_decode.dll`
 
@@ -203,14 +203,14 @@ Adds support for ATRAC9.
 - Source: https://github.com/Thealexbarney/LibAtrac9
 - DLL: `libatrac9.dll`
 
-Use MSCV and `libatrac9.sln`.
+Use MSCV and `libatrac9.sln`, or GCC and the Makefile included.
 
 
 ### libcelt
 Adds support for FSB CELT versions 0.6.1 and 0.11.0.
-- DLL: `libcelt-0061.dll`, `libcelt-0110.dll`
 - Source (0.6.1): http://downloads.us.xiph.org/releases/celt/celt-0.6.1.tar.gz
 - Source (0.11.0): http://downloads.xiph.org/releases/celt/celt-0.11.0.tar.gz
+- DLL: `libcelt-0061.dll`, `libcelt-0110.dll`
 
 FSB uses two incompatible, older libcelt versions. Both libraries export the same symbols so normally can't coexist together. To get them working we need to make sure symbols are renamed first. This may be solved in various ways:
 - using dynamic loading (LoadLibrary) but for portability it isn't an option
@@ -219,7 +219,7 @@ FSB uses two incompatible, older libcelt versions. Both libraries export the sam
 - Use GCC's preprocessor to rename functions on compile
 - Rename functions in the source code directly.
 
-To compile we use autotools with GCC preprocessor renaming:
+To compile we'll use autotools with GCC preprocessor renaming:
 - in the celt-0.6.1 dir:
   ```
   # creates Makefiles with Automake

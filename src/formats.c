@@ -603,7 +603,6 @@ static const coding_info coding_info_list[] = {
         {coding_MPEG_layer3,        "MPEG Layer III Audio (MP3)"},
 #endif
 #ifdef VGM_USE_G7221
-        {coding_G7221,              "ITU G.722.1 (Polycom Siren 7)"},
         {coding_G7221C,             "ITU G.722.1 annex C (Polycom Siren 14)"},
 #endif
 #ifdef VGM_USE_G719
