@@ -84,7 +84,10 @@ codec = (codec string)
 codec_mode = (number)
  
 # Interleave or block size [REQUIRED/OPTIONAL, depends on codec]
-# Interleave 0 means "stereo mode" for some codecs (IMA, AICA, etc)
+# For mono/interleaved codecs it's the amount of data between channels.
+# For codecs with variable-sized frames (MSADPCM, MS-IMA, ATRAC3/plus)
+# it's the block size (size of a single frame).
+# Interleave 0 means "stereo mode" for some codecs (IMA, AICA, etc).
 interleave = (number)|(offset)
 
 # Validate that id_value matches value at id_offset [OPTIONAL]
