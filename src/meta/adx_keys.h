@@ -182,6 +182,9 @@ static const adxkey_info adxkey8_list[] = {
         /* Bakumatsu Renka - Karyuu Kenshiden (PS2) */
         {0x4919,0x612d,0x4919, "RENRENKA22",0},
 
+        /* Tensei Hakkenshi - Fuumaroku (PS2) */
+        {0x5761,0x6283,0x4531, "HAKKEN",0},
+
 };
 
 static const adxkey_info adxkey9_list[] = {
