@@ -1092,6 +1092,7 @@ static const meta_info meta_info_list[] = {
         {meta_DERF,                 "Xilam DERF header"},
         {meta_UTK,                  "Maxis UTK header"},
         {meta_NXA,                  "Entergram NXA header"},
+        {meta_ADPCM_CAPCOM,         "Capcom .ADPCM header"},
 
 };
 

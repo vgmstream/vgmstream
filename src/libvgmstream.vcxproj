@@ -204,6 +204,7 @@
     <ClCompile Include="meta\xau_konami.c" />
     <ClCompile Include="meta\aax.c" />
     <ClCompile Include="meta\acm.c" />
+    <ClCompile Include="meta\adpcm_capcom.c" />
     <ClCompile Include="meta\ads.c" />
     <ClCompile Include="meta\adx.c" />
     <ClCompile Include="meta\afc.c" />

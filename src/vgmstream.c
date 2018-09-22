@@ -439,6 +439,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_xau_konami,
     init_vgmstream_derf,
     init_vgmstream_utk,
+    init_vgmstream_adpcm_capcom,
 
 
     /* lowest priority metas (should go after all metas, and TXTH should go before raw formats) */

@@ -332,6 +332,10 @@
 					RelativePath=".\meta\acm.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\meta\adpcm_capcom.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\ads.c"
 					>
