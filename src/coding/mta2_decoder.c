@@ -79,7 +79,7 @@ static void mta2_block_update(VGMSTREAMCHANNEL * stream) {
         }
 
         if (block_size <= 0 || block_tracks < 0) {  /* nonsense block (maybe at EOF) */
-            VGM_LOG("MTA2: bad block @ %08lx\n", stream->offset);
+            VGM_LOG("MTA2: bad block @ 0x%"PRIx64"\n", (off64_t)stream->offset);
             stream->offset += 0x10;
             repeat = 0;
         }

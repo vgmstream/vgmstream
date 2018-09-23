@@ -103,17 +103,11 @@ int vorbis_custom_parse_packet_wwise(VGMSTREAMCHANNEL *stream, vorbis_custom_cod
 
     /* reconstruct a Wwise packet, if needed; final bytes may be bigger than packet_size so we get the header offsets here */
     header_size = get_packet_header(stream->streamfile, stream->offset, data->config.header_type, (int*)&data->op.granulepos, &packet_size, data->config.big_endian);
-    if (!header_size || packet_size > data->buffer_size) {
-        VGM_LOG("Wwise Vorbis: wrong packet (0x%x) @ %lx\n", packet_size, stream->offset);
-        goto fail;
-    }
+    if (!header_size || packet_size > data->buffer_size) goto fail;
 
     data->op.bytes = rebuild_packet(data->buffer, data->buffer_size, stream->streamfile,stream->offset, data, data->config.big_endian);
     stream->offset += header_size + packet_size;
-    if (!data->op.bytes || data->op.bytes >= 0xFFFF) {
-        VGM_LOG("Wwise Vorbis: wrong bytes (0x%lx) @ %lx\n", data->op.bytes, stream->offset-header_size-packet_size);
-        goto fail;
-    }
+    if (!data->op.bytes || data->op.bytes >= 0xFFFF) goto fail;
 
     return 1;
 
@@ -184,7 +178,7 @@ static size_t rebuild_packet(uint8_t * obuf, size_t obufsize, STREAMFILE *stream
     if (!rc) goto fail;
 
     if (ow.b_off % 8 != 0) {
-        VGM_LOG("Wwise Vorbis: didn't write exactly audio packet: 0x%lx + %li bits\n", ow.b_off / 8, ow.b_off % 8);
+        //VGM_LOG("Wwise Vorbis: didn't write exactly audio packet: 0x%lx + %li bits\n", ow.b_off / 8, ow.b_off % 8);
         goto fail;
     }
 
@@ -228,7 +222,7 @@ static size_t rebuild_setup(uint8_t * obuf, size_t obufsize, STREAMFILE *streamF
     if (!rc) goto fail;
 
     if (ow.b_off % 8 != 0) {
-        VGM_LOG("Wwise Vorbis: didn't write exactly setup packet: 0x%lx + %li bits\n", ow.b_off / 8, ow.b_off % 8);
+        //VGM_LOG("Wwise Vorbis: didn't write exactly setup packet: 0x%lx + %li bits\n", ow.b_off / 8, ow.b_off % 8);
         goto fail;
     }
 
@@ -1024,7 +1018,7 @@ static int ww2ogg_codebook_library_rebuild(vgm_bitstream * ow, vgm_bitstream * i
     /* check that we used exactly all bytes */
     /* note: if all bits are used in the last byte there will be one extra 0 byte */
     if ( 0 != cb_size && iw->b_off/8+1 != cb_size ) {
-        VGM_LOG("Wwise Vorbis: codebook size mistach (expected 0x%x, wrote 0x%lx)\n", cb_size, iw->b_off/8+1);
+        //VGM_LOG("Wwise Vorbis: codebook size mistach (expected 0x%x, wrote 0x%lx)\n", cb_size, iw->b_off/8+1);
         goto fail;
     }
 

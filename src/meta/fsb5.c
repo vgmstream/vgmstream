@@ -182,7 +182,7 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
                   //    /* found in some XMA2/Vorbis/FADPCM */
                   //    break;
                     default:
-                        VGM_LOG("FSB5: unknown extraflag 0x%x at %lx + 0x04 (size 0x%x)\n", extraflag_type, extraflag_offset, extraflag_size);
+                        VGM_LOG("FSB5: unknown extraflag 0x%x at %"PRIx64" + 0x04 (size 0x%x)\n", extraflag_type, (off64_t)extraflag_offset, extraflag_size);
                         break;
                 }
 

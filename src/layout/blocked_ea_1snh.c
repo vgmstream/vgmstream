@@ -54,8 +54,6 @@ void block_update_ea_1snh(off_t block_offset, VGMSTREAM * vgmstream) {
         block_offset += block_size;
     }
 
-    VGM_LOG("of=%lx, next=%lx, data=%x\n", block_offset, block_offset + block_size, block_size);//getchar();
-
     vgmstream->current_block_offset = block_offset;
     vgmstream->next_block_offset    = block_offset + block_size;
     vgmstream->current_block_size   = block_size - block_header;
@@ -99,8 +97,8 @@ void block_update_ea_1snh(off_t block_offset, VGMSTREAM * vgmstream) {
                     vgmstream->ch[i].offset = adpcm_offset + 0x08*vgmstream->channels;
                 }
 
-                VGM_ASSERT(vgmstream->current_block_samples != (block_size - block_header - 0x04 - 0x08*vgmstream->channels) * 2 / vgmstream->channels,
-                           "EA 1SHN blocked: different expected vs block num samples at %lx\n", block_offset);
+                //VGM_ASSERT(vgmstream->current_block_samples != (block_size - block_header - 0x04 - 0x08*vgmstream->channels) * 2 / vgmstream->channels,
+                //           "EA 1SHN blocked: different expected vs block num samples at %lx\n", block_offset);
             }
             else {
                 for(i = 0; i < vgmstream->channels; i++) {

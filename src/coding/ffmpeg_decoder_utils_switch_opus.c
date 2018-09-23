@@ -97,7 +97,7 @@ static size_t opus_io_read(STREAMFILE *streamfile, uint8_t *dest, off_t offset, 
             data->page_size = oggs_size + data_size;
 
             if (data->page_size > sizeof(data->page_buffer)) { /* happens on bad reads/EOF too */
-                VGM_LOG("OPUS: buffer can't hold OggS at %lx\n", data->physical_offset);
+                VGM_LOG("OPUS: buffer can't hold OggS at %"PRIx64"\n", (off64_t)data->physical_offset);
                 data->page_size = 0;
                 break;
             }
@@ -150,7 +150,7 @@ static size_t opus_io_size(STREAMFILE *streamfile, opus_io_data* data) {
         return data->logical_size;
 
     if (data->stream_offset + data->stream_size > get_streamfile_size(streamfile)) {
-        VGM_LOG("OPUS: wrong streamsize %lx + %x vs %x\n", data->stream_offset, data->stream_size, get_streamfile_size(streamfile));
+        VGM_LOG("OPUS: wrong streamsize %"PRIx64" + %x vs %x\n", (off64_t)data->stream_offset, data->stream_size, get_streamfile_size(streamfile));
         return 0;
     }
 
@@ -172,7 +172,7 @@ static size_t opus_io_size(STREAMFILE *streamfile, opus_io_data* data) {
 
     /* logical size can be bigger though */
     if (physical_offset > get_streamfile_size(streamfile)) {
-        VGM_LOG("OPUS: wrong size %lx\n", physical_offset);
+        VGM_LOG("OPUS: wrong size\n");
         return 0;
     }
 

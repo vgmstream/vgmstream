@@ -101,7 +101,7 @@ VGMSTREAM * init_vgmstream_nus3bank(STREAMFILE *streamFile) {
 
             total_subsongs++;
             if (total_subsongs == target_subsong) {
-                ;VGM_LOG("NUS3BANK: subsong header offset %lx\n", header_offset);
+                //;VGM_LOG("NUS3BANK: subsong header offset %lx\n", header_offset);
                 subfile_offset = stream_offset;
                 subfile_size = stream_size;
                 name_size = stream_name_size;
@@ -142,7 +142,7 @@ VGMSTREAM * init_vgmstream_nus3bank(STREAMFILE *streamFile) {
         }
     }
 
-    ;VGM_LOG("NUS3BANK: subfile=%lx, size=%x\n", subfile_offset, subfile_size);
+    //;VGM_LOG("NUS3BANK: subfile=%lx, size=%x\n", subfile_offset, subfile_size);
 
     temp_streamFile = setup_nus3bank_streamfile(streamFile, subfile_offset,subfile_size, fake_ext);
     if (!temp_streamFile) goto fail;

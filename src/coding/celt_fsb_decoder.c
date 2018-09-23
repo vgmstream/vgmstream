@@ -122,22 +122,17 @@ void decode_celt_fsb(VGMSTREAM *vgmstream, sample * outbuf, int32_t samples_to_d
 
             /* FSB DLLs do seem to check this fixed value */
             if (read_32bitBE(stream->offset+0x00,stream->streamfile) != 0x17C30DF3) {
-                VGM_LOG("CELT: unknown frame ID at %lx\n",stream->offset);
                 goto decode_fail;
             }
 
             frame_size = read_32bitLE(stream->offset+0x04,stream->streamfile);
             if (frame_size > FSB_CELT_MAX_DATA_SIZE) {
-                VGM_LOG("CELT: frame size %x bigger than expected\n", frame_size);
                 goto decode_fail;
             }
 
             /* read and decode one raw block and advance offsets */
             bytes = read_streamfile(data_buffer,stream->offset+0x08, frame_size,stream->streamfile);
-            if (bytes != frame_size) {
-                VGM_LOG("CELT: read %x vs expected %x bytes at %lx\n", bytes,frame_size,stream->offset);
-                goto decode_fail;
-            }
+            if (bytes != frame_size) goto decode_fail;
 
             switch(data->version) {
                 case CELT_0_06_1:
@@ -151,10 +146,7 @@ void decode_celt_fsb(VGMSTREAM *vgmstream, sample * outbuf, int32_t samples_to_d
                 default:
                     goto decode_fail;
             }
-            if (status != CELT_OK)  {
-                VGM_LOG("CELT: decode failed with %i at %lx\n", status,stream->offset);
-                goto decode_fail;
-            }
+            if (status != CELT_OK) goto decode_fail;
 
             stream->offset += 0x04+0x04+frame_size;
             data->samples_filled += FSB_CELT_SAMPLES_PER_FRAME;
@@ -165,7 +157,7 @@ void decode_celt_fsb(VGMSTREAM *vgmstream, sample * outbuf, int32_t samples_to_d
 
 decode_fail:
     /* on error just put some 0 samples */
-    VGM_LOG("CELT: decode fail at %lx, missing %i samples\n", stream->offset, (samples_to_do - samples_done));
+    VGM_LOG("CELT: decode fail at %"PRIx64", missing %i samples\n", (off64_t)stream->offset, (samples_to_do - samples_done));
     memset(outbuf + samples_done * channels, 0, (samples_to_do - samples_done) * sizeof(sample) * channels);
 }
 

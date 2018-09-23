@@ -238,7 +238,7 @@ static size_t eaac_io_size(STREAMFILE *streamfile, eaac_io_data* data) {
 
     /* logical size can be bigger in EA-XMA though */
     if (physical_offset > get_streamfile_size(streamfile)) {
-        VGM_LOG("EA EAAC: wrong size %lx\n", physical_offset);
+        VGM_LOG("EA EAAC: wrong size\n");
         return 0;
     }
 
