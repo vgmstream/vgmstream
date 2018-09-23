@@ -169,8 +169,9 @@ static STREAMFILE * open_stdio_streamfile_buffer_by_file(FILE *infile,const char
     fseeko(streamfile->infile,0,SEEK_END);
     streamfile->filesize = ftello(streamfile->infile);
 
-    /* some compilers/flags may use ftell, which only handles up to ~2.14GB
-     * (possible for banks like FSB, though unlikely). */
+    /* Typically fseek(o)/ftell(o) may only handle up to ~2.14GB, signed 32b = 0x7FFFFFFF
+     * (happens in banks like FSB, though rarely). Can be remedied with the
+     * preprocessor (-D_FILE_OFFSET_BITS=64 in GCC) but it's not well tested. */
     if (streamfile->filesize == 0xFFFFFFFF) { /* -1 on error */
         VGM_LOG("STREAMFILE: ftell error\n");
         goto fail; /* can be ignored but may result in strange/unexpected behaviors */
