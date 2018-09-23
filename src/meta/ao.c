@@ -25,7 +25,7 @@ VGMSTREAM * init_vgmstream_ao(STREAMFILE *streamFile) {
         vgmstream = init_vgmstream_ogg_vorbis_callbacks(streamFile, NULL, start_offset, &ovmi);
     }
 #else
-    goto fail
+    goto fail;
 #endif
 
     return vgmstream;
