@@ -705,6 +705,7 @@ typedef enum {
     meta_UTK,
     meta_NXA,
     meta_ADPCM_CAPCOM,
+    meta_UE4OPUS,
 
 } meta_t;
 

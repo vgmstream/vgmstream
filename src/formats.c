@@ -381,6 +381,7 @@ static const char* extension_list[] = {
     "txtp",
     "tydsp",
 
+    "ue4opus",
     "ulw",
     "um3",
     "utk",
@@ -1093,6 +1094,7 @@ static const meta_info meta_info_list[] = {
         {meta_UTK,                  "Maxis UTK header"},
         {meta_NXA,                  "Entergram NXA header"},
         {meta_ADPCM_CAPCOM,         "Capcom .ADPCM header"},
+        {meta_UE4OPUS,              "Epic Games UE4OPUS header"},
 
 };
 

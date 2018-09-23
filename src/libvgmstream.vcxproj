@@ -125,7 +125,7 @@
     <ClCompile Include="coding\celt_fsb_decoder.c" />
     <ClCompile Include="coding\coding_utils.c" />
     <ClCompile Include="coding\ffmpeg_decoder.c" />
-    <ClCompile Include="coding\ffmpeg_decoder_utils_switch_opus.c" />
+    <ClCompile Include="coding\ffmpeg_decoder_custom_opus.c" />
     <ClCompile Include="coding\lsf_decoder.c" />
     <ClCompile Include="coding\mp4_aac_decoder.c" />
     <ClCompile Include="coding\mtaf_decoder.c" />
@@ -438,6 +438,7 @@
     <ClCompile Include="meta\ubi_lyn.c" />
     <ClCompile Include="meta\ubi_raki.c" />
     <ClCompile Include="meta\ubi_sb.c" />
+    <ClCompile Include="meta\ue4opus.c" />
     <ClCompile Include="meta\utk.c" />
     <ClCompile Include="meta\vs.c" />
     <ClCompile Include="meta\vsf.c" />

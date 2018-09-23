@@ -1443,6 +1443,10 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\meta\ue4opus.c"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\utk.c"
                     >
                 </File>
@@ -1719,7 +1723,7 @@
                     >
                 </File>
                 <File
-                    RelativePath=".\coding\ffmpeg_decoder_utils_switch_opus.c"
+                    RelativePath=".\coding\ffmpeg_decoder_custom_opus.c"
                     >
                 </File>
 				<File
