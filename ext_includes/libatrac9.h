@@ -3,10 +3,14 @@
 extern "C" {
 #endif
 
+#ifdef WIN32
 #ifdef COMPILING_DLL 
 #define DLLEXPORT __declspec(dllexport)
 #else
 #define DLLEXPORT __declspec(dllimport)  
+#endif
+#else
+#define DLLEXPORT
 #endif
 
 #define ATRAC9_CONFIG_DATA_SIZE 4
