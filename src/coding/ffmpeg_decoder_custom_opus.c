@@ -15,7 +15,7 @@
 
 static size_t make_oggs_first(uint8_t * buf, int buf_size, int channels, int skip, int sample_rate);
 static size_t make_oggs_page(uint8_t * buf, int buf_size, size_t data_size, int page_sequence, int granule);
-static uint32_t get_opus_samples_per_frame(const uint8_t * data, int Fs);
+static size_t opus_get_packet_samples(const uint8_t * buf, int len);
 
 typedef enum { OPUS_SWITCH, OPUS_UE4 } opus_type_t;
 typedef struct {
@@ -117,7 +117,7 @@ static size_t opus_io_read(STREAMFILE *streamfile, uint8_t *dest, off_t offset, 
 
             /* create fake OggS page (full page for checksums) */
             read_streamfile(data->page_buffer+oggs_size, data->physical_offset + skip_size, data_size, streamfile); /* store page data */
-            data->samples_done += get_opus_samples_per_frame(data->page_buffer+oggs_size, 48000);
+            data->samples_done += opus_get_packet_samples(data->page_buffer+oggs_size, data_size);
             make_oggs_page(data->page_buffer,sizeof(data->page_buffer), data_size, data->sequence, data->samples_done);
             data->sequence++;
         }
@@ -288,8 +288,8 @@ static uint32_t get_oggs_checksum(uint8_t * data, int bytes) {
   return crc_reg;
 }
 
-/* from opus_decoder.c */
-static uint32_t get_opus_samples_per_frame(const uint8_t * data, int Fs) {
+/* from opus_decoder.c's opus_packet_get_samples_per_frame */
+static uint32_t opus_packet_get_samples_per_frame(const uint8_t * data, int Fs) {
     int audiosize;
     if (data[0]&0x80)
     {
@@ -306,6 +306,22 @@ static uint32_t get_opus_samples_per_frame(const uint8_t * data, int Fs) {
           audiosize = (Fs<<audiosize)/100;
     }
     return audiosize;
+}
+
+/* from opus_decoder.c's opus_packet_get_nb_frames */
+static int opus_packet_get_nb_frames(const uint8_t * packet, int len) {
+   int count;
+   if (len<1)
+      return 0;
+   count = packet[0]&0x3;
+   if (count==0)
+      return 1;
+   else if (count!=3)
+      return 2;
+   else if (len<2)
+      return 0;
+   else
+      return packet[1]&0x3F;
 }
 
 /* ******************************** */
@@ -440,6 +456,10 @@ fail:
 
 #ifdef VGM_USE_FFMPEG
 
+static size_t opus_get_packet_samples(const uint8_t * buf, int len) {
+    return opus_packet_get_nb_frames(buf, len) * opus_packet_get_samples_per_frame(buf, 48000);
+}
+
 static size_t custom_opus_get_samples(off_t offset, size_t data_size, int sample_rate, STREAMFILE *streamFile, opus_type_t type) {
     size_t num_samples = 0;
     off_t end_offset = offset + data_size;
@@ -467,8 +487,8 @@ static size_t custom_opus_get_samples(off_t offset, size_t data_size, int sample
                 return 0;
         }
 
-        read_streamfile(buf, offset+skip_size, 0x04, streamFile);
-        num_samples += get_opus_samples_per_frame(buf, sample_rate);
+        read_streamfile(buf, offset+skip_size, 0x04, streamFile); /* at least 0x02 */
+        num_samples += opus_get_packet_samples(buf, 0x04);
 
         offset += skip_size + data_size;
     }
