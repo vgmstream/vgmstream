@@ -1039,7 +1039,7 @@ static int parse_variable_header(STREAMFILE* streamFile, ea_header* ea, off_t be
                 break;
 
             default:
-                VGM_LOG("EA SCHl: unknown patch 0x%02x at 0x%04lx\n", patch_type, (offset-1));
+                VGM_LOG("EA SCHl: unknown patch 0x%02x\n", patch_type);
                 goto fail;
         }
     }

@@ -789,4 +789,8 @@ VGMSTREAM * init_vgmstream_derf(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_utk(STREAMFILE *streamFile);
 
+VGMSTREAM * init_vgmstream_adpcm_capcom(STREAMFILE *streamFile);
+
+VGMSTREAM * init_vgmstream_ue4opus(STREAMFILE *streamFile);
+
 #endif /*_META_H*/

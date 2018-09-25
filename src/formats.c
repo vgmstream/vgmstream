@@ -103,6 +103,7 @@ static const char* extension_list[] = {
     "cks",
     "cnk",
     "cps",
+    "csmp",
     "cvs",
     "cxs",
 
@@ -380,6 +381,7 @@ static const char* extension_list[] = {
     "txtp",
     "tydsp",
 
+    "ue4opus",
     "ulw",
     "um3",
     "utk",
@@ -602,7 +604,6 @@ static const coding_info coding_info_list[] = {
         {coding_MPEG_layer3,        "MPEG Layer III Audio (MP3)"},
 #endif
 #ifdef VGM_USE_G7221
-        {coding_G7221,              "ITU G.722.1 (Polycom Siren 7)"},
         {coding_G7221C,             "ITU G.722.1 annex C (Polycom Siren 14)"},
 #endif
 #ifdef VGM_USE_G719
@@ -1092,6 +1093,8 @@ static const meta_info meta_info_list[] = {
         {meta_DERF,                 "Xilam DERF header"},
         {meta_UTK,                  "Maxis UTK header"},
         {meta_NXA,                  "Entergram NXA header"},
+        {meta_ADPCM_CAPCOM,         "Capcom .ADPCM header"},
+        {meta_UE4OPUS,              "Epic Games UE4OPUS header"},
 
 };
 

@@ -330,7 +330,7 @@ static VGMSTREAM * parse_s10a_header(STREAMFILE *streamFile, off_t offset, uint1
     if (ast_offset == 0xFFFFFFFF) {
         /* RAM asset */
         sns_offset = snr_offset + get_snr_size(streamFile, snr_offset);
-        ;VGM_LOG("EA S10A: RAM at sns=%lx, sns=%lx\n", snr_offset, sns_offset);
+        //;VGM_LOG("EA S10A: RAM at sns=%lx, sns=%lx\n", snr_offset, sns_offset);
         vgmstream = init_vgmstream_eaaudiocore_header(streamFile, streamFile, snr_offset, sns_offset, meta_EA_SNR_SNS);
         if (!vgmstream)
             goto fail;
@@ -345,7 +345,7 @@ static VGMSTREAM * parse_s10a_header(STREAMFILE *streamFile, off_t offset, uint1
             goto fail;
 
         sns_offset = ast_offset;
-        ;VGM_LOG("EA S10A: stream at sns=%lx, sns=%lx\n", snr_offset, sns_offset);
+        //;VGM_LOG("EA S10A: stream at sns=%lx, sns=%lx\n", snr_offset, sns_offset);
         vgmstream = init_vgmstream_eaaudiocore_header(streamFile, astFile, snr_offset, sns_offset, meta_EA_SNR_SNS);
         if (!vgmstream)
             goto fail;

@@ -177,7 +177,6 @@ typedef enum {
 #endif
 
 #ifdef VGM_USE_G7221
-    coding_G7221,           /* ITU G.722.1 (Polycom Siren 7) */
     coding_G7221C,          /* ITU G.722.1 annex C (Polycom Siren 14) */
 #endif
 
@@ -705,6 +704,8 @@ typedef enum {
     meta_DERF,              /* Stupid Invaders (PC) */
     meta_UTK,
     meta_NXA,
+    meta_ADPCM_CAPCOM,
+    meta_UE4OPUS,
 
 } meta_t;
 

@@ -3,9 +3,9 @@
 #include <string.h>
 
 /**
- * Transmogrifies Switch Opus (no Ogg layer and custom packet headers) into is Xiph Opus, creating valid
- * Ogg pages with single Opus packets. Packet headers seem to come from opus_test and aren't Nintendo-specific.
- * Uses an intermediate buffer to make a full Ogg page, since checksums are calculated with the whole page.
+ * Transmogrifies custom Opus (no Ogg layer and custom packet headers) into is Xiph Opus, creating
+ * valid Ogg pages with single Opus packets.
+ * Uses an intermediate buffer to make full Ogg pages, since checksums are calculated with the whole page.
  *
  * Info, CRC and stuff:
  *   https://www.opus-codec.org/docs/
@@ -15,10 +15,12 @@
 
 static size_t make_oggs_first(uint8_t * buf, int buf_size, int channels, int skip, int sample_rate);
 static size_t make_oggs_page(uint8_t * buf, int buf_size, size_t data_size, int page_sequence, int granule);
-static uint32_t get_opus_samples_per_frame(const uint8_t * data, int Fs);
+static size_t opus_get_packet_samples(const uint8_t * buf, int len);
 
+typedef enum { OPUS_SWITCH, OPUS_UE4 } opus_type_t;
 typedef struct {
     /* config */
+    opus_type_t type;
     off_t stream_offset;
     size_t stream_size;
 
@@ -28,7 +30,7 @@ typedef struct {
 
     size_t block_size;              /* current block size */
     size_t page_size;               /* current OggS page size */
-    uint8_t page_buffer[0x1000];    /* OggS page */
+    uint8_t page_buffer[0x2000];    /* OggS page (observed max is ~0xc00) */
     size_t sequence;                /* OggS sequence */
     size_t samples_done;            /* OggS granule */
 
@@ -39,7 +41,7 @@ typedef struct {
 } opus_io_data;
 
 
-/* Convers Switch Opus packets to Ogg Opus, so the resulting data is larger than physical data. */
+/* Convers custom Opus packets to Ogg Opus, so the resulting data is larger than physical data. */
 static size_t opus_io_read(STREAMFILE *streamfile, uint8_t *dest, off_t offset, size_t length, opus_io_data* data) {
     size_t total_read = 0;
 
@@ -89,22 +91,33 @@ static size_t opus_io_read(STREAMFILE *streamfile, uint8_t *dest, off_t offset, 
         if (data->page_size == 0) {
             size_t data_size, skip_size, oggs_size;
 
-            data_size = read_32bitBE(data->physical_offset, streamfile);
-            skip_size = 0x08; /* size + Opus state(?) */
+            switch(data->type) {
+                case OPUS_SWITCH: /* format seem to come from opus_test and not Nintendo-specific */
+                    data_size = read_32bitBE(data->physical_offset, streamfile);
+                    skip_size = 0x08; /* size + Opus state(?) */
+                    break;
+                case OPUS_UE4:
+                    data_size = (uint16_t)read_16bitLE(data->physical_offset, streamfile);
+                    skip_size = 0x02;
+                    break;
+                default:
+                    return 0;
+            }
+
             oggs_size = 0x1b + (int)(data_size / 0xFF + 1); /* OggS page: base size + lacing values */
 
             data->block_size = data_size + skip_size;
             data->page_size = oggs_size + data_size;
 
             if (data->page_size > sizeof(data->page_buffer)) { /* happens on bad reads/EOF too */
-                VGM_LOG("OPUS: buffer can't hold OggS at %lx\n", data->physical_offset);
+                VGM_LOG("OPUS: buffer can't hold OggS at %"PRIx64"\n", (off64_t)data->physical_offset);
                 data->page_size = 0;
                 break;
             }
 
             /* create fake OggS page (full page for checksums) */
-            read_streamfile(data->page_buffer+oggs_size, data->physical_offset + 0x08, data_size, streamfile); /* store page data */
-            data->samples_done += get_opus_samples_per_frame(data->page_buffer+oggs_size, 48000);
+            read_streamfile(data->page_buffer+oggs_size, data->physical_offset + skip_size, data_size, streamfile); /* store page data */
+            data->samples_done += opus_get_packet_samples(data->page_buffer+oggs_size, data_size);
             make_oggs_page(data->page_buffer,sizeof(data->page_buffer), data_size, data->sequence, data->samples_done);
             data->sequence++;
         }
@@ -150,7 +163,7 @@ static size_t opus_io_size(STREAMFILE *streamfile, opus_io_data* data) {
         return data->logical_size;
 
     if (data->stream_offset + data->stream_size > get_streamfile_size(streamfile)) {
-        VGM_LOG("OPUS: wrong streamsize %lx + %x vs %x\n", data->stream_offset, data->stream_size, get_streamfile_size(streamfile));
+        VGM_LOG("OPUS: wrong streamsize %"PRIx64" + %x vs %x\n", (off64_t)data->stream_offset, data->stream_size, get_streamfile_size(streamfile));
         return 0;
     }
 
@@ -162,8 +175,18 @@ static size_t opus_io_size(STREAMFILE *streamfile, opus_io_data* data) {
     while (physical_offset < max_physical_offset) {
         size_t data_size, skip_size, oggs_size;
 
-        data_size = read_32bitBE(physical_offset, streamfile);
-        skip_size = 0x08;
+        switch(data->type) {
+            case OPUS_SWITCH:
+                data_size = read_32bitBE(physical_offset, streamfile);
+                skip_size = 0x08;
+                break;
+            case OPUS_UE4:
+                data_size = (uint16_t)read_16bitLE(physical_offset, streamfile);
+                skip_size = 0x02;
+                break;
+            default:
+                return 0;
+        }
         oggs_size = 0x1b + (int)(data_size / 0xFF + 1); /* OggS page: base size + lacing values */
 
         physical_offset += data_size + skip_size;
@@ -172,7 +195,7 @@ static size_t opus_io_size(STREAMFILE *streamfile, opus_io_data* data) {
 
     /* logical size can be bigger though */
     if (physical_offset > get_streamfile_size(streamfile)) {
-        VGM_LOG("OPUS: wrong size %lx\n", physical_offset);
+        VGM_LOG("OPUS: wrong size\n");
         return 0;
     }
 
@@ -181,12 +204,13 @@ static size_t opus_io_size(STREAMFILE *streamfile, opus_io_data* data) {
 }
 
 
-/* Prepares custom IO for Switch Opus, that is converted to Ogg Opus on the fly */
-static STREAMFILE* setup_opus_streamfile(STREAMFILE *streamFile, int channels, int skip, int sample_rate, off_t stream_offset, size_t stream_size) {
+/* Prepares custom IO for custom Opus, that is converted to Ogg Opus on the fly */
+static STREAMFILE* setup_opus_streamfile(STREAMFILE *streamFile, int channels, int skip, int sample_rate, off_t stream_offset, size_t stream_size, opus_type_t type) {
     STREAMFILE *temp_streamFile = NULL, *new_streamFile = NULL;
     opus_io_data io_data = {0};
     size_t io_data_size = sizeof(opus_io_data);
 
+    io_data.type = type;
     io_data.stream_offset = stream_offset;
     io_data.stream_size = stream_size;
     io_data.physical_offset = stream_offset;
@@ -264,8 +288,8 @@ static uint32_t get_oggs_checksum(uint8_t * data, int bytes) {
   return crc_reg;
 }
 
-/* from opus_decoder.c */
-static uint32_t get_opus_samples_per_frame(const uint8_t * data, int Fs) {
+/* from opus_decoder.c's opus_packet_get_samples_per_frame */
+static uint32_t opus_packet_get_samples_per_frame(const uint8_t * data, int Fs) {
     int audiosize;
     if (data[0]&0x80)
     {
@@ -282,6 +306,22 @@ static uint32_t get_opus_samples_per_frame(const uint8_t * data, int Fs) {
           audiosize = (Fs<<audiosize)/100;
     }
     return audiosize;
+}
+
+/* from opus_decoder.c's opus_packet_get_nb_frames */
+static int opus_packet_get_nb_frames(const uint8_t * packet, int len) {
+   int count;
+   if (len<1)
+      return 0;
+   count = packet[0]&0x3;
+   if (count==0)
+      return 1;
+   else if (count!=3)
+      return 2;
+   else if (len<2)
+      return 0;
+   else
+      return packet[1]&0x3F;
 }
 
 /* ******************************** */
@@ -416,7 +456,11 @@ fail:
 
 #ifdef VGM_USE_FFMPEG
 
-size_t switch_opus_get_samples(off_t offset, size_t data_size, int sample_rate, STREAMFILE *streamFile) {
+static size_t opus_get_packet_samples(const uint8_t * buf, int len) {
+    return opus_packet_get_nb_frames(buf, len) * opus_packet_get_samples_per_frame(buf, 48000);
+}
+
+static size_t custom_opus_get_samples(off_t offset, size_t data_size, int sample_rate, STREAMFILE *streamFile, opus_type_t type) {
     size_t num_samples = 0;
     off_t end_offset = offset + data_size;
 
@@ -428,22 +472,43 @@ size_t switch_opus_get_samples(off_t offset, size_t data_size, int sample_rate, 
     /* count by reading all frames */
     while (offset < end_offset) {
         uint8_t buf[4];
-        size_t block_size = read_32bitBE(offset, streamFile);
+        size_t data_size, skip_size;
 
-        read_streamfile(buf, offset+8, 4, streamFile);
-        num_samples += get_opus_samples_per_frame(buf, sample_rate);
+        switch(type) {
+            case OPUS_SWITCH:
+                data_size = read_32bitBE(offset, streamFile);
+                skip_size = 0x08;
+                break;
+            case OPUS_UE4:
+                data_size = (uint16_t)read_16bitLE(offset, streamFile);
+                skip_size = 0x02;
+                break;
+            default:
+                return 0;
+        }
 
-        offset += 0x08 + block_size;
+        read_streamfile(buf, offset+skip_size, 0x04, streamFile); /* at least 0x02 */
+        num_samples += opus_get_packet_samples(buf, 0x04);
+
+        offset += skip_size + data_size;
     }
 
     return num_samples;
 }
 
-ffmpeg_codec_data * init_ffmpeg_switch_opus(STREAMFILE *streamFile, off_t start_offset, size_t data_size, int channels, int skip, int sample_rate) {
+size_t switch_opus_get_samples(off_t offset, size_t data_size, int sample_rate, STREAMFILE *streamFile) {
+    return custom_opus_get_samples(offset, data_size, sample_rate, streamFile, OPUS_SWITCH);
+}
+size_t ue4_opus_get_samples(off_t offset, size_t data_size, int sample_rate, STREAMFILE *streamFile) {
+    return custom_opus_get_samples(offset, data_size, sample_rate, streamFile, OPUS_UE4);
+}
+
+
+static ffmpeg_codec_data * init_ffmpeg_custom_opus(STREAMFILE *streamFile, off_t start_offset, size_t data_size, int channels, int skip, int sample_rate, opus_type_t type) {
     ffmpeg_codec_data * ffmpeg_data = NULL;
     STREAMFILE *temp_streamFile = NULL;
 
-    temp_streamFile = setup_opus_streamfile(streamFile, channels, skip, sample_rate, start_offset, data_size);
+    temp_streamFile = setup_opus_streamfile(streamFile, channels, skip, sample_rate, start_offset, data_size, type);
     if (!temp_streamFile) goto fail;
 
     ffmpeg_data = init_ffmpeg_offset(temp_streamFile, 0x00,get_streamfile_size(temp_streamFile));
@@ -460,4 +525,13 @@ fail:
     close_streamfile(temp_streamFile);
     return NULL;
 }
+
+ffmpeg_codec_data * init_ffmpeg_switch_opus(STREAMFILE *streamFile, off_t start_offset, size_t data_size, int channels, int skip, int sample_rate) {
+    return init_ffmpeg_custom_opus(streamFile, start_offset, data_size, channels, skip, sample_rate, OPUS_SWITCH);
+}
+
+ffmpeg_codec_data * init_ffmpeg_ue4_opus(STREAMFILE *streamFile, off_t start_offset, size_t data_size, int channels, int skip, int sample_rate) {
+    return init_ffmpeg_custom_opus(streamFile, start_offset, data_size, channels, skip, sample_rate, OPUS_UE4);
+}
+
 #endif

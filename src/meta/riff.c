@@ -96,15 +96,14 @@ static int read_fmt(int big_endian, STREAMFILE * streamFile, off_t current_chunk
     int16_t (*read_16bit)(off_t,STREAMFILE*) = big_endian ? read_16bitBE : read_16bitLE;
 
     fmt->offset = current_chunk;
-    fmt->size = read_32bit(current_chunk+0x4,streamFile);
+    fmt->size = read_32bit(current_chunk+0x04,streamFile);
 
+    fmt->codec = (uint16_t)read_16bit(current_chunk+0x08,streamFile);
     fmt->sample_rate = read_32bit(current_chunk+0x0c,streamFile);
     fmt->channel_count = read_16bit(current_chunk+0x0a,streamFile);
     fmt->block_size = read_16bit(current_chunk+0x14,streamFile);
-    fmt->interleave = 0;
-
     fmt->bps = read_16bit(current_chunk+0x16,streamFile);
-    fmt->codec = (uint16_t)read_16bit(current_chunk+0x8,streamFile);
+    fmt->interleave = 0;
 
     switch (fmt->codec) {
         case 0x00:  /* Yamaha ADPCM (raw) [Headhunter (DC), Bomber hehhe (DC)] (unofficial) */
@@ -130,8 +129,15 @@ static int read_fmt(int big_endian, STREAMFILE * streamFile, off_t current_chunk
             break;
 
         case 0x02: /* MS ADPCM */
-            if (fmt->bps != 4) goto fail;
-            fmt->coding_type = coding_MSADPCM;
+            if (fmt->bps == 4) {
+                fmt->coding_type = coding_MSADPCM;
+            }
+            else if (fmt->bps == 16 && fmt->block_size == 0x02 * fmt->channel_count && fmt->size == 0x14) {
+                fmt->coding_type = coding_IMA; /* MX vs ATV Unleashed (PC) codec hijack */
+            }
+            else {
+                goto fail;
+            }
             break;
 
         case 0x11:  /* MS IMA ADPCM [Layton Brothers: Mystery Room (iOS/Android)] */
@@ -295,10 +301,9 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
     riff_size = read_32bitLE(0x04,streamFile);
     file_size = get_streamfile_size(streamFile);
 
-    /* for some of Liar-soft's buggy RIFF+Ogg made with Soundforge [Shikkoku no Sharnoth (PC)] */
+    /* some of Liar-soft's buggy RIFF+Ogg made with Soundforge [Shikkoku no Sharnoth (PC)] */
     if (riff_size+0x08+0x01 == file_size)
         riff_size += 0x01;
-
     /* some Xbox games do this [Dynasty Warriors 3 (Xbox), BloodRayne (Xbox)] */
     if (riff_size == file_size && read_16bitLE(0x14,streamFile)==0x0069)
         riff_size -= 0x08;
@@ -540,6 +545,10 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
                 vgmstream->num_samples = fact_sample_count; /* some (converted?) Xbox games have bigger fact_samples */
             break;
 
+        case coding_IMA:
+            vgmstream->num_samples = ima_bytes_to_samples(data_size, fmt.channel_count);
+            break;
+
 #ifdef VGM_USE_FFMPEG
         case coding_FFmpeg: {
             ffmpeg_codec_data *ffmpeg_data = init_ffmpeg_offset(streamFile, 0x00, streamFile->get_size(streamFile));
@@ -607,6 +616,7 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
         case coding_MS_IMA:
         case coding_AICA:
         case coding_XBOX_IMA:
+        case coding_IMA:
 #ifdef VGM_USE_FFMPEG
         case coding_FFmpeg:
 #endif

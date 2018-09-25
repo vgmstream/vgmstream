@@ -61,7 +61,6 @@ int vorbis_custom_setup_init_sk(STREAMFILE *streamFile, off_t start_offset, vorb
     return 1;
 
 fail:
-    VGM_LOG("SK Vorbis: failed to setup init packets @ around 0x%08lx\n", offset);
     return 0;
 }
 
@@ -75,31 +74,22 @@ int vorbis_custom_parse_packet_sk(VGMSTREAMCHANNEL *stream, vorbis_custom_codec_
     /* read OggS/SK page and get current packet */
     res = get_page_info(stream->streamfile, stream->offset, &packet_offset, &packet_size, &page_packets, data->current_packet);
     data->current_packet++;
-    if (!res || packet_size > data->buffer_size) {
-        VGM_LOG("FSB Vorbis: wrong packet (0x%x) @ %lx\n", packet_size, stream->offset);
-        goto fail;
-    }
+    if (!res || packet_size > data->buffer_size) goto fail;
 
     /* read raw block */
     data->op.bytes = read_streamfile(data->buffer, packet_offset, packet_size, stream->streamfile);
-    if (data->op.bytes != packet_size) {
-        VGM_LOG("SK Vorbis: read error, 0x%x packet size vs 0x%lx bytes @ %lx\n", packet_size, data->op.bytes, packet_offset);
-        goto fail; /* wrong packet? */
-    }
+    if (data->op.bytes != packet_size) goto fail; /* wrong packet? */
 
-
+    /* go next page when processed all packets in page */
     if (data->current_packet >= page_packets) {
-        /* processed all packets in page, go to next */
         if (!get_page_info(stream->streamfile, stream->offset, &packet_offset, &packet_size, &page_packets, -1)) goto fail;
         stream->offset = packet_offset + packet_size;
         data->current_packet = 0;
     }
 
-
     return 1;
 
 fail:
-    VGM_LOG("SK Vorbis: failed to parse packet @ around 0x%08lx\n", stream->offset);
     return 0;
 }
 
@@ -175,7 +165,7 @@ static int get_page_info(STREAMFILE *streamFile, off_t page_offset, off_t *out_p
     return 1;
 
 fail:
-    VGM_LOG("SK Vorbis: failed to read page @ 0x%08lx\n", page_offset);
+    //VGM_LOG("SK Vorbis: failed to read page @ 0x%08lx\n", page_offset);
     return 0;
 }
 
@@ -188,10 +178,8 @@ static int build_header(uint8_t * buf, size_t bufsize, STREAMFILE *streamFile, o
     put_8bit   (buf+0x00, read_8bit(packet_offset,streamFile)); /* packet_type */
     memcpy     (buf+0x01, "vorbis", 6); /* id */
     bytes = read_streamfile(buf+0x07,packet_offset+0x03, packet_size-0x03,streamFile); /* copy rest (all except id+"SK") */
-    if (packet_size-0x03 != bytes) {
-        VGM_LOG("SK Vorbis: packet (size 0x%x) not copied correctly (bytes=%x) @ 0x%lx\n", packet_size, bytes, packet_offset);
+    if (packet_size-0x03 != bytes)
         return 0;
-    }
 
     return 0x07+packet_size-0x03;
 }

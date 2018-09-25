@@ -56,11 +56,11 @@ mpeg_codec_data *init_mpeg(STREAMFILE *streamfile, off_t start_offset, coding_t 
 
             rc = mpg123_decode(main_m, data->buffer,data->buffer_size, NULL,0, &bytes_done);
             if (rc != MPG123_OK && rc != MPG123_NEW_FORMAT && rc != MPG123_NEED_MORE) {
-                VGM_LOG("MPEG: unable to set up mpg123 @ 0x%08lx to 0x%08lx\n", start_offset, read_offset);
+                VGM_LOG("MPEG: unable to set up mpg123 at start offset\n");
                 goto fail; //handle MPG123_DONE?
             }
             if (read_offset > 0x5000) { /* don't hang in some incorrectly detected formats */
-                VGM_LOG("MPEG: unable to find mpeg data @ 0x%08lx to 0x%08lx\n", start_offset, read_offset);
+                VGM_LOG("MPEG: unable to find mpeg data at start offset\n");
                 goto fail;
             }
 
@@ -402,7 +402,7 @@ static void decode_mpeg_custom_stream(VGMSTREAMCHANNEL *stream, mpeg_codec_data 
             default:            ok = mpeg_custom_parse_frame_default(stream, data, num_stream); break;
         }
         if (!ok) {
-            VGM_LOG("MPEG: cannot parse frame @ around %lx\n",stream->offset);
+            VGM_LOG("MPEG: cannot parse frame @ around %"PRIx64"\n",(off64_t)stream->offset);
             goto decode_fail; /* mpg123 could resync but custom MPEGs wouldn't need that */
         }
         //;VGM_LOG("MPEG: read results: bytes_in_buffer=0x%x, new offset=%lx\n", ms->bytes_in_buffer, stream->offset);

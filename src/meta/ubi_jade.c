@@ -297,7 +297,7 @@ static int get_loop_points(STREAMFILE *streamFile, int *out_loop_start, int *out
                 break;
 
             default:
-                VGM_LOG("Jade: unknown LIST chunk at %lx\n", offset);
+                VGM_LOG("Jade: unknown LIST chunk\n");
                 goto fail;
         }
 

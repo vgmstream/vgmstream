@@ -109,10 +109,7 @@ void decode_atrac9(VGMSTREAM *vgmstream, sample * outbuf, int32_t samples_to_do,
 
             /* read one raw block (superframe) and advance offsets */
             bytes = read_streamfile(data->data_buffer,stream->offset, data->info.superframeSize,stream->streamfile);
-            if (bytes != data->data_buffer_size) {
-                VGM_LOG("ATRAC9: read %x vs expected %x bytes  at %lx\n", bytes, data->info.superframeSize, stream->offset);
-                goto decode_fail;
-            }
+            if (bytes != data->data_buffer_size) goto decode_fail;
 
             stream->offset += bytes;
 
@@ -131,7 +128,7 @@ void decode_atrac9(VGMSTREAM *vgmstream, sample * outbuf, int32_t samples_to_do,
 
 decode_fail:
     /* on error just put some 0 samples */
-    VGM_LOG("ATRAC9: decode fail at %lx, missing %i samples\n", stream->offset, (samples_to_do - samples_done));
+    VGM_LOG("ATRAC9: decode fail at %"PRIx64", missing %i samples\n", (off64_t)stream->offset, (samples_to_do - samples_done));
     memset(outbuf + samples_done * channels, 0, (samples_to_do - samples_done) * sizeof(sample) * channels);
 }
 

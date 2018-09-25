@@ -771,7 +771,7 @@ static int get_xsb_name(char * buf, size_t maxsize, int target_subsong, xwb_head
             size = 0x14;
 
             if (flag != 0x01) {
-                VGM_LOG("XSB: xsb flag 0x%x at offset 0x%08lx not implemented\n", flag, off);
+                //VGM_LOG("XSB: xsb flag 0x%x at offset 0x%08lx not implemented\n", flag, off);
                 goto fail;
             }
 
@@ -802,7 +802,7 @@ static int get_xsb_name(char * buf, size_t maxsize, int target_subsong, xwb_head
                 //} else if (flag==0x11) { /* Stardew Valley (Switch) */
                 //    suboff = size; //???
                 } else {
-                    VGM_LOG("XSB: xsb flag 0x%x (size=%x) at offset 0x%08lx not implemented\n", flag, size, off);
+                    //VGM_LOG("XSB: xsb flag 0x%x (size=%x) at offset 0x%08lx not implemented\n", flag, size, off);
                     goto fail;
                 }
             }
@@ -813,7 +813,7 @@ static int get_xsb_name(char * buf, size_t maxsize, int target_subsong, xwb_head
         }
 
         if (s->wavebank+1 > xsb.xsb_wavebanks_count) {
-            VGM_LOG("XSB: unknown xsb wavebank id %i at offset 0x%lx\n", s->wavebank, off);
+            //VGM_LOG("XSB: unknown xsb wavebank id %i at offset 0x%lx\n", s->wavebank, off);
             goto fail;
         }
 
@@ -883,7 +883,7 @@ static int get_xsb_name(char * buf, size_t maxsize, int target_subsong, xwb_head
 
             if (w->sound_count == xwb->total_subsongs) {
                 if (!cfg__selected_wavebank) {
-                    VGM_LOG("XSB: multiple xsb wavebanks with the same number of sounds, use -w to specify one of the wavebanks\n");
+                    //VGM_LOG("XSB: multiple xsb wavebanks with the same number of sounds, use -w to specify one of the wavebanks\n");
                     goto fail;
                 }
 
@@ -898,17 +898,17 @@ static int get_xsb_name(char * buf, size_t maxsize, int target_subsong, xwb_head
     }
 
     if (!cfg__selected_wavebank) {
-        VGM_LOG("XSB: multiple xsb wavebanks but autodetect didn't work\n");
+        //VGM_LOG("XSB: multiple xsb wavebanks but autodetect didn't work\n");
         goto fail;
     }
     if (xsb.xsb_wavebanks[cfg__selected_wavebank-1].sound_count == 0) {
-        VGM_LOG("XSB: xsb selected wavebank %i has no sounds\n", cfg__selected_wavebank);
+        //VGM_LOG("XSB: xsb selected wavebank %i has no sounds\n", cfg__selected_wavebank);
         goto fail;
     }
 
     if (cfg__start_sound) {
         if (xsb.xsb_wavebanks[cfg__selected_wavebank-1].sound_count - (cfg__start_sound-1) < xwb->total_subsongs) {
-            VGM_LOG("XSB: starting sound too high (max in selected wavebank is %i)\n", xsb.xsb_wavebanks[cfg__selected_wavebank-1].sound_count - xwb->total_subsongs + 1);
+            //VGM_LOG("XSB: starting sound too high (max in selected wavebank is %i)\n", xsb.xsb_wavebanks[cfg__selected_wavebank-1].sound_count - xwb->total_subsongs + 1);
             goto fail;
         }
 

@@ -16,16 +16,29 @@
 #include "streamtypes.h"
 #include "util.h"
 
+
+/* MSVC fixes (though mingw uses MSVCRT but not MSC_VER, maybe use AND?) */
 #if defined(__MSVCRT__) || defined(_MSC_VER)
-#include <io.h>
-#define fseeko fseek
-#define ftello ftell
-#define dup _dup
-#ifdef fileno
-#undef fileno
-#endif
-#define fileno _fileno
-#define fdopen _fdopen
+  #include <io.h>
+
+  #ifndef fseeko
+    #define fseeko fseek
+  #endif
+  #ifndef ftello
+    #define ftello ftell
+  #endif
+
+  #define dup _dup
+
+  #ifdef fileno
+  #undef fileno
+  #endif
+  #define fileno _fileno
+  #define fdopen _fdopen
+
+//  #ifndef off64_t
+//    #define off_t __int64
+//  #endif
 #endif
 
 #if defined(XBMC)

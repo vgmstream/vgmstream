@@ -68,26 +68,19 @@ int vorbis_custom_parse_packet_vid1(VGMSTREAMCHANNEL *stream, vorbis_custom_code
 
     /* get packet info the VID1 header */
     get_packet_header(stream->streamfile, &stream->offset, (uint32_t*)&data->op.bytes);
-    if (data->op.bytes == 0 || data->op.bytes > data->buffer_size) {
-        VGM_LOG("VID1 Vorbis: wrong packet (0x%lx) @ %lx\n", data->op.bytes, stream->offset);
-        goto fail; /* EOF or end padding */
-    }
+    if (data->op.bytes == 0 || data->op.bytes > data->buffer_size) goto fail; /* EOF or end padding */
 
     /* read raw block */
     bytes = read_streamfile(data->buffer,stream->offset, data->op.bytes,stream->streamfile);
     stream->offset += data->op.bytes;
-    if (bytes != data->op.bytes) {
-        VGM_LOG("VID1 Vorbis: wrong bytes (0x%lx) @ %lx\n", data->op.bytes, stream->offset-bytes);
-        goto fail; /* wrong packet? */
-    }
-    //todo: sometimes there are short packets like 01be590000 and Vorbis complains and skips, no idea
+    if (bytes != data->op.bytes) goto fail; /* wrong packet? */
 
+    //todo: sometimes there are short packets like 01be590000 and Vorbis complains and skips, no idea
 
     /* test block end (weird size calc but seems ok) */
     if ((stream->offset - (data->block_offset + 0x34)) >= (data->block_size - 0x06)) {
         stream->offset = data->block_offset + read_32bitBE(data->block_offset + 0x04,stream->streamfile);
     }
-
 
     return 1;
 

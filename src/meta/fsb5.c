@@ -94,7 +94,7 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
 
         /* get offset inside data section */
         /* up to 0x07FFFFFF * 0x20 = full 32b offset 0xFFFFFFE0 */
-        data_offset   = ((sample_mode2 & 0x03) << 25) | ((sample_mode1 >> 7) & 0x1FFFFFF) << 5; /* bits2: 1..0 (2) | bits1: 31..8 (25) */
+        data_offset   = (((sample_mode2 & 0x03) << 25) | ((sample_mode1 >> 7) & 0x1FFFFFF)) << 5; /* bits2: 1..0 (2) | bits1: 31..8 (25) */
 
         /* get channels */
         switch ((sample_mode1 >> 5) & 0x03) { /* bits1: 7..6 (2) */
@@ -182,7 +182,7 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
                   //    /* found in some XMA2/Vorbis/FADPCM */
                   //    break;
                     default:
-                        VGM_LOG("FSB5: unknown extraflag 0x%x at %lx + 0x04 (size 0x%x)\n", extraflag_type, extraflag_offset, extraflag_size);
+                        VGM_LOG("FSB5: unknown extraflag 0x%x at %"PRIx64" + 0x04 (size 0x%x)\n", extraflag_type, (off64_t)extraflag_offset, extraflag_size);
                         break;
                 }
 
@@ -204,7 +204,7 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
                 uint32_t next_sample_mode1, next_sample_mode2;
                 next_sample_mode1 = (uint32_t)read_32bitLE(fsb5.sample_header_offset+stream_header_size+0x00,streamFile);
                 next_sample_mode2 = (uint32_t)read_32bitLE(fsb5.sample_header_offset+stream_header_size+0x04,streamFile);
-                next_data_offset = ((next_sample_mode2 & 0x03) << 25) | ((next_sample_mode1 >> 7) & 0x1FFFFFF) << 5;
+                next_data_offset = (((next_sample_mode2 & 0x03) << 25) | ((next_sample_mode1 >> 7) & 0x1FFFFFF)) << 5;
 
                 fsb5.stream_size = next_data_offset - data_offset;
             }

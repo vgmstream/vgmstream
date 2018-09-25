@@ -211,6 +211,9 @@
     <ClCompile Include="meta\acm.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\adpcm_capcom.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\ads.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -886,6 +889,9 @@
     <ClCompile Include="meta\ubi_sb.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\ue4opus.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\utk.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -1411,7 +1417,7 @@
     <ClCompile Include="coding\ffmpeg_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="coding\ffmpeg_decoder_utils_switch_opus.c">
+    <ClCompile Include="coding\ffmpeg_decoder_custom_opus.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\coding_utils.c">

@@ -467,19 +467,19 @@ static void ms_audio_get_samples(ms_sample_data * msd, STREAMFILE *streamFile, i
 
         /* full packet skip, no new frames start in this packet (prev frames can end here) */
         if (packet_skip_count == 0x7FF) { /* XMA1, 11b */
-            VGM_LOG("MS_SAMPLES: XMA1 full packet_skip %i at 0x%lx\n", packet_skip_count, (off_t)offset_b/8);
+            VGM_LOG("MS_SAMPLES: XMA1 full packet_skip %i at 0x%"PRIx64"\n", packet_skip_count, (off64_t)offset_b/8);
             packet_skip_count = 0;
             continue;
         }
         else if (packet_skip_count == 0xFF) { /* XMA2, 8b*/
-            VGM_LOG("MS_SAMPLES: XMA2 full packet_skip %i at 0x%lx\n", packet_skip_count, (off_t)offset_b/8);
+            VGM_LOG("MS_SAMPLES: XMA2 full packet_skip %i at 0x%"PRIx64"\n", packet_skip_count, (off64_t)offset_b/8);
             packet_skip_count = 0;
             continue;
         }
         offset += packet_size * (packet_skip_count); /* skip packets not owned by the first stream, since we only need samples from it */
 
         /* unusual but not impossible, as the encoder can interleave packets in any way */
-        VGM_ASSERT(packet_skip_count > 10, "MS_SAMPLES: found big packet skip %i at 0x%lx\n", packet_skip_count, (off_t)offset_b/8);
+        VGM_ASSERT(packet_skip_count > 10, "MS_SAMPLES: found big packet skip %i at 0x%"PRIx64"\n", packet_skip_count, (off64_t)offset_b/8);
 
         packet_offset_b = header_size_b + first_frame_b;
 
@@ -535,7 +535,7 @@ static void ms_audio_get_samples(ms_sample_data * msd, STREAMFILE *streamFile, i
                     frame_offset_b += 1;
                     if (flag) {
                         int new_skip = read_bitsBE_b(frame_offset_b, 10, streamFile);
-                        VGM_LOG("MS_SAMPLES: start_skip %i at 0x%lx (bit 0x%lx)\n", new_skip, (off_t)frame_offset_b/8, (off_t)frame_offset_b);
+                        VGM_LOG("MS_SAMPLES: start_skip %i at 0x%"PRIx64" (bit 0x%"PRIx64")\n", new_skip, (off64_t)frame_offset_b/8, (off64_t)frame_offset_b);
                         VGM_ASSERT(start_skip, "MS_SAMPLES: more than one start_skip (%i)\n", new_skip); //ignore, happens due to incorrect tilehdr_size
                         frame_offset_b += 10;
 
@@ -551,7 +551,7 @@ static void ms_audio_get_samples(ms_sample_data * msd, STREAMFILE *streamFile, i
                     frame_offset_b += 1;
                     if (flag) {
                         int new_skip = read_bitsBE_b(frame_offset_b, 10, streamFile);
-                        VGM_LOG("MS_SAMPLES: end_skip %i at 0x%lx (bit 0x%lx)\n", new_skip, (off_t)frame_offset_b/8, (off_t)frame_offset_b);
+                        VGM_LOG("MS_SAMPLES: end_skip %i at 0x%"PRIx64" (bit 0x%"PRIx64")\n", new_skip, (off64_t)frame_offset_b/8, (off64_t)frame_offset_b);
                         VGM_ASSERT(end_skip, "MS_SAMPLES: more than one end_skip (%i)\n", new_skip);//ignore, happens due to incorrect tilehdr_size
                         frame_offset_b += 10;
 

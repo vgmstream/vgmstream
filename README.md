@@ -229,7 +229,6 @@ are used in few games.
 - CRI HCA
 - Xiph Vorbis (Ogg, FSB5, Wwise, OGL, Silicon Knights)
 - MPEG MP1/2/3 (standard, AHX, XVAG, FSB, AWC, P3D, etc)
-- ITU-T G.722.1 (Polycom Siren 7)
 - ITU-T G.722.1 annex C (Polycom Siren 14)
 - ITU G.719 annex B (Polycom Siren 22)
 - Electronic Arts EALayer3
