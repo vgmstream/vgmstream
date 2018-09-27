@@ -468,7 +468,7 @@ static size_t opus_get_packet_samples(const uint8_t * buf, int len) {
     return opus_packet_get_nb_frames(buf, len) * opus_packet_get_samples_per_frame(buf, 48000);
 }
 
-static size_t custom_opus_get_samples(off_t offset, size_t data_size, int sample_rate, STREAMFILE *streamFile, opus_type_t type) {
+static size_t custom_opus_get_samples(off_t offset, size_t data_size, STREAMFILE *streamFile, opus_type_t type) {
     size_t num_samples = 0;
     off_t end_offset = offset + data_size;
 
@@ -508,8 +508,8 @@ static size_t custom_opus_get_samples(off_t offset, size_t data_size, int sample
     return num_samples;
 }
 
-size_t switch_opus_get_samples(off_t offset, size_t data_size, int sample_rate, STREAMFILE *streamFile) {
-    return custom_opus_get_samples(offset, data_size, sample_rate, streamFile, OPUS_SWITCH);
+size_t switch_opus_get_samples(off_t offset, size_t data_size, STREAMFILE *streamFile) {
+    return custom_opus_get_samples(offset, data_size, streamFile, OPUS_SWITCH);
 }
 
 
