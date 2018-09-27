@@ -247,6 +247,18 @@ static void mus_ogg_decryption_callback(void *ptr, size_t size, size_t nmemb, vo
     }
 }
 
+static void lse_ogg_decryption_callback(void *ptr, size_t size, size_t nmemb, void *datasource) {
+    size_t bytes_read = size*nmemb;
+    ogg_vorbis_streamfile * const ov_streamfile = datasource;
+    int i;
+
+    /* bytes are xor'd with variable key */
+    for (i = 0; i < bytes_read; i++) {
+        int key = 0xC2 + (ov_streamfile->offset + i) % 256;
+        ((uint8_t*)ptr)[i] ^= key;
+    }
+}
+
 
 /* Ogg Vorbis, by way of libvorbisfile; may contain loop comments */
 VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
@@ -262,6 +274,7 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
     int is_eno = 0;
     int is_gwm = 0;
     int is_mus = 0;
+    int is_lse = 0;
 
 
     /* check extension */
@@ -288,6 +301,8 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
         is_gwm = 1;
     } else if (check_extensions(streamFile,"mus")) { /* .mus: Redux - Dark Matters (PC) */
         is_mus = 1;
+    } else if (check_extensions(streamFile,"lse")) { /* .lse: Labyrinth of Refrain: Coven of Dusk (PC) */
+        is_lse = 1;
     } else {
         goto fail;
     }
@@ -392,6 +407,12 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
     if (is_mus) {
         ovmi.decryption_callback = mus_ogg_decryption_callback;
         ovmi.meta_type = meta_OGG_MUS;
+    }
+
+    /* check .lse [Labyrinth of Refrain: Coven of Dusk (PC)], encrypted */
+    if (is_lse) {
+        ovmi.decryption_callback = lse_ogg_decryption_callback;
+        ovmi.meta_type = meta_OGG_LSE;
     }
 
 
