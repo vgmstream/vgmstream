@@ -1032,7 +1032,6 @@ typedef struct {
 typedef struct {
    sample buffer[960];
    void *handle;
-   int16_t *code_buffer;
 } g719_codec_data;
 #endif
 
