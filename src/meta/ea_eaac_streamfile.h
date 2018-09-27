@@ -85,6 +85,7 @@ static size_t eaac_io_read(STREAMFILE *streamfile, uint8_t *dest, off_t offset, 
                 case 0x05: /* EALayer3 v1 */
                 case 0x06: /* EALayer3 v2 "PCM" */
                 case 0x07: /* EALayer3 v2 "Spike" */
+                case 0x0c: /* EAOpus */
                     data->skip_size = 0x08;
                     data->data_size = data->block_size - data->skip_size;
                     break;
@@ -93,12 +94,7 @@ static size_t eaac_io_read(STREAMFILE *streamfile, uint8_t *dest, off_t offset, 
                     data->skip_size = 0x08;
                     data->data_size = read_32bitBE(data->physical_offset+0x04,streamfile); /* also block_size - 0x08 */
                     break;
-#if 0
-                case 0x0c: /* EA Opus */
-                    data->skip_size = 0x08;
-                    data->data_size = data->block_size - data->skip_size;
-                    break;
-#endif
+
                 default:
                     return total_read;
             }
@@ -206,24 +202,13 @@ static size_t eaac_io_size(STREAMFILE *streamfile, eaac_io_data* data) {
             case 0x05: /* EALayer3 v1 */
             case 0x06: /* EALayer3 v2 "PCM" */
             case 0x07: /* EALayer3 v2 "Spike" */
+            case 0x0c: /* EAOpus */
                 data_size = block_size - 0x08;
                 break;
 
             case 0x0a: /* EATrax */
                 data_size = read_32bitBE(physical_offset+0x04,streamfile); /* also block_size - 0x08 */
                 break;
-#if 0
-            case 0x0c: { /* EAOpus */
-                size_t done;
-                data_size = 0;
-                while (done < block_size - 0x08) {
-                    size_t packet_size = read_16bitBE(physical_offset+0x08+done,streamfile);
-                    done += 0x02 + packet_size;
-                    data_size = 0x1a + packet_size; /* OggS page per Opus packet */
-                }
-                break;
-            }
-#endif
 
             default:
                 return 0;
@@ -251,7 +236,7 @@ static size_t eaac_io_size(STREAMFILE *streamfile, eaac_io_data* data) {
  * - EA-XMA: deflated XMA in multistreams (separate 1/2ch packets)
  * - EALayer3: MPEG granule 1 can go in the next block (in V2"P" mainly, others could use layout blocked_sns)
  * - EATrax: ATRAC9 frames can be split between blooks
- * - EAOpus:
+ * - EAOpus: multiple Opus packets of frame size + Opus data per block
  */
 static STREAMFILE* setup_eaac_streamfile(STREAMFILE *streamFile, int version, int codec, int streamed, int stream_number, int stream_count, off_t stream_offset) {
     STREAMFILE *temp_streamFile = NULL, *new_streamFile = NULL;
