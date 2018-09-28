@@ -706,6 +706,7 @@ typedef enum {
     meta_NXA,
     meta_ADPCM_CAPCOM,
     meta_UE4OPUS,
+    meta_OGG_LSE,
 
 } meta_t;
 
@@ -1031,7 +1032,6 @@ typedef struct {
 typedef struct {
    sample buffer[960];
    void *handle;
-   int16_t *code_buffer;
 } g719_codec_data;
 #endif
 

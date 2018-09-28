@@ -664,10 +664,28 @@ static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE * streamHead, ST
         }
 #endif
 
-        case EAAC_CODEC_EASPEEX: /* EASpeex (libspeex variant, base versions vary: 1.0.5, 1.2beta3) */
-            /* TODO */
-        case EAAC_CODEC_EAOPUS: /* EAOpus (inside each SNS/SPS block is 16b frame size + standard? Opus packet) */
-            /* TODO */
+#ifdef VGM_USE_FFMPEG
+        case EAAC_CODEC_EAOPUS: { /* EAOpus (unknown FourCC) [FIFA 17 (PC), FIFA 19 (Switch)]*/
+            int skip = 0;
+            size_t data_size;
+
+            /* We'll remove EA blocks and pass raw data to FFmpeg Opus decoder */
+
+            temp_streamFile = setup_eaac_streamfile(streamData, eaac.version, eaac.codec, eaac.streamed,0,0, eaac.stream_offset);
+            if (!temp_streamFile) goto fail;
+
+            skip = ea_opus_get_encoder_delay(0x00, temp_streamFile);
+            data_size = get_streamfile_size(temp_streamFile);
+
+            vgmstream->codec_data = init_ffmpeg_ea_opus(temp_streamFile, 0x00,data_size, vgmstream->channels, skip, vgmstream->sample_rate);
+            if (!vgmstream->codec_data) goto fail;
+            vgmstream->coding_type = coding_FFmpeg;
+            vgmstream->layout_type = layout_none;
+            break;
+        }
+#endif
+
+        case EAAC_CODEC_EASPEEX: /* EASpeex (libspeex variant, base versions vary: 1.0.5, 1.2beta3) */ //todo
         default:
             VGM_LOG("EA EAAC: unknown codec 0x%02x\n", eaac.codec);
             goto fail;

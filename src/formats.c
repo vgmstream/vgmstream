@@ -199,6 +199,7 @@ static const char* extension_list[] = {
     "lpcm",
     "lpk",
     "lps",
+    "lse",
     "lsf",
     "lstm", //fake extension, for STMs
     "lwav", //fake extension, for WAVs
@@ -1095,6 +1096,7 @@ static const meta_info meta_info_list[] = {
         {meta_NXA,                  "Entergram NXA header"},
         {meta_ADPCM_CAPCOM,         "Capcom .ADPCM header"},
         {meta_UE4OPUS,              "Epic Games UE4OPUS header"},
+        {meta_OGG_LSE,              "Ogg Vorbis (LSE header)"},
 
 };
 

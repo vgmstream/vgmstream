@@ -11,7 +11,7 @@ VGMSTREAM * init_vgmstream_bnk_sony(STREAMFILE *streamFile) {
     size_t stream_size, interleave = 0;
     off_t sblk_offset, data_offset;
     size_t data_size;
-    int channel_count = 0, loop_flag, sample_rate, version;
+    int channel_count = 0, loop_flag, sample_rate, parts, version;
     int loop_start = 0, loop_end = 0;
     uint32_t atrac9_info = 0;
 
@@ -25,11 +25,11 @@ VGMSTREAM * init_vgmstream_bnk_sony(STREAMFILE *streamFile) {
     if (!check_extensions(streamFile, "bnk"))
         goto fail;
 
-    if (read_32bitBE(0x00,streamFile) == 0x00000003 && read_32bitBE(0x04,streamFile) == 0x00000002) { /* PS3 */
+    if (read_32bitBE(0x00,streamFile) == 0x00000003) { /* PS3 */
         read_32bit = read_32bitBE;
         read_16bit = read_16bitBE;
     }
-    else if (read_32bitBE(0x00,streamFile) == 0x03000000 && read_32bitBE(0x04,streamFile) == 0x02000000) { /* Vita/PS4 */
+    else if (read_32bitBE(0x00,streamFile) == 0x03000000) { /* Vita/PS4 */
         read_32bit = read_32bitLE;
         read_16bit = read_16bitLE;
     }
@@ -37,17 +37,22 @@ VGMSTREAM * init_vgmstream_bnk_sony(STREAMFILE *streamFile) {
         goto fail;
     }
 
+    parts = read_32bit(0x04,streamFile);
+    if (parts < 2 || parts > 3) goto fail;
+
     sblk_offset = read_32bit(0x08,streamFile);
     /* 0x0c: sklb size */
     data_offset = read_32bit(0x10,streamFile);
     data_size = read_32bit(0x14,streamFile);
+    /* 0x18: ZLSD small footer, rare [Yakuza 6's Puyo Puyo (PS4)] */
+    /* 0x1c: ZLSD size */
 
     /* SE banks, also used for music. Most table fields seems reserved/defaults and
      * don't change much between subsongs or files, so they aren't described in detail */
 
 
     /* SBlk part: parse header */
-    if (read_32bit(sblk_offset+0x00,streamFile) != 0x6B6C4253) /* "SBlk" (sample block?) */
+    if (read_32bit(sblk_offset+0x00,streamFile) != 0x6B6C4253) /* "klBS" (SBlk = sample block?) */
         goto fail;
     version = read_32bit(sblk_offset+0x04,streamFile);
     /* 0x08: possibly when version=0x0d, 0x03=Vita, 0x06=PS4 */
@@ -83,6 +88,7 @@ VGMSTREAM * init_vgmstream_bnk_sony(STREAMFILE *streamFile) {
                 break;
 
             case 0x0d: /* Polara (Vita), Crypt of the Necrodancer (Vita) */
+            case 0x0e: /* Yakuza 6's Puyo Puyo (PS4) */
                 table1_offset    = sblk_offset + read_32bit(sblk_offset+0x18,streamFile);
                 table2_offset    = sblk_offset + read_32bit(sblk_offset+0x1c,streamFile);
                 table3_offset    = sblk_offset + read_32bit(sblk_offset+0x2c,streamFile);
@@ -159,6 +165,7 @@ VGMSTREAM * init_vgmstream_bnk_sony(STREAMFILE *streamFile) {
           //case 0x04: /* different format? */
             case 0x09:
             case 0x0d:
+            case 0x0e:
                 /* find if this sound has an assigned name in table1 */
                 for (i = 0; i < section_entries; i++) {
                     off_t entry_offset = (uint16_t)read_16bit(table1_offset+(i*table1_entry_size)+table1_suboffset+0x00,streamFile);
@@ -255,6 +262,7 @@ VGMSTREAM * init_vgmstream_bnk_sony(STREAMFILE *streamFile) {
                 break;
 
             case 0x0d:
+            case 0x0e:
                 type = read_16bit(start_offset+0x00,streamFile);
                 if (read_32bit(start_offset+0x04,streamFile) != 0x01) /* type? */
                     goto fail;

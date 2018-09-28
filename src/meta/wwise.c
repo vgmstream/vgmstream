@@ -502,7 +502,7 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
         }
 
         case OPUS: {    /* Switch */
-            size_t skip = 0; /* Wwise doesn't seem to use it? (0x138 /0x3E8 ~default) */
+            size_t skip;
 
             /* values up to 0x14 seem fixed and similar to HEVAG's (block_align 0x02/04, bits_per_sample 0x10) */
             if (ww.fmt_size == 0x28) {
@@ -518,6 +518,8 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
             else {
                 goto fail;
             }
+
+            skip = switch_opus_get_encoder_delay(start_offset, streamFile); /* should be 120 */
 
             vgmstream->codec_data = init_ffmpeg_switch_opus(streamFile, start_offset,ww.data_size, vgmstream->channels, skip, vgmstream->sample_rate);
             if (!vgmstream->codec_data) goto fail;

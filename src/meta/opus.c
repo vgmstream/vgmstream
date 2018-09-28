@@ -50,7 +50,7 @@ static VGMSTREAM * init_vgmstream_opus(STREAMFILE *streamFile, meta_t meta_type,
         vgmstream->layout_type = layout_none;
 
         if (vgmstream->num_samples == 0) {
-            vgmstream->num_samples = switch_opus_get_samples(start_offset, data_size, vgmstream->sample_rate, streamFile) - skip;
+            vgmstream->num_samples = switch_opus_get_samples(start_offset, data_size, streamFile) - skip;
         }
     }
 #else
