@@ -115,6 +115,7 @@ typedef enum {
     coding_OTNS_IMA,        /* Omikron The Nomad Soul IMA ADPCM */
     coding_WV6_IMA,         /* Gorilla Systems WV6 4-bit IMA ADPCM */
     coding_ALP_IMA,         /* High Voltage ALP 4-bit IMA ADPCM */
+    coding_FFTA2_IMA,       /* Final Fantasy Tactics A2 4-bit IMA ADPCM */
 
     coding_MS_IMA,          /* Microsoft IMA ADPCM */
     coding_XBOX_IMA,        /* XBOX IMA ADPCM */

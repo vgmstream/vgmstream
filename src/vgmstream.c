@@ -1129,6 +1129,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_3DS_IMA:
         case coding_WV6_IMA:
         case coding_ALP_IMA:
+        case coding_FFTA2_IMA:
             return 2;
         case coding_XBOX_IMA:
         case coding_XBOX_IMA_mch:
@@ -1299,6 +1300,7 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
         case coding_3DS_IMA:
         case coding_WV6_IMA:
         case coding_ALP_IMA:
+        case coding_FFTA2_IMA:
             return 0x01;
         case coding_MS_IMA:
         case coding_RAD_IMA:
@@ -1763,6 +1765,12 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
         case coding_ALP_IMA:
             for (ch = 0; ch < vgmstream->channels; ch++) {
                 decode_alp_ima(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do);
+            }
+            break;
+        case coding_FFTA2_IMA:
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_ffta2_ima(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
                         vgmstream->channels,vgmstream->samples_into_block,samples_to_do);
             }
             break;
