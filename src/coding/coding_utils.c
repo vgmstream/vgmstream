@@ -328,6 +328,35 @@ int ffmpeg_make_riff_xwma(uint8_t * buf, size_t buf_size, int codec, size_t data
     if (buf_size < riff_size)
         return -1;
 
+    /* XWMA encoder only allows a few channel/sample rate/bitrate combinations,
+     * but some create identical files with fake bitrate (1ch 22050hz at
+     * 20/48/192kbps are all 20kbps, with the exact same codec data).
+     * Decoder needs correct bitrate to work, so it's normalized here. */
+    /* (may be removed once FFmpeg fixes this) */
+    if (codec == 0x161) { /* WMAv2 only */
+        int ch = channels;
+        int sr = sample_rate;
+        int br = avg_bps * 8;
+
+        /* Must be a bug in MS's encoder, as later versions of xWMAEncode remove these bitrates */
+        if (ch == 1) {
+            if (sr == 22050 && (br==48000 || br==192000))
+                br = 20000;
+            else if (sr == 32000 && (br==48000 || br==192000))
+                br = 20000;
+            else if (sr == 44100 && (br==96000 || br==192000))
+                br = 48000;
+        }
+        else if (ch == 2) {
+            if (sr == 22050 && (br==48000 || br==192000))
+                br = 32000;
+            else if (sr == 32000 && (br==192000))
+                br = 48000;
+        }
+
+        avg_bps = br / 8;
+    }
+
     memcpy(buf+0x00, "RIFF", 4);
     put_32bitLE(buf+0x04, (int32_t)(riff_size-4-4 + data_size)); /* riff size */
     memcpy(buf+0x08, "XWMA", 4);
@@ -341,7 +370,7 @@ int ffmpeg_make_riff_xwma(uint8_t * buf, size_t buf_size, int codec, size_t data
     put_16bitLE(buf+0x20, block_align); /* block align */
     put_16bitLE(buf+0x22, 16); /* bits per sample */
     put_16bitLE(buf+0x24, 0); /* extra size */
-    /* here goes the "dpds" table, but it's optional and not needed by FFmpeg */
+    /* here goes the "dpds" seek table, but it's optional and not needed by FFmpeg */
 
     memcpy(buf+0x26, "data", 4);
     put_32bitLE(buf+0x2a, data_size); /* data size */
