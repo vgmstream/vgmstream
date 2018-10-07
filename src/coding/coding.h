@@ -268,6 +268,7 @@ void free_celt_fsb(celt_codec_data *data);
 /* ffmpeg_decoder */
 ffmpeg_codec_data *init_ffmpeg_offset(STREAMFILE *streamFile, uint64_t start, uint64_t size);
 ffmpeg_codec_data *init_ffmpeg_header_offset(STREAMFILE *streamFile, uint8_t * header, uint64_t header_size, uint64_t start, uint64_t size);
+ffmpeg_codec_data *init_ffmpeg_header_offset_subsong(STREAMFILE *streamFile, uint8_t * header, uint64_t header_size, uint64_t start, uint64_t size, int target_subsong);
 
 void decode_ffmpeg(VGMSTREAM *stream, sample * outbuf, int32_t samples_to_do, int channels);
 void reset_ffmpeg(VGMSTREAM *vgmstream);

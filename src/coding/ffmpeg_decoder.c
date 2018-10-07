@@ -268,6 +268,10 @@ ffmpeg_codec_data * init_ffmpeg_offset(STREAMFILE *streamFile, uint64_t start, u
     return init_ffmpeg_header_offset(streamFile, NULL,0, start,size);
 }
 
+ffmpeg_codec_data * init_ffmpeg_header_offset(STREAMFILE *streamFile, uint8_t * header, uint64_t header_size, uint64_t start, uint64_t size) {
+    return init_ffmpeg_header_offset_subsong(streamFile, header, header_size, start, size, 0);
+}
+
 /**
  * Manually init FFmpeg, from a fake header / offset.
  *
@@ -275,13 +279,12 @@ ffmpeg_codec_data * init_ffmpeg_offset(STREAMFILE *streamFile, uint64_t start, u
  * This header will be seamlessly inserted before 'start' offset, and total filesize will be 'header_size' + 'size'.
  * The header buffer will be copied and memory-managed internally.
  * NULL header can used given if the stream has internal data recognized by FFmpeg at offset.
- * Stream index can be passed to FFmpeg in the streamFile, if the format has multiple streams (1=first).
+ * Stream index can be passed if the file has multiple audio streams that FFmpeg can demux (1=first).
  */
-ffmpeg_codec_data * init_ffmpeg_header_offset(STREAMFILE *streamFile, uint8_t * header, uint64_t header_size, uint64_t start, uint64_t size) {
+ffmpeg_codec_data * init_ffmpeg_header_offset_subsong(STREAMFILE *streamFile, uint8_t * header, uint64_t header_size, uint64_t start, uint64_t size, int target_subsong) {
     char filename[PATH_LIMIT];
     ffmpeg_codec_data * data;
     int errcode, i;
-    int targetSubsong = streamFile->stream_index;
     int streamIndex, streamCount;
 
     AVStream *stream;
@@ -348,7 +351,7 @@ ffmpeg_codec_data * init_ffmpeg_header_offset(STREAMFILE *streamFile, uint8_t * 
             streamCount++;
 
             /* select Nth audio stream if specified, or first one */
-            if (streamIndex < 0 || (targetSubsong > 0 && streamCount == targetSubsong)) {
+            if (streamIndex < 0 || (target_subsong > 0 && streamCount == target_subsong)) {
                 codecPar = stream->codecpar;
                 streamIndex = i;
             }
@@ -357,7 +360,7 @@ ffmpeg_codec_data * init_ffmpeg_header_offset(STREAMFILE *streamFile, uint8_t * 
         if (i != streamIndex)
             stream->discard = AVDISCARD_ALL; /* disable demuxing for other streams */
     }
-    if (streamCount < targetSubsong) goto fail;
+    if (streamCount < target_subsong) goto fail;
     if (streamIndex < 0 || !codecPar) goto fail;
 
     data->streamIndex = streamIndex;
@@ -634,7 +637,7 @@ end:
 
     /* clean buffer when requested more samples than possible */
     if (endOfAudio && samplesReadNow < samples_to_do) {
-        VGM_LOG("FFMPEG: decode after end of audio\n");
+        VGM_LOG("FFMPEG: decode after end of audio %i samples\n", (samples_to_do - samplesReadNow));
         memset(outbuf + (samplesReadNow * channels), 0, (samples_to_do - samplesReadNow) * channels * sizeof(sample));
     }
 

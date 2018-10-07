@@ -38,9 +38,9 @@ VGMSTREAM * init_vgmstream_bik(STREAMFILE *streamFile) {
 
 #ifdef VGM_USE_FFMPEG
     {
-        /* target_subsong should be passed with the streamFile */
+        /* target_subsong should be passed manually */
 
-        vgmstream->codec_data = init_ffmpeg_header_offset(streamFile, NULL,0, 0x0,get_streamfile_size(streamFile));
+        vgmstream->codec_data = init_ffmpeg_header_offset_subsong(streamFile, NULL,0, 0x0,get_streamfile_size(streamFile), target_subsong);
         if (!vgmstream->codec_data) goto fail;
         vgmstream->coding_type = coding_FFmpeg;
     }
