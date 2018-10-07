@@ -463,7 +463,7 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
             uint8_t buf[0x100];
             int bytes;
 
-            bytes = ffmpeg_make_riff_xma1(buf, 100, vgmstream->num_samples, xwb.stream_size, vgmstream->channels, vgmstream->sample_rate, 0);
+            bytes = ffmpeg_make_riff_xma1(buf,0x100, vgmstream->num_samples, xwb.stream_size, vgmstream->channels, vgmstream->sample_rate, 0);
             vgmstream->codec_data = init_ffmpeg_header_offset(streamFile, buf,bytes, xwb.stream_offset,xwb.stream_size);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
@@ -478,7 +478,7 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
             block_size = 0x10000; /* XACT default */
             block_count = xwb.stream_size / block_size + (xwb.stream_size % block_size ? 1 : 0);
 
-            bytes = ffmpeg_make_riff_xma2(buf, 100, vgmstream->num_samples, xwb.stream_size, vgmstream->channels, vgmstream->sample_rate, block_count, block_size);
+            bytes = ffmpeg_make_riff_xma2(buf,0x100, vgmstream->num_samples, xwb.stream_size, vgmstream->channels, vgmstream->sample_rate, block_count, block_size);
             vgmstream->codec_data = init_ffmpeg_header_offset(streamFile, buf,bytes, xwb.stream_offset,xwb.stream_size);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
@@ -514,7 +514,7 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
             block_align = wma_block_align_index[block_index];
             wma_codec = xwb.bits_per_sample ? 0x162 : 0x161; /* 0=WMAudio2, 1=WMAudio3 */
 
-            bytes = ffmpeg_make_riff_xwma(buf, 100, wma_codec, xwb.stream_size, vgmstream->channels, vgmstream->sample_rate, avg_bps, block_align);
+            bytes = ffmpeg_make_riff_xwma(buf,0x100, wma_codec, xwb.stream_size, vgmstream->channels, vgmstream->sample_rate, avg_bps, block_align);
             vgmstream->codec_data = init_ffmpeg_header_offset(streamFile, buf,bytes, xwb.stream_offset,xwb.stream_size);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
@@ -530,7 +530,7 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
             int joint_stereo = xwb.block_align == 0x60; /* untested, ATRAC3 default */
             int skip_samples = 0; /* unknown */
 
-            bytes = ffmpeg_make_riff_atrac3(buf, 200, vgmstream->num_samples, xwb.stream_size, vgmstream->channels, vgmstream->sample_rate, block_size, joint_stereo, skip_samples);
+            bytes = ffmpeg_make_riff_atrac3(buf,0x100, vgmstream->num_samples, xwb.stream_size, vgmstream->channels, vgmstream->sample_rate, block_size, joint_stereo, skip_samples);
             vgmstream->codec_data = init_ffmpeg_header_offset(streamFile, buf,bytes, xwb.stream_offset,xwb.stream_size);
             if ( !vgmstream->codec_data ) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
