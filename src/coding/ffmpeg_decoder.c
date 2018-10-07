@@ -99,7 +99,7 @@ static int init_seek(ffmpeg_codec_data * data) {
     int64_t ts = 0; /* seek timestamp */
     int64_t pos = 0; /* data offset */
     int size = 0; /* data size (block align) */
-    int distance = 0; /* always? ("duration") */
+    int distance = 0; /* always 0 ("duration") */
 
     AVStream * stream = data->formatCtx->streams[data->streamIndex];
     AVPacket * pkt = data->lastReadPacket;
@@ -109,11 +109,15 @@ static int init_seek(ffmpeg_codec_data * data) {
     /* if (data->formatCtx->iformat->read_seek || data->formatCtx->iformat->read_seek2)
         return 0; */
 
-    /* some formats already have a proper index (e.g. M4A) */
-    //todo: can't seek to 0 when there index but no ts 0
-    ts_index = av_index_search_timestamp(stream, ts, AVSEEK_FLAG_ANY);
-    if (ts_index>=0)
+    /* A few formats may have a proper index (e.g. CAF/MP4/MPC/ASF/WAV/XWMA/FLAC/MP3), but some don't
+     * work with our custom index (CAF/MPC/MP4) and must skip it. Most formats need flag AVSEEK_FLAG_ANY,
+     * while XWMA (with index 0 not pointing to ts 0) needs AVSEEK_FLAG_BACKWARD to seek properly, but it
+     * makes OGG use the index and seek wrong instead. So for XWMA we forcefully remove the index on it's own meta. */
+    ts_index = av_index_search_timestamp(stream, 0, /*AVSEEK_FLAG_BACKWARD |*/ AVSEEK_FLAG_ANY);
+    if (ts_index >= 0) {
+        VGM_LOG("FFMPEG: index found for init_seek\n");
         goto test_seek;
+    }
 
 
     /* find the first + second packets to get pos/size */
@@ -125,40 +129,40 @@ static int init_seek(ffmpeg_codec_data * data) {
         if (pkt->stream_index != data->streamIndex)
             continue; /* ignore non-selected streams */
 
-        if (!found_first) { /* first found */
+        if (!found_first) {
             found_first = 1;
             pos = pkt->pos;
             ts = pkt->dts;
             continue;
-        } else { /* second found */ //todo test with only one packet, pos can be -1
+        } else { /* second found */
             size = pkt->pos - pos; /* coded, pkt->size is decoded size */
             break;
         }
     }
     if (!found_first)
         goto fail;
-
     /* in rare cases there is only one packet */
-    /* if (size == 0) { size = data_end - pos; } */ /* no easy way to know, ignore (most formats don's need size) */
+    //if (size == 0) size = data_end - pos; /* no easy way to know, ignore (most formats don's need size) */
 
-    /* some formats (XMA1) don't seem to have packet.dts, pretend it's 0 */
+    /* some formats don't seem to have packet.dts, pretend it's 0 */
     if (ts == INT64_MIN)
         ts = 0;
 
-    /* Some streams start with negative DTS (observed in Ogg). For Ogg seeking to negative or 0 doesn't alter the output.
-     *  It does seem seeking before decoding alters a bunch of (inaudible) +-1 lower bytes though. */
+    /* Some streams start with negative DTS (OGG/OPUS). For Ogg seeking to negative or 0 doesn't seem different.
+     * It does seem seeking before decoding alters a bunch of (inaudible) +-1 lower bytes though.
+     * Output looks correct (encoder delay, num_samples, etc) compared to libvorbis's output. */
     VGM_ASSERT(ts != 0, "FFMPEG: negative start_ts (%li)\n", (long)ts);
     if (ts != 0)
         ts = 0;
+
 
     /* add index 0 */
     ret = av_add_index_entry(stream, pos, ts, size, distance, AVINDEX_KEYFRAME);
     if ( ret < 0 )
         return ret;
 
-
 test_seek:
-    /* seek to 0 test / move back to beginning, since we just consumed packets */
+    /* seek to 0 test + move back to beginning, since we just consumed packets */
     ret = avformat_seek_file(data->formatCtx, data->streamIndex, ts, ts, ts, AVSEEK_FLAG_ANY);
     if ( ret < 0 )
         return ret; /* we can't even reset_vgmstream the file */
@@ -455,7 +459,25 @@ ffmpeg_codec_data * init_ffmpeg_header_offset_subsong(STREAMFILE *streamFile, ui
 
     /* setup decent seeking for faulty formats */
     errcode = init_seek(data);
-    if (errcode < 0) goto fail;
+    if (errcode < 0) {
+        VGM_LOG("FFMPEG: can't init_seek\n");
+        goto fail;
+    }
+
+    /* check ways to skip encoder delay/padding, for debugging purposes (some may be old/unused/encoder only/etc) */
+    VGM_ASSERT(data->codecCtx->delay > 0, "FFMPEG: delay %i\n", (int)data->codecCtx->delay);//delay: OPUS
+    //VGM_ASSERT(data->codecCtx->internal->skip_samples > 0, ...); /* for codec use, not accessible */
+    VGM_ASSERT(stream->codecpar->initial_padding > 0, "FFMPEG: initial_padding %i\n", (int)stream->codecpar->initial_padding);//delay: OPUS
+    VGM_ASSERT(stream->codecpar->trailing_padding > 0, "FFMPEG: trailing_padding %i\n", (int)stream->codecpar->trailing_padding);
+    VGM_ASSERT(stream->codecpar->seek_preroll > 0, "FFMPEG: seek_preroll %i\n", (int)stream->codecpar->seek_preroll);//seek delay: OPUS
+    VGM_ASSERT(stream->skip_samples > 0, "FFMPEG: skip_samples %i\n", (int)stream->skip_samples); //delay: MP4
+    VGM_ASSERT(stream->start_skip_samples > 0, "FFMPEG: start_skip_samples %i\n", (int)stream->start_skip_samples); //delay: MP3
+    VGM_ASSERT(stream->first_discard_sample > 0, "FFMPEG: first_discard_sample %i\n", (int)stream->first_discard_sample); //padding: MP3
+    VGM_ASSERT(stream->last_discard_sample > 0, "FFMPEG: last_discard_sample %i\n", (int)stream->last_discard_sample); //padding: MP3
+    /* also negative timestamp for formats like OGG/OPUS */
+    /* not using it: BINK, FLAC, ATRAC3, XMA, MPC, WMA (may use internal skip samples) */
+    //todo: double check Opus behavior
+
 
     /* expose start samples to be skipped (encoder delay, usually added by MDCT-based encoders like AAC/MP3/ATRAC3/XMA/etc)
      * get after init_seek because some demuxers like AAC only fill skip_samples for the first packet */
