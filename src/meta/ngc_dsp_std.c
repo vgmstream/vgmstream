@@ -1114,16 +1114,18 @@ fail:
     return NULL;
 }
 
-/* .vag - from Penny-Punching Princess (Switch) sfx */
-VGMSTREAM * init_vgmstream_dsp_vag(STREAMFILE *streamFile) {
+/* .vag - Nippon Ichi SPS wrapper [Penny-Punching Princess (Switch), Ys VIII (Switch)] */
+VGMSTREAM * init_vgmstream_dsp_sps_n1(STREAMFILE *streamFile) {//todo rename
     dsp_meta dspm = {0};
 
     /* checks */
-    if (!check_extensions(streamFile, "vag"))
+    /* .vag: Penny-Punching Princess (Switch)
+     * .nlsd: Ys VIII (Switch) */
+    if (!check_extensions(streamFile, "vag,nlsd"))
         goto fail;
-    if (read_32bitBE(0x00,streamFile) != 0x08000000) /* file type? OPUSs had 09 */
+    if (read_32bitBE(0x00,streamFile) != 0x08000000) /* file type (see other N1 SPS) */
         goto fail;
-    if (read_32bitLE(0x08,streamFile) != read_32bitLE(0x24,streamFile)) /* header has various repeated values */
+    if ((uint16_t)read_16bitLE(0x08,streamFile) != read_32bitLE(0x24,streamFile)) /* header has various repeated values */
         goto fail;
 
     dspm.channel_count = 1;
