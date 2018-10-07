@@ -3,7 +3,7 @@
 
 static STREAMFILE* setup_sps_streamfile(STREAMFILE *streamfile, off_t subfile_offset, size_t subfile_size, char* extension);
 
-/* .SPS - Nippon Ichi's RIFF AT3 wrapper [ClaDun (PSP)] */
+/* .SPS - Nippon Ichi wrapper [ClaDun (PSP)] */
 VGMSTREAM * init_vgmstream_sps_n1(STREAMFILE *streamFile) {
     VGMSTREAM *vgmstream = NULL;
     STREAMFILE *temp_streamFile = NULL;
@@ -16,10 +16,10 @@ VGMSTREAM * init_vgmstream_sps_n1(STREAMFILE *streamFile) {
         goto fail;
 
     /* mini header */
-    type = read_32bitLE(0x00,streamFile); //todo channels? all known VAG are mono and AT3 stereo
+    type = read_32bitLE(0x00,streamFile);
     subfile_size = read_32bitLE(0x04,streamFile);
     sample_rate = (uint16_t)read_16bitLE(0x08,streamFile);
-    /* 0x0a/0b: stereo+loop flags? */
+    /* 0x0a: flag? */
     //num_samples = read_32bitLE(0x0c,streamFile);
     subfile_offset = 0x10;
 

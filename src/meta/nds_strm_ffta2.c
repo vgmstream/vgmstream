@@ -6,8 +6,11 @@ VGMSTREAM * init_vgmstream_nds_strm_ffta2(STREAMFILE *streamFile) {
     off_t start_offset;
     int loop_flag, channel_count;
 
-    /* check extension, case insensitive (the ROM seems to use simply .bin though) */
-    if (!check_extensions(streamFile,"strm"))
+
+    /* checks*/
+    /* .bin: actual extension
+     * .strm: header id */
+    if (!check_extensions(streamFile,"bin,strm"))
         goto fail;
 
     /* check header */
@@ -31,13 +34,12 @@ VGMSTREAM * init_vgmstream_nds_strm_ffta2(STREAMFILE *streamFile) {
 
     vgmstream->meta_type = meta_NDS_STRM_FFTA2;
 
-    vgmstream->coding_type = coding_DVI_IMA_int;
+    vgmstream->coding_type = coding_FFTA2_IMA;
     vgmstream->layout_type = layout_interleave;
     vgmstream->interleave_block_size = 0x80;
 
     if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
         goto fail;
-
     return vgmstream;
 
 fail:

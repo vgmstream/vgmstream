@@ -173,10 +173,11 @@ Must use autotools (sh configure, make, make install), though some scripts simpl
 
 ### libg7221_decode
 Adds support for ITU-T G.722.1 annex C (standardization of Polycom Siren 14).
-- Source: https://github.com/kode54/libg7221_decode
+- Source: https://github.com/bnnm/vgmstream-g7221
+  - Alt lib (has volume problems): https://github.com/kode54/libg7221_decode
 - DLL: `libg7221_decode.dll`
 
-Requires MSVC (use `g719.sln`).
+Use make `libg7221_decode.dll`.
 
 ### libg719_decode
 Adds support for ITU-T G.719 (standardization of Polycom Siren 22).
@@ -191,11 +192,13 @@ Adds support for multiple codecs: ATRAC3, ATRAC3plus, XMA1/2, WMA v1, WMA v2, WM
 - Source: https://github.com/FFmpeg/FFmpeg/
 - DLLs: `avcodec-vgmstream-58.dll`, `avformat-vgmstream-58.dll`, `avutil-vgmstream-56.dll`, `swresample-vgmstream-3.dll`
 
-vgmstream's FFmpeg builds remove many unnecessary parts of FFmpeg to trim down its gigantic size, and are also built with the "vgmstream-" preffix. Current options can be seen in `ffmpeg_options.txt`.
+vgmstream's FFmpeg builds remove many unnecessary parts of FFmpeg to trim down its gigantic size, and are also built with the "vgmstream-" preffix (to avoid clashing with other plugins). Current options can be seen in `ffmpeg_options.txt`.
 
 For GCC simply use autotools (configure, make, make install), passing to `configure` the above options.
 
 For MSCV it can be done through a helper: https://github.com/jb-alvarado/media-autobuild_suite
+
+Both may need yasm somewhere in PATH to properly compile: https://yasm.tortall.net
 
 
 ### LibAtrac9

@@ -328,6 +328,35 @@ int ffmpeg_make_riff_xwma(uint8_t * buf, size_t buf_size, int codec, size_t data
     if (buf_size < riff_size)
         return -1;
 
+    /* XWMA encoder only allows a few channel/sample rate/bitrate combinations,
+     * but some create identical files with fake bitrate (1ch 22050hz at
+     * 20/48/192kbps are all 20kbps, with the exact same codec data).
+     * Decoder needs correct bitrate to work, so it's normalized here. */
+    /* (may be removed once FFmpeg fixes this) */
+    if (codec == 0x161) { /* WMAv2 only */
+        int ch = channels;
+        int sr = sample_rate;
+        int br = avg_bps * 8;
+
+        /* Must be a bug in MS's encoder, as later versions of xWMAEncode remove these bitrates */
+        if (ch == 1) {
+            if (sr == 22050 && (br==48000 || br==192000))
+                br = 20000;
+            else if (sr == 32000 && (br==48000 || br==192000))
+                br = 20000;
+            else if (sr == 44100 && (br==96000 || br==192000))
+                br = 48000;
+        }
+        else if (ch == 2) {
+            if (sr == 22050 && (br==48000 || br==192000))
+                br = 32000;
+            else if (sr == 32000 && (br==192000))
+                br = 48000;
+        }
+
+        avg_bps = br / 8;
+    }
+
     memcpy(buf+0x00, "RIFF", 4);
     put_32bitLE(buf+0x04, (int32_t)(riff_size-4-4 + data_size)); /* riff size */
     memcpy(buf+0x08, "XWMA", 4);
@@ -341,7 +370,7 @@ int ffmpeg_make_riff_xwma(uint8_t * buf, size_t buf_size, int codec, size_t data
     put_16bitLE(buf+0x20, block_align); /* block align */
     put_16bitLE(buf+0x22, 16); /* bits per sample */
     put_16bitLE(buf+0x24, 0); /* extra size */
-    /* here goes the "dpds" table, but it's optional and not needed by FFmpeg */
+    /* here goes the "dpds" seek table, but it's optional and not needed by FFmpeg */
 
     memcpy(buf+0x26, "data", 4);
     put_32bitLE(buf+0x2a, data_size); /* data size */
@@ -488,7 +517,7 @@ static void ms_audio_get_samples(ms_sample_data * msd, STREAMFILE *streamFile, i
         while (packet_offset_b < packet_size_b) {
             frame_offset_b = offset_b + packet_offset_b; /* in bits for aligment stuff */
 
-            /* loops, later adjusted with subframe (seems correct vs tests) */
+            /* frame loops, later adjusted with subframes (seems correct vs tests) */
             if (msd->loop_flag && (offset_b + packet_offset_b) - stream_offset_b == msd->loop_start_b)
                 loop_start_frame = frames;
             if (msd->loop_flag && (offset_b + packet_offset_b) - stream_offset_b == msd->loop_end_b)
@@ -542,7 +571,7 @@ static void ms_audio_get_samples(ms_sample_data * msd, STREAMFILE *streamFile, i
                         if (new_skip > samples_per_frame) /* from xmaencode */
                             new_skip = samples_per_frame;
 
-                        if (start_skip==0)
+                        if (start_skip==0) /* only use first skip */
                             start_skip = new_skip;
                     }
 
@@ -558,7 +587,7 @@ static void ms_audio_get_samples(ms_sample_data * msd, STREAMFILE *streamFile, i
                         if (new_skip > samples_per_frame) /* from xmaencode  */
                             new_skip = samples_per_frame;
 
-                        end_skip = new_skip;
+                        end_skip = new_skip; /* always use last skip */
                     }
                 }
             }
@@ -576,18 +605,39 @@ static void ms_audio_get_samples(ms_sample_data * msd, STREAMFILE *streamFile, i
     }
 
 
-    //todo FFmpeg seems to decode 1 subframe late vs xmaencode, and doesn't write 128 init samples, so skips are not useful ATM
-    //samples = samples + 128 - start_skip - end_skip; /* 128 init samples added by xmaencode */
     msd->num_samples = samples;
-    msd->skip_samples = start_skip;
-
+    msd->skip_samples = start_skip; //todo remove once FFmpeg decodes correctly
     if (msd->loop_flag && loop_end_frame > loop_start_frame) {
         msd->loop_start_sample = loop_start_frame * samples_per_frame + msd->loop_start_subframe * samples_per_subframe;
-        msd->loop_end_sample = loop_end_frame * samples_per_frame + msd->loop_end_subframe * samples_per_subframe;
+        msd->loop_end_sample = loop_end_frame * samples_per_frame + (msd->loop_end_subframe) * samples_per_subframe;
+    }
 
-        //todo maybe this is needed
-        //msd->loop_start_sample -= start_skip;
-        //msd->loop_end_sample -= start_skip;
+    //todo apply once FFmpeg decode is ok
+    // for XMA must internal skip 64 samples + apply skips + output extra 128 IMDCT samples) and remove skip_samples output
+#if 0
+    if (msd->xma_version == 1 || msd->xma_version == 2) {
+        msd->num_samples += 128; /* final extra IMDCT samples */
+        msd->num_samples -= start_skip; /* can be less but fixed to 512 in practice */
+        msd->num_samples -= end_skip;
+
+        /* from xma2encode tests this looks correct (probably XMA loops considering IMDCT delay)
+         * a full loop wav > xma makes start=384, then xma > wav writes "smpl" with start=0 */
+        if (msd->loop_flag) {
+            msd->loop_start_sample += 128;
+            msd->loop_start_sample -= start_skip;
+
+            msd->loop_end_sample += 128;
+            msd->loop_end_sample -= start_skip;
+        }
+    }
+#endif
+
+    /* the above can't properly read skips for WMAPro ATM, but should fixed to 1 frame anyway */
+    if (msd->xma_version == 0) {
+        msd->num_samples -= samples_per_frame; /* FFmpeg does skip this */
+#if 0
+        msd->num_samples += (samples_per_frame / 2); /* but doesn't add extra samples */
+#endif
     }
 }
 
@@ -663,7 +713,7 @@ void wmapro_get_samples(ms_sample_data * msd, STREAMFILE *streamFile, int block_
     }
     samples_per_frame = wma_get_samples_per_frame(version, sample_rate, decode_flags);
     bits_frame_size = (int)floor(log(block_align) / log(2)) + 4; /* max bits needed to represent this block_align */
-    samples_per_subframe = 0; /* not really needed WMAPro can't use loop subframes (complex subframe lengths) */
+    samples_per_subframe = 0; /* not needed as WMAPro can't use loop subframes (complex subframe lengths) */
     msd->xma_version = 0; /* signal it's not XMA */
 
     ms_audio_get_samples(msd, streamFile, start_packet, channels_per_stream, bytes_per_packet, samples_per_frame, samples_per_subframe, bits_frame_size);
@@ -703,6 +753,11 @@ void wma_get_samples(ms_sample_data * msd, STREAMFILE *streamFile, int block_ali
     }
 
     msd->num_samples = num_frames * samples_per_frame;
+
+#if 0 //todo apply once FFmpeg decode is ok
+    msd->num_samples += (samples_per_frame / 2); /* last IMDCT samples */
+    msd->num_samples -= (samples_per_frame * 2); /* WMA default encoder delay */
+#endif
 }
 
 
@@ -718,7 +773,8 @@ void xma1_parse_fmt_chunk(STREAMFILE *streamFile, off_t chunk_offset, int * chan
     int32_t (*read_32bit)(off_t,STREAMFILE*) = be ? read_32bitBE : read_32bitLE;
     int i, num_streams, total_channels = 0;
 
-    if (read_16bit(chunk_offset+0x00,streamFile) != 0x165) return;
+    if (read_16bit(chunk_offset+0x00,streamFile) != 0x165)
+        return;
 
     num_streams = read_16bit(chunk_offset+0x08,streamFile);
     if(loop_flag)  *loop_flag = (uint8_t)read_8bit(chunk_offset+0xA,streamFile) > 0;
@@ -737,71 +793,112 @@ void xma1_parse_fmt_chunk(STREAMFILE *streamFile, off_t chunk_offset, int * chan
 }
 
 /* Read values from a 'new' XMA2 RIFF "fmt" chunk (XMA2WAVEFORMATEX), starting from an offset *after* chunk type+size.
- * Useful as custom X360 headers commonly have it lurking inside. Only the extra data, the first part is a normal WAVEFORMATEX. */
+ * Useful as custom X360 headers commonly have it lurking inside. Only parses the extra data (before is a normal WAVEFORMATEX). */
 void xma2_parse_fmt_chunk_extra(STREAMFILE *streamFile, off_t chunk_offset, int * out_loop_flag, int32_t * out_num_samples, int32_t * out_loop_start_sample, int32_t * out_loop_end_sample, int be) {
     int16_t (*read_16bit)(off_t,STREAMFILE*) = be ? read_16bitBE : read_16bitLE;
     int32_t (*read_32bit)(off_t,STREAMFILE*) = be ? read_32bitBE : read_32bitLE;
     int num_samples, loop_start_sample, loop_end_sample, loop_flag;
 
-    if (read_16bit(chunk_offset+0x00,streamFile) != 0x166) return;
-    /* up to extra data is a WAVEFORMATEX */
-    if (read_16bit(chunk_offset+0x10,streamFile) < 0x22) return; /* expected extra data size */
+    if (read_16bit(chunk_offset+0x00,streamFile) != 0x166)
+        return;
+    if (read_16bit(chunk_offset+0x10,streamFile) < 0x22)
+        return; /* expected extra data size */
 
-    num_samples       = read_32bit(chunk_offset+0x18,streamFile); /* max samples from all frames */
+    num_samples       = read_32bit(chunk_offset+0x18,streamFile);
     loop_start_sample = read_32bit(chunk_offset+0x28,streamFile);
     loop_end_sample   = loop_start_sample + read_32bit(chunk_offset+0x2C,streamFile);
     loop_flag         = (uint8_t)read_8bit(chunk_offset+0x30,streamFile) != 0;
-    /* num_samples isn't used by xmaencode, so final_num_samples = num_samples + setup_samples (128) - start_skip (~512) - end_skip (0..512) */
-    /* loop values seem to be after applying skips, so loop_end wouldn't be higher than final_num_samples */
 
     /* flag rarely set, use loop_end as marker */
     if (!loop_flag) {
         loop_flag = loop_end_sample > 0;
 
-        /* loop_end_sample - 128 + start_skip + end_skip = num_samples, use approx */
-        if (loop_start_sample == 384 && loop_end_sample - 128 + 512 + 512 >= num_samples) {
+        /* some XMA incorrectly do full loops for every song/jingle [Shadows of the Damned (X360)] */
+        if ((loop_start_sample + 128 - 512) == 0 && (loop_end_sample + 128 - 512) + 256 >= (num_samples + 128 - 512)) {
             VGM_LOG("XMA2 PARSE: disabling full loop\n");
-            loop_flag = 0; /* some XMA have full loop set without loop flag and shouldn't loop */
+            loop_flag = 0;
         }
     }
+
+#if 0 //todo apply once FFmpeg decode is ok
+    /* apply extra output + skips (see ms_audio_get_samples, approximate as find out with first and last frames) */
+    {
+        int start_skip = 512;
+        int end_skip = 0;
+
+        num_samples += 128;
+        num_samples -= start_skip;
+        num_samples -= end_skip;
+        if (loop_flag) {
+            loop_start_sample += 128;
+            loop_start_sample -= start_skip;
+            loop_end_sample += 128;
+            loop_end_sample -= start_skip;
+        }
+    }
+#endif
 
     if(out_num_samples)        *out_num_samples       = num_samples;
     if(out_loop_start_sample)  *out_loop_start_sample = loop_start_sample;
     if(out_loop_end_sample)    *out_loop_end_sample   = loop_end_sample;
     if(out_loop_flag)          *out_loop_flag         = loop_flag;
 
-    /* play_begin+end = pcm_samples in original sample rate (not usable when resampled = looped) */
+    /* play_begin+end = pcm_samples in original sample rate (not usable as file may be resampled) */
     /* int32_t play_begin_sample = read_32bit(xma->chunk_offset+0x20,streamFile); */
     /* int32_t play_end_sample = play_begin_sample + read_32bit(xma->chunk_offset+0x24,streamFile); */
 }
 
 /* Read values from an 'old' XMA2 RIFF "XMA2" chunk (XMA2WAVEFORMAT), starting from an offset *after* chunk type+size.
  * Useful as custom X360 headers commonly have it lurking inside. */
-void xma2_parse_xma2_chunk(STREAMFILE *streamFile, off_t chunk_offset, int * channels, int * sample_rate, int * loop_flag, int32_t * num_samples, int32_t * loop_start_sample, int32_t * loop_end_sample) {
+void xma2_parse_xma2_chunk(STREAMFILE *streamFile, off_t chunk_offset, int * out_channels, int * out_sample_rate, int * out_loop_flag, int32_t * out_num_samples, int32_t * out_loop_start_sample, int32_t * out_loop_end_sample) {
     int32_t (*read_32bit)(off_t,STREAMFILE*) = read_32bitBE; /* XMA2WAVEFORMAT is always big endian */
-    int i, xma2_chunk_version, num_streams, total_channels = 0;
-    off_t off;
+    int i, xma2_chunk_version, num_streams;
+    int channels, sample_rate, loop_flag, num_samples, loop_start_sample, loop_end_sample;
+    off_t offset;
 
     xma2_chunk_version = read_8bit(chunk_offset+0x00,streamFile);
     num_streams        = read_8bit(chunk_offset+0x01,streamFile);
-    if(loop_start_sample)  *loop_start_sample = read_32bit(chunk_offset+0x04,streamFile);
-    if(loop_end_sample)    *loop_end_sample   = read_32bit(chunk_offset+0x08,streamFile);
-    if(loop_flag)          *loop_flag = (uint8_t)read_8bit(chunk_offset+0x03,streamFile) > 0 /* rarely not set, encoder default */
-            || read_32bit(chunk_offset+0x08,streamFile); /* loop_end_sample */
-    if(sample_rate) *sample_rate = read_32bit(chunk_offset+0x0c,streamFile);;
+    loop_start_sample = read_32bit(chunk_offset+0x04,streamFile);
+    loop_end_sample   = read_32bit(chunk_offset+0x08,streamFile);
+    loop_flag = (uint8_t)read_8bit(chunk_offset+0x03,streamFile) > 0 || loop_end_sample; /* rarely not set, encoder default */
+    sample_rate       = read_32bit(chunk_offset+0x0c,streamFile);
 
-    off = xma2_chunk_version == 3 ? 0x14 : 0x1C;
-    if(num_samples) *num_samples = read_32bit(chunk_offset+off,streamFile);
-     /*xma->pcm_samples = read_32bitBE(xma->chunk_offset+off+0x04,streamFile)*/
-    /* num_samples is the max samples in the file (apparently not including encoder delay) */
-    /* pcm_samples are original WAV's; not current since samples and sample rate may be adjusted for looping purposes */
+    offset = xma2_chunk_version == 3 ? 0x14 : 0x1C;
+    num_samples = read_32bit(chunk_offset+offset+0x00,streamFile);
+    /* pcm_samples in original sample rate (not usable as file may be resampled) */
+    /* pcm_samples = read_32bitBE(chunk_offset+offset+0x04,streamFile)*/
 
-    off = xma2_chunk_version == 3 ? 0x20 : 0x28;
-    /* channels is the sum of all streams */
+    offset = xma2_chunk_version == 3 ? 0x20 : 0x28;
+    channels = 0; /* channels is the sum of all streams */
     for (i = 0; i < num_streams; i++) {
-        total_channels += read_8bit(chunk_offset+off+i*0x04,streamFile);
+        channels += read_8bit(chunk_offset+offset+i*0x04,streamFile);
     }
-    if (channels) *channels = total_channels;
+
+#if 0 //todo apply once FFmpeg decode is ok
+    /* apply extra output + skips (see ms_audio_get_samples, approximate as find out with first and last frames) */
+    {
+        int start_skip = 512;
+        int end_skip = 0;
+
+        num_samples += 128;
+        num_samples -= start_skip;
+        num_samples -= end_skip;
+        if (loop_flag) {
+            loop_start_sample += 128;
+            loop_start_sample -= start_skip;
+
+            loop_end_sample += 128;
+            loop_end_sample -= start_skip;
+        }
+    }
+#endif
+
+    if(out_channels)           *out_channels          = channels;
+    if(out_sample_rate)        *out_sample_rate       = sample_rate;
+    if(out_num_samples)        *out_num_samples       = num_samples;
+    if(out_loop_start_sample)  *out_loop_start_sample = loop_start_sample;
+    if(out_loop_end_sample)    *out_loop_end_sample   = loop_end_sample;
+    if(out_loop_flag)          *out_loop_flag         = loop_flag;
 }
 
 /* manually read from "fact" chunk */

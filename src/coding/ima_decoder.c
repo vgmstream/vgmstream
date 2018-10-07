@@ -207,6 +207,35 @@ static void alp_ima_expand_nibble(VGMSTREAMCHANNEL * stream, off_t byte_offset, 
     if (*step_index > 88) *step_index=88;
 }
 
+/* FFTA2 IMA, different hist and sample rounding, reverse engineered from the ROM */
+static void ffta2_ima_expand_nibble(VGMSTREAMCHANNEL * stream, off_t byte_offset, int nibble_shift, int32_t * hist1, int32_t * step_index, int16_t *out_sample) {
+    int sample_nibble, sample_decoded, step, delta;
+
+    sample_nibble = (read_8bit(byte_offset,stream->streamfile) >> nibble_shift)&0xf; /* ADPCM code */
+    sample_decoded = *hist1; /* predictor value */
+    step = ADPCMTable[*step_index] * 0x100; /* current step (table in ROM is pre-multiplied though) */
+
+    delta = step >> 3;
+    if (sample_nibble & 1) delta += step >> 2;
+    if (sample_nibble & 2) delta += step >> 1;
+    if (sample_nibble & 4) delta += step;
+    if (sample_nibble & 8) delta = -delta;
+    sample_decoded += delta;
+
+    /* custom clamp16 */
+    if (sample_decoded > 0x7FFF00)
+        sample_decoded = 0x7FFF00;
+    else if (sample_decoded < -0x800000)
+        sample_decoded = -0x800000;
+
+    *hist1 = sample_decoded;
+    *out_sample = (short)((sample_decoded + 128) / 256); /* int16 sample rounding, hist is kept as int32 */
+
+    *step_index += IMA_IndexTable[sample_nibble];
+    if (*step_index < 0) *step_index=0;
+    if (*step_index > 88) *step_index=88;
+}
+
 /* ************************************ */
 /* DVI/IMA                              */
 /* ************************************ */
@@ -345,6 +374,29 @@ void decode_alp_ima(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspaci
 
         alp_ima_expand_nibble(stream, byte_offset,nibble_shift, &hist1, &step_index);
         outbuf[sample_count] = (short)(hist1);
+    }
+
+    stream->adpcm_history1_32 = hist1;
+    stream->adpcm_step_index = step_index;
+}
+
+/* FFTA2 IMA, DVI IMA with custom nibble expand/rounding */
+void decode_ffta2_ima(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
+    int i, sample_count;
+    int32_t hist1 = stream->adpcm_history1_32;
+    int step_index = stream->adpcm_step_index;
+    int16_t out_sample;
+
+    //external interleave
+
+    //no header
+
+    for (i=first_sample,sample_count=0; i<first_sample+samples_to_do; i++,sample_count+=channelspacing) {
+        off_t byte_offset = stream->offset + i/2;
+        int nibble_shift = (i&1?0:4); //high nibble first
+
+        ffta2_ima_expand_nibble(stream, byte_offset,nibble_shift, &hist1, &step_index, &out_sample);
+        outbuf[sample_count] = out_sample;
     }
 
     stream->adpcm_history1_32 = hist1;

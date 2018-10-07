@@ -174,6 +174,9 @@ static size_t eaac_io_size(STREAMFILE *streamfile, eaac_io_data* data) {
         block_flag = (uint8_t)read_8bit(physical_offset+0x00,streamfile);
         block_size = read_32bitBE(physical_offset+0x00,streamfile) & 0x00FFFFFF;
 
+        if (block_size == 0)
+            break;  /* bad data */
+
         if (data->version == 0 && block_flag != 0x00 && block_flag != 0x80)
             break; /* unknown block */
 

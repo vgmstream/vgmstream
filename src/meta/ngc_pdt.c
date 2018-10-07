@@ -17,7 +17,8 @@ VGMSTREAM * init_vgmstream_ngc_pdt(STREAMFILE *streamFile) {
 
     if (read_16bitBE(0x00,streamFile) != 0x01)      /* version? */
         goto fail;
-    if (read_32bitBE(0x04,streamFile) != 0x04)      /* entry size? */
+    if (read_32bitBE(0x04,streamFile) != 0x02 &&    /* Mario Party 4 (GC) */
+        read_32bitBE(0x04,streamFile) != 0x04)      /* Cubic Lode Runner (GC) */
         goto fail;
     if (read_32bitBE(0x08,streamFile) != 0x7d00)    /* not-sample rate? */
         goto fail;

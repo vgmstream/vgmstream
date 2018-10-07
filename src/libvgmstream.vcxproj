@@ -474,6 +474,7 @@
     <ClCompile Include="meta\xmd.c" />
     <ClCompile Include="meta\xwb.c" />
     <ClCompile Include="meta\xwc.c" />
+    <ClCompile Include="meta\xwma.c" />
     <ClCompile Include="meta\ydsp.c" />
     <ClCompile Include="meta\zsd.c" />
     <ClCompile Include="meta\zwdsp.c" />

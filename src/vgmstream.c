@@ -364,7 +364,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_opus_nop,
     init_vgmstream_opus_shinen,
     init_vgmstream_opus_nus3,
-    init_vgmstream_opus_nlsd,
+    init_vgmstream_opus_sps_n1,
     init_vgmstream_opus_nxa,
     init_vgmstream_pc_al2,
     init_vgmstream_pc_ast,
@@ -405,7 +405,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_smc_smh,
     init_vgmstream_ea_sps_fb,
     init_vgmstream_ppst,
-    init_vgmstream_opus_ppp,
+    init_vgmstream_opus_sps_n1_segmented,
     init_vgmstream_ubi_bao_pk,
     init_vgmstream_dsp_switch_audio,
     init_vgmstream_sadf,
@@ -422,7 +422,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_bnk_sony,
     init_vgmstream_nus3bank,
     init_vgmstream_scd_sscf,
-    init_vgmstream_dsp_vag,
+    init_vgmstream_dsp_sps_n1,
     init_vgmstream_dsp_itl_ch,
     init_vgmstream_a2m,
     init_vgmstream_ahv,
@@ -441,6 +441,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_utk,
     init_vgmstream_adpcm_capcom,
     init_vgmstream_ue4opus,
+    init_vgmstream_xwma,
 
 
     /* lowest priority metas (should go after all metas, and TXTH should go before raw formats) */
@@ -1129,6 +1130,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_3DS_IMA:
         case coding_WV6_IMA:
         case coding_ALP_IMA:
+        case coding_FFTA2_IMA:
             return 2;
         case coding_XBOX_IMA:
         case coding_XBOX_IMA_mch:
@@ -1299,6 +1301,7 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
         case coding_3DS_IMA:
         case coding_WV6_IMA:
         case coding_ALP_IMA:
+        case coding_FFTA2_IMA:
             return 0x01;
         case coding_MS_IMA:
         case coding_RAD_IMA:
@@ -1763,6 +1766,12 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
         case coding_ALP_IMA:
             for (ch = 0; ch < vgmstream->channels; ch++) {
                 decode_alp_ima(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do);
+            }
+            break;
+        case coding_FFTA2_IMA:
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_ffta2_ima(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
                         vgmstream->channels,vgmstream->samples_into_block,samples_to_do);
             }
             break;

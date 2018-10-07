@@ -115,6 +115,7 @@ typedef enum {
     coding_OTNS_IMA,        /* Omikron The Nomad Soul IMA ADPCM */
     coding_WV6_IMA,         /* Gorilla Systems WV6 4-bit IMA ADPCM */
     coding_ALP_IMA,         /* High Voltage ALP 4-bit IMA ADPCM */
+    coding_FFTA2_IMA,       /* Final Fantasy Tactics A2 4-bit IMA ADPCM */
 
     coding_MS_IMA,          /* Microsoft IMA ADPCM */
     coding_XBOX_IMA,        /* XBOX IMA ADPCM */
@@ -641,16 +642,12 @@ typedef enum {
     meta_OGG_SLI,           /* Ogg Vorbis file w/ companion .sli for looping */
     meta_OGG_SLI2,          /* Ogg Vorbis file w/ different styled .sli for looping */
     meta_OGG_SFL,           /* Ogg Vorbis file w/ .sfl (RIFF SFPL) for looping */
-    meta_OGG_UM3,           /* Ogg Vorbis with optional encryption */
-    meta_OGG_KOVS,          /* Ogg Vorbis with encryption (Koei Tecmo Games) */
-    meta_OGG_PSYCHIC,       /* Ogg Vorbis with encryption */
-    meta_OGG_SNGW,          /* Ogg Vorbis with optional encryption (Capcom PC games) */
-    meta_OGG_ISD,           /* Ogg Vorbis with encryption (Azure Striker Gunvolt PC) */
+    meta_OGG_KOVS,          /* Ogg Vorbis with header and encryption (Koei Tecmo Games) */
+    meta_OGG_encrypted,     /* Ogg Vorbis with encryption */
     meta_KMA9,              /* Koei Tecmo [Nobunaga no Yabou - Souzou (Vita)] */
     meta_XWC,               /* Starbreeze games */
     meta_SQEX_SAB,          /* Square-Enix newest middleware (sound) */
     meta_SQEX_MAB,          /* Square-Enix newest middleware (music) */
-    meta_OGG_L2SD,          /* Ogg Vorbis with obfuscation [Lineage II Chronicle 4 (PC)] */
     meta_WAF,               /* KID WAF [Ever 17 (PC)] */
     meta_WAVE,              /* EngineBlack games [Mighty Switch Force! (3DS)] */
     meta_WAVE_segmented,    /* EngineBlack games, segmented [Shantae and the Pirate's Curse (PC)] */
@@ -664,19 +661,14 @@ typedef enum {
     meta_DSP_MCADPCM,       /* Skyrim (Switch) */
     meta_UBI_LYN,           /* Ubisoft LyN engine [The Adventures of Tintin (multi)] */
     meta_MSB_MSH,           /* sfx companion of MIH+MIB */
-    meta_OGG_RPGMV,         /* Ogg Vorbis with encryption [RPG Maker MV games (PC)] */
-    meta_OGG_ENO,           /* Ogg Vorbis with encryption [Metronomicon (PC)] */
     meta_TXTP,              /* generic text playlist */
     meta_SMC_SMH,           /* Wangan Midnight (System 246) */
-    meta_OGG_YS8,           /* Ogg Vorbis with encryption (Ys VIII PC) */
     meta_PPST,              /* PPST [Parappa the Rapper (PSP)] */
     meta_OPUS_PPP,          /* .at9 Opus [Penny-Punching Princess (Switch)] */
     meta_UBI_BAO,           /* Ubisoft BAO */
     meta_DSP_SWITCH_AUDIO,  /* Gal Gun 2 (Switch) */
     meta_TA_AAC_VITA,       /* tri-Ace AAC (Judas Code) */
-    meta_OGG_GWM,           /* Ogg Vorbis with encryption [Metronomicon (PC)] */
     meta_H4M,               /* Hudson HVQM4 video [Resident Evil 0 (GC), Tales of Symphonia (GC)] */
-    meta_OGG_MUS,           /* Ogg Vorbis with encryption [Redux - Dark Matters (PC)] */
     meta_ASF,               /* Argonaut ASF [Croc 2 (PC)] */
     meta_XMD,               /* Konami XMD [Silent Hill 4 (Xbox), Castlevania: Curse of Darkness (Xbox)] */
     meta_CKS,               /* Cricket Audio stream [Part Time UFO (Android), Mega Man 1-6 (Android)] */
@@ -706,7 +698,7 @@ typedef enum {
     meta_NXA,
     meta_ADPCM_CAPCOM,
     meta_UE4OPUS,
-    meta_OGG_LSE,
+    meta_XWMA,
 
 } meta_t;
 
