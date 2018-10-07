@@ -441,6 +441,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_utk,
     init_vgmstream_adpcm_capcom,
     init_vgmstream_ue4opus,
+    init_vgmstream_xwma,
 
 
     /* lowest priority metas (should go after all metas, and TXTH should go before raw formats) */

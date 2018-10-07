@@ -456,8 +456,8 @@ static const char* extension_list[] = {
     "xwb",
     "xmd",
     "xwc",
-    "xwm", //FFmpeg, not parsed (XWMA)
-    "xwma", //FFmpeg, not parsed (XWMA)
+    "xwm",
+    "xwma",
     "xws",
     "xwv",
 
@@ -1088,6 +1088,7 @@ static const meta_info meta_info_list[] = {
         {meta_NXA,                  "Entergram NXA header"},
         {meta_ADPCM_CAPCOM,         "Capcom .ADPCM header"},
         {meta_UE4OPUS,              "Epic Games UE4OPUS header"},
+        {meta_XWMA,                 "Microsoft XWMA RIFF header"},
 
 };
 

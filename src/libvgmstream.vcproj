@@ -1610,6 +1610,10 @@
                     RelativePath=".\meta\xwc.c"
                     >
                 </File>
+                <File
+                    RelativePath=".\meta\xwma.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\ydsp.c"
 					>

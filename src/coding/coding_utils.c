@@ -612,9 +612,10 @@ static void ms_audio_get_samples(ms_sample_data * msd, STREAMFILE *streamFile, i
         msd->loop_end_sample = loop_end_frame * samples_per_frame + (msd->loop_end_subframe) * samples_per_subframe;
     }
 
-    //todo apply once FFmpeg decode is ok (must internal skip 64 samples + apply skips + output extra 128 IMDCT samples) and remove skip_samples output
+    //todo apply once FFmpeg decode is ok
+    // for XMA must internal skip 64 samples + apply skips + output extra 128 IMDCT samples) and remove skip_samples output
 #if 0
-    {
+    if (msd->xma_version == 1 || msd->xma_version == 2) {
         msd->num_samples += 128; /* final extra IMDCT samples */
         msd->num_samples -= start_skip; /* can be less but fixed to 512 in practice */
         msd->num_samples -= end_skip;
@@ -630,6 +631,14 @@ static void ms_audio_get_samples(ms_sample_data * msd, STREAMFILE *streamFile, i
         }
     }
 #endif
+
+    /* the above can't properly read skips for WMAPro ATM, but should fixed to 1 frame anyway */
+    if (msd->xma_version == 0) {
+        msd->num_samples -= samples_per_frame; /* FFmpeg does skip this */
+#if 0
+        msd->num_samples += (samples_per_frame / 2); /* but doesn't add extra samples */
+#endif
+    }
 }
 
 static int wma_get_samples_per_frame(int version, int sample_rate, uint32_t decode_flags) {
@@ -744,6 +753,11 @@ void wma_get_samples(ms_sample_data * msd, STREAMFILE *streamFile, int block_ali
     }
 
     msd->num_samples = num_frames * samples_per_frame;
+
+#if 0 //todo apply once FFmpeg decode is ok
+    msd->num_samples += (samples_per_frame / 2); /* last IMDCT samples */
+    msd->num_samples -= (samples_per_frame * 2); /* WMA default encoder delay */
+#endif
 }
 
 
