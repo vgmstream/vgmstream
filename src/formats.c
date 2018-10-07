@@ -25,6 +25,7 @@ static const char* extension_list[] = {
     "ace", //fake, for tri-Ace's formats (to be removed)
     "acm",
     "ad", //txth/reserved [Xenosaga Freaks (PS2)]
+    "adc", //txth/reserved [Tomb Raider The Last Revelation(DC), Tomb Raider Chronicles(DC)]
     "adm",
     "adp",
     "adpcm",
@@ -224,7 +225,7 @@ static const char* extension_list[] = {
     //"mpc", //FFmpeg, not parsed (musepack) //common
     "mpdsp",
     "mpds",
-    "mps", //txh/reserved [Scandal (PS2)]
+    "mps", //txth/reserved [Scandal (PS2)]
     "ms",
     "msa",
     "msb",
@@ -238,6 +239,7 @@ static const char* extension_list[] = {
     "mus",
     "musc",
     "musx",
+    "mvb", //txth/reserved [Porsche Challenge(PS1)]
     "mwv",
     "mxst",
     "myspd",
