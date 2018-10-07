@@ -11,8 +11,11 @@ VGMSTREAM * init_vgmstream_xma(STREAMFILE *streamFile) {
     int fmt_be = 0;
 
 
-    /* check extension, case insensitive */
-    /* .xma2: Skullgirls, .nps: Beautiful Katamari (renamed .xma), .str: Sonic & Sega All Stars Racing */
+    /* checks */
+    /* .xma: standard
+     * .xma2: Skullgirls (X360)
+     * .nps: Beautiful Katamari (X360)
+     * .str: Sonic & Sega All Stars Racing (X360) */
     if ( !check_extensions(streamFile, "xma,xma2,nps,str") )
         goto fail;
 
@@ -86,7 +89,6 @@ VGMSTREAM * init_vgmstream_xma(STREAMFILE *streamFile) {
         num_samples = msd.num_samples;
         loop_start_sample = msd.loop_start_sample;
         loop_end_sample = msd.loop_end_sample;
-        /* XMA2 loop/num_samples don't seem to use msd.skip_samples */
     }
 
 
@@ -111,7 +113,6 @@ VGMSTREAM * init_vgmstream_xma(STREAMFILE *streamFile) {
         } else {
             bytes = ffmpeg_make_riff_xma_from_fmt_chunk(buf,0x100, chunk_offset,chunk_size, data_size, streamFile, fmt_be);
         }
-        if (bytes <= 0) goto fail;
 
         vgmstream->codec_data = init_ffmpeg_header_offset(streamFile, buf,bytes, start_offset,data_size);
         if ( !vgmstream->codec_data ) goto fail;
@@ -122,15 +123,7 @@ VGMSTREAM * init_vgmstream_xma(STREAMFILE *streamFile) {
     goto fail;
 #endif
 
-#if 0
-    //not active due to a FFmpeg bug that misses some of the last packet samples and decodes
-    // garbage if asked for more samples (always happens but more apparent with skip_samples active)
-    /* fix encoder delay */
-    if (data->skipSamples==0)
-        ffmpeg_set_skip_samples(data, xma.skip_samples);
-#endif
 
-    /* open the file for reading */
     if ( !vgmstream_open_stream(vgmstream, streamFile, start_offset) )
         goto fail;
     return vgmstream;

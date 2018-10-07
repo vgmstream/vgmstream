@@ -67,6 +67,8 @@ typedef struct {
     uint32_t loop_end;
     uint32_t loop_start_sample;
     uint32_t loop_end_sample;
+
+    int is_crackdown;
 } xwb_header;
 
 static void get_name(char * buf, size_t maxsize, int target_subsong, xwb_header * xwb, STREAMFILE *streamFile);
@@ -102,9 +104,11 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
     /* read main header (WAVEBANKHEADER) */
     xwb.version = read_32bit(0x04, streamFile); /* XACT3: 0x04=tool version, 0x08=header version */
 
-    /* Crackdown 1 X360, essentially XACT2 but may have split header in some cases */
-    if (xwb.version == XACT_CRACKDOWN)
+    /* Crackdown 1 (X360), essentially XACT2 but may have split header in some cases */
+    if (xwb.version == XACT_CRACKDOWN) {
         xwb.version = XACT2_2_MAX;
+        xwb.is_crackdown = 1;
+    }
 
     /* read segment offsets (SEGIDX) */
     if (xwb.version <= XACT1_0_MAX) {
@@ -222,7 +226,7 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
         xwb.stream_offset   = xwb.data_offset + (uint32_t)read_32bit(off+0x08, streamFile);
         xwb.stream_size     = (uint32_t)read_32bit(off+0x0c, streamFile);
 
-		if (xwb.version <= XACT2_1_MAX) { /* LoopRegion (bytes) */
+        if (xwb.version <= XACT2_1_MAX) { /* LoopRegion (bytes) */
             xwb.loop_start  = (uint32_t)read_32bit(off+0x10, streamFile);
             xwb.loop_end    = (uint32_t)read_32bit(off+0x14, streamFile);//length (LoopRegion) or offset (XMALoopRegion in late XACT2)
         } else { /* LoopRegion (samples) */
@@ -364,8 +368,8 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
         xwb.loop_end_sample   = msadpcm_bytes_to_samples(xwb.loop_start + xwb.loop_end, block_size, xwb.channels);
     }
     else if (xwb.version <= XACT2_1_MAX && (xwb.codec == XMA1 || xwb.codec == XMA2) &&  xwb.loop_flag) {
-	    /* v38: byte offset, v40+: sample offset, v39: ? */
-        /* need to manually find sample offsets, thanks to Microsoft dumb headers */
+        /* v38: byte offset, v40+: sample offset, v39: ? */
+        /* need to manually find sample offsets, thanks to Microsoft's dumb headers */
         ms_sample_data msd = {0};
 
         msd.xma_version = xwb.codec == XMA1 ? 1 : 2;
@@ -387,19 +391,38 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
         if (xwb.num_samples == 0)
             xwb.num_samples   = msd.num_samples;
 
-        // todo fix properly (XWB loop_start/end seem to count padding samples while XMA1 RIFF doesn't)
-        //this doesn't seem ok because can fall within 0 to 512 (ie.- first frame, 384)
-        //if (xwb.loop_start_sample) xwb.loop_start_sample -= 512;
-        //if (xwb.loop_end_sample) xwb.loop_end_sample -= 512;
+        /* if provided, xwb.num_samples is equal to msd.num_samples after proper adjustments (+ 128 - start_skip - end_skip) */
 
-        //add padding back until it's fixed (affects looping)
-        // (in rare cases this causes a glitch in FFmpeg since it has a bug where it's missing some samples)
+#if 1
+        //todo add padding back until FFmpeg decoding + msd.loops are fixed (affects edge loops)
+        // (in rare cases this causes a glitch in FFmpeg due to missing samples)
         xwb.num_samples += 64 + 512;
+#endif
     }
     else if ((xwb.codec == XMA1 || xwb.codec == XMA2) &&  xwb.loop_flag) {
-        /* seems to be needed by some edge cases, ex. Crackdown */
-        //add padding, see above
-        xwb.num_samples += 64 + 512;
+        /* unlike prev versions, xwb.num_samples is the full size without adjustments */
+
+#if 0   //todo apply once FFmpeg decode is ok
+        /* apply extra output + skips (see ms_audio_get_samples, approximate as find out with first and last frames) */
+        int start_skip = 512;
+        int end_skip = 0;
+
+        xwb.num_samples += 128;
+        xwb.num_samples -= start_skip;
+        xwb.num_samples -= end_skip;
+        if (xwb.loop_flag) {
+            xwb.loop_start_sample += 128;
+            xwb.loop_start_sample -= start_skip;
+
+            xwb.loop_end_sample += 128;
+            xwb.loop_end_sample -= start_skip;
+        }
+#endif
+
+        /* Crackdown does use xwb.num_samples after adjustments (but not loops), fix it back */
+        if (xwb.is_crackdown) {
+            xwb.num_samples += 512 - 128;
+        }
     }
 
 
@@ -437,12 +460,10 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
 
 #ifdef VGM_USE_FFMPEG
         case XMA1: { /* Kameo (X360) */
-            uint8_t buf[100];
+            uint8_t buf[0x100];
             int bytes;
 
             bytes = ffmpeg_make_riff_xma1(buf, 100, vgmstream->num_samples, xwb.stream_size, vgmstream->channels, vgmstream->sample_rate, 0);
-            if (bytes <= 0) goto fail;
-
             vgmstream->codec_data = init_ffmpeg_header_offset(streamFile, buf,bytes, xwb.stream_offset,xwb.stream_size);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
@@ -451,15 +472,13 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
         }
 
         case XMA2: { /* Blue Dragon (X360) */
-            uint8_t buf[100];
+            uint8_t buf[0x100];
             int bytes, block_size, block_count;
 
             block_size = 0x10000; /* XACT default */
             block_count = xwb.stream_size / block_size + (xwb.stream_size % block_size ? 1 : 0);
 
             bytes = ffmpeg_make_riff_xma2(buf, 100, vgmstream->num_samples, xwb.stream_size, vgmstream->channels, vgmstream->sample_rate, block_count, block_size);
-            if (bytes <= 0) goto fail;
-
             vgmstream->codec_data = init_ffmpeg_header_offset(streamFile, buf,bytes, xwb.stream_offset,xwb.stream_size);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
@@ -467,7 +486,7 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
             break;
         }
 
-        case WMA: { /* WMAudio1 (WMA v1): Prince of Persia 2 port (Xbox) */
+        case WMA: { /* WMAudio1 (WMA v2): Prince of Persia 2 port (Xbox) */
             ffmpeg_codec_data *ffmpeg_data = NULL;
 
             ffmpeg_data = init_ffmpeg_offset(streamFile, xwb.stream_offset,xwb.stream_size);
@@ -483,10 +502,10 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
         }
 
         case XWMA: { /* WMAudio2 (WMA v2): BlazBlue (X360), WMAudio3 (WMA Pro): Bullet Witch (PC) voices */
-            uint8_t buf[100];
+            uint8_t buf[0x100];
             int bytes, bps_index, block_align, block_index, avg_bps, wma_codec;
 
-            bps_index = (xwb.block_align >> 5);  /* upper 3b bytes-per-second index */ //docs say 2b+6b but are wrong
+            bps_index = (xwb.block_align >> 5);  /* upper 3b bytes-per-second index (docs say 2b+6b but are wrong) */
             block_index =  (xwb.block_align) & 0x1F; /*lower 5b block alignment index */
             if (bps_index >= 7) goto fail;
             if (block_index >= 17) goto fail;
@@ -496,8 +515,6 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
             wma_codec = xwb.bits_per_sample ? 0x162 : 0x161; /* 0=WMAudio2, 1=WMAudio3 */
 
             bytes = ffmpeg_make_riff_xwma(buf, 100, wma_codec, xwb.stream_size, vgmstream->channels, vgmstream->sample_rate, avg_bps, block_align);
-            if (bytes <= 0) goto fail;
-
             vgmstream->codec_data = init_ffmpeg_header_offset(streamFile, buf,bytes, xwb.stream_offset,xwb.stream_size);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
@@ -506,7 +523,7 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
         }
 
         case ATRAC3: { /* Techland PS3 extension [Sniper Ghost Warrior (PS3)] */
-            uint8_t buf[200];
+            uint8_t buf[0x100];
             int bytes;
 
             int block_size = xwb.block_align * vgmstream->channels;
@@ -514,8 +531,6 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
             int skip_samples = 0; /* unknown */
 
             bytes = ffmpeg_make_riff_atrac3(buf, 200, vgmstream->num_samples, xwb.stream_size, vgmstream->channels, vgmstream->sample_rate, block_size, joint_stereo, skip_samples);
-            if (bytes <= 0) goto fail;
-
             vgmstream->codec_data = init_ffmpeg_header_offset(streamFile, buf,bytes, xwb.stream_offset,xwb.stream_size);
             if ( !vgmstream->codec_data ) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
