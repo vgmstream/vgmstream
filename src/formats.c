@@ -264,6 +264,7 @@ static const char* extension_list[] = {
     "ovb",
 
     "p1d", //txth/reserved [Farming Simulator 18 (3DS)]
+    "p2a" //txth/reserved [Thunderhawk Operation Phoenix (PS2)]
     "p2bt",
     "p3d",
     "past",
