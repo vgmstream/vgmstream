@@ -699,7 +699,7 @@ typedef enum {
     meta_ADPCM_CAPCOM,
     meta_UE4OPUS,
     meta_XWMA,
-	meta_VA3,				/* DDR Supernova 2 AC */
+    meta_VA3,               /* DDR Supernova 2 AC */
 
 } meta_t;
 
