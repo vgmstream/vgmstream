@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="Header Files">
@@ -99,6 +99,9 @@
       <Filter>meta\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="meta\sqex_scd_streamfile.h">
+      <Filter>meta\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="meta\ubi_lyn_ogg_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="meta\xvag_streamfile.h">
@@ -1303,6 +1306,9 @@
     <ClCompile Include="meta\sqex_scd.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\sqex_scd_sscfs.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\sqex_sead.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -1459,14 +1465,8 @@
     <ClCompile Include="meta\ktss.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\sqex_scd_sscf.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="meta\ps2_va3.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="ClassDiagram.cd" />
   </ItemGroup>
 </Project>
