@@ -393,6 +393,7 @@ static const char* extension_list[] = {
 
     "v0",
     //"v1", //dual channel with v0
+    "va3", //konami atrac3, FFMPEG - DDR Supernova 2 AC
     "vag",
     "vai",
     "vas",
@@ -1092,6 +1093,7 @@ static const meta_info meta_info_list[] = {
         {meta_ADPCM_CAPCOM,         "Capcom .ADPCM header"},
         {meta_UE4OPUS,              "Epic Games UE4OPUS header"},
         {meta_XWMA,                 "Microsoft XWMA RIFF header"},
+        {meta_VA3,                  "Konami / Sony ATRAC3 Header" },
 
 };
 

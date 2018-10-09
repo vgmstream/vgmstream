@@ -543,7 +543,12 @@ int main(int argc, char ** argv) {
 
 fail:
     if (!cfg.play_sdtout)
-        fclose(outfile);
+    {
+        if (outfile != NULL)
+        {
+            fclose(outfile);
+        }
+    }
     close_vgmstream(vgmstream);
     return EXIT_FAILURE;
 }
