@@ -542,8 +542,13 @@ int main(int argc, char ** argv) {
     return EXIT_SUCCESS;
 
 fail:
-    if (!cfg.play_sdtout)
-        fclose(outfile);
+	if (!cfg.play_sdtout)
+	{
+		if (outfile != NULL)
+		{
+			fclose(outfile);
+		}
+	}
     close_vgmstream(vgmstream);
     return EXIT_FAILURE;
 }

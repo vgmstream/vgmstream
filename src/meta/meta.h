@@ -629,6 +629,8 @@ VGMSTREAM * init_vgmstream_ta_aac_mobile(STREAMFILE *streamFile);
 VGMSTREAM * init_vgmstream_ta_aac_mobile_vorbis(STREAMFILE *streamFile);
 VGMSTREAM * init_vgmstream_ta_aac_vita(STREAMFILE *streamFile);
 
+VGMSTREAM * init_vgmstream_va3(STREAMFILE *streamFile);
+
 VGMSTREAM * init_vgmstream_ps3_mta2(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_ngc_ulw(STREAMFILE * streamFile);
