@@ -205,6 +205,10 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\meta\hca_keys_awb.h"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\fsb_keys.h"
                     >
                 </File>

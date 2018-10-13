@@ -162,6 +162,7 @@ a companion file:
 - .adx: .adxkey (derived 6 byte key, in start/mult/add format)
 - .ahx: .ahxkey (derived 6 byte key, in start/mult/add format)
 - .hca: .hcakey (8 byte decryption key, a 64-bit number)
+  - May be followed by 2 byte AWB derivation value for newer HCA
 - .fsb: .fsbkey (decryption key, in hex)
 
 The key file can be ".(ext)key" (for the whole folder), or "(name).(ext)key"
@@ -240,7 +241,7 @@ are used in few games.
 - AAC
 - Bink
 - AC3/SPDIF
-- Xiph Opus (Ogg, Switch)
+- Xiph Opus (Ogg, Switch, EA, UE4)
 - Xiph CELT (FSB)
 - Musepack
 - FLAC
