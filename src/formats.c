@@ -459,6 +459,7 @@ static const char* extension_list[] = {
     "xwav",//fake, to be removed
     "xwb",
     "xmd",
+    "xopus",
     "xwc",
     "xwm",
     "xwma",
@@ -1094,6 +1095,7 @@ static const meta_info meta_info_list[] = {
         {meta_UE4OPUS,              "Epic Games UE4OPUS header"},
         {meta_XWMA,                 "Microsoft XWMA RIFF header"},
         {meta_VA3,                  "Konami / Sony ATRAC3 Header" },
+        {meta_XOPUS,                "Rovio XOPUS header"},
 
 };
 

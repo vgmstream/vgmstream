@@ -700,6 +700,7 @@ typedef enum {
     meta_UE4OPUS,
     meta_XWMA,
     meta_VA3,               /* DDR Supernova 2 AC */
+    meta_XOPUS,
 
 } meta_t;
 

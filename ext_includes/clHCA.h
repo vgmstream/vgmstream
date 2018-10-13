@@ -27,7 +27,7 @@ void clHCA_delete(clHCA *);
  * the header length with clHCA_isOurFile, then read data and call this.
  * May be called multiple times to reset decoder state.
  * Returns 0 on success, <0 on failure. */
-int clHCA_DecodeHeader(clHCA *, void *data, unsigned int size);
+int clHCA_DecodeHeader(clHCA *, const void *data, unsigned int size);
 
 typedef struct clHCA_stInfo {
 	unsigned int version;
@@ -61,6 +61,7 @@ int clHCA_getInfo(clHCA *, clHCA_stInfo *out);
 
 /* Decodes a single frame, from data after headerSize. Should be called after
  * clHCA_DecodeHeader and size must be at least blockSize long.
+ * Data may be modified if encrypted.
  * Returns 0 on success, <0 on failure. */
 int clHCA_DecodeBlock(clHCA *, void *data, unsigned int size);
 
@@ -80,6 +81,10 @@ void clHCA_SetKey(clHCA *, unsigned long long keycode);
  * Incorrect keys may give a few valid frames, so it's best to test a number of them
  * and select the key with scores closer to 1. */
 int clHCA_TestBlock(clHCA *hca, void *data, unsigned int size);
+
+/* Resets the internal decode state, used when restarting to decode the file from the beginning.
+ * Without it there are minor differences, mainly useful when testing a new key. */
+void clHCA_DecodeReset(clHCA * hca);
 
 #ifdef __cplusplus
 }

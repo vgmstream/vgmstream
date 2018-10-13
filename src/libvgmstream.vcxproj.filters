@@ -113,6 +113,9 @@
     <ClInclude Include="meta\hca_keys.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="meta\hca_keys_awb.h">
+      <Filter>meta\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="meta\fsb_keys.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
@@ -1306,7 +1309,7 @@
     <ClCompile Include="meta\sqex_scd.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\sqex_scd_sscfs.c">
+    <ClCompile Include="meta\sqex_scd_sscf.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\sqex_sead.c">
@@ -1430,6 +1433,9 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\xnb.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\xopus.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\x360_cxs.c">
