@@ -123,6 +123,7 @@ void decode_hca(hca_codec_data * data, sample * outbuf, int32_t samples_to_do) {
 void reset_hca(hca_codec_data * data) {
     if (!data) return;
 
+    clHCA_DecodeReset(data->handle);
     data->current_block = 0;
     data->samples_filled = 0;
     data->samples_consumed = 0;
@@ -152,15 +153,18 @@ void free_hca(hca_codec_data * data) {
 
 #define HCA_KEY_MAX_BLANK_FRAMES 15         /* ignored up to N blank frames (not uncommon to have ~10, if more something is off) */
 #define HCA_KEY_MAX_TEST_FRAMES  10         /* 5~15 should be enough, but mostly silent or badly mastered files may need more */
-#define HCA_KEY_MAX_ACCEPTABLE_SCORE  300   /* unlikely to work correctly, 10~30 may be ok */
+#define HCA_KEY_MAX_ACCEPTABLE_SCORE  150   /* more is unlikely to work correctly, 10~30 isn't uncommon */
 
 /* Test a number of frames if key decrypts correctly.
- * Returns score: <0: error/wrong, 0: unknown/silent file, >0: good (the closest to 1 the better) */
+ * Returns score: <0: error/wrong, 0: unknown/silent file, >0: good (the closest to 1 the better). */
 int test_hca_key(hca_codec_data * data, unsigned long long keycode) {
     size_t test_frame = 0, current_frame = 0, blank_frames = 0;
     int total_score = 0;
     const unsigned int blockSize = data->info.blockSize;
 
+    /* Due to the potentially large number of keys this must be tuned for speed.
+     * Buffered IO seems fast enough (not very different reading a large block once vs frame by frame).
+     * clHCA_TestBlock could be optimized a bit more. */
 
     clHCA_SetKey(data->handle, keycode);
 
@@ -204,5 +208,6 @@ int test_hca_key(hca_codec_data * data, unsigned long long keycode) {
         total_score = 1;
     }
 
+    clHCA_DecodeReset(data->handle);
     return total_score;
 }

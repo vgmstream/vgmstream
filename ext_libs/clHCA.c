@@ -293,10 +293,10 @@ void clHCA_ReadSamples16(clHCA *hca, signed short *samples) {
             for (k = 0; k < hca->channels; k++) {
                 f = hca->channel[k].wave[i][j];
                 //f = f * hca->rva_volume; /* rare, won't apply for now */
-                if (f > 1) {
-                    f = 1;
-                } else if (f < -1) {
-                    f = -1;
+                if (f > 1.0f) {
+                    f = 1.0f;
+                } else if (f < -1.0f) {
+                    f = -1.0f;
                 }
                 s = (signed int) (f * scale);
                 if ((unsigned) (s + 0x8000) & 0xFFFF0000)
@@ -575,7 +575,7 @@ static unsigned int header_ceil2(unsigned int a, unsigned int b) {
     return (b > 0) ? (a / b + ((a % b) ? 1 : 0)) : 0;
 }
 
-int clHCA_DecodeHeader(clHCA *hca, void *data, unsigned int size) {
+int clHCA_DecodeHeader(clHCA *hca, const void *data, unsigned int size) {
     clData br;
     int res;
 
@@ -929,43 +929,62 @@ int clHCA_TestBlock(clHCA *hca, void *data, unsigned int size) {
     unsigned int ch, sf, s;
     int status;
     int clips = 0, blanks = 0;
-    float fsample;
-    signed int psample;
 
-    /* return if decode fails (happens sometimes with wrong keys) */
+
+    /* first blocks can be empty/silent, check all bytes but sync/crc */
+    {
+        int i;
+        int is_empty = 1;
+        const unsigned char *buf = data;
+
+        for (i = 2; i < size - 0x02; i++) {
+            if (buf[i] != 0) {
+                is_empty = 0;
+                break;
+            }
+        }
+
+        if (is_empty) {
+            return 0;
+        }
+    }
+
+    /* return if decode fails (happens often with wrong keys due to bad bitstream values) */
     status = clHCA_DecodeBlock(hca, data, size);
     if (status < 0)
         return -1;
 
-    /* check decode results */
+    /* check decode results as bad keys may still get here */
     for (ch = 0; ch < hca->channels; ch++) {
         for (sf = 0; sf < HCA_SUBFRAMES_PER_FRAME; sf++) {
             for (s = 0; s < HCA_SAMPLES_PER_SUBFRAME; s++) {
-                fsample = hca->channel[ch].wave[sf][s];
-                psample = (signed int) (fsample * scale);
-                if (fsample > 1.0f || fsample < -1.0f)
+                float fsample = hca->channel[ch].wave[sf][s];
+
+                if (fsample > 1.0f || fsample < -1.0f) { //improve?
                     clips++;
-                else if (psample == 0 || psample == -1)
-                    blanks++;
+                }
+                else {
+                    signed int psample = (signed int) (fsample * scale);
+                    if (psample == 0 || psample == -1)
+                        blanks++;
+                }
             }
         }
     }
 
     /* the more clips the less likely block was correctly decrypted */
-    if (clips > 0)
+    if (clips == 1)
+        clips++;
+    if (clips > 1)
         return clips;
     /* if block is silent result is not useful */
     if (blanks == hca->channels * HCA_SUBFRAMES_PER_FRAME * HCA_SAMPLES_PER_SUBFRAME)
         return 0;
 
-    /* block may be correct (but wrong keys can get this too) */
+    /* block may be correct (but wrong keys can get this too and should test more blocks) */
     return 1;
 }
 
-
-#if 0
-// it'd seem like resetting IMDCT (others get overwritten) would matter when restarting the
-// stream from 0, but doesn't seem any different, maybe because the first frame acts as setup/empty
 void clHCA_DecodeReset(clHCA * hca) {
     unsigned int i;
 
@@ -975,18 +994,18 @@ void clHCA_DecodeReset(clHCA * hca) {
     for (i = 0; i < hca->channels; i++) {
         stChannel *ch = &hca->channel[i];
 
-        memset(ch->intensity, 0, sizeof(ch->intensity[0]) * HCA_SUBFRAMES_PER_FRAME);
-        memset(ch->scalefactors, 0, sizeof(ch->scalefactors[0]) * HCA_SAMPLES_PER_SUBFRAME);
-        memset(ch->resolution, 0, sizeof(ch->resolution[0]) * HCA_SAMPLES_PER_SUBFRAME);
-        memset(ch->gain, 0, sizeof(ch->gain[0]) * HCA_SAMPLES_PER_SUBFRAME);
-        memset(ch->spectra, 0, sizeof(ch->spectra[0]) * HCA_SAMPLES_PER_SUBFRAME);
-        memset(ch->temp, 0, sizeof(ch->temp[0]) * HCA_SAMPLES_PER_SUBFRAME);
-        memset(ch->dct, 0, sizeof(ch->dct[0]) * HCA_SAMPLES_PER_SUBFRAME);
+        /* most values get overwritten during decode */
+        //memset(ch->intensity, 0, sizeof(ch->intensity[0]) * HCA_SUBFRAMES_PER_FRAME);
+        //memset(ch->scalefactors, 0, sizeof(ch->scalefactors[0]) * HCA_SAMPLES_PER_SUBFRAME);
+        //memset(ch->resolution, 0, sizeof(ch->resolution[0]) * HCA_SAMPLES_PER_SUBFRAME);
+        //memset(ch->gain, 0, sizeof(ch->gain[0]) * HCA_SAMPLES_PER_SUBFRAME);
+        //memset(ch->spectra, 0, sizeof(ch->spectra[0]) * HCA_SAMPLES_PER_SUBFRAME);
+        //memset(ch->temp, 0, sizeof(ch->temp[0]) * HCA_SAMPLES_PER_SUBFRAME);
+        //memset(ch->dct, 0, sizeof(ch->dct[0]) * HCA_SAMPLES_PER_SUBFRAME);
         memset(ch->imdct_previous, 0, sizeof(ch->imdct_previous[0]) * HCA_SAMPLES_PER_SUBFRAME);
-        memset(ch->wave, 0, sizeof(ch->wave[0][0]) * HCA_SUBFRAMES_PER_FRAME * HCA_SUBFRAMES_PER_FRAME);
+        //memset(ch->wave, 0, sizeof(ch->wave[0][0]) * HCA_SUBFRAMES_PER_FRAME * HCA_SUBFRAMES_PER_FRAME);
     }
 }
-#endif
 
 //--------------------------------------------------
 // Decode
