@@ -150,10 +150,11 @@ VGMSTREAM * init_vgmstream_ps2_ads(STREAMFILE *streamFile) {
                 loop_start_sample = loop_start / 2 / channel_count;
                 is_loop_samples = 1;
             }
-            else if ((loop_start % 0x800 == 0) && loop_start > 0) {/* sector-aligned, min is 0x800 */
+            else if ((loop_start % 0x800 == 0) && loop_start > 0) {/* sector-aligned, min/0 is 0x800 */
                 /* cavia games: loop_start is offset [Drakengard 1/2, GITS: Stand Alone Complex] */
+                /* offset is absolute from the "cavia stream format" container that adjusts ADS start */
                 loop_flag = 1;
-                loop_start_offset = loop_start;
+                loop_start_offset = loop_start - 0x800;
                 ignore_silent_frame_cavia = 1;
             }
             else if (loop_start % 0x800 != 0 || loop_start == 0) { /* not sector aligned */
