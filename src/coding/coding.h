@@ -288,7 +288,6 @@ size_t switch_opus_get_samples(off_t offset, size_t data_size, STREAMFILE *strea
 size_t switch_opus_get_encoder_delay(off_t offset, STREAMFILE *streamFile);
 size_t ue4_opus_get_encoder_delay(off_t offset, STREAMFILE *streamFile);
 size_t ea_opus_get_encoder_delay(off_t offset, STREAMFILE *streamFile);
-size_t x_opus_get_encoder_delay(off_t offset, STREAMFILE *streamFile);
 
 #endif
 
