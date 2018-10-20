@@ -1,11 +1,13 @@
 #include "vgmstream.h"
 
 
-/* defines the list of accepted extensions. vgmstream doesn't use it internally so it's here
+/* Defines the list of accepted extensions. vgmstream doesn't use it internally so it's here
  * to inform plugins that need it. Common extensions are commented out to avoid stealing them. */
 
-/* some extensions require external libraries and could be #ifdef, not really needed */
-/* some formats marked as "not parsed" mean they'll go through FFmpeg, the header/extension is not parsed */
+/* Some extensions require external libraries and could be #ifdef, not worth. */
+
+/* Formats marked as "not parsed" mean they'll go through FFmpeg, the header/extension isn't
+ * parsed by vgmstream and typically won't not be fully accurate. May have a .ext.pos pair for fun. */
 
 
 static const char* extension_list[] = {
@@ -16,16 +18,16 @@ static const char* extension_list[] = {
     "2pfs",
     "800",
 
-    //"aac", //common, also tri-Ace's
-    "aa3", //FFmpeg, not parsed (ATRAC3/ATRAC3PLUS/MP3/LPCM/WMA)
+    //"aac", //common
+    "aa3", //FFmpeg/not parsed (ATRAC3/ATRAC3PLUS/MP3/LPCM/WMA)
     "aaap",
     "aax",
     "abk",
-    //"ac3", //FFmpeg, not parsed //common?
-    "ace", //fake, for tri-Ace's formats (to be removed)
+    //"ac3", //common, FFmpeg/not parsed (AC3)
+    "ace", //fake extension for tri-Ace's .aac (renamed, to be removed)
     "acm",
     "ad", //txth/reserved [Xenosaga Freaks (PS2)]
-    "adc", //txth/reserved [Tomb Raider The Last Revelation(DC), Tomb Raider Chronicles(DC)]
+    "adc", //txth/reserved [Tomb Raider The Last Revelation (DC), Tomb Raider Chronicles (DC)]
     "adm",
     "adp",
     "adpcm",
@@ -38,13 +40,13 @@ static const char* extension_list[] = {
     "ai",
     //"aif", //common
     "aifc", //common?
-    "aifcl", //fake extension, for AIF???
+    "aifcl", //fake extension for .aif???
     //"aiff", //common
-    "aiffl", //fake extension, for AIF???
+    "aiffl", //fake extension for .aif???
     "aix",
     "akb",
     "al2",
-    "amts", //fake extension/header id for .stm (to be removed)
+    "amts", //fake extension/header id for .stm (renamed? to be removed?)
     "ao",
     "apc",
     "as4",
@@ -73,7 +75,7 @@ static const char* extension_list[] = {
     "bdsp",
     "bfstm",
     "bfwav",
-    "bfwavnsmbu",
+    "bfwavnsmbu", //fake extension for New Super Smash Bros U (renamed to fix bug)
     "bg00",
     "bgm",
     "bgw",
@@ -98,7 +100,7 @@ static const char* extension_list[] = {
     "cbd2",
     "ccc",
     "cd",
-    "cfn", //fake extension/header id for .caf (to be removed)
+    "cfn", //fake extension for CAF (renamed, to be removed?)
     "ckb",
     "ckd",
     "cks",
@@ -133,6 +135,7 @@ static const char* extension_list[] = {
     "fag",
     "ffw",
     "filp",
+    //"flac", //common
     "flx",
     "fsb",
     "fsv",
@@ -163,7 +166,7 @@ static const char* extension_list[] = {
     "iab",
     "iadp",
     "idsp",
-    "idvi", //fake extension for .pcm (to be removed)
+    "idvi", //fake extension/header id for .pcm (renamed, to be removed)
     "idx",
     "ikm",
     "ild",
@@ -180,30 +183,34 @@ static const char* extension_list[] = {
     "jstm",
 
     "kces",
-    "kcey", //fake extension/header id (to be removed)
+    "kcey", //fake extension/header id for .pcm (renamed, to be removed)
     "khv",
     "km9",
-    "kovs", //.kvs header id
+    "kovs", //fake extension/header id for .kvs
     "kns",
     "kraw",
-    "ktss", //.kns header id
+    "ktss", //fake extension/header id for .kns
     "kvs",
 
     "l",
-    "laac", //fake extension, for AAC (tri-Ace/FFmpeg)
-    "lac3", //fake extension, for AC3
+    "laac", //fake extension for .aac (tri-Ace)
+    "lac3", //fake extension for .ac3, FFmpeg/not parsed
     "leg",
-    "lflac", //fake extension, FFmpeg, not parsed, use with .pos pair for fun
-    "lmp4", //fake extension, for MP4s
-    "logg", //fake extension, for OGGs
-    "lopus", //fake extension, for OPUS
+    "lflac", //fake extension for .flac, FFmpeg/not parsed
+    "lmp2", //fake extension for .mp2, FFmpeg/not parsed
+    "lmp3", //fake extension for .mp3, FFmpeg/not parsed
+    "lmp4", //fake extension for .mp4
+    "lmpc", //fake extension for .mpc, FFmpeg/not parsed
+    "logg", //fake extension for .ogg
+    "lopus", //fake extension for .opus
     "lpcm",
     "lpk",
     "lps",
     "lse",
     "lsf",
-    "lstm", //fake extension, for STMs
-    "lwav", //fake extension, for WAVs
+    "lstm", //fake extension for .stm
+    "lwav", //fake extension for .wav
+    "lwma", //fake extension for .wma, FFmpeg/not parsed
 
     "mab",
     "matx",
@@ -220,9 +227,10 @@ static const char* extension_list[] = {
     "mihb",
     "mnstr",
     "mogg",
+    //"mp2", //common
     //"mp3", //common
     //"mp4", //common
-    //"mpc", //FFmpeg, not parsed (musepack) //common
+    //"mpc", //common
     "mpdsp",
     "mpds",
     "mps", //txth/reserved [Scandal (PS2)]
@@ -239,7 +247,7 @@ static const char* extension_list[] = {
     "mus",
     "musc",
     "musx",
-    "mvb", //txth/reserved [Porsche Challenge(PS1)]
+    "mvb", //txth/reserved [Porsche Challenge (PS1)]
     "mwv",
     "mxst",
     "myspd",
@@ -250,14 +258,14 @@ static const char* extension_list[] = {
     "nlsd",
     "nop",
     "nps",
-    "npsf", //fake extension/header id for .nps (to be removed)
+    "npsf", //fake extension/header id for .nps (in bigfiles)
     "nus3bank",
     "nwa",
     "nxa",
 
     //"ogg", //common
     "ogl",
-    "oma", //FFmpeg, not parsed (ATRAC3/ATRAC3PLUS/MP3/LPCM/WMA)
+    "oma", //FFmpeg/not parsed (ATRAC3/ATRAC3PLUS/MP3/LPCM/WMA)
     "omu",
     //"opus", //common
     "otm",
@@ -274,10 +282,10 @@ static const char* extension_list[] = {
     "pnb",
     "pona",
     "pos",
-    "ps2stm", //fake extension for .stm (to be removed)
+    "ps2stm", //fake extension for .stm (renamed? to be removed?)
     "psh", // fake extension for VSV(?) Dawn of Mana needs to be checked again
     "psnd",
-    "psw", //fake extension for .wam
+    "psw", //fake extension for .wam (renamed, to be removed)
 
     "r",
     "rac", //txth/reserved [Manhunt (Xbox)]
@@ -293,7 +301,7 @@ static const char* extension_list[] = {
     "rsd",
     "rsf",
     "rsm",
-    "rstm", //rsm header id
+    "rstm", //fake extension/header id for .rstm (in bigfiles)
     "rvws",
     "rwar",
     "rwav",
@@ -335,7 +343,7 @@ static const char* extension_list[] = {
     "sli",
     "smc",
     "smp",
-    "smpl", //fake extension (to be removed)
+    "smpl", //fake extension/header id for .v0/v1 (renamed, to be removed)
     "smv",
     "snd",
     "snds",
@@ -357,7 +365,7 @@ static const char* extension_list[] = {
     "ster",
     "sth",
     //"stm", //common
-    "stma", //fake extension (to be removed)
+    "stma", //fake extension/header id for .stm
     "str",
     "stream",
     "strm",
@@ -393,7 +401,7 @@ static const char* extension_list[] = {
 
     "v0",
     //"v1", //dual channel with v0
-    "va3", //konami atrac3, FFMPEG - DDR Supernova 2 AC
+    "va3",
     "vag",
     "vai",
     "vas",
@@ -430,6 +438,7 @@ static const char* extension_list[] = {
     "wem",
     "wii",
     "wip", //txth/reserved [Colin McRae DiRT (PC)]
+    "wma", //common
     "wmus",
     "wp2",
     "wpd",
@@ -456,7 +465,7 @@ static const char* extension_list[] = {
     "xss",
     "xvag",
     "xvas",
-    "xwav",//fake, to be removed
+    "xwav",//fake extension for .wav (renamed, to be removed)
     "xwb",
     "xmd",
     "xopus",
