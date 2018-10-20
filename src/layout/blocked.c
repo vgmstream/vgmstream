@@ -205,6 +205,9 @@ void block_update(off_t block_offset, VGMSTREAM * vgmstream) {
         case layout_blocked_xa_aiff:
             block_update_xa_aiff(block_offset,vgmstream);
             break;
+        case layout_blocked_vs_ffx:
+            block_update_vs_ffx(block_offset,vgmstream);
+            break;
         default: /* not a blocked layout */
             break;
     }

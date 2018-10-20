@@ -444,7 +444,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_ue4opus,
     init_vgmstream_xwma,
     init_vgmstream_xopus,
-
+    init_vgmstream_vs_ffx,
 
     /* lowest priority metas (should go after all metas, and TXTH should go before raw formats) */
     init_vgmstream_txth,            /* proper parsers should supersede TXTH, once added */
@@ -1018,6 +1018,7 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
         case layout_blocked_sthd:
         case layout_blocked_h4m:
         case layout_blocked_xa_aiff:
+        case layout_blocked_vs_ffx:
             render_vgmstream_blocked(buffer,sample_count,vgmstream);
             break;
         case layout_aix:

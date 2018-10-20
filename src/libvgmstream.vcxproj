@@ -391,6 +391,7 @@
     <ClCompile Include="meta\ps2_vms.c" />
     <ClCompile Include="meta\ps2_voi.c" />
     <ClCompile Include="meta\vpk.c" />
+    <ClCompile Include="meta\vs_ffx.c" />
     <ClCompile Include="meta\ps2_wad.c" />
     <ClCompile Include="meta\ps2_wb.c" />
     <ClCompile Include="meta\ps2_xa2.c" />
@@ -534,6 +535,7 @@
     <ClCompile Include="layout\blocked_awc.c" />
     <ClCompile Include="layout\blocked_ea_1snh.c" />
     <ClCompile Include="layout\blocked_vgs.c" />
+    <ClCompile Include="layout\blocked_vs_ffx.c" />
     <ClCompile Include="layout\blocked_vawx.c" />
     <ClCompile Include="layout\blocked_xvag.c" />
     <ClCompile Include="layout\blocked_caf.c" />

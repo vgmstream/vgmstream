@@ -686,6 +686,7 @@ static const layout_info layout_info_list[] = {
         {layout_blocked_sthd,           "blocked (STHD)"},
         {layout_blocked_h4m,            "blocked (H4M)"},
         {layout_blocked_xa_aiff,        "blocked (XA AIFF)"},
+        {layout_blocked_vs_ffx,         "blocked (Final Fantasy X VS)"},
 };
 
 static const meta_info meta_info_list[] = {
@@ -1104,8 +1105,9 @@ static const meta_info meta_info_list[] = {
         {meta_ADPCM_CAPCOM,         "Capcom .ADPCM header"},
         {meta_UE4OPUS,              "Epic Games UE4OPUS header"},
         {meta_XWMA,                 "Microsoft XWMA RIFF header"},
-        {meta_VA3,                  "Konami / Sony ATRAC3 Header" },
+        {meta_VA3,                  "Konami VA3 header" },
         {meta_XOPUS,                "Exient XOPUS header"},
+        {meta_VS_FFX,               "Final Fantasy X VS header"},
 
 };
 
