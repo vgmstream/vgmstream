@@ -799,4 +799,6 @@ VGMSTREAM * init_vgmstream_xwma(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_xopus(STREAMFILE * streamFile);
 
+VGMSTREAM * init_vgmstream_vs_ffx(STREAMFILE * streamFile);
+
 #endif /*_META_H*/

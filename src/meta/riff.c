@@ -273,8 +273,9 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
      * .adp: Headhunter (DC)
      * .xss: Spider-Man The Movie (Xbox)
      * .xsew: Mega Man X Legacy Collections (PC)
-     * .adpcm: Angry Birds Transformers (Android) */
-    if ( check_extensions(streamFile, "wav,lwav,xwav,da,dax,cd,med,snd,adx,adp,xss,xsew,adpcm") ) {
+     * .adpcm: Angry Birds Transformers (Android)
+     * .adw: Dead Rising 2 (PC) */
+    if ( check_extensions(streamFile, "wav,lwav,xwav,da,dax,cd,med,snd,adx,adp,xss,xsew,adpcm,adw") ) {
         ;
     }
     else if ( check_extensions(streamFile, "mwv") ) {

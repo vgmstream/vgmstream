@@ -594,9 +594,6 @@ size_t ue4_opus_get_encoder_delay(off_t offset, STREAMFILE *streamFile) {
 size_t ea_opus_get_encoder_delay(off_t offset, STREAMFILE *streamFile) {
     return custom_opus_get_encoder_delay(offset, streamFile, OPUS_EA);
 }
-size_t x_opus_get_encoder_delay(off_t offset, STREAMFILE *streamFile) {
-    return custom_opus_get_encoder_delay(offset, streamFile, OPUS_X);
-}
 
 
 static size_t get_xopus_packet_size(int packet, STREAMFILE * streamfile) {
