@@ -4,8 +4,8 @@
 #include "hca_keys_awb.h"
 
 typedef struct {
-    uint64_t key;               /* hca key or seed key */
-    const uint16_t *subkeys;    /* derivation subkey table for seed key */
+    uint64_t key;               /* hca key or seed ('user') key */
+    const uint16_t *subkeys;    /* scramble subkey table for seed key */
     size_t subkeys_size;        /* size of the derivation subkey table */
 } hcakey_info;
 
@@ -15,7 +15,7 @@ typedef struct {
  * CRI's tools expect an unsigned 64 bit number string, but keys are commonly found online in hex form.
  * Keys only use 56 bits though, so the upper 8 bits can be ignored.
  *
- * ACB+AWB after mid 2018 use a master seed key + a derivation subkey in the AWB (normally 16b LE at 0x0e)
+ * ACB+AWB after mid 2018 use a user seed key + a scramble subkey in the AWB (normally 16b LE at 0x0e)
  * to create the final HCA key, which means there is one key per AWB (so most HCA have a unique key).
  * vgmstream derives the key if subkey table is provided.
  */
