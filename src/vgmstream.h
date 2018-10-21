@@ -253,6 +253,7 @@ typedef enum {
     layout_blocked_sthd, /* Dream Factory STHD */
     layout_blocked_h4m, /* H4M video */
     layout_blocked_xa_aiff, /* XA in AIFF files [Crusader: No Remorse (SAT), Road Rash (3DO)] */
+    layout_blocked_vs_ffx,
 
     /* otherwise odd */
     layout_aix,             /* CRI AIX's wheels within wheels */
@@ -701,6 +702,7 @@ typedef enum {
     meta_XWMA,
     meta_VA3,               /* DDR Supernova 2 AC */
     meta_XOPUS,
+    meta_VS_FFX,
 
 } meta_t;
 
