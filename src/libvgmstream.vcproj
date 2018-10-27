@@ -1074,6 +1074,10 @@
                     RelativePath=".\meta\msb_msh.c"
                     >
                 </File>
+                <File
+                    RelativePath=".\meta\msf_banpresto.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\mss.c"
 					>
