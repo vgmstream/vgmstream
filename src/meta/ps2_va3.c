@@ -1,15 +1,13 @@
 #include "meta.h"
 #include "../coding/coding.h"
 
-/* VA3 - Konami / Sont Atrac3 Container */
 
-
-/* PS2 DDR Supernova 2 Arcade */
+/* VA3 - Konami / Sony Atrac3 Container [PS2 DDR Supernova 2 Arcade] */
 VGMSTREAM * init_vgmstream_va3(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     off_t start_offset;
     int loop_flag, channel_count;
-    uint32_t data_size, loop_start, loop_end, codec_id;
+    uint32_t data_size, loop_start, loop_end;
 
     /* check extension, case insensitive */
     if (!check_extensions(streamFile, "va3"))
