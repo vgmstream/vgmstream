@@ -9,30 +9,30 @@ VGMSTREAM * init_vgmstream_ngc_dsp_mpds(STREAMFILE *streamFile) {
     int loop_flag = 0, channel_count, short_mpds;
 
 
-    /* check extension, case insensitive */
+    /* checks */
     /* .dsp: Big Air Freestyle */
     /* .mds: Terminator 3 The Redemption, Mission Impossible: Operation Surma */
-    if (!check_extensions(streamFile, "dsp,mds")) goto fail;
-
-    /* check header */
+    if (!check_extensions(streamFile, "dsp,mds"))
+        goto fail;
     if (read_32bitBE(0x00,streamFile) != 0x4D504453) /* "MPDS" */
         goto fail;
 
-    short_mpds = read_32bitBE(0x04,streamFile) != 0x00010000 && check_extensions(streamFile, "mds"); /* version byte? */
+    short_mpds = read_32bitBE(0x04,streamFile) != 0x00010000 && /* version byte? */
+            check_extensions(streamFile, "mds");
 
     channel_count = short_mpds ?
             read_16bitBE(0x0a, streamFile) :
             read_32bitBE(0x14, streamFile);
     if (channel_count > 2) goto fail;
 
+
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
-    /* fill in the vital statistics */
-    vgmstream->coding_type = coding_NGC_DSP;
     vgmstream->meta_type = meta_NGC_DSP_MPDS;
-    vgmstream->layout_type = channel_count == 1 ? layout_none : layout_interleave;
+    vgmstream->coding_type = coding_NGC_DSP;
+    vgmstream->layout_type = layout_interleave;
 
     if (!short_mpds) { /* Big Air Freestyle */
         start_offset = 0x80;
@@ -50,17 +50,22 @@ VGMSTREAM * init_vgmstream_ngc_dsp_mpds(STREAMFILE *streamFile) {
         vgmstream->num_samples = read_32bitBE(0x04,streamFile);
         vgmstream->sample_rate = (uint16_t)read_16bitBE(0x08,streamFile);
         vgmstream->interleave_block_size = channel_count==1 ? 0 : 0x200;
+        /* some kind of hist after 0x0c? */
 
-#if 0   //unknown coeffs/hist, related to data after 0x0c? (only coefs 0..7 seem to be needed)
+        /* set coefs, debugged from the MI:OS ELF (helpfully marked as "sMdsCoefs") */
         {
-            off_t offset = 0x0c;
-            int i,ch;
-            for (ch=0; ch < vgmstream->channels; ch++) {
-                for (i=0; i < 16; i++)
-                    vgmstream->ch[ch].adpcm_coef[i] = read_16bitBE(offset + i*2);
+            static const int16_t coefs[16] = {
+                    0x0000,0x0000,0x0780,0x0000,0x0e60,0xf980,0x0c40,0xf920,
+                    0x0f40,0xf880,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000
+            };
+            int i, ch;
+
+            for (ch = 0; ch < channel_count; ch++) {
+                for (i = 0; i < 16; i++) {
+                    vgmstream->ch[ch].adpcm_coef[i] = coefs[i];
+                }
             }
         }
-#endif
     }
 
 
