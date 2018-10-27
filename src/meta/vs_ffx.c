@@ -5,7 +5,7 @@
 /* .vs/VS - from Final Fantasy X voices (PS2) */
 VGMSTREAM * init_vgmstream_vs_ffx(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    int channel_count, loop_flag;
+    int channel_count, loop_flag, pitch;
     off_t start_offset;
 
 
@@ -20,6 +20,7 @@ VGMSTREAM * init_vgmstream_vs_ffx(STREAMFILE *streamFile) {
     loop_flag = 0;
     channel_count = 1;
     start_offset = 0x00;
+    pitch = read_32bitLE(0x10,streamFile);
 
 
     /* build the VGMSTREAM */
@@ -27,7 +28,7 @@ VGMSTREAM * init_vgmstream_vs_ffx(STREAMFILE *streamFile) {
     if (!vgmstream) goto fail;
 
     vgmstream->meta_type = meta_VS_FFX;
-    vgmstream->sample_rate = 48000;
+    vgmstream->sample_rate = (48000 * pitch) / 4096; /* needed for rare files, sounds ok */
     vgmstream->coding_type = coding_PSX;
     vgmstream->layout_type = layout_blocked_vs_ffx;
 
