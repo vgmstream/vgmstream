@@ -354,6 +354,6 @@ int w_bits(vgm_bitstream * ob, int num_bits, uint32_t value);
 
 
 /* helper to pass a wrapped, clamped, fake extension-ed, SF to another meta */
-STREAMFILE* setup_subfile_streamfile(STREAMFILE *streamFile, off_t subfile_offset, size_t subfile_size, char* extension);
+STREAMFILE* setup_subfile_streamfile(STREAMFILE *streamFile, off_t subfile_offset, size_t subfile_size, const char* extension);
 
 #endif /*_CODING_H*/

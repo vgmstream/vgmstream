@@ -1,7 +1,6 @@
 #include "meta.h"
 #include "../coding/coding.h"
 
-static STREAMFILE* setup_jade_streamfile(STREAMFILE *streamFile, off_t subfile_offset, size_t subfile_size, const char* fake_ext);
 static int get_loop_points(STREAMFILE *streamFile, int *out_loop_start, int *out_loop_end);
 
 /* Jade RIFF - from Ubisoft Jade engine games [Beyond Good & Evil (multi), Rayman Raving Rabbids 1/2 (multi)] */
@@ -231,7 +230,7 @@ VGMSTREAM * init_vgmstream_ubi_jade(STREAMFILE *streamFile) {
             if (read_32bitBE(start_offset, streamFile) != 0x4D534643) /* "MSF\43" */
                 goto fail;
 
-            temp_streamFile = setup_jade_streamfile(streamFile, start_offset, data_size, "msf");
+            temp_streamFile = setup_subfile_streamfile(streamFile, start_offset, data_size, "msf");
             if (!temp_streamFile) goto fail;
 
             temp_vgmstream = init_vgmstream_ps3_msf(temp_streamFile);
@@ -362,7 +361,7 @@ VGMSTREAM * init_vgmstream_ubi_jade_container(STREAMFILE *streamFile) {
 
     subfile_size = read_32bitLE(subfile_offset+0x04,streamFile) + 0x04+0x04;
 
-    temp_streamFile = setup_jade_streamfile(streamFile, subfile_offset,subfile_size, NULL);
+    temp_streamFile = setup_subfile_streamfile(streamFile, subfile_offset,subfile_size, NULL);
     if (!temp_streamFile) goto fail;
 
     if (check_extensions(streamFile,"xma")) {
@@ -377,30 +376,5 @@ VGMSTREAM * init_vgmstream_ubi_jade_container(STREAMFILE *streamFile) {
 fail:
     close_streamfile(temp_streamFile);
     close_vgmstream(vgmstream);
-    return NULL;
-}
-
-static STREAMFILE* setup_jade_streamfile(STREAMFILE *streamFile, off_t subfile_offset, size_t subfile_size, const char* fake_ext) {
-    STREAMFILE *temp_streamFile = NULL, *new_streamFile = NULL;
-
-    /* setup subfile */
-    new_streamFile = open_wrap_streamfile(streamFile);
-    if (!new_streamFile) goto fail;
-    temp_streamFile = new_streamFile;
-
-    new_streamFile = open_clamp_streamfile(temp_streamFile, subfile_offset,subfile_size);
-    if (!new_streamFile) goto fail;
-    temp_streamFile = new_streamFile;
-
-    if (fake_ext) {
-        new_streamFile = open_fakename_streamfile(temp_streamFile, NULL,fake_ext);
-        if (!new_streamFile) goto fail;
-        temp_streamFile = new_streamFile;
-    }
-
-    return temp_streamFile;
-
-fail:
-    close_streamfile(temp_streamFile);
     return NULL;
 }

@@ -313,8 +313,6 @@ fail:
 
 /* ****************************************************************************** */
 
-static STREAMFILE* setup_subfile_streamfile(STREAMFILE *streamFile, off_t subfile_offset, size_t subfile_size, const char* fake_ext);
-
 /* ADS in containers */
 VGMSTREAM * init_vgmstream_ps2_ads_container(STREAMFILE *streamFile) {
     VGMSTREAM *vgmstream = NULL;
@@ -354,30 +352,5 @@ VGMSTREAM * init_vgmstream_ps2_ads_container(STREAMFILE *streamFile) {
 fail:
     close_streamfile(temp_streamFile);
     close_vgmstream(vgmstream);
-    return NULL;
-}
-
-static STREAMFILE* setup_subfile_streamfile(STREAMFILE *streamFile, off_t subfile_offset, size_t subfile_size, const char* fake_ext) {
-    STREAMFILE *temp_streamFile = NULL, *new_streamFile = NULL;
-
-    /* setup subfile */
-    new_streamFile = open_wrap_streamfile(streamFile);
-    if (!new_streamFile) goto fail;
-    temp_streamFile = new_streamFile;
-
-    new_streamFile = open_clamp_streamfile(temp_streamFile, subfile_offset,subfile_size);
-    if (!new_streamFile) goto fail;
-    temp_streamFile = new_streamFile;
-
-    if (fake_ext) {
-        new_streamFile = open_fakename_streamfile(temp_streamFile, NULL,fake_ext);
-        if (!new_streamFile) goto fail;
-        temp_streamFile = new_streamFile;
-    }
-
-    return temp_streamFile;
-
-fail:
-    close_streamfile(temp_streamFile);
     return NULL;
 }
