@@ -758,7 +758,7 @@ static const meta_info meta_info_list[] = {
         {meta_WS_AUD,               "Westwood Studios .aud header"},
         {meta_WS_AUD_old,           "Westwood Studios .aud (old) header"},
         {meta_PS2_IVB,              "IVB/BVII header"},
-        {meta_PS2_SVS,              "Square SVS header"},
+        {meta_SVS,                  "Square SVS header"},
         {meta_RIFF_WAVE,            "RIFF WAVE header"},
         {meta_RIFF_WAVE_POS,        "RIFF WAVE header and .pos for looping"},
         {meta_NWA,                  "VisualArt's NWA header"},
