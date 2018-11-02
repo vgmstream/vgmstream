@@ -1,7 +1,7 @@
 #include "meta.h"
 #include "../coding/coding.h"
 
-/* SPSD - Naomi (arcade) streams [Guilty Gear X (Naomi), Crazy Taxi (Naomi), Virtua Tennis 2 (Naomi)] */
+/* SPSD - Naomi (arcade) and early Dreamcast streams [Guilty Gear X (Naomi), Crazy Taxi (Naomi), Virtua Tennis 2 (Naomi)] */
 VGMSTREAM * init_vgmstream_naomi_spsd(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     off_t start_offset;
@@ -10,8 +10,9 @@ VGMSTREAM * init_vgmstream_naomi_spsd(STREAMFILE *streamFile) {
 
 
     /* checks */
-    /* .spsd: header id */
-    if (!check_extensions(streamFile, "spsd"))
+    /* .str: actual extension, rare [Shenmue (DC)]
+     * .spsd: header id */
+    if (!check_extensions(streamFile, "str,spsd"))
         goto fail;
     if (read_32bitBE(0x00,streamFile) != 0x53505344) /* "SPSD" */
         goto fail;

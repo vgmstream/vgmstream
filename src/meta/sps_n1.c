@@ -1,8 +1,6 @@
 #include "meta.h"
 #include "../coding/coding.h"
 
-static STREAMFILE* setup_sps_streamfile(STREAMFILE *streamfile, off_t subfile_offset, size_t subfile_size, char* extension);
-
 /* .SPS - Nippon Ichi wrapper [ClaDun (PSP)] */
 VGMSTREAM * init_vgmstream_sps_n1(STREAMFILE *streamFile) {
     VGMSTREAM *vgmstream = NULL;
@@ -26,7 +24,7 @@ VGMSTREAM * init_vgmstream_sps_n1(STREAMFILE *streamFile) {
     /* init the VGMSTREAM */
     switch(type) {
         case 1: /* .vag */
-            temp_streamFile = setup_sps_streamfile(streamFile, subfile_offset, subfile_size, "vag");
+            temp_streamFile = setup_subfile_streamfile(streamFile, subfile_offset, subfile_size, "vag");
             if (!temp_streamFile) goto fail;
 
             vgmstream = init_vgmstream_vag(temp_streamFile);
@@ -34,7 +32,7 @@ VGMSTREAM * init_vgmstream_sps_n1(STREAMFILE *streamFile) {
             break;
 
         case 2: /* .at3 */
-            temp_streamFile = setup_sps_streamfile(streamFile, subfile_offset, subfile_size, "at3");
+            temp_streamFile = setup_subfile_streamfile(streamFile, subfile_offset, subfile_size, "at3");
             if (!temp_streamFile) goto fail;
 
             vgmstream = init_vgmstream_riff(temp_streamFile);
@@ -52,28 +50,5 @@ VGMSTREAM * init_vgmstream_sps_n1(STREAMFILE *streamFile) {
 fail:
     close_streamfile(temp_streamFile);
     close_vgmstream(vgmstream);
-    return NULL;
-}
-
-static STREAMFILE* setup_sps_streamfile(STREAMFILE *streamFile, off_t subfile_offset, size_t subfile_size, char* extension) {
-    STREAMFILE *temp_streamFile = NULL, *new_streamFile = NULL;
-
-    /* setup subfile */
-    new_streamFile = open_wrap_streamfile(streamFile);
-    if (!new_streamFile) goto fail;
-    temp_streamFile = new_streamFile;
-
-    new_streamFile = open_clamp_streamfile(temp_streamFile, subfile_offset,subfile_size);
-    if (!new_streamFile) goto fail;
-    temp_streamFile = new_streamFile;
-
-    new_streamFile = open_fakename_streamfile(temp_streamFile, NULL,extension);
-    if (!new_streamFile) goto fail;
-    temp_streamFile = new_streamFile;
-
-    return temp_streamFile;
-
-fail:
-    close_streamfile(temp_streamFile);
     return NULL;
 }

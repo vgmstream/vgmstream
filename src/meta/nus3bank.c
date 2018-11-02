@@ -1,7 +1,6 @@
 #include "meta.h"
 #include "../coding/coding.h"
 
-static STREAMFILE* setup_nus3bank_streamfile(STREAMFILE *streamFile, off_t subfile_offset, size_t subfile_size, const char* fake_ext);
 typedef enum { /*XMA_RAW, ATRAC3,*/ IDSP, ATRAC9, OPUS, BNSF, /*PCM, XMA_RIFF*/ } nus3bank_codec;
 
 /* .nus3bank - Namco's newest audio container [Super Smash Bros (Wii U), idolmaster (PS4))] */
@@ -144,7 +143,7 @@ VGMSTREAM * init_vgmstream_nus3bank(STREAMFILE *streamFile) {
 
     //;VGM_LOG("NUS3BANK: subfile=%lx, size=%x\n", subfile_offset, subfile_size);
 
-    temp_streamFile = setup_nus3bank_streamfile(streamFile, subfile_offset,subfile_size, fake_ext);
+    temp_streamFile = setup_subfile_streamfile(streamFile, subfile_offset,subfile_size, fake_ext);
     if (!temp_streamFile) goto fail;
 
     /* init the VGMSTREAM */
@@ -180,29 +179,5 @@ VGMSTREAM * init_vgmstream_nus3bank(STREAMFILE *streamFile) {
 fail:
     close_streamfile(temp_streamFile);
     close_vgmstream(vgmstream);
-    return NULL;
-}
-
-
-static STREAMFILE* setup_nus3bank_streamfile(STREAMFILE *streamFile, off_t subfile_offset, size_t subfile_size, const char* fake_ext) {
-    STREAMFILE *temp_streamFile = NULL, *new_streamFile = NULL;
-
-    /* setup subfile */
-    new_streamFile = open_wrap_streamfile(streamFile);
-    if (!new_streamFile) goto fail;
-    temp_streamFile = new_streamFile;
-
-    new_streamFile = open_clamp_streamfile(temp_streamFile, subfile_offset,subfile_size);
-    if (!new_streamFile) goto fail;
-    temp_streamFile = new_streamFile;
-
-    new_streamFile = open_fakename_streamfile(temp_streamFile, NULL,fake_ext);
-    if (!new_streamFile) goto fail;
-    temp_streamFile = new_streamFile;
-
-    return temp_streamFile;
-
-fail:
-    close_streamfile(temp_streamFile);
     return NULL;
 }

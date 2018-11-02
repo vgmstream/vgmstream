@@ -686,7 +686,7 @@ static const layout_info layout_info_list[] = {
         {layout_blocked_sthd,           "blocked (STHD)"},
         {layout_blocked_h4m,            "blocked (H4M)"},
         {layout_blocked_xa_aiff,        "blocked (XA AIFF)"},
-        {layout_blocked_vs_ffx,         "blocked (Final Fantasy X VS)"},
+        {layout_blocked_vs_ffx,         "blocked (Square VS)"},
 };
 
 static const meta_info meta_info_list[] = {
@@ -758,7 +758,7 @@ static const meta_info meta_info_list[] = {
         {meta_WS_AUD,               "Westwood Studios .aud header"},
         {meta_WS_AUD_old,           "Westwood Studios .aud (old) header"},
         {meta_PS2_IVB,              "IVB/BVII header"},
-        {meta_PS2_SVS,              "Square SVS header"},
+        {meta_SVS,                  "Square SVS header"},
         {meta_RIFF_WAVE,            "RIFF WAVE header"},
         {meta_RIFF_WAVE_POS,        "RIFF WAVE header and .pos for looping"},
         {meta_NWA,                  "VisualArt's NWA header"},
@@ -853,8 +853,7 @@ static const meta_info meta_info_list[] = {
         {meta_IDSP_NL,              "Next Level IDSP header"},
         {meta_IDSP_IE,              "Inevitable Entertainment IDSP Header"},
         {meta_UBI_JADE,             "Ubisoft Jade RIFF header"},
-        {meta_PS2_SEG,              "SEG (PS2) Header"},
-        {meta_XBOX_SEG,             "SEG (XBOX) Header"},
+        {meta_SEG,                  "Stormfront SEG header"},
         {meta_NDS_STRM_FFTA2,       "Final Fantasy Tactics A2 RIFF Header"},
         {meta_STR_ASR,              "Donkey Kong Jet Race KNON/WII Header"},
         {meta_ZWDSP,                "Zack and Wiki custom DSP Header"},
@@ -1107,7 +1106,7 @@ static const meta_info meta_info_list[] = {
         {meta_XWMA,                 "Microsoft XWMA RIFF header"},
         {meta_VA3,                  "Konami VA3 header" },
         {meta_XOPUS,                "Exient XOPUS header"},
-        {meta_VS_FFX,               "Final Fantasy X VS header"},
+        {meta_VS_FFX,               "Square VS header"},
 
 };
 

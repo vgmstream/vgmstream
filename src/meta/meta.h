@@ -801,4 +801,7 @@ VGMSTREAM * init_vgmstream_xopus(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_vs_ffx(STREAMFILE * streamFile);
 
+VGMSTREAM * init_vgmstream_msf_banpresto_wmsf(STREAMFILE * streamFile);
+VGMSTREAM * init_vgmstream_msf_banpresto_2msf(STREAMFILE * streamFile);
+
 #endif /*_META_H*/

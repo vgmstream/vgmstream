@@ -369,9 +369,10 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
 
             start_offset += audio_offset;
 
-            /* Vorbis is VBR so this is very approximate, meh */
+            /* Vorbis is VBR so this is very approximate percent, meh */
             if (ww.truncated)
-                vgmstream->num_samples = vgmstream->num_samples * (ww.file_size - start_offset) / ww.data_size;
+                vgmstream->num_samples = (int32_t)(vgmstream->num_samples *
+                        (double)(ww.file_size - start_offset) / (double)ww.data_size);
 
             break;
         }

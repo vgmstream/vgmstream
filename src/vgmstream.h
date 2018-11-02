@@ -342,7 +342,7 @@ typedef enum {
     meta_PS2_BMDX,          /* Beatmania thing */
     meta_PS2_IVB,           /* Langrisser 3 IVB */
     meta_PS2_SND,           /* some Might & Magics SSND header */
-    meta_PS2_SVS,           /* Square SVS */
+    meta_SVS,               /* Square SVS */
     meta_XSS,               /* Dino Crisis 3 */
     meta_SL3,               /* Test Drive Unlimited */
     meta_HGC1,              /* Knights of the Temple 2 */
@@ -432,8 +432,7 @@ typedef enum {
     meta_RSD6WMA,           /* RSD6WMA */
 
     meta_PS2_ASS,           /* ASS */
-    meta_PS2_SEG,           /* Eragon */
-    meta_XBOX_SEG,          /* Eragon */
+    meta_SEG,               /* Eragon */
     meta_NDS_STRM_FFTA2,    /* Final Fantasy Tactics A2 */
     meta_STR_ASR,           /* Donkey Kong Jet Race */
     meta_ZWDSP,             /* Zack and Wiki */

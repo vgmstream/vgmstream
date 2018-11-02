@@ -154,6 +154,7 @@
     <ClCompile Include="meta\mogg.c" />
     <ClCompile Include="meta\mp4.c" />
     <ClCompile Include="meta\msb_msh.c" />
+    <ClCompile Include="meta\msf_banpresto.c" />
     <ClCompile Include="meta\ngca.c" />
     <ClCompile Include="meta\opus.c" />
     <ClCompile Include="meta\nub_vag.c" />

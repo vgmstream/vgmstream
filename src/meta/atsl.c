@@ -1,7 +1,6 @@
 #include "meta.h"
 #include "../coding/coding.h"
 
-static STREAMFILE* setup_atsl_streamfile(STREAMFILE *streamFile, off_t subfile_offset, size_t subfile_size, const char* fake_ext);
 typedef enum { ATRAC3, ATRAC9, KOVS, KTSS } atsl_codec;
 
 /* .ATSL - Koei Tecmo audio container [One Piece Pirate Warriors (PS3), Warriors All-Stars (PC)] */
@@ -110,7 +109,7 @@ VGMSTREAM * init_vgmstream_atsl(STREAMFILE *streamFile) {
     /* some kind of seek/switch table may follow (optional, found in .atsl3) */
 
 
-    temp_streamFile = setup_atsl_streamfile(streamFile, subfile_offset,subfile_size, fake_ext);
+    temp_streamFile = setup_subfile_streamfile(streamFile, subfile_offset,subfile_size, fake_ext);
     if (!temp_streamFile) goto fail;
 
     /* init the VGMSTREAM */
@@ -142,29 +141,5 @@ VGMSTREAM * init_vgmstream_atsl(STREAMFILE *streamFile) {
 fail:
     close_streamfile(temp_streamFile);
     close_vgmstream(vgmstream);
-    return NULL;
-}
-
-
-static STREAMFILE* setup_atsl_streamfile(STREAMFILE *streamFile, off_t subfile_offset, size_t subfile_size, const char* fake_ext) {
-    STREAMFILE *temp_streamFile = NULL, *new_streamFile = NULL;
-
-    /* setup subfile */
-    new_streamFile = open_wrap_streamfile(streamFile);
-    if (!new_streamFile) goto fail;
-    temp_streamFile = new_streamFile;
-
-    new_streamFile = open_clamp_streamfile(temp_streamFile, subfile_offset,subfile_size);
-    if (!new_streamFile) goto fail;
-    temp_streamFile = new_streamFile;
-
-    new_streamFile = open_fakename_streamfile(temp_streamFile, NULL,fake_ext);
-    if (!new_streamFile) goto fail;
-    temp_streamFile = new_streamFile;
-
-    return temp_streamFile;
-
-fail:
-    close_streamfile(temp_streamFile);
     return NULL;
 }
