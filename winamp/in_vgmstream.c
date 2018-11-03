@@ -12,6 +12,7 @@
 #ifdef _MSC_VER
 #define _CRT_SECURE_NO_DEPRECATE
 #endif
+
 #include <windows.h>
 #include <windowsx.h>
 #include <commctrl.h>
@@ -21,6 +22,7 @@
 #include <ctype.h>
 
 #include "../src/vgmstream.h"
+#include "../src/plugins.h"
 #include "in2.h"
 #include "wa_ipc.h"
 #include "ipc_pe.h"
@@ -39,13 +41,14 @@
 
 /* ************************************* */
 
-/* plugin main (declared at the bottom of this file) */
+/* plugin module (declared at the bottom of this file) */
 In_Module input_module;
 DWORD WINAPI __stdcall decode(void *arg);
 
 /* Winamp Play extension list, to accept and associate extensions in Windows */
 #define EXTENSION_LIST_SIZE   (0x2000 * 6)
 #define EXT_BUFFER_SIZE 200
+/* fixed list to simplify but could also malloc/free on init/close */
 char working_extension_list[EXTENSION_LIST_SIZE] = {0};
 
 /* defaults */
@@ -58,6 +61,7 @@ typedef struct {
     int thread_priority;
     int disable_subsongs;
     int downmix_channels;
+    int tagfile_disable;
 } winamp_settings;
 
 /* current song settings */
@@ -89,6 +93,7 @@ int stream_length_samples = 0;
 int fade_samples = 0;
 int output_channels = 0;
 
+const char* tagfile_name = "!tags.m3u"; //todo make configurable
 
 in_char lastfn[PATH_LIMIT] = {0}; /* name of the currently playing file */
 
@@ -121,8 +126,8 @@ in_char lastfn[PATH_LIMIT] = {0}; /* name of the currently playing file */
 #define wa_L(x) x
 #endif
 
-/* converts from utf16 to utf8 (if unicode is active) */
-static void wa_wchar_to_char(char *dst, size_t dstsize, const in_char *wsrc) {
+/* converts from utf16 to utf8 (if unicode is on) */
+static void wa_ichar_to_char(char *dst, size_t dstsize, const in_char *wsrc) {
 #ifdef UNICODE_INPUT_PLUGIN
     /* converto to UTF8 codepage, default separate bytes, source wstr, wstr lenght,  */
     //int size_needed = WideCharToMultiByte(CP_UTF8,0, src,-1, NULL,0, NULL, NULL);
@@ -132,13 +137,31 @@ static void wa_wchar_to_char(char *dst, size_t dstsize, const in_char *wsrc) {
 #endif
 }
 
-/* converts from utf8 to utf16 (if unicode is active) */
-static void wa_char_to_wchar(in_char *wdst, size_t wdstsize, const char *src) {
+/* converts from utf8 to utf16 (if unicode is on) */
+static void wa_char_to_ichar(in_char *wdst, size_t wdstsize, const char *src) {
 #ifdef UNICODE_INPUT_PLUGIN
     //int size_needed = MultiByteToWideChar(CP_UTF8,0, src,-1, NULL,0);
     MultiByteToWideChar(CP_UTF8,0, src,-1, wdst,wdstsize);
 #else
     strcpy(wdst,src);
+#endif
+}
+
+/* copies from utf16 to utf16 (if unicode is active) */
+static void wa_wchar_to_ichar(in_char *wdst, size_t wdstsize, const wchar_t *src) {
+#ifdef UNICODE_INPUT_PLUGIN
+    wcscpy(wdst,src);
+#else
+    strcpy(wdst,src); //todo ???
+#endif
+}
+
+/* copies from utf16 to utf16 */
+static void wa_char_to_wchar(wchar_t *wdst, size_t wdstsize, const char *src) {
+#ifdef UNICODE_INPUT_PLUGIN
+    MultiByteToWideChar(CP_UTF8,0, src,-1, wdst,wdstsize);
+#else
+    strcpy(wdst,src); //todo ???
 #endif
 }
 
@@ -216,7 +239,7 @@ static STREAMFILE *wasf_open(WINAMP_STREAMFILE *streamFile, const char *const fi
     }
 
     /* STREAMFILEs carry char/UTF8 names, convert to wchar for Winamp */
-    wa_char_to_wchar(wpath,PATH_LIMIT, filename);
+    wa_char_to_ichar(wpath,PATH_LIMIT, filename);
     return open_winamp_streamfile_by_wpath(wpath);
 }
 
@@ -265,7 +288,7 @@ static STREAMFILE *open_winamp_streamfile_by_wpath(const in_char *wpath) {
     if (!infile) return NULL;
 
     /* convert to UTF-8 if needed for internal use */
-    wa_wchar_to_char(path,PATH_LIMIT, wpath);
+    wa_ichar_to_char(path,PATH_LIMIT, wpath);
 
     streamFile = open_winamp_streamfile_by_file(infile,path);
     if (!streamFile) {
@@ -336,6 +359,7 @@ static void cfg_char_to_wchar(TCHAR *wdst, size_t wdstsize, const char *src) {
 #define DEFAULT_IGNORE_LOOP  0
 #define DEFAULT_DISABLE_SUBSONGS  0
 #define DEFAULT_DOWNMIX_CHANNELS  0
+#define DEFAULT_TAGFILE_DISABLE  0
 
 #define INI_ENTRY_FADE_SECONDS  TEXT("fade_seconds")
 #define INI_ENTRY_FADE_DELAY_SECONDS  TEXT("fade_delay")
@@ -345,6 +369,7 @@ static void cfg_char_to_wchar(TCHAR *wdst, size_t wdstsize, const char *src) {
 #define INI_ENTRY_IGNORE_LOOP  TEXT("ignore_loop")
 #define INI_ENTRY_DISABLE_SUBSONGS  TEXT("disable_subsongs")
 #define INI_ENTRY_DOWNMIX_CHANNELS  TEXT("downmix_channels")
+#define INI_ENTRY_TAGFILE_DISABLE  TEXT("tagfile_disable")
 
 TCHAR *priority_strings[] = {
         TEXT("Idle"),
@@ -458,6 +483,7 @@ static void load_config() {
         settings.downmix_channels = DEFAULT_DOWNMIX_CHANNELS;
     }
 
+    settings.tagfile_disable = GetPrivateProfileInt(CONFIG_APP_NAME,INI_ENTRY_TAGFILE_DISABLE,DEFAULT_TAGFILE_DISABLE,iniFile);
 }
 
 /* config dialog handler */
@@ -507,6 +533,9 @@ INT_PTR CALLBACK configDlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 
             cfg_sprintf(buf, TEXT("%d"),settings.downmix_channels);
             SetDlgItemText(hDlg,IDC_DOWNMIX_CHANNELS,buf);
+
+            if (settings.tagfile_disable)
+                CheckDlgButton(hDlg,IDC_TAGFILE_DISABLE,BST_CHECKED);
 
             break;
 
@@ -598,6 +627,10 @@ INT_PTR CALLBACK configDlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
                         settings.downmix_channels = temp_downmix_channels;
                         cfg_sprintf(buf, TEXT("%d"),settings.downmix_channels);
                         WritePrivateProfileString(CONFIG_APP_NAME,INI_ENTRY_DOWNMIX_CHANNELS,buf,iniFile);
+
+                        settings.tagfile_disable = (IsDlgButtonChecked(hDlg,IDC_TAGFILE_DISABLE) == BST_CHECKED);
+                        cfg_sprintf(buf, TEXT("%d"),settings.tagfile_disable);
+                        WritePrivateProfileString(CONFIG_APP_NAME,INI_ENTRY_TAGFILE_DISABLE,buf,iniFile);
                     }
 
                     EndDialog(hDlg,TRUE);
@@ -628,6 +661,7 @@ INT_PTR CALLBACK configDlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 
                     CheckDlgButton(hDlg,IDC_DISABLE_SUBSONGS,BST_UNCHECKED);
                     SetDlgItemText(hDlg,IDC_DOWNMIX_CHANNELS,DEFAULT_DOWNMIX_CHANNELS);
+                    CheckDlgButton(hDlg,IDC_TAGFILE_DISABLE,BST_UNCHECKED);
                     break;
 
                 default:
@@ -706,19 +740,17 @@ static int split_subsongs(const in_char * filename, int stream_index, VGMSTREAM 
     /* remove current file from the playlist */
     SendMessage(hPlaylistWindow, WM_WA_IPC, IPC_PE_DELETEINDEX, playlist_index);
 
-    /* autoplay doesn't always advance to the first unpacked track, manually fails too */
+    /* autoplay doesn't always advance to the first unpacked track, but manually fails somehow */
     //SendMessage(input_module.hMainWindow,WM_WA_IPC,playlist_index,IPC_SETPLAYLISTPOS);
     //SendMessage(input_module.hMainWindow,WM_WA_IPC,0,IPC_STARTPLAY);
-
 
     return 1;
 }
 
 /* parses a modified filename ('fakename') extracting tags parameters (NULL tag for first = filename) */
 static int parse_fn_string(const in_char * fn, const in_char * tag, in_char * dst, int dst_size) {
-    in_char *end;
+    const in_char *end = wa_strchr(fn,'|');
 
-    end = wa_strchr(fn,'|');
     if (tag==NULL) {
         wa_strcpy(dst,fn);
         if (end)
@@ -726,14 +758,12 @@ static int parse_fn_string(const in_char * fn, const in_char * tag, in_char * ds
         return 1;
     }
 
-    //todo actually find + read tags
     dst[0] = '\0';
     return 0;
 }
 static int parse_fn_int(const in_char * fn, const in_char * tag, int * num) {
-    in_char * start = wa_strchr(fn,'|');
+    const in_char * start = wa_strchr(fn,'|');
 
-    //todo actually find + read tags
     if (start > 0) {
         wa_sscanf(start+1, wa_L("$s=%i "), num);
         return 1;
@@ -767,13 +797,13 @@ static void add_extension(int length, char * dst, const char * ext) {
     ext_len = strlen(ext);
 
     /* find end of dst (double \0), saved in i */
-    for (i=0; i<length-2 && (dst[i] || dst[i+1]); i++)
+    for (i = 0; i < length-2 && (dst[i] || dst[i+1]); i++)
         ;
 
     /* check if end reached or not enough room to add */
     if (i == length-2 || i + EXT_BUFFER_SIZE+2 > length-2 || ext_len * 3 + 20+2 > EXT_BUFFER_SIZE) {
-        dst[i]='\0';
-        dst[i+1]='\0';
+        dst[i] = '\0';
+        dst[i+1] = '\0';
         return;
     }
 
@@ -781,16 +811,17 @@ static void add_extension(int length, char * dst, const char * ext) {
         i++;
 
     /* uppercase ext */
-    for (j=0; j < ext_len; j++)
+    for (j = 0; j < ext_len; j++)
         ext_upp[j] = toupper(ext[j]);
     ext_upp[j] = '\0';
 
     /* copy new extension + double null terminate */
-    written = sprintf(buf, "%s%c%s Audio File (*.%s)%c", ext,'\0',ext_upp,ext_upp,'\0'); /*ex: "vgmstream\0vgmstream Audio File (*.VGMSTREAM)\0" */
-    for (j=0; j < written; i++,j++)
+	/* ex: "vgmstream\0vgmstream Audio File (*.VGMSTREAM)\0" */
+    written = sprintf(buf, "%s%c%s Audio File (*.%s)%c", ext,'\0',ext_upp,ext_upp,'\0');
+    for (j = 0; j < written; i++,j++)
         dst[i] = buf[j];
-    dst[i]='\0';
-    dst[i+1]='\0';
+    dst[i] = '\0';
+    dst[i+1] = '\0';
 }
 
 /* Creates Winamp's extension list, a single string that ends with \0\0.
@@ -837,7 +868,7 @@ static void get_title(in_char * dst, int dst_size, const in_char * fn, VGMSTREAM
     /* show name, but not for the base stream */
     if (infostream && infostream->stream_name[0] != '\0' && stream_index > 0) {
         in_char stream_name[PATH_LIMIT];
-        wa_char_to_wchar(stream_name, PATH_LIMIT, infostream->stream_name);
+        wa_char_to_ichar(stream_name, PATH_LIMIT, infostream->stream_name);
         wa_snprintf(buffer,PATH_LIMIT, wa_L(" (%s)"), stream_name);
         wa_strcat(dst,buffer);
     }
@@ -1198,7 +1229,8 @@ void winamp_GetFileInfo(const in_char *fn, in_char *title, int *length_in_ms) {
         if (length_in_ms) {
             *length_in_ms = -1000;
             if (infostream) {
-                int num_samples = get_vgmstream_play_samples(infoconfig.song_loop_count,infoconfig.song_fade_time,infoconfig.song_fade_delay,infostream);
+                const int num_samples = get_vgmstream_play_samples(
+                        infoconfig.song_loop_count,infoconfig.song_fade_time,infoconfig.song_fade_delay,infostream);
                 *length_in_ms = num_samples * 1000LL /infostream->sample_rate;
             }
         }
@@ -1214,8 +1246,8 @@ void winamp_EQSet(int on, char data[10], int preamp) {
 
 /* the decode thread */
 DWORD WINAPI __stdcall decode(void *arg) {
-    int max_buffer_samples = sizeof(sample_buffer) / sizeof(sample_buffer[0]) / 2 / vgmstream->channels;
-    int max_samples = stream_length_samples;
+    const int max_buffer_samples = sizeof(sample_buffer) / sizeof(sample_buffer[0]) / 2 / vgmstream->channels;
+    const int max_samples = stream_length_samples;
 
     while (!decode_abort) {
         int samples_to_do;
@@ -1284,11 +1316,11 @@ DWORD WINAPI __stdcall decode(void *arg) {
             if (vgmstream->loop_flag && fade_samples > 0 && !settings.loop_forever) {
                 int samples_into_fade = decode_pos_samples - (stream_length_samples - fade_samples);
                 if (samples_into_fade + samples_to_do > 0) {
-                    int j,k;
-                    for (j=0; j < samples_to_do; j++, samples_into_fade++) {
+                    int j, k;
+                    for (j = 0; j < samples_to_do; j++, samples_into_fade++) {
                         if (samples_into_fade > 0) {
-                            double fadedness = (double)(fade_samples-samples_into_fade)/fade_samples;
-                            for (k=0; k < vgmstream->channels; k++) {
+                            const double fadedness = (double)(fade_samples-samples_into_fade)/fade_samples;
+                            for (k = 0; k < vgmstream->channels; k++) {
                                 sample_buffer[j*vgmstream->channels+k] =
                                     (short)(sample_buffer[j*vgmstream->channels+k]*fadedness);
                             }
@@ -1385,6 +1417,134 @@ In_Module input_module = {
     0 /* outMod */
 };
 
-__declspec( dllexport ) In_Module * winampGetInModule2() {
+__declspec(dllexport) In_Module * winampGetInModule2() {
     return &input_module;
 }
+
+/* Winamp calls repeatedly calls this for every tag currently used in the Advanced Title Formatting (ATF)
+ * config (though actual tag names may differ slightly), 'metadata' being the requested key.
+ * Tags/ret are assumed to be UTF-8 then converted to before output. Returns 0 on failure/tag not found.
+ * May be called again after certain actions (adding file to playlist, Play, GetFileInfo, etc), and
+ * doesn't seem the plugin can tell Winamp all tags it supports at once. */
+//todo unicode stuff could be improved... probably
+static int winampGetExtendedFileInfo_common(in_char* filename, char *metadata, char* ret, int retlen) {
+    STREAMFILE *streamFile = NULL;
+    STREAMFILE *tagFile = NULL;
+    VGMSTREAM_TAGS tag;
+    char filename_utf8[PATH_LIMIT];
+    int tag_found = 0;
+
+
+    if (settings.tagfile_disable)
+        goto fail;
+
+    /* always called (value in ms), must return ok so other tags get called */
+    if (strcasecmp(metadata, "length") == 0) {
+        strcpy(ret, "0");//todo should export but shows GetFileInfo's ms if not provided
+        return 1;
+    }
+
+
+    //todo optimize and only load tagfile/tags once, rather than re-parsing every time
+    // (filename can be any file in the playlist though, may mix multiple folders)
+    // maybe call parse_tags and save just tags, since winamp only knows a few and calls them multiple times,
+    // and save for currentstream_tags and infostream_tags
+    // (but then again infostream is parsed every time, and this works fast enough in +10y.o. PCs)
+
+    streamFile = open_winamp_streamfile_by_wpath(filename);
+    if (!streamFile) goto fail;
+
+    tagFile = open_streamfile_by_filename(streamFile, tagfile_name);
+    if (!streamFile) goto fail;
+
+
+#if 0
+    /* special case to fill WA5's unified dialog */
+    if (strcasecmp(metadata, "formatinformation") == 0) {
+        generate_format_string(...);
+    }
+#endif
+
+    wa_ichar_to_char(filename_utf8, PATH_LIMIT, filename);
+
+    /* find possible tag */
+    vgmstream_tags_reset(&tag, filename_utf8);
+    while (vgmstream_tags_next_tag(&tag, tagFile)) {
+        if (strcasecmp(metadata,tag.key) == 0) {
+            strncpy(ret, tag.val, retlen); //todo use something better
+            tag_found = 1;
+            //break; /* allow later/repeated tags to overwrite */
+        }
+    }
+
+    if (!tag_found)
+        goto fail;
+
+    close_streamfile(streamFile);
+    close_streamfile(tagFile);
+    return 1;
+
+fail:
+    close_streamfile(streamFile);
+    close_streamfile(tagFile);
+    return 0;
+}
+
+
+/* for Winamp 5.24 */
+__declspec (dllexport) int winampGetExtendedFileInfo(char *filename, char *metadata, char *ret, int retlen) {
+    in_char filename_wchar[PATH_LIMIT];
+    int ok;
+
+    wa_char_to_ichar(filename_wchar, PATH_LIMIT, filename);
+
+    ok = winampGetExtendedFileInfo_common(filename_wchar, metadata, ret, retlen);
+    if (ok == 0)
+        return 0;
+
+    return 1;
+}
+
+/* for Winamp 5.3+ */
+__declspec (dllexport) int winampGetExtendedFileInfoW(wchar_t *filename, char *metadata, wchar_t *ret, int retlen) {
+    in_char filename_wchar[PATH_LIMIT];
+    char ret_utf8[2048];
+    int ok;
+
+    wa_wchar_to_ichar(filename_wchar, PATH_LIMIT, filename);
+
+    ok = winampGetExtendedFileInfo_common(filename_wchar, metadata, ret_utf8, sizeof(ret_utf8));
+    if (ok == 0)
+        return 0;
+
+    wa_char_to_wchar(ret, PATH_LIMIT, ret_utf8);
+
+    return 1;
+}
+
+/* return 1 if you want winamp to show it's own file info dialogue, 0 if you want to show your own (via In_Module.InfoBox)
+ * if returning 1, remember to implement winampGetExtendedFileInfo("formatinformation")! */
+__declspec(dllexport) int winampUseUnifiedFileInfoDlg(const wchar_t * fn) {
+	return 0;
+}
+
+__declspec(dllexport) int winampUninstallPlugin(HINSTANCE hDllInst, HWND hwndDlg, int param) {
+    /* may uninstall without restart as we aren't subclassing */
+	return IN_PLUGIN_UNINSTALL_NOW;
+}
+
+/* winamp sekrit exports: */
+/*
+EXPORTS
+    winampGetInModule2 @1
+    winampGetExtendedFileInfo @2
+    winampGetExtendedFileInfoW @3
+    winampAddUnifiedFileInfoPane @4
+    winampUseUnifiedFileInfoDlg @5
+    winampGetExtendedRead_close @6
+    winampGetExtendedRead_getData @7
+    winampGetExtendedRead_open @8
+    winampGetExtendedRead_openW @9
+    winampGetExtendedRead_setTime @10
+    winampUninstallPlugin @11
+*/
