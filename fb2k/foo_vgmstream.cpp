@@ -80,15 +80,6 @@ void input_vgmstream::open(service_ptr_t<file> p_filehint,const char * p_path,t_
 
     filename = p_path;
 
-    /* KLUDGE */
-    if ( !pfc::stricmp_ascii( pfc::string_extension(filename), "MUS" ) )
-    {
-        unsigned char buffer[ 4 ];
-        if ( p_filehint.is_empty() ) input_open_file_helper( p_filehint, filename, p_reason, p_abort );
-        p_filehint->read_object_t( buffer, p_abort );
-        if ( !memcmp( buffer, "MUS\x1A", 4 ) ) throw exception_io_unsupported_format();
-    }
-
 
     // keep file stats around (timestamp, filesize)
     if ( p_filehint.is_empty() )
