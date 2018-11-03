@@ -23,9 +23,9 @@
 
 #include "../src/vgmstream.h"
 #include "../src/plugins.h"
-#include "in2.h"
-#include "wa_ipc.h"
-#include "ipc_pe.h"
+#include "sdk/in2.h"
+#include "sdk/wa_ipc.h"
+#include "sdk/ipc_pe.h"
 #include "resource.h"
 
 
