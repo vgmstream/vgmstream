@@ -32,7 +32,7 @@ VGMSTREAM * init_vgmstream_svs(STREAMFILE *streamFile) {
     if (!vgmstream) goto fail;
 
     vgmstream->meta_type = meta_SVS;
-    vgmstream->sample_rate = (48000 * pitch) / 4096; /* music = ~44100, ambience = 48000 */
+    vgmstream->sample_rate = round10((48000 * pitch) / 4096); /* music = ~44100, ambience = 48000 (rounding makes more sense but not sure) */
     vgmstream->num_samples = ps_bytes_to_samples(get_streamfile_size(streamFile) - start_offset, channel_count);
     if (loop_flag) {
         vgmstream->loop_start_sample = read_32bitLE(0x08,streamFile) * 28; /* frame count (0x10*ch) */

@@ -67,6 +67,14 @@ static inline int clamp16(int32_t val) {
     return val;
 }
 
+static inline int round10(int val) {
+    int round_val = val % 10;
+    if (round_val < 5) /* half-down rounding */
+        return val - round_val;
+    else
+        return val + (10 - round_val);
+}
+
 /* return a file's extension (a pointer to the first character of the
  * extension in the original filename or the ending null byte if no extension */
 const char * filename_extension(const char * filename);

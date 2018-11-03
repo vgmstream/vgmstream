@@ -35,7 +35,7 @@ VGMSTREAM * init_vgmstream_vs_ffx(STREAMFILE *streamFile) {
     if (!vgmstream) goto fail;
 
     vgmstream->meta_type = meta_VS_FFX;
-    vgmstream->sample_rate = (48000 * pitch) / 4096; /* verified, needed for rare files */
+    vgmstream->sample_rate = round10((48000 * pitch) / 4096); /* needed for rare files */
     vgmstream->coding_type = coding_PSX;
     vgmstream->layout_type = layout_blocked_vs_ffx;
 
