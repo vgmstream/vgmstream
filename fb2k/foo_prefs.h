@@ -17,6 +17,7 @@
 #define DEFAULT_DISABLE_SUBSONGS false
 #define DEFAULT_DOWNMIX_CHANNELS "8"
 #define DEFAULT_TAGFILE_DISABLE false
+#define DEFAULT_OVERRIDE_TITLE false
 
 class vgmstreamPreferences : public CDialogImpl<vgmstreamPreferences>, public preferences_page_instance {
 public:
@@ -46,6 +47,7 @@ public:
         COMMAND_HANDLER_EX(IDC_DISABLE_SUBSONGS, BN_CLICKED, OnEditChange)
         COMMAND_HANDLER_EX(IDC_DOWNMIX_CHANNELS, EN_CHANGE, OnEditChange)
         COMMAND_HANDLER_EX(IDC_TAGFILE_DISABLE, BN_CLICKED, OnEditChange)
+        COMMAND_HANDLER_EX(IDC_OVERRIDE_TITLE, BN_CLICKED, OnEditChange)
 	END_MSG_MAP()
 private:
 	BOOL OnInitDialog(CWindow, LPARAM);

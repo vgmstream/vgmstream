@@ -76,6 +76,7 @@ class input_vgmstream : public input_stubs {
         int downmix_channels;
         bool tagfile_disable;
         pfc::string8 tagfile_name;
+        bool override_title;
 
         /* song config */
         foobar_song_config config;

@@ -61,6 +61,7 @@ input_vgmstream::input_vgmstream() {
     downmix_channels = 0;
     tagfile_disable = false;
     tagfile_name = "!tags.m3u"; //todo make configurable
+    override_title = false;
 
     load_settings();
 }
@@ -139,9 +140,15 @@ void input_vgmstream::get_info(t_uint32 p_subsong, file_info & p_info, abort_cal
 
     /* set tag info (metadata tab in file properties) */
 
-    if (get_subsong_count() > 1) {
+    /* Shows a custom subsong title by default with subsong name, to simplify for average users.
+     * This can be overriden and extended and using the exported STREAM_x below and foobar's formatting.
+     * foobar defaults to filename minus extension if there is no meta "title" value. */
+    if (!override_title && get_subsong_count() > 1) {
         p_info.meta_set("TITLE",temp);
     }
+    if (get_description_tag(temp,description,"stream count: ")) p_info.meta_set("stream_count",temp);
+    if (get_description_tag(temp,description,"stream index: ")) p_info.meta_set("stream_index",temp);
+    if (get_description_tag(temp,description,"stream name: ")) p_info.meta_set("stream_name",temp);
 
     /* get external file tags */
     //todo could optimize or save tags but foobar should cache this (or must check p_info.get_meta_count() == 0?)
