@@ -1,6 +1,7 @@
 #define POSIXLY_CORRECT
 #include <getopt.h>
 #include "../src/vgmstream.h"
+#include "../src/plugins.h"
 #include "../src/util.h"
 #ifdef WIN32
 #include <io.h>
@@ -52,6 +53,7 @@ static void usage(const char * name) {
             "    -g: decode and print oggenc command line to encode as OGG\n"
             "    -b: decode and print batch variable commands\n"
             "    -r: output a second file after resetting (for testing)\n"
+            "    -t file: print if tags are found in file\n"
             , name);
 }
 
@@ -59,6 +61,7 @@ static void usage(const char * name) {
 typedef struct {
     char * infilename;
     char * outfilename;
+    char * tag_filename;
     int ignore_loop;
     int force_loop;
     int really_force_loop;
@@ -96,7 +99,7 @@ static int parse_config(cli_config *cfg, int argc, char ** argv) {
     opterr = 0;
 
     /* read config */
-    while ((opt = getopt(argc, argv, "o:l:f:d:ipPcmxeLEFrgb2:s:")) != -1) {
+    while ((opt = getopt(argc, argv, "o:l:f:d:ipPcmxeLEFrgb2:s:t:")) != -1) {
         switch (opt) {
             case 'o':
                 cfg->outfilename = optarg;
@@ -155,6 +158,9 @@ static int parse_config(cli_config *cfg, int argc, char ** argv) {
                 break;
             case 's':
                 cfg->stream_index = atoi(optarg);
+                break;
+            case 't':
+                cfg->tag_filename= optarg;
                 break;
             case '?':
                 fprintf(stderr, "Unknown option -%c found\n", optopt);
@@ -323,6 +329,8 @@ void apply_fade(sample * buf, VGMSTREAM * vgmstream, int to_get, int i, int len_
     }
 }
 
+/* ************************************************************ */
+
 int main(int argc, char ** argv) {
     VGMSTREAM * vgmstream = NULL;
     FILE * outfile = NULL;
@@ -403,6 +411,27 @@ int main(int argc, char ** argv) {
 
     /* print file info (or batch commands, depending on config) */
     print_info(vgmstream, &cfg);
+
+    /* print tags info */
+    if (cfg.tag_filename) {
+        VGMSTREAM_TAGS tag;
+
+        STREAMFILE *tagFile = open_stdio_streamfile(cfg.tag_filename);
+        if (!tagFile) {
+            fprintf(stderr,"tag file %s not found\n",cfg.tag_filename);
+            goto fail;
+        }
+
+        printf("tags:\n");
+        vgmstream_tags_reset(&tag, cfg.infilename);
+        while ( vgmstream_tags_next_tag(&tag, tagFile)) {
+            printf("- '%s'='%s'\n", tag.key, tag.val);
+        }
+
+        close_streamfile(tagFile);
+    }
+
+    /* prints done */
     if (cfg.print_metaonly) {
         if (!cfg.play_sdtout)
             fclose(outfile);
