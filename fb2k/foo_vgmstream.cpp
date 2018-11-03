@@ -185,9 +185,9 @@ void input_vgmstream::get_info(t_uint32 p_subsong, file_info & p_info, abort_cal
     p_info.info_set_int("samplerate", samplerate);
     p_info.info_set_int("channels", channels);
     p_info.info_set_int("bitspersample",16);
-    /* not quite accurate but some people are confused by this
+    /* not quite accurate but some people are confused by "lossless"
      * (could set lossless if PCM, but then again PCMFloat or PCM8 are converted/"lossy" in vgmstream) */
-    p_info.info_set("encoding","lossy");
+    p_info.info_set("encoding","lossy/lossless");
     p_info.info_set_bitrate(bitrate / 1000);
     if (total_samples > 0)
         p_info.info_set_int("stream_total_samples", total_samples);
