@@ -102,7 +102,7 @@ file2.ext#m2-3,4-5,4-6  # ogg "FL CN FR BL BR SB" to wav "FL FR CN SB BL BR"
 Those setting should override player's defaults if set (except "loop forever"). They are equivalent to some test.exe options.
 
 - __God Hand (PS2)__: _boss2_3ningumi_ver6.txtp_ (each line is a separate TXTP)
-´´´
+```
 # set number of loops
 boss2_3ningumi_ver6.adx#l3
 
@@ -128,7 +128,7 @@ boss2_3ningumi_ver6.adx#l2#F  # 2 loops + ending
 boss2_3ningumi_ver6.adx#l1.5#d1#f5
 
 # boss2_3ningumi_ver6.adx#l1.0#F  # this is equivalent to #i
-´´´´
+```
 
 For segments and layers the first file defines looping options.
 

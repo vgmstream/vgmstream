@@ -46,25 +46,26 @@ or in a system directory, or any other directory in the PATH variable.
 ```
 Usage: test.exe [-o outfile.wav] [options] infile
 Options:
-    -o outfile.wav: name of output .wav file, default is infile.wav
+    -o outfile.wav: name of output .wav file, default infile.wav
     -l loop count: loop count, default 2.0
-    -f fade time: fade time (seconds), default 10.0
-    -d fade delay: fade delay (seconds, default 0.0
+    -f fade time: fade time in seconds after N loops, default 10.0
+    -d fade delay: fade delay in seconds, default 0.0
+    -F: don't fade after N loops and play the rest of the stream
     -i: ignore looping information and play the whole stream once
+    -e: force end-to-end looping
+    -E: force end-to-end looping even if file has real loop points
+    -s N: select subsong N, if the format supports multiple subsongs
+    -m: print metadata only, don't decode
+    -L: append a smpl chunk and create a looping wav
+    -2 N: only output the Nth (first is 0) set of stereo channels
     -p: output to stdout (for piping into another program)
     -P: output to stdout even if stdout is a terminal
-    -c: loop forever (continuously)
-    -m: print metadata only, don't decode
+    -c: loop forever (continuously) to stdout
     -x: decode and print adxencd command line to encode as ADX
     -g: decode and print oggenc command line to encode as OGG
     -b: decode and print batch variable commands
-    -L: append a smpl chunk and create a looping wav
-    -e: force end-to-end looping
-    -E: force end-to-end looping even if file has real loop points
-    -r outfile2.wav: output a second time after resetting
-    -2 N: only output the Nth (first is 0) set of stereo channels
-    -F: don't fade after N loops and play the rest of the stream
-    -s N: select subsong N, if the format supports multiple subsongs
+    -r: output a second file after resetting (for testing)
+    -t file: print if tags are found in file
 ```
 Typical usage would be: ```test -o happy.wav happy.adx``` to decode ```happy.adx``` to ```happy.wav```.
 
@@ -230,6 +231,32 @@ filenames to play as one (ex. "intro.vag" "loop.vag"), name with subsong index
 
 Creation of those files is meant for advanced users, docs can be found in
 vgmstream source.
+
+
+## Tagging
+Some of vgmstream's plugins support simple read-only tagging via external files.
+
+Tags are loaded from a text/M3U-like file named _!tags.m3u_ in the song folder.
+You don't have to load your songs with that M3U though (but you can, for pre-made
+ordering), the file itself just 'looks' like an M3U.
+
+Format is:
+```
+# ignored comment
+# @GLOBAL_TAG value (applies all following tracks)
+
+# %LOCAL_TAG value (applies to next track only)
+filename1
+# %LOCAL_TAG value (applies to next track only)
+filename2
+```
+Accepted tags depend on the player (foobar: any; winamp: see ATF config),
+typically ALBUM/ARTIST/TITLE/DISC/TRACK/COMPOSER/etc, lower or uppercase,
+separated by one or multiple spaces. Repeated tags overwrite previous
+(ex.- may define @COMPOSER for multiple tracks). It only reads up to current
+_filename_ though, so any @TAG below would be ignored.
+
+Playlist formatting should follow player's config. ASCII or UTF-8 tags work.
 
 
 ## Supported codec types
