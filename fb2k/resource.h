@@ -15,6 +15,7 @@
 #define IDC_DEFAULT_BUTTON              1008
 #define IDC_DISABLE_SUBSONGS            1009
 #define IDC_DOWNMIX_CHANNELS            1010
+#define IDC_TAGFILE_DISABLE             1011
 
 // Next default values for new objects
 //

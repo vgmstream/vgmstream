@@ -65,7 +65,7 @@ class input_vgmstream : public input_stubs {
         int seek_pos_samples;
         short sample_buffer[SAMPLE_BUFFER_SIZE];
 
-        /* config */
+        /* settings */
         double fade_seconds;
         double fade_delay_seconds;
         double loop_count;
@@ -74,7 +74,10 @@ class input_vgmstream : public input_stubs {
         int ignore_loop;
         bool disable_subsongs;
         int downmix_channels;
+        bool tagfile_disable;
+        pfc::string8 tagfile_name;
 
+        /* song config */
         foobar_song_config config;
 
         /* helpers */

@@ -14,6 +14,7 @@
 
 extern "C" {
 #include "../src/vgmstream.h"
+#include "../src/plugins.h"
 }
 #include "foo_vgmstream.h"
 #include "foo_filetypes.h"
@@ -58,6 +59,8 @@ input_vgmstream::input_vgmstream() {
     ignore_loop = 0;
     disable_subsongs = false;
     downmix_channels = 0;
+    tagfile_disable = false;
+    tagfile_name = "!tags.m3u"; //todo make configurable
 
     load_settings();
 }
@@ -142,12 +145,45 @@ void input_vgmstream::get_info(t_uint32 p_subsong, file_info & p_info, abort_cal
 
     get_subsong_info(p_subsong, temp, &length_in_ms, &total_samples, &loop_start, &loop_end, &samplerate, &channels, &bitrate, description, p_abort);
 
+
+    /* set tag info (metadata tab in file properties) */
+
     if (get_subsong_count() > 1) {
         p_info.meta_set("TITLE",temp);
     }
 
-    p_info.info_set("vgmstream version",PLUGIN_VERSION);
+    /* get external file tags */
+    //todo could optimize or save tags but foobar should cache this (or must check p_info.get_meta_count() == 0?)
+    if (!tagfile_disable) {
+        //todo use foobar's fancy-but-arcane string functions
+        char tagfile_path[PATH_LIMIT];
+        strcpy(tagfile_path, filename);
 
+        char *path = strrchr(tagfile_path,'\\');
+        if (path!=NULL) {
+            path[1] = '\0';  /* includes "\", remove after that from tagfile_path */
+            strcat(tagfile_path,tagfile_name);
+        }
+        else { /* ??? */
+            strcpy(tagfile_path,tagfile_name);
+        }
+
+        STREAMFILE *tagFile = open_foo_streamfile(tagfile_path, &p_abort, &stats);
+        if (tagFile != NULL) {
+            VGMSTREAM_TAGS tag;
+            vgmstream_tags_reset(&tag, filename);
+            while (vgmstream_tags_next_tag(&tag, tagFile)) {
+                p_info.meta_set(tag.key,tag.val);
+            }
+
+            close_streamfile(tagFile);
+        }
+    }
+
+
+    /* set technical info (details tab in file properties) */
+
+    p_info.info_set("vgmstream_version",PLUGIN_VERSION);
     p_info.info_set_int("samplerate", samplerate);
     p_info.info_set_int("channels", channels);
     p_info.info_set_int("bitspersample",16);
@@ -344,8 +380,8 @@ bool input_vgmstream::g_is_our_path(const char * p_path,const char * p_extension
             return 1;
     }
 
+    /* some extensionless files can be handled by vgmstream, try to play */
     if (strlen(p_extension) <= 0) {
-        // Last Of Us speech files have no file extension
         return 1;
     }
 

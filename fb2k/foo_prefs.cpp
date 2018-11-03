@@ -21,6 +21,7 @@ static const GUID guid_cfg_FadeLength = { 0x61da7ef1, 0x56a5, 0x4368, { 0xae, 0x
 static const GUID guid_cfg_FadeDelay = { 0x73907787, 0xaf49, 0x4659, { 0x96, 0x8e, 0x9f, 0x70, 0xa1, 0x62, 0x49, 0xc4 } };
 static const GUID guid_cfg_DisableSubsongs = { 0xa8cdd664, 0xb32b, 0x4a36, { 0x83, 0x07, 0xa0, 0x4c, 0xcd, 0x52, 0xa3, 0x7c } };
 static const GUID guid_cfg_DownmixChannels = { 0x5a0e65dd, 0xeb37, 0x4c67, { 0x9a, 0xb1, 0x3f, 0xb0, 0xc9, 0x7e, 0xb0, 0xe0 } };
+static const GUID guid_cfg_TagfileDisable = { 0xc1971eb7, 0xa930, 0x4bae, { 0x9e, 0x7f, 0xa9, 0x50, 0x36, 0x32, 0x41, 0xb3 } };
 
 static cfg_bool cfg_LoopForever(guid_cfg_LoopForever, DEFAULT_LOOP_FOREVER);
 static cfg_bool cfg_IgnoreLoop(guid_cfg_IgnoreLoop, DEFAULT_IGNORE_LOOP);
@@ -29,6 +30,7 @@ static cfg_string cfg_FadeLength(guid_cfg_FadeLength, DEFAULT_FADE_SECONDS);
 static cfg_string cfg_FadeDelay(guid_cfg_FadeDelay, DEFAULT_FADE_DELAY_SECONDS);
 static cfg_bool cfg_DisableSubsongs(guid_cfg_DisableSubsongs, DEFAULT_DISABLE_SUBSONGS);
 static cfg_string cfg_DownmixChannels(guid_cfg_DownmixChannels, DEFAULT_DOWNMIX_CHANNELS);
+static cfg_bool cfg_TagfileDisable(guid_cfg_TagfileDisable, DEFAULT_TAGFILE_DISABLE);
 
 // Needs to be here in rder to access the static config
 void input_vgmstream::load_settings()
@@ -41,6 +43,7 @@ void input_vgmstream::load_settings()
 	ignore_loop = cfg_IgnoreLoop;
     disable_subsongs = cfg_DisableSubsongs;
     sscanf(cfg_DownmixChannels.get_ptr(),"%d",&downmix_channels);
+    tagfile_disable = cfg_TagfileDisable;
 }
 
 const char * vgmstream_prefs::get_name()
@@ -75,6 +78,8 @@ BOOL vgmstreamPreferences::OnInitDialog(CWindow, LPARAM)
 
     uSetDlgItemText(m_hWnd, IDC_DOWNMIX_CHANNELS, cfg_DownmixChannels);
 
+    CheckDlgButton(IDC_TAGFILE_DISABLE, cfg_TagfileDisable?BST_CHECKED:BST_UNCHECKED);
+
 	return TRUE;
 }
 
@@ -100,6 +105,8 @@ void vgmstreamPreferences::reset()
     CheckDlgButton(IDC_DISABLE_SUBSONGS, DEFAULT_DISABLE_SUBSONGS?BST_CHECKED:BST_UNCHECKED);
 
     uSetDlgItemText(m_hWnd, IDC_DOWNMIX_CHANNELS, DEFAULT_DOWNMIX_CHANNELS);
+
+    CheckDlgButton(IDC_TAGFILE_DISABLE, DEFAULT_TAGFILE_DISABLE?BST_CHECKED:BST_UNCHECKED);
 }
 
 
@@ -109,6 +116,7 @@ void vgmstreamPreferences::apply()
 	cfg_LoopForever = IsDlgButtonChecked(IDC_LOOP_FOREVER)?true:false;
 	cfg_IgnoreLoop = IsDlgButtonChecked(IDC_IGNORE_LOOP)?true:false;
     cfg_DisableSubsongs = IsDlgButtonChecked(IDC_DISABLE_SUBSONGS)?true:false;
+    cfg_TagfileDisable = IsDlgButtonChecked(IDC_TAGFILE_DISABLE)?true:false;
 
 	double temp_fade_seconds;
 	double temp_fade_delay_seconds;
@@ -177,6 +185,9 @@ bool vgmstreamPreferences::HasChanged()
 
     bool current_cfg_DisableSubsongs = IsDlgButtonChecked(IDC_DISABLE_SUBSONGS)?true:false;
     if(cfg_DisableSubsongs != current_cfg_DisableSubsongs) return true;
+
+    bool current_cfg_TagfileDisable = IsDlgButtonChecked(IDC_TAGFILE_DISABLE)?true:false;
+    if(cfg_TagfileDisable != current_cfg_TagfileDisable) return true;
 
 	pfc::string FadeLength(cfg_FadeLength);
 	pfc::string FadeDelay(cfg_FadeDelay);
