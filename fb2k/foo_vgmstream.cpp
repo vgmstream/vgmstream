@@ -151,7 +151,9 @@ void input_vgmstream::get_info(t_uint32 p_subsong, file_info & p_info, abort_cal
     if (get_description_tag(temp,description,"stream name: ")) p_info.meta_set("stream_name",temp);
 
     /* get external file tags */
-    //todo could optimize or save tags but foobar should cache this (or must check p_info.get_meta_count() == 0?)
+    //todo optimize and don't parse tags again for this session (not sure how), seems foobar
+    // calls get_info on every play even if the file hasn't changes, and won't refresh "meta"
+    // unless forced or closing playlist+exe
     if (!tagfile_disable) {
         //todo use foobar's fancy-but-arcane string functions
         char tagfile_path[PATH_LIMIT];
