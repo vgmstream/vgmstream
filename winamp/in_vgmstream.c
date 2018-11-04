@@ -97,10 +97,14 @@ const char* tagfile_name = "!tags.m3u"; //todo make configurable
 
 in_char lastfn[PATH_LIMIT] = {0}; /* name of the currently playing file */
 
+
+/* ************************************* */
+/* IN_UNICODE                            */
 /* ************************************* */
 //todo safe ops
 //todo there must be a better way to handle unicode...
 #ifdef UNICODE_INPUT_PLUGIN
+#define wa_strcmp wcscmp
 #define wa_strcpy wcscpy
 #define wa_strncpy wcsncpy
 #define wa_strcat wcscat
@@ -113,6 +117,7 @@ in_char lastfn[PATH_LIMIT] = {0}; /* name of the currently playing file */
 #define wa_IPC_PE_INSERTFILENAME IPC_PE_INSERTFILENAMEW
 #define wa_L(x) L ##x
 #else
+#define wa_strcmp strcmp
 #define wa_strcpy strcpy
 #define wa_strncpy strncpy
 #define wa_strcat strcat
@@ -195,7 +200,7 @@ typedef struct {
 } WINAMP_STREAMFILE;
 
 static STREAMFILE *open_winamp_streamfile_by_file(FILE *infile, const char * path);
-static STREAMFILE *open_winamp_streamfile_by_wpath(const in_char *wpath);
+static STREAMFILE *open_winamp_streamfile_by_ipath(const in_char *wpath);
 
 static size_t wasf_read(WINAMP_STREAMFILE *streamfile, uint8_t *dest, off_t offset, size_t length) {
     return streamfile->stdiosf->read(streamfile->stdiosf,dest,offset,length);
@@ -240,7 +245,7 @@ static STREAMFILE *wasf_open(WINAMP_STREAMFILE *streamFile, const char *const fi
 
     /* STREAMFILEs carry char/UTF8 names, convert to wchar for Winamp */
     wa_char_to_ichar(wpath,PATH_LIMIT, filename);
-    return open_winamp_streamfile_by_wpath(wpath);
+    return open_winamp_streamfile_by_ipath(wpath);
 }
 
 static void wasf_close(WINAMP_STREAMFILE *streamfile) {
@@ -278,7 +283,7 @@ fail:
 }
 
 
-static STREAMFILE *open_winamp_streamfile_by_wpath(const in_char *wpath) {
+static STREAMFILE *open_winamp_streamfile_by_ipath(const in_char *wpath) {
     FILE *infile = NULL;
     STREAMFILE *streamFile;
     char path[PATH_LIMIT];
@@ -305,7 +310,7 @@ static VGMSTREAM* init_vgmstream_winamp(const in_char *fn, int stream_index) {
     //return init_vgmstream(fn);
 
     /* manually init streamfile to pass the stream index */
-    STREAMFILE *streamFile = open_winamp_streamfile_by_wpath(fn); //open_stdio_streamfile(fn);
+    STREAMFILE *streamFile = open_winamp_streamfile_by_ipath(fn); //open_stdio_streamfile(fn);
     if (streamFile) {
         streamFile->stream_index = stream_index;
         vgmstream = init_vgmstream_from_STREAMFILE(streamFile);
@@ -1421,22 +1426,105 @@ __declspec(dllexport) In_Module * winampGetInModule2() {
     return &input_module;
 }
 
-/* Winamp calls repeatedly calls this for every tag currently used in the Advanced Title Formatting (ATF)
- * config (though actual tag names may differ slightly), 'metadata' being the requested key.
- * Tags/ret are assumed to be UTF-8 then converted to before output. Returns 0 on failure/tag not found.
+
+/* ************************************* */
+/* IN_TAGS                               */
+/* ************************************* */
+
+/* could malloc and stuff but totals aren't much bigger than PATH_LIMITs anyway */
+#define WINAMP_TAGS_ENTRY_MAX      30
+#define WINAMP_TAGS_ENTRY_SIZE     2048
+
+typedef struct {
+    in_char filename[PATH_LIMIT]; /* tags are loaded for this file */
+    int tag_count;
+
+    char keys[WINAMP_TAGS_ENTRY_MAX][WINAMP_TAGS_ENTRY_SIZE+1];
+    char vals[WINAMP_TAGS_ENTRY_MAX][WINAMP_TAGS_ENTRY_SIZE+1];
+} winamp_tags;
+
+winamp_tags last_tags;
+
+
+/* Loads all tags for a filename in a temp struct to improve performance, as
+ * Winamp requests one tag at a time and may reask for the same tag several times */
+static void load_tagfile_info(in_char* filename) {
+    STREAMFILE *tagFile = NULL;
+    char filename_utf8[PATH_LIMIT];
+    char tagfile_path_utf8[PATH_LIMIT];
+    in_char tagfile_path_i[PATH_LIMIT];
+    char *path;
+
+
+    if (settings.tagfile_disable) {
+        last_tags.tag_count = 0; /* maybe  helps if setting changes during play */
+        return;
+    }
+
+
+    if (wa_strcmp(last_tags.filename, filename) == 0) {
+        return; /* not changed, tags still apply */
+    }
+
+    /* tags are now for this filename, find tagfile path */
+    wa_ichar_to_char(filename_utf8, PATH_LIMIT, filename);
+    strcpy(tagfile_path_utf8,filename_utf8);
+
+    path = strrchr(tagfile_path_utf8,'\\');
+    if (path != NULL) {
+        path[1] = '\0'; /* includes "\", remove after that from tagfile_path */
+        strcat(tagfile_path_utf8,tagfile_name);
+    }
+    else { /* ??? */
+        strcpy(tagfile_path_utf8,tagfile_name);
+    }
+    wa_char_to_ichar(tagfile_path_i, PATH_LIMIT, tagfile_path_utf8);
+
+    wa_strcpy(last_tags.filename, filename);
+    last_tags.tag_count = 0;
+
+    /* load all tags from tagfile */
+    tagFile = open_winamp_streamfile_by_ipath(tagfile_path_i);
+    if (tagFile != NULL) {
+        VGMSTREAM_TAGS tag;
+        int i;
+
+        vgmstream_tags_reset(&tag, filename_utf8);
+        while (vgmstream_tags_next_tag(&tag, tagFile)) {
+            int repeated_tag = 0;
+            int current_tag = last_tags.tag_count;
+            if (current_tag >= WINAMP_TAGS_ENTRY_MAX)
+                continue;
+
+            /* should overwrite repeated tags as global tags may appear multiple times */
+            for (i = 0; i < current_tag; i++) {
+                if (strcmp(last_tags.keys[i], tag.key) == 0) {
+                    current_tag = i;
+                    repeated_tag = 1;
+                    break;
+                }
+            }
+
+            last_tags.keys[current_tag][0] = '\0';
+            strncat(last_tags.keys[current_tag], tag.key, WINAMP_TAGS_ENTRY_SIZE);
+            last_tags.vals[current_tag][0] = '\0';
+            strncat(last_tags.vals[current_tag], tag.val, WINAMP_TAGS_ENTRY_SIZE);
+            if (!repeated_tag)
+                last_tags.tag_count++;
+        }
+
+        close_streamfile(tagFile);
+    }
+}
+
+/* Winamp repeatedly calls this for every known tag currently used in the Advanced Title Formatting (ATF)
+ * config, 'metadata' being the requested tag. Returns 0 on failure/tag not found.
  * May be called again after certain actions (adding file to playlist, Play, GetFileInfo, etc), and
- * doesn't seem the plugin can tell Winamp all tags it supports at once. */
+ * doesn't seem the plugin can tell Winamp all tags it supports at once or use custom tags. */
 //todo unicode stuff could be improved... probably
 static int winampGetExtendedFileInfo_common(in_char* filename, char *metadata, char* ret, int retlen) {
-    STREAMFILE *streamFile = NULL;
-    STREAMFILE *tagFile = NULL;
-    VGMSTREAM_TAGS tag;
-    char filename_utf8[PATH_LIMIT];
-    int tag_found = 0;
-
-
-    if (settings.tagfile_disable)
-        goto fail;
+    int i, tag_found;
+    int max_len;
 
     /* always called (value in ms), must return ok so other tags get called */
     if (strcasecmp(metadata, "length") == 0) {
@@ -1444,18 +1532,8 @@ static int winampGetExtendedFileInfo_common(in_char* filename, char *metadata, c
         return 1;
     }
 
-
-    //todo optimize and only load tagfile/tags once, rather than re-parsing every time
-    // (filename can be any file in the playlist though, may mix multiple folders)
-    // maybe call parse_tags and save just tags, since winamp only knows a few and calls them multiple times,
-    // and save for currentstream_tags and infostream_tags
-    // (but then again infostream is parsed every time, and this works fast enough in +10y.o. PCs)
-
-    streamFile = open_winamp_streamfile_by_wpath(filename);
-    if (!streamFile) goto fail;
-
-    tagFile = open_streamfile_by_filename(streamFile, tagfile_name);
-    if (!streamFile) goto fail;
+    /* load list current tags, if necessary */
+    load_tagfile_info(filename);
 
 
 #if 0
@@ -1465,28 +1543,25 @@ static int winampGetExtendedFileInfo_common(in_char* filename, char *metadata, c
     }
 #endif
 
-    wa_ichar_to_char(filename_utf8, PATH_LIMIT, filename);
 
-    /* find possible tag */
-    vgmstream_tags_reset(&tag, filename_utf8);
-    while (vgmstream_tags_next_tag(&tag, tagFile)) {
-        if (strcasecmp(metadata,tag.key) == 0) {
-            strncpy(ret, tag.val, retlen); //todo use something better
+    /* find requested tag */
+    tag_found = 0;
+    max_len = (retlen > 0) ? retlen-1 : retlen;
+    for (i = 0; i < last_tags.tag_count; i++) {
+        if (strcasecmp(metadata,last_tags.keys[i]) == 0) {
+            ret[0] = '\0';
+            strncat(ret, last_tags.vals[i], max_len);
             tag_found = 1;
-            //break; /* allow later/repeated tags to overwrite */
+            break;
         }
     }
 
     if (!tag_found)
         goto fail;
 
-    close_streamfile(streamFile);
-    close_streamfile(tagFile);
     return 1;
 
 fail:
-    close_streamfile(streamFile);
-    close_streamfile(tagFile);
     return 0;
 }
 
@@ -1496,7 +1571,10 @@ __declspec (dllexport) int winampGetExtendedFileInfo(char *filename, char *metad
     in_char filename_wchar[PATH_LIMIT];
     int ok;
 
-    wa_char_to_ichar(filename_wchar, PATH_LIMIT, filename);
+    if (settings.tagfile_disable)
+        return 0;
+
+    wa_char_to_ichar(filename_wchar,PATH_LIMIT, filename);
 
     ok = winampGetExtendedFileInfo_common(filename_wchar, metadata, ret, retlen);
     if (ok == 0)
@@ -1507,17 +1585,20 @@ __declspec (dllexport) int winampGetExtendedFileInfo(char *filename, char *metad
 
 /* for Winamp 5.3+ */
 __declspec (dllexport) int winampGetExtendedFileInfoW(wchar_t *filename, char *metadata, wchar_t *ret, int retlen) {
-    in_char filename_wchar[PATH_LIMIT];
+    in_char filename_ichar[PATH_LIMIT];
     char ret_utf8[2048];
     int ok;
 
-    wa_wchar_to_ichar(filename_wchar, PATH_LIMIT, filename);
+    if (settings.tagfile_disable)
+        return 0;
 
-    ok = winampGetExtendedFileInfo_common(filename_wchar, metadata, ret_utf8, sizeof(ret_utf8));
+    wa_wchar_to_ichar(filename_ichar,PATH_LIMIT, filename);
+
+    ok = winampGetExtendedFileInfo_common(filename_ichar, metadata, ret_utf8,2048);
     if (ok == 0)
         return 0;
 
-    wa_char_to_wchar(ret, PATH_LIMIT, ret_utf8);
+    wa_char_to_wchar(ret,retlen, ret_utf8);
 
     return 1;
 }
