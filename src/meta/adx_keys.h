@@ -185,6 +185,9 @@ static const adxkey_info adxkey8_list[] = {
         /* Tensei Hakkenshi - Fuumaroku (PS2) */
         {0x5761,0x6283,0x4531, "HAKKEN",0},
 
+        /* Lucky Star - Ryouou Gakuen Outousai (PS2) */
+        {0x481D,0x44F9,0x4E35, "LSTARPS2",0},
+
 };
 
 static const adxkey_info adxkey9_list[] = {

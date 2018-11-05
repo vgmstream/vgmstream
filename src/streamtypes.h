@@ -14,7 +14,10 @@
 #include <pstdint.h>
 #endif /* (_MSC_VER >= 1600) */
 
+#ifndef inline /* (_MSC_VER < 1900)? */
 #define inline _inline
+#endif
+
 #define strcasecmp _stricmp
 #define strncasecmp _strnicmp
 

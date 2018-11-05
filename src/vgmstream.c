@@ -2322,12 +2322,13 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         concatn(length,desc,temp);
     }
 
-    if (vgmstream->num_streams > 1 && vgmstream->stream_index > 0) {
+    if (vgmstream->num_streams > 1) {
         snprintf(temp,TEMPSIZE,
                 "\nstream index: %d",
-                vgmstream->stream_index);
+                vgmstream->stream_index == 0 ? 1 : vgmstream->stream_index);
         concatn(length,desc,temp);
     }
+
     if (vgmstream->stream_name[0] != '\0') {
         snprintf(temp,TEMPSIZE,
                 "\nstream name: %s",

@@ -14,6 +14,7 @@
 
 extern "C" {
 #include "../src/vgmstream.h"
+#include "../src/plugins.h"
 }
 #include "foo_vgmstream.h"
 #include "foo_filetypes.h"
@@ -58,6 +59,9 @@ input_vgmstream::input_vgmstream() {
     ignore_loop = 0;
     disable_subsongs = false;
     downmix_channels = 0;
+    tagfile_disable = false;
+    tagfile_name = "!tags.m3u"; //todo make configurable
+    override_title = false;
 
     load_settings();
 }
@@ -76,15 +80,6 @@ void input_vgmstream::open(service_ptr_t<file> p_filehint,const char * p_path,t_
     }
 
     filename = p_path;
-
-    /* KLUDGE */
-    if ( !pfc::stricmp_ascii( pfc::string_extension(filename), "MUS" ) )
-    {
-        unsigned char buffer[ 4 ];
-        if ( p_filehint.is_empty() ) input_open_file_helper( p_filehint, filename, p_reason, p_abort );
-        p_filehint->read_object_t( buffer, p_abort );
-        if ( !memcmp( buffer, "MUS\x1A", 4 ) ) throw exception_io_unsupported_format();
-    }
 
 
     // keep file stats around (timestamp, filesize)
@@ -142,18 +137,59 @@ void input_vgmstream::get_info(t_uint32 p_subsong, file_info & p_info, abort_cal
 
     get_subsong_info(p_subsong, temp, &length_in_ms, &total_samples, &loop_start, &loop_end, &samplerate, &channels, &bitrate, description, p_abort);
 
-    if (get_subsong_count() > 1) {
+
+    /* set tag info (metadata tab in file properties) */
+
+    /* Shows a custom subsong title by default with subsong name, to simplify for average users.
+     * This can be overriden and extended and using the exported STREAM_x below and foobar's formatting.
+     * foobar defaults to filename minus extension if there is no meta "title" value. */
+    if (!override_title && get_subsong_count() > 1) {
         p_info.meta_set("TITLE",temp);
     }
+    if (get_description_tag(temp,description,"stream count: ")) p_info.meta_set("stream_count",temp);
+    if (get_description_tag(temp,description,"stream index: ")) p_info.meta_set("stream_index",temp);
+    if (get_description_tag(temp,description,"stream name: ")) p_info.meta_set("stream_name",temp);
 
-    p_info.info_set("vgmstream version",PLUGIN_VERSION);
+    /* get external file tags */
+    //todo optimize and don't parse tags again for this session (not sure how), seems foobar
+    // calls get_info on every play even if the file hasn't changes, and won't refresh "meta"
+    // unless forced or closing playlist+exe
+    if (!tagfile_disable) {
+        //todo use foobar's fancy-but-arcane string functions
+        char tagfile_path[PATH_LIMIT];
+        strcpy(tagfile_path, filename);
 
+        char *path = strrchr(tagfile_path,'\\');
+        if (path!=NULL) {
+            path[1] = '\0';  /* includes "\", remove after that from tagfile_path */
+            strcat(tagfile_path,tagfile_name);
+        }
+        else { /* ??? */
+            strcpy(tagfile_path,tagfile_name);
+        }
+
+        STREAMFILE *tagFile = open_foo_streamfile(tagfile_path, &p_abort, &stats);
+        if (tagFile != NULL) {
+            VGMSTREAM_TAGS tag;
+            vgmstream_tags_reset(&tag, filename);
+            while (vgmstream_tags_next_tag(&tag, tagFile)) {
+                p_info.meta_set(tag.key,tag.val);
+            }
+
+            close_streamfile(tagFile);
+        }
+    }
+
+
+    /* set technical info (details tab in file properties) */
+
+    p_info.info_set("vgmstream_version",PLUGIN_VERSION);
     p_info.info_set_int("samplerate", samplerate);
     p_info.info_set_int("channels", channels);
     p_info.info_set_int("bitspersample",16);
-    /* not quite accurate but some people are confused by this
+    /* not quite accurate but some people are confused by "lossless"
      * (could set lossless if PCM, but then again PCMFloat or PCM8 are converted/"lossy" in vgmstream) */
-    p_info.info_set("encoding","lossy");
+    p_info.info_set("encoding","lossy/lossless");
     p_info.info_set_bitrate(bitrate / 1000);
     if (total_samples > 0)
         p_info.info_set_int("stream_total_samples", total_samples);
@@ -344,8 +380,8 @@ bool input_vgmstream::g_is_our_path(const char * p_path,const char * p_extension
             return 1;
     }
 
+    /* some extensionless files can be handled by vgmstream, try to play */
     if (strlen(p_extension) <= 0) {
-        // Last Of Us speech files have no file extension
         return 1;
     }
 
