@@ -9,7 +9,6 @@ VGMSTREAM * init_vgmstream_xpcm(STREAMFILE *streamFile) {
     int loop_flag, channel_count, codec, subcodec, sample_rate;
 
 
-
     /* checks */
     if (!check_extensions(streamFile, "pcm"))
         goto fail;
@@ -27,7 +26,7 @@ VGMSTREAM * init_vgmstream_xpcm(STREAMFILE *streamFile) {
     /* 0x14: average bitrate */
     /* 0x18: block size */
     /* 0x1a: output bits (16) */
-    start_offset = 0x1c;
+    start_offset = 0x1c; /* compressed size in codec 0x01/03 */
 
     loop_flag  = 0;
 
@@ -47,11 +46,16 @@ VGMSTREAM * init_vgmstream_xpcm(STREAMFILE *streamFile) {
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = 0x02;
             break;
+        case 0x02:
+            if (subcodec != 0) goto fail;
+            vgmstream->coding_type = coding_CIRCUS_ADPCM;
+            vgmstream->layout_type = layout_interleave;
+            vgmstream->interleave_block_size = 0x01;
+            break;
+
         case 0x01: /* LZSS + VQ */
-        case 0x02: /* ADPCM */
         case 0x03: /* unknown */
         default:
-            /* 0x1c contains compressed size for those */
             goto fail;
     }
 

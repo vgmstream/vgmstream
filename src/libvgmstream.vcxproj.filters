@@ -1417,6 +1417,9 @@
     <ClCompile Include="coding\celt_fsb_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="coding\circus_decoder.c">
+      <Filter>coding\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\bcstm.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>

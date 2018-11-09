@@ -165,6 +165,8 @@ void decode_xmd(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, 
 /* derf_decoder */
 void decode_derf(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
 
+/* circus_decoder */
+void decode_circus_adpcm(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
 
 /* ea_mt_decoder*/
 ea_mt_codec_data *init_ea_mt(int channels, int type);

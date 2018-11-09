@@ -1727,6 +1727,14 @@
 					>
 				</File>
                 <File
+                    RelativePath=".\coding\celt_fsb_decoder.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\coding\circus_decoder.c"
+                    >
+                </File>
+                <File
                     RelativePath=".\coding\coding_utils.c"
                     >
                 </File>
