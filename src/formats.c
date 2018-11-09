@@ -262,6 +262,7 @@ static const char* extension_list[] = {
     "npsf", //fake extension/header id for .nps (in bigfiles)
     "nus3bank",
     "nwa",
+    "nwav",
     "nxa",
 
     //"ogg", //common
@@ -1107,6 +1108,7 @@ static const meta_info meta_info_list[] = {
         {meta_VA3,                  "Konami VA3 header" },
         {meta_XOPUS,                "Exient XOPUS header"},
         {meta_VS_FFX,               "Square VS header"},
+        {meta_NWAV,                 "Chunsoft NWAV header"},
 
 };
 

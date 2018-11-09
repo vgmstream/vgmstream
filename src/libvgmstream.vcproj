@@ -851,6 +851,10 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\meta\nwav.c"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\nxa.c"
                     >
                 </File>

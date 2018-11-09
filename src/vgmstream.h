@@ -702,6 +702,7 @@ typedef enum {
     meta_VA3,               /* DDR Supernova 2 AC */
     meta_XOPUS,
     meta_VS_FFX,
+    meta_NWAV,
 
 } meta_t;
 
