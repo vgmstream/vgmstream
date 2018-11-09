@@ -1,7 +1,7 @@
 #include "meta.h"
 #include "../coding/coding.h"
 
-typedef enum { PSX, PCM16, ATRAC9 } bnk_codec;
+typedef enum { PSX, PCM16, ATRAC9, HEVAG } bnk_codec;
 
 /* BNK - Sony's Scream Tool bank format [Puyo Puyo Tetris (PS4), NekoBuro: Cats Block (Vita)] */
 VGMSTREAM * init_vgmstream_bnk_sony(STREAMFILE *streamFile) {
@@ -313,7 +313,7 @@ VGMSTREAM * init_vgmstream_bnk_sony(STREAMFILE *streamFile) {
                         loop_length = read_32bit(start_offset+0x1c,streamFile);
                         loop_end = loop_start + loop_length; /* loop_start is -1 if not set */
 
-                        codec = PSX;
+                        codec = HEVAG;
                         break;
 
                     default:
@@ -378,6 +378,17 @@ VGMSTREAM * init_vgmstream_bnk_sony(STREAMFILE *streamFile) {
         case PSX:
             vgmstream->sample_rate = 48000;
             vgmstream->coding_type = coding_PSX;
+            vgmstream->layout_type = layout_interleave;
+            vgmstream->interleave_block_size = interleave;
+
+            vgmstream->num_samples = ps_bytes_to_samples(stream_size,channel_count);
+            vgmstream->loop_start_sample = loop_start;
+            vgmstream->loop_end_sample = loop_end;
+            break;
+
+        case HEVAG:
+            vgmstream->sample_rate = 48000;
+            vgmstream->coding_type = coding_HEVAG;
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = interleave;
 
