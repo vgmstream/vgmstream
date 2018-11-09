@@ -1618,6 +1618,10 @@
                     RelativePath=".\meta\xopus.c"
                     >
                 </File>
+                <File
+                    RelativePath=".\meta\xpcm.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\xss.c"
 					>

@@ -1109,6 +1109,7 @@ static const meta_info meta_info_list[] = {
         {meta_XOPUS,                "Exient XOPUS header"},
         {meta_VS_FFX,               "Square VS header"},
         {meta_NWAV,                 "Chunsoft NWAV header"},
+        {meta_XPCM,                 "Circus XPCM header"},
 
 };
 

@@ -703,6 +703,7 @@ typedef enum {
     meta_XOPUS,
     meta_VS_FFX,
     meta_NWAV,
+    meta_XPCM,
 
 } meta_t;
 

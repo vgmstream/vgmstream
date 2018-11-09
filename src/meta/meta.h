@@ -806,4 +806,6 @@ VGMSTREAM * init_vgmstream_msf_banpresto_2msf(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_nwav(STREAMFILE * streamFile);
 
+VGMSTREAM * init_vgmstream_xpcm(STREAMFILE * streamFile);
+
 #endif /*_META_H*/
