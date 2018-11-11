@@ -126,6 +126,7 @@
     <ClCompile Include="coding\at3plus_decoder.c" />
     <ClCompile Include="coding\atrac9_decoder.c" />
     <ClCompile Include="coding\celt_fsb_decoder.c" />
+    <ClCompile Include="coding\circus_decoder.c" />
     <ClCompile Include="coding\coding_utils.c" />
     <ClCompile Include="coding\ffmpeg_decoder.c" />
     <ClCompile Include="coding\ffmpeg_decoder_custom_opus.c" />
@@ -319,6 +320,7 @@
     <ClCompile Include="meta\nub_xma.c" />
     <ClCompile Include="meta\nus3bank.c" />
     <ClCompile Include="meta\nwa.c" />
+    <ClCompile Include="meta\nwav.c" />
     <ClCompile Include="meta\nxa.c" />
     <ClCompile Include="meta\nxap.c" />
     <ClCompile Include="meta\ogg_vorbis.c" />
@@ -477,6 +479,7 @@
     <ClCompile Include="meta\xma.c" />
     <ClCompile Include="meta\xnb.c" />
     <ClCompile Include="meta\xopus.c" />
+    <ClCompile Include="meta\xpcm.c" />
     <ClCompile Include="meta\xss.c" />
     <ClCompile Include="meta\xvag.c" />
     <ClCompile Include="meta\xmd.c" />

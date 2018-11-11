@@ -159,6 +159,7 @@ typedef enum {
     coding_DERF,            /* DERF 8-bit DPCM */
     coding_ACM,             /* InterPlay ACM */
     coding_NWA,             /* VisualArt's NWA */
+    coding_CIRCUS_ADPCM,    /* Circus 8-bit ADPCM */
 
     coding_EA_MT,           /* Electronic Arts MicroTalk (linear-predictive speech codec) */
 
@@ -702,6 +703,8 @@ typedef enum {
     meta_VA3,               /* DDR Supernova 2 AC */
     meta_XOPUS,
     meta_VS_FFX,
+    meta_NWAV,
+    meta_XPCM,
 
 } meta_t;
 

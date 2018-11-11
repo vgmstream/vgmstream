@@ -851,6 +851,10 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\meta\nwav.c"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\nxa.c"
                     >
                 </File>
@@ -1614,6 +1618,10 @@
                     RelativePath=".\meta\xopus.c"
                     >
                 </File>
+                <File
+                    RelativePath=".\meta\xpcm.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\xss.c"
 					>
@@ -1718,6 +1726,14 @@
 					RelativePath=".\coding\yamaha_decoder.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\coding\celt_fsb_decoder.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\coding\circus_decoder.c"
+                    >
+                </File>
                 <File
                     RelativePath=".\coding\coding_utils.c"
                     >

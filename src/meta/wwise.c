@@ -184,7 +184,7 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
      * We'll add basic support to avoid complaints of this or that .wem not playing */
     if (ww.data_size > ww.file_size) {
         //VGM_LOG("WWISE: truncated data size (prefetch): (real=0x%x > riff=0x%x)\n", ww.data_size, ww.file_size);
-        if (ww.codec == IMA || ww.codec == VORBIS) /* only seen those, probably others exist */
+        if (ww.codec == IMA || ww.codec == VORBIS || ww.codec == XMA2) /* only seen those, probably others exist */
             ww.truncated = 1;
         else
             goto fail;
@@ -228,8 +228,10 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
             vgmstream->interleave_block_size = ww.block_align / ww.channels;
             vgmstream->codec_endian = ww.big_endian;
 
-            if (ww.truncated) /* enough to get real samples */
+            /* enough to get real samples */
+            if (ww.truncated) {
                 ww.data_size = ww.file_size - ww.data_offset;
+            }
 
             vgmstream->num_samples = xbox_ima_bytes_to_samples(ww.data_size, ww.channels);
             break;
@@ -370,9 +372,10 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
             start_offset += audio_offset;
 
             /* Vorbis is VBR so this is very approximate percent, meh */
-            if (ww.truncated)
+            if (ww.truncated) {
                 vgmstream->num_samples = (int32_t)(vgmstream->num_samples *
                         (double)(ww.file_size - start_offset) / (double)ww.data_size);
+            }
 
             break;
         }
@@ -442,6 +445,12 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
              * Can appear even in the file doesn't loop, maybe it's meant to be the playable physical region */
             //VGM_ASSERT(find_chunk(streamFile, 0x584D4163,first_offset,0, NULL,NULL, ww.big_endian, 0), "WWISE: XMAc chunk found\n");
             /* other chunks: "seek", regular XMA2 seek table */
+
+            /* XMA is VBR so this is very approximate percent, meh */
+            if (ww.truncated) {
+                vgmstream->num_samples = (int32_t)(vgmstream->num_samples *
+                        (double)(ww.file_size - start_offset) / (double)ww.data_size);
+            }
 
             break;
         }

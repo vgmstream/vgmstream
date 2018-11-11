@@ -10,7 +10,7 @@ VGMSTREAM * init_vgmstream_sxd(STREAMFILE *streamFile) {
     size_t chunk_size, stream_size = 0;
 
     int is_dual = 0, is_external = 0;
-    int loop_flag, channels, codec, location;
+    int loop_flag, channels, codec, flags;
     int sample_rate, num_samples, loop_start_sample, loop_end_sample;
     uint32_t at9_config_data = 0;
     int total_subsongs, target_subsong = streamFile->stream_index;
@@ -35,12 +35,15 @@ VGMSTREAM * init_vgmstream_sxd(STREAMFILE *streamFile) {
 
 
     /* typical chunks: NAME, WAVE and many control chunks (SXDs don't need to contain any sound data) */
-    if (!find_chunk_le(streamHeader, 0x57415645,first_offset,0, &chunk_offset,&chunk_size)) goto fail; /* "WAVE" */
+    if (!find_chunk_le(streamHeader, 0x57415645,first_offset,0, &chunk_offset,&chunk_size)) /* "WAVE" */
+        goto fail;
 
     /* check multi-streams (usually only in SFX containers) */
     total_subsongs = read_32bitLE(chunk_offset+0x04,streamHeader);
     if (target_subsong == 0) target_subsong = 1;
     if (target_subsong < 0 || target_subsong > total_subsongs || total_subsongs < 1) goto fail;
+    // todo rarely a WAVE subsong may point to a repeated data offset, with different tags only
+    
 
     /* read stream header */
     {
@@ -50,9 +53,10 @@ VGMSTREAM * init_vgmstream_sxd(STREAMFILE *streamFile) {
         table_offset  = chunk_offset + 0x08 + 4*(target_subsong-1);
         header_offset = table_offset + read_32bitLE(table_offset,streamHeader);
 
-        location    = read_32bitLE(header_offset+0x00,streamHeader);
+        flags       = read_32bitLE(header_offset+0x00,streamHeader);
         codec       = read_8bit   (header_offset+0x04,streamHeader);
         channels    = read_8bit   (header_offset+0x05,streamHeader);
+        /* 0x06(2): unknown, rarely 0xFF */
         sample_rate = read_32bitLE(header_offset+0x08,streamHeader);
         /* 0x0c(4): unknown size? (0x4000/0x3999/0x3333/etc, not related to extra data) */
         /* 0x10(4): ? + volume? + pan? (can be 0 for music) */
@@ -62,14 +66,32 @@ VGMSTREAM * init_vgmstream_sxd(STREAMFILE *streamFile) {
         stream_size       = read_32bitLE(header_offset+0x20,streamHeader);
         stream_offset     = read_32bitLE(header_offset+0x24,streamHeader);
 
-        /* Extra data, variable sized and uses some kind of TLVs (HEVAG's is optional and much smaller).
-         * One tag seems to add a small part of the ATRAC9 data, for RAM preloding I guess. */
+        loop_flag = loop_start_sample != -1 && loop_end_sample != -1;
+
+        /* known flag combos:
+         *  0x00: Chaos Rings 2 sfx (RAM + no tags)
+         *  0x01: common (RAM + tags)
+         *  0x02: Chaos Rings 3 sfx (stream + no tags)
+         *  0x03: common (stream + tags)
+         *  0x05: Gravity Rush 2 sfx (RAM + tags) */
+        //has_tags = flags & 1;
+        is_external = flags & 2;
+        //unknown = flags & 4; /* no apparent differences with/without it? */
+
+        /* flag 1 signals TLV-like extra data. Format appears to be 0x00(1)=tag?, 0x01(1)=extra size*32b?, 0x02(2)=config?
+         * but not always (ex. size=0x07 but actually=0), perhaps only some bits are used or varies with tag, or are subflags.
+         * A tag may appear with or without extra data (even 0x0a), 0x01/03/04/06 are common at the beginnig (imply number of tags?),
+         * 0x64/7F are common at the end (but not always), 0x0A=ATRAC9 config, 0x0B/0C appear with RAM preloading data
+         * (most variable in Soul Sacrifice; total TLVs size isn't plainly found in the SXD header AFAIK). */
+
+        /* manually try to find ATRAC9 tag */
         if (codec == 0x42) {
             off_t extra_offset = header_offset+0x28;
             off_t max_offset = chunk_offset + chunk_size;
 
-            /* manually try to find certain tag, no idea about the actual format
-             * (most variable in Soul Sacrifice; extra data size isn't found in the header AFAIK) */
+            if (!(flags & 1))
+                goto fail;
+
             while (extra_offset < max_offset) {
                 uint32_t tag = read_32bitBE(extra_offset, streamHeader);
                 if (tag == 0x0A010000 || tag == 0x0A010600) {
@@ -83,26 +105,7 @@ VGMSTREAM * init_vgmstream_sxd(STREAMFILE *streamFile) {
                 goto fail;
         }
 
-        loop_flag = loop_start_sample != -1 && loop_end_sample != -1;
-
-        /* usually sxd=header+data and sxd1=header + sxd2=data, but rarely sxd1 contain data [The Last Guardian (PS4)] */
-        switch(location) { /* might not be exact but seems the only difference in TLG */
-            case 0x00: /* some Chaos Rings 2 sfx */
-            case 0x01: /* most common */
-            case 0x05: /* some Gradity Rush 2 sfx */
-                is_external = 0; /* RAM asset? */
-                break;
-
-            case 0x02: /* some Chaos Rings 3 sfx */
-            case 0x03: /* most common */
-                is_external = 1; /* stream asset? */
-                break;
-
-            default:
-                VGM_LOG("SXD: unknown location 0x%x\n", location);
-                goto fail;
-        }
-
+        /* usually .sxd=header+data and .sxd1=header + .sxd2=data, but rarely sxd1 may contain data [The Last Guardian (PS4)] */
         if (is_external) {
             start_offset = stream_offset; /* absolute if external */
         } else {

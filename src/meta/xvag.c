@@ -106,6 +106,15 @@ VGMSTREAM * init_vgmstream_xvag(STREAMFILE *streamFile) {
         xvag.loop_end = ps_bytes_to_samples(file_size - start_offset, xvag.channels);
     }
 
+    /* May use 'MP3 Surround' for multichannel [Twisted Metal (PS3), The Last of Us (PS4) test file]
+     * It's a mutant MP3 that decodes as 2ch but output can be routed to 6ch somehow, if manually
+     * activated. Fraunhofer IIS's MP3sPlayer can do it, as can PS3 (fw v2.40+) but no others seems to.
+     * So simply play as 2ch, they sound ok with slightly wider feel. No XVAG/MP3 flag exists to detect,
+     * can be found in v0x60 (without layers/subsongs) and v0x61 (with them set as 1) */
+    if (xvag.codec == 0x08 && xvag.channels == 6 && xvag.layers == 1) {
+        xvag.channels = 2;
+    }
+
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(xvag.channels,xvag.loop_flag);

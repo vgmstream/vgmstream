@@ -1088,9 +1088,13 @@ int clHCA_DecodeBlock(clHCA *hca, void *data, unsigned int size) {
         }
     }
 
-    /* should read all frame sans checksum at most */
-    if (br.bit > br.size - 16)
+    /* should read all frame sans checksum (16b) at most */
+    /* one frame was found to read up to 14b left (cross referenced with CRI's tools),
+     * perhaps some encoding hiccup [World of Final Fantasy Maxima (Switch) am_ev21_0170 video],
+     * though this validation makes more sense when testing keys and isn't normally done on decode */
+    if (br.bit + 14 > br.size) { /* relax validation a bit for that case */
         return HCA_ERROR_BITREADER;
+    }
 
     return 0;
 }
@@ -1159,7 +1163,7 @@ static int decode1_unpack_channel(stChannel *ch, clData *br,
                 if (delta != expected_delta) {
                     /* may happen with bad keycodes, scalefactors must be 6b indexes */
                     int scalefactor_test = (int)scalefactor_prev + ((int)delta - (int)extra_delta);
-                    if (scalefactor_test < 0 || scalefactor_test > 64) {
+                    if (scalefactor_test < 0 || scalefactor_test >= 64) {
                         return HCA_ERROR_UNPACK;
                     }
 
