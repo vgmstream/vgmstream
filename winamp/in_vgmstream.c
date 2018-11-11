@@ -1450,6 +1450,7 @@ winamp_tags last_tags;
  * Winamp requests one tag at a time and may reask for the same tag several times */
 static void load_tagfile_info(in_char* filename) {
     STREAMFILE *tagFile = NULL;
+    in_char filename_clean[PATH_LIMIT];
     char filename_utf8[PATH_LIMIT];
     char tagfile_path_utf8[PATH_LIMIT];
     in_char tagfile_path_i[PATH_LIMIT];
@@ -1461,13 +1462,15 @@ static void load_tagfile_info(in_char* filename) {
         return;
     }
 
+    /* clean extra part for subsong tags */
+    parse_fn_string(filename, NULL, filename_clean,PATH_LIMIT);
 
-    if (wa_strcmp(last_tags.filename, filename) == 0) {
+    if (wa_strcmp(last_tags.filename, filename_clean) == 0) {
         return; /* not changed, tags still apply */
     }
 
     /* tags are now for this filename, find tagfile path */
-    wa_ichar_to_char(filename_utf8, PATH_LIMIT, filename);
+    wa_ichar_to_char(filename_utf8, PATH_LIMIT, filename_clean);
     strcpy(tagfile_path_utf8,filename_utf8);
 
     path = strrchr(tagfile_path_utf8,'\\');
@@ -1480,7 +1483,7 @@ static void load_tagfile_info(in_char* filename) {
     }
     wa_char_to_ichar(tagfile_path_i, PATH_LIMIT, tagfile_path_utf8);
 
-    wa_strcpy(last_tags.filename, filename);
+    wa_strcpy(last_tags.filename, filename_clean);
     last_tags.tag_count = 0;
 
     /* load all tags from tagfile */
