@@ -111,11 +111,6 @@ VGMSTREAM * init_vgmstream_sgxd(STREAMFILE *streamFile) {
     if (name_offset)
         read_string(vgmstream->stream_name,STREAM_NAME_SIZE, name_offset,streamHeader);
 
-    /* needs -1 to match RIFF AT3's loop chunk
-     * (maybe SGXD = "loop before this sample" rather than "loop after this sample" as expected by vgmstream) */
-    if (vgmstream->loop_end_sample > 0)
-        vgmstream->loop_end_sample -= 1;
-
     switch (type) {
         case 0x03:      /* PS-ADPCM [Genji (PS3), Ape Escape Move (PS3)]*/
             vgmstream->coding_type = coding_PSX;
