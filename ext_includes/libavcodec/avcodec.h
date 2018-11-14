@@ -409,6 +409,7 @@ enum AVCodecID {
     AV_CODEC_ID_DXV,
     AV_CODEC_ID_SCREENPRESSO,
     AV_CODEC_ID_RSCC,
+    AV_CODEC_ID_AVS2,
 
     AV_CODEC_ID_Y41P = 0x8000,
     AV_CODEC_ID_AVRP,
@@ -446,6 +447,11 @@ enum AVCodecID {
     AV_CODEC_ID_SVG,
     AV_CODEC_ID_GDV,
     AV_CODEC_ID_FITS,
+    AV_CODEC_ID_IMM4,
+    AV_CODEC_ID_PROSUMER,
+    AV_CODEC_ID_MWSC,
+    AV_CODEC_ID_WCMV,
+    AV_CODEC_ID_RASC,
 
     /* various PCM "codecs" */
     AV_CODEC_ID_FIRST_AUDIO = 0x10000,     ///< A dummy id pointing at the start of audio codecs
@@ -485,6 +491,7 @@ enum AVCodecID {
     AV_CODEC_ID_PCM_S64BE,
     AV_CODEC_ID_PCM_F16LE,
     AV_CODEC_ID_PCM_F24LE,
+    AV_CODEC_ID_PCM_VIDC,
 
     /* various ADPCM codecs */
     AV_CODEC_ID_ADPCM_IMA_QT = 0x11000,
@@ -637,6 +644,7 @@ enum AVCodecID {
     AV_CODEC_ID_APTX,
     AV_CODEC_ID_APTX_HD,
     AV_CODEC_ID_SBC,
+    AV_CODEC_ID_ATRAC9,
 
     /* subtitle codecs */
     AV_CODEC_ID_FIRST_SUBTITLE = 0x17000,          ///< A dummy ID pointing at the start of subtitle codecs.
@@ -665,6 +673,7 @@ enum AVCodecID {
     AV_CODEC_ID_PJS,
     AV_CODEC_ID_ASS,
     AV_CODEC_ID_HDMV_TEXT_SUBTITLE,
+    AV_CODEC_ID_TTML,
 
     /* other specific kind of codecs (generally used for attachments) */
     AV_CODEC_ID_FIRST_UNKNOWN = 0x18000,           ///< A dummy ID pointing at the start of various fake codecs.
@@ -1063,6 +1072,13 @@ typedef struct RcOverride{
 #define AV_CODEC_CAP_HYBRID              (1 << 19)
 
 /**
+ * This codec takes the reordered_opaque field from input AVFrames
+ * and returns it in the corresponding field in AVCodecContext after
+ * encoding.
+ */
+#define AV_CODEC_CAP_ENCODER_REORDERED_OPAQUE (1 << 20)
+
+/**
  * Pan Scan area.
  * This specifies the area which should be displayed.
  * Note there may be multiple such areas for one frame.
@@ -1345,6 +1361,25 @@ enum AVPacketSideDataType {
     AV_PKT_DATA_A53_CC,
 
     /**
+     * This side data is encryption initialization data.
+     * The format is not part of ABI, use av_encryption_init_info_* methods to
+     * access.
+     */
+    AV_PKT_DATA_ENCRYPTION_INIT_INFO,
+
+    /**
+     * This side data contains encryption info for how to decrypt the packet.
+     * The format is not part of ABI, use av_encryption_info_* methods to access.
+     */
+    AV_PKT_DATA_ENCRYPTION_INFO,
+
+    /**
+     * Active Format Description data consisting of a single byte as specified
+     * in ETSI TS 101 154 using AVActiveFormatDescription enum.
+     */
+    AV_PKT_DATA_AFD,
+
+    /**
      * The number of side data types.
      * This is not part of the public API/ABI in the sense that it may
      * change when new side data types are added.
@@ -1599,6 +1634,7 @@ typedef struct AVCodecContext {
      * The allocated memory should be AV_INPUT_BUFFER_PADDING_SIZE bytes larger
      * than extradata_size to avoid problems if it is read with the bitstream reader.
      * The bytewise contents of extradata must not depend on the architecture or CPU endianness.
+     * Must be allocated with the av_malloc() family of functions.
      * - encoding: Set/allocated/freed by libavcodec.
      * - decoding: Set/allocated/freed by user.
      */
@@ -2648,7 +2684,10 @@ typedef struct AVCodecContext {
     /**
      * opaque 64-bit number (generally a PTS) that will be reordered and
      * output in AVFrame.reordered_opaque
-     * - encoding: unused
+     * - encoding: Set by libavcodec to the reordered_opaque of the input
+     *             frame corresponding to the last returned packet. Only
+     *             supported by encoders with the
+     *             AV_CODEC_CAP_ENCODER_REORDERED_OPAQUE capability.
      * - decoding: Set by user.
      */
     int64_t reordered_opaque;
@@ -2920,6 +2959,10 @@ typedef struct AVCodecContext {
 #define FF_PROFILE_HEVC_MAIN_STILL_PICTURE          3
 #define FF_PROFILE_HEVC_REXT                        4
 
+#define FF_PROFILE_AV1_MAIN                         0
+#define FF_PROFILE_AV1_HIGH                         1
+#define FF_PROFILE_AV1_PROFESSIONAL                 2
+
 #define FF_PROFILE_MJPEG_HUFFMAN_BASELINE_DCT            0xc0
 #define FF_PROFILE_MJPEG_HUFFMAN_EXTENDED_SEQUENTIAL_DCT 0xc1
 #define FF_PROFILE_MJPEG_HUFFMAN_PROGRESSIVE_DCT         0xc2
@@ -2927,6 +2970,13 @@ typedef struct AVCodecContext {
 #define FF_PROFILE_MJPEG_JPEG_LS                         0xf7
 
 #define FF_PROFILE_SBC_MSBC                         1
+
+#define FF_PROFILE_PRORES_PROXY     0
+#define FF_PROFILE_PRORES_LT        1
+#define FF_PROFILE_PRORES_STANDARD  2
+#define FF_PROFILE_PRORES_HQ        3
+#define FF_PROFILE_PRORES_4444      4
+#define FF_PROFILE_PRORES_XQ        5
 
     /**
      * level
@@ -3079,6 +3129,7 @@ typedef struct AVCodecContext {
 #define FF_SUB_CHARENC_MODE_DO_NOTHING  -1  ///< do nothing (demuxer outputs a stream supposed to be already in UTF-8, or the codec is bitmap for instance)
 #define FF_SUB_CHARENC_MODE_AUTOMATIC    0  ///< libavcodec will select the mode itself
 #define FF_SUB_CHARENC_MODE_PRE_DECODER  1  ///< the AVPacket data needs to be recoded to UTF-8 before being fed to the decoder, requires iconv
+#define FF_SUB_CHARENC_MODE_IGNORE       2  ///< neither convert the subtitles, nor check them for valid UTF-8
 
     /**
      * Skip processing alpha if supported by codec.
@@ -4347,7 +4398,7 @@ int av_packet_from_data(AVPacket *pkt, uint8_t *data, int size);
  * @warning This is a hack - the packet memory allocation stuff is broken. The
  * packet is allocated if it was not really allocated.
  *
- * @deprecated Use av_packet_ref
+ * @deprecated Use av_packet_ref or av_packet_make_refcounted
  */
 attribute_deprecated
 int av_dup_packet(AVPacket *pkt);
@@ -4517,6 +4568,33 @@ void av_packet_move_ref(AVPacket *dst, AVPacket *src);
  * @return 0 on success AVERROR on failure.
  */
 int av_packet_copy_props(AVPacket *dst, const AVPacket *src);
+
+/**
+ * Ensure the data described by a given packet is reference counted.
+ *
+ * @note This function does not ensure that the reference will be writable.
+ *       Use av_packet_make_writable instead for that purpose.
+ *
+ * @see av_packet_ref
+ * @see av_packet_make_writable
+ *
+ * @param pkt packet whose data should be made reference counted.
+ *
+ * @return 0 on success, a negative AVERROR on error. On failure, the
+ *         packet is unchanged.
+ */
+int av_packet_make_refcounted(AVPacket *pkt);
+
+/**
+ * Create a writable reference for the data described by a given packet,
+ * avoiding data copy if possible.
+ *
+ * @param pkt Packet whose data should be made writable.
+ *
+ * @return 0 on success, a negative AVERROR on failure. On failure, the
+ *         packet is unchanged.
+ */
+int av_packet_make_writable(AVPacket *pkt);
 
 /**
  * Convert valid timing fields (timestamps / durations) in a packet from one
@@ -5721,6 +5799,7 @@ typedef struct AVBitStreamFilter {
     int (*init)(AVBSFContext *ctx);
     int (*filter)(AVBSFContext *ctx, AVPacket *pkt);
     void (*close)(AVBSFContext *ctx);
+    void (*flush)(AVBSFContext *ctx);
 } AVBitStreamFilter;
 
 #if FF_API_OLD_BSF
@@ -5846,6 +5925,11 @@ int av_bsf_send_packet(AVBSFContext *ctx, AVPacket *pkt);
  * AVERROR(EAGAIN) immediately after a successful av_bsf_send_packet() call.
  */
 int av_bsf_receive_packet(AVBSFContext *ctx, AVPacket *pkt);
+
+/**
+ * Reset the internal bitstream filter state / flush internal buffers.
+ */
+void av_bsf_flush(AVBSFContext *ctx);
 
 /**
  * Free a bitstream filter context and everything associated with it; write NULL

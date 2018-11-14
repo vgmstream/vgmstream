@@ -6,6 +6,7 @@ EXPORTS
     av_bitstream_filter_init
     av_bitstream_filter_next
     av_bsf_alloc
+    av_bsf_flush
     av_bsf_free
     av_bsf_get_by_name
     av_bsf_get_class
@@ -79,6 +80,7 @@ EXPORTS
     av_mediacodec_default_free
     av_mediacodec_default_init
     av_mediacodec_release_buffer
+    av_mediacodec_render_buffer_at_time
     av_new_packet
     av_packet_add_side_data
     av_packet_alloc
@@ -88,6 +90,8 @@ EXPORTS
     av_packet_free_side_data
     av_packet_from_data
     av_packet_get_side_data
+    av_packet_make_refcounted
+    av_packet_make_writable
     av_packet_merge_side_data
     av_packet_move_ref
     av_packet_new_side_data
@@ -198,17 +202,9 @@ EXPORTS
     avpriv_dca_convert_bitstream
     avpriv_dca_parse_core_frame_header
     avpriv_dca_sample_rates
-    avpriv_exif_decode_ifd
     avpriv_find_pix_fmt
     avpriv_find_start_code
     avpriv_get_raw_pix_fmt_tags
-    avpriv_mjpeg_bits_ac_chrominance
-    avpriv_mjpeg_bits_ac_luminance
-    avpriv_mjpeg_bits_dc_chrominance
-    avpriv_mjpeg_bits_dc_luminance
-    avpriv_mjpeg_val_ac_chrominance
-    avpriv_mjpeg_val_ac_luminance
-    avpriv_mjpeg_val_dc
     avpriv_mpa_bitrate_tab
     avpriv_mpa_freq_tab
     avpriv_mpeg4audio_get_config

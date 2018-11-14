@@ -121,6 +121,15 @@ EXPORTS
     av_dynarray_add
     av_dynarray_add_nofree
     av_dynarray2_add
+    av_encryption_info_add_side_data
+    av_encryption_info_alloc
+    av_encryption_info_clone
+    av_encryption_info_free
+    av_encryption_info_get_side_data
+    av_encryption_init_info_add_side_data
+    av_encryption_init_info_alloc
+    av_encryption_init_info_free
+    av_encryption_init_info_get_side_data
     av_escape
     av_expr_eval
     av_expr_free
@@ -389,6 +398,7 @@ EXPORTS
     av_rc4_crypt
     av_rc4_init
     av_read_image_line
+    av_read_image_line2
     av_realloc
     av_realloc_array
     av_realloc_f
@@ -459,6 +469,7 @@ EXPORTS
     av_thread_message_flush
     av_thread_message_queue_alloc
     av_thread_message_queue_free
+    av_thread_message_queue_nb_elems
     av_thread_message_queue_recv
     av_thread_message_queue_send
     av_thread_message_queue_set_err_recv
@@ -490,6 +501,7 @@ EXPORTS
     av_version_info
     av_vlog
     av_write_image_line
+    av_write_image_line2
     av_xtea_alloc
     av_xtea_crypt
     av_xtea_init
