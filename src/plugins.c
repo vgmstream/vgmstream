@@ -43,14 +43,24 @@ int vgmstream_tags_next_tag(VGMSTREAM_TAGS* tag, STREAMFILE* tagfile) {
     }
 
     /* read lines */
-    while (tag->offset < file_size) {
+    while (tag->offset <= file_size) {
+
         /* no more tags to extract */
         if (tag->section_found && tag->offset >= tag->section_end) {
+
+            /* write extra tags after all regular tags */
+            if (tag->autotrack_on && !tag->autotrack_written) {
+                sprintf(tag->key, "%s", "TRACK");
+                sprintf(tag->val, "%i", tag->track_count);
+                tag->autotrack_written = 1;
+                return 1;
+            }
+
             goto fail;
         }
 
         bytes_read = get_streamfile_text_line(TAG_LINE_MAX,line, tag->offset,tagfile, &line_done);
-        if (!line_done) goto fail;
+        if (!line_done || bytes_read == 0) goto fail;
 
         tag->offset += bytes_read;
 
@@ -64,8 +74,19 @@ int vgmstream_tags_next_tag(VGMSTREAM_TAGS* tag, STREAMFILE* tagfile) {
             }
         }
         else {
-            /* find possible global tag */
+
             if (line[0] == '#') {
+                /* find possible global command */
+                ok = sscanf(line, "# $%[^ \t] %[^\r\n]", tag->key,tag->val);
+                if (ok == 1 || ok == 2) {
+                    if (strcasecmp(tag->key,"AUTOTRACK") == 0) {
+                        tag->autotrack_on = 1;
+                    }
+
+                    continue; /* not an actual tag */
+                }
+
+                /* find possible global tag */
                 ok = sscanf(line, "# @%[^ \t] %[^\r\n]", tag->key,tag->val);
                 if (ok == 2) {
                     tags_clean(tag);
@@ -89,6 +110,7 @@ int vgmstream_tags_next_tag(VGMSTREAM_TAGS* tag, STREAMFILE* tagfile) {
                     tag->section_start = tag->offset;
                 }
 
+                tag->track_count++; /* new track found (target filename or not) */
                 continue;
             }
 

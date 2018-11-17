@@ -243,6 +243,7 @@ ordering), the file itself just 'looks' like an M3U.
 Format is:
 ```
 # ignored comment
+# $GLOBAL_COMMAND value (extra features)
 # @GLOBAL_TAG value (applies all following tracks)
 
 # %LOCAL_TAG value (applies to next track only)
@@ -257,6 +258,10 @@ separated by one or multiple spaces. Repeated tags overwrite previous
 _filename_ though, so any @TAG below would be ignored.
 
 Playlist formatting should follow player's config. ASCII or UTF-8 tags work.
+
+GLOBAL_COMMANDs currently can be: 
+- AUTOTRACK: sets %TRACK% tag automatically (1..N as files are encountered
+  in the tag file).
 
 
 ## Supported codec types
@@ -291,6 +296,7 @@ are used in few games.
 - FMOD FADPCM 4-bit ADPCM
 - Konami XMD 4-bit ADPCM
 - Argonaut ASF 4-bit ADPCM
+- Circus XPCM ADPCM
 - SDX2 2:1 Squareroot-Delta-Exact compression DPCM
 - CBD2 2:1 Cuberoot-Delta-Exact compression DPCM
 - Activision EXAKT SASSC DPCM
