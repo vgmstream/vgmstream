@@ -150,6 +150,12 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
 
                         /* when start is 0 seems the song repeats with no real looping (ex. Sonic Boom Fire & Ice jingles) */
                         fsb5.loop_flag = (fsb5.loop_start != 0x00);
+
+                        /* ignore wrong loops in some files [Pac-Man CE2 Plus (Switch) pce2p_bgm_ajurika_*.fsb] */
+                        if (fsb5.loop_start == 0x3c && fsb5.loop_end == 0x007F007F &&
+                                fsb5.num_samples > fsb5.loop_end + 100000) { /* arbitrary limit */
+                            fsb5.loop_flag = 0;
+                        }
                         break;
                     case 0x04:  /* free comment, or maybe SFX info */
                         break;
