@@ -1090,6 +1090,10 @@
                     RelativePath=".\meta\msf_banpresto.c"
                     >
                 </File>
+                <File
+                    RelativePath=".\meta\msf_tamasoft.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\mss.c"
 					>

@@ -1111,6 +1111,7 @@ static const meta_info meta_info_list[] = {
         {meta_VS_FFX,               "Square VS header"},
         {meta_NWAV,                 "Chunsoft NWAV header"},
         {meta_XPCM,                 "Circus XPCM header"},
+        {meta_MSF_TAMASOFT,         "TamaSoft MSF header"},
 
 };
 
