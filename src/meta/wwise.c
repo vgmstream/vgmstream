@@ -147,13 +147,14 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
     switch(ww.format) {
         case 0x0001: ww.codec = PCM; break; /* older Wwise */
         case 0x0002: ww.codec = IMA; break; /* newer Wwise (conflicts with MSADPCM, probably means "platform's ADPCM") */
-        //case 0x0011: ww.codec = IMA; break; /* older Wwise (used?) */
+      //case 0x0011: ww.codec = IMA; break; /* older Wwise (used?) */
         case 0x0069: ww.codec = IMA; break; /* older Wwise (Spiderman Web of Shadows X360, LotR Conquest PC) */
         case 0x0161: ww.codec = XWMA; break; /* WMAv2 */
         case 0x0162: ww.codec = XWMA; break; /* WMAPro */
         case 0x0165: ww.codec = XMA2; break; /* always with the "XMA2" chunk, Wwise doesn't use XMA1 */
         case 0x0166: ww.codec = XMA2; break;
-        case 0x3039: ww.codec = OPUS; break;
+        case 0x3039: ww.codec = OPUS; break; /* later renamed to "OPUSNX" */
+      //case 0x3040: ww.codec = OPUS; break; /* same for other platforms, supposedly */
         case 0xAAC0: ww.codec = AAC; break;
         case 0xFFF0: ww.codec = DSP; break;
         case 0xFFFB: ww.codec = HEVAG; break;
@@ -511,7 +512,7 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
             break;
         }
 
-        case OPUS: {    /* Switch */
+        case OPUS: {  /* Switch */
             size_t skip;
 
             /* values up to 0x14 seem fixed and similar to HEVAG's (block_align 0x02/04, bits_per_sample 0x10) */
