@@ -22,12 +22,17 @@ typedef struct {
     off_t section_start;
     off_t section_end;
     off_t offset;
+
+    /* commands */
+    int autotrack_on;
+    int autotrack_written;
+    int track_count;
 } VGMSTREAM_TAGS;
 
 
 
 /* Extracts next valid tag in tagfile to *tag. Returns 0 if no more tags are found (meant to be
- * called repeatedly until 0). Key are lowercase and values can be treated as UTF-8. */
+ * called repeatedly until 0). Key/values are trimmed and values can be in UTF-8. */
 int vgmstream_tags_next_tag(VGMSTREAM_TAGS* tag, STREAMFILE* tagfile);
 
 /* resets tagfile to restart reading from the beginning for a new filename */

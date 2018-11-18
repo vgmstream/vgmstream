@@ -1025,13 +1025,15 @@ VGMSTREAM * init_vgmstream_rsd6xma(STREAMFILE *streamFile) {
 			datasize = read_32bitBE(0x808, streamFile);
 
 			bytes = ffmpeg_make_riff_xma2(buf, 100, vgmstream->num_samples, datasize, vgmstream->channels, vgmstream->sample_rate, block_count, block_size);
-			if (bytes <= 0) goto fail;
-
 			ffmpeg_data = init_ffmpeg_header_offset(streamFile, buf, bytes, start_offset, datasize);
 			if (!ffmpeg_data) goto fail;
 			vgmstream->codec_data = ffmpeg_data;
 			vgmstream->coding_type = coding_FFmpeg;
 			vgmstream->layout_type = layout_none;
+
+			/* for some reason (dev trickery?) .rsd don't set skip in the bitstream, though they should */
+            //xma_fix_raw_samples(vgmstream, streamFile, start_offset,datasize, 0, 0,0);
+            ffmpeg_set_skip_samples(ffmpeg_data, 512+64);
 		}
 #else
 		goto fail;
@@ -1053,13 +1055,15 @@ VGMSTREAM * init_vgmstream_rsd6xma(STREAMFILE *streamFile) {
 			datasize = read_32bitBE(0x808, streamFile);
 
 			bytes = ffmpeg_make_riff_xma2(buf, 100, vgmstream->num_samples, datasize, vgmstream->channels, vgmstream->sample_rate, block_count, block_size);
-			if (bytes <= 0) goto fail;
-
 			ffmpeg_data = init_ffmpeg_header_offset(streamFile, buf, bytes, start_offset, datasize);
 			if (!ffmpeg_data) goto fail;
 			vgmstream->codec_data = ffmpeg_data;
 			vgmstream->coding_type = coding_FFmpeg;
 			vgmstream->layout_type = layout_none;
+
+            /* for some reason (dev trickery?) .rsd don't set skip in the bitstream, though they should */
+            //xma_fix_raw_samples(vgmstream, streamFile, start_offset,datasize, 0, 0,0);
+            ffmpeg_set_skip_samples(ffmpeg_data, 512+64);
 		}
 #else
 		goto fail;

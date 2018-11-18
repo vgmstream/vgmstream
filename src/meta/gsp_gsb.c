@@ -12,7 +12,7 @@ VGMSTREAM * init_vgmstream_gsp_gsb(STREAMFILE *streamFile) {
     int codec_id;
 	
     
-    /* check extensions */
+    /* checks */
     if (!check_extensions(streamFile,"gsb"))
         goto fail;
 
@@ -116,14 +116,13 @@ VGMSTREAM * init_vgmstream_gsp_gsb(STREAMFILE *streamFile) {
             /* 0x00: fmt0x166 header (BE),  0x34: seek table */
 
             bytes = ffmpeg_make_riff_xma_from_fmt_chunk(buf,200, chunk_offset,0x34, datasize, streamHeader, 1);
-            if (bytes <= 0) goto fail;
-
             ffmpeg_data = init_ffmpeg_header_offset(streamFile, buf,bytes, start_offset,datasize);
             if ( !ffmpeg_data ) goto fail;
             vgmstream->codec_data = ffmpeg_data;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
 
+            xma_fix_raw_samples(vgmstream, streamFile, start_offset,datasize, 0, 0,0); /* samples are ok */
             break;
         }
 #endif

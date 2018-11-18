@@ -10,10 +10,9 @@ VGMSTREAM * init_vgmstream_nub_xma(STREAMFILE *streamFile) {
     int num_samples, loop_start_sample, loop_end_sample;
 
 
-    /* check extension, case insensitive */
+    /* checks */
     if ( !check_extensions(streamFile,"xma")) /* (probably meant to be .nub) */
         goto fail;
-
     if (read_32bitBE(0x00,streamFile) != 0x786D6100)   /* "xma\0" */
         goto fail;
 
@@ -55,19 +54,17 @@ VGMSTREAM * init_vgmstream_nub_xma(STREAMFILE *streamFile) {
         } else { /* "fmt " */
             bytes = ffmpeg_make_riff_xma_from_fmt_chunk(buf,0x100, chunk_offset,chunk_size, data_size, streamFile, 1);
         }
-        if (bytes <= 0) goto fail;
-
-        vgmstream->codec_data = init_ffmpeg_header_offset(streamFile, buf,bytes, start_offset,data_size);;
+        vgmstream->codec_data = init_ffmpeg_header_offset(streamFile, buf,bytes, start_offset,data_size);
         if ( !vgmstream->codec_data ) goto fail;
         vgmstream->coding_type = coding_FFmpeg;
         vgmstream->layout_type = layout_none;
+
+        xma_fix_raw_samples(vgmstream, streamFile, start_offset, data_size, chunk_offset, 1,1); /* samples needs adjustment */
     }
 #else
     goto fail;
 #endif
 
-
-    /* open the file for reading */
     if ( !vgmstream_open_stream(vgmstream, streamFile, start_offset) )
         goto fail;
     return vgmstream;

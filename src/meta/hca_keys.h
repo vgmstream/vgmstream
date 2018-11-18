@@ -261,6 +261,12 @@ static const hcakey_info hcakey_list[] = {
         /* Dragalia Lost (Android) */
         {2967411924141,         subkeys_dgl, sizeof(subkeys_dgl) / sizeof(subkeys_dgl[0]) },    // 000002B2E7889CAD
 
+        /* Libra of Precatus (Android) */
+        {0x6D8EFB700870FCD4},       // 6D8EFB700870FCD4
+
+        /* Mashiro Witch (Android) */
+        {0x55D11D3349495204},       // 55D11D3349495204
+
 };
 
 #endif/*_HCA_KEYS_H_*/

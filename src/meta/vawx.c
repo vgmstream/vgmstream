@@ -36,9 +36,9 @@ VGMSTREAM * init_vgmstream_vawx(STREAMFILE *streamFile) {
     vgmstream->meta_type = meta_VAWX;
 
     switch(codec) {
-        case 2: /* VAG */
+        case 2: /* PS-ADPCM */
             vgmstream->coding_type = coding_PSX;
-            vgmstream->layout_type = channel_count == 6 ? layout_blocked_vawx : layout_interleave ;
+            vgmstream->layout_type = channel_count == 6 ? layout_blocked_vawx : layout_interleave;
             vgmstream->interleave_block_size = 0x10;
 
             vgmstream->loop_start_sample = read_32bitBE(0x44,streamFile);
@@ -66,6 +66,8 @@ VGMSTREAM * init_vgmstream_vawx(STREAMFILE *streamFile) {
             vgmstream->loop_start_sample = read_32bitBE(0x44,streamFile);
             vgmstream->loop_end_sample = read_32bitBE(0x48,streamFile);
 
+            /* may be only applying end_skip to num_samples? */
+            xma_fix_raw_samples(vgmstream, streamFile, start_offset,data_size, 0, 0,0);
             break;
         }
 

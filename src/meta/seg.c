@@ -92,6 +92,8 @@ VGMSTREAM * init_vgmstream_seg(STREAMFILE *streamFile) {
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
+
+            xma_fix_raw_samples(vgmstream, streamFile, start_offset,data_size, 0, 0,0); /* samples are ok */
             break;
         }
 #endif

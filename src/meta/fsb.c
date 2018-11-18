@@ -363,6 +363,8 @@ VGMSTREAM * init_vgmstream_fsb(STREAMFILE *streamFile) {
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
+
+            xma_fix_raw_samples(vgmstream, streamFile, fsb.stream_offset,fsb.stream_size, 0, 0,0); /* samples look ok */
             break;
         }
 #endif

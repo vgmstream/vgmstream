@@ -51,7 +51,7 @@ VGMSTREAM * init_vgmstream_akb(STREAMFILE *streamFile) {
     if (read_32bitLE(0x08,streamFile) != get_streamfile_size(streamFile))
         goto fail;
 
-    /* 0x04(2): version? (iPad/IPhone?) */
+    /* 0x04(1): version */
     header_size = read_16bitLE(0x06,streamFile);
 
     codec         =  read_8bit(0x0c,streamFile);
@@ -62,10 +62,12 @@ VGMSTREAM * init_vgmstream_akb(STREAMFILE *streamFile) {
     loop_end    = read_32bitLE(0x18,streamFile);
 
     /* possibly more complex, see AKB2 */
-    if (header_size >= 0x44) { /* v2 */
+    if (header_size >= 0x44) { /* v2+ */
         extradata_size = read_16bitLE(0x1c,streamFile);
+        /* 0x20+: config? (pan, volume) */
         subheader_size = read_16bitLE(0x28,streamFile);
-        /* 0x20+: config? (pan, volume), 0x24: file_id? */
+        /* 0x24: file_id? */
+        /* 0x2b: encryption bitflag if version > 2? */
         extradata_offset = header_size + subheader_size;
         start_offset = extradata_offset + extradata_size;
     }
@@ -74,7 +76,7 @@ VGMSTREAM * init_vgmstream_akb(STREAMFILE *streamFile) {
     }
 
     stream_size = get_streamfile_size(streamFile) - start_offset;
-    loop_flag = read_32bitLE(0x18,streamFile) > 0; /* loop end */
+    loop_flag = (loop_end > loop_start);
 
 
     /* build the VGMSTREAM */
@@ -86,12 +88,12 @@ VGMSTREAM * init_vgmstream_akb(STREAMFILE *streamFile) {
 
 
     switch (codec) {
-        case 0x02: { /* MSAPDCM [Dragon Quest II (iOS) sfx] */
+        case 0x02: { /* MSADPCM [Dragon Quest II (iOS) sfx] */
             vgmstream->coding_type = coding_MSADPCM;
             vgmstream->layout_type = layout_none;
             vgmstream->interleave_block_size = read_16bitLE(extradata_offset + 0x02,streamFile);
 
-            /* adjusted samples; bigger or smaller than base samples, but seems more accurate
+            /* adjusted samples; bigger or smaller than base samples, akb lib uses these fields instead
              * (base samples may have more than possible and read over file size otherwise, very strange)
              * loop_end seems to exist even with loop disabled */
             vgmstream->num_samples       = read_32bitLE(extradata_offset + 0x04, streamFile);
@@ -107,6 +109,8 @@ VGMSTREAM * init_vgmstream_akb(STREAMFILE *streamFile) {
 
             ovmi.meta_type = vgmstream->meta_type;
             ovmi.stream_size = stream_size;
+            /* extradata + 0x04: Ogg loop start offset */
+            /* oggs have loop info in the comments */
 
             ogg_vgmstream = init_vgmstream_ogg_vorbis_callbacks(streamFile, NULL, start_offset, &ovmi);
             if (ogg_vgmstream) {
@@ -143,7 +147,7 @@ VGMSTREAM * init_vgmstream_akb(STREAMFILE *streamFile) {
 #endif
 
 #ifdef VGM_USE_FFMPEG
-        case 0x06: { /* aac [The World Ends with You (iPad)] */
+        case 0x06: { /* M4A with AAC [The World Ends with You (iPad)] */
             /* init_vgmstream_akb_mp4 above has priority, but this works fine too */
             ffmpeg_codec_data *ffmpeg_data;
 
@@ -157,16 +161,16 @@ VGMSTREAM * init_vgmstream_akb(STREAMFILE *streamFile) {
             vgmstream->num_samples = num_samples;
             vgmstream->loop_start_sample = loop_start;
             vgmstream->loop_end_sample = loop_end;
+            /* bad total samples (some kind of duration? probably should be loop_end though) */
+            if (loop_flag)
+                vgmstream->num_samples = loop_end+1;
 
-            /* remove encoder delay from the "global" sample values */
-            vgmstream->num_samples -= ffmpeg_data->skipSamples;
-            vgmstream->loop_start_sample -= ffmpeg_data->skipSamples;
-            vgmstream->loop_end_sample -= ffmpeg_data->skipSamples;
-
+            /* loops are pre-adjusted with 2112 encoder delay (ex. TWEWY B04's loop_start=45) */
             break;
         }
 #endif
 
+        case 0x01: /* PCM16LE */
         default:
             goto fail;
     }
@@ -188,7 +192,7 @@ VGMSTREAM * init_vgmstream_akb2(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     off_t start_offset, material_offset, extradata_offset;
     size_t material_size, extradata_size, stream_size;
-    int loop_flag = 0, channel_count, encryption_flag, codec, sample_rate, /*num_samples, loop_start,*/ loop_end;
+    int loop_flag = 0, channel_count, encryption_flag, codec, sample_rate, /*num_samples,*/ loop_start, loop_end;
     int total_subsongs, target_subsong = streamFile->stream_index;
 
     /* check extensions */
@@ -201,6 +205,7 @@ VGMSTREAM * init_vgmstream_akb2(STREAMFILE *streamFile) {
         goto fail;
     if (read_32bitLE(0x08,streamFile) != get_streamfile_size(streamFile))
         goto fail;
+    /* 0x04: version */
 
     /* parse tables */
     {
@@ -224,7 +229,7 @@ VGMSTREAM * init_vgmstream_akb2(STREAMFILE *streamFile) {
         material_offset = table_offset + read_32bitLE(table_offset + table_size + (target_subsong-1)*entry_size + 0x04, streamFile);
     }
 
-    /** stream header **/
+    /** stream header (material) **/
     /* 0x00: 0? */
     codec           =    read_8bit(material_offset+0x01,streamFile);
     channel_count   =    read_8bit(material_offset+0x02,streamFile);
@@ -234,14 +239,17 @@ VGMSTREAM * init_vgmstream_akb2(STREAMFILE *streamFile) {
     stream_size     = read_32bitLE(material_offset+0x08,streamFile);
   //num_samples     = read_32bitLE(material_offset+0x0c,streamFile);
 
-  //loop_start      = read_32bitLE(material_offset+0x10,streamFile);
+    loop_start      = read_32bitLE(material_offset+0x10,streamFile);
     loop_end        = read_32bitLE(material_offset+0x14,streamFile);
     extradata_size  = read_32bitLE(material_offset+0x18,streamFile);
     /* rest: ? (empty or 0x3f80) */
 
-    loop_flag = (loop_end > 0);
+    loop_flag = (loop_end > loop_start);
     extradata_offset = material_offset + material_size;
     start_offset = material_offset +  material_size + extradata_size;
+
+    if (encryption_flag & 0x08)
+        goto fail;
 
 
     /* build the VGMSTREAM */
@@ -256,12 +264,11 @@ VGMSTREAM * init_vgmstream_akb2(STREAMFILE *streamFile) {
 
     switch (codec) {
         case 0x02: { /* MSADPCM [The Irregular at Magic High School Lost Zero (Android)] */
-            if (encryption_flag & 0x08) goto fail;
             vgmstream->coding_type = coding_MSADPCM;
             vgmstream->layout_type = layout_none;
             vgmstream->interleave_block_size = read_16bitLE(extradata_offset + 0x02, streamFile);
 
-            /* adjusted samples; bigger or smaller than base samples, but seems more accurate
+            /* adjusted samples; bigger or smaller than base samples, akb lib uses these fields instead
              * (base samples may have more than possible and read over file size otherwise, very strange)
              * loop_end seems to exist even with loop disabled */
             vgmstream->num_samples       = read_32bitLE(extradata_offset + 0x04, streamFile);
@@ -316,6 +323,7 @@ VGMSTREAM * init_vgmstream_akb2(STREAMFILE *streamFile) {
         }
 #endif
 
+        case 0x01: /* PCM16LE */
         default:
             goto fail;
     }

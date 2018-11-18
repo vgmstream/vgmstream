@@ -150,6 +150,12 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
 
                         /* when start is 0 seems the song repeats with no real looping (ex. Sonic Boom Fire & Ice jingles) */
                         fsb5.loop_flag = (fsb5.loop_start != 0x00);
+
+                        /* ignore wrong loops in some files [Pac-Man CE2 Plus (Switch) pce2p_bgm_ajurika_*.fsb] */
+                        if (fsb5.loop_start == 0x3c && fsb5.loop_end == 0x007F007F &&
+                                fsb5.num_samples > fsb5.loop_end + 100000) { /* arbitrary limit */
+                            fsb5.loop_flag = 0;
+                        }
                         break;
                     case 0x04:  /* free comment, or maybe SFX info */
                         break;
@@ -308,7 +314,7 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
             break;
 
 #ifdef VGM_USE_FFMPEG
-        case 0x0A: {/* FMOD_SOUND_FORMAT_XMA  [Dark Souls 2 (X360)] */
+        case 0x0A: {/* FMOD_SOUND_FORMAT_XMA  [Minecraft Story Mode (X360)] */
             uint8_t buf[0x100];
             int bytes, block_size, block_count;
 
@@ -317,9 +323,11 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
 
             bytes = ffmpeg_make_riff_xma2(buf, 0x100, vgmstream->num_samples, fsb5.stream_size, vgmstream->channels, vgmstream->sample_rate, block_count, block_size);
             vgmstream->codec_data = init_ffmpeg_header_offset(streamFile, buf,bytes, fsb5.stream_offset,fsb5.stream_size);
-            if ( !vgmstream->codec_data ) goto fail;
+            if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
+
+            xma_fix_raw_samples(vgmstream, streamFile, fsb5.stream_offset,fsb5.stream_size, 0, 0,0); /* samples look ok */
             break;
         }
 #endif

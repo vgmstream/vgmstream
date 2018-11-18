@@ -195,10 +195,10 @@ static const adxkey_info adxkey9_list[] = {
         /* Phantasy Star Online 2 */
         {0x07d2,0x1ec5,0x0c7f, NULL,0},                     // guessed with degod
 
-        /* Dragon Ball Z: Dokkan Battle */
+        /* Dragon Ball Z: Dokkan Battle (Android/iOS) */
         {0x0003,0x0d19,0x043b, NULL,416383518},             // 0000000018D1821E
 
-        /* Kisou Ryouhei Gunhound EX (2013-01-31)(Dracue)[PSP] */
+        /* Kisou Ryouhei Gunhound EX (PSP) */
         {0x0005,0x0bcd,0x1add, NULL,683461999},             // 0000000028BCCD6F
 
         /* Raramagi (Android) */
@@ -213,12 +213,16 @@ static const adxkey_info adxkey9_list[] = {
         /* Yuuki Yuuna wa Yuusha de aru - Hanayui no Kirameki / Yuyuyui (iOS/Android) */
         {0x3f10,0x3651,0x6d31, NULL,4867249871962584729},   // 438BF1F883653699
 
-        // Super Robot Wars X-Omega (voices) [iOS/Android]
+        /* Super Robot Wars X-Omega (iOS/Android) voices */
         {0x5152,0x7979,0x152b, NULL,165521992944278},       // 0000968A97978A96
 
-        // AKA to BLUE (Android)
+        /* AKA to BLUE (Android) */
         {0x03fc,0x0749,0x12EF, NULL,0},                     // guessed with VGAudio (possible key: 1FE0748978 / 136909719928)
       //{0x0c03,0x0749,0x1459, NULL,0},                     // 2nd guess (possible key: 6018748A2D / 412727151149)
+
+        /* Mashiro Witch (Android) */
+        {0x2669,0x1495,0x2407, NULL,0x55D11D3349495204},    // 55D11D3349495204
+
 };
 
 static const int adxkey8_list_count = sizeof(adxkey8_list) / sizeof(adxkey8_list[0]);

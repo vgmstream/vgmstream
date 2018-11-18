@@ -94,6 +94,8 @@ VGMSTREAM * init_vgmstream_gtd(STREAMFILE *streamFile) {
             vgmstream->layout_type = layout_none;
 
             vgmstream->num_samples = num_samples;
+
+            xma_fix_raw_samples(vgmstream, streamFile, start_offset, data_size, chunk_offset, 1,1);
             break;
         }
 #endif

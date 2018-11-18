@@ -8,7 +8,9 @@ VGMSTREAM * init_vgmstream_xwc(STREAMFILE *streamFile) {
 	size_t data_size;
     int loop_flag, channel_count, codec, num_samples;
 
-    /* check extensions (.xwc is the extension of the bigfile, individual files don't have one) */
+
+    /* checks */
+    /* .xwc: extension of the bigfile, individual files don't have one */
     if ( !check_extensions(streamFile,"xwc"))
         goto fail;
 
@@ -16,7 +18,7 @@ VGMSTREAM * init_vgmstream_xwc(STREAMFILE *streamFile) {
     /* version */
     if (read_32bitBE(0x00,streamFile) == 0x00030000 &&
         read_32bitBE(0x04,streamFile) == 0x00900000) { /* The Darkness */
-        data_size = read_32bitLE(0x08, streamFile); /* including subheader */
+        data_size = read_32bitLE(0x08, streamFile) + 0x1c; /* not including subheader */
         channel_count = read_32bitLE(0x0c, streamFile);
         /* 0x10: num_samples */
         /* 0x14: 0x8000? */
@@ -28,7 +30,7 @@ VGMSTREAM * init_vgmstream_xwc(STREAMFILE *streamFile) {
     }
     else if (read_32bitBE(0x00,streamFile) == 0x00040000 &&
              read_32bitBE(0x04,streamFile) == 0x00900000) { /* Riddick, Syndicate */
-        data_size = read_32bitLE(0x08, streamFile); /* including subheader */
+        data_size = read_32bitLE(0x08, streamFile) + 0x24; /* not including subheader */
         channel_count = read_32bitLE(0x0c, streamFile);
         /* 0x10: num_samples */
         /* 0x14: 0x8000? */
@@ -42,15 +44,15 @@ VGMSTREAM * init_vgmstream_xwc(STREAMFILE *streamFile) {
         goto fail;
     }
 
-    loop_flag = 0; /* seemingly not in the file */
+    loop_flag = 0;
 
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
-    vgmstream->num_samples = num_samples;
     vgmstream->meta_type = meta_XWC;
+    vgmstream->num_samples = num_samples;
 
     switch(codec) {
 #ifdef VGM_USE_MPEG
@@ -59,7 +61,7 @@ VGMSTREAM * init_vgmstream_xwc(STREAMFILE *streamFile) {
 
             start_offset = 0x800;
             vgmstream->num_samples = read_32bitLE(extra_offset+0x00, streamFile); /* with encoder delay */ //todo improve
-            cfg.data_size = read_32bitLE(extra_offset+0x04, streamFile); //data_size - 0x28;
+            cfg.data_size = read_32bitLE(extra_offset+0x04, streamFile); /* without padding */
 
             vgmstream->codec_data = init_mpeg_custom(streamFile, start_offset, &vgmstream->coding_type, vgmstream->channels, MPEG_STANDARD, &cfg);
             if (!vgmstream->codec_data) goto fail;
@@ -77,6 +79,7 @@ VGMSTREAM * init_vgmstream_xwc(STREAMFILE *streamFile) {
             seek_size = read_32bitLE(extra_offset+0x00, streamFile);
             start_offset = extra_offset+0x04 + seek_size + read_32bitLE(extra_offset+0x04+seek_size, streamFile) + 0x08;
             start_offset += (start_offset % 0x800) ? 0x800 - (start_offset % 0x800) : 0; /* padded */
+            data_size = data_size - start_offset;
 
             sample_rate = read_32bitBE(extra_offset+0x04+seek_size+0x10, streamFile);
             block_size  = read_32bitBE(extra_offset+0x04+seek_size+0x1c, streamFile);
@@ -84,21 +87,22 @@ VGMSTREAM * init_vgmstream_xwc(STREAMFILE *streamFile) {
             /* others: scrambled RIFF fmt BE values */
 
             bytes = ffmpeg_make_riff_xma2(buf,0x100, vgmstream->num_samples, data_size, vgmstream->channels, sample_rate, block_count, block_size);
-            if (bytes <= 0) goto fail;
-
-            vgmstream->codec_data = init_ffmpeg_header_offset(streamFile, buf,bytes, start_offset,data_size - start_offset - 0x28);
+            vgmstream->codec_data = init_ffmpeg_header_offset(streamFile, buf,bytes, start_offset,data_size);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
 
             vgmstream->sample_rate = sample_rate;
+
+            xma_fix_raw_samples(vgmstream, streamFile, start_offset,data_size, 0, 0,0); /* samples are ok, fix delay */
             break;
         }
 
         case 0x564F5242: { /* "VORB" (PC) */
             start_offset = 0x30;
+            data_size = data_size - start_offset;
 
-            vgmstream->codec_data = init_ffmpeg_offset(streamFile, start_offset, data_size - start_offset - 0x28);
+            vgmstream->codec_data = init_ffmpeg_offset(streamFile, start_offset,data_size);
             if ( !vgmstream->codec_data ) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
