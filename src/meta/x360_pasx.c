@@ -10,10 +10,9 @@ VGMSTREAM * init_vgmstream_x360_pasx(STREAMFILE *streamFile) {
     int num_samples, loop_start_sample, loop_end_sample;
 
 
-    /* check extension, case insensitive */
+    /* checks */
     if ( !check_extensions(streamFile,"past"))
         goto fail;
-
     if (read_32bitBE(0x00,streamFile) != 0x50415358)   /* "PASX" */
         goto fail;
 
@@ -51,6 +50,8 @@ VGMSTREAM * init_vgmstream_x360_pasx(STREAMFILE *streamFile) {
         if ( !vgmstream->codec_data ) goto fail;
         vgmstream->coding_type = coding_FFmpeg;
         vgmstream->layout_type = layout_none;
+
+        xma_fix_raw_samples(vgmstream, streamFile, start_offset, data_size, chunk_offset, 1,1);
     }
 #else
     goto fail;

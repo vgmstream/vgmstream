@@ -5,7 +5,7 @@
 /* RAKI - Ubisoft audio format [Rayman Legends, Just Dance 2017 (multi)] */
 VGMSTREAM * init_vgmstream_ubi_raki(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    off_t start_offset, off, fmt_offset;
+    off_t start_offset, offset, fmt_offset;
     size_t header_size, data_size;
     int big_endian;
     int loop_flag, channel_count, block_align, bits_per_sample;
@@ -15,22 +15,24 @@ VGMSTREAM * init_vgmstream_ubi_raki(STREAMFILE *streamFile) {
     int16_t (*read_16bit)(off_t,STREAMFILE*) = NULL;
 
 
-    /* basic checks */
-    /* .rak: Just Dance 2017; .ckd: Rayman Legends (technically .wav.ckd/rak) */
-    if (!check_extensions(streamFile,"rak,ckd")) goto fail;
+    /* checks */
+    /* .rak: Just Dance 2017
+     * .ckd: Rayman Legends (technically .wav.ckd/rak) */
+    if (!check_extensions(streamFile,"rak,ckd"))
+        goto fail;
 
     /* some games (ex. Rayman Legends PS3) have a 32b file type before the RAKI data. However
      * offsets are absolute and expect the type exists, so it's part of the file and not an extraction defect. */
     if ((read_32bitBE(0x00,streamFile) == 0x52414B49))  /* "RAKI" */
-        off = 0x0;
+        offset = 0x00;
     else if ((read_32bitBE(0x04,streamFile) == 0x52414B49)) /* type varies between platforms (0x09, 0x0b) so ignore */
-        off = 0x4;
+        offset = 0x04;
     else
         goto fail;
 
     /* 0x04: version? (0x00, 0x07, 0x0a, etc); */
-    platform = read_32bitBE(off+0x08,streamFile); /* string */
-    type     = read_32bitBE(off+0x0c,streamFile); /* string */
+    platform = read_32bitBE(offset+0x08,streamFile); /* string */
+    type     = read_32bitBE(offset+0x0c,streamFile); /* string */
 
     switch(platform) {
         case 0x57696920: /* "Wii " */
@@ -48,15 +50,15 @@ VGMSTREAM * init_vgmstream_ubi_raki(STREAMFILE *streamFile) {
             break;
     }
 
-    header_size  = read_32bit(off+0x10,streamFile);
-    start_offset = read_32bit(off+0x14,streamFile);
+    header_size  = read_32bit(offset+0x10,streamFile);
+    start_offset = read_32bit(offset+0x14,streamFile);
     /* 0x18: number of chunks */
     /* 0x1c: unk */
 
     /* the format has a chunk offset table, and the first one always "fmt" and points
-     * to a RIFF "fmt" chunk (even for WiiU or PS3) */
-    if (read_32bitBE(off+0x20,streamFile) != 0x666D7420) goto fail; /*"fmt "*/
-    fmt_offset = read_32bit(off+0x24,streamFile);
+     * to a RIFF "fmt"-style chunk (even for WiiU or PS3) */
+    if (read_32bitBE(offset+0x20,streamFile) != 0x666D7420) goto fail; /* "fmt " */
+    fmt_offset = read_32bit(offset+0x24,streamFile);
     //fmt_size = read_32bit(off+0x28,streamFile);
 
     loop_flag = 0; /* not seen */
@@ -106,7 +108,7 @@ VGMSTREAM * init_vgmstream_ubi_raki(STREAMFILE *streamFile) {
 
             /* we need to know if the file uses "datL" and is full-interleave */
             if (channel_count > 1) {
-                off_t chunk_off = off+ 0x20 + 0xc; /* after "fmt" */
+                off_t chunk_off = offset+ 0x20 + 0xc; /* after "fmt" */
                 while (chunk_off < header_size) {
                     if (read_32bitBE(chunk_off,streamFile) == 0x6461744C) { /*"datL" found */
                         size_t chunk_size = read_32bit(chunk_off+0x8,streamFile);
@@ -122,7 +124,7 @@ VGMSTREAM * init_vgmstream_ubi_raki(STREAMFILE *streamFile) {
 
             {
                 /* get coef offsets; could check "dspL" and "dspR" chunks after "fmt " better but whatevs (only "dspL" if mono) */
-                off_t dsp_coefs = read_32bitBE(off+0x30,streamFile); /* after "dspL"; spacing is consistent but could vary */
+                off_t dsp_coefs = read_32bitBE(offset+0x30,streamFile); /* after "dspL"; spacing is consistent but could vary */
                 dsp_read_coefs(vgmstream,streamFile, dsp_coefs+0x1c, 0x60, big_endian);
                 /* dsp_coefs + 0x00-0x1c: ? (special coefs or adpcm history?) */
             }
@@ -149,15 +151,16 @@ VGMSTREAM * init_vgmstream_ubi_raki(STREAMFILE *streamFile) {
             int bytes, block_count;
 
             block_count = data_size / block_align + (data_size % block_align ? 1 : 0);
-            bytes = ffmpeg_make_riff_xma2(buf, 100, vgmstream->num_samples, data_size, vgmstream->channels, vgmstream->sample_rate, block_count, block_align);
-            if (bytes <= 0) goto fail;
 
+            bytes = ffmpeg_make_riff_xma2(buf, 100, vgmstream->num_samples, data_size, vgmstream->channels, vgmstream->sample_rate, block_count, block_align);
             vgmstream->codec_data = init_ffmpeg_header_offset(streamFile, buf,bytes, start_offset,data_size);
             if ( !vgmstream->codec_data ) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
 
             vgmstream->num_samples = read_32bit(fmt_offset+0x18,streamFile);
+
+            xma_fix_raw_samples(vgmstream, streamFile, start_offset,data_size, 0, 0,0); /* should apply to num_samples? */
             break;
         }
 #endif
@@ -199,7 +202,7 @@ VGMSTREAM * init_vgmstream_ubi_raki(STREAMFILE *streamFile) {
             vgmstream->layout_type = layout_none;
 
             {
-                off_t chunk_offset = off + 0x20 + 0xc; /* after "fmt" */
+                off_t chunk_offset = offset + 0x20 + 0xc; /* after "fmt" */
                 while (chunk_offset < header_size) {
                     if (read_32bitBE(chunk_offset,streamFile) == 0x4164496E) { /*"AdIn" additional info */
                         off_t adin_offset = read_32bitLE(chunk_offset+0x04,streamFile);

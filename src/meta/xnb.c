@@ -4,18 +4,16 @@
 /* XNB - Microsoft XNA Game Studio 4.0 format */
 VGMSTREAM * init_vgmstream_xnb(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    off_t start_offset;
+    off_t start_offset, xma_chunk_offset = 0;
     int loop_flag = 0, channel_count, num_samples = 0, loop_start = 0, loop_end = 0;
     int big_endian, flags, codec, sample_rate, block_size, bps;
     size_t data_size;
     char platform;
 
 
-    /* check extension, case insensitive */
-    if ( !check_extensions(streamFile,"xnb"))
+    /* checks */
+    if (!check_extensions(streamFile,"xnb"))
         goto fail;
-
-    /* check header */
     if ((read_32bitBE(0,streamFile) & 0xFFFFFF00) != 0x584E4200) /* "XNB" */
         goto fail;
 
@@ -24,7 +22,7 @@ VGMSTREAM * init_vgmstream_xnb(STREAMFILE *streamFile) {
     platform = read_8bit(0x03,streamFile);
     big_endian = (platform == 'x');
 
-    if (read_8bit(0x04,streamFile) != 0x05)  /* XNA 4.0 version only */
+    if (read_8bit(0x04,streamFile) != 0x05) /* XNA 4.0 version only */
         goto fail;
 
     flags = read_8bit(0x05,streamFile);
@@ -82,6 +80,7 @@ VGMSTREAM * init_vgmstream_xnb(STREAMFILE *streamFile) {
 
             if (codec == 0x166) {
                 xma2_parse_fmt_chunk_extra(streamFile, current_offset, &loop_flag, &num_samples, &loop_start, &loop_end, big_endian);
+                xma_chunk_offset = current_offset;
             }
         }
 
@@ -138,8 +137,6 @@ VGMSTREAM * init_vgmstream_xnb(STREAMFILE *streamFile) {
             block_count = data_size / block_size + (data_size % block_size ? 1 : 0);
 
             bytes = ffmpeg_make_riff_xma2(buf,0x100, num_samples, data_size, vgmstream->channels, vgmstream->sample_rate, block_count, block_size);
-            if (bytes <= 0) goto fail;
-
             vgmstream->codec_data = init_ffmpeg_header_offset(streamFile, buf,bytes, start_offset,data_size);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
@@ -148,6 +145,8 @@ VGMSTREAM * init_vgmstream_xnb(STREAMFILE *streamFile) {
             vgmstream->num_samples = num_samples;
             vgmstream->loop_start_sample = loop_start;
             vgmstream->loop_end_sample = loop_end;
+
+            xma_fix_raw_samples(vgmstream, streamFile, start_offset,data_size, xma_chunk_offset, 1,1);
             break;
         }
 #endif

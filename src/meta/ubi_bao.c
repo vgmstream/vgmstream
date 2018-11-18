@@ -190,6 +190,8 @@ static VGMSTREAM * init_vgmstream_ubi_bao_main(ubi_bao_header * bao, STREAMFILE 
             vgmstream->layout_type = layout_none;
 
             vgmstream->stream_size = data_size;
+
+            xma_fix_raw_samples(vgmstream, streamData, start_offset,data_size, 0, 0,0);
             break;
         }
 

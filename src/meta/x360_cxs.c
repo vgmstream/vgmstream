@@ -1,31 +1,29 @@
 #include "meta.h"
 #include "../coding/coding.h"
 
-/* CXS - found in Eternal Sonata (Xbox 360) */
+/* CXS - found in Eternal Sonata (X360) */
 VGMSTREAM * init_vgmstream_x360_cxs(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     off_t start_offset;
     int loop_flag, channel_count;
 
-    /* check extension, case insensitive */
+    /* checks */
     if ( !check_extensions(streamFile,"cxs"))
         goto fail;
-
     if (read_32bitBE(0x00,streamFile) != 0x43585320)   /* "CXS " */
         goto fail;
 
     loop_flag = read_32bitBE(0x18,streamFile) > 0;
     channel_count = read_32bitBE(0x0c,streamFile);
+    start_offset = read_32bitBE(0x04,streamFile) + read_32bitBE(0x28,streamFile); /* assumed, seek table always at 0x800 */
 
-   /* build the VGMSTREAM */
+    /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
-    start_offset = read_32bitBE(0x04,streamFile) + read_32bitBE(0x28,streamFile); /* assumed, seek table always at 0x800 */
     /*  0x04: data start? */
     vgmstream->sample_rate = read_32bitBE(0x08,streamFile);
-    vgmstream->channels = channel_count; /*0x0c*/
-    vgmstream->num_samples = read_32bitBE(0x10,streamFile) + 576; /*todo add proper encoder_delay*/
+    vgmstream->num_samples = read_32bitBE(0x10,streamFile);
     vgmstream->loop_start_sample = read_32bitBE(0x14,streamFile);
     vgmstream->loop_end_sample = read_32bitBE(0x18,streamFile);
     /* 0x1c: below */
@@ -50,6 +48,8 @@ VGMSTREAM * init_vgmstream_x360_cxs(STREAMFILE *streamFile) {
         vgmstream->codec_data = ffmpeg_data;
         vgmstream->coding_type = coding_FFmpeg;
         vgmstream->layout_type = layout_none;
+
+        xma_fix_raw_samples(vgmstream, streamFile, start_offset,datasize, 0, 0,1); /* num samples are ok */
     }
 #else
     goto fail;

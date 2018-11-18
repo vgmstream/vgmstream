@@ -1,7 +1,7 @@
 #include "meta.h"
 #include "../coding/coding.h"
 
-/* XMA - Microsoft format derived from WMAPRO, found in X360/XBone games */
+/* XMA - Microsoft format derived from RIFF, found in X360/XBone games */
 VGMSTREAM * init_vgmstream_xma(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     off_t start_offset, chunk_offset, first_offset = 0xc;
@@ -69,7 +69,7 @@ VGMSTREAM * init_vgmstream_xma(STREAMFILE *streamFile) {
         goto fail;
 
 
-    /* fix samples; for now only XMA1 is fixed, but XMA2 num_samples don't include skip samples and xmaencode.exe doesn't use it */
+    /* get xma1 samples, later fixed */
     if (is_xma1) {
         ms_sample_data msd = {0};
 
@@ -96,12 +96,11 @@ VGMSTREAM * init_vgmstream_xma(STREAMFILE *streamFile) {
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
+    vgmstream->meta_type = meta_XMA_RIFF;
     vgmstream->sample_rate = sample_rate;
     vgmstream->num_samples = num_samples;
     vgmstream->loop_start_sample = loop_start_sample;
     vgmstream->loop_end_sample   = loop_end_sample;
-    vgmstream->meta_type = meta_XMA_RIFF;
-
 
 #ifdef VGM_USE_FFMPEG
     {
@@ -118,6 +117,8 @@ VGMSTREAM * init_vgmstream_xma(STREAMFILE *streamFile) {
         if ( !vgmstream->codec_data ) goto fail;
         vgmstream->coding_type = coding_FFmpeg;
         vgmstream->layout_type = layout_none;
+
+        xma_fix_raw_samples(vgmstream, streamFile, start_offset, data_size, chunk_offset, 1,1);
     }
 #else
     goto fail;

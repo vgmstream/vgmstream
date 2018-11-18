@@ -335,7 +335,6 @@ VGMSTREAM * init_vgmstream_txth(STREAMFILE *streamFile) {
                 else {
                     goto fail;
                 }
-                if (bytes <= 0) goto fail;
 
                 ffmpeg_data = init_ffmpeg_header_offset(streamFile, buf,bytes, txth.start_offset,txth.data_size);
                 if ( !ffmpeg_data ) goto fail;
@@ -344,8 +343,9 @@ VGMSTREAM * init_vgmstream_txth(STREAMFILE *streamFile) {
             vgmstream->codec_data = ffmpeg_data;
             vgmstream->layout_type = layout_none;
 
-            /* force encoder delay */
-            if (txth.skip_samples_set) {
+            if (txth.codec == XMA1 || txth.codec == XMA2) {
+                xma_fix_raw_samples(vgmstream, streamFile, txth.start_offset,txth.data_size, 0, 0,0);
+            } else if (txth.skip_samples_set) { /* force encoder delay */
                 ffmpeg_set_skip_samples(ffmpeg_data, txth.skip_samples);
             }
 

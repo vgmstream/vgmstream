@@ -314,7 +314,7 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
             break;
 
 #ifdef VGM_USE_FFMPEG
-        case 0x0A: {/* FMOD_SOUND_FORMAT_XMA  [Dark Souls 2 (X360)] */
+        case 0x0A: {/* FMOD_SOUND_FORMAT_XMA  [Minecraft Story Mode (X360)] */
             uint8_t buf[0x100];
             int bytes, block_size, block_count;
 
@@ -323,9 +323,11 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
 
             bytes = ffmpeg_make_riff_xma2(buf, 0x100, vgmstream->num_samples, fsb5.stream_size, vgmstream->channels, vgmstream->sample_rate, block_count, block_size);
             vgmstream->codec_data = init_ffmpeg_header_offset(streamFile, buf,bytes, fsb5.stream_offset,fsb5.stream_size);
-            if ( !vgmstream->codec_data ) goto fail;
+            if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
+
+            xma_fix_raw_samples(vgmstream, streamFile, fsb5.stream_offset,fsb5.stream_size, 0, 0,0); /* samples look ok */
             break;
         }
 #endif

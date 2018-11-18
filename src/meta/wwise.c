@@ -19,6 +19,7 @@ typedef struct {
     size_t fmt_size;
     off_t data_offset;
     size_t data_size;
+    off_t chunk_offset;
 
     /* standard fmt stuff */
     wwise_codec codec;
@@ -104,9 +105,9 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
         ww.format           = (uint16_t)read_16bit(ww.fmt_offset+0x00,streamFile);
 
         if (ww.format == 0x0165) { /* XMA2WAVEFORMAT (always "fmt"+"XMA2", unlike .xma that may only have "XMA2") */
-            off_t xma2_offset;
-            if (!find_chunk(streamFile, 0x584D4132,first_offset,0, &xma2_offset,NULL, ww.big_endian, 0)) goto fail;
-            xma2_parse_xma2_chunk(streamFile, xma2_offset,&ww.channels,&ww.sample_rate, &ww.loop_flag, &ww.num_samples, &ww.loop_start_sample, &ww.loop_end_sample);
+            if (!find_chunk(streamFile, 0x584D4132,first_offset,0, &ww.chunk_offset,NULL, ww.big_endian, 0))
+                goto fail;
+            xma2_parse_xma2_chunk(streamFile, ww.chunk_offset,&ww.channels,&ww.sample_rate, &ww.loop_flag, &ww.num_samples, &ww.loop_start_sample, &ww.loop_end_sample);
         } else { /* WAVEFORMATEX */
             ww.channels         = read_16bit(ww.fmt_offset+0x02,streamFile);
             ww.sample_rate      = read_32bit(ww.fmt_offset+0x04,streamFile);
@@ -122,9 +123,10 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
 
         /* find loop info */
         if (ww.format == 0x0166) { /* XMA2WAVEFORMATEX */
-            xma2_parse_fmt_chunk_extra(streamFile, ww.fmt_offset, &ww.loop_flag, &ww.num_samples, &ww.loop_start_sample, &ww.loop_end_sample, ww.big_endian);
+            ww.chunk_offset = ww.fmt_offset;
+            xma2_parse_fmt_chunk_extra(streamFile, ww.chunk_offset, &ww.loop_flag, &ww.num_samples, &ww.loop_start_sample, &ww.loop_end_sample, ww.big_endian);
         }
-        else if (find_chunk(streamFile, 0x736D706C,first_offset,0, &loop_offset,&loop_size, ww.big_endian, 0)) { /*"smpl". common */
+        else if (find_chunk(streamFile, 0x736D706C,first_offset,0, &loop_offset,&loop_size, ww.big_endian, 0)) { /*"smpl", common */
             if (loop_size >= 0x34
                     && read_32bit(loop_offset+0x1c, streamFile)==1        /*loop count*/
                     && read_32bit(loop_offset+0x24+4, streamFile)==0) {
@@ -139,7 +141,7 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
         //}
 
         /* other Wwise specific: */
-        //"JUNK": optional padding for usually aligment (0-size JUNK exists too)
+        //"JUNK": optional padding for aligment (0-size JUNK exists too)
         //"akd ": seem to store extra info for Wwise editor (wave peaks/loudness/HDR envelope?)
     }
 
@@ -162,7 +164,6 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
         case 0xFFFE: ww.codec = PCM; break; /* "PCM for Wwise Authoring" */
         case 0xFFFF: ww.codec = VORBIS; break;
         default:
-            VGM_LOG("WWISE: unknown codec 0x%x \n", ww.format);
             goto fail;
     }
 
@@ -250,7 +251,7 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
 
             if (ww.block_align != 0 || ww.bits_per_sample != 0) goto fail; /* always 0 for Worbis */
 
-            /* autodetect format (field are mostly common, see the end of the file) */
+            /* autodetect format (fields are mostly common, see the end of the file) */
             if (find_chunk(streamFile, 0x766F7262,first_offset,0, &vorb_offset,&vorb_size, ww.big_endian, 0)) { /*"vorb"*/
                 /* older Wwise (~<2012) */
 
@@ -273,7 +274,7 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
                         cfg.setup_type = WWV_EXTERNAL_CODEBOOKS; /* setup_type will be corrected later */
                         break;
 
-                    case 0x2a:  /* uncommon (mid 2011), [inFamous 2 (PS3)] */
+                    case 0x2a:  /* uncommon (mid 2011) [inFamous 2 (PS3)] */
                         data_offsets = 0x10;
                         block_offsets = 0x28;
                         cfg.header_type = WWV_TYPE_2;
@@ -296,9 +297,9 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
                 ww.data_size -= audio_offset;
 
                 /* detect setup type:
-                 * - full inline: ~2009, ex. The King of Fighters XII X360, The Saboteur PC
-                 * - trimmed inline: ~2010, ex. Army of Two: 40 days X360 (some multiplayer files)
-                 * - external: ~2010, ex. Assassin's Creed Brotherhood X360, Dead Nation X360 */
+                 * - full inline: ~2009, ex. The King of Fighters XII (X360), The Saboteur (PC)
+                 * - trimmed inline: ~2010, ex. Army of Two: 40 days (X360) some multiplayer files
+                 * - external: ~2010, ex. Assassin's Creed Brotherhood (X360), Dead Nation (X360) */
                 if (vorb_size == 0x34) {
                     size_t setup_size = (uint16_t)read_16bit(start_offset + setup_offset, streamFile);
                     uint32_t id = (uint32_t)read_32bitBE(start_offset + setup_offset + 0x06, streamFile);
@@ -329,12 +330,12 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
                         cfg.packet_type = WWV_MODIFIED;
 
                         /* setup not detectable by header, so we'll try both; hopefully libvorbis will reject wrong codebooks
-                         * - standard: early (<2012), ex. The King of Fighters XIII X360 (2011/11), .ogg (cbs are from aoTuV, too)
-                         * - aoTuV603: later (>2012), ex. Sonic & All-Stars Racing Transformed PC (2012/11), .wem */
+                         * - standard: early (<2012), ex. The King of Fighters XIII (X360)-2011/11, .ogg (cbs are from aoTuV, too)
+                         * - aoTuV603: later (>2012), ex. Sonic & All-Stars Racing Transformed (PC)-2012/11, .wem */
                         cfg.setup_type  = is_wem ? WWV_AOTUV603_CODEBOOKS : WWV_EXTERNAL_CODEBOOKS; /* aoTuV came along .wem */
                         break;
 
-                    //case 0x2a: /* Rocksmith 2011 X360? */
+                    //case 0x2a: /* Rocksmith 2011 (X360)? */
                         //non mod packets? TYPE_06? (possibly detectable by checking setup's granule, should be 0)
                     default:
                         VGM_LOG("WWISE: unknown extra size 0x%x\n", vorb_size);
@@ -348,10 +349,10 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
                 cfg.blocksize_0_exp = read_8bit(extra_offset + block_offsets + 0x01, streamFile); /* big */
                 ww.data_size -= audio_offset;
 
-                /* Normal packets are used rarely (ex. Oddworld New 'n' Tasty! PSV). They are hard to detect (decoding
+                /* Normal packets are used rarely (ex. Oddworld New 'n' Tasty! (PSV)). They are hard to detect (decoding
                  * will mostly work with garbage results) but we'll try. Setup size and "fmt" bitrate fields may matter too. */
                 if (ww.extra_size == 0x30) {
-                    /* all blocksizes I've seen are 0x08+0x0B except Oddworld PSV, that uses 0x09+0x09
+                    /* all blocksizes I've seen are 0x08+0x0B except Oddworld (PSV), that uses 0x09+0x09
                      * (maybe lower spec machines = needs simpler packets) */
                     if (cfg.blocksize_0_exp == cfg.blocksize_1_exp)
                         cfg.packet_type = WWV_STANDARD;
@@ -395,7 +396,7 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
             vgmstream->interleave_block_size = 0x08; /* ww.block_align = 0x8 in older Wwise, samples per block in newer Wwise */
 
             /* find coef position */
-            if (find_chunk(streamFile, 0x57696948,first_offset,0, &wiih_offset,&wiih_size, ww.big_endian, 0)) { /*"WiiH"*/ /* older Wwise */
+            if (find_chunk(streamFile, 0x57696948,first_offset,0, &wiih_offset,&wiih_size, ww.big_endian, 0)) { /*"WiiH", older Wwise */
                 vgmstream->num_samples = dsp_bytes_to_samples(ww.data_size, ww.channels);
                 if (wiih_size != 0x2e * ww.channels) goto fail;
             }
@@ -441,6 +442,9 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
             vgmstream->layout_type = layout_none;
 
             vgmstream->num_samples = ww.num_samples; /* set while parsing XMAWAVEFORMATs */
+
+            /* Wwise loops are always pre-adjusted (old or new) and only num_samples is off */
+            xma_fix_raw_samples(vgmstream, streamFile, ww.data_offset,ww.data_size, ww.chunk_offset, 1,0);
 
             /* "XMAc": rare Wwise extension, XMA2 physical loop regions (loop_start_b, loop_end_b, loop_subframe_data)
              * Can appear even in the file doesn't loop, maybe it's meant to be the playable physical region */

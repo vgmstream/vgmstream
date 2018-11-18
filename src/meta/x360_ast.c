@@ -55,7 +55,6 @@ VGMSTREAM * init_vgmstream_x360_ast(STREAMFILE *streamFile) {
         vgmstream->num_samples = msd.num_samples;
         vgmstream->loop_start_sample = msd.loop_start_sample;
         vgmstream->loop_end_sample = msd.loop_end_sample;
-        //skip_samples = msd.skip_samples; //todo add skip samples
     }
 
 #ifdef VGM_USE_FFMPEG
@@ -68,12 +67,12 @@ VGMSTREAM * init_vgmstream_x360_ast(STREAMFILE *streamFile) {
 
         /* XMA1 "fmt" chunk @ 0x20 (BE, unlike the usual LE) */
         bytes = ffmpeg_make_riff_xma_from_fmt_chunk(buf,100, fmt_offset,fmt_size, data_size, streamFile, 1);
-        if (bytes <= 0) goto fail;
-
         vgmstream->codec_data = init_ffmpeg_header_offset(streamFile, buf,bytes, start_offset,data_size);
         if ( !vgmstream->codec_data ) goto fail;
         vgmstream->coding_type = coding_FFmpeg;
         vgmstream->layout_type = layout_none;
+
+        xma_fix_raw_samples(vgmstream, streamFile, start_offset, data_size, fmt_offset, 1,1);
     }
 #else
     goto fail;

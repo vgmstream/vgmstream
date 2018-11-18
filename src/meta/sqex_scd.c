@@ -334,23 +334,23 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
 
 #ifdef VGM_USE_FFMPEG
         case 0x0B: {    /* XMA2 [Final Fantasy (X360), Lightning Returns (X360) sfx, Kingdom Hearts 2.8 (X1)] */
-                ffmpeg_codec_data *ffmpeg_data = NULL;
-                uint8_t buf[200];
-                int32_t bytes;
+            ffmpeg_codec_data *ffmpeg_data = NULL;
+            uint8_t buf[200];
+            int32_t bytes;
 
-                /* extradata_offset+0x00: fmt0x166 header (BE),  extradata_offset+0x34: seek table */
-                bytes = ffmpeg_make_riff_xma_from_fmt_chunk(buf,200, extradata_offset,0x34, stream_size, streamFile, 1);
-                if (bytes <= 0) goto fail;
+            /* extradata_offset+0x00: fmt0x166 header (BE),  extradata_offset+0x34: seek table */
+            bytes = ffmpeg_make_riff_xma_from_fmt_chunk(buf,200, extradata_offset,0x34, stream_size, streamFile, 1);
+            ffmpeg_data = init_ffmpeg_header_offset(streamFile, buf,bytes, start_offset,stream_size);
+            if (!ffmpeg_data) goto fail;
+            vgmstream->codec_data = ffmpeg_data;
+            vgmstream->coding_type = coding_FFmpeg;
+            vgmstream->layout_type = layout_none;
 
-                ffmpeg_data = init_ffmpeg_header_offset(streamFile, buf,bytes, start_offset,stream_size);
-                if (!ffmpeg_data) goto fail;
-                vgmstream->codec_data = ffmpeg_data;
-                vgmstream->coding_type = coding_FFmpeg;
-                vgmstream->layout_type = layout_none;
+            vgmstream->num_samples = ffmpeg_data->totalSamples;
+            vgmstream->loop_start_sample = loop_start;
+            vgmstream->loop_end_sample = loop_end;
 
-                vgmstream->num_samples = ffmpeg_data->totalSamples;
-                vgmstream->loop_start_sample = loop_start;
-                vgmstream->loop_end_sample = loop_end;
+            xma_fix_raw_samples(vgmstream, streamFile, start_offset,stream_size, 0, 0,0); /* samples are ok, loops? */
             break;
         }
 

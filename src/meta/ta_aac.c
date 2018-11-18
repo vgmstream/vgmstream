@@ -108,13 +108,17 @@ VGMSTREAM * init_vgmstream_ta_aac_x360(STREAMFILE *streamFile) {
         datasize = dataSize;
 
         bytes = ffmpeg_make_riff_xma2(buf,100, vgmstream->num_samples, datasize, vgmstream->channels, vgmstream->sample_rate, block_count, block_size);
-        if (bytes <= 0) goto fail;
-
         ffmpeg_data = init_ffmpeg_header_offset(streamFile, buf,bytes, start_offset,datasize);
         if ( !ffmpeg_data ) goto fail;
         vgmstream->codec_data = ffmpeg_data;
         vgmstream->coding_type = coding_FFmpeg;
         vgmstream->layout_type = layout_none;
+
+        xma_fix_raw_samples(vgmstream, streamFile, start_offset, datasize, 0, 1,1);
+        if (loop_flag) { /* reapply adjusted samples */
+            vgmstream->loop_end_sample = vgmstream->num_samples;
+        }
+
     }
 #else
     goto fail;

@@ -69,6 +69,8 @@ typedef struct {
     uint32_t loop_end_sample;
 
     int is_crackdown;
+    int fix_xma_num_samples;
+    int fix_xma_loop_samples;
 } xwb_header;
 
 static void get_name(char * buf, size_t maxsize, int target_subsong, xwb_header * xwb, STREAMFILE *streamFile);
@@ -366,7 +368,7 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
         xwb.loop_start_sample = msadpcm_bytes_to_samples(xwb.loop_start, block_size, xwb.channels);
         xwb.loop_end_sample   = msadpcm_bytes_to_samples(xwb.loop_start + xwb.loop_end, block_size, xwb.channels);
     }
-    else if (xwb.version <= XACT2_1_MAX && (xwb.codec == XMA1 || xwb.codec == XMA2) &&  xwb.loop_flag) {
+    else if (xwb.version <= XACT2_1_MAX && (xwb.codec == XMA1 || xwb.codec == XMA2) && xwb.loop_flag) {
         /* v38: byte offset, v40+: sample offset, v39: ? */
         /* need to manually find sample offsets, thanks to Microsoft's dumb headers */
         ms_sample_data msd = {0};
@@ -386,44 +388,27 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
         xwb.loop_start_sample = msd.loop_start_sample;
         xwb.loop_end_sample   = msd.loop_end_sample;
 
-        /* for XWB v22 (and below?) this seems normal [Project Gotham Racing (X360)] */
-        if (xwb.num_samples == 0)
-            xwb.num_samples   = msd.num_samples;
-
         /* if provided, xwb.num_samples is equal to msd.num_samples after proper adjustments (+ 128 - start_skip - end_skip) */
+        xwb.fix_xma_loop_samples = 1;
+        xwb.fix_xma_num_samples = 0;
 
-#if 1
-        //todo add padding back until FFmpeg decoding + msd.loops are fixed (affects edge loops)
-        // (in rare cases this causes a glitch in FFmpeg due to missing samples)
-        xwb.num_samples += 64 + 512;
-#endif
+        /* for XWB v22 (and below?) this seems normal [Project Gotham Racing (X360)] */
+        if (xwb.num_samples == 0) {
+            xwb.num_samples   = msd.num_samples;
+            xwb.fix_xma_num_samples = 1;
+        }
     }
     else if ((xwb.codec == XMA1 || xwb.codec == XMA2) &&  xwb.loop_flag) {
         /* unlike prev versions, xwb.num_samples is the full size without adjustments */
+        xwb.fix_xma_loop_samples = 1;
+        xwb.fix_xma_num_samples = 1;
 
-#if 0   //todo apply once FFmpeg decode is ok
-        /* apply extra output + skips (see ms_audio_get_samples, approximate as find out with first and last frames) */
-        int start_skip = 512;
-        int end_skip = 0;
-
-        xwb.num_samples += 128;
-        xwb.num_samples -= start_skip;
-        xwb.num_samples -= end_skip;
-        if (xwb.loop_flag) {
-            xwb.loop_start_sample += 128;
-            xwb.loop_start_sample -= start_skip;
-
-            xwb.loop_end_sample += 128;
-            xwb.loop_end_sample -= start_skip;
-        }
-#endif
-
-        /* Crackdown does use xwb.num_samples after adjustments (but not loops), fix it back */
+        /* Crackdown does use xwb.num_samples after adjustments (but not loops) */
         if (xwb.is_crackdown) {
-            xwb.num_samples += 512 - 128;
+            xwb.fix_xma_num_samples = 0;
         }
     }
-
+VGM_LOG("fix: num=%i, loop=%i\n", xwb.fix_xma_num_samples,xwb.fix_xma_loop_samples);
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(xwb.channels,xwb.loop_flag);
@@ -467,6 +452,15 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
+
+            xma_fix_raw_samples(vgmstream, streamFile, xwb.stream_offset,xwb.stream_size, 0, xwb.fix_xma_num_samples,xwb.fix_xma_loop_samples);
+
+            /* this fixes some XMA1, perhaps the above isn't reading end_skip correctly (doesn't happen for all files though) */
+            if (vgmstream->loop_flag &&
+                    vgmstream->loop_end_sample > vgmstream->num_samples) {
+                VGM_LOG("XWB: fix XMA1 looping\n");
+                vgmstream->loop_end_sample = vgmstream->num_samples;
+            }
             break;
         }
 
@@ -482,6 +476,8 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
+
+            xma_fix_raw_samples(vgmstream, streamFile, xwb.stream_offset,xwb.stream_size, 0, xwb.fix_xma_num_samples,xwb.fix_xma_loop_samples);
             break;
         }
 

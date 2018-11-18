@@ -11,11 +11,9 @@ VGMSTREAM * init_vgmstream_p3d(STREAMFILE *streamFile) {
     int32_t (*read_32bit)(off_t,STREAMFILE*) = NULL;
 
 
-    /* check extension, case insensitive */
+    /* checks */
     if (!check_extensions(streamFile,"p3d"))
         goto fail;
-
-    /* check header */
     if (read_32bitBE(0x0,streamFile) != 0x503344FF &&  /* "P3D"\FF (LE: PC) */
         read_32bitBE(0x0,streamFile) != 0xFF443350)    /* \FF"D3P" (BE: PS3, X360) */
         goto fail;
@@ -164,12 +162,12 @@ VGMSTREAM * init_vgmstream_p3d(STREAMFILE *streamFile) {
             size_t bytes;
 
             bytes = ffmpeg_make_riff_xma2(buf,0x100, vgmstream->num_samples, data_size, vgmstream->channels, vgmstream->sample_rate, block_count, block_size);
-            if (bytes <= 0) goto fail;
-
             vgmstream->codec_data = init_ffmpeg_header_offset(streamFile, buf,bytes, start_offset,data_size);
             if ( !vgmstream->codec_data ) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
+
+            xma_fix_raw_samples(vgmstream, streamFile, start_offset, data_size, 0, 1,1); /* samples needs adjustment */
             break;
         }
 #endif
