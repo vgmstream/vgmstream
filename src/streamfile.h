@@ -206,6 +206,8 @@ size_t read_string(char * buf, size_t bufsize, off_t offset, STREAMFILE *streamF
 
 size_t read_key_file(uint8_t * buf, size_t bufsize, STREAMFILE *streamFile);
 
+void fix_dir_separators(char * filename);
+
 int check_extensions(STREAMFILE *streamFile, const char * cmp_exts);
 
 int find_chunk_be(STREAMFILE *streamFile, uint32_t chunk_id, off_t start_offset, int full_chunk_size, off_t *out_chunk_offset, size_t *out_chunk_size);

@@ -955,6 +955,17 @@ fail:
     return 0;
 }
 
+/* hack to allow relative paths in various OSs */
+void fix_dir_separators(char * filename) {
+    char c;
+    int i = 0;
+    while ((c = filename[i]) != '\0') {
+        if ((c == '\\' && DIR_SEPARATOR == '/') || (c == '/' && DIR_SEPARATOR == '\\'))
+            filename[i] = DIR_SEPARATOR;
+        i++;
+    }
+}
+
 
 /**
  * Checks if the stream filename is one of the extensions (comma-separated, ex. "adx" or "adx,aix").

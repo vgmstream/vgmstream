@@ -365,20 +365,9 @@ static int add_filename(txtp_header * txtp, char *filename) {
     }
 
 
-    /* hack to allow relative paths in various OSs */
-    {
-        char c;
+    fix_dir_separators(filename); /* clean paths */
 
-        i = 0;
-        while ((c = filename[i]) != '\0') {
-            if ((c == '\\' && DIR_SEPARATOR == '/') || (c == '/' && DIR_SEPARATOR == '\\'))
-                filename[i] = DIR_SEPARATOR;
-            i++;
-        }
-    }
-
-
-    /* add filesnames */
+    /* add filenames */
     for (i = range_start; i < range_end; i++){
         txtp_entry *current;
 
