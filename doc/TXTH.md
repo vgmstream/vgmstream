@@ -31,22 +31,27 @@ A text file with the above commands must be saved as ".vag.txth" or ".txth", not
 ```
 ######################################################
 
-# The file is made lines of "key = value" describing a header.
-# Comments start with #, can be inlined.
+# The file is made of lines like "key = value" commands describing a header.
+# Comments start with #, can be inlined. keys and commands are all case sensitive.
 # Spaces are optional: key=value, key  =   value, and so on are all ok.
 # The parser is fairly simple and may be buggy or unexpected in some cases.
 # The order of keys is variable but some things won't work if others aren't defined
 # (ex. bytes-to-samples may not work without channels or interleave).
 
 # Common values:
-# - (number): constant number in dec/hex.
+# - (number): constant number in dec/hex, unsigned (no +10 or -10).
 #   Examples: 44100, 40, 0x40 (decimal=64)
 # - (offset): format is @(number)[:LE|BE][$1|2|3|4]
 #   * @(number): value at offset (required)
 #   * :LE|BE: value is little/big endian (optional, defaults to LE)
 #   * $1|2|3|4: value has size of 8/16/24/32 bit (optional, defaults to 4)
 #   Examples: @0x10:BE$2 (get big endian 16b value at 0x10)
-# - {string}: special values for certain keys, described below
+# - (field): uses current value of a field. Accepted strings:
+#   - interleave, channels, sample_rate
+#   - start_offset, data_size
+#   - num_samples, loop_start_sample, loop_end_sample
+#   - subsong_count, subsong_offset
+# - {string}: other special values for certain keys, described below
 
 # Codec used to encode the data [REQUIRED]
 # Accepted codec strings:
@@ -84,11 +89,14 @@ codec = (codec string)
 # - others: ignored
 codec_mode = (number)
 
-# Multiplies any next read values [OPTIONAL]
-# Will change to "(key) = (number)|(offset) * value_multiplier",
-# useful if a size is given in 0x800 sectors or such.
-# Should be set to 0 when done using, as it affects ANY value.
-value_multiplier = (number)|(offset)
+# Modifies next values [OPTIONAL]
+# Values will be "(key) = (number)|(offset)|(field) */+- value_(op)"
+# Useful when a size or such needs adjustments (like given in 0x800 sectors).
+# Set to 0 when done using, as it affects ANY value. Priority is as listed.
+value_mul|value_* = (number)|(offset)|(field)
+value_div|value_/ = (number)|(offset)|(field)
+value_add|value_+ = (number)|(offset)|(field)
+value_sub|value_- = (number)|(offset)|(field)
 
 # Interleave or block size [REQUIRED/OPTIONAL, depends on codec]
 # - half_size: sets interleave as data_size / channels
@@ -96,30 +104,30 @@ value_multiplier = (number)|(offset)
 # and for codecs with variable-sized frames (MSADPCM, MS-IMA, ATRAC3/plus)
 # means block size (size of a single frame).
 # Interleave 0 means "stereo mode" for some codecs (IMA, AICA, etc).
-interleave = (number)|(offset)|half_size
+interleave = (number)|(offset)|(field)|half_size
 
 # Validate that id_value matches value at id_offset [OPTIONAL]
 # Can be redefined several times, it's checked whenever a new id_offset is found.
-id_value = (number)|(offset)
-id_offset = (number)|(offset)
+id_value = (number)|(offset)|(field)
+id_offset = (number)|(offset)|(field)
 
 # Number of channels [REQUIRED]
-channels = (number)|(offset)
+channels = (number)|(offset)|(field)
 
 # Music frequency in hz [REQUIRED]
-sample_rate = (number)|(offset)
+sample_rate = (number)|(offset)|(field)
 
 # Data start [OPTIONAL, default to 0]
-start_offset = (number)|(offset)
+start_offset = (number)|(offset)|(field)
 
 # Variable that can be used in sample values [OPTIONAL]
 # Defaults to (file_size - start_offset), re-calculated when start_offset
 # is set (won't recalculate if data_size is set then start_offset changes).
-data_size = (number)|(offset)
+data_size = (number)|(offset)|(field)
 
 # Modifies the meaning of sample fields when set *before* them [OPTIONAL, defaults to samples]
 # - samples: exact sample
-# - bytes: automatically converts bytes/offset to samples
+# - bytes: automatically converts bytes/offset to samples (applies after */+- modifiers)
 # - blocks: same as bytes, but value is given in blocks/frames
 #   Value is internally converted from blocks to bytes first: bytes = (value * interleave*channels)
 # Some codecs can't convert bytes-to-samples at the moment: MPEG/FFMPEG
@@ -127,34 +135,36 @@ data_size = (number)|(offset)
 sample_type = samples|bytes|blocks
  
 # Various sample values [REQUIRED (num_samples) / OPTIONAL (rest)]
-num_samples         = (number)|(offset)|data_size
-loop_start_sample   = (number)|(offset)
-loop_end_sample     = (number)|(offset)|data_size
+# - data_size: automatically converts bytes-to-samples
+num_samples         = (number)|(offset)|(field)|data_size
+loop_start_sample   = (number)|(offset)|(field)
+loop_end_sample     = (number)|(offset)|(field)|data_size
 
 # Force loop, on (>0) or off (0), as loop start/end may be defined but not used [OPTIONAL]
 # - auto: tries to autodetect loop points for PS-ADPCM data, which may include loop flags.
-# By default it loops when loop_end_sample is defined
-loop_flag = (number)|(offset)|auto
+# Ignores values 0xFFFF/0xFFFFFFFF (-1) as they are often used to disable loops.
+# By default it loops when loop_end_sample is defined and less than num_samples.
+loop_flag = (number)|(offset)|(field)|auto
 
 # Loop start/end modifier [OPTIONAL]
 # For XMA1/2 + sample_type=bytes it means loop subregion, if read after loop values.
 # For other codecs its added to loop start/end, if read before loop values
 # (a format may rarely have rough loop offset/bytes, then a loop adjust in samples).
-loop_adjust = (number)|(offset)
+loop_adjust = (number)|(offset)|(field)
 
 # Beginning samples to skip (encoder delay) [OPTIONAL]
 # Only some codecs use them (ATRAC3/ATRAC3PLUS/XMA/FFMPEG/AC3)
-skip_samples = (number)|(offset)
+skip_samples = (number)|(offset)|(field)
 
 
 # DSP decoding coefficients [REQUIRED for NGC_DSP]
 # These coefs are a list of 8*2 16-bit values per channel, starting from offset.
-coef_offset = (number)|(offset)
+coef_offset = (number)|(offset)|(field)
 # Offset separation per channel, usually 0x20 (16 values * 2 bytes)
 # Channel N coefs are read at coef_offset + coef_spacing * N
-coef_spacing = (number)|(offset)
+coef_spacing = (number)|(offset)|(field)
 # Format, usually BE; with (offset): 0=LE, >0=BE
-coef_endianness = BE|LE|(offset)
+coef_endianness = BE|LE|(offset)|(field)
 # Split/normal coefs [NOT IMPLEMENTED YET]
 #coef_mode = (number)|(offset)
 
@@ -181,8 +191,8 @@ body_file = (filename)|*.(extension)|null
 # "value = @(offset) + subsong_offset*N". Mainly for bigfiles with consecutive
 # headers per subsong, set subsong_offset to 0 when done as it affects any reads.
 # The current subsong number is handled externally by plugins or TXTP.
-subsong_count = (number)|(offset)
-subsong_offset = (number)|(offset)
+subsong_count = (number)|(offset)|(field)
+subsong_offset = (number)|(offset)|(field)
 ```
 
 ## Usages
@@ -204,6 +214,7 @@ sample_type = bytes
 num_samples = @0x10     #calculated from channel_size
 channels = 2            #change once calculations are done
 ```
+This can be done with value modifiers too (see below).
 
 ### Redefining values
 Some commands alter the function of all next commands and can be redefined as needed:
@@ -244,11 +255,44 @@ sample_rate = 0x04      # sample rate is the same for all subsongs
 # Nth subsong ch: 0x04+0x00*N: 0x08
 ```
 
-### Multipliers
+### Modifiers
 Sometimes header values are in "sectors" or similar concepts (typical in DVD games), and need to be adjusted to a real value.
 ```
-value_multiplier = 0x800    # offsets are in DVD sector size
-start_offset = @0x10        # 2*0x800, for example
-value_multiplier = 0        # next values don't need to be multiplied
-start_offset = @0x14
+value_multiply = 0x800    # offsets are in DVD sector size
+start_offset   = @0x10    # 0x15*0x800, for example
+value_multiply = 0        # next values don't need to be multiplied
+start_offset   = @0x14
 ```
+
+You can also use certain fields' values:
+```
+value_add = 1
+channels = @0x08                # may be 1 + 1 = 2
+value_add = 0
+
+value_multiply = channels       # now set to 2
+sample_type = bytes
+num_samples = @0x10             # channel_size * channels
+value_multiply = 0
+```
+num_samples and loop_end_sample will always convert "data_size" field as bytes-to-samples though.
+
+Priority is fixed to */+-:
+```
+value_add       = 0x10
+value_mul       = 0x800
+start_offset    = @0x10         # (0x15*0x800) + 0x10 = 0xA810
+```
+
+But with some creativity you can do fairly involved stuff:
+```
+value_add       = 0x10
+start_offset    = @0x10         # (0x15+0x10) = 0x25
+value_add       = 0
+
+value_mul       = 0x800
+start_offset    = start_offset  # (0x25*0x800) = 0x12800
+value_mul       = 0
+```
+
+If a TXTH needs too many complex calculations it may be better to implement directly in vgmstream though.
