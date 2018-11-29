@@ -433,8 +433,11 @@ int main(int argc, char ** argv) {
 
     /* prints done */
     if (cfg.print_metaonly) {
-        if (!cfg.play_sdtout)
-            fclose(outfile);
+        if (!cfg.play_sdtout) {
+            if(outfile != NULL) {
+              fclose(outfile);
+            }
+        }
         close_vgmstream(vgmstream);
         return EXIT_SUCCESS;
     }
