@@ -622,9 +622,12 @@ static ffmpeg_codec_data * init_ffmpeg_custom_opus(STREAMFILE *streamFile, off_t
     ffmpeg_data = init_ffmpeg_offset(temp_streamFile, 0x00,get_streamfile_size(temp_streamFile));
     if (!ffmpeg_data) goto fail;
 
-    if (ffmpeg_data->skipSamples <= 0) {
-        ffmpeg_set_skip_samples(ffmpeg_data, skip);
-    }
+    /* FFmpeg + libopus: skips samples, notifies skip in codecCtx->delay (not in stream->skip_samples)
+     * FFmpeg + opus: *doesn't* skip, also notifies skip in codecCtx->delay, hurray (possibly fixed in recent versions)
+     * FFmpeg + opus is audibly buggy with some low bitrate SSB Ultimate files too */
+    //if (ffmpeg_data->skipSamples <= 0) {
+    //    ffmpeg_set_skip_samples(ffmpeg_data, skip);
+    //}
 
     close_streamfile(temp_streamFile);
     return ffmpeg_data;
