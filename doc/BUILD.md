@@ -30,7 +30,7 @@
 **With GCC**: use the *./Makefile* in the root folder, see inside for options. For compilation flags check the *Makefile* in each folder.
 You may need to manually rebuild if you change a *.h* file (use *make clean*).
 
-In Linux, Makefiles can be used to cross-compile with the MingW headers, but may not be updated to generate native code at the moment. It should be fixable with some effort. Autotools should build it as vgmstream-cli instead (see the Audacious section).
+In Linux, Makefiles can be used to cross-compile with the MingW headers, but may not be updated to generate native code at the moment. It should be fixable with some effort. Autotools should build it as vgmstream-cli instead (see the Audacious section). Some Linux distributions like Arch Linux include pre-patched vgmstream with most libraries, you may want that instead (see: https://aur.archlinux.org/packages/vgmstream-kode54-git/).
 
 Windows CMD example:
 ```

@@ -15,11 +15,12 @@ VGMSTREAM * init_vgmstream_pos(STREAMFILE *streamFile) {
 
     streamData = open_streamfile_by_ext(streamFile, "wav");
     if (streamData) {
-       vgmstream = init_vgmstream_riff(streamData);
+        vgmstream = init_vgmstream_riff(streamData);
         if (!vgmstream) goto fail;
         vgmstream->meta_type = meta_RIFF_WAVE_POS;
     }
     else {
+#ifdef VGM_USE_VORBIS
         /* hack for Ogg with external loops */
         streamData = open_streamfile_by_ext(streamFile, "ogg");
         if (streamData) {
@@ -29,6 +30,9 @@ VGMSTREAM * init_vgmstream_pos(STREAMFILE *streamFile) {
         else {
             goto fail;
         }
+#else
+        goto fail;
+#endif
     }
 
     close_streamfile(streamData);

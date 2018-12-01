@@ -29,9 +29,6 @@ VGMSTREAM * init_vgmstream_ue4opus(STREAMFILE *streamFile) {
     start_offset = 0x11;
     data_size = get_streamfile_size(streamFile) - start_offset;
 
-    /* usually uses 60ms for music (delay of 360 samples) */
-    skip = ue4_opus_get_encoder_delay(start_offset, streamFile);
-
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count, loop_flag);
@@ -39,10 +36,13 @@ VGMSTREAM * init_vgmstream_ue4opus(STREAMFILE *streamFile) {
 
     vgmstream->meta_type = meta_UE4OPUS;
     vgmstream->sample_rate = sample_rate;
-    vgmstream->num_samples = num_samples - skip;
 
 #ifdef VGM_USE_FFMPEG
     {
+        /* usually uses 60ms for music (delay of 360 samples) */
+        skip = ue4_opus_get_encoder_delay(start_offset, streamFile);
+        vgmstream->num_samples = num_samples - skip;
+
         vgmstream->codec_data = init_ffmpeg_ue4_opus(streamFile, start_offset,data_size, vgmstream->channels, skip, vgmstream->sample_rate);
         if (!vgmstream->codec_data) goto fail;
         vgmstream->coding_type = coding_FFmpeg;
