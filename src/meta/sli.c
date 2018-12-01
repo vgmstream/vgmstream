@@ -2,7 +2,7 @@
 #include <ctype.h>
 
 
-/* .sli - loop points associated with a similarly named .ogg [Fate/Stay Night (PC), World End Economica (PC)]*/
+/* .sli+ogg/opus - KiriKiri engine / WaveLoopManager loop points loader [Fate/Stay Night (PC), World End Economica (PC)] */
 VGMSTREAM * init_vgmstream_sli_ogg(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     STREAMFILE * streamData = NULL;
@@ -14,23 +14,42 @@ VGMSTREAM * init_vgmstream_sli_ogg(STREAMFILE *streamFile) {
         goto fail;
 
     {
-        /* try with file.ogg.sli=header and file.ogg=data */
+        /* try with file.ogg/opus.sli=header and file.ogg/opus=data */
         char basename[PATH_LIMIT];
         get_streamfile_basename(streamFile,basename,PATH_LIMIT);
         streamData = open_streamfile_by_filename(streamFile, basename);
         if (!streamData) goto fail;
-
-        if (!check_extensions(streamData, "ogg"))
-            goto fail;
     }
 
-#ifdef VGM_USE_VORBIS
+
     /* let the real initer do the parsing */
-    vgmstream = init_vgmstream_ogg_vorbis(streamData);
-    if (!vgmstream) goto fail;
+    if (check_extensions(streamData, "ogg")) { /* Fate/Stay Night (PC) */
+#ifdef VGM_USE_VORBIS
+        vgmstream = init_vgmstream_ogg_vorbis(streamData);
+        if (!vgmstream) goto fail;
+
+        vgmstream->meta_type = meta_OGG_SLI;
 #else
     goto fail;
 #endif
+    }
+    else if (check_extensions(streamData, "opus")) { /* Sabbat of the Witch (PC) */
+#ifdef VGM_USE_FFMPEG
+        vgmstream = init_vgmstream_ffmpeg(streamData);
+        if (!vgmstream) goto fail;
+
+        /* FFmpeg's Opus encoder delay is borked but no need to fix:
+         * somehow sli+opus use 0 in the OpusHead (to simplify looping?) */
+
+        vgmstream->meta_type = meta_OPUS_SLI;
+#else
+    goto fail;
+#endif
+    }
+    else {
+        goto fail;
+    }
+
 
     /* find loop text */
     {
@@ -77,13 +96,11 @@ VGMSTREAM * init_vgmstream_sli_ogg(STREAMFILE *streamFile) {
         }
     }
 
-    if (loop_start != -1 && loop_length != -1) {
+    if (loop_start != -1 && loop_length != -1) { /* v1 */
         vgmstream_force_loop(vgmstream,1,loop_start, loop_start+loop_length);
-        vgmstream->meta_type = meta_OGG_SLI;
     }
-    else if (loop_from != -1 && loop_to != -1) {
+    else if (loop_from != -1 && loop_to != -1) { /* v2 */
         vgmstream_force_loop(vgmstream,1,loop_to, loop_from);
-        vgmstream->meta_type = meta_OGG_SLI2;
     }
     else {
         goto fail; /* if there's no loop points the .sli wasn't valid */
