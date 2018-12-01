@@ -205,6 +205,12 @@ static size_t opus_io_size(STREAMFILE *streamfile, opus_io_data* data) {
             default:
                 return 0;
         }
+
+        if (data_size == 0 ) {
+            VGM_LOG("OPUS: data_size is 0 at %"PRIx64"\n", (off64_t)physical_offset);
+            return 0; /* bad rip? or could 'break' and truck along */
+        }
+
         oggs_size = 0x1b + (int)(data_size / 0xFF + 1); /* OggS page: base size + lacing values */
 
         physical_offset += data_size + skip_size;
