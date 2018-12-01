@@ -48,7 +48,7 @@ void block_update_h4m(off_t block_offset, VGMSTREAM * vgmstream) {
                 block_skip += (audio_bytes / vgmstream->num_streams) * (vgmstream->stream_index-1);
             }
 
-            VGM_ASSERT(frame_format == 1, "H4M: unknown frame_format %x at %"PRIx64"\n", frame_format, (off64_t)block_offset);
+            VGM_ASSERT(frame_format == 1, "H4M: unknown frame_format %x at %x\n", frame_format, (uint32_t)block_offset);
 
             /* pass current mode to the decoder */
             vgmstream->codec_config = (frame_format << 8) | (vgmstream->codec_config & 0xFF);

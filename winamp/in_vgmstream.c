@@ -1436,6 +1436,7 @@ __declspec(dllexport) In_Module * winampGetInModule2() {
 #define WINAMP_TAGS_ENTRY_SIZE     2048
 
 typedef struct {
+    int loaded;
     in_char filename[PATH_LIMIT]; /* tags are loaded for this file */
     int tag_count;
 
@@ -1457,8 +1458,9 @@ static void load_tagfile_info(in_char* filename) {
     char *path;
 
 
-    if (settings.tagfile_disable) {
-        last_tags.tag_count = 0; /* maybe  helps if setting changes during play */
+    if (settings.tagfile_disable) { /* reset values if setting changes during play */
+        last_tags.loaded = 0;
+        last_tags.tag_count = 0;
         return;
     }
 
@@ -1468,6 +1470,8 @@ static void load_tagfile_info(in_char* filename) {
     if (wa_strcmp(last_tags.filename, filename_clean) == 0) {
         return; /* not changed, tags still apply */
     }
+
+    last_tags.loaded = 0;
 
     /* tags are now for this filename, find tagfile path */
     wa_ichar_to_char(filename_utf8, PATH_LIMIT, filename_clean);
@@ -1517,6 +1521,7 @@ static void load_tagfile_info(in_char* filename) {
         }
 
         close_streamfile(tagFile);
+        last_tags.loaded = 1;
     }
 }
 
@@ -1529,15 +1534,16 @@ static int winampGetExtendedFileInfo_common(in_char* filename, char *metadata, c
     int i, tag_found;
     int max_len;
 
+    /* load list current tags, if necessary */
+    load_tagfile_info(filename);
+    if (!last_tags.loaded) /* tagfile not found, fail so default get_title takes over */
+        goto fail;
+
     /* always called (value in ms), must return ok so other tags get called */
     if (strcasecmp(metadata, "length") == 0) {
         strcpy(ret, "0");//todo should export but shows GetFileInfo's ms if not provided
         return 1;
     }
-
-    /* load list current tags, if necessary */
-    load_tagfile_info(filename);
-
 
 #if 0
     /* special case to fill WA5's unified dialog */

@@ -119,7 +119,7 @@ static size_t opus_io_read(STREAMFILE *streamfile, uint8_t *dest, off_t offset, 
             data->page_size = oggs_size + data_size;
 
             if (data->page_size > sizeof(data->page_buffer)) { /* happens on bad reads/EOF too */
-                VGM_LOG("OPUS: buffer can't hold OggS at %"PRIx64"\n", (off64_t)data->physical_offset);
+                VGM_LOG("OPUS: buffer can't hold OggS at %x\n", (uint32_t)data->physical_offset);
                 data->page_size = 0;
                 break;
             }
@@ -173,7 +173,7 @@ static size_t opus_io_size(STREAMFILE *streamfile, opus_io_data* data) {
         return data->logical_size;
 
     if (data->stream_offset + data->stream_size > get_streamfile_size(streamfile)) {
-        VGM_LOG("OPUS: wrong streamsize %"PRIx64" + %x vs %x\n", (off64_t)data->stream_offset, data->stream_size, get_streamfile_size(streamfile));
+        VGM_LOG("OPUS: wrong streamsize %x + %x vs %x\n", (uint32_t)data->stream_offset, data->stream_size, get_streamfile_size(streamfile));
         return 0;
     }
 
@@ -205,6 +205,12 @@ static size_t opus_io_size(STREAMFILE *streamfile, opus_io_data* data) {
             default:
                 return 0;
         }
+
+        if (data_size == 0 ) {
+            VGM_LOG("OPUS: data_size is 0 at %x\n", (uint32_t)physical_offset);
+            return 0; /* bad rip? or could 'break' and truck along */
+        }
+
         oggs_size = 0x1b + (int)(data_size / 0xFF + 1); /* OggS page: base size + lacing values */
 
         physical_offset += data_size + skip_size;
@@ -501,13 +507,21 @@ fail:
     return 0;
 }
 
-/************************** */
-
-#ifdef VGM_USE_FFMPEG
-
 static size_t opus_get_packet_samples(const uint8_t * buf, int len) {
     return opus_packet_get_nb_frames(buf, len) * opus_packet_get_samples_per_frame(buf, 48000);
 }
+
+/************************** */
+
+static size_t get_xopus_packet_size(int packet, STREAMFILE * streamfile) {
+    /* XOPUS has a packet size table at the beginning, get size from there.
+     * Maybe should copy the table during setup to avoid IO, but all XOPUS are
+     * quite small so it isn't very noticeable. */
+    return (uint16_t)read_16bitLE(0x20 + packet*0x02, streamfile);
+}
+
+
+#ifdef VGM_USE_FFMPEG
 
 static size_t custom_opus_get_samples(off_t offset, size_t data_size, STREAMFILE *streamFile, opus_type_t type) {
     size_t num_samples = 0;
@@ -596,13 +610,6 @@ size_t ea_opus_get_encoder_delay(off_t offset, STREAMFILE *streamFile) {
 }
 
 
-static size_t get_xopus_packet_size(int packet, STREAMFILE * streamfile) {
-    /* XOPUS has a packet size table at the beginning, get size from there.
-     * Maybe should copy the table during setup to avoid IO, but all XOPUS are
-     * quite small so it isn't very noticeable. */
-    return (uint16_t)read_16bitLE(0x20 + packet*0x02, streamfile);
-}
-
 
 /* ******************************************************* */
 
@@ -616,9 +623,12 @@ static ffmpeg_codec_data * init_ffmpeg_custom_opus(STREAMFILE *streamFile, off_t
     ffmpeg_data = init_ffmpeg_offset(temp_streamFile, 0x00,get_streamfile_size(temp_streamFile));
     if (!ffmpeg_data) goto fail;
 
-    if (ffmpeg_data->skipSamples <= 0) {
-        ffmpeg_set_skip_samples(ffmpeg_data, skip);
-    }
+    /* FFmpeg + libopus: skips samples, notifies skip in codecCtx->delay (not in stream->skip_samples)
+     * FFmpeg + opus: *doesn't* skip, also notifies skip in codecCtx->delay, hurray (possibly fixed in recent versions)
+     * FFmpeg + opus is audibly buggy with some low bitrate SSB Ultimate files too */
+    //if (ffmpeg_data->skipSamples <= 0) {
+    //    ffmpeg_set_skip_samples(ffmpeg_data, skip);
+    //}
 
     close_streamfile(temp_streamFile);
     return ffmpeg_data;

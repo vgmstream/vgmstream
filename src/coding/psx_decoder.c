@@ -63,7 +63,7 @@ void decode_psx(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, 
     shift_factor = ((uint8_t)read_8bit(frame_offset+0x00,stream->streamfile) >> 0) & 0xf;
     flag = (uint8_t)read_8bit(frame_offset+0x01,stream->streamfile); /* only lower nibble needed */
 
-    VGM_ASSERT_ONCE(coef_index > 5 || shift_factor > 12, "PS-ADPCM: incorrect coefs/shift at %"PRIx64"\n", (off64_t)frame_offset);
+    VGM_ASSERT_ONCE(coef_index > 5 || shift_factor > 12, "PS-ADPCM: incorrect coefs/shift at %x\n", (uint32_t)frame_offset);
     if (coef_index > 5) /* needed by inFamous (PS3) (maybe it's supposed to use more filters?) */
         coef_index = 0; /* upper filters aren't used in PS1/PS2, maybe in PSP/PS3? */
     if (shift_factor > 12)
@@ -71,7 +71,7 @@ void decode_psx(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, 
 
     if (is_badflags) /* some games store garbage or extra internal logic in the flags, must be ignored */
         flag = 0;
-    VGM_ASSERT_ONCE(flag > 7,"PS-ADPCM: unknown flag at %"PRIx64"\n", (off64_t)frame_offset); /* meta should use PSX-badflags */
+    VGM_ASSERT_ONCE(flag > 7,"PS-ADPCM: unknown flag at %x\n", (uint32_t)frame_offset); /* meta should use PSX-badflags */
 
     /* decode nibbles */
     for (i = first_sample; i < first_sample + samples_to_do; i++) {
@@ -123,7 +123,7 @@ void decode_psx_configurable(VGMSTREAMCHANNEL * stream, sample * outbuf, int cha
     coef_index   = ((uint8_t)read_8bit(frame_offset+0x00,stream->streamfile) >> 4) & 0xf;
     shift_factor = ((uint8_t)read_8bit(frame_offset+0x00,stream->streamfile) >> 0) & 0xf;
 
-    VGM_ASSERT_ONCE(coef_index > 5 || shift_factor > 12, "PS-ADPCM: incorrect coefs/shift at %"PRIx64"\n", (off64_t)frame_offset);
+    VGM_ASSERT_ONCE(coef_index > 5 || shift_factor > 12, "PS-ADPCM: incorrect coefs/shift at %x\n", (uint32_t)frame_offset);
     if (coef_index > 5) /* needed by Afrika (PS3) (maybe it's supposed to use more filters?) */
         coef_index = 0; /* upper filters aren't used in PS1/PS2, maybe in PSP/PS3? */
     if (shift_factor > 12)
@@ -180,7 +180,7 @@ static int ps_find_loop_offsets_internal(STREAMFILE *streamFile, off_t start_off
         uint8_t flag = (uint8_t)read_8bit(offset+0x01,streamFile) & 0x0F; /* lower nibble only (for HEVAG) */
 
         /* theoretically possible and would use last 0x06 */
-        VGM_ASSERT_ONCE(loop_start_found && flag == 0x06, "PS LOOPS: multiple loop start found at %"PRIx64"\n", (off64_t)offset);
+        VGM_ASSERT_ONCE(loop_start_found && flag == 0x06, "PS LOOPS: multiple loop start found at %x\n", (uint32_t)offset);
 
         if (flag == 0x06 && !loop_start_found) {
             loop_start = num_samples; /* loop start before this frame */

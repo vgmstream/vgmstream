@@ -391,7 +391,7 @@ static int parse_pk_header(ubi_bao_header * bao, STREAMFILE *streamFile) {
         goto fail;
     }
 
-    ;VGM_LOG("BAO stream: id=%x, offset=%"PRIx64", size=%x, res=%s\n", bao->stream_id, (off64_t)bao->stream_offset, bao->stream_size, (bao->is_external ? bao->resource_name : "internal"));
+    ;VGM_LOG("BAO stream: id=%x, offset=%x, size=%x, res=%s\n", bao->stream_id, (uint32_t)bao->stream_offset, bao->stream_size, (bao->is_external ? bao->resource_name : "internal"));
 
     return 1;
 fail:
@@ -434,7 +434,7 @@ static int parse_bao(ubi_bao_header * bao, STREAMFILE *streamFile, off_t offset)
         case 0x70000000: bao->types_count[7]++; break; /* project info? (sometimes special id 0x7fffffff) */
         case 0x80000000: bao->types_count[8]++; break; /* unknown (some id/info?) */
         default:
-            VGM_LOG("UBI BAO: unknown type %x at %"PRIx64" + %x\n", descriptor_type, (off64_t)offset, 0x20);
+            VGM_LOG("UBI BAO: unknown type %x at %x + %x\n", descriptor_type, (uint32_t)offset, 0x20);
             goto fail;
     }
 
@@ -453,7 +453,7 @@ static int parse_bao(ubi_bao_header * bao, STREAMFILE *streamFile, off_t offset)
         case 0x00000007: bao->subtypes_count[7]++; break; /* related to other header BAOs? */
         case 0x00000008: bao->subtypes_count[8]++; break; /* ? (almost empty with some unknown value) */
         default:
-            VGM_LOG("UBI BAO: unknown subtype %x at %"PRIx64" + %x\n", descriptor_subtype, (off64_t)offset, header_size+0x04);
+            VGM_LOG("UBI BAO: unknown subtype %x at %x + %x\n", descriptor_subtype, (uint32_t)offset, header_size+0x04);
             goto fail;
     }
     //;VGM_ASSERT(descriptor_subtype != 0x01, "UBI BAO: subtype %x at %lx (%lx)\n", descriptor_subtype, offset, offset+header_size+0x04);
@@ -477,7 +477,7 @@ static int parse_bao(ubi_bao_header * bao, STREAMFILE *streamFile, off_t offset)
      * - channels, ?, sample rate, average bit rate?, samples, full stream_size?, codec, etc
      * - subtable entries, subtable size (may contain offsets/ids, cues, etc)
      * - extra data per codec (ex. XMA header in some versions) */
-    ;VGM_LOG("BAO header at %"PRIx64"\n", (off64_t)offset);
+    ;VGM_LOG("BAO header at %x\n", (uint32_t)offset);
     bao->version = bao_version;
 
     switch(bao->version) {
@@ -503,7 +503,7 @@ static int parse_bao(ubi_bao_header * bao, STREAMFILE *streamFile, off_t offset)
                 case 0x03: bao->codec = UBI_ADPCM; break;
                 case 0x05: bao->codec = RAW_XMA1; break;
                 case 0x09: bao->codec = RAW_DSP; break;
-                default: VGM_LOG("UBI BAO: unknown codec at %"PRIx64"\n", (off64_t)offset); goto fail;
+                default: VGM_LOG("UBI BAO: unknown codec at %x\n", (uint32_t)offset); goto fail;
             }
 
             bao->prefetch_size = read_32bit(offset + header_size + 0x74, streamFile);
@@ -535,11 +535,11 @@ static int parse_bao(ubi_bao_header * bao, STREAMFILE *streamFile, off_t offset)
             switch(bao->header_codec) {
                 case 0x06: bao->codec = RAW_PSX; break;
                 case 0x07: bao->codec = FMT_AT3; break;
-                default: VGM_LOG("UBI BAO: unknown codec at %"PRIx64"\n", (off64_t)offset); goto fail;
+                default: VGM_LOG("UBI BAO: unknown codec at %x\n", (uint32_t)offset); goto fail;
             }
 
             if (read_32bit(offset+header_size+0x20, streamFile) & 0x10) {
-                VGM_LOG("UBI BAO: possible full loop at %"PRIx64"\n", (off64_t)offset);
+                VGM_LOG("UBI BAO: possible full loop at %x\n", (uint32_t)offset);
                 /* RIFFs may have "smpl" and this flag, even when data shouldn't loop... */
             }
 
@@ -564,7 +564,7 @@ static int parse_bao(ubi_bao_header * bao, STREAMFILE *streamFile, off_t offset)
                 case 0x02: bao->codec = UBI_ADPCM; break;
                 case 0x03: bao->codec = FMT_OGG; break;
                 case 0x04: bao->codec = RAW_XMA2; break;
-                default: VGM_LOG("UBI BAO: unknown codec at %"PRIx64"\n", (off64_t)offset); goto fail;
+                default: VGM_LOG("UBI BAO: unknown codec at %x\n", (uint32_t)offset); goto fail;
             }
 
             bao->prefetch_size = read_32bit(offset+header_size+0x84, streamFile);
@@ -598,7 +598,7 @@ static int parse_bao(ubi_bao_header * bao, STREAMFILE *streamFile, off_t offset)
                 case 0x04: bao->codec = RAW_XMA2; break;
                 case 0x05: bao->codec = RAW_PSX; break;
                 case 0x06: bao->codec = RAW_AT3; break;
-                default: VGM_LOG("UBI BAO: unknown codec at %"PRIx64"\n", (off64_t)offset); goto fail;
+                default: VGM_LOG("UBI BAO: unknown codec at %x\n", (uint32_t)offset); goto fail;
             }
 
             bao->prefetch_size = read_32bit(offset + header_size + 0x78, streamFile);
@@ -615,7 +615,7 @@ static int parse_bao(ubi_bao_header * bao, STREAMFILE *streamFile, off_t offset)
         case 0x00280306: /* Far Cry 3: Blood Dragon (X360)-file */
         case 0x00290106: /* Splinter Cell Blacklist? */
         default: /* others possibly using BAO: Avatar X360/PS3/PC, Just Dance, Watch_Dogs, Far Cry Primal, Far Cry 4 */
-            VGM_LOG("UBI BAO: unknown BAO version at %"PRIx64"\n", (off64_t)offset);
+            VGM_LOG("UBI BAO: unknown BAO version at %x\n", (uint32_t)offset);
             goto fail;
     }
 

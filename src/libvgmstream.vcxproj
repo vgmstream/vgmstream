@@ -481,6 +481,7 @@
     <ClCompile Include="meta\xnb.c" />
     <ClCompile Include="meta\xopus.c" />
     <ClCompile Include="meta\xpcm.c" />
+    <ClCompile Include="meta\xps.c" />
     <ClCompile Include="meta\xss.c" />
     <ClCompile Include="meta\xvag.c" />
     <ClCompile Include="meta\xmd.c" />

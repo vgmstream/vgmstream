@@ -337,7 +337,7 @@ static int parse_awc_header(STREAMFILE* streamFile, awc_header* awc) {
     /* If music, data is divided into blocks of block_chunk size with padding.
      * Each block has a header/seek table and interleaved data for all channels */
     if (awc->is_music && read_32bit(awc->stream_offset, streamFile) != 0) {
-        VGM_LOG("AWC: music found, but block doesn't start with seek table at %"PRIx64"\n", (off64_t)awc->stream_offset);
+        VGM_LOG("AWC: music found, but block doesn't start with seek table at %x\n", (uint32_t)awc->stream_offset);
         goto fail;
     }
 

@@ -303,17 +303,17 @@ VGMSTREAM * init_vgmstream_txth(STREAMFILE *streamFile) {
                 int16_t (*read_16bit)(off_t , STREAMFILE*) = txth.coef_big_endian ? read_16bitBE : read_16bitLE;
 
                 /* normal/split coefs */
-                if (txth.coef_mode == 0) {
-                    for (j=0;j<16;j++) {
-                        vgmstream->ch[i].adpcm_coef[j] = read_16bit(txth.coef_offset + i*txth.coef_spacing  + j*2,txth.streamHead);
+                if (txth.coef_mode == 0) { /* normal mode */
+                    for (j = 0; j < 16; j++) {
+                        vgmstream->ch[i].adpcm_coef[j] = read_16bit(txth.coef_offset + i*txth.coef_spacing  + j*2, txth.streamHead);
                     }
                 }
-                else {
+                else { /* split coefs */
                     goto fail; //IDK what is this
                     /*
-                    for (j=0;j<8;j++) {
-                        vgmstream->ch[i].adpcm_coef[j*2]=read_16bit(coef[i]+j*2,txth.streamHead);
-                        vgmstream->ch[i].adpcm_coef[j*2+1]=read_16bit(coef_splitted[i]+j*2,txth.streamHead);
+                    for (j = 0; j < 8; j++) {
+                        vgmstream->ch[i].adpcm_coef[j*2] = read_16bit(genh.coef_offset + i*genh.coef_spacing + j*2, txth.streamHead);
+                        vgmstream->ch[i].adpcm_coef[j*2+1] = read_16bit(genh.coef_split_offset + i*genh.coef_split_spacing + j*2, txth.streamHead);
                     }
                     */
                 }
@@ -508,6 +508,7 @@ static int parse_txth(txth_header * txth) {
 
         bytes_read = get_streamfile_text_line(TXT_LINE_MAX,line, txt_offset,txth->streamText, &line_done);
         if (!line_done) goto fail;
+        //;VGM_LOG("TXTH: line=%s\n",line);
 
         txt_offset += bytes_read;
         
@@ -759,6 +760,11 @@ static int parse_keyval(STREAMFILE * streamFile_, txth_header * txth, const char
             txth->streambody_opened = 1;
         }
 
+        /* use body as header when opening a .txth directly to simplify things */
+        if (txth->streamfile_is_txth && !txth->streamhead_opened) {
+            txth->streamHead = txth->streamBody;
+        }
+
         txth->data_size = !txth->streamBody ? 0 :
                 get_streamfile_size(txth->streamBody) - txth->start_offset; /* re-evaluate */
     }
@@ -841,13 +847,14 @@ static int parse_num(STREAMFILE * streamFile, txth_header * txth, const char * v
         else goto fail;
     }
 
-    if (value_mul)
+    /* operators, but only if current value wasn't set to 0 right before */
+    if (value_mul && txth->value_mul)
         *out_value = (*out_value) * value_mul;
-    if (value_div)
+    if (value_div && txth->value_div)
         *out_value = (*out_value) / value_div;
-    if (value_add)
+    if (value_add && txth->value_add)
         *out_value = (*out_value) + value_add;
-    if (value_sub)
+    if (value_sub && txth->value_sub)
         *out_value = (*out_value) - value_sub;
 
     //;VGM_LOG("TXTH: val=%s, read %u (0x%x)\n", val, *out_value, *out_value);

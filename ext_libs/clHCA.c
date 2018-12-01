@@ -1551,9 +1551,9 @@ static const unsigned int decode5_imdct_window_int[128] = {
 static const float *decode5_imdct_window = (const float *)decode5_imdct_window_int;
 
 static void decoder5_run_imdct(stChannel *ch, int subframe) {
-    const static unsigned int size = HCA_SAMPLES_PER_SUBFRAME;
-    const static unsigned int half = HCA_SAMPLES_PER_SUBFRAME / 2;
-    const static unsigned int mdct_bits = HCA_MDCT_BITS;
+    static const unsigned int size = HCA_SAMPLES_PER_SUBFRAME;
+    static const unsigned int half = HCA_SAMPLES_PER_SUBFRAME / 2;
+    static const unsigned int mdct_bits = HCA_MDCT_BITS;
 
 
     /* apply DCT-IV to dequantized spectra */

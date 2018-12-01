@@ -109,7 +109,7 @@ static void mtaf_block_update(VGMSTREAMCHANNEL * stream) {
         }
 
         if (block_size <= 0 || block_tracks < 0) {  /* nonsense block (maybe at EOF) */
-            VGM_LOG("MTAF: bad block @ %"PRIx64"\n", (off64_t)stream->offset);
+            VGM_LOG("MTAF: bad block @ %x\n", (uint32_t)stream->offset);
             stream->offset += 0x10;
             repeat = 0;
         }
@@ -146,7 +146,7 @@ void decode_mtaf(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing,
         int32_t init_idx  = read_16bitLE(stream->offset+4+0+c*2, stream->streamfile); /* step-L/R */
         int32_t init_hist = read_16bitLE(stream->offset+4+4+c*4, stream->streamfile); /* hist-L/R: hist 16bit + empty 16bit */
 
-        VGM_ASSERT(init_idx < 0 || init_idx > 31, "MTAF: bad header idx @ 0x%"PRIx64"\n", (off64_t)stream->offset);
+        VGM_ASSERT(init_idx < 0 || init_idx > 31, "MTAF: bad header idx @ 0x%x\n", (uint32_t)stream->offset);
         /* avoid index out of range in corrupt files */
         if (init_idx < 0) {
             init_idx = 0;

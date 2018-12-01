@@ -472,6 +472,7 @@ static const char* extension_list[] = {
     "xwb",
     "xmd",
     "xopus",
+    "xps",
     "xwc",
     "xwm",
     "xwma",
@@ -1046,9 +1047,9 @@ static const meta_info meta_info_list[] = {
         {meta_PC_FLX,               "Ultima IX .FLX header"},
         {meta_MOGG,                 "Harmonix Music Systems MOGG Vorbis"},
         {meta_OGG_VORBIS,           "Ogg Vorbis"},
-        {meta_OGG_SLI,              "Ogg Vorbis with .sli (start,length) for looping"},
-        {meta_OGG_SLI2,             "Ogg Vorbis with .sli (from,to) for looping"},
-        {meta_OGG_SFL,              "Ogg Vorbis with SFPL for looping"},
+        {meta_OGG_SLI,              "Ogg Vorbis with .sli looping"},
+        {meta_OPUS_SLI,             "Ogg Opus with .sli looping"},
+        {meta_OGG_SFL,              "Ogg Vorbis with SFPL looping"},
         {meta_OGG_KOVS,             "Ogg Vorbis (KOVS header)"},
         {meta_OGG_encrypted,        "Ogg Vorbis (encrypted)"},
         {meta_KMA9,                 "Koei Tecmo KMA9 header"},
@@ -1112,7 +1113,8 @@ static const meta_info meta_info_list[] = {
         {meta_VS_FFX,               "Square VS header"},
         {meta_NWAV,                 "Chunsoft NWAV header"},
         {meta_XPCM,                 "Circus XPCM header"},
-        {meta_MSF_TAMASOFT,         "TamaSoft MSF header"},
+        {meta_MSF_TAMASOFT,         "Tama-Soft MSF header"},
+        {meta_XPS_DAT,              "From Software .XPS+DAT header"},
 
 };
 

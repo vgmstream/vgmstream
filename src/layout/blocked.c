@@ -40,7 +40,7 @@ void render_vgmstream_blocked(sample * buffer, int32_t sample_count, VGMSTREAM *
 
         if (samples_this_block < 0) {
             /* probably block bug or EOF, next calcs would give wrong values/segfaults/infinite loop */
-            VGM_LOG("layout_blocked: wrong block samples at 0x%"PRIx64"\n", (off64_t)vgmstream->current_block_offset);
+            VGM_LOG("layout_blocked: wrong block samples at 0x%x\n", (uint32_t)vgmstream->current_block_offset);
             memset(buffer + samples_written*vgmstream->channels, 0, (sample_count - samples_written) * vgmstream->channels * sizeof(sample));
             break;
         }

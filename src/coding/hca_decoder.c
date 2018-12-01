@@ -99,14 +99,14 @@ void decode_hca(hca_codec_data * data, sample * outbuf, int32_t samples_to_do) {
             /* read frame */
             bytes = read_streamfile(data->data_buffer, offset, blockSize, data->streamfile);
             if (bytes != blockSize) {
-                VGM_LOG("HCA: read %x vs expected %x bytes at %"PRIx64"\n", bytes, blockSize, (off64_t)offset);
+                VGM_LOG("HCA: read %x vs expected %x bytes at %x\n", bytes, blockSize, (uint32_t)offset);
                 break;
             }
 
             /* decode frame */
             status = clHCA_DecodeBlock(data->handle, (void*)(data->data_buffer), blockSize);
             if (status < 0) {
-                VGM_LOG("HCA: decode fail at %"PRIx64", code=%i\n", (off64_t)offset, status);
+                VGM_LOG("HCA: decode fail at %x, code=%i\n", (uint32_t)offset, status);
                 break;
             }
 

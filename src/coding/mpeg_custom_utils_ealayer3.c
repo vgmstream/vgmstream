@@ -529,7 +529,7 @@ static int ealayer3_rebuild_mpeg_frame(vgm_bitstream* is_0, ealayer3_frame_info*
 
     if (os->b_off/8 > expected_frame_size)  {
         /* bit reservoir! shouldn't happen with free bitrate, otherwise it's hard to fix as needs complex buffering/calcs */
-        VGM_LOG("MPEG EAL3: written 0x%"PRIx64" but expected less than 0x%x at 0x%"PRIx64"\n", (off64_t)(os->b_off/8), expected_frame_size, (off64_t)os->info_offset);
+        VGM_LOG("MPEG EAL3: written 0x%x but expected less than 0x%x at 0x%x\n", (uint32_t)(os->b_off/8), expected_frame_size, (uint32_t)os->info_offset);
     }
     else {
         /* fill ancillary data (should be ignored, but 0x00 seems to improve mpg123's free bitrate detection) */
@@ -564,8 +564,8 @@ static int ealayer3_write_pcm_block(VGMSTREAMCHANNEL *stream, mpeg_codec_data *d
         if (!eaf->pcm_size)
             return 1;
 
-        VGM_ASSERT(eaf->v1_pcm_decode_discard > 576, "MPEG EAL3: big discard %i at 0x%"PRIx64"\n", eaf->v1_pcm_decode_discard, (off64_t)stream->offset);
-        VGM_ASSERT(eaf->v1_pcm_number > 0x100, "MPEG EAL3: big samples %i at 0x%"PRIx64"\n", eaf->v1_pcm_number, (off64_t)stream->offset);
+        VGM_ASSERT(eaf->v1_pcm_decode_discard > 576, "MPEG EAL3: big discard %i at 0x%x\n", eaf->v1_pcm_decode_discard, (uint32_t)stream->offset);
+        VGM_ASSERT(eaf->v1_pcm_number > 0x100, "MPEG EAL3: big samples %i at 0x%x\n", eaf->v1_pcm_number, (uint32_t)stream->offset);
 
         /* read + write PCM block samples (always BE) */
         for (i = 0; i < eaf->v1_pcm_number * data->channels_per_frame; i++) {

@@ -641,7 +641,7 @@ typedef enum {
     meta_MOGG,              /* Harmonix Music Systems MOGG Vorbis */
     meta_OGG_VORBIS,        /* Ogg Vorbis */
     meta_OGG_SLI,           /* Ogg Vorbis file w/ companion .sli for looping */
-    meta_OGG_SLI2,          /* Ogg Vorbis file w/ different styled .sli for looping */
+    meta_OPUS_SLI,          /* Ogg Opus file w/ companion .sli for looping */
     meta_OGG_SFL,           /* Ogg Vorbis file w/ .sfl (RIFF SFPL) for looping */
     meta_OGG_KOVS,          /* Ogg Vorbis with header and encryption (Koei Tecmo Games) */
     meta_OGG_encrypted,     /* Ogg Vorbis with encryption */
@@ -706,6 +706,7 @@ typedef enum {
     meta_NWAV,
     meta_XPCM,
     meta_MSF_TAMASOFT,
+    meta_XPS_DAT,
 
 } meta_t;
 

@@ -26,7 +26,7 @@ void block_update_xa(off_t block_offset, VGMSTREAM * vgmstream) {
     VGM_ASSERT(block_offset + 0x930 < get_streamfile_size(streamFile) &&
             (uint8_t)read_8bit(block_offset + 0x000 + 0x11,streamFile) !=
             (uint8_t)read_8bit(block_offset + 0x930 + 0x11,streamFile),
-            "XA block: subchannel change at %"PRIx64"\n", (off64_t)block_offset);
+            "XA block: subchannel change at %x\n", (uint32_t)block_offset);
 
     /* submode flag bits (typical audio value = 0x64 01100100)
      * - 7 (0x80 10000000): end of file
@@ -53,7 +53,7 @@ void block_update_xa(off_t block_offset, VGMSTREAM * vgmstream) {
     }
     else {
         ;VGM_ASSERT_ONCE(block_offset < get_streamfile_size(streamFile),
-                "XA block: non audio block found at %"PRIx64"\n", (off64_t)block_offset);
+                "XA block: non audio block found at %x\n", (uint32_t)block_offset);
         block_samples = 0; /* not an audio sector */
     }
 

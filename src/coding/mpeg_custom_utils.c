@@ -157,7 +157,7 @@ int mpeg_custom_parse_frame_default(VGMSTREAMCHANNEL *stream, mpeg_codec_data *d
             }
 
             VGM_ASSERT(data->streams_size > 1 && current_interleave != current_data_size+current_padding,
-                    "MPEG FSB: %i streams with non-constant interleave found @ 0x%08"PRIx64"\n", data->streams_size, (off64_t)stream->offset);
+                    "MPEG FSB: %i streams with non-constant interleave found @ 0x%08x\n", data->streams_size, (uint32_t)stream->offset);
             break;
 
         case MPEG_P3D: /* fixed interleave, not frame-aligned (ie. blocks may end/start in part of a frame) */
