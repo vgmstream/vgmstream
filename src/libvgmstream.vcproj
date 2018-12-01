@@ -1626,6 +1626,10 @@
                     RelativePath=".\meta\xpcm.c"
                     >
                 </File>
+                <File
+                    RelativePath=".\meta\xps.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\xss.c"
 					>

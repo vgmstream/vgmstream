@@ -706,6 +706,7 @@ typedef enum {
     meta_NWAV,
     meta_XPCM,
     meta_MSF_TAMASOFT,
+    meta_XPS_DAT,
 
 } meta_t;
 

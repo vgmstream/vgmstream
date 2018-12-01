@@ -472,6 +472,7 @@ static const char* extension_list[] = {
     "xwb",
     "xmd",
     "xopus",
+    "xps",
     "xwc",
     "xwm",
     "xwma",
@@ -1112,7 +1113,8 @@ static const meta_info meta_info_list[] = {
         {meta_VS_FFX,               "Square VS header"},
         {meta_NWAV,                 "Chunsoft NWAV header"},
         {meta_XPCM,                 "Circus XPCM header"},
-        {meta_MSF_TAMASOFT,         "TamaSoft MSF header"},
+        {meta_MSF_TAMASOFT,         "Tama-Soft MSF header"},
+        {meta_XPS_DAT,              "From Software .XPS+DAT header"},
 
 };
 
