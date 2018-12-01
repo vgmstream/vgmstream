@@ -470,17 +470,17 @@ static void ms_audio_parse_header(STREAMFILE *streamFile, int xma_version, off_t
     /* full packet skip, no new frames start in this packet (prev frames can end here)
      * standardized to some value */
     if (*packet_skip_count == 0x7FF) { /* XMA1, 11b */
-        VGM_LOG("MS_SAMPLES: XMA1 full packet_skip at 0x%"PRIx64"\n", (off64_t)offset_b/8);
+        VGM_LOG("MS_SAMPLES: XMA1 full packet_skip at 0x%x\n", (uint32_t)offset_b/8);
         *packet_skip_count = 0x800;
     }
     else if (*packet_skip_count == 0xFF) { /* XMA2, 8b*/
-        VGM_LOG("MS_SAMPLES: XMA2 full packet_skip at 0x%"PRIx64"\n", (off64_t)offset_b/8);
+        VGM_LOG("MS_SAMPLES: XMA2 full packet_skip at 0x%x\n", (uint32_t)offset_b/8);
         *packet_skip_count = 0x800;
     }
 
     /* unusual but not impossible, as the encoder can interleave packets in any way */
     VGM_ASSERT((*packet_skip_count > 10 && *packet_skip_count < 0x800),
-            "MS_SAMPLES: found big packet skip %i at 0x%"PRIx64"\n", *packet_skip_count, (off64_t)offset_b/8);
+            "MS_SAMPLES: found big packet skip %i at 0x%x\n", *packet_skip_count, (uint32_t)offset_b/8);
 }
 
 /**
@@ -636,7 +636,7 @@ static void ms_audio_get_skips(STREAMFILE *streamFile, int xma_version, off_t da
                     frame_offset_b += 1;
                     if (flag) {
                         int new_skip = read_bitsBE_b(frame_offset_b, 10, streamFile);
-                        //;VGM_LOG("MS_SAMPLES: start_skip %i at 0x%"PRIx64" (bit 0x%"PRIx64")\n", new_skip, (off64_t)frame_offset_b/8, (off64_t)frame_offset_b);
+                        //;VGM_LOG("MS_SAMPLES: start_skip %i at 0x%x (bit 0x%x)\n", new_skip, (uint32_t)frame_offset_b/8, (uint32_t)frame_offset_b);
                         frame_offset_b += 10;
 
                         if (new_skip > samples_per_frame) /* from xmaencode */
@@ -651,7 +651,7 @@ static void ms_audio_get_skips(STREAMFILE *streamFile, int xma_version, off_t da
                     frame_offset_b += 1;
                     if (flag) {
                         int new_skip = read_bitsBE_b(frame_offset_b, 10, streamFile);
-                        //;VGM_LOG("MS_SAMPLES: end_skip %i at 0x%"PRIx64" (bit 0x%"PRIx64")\n", new_skip, (off64_t)frame_offset_b/8, (off64_t)frame_offset_b);
+                        //;VGM_LOG("MS_SAMPLES: end_skip %i at 0x%x (bit 0x%x)\n", new_skip, (uint32_t)frame_offset_b/8, (uint32_t)frame_offset_b);
                         frame_offset_b += 10;
 
                         if (new_skip > samples_per_frame) /* from xmaencode  */

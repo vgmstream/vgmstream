@@ -59,7 +59,7 @@ static size_t get_repeated_data_size(STREAMFILE *streamFile, off_t new_offset, o
     }
 
 fail:
-    VGM_LOG("AWC: can't find repeat size, new=0x%08"PRIx64", last=0x%08"PRIx64"\n", (off64_t)new_offset, (off64_t)last_offset);
+    VGM_LOG("AWC: can't find repeat size, new=0x%08x, last=0x%08x\n", (uint32_t)new_offset, (uint32_t)last_offset);
     return 0; /* keep on truckin' */
 }
 

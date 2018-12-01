@@ -69,7 +69,7 @@ vorbis_custom_codec_data * init_vorbis_custom(STREAMFILE *streamFile, off_t star
     return data;
 
 fail:
-    VGM_LOG("VORBIS: init fail at around 0x%"PRIx64"\n", (off64_t)start_offset);
+    VGM_LOG("VORBIS: init fail at around 0x%x\n", (uint32_t)start_offset);
     free_vorbis_custom(data);
     return NULL;
 }
@@ -144,7 +144,7 @@ void decode_vorbis_custom(VGMSTREAM * vgmstream, sample * outbuf, int32_t sample
             /* parse the fake ogg packet into a logical vorbis block */
             rc = vorbis_synthesis(&data->vb,&data->op);
             if (rc == OV_ENOTAUDIO) {
-                VGM_LOG("Vorbis: not an audio packet (size=0x%x) @ %"PRIx64"\n",(size_t)data->op.bytes,(off64_t)stream->offset);
+                VGM_LOG("Vorbis: not an audio packet (size=0x%x) @ %x\n",(size_t)data->op.bytes,(uint32_t)stream->offset);
                 //VGM_LOGB(data->op.packet, (size_t)data->op.bytes,0);
                 continue; /* rarely happens, seems ok? */
             } else if (rc != 0) goto decode_fail;
@@ -162,7 +162,7 @@ void decode_vorbis_custom(VGMSTREAM * vgmstream, sample * outbuf, int32_t sample
 
 decode_fail:
     /* on error just put some 0 samples */
-    VGM_LOG("VORBIS: decode fail at %"PRIx64", missing %i samples\n", (off64_t)stream->offset, (samples_to_do - samples_done));
+    VGM_LOG("VORBIS: decode fail at %x, missing %i samples\n", (uint32_t)stream->offset, (samples_to_do - samples_done));
     memset(outbuf + samples_done * channels, 0, (samples_to_do - samples_done) * channels * sizeof(sample));
 }
 

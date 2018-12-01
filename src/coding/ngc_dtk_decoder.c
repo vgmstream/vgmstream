@@ -23,7 +23,7 @@ void decode_ngc_dtk(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspaci
     coef_index   = ((uint8_t)read_8bit(frame_offset+channel,stream->streamfile) >> 4) & 0xf;
     shift_factor = ((uint8_t)read_8bit(frame_offset+channel,stream->streamfile) >> 0) & 0xf;
     /* rare but happens, also repeated headers don't match (ex. Ikaruga (GC) SONG02.adp) */
-    VGM_ASSERT_ONCE(coef_index > 4 || shift_factor > 12, "DTK: incorrect coefs/shift at %"PRIx64"\n", (off64_t)frame_offset);
+    VGM_ASSERT_ONCE(coef_index > 4 || shift_factor > 12, "DTK: incorrect coefs/shift at %x\n", (uint32_t)frame_offset);
 
     /* decode nibbles */
     for (i = first_sample; i < first_sample+samples_to_do; i++) {

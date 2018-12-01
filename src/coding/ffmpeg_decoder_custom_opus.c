@@ -119,7 +119,7 @@ static size_t opus_io_read(STREAMFILE *streamfile, uint8_t *dest, off_t offset, 
             data->page_size = oggs_size + data_size;
 
             if (data->page_size > sizeof(data->page_buffer)) { /* happens on bad reads/EOF too */
-                VGM_LOG("OPUS: buffer can't hold OggS at %"PRIx64"\n", (off64_t)data->physical_offset);
+                VGM_LOG("OPUS: buffer can't hold OggS at %x\n", (uint32_t)data->physical_offset);
                 data->page_size = 0;
                 break;
             }
@@ -173,7 +173,7 @@ static size_t opus_io_size(STREAMFILE *streamfile, opus_io_data* data) {
         return data->logical_size;
 
     if (data->stream_offset + data->stream_size > get_streamfile_size(streamfile)) {
-        VGM_LOG("OPUS: wrong streamsize %"PRIx64" + %x vs %x\n", (off64_t)data->stream_offset, data->stream_size, get_streamfile_size(streamfile));
+        VGM_LOG("OPUS: wrong streamsize %x + %x vs %x\n", (uint32_t)data->stream_offset, data->stream_size, get_streamfile_size(streamfile));
         return 0;
     }
 
@@ -207,7 +207,7 @@ static size_t opus_io_size(STREAMFILE *streamfile, opus_io_data* data) {
         }
 
         if (data_size == 0 ) {
-            VGM_LOG("OPUS: data_size is 0 at %"PRIx64"\n", (off64_t)physical_offset);
+            VGM_LOG("OPUS: data_size is 0 at %x\n", (uint32_t)physical_offset);
             return 0; /* bad rip? or could 'break' and truck along */
         }
 
@@ -507,13 +507,21 @@ fail:
     return 0;
 }
 
-/************************** */
-
-#ifdef VGM_USE_FFMPEG
-
 static size_t opus_get_packet_samples(const uint8_t * buf, int len) {
     return opus_packet_get_nb_frames(buf, len) * opus_packet_get_samples_per_frame(buf, 48000);
 }
+
+/************************** */
+
+static size_t get_xopus_packet_size(int packet, STREAMFILE * streamfile) {
+    /* XOPUS has a packet size table at the beginning, get size from there.
+     * Maybe should copy the table during setup to avoid IO, but all XOPUS are
+     * quite small so it isn't very noticeable. */
+    return (uint16_t)read_16bitLE(0x20 + packet*0x02, streamfile);
+}
+
+
+#ifdef VGM_USE_FFMPEG
 
 static size_t custom_opus_get_samples(off_t offset, size_t data_size, STREAMFILE *streamFile, opus_type_t type) {
     size_t num_samples = 0;
@@ -601,13 +609,6 @@ size_t ea_opus_get_encoder_delay(off_t offset, STREAMFILE *streamFile) {
     return custom_opus_get_encoder_delay(offset, streamFile, OPUS_EA);
 }
 
-
-static size_t get_xopus_packet_size(int packet, STREAMFILE * streamfile) {
-    /* XOPUS has a packet size table at the beginning, get size from there.
-     * Maybe should copy the table during setup to avoid IO, but all XOPUS are
-     * quite small so it isn't very noticeable. */
-    return (uint16_t)read_16bitLE(0x20 + packet*0x02, streamfile);
-}
 
 
 /* ******************************************************* */

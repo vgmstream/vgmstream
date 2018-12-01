@@ -157,7 +157,7 @@ void decode_celt_fsb(VGMSTREAM *vgmstream, sample * outbuf, int32_t samples_to_d
 
 decode_fail:
     /* on error just put some 0 samples */
-    VGM_LOG("CELT: decode fail at %"PRIx64", missing %i samples\n", (off64_t)stream->offset, (samples_to_do - samples_done));
+    VGM_LOG("CELT: decode fail at %x, missing %i samples\n", (uint32_t)stream->offset, (samples_to_do - samples_done));
     memset(outbuf + samples_done * channels, 0, (samples_to_do - samples_done) * sizeof(sample) * channels);
 }
 

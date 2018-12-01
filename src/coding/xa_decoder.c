@@ -76,7 +76,7 @@ void decode_xa(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, i
 
     if (read_32bitBE(frame_offset+0x00,stream->streamfile) != read_32bitBE(frame_offset+0x04,stream->streamfile) ||
         read_32bitBE(frame_offset+0x08,stream->streamfile) != read_32bitBE(frame_offset+0x0c,stream->streamfile)) {
-        VGM_LOG("bad frames at %"PRIx64"\n", (off64_t)frame_offset);
+        VGM_LOG("bad frames at %x\n", (uint32_t)frame_offset);
     }
 
 
@@ -90,7 +90,7 @@ void decode_xa(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, i
         coef_index   = ((uint8_t)read_8bit(sp_offset,stream->streamfile) >> 4) & 0xf;
         shift_factor = ((uint8_t)read_8bit(sp_offset,stream->streamfile) >> 0) & 0xf;
 
-        VGM_ASSERT(coef_index > 4 || shift_factor > 12, "XA: incorrect coefs/shift at %"PRIx64"\n", (off64_t)sp_offset);
+        VGM_ASSERT(coef_index > 4 || shift_factor > 12, "XA: incorrect coefs/shift at %x\n", (uint32_t)sp_offset);
         if (coef_index > 4)
             coef_index = 0; /* only 4 filters are used, rest is apparently 0 */
         if (shift_factor > 12)

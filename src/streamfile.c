@@ -53,7 +53,7 @@ static size_t read_stdio(STDIOSTREAMFILE *streamfile,uint8_t * dest, off_t offse
         /* ignore requests at EOF */
         if (offset >= streamfile->filesize) {
             //offset = streamfile->filesize; /* seems fseek doesn't clamp offset */
-            VGM_ASSERT_ONCE(offset > streamfile->filesize, "STDIO: reading over filesize 0x%x @ 0x%"PRIx64" + 0x%x\n", streamfile->filesize, (off64_t)offset, length);
+            VGM_ASSERT_ONCE(offset > streamfile->filesize, "STDIO: reading over filesize 0x%x @ 0x%x + 0x%x\n", streamfile->filesize, (uint32_t)offset, length);
             break;
         }
 
@@ -254,7 +254,7 @@ static size_t buffer_read(BUFFER_STREAMFILE *streamfile, uint8_t * dest, off_t o
         /* ignore requests at EOF */
         if (offset >= streamfile->filesize) {
             //offset = streamfile->filesize; /* seems fseek doesn't clamp offset */
-            VGM_ASSERT_ONCE(offset > streamfile->filesize, "BUFFER: reading over filesize 0x%x @ 0x%"PRIx64" + 0x%x\n", streamfile->filesize, (off64_t)offset, length);
+            VGM_ASSERT_ONCE(offset > streamfile->filesize, "BUFFER: reading over filesize 0x%x @ 0x%x + 0x%x\n", streamfile->filesize, (uint32_t)offset, length);
             break;
         }
 
