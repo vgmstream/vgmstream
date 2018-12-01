@@ -440,6 +440,7 @@ EXPORTS
     av_spherical_from_name
     av_spherical_projection_name
     av_spherical_tile_bounds
+    av_sscanf
     av_stereo3d_alloc
     av_stereo3d_create_side_data
     av_stereo3d_from_name
