@@ -92,7 +92,7 @@ Requires the dev version of Audacious (and dependencies), automake/autoconf, and
 
 The plugin needs Audacious 3.5 or higher. New Audacious releases can break plugin compatibility so it may not work with the latest version unless adapted first.
 
-libvorbis and libmpg123 will be used if found, while FFmpeg and other external libraries aren't enabled, thus some formats won't work.
+libvorbis and libmpg123 will be used if found, while FFmpeg and other external libraries aren't enabled at the moment, thus some formats won't work (build scripts need to be fixed).
 
 Windows builds aren't supported at the moment (should be possible but there are complex dependency chains).
 
@@ -121,9 +121,15 @@ cd vgmstream
 ./configure
 make -f Makefile.autotools
 
-# copy to audacious plugins
+# copy to audacious plugins and update global libvgmstream.so.0 refs
 sudo make -f Makefile.autotools install
+sudo ldconfig
 
+# start audacious in verbose mode to check if it was installed correctly
+audacious -V
+
+# uninstall if needed
+sudo make -f Makefile.autotools uninstall
 
 # optional post-cleanup
 make -f Makefile.autotools clean
