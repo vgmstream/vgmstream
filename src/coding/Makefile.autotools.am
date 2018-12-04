@@ -9,3 +9,12 @@ AM_MAKEFLAGS=-f Makefile.autotools
 libcoding_la_LDFLAGS =
 libcoding_la_SOURCES = (auto-updated)
 EXTRA_DIST = (auto-updated)
+
+if HAVE_VORBIS
+if HAVE_VORBISFILE
+AM_CFLAGS += -DVGM_USE_VORBIS
+endif
+endif
+if HAVE_LIBMPG123
+AM_CFLAGS += -DVGM_USE_MPEG
+endif

@@ -11,7 +11,7 @@ SUBDIRS = coding layout meta
 libvgmstream_la_LDFLAGS = coding/libcoding.la layout/liblayout.la meta/libmeta.la
 libvgmstream_la_SOURCES = (auto-updated)
 libvgmstream_la_SOURCES += ../ext_libs/clHCA.c
-libvgmstream_la_LIBADD = $(AUDACIOUS_LIBS) $(GTK_LIBS) -lm
+libvgmstream_la_LIBADD = -lm
 EXTRA_DIST = (auto-updated)
 EXTRA_DIST += ../ext_includes/clHCA.h
 
