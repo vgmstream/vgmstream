@@ -813,4 +813,6 @@ VGMSTREAM * init_vgmstream_msf_tamasoft(STREAMFILE * streamFile);
 VGMSTREAM * init_vgmstream_xps_dat(STREAMFILE * streamFile);
 VGMSTREAM * init_vgmstream_xps(STREAMFILE * streamFile);
 
+VGMSTREAM * init_vgmstream_zsnd(STREAMFILE * streamFile);
+
 #endif /*_META_H*/

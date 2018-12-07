@@ -707,6 +707,7 @@ typedef enum {
     meta_XPCM,
     meta_MSF_TAMASOFT,
     meta_XPS_DAT,
+    meta_ZSND,
 
 } meta_t;
 

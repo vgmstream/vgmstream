@@ -128,7 +128,9 @@ static const char* extension_list[] = {
     "e4x",
     "eam",
     "emff",
+    "enm",
     "eno",
+    "ens",
     "enth",
     "exa",
     "ezw",
@@ -483,6 +485,8 @@ static const char* extension_list[] = {
     "ymf",
 
     "zsd",
+    "zsm",
+    "zss",
     "zwdsp",
 
     "vgmstream" /* fake extension, catch-all for FFmpeg/txth/etc */
@@ -1115,6 +1119,7 @@ static const meta_info meta_info_list[] = {
         {meta_XPCM,                 "Circus XPCM header"},
         {meta_MSF_TAMASOFT,         "Tama-Soft MSF header"},
         {meta_XPS_DAT,              "From Software .XPS+DAT header"},
+        {meta_ZSND,                 "Vicarious Visions ZSND header"},
 
 };
 
