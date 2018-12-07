@@ -25,8 +25,8 @@ typedef struct {
     size_t entry_count;
     size_t entry_max;
 
-    size_t loop_start_segment;
-    size_t loop_end_segment;
+    uint32_t loop_start_segment;
+    uint32_t loop_end_segment;
 
     size_t is_layered;
 } txtp_header;

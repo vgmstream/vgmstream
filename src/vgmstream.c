@@ -2188,7 +2188,7 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream) {
 /* Write a description of the stream into array pointed by desc, which must be length bytes long.
  * Will always be null-terminated if length > 0 */
 void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
-#define TEMPSIZE 256
+#define TEMPSIZE (256+32)
     char temp[TEMPSIZE];
     const char* description;
 

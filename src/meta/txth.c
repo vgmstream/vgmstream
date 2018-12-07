@@ -808,7 +808,7 @@ static int parse_num(STREAMFILE * streamFile, txth_header * txth, const char * v
             if (sscanf(val, hex ? "@%x" : "@%u", &offset) != 1) goto fail;
         }
 
-        if (offset < 0 || offset > get_streamfile_size(streamFile))
+        if (/*offset < 0 ||*/ offset > get_streamfile_size(streamFile))
             goto fail;
 
         if (ed1 == 'B' && ed2 == 'E')
