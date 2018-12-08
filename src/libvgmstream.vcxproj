@@ -406,8 +406,8 @@
     <ClCompile Include="meta\ps3_cps.c" />
     <ClCompile Include="meta\ps3_msf.c" />
     <ClCompile Include="meta\ps3_mta2.c" />
-    <ClCompile Include="meta\psx_cdxa.c" />
-    <ClCompile Include="meta\psx_fag.c" />
+    <ClCompile Include="meta\xa.c" />
+    <ClCompile Include="meta\fag.c" />
     <ClCompile Include="meta\psx_gms.c" />
     <ClCompile Include="meta\ea_swvr.c" />
     <ClCompile Include="meta\raw.c" />

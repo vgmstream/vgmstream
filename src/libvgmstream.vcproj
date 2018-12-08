@@ -1275,11 +1275,11 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\psx_cdxa.c"
+					RelativePath=".\meta\xa.c"
 					>
 				</File>
 				<File
-					RelativePath=".\meta\psx_fag.c"
+					RelativePath=".\meta\fag.c"
 					>
 				</File>
 				<File

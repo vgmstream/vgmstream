@@ -781,10 +781,10 @@
     <ClCompile Include="meta\ps3_mta2.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\psx_cdxa.c">
+    <ClCompile Include="meta\xa.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\psx_fag.c">
+    <ClCompile Include="meta\fag.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\psx_gms.c">
