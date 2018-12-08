@@ -322,7 +322,7 @@ typedef enum {
     meta_HIS,               /* Her Ineractive .his */
     meta_BNSF,              /* Bandai Namco Sound Format */
 
-    meta_PSX_XA,            /* CD-ROM XA */
+    meta_XA,                /* CD-ROM XA */
     meta_PS2_SShd,          /* .ADS with SShd header */
     meta_PS2_NPSF,          /* Namco Production Sound File */
     meta_PS2_RXWS,          /* Sony games (Genji, Okage Shadow King, Arc The Lad Twilight of Spirits) */

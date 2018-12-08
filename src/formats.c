@@ -725,7 +725,7 @@ static const meta_info meta_info_list[] = {
         {meta_RWAV,                 "Nintendo RWAV header"},
         {meta_CWAV,                 "Nintendo CWAV header"},
         {meta_FWAV,                 "Nintendo FWAV header"},
-        {meta_PSX_XA,               "RIFF/CDXA header"},
+        {meta_XA,                   "Sony XA RIFF header"},
         {meta_PS2_RXWS,             "Sony RXWS header"},
         {meta_PS2_RAW,              ".int PCM raw header"},
         {meta_PS2_OMU,              "Alter Echo OMU Header"},
