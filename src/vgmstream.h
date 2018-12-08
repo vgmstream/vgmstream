@@ -406,7 +406,7 @@ typedef enum {
     meta_NGC_YMF,           /* WWE WrestleMania X8 */
     meta_SADL,              /* .sad */
     meta_PS2_CCC,           /* Tokyo Xtreme Racer DRIFT 2 */
-    meta_PSX_FAG,           /* Jackie Chan - Stuntmaster */
+    meta_FAG,               /* Jackie Chan - Stuntmaster */
     meta_PS2_MIHB,          /* Merged MIH+MIB */
     meta_NGC_PDT,           /* Mario Party 6 */
     meta_DC_ASD,            /* Miss Moonligh */

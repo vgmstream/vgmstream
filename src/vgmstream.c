@@ -150,7 +150,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_ngc_ymf,
     init_vgmstream_sadl,
     init_vgmstream_ps2_ccc,
-    init_vgmstream_psx_fag,
+    init_vgmstream_fag,
     init_vgmstream_ps2_mihb,
     init_vgmstream_ngc_pdt_split,
     init_vgmstream_ngc_pdt,

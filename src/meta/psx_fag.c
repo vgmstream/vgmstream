@@ -1,66 +1,52 @@
 #include "meta.h"
-#include "../util.h"
+#include "../coding/coding.h"
 
-/* FAG (Jackie Chan - Stuntmaster) */
-VGMSTREAM * init_vgmstream_psx_fag(STREAMFILE *streamFile) {
+/* .FAG - from Jackie Chan: Stuntmaster (PS1) */
+VGMSTREAM * init_vgmstream_fag(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[PATH_LIMIT];
     off_t start_offset;
-    int loop_flag = 0;
-    int channel_count;
+    size_t stream_size;
+    int loop_flag, channel_count;
+    int total_subsongs, target_subsong = streamFile->stream_index;
 
-    /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("fag",filename_extension(filename))) goto fail;
 
-    /* check header */
-
-    /* Look if there's more than 1 one file... */
-    if (read_32bitBE(0x00,streamFile) != 0x01000000)
+    /* checks */
+    if (!check_extensions(streamFile,"fag"))
         goto fail;
 
+    total_subsongs = read_32bitLE(0x00,streamFile);
+    if (target_subsong == 0) target_subsong = 1;
+    if (target_subsong < 0 || target_subsong > total_subsongs || total_subsongs < 1) goto fail;
+
+    if (total_subsongs > 2)
+        goto fail;
     loop_flag = 0;
     channel_count = 2;
-    
+
+    start_offset = read_32bitLE(0x04 + 0x04*(target_subsong-1),streamFile);
+    stream_size  = read_32bitLE(0x04 + 0x04*total_subsongs + 0x04*(target_subsong-1),streamFile) - start_offset; /* end offset */
+
+
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
-    /* fill in the vital statistics */
-    start_offset = read_32bitLE(0x04,streamFile);
-    vgmstream->channels = channel_count;
+    vgmstream->meta_type = meta_FAG;
     vgmstream->sample_rate = 24000;
-    vgmstream->coding_type = coding_PSX;
-    vgmstream->num_samples = (read_32bitLE(0x08,streamFile))/channel_count/32*28;
-    if (loop_flag) {
-        vgmstream->loop_start_sample = 0;
-        vgmstream->loop_end_sample = (read_32bitLE(0x08,streamFile))/channel_count/32*28;
-    }
+    vgmstream->num_streams = total_subsongs;
+    vgmstream->stream_size = stream_size;
 
+    vgmstream->coding_type = coding_PSX;
     vgmstream->layout_type = layout_interleave;
     vgmstream->interleave_block_size = 0x8000;
-    vgmstream->meta_type = meta_PSX_FAG;
+    vgmstream->num_samples = ps_bytes_to_samples(stream_size, channel_count);
 
-    /* open the file for reading */
-    {
-        int i;
-        STREAMFILE * file;
-        file = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-        if (!file) goto fail;
-        for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = file;
 
-            vgmstream->ch[i].channel_start_offset=
-                vgmstream->ch[i].offset=start_offset+
-                vgmstream->interleave_block_size*i;
-
-        }
-    }
-
+    if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
+        goto fail;
     return vgmstream;
 
-    /* clean up anything we may have opened */
 fail:
-    if (vgmstream) close_vgmstream(vgmstream);
+    close_vgmstream(vgmstream);
     return NULL;
 }

@@ -289,7 +289,7 @@ VGMSTREAM * init_vgmstream_sadl(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_ps2_ccc(STREAMFILE * streamFile);
 
-VGMSTREAM * init_vgmstream_psx_fag(STREAMFILE * streamFile);
+VGMSTREAM * init_vgmstream_fag(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_ps2_mihb(STREAMFILE * streamFile);
 
