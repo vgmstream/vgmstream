@@ -39,7 +39,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_ps2_ads,
     init_vgmstream_ps2_npsf,
     init_vgmstream_rwsd,
-    init_vgmstream_cdxa,
+    init_vgmstream_xa,
     init_vgmstream_ps2_rxws,
     init_vgmstream_ps2_rxw,
     init_vgmstream_ngc_dsp_stm,
@@ -150,7 +150,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_ngc_ymf,
     init_vgmstream_sadl,
     init_vgmstream_ps2_ccc,
-    init_vgmstream_psx_fag,
+    init_vgmstream_fag,
     init_vgmstream_ps2_mihb,
     init_vgmstream_ngc_pdt_split,
     init_vgmstream_ngc_pdt,
@@ -452,6 +452,10 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_msf_tamasoft,
     init_vgmstream_xps_dat,
     init_vgmstream_xps,
+    init_vgmstream_zsnd,
+    init_vgmstream_opus_opusx,
+    init_vgmstream_dsp_adpcmx,
+    init_vgmstream_ogg_opus,
 
     /* lowest priority metas (should go after all metas, and TXTH should go before raw formats) */
     init_vgmstream_txth,            /* proper parsers should supersede TXTH, once added */
@@ -2187,7 +2191,7 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream) {
 /* Write a description of the stream into array pointed by desc, which must be length bytes long.
  * Will always be null-terminated if length > 0 */
 void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
-#define TEMPSIZE 256
+#define TEMPSIZE (256+32)
     char temp[TEMPSIZE];
     const char* description;
 

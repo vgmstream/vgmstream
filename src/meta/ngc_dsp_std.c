@@ -1115,7 +1115,7 @@ fail:
 }
 
 /* .vag - Nippon Ichi SPS wrapper [Penny-Punching Princess (Switch), Ys VIII (Switch)] */
-VGMSTREAM * init_vgmstream_dsp_sps_n1(STREAMFILE *streamFile) {//todo rename
+VGMSTREAM * init_vgmstream_dsp_sps_n1(STREAMFILE *streamFile) {
     dsp_meta dspm = {0};
 
     /* checks */
@@ -1164,6 +1164,34 @@ VGMSTREAM * init_vgmstream_dsp_itl_ch(STREAMFILE *streamFile) {
     dspm.fix_looping = 1;
 
     dspm.meta_type = meta_DSP_ITL;
+    return init_vgmstream_dsp_common(streamFile, &dspm);
+fail:
+    return NULL;
+}
+
+/* .adpcmx - AQUASTYLE wrapper [Touhou Genso Wanderer -Reloaded- (Switch)] */
+VGMSTREAM * init_vgmstream_dsp_adpcmx(STREAMFILE *streamFile) {
+    dsp_meta dspm = {0};
+
+    /* checks */
+    if (!check_extensions(streamFile, "adpcmx"))
+        goto fail;
+    if (read_32bitBE(0x00,streamFile) != 0x41445059) /* "ADPY" */
+        goto fail;
+    /* 0x04(2): 1? */
+    /* 0x08: some size? */
+    /* 0x0c: null */
+
+    dspm.channel_count = read_16bitLE(0x06,streamFile);
+    dspm.max_channels = 2;
+    dspm.little_endian = 1;
+
+    dspm.header_offset = 0x10;
+    dspm.header_spacing = 0x60;
+    dspm.start_offset = dspm.header_offset + dspm.header_spacing*dspm.channel_count;
+    dspm.interleave = 0x08;
+
+    dspm.meta_type = meta_DSP_ADPCMX;
     return init_vgmstream_dsp_common(streamFile, &dspm);
 fail:
     return NULL;

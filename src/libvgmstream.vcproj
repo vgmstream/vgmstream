@@ -280,6 +280,10 @@
                     RelativePath=".\meta\xvag_streamfile.h"
                     >
                 </File>
+                <File
+                    RelativePath=".\meta\zsnd_streamfile.h"
+                    >
+                </File>
 			</Filter>
 			<Filter
 				Name="Source Files"
@@ -862,6 +866,10 @@
                     RelativePath=".\meta\nxap.c"
                     >
                 </File>
+                <File
+                    RelativePath=".\meta\ogg_opus.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\ogg_vorbis.c"
 					>
@@ -1271,11 +1279,11 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\psx_cdxa.c"
+					RelativePath=".\meta\xa.c"
 					>
 				</File>
 				<File
-					RelativePath=".\meta\psx_fag.c"
+					RelativePath=".\meta\fag.c"
 					>
 				</File>
 				<File
@@ -1662,6 +1670,10 @@
 					RelativePath=".\meta\zsd.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\meta\zsnd.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\zwdsp.c"
 					>

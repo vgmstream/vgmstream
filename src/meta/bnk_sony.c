@@ -396,6 +396,9 @@ VGMSTREAM * init_vgmstream_bnk_sony(STREAMFILE *streamFile) {
             vgmstream->loop_start_sample = loop_start;
             vgmstream->loop_end_sample = loop_end;
             break;
+
+        default:
+            goto fail;
     }
 
     if (name_offset)

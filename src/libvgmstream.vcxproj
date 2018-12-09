@@ -324,6 +324,7 @@
     <ClCompile Include="meta\nwav.c" />
     <ClCompile Include="meta\nxa.c" />
     <ClCompile Include="meta\nxap.c" />
+    <ClCompile Include="meta\ogg_opus.c" />
     <ClCompile Include="meta\ogg_vorbis.c" />
     <ClCompile Include="meta\ogl.c" />
     <ClCompile Include="meta\omu.c" />
@@ -406,8 +407,8 @@
     <ClCompile Include="meta\ps3_cps.c" />
     <ClCompile Include="meta\ps3_msf.c" />
     <ClCompile Include="meta\ps3_mta2.c" />
-    <ClCompile Include="meta\psx_cdxa.c" />
-    <ClCompile Include="meta\psx_fag.c" />
+    <ClCompile Include="meta\xa.c" />
+    <ClCompile Include="meta\fag.c" />
     <ClCompile Include="meta\psx_gms.c" />
     <ClCompile Include="meta\ea_swvr.c" />
     <ClCompile Include="meta\raw.c" />
@@ -490,6 +491,7 @@
     <ClCompile Include="meta\xwma.c" />
     <ClCompile Include="meta\ydsp.c" />
     <ClCompile Include="meta\zsd.c" />
+    <ClCompile Include="meta\zsnd.c" />
     <ClCompile Include="meta\zwdsp.c" />
     <ClCompile Include="coding\acm_decoder.c" />
     <ClCompile Include="coding\acm_decoder_decode.c" />

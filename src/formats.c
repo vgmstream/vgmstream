@@ -31,6 +31,7 @@ static const char* extension_list[] = {
     "adm",
     "adp",
     "adpcm",
+    "adpcmx",
     "ads",
     "adw",
     "adx",
@@ -128,7 +129,9 @@ static const char* extension_list[] = {
     "e4x",
     "eam",
     "emff",
+    "enm",
     "eno",
+    "ens",
     "enth",
     "exa",
     "ezw",
@@ -270,6 +273,7 @@ static const char* extension_list[] = {
     "oma", //FFmpeg/not parsed (ATRAC3/ATRAC3PLUS/MP3/LPCM/WMA)
     "omu",
     //"opus", //common
+    "opusx",
     "otm",
     "ovb",
 
@@ -483,6 +487,8 @@ static const char* extension_list[] = {
     "ymf",
 
     "zsd",
+    "zsm",
+    "zss",
     "zwdsp",
 
     "vgmstream" /* fake extension, catch-all for FFmpeg/txth/etc */
@@ -721,7 +727,7 @@ static const meta_info meta_info_list[] = {
         {meta_RWAV,                 "Nintendo RWAV header"},
         {meta_CWAV,                 "Nintendo CWAV header"},
         {meta_FWAV,                 "Nintendo FWAV header"},
-        {meta_PSX_XA,               "RIFF/CDXA header"},
+        {meta_XA,                   "Sony XA RIFF header"},
         {meta_PS2_RXWS,             "Sony RXWS header"},
         {meta_PS2_RAW,              ".int PCM raw header"},
         {meta_PS2_OMU,              "Alter Echo OMU Header"},
@@ -826,7 +832,7 @@ static const meta_info meta_info_list[] = {
         {meta_KRAW,                 "Geometry Wars: Galaxies KRAW header"},
         {meta_NGC_YMF,              "YMF DSP Header"},
         {meta_PS2_CCC,              "CCC Header"},
-        {meta_PSX_FAG,              "FAG Header"},
+        {meta_FAG,                  "Radical .FAG Header"},
         {meta_PS2_MIHB,             "Sony MultiStream MIC header"},
         {meta_DSP_WII_MUS,          "mus header"},
         {meta_WII_SNG,              "SNG DSP Header"},
@@ -1046,12 +1052,12 @@ static const meta_info meta_info_list[] = {
         {meta_NGC_VID1,             "Neversoft VID1 header"},
         {meta_PC_FLX,               "Ultima IX .FLX header"},
         {meta_MOGG,                 "Harmonix Music Systems MOGG Vorbis"},
-        {meta_OGG_VORBIS,           "Ogg Vorbis"},
-        {meta_OGG_SLI,              "Ogg Vorbis with .sli looping"},
-        {meta_OPUS_SLI,             "Ogg Opus with .sli looping"},
-        {meta_OGG_SFL,              "Ogg Vorbis with SFPL looping"},
-        {meta_OGG_KOVS,             "Ogg Vorbis (KOVS header)"},
-        {meta_OGG_encrypted,        "Ogg Vorbis (encrypted)"},
+        {meta_OGG_VORBIS,           "Ogg Vorbis header"},
+        {meta_OGG_SLI,              "Ogg Vorbis header (.sli looping)"},
+        {meta_OPUS_SLI,             "Ogg Opus header (.sli looping)"},
+        {meta_OGG_SFL,              "Ogg Vorbis header (SFPL looping)"},
+        {meta_OGG_KOVS,             "Ogg Vorbis header (KOVS)"},
+        {meta_OGG_encrypted,        "Ogg Vorbis header (encrypted)"},
         {meta_KMA9,                 "Koei Tecmo KMA9 header"},
         {meta_XWC,                  "Starbreeze XWC header"},
         {meta_SQEX_SAB,             "Square-Enix SAB header"},
@@ -1115,6 +1121,9 @@ static const meta_info meta_info_list[] = {
         {meta_XPCM,                 "Circus XPCM header"},
         {meta_MSF_TAMASOFT,         "Tama-Soft MSF header"},
         {meta_XPS_DAT,              "From Software .XPS+DAT header"},
+        {meta_ZSND,                 "Vicarious Visions ZSND header"},
+        {meta_DSP_ADPCMX,           "AQUASTYLE ADPY header"},
+        {meta_OGG_OPUS,             "Ogg Opus header"},
 
 };
 

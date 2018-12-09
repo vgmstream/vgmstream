@@ -322,7 +322,7 @@ typedef enum {
     meta_HIS,               /* Her Ineractive .his */
     meta_BNSF,              /* Bandai Namco Sound Format */
 
-    meta_PSX_XA,            /* CD-ROM XA */
+    meta_XA,                /* CD-ROM XA */
     meta_PS2_SShd,          /* .ADS with SShd header */
     meta_PS2_NPSF,          /* Namco Production Sound File */
     meta_PS2_RXWS,          /* Sony games (Genji, Okage Shadow King, Arc The Lad Twilight of Spirits) */
@@ -406,7 +406,7 @@ typedef enum {
     meta_NGC_YMF,           /* WWE WrestleMania X8 */
     meta_SADL,              /* .sad */
     meta_PS2_CCC,           /* Tokyo Xtreme Racer DRIFT 2 */
-    meta_PSX_FAG,           /* Jackie Chan - Stuntmaster */
+    meta_FAG,               /* Jackie Chan - Stuntmaster */
     meta_PS2_MIHB,          /* Merged MIH+MIB */
     meta_NGC_PDT,           /* Mario Party 6 */
     meta_DC_ASD,            /* Miss Moonligh */
@@ -707,6 +707,9 @@ typedef enum {
     meta_XPCM,
     meta_MSF_TAMASOFT,
     meta_XPS_DAT,
+    meta_ZSND,
+    meta_DSP_ADPCMX,
+    meta_OGG_OPUS
 
 } meta_t;
 

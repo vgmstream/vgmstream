@@ -3,7 +3,7 @@
 #include "../coding/coding.h"
 
 /* CD-XA - from Sony PS1 CDs */
-VGMSTREAM * init_vgmstream_cdxa(STREAMFILE *streamFile) {
+VGMSTREAM * init_vgmstream_xa(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     off_t start_offset;
     int loop_flag = 0, channel_count, sample_rate;
@@ -145,7 +145,7 @@ VGMSTREAM * init_vgmstream_cdxa(STREAMFILE *streamFile) {
 
     vgmstream->sample_rate = sample_rate;
 
-    vgmstream->meta_type = meta_PSX_XA;
+    vgmstream->meta_type = meta_XA;
     vgmstream->coding_type = coding_XA;
     vgmstream->layout_type = is_blocked ? layout_blocked_xa : layout_none;
 

@@ -110,6 +110,9 @@
     <ClInclude Include="meta\xvag_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="meta\zsnd_streamfile.h">
+      <Filter>meta\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="meta\meta.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
@@ -532,6 +535,9 @@
     <ClCompile Include="meta\nxap.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\ogg_opus.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\ogg_vorbis.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -778,10 +784,10 @@
     <ClCompile Include="meta\ps3_mta2.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\psx_cdxa.c">
+    <ClCompile Include="meta\xa.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\psx_fag.c">
+    <ClCompile Include="meta\fag.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\psx_gms.c">
@@ -1013,6 +1019,9 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\zsd.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\zsnd.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\zwdsp.c">

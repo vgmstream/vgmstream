@@ -57,7 +57,6 @@ static VGMSTREAM * init_vgmstream_opus(STREAMFILE *streamFile, meta_t meta_type,
     goto fail;
 #endif
 
-    /* open the file for reading */
     if ( !vgmstream_open_stream(vgmstream, streamFile, start_offset) )
         goto fail;
     return vgmstream;
@@ -302,6 +301,39 @@ VGMSTREAM * init_vgmstream_opus_sps_n1(STREAMFILE *streamFile) {
     if (loop_flag) {
         loop_start = read_32bitLE(0x10, streamFile);
         loop_end = loop_start + read_32bitLE(0x14, streamFile);
+    }
+
+    return init_vgmstream_opus(streamFile, meta_OPUS, offset, num_samples, loop_start, loop_end);
+fail:
+    return NULL;
+}
+
+/* AQUASTYLE wrapper [Touhou Genso Wanderer -Reloaded- (Switch)] */
+VGMSTREAM * init_vgmstream_opus_opusx(STREAMFILE *streamFile) {
+    off_t offset;
+    int num_samples, loop_start = 0, loop_end = 0;
+    float modifier;
+
+    /* checks */
+    if (!check_extensions(streamFile, "opusx"))
+        goto fail;
+    if (read_32bitBE(0x00, streamFile) != 0x4F505553) /* "OPUS" */
+        goto fail;
+
+    offset = 0x10;
+    /* values are for the original 44100 files, but Opus resamples to 48000 */
+    modifier = 48000.0f / 44100.0f;
+    num_samples = 0;//read_32bitLE(0x04, streamFile) * modifier; /* better use calc'd num_samples */
+    loop_start = read_32bitLE(0x08, streamFile) * modifier;
+    loop_end = read_32bitLE(0x0c, streamFile) * modifier;
+
+    /* resampling calcs are slighly off and may to over num_samples, but by removing delay seems ok */
+    if (loop_start >= 120) {
+        loop_start -= 128;
+        loop_end -= 128;
+    }
+    else {
+        loop_end = 0;
     }
 
     return init_vgmstream_opus(streamFile, meta_OPUS, offset, num_samples, loop_start, loop_end);
