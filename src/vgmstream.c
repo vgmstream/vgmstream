@@ -453,6 +453,8 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_xps_dat,
     init_vgmstream_xps,
     init_vgmstream_zsnd,
+    init_vgmstream_opus_opusx,
+    init_vgmstream_dsp_adpcmx,
 
     /* lowest priority metas (should go after all metas, and TXTH should go before raw formats) */
     init_vgmstream_txth,            /* proper parsers should supersede TXTH, once added */

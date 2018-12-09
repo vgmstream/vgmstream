@@ -31,6 +31,7 @@ static const char* extension_list[] = {
     "adm",
     "adp",
     "adpcm",
+    "adpcmx",
     "ads",
     "adw",
     "adx",
@@ -272,6 +273,7 @@ static const char* extension_list[] = {
     "oma", //FFmpeg/not parsed (ATRAC3/ATRAC3PLUS/MP3/LPCM/WMA)
     "omu",
     //"opus", //common
+    "opusx",
     "otm",
     "ovb",
 
@@ -1120,6 +1122,7 @@ static const meta_info meta_info_list[] = {
         {meta_MSF_TAMASOFT,         "Tama-Soft MSF header"},
         {meta_XPS_DAT,              "From Software .XPS+DAT header"},
         {meta_ZSND,                 "Vicarious Visions ZSND header"},
+        {meta_DSP_ADPCMX,           "AQUASTYLE ADPY header"},
 
 };
 
