@@ -535,6 +535,9 @@
     <ClCompile Include="meta\nxap.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\ogg_opus.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\ogg_vorbis.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>

@@ -708,7 +708,8 @@ typedef enum {
     meta_MSF_TAMASOFT,
     meta_XPS_DAT,
     meta_ZSND,
-    meta_DSP_ADPCMX
+    meta_DSP_ADPCMX,
+    meta_OGG_OPUS
 
 } meta_t;
 

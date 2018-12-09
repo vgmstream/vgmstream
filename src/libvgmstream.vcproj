@@ -866,6 +866,10 @@
                     RelativePath=".\meta\nxap.c"
                     >
                 </File>
+                <File
+                    RelativePath=".\meta\ogg_opus.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\ogg_vorbis.c"
 					>
