@@ -952,7 +952,8 @@ typedef enum {
     MPEG_EAL32P,            /* EALayer3 v2 "PCM", custom frames with v2 header + bigger PCM blocks? */
     MPEG_EAL32S,            /* EALayer3 v2 "Spike", custom frames with v2 header + smaller PCM blocks? */
     MPEG_LYN,               /* N streams of fixed interleave */
-    MPEG_AWC                /* N streams in block layout (music) or absolute offsets (sfx) */
+    MPEG_AWC,               /* N streams in block layout (music) or absolute offsets (sfx) */
+    MPEG_EAMP3              /* custom frame header + MPEG frame + PCM blocks */
 } mpeg_custom_t;
 
 /* config for the above modes */

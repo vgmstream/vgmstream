@@ -1838,6 +1838,10 @@
                     RelativePath=".\coding\mpeg_custom_utils_ealayer3.c"
                     >
                 </File>
+                <File
+                    RelativePath=".\coding\mpeg_custom_utils_eamp3.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\coding\mpeg_decoder.c"
 					>

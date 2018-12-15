@@ -1090,6 +1090,9 @@
     <ClCompile Include="coding\mpeg_custom_utils_ealayer3.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="coding\mpeg_custom_utils_eamp3.c">
+      <Filter>coding\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="coding\mpeg_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>

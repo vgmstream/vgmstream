@@ -515,6 +515,7 @@
     <ClCompile Include="coding\mpeg_custom_utils_ahx.c" />
     <ClCompile Include="coding\mpeg_custom_utils_awc.c" />
     <ClCompile Include="coding\mpeg_custom_utils_ealayer3.c" />
+    <ClCompile Include="coding\mpeg_custom_utils_eamp3.c" />
     <ClCompile Include="coding\mpeg_decoder.c" />
     <ClCompile Include="coding\msadpcm_decoder.c" />
     <ClCompile Include="coding\nds_procyon_decoder.c" />
