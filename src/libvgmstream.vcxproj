@@ -319,6 +319,7 @@
     <ClCompile Include="meta\ngc_ulw.c" />
     <ClCompile Include="meta\ngc_vid1.c" />
     <ClCompile Include="meta\nub_xma.c" />
+    <ClCompile Include="meta\nus3audio.c" />
     <ClCompile Include="meta\nus3bank.c" />
     <ClCompile Include="meta\nwa.c" />
     <ClCompile Include="meta\nwav.c" />

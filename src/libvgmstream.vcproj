@@ -847,6 +847,10 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\meta\nus3audio.c"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\nus3bank.c"
                     >
                 </File>
