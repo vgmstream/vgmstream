@@ -144,6 +144,7 @@ Should be buildable with Autotools, much like the Audacious plugin, though requi
 
 Windows builds are possible with libao.dll and includes, but some features are disabled.
 
+libao is licensed under the GPL v2 or later.
 
 ## External libraries
 Support for some codecs is done with external libs, instead of copying their code in vgmstream. There are various reasons for this:
@@ -164,6 +165,7 @@ Below is a quick explanation of each library and how to compile binaries from th
 Adds support for Vorbis (inside Ogg and custom containers).
 - Source: http://downloads.xiph.org/releases/vorbis/libvorbis-1.3.6.zip
 - DLL: `libvorbis.dll`
+- licensed under the 3-clause BSD license.
 
 Should be buildable with MSVC (in /win32 dir are .sln files) or autotools (use `autogen.sh`).
 
@@ -173,6 +175,7 @@ Adds support for MPEG (MP1/MP2/MP3).
 - Source: https://sourceforge.net/projects/mpg123/files/mpg123/1.25.10/
 - Builds: http://www.mpg123.de/download/win32/1.25.10/
 - DLL: `libmpg123-0.dll`
+- licensed under the LGPL v2.1
 
 Must use autotools (sh configure, make, make install), though some scripts simplify the process: `makedll.sh`, `windows-builds.sh`.
 
@@ -181,7 +184,9 @@ Must use autotools (sh configure, make, make install), though some scripts simpl
 Adds support for ITU-T G.722.1 annex C (standardization of Polycom Siren 14).
 - Source: https://github.com/bnnm/vgmstream-g7221
   - Alt lib (has volume problems): https://github.com/kode54/libg7221_decode
+  - licensed under the LGPL v3 (possibly invalid and Polycom's)
 - DLL: `libg7221_decode.dll`
+- unknown license (possibly invalid and Polycom's)
 
 Use make `libg7221_decode.dll`.
 
@@ -189,6 +194,7 @@ Use make `libg7221_decode.dll`.
 Adds support for ITU-T G.719 (standardization of Polycom Siren 22).
 - Source: https://github.com/kode54/libg719_decode
 - DLL: `libg719_decode.dll`
+- unknown license (possibly invalid and Polycom's)
 
 Requires MSVC (use `g719.sln`).
 
@@ -197,6 +203,7 @@ Requires MSVC (use `g719.sln`).
 Adds support for multiple codecs: ATRAC3, ATRAC3plus, XMA1/2, WMA v1, WMA v2, WMAPro, AAC, Bink, AC3/SPDIF, Opus, Musepack, FLAC, etc (also Vorbis and MPEG for certain cases).
 - Source: https://github.com/FFmpeg/FFmpeg/
 - DLLs: `avcodec-vgmstream-58.dll`, `avformat-vgmstream-58.dll`, `avutil-vgmstream-56.dll`, `swresample-vgmstream-3.dll`
+- primarily licensed under the LGPL v2.1 or later, with portions licensed under the GPL v2
 
 vgmstream's FFmpeg builds remove many unnecessary parts of FFmpeg to trim down its gigantic size, and are also built with the "vgmstream-" preffix (to avoid clashing with other plugins). Current options can be seen in `ffmpeg_options.txt`.
 
@@ -211,6 +218,7 @@ Both may need yasm somewhere in PATH to properly compile: https://yasm.tortall.n
 Adds support for ATRAC9.
 - Source: https://github.com/Thealexbarney/LibAtrac9
 - DLL: `libatrac9.dll`
+- licensed under the MIT license
 
 Use MSCV and `libatrac9.sln`, or GCC and the Makefile included.
 
@@ -220,6 +228,7 @@ Adds support for FSB CELT versions 0.6.1 and 0.11.0.
 - Source (0.6.1): http://downloads.us.xiph.org/releases/celt/celt-0.6.1.tar.gz
 - Source (0.11.0): http://downloads.xiph.org/releases/celt/celt-0.11.0.tar.gz
 - DLL: `libcelt-0061.dll`, `libcelt-0110.dll`
+- licensed under the MIT license
 
 FSB uses two incompatible, older libcelt versions. Both libraries export the same symbols so normally can't coexist together. To get them working we need to make sure symbols are renamed first. This may be solved in various ways:
 - using dynamic loading (LoadLibrary) but for portability it isn't an option

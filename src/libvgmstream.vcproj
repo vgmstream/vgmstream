@@ -847,6 +847,10 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\meta\nus3audio.c"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\nus3bank.c"
                     >
                 </File>
@@ -1836,6 +1840,10 @@
                 </File>
                 <File
                     RelativePath=".\coding\mpeg_custom_utils_ealayer3.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\coding\mpeg_custom_utils_eamp3.c"
                     >
                 </File>
 				<File

@@ -319,6 +319,7 @@
     <ClCompile Include="meta\ngc_ulw.c" />
     <ClCompile Include="meta\ngc_vid1.c" />
     <ClCompile Include="meta\nub_xma.c" />
+    <ClCompile Include="meta\nus3audio.c" />
     <ClCompile Include="meta\nus3bank.c" />
     <ClCompile Include="meta\nwa.c" />
     <ClCompile Include="meta\nwav.c" />
@@ -515,6 +516,7 @@
     <ClCompile Include="coding\mpeg_custom_utils_ahx.c" />
     <ClCompile Include="coding\mpeg_custom_utils_awc.c" />
     <ClCompile Include="coding\mpeg_custom_utils_ealayer3.c" />
+    <ClCompile Include="coding\mpeg_custom_utils_eamp3.c" />
     <ClCompile Include="coding\mpeg_decoder.c" />
     <ClCompile Include="coding\msadpcm_decoder.c" />
     <ClCompile Include="coding\nds_procyon_decoder.c" />

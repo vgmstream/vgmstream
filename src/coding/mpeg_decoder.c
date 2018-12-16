@@ -140,6 +140,7 @@ mpeg_codec_data *init_mpeg_custom(STREAMFILE *streamFile, off_t start_offset, co
         case MPEG_EAL32P:
         case MPEG_EAL32S:   ok = mpeg_custom_setup_init_ealayer3(streamFile, start_offset, data, coding_type); break;
         case MPEG_AWC:      ok = mpeg_custom_setup_init_awc(streamFile, start_offset, data, coding_type); break;
+        case MPEG_EAMP3:    ok = mpeg_custom_setup_init_eamp3(streamFile, start_offset, data, coding_type); break;
         default:            ok = mpeg_custom_setup_init_default(streamFile, start_offset, data, coding_type); break;
     }
     if (!ok)
@@ -399,6 +400,7 @@ static void decode_mpeg_custom_stream(VGMSTREAMCHANNEL *stream, mpeg_codec_data 
             case MPEG_EAL32S:   ok = mpeg_custom_parse_frame_ealayer3(stream, data, num_stream); break;
             case MPEG_AHX:      ok = mpeg_custom_parse_frame_ahx(stream, data, num_stream); break;
             case MPEG_AWC:      ok = mpeg_custom_parse_frame_awc(stream, data, num_stream); break;
+            case MPEG_EAMP3:    ok = mpeg_custom_parse_frame_eamp3(stream, data, num_stream); break;
             default:            ok = mpeg_custom_parse_frame_default(stream, data, num_stream); break;
         }
         if (!ok) {

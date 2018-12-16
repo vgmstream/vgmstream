@@ -520,6 +520,9 @@
     <ClCompile Include="meta\nub_xma.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\nus3audio.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\nus3bank.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -1088,6 +1091,9 @@
       <Filter>coding\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\mpeg_custom_utils_ealayer3.c">
+      <Filter>coding\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="coding\mpeg_custom_utils_eamp3.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\mpeg_decoder.c">

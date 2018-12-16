@@ -19,6 +19,7 @@
 #define EAAC_CODEC_DSP                  0x08
 #define EAAC_CODEC_EASPEEX              0x09
 #define EAAC_CODEC_EATRAX               0x0a
+#define EAAC_CODEC_EAMP3                0x0b
 #define EAAC_CODEC_EAOPUS               0x0c
 
 #define EAAC_FLAG_NONE                  0x00
@@ -680,6 +681,25 @@ static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE * streamHead, ST
         }
 #endif
 
+
+#ifdef VGM_USE_MPEG
+        case EAAC_CODEC_EAMP3: { /* "EM30"?: EAMP3 [Need for Speed 2015 (PS4)] */
+            mpeg_custom_config cfg = {0};
+
+            start_offset = 0x00; /* must point to the custom streamfile's beginning */
+
+            temp_streamFile = setup_eaac_streamfile(streamData, eaac.version, eaac.codec, eaac.streamed,0,0, eaac.stream_offset);
+            if (!temp_streamFile) goto fail;
+
+            vgmstream->codec_data = init_mpeg_custom(temp_streamFile, start_offset, &vgmstream->coding_type, vgmstream->channels, MPEG_EAMP3, &cfg);
+            if (!vgmstream->codec_data) goto fail;
+            vgmstream->layout_type = layout_none;
+
+            break;
+        }
+
+#endif
+
 #ifdef VGM_USE_FFMPEG
         case EAAC_CODEC_EAOPUS: { /* EAOpus (unknown FourCC) [FIFA 17 (PC), FIFA 19 (Switch)]*/
             int skip = 0;
@@ -701,7 +721,7 @@ static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE * streamHead, ST
         }
 #endif
 
-        case EAAC_CODEC_EASPEEX: /* EASpeex (libspeex variant, base versions vary: 1.0.5, 1.2beta3) */ //todo
+        case EAAC_CODEC_EASPEEX: /* "Esp0"?: EASpeex (libspeex variant, base versions vary: 1.0.5, 1.2beta3) */ //todo
         default:
             VGM_LOG("EA EAAC: unknown codec 0x%02x\n", eaac.codec);
             goto fail;
