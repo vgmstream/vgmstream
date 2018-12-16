@@ -258,7 +258,7 @@ static const hcakey_info hcakey_list[] = {
         // Onsen Musume: Yunohana Kore Kushon (Android) voices
         {6667},                     // 0000000000001A0B
 
-        /* Dragalia Lost (Android) */
+        /* Dragalia Lost (Cygames) [iOS/Android] */
         {2967411924141,         subkeys_dgl, sizeof(subkeys_dgl) / sizeof(subkeys_dgl[0]) },    // 000002B2E7889CAD
 
         /* Libra of Precatus (Android) */
