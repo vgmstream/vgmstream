@@ -2,8 +2,10 @@
 #include "../coding/coding.h"
 
 
-typedef enum { UBI_ADPCM, RAW_PCM, RAW_PSX, RAW_DSP, RAW_XBOX, FMT_VAG, FMT_AT3, FMT_OGG } ubi_sb_codec;
+typedef enum { UBI_ADPCM, RAW_PCM, RAW_PSX, RAW_DSP, RAW_XBOX, FMT_VAG, FMT_AT3, RAW_XMA1, FMT_OGG } ubi_sb_codec;
+typedef enum { UBI_PC, UBI_PS2, UBI_XBOX, UBI_GC, UBI_X360, UBI_3DS, UBI_PS3, UBI_WII, UBI_PSP } ubi_sb_platform;
 typedef struct {
+    ubi_sb_platform platform;
     int big_endian;
     int total_streams;
     int is_external;
@@ -24,14 +26,17 @@ typedef struct {
     size_t section2_entry_size;
     size_t section3_entry_size;
     off_t external_flag_offset;
+    off_t samples_flag_offset;
     off_t num_samples_offset;
+    off_t num_samples_offset2;
     off_t sample_rate_offset;
     off_t channels_offset;
     off_t stream_type_offset;
     off_t stream_name_offset;
     off_t extra_name_offset;
     size_t stream_name_size;
-    size_t stream_id_offset;
+    off_t stream_id_offset;
+    off_t xma_pointer_offset;
     int has_short_channels;
     int has_internal_names;
     int has_extra_name_flag;
@@ -50,6 +55,7 @@ typedef struct {
     off_t extra_offset;
     off_t stream_offset;
     uint32_t stream_id;
+    off_t xma_header_offset;
 
     int stream_samples; /* usually only for external resources */
     int sample_rate;
@@ -217,6 +223,25 @@ VGMSTREAM * init_vgmstream_ubi_sb(STREAMFILE *streamFile) {
             break;
         }
 
+        case RAW_XMA1: {
+            ffmpeg_codec_data *ffmpeg_data;
+            uint8_t buf[0x100];
+            size_t bytes;
+            off_t header_offset;
+
+            header_offset = sb.main_size + sb.section1_size + sb.section2_size + sb.xma_header_offset;
+            bytes = ffmpeg_make_riff_xma_from_fmt_chunk(buf, 0x100, header_offset, 0x20, sb.stream_size, streamFile, 1);
+
+            ffmpeg_data = init_ffmpeg_header_offset(streamData, buf, bytes, start_offset, sb.stream_size);
+            if (!ffmpeg_data) goto fail;
+            vgmstream->codec_data = ffmpeg_data;
+            vgmstream->coding_type = coding_FFmpeg;
+            vgmstream->layout_type = layout_none;
+            vgmstream->num_samples = sb.stream_samples;
+            VGM_ASSERT(sb.stream_samples != ffmpeg_data->totalSamples, "UBI SB: header samples differ\n");
+            break;
+        }
+
         case FMT_OGG: {
             ffmpeg_codec_data *ffmpeg_data;
 
@@ -265,7 +290,53 @@ static int parse_sb_header(ubi_sb_header * sb, STREAMFILE *streamFile) {
 
     if (target_stream == 0) target_stream = 1;
 
-    sb->big_endian = check_extensions(streamFile, "sb3,sb6,sb7"); /* GC, PS3, Wii */
+    /* sigh... PSP hijacks not one but *two* platform indexes */
+    /* please add any PSP game versions under sb4 and sb5 sections so we can properly identify platform */
+    sb->version = read_32bitLE(0x00, streamFile);
+
+    if (check_extensions(streamFile,"sb0")) {
+        sb->platform = UBI_PC;
+    } else if (check_extensions(streamFile, "sb1")) {
+        sb->platform = UBI_PS2;
+    } else if (check_extensions(streamFile, "sb2")) {
+        sb->platform = UBI_XBOX;
+    } else if (check_extensions(streamFile, "sb3")) {
+        sb->platform = UBI_GC;
+    } else if (check_extensions(streamFile, "sb4")) {
+        switch (sb->version) {
+            case 0x0012000C: /* Prince of Persia: Revelations (2005)(PSP) */
+                sb->platform = UBI_PSP;
+                break;
+            default:
+                sb->platform = UBI_X360;
+                break;
+
+        }
+        sb->platform = UBI_X360;
+    } else if (check_extensions(streamFile, "sb5")) {
+        switch (sb->version) {
+            case 0x00180005: /* Prince of Persia: Rival Swords (2007)(PSP) */
+            case 0x00180006: /* Rainbow Six Vegas (2007)(PSP) */
+                sb->platform = UBI_PSP;
+                break;
+            default:
+                sb->platform = UBI_3DS;
+                break;
+
+        }
+    } else if (check_extensions(streamFile, "sb6")) {
+        sb->platform = UBI_PS3;
+    } else if (check_extensions(streamFile, "sb7")) {
+        sb->platform = UBI_WII;
+    }
+    else {
+        goto fail;
+    }
+
+    sb->big_endian = (sb->platform == UBI_GC ||
+        sb->platform == UBI_PS3 ||
+        sb->platform == UBI_X360 ||
+        sb->platform == UBI_WII);
     if (sb->big_endian) {
         read_32bit = read_32bitBE;
         read_16bit = read_16bitBE;
@@ -349,8 +420,14 @@ static int parse_sb_header(ubi_sb_header * sb, STREAMFILE *streamFile) {
         sb->sample_rate    = read_32bit(offset + sb->sample_rate_offset, streamFile);
         sb->stream_type    = read_32bit(offset + sb->stream_type_offset, streamFile);
 
-        if (sb->num_samples_offset)
+        /* Some games may store number of samples at different locations */
+        if (sb->samples_flag_offset &&
+            read_32bit(offset + sb->samples_flag_offset, streamFile) != 0) {
+            sb->stream_samples = read_32bit(offset + sb->num_samples_offset2, streamFile);
+        }
+        else if (sb->num_samples_offset) {
             sb->stream_samples = read_32bit(offset + sb->num_samples_offset, streamFile);
+        }
 
         if (sb-> has_rotating_ids) {
             sb->stream_id  = current_id;
@@ -381,6 +458,11 @@ static int parse_sb_header(ubi_sb_header * sb, STREAMFILE *streamFile) {
             if (sb->extra_size > 0 && sb->stream_name_offset > sb->extra_size)
                 sb->autodetect_external = 0; /* name outside extra table == is internal */
         }
+
+        /* this field is only seen in X360 games, points at XMA1 header in extra section */
+        if (sb->xma_pointer_offset) {
+            sb->xma_header_offset = read_32bit(offset + sb->xma_pointer_offset, streamFile);
+        }
     }
     if (sb->total_streams == 0) {
         VGM_LOG("UBI SB: no streams\n");
@@ -406,24 +488,55 @@ static int parse_sb_header(ubi_sb_header * sb, STREAMFILE *streamFile) {
     /* guess codec */
     switch(sb->stream_type) {
         case 0x00: /* platform default (rarely external) */
-            if (       check_extensions(streamFile, "sb0")) {
-                sb->codec = RAW_PCM;
-            } else if (check_extensions(streamFile, "sb1,sb5")) {
-                sb->codec = RAW_PSX;
-            } else if (check_extensions(streamFile, "sb2")) {
-                sb->codec = RAW_XBOX;
-            } else if (check_extensions(streamFile, "sb3,sb7")) {
-                sb->codec = RAW_DSP;
-            } else if (check_extensions(streamFile, "sb4")) {
-                sb->codec = FMT_VAG;
-            } else {
-                VGM_LOG("UBI SB: unknown internal format\n");
-                goto fail;
+            switch (sb->platform) {
+                case UBI_PC:
+                    sb->codec = RAW_PCM;
+                    break;
+
+                case UBI_PS2:
+                    sb->codec = RAW_PSX;
+                    break;
+
+                case UBI_PSP:
+                    if (check_extensions(streamFile, "sb4")) {
+                        sb->codec = FMT_VAG;
+                    }
+                    else {
+                        sb->codec = RAW_PSX;
+                    }
+                    break;
+
+                case UBI_XBOX:
+                    sb->codec = RAW_XBOX;
+                    break;
+
+                case UBI_GC:
+                case UBI_WII:
+                    sb->codec = RAW_DSP;
+                    break;
+
+                case UBI_X360:
+                    sb->codec = RAW_XMA1;
+                    break;
+#if 0
+                case UBI_PS3:
+                    /* Need to confirm */
+                    sb->codec = FMT_AT3;
+                    break;
+#endif
+                default:
+                    VGM_LOG("UBI SB: unknown internal format\n");
+                    goto fail;
+
             }
             break;
 
         case 0x01: /* PCM (Wii, rarely used) */
             sb->codec = RAW_PCM;
+            break;
+
+        case 0x02: /* PS ADPCM (PS3) */
+            sb->codec = RAW_PSX;
             break;
 
         case 0x03: /* Ubi ADPCM (main external stream codec, has subtypes) */
@@ -468,15 +581,6 @@ fail:
 
 
 static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
-    /* meh... */
-    int is_sb0 = check_extensions(streamFile, "sb0"); /* PC */
-    int is_sb1 = check_extensions(streamFile, "sb1"); /* PS2 */
-    int is_sb2 = check_extensions(streamFile, "sb2"); /* Xbox */
-    int is_sb3 = check_extensions(streamFile, "sb3"); /* GC */
-    int is_sb4 = check_extensions(streamFile, "sb4"); /* PSP, X360? */
-    int is_sb5 = check_extensions(streamFile, "sb5"); /* PSP, 3DS? */
-    //int is_sb6 = check_extensions(streamFile, "sb6"); /* PS3? */
-    int is_sb7 = check_extensions(streamFile, "sb7"); /* Wii */
     int is_biadd_psp = 0;
 
 
@@ -501,8 +605,8 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
     sb->stream_name_size = 0x24; /* maybe 0x28 or 0x20 for some but ok enough (null terminated) */
 
     /* Prince of Persia: Sands of Time (2003)(PC) */
-    if ((sb->version == 0x000A0002 && is_sb0) || /* (not sure if exists, just in case) */
-        (sb->version == 0x000A0004 && is_sb0)) { /* main game */
+    if ((sb->version == 0x000A0002 && sb->platform == UBI_PC) || /* (not sure if exists, just in case) */
+        (sb->version == 0x000A0004 && sb->platform == UBI_PC)) { /* main game */
         sb->section1_entry_size = 0x64;
         sb->section2_entry_size = 0x80;
 
@@ -519,8 +623,8 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
     }
 
     /* Prince of Persia: Sands of Time (2003)(PS2) */
-    if ((sb->version == 0x000A0002 && is_sb1) || /* Prince of Persia 1 port */
-        (sb->version == 0x000A0004 && is_sb1)) { /* main game */
+    if ((sb->version == 0x000A0002 && sb->platform == UBI_PS2) || /* Prince of Persia 1 port */
+        (sb->version == 0x000A0004 && sb->platform == UBI_PS2)) { /* main game */
         sb->section1_entry_size = 0x48;
         sb->section2_entry_size = 0x6c;
 
@@ -535,8 +639,8 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
     }
 
     /* Prince of Persia: Sands of Time (2003)(Xbox) */
-    if ((sb->version == 0x000A0002 && is_sb2) || /* Prince of Persia 1 port */
-        (sb->version == 0x000A0004 && is_sb2)) { /* main game */
+    if ((sb->version == 0x000A0002 && sb->platform == UBI_XBOX) || /* Prince of Persia 1 port */
+        (sb->version == 0x000A0004 && sb->platform == UBI_XBOX)) { /* main game */
         sb->section1_entry_size = 0x64;
         sb->section2_entry_size = 0x78;
 
@@ -553,7 +657,7 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
     }
 
     /* Tom Clancy's Rainbow Six 3 (2003)(PS2) */
-    if (sb->version == 0x000A0007 && is_sb1) {
+    if (sb->version == 0x000A0007 && sb->platform == UBI_PS2) {
         sb->section1_entry_size = 0x48;
         sb->section2_entry_size = 0x6c;
 
@@ -568,8 +672,8 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
     }
 
     /* Prince of Persia: Sands of Time (2003)(GC) */
-    if ((sb->version == 0x000A0002 && is_sb3) || /* Prince of Persia 1 port */
-        (sb->version == 0x000A0004 && is_sb3)) { /* main game */
+    if ((sb->version == 0x000A0002 && sb->platform == UBI_GC) || /* Prince of Persia 1 port */
+        (sb->version == 0x000A0004 && sb->platform == UBI_GC)) { /* main game */
         sb->section1_entry_size = 0x64;
         sb->section2_entry_size = 0x74;
 
@@ -585,7 +689,7 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
     }
 
     /* Myst IV Demo (2004)(PC) (final game is different) */
-    if (sb->version == 0x00100000 && is_sb0) {
+    if (sb->version == 0x00100000 && sb->platform == UBI_PC) {
         sb->section1_entry_size = 0x68;
         sb->section2_entry_size = 0xa4;
 
@@ -601,7 +705,7 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
     }
 
     /* Prince of Persia: Warrior Within (2004)(PC) */
-    if (sb->version == 0x00120009 && is_sb0) {
+    if (sb->version == 0x00120009 && sb->platform == UBI_PC) {
         sb->section1_entry_size = 0x6c;
         sb->section2_entry_size = 0x84;
 
@@ -617,7 +721,7 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
     }
 
     /* Prince of Persia: Warrior Within (2004)(PS2) */
-    if (sb->version == 0x00120009 && is_sb1) {
+    if (sb->version == 0x00120009 && sb->platform == UBI_PS2) {
         sb->section1_entry_size = 0x48;
         sb->section2_entry_size = 0x6c;
 
@@ -632,7 +736,7 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
     }
 
     /* Prince of Persia: Warrior Within (2004)(Xbox) */
-    if (sb->version == 0x00120009 && is_sb2) {
+    if (sb->version == 0x00120009 && sb->platform == UBI_XBOX) {
         sb->section1_entry_size = 0x6c;
         sb->section2_entry_size = 0x90;
 
@@ -648,7 +752,7 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
     }
 
     /* Prince of Persia: Warrior Within (2004)(GC) */
-    if (sb->version == 0x00120009 && is_sb3) {
+    if (sb->version == 0x00120009 && sb->platform == UBI_GC) {
         sb->section1_entry_size = 0x6c;
         sb->section2_entry_size = 0x78;
 
@@ -663,7 +767,7 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
     }
 
     /* two games with same id; use project file as identifier */
-    if (sb->version == 0x0012000C && is_sb4) {
+    if (sb->version == 0x0012000C && sb->platform == UBI_PSP) {
         STREAMFILE * streamTest = open_streamfile_by_filename(streamFile, "BIAAUDIO.SP4");
         if (streamTest) {
             is_biadd_psp = 1;
@@ -672,7 +776,7 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
     }
 
     /* Prince of Persia: Revelations (2005)(PSP) */
-    if (sb->version == 0x0012000C && is_sb4 && !is_biadd_psp) {
+    if (sb->version == 0x0012000C && sb->platform == UBI_PSP && !is_biadd_psp) {
         sb->section1_entry_size = 0x68;
         sb->section2_entry_size = 0x84;
 
@@ -688,7 +792,7 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
     }
 
     /* Brothers in Arms - D-Day (2006)(PSP) */
-    if (sb->version == 0x0012000C && is_sb4 && is_biadd_psp) {
+    if (sb->version == 0x0012000C && sb->platform == UBI_PSP && is_biadd_psp) {
         sb->section1_entry_size = 0x80;
         sb->section2_entry_size = 0x94;
 
@@ -705,7 +809,7 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
     }
 
     /* Prince of Persia: The Two Thrones (2005)(PC) */
-    if (sb->version == 0x00150000 && is_sb0) {
+    if (sb->version == 0x00150000 && sb->platform == UBI_PC) {
         sb->section1_entry_size = 0x68;
         sb->section2_entry_size = 0x78;
 
@@ -722,7 +826,7 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
     }
 
     /* Prince of Persia: The Two Thrones (2005)(PS2) */
-    if (sb->version == 0x00150000 && is_sb1) {
+    if (sb->version == 0x00150000 && sb->platform == UBI_PS2) {
         sb->section1_entry_size = 0x48;
         sb->section2_entry_size = 0x5c;
 
@@ -738,7 +842,7 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
     }
 
     /* Prince of Persia: The Two Thrones (2005)(Xbox) */
-    if (sb->version == 0x00150000 && is_sb2) {
+    if (sb->version == 0x00150000 && sb->platform == UBI_XBOX) {
         sb->section1_entry_size = 0x48;
         sb->section2_entry_size = 0x58;
 
@@ -756,7 +860,7 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
     }
 
     /* Prince of Persia: The Two Thrones (2005)(GC) */
-    if (sb->version == 0x00150000 && is_sb3) {
+    if (sb->version == 0x00150000 && sb->platform == UBI_GC) {
         sb->section1_entry_size = 0x68;
         sb->section2_entry_size = 0x6c;
 
@@ -771,7 +875,7 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
     }
 #if 0
     /* Far cry: Instincts - Evolution (2006)(Xbox) */
-    if (sb->version == 0x00170000 && is_sb2) {
+    if (sb->version == 0x00170000 && sb->platform == UBI_XBOX) {
         sb->section1_entry_size = 0x48;
         sb->section2_entry_size = 0x6c;
 
@@ -788,7 +892,7 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
 #endif
 
     /* Prince of Persia: Rival Swords (2007)(PSP) */
-    if (sb->version == 0x00180005 && is_sb5) {
+    if (sb->version == 0x00180005 && sb->platform == UBI_PSP) {
         sb->section1_entry_size = 0x48;
         sb->section2_entry_size = 0x54;
 
@@ -805,7 +909,7 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
 
 #if 0
     /* Rainbow Six Vegas (2007)(PSP) */
-    if (sb->version == 0x00180006 && is_sb5) {
+    if (sb->version == 0x00180006 && sb->platform == UBI_PSP) {
         sb->section1_entry_size = 0x48;
         sb->section2_entry_size = 0x54;
 
@@ -834,7 +938,7 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
 #endif
 
     /* Red Steel (2006)(Wii) */
-    if (sb->version == 0x00180006 && is_sb7) { /* same as 0x00150000 */
+    if (sb->version == 0x00180006 && sb->platform == UBI_WII) { /* same as 0x00150000 */
         sb->section1_entry_size = 0x68;
         sb->section2_entry_size = 0x6c;
 
@@ -849,7 +953,7 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
     }
 
     /* Prince of Persia: Rival Swords (2007)(Wii) */
-    if (sb->version == 0x00190003 && is_sb7) {
+    if (sb->version == 0x00190003 && sb->platform == UBI_WII) {
         sb->section1_entry_size = 0x68;
         sb->section2_entry_size = 0x70;
 
@@ -864,7 +968,7 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
     }
 
     /* TMNT (2007)(PS2) */
-    if (sb->version == 0x00190002 && is_sb1) {
+    if (sb->version == 0x00190002 && sb->platform == UBI_PS2) {
         sb->section1_entry_size = 0x48;
         sb->section2_entry_size = 0x5c;
 
@@ -880,7 +984,7 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
     }
 
     /* TMNT (2007)(GC) */
-    if (sb->version == 0x00190002 && is_sb3) { /* same as 0x00190003 */
+    if (sb->version == 0x00190002 && sb->platform == UBI_GC) { /* same as 0x00190003 */
         sb->section1_entry_size = 0x68;
         sb->section2_entry_size = 0x6c;
 
@@ -895,7 +999,7 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
     }
 
     /* Surf's Up (2007)(PC) */
-    if (sb->version == 0x00190005 && is_sb0) {
+    if (sb->version == 0x00190005 && sb->platform == UBI_PC) {
         sb->section1_entry_size = 0x68;
         sb->section2_entry_size = 0x74;
 
@@ -907,6 +1011,41 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
         sb->extra_name_offset    = 0x58;
 
         sb->has_extra_name_flag = 1;
+        return 1;
+    }
+
+    /* Surf's Up (2007)(PS3) */
+    if (sb->version == 0x00190005 && sb->platform == UBI_PS3) {
+        sb->section1_entry_size  = 0x68;
+        sb->section2_entry_size  = 0x70;
+
+        sb->external_flag_offset = 0x28;
+        sb->channels_offset      = 0x3c;
+        sb->sample_rate_offset   = 0x40;
+        sb->num_samples_offset   = 0x48;
+        sb->stream_type_offset   = 0x5c;
+        sb->extra_name_offset    = 0x58;
+
+        sb->has_extra_name_flag  = 1;
+        return 1;
+    }
+
+    /* Surf's Up (2007)(X360) */
+    if (sb->version == 0x00190005 && sb->platform == UBI_X360) {
+        sb->section1_entry_size  = 0x68;
+        sb->section2_entry_size  = 0x70;
+
+        sb->external_flag_offset = 0x28;
+        sb->samples_flag_offset  = 0x30;
+        sb->channels_offset      = 0x3c;
+        sb->sample_rate_offset   = 0x40;
+        sb->num_samples_offset   = 0x48;
+        sb->num_samples_offset2  = 0x50;
+        sb->stream_type_offset   = 0x5c;
+        sb->extra_name_offset    = 0x58;
+        sb->xma_pointer_offset   = 0x6c;
+
+        sb->has_extra_name_flag  = 1;
         return 1;
     }
 
