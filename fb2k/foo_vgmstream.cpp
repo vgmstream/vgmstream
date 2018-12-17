@@ -445,6 +445,9 @@ void input_vgmstream::get_subsong_info(t_uint32 p_subsong, pfc::string_base & ti
     // there is no need to recreate the infostream, there is only one subsong used
     if (subsong != p_subsong && !direct_subsong) {
         infostream = init_vgmstream_foo(p_subsong, filename, p_abort);
+        if (!infostream) {
+            throw exception_io_data();
+        }
         set_config_defaults(&infoconfig);
         apply_config(infostream,&infoconfig);
         is_infostream = true;
