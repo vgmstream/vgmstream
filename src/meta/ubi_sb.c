@@ -294,7 +294,7 @@ static int parse_sb_header(ubi_sb_header * sb, STREAMFILE *streamFile) {
     /* please add any PSP game versions under sb4 and sb5 sections so we can properly identify platform */
     sb->version = read_32bitLE(0x00, streamFile);
 
-    if (check_extensions(streamFile,"sb0")) {
+    if (check_extensions(streamFile, "sb0")) {
         sb->platform = UBI_PC;
     } else if (check_extensions(streamFile, "sb1")) {
         sb->platform = UBI_PS2;
@@ -310,9 +310,7 @@ static int parse_sb_header(ubi_sb_header * sb, STREAMFILE *streamFile) {
             default:
                 sb->platform = UBI_X360;
                 break;
-
         }
-        sb->platform = UBI_X360;
     } else if (check_extensions(streamFile, "sb5")) {
         switch (sb->version) {
             case 0x00180005: /* Prince of Persia: Rival Swords (2007)(PSP) */
@@ -322,14 +320,12 @@ static int parse_sb_header(ubi_sb_header * sb, STREAMFILE *streamFile) {
             default:
                 sb->platform = UBI_3DS;
                 break;
-
         }
     } else if (check_extensions(streamFile, "sb6")) {
         sb->platform = UBI_PS3;
     } else if (check_extensions(streamFile, "sb7")) {
         sb->platform = UBI_WII;
-    }
-    else {
+    } else {
         goto fail;
     }
 
@@ -424,8 +420,7 @@ static int parse_sb_header(ubi_sb_header * sb, STREAMFILE *streamFile) {
         if (sb->samples_flag_offset &&
             read_32bit(offset + sb->samples_flag_offset, streamFile) != 0) {
             sb->stream_samples = read_32bit(offset + sb->num_samples_offset2, streamFile);
-        }
-        else if (sb->num_samples_offset) {
+        } else if (sb->num_samples_offset) {
             sb->stream_samples = read_32bit(offset + sb->num_samples_offset, streamFile);
         }
 
@@ -486,7 +481,7 @@ static int parse_sb_header(ubi_sb_header * sb, STREAMFILE *streamFile) {
     }
 
     /* guess codec */
-    switch(sb->stream_type) {
+    switch (sb->stream_type) {
         case 0x00: /* platform default (rarely external) */
             switch (sb->platform) {
                 case UBI_PC:
@@ -500,8 +495,7 @@ static int parse_sb_header(ubi_sb_header * sb, STREAMFILE *streamFile) {
                 case UBI_PSP:
                     if (check_extensions(streamFile, "sb4")) {
                         sb->codec = FMT_VAG;
-                    }
-                    else {
+                    } else {
                         sb->codec = RAW_PSX;
                     }
                     break;
