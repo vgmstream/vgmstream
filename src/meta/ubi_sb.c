@@ -966,6 +966,22 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
 
         return 1;
     }
+    
+    /* TMNT (2007)(PC) */
+    if (sb->version == 0x00190002 && sb->platform == UBI_PC) {
+        sb->section1_entry_size = 0x68;
+        sb->section2_entry_size = 0x74;
+
+        sb->external_flag_offset = 0x28;
+        sb->stream_id_offset     = 0x2c;
+        sb->channels_offset      = 0x3c;
+        sb->sample_rate_offset   = 0x40;
+        sb->num_samples_offset   = 0x48;
+        sb->stream_type_offset   = 0x5c;
+        sb->extra_name_offset    = 0x58;
+
+        return 1;
+    }
 
     /* TMNT (2007)(PS2) */
     if (sb->version == 0x00190002 && sb->platform == UBI_PS2) {
@@ -994,6 +1010,24 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
         sb->num_samples_offset   = 0x48;
         sb->stream_type_offset   = 0x5c;
         sb->extra_name_offset    = 0x58;
+
+        return 1;
+    }
+
+     /* TMNT (2007)(X360) */
+    if (sb->version == 0x00190002 && sb->platform == UBI_X360) {
+        sb->section1_entry_size = 0x68;
+        sb->section2_entry_size = 0x70;
+
+        sb->external_flag_offset = 0x28;
+        sb->samples_flag_offset  = 0x30;
+        sb->channels_offset      = 0x3c;
+        sb->sample_rate_offset   = 0x40;
+        sb->num_samples_offset   = 0x48;
+        sb->num_samples_offset2  = 0x50;
+        sb->stream_type_offset   = 0x5c;
+        sb->extra_name_offset    = 0x58;
+        sb->xma_pointer_offset   = 0x6c;
 
         return 1;
     }
