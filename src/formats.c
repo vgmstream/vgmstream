@@ -128,6 +128,7 @@ static const char* extension_list[] = {
 
     "e4x",
     "eam",
+    "eda", //txth/reserved [Project Eden (PS2)]
     "emff",
     "enm",
     "eno",
