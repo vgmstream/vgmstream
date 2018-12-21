@@ -113,18 +113,26 @@ void decode_mta2(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing,
         frame_size     = read_16bitBE(stream->offset+0x06,stream->streamfile); /* not including this header */
         /* 0x08(8): null */
 
-        /* EOF: 0-fill buffer (or, as track_channels = 0 > divs by 0) */
-        if (num_track < 0) {
+
+        VGM_ASSERT(frame_size == 0, "MTA2: empty frame at %x\n", (uint32_t)stream->offset);
+        /* frame_size 0 means silent/empty frame (rarely found near EOF for one track but not others)
+         * negative track only happens for truncated files (EOF) */
+        if (frame_size == 0 || num_track < 0) {
             for (i = 0; i < samples_to_do; i++)
                 outbuf[i * channelspacing] = 0;
+            stream->offset += 0x10;
             return;
         }
-
 
         track_channels = 0;
         for (i = 0; i < 8; i++) {
             if ((channel_layout >> i) & 0x01)
                 track_channels++;
+        }
+
+        if (track_channels == 0) { /* bad data, avoid div by 0 */
+            VGM_LOG("track_channels 0 at %x\n", (uint32_t)stream->offset);
+            return;
         }
 
         /* assumes tracks channels are divided evenly in all tracks (ex. not 2ch + 1ch + 1ch) */
