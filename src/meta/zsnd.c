@@ -108,9 +108,11 @@ VGMSTREAM * init_vgmstream_zsnd(STREAMFILE *streamFile) {
                 name_size    = 0;
                 switch(sample_rate) {
                     case 0x0800: sample_rate = 22050; break;
+                    case 0x0687: sample_rate = 18000; break;
+                    case 0x05ce: sample_rate = 16000; break;
                     case 0x0400: sample_rate = 11025; break;
                     default:
-                        VGM_LOG("ZSND: unknown sample_rate\n");
+                        VGM_LOG("ZSND: unknown sample_rate %x at %x\n", sample_rate, (uint32_t)header2_offset);
                         goto fail;
                 }
                 break;
