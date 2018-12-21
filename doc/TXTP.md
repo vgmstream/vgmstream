@@ -87,8 +87,8 @@ mode = layers
 ```
 
 
-### Channel mapping
-TXTP can swap channels for custom channel mappings. Note that channel masking applies after mappings. Format is:
+### Channel swapping/mapping
+TXTP can swap channels for custom channel mappings. It does "swapping" rather than simpler "mapping" since vgmstream can't read a format's mappings or guess which channel is which. Format is:
 ```
 #ch1 = first
 file1.ext#m2-3  # "FL BL FR BR" to "FL FR BL BR"
@@ -96,6 +96,7 @@ file1.ext#m2-3  # "FL BL FR BR" to "FL FR BL BR"
 #do note the order specified affects swapping
 file2.ext#m2-3,4-5,4-6  # ogg "FL CN FR BL BR SB" to wav "FL FR CN SB BL BR"
 ```
+Note that channel masking applies after mappings.
 
 
 ### Custom play settings
