@@ -2,7 +2,7 @@
 #include "../coding/coding.h"
 
 
-typedef enum { UBI_ADPCM, RAW_PCM, RAW_PSX, RAW_DSP, RAW_XBOX, FMT_VAG, FMT_AT3, RAW_XMA1, FMT_OGG } ubi_sb_codec;
+typedef enum { UBI_ADPCM, RAW_PCM, RAW_PSX, RAW_DSP, RAW_XBOX, FMT_VAG, FMT_AT3, RAW_AT3, FMT_XMA1, RAW_XMA1, FMT_OGG } ubi_sb_codec;
 typedef enum { UBI_PC, UBI_PS2, UBI_XBOX, UBI_GC, UBI_X360, UBI_3DS, UBI_PS3, UBI_WII, UBI_PSP } ubi_sb_platform;
 typedef struct {
     ubi_sb_platform platform;
@@ -41,6 +41,7 @@ typedef struct {
     int has_internal_names;
     int has_extra_name_flag;
     int has_rotating_ids;
+    int is_map;
 
     /* derived */
     size_t main_size;
@@ -62,6 +63,8 @@ typedef struct {
     int channels;
     uint32_t stream_type;
     char stream_name[255];
+    int header_idx;
+    off_t header_offset;
 
 
 } ubi_sb_header;
@@ -156,7 +159,7 @@ VGMSTREAM * init_vgmstream_ubi_sb(STREAMFILE *streamFile) {
         case RAW_PSX:
             vgmstream->coding_type = coding_PSX;
             vgmstream->layout_type = layout_interleave;
-            vgmstream->interleave_block_size = sb.stream_size / sb.channels;
+            vgmstream->interleave_block_size = (sb.stream_type == 0x00) ? sb.stream_size / sb.channels : 0x10; /* TODO: needs testing */
             vgmstream->num_samples = ps_bytes_to_samples(sb.stream_size, sb.channels) ;
             break;
 
@@ -223,14 +226,71 @@ VGMSTREAM * init_vgmstream_ubi_sb(STREAMFILE *streamFile) {
             break;
         }
 
+        case RAW_AT3: {
+            uint8_t buf[0x100];
+            int32_t bytes, block_size, encoder_delay, joint_stereo;
+
+            block_size = 0x98 * sb.channels;
+            joint_stereo = 0;
+            encoder_delay = 0x00; /* TODO: this is incorrect */
+
+            bytes = ffmpeg_make_riff_atrac3(buf, 0x100, sb.stream_samples, sb.stream_size, sb.channels, sb.sample_rate, block_size, joint_stereo, encoder_delay);
+            vgmstream->codec_data = init_ffmpeg_header_offset(streamData, buf, bytes, start_offset, sb.stream_size);
+            if (!vgmstream->codec_data) goto fail;
+            vgmstream->num_samples = sb.stream_samples;
+            vgmstream->coding_type = coding_FFmpeg;
+            vgmstream->layout_type = layout_none;
+            break;
+        }
+
+        case FMT_XMA1: {
+            ffmpeg_codec_data *ffmpeg_data;
+            uint8_t buf[0x100];
+            uint32_t num_frames;
+            size_t bytes, frame_size, chunk_size, data_size;
+            off_t header_offset;
+
+            chunk_size = 0x20;
+
+            /* formatted XMA sounds have a strange custom header */
+            /* first there's XMA2/FMT chunk, after that: */
+            /* 0x00: some low number like 0x01 or 0x04 */
+            /* 0x04: number of frames */
+            /* 0x08: frame size (not always present?) */
+            /* then there's a set of rising numbers followed by some weird data?.. */
+            /* calculate true XMA size and use that get data start offset */
+            num_frames = read_32bitBE(start_offset + chunk_size + 0x04, streamData);
+            //frame_size = read_32bitBE(start_offset + chunk_size + 0x08, streamData);
+            frame_size = 0x800;
+
+            header_offset = start_offset;
+            data_size = num_frames * frame_size;
+            start_offset += sb.stream_size - data_size;
+
+            bytes = ffmpeg_make_riff_xma_from_fmt_chunk(buf, 0x100, header_offset, chunk_size, data_size, streamData, 1);
+
+            ffmpeg_data = init_ffmpeg_header_offset(streamData, buf, bytes, start_offset, data_size);
+            if (!ffmpeg_data) goto fail;
+            vgmstream->codec_data = ffmpeg_data;
+            vgmstream->coding_type = coding_FFmpeg;
+            vgmstream->layout_type = layout_none;
+            vgmstream->num_samples = sb.stream_samples;
+            vgmstream->stream_size = data_size;
+            break;
+        }
+
         case RAW_XMA1: {
             ffmpeg_codec_data *ffmpeg_data;
             uint8_t buf[0x100];
-            size_t bytes;
+            size_t bytes, chunk_size;
             off_t header_offset;
+            
+            VGM_ASSERT(sb.is_external, "Ubi SB: Raw XMA used for external sound\n");
 
+            /* Get XMA header from extra section */
+            chunk_size = 0x20;
             header_offset = sb.main_size + sb.section1_size + sb.section2_size + sb.xma_header_offset;
-            bytes = ffmpeg_make_riff_xma_from_fmt_chunk(buf, 0x100, header_offset, 0x20, sb.stream_size, streamFile, 1);
+            bytes = ffmpeg_make_riff_xma_from_fmt_chunk(buf, 0x100, header_offset, chunk_size, sb.stream_size, streamFile, 1);
 
             ffmpeg_data = init_ffmpeg_header_offset(streamData, buf, bytes, start_offset, sb.stream_size);
             if (!ffmpeg_data) goto fail;
@@ -238,7 +298,6 @@ VGMSTREAM * init_vgmstream_ubi_sb(STREAMFILE *streamFile) {
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
             vgmstream->num_samples = sb.stream_samples;
-            VGM_ASSERT(sb.stream_samples != ffmpeg_data->totalSamples, "UBI SB: header samples differ\n");
             break;
         }
 
@@ -285,7 +344,7 @@ fail:
 static int parse_sb_header(ubi_sb_header * sb, STREAMFILE *streamFile) {
     int32_t (*read_32bit)(off_t,STREAMFILE*) = NULL;
     int16_t (*read_16bit)(off_t,STREAMFILE*) = NULL;
-    int i, ok, current_type = -1, current_id = -1;
+    int i, j, k, ok, current_type = -1, current_id = -1;
     int target_stream = streamFile->stream_index;
 
     if (target_stream == 0) target_stream = 1;
@@ -360,7 +419,28 @@ static int parse_sb_header(ubi_sb_header * sb, STREAMFILE *streamFile) {
     sb->main_size     = 0x1c;
     sb->section1_size = sb->section1_entry_size * sb->section1_num;
     sb->section2_size = sb->section2_entry_size * sb->section2_num;
-    sb->section3_size = sb->section3_entry_size * sb->section3_num;
+
+    /* detect if this a maps bank */
+    if (read_32bit(sb->main_size + sb->section1_size + sb->section2_size + sb->extra_size, streamFile) == 0xFFFFFFFF) {
+        sb->is_map = 1;
+    }
+
+    if (sb->is_map) {
+        sb->section3_size = 0;
+        off_t sec3_offset = sb->main_size + sb->section1_size + sb->section2_size + sb->extra_size;
+
+        for (i = 0; i < sb->section3_num; i++) {
+            off_t offset = sec3_offset + 0x14 * i;
+            off_t table_offset = read_32bit(offset + 0x04, streamFile) + sec3_offset;
+            off_t table_num = read_32bit(offset + 0x08, streamFile);
+            off_t table2_offset = read_32bit(offset + 0x0c, streamFile) + sec3_offset;
+            off_t table2_num = read_32bit(offset + 0x10, streamFile);
+
+            sb->section3_size += 0x14 + table_num * 0x08 + table2_num * 0x10;
+        }
+    } else {
+        sb->section3_size = sb->section3_entry_size * sb->section3_num;
+    }
 
     /* find target stream info in section2 */
     for (i = 0; i < sb->section2_num; i++) {
@@ -404,6 +484,9 @@ static int parse_sb_header(ubi_sb_header * sb, STREAMFILE *streamFile) {
         if (sb->total_streams != target_stream)
             continue;
         //;VGM_LOG("target at offset=%lx (size=%x)\n", offset, sb->section2_entry_size);
+
+        sb->header_offset  = offset;
+        sb->header_idx     = i;
 
         sb->header_id      = read_32bit(offset + 0x00, streamFile); /* 16b+16b group+sound id */
         sb->header_type    = read_32bit(offset + 0x04, streamFile);
@@ -453,11 +536,6 @@ static int parse_sb_header(ubi_sb_header * sb, STREAMFILE *streamFile) {
             if (sb->extra_size > 0 && sb->stream_name_offset > sb->extra_size)
                 sb->autodetect_external = 0; /* name outside extra table == is internal */
         }
-
-        /* this field is only seen in X360 games, points at XMA1 header in extra section */
-        if (sb->xma_pointer_offset) {
-            sb->xma_header_offset = read_32bit(offset + sb->xma_pointer_offset, streamFile);
-        }
     }
     if (sb->total_streams == 0) {
         VGM_LOG("UBI SB: no streams\n");
@@ -468,8 +546,8 @@ static int parse_sb_header(ubi_sb_header * sb, STREAMFILE *streamFile) {
         goto fail;
     }
 
-    if (!(sb->stream_id_offset || sb->has_rotating_ids) && sb->section3_num > 1) {
-        VGM_LOG("UBI SB: unexpected number of internal streams %i\n", sb->section3_num);
+    if (!(sb->stream_id_offset || sb->has_rotating_ids || sb->is_map) && sb->section3_num > 1) {
+        VGM_LOG("UBI SB: unexpected number of internal stream groups %i\n", sb->section3_num);
         goto fail;
     }
 
@@ -515,7 +593,7 @@ static int parse_sb_header(ubi_sb_header * sb, STREAMFILE *streamFile) {
 #if 0
                 case UBI_PS3:
                     /* Need to confirm */
-                    sb->codec = FMT_AT3;
+                    sb->codec = RAW_AT3;
                     break;
 #endif
                 default:
@@ -541,13 +619,35 @@ static int parse_sb_header(ubi_sb_header * sb, STREAMFILE *streamFile) {
             sb->codec = FMT_OGG;
             break;
 
-        case 0x05: /* AT3 (PSP, PS3) */
-            sb->codec = FMT_AT3;
+        case 0x05: /* AT3 (PSP, PS3) or XMA1 (X360) */
+            switch (sb->platform) {
+                case UBI_X360:
+                    sb->codec = FMT_XMA1;
+                    break;
+                case UBI_PS3:
+                case UBI_PSP:
+                    sb->codec = FMT_AT3;
+                    break;
+                default:
+                    VGM_LOG("UBI SB: unknown codec for stream_type %x\n", sb->stream_type);
+                    goto fail;
+            }
+            break;
+
+        case 0x07:
+            sb->codec = RAW_AT3;
             break;
 
         default:
             VGM_LOG("UBI SB: unknown stream_type %x\n", sb->stream_type);
             goto fail;
+    }
+
+    if (sb->codec == RAW_XMA1) {
+        if (!sb->is_external) {
+            /* this field is only seen in X360 games, points at XMA1 header in extra section */
+            sb->xma_header_offset = read_32bit(sb->header_offset + sb->xma_pointer_offset, streamFile);
+        }
     }
 
     /* uncommon but possible */
@@ -557,14 +657,50 @@ static int parse_sb_header(ubi_sb_header * sb, STREAMFILE *streamFile) {
     //VGM_ASSERT(sb->is_external && sb->stream_id_offset && sb->stream_id > 0, "UBI SB: unexpected external stream with stream id\n");
 
     /* section 3: substreams within the file, adjust stream offset (rarely used but table is always present) */
-    if (!sb->is_external && (sb->stream_id_offset || sb->has_rotating_ids) && sb->section3_num > 1) {
-        for (i = 0; i < sb->section3_num; i++) {
-            off_t offset = sb->main_size + sb->section1_size + sb->section2_size + sb->extra_size + sb->section3_entry_size * i;
+    if (!sb->is_external) {
+        off_t sec3_offset = sb->main_size + sb->section1_size + sb->section2_size + sb->extra_size;
 
-            /* table has unordered ids+size, so if our id doesn't match current data offset must be beyond */
-            if (read_32bit(offset + 0x00, streamFile) == sb->stream_id)
-                break;
-            sb->stream_offset += read_32bit(offset + 0x04, streamFile);
+        if (sb->is_map) {
+            /* maps banks store internal sounds offsets in a separate table, find the matching entry */
+            for (i = 0; i < sb->section3_num; i++) {
+                off_t offset = sec3_offset + 0x14 * i;
+                off_t table_offset = read_32bit(offset + 0x04, streamFile) + sec3_offset;
+                off_t table_num = read_32bit(offset + 0x08, streamFile);
+                off_t table2_offset = read_32bit(offset + 0x0c, streamFile) + sec3_offset;
+                off_t table2_num = read_32bit(offset + 0x10, streamFile);
+
+                for (j = 0; j < table_num; j++) {
+                    int idx = read_32bit(table_offset + 0x08 * j + 0x00, streamFile) & 0x0000FFFF;
+
+                    if (idx == sb->header_idx) {
+                        if (!sb->stream_id_offset && table2_num > 1) {
+                            VGM_LOG("UBI SB: unexpected number of internal stream groups %i\n", sb->section3_num);
+                            goto fail;
+                        }
+
+                        sb->stream_offset = read_32bit(table_offset + 0x08 * j + 0x04, streamFile);
+                        for (k = 0; k < table2_num; k++) {
+                            uint32_t id = read_32bit(table2_offset + 0x10 * k + 0x00, streamFile);
+                            if (id == sb->stream_id)
+                                break;
+                            sb->stream_offset += read_32bit(table2_offset + 0x10 * k + 0x08, streamFile);
+                        }
+                        break;
+                    }
+                }
+
+                if (sb->stream_offset)
+                    break;
+            }
+        } else if ((sb->stream_id_offset || sb->has_rotating_ids) && sb->section3_num > 1) {
+            for (i = 0; i < sb->section3_num; i++) {
+                off_t offset = sec3_offset + sb->section3_entry_size * i;
+
+                /* table has unordered ids+size, so if our id doesn't match current data offset must be beyond */
+                if (read_32bit(offset + 0x00, streamFile) == sb->stream_id)
+                    break;
+                sb->stream_offset += read_32bit(offset + 0x04, streamFile);
+            }
         }
     }
 
@@ -597,6 +733,26 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
     /* common */
     sb->section3_entry_size = 0x08;
     sb->stream_name_size = 0x24; /* maybe 0x28 or 0x20 for some but ok enough (null terminated) */
+
+#if 0
+    /* Splinter Cell (2002)(PC) */
+    if (sb->version == 0x00000007 && sb->platform == UBI_PC) {
+        sb->section1_entry_size = 0x58;
+        sb->section2_entry_size = 0x80;
+
+        sb->external_flag_offset = 0x24; /* maybe 0x28 */
+        sb->num_samples_offset   = 0x30;
+        sb->sample_rate_offset   = 0x44;
+        sb->channels_offset      = 0x4a;
+        sb->stream_type_offset   = 0x4c;
+        sb->stream_name_offset   = 0x50;
+
+        sb->has_short_channels = 1;
+        return 1;
+    }
+
+    /* Splinter Cell has all the common values placed 0x04 bytes earlier */
+#endif
 
     /* Prince of Persia: Sands of Time (2003)(PC) */
     if ((sb->version == 0x000A0002 && sb->platform == UBI_PC) || /* (not sure if exists, just in case) */
@@ -867,6 +1023,23 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
 
         return 1;
     }
+
+    /* Splinter Cell: Chaos Theory (2005)(PC) */
+    if (sb->version == 0x00120012 && sb->platform == UBI_PC) {
+        sb->section1_entry_size = 0x68;
+        sb->section2_entry_size = 0x60;
+
+        sb->external_flag_offset = 0x24;
+        sb->num_samples_offset   = 0x30;
+        sb->sample_rate_offset   = 0x44;
+        sb->channels_offset      = 0x4c;
+        sb->stream_type_offset   = 0x50;
+        sb->extra_name_offset    = 0x54;
+
+        sb->has_extra_name_flag = 1;
+        return 1;
+    }
+
 #if 0
     /* Far cry: Instincts - Evolution (2006)(Xbox) */
     if (sb->version == 0x00170000 && sb->platform == UBI_XBOX) {
@@ -884,6 +1057,77 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
         return 1;
     }
 #endif
+
+    /* Red Steel (2006)(Wii) */
+    if (sb->version == 0x00180006 && sb->platform == UBI_WII) { /* same as 0x00150000 */
+        sb->section1_entry_size = 0x68;
+        sb->section2_entry_size = 0x6c;
+
+        sb->external_flag_offset = 0x28; /* maybe 0x2c */
+        sb->num_samples_offset   = 0x3c;
+        sb->sample_rate_offset   = 0x50;
+        sb->channels_offset      = 0x58;
+        sb->stream_type_offset   = 0x5c;
+        sb->extra_name_offset    = 0x60;
+
+        return 1;
+    }
+
+    /* Splinter Cell: Double Agent (2006)(PC) */
+    if (sb->version == 0x00180006 && sb->platform == UBI_PC) {
+        sb->section1_entry_size = 0x68;
+        sb->section2_entry_size = 0x7c;
+
+        sb->external_flag_offset = 0x2c;
+        sb->stream_id_offset     = 0x34;
+        sb->channels_offset      = 0x5c;
+        sb->sample_rate_offset   = 0x54;
+        sb->num_samples_offset   = 0x40;
+        sb->num_samples_offset2  = 0x48;
+        sb->stream_type_offset   = 0x60;
+        sb->extra_name_offset    = 0x64;
+
+        sb->has_extra_name_flag  = 1;
+        return 1;
+    }
+
+    /* Splinter Cell: Double Agent (2006)(X360) */
+    if (sb->version == 0x00180006 && sb->platform == UBI_X360) {
+        sb->section1_entry_size  = 0x68;
+        sb->section2_entry_size  = 0x78;
+
+        sb->external_flag_offset = 0x2c;
+        sb->stream_id_offset     = 0x30;
+        sb->samples_flag_offset  = 0x34;
+        sb->channels_offset      = 0x5c;
+        sb->sample_rate_offset   = 0x54;
+        sb->num_samples_offset   = 0x40;
+        sb->num_samples_offset2  = 0x48;
+        sb->stream_type_offset   = 0x60;
+        sb->extra_name_offset    = 0x64;
+        sb->xma_pointer_offset   = 0x70;
+
+        sb->has_extra_name_flag  = 1;
+        return 1;
+    }
+
+    /* Splinter Cell: Double Agent (2006)(Xbox) */
+    if (sb->version == 0x00160002 && sb->platform == UBI_XBOX) {
+        sb->section1_entry_size = 0x48;
+        sb->section2_entry_size = 0x58;
+
+        sb->external_flag_offset = 0;
+        sb->num_samples_offset   = 0x28;
+        sb->stream_id_offset     = 0;
+        sb->sample_rate_offset   = 0x3c;
+        sb->channels_offset      = 0x44;
+        sb->stream_type_offset   = 0x48;
+        sb->extra_name_offset    = 0x4c;
+
+        sb->has_extra_name_flag = 1;
+        //sb->has_rotating_ids = 1;
+        return 1;
+    }
 
     /* Prince of Persia: Rival Swords (2007)(PSP) */
     if (sb->version == 0x00180005 && sb->platform == UBI_PSP) {
@@ -930,21 +1174,6 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
      * stream data may be newer Ubi ADPCM (see DecUbiSnd)
      */
 #endif
-
-    /* Red Steel (2006)(Wii) */
-    if (sb->version == 0x00180006 && sb->platform == UBI_WII) { /* same as 0x00150000 */
-        sb->section1_entry_size = 0x68;
-        sb->section2_entry_size = 0x6c;
-
-        sb->external_flag_offset = 0x28; /* maybe 0x2c */
-        sb->num_samples_offset   = 0x3c;
-        sb->sample_rate_offset   = 0x50;
-        sb->channels_offset      = 0x58;
-        sb->stream_type_offset   = 0x5c;
-        sb->extra_name_offset    = 0x60;
-
-        return 1;
-    }
 
     /* Prince of Persia: Rival Swords (2007)(Wii) */
     if (sb->version == 0x00190003 && sb->platform == UBI_WII) {
@@ -1023,6 +1252,7 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
         sb->extra_name_offset    = 0x58;
         sb->xma_pointer_offset   = 0x6c;
 
+        sb->has_extra_name_flag = 1;
         return 1;
     }
 
@@ -1043,11 +1273,13 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
     }
 
     /* Surf's Up (2007)(PS3) */
+    /* Splinter Cell: Double Agent (2007)(PS3) */
     if (sb->version == 0x00190005 && sb->platform == UBI_PS3) {
         sb->section1_entry_size  = 0x68;
         sb->section2_entry_size  = 0x70;
 
         sb->external_flag_offset = 0x28;
+        sb->stream_id_offset     = 0x2c;
         sb->channels_offset      = 0x3c;
         sb->sample_rate_offset   = 0x40;
         sb->num_samples_offset   = 0x48;
