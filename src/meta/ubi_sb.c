@@ -1040,6 +1040,24 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
         return 1;
     }
 
+    /* Splinter Cell: Chaos Theory (2005)(Xbox) */
+    if (sb->version == 0x00120012 && sb->platform == UBI_XBOX) {
+        sb->section1_entry_size = 0x48;
+        sb->section2_entry_size = 0x4c;
+
+        sb->external_flag_offset = 0;
+        sb->num_samples_offset   = 0x18;
+        sb->stream_id_offset     = 0;
+        sb->sample_rate_offset   = 0x30;
+        sb->channels_offset      = 0x38;
+        sb->stream_type_offset   = 0x3c;
+        sb->extra_name_offset    = 0x40;
+
+        sb->has_extra_name_flag = 1;
+        //sb->has_rotating_ids = 1;
+        return 1;
+    }
+
 #if 0
     /* Far cry: Instincts - Evolution (2006)(Xbox) */
     if (sb->version == 0x00170000 && sb->platform == UBI_XBOX) {
