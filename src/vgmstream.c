@@ -192,8 +192,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_vgs,
     init_vgmstream_dc_dcsw_dcs,
     init_vgmstream_wii_smp,
-    init_vgmstream_emff_ps2,
-    init_vgmstream_emff_ngc,
+    init_vgmstream_mul,
     init_vgmstream_thp,
     init_vgmstream_wii_sts,
     init_vgmstream_ps2_p2bt,
@@ -1005,8 +1004,7 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
         case layout_blocked_matx:
         case layout_blocked_dec:
         case layout_blocked_vs:
-        case layout_blocked_emff_ps2:
-        case layout_blocked_emff_ngc:
+        case layout_blocked_mul:
         case layout_blocked_gsb:
         case layout_blocked_xvas:
         case layout_blocked_thp:

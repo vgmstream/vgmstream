@@ -229,8 +229,7 @@ typedef enum {
     layout_blocked_dec,
     layout_blocked_xvas,
     layout_blocked_vs,
-    layout_blocked_emff_ps2,
-    layout_blocked_emff_ngc,
+    layout_blocked_mul,
     layout_blocked_gsb,
     layout_blocked_thp,
     layout_blocked_filp,
@@ -441,8 +440,7 @@ typedef enum {
     meta_DC_DCSW_DCS,       /* Evil Twin - Cypriens Chronicles (DC) */
     meta_WII_SMP,           /* Mushroom Men - The Spore Wars */
     meta_WII_SNG,           /* Excite Trucks */
-    meta_EMFF_PS2,          /* Eidos Music File Format for PS2*/
-    meta_EMFF_NGC,          /* Eidos Music File Format for NGC/WII */
+    meta_MUL,
     meta_SAT_BAKA,          /* Crypt Killer */
     meta_PS2_VSF,           /* Musashi: Samurai Legend */
     meta_PS2_VSF_TTA,       /* Tiny Toon Adventures: Defenders of the Universe */

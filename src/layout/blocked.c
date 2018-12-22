@@ -127,11 +127,8 @@ void block_update(off_t block_offset, VGMSTREAM * vgmstream) {
         case layout_blocked_dec:
             block_update_dec(block_offset,vgmstream);
             break;
-        case layout_blocked_emff_ps2:
-            block_update_emff_ps2(block_offset,vgmstream);
-            break;
-        case layout_blocked_emff_ngc:
-            block_update_emff_ngc(block_offset,vgmstream);
+        case layout_blocked_mul:
+            block_update_mul(block_offset,vgmstream);
             break;
         case layout_blocked_gsb:
             block_update_gsb(block_offset,vgmstream);
