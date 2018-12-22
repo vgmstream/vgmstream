@@ -289,7 +289,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_ps2_spm,
     init_vgmstream_x360_tra,
     init_vgmstream_ps2_iab,
-    init_vgmstream_ps2_strlr,
+    init_vgmstream_vs_str,
     init_vgmstream_lsf_n1nj4n,
     init_vgmstream_vawx,
     init_vgmstream_ps2_wmus,
@@ -443,7 +443,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_ue4opus,
     init_vgmstream_xwma,
     init_vgmstream_xopus,
-    init_vgmstream_vs_ffx,
+    init_vgmstream_vs_square,
     init_vgmstream_msf_banpresto_wmsf,
     init_vgmstream_msf_banpresto_2msf,
     init_vgmstream_nwav,
@@ -1015,7 +1015,7 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
         case layout_blocked_bdsp:
         case layout_blocked_tra:
         case layout_blocked_ps2_iab:
-        case layout_blocked_ps2_strlr:
+        case layout_blocked_vs_str:
         case layout_blocked_rws:
         case layout_blocked_hwas:
         case layout_blocked_ea_sns:
@@ -1028,7 +1028,7 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
         case layout_blocked_sthd:
         case layout_blocked_h4m:
         case layout_blocked_xa_aiff:
-        case layout_blocked_vs_ffx:
+        case layout_blocked_vs_square:
             render_vgmstream_blocked(buffer,sample_count,vgmstream);
             break;
         case layout_aix:

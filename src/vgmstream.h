@@ -240,7 +240,7 @@ typedef enum {
     layout_blocked_ivaud,   /* GTA IV .ivaud blocks */
     layout_blocked_tra,     /* DefJam Rapstar .tra blocks */
     layout_blocked_ps2_iab,
-    layout_blocked_ps2_strlr,
+    layout_blocked_vs_str,
     layout_blocked_rws,
     layout_blocked_hwas,
     layout_blocked_ea_sns,  /* newest Electronic Arts blocks, found in SNS/SNU/SPS/etc formats */
@@ -253,7 +253,7 @@ typedef enum {
     layout_blocked_sthd, /* Dream Factory STHD */
     layout_blocked_h4m, /* H4M video */
     layout_blocked_xa_aiff, /* XA in AIFF files [Crusader: No Remorse (SAT), Road Rash (3DO)] */
-    layout_blocked_vs_ffx,
+    layout_blocked_vs_square,
 
     /* otherwise odd */
     layout_aix,             /* CRI AIX's wheels within wheels */
@@ -565,7 +565,7 @@ typedef enum {
     meta_X360_TRA,          /* Def Jam Rapstar */
     meta_PS2_VGS,           /* Princess Soft PS2 games */
     meta_PS2_IAB,           /* Ueki no Housoku - Taosu ze Robert Juudan!! (PS2) */
-    meta_PS2_STRLR,         /* The Bouncer */
+    meta_VS_STR,            /* The Bouncer */
     meta_LSF_N1NJ4N,        /* .lsf n1nj4n Fastlane Street Racing (iPhone) */
     meta_VAWX,              /* feelplus: No More Heroes Heroes Paradise, Moon Diver */
     meta_PC_SNDS,           /* Incredibles PC .snds */
@@ -700,7 +700,7 @@ typedef enum {
     meta_XWMA,
     meta_VA3,               /* DDR Supernova 2 AC */
     meta_XOPUS,
-    meta_VS_FFX,
+    meta_VS_SQUARE,
     meta_NWAV,
     meta_XPCM,
     meta_MSF_TAMASOFT,

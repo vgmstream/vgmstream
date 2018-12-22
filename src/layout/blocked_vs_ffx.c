@@ -2,7 +2,7 @@
 #include "../vgmstream.h"
 
 /* Square "VS" headered blocks */
-void block_update_vs_ffx(off_t block_offset, VGMSTREAM * vgmstream) {
+void block_update_vs_square(off_t block_offset, VGMSTREAM * vgmstream) {
     int i;
     size_t block_size = 0x800;
 

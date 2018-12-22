@@ -3,7 +3,7 @@
 #include "../coding/coding.h"
 
 /* .vs/STRx - from The Bouncer (PS2) */
-VGMSTREAM * init_vgmstream_ps2_strlr(STREAMFILE *streamFile) {
+VGMSTREAM * init_vgmstream_vs_str(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     int channel_count, loop_flag;
     off_t start_offset;
@@ -29,10 +29,10 @@ VGMSTREAM * init_vgmstream_ps2_strlr(STREAMFILE *streamFile) {
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
-    vgmstream->meta_type = meta_PS2_STRLR;
+    vgmstream->meta_type = meta_VS_STR;
     vgmstream->sample_rate = 44100;
     vgmstream->coding_type = coding_PSX;
-    vgmstream->layout_type = layout_blocked_ps2_strlr;
+    vgmstream->layout_type = layout_blocked_vs_str;
 
     if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
         goto fail;
