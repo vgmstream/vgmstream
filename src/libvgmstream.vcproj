@@ -1175,7 +1175,7 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\ps2_strlr.c"
+					RelativePath=".\meta\vs_str.c"
 					>
 				</File>
 				<File
@@ -1227,7 +1227,7 @@
                     >
                 </File>
                 <File
-                    RelativePath=".\meta\vs_ffx.c"
+                    RelativePath=".\meta\vs_square.c"
                     >
                 </File>
 				<File
@@ -2007,7 +2007,7 @@
                     >
                 </File>
                 <File
-                    RelativePath=".\layout\blocked_vs_ffx.c"
+                    RelativePath=".\layout\blocked_vs_square.c"
                     >
                 </File>
                 <File
@@ -2079,7 +2079,7 @@
 					>
 				</File>
 				<File
-					RelativePath=".\layout\blocked_ps2_strlr.c"
+					RelativePath=".\layout\blocked_vs_str.c"
 					>
 				</File>
 				<File

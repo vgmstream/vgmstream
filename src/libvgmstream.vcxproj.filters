@@ -760,7 +760,7 @@
     <ClCompile Include="meta\vpk.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\vs_ffx.c">
+    <ClCompile Include="meta\vs_square.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ps2_wad.c">
@@ -1192,7 +1192,7 @@
     <ClCompile Include="layout\blocked_vgs.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="layout\blocked_vs_ffx.c">
+    <ClCompile Include="layout\blocked_vs_square.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="layout\blocked_vawx.c">
@@ -1303,7 +1303,7 @@
     <ClCompile Include="meta\ps2_spm.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\ps2_strlr.c">
+    <ClCompile Include="meta\vs_str.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\wii_ras.c">
@@ -1315,7 +1315,7 @@
     <ClCompile Include="meta\ps2_iab.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="layout\blocked_ps2_strlr.c">
+    <ClCompile Include="layout\blocked_vs_str.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="layout\blocked_ps2_iab.c">
