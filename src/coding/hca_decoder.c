@@ -151,15 +151,22 @@ void free_hca(hca_codec_data * data) {
 }
 
 
-#define HCA_KEY_MAX_BLANK_FRAMES 15         /* ignored up to N blank frames (not uncommon to have ~10, if more something is off) */
-#define HCA_KEY_MAX_TEST_FRAMES  10         /* 5~15 should be enough, but mostly silent or badly mastered files may need more */
-#define HCA_KEY_MAX_ACCEPTABLE_SCORE  150   /* more is unlikely to work correctly, 10~30 isn't uncommon */
+/* arbitrary scale to simplify score comparisons */
+#define HCA_KEY_SCORE_SCALE      10
+/* ignores beginning frames (~10 is not uncommon, Dragalia Lost vocal layers have lots) */
+#define HCA_KEY_MAX_SKIP_BLANKS  400
+/* 5~15 should be enough, but almost silent or badly mastered files may need tweaks */
+#define HCA_KEY_MIN_TEST_FRAMES  5
+#define HCA_KEY_MAX_TEST_FRAMES  10
+/* score of 10~30 isn't uncommon in a single frame, too many frames over that is unlikely */
+#define HCA_KEY_MAX_FRAME_SCORE  150
+#define HCA_KEY_MAX_TOTAL_SCORE  (HCA_KEY_MAX_TEST_FRAMES * 50*HCA_KEY_SCORE_SCALE)
 
 /* Test a number of frames if key decrypts correctly.
  * Returns score: <0: error/wrong, 0: unknown/silent file, >0: good (the closest to 1 the better). */
 int test_hca_key(hca_codec_data * data, unsigned long long keycode) {
-    size_t test_frame = 0, current_frame = 0, blank_frames = 0;
-    int total_score = 0;
+    size_t test_frames = 0, current_frame = 0, blank_frames = 0;
+    int total_score = 0, found_regular_frame = 0;
     const unsigned int blockSize = data->info.blockSize;
 
     /* Due to the potentially large number of keys this must be tuned for speed.
@@ -168,43 +175,56 @@ int test_hca_key(hca_codec_data * data, unsigned long long keycode) {
 
     clHCA_SetKey(data->handle, keycode);
 
-    while (test_frame < HCA_KEY_MAX_TEST_FRAMES && current_frame < data->info.blockCount) {
+    /* Test up to N non-blank frames or until total frames. */
+    /* A final score of 0 (=silent) is only possible for short files with all blank frames */
+
+    while (test_frames < HCA_KEY_MAX_TEST_FRAMES && current_frame < data->info.blockCount) {
         off_t offset = data->info.headerSize + current_frame * blockSize;
         int score;
         size_t bytes;
 
-        /* read frame */
+        /* read and test frame */
         bytes = read_streamfile(data->data_buffer, offset, blockSize, data->streamfile);
         if (bytes != blockSize) {
             total_score = -1;
             break;
         }
 
-        /* test frame */
         score = clHCA_TestBlock(data->handle, (void*)(data->data_buffer), blockSize);
-        if (score < 0) {
+        if (score < 0 || score > HCA_KEY_MAX_FRAME_SCORE) {
             total_score = -1;
             break;
         }
 
         current_frame++;
 
-        /* skip blank block at the beginning */
-        if (score == 0 && blank_frames < HCA_KEY_MAX_BLANK_FRAMES) {
+        /* ignore silent frames at the beginning, up to a point */
+        if (score == 0 && blank_frames < HCA_KEY_MAX_SKIP_BLANKS && !found_regular_frame) {
             blank_frames++;
             continue;
         }
 
-        test_frame++;
+        found_regular_frame = 1;
+        test_frames++;
+
+        /* scale values to make scores of perfect frames more detectable */
+        switch(score) {
+            case 1:  score = 1; break;
+            case 0:  score = 3*HCA_KEY_SCORE_SCALE; break; /* blanks after non-blacks aren't very trustable */
+            default: score = score*HCA_KEY_SCORE_SCALE;
+        }
+
         total_score += score;
 
-        /* too far, don't bother checking more frames */
-        if (total_score > HCA_KEY_MAX_ACCEPTABLE_SCORE)
+
+        /* don't bother checking more frames, other keys will get better scores */
+        if (total_score > HCA_KEY_MAX_TOTAL_SCORE)
             break;
     }
+    //;VGM_LOG("HCA KEY: blanks=%i, tests=%i, score=%i\n", blank_frames, test_frames, total_score);
 
-    /* signal best possible score */
-    if (total_score > 0 && total_score <= HCA_KEY_MAX_TEST_FRAMES) {
+    /* signal best possible score (many perfect frames and few blank frames) */
+    if (test_frames > HCA_KEY_MIN_TEST_FRAMES && total_score > 0 && total_score <= test_frames) {
         total_score = 1;
     }
 
