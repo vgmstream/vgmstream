@@ -371,6 +371,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_pc_ast,
     init_vgmstream_naac,
     init_vgmstream_ubi_sb,
+    init_vgmstream_ubi_sm,
     init_vgmstream_ezw,
     init_vgmstream_vxn,
     init_vgmstream_ea_snr_sns,
