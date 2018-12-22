@@ -334,7 +334,7 @@
     <ClCompile Include="meta\ea_wve_ad10.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\emff.c">
+    <ClCompile Include="meta\mul.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\exakt_sc.c">
@@ -1213,7 +1213,7 @@
     <ClCompile Include="layout\blocked_ea_sns.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="layout\blocked_emff.c">
+    <ClCompile Include="layout\blocked_mul.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="layout\blocked_filp.c">
