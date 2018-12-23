@@ -88,7 +88,7 @@ typedef struct {
 } ubi_sb_header;
 
 static VGMSTREAM * init_vgmstream_ubi_sb_main(ubi_sb_header *sb, STREAMFILE *streamFile);
-static int parse_sb_header(ubi_sb_header * sb, STREAMFILE *streamFile);
+static int parse_sb_header(ubi_sb_header * sb, STREAMFILE *streamFile, int target_stream);
 static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile);
 
 /* .SBx - banks from Ubisoft's sound engine ("DARE" / "UbiSound Driver") games in ~2000-2008 */
@@ -97,10 +97,13 @@ VGMSTREAM * init_vgmstream_ubi_sb(STREAMFILE *streamFile) {
     int16_t(*read_16bit)(off_t, STREAMFILE*) = NULL;
     ubi_sb_header sb = { 0 };
     int ok;
+    int target_stream = streamFile->stream_index;
 
     /* check extension (number represents the platform, see later) */
     if (!check_extensions(streamFile, "sb0,sb1,sb2,sb3,sb4,sb5,sb6,sb7"))
         goto fail;
+
+    if (target_stream == 0) target_stream = 1;
 
     /* .sb0 (sound bank) is a small multisong format (loaded in memory?) that contains SFX data
      * but can also reference .ss0/ls0 (sound stream) external files for longer streams.
@@ -181,7 +184,7 @@ VGMSTREAM * init_vgmstream_ubi_sb(STREAMFILE *streamFile) {
     sb.is_map = 0;
 
     /* main parse */
-    if (!parse_sb_header(&sb, streamFile))
+    if (!parse_sb_header(&sb, streamFile, target_stream))
         goto fail;
 
     return init_vgmstream_ubi_sb_main(&sb, streamFile);
@@ -196,10 +199,13 @@ VGMSTREAM * init_vgmstream_ubi_sm(STREAMFILE *streamFile) {
     int16_t(*read_16bit)(off_t, STREAMFILE*) = NULL;
     ubi_sb_header sb = { 0 };
     int ok, i;
+    int target_stream = streamFile->stream_index;
 
     /* check extension (number represents the platform, see later) */
     if (!check_extensions(streamFile, "sm0,sm1,sm2,sm3,sm4,sm5,sm6,sm7"))
         goto fail;
+
+    if (target_stream == 0) target_stream = 1;
 
      /* sigh... PSP hijacks not one but *two* platform indexes */
      /* please add any PSP game versions under sb4 and sb5 sections so we can properly identify platform */
@@ -276,8 +282,18 @@ VGMSTREAM * init_vgmstream_ubi_sm(STREAMFILE *streamFile) {
         sb.section3_offset = read_32bit(sb.map_offset + sb.map_sec3_pointer_offset, streamFile) + sb.map_offset;
         sb.section3_num = read_32bit(sb.map_offset + sb.map_sec3_num_offset, streamFile);
 
-        if (!parse_sb_header(&sb, streamFile))
+        if (!parse_sb_header(&sb, streamFile, target_stream))
             goto fail;
+    }
+
+    if (sb.total_streams == 0) {
+        VGM_LOG("UBI SB: no streams\n");
+        goto fail;
+    }
+
+    if (target_stream < 0 || target_stream > sb.total_streams) {
+        VGM_LOG("UBI SB: wrong target stream (target=%i, total=%i)\n", target_stream, sb.total_streams);
+        goto fail;
     }
 
     return init_vgmstream_ubi_sb_main(&sb, streamFile);
@@ -540,11 +556,10 @@ fail:
 }
 
 
-static int parse_sb_header(ubi_sb_header * sb, STREAMFILE *streamFile) {
+static int parse_sb_header(ubi_sb_header * sb, STREAMFILE *streamFile, int target_stream) {
     int32_t (*read_32bit)(off_t,STREAMFILE*) = NULL;
     int16_t (*read_16bit)(off_t,STREAMFILE*) = NULL;
-    int i, j, k, current_type = -1, current_id = -1;
-    int target_stream = streamFile->stream_index;
+    int i, j, k, current_type = -1, current_id = -1, bank_streams = 0, prev_streams;
 
     if (sb->big_endian) {
         read_32bit = read_32bitBE;
@@ -554,7 +569,7 @@ static int parse_sb_header(ubi_sb_header * sb, STREAMFILE *streamFile) {
         read_16bit = read_16bitLE;
     }
 
-    if (target_stream == 0) target_stream = 1;
+    prev_streams = sb->total_streams;
 
     /* find target stream info in section2 */
     for (i = 0; i < sb->section2_num; i++) {
@@ -595,6 +610,7 @@ static int parse_sb_header(ubi_sb_header * sb, STREAMFILE *streamFile) {
 
         /* update streams (total_stream also doubles as current) */
         sb->total_streams++;
+        bank_streams++;
         if (sb->total_streams != target_stream)
             continue;
         //;VGM_LOG("target at offset=%lx (size=%x)\n", offset, sb->section2_entry_size);
@@ -651,13 +667,20 @@ static int parse_sb_header(ubi_sb_header * sb, STREAMFILE *streamFile) {
                 sb->autodetect_external = 0; /* name outside extra table == is internal */
         }
     }
-    if (sb->total_streams == 0) {
-        VGM_LOG("UBI SB: no streams\n");
-        goto fail;
-    }
-    if (target_stream < 0 || target_stream > sb->total_streams || sb->total_streams < 1) {
-        VGM_LOG("UBI SB: wrong target stream (target=%i, total=%i)\n", target_stream, sb->total_streams);
-        goto fail;
+
+    if (sb->is_map) {
+        if (bank_streams == 0 || target_stream <= prev_streams || target_stream > sb->total_streams)
+            return 1; /* Target stream is not in this map */
+    } else {
+        if (sb->total_streams == 0) {
+            VGM_LOG("UBI SB: no streams\n");
+            goto fail;
+        }
+
+        if (target_stream < 0 || target_stream > sb->total_streams) {
+            VGM_LOG("UBI SB: wrong target stream (target=%i, total=%i)\n", target_stream, sb->total_streams);
+            goto fail;
+        }
     }
 
     if (!(sb->stream_id_offset || sb->has_rotating_ids || sb->is_map) && sb->section3_num > 1) {
@@ -1044,7 +1067,7 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
         sb->section1_entry_size = 0x68;
         sb->section2_entry_size = 0x84;
 
-        sb->map_header_entry_size    = 0x24;
+        sb->map_header_entry_size    = 0x34;
         sb->map_sec1_pointer_offset  = 0x04;
         sb->map_sec1_num_offset      = 0x08;
         sb->map_sec2_pointer_offset  = 0x0c;
@@ -1153,7 +1176,7 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
         sb->section1_entry_size = 0x68;
         sb->section2_entry_size = 0x60;
 
-        sb->map_header_entry_size    = 0x24;
+        sb->map_header_entry_size    = 0x34;
         sb->map_sec1_pointer_offset  = 0x04;
         sb->map_sec1_num_offset      = 0x08;
         sb->map_sec2_pointer_offset  = 0x0c;
@@ -1179,7 +1202,7 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
         sb->section1_entry_size = 0x48;
         sb->section2_entry_size = 0x4c;
 
-        sb->map_header_entry_size    = 0x24;
+        sb->map_header_entry_size    = 0x34;
         sb->map_sec1_pointer_offset  = 0x04;
         sb->map_sec1_num_offset      = 0x08;
         sb->map_sec2_pointer_offset  = 0x0c;
@@ -1240,7 +1263,7 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
         sb->section1_entry_size = 0x68;
         sb->section2_entry_size = 0x7c;
 
-        sb->map_header_entry_size    = 0x24;
+        sb->map_header_entry_size    = 0x34;
         sb->map_sec1_pointer_offset  = 0x04;
         sb->map_sec1_num_offset      = 0x08;
         sb->map_sec2_pointer_offset  = 0x0c;
@@ -1268,7 +1291,7 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
         sb->section1_entry_size  = 0x68;
         sb->section2_entry_size  = 0x78;
 
-        sb->map_header_entry_size    = 0x24;
+        sb->map_header_entry_size    = 0x34;
         sb->map_sec1_pointer_offset  = 0x04;
         sb->map_sec1_num_offset      = 0x08;
         sb->map_sec2_pointer_offset  = 0x0c;
@@ -1298,7 +1321,7 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
         sb->section1_entry_size = 0x48;
         sb->section2_entry_size = 0x58;
 
-        sb->map_header_entry_size    = 0x24;
+        sb->map_header_entry_size    = 0x34;
         sb->map_sec1_pointer_offset  = 0x04;
         sb->map_sec1_num_offset      = 0x08;
         sb->map_sec2_pointer_offset  = 0x0c;
@@ -1470,7 +1493,7 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
         sb->section1_entry_size  = 0x68;
         sb->section2_entry_size  = 0x70;
 
-        sb->map_header_entry_size    = 0x24;
+        sb->map_header_entry_size    = 0x34;
         sb->map_sec1_pointer_offset  = 0x04;
         sb->map_sec1_num_offset      = 0x08;
         sb->map_sec2_pointer_offset  = 0x0c;
