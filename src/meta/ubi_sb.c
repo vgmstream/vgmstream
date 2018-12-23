@@ -334,18 +334,8 @@ static VGMSTREAM * init_vgmstream_ubi_sb_main(ubi_sb_header *sb, STREAMFILE *str
         streamData = streamFile;
     }
 
-    /* final offset */
-    if (sb->is_external) {
-        start_offset = sb->stream_offset;
-    } else {
-        if (sb->is_map) {
-            start_offset = sb->stream_offset;
-        } else {
-            start_offset = sb->sounds_offset + sb->stream_offset;
-        }
-    }
+    start_offset = sb->stream_offset;
     //;VGM_LOG("start offset=%lx, external=%i\n", start_offset, sb->is_external);
-
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(sb->channels,loop_flag);
@@ -391,7 +381,7 @@ static VGMSTREAM * init_vgmstream_ubi_sb_main(ubi_sb_header *sb, STREAMFILE *str
             vgmstream->num_samples = dsp_bytes_to_samples(sb->stream_size, sb->channels);
 
             {
-                off_t coefs_offset = sb->extra_section_offset + sb->extra_offset;
+                off_t coefs_offset = sb->extra_offset;
                 coefs_offset += 0x10; /* entry size is 0x40 (first/last 0x10 = unknown), per channel */
 
                 dsp_read_coefs_be(vgmstream,streamFile,coefs_offset, 0x40);
@@ -504,7 +494,7 @@ static VGMSTREAM * init_vgmstream_ubi_sb_main(ubi_sb_header *sb, STREAMFILE *str
 
             /* get XMA header from extra section */
             chunk_size = 0x20;
-            header_offset = sb->extra_section_offset + sb->xma_header_offset;
+            header_offset = sb->xma_header_offset;
             bytes = ffmpeg_make_riff_xma_from_fmt_chunk(buf, 0x100, header_offset, chunk_size, sb->stream_size, streamFile, 1);
 
             ffmpeg_data = init_ffmpeg_header_offset(streamData, buf, bytes, start_offset, sb->stream_size);
@@ -621,7 +611,7 @@ static int parse_sb_header(ubi_sb_header * sb, STREAMFILE *streamFile, int targe
         sb->header_id      = read_32bit(offset + 0x00, streamFile); /* 16b+16b group+sound id */
         sb->header_type    = read_32bit(offset + 0x04, streamFile);
         sb->stream_size    = read_32bit(offset + 0x08, streamFile);
-        sb->extra_offset   = read_32bit(offset + 0x0c, streamFile); /* within the extra section */
+        sb->extra_offset   = read_32bit(offset + 0x0c, streamFile) + sb->extra_section_offset; /* within the extra section */
         sb->stream_offset  = read_32bit(offset + 0x10, streamFile); /* within the data section */
         sb->channels       = (sb->has_short_channels) ?
                    (uint16_t)read_16bit(offset + sb->channels_offset, streamFile) :
@@ -782,7 +772,7 @@ static int parse_sb_header(ubi_sb_header * sb, STREAMFILE *streamFile, int targe
 
     if (sb->codec == RAW_XMA1) {
         /* this field is only seen in X360 games, points at XMA1 header in extra section */
-        sb->xma_header_offset = read_32bit(sb->header_offset + sb->xma_pointer_offset, streamFile);
+        sb->xma_header_offset = read_32bit(sb->header_offset + sb->xma_pointer_offset, streamFile) + sb->extra_section_offset;
     }
 
     /* uncommon but possible */
@@ -831,16 +821,20 @@ static int parse_sb_header(ubi_sb_header * sb, STREAMFILE *streamFile, int targe
                 if (sb->stream_offset)
                     break;
             }
-        } else if ((sb->stream_id_offset || sb->has_rotating_ids) && sb->section3_num > 1) {
-            /* internal sounds are split into groups based on their type with their offsets being relative to group start
-             * this table contains sizes of each group, adjust offset based on group ID of our sound */
-            for (i = 0; i < sb->section3_num; i++) {
-                off_t offset = sb->section3_offset + sb->section3_entry_size * i;
+        } else {
+            sb->stream_offset += sb->sounds_offset;
 
-                /* table has unordered ids+size, so if our id doesn't match current data offset must be beyond */
-                if (read_32bit(offset + 0x00, streamFile) == sb->stream_id)
-                    break;
-                sb->stream_offset += read_32bit(offset + 0x04, streamFile);
+            if ((sb->stream_id_offset || sb->has_rotating_ids) && sb->section3_num > 1) {
+                /* internal sounds are split into groups based on their type with their offsets being relative to group start
+                 * this table contains sizes of each group, adjust offset based on group ID of our sound */
+                for (i = 0; i < sb->section3_num; i++) {
+                    off_t offset = sb->section3_offset + sb->section3_entry_size * i;
+
+                    /* table has unordered ids+size, so if our id doesn't match current data offset must be beyond */
+                    if (read_32bit(offset + 0x00, streamFile) == sb->stream_id)
+                        break;
+                    sb->stream_offset += read_32bit(offset + 0x04, streamFile);
+                }
             }
         }
     }
