@@ -154,7 +154,7 @@ void free_hca(hca_codec_data * data) {
 /* arbitrary scale to simplify score comparisons */
 #define HCA_KEY_SCORE_SCALE      10
 /* ignores beginning frames (~10 is not uncommon, Dragalia Lost vocal layers have lots) */
-#define HCA_KEY_MAX_SKIP_BLANKS  400
+#define HCA_KEY_MAX_SKIP_BLANKS  900
 /* 5~15 should be enough, but almost silent or badly mastered files may need tweaks */
 #define HCA_KEY_MIN_TEST_FRAMES  5
 #define HCA_KEY_MAX_TEST_FRAMES  10
