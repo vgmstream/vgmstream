@@ -175,6 +175,7 @@ static const char* extension_list[] = {
     "idx",
     "ikm",
     "ild",
+    "imc",
     "int",
     "isd",
     "isws",
@@ -1125,6 +1126,7 @@ static const meta_info meta_info_list[] = {
         {meta_ZSND,                 "Vicarious Visions ZSND header"},
         {meta_DSP_ADPCMX,           "AQUASTYLE ADPY header"},
         {meta_OGG_OPUS,             "Ogg Opus header"},
+        {meta_IMC,                  "iNiS .IMC header"},
 
 };
 

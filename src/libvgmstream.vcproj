@@ -620,6 +620,10 @@
                     RelativePath=".\meta\nub_idsp.c"
                     >
                 </File>
+                <File
+                    RelativePath=".\meta\imc.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\ios_psnd.c"
 					>

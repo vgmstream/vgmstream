@@ -820,4 +820,7 @@ VGMSTREAM * init_vgmstream_ogg_opus(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_nus3audio(STREAMFILE * streamFile);
 
+VGMSTREAM * init_vgmstream_imc(STREAMFILE * streamFile);
+VGMSTREAM * init_vgmstream_imc_container(STREAMFILE * streamFile);
+
 #endif /*_META_H*/
