@@ -127,11 +127,8 @@ void block_update(off_t block_offset, VGMSTREAM * vgmstream) {
         case layout_blocked_dec:
             block_update_dec(block_offset,vgmstream);
             break;
-        case layout_blocked_emff_ps2:
-            block_update_emff_ps2(block_offset,vgmstream);
-            break;
-        case layout_blocked_emff_ngc:
-            block_update_emff_ngc(block_offset,vgmstream);
+        case layout_blocked_mul:
+            block_update_mul(block_offset,vgmstream);
             break;
         case layout_blocked_gsb:
             block_update_gsb(block_offset,vgmstream);
@@ -166,8 +163,8 @@ void block_update(off_t block_offset, VGMSTREAM * vgmstream) {
         case layout_blocked_ps2_iab:
             block_update_ps2_iab(block_offset,vgmstream);
             break;
-        case layout_blocked_ps2_strlr:
-            block_update_ps2_strlr(block_offset,vgmstream);
+        case layout_blocked_vs_str:
+            block_update_vs_str(block_offset,vgmstream);
             break;
         case layout_blocked_rws:
             block_update_rws(block_offset,vgmstream);
@@ -205,8 +202,8 @@ void block_update(off_t block_offset, VGMSTREAM * vgmstream) {
         case layout_blocked_xa_aiff:
             block_update_xa_aiff(block_offset,vgmstream);
             break;
-        case layout_blocked_vs_ffx:
-            block_update_vs_ffx(block_offset,vgmstream);
+        case layout_blocked_vs_square:
+            block_update_vs_square(block_offset,vgmstream);
             break;
         default: /* not a blocked layout */
             break;

@@ -88,8 +88,8 @@ static inline void test_key(hca_codec_data * hca_data, uint64_t key, uint16_t su
     if (score < 0)
         return;
 
-    /* score 0 is not trustable, update too if something better is found */
-    if (*best_score < 0 || (score < *best_score && score > 0) || (*best_score == 0 && score == 1)) {
+    /* update if something better is found */
+    if (*best_score <= 0 || (score < *best_score && score > 0)) {
         *best_score = score;
         *best_keycode = key;
     }

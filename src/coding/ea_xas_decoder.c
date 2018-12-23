@@ -9,8 +9,9 @@ static const int EA_XA_TABLE[20] = {
     0,   -1,   -3,   -4
 };
 
-/* EA-XAS, evolution of EA-XA and cousin of MTA2. Layout: blocks of 0x4c per channel (128 samples),
- * divided into 4 headers + 4 vertical groups of 15 bytes (for parallelism?).
+/* EA-XAS, evolution of EA-XA and cousin of MTA2. From FFmpeg (general info) + MTA2 (layout) + EA-XA (decoding)
+ *
+ * Layout: blocks of 0x4c per channel (128 samples), divided into 4 headers + 4 vertical groups of 15 bytes (for parallelism?).
  * To simplify, always decodes the block and discards unneeded samples, so doesn't use external hist. */
 void decode_ea_xas(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
     int group, row, i;

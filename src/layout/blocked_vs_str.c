@@ -2,7 +2,7 @@
 #include "../vgmstream.h"
 
 /* The Bouncer STRx blocks, one block per channel when stereo */
-void block_update_ps2_strlr(off_t block_offset, VGMSTREAM * vgmstream) {
+void block_update_vs_str(off_t block_offset, VGMSTREAM * vgmstream) {
     STREAMFILE* streamFile = vgmstream->ch[0].streamfile;
     int i;
 

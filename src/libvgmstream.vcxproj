@@ -134,7 +134,7 @@
     <ClCompile Include="coding\mtaf_decoder.c" />
     <ClCompile Include="coding\mta2_decoder.c" />
     <ClCompile Include="layout\blocked_ps2_iab.c" />
-    <ClCompile Include="layout\blocked_ps2_strlr.c" />
+    <ClCompile Include="layout\blocked_vs_str.c" />
     <ClCompile Include="layout\layered.c" />
     <ClCompile Include="layout\blocked_tra.c" />
     <ClCompile Include="meta\akb.c" />
@@ -146,6 +146,7 @@
     <ClCompile Include="meta\ezw.c" />
     <ClCompile Include="meta\ffmpeg.c" />
     <ClCompile Include="meta\g1l.c" />
+    <ClCompile Include="meta\imc.c" />
     <ClCompile Include="meta\ios_psnd.c" />
     <ClCompile Include="meta\ktss.c" />
     <ClCompile Include="meta\lsf.c" />
@@ -170,7 +171,7 @@
     <ClCompile Include="meta\mss.c" />
     <ClCompile Include="meta\ps2_mtaf.c" />
     <ClCompile Include="meta\ps2_spm.c" />
-    <ClCompile Include="meta\ps2_strlr.c" />
+    <ClCompile Include="meta\vs_str.c" />
     <ClCompile Include="meta\ps2_wmus.c" />
     <ClCompile Include="meta\ps3_ivag.c" />
     <ClCompile Include="meta\ps3_past.c" />
@@ -251,7 +252,7 @@
     <ClCompile Include="meta\ea_eaac.c" />
     <ClCompile Include="meta\ea_wve_au00.c" />
     <ClCompile Include="meta\ea_wve_ad10.c" />
-    <ClCompile Include="meta\emff.c" />
+    <ClCompile Include="meta\mul.c" />
     <ClCompile Include="meta\exakt_sc.c" />
     <ClCompile Include="meta\ffw.c" />
     <ClCompile Include="meta\flx.c" />
@@ -398,7 +399,7 @@
     <ClCompile Include="meta\ps2_vms.c" />
     <ClCompile Include="meta\ps2_voi.c" />
     <ClCompile Include="meta\vpk.c" />
-    <ClCompile Include="meta\vs_ffx.c" />
+    <ClCompile Include="meta\vs_square.c" />
     <ClCompile Include="meta\ps2_wad.c" />
     <ClCompile Include="meta\ps2_wb.c" />
     <ClCompile Include="meta\ps2_xa2.c" />
@@ -546,7 +547,7 @@
     <ClCompile Include="layout\blocked_awc.c" />
     <ClCompile Include="layout\blocked_ea_1snh.c" />
     <ClCompile Include="layout\blocked_vgs.c" />
-    <ClCompile Include="layout\blocked_vs_ffx.c" />
+    <ClCompile Include="layout\blocked_vs_square.c" />
     <ClCompile Include="layout\blocked_vawx.c" />
     <ClCompile Include="layout\blocked_xvag.c" />
     <ClCompile Include="layout\blocked_caf.c" />
@@ -555,7 +556,7 @@
     <ClCompile Include="layout\blocked_ea_sns.c" />
     <ClCompile Include="layout\blocked_ea_wve_au00.c" />
     <ClCompile Include="layout\blocked_ea_wve_ad10.c" />
-    <ClCompile Include="layout\blocked_emff.c" />
+    <ClCompile Include="layout\blocked_mul.c" />
     <ClCompile Include="layout\blocked_filp.c" />
     <ClCompile Include="layout\blocked_gsb.c" />
     <ClCompile Include="layout\blocked_h4m.c" />

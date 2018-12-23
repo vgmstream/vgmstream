@@ -192,8 +192,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_vgs,
     init_vgmstream_dc_dcsw_dcs,
     init_vgmstream_wii_smp,
-    init_vgmstream_emff_ps2,
-    init_vgmstream_emff_ngc,
+    init_vgmstream_mul,
     init_vgmstream_thp,
     init_vgmstream_wii_sts,
     init_vgmstream_ps2_p2bt,
@@ -213,7 +212,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_ps2_mcg,
     init_vgmstream_zsd,
     init_vgmstream_ps2_vgs,
-    init_vgmstream_RedSpark,
+    init_vgmstream_redspark,
     init_vgmstream_ivaud,
     init_vgmstream_wii_wsd,
     init_vgmstream_wii_ndp,
@@ -290,7 +289,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_ps2_spm,
     init_vgmstream_x360_tra,
     init_vgmstream_ps2_iab,
-    init_vgmstream_ps2_strlr,
+    init_vgmstream_vs_str,
     init_vgmstream_lsf_n1nj4n,
     init_vgmstream_vawx,
     init_vgmstream_ps2_wmus,
@@ -445,7 +444,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_ue4opus,
     init_vgmstream_xwma,
     init_vgmstream_xopus,
-    init_vgmstream_vs_ffx,
+    init_vgmstream_vs_square,
     init_vgmstream_msf_banpresto_wmsf,
     init_vgmstream_msf_banpresto_2msf,
     init_vgmstream_nwav,
@@ -458,6 +457,8 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_dsp_adpcmx,
     init_vgmstream_ogg_opus,
     init_vgmstream_nus3audio,
+    init_vgmstream_imc,
+    init_vgmstream_imc_container,
 
     /* lowest priority metas (should go after all metas, and TXTH should go before raw formats) */
     init_vgmstream_txth,            /* proper parsers should supersede TXTH, once added */
@@ -1006,8 +1007,7 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
         case layout_blocked_matx:
         case layout_blocked_dec:
         case layout_blocked_vs:
-        case layout_blocked_emff_ps2:
-        case layout_blocked_emff_ngc:
+        case layout_blocked_mul:
         case layout_blocked_gsb:
         case layout_blocked_xvas:
         case layout_blocked_thp:
@@ -1018,7 +1018,7 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
         case layout_blocked_bdsp:
         case layout_blocked_tra:
         case layout_blocked_ps2_iab:
-        case layout_blocked_ps2_strlr:
+        case layout_blocked_vs_str:
         case layout_blocked_rws:
         case layout_blocked_hwas:
         case layout_blocked_ea_sns:
@@ -1031,7 +1031,7 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
         case layout_blocked_sthd:
         case layout_blocked_h4m:
         case layout_blocked_xa_aiff:
-        case layout_blocked_vs_ffx:
+        case layout_blocked_vs_square:
             render_vgmstream_blocked(buffer,sample_count,vgmstream);
             break;
         case layout_aix:

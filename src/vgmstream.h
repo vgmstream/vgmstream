@@ -229,8 +229,7 @@ typedef enum {
     layout_blocked_dec,
     layout_blocked_xvas,
     layout_blocked_vs,
-    layout_blocked_emff_ps2,
-    layout_blocked_emff_ngc,
+    layout_blocked_mul,
     layout_blocked_gsb,
     layout_blocked_thp,
     layout_blocked_filp,
@@ -241,7 +240,7 @@ typedef enum {
     layout_blocked_ivaud,   /* GTA IV .ivaud blocks */
     layout_blocked_tra,     /* DefJam Rapstar .tra blocks */
     layout_blocked_ps2_iab,
-    layout_blocked_ps2_strlr,
+    layout_blocked_vs_str,
     layout_blocked_rws,
     layout_blocked_hwas,
     layout_blocked_ea_sns,  /* newest Electronic Arts blocks, found in SNS/SNU/SPS/etc formats */
@@ -254,7 +253,7 @@ typedef enum {
     layout_blocked_sthd, /* Dream Factory STHD */
     layout_blocked_h4m, /* H4M video */
     layout_blocked_xa_aiff, /* XA in AIFF files [Crusader: No Remorse (SAT), Road Rash (3DO)] */
-    layout_blocked_vs_ffx,
+    layout_blocked_vs_square,
 
     /* otherwise odd */
     layout_aix,             /* CRI AIX's wheels within wheels */
@@ -441,8 +440,7 @@ typedef enum {
     meta_DC_DCSW_DCS,       /* Evil Twin - Cypriens Chronicles (DC) */
     meta_WII_SMP,           /* Mushroom Men - The Spore Wars */
     meta_WII_SNG,           /* Excite Trucks */
-    meta_EMFF_PS2,          /* Eidos Music File Format for PS2*/
-    meta_EMFF_NGC,          /* Eidos Music File Format for NGC/WII */
+    meta_MUL,
     meta_SAT_BAKA,          /* Crypt Killer */
     meta_PS2_VSF,           /* Musashi: Samurai Legend */
     meta_PS2_VSF_TTA,       /* Tiny Toon Adventures: Defenders of the Universe */
@@ -502,8 +500,8 @@ typedef enum {
     meta_PS2_TK5,           /* Tekken 5 Stream Files */
     meta_PS2_MCG,           /* Gunvari MCG Files (was name .GCM on disk) */
     meta_ZSD,               /* Dragon Booster ZSD */
-    meta_RedSpark,          /* "RedSpark" RSD (MadWorld) */
-    meta_IVAUD,          /* .ivaud GTA IV */
+    meta_REDSPARK,          /* "RedSpark" RSD (MadWorld) */
+    meta_IVAUD,             /* .ivaud GTA IV */
     meta_NDS_HWAS,          /* Spider-Man 3, Tony Hawk's Downhill Jam, possibly more... */
     meta_NGC_LPS,           /* Rave Master (Groove Adventure Rave)(GC) */
     meta_NAOMI_ADPCM,       /* NAOMI/NAOMI2 ARcade games */
@@ -567,7 +565,7 @@ typedef enum {
     meta_X360_TRA,          /* Def Jam Rapstar */
     meta_PS2_VGS,           /* Princess Soft PS2 games */
     meta_PS2_IAB,           /* Ueki no Housoku - Taosu ze Robert Juudan!! (PS2) */
-    meta_PS2_STRLR,         /* The Bouncer */
+    meta_VS_STR,            /* The Bouncer */
     meta_LSF_N1NJ4N,        /* .lsf n1nj4n Fastlane Street Racing (iPhone) */
     meta_VAWX,              /* feelplus: No More Heroes Heroes Paradise, Moon Diver */
     meta_PC_SNDS,           /* Incredibles PC .snds */
@@ -702,14 +700,15 @@ typedef enum {
     meta_XWMA,
     meta_VA3,               /* DDR Supernova 2 AC */
     meta_XOPUS,
-    meta_VS_FFX,
+    meta_VS_SQUARE,
     meta_NWAV,
     meta_XPCM,
     meta_MSF_TAMASOFT,
     meta_XPS_DAT,
     meta_ZSND,
     meta_DSP_ADPCMX,
-    meta_OGG_OPUS
+    meta_OGG_OPUS,
+    meta_IMC,
 
 } meta_t;
 

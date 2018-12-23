@@ -361,8 +361,7 @@ VGMSTREAM * init_vgmstream_dc_dcsw_dcs(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_wii_smp(STREAMFILE * streamFile);
 
-VGMSTREAM * init_vgmstream_emff_ps2(STREAMFILE * streamFile);
-VGMSTREAM * init_vgmstream_emff_ngc(STREAMFILE * streamFile);
+VGMSTREAM * init_vgmstream_mul(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_thp(STREAMFILE *streamFile);
 
@@ -401,7 +400,7 @@ VGMSTREAM * init_vgmstream_zsd(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_ps2_vgs(STREAMFILE *streamFile);
 
-VGMSTREAM * init_vgmstream_RedSpark(STREAMFILE *streamFile);
+VGMSTREAM * init_vgmstream_redspark(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_ivaud(STREAMFILE *streamFile);
 
@@ -534,7 +533,7 @@ VGMSTREAM * init_vgmstream_x360_tra(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_ps2_iab(STREAMFILE* streamFile);
 
-VGMSTREAM * init_vgmstream_ps2_strlr(STREAMFILE* streamFile);
+VGMSTREAM * init_vgmstream_vs_str(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_lsf_n1nj4n(STREAMFILE* streamFile);
 
@@ -802,7 +801,7 @@ VGMSTREAM * init_vgmstream_xwma(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_xopus(STREAMFILE * streamFile);
 
-VGMSTREAM * init_vgmstream_vs_ffx(STREAMFILE * streamFile);
+VGMSTREAM * init_vgmstream_vs_square(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_msf_banpresto_wmsf(STREAMFILE * streamFile);
 VGMSTREAM * init_vgmstream_msf_banpresto_2msf(STREAMFILE * streamFile);
@@ -821,5 +820,8 @@ VGMSTREAM * init_vgmstream_zsnd(STREAMFILE * streamFile);
 VGMSTREAM * init_vgmstream_ogg_opus(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_nus3audio(STREAMFILE * streamFile);
+
+VGMSTREAM * init_vgmstream_imc(STREAMFILE * streamFile);
+VGMSTREAM * init_vgmstream_imc_container(STREAMFILE * streamFile);
 
 #endif /*_META_H*/
