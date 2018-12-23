@@ -900,7 +900,7 @@ static const meta_info meta_info_list[] = {
         {meta_ADS,                  "dhSS Header"},
         {meta_PS2_MCG,              "Gunvari MCG Header"},
         {meta_ZSD,                  "ZSD Header"},
-        {meta_RedSpark,             "RedSpark Header"},
+        {meta_REDSPARK,             "RedSpark Header"},
         {meta_IVAUD,                "Rockstar .ivaud header"},
         {meta_DSP_WII_WSD,          ".WSD header"},
         {meta_WII_NDP,              "Icon Games NDP header"},

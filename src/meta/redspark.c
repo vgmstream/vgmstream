@@ -13,7 +13,7 @@ static uint32_t find_key(uint32_t firstword) {
 
 /* RSD - RedSpark (MadWorld) 
    RS3D - RedSpark (Mario & Luigi: Dream Team I fi*/
-VGMSTREAM * init_vgmstream_RedSpark(STREAMFILE *streamFile) {
+VGMSTREAM * init_vgmstream_redspark(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     char filename[PATH_LIMIT];
     off_t start_offset;
@@ -105,7 +105,7 @@ VGMSTREAM * init_vgmstream_RedSpark(STREAMFILE *streamFile) {
     } else {
         vgmstream->layout_type = layout_none;
     }
-    vgmstream->meta_type = meta_RedSpark;
+    vgmstream->meta_type = meta_REDSPARK;
 
 
     {

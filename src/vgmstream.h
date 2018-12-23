@@ -500,8 +500,8 @@ typedef enum {
     meta_PS2_TK5,           /* Tekken 5 Stream Files */
     meta_PS2_MCG,           /* Gunvari MCG Files (was name .GCM on disk) */
     meta_ZSD,               /* Dragon Booster ZSD */
-    meta_RedSpark,          /* "RedSpark" RSD (MadWorld) */
-    meta_IVAUD,          /* .ivaud GTA IV */
+    meta_REDSPARK,          /* "RedSpark" RSD (MadWorld) */
+    meta_IVAUD,             /* .ivaud GTA IV */
     meta_NDS_HWAS,          /* Spider-Man 3, Tony Hawk's Downhill Jam, possibly more... */
     meta_NGC_LPS,           /* Rave Master (Groove Adventure Rave)(GC) */
     meta_NAOMI_ADPCM,       /* NAOMI/NAOMI2 ARcade games */
