@@ -780,6 +780,11 @@ static int parse_sb_header(ubi_sb_header * sb, STREAMFILE *streamFile, int targe
             goto fail;
     }
 
+    if (sb->codec == RAW_XMA1) {
+        /* this field is only seen in X360 games, points at XMA1 header in extra section */
+        sb->xma_header_offset = read_32bit(sb->header_offset + sb->xma_pointer_offset, streamFile);
+    }
+
     /* uncommon but possible */
     //VGM_ASSERT(sb->is_external && sb->section3_num != 0, "UBI SS: mixed external and internal streams\n");
 
