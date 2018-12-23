@@ -1349,6 +1349,32 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
         return 1;
     }
 
+    /* Splinter Cell: Double Agent (2006)(GC)-map */
+    if (sb->version == 0x00160002 && sb->platform == UBI_GC) {
+        sb->section1_entry_size = 0x68;
+        sb->section2_entry_size = 0x6c;
+
+        sb->map_header_entry_size    = 0x34;
+        sb->map_sec1_pointer_offset  = 0x04;
+        sb->map_sec1_num_offset      = 0x08;
+        sb->map_sec2_pointer_offset  = 0x0c;
+        sb->map_sec2_num_offset      = 0x10;
+        sb->map_sec3_pointer_offset  = 0x1c;
+        sb->map_sec3_num_offset      = 0x20;
+        sb->map_extra_pointer_offset = 0x14;
+        sb->map_extra_size_offset    = 0x28;
+
+        sb->external_flag_offset = 0x28;
+        sb->stream_id_offset     = 0x2c;
+        sb->num_samples_offset   = 0x3c;
+        sb->sample_rate_offset   = 0x50;
+        sb->channels_offset      = 0x58;
+        sb->stream_type_offset   = 0x5c;
+        sb->extra_name_offset    = 0x60;
+
+        return 1;
+    }
+
     /* Prince of Persia: Rival Swords (2007)(PSP)-bank */
     if (sb->version == 0x00180005 && sb->platform == UBI_PSP) {
         sb->section1_entry_size = 0x48;
