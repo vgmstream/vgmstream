@@ -214,7 +214,14 @@ VGMSTREAM * init_vgmstream_ubi_sm(STREAMFILE *streamFile) {
     } else if (check_extensions(streamFile, "sm3")) {
         sb.platform = UBI_GC;
     } else if (check_extensions(streamFile, "sm4")) {
-        sb.platform = UBI_X360;
+        switch (sb.version) {
+            case 0x0012000C:  /* Splinter Cell: Essentials (2006)(PSP) */
+                sb.platform = UBI_PSP;
+                break;
+            default:
+                sb.platform = UBI_X360;
+                break;
+        }
     } else if (check_extensions(streamFile, "sm5")) {
         sb.platform = UBI_3DS;
     } else if (check_extensions(streamFile, "sm6")) {
@@ -243,8 +250,8 @@ VGMSTREAM * init_vgmstream_ubi_sm(STREAMFILE *streamFile) {
     sb.map_num = read_32bit(0x08, streamFile);
 
     ok = config_sb_header_version(&sb, streamFile);
-    if (!ok) {
-        VGM_LOG("UBI SB: unknown SB version+platform\n");
+    if (!ok || sb.map_header_entry_size == 0) {
+        VGM_LOG("UBI SB: unknown SM version+platform\n");
         goto fail;
     }
 
@@ -479,7 +486,7 @@ static VGMSTREAM * init_vgmstream_ubi_sb_main(ubi_sb_header *sb, STREAMFILE *str
             
             VGM_ASSERT(sb->is_external, "Ubi SB: Raw XMA used for external sound\n");
 
-            /* Get XMA header from extra section */
+            /* get XMA header from extra section */
             chunk_size = 0x20;
             header_offset = sb->extra_section_offset + sb->xma_header_offset;
             bytes = ffmpeg_make_riff_xma_from_fmt_chunk(buf, 0x100, header_offset, chunk_size, sb->stream_size, streamFile, 1);
@@ -678,7 +685,7 @@ static int parse_sb_header(ubi_sb_header * sb, STREAMFILE *streamFile) {
                     break;
 
                 case UBI_PSP:
-                    if (check_extensions(streamFile, "sb4")) {
+                    if (check_extensions(streamFile, "sb4,sm4")) {
                         sb->codec = FMT_VAG;
                     } else {
                         sb->codec = RAW_PSX;
@@ -786,6 +793,7 @@ static int parse_sb_header(ubi_sb_header * sb, STREAMFILE *streamFile) {
                             uint32_t id = read_32bit(table2_offset + 0x10 * k + 0x00, streamFile);
                             if (id == sb->stream_id) {
                                 sb->stream_offset += read_32bit(table2_offset + 0x10 * k + 0x0c, streamFile);
+                                break;
                             }
                         }
                         break;
@@ -1031,9 +1039,20 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
     }
 
     /* Prince of Persia: Revelations (2005)(PSP)-bank */
+    /* Splinter Cell: Essentials (2006)(PSP)-map */
     if (sb->version == 0x0012000C && sb->platform == UBI_PSP && !is_biadd_psp) {
         sb->section1_entry_size = 0x68;
         sb->section2_entry_size = 0x84;
+
+        sb->map_header_entry_size    = 0x24;
+        sb->map_sec1_pointer_offset  = 0x04;
+        sb->map_sec1_num_offset      = 0x08;
+        sb->map_sec2_pointer_offset  = 0x0c;
+        sb->map_sec2_num_offset      = 0x10;
+        sb->map_sec3_pointer_offset  = 0x14;
+        sb->map_sec3_num_offset      = 0x18;
+        sb->map_extra_pointer_offset = 0x1c;
+        sb->map_extra_size_offset    = 0x20;
 
         sb->external_flag_offset = 0x24;
         sb->num_samples_offset   = 0x30;
