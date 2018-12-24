@@ -892,6 +892,7 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
 
 #if 0
     /* Splinter Cell (2002)(PC)-map */
+    /* Splinter Cell: Pandora Tomorrow (2004)(PC)-map */
     if (sb->version == 0x00000007 && sb->platform == UBI_PC) {
         sb->section1_entry_size = 0x58;
         sb->section2_entry_size = 0x80;
@@ -1105,9 +1106,11 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
         sb->section1_entry_size = 0x80;
         sb->section2_entry_size = 0x94;
 
-        sb->stream_id_offset     = 0x0; //todo 0x1C or 0x20? table seems problematic
+        sb->stream_id_offset     = 0x2c;
         sb->external_flag_offset = 0x24;
-        sb->num_samples_offset   = 0; /* variable? */
+        sb->samples_flag_offset  = 0x28;
+        sb->num_samples_offset   = 0x30;
+        sb->num_samples_offset2  = 0x38;
         sb->sample_rate_offset   = 0x44;
         sb->channels_offset      = 0x4c;
         sb->stream_type_offset   = 0x50;
