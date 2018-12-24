@@ -17,21 +17,14 @@ typedef struct {
     size_t section1_num;
     size_t section2_num;
     size_t section3_num;
+    size_t section4_num;
     size_t extra_size;
     int flag1;
     int flag2;
 
     /* maps data config */
     int is_map;
-    size_t map_header_entry_size;
-    off_t map_sec1_pointer_offset;
-    off_t map_sec1_num_offset;
-    off_t map_sec2_pointer_offset;
-    off_t map_sec2_num_offset;
-    off_t map_sec3_pointer_offset;
-    off_t map_sec3_num_offset;
-    off_t map_extra_pointer_offset;
-    off_t map_extra_size_offset;
+    int map_version;
 
     /* stream info config (format varies slightly per game) */
     size_t section1_entry_size;
@@ -58,6 +51,7 @@ typedef struct {
     size_t section1_offset;
     size_t section2_offset;
     size_t section3_offset;
+    size_t section4_offset;
     size_t extra_section_offset;
     size_t sounds_offset;
 
@@ -198,6 +192,7 @@ VGMSTREAM * init_vgmstream_ubi_sm(STREAMFILE *streamFile) {
     int32_t(*read_32bit)(off_t, STREAMFILE*) = NULL;
     int16_t(*read_16bit)(off_t, STREAMFILE*) = NULL;
     ubi_sb_header sb = { 0 };
+    size_t map_entry_size;
     int ok, i;
     int target_stream = streamFile->stream_index;
 
@@ -256,10 +251,12 @@ VGMSTREAM * init_vgmstream_ubi_sm(STREAMFILE *streamFile) {
     sb.map_num = read_32bit(0x08, streamFile);
 
     ok = config_sb_header_version(&sb, streamFile);
-    if (!ok || sb.map_header_entry_size == 0) {
+    if (!ok || sb.map_version == 0) {
         VGM_LOG("UBI SB: unknown SM version+platform\n");
         goto fail;
     }
+
+    map_entry_size = (sb.map_version < 2) ? 0x30 : 0x34;
 
     for (i = 0; i < sb.map_num; i++) {
         /* basic layout:
@@ -268,19 +265,37 @@ VGMSTREAM * init_vgmstream_ubi_sm(STREAMFILE *streamFile) {
          * 0x08 - map section offset
          * 0x0c - map section size
          * 0x10 - map name (20 byte) */
-        off_t offset = sb.map_header_offset + i * sb.map_header_entry_size;
+        off_t offset = sb.map_header_offset + i * map_entry_size;
         sb.map_offset = read_32bit(offset + 0x08, streamFile);
         read_string(sb.map_name, sizeof(sb.map_name), offset + 0x10, streamFile);
 
         /* parse map section header */
-        sb.section1_offset = read_32bit(sb.map_offset + sb.map_sec1_pointer_offset, streamFile) + sb.map_offset;
-        sb.section1_num = read_32bit(sb.map_offset + sb.map_sec1_num_offset, streamFile);
-        sb.section2_offset = read_32bit(sb.map_offset + sb.map_sec2_pointer_offset, streamFile) + sb.map_offset;
-        sb.section2_num = read_32bit(sb.map_offset + sb.map_sec2_num_offset, streamFile);
-        sb.extra_section_offset = read_32bit(sb.map_offset + sb.map_extra_pointer_offset, streamFile) + sb.map_offset;
-        sb.extra_size = read_32bit(sb.map_offset + sb.map_extra_size_offset, streamFile);
-        sb.section3_offset = read_32bit(sb.map_offset + sb.map_sec3_pointer_offset, streamFile) + sb.map_offset;
-        sb.section3_num = read_32bit(sb.map_offset + sb.map_sec3_num_offset, streamFile);
+        sb.section1_offset = read_32bit(sb.map_offset + 0x04, streamFile) + sb.map_offset;
+        sb.section1_num = read_32bit(sb.map_offset + 0x08, streamFile);
+        sb.section2_offset = read_32bit(sb.map_offset + 0x0c, streamFile) + sb.map_offset;
+        sb.section2_num = read_32bit(sb.map_offset + 0x10, streamFile);
+        /* latest format has another unknown long here */
+
+        if (sb.map_version < 3) {
+            sb.section3_offset = read_32bit(sb.map_offset + 0x14, streamFile) + sb.map_offset;
+            sb.section3_num = read_32bit(sb.map_offset + 0x18, streamFile);
+            sb.extra_section_offset = read_32bit(sb.map_offset + 0x1c, streamFile) + sb.map_offset;
+            sb.extra_size = read_32bit(sb.map_offset + 0x20, streamFile);
+        } else {
+            /* latest map format has another section with sounds after section 2 */
+            sb.section4_offset = read_32bit(sb.map_offset + 0x14, streamFile);
+            sb.section4_num = read_32bit(sb.map_offset + 0x18, streamFile);
+            sb.section3_offset = read_32bit(sb.map_offset + 0x1c, streamFile) + sb.map_offset;
+            sb.section3_num = read_32bit(sb.map_offset + 0x20, streamFile);
+            sb.extra_section_offset = read_32bit(sb.map_offset + 0x24, streamFile) + sb.map_offset;
+            sb.extra_size = read_32bit(sb.map_offset + 0x28, streamFile);
+
+            /* Let's just merge it with section 2 */
+            sb.section2_num += sb.section4_num;
+
+            /* for some reason, this is relative to section 4 here */
+            sb.extra_section_offset += sb.section4_offset;
+        }
 
         if (!parse_sb_header(&sb, streamFile, target_stream))
             goto fail;
@@ -432,6 +447,7 @@ static VGMSTREAM * init_vgmstream_ubi_sb_main(ubi_sb_header *sb, STREAMFILE *str
         }
 
         case RAW_AT3: {
+            ffmpeg_codec_data *ffmpeg_data;
             uint8_t buf[0x100];
             int32_t bytes, block_size, encoder_delay, joint_stereo;
 
@@ -440,8 +456,9 @@ static VGMSTREAM * init_vgmstream_ubi_sb_main(ubi_sb_header *sb, STREAMFILE *str
             encoder_delay = 0x00; /* TODO: this is incorrect */
 
             bytes = ffmpeg_make_riff_atrac3(buf, 0x100, sb->stream_samples, sb->stream_size, sb->channels, sb->sample_rate, block_size, joint_stereo, encoder_delay);
-            vgmstream->codec_data = init_ffmpeg_header_offset(streamData, buf, bytes, start_offset, sb->stream_size);
-            if (!vgmstream->codec_data) goto fail;
+            ffmpeg_data = init_ffmpeg_header_offset(streamData, buf, bytes, start_offset, sb->stream_size);
+            if (!ffmpeg_data) goto fail;
+            vgmstream->codec_data = ffmpeg_data;
             vgmstream->num_samples = sb->stream_samples;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
@@ -761,6 +778,10 @@ static int parse_sb_header(ubi_sb_header * sb, STREAMFILE *streamFile, int targe
             }
             break;
 
+        case 0x06: /* PS ADPCM (later PS3 games?) */
+            sb->codec = RAW_PSX;
+            break;
+
         case 0x07:
             sb->codec = RAW_AT3;
             break;
@@ -1066,15 +1087,7 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
         sb->section1_entry_size = 0x68;
         sb->section2_entry_size = 0x84;
 
-        sb->map_header_entry_size    = 0x34;
-        sb->map_sec1_pointer_offset  = 0x04;
-        sb->map_sec1_num_offset      = 0x08;
-        sb->map_sec2_pointer_offset  = 0x0c;
-        sb->map_sec2_num_offset      = 0x10;
-        sb->map_sec3_pointer_offset  = 0x14;
-        sb->map_sec3_num_offset      = 0x18;
-        sb->map_extra_pointer_offset = 0x1c;
-        sb->map_extra_size_offset    = 0x20;
+        sb->map_version = 2;
 
         sb->external_flag_offset = 0x24;
         sb->num_samples_offset   = 0x30;
@@ -1175,15 +1188,7 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
         sb->section1_entry_size = 0x68;
         sb->section2_entry_size = 0x60;
 
-        sb->map_header_entry_size    = 0x34;
-        sb->map_sec1_pointer_offset  = 0x04;
-        sb->map_sec1_num_offset      = 0x08;
-        sb->map_sec2_pointer_offset  = 0x0c;
-        sb->map_sec2_num_offset      = 0x10;
-        sb->map_sec3_pointer_offset  = 0x14;
-        sb->map_sec3_num_offset      = 0x18;
-        sb->map_extra_pointer_offset = 0x1c;
-        sb->map_extra_size_offset    = 0x20;
+        sb->map_version = 2;
 
         sb->external_flag_offset = 0x24;
         sb->num_samples_offset   = 0x30;
@@ -1201,15 +1206,7 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
         sb->section1_entry_size = 0x48;
         sb->section2_entry_size = 0x4c;
 
-        sb->map_header_entry_size    = 0x34;
-        sb->map_sec1_pointer_offset  = 0x04;
-        sb->map_sec1_num_offset      = 0x08;
-        sb->map_sec2_pointer_offset  = 0x0c;
-        sb->map_sec2_num_offset      = 0x10;
-        sb->map_sec3_pointer_offset  = 0x14;
-        sb->map_sec3_num_offset      = 0x18;
-        sb->map_extra_pointer_offset = 0x1c;
-        sb->map_extra_size_offset    = 0x20;
+        sb->map_version = 2;
 
         sb->external_flag_offset = 0;
         sb->num_samples_offset   = 0x18;
@@ -1262,15 +1259,7 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
         sb->section1_entry_size = 0x68;
         sb->section2_entry_size = 0x7c;
 
-        sb->map_header_entry_size    = 0x34;
-        sb->map_sec1_pointer_offset  = 0x04;
-        sb->map_sec1_num_offset      = 0x08;
-        sb->map_sec2_pointer_offset  = 0x0c;
-        sb->map_sec2_num_offset      = 0x10;
-        sb->map_sec3_pointer_offset  = 0x1c;
-        sb->map_sec3_num_offset      = 0x20;
-        sb->map_extra_pointer_offset = 0x14;
-        sb->map_extra_size_offset    = 0x28;
+        sb->map_version = 3;
 
         sb->external_flag_offset = 0x2c;
         sb->stream_id_offset     = 0x34;
@@ -1290,15 +1279,7 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
         sb->section1_entry_size  = 0x68;
         sb->section2_entry_size  = 0x78;
 
-        sb->map_header_entry_size    = 0x34;
-        sb->map_sec1_pointer_offset  = 0x04;
-        sb->map_sec1_num_offset      = 0x08;
-        sb->map_sec2_pointer_offset  = 0x0c;
-        sb->map_sec2_num_offset      = 0x10;
-        sb->map_sec3_pointer_offset  = 0x1c;
-        sb->map_sec3_num_offset      = 0x20;
-        sb->map_extra_pointer_offset = 0x14;
-        sb->map_extra_size_offset    = 0x28;
+        sb->map_version = 3;
 
         sb->external_flag_offset = 0x2c;
         sb->stream_id_offset     = 0x30;
@@ -1320,15 +1301,7 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
         sb->section1_entry_size = 0x48;
         sb->section2_entry_size = 0x58;
 
-        sb->map_header_entry_size    = 0x34;
-        sb->map_sec1_pointer_offset  = 0x04;
-        sb->map_sec1_num_offset      = 0x08;
-        sb->map_sec2_pointer_offset  = 0x0c;
-        sb->map_sec2_num_offset      = 0x10;
-        sb->map_sec3_pointer_offset  = 0x1c;
-        sb->map_sec3_num_offset      = 0x20;
-        sb->map_extra_pointer_offset = 0x14;
-        sb->map_extra_size_offset    = 0x28;
+        sb->map_version = 3;
 
         sb->external_flag_offset = 0;
         sb->num_samples_offset   = 0x28;
@@ -1348,15 +1321,7 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
         sb->section1_entry_size = 0x68;
         sb->section2_entry_size = 0x6c;
 
-        sb->map_header_entry_size    = 0x34;
-        sb->map_sec1_pointer_offset  = 0x04;
-        sb->map_sec1_num_offset      = 0x08;
-        sb->map_sec2_pointer_offset  = 0x0c;
-        sb->map_sec2_num_offset      = 0x10;
-        sb->map_sec3_pointer_offset  = 0x1c;
-        sb->map_sec3_num_offset      = 0x20;
-        sb->map_extra_pointer_offset = 0x14;
-        sb->map_extra_size_offset    = 0x28;
+        sb->map_version = 3;
 
         sb->external_flag_offset = 0x28;
         sb->stream_id_offset     = 0x2c;
@@ -1518,15 +1483,7 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
         sb->section1_entry_size  = 0x68;
         sb->section2_entry_size  = 0x70;
 
-        sb->map_header_entry_size    = 0x34;
-        sb->map_sec1_pointer_offset  = 0x04;
-        sb->map_sec1_num_offset      = 0x08;
-        sb->map_sec2_pointer_offset  = 0x0c;
-        sb->map_sec2_num_offset      = 0x10;
-        sb->map_sec3_pointer_offset  = 0x1c;
-        sb->map_sec3_num_offset      = 0x20;
-        sb->map_extra_pointer_offset = 0x14;
-        sb->map_extra_size_offset    = 0x28;
+        sb->map_version = 3;
 
         sb->external_flag_offset = 0x28;
         sb->stream_id_offset     = 0x2c;
@@ -1554,6 +1511,27 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
         sb->stream_type_offset   = 0x5c;
         sb->extra_name_offset    = 0x58;
         sb->xma_pointer_offset   = 0x6c;
+
+        sb->has_extra_name_flag  = 1;
+        return 1;
+    }
+
+    /* Splinter Cell Classic Trilogy HD (2011)(PS3)-map */
+    if (sb->version == 0x001d0000 && sb->platform == UBI_PS3) {
+        sb->section1_entry_size  = 0x5c;
+        sb->section2_entry_size  = 0x80;
+
+        sb->map_version = 3;
+
+        sb->external_flag_offset = 0x28;
+        sb->stream_id_offset     = 0x30;
+        sb->samples_flag_offset  = 0x34;
+        sb->channels_offset      = 0x44;
+        sb->sample_rate_offset   = 0x4c;
+        sb->num_samples_offset   = 0x54;
+        sb->num_samples_offset2  = 0x5c;
+        sb->stream_type_offset   = 0x68;
+        sb->extra_name_offset    = 0x64;
 
         sb->has_extra_name_flag  = 1;
         return 1;
