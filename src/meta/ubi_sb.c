@@ -30,6 +30,9 @@ typedef struct {
     size_t section1_entry_size;
     size_t section2_entry_size;
     size_t section3_entry_size;
+    off_t stream_size_offset;
+    off_t extra_pointer_offset;
+    off_t stream_pointer_offset;
     off_t external_flag_offset;
     off_t samples_flag_offset;
     off_t num_samples_offset;
@@ -268,13 +271,13 @@ VGMSTREAM * init_vgmstream_ubi_sm(STREAMFILE *streamFile) {
         off_t offset = sb.map_header_offset + i * map_entry_size;
         sb.map_offset = read_32bit(offset + 0x08, streamFile);
         read_string(sb.map_name, sizeof(sb.map_name), offset + 0x10, streamFile);
+        /* latest format has another unknown long here or maybe string buffer is 4 bytes bigger */
 
         /* parse map section header */
         sb.section1_offset = read_32bit(sb.map_offset + 0x04, streamFile) + sb.map_offset;
         sb.section1_num = read_32bit(sb.map_offset + 0x08, streamFile);
         sb.section2_offset = read_32bit(sb.map_offset + 0x0c, streamFile) + sb.map_offset;
         sb.section2_num = read_32bit(sb.map_offset + 0x10, streamFile);
-        /* latest format has another unknown long here */
 
         if (sb.map_version < 3) {
             sb.section3_offset = read_32bit(sb.map_offset + 0x14, streamFile) + sb.map_offset;
@@ -627,9 +630,9 @@ static int parse_sb_header(ubi_sb_header * sb, STREAMFILE *streamFile, int targe
 
         sb->header_id      = read_32bit(offset + 0x00, streamFile); /* 16b+16b group+sound id */
         sb->header_type    = read_32bit(offset + 0x04, streamFile);
-        sb->stream_size    = read_32bit(offset + 0x08, streamFile);
-        sb->extra_offset   = read_32bit(offset + 0x0c, streamFile) + sb->extra_section_offset; /* within the extra section */
-        sb->stream_offset  = read_32bit(offset + 0x10, streamFile); /* within the data section */
+        sb->stream_size    = read_32bit(offset + sb->stream_size_offset, streamFile);
+        sb->extra_offset   = read_32bit(offset + sb->extra_pointer_offset, streamFile) + sb->extra_section_offset; /* within the extra section */
+        sb->stream_offset  = read_32bit(offset + sb->stream_pointer_offset, streamFile); /* within the data section */
         sb->channels       = (sb->has_short_channels) ?
                    (uint16_t)read_16bit(offset + sb->channels_offset, streamFile) :
                    (uint32_t)read_32bit(offset + sb->channels_offset, streamFile);
@@ -890,14 +893,57 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
     sb->section3_entry_size = 0x08;
     sb->stream_name_size = 0x24; /* maybe 0x28 or 0x20 for some but ok enough (null terminated) */
 
-#if 0
+    /* this is same in all games since ~2003 */
+    sb->stream_size_offset        = 0x08;
+    sb->extra_pointer_offset      = 0x0c;
+    sb->stream_pointer_offset     = 0x10;
+
+    /* Donald Duck: Goin' Quackers (2002)(GC)-map */
+    if (sb->version == 0x00000003 && sb->platform == UBI_GC) {
+        /* Stream types:
+         * 0x01: Nintendo DSP ADPCM
+         * 0x08: unsupported codec, looks like standard IMA with custom 0x29 bytes header
+         */
+        sb->section1_entry_size = 0x40;
+        sb->section2_entry_size = 0x6c;
+
+        sb->map_version = 1;
+
+        sb->stream_size_offset    = 0x0c;
+        sb->extra_pointer_offset  = 0x10;
+        sb->stream_pointer_offset = 0x14;
+
+        sb->external_flag_offset = 0x30;
+        sb->stream_id_offset     = 0x34;
+        sb->num_samples_offset   = 0x48;
+        sb->sample_rate_offset   = 0x50;
+        sb->channels_offset      = 0x56;
+        sb->stream_type_offset   = 0x58;
+        sb->stream_name_offset   = 0x5c;
+
+        sb->has_short_channels = 1;
+        return 1;
+    }
+
     /* Splinter Cell (2002)(PC)-map */
     /* Splinter Cell: Pandora Tomorrow (2004)(PC)-map */
     if (sb->version == 0x00000007 && sb->platform == UBI_PC) {
+        /* Stream types:
+         * 0x01: PCM
+         * 0x02: unsupported codec, appears to be another version of Ubi IMA
+         * 0x04: Ubi IMA v3 (not Vorbis)
+         */
         sb->section1_entry_size = 0x58;
         sb->section2_entry_size = 0x80;
 
-        sb->external_flag_offset = 0x24; /* maybe 0x28 */
+        sb->map_version = 1;
+
+        sb->stream_size_offset    = 0x0c;
+        sb->extra_pointer_offset  = 0x10;
+        sb->stream_pointer_offset = 0x14;
+
+        sb->external_flag_offset = 0x28;
+        sb->stream_id_offset     = 0x2c;
         sb->num_samples_offset   = 0x30;
         sb->sample_rate_offset   = 0x44;
         sb->channels_offset      = 0x4a;
@@ -905,11 +951,9 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
         sb->stream_name_offset   = 0x50;
 
         sb->has_short_channels = 1;
+        sb->has_internal_names = 1;
         return 1;
     }
-
-    /* Splinter Cell has all the common values placed 0x04 bytes earlier */
-#endif
 
     /* Prince of Persia: Sands of Time (2003)(PC)-bank */
     if ((sb->version == 0x000A0002 && sb->platform == UBI_PC) || /* (not sure if exists, just in case) */
