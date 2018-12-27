@@ -1264,7 +1264,6 @@ static int get_ea_stream_size(STREAMFILE* streamFile, off_t start_offset, VGMSTR
     stream_size = 0;
     block_offset = start_offset;
 
-
     while (1) {
         block_id = read_32bitBE(block_offset + 0x00, streamFile);
         if (block_id == EA_BLOCKID_END)
@@ -1274,6 +1273,9 @@ static int get_ea_stream_size(STREAMFILE* streamFile, off_t start_offset, VGMSTR
             block_size = read_32bitBE(block_offset + 0x04, streamFile);
         else
             block_size = read_32bitLE(block_offset + 0x04, streamFile);
+
+        if (block_size == 0x00 || block_size > 0xFFFFF) /* EOF read */
+            break;
 
         stream_size += block_size - 0x12;
         block_offset += block_size;
