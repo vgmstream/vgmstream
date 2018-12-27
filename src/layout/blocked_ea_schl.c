@@ -33,10 +33,15 @@ void block_update_ea_schl(off_t block_offset, VGMSTREAM * vgmstream) {
             case 0x5344454E: /* "SDEN" */
             case 0x53444652: /* "SDFR" */
             case 0x53444745: /* "SDGE" */
+            case 0x53444445: /* "SDDE" */
             case 0x53444954: /* "SDIT" */
             case 0x53445350: /* "SDSP" */
+            case 0x53444553: /* "SDES" */
+            case 0x53444D58: /* "SDMX" */
             case 0x53445255: /* "SDRU" */
             case 0x53444A41: /* "SDJA" */
+            case 0x53444A50: /* "SDJP" */
+            case 0x5344504C: /* "SDPL" */
                 /* audio chunk */
                 if (vgmstream->coding_type == coding_PSX)
                     block_samples = ps_bytes_to_samples(block_size-0x10, vgmstream->channels);
