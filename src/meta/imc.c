@@ -22,14 +22,12 @@ VGMSTREAM * init_vgmstream_imc(STREAMFILE *streamFile) {
     file_size = get_streamfile_size(streamFile);
     loop_flag  = 0;
     start_offset = 0x10;
-VGM_LOG("3\n");
+
     /* extra checks since the header is so simple */
     if (channel_count < 1 || channel_count > 8 || sample_rate < 22000 || sample_rate > 48000)
         goto fail;
-VGM_LOG("4\n");
     if (interleave*blocks + start_offset != file_size)
         goto fail;
-VGM_LOG("5\n");
 
     /* remove padding (important to play gapless subsongs, happens even for mono) */
     {
@@ -72,10 +70,9 @@ VGMSTREAM * init_vgmstream_imc_container(STREAMFILE *streamFile) {
     VGMSTREAM *vgmstream = NULL;
     STREAMFILE *temp_streamFile = NULL;
     off_t header_offset, subfile_offset, next_offset, name_offset;
-    uint32_t flags1, flags2;
-
     size_t subfile_size;
     int total_subsongs, target_subsong = streamFile->stream_index;
+
 
     /* checks */
     if (!check_extensions(streamFile, "imc"))
@@ -89,18 +86,12 @@ VGMSTREAM * init_vgmstream_imc_container(STREAMFILE *streamFile) {
     header_offset = 0x04 + 0x20*(target_subsong-1);
 
     name_offset = header_offset + 0x00;
-    //flags1 = (uint32_t)read_32bitLE(header_offset + 0x08, streamFile);
+    /* 0x08: flags? (0x702ADE77|0x002ADE77|0x20000000|etc) */
     /* 0x0c: same for all songs in single .imc but varies between .imc */
     subfile_offset = read_32bitLE(header_offset + 0x10,streamFile);
-    //flags2 = (uint32_t)read_32bitLE(header_offset + 0x14, streamFile);
+    /* 0x14: flags/size? (0xF0950000|0x3CFA1200|etc) */
     /* 0x18: same for all songs in single .imc but varies between .imc */
     /* 0x1c: flags? (0 or 2) */
-//VGM_LOG("1: %x, %x\n", flags1, flags2);
-//    if (!(flags1 == 0x77DE2A70 || flags1 == 0x77DE2A00 || flags1 == 0x00000020 || flags1 == 0x00000000))
-//        goto fail;
-//    if (!(flags2 == 0x0000F095 || flags2 == 0x0012FA3C))
-//        goto fail;
-//VGM_LOG("2\n");
 
     if (target_subsong == total_subsongs) {
         next_offset = get_streamfile_size(streamFile);
