@@ -6,7 +6,6 @@
 void block_update_ea_schl(off_t block_offset, VGMSTREAM * vgmstream) {
     STREAMFILE* streamFile = vgmstream->ch[0].streamfile;
     int i;
-    int new_schl = 0;
     size_t block_size, block_samples;
     int32_t (*read_32bit)(off_t,STREAMFILE*) = vgmstream->codec_endian ? read_32bitBE : read_32bitLE;
 
@@ -49,23 +48,10 @@ void block_update_ea_schl(off_t block_offset, VGMSTREAM * vgmstream) {
                 break;
         }
 
-        /* "SCHl" start block (movie "SHxx" shouldn't use multi files) */
-        if (block_id == 0x5343486C)
-            new_schl = 1;
-
-        /* padding between "SCEl" and next "SCHl" (when subfiles exist) */
-        if (block_id == 0x00000000)
-            block_size = 0x04;
-
         /* guard against errors (happens in bad rips/endianness, observed max is vid ~0x20000) */
         if (block_size == 0x00 || block_size > 0xFFFFF || block_samples > 0xFFFF) {
             block_size = 0x04;
             block_samples = 0;
-        }
-
-        /* "SCEl" end chunk should be 32b-aligned, fixes some multi-SCHl [ex. Need for Speed 2 (PC) .eam] */
-        if (((block_offset + block_size) % 0x04) && block_id == 0x5343456C) {
-            block_size += 0x04 - ((block_offset + block_size) % 0x04);
         }
     }
 
@@ -163,11 +149,6 @@ void block_update_ea_schl(off_t block_offset, VGMSTREAM * vgmstream) {
                 }
 
                 vgmstream->ch[i].offset = block_offset + 0x0C + (0x04*vgmstream->channels) + channel_start;
-            }
-
-            /* SCHl with multiple SCHl need to reset their MPEG decoder as there are trailing samples in the buffers */
-            if (new_schl) {
-                flush_mpeg(vgmstream->codec_data);
             }
 
             break;
