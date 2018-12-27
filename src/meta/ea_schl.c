@@ -467,7 +467,13 @@ VGMSTREAM * init_vgmstream_ea_mpf_mus(STREAMFILE *streamFile) {
 
         section_offset = entry_offset + 0x10 + subentry_num * 0x04;
         entry_offset = read_16bit(section_offset + (sec2_num - 1) * 0x02, streamFile) * 0x04;
-        subentry_num = read_16bit(entry_offset + 0x0e, streamFile);
+
+        /* more weird stuff */
+        if (read_32bitBE(0x00, streamFile) == 0x50464478) {
+            subentry_num = (read_32bitBE(entry_offset + 0x0c, streamFile) >> 10) & 0xFF;
+        } else {
+            subentry_num = (read_32bitBE(entry_offset + 0x0c, streamFile) >> 8) & 0xFF;
+        }
 
         section_offset = entry_offset + 0x10 + subentry_num * 0x10;
         entry_offset = read_32bit(section_offset, streamFile) * 0x04;
