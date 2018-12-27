@@ -645,7 +645,6 @@ VGMSTREAM * init_vgmstream_ea_schl(STREAMFILE *streamFile);
 VGMSTREAM * init_vgmstream_ea_bnk(STREAMFILE * streamFile);
 VGMSTREAM * init_vgmstream_ea_abk(STREAMFILE * streamFile);
 VGMSTREAM * init_vgmstream_ea_hdr_dat(STREAMFILE * streamFile);
-VGMSTREAM * init_vgmstream_ea_idx_big(STREAMFILE * steeamFile);
 
 VGMSTREAM * init_vgmstream_ea_schl_fixed(STREAMFILE * streamFile);
 
