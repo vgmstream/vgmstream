@@ -76,6 +76,10 @@ typedef struct {
     uint32_t subsong_count;
     uint32_t subsong_offset;
 
+    uint32_t name_offset_set;
+    uint32_t name_offset;
+    uint32_t name_size;
+
     /* original STREAMFILE and its type (may be an unsupported "base" file or a .txth) */
     STREAMFILE *streamFile;
     int streamfile_is_txth;
@@ -194,6 +198,10 @@ VGMSTREAM * init_vgmstream_txth(STREAMFILE *streamFile) {
     vgmstream->loop_end_sample = txth.loop_end_sample;
     vgmstream->num_streams = txth.subsong_count;
     vgmstream->stream_size = txth.data_size;
+    if (txth.name_offset_set) {
+        size_t name_size = txth.name_size ? txth.name_size + 1 : STREAM_NAME_SIZE;
+        read_string(vgmstream->stream_name,name_size, txth.name_offset,txth.streamHead);
+    }
 
     /* codec specific (taken from GENH with minimal changes) */
     switch (coding) {
@@ -719,6 +727,16 @@ static int parse_keyval(STREAMFILE * streamFile_, txth_header * txth, const char
     }
     else if (0==strcmp(key,"subsong_offset")) {
         if (!parse_num(txth->streamHead,txth,val, &txth->subsong_offset)) goto fail;
+    }
+    else if (0==strcmp(key,"name_offset")) {
+        if (!parse_num(txth->streamHead,txth,val, &txth->name_offset)) goto fail;
+        txth->name_offset_set = 1;
+        /* special subsong adjustment */
+        if (txth->subsong_offset)
+            txth->name_offset = txth->name_offset + txth->subsong_offset * (txth->target_subsong - 1);
+    }
+    else if (0==strcmp(key,"name_size")) {
+        if (!parse_num(txth->streamHead,txth,val, &txth->name_size)) goto fail;
     }
     else if (0==strcmp(key,"header_file")) {
         if (txth->streamhead_opened) {

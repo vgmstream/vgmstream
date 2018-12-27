@@ -190,11 +190,23 @@ body_file = (filename)|*.(extension)|null
 
 # Subsongs [OPTIONAL]
 # Sets the number of subsongs in the file, adjusting reads per subsong N:
-# "value = @(offset) + subsong_offset*N". Mainly for bigfiles with consecutive
-# headers per subsong, set subsong_offset to 0 when done as it affects any reads.
+# "value = @(offset) + subsong_offset*N". (number) values aren't adjusted
+# as they are seen as constants.
+# Mainly for bigfiles with consecutive headers per subsong, set subsong_offset
+# to 0 when done as it affects any reads.
 # The current subsong number is handled externally by plugins or TXTP.
 subsong_count = (number)|(offset)|(field)
 subsong_offset = (number)|(offset)|(field)
+
+# Names [OPTIONAL]
+# Sets the name of the stream, most useful when used with subsongs.
+# TXTH will read a string at name_offset, with name_size characters.
+# name_size defaults to 0, which reads until null-terminator or a
+# non-ascii character.
+# name_offset can be a (number) value, but being an offset it's also
+# adjusted by subsong_offset.
+name_offset = (number)|(offset)|(field)
+name_size = (number)|(offset)|(field)
 ```
 
 ## Usages
