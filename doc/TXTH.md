@@ -79,6 +79,7 @@ A text file with the above commands must be saved as ".vag.txth" or ".txth", not
 # - XMA2           Microsoft XMA2
 # - FFMPEG         Any headered FFmpeg format
 # - AC3            AC3/SPDIF
+# - PCFX           PC-FX ADPCM
 codec = (codec string)
 
 # Codec variations [OPTIONAL, depends on codec]
@@ -86,6 +87,7 @@ codec = (codec string)
 # - ATRAC3: 0=autodetect joint stereo, 1=force joint stereo, 2=force normal stereo
 # - XMA1|XMA2: 0=dual multichannel (2ch xN), 1=single multichannel (1ch xN)
 # - XBOX: 0=standard (mono or stereo interleave), 1=force mono interleave mode
+# - PCFX: 0=standard, 1='buggy encoder' mode, 2/3=same as 0/1 but with double volume
 # - others: ignored
 codec_mode = (number)
 

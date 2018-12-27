@@ -30,6 +30,7 @@ typedef enum {
     XMA2 = 21,        /* raw XMA2 */
     FFMPEG = 22,      /* any headered FFmpeg format */
     AC3 = 23,         /* AC3/SPDIF */
+    PCFX = 24,        /* PC-FX ADPCM */
 } txth_type;
 
 typedef struct {
@@ -170,6 +171,7 @@ VGMSTREAM * init_vgmstream_txth(STREAMFILE *streamFile) {
         case AC3:
         case FFMPEG:     coding = coding_FFmpeg; break;
 #endif
+        case PCFX:       coding = coding_PCFX; break;
         default:
             goto fail;
     }
@@ -250,8 +252,15 @@ VGMSTREAM * init_vgmstream_txth(STREAMFILE *streamFile) {
                     vgmstream->ch[i].adpcm_step_index = 0x7f;
                 }
             }
-
             break;
+
+        case coding_PCFX:
+            vgmstream->interleave_block_size = txth.interleave;
+            vgmstream->layout_type = layout_interleave;
+            if (txth.codec_mode >= 0 && txth.codec_mode <= 3)
+                vgmstream->codec_config = txth.codec_mode;
+            break;
+
         case coding_MS_IMA:
             if (!txth.interleave) goto fail; /* creates garbage */
 
@@ -565,6 +574,7 @@ static int parse_keyval(STREAMFILE * streamFile_, txth_header * txth, const char
         else if (0==strcmp(val,"XMA2"))         txth->codec = XMA2;
         else if (0==strcmp(val,"FFMPEG"))       txth->codec = FFMPEG;
         else if (0==strcmp(val,"AC3"))          txth->codec = AC3;
+        else if (0==strcmp(val,"PCFX"))         txth->codec = PCFX;
         else goto fail;
     }
     else if (0==strcmp(key,"codec_mode")) {
@@ -909,6 +919,8 @@ static int get_bytes_to_samples(txth_header * txth, uint32_t bytes) {
             return ima_bytes_to_samples(bytes, txth->channels);
         case AICA:
             return aica_bytes_to_samples(bytes, txth->channels);
+        case PCFX:
+            return pcfx_bytes_to_samples(bytes, txth->channels);
 
         /* untested */
         case SDX2:

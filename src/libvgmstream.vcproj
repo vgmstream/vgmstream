@@ -1890,6 +1890,10 @@
                     RelativePath=".\coding\ogg_vorbis_decoder.c"
                     >
                 </File>
+                <File
+                    RelativePath=".\coding\pcfx_decoder.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\coding\pcm_decoder.c"
 					>
