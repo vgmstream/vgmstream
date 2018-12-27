@@ -239,6 +239,7 @@ static const char* extension_list[] = {
     //"mpc", //common
     "mpdsp",
     "mpds",
+    "mpf",
     "mps", //txth/reserved [Scandal (PS2)]
     "ms",
     "msa",
