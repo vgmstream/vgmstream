@@ -203,6 +203,7 @@ static const char* extension_list[] = {
     "lac3", //fake extension for .ac3, FFmpeg/not parsed
     "leg",
     "lflac", //fake extension for .flac, FFmpeg/not parsed
+    "lin",
     "lmp2", //fake extension for .mp2, FFmpeg/not parsed
     "lmp3", //fake extension for .mp3, FFmpeg/not parsed
     "lmp4", //fake extension for .mp4
@@ -219,6 +220,7 @@ static const char* extension_list[] = {
     "lwma", //fake extension for .wma, FFmpeg/not parsed
 
     "mab",
+    "map",
     "matx",
     "mc3",
     "mca",

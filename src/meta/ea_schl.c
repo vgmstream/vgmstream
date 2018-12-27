@@ -351,6 +351,65 @@ fail:
     return NULL;
 }
 
+/* EA MAP/MUS combo - used in some old games for interactive music info */
+VGMSTREAM * init_vgmstream_ea_map_mus(STREAMFILE *streamFile) {
+    uint8_t num_sounds, num_userdata;
+    off_t section_offset, schl_offset;
+    STREAMFILE *musFile = NULL;
+    VGMSTREAM *vgmstream = NULL;
+    int target_stream = streamFile->stream_index;
+
+    /* check extension */
+    if (!check_extensions(streamFile, "map,lin"))
+        goto fail;
+
+    /* always big endian */
+    if (read_32bitBE(0x00, streamFile) != 0x50464478) /* "PFDx" */
+        goto fail;
+
+    musFile = open_streamfile_by_ext(streamFile, "mus");
+    if (!musFile) goto fail;
+
+    /*
+     * 0x04: ???
+     * 0x05: intro segment
+     * 0x06: number of segments
+     * 0x07: userdata entry size (incorrect?)
+     * 0x08: three zeroes
+     * 0x0b: number of userdata entries
+     */
+    num_sounds = read_8bit(0x06, streamFile);
+    num_userdata = read_8bit(0x0b, streamFile);
+
+    section_offset = 0x0c;
+
+    /* section 1: contains information about segment playback order */
+    section_offset += num_sounds * 0x1c;
+
+    /* section 2: userdata, specific to game and track */
+    section_offset += num_userdata * 0x10;
+
+    if (target_stream == 0) target_stream = 1;
+    if (target_stream < 0 || num_sounds == 0 || target_stream > num_sounds)
+        goto fail;
+
+    /* section 3: sound offset table */
+    schl_offset = read_32bitBE(section_offset + (target_stream - 1) * 0x04, streamFile);
+    if (read_32bitBE(schl_offset, musFile) != EA_BLOCKID_HEADER)
+        goto fail;
+
+    vgmstream = parse_schl_block(musFile, schl_offset, num_sounds);
+    if (!vgmstream)
+        goto fail;
+
+    close_streamfile(musFile);
+    return vgmstream;
+
+fail:
+    close_streamfile(musFile);
+    return NULL;
+}
+
 /* EA MPF/MUS combo - used in newer 6th gen games for storing music */
 VGMSTREAM * init_vgmstream_ea_mpf_mus(STREAMFILE *streamFile) {
     off_t section_offset, entry_offset, subentry_num, eof_offset, schl_offset;
