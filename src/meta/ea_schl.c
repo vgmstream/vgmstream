@@ -1275,7 +1275,7 @@ static int get_ea_stream_size(STREAMFILE* streamFile, off_t start_offset, VGMSTR
         else
             block_size = read_32bitLE(block_offset + 0x04, streamFile);
 
-        stream_size += block_size - 0x08;
+        stream_size += block_size - 0x12;
         block_offset += block_size;
     }
 
