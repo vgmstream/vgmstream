@@ -65,7 +65,7 @@ music_Home.ps3.scd#c3,4
 
 ### Multilayered songs
 
-TXTP "layers" play songs with channels/parts divided into files as one
+TXTP "layers" play songs with channels/parts divided into files as one.
 
 - __Nier Automata__: _BGM_0_012_song2.txtp_
 ```
@@ -85,6 +85,8 @@ BIK_E1_6A_DialEnd_00000000.audio.multi.bik#3
 
 mode = layers
 ```
+Note that the number of channels is the sum of all layers, so three 2ch layers play as a 6ch file.
+
 
 
 ### Channel swapping/mapping
