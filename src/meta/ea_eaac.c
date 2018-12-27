@@ -472,7 +472,7 @@ VGMSTREAM * init_vgmstream_ea_mpf_mus_new(STREAMFILE *streamFile) {
     int16_t(*read_16bit)(off_t, STREAMFILE*);
     STREAMFILE *musFile = NULL;
     VGMSTREAM *vgmstream = NULL;
-    int target_stream = streamFile->stream_index, total_streams;
+    int target_stream = streamFile->stream_index;
 
     /* check extension */
     if (!check_extensions(streamFile, "mpf"))
