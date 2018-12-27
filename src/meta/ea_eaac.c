@@ -462,6 +462,85 @@ fail:
     return NULL;
 }
 
+/* EA MPF/MUS combo - used in older 7th gen games for storing music */
+VGMSTREAM * init_vgmstream_ea_mpf_mus_new(STREAMFILE *streamFile) {
+    uint32_t num_sounds;
+    uint8_t version, sub_version, block_id;
+    off_t table_offset, entry_offset, snr_offset, sns_offset;
+    size_t snr_size, sns_size;
+    int32_t(*read_32bit)(off_t, STREAMFILE*);
+    int16_t(*read_16bit)(off_t, STREAMFILE*);
+    STREAMFILE *musFile = NULL;
+    VGMSTREAM *vgmstream = NULL;
+    int target_stream = streamFile->stream_index, total_streams;
+
+    /* check extension */
+    if (!check_extensions(streamFile, "mpf"))
+        goto fail;
+
+    /* detect endianness */
+    if (read_32bitBE(0x00, streamFile) == 0x50464478) { /* "PFDx" */
+        read_32bit = read_32bitBE;
+        read_16bit = read_16bitBE;
+    } else if (read_32bitBE(0x00, streamFile) == 0x78444650) { /* "xDFP" */
+        read_32bit = read_32bitLE;
+        read_16bit = read_16bitLE;
+    } else {
+        goto fail;
+    }
+
+    musFile = open_streamfile_by_ext(streamFile, "mus");
+    if (!musFile) goto fail;
+
+    /* MPF format is unchanged but we don't really care about its contents since
+     * MUS conveniently contains sound offset table */
+
+    version = read_8bit(0x04, streamFile);
+    sub_version = read_8bit(0x05, streamFile);
+    if (version != 0x05 || sub_version != 0x03) goto fail;
+
+    /* number of files is always little endian */
+    num_sounds = read_32bitLE(0x04, musFile);
+    table_offset = 0x28;
+
+    if (target_stream == 0) target_stream = 1;
+    if (target_stream < 0 || num_sounds == 0 || target_stream > num_sounds)
+        goto fail;
+
+    /*
+     * 0x00: hash?
+     * 0x04: index
+     * 0x06: zero
+     * 0x08: SNR offset
+     * 0x0c: SNS offset
+     * 0x10: SNR size
+     * 0x14: SNS size
+     * 0x18: zero
+     */
+    entry_offset = table_offset + (target_stream - 1) * 0x1c;
+    snr_offset = read_32bit(entry_offset + 0x08, musFile) * 0x10;
+    sns_offset = read_32bit(entry_offset + 0x0c, musFile) * 0x80;
+    snr_size = read_32bit(entry_offset + 0x10, musFile);
+    sns_size = read_32bit(entry_offset + 0x14, musFile);
+
+    block_id = read_8bit(sns_offset, musFile);
+    if (block_id != EAAC_BLOCKID0_DATA && block_id != EAAC_BLOCKID0_END)
+        goto fail;
+
+    vgmstream = init_vgmstream_eaaudiocore_header(musFile, musFile, snr_offset, sns_offset, meta_EA_SNR_SNS);
+    if (!vgmstream)
+        goto fail;
+
+    vgmstream->num_streams = num_sounds;
+    vgmstream->stream_size = sns_size;
+    close_streamfile(musFile);
+    return vgmstream;
+
+fail:
+    close_streamfile(musFile);
+    return NULL;
+}
+
 /* ************************************************************************* */
 
 typedef struct {
