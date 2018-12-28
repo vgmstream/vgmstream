@@ -79,6 +79,7 @@ A text file with the above commands must be saved as ".vag.txth" or ".txth", not
 # - XMA2           Microsoft XMA2
 # - FFMPEG         Any headered FFmpeg format
 # - AC3            AC3/SPDIF
+# - PCFX           PC-FX ADPCM
 codec = (codec string)
 
 # Codec variations [OPTIONAL, depends on codec]
@@ -86,6 +87,7 @@ codec = (codec string)
 # - ATRAC3: 0=autodetect joint stereo, 1=force joint stereo, 2=force normal stereo
 # - XMA1|XMA2: 0=dual multichannel (2ch xN), 1=single multichannel (1ch xN)
 # - XBOX: 0=standard (mono or stereo interleave), 1=force mono interleave mode
+# - PCFX: 0=standard, 1='buggy encoder' mode, 2/3=same as 0/1 but with double volume
 # - others: ignored
 codec_mode = (number)
 
@@ -188,11 +190,23 @@ body_file = (filename)|*.(extension)|null
 
 # Subsongs [OPTIONAL]
 # Sets the number of subsongs in the file, adjusting reads per subsong N:
-# "value = @(offset) + subsong_offset*N". Mainly for bigfiles with consecutive
-# headers per subsong, set subsong_offset to 0 when done as it affects any reads.
+# "value = @(offset) + subsong_offset*N". (number) values aren't adjusted
+# as they are seen as constants.
+# Mainly for bigfiles with consecutive headers per subsong, set subsong_offset
+# to 0 when done as it affects any reads.
 # The current subsong number is handled externally by plugins or TXTP.
 subsong_count = (number)|(offset)|(field)
 subsong_offset = (number)|(offset)|(field)
+
+# Names [OPTIONAL]
+# Sets the name of the stream, most useful when used with subsongs.
+# TXTH will read a string at name_offset, with name_size characters.
+# name_size defaults to 0, which reads until null-terminator or a
+# non-ascii character.
+# name_offset can be a (number) value, but being an offset it's also
+# adjusted by subsong_offset.
+name_offset = (number)|(offset)|(field)
+name_size = (number)|(offset)|(field)
 ```
 
 ## Usages

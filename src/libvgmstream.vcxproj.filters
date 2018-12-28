@@ -1120,6 +1120,9 @@
     <ClCompile Include="coding\ogg_vorbis_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="coding\pcfx_decoder.c">
+      <Filter>coding\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="coding\pcm_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>

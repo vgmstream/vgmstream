@@ -62,13 +62,18 @@
 #define EA_BLOCKID_LOC_DATA     0x53440000 /* "SD" */
 #define EA_BLOCKID_LOC_END      0x53450000 /* "SE" */
 
-#define EA_BLOCKID_LOC_EN       0x0000454E
-#define EA_BLOCKID_LOC_FR       0x00004652
-#define EA_BLOCKID_LOC_GE       0x00004745
-#define EA_BLOCKID_LOC_IT       0x00004954
-#define EA_BLOCKID_LOC_SP       0x00005350
-#define EA_BLOCKID_LOC_RU       0x00005255
-#define EA_BLOCKID_LOC_JA       0x00004A41
+#define EA_BLOCKID_LOC_EN       0x0000454E /* English */
+#define EA_BLOCKID_LOC_FR       0x00004652 /* French */
+#define EA_BLOCKID_LOC_GE       0x00004745 /* German, older */
+#define EA_BLOCKID_LOC_DE       0x00004445 /* German, newer */
+#define EA_BLOCKID_LOC_IT       0x00004954 /* Italian */
+#define EA_BLOCKID_LOC_SP       0x00005350 /* Castilian Spanish, older */
+#define EA_BLOCKID_LOC_ES       0x00004553 /* Castilian Spanish, newer */
+#define EA_BLOCKID_LOC_MX       0x00004D58 /* Mexican Spanish */
+#define EA_BLOCKID_LOC_RU       0x00005255 /* Russian */
+#define EA_BLOCKID_LOC_JA       0x00004A41 /* Japanese, older */
+#define EA_BLOCKID_LOC_JP       0x00004A50 /* Japanese, newer */
+#define EA_BLOCKID_LOC_PL       0x0000504C /* Polish */
 
 #define EA_BNK_HEADER_LE        0x424E4B6C /* "BNKl" */
 #define EA_BNK_HEADER_BE        0x424E4B62 /* "BNKb" */
@@ -117,14 +122,19 @@ VGMSTREAM * init_vgmstream_ea_schl(STREAMFILE *streamFile) {
         read_32bitBE(0x00,streamFile) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_EN) &&  /* "SHEN" */
         read_32bitBE(0x00,streamFile) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_FR) &&  /* "SHFR" */
         read_32bitBE(0x00,streamFile) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_GE) &&  /* "SHGE" */
+        read_32bitBE(0x00,streamFile) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_DE) &&  /* "SHDE" */
         read_32bitBE(0x00,streamFile) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_IT) &&  /* "SHIT" */
         read_32bitBE(0x00,streamFile) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_SP) &&  /* "SHSP" */
+        read_32bitBE(0x00,streamFile) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_ES) &&  /* "SHES" */
+        read_32bitBE(0x00,streamFile) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_MX) &&  /* "SHMX" */
         read_32bitBE(0x00,streamFile) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_RU) &&  /* "SHRU" */
-        read_32bitBE(0x00,streamFile) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_JA))    /* "SHJA" */
+        read_32bitBE(0x00,streamFile) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_JA) &&  /* "SHJA" */
+        read_32bitBE(0x00,streamFile) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_JP) &&  /* "SHJP" */
+        read_32bitBE(0x00,streamFile) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_PL))    /* "SHPL" */
         goto fail;
 
     /* Stream is divided into blocks/chunks: SCHl=audio header, SCCl=count of SCDl, SCDl=data xN, SCLl=loop end, SCEl=end.
-     * Video uses picture blocks (MVhd/MV0K/etc) and sometimes multiaudio blocks (SHxx/SCxx/SDxx/SExx where xx=language=EN/FR/GE/IT/SP/RU/JA).
+     * Video uses picture blocks (MVhd/MV0K/etc) and sometimes multiaudio blocks (SHxx/SCxx/SDxx/SExx where xx=language).
      * The number/size is affected by: block rate setting, sample rate, channels, CPU location (SPU/main/DSP/others), etc */
     return parse_schl_block(streamFile, 0x00, 0);
 
@@ -1243,10 +1253,15 @@ static off_t get_ea_stream_mpeg_start_offset(STREAMFILE* streamFile, off_t start
             case EA_BLOCKID_LOC_DATA | EA_BLOCKID_LOC_EN: /* "SDEN" */
             case EA_BLOCKID_LOC_DATA | EA_BLOCKID_LOC_FR: /* "SDFR" */
             case EA_BLOCKID_LOC_DATA | EA_BLOCKID_LOC_GE: /* "SDGE" */
+            case EA_BLOCKID_LOC_DATA | EA_BLOCKID_LOC_DE: /* "SDDE" */
             case EA_BLOCKID_LOC_DATA | EA_BLOCKID_LOC_IT: /* "SDIT" */
             case EA_BLOCKID_LOC_DATA | EA_BLOCKID_LOC_SP: /* "SDSP" */
+            case EA_BLOCKID_LOC_DATA | EA_BLOCKID_LOC_ES: /* "SDES" */
+            case EA_BLOCKID_LOC_DATA | EA_BLOCKID_LOC_MX: /* "SDMX" */
             case EA_BLOCKID_LOC_DATA | EA_BLOCKID_LOC_RU: /* "SDRU" */
             case EA_BLOCKID_LOC_DATA | EA_BLOCKID_LOC_JA: /* "SDJA" */
+            case EA_BLOCKID_LOC_DATA | EA_BLOCKID_LOC_JP: /* "SDJP" */
+            case EA_BLOCKID_LOC_DATA | EA_BLOCKID_LOC_PL: /* "SDPL" */
                 offset = read_32bit(block_offset+0x0c,streamFile); /* first value seems ok, second is something else in EALayer3 */
                 return block_offset + 0x0c + ea->channels*0x04 + offset;
             case 0x00000000:
