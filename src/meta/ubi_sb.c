@@ -120,7 +120,7 @@ VGMSTREAM * init_vgmstream_ubi_sb(STREAMFILE *streamFile) {
         sb.platform = UBI_GC;
     } else if (check_extensions(streamFile, "sb4")) {
         switch (sb.version) {
-            case 0x0012000C: /* Prince of Persia: Revelations (2005)(PSP) */
+            case 0x0012000C: /* Prince of Persia: Revelations (2005) */
                 sb.platform = UBI_PSP;
                 break;
             default:
@@ -129,8 +129,8 @@ VGMSTREAM * init_vgmstream_ubi_sb(STREAMFILE *streamFile) {
         }
     } else if (check_extensions(streamFile, "sb5")) {
         switch (sb.version) {
-            case 0x00180005: /* Prince of Persia: Rival Swords (2007)(PSP) */
-            case 0x00180006: /* Rainbow Six Vegas (2007)(PSP) */
+            case 0x00180005: /* Prince of Persia: Rival Swords (2007) */
+            case 0x00180006: /* Rainbow Six Vegas (2007) */
                 sb.platform = UBI_PSP;
                 break;
             default:
@@ -205,8 +205,8 @@ VGMSTREAM * init_vgmstream_ubi_sm(STREAMFILE *streamFile) {
 
     if (target_stream == 0) target_stream = 1;
 
-     /* sigh... PSP hijacks not one but *two* platform indexes */
-     /* please add any PSP game versions under sb4 and sb5 sections so we can properly identify platform */
+    /* sigh... PSP hijacks not one but *two* platform indexes */
+    /* please add any PSP game versions under sb4 and sb5 sections so we can properly identify platform */
     sb.version = read_32bitLE(0x00, streamFile);
 
     if (check_extensions(streamFile, "sm0")) {
@@ -219,7 +219,7 @@ VGMSTREAM * init_vgmstream_ubi_sm(STREAMFILE *streamFile) {
         sb.platform = UBI_GC;
     } else if (check_extensions(streamFile, "sm4")) {
         switch (sb.version) {
-            case 0x0012000C:  /* Splinter Cell: Essentials (2006)(PSP) */
+            case 0x0012000C:  /* Splinter Cell: Essentials (2006) */
                 sb.platform = UBI_PSP;
                 break;
             default:
@@ -227,7 +227,15 @@ VGMSTREAM * init_vgmstream_ubi_sm(STREAMFILE *streamFile) {
                 break;
         }
     } else if (check_extensions(streamFile, "sm5")) {
-        sb.platform = UBI_3DS;
+        switch (sb.version) {
+            case 0x00190001: /* TMNT (2007) */
+            case 0x00190005: /* Surf's Up (2007) */
+                sb.platform = UBI_PSP;
+                break;
+            default:
+                sb.platform = UBI_3DS;
+                break;
+        }
     } else if (check_extensions(streamFile, "sm6")) {
         sb.platform = UBI_PS3;
     } else if (check_extensions(streamFile, "sm7")) {
@@ -789,6 +797,10 @@ static int parse_sb_header(ubi_sb_header * sb, STREAMFILE *streamFile, int targe
             sb->codec = RAW_AT3;
             break;
 
+        case 0x08:
+            sb->codec = FMT_AT3;
+            break;
+
         default:
             VGM_LOG("UBI SB: unknown stream_type %x\n", sb->stream_type);
             goto fail;
@@ -898,6 +910,7 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
     sb->extra_pointer_offset      = 0x0c;
     sb->stream_pointer_offset     = 0x10;
 
+#if 0
     /* Donald Duck: Goin' Quackers (2002)(GC)-map */
     if (sb->version == 0x00000003 && sb->platform == UBI_GC) {
         /* Stream types:
@@ -954,6 +967,7 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
         sb->has_internal_names = 1;
         return 1;
     }
+#endif
 
     /* Prince of Persia: Sands of Time (2003)(PC)-bank */
     if ((sb->version == 0x000A0002 && sb->platform == UBI_PC) || /* (not sure if exists, just in case) */
@@ -1244,7 +1258,6 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
         sb->stream_type_offset   = 0x50;
         sb->extra_name_offset    = 0x54;
 
-        sb->has_extra_name_flag = 1;
         return 1;
     }
 
@@ -1317,7 +1330,6 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
         sb->stream_type_offset   = 0x60;
         sb->extra_name_offset    = 0x64;
 
-        sb->has_extra_name_flag  = 1;
         return 1;
     }
 
@@ -1339,7 +1351,6 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
         sb->extra_name_offset    = 0x64;
         sb->xma_pointer_offset   = 0x70;
 
-        sb->has_extra_name_flag  = 1;
         return 1;
     }
 
@@ -1504,6 +1515,23 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
         sb->extra_name_offset    = 0x58;
         sb->xma_pointer_offset   = 0x6c;
 
+        return 1;
+    }
+
+    /* TMNT (2007)(PSP)-map */
+    if (sb->version == 0x00190001 && sb->platform == UBI_PSP) {
+        sb->section1_entry_size  = 0x48;
+        sb->section2_entry_size  = 0x58;
+
+        sb->map_version = 3;
+
+        sb->external_flag_offset = 0;
+        sb->channels_offset      = 0x28;
+        sb->sample_rate_offset   = 0x2c;
+        sb->num_samples_offset   = 0x34;
+        sb->stream_type_offset   = 0x48;
+        sb->extra_name_offset    = 0x44;
+
         sb->has_extra_name_flag = 1;
         return 1;
     }
@@ -1520,7 +1548,6 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
         sb->stream_type_offset   = 0x5c;
         sb->extra_name_offset    = 0x58;
 
-        sb->has_extra_name_flag = 1;
         return 1;
     }
 
@@ -1540,7 +1567,6 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
         sb->stream_type_offset   = 0x5c;
         sb->extra_name_offset    = 0x58;
 
-        sb->has_extra_name_flag  = 1;
         return 1;
     }
 
@@ -1559,7 +1585,24 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
         sb->extra_name_offset    = 0x58;
         sb->xma_pointer_offset   = 0x6c;
 
-        sb->has_extra_name_flag  = 1;
+        return 1;
+    }
+
+    /* Surf's Up (2007)(PSP)-map */
+    if (sb->version == 0x00190005 && sb->platform == UBI_PSP) {
+        sb->section1_entry_size  = 0x48;
+        sb->section2_entry_size  = 0x58;
+
+        sb->map_version = 3;
+
+        sb->external_flag_offset = 0;
+        sb->channels_offset      = 0x28;
+        sb->sample_rate_offset   = 0x2c;
+        sb->num_samples_offset   = 0x34;
+        sb->stream_type_offset   = 0x48;
+        sb->extra_name_offset    = 0x44;
+
+        sb->has_extra_name_flag = 1;
         return 1;
     }
 
@@ -1580,7 +1623,6 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
         sb->stream_type_offset   = 0x68;
         sb->extra_name_offset    = 0x64;
 
-        sb->has_extra_name_flag  = 1;
         return 1;
     }
 
