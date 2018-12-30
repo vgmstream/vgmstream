@@ -89,6 +89,8 @@
     <ClInclude Include="coding\vorbis_custom_data_fsb.h" />
     <ClInclude Include="coding\vorbis_custom_data_wwise.h" />
     <ClInclude Include="coding\vorbis_custom_decoder.h" />
+    <ClInclude Include="meta\xvag_streamfile.h" />
+    <ClInclude Include="meta\zsnd_streamfile.h" />
     <ClInclude Include="plugins.h" />
     <ClInclude Include="streamfile.h" />
     <ClInclude Include="streamtypes.h" />
