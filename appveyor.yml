@@ -9,3 +9,7 @@ artifacts:
   name: test.zip
 - path: Release/foo_input_vgmstream.fb2k-component
   name: foo_input_vgmstream.fb2k-component
+- path: Release/test.pdb.zip
+  name: test.pdb.zip
+- path: Release/foo_input_vgmstream.pdb.zip
+  name: foo_input_vgmstream.pdb.zip
