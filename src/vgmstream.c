@@ -352,7 +352,8 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_ea_bnk,
     init_vgmstream_ea_abk,
     init_vgmstream_ea_hdr_dat,
-    init_vgmstream_ea_idx_big,
+    init_vgmstream_ea_map_mus,
+    init_vgmstream_ea_mpf_mus,
     init_vgmstream_ea_schl_fixed,
     init_vgmstream_sk_aud,
     init_vgmstream_stm,
@@ -377,6 +378,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_ea_sps,
     init_vgmstream_ea_abk_new,
     init_vgmstream_ea_hdr_sth_dat,
+    init_vgmstream_ea_mpf_mus_new,
     init_vgmstream_ngc_vid1,
     init_vgmstream_flx,
     init_vgmstream_mogg,
@@ -1148,6 +1150,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_WV6_IMA:
         case coding_ALP_IMA:
         case coding_FFTA2_IMA:
+        case coding_PCFX:
             return 2;
         case coding_XBOX_IMA:
         case coding_XBOX_IMA_mch:
@@ -1320,6 +1323,7 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
         case coding_WV6_IMA:
         case coding_ALP_IMA:
         case coding_FFTA2_IMA:
+        case coding_PCFX:
             return 0x01;
         case coding_MS_IMA:
         case coding_RAD_IMA:
@@ -2019,6 +2023,13 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                         vgmstream->interleave_block_size);
             }
             break;
+        case coding_PCFX:
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_pcfx(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do, vgmstream->codec_config);
+            }
+            break;
+
         case coding_EA_MT:
             for (ch = 0; ch < vgmstream->channels; ch++) {
                 decode_ea_mt(vgmstream, buffer+samples_written*vgmstream->channels+ch,

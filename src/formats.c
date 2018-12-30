@@ -108,6 +108,7 @@ static const char* extension_list[] = {
     "cks",
     "cnk",
     "cps",
+    "csa", //txth/reserved [LEGO Racers 2 (PS2)]
     "csmp",
     "cvs",
     "cxs",
@@ -203,6 +204,7 @@ static const char* extension_list[] = {
     "lac3", //fake extension for .ac3, FFmpeg/not parsed
     "leg",
     "lflac", //fake extension for .flac, FFmpeg/not parsed
+    "lin",
     "lm0",
     "lm1",
     "lm2",
@@ -227,6 +229,7 @@ static const char* extension_list[] = {
     "lwma", //fake extension for .wma, FFmpeg/not parsed
 
     "mab",
+    "map",
     "matx",
     "mc3",
     "mca",
@@ -247,6 +250,7 @@ static const char* extension_list[] = {
     //"mpc", //common
     "mpdsp",
     "mpds",
+    "mpf",
     "mps", //txth/reserved [Scandal (PS2)]
     "ms",
     "msa",
@@ -624,6 +628,7 @@ static const coding_info coding_info_list[] = {
         {coding_FADPCM,             "FMOD FADPCM 4-bit ADPCM"},
         {coding_ASF,                "Argonaut ASF 4-bit ADPCM"},
         {coding_XMD,                "Konami XMD 4-bit ADPCM"},
+        {coding_PCFX,               "PC-FX 4-bit ADPCM"},
 
         {coding_SDX2,               "Squareroot-delta-exact (SDX2) 8-bit DPCM"},
         {coding_SDX2_int,           "Squareroot-delta-exact (SDX2) 8-bit DPCM with 1 byte interleave"},

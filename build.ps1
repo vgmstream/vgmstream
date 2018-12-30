@@ -30,6 +30,16 @@ $cliFiles = @(
     "README.md"
 )
 
+$fb2kPdbFiles = @(
+    "Release/foo_input_vgmstream.pdb"
+)
+
+$cliPdbFiles = @(
+    "Release/in_vgmstream.pdb",
+    "Release/test.pdb",
+    "Release/xmp-vgmstream.pdb"
+)
+
 function Unzip
 {
     param([string]$zipfile, [string]$outpath)
@@ -89,6 +99,8 @@ function Package
     Compress-Archive $cliFiles Release/test.zip -Force
     Compress-Archive $fb2kFiles Release/foo_input_vgmstream.zip -Force
     Move-Item Release/foo_input_vgmstream.zip Release/foo_input_vgmstream.fb2k-component -Force
+    Compress-Archive $cliPdbFiles Release/test.pdb.zip -Force
+    Compress-Archive $fb2kPdbFiles Release/foo_input_vgmstream.pdb.zip -Force
 }
 
 function Build

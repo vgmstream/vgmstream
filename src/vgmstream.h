@@ -149,6 +149,7 @@ typedef enum {
     coding_FADPCM,          /* FMOD FADPCM 4-bit ADPCM */
     coding_ASF,             /* Argonaut ASF 4-bit ADPCM */
     coding_XMD,             /* Konami XMD 4-bit ADPCM */
+    coding_PCFX,            /* PC-FX 4-bit ADPCM */
 
     /* others */
     coding_SDX2,            /* SDX2 2:1 Squareroot-Delta-Exact compression DPCM */

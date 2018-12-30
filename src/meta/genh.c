@@ -4,7 +4,6 @@
 #include "../util.h"
 
 
-
 /* known GENH types */
 typedef enum {
     PSX = 0,          /* PSX ADPCM */
@@ -31,6 +30,7 @@ typedef enum {
     XMA2 = 21,        /* raw XMA2 */
     FFMPEG = 22,      /* any headered FFmpeg format */
     AC3 = 23,         /* AC3/SPDIF */
+    PCFX = 24,        /* PC-FX ADPCM */
 } genh_type;
 
 typedef struct {
@@ -113,6 +113,7 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
         case AC3:
         case FFMPEG:     coding = coding_FFmpeg; break;
 #endif
+        case PCFX:       coding = coding_PCFX; break;
         default:
             goto fail;
     }
@@ -185,6 +186,14 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
             }
 
             break;
+
+        case coding_PCFX:
+            vgmstream->interleave_block_size = genh.interleave;
+            vgmstream->layout_type = layout_interleave;
+            if (genh.codec_mode >= 0 && genh.codec_mode <= 3)
+                vgmstream->codec_config = genh.codec_mode;
+            break;
+
         case coding_MS_IMA:
             if (!genh.interleave) goto fail; /* creates garbage */
 
