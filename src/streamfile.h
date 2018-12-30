@@ -198,10 +198,10 @@ static inline int guess_endianness32bit(off_t offset, STREAMFILE * streamfile) {
     return ((uint32_t)read_32bitLE(offset,streamfile) > (uint32_t)read_32bitBE(offset,streamfile)) ? 1 : 0;
 }
 
-static inline off_t align_size_to_bytes(size_t offset, size_t block_align) {
-    off_t extra_size = offset % block_align;
-    if (extra_size == 0) return offset;
-    return (offset + block_align - extra_size);
+static inline size_t align_size_to_bytes(size_t value, size_t block_align) {
+    size_t extra_size = value % block_align;
+    if (extra_size == 0) return value;
+    return (value + block_align - extra_size);
 }
 
 /* various STREAMFILE helpers functions */
