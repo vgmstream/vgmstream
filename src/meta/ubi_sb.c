@@ -600,26 +600,41 @@ static int parse_sb_header(ubi_sb_header * sb, STREAMFILE *streamFile, int targe
             int current_is_external = 0;
             int type = read_32bit(offset + sb->stream_type_offset, streamFile);
 
-            if (current_type == -1)
-                current_type = type;
-            if (current_id == -1) /* use first ID in section3 */
-                current_id = read_32bit(sb->section3_offset + 0x00, streamFile);
-
             if (sb->external_flag_offset) {
                 current_is_external = read_32bit(offset + sb->external_flag_offset, streamFile);
             } else if (sb->has_extra_name_flag && read_32bit(offset + sb->extra_name_offset, streamFile) != 0xFFFFFFFF) {
                 current_is_external = 1; /* -1 in extra_name means internal */
             }
 
-
             if (!current_is_external) {
-                if (current_type != type) {
-                    current_type = type;
-                    current_id++; /* rotate */
-                    if (current_id >= sb->section3_num)
-                        current_id = 0; /* reset */
-                }
+                if (sb->is_map) {
+                    if (current_type == -1)
+                        current_type = type;
+                    if (current_id == -1) /* they seem to always start with 0 in maps */
+                        current_id = 0x00; 
 
+                    if (!current_is_external) {
+                        if (current_type != type) {
+                            current_type = type;
+                            current_id++; /* rotate */
+                            /* we'll warp it around later when parsing section 3 */
+                        }
+                    }
+                } else {
+                    if (current_type == -1)
+                        current_type = type;
+                    if (current_id == -1) /* use first ID in section3 */
+                        current_id = read_32bit(sb->section3_offset + 0x00, streamFile);
+
+                    if (!current_is_external) {
+                        if (current_type != type) {
+                            current_type = type;
+                            current_id++; /* rotate */
+                            if (current_id >= sb->section3_num)
+                                current_id = 0; /* reset */
+                        }
+                    }
+                }
             }
         }
 
@@ -840,9 +855,13 @@ static int parse_sb_header(ubi_sb_header * sb, STREAMFILE *streamFile, int targe
                     int idx = read_32bit(table_offset + 0x08 * j + 0x00, streamFile) & 0x0000FFFF;
 
                     if (idx == sb->header_idx) {
-                        if (!sb->stream_id_offset && table2_num > 1) {
-                            VGM_LOG("UBI SB: unexpected number of internal stream groups %i\n", sb->section3_num);
+                        if (!(sb->stream_id_offset || sb->has_rotating_ids) && table2_num > 1) {
+                            VGM_LOG("UBI SB: unexpected number of internal stream groups %i\n", table2_num);
                             goto fail;
+                        }
+
+                        if (sb->has_rotating_ids) {
+                            sb->stream_id %= table2_num;
                         }
 
                         sb->stream_offset = read_32bit(table_offset + 0x08 * j + 0x04, streamFile);
@@ -1285,7 +1304,7 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
         sb->extra_name_offset    = 0x40;
 
         sb->has_extra_name_flag = 1;
-        //sb->has_rotating_ids = 1;
+        sb->has_rotating_ids = 1;
         return 1;
     }
 
@@ -1378,7 +1397,7 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
         sb->extra_name_offset    = 0x4c;
 
         sb->has_extra_name_flag = 1;
-        //sb->has_rotating_ids = 1;
+        sb->has_rotating_ids = 1;
         return 1;
     }
 
