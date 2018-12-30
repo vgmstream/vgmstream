@@ -480,26 +480,25 @@ static VGMSTREAM * init_vgmstream_ubi_sb_main(ubi_sb_header *sb, STREAMFILE *str
         case FMT_XMA1: {
             ffmpeg_codec_data *ffmpeg_data;
             uint8_t buf[0x100];
-            uint32_t num_frames;
-            size_t bytes, frame_size, chunk_size, data_size;
+            uint32_t sec1_num, sec2_num, sec3_num;
+            uint8_t flag;
+            size_t bytes, frame_size, chunk_size, header_size, data_size;
             off_t header_offset;
 
             chunk_size = 0x20;
 
             /* formatted XMA sounds have a strange custom header */
-            /* first there's XMA2/FMT chunk, after that: */
-            /* 0x00: some low number like 0x01 or 0x04 */
-            /* 0x04: number of frames */
-            /* 0x08: frame size (not always present?) */
-            /* then there's a set of rising numbers followed by some weird data?.. */
-            /* calculate true XMA size and use that get data start offset */
-            num_frames = read_32bitBE(start_offset + chunk_size + 0x04, streamData);
-            //frame_size = read_32bitBE(start_offset + chunk_size + 0x08, streamData);
-            frame_size = 0x800;
+            header_offset = start_offset; /* XMA fmt chunk at the start */
+            flag = read_8bit(header_offset + 0x20, streamData);
+            sec2_num = read_32bitBE(header_offset + 0x24, streamData); /* number of XMA frames */
+            sec1_num = read_32bitBE(header_offset + 0x28, streamData);
+            sec3_num = read_32bitBE(header_offset + 0x2c, streamData);
+            if (flag == 0x04)
+                sec1_num--;
 
-            header_offset = start_offset;
-            data_size = num_frames * frame_size;
-            start_offset += sb->stream_size - data_size;
+            header_size = 0x30 + sec1_num * 0x04 + align_size_to_bytes(sec2_num / 0x02, 0x04) + sec3_num * 0x08;
+            start_offset += header_size;
+            data_size = sec2_num * 0x800;
 
             bytes = ffmpeg_make_riff_xma_from_fmt_chunk(buf, 0x100, header_offset, chunk_size, data_size, streamData, 1);
 
