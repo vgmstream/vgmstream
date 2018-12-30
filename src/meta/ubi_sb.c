@@ -78,6 +78,7 @@ typedef struct {
     int channels;
     uint32_t stream_type;
     char stream_name[255];
+    char extra_name[255];
     int header_idx;
     off_t header_offset;
 
@@ -336,9 +337,9 @@ static VGMSTREAM * init_vgmstream_ubi_sb_main(ubi_sb_header *sb, STREAMFILE *str
 
     /* open external stream if needed */
     if (sb->autodetect_external) { /* works most of the time but could give false positives */
-        VGM_LOG("UBI SB: autodetecting external stream '%s'\n", sb->stream_name);
+        VGM_LOG("UBI SB: autodetecting external stream '%s'\n", sb->extra_name);
 
-        streamData = open_streamfile_by_filename(streamFile,sb->stream_name);
+        streamData = open_streamfile_by_filename(streamFile,sb->extra_name);
         if (!streamData) {
             streamData = streamFile; /* assume internal */
             if (sb->stream_size > get_streamfile_size(streamData)) {
@@ -350,9 +351,9 @@ static VGMSTREAM * init_vgmstream_ubi_sb_main(ubi_sb_header *sb, STREAMFILE *str
         }
     }
     else if (sb->is_external) {
-        streamData = open_streamfile_by_filename(streamFile,sb->stream_name);
+        streamData = open_streamfile_by_filename(streamFile,sb->extra_name);
         if (!streamData) {
-            VGM_LOG("UBI SB: external stream '%s' not found\n", sb->stream_name);
+            VGM_LOG("UBI SB: external stream '%s' not found\n", sb->extra_name);
             goto fail;
         }
     }
@@ -554,10 +555,7 @@ static VGMSTREAM * init_vgmstream_ubi_sb_main(ubi_sb_header *sb, STREAMFILE *str
             goto fail;
     }
 
-    if (sb->has_internal_names || sb->is_external) {
-        strcpy(vgmstream->stream_name, sb->stream_name);
-    }
-
+    strcpy(vgmstream->stream_name, sb->stream_name);
 
     /* open the file for reading (can be an external stream, different from the current .sb0) */
     if ( !vgmstream_open_stream(vgmstream, streamData, start_offset) )
@@ -663,10 +661,10 @@ static int parse_sb_header(ubi_sb_header * sb, STREAMFILE *streamFile, int targe
 
         /* external stream name can be found in the header (first versions) or the extra table (later versions) */
         if (sb->stream_name_offset) {
-            read_string(sb->stream_name, sb->stream_name_size, offset + sb->stream_name_offset, streamFile);
+            read_string(sb->extra_name, sb->stream_name_size, offset + sb->stream_name_offset, streamFile);
         } else {
             sb->stream_name_offset = read_32bit(offset + sb->extra_name_offset, streamFile);
-            read_string(sb->stream_name, sb->stream_name_size, sb->extra_section_offset + sb->stream_name_offset, streamFile);
+            read_string(sb->extra_name, sb->stream_name_size, sb->extra_section_offset + sb->stream_name_offset, streamFile);
         }
 
         /* not always set and must be derived */
@@ -679,10 +677,21 @@ static int parse_sb_header(ubi_sb_header * sb, STREAMFILE *streamFile, int targe
         } else {
             sb->autodetect_external = 1;
 
-            if (sb->stream_name[0] == '\0')
+            if (sb->extra_name[0] == '\0')
                 sb->autodetect_external = 0; /* no name */
             if (sb->extra_size > 0 && sb->stream_name_offset > sb->extra_size)
                 sb->autodetect_external = 0; /* name outside extra table == is internal */
+        }
+
+        /* build a full name for stream */
+        if (sb->is_map) {
+            if (sb->extra_name[0]) {
+                snprintf(sb->stream_name, sizeof(sb->stream_name), "%s/%d/%s", sb->map_name, bank_streams, sb->extra_name);
+            } else {
+                snprintf(sb->stream_name, sizeof(sb->stream_name), "%s/%d", sb->map_name, bank_streams);
+            }
+        } else {
+            strncpy(sb->stream_name, sb->extra_name, sizeof(sb->stream_name));
         }
     }
 
