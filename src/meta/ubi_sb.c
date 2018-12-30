@@ -201,7 +201,7 @@ VGMSTREAM * init_vgmstream_ubi_sm(STREAMFILE *streamFile) {
     int target_stream = streamFile->stream_index;
 
     /* check extension (number represents the platform, see later) */
-    if (!check_extensions(streamFile, "sm0,sm1,sm2,sm3,sm4,sm5,sm6,sm7"))
+    if (!check_extensions(streamFile, "sm0,sm1,sm2,sm3,sm4,sm5,sm6,sm7,lm0,lm1,lm2,lm3,lm4,lm5,lm6,lm7"))
         goto fail;
 
     if (target_stream == 0) target_stream = 1;
@@ -210,15 +210,15 @@ VGMSTREAM * init_vgmstream_ubi_sm(STREAMFILE *streamFile) {
     /* please add any PSP game versions under sb4 and sb5 sections so we can properly identify platform */
     sb.version = read_32bitLE(0x00, streamFile);
 
-    if (check_extensions(streamFile, "sm0")) {
+    if (check_extensions(streamFile, "sm0,lm0")) {
         sb.platform = UBI_PC;
-    } else if (check_extensions(streamFile, "sm1")) {
+    } else if (check_extensions(streamFile, "sm1,lm1")) {
         sb.platform = UBI_PS2;
-    } else if (check_extensions(streamFile, "sm2")) {
+    } else if (check_extensions(streamFile, "sm2,lm2")) {
         sb.platform = UBI_XBOX;
-    } else if (check_extensions(streamFile, "sm3")) {
+    } else if (check_extensions(streamFile, "sm3,lm3")) {
         sb.platform = UBI_GC;
-    } else if (check_extensions(streamFile, "sm4")) {
+    } else if (check_extensions(streamFile, "sm4,lm4")) {
         switch (sb.version) {
             case 0x0012000C:  /* Splinter Cell: Essentials (2006) */
                 sb.platform = UBI_PSP;
@@ -227,7 +227,7 @@ VGMSTREAM * init_vgmstream_ubi_sm(STREAMFILE *streamFile) {
                 sb.platform = UBI_X360;
                 break;
         }
-    } else if (check_extensions(streamFile, "sm5")) {
+    } else if (check_extensions(streamFile, "sm5,lm5")) {
         switch (sb.version) {
             case 0x00190001: /* TMNT (2007) */
             case 0x00190005: /* Surf's Up (2007) */
@@ -237,9 +237,9 @@ VGMSTREAM * init_vgmstream_ubi_sm(STREAMFILE *streamFile) {
                 sb.platform = UBI_3DS;
                 break;
         }
-    } else if (check_extensions(streamFile, "sm6")) {
+    } else if (check_extensions(streamFile, "sm6,lm6")) {
         sb.platform = UBI_PS3;
-    } else if (check_extensions(streamFile, "sm7")) {
+    } else if (check_extensions(streamFile, "sm7,lm7")) {
         sb.platform = UBI_WII;
     } else {
         goto fail;
