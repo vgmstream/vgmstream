@@ -107,12 +107,6 @@
     <ClInclude Include="meta\ubi_lyn_ogg_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="meta\xvag_streamfile.h">
-      <Filter>meta\Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="meta\zsnd_streamfile.h">
-      <Filter>meta\Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="meta\meta.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
@@ -160,6 +154,12 @@
     </ClInclude>
     <ClInclude Include="coding\vorbis_custom_decoder.h">
       <Filter>coding\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="meta\xvag_streamfile.h">
+      <Filter>meta\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="meta\zsnd_streamfile.h">
+      <Filter>meta\Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

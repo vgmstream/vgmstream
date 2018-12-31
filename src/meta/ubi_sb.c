@@ -17,26 +17,22 @@ typedef struct {
     size_t section1_num;
     size_t section2_num;
     size_t section3_num;
+    size_t section4_num;
     size_t extra_size;
     int flag1;
     int flag2;
 
     /* maps data config */
     int is_map;
-    size_t map_header_entry_size;
-    off_t map_sec1_pointer_offset;
-    off_t map_sec1_num_offset;
-    off_t map_sec2_pointer_offset;
-    off_t map_sec2_num_offset;
-    off_t map_sec3_pointer_offset;
-    off_t map_sec3_num_offset;
-    off_t map_extra_pointer_offset;
-    off_t map_extra_size_offset;
+    int map_version;
 
     /* stream info config (format varies slightly per game) */
     size_t section1_entry_size;
     size_t section2_entry_size;
     size_t section3_entry_size;
+    off_t stream_size_offset;
+    off_t extra_pointer_offset;
+    off_t stream_pointer_offset;
     off_t external_flag_offset;
     off_t samples_flag_offset;
     off_t num_samples_offset;
@@ -58,6 +54,7 @@ typedef struct {
     size_t section1_offset;
     size_t section2_offset;
     size_t section3_offset;
+    size_t section4_offset;
     size_t extra_section_offset;
     size_t sounds_offset;
 
@@ -81,6 +78,7 @@ typedef struct {
     int channels;
     uint32_t stream_type;
     char stream_name[255];
+    char extra_name[255];
     int header_idx;
     off_t header_offset;
 
@@ -123,7 +121,7 @@ VGMSTREAM * init_vgmstream_ubi_sb(STREAMFILE *streamFile) {
         sb.platform = UBI_GC;
     } else if (check_extensions(streamFile, "sb4")) {
         switch (sb.version) {
-            case 0x0012000C: /* Prince of Persia: Revelations (2005)(PSP) */
+            case 0x0012000C: /* Prince of Persia: Revelations (2005) */
                 sb.platform = UBI_PSP;
                 break;
             default:
@@ -132,8 +130,8 @@ VGMSTREAM * init_vgmstream_ubi_sb(STREAMFILE *streamFile) {
         }
     } else if (check_extensions(streamFile, "sb5")) {
         switch (sb.version) {
-            case 0x00180005: /* Prince of Persia: Rival Swords (2007)(PSP) */
-            case 0x00180006: /* Rainbow Six Vegas (2007)(PSP) */
+            case 0x00180005: /* Prince of Persia: Rival Swords (2007) */
+            case 0x00180006: /* Rainbow Six Vegas (2007) */
                 sb.platform = UBI_PSP;
                 break;
             default:
@@ -198,41 +196,50 @@ VGMSTREAM * init_vgmstream_ubi_sm(STREAMFILE *streamFile) {
     int32_t(*read_32bit)(off_t, STREAMFILE*) = NULL;
     int16_t(*read_16bit)(off_t, STREAMFILE*) = NULL;
     ubi_sb_header sb = { 0 };
+    size_t map_entry_size;
     int ok, i;
     int target_stream = streamFile->stream_index;
 
     /* check extension (number represents the platform, see later) */
-    if (!check_extensions(streamFile, "sm0,sm1,sm2,sm3,sm4,sm5,sm6,sm7"))
+    if (!check_extensions(streamFile, "sm0,sm1,sm2,sm3,sm4,sm5,sm6,sm7,lm0,lm1,lm2,lm3,lm4,lm5,lm6,lm7"))
         goto fail;
 
     if (target_stream == 0) target_stream = 1;
 
-     /* sigh... PSP hijacks not one but *two* platform indexes */
-     /* please add any PSP game versions under sb4 and sb5 sections so we can properly identify platform */
+    /* sigh... PSP hijacks not one but *two* platform indexes */
+    /* please add any PSP game versions under sb4 and sb5 sections so we can properly identify platform */
     sb.version = read_32bitLE(0x00, streamFile);
 
-    if (check_extensions(streamFile, "sm0")) {
+    if (check_extensions(streamFile, "sm0,lm0")) {
         sb.platform = UBI_PC;
-    } else if (check_extensions(streamFile, "sm1")) {
+    } else if (check_extensions(streamFile, "sm1,lm1")) {
         sb.platform = UBI_PS2;
-    } else if (check_extensions(streamFile, "sm2")) {
+    } else if (check_extensions(streamFile, "sm2,lm2")) {
         sb.platform = UBI_XBOX;
-    } else if (check_extensions(streamFile, "sm3")) {
+    } else if (check_extensions(streamFile, "sm3,lm3")) {
         sb.platform = UBI_GC;
-    } else if (check_extensions(streamFile, "sm4")) {
+    } else if (check_extensions(streamFile, "sm4,lm4")) {
         switch (sb.version) {
-            case 0x0012000C:  /* Splinter Cell: Essentials (2006)(PSP) */
+            case 0x0012000C:  /* Splinter Cell: Essentials (2006) */
                 sb.platform = UBI_PSP;
                 break;
             default:
                 sb.platform = UBI_X360;
                 break;
         }
-    } else if (check_extensions(streamFile, "sm5")) {
-        sb.platform = UBI_3DS;
-    } else if (check_extensions(streamFile, "sm6")) {
+    } else if (check_extensions(streamFile, "sm5,lm5")) {
+        switch (sb.version) {
+            case 0x00190001: /* TMNT (2007) */
+            case 0x00190005: /* Surf's Up (2007) */
+                sb.platform = UBI_PSP;
+                break;
+            default:
+                sb.platform = UBI_3DS;
+                break;
+        }
+    } else if (check_extensions(streamFile, "sm6,lm6")) {
         sb.platform = UBI_PS3;
-    } else if (check_extensions(streamFile, "sm7")) {
+    } else if (check_extensions(streamFile, "sm7,lm7")) {
         sb.platform = UBI_WII;
     } else {
         goto fail;
@@ -256,10 +263,12 @@ VGMSTREAM * init_vgmstream_ubi_sm(STREAMFILE *streamFile) {
     sb.map_num = read_32bit(0x08, streamFile);
 
     ok = config_sb_header_version(&sb, streamFile);
-    if (!ok || sb.map_header_entry_size == 0) {
+    if (!ok || sb.map_version == 0) {
         VGM_LOG("UBI SB: unknown SM version+platform\n");
         goto fail;
     }
+
+    map_entry_size = (sb.map_version < 2) ? 0x30 : 0x34;
 
     for (i = 0; i < sb.map_num; i++) {
         /* basic layout:
@@ -268,19 +277,37 @@ VGMSTREAM * init_vgmstream_ubi_sm(STREAMFILE *streamFile) {
          * 0x08 - map section offset
          * 0x0c - map section size
          * 0x10 - map name (20 byte) */
-        off_t offset = sb.map_header_offset + i * sb.map_header_entry_size;
+        off_t offset = sb.map_header_offset + i * map_entry_size;
         sb.map_offset = read_32bit(offset + 0x08, streamFile);
         read_string(sb.map_name, sizeof(sb.map_name), offset + 0x10, streamFile);
+        /* latest format has another unknown long here or maybe string buffer is 4 bytes bigger */
 
         /* parse map section header */
-        sb.section1_offset = read_32bit(sb.map_offset + sb.map_sec1_pointer_offset, streamFile) + sb.map_offset;
-        sb.section1_num = read_32bit(sb.map_offset + sb.map_sec1_num_offset, streamFile);
-        sb.section2_offset = read_32bit(sb.map_offset + sb.map_sec2_pointer_offset, streamFile) + sb.map_offset;
-        sb.section2_num = read_32bit(sb.map_offset + sb.map_sec2_num_offset, streamFile);
-        sb.extra_section_offset = read_32bit(sb.map_offset + sb.map_extra_pointer_offset, streamFile) + sb.map_offset;
-        sb.extra_size = read_32bit(sb.map_offset + sb.map_extra_size_offset, streamFile);
-        sb.section3_offset = read_32bit(sb.map_offset + sb.map_sec3_pointer_offset, streamFile) + sb.map_offset;
-        sb.section3_num = read_32bit(sb.map_offset + sb.map_sec3_num_offset, streamFile);
+        sb.section1_offset = read_32bit(sb.map_offset + 0x04, streamFile) + sb.map_offset;
+        sb.section1_num = read_32bit(sb.map_offset + 0x08, streamFile);
+        sb.section2_offset = read_32bit(sb.map_offset + 0x0c, streamFile) + sb.map_offset;
+        sb.section2_num = read_32bit(sb.map_offset + 0x10, streamFile);
+
+        if (sb.map_version < 3) {
+            sb.section3_offset = read_32bit(sb.map_offset + 0x14, streamFile) + sb.map_offset;
+            sb.section3_num = read_32bit(sb.map_offset + 0x18, streamFile);
+            sb.extra_section_offset = read_32bit(sb.map_offset + 0x1c, streamFile) + sb.map_offset;
+            sb.extra_size = read_32bit(sb.map_offset + 0x20, streamFile);
+        } else {
+            /* latest map format has another section with sounds after section 2 */
+            sb.section4_offset = read_32bit(sb.map_offset + 0x14, streamFile);
+            sb.section4_num = read_32bit(sb.map_offset + 0x18, streamFile);
+            sb.section3_offset = read_32bit(sb.map_offset + 0x1c, streamFile) + sb.map_offset;
+            sb.section3_num = read_32bit(sb.map_offset + 0x20, streamFile);
+            sb.extra_section_offset = read_32bit(sb.map_offset + 0x24, streamFile) + sb.map_offset;
+            sb.extra_size = read_32bit(sb.map_offset + 0x28, streamFile);
+
+            /* Let's just merge it with section 2 */
+            sb.section2_num += sb.section4_num;
+
+            /* for some reason, this is relative to section 4 here */
+            sb.extra_section_offset += sb.section4_offset;
+        }
 
         if (!parse_sb_header(&sb, streamFile, target_stream))
             goto fail;
@@ -310,9 +337,9 @@ static VGMSTREAM * init_vgmstream_ubi_sb_main(ubi_sb_header *sb, STREAMFILE *str
 
     /* open external stream if needed */
     if (sb->autodetect_external) { /* works most of the time but could give false positives */
-        VGM_LOG("UBI SB: autodetecting external stream '%s'\n", sb->stream_name);
+        VGM_LOG("UBI SB: autodetecting external stream '%s'\n", sb->extra_name);
 
-        streamData = open_streamfile_by_filename(streamFile,sb->stream_name);
+        streamData = open_streamfile_by_filename(streamFile,sb->extra_name);
         if (!streamData) {
             streamData = streamFile; /* assume internal */
             if (sb->stream_size > get_streamfile_size(streamData)) {
@@ -324,9 +351,9 @@ static VGMSTREAM * init_vgmstream_ubi_sb_main(ubi_sb_header *sb, STREAMFILE *str
         }
     }
     else if (sb->is_external) {
-        streamData = open_streamfile_by_filename(streamFile,sb->stream_name);
+        streamData = open_streamfile_by_filename(streamFile,sb->extra_name);
         if (!streamData) {
-            VGM_LOG("UBI SB: external stream '%s' not found\n", sb->stream_name);
+            VGM_LOG("UBI SB: external stream '%s' not found\n", sb->extra_name);
             goto fail;
         }
     }
@@ -432,6 +459,7 @@ static VGMSTREAM * init_vgmstream_ubi_sb_main(ubi_sb_header *sb, STREAMFILE *str
         }
 
         case RAW_AT3: {
+            ffmpeg_codec_data *ffmpeg_data;
             uint8_t buf[0x100];
             int32_t bytes, block_size, encoder_delay, joint_stereo;
 
@@ -440,8 +468,9 @@ static VGMSTREAM * init_vgmstream_ubi_sb_main(ubi_sb_header *sb, STREAMFILE *str
             encoder_delay = 0x00; /* TODO: this is incorrect */
 
             bytes = ffmpeg_make_riff_atrac3(buf, 0x100, sb->stream_samples, sb->stream_size, sb->channels, sb->sample_rate, block_size, joint_stereo, encoder_delay);
-            vgmstream->codec_data = init_ffmpeg_header_offset(streamData, buf, bytes, start_offset, sb->stream_size);
-            if (!vgmstream->codec_data) goto fail;
+            ffmpeg_data = init_ffmpeg_header_offset(streamData, buf, bytes, start_offset, sb->stream_size);
+            if (!ffmpeg_data) goto fail;
+            vgmstream->codec_data = ffmpeg_data;
             vgmstream->num_samples = sb->stream_samples;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
@@ -451,26 +480,25 @@ static VGMSTREAM * init_vgmstream_ubi_sb_main(ubi_sb_header *sb, STREAMFILE *str
         case FMT_XMA1: {
             ffmpeg_codec_data *ffmpeg_data;
             uint8_t buf[0x100];
-            uint32_t num_frames;
-            size_t bytes, frame_size, chunk_size, data_size;
+            uint32_t sec1_num, sec2_num, sec3_num;
+            uint8_t flag;
+            size_t bytes, frame_size, chunk_size, header_size, data_size;
             off_t header_offset;
 
             chunk_size = 0x20;
 
             /* formatted XMA sounds have a strange custom header */
-            /* first there's XMA2/FMT chunk, after that: */
-            /* 0x00: some low number like 0x01 or 0x04 */
-            /* 0x04: number of frames */
-            /* 0x08: frame size (not always present?) */
-            /* then there's a set of rising numbers followed by some weird data?.. */
-            /* calculate true XMA size and use that get data start offset */
-            num_frames = read_32bitBE(start_offset + chunk_size + 0x04, streamData);
-            //frame_size = read_32bitBE(start_offset + chunk_size + 0x08, streamData);
-            frame_size = 0x800;
+            header_offset = start_offset; /* XMA fmt chunk at the start */
+            flag = read_8bit(header_offset + 0x20, streamData);
+            sec2_num = read_32bitBE(header_offset + 0x24, streamData); /* number of XMA frames */
+            sec1_num = read_32bitBE(header_offset + 0x28, streamData);
+            sec3_num = read_32bitBE(header_offset + 0x2c, streamData);
+            if (flag == 0x04)
+                sec1_num--;
 
-            header_offset = start_offset;
-            data_size = num_frames * frame_size;
-            start_offset += sb->stream_size - data_size;
+            header_size = 0x30 + sec1_num * 0x04 + align_size_to_bytes(sec2_num / 0x02, 0x04) + sec3_num * 0x08;
+            start_offset += header_size;
+            data_size = sec2_num * 0x800;
 
             bytes = ffmpeg_make_riff_xma_from_fmt_chunk(buf, 0x100, header_offset, chunk_size, data_size, streamData, 1);
 
@@ -526,10 +554,7 @@ static VGMSTREAM * init_vgmstream_ubi_sb_main(ubi_sb_header *sb, STREAMFILE *str
             goto fail;
     }
 
-    if (sb->has_internal_names || sb->is_external) {
-        strcpy(vgmstream->stream_name, sb->stream_name);
-    }
-
+    strcpy(vgmstream->stream_name, sb->stream_name);
 
     /* open the file for reading (can be an external stream, different from the current .sb0) */
     if ( !vgmstream_open_stream(vgmstream, streamData, start_offset) )
@@ -575,26 +600,41 @@ static int parse_sb_header(ubi_sb_header * sb, STREAMFILE *streamFile, int targe
             int current_is_external = 0;
             int type = read_32bit(offset + sb->stream_type_offset, streamFile);
 
-            if (current_type == -1)
-                current_type = type;
-            if (current_id == -1) /* use first ID in section3 */
-                current_id = read_32bit(sb->section3_offset + 0x00, streamFile);
-
             if (sb->external_flag_offset) {
                 current_is_external = read_32bit(offset + sb->external_flag_offset, streamFile);
             } else if (sb->has_extra_name_flag && read_32bit(offset + sb->extra_name_offset, streamFile) != 0xFFFFFFFF) {
                 current_is_external = 1; /* -1 in extra_name means internal */
             }
 
-
             if (!current_is_external) {
-                if (current_type != type) {
-                    current_type = type;
-                    current_id++; /* rotate */
-                    if (current_id >= sb->section3_num)
-                        current_id = 0; /* reset */
-                }
+                if (sb->is_map) {
+                    if (current_type == -1)
+                        current_type = type;
+                    if (current_id == -1) /* they seem to always start with 0 in maps */
+                        current_id = 0x00; 
 
+                    if (!current_is_external) {
+                        if (current_type != type) {
+                            current_type = type;
+                            current_id++; /* rotate */
+                            /* we'll warp it around later when parsing section 3 */
+                        }
+                    }
+                } else {
+                    if (current_type == -1)
+                        current_type = type;
+                    if (current_id == -1) /* use first ID in section3 */
+                        current_id = read_32bit(sb->section3_offset + 0x00, streamFile);
+
+                    if (!current_is_external) {
+                        if (current_type != type) {
+                            current_type = type;
+                            current_id++; /* rotate */
+                            if (current_id >= sb->section3_num)
+                                current_id = 0; /* reset */
+                        }
+                    }
+                }
             }
         }
 
@@ -610,9 +650,9 @@ static int parse_sb_header(ubi_sb_header * sb, STREAMFILE *streamFile, int targe
 
         sb->header_id      = read_32bit(offset + 0x00, streamFile); /* 16b+16b group+sound id */
         sb->header_type    = read_32bit(offset + 0x04, streamFile);
-        sb->stream_size    = read_32bit(offset + 0x08, streamFile);
-        sb->extra_offset   = read_32bit(offset + 0x0c, streamFile) + sb->extra_section_offset; /* within the extra section */
-        sb->stream_offset  = read_32bit(offset + 0x10, streamFile); /* within the data section */
+        sb->stream_size    = read_32bit(offset + sb->stream_size_offset, streamFile);
+        sb->extra_offset   = read_32bit(offset + sb->extra_pointer_offset, streamFile) + sb->extra_section_offset; /* within the extra section */
+        sb->stream_offset  = read_32bit(offset + sb->stream_pointer_offset, streamFile); /* within the data section */
         sb->channels       = (sb->has_short_channels) ?
                    (uint16_t)read_16bit(offset + sb->channels_offset, streamFile) :
                    (uint32_t)read_32bit(offset + sb->channels_offset, streamFile);
@@ -635,10 +675,10 @@ static int parse_sb_header(ubi_sb_header * sb, STREAMFILE *streamFile, int targe
 
         /* external stream name can be found in the header (first versions) or the extra table (later versions) */
         if (sb->stream_name_offset) {
-            read_string(sb->stream_name, sb->stream_name_size, offset + sb->stream_name_offset, streamFile);
+            read_string(sb->extra_name, sb->stream_name_size, offset + sb->stream_name_offset, streamFile);
         } else {
             sb->stream_name_offset = read_32bit(offset + sb->extra_name_offset, streamFile);
-            read_string(sb->stream_name, sb->stream_name_size, sb->extra_section_offset + sb->stream_name_offset, streamFile);
+            read_string(sb->extra_name, sb->stream_name_size, sb->extra_section_offset + sb->stream_name_offset, streamFile);
         }
 
         /* not always set and must be derived */
@@ -651,10 +691,21 @@ static int parse_sb_header(ubi_sb_header * sb, STREAMFILE *streamFile, int targe
         } else {
             sb->autodetect_external = 1;
 
-            if (sb->stream_name[0] == '\0')
+            if (sb->extra_name[0] == '\0')
                 sb->autodetect_external = 0; /* no name */
             if (sb->extra_size > 0 && sb->stream_name_offset > sb->extra_size)
                 sb->autodetect_external = 0; /* name outside extra table == is internal */
+        }
+
+        /* build a full name for stream */
+        if (sb->is_map) {
+            if (sb->extra_name[0]) {
+                snprintf(sb->stream_name, sizeof(sb->stream_name), "%s/%d/%s", sb->map_name, bank_streams, sb->extra_name);
+            } else {
+                snprintf(sb->stream_name, sizeof(sb->stream_name), "%s/%d", sb->map_name, bank_streams);
+            }
+        } else {
+            strncpy(sb->stream_name, sb->extra_name, sizeof(sb->stream_name));
         }
     }
 
@@ -761,8 +812,16 @@ static int parse_sb_header(ubi_sb_header * sb, STREAMFILE *streamFile, int targe
             }
             break;
 
+        case 0x06: /* PS ADPCM (later PS3 games?) */
+            sb->codec = RAW_PSX;
+            break;
+
         case 0x07:
             sb->codec = RAW_AT3;
+            break;
+
+        case 0x08:
+            sb->codec = FMT_AT3;
             break;
 
         default:
@@ -796,9 +855,13 @@ static int parse_sb_header(ubi_sb_header * sb, STREAMFILE *streamFile, int targe
                     int idx = read_32bit(table_offset + 0x08 * j + 0x00, streamFile) & 0x0000FFFF;
 
                     if (idx == sb->header_idx) {
-                        if (!sb->stream_id_offset && table2_num > 1) {
-                            VGM_LOG("UBI SB: unexpected number of internal stream groups %i\n", sb->section3_num);
+                        if (!(sb->stream_id_offset || sb->has_rotating_ids) && table2_num > 1) {
+                            VGM_LOG("UBI SB: unexpected number of internal stream groups %i\n", table2_num);
                             goto fail;
+                        }
+
+                        if (sb->has_rotating_ids) {
+                            sb->stream_id %= table2_num;
                         }
 
                         sb->stream_offset = read_32bit(table_offset + 0x08 * j + 0x04, streamFile);
@@ -869,13 +932,58 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
     sb->section3_entry_size = 0x08;
     sb->stream_name_size = 0x24; /* maybe 0x28 or 0x20 for some but ok enough (null terminated) */
 
+    /* this is same in all games since ~2003 */
+    sb->stream_size_offset        = 0x08;
+    sb->extra_pointer_offset      = 0x0c;
+    sb->stream_pointer_offset     = 0x10;
+
 #if 0
+    /* Donald Duck: Goin' Quackers (2002)(GC)-map */
+    if (sb->version == 0x00000003 && sb->platform == UBI_GC) {
+        /* Stream types:
+         * 0x01: Nintendo DSP ADPCM
+         * 0x08: unsupported codec, looks like standard IMA with custom 0x29 bytes header
+         */
+        sb->section1_entry_size = 0x40;
+        sb->section2_entry_size = 0x6c;
+
+        sb->map_version = 1;
+
+        sb->stream_size_offset    = 0x0c;
+        sb->extra_pointer_offset  = 0x10;
+        sb->stream_pointer_offset = 0x14;
+
+        sb->external_flag_offset = 0x30;
+        sb->stream_id_offset     = 0x34;
+        sb->num_samples_offset   = 0x48;
+        sb->sample_rate_offset   = 0x50;
+        sb->channels_offset      = 0x56;
+        sb->stream_type_offset   = 0x58;
+        sb->stream_name_offset   = 0x5c;
+
+        sb->has_short_channels = 1;
+        return 1;
+    }
+
     /* Splinter Cell (2002)(PC)-map */
+    /* Splinter Cell: Pandora Tomorrow (2004)(PC)-map */
     if (sb->version == 0x00000007 && sb->platform == UBI_PC) {
+        /* Stream types:
+         * 0x01: PCM
+         * 0x02: unsupported codec, appears to be another version of Ubi IMA
+         * 0x04: Ubi IMA v3 (not Vorbis)
+         */
         sb->section1_entry_size = 0x58;
         sb->section2_entry_size = 0x80;
 
-        sb->external_flag_offset = 0x24; /* maybe 0x28 */
+        sb->map_version = 1;
+
+        sb->stream_size_offset    = 0x0c;
+        sb->extra_pointer_offset  = 0x10;
+        sb->stream_pointer_offset = 0x14;
+
+        sb->external_flag_offset = 0x28;
+        sb->stream_id_offset     = 0x2c;
         sb->num_samples_offset   = 0x30;
         sb->sample_rate_offset   = 0x44;
         sb->channels_offset      = 0x4a;
@@ -883,10 +991,9 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
         sb->stream_name_offset   = 0x50;
 
         sb->has_short_channels = 1;
+        sb->has_internal_names = 1;
         return 1;
     }
-
-    /* Splinter Cell has all the common values placed 0x04 bytes earlier */
 #endif
 
     /* Prince of Persia: Sands of Time (2003)(PC)-bank */
@@ -1066,15 +1173,7 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
         sb->section1_entry_size = 0x68;
         sb->section2_entry_size = 0x84;
 
-        sb->map_header_entry_size    = 0x34;
-        sb->map_sec1_pointer_offset  = 0x04;
-        sb->map_sec1_num_offset      = 0x08;
-        sb->map_sec2_pointer_offset  = 0x0c;
-        sb->map_sec2_num_offset      = 0x10;
-        sb->map_sec3_pointer_offset  = 0x14;
-        sb->map_sec3_num_offset      = 0x18;
-        sb->map_extra_pointer_offset = 0x1c;
-        sb->map_extra_size_offset    = 0x20;
+        sb->map_version = 2;
 
         sb->external_flag_offset = 0x24;
         sb->num_samples_offset   = 0x30;
@@ -1092,9 +1191,11 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
         sb->section1_entry_size = 0x80;
         sb->section2_entry_size = 0x94;
 
-        sb->stream_id_offset     = 0x0; //todo 0x1C or 0x20? table seems problematic
+        sb->stream_id_offset     = 0x2c;
         sb->external_flag_offset = 0x24;
-        sb->num_samples_offset   = 0; /* variable? */
+        sb->samples_flag_offset  = 0x28;
+        sb->num_samples_offset   = 0x30;
+        sb->num_samples_offset2  = 0x38;
         sb->sample_rate_offset   = 0x44;
         sb->channels_offset      = 0x4c;
         sb->stream_type_offset   = 0x50;
@@ -1175,15 +1276,7 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
         sb->section1_entry_size = 0x68;
         sb->section2_entry_size = 0x60;
 
-        sb->map_header_entry_size    = 0x34;
-        sb->map_sec1_pointer_offset  = 0x04;
-        sb->map_sec1_num_offset      = 0x08;
-        sb->map_sec2_pointer_offset  = 0x0c;
-        sb->map_sec2_num_offset      = 0x10;
-        sb->map_sec3_pointer_offset  = 0x14;
-        sb->map_sec3_num_offset      = 0x18;
-        sb->map_extra_pointer_offset = 0x1c;
-        sb->map_extra_size_offset    = 0x20;
+        sb->map_version = 2;
 
         sb->external_flag_offset = 0x24;
         sb->num_samples_offset   = 0x30;
@@ -1192,7 +1285,6 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
         sb->stream_type_offset   = 0x50;
         sb->extra_name_offset    = 0x54;
 
-        sb->has_extra_name_flag = 1;
         return 1;
     }
 
@@ -1201,15 +1293,7 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
         sb->section1_entry_size = 0x48;
         sb->section2_entry_size = 0x4c;
 
-        sb->map_header_entry_size    = 0x34;
-        sb->map_sec1_pointer_offset  = 0x04;
-        sb->map_sec1_num_offset      = 0x08;
-        sb->map_sec2_pointer_offset  = 0x0c;
-        sb->map_sec2_num_offset      = 0x10;
-        sb->map_sec3_pointer_offset  = 0x14;
-        sb->map_sec3_num_offset      = 0x18;
-        sb->map_extra_pointer_offset = 0x1c;
-        sb->map_extra_size_offset    = 0x20;
+        sb->map_version = 2;
 
         sb->external_flag_offset = 0;
         sb->num_samples_offset   = 0x18;
@@ -1220,7 +1304,7 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
         sb->extra_name_offset    = 0x40;
 
         sb->has_extra_name_flag = 1;
-        //sb->has_rotating_ids = 1;
+        sb->has_rotating_ids = 1;
         return 1;
     }
 
@@ -1262,15 +1346,7 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
         sb->section1_entry_size = 0x68;
         sb->section2_entry_size = 0x7c;
 
-        sb->map_header_entry_size    = 0x34;
-        sb->map_sec1_pointer_offset  = 0x04;
-        sb->map_sec1_num_offset      = 0x08;
-        sb->map_sec2_pointer_offset  = 0x0c;
-        sb->map_sec2_num_offset      = 0x10;
-        sb->map_sec3_pointer_offset  = 0x1c;
-        sb->map_sec3_num_offset      = 0x20;
-        sb->map_extra_pointer_offset = 0x14;
-        sb->map_extra_size_offset    = 0x28;
+        sb->map_version = 3;
 
         sb->external_flag_offset = 0x2c;
         sb->stream_id_offset     = 0x34;
@@ -1281,7 +1357,6 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
         sb->stream_type_offset   = 0x60;
         sb->extra_name_offset    = 0x64;
 
-        sb->has_extra_name_flag  = 1;
         return 1;
     }
 
@@ -1290,15 +1365,7 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
         sb->section1_entry_size  = 0x68;
         sb->section2_entry_size  = 0x78;
 
-        sb->map_header_entry_size    = 0x34;
-        sb->map_sec1_pointer_offset  = 0x04;
-        sb->map_sec1_num_offset      = 0x08;
-        sb->map_sec2_pointer_offset  = 0x0c;
-        sb->map_sec2_num_offset      = 0x10;
-        sb->map_sec3_pointer_offset  = 0x1c;
-        sb->map_sec3_num_offset      = 0x20;
-        sb->map_extra_pointer_offset = 0x14;
-        sb->map_extra_size_offset    = 0x28;
+        sb->map_version = 3;
 
         sb->external_flag_offset = 0x2c;
         sb->stream_id_offset     = 0x30;
@@ -1311,7 +1378,6 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
         sb->extra_name_offset    = 0x64;
         sb->xma_pointer_offset   = 0x70;
 
-        sb->has_extra_name_flag  = 1;
         return 1;
     }
 
@@ -1320,15 +1386,7 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
         sb->section1_entry_size = 0x48;
         sb->section2_entry_size = 0x58;
 
-        sb->map_header_entry_size    = 0x34;
-        sb->map_sec1_pointer_offset  = 0x04;
-        sb->map_sec1_num_offset      = 0x08;
-        sb->map_sec2_pointer_offset  = 0x0c;
-        sb->map_sec2_num_offset      = 0x10;
-        sb->map_sec3_pointer_offset  = 0x1c;
-        sb->map_sec3_num_offset      = 0x20;
-        sb->map_extra_pointer_offset = 0x14;
-        sb->map_extra_size_offset    = 0x28;
+        sb->map_version = 3;
 
         sb->external_flag_offset = 0;
         sb->num_samples_offset   = 0x28;
@@ -1339,7 +1397,7 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
         sb->extra_name_offset    = 0x4c;
 
         sb->has_extra_name_flag = 1;
-        //sb->has_rotating_ids = 1;
+        sb->has_rotating_ids = 1;
         return 1;
     }
 
@@ -1348,15 +1406,7 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
         sb->section1_entry_size = 0x68;
         sb->section2_entry_size = 0x6c;
 
-        sb->map_header_entry_size    = 0x34;
-        sb->map_sec1_pointer_offset  = 0x04;
-        sb->map_sec1_num_offset      = 0x08;
-        sb->map_sec2_pointer_offset  = 0x0c;
-        sb->map_sec2_num_offset      = 0x10;
-        sb->map_sec3_pointer_offset  = 0x1c;
-        sb->map_sec3_num_offset      = 0x20;
-        sb->map_extra_pointer_offset = 0x14;
-        sb->map_extra_size_offset    = 0x28;
+        sb->map_version = 3;
 
         sb->external_flag_offset = 0x28;
         sb->stream_id_offset     = 0x2c;
@@ -1492,6 +1542,23 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
         sb->extra_name_offset    = 0x58;
         sb->xma_pointer_offset   = 0x6c;
 
+        return 1;
+    }
+
+    /* TMNT (2007)(PSP)-map */
+    if (sb->version == 0x00190001 && sb->platform == UBI_PSP) {
+        sb->section1_entry_size  = 0x48;
+        sb->section2_entry_size  = 0x58;
+
+        sb->map_version = 3;
+
+        sb->external_flag_offset = 0;
+        sb->channels_offset      = 0x28;
+        sb->sample_rate_offset   = 0x2c;
+        sb->num_samples_offset   = 0x34;
+        sb->stream_type_offset   = 0x48;
+        sb->extra_name_offset    = 0x44;
+
         sb->has_extra_name_flag = 1;
         return 1;
     }
@@ -1508,7 +1575,6 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
         sb->stream_type_offset   = 0x5c;
         sb->extra_name_offset    = 0x58;
 
-        sb->has_extra_name_flag = 1;
         return 1;
     }
 
@@ -1518,15 +1584,7 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
         sb->section1_entry_size  = 0x68;
         sb->section2_entry_size  = 0x70;
 
-        sb->map_header_entry_size    = 0x34;
-        sb->map_sec1_pointer_offset  = 0x04;
-        sb->map_sec1_num_offset      = 0x08;
-        sb->map_sec2_pointer_offset  = 0x0c;
-        sb->map_sec2_num_offset      = 0x10;
-        sb->map_sec3_pointer_offset  = 0x1c;
-        sb->map_sec3_num_offset      = 0x20;
-        sb->map_extra_pointer_offset = 0x14;
-        sb->map_extra_size_offset    = 0x28;
+        sb->map_version = 3;
 
         sb->external_flag_offset = 0x28;
         sb->stream_id_offset     = 0x2c;
@@ -1536,7 +1594,6 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
         sb->stream_type_offset   = 0x5c;
         sb->extra_name_offset    = 0x58;
 
-        sb->has_extra_name_flag  = 1;
         return 1;
     }
 
@@ -1555,7 +1612,44 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile) 
         sb->extra_name_offset    = 0x58;
         sb->xma_pointer_offset   = 0x6c;
 
-        sb->has_extra_name_flag  = 1;
+        return 1;
+    }
+
+    /* Surf's Up (2007)(PSP)-map */
+    if (sb->version == 0x00190005 && sb->platform == UBI_PSP) {
+        sb->section1_entry_size  = 0x48;
+        sb->section2_entry_size  = 0x58;
+
+        sb->map_version = 3;
+
+        sb->external_flag_offset = 0;
+        sb->channels_offset      = 0x28;
+        sb->sample_rate_offset   = 0x2c;
+        sb->num_samples_offset   = 0x34;
+        sb->stream_type_offset   = 0x48;
+        sb->extra_name_offset    = 0x44;
+
+        sb->has_extra_name_flag = 1;
+        return 1;
+    }
+
+    /* Splinter Cell Classic Trilogy HD (2011)(PS3)-map */
+    if (sb->version == 0x001d0000 && sb->platform == UBI_PS3) {
+        sb->section1_entry_size  = 0x5c;
+        sb->section2_entry_size  = 0x80;
+
+        sb->map_version = 3;
+
+        sb->external_flag_offset = 0x28;
+        sb->stream_id_offset     = 0x30;
+        sb->samples_flag_offset  = 0x34;
+        sb->channels_offset      = 0x44;
+        sb->sample_rate_offset   = 0x4c;
+        sb->num_samples_offset   = 0x54;
+        sb->num_samples_offset2  = 0x5c;
+        sb->stream_type_offset   = 0x68;
+        sb->extra_name_offset    = 0x64;
+
         return 1;
     }
 

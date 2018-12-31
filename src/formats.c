@@ -205,6 +205,14 @@ static const char* extension_list[] = {
     "leg",
     "lflac", //fake extension for .flac, FFmpeg/not parsed
     "lin",
+    "lm0",
+    "lm1",
+    "lm2",
+    "lm3",
+    "lm4",
+    "lm5",
+    "lm6",
+    "lm7",
     "lmp2", //fake extension for .mp2, FFmpeg/not parsed
     "lmp3", //fake extension for .mp3, FFmpeg/not parsed
     "lmp4", //fake extension for .mp4
