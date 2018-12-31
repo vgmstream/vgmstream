@@ -365,9 +365,8 @@ fail:
 
 /* EA MAP/MUS combo - used in some old games for interactive music info */
 VGMSTREAM * init_vgmstream_ea_map_mus(STREAMFILE *streamFile) {
-    uint8_t version, num_sounds, num_userdata;
+    uint8_t version, num_sounds, num_userdata, userdata_size;
     off_t section_offset, schl_offset;
-    size_t userdata_size;
     STREAMFILE *musFile = NULL;
     VGMSTREAM *vgmstream = NULL;
     int target_stream = streamFile->stream_index;
