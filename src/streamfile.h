@@ -123,6 +123,10 @@ STREAMFILE * open_streamfile_by_ext(STREAMFILE *streamFile, const char * ext);
  * Can be used to get companion files. */
 STREAMFILE * open_streamfile_by_filename(STREAMFILE *streamFile, const char * filename);
 
+/* Reopen a STREAMFILE with a different buffer size, for fine-tuned bigfile parsing.
+ * Uses default buffer size when buffer_size is 0 */
+STREAMFILE * reopen_streamfile(STREAMFILE *streamFile, size_t buffer_size);
+
 
 /* close a file, destroy the STREAMFILE object */
 static inline void close_streamfile(STREAMFILE * streamfile) {
