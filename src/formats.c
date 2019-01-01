@@ -466,6 +466,7 @@ static const char* extension_list[] = {
     "wavebatch",
     "wavm",
     "wb",
+    "wd",
     "wem",
     "wii",
     "wip", //txth/reserved [Colin McRae DiRT (PC)]
