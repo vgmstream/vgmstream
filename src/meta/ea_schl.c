@@ -365,19 +365,22 @@ fail:
 
 /* EA MAP/MUS combo - used in some old games for interactive music info */
 VGMSTREAM * init_vgmstream_ea_map_mus(STREAMFILE *streamFile) {
-    uint8_t num_sounds, num_userdata;
+    uint8_t version, num_sounds, num_userdata, userdata_size;
     off_t section_offset, schl_offset;
     STREAMFILE *musFile = NULL;
     VGMSTREAM *vgmstream = NULL;
     int target_stream = streamFile->stream_index;
 
     /* check extension */
-    if (!check_extensions(streamFile, "map,lin"))
+    if (!check_extensions(streamFile, "map,lin,mpf"))
         goto fail;
 
     /* always big endian */
     if (read_32bitBE(0x00, streamFile) != 0x50464478) /* "PFDx" */
         goto fail;
+
+    version = read_8bit(0x04, streamFile);
+    if (version > 1) goto fail;
 
     musFile = open_streamfile_by_ext(streamFile, "mus");
     if (!musFile) goto fail;
@@ -392,6 +395,7 @@ VGMSTREAM * init_vgmstream_ea_map_mus(STREAMFILE *streamFile) {
      * 0x0c: section 1 start
      */
     num_sounds = read_8bit(0x06, streamFile);
+    userdata_size = read_8bit(0x07, streamFile);
     num_userdata = read_8bit(0x0b, streamFile);
     section_offset = 0x0c;
 
@@ -399,7 +403,7 @@ VGMSTREAM * init_vgmstream_ea_map_mus(STREAMFILE *streamFile) {
     section_offset += num_sounds * 0x1c;
 
     /* section 2: userdata, specific to game and track */
-    section_offset += num_userdata * 0x10;
+    section_offset += num_userdata * userdata_size;
 
     if (target_stream == 0) target_stream = 1;
     if (target_stream < 0 || num_sounds == 0 || target_stream > num_sounds)
@@ -425,14 +429,15 @@ fail:
 
 /* EA MPF/MUS combo - used in newer 6th gen games for storing music */
 VGMSTREAM * init_vgmstream_ea_mpf_mus(STREAMFILE *streamFile) {
-    off_t section_offset, entry_offset, subentry_num, eof_offset, schl_offset;
+    off_t section_offset, entry_offset, subentry_num, eof_offset, off_mult, schl_offset;
+    size_t sec2_size;
     uint16_t sec1_num;
-    uint8_t version, sub_version, sec2_num;
+    uint8_t version, sub_version, sec2_num, sec3_num, sec4_num;
     int32_t(*read_32bit)(off_t, STREAMFILE*);
     int16_t(*read_16bit)(off_t, STREAMFILE*);
     STREAMFILE *musFile = NULL;
     VGMSTREAM *vgmstream = NULL;
-    int target_stream = streamFile->stream_index, total_streams;
+    int target_stream = streamFile->stream_index, total_streams, big_endian;
 
     /* check extension */
     if (!check_extensions(streamFile, "mpf"))
@@ -442,23 +447,77 @@ VGMSTREAM * init_vgmstream_ea_mpf_mus(STREAMFILE *streamFile) {
     if (read_32bitBE(0x00, streamFile) == 0x50464478) { /* "PFDx" */
         read_32bit = read_32bitBE;
         read_16bit = read_16bitBE;
+        big_endian = 1;
     } else if (read_32bitBE(0x00, streamFile) == 0x78444650) { /* "xDFP" */
         read_32bit = read_32bitLE;
         read_16bit = read_16bitLE;
+        big_endian = 0;
     } else {
         goto fail;
     }
 
+    version = read_8bit(0x04, streamFile);
+    sub_version = read_8bit(0x05, streamFile);
+
+    if (version < 3 || version > 5) goto fail;
+    if (version == 5 && sub_version > 2) goto fail; /* newer version using SNR/SNS */
+
     musFile = open_streamfile_by_ext(streamFile, "mus");
     if (!musFile) goto fail;
 
-    version = read_8bit(0x04, streamFile);
-    sub_version = read_8bit(0x05, streamFile);
-    
-    if (version < 0x04 || version > 0x05) goto fail;
-    if (version == 0x05 && sub_version > 0x02) goto fail; /* newer version using SNR/SNS */
+    /* HACK: number of sub-entries is stored in bitstreams that are different in LE and BE */
+    /* I can't figure it out, so let's just use a workaround for now */
 
-    if (version == 0x04) {
+    if (version == 3 && sub_version == 1) { /* SSX Tricky /*
+        /* we need to go through the first two sections to find sound table */
+        sec1_num = read_16bit(0x12, streamFile);
+        sec2_size = read_8bit(0x0e, streamFile);
+        sec2_num = read_8bit(0x0f, streamFile);
+        sec3_num = read_8bit(0x10, streamFile);
+        sec4_num = read_8bit(0x11, streamFile);
+
+        /* get the last entry offset */
+        section_offset = 0x24;
+        entry_offset = read_16bit(section_offset + (sec1_num - 1) * 0x02, streamFile) * 0x04;
+        subentry_num = read_8bit(entry_offset + 0x0b, streamFile);
+
+        section_offset = entry_offset + 0x0c + subentry_num * 0x04;
+        section_offset += align_size_to_block(sec2_num * sec2_size, 0x04);
+        section_offset += sec3_num * 0x04;
+        section_offset += sec4_num * 0x04;
+
+        entry_offset = read_32bit(section_offset, streamFile) * 0x04;
+        section_offset = read_32bit(entry_offset + 0x00, streamFile) * 0x04;
+        eof_offset = get_streamfile_size(streamFile);
+        total_streams = (eof_offset - section_offset) / 0x08;
+        off_mult = 0x04;
+    } else if (version == 3 && sub_version == 4) { /* Harry Potter and the Chamber of Secrets */
+        sec1_num = read_16bit(0x12, streamFile);
+        sec2_size = read_8bit(0x0e, streamFile);
+        sec2_num = read_8bit(0x0f, streamFile);
+        sec3_num = read_8bit(0x10, streamFile);
+        sec4_num = read_8bit(0x11, streamFile);
+
+        /* get the last entry offset */
+        section_offset = 0x24;
+        entry_offset = read_16bit(section_offset + (sec1_num - 1) * 0x02, streamFile) * 0x04;
+        if (big_endian) {
+            subentry_num = (read_32bitBE(entry_offset + 0x04, streamFile) >> 19) & 0xFF;
+        } else {
+            subentry_num = (read_32bitBE(entry_offset + 0x04, streamFile) >> 16) & 0xFF;
+        }
+
+        section_offset = entry_offset + 0x0c + subentry_num * 0x04;
+        section_offset += align_size_to_block(sec2_num * sec2_size, 0x04);
+        section_offset += sec3_num * 0x04;
+        section_offset += sec4_num * 0x04;
+
+        entry_offset = read_32bit(section_offset, streamFile) * 0x04;
+        section_offset = read_32bit(entry_offset + 0x00, streamFile) * 0x04;
+        eof_offset = read_32bit(entry_offset + 0x04, streamFile) * 0x04;
+        total_streams = (eof_offset - section_offset) / 0x08;
+        off_mult = 0x04;
+    } else if (version == 4) { /* SSX 3, Need for Speed: Underground 2 /*
         /* we need to go through the first two sections to find sound table */
         sec1_num = read_16bit(0x12, streamFile);
         sec2_num = read_8bit(0x0f, streamFile);
@@ -466,10 +525,7 @@ VGMSTREAM * init_vgmstream_ea_mpf_mus(STREAMFILE *streamFile) {
         /* get the last entry offset */
         section_offset = 0x20;
         entry_offset = read_16bit(section_offset + (sec1_num - 1) * 0x02, streamFile) * 0x04;
-
-        /* HACK: there's some weird bitstream here that's stored differently in LE and BE */
-        /* I can't figure it out, so let's just use a workaround for now */
-        if (read_32bitBE(0x00, streamFile) == 0x50464478) {
+        if (big_endian) {
             subentry_num = (read_32bitBE(entry_offset + 0x04, streamFile) >> 15) & 0xFF;
         } else {
             subentry_num = (read_32bitBE(entry_offset + 0x04, streamFile) >> 20) & 0xFF;
@@ -477,30 +533,33 @@ VGMSTREAM * init_vgmstream_ea_mpf_mus(STREAMFILE *streamFile) {
 
         section_offset = entry_offset + 0x10 + subentry_num * 0x04;
         entry_offset = read_16bit(section_offset + (sec2_num - 1) * 0x02, streamFile) * 0x04;
-
-        /* more weird stuff */
-        if (read_32bitBE(0x00, streamFile) == 0x50464478) {
+        if (big_endian) {
             subentry_num = (read_32bitBE(entry_offset + 0x0c, streamFile) >> 10) & 0xFF;
         } else {
             subentry_num = (read_32bitBE(entry_offset + 0x0c, streamFile) >> 8) & 0xFF;
         }
 
         section_offset = entry_offset + 0x10 + subentry_num * 0x10;
+
         entry_offset = read_32bit(section_offset, streamFile) * 0x04;
         section_offset = read_32bit(entry_offset + 0x00, streamFile) * 0x04;
         eof_offset = read_32bit(entry_offset + 0x04, streamFile) * 0x04;
         total_streams = (eof_offset - section_offset) / 0x08;
-    } else if (version == 0x05) {
+        off_mult = 0x80;
+    } else if (version == 5) { /* Need for Speed: Most Wanted, Need for Speed: Carbon */
         section_offset = read_32bit(0x34, streamFile);
         eof_offset = read_32bit(0x38, streamFile);
         total_streams = (eof_offset - section_offset) / 0x08;
+        off_mult = 0x80;
+    } else {
+        goto fail;
     }
 
     if (target_stream == 0) target_stream = 1;
     if (target_stream < 0 || total_streams == 0 || target_stream > total_streams)
         goto fail;
 
-    schl_offset = read_32bit(section_offset + (target_stream - 1) * 0x08 + 0x00, streamFile) * 0x80;
+    schl_offset = read_32bit(section_offset + (target_stream - 1) * 0x08 + 0x00, streamFile) * off_mult;
     if (read_32bitBE(schl_offset, musFile) != EA_BLOCKID_HEADER)
         goto fail;
 

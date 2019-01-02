@@ -480,7 +480,7 @@ static VGMSTREAM * init_vgmstream_ubi_sb_main(ubi_sb_header *sb, STREAMFILE *str
         case FMT_XMA1: {
             ffmpeg_codec_data *ffmpeg_data;
             uint8_t buf[0x100];
-            uint32_t sec1_num, sec2_num, sec3_num;
+            uint32_t sec1_num, sec2_num, sec3_num, num_frames, bits_per_frame;
             uint8_t flag;
             size_t bytes, frame_size, chunk_size, header_size, data_size;
             off_t header_offset;
@@ -493,12 +493,22 @@ static VGMSTREAM * init_vgmstream_ubi_sb_main(ubi_sb_header *sb, STREAMFILE *str
             sec2_num = read_32bitBE(header_offset + 0x24, streamData); /* number of XMA frames */
             sec1_num = read_32bitBE(header_offset + 0x28, streamData);
             sec3_num = read_32bitBE(header_offset + 0x2c, streamData);
-            if (flag == 0x04)
-                sec1_num--;
+            num_frames = sec2_num;
+            bits_per_frame = 4;
 
-            header_size = 0x30 + sec1_num * 0x04 + align_size_to_bytes(sec2_num / 0x02, 0x04) + sec3_num * 0x08;
+            if (flag == 0x04) {
+                sec1_num--;
+                sec2_num += 4;
+            } else if (flag == 0x02) {
+                bits_per_frame = 2;
+            }
+
+            header_size = 0x30;
+            header_size += sec1_num * 0x04;
+            header_size += align_size_to_block(sec2_num * bits_per_frame, 32) / 8; /* bitstream with 4 or 2 bits for each frame */
+            header_size += sec3_num * 0x08;
             start_offset += header_size;
-            data_size = sec2_num * 0x800;
+            data_size = num_frames * 0x800;
 
             bytes = ffmpeg_make_riff_xma_from_fmt_chunk(buf, 0x100, header_offset, chunk_size, data_size, streamData, 1);
 
