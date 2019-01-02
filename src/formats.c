@@ -129,6 +129,7 @@ static const char* extension_list[] = {
 
     "e4x",
     "eam",
+    "eas",
     "eda", //txth/reserved [Project Eden (PS2)]
     "emff", //fake extension for .mul (to be removed)
     "enm",
@@ -803,7 +804,8 @@ static const meta_info meta_info_list[] = {
         {meta_HGC1,                 "Knights of the Temple 2 hgC1 Header"},
         {meta_AUS,                  "Capcom AUS Header"},
         {meta_RWS,                  "RenderWare RWS header"},
-        {meta_EA_1SNH,              "Electronic Arts 1SNh/EACS header"},
+        {meta_EA_1SNH,              "Electronic Arts 1SNh header"},
+        {meta_EA_EACS,              "Electronic Arts EACS header"},
         {meta_SL3,                  "Atari Melbourne House SL3 header"},
         {meta_FSB1,                 "FMOD Sample Bank (FSB1) Header"},
         {meta_FSB2,                 "FMOD Sample Bank (FSB2) Header"},
