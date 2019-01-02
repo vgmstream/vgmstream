@@ -91,6 +91,7 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile);
 
 /* .SBx - banks from Ubisoft's sound engine ("DARE" / "UbiSound Driver") games in ~2000-2008 */
 VGMSTREAM * init_vgmstream_ubi_sb(STREAMFILE *streamFile) {
+    STREAMFILE *streamTest = NULL;
     int32_t(*read_32bit)(off_t, STREAMFILE*) = NULL;
     //int16_t(*read_16bit)(off_t, STREAMFILE*) = NULL;
     ubi_sb_header sb = { 0 };
@@ -181,18 +182,25 @@ VGMSTREAM * init_vgmstream_ubi_sb(STREAMFILE *streamFile) {
     sb.sounds_offset = sb.section3_offset + sb.section3_entry_size * sb.section3_num;
     sb.is_map = 0;
 
+    /* use smaller I/O buffer for performance, as this read lots of small headers all over the place */
+    streamTest = reopen_streamfile(streamFile, 0x100);
+    if (!streamTest) goto fail;
+
     /* main parse */
-    if (!parse_sb_header(&sb, streamFile, target_stream))
+    if (!parse_sb_header(&sb, streamTest, target_stream))
         goto fail;
 
+    close_streamfile(streamTest);
     return init_vgmstream_ubi_sb_main(&sb, streamFile);
 
 fail:
+    close_streamfile(streamTest);
     return NULL;
 }
 
 /* .SMx - essentially a set of SBx files, one per map, compiled into one file */
 VGMSTREAM * init_vgmstream_ubi_sm(STREAMFILE *streamFile) {
+    STREAMFILE *streamTest = NULL;
     int32_t(*read_32bit)(off_t, STREAMFILE*) = NULL;
     //int16_t(*read_16bit)(off_t, STREAMFILE*) = NULL;
     ubi_sb_header sb = { 0 };
@@ -268,6 +276,10 @@ VGMSTREAM * init_vgmstream_ubi_sm(STREAMFILE *streamFile) {
         goto fail;
     }
 
+    /* use smaller I/O buffer for performance, as this read lots of small headers all over the place */
+    streamTest = reopen_streamfile(streamFile, 0x100);
+    if (!streamTest) goto fail;
+
     map_entry_size = (sb.map_version < 2) ? 0x30 : 0x34;
 
     for (i = 0; i < sb.map_num; i++) {
@@ -309,7 +321,7 @@ VGMSTREAM * init_vgmstream_ubi_sm(STREAMFILE *streamFile) {
             sb.extra_section_offset += sb.section4_offset;
         }
 
-        if (!parse_sb_header(&sb, streamFile, target_stream))
+        if (!parse_sb_header(&sb, streamTest, target_stream))
             goto fail;
     }
 
@@ -323,9 +335,11 @@ VGMSTREAM * init_vgmstream_ubi_sm(STREAMFILE *streamFile) {
         goto fail;
     }
 
+    close_streamfile(streamTest);
     return init_vgmstream_ubi_sb_main(&sb, streamFile);
 
 fail:
+    close_streamfile(streamTest);
     return NULL;
 }
 
@@ -833,6 +847,7 @@ static int parse_sb_header(ubi_sb_header * sb, STREAMFILE *streamFile, int targe
             continue;
         //;VGM_LOG("target at offset=%lx (size=%x)\n", offset, sb->section2_entry_size);
 
+        /* parse audio entry based on config */
         sb->header_offset  = offset;
         sb->header_idx     = i;
 
