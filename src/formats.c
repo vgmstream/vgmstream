@@ -156,10 +156,12 @@ static const char* extension_list[] = {
     "genh",
     "gms",
     "gsb",
+    //"gsf", //conflicts with GBA gsf plugins?
     "gtd",
     "gwm",
 
     "h4m",
+    "hab",
     "hca",
     "hdr",
     "hgc1",
@@ -417,8 +419,6 @@ static const char* extension_list[] = {
     "thp",
     "tk5",
     "tra",
-    "trj",
-    "trm",
     "tun",
     "txth",
     "txtp",
