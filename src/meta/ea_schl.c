@@ -471,7 +471,7 @@ VGMSTREAM * init_vgmstream_ea_mpf_mus(STREAMFILE *streamFile) {
     if (version == 3 && sub_version == 1) { /* SSX Tricky /*
         /* we need to go through the first two sections to find sound table */
         sec1_num = read_16bit(0x12, streamFile);
-        sec2_size = read_8bit(0x0e, streamFile);
+        sec2_size = read_8bit(0x0d, streamFile) * read_8bit(0x0e, streamFile);
         sec2_num = read_8bit(0x0f, streamFile);
         sec3_num = read_8bit(0x10, streamFile);
         sec4_num = read_8bit(0x11, streamFile);
@@ -493,7 +493,7 @@ VGMSTREAM * init_vgmstream_ea_mpf_mus(STREAMFILE *streamFile) {
         off_mult = 0x04;
     } else if (version == 3 && sub_version == 4) { /* Harry Potter and the Chamber of Secrets */
         sec1_num = read_16bit(0x12, streamFile);
-        sec2_size = read_8bit(0x0e, streamFile);
+        sec2_size = read_8bit(0x0d, streamFile) * read_8bit(0x0e, streamFile);
         sec2_num = read_8bit(0x0f, streamFile);
         sec3_num = read_8bit(0x10, streamFile);
         sec4_num = read_8bit(0x11, streamFile);
