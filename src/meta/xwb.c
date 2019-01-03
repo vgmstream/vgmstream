@@ -87,8 +87,9 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
 
     /* checks */
     /* .xwb: standard
-     * .xna: Touhou Makukasai ~ Fantasy Danmaku Festival (PC) */
-    if (!check_extensions(streamFile,"xwb,xna"))
+     * .xna: Touhou Makukasai ~ Fantasy Danmaku Festival (PC)
+     * (extensionless): Grabbed by the Ghoulies (Xbox) */
+    if (!check_extensions(streamFile,"xwb,xna,"))
         goto fail;
     if ((read_32bitBE(0x00,streamFile) != 0x57424E44) &&    /* "WBND" (LE) */
         (read_32bitBE(0x00,streamFile) != 0x444E4257))      /* "DNBW" (BE) */

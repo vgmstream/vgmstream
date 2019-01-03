@@ -129,6 +129,7 @@ static const char* extension_list[] = {
 
     "e4x",
     "eam",
+    "eas",
     "eda", //txth/reserved [Project Eden (PS2)]
     "emff", //fake extension for .mul (to be removed)
     "enm",
@@ -156,10 +157,12 @@ static const char* extension_list[] = {
     "genh",
     "gms",
     "gsb",
+    //"gsf", //conflicts with GBA gsf plugins?
     "gtd",
     "gwm",
 
     "h4m",
+    "hab",
     "hca",
     "hdr",
     "hgc1",
@@ -417,8 +420,6 @@ static const char* extension_list[] = {
     "thp",
     "tk5",
     "tra",
-    "trj",
-    "trm",
     "tun",
     "txth",
     "txtp",
@@ -466,6 +467,7 @@ static const char* extension_list[] = {
     "wavebatch",
     "wavm",
     "wb",
+    "wd",
     "wem",
     "wii",
     "wip", //txth/reserved [Colin McRae DiRT (PC)]
@@ -751,7 +753,7 @@ static const meta_info meta_info_list[] = {
         {meta_RWAV,                 "Nintendo RWAV header"},
         {meta_CWAV,                 "Nintendo CWAV header"},
         {meta_FWAV,                 "Nintendo FWAV header"},
-        {meta_XA,                   "Sony XA RIFF header"},
+        {meta_XA,                   "Sony XA header"},
         {meta_PS2_RXWS,             "Sony RXWS header"},
         {meta_PS2_RAW,              ".int PCM raw header"},
         {meta_PS2_OMU,              "Alter Echo OMU Header"},
@@ -802,7 +804,8 @@ static const meta_info meta_info_list[] = {
         {meta_HGC1,                 "Knights of the Temple 2 hgC1 Header"},
         {meta_AUS,                  "Capcom AUS Header"},
         {meta_RWS,                  "RenderWare RWS header"},
-        {meta_EA_1SNH,              "Electronic Arts 1SNh/EACS header"},
+        {meta_EA_1SNH,              "Electronic Arts 1SNh header"},
+        {meta_EA_EACS,              "Electronic Arts EACS header"},
         {meta_SL3,                  "Atari Melbourne House SL3 header"},
         {meta_FSB1,                 "FMOD Sample Bank (FSB1) Header"},
         {meta_FSB2,                 "FMOD Sample Bank (FSB2) Header"},
@@ -842,6 +845,9 @@ static const meta_info meta_info_list[] = {
         {meta_PS2_RKV,              "Legacy of Kain - Blood Omen 2 RKV PS2 header"},
         {meta_PS2_VAS,              "Pro Baseball Spirits 5 VAS Header"},
         {meta_PS2_TEC,              "assumed TECMO badflagged stream by .tec extension"},
+        {meta_PS2_ENTH,             ".enth Header"},
+        {meta_SDT,                  "High Voltage .sdt header"},
+        {meta_NGC_TYDSP,            ".tydsp Header"},
         {meta_XBOX_WVS,             "Metal Arms WVS Header (XBOX)"},
         {meta_NGC_WVS,              "Metal Arms WVS Header (GameCube)"},
         {meta_XBOX_MATX,            "assumed Matrix file by .matx extension"},

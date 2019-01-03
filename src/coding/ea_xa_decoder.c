@@ -30,7 +30,7 @@ static const int EA_XA_TABLE[20] = {
 };
 
 /* EA XA v2 (always mono); like ea_xa_int but with "PCM samples" flag and doesn't add 128 on expand or clamp (pre-adjusted by the encoder?) */
-void decode_ea_xa_v2(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do,int channel) {
+void decode_ea_xa_v2(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
     uint8_t frame_info;
     int32_t coef1, coef2;
     int i, sample_count, shift;
@@ -82,6 +82,106 @@ void decode_ea_xa_v2(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspac
             stream->offset += xa_frame_size;
     }
 }
+
+#if 0
+/* later PC games use float math, though in the end sounds basically the same (decompiled from various exes) */
+static const double XA_K0[16] = { 0.0, 0.9375, 1.796875,  1.53125 };
+static const double XA_K1[16] = { 0.0,    0.0,  -0.8125, -0.859375 };
+/* code uses look-up table but it's be equivalent to:
+ * (double)((nibble << 28) >> (shift + 8) >> 8) or (double)(signed_nibble << (12 - shift)) */
+static const uint32_t FLOAT_TABLE_INT[256] = {
+        0x00000000,0x45800000,0x46000000,0x46400000,0x46800000,0x46A00000,0x46C00000,0x46E00000,
+        0xC7000000,0xC6E00000,0xC6C00000,0xC6A00000,0xC6800000,0xC6400000,0xC6000000,0xC5800000,
+        0x00000000,0x45000000,0x45800000,0x45C00000,0x46000000,0x46200000,0x46400000,0x46600000,
+        0xC6800000,0xC6600000,0xC6400000,0xC6200000,0xC6000000,0xC5C00000,0xC5800000,0xC5000000,
+        0x00000000,0x44800000,0x45000000,0x45400000,0x45800000,0x45A00000,0x45C00000,0x45E00000,
+        0xC6000000,0xC5E00000,0xC5C00000,0xC5A00000,0xC5800000,0xC5400000,0xC5000000,0xC4800000,
+        0x00000000,0x44000000,0x44800000,0x44C00000,0x45000000,0x45200000,0x45400000,0x45600000,
+        0xC5800000,0xC5600000,0xC5400000,0xC5200000,0xC5000000,0xC4C00000,0xC4800000,0xC4000000,
+        0x00000000,0x43800000,0x44000000,0x44400000,0x44800000,0x44A00000,0x44C00000,0x44E00000,
+        0xC5000000,0xC4E00000,0xC4C00000,0xC4A00000,0xC4800000,0xC4400000,0xC4000000,0xC3800000,
+        0x00000000,0x43000000,0x43800000,0x43C00000,0x44000000,0x44200000,0x44400000,0x44600000,
+        0xC4800000,0xC4600000,0xC4400000,0xC4200000,0xC4000000,0xC3C00000,0xC3800000,0xC3000000,
+        0x00000000,0x42800000,0x43000000,0x43400000,0x43800000,0x43A00000,0x43C00000,0x43E00000,
+        0xC4000000,0xC3E00000,0xC3C00000,0xC3A00000,0xC3800000,0xC3400000,0xC3000000,0xC2800000,
+        0x00000000,0x42000000,0x42800000,0x42C00000,0x43000000,0x43200000,0x43400000,0x43600000,
+        0xC3800000,0xC3600000,0xC3400000,0xC3200000,0xC3000000,0xC2C00000,0xC2800000,0xC2000000,
+        0x00000000,0x41800000,0x42000000,0x42400000,0x42800000,0x42A00000,0x42C00000,0x42E00000,
+        0xC3000000,0xC2E00000,0xC2C00000,0xC2A00000,0xC2800000,0xC2400000,0xC2000000,0xC1800000,
+        0x00000000,0x41000000,0x41800000,0x41C00000,0x42000000,0x42200000,0x42400000,0x42600000,
+        0xC2800000,0xC2600000,0xC2400000,0xC2200000,0xC2000000,0xC1C00000,0xC1800000,0xC1000000,
+        0x00000000,0x40800000,0x41000000,0x41400000,0x41800000,0x41A00000,0x41C00000,0x41E00000,
+        0xC2000000,0xC1E00000,0xC1C00000,0xC1A00000,0xC1800000,0xC1400000,0xC1000000,0xC0800000,
+        0x00000000,0x40000000,0x40800000,0x40C00000,0x41000000,0x41200000,0x41400000,0x41600000,
+        0xC1800000,0xC1600000,0xC1400000,0xC1200000,0xC1000000,0xC0C00000,0xC0800000,0xC0000000,
+        0x00000000,0x3F800000,0x40000000,0x40400000,0x40800000,0x40A00000,0x40C00000,0x40E00000,
+        0xC1000000,0xC0E00000,0xC0C00000,0xC0A00000,0xC0800000,0xC0400000,0xC0000000,0xBF800000,
+        0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,
+        0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,
+        0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,
+        0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,
+        0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,
+        0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,
+};
+static const float *FLOAT_TABLE = (const float *)FLOAT_TABLE_INT;
+
+void decode_ea_xa_v2(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
+    uint8_t frame_info;
+    int i, sample_count, shift;
+
+    int pcm_frame_size = 0x01 + 2*0x02 + 28*0x02;
+    int xa_frame_size = 0x0f;
+    int frame_samples = 28;
+    first_sample = first_sample % frame_samples;
+
+    /* header */
+    frame_info = read_8bit(stream->offset,stream->streamfile);
+
+    if (frame_info == 0xEE) { /* PCM frame (used in later revisions), samples always BE */
+        stream->adpcm_history1_double = read_16bitBE(stream->offset + 0x01 + 0x00,stream->streamfile);
+        stream->adpcm_history2_double = read_16bitBE(stream->offset + 0x01 + 0x02,stream->streamfile);
+
+        for (i=first_sample,sample_count=0; i<first_sample+samples_to_do; i++,sample_count+=channelspacing) {
+            outbuf[sample_count] = read_16bitBE(stream->offset + 0x01 + 2*0x02 + i*0x02,stream->streamfile);
+        }
+
+        /* only increment offset on complete frame */
+        if (i == frame_samples)
+            stream->offset += pcm_frame_size;
+    }
+    else { /* ADPCM frame */
+        double coef1, coef2, hist1, hist2, new_sample;
+
+        coef1 = XA_K0[(frame_info >> 4)];
+        coef2 = XA_K1[(frame_info >> 4)];
+        shift = (frame_info & 0x0F) + 8;// << 4;
+        hist1 = stream->adpcm_history1_double;
+        hist2 = stream->adpcm_history2_double;
+
+        for (i=first_sample,sample_count=0; i<first_sample+samples_to_do; i++,sample_count+=channelspacing) {
+            uint8_t sample_byte, sample_nibble;
+            off_t byte_offset = (stream->offset + 0x01 + i/2);
+            int nibble_shift = (!(i&1)) ? 4 : 0; /* high nibble first */
+
+            sample_byte = (uint8_t)read_8bit(byte_offset,stream->streamfile);
+            sample_nibble = (sample_byte >> nibble_shift) & 0x0F;
+            new_sample = (double)FLOAT_TABLE[sample_nibble + shift];
+            new_sample = new_sample + coef1 * hist1 + coef2 * hist2;
+
+            outbuf[sample_count] = clamp16((int)new_sample);
+            hist2 = hist1;
+            hist1 = new_sample;
+        }
+
+        stream->adpcm_history1_double = hist1;
+        stream->adpcm_history2_double = hist2;
+
+        /* only increment offset on complete frame */
+        if (i == frame_samples)
+            stream->offset += xa_frame_size;
+    }
+}
+#endif
 
 /* EA XA v1 stereo */
 void decode_ea_xa(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do,int channel) {

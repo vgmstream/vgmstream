@@ -265,6 +265,8 @@ static int parse_pk_header(ubi_bao_header * bao, STREAMFILE *streamFile) {
     size_t index_size, index_header_size;
     off_t bao_offset, resources_offset;
     int target_subsong = streamFile->stream_index;
+    uint8_t *index_buffer = NULL;
+    STREAMFILE *streamTest = NULL;
 
 
     /* class: 0x01=index, 0x02=BAO */
@@ -273,7 +275,7 @@ static int parse_pk_header(ubi_bao_header * bao, STREAMFILE *streamFile) {
     /* index and resources always LE */
 
     /* 0x01(3): version, major/minor/release (numbering continues from .sb0/sm0) */
-    index_size = read_32bitLE(0x04, streamFile); /* can be 0 */
+    index_size = read_32bitLE(0x04, streamFile); /* can be 0, not including  */
     resources_offset = read_32bitLE(0x08, streamFile); /* always found even if not used */
     /* 0x0c: always 0? */
     /* 0x10: unknown, null if no entries */
@@ -287,14 +289,26 @@ static int parse_pk_header(ubi_bao_header * bao, STREAMFILE *streamFile) {
     index_entries = index_size / 0x08;
     index_header_size = 0x40;
 
-    /* parse index to get target subsong N = Nth header BAO */
+    /* pre-load to avoid too much I/O back and forth */
+    if (index_size > (10000*0x08)) {
+        VGM_LOG("BAO: index too big\n");
+        goto fail;
+    }
+    index_buffer = malloc(index_size);
+    read_streamfile(index_buffer, index_header_size, index_size, streamFile);
+
+    /* use smaller I/O buffer for performance, as this read lots of small BAO headers all over the place */
+    streamTest = reopen_streamfile(streamFile, 0x100);
+    if (!streamTest) goto fail;
+
+    /* parse index to get target subsong N = Nth audio header BAO */
     bao_offset = index_header_size + index_size;
     for (i = 0; i < index_entries; i++) {
-        //uint32_t bao_id = read_32bitLE(index_header_size+0x08*i+0x00, streamFile);
-        size_t bao_size = read_32bitLE(index_header_size+0x08*i+0x04, streamFile);
+        //uint32_t bao_id = get_32bitLE(index_buffer + 0x08*i+ 0x00);
+        size_t bao_size = get_32bitLE(index_buffer + 0x08*i + 0x04);
 
         /* parse and continue to find out total_subsongs */
-        if (!parse_bao(bao, streamFile, bao_offset))
+        if (!parse_bao(bao, streamTest, bao_offset))
             goto fail;
 
         bao_offset += bao_size; /* files simply concat BAOs */
@@ -393,8 +407,12 @@ static int parse_pk_header(ubi_bao_header * bao, STREAMFILE *streamFile) {
 
     ;VGM_LOG("BAO stream: id=%x, offset=%x, size=%x, res=%s\n", bao->stream_id, (uint32_t)bao->stream_offset, bao->stream_size, (bao->is_external ? bao->resource_name : "internal"));
 
+    free(index_buffer);
+    close_streamfile(streamTest);
     return 1;
 fail:
+    free(index_buffer);
+    close_streamfile(streamTest);
     return 0;
 }
 
@@ -407,14 +425,14 @@ static int parse_bao(ubi_bao_header * bao, STREAMFILE *streamFile, off_t offset)
     
 
     /* 0x00(1): class? usually 0x02 but older BAOs have 0x01 too */
-    bao_version = read_32bitBE(offset + 0x00, streamFile) & 0x00FFFFFF;
+    bao_version = read_32bitBE(offset+0x00, streamFile) & 0x00FFFFFF;
 
-    /* detect endianness */
-    if (read_32bitLE(offset+0x04, streamFile) < 0x0000FFFF) {
-        read_32bit = read_32bitLE;
-    } else {
+    /* this could be done once as all BAOs share endianness */
+    if (guess_endianness32bit(offset+0x04, streamFile)) {
         read_32bit = read_32bitBE;
         bao->big_endian = 1;
+    } else {
+        read_32bit = read_32bitLE;
     }
 
     header_size = read_32bit(offset+0x04, streamFile); /* mainly 0x28, rarely 0x24 */

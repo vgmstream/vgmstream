@@ -226,8 +226,9 @@ single file). Contains dynamic text commands to read data from the original
 file, or static values.
 
 **TXTP**: a text playlist that works as a single song. Can contain a list of
-filenames to play as one (ex. "intro.vag" "loop.vag"), name with subsong index
-(ex. bgm.sxd#10), or mask channels to only play some (ex. "song.adx#c1,2").
+filenames to play as one (ex. "intro.vag" "loop.vag"), separate channel files
+to join as a single multichannel file, subsong index (ex. bgm.sxd#10), or 
+channel mask to allow only certain channels (ex. "song.adx#c1,2").
 
 Creation of those files is meant for advanced users, docs can be found in
 vgmstream source.
@@ -297,6 +298,7 @@ are used in few games.
 - Konami XMD 4-bit ADPCM
 - Argonaut ASF 4-bit ADPCM
 - Circus XPCM ADPCM
+- PC-FX ADPCM
 - SDX2 2:1 Squareroot-Delta-Exact compression DPCM
 - CBD2 2:1 Cuberoot-Delta-Exact compression DPCM
 - Activision EXAKT SASSC DPCM

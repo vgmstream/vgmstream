@@ -82,7 +82,7 @@ typedef struct {
     int header_idx;
     off_t header_offset;
 
-
+    int subtypes[16];
 } ubi_sb_header;
 
 static VGMSTREAM * init_vgmstream_ubi_sb_main(ubi_sb_header *sb, STREAMFILE *streamFile);
@@ -91,8 +91,9 @@ static int config_sb_header_version(ubi_sb_header * sb, STREAMFILE *streamFile);
 
 /* .SBx - banks from Ubisoft's sound engine ("DARE" / "UbiSound Driver") games in ~2000-2008 */
 VGMSTREAM * init_vgmstream_ubi_sb(STREAMFILE *streamFile) {
+    STREAMFILE *streamTest = NULL;
     int32_t(*read_32bit)(off_t, STREAMFILE*) = NULL;
-    int16_t(*read_16bit)(off_t, STREAMFILE*) = NULL;
+    //int16_t(*read_16bit)(off_t, STREAMFILE*) = NULL;
     ubi_sb_header sb = { 0 };
     int ok;
     int target_stream = streamFile->stream_index;
@@ -152,10 +153,10 @@ VGMSTREAM * init_vgmstream_ubi_sb(STREAMFILE *streamFile) {
         sb.platform == UBI_WII);
     if (sb.big_endian) {
         read_32bit = read_32bitBE;
-        read_16bit = read_16bitBE;
+        //read_16bit = read_16bitBE;
     } else {
         read_32bit = read_32bitLE;
-        read_16bit = read_16bitLE;
+        //read_16bit = read_16bitLE;
     }
 
     /* file layout is: base header, section1, section2, extra section, section3, data (all except base header can be null) */
@@ -181,20 +182,27 @@ VGMSTREAM * init_vgmstream_ubi_sb(STREAMFILE *streamFile) {
     sb.sounds_offset = sb.section3_offset + sb.section3_entry_size * sb.section3_num;
     sb.is_map = 0;
 
+    /* use smaller I/O buffer for performance, as this read lots of small headers all over the place */
+    streamTest = reopen_streamfile(streamFile, 0x100);
+    if (!streamTest) goto fail;
+
     /* main parse */
-    if (!parse_sb_header(&sb, streamFile, target_stream))
+    if (!parse_sb_header(&sb, streamTest, target_stream))
         goto fail;
 
+    close_streamfile(streamTest);
     return init_vgmstream_ubi_sb_main(&sb, streamFile);
 
 fail:
+    close_streamfile(streamTest);
     return NULL;
 }
 
 /* .SMx - essentially a set of SBx files, one per map, compiled into one file */
 VGMSTREAM * init_vgmstream_ubi_sm(STREAMFILE *streamFile) {
+    STREAMFILE *streamTest = NULL;
     int32_t(*read_32bit)(off_t, STREAMFILE*) = NULL;
-    int16_t(*read_16bit)(off_t, STREAMFILE*) = NULL;
+    //int16_t(*read_16bit)(off_t, STREAMFILE*) = NULL;
     ubi_sb_header sb = { 0 };
     size_t map_entry_size;
     int ok, i;
@@ -251,10 +259,10 @@ VGMSTREAM * init_vgmstream_ubi_sm(STREAMFILE *streamFile) {
         sb.platform == UBI_WII);
     if (sb.big_endian) {
         read_32bit = read_32bitBE;
-        read_16bit = read_16bitBE;
+        //read_16bit = read_16bitBE;
     } else {
         read_32bit = read_32bitLE;
-        read_16bit = read_16bitLE;
+        //read_16bit = read_16bitLE;
     }
 
     sb.is_map = 1;
@@ -267,6 +275,10 @@ VGMSTREAM * init_vgmstream_ubi_sm(STREAMFILE *streamFile) {
         VGM_LOG("UBI SB: unknown SM version+platform\n");
         goto fail;
     }
+
+    /* use smaller I/O buffer for performance, as this read lots of small headers all over the place */
+    streamTest = reopen_streamfile(streamFile, 0x100);
+    if (!streamTest) goto fail;
 
     map_entry_size = (sb.map_version < 2) ? 0x30 : 0x34;
 
@@ -309,7 +321,7 @@ VGMSTREAM * init_vgmstream_ubi_sm(STREAMFILE *streamFile) {
             sb.extra_section_offset += sb.section4_offset;
         }
 
-        if (!parse_sb_header(&sb, streamFile, target_stream))
+        if (!parse_sb_header(&sb, streamTest, target_stream))
             goto fail;
     }
 
@@ -323,9 +335,11 @@ VGMSTREAM * init_vgmstream_ubi_sm(STREAMFILE *streamFile) {
         goto fail;
     }
 
+    close_streamfile(streamTest);
     return init_vgmstream_ubi_sb_main(&sb, streamFile);
 
 fail:
+    close_streamfile(streamTest);
     return NULL;
 }
 
@@ -482,7 +496,7 @@ static VGMSTREAM * init_vgmstream_ubi_sb_main(ubi_sb_header *sb, STREAMFILE *str
             uint8_t buf[0x100];
             uint32_t sec1_num, sec2_num, sec3_num, num_frames, bits_per_frame;
             uint8_t flag;
-            size_t bytes, frame_size, chunk_size, header_size, data_size;
+            size_t bytes, chunk_size, header_size, data_size;
             off_t header_offset;
 
             chunk_size = 0x20;
@@ -581,6 +595,180 @@ fail:
 }
 
 
+/* debug stuff, for now */
+static void parse_descriptor_subtype(ubi_sb_header * sb, uint32_t descriptor_subtype, off_t offset) {
+
+    /* type may be flags? */
+    /* all types may contain memory garbage, making it harder to identify */
+
+    switch(descriptor_subtype) {
+        /* standard audio */
+        case 0x01: sb->subtypes[0x01]++; break;
+
+        /* audio/garbage? [Splinter Cell: Chaos Theory] */
+        /* audio/garbage? [Surf's Up-map] */
+        /* audio/garbage? [TMNT-map] */
+        /* config? [Brothers in Arms: D-Day] */
+        /* config? [Surf's Up-bank] */
+        case 0x02: sb->subtypes[0x02]++; break;
+
+        /* audio/garbage? [Splinter Cell: Chaos Theory] */
+        /* audio/garbage? [TMNT-map] */
+        /* config? [Prince of Persia: The Two Thrones] */
+        case 0x03: sb->subtypes[0x03]++; break;
+
+        /* audio/garbage? [Splinter Cell: Chaos Theory] */
+        /* audio/garbage? [TMNT-map] */
+        /* config? [Rainbow Six 3] */
+        /* config? [Prince of Persia: Warrior Within] */
+        /* config? [Prince of Persia: The Two Thrones] */
+        /* config? [TMNT-bank] */
+        /* config? [Surf's Up-map] */
+        /* audio/garbage? [Myst IV demo] */
+        /* config? [Brothers in Arms: D-Day] */
+        /* config? [Surf's Up-bank] */
+        case 0x04: sb->subtypes[0x04]++; break;
+
+        /* audio/garbage? [Splinter Cell: Chaos Theory] */
+        /* audio/garbage? [TMNT-map] */
+        /* config? [Prince of Persia: Warrior Within] */
+        /* config? [Prince of Persia: The Two Thrones] */
+        /* config? [Prince of Persia: Revelations] */
+        /* config? [TMNT-bank] */
+        case 0x05: sb->subtypes[0x05]++; break;
+
+        /* layer? [Surf's Up-map] */
+        /* layer [TMNT-bank] */
+        /* layer [TMNT-map] */
+        case 0x06: sb->subtypes[0x06]++; break;
+
+        /* audio/garbage? [Splinter Cell: Chaos Theory] */
+        /* config? [Brothers in Arms: D-Day] */
+        /* config? [Surf's Up-bank] */
+        case 0x07: sb->subtypes[0x07]++; break;
+
+        /* audio/garbage? [Splinter Cell: Chaos Theory] */
+        /* audio/garbage? [TMNT-map] */
+        /* config? [Prince of Persia: Warrior Within] */
+        /* config? [Prince of Persia: The Two Thrones] */
+        /* config? [TMNT-bank] */
+        /* config? [Surf's Up-map] */
+        /* config? [Brothers in Arms: D-Day] */
+        /* config? [Surf's Up-bank] */
+        case 0x08: sb->subtypes[0x08]++; break;
+
+        /* related to voices?  [Prince of Persia: Sands of Time] */
+        /* config? [Rainbow Six 3] */
+        /* config? [Myst IV demo] */
+        case 0x0a: sb->subtypes[0x0a]++; break;
+
+        /* config? [Prince of Persia: Sands of Time] */
+        /* config? [Rainbow Six 3] */
+        case 0x0c: sb->subtypes[0x0c]++; break;
+
+        /* layer [Prince of Persia: Sands of Time] */
+        /* layer [Rainbow Six 3] */
+        case 0x0d: sb->subtypes[0x0d]++; break;
+
+        /* config? [Rainbow Six 3] */
+        /* config? [Myst IV demo] */
+        case 0x0f: sb->subtypes[0x0f]++; break;
+
+        default:
+            VGM_LOG("UBI SB: unknown subtype %x at %x size %x\n", descriptor_subtype, (uint32_t)offset, sb->section2_entry_size);
+            break; //goto fail;
+    }
+
+    //;VGM_ASSERT(descriptor_subtype != 0x01, "UBI SB: subtype %x at %x size %x\n", descriptor_subtype, (uint32_t)offset, sb->section2_entry_size);
+
+
+    /* 0x06 layer [TMNT-bank] */
+    /* - subtype header:
+     * 0x1c: external flag?
+     * 0x20: layers/channels?
+     * 0x24: layers/channels?
+     * 0x28: config? same for all
+     * 0x2c: stream size
+     * 0x30: stream offset
+     * 0x38: always 0x037c
+     * (todo sample rate?)
+     *
+     * - layer header at stream_offset:
+     * 0x00: version? (0x08000B00)
+     * 0x04: 0x0e?
+     * 0x08: layers/channels?
+     * 0x0c: blocks count
+     * 0x10: block header size
+     * 0x14: size of header sizes + codec headers
+     * 0x18: block size
+     * - per layer:
+     * 0x00: layer header size
+     * - per layer
+     * 0x00~0x20: standard Ubi IMA header (version 0x05)
+     *
+     * - blocked data:
+     * 0x00: always 0x03
+     * 0x04: block size
+     * - per layer:
+     * 0x00: layer data size (varies between blocks, and one layer may have more than other)
+     */
+
+    /* 0x06 layer [TMNT-map] */
+    /* - subtype header:
+     * 0x20: layers/channels?
+     * 0x24: layers/channels * 2?
+     * 0x28: config? same for all
+     * 0x2c: stream size
+     * 0x30: stream offset
+     * 0x38: 0x01D0/0118/etc
+     * 0x40: external flag?
+     * 0x48: codec?
+     * 0x54: codec?
+     * (todo sample rate?)
+     *
+     * - layer header at stream_offset:
+     * - blocked data:
+     * same as TMNT-bank, but codec header size is 0
+     */
+
+    //todo Surf's Up-map
+
+    /* 0x0d layer [Prince of Persia: Sands of Time] */
+    /* 0x0d layer [Rainbow Six 3] */ //todo also check layer header
+    /* - subtype header (bizarrely but thankfully doesn't change between platforms):
+     * 0x1c: sample rate * layers
+     * 0x20: layers/channels?
+     * 0x2c: external flag?
+     * 0x30: external name
+     * 0x58: stream offset
+     * 0x5c: original rate * layers?
+     * 0x60: stream size (not including padding)
+     * 0x64: number of samples
+     *
+     * - layer header at stream_offset:
+     * 0x00: version? (0x04000000)
+     * 0x04: layers
+     * 0x08: stream size (not including padding)
+     * 0x0c: blocks count
+     * 0x10: block header size
+     * 0x14: block size
+     * 0x18: ?
+     * 0x1c: size of next section?
+     * - per layer:
+     * 0x00: layer header size
+     * codec header per layer
+     * 0x00~0x20: standard Ubi IMA header (version 0x05)
+     *
+     * - blocked data:
+     * 0x00: block number (from 0x01 to block_count)
+     * 0x04: current offset (within stream_offset)
+     * 0x08: always 0x03
+     * - per layer:
+     * 0x00: layer data size (varies between blocks, and one layer may have more than other)
+     */
+
+}
+
 static int parse_sb_header(ubi_sb_header * sb, STREAMFILE *streamFile, int target_stream) {
     int32_t (*read_32bit)(off_t,STREAMFILE*) = NULL;
     int16_t (*read_16bit)(off_t,STREAMFILE*) = NULL;
@@ -599,11 +787,15 @@ static int parse_sb_header(ubi_sb_header * sb, STREAMFILE *streamFile, int targe
     /* find target stream info in section2 */
     for (i = 0; i < sb->section2_num; i++) {
         off_t offset = sb->section2_offset + sb->section2_entry_size*i;
+        uint32_t descriptor_subtype;
 
-        /* ignore non-audio entry (other types seem to have config data) */
-        if (read_32bit(offset + 0x04, streamFile) != 0x01)
+        descriptor_subtype = read_32bit(offset + 0x04, streamFile);
+        parse_descriptor_subtype(sb, descriptor_subtype, offset);
+
+        /* ignore non-audio entries */
+        if (descriptor_subtype != 0x01)
             continue;
-        //;VGM_LOG("SB at %lx\n", offset);
+        //;VGM_LOG("UBI SB: type at %lx\n", offset);
 
         /* weird case when there is no internal substream ID and just seem to rotate every time type changes, joy */
         if (sb->has_rotating_ids) { /* assumes certain configs can't happen in this case */
@@ -655,6 +847,7 @@ static int parse_sb_header(ubi_sb_header * sb, STREAMFILE *streamFile, int targe
             continue;
         //;VGM_LOG("target at offset=%lx (size=%x)\n", offset, sb->section2_entry_size);
 
+        /* parse audio entry based on config */
         sb->header_offset  = offset;
         sb->header_idx     = i;
 
@@ -718,6 +911,17 @@ static int parse_sb_header(ubi_sb_header * sb, STREAMFILE *streamFile, int targe
             strncpy(sb->stream_name, sb->extra_name, sizeof(sb->stream_name));
         }
     }
+
+#if 0
+    {
+        int i;
+        VGM_LOG("UBI subtypes: ");
+        for (i = 0; i < 16; i++) {
+            VGM_ASSERT(sb->subtypes[i], "%02x=%i ",i,sb->subtypes[i]);
+        }
+        VGM_LOG("\n");
+    }
+#endif
 
     if (sb->is_map) {
         if (bank_streams == 0 || target_stream <= prev_streams || target_stream > sb->total_streams)
@@ -857,9 +1061,9 @@ static int parse_sb_header(ubi_sb_header * sb, STREAMFILE *streamFile, int targe
             for (i = 0; i < sb->section3_num; i++) {
                 off_t offset = sb->section3_offset + 0x14 * i;
                 off_t table_offset = read_32bit(offset + 0x04, streamFile) + sb->section3_offset;
-                off_t table_num = read_32bit(offset + 0x08, streamFile);
+                uint32_t table_num = read_32bit(offset + 0x08, streamFile);
                 off_t table2_offset = read_32bit(offset + 0x0c, streamFile) + sb->section3_offset;
-                off_t table2_num = read_32bit(offset + 0x10, streamFile);
+                uint32_t table2_num = read_32bit(offset + 0x10, streamFile);
 
                 for (j = 0; j < table_num; j++) {
                     int idx = read_32bit(table_offset + 0x08 * j + 0x00, streamFile) & 0x0000FFFF;

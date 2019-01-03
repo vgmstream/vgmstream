@@ -2,13 +2,14 @@
 #include "../layout/layout.h"
 #include "../coding/coding.h"
 
-/* CD-XA - from Sony PS1 CDs */
+/* CD-XA - from Sony PS1 and Philips CD-i CD audio */
 VGMSTREAM * init_vgmstream_xa(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     off_t start_offset;
     int loop_flag = 0, channel_count, sample_rate;
     int is_blocked;
     size_t file_size = get_streamfile_size(streamFile);
+
 
     /* checks
      * .xa: common, .str: sometimes (mainly videos)
@@ -53,7 +54,7 @@ VGMSTREAM * init_vgmstream_xa(STREAMFILE *streamFile) {
             for (i = 0; i < (sector_size/block_size); i++) {
                 /* XA headers checks: filter indexes should be 0..3, and shifts 0..C */
                 for (j = 0; j < 16; j++) {
-                    uint8_t header = (uint8_t)read_8bit(test_offset + i, streamFile);
+                    uint8_t header = (uint8_t)read_8bit(test_offset + j, streamFile);
                     if (((header >> 4) & 0xF) > 0x03)
                         goto fail;
                     if (((header >> 0) & 0xF) > 0x0c)

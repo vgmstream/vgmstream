@@ -800,6 +800,15 @@ STREAMFILE * open_streamfile_by_filename(STREAMFILE *streamFile, const char * na
     return streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
 }
 
+STREAMFILE * reopen_streamfile(STREAMFILE *streamFile, size_t buffer_size) {
+    char pathname[PATH_LIMIT];
+
+    if (buffer_size == 0)
+        buffer_size = STREAMFILE_DEFAULT_BUFFER_SIZE;
+    streamFile->get_name(streamFile,pathname,sizeof(pathname));
+    return streamFile->open(streamFile,pathname,buffer_size);
+}
+
 
 /* Read a line into dst. The source files are lines separated by CRLF (Windows) / LF (Unux) / CR (Mac).
  * The line will be null-terminated and CR/LF removed if found.
