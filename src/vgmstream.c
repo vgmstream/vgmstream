@@ -84,6 +84,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_pos,
     init_vgmstream_nwa,
     init_vgmstream_ea_1snh,
+    init_vgmstream_ea_eacs,
     init_vgmstream_xss,
     init_vgmstream_sl3,
     init_vgmstream_hgc1,

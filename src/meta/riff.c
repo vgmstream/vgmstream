@@ -274,8 +274,9 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
      * .xss: Spider-Man The Movie (Xbox)
      * .xsew: Mega Man X Legacy Collections (PC)
      * .adpcm: Angry Birds Transformers (Android)
-     * .adw: Dead Rising 2 (PC) */
-    if ( check_extensions(streamFile, "wav,lwav,xwav,da,dax,cd,med,snd,adx,adp,xss,xsew,adpcm,adw") ) {
+     * .adw: Dead Rising 2 (PC)
+     * .wd: Genma Onimusha (Xbox) voices */
+    if ( check_extensions(streamFile, "wav,lwav,xwav,da,dax,cd,med,snd,adx,adp,xss,xsew,adpcm,adw,wd") ) {
         ;
     }
     else if ( check_extensions(streamFile, "mwv") ) {
@@ -312,13 +313,13 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
     /* some Dreamcast/Naomi games do this [Headhunter (DC), Bomber hehhe (DC)] */
     if (riff_size + 0x04 == file_size && read_16bitLE(0x14,streamFile)==0x0000)
         riff_size -= 0x04;
-    /* some PC games do this [Halo 2 (PC)] */
+    /* some PC games do this [Halo 2 (PC)] (possibly bad extractor? 'Gravemind Tool') */
     if (riff_size + 0x04 == file_size && read_16bitLE(0x14,streamFile)==0x0069)
         riff_size -= 0x04;
 
-
     /* check for truncated RIFF */
-    if (file_size < riff_size+0x08) goto fail;
+    if (file_size < riff_size+0x08)
+        goto fail;
 
     /* read through chunks to verify format and find metadata */
     {

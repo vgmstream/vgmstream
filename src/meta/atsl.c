@@ -1,7 +1,7 @@
 #include "meta.h"
 #include "../coding/coding.h"
 
-typedef enum { ATRAC3, ATRAC9, KOVS, KTSS } atsl_codec;
+typedef enum { ATRAC3, ATRAC9, KOVS, KTSS, KTAC } atsl_codec;
 
 /* .ATSL - Koei Tecmo audio container [One Piece Pirate Warriors (PS3), Warriors All-Stars (PC)] */
 VGMSTREAM * init_vgmstream_atsl(STREAMFILE *streamFile) {
@@ -12,7 +12,7 @@ VGMSTREAM * init_vgmstream_atsl(STREAMFILE *streamFile) {
     atsl_codec codec;
     const char* fake_ext;
     off_t subfile_offset = 0;
-    size_t subfile_size = 0, header_size;
+    size_t subfile_size = 0, header_size, entry_size;
     int32_t (*read_32bit)(off_t,STREAMFILE*) = NULL;
 
 
@@ -39,24 +39,31 @@ VGMSTREAM * init_vgmstream_atsl(STREAMFILE *streamFile) {
      * - 00060301 00010301  atsl in G1L from One Piece Pirate Warriors 3 (PC)[KOVS]
      * - 000A0301 00010501  atsl in G1L from Warriors All-Stars (PC)[KOVS]
      * - 000B0301 00080601  atsl in G1l from Sengoku Musou Sanada Maru (Switch)[KTSS]
+     * - 010C0301 01060601  .atsl from Dynasty Warriors 9 (PS4)[KTAC]
      */
-    type = read_8bit(0x0d, streamFile);
+    entry_size = 0x28;
+    type = read_16bitLE(0x0c, streamFile);
     switch(type) {
-        case 0x01:
+        case 0x0100:
             codec = KOVS;
             fake_ext = "kvs";
             break;
-        case 0x02:
+        case 0x0200:
             codec = ATRAC3;
             fake_ext = "at3";
             big_endian = 1;
             break;
-        case 0x04:
-        case 0x06:
+        case 0x0400:
+        case 0x0600:
             codec = ATRAC9;
             fake_ext = "at9";
             break;
-        case 0x08:
+        case 0x0601:
+            codec = KTAC;
+            fake_ext = "ktac";
+            entry_size = 0x3c;
+            break;
+        case 0x0800:
             codec = KTSS;
             fake_ext = "ktss";
             break;
@@ -78,14 +85,15 @@ VGMSTREAM * init_vgmstream_atsl(STREAMFILE *streamFile) {
         for (i = 0; i < entries; i++) {
             int is_unique = 1;
 
-            off_t entry_offset = read_32bit(header_size + i*0x28 + 0x04,streamFile);
-            size_t entry_size  = read_32bit(header_size + i*0x28 + 0x08,streamFile);
-            /* 0x00: id?, 0x08+: sample rate/num_samples/loop_start/etc, matching subfile header */
+            /* 0x00: id */
+            off_t entry_subfile_offset = read_32bit(header_size + i*entry_size + 0x04,streamFile);
+            size_t entry_subfile_size  = read_32bit(header_size + i*entry_size + 0x08,streamFile);
+            /* 0x08+: channels/sample rate/num_samples/loop_start/etc (match subfile header) */
 
             /* check if current entry was repeated in a prev entry */
             for (j = 0; j < i; j++)  {
-                off_t prev_offset = read_32bit(header_size + j*0x28 + 0x04,streamFile);
-                if (prev_offset == entry_offset) {
+                off_t prev_offset = read_32bit(header_size + j*entry_size + 0x04,streamFile);
+                if (prev_offset == entry_subfile_offset) {
                     is_unique = 0;
                     break;
                 }
@@ -97,8 +105,8 @@ VGMSTREAM * init_vgmstream_atsl(STREAMFILE *streamFile) {
 
             /* target GET, but keep going to count subsongs */
             if (!subfile_offset && target_subsong == total_subsongs) {
-                subfile_offset = entry_offset;
-                subfile_size   = entry_size;
+                subfile_offset = entry_subfile_offset;
+                subfile_size   = entry_subfile_size;
             }
         }
     }
@@ -129,6 +137,10 @@ VGMSTREAM * init_vgmstream_atsl(STREAMFILE *streamFile) {
             vgmstream = init_vgmstream_ktss(temp_streamFile);
             if (!vgmstream) goto fail;
             break;
+        case KTAC:
+            //vgmstream = init_vgmstream_ktac(temp_streamFile); //Koei Tecto VBR-like ATRAC9
+            //if (!vgmstream) goto fail;
+            //break;
         default:
             goto fail;
     }

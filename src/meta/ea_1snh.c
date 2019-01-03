@@ -17,27 +17,33 @@ typedef struct {
     int32_t loop_start;
     int32_t loop_end;
     int32_t loop_start_offset;
+    int32_t data_offset;
 
     int big_endian;
     int loop_flag;
     int is_sead;
     int codec_config;
+    int is_bank;
+    int total_subsongs;
 } ea_header;
 
 static int parse_header(STREAMFILE* streamFile, ea_header* ea, off_t begin_offset);
+static VGMSTREAM * init_vgmstream_main(STREAMFILE *streamFile, ea_header* ea);
+
 static void set_ea_1snh_num_samples(STREAMFILE* streamFile, off_t start_offset, ea_header* ea);
 static int get_ea_1snh_ima_version(STREAMFILE* streamFile, off_t start_offset, const ea_header* ea);
 
-/* EA 1SNh - from early EA games (~1996, ex. Need for Speed) */
+/* EA 1SNh - from early EA games, stream (~1996, ex. Need for Speed) */
 VGMSTREAM * init_vgmstream_ea_1snh(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
-    off_t start_offset;
     ea_header ea = {0};
+    off_t eacs_offset;
 
 
     /* checks */
-    /* .asf/as4: common, cnk: some PS games, .sng: fake for plugins (to mimic EA SCHl's common extension) */
-    /* .uv, .tgq: some SAT games  */
+    /* .asf/as4: common
+     * .cnk: some PS games
+     * .sng: fake for plugins (to mimic EA SCHl's common extension)
+     * .uv/tgq: some SAT games (video only?) */
     if (!check_extensions(streamFile,"asf,as4,cnk,sng,uv,tgq"))
         goto fail;
 
@@ -47,45 +53,117 @@ VGMSTREAM * init_vgmstream_ea_1snh(STREAMFILE *streamFile) {
 
     /* stream is divided into blocks/chunks: 1SNh=audio header, 1SNd=data xN, 1SNl=loop end, 1SNe=end.
      * Video uses various blocks (kVGT/fVGT/etc) and sometimes alt audio blocks (SEAD/SNDC/SEND). */
-
     ea.is_sead = read_32bitBE(0x00,streamFile) == 0x53454144;
 
     /* use block size as endian marker (Saturn = BE) */
-    ea.big_endian = !(read_32bitLE(0x04,streamFile) < 0x0000FFFF);
+    ea.big_endian = guess_endianness32bit(0x04,streamFile);
 
-    if (!parse_header(streamFile,&ea, 0x08))
+    eacs_offset = 0x08; /* after 1SNh block id+size */
+
+    if (!parse_header(streamFile,&ea, eacs_offset))
+        goto fail;
+    return init_vgmstream_main(streamFile, &ea);
+
+fail:
+    return NULL;
+}
+
+/* EA EACS - from early EA games, bank (~1996, ex. Need for Speed) */
+VGMSTREAM * init_vgmstream_ea_eacs(STREAMFILE *streamFile) {
+    ea_header ea = {0};
+    off_t eacs_offset;
+
+
+    /* checks */
+    /* .eas: single bank [Need for Speed (PC)]
+     * .bnk: multi bank [Need for Speed (PC)] */
+    if (!check_extensions(streamFile,"eas,bnk"))
         goto fail;
 
-    start_offset = 0x00;
+    /* plain data without blocks, can contain N*(EACS header) + N*(data), or N (EACS header + data) */
+    ea.is_bank = 1;
+
+    /* use ??? as endian marker (Saturn = BE) */
+    //ea.big_endian = guess_endianness32bit(0x04,streamFile);
+
+    if (read_32bitBE(0x00,streamFile) == 0x45414353) { /* "EACS" */
+        /* single bank variant */
+        eacs_offset = 0x00;
+    }
+    else if (read_32bitBE(0x00,streamFile) == 0x00) {
+        /* multi bank variant */
+        int i;
+        int target_subsong = streamFile->stream_index;
+
+        if (target_subsong == 0) target_subsong = 1;
+        if (target_subsong < 0) goto fail;
+
+        /* offsets to EACSs are scattered in the first 0x200
+         * this looks dumb but seems like the only way */
+        eacs_offset = 0;
+        for (i = 0x00; i < 0x200; i += 0x04) {
+            off_t bank_offset = read_32bitLE(i, streamFile);
+            if (bank_offset == 0)
+                continue;
+
+            ea.total_subsongs++;
+
+            /* parse mini bank header */
+            if (ea.total_subsongs == target_subsong) {
+                /* 0x00: some id or flags? */
+                eacs_offset = read_32bitLE(bank_offset + 0x04, streamFile);
+                /* rest: not sure if part of this header */
+            }
+        }
+
+        if (eacs_offset == 0)
+            goto fail;
+    }
+    else {
+        goto fail;
+    }
+
+    if (!parse_header(streamFile,&ea, eacs_offset))
+        goto fail;
+    return init_vgmstream_main(streamFile, &ea);
+
+fail:
+    return NULL;
+}
+
+
+static VGMSTREAM * init_vgmstream_main(STREAMFILE *streamFile, ea_header* ea) {
+    VGMSTREAM * vgmstream = NULL;
 
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(ea.channels, ea.loop_flag);
+    vgmstream = allocate_vgmstream(ea->channels, ea->loop_flag);
     if (!vgmstream) goto fail;
 
-    vgmstream->sample_rate = ea.sample_rate;
-    vgmstream->num_samples = ea.num_samples;
-    vgmstream->loop_start_sample = ea.loop_start;
-    vgmstream->loop_end_sample = ea.loop_end;
+    vgmstream->sample_rate = ea->sample_rate;
+    vgmstream->num_samples = ea->num_samples;
+    vgmstream->loop_start_sample = ea->loop_start;
+    vgmstream->loop_end_sample = ea->loop_end;
 
-    vgmstream->codec_endian = ea.big_endian;
-    vgmstream->layout_type = layout_blocked_ea_1snh;
-    vgmstream->meta_type = meta_EA_1SNH;
+    vgmstream->codec_endian = ea->big_endian;
+    vgmstream->layout_type = ea->is_bank ? layout_none : layout_blocked_ea_1snh;
+    vgmstream->meta_type = ea->is_bank ? meta_EA_EACS : meta_EA_1SNH;
+    vgmstream->num_streams = ea->total_subsongs;
 
-    switch (ea.codec) {
+    switch (ea->codec) {
         case EA_CODEC_PCM: /* Need for Speed (PC) */
-            vgmstream->coding_type = ea.bits==1 ? coding_PCM8_int : coding_PCM16_int;
+            vgmstream->coding_type = ea->bits==1 ? coding_PCM8_int : coding_PCM16_int;
             break;
 
         case EA_CODEC_ULAW: /* Crusader: No Remorse movies (SAT), FIFA 96 movies (SAT) */
-            if (ea.bits && ea.bits!=2) goto fail; /* only set in EACS */
+            if (ea->bits && ea->bits != 2) goto fail; /* only set in EACS */
             vgmstream->coding_type = coding_ULAW_int;
             break;
 
         case EA_CODEC_IMA: /* Need for Speed II (PC) */
-            if (ea.bits && ea.bits!=2) goto fail; /* only in EACS */
+            if (ea->bits && ea->bits != 2) goto fail; /* only in EACS */
             vgmstream->coding_type = coding_DVI_IMA; /* stereo/mono, high nibble first */
-            vgmstream->codec_config = ea.codec_config;
+            vgmstream->codec_config = ea->codec_config;
             break;
 
         case EA_CODEC_PSX: /* Need for Speed (PS) */
@@ -93,12 +171,12 @@ VGMSTREAM * init_vgmstream_ea_1snh(STREAMFILE *streamFile) {
             break;
 
         default:
-            VGM_LOG("EA: unknown codec 0x%02x\n", ea.codec);
+            VGM_LOG("EA EACS: unknown codec 0x%02x\n", ea->codec);
             goto fail;
     }
 
 
-    if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
+    if (!vgmstream_open_stream(vgmstream,streamFile,ea->data_offset))
         goto fail;
     return vgmstream;
 
@@ -116,15 +194,18 @@ static int parse_header(STREAMFILE* streamFile, ea_header* ea, off_t offset) {
         ea->bits        =  read_8bit(offset+0x08, streamFile);
         ea->channels    =  read_8bit(offset+0x09, streamFile);
         ea->codec       =  read_8bit(offset+0x0a, streamFile);
-        ea->type        =  read_8bit(offset+0x0b, streamFile);
+        ea->type        =  read_8bit(offset+0x0b, streamFile); /* block type? 0=1SNh, -1=bank */
         ea->num_samples = read_32bit(offset+0x0c, streamFile);
         ea->loop_start  = read_32bit(offset+0x10, streamFile);
         ea->loop_end    = read_32bit(offset+0x14, streamFile) + ea->loop_start; /* loop length */
-        /* 0x18: data start? (0x00), 0x1c: pan/volume/etc? (0x7F), rest can be padding/garbage */
-        VGM_ASSERT(ea->type != 0, "EA EACS: unknown type\n"); /* block type? */
+        ea->data_offset = read_32bit(offset+0x18, streamFile); /* 0 when blocked */
+        /* 0x1c: pan/volume/etc? (0x7F)
+         * rest may be padding/garbage */
+        //VGM_ASSERT(ea->type != 0, "EA EACS: unknown type %i\n", ea->type);
 
         if (ea->codec == EA_CODEC_IMA)
             ea->codec_config = get_ea_1snh_ima_version(streamFile, 0x00, ea);
+        /* EACS banks with empty values exist but will be rejected later */
     }
     else if (ea->is_sead) {
         /* alt subheader (found in some PC videos) */
