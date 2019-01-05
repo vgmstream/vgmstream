@@ -409,7 +409,7 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
             xwb.fix_xma_num_samples = 0;
         }
     }
-VGM_LOG("fix: num=%i, loop=%i\n", xwb.fix_xma_num_samples,xwb.fix_xma_loop_samples);
+
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(xwb.channels,xwb.loop_flag);
