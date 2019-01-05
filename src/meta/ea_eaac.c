@@ -133,53 +133,6 @@ fail:
     return NULL;
 }
 
-/* .SPS - from Frostbite engine games, v1 header */
-VGMSTREAM * init_vgmstream_ea_sps_fb(STREAMFILE *streamFile) { //todo remove in the future, use better extractors
-    VGMSTREAM * vgmstream = NULL;
-    off_t start_offset = 0, header_offset = 0, sps_offset, max_offset;
-
-    /* checks */
-    /* should be .sps once extracted (filenames are hashed) */
-    if (!check_extensions(streamFile,"sps"))
-        goto fail;
-    if (read_32bitBE(0x00,streamFile) != 0x011006C0 &&  /* Need for Speed: The Run (PS3), Need for Speed: Rivals (PS4) */
-        read_32bitBE(0x00,streamFile) != 0x01100180 &&  /* Need for Speed: The Run (X360) */
-        read_32bitBE(0x00,streamFile) != 0x01100000)    /* Need for Speed: The Run (PC) */
-        goto fail;
-
-    /* file has a Frostbite descriptor (SoundWaveAsset segments) data before actual .sps, exact size unknown.
-     * 0x00: segments/flags/sizes? 0x04: SegmentLength?, 0x08: SeekTableOffset?, 0x0c: mini SPS header
-     * rest: unknown fields? may be padded? (ex. 0x22 > 0x24, 0x1d > 0x20 */
-
-    /* actual offsets are probably somewhere but for now just manually search. */
-    sps_offset = read_32bitBE(0x08, streamFile); /* seek table, number of entries unknown */
-    max_offset = sps_offset + 0x3000;
-    if (max_offset > get_streamfile_size(streamFile))
-        max_offset = get_streamfile_size(streamFile);
-
-    /* find .sps start block */
-    while (sps_offset < max_offset) {
-        if ((read_32bitBE(sps_offset, streamFile) & 0xFFFFFF00) == 0x48000000) {
-            header_offset = sps_offset + 0x04;
-            start_offset = sps_offset + (read_32bitBE(sps_offset, streamFile) & 0x00FFFFFF);
-            break;
-        }
-        sps_offset += 0x04;
-    }
-
-    if (!start_offset)
-        goto fail; /* not found */
-
-    vgmstream = init_vgmstream_eaaudiocore_header(streamFile, streamFile, header_offset, start_offset, meta_EA_SPS);
-    if (!vgmstream) goto fail;
-
-    return vgmstream;
-
-fail:
-    close_vgmstream(vgmstream);
-    return NULL;
-}
-
 /* EA ABK - ABK header seems to be same as in the old games but the sound table is different and it contains SNR/SNS sounds instead */
 VGMSTREAM * init_vgmstream_ea_abk_new(STREAMFILE *streamFile) {
     int is_dupe, total_sounds = 0, target_stream = streamFile->stream_index;
@@ -467,9 +420,8 @@ VGMSTREAM * init_vgmstream_ea_mpf_mus_new(STREAMFILE *streamFile) {
     uint32_t num_sounds;
     uint8_t version, sub_version, block_id;
     off_t table_offset, entry_offset, snr_offset, sns_offset;
-    size_t snr_size, sns_size;
+    size_t /*snr_size,*/ sns_size;
     int32_t(*read_32bit)(off_t, STREAMFILE*);
-    int16_t(*read_16bit)(off_t, STREAMFILE*);
     STREAMFILE *musFile = NULL;
     VGMSTREAM *vgmstream = NULL;
     int target_stream = streamFile->stream_index;
@@ -481,10 +433,8 @@ VGMSTREAM * init_vgmstream_ea_mpf_mus_new(STREAMFILE *streamFile) {
     /* detect endianness */
     if (read_32bitBE(0x00, streamFile) == 0x50464478) { /* "PFDx" */
         read_32bit = read_32bitBE;
-        read_16bit = read_16bitBE;
     } else if (read_32bitBE(0x00, streamFile) == 0x78444650) { /* "xDFP" */
         read_32bit = read_32bitLE;
-        read_16bit = read_16bitLE;
     } else {
         goto fail;
     }
@@ -520,7 +470,7 @@ VGMSTREAM * init_vgmstream_ea_mpf_mus_new(STREAMFILE *streamFile) {
     entry_offset = table_offset + (target_stream - 1) * 0x1c;
     snr_offset = read_32bit(entry_offset + 0x08, musFile) * 0x10;
     sns_offset = read_32bit(entry_offset + 0x0c, musFile) * 0x80;
-    snr_size = read_32bit(entry_offset + 0x10, musFile);
+  //snr_size = read_32bit(entry_offset + 0x10, musFile);
     sns_size = read_32bit(entry_offset + 0x14, musFile);
 
     block_id = read_8bit(sns_offset, musFile);

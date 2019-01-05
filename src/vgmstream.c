@@ -192,7 +192,6 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_ps2_joe,
     init_vgmstream_vgs,
     init_vgmstream_dc_dcsw_dcs,
-    init_vgmstream_wii_smp,
     init_vgmstream_mul,
     init_vgmstream_thp,
     init_vgmstream_wii_sts,
@@ -255,7 +254,6 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_ps2_msa,
     init_vgmstream_ps2_voi,
     init_vgmstream_ps2_khv,
-    init_vgmstream_pc_smp,
     init_vgmstream_ngc_rkv,
     init_vgmstream_dsp_ddsp,
     init_vgmstream_p3d,
@@ -407,7 +405,6 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_msb_msh,
     init_vgmstream_txtp,
     init_vgmstream_smc_smh,
-    init_vgmstream_ea_sps_fb,
     init_vgmstream_ppst,
     init_vgmstream_opus_sps_n1_segmented,
     init_vgmstream_ubi_bao_pk,
@@ -462,6 +459,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_nus3audio,
     init_vgmstream_imc,
     init_vgmstream_imc_container,
+    init_vgmstream_smp,
 
     /* lowest priority metas (should go after all metas, and TXTH should go before raw formats) */
     init_vgmstream_txth,            /* proper parsers should supersede TXTH, once added */
