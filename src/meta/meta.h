@@ -732,8 +732,6 @@ VGMSTREAM * init_vgmstream_txtp(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_smc_smh(STREAMFILE * streamFile);
 
-VGMSTREAM * init_vgmstream_ea_sps_fb(STREAMFILE *streamFile);
-
 VGMSTREAM * init_vgmstream_ppst(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_opus_sps_n1_segmented(STREAMFILE *streamFile);
