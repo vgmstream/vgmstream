@@ -3,7 +3,7 @@
 
 
 typedef enum { UBI_ADPCM, RAW_PCM, RAW_PSX, RAW_DSP, RAW_XBOX, FMT_VAG, FMT_AT3, RAW_AT3, FMT_XMA1, RAW_XMA1, FMT_OGG } ubi_sb_codec;
-typedef enum { UBI_PC, UBI_PS2, UBI_XBOX, UBI_GC, UBI_X360, UBI_3DS, UBI_PS3, UBI_WII, UBI_PSP } ubi_sb_platform;
+typedef enum { UBI_PC, UBI_PS2, UBI_XBOX, UBI_GC, UBI_X360, UBI_PSP, UBI_PS3, UBI_WII, UBI_3DS } ubi_sb_platform;
 typedef struct {
     ubi_sb_platform platform;
     int big_endian;
@@ -66,6 +66,7 @@ typedef struct {
     int has_internal_names;     /* resource name doubles as internal name in some cases */
     int has_extra_name_flag;    /* if cfg_extra_name is set (since often extra_name = -1 is 'not set' and >= 0 is offset) */
     int has_rotating_ids;       /* stream id isn't set but is assigned using sequential rotation of sorts */
+    //todo see if has_extra_name_flag can be removed
 
     /* derived */
     size_t section1_offset;
@@ -99,6 +100,7 @@ typedef struct {
 
 static VGMSTREAM * init_vgmstream_ubi_sb_main(ubi_sb_header *sb, STREAMFILE *streamFile);
 static int parse_sb_header(ubi_sb_header * sb, STREAMFILE *streamFile, int target_stream);
+static int config_sb_platform(ubi_sb_header * sb, STREAMFILE *streamFile);
 static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile);
 
 /* .SBx - banks from Ubisoft's sound engine ("DARE" / "UbiSound Driver") games in ~2000-2008+ */
@@ -119,50 +121,8 @@ VGMSTREAM * init_vgmstream_ubi_sb(STREAMFILE *streamFile) {
 
 
     /* PLATFORM DETECTION */
-    /* sigh... PSP hijacks not one but *two* platform indexes */
-    /* please add any PSP game versions under sb4 and sb5 sections so we can properly identify platform */
-    sb.version = read_32bitLE(0x00, streamFile);
-
-    if (check_extensions(streamFile, "sb0")) {
-        sb.platform = UBI_PC;
-    } else if (check_extensions(streamFile, "sb1")) {
-        sb.platform = UBI_PS2;
-    } else if (check_extensions(streamFile, "sb2")) {
-        sb.platform = UBI_XBOX;
-    } else if (check_extensions(streamFile, "sb3")) {
-        sb.platform = UBI_GC;
-    } else if (check_extensions(streamFile, "sb4")) {
-        switch (sb.version) {
-            case 0x0012000C: /* Prince of Persia: Revelations (2005) */
-                sb.platform = UBI_PSP;
-                break;
-            default:
-                sb.platform = UBI_X360;
-                break;
-        }
-    } else if (check_extensions(streamFile, "sb5")) {
-        switch (sb.version) {
-            case 0x00180005: /* Prince of Persia: Rival Swords (2007) */
-            case 0x00180006: /* Rainbow Six Vegas (2007) */
-                sb.platform = UBI_PSP;
-                break;
-            default:
-                sb.platform = UBI_3DS;
-                break;
-        }
-    } else if (check_extensions(streamFile, "sb6")) {
-        sb.platform = UBI_PS3;
-    } else if (check_extensions(streamFile, "sb7")) {
-        sb.platform = UBI_WII;
-    } else {
+    if (!config_sb_platform(&sb, streamFile))
         goto fail;
-    }
-
-    /* CONFIG */
-    sb.big_endian = (sb.platform == UBI_GC ||
-        sb.platform == UBI_PS3 ||
-        sb.platform == UBI_X360 ||
-        sb.platform == UBI_WII);
     if (sb.big_endian) {
         read_32bit = read_32bitBE;
     } else {
@@ -229,53 +189,8 @@ VGMSTREAM * init_vgmstream_ubi_sm(STREAMFILE *streamFile) {
 
 
     /* PLATFORM DETECTION */
-    /* sigh... PSP hijacks not one but *two* platform indexes */
-    /* please add any PSP game versions under sb4 and sb5 sections so we can properly identify platform */
-    sb.version = read_32bitLE(0x00, streamFile);
-
-    if (check_extensions(streamFile, "sm0,lm0")) {
-        sb.platform = UBI_PC;
-    } else if (check_extensions(streamFile, "sm1,lm1")) {
-        sb.platform = UBI_PS2;
-    } else if (check_extensions(streamFile, "sm2,lm2")) {
-        sb.platform = UBI_XBOX;
-    } else if (check_extensions(streamFile, "sm3,lm3")) {
-        sb.platform = UBI_GC;
-    } else if (check_extensions(streamFile, "sm4,lm4")) {
-        switch (sb.version) {
-            case 0x0012000C:  /* Splinter Cell: Essentials (2006) */
-                sb.platform = UBI_PSP;
-                break;
-            default:
-                sb.platform = UBI_X360;
-                break;
-        }
-    } else if (check_extensions(streamFile, "sm5,lm5")) {
-        switch (sb.version) {
-            case 0x00180003: /* Open Season (2007) */
-            case 0x00180007: /* Star Wars - Lethal Alliance (2007) */
-            case 0x00190001: /* TMNT (2007) */
-            case 0x00190005: /* Surf's Up (2007) */
-            case 0x001D0000: /* Michael Jackson: The Experience (2010) */
-                sb.platform = UBI_PSP;
-                break;
-            default:
-                sb.platform = UBI_3DS;
-                break;
-        }
-    } else if (check_extensions(streamFile, "sm6,lm6")) {
-        sb.platform = UBI_PS3;
-    } else if (check_extensions(streamFile, "sm7,lm7")) {
-        sb.platform = UBI_WII;
-    } else {
+    if (!config_sb_platform(&sb, streamFile))
         goto fail;
-    }
-
-    /* CONFIG */
-    sb.big_endian = (sb.platform == UBI_GC ||
-        sb.platform == UBI_PS3 ||
-        sb.platform == UBI_X360 ||
-        sb.platform == UBI_WII);
     if (sb.big_endian) {
         read_32bit = read_32bitBE;
     } else {
@@ -1204,6 +1119,74 @@ fail:
     return 0;
 }
 
+static int config_sb_platform(ubi_sb_header * sb, STREAMFILE *streamFile) {
+    char filename[PATH_LIMIT];
+    int filename_len;
+    char platform_char;
+    uint32_t version;
+
+    /* to find out hijacking platforms */
+    version = read_32bitLE(0x00, streamFile);
+
+    /* get X from .sbX/smX */
+    get_streamfile_name(streamFile,filename,sizeof(filename));
+    filename_len = strlen(filename);
+    platform_char = filename[filename_len - 1];
+
+    switch(platform_char) {
+        case '0':
+            sb->platform = UBI_PC;
+            break;
+        case '1':
+            sb->platform = UBI_PS2;
+            break;
+        case '2':
+            sb->platform = UBI_XBOX;
+            break;
+        case '3':
+            sb->platform = UBI_GC;
+            break;
+        case '4':
+            switch(version) { /* early PSP clashes with X360 */
+                case 0x0012000C: /* multiple games use this ID and all are sb4/sm4 */
+                    sb->platform = UBI_PSP;
+                    break;
+                default:
+                    sb->platform = UBI_X360;
+                    break;
+            }
+            break;
+        case '5':
+            switch(version) { /* 3DS could be sb8/sm8 but somehow hijacks extension */
+                case 0x00130001: /* Splinter Cell 3DS (2011) */
+                    sb->platform = UBI_3DS;
+                    break;
+                default:
+                    sb->platform = UBI_PSP;
+                    break;
+            }
+            break;
+        case '6':
+            sb->platform = UBI_PS3;
+            break;
+        case '7':
+            sb->platform = UBI_WII;
+            break;
+        default:
+            goto fail;
+    }
+
+    sb->big_endian =
+            sb->platform == UBI_GC ||
+            sb->platform == UBI_PS3 ||
+            sb->platform == UBI_X360 ||
+            sb->platform == UBI_WII;
+
+
+    return 1;
+fail:
+    return 0;
+}
 
 static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
     int is_biadd_psp = 0;
