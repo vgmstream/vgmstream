@@ -107,7 +107,7 @@
     <ClInclude Include="meta\fsb5_interleave_streamfile.h" />
     <ClInclude Include="meta\kma9_streamfile.h" />
     <ClInclude Include="meta\ppst_streamfile.h" />
-    <ClInclude Include="meta\ps2_psh_streamfile.h" />
+    <ClInclude Include="meta\vsv_streamfile.h" />
     <ClInclude Include="meta\opus_interleave_streamfile.h" />
     <ClInclude Include="meta\sqex_scd_streamfile.h" />
     <ClInclude Include="meta\ubi_lyn_ogg_streamfile.h" />
@@ -378,7 +378,7 @@
     <ClCompile Include="meta\ps2_p2bt.c" />
     <ClCompile Include="meta\ps2_pcm.c" />
     <ClCompile Include="meta\ps2_pnb.c" />
-    <ClCompile Include="meta\ps2_psh.c" />
+    <ClCompile Include="meta\vsv.c" />
     <ClCompile Include="meta\ps2_rnd.c" />
     <ClCompile Include="meta\ps2_rstm.c" />
     <ClCompile Include="meta\ps2_rxws.c" />

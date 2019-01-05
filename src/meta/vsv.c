@@ -1,6 +1,6 @@
 #include "meta.h"
 #include "../coding/coding.h"
-#include "ps2_psh_streamfile.h"
+#include "vsv_streamfile.h"
 
 
 /* .VSV - from Square Enix games [Dawn of Mana: Seiken Densetsu 4 (PS2), Kingdom Hearts Re:Chain of Memories (PS2)] */
