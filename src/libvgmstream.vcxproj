@@ -336,7 +336,6 @@
     <ClCompile Include="meta\p3d.c" />
     <ClCompile Include="meta\pc_al2.c" />
     <ClCompile Include="meta\pc_mxst.c" />
-    <ClCompile Include="meta\pc_smp.c" />
     <ClCompile Include="meta\sab.c" />
     <ClCompile Include="meta\pc_xa30.c" />
     <ClCompile Include="meta\pcm_sre.c" />
@@ -434,6 +433,7 @@
     <ClCompile Include="meta\sfl.c" />
     <ClCompile Include="meta\sli.c" />
     <ClCompile Include="meta\smc_smh.c" />
+    <ClCompile Include="meta\smp.c" />
     <ClCompile Include="meta\smv.c" />
     <ClCompile Include="meta\sps_n1.c" />
     <ClCompile Include="meta\spt_spd.c" />
@@ -466,7 +466,6 @@
     <ClCompile Include="meta\wii_04sw.c" />
     <ClCompile Include="meta\wii_bns.c" />
     <ClCompile Include="meta\wii_mus.c" />
-    <ClCompile Include="meta\wii_smp.c" />
     <ClCompile Include="meta\wii_sng.c" />
     <ClCompile Include="meta\wii_sts.c" />
     <ClCompile Include="meta\ws_aud.c" />

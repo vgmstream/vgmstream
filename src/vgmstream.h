@@ -439,7 +439,7 @@ typedef enum {
     meta_ZWDSP,             /* Zack and Wiki */
     meta_VGS,               /* Guitar Hero Encore - Rocks the 80s */
     meta_DC_DCSW_DCS,       /* Evil Twin - Cypriens Chronicles (DC) */
-    meta_WII_SMP,           /* Mushroom Men - The Spore Wars */
+    meta_SMP,
     meta_WII_SNG,           /* Excite Trucks */
     meta_MUL,
     meta_SAT_BAKA,          /* Crypt Killer */
@@ -531,7 +531,6 @@ typedef enum {
     meta_PS2_MSA,           /* Psyvariar -Complete Edition- */
     meta_PS2_VOI,           /* RAW Danger (Zettaizetsumei Toshi 2 - Itetsuita Kiokutachi) [PS2] */
     meta_PS2_KHV,           /* Kingdom Hearts 2 VAG streams */
-    meta_PC_SMP,            /* Ghostbusters PC .smp */
     meta_P3D,               /* Prototype P3D */
     meta_PS2_TK1,           /* Tekken (NamCollection) */
     meta_NGC_RKV,           /* Legacy of Kain - Blood Omen 2 (GC) */
