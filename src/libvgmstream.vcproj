@@ -265,7 +265,7 @@
                     >
                 </File>
                 <File
-                    RelativePath=".\meta\ps2_psh_streamfile.h"
+                    RelativePath=".\meta\vsv_streamfile.h"
                     >
                 </File>
                 <File
@@ -1131,7 +1131,7 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\ps2_psh.c"
+					RelativePath=".\meta\vsv.c"
 					>
 				</File>
 				<File

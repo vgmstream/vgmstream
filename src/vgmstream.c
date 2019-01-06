@@ -114,7 +114,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_mus_acm,
     init_vgmstream_ps2_kces,
     init_vgmstream_ps2_dxh,
-    init_vgmstream_ps2_psh,
+    init_vgmstream_vsv,
     init_vgmstream_scd_pcm,
     init_vgmstream_ps2_pcm,
     init_vgmstream_ps2_rkv,

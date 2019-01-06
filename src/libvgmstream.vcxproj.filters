@@ -98,7 +98,7 @@
     <ClInclude Include="meta\ppst_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="meta\ps2_psh_streamfile.h">
+    <ClInclude Include="meta\vsv_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="meta\sqex_scd_streamfile.h">
@@ -691,7 +691,7 @@
     <ClCompile Include="meta\ps2_pnb.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\ps2_psh.c">
+    <ClCompile Include="meta\vsv.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ps2_rnd.c">
