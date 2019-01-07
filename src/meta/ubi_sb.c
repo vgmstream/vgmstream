@@ -432,10 +432,7 @@ static VGMSTREAM * init_vgmstream_ubi_sb_main(ubi_sb_header *sb, STREAMFILE *str
             num_frames = sec2_num;
             bits_per_frame = 4;
 
-            if (flag == 0x04) {
-                sec1_num--;
-                sec2_num += 4;
-            } else if (flag == 0x02) {
+            if (flag == 0x02 || flag == 0x04) {
                 bits_per_frame = 2;
             }
 
