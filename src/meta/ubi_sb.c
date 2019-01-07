@@ -9,7 +9,6 @@ typedef struct {
     int big_endian;
     int total_streams;
     int is_external;
-    int autodetect_external;
     ubi_sb_codec codec;
 
     /* map base header info */
@@ -35,8 +34,7 @@ typedef struct {
     /* descriptors, audio header or other config types */
     size_t section2_num;
     size_t section2_offset;
-    /* internal streams table (id and offset), referenced by each header
-     * headers normally only use 0 or 1, and id 0 may not even be defined and sound start from 1 */
+    /* internal streams table (id and offset), referenced by each header */
     size_t section3_num;
     size_t section3_offset;
     /* section with sounds in some map versions */
@@ -63,39 +61,38 @@ typedef struct {
     off_t  cfg_stream_size;
     off_t  cfg_stream_offset;
     off_t  cfg_extra_offset;
-    off_t  cfg_stream_id;
+    off_t  cfg_group_id;
     off_t  cfg_stream_type;
 
-    off_t  cfg_external_flag;       /* stream is external */
-    off_t  cfg_samples_flag;        /* stream loops */
-    off_t  cfg_num_samples;         /* num_samples/loop start */
-    off_t  cfg_num_samples2;        /* num_samples/loop end (if loop set) */
+    off_t  cfg_external_flag;   /* stream is external */
+    off_t  cfg_loop_flag;       /* stream loops */
+    off_t  cfg_num_samples;     /* num_samples/loop start */
+    off_t  cfg_num_samples2;    /* num_samples/loop end (if loop set) */
     off_t  cfg_sample_rate;
     off_t  cfg_channels;
-    off_t  cfg_stream_name;         /* where the resource name is within the header */
-    off_t  cfg_extra_name;          /* where the resource name is within sectionX */
+    off_t  cfg_stream_name;     /* where the resource name is within the header */
+    off_t  cfg_extra_name;      /* where the resource name is within sectionX */
     off_t  cfg_xma_offset;
-    int and_external_flag;          /* value for some flags can be an int or bitflags */
-    int and_samples_flag;
-    int and_stream_id;
-    int shr_stream_id;
-    int has_short_channels;         /* channels value can be 16b or 32b */
-    int has_internal_names;         /* resource name doubles as internal name in earlier games */
-    int has_extra_name_flag;        /* if cfg_extra_name is set (since often extra_name = -1 is 'not set' and >= 0 is offset) */
-    int has_rotating_ids;           /* stream id isn't set but is assigned using sequential rotation of sorts */
+    int and_external_flag;      /* value for some flags can be int or bitflags */
+    int and_loop_flag;
+    int and_group_id;
+    int shr_group_id;
+    int has_full_loop;          /* loop flag means full loop */
+    int has_short_channels;     /* channels value can be 16b or 32b */
+    int has_internal_names;     /* resource name doubles as internal name in earlier games, or may contain garbage */
 
     /* header/stream info */
-    uint32_t header_id;         /* 16b+16b group+sound id identifier (should be unique within sbX, but not smX) */
+    uint32_t header_id;         /* 16b+16b group+sound id identifier (unique within a sbX, but not smX) */
     uint32_t header_type;       /* audio type (we only need 'standard audio' or 'layered audio') */
     size_t stream_size;         /* size of the audio data */
     off_t stream_offset;        /* offset within the data section (internal) or absolute (external) to the audio */
     off_t extra_offset;         /* offset within sectionX to extra data */
 
-    uint32_t stream_id;         /* internal id to reference in section3 */
+    uint32_t group_id;          /* internal id to reference in section3 */
     uint32_t stream_type;       /* rough codec value */
     int loop_flag;
     int loop_start;             /* loop starts that aren't 0 do exist but are very rare (ex. Beowulf PSP #33407) */
-    int num_samples;            /* sometimes not set for internal resources, when set it's the same as manually calculated */
+    int num_samples;            /* should match manually calculated samples */
     int sample_rate;
     int channels;
     char resource_name[255];    /* filename to the external stream, or internal stream info for some games */
@@ -301,21 +298,7 @@ static VGMSTREAM * init_vgmstream_ubi_sb_main(ubi_sb_header *sb, STREAMFILE *str
 
 
     /* open external stream if needed */
-    if (sb->autodetect_external) { /* works most of the time but could give false positives */
-        VGM_LOG("UBI SB: autodetecting external stream '%s'\n", sb->resource_name);
-
-        streamData = open_streamfile_by_filename(streamFile,sb->resource_name);
-        if (!streamData) {
-            streamData = streamFile; /* assume internal */
-            if (sb->stream_size > get_streamfile_size(streamData)) {
-                VGM_LOG("UBI SB: expected external stream\n");
-                goto fail;
-            }
-        } else {
-            sb->is_external = 1;
-        }
-    }
-    else if (sb->is_external) {
+    if (sb->is_external) {
         streamData = open_streamfile_by_filename(streamFile,sb->resource_name);
         if (!streamData) {
             VGM_LOG("UBI SB: external stream '%s' not found\n", sb->resource_name);
@@ -339,43 +322,41 @@ static VGMSTREAM * init_vgmstream_ubi_sb_main(ubi_sb_header *sb, STREAMFILE *str
     vgmstream->num_streams = sb->total_streams;
     vgmstream->stream_size = sb->stream_size;
 
+    vgmstream->num_samples = sb->num_samples;
+    vgmstream->loop_start_sample = sb->loop_start;
+    vgmstream->loop_end_sample = sb->num_samples;
+
     switch(sb->codec) {
         case UBI_ADPCM:
             vgmstream->coding_type = coding_UBI_IMA;
             vgmstream->layout_type = layout_none;
-            if (sb->num_samples == 0)
-                sb->num_samples = ubi_ima_bytes_to_samples(sb->stream_size, sb->channels, streamData, start_offset);
             break;
 
         case RAW_PCM:
             vgmstream->coding_type = coding_PCM16LE; /* always LE even on Wii */
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = 0x02;
-            if (sb->num_samples == 0)
-                sb->num_samples = pcm_bytes_to_samples(sb->stream_size, sb->channels, 16);
             break;
 
         case RAW_PSX:
             vgmstream->coding_type = coding_PSX;
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = (sb->stream_type == 0x00) ? sb->stream_size / sb->channels : 0x10; /* TODO: needs testing */
-            if (sb->num_samples == 0)
-                sb->num_samples = ps_bytes_to_samples(sb->stream_size, sb->channels) ;
+            if (vgmstream->num_samples == 0) { /* early PS2 games may not set it for a few internal streams */
+                vgmstream->num_samples = ps_bytes_to_samples(sb->stream_size, sb->channels) ;
+                vgmstream->loop_end_sample = vgmstream->num_samples;
+            }
             break;
 
         case RAW_XBOX:
             vgmstream->coding_type = coding_XBOX_IMA;
             vgmstream->layout_type = layout_none;
-            if (sb->num_samples == 0)
-                sb->num_samples = xbox_ima_bytes_to_samples(sb->stream_size, sb->channels);
             break;
 
         case RAW_DSP:
             vgmstream->coding_type = coding_NGC_DSP;
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = align_size_to_block(sb->stream_size / sb->channels, 0x04);
-            if (sb->num_samples == 0)
-                sb->num_samples = dsp_bytes_to_samples(sb->stream_size, sb->channels);
 
             /* DSP extra info entry size is 0x40 (first/last 0x10 = unknown), per channel */
             dsp_read_coefs_be(vgmstream,streamFile,sb->extra_offset + 0x10, 0x40);
@@ -391,8 +372,6 @@ static VGMSTREAM * init_vgmstream_ubi_sb_main(ubi_sb_header *sb, STREAMFILE *str
             vgmstream->coding_type = coding_PSX;
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = sb->stream_size / sb->channels;
-            //if (vgmstream->num_samples == 0) //todo remove
-            //    vgmstream->num_samples = ps_bytes_to_samples(sb->stream_size, sb->channels);
             break;
 
 #ifdef VGM_USE_FFMPEG
@@ -411,8 +390,6 @@ static VGMSTREAM * init_vgmstream_ubi_sb_main(ubi_sb_header *sb, STREAMFILE *str
             vgmstream->codec_data = ffmpeg_data;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
-            if (sb->num_samples == 0)
-                sb->num_samples = (int32_t)ffmpeg_data->totalSamples;
             if (ffmpeg_data->skipSamples <= 0) /* in case FFmpeg didn't get them */
                 ffmpeg_set_skip_samples(ffmpeg_data, riff_get_fact_skip_samples(streamData, start_offset));
             break;
@@ -513,24 +490,19 @@ static VGMSTREAM * init_vgmstream_ubi_sb_main(ubi_sb_header *sb, STREAMFILE *str
         }
 #endif
         case FMT_CWAV:
-            if (sb->channels > 1) goto fail; //todo improve parsing
+            if (sb->channels > 1) goto fail; //todo test
             vgmstream->coding_type = coding_NGC_DSP;
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = 0x08;
 
             dsp_read_coefs_le(vgmstream,streamFile,start_offset + 0x7c, 0x40);
-            start_offset += 0xe0;
+            start_offset += 0xe0; /* skip CWAV header */
             break;
 
         default:
             VGM_LOG("UBI SB: unknown codec\n");
             goto fail;
     }
-
-    /* at the end to let codec fill num_samples */
-    vgmstream->num_samples = sb->num_samples;
-    vgmstream->loop_start_sample = sb->loop_start;
-    vgmstream->loop_end_sample = sb->num_samples;
 
     strcpy(vgmstream->stream_name, sb->readable_name);
 
@@ -577,8 +549,8 @@ static void parse_header_type(ubi_sb_header * sb, uint32_t header_type, off_t of
             break; //goto fail;
     }
 
-    ;VGM_ASSERT(header_type == 0x06 || header_type == 0x0d,
-            "UBI SB: type %x at %x size %x\n", header_type, (uint32_t)offset, sb->section2_entry_size);
+    //;VGM_ASSERT(header_type == 0x06 || header_type == 0x0d,
+    //        "UBI SB: type %x at %x size %x\n", header_type, (uint32_t)offset, sb->section2_entry_size);
 
     /* layer info for later
      * some values may be flags/config as multiple 0x06 can point to the same layer, with different 'flags' */
@@ -684,6 +656,7 @@ static void parse_header_type(ubi_sb_header * sb, uint32_t header_type, off_t of
      * 0x00: layer data size (varies between blocks, and one layer may have more than other)
      */
 
+    //todo a few XMA streams aren't working (ex. #13072)
     /* Splinter Cell: Double Agent (2006)(X360)-map 0x00180006 */
     /* - type header:
      * 0x08: header extra offset
@@ -831,7 +804,7 @@ static void parse_header_type(ubi_sb_header * sb, uint32_t header_type, off_t of
 static int parse_sb_header(ubi_sb_header * sb, STREAMFILE *streamFile, int target_stream) {
     int32_t (*read_32bit)(off_t,STREAMFILE*) = NULL;
     int16_t (*read_16bit)(off_t,STREAMFILE*) = NULL;
-    int i, j, k, current_type = -1, current_id = -1, bank_streams = 0, prev_streams;
+    int i, j, k, bank_streams = 0, prev_streams;
 
 
     ;VGM_LOG("UBI SB: s1=%x (%x*%x), s2=%x (%x*%x), s3=%x (%x*%x), sX=%x (%x)\n",
@@ -861,49 +834,6 @@ static int parse_sb_header(ubi_sb_header * sb, STREAMFILE *streamFile, int targe
         if (header_type != 0x01)
             continue;
 
-        /* weird case when there is no internal substream ID and just seem to rotate every time type changes, joy */
-        if (sb->has_rotating_ids) { /* assumes certain configs can't happen in this case */
-            int current_is_external = 0;
-            int type = read_32bit(offset + sb->cfg_stream_type, streamFile);
-
-            if (sb->cfg_external_flag) {
-                current_is_external = (read_32bit(offset + sb->cfg_external_flag, streamFile) & sb->and_external_flag);
-            } else if (sb->has_extra_name_flag && read_32bit(offset + sb->cfg_extra_name, streamFile) != 0xFFFFFFFF) {
-                current_is_external = 1; /* -1 in extra_name means internal */
-            }
-
-            if (!current_is_external) {
-                if (sb->is_map) {
-                    if (current_type == -1)
-                        current_type = type;
-                    if (current_id == -1) /* they seem to always start with 0 in maps */
-                        current_id = 0x00; 
-
-                    if (!current_is_external) {
-                        if (current_type != type) {
-                            current_type = type;
-                            current_id++; /* rotate */
-                            /* we'll warp it around later when parsing section 3 */
-                        }
-                    }
-                } else {
-                    if (current_type == -1)
-                        current_type = type;
-                    if (current_id == -1) /* use first ID in section3 */
-                        current_id = read_32bit(sb->section3_offset + 0x00, streamFile);
-
-                    if (!current_is_external) {
-                        if (current_type != type) {
-                            current_type = type;
-                            current_id++; /* rotate */
-                            if (current_id >= sb->section3_num)
-                                current_id = 0; /* reset */
-                        }
-                    }
-                }
-            }
-        }
-
         /* update streams (total_stream also doubles as current) */
         sb->total_streams++;
         bank_streams++;
@@ -926,26 +856,31 @@ static int parse_sb_header(ubi_sb_header * sb, STREAMFILE *streamFile, int targe
         sb->sample_rate     = read_32bit(offset + sb->cfg_sample_rate, streamFile);
         sb->stream_type     = read_32bit(offset + sb->cfg_stream_type, streamFile);
 
-        if (sb->cfg_samples_flag) {
-            int samples_flag = read_32bit(offset + sb->cfg_samples_flag, streamFile);
-            sb->loop_flag = (samples_flag & sb->and_samples_flag);
+        if (sb->cfg_loop_flag) {
+            sb->loop_flag = (read_32bit(offset + sb->cfg_loop_flag, streamFile) & sb->and_loop_flag);
         }
 
         if (sb->loop_flag) {
             sb->loop_start  = read_32bit(offset + sb->cfg_num_samples, streamFile);
             sb->num_samples = read_32bit(offset + sb->cfg_num_samples2, streamFile) + sb->loop_start;
-
-            VGM_ASSERT(sb->num_samples == 0, "UBI SB: found 0 loop end\n"); /* possible in earlier games */
+            if (sb->has_full_loop) { /* early games just repeat and don't set loop start */
+                sb->num_samples = sb->loop_start;
+                sb->loop_start = 0;
+            }
+            /* loop starts that aren't 0 do exist but are very rare (ex. Beowulf PSP #33407)
+             * also rare are looping external streams (ex. Surf's Up PSP #1462) */
         } else {
             sb->num_samples = read_32bit(offset + sb->cfg_num_samples, streamFile);
         }
 
-        if (sb->has_rotating_ids) {
-            sb->stream_id   = current_id;
-        } else if (sb->cfg_stream_id) {
-            sb->stream_id   = read_32bit(offset + sb->cfg_stream_id, streamFile);
-            if (sb->and_stream_id) sb->stream_id  &= sb->and_stream_id;
-            if (sb->shr_stream_id) sb->stream_id >>= sb->shr_stream_id;
+        if (sb->cfg_group_id) {
+            sb->group_id   = read_32bit(offset + sb->cfg_group_id, streamFile);
+            if (sb->and_group_id) sb->group_id  &= sb->and_group_id;
+            if (sb->shr_group_id) sb->group_id >>= sb->shr_group_id;
+        }
+
+        if (sb->cfg_external_flag) {
+            sb->is_external = (read_32bit(offset + sb->cfg_external_flag, streamFile) & sb->and_external_flag);
         }
 
         /* external stream name can be found in the header (first versions) or the sectionX table (later versions) */
@@ -957,32 +892,15 @@ static int parse_sb_header(ubi_sb_header * sb, STREAMFILE *streamFile, int targe
                 read_string(sb->resource_name, sb->resource_name_size, sb->sectionX_offset + sb->cfg_stream_name, streamFile);
         }
 
-        /* external flag is not always set and must be derived */
-        if (sb->cfg_external_flag) {
-            sb->is_external = (read_32bit(offset + sb->cfg_external_flag, streamFile) & sb->and_external_flag);
-        } else if (sb->has_extra_name_flag && read_32bit(offset + sb->cfg_extra_name, streamFile) != 0xFFFFFFFF) {
-            sb->is_external = 1; /* -1 in extra_name means internal */
-        } else if (sb->section3_num == 0) {
-            sb->is_external = 1;
-        } else {
-            sb->autodetect_external = 1; /* let the parser guess later */
-
-            if (sb->resource_name[0] == '\0')
-                sb->autodetect_external = 0; /* no name */
-            if (sb->sectionX_size > 0 && sb->cfg_stream_name > sb->sectionX_size)
-                sb->autodetect_external = 0; /* name outside extra table == is internal */
-        }
-
-        //todo check sb->has_internal_names in case of garbage (ex POP:WW PS2), needs to guess external first
-        /* build a full name for stream */
+        /* build a usable name */
         if (sb->is_map) {
-            if (sb->resource_name[0]) {
+            if ((sb->is_external || sb->has_internal_names) && sb->resource_name[0]) {
                 snprintf(sb->readable_name, sizeof(sb->readable_name), "%s/%d/%08x/%s", sb->map_name, bank_streams, sb->header_id, sb->resource_name);
             } else {
                 snprintf(sb->readable_name, sizeof(sb->readable_name), "%s/%d/%08x", sb->map_name, bank_streams, sb->header_id);
             }
         } else {
-            if (sb->resource_name[0]) {
+            if ((sb->is_external || sb->has_internal_names) && sb->resource_name[0]) {
                 snprintf(sb->readable_name, sizeof(sb->readable_name), "%08x/%s", sb->header_id, sb->resource_name);
             } else {
                 snprintf(sb->readable_name, sizeof(sb->readable_name), "%08x", sb->header_id);
@@ -1010,12 +928,13 @@ static int parse_sb_header(ubi_sb_header * sb, STREAMFILE *streamFile, int targe
         VGM_ASSERT(sb->section3_num > 2, "UBI SB: section3 > 2 found\n");
     }
 
-    if (!(sb->cfg_stream_id || sb->has_rotating_ids || sb->is_map) && sb->section3_num > 1) {
+    if (!(sb->cfg_group_id || sb->is_map) && sb->section3_num > 1) {
         VGM_LOG("UBI SB: unexpected number of internal stream groups %i\n", sb->section3_num);
         goto fail;
     }
 
-    ;VGM_LOG("UBI SB: target at %x (cfg %x), extra=%x, name=%s, id=%i\n", (uint32_t)sb->header_offset, sb->section2_entry_size, (uint32_t)sb->extra_offset, sb->resource_name, sb->stream_id);
+    ;VGM_LOG("UBI SB: target at %x (cfg %x), extra=%x, name=%s, id=%i, t=%i\n",
+            (uint32_t)sb->header_offset, sb->section2_entry_size, (uint32_t)sb->extra_offset, sb->resource_name, sb->group_id, sb->stream_type);
 
 
     /* happens in a few internal sounds from early Xbox games */
@@ -1023,6 +942,7 @@ static int parse_sb_header(ubi_sb_header * sb, STREAMFILE *streamFile, int targe
         VGM_LOG("UBI SB: garbage in stream_type\n");
         sb->stream_type = 0;
     }
+
 
     /* guess codec */
     switch (sb->stream_type) {
@@ -1072,8 +992,15 @@ static int parse_sb_header(ubi_sb_header * sb, STREAMFILE *streamFile, int targe
             }
             break;
 
-        case 0x01: /* PCM (rarely used, ex. Wii/PSP/3DS) */
-            sb->codec = RAW_PCM;
+        case 0x01: /* DSP (early games) or PCM (rarely used, ex. Wii/PSP/3DS) */
+            switch (sb->version) {
+                case 0x00000003: /* Donald Duck: Goin' Quackers */
+                    sb->codec = RAW_DSP;
+                    break;
+                default:
+                    sb->codec = RAW_PCM;
+                    break;
+            }
             break;
 
         case 0x02: /* PS ADPCM (PS3) */
@@ -1084,8 +1011,15 @@ static int parse_sb_header(ubi_sb_header * sb, STREAMFILE *streamFile, int targe
             sb->codec = UBI_ADPCM;
             break;
 
-        case 0x04: /* Ogg (later PC games) */
-            sb->codec = FMT_OGG;
+        case 0x04: /* Ubi IMA v3 (early games) or Ogg (later PC games) */
+            switch (sb->version) {
+                case 0x00000007: /* Splinter Cell */
+                    sb->codec = UBI_ADPCM;
+                    break;
+                default:
+                    sb->codec = FMT_OGG;
+                    break;
+            }
             break;
 
         case 0x05: /* AT3 (PSP, PS3) or XMA1 (X360) */
@@ -1111,8 +1045,15 @@ static int parse_sb_header(ubi_sb_header * sb, STREAMFILE *streamFile, int targe
             sb->codec = RAW_AT3;
             break;
 
-        case 0x08:
-            sb->codec = FMT_AT3;
+        case 0x08: /* Ubi IMA v2 (early games) or ATRAC3 */
+            switch (sb->version) {
+                case 0x00000003: /* Donald Duck: Goin' Quackers */
+                    sb->codec = UBI_ADPCM;
+                    break;
+                default:
+                    sb->codec = FMT_AT3;
+                    break;
+            }
             break;
 
         default:
@@ -1125,20 +1066,20 @@ static int parse_sb_header(ubi_sb_header * sb, STREAMFILE *streamFile, int targe
         sb->xma_header_offset = read_32bit(sb->header_offset + sb->cfg_xma_offset, streamFile) + sb->sectionX_offset;
     }
 
-    /* uncommon but possible */
-    //VGM_ASSERT(sb->is_external && sb->section3_num != 0, "UBI SS: mixed external and internal streams\n");
-
-    /* seems that can be safely ignored */
-    //VGM_ASSERT(sb->is_external && sb->cfg_stream_id && sb->stream_id > 0, "UBI SB: unexpected external stream with stream id\n");
 
     /* section 3: internal stream info */
     if (!sb->is_external) {
+        /* Internal sounds are split into codec groups, with their offsets being relative to group start.
+         * A table contains sizes of each group, so we adjust offsets based on the group ID of our sound.
+         * Headers normally only use 0 or 1, and section3 may only define id1 (which the internal sound would use).
+         * May exist even for external streams only, and they often use id 1 too. */
+
         if (sb->is_map) {
-            /* maps store internal sounds offsets in a separate table, find the matching entry */
+            /* maps store internal sounds offsets in a separate subtable, find the matching entry */
             for (i = 0; i < sb->section3_num; i++) {
                 off_t offset = sb->section3_offset + 0x14 * i;
-                off_t table_offset = read_32bit(offset + 0x04, streamFile) + sb->section3_offset;
-                uint32_t table_num = read_32bit(offset + 0x08, streamFile);
+                off_t table_offset  = read_32bit(offset + 0x04, streamFile) + sb->section3_offset;
+                uint32_t table_num  = read_32bit(offset + 0x08, streamFile);
                 off_t table2_offset = read_32bit(offset + 0x0c, streamFile) + sb->section3_offset;
                 uint32_t table2_num = read_32bit(offset + 0x10, streamFile);
 
@@ -1146,13 +1087,9 @@ static int parse_sb_header(ubi_sb_header * sb, STREAMFILE *streamFile, int targe
                     int index = read_32bit(table_offset + 0x08 * j + 0x00, streamFile) & 0x0000FFFF;
 
                     if (index == sb->header_index) {
-                        if (!(sb->cfg_stream_id || sb->has_rotating_ids) && table2_num > 1) {
+                        if (!sb->cfg_group_id && table2_num > 1) {
                             VGM_LOG("UBI SB: unexpected number of internal stream map groups %i at %x\n", table2_num, (uint32_t)table2_offset);
                             goto fail;
-                        }
-
-                        if (sb->has_rotating_ids) {
-                            sb->stream_id %= table2_num;
                         }
 
                         sb->stream_offset = read_32bit(table_offset + 0x08 * j + 0x04, streamFile);
@@ -1163,7 +1100,7 @@ static int parse_sb_header(ubi_sb_header * sb, STREAMFILE *streamFile, int targe
                              * 0x08 - size without padding
                              * 0x0c - absolute offset */
                             uint32_t id = read_32bit(table2_offset + 0x10 * k + 0x00, streamFile);
-                            if (id == sb->stream_id) {
+                            if (id == sb->group_id) {
                                 sb->stream_offset += read_32bit(table2_offset + 0x10 * k + 0x0c, streamFile);
                                 break;
                             }
@@ -1178,14 +1115,14 @@ static int parse_sb_header(ubi_sb_header * sb, STREAMFILE *streamFile, int targe
         } else {
             sb->stream_offset += sb->sounds_offset;
 
-            if ((sb->cfg_stream_id || sb->has_rotating_ids) && sb->section3_num > 1) { //todo test always using id
-                /* internal sounds are split into groups based on their type with their offsets being relative to group start
-                 * this table contains sizes of each group, adjust offset based on group ID of our sound */
+            /* banks store internal sounds offsets in table: group id + group size, find the matching entry */
+
+            if (sb->cfg_group_id && sb->section3_num > 1) {
                 for (i = 0; i < sb->section3_num; i++) {
                     off_t offset = sb->section3_offset + sb->section3_entry_size * i;
 
                     /* table has unordered ids+size, so if our id doesn't match current data offset must be beyond */
-                    if (read_32bit(offset + 0x00, streamFile) == sb->stream_id)
+                    if (read_32bit(offset + 0x00, streamFile) == sb->group_id)
                         break;
                     sb->stream_offset += read_32bit(offset + 0x04, streamFile);
                 }
@@ -1303,21 +1240,22 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
     sb->cfg_stream_offset   = 0x10;
 
     sb->and_external_flag   = 0x01;
-    sb->and_samples_flag    = 0x01;
+    sb->and_loop_flag       = 0x01;
 
+    //todo: create generic configs to simplify parsing, since many share header but change entry sizes
 
     /* Batman: Vengeance (2001)(PS2)-map 0x00000003 */
-    /* Batman: Vengeance (2001)(GC)-map 0x00000003 */
-    /* Disney's Tarzan: Untamed (2001)(GC)-map 0x00000003 */
     /* Tom Clancy's Rainbow Six - Vegas 2 (2008)(PC)-? */
+    /* Myst III (2008)(PS2)-? */
 
-#if 0
+
+    //todo some dsp offsets have problems, wrong id?
+    //todo uses Ubi IMA v2 has has some deviation in the right channel + clicks?
+    //todo has some sample rate / loop configs problems? (ex Batman #5451)
+    /* Disney's Tarzan: Untamed (2001)(GC)-map */
+    /* Batman: Vengeance (2001)(GC)-map */
     /* Donald Duck: Goin' Quackers (2002)(GC)-map */
     if (sb->version == 0x00000003 && sb->platform == UBI_GC) {
-        /* Stream types:
-         * 0x01: Nintendo DSP ADPCM
-         * 0x08: unsupported codec, looks like standard IMA with custom 0x29 bytes header
-         */
         sb->section1_entry_size = 0x40;
         sb->section2_entry_size = 0x6c;
 
@@ -1327,18 +1265,22 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         sb->cfg_extra_offset    = 0x10;
         sb->cfg_stream_offset   = 0x14;
 
+        sb->cfg_group_id        = 0x2c;
         sb->cfg_external_flag   = 0x30;
-        sb->cfg_stream_id       = 0x34;
+        sb->cfg_loop_flag       = 0x34;
         sb->cfg_num_samples     = 0x48;
+        sb->cfg_num_samples2    = 0x48; /* full loop */
         sb->cfg_sample_rate     = 0x50;
         sb->cfg_channels        = 0x56;
         sb->cfg_stream_type     = 0x58;
         sb->cfg_stream_name     = 0x5c;
 
         sb->has_short_channels = 1;
+        sb->has_full_loop = 1;
+        //has layer 0d
         return 1;
     }
-#endif
+
 #if 0
     /* Splinter Cell (2002)(PC)-map */
     /* Splinter Cell: Pandora Tomorrow (2004)(PC)-map */
@@ -1357,9 +1299,9 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         sb->cfg_extra_offset    = 0x10;
         sb->cfg_stream_offset   = 0x14;
 
-      //sb->cfg_samples_flag    = 0x24; //?
+      //sb->cfg_loop_flag       = 0x24; //?
         sb->cfg_external_flag   = 0x28;
-        sb->cfg_stream_id       = 0x2c;
+        sb->cfg_group_id        = 0x2c;
         sb->cfg_num_samples     = 0x30;
       //sb->cfg_num_samples2    = 0x38;
         sb->cfg_sample_rate     = 0x44;
@@ -1369,10 +1311,43 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
 
         sb->has_short_channels = 1;
         sb->has_internal_names = 1;
+        //has layer 0d
         return 1;
     }
 #endif
+#if 0
+    /* Splinter Cell (2002)(Xbox)-map */
+    if (sb->version == 0x00000007 && sb->platform == UBI_XBOX) {
+        /* Stream types:
+         * 0x01: PCM
+         * 0x02: unsupported codec, appears to be Ubi IMA in a blocked layout
+         * 0x04: Ubi IMA v3 (not Vorbis)
+         */
+        sb->section1_entry_size = 0x58;
+        sb->section2_entry_size = 0x78;
 
+        sb->map_version = 1;
+
+        sb->cfg_stream_size     = 0x0c;
+        sb->cfg_extra_offset    = 0x10;
+        sb->cfg_stream_offset   = 0x14;
+
+        sb->cfg_group_id        = 0x24? 0x2c;
+        sb->cfg_external_flag   = 0x28;
+        sb->cfg_loop_flag       = 0x2c? 0x24?
+        sb->cfg_num_samples     = 0x30;
+        sb->cfg_num_samples2    = 0x38;
+        sb->cfg_sample_rate     = 0x44;
+        sb->cfg_channels        = 0x4a;
+        sb->cfg_stream_type     = 0x4c;
+        sb->cfg_stream_name     = 0x50;
+
+        sb->has_short_channels = 1;
+        sb->has_internal_names = 1;
+        //has layer 0d
+        return 1;
+    }
+#endif
     /* Prince of Persia: Sands of Time (2003)(PC)-bank */
     if ((sb->version == 0x000A0002 && sb->platform == UBI_PC) || /* (not sure if exists, just in case) */
         (sb->version == 0x000A0004 && sb->platform == UBI_PC)) { /* main game */
@@ -1380,8 +1355,8 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         sb->section2_entry_size = 0x80;
 
         sb->cfg_external_flag   = 0x24;
-        sb->cfg_samples_flag    = 0x28;
-        sb->cfg_stream_id       = 0x2c;
+        sb->cfg_loop_flag       = 0x28;
+        sb->cfg_group_id        = 0x2c;
         sb->cfg_num_samples     = 0x30;
         sb->cfg_num_samples2    = 0x38;
         sb->cfg_sample_rate     = 0x44;
@@ -1402,8 +1377,8 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         sb->section2_entry_size = 0x6c;
 
         sb->cfg_external_flag   = 0x18;
-        sb->cfg_samples_flag    = 0x18;
-        sb->cfg_stream_id       = 0x18;
+        sb->cfg_loop_flag       = 0x18;
+        sb->cfg_group_id        = 0x18;
         sb->cfg_channels        = 0x20;
         sb->cfg_sample_rate     = 0x24;
         sb->cfg_num_samples     = 0x30; /* may be null */
@@ -1412,9 +1387,9 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         sb->cfg_stream_type     = 0x68;
 
         sb->and_external_flag   = 0x04;
-        sb->and_samples_flag    = 0x10;
-        sb->and_stream_id       = 0x08;
-        sb->shr_stream_id       = 3;
+        sb->and_loop_flag       = 0x10;
+        sb->and_group_id        = 0x08;
+        sb->shr_group_id        = 3;
         //has layer 0d (main game)
         return 1;
     }
@@ -1426,8 +1401,8 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         sb->section2_entry_size = 0x78;
 
         sb->cfg_external_flag   = 0x24;
-        sb->cfg_stream_id       = 0x28;
-        sb->cfg_samples_flag    = 0x2c;
+        sb->cfg_group_id        = 0x28;
+        sb->cfg_loop_flag       = 0x2c;
         sb->cfg_num_samples     = 0x30;
         sb->cfg_num_samples2    = 0x38;
         sb->cfg_sample_rate     = 0x44;
@@ -1441,8 +1416,9 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         return 1;
     }
 
-    /* Batman: Rise of Sin Tzu (2003)(GC)-map - 0x000A0002 */
-    /* Prince of Persia: Sands of Time (2003)(GC)-bank 0x000A0002/0x000A0004 */
+    // todo fix batman interleave (ex. #22, #134, #222)
+    /* Batman: Rise of Sin Tzu (2003)(GC)-map [0x000A0002] */
+    /* Prince of Persia: Sands of Time (2003)(GC)-bank [0x000A0002/0x000A0004] */
     if ((sb->version == 0x000A0002 && sb->platform == UBI_GC) || /* Prince of Persia 1 port */
         (sb->version == 0x000A0004 && sb->platform == UBI_GC)) { /* main game */
         sb->section1_entry_size = 0x64;
@@ -1451,10 +1427,10 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         sb->map_version = 2;
 
         sb->cfg_external_flag   = 0x20;
-        sb->cfg_stream_id       = 0x24;
-        sb->cfg_samples_flag    = 0x28;
+        sb->cfg_group_id        = 0x24;
+        sb->cfg_loop_flag       = 0x28;
         sb->cfg_num_samples     = 0x2c;
-        sb->cfg_num_samples     = 0x34;
+        sb->cfg_num_samples2    = 0x34;
         sb->cfg_sample_rate     = 0x40;
         sb->cfg_channels        = 0x46;
         sb->cfg_stream_type     = 0x48;
@@ -1471,8 +1447,8 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         sb->section2_entry_size = 0x6c;
 
         sb->cfg_external_flag   = 0x18;
-        sb->cfg_samples_flag    = 0x18;
-        sb->cfg_stream_id       = 0x18;
+        sb->cfg_loop_flag       = 0x18;
+        sb->cfg_group_id        = 0x18;
         sb->cfg_channels        = 0x20;
         sb->cfg_sample_rate     = 0x24;
         sb->cfg_num_samples     = 0x30; /* may be null */
@@ -1481,9 +1457,9 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         sb->cfg_stream_type     = 0x68;
 
         sb->and_external_flag   = 0x04;
-        sb->and_samples_flag    = 0x10;
-        sb->and_stream_id       = 0x08;
-        sb->shr_stream_id       = 3;
+        sb->and_loop_flag       = 0x10;
+        sb->and_group_id        = 0x08;
+        sb->shr_group_id        = 3;
         //has layer 0d
         return 1;
     }
@@ -1494,8 +1470,8 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         sb->section2_entry_size = 0x6c;
 
         sb->cfg_external_flag   = 0x18;
-        sb->cfg_samples_flag    = 0x18;
-        sb->cfg_stream_id       = 0x18;
+        sb->cfg_loop_flag       = 0x18;
+        sb->cfg_group_id        = 0x18;
         sb->cfg_channels        = 0x20;
         sb->cfg_sample_rate     = 0x24;
         sb->cfg_num_samples     = 0x30; /* may be null */
@@ -1504,9 +1480,9 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         sb->cfg_stream_type     = 0x68;
 
         sb->and_external_flag   = 0x04;
-        sb->and_samples_flag    = 0x10;
-        sb->and_stream_id       = 0x08;
-        sb->shr_stream_id       = 3;
+        sb->and_loop_flag       = 0x10;
+        sb->and_group_id        = 0x08;
+        sb->shr_group_id        = 3;
         //has layer?
         return 1;
     }
@@ -1517,8 +1493,8 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         sb->section2_entry_size = 0xa4;
 
         sb->cfg_external_flag   = 0x24;
-        sb->cfg_samples_flag    = 0x28;
-        sb->cfg_stream_id       = 0x2c;
+        sb->cfg_loop_flag       = 0x28;
+        sb->cfg_group_id        = 0x2c;
         sb->cfg_num_samples     = 0x30;
         sb->cfg_num_samples2    = 0x38;
         sb->cfg_sample_rate     = 0x44;
@@ -1536,8 +1512,8 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         sb->section2_entry_size = 0x84;
 
         sb->cfg_external_flag   = 0x24;
-        sb->cfg_samples_flag    = 0x28;
-        sb->cfg_stream_id       = 0x2c;
+        sb->cfg_loop_flag       = 0x28;
+        sb->cfg_group_id        = 0x2c;
         sb->cfg_num_samples     = 0x30;
         sb->cfg_num_samples2    = 0x38;
         sb->cfg_sample_rate     = 0x44;
@@ -1556,8 +1532,8 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         sb->section2_entry_size = 0x6c;
 
         sb->cfg_external_flag   = 0x18;
-        sb->cfg_samples_flag    = 0x18;
-        sb->cfg_stream_id       = 0x18;
+        sb->cfg_loop_flag       = 0x18;
+        sb->cfg_group_id        = 0x18;
         sb->cfg_channels        = 0x20;
         sb->cfg_sample_rate     = 0x24;
         sb->cfg_num_samples     = 0x30; /* may be null */
@@ -1566,9 +1542,9 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         sb->cfg_stream_type     = 0x68;
 
         sb->and_external_flag   = 0x04;
-        sb->and_samples_flag    = 0x10;
-        sb->and_stream_id       = 0x08;
-        sb->shr_stream_id       = 3;
+        sb->and_loop_flag       = 0x10;
+        sb->and_group_id        = 0x08;
+        sb->shr_group_id        = 3;
         //no layers
         return 1;
     }
@@ -1579,8 +1555,8 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         sb->section2_entry_size = 0x90;
 
         sb->cfg_external_flag   = 0x24;
-        sb->cfg_stream_id       = 0x28;
-        sb->cfg_samples_flag    = 0x40;
+        sb->cfg_group_id        = 0x28;
+        sb->cfg_loop_flag       = 0x40;
         sb->cfg_num_samples     = 0x44;
         sb->cfg_num_samples2    = 0x4c;
         sb->cfg_sample_rate     = 0x58;
@@ -1599,8 +1575,8 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         sb->section2_entry_size = 0x78;
 
         sb->cfg_external_flag   = 0x20;
-        sb->cfg_stream_id       = 0x24;
-        sb->cfg_samples_flag    = 0x28;
+        sb->cfg_group_id        = 0x24;
+        sb->cfg_loop_flag       = 0x28;
         sb->cfg_num_samples     = 0x2c;
         sb->cfg_num_samples2    = 0x34;
         sb->cfg_sample_rate     = 0x40;
@@ -1631,8 +1607,8 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         sb->map_version = 2;
 
         sb->cfg_external_flag   = 0x24;
-        sb->cfg_samples_flag    = 0x28;
-        sb->cfg_stream_id       = 0x2c;
+        sb->cfg_loop_flag       = 0x28;
+        sb->cfg_group_id        = 0x2c;
         sb->cfg_num_samples     = 0x30;
         sb->cfg_num_samples2    = 0x38;
         sb->cfg_sample_rate     = 0x44;
@@ -1645,14 +1621,15 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         return 1;
     }
 
+    //todo check, bad external stream offsets?
     /* Brothers in Arms - D-Day (2006)(PSP)-bank */
     if (sb->version == 0x0012000C && sb->platform == UBI_PSP && is_biadd_psp) {
         sb->section1_entry_size = 0x80;
         sb->section2_entry_size = 0x94;
 
         sb->cfg_external_flag   = 0x24;
-        sb->cfg_samples_flag    = 0x28;
-        sb->cfg_stream_id       = 0x2c;
+        sb->cfg_loop_flag       = 0x28;
+        sb->cfg_group_id        = 0x2c;
         sb->cfg_num_samples     = 0x30;
         sb->cfg_num_samples2    = 0x38;
         sb->cfg_sample_rate     = 0x44;
@@ -1672,8 +1649,8 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         sb->map_version = 2;
 
         sb->cfg_external_flag   = 0x18;
-        sb->cfg_samples_flag    = 0x18;
-        sb->cfg_stream_id       = 0x18;
+        sb->cfg_loop_flag       = 0x18;
+        sb->cfg_group_id        = 0x18;
         sb->cfg_num_samples     = 0x1c;
         sb->cfg_num_samples2    = 0x24;
         sb->cfg_sample_rate     = 0x30;
@@ -1682,9 +1659,9 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         sb->cfg_extra_name      = 0x40;
 
         sb->and_external_flag   = 0x04;
-        sb->and_samples_flag    = 0x10;
-        sb->and_stream_id       = 0x08;
-        sb->shr_stream_id       = 3;
+        sb->and_loop_flag       = 0x10;
+        sb->and_group_id        = 0x08;
+        sb->shr_group_id        = 3;
         //has layer 06
         return 1;
     }
@@ -1695,8 +1672,8 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         sb->section2_entry_size = 0x78;
 
         sb->cfg_external_flag   = 0x2c;
-        sb->cfg_samples_flag    = 0x30;
-        sb->cfg_stream_id       = 0x34;
+        sb->cfg_loop_flag       = 0x30;
+        sb->cfg_group_id        = 0x34;
         sb->cfg_num_samples     = 0x40;
         sb->cfg_num_samples2    = 0x48;
         sb->cfg_sample_rate     = 0x54;
@@ -1714,8 +1691,8 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         sb->section2_entry_size = 0x5c;
 
         sb->cfg_external_flag   = 0x20;
-        sb->cfg_samples_flag    = 0x20;
-        sb->cfg_stream_id       = 0x20;
+        sb->cfg_loop_flag       = 0x20;
+        sb->cfg_group_id        = 0x20;
         sb->cfg_channels        = 0x2c;
         sb->cfg_sample_rate     = 0x30;
         sb->cfg_num_samples     = 0x3c;
@@ -1724,9 +1701,9 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         sb->cfg_stream_type     = 0x50;
 
         sb->and_external_flag   = 0x04;
-        sb->and_samples_flag    = 0x10;
-        sb->and_stream_id       = 0x08;
-        sb->shr_stream_id       = 3;
+        sb->and_loop_flag       = 0x10;
+        sb->and_group_id        = 0x08;
+        sb->shr_group_id        = 3;
         //no layers
         return 1;
     }
@@ -1737,8 +1714,8 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         sb->section2_entry_size = 0x58;
 
         sb->cfg_external_flag   = 0x20;
-        sb->cfg_samples_flag    = 0x20;
-        sb->cfg_stream_id       = 0x20;
+        sb->cfg_loop_flag       = 0x20;
+        sb->cfg_group_id        = 0x20;
         sb->cfg_num_samples     = 0x28;
         sb->cfg_num_samples2    = 0x30;
         sb->cfg_sample_rate     = 0x3c;
@@ -1747,9 +1724,9 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         sb->cfg_extra_name      = 0x4c;
 
         sb->and_external_flag   = 0x0008;
-        sb->and_samples_flag    = 0x0400;
-        sb->and_stream_id       = 0x0010;
-        sb->shr_stream_id       = 4;
+        sb->and_loop_flag       = 0x0400;
+        sb->and_group_id        = 0x0010;
+        sb->shr_group_id        = 4;
         //no layers
         return 1;
     }
@@ -1760,8 +1737,8 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         sb->section2_entry_size = 0x6c;
 
         sb->cfg_external_flag   = 0x28;
-      //sb->cfg_stream_id       = 0x2c; /* assumed */
-        sb->cfg_samples_flag    = 0x30;
+      //sb->cfg_group_id        = 0x2c; /* assumed */
+        sb->cfg_loop_flag       = 0x30;
         sb->cfg_num_samples     = 0x3c;
         sb->cfg_num_samples2    = 0x44;
         sb->cfg_sample_rate     = 0x50;
@@ -1781,8 +1758,8 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         sb->map_version = 2;
 
         sb->cfg_external_flag   = 0x24;
-      //sb->cfg_stream_id       = 0x28;
-      //sb->cfg_samples_flag    = 0x2c; //todo test
+      //sb->cfg_group_id        = 0x28;
+      //sb->cfg_loop_flag       = 0x2c; //todo test
         sb->cfg_num_samples     = 0x30;
         sb->cfg_num_samples2    = 0x38;
         sb->cfg_sample_rate     = 0x44;
@@ -1801,8 +1778,8 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         sb->map_version = 2;
 
         sb->cfg_external_flag   = 0x18;
-        sb->cfg_stream_id       = 0x18;
-        sb->cfg_samples_flag    = 0x18;
+        sb->cfg_group_id        = 0x18;
+        sb->cfg_loop_flag       = 0x18;
         sb->cfg_num_samples     = 0x1c;
         sb->cfg_num_samples2    = 0x24;
         sb->cfg_sample_rate     = 0x30;
@@ -1811,9 +1788,9 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         sb->cfg_extra_name      = 0x40;
 
         sb->and_external_flag   = 0x0008;
-        sb->and_samples_flag    = 0x0400;
-        sb->and_stream_id       = 0x0010;
-        sb->shr_stream_id       = 4;
+        sb->and_loop_flag       = 0x0400;
+        sb->and_group_id        = 0x0010;
+        sb->shr_group_id        = 4;
         //no layers
         return 1;
     }
@@ -1825,8 +1802,10 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         sb->section2_entry_size = 0x6c;
 
         sb->cfg_external_flag   = 0x20?;
-        sb->cfg_stream_id       = 0x20?;
+        sb->cfg_group_id        = 0x20?;
+        sb->cfg_loop_flag       = 0x20?;
         sb->cfg_num_samples     = 0x28;
+        sb->cfg_num_samples2    = 0x30?;
         sb->cfg_sample_rate     = 0x3c;
         sb->cfg_channels        = 0x44;
         sb->cfg_stream_type     = 0x48;
@@ -1843,8 +1822,8 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         sb->section2_entry_size = 0x6c;
 
         sb->cfg_external_flag   = 0x28;
-      //sb->cfg_stream_id       = 0x2c; /* assumed */
-        sb->cfg_samples_flag    = 0x30;
+      //sb->cfg_group_id        = 0x2c; /* assumed */
+        sb->cfg_loop_flag       = 0x30;
         sb->cfg_num_samples     = 0x3c;
         sb->cfg_num_samples2    = 0x44;
         sb->cfg_sample_rate     = 0x50;
@@ -1863,8 +1842,8 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         sb->map_version = 3;
 
         sb->cfg_external_flag   = 0x2c;
-      //sb->cfg_samples_flag    = 0x30; //todo test
-        sb->cfg_stream_id       = 0x34;
+      //sb->cfg_loop_flag       = 0x30; //todo test
+        sb->cfg_group_id        = 0x34;
         sb->cfg_channels        = 0x5c;
         sb->cfg_sample_rate     = 0x54;
         sb->cfg_num_samples     = 0x40;
@@ -1883,8 +1862,8 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         sb->map_version = 3;
 
         sb->cfg_external_flag   = 0x2c;
-        sb->cfg_stream_id       = 0x30;
-        sb->cfg_samples_flag    = 0x34;
+        sb->cfg_group_id        = 0x30;
+        sb->cfg_loop_flag       = 0x34;
         sb->cfg_channels        = 0x5c;
         sb->cfg_sample_rate     = 0x54;
         sb->cfg_num_samples     = 0x40;
@@ -1905,8 +1884,8 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         sb->map_version = 3;
 
         sb->cfg_external_flag   = 0x20;
-        sb->cfg_stream_id       = 0x20;
-        sb->cfg_samples_flag    = 0x20;
+        sb->cfg_group_id        = 0x20;
+        sb->cfg_loop_flag       = 0x20;
         sb->cfg_num_samples     = 0x28;
         sb->cfg_num_samples2    = 0x30;
         sb->cfg_sample_rate     = 0x3c;
@@ -1915,9 +1894,9 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         sb->cfg_extra_name      = 0x4c;
 
         sb->and_external_flag   = 0x0008;
-        sb->and_samples_flag    = 0x0400;
-        sb->and_stream_id       = 0x0010;
-        sb->shr_stream_id       = 4;
+        sb->and_loop_flag       = 0x0400;
+        sb->and_group_id        = 0x0010;
+        sb->shr_group_id        = 4;
         //no layers
         return 1;
     }
@@ -1930,8 +1909,8 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         sb->map_version = 3;
 
         sb->cfg_external_flag   = 0x28;
-        sb->cfg_stream_id       = 0x2c;
-        sb->cfg_samples_flag    = 0x30; //todo test
+        sb->cfg_group_id        = 0x2c;
+        sb->cfg_loop_flag       = 0x30;
         sb->cfg_num_samples     = 0x3c;
         sb->cfg_num_samples2    = 0x44;
         sb->cfg_sample_rate     = 0x50;
@@ -1950,8 +1929,8 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         sb->map_version = 3;
 
         sb->cfg_external_flag   = 0x20;
-        sb->cfg_samples_flag    = 0x20;
-        sb->cfg_stream_id       = 0x20;
+        sb->cfg_loop_flag       = 0x20;
+        sb->cfg_group_id        = 0x20;
         sb->cfg_channels        = 0x28;
         sb->cfg_sample_rate     = 0x2c;
         sb->cfg_num_samples     = 0x34;
@@ -1960,9 +1939,9 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         sb->cfg_stream_type     = 0x48;
 
         sb->and_external_flag   = 0x04;
-        sb->and_samples_flag    = 0x10;
-        sb->and_stream_id       = 0x08;
-        sb->shr_stream_id       = 3;
+        sb->and_loop_flag       = 0x10;
+        sb->and_group_id        = 0x08;
+        sb->shr_group_id        = 3;
 
         return 1;
     }
@@ -1983,8 +1962,8 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         sb->map_version = 3;
 
         sb->cfg_external_flag   = 0x20;
-        sb->cfg_samples_flag    = 0x20;
-        sb->cfg_stream_id       = 0x20;
+        sb->cfg_loop_flag       = 0x20;
+        sb->cfg_group_id        = 0x20;
         sb->cfg_channels        = 0x28;
         sb->cfg_sample_rate     = 0x2c;
         sb->cfg_num_samples     = 0x34;
@@ -1993,9 +1972,9 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         sb->cfg_stream_type     = 0x48;
 
         sb->and_external_flag   = 0x04;
-        sb->and_samples_flag    = 0x10;
-        sb->and_stream_id       = 0x08;
-        sb->shr_stream_id       = 3;
+        sb->and_loop_flag       = 0x10;
+        sb->and_group_id        = 0x08;
+        sb->shr_group_id        = 3;
         //has layer 06
         return 1;
     }
@@ -2006,8 +1985,8 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         sb->section2_entry_size = 0x70;
 
         sb->cfg_external_flag   = 0x28;
-      //sb->cfg_stream_id       = 0x2c; /* assumed */
-        sb->cfg_samples_flag    = 0x30;
+      //sb->cfg_group_id        = 0x2c; /* assumed */
+        sb->cfg_loop_flag       = 0x30;
         sb->cfg_channels        = 0x3c;
         sb->cfg_sample_rate     = 0x40;
         sb->cfg_num_samples     = 0x48;
@@ -2025,8 +2004,8 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         sb->section2_entry_size = 0x6c;
 
         sb->cfg_external_flag   = 0x28;
-      //sb->cfg_stream_id       = 0x2c; /* assumed */
-        sb->cfg_samples_flag    = 0x30;
+      //sb->cfg_group_id        = 0x2c; /* assumed */
+        sb->cfg_loop_flag       = 0x30;
         sb->cfg_channels        = 0x3c;
         sb->cfg_sample_rate     = 0x40;
         sb->cfg_num_samples     = 0x48;
@@ -2043,8 +2022,8 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         sb->section2_entry_size = 0x74;
 
         sb->cfg_external_flag   = 0x28;
-        sb->cfg_stream_id       = 0x2c;
-        sb->cfg_samples_flag    = 0x30; //todo test
+        sb->cfg_group_id        = 0x2c;
+        sb->cfg_loop_flag       = 0x30;
         sb->cfg_channels        = 0x3c;
         sb->cfg_sample_rate     = 0x40;
         sb->cfg_num_samples     = 0x48;
@@ -2061,8 +2040,8 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         sb->section2_entry_size = 0x5c;
 
         sb->cfg_external_flag   = 0x20;
-        sb->cfg_samples_flag    = 0x20;
-      //sb->cfg_stream_id       = 0x20; /* assumed */
+        sb->cfg_loop_flag       = 0x20;
+      //sb->cfg_group_id        = 0x20; /* assumed */
         sb->cfg_channels        = 0x28;
         sb->cfg_sample_rate     = 0x2c;
         sb->cfg_num_samples     = 0x34;
@@ -2071,7 +2050,7 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         sb->cfg_stream_type     = 0x48;
 
         sb->and_external_flag   = 0x04;
-        sb->and_samples_flag    = 0x10;
+        sb->and_loop_flag       = 0x10;
         //has layer 06
         return 1;
     }
@@ -2082,8 +2061,8 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         sb->section2_entry_size = 0x70;
 
         sb->cfg_external_flag   = 0x28;
-      //sb->cfg_stream_id       = 0x2c; /* assumed */
-        sb->cfg_samples_flag    = 0x30;
+      //sb->cfg_group_id        = 0x2c; /* assumed */
+        sb->cfg_loop_flag       = 0x30;
         sb->cfg_channels        = 0x3c;
         sb->cfg_sample_rate     = 0x40;
         sb->cfg_num_samples     = 0x48;
@@ -2103,8 +2082,8 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         sb->map_version = 3;
 
         sb->cfg_external_flag   = 0x20;
-        sb->cfg_samples_flag    = 0x20;
-      //sb->cfg_stream_id       = 0x20; /* assumed */
+        sb->cfg_loop_flag       = 0x20;
+      //sb->cfg_group_id        = 0x20; /* assumed */
         sb->cfg_channels        = 0x28;
         sb->cfg_sample_rate     = 0x2c;
         sb->cfg_num_samples     = 0x34;
@@ -2113,7 +2092,7 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         sb->cfg_extra_name      = 0x44;
 
         sb->and_external_flag   = 0x04;
-        sb->and_samples_flag    = 0x10;
+        sb->and_loop_flag       = 0x10;
         //has layer 06
         return 1;
     }
@@ -2124,8 +2103,8 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         sb->section2_entry_size = 0x74;
 
         sb->cfg_external_flag   = 0x28;
-      //sb->cfg_stream_id       = 0x2c; /* assumed */
-        sb->cfg_samples_flag    = 0x30; //todo test
+      //sb->cfg_group_id        = 0x2c; /* assumed */
+        sb->cfg_loop_flag       = 0x30;
         sb->cfg_channels        = 0x3c;
         sb->cfg_sample_rate     = 0x40;
         sb->cfg_num_samples     = 0x48;
@@ -2145,8 +2124,8 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         sb->map_version = 3;
 
         sb->cfg_external_flag   = 0x28;
-        sb->cfg_stream_id       = 0x2c;
-        sb->cfg_samples_flag    = 0x30;
+        sb->cfg_group_id        = 0x2c;
+        sb->cfg_loop_flag       = 0x30;
         sb->cfg_channels        = 0x3c;
         sb->cfg_sample_rate     = 0x40;
         sb->cfg_num_samples     = 0x48;
@@ -2163,8 +2142,8 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         sb->section2_entry_size = 0x70;
 
         sb->cfg_external_flag   = 0x28;
-      //sb->cfg_stream_id       = 0x2c; /* assumed */
-        sb->cfg_samples_flag    = 0x30;
+      //sb->cfg_group_id        = 0x2c; /* assumed */
+        sb->cfg_loop_flag       = 0x30;
         sb->cfg_channels        = 0x3c;
         sb->cfg_sample_rate     = 0x40;
         sb->cfg_num_samples     = 0x48;
@@ -2184,17 +2163,17 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         sb->map_version = 3;
 
         sb->cfg_external_flag   = 0x20;
-        sb->cfg_samples_flag    = 0x20;
-      //sb->cfg_stream_id       = 0x20; /* assumed */
+        sb->cfg_loop_flag       = 0x20;
+      //sb->cfg_group_id        = 0x20; /* assumed */
         sb->cfg_channels        = 0x28;
         sb->cfg_sample_rate     = 0x2c;
         sb->cfg_num_samples     = 0x34;
-        sb->cfg_num_samples2    = 0x38;
+        sb->cfg_num_samples2    = 0x3c;
         sb->cfg_extra_name      = 0x44;
         sb->cfg_stream_type     = 0x48;
 
         sb->and_external_flag   = 0x04;
-        sb->and_samples_flag    = 0x10;
+        sb->and_loop_flag       = 0x10;
         //no layers
         return 1;
     }
@@ -2207,8 +2186,8 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         sb->map_version = 3;
 
         sb->cfg_external_flag   = 0x20;
-        sb->cfg_samples_flag    = 0x20;
-      //sb->cfg_stream_id       = 0x20; /* assumed */
+        sb->cfg_loop_flag       = 0x20;
+      //sb->cfg_group_id        = 0x20; /* assumed */
         sb->cfg_channels        = 0x28;
         sb->cfg_sample_rate     = 0x30;
         sb->cfg_num_samples     = 0x38;
@@ -2217,7 +2196,7 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         sb->cfg_stream_type     = 0x4c;
 
         sb->and_external_flag   = 0x04;
-        sb->and_samples_flag    = 0x20;
+        sb->and_loop_flag       = 0x20;
         //no layers
         return 1;
     }
@@ -2230,8 +2209,8 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         sb->map_version = 3;
 
         sb->cfg_external_flag   = 0x28;
-        sb->cfg_stream_id       = 0x30;
-        sb->cfg_samples_flag    = 0x34;
+        sb->cfg_group_id        = 0x30;
+        sb->cfg_loop_flag       = 0x34;
         sb->cfg_channels        = 0x44;
         sb->cfg_sample_rate     = 0x4c;
         sb->cfg_num_samples     = 0x54;
