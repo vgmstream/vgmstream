@@ -1550,6 +1550,18 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                         vgmstream->channels,vgmstream->samples_into_block,samples_to_do);
             }
             break;
+        case coding_PCM4:
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_pcm4(vgmstream,&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do,ch);
+            }
+            break;
+        case coding_PCM4_U:
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_pcm4_unsigned(vgmstream, &vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do,ch);
+            }
+            break;
 
         case coding_ULAW:
             for (ch = 0; ch < vgmstream->channels; ch++) {
