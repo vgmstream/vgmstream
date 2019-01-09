@@ -81,7 +81,7 @@ void decode_pcm8_sb(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspaci
 void decode_pcm4(VGMSTREAM * vgmstream, VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
     int i, nibble_shift, is_high_first, is_stereo;
     int32_t sample_count;
-    uint16_t sample;
+    int16_t v;
     off_t byte_offset;
 
     is_high_first = (vgmstream->codec_config & 1);
@@ -95,16 +95,16 @@ void decode_pcm4(VGMSTREAM * vgmstream, VGMSTREAMCHANNEL * stream, sample * outb
                 is_stereo ? (!(channel&1) ? 4:0) : (!(i&1) ? 4:0) : /* even = high, odd = low */
                 is_stereo ? (!(channel&1) ? 0:4) : (!(i&1) ? 0:4);  /* even = low, odd = high */
 
-        sample = (uint16_t)read_8bit(byte_offset, stream->streamfile);
-        sample = (sample >> nibble_shift) & 0x0F;
-        outbuf[sample_count] = sample*0x11*0x100;
+        v = (int16_t)read_8bit(byte_offset, stream->streamfile);
+        v = (v >> nibble_shift) & 0x0F;
+        outbuf[sample_count] = v*0x11*0x100;
     }
 }
 
 void decode_pcm4_unsigned(VGMSTREAM * vgmstream, VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
     int i, nibble_shift, is_high_first, is_stereo;
     int32_t sample_count;
-    uint16_t sample;
+    int16_t v;
     off_t byte_offset;
 
     is_high_first = (vgmstream->codec_config & 1);
@@ -118,9 +118,9 @@ void decode_pcm4_unsigned(VGMSTREAM * vgmstream, VGMSTREAMCHANNEL * stream, samp
                 is_stereo ? (!(channel&1) ? 4:0) : (!(i&1) ? 4:0) : /* even = high, odd = low */
                 is_stereo ? (!(channel&1) ? 0:4) : (!(i&1) ? 0:4);  /* even = low, odd = high */
 
-        sample = (uint16_t)read_8bit(byte_offset, stream->streamfile);
-        sample = (sample >> nibble_shift) & 0x0F;
-        outbuf[sample_count] = sample*0x11*0x100 - 0x8000;
+        v = (int16_t)read_8bit(byte_offset, stream->streamfile);
+        v = (v >> nibble_shift) & 0x0F;
+        outbuf[sample_count] = v*0x11*0x100 - 0x8000;
     }
 }
 
