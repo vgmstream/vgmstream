@@ -60,7 +60,7 @@ A text file with the above commands must be saved as ".vag.txth" or ".txth", not
 # - NGC_DTK|DTK    Nintendo ADP/DTK ADPCM
 # - PCM16BE        PCM 16-bit big endian
 # - PCM16LE        PCM 16-bit little endian
-# - PCM8           PCM 8-bit
+# - PCM8           PCM 8-bit signed
 # - SDX2           Squareroot-delta-exact 8-bit DPCM (3DO games)
 # - DVI_IMA        DVI IMA ADPCM
 # - MPEG           MPEG Audio Layer file (MP1/2/3)
@@ -80,6 +80,8 @@ A text file with the above commands must be saved as ".vag.txth" or ".txth", not
 # - FFMPEG         Any headered FFmpeg format
 # - AC3            AC3/SPDIF
 # - PCFX           PC-FX ADPCM
+# - PCM4           PCM 4-bit signed
+# - PCM4_U         PCM 4-bit unsigned
 codec = (codec string)
 
 # Codec variations [OPTIONAL, depends on codec]
@@ -88,6 +90,7 @@ codec = (codec string)
 # - XMA1|XMA2: 0=dual multichannel (2ch xN), 1=single multichannel (1ch xN)
 # - XBOX: 0=standard (mono or stereo interleave), 1=force mono interleave mode
 # - PCFX: 0=standard, 1='buggy encoder' mode, 2/3=same as 0/1 but with double volume
+# - PCM4|PCM4_U: 0=low nibble first, 1=high nibble first
 # - others: ignored
 codec_mode = (number)
 
