@@ -1,5 +1,6 @@
 .*
 !/.gitignore
+!.gitattributes
 *.user
 *.o
 *.a
