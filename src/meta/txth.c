@@ -31,6 +31,8 @@ typedef enum {
     FFMPEG = 22,      /* any headered FFmpeg format */
     AC3 = 23,         /* AC3/SPDIF */
     PCFX = 24,        /* PC-FX ADPCM */
+    PCM4 = 25,        /* 4bit signed PCM */
+    PCM4_U = 26,      /* 4bit unsigned PCM */
 } txth_type;
 
 typedef struct {
@@ -176,6 +178,8 @@ VGMSTREAM * init_vgmstream_txth(STREAMFILE *streamFile) {
         case FFMPEG:     coding = coding_FFmpeg; break;
 #endif
         case PCFX:       coding = coding_PCFX; break;
+        case PCM4:       coding = coding_PCM4; break;
+        case PCM4_U:     coding = coding_PCM4_U; break;
         default:
             goto fail;
     }
@@ -212,6 +216,8 @@ VGMSTREAM * init_vgmstream_txth(STREAMFILE *streamFile) {
         case coding_PCM16BE:
         case coding_PCM8:
         case coding_PCM8_U:
+        case coding_PCM4:
+        case coding_PCM4_U:
         case coding_SDX2:
         case coding_PSX:
         case coding_PSX_badflags:
@@ -259,6 +265,11 @@ VGMSTREAM * init_vgmstream_txth(STREAMFILE *streamFile) {
                 for (i=0;i<vgmstream->channels;i++) {
                     vgmstream->ch[i].adpcm_step_index = 0x7f;
                 }
+            }
+
+            if (coding == coding_PCM4 || coding == coding_PCM4_U) {
+                /* high nibble or low nibble first */
+                vgmstream->codec_config = txth.codec_mode;
             }
             break;
 
@@ -583,6 +594,8 @@ static int parse_keyval(STREAMFILE * streamFile_, txth_header * txth, const char
         else if (0==strcmp(val,"FFMPEG"))       txth->codec = FFMPEG;
         else if (0==strcmp(val,"AC3"))          txth->codec = AC3;
         else if (0==strcmp(val,"PCFX"))         txth->codec = PCFX;
+        else if (0==strcmp(val,"PCM4"))         txth->codec = PCM4;
+        else if (0==strcmp(val,"PCM4_U"))       txth->codec = PCM4_U;
         else goto fail;
     }
     else if (0==strcmp(key,"codec_mode")) {
@@ -913,6 +926,9 @@ static int get_bytes_to_samples(txth_header * txth, uint32_t bytes) {
         case PCM8_U_int:
         case PCM8_U:
             return pcm_bytes_to_samples(bytes, txth->channels, 8);
+        case PCM4:
+        case PCM4_U:
+            return pcm_bytes_to_samples(bytes, txth->channels, 4);
         case MSADPCM:
             if (!txth->interleave) return 0;
             return msadpcm_bytes_to_samples(bytes, txth->interleave, txth->channels);

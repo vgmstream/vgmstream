@@ -78,6 +78,52 @@ void decode_pcm8_sb(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspaci
     }
 }
 
+void decode_pcm4(VGMSTREAM * vgmstream, VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
+    int i, nibble_shift, is_high_first, is_stereo;
+    int32_t sample_count;
+    int16_t v;
+    off_t byte_offset;
+
+    is_high_first = (vgmstream->codec_config & 1);
+    is_stereo = (vgmstream->channels != 1);
+
+    for (i=first_sample,sample_count=0; i<first_sample+samples_to_do; i++,sample_count+=channelspacing) {
+        byte_offset = is_stereo ?
+                stream->offset + i :    /* stereo: one nibble per channel (assumed, not sure if stereo version actually exists) */
+                stream->offset + i/2;   /* mono: consecutive nibbles */
+        nibble_shift = is_high_first ?
+                is_stereo ? (!(channel&1) ? 4:0) : (!(i&1) ? 4:0) : /* even = high, odd = low */
+                is_stereo ? (!(channel&1) ? 0:4) : (!(i&1) ? 0:4);  /* even = low, odd = high */
+
+        v = (int16_t)read_8bit(byte_offset, stream->streamfile);
+        v = (v >> nibble_shift) & 0x0F;
+        outbuf[sample_count] = v*0x11*0x100;
+    }
+}
+
+void decode_pcm4_unsigned(VGMSTREAM * vgmstream, VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
+    int i, nibble_shift, is_high_first, is_stereo;
+    int32_t sample_count;
+    int16_t v;
+    off_t byte_offset;
+
+    is_high_first = (vgmstream->codec_config & 1);
+    is_stereo = (vgmstream->channels != 1);
+
+    for (i=first_sample,sample_count=0; i<first_sample+samples_to_do; i++,sample_count+=channelspacing) {
+        byte_offset = is_stereo ?
+                stream->offset + i :    /* stereo: one nibble per channel (assumed, not sure if stereo version actually exists) */
+                stream->offset + i/2;   /* mono: consecutive nibbles */
+        nibble_shift = is_high_first ?
+                is_stereo ? (!(channel&1) ? 4:0) : (!(i&1) ? 4:0) : /* even = high, odd = low */
+                is_stereo ? (!(channel&1) ? 0:4) : (!(i&1) ? 0:4);  /* even = low, odd = high */
+
+        v = (int16_t)read_8bit(byte_offset, stream->streamfile);
+        v = (v >> nibble_shift) & 0x0F;
+        outbuf[sample_count] = v*0x11*0x100 - 0x8000;
+    }
+}
+
 static int expand_ulaw(uint8_t ulawbyte) {
     int sign, segment, quantization, new_sample;
     const int bias = 0x84;
@@ -175,5 +221,5 @@ void decode_pcmfloat(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspac
 }
 
 size_t pcm_bytes_to_samples(size_t bytes, int channels, int bits_per_sample) {
-    return bytes / channels / (bits_per_sample/8);
+    return (bytes * 8) / channels / bits_per_sample;
 }
