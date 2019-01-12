@@ -472,8 +472,6 @@ VGMSTREAM * init_vgmstream_ps2_msa(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_ps2_voi(STREAMFILE* streamFile);
 
-VGMSTREAM * init_vgmstream_ps2_khv(STREAMFILE* streamFile);
-
 VGMSTREAM * init_vgmstream_ngc_rkv(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_p3d(STREAMFILE* streamFile);

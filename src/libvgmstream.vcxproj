@@ -367,7 +367,6 @@
     <ClCompile Include="meta\ps2_joe.c" />
     <ClCompile Include="meta\ps2_jstm.c" />
     <ClCompile Include="meta\ps2_kces.c" />
-    <ClCompile Include="meta\ps2_khv.c" />
     <ClCompile Include="meta\ps2_leg.c" />
     <ClCompile Include="meta\ps2_lpcm.c" />
     <ClCompile Include="meta\ps2_mcg.c" />

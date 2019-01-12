@@ -658,9 +658,6 @@
     <ClCompile Include="meta\ps2_kces.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\ps2_khv.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="meta\ps2_leg.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
