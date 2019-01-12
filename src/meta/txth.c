@@ -477,8 +477,10 @@ fail:
 
 
 static STREAMFILE * open_txth(STREAMFILE * streamFile) {
+    char basename[PATH_LIMIT];
     char filename[PATH_LIMIT];
     char fileext[PATH_LIMIT];
+    const char *subext;
     STREAMFILE * streamText;
 
     /* try "(path/)(name.ext).txth" */
@@ -486,6 +488,22 @@ static STREAMFILE * open_txth(STREAMFILE * streamFile) {
     strcat(filename, ".txth");
     streamText = open_streamfile(streamFile,filename);
     if (streamText) return streamText;
+
+    /* try "(path/)(.sub.ext).txth" */
+    get_streamfile_basename(streamFile,basename,PATH_LIMIT);
+    subext = filename_extension(basename);
+    if (subext != NULL) {
+        get_streamfile_path(streamFile,filename,PATH_LIMIT);
+        get_streamfile_ext(streamFile,fileext,PATH_LIMIT);
+        strcat(filename,".");
+        strcat(filename, subext);
+        strcat(filename,".");
+        strcat(filename, fileext);
+        strcat(filename, ".txth");
+
+        streamText = open_streamfile(streamFile,filename);
+        if (streamText) return streamText;
+    }
 
     /* try "(path/)(.ext).txth" */
     get_streamfile_path(streamFile,filename,PATH_LIMIT);
