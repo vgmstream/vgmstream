@@ -314,6 +314,89 @@ fail:
     return NULL;
 }
 
+/* EA SBR/SBS - used in older 7th gen games, usually for storing streamed sounds */
+VGMSTREAM * init_vgmstream_ea_sbr(STREAMFILE *streamFile) {
+    uint32_t num_sounds, type_desc;
+    uint16_t num_metas, meta_type;
+    off_t table_offset, types_offset, entry_offset, metas_offset, data_offset, snr_offset, sns_offset;
+    STREAMFILE *sbsFile = NULL, *streamData = NULL;
+    VGMSTREAM *vgmstream = NULL;
+    int i;
+    int target_stream = streamFile->stream_index;
+
+    if (!check_extensions(streamFile, "sbr"))
+        goto fail;
+
+    if (read_32bitBE(0x00, streamFile) != 0x53424B52) /* "SBKR" */
+        goto fail;
+
+    /* SBR files are always big endian */
+    num_sounds = read_32bitBE(0x1c, streamFile);
+    table_offset = read_32bitBE(0x24, streamFile);
+    types_offset = read_32bitBE(0x28, streamFile);
+
+    if (target_stream == 0) target_stream = 1;
+    if (target_stream < 0 || num_sounds == 0 || target_stream > num_sounds)
+        goto fail;
+
+    entry_offset = table_offset + 0x0a * (target_stream - 1);
+    num_metas = read_16bitBE(entry_offset + 0x04, streamFile);
+    metas_offset = read_32bitBE(entry_offset + 0x06, streamFile);
+
+    snr_offset = 0xFFFFFFFF;
+    sns_offset = 0xFFFFFFFF;
+
+    for (i = 0; i < num_metas; i++) {
+        entry_offset = metas_offset + 0x06 * i;
+        meta_type = read_16bitBE(entry_offset, streamFile);
+        data_offset = read_32bitBE(entry_offset + 0x02, streamFile);
+
+        type_desc = read_32bitBE(types_offset + 0x06 * meta_type, streamFile);
+
+        switch (type_desc) {
+            case 0x534E5231: /* "SNR1" */
+                snr_offset = data_offset;
+                break;
+            case 0x534E5331: /* "SNS1" */
+                sns_offset = read_32bitBE(data_offset, streamFile);
+                break;
+            default:
+                break;
+        }
+    }
+
+    if (snr_offset == 0xFFFFFFFF)
+        goto fail;
+
+    if (sns_offset == 0xFFFFFFFF) {
+        /* RAM asset */
+        streamData = streamFile;
+        sns_offset = snr_offset + get_snr_size(streamFile, snr_offset);
+    } else {
+        /* streamed asset */
+        sbsFile = open_streamfile_by_ext(streamFile, "sbs");
+        if (!sbsFile)
+            goto fail;
+
+        if (read_32bitBE(0x00, sbsFile) != 0x53424B53) /* "SBKS" */
+            goto fail;
+
+        streamData = sbsFile;
+    }
+
+    vgmstream = init_vgmstream_eaaudiocore_header(streamFile, streamData, snr_offset, sns_offset, meta_EA_SNR_SNS);
+    if (!vgmstream)
+        goto fail;
+
+    vgmstream->num_streams = num_sounds;
+    close_streamfile(sbsFile);
+    return vgmstream;
+
+fail:
+    close_streamfile(sbsFile);
+    return NULL;
+}
+
 /* EA HDR/STH/DAT - seen in early 7th-gen games, used for storing speech */
 VGMSTREAM * init_vgmstream_ea_hdr_sth_dat(STREAMFILE *streamFile) {
     int target_stream = streamFile->stream_index;
