@@ -32,7 +32,7 @@ VGMSTREAM * init_vgmstream_fag(STREAMFILE *streamFile) {
     if (!vgmstream) goto fail;
 
     vgmstream->meta_type = meta_FAG;
-    vgmstream->sample_rate = 24000;
+    vgmstream->sample_rate = 22050;
     vgmstream->num_streams = total_subsongs;
     vgmstream->stream_size = stream_size;
 
