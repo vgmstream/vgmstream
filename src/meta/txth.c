@@ -6,33 +6,34 @@
 
 /* known TXTH types */
 typedef enum {
-    PSX = 0,          /* PSX ADPCM */
-    XBOX = 1,         /* XBOX IMA ADPCM */
-    NGC_DTK = 2,      /* NGC ADP/DTK ADPCM */
-    PCM16BE = 3,      /* 16bit big endian PCM */
-    PCM16LE = 4,      /* 16bit little endian PCM */
-    PCM8 = 5,         /* 8bit PCM */
-    SDX2 = 6,         /* SDX2 (3D0 games) */
-    DVI_IMA = 7,      /* DVI IMA ADPCM */
-    MPEG = 8,         /* MPEG (MP3) */
-    IMA = 9,          /* IMA ADPCM */
-    AICA = 10,        /* AICA ADPCM (dreamcast) */
-    MSADPCM = 11,     /* MS ADPCM (windows) */
-    NGC_DSP = 12,     /* NGC DSP (GC) */
-    PCM8_U_int = 13,  /* 8bit unsigned PCM (interleaved) */
-    PSX_bf = 14,      /* PSX ADPCM bad flagged */
-    MS_IMA = 15,      /* Microsoft IMA ADPCM */
-    PCM8_U = 16,      /* 8bit unsigned PCM */
-    APPLE_IMA4 = 17,  /* Apple Quicktime 4-bit IMA ADPCM */
-    ATRAC3 = 18,      /* raw ATRAC3 */
-    ATRAC3PLUS = 19,  /* raw ATRAC3PLUS */
-    XMA1 = 20,        /* raw XMA1 */
-    XMA2 = 21,        /* raw XMA2 */
-    FFMPEG = 22,      /* any headered FFmpeg format */
-    AC3 = 23,         /* AC3/SPDIF */
-    PCFX = 24,        /* PC-FX ADPCM */
-    PCM4 = 25,        /* 4bit signed PCM */
-    PCM4_U = 26,      /* 4bit unsigned PCM */
+    PSX = 0,            /* PS-ADPCM */
+    XBOX = 1,           /* XBOX IMA ADPCM */
+    NGC_DTK = 2,        /* NGC ADP/DTK ADPCM */
+    PCM16BE = 3,        /* 16-bit big endian PCM */
+    PCM16LE = 4,        /* 16-bit little endian PCM */
+    PCM8 = 5,           /* 8-bit PCM */
+    SDX2 = 6,           /* SDX2 (3D0 games) */
+    DVI_IMA = 7,        /* DVI IMA ADPCM (high nibble first) */
+    MPEG = 8,           /* MPEG (MP3) */
+    IMA = 9,            /* IMA ADPCM (low nibble first) */
+    AICA = 10,          /* AICA ADPCM (Dreamcast games) */
+    MSADPCM = 11,       /* MS ADPCM (Windows games) */
+    NGC_DSP = 12,       /* NGC DSP (Nintendo games) */
+    PCM8_U_int = 13,    /* 8-bit unsigned PCM (interleaved) */
+    PSX_bf = 14,        /* PS-ADPCM with bad flags */
+    MS_IMA = 15,        /* Microsoft IMA ADPCM */
+    PCM8_U = 16,        /* 8-bit unsigned PCM */
+    APPLE_IMA4 = 17,    /* Apple Quicktime 4-bit IMA ADPCM */
+    ATRAC3 = 18,        /* Raw ATRAC3 */
+    ATRAC3PLUS = 19,    /* Raw ATRAC3PLUS */
+    XMA1 = 20,          /* Raw XMA1 */
+    XMA2 = 21,          /* Raw XMA2 */
+    FFMPEG = 22,        /* Any headered FFmpeg format */
+    AC3 = 23,           /* AC3/SPDIF */
+    PCFX = 24,          /* PC-FX ADPCM */
+    PCM4 = 25,          /* 4-bit signed PCM (3rd and 4th gen games) */
+    PCM4_U = 26,        /* 4-bit unsigned PCM (3rd and 4th gen games) */
+    OKI16 = 27,         /* OKI ADPCM with 16-bit output (unlike OKI/VOX/Dialogic ADPCM's 12-bit) */
 } txth_type;
 
 typedef struct {
@@ -180,6 +181,7 @@ VGMSTREAM * init_vgmstream_txth(STREAMFILE *streamFile) {
         case PCFX:       coding = coding_PCFX; break;
         case PCM4:       coding = coding_PCM4; break;
         case PCM4_U:     coding = coding_PCM4_U; break;
+        case OKI16:      coding = coding_OKI16; break;
         default:
             goto fail;
     }
@@ -278,6 +280,10 @@ VGMSTREAM * init_vgmstream_txth(STREAMFILE *streamFile) {
             vgmstream->layout_type = layout_interleave;
             if (txth.codec_mode >= 0 && txth.codec_mode <= 3)
                 vgmstream->codec_config = txth.codec_mode;
+            break;
+
+        case coding_OKI16:
+            vgmstream->layout_type = layout_none;
             break;
 
         case coding_MS_IMA:
@@ -614,6 +620,7 @@ static int parse_keyval(STREAMFILE * streamFile_, txth_header * txth, const char
         else if (0==strcmp(val,"PCFX"))         txth->codec = PCFX;
         else if (0==strcmp(val,"PCM4"))         txth->codec = PCM4;
         else if (0==strcmp(val,"PCM4_U"))       txth->codec = PCM4_U;
+        else if (0==strcmp(val,"OKI16"))        txth->codec = OKI16;
         else goto fail;
     }
     else if (0==strcmp(key,"codec_mode")) {
@@ -972,7 +979,8 @@ static int get_bytes_to_samples(txth_header * txth, uint32_t bytes) {
         case AICA:
             return aica_bytes_to_samples(bytes, txth->channels);
         case PCFX:
-            return pcfx_bytes_to_samples(bytes, txth->channels);
+        case OKI16:
+            return oki_bytes_to_samples(bytes, txth->channels);
 
         /* untested */
         case SDX2:

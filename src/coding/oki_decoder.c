@@ -1,14 +1,14 @@
 #include "coding.h"
 
 
-static const int step_sizes[49] = { /* OKI table */
+static const int step_sizes[49] = { /* OKI table (subsection of IMA's table) */
         16, 17, 19, 21, 23, 25, 28, 31, 34, 37, 41, 45, 50,
         55, 60, 66, 73, 80, 88, 97, 107, 118, 130, 143, 157,
         173, 190,  209, 230, 253, 279, 307, 337, 371, 408, 449,
         494, 544, 598, 658, 724, 796, 876, 963, 1060, 1166, 1282, 1411, 1552
 };
 
-static const int stex_indexes[16] = { /* IMA table */
+static const int stex_indexes[16] = { /* OKI table (also from IMA) */
         -1, -1, -1, -1, 2, 4, 6, 8,
         -1, -1, -1, -1, 2, 4, 6, 8
 };
@@ -54,6 +54,26 @@ static void pcfx_expand_nibble(VGMSTREAMCHANNEL * stream, off_t byte_offset, int
     }
 }
 
+static void oki16_expand_nibble(VGMSTREAMCHANNEL * stream, off_t byte_offset, int nibble_shift, int32_t * hist1, int32_t * step_index, int16_t *out_sample) {
+    int code, step, delta;
+
+    code = (read_8bit(byte_offset,stream->streamfile) >> nibble_shift) & 0xf;
+    step = step_sizes[*step_index];
+
+    delta = (code & 0x7);
+    delta = (((delta * 2) + 1) * step) >> 3; /* IMA 'mul' style (standard OKI uses 'shift-add') */
+    if (code & 0x8)
+        delta = -delta;
+    *hist1 += delta;
+
+    /* standard OKI clamps hist to 2047,-2048 here */
+
+    *step_index += stex_indexes[code];
+    if (*step_index < 0) *step_index = 0;
+    if (*step_index > 48) *step_index = 48;
+
+    *out_sample = *hist1;
+}
 
 /* PC-FX ADPCM decoding, variation of OKI/Dialogic/VOX ADPCM. Based on mednafen/pcfx-music-dump.
  * Apparently most ADPCM was made with a buggy encoder, resulting in incorrect sound in real hardware
@@ -65,7 +85,7 @@ static void pcfx_expand_nibble(VGMSTREAMCHANNEL * stream, off_t byte_offset, int
  *
  * PC-FX ISOs don't have a standard filesystem nor file formats (raw data must be custom-ripped),
  * so it's needs GENH/TXTH. Sample rate can only be base_value divided by 1/2/3/4, where
- * base_value is approximately ~31468.5 (follows hardware clocks), mono or stereo-interleaved.
+ * base_value is approximately ~31468.5 (follows hardware clocks), mono or interleaved for stereo.
  */
 void decode_pcfx(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int mode) {
     int i, sample_count = 0;
@@ -86,7 +106,40 @@ void decode_pcfx(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing,
     stream->adpcm_step_index = step_index;
 }
 
-size_t pcfx_bytes_to_samples(size_t bytes, int channels) {
+/* OKI variation with 16-bit output (vs standard's 12-bit), found in FrontWing's PS2 games (Sweet Legacy, Hooligan).
+ * Reverse engineered from the ELF with help from the folks at hcs. */
+void decode_oki16(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
+    int i, sample_count = 0;
+    int32_t hist1 = stream->adpcm_history1_32;
+    int step_index = stream->adpcm_step_index;
+    int16_t out_sample;
+    int is_stereo = channelspacing > 1;
+
+
+    /* external interleave */
+
+    /* no header (external setup), pre-clamp for wrong values */
+    if (step_index < 0) step_index=0;
+    if (step_index > 48) step_index=48;
+
+    /* decode nibbles (layout: varies) */
+    for (i = first_sample; i < first_sample + samples_to_do; i++, sample_count += channelspacing) {
+        off_t byte_offset = is_stereo ?
+                stream->offset + i :    /* stereo: one nibble per channel */
+                stream->offset + i/2;   /* mono: consecutive nibbles (assumed) */
+        int nibble_shift =
+                is_stereo ? (!(channel&1) ? 0:4) : (!(i&1) ? 0:4);  /* even = low, odd = high */
+
+        oki16_expand_nibble(stream, byte_offset,nibble_shift, &hist1, &step_index, &out_sample);
+        outbuf[sample_count] = (out_sample);
+    }
+
+    stream->adpcm_history1_32 = hist1;
+    stream->adpcm_step_index = step_index;
+}
+
+
+size_t oki_bytes_to_samples(size_t bytes, int channels) {
     /* 2 samples per byte (2 nibbles) in stereo or mono config */
     return bytes * 2 / channels;
 }

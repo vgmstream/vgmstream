@@ -171,9 +171,10 @@ void decode_derf(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing,
 /* circus_decoder */
 void decode_circus_adpcm(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
 
-/* pcfx_decoder */
+/* oki_decoder */
 void decode_pcfx(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int mode);
-size_t pcfx_bytes_to_samples(size_t bytes, int channels);
+void decode_oki16(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel);
+size_t oki_bytes_to_samples(size_t bytes, int channels);
 
 /* ea_mt_decoder*/
 ea_mt_codec_data *init_ea_mt(int channels, int type);

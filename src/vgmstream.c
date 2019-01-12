@@ -1142,6 +1142,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_SNDS_IMA:
         case coding_OTNS_IMA:
         case coding_UBI_IMA:
+        case coding_OKI16:
             return 1;
         case coding_IMA_int:
         case coding_DVI_IMA_int:
@@ -1325,6 +1326,7 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
         case coding_ALP_IMA:
         case coding_FFTA2_IMA:
         case coding_PCFX:
+        case coding_OKI16:
             return 0x01;
         case coding_MS_IMA:
         case coding_RAD_IMA:
@@ -2048,6 +2050,12 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
             for (ch = 0; ch < vgmstream->channels; ch++) {
                 decode_pcfx(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
                         vgmstream->channels,vgmstream->samples_into_block,samples_to_do, vgmstream->codec_config);
+            }
+            break;
+        case coding_OKI16:
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_oki16(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do, ch);
             }
             break;
 

@@ -153,6 +153,7 @@ typedef enum {
     coding_ASF,             /* Argonaut ASF 4-bit ADPCM */
     coding_XMD,             /* Konami XMD 4-bit ADPCM */
     coding_PCFX,            /* PC-FX 4-bit ADPCM */
+    coding_OKI16,           /* OKI 4-bit ADPCM with 16-bit output */
 
     /* others */
     coding_SDX2,            /* SDX2 2:1 Squareroot-Delta-Exact compression DPCM */

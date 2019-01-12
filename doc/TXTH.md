@@ -86,6 +86,7 @@ A text file with the above commands must be saved as ".vag.txth" or ".txth", not
 # - PCFX           PC-FX ADPCM
 # - PCM4           PCM 4-bit signed
 # - PCM4_U         PCM 4-bit unsigned
+# - OKI16          OKI ADPCM with 16-bit output (not std/VOX/Dialogic 12-bit)
 codec = (codec string)
 
 # Codec variations [OPTIONAL, depends on codec]
