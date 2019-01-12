@@ -509,6 +509,7 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE* streamFile);
 VGMSTREAM * init_vgmstream_ngc_nst_dsp(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_baf(STREAMFILE* streamFile);
+VGMSTREAM * init_vgmstream_baf_badrip(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_ps3_msf(STREAMFILE* streamFile);
 

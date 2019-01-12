@@ -278,6 +278,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_sqex_scd,
     init_vgmstream_ngc_nst_dsp,
     init_vgmstream_baf,
+    init_vgmstream_baf_badrip,
     init_vgmstream_ps3_msf,
     init_vgmstream_nub_vag,
     init_vgmstream_ps3_past,

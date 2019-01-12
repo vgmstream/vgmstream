@@ -799,14 +799,13 @@ void wma_get_samples(ms_sample_data * msd, STREAMFILE *streamFile, int block_ali
 /* XMA hell for precise looping and gapless support, fixes raw sample values from headers
  * that don't count XMA's final subframe/encoder delay/encoder padding, and FFmpeg stuff.
  * Configurable since different headers vary for maximum annoyance. */
-void xma_fix_raw_samples(VGMSTREAM *vgmstream, STREAMFILE*streamFile, off_t stream_offset, size_t stream_size, off_t chunk_offset, int fix_num_samples, int fix_loop_samples) {
+void xma_fix_raw_samples_ch(VGMSTREAM *vgmstream, STREAMFILE*streamFile, off_t stream_offset, size_t stream_size, int channels_per_stream, int fix_num_samples, int fix_loop_samples) {
     const int bytes_per_packet = 2048;
     const int samples_per_frame = 512;
     const int samples_per_subframe = 128;
     const int bits_frame_size = 15;
 
     int xma_version = 2; /* works ok even for XMA1 */
-    int channels_per_stream = xma_get_channels_per_stream(streamFile, chunk_offset, vgmstream->channels);
     off_t first_packet = stream_offset;
     off_t last_packet = stream_offset + stream_size - bytes_per_packet;
     int32_t start_skip = 0, end_skip = 0;
@@ -871,6 +870,12 @@ void xma_fix_raw_samples(VGMSTREAM *vgmstream, STREAMFILE*streamFile, off_t stre
     }
 #endif
 }
+
+void xma_fix_raw_samples(VGMSTREAM *vgmstream, STREAMFILE*streamFile, off_t stream_offset, size_t stream_size, off_t chunk_offset, int fix_num_samples, int fix_loop_samples) {
+    int channels_per_stream = xma_get_channels_per_stream(streamFile, chunk_offset, vgmstream->channels);
+    xma_fix_raw_samples_ch(vgmstream, streamFile, stream_offset, stream_size, channels_per_stream, fix_num_samples, fix_loop_samples);
+}
+
 
 /* ******************************************** */
 /* HEADER PARSING                               */

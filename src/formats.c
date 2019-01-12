@@ -998,7 +998,7 @@ static const meta_info meta_info_list[] = {
         {meta_PS3_CPS,              "tri-Crescendo CPS Header"},
         {meta_SQEX_SCD,             "Square-Enix SCD header"},
         {meta_NGC_NST_DSP,          "Animaniacs NST header"},
-        {meta_BAF,                  ".baf WAVE header"},
+        {meta_BAF,                  "Bizarre Creations .baf header"},
         {meta_PS3_MSF,              "Sony MSF header"},
         {meta_NUB_VAG,              "Namco NUB VAG header"},
         {meta_PS3_PAST,             "SNDP header"},
