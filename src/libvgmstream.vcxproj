@@ -526,7 +526,7 @@
     <ClCompile Include="coding\ngc_dtk_decoder.c" />
     <ClCompile Include="coding\nwa_decoder.c" />
     <ClCompile Include="coding\ogg_vorbis_decoder.c" />
-    <ClCompile Include="coding\pcfx_decoder.c" />
+    <ClCompile Include="coding\oki_decoder.c" />
     <ClCompile Include="coding\pcm_decoder.c" />
     <ClCompile Include="coding\psv_decoder.c" />
     <ClCompile Include="coding\psx_decoder.c" />
