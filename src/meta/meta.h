@@ -823,4 +823,6 @@ VGMSTREAM * init_vgmstream_imc_container(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_smp(STREAMFILE * streamFile);
 
+VGMSTREAM * init_vgmstream_gin(STREAMFILE * streamFile);
+
 #endif /*_META_H*/

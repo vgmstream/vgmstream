@@ -364,6 +364,9 @@
     <ClCompile Include="meta\genh.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\gin.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\bar.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>

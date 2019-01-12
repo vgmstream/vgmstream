@@ -640,7 +640,7 @@ static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE * streamHead, ST
 #endif
 
         case EAAC_CODEC_XAS: /* "Xas1": EA-XAS [Dead Space (PC/PS3)] */
-            vgmstream->coding_type = coding_EA_XAS;
+            vgmstream->coding_type = coding_EA_XAS_V1;
             vgmstream->layout_type = layout_blocked_ea_sns;
             break;
 

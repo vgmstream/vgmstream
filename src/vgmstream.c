@@ -460,6 +460,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_imc,
     init_vgmstream_imc_container,
     init_vgmstream_smp,
+    init_vgmstream_gin,
 
     /* lowest priority metas (should go after all metas, and TXTH should go before raw formats) */
     init_vgmstream_txth,            /* proper parsers should supersede TXTH, once added */
@@ -1188,7 +1189,9 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_EA_XA_V2:
         case coding_MAXIS_XA:
             return 28;
-        case coding_EA_XAS:
+        case coding_EA_XAS_V0:
+            return 32;
+        case coding_EA_XAS_V1:
             return 128;
 
         case coding_MSADPCM:
@@ -1370,7 +1373,9 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
             return 0x0F*vgmstream->channels;
         case coding_EA_XA_V2:
             return 0; /* variable (ADPCM frames of 0x0f or PCM frames of 0x3d) */
-        case coding_EA_XAS:
+        case coding_EA_XAS_V0:
+            return 0xF+0x02+0x02;
+        case coding_EA_XAS_V1:
             return 0x4c*vgmstream->channels;
 
         case coding_MSADPCM:
@@ -1706,9 +1711,15 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                         vgmstream->channels,vgmstream->samples_into_block,samples_to_do, ch);
             }
             break;
-        case coding_EA_XAS:
+        case coding_EA_XAS_V0:
             for (ch = 0; ch < vgmstream->channels; ch++) {
-                decode_ea_xas(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                decode_ea_xas_v0(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do, ch);
+            }
+            break;
+        case coding_EA_XAS_V1:
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_ea_xas_v1(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
                         vgmstream->channels,vgmstream->samples_into_block,samples_to_do, ch);
             }
             break;

@@ -264,6 +264,7 @@
     <ClCompile Include="meta\gca.c" />
     <ClCompile Include="meta\gcsw.c" />
     <ClCompile Include="meta\genh.c" />
+    <ClCompile Include="meta\gin.c" />
     <ClCompile Include="meta\bar.c" />
     <ClCompile Include="meta\gsp_gsb.c" />
     <ClCompile Include="meta\gtd.c" />

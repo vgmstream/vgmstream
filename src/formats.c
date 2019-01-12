@@ -155,6 +155,7 @@ static const char* extension_list[] = {
     "gcub",
     "gcw",
     "genh",
+    "gin",
     "gms",
     "gsb",
     //"gsf", //conflicts with GBA gsf plugins?
@@ -586,7 +587,8 @@ static const coding_info coding_info_list[] = {
         {coding_EA_XA_int,          "Electronic Arts EA-XA 4-bit ADPCM v1 (mono/interleave)"},
         {coding_EA_XA_V2,           "Electronic Arts EA-XA 4-bit ADPCM v2"},
         {coding_MAXIS_XA,           "Maxis EA-XA 4-bit ADPCM"},
-        {coding_EA_XAS,             "Electronic Arts EA-XAS 4-bit ADPCM"},
+        {coding_EA_XAS_V0,          "Electronic Arts EA-XAS 4-bit ADPCM v0"},
+        {coding_EA_XAS_V1,          "Electronic Arts EA-XAS 4-bit ADPCM v1"},
 
         {coding_IMA,                "IMA 4-bit ADPCM"},
         {coding_IMA_int,            "IMA 4-bit ADPCM (mono/interleave)"},
@@ -1155,6 +1157,7 @@ static const meta_info meta_info_list[] = {
         {meta_DSP_ADPCMX,           "AQUASTYLE ADPY header"},
         {meta_OGG_OPUS,             "Ogg Opus header"},
         {meta_IMC,                  "iNiS .IMC header"},
+        {meta_GIN,                  "Electronic Arts Gnsu header"},
 
 };
 

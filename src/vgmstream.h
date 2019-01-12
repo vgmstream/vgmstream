@@ -106,7 +106,8 @@ typedef enum {
     coding_EA_XA_int,       /* Electronic Arts EA-XA ADPCM v1 (mono/interleave) */
     coding_EA_XA_V2,        /* Electronic Arts EA-XA ADPCM v2 */
     coding_MAXIS_XA,        /* Maxis EA-XA ADPCM */
-    coding_EA_XAS,          /* Electronic Arts EA-XAS ADPCM */
+    coding_EA_XAS_V0,       /* Electronic Arts EA-XAS ADPCM v0 */
+    coding_EA_XAS_V1,       /* Electronic Arts EA-XAS ADPCM v1 */
 
     coding_IMA,             /* IMA ADPCM (stereo or mono, low nibble first) */
     coding_IMA_int,         /* IMA ADPCM (mono/interleave, low nibble first) */
@@ -712,6 +713,7 @@ typedef enum {
     meta_DSP_ADPCMX,
     meta_OGG_OPUS,
     meta_IMC,
+    meta_GIN,
 
 } meta_t;
 

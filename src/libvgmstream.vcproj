@@ -576,10 +576,14 @@
 					RelativePath=".\meta\gcsw.c"
 					>
 				</File>
-				<File
-					RelativePath=".\meta\genh.c"
-					>
-				</File>
+                <File
+                    RelativePath=".\meta\genh.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\gin.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\bar.c"
 					>
