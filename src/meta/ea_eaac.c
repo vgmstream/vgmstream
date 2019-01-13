@@ -574,6 +574,179 @@ fail:
     return NULL;
 }
 
+/* EA Harmony Sample Bank - used in 8th gen EA Sports games */
+VGMSTREAM * init_vgmstream_ea_sbr_harmony(STREAMFILE *streamFile) {
+    uint32_t num_dsets, set_sounds, chunk_id;
+    uint32_t i;
+    uint8_t set_type, flag, offset_size;
+    off_t data_offset, table_offset, dset_offset, base_offset, sound_table_offset, sound_offset, header_offset, start_offset;
+    STREAMFILE *sbsFile = NULL, *streamData = NULL;
+    VGMSTREAM *vgmstream = NULL;
+    int target_stream = streamFile->stream_index, total_sounds, local_target, is_streamed;
+    int32_t(*read_32bit)(off_t, STREAMFILE*);
+    int16_t(*read_16bit)(off_t, STREAMFILE*);
+
+    if (!check_extensions(streamFile, "sbr"))
+        goto fail;
+
+    if (read_32bitBE(0x00, streamFile) == 0x53426C65) { /* "SBle" */
+        read_32bit = read_32bitLE;
+        read_16bit = read_16bitLE;
+        /* Logically, big endian version starts with SBbe. However, this format is
+         * only used on 8th gen systems so far so big endian version probably doesn't exist. */
+#if 0
+    } else if (read_32bitBE(0x00, streamFile) == 0x53426265) { /* "SBbe" */
+        read_32bit = read_32bitBE;
+        read_16bit = read_16bitBE;
+#endif
+    } else {
+        goto fail;
+    }
+
+    num_dsets = read_16bit(0x0a, streamFile);
+    data_offset = read_32bit(0x20, streamFile);
+    table_offset = read_32bit(0x24, streamFile);
+
+    if (target_stream == 0) target_stream = 1;
+    if (target_stream < 0)
+        goto fail;
+
+    total_sounds = 0;
+    sound_offset = 0xFFFFFFFF;
+
+    /* The bank is split into DSET sections each of which references one or multiple sounds. */
+    /* Each set can contain RAM sounds (stored in SBR in data section) or streamed sounds (stored separately in SBS file). */
+    for (i = 0; i < num_dsets; i++) {
+        dset_offset = read_32bit(table_offset + 0x08 * i, streamFile);
+        if (read_32bit(dset_offset, streamFile) != 0x44534554) /* "DSET" */
+            goto fail;
+
+        set_sounds = read_32bit(dset_offset + 0x38, streamFile);
+        local_target = target_stream - total_sounds - 1;
+        dset_offset += 0x48;
+
+        /* Find RAM or OFF chunk */
+        while(1) {
+            chunk_id = read_32bit(dset_offset, streamFile);
+            if (chunk_id == 0x2E52414D) { /* ".RAM" */
+                break;
+            } else if (chunk_id == 0x2E4F4646) { /* ".OFF" */
+                break;
+            } else if (chunk_id == 0x2E4C4452 || /* ".LDR" */
+                chunk_id == 0x2E4F424A || /* ".OBJ" */
+                (chunk_id & 0xFF00FFFF) == 0x2E00534C) { /* ".?SL */
+                dset_offset += 0x18;
+            } else {
+                goto fail;
+            }
+        }
+
+        /* Different set types store offsets differently */
+        set_type = read_8bit(dset_offset + 0x05, streamFile);
+
+        if (set_type == 0x00) {
+            total_sounds++;
+            if (local_target < 0 || local_target > 0)
+                continue;
+
+            sound_offset = read_32bit(dset_offset + 0x08, streamFile);
+        } else if (set_type == 0x01) {
+            total_sounds += 2;
+            if (local_target < 0 || local_target > 1)
+                continue;
+
+            base_offset = read_32bit(dset_offset + 0x08, streamFile);
+
+            if (local_target == 0) {
+                sound_offset = base_offset;
+            } else {
+                sound_offset = base_offset + (uint16_t)read_16bit(dset_offset + 0x06, streamFile);
+            }
+        } else if (set_type == 0x02 || set_type == 0x03) {
+            flag = read_8bit(dset_offset + 0x06, streamFile);
+            offset_size = read_8bit(dset_offset + 0x07, streamFile);
+            base_offset = read_32bit(dset_offset + 0x08, streamFile);
+            sound_table_offset = read_32bit(dset_offset + 0x10, streamFile);
+
+            if (offset_size == 0x04 && flag != 0x00) {
+                set_sounds = base_offset;
+            }
+
+            total_sounds += set_sounds;
+            if (local_target < 0 || local_target >= set_sounds)
+                continue;
+
+            if (offset_size == 0x02) {
+                sound_offset = (uint16_t)read_16bit(sound_table_offset + 0x02 * local_target, streamFile);
+                if (flag != 0x00) sound_offset *= (off_t)pow(2, flag);
+                sound_offset += base_offset;
+            } else if (offset_size == 0x04) {
+                sound_offset = read_32bit(sound_table_offset + 0x04 * local_target, streamFile);
+                if (flag == 0x00) sound_offset += base_offset;
+            }
+        } else if (set_type == 0x04) {
+            total_sounds += set_sounds;
+            if (local_target < 0 || local_target >= set_sounds)
+                continue;
+
+            sound_table_offset = read_32bit(dset_offset + 0x10, streamFile);
+            sound_offset = read_32bit(sound_table_offset + 0x08 * local_target, streamFile);
+        } else {
+            goto fail;
+        }
+
+        if (chunk_id == 0x2E52414D) { /* ".RAM" */
+            is_streamed = 0;
+        } else if (chunk_id == 0x2E4F4646) { /* ".OFF" */
+            is_streamed = 1;
+        }
+    }
+
+    if (sound_offset == 0xFFFFFFFF)
+        goto fail;
+
+    if (!is_streamed) {
+        /* RAM asset */
+        if (read_32bitBE(data_offset, streamFile) != 0x64617461) /* "data" */
+            goto fail;
+
+        streamData = streamFile;
+        sound_offset += data_offset;
+    } else {
+        /* streamed asset */
+        sbsFile = open_streamfile_by_ext(streamFile, "sbs");
+        if (!sbsFile)
+            goto fail;
+
+        if (read_32bitBE(0x00, sbsFile) != 0x64617461) /* "data" */
+            goto fail;
+
+        streamData = sbsFile;
+
+        if (read_32bitBE(sound_offset, streamData) == 0x736C6F74) {
+            /* skip "slot" section */
+            sound_offset += 0x30;
+        }
+    }
+
+    if (read_8bit(sound_offset, streamData) != EAAC_BLOCKID1_HEADER)
+        goto fail;
+
+    header_offset = sound_offset + 0x04;
+    start_offset = sound_offset + (read_32bitBE(sound_offset, streamData) & 0x00FFFFFF);
+    vgmstream = init_vgmstream_eaaudiocore_header(streamData, streamData, header_offset, start_offset, meta_EA_SNR_SNS);
+    if (!vgmstream)
+        goto fail;
+
+    vgmstream->num_streams = total_sounds;
+    close_streamfile(sbsFile);
+    return vgmstream;
+
+fail:
+    close_streamfile(sbsFile);
+    return NULL;
+}
+
 /* ************************************************************************* */
 
 typedef struct {
