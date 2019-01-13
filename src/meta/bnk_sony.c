@@ -282,7 +282,7 @@ VGMSTREAM * init_vgmstream_bnk_sony(STREAMFILE *streamFile) {
                 }
                 else {
                     loop_flag = ps_find_loop_offsets(streamFile, start_offset, stream_size, channel_count, interleave, &loop_start, &loop_end);
-                    loop_flag = (loop_start > 28); /* ignore full loops since they just fadeout + repeat */
+                    loop_flag = (flags & 0x40); /* no loops values in sight so may only apply to PS-ADPCM flags */
 
                     codec = PSX;
                 }
