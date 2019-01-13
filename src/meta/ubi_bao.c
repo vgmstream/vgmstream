@@ -32,7 +32,7 @@ typedef struct {
     int subtypes_count[9];
 } ubi_bao_header;
 
-static int parse_bao(ubi_bao_header * bao, STREAMFILE *streamFile, off_t offset);
+static int parse_bao(ubi_bao_header * bao, STREAMFILE *streamFile, off_t offset, int target_subsong);
 static int parse_pk_header(ubi_bao_header * bao, STREAMFILE *streamFile);
 static VGMSTREAM * init_vgmstream_ubi_bao_main(ubi_bao_header * bao, STREAMFILE *streamFile);
 static STREAMFILE * setup_bao_streamfile(ubi_bao_header *bao, STREAMFILE *streamFile);
@@ -265,7 +265,7 @@ static int parse_pk_header(ubi_bao_header * bao, STREAMFILE *streamFile) {
     size_t index_size, index_header_size;
     off_t bao_offset, resources_offset;
     int target_subsong = streamFile->stream_index;
-    uint8_t *index_buffer = NULL;
+    STREAMFILE *streamIndex = NULL;
     STREAMFILE *streamTest = NULL;
 
 
@@ -273,6 +273,8 @@ static int parse_pk_header(ubi_bao_header * bao, STREAMFILE *streamFile) {
     if (read_8bit(0x00, streamFile) != 0x01)
         goto fail;
     /* index and resources always LE */
+
+    if (target_subsong == 0) target_subsong = 1;
 
     /* 0x01(3): version, major/minor/release (numbering continues from .sb0/sm0) */
     index_size = read_32bitLE(0x04, streamFile); /* can be 0, not including  */
@@ -294,21 +296,22 @@ static int parse_pk_header(ubi_bao_header * bao, STREAMFILE *streamFile) {
         VGM_LOG("BAO: index too big\n");
         goto fail;
     }
-    index_buffer = malloc(index_size);
-    read_streamfile(index_buffer, index_header_size, index_size, streamFile);
 
-    /* use smaller I/O buffer for performance, as this read lots of small BAO headers all over the place */
+    /* use smaller I/O buffers for performance, as this read lots of small headers all over the place */
+    streamIndex = reopen_streamfile(streamFile, index_size);
+    if (!streamIndex) goto fail;
+
     streamTest = reopen_streamfile(streamFile, 0x100);
     if (!streamTest) goto fail;
 
     /* parse index to get target subsong N = Nth audio header BAO */
     bao_offset = index_header_size + index_size;
     for (i = 0; i < index_entries; i++) {
-        //uint32_t bao_id = get_32bitLE(index_buffer + 0x08*i+ 0x00);
-        size_t bao_size = get_32bitLE(index_buffer + 0x08*i + 0x04);
+      //uint32_t bao_id = read_32bitLE(index_header_size + 0x08*i + 0x00, streamIndex);
+        size_t bao_size = read_32bitLE(index_header_size + 0x08*i + 0x04, streamIndex);
 
         /* parse and continue to find out total_subsongs */
-        if (!parse_bao(bao, streamTest, bao_offset))
+        if (!parse_bao(bao, streamTest, bao_offset, target_subsong))
             goto fail;
 
         bao_offset += bao_size; /* files simply concat BAOs */
@@ -407,21 +410,20 @@ static int parse_pk_header(ubi_bao_header * bao, STREAMFILE *streamFile) {
 
     ;VGM_LOG("BAO stream: id=%x, offset=%x, size=%x, res=%s\n", bao->stream_id, (uint32_t)bao->stream_offset, bao->stream_size, (bao->is_external ? bao->resource_name : "internal"));
 
-    free(index_buffer);
+    close_streamfile(streamIndex);
     close_streamfile(streamTest);
     return 1;
 fail:
-    free(index_buffer);
+    close_streamfile(streamIndex);
     close_streamfile(streamTest);
     return 0;
 }
 
 /* parse a single BAO (binary audio object) descriptor */
-static int parse_bao(ubi_bao_header * bao, STREAMFILE *streamFile, off_t offset) {
+static int parse_bao(ubi_bao_header * bao, STREAMFILE *streamFile, off_t offset, int target_subsong) {
     int32_t (*read_32bit)(off_t,STREAMFILE*) = NULL;
     uint32_t bao_version, descriptor_type, descriptor_subtype;
     size_t header_size;
-    int target_subsong = streamFile->stream_index;
     
 
     /* 0x00(1): class? usually 0x02 but older BAOs have 0x01 too */
@@ -463,11 +465,11 @@ static int parse_bao(ubi_bao_header * bao, STREAMFILE *streamFile, off_t offset)
     /* for debugging purposes */
     switch(descriptor_subtype) {
         case 0x00000001: bao->subtypes_count[1]++; break; /* standard */
-        case 0x00000002: bao->subtypes_count[2]++; break; /* multilayer??? related to other header BAOs? */
+        case 0x00000002: bao->subtypes_count[2]++; break; /* related to localized BAOs? (.lpk)  */
         case 0x00000003: bao->subtypes_count[3]++; break; /* related to other header BAOs? */
         case 0x00000004: bao->subtypes_count[4]++; break; /* related to other header BAOs? */
         case 0x00000005: bao->subtypes_count[5]++; break; /* related to other header BAOs? */
-        case 0x00000006: bao->subtypes_count[6]++; break; /* some multilayer/table? may contain sounds??? */
+        case 0x00000006: bao->subtypes_count[6]++; break; /* multilayer with multiple sounds */
         case 0x00000007: bao->subtypes_count[7]++; break; /* related to other header BAOs? */
         case 0x00000008: bao->subtypes_count[8]++; break; /* ? (almost empty with some unknown value) */
         default:
@@ -476,13 +478,26 @@ static int parse_bao(ubi_bao_header * bao, STREAMFILE *streamFile, off_t offset)
     }
     //;VGM_ASSERT(descriptor_subtype != 0x01, "UBI BAO: subtype %x at %lx (%lx)\n", descriptor_subtype, offset, offset+header_size+0x04);
 
+    if (descriptor_subtype == 0x06) {
+        ;VGM_LOG("UBI BAO: layer subtype at %lx (%lx)\n", offset, offset+header_size+0x04);
+        /* todo fix layers
+         * for scott pilgrim:
+         * - 0x50: layer count
+         * - 0x78: layer headers size?
+         * - 0x7c: prefetch size
+         * - 0xb4: layer header xN (size 0x30)
+         *   (this header has sample rate, channels, codec, various sizes/num samples)
+         * - 0x114: good ol' Ubi SB layer header v0x00100009 with classic v0x03 blocked data
+         *   (standard prefetch style, part of data then cut in the middle and links to stream)
+         */
+        goto fail;
+    }
+
     /* ignore unknown subtypes */
     if (descriptor_subtype != 0x00000001)
         return 1;
 
     bao->total_subsongs++;
-    if (target_subsong == 0) target_subsong = 1;
-
     if (target_subsong != bao->total_subsongs)
         return 1;
 
