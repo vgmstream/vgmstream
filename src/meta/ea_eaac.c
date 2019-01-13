@@ -318,10 +318,10 @@ fail:
 VGMSTREAM * init_vgmstream_ea_sbr(STREAMFILE *streamFile) {
     uint32_t num_sounds, type_desc;
     uint16_t num_metas, meta_type;
+    uint32_t i;
     off_t table_offset, types_offset, entry_offset, metas_offset, data_offset, snr_offset, sns_offset;
     STREAMFILE *sbsFile = NULL, *streamData = NULL;
     VGMSTREAM *vgmstream = NULL;
-    int i;
     int target_stream = streamFile->stream_index;
 
     if (!check_extensions(streamFile, "sbr"))
@@ -455,7 +455,7 @@ VGMSTREAM * init_vgmstream_ea_hdr_sth_dat(STREAMFILE *streamFile) {
     sns_offset = 0;
 
     for (i = 0; i < total_sounds; i++) {
-        snr_offset = (off_t)read_16bitBE(0x10 + (0x02+userdata_size) * i, streamFile) + 0x04;
+        snr_offset = (uint16_t)read_16bitBE(0x10 + (0x02+userdata_size) * i, streamFile) + 0x04;
 
         if (i == target_stream - 1)
             break;

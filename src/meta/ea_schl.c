@@ -358,14 +358,14 @@ VGMSTREAM * init_vgmstream_ea_hdr_dat(STREAMFILE *streamFile) {
 
     userdata_size = read_8bit(0x04, streamFile) & 0x0F;
     total_sounds = read_8bit(0x05, streamFile);
-    offset_mult = (off_t)read_8bit(0x07, streamFile) * 0x0100 + 0x0100;
+    offset_mult = (uint8_t)read_8bit(0x07, streamFile) * 0x0100 + 0x0100;
 
     if (target_stream == 0) target_stream = 1;
     if (target_stream < 0 || total_sounds == 0 || target_stream > total_sounds)
         goto fail;
 
     /* offsets are always big endian */
-    schl_offset = (off_t)read_16bitBE(0x0C + (0x02+userdata_size) * (target_stream-1), streamFile) * offset_mult;
+    schl_offset = (uint16_t)read_16bitBE(0x0C + (0x02+userdata_size) * (target_stream-1), streamFile) * offset_mult;
     if (read_32bitBE(schl_offset, datFile) != EA_BLOCKID_HEADER)
         goto fail;
 
@@ -555,7 +555,7 @@ VGMSTREAM * init_vgmstream_ea_mpf_mus(STREAMFILE *streamFile) {
 
         /* get the last entry offset */
         section_offset = 0x24;
-        entry_offset = read_16bit(section_offset + (sec1_num - 1) * 0x02, streamFile) * 0x04;
+        entry_offset = (uint16_t)read_16bit(section_offset + (sec1_num - 1) * 0x02, streamFile) * 0x04;
         subentry_num = read_8bit(entry_offset + 0x0b, streamFile);
 
         section_offset = entry_offset + 0x0c + subentry_num * 0x04;
@@ -577,7 +577,7 @@ VGMSTREAM * init_vgmstream_ea_mpf_mus(STREAMFILE *streamFile) {
 
         /* get the last entry offset */
         section_offset = 0x24;
-        entry_offset = read_16bit(section_offset + (sec1_num - 1) * 0x02, streamFile) * 0x04;
+        entry_offset = (uint16_t)read_16bit(section_offset + (sec1_num - 1) * 0x02, streamFile) * 0x04;
         if (big_endian) {
             subentry_num = (read_32bitBE(entry_offset + 0x04, streamFile) >> 19) & 0xFF;
         } else {
@@ -601,7 +601,7 @@ VGMSTREAM * init_vgmstream_ea_mpf_mus(STREAMFILE *streamFile) {
 
         /* get the last entry offset */
         section_offset = 0x20;
-        entry_offset = read_16bit(section_offset + (sec1_num - 1) * 0x02, streamFile) * 0x04;
+        entry_offset = (uint16_t)read_16bit(section_offset + (sec1_num - 1) * 0x02, streamFile) * 0x04;
         if (big_endian) {
             subentry_num = (read_32bitBE(entry_offset + 0x04, streamFile) >> 15) & 0xFF;
         } else {
@@ -609,7 +609,7 @@ VGMSTREAM * init_vgmstream_ea_mpf_mus(STREAMFILE *streamFile) {
         }
 
         section_offset = entry_offset + 0x10 + subentry_num * 0x04;
-        entry_offset = read_16bit(section_offset + (sec2_num - 1) * 0x02, streamFile) * 0x04;
+        entry_offset = (uint16_t)read_16bit(section_offset + (sec2_num - 1) * 0x02, streamFile) * 0x04;
         if (big_endian) {
             subentry_num = (read_32bitBE(entry_offset + 0x0c, streamFile) >> 10) & 0xFF;
         } else {
