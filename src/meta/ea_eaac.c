@@ -134,7 +134,7 @@ fail:
 }
 
 /* EA ABK - ABK header seems to be same as in the old games but the sound table is different and it contains SNR/SNS sounds instead */
-VGMSTREAM * init_vgmstream_ea_abk_new(STREAMFILE *streamFile) {
+VGMSTREAM * init_vgmstream_ea_abk_eaac(STREAMFILE *streamFile) {
     int is_dupe, total_sounds = 0, target_stream = streamFile->stream_index;
     off_t bnk_offset, header_table_offset, base_offset, unk_struct_offset, table_offset, snd_entry_offset, ast_offset;
     off_t num_entries_off, base_offset_off, entries_off, sound_table_offset_off;
@@ -314,7 +314,7 @@ fail:
     return NULL;
 }
 
-/* EA SBR/SBS - used in older 7th gen games, usually for storing streamed sounds */
+/* EA SBR/SBS - used in older 7th gen games for storing SFX */
 VGMSTREAM * init_vgmstream_ea_sbr(STREAMFILE *streamFile) {
     uint32_t num_sounds, type_desc;
     uint16_t num_metas, meta_type;
@@ -397,7 +397,7 @@ fail:
     return NULL;
 }
 
-/* EA HDR/STH/DAT - seen in early 7th-gen games, used for storing speech */
+/* EA HDR/STH/DAT - seen in older 7th gen games, used for storing speech */
 VGMSTREAM * init_vgmstream_ea_hdr_sth_dat(STREAMFILE *streamFile) {
     int target_stream = streamFile->stream_index;
     uint32_t i;
@@ -499,7 +499,7 @@ fail:
 }
 
 /* EA MPF/MUS combo - used in older 7th gen games for storing music */
-VGMSTREAM * init_vgmstream_ea_mpf_mus_new(STREAMFILE *streamFile) {
+VGMSTREAM * init_vgmstream_ea_mpf_mus_eaac(STREAMFILE *streamFile) {
     uint32_t num_sounds;
     uint8_t version, sub_version, block_id;
     off_t table_offset, entry_offset, snr_offset, sns_offset;
