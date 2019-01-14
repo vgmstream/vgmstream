@@ -1423,15 +1423,15 @@ static void update_ea_stream_size_and_samples(STREAMFILE* streamFile, off_t star
             multiple_schl = 1;
         }
 
-        /* HACK: fix num_samples for streams with multiple SCHl. Need to eventually get rid of this.
-         * Get total samples by parsing block headers, needed when multiple files are stitched together.
-         * Some EA files (.mus/eam/sng/etc) concat many small subfiles, used for interactive/mapped
-         * music (.map/lin). Subfiles always share header, except num_samples. */
-        num_samples += vgmstream->current_block_samples;
+        if (vgmstream->current_block_samples > 0) {
+            /* HACK: fix num_samples for streams with multiple SCHl. Need to eventually get rid of this.
+             * Get total samples by parsing block headers, needed when multiple files are stitched together.
+             * Some EA files (.mus/eam/sng/etc) concat many small subfiles, used for interactive/mapped
+             * music (.map/lin). Subfiles always share header, except num_samples. */
+            num_samples += vgmstream->current_block_samples;
 
-        /* Stream size is almost never provided in bank files so we have to calc it manually */
-        if (vgmstream->current_block_samples != 0) {
-            stream_size += vgmstream->next_block_offset - vgmstream->current_block_offset - 0x0c;
+            /* Stream size is almost never provided in bank files so we have to calc it manually */
+            stream_size += vgmstream->next_block_offset - vgmstream->ch[0].offset;
         }
     }
 
