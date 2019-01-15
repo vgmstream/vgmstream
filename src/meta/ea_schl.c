@@ -115,11 +115,11 @@ VGMSTREAM * init_vgmstream_ea_schl(STREAMFILE *streamFile) {
 
     /* check extension */
     /* they don't seem enforced by EA's tools but usually:
-     * .asf: ~early [ex. Need for Speed (PC)]
+     * .asf: ~early (audio stream file?) [ex. Need for Speed (PC)]
      * .str: ~early [ex. FIFA 2002 (PS1)]
      * .eam: ~mid (fake?)
      * .exa: ~mid [ex. 007 - From Russia with Love]
-     * .sng: ~late (fake?)
+     * .sng: ~late (FIFA games)
      * .aud: ~late [ex. FIFA 14 (3DS)]
      * .strm: MySims Kingdom (Wii)
      * .stm: FIFA 12 (3DS)

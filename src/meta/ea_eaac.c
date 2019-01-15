@@ -121,7 +121,7 @@ VGMSTREAM * init_vgmstream_ea_snu(STREAMFILE *streamFile) {
     }
 
     header_offset = 0x10; /* SNR header */
-    start_offset = read_32bit(0x08,streamFile); /* SPS blocks */
+    start_offset = read_32bit(0x08,streamFile); /* SNS blocks */
 
     vgmstream = init_vgmstream_eaaudiocore_header(streamFile, streamFile, header_offset, start_offset, meta_EA_SNU);
     if (!vgmstream) goto fail;
@@ -583,6 +583,15 @@ static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE * streamHead, ST
             VGM_LOG("EA EAAC: unknown actual looping for codec %x\n", eaac.codec);
             goto fail;
         }
+
+        if (eaac.version == EAAC_VERSION_V0) {
+            /* SNR+SNS are separate so offsets are relative to the data start
+             * (first .SNS block, or extra data before the .SNS block in case of .SNU) */
+            eaac.loop_offset = eaac.stream_offset + eaac.loop_offset;
+        } else {
+            /* SPS have headers+data together so offsets are relative to the file start [ex. FIFA 18 (PC)] */
+            eaac.loop_offset = header_offset - 0x04 + eaac.loop_offset;
+        }
     }
 
     /* accepted channel configs only seem to be mono/stereo/quad/5.1/7.1, from debug strings */
@@ -640,7 +649,7 @@ static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE * streamHead, ST
 #endif
 
         case EAAC_CODEC_XAS: /* "Xas1": EA-XAS [Dead Space (PC/PS3)] */
-            vgmstream->coding_type = coding_EA_XAS;
+            vgmstream->coding_type = coding_EA_XAS_V1;
             vgmstream->layout_type = layout_blocked_ea_sns;
             break;
 
@@ -785,7 +794,7 @@ static size_t get_snr_size(STREAMFILE *streamFile, off_t offset) {
 static segmented_layout_data* build_segmented_eaaudiocore_looping(STREAMFILE *streamData, eaac_header *eaac) {
     segmented_layout_data *data = NULL;
     STREAMFILE* temp_streamFile[2] = {0};
-    off_t offsets[2] = { eaac->stream_offset, eaac->stream_offset + eaac->loop_offset };
+    off_t offsets[2] = { eaac->stream_offset, eaac->loop_offset };
     int num_samples[2] = { eaac->loop_start, eaac->num_samples - eaac->loop_start};
     int segment_count = 2; /* intro/loop */
     int i;

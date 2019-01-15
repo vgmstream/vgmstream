@@ -155,6 +155,7 @@ static const char* extension_list[] = {
     "gcub",
     "gcw",
     "genh",
+    "gin",
     "gms",
     "gsb",
     //"gsf", //conflicts with GBA gsf plugins?
@@ -194,7 +195,7 @@ static const char* extension_list[] = {
 
     "kces",
     "kcey", //fake extension/header id for .pcm (renamed, to be removed)
-    "khv",
+    "khv", //fake extension/header id for .vas (renamed, to be removed)
     "km9",
     "kovs", //fake extension/header id for .kvs
     "kns",
@@ -586,7 +587,8 @@ static const coding_info coding_info_list[] = {
         {coding_EA_XA_int,          "Electronic Arts EA-XA 4-bit ADPCM v1 (mono/interleave)"},
         {coding_EA_XA_V2,           "Electronic Arts EA-XA 4-bit ADPCM v2"},
         {coding_MAXIS_XA,           "Maxis EA-XA 4-bit ADPCM"},
-        {coding_EA_XAS,             "Electronic Arts EA-XAS 4-bit ADPCM"},
+        {coding_EA_XAS_V0,          "Electronic Arts EA-XAS 4-bit ADPCM v0"},
+        {coding_EA_XAS_V1,          "Electronic Arts EA-XAS 4-bit ADPCM v1"},
 
         {coding_IMA,                "IMA 4-bit ADPCM"},
         {coding_IMA_int,            "IMA 4-bit ADPCM (mono/interleave)"},
@@ -633,6 +635,7 @@ static const coding_info coding_info_list[] = {
         {coding_ASF,                "Argonaut ASF 4-bit ADPCM"},
         {coding_XMD,                "Konami XMD 4-bit ADPCM"},
         {coding_PCFX,               "PC-FX 4-bit ADPCM"},
+        {coding_OKI16,              "OKI 4-bit ADPCM (16-bit output)"},
 
         {coding_SDX2,               "Squareroot-delta-exact (SDX2) 8-bit DPCM"},
         {coding_SDX2_int,           "Squareroot-delta-exact (SDX2) 8-bit DPCM with 1 byte interleave"},
@@ -995,7 +998,7 @@ static const meta_info meta_info_list[] = {
         {meta_PS3_CPS,              "tri-Crescendo CPS Header"},
         {meta_SQEX_SCD,             "Square-Enix SCD header"},
         {meta_NGC_NST_DSP,          "Animaniacs NST header"},
-        {meta_BAF,                  ".baf WAVE header"},
+        {meta_BAF,                  "Bizarre Creations .baf header"},
         {meta_PS3_MSF,              "Sony MSF header"},
         {meta_NUB_VAG,              "Namco NUB VAG header"},
         {meta_PS3_PAST,             "SNDP header"},
@@ -1155,6 +1158,7 @@ static const meta_info meta_info_list[] = {
         {meta_DSP_ADPCMX,           "AQUASTYLE ADPY header"},
         {meta_OGG_OPUS,             "Ogg Opus header"},
         {meta_IMC,                  "iNiS .IMC header"},
+        {meta_GIN,                  "Electronic Arts Gnsu header"},
 
 };
 

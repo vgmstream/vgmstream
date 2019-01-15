@@ -264,6 +264,7 @@
     <ClCompile Include="meta\gca.c" />
     <ClCompile Include="meta\gcsw.c" />
     <ClCompile Include="meta\genh.c" />
+    <ClCompile Include="meta\gin.c" />
     <ClCompile Include="meta\bar.c" />
     <ClCompile Include="meta\gsp_gsb.c" />
     <ClCompile Include="meta\gtd.c" />
@@ -366,7 +367,6 @@
     <ClCompile Include="meta\ps2_joe.c" />
     <ClCompile Include="meta\ps2_jstm.c" />
     <ClCompile Include="meta\ps2_kces.c" />
-    <ClCompile Include="meta\ps2_khv.c" />
     <ClCompile Include="meta\ps2_leg.c" />
     <ClCompile Include="meta\ps2_lpcm.c" />
     <ClCompile Include="meta\ps2_mcg.c" />
@@ -526,7 +526,7 @@
     <ClCompile Include="coding\ngc_dtk_decoder.c" />
     <ClCompile Include="coding\nwa_decoder.c" />
     <ClCompile Include="coding\ogg_vorbis_decoder.c" />
-    <ClCompile Include="coding\pcfx_decoder.c" />
+    <ClCompile Include="coding\oki_decoder.c" />
     <ClCompile Include="coding\pcm_decoder.c" />
     <ClCompile Include="coding\psv_decoder.c" />
     <ClCompile Include="coding\psx_decoder.c" />

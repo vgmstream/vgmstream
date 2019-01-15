@@ -19,8 +19,10 @@ VGMSTREAM * init_vgmstream_vag(STREAMFILE *streamFile) {
      * .swag: Frantix (PSP)
      * .str: Ben10 Galactic Racing
      * .vig: MX vs. ATV Untamed (PS2)
-     * .l/r: Crash Nitro Kart (PS2), Gradius V (PS2) */
-    if ( !check_extensions(streamFile,"vag,swag,str,vig,l,r") )
+     * .l/r: Crash Nitro Kart (PS2), Gradius V (PS2)
+     * .vas: Kingdom Hearts II (PS2)
+     * .khv: fake for .vas */
+    if ( !check_extensions(streamFile,"vag,swag,str,vig,l,r,vas,khv") )
         goto fail;
 
     /* check VAG Header */
@@ -112,7 +114,7 @@ VGMSTREAM * init_vgmstream_vag(STREAMFILE *streamFile) {
                 interleave = 0x10;
                 loop_flag = 0;
             }
-            else if (check_extensions(streamFile,"swag")) { /* algo "VAGp" at (file_size / channels) */
+            else if (check_extensions(streamFile,"swag")) { /* also "VAGp" at (file_size / channels) */
                 /* Frantix (PSP) */
                 start_offset = 0x40; /* channel_size ignores empty frame */
                 channel_count = 2;
@@ -187,6 +189,19 @@ VGMSTREAM * init_vgmstream_vag(STREAMFILE *streamFile) {
 
                 channel_size = channel_size / channel_count;
                 loop_flag = ps_find_loop_offsets(streamFile, start_offset, channel_size*channel_count, channel_count, interleave, &loop_start_sample, &loop_end_sample);
+            }
+            else if (version == 0x00000004 && channel_size == file_size - 0x60 && read_32bitBE(0x1c, streamFile) != 0) { /* also .vas */
+                /* Kingdom Hearts II (PS2) */
+                start_offset = 0x60;
+                interleave = 0x10;
+
+                loop_start_sample = read_32bitBE(0x14,streamFile);
+                loop_end_sample = read_32bitBE(0x18,streamFile);
+                loop_flag = (loop_end_sample > 0); /* maybe at 0x1d */
+                channel_count = read_8bit(0x1e,streamFile);
+                /* 0x1f: possibly volume */
+                channel_size = channel_size / channel_count;
+                /* mono files also have channel/volume, but start at 0x30 and are probably named .vag */
             }
             else {
                 /* standard PS1/PS2/PS3 .vag [Ecco the Dolphin (PS2), Legasista (PS3)] */

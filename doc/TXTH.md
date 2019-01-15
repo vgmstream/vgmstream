@@ -9,6 +9,10 @@ When an unsupported file is loaded (for instance "bgm01.snd"), vgmstream tries t
 
 If found and parsed correctly (the TXTH may be rejected if incorrect commands are found) vgmstream will try to play the file as described. Extension must be accepted/added to vgmstream (plugins like foobar2000 only load extensions from a whitelist in formats.c), or one could rename to any supported extension (like .vgmstream), or leave the file extensionless.
 
+You can also use ".(sub).(ext).txth" (if the file is "filename.sub.ext"), to allow mixing slightly different files in the same folder. The "sub" part doesn't need to be an extension, for example:
+- 001.1ch.str, 001.1ch.str may use .1ch.txth 
+- 003.2ch.str, 003.2ch.str may use .2ch.txth
+- etc
 
 ## Example of a TXTH file
 For an unsupported bgm01.vag this would be a simple TXTH for it:
@@ -82,6 +86,7 @@ A text file with the above commands must be saved as ".vag.txth" or ".txth", not
 # - PCFX           PC-FX ADPCM
 # - PCM4           PCM 4-bit signed
 # - PCM4_U         PCM 4-bit unsigned
+# - OKI16          OKI ADPCM with 16-bit output (not std/VOX/Dialogic 12-bit)
 codec = (codec string)
 
 # Codec variations [OPTIONAL, depends on codec]

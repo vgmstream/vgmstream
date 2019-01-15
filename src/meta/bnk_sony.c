@@ -3,16 +3,16 @@
 
 typedef enum { PSX, PCM16, ATRAC9, HEVAG } bnk_codec;
 
-/* BNK - Sony's Scream Tool bank format [Puyo Puyo Tetris (PS4), NekoBuro: Cats Block (Vita)] */
+/* .BNK - Sony's Scream Tool bank format [Puyo Puyo Tetris (PS4), NekoBuro: Cats Block (Vita)] */
 VGMSTREAM * init_vgmstream_bnk_sony(STREAMFILE *streamFile) {
-#if 1
     VGMSTREAM * vgmstream = NULL;
     off_t start_offset, stream_offset, name_offset = 0;
     size_t stream_size, interleave = 0;
     off_t sblk_offset, data_offset;
     size_t data_size;
-    int channel_count = 0, loop_flag, sample_rate, parts, version;
+    int channel_count = 0, loop_flag, sample_rate, parts, version, big_endian;
     int loop_start = 0, loop_end = 0;
+    uint32_t pitch, flags;
     uint32_t atrac9_info = 0;
 
     int total_subsongs, target_subsong = streamFile->stream_index;
@@ -28,10 +28,12 @@ VGMSTREAM * init_vgmstream_bnk_sony(STREAMFILE *streamFile) {
     if (read_32bitBE(0x00,streamFile) == 0x00000003) { /* PS3 */
         read_32bit = read_32bitBE;
         read_16bit = read_16bitBE;
+        big_endian = 1;
     }
     else if (read_32bitBE(0x00,streamFile) == 0x03000000) { /* Vita/PS4 */
         read_32bit = read_32bitLE;
         read_16bit = read_16bitLE;
+        big_endian = 0;
     }
     else {
         goto fail;
@@ -44,11 +46,13 @@ VGMSTREAM * init_vgmstream_bnk_sony(STREAMFILE *streamFile) {
     /* 0x0c: sklb size */
     data_offset = read_32bit(0x10,streamFile);
     data_size = read_32bit(0x14,streamFile);
+    /* when sblk_offset >= 0x20: */
     /* 0x18: ZLSD small footer, rare [Yakuza 6's Puyo Puyo (PS4)] */
     /* 0x1c: ZLSD size */
 
     /* SE banks, also used for music. Most table fields seems reserved/defaults and
-     * don't change much between subsongs or files, so they aren't described in detail */
+     * don't change much between subsongs or files, so they aren't described in detail.
+     * Entry sizes are variable (usually flag + extra size xN) so table offsets are needed. */
 
 
     /* SBlk part: parse header */
@@ -63,7 +67,7 @@ VGMSTREAM * init_vgmstream_bnk_sony(STREAMFILE *streamFile) {
         off_t table1_offset, table2_offset, table3_offset, table4_offset;
         size_t section_entries, material_entries, stream_entries;
         size_t table1_entry_size;
-        off_t table1_suboffset, table2_suboffset, table3_suboffset;
+        off_t table1_suboffset, table2_suboffset;
         off_t table2_entry_offset = 0, table3_entry_offset = 0;
         int table4_entry_id = -1;
         off_t table4_entries_offset, table4_names_offset;
@@ -75,7 +79,7 @@ VGMSTREAM * init_vgmstream_bnk_sony(STREAMFILE *streamFile) {
             case 0x09: /* Puyo Puyo Tetris (PS4) */
                 section_entries  = (uint16_t)read_16bit(sblk_offset+0x16,streamFile); /* entry size: ~0x0c */
                 material_entries = (uint16_t)read_16bit(sblk_offset+0x18,streamFile); /* entry size: ~0x08 */
-                stream_entries   = (uint16_t)read_16bit(sblk_offset+0x1a,streamFile); /* entry size: ~0x60 */
+                stream_entries   = (uint16_t)read_16bit(sblk_offset+0x1a,streamFile); /* entry size: ~0x18 + variable */
                 table1_offset    = sblk_offset + read_32bit(sblk_offset+0x1c,streamFile);
                 table2_offset    = sblk_offset + read_32bit(sblk_offset+0x20,streamFile);
                 table3_offset    = sblk_offset + read_32bit(sblk_offset+0x34,streamFile);
@@ -84,7 +88,6 @@ VGMSTREAM * init_vgmstream_bnk_sony(STREAMFILE *streamFile) {
                 table1_entry_size = 0x0c;
                 table1_suboffset = 0x08;
                 table2_suboffset = 0x00;
-                table3_suboffset = 0x10;
                 break;
 
             case 0x0d: /* Polara (Vita), Crypt of the Necrodancer (Vita) */
@@ -95,12 +98,11 @@ VGMSTREAM * init_vgmstream_bnk_sony(STREAMFILE *streamFile) {
                 table4_offset    = sblk_offset + read_32bit(sblk_offset+0x30,streamFile);
                 section_entries  = (uint16_t)read_16bit(sblk_offset+0x38,streamFile); /* entry size: ~0x24 */
                 material_entries = (uint16_t)read_16bit(sblk_offset+0x3a,streamFile); /* entry size: ~0x08 */
-                stream_entries   = (uint16_t)read_16bit(sblk_offset+0x3c,streamFile); /* entry size: ~0x90 + variable (sometimes) */
+                stream_entries   = (uint16_t)read_16bit(sblk_offset+0x3c,streamFile); /* entry size: ~0x5c + variable */
 
                 table1_entry_size = 0x24;
                 table1_suboffset = 0x0c;
                 table2_suboffset = 0x00;
-                table3_suboffset = 0x44;
                 break;
 
             default:
@@ -150,14 +152,64 @@ VGMSTREAM * init_vgmstream_bnk_sony(STREAMFILE *streamFile) {
         if (target_subsong < 0 || target_subsong > total_subsongs || total_subsongs < 1) goto fail;
         /* this means some subsongs repeat streams, that can happen in some sfx banks, whatevs */
         if (total_subsongs != stream_entries) {
-            //;VGM_LOG("BNK: subsongs %i vs table3 %i don't match\n", total_subsongs, stream_entries);
+            VGM_LOG("BNK: subsongs %i vs table3 %i don't match\n", total_subsongs, stream_entries);
             /* find_dupes...? */
         }
 
+        //;VGM_LOG("BNK: header entry at %lx\n", table3_offset+table3_entry_offset);
 
         /* parse sounds */
-        stream_offset = read_32bit(table3_offset+table3_entry_offset+table3_suboffset+0x00,streamFile);
-        stream_size   = read_32bit(table3_offset+table3_entry_offset+table3_suboffset+0x04,streamFile);
+        switch(version) {
+            case 0x03:
+            case 0x04:
+            case 0x09:
+                pitch   = (uint8_t)read_8bit(table3_offset+table3_entry_offset+0x02,streamFile);
+                flags   = (uint8_t)read_8bit(table3_offset+table3_entry_offset+0x0f,streamFile);
+                stream_offset   = read_32bit(table3_offset+table3_entry_offset+0x10,streamFile);
+                stream_size     = read_32bit(table3_offset+table3_entry_offset+0x14,streamFile);
+
+                /* must use some log/formula but whatevs */
+                switch(pitch) {
+                    case 0xC6: sample_rate = 50000; break; //?
+                    case 0xC4: sample_rate = 48000; break;
+                    case 0xC3: sample_rate = 46000; break; //?
+                    case 0xC2: sample_rate = 44100; break;
+                    case 0xBC: sample_rate = 36000; break; //?
+                    case 0xBA: sample_rate = 32000; break; //?
+                    case 0xB6: sample_rate = 22050; break;
+                    case 0xAA: sample_rate = 11025; break;
+                    default:
+                        VGM_LOG("BNK: unknown pitch %x\n", pitch);
+                        goto fail;
+                }
+                break;
+
+            case 0x0d:
+            case 0x0e:
+                flags   = (uint8_t)read_8bit(table3_offset+table3_entry_offset+0x12,streamFile);
+                stream_offset   = read_32bit(table3_offset+table3_entry_offset+0x44,streamFile);
+                stream_size     = read_32bit(table3_offset+table3_entry_offset+0x48,streamFile);
+                pitch = (uint32_t)read_32bit(table3_offset+table3_entry_offset+0x4c,streamFile);
+
+                /* this looks like "((pitch >> 9) & 0xC000) | ((pitch >> 8) & 0xFFFF)" but... why??? */
+                switch(pitch) {
+                    case 0x467A0000: sample_rate = 64000; break; //?
+                    case 0x46BB8000: sample_rate = 48000; break;
+                    case 0x473B8000: sample_rate = 48000; break;
+                    case 0x46AC4400: sample_rate = 44100; break;
+                    case 0x47AC4400: sample_rate = 44100; break;
+                    case 0x472C4400: sample_rate = 44100; break;
+                    default:
+                        VGM_LOG("BNK: unknown pitch %x\n", pitch);
+                        goto fail;
+                }
+                break;
+
+            default:
+                goto fail;
+        }
+
+        //;VGM_LOG("BNK: stream at %lx + %x\n", stream_offset, stream_size);
 
         /* parse names */
         switch(version) {
@@ -215,7 +267,6 @@ VGMSTREAM * init_vgmstream_bnk_sony(STREAMFILE *streamFile) {
         switch(version) {
             case 0x03:
             case 0x04:
-                sample_rate = 48000; /* seems ok */
                 channel_count = 1;
 
                 /* hack for PS3 files that use dual subsongs as stereo */
@@ -224,14 +275,19 @@ VGMSTREAM * init_vgmstream_bnk_sony(STREAMFILE *streamFile) {
                     stream_size = stream_size*channel_count;
                     total_subsongs = 1;
                 }
-
                 interleave = stream_size / channel_count;
+
+                if (flags & 0x80) {
+                    codec = PCM16; /* rare [Wipeout HD (PS3)] */
+                }
+                else {
+                    loop_flag = ps_find_loop_offsets(streamFile, start_offset, stream_size, channel_count, interleave, &loop_start, &loop_end);
+                    loop_flag = (flags & 0x40); /* no loops values in sight so may only apply to PS-ADPCM flags */
+
+                    codec = PSX;
+                }
+
                 //postdata_size = 0x10; /* last frame may be garbage */
-
-                loop_flag = ps_find_loop_offsets(streamFile, start_offset, stream_size, channel_count, interleave, &loop_start, &loop_end);
-                loop_flag = (loop_start > 28); /* ignore full loops since they just fadeout + repeat */
-
-                codec = PSX;
                 break;
 
             case 0x09:
@@ -243,7 +299,6 @@ VGMSTREAM * init_vgmstream_bnk_sony(STREAMFILE *streamFile) {
                     case 0x05: /* ATRAC9 stereo */
                         if (read_32bit(start_offset+0x08,streamFile) + 0x08 != extradata_size) /* repeat? */
                             goto fail;
-                        sample_rate = 48000; /* seems ok */
                         channel_count = (type == 0x02) ? 1 : 2;
 
                         atrac9_info = (uint32_t)read_32bitBE(start_offset+0x0c,streamFile);
@@ -274,7 +329,6 @@ VGMSTREAM * init_vgmstream_bnk_sony(STREAMFILE *streamFile) {
                     case 0x05: /* ATRAC9 stereo */
                         if (read_32bit(start_offset+0x10,streamFile) + 0x10 != extradata_size) /* repeat? */
                             goto fail;
-                        sample_rate = 48000; /* seems ok */
                         channel_count = (type == 0x02) ? 1 : 2;
 
                         atrac9_info = (uint32_t)read_32bitBE(start_offset+0x14,streamFile);
@@ -291,7 +345,6 @@ VGMSTREAM * init_vgmstream_bnk_sony(STREAMFILE *streamFile) {
 
                     case 0x01: /* PCM16LE mono? (NekoBuro/Polara sfx) */
                     case 0x04: /* PCM16LE stereo? (NekoBuro/Polara sfx) */
-                        sample_rate = 48000; /* seems ok */
                         /* 0x10: null? */
                         channel_count = read_32bit(start_offset+0x14,streamFile);
                         interleave = 0x02;
@@ -304,7 +357,6 @@ VGMSTREAM * init_vgmstream_bnk_sony(STREAMFILE *streamFile) {
                         break;
 
                     case 0x00: /* PS-ADPCM (test banks) */
-                        sample_rate = 48000; /* seems ok */
                         /* 0x10: null? */
                         channel_count = read_32bit(start_offset+0x14,streamFile);
                         interleave = 0x02;
@@ -366,7 +418,7 @@ VGMSTREAM * init_vgmstream_bnk_sony(STREAMFILE *streamFile) {
     }
 #endif
         case PCM16:
-            vgmstream->coding_type = coding_PCM16LE;
+            vgmstream->coding_type = big_endian ? coding_PCM16BE : coding_PCM16LE;
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = interleave;
 
@@ -376,7 +428,6 @@ VGMSTREAM * init_vgmstream_bnk_sony(STREAMFILE *streamFile) {
             break;
 
         case PSX:
-            vgmstream->sample_rate = 48000;
             vgmstream->coding_type = coding_PSX;
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = interleave;
@@ -387,7 +438,6 @@ VGMSTREAM * init_vgmstream_bnk_sony(STREAMFILE *streamFile) {
             break;
 
         case HEVAG:
-            vgmstream->sample_rate = 48000;
             vgmstream->coding_type = coding_HEVAG;
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = interleave;
@@ -410,6 +460,22 @@ VGMSTREAM * init_vgmstream_bnk_sony(STREAMFILE *streamFile) {
     return vgmstream;
 fail:
     close_vgmstream(vgmstream);
-#endif
     return NULL;
 }
+
+
+#if 0
+/* .BNK - Sony's bank, earlier version [Jak and Daxter (PS2), NCAA Gamebreaker 2001 (PS2)] */
+VGMSTREAM * init_vgmstream_bnk_sony_v2(STREAMFILE *streamFile) {
+    /* 0x00: 0x00000001
+     * 0x04: sections (2 or 3)
+     * 0x08+ similar to v3 but "SBv2"
+     * table formats is a bit different
+     * header is like v3 but stream size is in other table?
+     */
+
+fail:
+    close_vgmstream(vgmstream);
+    return NULL;
+}
+#endif

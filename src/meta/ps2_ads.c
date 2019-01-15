@@ -174,7 +174,13 @@ VGMSTREAM * init_vgmstream_ps2_ads(STREAMFILE *streamFile) {
                 loop_end_offset = loop_end * 0x10;
             }
 #endif
-            if (loop_end <= body_size / 0x70 && coding_type == coding_PCM16LE) { /* close to body_size */
+            if (loop_end <= body_size / 0x200 && coding_type == coding_PCM16LE) { /* close to body_size */
+                /* Gofun-go no Sekai: loops is address * 0x200 */
+                loop_flag = 1;
+                loop_start_offset = loop_start * 0x200;
+                loop_end_offset = loop_end * 0x200;
+            }
+            else if (loop_end <= body_size / 0x70 && coding_type == coding_PCM16LE) { /* close to body_size */
                 /* Armored Core - Nexus: loops is address * 0x70 */
                 loop_flag = 1;
                 loop_start_offset = loop_start * 0x70;
