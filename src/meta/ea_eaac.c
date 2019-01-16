@@ -143,8 +143,8 @@ VGMSTREAM * init_vgmstream_ea_abk_eaac(STREAMFILE *streamFile) {
     uint8_t num_entries, extra_entries;
     off_t sound_table_offsets[0x2000];
     VGMSTREAM *vgmstream;
-    int32_t (*read_32bit)(off_t,STREAMFILE*);
-    int16_t (*read_16bit)(off_t,STREAMFILE*);
+    int32_t(*read_32bit)(off_t, STREAMFILE*);
+    int16_t(*read_16bit)(off_t, STREAMFILE*);
 
     /* check extension */
     if (!check_extensions(streamFile, "abk"))
@@ -154,7 +154,7 @@ VGMSTREAM * init_vgmstream_ea_abk_eaac(STREAMFILE *streamFile) {
         goto fail;
 
     /* use table offset to check endianness */
-    if (guess_endianness32bit(0x1C,streamFile)) {
+    if (guess_endianness32bit(0x1C, streamFile)) {
         read_32bit = read_32bitBE;
         read_16bit = read_16bitBE;
     } else {
@@ -183,15 +183,13 @@ VGMSTREAM * init_vgmstream_ea_abk_eaac(STREAMFILE *streamFile) {
         base_offset_off = 0x2C;
         entries_off = 0x3C;
         sound_table_offset_off = 0x04;
-    }
-    else if (header_table_offset == 0x78) {
+    } else if (header_table_offset == 0x78) {
         /* FIFA 08 has a bunch of extra zeroes all over the place, don't know what's up with that */
         num_entries_off = 0x40;
         base_offset_off = 0x54;
         entries_off = 0x68;
         sound_table_offset_off = 0x0C;
-    }
-    else {
+    } else {
         goto fail;
     }
 
@@ -207,10 +205,8 @@ VGMSTREAM * init_vgmstream_ea_abk_eaac(STREAMFILE *streamFile) {
 
             /* For some reason, there are duplicate entries pointing at the same sound tables */
             is_dupe = 0;
-            for (k = 0; k < total_sound_tables; k++)
-            {
-                if (table_offset==sound_table_offsets[k])
-                {
+            for (k = 0; k < total_sound_tables; k++) {
+                if (table_offset == sound_table_offsets[k]) {
                     is_dupe = 1;
                     break;
                 }
@@ -248,7 +244,7 @@ VGMSTREAM * init_vgmstream_ea_abk_eaac(STREAMFILE *streamFile) {
 
     if (bnk_target_index == 0xFFFF || ast_offset == 0)
         goto fail;
-    
+
     vgmstream = parse_s10a_header(streamFile, bnk_offset, bnk_target_index, ast_offset);
     if (!vgmstream)
         goto fail;
@@ -288,8 +284,7 @@ static VGMSTREAM * parse_s10a_header(STREAMFILE *streamFile, off_t offset, uint1
         vgmstream = init_vgmstream_eaaudiocore_header(streamFile, streamFile, snr_offset, sns_offset, meta_EA_SNR_SNS);
         if (!vgmstream)
             goto fail;
-    }
-    else {
+    } else {
         /* streamed asset */
         astFile = open_streamfile_by_ext(streamFile, "ast");
         if (!astFile)
