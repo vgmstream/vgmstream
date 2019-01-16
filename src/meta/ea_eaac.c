@@ -143,8 +143,8 @@ VGMSTREAM * init_vgmstream_ea_abk_eaac(STREAMFILE *streamFile) {
     uint8_t num_entries, extra_entries;
     off_t sound_table_offsets[0x2000];
     VGMSTREAM *vgmstream;
-    int32_t (*read_32bit)(off_t,STREAMFILE*);
-    int16_t (*read_16bit)(off_t,STREAMFILE*);
+    int32_t(*read_32bit)(off_t, STREAMFILE*);
+    int16_t(*read_16bit)(off_t, STREAMFILE*);
 
     /* check extension */
     if (!check_extensions(streamFile, "abk"))
@@ -154,7 +154,7 @@ VGMSTREAM * init_vgmstream_ea_abk_eaac(STREAMFILE *streamFile) {
         goto fail;
 
     /* use table offset to check endianness */
-    if (guess_endianness32bit(0x1C,streamFile)) {
+    if (guess_endianness32bit(0x1C, streamFile)) {
         read_32bit = read_32bitBE;
         read_16bit = read_16bitBE;
     } else {
@@ -183,15 +183,13 @@ VGMSTREAM * init_vgmstream_ea_abk_eaac(STREAMFILE *streamFile) {
         base_offset_off = 0x2C;
         entries_off = 0x3C;
         sound_table_offset_off = 0x04;
-    }
-    else if (header_table_offset == 0x78) {
+    } else if (header_table_offset == 0x78) {
         /* FIFA 08 has a bunch of extra zeroes all over the place, don't know what's up with that */
         num_entries_off = 0x40;
         base_offset_off = 0x54;
         entries_off = 0x68;
         sound_table_offset_off = 0x0C;
-    }
-    else {
+    } else {
         goto fail;
     }
 
@@ -207,10 +205,8 @@ VGMSTREAM * init_vgmstream_ea_abk_eaac(STREAMFILE *streamFile) {
 
             /* For some reason, there are duplicate entries pointing at the same sound tables */
             is_dupe = 0;
-            for (k = 0; k < total_sound_tables; k++)
-            {
-                if (table_offset==sound_table_offsets[k])
-                {
+            for (k = 0; k < total_sound_tables; k++) {
+                if (table_offset == sound_table_offsets[k]) {
                     is_dupe = 1;
                     break;
                 }
@@ -248,7 +244,7 @@ VGMSTREAM * init_vgmstream_ea_abk_eaac(STREAMFILE *streamFile) {
 
     if (bnk_target_index == 0xFFFF || ast_offset == 0)
         goto fail;
-    
+
     vgmstream = parse_s10a_header(streamFile, bnk_offset, bnk_target_index, ast_offset);
     if (!vgmstream)
         goto fail;
@@ -288,8 +284,7 @@ static VGMSTREAM * parse_s10a_header(STREAMFILE *streamFile, off_t offset, uint1
         vgmstream = init_vgmstream_eaaudiocore_header(streamFile, streamFile, snr_offset, sns_offset, meta_EA_SNR_SNS);
         if (!vgmstream)
             goto fail;
-    }
-    else {
+    } else {
         /* streamed asset */
         astFile = open_streamfile_by_ext(streamFile, "ast");
         if (!astFile)
@@ -818,11 +813,28 @@ static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE * streamHead, ST
         eaac.loop_start = read_32bitBE(header_offset+0x08, streamHead);
         eaac.loop_end = eaac.num_samples;
 
-        /* RAM assets only have one block, even if they (rarely) set loop_start > 0 */
-        if (eaac.streamed)
+        if (eaac.streamed) {
             eaac.loop_offset = read_32bitBE(header_offset+0x0c, streamHead);
-        else
+
+            if (eaac.version == EAAC_VERSION_V0) {
+                /* SNR+SNS are separate so offsets are relative to the data start
+                 * (first .SNS block, or extra data before the .SNS block in case of .SNU) */
+                eaac.loop_offset = eaac.stream_offset + eaac.loop_offset;
+            } else {
+                /* SPS have headers+data together so offsets are relative to the file start [ex. FIFA 18 (PC)] */
+                eaac.loop_offset = header_offset - 0x04 + eaac.loop_offset;
+            }
+        }
+        else if (eaac.loop_start > 0) {
+            /* RAM assets have two blocks in case of actual loops */
+            /* find the second block by getting the first block size */
+            eaac.loop_offset = read_32bitBE(eaac.stream_offset, streamData) & 0x00FFFFF;
+            eaac.loop_offset = eaac.stream_offset + eaac.loop_offset;
+        }
+        else {
+            /* RAM assets only one block in case in case of full loops */
             eaac.loop_offset = eaac.stream_offset; /* implicit */
+        }
 
         //todo EATrax has extra values in header, which would coexist with loop values
         if (eaac.codec == EAAC_CODEC_EATRAX) {
@@ -838,15 +850,6 @@ static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE * streamHead, ST
                 eaac.codec == EAAC_CODEC_EAXMA)) {
             VGM_LOG("EA EAAC: unknown actual looping for codec %x\n", eaac.codec);
             goto fail;
-        }
-
-        if (eaac.version == EAAC_VERSION_V0) {
-            /* SNR+SNS are separate so offsets are relative to the data start
-             * (first .SNS block, or extra data before the .SNS block in case of .SNU) */
-            eaac.loop_offset = eaac.stream_offset + eaac.loop_offset;
-        } else {
-            /* SPS have headers+data together so offsets are relative to the file start [ex. FIFA 18 (PC)] */
-            eaac.loop_offset = header_offset - 0x04 + eaac.loop_offset;
         }
     }
 
@@ -886,7 +889,7 @@ static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE * streamHead, ST
         case EAAC_CODEC_EAXMA: { /* "EXm0": EA-XMA [Dante's Inferno (X360)] */
 
             /* special (if hacky) loop handling, see comments */
-            if (eaac.streamed && eaac.loop_start > 0) {
+            if (eaac.loop_start > 0) {
                 segmented_layout_data *data = build_segmented_eaaudiocore_looping(streamData, &eaac);
                 if (!data) goto fail;
                 vgmstream->layout_data = data;
@@ -923,7 +926,7 @@ static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE * streamHead, ST
             start_offset = 0x00; /* must point to the custom streamfile's beginning */
 
             /* special (if hacky) loop handling, see comments */
-            if (eaac.streamed && eaac.loop_start > 0) {
+            if (eaac.loop_start > 0) {
                 segmented_layout_data *data = build_segmented_eaaudiocore_looping(streamData, &eaac);
                 if (!data) goto fail;
                 vgmstream->layout_data = data;

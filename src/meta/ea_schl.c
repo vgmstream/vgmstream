@@ -187,15 +187,16 @@ fail:
 /* streamed assets are stored externally in AST file (mostly seen in earlier 6th-gen games) */
 VGMSTREAM * init_vgmstream_ea_abk(STREAMFILE *streamFile) {
     int bnk_target_stream, is_dupe, total_sounds = 0, target_stream = streamFile->stream_index;
-    off_t bnk_offset, header_table_offset, base_offset, value_offset, table_offset, entry_offset, target_entry_offset, schl_offset;
+    off_t bnk_offset, header_table_offset, base_offset, value_offset, table_offset, entry_offset, target_entry_offset, schl_offset, schl_loop_offset;
     uint32_t i, j, k, num_sounds, total_sound_tables;
     uint16_t num_tables;
     uint8_t sound_type, num_entries;
     off_t sound_table_offsets[0x2000];
     STREAMFILE * astData = NULL;
-    VGMSTREAM * vgmstream;
-    int32_t (*read_32bit)(off_t,STREAMFILE*);
-    int16_t (*read_16bit)(off_t,STREAMFILE*);
+    VGMSTREAM * vgmstream = NULL;
+    segmented_layout_data *data_s = NULL;
+    int32_t(*read_32bit)(off_t, STREAMFILE*);
+    int16_t(*read_16bit)(off_t, STREAMFILE*);
 
     /* check extension */
     if (!check_extensions(streamFile, "abk"))
@@ -205,7 +206,7 @@ VGMSTREAM * init_vgmstream_ea_abk(STREAMFILE *streamFile) {
         goto fail;
 
     /* use table offset to check endianness */
-    if (guess_endianness32bit(0x1C,streamFile)) {
+    if (guess_endianness32bit(0x1C, streamFile)) {
         read_32bit = read_32bitBE;
         read_16bit = read_16bitBE;
     } else {
@@ -240,10 +241,8 @@ VGMSTREAM * init_vgmstream_ea_abk(STREAMFILE *streamFile) {
 
             /* For some reason, there are duplicate entries pointing at the same sound tables */
             is_dupe = 0;
-            for (k = 0; k < total_sound_tables; k++)
-            {
-                if (table_offset==sound_table_offsets[k])
-                {
+            for (k = 0; k < total_sound_tables; k++) {
+                if (table_offset == sound_table_offsets[k]) {
                     is_dupe = 1;
                     break;
                 }
@@ -278,45 +277,85 @@ VGMSTREAM * init_vgmstream_ea_abk(STREAMFILE *streamFile) {
     if (target_entry_offset == 0)
         goto fail;
 
-    /* 0x00: type (0x00 - normal, 0x01 - streamed, 0x02 - streamed and prefetched(?) */
+    /* 0x00: type (0x00 - normal, 0x01 - streamed, 0x02 - streamed looped */
     /* 0x01: ??? */
     /* 0x04: index for normal sounds, offset for streamed sounds */
-    /* 0x08: offset for prefetched sounds */
+    /* 0x08: loop offset for streamed sounds */
     sound_type = read_8bit(target_entry_offset + 0x00, streamFile);
-    
+
     switch (sound_type) {
-    case 0x00:
-        if (!bnk_offset)
-            goto fail;
+        case 0x00:
+            if (!bnk_offset)
+                goto fail;
 
-        bnk_target_stream = read_32bit(target_entry_offset + 0x04, streamFile) + 1;
-        vgmstream = parse_bnk_header(streamFile, bnk_offset, bnk_target_stream, 1);
-        if (!vgmstream)
-            goto fail;
-        break;
+            bnk_target_stream = read_32bit(target_entry_offset + 0x04, streamFile) + 1;
+            vgmstream = parse_bnk_header(streamFile, bnk_offset, bnk_target_stream, 1);
+            if (!vgmstream)
+                goto fail;
 
-    case 0x01:
-    case 0x02:
-        astData = open_streamfile_by_ext(streamFile, "ast");
-        if (!astData)
-            goto fail;
+            break;
 
-        if (sound_type == 0x01)
+        case 0x01:
+            astData = open_streamfile_by_ext(streamFile, "ast");
+            if (!astData)
+                goto fail;
+
             schl_offset = read_32bit(target_entry_offset + 0x04, streamFile);
-        else
-            schl_offset = read_32bit(target_entry_offset + 0x08, streamFile);
+            if (read_32bitBE(schl_offset, astData) != EA_BLOCKID_HEADER)
+                goto fail;
 
-        if (read_32bitBE(schl_offset, astData) != EA_BLOCKID_HEADER)
+            vgmstream = parse_schl_block(astData, schl_offset, 0);
+            if (!vgmstream)
+                goto fail;
+
+            break;
+
+        case 0x02:
+            astData = open_streamfile_by_ext(streamFile, "ast");
+            if (!astData)
+                goto fail;
+
+            /* looped sounds basically consist of two independent segments
+             * the first one is loop start, the second one is loop body */
+            schl_offset = read_32bit(target_entry_offset + 0x04, streamFile);
+            schl_loop_offset = read_32bit(target_entry_offset + 0x08, streamFile);
+
+            if (read_32bitBE(schl_offset, astData) != EA_BLOCKID_HEADER ||
+                read_32bitBE(schl_loop_offset, astData) != EA_BLOCKID_HEADER)
+                goto fail;
+
+            /* init layout */
+            data_s = init_layout_segmented(2);
+            if (!data_s) goto fail;
+
+            /* load intro and loop segments */
+            data_s->segments[0] = parse_schl_block(astData, schl_offset, 0);
+            if (!data_s->segments[0]) goto fail;
+            data_s->segments[1] = parse_schl_block(astData, schl_loop_offset, 0);
+            if (!data_s->segments[1]) goto fail;
+
+            /* setup segmented VGMSTREAMs */
+            if (!setup_layout_segmented(data_s))
+                goto fail;
+
+            /* build the VGMSTREAM */
+            vgmstream = allocate_vgmstream(data_s->segments[0]->channels, 1);
+            if (!vgmstream) goto fail;
+
+            vgmstream->sample_rate = data_s->segments[0]->sample_rate;
+            vgmstream->num_samples = data_s->segments[0]->num_samples + data_s->segments[1]->num_samples;
+            vgmstream->loop_start_sample = data_s->segments[0]->num_samples;
+            vgmstream->loop_end_sample = vgmstream->num_samples;
+
+            vgmstream->meta_type = meta_EA_SCHL;
+            vgmstream->coding_type = data_s->segments[0]->coding_type;
+            vgmstream->layout_type = layout_segmented;
+            vgmstream->layout_data = data_s;
+            break;
+
+        default:
             goto fail;
-
-        vgmstream = parse_schl_block(astData, schl_offset, 0);
-        if (!vgmstream)
-            goto fail;
-        break;
-
-    default:
-        goto fail;
-        break;
+            break;
     }
 
     vgmstream->num_streams = total_sounds;
@@ -325,6 +364,7 @@ VGMSTREAM * init_vgmstream_ea_abk(STREAMFILE *streamFile) {
 
 fail:
     close_streamfile(astData);
+    free_layout_segmented(data_s);
     return NULL;
 }
 
@@ -344,7 +384,7 @@ VGMSTREAM * init_vgmstream_ea_hdr_dat(STREAMFILE *streamFile) {
     /* 0x05: number of files */
     /* 0x06: ??? */
     /* 0x07: offset multiplier flag */
-    /* 0x08: combined size of all sounds without padding divided by 0x0100 */
+    /* 0x08: combined size of all sounds without padding divided by offset mult */
     /* 0x0C: table start */
 
     /* no nice way to validate these so we do what we can */
@@ -460,7 +500,7 @@ VGMSTREAM * init_vgmstream_ea_map_mus(STREAMFILE *streamFile) {
     }
 
     /*
-     * 0x04: ???
+     * 0x04: version
      * 0x05: intro segment
      * 0x06: number of segments
      * 0x07: userdata entry size (incorrect?)
