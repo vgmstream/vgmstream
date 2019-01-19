@@ -22,7 +22,8 @@ VGMSTREAM * init_vgmstream_xnb(STREAMFILE *streamFile) {
     platform = read_8bit(0x03,streamFile);
     big_endian = (platform == 'x');
 
-    if (read_8bit(0x04,streamFile) != 0x05) /* XNA 4.0 version only */
+    if (read_8bit(0x04,streamFile) != 0x04 &&   /* XNA 3.0? found on Scare Me (XBLIG), no notable diffs */
+        read_8bit(0x04,streamFile) != 0x05)     /* XNA 4.0 version */
         goto fail;
 
     flags = read_8bit(0x05,streamFile);
