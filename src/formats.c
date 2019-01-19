@@ -769,7 +769,7 @@ static const meta_info meta_info_list[] = {
         {meta_PS_HEADERLESS,        "Headerless PS-ADPCM raw header"},
         {meta_PS2_MIB_MIH,          "Sony MultiStream MIH+MIB header"},
         {meta_DSP_MPDSP,            "Single DSP header stereo by .mpdsp extension"},
-        {meta_PS2_MIC,              "assume KOEI MIC file by .mic extension"},
+        {meta_PS2_MIC,              "KOEI .MIC header"},
         {meta_DSP_JETTERS,          "Double DSP header stereo by _lr.dsp extension"},
         {meta_DSP_MSS,              "Double DSP header stereo by .mss extension"},
         {meta_DSP_GCM,              "Double DSP header stereo by .gcm extension"},
