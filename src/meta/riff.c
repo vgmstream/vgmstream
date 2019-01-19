@@ -10,6 +10,7 @@
 static VGMSTREAM *parse_riff_ogg(STREAMFILE * streamFile, off_t start_offset, size_t data_size);
 #endif
 
+
 /* return milliseconds */
 static long parse_adtl_marker(unsigned char * marker) {
     long hh,mm,ss,ms;
@@ -235,6 +236,9 @@ static int read_fmt(int big_endian, STREAMFILE * streamFile, off_t current_chunk
 fail:
     return -1;
 }
+
+static int is_ue4_msadpcm(VGMSTREAM* vgmstream, STREAMFILE* streamFile, riff_fmt_chunk* fmt, int fact_sample_count, off_t start_offset);
+
 
 VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
@@ -682,15 +686,72 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
         vgmstream->meta_type = meta_RIFF_WAVE_MWV;
     }
 
-
     if ( !vgmstream_open_stream(vgmstream,streamFile,start_offset) )
         goto fail;
-    return vgmstream;
 
+    /* UE4 uses half-interleave mono MSADPCM, try to autodetect without breaking normal MSADPCM */
+    if (fmt.coding_type == coding_MSADPCM && is_ue4_msadpcm(vgmstream, streamFile, &fmt, fact_sample_count, start_offset)) {
+        int ch;
+        size_t half_interleave = data_size / vgmstream->channels;
+
+        vgmstream->coding_type = coding_MSADPCM_int;
+
+        /* only works with half-interleave as frame_size and interleave are merged ATM*/
+        for (ch = 0; ch < vgmstream->channels; ch++) {
+            vgmstream->ch[ch].channel_start_offset =
+                    vgmstream->ch[ch].offset = start_offset + half_interleave*ch;
+        }
+    }
+
+    return vgmstream;
 
 fail:
     close_vgmstream(vgmstream);
     return NULL;
+}
+
+/* UE4 MSADPCM is quite normal but has a few minor quirks we can use to detect it */
+static int is_ue4_msadpcm(VGMSTREAM* vgmstream, STREAMFILE* streamFile, riff_fmt_chunk* fmt, int fact_sample_count, off_t start_offset) {
+
+    /* stereo only */
+    if (fmt->channel_count != 2)
+        goto fail;
+
+    /* UE4 class is "ADPCM", assume it's the extension too */
+    if (!check_extensions(streamFile, "adpcm"))
+        goto fail;
+
+    /* UE4 encoder doesn't add "fact" */
+    if (fact_sample_count != 0)
+        goto fail;
+
+    /* fixed block size */
+    if (fmt->block_size != 0x200)
+        goto fail;
+
+    /* later UE4 versions use 0x36 (at 0x32 may be fact_samples?) */
+    if (fmt->size != 0x32 && fmt->size != 0x36)
+        goto fail;
+
+    /* size 0x32 in older UE4 matches standard MSADPCM, so add extra detection */
+    if (fmt->size == 0x32) {
+        off_t offset = start_offset;
+        off_t max_offset = 5 * fmt->block_size; /* try N blocks */
+        if (max_offset > get_streamfile_size(streamFile))
+            max_offset = get_streamfile_size(streamFile);
+
+        /* their encoder doesn't calculate optimal coefs and uses fixed values every frame
+         * (could do it for fmt size 0x36 too but maybe they'll fix it in the future) */
+        while (offset <= max_offset) {
+            if (read_8bit(offset+0x00, streamFile) != 0 || read_16bitLE(offset+0x01, streamFile) != 0x00E6)
+                goto fail;
+            offset += fmt->block_size;
+        }
+    }
+
+    return 1;
+fail:
+    return 0;
 }
 
 VGMSTREAM * init_vgmstream_rifx(STREAMFILE *streamFile) {

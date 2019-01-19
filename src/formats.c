@@ -620,6 +620,7 @@ static const coding_info coding_info_list[] = {
         {coding_H4M_IMA,            "Hudson HVQM4 4-bit IMA ADPCM"},
 
         {coding_MSADPCM,            "Microsoft 4-bit ADPCM"},
+        {coding_MSADPCM_int,        "Microsoft 4-bit ADPCM (mono/interleave)"},
         {coding_MSADPCM_ck,         "Microsoft 4-bit ADPCM (Cricket Audio)"},
         {coding_WS,                 "Westwood Studios VBR ADPCM"},
         {coding_AICA,               "Yamaha AICA 4-bit ADPCM"},

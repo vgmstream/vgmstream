@@ -1199,6 +1199,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
 
         case coding_MSADPCM:
             return (vgmstream->interleave_block_size - 0x07*vgmstream->channels)*2 / vgmstream->channels + 2;
+        case coding_MSADPCM_int:
         case coding_MSADPCM_ck:
             return (vgmstream->interleave_block_size - 0x07)*2 + 2;
         case coding_WS: /* only works if output sample size is 8 bit, which always is for WS ADPCM */
@@ -1383,6 +1384,7 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
             return 0x4c*vgmstream->channels;
 
         case coding_MSADPCM:
+        case coding_MSADPCM_int:
         case coding_MSADPCM_ck:
             return vgmstream->interleave_block_size;
         case coding_WS:
@@ -1950,13 +1952,16 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                     buffer+samples_written*vgmstream->channels, samples_to_do);
             break;
         case coding_MSADPCM:
-            if (vgmstream->channels == 2) {
+        case coding_MSADPCM_int:
+            if (vgmstream->channels == 1 || vgmstream->coding_type == coding_MSADPCM_int) {
+                for (ch = 0; ch < vgmstream->channels; ch++) {
+                    decode_msadpcm_mono(vgmstream,buffer+samples_written*vgmstream->channels+ch,
+                            vgmstream->channels,vgmstream->samples_into_block, samples_to_do, ch);
+                }
+            }
+            else if (vgmstream->channels == 2) {
                 decode_msadpcm_stereo(vgmstream,buffer+samples_written*vgmstream->channels,
                         vgmstream->samples_into_block,samples_to_do);
-            }
-            else if (vgmstream->channels == 1) {
-                decode_msadpcm_mono(vgmstream,buffer+samples_written*vgmstream->channels,
-                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do, 0);
             }
             break;
         case coding_MSADPCM_ck:
@@ -2342,6 +2347,7 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
     if (vgmstream->layout_type == layout_none && vgmstream->interleave_block_size > 0) {
         switch (vgmstream->coding_type) {
             case coding_MSADPCM:
+            case coding_MSADPCM_int:
             case coding_MSADPCM_ck:
             case coding_MS_IMA:
             case coding_MC3:
@@ -2756,14 +2762,13 @@ int vgmstream_open_stream(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t s
             if (!file) goto fail;
         }
 
-        for (ch=0; ch < vgmstream->channels; ch++) {
+        for (ch = 0; ch < vgmstream->channels; ch++) {
             off_t offset;
             if (use_same_offset_per_channel) {
                 offset = start_offset;
             } else if (is_stereo_codec) {
                 int ch_mod = (ch & 1) ? ch - 1 : ch; /* adjust odd channels (ch 0,1,2,3,4,5 > ch 0,0,2,2,4,4) */
                 offset = start_offset + vgmstream->interleave_block_size*ch_mod;
-                //VGM_LOG("ch%i offset=%lx\n", ch,offset);
             } else {
                 offset = start_offset + vgmstream->interleave_block_size*ch;
             }
@@ -2774,6 +2779,7 @@ int vgmstream_open_stream(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t s
                 if (!file) goto fail;
             }
 
+            VGM_LOG("ch%i offset=%lx\n", ch,offset);
             vgmstream->ch[ch].streamfile = file;
             vgmstream->ch[ch].channel_start_offset =
                     vgmstream->ch[ch].offset = offset;

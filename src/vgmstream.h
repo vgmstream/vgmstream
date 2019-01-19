@@ -137,6 +137,7 @@ typedef enum {
     coding_H4M_IMA,         /* H4M IMA ADPCM (stereo or mono, high nibble first) */
 
     coding_MSADPCM,         /* Microsoft ADPCM (stereo/mono) */
+    coding_MSADPCM_int,     /* Microsoft ADPCM (mono) */
     coding_MSADPCM_ck,      /* Microsoft ADPCM (Cricket Audio variation) */
     coding_WS,              /* Westwood Studios VBR ADPCM */
     coding_AICA,            /* Yamaha AICA ADPCM (stereo) */
