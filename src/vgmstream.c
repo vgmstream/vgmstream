@@ -2315,11 +2315,18 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
     snprintf(temp,TEMPSIZE,
             "\nlayout: ");
     concatn(length,desc,temp);
+
+    description = get_vgmstream_layout_description(vgmstream->layout_type);
+    if (!description)
+        description = "INCONCEIVABLE";
     switch (vgmstream->layout_type) {
+        case layout_layered:
+            snprintf(temp,TEMPSIZE,"%s (%i layers)",description, ((layered_layout_data*)vgmstream->layout_data)->layer_count);
+            break;
+        case layout_segmented:
+            snprintf(temp,TEMPSIZE,"%s (%i segments)",description, ((segmented_layout_data*)vgmstream->layout_data)->segment_count);
+            break;
         default:
-            description = get_vgmstream_layout_description(vgmstream->layout_type);
-            if (!description)
-                description = "INCONCEIVABLE";
             snprintf(temp,TEMPSIZE,"%s",description);
             break;
     }
