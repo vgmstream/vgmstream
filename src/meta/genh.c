@@ -39,8 +39,9 @@ typedef enum {
 typedef struct {
     genh_type codec;
     int codec_mode;
-    size_t interleave;
 
+    size_t interleave;
+    size_t interleave_last;
     int channels;
     int32_t sample_rate;
 
@@ -153,6 +154,7 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
         case coding_AICA:
         case coding_APPLE_IMA4:
             vgmstream->interleave_block_size = genh.interleave;
+            vgmstream->interleave_last_block_size = genh.interleave_last;
             if (vgmstream->channels > 1)
             {
                 if (coding == coding_SDX2) {
@@ -202,6 +204,7 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
         case coding_PCFX:
             vgmstream->interleave_block_size = genh.interleave;
             vgmstream->layout_type = layout_interleave;
+            vgmstream->interleave_last_block_size = genh.interleave_last;
             if (genh.codec_mode >= 0 && genh.codec_mode <= 3)
                 vgmstream->codec_config = genh.codec_mode;
             break;
@@ -227,11 +230,13 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
             if (genh.codec_mode == 1) { /* mono interleave */
                 coding = coding_XBOX_IMA_int;
                 vgmstream->layout_type = layout_interleave;
+                vgmstream->interleave_last_block_size = genh.interleave_last;
                 vgmstream->interleave_block_size = genh.interleave;
             }
             else { /* 1ch mono, or stereo interleave */
                 vgmstream->layout_type = genh.interleave ? layout_interleave : layout_none;
                 vgmstream->interleave_block_size = genh.interleave;
+                vgmstream->interleave_last_block_size = genh.interleave_last;
                 if (vgmstream->channels > 2 && vgmstream->channels % 2 != 0)
                     goto fail; /* only 2ch+..+2ch layout is known */
             }
@@ -245,6 +250,7 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
                 if (!genh.interleave) goto fail;
                 vgmstream->layout_type = layout_interleave;
                 vgmstream->interleave_block_size = genh.interleave;
+                vgmstream->interleave_last_block_size = genh.interleave_last;
             } else if (genh.coef_interleave_type == 1) {
                 if (!genh.interleave) goto fail;
                 coding = coding_NGC_DSP_subint;
@@ -419,8 +425,8 @@ static int parse_genh(STREAMFILE * streamFile, genh_header * genh) {
             genh->coef_split_spacing = read_32bitLE(0x38,streamFile);
     }
 
-    /* extended fields */
-    if (header_size >= 0x54) {
+    /* extended + reserved fields */
+    if (header_size >= 0x100) {
         genh->num_samples = read_32bitLE(0x40,streamFile);
         genh->skip_samples = read_32bitLE(0x44,streamFile); /* for FFmpeg based codecs */
         genh->skip_samples_mode = read_8bit(0x48,streamFile); /* 0=autodetect, 1=force manual value @ 0x44 */
@@ -430,6 +436,7 @@ static int parse_genh(STREAMFILE * streamFile, genh_header * genh) {
         if ((genh->codec == XMA1 || genh->codec == XMA2) && genh->codec_mode==0)
             genh->codec_mode = read_8bit(0x4a,streamFile);
         genh->data_size = read_32bitLE(0x50,streamFile);
+        genh->interleave_last = read_32bitLE(0x54,streamFile);
     }
 
     if (genh->data_size == 0)
