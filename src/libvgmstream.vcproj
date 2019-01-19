@@ -273,6 +273,10 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\meta\ubi_sb_streamfile.h"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\ubi_lyn_ogg_streamfile.h"
                     >
                 </File>
