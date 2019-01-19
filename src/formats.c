@@ -206,6 +206,7 @@ static const char* extension_list[] = {
     "l",
     "laac", //fake extension for .aac (tri-Ace)
     "lac3", //fake extension for .ac3, FFmpeg/not parsed
+    "lasf", //fake extension for .asf (various)
     "leg",
     "lflac", //fake extension for .flac, FFmpeg/not parsed
     "lin",

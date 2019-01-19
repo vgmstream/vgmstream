@@ -132,7 +132,7 @@ them playable through vgmstream.
 - .aac to .laac (tri-Ace games)
 - .ac3 to .lac3 (standard AC3)
 - .aif to .aiffl or .aifcl (standard Mac AIF)
-- .asf to .sng (EA games)
+- .asf to .lasf (EA games, Argonaut ASF)
 - .flac to .lflac (standard FLAC)
 - .mp2 to .lmp2 (standard MP2)
 - .mp3 to .lmp3 (standard MP3)

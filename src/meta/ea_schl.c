@@ -116,6 +116,7 @@ VGMSTREAM * init_vgmstream_ea_schl(STREAMFILE *streamFile) {
     /* check extension */
     /* they don't seem enforced by EA's tools but usually:
      * .asf: ~early (audio stream file?) [ex. Need for Speed (PC)]
+     * .lasf: fake for plugins
      * .str: ~early [ex. FIFA 2002 (PS1)]
      * .eam: ~mid (fake?)
      * .exa: ~mid [ex. 007 - From Russia with Love]
@@ -129,7 +130,7 @@ VGMSTREAM * init_vgmstream_ea_schl(STREAMFILE *streamFile) {
      * .gsf: 007 - Everything or Nothing (GC)
      * .mus: map/mpf+mus only?
      * (extensionless): SSX (PS2) (inside .big) */
-    if (!check_extensions(streamFile,"asf,str,eam,exa,sng,aud,sx,xa,strm,stm,hab,xsf,gsf,mus,"))
+    if (!check_extensions(streamFile,"asf,lasf,str,eam,exa,sng,aud,sx,xa,strm,stm,hab,xsf,gsf,mus,"))
         goto fail;
 
     /* check header */
