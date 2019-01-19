@@ -61,7 +61,6 @@ static size_t ubi_sb_io_read(STREAMFILE *streamfile, uint8_t *dest, off_t offset
             if (data->data_size == 0) {
                 data->physical_offset += data->block_size;
             }
-//VGM_LOG("h=%lx, b=%x, n=%x\n", data->physical_offset, data->block_size, data->next_block_size);
         }
     }
 
@@ -85,8 +84,6 @@ static size_t ubi_sb_io_read(STREAMFILE *streamfile, uint8_t *dest, off_t offset
                 data->skip_size += read_32bit(data->physical_offset + data->block_sizes_start + i*0x04, streamfile);
             }
             data->data_size = read_32bit(data->physical_offset + data->block_sizes_start + data->layer_number*0x04, streamfile);
-
-//VGM_LOG("o=%lx, b=%x, n=%x\n", data->physical_offset, data->block_size, data->next_block_size);
         }
 
         /* move to next block */
