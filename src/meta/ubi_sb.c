@@ -80,13 +80,11 @@ typedef struct {
     int cfga_has_internal_names;
     /* type 0x05/0c (sequence) config */
     off_t cfgs_extra_offset;
-    off_t cfgs_intro_flag;
-    off_t cfgs_outro_flag;
+    off_t cfgs_sequence_loop;
+    off_t cfgs_sequence_single;
     off_t cfgs_sequence_count;
     off_t cfgs_entry_number;
     size_t sequence_entry_size;
-    int cfgs_and_intro_flag;
-    int cfgs_and_outro_flag;
     /* type 0x06/0d (layer) config */
     off_t cfgl_extra_offset;
     off_t cfgl_layer_count;
@@ -123,8 +121,8 @@ typedef struct {
     int layer_count;            /* number of layers in a layer type */
     int sequence_count;         /* number of segments in a sequence type */
     int sequence_chain[64];     /* sequence of entry numbers */
-    int has_intro;              /* seems to mean something like this */
-    int has_outro;              /* some games use this flag for segments that join with others too */
+    int sequence_loop;          /* chain index to loop */
+    int sequence_single;        /* if que sequence plays once (loops by default) */
 
     int is_external;            /* stream is in a external file */
     char resource_name[0x24];   /* filename to the external stream, or internal stream info for some games */
@@ -256,8 +254,6 @@ VGMSTREAM * init_vgmstream_ubi_sm(STREAMFILE *streamFile) {
     for (i = 0; i < sb.map_num; i++) {
         off_t offset = sb.map_start + i * sb.map_entry_size;
 
-        sb.type = UBI_NONE; /* reset possible parsed subsong */
-
         /* SUBMAP HEADER */
         sb.map_type     = read_32bit(offset + 0x00, streamFile); /* usually 0/1=first, 0=rest */
         sb.map_zero     = read_32bit(offset + 0x04, streamFile);
@@ -305,6 +301,7 @@ VGMSTREAM * init_vgmstream_ubi_sm(STREAMFILE *streamFile) {
          * (it gets rewritten and we need exact values for sequences and stuff) */
         if (sb.type != UBI_NONE) {
             target_sb = sb; /* memcpy */
+            sb.type = UBI_NONE; /* reset parsed flag */
         }
     }
 
@@ -668,14 +665,17 @@ static VGMSTREAM * init_vgmstream_ubi_sb_sequence(ubi_sb_header *sb, STREAMFILE 
         data->segments[i] = init_vgmstream_ubi_sb_header(&temp_sb, streamTest, streamFile);
         if (!data->segments[i]) goto fail;
 
+        if (i == sb->sequence_loop)
+            sb->loop_start = sb->num_samples;
         sb->num_samples += data->segments[i]->num_samples;
     }
+
 
     if (!setup_layout_segmented(data))
         goto fail;
 
     /* build the base VGMSTREAM */
-    vgmstream = allocate_vgmstream(data->segments[0]->channels, data->segments[0]->loop_flag);
+    vgmstream = allocate_vgmstream(data->segments[0]->channels, !sb->sequence_single);
     if (!vgmstream) goto fail;
 
     vgmstream->meta_type = meta_UBI_SB;
@@ -763,14 +763,18 @@ static void build_readable_name(char * buf, size_t buf_size, ubi_sb_header * sb)
         index = sb->header_index; //-1
 
     if (sb->type == UBI_SEQUENCE) {
-        if (sb->has_intro && sb->has_outro) /* uncommon but exists */
-            res_name = sb->sequence_count == 1 ? "start+end" : "start+loop+end";
-        else if (sb->has_intro)
-            res_name = sb->sequence_count == 1 ? "start" : "start+loop";
-        else if (sb->has_outro)
-            res_name = sb->sequence_count == 1 ? "end" : "loop+end";
-        else
-            res_name = "loop";
+        if (sb->sequence_single) {
+            if (sb->sequence_count == 1)
+                res_name = "single";
+            else
+                res_name = "multi";
+        }
+        else {
+            if (sb->sequence_count == 1)
+                res_name = "single-loop";
+            else
+                res_name = (sb->sequence_loop == 0) ? "multi-loop" : "intro-loop";
+        }
     }
     else {
         if (sb->is_external || sb->cfga_has_internal_names)
@@ -893,8 +897,8 @@ static int parse_type_sequence(ubi_sb_header * sb, off_t offset, STREAMFILE* str
     sb->type = UBI_SEQUENCE;
 
     sb->extra_offset    = read_32bit(offset + sb->cfgs_extra_offset, streamFile) + sb->sectionX_offset;
-    sb->has_intro       = read_32bit(offset + sb->cfgs_intro_flag, streamFile) & sb->cfgs_and_intro_flag;
-    sb->has_outro       = read_32bit(offset + sb->cfgs_outro_flag, streamFile) & sb->cfgs_and_outro_flag;
+    sb->sequence_loop   = read_32bit(offset + sb->cfgs_sequence_loop, streamFile);
+    sb->sequence_single = read_32bit(offset + sb->cfgs_sequence_single, streamFile);
     sb->sequence_count  = read_32bit(offset + sb->cfgs_sequence_count, streamFile);
 
     if (sb->sequence_entry_size == 0) {
@@ -1436,13 +1440,11 @@ static void config_sb_audio_he(ubi_sb_header * sb, off_t channels, off_t sample_
 }
 static void config_sb_sequence(ubi_sb_header * sb, off_t sequence_count, off_t entry_size) {
     /* sequence header and chain table */
-    sb->cfgs_intro_flag         = sequence_count - 0x10;
-    sb->cfgs_outro_flag         = sequence_count - 0x0c;
+    sb->cfgs_sequence_loop      = sequence_count - 0x10;
+    sb->cfgs_sequence_single    = sequence_count - 0x0c;
     sb->cfgs_sequence_count     = sequence_count;
     sb->sequence_entry_size     = entry_size;
     sb->cfgs_entry_number       = 0x00;
-    sb->cfgs_and_intro_flag     = 1;
-    sb->cfgs_and_outro_flag     = 1;
 }
 static void config_sb_layer_hs(ubi_sb_header * sb, off_t layer_count, off_t stream_size, off_t stream_offset, off_t stream_name) {
     /* layer headers with stream name */
