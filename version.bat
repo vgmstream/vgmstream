@@ -7,7 +7,7 @@ setlocal enableextensions enabledelayedexpansion
 
 cd /d "%~dp0"
 
-for /f %%v in ('git describe --always --tag') do set version=%%v
+for /f %%v in ('git describe --always') do set version=%%v
 
 if not "%version%"=="" set version=!version:^:=_!
 

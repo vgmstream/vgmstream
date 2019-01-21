@@ -105,7 +105,7 @@ function Package
 
 function Build
 {
-    $commit = & git describe --always --tag
+    $commit = & git describe --always
     if($onAppveyor) {
         if($env:APPVEYOR_PULL_REQUEST_NUMBER) {
             $prCommits = & git rev-list "$env:APPVEYOR_REPO_BRANCH.." --count
