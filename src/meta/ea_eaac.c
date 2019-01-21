@@ -272,7 +272,7 @@ static VGMSTREAM * parse_s10a_header(STREAMFILE *streamFile, off_t offset, uint1
         goto fail;
 
     num_sounds = read_32bitBE(offset + 0x08, streamFile);
-    if (num_sounds == 0 || target_index > num_sounds)
+    if (num_sounds == 0 || target_index >= num_sounds)
         goto fail;
 
     snr_offset = offset + read_32bitBE(offset + 0x0C + 0x04 * target_index, streamFile);
@@ -311,9 +311,8 @@ fail:
 
 /* EA SBR/SBS - used in older 7th gen games for storing SFX */
 VGMSTREAM * init_vgmstream_ea_sbr(STREAMFILE *streamFile) {
-    uint32_t num_sounds, type_desc;
+    uint32_t i, num_sounds, type_desc;
     uint16_t num_metas, meta_type;
-    uint32_t i;
     off_t table_offset, types_offset, entry_offset, metas_offset, data_offset, snr_offset, sns_offset;
     STREAMFILE *sbsFile = NULL, *streamData = NULL;
     VGMSTREAM *vgmstream = NULL;
