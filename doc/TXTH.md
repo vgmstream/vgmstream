@@ -10,7 +10,7 @@ When an unsupported file is loaded (for instance "bgm01.snd"), vgmstream tries t
 If found and parsed correctly (the TXTH may be rejected if incorrect commands are found) vgmstream will try to play the file as described. Extension must be accepted/added to vgmstream (plugins like foobar2000 only load extensions from a whitelist in formats.c), or one could rename to any supported extension (like .vgmstream), or leave the file extensionless.
 
 You can also use ".(sub).(ext).txth" (if the file is "filename.sub.ext"), to allow mixing slightly different files in the same folder. The "sub" part doesn't need to be an extension, for example:
-- 001.1ch.str, 001.1ch.str may use .1ch.txth 
+- 001.1ch.str, 001.1ch.str may use .1ch.txth
 - 003.2ch.str, 003.2ch.str may use .2ch.txth
 - etc
 
@@ -51,7 +51,7 @@ A text file with the above commands must be saved as ".vag.txth" or ".txth", not
 #   * $1|2|3|4: value has size of 8/16/24/32 bit (optional, defaults to 4)
 #   Examples: @0x10:BE$2 (get big endian 16b value at 0x10)
 # - (field): uses current value of a field. Accepted strings:
-#   - interleave, channels, sample_rate
+#   - interleave, interleave_last, channels, sample_rate
 #   - start_offset, data_size
 #   - num_samples, loop_start_sample, loop_end_sample
 #   - subsong_count, subsong_offset
@@ -115,6 +115,14 @@ value_sub|value_- = (number)|(offset)|(field)
 # means block size (size of a single frame).
 # Interleave 0 means "stereo mode" for some codecs (IMA, AICA, etc).
 interleave = (number)|(offset)|(field)|half_size
+
+# Interleave in the last block [OPTIONAL]
+# - auto: calculate based on channels, interleave and data_size/start_offset
+# In some files with interleaved data the last block is smaller than interleave,
+# so interleave must be smaller in the last block. This fixes decoding glitches
+# for those files. Note that this doesn't affect files with padding data in the
+# last block (as the interleave itself is constant).
+interleave_last = (number)|(auto)
 
 # Validate that id_value matches value at id_offset [OPTIONAL]
 # Can be redefined several times, it's checked whenever a new id_offset is found.

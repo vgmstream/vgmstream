@@ -9,7 +9,9 @@ VGMSTREAM * init_vgmstream_asf(STREAMFILE *streamFile) {
 
 
     /* checks */
-    if (!check_extensions(streamFile, "asf"))
+    /* .asf: original
+     * .lasf: fake for plugins */
+    if (!check_extensions(streamFile, "asf,lasf"))
         goto fail;
 
     if (read_32bitBE(0x00,streamFile) != 0x41534600) /* "ASF\0" */

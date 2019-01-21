@@ -577,7 +577,7 @@ VGMSTREAM * init_vgmstream_ea_sbr_harmony(STREAMFILE *streamFile) {
     off_t data_offset, table_offset, dset_offset, base_offset, sound_table_offset, sound_offset, header_offset, start_offset;
     STREAMFILE *sbsFile = NULL, *streamData = NULL;
     VGMSTREAM *vgmstream = NULL;
-    int target_stream = streamFile->stream_index, total_sounds, local_target, is_streamed;
+    int target_stream = streamFile->stream_index, total_sounds, local_target, is_streamed = 0;
     int32_t(*read_32bit)(off_t, STREAMFILE*);
     int16_t(*read_16bit)(off_t, STREAMFILE*);
 

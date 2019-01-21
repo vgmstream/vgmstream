@@ -206,6 +206,7 @@ static const char* extension_list[] = {
     "l",
     "laac", //fake extension for .aac (tri-Ace)
     "lac3", //fake extension for .ac3, FFmpeg/not parsed
+    "lasf", //fake extension for .asf (various)
     "leg",
     "lflac", //fake extension for .flac, FFmpeg/not parsed
     "lin",
@@ -620,6 +621,7 @@ static const coding_info coding_info_list[] = {
         {coding_H4M_IMA,            "Hudson HVQM4 4-bit IMA ADPCM"},
 
         {coding_MSADPCM,            "Microsoft 4-bit ADPCM"},
+        {coding_MSADPCM_int,        "Microsoft 4-bit ADPCM (mono/interleave)"},
         {coding_MSADPCM_ck,         "Microsoft 4-bit ADPCM (Cricket Audio)"},
         {coding_WS,                 "Westwood Studios VBR ADPCM"},
         {coding_AICA,               "Yamaha AICA 4-bit ADPCM"},
@@ -769,7 +771,7 @@ static const meta_info meta_info_list[] = {
         {meta_PS_HEADERLESS,        "Headerless PS-ADPCM raw header"},
         {meta_PS2_MIB_MIH,          "Sony MultiStream MIH+MIB header"},
         {meta_DSP_MPDSP,            "Single DSP header stereo by .mpdsp extension"},
-        {meta_PS2_MIC,              "assume KOEI MIC file by .mic extension"},
+        {meta_PS2_MIC,              "KOEI .MIC header"},
         {meta_DSP_JETTERS,          "Double DSP header stereo by _lr.dsp extension"},
         {meta_DSP_MSS,              "Double DSP header stereo by .mss extension"},
         {meta_DSP_GCM,              "Double DSP header stereo by .gcm extension"},

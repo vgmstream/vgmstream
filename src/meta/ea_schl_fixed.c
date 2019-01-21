@@ -29,8 +29,10 @@ VGMSTREAM * init_vgmstream_ea_schl_fixed(STREAMFILE *streamFile) {
     ea_header ea = {0};
 
 
-    /* check extension */
-    if (!check_extensions(streamFile,"asf"))
+    /* checks */
+    /* .asf: original
+     * .lasf: fake for plugins */
+    if (!check_extensions(streamFile,"asf,lasf"))
         goto fail;
 
     /* check header (see ea_schl.c for more info about blocks) */

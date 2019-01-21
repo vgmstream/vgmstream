@@ -40,11 +40,12 @@ VGMSTREAM * init_vgmstream_ea_1snh(STREAMFILE *streamFile) {
 
 
     /* checks */
-    /* .asf/as4: common
+    /* .asf/as4: common,
+     * .lasf: fake for plugins
      * .cnk: some PS games
      * .sng: fake for plugins (to mimic EA SCHl's common extension)
      * .uv/tgq: some SAT games (video only?) */
-    if (!check_extensions(streamFile,"asf,as4,cnk,sng,uv,tgq"))
+    if (!check_extensions(streamFile,"asf,lasf,as4,cnk,sng,uv,tgq"))
         goto fail;
 
     if (read_32bitBE(0x00,streamFile) != 0x31534E68 &&  /* "1SNh" */

@@ -49,6 +49,7 @@ typedef struct {
     uint32_t id_offset;
 
     uint32_t interleave;
+    uint32_t interleave_last;
     uint32_t channels;
     uint32_t sample_rate;
 
@@ -228,6 +229,7 @@ VGMSTREAM * init_vgmstream_txth(STREAMFILE *streamFile) {
         case coding_AICA:
         case coding_APPLE_IMA4:
             vgmstream->interleave_block_size = txth.interleave;
+            vgmstream->interleave_last_block_size = txth.interleave_last;
             if (vgmstream->channels > 1)
             {
                 if (coding == coding_SDX2) {
@@ -277,6 +279,7 @@ VGMSTREAM * init_vgmstream_txth(STREAMFILE *streamFile) {
 
         case coding_PCFX:
             vgmstream->interleave_block_size = txth.interleave;
+            vgmstream->interleave_last_block_size = txth.interleave_last;
             vgmstream->layout_type = layout_interleave;
             if (txth.codec_mode >= 0 && txth.codec_mode <= 3)
                 vgmstream->codec_config = txth.codec_mode;
@@ -304,10 +307,12 @@ VGMSTREAM * init_vgmstream_txth(STREAMFILE *streamFile) {
                 coding = coding_XBOX_IMA_int;
                 vgmstream->layout_type = layout_interleave;
                 vgmstream->interleave_block_size = txth.interleave;
+                vgmstream->interleave_last_block_size = txth.interleave_last;
             }
             else { /* 1ch mono, or stereo interleave */
                 vgmstream->layout_type = txth.interleave ? layout_interleave : layout_none;
                 vgmstream->interleave_block_size = txth.interleave;
+                vgmstream->interleave_last_block_size = txth.interleave_last;
                 if (vgmstream->channels > 2 && vgmstream->channels % 2 != 0)
                     goto fail; /* only 2ch+..+2ch layout is known */
             }
@@ -320,6 +325,7 @@ VGMSTREAM * init_vgmstream_txth(STREAMFILE *streamFile) {
             if (txth.channels > 1 && txth.codec_mode == 0) {
                 if (!txth.interleave) goto fail;
                 vgmstream->layout_type = layout_interleave;
+                vgmstream->interleave_last_block_size = txth.interleave_last;
                 vgmstream->interleave_block_size = txth.interleave;
             } else if (txth.channels > 1 && txth.codec_mode == 1) {
                 if (!txth.interleave) goto fail;
@@ -655,6 +661,15 @@ static int parse_keyval(STREAMFILE * streamFile_, txth_header * txth, const char
             if (!parse_num(txth->streamHead,txth,val, &txth->interleave)) goto fail;
         }
     }
+    else if (0==strcmp(key,"interleave_last")) {
+        if (0==strcmp(val,"auto")) {
+            if (txth->channels > 0 && txth->interleave > 0)
+                txth->interleave_last = (txth->data_size % (txth->interleave * txth->channels)) / txth->channels;
+        }
+        else {
+            if (!parse_num(txth->streamHead,txth,val, &txth->interleave_last)) goto fail;
+        }
+    }
     else if (0==strcmp(key,"channels")) {
         if (!parse_num(txth->streamHead,txth,val, &txth->channels)) goto fail;
     }
@@ -901,6 +916,7 @@ static int parse_num(STREAMFILE * streamFile, txth_header * txth, const char * v
     }
     else { /* known field */
         if      (0==strcmp(val,"interleave"))           *out_value = txth->interleave;
+        if      (0==strcmp(val,"interleave_last"))      *out_value = txth->interleave_last;
         else if (0==strcmp(val,"channels"))             *out_value = txth->channels;
         else if (0==strcmp(val,"sample_rate"))          *out_value = txth->sample_rate;
         else if (0==strcmp(val,"start_offset"))         *out_value = txth->start_offset;
