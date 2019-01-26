@@ -1167,7 +1167,22 @@ static int parse_internal_offset(ubi_sb_header * sb, STREAMFILE *streamFile) {
      * May exist even for external streams only, and they often use id 1 too. */
 
     if (sb->is_map) {
-        /* maps store internal sounds offsets in a separate subtable, find the matching entry */
+        /* maps store internal sounds offsets in a separate subtable, find the matching entry
+         * each sec3 entry consists of the header and two tables
+         * 0x00: some ID? (always -1 for the first entry)
+         * 0x04: table 1 offset
+         * 0x08: table 1 entries
+         * 0x0c: table 2 offset
+         * 0x10: table 2 entries
+         * table 1 - for each entry:
+         * 0x00: sec2 entry index
+         * 0x04: sound offset
+         * table 2 - for each entry:
+         * 0x00 - group ID
+         * 0x04 - size with padding included
+         * 0x08 - size without padding
+         * 0x0c - absolute group offset */
+
         for (i = 0; i < sb->section3_num; i++) {
             off_t offset = sb->section3_offset + 0x14 * i;
             off_t table_offset  = read_32bit(offset + 0x04, streamFile) + sb->section3_offset;
@@ -1186,11 +1201,6 @@ static int parse_internal_offset(ubi_sb_header * sb, STREAMFILE *streamFile) {
 
                     sb->stream_offset = read_32bit(table_offset + 0x08 * j + 0x04, streamFile);
                     for (k = 0; k < table2_num; k++) {
-                        /* entry layout:
-                         * 0x00 - group ID
-                         * 0x04 - size with padding included
-                         * 0x08 - size without padding
-                         * 0x0c - absolute offset */
                         uint32_t id = read_32bit(table2_offset + 0x10 * k + 0x00, streamFile);
                         if (id == sb->group_id) {
                             sb->stream_offset += read_32bit(table2_offset + 0x10 * k + 0x0c, streamFile);
@@ -1981,8 +1991,8 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
     //todo Open Season (PSP) uses sequence with type 0x08 (silence?)
     //todo Rainbow Six Vegas (PSP) has layers with different sample rates (but 2nd layer is silent, can be ignored)
     /* Splinter Cell: Double Agent (2006)(PS2)-map 0x00160002 */
-    /* Open Season (2005)(PS2)-map 0x00180003 */
-    /* Open Season (2005)(PSP)-map 0x00180003 */
+    /* Open Season (2006)(PS2)-map 0x00180003 */
+    /* Open Season (2006)(PSP)-map 0x00180003 */
     /* Shaun White Snowboarding (2008)(PS2)-map 0x00180003 */
     /* Prince of Persia: Rival Swords (2007)(PSP)-bank 0x00180005 */
     /* Rainbow Six Vegas (2007)(PSP)-bank 0x00180006 */
@@ -2001,6 +2011,49 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         config_sb_sequence(sb, 0x2c, 0x10);
 
         config_sb_layer_he(sb, 0x20, 0x2c, 0x30, 0x38);
+        config_sb_layer_sh(sb, 0x34, 0x00, 0x08, 0x0c, 0x14);
+        return 1;
+    }
+
+    /* Open Season (2005)(PC)-map 0x00180003 */
+    /* Shaun White Snowboarding (2008)(PC)-map 0x00180003 */
+    if (sb->version == 0x00180003 && sb->platform == UBI_PC) {
+        config_sb_entry(sb, 0x68, 0x78);
+
+        config_sb_audio_fs(sb, 0x2c, 0x34, 0x30);
+        config_sb_audio_he(sb, 0x5c, 0x54, 0x40, 0x48, 0x64, 0x60);
+
+        config_sb_sequence(sb, 0x2c, 0x14);
+
+        config_sb_layer_he(sb, 0x20, 0x38, 0x3c, 0x44);
+        config_sb_layer_sh(sb, 0x34, 0x00, 0x08, 0x0c, 0x14);
+        return 1;
+    }
+
+    /* Open Season (2006)(Xbox)-map 0x00180003 */
+    if (sb->version == 0x00180003 && sb->platform == UBI_XBOX) {
+        config_sb_entry(sb, 0x48, 0x58);
+
+        config_sb_audio_fb(sb, 0x20, (1 << 3), (1 << 4), (1 << 10));
+        config_sb_audio_he(sb, 0x44, 0x3c, 0x28, 0x30, 0x4c, 0x48);
+
+        config_sb_sequence(sb, 0x2c, 0x10);
+
+        config_sb_layer_he(sb, 0x20, 0x2c, 0x30, 0x38);
+        config_sb_layer_sh(sb, 0x34, 0x00, 0x08, 0x0c, 0x14);
+        return 1;
+    }
+
+    /* Open Season (2006)(GC)-map 0x00180003 */
+    if (sb->version == 0x00180003 && sb->platform == UBI_GC) {
+        config_sb_entry(sb, 0x68, 0x6c);
+
+        config_sb_audio_fs(sb, 0x28, 0x2c, 0x30);
+        config_sb_audio_he(sb, 0x58, 0x50, 0x3c, 0x44, 0x60, 0x5c);
+
+        config_sb_sequence(sb, 0x2c, 0x14);
+
+        config_sb_layer_he(sb, 0x20, 0x38, 0x3c, 0x44);
         config_sb_layer_sh(sb, 0x34, 0x00, 0x08, 0x0c, 0x14);
         return 1;
     }
@@ -2134,7 +2187,7 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
     }
 
     /* Rainbow Six Vegas 2 (2008)(PS3)-map */
-    if (sb->version == 0x001c0000 && sb->platform == UBI_PS3) {
+    if (sb->version == 0x001C0000 && sb->platform == UBI_PS3) {
         config_sb_entry(sb, 0x64, 0x7c);
 
         config_sb_audio_fs(sb, 0x28, 0x30, 0x34);
@@ -2148,7 +2201,7 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
     }
 
     /* Michael Jackson: The Experience (2010)(PSP)-map */
-    if (sb->version == 0x001d0000 && sb->platform == UBI_PSP) {
+    if (sb->version == 0x001D0000 && sb->platform == UBI_PSP) {
         config_sb_entry(sb, 0x40, 0x60);
 
         config_sb_audio_fb(sb, 0x20, (1 << 2), (1 << 3), (1 << 5)); /* assumed group_flag */
@@ -2161,7 +2214,7 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
     }
 
     /* Splinter Cell Classic Trilogy HD (2011)(PS3)-map */
-    if (sb->version == 0x001d0000 && sb->platform == UBI_PS3) {
+    if (sb->version == 0x001D0000 && sb->platform == UBI_PS3) {
         config_sb_entry(sb, 0x5c, 0x80);
 
         config_sb_audio_fs(sb, 0x28, 0x30, 0x34);
@@ -2171,8 +2224,6 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
 
         config_sb_layer_he(sb, 0x20, 0x44, 0x48, 0x54);
         config_sb_layer_sh(sb, 0x38, 0x00, 0x04, 0x08, 0x10);
-
-
         return 1;
     }
 
