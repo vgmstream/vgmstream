@@ -280,8 +280,9 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
      * .adpcm: Angry Birds Transformers (Android)
      * .adw: Dead Rising 2 (PC)
      * .wd: Genma Onimusha (Xbox) voices
-     * (extensionless): Myst III (Xbox) voices */
-    if ( check_extensions(streamFile, "wav,lwav,xwav,da,dax,cd,med,snd,adx,adp,xss,xsew,adpcm,adw,wd,") ) {
+     * (extensionless): Myst III (Xbox)
+     * .sbv: Spongebob Squarepants - The Movie (PC) */
+    if ( check_extensions(streamFile, "wav,lwav,xwav,da,dax,cd,med,snd,adx,adp,xss,xsew,adpcm,adw,wd,,sbv") ) {
         ;
     }
     else if ( check_extensions(streamFile, "mwv") ) {

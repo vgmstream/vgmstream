@@ -351,6 +351,7 @@ static const char* extension_list[] = {
     "sb6",
     "sb7",
     "sbr",
+    "sbv",
     "sm0",
     "sm1",
     "sm2",
