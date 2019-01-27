@@ -486,6 +486,7 @@ static const char* extension_list[] = {
     "wv6",
     "wve",
     "wvs",
+    "wvx",
 
     "x",
     "xa",
