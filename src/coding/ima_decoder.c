@@ -937,16 +937,19 @@ void decode_ubi_ima(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspaci
         int16_t (*read_16bit)(off_t,STREAMFILE*) = NULL;
         off_t offset = stream->offset;
 
-        /* header fields mostly unknown (vary a lot or look like flags),
-         * 0x07 0x06 = major/minor tool version?, 0x0c: stereo flag? */
+        /* header fields mostly unknown (vary a lot or look like flags, tool version?, 0x08: stereo flag?) */
         version = read_8bit(offset + 0x00, stream->streamfile);
-        big_endian = version < 5; //todo and sb.big_endian?
+        big_endian = version < 5;
         read_16bit = big_endian ? read_16bitBE : read_16bitLE;
 
         header_samples = read_16bit(offset + 0x0E, stream->streamfile); /* always 10 (per channel) */
         hist1      = read_16bit(offset + 0x10 + channel*0x04,stream->streamfile);
         step_index =  read_8bit(offset + 0x12 + channel*0x04,stream->streamfile);
-        offset += 0x10 + 0x08 + 0x04; //todo v6 has extra 0x08?
+        offset += 0x10 + 0x08;
+        if (version >= 3)
+            offset += 0x04;
+        //if (version >= 6) /* supposedly this exists, maybe in later BAOs */
+        //    offset += 0x08;
 
         /* write PCM samples, must be written to match header's num_samples (hist mustn't) */
         max_samples_to_do = ((samples_to_do > header_samples) ? header_samples : samples_to_do);
@@ -1080,20 +1083,4 @@ size_t apple_ima4_bytes_to_samples(size_t bytes, int channels) {
     int block_align = 0x22 * channels;
     return (bytes / block_align) * (block_align - 0x02*channels) * 2 / channels
             + ((bytes % block_align) ? ((bytes % block_align) - 0x02*channels) * 2 / channels : 0);
-}
-
-size_t ubi_ima_bytes_to_samples(size_t bytes, int channels, STREAMFILE *streamFile, off_t offset) {
-    int version, big_endian, header_samples;
-    int16_t (*read_16bit)(off_t,STREAMFILE*) = NULL;
-    size_t header_size = 0;
-
-    version = read_8bit(offset + 0x00, streamFile);
-    big_endian = version < 5; //todo and sb.big_endian?
-    read_16bit = big_endian ? read_16bitBE : read_16bitLE;
-
-    header_samples = read_16bit(offset + 0x0E, streamFile); /* always 10 (per channel) */
-    header_size += 0x10 + 0x04 * channels + 0x04; //todo v6 has extra 0x08?
-    header_size += header_samples * channels * sizeof(sample);
-
-    return header_samples + ima_bytes_to_samples(bytes - header_size, channels);
 }

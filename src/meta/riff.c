@@ -279,8 +279,11 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
      * .xsew: Mega Man X Legacy Collections (PC)
      * .adpcm: Angry Birds Transformers (Android)
      * .adw: Dead Rising 2 (PC)
-     * .wd: Genma Onimusha (Xbox) voices */
-    if ( check_extensions(streamFile, "wav,lwav,xwav,da,dax,cd,med,snd,adx,adp,xss,xsew,adpcm,adw,wd") ) {
+     * .wd: Genma Onimusha (Xbox) voices
+     * (extensionless): Myst III (Xbox)
+     * .sbv: Spongebob Squarepants - The Movie (PC)
+     * .wvx: Godzilla - Destroy All Monsters Melee (Xbox) */
+    if ( check_extensions(streamFile, "wav,lwav,xwav,da,dax,cd,med,snd,adx,adp,xss,xsew,adpcm,adw,wd,,sbv") ) {
         ;
     }
     else if ( check_extensions(streamFile, "mwv") ) {

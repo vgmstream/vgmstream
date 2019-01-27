@@ -41,7 +41,6 @@ void decode_h4m_ima(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspaci
 size_t ima_bytes_to_samples(size_t bytes, int channels);
 size_t ms_ima_bytes_to_samples(size_t bytes, int block_align, int channels);
 size_t xbox_ima_bytes_to_samples(size_t bytes, int channels);
-size_t ubi_ima_bytes_to_samples(size_t bytes, int channels, STREAMFILE *streamFile, off_t offset);
 size_t apple_ima4_bytes_to_samples(size_t bytes, int channels);
 
 /* ngc_dsp_decoder */
