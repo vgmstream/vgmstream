@@ -233,6 +233,14 @@ channel mask to allow only certain channels (ex. "song.adx#c1,2").
 Creation of those files is meant for advanced users, docs can be found in
 vgmstream source.
 
+### Plugin conflicts
+Since vgmstream supports a huge amount of formats it's possibly that some of
+them are also supported in other plugins, and this sometimes causes conflicts.
+If a file that should isn't playing or looping, first make sure vgmstream is
+really opening it (should show "vgmstream" somewhere in the file info), and
+try to remove a few other plugins. foobar's ffmpeg plugin and foo_adpcm are
+known to cause issues.
+
 
 ## Tagging
 Some of vgmstream's plugins support simple read-only tagging via external files.
@@ -282,7 +290,7 @@ are used in few games.
 - Sony PSX ADPCM a.k.a VAG (standard, badflags, configurable)
 - Sony HEVAG
 - Electronic Arts EA-XA (stereo, mono, Maxis)
-- Electronic Arts EA-XAS
+- Electronic Arts EA-XAS (v0, v1)
 - DVI/IMA ADPCM (stereo/mono + high/low nibble, 3DS, Omikron, SNDS, etc)
 - Microsoft MS IMA ADPCM (standard, Xbox, NDS, Radical, Wwise, FSB, WV6, etc)
 - Microsoft MS ADPCM (standard, Cricket Audio)
@@ -298,7 +306,7 @@ are used in few games.
 - Konami XMD 4-bit ADPCM
 - Argonaut ASF 4-bit ADPCM
 - Circus XPCM ADPCM
-- PC-FX ADPCM
+- OKI 4-bit ADPCM (16-bit output, PC-FX)
 - SDX2 2:1 Squareroot-Delta-Exact compression DPCM
 - CBD2 2:1 Cuberoot-Delta-Exact compression DPCM
 - Activision EXAKT SASSC DPCM
@@ -560,6 +568,8 @@ This list is not complete and many other files are supported.
 	- .um3 (Ogg Vorbis)
 	- .xa (CD-ROM XA audio)
 	- .xma (MS XMA/XMA2)
+	- .sb0/sb1/sb2/sb3/sb4/sb5/sb6/sb7 (many)
+	- .sm0/sm1/sm2/sm3/sm4/sm5/sm6/sm7 (many)
 - artificial/generic headers:
     - .genh (lots)
     - .txth (lots)
