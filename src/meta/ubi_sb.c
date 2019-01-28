@@ -1354,7 +1354,22 @@ static int parse_internal_offset(ubi_sb_header * sb, STREAMFILE *streamFile) {
      * May exist even for external streams only, and they often use id 1 too. */
 
     if (sb->is_map) {
-        /* maps store internal sounds offsets in a separate subtable, find the matching entry */
+        /* maps store internal sounds offsets in a separate subtable, find the matching entry
+         * each sec3 entry consists of the header and two tables
+         * 0x00: some ID? (always -1 for the first entry)
+         * 0x04: table 1 offset
+         * 0x08: table 1 entries
+         * 0x0c: table 2 offset
+         * 0x10: table 2 entries
+         * table 1 - for each entry:
+         * 0x00: sec2 entry index
+         * 0x04: sound offset
+         * table 2 - for each entry:
+         * 0x00 - group ID
+         * 0x04 - size with padding included
+         * 0x08 - size without padding
+         * 0x0c - absolute group offset */
+
         for (i = 0; i < sb->section3_num; i++) {
             off_t offset = sb->section3_offset + 0x14 * i;
             off_t table_offset  = read_32bit(offset + 0x04, streamFile) + sb->section3_offset;
@@ -1373,11 +1388,8 @@ static int parse_internal_offset(ubi_sb_header * sb, STREAMFILE *streamFile) {
 
                     sb->stream_offset = read_32bit(table_offset + 0x08 * j + 0x04, streamFile);
                     for (k = 0; k < table2_num; k++) {
-                        /* entry layout:
-                         * 0x00 - group ID
-                         * 0x04 - size with padding included
-                         * 0x08 - size without padding
-                         * 0x0c - absolute offset */                         uint32_t id = read_32bit(table2_offset + 0x10 * k + 0x00, streamFile);
+                        uint32_t id = read_32bit(table2_offset + 0x10 * k + 0x00, streamFile);
+
                         if (id == sb->group_id) {
                             sb->stream_offset += read_32bit(table2_offset + 0x10 * k + 0x0c, streamFile);
                             break;
@@ -1987,7 +1999,7 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         }
     }
 
-    /* Prince of Persia: Sands of Time (2003)(PS2)-bank 0x000A0004 / 0x000A0002 (POP1 port) */
+    /* Prince of Persia: The Sands of Time (2003)(PS2)-bank 0x000A0004 / 0x000A0002 (POP1 port) */
     /* Tom Clancy's Rainbow Six 3 (2003)(PS2)-bank 0x000A0007 */
     /* Tom Clancy's Ghost Recon 2 (2004)(PS2)-bank 0x000A0007 */
     /* Splinter Cell: Pandora Tomorrow (2006)(PS2)-bank 0x000A0008 */
@@ -2030,7 +2042,7 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         return 1;
     }
 
-    /* Prince of Persia: Sands of Time (2003)(Xbox)-bank 0x000A0004 / 0x000A0002 (POP1 port) */
+    /* Prince of Persia: The Sands of Time (2003)(Xbox)-bank 0x000A0004 / 0x000A0002 (POP1 port) */
     if ((sb->version == 0x000A0002 && sb->platform == UBI_XBOX) ||
         (sb->version == 0x000A0004 && sb->platform == UBI_XBOX)) {
         config_sb_entry(sb, 0x64, 0x78);
@@ -2047,7 +2059,7 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
     }
 
     /* Batman: Rise of Sin Tzu (2003)(GC)-map 0x000A0002 */
-    /* Prince of Persia: Sands of Time (2003)(GC)-bank 0x000A0004 / 0x000A0002 (POP1 port) */
+    /* Prince of Persia: The Sands of Time (2003)(GC)-bank 0x000A0004 / 0x000A0002 (POP1 port) */
     /* Tom Clancy's Rainbow Six 3 (2003)(Xbox)-bank 0x000A0007 */
     if ((sb->version == 0x000A0002 && sb->platform == UBI_GC) ||
         (sb->version == 0x000A0004 && sb->platform == UBI_GC) ||
@@ -2254,7 +2266,7 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
     /* Prince of Persia: The Two Thrones (2005)(Xbox)-bank 0x00150000 */
     /* Far Cry Instincts (2005)(Xbox)-bank 0x00150000 */
     /* Splinter Cell: Double Agent (2006)(Xbox)-map 0x00160002 */
-    /* Far cry Instincts: Evolution (2006)(Xbox)-bank 0x00170000 */
+    /* Far Cry Instincts: Evolution (2006)(Xbox)-bank 0x00170000 */
     if ((sb->version == 0x00150000 && sb->platform == UBI_XBOX) ||
         (sb->version == 0x00160002 && sb->platform == UBI_XBOX) ||
         (sb->version == 0x00170000 && sb->platform == UBI_XBOX)) {
@@ -2314,6 +2326,49 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         /* Rainbow Six Vegas (PSP) has 2 layers with different sample rates, but 2nd layer is silent and can be ignored */
         if (sb->version == 0x00180006 && sb->platform == UBI_PSP)
             sb->cfg.ignore_layer_error = 1;
+        return 1;
+    }
+
+    /* Open Season (2006)(PC)-map 0x00180003 */
+    /* Shaun White Snowboarding (2008)(PC)-map 0x00180003 */
+    if (sb->version == 0x00180003 && sb->platform == UBI_PC) {
+        config_sb_entry(sb, 0x68, 0x78);
+
+        config_sb_audio_fs(sb, 0x2c, 0x34, 0x30);
+        config_sb_audio_he(sb, 0x5c, 0x54, 0x40, 0x48, 0x64, 0x60);
+
+        config_sb_sequence(sb, 0x2c, 0x14);
+
+        config_sb_layer_he(sb, 0x20, 0x38, 0x3c, 0x44);
+        config_sb_layer_sh(sb, 0x34, 0x00, 0x08, 0x0c, 0x14);
+        return 1;
+    }
+
+    /* Open Season (2006)(Xbox)-map 0x00180003 */
+    if (sb->version == 0x00180003 && sb->platform == UBI_XBOX) {
+        config_sb_entry(sb, 0x48, 0x58);
+
+        config_sb_audio_fb(sb, 0x20, (1 << 3), (1 << 4), (1 << 10));
+        config_sb_audio_he(sb, 0x44, 0x3c, 0x28, 0x30, 0x4c, 0x48);
+
+        config_sb_sequence(sb, 0x2c, 0x10);
+
+        config_sb_layer_he(sb, 0x20, 0x2c, 0x30, 0x38);
+        config_sb_layer_sh(sb, 0x34, 0x00, 0x08, 0x0c, 0x14);
+        return 1;
+    }
+
+    /* Open Season (2006)(GC)-map 0x00180003 */
+    if (sb->version == 0x00180003 && sb->platform == UBI_GC) {
+        config_sb_entry(sb, 0x68, 0x6c);
+
+        config_sb_audio_fs(sb, 0x28, 0x2c, 0x30);
+        config_sb_audio_he(sb, 0x58, 0x50, 0x3c, 0x44, 0x60, 0x5c);
+
+        config_sb_sequence(sb, 0x2c, 0x14);
+
+        config_sb_layer_he(sb, 0x20, 0x38, 0x3c, 0x44);
+        config_sb_layer_sh(sb, 0x34, 0x00, 0x08, 0x0c, 0x14);
         return 1;
     }
 

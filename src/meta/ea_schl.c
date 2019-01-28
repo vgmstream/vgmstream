@@ -115,7 +115,7 @@ VGMSTREAM * init_vgmstream_ea_schl(STREAMFILE *streamFile) {
 
     /* check extension */
     /* they don't seem enforced by EA's tools but usually:
-     * .asf: ~early (audio stream file?) [ex. Need for Speed (PC)]
+     * .asf: ~early (audio stream file?) [ex. Need for Speed II (PC)]
      * .lasf: fake for plugins
      * .str: ~early [ex. FIFA 2002 (PS1)]
      * .eam: ~mid (fake?)
@@ -161,6 +161,7 @@ fail:
 /* EA BNK with variable header - from EA games SFXs; also created by sx.exe */
 VGMSTREAM * init_vgmstream_ea_bnk(STREAMFILE *streamFile) {
     off_t offset;
+    int target_stream = streamFile->stream_index;
 
     /* check extension */
     /* .bnk: common
@@ -177,7 +178,9 @@ VGMSTREAM * init_vgmstream_ea_bnk(STREAMFILE *streamFile) {
     else
         offset = 0x00;
 
-    return parse_bnk_header(streamFile, offset, streamFile->stream_index, 0);
+    if (target_stream == 0) target_stream = 1;
+
+    return parse_bnk_header(streamFile, offset, target_stream - 1, 0);
     
 fail:
     return NULL;
@@ -587,7 +590,7 @@ VGMSTREAM * init_vgmstream_ea_mpf_mus(STREAMFILE *streamFile) {
     /* I can't figure it out, so let's just use a workaround for now */
 
     if (version == 3 && sub_version == 1) { /* SSX Tricky */
-        /* we need to go through the first two sections to find sound table */
+        /* we need to go through the first two sections to find the sound table */
         sec1_num = read_16bit(0x12, streamFile);
         sec2_size = read_8bit(0x0d, streamFile) * read_8bit(0x0e, streamFile);
         sec2_num = read_8bit(0x0f, streamFile);
@@ -610,6 +613,7 @@ VGMSTREAM * init_vgmstream_ea_mpf_mus(STREAMFILE *streamFile) {
         total_streams = (eof_offset - section_offset) / 0x08;
         off_mult = 0x04;
     } else if (version == 3 && sub_version == 4) { /* Harry Potter and the Chamber of Secrets */
+        /* we need to go through the first two sections to find the sound table */
         sec1_num = read_16bit(0x12, streamFile);
         sec2_size = read_8bit(0x0d, streamFile) * read_8bit(0x0e, streamFile);
         sec2_num = read_8bit(0x0f, streamFile);
@@ -636,7 +640,7 @@ VGMSTREAM * init_vgmstream_ea_mpf_mus(STREAMFILE *streamFile) {
         total_streams = (eof_offset - section_offset) / 0x08;
         off_mult = 0x04;
     } else if (version == 4) { /* SSX 3, Need for Speed: Underground 2 */
-        /* we need to go through the first two sections to find sound table */
+        /* we need to go through the first two sections to find the sound table */
         sec1_num = read_16bit(0x12, streamFile);
         sec2_num = read_8bit(0x0f, streamFile);
 
@@ -724,37 +728,37 @@ fail:
 
 /* EA BNK with variable header - from EA games SFXs; also created by sx.exe */
 static VGMSTREAM * parse_bnk_header(STREAMFILE *streamFile, off_t offset, int target_stream, int is_embedded) {
+    uint32_t i;
+    uint16_t num_sounds;
     off_t header_offset, start_offset, test_offset, table_offset;
     size_t header_size;
-    ea_header ea = {0};
-    int32_t (*read_32bit)(off_t,STREAMFILE*) = NULL;
-    int16_t (*read_16bit)(off_t,STREAMFILE*) = NULL;
+    ea_header ea = { 0 };
+    int32_t(*read_32bit)(off_t, STREAMFILE*) = NULL;
+    int16_t(*read_16bit)(off_t, STREAMFILE*) = NULL;
     VGMSTREAM *vgmstream = NULL;
-    int i, bnk_version;
-    int total_bnk_sounds, real_bnk_sounds = 0;
+    int bnk_version;
+    int real_bnk_sounds = 0;
 
     /* check header */
     /* BNK header endianness is platform-native */
     if (read_32bitBE(offset + 0x00, streamFile) == EA_BNK_HEADER_BE) {
         read_32bit = read_32bitBE;
         read_16bit = read_16bitBE;
-    }
-    else if (read_32bitBE(offset + 0x00, streamFile) == EA_BNK_HEADER_LE) {
+    } else if (read_32bitBE(offset + 0x00, streamFile) == EA_BNK_HEADER_LE) {
         read_32bit = read_32bitLE;
         read_16bit = read_16bitLE;
-    }
-    else {
+    } else {
         goto fail;
     }
 
-    bnk_version = read_8bit(offset + 0x04,streamFile);
-    total_bnk_sounds = read_16bit(offset + 0x06,streamFile);
+    bnk_version = read_8bit(offset + 0x04, streamFile);
+    num_sounds = read_16bit(offset + 0x06, streamFile);
 
     /* check multi-streams */
-    switch(bnk_version) {
+    switch (bnk_version) {
         case 0x02: /* early [Need For Speed II (PC/PS1), FIFA 98 (PC/PS1/SAT)] */
             table_offset = 0x0c;
-            header_size = read_32bit(offset + 0x08,streamFile); /* full size */
+            header_size = read_32bit(offset + 0x08, streamFile); /* full size */
             break;
 
         case 0x04: /* mid (last used in PSX banks) */
@@ -769,32 +773,30 @@ static VGMSTREAM * parse_bnk_header(STREAMFILE *streamFile, off_t offset, int ta
             goto fail;
     }
 
-    if (target_stream == 0) target_stream = 1;
     header_offset = 0;
 
-    for (i = 0; i < total_bnk_sounds; i++) {
-        /* some of these are dummies with zero offset */
-        test_offset = read_32bit(offset + table_offset + 0x04 * i, streamFile);
+    if (is_embedded) {
+        if (target_stream < 0 || target_stream >= num_sounds)
+            goto fail;
 
-        if (test_offset != 0) {
-            real_bnk_sounds++;
+        header_offset = read_32bit(offset + table_offset + 0x04 * target_stream, streamFile);
+    } else {
+        /* some of these are dummies with zero offset, skip them when opening standalone BNK */
+        for (i = 0; i < num_sounds; i++) {
+            test_offset = read_32bit(offset + table_offset + 0x04 * i, streamFile);
 
-            /* ABK points at absolute indexes, i.e. with dummies included */
-            if (is_embedded != 0) {
-                if (target_stream - 1 == i)
-                    header_offset = offset + table_offset + 0x04 * i + test_offset;
-            }
-            else {
-                /* Ignore dummy streams when opening standalone BNK files */
+            if (test_offset != 0) {
                 if (target_stream == real_bnk_sounds)
                     header_offset = offset + table_offset + 0x04 * i + test_offset;
+
+                real_bnk_sounds++;
             }
         }
     }
 
-    if (target_stream < 0 || header_offset == 0 || real_bnk_sounds < 1) goto fail;
+    if (header_offset == 0) goto fail;
 
-    if (!parse_variable_header(streamFile,&ea, header_offset, header_size - header_offset, bnk_version))
+    if (!parse_variable_header(streamFile, &ea, header_offset, header_size - header_offset, bnk_version))
         goto fail;
 
     /* fix absolute offsets so it works in next funcs */
@@ -843,22 +845,22 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE *streamFile, ea_
         vgmstream->layout_type = layout_none;
 
         /* BNKs usually have absolute offsets for all channels ("full" interleave) except in some versions */
-        if (vgmstream->channels > 1 && ea->codec1 == EA_CODEC1_PCM) {
-            int interleave = (vgmstream->num_samples * (ea->bps == 8 ? 0x01 : 0x02)); /* full interleave */
-            for (i = 0; i < vgmstream->channels; i++) {
+        if (ea->channels > 1 && ea->codec1 == EA_CODEC1_PCM) {
+            int interleave = (ea->num_samples * (ea->bps == 8 ? 0x01 : 0x02)); /* full interleave */
+            for (i = 0; i < ea->channels; i++) {
                 ea->offsets[i] = ea->offsets[0] + interleave*i;
             }
         }
-        else if (vgmstream->channels > 1 && ea->codec1 == EA_CODEC1_VAG) {
-            int interleave = (vgmstream->num_samples / 28 * 16); /* full interleave */
-            for (i = 0; i < vgmstream->channels; i++) {
+        else if (ea->channels > 1 && ea->codec1 == EA_CODEC1_VAG) {
+            int interleave = (ea->num_samples / 28 * 16); /* full interleave */
+            for (i = 0; i < ea->channels; i++) {
                 ea->offsets[i] = ea->offsets[0] + interleave*i;
             }
         }
-        else if (vgmstream->channels > 1 && ea->codec2 == EA_CODEC2_GCADPCM && ea->offsets[0] == ea->offsets[1]) {
+        else if (ea->channels > 1 && ea->codec2 == EA_CODEC2_GCADPCM && ea->offsets[0] == ea->offsets[1]) {
             /* pcstream+gcadpcm with sx.exe v2, this is probably a bug (even with this parts of the wave are off) */
-            int interleave = (vgmstream->num_samples / 14 * 8); /* full interleave */
-            for (i = 0; i < vgmstream->channels; i++) {
+            int interleave = (ea->num_samples / 14 * 8); /* full interleave */
+            for (i = 0; i < ea->channels; i++) {
                 ea->offsets[i] = ea->offsets[0] + interleave*i;
             }
         }
@@ -893,7 +895,7 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE *streamFile, ea_
             break;
 
         case EA_CODEC2_S16LE:       /* PCM16LE */
-            if (ea->version > 0) {
+            if (ea->version > EA_VERSION_V0) {
                 vgmstream->coding_type = coding_PCM16LE;
             } else { /* Need for Speed III: Hot Pursuit (PC) */
                 vgmstream->coding_type = coding_PCM16_int;
@@ -915,7 +917,7 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE *streamFile, ea_
             {
                 int16_t (*read_16bit)(off_t,STREAMFILE*) = ea->big_endian ? read_16bitBE : read_16bitLE;
 
-                for (ch=0; ch < vgmstream->channels; ch++) {
+                for (ch=0; ch < ea->channels; ch++) {
                     for (i=0; i < 16; i++) { /* actual size 0x21, last byte unknown */
                         vgmstream->ch[ch].adpcm_coef[i] = read_16bit(ea->coefs[ch] + i*2, streamFile);
                     }
@@ -963,7 +965,7 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE *streamFile, ea_
 
             /* make relative loops absolute for the decoder */
             if (ea->loop_flag) {
-                for (i = 0; i < vgmstream->channels; i++) {
+                for (i = 0; i < ea->channels; i++) {
                     ea->loops[i] += ea->offsets[0];
                 }
             }
@@ -1030,13 +1032,13 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE *streamFile, ea_
         //        vgmstream->ch[i].offset = ea->offsets[0] + vgmstream->interleave_block_size*i;
         //    }
         //}
-        else if (vgmstream->coding_type == coding_PCM16_int && ea->version == 0) {
-            /* Need for Speed 2 (PC) bad offsets */
+        else if (vgmstream->coding_type == coding_PCM16_int && ea->version == EA_VERSION_V0) {
+            /* Need for Speed II (PC) bad offsets */
             for (i = 0; i < vgmstream->channels; i++) {
                 vgmstream->ch[i].offset = ea->offsets[0] + 0x02*i;
             }
         }
-        else if (vgmstream->coding_type == coding_PCM8 && ea->platform == EA_PLATFORM_PS2 && ea->version == 3) {
+        else if (vgmstream->coding_type == coding_PCM8 && ea->platform == EA_PLATFORM_PS2 && ea->version == EA_VERSION_V3) {
             /* SSX3 (PS2) weird 0x10 mini header (codec/loop start/loop end/samples) */
             for (i = 0; i < vgmstream->channels; i++) {
                 vgmstream->ch[i].offset = ea->offsets[0] + 0x10;
@@ -1471,7 +1473,7 @@ static void update_ea_stream_size_and_samples(STREAMFILE* streamFile, off_t star
              * music (.map/lin). Subfiles always share header, except num_samples. */
             num_samples += vgmstream->current_block_samples;
 
-            /* Stream size is almost never provided in bank files so we have to calc it manually */
+            /* stream size is almost never provided in bank files so we have to calc it manually */
             stream_size += vgmstream->next_block_offset - vgmstream->ch[0].offset;
         }
     }
