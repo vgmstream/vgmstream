@@ -1999,7 +1999,7 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         }
     }
 
-    /* Prince of Persia: Sands of Time (2003)(PS2)-bank 0x000A0004 / 0x000A0002 (POP1 port) */
+    /* Prince of Persia: The Sands of Time (2003)(PS2)-bank 0x000A0004 / 0x000A0002 (POP1 port) */
     /* Tom Clancy's Rainbow Six 3 (2003)(PS2)-bank 0x000A0007 */
     /* Tom Clancy's Ghost Recon 2 (2004)(PS2)-bank 0x000A0007 */
     /* Splinter Cell: Pandora Tomorrow (2006)(PS2)-bank 0x000A0008 */
@@ -2042,7 +2042,7 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         return 1;
     }
 
-    /* Prince of Persia: Sands of Time (2003)(Xbox)-bank 0x000A0004 / 0x000A0002 (POP1 port) */
+    /* Prince of Persia: The Sands of Time (2003)(Xbox)-bank 0x000A0004 / 0x000A0002 (POP1 port) */
     if ((sb->version == 0x000A0002 && sb->platform == UBI_XBOX) ||
         (sb->version == 0x000A0004 && sb->platform == UBI_XBOX)) {
         config_sb_entry(sb, 0x64, 0x78);
@@ -2059,7 +2059,7 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
     }
 
     /* Batman: Rise of Sin Tzu (2003)(GC)-map 0x000A0002 */
-    /* Prince of Persia: Sands of Time (2003)(GC)-bank 0x000A0004 / 0x000A0002 (POP1 port) */
+    /* Prince of Persia: The Sands of Time (2003)(GC)-bank 0x000A0004 / 0x000A0002 (POP1 port) */
     /* Tom Clancy's Rainbow Six 3 (2003)(Xbox)-bank 0x000A0007 */
     if ((sb->version == 0x000A0002 && sb->platform == UBI_GC) ||
         (sb->version == 0x000A0004 && sb->platform == UBI_GC) ||
@@ -2266,7 +2266,7 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
     /* Prince of Persia: The Two Thrones (2005)(Xbox)-bank 0x00150000 */
     /* Far Cry Instincts (2005)(Xbox)-bank 0x00150000 */
     /* Splinter Cell: Double Agent (2006)(Xbox)-map 0x00160002 */
-    /* Far cry Instincts: Evolution (2006)(Xbox)-bank 0x00170000 */
+    /* Far Cry Instincts: Evolution (2006)(Xbox)-bank 0x00170000 */
     if ((sb->version == 0x00150000 && sb->platform == UBI_XBOX) ||
         (sb->version == 0x00160002 && sb->platform == UBI_XBOX) ||
         (sb->version == 0x00170000 && sb->platform == UBI_XBOX)) {
@@ -2329,7 +2329,7 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         return 1;
     }
 
-    /* Open Season (2005)(PC)-map 0x00180003 */
+    /* Open Season (2006)(PC)-map 0x00180003 */
     /* Shaun White Snowboarding (2008)(PC)-map 0x00180003 */
     if (sb->version == 0x00180003 && sb->platform == UBI_PC) {
         config_sb_entry(sb, 0x68, 0x78);
