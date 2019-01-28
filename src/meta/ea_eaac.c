@@ -1068,7 +1068,7 @@ static size_t calculate_eaac_size(VGMSTREAM *vgmstream, STREAMFILE *streamFile, 
             file_size = get_streamfile_size(streamFile);
             vgmstream->next_block_offset = start_offset;
 
-            while (vgmstream->next_block_offset < file_size && total_samples != eaac->num_samples) {
+            while (vgmstream->next_block_offset < file_size && total_samples != vgmstream->num_samples) {
                 block_update_ea_sns(vgmstream->next_block_offset, vgmstream);
                 if (vgmstream->current_block_samples == 0)
                     continue;
