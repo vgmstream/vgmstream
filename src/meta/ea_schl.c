@@ -845,22 +845,22 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE *streamFile, ea_
         vgmstream->layout_type = layout_none;
 
         /* BNKs usually have absolute offsets for all channels ("full" interleave) except in some versions */
-        if (vgmstream->channels > 1 && ea->codec1 == EA_CODEC1_PCM) {
-            int interleave = (vgmstream->num_samples * (ea->bps == 8 ? 0x01 : 0x02)); /* full interleave */
-            for (i = 0; i < vgmstream->channels; i++) {
+        if (ea->channels > 1 && ea->codec1 == EA_CODEC1_PCM) {
+            int interleave = (ea->num_samples * (ea->bps == 8 ? 0x01 : 0x02)); /* full interleave */
+            for (i = 0; i < ea->channels; i++) {
                 ea->offsets[i] = ea->offsets[0] + interleave*i;
             }
         }
-        else if (vgmstream->channels > 1 && ea->codec1 == EA_CODEC1_VAG) {
-            int interleave = (vgmstream->num_samples / 28 * 16); /* full interleave */
-            for (i = 0; i < vgmstream->channels; i++) {
+        else if (ea->channels > 1 && ea->codec1 == EA_CODEC1_VAG) {
+            int interleave = (ea->num_samples / 28 * 16); /* full interleave */
+            for (i = 0; i < ea->channels; i++) {
                 ea->offsets[i] = ea->offsets[0] + interleave*i;
             }
         }
-        else if (vgmstream->channels > 1 && ea->codec2 == EA_CODEC2_GCADPCM && ea->offsets[0] == ea->offsets[1]) {
+        else if (ea->channels > 1 && ea->codec2 == EA_CODEC2_GCADPCM && ea->offsets[0] == ea->offsets[1]) {
             /* pcstream+gcadpcm with sx.exe v2, this is probably a bug (even with this parts of the wave are off) */
-            int interleave = (vgmstream->num_samples / 14 * 8); /* full interleave */
-            for (i = 0; i < vgmstream->channels; i++) {
+            int interleave = (ea->num_samples / 14 * 8); /* full interleave */
+            for (i = 0; i < ea->channels; i++) {
                 ea->offsets[i] = ea->offsets[0] + interleave*i;
             }
         }
@@ -917,7 +917,7 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE *streamFile, ea_
             {
                 int16_t (*read_16bit)(off_t,STREAMFILE*) = ea->big_endian ? read_16bitBE : read_16bitLE;
 
-                for (ch=0; ch < vgmstream->channels; ch++) {
+                for (ch=0; ch < ea->channels; ch++) {
                     for (i=0; i < 16; i++) { /* actual size 0x21, last byte unknown */
                         vgmstream->ch[ch].adpcm_coef[i] = read_16bit(ea->coefs[ch] + i*2, streamFile);
                     }
@@ -965,7 +965,7 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE *streamFile, ea_
 
             /* make relative loops absolute for the decoder */
             if (ea->loop_flag) {
-                for (i = 0; i < vgmstream->channels; i++) {
+                for (i = 0; i < ea->channels; i++) {
                     ea->loops[i] += ea->offsets[0];
                 }
             }
