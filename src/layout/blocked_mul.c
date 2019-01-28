@@ -44,7 +44,5 @@ void block_update_mul(off_t block_offset, VGMSTREAM * vgmstream) {
 
     for (i = 0; i < vgmstream->channels; i++) {
         vgmstream->ch[i].offset = block_offset + block_header + data_header + vgmstream->current_block_size*i;
-        //VGM_LOG("ch%i of=%lx\n", i, vgmstream->ch[i].offset);
     }
-    //getchar();
 }

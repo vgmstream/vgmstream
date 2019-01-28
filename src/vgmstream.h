@@ -687,11 +687,10 @@ typedef enum {
     meta_A2M,               /* Scooby-Doo! Unmasked (PS2) */
     meta_AHV,               /* Headhunter (PS2) */
     meta_MSV,               /* Fight Club (PS2) */
-    meta_SDF_PS2,           /* Agent Hugo - Lemoon Twist (PS2) */
+    meta_SDF,
     meta_SVG,               /* Hunter - The Reckoning - Wayward (PS2) */
     meta_VIS,               /* AirForce Delta Strike (PS2) */
     meta_VAI,               /* Ratatouille (GC) */
-    meta_SDF_3DS,           /* Gummy Bears Mini Golf (3DS) */
     meta_AIF_ASOBO,         /* Ratatouille (PC) */
     meta_AO,                /* Cloudphobia (PC) */
     meta_APC,               /* MegaRace 3 (PC) */

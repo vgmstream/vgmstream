@@ -768,8 +768,7 @@ VGMSTREAM * init_vgmstream_ahv(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_msv(STREAMFILE *streamFile);
 
-VGMSTREAM * init_vgmstream_sdf_ps2(STREAMFILE *streamFile);
-VGMSTREAM * init_vgmstream_sdf_3ds(STREAMFILE *streamFile);
+VGMSTREAM * init_vgmstream_sdf(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_svg(STREAMFILE *streamFile);
 

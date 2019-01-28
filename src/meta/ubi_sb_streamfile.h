@@ -345,7 +345,7 @@ static STREAMFILE* setup_ubi_sb_streamfile(STREAMFILE *streamFile, off_t stream_
     if (!new_streamFile) goto fail;
     temp_streamFile = new_streamFile;
 
-    new_streamFile = open_io_streamfile(temp_streamFile, &io_data,io_data_size, ubi_sb_io_read,ubi_sb_io_size);
+    new_streamFile = open_io_streamfile(new_streamFile, &io_data,io_data_size, ubi_sb_io_read,ubi_sb_io_size);
     if (!new_streamFile) goto fail;
     temp_streamFile = new_streamFile;
 
