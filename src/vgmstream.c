@@ -410,6 +410,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_ppst,
     init_vgmstream_opus_sps_n1_segmented,
     init_vgmstream_ubi_bao_pk,
+    init_vgmstream_ubi_bao_atomic,
     init_vgmstream_dsp_switch_audio,
     init_vgmstream_sadf,
     init_vgmstream_h4m,
