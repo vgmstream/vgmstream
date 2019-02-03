@@ -738,6 +738,7 @@ VGMSTREAM * init_vgmstream_ppst(STREAMFILE *streamFile);
 VGMSTREAM * init_vgmstream_opus_sps_n1_segmented(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_ubi_bao_pk(STREAMFILE *streamFile);
+VGMSTREAM * init_vgmstream_ubi_bao_atomic(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_h4m(STREAMFILE *streamFile);
 
