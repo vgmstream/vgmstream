@@ -184,7 +184,6 @@ static inline int64_t read_64bitBE(off_t offset, STREAMFILE * streamfile) {
     if (read_streamfile(buf,offset,8,streamfile)!=8) return -1;
     return get_64bitBE(buf);
 }
-
 static inline int8_t read_8bit(off_t offset, STREAMFILE * streamfile) {
     uint8_t buf[1];
 
@@ -193,13 +192,15 @@ static inline int8_t read_8bit(off_t offset, STREAMFILE * streamfile) {
 }
 
 /* guess byte endianness from a given value, return true if big endian and false if little endian */
-/* TODO: possibly improve */
 static inline int guess_endianness16bit(off_t offset, STREAMFILE * streamfile) {
-    return ((uint16_t)read_16bitLE(offset,streamfile) > (uint16_t)read_16bitBE(offset,streamfile)) ? 1 : 0;
+    uint8_t buf[0x02];
+    if (read_streamfile(buf,offset,0x02,streamfile) != 0x02) return -1; /* ? */
+    return (uint16_t)get_16bitLE(buf) > (uint16_t)get_16bitBE(buf) ? 1 : 0;
 }
-
 static inline int guess_endianness32bit(off_t offset, STREAMFILE * streamfile) {
-    return ((uint32_t)read_32bitLE(offset,streamfile) > (uint32_t)read_32bitBE(offset,streamfile)) ? 1 : 0;
+    uint8_t buf[0x04];
+    if (read_streamfile(buf,offset,0x04,streamfile) != 0x04) return -1; /* ? */
+    return (uint32_t)get_32bitLE(buf) > (uint32_t)get_32bitBE(buf) ? 1 : 0;
 }
 
 static inline size_t align_size_to_block(size_t value, size_t block_align) {
