@@ -267,6 +267,12 @@ static const hcakey_info hcakey_list[] = {
         /* Mashiro Witch (Android) */
         {0x55D11D3349495204},       // 55D11D3349495204
 
+        /* Iris Mysteria! (Android) */
+        {62049655719861786},        // 00DC71D5479E1E1A
+
+        /* Kotodaman (Android) */
+        {19850716},                 // 00000000012EE5DC
+
 };
 
 #endif/*_HCA_KEYS_H_*/
