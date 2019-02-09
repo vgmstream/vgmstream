@@ -28,9 +28,13 @@ void block_update_mul(off_t block_offset, VGMSTREAM * vgmstream) {
         data_header  = 0x00;
         data_size    = 0;
     }
-    if (block_type == 0x00 && block_size != 0) {
+    else if (block_type == 0x00 && block_size != 0) {
         /* read audio sub-header */
         data_size = read_32bit(block_offset + block_header + 0x00,streamFile);
+    }
+    else if (block_type < 0) {
+        /* EOF/bad read */
+        data_size = -1;
     }
     else {
         /* non-audio or empty audio block */
