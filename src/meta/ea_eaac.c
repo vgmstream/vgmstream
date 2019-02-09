@@ -853,16 +853,18 @@ static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE * streamHead, ST
         }
     }
 
-    /* accepted channel configs only seem to be mono/stereo/quad/5.1/7.1, from debug strings */
+    /* common channel configs are mono/stereo/quad/5.1/7.1 (from debug strings) */
     switch(eaac.channel_config) {
         case 0x00: eaac.channels = 1; break;
         case 0x01: eaac.channels = 2; break;
         case 0x03: eaac.channels = 4; break;
         case 0x05: eaac.channels = 6; break;
         case 0x07: eaac.channels = 8; break;
+        case 0x0a: eaac.channels = 11; break; /* rare [Army of Two: The Devil's Cartel (PS3)-EALayer3v2P] */
         default:
+            /* surely channels = channel_config+1 but fail just in case for now */
             VGM_LOG("EA EAAC: unknown channel config 0x%02x\n", eaac.channel_config);
-            goto fail; /* fail with unknown values just in case */
+            goto fail;
     }
 
 
