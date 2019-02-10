@@ -463,6 +463,8 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_imc_container,
     init_vgmstream_smp,
     init_vgmstream_gin,
+    init_vgmstream_dsf,
+    init_vgmstream_208,
 
     /* lowest priority metas (should go after all metas, and TXTH should go before raw formats) */
     init_vgmstream_txth,            /* proper parsers should supersede TXTH, once added */
@@ -1248,6 +1250,8 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
             return 256; /* (0x8c - 0xc) * 2 */
         case coding_ASF:
             return 32;  /* (0x11 - 0x1) * 2 */
+        case coding_DSA:
+            return 14;  /* (0x08 - 0x1) * 2 */
         case coding_XMD:
             return (vgmstream->interleave_block_size - 0x06)*2 + 2;
         case coding_EA_MT:
@@ -1424,6 +1428,8 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
             return 0x8c;
         case coding_ASF:
             return 0x11;
+        case coding_DSA:
+            return 0x08;
         case coding_XMD:
             return vgmstream->interleave_block_size;
         case coding_EA_MT:
@@ -2044,6 +2050,12 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
         case coding_ASF:
             for (ch = 0; ch < vgmstream->channels; ch++) {
                 decode_asf(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do);
+            }
+            break;
+        case coding_DSA:
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_dsa(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
                         vgmstream->channels,vgmstream->samples_into_block,samples_to_do);
             }
             break;

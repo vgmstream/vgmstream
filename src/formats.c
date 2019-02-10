@@ -14,6 +14,7 @@ static const char* extension_list[] = {
     //"", /* vgmstream can play extensionless files too, but plugins must accept them manually */
 
     "04sw",
+    "208",
     "2dx9",
     "2pfs",
     "800",
@@ -122,6 +123,7 @@ static const char* extension_list[] = {
     "de2",
     "dec",
     "dmsg",
+    "dsf",
     "dsp",
     "dspw",
     "dtk",
@@ -639,6 +641,7 @@ static const coding_info coding_info_list[] = {
         {coding_MC3,                "Paradigm MC3 3-bit ADPCM"},
         {coding_FADPCM,             "FMOD FADPCM 4-bit ADPCM"},
         {coding_ASF,                "Argonaut ASF 4-bit ADPCM"},
+        {coding_DSA,                "Ocean DSA 4-bit ADPCM"},
         {coding_XMD,                "Konami XMD 4-bit ADPCM"},
         {coding_PCFX,               "PC-FX 4-bit ADPCM"},
         {coding_OKI16,              "OKI 4-bit ADPCM (16-bit output)"},
@@ -1164,6 +1167,8 @@ static const meta_info meta_info_list[] = {
         {meta_OGG_OPUS,             "Ogg Opus header"},
         {meta_IMC,                  "iNiS .IMC header"},
         {meta_GIN,                  "Electronic Arts Gnsu header"},
+        {meta_DSF,                  "Ocean DSF header"},
+        {meta_208,                  "Ocean .208 header"},
 
 };
 

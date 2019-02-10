@@ -184,6 +184,9 @@
     <ClCompile Include="vgmstream.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\208.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\2dx9.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -317,6 +320,9 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\dmsg_segh.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\dsf.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\dsp_bdsp.c">
@@ -1052,6 +1058,9 @@
       <Filter>coding\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\derf_decoder.c">
+      <Filter>coding\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="coding\dsa_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\ea_mt_decoder.c">

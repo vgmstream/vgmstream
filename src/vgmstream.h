@@ -152,6 +152,7 @@ typedef enum {
     coding_MC3,             /* Paradigm MC3 3-bit ADPCM */
     coding_FADPCM,          /* FMOD FADPCM 4-bit ADPCM */
     coding_ASF,             /* Argonaut ASF 4-bit ADPCM */
+    coding_DSA,             /* Ocean DSA 4-bit ADPCM */
     coding_XMD,             /* Konami XMD 4-bit ADPCM */
     coding_PCFX,            /* PC-FX 4-bit ADPCM */
     coding_OKI16,           /* OKI 4-bit ADPCM with 16-bit output */
@@ -714,6 +715,8 @@ typedef enum {
     meta_OGG_OPUS,
     meta_IMC,
     meta_GIN,
+    meta_DSF,
+    meta_208,
 
 } meta_t;
 
