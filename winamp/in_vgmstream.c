@@ -1288,7 +1288,7 @@ DWORD WINAPI __stdcall decode(void *arg) {
 
             /* adjust seeking past file, can happen using the right (->) key
              * (should be done here and not in SetOutputTime due to threads/race conditions) */
-            if (seek_needed_samples > max_samples) {
+            if (seek_needed_samples > max_samples && !settings.loop_forever) {
                 seek_needed_samples = max_samples;
             }
 
