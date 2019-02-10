@@ -321,7 +321,7 @@ ffmpeg_codec_data * init_ffmpeg_header_offset_subsong(STREAMFILE *streamFile, ui
     data->offset = start;
     data->size = size;
     if (data->size == 0 || data->start + data->size > get_streamfile_size(streamFile)) {
-        VGM_LOG("FFmpeg: wrong start+size found\n");
+        VGM_LOG("FFPMEG: wrong start+size found: %x + %x > %x \n", (uint32_t)start, (uint32_t)size, get_streamfile_size(streamFile));
         data->size = get_streamfile_size(streamFile) - data->start;
     }
     data->logical_offset = 0;

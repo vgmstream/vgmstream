@@ -6,7 +6,6 @@
 void block_update_ea_sns(off_t block_offset, VGMSTREAM * vgmstream) {
     STREAMFILE* streamFile = vgmstream->ch[0].streamfile;
     uint32_t block_id, block_size, block_samples;
-    size_t file_size = get_streamfile_size(streamFile);
     off_t channel_start;
     size_t channel_interleave;
     int i;

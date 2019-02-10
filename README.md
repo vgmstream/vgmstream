@@ -241,6 +241,13 @@ really opening it (should show "vgmstream" somewhere in the file info), and
 try to remove a few other plugins. foobar's ffmpeg plugin and foo_adpcm are
 known to cause issues.
 
+### Channel issues
+Some games layer a huge number of channels, that are disabled or downmixed
+during gameplay. The player may be unable to play those files (for example
+foobar can only play up to 8 channels, and Winamp depends the your sound
+card). For those files you can set the "downmix" option in vgmstream, that
+can reduce the number of channels to a playable amount. Note that downmixing
+is very simple and not meant to be used when converting to other formats.
 
 ## Tagging
 Some of vgmstream's plugins support simple read-only tagging via external files.
@@ -305,6 +312,7 @@ are used in few games.
 - FMOD FADPCM 4-bit ADPCM
 - Konami XMD 4-bit ADPCM
 - Argonaut ASF 4-bit ADPCM
+- Ocean DSA 4-bit ADPCM
 - Circus XPCM ADPCM
 - OKI 4-bit ADPCM (16-bit output, PC-FX)
 - SDX2 2:1 Squareroot-Delta-Exact compression DPCM
