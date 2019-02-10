@@ -313,6 +313,11 @@ void input_vgmstream::decode_seek(double p_seconds,abort_callback & p_abort) {
     int max_buffer_samples = sizeof(sample_buffer)/sizeof(sample_buffer[0])/vgmstream->channels;
     bool loop_okay = config.song_play_forever && vgmstream->loop_flag && !config.song_ignore_loop && !force_ignore_loop;
 
+    // possible when disabling looping without refreshing foobar's cached song length
+    // (with infinite looping on p_seconds can't go over seek bar though)
+    if(seek_pos_samples > stream_length_samples)
+        seek_pos_samples = stream_length_samples;
+
     int corrected_pos_samples = seek_pos_samples;
 
     // adjust for correct position within loop
@@ -338,7 +343,8 @@ void input_vgmstream::decode_seek(double p_seconds,abort_callback & p_abort) {
     }
 
     // seeking overrun = bad
-    if(corrected_pos_samples > stream_length_samples) corrected_pos_samples = stream_length_samples;
+    if(corrected_pos_samples > stream_length_samples)
+        corrected_pos_samples = stream_length_samples;
 
     while(decode_pos_samples<corrected_pos_samples) {
         int seek_samples = max_buffer_samples;
