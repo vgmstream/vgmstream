@@ -853,10 +853,10 @@ static void get_title(in_char * dst, int dst_size, const in_char * fn, VGMSTREAM
     in_char *basename;
     in_char buffer[PATH_LIMIT];
     in_char filename[PATH_LIMIT];
-    int stream_index = 0;
+    //int stream_index = 0;
 
     parse_fn_string(fn, NULL, filename,PATH_LIMIT);
-    parse_fn_int(fn, wa_L("$s"), &stream_index);
+    //parse_fn_int(fn, wa_L("$s"), &stream_index);
 
     basename = (in_char*)filename + wa_strlen(filename); /* find end */
     while (*basename != '\\' && basename >= filename) /* and find last "\" */
@@ -864,18 +864,29 @@ static void get_title(in_char * dst, int dst_size, const in_char * fn, VGMSTREAM
     basename++;
     wa_strcpy(dst,basename);
 
-    /* show stream subsong number */
-    if (stream_index > 0) {
-        wa_snprintf(buffer,PATH_LIMIT, wa_L("#%i"), stream_index);
-        wa_strcat(dst,buffer);
-    }
+    /* infostream gets added at first with index 0, then once played it re-adds proper numbers */
+    if (infostream) {
+        const char* info_name = infostream->stream_name;
+        int info_streams = infostream->num_streams;
+        int info_subsong = infostream->stream_index;
+        int is_first = infostream->stream_index == 0;
 
-    /* show name, but not for the base stream */
-    if (infostream && infostream->stream_name[0] != '\0' && stream_index > 0) {
-        in_char stream_name[PATH_LIMIT];
-        wa_char_to_ichar(stream_name, PATH_LIMIT, infostream->stream_name);
-        wa_snprintf(buffer,PATH_LIMIT, wa_L(" (%s)"), stream_name);
-        wa_strcat(dst,buffer);
+        /* show number if file has more than 1 subsong */
+        if (info_streams > 1) {
+            if (is_first)
+                wa_snprintf(buffer,PATH_LIMIT, wa_L("#1~%i"), info_streams);
+            else
+                wa_snprintf(buffer,PATH_LIMIT, wa_L("#%i"), info_subsong);
+            wa_strcat(dst,buffer);
+        }
+
+        /* show name if file has subsongs (implicitly shows also for TXTP) */
+        if (info_name[0] != '\0' && ((info_streams > 0 && !is_first) || info_streams == 1)) {
+            in_char stream_name[PATH_LIMIT];
+            wa_char_to_ichar(stream_name, PATH_LIMIT, info_name);
+            wa_snprintf(buffer,PATH_LIMIT, wa_L(" (%s)"), stream_name);
+            wa_strcat(dst,buffer);
+        }
     }
 }
 
