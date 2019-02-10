@@ -28,12 +28,15 @@ typedef struct {
     uint32_t loop_start_segment;
     uint32_t loop_end_segment;
 
+    txtp_entry default_entry;
+    int default_entry_set;
+
     size_t is_layered;
 } txtp_header;
 
 static txtp_header* parse_txtp(STREAMFILE* streamFile);
 static void clean_txtp(txtp_header* txtp);
-static void set_config(VGMSTREAM *vgmstream, txtp_entry *current);
+static void apply_config(VGMSTREAM *vgmstream, txtp_entry *current);
 
 
 /* TXTP - an artificial playlist-like format to play files with segments/layers/config */
@@ -68,19 +71,11 @@ VGMSTREAM * init_vgmstream_txtp(STREAMFILE *streamFile) {
         close_streamfile(temp_streamFile);
         if (!vgmstream) goto fail;
 
-        vgmstream->channel_mask = txtp->entry[0].channel_mask;
-
-        vgmstream->channel_mappings_on = txtp->entry[0].channel_mappings_on;
-        if(vgmstream->channel_mappings_on) {
-            for (i = 0; i < 32; i++) {
-                vgmstream->channel_mappings[i] = txtp->entry[0].channel_mappings[i];
-            }
-        }
+        apply_config(vgmstream, &txtp->entry[0]);
     }
     else if (txtp->is_layered) {
         /* layered multi file */
         int channel_count = 0, loop_flag;
-
 
         /* init layout */
         data_l = init_layout_layered(txtp->entry_count);
@@ -96,6 +91,9 @@ VGMSTREAM * init_vgmstream_txtp(STREAMFILE *streamFile) {
             close_streamfile(temp_streamFile);
             if (!data_l->layers[i]) goto fail;
 
+            apply_config(data_l->layers[i], &txtp->entry[i]);
+
+            /* get actual channel count after config */
             channel_count += data_l->layers[i]->channels;
         }
 
@@ -118,22 +116,12 @@ VGMSTREAM * init_vgmstream_txtp(STREAMFILE *streamFile) {
         vgmstream->coding_type = data_l->layers[0]->coding_type;
         vgmstream->layout_type = layout_layered;
 
-        vgmstream->channel_mask = txtp->entry[0].channel_mask;
-
-        vgmstream->channel_mappings_on = txtp->entry[0].channel_mappings_on;
-        if (vgmstream->channel_mappings_on) {
-            for (i = 0; i < 32; i++) {
-                vgmstream->channel_mappings[i] = txtp->entry[0].channel_mappings[i];
-            }
-        }
-
         vgmstream->layout_data = data_l;
     }
     else {
         /* segmented multi file */
         int num_samples, loop_start_sample = 0, loop_end_sample = 0;
         int loop_flag, channel_count;
-
 
         /* init layout */
         data_s = init_layout_segmented(txtp->entry_count);
@@ -149,7 +137,7 @@ VGMSTREAM * init_vgmstream_txtp(STREAMFILE *streamFile) {
             close_streamfile(temp_streamFile);
             if (!data_s->segments[i]) goto fail;
 
-            data_s->segments[i]->channel_mask = txtp->entry[0].channel_mask;
+            apply_config(data_s->segments[i], &txtp->entry[i]);
         }
 
         /* setup segmented VGMSTREAMs */
@@ -192,8 +180,11 @@ VGMSTREAM * init_vgmstream_txtp(STREAMFILE *streamFile) {
     }
 
 
-    /* loop settings apply to the resulting vgmstream, so config based on first entry */
-    set_config(vgmstream, &txtp->entry[0]);
+    /* apply default config to the resulting file */
+    if (txtp->default_entry_set) {
+        apply_config(vgmstream, &txtp->default_entry);
+    }
+
 
     clean_txtp(txtp);
     return vgmstream;
@@ -206,7 +197,17 @@ fail:
     return NULL;
 }
 
-static void set_config(VGMSTREAM *vgmstream, txtp_entry *current) {
+static void apply_config(VGMSTREAM *vgmstream, txtp_entry *current) {
+    vgmstream->channel_mask = current->channel_mask;
+
+    vgmstream->channel_mappings_on = current->channel_mappings_on;
+    if (vgmstream->channel_mappings_on) {
+        int ch;
+        for (ch = 0; ch < 32; ch++) {
+            vgmstream->channel_mappings[ch] = current->channel_mappings[ch];
+        }
+    }
+
     vgmstream->config_loop_count = current->config_loop_count;
     vgmstream->config_fade_time = current->config_fade_time;
     vgmstream->config_fade_delay = current->config_fade_delay;
@@ -217,6 +218,26 @@ static void set_config(VGMSTREAM *vgmstream, txtp_entry *current) {
 
 /* ********************************** */
 
+static void clean_filename(char * filename) {
+    int i;
+    size_t len;
+
+    if (filename[0] == '\0')
+        return;
+
+    /* normalize paths */
+    fix_dir_separators(filename);
+
+    /* remove trailing spaces */
+    len = strlen(filename);
+    for (i = len-1; i > 0; i--) {
+        if (filename[i] != ' ')
+            break;
+        filename[i] = '\0';
+    }
+
+}
+
 static void get_double(const char * config, double *value) {
     int n;
     if (sscanf(config, "%lf%n", value,&n) != 1) {
@@ -224,7 +245,30 @@ static void get_double(const char * config, double *value) {
     }
 }
 
-static int add_filename(txtp_header * txtp, char *filename) {
+static void add_config(txtp_entry* current, txtp_entry* cfg, const char* filename) {
+    strcpy(current->filename, filename);
+
+    current->subsong = cfg->subsong;
+
+    current->channel_mask = cfg->channel_mask;
+
+    if (cfg->channel_mappings_on) {
+        int ch;
+        current->channel_mappings_on = cfg->channel_mappings_on;
+        for (ch = 0; ch < 32; ch++) {
+            current->channel_mappings[ch] = cfg->channel_mappings[ch];
+        }
+    }
+
+    current->config_loop_count = cfg->config_loop_count;
+    current->config_fade_time = cfg->config_fade_time;
+    current->config_fade_delay = cfg->config_fade_delay;
+    current->config_ignore_loop = cfg->config_ignore_loop;
+    current->config_force_loop = cfg->config_force_loop;
+    current->config_ignore_fade = cfg->config_ignore_fade;
+}
+
+static int add_filename(txtp_header * txtp, char *filename, int is_default) {
     int i, n;
     txtp_entry cfg = {0};
     size_t range_start, range_end;
@@ -365,7 +409,15 @@ static int add_filename(txtp_header * txtp, char *filename) {
     }
 
 
-    fix_dir_separators(filename); /* clean paths */
+    clean_filename(filename);
+    //;VGM_LOG("TXTP: clean filename='%s'\n", filename);
+
+    /* config that applies to all files */
+    if (is_default) {
+        txtp->default_entry_set = 1;
+        add_config(&txtp->default_entry, &cfg, filename);
+        return 1;
+    }
 
     /* add filenames */
     for (i = range_start; i < range_end; i++){
@@ -384,26 +436,9 @@ static int add_filename(txtp_header * txtp, char *filename) {
         /* new entry */
         current = &txtp->entry[txtp->entry_count];
         memset(current,0, sizeof(txtp_entry));
-        strcpy(current->filename, filename);
+        cfg.subsong = (i+1);
 
-        current->subsong = (i+1);
-
-        current->channel_mask = cfg.channel_mask;
-
-        if (cfg.channel_mappings_on) {
-            int ch;
-            current->channel_mappings_on = cfg.channel_mappings_on;
-            for (ch = 0; ch < 32; ch++) {
-                current->channel_mappings[ch] = cfg.channel_mappings[ch];
-            }
-        }
-
-        current->config_loop_count = cfg.config_loop_count;
-        current->config_fade_time = cfg.config_fade_time;
-        current->config_fade_delay = cfg.config_fade_delay;
-        current->config_ignore_loop = cfg.config_ignore_loop;
-        current->config_force_loop = cfg.config_force_loop;
-        current->config_ignore_fade = cfg.config_ignore_fade;
+        add_config(current, &cfg, filename);
 
         txtp->entry_count++;
     }
@@ -424,7 +459,7 @@ fail:
 }
 
 static int parse_keyval(txtp_header * txtp, const char * key, const char * val) {
-    //;VGM_LOG("TXTP: key %s = val %s\n", key,val);
+    //;VGM_LOG("TXTP: key=val '%s'='%s'\n", key,val);
 
     if (0==strcmp(key,"loop_start_segment")) {
         if (!parse_num(val, &txtp->loop_start_segment)) goto fail;
@@ -440,13 +475,18 @@ static int parse_keyval(txtp_header * txtp, const char * key, const char * val) 
             goto fail;
         }
     }
+    else if (0==strcmp(key,"commands")) {
+        char val2[TXT_LINE_MAX];
+        strcpy(val2, val); /* copy since val is modified here but probably not important */
+        if (!add_filename(txtp, val2, 1)) goto fail;
+    }
     else {
-        VGM_LOG("TXTP: unknown key=%s, val=%s\n", key,val);
         goto fail;
     }
 
     return 1;
 fail:
+    VGM_LOG("TXTP: error while parsing key=val '%s'='%s'\n", key,val);
     return 0;
 }
 
@@ -471,7 +511,7 @@ static txtp_header* parse_txtp(STREAMFILE* streamFile) {
         if (!ext) goto fail; /* ??? */
         ext[0] = '\0';
 
-        if (!add_filename(txtp, filename))
+        if (!add_filename(txtp, filename, 0))
             goto fail;
 
         return txtp;
@@ -494,8 +534,8 @@ static txtp_header* parse_txtp(STREAMFILE* streamFile) {
 
         txt_offset += bytes_read;
 
-        /* get key/val (ignores lead/trail spaces, stops at space/comment/separator) */
-        ok = sscanf(line, " %[^ \t#=] = %[^ \t#\r\n] ", key,val);
+        /* get key/val (ignores lead/trail spaces, stops at space/separator) */
+        ok = sscanf(line, " %[^ \t#=] = %[^ \t\r\n] ", key,val);
         if (ok == 2) { /* no key=val */
             if (!parse_keyval(txtp, key, val)) /* read key/val */
                 goto fail;
@@ -510,7 +550,7 @@ static txtp_header* parse_txtp(STREAMFILE* streamFile) {
             continue; /* simple comment */
 
         /* filename with config */
-        if (!add_filename(txtp, filename))
+        if (!add_filename(txtp, filename, 0))
             goto fail;
     }
 

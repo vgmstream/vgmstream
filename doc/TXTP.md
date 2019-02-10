@@ -146,6 +146,58 @@ Combined with TXTH, this can also be used for extensions that aren't normally ac
 TXTP may even reference other TXTP, or files that require TXTH, for extra complex cases. Each file defined in TXTP is internally parsed like it was a completely separate file, so there is a bunch of valid ways to mix them.
 
 
+### Default commands
+You can set defaults that apply to the *resulting* file. This has subtle differences vs per-file config:
+```
+BGM01_BEGIN.VAG
+BGM01_LOOPED.VAG
+
+# force looping from begin to end of the whole thing
+commands = #E
+```
+```
+# mix 2ch * 2
+BGM_0_012_04.wem
+BGM_0_012_07.wem
+mode = layers
+
+# plays R of BGM_0_012_04 and L of BGM_0_012_07
+commands = #c2,3
+```
+
+As it applies at the end, some options with ambiguous or technically hard to handle meanings may be ignored:
+```
+bgm.sxd2
+bgm.sxd2
+
+# ignored (resulting file has no subsongs, should apply to all?)
+commands = #s12
+```
+
+
+## TXTP parsing issues
+*Commands* can be chained, but must not be separated by a space (everything after space may be ignored):
+```
+bgm bank.sxd2#s12#c1,2  #spaces + comment after commands is ignored
+```
+```
+#commands after spaces are seen as comments and ignored
+BGM01_BEGIN.VAG    #c1,2
+BGM01_LOOPED.VAG   #c1,2
+```
+
+However *values* found after *=* allow spaces until value start, and until next space:
+```
+bgm.sxd2#s12
+loop_start_segment   =    1  #spaces surrounding value are ignored
+```
+```
+bgm.sxd2
+config =  #s12#c1,2   #must not have spaces once value starts until end
+```
+The parser is very simplistic and fairly lax, though may be erratic with edge cases or behave unexpectedly due to unforeseen use-cases and bugs. As filenames may contain spaces or #, certain name patterns could fool it too. Keep in mind this while making .txtp files.
+
+
 ## Mini TXTP
 
 To simplify TXTP creation, if the .txtp is empty (0 bytes) its filename is used directly as a command. Note that extension is also included (since vgmstream needs a full filename).
