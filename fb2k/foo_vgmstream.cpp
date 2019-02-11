@@ -141,9 +141,9 @@ void input_vgmstream::get_info(t_uint32 p_subsong, file_info & p_info, abort_cal
     /* set tag info (metadata tab in file properties) */
 
     /* Shows a custom subsong title by default with subsong name, to simplify for average users.
-     * This can be overriden and extended and using the exported STREAM_x below and foobar's formatting.
+     * This can be overriden and extended using the exported STREAM_x below and foobar's formatting.
      * foobar defaults to filename minus extension if there is no meta "title" value. */
-    if (!override_title && get_subsong_count() > 1) {
+    if (!override_title) {
         p_info.meta_set("TITLE",temp);
     }
     if (get_description_tag(temp,description,"stream count: ")) p_info.meta_set("stream_count",temp);
@@ -313,6 +313,11 @@ void input_vgmstream::decode_seek(double p_seconds,abort_callback & p_abort) {
     int max_buffer_samples = sizeof(sample_buffer)/sizeof(sample_buffer[0])/vgmstream->channels;
     bool loop_okay = config.song_play_forever && vgmstream->loop_flag && !config.song_ignore_loop && !force_ignore_loop;
 
+    // possible when disabling looping without refreshing foobar's cached song length
+    // (with infinite looping on p_seconds can't go over seek bar though)
+    if(seek_pos_samples > stream_length_samples)
+        seek_pos_samples = stream_length_samples;
+
     int corrected_pos_samples = seek_pos_samples;
 
     // adjust for correct position within loop
@@ -338,7 +343,8 @@ void input_vgmstream::decode_seek(double p_seconds,abort_callback & p_abort) {
     }
 
     // seeking overrun = bad
-    if(corrected_pos_samples > stream_length_samples) corrected_pos_samples = stream_length_samples;
+    if(corrected_pos_samples > stream_length_samples)
+        corrected_pos_samples = stream_length_samples;
 
     while(decode_pos_samples<corrected_pos_samples) {
         int seek_samples = max_buffer_samples;
@@ -478,26 +484,32 @@ void input_vgmstream::get_subsong_info(t_uint32 p_subsong, pfc::string_base & ti
         }
     }
 
-    if (title) {
+
+    /* infostream gets added with index 0 (other) or 1 (current) */
+    if (infostream && title) {
         const char *p = filename + strlen(filename);
         while (*p != '\\' && p >= filename) p--;
         p++;
         const char *e = filename + strlen(filename);
         while (*e != '.' && e >= filename) e--;
+        title.set_string(p, e - p); /* name without ext */
 
-        title.set_string(p, e - p);
+        const char* info_name = infostream->stream_name;
+        int info_streams = infostream->num_streams;
+        int info_subsong = infostream->stream_index;
+        if (info_subsong == 0)
+            info_subsong = 1;
 
-        if (!disable_subsongs && infostream && infostream->num_streams > 1) {
-            int info_subsong = infostream->stream_index;
-            if (info_subsong==0)
-                info_subsong = 1;
+        /* show number if file has more than 1 subsong */
+        if (info_streams > 1) {
             sprintf(temp,"#%d",info_subsong);
             title += temp;
+        }
 
-            if (infostream->stream_name[0] != '\0') {
-                sprintf(temp," (%s)",infostream->stream_name);
-                title += temp;
-            }
+        /* show name if file has subsongs (implicitly shows also for TXTP) */
+        if (info_name[0] != '\0' && info_streams > 0) {
+            sprintf(temp," (%s)",info_name);
+            title += temp;
         }
     }
 

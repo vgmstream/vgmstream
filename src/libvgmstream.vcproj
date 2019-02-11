@@ -297,6 +297,10 @@
 				Name="Source Files"
 				>
                 <File
+                    RelativePath=".\meta\208.c"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\2dx9.c"
                     >
                 </File>
@@ -496,10 +500,14 @@
                     RelativePath=".\meta\derf.c"
                     >
                 </File>
-				<File
-					RelativePath=".\meta\dmsg_segh.c"
-					>
-				</File>
+                <File
+                    RelativePath=".\meta\dmsg_segh.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\dsf.c"
+                    >
+                </File>
                 <File
                     RelativePath=".\meta\dsp_adx.c"
                     >
@@ -1772,6 +1780,10 @@
                 </File>
                 <File
                     RelativePath=".\coding\derf_decoder.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\coding\dsa_decoder.c"
                     >
                 </File>
                 <File

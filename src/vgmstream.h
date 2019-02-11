@@ -152,6 +152,7 @@ typedef enum {
     coding_MC3,             /* Paradigm MC3 3-bit ADPCM */
     coding_FADPCM,          /* FMOD FADPCM 4-bit ADPCM */
     coding_ASF,             /* Argonaut ASF 4-bit ADPCM */
+    coding_DSA,             /* Ocean DSA 4-bit ADPCM */
     coding_XMD,             /* Konami XMD 4-bit ADPCM */
     coding_PCFX,            /* PC-FX 4-bit ADPCM */
     coding_OKI16,           /* OKI 4-bit ADPCM with 16-bit output */
@@ -714,6 +715,8 @@ typedef enum {
     meta_OGG_OPUS,
     meta_IMC,
     meta_GIN,
+    meta_DSF,
+    meta_208,
 
 } meta_t;
 
@@ -995,6 +998,7 @@ typedef struct {
     size_t current_size_target; /* max data, until something happens */
     size_t decode_to_discard;  /* discard from this stream only (for EALayer3 or AWC) */
 
+    int channels_per_frame; /* for rare cases that streams don't share this */
 } mpeg_custom_stream;
 
 typedef struct {
@@ -1007,7 +1011,7 @@ typedef struct {
     mpg123_handle *m; /* MPEG decoder */
     struct mpg123_frameinfo mi; /* start info, so it's available even when resetting */
 
-    /* for internal use, assumed to be constant for all frames */
+    /* for internal use */
     int channels_per_frame;
     int samples_per_frame;
     /* for some calcs */
