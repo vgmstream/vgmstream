@@ -506,15 +506,17 @@ static VGMSTREAM * init_vgmstream_internal(STREAMFILE *streamFile) {
             close_vgmstream(vgmstream);
             continue;
         }
-            
-        /* Sanify loops! */
+
+        /* sanify loops and remove bad metadata */
         if (vgmstream->loop_flag) {
             if (vgmstream->loop_end_sample <= vgmstream->loop_start_sample
                     || vgmstream->loop_end_sample > vgmstream->num_samples
                     || vgmstream->loop_start_sample < 0) {
-                vgmstream->loop_flag = 0;
                 VGM_LOG("VGMSTREAM: wrong loops ignored (lss=%i, lse=%i, ns=%i)\n",
                         vgmstream->loop_start_sample, vgmstream->loop_end_sample, vgmstream->num_samples);
+                vgmstream->loop_flag = 0;
+                vgmstream->loop_start_sample = 0;
+                vgmstream->loop_end_sample = 0;
             }
         }
 
@@ -542,8 +544,9 @@ static VGMSTREAM * init_vgmstream_internal(STREAMFILE *streamFile) {
 
         /* save info */
         /* stream_index 0 may be used by plugins to signal "vgmstream default" (IOW don't force to 1) */
-        if (vgmstream->stream_index == 0)
+        if (vgmstream->stream_index == 0) {
             vgmstream->stream_index = streamFile->stream_index;
+        }
 
 
         setup_vgmstream(vgmstream); /* final setup */
@@ -958,11 +961,13 @@ void vgmstream_force_loop(VGMSTREAM* vgmstream, int loop_flag, int loop_start_sa
     if (loop_flag) {
         vgmstream->loop_start_sample = loop_start_sample;
         vgmstream->loop_end_sample = loop_end_sample;
-    } else {
+    }
+#if 0 /* keep metadata as it's may be shown (with 'loop disabled' info) */
+    else {
         vgmstream->loop_start_sample = 0;
         vgmstream->loop_end_sample = 0;
     }
-
+#endif
 
     /* propagate changes to layouts that need them */
     if (vgmstream->layout_type == layout_layered) {
@@ -2275,10 +2280,12 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             vgmstream->channels);
     concatn(length,desc,temp);
 
-    if (vgmstream->loop_flag) {
+    if (vgmstream->loop_start_sample >= 0 && vgmstream->loop_end_sample > vgmstream->loop_start_sample) {
         snprintf(temp,TEMPSIZE,
+                "looping: %s\n"
                 "loop start: %d samples (%.4f seconds)\n"
                 "loop end: %d samples (%.4f seconds)\n",
+                vgmstream->loop_flag ? "enabled" : "disabled",
                 vgmstream->loop_start_sample,
                 (double)vgmstream->loop_start_sample/vgmstream->sample_rate,
                 vgmstream->loop_end_sample,
