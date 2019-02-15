@@ -32,6 +32,7 @@ typedef struct {
     int default_entry_set;
 
     size_t is_layered;
+    int is_loop_keep;
 } txtp_header;
 
 static txtp_header* parse_txtp(STREAMFILE* streamFile);
@@ -148,17 +149,24 @@ VGMSTREAM * init_vgmstream_txtp(STREAMFILE *streamFile) {
         if (txtp->loop_start_segment && !txtp->loop_end_segment)
             txtp->loop_end_segment = txtp->entry_count;
         loop_flag = (txtp->loop_start_segment > 0 && txtp->loop_start_segment <= txtp->entry_count);
+
         num_samples = 0;
         for (i = 0; i < data_s->segment_count; i++) {
 
             if (loop_flag && txtp->loop_start_segment == i+1) {
-                loop_start_sample = num_samples;
+                if (txtp->is_loop_keep /*&& data_s->segments[i]->loop_start_sample*/)
+                    loop_start_sample = num_samples + data_s->segments[i]->loop_start_sample;
+                else
+                    loop_start_sample = num_samples;
             }
 
             num_samples += data_s->segments[i]->num_samples;
 
             if (loop_flag && txtp->loop_end_segment == i+1) {
-                loop_end_sample = num_samples;
+                if (txtp->is_loop_keep && data_s->segments[i]->loop_end_sample)
+                    loop_end_sample = num_samples - data_s->segments[i]->num_samples + data_s->segments[i]->loop_end_sample;
+                else
+                    loop_end_sample = num_samples;
             }
         }
 
@@ -470,6 +478,14 @@ static int parse_keyval(txtp_header * txtp, const char * key, const char * val) 
     else if (0==strcmp(key,"mode")) {
         if (0==strcmp(val,"layers")) {
             txtp->is_layered = 1;
+        }
+        else {
+            goto fail;
+        }
+    }
+    else if (0==strcmp(key,"loop_mode")) {
+        if (0==strcmp(val,"keep")) {
+            txtp->is_loop_keep = 1;
         }
         else {
             goto fail;
