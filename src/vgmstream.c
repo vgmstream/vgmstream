@@ -13,7 +13,7 @@
 static void try_dual_file_stereo(VGMSTREAM * opened_vgmstream, STREAMFILE *streamFile, VGMSTREAM* (*init_vgmstream_function)(STREAMFILE*));
 
 
-/* List of functions that will recognize files */
+/* list of metadata parser functions that will recognize files, used on init */
 VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_adx,
     init_vgmstream_brstm,
@@ -487,7 +487,7 @@ static VGMSTREAM * init_vgmstream_internal(STREAMFILE *streamFile) {
 
     fcns_size = (sizeof(init_vgmstream_functions)/sizeof(init_vgmstream_functions[0]));
     /* try a series of formats, see which works */
-    for (i=0; i < fcns_size; i++) {
+    for (i =0; i < fcns_size; i++) {
         /* call init function and see if valid VGMSTREAM was returned */
         VGMSTREAM * vgmstream = (init_vgmstream_functions[i])(streamFile);
         if (!vgmstream)
@@ -509,11 +509,12 @@ static VGMSTREAM * init_vgmstream_internal(STREAMFILE *streamFile) {
             
         /* Sanify loops! */
         if (vgmstream->loop_flag) {
-            if ((vgmstream->loop_end_sample <= vgmstream->loop_start_sample)
-                    || (vgmstream->loop_end_sample > vgmstream->num_samples)
-                    || (vgmstream->loop_start_sample < 0) ) {
+            if (vgmstream->loop_end_sample <= vgmstream->loop_start_sample
+                    || vgmstream->loop_end_sample > vgmstream->num_samples
+                    || vgmstream->loop_start_sample < 0) {
                 vgmstream->loop_flag = 0;
-                VGM_LOG("VGMSTREAM: wrong loops ignored (lss=%i, lse=%i, ns=%i)\n", vgmstream->loop_start_sample, vgmstream->loop_end_sample, vgmstream->num_samples);
+                VGM_LOG("VGMSTREAM: wrong loops ignored (lss=%i, lse=%i, ns=%i)\n",
+                        vgmstream->loop_start_sample, vgmstream->loop_end_sample, vgmstream->num_samples);
             }
         }
 
@@ -521,7 +522,6 @@ static VGMSTREAM * init_vgmstream_internal(STREAMFILE *streamFile) {
         if (vgmstream->channels == 1 && vgmstream->allow_dual_stereo == 1) {
             try_dual_file_stereo(vgmstream, streamFile, init_vgmstream_functions[i]);
         }
-
 
 #ifdef VGM_USE_FFMPEG
         /* check FFmpeg streams here, for lack of a better place */
@@ -540,15 +540,13 @@ static VGMSTREAM * init_vgmstream_internal(STREAMFILE *streamFile) {
             continue;
         }
 
-
         /* save info */
         /* stream_index 0 may be used by plugins to signal "vgmstream default" (IOW don't force to 1) */
-        if (!vgmstream->stream_index)
+        if (vgmstream->stream_index == 0)
             vgmstream->stream_index = streamFile->stream_index;
 
-        /* save start things so we can restart for seeking */
-        memcpy(vgmstream->start_ch,vgmstream->ch,sizeof(VGMSTREAMCHANNEL)*vgmstream->channels);
-        memcpy(vgmstream->start_vgmstream,vgmstream,sizeof(VGMSTREAM));
+
+        setup_vgmstream(vgmstream); /* final setup */
 
         return vgmstream;
     }
@@ -556,6 +554,16 @@ static VGMSTREAM * init_vgmstream_internal(STREAMFILE *streamFile) {
     /* not supported */
     return NULL;
 }
+
+void setup_vgmstream(VGMSTREAM * vgmstream) {
+    /* save start things so we can restart when seeking */
+    memcpy(vgmstream->start_ch, vgmstream->ch, sizeof(VGMSTREAMCHANNEL)*vgmstream->channels);
+    memcpy(vgmstream->start_vgmstream, vgmstream, sizeof(VGMSTREAM));
+
+    /* layout's sub-VGMSTREAM are expected to setup externally and maybe call this,
+     * as they can be created using init_vgmstream or manually */
+}
+
 
 /* format detection and VGMSTREAM setup, uses default parameters */
 VGMSTREAM * init_vgmstream(const char * const filename) {
@@ -572,92 +580,89 @@ VGMSTREAM * init_vgmstream_from_STREAMFILE(STREAMFILE *streamFile) {
     return init_vgmstream_internal(streamFile);
 }
 
-/* Reset a VGMSTREAM to its state at the start of playback
- * (when a plugin needs to seek back to zero, for instance).
- * Note that this does not reset the constituent STREAMFILES. */
+/* Reset a VGMSTREAM to its state at the start of playback (when a plugin seeks back to zero). */
 void reset_vgmstream(VGMSTREAM * vgmstream) {
-    /* copy the vgmstream back into itself */
-    memcpy(vgmstream,vgmstream->start_vgmstream,sizeof(VGMSTREAM));
 
-    /* copy the initial channels */
-    memcpy(vgmstream->ch,vgmstream->start_ch,sizeof(VGMSTREAMCHANNEL)*vgmstream->channels);
-
-    /* loop_ch is not zeroed here because there is a possibility of the
+    /* reset the VGMSTREAM and channels back to their original state */
+    memcpy(vgmstream, vgmstream->start_vgmstream, sizeof(VGMSTREAM));
+    memcpy(vgmstream->ch, vgmstream->start_ch, sizeof(VGMSTREAMCHANNEL)*vgmstream->channels);
+    /* loop_ch is not reset here because there is a possibility of the
      * init_vgmstream_* function doing something tricky and precomputing it.
      * Otherwise hit_loop will be 0 and it will be copied over anyway when we
      * really hit the loop start. */
 
+    /* reset custom codec and layout data */
 #ifdef VGM_USE_VORBIS
-    if (vgmstream->coding_type==coding_OGG_VORBIS) {
+    if (vgmstream->coding_type == coding_OGG_VORBIS) {
         reset_ogg_vorbis(vgmstream);
     }
 
-    if (vgmstream->coding_type==coding_VORBIS_custom) {
+    if (vgmstream->coding_type == coding_VORBIS_custom) {
         reset_vorbis_custom(vgmstream);
     }
 #endif
 
-    if (vgmstream->coding_type==coding_CRI_HCA) {
+    if (vgmstream->coding_type == coding_CRI_HCA) {
         reset_hca(vgmstream->codec_data);
     }
 
-    if (vgmstream->coding_type==coding_EA_MT) {
+    if (vgmstream->coding_type == coding_EA_MT) {
         reset_ea_mt(vgmstream);
     }
 
 #if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
-    if (vgmstream->coding_type==coding_MP4_AAC) {
+    if (vgmstream->coding_type == coding_MP4_AAC) {
         reset_mp4_aac(vgmstream);
     }
 #endif
 
 #ifdef VGM_USE_MPEG
-    if (vgmstream->coding_type==coding_MPEG_custom ||
-        vgmstream->coding_type==coding_MPEG_ealayer3 ||
-        vgmstream->coding_type==coding_MPEG_layer1 ||
-        vgmstream->coding_type==coding_MPEG_layer2 ||
-        vgmstream->coding_type==coding_MPEG_layer3) {
+    if (vgmstream->coding_type == coding_MPEG_custom ||
+        vgmstream->coding_type == coding_MPEG_ealayer3 ||
+        vgmstream->coding_type == coding_MPEG_layer1 ||
+        vgmstream->coding_type == coding_MPEG_layer2 ||
+        vgmstream->coding_type == coding_MPEG_layer3) {
         reset_mpeg(vgmstream);
     }
 #endif
 
 #ifdef VGM_USE_G7221
-    if (vgmstream->coding_type==coding_G7221C) {
+    if (vgmstream->coding_type == coding_G7221C) {
         reset_g7221(vgmstream);
     }
 #endif
 
 #ifdef VGM_USE_G719
-    if (vgmstream->coding_type==coding_G719) {
+    if (vgmstream->coding_type == coding_G719) {
         reset_g719(vgmstream->codec_data, vgmstream->channels);
     }
 #endif
 
 #ifdef VGM_USE_MAIATRAC3PLUS
-    if (vgmstream->coding_type==coding_AT3plus) {
+    if (vgmstream->coding_type == coding_AT3plus) {
         reset_at3plus(vgmstream);
     }
 #endif
 
 #ifdef VGM_USE_ATRAC9
-    if (vgmstream->coding_type==coding_ATRAC9) {
+    if (vgmstream->coding_type == coding_ATRAC9) {
         reset_atrac9(vgmstream);
     }
 #endif
 
 #ifdef VGM_USE_CELT
-    if (vgmstream->coding_type==coding_CELT_FSB) {
+    if (vgmstream->coding_type == coding_CELT_FSB) {
         reset_celt_fsb(vgmstream);
     }
 #endif
 
 #ifdef VGM_USE_FFMPEG
-    if (vgmstream->coding_type==coding_FFmpeg) {
+    if (vgmstream->coding_type == coding_FFmpeg) {
         reset_ffmpeg(vgmstream);
     }
 #endif
 
-    if (vgmstream->coding_type==coding_ACM) {
+    if (vgmstream->coding_type == coding_ACM) {
         reset_acm(vgmstream->codec_data);
     }
 
@@ -668,137 +673,135 @@ void reset_vgmstream(VGMSTREAM * vgmstream) {
     }
 
 
-    if (vgmstream->layout_type==layout_aix) {
+    if (vgmstream->layout_type == layout_aix) {
         aix_codec_data *data = vgmstream->codec_data;
         int i;
 
         data->current_segment = 0;
-        for (i=0;i<data->segment_count*data->stream_count;i++) {
+        for (i = 0; i < data->segment_count*data->stream_count; i++) {
             reset_vgmstream(data->adxs[i]);
         }
     }
 
-    if (vgmstream->layout_type==layout_segmented) {
+    if (vgmstream->layout_type == layout_segmented) {
         reset_layout_segmented(vgmstream->layout_data);
     }
 
-    if (vgmstream->layout_type==layout_layered) {
+    if (vgmstream->layout_type == layout_layered) {
         reset_layout_layered(vgmstream->layout_data);
     }
+
+    /* note that this does not reset the constituent STREAMFILES
+     * (ch's streamfiles init in metas, nor their internal state) */
 }
 
 /* Allocate memory and setup a VGMSTREAM */
-VGMSTREAM * allocate_vgmstream(int channel_count, int looped) {
+VGMSTREAM * allocate_vgmstream(int channel_count, int loop_flag) {
     VGMSTREAM * vgmstream;
-    VGMSTREAM * start_vgmstream;
-    VGMSTREAMCHANNEL * channels;
-    VGMSTREAMCHANNEL * start_channels;
-    VGMSTREAMCHANNEL * loop_channels;
 
-    /* up to ~16 aren't too rare for multilayered files, more is probably a bug */
+    /* up to ~16-24 aren't too rare for multilayered files, more is probably a bug */
     if (channel_count <= 0 || channel_count > 64) {
         VGM_LOG("VGMSTREAM: error allocating %i channels\n", channel_count);
         return NULL;
     }
 
+    /* VGMSTREAM's alloc'ed internals work as follows:
+     * - vgmstream: main struct (config+state) modified by metas, layouts and codings as needed
+     * - ch: config+state per channel, also modified by those
+     * - start_vgmstream: vgmstream clone copied on init_vgmstream and restored on reset_vgmstream
+     * - start_ch: ch clone copied on init_vgmstream and restored on reset_vgmstream
+     * - loop_ch: ch clone copied on loop start and restored on loop end (vgmstream_do_loop)
+     * - codec/layout_data: custom state for complex codecs or layouts, handled externally
+     *
+     * Here we only create the basic structs to be filled, and only after init_vgmstream it
+     * can be considered ready. Clones are shallow copies, in that they share alloc'ed struts
+     * (like, vgmstream->ch and start_vgmstream->ch will be the same after init_vgmstream, or
+     * start_vgmstream->start_vgmstream will end up pointing to itself)
+     *
+     * This is all a bit too brittle, so code alloc'ing or changing anything sensitive should
+     * take care clones are properly synced.
+     */
+
+    /* create vgmstream + main structs (other data is 0'ed) */
     vgmstream = calloc(1,sizeof(VGMSTREAM));
     if (!vgmstream) return NULL;
     
-    vgmstream->ch = NULL;
-    vgmstream->start_ch = NULL;
-    vgmstream->loop_ch = NULL;
-    vgmstream->start_vgmstream = NULL;
-    vgmstream->codec_data = NULL;
+    vgmstream->start_vgmstream = calloc(1,sizeof(VGMSTREAM));
+    if (!vgmstream->start_vgmstream) goto fail;
 
-    start_vgmstream = calloc(1,sizeof(VGMSTREAM));
-    if (!start_vgmstream) {
-        free(vgmstream);
-        return NULL;
-    }
-    vgmstream->start_vgmstream = start_vgmstream;
-    start_vgmstream->start_vgmstream = start_vgmstream;
+    vgmstream->ch = calloc(channel_count,sizeof(VGMSTREAMCHANNEL));
+    if (!vgmstream->ch) goto fail;
 
-    channels = calloc(channel_count,sizeof(VGMSTREAMCHANNEL));
-    if (!channels) {
-        free(vgmstream);
-        free(start_vgmstream);
-        return NULL;
+    vgmstream->start_ch = calloc(channel_count,sizeof(VGMSTREAMCHANNEL));
+    if (!vgmstream->start_ch) goto fail;
+
+    if (loop_flag) {
+        vgmstream->loop_ch = calloc(channel_count,sizeof(VGMSTREAMCHANNEL));
+        if (!vgmstream->loop_ch) goto fail;
     }
-    vgmstream->ch = channels;
+
     vgmstream->channels = channel_count;
-
-    start_channels = calloc(channel_count,sizeof(VGMSTREAMCHANNEL));
-    if (!start_channels) {
-        free(vgmstream);
-        free(start_vgmstream);
-        free(channels);
-        return NULL;
-    }
-    vgmstream->start_ch = start_channels;
-
-    if (looped) {
-        loop_channels = calloc(channel_count,sizeof(VGMSTREAMCHANNEL));
-        if (!loop_channels) {
-            free(vgmstream);
-            free(start_vgmstream);
-            free(channels);
-            free(start_channels);
-            return NULL;
-        }
-        vgmstream->loop_ch = loop_channels;
-    }
-
-    vgmstream->loop_flag = looped;
+    vgmstream->loop_flag = loop_flag;
 
     return vgmstream;
+fail:
+    if (vgmstream) {
+        free(vgmstream->ch);
+        free(vgmstream->start_ch);
+        free(vgmstream->loop_ch);
+        free(vgmstream->start_vgmstream);
+    }
+    free(vgmstream);
+    return NULL;
 }
 
 void close_vgmstream(VGMSTREAM * vgmstream) {
     if (!vgmstream)
         return;
 
+    /* free custom codecs */
 #ifdef VGM_USE_VORBIS
-    if (vgmstream->coding_type==coding_OGG_VORBIS) {
+    if (vgmstream->coding_type == coding_OGG_VORBIS) {
         free_ogg_vorbis(vgmstream->codec_data);
         vgmstream->codec_data = NULL;
     }
 
-    if (vgmstream->coding_type==coding_VORBIS_custom) {
+    if (vgmstream->coding_type == coding_VORBIS_custom) {
         free_vorbis_custom(vgmstream->codec_data);
         vgmstream->codec_data = NULL;
     }
 #endif
 
-    if (vgmstream->coding_type==coding_CRI_HCA) {
+    if (vgmstream->coding_type == coding_CRI_HCA) {
         free_hca(vgmstream->codec_data);
         vgmstream->codec_data = NULL;
     }
 
-    if (vgmstream->coding_type==coding_EA_MT) {
+    if (vgmstream->coding_type == coding_EA_MT) {
         free_ea_mt(vgmstream->codec_data, vgmstream->channels);
         vgmstream->codec_data = NULL;
     }
 
 #ifdef VGM_USE_FFMPEG
-    if (vgmstream->coding_type==coding_FFmpeg) {
+    if (vgmstream->coding_type == coding_FFmpeg) {
         free_ffmpeg(vgmstream->codec_data);
         vgmstream->codec_data = NULL;
     }
 #endif
 
 #if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
-    if (vgmstream->coding_type==coding_MP4_AAC) {
+    if (vgmstream->coding_type == coding_MP4_AAC) {
         free_mp4_aac(vgmstream->codec_data);
         vgmstream->codec_data = NULL;
     }
 #endif
 
 #ifdef VGM_USE_MPEG
-    if (vgmstream->coding_type==coding_MPEG_custom ||
-        vgmstream->coding_type==coding_MPEG_ealayer3 ||
-        vgmstream->coding_type==coding_MPEG_layer1 ||
-        vgmstream->coding_type==coding_MPEG_layer2 ||
-        vgmstream->coding_type==coding_MPEG_layer3) {
+    if (vgmstream->coding_type == coding_MPEG_custom ||
+        vgmstream->coding_type == coding_MPEG_ealayer3 ||
+        vgmstream->coding_type == coding_MPEG_layer1 ||
+        vgmstream->coding_type == coding_MPEG_layer2 ||
+        vgmstream->coding_type == coding_MPEG_layer3) {
         free_mpeg(vgmstream->codec_data);
         vgmstream->codec_data = NULL;
     }
@@ -839,7 +842,7 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
     }
 #endif
 
-    if (vgmstream->coding_type==coding_ACM) {
+    if (vgmstream->coding_type == coding_ACM) {
         free_acm(vgmstream->codec_data);
         vgmstream->codec_data = NULL;
     }
@@ -855,13 +858,14 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
     }
 
 
-    if (vgmstream->layout_type==layout_aix) {
+    /* free custom layouts */
+    if (vgmstream->layout_type == layout_aix) {
         aix_codec_data *data = (aix_codec_data *) vgmstream->codec_data;
 
         if (data) {
             if (data->adxs) {
                 int i;
-                for (i=0;i<data->segment_count*data->stream_count;i++) {
+                for (i = 0; i < data->segment_count*data->stream_count; i++) {
                     /* note that the close_streamfile won't do anything but deallocate itself,
                      * there is only one open file in vgmstream->ch[0].streamfile */
                     close_vgmstream(data->adxs[i]);
@@ -877,12 +881,12 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
         vgmstream->codec_data = NULL;
     }
 
-    if (vgmstream->layout_type==layout_segmented) {
+    if (vgmstream->layout_type == layout_segmented) {
         free_layout_segmented(vgmstream->layout_data);
         vgmstream->layout_data = NULL;
     }
 
-    if (vgmstream->layout_type==layout_layered) {
+    if (vgmstream->layout_type == layout_layered) {
         free_layout_layered(vgmstream->layout_data);
         vgmstream->layout_data = NULL;
     }
@@ -892,15 +896,13 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
     {
         int i,j;
 
-        for (i=0;i<vgmstream->channels;i++) {
+        for (i = 0; i < vgmstream->channels; i++) {
             if (vgmstream->ch[i].streamfile) {
                 close_streamfile(vgmstream->ch[i].streamfile);
                 /* Multiple channels might have the same streamfile. Find the others
-                 * that are the same as this and clear them so they won't be closed
-                 * again. */
-                for (j=0;j<vgmstream->channels;j++) {
-                    if (i!=j && vgmstream->ch[j].streamfile ==
-                                vgmstream->ch[i].streamfile) {
+                 * that are the same as this and clear them so they won't be closed again. */
+                for (j = 0; j < vgmstream->channels; j++) {
+                    if (i != j && vgmstream->ch[j].streamfile == vgmstream->ch[i].streamfile) {
                         vgmstream->ch[j].streamfile = NULL;
                     }
                 }
@@ -909,12 +911,10 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
         }
     }
 
-    if (vgmstream->loop_ch) free(vgmstream->loop_ch);
-    if (vgmstream->start_ch) free(vgmstream->start_ch);
-    if (vgmstream->ch) free(vgmstream->ch);
-    /* the start_vgmstream is considered just data */
-    if (vgmstream->start_vgmstream) free(vgmstream->start_vgmstream);
-
+    free(vgmstream->ch);
+    free(vgmstream->start_ch);
+    free(vgmstream->loop_ch);
+    free(vgmstream->start_vgmstream);
     free(vgmstream);
 }
 
@@ -947,11 +947,10 @@ void vgmstream_force_loop(VGMSTREAM* vgmstream, int loop_flag, int loop_start_sa
     /* this requires a bit more messing with the VGMSTREAM than I'm comfortable with... */
     if (loop_flag && !vgmstream->loop_flag && !vgmstream->loop_ch) {
         vgmstream->loop_ch = calloc(vgmstream->channels,sizeof(VGMSTREAMCHANNEL));
-        /* loop_ch will be populated when decoded samples reach loop start */
+        if (!vgmstream->loop_ch) loop_flag = 0; /* ??? */
     }
     else if (!loop_flag && vgmstream->loop_flag) {
-        /* not important though */
-        free(vgmstream->loop_ch);
+        free(vgmstream->loop_ch); /* not important though */
         vgmstream->loop_ch = NULL;
     }
 
@@ -964,15 +963,21 @@ void vgmstream_force_loop(VGMSTREAM* vgmstream, int loop_flag, int loop_start_sa
         vgmstream->loop_end_sample = 0;
     }
 
+
     /* propagate changes to layouts that need them */
     if (vgmstream->layout_type == layout_layered) {
         int i;
         layered_layout_data *data = vgmstream->layout_data;
         for (i = 0; i < data->layer_count; i++) {
             vgmstream_force_loop(data->layers[i], loop_flag, loop_start_sample, loop_end_sample);
+            /* layer's force_loop also calls setup_vgmstream, no need to do it here */
         }
     }
-    /* segmented layout only works (ATM) with exact/header loop, full loop or no loop */
+
+    /* segmented layout loops with standard loop start/end values and works ok */
+
+    /* notify of new initial state */
+    setup_vgmstream(vgmstream);
 }
 
 void vgmstream_set_loop_target(VGMSTREAM* vgmstream, int loop_target) {
@@ -2102,22 +2107,22 @@ int vgmstream_samples_to_do(int samples_this_block, int samples_per_frame, VGMST
     /* Why did I think this would be any simpler? */
     if (vgmstream->loop_flag) {
         /* are we going to hit the loop end during this block? */
-        if (vgmstream->current_sample+samples_left_this_block > vgmstream->loop_end_sample) {
+        if (vgmstream->current_sample + samples_left_this_block > vgmstream->loop_end_sample) {
             /* only do to just before it */
-            samples_to_do = vgmstream->loop_end_sample-vgmstream->current_sample;
+            samples_to_do = vgmstream->loop_end_sample - vgmstream->current_sample;
         }
 
         /* are we going to hit the loop start during this block? */
-        if (!vgmstream->hit_loop && vgmstream->current_sample+samples_left_this_block > vgmstream->loop_start_sample) {
+        if (!vgmstream->hit_loop && vgmstream->current_sample + samples_left_this_block > vgmstream->loop_start_sample) {
             /* only do to just before it */
-            samples_to_do = vgmstream->loop_start_sample-vgmstream->current_sample;
+            samples_to_do = vgmstream->loop_start_sample - vgmstream->current_sample;
         }
 
     }
 
     /* if it's a framed encoding don't do more than one frame */
-    if (samples_per_frame>1 && (vgmstream->samples_into_block%samples_per_frame)+samples_to_do>samples_per_frame)
-        samples_to_do = samples_per_frame - (vgmstream->samples_into_block%samples_per_frame);
+    if (samples_per_frame > 1 && (vgmstream->samples_into_block % samples_per_frame) + samples_to_do > samples_per_frame)
+        samples_to_do = samples_per_frame - (vgmstream->samples_into_block % samples_per_frame);
 
     return samples_to_do;
 }
@@ -2133,7 +2138,7 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream) {
          * (only needed with the "play stream end after looping N times" option enabled) */
         vgmstream->loop_count++;
         if (vgmstream->loop_target && vgmstream->loop_target == vgmstream->loop_count) {
-            vgmstream->loop_flag = 0; /* could be improved but works ok */
+            vgmstream->loop_flag = 0; /* could be improved but works ok, will be restored on resets */
             return 0;
         }
 
@@ -2145,7 +2150,7 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream) {
             vgmstream->coding_type == coding_PSX ||
             vgmstream->coding_type == coding_PSX_badflags) {
             int i;
-            for (i=0;i<vgmstream->channels;i++) {
+            for (i = 0; i < vgmstream->channels; i++) {
                 vgmstream->loop_ch[i].adpcm_history1_16 = vgmstream->ch[i].adpcm_history1_16;
                 vgmstream->loop_ch[i].adpcm_history2_16 = vgmstream->ch[i].adpcm_history2_16;
                 vgmstream->loop_ch[i].adpcm_history1_32 = vgmstream->ch[i].adpcm_history1_32;
@@ -2156,60 +2161,60 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream) {
 
         /* prepare certain codecs' internal state for looping */
 
-        if (vgmstream->coding_type==coding_CRI_HCA) {
+        if (vgmstream->coding_type == coding_CRI_HCA) {
             loop_hca(vgmstream->codec_data);
         }
 
-        if (vgmstream->coding_type==coding_EA_MT) {
-            seek_ea_mt(vgmstream, vgmstream->loop_start_sample);
+        if (vgmstream->coding_type == coding_EA_MT) {
+            seek_ea_mt(vgmstream, vgmstream->loop_sample);
         }
 
 #ifdef VGM_USE_VORBIS
-        if (vgmstream->coding_type==coding_OGG_VORBIS) {
+        if (vgmstream->coding_type == coding_OGG_VORBIS) {
             seek_ogg_vorbis(vgmstream, vgmstream->loop_sample);
         }
 
-        if (vgmstream->coding_type==coding_VORBIS_custom) {
-            seek_vorbis_custom(vgmstream, vgmstream->loop_start_sample);
+        if (vgmstream->coding_type == coding_VORBIS_custom) {
+            seek_vorbis_custom(vgmstream, vgmstream->loop_sample);
         }
 #endif
 
 #ifdef VGM_USE_FFMPEG
-        if (vgmstream->coding_type==coding_FFmpeg) {
-            seek_ffmpeg(vgmstream, vgmstream->loop_start_sample);
+        if (vgmstream->coding_type == coding_FFmpeg) {
+            seek_ffmpeg(vgmstream, vgmstream->loop_sample);
         }
 #endif
 
 #if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
-        if (vgmstream->coding_type==coding_MP4_AAC) {
+        if (vgmstream->coding_type == coding_MP4_AAC) {
             seek_mp4_aac(vgmstream, vgmstream->loop_sample);
         }
 #endif
 
 #ifdef VGM_USE_MAIATRAC3PLUS
-        if (vgmstream->coding_type==coding_AT3plus) {
+        if (vgmstream->coding_type == coding_AT3plus) {
             seek_at3plus(vgmstream, vgmstream->loop_sample);
         }
 #endif
 
 #ifdef VGM_USE_ATRAC9
-        if (vgmstream->coding_type==coding_ATRAC9) {
+        if (vgmstream->coding_type == coding_ATRAC9) {
             seek_atrac9(vgmstream, vgmstream->loop_sample);
         }
 #endif
 
 #ifdef VGM_USE_CELT
-        if (vgmstream->coding_type==coding_CELT_FSB) {
+        if (vgmstream->coding_type == coding_CELT_FSB) {
             seek_celt_fsb(vgmstream, vgmstream->loop_sample);
         }
 #endif
 
 #ifdef VGM_USE_MPEG
-        if (vgmstream->coding_type==coding_MPEG_custom ||
-            vgmstream->coding_type==coding_MPEG_ealayer3 ||
-            vgmstream->coding_type==coding_MPEG_layer1 ||
-            vgmstream->coding_type==coding_MPEG_layer2 ||
-            vgmstream->coding_type==coding_MPEG_layer3) {
+        if (vgmstream->coding_type == coding_MPEG_custom ||
+            vgmstream->coding_type == coding_MPEG_ealayer3 ||
+            vgmstream->coding_type == coding_MPEG_layer1 ||
+            vgmstream->coding_type == coding_MPEG_layer2 ||
+            vgmstream->coding_type == coding_MPEG_layer3) {
             seek_mpeg(vgmstream, vgmstream->loop_sample);
         }
 #endif
@@ -2221,7 +2226,7 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream) {
         }
 
         /* restore! */
-        memcpy(vgmstream->ch,vgmstream->loop_ch,sizeof(VGMSTREAMCHANNEL)*vgmstream->channels);
+        memcpy(vgmstream->ch, vgmstream->loop_ch, sizeof(VGMSTREAMCHANNEL)*vgmstream->channels);
         vgmstream->current_sample = vgmstream->loop_sample;
         vgmstream->samples_into_block = vgmstream->loop_samples_into_block;
         vgmstream->current_block_size = vgmstream->loop_block_size;
@@ -2234,10 +2239,9 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream) {
 
 
     /* is this the loop start? */
-    if (!vgmstream->hit_loop && vgmstream->current_sample==vgmstream->loop_start_sample) {
+    if (!vgmstream->hit_loop && vgmstream->current_sample == vgmstream->loop_start_sample) {
         /* save! */
-        memcpy(vgmstream->loop_ch,vgmstream->ch,sizeof(VGMSTREAMCHANNEL)*vgmstream->channels);
-
+        memcpy(vgmstream->loop_ch, vgmstream->ch, sizeof(VGMSTREAMCHANNEL)*vgmstream->channels);
         vgmstream->loop_sample = vgmstream->current_sample;
         vgmstream->loop_samples_into_block = vgmstream->samples_into_block;
         vgmstream->loop_block_size = vgmstream->current_block_size;
@@ -2465,15 +2469,15 @@ static void try_dual_file_stereo(VGMSTREAM * opened_vgmstream, STREAMFILE *strea
     //todo force layout_none if layout_interleave?
 
     streamFile->get_name(streamFile,new_filename,sizeof(new_filename));
-    if (strlen(new_filename)<2) return; /* we need at least a base and a name ending to replace */
+    if (strlen(new_filename) < 2) return; /* we need at least a base and a name ending to replace */
     
     ext = (char *)filename_extension(new_filename);
     if (ext-new_filename >= 1 && ext[-1]=='.') ext--; /* including "." */
 
     /* find pair from base name and modify new_filename with the opposite */
     dfs_pair_count = (sizeof(dfs_pairs)/sizeof(dfs_pairs[0]));
-    for (i = 0; dfs_pair == -1 && i< dfs_pair_count; i++) {
-        for (j=0; dfs_pair==-1 && j<2; j++) {
+    for (i = 0; dfs_pair == -1 && i < dfs_pair_count; i++) {
+        for (j = 0; dfs_pair == -1 && j < 2; j++) {
             const char * this_suffix = dfs_pairs[i][j];
             size_t this_suffix_len = strlen(dfs_pairs[i][j]);
             const char * other_suffix = dfs_pairs[i][j^1];
@@ -2597,34 +2601,34 @@ fail:
 /* average bitrate helper to get STREAMFILE for a channel, since some codecs may use their own */
 static STREAMFILE * get_vgmstream_average_bitrate_channel_streamfile(VGMSTREAM * vgmstream, int channel) {
 
-    if (vgmstream->coding_type==coding_NWA) {
+    if (vgmstream->coding_type == coding_NWA) {
         nwa_codec_data *data = vgmstream->codec_data;
         return (data && data->nwa) ? data->nwa->file : NULL;
     }
 
-    if (vgmstream->coding_type==coding_ACM) {
+    if (vgmstream->coding_type == coding_ACM) {
         acm_codec_data *data = vgmstream->codec_data;
         return (data && data->handle) ? data->streamfile : NULL;
     }
 
 #ifdef VGM_USE_VORBIS
-    if (vgmstream->coding_type==coding_OGG_VORBIS) {
+    if (vgmstream->coding_type == coding_OGG_VORBIS) {
         ogg_vorbis_codec_data *data = vgmstream->codec_data;
         return data ? data->ov_streamfile.streamfile : NULL;
     }
 #endif
-    if (vgmstream->coding_type==coding_CRI_HCA) {
+    if (vgmstream->coding_type == coding_CRI_HCA) {
         hca_codec_data *data = vgmstream->codec_data;
         return data ? data->streamfile : NULL;
     }
 #ifdef VGM_USE_FFMPEG
-    if (vgmstream->coding_type==coding_FFmpeg) {
+    if (vgmstream->coding_type == coding_FFmpeg) {
         ffmpeg_codec_data *data = vgmstream->codec_data;
         return data ? data->streamfile : NULL;
     }
 #endif
 #if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
-    if (vgmstream->coding_type==coding_MP4_AAC) {
+    if (vgmstream->coding_type == coding_MP4_AAC) {
         mp4_aac_codec_data *data = vgmstream->codec_data;
         return data ? data->if_file.streamfile : NULL;
     }
@@ -2662,7 +2666,7 @@ int get_vgmstream_average_bitrate(VGMSTREAM * vgmstream) {
 
     //todo bitrate bugs with layout inside layouts (ex. TXTP)
     /* make a list of used streamfiles (repeats will be filtered below) */
-    if (vgmstream->layout_type==layout_segmented) {
+    if (vgmstream->layout_type == layout_segmented) {
         segmented_layout_data *data = (segmented_layout_data *) vgmstream->layout_data;
         for (sub = 0; sub < data->segment_count; sub++) {
             streams_size += data->segments[sub]->stream_size;
@@ -2673,7 +2677,7 @@ int get_vgmstream_average_bitrate(VGMSTREAM * vgmstream) {
             }
         }
     }
-    else if (vgmstream->layout_type==layout_layered) {
+    else if (vgmstream->layout_type == layout_layered) {
         layered_layout_data *data = vgmstream->layout_data;
         for (sub = 0; sub < data->layer_count; sub++) {
             streams_size += data->layers[sub]->stream_size;

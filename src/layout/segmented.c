@@ -24,8 +24,8 @@ void render_vgmstream_segmented(sample * buffer, int32_t sample_count, VGMSTREAM
             while (total_samples < vgmstream->num_samples) {
                 int32_t segment_samples = data->segments[loop_segment]->num_samples;
 
-                if (vgmstream->loop_start_sample >= total_samples && vgmstream->loop_start_sample < total_samples + segment_samples) {
-                    loop_samples_skip = vgmstream->loop_start_sample - total_samples;
+                if (vgmstream->loop_sample >= total_samples && vgmstream->loop_sample < total_samples + segment_samples) {
+                    loop_samples_skip = vgmstream->loop_sample - total_samples;
                     break; /* loop_start falls within loop_segment's samples */
                 }
                 total_samples += segment_samples;
@@ -134,9 +134,7 @@ int setup_layout_segmented(segmented_layout_data* data) {
         }
 
 
-        /* save start things so we can restart for seeking/looping */
-        memcpy(data->segments[i]->start_ch,data->segments[i]->ch,sizeof(VGMSTREAMCHANNEL)*data->segments[i]->channels);
-        memcpy(data->segments[i]->start_vgmstream,data->segments[i],sizeof(VGMSTREAM));
+        setup_vgmstream(data->segments[i]); /* final setup in case the VGMSTREAM was created manually */
     }
 
 

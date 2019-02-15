@@ -96,11 +96,9 @@ int setup_layout_layered(layered_layout_data* data) {
             }
         }
 
-        //todo could check if layers'd loop match vs main, etc
+        /* loops and other values could be mismatched but hopefully not */
 
-        /* save start things so we can restart for seeking/looping */
-        memcpy(data->layers[i]->start_ch,data->layers[i]->ch,sizeof(VGMSTREAMCHANNEL)*data->layers[i]->channels);
-        memcpy(data->layers[i]->start_vgmstream,data->layers[i],sizeof(VGMSTREAM));
+        setup_vgmstream(data->layers[i]); /* final setup in case the VGMSTREAM was created manually */
     }
 
     return 1;
