@@ -509,42 +509,37 @@ void free_mpeg(mpeg_codec_data *data) {
 
 /* seeks stream to 0 */
 void reset_mpeg(VGMSTREAM *vgmstream) {
-    off_t input_offset;
     mpeg_codec_data *data = vgmstream->codec_data;
     if (!data) return;
 
+    flush_mpeg(data);
 
+#if 0
+    /* flush_mpeg properly resets mpg123 with mpg123_open_feed, and
+     * offsets are reset in the VGMSTREAM externally, but for posterity: */
     if (!data->custom) {
+        off_t input_offset = 0;
         mpg123_feedseek(data->m,0,SEEK_SET,&input_offset);
-        /* input_offset is ignored as we can assume it will be 0 for a seek to sample 0 */
     }
     else {
+        off_t input_offset = 0;
         int i;
-        /* re-start from 0 */
         for (i = 0; i < data->streams_size; i++) {
             mpg123_feedseek(data->streams[i]->m,0,SEEK_SET,&input_offset);
-            data->streams[i]->bytes_in_buffer = 0;
-            data->streams[i]->buffer_full = 0;
-            data->streams[i]->buffer_used = 0;
-            data->streams[i]->samples_filled = 0;
-            data->streams[i]->samples_used = 0;
-            data->streams[i]->current_size_count = 0;
-            data->streams[i]->current_size_target = 0;
-            data->streams[i]->decode_to_discard = 0;
         }
-
-        data->samples_to_discard = data->skip_samples; /* initial delay */
     }
+#endif
 }
 
 /* seeks to a point */
 void seek_mpeg(VGMSTREAM *vgmstream, int32_t num_sample) {
-    off_t input_offset;
     mpeg_codec_data *data = vgmstream->codec_data;
     if (!data) return;
 
+    flush_mpeg(data);
 
     if (!data->custom) {
+        off_t input_offset = 0;
         mpg123_feedseek(data->m, num_sample,SEEK_SET,&input_offset);
 
         /* adjust loop with mpg123's offset (useful?) */
@@ -553,31 +548,17 @@ void seek_mpeg(VGMSTREAM *vgmstream, int32_t num_sample) {
     }
     else {
         int i;
-        /* re-start from 0 */
+        /* restart from 0 and manually discard samples, since we don't really know the correct offset */
         for (i = 0; i < data->streams_size; i++) {
-            mpg123_feedseek(data->streams[i]->m,0,SEEK_SET,&input_offset);
-            data->streams[i]->bytes_in_buffer = 0;
-            data->streams[i]->buffer_full = 0;
-            data->streams[i]->buffer_used = 0;
-            data->streams[i]->samples_filled = 0;
-            data->streams[i]->samples_used = 0;
-            data->streams[i]->current_size_count = 0;
-            data->streams[i]->current_size_target = 0;
-            data->streams[i]->decode_to_discard = 0;
+            //mpg123_feedseek(data->streams[i]->m,0,SEEK_SET,&input_offset); /* already reset */
 
             /* force first offset as discard-looping needs to start from the beginning */
             if (vgmstream->loop_ch)
                 vgmstream->loop_ch[i].offset = vgmstream->loop_ch[i].channel_start_offset;
         }
 
-        /* manually discard samples, since we don't really know the correct offset */
-        data->samples_to_discard = num_sample;
-        data->samples_to_discard += data->skip_samples;
+        data->samples_to_discard += num_sample;
     }
-
-    data->bytes_in_buffer = 0;
-    data->buffer_full = 0;
-    data->buffer_used = 0;
 }
 
 /* resets mpg123 decoder and its internals without seeking, useful when a new MPEG substream starts */
