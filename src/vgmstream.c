@@ -526,6 +526,13 @@ static VGMSTREAM * init_vgmstream_internal(STREAMFILE *streamFile) {
             try_dual_file_stereo(vgmstream, streamFile, init_vgmstream_functions[i]);
         }
 
+        /* clean as loops are readable metadata but loop fields may contain garbage
+         * (done *after* dual stereo as it needs loop fields to match) */
+        if (!vgmstream->loop_flag) {
+            vgmstream->loop_start_sample = 0;
+            vgmstream->loop_end_sample = 0;
+        }
+
 #ifdef VGM_USE_FFMPEG
         /* check FFmpeg streams here, for lack of a better place */
         if (vgmstream->coding_type == coding_FFmpeg) {
