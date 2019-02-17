@@ -468,11 +468,11 @@ int main(int argc, char ** argv) {
     /* slap on a .wav header */
     {
         uint8_t wav_buf[0x100];
-        int channels = (cfg.only_stereo != -1) ? 2 : channels;
+        int channels_write = (cfg.only_stereo != -1) ? 2 : channels;
         size_t bytes_done;
 
         bytes_done = make_wav_header(wav_buf,0x100,
-                len_samples, vgmstream->sample_rate, channels,
+                len_samples, vgmstream->sample_rate, channels_write,
                 cfg.write_lwav, cfg.lwav_loop_start, cfg.lwav_loop_end);
 
         fwrite(wav_buf,sizeof(uint8_t),bytes_done,outfile);
@@ -541,11 +541,11 @@ int main(int argc, char ** argv) {
         /* slap on a .wav header */
         {
             uint8_t wav_buf[0x100];
-            int channels = (cfg.only_stereo != -1) ? 2 : channels;
+            int channels_write = (cfg.only_stereo != -1) ? 2 : channels;
             size_t bytes_done;
 
             bytes_done = make_wav_header(wav_buf,0x100,
-                    len_samples, vgmstream->sample_rate, channels,
+                    len_samples, vgmstream->sample_rate, channels_write,
                     cfg.write_lwav, cfg.lwav_loop_start, cfg.lwav_loop_end);
 
             fwrite(wav_buf,sizeof(uint8_t),bytes_done,outfile);
