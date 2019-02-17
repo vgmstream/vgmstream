@@ -746,6 +746,11 @@ VGMSTREAM * allocate_vgmstream(int channel_count, int loop_flag) {
     vgmstream->channels = channel_count;
     vgmstream->loop_flag = loop_flag;
 
+#ifdef VGMSTREAM_MIXING
+    /* fixed arrays, for now */
+    vgmstream->mixing_size = 64;
+    vgmstream->stream_name_size = STREAM_NAME_SIZE;
+#endif
     return vgmstream;
 fail:
     if (vgmstream) {
@@ -2274,9 +2279,12 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
     }
 
     snprintf(temp,TEMPSIZE,
-            "sample rate: %d Hz\n"
+            "sample rate: %d Hz\n",
+            vgmstream->sample_rate);
+    concatn(length,desc,temp);
+
+    snprintf(temp,TEMPSIZE,
             "channels: %d\n",
-            vgmstream->sample_rate,
             vgmstream->channels);
     concatn(length,desc,temp);
 

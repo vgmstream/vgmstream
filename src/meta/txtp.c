@@ -4,6 +4,9 @@
 
 
 #define TXT_LINE_MAX 0x2000
+#ifdef VGMSTREAM_MIXING
+#define TXTP_MIXING_MAX 64
+#endif
 
 typedef struct {
     char filename[TXT_LINE_MAX];
@@ -11,6 +14,11 @@ typedef struct {
     uint32_t channel_mask;
     int channel_mappings_on;
     int channel_mappings[32];
+
+#if VGMSTREAM_MIXING
+    int mixing_count;
+    mix_config_data mixing[TXTP_MIXING_MAX];
+#endif
 
     double config_loop_count;
     double config_fade_time;
@@ -216,6 +224,48 @@ static void apply_config(VGMSTREAM *vgmstream, txtp_entry *current) {
         }
     }
 
+#ifdef VGMSTREAM_MIXING
+    if (current->mixing_count > 0) {
+        int i, ch_max_cur;
+        if (vgmstream->mixing_count + current->mixing_count > vgmstream->mixing_size) {
+            VGM_LOG("TXTP: ignored mixing\n");
+            return;
+        }
+
+        ch_max_cur = vgmstream->channels;
+
+        for (i = 0; i < current->mixing_count; i++) {
+            mix_config_data mix = current->mixing[i];
+
+            vgmstream->mixing[vgmstream->mixing_count] = mix;
+            vgmstream->mixing_count++;
+
+            /* some mixes change output channels */
+            switch(vgmstream->mixing[i].command) {
+                case MIX_DOWNMIX:
+                    if (mix.ch_a < 0 || mix.ch_a >= ch_max_cur || ch_max_cur - 1 == 0) break;
+                    ch_max_cur--;
+                    break;
+
+                case MIX_DOWNMIX_REST:
+                    if (mix.ch_a < 0 || mix.ch_a >= ch_max_cur) break;
+                    ch_max_cur = mix.ch_a + 1; /* simply clamp channels */
+                    break;
+
+                case MIX_UPMIX:
+                    if (mix.ch_a < 0 || mix.ch_a > ch_max_cur) break; /* ch_a can be == max_cur, since we are inserting */
+                    ch_max_cur++;
+                    break;
+
+                default:
+                    break;
+            }
+        }
+
+        vgmstream->output_channels = ch_max_cur;
+    }
+#endif
+
     vgmstream->config_loop_count = current->config_loop_count;
     vgmstream->config_fade_time = current->config_fade_time;
     vgmstream->config_fade_delay = current->config_fade_delay;
@@ -253,6 +303,24 @@ static void get_double(const char * config, double *value) {
     }
 }
 
+#ifdef VGMSTREAM_MIXING
+static void add_mixing(txtp_entry* cfg, mix_config_data* mix, mix_command_t command) {
+    if (cfg->mixing_count + 1 > TXTP_MIXING_MAX) {
+        VGM_LOG("TXTP: too many mixes\n");
+        return;
+    }
+
+    /* parsers reads ch1 = first, but for mixing code ch0 = first
+     * (if parser reads ch0 here it'll becode -1 and ignored in code) */
+    mix->ch_a--;
+    mix->ch_b--;
+    mix->command = command;
+    cfg->mixing[cfg->mixing_count] = *mix; /* memcpy'ed */
+    cfg->mixing_count++;
+}
+#endif
+
+
 static void add_config(txtp_entry* current, txtp_entry* cfg, const char* filename) {
     strcpy(current->filename, filename);
 
@@ -267,6 +335,18 @@ static void add_config(txtp_entry* current, txtp_entry* cfg, const char* filenam
             current->channel_mappings[ch] = cfg->channel_mappings[ch];
         }
     }
+
+#ifdef VGMSTREAM_MIXING
+    //*current = *cfg; /* don't memcopy to allow list additions */
+
+    if (cfg->mixing_count > 0) {
+        int i;
+        for (i = 0; i < cfg->mixing_count; i++) {
+            current->mixing[current->mixing_count] = cfg->mixing[i];
+            current->mixing_count++;
+        }
+    }
+#endif
 
     current->config_loop_count = cfg->config_loop_count;
     current->config_fade_time = cfg->config_fade_time;
@@ -357,6 +437,76 @@ static int add_filename(txtp_header * txtp, char *filename, int is_default) {
                     }
                }
             }
+#ifdef VGMSTREAM_MIXING
+            else if (config[0] == 'm') {
+                /* channel mixing: file.ext#m(sub-command),(sub-command),etc */
+                char cmd;
+
+                config++;
+
+                while (config[0] != '\0') {
+                    mix_config_data mix = {0};
+
+                    if (config[0]== ',') {
+                        config++;
+                        continue;
+                    }
+
+                    if (sscanf(config, "%d-%d%n", &mix.ch_a, &mix.ch_b, &n) == 2 && n != 0) {
+                        add_mixing(&cfg, &mix, MIX_SWAP); /* N-M: swaps M with N */
+                        config += n;
+                        continue;
+                    }
+
+                    if ((sscanf(config, "%d+%d*%f%n", &mix.ch_a, &mix.ch_b, &mix.vol_a, &n) == 3 && n != 0) ||
+                        (sscanf(config, "%d+%dx%f%n", &mix.ch_a, &mix.ch_b, &mix.vol_a, &n) == 3 && n != 0)) {
+                        add_mixing(&cfg, &mix, MIX_ADD_VOLUME); /* N+M*V: mixes M * volume to N */
+                        config += n;
+                        continue;
+                    }
+
+                    if (sscanf(config, "%d+%d%n", &mix.ch_a, &mix.ch_b, &n) == 2 && n != 0) {
+                        add_mixing(&cfg, &mix, MIX_ADD); /* N+M: mixes M to N */
+                        config += n;
+                        continue;
+                    }
+
+                    if ((sscanf(config, "%d*%f~%f@%f~%f%n", &mix.ch_a, &mix.vol_a, &mix.vol_b, &mix.pos_a, &mix.pos_b, &n) == 5 && n != 0) ||
+                        (sscanf(config, "%dx%f~%f@%f~%f%n", &mix.ch_a, &mix.vol_a, &mix.vol_b, &mix.pos_a, &mix.pos_b, &n) == 5 && n != 0)) {
+                        add_mixing(&cfg, &mix, MIX_CROSSFADE); /* N*V1~V2@P1~P2: fades from volume1 to 2 between position1 to 2 */
+                        config += n;
+                        continue;
+                    }
+
+                    if ((sscanf(config, "%d*%f%n", &mix.ch_a, &mix.vol_a, &n) == 2 && n != 0) ||
+                        (sscanf(config, "%dx%f%n", &mix.ch_a, &mix.vol_a, &n) == 2 && n != 0)) {
+                        add_mixing(&cfg, &mix, MIX_VOLUME); /* N*V: changes volume of N */
+                        config += n;
+                        continue;
+                    }
+
+                    if (sscanf(config, "%d%c%n", &mix.ch_a, &cmd, &n) == 2 && n != 0 && cmd == 'D') {
+                        add_mixing(&cfg, &mix, MIX_DOWNMIX_REST); /* ND: downmix N and all following channels */
+                        config += n;
+                        continue;
+                    }
+
+                    if (sscanf(config, "%d%c%n", &mix.ch_a, &cmd, &n) == 2 && n != 0 && cmd == 'd') {
+                        add_mixing(&cfg, &mix, MIX_DOWNMIX);/* Nd: downmix N only */
+                        config += n;
+                        continue;
+                    }
+
+                    if (sscanf(config, "%d%c%n", &mix.ch_a, &cmd, &n) == 2 && n != 0 && cmd == 'u') {
+                        add_mixing(&cfg, &mix, MIX_UPMIX); /* Nu: upmix N */
+                        config += n;
+                        continue;
+                    }
+
+                    break; /* unknown/mix end */
+               }
+            }
+#endif
             else if (config[0] == 's' || (config[0] >= '0' && config[0] <= '9')) {
                 /* subsongs: file.ext#s2 = play subsong 2, file.ext#2~10 = play subsong range */
                 int subsong_start = 0, subsong_end = 0;

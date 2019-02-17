@@ -5,8 +5,9 @@
 #ifndef _VGMSTREAM_H
 #define _VGMSTREAM_H
 
+ /* reasonable maxs */
 enum { PATH_LIMIT = 32768 };
-enum { STREAM_NAME_SIZE = 255 }; /* reasonable max */
+enum { STREAM_NAME_SIZE = 255 };
 
 #include "streamfile.h"
 
@@ -720,6 +721,29 @@ typedef enum {
 
 } meta_t;
 
+#ifdef VGMSTREAM_MIXING
+/* mixing info */
+typedef enum {
+    MIX_SWAP,
+    MIX_ADD,
+    MIX_ADD_VOLUME,
+    MIX_VOLUME,
+    MIX_CROSSFADE,
+    MIX_DOWNMIX,
+    MIX_DOWNMIX_REST,
+    MIX_UPMIX
+} mix_command_t;
+
+typedef struct {
+    mix_command_t command;
+    int ch_a;
+    int ch_b;
+    float vol_a;
+    float vol_b;
+    float pos_a;
+    float pos_b;
+} mix_config_data;
+#endif
 
 /* info for a single vgmstream channel */
 typedef struct {
@@ -799,6 +823,13 @@ typedef struct {
     uint32_t channel_mask;          /* to silence crossfading subsongs/layers */
     int channel_mappings_on;        /* channel mappings are active */
     int channel_mappings[32];       /* swap channel "i" with "[i]" */
+#ifdef VGMSTREAM_MIXING
+    int output_channels;            /* resulting channels after mixing (may be ignored if plugin doesn't support it) */
+    int mixing_on;                  /* mixing allowed */
+    int mixing_count;               /* mixing number */
+    mix_config_data mixing[64];     /* applies transformation to output samples (could be alloc'ed but to simplify...) */
+    size_t mixing_size;             /* mixing max */
+#endif
     /* config requests, players must read and honor these values */
     /* (ideally internally would work as a player, but for now player must do it manually) */
     double config_loop_count;
