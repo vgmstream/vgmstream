@@ -26,6 +26,9 @@ typedef struct {
     int config_ignore_loop;
     int config_force_loop;
     int config_ignore_fade;
+
+    int sample_rate;
+
 } txtp_entry;
 
 typedef struct {
@@ -266,6 +269,9 @@ static void apply_config(VGMSTREAM *vgmstream, txtp_entry *current) {
     }
 #endif
 
+    if (current->sample_rate > 0)
+        vgmstream->sample_rate = current->sample_rate;
+
     vgmstream->config_loop_count = current->config_loop_count;
     vgmstream->config_fade_time = current->config_fade_time;
     vgmstream->config_fade_delay = current->config_fade_delay;
@@ -296,11 +302,21 @@ static void clean_filename(char * filename) {
 
 }
 
-static void get_double(const char * config, double *value) {
+static int get_double(const char * config, double *value) {
     int n;
     if (sscanf(config, "%lf%n", value,&n) != 1) {
         *value = 0;
+        return 0;
     }
+    return n;
+}
+static int get_int(const char * config, int *value) {
+    int n;
+    if (sscanf(config, "%i%n", value,&n) != 1) {
+        *value = 0;
+        return 0;
+    }
+    return n;
 }
 
 #ifdef VGMSTREAM_MIXING
@@ -354,6 +370,9 @@ static void add_config(txtp_entry* current, txtp_entry* cfg, const char* filenam
     current->config_ignore_loop = cfg->config_ignore_loop;
     current->config_force_loop = cfg->config_force_loop;
     current->config_ignore_fade = cfg->config_ignore_fade;
+
+    current->sample_rate = cfg->sample_rate;
+
 }
 
 static int add_filename(txtp_header * txtp, char *filename, int is_default) {
@@ -543,15 +562,19 @@ static int add_filename(txtp_header * txtp, char *filename, int is_default) {
             }
             else if (config[0] == 'l') {
                 config++;
-                get_double(config, &cfg.config_loop_count);
+                config += get_double(config, &cfg.config_loop_count);
             }
             else if (config[0] == 'f') {
                 config++;
-                get_double(config, &cfg.config_fade_time);
+                config += get_double(config, &cfg.config_fade_time);
             }
             else if (config[0] == 'd') {
                 config++;
-                get_double(config, &cfg.config_fade_delay);
+                config += get_double(config, &cfg.config_fade_delay);
+            }
+            else if (config[0] == 'h') {
+                config++;
+                config += get_int(config, &cfg.sample_rate);
             }
             else if (config[0] == ' ') {
                 continue; /* likely a comment, find next # */
