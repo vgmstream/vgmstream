@@ -89,7 +89,7 @@ typedef struct {
     uint32_t map_zero;
     off_t map_offset;
     off_t map_size;
-    char map_name[0x24];
+    char map_name[0x28];
     uint32_t map_unknown;
 
     /* SB info (some values are derived depending if it's standard sbX or map sbX) */
@@ -145,7 +145,7 @@ typedef struct {
     float duration;             /* silence duration */
 
     int is_external;            /* stream is in a external file */
-    char resource_name[0x24];   /* filename to the external stream, or internal stream info for some games */
+    char resource_name[0x28];   /* filename to the external stream, or internal stream info for some games */
 
     char readable_name[255];    /* final subsong name */
     int types[16];              /* counts each header types, for debugging */
@@ -1115,13 +1115,13 @@ static int parse_type_layer(ubi_sb_header * sb, off_t offset, STREAMFILE* stream
     sb->num_samples     = read_32bit(table_offset + sb->cfg.layer_num_samples, streamFile);
 
     for (i = 0; i < sb->layer_count; i++) {
-        int channels    = (sb->cfg.layer_channels % 4) ? /* non-aligned offset is always 16b */
-                (uint16_t)read_16bit(table_offset + sb->cfg.layer_channels, streamFile) :
-                (uint32_t)read_32bit(table_offset + sb->cfg.layer_channels, streamFile);
+      //int channels    = (sb->cfg.layer_channels % 4) ? /* non-aligned offset is always 16b */
+      //        (uint16_t)read_16bit(table_offset + sb->cfg.layer_channels, streamFile) :
+      //        (uint32_t)read_32bit(table_offset + sb->cfg.layer_channels, streamFile);
         int sample_rate = read_32bit(table_offset + sb->cfg.layer_sample_rate, streamFile);
         int stream_type = read_32bit(table_offset + sb->cfg.layer_stream_type, streamFile);
         int num_samples = read_32bit(table_offset + sb->cfg.layer_num_samples, streamFile);
-        if (sb->channels != channels || sb->sample_rate != sample_rate || sb->stream_type != stream_type) {
+        if (sb->sample_rate != sample_rate || sb->stream_type != stream_type) {
             VGM_LOG("Ubi SB: %i layer headers don't match at %x\n", sb->layer_count, (uint32_t)table_offset);
 
             if (sb->cfg.ignore_layer_error) {
@@ -1131,6 +1131,9 @@ static int parse_type_layer(ubi_sb_header * sb, off_t offset, STREAMFILE* stream
 
             goto fail;
         }
+
+        /* unusual but happens, layers handle it fine [Brothers in Arms 2 (PS2) ex. MP_B01_NL.SB1] */
+        //;VGM_ASSERT_ONCE(sb->channels != channels, "UBI SB: layer channels don't match at %x\n", (uint32_t)table_offset);
 
         /* can be +-1 */
         if (sb->num_samples != num_samples && sb->num_samples + 1 == num_samples) {
@@ -1781,8 +1784,8 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
     /* games <= 0x00100000 seem to use old types, rest new types */
 
 
-    /* common */
-    sb->cfg.resource_name_size          = 0x24; /* maybe 0x20/0x28 for some but ok enough (null terminated) */
+    /* maybe 0x20/0x24 for some but ok enough (null terminated) */
+    sb->cfg.resource_name_size          = 0x28; /* min for Brother in Arms 2 (PS2) */
 
     /* represents map style (1=first, 2=mid, 3=latest) */
     if (sb->version <= 0x00000007)
@@ -2547,6 +2550,7 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
     /* Splinter Cell Classic Trilogy HD (2011)(PS3)-map */
     if (sb->version == 0x001D0000 && sb->platform == UBI_PS3) {
         config_sb_entry(sb, 0x5c, 0x80);
+        sb->cfg.audio_interleave = 0x10;
 
         config_sb_audio_fs(sb, 0x28, 0x30, 0x34);
         config_sb_audio_he(sb, 0x44, 0x4c, 0x54, 0x5c, 0x64, 0x68);
