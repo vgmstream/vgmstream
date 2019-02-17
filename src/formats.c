@@ -123,6 +123,7 @@ static const char* extension_list[] = {
     "de2",
     "dec",
     "dmsg",
+    "ds2", //txth/reserved [Star Wars Bounty Hunter (GC)]
     "dsf",
     "dsp",
     "dspw",
