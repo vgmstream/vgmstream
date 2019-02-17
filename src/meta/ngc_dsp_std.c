@@ -1196,3 +1196,38 @@ VGMSTREAM * init_vgmstream_dsp_adpcmx(STREAMFILE *streamFile) {
 fail:
     return NULL;
 }
+
+/* .ds2 - LucasArts wrapper [Star Wars: Bounty Hunter (GC)] */
+VGMSTREAM * init_vgmstream_dsp_ds2(STREAMFILE *streamFile) {
+    dsp_meta dspm = {0};
+    size_t file_size, channel_offset;
+
+    /* checks */
+    /* .ds2: real extension, dsp: fake/renamed */
+    if (!check_extensions(streamFile, "ds2"))
+        goto fail;
+    if (!(read_32bitBE(0x50,streamFile) == 0 &&
+          read_32bitBE(0x54,streamFile) == 0 &&
+          read_32bitBE(0x58,streamFile) == 0 &&
+          read_32bitBE(0x5c,streamFile) != 0))
+        goto fail;
+    file_size = get_streamfile_size(streamFile);
+    channel_offset = read_32bitBE(0x5c,streamFile);  /* absolute offset to 2nd channel */
+    /* just to make sure */
+    if (channel_offset < file_size / 2 || channel_offset > file_size)
+        goto fail;
+
+    dspm.channel_count = 2;
+    dspm.max_channels = 2;
+    dspm.single_header = 1;
+
+    dspm.header_offset = 0x00;
+    dspm.header_spacing = 0x00;
+    dspm.start_offset = 0x60;
+    dspm.interleave = channel_offset - dspm.start_offset;
+
+    dspm.meta_type = meta_DSP_DS2;
+    return init_vgmstream_dsp_common(streamFile, &dspm);
+fail:
+    return NULL;
+}
