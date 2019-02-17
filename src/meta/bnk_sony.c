@@ -176,8 +176,15 @@ VGMSTREAM * init_vgmstream_bnk_sony(STREAMFILE *streamFile) {
                     case 0xC2: sample_rate = 44100; break;
                     case 0xBC: sample_rate = 36000; break; //?
                     case 0xBA: sample_rate = 32000; break; //?
+                    case 0xB9: sample_rate = 30000; break; //?
+                    case 0xB8: sample_rate = 28000; break; //?
                     case 0xB6: sample_rate = 22050; break;
+                    case 0xB0: sample_rate = 15000; break; //?
+                    case 0xAF: sample_rate = 14000; break; //?
+                    case 0xAE: sample_rate = 13000; break; //?
+                    case 0xAC: sample_rate = 12000; break; //?
                     case 0xAA: sample_rate = 11025; break;
+                    case 0xA9: sample_rate = 10000; break; //?
                     default:
                         VGM_LOG("BNK: unknown pitch %x\n", pitch);
                         goto fail;
