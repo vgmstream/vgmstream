@@ -203,12 +203,12 @@ VGMSTREAM * init_vgmstream_ubi_bao_spk(STREAMFILE *streamFile) {
     /* Variation of .pk:
      * - 0x00: 0x014B5053 ("SPK\01" LE)
      * - 0x04: BAO count
-     * - 0x08 * count: BAO ids inside
+     * - 0x08: BAO ids inside (0x04 * BAO count)
      * - per BAO count
-     *   - 0x00: 1?
-     *   - 0x04: id that references this? (ex. id of an event BAO)
-     *   - 0x08: BAO size
-     *   - 0x0c+: BAO data
+     *   - 0x00: table count
+     *   - 0x04: ids related to this BAO? (0x04 * table count)
+     *   - 0x08/NN: BAO size
+     *   - 0x0c/NN+: BAO data up to size
      *
      * BAOs reference .sbao by name (are considered atomic) so perhaps could
      * be considered a type of bigfile.
@@ -690,12 +690,12 @@ static VGMSTREAM * init_vgmstream_ubi_bao_header(ubi_bao_header * bao, STREAMFIL
         goto fail; /* not uncommon */
     }
 
-    ;VGM_LOG("UBI BAO: target at %x, h_id=%08x, s_id=%08x, p_id=%08x\n",
-        (uint32_t)bao->header_offset, bao->header_id, bao->stream_id, bao->prefetch_id);
-    ;VGM_LOG("UBI BAO: stream=%x, size=%x, res=%s\n",
-            (uint32_t)bao->stream_offset, bao->stream_size, (bao->is_external ? bao->resource_name : "internal"));
-    ;VGM_LOG("UBI BAO: type=%i, header=%x, extra=%x, prefetch=%x, size=%x\n",
-            bao->header_type, bao->header_size, bao->extra_size, (uint32_t)bao->prefetch_offset, bao->prefetch_size);
+    //;VGM_LOG("UBI BAO: target at %x, h_id=%08x, s_id=%08x, p_id=%08x\n",
+    //    (uint32_t)bao->header_offset, bao->header_id, bao->stream_id, bao->prefetch_id);
+    //;VGM_LOG("UBI BAO: stream=%x, size=%x, res=%s\n",
+    //        (uint32_t)bao->stream_offset, bao->stream_size, (bao->is_external ? bao->resource_name : "internal"));
+    //;VGM_LOG("UBI BAO: type=%i, header=%x, extra=%x, prefetch=%x, size=%x\n",
+    //        bao->header_type, bao->header_size, bao->extra_size, (uint32_t)bao->prefetch_offset, bao->prefetch_size);
 
 
     switch(bao->type) {
@@ -800,8 +800,8 @@ static int parse_pk(ubi_bao_header * bao, STREAMFILE *streamFile) {
         bao_offset += bao_size; /* files simply concat BAOs */
     }
 
-    ;VGM_LOG("UBI BAO: class "); {int i; for (i=0;i<16;i++){ VGM_ASSERT(bao->classes[i],"%02x=%i ",i,bao->classes[i]); }} VGM_LOG("\n");
-    ;VGM_LOG("UBI BAO: types "); {int i; for (i=0;i<16;i++){ VGM_ASSERT(bao->types[i],"%02x=%i ",i,bao->types[i]); }} VGM_LOG("\n");
+    //;VGM_LOG("UBI BAO: class "); {int i; for (i=0;i<16;i++){ VGM_ASSERT(bao->classes[i],"%02x=%i ",i,bao->classes[i]); }} VGM_LOG("\n");
+    //;VGM_LOG("UBI BAO: types "); {int i; for (i=0;i<16;i++){ VGM_ASSERT(bao->types[i],"%02x=%i ",i,bao->types[i]); }} VGM_LOG("\n");
 
     close_streamfile(streamIndex);
     close_streamfile(streamTest);
@@ -1821,6 +1821,7 @@ static int config_bao_version(ubi_bao_header * bao, STREAMFILE *streamFile) {
             /* same as 0x001B0100 except:
              * - base 0xA0, skip 0x24, name style %08x.bao (not .sbao?) */
         case 0x001D0A00: /* Shaun White Snowboarding (PSP)-atomic-opal */
+        case 0x00220017: /* Avatar (PS3)-atomic/spk */
         case 0x00220018: /* Avatar (PS3)-atomic/spk */
         case 0x00260102: /* Prince of Persia Trilogy HD (PS3)-package-gear */
             /* similar to 0x00250108 but most values are moved +4
