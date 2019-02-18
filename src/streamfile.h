@@ -61,7 +61,7 @@
 typedef struct _STREAMFILE {
     size_t (*read)(struct _STREAMFILE *,uint8_t * dest, off_t offset, size_t length);
     size_t (*get_size)(struct _STREAMFILE *);
-    off_t (*get_offset)(struct _STREAMFILE *);    
+    off_t (*get_offset)(struct _STREAMFILE *);   //todo: DO NOT USE, NOT RESET PROPERLY (remove?)
     /* for dual-file support */
     void (*get_name)(struct _STREAMFILE *,char *name,size_t length);
     struct _STREAMFILE * (*open)(struct _STREAMFILE *,const char * const filename,size_t buffersize);

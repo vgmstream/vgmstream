@@ -123,6 +123,7 @@ static const char* extension_list[] = {
     "de2",
     "dec",
     "dmsg",
+    "ds2", //txth/reserved [Star Wars Bounty Hunter (GC)]
     "dsf",
     "dsp",
     "dspw",
@@ -1170,6 +1171,7 @@ static const meta_info meta_info_list[] = {
         {meta_GIN,                  "Electronic Arts Gnsu header"},
         {meta_DSF,                  "Ocean DSF header"},
         {meta_208,                  "Ocean .208 header"},
+        {meta_DSP_DS2,              "LucasArts .DS2 header"},
 
 };
 

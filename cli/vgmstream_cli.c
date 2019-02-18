@@ -216,6 +216,7 @@ fail:
 }
 
 static void print_info(VGMSTREAM * vgmstream, cli_config *cfg) {
+    int channels = vgmstream->channels;
     if (!cfg->play_sdtout) {
         if (cfg->print_adxencd) {
             printf("adxencd");
@@ -236,7 +237,7 @@ static void print_info(VGMSTREAM * vgmstream, cli_config *cfg) {
         else if (cfg->print_batchvar) {
             if (!cfg->print_metaonly)
                 printf("set fname=\"%s\"\n",cfg->outfilename);
-            printf("set tsamp=%d\nset chan=%d\n", vgmstream->num_samples, vgmstream->channels);
+            printf("set tsamp=%d\nset chan=%d\n", vgmstream->num_samples, channels);
             if (vgmstream->loop_flag)
                 printf("set lstart=%d\nset lend=%d\nset loop=1\n", vgmstream->loop_start_sample, vgmstream->loop_end_sample);
             else
@@ -312,16 +313,18 @@ static void apply_config(VGMSTREAM * vgmstream, cli_config *cfg) {
     }
 }
 
-void apply_fade(sample * buf, VGMSTREAM * vgmstream, int to_get, int i, int len_samples, int fade_samples) {
-    if (vgmstream->loop_flag && fade_samples > 0) {
+void apply_fade(sample * buf, VGMSTREAM * vgmstream, int to_get, int i, int len_samples, int fade_samples, int channels) {
+    int is_fade_on = vgmstream->loop_flag;
+
+    if (is_fade_on && fade_samples > 0) {
         int samples_into_fade = i - (len_samples - fade_samples);
         if (samples_into_fade + to_get > 0) {
             int j, k;
             for (j = 0; j < to_get; j++, samples_into_fade++) {
                 if (samples_into_fade > 0) {
                     double fadedness = (double)(fade_samples - samples_into_fade) / fade_samples;
-                    for (k = 0; k < vgmstream->channels; k++) {
-                        buf[j*vgmstream->channels+k] = (sample)buf[j*vgmstream->channels+k]*fadedness;
+                    for (k = 0; k < channels; k++) {
+                        buf[j*channels + k] = (sample)buf[j*channels + k] * fadedness;
                     }
                 }
             }
@@ -337,6 +340,7 @@ int main(int argc, char ** argv) {
     char outfilename_temp[PATH_LIMIT];
 
     sample * buf = NULL;
+    int channels;
     int32_t len_samples;
     int32_t fade_samples;
     int i, j;
@@ -453,20 +457,22 @@ int main(int argc, char ** argv) {
 
 
     /* last init */
-    buf = malloc(BUFFER_SAMPLES*sizeof(sample)*vgmstream->channels);
+    channels = vgmstream->channels;
+
+    buf = malloc(BUFFER_SAMPLES * sizeof(sample) * channels);
     if (!buf) {
         fprintf(stderr,"failed allocating output buffer\n");
-        goto fail;;
+        goto fail;
     }
 
     /* slap on a .wav header */
     {
         uint8_t wav_buf[0x100];
-        int channels = (cfg.only_stereo != -1) ? 2 : vgmstream->channels;
+        int channels_write = (cfg.only_stereo != -1) ? 2 : channels;
         size_t bytes_done;
 
         bytes_done = make_wav_header(wav_buf,0x100,
-                len_samples, vgmstream->sample_rate, channels,
+                len_samples, vgmstream->sample_rate, channels_write,
                 cfg.write_lwav, cfg.lwav_loop_start, cfg.lwav_loop_end);
 
         fwrite(wav_buf,sizeof(uint8_t),bytes_done,outfile);
@@ -477,15 +483,15 @@ int main(int argc, char ** argv) {
     while (cfg.play_forever) {
         int to_get = BUFFER_SAMPLES;
 
-        render_vgmstream(buf,to_get,vgmstream);
+        render_vgmstream(buf, to_get, vgmstream);
 
-        swap_samples_le(buf,vgmstream->channels*to_get); /* write PC endian */
+        swap_samples_le(buf, channels * to_get); /* write PC endian */
         if (cfg.only_stereo != -1) {
             for (j = 0; j < to_get; j++) {
-                fwrite(buf+j*vgmstream->channels+(cfg.only_stereo*2),sizeof(sample),2,outfile);
+                fwrite(buf + j*channels + (cfg.only_stereo*2), sizeof(sample), 2, outfile);
             }
         } else {
-            fwrite(buf,sizeof(sample)*vgmstream->channels,to_get,outfile);
+            fwrite(buf, sizeof(sample) * channels, to_get, outfile);
         }
     }
 
@@ -496,17 +502,17 @@ int main(int argc, char ** argv) {
         if (i + BUFFER_SAMPLES > len_samples)
             to_get = len_samples - i;
 
-        render_vgmstream(buf,to_get,vgmstream);
+        render_vgmstream(buf, to_get, vgmstream);
 
-        apply_fade(buf, vgmstream, to_get, i, len_samples, fade_samples);
+        apply_fade(buf, vgmstream, to_get, i, len_samples, fade_samples, channels);
 
-        swap_samples_le(buf,vgmstream->channels*to_get); /* write PC endian */
+        swap_samples_le(buf, channels * to_get); /* write PC endian */
         if (cfg.only_stereo != -1) {
             for (j = 0; j < to_get; j++) {
-                fwrite(buf+j*vgmstream->channels+(cfg.only_stereo*2),sizeof(sample),2,outfile);
+                fwrite(buf + j*channels + (cfg.only_stereo*2), sizeof(sample), 2, outfile);
             }
         } else {
-            fwrite(buf,sizeof(sample)*vgmstream->channels,to_get,outfile);
+            fwrite(buf, sizeof(sample) * channels, to_get, outfile);
         }
     }
 
@@ -535,11 +541,11 @@ int main(int argc, char ** argv) {
         /* slap on a .wav header */
         {
             uint8_t wav_buf[0x100];
-            int channels = (cfg.only_stereo != -1) ? 2 : vgmstream->channels;
+            int channels_write = (cfg.only_stereo != -1) ? 2 : channels;
             size_t bytes_done;
 
             bytes_done = make_wav_header(wav_buf,0x100,
-                    len_samples, vgmstream->sample_rate, channels,
+                    len_samples, vgmstream->sample_rate, channels_write,
                     cfg.write_lwav, cfg.lwav_loop_start, cfg.lwav_loop_end);
 
             fwrite(wav_buf,sizeof(uint8_t),bytes_done,outfile);
@@ -551,17 +557,17 @@ int main(int argc, char ** argv) {
             if (i + BUFFER_SAMPLES > len_samples)
                 to_get = len_samples - i;
 
-            render_vgmstream(buf,to_get,vgmstream);
+            render_vgmstream(buf, to_get, vgmstream);
 
-            apply_fade(buf, vgmstream, to_get, i, len_samples, fade_samples);
+            apply_fade(buf, vgmstream, to_get, i, len_samples, fade_samples, channels);
 
-            swap_samples_le(buf,vgmstream->channels*to_get); /* write PC endian */
+            swap_samples_le(buf, channels * to_get); /* write PC endian */
             if (cfg.only_stereo != -1) {
                 for (j = 0; j < to_get; j++) {
-                    fwrite(buf+j*vgmstream->channels+(cfg.only_stereo*2),sizeof(sample),2,outfile);
+                    fwrite(buf + j*channels + (cfg.only_stereo*2), sizeof(sample), 2, outfile);
                 }
             } else {
-                fwrite(buf,sizeof(sample)*vgmstream->channels,to_get,outfile);
+                fwrite(buf, sizeof(sample) * channels, to_get, outfile);
             }
         }
         fclose(outfile);
@@ -574,14 +580,12 @@ int main(int argc, char ** argv) {
     return EXIT_SUCCESS;
 
 fail:
-    if (!cfg.play_sdtout)
-    {
+    if (!cfg.play_sdtout) {
         if (outfile != NULL)
-        {
             fclose(outfile);
-        }
     }
     close_vgmstream(vgmstream);
+    free(buf);
     return EXIT_FAILURE;
 }
 

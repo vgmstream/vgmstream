@@ -136,8 +136,8 @@ VGMSTREAM * init_vgmstream_aix(STREAMFILE *streamFile) {
             /* setup layers */
             if (temp_vgmstream->num_samples != data->sample_counts[i] || temp_vgmstream->loop_flag != 0)
                 goto fail;
-            memcpy(temp_vgmstream->start_ch,temp_vgmstream->ch,sizeof(VGMSTREAMCHANNEL)*temp_vgmstream->channels);
-            memcpy(temp_vgmstream->start_vgmstream,temp_vgmstream,sizeof(VGMSTREAM));
+
+            setup_vgmstream(temp_vgmstream); /* final setup as the VGMSTREAM was created manually */
         }
     }
 

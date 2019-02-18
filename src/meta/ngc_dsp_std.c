@@ -223,7 +223,7 @@ static VGMSTREAM * init_vgmstream_dsp_common(STREAMFILE *streamFile, dsp_meta *d
     if (dspm->fix_looping && vgmstream->loop_end_sample > vgmstream->num_samples)
         vgmstream->loop_end_sample = vgmstream->num_samples;
 
-    if (dspm->single_header) {
+    if (dspm->single_header == 2) { /* double the samples */
         vgmstream->num_samples /= dspm->channel_count;
         vgmstream->loop_start_sample /= dspm->channel_count;
         vgmstream->loop_end_sample /= dspm->channel_count;
@@ -517,14 +517,13 @@ VGMSTREAM * init_vgmstream_ngc_mpdsp(STREAMFILE *streamFile) {
     if (!check_extensions(streamFile, "mpdsp"))
         goto fail;
 
-    /* at 0x48 is extra data that could help differenciating these DSPs, but other games
-     * put similar stuff there, needs more checks (ex. Battallion Wars, Army Men) */
-    //0x00005300 60A94000 64FF1200 00000000 00000000 00000000
+    /* at 0x48 is extra data that could help differenciating these DSPs, but seems like
+     * memory garbage created by the encoder that other games also have */
     /* 0x02(2): sample rate, 0x08+: channel sizes/loop offsets? */
 
     dspm.channel_count = 2;
     dspm.max_channels = 2;
-    dspm.single_header = 1;
+    dspm.single_header = 2;
 
     dspm.header_offset =  0x00;
     dspm.header_spacing = 0x00; /* same header for both channels */
@@ -1192,6 +1191,40 @@ VGMSTREAM * init_vgmstream_dsp_adpcmx(STREAMFILE *streamFile) {
     dspm.interleave = 0x08;
 
     dspm.meta_type = meta_DSP_ADPCMX;
+    return init_vgmstream_dsp_common(streamFile, &dspm);
+fail:
+    return NULL;
+}
+
+/* .ds2 - LucasArts wrapper [Star Wars: Bounty Hunter (GC)] */
+VGMSTREAM * init_vgmstream_dsp_ds2(STREAMFILE *streamFile) {
+    dsp_meta dspm = {0};
+    size_t file_size, channel_offset;
+
+    /* checks */
+    /* .ds2: real extension, dsp: fake/renamed */
+    if (!check_extensions(streamFile, "ds2,dsp"))
+        goto fail;
+    if (!(read_32bitBE(0x50,streamFile) == 0 &&
+          read_32bitBE(0x54,streamFile) == 0 &&
+          read_32bitBE(0x58,streamFile) == 0 &&
+          read_32bitBE(0x5c,streamFile) != 0))
+        goto fail;
+    file_size = get_streamfile_size(streamFile);
+    channel_offset = read_32bitBE(0x5c,streamFile);  /* absolute offset to 2nd channel */
+    if (channel_offset < file_size / 2 || channel_offset > file_size) /* just to make sure */
+        goto fail;
+
+    dspm.channel_count = 2;
+    dspm.max_channels = 2;
+    dspm.single_header = 1;
+
+    dspm.header_offset = 0x00;
+    dspm.header_spacing = 0x00;
+    dspm.start_offset = 0x60;
+    dspm.interleave = channel_offset - dspm.start_offset;
+
+    dspm.meta_type = meta_DSP_DS2;
     return init_vgmstream_dsp_common(streamFile, &dspm);
 fail:
     return NULL;

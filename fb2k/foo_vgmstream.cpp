@@ -131,11 +131,11 @@ void input_vgmstream::get_info(t_uint32 p_subsong, file_info & p_info, abort_cal
     int length_in_ms=0, channels = 0, samplerate = 0;
     int total_samples = -1;
     int bitrate = 0;
-    int loop_start = -1, loop_end = -1;
+    int loop_flag = -1, loop_start = -1, loop_end = -1;
     pfc::string8 description;
     pfc::string8_fast temp;
 
-    get_subsong_info(p_subsong, temp, &length_in_ms, &total_samples, &loop_start, &loop_end, &samplerate, &channels, &bitrate, description, p_abort);
+    get_subsong_info(p_subsong, temp, &length_in_ms, &total_samples, &loop_flag, &loop_start, &loop_end, &samplerate, &channels, &bitrate, description, p_abort);
 
 
     /* set tag info (metadata tab in file properties) */
@@ -193,7 +193,8 @@ void input_vgmstream::get_info(t_uint32 p_subsong, file_info & p_info, abort_cal
     p_info.info_set_bitrate(bitrate / 1000);
     if (total_samples > 0)
         p_info.info_set_int("stream_total_samples", total_samples);
-    if (loop_start >= 0 && loop_end >= loop_start) {
+    if (loop_start >= 0 && loop_end > loop_start) {
+        p_info.info_set("looping", loop_flag > 0 ? "enabled" : "disabled");
         p_info.info_set_int("loop_start", loop_start);
         p_info.info_set_int("loop_end", loop_end);
     }
@@ -440,7 +441,7 @@ void input_vgmstream::setup_vgmstream(abort_callback & p_abort) {
     fade_samples = (int)(config.song_fade_time * vgmstream->sample_rate);
 }
 
-void input_vgmstream::get_subsong_info(t_uint32 p_subsong, pfc::string_base & title, int *length_in_ms, int *total_samples, int *loop_start, int *loop_end, int *sample_rate, int *channels, int *bitrate, pfc::string_base & description, abort_callback & p_abort) {
+void input_vgmstream::get_subsong_info(t_uint32 p_subsong, pfc::string_base & title, int *length_in_ms, int *total_samples, int *loop_flag, int *loop_start, int *loop_end, int *sample_rate, int *channels, int *bitrate, pfc::string_base & description, abort_callback & p_abort) {
     VGMSTREAM * infostream = NULL;
     bool is_infostream = false;
     foobar_song_config infoconfig;
@@ -473,10 +474,9 @@ void input_vgmstream::get_subsong_info(t_uint32 p_subsong, pfc::string_base & ti
             *channels = infostream->channels;
             *total_samples = infostream->num_samples;
             *bitrate = get_vgmstream_average_bitrate(infostream);
-            if (infostream->loop_flag) {
-                *loop_start = infostream->loop_start_sample;
-                *loop_end = infostream->loop_end_sample;
-            }
+            *loop_flag = infostream->loop_flag;
+            *loop_start = infostream->loop_start_sample;
+            *loop_end = infostream->loop_end_sample;
 
             char temp[1024];
             describe_vgmstream(infostream, temp, 1024);

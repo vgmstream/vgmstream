@@ -27,7 +27,7 @@ VGMSTREAM * init_vgmstream_baf(STREAMFILE *streamFile) {
 
     /* 0x04: bank size */
     version = read_32bit(0x08,streamFile);
-    if (version != 0x03 && version != 0x04)
+    if (version != 0x03 && version != 0x04 && version != 0x05)
         goto fail;
     total_subsongs = read_32bit(0x0c,streamFile);
     if (target_subsong == 0) target_subsong = 1;
@@ -35,7 +35,7 @@ VGMSTREAM * init_vgmstream_baf(STREAMFILE *streamFile) {
     /* - in v3 */
     /* 0x10: 0? */
     /* 0x11: bank name */
-    /* - in v4 */
+    /* - in v4/5 */
     /* 0x10: 1? */
     /* 0x11: padding flag? */
     /* 0x12: bank name */
@@ -49,6 +49,11 @@ VGMSTREAM * init_vgmstream_baf(STREAMFILE *streamFile) {
             if (i+1 == target_subsong)
                 break;
             offset += read_32bit(offset+0x04, streamFile); /* WAVE size, variable per codec */
+
+            /* skip companion "CUE " (found in 007: Blood Stone, contains segment cues) */
+            if (read_32bitBE(offset+0x00, streamFile) == 0x43554520) {
+                offset += read_32bit(offset+0x04, streamFile); /* CUE size */
+            }
         }
         header_offset = offset;
     }
@@ -60,38 +65,63 @@ VGMSTREAM * init_vgmstream_baf(STREAMFILE *streamFile) {
     name_offset  = header_offset + 0x0c;
     start_offset = read_32bit(header_offset+0x2c, streamFile);
     stream_size    = read_32bit(header_offset+0x30, streamFile);
+
     switch(codec) {
         case 0x03:
             switch(version) {
                 case 0x03: /* Geometry Wars (PC) */
-                    sample_rate     = read_32bit(header_offset + 0x38, streamFile);
-                    channel_count   = read_32bit(header_offset + 0x40, streamFile);
+                    sample_rate     = read_32bit(header_offset+0x38, streamFile);
+                    channel_count   = read_32bit(header_offset+0x40, streamFile);
                     /* no actual flag, just loop +15sec songs */
                     loop_flag = (pcm_bytes_to_samples(stream_size, channel_count, 16) > 15*sample_rate);
                     break;
 
                 case 0x04: /* Project Gotham Racing 4 (X360) */
-                    sample_rate     = read_32bit(header_offset + 0x3c, streamFile);
-                    channel_count   = read_32bit(header_offset + 0x44, streamFile);
-                    loop_flag = read_8bit(header_offset+0x4b, streamFile);
+                    sample_rate     = read_32bit(header_offset+0x3c, streamFile);
+                    channel_count   = read_32bit(header_offset+0x44, streamFile);
+                    loop_flag        = read_8bit(header_offset+0x4b, streamFile);
                     break;
+
+                default:
+                    goto fail;
             }
             break;
 
-        case 0x07: /* Blur (PS3) */
-            sample_rate     = read_32bit(header_offset+0x40, streamFile);
-            loop_flag        = read_8bit(header_offset+0x48, streamFile);
-            channel_count    = read_8bit(header_offset+0x4b, streamFile);
+        case 0x07:
+            switch(version) {
+                case 0x04: /* Blur (PS3) */
+                case 0x05: /* James Bond 007: Blood Stone (X360) */
+                    sample_rate     = read_32bit(header_offset+0x40, streamFile);
+                    loop_flag        = read_8bit(header_offset+0x48, streamFile);
+                    channel_count    = read_8bit(header_offset+0x4b, streamFile);
+                    break;
+
+                default:
+                    goto fail;
+            }
             break;
 
-        case 0x08: /* Project Gotham Racing (X360) */
-            sample_rate     = read_32bit(header_offset+0x3c, streamFile);
-            channel_count   = read_32bit(header_offset+0x44, streamFile);
-            loop_flag = read_8bit(header_offset+0x54, streamFile) != 0;
+
+        case 0x08:
+            switch(version) {
+                case 0x04: /* Project Gotham Racing (X360) */
+                    sample_rate     = read_32bit(header_offset+0x3c, streamFile);
+                    channel_count   = read_32bit(header_offset+0x44, streamFile);
+                    loop_flag        = read_8bit(header_offset+0x54, streamFile) != 0;
+                    break;
+
+                case 0x05: /* James Bond 007: Blood Stone (X360) */
+                    sample_rate     = read_32bit(header_offset+0x40, streamFile);
+                    channel_count   = read_32bit(header_offset+0x48, streamFile);
+                    loop_flag        = read_8bit(header_offset+0x58, streamFile) != 0;
+                    break;
+
+                default:
+                    goto fail;
+            }
             break;
 
         default:
-            VGM_LOG("BAF: unknown version %x\n", version);
             goto fail;
     }
     /* others: pan/vol? fixed values? (0x19, 0x10) */
