@@ -56,6 +56,9 @@ VGMSTREAM * init_vgmstream_gin_header(STREAMFILE *streamFile, off_t offset) {
     vgmstream->coding_type = coding_EA_XAS_V0;
     vgmstream->layout_type = layout_none;
 
+    /* calculate size for TMX */
+    vgmstream->stream_size = (align_size_to_block(num_samples, 32) / 32) * 0x13;
+
     if (!vgmstream_open_stream(vgmstream, streamFile, start_offset))
         goto fail;
     return vgmstream;
