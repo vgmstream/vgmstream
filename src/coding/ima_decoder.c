@@ -948,8 +948,8 @@ void decode_ubi_ima(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspaci
         offset += 0x10 + 0x08;
         if (version >= 3)
             offset += 0x04;
-        //if (version >= 6) /* supposedly this exists, maybe in later BAOs */
-        //    offset += 0x08;
+        if (version >= 6) /* later BAOs */
+            offset += 0x08;
 
         /* write PCM samples, must be written to match header's num_samples (hist mustn't) */
         max_samples_to_do = ((samples_to_do > header_samples) ? header_samples : samples_to_do);

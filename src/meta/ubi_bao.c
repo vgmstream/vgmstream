@@ -108,6 +108,7 @@ typedef struct {
     int stream_type;
 
     int layer_count;
+    int layer_channels[BAO_MAX_LAYER_COUNT];
     int sequence_count;
     uint32_t sequence_chain[BAO_MAX_CHAIN_COUNT];
     int sequence_loop;
@@ -398,7 +399,8 @@ static VGMSTREAM * init_vgmstream_ubi_bao_base(ubi_bao_header * bao, STREAMFILE 
             vgmstream->layout_type = layout_none;
 
             vgmstream->num_samples = bao->num_samples; /* ffmpeg_data->totalSamples */
-            VGM_ASSERT(bao->num_samples != ffmpeg_data->totalSamples, "UBI BAO: header samples differ\n");
+            VGM_ASSERT(bao->num_samples != ffmpeg_data->totalSamples,
+                    "UBI BAO: header samples %i vs ffmpeg %i differ\n", bao->num_samples, (uint32_t)ffmpeg_data->totalSamples);
             break;
         }
 
@@ -425,7 +427,7 @@ static VGMSTREAM * init_vgmstream_ubi_bao_audio(ubi_bao_header * bao, STREAMFILE
 
     streamData = setup_bao_streamfile(bao, streamFile);
     if (!streamData) goto fail;
-//dump_streamfile(streamData, "test.out");
+
     vgmstream = init_vgmstream_ubi_bao_base(bao, streamFile, streamData);
     if (!vgmstream) goto fail;
 
@@ -446,7 +448,7 @@ static VGMSTREAM * init_vgmstream_ubi_bao_layer(ubi_bao_header *bao, STREAMFILE 
     STREAMFILE* temp_streamFile = NULL;
     STREAMFILE * streamData = NULL;
     size_t full_stream_size = bao->stream_size;
-    int i;
+    int i, total_channels = 0;
 
     streamData = setup_bao_streamfile(bao, streamFile);
     if (!streamData) goto fail;
@@ -463,6 +465,8 @@ static VGMSTREAM * init_vgmstream_ubi_bao_layer(ubi_bao_header *bao, STREAMFILE 
         if (!temp_streamFile) goto fail;
 
         bao->stream_size = get_streamfile_size(temp_streamFile);
+        bao->channels = bao->layer_channels[i];
+        total_channels += bao->layer_channels[i];
 
         /* build the layer VGMSTREAM (standard sb with custom streamfile) */
         data->layers[i] = init_vgmstream_ubi_bao_base(bao, streamFile, temp_streamFile);
@@ -476,7 +480,7 @@ static VGMSTREAM * init_vgmstream_ubi_bao_layer(ubi_bao_header *bao, STREAMFILE 
         goto fail;
 
     /* build the base VGMSTREAM */
-    vgmstream = allocate_vgmstream(bao->channels * bao->layer_count, bao->loop_flag);
+    vgmstream = allocate_vgmstream(total_channels, bao->loop_flag);
     if (!vgmstream) goto fail;
 
     vgmstream->meta_type = meta_UBI_BAO;
@@ -990,13 +994,13 @@ static int parse_type_layer(ubi_bao_header * bao, off_t offset, STREAMFILE* stre
 
     /* get 1st layer header in extra table and validate all headers match */
     table_offset = offset + bao->header_size + cues_size;
-    bao->channels       = read_32bit(table_offset + bao->cfg.layer_channels, streamFile);
+  //bao->channels       = read_32bit(table_offset + bao->cfg.layer_channels, streamFile);
     bao->sample_rate    = read_32bit(table_offset + bao->cfg.layer_sample_rate, streamFile);
     bao->stream_type    = read_32bit(table_offset + bao->cfg.layer_stream_type, streamFile);
     bao->num_samples    = read_32bit(table_offset + bao->cfg.layer_num_samples, streamFile);
 
     for (i = 0; i < bao->layer_count; i++) {
-      //int channels    = read_32bit(table_offset + bao->cfg.layer_channels, streamFile);
+        int channels    = read_32bit(table_offset + bao->cfg.layer_channels, streamFile);
         int sample_rate = read_32bit(table_offset + bao->cfg.layer_sample_rate, streamFile);
         int stream_type = read_32bit(table_offset + bao->cfg.layer_stream_type, streamFile);
         int num_samples = read_32bit(table_offset + bao->cfg.layer_num_samples, streamFile);
@@ -1004,15 +1008,14 @@ static int parse_type_layer(ubi_bao_header * bao, off_t offset, STREAMFILE* stre
             VGM_LOG("UBI BAO: layer headers don't match at %x\n", (uint32_t)table_offset);
 
             if (bao->cfg.layer_ignore_error) {
-                bao->layer_count -= 1;
-                break;
+                continue;
             }
 
             goto fail;
         }
 
-        /* unusual but happens, layers handle it fine [Rayman Raving Rabbids: TV Party (Wii) ex. 0x22000cbc.pk] */
-        //;VGM_ASSERT_ONCE(bao->channels != channels, "UBI BAO: layer channels don't match at %x\n", (uint32_t)table_offset);
+        /* uncommonly channels may vary per layer [Rayman Raving Rabbids: TV Party (Wii) ex. 0x22000cbc.pk] */
+        bao->layer_channels[i] = channels;
 
         /* can be +-1 */
         if (bao->num_samples != num_samples && bao->num_samples + 1 == num_samples) {
@@ -1641,7 +1644,7 @@ static int config_bao_version(ubi_bao_header * bao, STREAMFILE *streamFile) {
      * - 0x04+: mini header (varies with version, see parse_header)
      *
      * Then are divided into "classes":
-     * - 0x10000000: event (links by id to another event or header BAO)
+     * - 0x10000000: event (links by id to another event or header BAO, may set volume/reverb/filters/etc)
      * - 0x20000000: header
      * - 0x30000000: memory audio (in .pk/.bao)
      * - 0x40000000: project info
@@ -1649,6 +1652,7 @@ static int config_bao_version(ubi_bao_header * bao, STREAMFILE *streamFile) {
      * - 0x60000000: unused?
      * - 0x70000000: info? has a count+table of id-things
      * - 0x80000000: unknown (some floats?)
+     * - 0x90000000: unknown (some kind of command config?), rare [Ghost Recon Future Soldier (PC)]
      * Class 1/2/3 are roughly equivalent to Ubi SB's section1/2/3, and class 4 is
      * basically .spN project files.
      *
@@ -1810,6 +1814,29 @@ static int config_bao_version(ubi_bao_header * bao, STREAMFILE *streamFile) {
             bao->cfg.codec_map[0x06] = RAW_AT3;
             if (bao->version == 0x0025010A) /* no apparent flag */
                 bao->cfg.codec_map[0x06] = RAW_AT3_105;
+
+            bao->cfg.file_type = UBI_FORGE_b;
+            return 1;
+
+        case 0x00280303: /* Tom Clancy's Ghost Recon Future Soldier (PC/PS3)-pk */
+            config_bao_entry(bao, 0xBC, 0x28); /* PC/PS3: 0xBC */
+
+            config_bao_audio_b(bao, 0x08, 0x38, 0x3c, 0x48, 1, 1);
+            config_bao_audio_m(bao, 0x54, 0x5c, 0x64, 0x6c, 0x74, 0x80);
+
+            config_bao_sequence(bao, 0x48, 0x3c, 0x38, 0x14);
+
+            config_bao_layer_m(bao, 0x00, 0x3c, 0x44, 0x58, 0x60, 0x64, 0x00, 0x00, 1);
+            config_bao_layer_e(bao, 0x2c, 0x00, 0x04, 0x08, 0x1c);
+            bao->cfg.layer_ignore_error = 1; //todo some layer sample rates don't match
+            //todo some files have strange prefetch+stream of same size (2 segments?), ex. CEND_30_VOX.lpk
+
+            config_bao_silence_f(bao, 0x38);
+
+            bao->cfg.codec_map[0x01] = RAW_PCM;
+            bao->cfg.codec_map[0x02] = UBI_IMA; /* v6 */
+            bao->cfg.codec_map[0x04] = FMT_OGG;
+            bao->cfg.codec_map[0x07] = RAW_AT3; //todo some layers use AT3_105
 
             bao->cfg.file_type = UBI_FORGE_b;
             return 1;
