@@ -741,8 +741,9 @@ static int get_xsb_name(char * buf, size_t maxsize, int target_subsong, xwb_head
     xsb.xsb_wavebanks = calloc(xsb.xsb_wavebanks_count, sizeof(xsb_wavebank));
     if (!xsb.xsb_wavebanks) goto fail;
 
-    /* The following is a bizarre soup of flags, tables, offsets to offsets and stuff, just to get the actual name.
-     * info: https://wiki.multimedia.cx/index.php/XACT */
+    /* The following is a bizarre soup of flags, tables, offsets to offsets and stuff, just to get the actual name. Info:
+     * - https://wiki.multimedia.cx/index.php/XACT
+     * - https://github.com/MonoGame/MonoGame/blob/master/MonoGame.Framework/Audio/Xact/SoundBank.cs*/
 
     /* parse xsb sounds */
     off = xsb.xsb_sounds_offset;
