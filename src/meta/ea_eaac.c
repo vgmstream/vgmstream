@@ -1054,6 +1054,9 @@ static size_t calculate_eaac_size(VGMSTREAM *vgmstream, STREAMFILE *streamFile, 
     uint32_t total_samples;
     size_t stream_size, file_size;
 
+    if (streamFile == NULL)
+        return 0;
+
     switch (eaac->codec) {
         case EAAC_CODEC_EAXMA:
         case EAAC_CODEC_EALAYER3_V1:
@@ -1154,6 +1157,7 @@ static segmented_layout_data* build_segmented_eaaudiocore_looping(STREAMFILE *st
         if (!vgmstream_open_stream(data->segments[i],temp_streamFile[i],0x00))
             goto fail;
 
+        //todo temp_streamFile doesn't contain EAXMA's streamfile
         data->segments[i]->stream_size = calculate_eaac_size(data->segments[i], temp_streamFile[i], eaac, 0x00);
     }
 
