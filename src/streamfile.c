@@ -1111,13 +1111,19 @@ void get_streamfile_ext(STREAMFILE *streamFile, char * filename, size_t size) {
 }
 
 /* debug util, mainly for custom IO testing */
-void dump_streamfile(STREAMFILE *streamFile, const char* out) {
+void dump_streamfile(STREAMFILE *streamFile, int num) {
 #ifdef VGM_DEBUG_OUTPUT
     off_t offset = 0;
     FILE *f = NULL;
 
-    if (out) {
-        f = fopen(out,"wb");
+    if (num >= 0) {
+        char filename[PATH_LIMIT];
+        char dumpname[PATH_LIMIT];
+
+        get_streamfile_filename(streamFile, filename, PATH_LIMIT);
+        snprintf(dumpname,PATH_LIMIT, "%s_%i.dump", filename, num);
+
+        f = fopen(dumpname,"wb");
         if (!f) return;
     }
 
@@ -1127,14 +1133,14 @@ void dump_streamfile(STREAMFILE *streamFile, const char* out) {
         size_t read;
 
         read = read_streamfile(buffer,offset,0x8000,streamFile);
-        if (out)
+        if (f)
             fwrite(buffer,sizeof(uint8_t),read, f);
         else
             VGM_LOGB(buffer,read,0);
         offset += read;
     }
 
-    if (out) {
+    if (f) {
         fclose(f);
     }
 #endif

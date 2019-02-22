@@ -231,5 +231,5 @@ void get_streamfile_basename(STREAMFILE *streamFile, char * buffer, size_t size)
 void get_streamfile_path(STREAMFILE *streamFile, char * buffer, size_t size);
 void get_streamfile_ext(STREAMFILE *streamFile, char * filename, size_t size);
 
-void dump_streamfile(STREAMFILE *streamFile, const char* out);
+void dump_streamfile(STREAMFILE *streamFile, int num);
 #endif
