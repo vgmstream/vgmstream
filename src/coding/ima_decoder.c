@@ -236,6 +236,33 @@ static void ffta2_ima_expand_nibble(VGMSTREAMCHANNEL * stream, off_t byte_offset
     if (*step_index > 88) *step_index=88;
 }
 
+/* Yet another IMA expansion, from the exe */
+static void blitz_ima_expand_nibble(VGMSTREAMCHANNEL * stream, off_t byte_offset, int nibble_shift, int32_t * hist1, int32_t * step_index) {
+    int sample_nibble, sample_decoded, step, delta;
+
+    sample_nibble = (read_8bit(byte_offset,stream->streamfile) >> nibble_shift)&0xf; /* ADPCM code */
+    sample_decoded = *hist1; /* predictor value */
+    step = ADPCMTable[*step_index]; /* current step */
+
+    /* table has 2 different values, not enough to bother adding the full table */
+    if (step == 22385)
+        step = 22358;
+    else if (step == 24623)
+        step = 24633;
+
+    delta = (sample_nibble & 0x07);
+    if (sample_nibble & 8) delta = -delta;
+    delta = (step >> 1) + delta * step; /* custom */
+    sample_decoded += delta;
+
+    /* somehow the exe tries to clamp hist, but actually doesn't (bug?),
+     * not sure if pcm buffer would be clamped outside though */
+    *hist1 = sample_decoded;//clamp16(sample_decoded);
+    *step_index += IMA_IndexTable[sample_nibble];
+    if (*step_index < 0) *step_index=0;
+    if (*step_index > 88) *step_index=88;
+}
+
 /* ************************************ */
 /* DVI/IMA                              */
 /* ************************************ */
@@ -397,6 +424,28 @@ void decode_ffta2_ima(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspa
 
         ffta2_ima_expand_nibble(stream, byte_offset,nibble_shift, &hist1, &step_index, &out_sample);
         outbuf[sample_count] = out_sample;
+    }
+
+    stream->adpcm_history1_32 = hist1;
+    stream->adpcm_step_index = step_index;
+}
+
+/* Blitz IMA, IMA with custom nibble expand */
+void decode_blitz_ima(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
+    int i, sample_count;
+    int32_t hist1 = stream->adpcm_history1_32;
+    int step_index = stream->adpcm_step_index;
+
+    //external interleave
+
+    //no header
+
+    for (i=first_sample,sample_count=0; i<first_sample+samples_to_do; i++,sample_count+=channelspacing) {
+        off_t byte_offset = stream->offset + i/2;
+        int nibble_shift = (i&1?4:0); //low nibble first
+
+        blitz_ima_expand_nibble(stream, byte_offset,nibble_shift, &hist1, &step_index);
+        outbuf[sample_count] = (short)(hist1);
     }
 
     stream->adpcm_history1_32 = hist1;
