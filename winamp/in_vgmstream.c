@@ -994,21 +994,26 @@ int winamp_IsOurFile(const in_char *fn) {
     const in_char *filename;
     const in_char *extension;
 
-    /* get basename + extension */
-    filename = fn;
-#if 0
-    //must detect empty extensions in folders with . in the name; doesn't work ok?
+    /* favor strrchr (optimized/aligned) rather than homemade loops */
+
+    /* find possible separator first to avoid misdetecting folders with dots + extensionless files
+     * (allow both slashes as plugin could pass normalized '/') */
     filename = wa_strrchr(fn, wa_L('\\'));
-    if (filename == NULL)
-        filename = fn;
+    if (filename != NULL)
+        filename++; /* skip separator */
+    else {
+        filename = wa_strrchr(fn, wa_L('/'));
+        if (filename != NULL)
+            filename++; /* skip separator */
+        else
+            filename = fn; /* pathname has no separators (single filename) */
+    }
+
+    extension = wa_strrchr(filename,'.');
+    if (extension != NULL)
+        extension++; /* skip dot */
     else
-        filename++;
-#endif
-    extension = wa_strrchr(filename, wa_L('.'));
-    if (extension == NULL)
         return 1; /* extensionless, try to play it */
-    else
-        extension++;
 
     /* returning 0 here means it only accepts the extensions in working_extension_list */
     /* it's possible to ignore the list and manually accept extensions, like foobar's g_is_our_path */
