@@ -1121,7 +1121,7 @@ void dump_streamfile(STREAMFILE *streamFile, int num) {
         char dumpname[PATH_LIMIT];
 
         get_streamfile_filename(streamFile, filename, PATH_LIMIT);
-        snprintf(dumpname,PATH_LIMIT, "%s_%i.dump", filename, num);
+        snprintf(dumpname,PATH_LIMIT, "%s_%02i.dump", filename, num);
 
         f = fopen(dumpname,"wb");
         if (!f) return;
