@@ -1302,10 +1302,14 @@
 					RelativePath=".\meta\xa.c"
 					>
 				</File>
-				<File
-					RelativePath=".\meta\fag.c"
-					>
-				</File>
+                <File
+                    RelativePath=".\meta\fag.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\ffdl.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\psx_gms.c"
 					>
