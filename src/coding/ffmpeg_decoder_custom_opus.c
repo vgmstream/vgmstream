@@ -523,9 +523,9 @@ static size_t get_xopus_packet_size(int packet, STREAMFILE * streamfile) {
 
 #ifdef VGM_USE_FFMPEG
 
-static size_t custom_opus_get_samples(off_t offset, size_t data_size, STREAMFILE *streamFile, opus_type_t type) {
+static size_t custom_opus_get_samples(off_t offset, size_t stream_size, STREAMFILE *streamFile, opus_type_t type) {
     size_t num_samples = 0;
-    off_t end_offset = offset + data_size;
+    off_t end_offset = offset + stream_size;
     int packet = 0;
 
     if (end_offset > get_streamfile_size(streamFile)) {
@@ -569,8 +569,8 @@ static size_t custom_opus_get_samples(off_t offset, size_t data_size, STREAMFILE
     return num_samples;
 }
 
-size_t switch_opus_get_samples(off_t offset, size_t data_size, STREAMFILE *streamFile) {
-    return custom_opus_get_samples(offset, data_size, streamFile, OPUS_SWITCH);
+size_t switch_opus_get_samples(off_t offset, size_t stream_size, STREAMFILE *streamFile) {
+    return custom_opus_get_samples(offset, stream_size, streamFile, OPUS_SWITCH);
 }
 
 
