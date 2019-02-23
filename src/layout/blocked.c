@@ -5,7 +5,7 @@
 /* Decodes samples for blocked streams.
  * Data is divided into headered blocks with a bunch of data. The layout calls external helper functions
  * when a block is decoded, and those must parse the new block and move offsets accordingly. */
-void render_vgmstream_blocked(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstream) {
+void render_vgmstream_blocked(sample_t * buffer, int32_t sample_count, VGMSTREAM * vgmstream) {
     int samples_written = 0;
     int frame_size, samples_per_frame, samples_this_block;
 
@@ -41,14 +41,14 @@ void render_vgmstream_blocked(sample * buffer, int32_t sample_count, VGMSTREAM *
         if (samples_this_block < 0) {
             /* probably block bug or EOF, next calcs would give wrong values/segfaults/infinite loop */
             VGM_LOG("layout_blocked: wrong block samples at 0x%x\n", (uint32_t)vgmstream->current_block_offset);
-            memset(buffer + samples_written*vgmstream->channels, 0, (sample_count - samples_written) * vgmstream->channels * sizeof(sample));
+            memset(buffer + samples_written*vgmstream->channels, 0, (sample_count - samples_written) * vgmstream->channels * sizeof(sample_t));
             break;
         }
 
         if (vgmstream->current_block_offset < 0 || vgmstream->current_block_offset == 0xFFFFFFFF) {
             /* probably block bug or EOF, block functions won't be able to read anything useful/infinite loop */
             VGM_LOG("layout_blocked: wrong block offset found\n");
-            memset(buffer + samples_written*vgmstream->channels, 0, (sample_count - samples_written) * vgmstream->channels * sizeof(sample));
+            memset(buffer + samples_written*vgmstream->channels, 0, (sample_count - samples_written) * vgmstream->channels * sizeof(sample_t));
             break;
         }
 

@@ -6,7 +6,7 @@
  * Data has interleaved chunks per channel, and once one is decoded the layout moves offsets,
  * skipping other chunks (essentially a simplified variety of blocked layout).
  * Incompatible with decoders that move offsets. */
-void render_vgmstream_interleave(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstream) {
+void render_vgmstream_interleave(sample_t * buffer, int32_t sample_count, VGMSTREAM * vgmstream) {
     int samples_written = 0;
     int frame_size, samples_per_frame, samples_this_block;
     int has_interleave_last = vgmstream->interleave_last_block_size && vgmstream->channels > 1;
@@ -49,7 +49,7 @@ void render_vgmstream_interleave(sample * buffer, int32_t sample_count, VGMSTREA
 
         if (samples_to_do == 0) { /* happens when interleave is not set */
             VGM_LOG("layout_interleave: wrong samples_to_do found\n");
-            memset(buffer + samples_written*vgmstream->channels, 0, (sample_count - samples_written) * vgmstream->channels * sizeof(sample));
+            memset(buffer + samples_written*vgmstream->channels, 0, (sample_count - samples_written) * vgmstream->channels * sizeof(sample_t));
             break;
         }
 

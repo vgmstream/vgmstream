@@ -2,7 +2,7 @@
 #include "../vgmstream.h"
 #include "../coding/coding.h"
 
-void render_vgmstream_aix(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstream) {
+void render_vgmstream_aix(sample_t * buffer, int32_t sample_count, VGMSTREAM * vgmstream) {
     int samples_written=0;
     aix_codec_data *data = vgmstream->codec_data;
 

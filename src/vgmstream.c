@@ -1080,7 +1080,7 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
     /* swap channels if set, to create custom channel mappings */
     if (vgmstream->channel_mappings_on) {
         int ch_from,ch_to,s;
-        sample temp;
+        sample_t temp;
         for (s = 0; s < sample_count; s++) {
             for (ch_from = 0; ch_from < vgmstream->channels; ch_from++) {
                 if (ch_from > 32)
@@ -1492,7 +1492,7 @@ int get_vgmstream_shortframe_size(VGMSTREAM * vgmstream) {
 
 /* Decode samples into the buffer. Assume that we have written samples_written into the
  * buffer already, and we have samples_to_do consecutive samples ahead of us. */
-void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to_do, sample * buffer) {
+void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to_do, sample_t * buffer) {
     int ch;
 
     switch (vgmstream->coding_type) {

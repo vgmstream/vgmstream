@@ -5,7 +5,7 @@
 /* Decodes samples for segmented streams.
  * Chains together sequential vgmstreams, for data divided into separate sections or files
  * (like one part for intro and other for loop segments, which may even use different codecs). */
-void render_vgmstream_segmented(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstream) {
+void render_vgmstream_segmented(sample_t * buffer, int32_t sample_count, VGMSTREAM * vgmstream) {
     int samples_written = 0, loop_samples_skip = 0;
     segmented_layout_data *data = vgmstream->layout_data;
 

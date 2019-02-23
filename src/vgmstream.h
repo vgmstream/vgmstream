@@ -1066,21 +1066,21 @@ typedef struct {
 
 #ifdef VGM_USE_G7221
 typedef struct {
-    sample buffer[640];
+    sample_t buffer[640];
     g7221_handle *handle;
 } g7221_codec_data;
 #endif
 
 #ifdef VGM_USE_G719
 typedef struct {
-   sample buffer[960];
+   sample_t buffer[960];
    void *handle;
 } g719_codec_data;
 #endif
 
 #ifdef VGM_USE_MAIATRAC3PLUS
 typedef struct {
-    sample *buffer;
+    sample_t *buffer;
     int channels;
     int samples_discard;
     void *handle;
@@ -1112,7 +1112,7 @@ typedef struct {
 #define AIX_BUFFER_SIZE 0x1000
 /* AIXery */
 typedef struct {
-    sample buffer[AIX_BUFFER_SIZE];
+    sample_t buffer[AIX_BUFFER_SIZE];
     int segment_count;
     int stream_count;
     int current_segment;
@@ -1340,7 +1340,7 @@ int get_vgmstream_shortframe_size(VGMSTREAM * vgmstream);
 
 /* Decode samples into the buffer. Assume that we have written samples_written into the
  * buffer already, and we have samples_to_do consecutive samples ahead of us. */
-void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to_do, sample * buffer);
+void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to_do, sample_t * buffer);
 
 /* Calculate number of consecutive samples to do (taking into account stopping for loop start and end) */
 int vgmstream_samples_to_do(int samples_this_block, int samples_per_frame, VGMSTREAM * vgmstream);
