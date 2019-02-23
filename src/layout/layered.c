@@ -5,6 +5,8 @@
 /* NOTE: if loop settings change the layered vgmstreams must be notified (preferably using vgmstream_force_loop) */
 #define LAYER_BUF_SIZE 512
 #define LAYER_MAX_CHANNELS 6 /* at least 2, but let's be generous */
+#define VGMSTREAM_MAX_LAYERS 255
+
 
 /* Decodes samples for layered streams.
  * Similar to interleave layout, but decodec samples are mixed from complete vgmstreams, each
@@ -53,7 +55,7 @@ void render_vgmstream_layered(sample_t * buffer, int32_t sample_count, VGMSTREAM
 layered_layout_data* init_layout_layered(int layer_count) {
     layered_layout_data *data = NULL;
 
-    if (layer_count <= 0 || layer_count > 255)
+    if (layer_count <= 0 || layer_count > VGMSTREAM_MAX_LAYERS)
         goto fail;
 
     data = calloc(1, sizeof(layered_layout_data));

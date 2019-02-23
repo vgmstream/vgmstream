@@ -8,6 +8,7 @@
  /* reasonable maxs */
 enum { PATH_LIMIT = 32768 };
 enum { STREAM_NAME_SIZE = 255 };
+enum { VGMSTREAM_MAX_CHANNELS = 64 };
 
 #include "streamfile.h"
 

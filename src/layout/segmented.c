@@ -2,6 +2,9 @@
 #include "../vgmstream.h"
 
 
+#define VGMSTREAM_MAX_SEGMENTS 255
+
+
 /* Decodes samples for segmented streams.
  * Chains together sequential vgmstreams, for data divided into separate sections or files
  * (like one part for intro and other for loop segments, which may even use different codecs). */
@@ -85,7 +88,7 @@ void render_vgmstream_segmented(sample_t * buffer, int32_t sample_count, VGMSTRE
 segmented_layout_data* init_layout_segmented(int segment_count) {
     segmented_layout_data *data = NULL;
 
-    if (segment_count <= 0 || segment_count > 255)
+    if (segment_count <= 0 || segment_count > VGMSTREAM_MAX_SEGMENTS)
         goto fail;
 
     data = calloc(1, sizeof(segmented_layout_data));

@@ -701,7 +701,7 @@ VGMSTREAM * allocate_vgmstream(int channel_count, int loop_flag) {
     VGMSTREAM * vgmstream;
 
     /* up to ~16-24 aren't too rare for multilayered files, more is probably a bug */
-    if (channel_count <= 0 || channel_count > 64) {
+    if (channel_count <= 0 || channel_count > VGMSTREAM_MAX_CHANNELS) {
         VGM_LOG("VGMSTREAM: error allocating %i channels\n", channel_count);
         return NULL;
     }
