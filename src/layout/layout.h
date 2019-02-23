@@ -52,8 +52,6 @@ void render_vgmstream_interleave(sample_t * buffer, int32_t sample_count, VGMSTR
 
 void render_vgmstream_flat(sample_t * buffer, int32_t sample_count, VGMSTREAM * vgmstream);
 
-void render_vgmstream_aix(sample_t * buffer, int32_t sample_count, VGMSTREAM * vgmstream);
-
 void render_vgmstream_segmented(sample_t * buffer, int32_t sample_count, VGMSTREAM * vgmstream);
 segmented_layout_data* init_layout_segmented(int segment_count);
 int setup_layout_segmented(segmented_layout_data* data);

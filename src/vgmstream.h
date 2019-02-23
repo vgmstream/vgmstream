@@ -265,7 +265,6 @@ typedef enum {
     layout_blocked_vs_square,
 
     /* otherwise odd */
-    layout_aix,             /* CRI AIX's wheels within wheels */
     layout_segmented,       /* song divided in segments (song sections) */
     layout_layered,         /* song divided in layers (song channels) */
 
@@ -1108,20 +1107,6 @@ typedef struct {
     void *handle;
     void *io_config;
 } acm_codec_data;
-
-#define AIX_BUFFER_SIZE 0x1000
-/* AIXery */
-typedef struct {
-    sample_t buffer[AIX_BUFFER_SIZE];
-    int segment_count;
-    int stream_count;
-    int current_segment;
-    /* one per segment */
-    int32_t *sample_counts;
-    /* organized like:
-     * segment1_stream1, segment1_stream2, segment2_stream1, segment2_stream2*/
-    VGMSTREAM **adxs;
-} aix_codec_data;
 
 /* for files made of "continuous" segments, one per section of a song (using a complete sub-VGMSTREAM) */
 typedef struct {

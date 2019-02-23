@@ -602,7 +602,7 @@ void reset_vgmstream(VGMSTREAM * vgmstream) {
      * Otherwise hit_loop will be 0 and it will be copied over anyway when we
      * really hit the loop start. */
 
-    /* reset custom codec and layout data */
+    /* reset custom codec */
 #ifdef VGM_USE_VORBIS
     if (vgmstream->coding_type == coding_OGG_VORBIS) {
         reset_ogg_vorbis(vgmstream);
@@ -679,21 +679,10 @@ void reset_vgmstream(VGMSTREAM * vgmstream) {
 
     if (vgmstream->coding_type == coding_NWA) {
         nwa_codec_data *data = vgmstream->codec_data;
-        if (data)
-            reset_nwa(data->nwa);
+        if (data) reset_nwa(data->nwa);
     }
 
-
-    if (vgmstream->layout_type == layout_aix) {
-        aix_codec_data *data = vgmstream->codec_data;
-        int i;
-
-        data->current_segment = 0;
-        for (i = 0; i < data->segment_count*data->stream_count; i++) {
-            reset_vgmstream(data->adxs[i]);
-        }
-    }
-
+    /* reset custom layouts */
     if (vgmstream->layout_type == layout_segmented) {
         reset_layout_segmented(vgmstream->layout_data);
     }
@@ -703,7 +692,7 @@ void reset_vgmstream(VGMSTREAM * vgmstream) {
     }
 
     /* note that this does not reset the constituent STREAMFILES
-     * (ch's streamfiles init in metas, nor their internal state) */
+     * (vgmstream->ch[N].streamfiles' internal state, though shouldn't matter) */
 }
 
 /* Allocate memory and setup a VGMSTREAM */
@@ -875,28 +864,6 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
 
 
     /* free custom layouts */
-    if (vgmstream->layout_type == layout_aix) {
-        aix_codec_data *data = (aix_codec_data *) vgmstream->codec_data;
-
-        if (data) {
-            if (data->adxs) {
-                int i;
-                for (i = 0; i < data->segment_count*data->stream_count; i++) {
-                    /* note that the close_streamfile won't do anything but deallocate itself,
-                     * there is only one open file in vgmstream->ch[0].streamfile */
-                    close_vgmstream(data->adxs[i]);
-                }
-                free(data->adxs);
-            }
-            if (data->sample_counts) {
-                free(data->sample_counts);
-            }
-
-            free(data);
-        }
-        vgmstream->codec_data = NULL;
-    }
-
     if (vgmstream->layout_type == layout_segmented) {
         free_layout_segmented(vgmstream->layout_data);
         vgmstream->layout_data = NULL;
@@ -1062,9 +1029,6 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
         case layout_blocked_xa_aiff:
         case layout_blocked_vs_square:
             render_vgmstream_blocked(buffer,sample_count,vgmstream);
-            break;
-        case layout_aix:
-            render_vgmstream_aix(buffer,sample_count,vgmstream);
             break;
         case layout_segmented:
             render_vgmstream_segmented(buffer,sample_count,vgmstream);
@@ -2781,8 +2745,7 @@ int vgmstream_open_stream(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t s
 
 
     /* stream/offsets not needed, managed by layout */
-    if (vgmstream->layout_type == layout_aix ||
-        vgmstream->layout_type == layout_segmented ||
+    if (vgmstream->layout_type == layout_segmented ||
         vgmstream->layout_type == layout_layered)
         return 1;
 

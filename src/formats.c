@@ -700,7 +700,6 @@ static const layout_info layout_info_list[] = {
 
         {layout_segmented,              "segmented"},
         {layout_layered,                "layered"},
-        {layout_aix,                    "AIX"},
 
         {layout_blocked_mxch,           "blocked (MxCh)"},
         {layout_blocked_ast,            "blocked (AST)"},

@@ -1991,10 +1991,6 @@
 					>
 				</File>
 				<File
-					RelativePath=".\layout\aix_layout.c"
-					>
-				</File>
-				<File
 					RelativePath=".\layout\blocked_ast.c"
 					>
 				</File>
