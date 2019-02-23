@@ -13,9 +13,11 @@ VGMSTREAM * init_vgmstream_ffdl(STREAMFILE *sf) {
 
 
     /* checks */
-    /* .ogg/logg: probably extension
-     * (extensionless): for files without names in Android .obb bigfile */
-    if (!check_extensions(sf, "ogg,logg,bin,"))
+    /* .ogg/logg: probable extension for Android
+     * .mp4/lmp4: probable extension for iOS
+     * .bin: iOS FFDL extension
+     * (extensionless): for FFDL files without names in Android .obb bigfile */
+    if (!check_extensions(sf, "ogg,logg,mp4,lmp4,bin,"))
         goto fail;
 
     /* "FFDL" is a wrapper used in all of the game's files, that may contain standard
@@ -42,17 +44,29 @@ VGMSTREAM * init_vgmstream_ffdl(STREAMFILE *sf) {
         start_offset += 0x10;
     }
 
+    /* don't parse regular files */
     if (!is_ffdl)
-        goto fail; /* don't parse regular files */
+        goto fail;
 
     file_size = get_streamfile_size(sf) - start_offset;
 
-    if (read_u32be(start_offset,sf) == 0x4F676753) { /* "OggS" */
+    if (read_u32be(start_offset + 0x00,sf) == 0x4F676753) { /* "OggS" */
+#ifdef VGM_USE_VORBIS
         temp_sf = setup_subfile_streamfile(sf, start_offset, file_size, "ogg");
         if (!temp_sf) goto fail;
 
-#ifdef VGM_USE_VORBIS
         vgmstream = init_vgmstream_ogg_vorbis(temp_sf);
+        if (!vgmstream) goto fail;
+#else
+    goto fail;
+#endif
+    }
+    else if (read_u32be(start_offset + 0x04,sf) == 0x66747970) { /* "ftyp" after atom size */
+#ifdef VGM_USE_FFMPEG
+        temp_sf = setup_subfile_streamfile(sf, start_offset, file_size, "mp4");
+        if (!temp_sf) goto fail;
+
+        vgmstream = init_vgmstream_mp4_aac_ffmpeg(temp_sf);
         if (!vgmstream) goto fail;
 #else
     goto fail;
