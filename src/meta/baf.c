@@ -159,6 +159,7 @@ VGMSTREAM * init_vgmstream_baf(STREAMFILE *streamFile) {
             vgmstream->loop_end_sample = vgmstream->num_samples;
             break;
 
+    #ifdef VGM_USE_FFMPEG
         case 0x08: {
             uint8_t buf[0x100];
             int bytes;
@@ -192,6 +193,7 @@ VGMSTREAM * init_vgmstream_baf(STREAMFILE *streamFile) {
             xma_fix_raw_samples_ch(vgmstream, streamFile, start_offset, stream_size, channel_count, 1,1);
             break;
         }
+    #endif
 
         default:
             VGM_LOG("BAF: unknown codec %x\n", codec);
