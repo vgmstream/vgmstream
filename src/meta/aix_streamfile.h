@@ -56,6 +56,14 @@ static size_t aix_io_read(STREAMFILE *streamfile, uint8_t *dest, off_t offset, s
                 /* 0x0c: -1 */
                 data->skip_size = 0x10;
             }
+
+            /* strange AIX in Tetris Collection (PS2) with padding before ADX start (no known flag) */
+            if (data->logical_offset == 0x00 &&
+                    read_u32be(data->physical_offset + 0x10, streamfile) == 0 &&
+                    read_u16be(data->physical_offset + data->block_size - 0x28, streamfile) == 0x8000) {
+                data->data_size = 0x28;
+                data->skip_size = data->block_size - 0x28;
+            }
         }
 
         /* move to next block */

@@ -3,7 +3,7 @@
 #include "aix_streamfile.h"
 
 
-#define MAX_SEGMENTS 10 /* usually segment0=intro, segment1=loop/main, sometimes ~5 */
+#define MAX_SEGMENTS 50 /* usually segment0=intro, segment1=loop/main, sometimes ~5, rarely ~40 */
 
 static VGMSTREAM *build_segmented_vgmstream(STREAMFILE *streamFile, off_t *segment_offsets, size_t *segment_sizes, int32_t *segment_samples, int segment_count, int layer_count);
 
@@ -16,10 +16,7 @@ VGMSTREAM * init_vgmstream_aix(STREAMFILE *sf) {
     int32_t segment_samples[MAX_SEGMENTS] = {0};
     int segment_rates[MAX_SEGMENTS] = {0};
 
-    off_t data_offset;
-    off_t layer_list_offset;
-    off_t layer_list_end;
-
+    off_t data_offset, subtable_offset;
     int segment_count, layer_count;
     int i;
 
@@ -44,11 +41,10 @@ VGMSTREAM * init_vgmstream_aix(STREAMFILE *sf) {
         const size_t segment_list_entry_size = 0x10;
 
         segment_count = read_u16be(0x18,sf);
-
         if (segment_count < 1 || segment_count > MAX_SEGMENTS) goto fail;
 
-        layer_list_offset = segment_list_offset + segment_count*segment_list_entry_size + 0x10;
-        if (layer_list_offset >= data_offset) goto fail;
+        subtable_offset = segment_list_offset + segment_count*segment_list_entry_size;
+        if (subtable_offset >= data_offset) goto fail;
 
         for (i = 0; i < segment_count; i++) {
             segment_offsets[i] = read_s32be(segment_list_offset + segment_list_entry_size*i + 0x00,sf);
@@ -70,9 +66,17 @@ VGMSTREAM * init_vgmstream_aix(STREAMFILE *sf) {
             goto fail;
     }
 
+    /* between the segment and layer table some kind of 0x10 subtable? */
+    if (read_u8(subtable_offset,sf) != 0x01)
+        goto fail;
+
     /* parse layers table */
     {
         const size_t layer_list_entry_size = 0x08;
+        off_t layer_list_offset, layer_list_end;
+
+        layer_list_offset = subtable_offset + 0x10;
+        if (layer_list_offset >= data_offset) goto fail;
 
         layer_count = read_u8(layer_list_offset,sf);
         if (layer_count < 1) goto fail;
@@ -166,9 +170,15 @@ static VGMSTREAM *build_segmented_vgmstream(STREAMFILE *streamFile, off_t *segme
     if (!setup_layout_segmented(data))
         goto fail;
 
-    loop_flag = (segment_count > 0);
-    loop_start_segment = 1;
-    loop_end_segment = 1; /* looks correct in some games (DBZ: Burst Limit, Metroid: Other M) */
+    /* known loop cases:
+     * - 1 segment: main/no loop [Hatsune Miku: Project Diva (PSP)]
+     * - 2 segments: intro + loop [SoulCalibur IV (PS3)]
+     * - 3 segments: intro + loop + end [Dragon Ball Z: Burst Limit (PS3), Metroid: Other M (Wii)]
+     * - 4/5 segments: intros + loop + ends [Danball Senki (PSP)]
+     * - 39 segments: no loops but multiple segments for dynamic parts? [Tetris Collection (PS2)] */
+    loop_flag = (segment_count > 0 && segment_count <= 5);
+    loop_start_segment = (segment_count > 3) ? 2 : 1;
+    loop_end_segment = (segment_count > 3) ? (segment_count - 2) : 1;
 
     /* build the segmented VGMSTREAM */
     vgmstream = allocate_segmented_vgmstream(data, loop_flag, loop_start_segment, loop_end_segment);
