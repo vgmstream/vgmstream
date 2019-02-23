@@ -29,6 +29,7 @@
 #include <stdint.h>
 #endif /* _MSC_VER */
 
-typedef int16_t sample;
+typedef int16_t sample; //TODO: deprecated, remove
+typedef int16_t sample_t;
 
 #endif
