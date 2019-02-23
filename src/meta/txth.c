@@ -265,9 +265,9 @@ VGMSTREAM * init_vgmstream_txth(STREAMFILE *streamFile) {
 
             /* setup adpcm */
             if (coding == coding_AICA || coding == coding_AICA_int) {
-                int i;
-                for (i=0;i<vgmstream->channels;i++) {
-                    vgmstream->ch[i].adpcm_step_index = 0x7f;
+                int ch;
+                for (ch = 0; ch < vgmstream->channels; ch++) {
+                    vgmstream->ch[ch].adpcm_step_index = 0x7f;
                 }
             }
 
@@ -317,10 +317,12 @@ VGMSTREAM * init_vgmstream_txth(STREAMFILE *streamFile) {
                     goto fail; /* only 2ch+..+2ch layout is known */
             }
             break;
+
         case coding_NGC_DTK:
             if (vgmstream->channels != 2) goto fail;
             vgmstream->layout_type = layout_none;
             break;
+
         case coding_NGC_DSP:
             if (txth.channels > 1 && txth.codec_mode == 0) {
                 if (!txth.interleave) goto fail;
@@ -339,7 +341,7 @@ VGMSTREAM * init_vgmstream_txth(STREAMFILE *streamFile) {
             }
 
             /* get coefs */
-            for (i=0;i<vgmstream->channels;i++) {
+            for (i = 0; i < vgmstream->channels; i++) {
                 int16_t (*read_16bit)(off_t , STREAMFILE*) = txth.coef_big_endian ? read_16bitBE : read_16bitLE;
 
                 /* normal/split coefs */
@@ -360,6 +362,7 @@ VGMSTREAM * init_vgmstream_txth(STREAMFILE *streamFile) {
             }
 
             break;
+
 #ifdef VGM_USE_MPEG
         case coding_MPEG_layer3:
             vgmstream->layout_type = layout_none;
@@ -608,6 +611,7 @@ static int parse_keyval(STREAMFILE * streamFile_, txth_header * txth, const char
         else if (0==strcmp(val,"DVI_IMA"))      txth->codec = DVI_IMA;
         else if (0==strcmp(val,"MPEG"))         txth->codec = MPEG;
         else if (0==strcmp(val,"IMA"))          txth->codec = IMA;
+        else if (0==strcmp(val,"YAMAHA"))       txth->codec = AICA;
         else if (0==strcmp(val,"AICA"))         txth->codec = AICA;
         else if (0==strcmp(val,"MSADPCM"))      txth->codec = MSADPCM;
         else if (0==strcmp(val,"NGC_DSP"))      txth->codec = NGC_DSP;
@@ -628,6 +632,21 @@ static int parse_keyval(STREAMFILE * streamFile_, txth_header * txth, const char
         else if (0==strcmp(val,"PCM4_U"))       txth->codec = PCM4_U;
         else if (0==strcmp(val,"OKI16"))        txth->codec = OKI16;
         else goto fail;
+
+        /* set common interleaves to simplify usage
+         * (do it here to in case it's overwritten later, possibly with 0 on purpose) */
+        if (txth->interleave == 0) {
+            switch(txth->codec) {
+                case PSX:       txth->interleave = 0x10; break;
+                case PSX_bf:    txth->interleave = 0x10; break;
+                case NGC_DSP:   txth->interleave = 0x08; break;
+                case PCM16LE:   txth->interleave = 0x02; break;
+                case PCM16BE:   txth->interleave = 0x02; break;
+                case PCM8:      txth->interleave = 0x01; break;
+                case PCM8_U:    txth->interleave = 0x01; break;
+                default: break;
+            }
+        }
     }
     else if (0==strcmp(key,"codec_mode")) {
         if (!parse_num(txth->streamHead,txth,val, &txth->codec_mode)) goto fail;
