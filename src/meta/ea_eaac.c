@@ -1216,6 +1216,7 @@ static layered_layout_data* build_layered_eaaudiocore_eaxma(STREAMFILE *streamDa
 
             data->layers[i]->coding_type = coding_FFmpeg;
             data->layers[i]->layout_type = layout_none;
+            data->layers[i]->stream_size = get_streamfile_size(temp_streamFile);
 
             xma_fix_raw_samples(data->layers[i], temp_streamFile, 0x00,stream_size, 0, 0,0); /* samples are ok? */
         }

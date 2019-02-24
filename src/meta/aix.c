@@ -126,7 +126,7 @@ static VGMSTREAM *build_layered_vgmstream(STREAMFILE *streamFile, off_t segment_
         data->layers[i] = init_vgmstream_adx(temp_streamFile);
         if (!data->layers[i]) goto fail;
 
-        data->layers[i]->stream_size = segment_size;
+        data->layers[i]->stream_size = get_streamfile_size(temp_streamFile);
 
         close_streamfile(temp_streamFile);
         temp_streamFile = NULL;
@@ -165,6 +165,8 @@ static VGMSTREAM *build_segmented_vgmstream(STREAMFILE *streamFile, off_t *segme
         if (!data->segments[i]) goto fail;
 
         data->segments[i]->num_samples = segment_samples[i]; /* just in case */
+
+        data->segments[i]->stream_size = segment_sizes[i];
     }
 
     if (!setup_layout_segmented(data))
