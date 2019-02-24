@@ -340,7 +340,7 @@ int main(int argc, char ** argv) {
     char outfilename_temp[PATH_LIMIT];
 
     sample_t * buf = NULL;
-    int channels;
+    int channels, input_channels;
     int32_t len_samples;
     int32_t fade_samples;
     int i, j;
@@ -458,8 +458,19 @@ int main(int argc, char ** argv) {
 
     /* last init */
     channels = vgmstream->channels;
+    input_channels = vgmstream->channels;
 
-    buf = malloc(BUFFER_SAMPLES * sizeof(sample_t) * channels);
+#ifdef VGMSTREAM_MIXING
+    /* enable after all config but before outbuf */
+    {
+        vgmstream_enable_mixing(vgmstream, BUFFER_SAMPLES);
+
+        channels = vgmstream->output_channels;
+        input_channels = vgmstream->input_channels;
+    }
+#endif
+
+    buf = malloc(BUFFER_SAMPLES * sizeof(sample_t) * input_channels);
     if (!buf) {
         fprintf(stderr,"failed allocating output buffer\n");
         goto fail;

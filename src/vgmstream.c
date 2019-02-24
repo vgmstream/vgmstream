@@ -569,6 +569,16 @@ static VGMSTREAM * init_vgmstream_internal(STREAMFILE *streamFile) {
 }
 
 void setup_vgmstream(VGMSTREAM * vgmstream) {
+
+#ifdef VGMSTREAM_MIXING
+    /* fill default config to simplify external code (mixing off will always happen
+     * initially, and if they contain values it means mixing must be enabled) */
+    if (!vgmstream->mixing_on || vgmstream->input_channels <= 0)
+        vgmstream->input_channels = vgmstream->channels;
+    if (!vgmstream->mixing_on || vgmstream->output_channels <= 0)
+        vgmstream->output_channels = vgmstream->channels;
+#endif
+
     /* save start things so we can restart when seeking */
     memcpy(vgmstream->start_ch, vgmstream->ch, sizeof(VGMSTREAMCHANNEL)*vgmstream->channels);
     memcpy(vgmstream->start_vgmstream, vgmstream, sizeof(VGMSTREAM));
@@ -747,9 +757,9 @@ VGMSTREAM * allocate_vgmstream(int channel_count, int loop_flag) {
 
 #ifdef VGMSTREAM_MIXING
     /* fixed arrays, for now */
-    vgmstream->mixing_size = 64;
-    vgmstream->stream_name_size = STREAM_NAME_SIZE;
+    vgmstream->mixing_size = VGMSTREAM_MAX_MIXING;
 #endif
+    //vgmstream->stream_name_size = STREAM_NAME_SIZE;
     return vgmstream;
 fail:
     if (vgmstream) {
@@ -980,6 +990,9 @@ void vgmstream_set_loop_target(VGMSTREAM* vgmstream, int loop_target) {
             vgmstream_set_loop_target(data->layers[i], loop_target);
         }
     }
+
+    /* notify of new initial state */
+    setup_vgmstream(vgmstream);
 }
 
 
@@ -1042,7 +1055,7 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
             break;
     }
 
-
+#ifndef VGMSTREAM_MIXING
     /* swap channels if set, to create custom channel mappings */
     if (vgmstream->channel_mappings_on) {
         int ch_from,ch_to,s;
@@ -1075,6 +1088,11 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
             }
         }
     }
+#endif
+
+#ifdef VGMSTREAM_MIXING
+    mix_vgmstream(buffer, sample_count, vgmstream);
+#endif
 }
 
 /* Get the number of samples of a single frame (smallest self-contained sample group, 1/N channels) */
@@ -2529,7 +2547,7 @@ static void try_dual_file_stereo(VGMSTREAM * opened_vgmstream, STREAMFILE *strea
     }
 
     /* check these even if there is no loop, because they should then be zero in both
-     * Homura PS2 right channel doesn't have loop points so it's ignored */
+     * (Homura PS2 right channel doesn't have loop points so this check is ignored) */
     if (new_vgmstream->meta_type != meta_PS2_SMPL &&
             !(new_vgmstream->loop_flag      == opened_vgmstream->loop_flag &&
             new_vgmstream->loop_start_sample== opened_vgmstream->loop_start_sample &&
