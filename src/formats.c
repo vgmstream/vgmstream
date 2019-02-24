@@ -1172,6 +1172,7 @@ static const meta_info meta_info_list[] = {
         {meta_DSF,                  "Ocean DSF header"},
         {meta_208,                  "Ocean .208 header"},
         {meta_DSP_DS2,              "LucasArts .DS2 header"},
+        {meta_MUS_VC,               "Vicious Cycle .MUS header"},
 
 };
 

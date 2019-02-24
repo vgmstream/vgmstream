@@ -720,6 +720,7 @@ typedef enum {
     meta_DSF,
     meta_208,
     meta_DSP_DS2,
+    meta_MUS_VC,
 
 } meta_t;
 

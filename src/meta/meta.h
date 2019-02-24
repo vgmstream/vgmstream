@@ -833,4 +833,6 @@ VGMSTREAM * init_vgmstream_208(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_ffdl(STREAMFILE * streamFile);
 
+VGMSTREAM * init_vgmstream_mus_vc(STREAMFILE * streamFile);
+
 #endif /*_META_H*/

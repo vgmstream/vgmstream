@@ -704,10 +704,14 @@
 					RelativePath=".\meta\mogg.c"
 					>
 				</File>
-				<File
-					RelativePath=".\meta\msvp.c"
-					>
-				</File>
+                <File
+                    RelativePath=".\meta\msvp.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\mus_vc.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\mus_acm.c"
 					>
