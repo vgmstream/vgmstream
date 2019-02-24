@@ -3,21 +3,20 @@
 #include "../layout/layout.h"
 
 
-#define TXT_LINE_MAX 0x2000
-#ifdef VGMSTREAM_MIXING
-#define TXTP_MIXING_MAX 64
-#endif
+#define TXTP_LINE_MAX 1024
+
 
 typedef struct {
-    char filename[TXT_LINE_MAX];
+    char filename[TXTP_LINE_MAX];
     int subsong;
     uint32_t channel_mask;
+#ifndef VGMSTREAM_MIXING
     int channel_mappings_on;
     int channel_mappings[32];
-
-#if VGMSTREAM_MIXING
+#endif
+#ifdef VGMSTREAM_MIXING
     int mixing_count;
-    mix_config_data mixing[TXTP_MIXING_MAX];
+    mix_config_data mixing[VGMSTREAM_MAX_MIXING];
 #endif
 
     double config_loop_count;
@@ -49,7 +48,9 @@ typedef struct {
 static txtp_header* parse_txtp(STREAMFILE* streamFile);
 static void clean_txtp(txtp_header* txtp);
 static void apply_config(VGMSTREAM *vgmstream, txtp_entry *current);
-
+#ifdef VGMSTREAM_MIXING
+void add_mixing(txtp_entry* cfg, mix_config_data* mix, mix_command_t command);
+#endif
 
 /* TXTP - an artificial playlist-like format to play files with segments/layers/config */
 VGMSTREAM * init_vgmstream_txtp(STREAMFILE *streamFile) {
@@ -217,6 +218,7 @@ fail:
 }
 
 static void apply_config(VGMSTREAM *vgmstream, txtp_entry *current) {
+#ifndef VGMSTREAM_MIXING
     vgmstream->channel_mask = current->channel_mask;
 
     vgmstream->channel_mappings_on = current->channel_mappings_on;
@@ -225,47 +227,6 @@ static void apply_config(VGMSTREAM *vgmstream, txtp_entry *current) {
         for (ch = 0; ch < 32; ch++) {
             vgmstream->channel_mappings[ch] = current->channel_mappings[ch];
         }
-    }
-
-#ifdef VGMSTREAM_MIXING
-    if (current->mixing_count > 0) {
-        int i, ch_max_cur;
-        if (vgmstream->mixing_count + current->mixing_count > vgmstream->mixing_size) {
-            VGM_LOG("TXTP: ignored mixing\n");
-            return;
-        }
-
-        ch_max_cur = vgmstream->channels;
-
-        for (i = 0; i < current->mixing_count; i++) {
-            mix_config_data mix = current->mixing[i];
-
-            vgmstream->mixing[vgmstream->mixing_count] = mix;
-            vgmstream->mixing_count++;
-
-            /* some mixes change output channels */
-            switch(vgmstream->mixing[i].command) {
-                case MIX_DOWNMIX:
-                    if (mix.ch_a < 0 || mix.ch_a >= ch_max_cur || ch_max_cur - 1 == 0) break;
-                    ch_max_cur--;
-                    break;
-
-                case MIX_DOWNMIX_REST:
-                    if (mix.ch_a < 0 || mix.ch_a >= ch_max_cur) break;
-                    ch_max_cur = mix.ch_a + 1; /* simply clamp channels */
-                    break;
-
-                case MIX_UPMIX:
-                    if (mix.ch_a < 0 || mix.ch_a > ch_max_cur) break; /* ch_a can be == max_cur, since we are inserting */
-                    ch_max_cur++;
-                    break;
-
-                default:
-                    break;
-            }
-        }
-
-        vgmstream->output_channels = ch_max_cur;
     }
 #endif
 
@@ -278,6 +239,30 @@ static void apply_config(VGMSTREAM *vgmstream, txtp_entry *current) {
     vgmstream->config_ignore_loop = current->config_ignore_loop;
     vgmstream->config_force_loop = current->config_force_loop;
     vgmstream->config_ignore_fade = current->config_ignore_fade;
+
+#ifdef VGMSTREAM_MIXING
+    /* add macro to mixing list */
+    if (current->channel_mask) {
+        int ch;
+        for (ch = 0; ch < vgmstream->channels; ch++) {
+            if (!((current->channel_mask >> ch) & 1)) {
+                mix_config_data mix = {0};
+                mix.ch_dst = ch;
+                mix.vol = 0.0f;
+                add_mixing(current, &mix, MIX_VOLUME);
+            }
+        }
+    }
+
+    /* copy mixing list (should be done last as some mixes depend on config) */
+    if (current->mixing_count > 0) {
+        int i;
+
+        for (i = 0; i < current->mixing_count; i++) {
+            vgmstream_add_mixing(vgmstream, current->mixing[i]);
+        }
+    }
+#endif
 }
 
 /* ********************************** */
@@ -302,34 +287,136 @@ static void clean_filename(char * filename) {
 
 }
 
+/* sscanf 101:
+ * - reads linearly and matches "%" commands to input parameters
+ * - returns number of matched % parameters until stop
+ * - reads until string end or not being able to match
+ * - %n: number of chars consumed until that point (can appear and set multiple times)
+ * - %d/f: reads number until end or *non-number* (so "%d" reads "5t" as "5")
+ * - %[^(chars)] reads string with chars not in the list
+ * - %*(command) is read but skipped (match not set to parameter)
+ * - " ": ignores all spaces until next non-space
+ * - other chars in string must exist: ("%dt t%dt" reads "5t  t5t" as "5" and "5", while "t5t 5t" matches only first "5")
+ */
+
+
 static int get_double(const char * config, double *value) {
-    int n;
-    if (sscanf(config, "%lf%n", value,&n) != 1) {
-        *value = 0;
+    int n, m;
+    double temp;
+
+    m = sscanf(config, " %lf%n", &temp,&n);
+    if (m != 1 || temp < 0)
         return 0;
-    }
-    return n;
-}
-static int get_int(const char * config, int *value) {
-    int n;
-    if (sscanf(config, "%i%n", value,&n) != 1) {
-        *value = 0;
-        return 0;
-    }
+
+    *value = temp;
     return n;
 }
 
+static int get_int(const char * config, int *value) {
+    int n,m;
+    int temp;
+
+    m = sscanf(config, " %i%n", &temp,&n);
+    if (m != 1 || temp < 0)
+        return 0;
+
+    *value = temp;
+    return n;
+}
+
+static int get_bool(const char * config, int *value) {
+    int n,m;
+    char temp;
+
+    m = sscanf(config, " %c%n", &temp, &n);
+    if (m >= 1 && !(temp == '#' || temp == '\r' || temp == '\n'))
+        return 0; /* ignore if anything non-space/comment matched */
+
+    if (temp == '#') n--; /* don't consume separator */
+    *value = 1;
+    return n;
+}
+
+static int get_mask(const char * config, uint32_t *value) {
+    int n, m, total_n = 0;
+    int temp1,temp2, r1, r2;
+    int i;
+    char cmd;
+    uint32_t mask = *value;
+
+    while (config[0] != '\0') {
+        m = sscanf(config, " %c%n", &cmd,&n); /* consume comma */
+        if (m == 1 && (cmd == ',' || cmd == '-')) { /* '-' is alt separator (space is ok too, implicitly) */
+            config += n;
+            continue;
+        }
+
+        m = sscanf(config, " %d%n ~ %d%n", &temp1,&n, &temp2,&n);
+        if (m == 1) { /* single values */
+            r1 = temp1 - 1;
+            r2 = temp1 - 1;
+        }
+        else if (m == 2) { /* range */
+            r1 = temp1 - 1;
+            r2 = temp2 - 1;
+        }
+        else { /* no more matches */
+            break;
+        }
+
+        if (n == 0 || r1 < 0 || r1 > 31 || r2 < 0 || r2 > 31)
+            break;
+
+        for (i = r1; i < r2 + 1; i++) {
+            mask |= (1 << i);
+        }
+
+        config += n;
+        total_n += n;
+
+        if (config[0]== ',' || config[0]== '-')
+            config++;
+    }
+
+    *value = mask;
+    return total_n;
+}
+
+
 #ifdef VGMSTREAM_MIXING
-static void add_mixing(txtp_entry* cfg, mix_config_data* mix, mix_command_t command) {
-    if (cfg->mixing_count + 1 > TXTP_MIXING_MAX) {
+static int get_fade(const char * config, mix_config_data *mix, int *out_n) {
+    int n, m;
+
+    //todo add { } shortcuts / time / etc
+
+    m = sscanf(config, " %d ^ %f ~ %f = %c @ %f ~ %f + %f ~ %f%n",
+            &mix->ch_dst,
+            &mix->vol_start, &mix->vol_end, &mix->shape,
+            &mix->time_pre, &mix->time_start, &mix->time_end, &mix->time_post,
+            &n);
+
+    VGM_LOG("curve m=%i, n=%i\n", m,n);
+    if (m == 8 && n != 0) {
+        mix->time_end += mix->time_start;
+        *out_n = n;
+        return 1;
+    }
+
+    return 0;
+}
+#endif
+
+#ifdef VGMSTREAM_MIXING
+void add_mixing(txtp_entry* cfg, mix_config_data* mix, mix_command_t command) {
+    if (cfg->mixing_count + 1 > VGMSTREAM_MAX_MIXING) {
         VGM_LOG("TXTP: too many mixes\n");
         return;
     }
 
     /* parsers reads ch1 = first, but for mixing code ch0 = first
-     * (if parser reads ch0 here it'll becode -1 and ignored in code) */
-    mix->ch_a--;
-    mix->ch_b--;
+     * (if parser reads ch0 here it'll become -1 with special meaning in code) */
+    mix->ch_dst--;
+    mix->ch_src--;
     mix->command = command;
     cfg->mixing[cfg->mixing_count] = *mix; /* memcpy'ed */
     cfg->mixing_count++;
@@ -344,6 +431,7 @@ static void add_config(txtp_entry* current, txtp_entry* cfg, const char* filenam
 
     current->channel_mask = cfg->channel_mask;
 
+#ifndef VGMSTREAM_MIXING
     if (cfg->channel_mappings_on) {
         int ch;
         current->channel_mappings_on = cfg->channel_mappings_on;
@@ -351,7 +439,7 @@ static void add_config(txtp_entry* current, txtp_entry* cfg, const char* filenam
             current->channel_mappings[ch] = cfg->channel_mappings[ch];
         }
     }
-
+#endif
 #ifdef VGMSTREAM_MIXING
     //*current = *cfg; /* don't memcopy to allow list additions */
 
@@ -376,15 +464,15 @@ static void add_config(txtp_entry* current, txtp_entry* cfg, const char* filenam
 }
 
 static int add_filename(txtp_header * txtp, char *filename, int is_default) {
-    int i, n;
+    int i, n, nc, mc;
     txtp_entry cfg = {0};
     size_t range_start, range_end;
-    const char separator = '#';
+    char command[TXTP_LINE_MAX] = {0};
 
 
     //;VGM_LOG("TXTP: filename=%s\n", filename);
 
-    /* parse config: file.ext#(command) */
+    /* parse config: file.ext#(commands) */
     {
         char *config;
 
@@ -393,200 +481,209 @@ static int add_filename(txtp_header * txtp, char *filename, int is_default) {
         config = strchr(filename, '.'); /* first dot (may be a false positive) */
         if (!config) /* extensionless */
             config = filename;
-        config = strchr(config,separator); /* next should be config (hopefully right after extension) */
+        config = strchr(config, '#'); /* next should be config */
         if (!config) /* no config */
-            config = filename;
+            config = filename; //todo if no config just exit?
+
 
         range_start = 0;
         range_end = 1;
-        do {
-            /* get config pointer but remove config from filename */
-            config = strchr(config, separator);
-            if (!config)
-                continue;
-            //;VGM_LOG("TXTP: config=%s\n", config);
 
-            config[0] = '\0';
-            config++;
+        while (config != NULL) {
+            /* position in next #(command) */
+            config = strchr(config, '#');
+            if (!config) break;
+            //;VGM_LOG("TXTP: config='%s'\n", config);
 
+            /* get command until next space/number/comment/end */
+            command[0] = '\0';
+            mc = sscanf(config, "#%n%[^ #0-9\r\n]%n", &nc, command, &nc);
+            //;VGM_LOG("TXTP:  command='%s', nc=%i, mc=%i\n", command, nc, mc);
+            if (mc == 0 && nc == 0) break;
 
-            if (config[0] == 'c') {
+            config[0] = '\0'; //todo don't modify input string and properly calculate filename end
+
+            config += nc; /* skip '#' and command */
+
+            /* check command string (though at the moment we only use single letters) */
+            if (strcmp(command,"c") == 0) {
                 /* channel mask: file.ext#c1,2 = play channels 1,2 and mutes rest */
-                int ch;
 
-                config++;
-                cfg.channel_mask = 0;
-                while (sscanf(config, "%d%n", &ch,&n) == 1) {
-                    if (ch > 0 && ch <= 32)
-                        cfg.channel_mask |= (1 << (ch-1));
-
-                    config += n;
-                    if (config[0]== ',' || config[0]== '-') /* "-" for PowerShell, may have problems with "," */
-                        config++;
-                    else if (config[0] != '\0')
-                        break;
-                };
+                config += get_mask(config, &cfg.channel_mask);
+                //;VGM_LOG("TXTP:   channel_mask ");{int i; for (i=0;i<16;i++)VGM_LOG("%i ",(cfg.channel_mask>>i)&1);}VGM_LOG("\n");
             }
-            else if (config[0] == 'm') {
+#ifndef VGMSTREAM_MIXING
+            else if (strcmp(command,"m") == 0) {
                 /* channel mappings: file.ext#m1-2,3-4 = swaps channels 1<>2 and 3<>4 */
                 int ch_from = 0, ch_to = 0;
 
-                config++;
                 cfg.channel_mappings_on = 1;
-
                 while (config[0] != '\0') {
-                    if (sscanf(config, "%d%n", &ch_from, &n) != 1)
+                    if (sscanf(config, " %d%n", &ch_from, &n) != 1)
                         break;
                     config += n;
                     if (config[0]== ',' || config[0]== '-')
                         config++;
-                    else if (config[0] != '\0')
-                        break;
 
-                    if (sscanf(config, "%d%n", &ch_to, &n) != 1)
+                    if (sscanf(config, " %d%n", &ch_to, &n) != 1)
                         break;
                     config += n;
                     if (config[0]== ',' || config[0]== '-')
                         config++;
-                    else if (config[0] != '\0')
-                        break;
 
                     if (ch_from > 0 && ch_from <= 32 && ch_to > 0 && ch_to <= 32) {
                         cfg.channel_mappings[ch_from-1] = ch_to-1;
                     }
+                    //;VGM_LOG("TXTP:   channel_swap %i-%i\n", ch_from, ch_to);
                }
             }
+#endif
 #ifdef VGMSTREAM_MIXING
-            else if (config[0] == 'm') {
+            else if (strcmp(command,"m") == 0) {
                 /* channel mixing: file.ext#m(sub-command),(sub-command),etc */
                 char cmd;
-
-                config++;
 
                 while (config[0] != '\0') {
                     mix_config_data mix = {0};
 
-                    if (config[0]== ',') {
-                        config++;
+                    //;VGM_LOG("TXTP: subcommand='%s'\n", config);
+
+                    if (sscanf(config, " %c%n", &cmd, &n) == 1 && n != 0 && cmd == ',') {
+                        config += n;
                         continue;
                     }
 
-                    if (sscanf(config, "%d-%d%n", &mix.ch_a, &mix.ch_b, &n) == 2 && n != 0) {
+                    if (sscanf(config, " %d - %d%n", &mix.ch_dst, &mix.ch_src, &n) == 2 && n != 0) {
+                        //;VGM_LOG("TXTP:   mix %i-%i\n", mix.ch_dst, mix.ch_src);
                         add_mixing(&cfg, &mix, MIX_SWAP); /* N-M: swaps M with N */
                         config += n;
                         continue;
                     }
 
-                    if ((sscanf(config, "%d+%d*%f%n", &mix.ch_a, &mix.ch_b, &mix.vol_a, &n) == 3 && n != 0) ||
-                        (sscanf(config, "%d+%dx%f%n", &mix.ch_a, &mix.ch_b, &mix.vol_a, &n) == 3 && n != 0)) {
-                        add_mixing(&cfg, &mix, MIX_ADD_VOLUME); /* N+M*V: mixes M * volume to N */
+                    if ((sscanf(config, " %d + %d * %f%n", &mix.ch_dst, &mix.ch_src, &mix.vol, &n) == 3 && n != 0) ||
+                        (sscanf(config, " %d + %d x %f%n", &mix.ch_dst, &mix.ch_src, &mix.vol, &n) == 3 && n != 0)) {
+                        //;VGM_LOG("TXTP:   mix %i+%i*%f\n", mix.ch_dst, mix.ch_src, mix.vol);
+                        add_mixing(&cfg, &mix, MIX_ADD_VOLUME); /* N+M*V: mixes M*volume to N */
                         config += n;
                         continue;
                     }
 
-                    if (sscanf(config, "%d+%d%n", &mix.ch_a, &mix.ch_b, &n) == 2 && n != 0) {
+                    if (sscanf(config, " %d + %d%n", &mix.ch_dst, &mix.ch_src, &n) == 2 && n != 0) {
+                        //;VGM_LOG("TXTP:   mix %i+%i\n", mix.ch_dst, mix.ch_src);
                         add_mixing(&cfg, &mix, MIX_ADD); /* N+M: mixes M to N */
                         config += n;
                         continue;
                     }
 
-                    if ((sscanf(config, "%d*%f~%f@%f~%f%n", &mix.ch_a, &mix.vol_a, &mix.vol_b, &mix.pos_a, &mix.pos_b, &n) == 5 && n != 0) ||
-                        (sscanf(config, "%dx%f~%f@%f~%f%n", &mix.ch_a, &mix.vol_a, &mix.vol_b, &mix.pos_a, &mix.pos_b, &n) == 5 && n != 0)) {
-                        add_mixing(&cfg, &mix, MIX_CROSSFADE); /* N*V1~V2@P1~P2: fades from volume1 to 2 between position1 to 2 */
-                        config += n;
-                        continue;
-                    }
-
-                    if ((sscanf(config, "%d*%f%n", &mix.ch_a, &mix.vol_a, &n) == 2 && n != 0) ||
-                        (sscanf(config, "%dx%f%n", &mix.ch_a, &mix.vol_a, &n) == 2 && n != 0)) {
+                    if ((sscanf(config, " %d * %f%n", &mix.ch_dst, &mix.vol, &n) == 2 && n != 0) ||
+                        (sscanf(config, " %d x %f%n", &mix.ch_dst, &mix.vol, &n) == 2 && n != 0)) {
+                        //;VGM_LOG("TXTP:   mix %i*%f\n", mix.ch_dst, mix.vol);
                         add_mixing(&cfg, &mix, MIX_VOLUME); /* N*V: changes volume of N */
                         config += n;
                         continue;
                     }
 
-                    if (sscanf(config, "%d%c%n", &mix.ch_a, &cmd, &n) == 2 && n != 0 && cmd == 'D') {
+                    if ((sscanf(config, " %d = %f%n", &mix.ch_dst, &mix.vol, &n) == 2 && n != 0)) {
+                        //;VGM_LOG("TXTP:   mix %i=%f\n", mix.ch_dst, mix.vol);
+                        add_mixing(&cfg, &mix, MIX_LIMIT); /* N=V: limits volume of N */
+                        config += n;
+                        continue;
+                    }
+
+                    if (sscanf(config, " %d%c%n", &mix.ch_dst, &cmd, &n) == 2 && n != 0 && cmd == 'D') {
+                        //;VGM_LOG("TXTP:   mix %iD\n", mix.ch_dst);
                         add_mixing(&cfg, &mix, MIX_DOWNMIX_REST); /* ND: downmix N and all following channels */
                         config += n;
                         continue;
                     }
 
-                    if (sscanf(config, "%d%c%n", &mix.ch_a, &cmd, &n) == 2 && n != 0 && cmd == 'd') {
+                    if (sscanf(config, " %d%c%n", &mix.ch_dst, &cmd, &n) == 2 && n != 0 && cmd == 'd') {
+                        //;VGM_LOG("TXTP:   mix %id\n", mix.ch_dst);
                         add_mixing(&cfg, &mix, MIX_DOWNMIX);/* Nd: downmix N only */
                         config += n;
                         continue;
                     }
 
-                    if (sscanf(config, "%d%c%n", &mix.ch_a, &cmd, &n) == 2 && n != 0 && cmd == 'u') {
+                    if (sscanf(config, " %d%c%n", &mix.ch_dst, &cmd, &n) == 2 && n != 0 && cmd == 'u') {
+                        //;VGM_LOG("TXTP:   mix %iu\n", mix.ch_dst);
                         add_mixing(&cfg, &mix, MIX_UPMIX); /* Nu: upmix N */
                         config += n;
                         continue;
                     }
 
-                    break; /* unknown/mix end */
+                    if (get_fade(config, &mix, &n) != 0) {
+                        //;VGM_LOG("TXTP:   fade %d^%f~%f=%c@%f~%f+%f~%f\n",
+                                mix.ch_dst, mix.vol_start, mix.vol_end, mix.shape,
+                                mix.time_pre, mix.time_start, mix.time_end, mix.time_post);
+                        add_mixing(&cfg, &mix, MIX_FADE); /* N^V1~V2@T1~T2+T3~T4: fades volumes between positions */
+                        config += n;
+                        continue;
+                    }
+
+                    break; /* unknown mix/new command/end */
                }
             }
 #endif
-            else if (config[0] == 's' || (config[0] >= '0' && config[0] <= '9')) {
+            else if (strcmp(command,"s") == 0 || (nc == 1 && config[0] >= '0' && config[0] <= '9')) {
                 /* subsongs: file.ext#s2 = play subsong 2, file.ext#2~10 = play subsong range */
                 int subsong_start = 0, subsong_end = 0;
 
-                if (config[0]== 's')
-                    config++;
-                if (sscanf(config, "%d~%d", &subsong_start, &subsong_end) == 2) {
+                //todo also advance config?
+                if (sscanf(config, " %d ~ %d", &subsong_start, &subsong_end) == 2) {
                     if (subsong_start > 0 && subsong_end > 0) {
                         range_start = subsong_start-1;
                         range_end = subsong_end;
                     }
+                    //;VGM_LOG("TXTP:   subsong range %i~%i\n", range_start, range_end);
                 }
-                else if (sscanf(config, "%u", &subsong_start) == 1) {
+                else if (sscanf(config, " %d", &subsong_start) == 1) {
                     if (subsong_start > 0) {
                         range_start = subsong_start-1;
                         range_end = subsong_start;
                     }
+                    //;VGM_LOG("TXTP:   subsong single %i-%i\n", range_start, range_end);
                 }
-                else {
-                    config = NULL; /* wrong config, ignore */
+                else { /* wrong config, ignore */
+                    //;VGM_LOG("TXTP:   subsong none\n");
                 }
             }
-            else if (config[0] == 'i') {
-                config++;
-                cfg.config_ignore_loop = 1;
+            else if (strcmp(command,"i") == 0) {
+                config += get_bool(config, &cfg.config_ignore_loop);
+                //;VGM_LOG("TXTP:   ignore_loop=%i\n", cfg.config_ignore_loop);
             }
-            else if (config[0] == 'E') {
-                config++;
-                cfg.config_force_loop = 1;
+            else if (strcmp(command,"E") == 0) {
+                config += get_bool(config, &cfg.config_force_loop);
+                //;VGM_LOG("TXTP:   force_loop=%i\n", cfg.config_force_loop);
             }
-            else if (config[0] == 'F') {
-                config++;
-                cfg.config_ignore_fade = 1;
+            else if (strcmp(command,"F") == 0) {
+                config += get_bool(config, &cfg.config_ignore_fade);
+                //;VGM_LOG("TXTP:   ignore_fade=%i\n", cfg.config_ignore_fade);
             }
-            else if (config[0] == 'l') {
-                config++;
+            else if (strcmp(command,"l") == 0) {
                 config += get_double(config, &cfg.config_loop_count);
+                //;VGM_LOG("TXTP:   loop_count=%f\n", cfg.config_loop_count);
             }
-            else if (config[0] == 'f') {
-                config++;
+            else if (strcmp(command,"f") == 0) {
                 config += get_double(config, &cfg.config_fade_time);
+                //;VGM_LOG("TXTP:   fade_time=%f\n", cfg.config_fade_time);
             }
-            else if (config[0] == 'd') {
-                config++;
+            else if (strcmp(command,"d") == 0) {
                 config += get_double(config, &cfg.config_fade_delay);
+                //;VGM_LOG("TXTP:   fade_delay %f\n", cfg.config_fade_delay);
             }
-            else if (config[0] == 'h') {
-                config++;
+            else if (strcmp(command,"h") == 0) {
                 config += get_int(config, &cfg.sample_rate);
+                //;VGM_LOG("TXTP:   sample_rate %i\n", cfg.sample_rate);
             }
-            else if (config[0] == ' ') {
-                continue; /* likely a comment, find next # */
+            else if (config[nc] == ' ') {
+                //;VGM_LOG("TXTP:   comment\n");
+                break; /* comment, ignore rest */
             }
             else {
-                //;VGM_LOG("TXTP: unknown command '%c'\n", config[0]);
-                break; /* also possibly a comment too */
+                //;VGM_LOG("TXTP:   unknown command\n");
+                break; /* end, incorrect command, or possibly a comment or double ## comment too */
             }
-
-        } while (config != NULL);
-
-        //;VGM_LOG("TXTP: config: range %i~%i, mask=%x\n", range_start, range_end, channel_mask);
+        }
     }
 
 
@@ -652,6 +749,9 @@ static int parse_keyval(txtp_header * txtp, const char * key, const char * val) 
         if (0==strcmp(val,"layers")) {
             txtp->is_layered = 1;
         }
+        else if (0==strcmp(val,"segments")) {
+            txtp->is_layered = 0;
+        }
         else {
             goto fail;
         }
@@ -665,7 +765,7 @@ static int parse_keyval(txtp_header * txtp, const char * key, const char * val) 
         }
     }
     else if (0==strcmp(key,"commands")) {
-        char val2[TXT_LINE_MAX];
+        char val2[TXTP_LINE_MAX];
         strcpy(val2, val); /* copy since val is modified here but probably not important */
         if (!add_filename(txtp, val2, 1)) goto fail;
     }
@@ -713,22 +813,28 @@ static txtp_header* parse_txtp(STREAMFILE* streamFile) {
 
     /* read lines */
     while (txt_offset < file_size) {
-        char line[TXT_LINE_MAX] = {0};
-        char key[TXT_LINE_MAX] = {0}, val[TXT_LINE_MAX] = {0}; /* at least as big as a line to avoid overflows (I hope) */
-        char filename[TXT_LINE_MAX] = {0};
+        char line[TXTP_LINE_MAX] = {0};
+        char key[TXTP_LINE_MAX] = {0}, val[TXTP_LINE_MAX] = {0}; /* at least as big as a line to avoid overflows (I hope) */
+        char filename[TXTP_LINE_MAX] = {0};
         int ok, bytes_read, line_done;
 
-        bytes_read = get_streamfile_text_line(TXT_LINE_MAX,line, txt_offset,streamFile, &line_done);
+        bytes_read = get_streamfile_text_line(TXTP_LINE_MAX,line, txt_offset,streamFile, &line_done);
         if (!line_done) goto fail;
 
         txt_offset += bytes_read;
 
-        /* get key/val (ignores lead/trail spaces, stops at space/separator) */
-        ok = sscanf(line, " %[^ \t#=] = %[^ \t\r\n] ", key,val);
+        /* get key/val (ignores lead/trail spaces, # may be commands or comments) */
+        ok = sscanf(line, " %[^ \t#=] = %[^\t\r\n] ", key,val);
         if (ok == 2) { /* no key=val */
-            if (!parse_keyval(txtp, key, val)) /* read key/val */
-                goto fail;
-            continue;
+            if (val[0] != '#') {
+                /* val is not command, re-parse skipping comments and trailing spaces */
+                ok = sscanf(line, " %[^ \t#=] = %[^ #\t\r\n] ", key,val);
+            }
+            if (ok == 2) {
+                if (!parse_keyval(txtp, key, val)) /* read key/val */
+                    goto fail;
+                continue;
+            }
         }
 
         /* must be a filename (only remove spaces from start/end, as filenames con contain mid spaces/#/etc) */
