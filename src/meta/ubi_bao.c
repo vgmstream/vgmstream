@@ -902,10 +902,6 @@ static int parse_type_audio(ubi_bao_header * bao, off_t offset, STREAMFILE* stre
 
     bao->stream_type = read_32bit(h_offset + bao->cfg.audio_stream_type, streamFile);
 
-    if (bao->loop_flag && bao->cfg.audio_channel_samples) {
-        bao->num_samples = bao->num_samples / bao->channels;
-    }
-
     return 1;
 //fail:
 //    return 0;
@@ -1080,6 +1076,10 @@ static int parse_values(ubi_bao_header * bao, STREAMFILE *streamFile) {
     if (bao->codec == 0x00) {
         VGM_LOG("UBI BAO: unknown codec at %x\n", (uint32_t)bao->header_offset); goto fail;
         goto fail;
+    }
+
+    if (bao->type == UBI_AUDIO && bao->codec == RAW_PSX && bao->loop_flag && bao->cfg.audio_channel_samples) {
+        bao->num_samples = bao->num_samples / bao->channels;
     }
 
 
@@ -1704,7 +1704,7 @@ static int config_bao_version(ubi_bao_header * bao, STREAMFILE *streamFile) {
             config_bao_entry(bao, 0xA4, 0x28); /* PC: 0xA8, PS3/X360: 0xA4 */
 
             config_bao_audio_b(bao, 0x08, 0x1c, 0x28, 0x34, 1, 1); /* 0x2c: prefetch flag? */
-            config_bao_audio_m(bao, 0x44, 0x4c, 0x50, 0x58, 0x64, 0x74);
+            config_bao_audio_m(bao, 0x44, 0x48, 0x50, 0x58, 0x64, 0x74);
             bao->cfg.audio_interleave = 0x10;
             bao->cfg.audio_channel_samples = 1; //todo check all looping ps-adpcm
 
