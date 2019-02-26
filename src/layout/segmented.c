@@ -2,10 +2,13 @@
 #include "../vgmstream.h"
 
 
+#define VGMSTREAM_MAX_SEGMENTS 255
+
+
 /* Decodes samples for segmented streams.
  * Chains together sequential vgmstreams, for data divided into separate sections or files
  * (like one part for intro and other for loop segments, which may even use different codecs). */
-void render_vgmstream_segmented(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstream) {
+void render_vgmstream_segmented(sample_t * buffer, int32_t sample_count, VGMSTREAM * vgmstream) {
     int samples_written = 0, loop_samples_skip = 0;
     segmented_layout_data *data = vgmstream->layout_data;
 
@@ -85,7 +88,7 @@ void render_vgmstream_segmented(sample * buffer, int32_t sample_count, VGMSTREAM
 segmented_layout_data* init_layout_segmented(int segment_count) {
     segmented_layout_data *data = NULL;
 
-    if (segment_count <= 0 || segment_count > 255)
+    if (segment_count <= 0 || segment_count > VGMSTREAM_MAX_SEGMENTS)
         goto fail;
 
     data = calloc(1, sizeof(segmented_layout_data));
@@ -168,4 +171,47 @@ void reset_layout_segmented(segmented_layout_data *data) {
     for (i = 0; i < data->segment_count; i++) {
         reset_vgmstream(data->segments[i]);
     }
+}
+
+/* helper for easier creation of segments */
+VGMSTREAM *allocate_segmented_vgmstream(segmented_layout_data* data, int loop_flag, int loop_start_segment, int loop_end_segment) {
+    VGMSTREAM *vgmstream;
+    int i, num_samples, loop_start, loop_end;
+
+    /* get data */
+    num_samples = 0;
+    loop_start = 0;
+    loop_end = 0;
+    for (i = 0; i < data->segment_count; i++) {
+        if (loop_flag && i == loop_start_segment)
+            loop_start = num_samples;
+
+        num_samples += data->segments[i]->num_samples;
+
+        if (loop_flag && i == loop_end_segment)
+            loop_end = num_samples;
+    }
+
+    /* respect loop_flag even when no loop_end found as it's possible file loops are set outside */
+
+    /* build the VGMSTREAM */
+    vgmstream = allocate_vgmstream(data->segments[0]->channels, loop_flag);
+    if (!vgmstream) goto fail;
+
+    vgmstream->meta_type = data->segments[0]->meta_type;
+    vgmstream->sample_rate = data->segments[0]->sample_rate;
+    vgmstream->num_samples = num_samples;
+    vgmstream->loop_start_sample = loop_start;
+    vgmstream->loop_end_sample = loop_end;
+    vgmstream->coding_type = data->segments[0]->coding_type;
+
+    vgmstream->layout_type = layout_segmented;
+    vgmstream->layout_data = data;
+
+    return vgmstream;
+
+fail:
+    if (vgmstream) vgmstream->layout_data = NULL;
+    close_vgmstream(vgmstream);
+    return NULL;
 }

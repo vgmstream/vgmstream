@@ -506,7 +506,6 @@ static int ealayer3_rebuild_mpeg_frame(vgm_bitstream* is_0, ealayer3_frame_info*
         is_0->b_off = eaf_0->data_offset_b;
         for (i = 0; i < eaf_0->channels; i++) { /* granule0 */
             for (j = 0; j < eaf_0->main_data_size[i]; j++) {
-                uint32_t c = 0;
                 r_bits(is_0,  1, &c);
                 w_bits(os,    1,  c);
             }

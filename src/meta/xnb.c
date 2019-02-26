@@ -6,7 +6,7 @@ VGMSTREAM * init_vgmstream_xnb(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     off_t start_offset, xma_chunk_offset = 0;
     int loop_flag = 0, channel_count, num_samples = 0, loop_start = 0, loop_end = 0;
-    int big_endian, flags, codec, sample_rate, block_size, bps;
+    int big_endian, flags, codec, sample_rate, block_align, bps;
     size_t data_size;
     char platform;
 
@@ -76,7 +76,7 @@ VGMSTREAM * init_vgmstream_xnb(STREAMFILE *streamFile) {
             channel_count = read_16bit(current_offset+0x02, streamFile);
             sample_rate   = read_32bit(current_offset+0x04, streamFile);
             /* 0x08: byte rate */
-            block_size    = read_16bit(current_offset+0x0c, streamFile);
+            block_align   = read_16bit(current_offset+0x0c, streamFile);
             bps           = read_16bit(current_offset+0x0e, streamFile);
 
             if (codec == 0x166) {
@@ -104,29 +104,29 @@ VGMSTREAM * init_vgmstream_xnb(STREAMFILE *streamFile) {
     switch (codec) {
         case 0x01: /* Dragon's Blade (Android) */
             /* null in Metagalactic Blitz (PC) */
-            if (!block_size)
-                block_size = (bps == 8 ? 0x01 : 0x02) * channel_count;
+            if (!block_align)
+                block_align = (bps == 8 ? 0x01 : 0x02) * channel_count;
 
             vgmstream->coding_type = bps == 8 ? coding_PCM8_U_int : coding_PCM16LE;
             vgmstream->layout_type = layout_interleave;
-            vgmstream->interleave_block_size = block_size / channel_count;
+            vgmstream->interleave_block_size = block_align / channel_count;
             vgmstream->num_samples = pcm_bytes_to_samples(data_size, channel_count, bps);
             break;
 
         case 0x02: /* White Noise Online (PC) */
-            if (!block_size) goto fail;
+            if (!block_align) goto fail;
             vgmstream->coding_type = coding_MSADPCM;
             vgmstream->layout_type = layout_none;
-            vgmstream->interleave_block_size = block_size;
-            vgmstream->num_samples = msadpcm_bytes_to_samples(data_size, block_size, channel_count);
+            vgmstream->interleave_block_size = block_align;
+            vgmstream->num_samples = msadpcm_bytes_to_samples(data_size, block_align, channel_count);
             break;
 
         case 0x11:
-            if (!block_size) goto fail;
+            if (!block_align) goto fail;
             vgmstream->coding_type = coding_MS_IMA;
             vgmstream->layout_type = layout_none;
-            vgmstream->interleave_block_size = block_size;
-            vgmstream->num_samples = ms_ima_bytes_to_samples(data_size, block_size, channel_count);
+            vgmstream->interleave_block_size = block_align;
+            vgmstream->num_samples = ms_ima_bytes_to_samples(data_size, block_align, channel_count);
             break;
 
 #ifdef VGM_USE_FFMPEG

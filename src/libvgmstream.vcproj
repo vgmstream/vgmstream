@@ -704,10 +704,14 @@
 					RelativePath=".\meta\mogg.c"
 					>
 				</File>
-				<File
-					RelativePath=".\meta\msvp.c"
-					>
-				</File>
+                <File
+                    RelativePath=".\meta\msvp.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\mus_vc.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\mus_acm.c"
 					>
@@ -1302,10 +1306,14 @@
 					RelativePath=".\meta\xa.c"
 					>
 				</File>
-				<File
-					RelativePath=".\meta\fag.c"
-					>
-				</File>
+                <File
+                    RelativePath=".\meta\fag.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\ffdl.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\psx_gms.c"
 					>
@@ -1988,10 +1996,6 @@
 				>
 				<File
 					RelativePath=".\layout\segmented.c"
-					>
-				</File>
-				<File
-					RelativePath=".\layout\aix_layout.c"
 					>
 				</File>
 				<File

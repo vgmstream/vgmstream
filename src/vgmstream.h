@@ -8,6 +8,10 @@
  /* reasonable maxs */
 enum { PATH_LIMIT = 32768 };
 enum { STREAM_NAME_SIZE = 255 };
+enum { VGMSTREAM_MAX_CHANNELS = 64 };
+#ifdef VGMSTREAM_MIXING
+enum { VGMSTREAM_MAX_MIXING = 64 };
+#endif
 
 #include "streamfile.h"
 
@@ -120,6 +124,7 @@ typedef enum {
     coding_WV6_IMA,         /* Gorilla Systems WV6 4-bit IMA ADPCM */
     coding_ALP_IMA,         /* High Voltage ALP 4-bit IMA ADPCM */
     coding_FFTA2_IMA,       /* Final Fantasy Tactics A2 4-bit IMA ADPCM */
+    coding_BLITZ_IMA,       /* Blitz Games 4-bit IMA ADPCM */
 
     coding_MS_IMA,          /* Microsoft IMA ADPCM */
     coding_XBOX_IMA,        /* XBOX IMA ADPCM */
@@ -264,7 +269,6 @@ typedef enum {
     layout_blocked_vs_square,
 
     /* otherwise odd */
-    layout_aix,             /* CRI AIX's wheels within wheels */
     layout_segmented,       /* song divided in segments (song sections) */
     layout_layered,         /* song divided in layers (song channels) */
 
@@ -719,6 +723,7 @@ typedef enum {
     meta_DSF,
     meta_208,
     meta_DSP_DS2,
+    meta_MUS_VC,
 
 } meta_t;
 
@@ -729,20 +734,28 @@ typedef enum {
     MIX_ADD,
     MIX_ADD_VOLUME,
     MIX_VOLUME,
-    MIX_CROSSFADE,
+    MIX_LIMIT,
     MIX_DOWNMIX,
     MIX_DOWNMIX_REST,
-    MIX_UPMIX
+    MIX_UPMIX,
+    MIX_FADE
 } mix_command_t;
 
 typedef struct {
     mix_command_t command;
-    int ch_a;
-    int ch_b;
-    float vol_a;
-    float vol_b;
-    float pos_a;
-    float pos_b;
+    /* common */
+    int ch_dst;
+    int ch_src;
+    float vol;
+
+    /* fade envelope */
+    float vol_start;    /* volume from pre to start */
+    float vol_end;      /* volume from end to post */
+    char shape;         /* curve type */
+    float time_pre;     /* position before curve where vol_str applies (-1 = beginning) */
+    float time_start;   /* curve start position where vol changes from src to dst */
+    float time_end;     /* curve end position where vol changes from src to dst */
+    float time_post;    /* position after curve where vol_dst applies (-1 = end) */
 } mix_config_data;
 #endif
 
@@ -821,15 +834,19 @@ typedef struct {
 
     /* other config */
     int allow_dual_stereo;          /* search for dual stereo (file_L.ext + file_R.ext = single stereo file) */
+#ifndef VGMSTREAM_MIXING
     uint32_t channel_mask;          /* to silence crossfading subsongs/layers */
     int channel_mappings_on;        /* channel mappings are active */
     int channel_mappings[32];       /* swap channel "i" with "[i]" */
+#endif
 #ifdef VGMSTREAM_MIXING
-    int output_channels;            /* resulting channels after mixing (may be ignored if plugin doesn't support it) */
+    /* may be ignored if plugin doesn't support it, but fields will be always set to simplify plugin's code */
+    int input_channels;             /* starting channels before mixing (outbuf must be this big) */
+    int output_channels;            /* resulting channels after mixing */
     int mixing_on;                  /* mixing allowed */
     int mixing_count;               /* mixing number */
-    mix_config_data mixing[64];     /* applies transformation to output samples (could be alloc'ed but to simplify...) */
     size_t mixing_size;             /* mixing max */
+    mix_config_data mixing_chain[VGMSTREAM_MAX_MIXING]; /* effects to apply (could be alloc'ed but to simplify...) */
 #endif
     /* config requests, players must read and honor these values */
     /* (ideally internally would work as a player, but for now player must do it manually) */
@@ -1065,21 +1082,21 @@ typedef struct {
 
 #ifdef VGM_USE_G7221
 typedef struct {
-    sample buffer[640];
+    sample_t buffer[640];
     g7221_handle *handle;
 } g7221_codec_data;
 #endif
 
 #ifdef VGM_USE_G719
 typedef struct {
-   sample buffer[960];
+   sample_t buffer[960];
    void *handle;
 } g719_codec_data;
 #endif
 
 #ifdef VGM_USE_MAIATRAC3PLUS
 typedef struct {
-    sample *buffer;
+    sample_t *buffer;
     int channels;
     int samples_discard;
     void *handle;
@@ -1107,20 +1124,6 @@ typedef struct {
     void *handle;
     void *io_config;
 } acm_codec_data;
-
-#define AIX_BUFFER_SIZE 0x1000
-/* AIXery */
-typedef struct {
-    sample buffer[AIX_BUFFER_SIZE];
-    int segment_count;
-    int stream_count;
-    int current_segment;
-    /* one per segment */
-    int32_t *sample_counts;
-    /* organized like:
-     * segment1_stream1, segment1_stream2, segment2_stream1, segment2_stream2*/
-    VGMSTREAM **adxs;
-} aix_codec_data;
 
 /* for files made of "continuous" segments, one per section of a song (using a complete sub-VGMSTREAM) */
 typedef struct {
@@ -1329,6 +1332,15 @@ VGMSTREAM * allocate_vgmstream(int channel_count, int looped);
 /* Prepare the VGMSTREAM's initial state once parsed and ready, but before playing. */
 void setup_vgmstream(VGMSTREAM * vgmstream);
 
+#ifdef VGMSTREAM_MIXING
+/* Applies mixing commands to the vgmstream to the sample buffer.
+ * Mixing must be enabled and outbuf must be big enough for output_channels*samples_to_do big. */
+void mix_vgmstream(sample_t *outbuf, int32_t sample_count, VGMSTREAM* vgmstream);
+
+/* Add a new internal mix. Always use this as it validates mixes. */
+void vgmstream_add_mixing(VGMSTREAM* vgmstream, mix_config_data mix);
+#endif
+
 /* Get the number of samples of a single frame (smallest self-contained sample group, 1/N channels) */
 int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream);
 /* Get the number of bytes of a single frame (smallest self-contained byte group, 1/N channels) */
@@ -1339,7 +1351,7 @@ int get_vgmstream_shortframe_size(VGMSTREAM * vgmstream);
 
 /* Decode samples into the buffer. Assume that we have written samples_written into the
  * buffer already, and we have samples_to_do consecutive samples ahead of us. */
-void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to_do, sample * buffer);
+void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to_do, sample_t * buffer);
 
 /* Calculate number of consecutive samples to do (taking into account stopping for loop start and end) */
 int vgmstream_samples_to_do(int samples_this_block, int samples_per_frame, VGMSTREAM * vgmstream);

@@ -90,7 +90,7 @@ VGMSTREAM * init_vgmstream_vag(STREAMFILE *streamFile) {
                 else if (read_32bitLE(0x1000,streamFile) == 0x56414770) /* "pGAV" */
                     interleave = 0x1000; /* Jak X interleave, includes header */
                 else
-                    goto fail;
+                    interleave = 0x2000; /* Jak 3 interleave in rare files, no header */
                 //todo interleave_first = interleave - start_offset; /* interleave includes header */
             }
             else {

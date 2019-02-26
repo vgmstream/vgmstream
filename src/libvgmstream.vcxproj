@@ -288,6 +288,7 @@
     <ClCompile Include="meta\mc3.c" />
     <ClCompile Include="meta\mca.c" />
     <ClCompile Include="meta\msvp.c" />
+    <ClCompile Include="meta\mus_vc.c" />
     <ClCompile Include="meta\mus_acm.c">
       <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IntDir)%(Filename)1.obj</ObjectFileName>
       <XMLDocumentationFileName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IntDir)%(Filename)1.xdc</XMLDocumentationFileName>
@@ -415,6 +416,7 @@
     <ClCompile Include="meta\ps3_mta2.c" />
     <ClCompile Include="meta\xa.c" />
     <ClCompile Include="meta\fag.c" />
+    <ClCompile Include="meta\ffdl.c" />
     <ClCompile Include="meta\psx_gms.c" />
     <ClCompile Include="meta\ea_swvr.c" />
     <ClCompile Include="meta\raw.c" />
@@ -547,7 +549,6 @@
     <ClCompile Include="coding\xa_decoder.c" />
     <ClCompile Include="coding\xmd_decoder.c" />
     <ClCompile Include="layout\segmented.c" />
-    <ClCompile Include="layout\aix_layout.c" />
     <ClCompile Include="layout\blocked_ast.c" />
     <ClCompile Include="layout\blocked_bdsp.c" />
     <ClCompile Include="layout\blocked.c" />

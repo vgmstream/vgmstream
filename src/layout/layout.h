@@ -5,7 +5,7 @@
 #include "../vgmstream.h"
 
 /* blocked layouts */
-void render_vgmstream_blocked(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstream);
+void render_vgmstream_blocked(sample_t * buffer, int32_t sample_count, VGMSTREAM * vgmstream);
 void block_update(off_t block_offset, VGMSTREAM * vgmstream);
 
 void block_update_ast(off_t block_ofset, VGMSTREAM * vgmstream);
@@ -48,22 +48,22 @@ void block_update_xa_aiff(off_t block_offset, VGMSTREAM * vgmstream);
 void block_update_vs_square(off_t block_offset, VGMSTREAM * vgmstream);
 
 /* other layouts */
-void render_vgmstream_interleave(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstream);
+void render_vgmstream_interleave(sample_t * buffer, int32_t sample_count, VGMSTREAM * vgmstream);
 
-void render_vgmstream_flat(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstream);
+void render_vgmstream_flat(sample_t * buffer, int32_t sample_count, VGMSTREAM * vgmstream);
 
-void render_vgmstream_aix(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstream);
-
-void render_vgmstream_segmented(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstream);
+void render_vgmstream_segmented(sample_t * buffer, int32_t sample_count, VGMSTREAM * vgmstream);
 segmented_layout_data* init_layout_segmented(int segment_count);
 int setup_layout_segmented(segmented_layout_data* data);
 void free_layout_segmented(segmented_layout_data *data);
 void reset_layout_segmented(segmented_layout_data *data);
+VGMSTREAM *allocate_segmented_vgmstream(segmented_layout_data* data, int loop_flag, int loop_start_segment, int loop_end_segment);
 
-void render_vgmstream_layered(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstream);
+void render_vgmstream_layered(sample_t * buffer, int32_t sample_count, VGMSTREAM * vgmstream);
 layered_layout_data* init_layout_layered(int layer_count);
 int setup_layout_layered(layered_layout_data* data);
 void free_layout_layered(layered_layout_data *data);
 void reset_layout_layered(layered_layout_data *data);
+VGMSTREAM *allocate_layered_vgmstream(layered_layout_data* data);
 
 #endif

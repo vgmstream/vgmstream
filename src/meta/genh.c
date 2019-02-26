@@ -189,9 +189,9 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
 
             /* setup adpcm */
             if (coding == coding_AICA || coding == coding_AICA_int) {
-                int i;
-                for (i=0;i<vgmstream->channels;i++) {
-                    vgmstream->ch[i].adpcm_step_index = 0x7f;
+                int ch;
+                for (ch = 0; ch < vgmstream->channels; ch++) {
+                    vgmstream->ch[ch].adpcm_step_index = 0x7f;
                 }
             }
 

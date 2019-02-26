@@ -7,7 +7,7 @@ VGMSTREAM * init_vgmstream_baf(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     off_t start_offset, header_offset, name_offset;
     size_t stream_size;
-    int loop_flag, channel_count, sample_rate, version, codec;
+    int loop_flag, channel_count, sample_rate, version, codec, tracks;
     int total_subsongs, target_subsong = streamFile->stream_index;
     int32_t (*read_32bit)(off_t,STREAMFILE*);
 
@@ -65,6 +65,7 @@ VGMSTREAM * init_vgmstream_baf(STREAMFILE *streamFile) {
     name_offset  = header_offset + 0x0c;
     start_offset = read_32bit(header_offset+0x2c, streamFile);
     stream_size    = read_32bit(header_offset+0x30, streamFile);
+    tracks = 0;
 
     switch(codec) {
         case 0x03:
@@ -93,7 +94,12 @@ VGMSTREAM * init_vgmstream_baf(STREAMFILE *streamFile) {
                 case 0x05: /* James Bond 007: Blood Stone (X360) */
                     sample_rate     = read_32bit(header_offset+0x40, streamFile);
                     loop_flag        = read_8bit(header_offset+0x48, streamFile);
+                    tracks           = read_8bit(header_offset+0x49, streamFile);
                     channel_count    = read_8bit(header_offset+0x4b, streamFile);
+
+                    if (tracks) {
+                        channel_count = channel_count * tracks;
+                    }
                     break;
 
                 default:

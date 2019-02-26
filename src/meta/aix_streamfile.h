@@ -2,163 +2,150 @@
 #define _AIX_STREAMFILE_H_
 #include "../streamfile.h"
 
-/* a streamfile representing a subfile inside another, in blocked AIX format */
 
-typedef struct _AIXSTREAMFILE {
-    STREAMFILE sf;
-    STREAMFILE *real_file;
-    off_t start_physical_offset;
-    off_t current_physical_offset;
-    off_t current_logical_offset;
-    off_t current_block_size;
-    int stream_id;
-} AIXSTREAMFILE;
+typedef struct {
+    /* config */
+    off_t stream_offset;
+    size_t stream_size;
+    int layer_number;
+
+    /* state */
+    off_t logical_offset;       /* fake offset */
+    off_t physical_offset;      /* actual offset */
+    size_t block_size;          /* current size */
+    size_t skip_size;           /* size from block start to reach data */
+    size_t data_size;           /* usable size in a block */
+
+    size_t logical_size;
+} aix_io_data;
 
 
-/*static*/ STREAMFILE *open_aix_with_STREAMFILE(STREAMFILE *file, off_t start_offset, int stream_id);
+static size_t aix_io_read(STREAMFILE *streamfile, uint8_t *dest, off_t offset, size_t length, aix_io_data* data) {
+    size_t total_read = 0;
 
 
-static size_t read_aix(AIXSTREAMFILE *streamfile,uint8_t *dest,off_t offset,size_t length) {
-    size_t sz = 0;
+    /* re-start when previous offset (can't map logical<>physical offsets) */
+    if (data->logical_offset < 0 || offset < data->logical_offset) {
+        data->physical_offset = data->stream_offset;
+        data->logical_offset = 0x00;
+        data->data_size = 0;
+    }
 
-    /*printf("trying to read %x bytes from %x (str%d)\n",length,offset,streamfile->stream_id);*/
+    /* read blocks */
     while (length > 0) {
-        int read_something = 0;
 
-        /* read the beginning of the requested block, if we can */
-        if (offset >= streamfile->current_logical_offset) {
-            off_t to_read;
-            off_t length_available;
+        /* ignore EOF */
+        if (offset < 0 || data->physical_offset >= data->stream_offset + data->stream_size) {
+            break;
+        }
 
-            length_available = (streamfile->current_logical_offset + streamfile->current_block_size) - offset;
+        /* process new block */
+        if (data->data_size == 0) {
+            uint32_t block_id = read_u32be(data->physical_offset+0x00, streamfile);
+            data->block_size  = read_u32be(data->physical_offset+0x04, streamfile) + 0x08;
 
-            if (length < length_available) {
-                to_read = length;
+            /* check valid block "AIXP" id, knowing that AIX segments end with "AIXE" block too */
+            if (block_id != 0x41495850 || data->block_size == 0 || data->block_size == 0xFFFFFFFF) {
+                break;
             }
-            else {
-                to_read = length_available;
+
+            /* read target layer, otherwise skip to next block and try again */
+            if (read_s8(data->physical_offset+0x08, streamfile) == data->layer_number) {
+                /* 0x09(1): layer count */
+                data->data_size = read_s16be(data->physical_offset+0x0a, streamfile);
+                /* 0x0c: -1 */
+                data->skip_size = 0x10;
             }
 
-            if (to_read > 0) {
-                size_t bytes_read;
-
-                bytes_read = read_streamfile(dest,
-                        streamfile->current_physical_offset+0x10 + (offset-streamfile->current_logical_offset),
-                        to_read,streamfile->real_file);
-
-                sz += bytes_read;
-                if (bytes_read != to_read) {
-                    return sz; /* an error which we will not attempt to handle here */
-                }
-
-                read_something = 1;
-
-                dest += bytes_read;
-                offset += bytes_read;
-                length -= bytes_read;
+            /* strange AIX in Tetris Collection (PS2) with padding before ADX start (no known flag) */
+            if (data->logical_offset == 0x00 &&
+                    read_u32be(data->physical_offset + 0x10, streamfile) == 0 &&
+                    read_u16be(data->physical_offset + data->block_size - 0x28, streamfile) == 0x8000) {
+                data->data_size = 0x28;
+                data->skip_size = data->block_size - 0x28;
             }
         }
 
-        if (!read_something) {
-            /* couldn't read anything, must seek */
-            int found_block = 0;
+        /* move to next block */
+        if (data->data_size == 0 || offset >= data->logical_offset + data->data_size) {
+            data->physical_offset += data->block_size;
+            data->logical_offset += data->data_size;
+            data->data_size = 0;
+            continue;
+        }
 
-            /* as we have no memory we must start seeking from the beginning */
-            if (offset < streamfile->current_logical_offset) {
-                streamfile->current_logical_offset = 0;
-                streamfile->current_block_size = 0;
-                streamfile->current_physical_offset = streamfile->start_physical_offset;
+        /* read data */
+        {
+            size_t bytes_consumed, bytes_done, to_read;
+
+            bytes_consumed = offset - data->logical_offset;
+            to_read = data->data_size - bytes_consumed;
+            if (to_read > length)
+                to_read = length;
+            bytes_done = read_streamfile(dest, data->physical_offset + data->skip_size + bytes_consumed, to_read, streamfile);
+
+            total_read += bytes_done;
+            dest += bytes_done;
+            offset += bytes_done;
+            length -= bytes_done;
+
+            if (bytes_done != to_read || bytes_done == 0) {
+                break; /* error/EOF */
             }
+        }
+    }
 
-            /* seek ye forwards */
-            while (!found_block) {
-                /*printf("seek looks at %x\n",streamfile->current_physical_offset);*/
-                switch (read_32bitBE(streamfile->current_physical_offset, streamfile->real_file)) {
-                      case 0x41495850:  /* AIXP */
-                          if (read_8bit(streamfile->current_physical_offset+8, streamfile->real_file) == streamfile->stream_id) {
-                              streamfile->current_block_size = (uint16_t)read_16bitBE(streamfile->current_physical_offset+0x0a, streamfile->real_file);
-
-                              if (offset >= streamfile->current_logical_offset+ streamfile->current_block_size) {
-                                  streamfile->current_logical_offset += streamfile->current_block_size;
-                              }
-                              else {
-                                  found_block = 1;
-                              }
-                          }
-
-                          if (!found_block) {
-                              streamfile->current_physical_offset += read_32bitBE(streamfile->current_physical_offset+0x04, streamfile->real_file) + 8;
-                          }
-
-                          break;
-                      case 0x41495846:  /* AIXF */
-                          /* shouldn't ever see this */
-                      case 0x41495845:  /* AIXE */
-                          /* shouldn't have reached the end o' the line... */
-                      default:
-                          return sz;
-                          break;
-                } /* end block/chunk type select */
-            } /* end while !found_block */
-        } /* end if !read_something */
-    } /* end while length > 0 */
-
-    return sz;
+    return total_read;
 }
 
-static void close_aix(AIXSTREAMFILE *streamfile) {
-    free(streamfile);
-    return;
+static size_t aix_io_size(STREAMFILE *streamfile, aix_io_data* data) {
+    uint8_t buf[1];
+
+    if (data->logical_size)
+        return data->logical_size;
+
+    /* force a fake read at max offset, to get max logical_offset (will be reset next read) */
+    aix_io_read(streamfile, buf, 0x7FFFFFFF, 1, data);
+    data->logical_size = data->logical_offset;
+
+    return data->logical_size;
 }
 
-static size_t get_size_aix(AIXSTREAMFILE *streamfile) {
-    return 0;
-}
+/* Handles deinterleaving of AIX blocked layer streams */
+static STREAMFILE* setup_aix_streamfile(STREAMFILE *streamFile, off_t stream_offset, size_t stream_size, int layer_number, const char* extension) {
+    STREAMFILE *temp_streamFile = NULL, *new_streamFile = NULL;
+    aix_io_data io_data = {0};
+    size_t io_data_size = sizeof(aix_io_data);
 
-static size_t get_offset_aix(AIXSTREAMFILE *streamfile) {
-    return streamfile->current_logical_offset;
-}
+    io_data.stream_offset = stream_offset;
+    io_data.stream_size = stream_size;
+    io_data.layer_number = layer_number;
+    io_data.logical_offset = -1; /* force reset */
 
-static void get_name_aix(AIXSTREAMFILE *streamfile,char *buffer,size_t length) {
-    strncpy(buffer,"ARBITRARY.ADX",length);
-    buffer[length-1]='\0';
-}
+    /* setup subfile */
+    new_streamFile = open_wrap_streamfile(streamFile);
+    if (!new_streamFile) goto fail;
+    temp_streamFile = new_streamFile;
 
-static STREAMFILE *open_aix_impl(AIXSTREAMFILE *streamfile,const char * const filename,size_t buffersize) {
-    AIXSTREAMFILE *newfile;
-    if (strcmp(filename,"ARBITRARY.ADX"))
-        return  NULL;
+    new_streamFile = open_io_streamfile(new_streamFile, &io_data,io_data_size, aix_io_read,aix_io_size);
+    if (!new_streamFile) goto fail;
+    temp_streamFile = new_streamFile;
 
-    newfile = malloc(sizeof(AIXSTREAMFILE));
-    if (!newfile)
-        return NULL;
-    memcpy(newfile,streamfile,sizeof(AIXSTREAMFILE));
-    return &newfile->sf;
-}
+    new_streamFile = open_buffer_streamfile(new_streamFile,0);
+    if (!new_streamFile) goto fail;
+    temp_streamFile = new_streamFile;
 
-/*static*/ STREAMFILE *open_aix_with_STREAMFILE(STREAMFILE *file, off_t start_offset, int stream_id) {
-    AIXSTREAMFILE *streamfile = malloc(sizeof(AIXSTREAMFILE));
+    if (extension) {
+        new_streamFile = open_fakename_streamfile(temp_streamFile, NULL,extension);
+        if (!new_streamFile) goto fail;
+        temp_streamFile = new_streamFile;
+    }
 
-    if (!streamfile)
-        return NULL;
+    return temp_streamFile;
 
-    /* success, set our pointers */
-
-    streamfile->sf.read = (void*)read_aix;
-    streamfile->sf.get_size = (void*)get_size_aix;
-    streamfile->sf.get_offset = (void*)get_offset_aix;
-    streamfile->sf.get_name = (void*)get_name_aix;
-    streamfile->sf.open = (void*)open_aix_impl;
-    streamfile->sf.close = (void*)close_aix;
-
-    streamfile->real_file = file;
-    streamfile->current_physical_offset = start_offset;
-    streamfile->start_physical_offset = start_offset;
-    streamfile->current_logical_offset = 0;
-    streamfile->current_block_size = 0;
-    streamfile->stream_id = stream_id;
-
-    return &streamfile->sf;
+fail:
+    close_streamfile(temp_streamFile);
+    return NULL;
 }
 
 #endif /* _AIX_STREAMFILE_H_ */

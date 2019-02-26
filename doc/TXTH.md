@@ -60,33 +60,77 @@ A text file with the above commands must be saved as ".vag.txth" or ".txth", not
 # Codec used to encode the data [REQUIRED]
 # Accepted codec strings:
 # - PSX            PlayStation ADPCM
-# - XBOX           Xbox IMA ADPCM
-# - NGC_DTK|DTK    Nintendo ADP/DTK ADPCM
-# - PCM16BE        PCM 16-bit big endian
-# - PCM16LE        PCM 16-bit little endian
-# - PCM8           PCM 8-bit signed
-# - SDX2           Squareroot-delta-exact 8-bit DPCM (3DO games)
-# - DVI_IMA        DVI IMA ADPCM
-# - MPEG           MPEG Audio Layer file (MP1/2/3)
-# - IMA            IMA ADPCM
-# - AICA           Yamaha AICA ADPCM (Dreamcast)
-# - MSADPCM        Microsoft ADPCM (Windows)
-# - NGC_DSP|DSP    Nintendo GameCube ADPCM
-# - PCM8_U_int     PCM RAW 8bit unsigned (interleaved)
+#   * For many PS1/PS2/PS3 games
+#   * Interleave is multiple of 0x10, often +0x1000
 # - PSX_bf         PlayStation ADPCM with bad flags
-# - MS_IMA         Microsoft IMA ADPCM
+#   * Variation with garbage data, for rare PS2 games
+# - XBOX           Xbox IMA ADPCM (mono/stereo)
+#   * For many XBOX games, and some PC games
+#   * Special interleave is multiple of 0x24 (mono) or 0x48 (stereo)
+# - DSP|NGC_DSP    Nintendo GameCube ADPCM
+#   * For many GC/Wii/3DS games
+#   * Interleave is multiple of 0x08, often +0x1000
+#   * Must set decoding coefficients (coef_offset/spacing/etc)
+# - DTK|NGC_DTK    Nintendo ADP/DTK ADPCM
+#   * For rare GC games
+# - PCM16LE        PCM 16-bit little endian
+#   * For many games (usually on PC)
+#   * Interleave is multiple of 0x2
+# - PCM16BE        PCM 16-bit big endian
+#   * Variation for certain consoles (GC/Wii/PS3/X360/etc)
+# - PCM8           PCM 8-bit signed
+#   * For some games (usually on PC)
+#   * Interleave is multiple of 0x1
 # - PCM8_U         PCM 8-bit unsigned
+#   * Variation with modified encoding
+# - PCM8_U_int     PCM 8-bit unsigned (interleave block)
+#   * Variation with modified encoding
+# - IMA            IMA ADPCM (mono/stereo)
+#   * For some PC games, and rarely consoles
+#   * Special interleave is multiple of 0x1, often +0x80
+# - DVI_IMA        IMA ADPCM (DVI order)
+#   * Variation with modified encoding
+# - YAMAHA|AICA    Yamaha ADPCM (mono/stereo)
+#   * For some Dreamcast games, and some arcade games
+#   * Special interleave is multiple of 0x1
 # - APPLE_IMA4     Apple Quicktime IMA ADPCM
+#   * For some Mac/iOS games
+# - MS_IMA         Microsoft IMA ADPCM
+#   * For some PC games
+#   * Interleave (frame size) varies, often multiple of 0x100 [required]
+# - MSADPCM        Microsoft ADPCM (mono/stereo)
+#   * For some PC games
+#   * Interleave (frame size) varies, often multiple of 0x100 [required]
+# - SDX2           Squareroot-delta-exact 8-bit DPCM (3DO games)
+#   * For many 3DO games
+# - MPEG           MPEG Audio Layer file (MP1/2/3)
+#   * For some games (usually PC/PS3)
 # - ATRAC3         Sony ATRAC3
+#   * For some PS2 and PS3 games
+#   * Interleave (frame size) can be 0x60/0x98/0xC0 * channels [required]
 # - ATRAC3PLUS     Sony ATRAC3plus
+#   * For many PSP games and rare PS3 games
+#   * Interleave (frame size) can be: [required]
+#     Mono: 0x0118|0178|0230|02E8
+#     Stereo: 0x0118|0178|0230|02E8|03A8|0460|05D0|0748|0800
 # - XMA1           Microsoft XMA1
+#   * For early X360 games
 # - XMA2           Microsoft XMA2
+#   * For later X360 games
 # - FFMPEG         Any headered FFmpeg format
+#   * For uncommon games
 # - AC3            AC3/SPDIF
+#   * For few PS2 games
 # - PCFX           PC-FX ADPCM
+#   * For many PC-FX games
+#   * Interleave is multiple of 0x1, often +0x8000
+#   * Sample rate may be ~31468/~15734/~10489/~7867
 # - PCM4           PCM 4-bit signed
+#   * For early consoles
 # - PCM4_U         PCM 4-bit unsigned
-# - OKI16          OKI ADPCM with 16-bit output (not std/VOX/Dialogic 12-bit)
+#   * Variation with modified encoding
+# - OKI16          OKI ADPCM with 16-bit output (not VOX/Dialogic 12-bit)
+#   * For few PS2 games (Sweet Legacy, Hooligan)
 codec = (codec string)
 
 # Codec variations [OPTIONAL, depends on codec]
@@ -111,9 +155,11 @@ value_sub|value_- = (number)|(offset)|(field)
 # Interleave or block size [REQUIRED/OPTIONAL, depends on codec]
 # - half_size: sets interleave as data_size / channels
 # For mono/interleaved codecs it's the amount of data between channels,
-# and for codecs with variable-sized frames (MSADPCM, MS-IMA, ATRAC3/plus)
-# means block size (size of a single frame).
-# Interleave 0 means "stereo mode" for some codecs (IMA, AICA, etc).
+# and while optional you'll often need to set it to get proper sound.
+# For codecs with custom frame sizes (MSADPCM, MS-IMA, ATRAC3/plus)
+# means frame size and it's required.
+# Interleave 0 means "stereo mode" for codecs marked as "mono/stereo",
+# and setting it will usually force mono-interleaved mode.
 interleave = (number)|(offset)|(field)|half_size
 
 # Interleave in the last block [OPTIONAL]

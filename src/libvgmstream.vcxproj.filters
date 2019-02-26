@@ -439,6 +439,9 @@
     <ClCompile Include="meta\mus_acm.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\mus_vc.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\musc.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -800,6 +803,9 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\fag.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\ffdl.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\psx_gms.c">
@@ -1178,9 +1184,6 @@
       <Filter>coding\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="layout\segmented.c">
-      <Filter>layout\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="layout\aix_layout.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="layout\blocked_ast.c">

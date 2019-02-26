@@ -6,22 +6,26 @@ const char * filename_extension(const char * pathname) {
     const char * filename;
     const char * extension;
 
-    /* get basename + extension */
-    filename = pathname;
-#if 0
-    //must detect empty extensions in folders with . in the name; not too important and DIR_SEPARATOR could improved
-    filename = strrchr(pathname, DIR_SEPARATOR);
-    if (filename == NULL)
-        filename = pathname; /* pathname has no separators (single filename) */
-    else
-        filename++; /* skip the separator */
-#endif
+    /* favor strrchr (optimized/aligned) rather than homemade loops */
+
+    /* find possible separator first to avoid misdetecting folders with dots + extensionless files
+     * (allow both slashes as plugin could pass normalized '/') */
+    filename = strrchr(pathname, '/');
+    if (filename != NULL)
+        filename++; /* skip separator */
+    else {
+        filename = strrchr(pathname, '\\');
+        if (filename != NULL)
+            filename++; /* skip separator */
+        else
+            filename = pathname; /* pathname has no separators (single filename) */
+    }
 
     extension = strrchr(filename,'.');
-    if (extension==NULL)
-        extension = filename+strlen(filename); /* point to null, i.e. an empty string for the extension */
+    if (extension != NULL)
+        extension++; /* skip dot */
     else
-        extension++; /* skip the dot */
+        extension = filename + strlen(filename); /* point to null (empty "" string for extensionless files) */
 
     return extension;
 }

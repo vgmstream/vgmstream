@@ -137,6 +137,7 @@ typedef struct {
     off_t xma_header_offset;    /* some XMA have extra header stuff */
 
     int layer_count;            /* number of layers in a layer type */
+    int layer_channels[SB_MAX_LAYER_COUNT];
     int sequence_count;         /* number of segments in a sequence type */
     int sequence_chain[SB_MAX_CHAIN_COUNT]; /* sequence of entry numbers */
     int sequence_loop;          /* chain index to loop */
@@ -639,7 +640,7 @@ static VGMSTREAM * init_vgmstream_ubi_sb_layer(ubi_sb_header *sb, STREAMFILE *st
     STREAMFILE* temp_streamFile = NULL;
     STREAMFILE *streamData = NULL;
     size_t full_stream_size = sb->stream_size;
-    int i;
+    int i, total_channels = 0;
 
     /* open external stream if needed */
     if (sb->is_external) {
@@ -664,6 +665,8 @@ static VGMSTREAM * init_vgmstream_ubi_sb_layer(ubi_sb_header *sb, STREAMFILE *st
         if (!temp_streamFile) goto fail;
 
         sb->stream_size = get_streamfile_size(temp_streamFile);
+        sb->channels = sb->layer_channels[i];
+        total_channels += sb->layer_channels[i];
 
         /* build the layer VGMSTREAM (standard sb with custom streamfile) */
         data->layers[i] = init_vgmstream_ubi_sb_base(sb, streamTest, temp_streamFile, 0x00);
@@ -678,7 +681,7 @@ static VGMSTREAM * init_vgmstream_ubi_sb_layer(ubi_sb_header *sb, STREAMFILE *st
 
 
     /* build the base VGMSTREAM */
-    vgmstream = allocate_vgmstream(sb->channels * sb->layer_count, sb->loop_flag);
+    vgmstream = allocate_vgmstream(total_channels, sb->loop_flag);
     if (!vgmstream) goto fail;
 
     vgmstream->meta_type = meta_UBI_SB;
@@ -1107,17 +1110,17 @@ static int parse_type_layer(ubi_sb_header * sb, off_t offset, STREAMFILE* stream
 
     /* get 1st layer header in extra table and validate all headers match */
     table_offset = sb->extra_offset;
-    sb->channels        = (sb->cfg.layer_channels % 4) ? /* non-aligned offset is always 16b */
-                (uint16_t)read_16bit(table_offset + sb->cfg.layer_channels, streamFile) :
-                (uint32_t)read_32bit(table_offset + sb->cfg.layer_channels, streamFile);
+  //sb->channels        = (sb->cfg.layer_channels % 4) ? /* non-aligned offset is always 16b */
+  //            (uint16_t)read_16bit(table_offset + sb->cfg.layer_channels, streamFile) :
+  //            (uint32_t)read_32bit(table_offset + sb->cfg.layer_channels, streamFile);
     sb->sample_rate     = read_32bit(table_offset + sb->cfg.layer_sample_rate, streamFile);
     sb->stream_type     = read_32bit(table_offset + sb->cfg.layer_stream_type, streamFile);
     sb->num_samples     = read_32bit(table_offset + sb->cfg.layer_num_samples, streamFile);
 
     for (i = 0; i < sb->layer_count; i++) {
-      //int channels    = (sb->cfg.layer_channels % 4) ? /* non-aligned offset is always 16b */
-      //        (uint16_t)read_16bit(table_offset + sb->cfg.layer_channels, streamFile) :
-      //        (uint32_t)read_32bit(table_offset + sb->cfg.layer_channels, streamFile);
+        int channels    = (sb->cfg.layer_channels % 4) ? /* non-aligned offset is always 16b */
+                (uint16_t)read_16bit(table_offset + sb->cfg.layer_channels, streamFile) :
+                (uint32_t)read_32bit(table_offset + sb->cfg.layer_channels, streamFile);
         int sample_rate = read_32bit(table_offset + sb->cfg.layer_sample_rate, streamFile);
         int stream_type = read_32bit(table_offset + sb->cfg.layer_stream_type, streamFile);
         int num_samples = read_32bit(table_offset + sb->cfg.layer_num_samples, streamFile);
@@ -1125,15 +1128,14 @@ static int parse_type_layer(ubi_sb_header * sb, off_t offset, STREAMFILE* stream
             VGM_LOG("Ubi SB: %i layer headers don't match at %x\n", sb->layer_count, (uint32_t)table_offset);
 
             if (sb->cfg.ignore_layer_error) {
-                sb->layer_count = 1;
-                break;
+                continue;
             }
 
             goto fail;
         }
 
-        /* unusual but happens, layers handle it fine [Brothers in Arms 2 (PS2) ex. MP_B01_NL.SB1] */
-        //;VGM_ASSERT_ONCE(sb->channels != channels, "UBI SB: layer channels don't match at %x\n", (uint32_t)table_offset);
+        /* uncommonly channels may vary per layer [Brothers in Arms 2 (PS2) ex. MP_B01_NL.SB1] */
+        sb->layer_channels[i] = channels;
 
         /* can be +-1 */
         if (sb->num_samples != num_samples && sb->num_samples + 1 == num_samples) {

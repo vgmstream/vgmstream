@@ -609,6 +609,7 @@ static const coding_info coding_info_list[] = {
         {coding_WV6_IMA,            "Gorilla Systems WV6 4-bit IMA ADPCM"},
         {coding_ALP_IMA,            "High Voltage ALP 4-bit IMA ADPCM"},
         {coding_FFTA2_IMA,          "Final Fantasy Tactics A2 4-bit IMA ADPCM"},
+        {coding_BLITZ_IMA,          "Blitz Games 4-bit IMA ADPCM"},
 
         {coding_MS_IMA,             "Microsoft 4-bit IMA ADPCM"},
         {coding_XBOX_IMA,           "XBOX 4-bit IMA ADPCM"},
@@ -699,7 +700,6 @@ static const layout_info layout_info_list[] = {
 
         {layout_segmented,              "segmented"},
         {layout_layered,                "layered"},
-        {layout_aix,                    "AIX"},
 
         {layout_blocked_mxch,           "blocked (MxCh)"},
         {layout_blocked_ast,            "blocked (AST)"},
@@ -902,8 +902,8 @@ static const meta_info meta_info_list[] = {
         {meta_RSD6WMA,              "Radical RSD6/WMA header"},
         {meta_DC_ASD,               "ASD Header"},
         {meta_NAOMI_SPSD,           "Naomi SPSD header"},
-        {meta_FFXI_BGW,             "BGW BGMStream header"},
-        {meta_FFXI_SPW,             "SPW SeWave header"},
+        {meta_FFXI_BGW,             "Square Enix .BGW header"},
+        {meta_FFXI_SPW,             "Square Enix .SPW header"},
         {meta_PS2_ASS,              "SystemSoft .ASS header"},
         {meta_NUB_IDSP,             "Namco NUB IDSP header"},
         {meta_IDSP_NL,              "Next Level IDSP header"},
@@ -996,7 +996,7 @@ static const meta_info meta_info_list[] = {
         {meta_PS2_B1S,              "B1S header"},
         {meta_PS2_WAD,              "WAD header"},
         {meta_DSP_XIII,             "XIII dsp header"},
-        {meta_DSP_CABELAS,          "Cabelas games dsp header"},
+        {meta_DSP_CABELAS,          "Cabelas games .DSP header"},
         {meta_PS2_ADM,              "Dragon Quest V .ADM raw header"},
         {meta_PS2_LPCM,             "LPCM header"},
         {meta_PS2_VMS,              "VMS Header"},
@@ -1172,6 +1172,7 @@ static const meta_info meta_info_list[] = {
         {meta_DSF,                  "Ocean DSF header"},
         {meta_208,                  "Ocean .208 header"},
         {meta_DSP_DS2,              "LucasArts .DS2 header"},
+        {meta_MUS_VC,               "Vicious Cycle .MUS header"},
 
 };
 

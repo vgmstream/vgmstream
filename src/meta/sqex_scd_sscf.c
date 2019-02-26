@@ -39,7 +39,7 @@ VGMSTREAM * init_vgmstream_scd_sscf(STREAMFILE *streamFile) {
         total_subsongs = 0;
         for (i = 0; i < entries; i++) {
             off_t entry_offset = 0x20 + (0x20*i);
-            off_t stream_offset;
+            off_t entry_stream_offset;
 
             /* skip dummies */
             if (read_32bitLE(entry_offset+0x08,streamFile) == 0) /* size 0 */
@@ -49,16 +49,16 @@ VGMSTREAM * init_vgmstream_scd_sscf(STREAMFILE *streamFile) {
 
             /* skip repeated sounds */
             is_dupe = 0;
-            stream_offset = read_32bitLE(entry_offset+0x04,streamFile);
+            entry_stream_offset = read_32bitLE(entry_offset+0x04,streamFile);
             for (j = 0; j < total_subsongs; j++) {
-                if (stream_offset == stream_offsets[j]) {
+                if (entry_stream_offset == stream_offsets[j]) {
                     is_dupe = 1;
                     break;
                 }
             }
             if (is_dupe)
                 continue;
-            stream_offsets[total_subsongs] = stream_offset;
+            stream_offsets[total_subsongs] = entry_stream_offset;
 
             /* ok */
             total_subsongs++;

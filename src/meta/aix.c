@@ -1,200 +1,195 @@
 #include "meta.h"
+#include "../layout/layout.h"
 #include "aix_streamfile.h"
 
-/* AIX - interleaved AAX, N segments with M layers (1/2ch) inside [SoulCalibur IV (PS3), Dragon Ball Z: Burst Limit (PS3)] */
-VGMSTREAM * init_vgmstream_aix(STREAMFILE *streamFile) {
+
+#define MAX_SEGMENTS 50 /* usually segment0=intro, segment1=loop/main, sometimes ~5, rarely ~40 */
+
+static VGMSTREAM *build_segmented_vgmstream(STREAMFILE *streamFile, off_t *segment_offsets, size_t *segment_sizes, int32_t *segment_samples, int segment_count, int layer_count);
+
+/* AIX - N segments with M layers (2ch ADX) inside [SoulCalibur IV (PS3), Dragon Ball Z: Burst Limit (PS3)] */
+VGMSTREAM * init_vgmstream_aix(STREAMFILE *sf) {
     VGMSTREAM * vgmstream = NULL;
-    STREAMFILE * streamFileAIX = NULL;
-    int loop_flag = 0, channel_count, sample_rate;
-    int32_t sample_count, loop_start_sample = 0, loop_end_sample = 0;
 
-    off_t *segment_offset = NULL;
-    int32_t *segment_samples = NULL;
-    aix_codec_data *data = NULL;
-    off_t data_offset;
-    off_t layer_list_offset;
-    off_t layer_list_end;
-    const off_t segment_list_offset = 0x20;
-    const size_t segment_list_entry_size = 0x10;
-    const size_t layer_list_entry_size = 0x08;
+    off_t segment_offsets[MAX_SEGMENTS] = {0};
+    size_t segment_sizes[MAX_SEGMENTS] = {0};
+    int32_t segment_samples[MAX_SEGMENTS] = {0};
+    int segment_rates[MAX_SEGMENTS] = {0};
 
+    off_t data_offset, subtable_offset;
     int segment_count, layer_count;
-    int i, j;
+    int i;
 
 
     /* checks */
-    if (!check_extensions(streamFile, "aix"))
+    if (!check_extensions(sf, "aix"))
         goto fail;
-    if (read_32bitBE(0x00,streamFile) != 0x41495846 ||  /* "AIXF" */
-        read_32bitBE(0x08,streamFile) != 0x01000014 ||  /* version? */
-        read_32bitBE(0x0c,streamFile) != 0x00000800)
+    if (read_u32be(0x00,sf) != 0x41495846 ||  /* "AIXF" */
+        read_u32be(0x08,sf) != 0x01000014 ||  /* version? */
+        read_u32be(0x0c,sf) != 0x00000800)
         goto fail;
+
+    /* AIX combine layers for multichannel and segments for looping, all very hacky.
+     * For some reason AIX with 1 layer and 1 segment exist (equivalent to a single ADX). */
 
     /* base segment header */
-    data_offset = read_32bitBE(0x04,streamFile)+0x08;
-
-    segment_count = (uint16_t)read_16bitBE(0x18,streamFile);
-    if (segment_count < 1) goto fail;
-
-    layer_list_offset = segment_list_offset + segment_count*segment_list_entry_size + 0x10;
-    if (layer_list_offset >= data_offset) goto fail;
-
-    segment_samples = calloc(segment_count,sizeof(int32_t));
-    if (!segment_samples) goto fail;
-    segment_offset = calloc(segment_count,sizeof(off_t));
-    if (!segment_offset) goto fail;
+    data_offset = read_s32be(0x04,sf) + 0x08;
 
     /* parse segments table */
     {
-        sample_rate = read_32bitBE(layer_list_offset+0x08,streamFile); /* first layer's sample rate */
+        const off_t segment_list_offset = 0x20;
+        const size_t segment_list_entry_size = 0x10;
+
+        segment_count = read_u16be(0x18,sf);
+        if (segment_count < 1 || segment_count > MAX_SEGMENTS) goto fail;
+
+        subtable_offset = segment_list_offset + segment_count*segment_list_entry_size;
+        if (subtable_offset >= data_offset) goto fail;
 
         for (i = 0; i < segment_count; i++) {
-            segment_offset[i]  = read_32bitBE(segment_list_offset + segment_list_entry_size*i + 0x00,streamFile);
-            /* 0x04: segment size */
-            segment_samples[i] = read_32bitBE(segment_list_offset + segment_list_entry_size*i + 0x08,streamFile);
+            segment_offsets[i] = read_s32be(segment_list_offset + segment_list_entry_size*i + 0x00,sf);
+            segment_sizes[i]   = read_u32be(segment_list_offset + segment_list_entry_size*i + 0x04,sf);
+            segment_samples[i] = read_s32be(segment_list_offset + segment_list_entry_size*i + 0x08,sf);
+            segment_rates[i]   = read_s32be(segment_list_offset + segment_list_entry_size*i + 0x0c,sf);
+
+            /* segments > 0 can have 0 sample rate, seems to indicate same as first
+             * [Ryu ga Gotoku: Kenzan! (PS3) tenkei_sng1.aix] */
+            if (i > 0 && segment_rates[i] == 0)
+                segment_rates[i] = segment_rates[0];
 
             /* all segments must have equal sample rate */
-            if (read_32bitBE(segment_list_offset + segment_list_entry_size*i + 0x0c,streamFile) != sample_rate) {
-                /* segments > 0 can have 0 sample rate (Ryu ga gotoku: Kenzan! tenkei_sng1.aix),
-                   seems to indicate same sample rate as first */
-                if (!(i > 0 && read_32bitBE(segment_list_offset + segment_list_entry_size*i + 0x0c,streamFile) == 0))
-                    goto fail;
-            }
+            if (segment_rates[i] != segment_rates[0])
+                goto fail;
         }
 
-        if (segment_offset[0] != data_offset)
+        if (segment_offsets[0] != data_offset)
             goto fail;
     }
 
-    /* base layer header */
-    layer_count = (uint8_t)read_8bit(layer_list_offset,streamFile);
-    if (layer_count < 1) goto fail;
-
-    layer_list_end = layer_list_offset + 0x08 + layer_count*layer_list_entry_size;
-    if (layer_list_end >= data_offset) goto fail;
+    /* between the segment and layer table some kind of 0x10 subtable? */
+    if (read_u8(subtable_offset,sf) != 0x01)
+        goto fail;
 
     /* parse layers table */
-    channel_count = 0;
-    for (i = 0; i < layer_count; i++) {
-        /* all streams must have same samplerate as segments */
-        if (read_32bitBE(layer_list_offset + 0x08 + i*layer_list_entry_size + 0x00,streamFile) != sample_rate)
-            goto fail;
-        channel_count += read_8bit(layer_list_offset + 0x08 + i*layer_list_entry_size + 0x04,streamFile);
-    }
+    {
+        const size_t layer_list_entry_size = 0x08;
+        off_t layer_list_offset, layer_list_end;
 
-    /* check for existence of segments */
-    for (i = 0; i < segment_count; i++) {
-        off_t aixp_offset = segment_offset[i];
-        for (j = 0; j < layer_count; j++) {
-            if (read_32bitBE(aixp_offset,streamFile) != 0x41495850) /* "AIXP" */
+        layer_list_offset = subtable_offset + 0x10;
+        if (layer_list_offset >= data_offset) goto fail;
+
+        layer_count = read_u8(layer_list_offset,sf);
+        if (layer_count < 1) goto fail;
+
+        layer_list_end = layer_list_offset + 0x08 + layer_count*layer_list_entry_size;
+        if (layer_list_end >= data_offset) goto fail;
+
+        for (i = 0; i < layer_count; i++) {
+            /* all layers must have same sample rate as segments */
+            if (read_s32be(layer_list_offset + 0x08 + i*layer_list_entry_size + 0x00,sf) != segment_rates[0])
                 goto fail;
-            if (read_8bit(aixp_offset+0x08,streamFile) != j)
-                goto fail;
-            aixp_offset += read_32bitBE(aixp_offset+0x04,streamFile) + 0x08;
+            /* 0x04: layer channels */
         }
     }
 
-    /* open base streamfile, that will be shared by all open_aix_with_STREAMFILE */
-    {
-        char filename[PATH_LIMIT];
 
-        streamFile->get_name(streamFile,filename,sizeof(filename));
-        streamFileAIX = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE); //todo simplify
-        if (!streamFileAIX) goto fail;
-    }
-
-    /* init layout */
-    {
-        data = malloc(sizeof(aix_codec_data));
-        if (!data) goto fail;
-
-        data->segment_count = segment_count;
-        data->stream_count = layer_count;
-        data->adxs = calloc(segment_count * layer_count, sizeof(VGMSTREAM*));
-        if (!data->adxs) goto fail;
-
-        data->sample_counts = calloc(segment_count,sizeof(int32_t));
-        if (!data->sample_counts) goto fail;
-
-        memcpy(data->sample_counts,segment_samples,segment_count*sizeof(int32_t));
-    }
-
-    /* open each segment / layer subfile */
-    for (i = 0; i < segment_count; i++) {
-        for (j = 0; j < layer_count; j++) {
-            //;VGM_LOG("AIX: opening segment %d/%d stream %d/%d %x\n",i,segment_count,j,stream_count,segment_offset[i]);
-            VGMSTREAM *temp_vgmstream;
-            STREAMFILE * temp_streamFile = open_aix_with_STREAMFILE(streamFileAIX,segment_offset[i],j);
-            if (!temp_streamFile) goto fail;
-
-            temp_vgmstream = data->adxs[i*layer_count+j] = init_vgmstream_adx(temp_streamFile);
-
-            close_streamfile(temp_streamFile);
-
-            if (!temp_vgmstream) goto fail;
-
-            /* setup layers */
-            if (temp_vgmstream->num_samples != data->sample_counts[i] || temp_vgmstream->loop_flag != 0)
-                goto fail;
-
-            setup_vgmstream(temp_vgmstream); /* final setup as the VGMSTREAM was created manually */
-        }
-    }
-
-    /* get looping and samples */
-    sample_count = 0;
-    loop_flag = (segment_count > 1);
-    for (i = 0; i < segment_count; i++) {
-        sample_count += data->sample_counts[i];
-
-        if (i == 0)
-            loop_start_sample = sample_count;
-        if (i == 1)
-            loop_end_sample = sample_count;
-    }
-
-
-    /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+    /* build combo layers + segments VGMSTREAM */
+    vgmstream = build_segmented_vgmstream(sf, segment_offsets, segment_sizes, segment_samples, segment_count, layer_count);
     if (!vgmstream) goto fail;
 
-    vgmstream->sample_rate = sample_rate;
-    vgmstream->num_samples = sample_count;
-    vgmstream->loop_start_sample = loop_start_sample;
-    vgmstream->loop_end_sample = loop_end_sample;
-
     vgmstream->meta_type = meta_AIX;
-    vgmstream->coding_type = data->adxs[0]->coding_type;
-    vgmstream->layout_type = layout_aix;
-
-    vgmstream->ch[0].streamfile = streamFileAIX;
-    data->current_segment = 0;
-
-    vgmstream->codec_data = data;
-    free(segment_offset);
-    free(segment_samples);
 
     return vgmstream;
 
 fail:
-    close_streamfile(streamFileAIX);
     close_vgmstream(vgmstream);
-    free(segment_samples);
-    free(segment_offset);
+    return NULL;
+}
 
-    /* free aix layout */
-    if (data) {
-        if (data->adxs) {
-            int i;
-            for (i = 0; i < data->segment_count*data->stream_count; i++) {
-                close_vgmstream(data->adxs[i]);
-            }
-            free(data->adxs);
-        }
-        if (data->sample_counts) {
-            free(data->sample_counts);
-        }
-        free(data);
+static VGMSTREAM *build_layered_vgmstream(STREAMFILE *streamFile, off_t segment_offset, size_t segment_size, int layer_count) {
+    VGMSTREAM *vgmstream;
+    layered_layout_data* data = NULL;
+    int i;
+    STREAMFILE* temp_streamFile = NULL;
+
+
+    /* build layers */
+    data = init_layout_layered(layer_count);
+    if (!data) goto fail;
+
+    for (i = 0; i < layer_count; i++) {
+        /* build the layer STREAMFILE */
+        temp_streamFile = setup_aix_streamfile(streamFile, segment_offset, segment_size, i, "adx");
+        if (!temp_streamFile) goto fail;
+
+        /* build the sub-VGMSTREAM */
+        data->layers[i] = init_vgmstream_adx(temp_streamFile);
+        if (!data->layers[i]) goto fail;
+
+        data->layers[i]->stream_size = get_streamfile_size(temp_streamFile);
+
+        close_streamfile(temp_streamFile);
+        temp_streamFile = NULL;
     }
+
+    if (!setup_layout_layered(data))
+        goto fail;
+
+
+    /* build the layered VGMSTREAM */
+    vgmstream = allocate_layered_vgmstream(data);
+    if (!vgmstream) goto fail;
+
+    return vgmstream;
+
+fail:
+    if (!vgmstream) free_layout_layered(data);
+    close_vgmstream(vgmstream);
+    close_streamfile(temp_streamFile);
+    return NULL;
+}
+
+static VGMSTREAM *build_segmented_vgmstream(STREAMFILE *streamFile, off_t *segment_offsets, size_t *segment_sizes, int32_t *segment_samples, int segment_count, int layer_count) {
+    VGMSTREAM *vgmstream;
+    segmented_layout_data *data = NULL;
+    int i, loop_flag, loop_start_segment, loop_end_segment;
+
+
+    /* build segments */
+    data = init_layout_segmented(segment_count);
+    if (!data) goto fail;
+
+    for (i = 0; i < segment_count; i++) {
+        /* build the layered sub-VGMSTREAM */
+        data->segments[i] = build_layered_vgmstream(streamFile, segment_offsets[i], segment_sizes[i], layer_count);
+        if (!data->segments[i]) goto fail;
+
+        data->segments[i]->num_samples = segment_samples[i]; /* just in case */
+
+        data->segments[i]->stream_size = segment_sizes[i];
+    }
+
+    if (!setup_layout_segmented(data))
+        goto fail;
+
+    /* known loop cases:
+     * - 1 segment: main/no loop [Hatsune Miku: Project Diva (PSP)]
+     * - 2 segments: intro + loop [SoulCalibur IV (PS3)]
+     * - 3 segments: intro + loop + end [Dragon Ball Z: Burst Limit (PS3), Metroid: Other M (Wii)]
+     * - 4/5 segments: intros + loop + ends [Danball Senki (PSP)]
+     * - 39 segments: no loops but multiple segments for dynamic parts? [Tetris Collection (PS2)] */
+    loop_flag = (segment_count > 0 && segment_count <= 5);
+    loop_start_segment = (segment_count > 3) ? 2 : 1;
+    loop_end_segment = (segment_count > 3) ? (segment_count - 2) : 1;
+
+    /* build the segmented VGMSTREAM */
+    vgmstream = allocate_segmented_vgmstream(data, loop_flag, loop_start_segment, loop_end_segment);
+    if (!vgmstream) goto fail;
+
+    return vgmstream;
+
+fail:
+    if (!vgmstream) free_layout_segmented(data);
+    close_vgmstream(vgmstream);
     return NULL;
 }

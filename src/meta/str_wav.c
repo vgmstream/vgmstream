@@ -2,7 +2,7 @@
 #include "../coding/coding.h"
 
 
-typedef enum { PSX, DSP, XBOX, WMA } strwav_codec;
+typedef enum { PSX, DSP, XBOX, WMA, IMA } strwav_codec;
 typedef struct {
     int32_t channels;
     int32_t sample_rate;
@@ -124,6 +124,12 @@ VGMSTREAM * init_vgmstream_str_wav(STREAMFILE *streamFile) {
             vgmstream->interleave_block_size = strwav.interleave;
             if (vgmstream->channels > 2 && vgmstream->channels % 2 != 0)
                 goto fail; /* only 2ch+..+2ch layout is known */
+            break;
+
+        case IMA:
+            vgmstream->coding_type = coding_BLITZ_IMA;
+            vgmstream->layout_type = layout_interleave;
+            vgmstream->interleave_block_size = strwav.interleave;
             break;
 
 #ifdef VGM_USE_FFMPEG
@@ -327,6 +333,27 @@ static int parse_header(STREAMFILE* streamHeader, strwav_header* strwav) {
         strwav->dsps_table = 0xe0;
         strwav->codec = DSP;
         //;VGM_LOG("STR+WAV: header Zapper (GC)\n");
+        return 1;
+    }
+
+    /* Zapper: One Wicked Cricket! (PC)[2005] */
+    if ( read_32bitBE(0x04,streamHeader) == 0x00000900 &&
+         read_32bitLE(0x24,streamHeader) == read_32bitLE(0x114,streamHeader) && /* sample rate repeat */
+         read_32bitLE(0x28,streamHeader) == 0x10 &&
+         read_32bitLE(0x12c,streamHeader) == header_size /* ~0x130 */
+         ) {
+        strwav->num_samples = read_32bitLE(0x20,streamHeader);
+        strwav->sample_rate = read_32bitLE(0x24,streamHeader);
+        strwav->flags       = read_32bitLE(0x2c,streamHeader);
+        strwav->loop_start  = read_32bitLE(0x54,streamHeader);
+        strwav->loop_end    = read_32bitLE(0x30,streamHeader);
+
+        strwav->channels    = read_32bitLE(0xF8,streamHeader) * (strwav->flags & 0x02 ? 2 : 1); /* tracks of 2/1ch */
+        strwav->loop_flag   = strwav->flags & 0x01;
+        strwav->interleave  = strwav->channels > 2 ? 0x8000 : 0x10000;
+
+        strwav->codec = IMA;
+        //;VGM_LOG("STR+WAV: header Zapper (PC)\n");
         return 1;
     }
 

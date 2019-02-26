@@ -313,7 +313,7 @@ static void apply_config(VGMSTREAM * vgmstream, cli_config *cfg) {
     }
 }
 
-void apply_fade(sample * buf, VGMSTREAM * vgmstream, int to_get, int i, int len_samples, int fade_samples, int channels) {
+void apply_fade(sample_t * buf, VGMSTREAM * vgmstream, int to_get, int i, int len_samples, int fade_samples, int channels) {
     int is_fade_on = vgmstream->loop_flag;
 
     if (is_fade_on && fade_samples > 0) {
@@ -324,7 +324,7 @@ void apply_fade(sample * buf, VGMSTREAM * vgmstream, int to_get, int i, int len_
                 if (samples_into_fade > 0) {
                     double fadedness = (double)(fade_samples - samples_into_fade) / fade_samples;
                     for (k = 0; k < channels; k++) {
-                        buf[j*channels + k] = (sample)buf[j*channels + k] * fadedness;
+                        buf[j*channels + k] = (sample_t)buf[j*channels + k] * fadedness;
                     }
                 }
             }
@@ -339,8 +339,8 @@ int main(int argc, char ** argv) {
     FILE * outfile = NULL;
     char outfilename_temp[PATH_LIMIT];
 
-    sample * buf = NULL;
-    int channels;
+    sample_t * buf = NULL;
+    int channels, input_channels;
     int32_t len_samples;
     int32_t fade_samples;
     int i, j;
@@ -458,8 +458,19 @@ int main(int argc, char ** argv) {
 
     /* last init */
     channels = vgmstream->channels;
+    input_channels = vgmstream->channels;
 
-    buf = malloc(BUFFER_SAMPLES * sizeof(sample) * channels);
+#ifdef VGMSTREAM_MIXING
+    /* enable after all config but before outbuf */
+    {
+        vgmstream_enable_mixing(vgmstream, BUFFER_SAMPLES);
+
+        channels = vgmstream->output_channels;
+        input_channels = vgmstream->input_channels;
+    }
+#endif
+
+    buf = malloc(BUFFER_SAMPLES * sizeof(sample_t) * input_channels);
     if (!buf) {
         fprintf(stderr,"failed allocating output buffer\n");
         goto fail;
@@ -488,10 +499,10 @@ int main(int argc, char ** argv) {
         swap_samples_le(buf, channels * to_get); /* write PC endian */
         if (cfg.only_stereo != -1) {
             for (j = 0; j < to_get; j++) {
-                fwrite(buf + j*channels + (cfg.only_stereo*2), sizeof(sample), 2, outfile);
+                fwrite(buf + j*channels + (cfg.only_stereo*2), sizeof(sample_t), 2, outfile);
             }
         } else {
-            fwrite(buf, sizeof(sample) * channels, to_get, outfile);
+            fwrite(buf, sizeof(sample_t) * channels, to_get, outfile);
         }
     }
 
@@ -509,10 +520,10 @@ int main(int argc, char ** argv) {
         swap_samples_le(buf, channels * to_get); /* write PC endian */
         if (cfg.only_stereo != -1) {
             for (j = 0; j < to_get; j++) {
-                fwrite(buf + j*channels + (cfg.only_stereo*2), sizeof(sample), 2, outfile);
+                fwrite(buf + j*channels + (cfg.only_stereo*2), sizeof(sample_t), 2, outfile);
             }
         } else {
-            fwrite(buf, sizeof(sample) * channels, to_get, outfile);
+            fwrite(buf, sizeof(sample_t) * channels, to_get, outfile);
         }
     }
 
@@ -522,13 +533,13 @@ int main(int argc, char ** argv) {
 
     /* try again with (for testing reset_vgmstream, simulates a seek to 0) */
     if (cfg.test_reset) {
-        char outfilename_temp[PATH_LIMIT];
-        strcpy(outfilename_temp, cfg.outfilename);
-        strcat(outfilename_temp, ".reset.wav");
+        char outfilename_reset[PATH_LIMIT];
+        strcpy(outfilename_reset, cfg.outfilename);
+        strcat(outfilename_reset, ".reset.wav");
 
-        outfile = fopen(outfilename_temp,"wb");
+        outfile = fopen(outfilename_reset,"wb");
         if (!outfile) {
-            fprintf(stderr,"failed to open %s for output\n",outfilename_temp);
+            fprintf(stderr,"failed to open %s for output\n",outfilename_reset);
             goto fail;
         }
 
@@ -564,10 +575,10 @@ int main(int argc, char ** argv) {
             swap_samples_le(buf, channels * to_get); /* write PC endian */
             if (cfg.only_stereo != -1) {
                 for (j = 0; j < to_get; j++) {
-                    fwrite(buf + j*channels + (cfg.only_stereo*2), sizeof(sample), 2, outfile);
+                    fwrite(buf + j*channels + (cfg.only_stereo*2), sizeof(sample_t), 2, outfile);
                 }
             } else {
-                fwrite(buf, sizeof(sample) * channels, to_get, outfile);
+                fwrite(buf, sizeof(sample_t) * channels, to_get, outfile);
             }
         }
         fclose(outfile);
@@ -615,7 +626,7 @@ static void make_smpl_chunk(uint8_t * buf, int32_t loop_start, int32_t loop_end)
 static size_t make_wav_header(uint8_t * buf, size_t buf_size, int32_t sample_count, int32_t sample_rate, int channels, int smpl_chunk, int32_t loop_start, int32_t loop_end) {
     size_t data_size, header_size;
 
-    data_size = sample_count*channels*sizeof(sample);
+    data_size = sample_count * channels * sizeof(sample_t);
     header_size = 0x2c;
     if (smpl_chunk && loop_end)
         header_size += 0x3c+ 0x08;
@@ -633,9 +644,9 @@ static size_t make_wav_header(uint8_t * buf, size_t buf_size, int32_t sample_cou
     put_16bitLE(buf+0x14, 1); /* compression code 1=PCM */
     put_16bitLE(buf+0x16, channels); /* channel count */
     put_32bitLE(buf+0x18, sample_rate); /* sample rate */
-    put_32bitLE(buf+0x1c, sample_rate*channels*sizeof(sample)); /* bytes per second */
-    put_16bitLE(buf+0x20, (int16_t)(channels*sizeof(sample))); /* block align */
-    put_16bitLE(buf+0x22, sizeof(sample)*8); /* significant bits per sample */
+    put_32bitLE(buf+0x1c, sample_rate*channels*sizeof(sample_t)); /* bytes per second */
+    put_16bitLE(buf+0x20, (int16_t)(channels*sizeof(sample_t))); /* block align */
+    put_16bitLE(buf+0x22, sizeof(sample_t)*8); /* significant bits per sample */
 
     if (smpl_chunk && loop_end) {
         make_smpl_chunk(buf+0x24, loop_start, loop_end);

@@ -4,7 +4,7 @@
 
 /* Decodes samples for flat streams.
  * Data forms a single stream, and the decoder may internally skip chunks and move offsets as needed. */
-void render_vgmstream_flat(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstream) {
+void render_vgmstream_flat(sample_t * buffer, int32_t sample_count, VGMSTREAM * vgmstream) {
     int samples_written = 0;
     int samples_per_frame, samples_this_block;
 
@@ -26,7 +26,7 @@ void render_vgmstream_flat(sample * buffer, int32_t sample_count, VGMSTREAM * vg
         
         if (samples_to_do == 0) {
             VGM_LOG("layout_flat: wrong samples_to_do found\n");
-            memset(buffer + samples_written*vgmstream->channels, 0, (sample_count - samples_written) * vgmstream->channels * sizeof(sample));
+            memset(buffer + samples_written*vgmstream->channels, 0, (sample_count - samples_written) * vgmstream->channels * sizeof(sample_t));
             break;
         }
 

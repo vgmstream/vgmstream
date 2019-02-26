@@ -191,6 +191,19 @@ static inline int8_t read_8bit(off_t offset, STREAMFILE * streamfile) {
     return buf[0];
 }
 
+/* alias of the above */
+static inline int8_t   read_s8(off_t offset, STREAMFILE * streamfile) { return read_8bit(offset, streamfile); }
+static inline uint8_t  read_u8(off_t offset, STREAMFILE * streamfile) { return (uint8_t)read_8bit(offset, streamfile); }
+static inline int32_t  read_s16le(off_t offset, STREAMFILE * streamfile) { return read_16bitLE(offset, streamfile); }
+static inline uint32_t read_u16le(off_t offset, STREAMFILE * streamfile) { return (uint16_t)read_16bitLE(offset, streamfile); }
+static inline int32_t  read_s16be(off_t offset, STREAMFILE * streamfile) { return read_16bitBE(offset, streamfile); }
+static inline uint32_t read_u16be(off_t offset, STREAMFILE * streamfile) { return (uint16_t)read_16bitBE(offset, streamfile); }
+static inline int32_t  read_s32le(off_t offset, STREAMFILE * streamfile) { return read_32bitLE(offset, streamfile); }
+static inline uint32_t read_u32le(off_t offset, STREAMFILE * streamfile) { return (uint32_t)read_32bitLE(offset, streamfile); }
+static inline int32_t  read_s32be(off_t offset, STREAMFILE * streamfile) { return read_32bitBE(offset, streamfile); }
+static inline uint32_t read_u32be(off_t offset, STREAMFILE * streamfile) { return (uint32_t)read_32bitBE(offset, streamfile); }
+
+
 /* guess byte endianness from a given value, return true if big endian and false if little endian */
 static inline int guess_endianness16bit(off_t offset, STREAMFILE * streamfile) {
     uint8_t buf[0x02];
@@ -231,5 +244,5 @@ void get_streamfile_basename(STREAMFILE *streamFile, char * buffer, size_t size)
 void get_streamfile_path(STREAMFILE *streamFile, char * buffer, size_t size);
 void get_streamfile_ext(STREAMFILE *streamFile, char * filename, size_t size);
 
-void dump_streamfile(STREAMFILE *streamFile, const char* out);
+void dump_streamfile(STREAMFILE *streamFile, int num);
 #endif

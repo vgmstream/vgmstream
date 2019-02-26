@@ -466,6 +466,8 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_dsf,
     init_vgmstream_208,
     init_vgmstream_dsp_ds2,
+    init_vgmstream_ffdl,
+    init_vgmstream_mus_vc,
 
     /* lowest priority metas (should go after all metas, and TXTH should go before raw formats) */
     init_vgmstream_txth,            /* proper parsers should supersede TXTH, once added */
@@ -567,6 +569,16 @@ static VGMSTREAM * init_vgmstream_internal(STREAMFILE *streamFile) {
 }
 
 void setup_vgmstream(VGMSTREAM * vgmstream) {
+
+#ifdef VGMSTREAM_MIXING
+    /* fill default config to simplify external code (mixing off will always happen
+     * initially, and if they contain values it means mixing must be enabled) */
+    if (!vgmstream->mixing_on || vgmstream->input_channels <= 0)
+        vgmstream->input_channels = vgmstream->channels;
+    if (!vgmstream->mixing_on || vgmstream->output_channels <= 0)
+        vgmstream->output_channels = vgmstream->channels;
+#endif
+
     /* save start things so we can restart when seeking */
     memcpy(vgmstream->start_ch, vgmstream->ch, sizeof(VGMSTREAMCHANNEL)*vgmstream->channels);
     memcpy(vgmstream->start_vgmstream, vgmstream, sizeof(VGMSTREAM));
@@ -602,7 +614,7 @@ void reset_vgmstream(VGMSTREAM * vgmstream) {
      * Otherwise hit_loop will be 0 and it will be copied over anyway when we
      * really hit the loop start. */
 
-    /* reset custom codec and layout data */
+    /* reset custom codec */
 #ifdef VGM_USE_VORBIS
     if (vgmstream->coding_type == coding_OGG_VORBIS) {
         reset_ogg_vorbis(vgmstream);
@@ -679,21 +691,10 @@ void reset_vgmstream(VGMSTREAM * vgmstream) {
 
     if (vgmstream->coding_type == coding_NWA) {
         nwa_codec_data *data = vgmstream->codec_data;
-        if (data)
-            reset_nwa(data->nwa);
+        if (data) reset_nwa(data->nwa);
     }
 
-
-    if (vgmstream->layout_type == layout_aix) {
-        aix_codec_data *data = vgmstream->codec_data;
-        int i;
-
-        data->current_segment = 0;
-        for (i = 0; i < data->segment_count*data->stream_count; i++) {
-            reset_vgmstream(data->adxs[i]);
-        }
-    }
-
+    /* reset custom layouts */
     if (vgmstream->layout_type == layout_segmented) {
         reset_layout_segmented(vgmstream->layout_data);
     }
@@ -703,7 +704,7 @@ void reset_vgmstream(VGMSTREAM * vgmstream) {
     }
 
     /* note that this does not reset the constituent STREAMFILES
-     * (ch's streamfiles init in metas, nor their internal state) */
+     * (vgmstream->ch[N].streamfiles' internal state, though shouldn't matter) */
 }
 
 /* Allocate memory and setup a VGMSTREAM */
@@ -711,7 +712,7 @@ VGMSTREAM * allocate_vgmstream(int channel_count, int loop_flag) {
     VGMSTREAM * vgmstream;
 
     /* up to ~16-24 aren't too rare for multilayered files, more is probably a bug */
-    if (channel_count <= 0 || channel_count > 64) {
+    if (channel_count <= 0 || channel_count > VGMSTREAM_MAX_CHANNELS) {
         VGM_LOG("VGMSTREAM: error allocating %i channels\n", channel_count);
         return NULL;
     }
@@ -756,9 +757,9 @@ VGMSTREAM * allocate_vgmstream(int channel_count, int loop_flag) {
 
 #ifdef VGMSTREAM_MIXING
     /* fixed arrays, for now */
-    vgmstream->mixing_size = 64;
-    vgmstream->stream_name_size = STREAM_NAME_SIZE;
+    vgmstream->mixing_size = VGMSTREAM_MAX_MIXING;
 #endif
+    //vgmstream->stream_name_size = STREAM_NAME_SIZE;
     return vgmstream;
 fail:
     if (vgmstream) {
@@ -875,28 +876,6 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
 
 
     /* free custom layouts */
-    if (vgmstream->layout_type == layout_aix) {
-        aix_codec_data *data = (aix_codec_data *) vgmstream->codec_data;
-
-        if (data) {
-            if (data->adxs) {
-                int i;
-                for (i = 0; i < data->segment_count*data->stream_count; i++) {
-                    /* note that the close_streamfile won't do anything but deallocate itself,
-                     * there is only one open file in vgmstream->ch[0].streamfile */
-                    close_vgmstream(data->adxs[i]);
-                }
-                free(data->adxs);
-            }
-            if (data->sample_counts) {
-                free(data->sample_counts);
-            }
-
-            free(data);
-        }
-        vgmstream->codec_data = NULL;
-    }
-
     if (vgmstream->layout_type == layout_segmented) {
         free_layout_segmented(vgmstream->layout_data);
         vgmstream->layout_data = NULL;
@@ -1011,6 +990,9 @@ void vgmstream_set_loop_target(VGMSTREAM* vgmstream, int loop_target) {
             vgmstream_set_loop_target(data->layers[i], loop_target);
         }
     }
+
+    /* notify of new initial state */
+    setup_vgmstream(vgmstream);
 }
 
 
@@ -1063,9 +1045,6 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
         case layout_blocked_vs_square:
             render_vgmstream_blocked(buffer,sample_count,vgmstream);
             break;
-        case layout_aix:
-            render_vgmstream_aix(buffer,sample_count,vgmstream);
-            break;
         case layout_segmented:
             render_vgmstream_segmented(buffer,sample_count,vgmstream);
             break;
@@ -1076,11 +1055,11 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
             break;
     }
 
-
+#ifndef VGMSTREAM_MIXING
     /* swap channels if set, to create custom channel mappings */
     if (vgmstream->channel_mappings_on) {
         int ch_from,ch_to,s;
-        sample temp;
+        sample_t temp;
         for (s = 0; s < sample_count; s++) {
             for (ch_from = 0; ch_from < vgmstream->channels; ch_from++) {
                 if (ch_from > 32)
@@ -1109,6 +1088,11 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
             }
         }
     }
+#endif
+
+#ifdef VGMSTREAM_MIXING
+    mix_vgmstream(buffer, sample_count, vgmstream);
+#endif
 }
 
 /* Get the number of samples of a single frame (smallest self-contained sample group, 1/N channels) */
@@ -1178,6 +1162,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_WV6_IMA:
         case coding_ALP_IMA:
         case coding_FFTA2_IMA:
+        case coding_BLITZ_IMA:
         case coding_PCFX:
             return 2;
         case coding_XBOX_IMA:
@@ -1356,6 +1341,7 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
         case coding_WV6_IMA:
         case coding_ALP_IMA:
         case coding_FFTA2_IMA:
+        case coding_BLITZ_IMA:
         case coding_PCFX:
         case coding_OKI16:
             return 0x01;
@@ -1490,7 +1476,7 @@ int get_vgmstream_shortframe_size(VGMSTREAM * vgmstream) {
 
 /* Decode samples into the buffer. Assume that we have written samples_written into the
  * buffer already, and we have samples_to_do consecutive samples ahead of us. */
-void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to_do, sample * buffer) {
+void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to_do, sample_t * buffer) {
     int ch;
 
     switch (vgmstream->coding_type) {
@@ -1857,6 +1843,12 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
         case coding_FFTA2_IMA:
             for (ch = 0; ch < vgmstream->channels; ch++) {
                 decode_ffta2_ima(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do);
+            }
+            break;
+        case coding_BLITZ_IMA:
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_blitz_ima(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
                         vgmstream->channels,vgmstream->samples_into_block,samples_to_do);
             }
             break;
@@ -2555,7 +2547,7 @@ static void try_dual_file_stereo(VGMSTREAM * opened_vgmstream, STREAMFILE *strea
     }
 
     /* check these even if there is no loop, because they should then be zero in both
-     * Homura PS2 right channel doesn't have loop points so it's ignored */
+     * (Homura PS2 right channel doesn't have loop points so this check is ignored) */
     if (new_vgmstream->meta_type != meta_PS2_SMPL &&
             !(new_vgmstream->loop_flag      == opened_vgmstream->loop_flag &&
             new_vgmstream->loop_start_sample== opened_vgmstream->loop_start_sample &&
@@ -2660,100 +2652,96 @@ static STREAMFILE * get_vgmstream_average_bitrate_channel_streamfile(VGMSTREAM *
     return vgmstream->ch[channel].streamfile;
 }
 
-static int get_vgmstream_average_bitrate_from_size(size_t size, int sample_rate, int length_samples) {
+static int get_vgmstream_file_bitrate_from_size(size_t size, int sample_rate, int length_samples) {
+    if (sample_rate == 0 || length_samples == 0) return 0;
+    if (length_samples < 100) return 0; /* ignore stupid bitrates caused by some segments */
     return (int)((int64_t)size * 8 * sample_rate / length_samples);
 }
-static int get_vgmstream_average_bitrate_from_streamfile(STREAMFILE * streamfile, int sample_rate, int length_samples) {
-    return get_vgmstream_average_bitrate_from_size(get_streamfile_size(streamfile), sample_rate, length_samples);
+static int get_vgmstream_file_bitrate_from_streamfile(STREAMFILE * streamfile, int sample_rate, int length_samples) {
+    if (streamfile == NULL) return 0;
+    return get_vgmstream_file_bitrate_from_size(get_streamfile_size(streamfile), sample_rate, length_samples);
 }
 
-/* Return the average bitrate in bps of all unique files contained within this stream. */
-int get_vgmstream_average_bitrate(VGMSTREAM * vgmstream) {
-    STREAMFILE *streamfiles[64];
-    const size_t streamfiles_max = 64; /* arbitrary max, */
-    size_t streamfiles_size = 0;
-    size_t streams_size = 0;
-    unsigned int ch, sub;
-
+static int get_vgmstream_file_bitrate_main(VGMSTREAM * vgmstream, STREAMFILE **streamfile_pointers, int *pointers_count, int pointers_max) {
+    int sub, ch;
     int bitrate = 0;
-    int sample_rate = vgmstream->sample_rate;
-    int length_samples = vgmstream->num_samples;
 
-    if (!sample_rate || !length_samples)
-        return 0;
+    /* Recursively get bitrate and fill the list of streamfiles if needed (to filter),
+     * since layouts can include further vgmstreams that may also share streamfiles.
+     *
+     * Because of how data, layers and segments can be combined it's possible to
+     * fool this in various ways; metas should report stream_size in complex cases
+     * to get accurate bitrates (particularly for subsongs). */
 
-    /* subsongs need to report this to properly calculate */
     if (vgmstream->stream_size) {
-        return get_vgmstream_average_bitrate_from_size(vgmstream->stream_size, sample_rate, length_samples);
+        bitrate = get_vgmstream_file_bitrate_from_size(vgmstream->stream_size, vgmstream->sample_rate, vgmstream->num_samples);
     }
-
-    //todo bitrate bugs with layout inside layouts (ex. TXTP)
-    /* make a list of used streamfiles (repeats will be filtered below) */
-    if (vgmstream->layout_type == layout_segmented) {
+    else if (vgmstream->layout_type == layout_segmented) {
         segmented_layout_data *data = (segmented_layout_data *) vgmstream->layout_data;
         for (sub = 0; sub < data->segment_count; sub++) {
-            streams_size += data->segments[sub]->stream_size;
-            for (ch = 0; ch < data->segments[sub]->channels; ch++) {
-                if (streamfiles_size >= streamfiles_max) continue;
-                streamfiles[streamfiles_size] = get_vgmstream_average_bitrate_channel_streamfile(data->segments[sub], ch);
-                streamfiles_size++;
-            }
+            bitrate += get_vgmstream_file_bitrate_main(data->segments[sub], streamfile_pointers, pointers_count, pointers_max);
         }
+        bitrate = bitrate / data->segment_count;
     }
     else if (vgmstream->layout_type == layout_layered) {
         layered_layout_data *data = vgmstream->layout_data;
         for (sub = 0; sub < data->layer_count; sub++) {
-            streams_size += data->layers[sub]->stream_size;
-            for (ch = 0; ch < data->layers[sub]->channels; ch++) {
-                if (streamfiles_size >= streamfiles_max) continue;
-                streamfiles[streamfiles_size] = get_vgmstream_average_bitrate_channel_streamfile(data->layers[sub], ch);
-                streamfiles_size++;
-            }
+            bitrate += get_vgmstream_file_bitrate_main(data->layers[sub], streamfile_pointers, pointers_count, pointers_max);
         }
+        bitrate = bitrate / data->layer_count;
     }
     else {
-        for (ch = 0; ch < vgmstream->channels; ch++) {
-            if (streamfiles_size >= streamfiles_max)
-                continue;
-            streamfiles[streamfiles_size] = get_vgmstream_average_bitrate_channel_streamfile(vgmstream, ch);
-            streamfiles_size++;
-        }
-    }
-
-    /* could have a sum of all sub-VGMSTREAMs */
-    if (streams_size) {
-        return get_vgmstream_average_bitrate_from_size(streams_size, sample_rate, length_samples);
-    }
-
-    /* compare files by absolute paths, so bitrate doesn't multiply when the same STREAMFILE is
-     * reopened per channel, also skipping repeated pointers. */
-    {
+        /* Add channel bitrate if streamfile hasn't been used before (comparing files
+         * by absolute paths), so bitrate doesn't multiply when the same STREAMFILE is
+         * reopened per channel, also skipping repeated pointers. */
         char path_current[PATH_LIMIT];
         char path_compare[PATH_LIMIT];
-        unsigned int i, j;
+        int is_unique = 1;
 
-        for (i = 0; i < streamfiles_size; i++) {
-            STREAMFILE * currentFile = streamfiles[i];
+        for (ch = 0; ch < vgmstream->channels; ch++) {
+            STREAMFILE * currentFile = get_vgmstream_average_bitrate_channel_streamfile(vgmstream, ch);
             if (!currentFile) continue;
             get_streamfile_name(currentFile, path_current, sizeof(path_current));
 
-            for (j = 0; j < i; j++) {
-                STREAMFILE * compareFile = streamfiles[j];
+            for (sub = 0; sub < *pointers_count; sub++) {
+                STREAMFILE * compareFile = streamfile_pointers[sub];
                 if (!compareFile) continue;
-                if (currentFile == compareFile)
+                if (currentFile == compareFile) {
+                    is_unique = 0;
                     break;
+                }
                 get_streamfile_name(compareFile, path_compare, sizeof(path_compare));
-                if (strcmp(path_current, path_compare) == 0)
+                if (strcmp(path_current, path_compare) == 0) {
+                    is_unique = 0;
                     break;
+                }
             }
 
-            if (i == j) { /* current STREAMFILE hasn't appeared previously */
-                bitrate += get_vgmstream_average_bitrate_from_streamfile(currentFile, sample_rate, length_samples);
+            if (is_unique) {
+                if (*pointers_count >= pointers_max) goto fail;
+                streamfile_pointers[*pointers_count] = currentFile;
+                (*pointers_count)++;
+
+                bitrate += get_vgmstream_file_bitrate_from_streamfile(currentFile, vgmstream->sample_rate, vgmstream->num_samples);
             }
         }
     }
 
     return bitrate;
+fail:
+    return 0;
+}
+
+/* Return the average bitrate in bps of all unique data contained within this stream.
+ * This is the bitrate of the *file*, as opposed to the bitrate of the *codec*, meaning
+ * it counts extra data like block headers and padding. While this can be surprising
+ * sometimes (as it's often higher than common codec bitrates) it isn't wrong per se. */
+int get_vgmstream_average_bitrate(VGMSTREAM * vgmstream) {
+    const size_t pointers_max = 128; /* arbitrary max, but +100 segments have been observed */
+    STREAMFILE *streamfile_pointers[128]; /* list already used streamfiles */
+    int pointers_count = 0;
+
+    return get_vgmstream_file_bitrate_main(vgmstream, streamfile_pointers, &pointers_count, pointers_max);
 }
 
 
@@ -2773,8 +2761,7 @@ int vgmstream_open_stream(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t s
 
 
     /* stream/offsets not needed, managed by layout */
-    if (vgmstream->layout_type == layout_aix ||
-        vgmstream->layout_type == layout_segmented ||
+    if (vgmstream->layout_type == layout_segmented ||
         vgmstream->layout_type == layout_layered)
         return 1;
 

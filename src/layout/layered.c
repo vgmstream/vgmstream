@@ -5,15 +5,17 @@
 /* NOTE: if loop settings change the layered vgmstreams must be notified (preferably using vgmstream_force_loop) */
 #define LAYER_BUF_SIZE 512
 #define LAYER_MAX_CHANNELS 6 /* at least 2, but let's be generous */
+#define VGMSTREAM_MAX_LAYERS 255
+
 
 /* Decodes samples for layered streams.
  * Similar to interleave layout, but decodec samples are mixed from complete vgmstreams, each
  * with custom codecs and different number of channels, creating a single super-vgmstream.
  * Usually combined with custom streamfiles to handle data interleaved in weird ways. */
-void render_vgmstream_layered(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstream) {
+void render_vgmstream_layered(sample_t * buffer, int32_t sample_count, VGMSTREAM * vgmstream) {
     int samples_written = 0;
     layered_layout_data *data = vgmstream->layout_data;
-    sample interleave_buf[LAYER_BUF_SIZE*LAYER_MAX_CHANNELS];
+    sample_t interleave_buf[LAYER_BUF_SIZE*LAYER_MAX_CHANNELS];
 
 
     while (samples_written < sample_count) {
@@ -53,7 +55,7 @@ void render_vgmstream_layered(sample * buffer, int32_t sample_count, VGMSTREAM *
 layered_layout_data* init_layout_layered(int layer_count) {
     layered_layout_data *data = NULL;
 
-    if (layer_count <= 0 || layer_count > 255)
+    if (layer_count <= 0 || layer_count > VGMSTREAM_MAX_LAYERS)
         goto fail;
 
     data = calloc(1, sizeof(layered_layout_data));
@@ -130,4 +132,42 @@ void reset_layout_layered(layered_layout_data *data) {
     for (i = 0; i < data->layer_count; i++) {
         reset_vgmstream(data->layers[i]);
     }
+}
+
+/* helper for easier creation of layers */
+VGMSTREAM *allocate_layered_vgmstream(layered_layout_data* data) {
+    VGMSTREAM *vgmstream;
+    int i, channels, loop_flag;
+
+    /* get data */
+    channels = 0;
+    loop_flag = 1;
+    for (i = 0; i < data->layer_count; i++) {
+        channels += data->layers[i]->channels;
+
+        if (loop_flag && !data->layers[i]->loop_flag)
+            loop_flag = 0;
+    }
+
+
+    /* build the VGMSTREAM */
+    vgmstream = allocate_vgmstream(channels, loop_flag);
+    if (!vgmstream) goto fail;
+
+    vgmstream->meta_type = data->layers[0]->meta_type;
+    vgmstream->sample_rate = data->layers[0]->sample_rate;
+    vgmstream->num_samples = data->layers[0]->num_samples;
+    vgmstream->loop_start_sample = data->layers[0]->loop_start_sample;
+    vgmstream->loop_end_sample = data->layers[0]->loop_end_sample;
+    vgmstream->coding_type = data->layers[0]->coding_type;
+
+    vgmstream->layout_type = layout_layered;
+    vgmstream->layout_data = data;
+
+    return vgmstream;
+
+fail:
+    if (vgmstream) vgmstream->layout_data = NULL;
+    close_vgmstream(vgmstream);
+    return NULL;
 }
