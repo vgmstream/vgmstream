@@ -634,7 +634,7 @@ static const coding_info coding_info_list[] = {
         {coding_WS,                 "Westwood Studios VBR ADPCM"},
         {coding_AICA,               "Yamaha 4-bit ADPCM"},
         {coding_AICA_int,           "Yamaha 4-bit ADPCM (mono/interleave)"},
-        {coding_YAMAHA,             "Yamaha 4-bit ADPCM (framed)"},
+        {coding_ASKA,               "tri-Ace Aska 4-bit ADPCM"},
         {coding_YAMAHA_NXAP,        "Yamaha NXAP 4-bit ADPCM"},
         {coding_NDS_PROCYON,        "Procyon Studio Digital Sound Elements NDS 4-bit APDCM"},
         {coding_L5_555,             "Level-5 0x555 4-bit ADPCM"},
