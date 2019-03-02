@@ -32,7 +32,7 @@ const char * filename_extension(const char * pathname) {
 
 /* unused */
 /*
-void interleave_channel(sample * outbuffer, sample * inbuffer, int32_t sample_count, int channel_count, int channel_number) {
+void interleave_channel(sample_t * outbuffer, sample_t * inbuffer, int32_t sample_count, int channel_count, int channel_number) {
     int32_t insample,outsample;
 
     if (channel_count==1) {
@@ -48,9 +48,9 @@ void interleave_channel(sample * outbuffer, sample * inbuffer, int32_t sample_co
 
 /* failed attempt at interleave in place */
 /*
-void interleave_stereo(sample * buffer, int32_t sample_count) {
+void interleave_stereo(sample_t * buffer, int32_t sample_count) {
     int32_t tomove, belongs;
-    sample moving,temp;
+    sample_t moving,temp;
 
     tomove = sample_count;
     moving = buffer[tomove];
@@ -100,11 +100,11 @@ void put_32bitBE(uint8_t * buf, int32_t i) {
     buf[3] = (uint8_t)(i & 0xFF);
 }
 
-void swap_samples_le(sample *buf, int count) {
+void swap_samples_le(sample_t *buf, int count) {
     int i;
-    for (i=0;i<count;i++) {
-        uint8_t b0 = buf[i]&0xff;
-        uint8_t b1 = buf[i]>>8;
+    for (i = 0; i < count; i++) {
+        uint8_t b0 = buf[i] & 0xff;
+        uint8_t b1 = buf[i] >> 8;
         uint8_t *p = (uint8_t*)&(buf[i]);
         p[0] = b0;
         p[1] = b1;

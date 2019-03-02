@@ -202,7 +202,38 @@ static inline int32_t  read_s32le(off_t offset, STREAMFILE * streamfile) { retur
 static inline uint32_t read_u32le(off_t offset, STREAMFILE * streamfile) { return (uint32_t)read_32bitLE(offset, streamfile); }
 static inline int32_t  read_s32be(off_t offset, STREAMFILE * streamfile) { return read_32bitBE(offset, streamfile); }
 static inline uint32_t read_u32be(off_t offset, STREAMFILE * streamfile) { return (uint32_t)read_32bitBE(offset, streamfile); }
+static inline int64_t  read_s64be(off_t offset, STREAMFILE * streamfile) { return read_64bitBE(offset, streamfile); }
+static inline uint64_t read_u64be(off_t offset, STREAMFILE * streamfile) { return (uint64_t)read_64bitBE(offset, streamfile); }
+static inline int64_t  read_s64le(off_t offset, STREAMFILE * streamfile) { return read_64bitLE(offset, streamfile); }
+static inline uint64_t read_u64le(off_t offset, STREAMFILE * streamfile) { return (uint64_t)read_64bitLE(offset, streamfile); }
 
+#if 0  //todo improve + test + simplify code (maybe not inline?)
+static inline float    read_f32be(off_t offset, STREAMFILE * streamfile) {
+    uint32_t sample_int = read_s32be(offset,streamfile);
+    float* sample_float = (float*)&sample_int;
+    return *sample_float;
+}
+static inline float    read_f32le(off_t offset, STREAMFILE * streamfile) {
+    ...
+}
+static inline int read_s4h(off_t offset, STREAMFILE * streamfile) {
+    uint8_t byte = read_u8(offset, streamfile);
+    return get_nibble_signed(byte, 1);
+}
+static inline int read_u4h(off_t offset, STREAMFILE * streamfile) {
+    uint8_t byte = read_u8(offset, streamfile);
+    return (byte >> 4) & 0x0f;
+}
+static inline int read_s4l(off_t offset, STREAMFILE * streamfile) {
+    ...
+}
+static inline int read_u4l(off_t offset, STREAMFILE * streamfile) {
+    ...
+}
+static inline int max_s32(int32_t a, int32_t b) { return a > b ? a : b; }
+static inline int min_s32(int32_t a, int32_t b) { return a < b ? a : b; }
+//align32, align16, clamp16, etc
+#endif
 
 /* guess byte endianness from a given value, return true if big endian and false if little endian */
 static inline int guess_endianness16bit(off_t offset, STREAMFILE * streamfile) {

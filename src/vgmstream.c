@@ -498,14 +498,14 @@ static VGMSTREAM * init_vgmstream_internal(STREAMFILE *streamFile) {
 
         /* fail if there is nothing to play (without this check vgmstream can generate empty files) */
         if (vgmstream->num_samples <= 0) {
-            VGM_LOG("VGMSTREAM: wrong num_samples (ns=%i / 0x%08x)\n", vgmstream->num_samples, vgmstream->num_samples);
+            VGM_LOG("VGMSTREAM: wrong num_samples %i\n", vgmstream->num_samples);
             close_vgmstream(vgmstream);
             continue;
         }
 
-        /* everything should have a reasonable sample rate (300 is Wwise min) */
-        if (vgmstream->sample_rate < 300 || vgmstream->sample_rate > 96000) {
-            VGM_LOG("VGMSTREAM: wrong sample rate (sr=%i)\n", vgmstream->sample_rate);
+        /* everything should have a reasonable sample rate */
+        if (vgmstream->sample_rate < VGMSTREAM_MIN_SAMPLE_RATE || vgmstream->sample_rate > VGMSTREAM_MAX_SAMPLE_RATE) {
+            VGM_LOG("VGMSTREAM: wrong sample_rate %i\n", vgmstream->sample_rate);
             close_vgmstream(vgmstream);
             continue;
         }

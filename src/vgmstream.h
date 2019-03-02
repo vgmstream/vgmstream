@@ -9,6 +9,8 @@
 enum { PATH_LIMIT = 32768 };
 enum { STREAM_NAME_SIZE = 255 };
 enum { VGMSTREAM_MAX_CHANNELS = 64 };
+enum { VGMSTREAM_MIN_SAMPLE_RATE = 300 }; /* 300 is Wwise min */
+enum { VGMSTREAM_MAX_SAMPLE_RATE = 96000 };
 #ifdef VGMSTREAM_MIXING
 enum { VGMSTREAM_MAX_MIXING = 64 };
 #endif

@@ -10,7 +10,7 @@ static const int dsa_coefs[16] = {
 
 /* Decodes Ocean DSA ADPCM codec from Last Rites (PC).
  * Reverse engineered from daemon1's reverse engineering. */
-void decode_dsa(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
+void decode_dsa(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
     off_t frame_offset;
     int i, frames_in, sample_count = 0;
     size_t bytes_per_frame, samples_per_frame;
@@ -32,20 +32,20 @@ void decode_dsa(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, 
 
     /* decode nibbles */
     for (i = first_sample; i < first_sample + samples_to_do; i++) {
-        int32_t new_sample;
+        int32_t sample;
         uint8_t nibbles = (uint8_t)read_8bit(frame_offset+0x01 + i/2,stream->streamfile);
 
-        new_sample = i&1 ? /* high nibble first */
+        sample = i&1 ? /* high nibble first */
                 (nibbles >> 0) & 0xf :
                 (nibbles >> 4) & 0xf;
 
-        new_sample = ((int16_t)(new_sample << 0xC) >> shift); /* 16b sign extend + scale */
-        new_sample = new_sample + ((hist1 * filter) >> 0x10);
+        sample = ((int16_t)(sample << 0xC) >> shift); /* 16b sign extend + scale */
+        sample = sample + ((hist1 * filter) >> 0x10);
 
-        outbuf[sample_count] = (int16_t)(new_sample << 2);
+        outbuf[sample_count] = (sample_t)(sample << 2);
         sample_count += channelspacing;
 
-        hist1 = new_sample;
+        hist1 = sample;
     }
 
     stream->adpcm_history1_32 = hist1;
