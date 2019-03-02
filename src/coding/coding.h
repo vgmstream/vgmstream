@@ -198,14 +198,14 @@ int test_hca_key(hca_codec_data * data, unsigned long long keycode);
 
 #ifdef VGM_USE_VORBIS
 /* ogg_vorbis_decoder */
-void decode_ogg_vorbis(ogg_vorbis_codec_data * data, sample * outbuf, int32_t samples_to_do, int channels);
+void decode_ogg_vorbis(ogg_vorbis_codec_data * data, sample_t * outbuf, int32_t samples_to_do, int channels);
 void reset_ogg_vorbis(VGMSTREAM *vgmstream);
 void seek_ogg_vorbis(VGMSTREAM *vgmstream, int32_t num_sample);
 void free_ogg_vorbis(ogg_vorbis_codec_data *data);
 
 /* vorbis_custom_decoder */
 vorbis_custom_codec_data *init_vorbis_custom(STREAMFILE *streamfile, off_t start_offset, vorbis_custom_t type, vorbis_custom_config * config);
-void decode_vorbis_custom(VGMSTREAM * vgmstream, sample * outbuf, int32_t samples_to_do, int channels);
+void decode_vorbis_custom(VGMSTREAM * vgmstream, sample_t * outbuf, int32_t samples_to_do, int channels);
 void reset_vorbis_custom(VGMSTREAM *vgmstream);
 void seek_vorbis_custom(VGMSTREAM *vgmstream, int32_t num_sample);
 void free_vorbis_custom(vorbis_custom_codec_data *data);
