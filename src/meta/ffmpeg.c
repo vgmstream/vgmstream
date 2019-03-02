@@ -66,6 +66,8 @@ VGMSTREAM * init_vgmstream_ffmpeg_offset(STREAMFILE *streamFile, uint64_t start,
     if (vgmstream->num_samples <= 0)
         goto fail;
 
+    vgmstream->channel_layout = ffmpeg_get_channel_layout(vgmstream->codec_data);
+
     return vgmstream;
     
 fail:

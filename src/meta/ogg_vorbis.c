@@ -275,6 +275,18 @@ static void lse_ff_ogg_decryption_callback(void *ptr, size_t size, size_t nmemb,
     }
 }
 
+static const uint32_t xiph_mappings[] = {
+        0,
+        mapping_MONO,
+        mapping_STEREO,
+        mapping_2POINT1_xiph,
+        mapping_QUAD,
+        mapping_5POINT0_xiph,
+        mapping_5POINT1,
+        mapping_7POINT0,
+        mapping_7POINT1,
+};
+
 
 /* Ogg Vorbis, by way of libvorbisfile; may contain loop comments */
 VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
@@ -633,6 +645,10 @@ VGMSTREAM * init_vgmstream_ogg_vorbis_callbacks(STREAMFILE *streamFile, ov_callb
     vgmstream->coding_type = coding_OGG_VORBIS;
     vgmstream->layout_type = layout_none;
     vgmstream->meta_type = ovmi->meta_type;
+
+    if (vgmstream->channels <= 8) {
+        vgmstream->channel_layout = xiph_mappings[vgmstream->channels];
+    }
 
     return vgmstream;
 

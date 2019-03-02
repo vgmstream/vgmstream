@@ -808,4 +808,10 @@ void ffmpeg_set_skip_samples(ffmpeg_codec_data * data, int skip_samples) {
     data->skipSamples = skip_samples;
 }
 
+/* returns channel layout if set */
+uint32_t ffmpeg_get_channel_layout(ffmpeg_codec_data * data) {
+    if (!data || !data->codecCtx) return 0;
+    return (uint32_t)data->codecCtx->channel_layout; /* uint64 but there ain't so many speaker mappings */
+}
+
 #endif

@@ -111,6 +111,7 @@ VGMSTREAM * init_vgmstream_ogg_opus(STREAMFILE *streamFile) {
         if (!vgmstream->codec_data) goto fail;
         vgmstream->coding_type = coding_FFmpeg;
         vgmstream->layout_type = layout_none;
+        vgmstream->channel_layout = ffmpeg_get_channel_layout(vgmstream->codec_data);
         /* FFmpeg+libopus handles skip samples ok, FFmpeg+opus doesn't */
     }
 #else

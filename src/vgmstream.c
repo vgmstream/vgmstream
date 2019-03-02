@@ -2288,6 +2288,36 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             vgmstream->channels);
     concatn(length,desc,temp);
 
+    if (vgmstream->channel_layout) {
+        int cl = vgmstream->channel_layout;
+
+        snprintf(temp,TEMPSIZE,
+                "channel mask: 0x%x /",
+                vgmstream->channel_layout);
+        concatn(length,desc,temp);
+
+        if (cl & speaker_FL)    concatn(length,desc," FL");
+        if (cl & speaker_FR)    concatn(length,desc," FR");
+        if (cl & speaker_FC)    concatn(length,desc," FC");
+        if (cl & speaker_LFE)   concatn(length,desc," LFE");
+        if (cl & speaker_BL)    concatn(length,desc," BL");
+        if (cl & speaker_BR)    concatn(length,desc," BR");
+        if (cl & speaker_FLC)   concatn(length,desc," FLC");
+        if (cl & speaker_FRC)   concatn(length,desc," FRC");
+        if (cl & speaker_BC)    concatn(length,desc," BC");
+        if (cl & speaker_SL)    concatn(length,desc," SL");
+        if (cl & speaker_SR)    concatn(length,desc," SR");
+        if (cl & speaker_TC)    concatn(length,desc," TC");
+        if (cl & speaker_TFL)   concatn(length,desc," TFL");
+        if (cl & speaker_TFC)   concatn(length,desc," TFC");
+        if (cl & speaker_TFR)   concatn(length,desc," TFR");
+        if (cl & speaker_TBL)   concatn(length,desc," TBL");
+        if (cl & speaker_TBC)   concatn(length,desc," TBC");
+        if (cl & speaker_TBR)   concatn(length,desc," TBR");
+
+        concatn(length,desc,"\n");
+    }
+
     if (vgmstream->loop_start_sample >= 0 && vgmstream->loop_end_sample > vgmstream->loop_start_sample) {
         snprintf(temp,TEMPSIZE,
                 "looping: %s\n"

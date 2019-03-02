@@ -215,7 +215,7 @@ void free_vorbis_custom(vorbis_custom_codec_data *data);
 /* mpeg_decoder */
 mpeg_codec_data *init_mpeg(STREAMFILE *streamfile, off_t start_offset, coding_t *coding_type, int channels);
 mpeg_codec_data *init_mpeg_custom(STREAMFILE *streamFile, off_t start_offset, coding_t *coding_type, int channels, mpeg_custom_t custom_type, mpeg_custom_config *config);
-void decode_mpeg(VGMSTREAM * vgmstream, sample * outbuf, int32_t samples_to_do, int channels);
+void decode_mpeg(VGMSTREAM * vgmstream, sample_t * outbuf, int32_t samples_to_do, int channels);
 void reset_mpeg(VGMSTREAM *vgmstream);
 void seek_mpeg(VGMSTREAM *vgmstream, int32_t num_sample);
 void free_mpeg(mpeg_codec_data *data);
@@ -289,6 +289,7 @@ void seek_ffmpeg(VGMSTREAM *vgmstream, int32_t num_sample);
 void free_ffmpeg(ffmpeg_codec_data *data);
 
 void ffmpeg_set_skip_samples(ffmpeg_codec_data * data, int skip_samples);
+uint32_t ffmpeg_get_channel_layout(ffmpeg_codec_data * data);
 
 /* ffmpeg_decoder_custom_opus.c (helper-things) */
 ffmpeg_codec_data * init_ffmpeg_switch_opus(STREAMFILE *streamFile, off_t start_offset, size_t data_size, int channels, int skip, int sample_rate);
