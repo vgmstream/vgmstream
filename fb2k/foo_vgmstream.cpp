@@ -173,7 +173,13 @@ void input_vgmstream::get_info(t_uint32 p_subsong, file_info & p_info, abort_cal
             VGMSTREAM_TAGS tag;
             vgmstream_tags_reset(&tag, filename);
             while (vgmstream_tags_next_tag(&tag, tagFile)) {
-                p_info.meta_set(tag.key,tag.val);
+                if (replaygain_info::g_is_meta_replaygain(tag.key)) {
+                    p_info.info_set_replaygain(tag.key,tag.val);
+                    /* there is info_set_replaygain_auto too but no doc */
+                }
+                else {
+                    p_info.meta_set(tag.key,tag.val);
+                }
             }
 
             close_streamfile(tagFile);
@@ -194,7 +200,7 @@ void input_vgmstream::get_info(t_uint32 p_subsong, file_info & p_info, abort_cal
     if (total_samples > 0)
         p_info.info_set_int("stream_total_samples", total_samples);
     if (loop_start >= 0 && loop_end > loop_start) {
-        p_info.info_set("looping", loop_flag > 0 ? "enabled" : "disabled");
+        if (loop_flag <= 0) p_info.info_set("looping", "disabled");
         p_info.info_set_int("loop_start", loop_start);
         p_info.info_set_int("loop_end", loop_end);
     }
