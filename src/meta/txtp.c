@@ -27,6 +27,9 @@ typedef struct {
     int config_ignore_fade;
 
     int sample_rate;
+    int loop_install;
+    int32_t loop_start_sample;
+    int32_t loop_end_sample;
 
 } txtp_entry;
 
@@ -230,15 +233,21 @@ static void apply_config(VGMSTREAM *vgmstream, txtp_entry *current) {
     }
 #endif
 
-    if (current->sample_rate > 0)
-        vgmstream->sample_rate = current->sample_rate;
-
     vgmstream->config_loop_count = current->config_loop_count;
     vgmstream->config_fade_time = current->config_fade_time;
     vgmstream->config_fade_delay = current->config_fade_delay;
     vgmstream->config_ignore_loop = current->config_ignore_loop;
     vgmstream->config_force_loop = current->config_force_loop;
     vgmstream->config_ignore_fade = current->config_ignore_fade;
+
+    if (current->sample_rate > 0)
+        vgmstream->sample_rate = current->sample_rate;
+
+    if (current->loop_install) {
+        if (current->loop_end_sample < 0)
+            current->loop_end_sample  = vgmstream->num_samples;
+        vgmstream_force_loop(vgmstream, current->loop_install, current->loop_start_sample, current->loop_end_sample);
+    }
 
 #ifdef VGMSTREAM_MIXING
     /* add macro to mixing list */
@@ -460,11 +469,14 @@ static void add_config(txtp_entry* current, txtp_entry* cfg, const char* filenam
     current->config_ignore_fade = cfg->config_ignore_fade;
 
     current->sample_rate = cfg->sample_rate;
+    current->loop_install = cfg->loop_install;
+    current->loop_start_sample = cfg->loop_start_sample;
+    current->loop_end_sample = cfg->loop_end_sample;
 
 }
 
 static int add_filename(txtp_header * txtp, char *filename, int is_default) {
-    int i, n, nc, mc;
+    int i, n, m, nc, mc;
     txtp_entry cfg = {0};
     size_t range_start, range_end;
     char command[TXTP_LINE_MAX] = {0};
@@ -613,8 +625,8 @@ static int add_filename(txtp_header * txtp, char *filename, int is_default) {
 
                     if (get_fade(config, &mix, &n) != 0) {
                         //;VGM_LOG("TXTP:   fade %d^%f~%f=%c@%f~%f+%f~%f\n",
-                                mix.ch_dst, mix.vol_start, mix.vol_end, mix.shape,
-                                mix.time_pre, mix.time_start, mix.time_end, mix.time_post);
+                        //        mix.ch_dst, mix.vol_start, mix.vol_end, mix.shape,
+                        //        mix.time_pre, mix.time_start, mix.time_end, mix.time_post);
                         add_mixing(&cfg, &mix, MIX_FADE); /* N^V1~V2@T1~T2+T3~T4: fades volumes between positions */
                         config += n;
                         continue;
@@ -674,6 +686,18 @@ static int add_filename(txtp_header * txtp, char *filename, int is_default) {
             else if (strcmp(command,"h") == 0) {
                 config += get_int(config, &cfg.sample_rate);
                 //;VGM_LOG("TXTP:   sample_rate %i\n", cfg.sample_rate);
+            }
+            else if (strcmp(command,"I") == 0) {
+                m = sscanf(config, " %d %d%n", &cfg.loop_start_sample, &cfg.loop_end_sample, &n);
+                if (m == 2) {
+                    cfg.loop_install = 1;
+                } else if (m == 1) {
+                    cfg.loop_install = 1;
+                    cfg.loop_end_sample = -1;
+                }
+
+                config += n;
+                //;VGM_LOG("TXTP:   loop_install %i = %i %i\n", cfg.loop_install, cfg.loop_start_sample, cfg.loop_end_sample);
             }
             else if (config[nc] == ' ') {
                 //;VGM_LOG("TXTP:   comment\n");
