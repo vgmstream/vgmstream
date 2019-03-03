@@ -255,7 +255,7 @@ static void print_info(VGMSTREAM * vgmstream, cli_config *cfg) {
         char description[1024];
         description[0] = '\0';
         describe_vgmstream(vgmstream,description,1024);
-        printf("%s\n",description);
+        printf("%s",description);
     }
 }
 

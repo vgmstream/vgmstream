@@ -2270,32 +2270,26 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
 #define TEMPSIZE (256+32)
     char temp[TEMPSIZE];
     const char* description;
+    double time_mm, time_ss, seconds;
 
     if (!vgmstream) {
-        snprintf(temp,TEMPSIZE,
-                "NULL VGMSTREAM");
+        snprintf(temp,TEMPSIZE, "NULL VGMSTREAM");
         concatn(length,desc,temp);
         return;
     }
 
-    snprintf(temp,TEMPSIZE,
-            "sample rate: %d Hz\n",
-            vgmstream->sample_rate);
+    snprintf(temp,TEMPSIZE, "sample rate: %d Hz\n", vgmstream->sample_rate);
     concatn(length,desc,temp);
 
-    snprintf(temp,TEMPSIZE,
-            "channels: %d\n",
-            vgmstream->channels);
+    snprintf(temp,TEMPSIZE, "channels: %d\n", vgmstream->channels);
     concatn(length,desc,temp);
 
     if (vgmstream->channel_layout) {
         int cl = vgmstream->channel_layout;
 
-        snprintf(temp,TEMPSIZE,
-                "channel mask: 0x%x /",
-                vgmstream->channel_layout);
+        /* not "channel layout: " to avoid mixups with "layout: " */
+        snprintf(temp,TEMPSIZE, "channel mask: 0x%x /", vgmstream->channel_layout);
         concatn(length,desc,temp);
-
         if (cl & speaker_FL)    concatn(length,desc," FL");
         if (cl & speaker_FR)    concatn(length,desc," FR");
         if (cl & speaker_FC)    concatn(length,desc," FC");
@@ -2314,37 +2308,40 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         if (cl & speaker_TBL)   concatn(length,desc," TBL");
         if (cl & speaker_TBC)   concatn(length,desc," TBC");
         if (cl & speaker_TBR)   concatn(length,desc," TBR");
-
         concatn(length,desc,"\n");
     }
 
     if (vgmstream->loop_start_sample >= 0 && vgmstream->loop_end_sample > vgmstream->loop_start_sample) {
-        snprintf(temp,TEMPSIZE,
-                "looping: %s\n"
-                "loop start: %d samples (%.4f seconds)\n"
-                "loop end: %d samples (%.4f seconds)\n",
-                vgmstream->loop_flag ? "enabled" : "disabled",
-                vgmstream->loop_start_sample,
-                (double)vgmstream->loop_start_sample/vgmstream->sample_rate,
-                vgmstream->loop_end_sample,
-                (double)vgmstream->loop_end_sample/vgmstream->sample_rate);
+        if (!vgmstream->loop_flag) {
+            concatn(length,desc,"looping: disabled\n");
+        }
+
+        seconds = (double)vgmstream->loop_start_sample / vgmstream->sample_rate;
+        time_mm = (int)(seconds / 60.0);
+        time_ss = seconds - time_mm * 60.0f;
+        snprintf(temp,TEMPSIZE, "loop start: %d samples (%1.0f:%2.3f seconds)\n", vgmstream->loop_start_sample, time_mm, time_ss);
+        concatn(length,desc,temp);
+
+        seconds = (double)vgmstream->loop_end_sample / vgmstream->sample_rate;
+        time_mm = (int)(seconds / 60.0);
+        time_ss = seconds - time_mm * 60.0f;
+        snprintf(temp,TEMPSIZE, "loop end: %d samples (%1.0f:%2.3f seconds)\n", vgmstream->loop_end_sample, time_mm, time_ss);
         concatn(length,desc,temp);
     }
 
-    snprintf(temp,TEMPSIZE,
-            "stream total samples: %d (%.4f seconds)\n",
-            vgmstream->num_samples,
-            (double)vgmstream->num_samples/vgmstream->sample_rate);
+    seconds = (double)vgmstream->num_samples / vgmstream->sample_rate;
+    time_mm = (int)(seconds / 60.0);
+    time_ss = seconds - time_mm * 60.0;
+    snprintf(temp,TEMPSIZE, "stream total samples: %d (%1.0f:%2.3f seconds)\n", vgmstream->num_samples, time_mm, time_ss);
     concatn(length,desc,temp);
 
-    snprintf(temp,TEMPSIZE,
-            "encoding: ");
+    snprintf(temp,TEMPSIZE, "encoding: ");
     concatn(length,desc,temp);
     switch (vgmstream->coding_type) {
-
-    //todo codec bugs with layout inside layouts (ex. TXTP)
 #ifdef VGM_USE_FFMPEG
+
         case coding_FFmpeg: {
+            //todo codec bugs with layout inside layouts (ex. TXTP)
             ffmpeg_codec_data *data = NULL;
 
             if (vgmstream->layout_type == layout_layered) {
@@ -2363,61 +2360,68 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
 
             if (data) {
                 if (data->codec && data->codec->long_name) {
-                    snprintf(temp,TEMPSIZE,"%s",data->codec->long_name);
+                    snprintf(temp,TEMPSIZE, "%s",data->codec->long_name);
                 } else if (data->codec && data->codec->name) {
-                    snprintf(temp,TEMPSIZE,"%s",data->codec->name);
+                    snprintf(temp,TEMPSIZE, "%s",data->codec->name);
                 } else {
-                    snprintf(temp,TEMPSIZE,"FFmpeg (unknown codec)");
+                    snprintf(temp,TEMPSIZE, "FFmpeg (unknown codec)");
                 }
             } else {
-                snprintf(temp,TEMPSIZE,"FFmpeg");
+                snprintf(temp,TEMPSIZE, "FFmpeg");
             }
             break;
         }
 #endif
         default:
             description = get_vgmstream_coding_description(vgmstream->coding_type);
-            if (!description)
-                description = "CANNOT DECODE";
-            snprintf(temp,TEMPSIZE,"%s",description);
+            if (!description) description = "CANNOT DECODE";
+            snprintf(temp,TEMPSIZE,  "%s",description);
             break;
     }
     concatn(length,desc,temp);
+    concatn(length,desc,"\n");
 
-    snprintf(temp,TEMPSIZE,
-            "\nlayout: ");
+    snprintf(temp,TEMPSIZE, "layout: ");
     concatn(length,desc,temp);
+    {
+        VGMSTREAM* vgmstreamsub = NULL;
 
-    description = get_vgmstream_layout_description(vgmstream->layout_type);
-    if (!description)
-        description = "INCONCEIVABLE";
-    switch (vgmstream->layout_type) {
-        case layout_layered:
-            snprintf(temp,TEMPSIZE,"%s (%i layers)",description, ((layered_layout_data*)vgmstream->layout_data)->layer_count);
-            break;
-        case layout_segmented:
-            snprintf(temp,TEMPSIZE,"%s (%i segments)",description, ((segmented_layout_data*)vgmstream->layout_data)->segment_count);
-            break;
-        default:
-            snprintf(temp,TEMPSIZE,"%s",description);
-            break;
+        description = get_vgmstream_layout_description(vgmstream->layout_type);
+        if (!description) description = "INCONCEIVABLE";
+
+        if (vgmstream->layout_type == layout_layered) {
+            vgmstreamsub = ((layered_layout_data*)vgmstream->layout_data)->layers[0];
+            snprintf(temp,TEMPSIZE, "%s (%i layers)", description, ((layered_layout_data*)vgmstream->layout_data)->layer_count);
+        }
+        else if (vgmstream->layout_type == layout_segmented) {
+            snprintf(temp,TEMPSIZE, "%s (%i segments)", description, ((segmented_layout_data*)vgmstream->layout_data)->segment_count);
+            vgmstreamsub = ((segmented_layout_data*)vgmstream->layout_data)->segments[0];
+        }
+        else {
+            snprintf(temp,TEMPSIZE, "%s",description);
+        }
+        concatn(length,desc,temp);
+
+        /* layouts can contain layouts infinitely let's leave it at one level deep (most common) */
+        if (vgmstreamsub && vgmstreamsub->layout_type == layout_layered) {
+            description = get_vgmstream_layout_description(vgmstreamsub->layout_type);
+            snprintf(temp,TEMPSIZE, " + %s (%i layers)",description, ((layered_layout_data*)vgmstreamsub->layout_data)->layer_count);
+            concatn(length,desc,temp);
+        }
+        else if (vgmstreamsub && vgmstreamsub->layout_type == layout_segmented) {
+            description = get_vgmstream_layout_description(vgmstreamsub->layout_type);
+            snprintf(temp,TEMPSIZE, " + %s (%i segments)",description, ((segmented_layout_data*)vgmstream->layout_data)->segment_count);
+            concatn(length,desc,temp);
+        }
     }
-    concatn(length,desc,temp);
-
-    snprintf(temp,TEMPSIZE,
-            "\n");
-    concatn(length,desc,temp);
+    concatn(length,desc,"\n");
 
     if (vgmstream->layout_type == layout_interleave && vgmstream->channels > 1) {
-        snprintf(temp,TEMPSIZE,
-                "interleave: %#x bytes\n",
-                (int32_t)vgmstream->interleave_block_size);
+        snprintf(temp,TEMPSIZE, "interleave: %#x bytes\n", (int32_t)vgmstream->interleave_block_size);
         concatn(length,desc,temp);
 
         if (vgmstream->interleave_last_block_size) {
-            snprintf(temp,TEMPSIZE,
-                    "interleave last block: %#x bytes\n",
-                    (int32_t)vgmstream->interleave_last_block_size);
+            snprintf(temp,TEMPSIZE, "interleave last block: %#x bytes\n", (int32_t)vgmstream->interleave_last_block_size);
             concatn(length,desc,temp);
         }
     }
@@ -2433,9 +2437,7 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             case coding_WWISE_IMA:
             case coding_REF_IMA:
             case coding_PSX_cfg:
-                snprintf(temp,TEMPSIZE,
-                        "frame size: %#x bytes\n",
-                        (int32_t)vgmstream->interleave_block_size);
+                snprintf(temp,TEMPSIZE, "frame size: %#x bytes\n", (int32_t)vgmstream->interleave_block_size);
                 concatn(length,desc,temp);
                 break;
             default:
@@ -2443,43 +2445,34 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         }
     }
 
-    snprintf(temp,TEMPSIZE,
-            "metadata from: ");
+    snprintf(temp,TEMPSIZE, "metadata from: ");
     concatn(length,desc,temp);
     switch (vgmstream->meta_type) {
         default:
             description = get_vgmstream_meta_description(vgmstream->meta_type);
-            if (!description)
-                description = "THEY SHOULD HAVE SENT A POET";
-            snprintf(temp,TEMPSIZE,"%s",description);
+            if (!description) description = "THEY SHOULD HAVE SENT A POET";
+            snprintf(temp,TEMPSIZE, "%s", description);
             break;
     }
     concatn(length,desc,temp);
+    concatn(length,desc,"\n");
 
-    snprintf(temp,TEMPSIZE,
-            "\nbitrate: %d kbps",
-            get_vgmstream_average_bitrate(vgmstream) / 1000);
+    snprintf(temp,TEMPSIZE, "bitrate: %d kbps\n", get_vgmstream_average_bitrate(vgmstream) / 1000); //todo \n?
     concatn(length,desc,temp);
 
     /* only interesting if more than one */
     if (vgmstream->num_streams > 1) {
-        snprintf(temp,TEMPSIZE,
-                "\nstream count: %d",
-                vgmstream->num_streams);
+        snprintf(temp,TEMPSIZE, "stream count: %d\n", vgmstream->num_streams);
         concatn(length,desc,temp);
     }
 
     if (vgmstream->num_streams > 1) {
-        snprintf(temp,TEMPSIZE,
-                "\nstream index: %d",
-                vgmstream->stream_index == 0 ? 1 : vgmstream->stream_index);
+        snprintf(temp,TEMPSIZE, "stream index: %d\n", vgmstream->stream_index == 0 ? 1 : vgmstream->stream_index);
         concatn(length,desc,temp);
     }
 
     if (vgmstream->stream_name[0] != '\0') {
-        snprintf(temp,TEMPSIZE,
-                "\nstream name: %s",
-                vgmstream->stream_name);
+        snprintf(temp,TEMPSIZE, "stream name: %s\n", vgmstream->stream_name);
         concatn(length,desc,temp);
     }
 }
