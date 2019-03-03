@@ -1214,13 +1214,13 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
             return (vgmstream->interleave_block_size - 0x07)*2 + 2;
         case coding_WS: /* only works if output sample size is 8 bit, which always is for WS ADPCM */
             return vgmstream->ws_output_size;
-        case coding_AICA:
+        case coding_YAMAHA:
             return 1;
-        case coding_AICA_int:
+        case coding_YAMAHA_int:
             return 2;
         case coding_ASKA:
             return (0x40-0x04*vgmstream->channels) * 2 / vgmstream->channels;
-        case coding_YAMAHA_NXAP:
+        case coding_NXAP:
             return (0x40-0x04) * 2;
         case coding_NDS_PROCYON:
             return 30;
@@ -1402,11 +1402,11 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
             return vgmstream->interleave_block_size;
         case coding_WS:
             return vgmstream->current_block_size;
-        case coding_AICA:
-        case coding_AICA_int:
+        case coding_YAMAHA:
+        case coding_YAMAHA_int:
             return 0x01;
         case coding_ASKA:
-        case coding_YAMAHA_NXAP:
+        case coding_NXAP:
             return 0x40;
         case coding_NDS_PROCYON:
             return 0x10;
@@ -1991,12 +1991,12 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                         vgmstream->channels,vgmstream->samples_into_block, samples_to_do, ch);
             }
             break;
-        case coding_AICA:
-        case coding_AICA_int:
+        case coding_YAMAHA:
+        case coding_YAMAHA_int:
             for (ch = 0; ch < vgmstream->channels; ch++) {
-                int is_stereo = (vgmstream->channels > 1 && vgmstream->coding_type == coding_AICA);
+                int is_stereo = (vgmstream->channels > 1 && vgmstream->coding_type == coding_YAMAHA);
 
-                decode_aica(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                decode_yamaha(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
                         vgmstream->channels,vgmstream->samples_into_block,samples_to_do, ch,
                         is_stereo);
             }
@@ -2007,9 +2007,9 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                         vgmstream->channels,vgmstream->samples_into_block,samples_to_do, ch);
             }
             break;
-        case coding_YAMAHA_NXAP:
+        case coding_NXAP:
             for (ch = 0; ch < vgmstream->channels; ch++) {
-                decode_yamaha_nxap(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                decode_nxap(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
                         vgmstream->channels,vgmstream->samples_into_block,samples_to_do);
             }
             break;

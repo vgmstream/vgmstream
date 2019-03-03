@@ -20,8 +20,9 @@ static const int scale_delta[16] = {
 };
 
 
-/* raw Yamaha ADPCM a.k.a AICA as it's mainly used in Naomi/Dreamcast (also in RIFF and older arcade sound chips). */
-void decode_aica(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel, int is_stereo) {
+/* raw Yamaha ADPCM a.k.a AICA as it's prominently used in Naomi/Dreamcast's Yamaha AICA sound chip,
+ * also found in Windows RIFF and older Yamaha's arcade sound chips. */
+void decode_yamaha(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel, int is_stereo) {
     int i, sample_count;
 
     int32_t hist1 = stream->adpcm_history1_16;
@@ -106,7 +107,7 @@ void decode_aska(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacin
 }
 
 /* Yamaha ADPCM with unknown expand variation (noisy), step size is double of normal Yamaha? */
-void decode_yamaha_nxap(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
+void decode_nxap(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
     int i, sample_count, num_frame;
     int32_t hist1 = stream->adpcm_history1_32;
     int step_size = stream->adpcm_step_index;
@@ -149,12 +150,12 @@ void decode_yamaha_nxap(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channe
     stream->adpcm_step_index = step_size;
 }
 
-size_t aica_bytes_to_samples(size_t bytes, int channels) {
+size_t yamaha_bytes_to_samples(size_t bytes, int channels) {
     /* 2 samples per byte (2 nibbles) in stereo or mono config */
     return bytes * 2 / channels;
 }
 
-size_t yamaha_bytes_to_samples(size_t bytes, int channels) {
+size_t aska_bytes_to_samples(size_t bytes, int channels) {
     int block_align = 0x40;
 
     return (bytes / block_align) * (block_align - 0x04*channels) * 2 / channels

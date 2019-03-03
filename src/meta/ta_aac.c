@@ -300,9 +300,9 @@ VGMSTREAM * init_vgmstream_ta_aac_mobile(STREAMFILE *streamFile) {
             vgmstream->coding_type = coding_ASKA;
             vgmstream->layout_type = layout_none;
 
-            vgmstream->num_samples = yamaha_bytes_to_samples(data_size, channel_count);
-            vgmstream->loop_start_sample = yamaha_bytes_to_samples(read_32bitLE(0x130, streamFile), channel_count);
-            vgmstream->loop_end_sample = yamaha_bytes_to_samples(read_32bitLE(0x134, streamFile), channel_count);
+            vgmstream->num_samples = aska_bytes_to_samples(data_size, channel_count);
+            vgmstream->loop_start_sample = aska_bytes_to_samples(read_32bitLE(0x130, streamFile), channel_count);
+            vgmstream->loop_end_sample = aska_bytes_to_samples(read_32bitLE(0x134, streamFile), channel_count);
             break;
 
         default:

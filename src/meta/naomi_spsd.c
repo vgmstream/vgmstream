@@ -59,9 +59,9 @@ VGMSTREAM * init_vgmstream_naomi_spsd(STREAMFILE *streamFile) {
             break;
 
         case 0x03: /* standard */
-            vgmstream->coding_type = coding_AICA_int;
-            vgmstream->num_samples = aica_bytes_to_samples(data_size,channel_count);
-            vgmstream->loop_start_sample = /*read_32bitLE(0x2c,streamFile) +*/ aica_bytes_to_samples(0x2000*channel_count,channel_count);
+            vgmstream->coding_type = coding_YAMAHA_int;
+            vgmstream->num_samples = yamaha_bytes_to_samples(data_size,channel_count);
+            vgmstream->loop_start_sample = /*read_32bitLE(0x2c,streamFile) +*/ yamaha_bytes_to_samples(0x2000*channel_count,channel_count);
             vgmstream->loop_end_sample = vgmstream->num_samples;
             break;
 
