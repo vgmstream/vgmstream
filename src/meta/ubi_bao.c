@@ -1396,6 +1396,10 @@ static STREAMFILE * open_atomic_bao(ubi_bao_file file_type, uint32_t file_id, in
                 streamBAO = open_streamfile_by_filename(streamFile, buf);
                 if (streamBAO) return streamBAO;
 
+                snprintf(buf,buf_size, "Czech_BAO_0x%08x", file_id);
+                streamBAO = open_streamfile_by_filename(streamFile, buf);
+                if (streamBAO) return streamBAO;
+
                 /* there may be more per language */
             }
             else {
