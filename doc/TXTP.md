@@ -20,7 +20,7 @@ You can set commands to alter how files play (described later). Having a single 
 ### Segments mode
 Some games clumsily loop audio by using multiple full file "segments", so you can play separate intro + loop files together as a single track. Channel number must be equal, mixing sample rates is ok (uses first).
  
-__Ratchet & Clank (PS2)__: _bgm01.txtp_
+**Ratchet & Clank (PS2)**: *bgm01.txtp*
 ```
 # define 2 or more segments to play as one
 BGM01_BEGIN.VAG
@@ -53,7 +53,7 @@ loop_mode = keep    # loops in 2nd file's loop_start to 3rd file's loop_end
 ### Layers mode
 Some games layer channels or dynamic parts that must play at the same time, for example main melody + vocal track.
 
-__Nier Automata__: _BGM_0_012_song2.txtp_
+**Nier Automata**: *BGM_0_012_song2.txtp*
 ```
 # mix dynamic sections (2ch * 2)
 BGM_0_012_04.wem
@@ -62,7 +62,7 @@ BGM_0_012_07.wem
 mode = layers
 ```
 
-__Life is Strange__: _BIK_E1_6A_DialEnd.txtp_
+**Life is Strange**: *BIK_E1_6A_DialEnd.txtp*
 ```
 # bik multichannel isn't autodetectable so must mix manually (1ch * 3)
 BIK_E1_6A_DialEnd_00000000.audio.multi.bik#1
@@ -80,7 +80,7 @@ You can set file commands by adding multiple `#(command)` after the name. `# (an
 ### Subsong selection for bank formats
 **`#(number)` or `#s(number)`**: set subsong (number)
 
-__Super Robot Taisen OG Saga - Masou Kishin III - Pride of Justice (Vita)__: _bgm_12.txtp_
+**Super Robot Taisen OG Saga - Masou Kishin III - Pride of Justice (Vita)**: *bgm_12.txtp*
 ```
 # select subsong 12
 bigfiles/bgm.sxd2#12 #relative paths are ok too for TXTP
@@ -95,7 +95,7 @@ bigfiles/bgm.sxd2#12 #relative paths are ok too for TXTP
 ### Play segmented subsong ranges as one
 **`#m(number)~(number)` or `#ms(number)~(number)`**: set multiple subsong segments at a time, to avoid so much C&P
 
-__Prince of Persia Sands of Time__: _song_01.txtp_
+**Prince of Persia Sands of Time**: *song_01.txtp*
 ```
 amb_fx.sb0#254
 amb_fx.sb0#122~144
@@ -115,7 +115,7 @@ song#3#h22050
 ### Channel mask for channel subsongs/layers
 **`#c(number)`** (single) or **`#c(number)~(number)`** (range): set number of channels to play. You can add multiple comma-separated numbers, or use ` ` space or `-` as separator and combine multiple ranges with single channels too.
 
-__Final Fantasy XIII-2__: _music_Home_01.ps3.txtp_
+**Final Fantasy XIII-2**: *music_Home_01.ps3.txtp*
 ```
 #plays channels 1 and 2 = 1st subsong
 music_Home.ps3.scd#c1,2
@@ -136,7 +136,7 @@ Doesn't change the final number of channels though, just mutes non-selected chan
 
 Those setting should override player's defaults if set (except "loop forever"). They are equivalent to some test.exe options.
 
-__God Hand (PS2)__: _boss2_3ningumi_ver6.txtp_ (each line is a separate TXTP)
+**God Hand (PS2)**: *boss2_3ningumi_ver6.txtp* (each line is a separate TXTP)
 ```
 # set number of loops
 boss2_3ningumi_ver6.adx#l3
@@ -169,14 +169,35 @@ boss2_3ningumi_ver6.adx#l1.5#d1#f5
 ### Force sample rate
 **`#h(sample rate)`**: for a few games that set a sample rate value in the header but actually play with other (applying some of pitch or just forcing it).
 
-__Super Paper Mario (Wii)__
+**Super Paper Mario (Wii)**
 ```
 btl_koopa1_44k_lp.brstm#h22050  #in hz
 ```
-__Patapon (PSP)__
+**Patapon (PSP)**
 ```
 ptp_btl_bgm_voice.sgd#s1#h11050
 ```
+
+
+### Install loops
+**`#I(loop start time) (loop end time)`**: force/override looping values, same as .pos but nicer. Loop end is optional and defaults to total samples.
+
+Time values can be `M:S(.n)` (minutes and seconds), `S.n` (seconds with dot) or `N` (samples). Beware of the subtle difference between 10.0 (10 seconds) and 10 (10 samples). Wrong loop values (for example loop end being much larger than file's samples) will be ignored, but there is some leeway when using seconds for the loop end.
+
+**Jewels Ocean (PC)**
+```
+bgm01.ogg#I32.231             # from ~1421387 samples to end
+
+#bgm01.ogg#I 0:32.231         # equivalent
+#bgm01.ogg#I 1421387 4212984  # equivalent, end is 4212984
+#bgm01.ogg#I32.231 1_35.533   # equivalent, end over file samples (~4213005) but adjusted to 4212984
+#bgm01.ogg#I 1421387 4212985  # ignored, end over file samples
+#bgm01.ogg#I32.231 1_37       # ignored, end over file (~4277700) but clearly wrong
+```
+
+Use this feature responsibly, though. If you find a format that should loop using internal values that vgmstream doesn't detect correctly, consider reporting the bug for the benefit of all users and other games using the same format, and don't throw out the original loop definitions (as sometimes they may not take into account "encoder delay" and must be carefully adjusted).
+
+Note that a few codecs may not work with arbitrary loop values since they weren't tested with loops. Misaligned loops will cause audible "clicks" at loop point too.
 
 
 ## OTHER FEATURES
@@ -297,7 +318,7 @@ The parser is fairly simplistic and lax, and may be erratic with edge cases or b
 
 ## MINI-TXTP
 To simplify TXTP creation, if the .txtp is empty (0 bytes) its filename is used directly as a command. Note that extension is also included (since vgmstream needs a full filename).
-- _bgm.sxd2#12.txtp_: plays subsong 12
-- _Ryoshima Coast 1 & 2.aix#c1,2.txtp_: channel mask
-- _boss2_3ningumi_ver6.adx#l2#F.txtp_: loop twice then play song end file normally
+- *bgm.sxd2#12.txtp*: plays subsong 12
+- *Ryoshima Coast 1 & 2.aix#c1,2.txtp*: channel mask
+- *boss2_3ningumi_ver6.adx#l2#F.txtp*: loop twice then play song end file normally
 - etc

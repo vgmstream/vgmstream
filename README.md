@@ -42,62 +42,62 @@ Put the following files somewhere Windows can find them:
 For Winamp/XMPlay/command line this means in the directory with the main .exe,
 or in a system directory, or any other directory in the PATH variable.
 
-### test.exe/vgmstream-cli
-```
-Usage: test.exe [-o outfile.wav] [options] infile
-Options:
-    -o outfile.wav: name of output .wav file, default infile.wav
-    -l loop count: loop count, default 2.0
-    -f fade time: fade time in seconds after N loops, default 10.0
-    -d fade delay: fade delay in seconds, default 0.0
-    -F: don't fade after N loops and play the rest of the stream
-    -i: ignore looping information and play the whole stream once
-    -e: force end-to-end looping
-    -E: force end-to-end looping even if file has real loop points
-    -s N: select subsong N, if the format supports multiple subsongs
-    -m: print metadata only, don't decode
-    -L: append a smpl chunk and create a looping wav
-    -2 N: only output the Nth (first is 0) set of stereo channels
-    -p: output to stdout (for piping into another program)
-    -P: output to stdout even if stdout is a terminal
-    -c: loop forever (continuously) to stdout
-    -x: decode and print adxencd command line to encode as ADX
-    -g: decode and print oggenc command line to encode as OGG
-    -b: decode and print batch variable commands
-    -r: output a second file after resetting (for testing)
-    -t file: print if tags are found in file
-```
-Typical usage would be: ```test -o happy.wav happy.adx``` to decode ```happy.adx``` to ```happy.wav```.
 
-Please follow the above instructions for installing the other files needed.
+## Components
+
+### test.exe/vgmstream-cli
+*Installation*: unzip the file and follow the above instructions for installing
+the other files needed.
+
+Converts playable files to wav. Typical usage would be: 
+- `test.exe -o happy.wav happy.adx` to decode `happy.adx` to `happy.wav`.
+
+If command-line isn't your thing you can also drag and drop files to the
+executable to decode them as (filename).wav
+
+There are multiple options that alter how the file is converted, for example:
+- `test.exe -m -o file.wav file.adx`: print info but don't decode
+- `test.exe -i -o file.wav file.hca`: convert without looping
+- `test.exe -s 2 -F -o file.wav file.fsb`: play 2nd subsong + ending after 2.0 loops
+- `test.exe -l 3.0 -f 5.0 -d 3.0 -o file.wav file.wem`: 3 loops, 3s delay, 5s fade 
+
+Available commands are printed when run with no flags. Note that you can also
+achieve similar results for other plugins using TXTP, described later.
 
 ### in_vgmstream
-Drop the ```in_vgmstream.dll``` in your Winamp plugins directory. Please follow
-the above instructions for installing the other files needed.
+*Installation*: drop the ```in_vgmstream.dll``` in your Winamp plugins directory,
+and follow the above instructions for installing the other files needed.
+
+Once installed supported files should be playable.
 
 ### xmp-vgmstream
-Drop the ```xmp-vgmstream.dll``` in your XMPlay plugins directory. Please follow
-the above instructions for installing the other files needed.
+*Installation*: drop the ```xmp-vgmstream.dll``` in your XMPlay plugins directory,
+and follow the above instructions for installing the other files needed.
 
-Note that there are minor differences compared to in_vgmstream. Since XMPlay
-supports Winamp plugins you may also use ```in_vgmstream.dll``` instead.
+Note that this has less features compared to in_vgmstream and has no configuration.
+Since XMPlay supports Winamp plugins you may also use ```in_vgmstream.dll``` instead.
 
 Because the XMPlay MP3 decoder incorrectly tries to play some vgmstream exts,
 you need to manually fix it by going to **options > plugins > input > vgmstream**
-and in the "priority filetypes" put: ```ahx,asf,awc,ckd,fsb,genh,msf,p3d,rak,scd,txth,xvag```
+and in the "priority filetypes" put: `ahx,asf,awc,ckd,fsb,genh,msf,p3d,rak,scd,txth,xvag`
 
 ### foo_input_vgmstream
-Every file should be installed automatically by the .fb2k-component bundle.
+*Installation*: every file should be installed automatically by the `.fb2k-component`
+bundle.
+
+A known quirk is that when loop options or tags change, playlist won't refresh
+automatically. You need to manually refresh it by selecting songs and doing
+**shift + right click > Tagging > Reload info from file(s)**.
 
 ### Audacious plugin
-Needs to be manually built. Instructions can be found in the BUILD document.
+*Installation*: needs to be manually built. Instructions can be found in the BUILD
+document.
 
 ### vgmstream123
-Needs to be manually built. Instructions can be found in the BUILD document.
+*Installation*: seeds to be manually built. Instructions can be found in the
+BUILD document in vgmstream's source code.
 
-```
-Usage: vgmstream123 [options] INFILE ...
-```
+Usage: `vgmstream123 [options] INFILE ...`
 
 The program is meant to be a simple stand-alone player, supporting playback
 of vgmstream files through libao. Files compressed with gzip/bzip2/xz also
@@ -225,10 +225,10 @@ Programs like VGMToolbox can help to create GENH.
 single file). Contains dynamic text commands to read data from the original
 file, or static values.
 
-**TXTP**: a text playlist that works as a single song. Can contain a list of
-filenames to play as one (ex. "intro.vag" "loop.vag"), separate channel files
-to join as a single multichannel file, subsong index (ex. bgm.sxd#10), or 
-channel mask to allow only certain channels (ex. "song.adx#c1,2").
+**TXTP**: a text playing configurator. Can contain a list of filenames to
+play as one (ex. "intro.vag" "loop.vag"), list of separate channel files
+to join as a single multichannel file, subsong index (ex. bgm.sxd#10),
+per-file configurations like number of loops, and many other features.
 
 Creation of those files is meant for advanced users, docs can be found in
 vgmstream source.
@@ -237,17 +237,20 @@ vgmstream source.
 Since vgmstream supports a huge amount of formats it's possibly that some of
 them are also supported in other plugins, and this sometimes causes conflicts.
 If a file that should isn't playing or looping, first make sure vgmstream is
-really opening it (should show "vgmstream" somewhere in the file info), and
-try to remove a few other plugins. foobar's ffmpeg plugin and foo_adpcm are
-known to cause issues.
+really opening it (should show "VGMSTREAM" somewhere in the file info), and
+try to remove a few other plugins. 
+
+foobar's ffmpeg plugin and foo_adpcm are known to cause issues, but in
+recent versions (1.4.x) you can configure plugin priority.
 
 ### Channel issues
 Some games layer a huge number of channels, that are disabled or downmixed
 during gameplay. The player may be unable to play those files (for example
 foobar can only play up to 8 channels, and Winamp depends the your sound
 card). For those files you can set the "downmix" option in vgmstream, that
-can reduce the number of channels to a playable amount. Note that downmixing
-is very simple and not meant to be used when converting to other formats.
+can reduce the number of channels to a playable amount. Note that this type
+of downmixing is very generic, not meant to be used when converting to other
+formats.
 
 ## Tagging
 Some of vgmstream's plugins support simple read-only tagging via external files.
@@ -279,6 +282,19 @@ GLOBAL_COMMANDs currently can be:
 - AUTOTRACK: sets %TRACK% tag automatically (1..N as files are encountered
   in the tag file).
 
+foobar2000 can apply the following replaygain tags (if ReplayGain is enabled in foobar's preferences):
+```
+# %replaygain_track_gain N.NN dB
+# %replaygain_track_peak N.NNN
+# %replaygain_album_gain N.NN dB
+# %replaygain_album_peak N.NNN
+```
+  
+If your player isn't picking tags make sure vgmstream is detecting the song
+(as other plugins can steal its extensions, see above), .m3u is properly
+named and that filename in m3u match with the song filename.
+
+
 
 ## Supported codec types
 Quick list of codecs vgmstream supports, including many obscure ones that 
@@ -302,7 +318,7 @@ are used in few games.
 - Microsoft MS IMA ADPCM (standard, Xbox, NDS, Radical, Wwise, FSB, WV6, etc)
 - Microsoft MS ADPCM (standard, Cricket Audio)
 - Westwood VBR ADPCM
-- Yamaha AICA ADPCM
+- Yamaha ADPCM (standard, Aska)
 - Procyon Studio ADPCM
 - Level-5 0x555 ADPCM
 - lsf ADPCM
@@ -315,6 +331,7 @@ are used in few games.
 - Ocean DSA 4-bit ADPCM
 - Circus XPCM ADPCM
 - OKI 4-bit ADPCM (16-bit output, PC-FX)
+- Ocean DSA 4-bit ADPCM
 - SDX2 2:1 Squareroot-Delta-Exact compression DPCM
 - CBD2 2:1 Cuberoot-Delta-Exact compression DPCM
 - Activision EXAKT SASSC DPCM
@@ -578,6 +595,7 @@ This list is not complete and many other files are supported.
 	- .xma (MS XMA/XMA2)
 	- .sb0/sb1/sb2/sb3/sb4/sb5/sb6/sb7 (many)
 	- .sm0/sm1/sm2/sm3/sm4/sm5/sm6/sm7 (many)
+	- .bao/pk (many)
 - artificial/generic headers:
     - .genh (lots)
     - .txth (lots)
@@ -586,11 +604,12 @@ This list is not complete and many other files are supported.
 	- .pos (loop info for .wav: 32 bit LE loop start sample + loop end sample)
 	- .sli (loop info for .ogg)
 	- .sfl (loop info for .ogg)
+	- .vgmstream + .vgmstream.pos (FFmpeg formats + loop assist)
 - other:
 	- .adxkey (decryption key for .adx, in start/mult/add format)
 	- .ahxkey (decryption key for .ahx, in start/mult/add format)
     - .hcakey (decryption key for .hca, in HCA Decoder format)
     - .fsbkey (decryption key for .fsb, in hex)
-	- .vgmstream + .vgmstream.pos (FFmpeg formats + loop assist)
+    - .txtp (per song segment/layer handler and player configurator)
 
 Enjoy! *hcs*
