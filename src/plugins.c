@@ -11,6 +11,8 @@ struct VGMSTREAM_TAGS {
 
     /* file to find tags for */
     char targetname[VGMSTREAM_TAGS_LINE_MAX];
+    /* path of targetname */
+    char targetpath[VGMSTREAM_TAGS_LINE_MAX];
 
     /* tag section for filename (see comments below) */
     int section_found;
@@ -22,6 +24,9 @@ struct VGMSTREAM_TAGS {
     int autotrack_on;
     int autotrack_written;
     int track_count;
+
+    int autoalbum_on;
+    int autoalbum_written;
 };
 
 
@@ -97,6 +102,23 @@ int vgmstream_tags_next_tag(VGMSTREAM_TAGS* tags, STREAMFILE* tagfile) {
                 return 1;
             }
 
+            if (tags->autoalbum_on && !tags->autoalbum_written && tags->targetpath[0] != '\0') {
+                const char* path;
+
+                path = strrchr(tags->targetpath,'\\');
+                if (!path) {
+                    path = strrchr(tags->targetpath,'/');
+                }
+                if (!path) {
+                    path = tags->targetpath;
+                }
+
+                sprintf(tags->key, "%s", "ALBUM");
+                sprintf(tags->val, "%s", path+1);
+                tags->autoalbum_written = 1;
+                return 1;
+            }
+
             goto fail;
         }
 
@@ -122,6 +144,9 @@ int vgmstream_tags_next_tag(VGMSTREAM_TAGS* tags, STREAMFILE* tagfile) {
                 if (ok == 1 || ok == 2) {
                     if (strcasecmp(tags->key,"AUTOTRACK") == 0) {
                         tags->autotrack_on = 1;
+                    }
+                    else if (strcasecmp(tags->key,"AUTOALBUM") == 0) {
+                        tags->autoalbum_on = 1;
                     }
 
                     continue; /* not an actual tag */
@@ -169,27 +194,32 @@ fail:
 
 
 void vgmstream_tags_reset(VGMSTREAM_TAGS* tags, const char* target_filename) {
-    const char *path;
+    char *path;
 
     if (!tags)
         return;
 
     memset(tags, 0, sizeof(VGMSTREAM_TAGS));
 
+    //todo validate sizes and copy sensible max
 
     /* get base name */
+    strcpy(tags->targetpath, target_filename);
 
     /* Windows CMD accepts both \\ and /, and maybe plugin uses either */
-    path = strrchr(target_filename,'\\');
-    if (!path)
-        path = strrchr(target_filename,'/');
-    if (path != NULL)
+    path = strrchr(tags->targetpath,'\\');
+    if (!path) {
+        path = strrchr(tags->targetpath,'/');
+    }
+    if (path != NULL) {
+        path[0] = '\0'; /* leave targetpath with path only */
         path = path+1;
+    }
 
-    //todo validate sizes and copy sensible max
     if (path) {
         strcpy(tags->targetname, path);
     } else {
+        tags->targetpath[0] = '\0';
         strcpy(tags->targetname, target_filename);
     }
 }
