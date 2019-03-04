@@ -176,9 +176,11 @@ void reset_layout_segmented(segmented_layout_data *data) {
 /* helper for easier creation of segments */
 VGMSTREAM *allocate_segmented_vgmstream(segmented_layout_data* data, int loop_flag, int loop_start_segment, int loop_end_segment) {
     VGMSTREAM *vgmstream;
+    int channel_layout;
     int i, num_samples, loop_start, loop_end;
 
-    /* get data */
+    /* save data */
+    channel_layout = data->segments[0]->channel_layout;
     num_samples = 0;
     loop_start = 0;
     loop_end = 0;
@@ -190,6 +192,10 @@ VGMSTREAM *allocate_segmented_vgmstream(segmented_layout_data* data, int loop_fl
 
         if (loop_flag && i == loop_end_segment)
             loop_end = num_samples;
+
+        /* inherit first segment's layout but only if all segments' layout match */
+        if (channel_layout != 0 && channel_layout != data->segments[i]->channel_layout)
+            channel_layout = 0;
     }
 
     /* respect loop_flag even when no loop_end found as it's possible file loops are set outside */
@@ -204,6 +210,7 @@ VGMSTREAM *allocate_segmented_vgmstream(segmented_layout_data* data, int loop_fl
     vgmstream->loop_start_sample = loop_start;
     vgmstream->loop_end_sample = loop_end;
     vgmstream->coding_type = data->segments[0]->coding_type;
+    vgmstream->channel_layout = channel_layout;
 
     vgmstream->layout_type = layout_segmented;
     vgmstream->layout_data = data;
