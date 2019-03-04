@@ -301,7 +301,7 @@
     <ClCompile Include="meta\dc_asd.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\dc_dcsw_dcs.c">
+    <ClCompile Include="meta\dcs_wav.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\dc_idvi.c">
