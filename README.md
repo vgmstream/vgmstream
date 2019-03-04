@@ -281,19 +281,20 @@ Playlist formatting should follow player's config. ASCII or UTF-8 tags work.
 GLOBAL_COMMANDs currently can be: 
 - AUTOTRACK: sets %TRACK% tag automatically (1..N as files are encountered
   in the tag file).
+- AUTOALBUM: sets %ALBUM% tag automatically using the containing dir as album.
 
-foobar2000 can apply the following replaygain tags (if ReplayGain is enabled in foobar's preferences):
+foobar2000 can apply the following replaygain tags (if ReplayGain is enabled
+in foobar's preferences):
 ```
 # %replaygain_track_gain N.NN dB
 # %replaygain_track_peak N.NNN
-# %replaygain_album_gain N.NN dB
-# %replaygain_album_peak N.NNN
+# @replaygain_album_gain N.NN dB
+# @replaygain_album_peak N.NNN
 ```
   
 If your player isn't picking tags make sure vgmstream is detecting the song
 (as other plugins can steal its extensions, see above), .m3u is properly
-named and that filename in m3u match with the song filename.
-
+named and that filenames inside match the song filename.
 
 
 ## Supported codec types
@@ -302,6 +303,7 @@ are used in few games.
 
 - PCM 16-bit
 - PCM 8-bit (signed/unsigned)
+- PCM 4-bit (signed/unsigned)
 - PCM 32-bit float
 - u-Law/a-LAW
 - CRI ADX (standard, fixed, exponential, encrypted)
