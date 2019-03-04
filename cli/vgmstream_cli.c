@@ -418,7 +418,8 @@ int main(int argc, char ** argv) {
 
     /* print tags info */
     if (cfg.tag_filename) {
-        VGMSTREAM_TAGS tag;
+        VGMSTREAM_TAGS *tags;
+        const char *tag_key, *tag_val;
 
         STREAMFILE *tagFile = open_stdio_streamfile(cfg.tag_filename);
         if (!tagFile) {
@@ -427,11 +428,13 @@ int main(int argc, char ** argv) {
         }
 
         printf("tags:\n");
-        vgmstream_tags_reset(&tag, cfg.infilename);
-        while ( vgmstream_tags_next_tag(&tag, tagFile)) {
-            printf("- '%s'='%s'\n", tag.key, tag.val);
-        }
 
+        tags = vgmstream_tags_init(&tag_key, &tag_val);
+        vgmstream_tags_reset(tags, cfg.infilename);
+        while ( vgmstream_tags_next_tag(tags, tagFile)) {
+            printf("- '%s'='%s'\n", tag_key, tag_val);
+        }
+        vgmstream_tags_close(tags);
         close_streamfile(tagFile);
     }
 
@@ -462,12 +465,7 @@ int main(int argc, char ** argv) {
 
 #ifdef VGMSTREAM_MIXING
     /* enable after all config but before outbuf */
-    {
-        vgmstream_enable_mixing(vgmstream, BUFFER_SAMPLES);
-
-        channels = vgmstream->output_channels;
-        input_channels = vgmstream->input_channels;
-    }
+    vgmstream_enable_mixing(vgmstream, BUFFER_SAMPLES, &input_channels, &channels);
 #endif
 
     buf = malloc(BUFFER_SAMPLES * sizeof(sample_t) * input_channels);

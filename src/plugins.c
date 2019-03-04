@@ -1,6 +1,29 @@
 #include "vgmstream.h"
 #include "plugins.h"
 
+#define VGMSTREAM_TAGS_LINE_MAX 2048
+
+/* opaque tag state */
+struct VGMSTREAM_TAGS {
+    /* extracted output */
+    char key[VGMSTREAM_TAGS_LINE_MAX];
+    char val[VGMSTREAM_TAGS_LINE_MAX];
+
+    /* file to find tags for */
+    char targetname[VGMSTREAM_TAGS_LINE_MAX];
+
+    /* tag section for filename (see comments below) */
+    int section_found;
+    off_t section_start;
+    off_t section_end;
+    off_t offset;
+
+    /* commands */
+    int autotrack_on;
+    int autotrack_written;
+    int track_count;
+};
+
 
 static void tags_clean(VGMSTREAM_TAGS* tag) {
     int i;
@@ -14,62 +37,80 @@ static void tags_clean(VGMSTREAM_TAGS* tag) {
     }
 }
 
+VGMSTREAM_TAGS* vgmstream_tags_init(const char* *tag_key, const char* *tag_val) {
+    VGMSTREAM_TAGS* tags = malloc(sizeof(VGMSTREAM_TAGS));
+    if (!tags) goto fail;
+
+    *tag_key = tags->key;
+    *tag_val = tags->val;
+
+    return tags;
+fail:
+    return NULL;
+}
+
+void vgmstream_tags_close(VGMSTREAM_TAGS *tags) {
+    free(tags);
+}
+
 /* Tags are divided in two: "global" @TAGS and "file" %TAGS for target filename. To extract both
  * we find the filename's tag "section": (other_filename) ..(#tag section).. (target_filename).
  * When a new "other_filename" is found that offset is marked as section_start, and when target_filename
  * is found it's marked as section_end. Then we can begin extracting tags within that section, until
  * all tags are exhausted. Global tags are extracted while searching, so they always go first, and
  * also meaning any tags after the section is found are ignored. */
-int vgmstream_tags_next_tag(VGMSTREAM_TAGS* tag, STREAMFILE* tagfile) {
+int vgmstream_tags_next_tag(VGMSTREAM_TAGS* tags, STREAMFILE* tagfile) {
     off_t file_size = get_streamfile_size(tagfile);
-    char currentname[TAG_LINE_MAX] = {0};
-    char line[TAG_LINE_MAX] = {0};
+    char currentname[VGMSTREAM_TAGS_LINE_MAX] = {0};
+    char line[VGMSTREAM_TAGS_LINE_MAX] = {0};
     int ok, bytes_read, line_done;
 
+    if (!tags)
+        return 0;
 
     /* prepare file start and skip BOM if needed */
-    if (tag->offset == 0) {
+    if (tags->offset == 0) {
         if ((uint16_t)read_16bitLE(0x00, tagfile) == 0xFFFE ||
             (uint16_t)read_16bitLE(0x00, tagfile) == 0xFEFF) {
-            tag->offset = 0x02;
-            if (tag->section_start == 0)
-                tag->section_start = 0x02;
+            tags->offset = 0x02;
+            if (tags->section_start == 0)
+                tags->section_start = 0x02;
         }
         else if (((uint32_t)read_32bitBE(0x00, tagfile) & 0xFFFFFF00) ==  0xEFBBBF00) {
-            tag->offset = 0x03;
-            if (tag->section_start == 0)
-                tag->section_start = 0x03;
+            tags->offset = 0x03;
+            if (tags->section_start == 0)
+                tags->section_start = 0x03;
         }
     }
 
     /* read lines */
-    while (tag->offset <= file_size) {
+    while (tags->offset <= file_size) {
 
         /* no more tags to extract */
-        if (tag->section_found && tag->offset >= tag->section_end) {
+        if (tags->section_found && tags->offset >= tags->section_end) {
 
             /* write extra tags after all regular tags */
-            if (tag->autotrack_on && !tag->autotrack_written) {
-                sprintf(tag->key, "%s", "TRACK");
-                sprintf(tag->val, "%i", tag->track_count);
-                tag->autotrack_written = 1;
+            if (tags->autotrack_on && !tags->autotrack_written) {
+                sprintf(tags->key, "%s", "TRACK");
+                sprintf(tags->val, "%i", tags->track_count);
+                tags->autotrack_written = 1;
                 return 1;
             }
 
             goto fail;
         }
 
-        bytes_read = get_streamfile_text_line(TAG_LINE_MAX,line, tag->offset,tagfile, &line_done);
+        bytes_read = get_streamfile_text_line(VGMSTREAM_TAGS_LINE_MAX,line, tags->offset,tagfile, &line_done);
         if (!line_done || bytes_read == 0) goto fail;
 
-        tag->offset += bytes_read;
+        tags->offset += bytes_read;
 
 
-        if (tag->section_found) {
+        if (tags->section_found) {
             /* find possible file tag */
-            ok = sscanf(line, "# %%%[^ \t] %[^\r\n] ", tag->key,tag->val);
+            ok = sscanf(line, "# %%%[^ \t] %[^\r\n] ", tags->key,tags->val);
             if (ok == 2) {
-                tags_clean(tag);
+                tags_clean(tags);
                 return 1;
             }
         }
@@ -77,19 +118,19 @@ int vgmstream_tags_next_tag(VGMSTREAM_TAGS* tag, STREAMFILE* tagfile) {
 
             if (line[0] == '#') {
                 /* find possible global command */
-                ok = sscanf(line, "# $%[^ \t] %[^\r\n]", tag->key,tag->val);
+                ok = sscanf(line, "# $%[^ \t] %[^\r\n]", tags->key,tags->val);
                 if (ok == 1 || ok == 2) {
-                    if (strcasecmp(tag->key,"AUTOTRACK") == 0) {
-                        tag->autotrack_on = 1;
+                    if (strcasecmp(tags->key,"AUTOTRACK") == 0) {
+                        tags->autotrack_on = 1;
                     }
 
                     continue; /* not an actual tag */
                 }
 
                 /* find possible global tag */
-                ok = sscanf(line, "# @%[^ \t] %[^\r\n]", tag->key,tag->val);
+                ok = sscanf(line, "# @%[^ \t] %[^\r\n]", tags->key,tags->val);
                 if (ok == 2) {
-                    tags_clean(tag);
+                    tags_clean(tags);
                     return 1;
                 }
 
@@ -99,18 +140,18 @@ int vgmstream_tags_next_tag(VGMSTREAM_TAGS* tag, STREAMFILE* tagfile) {
             /* find possible filename and section start/end */
             ok = sscanf(line, " %[^\r\n] ", currentname);
             if (ok == 1)  {
-                if (strcasecmp(tag->targetname,currentname) == 0) { /* looks ok even for UTF-8 */
+                if (strcasecmp(tags->targetname,currentname) == 0) { /* looks ok even for UTF-8 */
                     /* section ok, start would be set before this (or be 0) */
-                    tag->section_end = tag->offset;
-                    tag->section_found = 1;
-                    tag->offset = tag->section_start;
+                    tags->section_end = tags->offset;
+                    tags->section_found = 1;
+                    tags->offset = tags->section_start;
                 }
                 else {
                     /* mark new possible section */
-                    tag->section_start = tag->offset;
+                    tags->section_start = tags->offset;
                 }
 
-                tag->track_count++; /* new track found (target filename or not) */
+                tags->track_count++; /* new track found (target filename or not) */
                 continue;
             }
 
@@ -121,21 +162,24 @@ int vgmstream_tags_next_tag(VGMSTREAM_TAGS* tag, STREAMFILE* tagfile) {
     /* may reach here if read up to file_size but no section was found */
 
 fail:
-    tag->key[0] = '\0';
-    tag->val[0] = '\0';
+    tags->key[0] = '\0';
+    tags->val[0] = '\0';
     return 0;
 }
 
 
-void vgmstream_tags_reset(VGMSTREAM_TAGS* tag, const char* target_filename) {
+void vgmstream_tags_reset(VGMSTREAM_TAGS* tags, const char* target_filename) {
     const char *path;
 
-    memset(tag, 0, sizeof(VGMSTREAM_TAGS));
+    if (!tags)
+        return;
+
+    memset(tags, 0, sizeof(VGMSTREAM_TAGS));
 
 
     /* get base name */
 
-    //todo Windows CMD accepts both \\ and /, better way to handle this?
+    /* Windows CMD accepts both \\ and /, and maybe plugin uses either */
     path = strrchr(target_filename,'\\');
     if (!path)
         path = strrchr(target_filename,'/');
@@ -144,8 +188,8 @@ void vgmstream_tags_reset(VGMSTREAM_TAGS* tag, const char* target_filename) {
 
     //todo validate sizes and copy sensible max
     if (path) {
-        strcpy(tag->targetname, path);
+        strcpy(tags->targetname, path);
     } else {
-        strcpy(tag->targetname, target_filename);
+        strcpy(tags->targetname, target_filename);
     }
 }

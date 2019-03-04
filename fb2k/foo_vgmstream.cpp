@@ -170,18 +170,21 @@ void input_vgmstream::get_info(t_uint32 p_subsong, file_info & p_info, abort_cal
 
         STREAMFILE *tagFile = open_foo_streamfile(tagfile_path, &p_abort, &stats);
         if (tagFile != NULL) {
-            VGMSTREAM_TAGS tag;
-            vgmstream_tags_reset(&tag, filename);
-            while (vgmstream_tags_next_tag(&tag, tagFile)) {
-                if (replaygain_info::g_is_meta_replaygain(tag.key)) {
-                    p_info.info_set_replaygain(tag.key,tag.val);
+            VGMSTREAM_TAGS *tags;
+            const char *tag_key, *tag_val;
+
+            tags = vgmstream_tags_init(&tag_key, &tag_val);
+            vgmstream_tags_reset(tags, filename);
+            while (vgmstream_tags_next_tag(tags, tagFile)) {
+                if (replaygain_info::g_is_meta_replaygain(tag_key)) {
+                    p_info.info_set_replaygain(tag_key,tag_val);
                     /* there is info_set_replaygain_auto too but no doc */
                 }
                 else {
-                    p_info.meta_set(tag.key,tag.val);
+                    p_info.meta_set(tag_key,tag_val);
                 }
             }
-
+            vgmstream_tags_close(tags);
             close_streamfile(tagFile);
         }
     }
