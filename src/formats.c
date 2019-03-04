@@ -922,7 +922,7 @@ static const meta_info meta_info_list[] = {
         {meta_NGC_SSM,              "SSM DSP Header"},
         {meta_PS2_JOE,              "Asobo Studio .JOE header"},
         {meta_VGS,                  "Guitar Hero VGS Header"},
-        {meta_DC_DCSW_DCS,          "Evil Twin DCS file with helper"},
+        {meta_DCS_WAV,              "In Utero DCS+WAV header"},
         {meta_SMP,                  "Infernal Engine .smp header"},
         {meta_MUL,                  "Crystal Dynamics .MUL header"},
         {meta_THP,                  "THP Movie File Format Header"},
