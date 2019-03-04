@@ -232,10 +232,10 @@ static void apply_config(VGMSTREAM *vgmstream, txtp_entry *current) {
 
     if (current->loop_install) {
         if (current->loop_start_second > 0 || current->loop_end_second > 0) {
-            current->loop_start_sample = current->loop_start_second  * (double)vgmstream->sample_rate;
-            current->loop_end_sample = current->loop_end_second  * (double)vgmstream->sample_rate;
+            current->loop_start_sample = current->loop_start_second * (double)vgmstream->sample_rate;
+            current->loop_end_sample = current->loop_end_second * (double)vgmstream->sample_rate;
             if (current->loop_end_sample > vgmstream->num_samples &&
-                    current->loop_end_sample - vgmstream->num_samples <= 1000)
+                    current->loop_end_sample - vgmstream->num_samples <= 0.1 * (double)vgmstream->sample_rate)
                 current->loop_end_sample = vgmstream->num_samples; /* allow some rounding leeway */
         }
 
