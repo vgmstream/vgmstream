@@ -29,7 +29,7 @@ static void g_init_ffmpeg() {
 }
 
 /* converts codec's samples (can be in any format, ex. Ogg's float32) to PCM16 */
-static void convert_audio_pcm16(sample *outbuf, const uint8_t *inbuf, int fullSampleCount, int bitsPerSample, int floatingPoint) {
+static void convert_audio_pcm16(sample_t *outbuf, const uint8_t *inbuf, int fullSampleCount, int bitsPerSample, int floatingPoint) {
     int s;
     switch (bitsPerSample) {
         case 8: {
@@ -495,7 +495,7 @@ fail:
 }
 
 /* decode samples of any kind of FFmpeg format */
-void decode_ffmpeg(VGMSTREAM *vgmstream, sample * outbuf, int32_t samples_to_do, int channels) {
+void decode_ffmpeg(VGMSTREAM *vgmstream, sample_t * outbuf, int32_t samples_to_do, int channels) {
     ffmpeg_codec_data *data = vgmstream->codec_data;
     int samplesReadNow;
     //todo use either channels / data->channels / codecCtx->channels
@@ -806,6 +806,12 @@ void ffmpeg_set_skip_samples(ffmpeg_codec_data * data, int skip_samples) {
 
     /* expose (info only) */
     data->skipSamples = skip_samples;
+}
+
+/* returns channel layout if set */
+uint32_t ffmpeg_get_channel_layout(ffmpeg_codec_data * data) {
+    if (!data || !data->codecCtx) return 0;
+    return (uint32_t)data->codecCtx->channel_layout; /* uint64 but there ain't so many speaker mappings */
 }
 
 #endif

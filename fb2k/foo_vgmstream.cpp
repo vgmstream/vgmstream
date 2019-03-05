@@ -170,12 +170,21 @@ void input_vgmstream::get_info(t_uint32 p_subsong, file_info & p_info, abort_cal
 
         STREAMFILE *tagFile = open_foo_streamfile(tagfile_path, &p_abort, &stats);
         if (tagFile != NULL) {
-            VGMSTREAM_TAGS tag;
-            vgmstream_tags_reset(&tag, filename);
-            while (vgmstream_tags_next_tag(&tag, tagFile)) {
-                p_info.meta_set(tag.key,tag.val);
-            }
+            VGMSTREAM_TAGS *tags;
+            const char *tag_key, *tag_val;
 
+            tags = vgmstream_tags_init(&tag_key, &tag_val);
+            vgmstream_tags_reset(tags, filename);
+            while (vgmstream_tags_next_tag(tags, tagFile)) {
+                if (replaygain_info::g_is_meta_replaygain(tag_key)) {
+                    p_info.info_set_replaygain(tag_key,tag_val);
+                    /* there is info_set_replaygain_auto too but no doc */
+                }
+                else {
+                    p_info.meta_set(tag_key,tag_val);
+                }
+            }
+            vgmstream_tags_close(tags);
             close_streamfile(tagFile);
         }
     }
@@ -194,7 +203,7 @@ void input_vgmstream::get_info(t_uint32 p_subsong, file_info & p_info, abort_cal
     if (total_samples > 0)
         p_info.info_set_int("stream_total_samples", total_samples);
     if (loop_start >= 0 && loop_end > loop_start) {
-        p_info.info_set("looping", loop_flag > 0 ? "enabled" : "disabled");
+        if (loop_flag <= 0) p_info.info_set("looping", "disabled");
         p_info.info_set_int("loop_start", loop_start);
         p_info.info_set_int("loop_end", loop_end);
     }
@@ -210,6 +219,8 @@ void input_vgmstream::get_info(t_uint32 p_subsong, file_info & p_info, abort_cal
     if (get_description_tag(temp,description,"stream count: ")) p_info.info_set("stream_count",temp);
     if (get_description_tag(temp,description,"stream index: ")) p_info.info_set("stream_index",temp);
     if (get_description_tag(temp,description,"stream name: ")) p_info.info_set("stream_name",temp);
+
+    if (get_description_tag(temp,description,"channel mask: ")) p_info.info_set("channel_mask",temp);
 }
 
 t_filestats input_vgmstream::get_file_stats(abort_callback & p_abort) {
@@ -293,12 +304,16 @@ bool input_vgmstream::decode_run(audio_chunk & p_chunk,abort_callback & p_abort)
             /* copy back to global buffer... in case of multithreading stuff? */
             memcpy(sample_buffer,temp_buffer, samples_to_do*downmix_channels*sizeof(short));
 
+            unsigned channel_config = audio_chunk::g_guess_channel_config(downmix_channels);
             bytes = (samples_to_do*downmix_channels * sizeof(sample_buffer[0]));
-            p_chunk.set_data_fixedpoint((char*)sample_buffer, bytes, vgmstream->sample_rate, downmix_channels, 16, audio_chunk::g_guess_channel_config(downmix_channels));
+            p_chunk.set_data_fixedpoint((char*)sample_buffer, bytes, vgmstream->sample_rate, downmix_channels, 16, channel_config);
         }
         else {
+            unsigned channel_config = vgmstream->channel_layout;
+            if (!channel_config)
+                channel_config = audio_chunk::g_guess_channel_config(vgmstream->channels);
             bytes = (samples_to_do*vgmstream->channels * sizeof(sample_buffer[0]));
-            p_chunk.set_data_fixedpoint((char*)sample_buffer, bytes, vgmstream->sample_rate, vgmstream->channels, 16, audio_chunk::g_guess_channel_config(vgmstream->channels));
+            p_chunk.set_data_fixedpoint((char*)sample_buffer, bytes, vgmstream->sample_rate, vgmstream->channels, 16, channel_config);
         }
 
 

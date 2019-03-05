@@ -10,8 +10,8 @@
 #define MPEG_DATA_BUFFER_SIZE 0x1000 /* at least one MPEG frame (max ~0x5A1 plus some more in case of free bitrate) */
 
 static mpg123_handle * init_mpg123_handle();
-static void decode_mpeg_standard(VGMSTREAMCHANNEL *stream, mpeg_codec_data * data, sample * outbuf, int32_t samples_to_do, int channels);
-static void decode_mpeg_custom(VGMSTREAM * vgmstream, mpeg_codec_data * data, sample * outbuf, int32_t samples_to_do, int channels);
+static void decode_mpeg_standard(VGMSTREAMCHANNEL *stream, mpeg_codec_data * data, sample_t * outbuf, int32_t samples_to_do, int channels);
+static void decode_mpeg_custom(VGMSTREAM * vgmstream, mpeg_codec_data * data, sample_t * outbuf, int32_t samples_to_do, int channels);
 static void decode_mpeg_custom_stream(VGMSTREAMCHANNEL *stream, mpeg_codec_data * data, int num_stream);
 
 
@@ -218,7 +218,7 @@ fail:
 /* DECODERS */
 /************/
 
-void decode_mpeg(VGMSTREAM * vgmstream, sample * outbuf, int32_t samples_to_do, int channels) {
+void decode_mpeg(VGMSTREAM * vgmstream, sample_t * outbuf, int32_t samples_to_do, int channels) {
     mpeg_codec_data * data = (mpeg_codec_data *) vgmstream->codec_data;
 
     if (!data->custom) {
@@ -232,7 +232,7 @@ void decode_mpeg(VGMSTREAM * vgmstream, sample * outbuf, int32_t samples_to_do, 
  * Decode anything mpg123 can.
  * Feeds raw data and extracts decoded samples as needed.
  */
-static void decode_mpeg_standard(VGMSTREAMCHANNEL *stream, mpeg_codec_data * data, sample * outbuf, int32_t samples_to_do, int channels) {
+static void decode_mpeg_standard(VGMSTREAMCHANNEL *stream, mpeg_codec_data * data, sample_t * outbuf, int32_t samples_to_do, int channels) {
     int samples_done = 0;
     mpg123_handle *m = data->m;
 
@@ -290,7 +290,7 @@ static void decode_mpeg_standard(VGMSTREAMCHANNEL *stream, mpeg_codec_data * dat
  * Copies to outbuf when there are samples in all streams and calls decode_mpeg_custom_stream to decode.
  . Depletes the stream's sample buffers before decoding more, so it doesn't run out of buffer space.
  */
-static void decode_mpeg_custom(VGMSTREAM * vgmstream, mpeg_codec_data * data, sample * outbuf, int32_t samples_to_do, int channels) {
+static void decode_mpeg_custom(VGMSTREAM * vgmstream, mpeg_codec_data * data, sample_t * outbuf, int32_t samples_to_do, int channels) {
     int i, samples_done = 0;
 
     while (samples_done < samples_to_do) {
@@ -327,7 +327,7 @@ static void decode_mpeg_custom(VGMSTREAM * vgmstream, mpeg_codec_data * data, sa
             ch = 0;
             for (stream = 0; stream < data->streams_size; stream++) {
                 mpeg_custom_stream *ms = data->streams[stream];
-                sample* inbuf = (sample*)ms->output_buffer;
+                sample_t *inbuf = (sample_t *)ms->output_buffer;
                 int stream_channels = ms->channels_per_frame;
                 int stream_ch, s;
 

@@ -216,11 +216,12 @@ VGMSTREAM * init_vgmstream_mp4_aac_ffmpeg(STREAMFILE *streamFile) {
     vgmstream->layout_type = layout_none;
     vgmstream->meta_type = meta_MP4;
 
-    vgmstream->num_samples = ffmpeg_data->totalSamples;
     vgmstream->sample_rate = ffmpeg_data->sampleRate;
-    vgmstream->channels = ffmpeg_data->channels;
+    vgmstream->num_samples = ffmpeg_data->totalSamples;
     vgmstream->loop_start_sample = loop_start_sample;
     vgmstream->loop_end_sample = loop_end_sample;
+
+    vgmstream->channel_layout = ffmpeg_get_channel_layout(vgmstream->codec_data);
 
     return vgmstream;
 
@@ -233,11 +234,7 @@ fail:
     return NULL;
 }
 
-/**
- * Almost the same as streamfile.c's find_chunk but for "atom" chunks, which have chunk_size first because Apple.
- *
- * returns 0 on failure
- */
+/* Almost the same as streamfile.c's find_chunk but for "atom" chunks, which have chunk_size first because Apple, returns 0 on failure */
 static int find_atom_be(STREAMFILE *streamFile, uint32_t atom_id, off_t start_offset, off_t *out_atom_offset, size_t *out_atom_size) {
     size_t filesize;
     off_t current_atom = start_offset;

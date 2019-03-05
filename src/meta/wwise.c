@@ -29,6 +29,7 @@ typedef struct {
     int block_align;
     int average_bps;
     int bits_per_sample;
+    uint32_t channel_layout;
     size_t extra_size;
 
     int32_t num_samples;
@@ -104,11 +105,12 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
         if (ww.fmt_size < 0x12) goto fail;
         ww.format           = (uint16_t)read_16bit(ww.fmt_offset+0x00,streamFile);
 
-        if (ww.format == 0x0165) { /* XMA2WAVEFORMAT (always "fmt"+"XMA2", unlike .xma that may only have "XMA2") */
+        if (ww.format == 0x0165) { /* pseudo-XMA2WAVEFORMAT (always "fmt"+"XMA2", unlike .xma that may only have "XMA2") */
             if (!find_chunk(streamFile, 0x584D4132,first_offset,0, &ww.chunk_offset,NULL, ww.big_endian, 0))
                 goto fail;
             xma2_parse_xma2_chunk(streamFile, ww.chunk_offset,&ww.channels,&ww.sample_rate, &ww.loop_flag, &ww.num_samples, &ww.loop_start_sample, &ww.loop_end_sample);
-        } else { /* WAVEFORMATEX */
+        }
+        else { /* pseudo-WAVEFORMATEX */
             ww.channels         = read_16bit(ww.fmt_offset+0x02,streamFile);
             ww.sample_rate      = read_32bit(ww.fmt_offset+0x04,streamFile);
             ww.average_bps      = read_32bit(ww.fmt_offset+0x08,streamFile);/* bytes per sec */
@@ -116,9 +118,10 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
             ww.bits_per_sample   = (uint16_t)read_16bit(ww.fmt_offset+0x0e,streamFile);
             if (ww.fmt_size > 0x10 && ww.format != 0x0165 && ww.format != 0x0166) /* ignore XMAWAVEFORMAT */
                 ww.extra_size   = (uint16_t)read_16bit(ww.fmt_offset+0x10,streamFile);
-            /* channel bitmask, see AkSpeakerConfig.h (ex. 1ch uses FRONT_CENTER 0x4, 2ch FRONT_LEFT 0x1 | FRONT_RIGHT 0x2, etc) */
-            //if (ww.extra_size >= 6)
-            //    ww.channel_config = read_32bit(ww.fmt_offset+0x14,streamFile);
+            if (ww.extra_size >= 0x06) { /* mostly WAVEFORMATEXTENSIBLE's bitmask, see AkSpeakerConfig.h */
+                /* always present (actual RIFFs only have it in WAVEFORMATEXTENSIBLE) */
+                ww.channel_layout = read_32bit(ww.fmt_offset+0x14,streamFile);
+            }
         }
 
         /* find loop info */
@@ -192,6 +195,7 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
             goto fail;
     }
 
+    start_offset = ww.data_offset;
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(ww.channels,ww.loop_flag);
@@ -200,9 +204,8 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
     vgmstream->sample_rate = ww.sample_rate;
     vgmstream->loop_start_sample = ww.loop_start_sample;
     vgmstream->loop_end_sample = ww.loop_end_sample;
+    vgmstream->channel_layout = ww.channel_layout;
     vgmstream->meta_type = meta_WWISE_RIFF;
-
-    start_offset = ww.data_offset;
 
     switch(ww.codec) {
         case PCM: /* common */

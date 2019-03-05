@@ -16,7 +16,7 @@ typedef enum {
     DVI_IMA = 7,        /* DVI IMA ADPCM (high nibble first) */
     MPEG = 8,           /* MPEG (MP3) */
     IMA = 9,            /* IMA ADPCM (low nibble first) */
-    AICA = 10,          /* AICA ADPCM (Dreamcast games) */
+    YAMAHA = 10,        /* YAMAHA (AICA) ADPCM (Dreamcast games) */
     MSADPCM = 11,       /* MS ADPCM (Windows games) */
     NGC_DSP = 12,       /* NGC DSP (Nintendo games) */
     PCM8_U_int = 13,    /* 8-bit unsigned PCM (interleaved) */
@@ -163,7 +163,7 @@ VGMSTREAM * init_vgmstream_txth(STREAMFILE *streamFile) {
         case MPEG:       coding = coding_MPEG_layer3; break; /* we later find out exactly which */
 #endif
         case IMA:        coding = coding_IMA; break;
-        case AICA:       coding = coding_AICA; break;
+        case YAMAHA:     coding = coding_YAMAHA; break;
         case MSADPCM:    coding = coding_MSADPCM; break;
         case NGC_DSP:    coding = coding_NGC_DSP; break;
         case PCM8_U_int: coding = coding_PCM8_U_int; break;
@@ -226,7 +226,7 @@ VGMSTREAM * init_vgmstream_txth(STREAMFILE *streamFile) {
         case coding_PSX_badflags:
         case coding_DVI_IMA:
         case coding_IMA:
-        case coding_AICA:
+        case coding_YAMAHA:
         case coding_APPLE_IMA4:
             vgmstream->interleave_block_size = txth.interleave;
             vgmstream->interleave_last_block_size = txth.interleave_last;
@@ -245,8 +245,8 @@ VGMSTREAM * init_vgmstream_txth(STREAMFILE *streamFile) {
                         coding = coding_DVI_IMA_int;
                     if (coding == coding_IMA)
                         coding = coding_IMA_int;
-                    if (coding == coding_AICA)
-                        coding = coding_AICA_int;
+                    if (coding == coding_YAMAHA)
+                        coding = coding_YAMAHA_int;
                 }
 
                 /* to avoid endless loops */
@@ -256,7 +256,7 @@ VGMSTREAM * init_vgmstream_txth(STREAMFILE *streamFile) {
                         coding == coding_IMA_int ||
                         coding == coding_DVI_IMA_int ||
                         coding == coding_SDX2_int ||
-                        coding == coding_AICA_int) ) {
+                        coding == coding_YAMAHA_int) ) {
                     goto fail;
                 }
             } else {
@@ -264,7 +264,7 @@ VGMSTREAM * init_vgmstream_txth(STREAMFILE *streamFile) {
             }
 
             /* setup adpcm */
-            if (coding == coding_AICA || coding == coding_AICA_int) {
+            if (coding == coding_YAMAHA || coding == coding_YAMAHA_int) {
                 int ch;
                 for (ch = 0; ch < vgmstream->channels; ch++) {
                     vgmstream->ch[ch].adpcm_step_index = 0x7f;
@@ -611,8 +611,8 @@ static int parse_keyval(STREAMFILE * streamFile_, txth_header * txth, const char
         else if (0==strcmp(val,"DVI_IMA"))      txth->codec = DVI_IMA;
         else if (0==strcmp(val,"MPEG"))         txth->codec = MPEG;
         else if (0==strcmp(val,"IMA"))          txth->codec = IMA;
-        else if (0==strcmp(val,"YAMAHA"))       txth->codec = AICA;
-        else if (0==strcmp(val,"AICA"))         txth->codec = AICA;
+        else if (0==strcmp(val,"YAMAHA"))       txth->codec = YAMAHA;
+        else if (0==strcmp(val,"AICA"))         txth->codec = YAMAHA;
         else if (0==strcmp(val,"MSADPCM"))      txth->codec = MSADPCM;
         else if (0==strcmp(val,"NGC_DSP"))      txth->codec = NGC_DSP;
         else if (0==strcmp(val,"DSP"))          txth->codec = NGC_DSP;
@@ -1011,8 +1011,8 @@ static int get_bytes_to_samples(txth_header * txth, uint32_t bytes) {
         case IMA:
         case DVI_IMA:
             return ima_bytes_to_samples(bytes, txth->channels);
-        case AICA:
-            return aica_bytes_to_samples(bytes, txth->channels);
+        case YAMAHA:
+            return yamaha_bytes_to_samples(bytes, txth->channels);
         case PCFX:
         case OKI16:
             return oki_bytes_to_samples(bytes, txth->channels);

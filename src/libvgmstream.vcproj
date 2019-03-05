@@ -477,7 +477,7 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\dc_dcsw_dcs.c"
+					RelativePath=".\meta\dcs_wav.c"
 					>
 				</File>
 				<File

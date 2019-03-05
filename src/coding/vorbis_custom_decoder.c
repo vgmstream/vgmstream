@@ -7,7 +7,7 @@
 
 #define VORBIS_DEFAULT_BUFFER_SIZE 0x8000 /* should be at least the size of the setup header, ~0x2000 */
 
-static void pcm_convert_float_to_16(vorbis_custom_codec_data * data, sample * outbuf, int samples_to_do, float ** pcm);
+static void pcm_convert_float_to_16(int channels, sample_t * outbuf, int samples_to_do, float ** pcm);
 
 /**
  * Inits a vorbis stream of some custom variety.
@@ -75,7 +75,7 @@ fail:
 }
 
 /* Decodes Vorbis packets into a libvorbis sample buffer, and copies them to outbuf */
-void decode_vorbis_custom(VGMSTREAM * vgmstream, sample * outbuf, int32_t samples_to_do, int channels) {
+void decode_vorbis_custom(VGMSTREAM * vgmstream, sample_t * outbuf, int32_t samples_to_do, int channels) {
     VGMSTREAMCHANNEL *stream = &vgmstream->ch[0];
     vorbis_custom_codec_data * data = vgmstream->codec_data;
     size_t stream_size =  get_streamfile_size(stream->streamfile);
@@ -112,7 +112,7 @@ void decode_vorbis_custom(VGMSTREAM * vgmstream, sample * outbuf, int32_t sample
                 /* get max samples and convert from Vorbis float pcm to 16bit pcm */
                 if (samples_to_get > samples_to_do - samples_done)
                     samples_to_get = samples_to_do - samples_done;
-                pcm_convert_float_to_16(data, outbuf + samples_done * channels, samples_to_get, pcm);
+                pcm_convert_float_to_16(data->vi.channels, outbuf + samples_done * channels, samples_to_get, pcm);
                 samples_done += samples_to_get;
             }
 
@@ -167,21 +167,24 @@ decode_fail:
 }
 
 /* converts from internal Vorbis format to standard PCM (mostly from Xiph's decoder_example.c) */
-static void pcm_convert_float_to_16(vorbis_custom_codec_data * data, sample * outbuf, int samples_to_do, float ** pcm) {
-    int i,j;
+static void pcm_convert_float_to_16(int channels, sample_t * outbuf, int samples_to_do, float ** pcm) {
+    int ch, s;
+    sample_t *ptr;
+    float *channel;
 
     /* convert float PCM (multichannel float array, with pcm[0]=ch0, pcm[1]=ch1, pcm[2]=ch0, etc)
      * to 16 bit signed PCM ints (host order) and interleave + fix clipping */
-    for (i = 0; i < data->vi.channels; i++) {
-        sample *ptr = outbuf + i;
-        float *mono = pcm[i];
-        for (j = 0; j < samples_to_do; j++) {
-            int val = (int)floor(mono[j] * 32767.f + .5f);
+    for (ch = 0; ch < channels; ch++) {
+        /* channels should be in standard order unlike Ogg Vorbis (at least in FSB) */
+        ptr = outbuf + ch;
+        channel = pcm[ch];
+        for (s = 0; s < samples_to_do; s++) {
+            int val = (int)floor(channel[s] * 32767.0f + 0.5f);
             if (val > 32767) val = 32767;
-            if (val < -32768) val = -32768;
+            else if (val < -32768) val = -32768;
 
             *ptr = val;
-            ptr += data->vi.channels;
+            ptr += channels;
         }
     }
 }

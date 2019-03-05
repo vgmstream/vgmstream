@@ -1,7 +1,7 @@
 #include "meta.h"
 #include "../coding/coding.h"
 
-/* AAC - Tri-Ace Audio Container */
+/* AAC - tri-Ace (Aska engine) Audio Container */
 
 /* Xbox 360 Variants (Star Ocean 4, End of Eternity, Infinite Undiscovery) */
 VGMSTREAM * init_vgmstream_ta_aac_x360(STREAMFILE *streamFile) {
@@ -297,12 +297,12 @@ VGMSTREAM * init_vgmstream_ta_aac_mobile(STREAMFILE *streamFile) {
             if (read_32bitLE(0x148, streamFile) != (0x40-0x04*channel_count)*2 / channel_count) goto fail; /* frame samples */
             if (channel_count > 2) goto fail; /* unknown data layout */
 
-            vgmstream->coding_type = coding_YAMAHA;
+            vgmstream->coding_type = coding_ASKA;
             vgmstream->layout_type = layout_none;
 
-            vgmstream->num_samples = yamaha_bytes_to_samples(data_size, channel_count);
-            vgmstream->loop_start_sample = yamaha_bytes_to_samples(read_32bitLE(0x130, streamFile), channel_count);
-            vgmstream->loop_end_sample = yamaha_bytes_to_samples(read_32bitLE(0x134, streamFile), channel_count);
+            vgmstream->num_samples = aska_bytes_to_samples(data_size, channel_count);
+            vgmstream->loop_start_sample = aska_bytes_to_samples(read_32bitLE(0x130, streamFile), channel_count);
+            vgmstream->loop_end_sample = aska_bytes_to_samples(read_32bitLE(0x134, streamFile), channel_count);
             break;
 
         default:

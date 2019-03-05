@@ -1509,11 +1509,13 @@ static void load_tagfile_info(in_char* filename) {
     /* load all tags from tagfile */
     tagFile = open_winamp_streamfile_by_ipath(tagfile_path_i);
     if (tagFile != NULL) {
-        VGMSTREAM_TAGS tag;
+        VGMSTREAM_TAGS *tags;
+        const char *tag_key, *tag_val;
         int i;
 
-        vgmstream_tags_reset(&tag, filename_utf8);
-        while (vgmstream_tags_next_tag(&tag, tagFile)) {
+        tags = vgmstream_tags_init(&tag_key, &tag_val);
+        vgmstream_tags_reset(tags, filename_utf8);
+        while (vgmstream_tags_next_tag(tags, tagFile)) {
             int repeated_tag = 0;
             int current_tag = last_tags.tag_count;
             if (current_tag >= WINAMP_TAGS_ENTRY_MAX)
@@ -1521,7 +1523,7 @@ static void load_tagfile_info(in_char* filename) {
 
             /* should overwrite repeated tags as global tags may appear multiple times */
             for (i = 0; i < current_tag; i++) {
-                if (strcmp(last_tags.keys[i], tag.key) == 0) {
+                if (strcmp(last_tags.keys[i], tag_key) == 0) {
                     current_tag = i;
                     repeated_tag = 1;
                     break;
@@ -1529,13 +1531,14 @@ static void load_tagfile_info(in_char* filename) {
             }
 
             last_tags.keys[current_tag][0] = '\0';
-            strncat(last_tags.keys[current_tag], tag.key, WINAMP_TAGS_ENTRY_SIZE);
+            strncat(last_tags.keys[current_tag], tag_key, WINAMP_TAGS_ENTRY_SIZE);
             last_tags.vals[current_tag][0] = '\0';
-            strncat(last_tags.vals[current_tag], tag.val, WINAMP_TAGS_ENTRY_SIZE);
+            strncat(last_tags.vals[current_tag], tag_val, WINAMP_TAGS_ENTRY_SIZE);
             if (!repeated_tag)
                 last_tags.tag_count++;
         }
 
+        vgmstream_tags_close(tags);
         close_streamfile(tagFile);
         last_tags.loaded = 1;
     }

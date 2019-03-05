@@ -27,6 +27,12 @@ typedef struct {
     int config_ignore_fade;
 
     int sample_rate;
+    int loop_install;
+    int loop_end_max;
+    double loop_start_second;
+    int32_t loop_start_sample;
+    double loop_end_second;
+    int32_t loop_end_sample;
 
 } txtp_entry;
 
@@ -88,14 +94,13 @@ VGMSTREAM * init_vgmstream_txtp(STREAMFILE *streamFile) {
     }
     else if (txtp->is_layered) {
         /* layered multi file */
-        int channel_count = 0, loop_flag;
 
         /* init layout */
         data_l = init_layout_layered(txtp->entry_count);
         if (!data_l) goto fail;
 
         /* open each segment subfile */
-        for (i = 0; i < txtp->entry_count; i++) {
+        for (i = 0; i < data_l->layer_count; i++) {
             STREAMFILE* temp_streamFile = open_streamfile_by_filename(streamFile, txtp->entry[i].filename);
             if (!temp_streamFile) goto fail;
             temp_streamFile->stream_index = txtp->entry[i].subsong;
@@ -105,43 +110,34 @@ VGMSTREAM * init_vgmstream_txtp(STREAMFILE *streamFile) {
             if (!data_l->layers[i]) goto fail;
 
             apply_config(data_l->layers[i], &txtp->entry[i]);
-
-            /* get actual channel count after config */
-            channel_count += data_l->layers[i]->channels;
         }
 
         /* setup layered VGMSTREAMs */
         if (!setup_layout_layered(data_l))
             goto fail;
 
-        loop_flag = data_l->layers[0]->loop_flag;
-
-        /* build the VGMSTREAM */
-        vgmstream = allocate_vgmstream(channel_count,loop_flag);
+        /* build the layered VGMSTREAM */
+        vgmstream = allocate_layered_vgmstream(data_l);
         if (!vgmstream) goto fail;
 
-        vgmstream->sample_rate = data_l->layers[0]->sample_rate;
-        vgmstream->num_samples = data_l->layers[0]->num_samples;
-        vgmstream->loop_start_sample = data_l->layers[0]->loop_start_sample;
-        vgmstream->loop_end_sample = data_l->layers[0]->loop_end_sample;
-
-        vgmstream->meta_type = meta_TXTP;
-        vgmstream->coding_type = data_l->layers[0]->coding_type;
-        vgmstream->layout_type = layout_layered;
-
-        vgmstream->layout_data = data_l;
+        /* custom meta name if all parts don't match */
+        for (i = 0; i < data_l->layer_count; i++) {
+            if (vgmstream->meta_type != data_l->layers[i]->meta_type) {
+                vgmstream->meta_type = meta_TXTP;
+                break;
+            }
+        }
     }
     else {
         /* segmented multi file */
-        int num_samples, loop_start_sample = 0, loop_end_sample = 0;
-        int loop_flag, channel_count;
+        int loop_flag;
 
         /* init layout */
         data_s = init_layout_segmented(txtp->entry_count);
         if (!data_s) goto fail;
 
         /* open each segment subfile */
-        for (i = 0; i < txtp->entry_count; i++) {
+        for (i = 0; i < data_s->segment_count; i++) {
             STREAMFILE* temp_streamFile = open_streamfile_by_filename(streamFile, txtp->entry[i].filename);
             if (!temp_streamFile) goto fail;
             temp_streamFile->stream_index = txtp->entry[i].subsong;
@@ -162,41 +158,34 @@ VGMSTREAM * init_vgmstream_txtp(STREAMFILE *streamFile) {
             txtp->loop_end_segment = txtp->entry_count;
         loop_flag = (txtp->loop_start_segment > 0 && txtp->loop_start_segment <= txtp->entry_count);
 
-        num_samples = 0;
+
+        /* build the VGMSTREAM */
+        vgmstream = allocate_segmented_vgmstream(data_s,loop_flag, txtp->loop_start_segment - 1, txtp->loop_end_segment - 1);
+        if (!vgmstream) goto fail;
+
+        /* custom meta name if all parts don't match */
         for (i = 0; i < data_s->segment_count; i++) {
-
-            if (loop_flag && txtp->loop_start_segment == i+1) {
-                if (txtp->is_loop_keep /*&& data_s->segments[i]->loop_start_sample*/)
-                    loop_start_sample = num_samples + data_s->segments[i]->loop_start_sample;
-                else
-                    loop_start_sample = num_samples;
-            }
-
-            num_samples += data_s->segments[i]->num_samples;
-
-            if (loop_flag && txtp->loop_end_segment == i+1) {
-                if (txtp->is_loop_keep && data_s->segments[i]->loop_end_sample)
-                    loop_end_sample = num_samples - data_s->segments[i]->num_samples + data_s->segments[i]->loop_end_sample;
-                else
-                    loop_end_sample = num_samples;
+            if (vgmstream->meta_type != data_s->segments[i]->meta_type) {
+                vgmstream->meta_type = meta_TXTP;
+                break;
             }
         }
 
-        channel_count = data_s->segments[0]->channels;
+        /* fix loop keep */
+        if (loop_flag && txtp->is_loop_keep) {
+            int32_t current_samples = 0;
+            for (i = 0; i < data_s->segment_count; i++) {
+                if (txtp->loop_start_segment == i+1 /*&& data_s->segments[i]->loop_start_sample*/) {
+                    vgmstream->loop_start_sample = current_samples + data_s->segments[i]->loop_start_sample;
+                }
 
-        /* build the VGMSTREAM */
-        vgmstream = allocate_vgmstream(channel_count,loop_flag);
-        if (!vgmstream) goto fail;
+                current_samples += data_s->segments[i]->num_samples;
 
-        vgmstream->sample_rate = data_s->segments[0]->sample_rate;
-        vgmstream->num_samples = num_samples;
-        vgmstream->loop_start_sample = loop_start_sample;
-        vgmstream->loop_end_sample = loop_end_sample;
-
-        vgmstream->meta_type = meta_TXTP;
-        vgmstream->coding_type = data_s->segments[0]->coding_type;
-        vgmstream->layout_type = layout_segmented;
-        vgmstream->layout_data = data_s;
+                if (txtp->loop_end_segment == i+1 && data_s->segments[i]->loop_end_sample) {
+                    vgmstream->loop_end_sample = current_samples - data_s->segments[i]->num_samples + data_s->segments[i]->loop_end_sample;
+                }
+            }
+        }
     }
 
 
@@ -230,15 +219,32 @@ static void apply_config(VGMSTREAM *vgmstream, txtp_entry *current) {
     }
 #endif
 
-    if (current->sample_rate > 0)
-        vgmstream->sample_rate = current->sample_rate;
-
     vgmstream->config_loop_count = current->config_loop_count;
     vgmstream->config_fade_time = current->config_fade_time;
     vgmstream->config_fade_delay = current->config_fade_delay;
     vgmstream->config_ignore_loop = current->config_ignore_loop;
     vgmstream->config_force_loop = current->config_force_loop;
     vgmstream->config_ignore_fade = current->config_ignore_fade;
+
+    if (current->sample_rate > 0) {
+        vgmstream->sample_rate = current->sample_rate;
+    }
+
+    if (current->loop_install) {
+        if (current->loop_start_second > 0 || current->loop_end_second > 0) {
+            current->loop_start_sample = current->loop_start_second * (double)vgmstream->sample_rate;
+            current->loop_end_sample = current->loop_end_second * (double)vgmstream->sample_rate;
+            if (current->loop_end_sample > vgmstream->num_samples &&
+                    current->loop_end_sample - vgmstream->num_samples <= 0.1 * (double)vgmstream->sample_rate)
+                current->loop_end_sample = vgmstream->num_samples; /* allow some rounding leeway */
+        }
+
+        if (current->loop_end_max) {
+            current->loop_end_sample  = vgmstream->num_samples;
+        }
+
+        vgmstream_force_loop(vgmstream, current->loop_install, current->loop_start_sample, current->loop_end_sample);
+    }
 
 #ifdef VGMSTREAM_MIXING
     /* add macro to mixing list */
@@ -322,6 +328,47 @@ static int get_int(const char * config, int *value) {
 
     *value = temp;
     return n;
+}
+
+static int get_time(const char * config, double *value_f, int32_t *value_i) {
+    int n,m;
+    int temp_i1, temp_i2;
+    double temp_f1, temp_f2;
+    char temp_c;
+
+    /* test if format is hour: N:N(.n) or N_N(.n) */
+    m = sscanf(config, " %i%c%i%n", &temp_i1,&temp_c,&temp_i2,&n);
+    if (m == 3 && (temp_c == ':' || temp_c == '_')) {
+        m = sscanf(config, " %lf%c%lf%n", &temp_f1,&temp_c,&temp_f2,&n);
+        if (m != 3 || temp_f1 < 0.0 || temp_f1 >= 60.0 || temp_f2 < 0.0 || temp_f2 >= 60.0)
+            return 0;
+
+        *value_f = temp_f1 * 60.0 + temp_f2;
+        return n;
+    }
+
+    /* test if format is seconds: N.n */
+    m = sscanf(config, " %i.%i%n", &temp_i1,&temp_i2,&n);
+    if (m == 2) {
+        m = sscanf(config, " %lf%n", &temp_f1,&n);
+        if (m != 1 || temp_f1 < 0.0)
+            return 0;
+        *value_f = temp_f1;
+        return n;
+    }
+
+    /* assume format is samples: N */
+    m = sscanf(config, " %i%n", &temp_i1,&n);
+    if (m == 1) {
+        if (temp_i1 < 0)
+            return 0;
+
+        //*is_time_i = 1;
+        *value_i = temp_i1;
+        return n;
+    }
+
+    return 0;
 }
 
 static int get_bool(const char * config, int *value) {
@@ -441,7 +488,7 @@ static void add_config(txtp_entry* current, txtp_entry* cfg, const char* filenam
     }
 #endif
 #ifdef VGMSTREAM_MIXING
-    //*current = *cfg; /* don't memcopy to allow list additions */
+    //*current = *cfg; /* don't memcopy to allow list additions */ //todo save list first then memcpy
 
     if (cfg->mixing_count > 0) {
         int i;
@@ -460,7 +507,12 @@ static void add_config(txtp_entry* current, txtp_entry* cfg, const char* filenam
     current->config_ignore_fade = cfg->config_ignore_fade;
 
     current->sample_rate = cfg->sample_rate;
-
+    current->loop_install = cfg->loop_install;
+    current->loop_end_max = cfg->loop_end_max;
+    current->loop_start_sample = cfg->loop_start_sample;
+    current->loop_start_second = cfg->loop_start_second;
+    current->loop_end_sample = cfg->loop_end_sample;
+    current->loop_end_second = cfg->loop_end_second;
 }
 
 static int add_filename(txtp_header * txtp, char *filename, int is_default) {
@@ -613,8 +665,8 @@ static int add_filename(txtp_header * txtp, char *filename, int is_default) {
 
                     if (get_fade(config, &mix, &n) != 0) {
                         //;VGM_LOG("TXTP:   fade %d^%f~%f=%c@%f~%f+%f~%f\n",
-                                mix.ch_dst, mix.vol_start, mix.vol_end, mix.shape,
-                                mix.time_pre, mix.time_start, mix.time_end, mix.time_post);
+                        //        mix.ch_dst, mix.vol_start, mix.vol_end, mix.shape,
+                        //        mix.time_pre, mix.time_start, mix.time_end, mix.time_post);
                         add_mixing(&cfg, &mix, MIX_FADE); /* N^V1~V2@T1~T2+T3~T4: fades volumes between positions */
                         config += n;
                         continue;
@@ -674,6 +726,23 @@ static int add_filename(txtp_header * txtp, char *filename, int is_default) {
             else if (strcmp(command,"h") == 0) {
                 config += get_int(config, &cfg.sample_rate);
                 //;VGM_LOG("TXTP:   sample_rate %i\n", cfg.sample_rate);
+            }
+            else if (strcmp(command,"I") == 0) {
+                n = get_time(config,  &cfg.loop_start_second, &cfg.loop_start_sample);
+                if (n > 0) { /* first value must exist */
+                    config += n;
+
+                    n = get_time(config,  &cfg.loop_end_second, &cfg.loop_end_sample);
+                    if (n == 0) { /* second value is optional */
+                        cfg.loop_end_max = 1;
+                    }
+
+                    config += n;
+                    cfg.loop_install = 1;
+                }
+
+                //;VGM_LOG("TXTP:   loop_install %i (max=%i): %i %i / %f %f\n", cfg.loop_install, cfg.loop_end_max,
+                //        cfg.loop_start_sample, cfg.loop_end_sample, cfg.loop_start_second, cfg.loop_end_second);
             }
             else if (config[nc] == ' ') {
                 //;VGM_LOG("TXTP:   comment\n");

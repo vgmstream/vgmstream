@@ -359,7 +359,7 @@ VGMSTREAM * init_vgmstream_ps2_joe(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_vgs(STREAMFILE * streamFile);
 
-VGMSTREAM * init_vgmstream_dc_dcsw_dcs(STREAMFILE * streamFile);
+VGMSTREAM * init_vgmstream_dcs_wav(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_mul(STREAMFILE * streamFile);
 

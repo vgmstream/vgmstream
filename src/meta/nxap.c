@@ -35,7 +35,7 @@ VGMSTREAM * init_vgmstream_nxap(STREAMFILE *streamFile) {
     //vgmstream->loop_end_sample = vgmstream->loop_start_sample + vgmstream->loop_end_sample;
 
     vgmstream->meta_type = meta_NXAP;
-    vgmstream->coding_type = coding_YAMAHA_NXAP;
+    vgmstream->coding_type = coding_NXAP;
     vgmstream->layout_type = layout_interleave;
     vgmstream->interleave_block_size = 0x40;
 

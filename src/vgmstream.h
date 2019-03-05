@@ -9,6 +9,8 @@
 enum { PATH_LIMIT = 32768 };
 enum { STREAM_NAME_SIZE = 255 };
 enum { VGMSTREAM_MAX_CHANNELS = 64 };
+enum { VGMSTREAM_MIN_SAMPLE_RATE = 300 }; /* 300 is Wwise min */
+enum { VGMSTREAM_MAX_SAMPLE_RATE = 96000 };
 #ifdef VGMSTREAM_MIXING
 enum { VGMSTREAM_MAX_MIXING = 64 };
 #endif
@@ -146,10 +148,12 @@ typedef enum {
     coding_MSADPCM_int,     /* Microsoft ADPCM (mono) */
     coding_MSADPCM_ck,      /* Microsoft ADPCM (Cricket Audio variation) */
     coding_WS,              /* Westwood Studios VBR ADPCM */
-    coding_AICA,            /* Yamaha AICA ADPCM (stereo) */
-    coding_AICA_int,        /* Yamaha AICA ADPCM (mono/interleave) */
-    coding_YAMAHA,          /* Yamaha ADPCM */
-    coding_YAMAHA_NXAP,     /* Yamaha ADPCM (NXAP variation) */
+
+    coding_YAMAHA,          /* Yamaha ADPCM (stereo) */
+    coding_YAMAHA_int,      /* Yamaha ADPCM (mono/interleave) */
+    coding_ASKA,            /* Aska ADPCM */
+    coding_NXAP,            /* NXAP ADPCM */
+
     coding_NDS_PROCYON,     /* Procyon Studio ADPCM */
     coding_L5_555,          /* Level-5 0x555 ADPCM */
     coding_LSF,             /* lsf ADPCM (Fastlane Street Racing iPhone)*/
@@ -449,7 +453,7 @@ typedef enum {
     meta_STR_ASR,           /* Donkey Kong Jet Race */
     meta_ZWDSP,             /* Zack and Wiki */
     meta_VGS,               /* Guitar Hero Encore - Rocks the 80s */
-    meta_DC_DCSW_DCS,       /* Evil Twin - Cypriens Chronicles (DC) */
+    meta_DCS_WAV,
     meta_SMP,
     meta_WII_SNG,           /* Excite Trucks */
     meta_MUL,
@@ -727,6 +731,48 @@ typedef enum {
 
 } meta_t;
 
+/* standard WAVEFORMATEXTENSIBLE speaker positions */
+typedef enum {
+    speaker_FL  = (1 << 0),     /* front left */
+    speaker_FR  = (1 << 1),     /* front right */
+    speaker_FC  = (1 << 2),     /* front center */
+    speaker_LFE = (1 << 3),     /* low frequency effects */
+    speaker_BL  = (1 << 4),     /* back left */
+    speaker_BR  = (1 << 5),     /* back right */
+    speaker_FLC = (1 << 6),     /* front left center */
+    speaker_FRC = (1 << 7),     /* front right center */
+    speaker_BC  = (1 << 8),     /* back center */
+    speaker_SL  = (1 << 9),     /* side left */
+    speaker_SR  = (1 << 10),    /* side right */
+
+    speaker_TC  = (1 << 11),    /* top center*/
+    speaker_TFL = (1 << 12),    /* top front left */
+    speaker_TFC = (1 << 13),    /* top front center */
+    speaker_TFR = (1 << 14),    /* top front right */
+    speaker_TBL = (1 << 15),    /* top back left */
+    speaker_TBC = (1 << 16),    /* top back center */
+    speaker_TBR = (1 << 17),    /* top back left */
+
+} speaker_t;
+
+/* typical mappings that metas may use to set channel_layout (but plugin must actually use it)
+ * (in order, so 3ch file could be mapped to FL FR FC or FL FR LFE but not LFE FL FR) */
+typedef enum {
+    mapping_MONO             = speaker_FC,
+    mapping_STEREO           = speaker_FL | speaker_FR,
+    mapping_2POINT1          = speaker_FL | speaker_FR | speaker_LFE,
+    mapping_2POINT1_xiph     = speaker_FL | speaker_FR | speaker_FC,
+    mapping_QUAD             = speaker_FL | speaker_FR | speaker_BL  | speaker_BR,
+    mapping_QUAD_surround    = speaker_FL | speaker_FR | speaker_FC  | speaker_BC,
+    mapping_5POINT0          = speaker_FL | speaker_FR | speaker_LFE | speaker_BL | speaker_BR,
+    mapping_5POINT0_xiph     = speaker_FL | speaker_FR | speaker_FC  | speaker_BL | speaker_BR,
+    mapping_5POINT1          = speaker_FL | speaker_FR | speaker_FC  | speaker_LFE | speaker_BL | speaker_BR,
+    mapping_5POINT1_surround = speaker_FL | speaker_FR | speaker_FC  | speaker_LFE | speaker_SL | speaker_SR,
+    mapping_7POINT0          = speaker_FL | speaker_FR | speaker_FC  | speaker_LFE | speaker_BC | speaker_FLC | speaker_FRC,
+    mapping_7POINT1          = speaker_FL | speaker_FR | speaker_FC  | speaker_LFE | speaker_BL | speaker_BR  | speaker_FLC | speaker_FRC,
+    mapping_7POINT1_surround = speaker_FL | speaker_FR | speaker_FC  | speaker_LFE | speaker_BL | speaker_BR  | speaker_SL  | speaker_SR,
+} mapping_t;
+
 #ifdef VGMSTREAM_MIXING
 /* mixing info */
 typedef enum {
@@ -831,6 +877,9 @@ typedef struct {
     int stream_index;               /* selected subsong (also 1-based) */
     size_t stream_size;             /* info to properly calculate bitrate in case of subsongs */
     char stream_name[STREAM_NAME_SIZE]; /* name of the current stream (info), if the file stores it and it's filled */
+
+    /* mapping config (info for plugins) */
+    uint32_t channel_layout;        /* order: FL FR FC LFE BL BR FLC FRC BC SL SR etc (WAVEFORMATEX flags where FL=lowest bit set) */
 
     /* other config */
     int allow_dual_stereo;          /* search for dual stereo (file_L.ext + file_R.ext = single stereo file) */

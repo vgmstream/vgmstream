@@ -5,37 +5,31 @@
 #define _PLUGINS_H_
 
 #include "streamfile.h"
-#define TAG_LINE_MAX 2048
 
-//todo improve API and make opaque
-//typedef struct VGMSTREAM_TAGS VGMSTREAM_TAGS;
-typedef struct {
-    /* extracted output */
-    char key[TAG_LINE_MAX];
-    char val[TAG_LINE_MAX];
+/* opaque tag state */
+typedef struct VGMSTREAM_TAGS VGMSTREAM_TAGS;
 
-    /* file to find tags for */
-    char targetname[TAG_LINE_MAX];
+/* Initializes TAGS and returns pointers to extracted strings (always valid but change
+ * on every vgmstream_tags_next_tag call). Next functions are safe to call even if this fails (validate NULL).
+ * ex.: const char *tag_key, *tag_val; tags=vgmstream_tags_init(&tag_key, &tag_val); */
+VGMSTREAM_TAGS* vgmstream_tags_init(const char* *tag_key, const char* *tag_val);
 
-    /* tag section for filename (see comments below) */
-    int section_found;
-    off_t section_start;
-    off_t section_end;
-    off_t offset;
-
-    /* commands */
-    int autotrack_on;
-    int autotrack_written;
-    int track_count;
-} VGMSTREAM_TAGS;
-
+/* Resets tagfile to restart reading from the beginning for a new filename.
+ * Must be called first before extracting tags. */
+void vgmstream_tags_reset(VGMSTREAM_TAGS* tags, const char* target_filename);
 
 
 /* Extracts next valid tag in tagfile to *tag. Returns 0 if no more tags are found (meant to be
  * called repeatedly until 0). Key/values are trimmed and values can be in UTF-8. */
-int vgmstream_tags_next_tag(VGMSTREAM_TAGS* tag, STREAMFILE* tagfile);
+int vgmstream_tags_next_tag(VGMSTREAM_TAGS* tags, STREAMFILE* tagfile);
 
-/* resets tagfile to restart reading from the beginning for a new filename */
-void vgmstream_tags_reset(VGMSTREAM_TAGS* tag, const char* target_filename);
+/* Closes tag file */
+void vgmstream_tags_close(VGMSTREAM_TAGS* tags);
+
+#ifdef VGMSTREAM_MIXING
+/* Enables mixing effects, with max outbuf samples as a hint. Once active, plugin
+ * must use returned input_channels to create outbuf and output_channels to output audio. */
+void vgmstream_enable_mixing(VGMSTREAM* vgmstream, int32_t max_sample_count, int *input_channels, int *output_channels);
+#endif
 
 #endif /* _PLUGINS_H_ */
