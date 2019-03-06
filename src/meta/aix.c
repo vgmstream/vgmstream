@@ -107,7 +107,7 @@ fail:
 }
 
 static VGMSTREAM *build_layered_vgmstream(STREAMFILE *streamFile, off_t segment_offset, size_t segment_size, int layer_count) {
-    VGMSTREAM *vgmstream;
+    VGMSTREAM *vgmstream = NULL;
     layered_layout_data* data = NULL;
     int i;
     STREAMFILE* temp_streamFile = NULL;
@@ -150,7 +150,7 @@ fail:
 }
 
 static VGMSTREAM *build_segmented_vgmstream(STREAMFILE *streamFile, off_t *segment_offsets, size_t *segment_sizes, int32_t *segment_samples, int segment_count, int layer_count) {
-    VGMSTREAM *vgmstream;
+    VGMSTREAM *vgmstream = NULL;
     segmented_layout_data *data = NULL;
     int i, loop_flag, loop_start_segment, loop_end_segment;
 
