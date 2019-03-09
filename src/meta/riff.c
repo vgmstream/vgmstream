@@ -233,6 +233,7 @@ static int read_fmt(int big_endian, STREAMFILE * streamFile, off_t current_chunk
                 bztmp = (bztmp >> 8) | (bztmp << 8);
                 fmt->coding_type = coding_AT3plus;
                 fmt->block_size = (bztmp & 0x3FF) * 8 + 8; /* should match fmt->block_size */
+                break;
 #elif defined(VGM_USE_FFMPEG)
                 fmt->coding_type = coding_FFmpeg;
                 break;
