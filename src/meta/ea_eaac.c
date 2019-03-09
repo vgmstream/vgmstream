@@ -861,6 +861,7 @@ static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE * streamHead, ST
         case 0x03: eaac.channels = 4; break;
         case 0x04: eaac.channels = 5; break; /* rare [Battlefield 4 (X360)-EAXMA] */
         case 0x05: eaac.channels = 6; break;
+        case 0x06: eaac.channels = 7; break; /* rare [Battlefield 4 (X360)-EAXMA] */
         case 0x07: eaac.channels = 8; break;
         case 0x0a: eaac.channels = 11; break; /* rare [Army of Two: The Devil's Cartel (PS3)-EALayer3v2P] */
         default:
