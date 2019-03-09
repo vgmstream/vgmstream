@@ -446,6 +446,17 @@ static int get_time(const char * config, double *value_f, int32_t *value_i) {
         return n;
     }
 
+    /* test is format is hex samples: 0xN */
+    m = sscanf(config, " 0x%x%n", &temp_i1,&n);
+    if (m == 1) {
+        /* allow negative samples for special meanings */
+        //if (temp_i1 < 0)
+        //    return 0;
+
+        *value_i = temp_i1;
+        return n;
+    }
+
     /* assume format is samples: N */
     m = sscanf(config, " %i%n", &temp_i1,&n);
     if (m == 1) {
