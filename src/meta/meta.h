@@ -835,4 +835,6 @@ VGMSTREAM * init_vgmstream_ffdl(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_mus_vc(STREAMFILE * streamFile);
 
+VGMSTREAM * init_vgmstream_strm_abylight(STREAMFILE * streamFile);
+
 #endif /*_META_H*/

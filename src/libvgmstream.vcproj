@@ -1458,6 +1458,10 @@
                     RelativePath=".\meta\str_wav.c"
                     >
                 </File>
+                <File
+                    RelativePath=".\meta\strm_abylight.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\stx.c"
 					>

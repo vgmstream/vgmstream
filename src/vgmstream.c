@@ -471,6 +471,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_dsp_ds2,
     init_vgmstream_ffdl,
     init_vgmstream_mus_vc,
+    init_vgmstream_strm_abylight,
 
     /* lowest priority metas (should go after all metas, and TXTH should go before raw formats) */
     init_vgmstream_txth,            /* proper parsers should supersede TXTH, once added */
@@ -569,7 +570,7 @@ static VGMSTREAM * init_vgmstream_internal(STREAMFILE *streamFile) {
         }
 
         /* files can have thousands subsongs, but let's put a limit */
-        if (vgmstream->num_streams < 0 || vgmstream->num_streams > 65535) {
+        if (vgmstream->num_streams < 0 || vgmstream->num_streams > VGMSTREAM_MAX_SUBSONGS) {
             VGM_LOG("VGMSTREAM: wrong num_streams (ns=%i)\n", vgmstream->num_streams);
             close_vgmstream(vgmstream);
             continue;

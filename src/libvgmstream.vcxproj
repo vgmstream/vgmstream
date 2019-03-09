@@ -447,6 +447,7 @@
     <ClCompile Include="meta\str_asr.c" />
     <ClCompile Include="meta\str_snds.c" />
     <ClCompile Include="meta\str_wav.c" />
+    <ClCompile Include="meta\strm_abylight.c" />
     <ClCompile Include="meta\stx.c" />
     <ClCompile Include="meta\svs.c" />
     <ClCompile Include="meta\sxd.c" />
