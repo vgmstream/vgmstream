@@ -184,6 +184,7 @@ static const char* extension_list[] = {
     "idx",
     "ikm",
     "ild",
+    "ilv", //txth/reserved [Star Wars Episode III (PS2)]
     "imc",
     "int",
     "isd",
