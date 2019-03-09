@@ -10,6 +10,10 @@ void block_update_ea_schl(off_t block_offset, VGMSTREAM * vgmstream) {
     size_t block_size, block_samples;
     int32_t (*read_32bit)(off_t,STREAMFILE*) = vgmstream->codec_endian ? read_32bitBE : read_32bitLE;
 
+    uint32_t flag_lang = (vgmstream->codec_config >> 16) & 0xFFFF;
+    int flag_be = (vgmstream->codec_config & 0x02);
+    int flag_adpcm = (vgmstream->codec_config & 0x01);
+
 
     /* EOF reads: signal we have nothing and let the layout fail */
     if (block_offset >= get_streamfile_size(streamFile)) {
@@ -23,35 +27,21 @@ void block_update_ea_schl(off_t block_offset, VGMSTREAM * vgmstream) {
     {
         uint32_t block_id = read_32bitBE(block_offset+0x00,streamFile);
 
-        if (vgmstream->codec_config & 0x02) /* size is always LE, except in early SS/MAC */
+        if (flag_be) /* size is always LE, except in early SS/MAC */
             block_size = read_32bitBE(block_offset + 0x04,streamFile);
         else
             block_size = read_32bitLE(block_offset + 0x04,streamFile);
 
-        switch(block_id) {
-            case 0x5343446C: /* "SCDl" */
-            case 0x5344454E: /* "SDEN" */
-            case 0x53444652: /* "SDFR" */
-            case 0x53444745: /* "SDGE" */
-            case 0x53444445: /* "SDDE" */
-            case 0x53444954: /* "SDIT" */
-            case 0x53445350: /* "SDSP" */
-            case 0x53444553: /* "SDES" */
-            case 0x53444D58: /* "SDMX" */
-            case 0x53445255: /* "SDRU" */
-            case 0x53444A41: /* "SDJA" */
-            case 0x53444A50: /* "SDJP" */
-            case 0x5344504C: /* "SDPL" */
-                /* audio chunk */
-                if (vgmstream->coding_type == coding_PSX)
-                    block_samples = ps_bytes_to_samples(block_size-0x10, vgmstream->channels);
-                else
-                    block_samples = read_32bit(block_offset+0x08,streamFile);
-                break;
-            default:
-                /* ignore other chunks (audio "SCHl/SCCl/...", video "pIQT/MADk/...", etc) */
-                block_samples = 0; /* layout ignores this */
-                break;
+        if (block_id == 0x5343446C || block_id == (0x53440000 | flag_lang)) {
+            /* "SCDl" or "SDxx" audio chunk */
+            if (vgmstream->coding_type == coding_PSX)
+                block_samples = ps_bytes_to_samples(block_size-0x10, vgmstream->channels);
+            else
+                block_samples = read_32bit(block_offset+0x08,streamFile);
+        }
+        else {
+            /* ignore other chunks (audio "SCHl/SCCl/...", non-target lang, video "pIQT/MADk/...", etc) */
+            block_samples = 0; /* layout ignores this */
         }
 
         /* "SCHl" start block (movie "SHxx" shouldn't use multi files) */
@@ -185,7 +175,7 @@ void block_update_ea_schl(off_t block_offset, VGMSTREAM * vgmstream) {
             }
 
             /* read ADPCM history before each channel if needed (not actually read in sx.exe) */
-            if (vgmstream->codec_config & 0x01) {
+            if (flag_adpcm) {
                 for (i = 0; i < vgmstream->channels; i++) {
                     //vgmstream->ch[i].adpcm_history1_32 = read_16bit(vgmstream->ch[i].offset+0x00,streamFile);
                     //vgmstream->ch[i].adpcm_history3_32 = read_16bit(vgmstream->ch[i].offset+0x02,streamFile);
