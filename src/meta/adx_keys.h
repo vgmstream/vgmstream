@@ -188,6 +188,9 @@ static const adxkey_info adxkey8_list[] = {
         /* Lucky Star - Ryouou Gakuen Outousai (PS2) */
         {0x481D,0x44F9,0x4E35, "LSTARPS2",0},
 
+        /* Bakumatsu Renka: Shinsengumi (PS2) */
+        {0x5381,0x5701,0x665B, "SHINN",0},
+
 };
 
 static const adxkey_info adxkey9_list[] = {
