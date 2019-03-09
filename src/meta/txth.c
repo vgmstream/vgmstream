@@ -34,6 +34,7 @@ typedef enum {
     PCM4 = 25,          /* 4-bit signed PCM (3rd and 4th gen games) */
     PCM4_U = 26,        /* 4-bit unsigned PCM (3rd and 4th gen games) */
     OKI16 = 27,         /* OKI ADPCM with 16-bit output (unlike OKI/VOX/Dialogic ADPCM's 12-bit) */
+    AAC = 28,           /* Advanced Audio Coding (raw without .mp4) */
 } txth_type;
 
 typedef struct {
@@ -177,6 +178,7 @@ VGMSTREAM * init_vgmstream_txth(STREAMFILE *streamFile) {
         case XMA1:
         case XMA2:
         case AC3:
+        case AAC:
         case FFMPEG:     coding = coding_FFmpeg; break;
 #endif
         case PCFX:       coding = coding_PCFX; break;
@@ -375,7 +377,7 @@ VGMSTREAM * init_vgmstream_txth(STREAMFILE *streamFile) {
         case coding_FFmpeg: {
             ffmpeg_codec_data *ffmpeg_data = NULL;
 
-            if (txth.codec == FFMPEG || txth.codec == AC3) {
+            if (txth.codec == FFMPEG || txth.codec == AC3 || txth.codec == AAC) {
                 /* default FFmpeg */
                 ffmpeg_data = init_ffmpeg_offset(txth.streamBody, txth.start_offset,txth.data_size);
                 if ( !ffmpeg_data ) goto fail;
@@ -631,6 +633,7 @@ static int parse_keyval(STREAMFILE * streamFile_, txth_header * txth, const char
         else if (0==strcmp(val,"PCM4"))         txth->codec = PCM4;
         else if (0==strcmp(val,"PCM4_U"))       txth->codec = PCM4_U;
         else if (0==strcmp(val,"OKI16"))        txth->codec = OKI16;
+        else if (0==strcmp(val,"AAC"))          txth->codec = AAC;
         else goto fail;
 
         /* set common interleaves to simplify usage
@@ -998,6 +1001,9 @@ static int get_bytes_to_samples(txth_header * txth, uint32_t bytes) {
         case ATRAC3PLUS:
             if (!txth->interleave) return 0;
             return atrac3plus_bytes_to_samples(bytes, txth->interleave);
+        case AAC:
+            if (!txth->streamBody) return 0;
+            return aac_get_samples(txth->streamBody, txth->start_offset, bytes);
 
         /* XMA bytes-to-samples is done at the end as the value meanings are a bit different */
         case XMA1:

@@ -101,26 +101,31 @@ A text file with the above commands must be saved as ".vag.txth" or ".txth", not
 # - MSADPCM        Microsoft ADPCM (mono/stereo)
 #   * For some PC games
 #   * Interleave (frame size) varies, often multiple of 0x100 [required]
-# - SDX2           Squareroot-delta-exact 8-bit DPCM (3DO games)
+# - SDX2           Squareroot-delta-exact 8-bit DPCM
 #   * For many 3DO games
 # - MPEG           MPEG Audio Layer file (MP1/2/3)
 #   * For some games (usually PC/PS3)
+#   * May set skip_samples
 # - ATRAC3         Sony ATRAC3
 #   * For some PS2 and PS3 games
 #   * Interleave (frame size) can be 0x60/0x98/0xC0 * channels [required]
+#   * Should set skip_samples (more than 1024 but varies)
 # - ATRAC3PLUS     Sony ATRAC3plus
 #   * For many PSP games and rare PS3 games
 #   * Interleave (frame size) can be: [required]
 #     Mono: 0x0118|0178|0230|02E8
 #     Stereo: 0x0118|0178|0230|02E8|03A8|0460|05D0|0748|0800
+#   * Should set skip_samples (more than 2048 but varies)
 # - XMA1           Microsoft XMA1
 #   * For early X360 games
 # - XMA2           Microsoft XMA2
 #   * For later X360 games
 # - FFMPEG         Any headered FFmpeg format
 #   * For uncommon games
+#   * May set skip_samples
 # - AC3            AC3/SPDIF
 #   * For few PS2 games
+#   * Should set skip_samples (around 256 but varies)
 # - PCFX           PC-FX ADPCM
 #   * For many PC-FX games
 #   * Interleave is multiple of 0x1, often +0x8000
@@ -131,6 +136,9 @@ A text file with the above commands must be saved as ".vag.txth" or ".txth", not
 #   * Variation with modified encoding
 # - OKI16          OKI ADPCM with 16-bit output (not VOX/Dialogic 12-bit)
 #   * For few PS2 games (Sweet Legacy, Hooligan)
+# - AAC            Advanced Audio Coding (raw without .mp4)
+#   * For some 3DS games and many iOS games
+#   * Should set skip_samples (around 1024 but varies)
 codec = (codec string)
 
 # Codec variations [OPTIONAL, depends on codec]

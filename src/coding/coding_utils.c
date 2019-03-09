@@ -1017,6 +1017,38 @@ size_t atrac3plus_bytes_to_samples(size_t bytes, int full_block_align) {
     return (bytes / full_block_align) * 2048;
 }
 
+size_t aac_get_samples(STREAMFILE *streamFile, off_t start_offset, size_t bytes) {
+    const int samples_per_frame = 1024; /* theoretically 960 exists in .MP4 so may need a flag */
+    int frames = 0;
+    off_t offset = start_offset;
+    off_t max_offset = start_offset + bytes;
+    if (max_offset > get_streamfile_size(streamFile))
+        max_offset = get_streamfile_size(streamFile);
+
+    /* AAC sometimes comes with an "ADIF" header right before data but probably not in games,
+     * while standard raw frame headers are called "ADTS" and are similar to MPEG's:
+     * (see https://wiki.multimedia.cx/index.php/ADTS) */
+
+    /* AAC uses VBR so must read all frames */
+    while (offset < max_offset) {
+        uint16_t frame_sync = read_u16be(offset+0x00, streamFile);
+        uint32_t frame_size = read_u32be(offset+0x02, streamFile);
+
+        frame_sync = (frame_sync >> 4) & 0x0FFF; /* 12b */
+        frame_size = (frame_size >> 5) & 0x1FFF; /* 13b */
+
+        if (frame_sync != 0xFFF)
+            break;
+        if (frame_size <= 0x08)
+            break;
+
+        frames++;
+        offset += frame_size;
+    }
+
+    return frames * samples_per_frame;
+}
+
 
 /* ******************************************** */
 /* BITSTREAM                                    */

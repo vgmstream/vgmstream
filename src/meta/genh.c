@@ -33,7 +33,8 @@ typedef enum {
     PCFX = 24,          /* PC-FX ADPCM */
     PCM4 = 25,          /* 4-bit signed PCM (3rd and 4th gen games) */
     PCM4_U = 26,        /* 4-bit unsigned PCM (3rd and 4th gen games) */
-    OKI16 = 27,         /* OKI ADPCM  with 16-bit output (unlike OKI/VOX/Dialogic ADPCM's 12-bit) */
+    OKI16 = 27,         /* OKI ADPCM with 16-bit output (unlike OKI/VOX/Dialogic ADPCM's 12-bit) */
+    AAC = 28,           /* Advanced Audio Coding (raw without .mp4) */
 } genh_type;
 
 typedef struct {
@@ -115,6 +116,7 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
         case XMA1:
         case XMA2:
         case AC3:
+        case AAC:
         case FFMPEG:     coding = coding_FFmpeg; break;
 #endif
         case PCFX:       coding = coding_PCFX; break;
@@ -293,7 +295,7 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
         case coding_FFmpeg: {
             ffmpeg_codec_data *ffmpeg_data = NULL;
 
-            if (genh.codec == FFMPEG || genh.codec == AC3) {
+            if (genh.codec == FFMPEG || genh.codec == AC3 || genh.codec == AAC) {
                 /* default FFmpeg */
                 ffmpeg_data = init_ffmpeg_offset(streamFile, genh.start_offset,genh.data_size);
                 if ( !ffmpeg_data ) goto fail;
