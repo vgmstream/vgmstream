@@ -251,7 +251,6 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_ps2_ster,
     init_vgmstream_ps2_wb,
     init_vgmstream_bnsf,
-    init_vgmstream_s14_sss,
     init_vgmstream_ps2_gcm,
     init_vgmstream_ps2_smpl,
     init_vgmstream_ps2_msa,
@@ -478,6 +477,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_ps2_int,         /* .int raw PS-ADPCM */
     init_vgmstream_ps_headerless,   /* tries to detect a bunch of PS-ADPCM formats */
     init_vgmstream_pc_snds,         /* .snds PC, after ps_headerless */
+    init_vgmstream_s14_sss,         /* .raw siren14 */
     init_vgmstream_raw,             /* .raw PCM */
 #ifdef VGM_USE_FFMPEG
     init_vgmstream_ffmpeg,          /* may play anything incorrectly, since FFmpeg doesn't check extensions */
@@ -2518,14 +2518,18 @@ static void try_dual_file_stereo(VGMSTREAM * opened_vgmstream, STREAMFILE *strea
     if (opened_vgmstream->channels != 1)
         return;
 
+    /* custom codec/layouts aren't designed for this (should never get here anyway) */
+    if (opened_vgmstream->codec_data || opened_vgmstream->layout_data)
+        return;
+
     /* vgmstream's layout stuff currently assumes a single file */
     // fastelbja : no need ... this one works ok with dual file
     //if (opened_vgmstream->layout != layout_none) return;
     //todo force layout_none if layout_interleave?
 
-    streamFile->get_name(streamFile,new_filename,sizeof(new_filename));
+    get_streamfile_name(streamFile,new_filename,sizeof(new_filename));
     if (strlen(new_filename) < 2) return; /* we need at least a base and a name ending to replace */
-    
+
     ext = (char *)filename_extension(new_filename);
     if (ext-new_filename >= 1 && ext[-1]=='.') ext--; /* including "." */
 
@@ -2562,7 +2566,7 @@ static void try_dual_file_stereo(VGMSTREAM * opened_vgmstream, STREAMFILE *strea
 
 
     /* try to init other channel (new_filename now has the opposite name) */
-    dual_streamFile = streamFile->open(streamFile,new_filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
+    dual_streamFile = open_streamfile(streamFile,new_filename);
     if (!dual_streamFile) goto fail;
 
     new_vgmstream = init_vgmstream_function(dual_streamFile); /* use the init that just worked, no other should work */
@@ -2647,6 +2651,10 @@ static void try_dual_file_stereo(VGMSTREAM * opened_vgmstream, STREAMFILE *strea
 
         /* discard the second VGMSTREAM */
         free(new_vgmstream);
+
+#ifdef VGMSTREAM_MIXING
+        mixing_update_channel(opened_vgmstream); /* notify of new channel hacked-in */
+#endif
     }
 
 fail:
@@ -2838,11 +2846,11 @@ int vgmstream_open_stream(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t s
         is_stereo_codec = 1;
     }
 
-    streamFile->get_name(streamFile,filename,sizeof(filename));
+    get_streamfile_name(streamFile,filename,sizeof(filename));
     /* open the file for reading by each channel */
     {
         if (!use_streamfile_per_channel) {
-            file = streamFile->open(streamFile,filename, STREAMFILE_DEFAULT_BUFFER_SIZE);
+            file = open_streamfile(streamFile,filename);
             if (!file) goto fail;
         }
 
@@ -2859,7 +2867,7 @@ int vgmstream_open_stream(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t s
 
             /* open new one if needed */
             if (use_streamfile_per_channel) {
-                file = streamFile->open(streamFile,filename, STREAMFILE_DEFAULT_BUFFER_SIZE);
+                file = open_streamfile(streamFile,filename);
                 if (!file) goto fail;
             }
 
