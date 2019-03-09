@@ -6,6 +6,47 @@
 
 #include "streamfile.h"
 
+
+#if 0
+/* ****************************************** */
+/* PLAYER: simplifies plugin code             */
+/* ****************************************** */
+
+/* opaque player state */
+typedef struct VGMSTREAM_PLAYER VGMSTREAM_PLAYER;
+
+typedef struct {
+    //...
+} VGMSTREAM_PLAYER_INFO;
+
+VGMSTREAM_PLAYER* vgmstream_player_init(...);
+
+VGMSTREAM_PLAYER* vgmstream_player_check_file(...);
+
+VGMSTREAM_PLAYER* vgmstream_player_set_file(...);
+
+VGMSTREAM_PLAYER* vgmstream_player_get_config(...);
+
+VGMSTREAM_PLAYER* vgmstream_player_set_config(...);
+
+VGMSTREAM_PLAYER* vgmstream_player_get_buffer(...);
+
+VGMSTREAM_PLAYER* vgmstream_player_get_info(...);
+
+VGMSTREAM_PLAYER* vgmstream_player_play(...);
+
+VGMSTREAM_PLAYER* vgmstream_player_seek(...);
+
+VGMSTREAM_PLAYER* vgmstream_player_close(...);
+
+#endif
+
+
+
+/* ****************************************** */
+/* TAGS: loads key=val tags from a file       */
+/* ****************************************** */
+
 /* opaque tag state */
 typedef struct VGMSTREAM_TAGS VGMSTREAM_TAGS;
 
@@ -26,10 +67,22 @@ int vgmstream_tags_next_tag(VGMSTREAM_TAGS* tags, STREAMFILE* tagfile);
 /* Closes tag file */
 void vgmstream_tags_close(VGMSTREAM_TAGS* tags);
 
+
 #ifdef VGMSTREAM_MIXING
+/* ****************************************** */
+/* MIXING: modifies vgmstream output          */
+/* ****************************************** */
+
 /* Enables mixing effects, with max outbuf samples as a hint. Once active, plugin
- * must use returned input_channels to create outbuf and output_channels to output audio. */
-void vgmstream_enable_mixing(VGMSTREAM* vgmstream, int32_t max_sample_count, int *input_channels, int *output_channels);
+ * must use returned input_channels to create outbuf and output_channels to output audio.
+ * Needs to be enabled last after adding effects. */
+void vgmstream_mixing_enable(VGMSTREAM* vgmstream, int32_t max_sample_count, int *input_channels, int *output_channels);
+
+/* sets a fadeout */
+//void vgmstream_mixing_fadeout(VGMSTREAM *vgmstream, float start_second, float duration_seconds);
+
+/* sets downmixing if needed */
+//void vgmstream_mixing_downmix(VGMSTREAM *vgmstream, int max_channels)
 #endif
 
 #endif /* _PLUGINS_H_ */

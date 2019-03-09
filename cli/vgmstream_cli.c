@@ -465,7 +465,7 @@ int main(int argc, char ** argv) {
 
 #ifdef VGMSTREAM_MIXING
     /* enable after all config but before outbuf */
-    vgmstream_enable_mixing(vgmstream, BUFFER_SAMPLES, &input_channels, &channels);
+    vgmstream_mixing_enable(vgmstream, BUFFER_SAMPLES, &input_channels, &channels);
 #endif
 
     buf = malloc(BUFFER_SAMPLES * sizeof(sample_t) * input_channels);

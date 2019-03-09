@@ -9,6 +9,9 @@
 #include "meta/meta.h"
 #include "layout/layout.h"
 #include "coding/coding.h"
+#ifdef VGMSTREAM_MIXING
+#include "mixing.h"
+#endif
 
 static void try_dual_file_stereo(VGMSTREAM * opened_vgmstream, STREAMFILE *streamFile, VGMSTREAM* (*init_vgmstream_function)(STREAMFILE*));
 
@@ -570,15 +573,6 @@ static VGMSTREAM * init_vgmstream_internal(STREAMFILE *streamFile) {
 
 void setup_vgmstream(VGMSTREAM * vgmstream) {
 
-#ifdef VGMSTREAM_MIXING
-    /* fill default config to simplify external code (mixing off will always happen
-     * initially, and if they contain values it means mixing must be enabled) */
-    if (!vgmstream->mixing_on || vgmstream->input_channels <= 0)
-        vgmstream->input_channels = vgmstream->channels;
-    if (!vgmstream->mixing_on || vgmstream->output_channels <= 0)
-        vgmstream->output_channels = vgmstream->channels;
-#endif
-
     /* save start things so we can restart when seeking */
     memcpy(vgmstream->start_ch, vgmstream->ch, sizeof(VGMSTREAMCHANNEL)*vgmstream->channels);
     memcpy(vgmstream->start_vgmstream, vgmstream, sizeof(VGMSTREAM));
@@ -756,8 +750,7 @@ VGMSTREAM * allocate_vgmstream(int channel_count, int loop_flag) {
     vgmstream->loop_flag = loop_flag;
 
 #ifdef VGMSTREAM_MIXING
-    /* fixed arrays, for now */
-    vgmstream->mixing_size = VGMSTREAM_MAX_MIXING;
+    mixing_init(vgmstream); /* pre-init */
 #endif
     //vgmstream->stream_name_size = STREAM_NAME_SIZE;
     return vgmstream;
@@ -767,6 +760,7 @@ fail:
         free(vgmstream->start_ch);
         free(vgmstream->loop_ch);
         free(vgmstream->start_vgmstream);
+        mixing_close(vgmstream);
     }
     free(vgmstream);
     return NULL;
@@ -905,7 +899,9 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
             }
         }
     }
-
+#ifdef VGMSTREAM_MIXING
+    mixing_close(vgmstream);
+#endif
     free(vgmstream->ch);
     free(vgmstream->start_ch);
     free(vgmstream->loop_ch);

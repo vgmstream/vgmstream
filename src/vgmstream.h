@@ -5,15 +5,12 @@
 #ifndef _VGMSTREAM_H
 #define _VGMSTREAM_H
 
- /* reasonable maxs */
+ /* reasonable limits */
 enum { PATH_LIMIT = 32768 };
 enum { STREAM_NAME_SIZE = 255 };
 enum { VGMSTREAM_MAX_CHANNELS = 64 };
 enum { VGMSTREAM_MIN_SAMPLE_RATE = 300 }; /* 300 is Wwise min */
 enum { VGMSTREAM_MAX_SAMPLE_RATE = 96000 };
-#ifdef VGMSTREAM_MIXING
-enum { VGMSTREAM_MAX_MIXING = 64 };
-#endif
 
 #include "streamfile.h"
 
@@ -773,37 +770,6 @@ typedef enum {
     mapping_7POINT1_surround = speaker_FL | speaker_FR | speaker_FC  | speaker_LFE | speaker_BL | speaker_BR  | speaker_SL  | speaker_SR,
 } mapping_t;
 
-#ifdef VGMSTREAM_MIXING
-/* mixing info */
-typedef enum {
-    MIX_SWAP,
-    MIX_ADD,
-    MIX_ADD_VOLUME,
-    MIX_VOLUME,
-    MIX_LIMIT,
-    MIX_DOWNMIX,
-    MIX_DOWNMIX_REST,
-    MIX_UPMIX,
-    MIX_FADE
-} mix_command_t;
-
-typedef struct {
-    mix_command_t command;
-    /* common */
-    int ch_dst;
-    int ch_src;
-    float vol;
-
-    /* fade envelope */
-    float vol_start;    /* volume from pre to start */
-    float vol_end;      /* volume from end to post */
-    char shape;         /* curve type */
-    float time_pre;     /* position before curve where vol_str applies (-1 = beginning) */
-    float time_start;   /* curve start position where vol changes from src to dst */
-    float time_end;     /* curve end position where vol changes from src to dst */
-    float time_post;    /* position after curve where vol_dst applies (-1 = end) */
-} mix_config_data;
-#endif
 
 /* info for a single vgmstream channel */
 typedef struct {
@@ -888,15 +854,7 @@ typedef struct {
     int channel_mappings_on;        /* channel mappings are active */
     int channel_mappings[32];       /* swap channel "i" with "[i]" */
 #endif
-#ifdef VGMSTREAM_MIXING
-    /* may be ignored if plugin doesn't support it, but fields will be always set to simplify plugin's code */
-    int input_channels;             /* starting channels before mixing (outbuf must be this big) */
-    int output_channels;            /* resulting channels after mixing */
-    int mixing_on;                  /* mixing allowed */
-    int mixing_count;               /* mixing number */
-    size_t mixing_size;             /* mixing max */
-    mix_config_data mixing_chain[VGMSTREAM_MAX_MIXING]; /* effects to apply (could be alloc'ed but to simplify...) */
-#endif
+
     /* config requests, players must read and honor these values */
     /* (ideally internally would work as a player, but for now player must do it manually) */
     double config_loop_count;
@@ -940,13 +898,18 @@ typedef struct {
     VGMSTREAMCHANNEL * loop_ch;     /* shallow copy of channels as they were at the loop point (for loops) */
     void* start_vgmstream;          /* shallow copy of the VGMSTREAM as it was at the beginning of the stream (for resets) */
 
-    /* Data the codec needs for the whole stream. This is for codecs too
+#ifdef VGMSTREAM_MIXING
+    void * mixing_data;             /* state for mixing effects */
+#endif
+
+    /* Optional data the codec needs for the whole stream. This is for codecs too
      * different from vgmstream's structure to be reasonably shoehorned.
      * Note also that support must be added for resetting, looping and
      * closing for every codec that uses this, as it will not be handled. */
     void * codec_data;
     /* Same, for special layouts. layout_data + codec_data may exist at the same time. */
     void * layout_data;
+
 } VGMSTREAM;
 
 #ifdef VGM_USE_VORBIS
@@ -1380,15 +1343,6 @@ VGMSTREAM * allocate_vgmstream(int channel_count, int looped);
 
 /* Prepare the VGMSTREAM's initial state once parsed and ready, but before playing. */
 void setup_vgmstream(VGMSTREAM * vgmstream);
-
-#ifdef VGMSTREAM_MIXING
-/* Applies mixing commands to the vgmstream to the sample buffer.
- * Mixing must be enabled and outbuf must be big enough for output_channels*samples_to_do big. */
-void mix_vgmstream(sample_t *outbuf, int32_t sample_count, VGMSTREAM* vgmstream);
-
-/* Add a new internal mix. Always use this as it validates mixes. */
-void vgmstream_add_mixing(VGMSTREAM* vgmstream, mix_config_data mix);
-#endif
 
 /* Get the number of samples of a single frame (smallest self-contained sample group, 1/N channels) */
 int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream);
