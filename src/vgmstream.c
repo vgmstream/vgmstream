@@ -548,6 +548,26 @@ static VGMSTREAM * init_vgmstream_internal(STREAMFILE *streamFile) {
         }
 #endif
 
+        /* some players are picky with incorrect channel layouts */
+        if (vgmstream->channel_layout > 0) {
+            int output_channels = vgmstream->channels;
+            int ch, count = 0, max_ch = 32;
+            for (ch = 0; ch < max_ch; ch++) {
+                int bit = (vgmstream->channel_layout >> ch) & 1;
+                if (ch > 17 && bit) {
+                    VGM_LOG("VGMSTREAM: wrong bit %i in channel_layout %x\n", ch, vgmstream->channel_layout);
+                    vgmstream->channel_layout = 0;
+                    break;
+                }
+                count += bit;
+            }
+
+            if (count > output_channels) {
+                VGM_LOG("VGMSTREAM: wrong totals %i in channel_layout %x\n", count, vgmstream->channel_layout);
+                vgmstream->channel_layout = 0;
+            }
+        }
+
         /* files can have thousands subsongs, but let's put a limit */
         if (vgmstream->num_streams < 0 || vgmstream->num_streams > 65535) {
             VGM_LOG("VGMSTREAM: wrong num_streams (ns=%i)\n", vgmstream->num_streams);
