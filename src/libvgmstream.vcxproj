@@ -109,6 +109,7 @@
     <ClInclude Include="meta\ppst_streamfile.h" />
     <ClInclude Include="meta\vsv_streamfile.h" />
     <ClInclude Include="meta\opus_interleave_streamfile.h" />
+    <ClInclude Include="meta\sfh_streamfile.h" />
     <ClInclude Include="meta\sqex_scd_streamfile.h" />
     <ClInclude Include="meta\ubi_bao_streamfile.h" />
     <ClInclude Include="meta\ubi_sb_streamfile.h" />
@@ -183,6 +184,7 @@
     <ClCompile Include="meta\sk_aud.c" />
     <ClCompile Include="meta\vawx.c" />
     <ClCompile Include="meta\seg.c" />
+    <ClCompile Include="meta\sfh.c" />
     <ClCompile Include="meta\sqex_scd.c" />
     <ClCompile Include="meta\sqex_scd_sscf.c" />
     <ClCompile Include="meta\sqex_sead.c" />

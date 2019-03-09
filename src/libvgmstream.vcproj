@@ -269,6 +269,10 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\meta\sfh_streamfile.h"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\sqex_scd_streamfile.h"
                     >
                 </File>
@@ -1390,10 +1394,14 @@
 					RelativePath=".\meta\sdt.c"
 					>
 				</File>
-				<File
-					RelativePath=".\meta\seg.c"
-					>
-				</File>
+                <File
+                    RelativePath=".\meta\seg.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\sfh.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\sfl.c"
 					>
