@@ -85,6 +85,11 @@ typedef struct {
     uint32_t name_offset;
     uint32_t name_size;
 
+    int subfile_set;
+    uint32_t subfile_offset;
+    uint32_t subfile_size;
+    char subfile_extension[32];
+
     /* original STREAMFILE and its type (may be an unsupported "base" file or a .txth) */
     STREAMFILE *streamFile;
     int streamfile_is_txth;
@@ -101,9 +106,11 @@ typedef struct {
 
 
 static STREAMFILE * open_txth(STREAMFILE * streamFile);
+static VGMSTREAM *init_subfile(txth_header * txth);
 static int parse_txth(txth_header * txth);
 static int parse_keyval(STREAMFILE * streamFile, txth_header * txth, const char * key, char * val);
 static int parse_num(STREAMFILE * streamFile, txth_header * txth, const char * val, uint32_t * out_value);
+static int parse_string(STREAMFILE * streamFile, txth_header * txth, const char * val, char * str);
 static int get_bytes_to_samples(txth_header * txth, uint32_t bytes);
 
 
@@ -148,6 +155,11 @@ VGMSTREAM * init_vgmstream_txth(STREAMFILE *streamFile) {
     /* process the text file */
     if (!parse_txth(&txth))
         goto fail;
+
+    /* special case of parsing subfiles */
+    if (txth.subfile_set) {
+        return init_subfile(&txth);
+    }
 
 
     /* type to coding conversion */
@@ -492,6 +504,55 @@ fail:
     return NULL;
 }
 
+static VGMSTREAM *init_subfile(txth_header * txth) {
+    VGMSTREAM *vgmstream = NULL;
+    char extension[PATH_LIMIT];
+    STREAMFILE * streamSubfile = NULL;
+
+
+    if (txth->subfile_size == 0)
+        txth->subfile_size = txth->data_size - txth->subfile_offset;
+    if (txth->subfile_extension[0] == '\0')
+        get_streamfile_ext(txth->streamFile,txth->subfile_extension,sizeof(txth->subfile_extension));
+
+    /* must detect a potential infinite loop:
+     * - init_vgmstream enters TXTH and reads .txth
+     * - TXTH subfile calls init, nothing is detected
+     * - init_vgmstream enters TXTH and reads .txth
+     * - etc
+     * to avoid it we set a particular fake extension and detect it when reading .txth
+     */
+    strcpy(extension, "subfile_txth.");
+    strcat(extension, txth->subfile_extension);
+
+    streamSubfile = setup_subfile_streamfile(txth->streamBody, txth->subfile_offset, txth->subfile_size, extension);
+    if (!streamSubfile) goto fail;
+
+    vgmstream = init_vgmstream_from_STREAMFILE(streamSubfile);
+    if (!vgmstream) goto fail;
+
+    /* apply some fields */
+    if (txth->sample_rate)
+        vgmstream->sample_rate = txth->sample_rate;
+    if (txth->num_samples)
+        vgmstream->num_samples = txth->num_samples;
+
+    if (txth->loop_flag) {
+        vgmstream_force_loop(vgmstream, txth->loop_flag, txth->loop_start_sample, txth->loop_end_sample);
+    }
+    else if (txth->loop_flag_set && vgmstream->loop_flag) {
+        vgmstream_force_loop(vgmstream, 0, 0, 0);
+    }
+
+    close_streamfile(streamSubfile);
+    return vgmstream;
+
+fail:
+    close_streamfile(streamSubfile);
+    close_vgmstream(vgmstream);
+    return NULL;
+}
+
 
 static STREAMFILE * open_txth(STREAMFILE * streamFile) {
     char basename[PATH_LIMIT];
@@ -502,6 +563,8 @@ static STREAMFILE * open_txth(STREAMFILE * streamFile) {
 
     /* try "(path/)(name.ext).txth" */
     get_streamfile_name(streamFile,filename,PATH_LIMIT);
+    if (strstr(filename, "subfile_txth") != NULL)
+        return NULL; /* detect special case of subfile-within-subfile */
     strcat(filename, ".txth");
     streamText = open_streamfile(streamFile,filename);
     if (streamText) return streamText;
@@ -813,6 +876,18 @@ static int parse_keyval(STREAMFILE * streamFile_, txth_header * txth, const char
     else if (0==strcmp(key,"name_size")) {
         if (!parse_num(txth->streamHead,txth,val, &txth->name_size)) goto fail;
     }
+    else if (0==strcmp(key,"subfile_offset")) {
+        if (!parse_num(txth->streamHead,txth,val, &txth->subfile_offset)) goto fail;
+        txth->subfile_set = 1;
+    }
+    else if (0==strcmp(key,"subfile_size")) {
+        if (!parse_num(txth->streamHead,txth,val, &txth->subfile_size)) goto fail;
+        txth->subfile_set = 1;
+    }
+    else if (0==strcmp(key,"subfile_extension")) {
+        if (!parse_string(txth->streamHead,txth,val, txth->subfile_extension)) goto fail;
+        txth->subfile_set = 1;
+    }
     else if (0==strcmp(key,"header_file")) {
         if (txth->streamhead_opened) {
             close_streamfile(txth->streamHead);
@@ -886,6 +961,15 @@ static int starts_with(const char * val, const char * cmp) {
     if (strncmp(val, cmp, len) == 0)
         return len;
     return 0;
+}
+
+static int parse_string(STREAMFILE * streamFile, txth_header * txth, const char * val, char * str) {
+    int n = 0;
+
+    /* read string without trailing spaces */
+    if (sscanf(val, " %s%n[^ ]%n", str, &n, &n) != 1)
+        return 0;
+    return n;
 }
 
 static int parse_num(STREAMFILE * streamFile, txth_header * txth, const char * val, uint32_t * out_value) {
