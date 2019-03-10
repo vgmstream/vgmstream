@@ -55,7 +55,9 @@ A text file with the above commands must be saved as ".vag.txth" or ".txth", not
 #   - start_offset, data_size
 #   - num_samples, loop_start_sample, loop_end_sample
 #   - subsong_count, subsong_offset
-# - {string}: other special values for certain keys, described below
+# - (string): other special values for certain keys, described below
+# Those may be combined with math operations (+-*/):
+#  "field = (number) (op) (offset) (op) (field) (...)"
 
 # Codec used to encode the data [REQUIRED]
 # Accepted codec strings:
@@ -153,7 +155,7 @@ codec_mode = (number)
 
 # Modifies next values [OPTIONAL]
 # Values will be "(key) = (number)|(offset)|(field) */+- value_(op)"
-# Useful when a size or such needs adjustments (like given in 0x800 sectors).
+# Deprecated, should use inline math instead.
 # Set to 0 when done using, as it affects ANY value. Priority is as listed.
 value_mul|value_* = (number)|(offset)|(field)
 value_div|value_/ = (number)|(offset)|(field)
@@ -339,44 +341,60 @@ sample_rate = 0x04      # sample rate is the same for all subsongs
 # Nth subsong ch: 0x04+0x00*N: 0x08
 ```
 
-### Modifiers
+### Math
 Sometimes header values are in "sectors" or similar concepts (typical in DVD games), and need to be adjusted to a real value.
 ```
-value_multiply = 0x800    # offsets are in DVD sector size
-start_offset   = @0x10    # 0x15*0x800, for example
-value_multiply = 0        # next values don't need to be multiplied
-start_offset   = @0x14
+sample_type   = bytes
+start_offset  = @0x10 * 0x800    # 0x15 * DVD sector size, for example
 ```
 
 You can also use certain fields' values:
 ```
-value_add = 1
-channels = @0x08                # may be 1 + 1 = 2
-value_add = 0
+num_samples = @0x10 * channels  # byte-to-samples of channel_size
+```
+`data_size` is a special value for `num_samples` and `loop_end_sample` and will always convert as bytes-to-samples, though.
 
-value_multiply = channels       # now set to 2
-sample_type = bytes
-num_samples = @0x10             # channel_size * channels
+
+Priority is left-to-right. Do add brackets though, they are accounted for and if they are implemented in the future your .txth *will* break with impunity.
+```
+# normal priority
+data_size = @0x10 * 0x800 + 0x800
+# also works
+data_size = (@0x10 + 1) * 0x800
+# same as above but don't do this
+# (may become @0x10 + (1 * 0x800) in the future
+data_size = @0x10 + 1 * 0x800
+# fails, wrong bracket count
+data_size = (@0x10 + 1 * 0x800
+# fails, wrong bracket count
+data_size = )@0x10 + 1 * 0x800
+```
+
+If a TXTH needs too many calculations it may be better to implement directly in vgmstream though, consider reporting.
+
+
+### Modifiers
+Remnant of simpler math (priority is fixed to */+-), shouldn't be needed anymore.
+
+```
+value_multiply = 0x800
+start_offset   = @0x10
 value_multiply = 0
 ```
-num_samples and loop_end_sample will always convert "data_size" field as bytes-to-samples though.
 
-Priority is fixed to */+-:
+```
+value_add = 1
+channels = @0x08
+value_add = 0
+
+value_multiply = channels
+sample_type = bytes
+num_samples = @0x10
+value_multiply = 0
+```
+
 ```
 value_add       = 0x10
 value_mul       = 0x800
-start_offset    = @0x10         # (0x15*0x800) + 0x10 = 0xA810
+start_offset    = @0x10
 ```
-
-But with some creativity you can do fairly involved stuff:
-```
-value_add       = 0x10
-start_offset    = @0x10         # (0x15+0x10) = 0x25
-value_add       = 0
-
-value_mul       = 0x800
-start_offset    = start_offset  # (0x25*0x800) = 0x12800
-value_mul       = 0
-```
-
-If a TXTH needs too many complex calculations it may be better to implement directly in vgmstream though.

@@ -575,8 +575,8 @@ static int parse_txth(txth_header * txth) {
 
         txt_offset += bytes_read;
         
-        /* get key/val (ignores lead/trail spaces, stops at space/comment/separator) */
-        ok = sscanf(line, " %[^ \t#=] = %[^ \t#\r\n] ", key,val);
+        /* get key/val (ignores lead spaces, stops at space/comment/separator) */
+        ok = sscanf(line, " %[^ \t#=] = %[^\t#\r\n] ", key,val);
         if (ok != 2) /* ignore line if no key=val (comment or garbage) */
             continue;
 
@@ -881,6 +881,13 @@ fail:
     return 0;
 }
 
+static int starts_with(const char * val, const char * cmp) {
+    int len = strlen(cmp);
+    if (strncmp(val, cmp, len) == 0)
+        return len;
+    return 0;
+}
+
 static int parse_num(STREAMFILE * streamFile, txth_header * txth, const char * val, uint32_t * out_value) {
     /* out_value can be these, save before modifying */
     uint32_t value_mul = txth->value_mul;
@@ -889,79 +896,140 @@ static int parse_num(STREAMFILE * streamFile, txth_header * txth, const char * v
     uint32_t value_sub = txth->value_sub;
     uint32_t subsong_offset = txth->subsong_offset;
 
-    if (val[0] == '@') { /* offset */
-        uint32_t offset = 0;
-        char ed1 = 'L', ed2 = 'E';
-        int size = 4;
-        int big_endian = 0;
-        int hex = (val[1]=='0' && val[2]=='x');
+    char op = ' ';
+    int brackets = 0;
+    uint32_t result = 0;
 
-        /* can happen when loading .txth and not setting body/head */
-        if (!streamFile)
-            goto fail;
+    //;VGM_LOG("TXTH: initial val '%s'\n", val);
 
-        /* read exactly N fields in the expected format */
-        if (strchr(val,':') && strchr(val,'$')) {
-            if (sscanf(val, hex ? "@%x:%c%c$%i" : "@%u:%c%c$%i", &offset, &ed1,&ed2, &size) != 4) goto fail;
-        } else if (strchr(val,':')) {
-            if (sscanf(val, hex ? "@%x:%c%c" : "@%u:%c%c", &offset, &ed1,&ed2) != 3) goto fail;
-        } else if (strchr(val,'$')) {
-            if (sscanf(val, hex ? "@%x$%i" : "@%u$%i", &offset, &size) != 2) goto fail;
-        } else {
-            if (sscanf(val, hex ? "@%x" : "@%u", &offset) != 1) goto fail;
+
+    /* read "val" format: @(offset) (op) (field) (op) (number) ... */
+    while (val[0] != '\0') {
+        uint32_t value = 0;
+        char type = val[0];
+        int value_read = 0;
+        int n = 0;
+
+        if (type == ' ') { /* ignore */
+            n = 1;
+        }
+        else if (type == '(') { /* bracket */
+            brackets++;
+            n = 1;
+        }
+        else if (type == ')') { /* bracket */
+            if (brackets == 0) goto fail;
+            brackets--;
+            n = 1;
+        }
+        else if (type == '+' || type == '-' || type == '/' || type == '*') { /* op */
+            op = type;
+            n = 1;
+        }
+        else if (type == '@') { /* offset */
+            uint32_t offset = 0;
+            char ed1 = 'L', ed2 = 'E';
+            int size = 4;
+            int big_endian = 0;
+            int hex = (val[1]=='0' && val[2]=='x');
+
+            /* can happen when loading .txth and not setting body/head */
+            if (!streamFile)
+                goto fail;
+
+            /* read exactly N fields in the expected format */
+            if (strchr(val,':') && strchr(val,'$')) {
+                if (sscanf(val, hex ? "@%x:%c%c$%i%n" : "@%u:%c%c$%i%n", &offset, &ed1,&ed2, &size, &n) != 4) goto fail;
+            } else if (strchr(val,':')) {
+                if (sscanf(val, hex ? "@%x:%c%c%n" : "@%u:%c%c%n", &offset, &ed1,&ed2, &n) != 3) goto fail;
+            } else if (strchr(val,'$')) {
+                if (sscanf(val, hex ? "@%x$%i%n" : "@%u$%i%n", &offset, &size, &n) != 2) goto fail;
+            } else {
+                if (sscanf(val, hex ? "@%x%n" : "@%u%n", &offset, &n) != 1) goto fail;
+            }
+
+            if (/*offset < 0 ||*/ offset > get_streamfile_size(streamFile))
+                goto fail;
+
+            if (ed1 == 'B' && ed2 == 'E')
+                big_endian = 1;
+            else if (!(ed1 == 'L' && ed2 == 'E'))
+                goto fail;
+
+            if (subsong_offset)
+                offset = offset + subsong_offset * (txth->target_subsong - 1);
+
+            switch(size) {
+                case 1: value = read_8bit(offset,streamFile); break;
+                case 2: value = big_endian ? (uint16_t)read_16bitBE(offset,streamFile) : (uint16_t)read_16bitLE(offset,streamFile); break;
+                case 3: value = (big_endian ? (uint32_t)read_32bitBE(offset,streamFile) : (uint32_t)read_32bitLE(offset,streamFile)) & 0x00FFFFFF; break;
+                case 4: value = big_endian ? (uint32_t)read_32bitBE(offset,streamFile) : (uint32_t)read_32bitLE(offset,streamFile); break;
+                default: goto fail;
+            }
+            value_read = 1;
+        }
+        else if (type >= '0' && type <= '9') { /* unsigned constant */
+            int hex = (val[0]=='0' && val[1]=='x');
+
+            if (sscanf(val, hex ? "%x%n" : "%u%n", &value, &n) != 1)
+                goto fail;
+            value_read = 1;
+        }
+        else { /* known field */
+            if      ((n = starts_with(val,"interleave")))           value = txth->interleave;
+            if      ((n = starts_with(val,"interleave_last")))      value = txth->interleave_last;
+            else if ((n = starts_with(val,"channels")))             value = txth->channels;
+            else if ((n = starts_with(val,"sample_rate")))          value = txth->sample_rate;
+            else if ((n = starts_with(val,"start_offset")))         value = txth->start_offset;
+            else if ((n = starts_with(val,"data_size")))            value = txth->data_size;
+            else if ((n = starts_with(val,"num_samples")))          value = txth->num_samples;
+            else if ((n = starts_with(val,"loop_start_sample")))    value = txth->loop_start_sample;
+            else if ((n = starts_with(val,"loop_end_sample")))      value = txth->loop_end_sample;
+            else if ((n = starts_with(val,"subsong_count")))        value = txth->subsong_count;
+            else if ((n = starts_with(val,"subsong_offset")))       value = txth->subsong_offset;
+            else goto fail;
+            value_read = 1;
         }
 
-        if (/*offset < 0 ||*/ offset > get_streamfile_size(streamFile))
-            goto fail;
+        /* apply simple left-to-right math though, for now "(" ")" are counted and validated
+         * (could use good ol' shunting-yard algo but whatevs) */
+        if (value_read) {
+            //;VGM_ASSERT(op != ' ', "MIX: %i %c %i\n", result, op, value);
+            switch(op) {
+                case '+': value = result + value; break;
+                case '-': value = result - value; break;
+                case '*': value = result * value; break;
+                case '/': if (value == 0) goto fail; value = result / value; break;
+                default: break;
+            }
+            op = ' '; /* consume */
 
-        if (ed1 == 'B' && ed2 == 'E')
-            big_endian = 1;
-        else if (!(ed1 == 'L' && ed2 == 'E'))
-            goto fail;
-
-        if (subsong_offset)
-            offset = offset + subsong_offset * (txth->target_subsong - 1);
-
-        switch(size) {
-            case 1: *out_value = read_8bit(offset,streamFile); break;
-            case 2: *out_value = big_endian ? (uint16_t)read_16bitBE(offset,streamFile) : (uint16_t)read_16bitLE(offset,streamFile); break;
-            case 3: *out_value = (big_endian ? (uint32_t)read_32bitBE(offset,streamFile) : (uint32_t)read_32bitLE(offset,streamFile)) & 0x00FFFFFF; break;
-            case 4: *out_value = big_endian ? (uint32_t)read_32bitBE(offset,streamFile) : (uint32_t)read_32bitLE(offset,streamFile); break;
-            default: goto fail;
+            result = value;
         }
-    }
-    else if (val[0] >= '0' && val[0] <= '9') { /* unsigned constant */
-        int hex = (val[0]=='0' && val[1]=='x');
 
-        if (sscanf(val, hex ? "%x" : "%u", out_value)!=1)
-            goto fail;
-    }
-    else { /* known field */
-        if      (0==strcmp(val,"interleave"))           *out_value = txth->interleave;
-        if      (0==strcmp(val,"interleave_last"))      *out_value = txth->interleave_last;
-        else if (0==strcmp(val,"channels"))             *out_value = txth->channels;
-        else if (0==strcmp(val,"sample_rate"))          *out_value = txth->sample_rate;
-        else if (0==strcmp(val,"start_offset"))         *out_value = txth->start_offset;
-        else if (0==strcmp(val,"data_size"))            *out_value = txth->data_size;
-        else if (0==strcmp(val,"num_samples"))          *out_value = txth->num_samples;
-        else if (0==strcmp(val,"loop_start_sample"))    *out_value = txth->loop_start_sample;
-        else if (0==strcmp(val,"loop_end_sample"))      *out_value = txth->loop_end_sample;
-        else if (0==strcmp(val,"subsong_count"))        *out_value = txth->subsong_count;
-        else if (0==strcmp(val,"subsong_offset"))       *out_value = txth->subsong_offset;
-        else goto fail;
+        /* move to next field (if any) */
+        val += n;
+
+        //;VGM_LOG("TXTH: val='%s', n=%i, brackets=%i, result=%i\n", val, n, brackets, result);
     }
 
-    /* operators, but only if current value wasn't set to 0 right before */
+    /* unbalanced brackets */
+    if (brackets > 0)
+        goto fail;
+
+    /* global operators, but only if current value wasn't set to 0 right before */
     if (value_mul && txth->value_mul)
-        *out_value = (*out_value) * value_mul;
+        result = result * value_mul;
     if (value_div && txth->value_div)
-        *out_value = (*out_value) / value_div;
+        result = result / value_div;
     if (value_add && txth->value_add)
-        *out_value = (*out_value) + value_add;
+        result = result + value_add;
     if (value_sub && txth->value_sub)
-        *out_value = (*out_value) - value_sub;
+        result = result - value_sub;
 
-    //;VGM_LOG("TXTH: val=%s, read %u (0x%x)\n", val, *out_value, *out_value);
+    *out_value = result;
+
+    //;VGM_LOG("TXTH: final result %u (0x%x)\n", result, result);
     return 1;
 fail:
     return 0;
