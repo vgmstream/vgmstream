@@ -458,6 +458,7 @@ static const char* extension_list[] = {
     "vis",
     "vms",
     "voi",
+    "vp6",
     "vpk",
     "vs",
     "vsf",

@@ -160,6 +160,89 @@ fail:
     return NULL;
 }
 
+/* EA SCHl inside non-demuxed videos, used in current gen games too */
+VGMSTREAM * init_vgmstream_ea_schl_video(STREAMFILE *streamFile) {
+    VGMSTREAM * vgmstream = NULL;
+    off_t offset = 0, start_offset = 0;
+    int blocks_done = 0;
+    int total_subsongs, target_subsong = streamFile->stream_index;
+    int32_t(*read_32bit)(off_t, STREAMFILE*);
+
+
+    /* check extension */
+    /* .vp6: ~late */
+    if (!check_extensions(streamFile,"vp6"))
+        goto fail;
+
+    /* check initial movie block id */
+    if (read_32bitBE(0x00,streamFile) != 0x4D566864) /* "MVhd" */
+        goto fail;
+
+    /* use block size to check endianness */
+    if (guess_endianness32bit(0x04, streamFile)) {
+        read_32bit = read_32bitBE;
+    } else {
+        read_32bit = read_32bitLE;
+    }
+
+    /* find starting valid header for the parser */
+    while (offset < get_streamfile_size(streamFile)) {
+        uint32_t block_id   = read_32bitBE(offset+0x00,streamFile);
+        uint32_t block_size = read_32bit  (offset+0x04,streamFile);
+
+        /* find "SCHl" or "SHxx" blocks */
+        if ((block_id == EA_BLOCKID_HEADER) || ((block_id & 0xFFFF0000) == EA_BLOCKID_LOC_HEADER)) {
+            start_offset = offset;
+            break;
+        }
+
+        if (block_size == 0xFFFFFFFF)
+            goto fail;
+        if (blocks_done > 10)
+            goto fail; /* unlikely to contain music */
+
+        blocks_done++;
+        offset += block_size;
+    }
+
+    if (start_offset == 0)
+        goto fail;
+
+    /* find target subsong (one per each SHxx multilang block) */
+    total_subsongs = 1;
+    if (target_subsong == 0) target_subsong = 1;
+    offset = start_offset;
+    while (offset < get_streamfile_size(streamFile)) {
+        uint32_t block_id   = read_32bitBE(offset+0x00,streamFile);
+        uint32_t block_size = read_32bit  (offset+0x04,streamFile);
+
+        /* no more subsongs (assumes all SHxx headers go together) */
+        if (((block_id & 0xFFFF0000) != EA_BLOCKID_LOC_HEADER)) {
+            break;
+        }
+
+        if (target_subsong == total_subsongs) {
+            start_offset = offset;
+            /* keep counting subsongs */
+        }
+
+        total_subsongs++;
+        offset += block_size;
+    }
+
+    if (target_subsong < 0 || target_subsong > total_subsongs || total_subsongs < 1) goto fail;
+
+    vgmstream = parse_schl_block(streamFile, start_offset, 1);
+    if (!vgmstream) goto fail;
+
+    vgmstream->num_streams = total_subsongs;
+    return vgmstream;
+
+fail:
+    close_vgmstream(vgmstream);
+    return NULL;
+}
+
 /* EA BNK with variable header - from EA games SFXs; also created by sx.exe */
 VGMSTREAM * init_vgmstream_ea_bnk(STREAMFILE *streamFile) {
     off_t offset;
