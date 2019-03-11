@@ -786,7 +786,9 @@ fail:
         free(vgmstream->start_ch);
         free(vgmstream->loop_ch);
         free(vgmstream->start_vgmstream);
+#ifdef VGMSTREAM_MIXING
         mixing_close(vgmstream);
+#endif
     }
     free(vgmstream);
     return NULL;
