@@ -163,6 +163,7 @@
     <ClCompile Include="meta\mp4.c" />
     <ClCompile Include="meta\msb_msh.c" />
     <ClCompile Include="meta\msf_banpresto.c" />
+    <ClCompile Include="meta\msf_konami.c" />
     <ClCompile Include="meta\msf_tamasoft.c" />
     <ClCompile Include="meta\ngca.c" />
     <ClCompile Include="meta\opus.c" />
@@ -501,6 +502,7 @@
     <ClCompile Include="meta\xwb.c" />
     <ClCompile Include="meta\xwc.c" />
     <ClCompile Include="meta\xwma.c" />
+    <ClCompile Include="meta\xwma_konami.c" />
     <ClCompile Include="meta\ydsp.c" />
     <ClCompile Include="meta\zsd.c" />
     <ClCompile Include="meta\zsnd.c" />

@@ -1131,6 +1131,10 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\meta\msf_konami.c"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\msf_tamasoft.c"
                     >
                 </File>
@@ -1704,6 +1708,10 @@
                 </File>
                 <File
                     RelativePath=".\meta\xwma.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\xwma_konami.c"
                     >
                 </File>
 				<File

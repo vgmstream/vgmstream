@@ -1175,6 +1175,8 @@ static const meta_info meta_info_list[] = {
         {meta_DSP_DS2,              "LucasArts .DS2 header"},
         {meta_MUS_VC,               "Vicious Cycle .MUS header"},
         {meta_STRM_ABYLIGHT,        "Abylight STRM header"},
+        {meta_MSF_KONAMI,           "Konami MSF header"},
+        {meta_XWMA_KONAMI,          "Konami XWMA header"},
 
 };
 

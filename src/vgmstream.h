@@ -727,6 +727,8 @@ typedef enum {
     meta_DSP_DS2,
     meta_MUS_VC,
     meta_STRM_ABYLIGHT,
+    meta_MSF_KONAMI,
+    meta_XWMA_KONAMI,
 
 } meta_t;
 
