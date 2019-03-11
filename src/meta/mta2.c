@@ -17,9 +17,11 @@ VGMSTREAM * init_vgmstream_mta2(STREAMFILE *streamFile) {
 
     if (read_32bitBE(0x00,streamFile) != 0x4d544132) /* "MTA2" */
         goto fail;
+    /* allow truncated files for now? */
+    //if (read_32bitBE(0x04, streamFile) + 0x08 != get_streamfile_size(streamFile))
+    //    goto fail;
 
     /* base header (everything is very similar to MGS3's MTAF but BE) */
-    /* 0x04(4): file size -4-4 (not including block headers in case of KCEJ blocks) */
     /* 0x08(4): version? (1),  0x0c(52): null */
 
     /* HEAD chunk */
@@ -56,15 +58,17 @@ VGMSTREAM * init_vgmstream_mta2(STREAMFILE *streamFile) {
 
     /* TRKP chunks (x16) */
     /* just seem to contain pan/vol stuff (0x7f/0x40), TRKP per track (sometimes +1 main track?) */
-    /* there is channel layout bitmask @ 0x0f (ex. 1ch = 0x04, 3ch = 0x07, 4ch = 0x33, 6ch = 0x3f), surely:
-     * FRONT_L = 0x01,  FRONT_R = 0x02,  FRONT_M = 0x04, BACK_L  = 0x08,  BACK_R  = 0x10,  BACK_M  = 0x20 */
+    /* there is channel layout bitmask at 0x0f (ex. 1ch = 0x04, 3ch = 0x07, 4ch = 0x33, 6ch = 0x3f), surely:
+     * FL 0x01, FR 0x02, FC = 0x04, BL = 0x08, BR = 0x10, BC = 0x20 */
+
+    start_offset = 0x800;
 
     /* DATA chunk */
     if (read_32bitBE(0x7f8, streamFile) != 0x44415441) // "DATA"
         goto fail;
-    /* 0x7fc: data size (without blocks in case of blocked layout) */
+    //if (read_32bitBE(0x7fc, streamFile) + start_offset != get_streamfile_size(streamFile))
+    //    goto fail;
 
-    start_offset = 0x800;
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);

@@ -19,7 +19,7 @@ VGMSTREAM * init_vgmstream_msf_banpresto_wmsf(STREAMFILE *streamFile) {
     temp_streamFile = setup_subfile_streamfile(streamFile, subfile_offset,subfile_size, NULL);
     if (!temp_streamFile) goto fail;
 
-    vgmstream = init_vgmstream_ps3_msf(temp_streamFile);
+    vgmstream = init_vgmstream_msf(temp_streamFile);
     if (!vgmstream) goto fail;
 
     close_streamfile(temp_streamFile);
