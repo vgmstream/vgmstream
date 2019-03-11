@@ -92,6 +92,9 @@
     <ClInclude Include="meta\kma9_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="meta\mta2_streamfile.h">
+      <Filter>meta\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="meta\opus_interleave_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>

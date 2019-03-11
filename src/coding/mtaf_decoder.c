@@ -1,15 +1,11 @@
 #include "coding.h"
 #include "../util.h"
 
-#define MTAF_BLOCK_SUPPORT
-
 
 /* A hybrid of IMA and Yamaha ADPCM found in Metal Gear Solid 3
  * Thanks to X_Tra (http://metalgear.in/) for pointing me to the step size table.
  *
- * Layout: N tracks of 0x10 header + 0x80*2 (always 2ch; multichannels uses 4ch = 2ch track0 + 2ch track1 xN)
- * "macroblocks" support is not really needed as the extractors should remove them but they are
- * autodetected and skipped if found (ideally should keep a special layout/count, but this is simpler).
+ * Layout: N tracks of 0x10 header + 0x80*2 (always 2ch; multichannels uses 4ch = 2ch track0 + 2ch track1 xN).
  */
 
 static const int index_table[16] = {
@@ -84,59 +80,14 @@ static const int16_t step_size[32][16] = {
        -424, -1273, -2121, -2970, -3819, -4668, -5516, -6365, },
 };
 
-#ifdef MTAF_BLOCK_SUPPORT
-/* autodetect and skip "macroblocks" */
-static void mtaf_block_update(VGMSTREAMCHANNEL * stream) {
-    int block_type, block_size, block_empty, block_tracks, repeat = 1;
 
-    do {
-        block_type   = read_32bitLE(stream->offset+0x00, stream->streamfile);
-        block_size   = read_32bitLE(stream->offset+0x04, stream->streamfile); /* including this header */
-        block_empty  = read_32bitLE(stream->offset+0x08, stream->streamfile); /* always 0 */
-        block_tracks = read_32bitLE(stream->offset+0x0c, stream->streamfile); /* total tracks of 0x110 (can be 0)*/
-
-        /* 0x110001: music (type 0x11=adpcm), 0xf0: loop control (goes at the end) */
-        if ((block_type != 0x00110001 && block_type != 0x000000F0) || block_empty != 0)
-            return; /* not a block */
-
-        /* track=001100+01 could be mistaken as block_type, do extra checks */
-        {
-            int track = read_8bit(stream->offset+0x10, stream->streamfile);
-            if (track != 0 && track != 1)
-                return; /* if this is a block, next header should be from track 0/1 */
-            if (block_tracks > 0 && (block_size-0x10) != block_tracks*0x110)
-                return; /* wrong expected size */
-        }
-
-        if (block_size <= 0 || block_tracks < 0) {  /* nonsense block (maybe at EOF) */
-            VGM_LOG("MTAF: bad block @ %x\n", (uint32_t)stream->offset);
-            stream->offset += 0x10;
-            repeat = 0;
-        }
-        else if (block_tracks == 0) {  /* empty block (common), keep repeating */
-            stream->offset += block_size;
-        }
-        else {  /* normal block, position into next track header */
-            stream->offset += 0x10;
-            repeat = 0;
-        }
-
-    } while(repeat);
-}
-#endif
-
-void decode_mtaf(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
+void decode_mtaf(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
     int32_t sample_count;
     int i;
     int c = channel%2; /* global channel to track channel */
     int32_t hist = stream->adpcm_history1_16;
     int32_t step_idx = stream->adpcm_step_index;
 
-
-    #ifdef MTAF_BLOCK_SUPPORT
-    /* autodetect and skip macroblock header */
-    mtaf_block_update(stream);
-    #endif
 
     /* read header when we hit a new track every 0x100 samples */
     first_sample = first_sample % 0x100;

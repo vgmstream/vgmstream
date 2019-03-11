@@ -589,7 +589,7 @@ typedef enum {
     meta_OTNS_ADP,          /* Omikron: The Nomad Soul .adp (PC/DC) */
     meta_EB_SFX,            /* Excitebots .sfx */
     meta_EB_SF0,            /* Excitebots .sf0 */
-    meta_PS2_MTAF,          /* Metal Gear Solid 3 MTAF */
+    meta_MTAF,
     meta_PS2_VAG1,          /* Metal Gear Solid 3 VAG1 */
     meta_PS2_VAG2,          /* Metal Gear Solid 3 VAG2 */
     meta_TUN,               /* LEGO Racers (PC) */
@@ -627,7 +627,7 @@ typedef enum {
     meta_TA_AAC_X360,       /* tri-Ace AAC (Star Ocean 4, End of Eternity, Infinite Undiscovery) */
     meta_TA_AAC_PS3,        /* tri-Ace AAC (Star Ocean International, Resonance of Fate) */
     meta_TA_AAC_MOBILE,     /* tri-Ace AAC (Star Ocean Anamnesis, Heaven x Inferno) */
-    meta_PS3_MTA2,          /* Metal Gear Solid 4 MTA2 */
+    meta_MTA2,
     meta_NGC_ULW,           /* Burnout 1 (GC only) */
     meta_PC_XA30,           /* Driver - Parallel Lines (PC) */
     meta_WII_04SW,          /* Driver - Parallel Lines (Wii) */

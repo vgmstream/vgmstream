@@ -300,7 +300,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_pc_adp_otns,
     init_vgmstream_eb_sfx,
     init_vgmstream_eb_sf0,
-    init_vgmstream_ps2_mtaf,
+    init_vgmstream_mtaf,
     init_vgmstream_tun,
     init_vgmstream_wpd,
     init_vgmstream_mn_str,
@@ -346,7 +346,8 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_ta_aac_mobile_vorbis,
     init_vgmstream_ta_aac_vita,
     init_vgmstream_va3,
-    init_vgmstream_ps3_mta2,
+    init_vgmstream_mta2,
+    init_vgmstream_mta2_container,
     init_vgmstream_ngc_ulw,
     init_vgmstream_pc_xa30,
     init_vgmstream_wii_04sw,
@@ -2844,7 +2845,8 @@ int vgmstream_open_stream(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t s
     }
 
     /* stereo codecs interleave in 2ch pairs (interleave size should still be: full_block_size / channels) */
-    if (vgmstream->layout_type == layout_interleave && vgmstream->coding_type == coding_XBOX_IMA) {
+    if (vgmstream->layout_type == layout_interleave &&
+            (vgmstream->coding_type == coding_XBOX_IMA || vgmstream->coding_type == coding_MTAF)) {
         is_stereo_codec = 1;
     }
 
