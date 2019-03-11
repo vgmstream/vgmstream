@@ -74,6 +74,8 @@ typedef struct {
     uint32_t coef_spacing;
     uint32_t coef_big_endian;
     uint32_t coef_mode;
+    int coef_table_set;
+    uint8_t coef_table[0x02*16 * 16]; /* reasonable max */
 
     int num_samples_data_size;
 
@@ -352,11 +354,17 @@ VGMSTREAM * init_vgmstream_txth(STREAMFILE *streamFile) {
             /* get coefs */
             for (i = 0; i < vgmstream->channels; i++) {
                 int16_t (*read_16bit)(off_t , STREAMFILE*) = txth.coef_big_endian ? read_16bitBE : read_16bitLE;
+                int16_t (*get_16bit)(uint8_t * p) = txth.coef_big_endian ? get_16bitBE : get_16bitLE;
 
                 /* normal/split coefs */
                 if (txth.coef_mode == 0) { /* normal mode */
                     for (j = 0; j < 16; j++) {
-                        vgmstream->ch[i].adpcm_coef[j] = read_16bit(txth.coef_offset + i*txth.coef_spacing  + j*2, txth.streamHead);
+                        int16_t coef;
+                        if (txth.coef_table_set)
+                            coef =  get_16bit(txth.coef_table  + i*txth.coef_spacing  + j*2);
+                        else
+                            coef = read_16bit(txth.coef_offset + i*txth.coef_spacing  + j*2, txth.streamHead);
+                        vgmstream->ch[i].adpcm_coef[j] = coef;
                     }
                 }
                 else { /* split coefs */
@@ -604,6 +612,7 @@ static STREAMFILE * open_txth(STREAMFILE * streamFile) {
 static int parse_keyval(STREAMFILE * streamFile, txth_header * txth, const char * key, char * val);
 static int parse_num(STREAMFILE * streamFile, txth_header * txth, const char * val, uint32_t * out_value);
 static int parse_string(STREAMFILE * streamFile, txth_header * txth, const char * val, char * str);
+static int parse_coef_table(STREAMFILE * streamFile, txth_header * txth, const char * val, uint8_t * out_value, size_t out_size);
 static int is_string(const char * val, const char * cmp);
 static int is_substring(const char * val, const char * cmp);
 static int get_bytes_to_samples(txth_header * txth, uint32_t bytes);
@@ -861,6 +870,10 @@ static int parse_keyval(STREAMFILE * streamFile_, txth_header * txth, const char
     else if (is_string(key,"coef_mode")) {
         if (!parse_num(txth->streamHead,txth,val, &txth->coef_mode)) goto fail;
     }
+    else if (is_string(key,"coef_table")) {
+        if (!parse_coef_table(txth->streamHead,txth,val, txth->coef_table, sizeof(txth->coef_table))) goto fail;
+        txth->coef_table_set = 1;
+    }
     else if (is_string(key,"psx_loops")) {
         if (!parse_num(txth->streamHead,txth,val, &txth->coef_mode)) goto fail;
     }
@@ -996,6 +1009,34 @@ static int parse_string(STREAMFILE * streamFile, txth_header * txth, const char 
     if (sscanf(val, " %s%n[^ ]%n", str, &n, &n) != 1)
         return 0;
     return n;
+}
+
+static int parse_coef_table(STREAMFILE * streamFile, txth_header * txth, const char * val, uint8_t * out_value, size_t out_size) {
+    uint32_t byte;
+    int done = 0;
+
+    /* read 2 char pairs = 1 byte ('N' 'N' 'M' 'M' = 0xNN 0xMM )*/
+    while (val[0] != '\0') {
+        if (val[0] == ' ') {
+            val++;
+            continue;
+        }
+
+        if (val[0] == '0' && val[1] == 'x')  /* allow "0x" before values */
+            val += 2;
+        if (sscanf(val, " %2x", &byte) != 1)
+            goto fail;
+        if (done + 1 >= out_size)
+            goto fail;
+
+        out_value[done] = (uint8_t)byte;
+        done++;
+        val += 2;
+    }
+
+    return 1;
+fail:
+    return 0;
 }
 
 static int parse_num(STREAMFILE * streamFile, txth_header * txth, const char * val, uint32_t * out_value) {
