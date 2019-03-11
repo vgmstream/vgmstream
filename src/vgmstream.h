@@ -5,7 +5,7 @@
 #ifndef _VGMSTREAM_H
 #define _VGMSTREAM_H
 
- /* reasonable limits */
+/* reasonable limits */
 enum { PATH_LIMIT = 32768 };
 enum { STREAM_NAME_SIZE = 255 };
 enum { VGMSTREAM_MAX_CHANNELS = 64 };
@@ -337,7 +337,7 @@ typedef enum {
 
     meta_XA,                /* CD-ROM XA */
     meta_PS2_SShd,          /* .ADS with SShd header */
-    meta_PS2_NPSF,          /* Namco Production Sound File */
+    meta_NPS,
     meta_PS2_RXWS,          /* Sony games (Genji, Okage Shadow King, Arc The Lad Twilight of Spirits) */
     meta_PS2_RAW,           /* RAW Interleaved Format */
     meta_PS2_EXST,          /* Shadow of Colossus EXST */
@@ -568,7 +568,7 @@ typedef enum {
     meta_BAF,               /* Bizarre Creations (Blur, James Bond) */
     meta_XVAG,              /* Ratchet & Clank Future: Quest for Booty (PS3) */
     meta_PS3_CPS,           /* Eternal Sonata (PS3) */
-    meta_PS3_MSF,           /* MSF header */
+    meta_MSF,
     meta_NUB_VAG,           /* Namco VAG from NUB archives */
     meta_PS3_PAST,          /* Bakugan Battle Brawlers (PS3) */
     meta_SGXD,              /* Sony: Folklore, Genji, Tokyo Jungle (PS3), Brave Story, Kurohyo (PSP) */

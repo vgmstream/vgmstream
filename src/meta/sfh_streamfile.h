@@ -98,6 +98,7 @@ static STREAMFILE* setup_sfh_streamfile(STREAMFILE *streamFile, off_t stream_off
     io_data.stream_offset = stream_offset;
     io_data.stream_size = get_streamfile_size(streamFile) - stream_offset;
     io_data.block_size = block_size;
+    io_data.logical_offset = -1; /* force phys offset reset */
 
     /* setup subfile */
     new_streamFile = open_wrap_streamfile(streamFile);

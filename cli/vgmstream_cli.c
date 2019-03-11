@@ -403,6 +403,8 @@ int main(int argc, char ** argv) {
             strcpy(outfilename_temp, cfg.infilename);
             strcat(outfilename_temp, ".wav");
             cfg.outfilename = outfilename_temp;
+            /* maybe should avoid overwriting with this auto-name, for the unlikely
+             * case of file header-body pairs (file.ext+file.ext.wav) */
         }
 
         outfile = fopen(cfg.outfilename,"wb");
@@ -655,6 +657,8 @@ static size_t make_wav_header(uint8_t * buf, size_t buf_size, int32_t sample_cou
         memcpy(buf+0x24, "data", 0x04); /* WAVE data chunk */
         put_32bitLE(buf+0x28, (int32_t)data_size); /* size of WAVE data chunk */
     }
+
+    /* could try to add channel_layout, but would need to write WAVEFORMATEXTENSIBLE (maybe only if arg flag?) */
 
     return header_size;
 fail:

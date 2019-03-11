@@ -1139,11 +1139,11 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\ps2_mtaf.c"
+					RelativePath=".\meta\mtaf.c"
 					>
 				</File>
 				<File
-					RelativePath=".\meta\ps2_npsf.c"
+					RelativePath=".\meta\nps.c"
 					>
 				</File>
 				<File
@@ -1291,11 +1291,11 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\ps3_msf.c"
+					RelativePath=".\meta\msf.c"
 					>
 				</File>
                 <File
-                    RelativePath=".\meta\ps3_mta2.c"
+                    RelativePath=".\meta\mta2.c"
                     >
                 </File>
 				<File

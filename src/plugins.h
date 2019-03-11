@@ -21,7 +21,9 @@ typedef struct {
 
 VGMSTREAM_PLAYER* vgmstream_player_init(...);
 
-VGMSTREAM_PLAYER* vgmstream_player_check_file(...);
+VGMSTREAM_PLAYER* vgmstream_player_format_check(...);
+VGMSTREAM_PLAYER* vgmstream_player_set_format_whilelist(...);
+VGMSTREAM_PLAYER* vgmstream_player_set_format_blacklist(...);
 
 VGMSTREAM_PLAYER* vgmstream_player_set_file(...);
 
@@ -32,6 +34,12 @@ VGMSTREAM_PLAYER* vgmstream_player_set_config(...);
 VGMSTREAM_PLAYER* vgmstream_player_get_buffer(...);
 
 VGMSTREAM_PLAYER* vgmstream_player_get_info(...);
+
+VGMSTREAM_PLAYER* vgmstream_player_describe(...);
+
+VGMSTREAM_PLAYER* vgmstream_player_get_title(...);
+
+VGMSTREAM_PLAYER* vgmstream_player_get_tagfile(...);
 
 VGMSTREAM_PLAYER* vgmstream_player_play(...);
 

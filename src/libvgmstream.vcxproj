@@ -175,7 +175,7 @@
     <ClCompile Include="meta\ps2_hsf.c" />
     <ClCompile Include="meta\ps2_iab.c" />
     <ClCompile Include="meta\mss.c" />
-    <ClCompile Include="meta\ps2_mtaf.c" />
+    <ClCompile Include="meta\mtaf.c" />
     <ClCompile Include="meta\ps2_spm.c" />
     <ClCompile Include="meta\vs_str.c" />
     <ClCompile Include="meta\ps2_wmus.c" />
@@ -382,7 +382,7 @@
     <ClCompile Include="meta\ps2_mic.c" />
     <ClCompile Include="meta\ps2_mihb.c" />
     <ClCompile Include="meta\ps2_msa.c" />
-    <ClCompile Include="meta\ps2_npsf.c" />
+    <ClCompile Include="meta\nps.c" />
     <ClCompile Include="meta\ps2_p2bt.c" />
     <ClCompile Include="meta\ps2_pcm.c" />
     <ClCompile Include="meta\ps2_pnb.c" />
@@ -415,8 +415,8 @@
     <ClCompile Include="meta\ps2_xa2_rrp.c" />
     <ClCompile Include="meta\ps2_xa30.c" />
     <ClCompile Include="meta\ps3_cps.c" />
-    <ClCompile Include="meta\ps3_msf.c" />
-    <ClCompile Include="meta\ps3_mta2.c" />
+    <ClCompile Include="meta\msf.c" />
+    <ClCompile Include="meta\mta2.c" />
     <ClCompile Include="meta\xa.c" />
     <ClCompile Include="meta\fag.c" />
     <ClCompile Include="meta\ffdl.c" />

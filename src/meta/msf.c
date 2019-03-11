@@ -2,11 +2,11 @@
 #include "../coding/coding.h"
 
 /* MSF - Sony's PS3 SDK format (MultiStream File) */
-VGMSTREAM * init_vgmstream_ps3_msf(STREAMFILE *streamFile) {
+VGMSTREAM * init_vgmstream_msf(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     off_t start_offset;
     uint32_t data_size, loop_start = 0, loop_end = 0;
-  	uint32_t id, codec_id, flags;
+    uint32_t id, codec_id, flags;
     int loop_flag = 0, channel_count;
 
 
@@ -58,10 +58,10 @@ VGMSTREAM * init_vgmstream_ps3_msf(STREAMFILE *streamFile) {
 
     vgmstream->sample_rate = read_32bitBE(0x10,streamFile);
     /* sample rate hack for strange MSFv1 files (PS ADPCM only?) */
-	if (vgmstream->sample_rate == 0x00000000)
-		vgmstream->sample_rate = 48000;
+    if (vgmstream->sample_rate == 0x00000000)
+        vgmstream->sample_rate = 48000;
 
-    vgmstream->meta_type = meta_PS3_MSF;
+    vgmstream->meta_type = meta_MSF;
 
     switch (codec_id) {
         case 0x00:   /* PCM (Big Endian) */

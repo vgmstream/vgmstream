@@ -700,7 +700,7 @@
     <ClCompile Include="meta\ps2_msa.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\ps2_npsf.c">
+    <ClCompile Include="meta\nps.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ps2_p2bt.c">
@@ -799,10 +799,10 @@
     <ClCompile Include="meta\ps3_cps.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\ps3_msf.c">
+    <ClCompile Include="meta\msf.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\ps3_mta2.c">
+    <ClCompile Include="meta\mta2.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\xa.c">
@@ -1324,7 +1324,7 @@
     <ClCompile Include="meta\opus.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\ps2_mtaf.c">
+    <ClCompile Include="meta\mtaf.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ps2_spm.c">
