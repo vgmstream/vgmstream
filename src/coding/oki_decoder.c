@@ -87,7 +87,7 @@ static void oki16_expand_nibble(VGMSTREAMCHANNEL * stream, off_t byte_offset, in
  * so it's needs GENH/TXTH. Sample rate can only be base_value divided by 1/2/3/4, where
  * base_value is approximately ~31468.5 (follows hardware clocks), mono or interleaved for stereo.
  */
-void decode_pcfx(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int mode) {
+void decode_pcfx(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int mode) {
     int i, sample_count = 0;
     int32_t hist1 = stream->adpcm_history1_32;
     int step_index = stream->adpcm_step_index;
@@ -108,7 +108,7 @@ void decode_pcfx(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing,
 
 /* OKI variation with 16-bit output (vs standard's 12-bit), found in FrontWing's PS2 games (Sweet Legacy, Hooligan).
  * Reverse engineered from the ELF with help from the folks at hcs. */
-void decode_oki16(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
+void decode_oki16(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
     int i, sample_count = 0;
     int32_t hist1 = stream->adpcm_history1_32;
     int step_index = stream->adpcm_step_index;
@@ -140,6 +140,7 @@ void decode_oki16(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing
 
 
 size_t oki_bytes_to_samples(size_t bytes, int channels) {
+    if (channels <= 0) return 0;
     /* 2 samples per byte (2 nibbles) in stereo or mono config */
     return bytes * 2 / channels;
 }

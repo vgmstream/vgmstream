@@ -1146,12 +1146,8 @@ fail:
 }
 
 static int get_bytes_to_samples(txth_header * txth, uint32_t bytes) {
-    if (!txth->channels)
-        return 0; /* div-by-zero is no fun */
-
     switch(txth->codec) {
         case MS_IMA:
-            if (!txth->interleave) return 0;
             return ms_ima_bytes_to_samples(bytes, txth->interleave, txth->channels);
         case XBOX:
             return xbox_ima_bytes_to_samples(bytes, txth->channels);
@@ -1171,7 +1167,6 @@ static int get_bytes_to_samples(txth_header * txth, uint32_t bytes) {
         case PCM4_U:
             return pcm_bytes_to_samples(bytes, txth->channels, 4);
         case MSADPCM:
-            if (!txth->interleave) return 0;
             return msadpcm_bytes_to_samples(bytes, txth->interleave, txth->channels);
         case ATRAC3:
             return atrac3_bytes_to_samples(bytes, txth->interleave);

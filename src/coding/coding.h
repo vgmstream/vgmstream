@@ -45,8 +45,8 @@ size_t xbox_ima_bytes_to_samples(size_t bytes, int channels);
 size_t apple_ima4_bytes_to_samples(size_t bytes, int channels);
 
 /* ngc_dsp_decoder */
-void decode_ngc_dsp(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
-void decode_ngc_dsp_subint(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel, int interleave);
+void decode_ngc_dsp(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
+void decode_ngc_dsp_subint(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel, int interleave);
 size_t dsp_bytes_to_samples(size_t bytes, int channels);
 int32_t dsp_nibbles_to_samples(int32_t nibbles);
 void dsp_read_coefs_be(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t offset, off_t spacing);
@@ -80,8 +80,8 @@ void decode_pcmfloat(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelsp
 size_t pcm_bytes_to_samples(size_t bytes, int channels, int bits_per_sample);
 
 /* psx_decoder */
-void decode_psx(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int is_badflags);
-void decode_psx_configurable(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int frame_size);
+void decode_psx(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int is_badflags);
+void decode_psx_configurable(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int frame_size);
 int ps_find_loop_offsets(STREAMFILE *streamFile, off_t start_offset, size_t data_size, int channels, size_t interleave, int32_t * out_loop_start, int32_t * out_loop_end);
 int ps_find_loop_offsets_full(STREAMFILE *streamFile, off_t start_offset, size_t data_size, int channels, size_t interleave, int32_t * out_loop_start, int32_t * out_loop_end);
 size_t ps_bytes_to_samples(size_t bytes, int channels);
@@ -123,9 +123,9 @@ void free_acm(acm_codec_data *data);
 void decode_nwa(NWAData *nwa, sample *outbuf, int32_t samples_to_do);
 
 /* msadpcm_decoder */
-void decode_msadpcm_stereo(VGMSTREAM * vgmstream, sample * outbuf, int32_t first_sample, int32_t samples_to_do);
-void decode_msadpcm_mono(VGMSTREAM * vgmstream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel);
-void decode_msadpcm_ck(VGMSTREAM * vgmstream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel);
+void decode_msadpcm_stereo(VGMSTREAM * vgmstream, sample_t * outbuf, int32_t first_sample, int32_t samples_to_do);
+void decode_msadpcm_mono(VGMSTREAM * vgmstream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel);
+void decode_msadpcm_ck(VGMSTREAM * vgmstream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel);
 long msadpcm_bytes_to_samples(long bytes, int block_size, int channels);
 
 /* yamaha_decoder */
@@ -175,8 +175,8 @@ void decode_derf(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing,
 void decode_circus_adpcm(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
 
 /* oki_decoder */
-void decode_pcfx(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int mode);
-void decode_oki16(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel);
+void decode_pcfx(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int mode);
+void decode_oki16(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel);
 size_t oki_bytes_to_samples(size_t bytes, int channels);
 
 /* ea_mt_decoder*/

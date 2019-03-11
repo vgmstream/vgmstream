@@ -43,7 +43,7 @@ static const int ps_adpcm_coefs_i[5][2] = {
  */
 
 /* standard PS-ADPCM (float math version) */
-void decode_psx(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int is_badflags) {
+void decode_psx(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int is_badflags) {
     off_t frame_offset;
     int i, frames_in, sample_count = 0;
     size_t bytes_per_frame, samples_per_frame;
@@ -75,24 +75,24 @@ void decode_psx(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, 
 
     /* decode nibbles */
     for (i = first_sample; i < first_sample + samples_to_do; i++) {
-        int32_t new_sample = 0;
+        int32_t sample = 0;
 
         if (flag < 0x07) { /* with flag 0x07 decoded sample must be 0 */
             uint8_t nibbles = (uint8_t)read_8bit(frame_offset+0x02+i/2,stream->streamfile);
 
-            new_sample = i&1 ? /* low nibble first */
+            sample = i&1 ? /* low nibble first */
                     (nibbles >> 4) & 0x0f :
                     (nibbles >> 0) & 0x0f;
-            new_sample = (int16_t)((new_sample << 12) & 0xf000) >> shift_factor; /* 16b sign extend + scale */
-            new_sample = (int)(new_sample + ps_adpcm_coefs_f[coef_index][0]*hist1 + ps_adpcm_coefs_f[coef_index][1]*hist2);
-            new_sample = clamp16(new_sample);
+            sample = (int16_t)((sample << 12) & 0xf000) >> shift_factor; /* 16b sign extend + scale */
+            sample = (int)(sample + ps_adpcm_coefs_f[coef_index][0]*hist1 + ps_adpcm_coefs_f[coef_index][1]*hist2);
+            sample = clamp16(sample);
         }
 
-        outbuf[sample_count] = new_sample;
+        outbuf[sample_count] = sample;
         sample_count += channelspacing;
 
         hist2 = hist1;
-        hist1 = new_sample;
+        hist1 = sample;
     }
 
     stream->adpcm_history1_32 = hist1;
@@ -104,7 +104,7 @@ void decode_psx(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, 
  * Found in some PC/PS3 games (FF XI in sizes 3/5/9/41, Afrika in size 4, Blur/James Bond in size 33, etc).
  *
  * Uses int math to decode, which seems more likely (based on FF XI PC's code in Moogle Toolbox). */
-void decode_psx_configurable(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int frame_size) {
+void decode_psx_configurable(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int frame_size) {
     off_t frame_offset;
     int i, frames_in, sample_count = 0;
     size_t bytes_per_frame, samples_per_frame;
@@ -131,21 +131,21 @@ void decode_psx_configurable(VGMSTREAMCHANNEL * stream, sample * outbuf, int cha
 
     /* decode nibbles */
     for (i = first_sample; i < first_sample + samples_to_do; i++) {
-        int32_t new_sample = 0;
+        int32_t sample = 0;
         uint8_t nibbles = (uint8_t)read_8bit(frame_offset+0x01+i/2,stream->streamfile);
 
-        new_sample = i&1 ? /* low nibble first */
+        sample = i&1 ? /* low nibble first */
                 (nibbles >> 4) & 0x0f :
                 (nibbles >> 0) & 0x0f;
-        new_sample = (int16_t)((new_sample << 12) & 0xf000) >> shift_factor; /* 16b sign extend + scale */
-        new_sample = new_sample + ((ps_adpcm_coefs_i[coef_index][0]*hist1 + ps_adpcm_coefs_i[coef_index][1]*hist2) >> 6);
-        new_sample = clamp16(new_sample);
+        sample = (int16_t)((sample << 12) & 0xf000) >> shift_factor; /* 16b sign extend + scale */
+        sample = sample + ((ps_adpcm_coefs_i[coef_index][0]*hist1 + ps_adpcm_coefs_i[coef_index][1]*hist2) >> 6);
+        sample = clamp16(sample);
 
-        outbuf[sample_count] = new_sample;
+        outbuf[sample_count] = sample;
         sample_count += channelspacing;
 
         hist2 = hist1;
-        hist1 = new_sample;
+        hist1 = sample;
     }
 
     stream->adpcm_history1_32 = hist1;
@@ -269,6 +269,7 @@ int ps_find_loop_offsets_full(STREAMFILE *streamFile, off_t start_offset, size_t
 }
 
 size_t ps_bytes_to_samples(size_t bytes, int channels) {
+    if (channels <= 0) return 0;
     return bytes / channels / 0x10 * 28;
 }
 

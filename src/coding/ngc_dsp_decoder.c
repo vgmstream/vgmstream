@@ -1,7 +1,7 @@
 #include "coding.h"
 #include "../util.h"
 
-void decode_ngc_dsp(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
+void decode_ngc_dsp(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
     int i=first_sample;
     int32_t sample_count;
 
@@ -37,7 +37,7 @@ void decode_ngc_dsp(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspaci
 }
 
 /* read from memory rather than a file */
-static void decode_ngc_dsp_subint_internal(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, uint8_t * mem) {
+static void decode_ngc_dsp_subint_internal(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, uint8_t * mem) {
     int i=first_sample;
     int32_t sample_count;
 
@@ -71,7 +71,7 @@ static void decode_ngc_dsp_subint_internal(VGMSTREAMCHANNEL * stream, sample * o
 }
 
 /* decode DSP with byte-interleaved frames (ex. 0x08: 1122112211221122) */
-void decode_ngc_dsp_subint(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel, int interleave) {
+void decode_ngc_dsp_subint(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel, int interleave) {
     uint8_t sample_data[0x08];
     int i;
 
@@ -100,21 +100,12 @@ int32_t dsp_nibbles_to_samples(int32_t nibbles) {
     int32_t whole_frames = nibbles/16;
     int32_t remainder = nibbles%16;
 
-    /*
-    fprintf(stderr,"%d (%#x) nibbles => %x bytes and %d samples\n",nibbles,nibbles,whole_frames*8,remainder);
-    */
-
-#if 0
-    if (remainder > 0 && remainder < 14)
-        return whole_frames*14 + remainder;
-    else if (remainder >= 14)
-        fprintf(stderr,"***** last frame %d leftover nibbles makes no sense\n",remainder);
-#endif
     if (remainder>0) return whole_frames*14+remainder-2;
     else return whole_frames*14;
 }
 
 size_t dsp_bytes_to_samples(size_t bytes, int channels) {
+    if (channels <= 0) return 0;
     return bytes / channels / 8 * 14;
 }
 
