@@ -353,8 +353,9 @@ int riff_get_fact_skip_samples(STREAMFILE * streamFile, off_t start_offset);
 
 size_t atrac3_bytes_to_samples(size_t bytes, int full_block_align);
 size_t atrac3plus_bytes_to_samples(size_t bytes, int full_block_align);
+size_t ac3_bytes_to_samples(size_t bytes, int full_block_align, int channels);
 size_t aac_get_samples(STREAMFILE *streamFile, off_t start_offset, size_t bytes);
-
+size_t mpeg_get_samples(STREAMFILE *streamFile, off_t start_offset, size_t bytes);
 
 
 /* An internal struct to pass around and simulate a bitstream. */

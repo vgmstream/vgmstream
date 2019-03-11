@@ -1174,23 +1174,20 @@ static int get_bytes_to_samples(txth_header * txth, uint32_t bytes) {
             if (!txth->interleave) return 0;
             return msadpcm_bytes_to_samples(bytes, txth->interleave, txth->channels);
         case ATRAC3:
-            if (!txth->interleave) return 0;
             return atrac3_bytes_to_samples(bytes, txth->interleave);
         case ATRAC3PLUS:
-            if (!txth->interleave) return 0;
             return atrac3plus_bytes_to_samples(bytes, txth->interleave);
         case AAC:
-            if (!txth->streamBody) return 0;
             return aac_get_samples(txth->streamBody, txth->start_offset, bytes);
+        case MPEG:
+            return mpeg_get_samples(txth->streamBody, txth->start_offset, bytes);
+        case AC3:
+            return ac3_bytes_to_samples(bytes, txth->interleave, txth->channels);
 
         /* XMA bytes-to-samples is done at the end as the value meanings are a bit different */
         case XMA1:
         case XMA2:
             return bytes; /* preserve */
-
-        case AC3:
-            if (!txth->interleave) return 0;
-            return bytes / txth->interleave * 256 * txth->channels;
 
         case IMA:
         case DVI_IMA:
@@ -1210,7 +1207,6 @@ static int get_bytes_to_samples(txth_header * txth, uint32_t bytes) {
             if (!txth->interleave) return 0;
             return (bytes / txth->interleave) * (txth->interleave - 2) * 2;
 
-        case MPEG: /* a bit complex */
         case FFMPEG: /* too complex, try after init */
         default:
             return 0;

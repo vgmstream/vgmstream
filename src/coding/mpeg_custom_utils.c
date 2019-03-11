@@ -302,5 +302,64 @@ fail:
     return 0;
 }
 
+size_t mpeg_get_samples(STREAMFILE *streamFile, off_t start_offset, size_t bytes) {
+    off_t offset = start_offset;
+    off_t max_offset = start_offset + bytes;
+    int samples = 0;
+    mpeg_frame_info info;
+    size_t prev_size = 0;
+    int cbr_count = 0;
+    int is_vbr = 0;
+
+    if (!streamFile)
+        return 0;
+
+    if (max_offset > get_streamfile_size(streamFile))
+        max_offset = get_streamfile_size(streamFile);
+
+    /* MPEG may use VBR so must read all frames */
+    while (offset < max_offset) {
+
+        /* skip ID3v2 */
+        if ((read_32bitBE(offset+0x00, streamFile) & 0xFFFFFF00) == 0x49443300) { /* "ID3\0" */
+            size_t frame_size = 0;
+            uint8_t flags = read_8bit(offset+0x05, streamFile);
+            /* this is how it's officially read :/ */
+            frame_size += read_8bit(offset+0x06, streamFile) << 21;
+            frame_size += read_8bit(offset+0x07, streamFile) << 14;
+            frame_size += read_8bit(offset+0x08, streamFile) << 7;
+            frame_size += read_8bit(offset+0x09, streamFile) << 0;
+            frame_size += 0x0a;
+            if (flags & 0x10) /* footer? */
+                frame_size += 0x0a;
+
+            offset += frame_size;
+            continue;
+        }
+
+        /* this may fail with unknown ID3 tags */
+        if (!mpeg_get_frame_info(streamFile, offset, &info))
+            break;
+
+        if (prev_size && prev_size != info.frame_size) {
+            is_vbr = 1;
+        }
+        else if (!is_vbr) {
+            cbr_count++;
+        }
+
+        if (cbr_count >= 10) {
+            /* must be CBR, don't bother counting */
+            samples = (bytes / info.frame_size) * info.frame_samples;
+            break;
+        }
+
+        offset += info.frame_size;
+        prev_size = info.frame_size;
+        samples += info.frame_samples; /* header frames may be 0? */
+    }
+
+    return samples;
+}
 
 #endif
