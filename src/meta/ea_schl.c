@@ -74,6 +74,7 @@
 #define EA_BLOCKID_LOC_JA       0x00004A41 /* Japanese, older */
 #define EA_BLOCKID_LOC_JP       0x00004A50 /* Japanese, newer */
 #define EA_BLOCKID_LOC_PL       0x0000504C /* Polish */
+#define EA_BLOCKID_LOC_BR       0x00004252 /* Brazilian Portuguese */
 
 #define EA_BNK_HEADER_LE        0x424E4B6C /* "BNKl" */
 #define EA_BNK_HEADER_BE        0x424E4B62 /* "BNKb" */
@@ -135,18 +136,19 @@ VGMSTREAM * init_vgmstream_ea_schl(STREAMFILE *streamFile) {
 
     /* check header */
     if (read_32bitBE(0x00,streamFile) != EA_BLOCKID_HEADER &&  /* "SCHl" */
-        read_32bitBE(0x00,streamFile) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_EN) &&  /* "SHEN" */
-        read_32bitBE(0x00,streamFile) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_FR) &&  /* "SHFR" */
-        read_32bitBE(0x00,streamFile) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_GE) &&  /* "SHGE" */
-        read_32bitBE(0x00,streamFile) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_DE) &&  /* "SHDE" */
-        read_32bitBE(0x00,streamFile) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_IT) &&  /* "SHIT" */
-        read_32bitBE(0x00,streamFile) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_SP) &&  /* "SHSP" */
-        read_32bitBE(0x00,streamFile) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_ES) &&  /* "SHES" */
-        read_32bitBE(0x00,streamFile) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_MX) &&  /* "SHMX" */
-        read_32bitBE(0x00,streamFile) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_RU) &&  /* "SHRU" */
-        read_32bitBE(0x00,streamFile) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_JA) &&  /* "SHJA" */
-        read_32bitBE(0x00,streamFile) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_JP) &&  /* "SHJP" */
-        read_32bitBE(0x00,streamFile) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_PL))    /* "SHPL" */
+        read_32bitBE(0x00,streamFile) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_EN) && /* "SHEN" */
+        read_32bitBE(0x00,streamFile) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_FR) && /* "SHFR" */
+        read_32bitBE(0x00,streamFile) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_GE) && /* "SHGE" */
+        read_32bitBE(0x00,streamFile) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_DE) && /* "SHDE" */
+        read_32bitBE(0x00,streamFile) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_IT) && /* "SHIT" */
+        read_32bitBE(0x00,streamFile) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_SP) && /* "SHSP" */
+        read_32bitBE(0x00,streamFile) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_ES) && /* "SHES" */
+        read_32bitBE(0x00,streamFile) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_MX) && /* "SHMX" */
+        read_32bitBE(0x00,streamFile) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_RU) && /* "SHRU" */
+        read_32bitBE(0x00,streamFile) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_JA) && /* "SHJA" */
+        read_32bitBE(0x00,streamFile) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_JP) && /* "SHJP" */
+        read_32bitBE(0x00,streamFile) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_PL) && /* "SHPL" */
+        read_32bitBE(0x00,streamFile) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_BR))   /* "SHBR" */
         goto fail;
 
     /* Stream is divided into blocks/chunks: SCHl=audio header, SCCl=count of SCDl, SCDl=data xN, SCLl=loop end, SCEl=end.
@@ -155,6 +157,89 @@ VGMSTREAM * init_vgmstream_ea_schl(STREAMFILE *streamFile) {
     return parse_schl_block(streamFile, 0x00, 1);
 
 fail:
+    return NULL;
+}
+
+/* EA SCHl inside non-demuxed videos, used in current gen games too */
+VGMSTREAM * init_vgmstream_ea_schl_video(STREAMFILE *streamFile) {
+    VGMSTREAM * vgmstream = NULL;
+    off_t offset = 0, start_offset = 0;
+    int blocks_done = 0;
+    int total_subsongs, target_subsong = streamFile->stream_index;
+    int32_t(*read_32bit)(off_t, STREAMFILE*);
+
+
+    /* check extension */
+    /* .vp6: ~late */
+    if (!check_extensions(streamFile,"vp6"))
+        goto fail;
+
+    /* check initial movie block id */
+    if (read_32bitBE(0x00,streamFile) != 0x4D566864) /* "MVhd" */
+        goto fail;
+
+    /* use block size to check endianness */
+    if (guess_endianness32bit(0x04, streamFile)) {
+        read_32bit = read_32bitBE;
+    } else {
+        read_32bit = read_32bitLE;
+    }
+
+    /* find starting valid header for the parser */
+    while (offset < get_streamfile_size(streamFile)) {
+        uint32_t block_id   = read_32bitBE(offset+0x00,streamFile);
+        uint32_t block_size = read_32bit  (offset+0x04,streamFile);
+
+        /* find "SCHl" or "SHxx" blocks */
+        if ((block_id == EA_BLOCKID_HEADER) || ((block_id & 0xFFFF0000) == EA_BLOCKID_LOC_HEADER)) {
+            start_offset = offset;
+            break;
+        }
+
+        if (block_size == 0xFFFFFFFF)
+            goto fail;
+        if (blocks_done > 10)
+            goto fail; /* unlikely to contain music */
+
+        blocks_done++;
+        offset += block_size;
+    }
+
+    if (start_offset == 0)
+        goto fail;
+
+    /* find target subsong (one per each SHxx multilang block) */
+    total_subsongs = 1;
+    if (target_subsong == 0) target_subsong = 1;
+    offset = start_offset;
+    while (offset < get_streamfile_size(streamFile)) {
+        uint32_t block_id   = read_32bitBE(offset+0x00,streamFile);
+        uint32_t block_size = read_32bit  (offset+0x04,streamFile);
+
+        /* no more subsongs (assumes all SHxx headers go together) */
+        if (((block_id & 0xFFFF0000) != EA_BLOCKID_LOC_HEADER)) {
+            break;
+        }
+
+        if (target_subsong == total_subsongs) {
+            start_offset = offset;
+            /* keep counting subsongs */
+        }
+
+        total_subsongs++;
+        offset += block_size;
+    }
+
+    if (target_subsong < 0 || target_subsong > total_subsongs || total_subsongs < 1) goto fail;
+
+    vgmstream = parse_schl_block(streamFile, start_offset, 1);
+    if (!vgmstream) goto fail;
+
+    vgmstream->num_streams = total_subsongs;
+    return vgmstream;
+
+fail:
+    close_vgmstream(vgmstream);
     return NULL;
 }
 
@@ -702,7 +787,15 @@ fail:
 static VGMSTREAM * parse_schl_block(STREAMFILE *streamFile, off_t offset, int standalone) {
     off_t start_offset, header_offset;
     size_t header_size;
+    uint32_t header_id;
     ea_header ea = { 0 };
+
+    /* use higher bits to store target localized block in case of multilang video,
+     * so only header sub-id will be read and other langs skipped */
+    header_id = read_32bitBE(offset + 0x00, streamFile);
+    if ((header_id & 0xFFFF0000) == EA_BLOCKID_LOC_HEADER) {
+        ea.codec_config |= (header_id & 0xFFFF) << 16;
+    }
 
     if (guess_endianness32bit(offset + 0x04, streamFile)) { /* size is always LE, except in early SS/MAC */
         header_size = read_32bitBE(offset + 0x04, streamFile);
@@ -1497,6 +1590,7 @@ static off_t get_ea_stream_mpeg_start_offset(STREAMFILE* streamFile, off_t start
     size_t file_size = get_streamfile_size(streamFile);
     off_t block_offset = start_offset;
     int32_t (*read_32bit)(off_t,STREAMFILE*) = ea->big_endian ? read_32bitBE : read_32bitLE;
+    uint32_t header_lang = (ea->codec_config >> 16) & 0xFFFF;
 
     while (block_offset < file_size) {
         uint32_t block_id, block_size;
@@ -1508,27 +1602,16 @@ static off_t get_ea_stream_mpeg_start_offset(STREAMFILE* streamFile, off_t start
         if (block_size > 0x00F00000) /* size is always LE, except in early SAT/MAC */
             block_size = read_32bitBE(block_offset+0x04,streamFile);
 
-        switch(block_id) {
-            case EA_BLOCKID_DATA: /* "SCDl" */
-            case EA_BLOCKID_LOC_DATA | EA_BLOCKID_LOC_EN: /* "SDEN" */
-            case EA_BLOCKID_LOC_DATA | EA_BLOCKID_LOC_FR: /* "SDFR" */
-            case EA_BLOCKID_LOC_DATA | EA_BLOCKID_LOC_GE: /* "SDGE" */
-            case EA_BLOCKID_LOC_DATA | EA_BLOCKID_LOC_DE: /* "SDDE" */
-            case EA_BLOCKID_LOC_DATA | EA_BLOCKID_LOC_IT: /* "SDIT" */
-            case EA_BLOCKID_LOC_DATA | EA_BLOCKID_LOC_SP: /* "SDSP" */
-            case EA_BLOCKID_LOC_DATA | EA_BLOCKID_LOC_ES: /* "SDES" */
-            case EA_BLOCKID_LOC_DATA | EA_BLOCKID_LOC_MX: /* "SDMX" */
-            case EA_BLOCKID_LOC_DATA | EA_BLOCKID_LOC_RU: /* "SDRU" */
-            case EA_BLOCKID_LOC_DATA | EA_BLOCKID_LOC_JA: /* "SDJA" */
-            case EA_BLOCKID_LOC_DATA | EA_BLOCKID_LOC_JP: /* "SDJP" */
-            case EA_BLOCKID_LOC_DATA | EA_BLOCKID_LOC_PL: /* "SDPL" */
-                offset = read_32bit(block_offset+0x0c,streamFile); /* first value seems ok, second is something else in EALayer3 */
-                return block_offset + 0x0c + ea->channels*0x04 + offset;
-            case 0x00000000:
-                goto fail; /* just in case */
-            default:
-                block_offset += block_size; /* size includes header */
-                break;
+        if (block_id == EA_BLOCKID_DATA || block_id == ((EA_BLOCKID_LOC_DATA | header_lang))) {
+            /* "SCDl" or target "SDxx" multilang blocks */
+            offset = read_32bit(block_offset+0x0c,streamFile); /* first value seems ok, second is something else in EALayer3 */
+            return block_offset + 0x0c + ea->channels*0x04 + offset;
+        }
+        else if (block_id == 0x00000000) {
+            goto fail; /* just in case */
+        }
+        else {
+            block_offset += block_size; /* size includes header */
         }
     }
 

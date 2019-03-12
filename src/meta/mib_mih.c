@@ -7,7 +7,7 @@ VGMSTREAM * init_vgmstream_mib_mih(STREAMFILE *streamFile) {
     STREAMFILE * streamHeader = NULL;
     off_t start_offset;
     size_t data_size, frame_size, frame_last, frame_count;
-    int channel_count, loop_flag;
+    int channel_count, loop_flag, sample_rate;
 
     /* check extension */
     if (!check_extensions(streamFile, "mib"))
@@ -19,20 +19,22 @@ VGMSTREAM * init_vgmstream_mib_mih(STREAMFILE *streamFile) {
     if (read_32bitBE(0x00,streamHeader) != 0x40000000) /* header size */
         goto fail;
 
-    loop_flag = 0; /* MIB+MIH don't PS-ADPCM loop flags */
-    channel_count = read_32bitLE(0x08,streamHeader);
+    loop_flag = 0; /* MIB+MIH don't loop (nor use PS-ADPCM flags) per spec */
     start_offset = 0x00;
 
-    /* 0x04: padding (0x20, MIH header must be multiple of 0x40) */
-    frame_last  = (uint16_t)read_16bitLE(0x05,streamHeader);
-    frame_size  = read_32bitLE(0x10,streamHeader);
-    frame_count = read_32bitLE(0x14,streamHeader);
+    /* 0x04: padding size (always 0x20, MIH header must be multiple of 0x40) */
+    frame_last      = (uint32_t)read_32bitLE(0x05,streamHeader) & 0x00FFFFFF; /* 24b */
+    channel_count   = read_32bitLE(0x08,streamHeader);
+    sample_rate     = read_32bitLE(0x0c,streamHeader);
+    frame_size      = read_32bitLE(0x10,streamHeader);
+    frame_count     = read_32bitLE(0x14,streamHeader);
     if (frame_count == 0) { /* rarely [Gladius (PS2)] */
         frame_count = get_streamfile_size(streamFile) / (frame_size * channel_count);
     }
 
     data_size  = frame_count * frame_size;
-    data_size -= frame_last ? (frame_size-frame_last) : 0; /* last frame has less usable data */
+    if (frame_last)
+        data_size -= frame_size - frame_last; /* last frame has less usable data */
     data_size *= channel_count;
 
 
@@ -40,7 +42,7 @@ VGMSTREAM * init_vgmstream_mib_mih(STREAMFILE *streamFile) {
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
-    vgmstream->sample_rate = read_32bitLE(0x0C,streamHeader);
+    vgmstream->sample_rate = sample_rate;
     vgmstream->num_samples = ps_bytes_to_samples(data_size, channel_count);
 
     vgmstream->meta_type = meta_PS2_MIB_MIH;

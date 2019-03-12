@@ -151,13 +151,14 @@ void decode_nxap(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacin
 }
 
 size_t yamaha_bytes_to_samples(size_t bytes, int channels) {
+    if (channels <= 0) return 0;
     /* 2 samples per byte (2 nibbles) in stereo or mono config */
     return bytes * 2 / channels;
 }
 
 size_t aska_bytes_to_samples(size_t bytes, int channels) {
     int block_align = 0x40;
-
+    if (channels <= 0) return 0;
     return (bytes / block_align) * (block_align - 0x04*channels) * 2 / channels
             + ((bytes % block_align) ? ((bytes % block_align) - 0x04*channels) * 2 / channels : 0);
 }

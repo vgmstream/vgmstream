@@ -182,7 +182,7 @@ ptp_btl_bgm_voice.sgd#s1#h11050
 ### Install loops
 **`#I(loop start time) (loop end time)`**: force/override looping values, same as .pos but nicer. Loop end is optional and defaults to total samples.
 
-Time values can be `M:S(.n)` (minutes and seconds), `S.n` (seconds with dot) or `N` (samples). Beware of the subtle difference between 10.0 (10 seconds) and 10 (10 samples). Wrong loop values (for example loop end being much larger than file's samples) will be ignored, but there is some leeway when using seconds for the loop end.
+Time values can be `M:S(.n)` (minutes and seconds), `S.n` (seconds with dot), `0xN` (samples in hex format) or `N` (samples). Beware of the subtle difference between 10.0 (ten seconds) and 10 (ten samples). Wrong loop values (for example loop end being much larger than file's samples) will be ignored, but there is some leeway when using seconds for the loop end.
 
 **Jewels Ocean (PC)**
 ```

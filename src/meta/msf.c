@@ -2,12 +2,12 @@
 #include "../coding/coding.h"
 
 /* MSF - Sony's PS3 SDK format (MultiStream File) */
-VGMSTREAM * init_vgmstream_ps3_msf(STREAMFILE *streamFile) {
+VGMSTREAM * init_vgmstream_msf(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     off_t start_offset;
     uint32_t data_size, loop_start = 0, loop_end = 0;
-  	uint32_t id, codec_id, flags;
-    int loop_flag = 0, channel_count;
+    uint32_t codec, flags;
+    int loop_flag, channel_count, sample_rate;
 
 
     /* checks */
@@ -17,19 +17,19 @@ VGMSTREAM * init_vgmstream_ps3_msf(STREAMFILE *streamFile) {
     if (!check_extensions(streamFile,"msf,at3,mp3"))
         goto fail;
 
-    start_offset = 0x40;
-
     /* check header "MSF" + version-char, usually:
      *  0x01, 0x02, 0x30 ("0"), 0x35 ("5"), 0x43 ("C") (last/most common version) */
-    id = read_32bitBE(0x00,streamFile);
-    if ((id & 0xffffff00) != 0x4D534600) goto fail;
+    if ((read_32bitBE(0x00,streamFile) & 0xffffff00) != 0x4D534600) /* "MSF\0" */
+        goto fail;
 
+    start_offset = 0x40;
 
-    codec_id = read_32bitBE(0x04,streamFile);
+    codec = read_32bitBE(0x04,streamFile);
     channel_count = read_32bitBE(0x08,streamFile);
     data_size = read_32bitBE(0x0C,streamFile); /* without header */
     if (data_size == 0xFFFFFFFF) /* unneeded? */
         data_size = get_streamfile_size(streamFile) - start_offset;
+    sample_rate = read_32bitBE(0x10,streamFile);
 
     /* byte flags, not in MSFv1 or v2
      *  0x01/02/04/08: loop marker 0/1/2/3
@@ -56,17 +56,15 @@ VGMSTREAM * init_vgmstream_ps3_msf(STREAMFILE *streamFile) {
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
-    vgmstream->sample_rate = read_32bitBE(0x10,streamFile);
-    /* sample rate hack for strange MSFv1 files (PS ADPCM only?) */
-	if (vgmstream->sample_rate == 0x00000000)
-		vgmstream->sample_rate = 48000;
+    vgmstream->meta_type = meta_MSF;
+    vgmstream->sample_rate = sample_rate;
+    if (vgmstream->sample_rate == 0) /* some MSFv1 (PS-ADPCM only?) [Megazone 23 - Aoi Garland (PS3)] */
+        vgmstream->sample_rate = 48000;
 
-    vgmstream->meta_type = meta_PS3_MSF;
-
-    switch (codec_id) {
+    switch (codec) {
         case 0x00:   /* PCM (Big Endian) */
         case 0x01: { /* PCM (Little Endian) [Smash Cars (PS3)] */
-            vgmstream->coding_type = codec_id==0 ? coding_PCM16BE : coding_PCM16LE;
+            vgmstream->coding_type = codec==0 ? coding_PCM16BE : coding_PCM16LE;
             vgmstream->layout_type = channel_count == 1 ? layout_none : layout_interleave;
             vgmstream->interleave_block_size = 2;
 
@@ -85,7 +83,7 @@ VGMSTREAM * init_vgmstream_ps3_msf(STREAMFILE *streamFile) {
 
         case 0x03: { /* PS ADPCM [Smash Cars (PS3)] */
             vgmstream->coding_type = coding_PSX;
-            vgmstream->layout_type = channel_count == 1 ? layout_none : layout_interleave;
+            vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = 0x10;
 
             vgmstream->num_samples = ps_bytes_to_samples(data_size, channel_count);
@@ -105,8 +103,8 @@ VGMSTREAM * init_vgmstream_ps3_msf(STREAMFILE *streamFile) {
             uint8_t buf[100];
             int32_t bytes, block_size, encoder_delay, joint_stereo;
 
-            block_size    = (codec_id==4 ? 0x60 : (codec_id==5 ? 0x98 : 0xC0)) * vgmstream->channels;
-            joint_stereo  = (codec_id==4); /* interleaved joint stereo (ch must be even) */
+            block_size    = (codec==4 ? 0x60 : (codec==5 ? 0x98 : 0xC0)) * vgmstream->channels;
+            joint_stereo  = (codec==4); /* interleaved joint stereo (ch must be even) */
 
             /* MSF skip samples: from tests with MSEnc and real files (ex. TTT2 eddy.msf v43, v01 demos) seems like 1162 is consistent.
              * Atelier Rorona bt_normal01 needs it to properly skip the beginning garbage but usually doesn't matter.

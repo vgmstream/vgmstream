@@ -118,9 +118,16 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
             ww.bits_per_sample   = (uint16_t)read_16bit(ww.fmt_offset+0x0e,streamFile);
             if (ww.fmt_size > 0x10 && ww.format != 0x0165 && ww.format != 0x0166) /* ignore XMAWAVEFORMAT */
                 ww.extra_size   = (uint16_t)read_16bit(ww.fmt_offset+0x10,streamFile);
-            if (ww.extra_size >= 0x06) { /* mostly WAVEFORMATEXTENSIBLE's bitmask, see AkSpeakerConfig.h */
-                /* always present (actual RIFFs only have it in WAVEFORMATEXTENSIBLE) */
+            if (ww.extra_size >= 0x06) { /* always present (actual RIFFs only have it in WAVEFORMATEXTENSIBLE) */
+                /* mostly WAVEFORMATEXTENSIBLE's bitmask (see AkSpeakerConfig.h) */
                 ww.channel_layout = read_32bit(ww.fmt_offset+0x14,streamFile);
+                /* latest games have a pseudo-format instead to handle more cases:
+                 * - 8b: uNumChannels
+                 * - 4b: eConfigType  (0=none, 1=standard, 2=ambisonic)
+                 * - 19b: uChannelMask */
+                if ((ww.channel_layout & 0xFF) == ww.channels) {
+                    ww.channel_layout = (ww.channel_layout >> 12);
+                }
             }
         }
 

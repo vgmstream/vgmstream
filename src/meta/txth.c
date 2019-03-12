@@ -34,6 +34,7 @@ typedef enum {
     PCM4 = 25,          /* 4-bit signed PCM (3rd and 4th gen games) */
     PCM4_U = 26,        /* 4-bit unsigned PCM (3rd and 4th gen games) */
     OKI16 = 27,         /* OKI ADPCM with 16-bit output (unlike OKI/VOX/Dialogic ADPCM's 12-bit) */
+    AAC = 28,           /* Advanced Audio Coding (raw without .mp4) */
 } txth_type;
 
 typedef struct {
@@ -73,6 +74,8 @@ typedef struct {
     uint32_t coef_spacing;
     uint32_t coef_big_endian;
     uint32_t coef_mode;
+    int coef_table_set;
+    uint8_t coef_table[0x02*16 * 16]; /* reasonable max */
 
     int num_samples_data_size;
 
@@ -83,6 +86,11 @@ typedef struct {
     uint32_t name_offset_set;
     uint32_t name_offset;
     uint32_t name_size;
+
+    int subfile_set;
+    uint32_t subfile_offset;
+    uint32_t subfile_size;
+    char subfile_extension[32];
 
     /* original STREAMFILE and its type (may be an unsupported "base" file or a .txth) */
     STREAMFILE *streamFile;
@@ -98,12 +106,9 @@ typedef struct {
 
 } txth_header;
 
-
 static STREAMFILE * open_txth(STREAMFILE * streamFile);
+static VGMSTREAM *init_subfile(txth_header * txth);
 static int parse_txth(txth_header * txth);
-static int parse_keyval(STREAMFILE * streamFile, txth_header * txth, const char * key, char * val);
-static int parse_num(STREAMFILE * streamFile, txth_header * txth, const char * val, uint32_t * out_value);
-static int get_bytes_to_samples(txth_header * txth, uint32_t bytes);
 
 
 /* TXTH - an artificial "generic" header for headerless streams.
@@ -148,6 +153,11 @@ VGMSTREAM * init_vgmstream_txth(STREAMFILE *streamFile) {
     if (!parse_txth(&txth))
         goto fail;
 
+    /* special case of parsing subfiles */
+    if (txth.subfile_set) {
+        return init_subfile(&txth);
+    }
+
 
     /* type to coding conversion */
     switch (txth.codec) {
@@ -177,6 +187,7 @@ VGMSTREAM * init_vgmstream_txth(STREAMFILE *streamFile) {
         case XMA1:
         case XMA2:
         case AC3:
+        case AAC:
         case FFMPEG:     coding = coding_FFmpeg; break;
 #endif
         case PCFX:       coding = coding_PCFX; break;
@@ -343,11 +354,17 @@ VGMSTREAM * init_vgmstream_txth(STREAMFILE *streamFile) {
             /* get coefs */
             for (i = 0; i < vgmstream->channels; i++) {
                 int16_t (*read_16bit)(off_t , STREAMFILE*) = txth.coef_big_endian ? read_16bitBE : read_16bitLE;
+                int16_t (*get_16bit)(uint8_t * p) = txth.coef_big_endian ? get_16bitBE : get_16bitLE;
 
                 /* normal/split coefs */
                 if (txth.coef_mode == 0) { /* normal mode */
                     for (j = 0; j < 16; j++) {
-                        vgmstream->ch[i].adpcm_coef[j] = read_16bit(txth.coef_offset + i*txth.coef_spacing  + j*2, txth.streamHead);
+                        int16_t coef;
+                        if (txth.coef_table_set)
+                            coef =  get_16bit(txth.coef_table  + i*txth.coef_spacing  + j*2);
+                        else
+                            coef = read_16bit(txth.coef_offset + i*txth.coef_spacing  + j*2, txth.streamHead);
+                        vgmstream->ch[i].adpcm_coef[j] = coef;
                     }
                 }
                 else { /* split coefs */
@@ -375,7 +392,7 @@ VGMSTREAM * init_vgmstream_txth(STREAMFILE *streamFile) {
         case coding_FFmpeg: {
             ffmpeg_codec_data *ffmpeg_data = NULL;
 
-            if (txth.codec == FFMPEG || txth.codec == AC3) {
+            if (txth.codec == FFMPEG || txth.codec == AC3 || txth.codec == AAC) {
                 /* default FFmpeg */
                 ffmpeg_data = init_ffmpeg_offset(txth.streamBody, txth.start_offset,txth.data_size);
                 if ( !ffmpeg_data ) goto fail;
@@ -490,6 +507,55 @@ fail:
     return NULL;
 }
 
+static VGMSTREAM *init_subfile(txth_header * txth) {
+    VGMSTREAM *vgmstream = NULL;
+    char extension[PATH_LIMIT];
+    STREAMFILE * streamSubfile = NULL;
+
+
+    if (txth->subfile_size == 0)
+        txth->subfile_size = txth->data_size - txth->subfile_offset;
+    if (txth->subfile_extension[0] == '\0')
+        get_streamfile_ext(txth->streamFile,txth->subfile_extension,sizeof(txth->subfile_extension));
+
+    /* must detect a potential infinite loop:
+     * - init_vgmstream enters TXTH and reads .txth
+     * - TXTH subfile calls init, nothing is detected
+     * - init_vgmstream enters TXTH and reads .txth
+     * - etc
+     * to avoid it we set a particular fake extension and detect it when reading .txth
+     */
+    strcpy(extension, "subfile_txth.");
+    strcat(extension, txth->subfile_extension);
+
+    streamSubfile = setup_subfile_streamfile(txth->streamBody, txth->subfile_offset, txth->subfile_size, extension);
+    if (!streamSubfile) goto fail;
+
+    vgmstream = init_vgmstream_from_STREAMFILE(streamSubfile);
+    if (!vgmstream) goto fail;
+
+    /* apply some fields */
+    if (txth->sample_rate)
+        vgmstream->sample_rate = txth->sample_rate;
+    if (txth->num_samples)
+        vgmstream->num_samples = txth->num_samples;
+
+    if (txth->loop_flag) {
+        vgmstream_force_loop(vgmstream, txth->loop_flag, txth->loop_start_sample, txth->loop_end_sample);
+    }
+    else if (txth->loop_flag_set && vgmstream->loop_flag) {
+        vgmstream_force_loop(vgmstream, 0, 0, 0);
+    }
+
+    close_streamfile(streamSubfile);
+    return vgmstream;
+
+fail:
+    close_streamfile(streamSubfile);
+    close_vgmstream(vgmstream);
+    return NULL;
+}
+
 
 static STREAMFILE * open_txth(STREAMFILE * streamFile) {
     char basename[PATH_LIMIT];
@@ -500,6 +566,8 @@ static STREAMFILE * open_txth(STREAMFILE * streamFile) {
 
     /* try "(path/)(name.ext).txth" */
     get_streamfile_name(streamFile,filename,PATH_LIMIT);
+    if (strstr(filename, "subfile_txth") != NULL)
+        return NULL; /* detect special case of subfile-within-subfile */
     strcat(filename, ".txth");
     streamText = open_streamfile(streamFile,filename);
     if (streamText) return streamText;
@@ -539,6 +607,16 @@ static STREAMFILE * open_txth(STREAMFILE * streamFile) {
     return NULL;
 }
 
+/* ****************************************************************** */
+
+static int parse_keyval(STREAMFILE * streamFile, txth_header * txth, const char * key, char * val);
+static int parse_num(STREAMFILE * streamFile, txth_header * txth, const char * val, uint32_t * out_value);
+static int parse_string(STREAMFILE * streamFile, txth_header * txth, const char * val, char * str);
+static int parse_coef_table(STREAMFILE * streamFile, txth_header * txth, const char * val, uint8_t * out_value, size_t out_size);
+static int is_string(const char * val, const char * cmp);
+static int is_substring(const char * val, const char * cmp);
+static int get_bytes_to_samples(txth_header * txth, uint32_t bytes);
+
 /* Simple text parser of "key = value" lines.
  * The code is meh and error handling not exactly the best. */
 static int parse_txth(txth_header * txth) {
@@ -573,8 +651,8 @@ static int parse_txth(txth_header * txth) {
 
         txt_offset += bytes_read;
         
-        /* get key/val (ignores lead/trail spaces, stops at space/comment/separator) */
-        ok = sscanf(line, " %[^ \t#=] = %[^ \t#\r\n] ", key,val);
+        /* get key/val (ignores lead spaces, stops at space/comment/separator) */
+        ok = sscanf(line, " %[^ \t#=] = %[^\t#\r\n] ", key,val);
         if (ok != 2) /* ignore line if no key=val (comment or garbage) */
             continue;
 
@@ -599,38 +677,39 @@ fail:
 static int parse_keyval(STREAMFILE * streamFile_, txth_header * txth, const char * key, char * val) {
     //;VGM_LOG("TXTH: key=%s, val=%s\n", key, val);
 
-    if (0==strcmp(key,"codec")) {
-        if      (0==strcmp(val,"PSX"))          txth->codec = PSX;
-        else if (0==strcmp(val,"XBOX"))         txth->codec = XBOX;
-        else if (0==strcmp(val,"NGC_DTK"))      txth->codec = NGC_DTK;
-        else if (0==strcmp(val,"DTK"))          txth->codec = NGC_DTK;
-        else if (0==strcmp(val,"PCM16BE"))      txth->codec = PCM16BE;
-        else if (0==strcmp(val,"PCM16LE"))      txth->codec = PCM16LE;
-        else if (0==strcmp(val,"PCM8"))         txth->codec = PCM8;
-        else if (0==strcmp(val,"SDX2"))         txth->codec = SDX2;
-        else if (0==strcmp(val,"DVI_IMA"))      txth->codec = DVI_IMA;
-        else if (0==strcmp(val,"MPEG"))         txth->codec = MPEG;
-        else if (0==strcmp(val,"IMA"))          txth->codec = IMA;
-        else if (0==strcmp(val,"YAMAHA"))       txth->codec = YAMAHA;
-        else if (0==strcmp(val,"AICA"))         txth->codec = YAMAHA;
-        else if (0==strcmp(val,"MSADPCM"))      txth->codec = MSADPCM;
-        else if (0==strcmp(val,"NGC_DSP"))      txth->codec = NGC_DSP;
-        else if (0==strcmp(val,"DSP"))          txth->codec = NGC_DSP;
-        else if (0==strcmp(val,"PCM8_U_int"))   txth->codec = PCM8_U_int;
-        else if (0==strcmp(val,"PSX_bf"))       txth->codec = PSX_bf;
-        else if (0==strcmp(val,"MS_IMA"))       txth->codec = MS_IMA;
-        else if (0==strcmp(val,"PCM8_U"))       txth->codec = PCM8_U;
-        else if (0==strcmp(val,"APPLE_IMA4"))   txth->codec = APPLE_IMA4;
-        else if (0==strcmp(val,"ATRAC3"))       txth->codec = ATRAC3;
-        else if (0==strcmp(val,"ATRAC3PLUS"))   txth->codec = ATRAC3PLUS;
-        else if (0==strcmp(val,"XMA1"))         txth->codec = XMA1;
-        else if (0==strcmp(val,"XMA2"))         txth->codec = XMA2;
-        else if (0==strcmp(val,"FFMPEG"))       txth->codec = FFMPEG;
-        else if (0==strcmp(val,"AC3"))          txth->codec = AC3;
-        else if (0==strcmp(val,"PCFX"))         txth->codec = PCFX;
-        else if (0==strcmp(val,"PCM4"))         txth->codec = PCM4;
-        else if (0==strcmp(val,"PCM4_U"))       txth->codec = PCM4_U;
-        else if (0==strcmp(val,"OKI16"))        txth->codec = OKI16;
+    if (is_string(key,"codec")) {
+        if      (is_string(val,"PSX"))          txth->codec = PSX;
+        else if (is_string(val,"XBOX"))         txth->codec = XBOX;
+        else if (is_string(val,"NGC_DTK"))      txth->codec = NGC_DTK;
+        else if (is_string(val,"DTK"))          txth->codec = NGC_DTK;
+        else if (is_string(val,"PCM16BE"))      txth->codec = PCM16BE;
+        else if (is_string(val,"PCM16LE"))      txth->codec = PCM16LE;
+        else if (is_string(val,"PCM8"))         txth->codec = PCM8;
+        else if (is_string(val,"SDX2"))         txth->codec = SDX2;
+        else if (is_string(val,"DVI_IMA"))      txth->codec = DVI_IMA;
+        else if (is_string(val,"MPEG"))         txth->codec = MPEG;
+        else if (is_string(val,"IMA"))          txth->codec = IMA;
+        else if (is_string(val,"YAMAHA"))       txth->codec = YAMAHA;
+        else if (is_string(val,"AICA"))         txth->codec = YAMAHA;
+        else if (is_string(val,"MSADPCM"))      txth->codec = MSADPCM;
+        else if (is_string(val,"NGC_DSP"))      txth->codec = NGC_DSP;
+        else if (is_string(val,"DSP"))          txth->codec = NGC_DSP;
+        else if (is_string(val,"PCM8_U_int"))   txth->codec = PCM8_U_int;
+        else if (is_string(val,"PSX_bf"))       txth->codec = PSX_bf;
+        else if (is_string(val,"MS_IMA"))       txth->codec = MS_IMA;
+        else if (is_string(val,"PCM8_U"))       txth->codec = PCM8_U;
+        else if (is_string(val,"APPLE_IMA4"))   txth->codec = APPLE_IMA4;
+        else if (is_string(val,"ATRAC3"))       txth->codec = ATRAC3;
+        else if (is_string(val,"ATRAC3PLUS"))   txth->codec = ATRAC3PLUS;
+        else if (is_string(val,"XMA1"))         txth->codec = XMA1;
+        else if (is_string(val,"XMA2"))         txth->codec = XMA2;
+        else if (is_string(val,"FFMPEG"))       txth->codec = FFMPEG;
+        else if (is_string(val,"AC3"))          txth->codec = AC3;
+        else if (is_string(val,"PCFX"))         txth->codec = PCFX;
+        else if (is_string(val,"PCM4"))         txth->codec = PCM4;
+        else if (is_string(val,"PCM4_U"))       txth->codec = PCM4_U;
+        else if (is_string(val,"OKI16"))        txth->codec = OKI16;
+        else if (is_string(val,"AAC"))          txth->codec = AAC;
         else goto fail;
 
         /* set common interleaves to simplify usage
@@ -648,31 +727,31 @@ static int parse_keyval(STREAMFILE * streamFile_, txth_header * txth, const char
             }
         }
     }
-    else if (0==strcmp(key,"codec_mode")) {
+    else if (is_string(key,"codec_mode")) {
         if (!parse_num(txth->streamHead,txth,val, &txth->codec_mode)) goto fail;
     }
-    else if (0==strcmp(key,"value_mul") || 0==strcmp(key,"value_*")) {
+    else if (is_string(key,"value_mul") || is_string(key,"value_*")) {
         if (!parse_num(txth->streamHead,txth,val, &txth->value_mul)) goto fail;
     }
-    else if (0==strcmp(key,"value_div") || 0==strcmp(key,"value_/")) {
+    else if (is_string(key,"value_div") || is_string(key,"value_/")) {
         if (!parse_num(txth->streamHead,txth,val, &txth->value_div)) goto fail;
     }
-    else if (0==strcmp(key,"value_add") || 0==strcmp(key,"value_+")) {
+    else if (is_string(key,"value_add") || is_string(key,"value_+")) {
         if (!parse_num(txth->streamHead,txth,val, &txth->value_add)) goto fail;
     }
-    else if (0==strcmp(key,"value_sub") || 0==strcmp(key,"value_-")) {
+    else if (is_string(key,"value_sub") || is_string(key,"value_-")) {
         if (!parse_num(txth->streamHead,txth,val, &txth->value_sub)) goto fail;
     }
-    else if (0==strcmp(key,"id_value")) {
+    else if (is_string(key,"id_value")) {
         if (!parse_num(txth->streamHead,txth,val, &txth->id_value)) goto fail;
     }
-    else if (0==strcmp(key,"id_offset")) {
+    else if (is_string(key,"id_offset")) {
         if (!parse_num(txth->streamHead,txth,val, &txth->id_offset)) goto fail;
         if (txth->id_value != txth->id_offset) /* evaluate current ID */
             goto fail;
     }
-    else if (0==strcmp(key,"interleave")) {
-        if (0==strcmp(val,"half_size")) {
+    else if (is_string(key,"interleave")) {
+        if (is_string(val,"half_size")) {
             if (txth->channels == 0) goto fail;
             txth->interleave = txth->data_size / txth->channels;
         }
@@ -680,8 +759,8 @@ static int parse_keyval(STREAMFILE * streamFile_, txth_header * txth, const char
             if (!parse_num(txth->streamHead,txth,val, &txth->interleave)) goto fail;
         }
     }
-    else if (0==strcmp(key,"interleave_last")) {
-        if (0==strcmp(val,"auto")) {
+    else if (is_string(key,"interleave_last")) {
+        if (is_string(val,"auto")) {
             if (txth->channels > 0 && txth->interleave > 0)
                 txth->interleave_last = (txth->data_size % (txth->interleave * txth->channels)) / txth->channels;
         }
@@ -689,31 +768,31 @@ static int parse_keyval(STREAMFILE * streamFile_, txth_header * txth, const char
             if (!parse_num(txth->streamHead,txth,val, &txth->interleave_last)) goto fail;
         }
     }
-    else if (0==strcmp(key,"channels")) {
+    else if (is_string(key,"channels")) {
         if (!parse_num(txth->streamHead,txth,val, &txth->channels)) goto fail;
     }
-    else if (0==strcmp(key,"sample_rate")) {
+    else if (is_string(key,"sample_rate")) {
         if (!parse_num(txth->streamHead,txth,val, &txth->sample_rate)) goto fail;
     }
-    else if (0==strcmp(key,"start_offset")) {
+    else if (is_string(key,"start_offset")) {
         if (!parse_num(txth->streamHead,txth,val, &txth->start_offset)) goto fail;
         if (!txth->data_size_set) {
             txth->data_size = !txth->streamBody ? 0 :
                     get_streamfile_size(txth->streamBody) - txth->start_offset; /* re-evaluate */
         }
     }
-    else if (0==strcmp(key,"data_size")) {
+    else if (is_string(key,"data_size")) {
         if (!parse_num(txth->streamHead,txth,val, &txth->data_size)) goto fail;
         txth->data_size_set = 1;
     }
-    else if (0==strcmp(key,"sample_type")) {
-        if (0==strcmp(val,"samples")) txth->sample_type = 0;
-        else if (0==strcmp(val,"bytes")) txth->sample_type = 1;
-        else if (0==strcmp(val,"blocks")) txth->sample_type = 2;
+    else if (is_string(key,"sample_type")) {
+        if (is_string(val,"samples")) txth->sample_type = 0;
+        else if (is_string(val,"bytes")) txth->sample_type = 1;
+        else if (is_string(val,"blocks")) txth->sample_type = 2;
         else goto fail;
     }
-    else if (0==strcmp(key,"num_samples")) {
-        if (0==strcmp(val,"data_size")) {
+    else if (is_string(key,"num_samples")) {
+        if (is_string(val,"data_size")) {
             txth->num_samples = get_bytes_to_samples(txth, txth->data_size);
             txth->num_samples_data_size = 1;
         }
@@ -725,7 +804,7 @@ static int parse_keyval(STREAMFILE * streamFile_, txth_header * txth, const char
                 txth->num_samples = get_bytes_to_samples(txth, txth->num_samples * (txth->interleave*txth->channels));
         }
     }
-    else if (0==strcmp(key,"loop_start_sample")) {
+    else if (is_string(key,"loop_start_sample")) {
         if (!parse_num(txth->streamHead,txth,val, &txth->loop_start_sample)) goto fail;
         if (txth->sample_type==1)
             txth->loop_start_sample = get_bytes_to_samples(txth, txth->loop_start_sample);
@@ -734,8 +813,8 @@ static int parse_keyval(STREAMFILE * streamFile_, txth_header * txth, const char
         if (txth->loop_adjust)
             txth->loop_start_sample += txth->loop_adjust;
     }
-    else if (0==strcmp(key,"loop_end_sample")) {
-        if (0==strcmp(val,"data_size")) {
+    else if (is_string(key,"loop_end_sample")) {
+        if (is_string(val,"data_size")) {
             txth->loop_end_sample = get_bytes_to_samples(txth, txth->data_size);
         }
         else {
@@ -748,7 +827,7 @@ static int parse_keyval(STREAMFILE * streamFile_, txth_header * txth, const char
         if (txth->loop_adjust)
             txth->loop_end_sample += txth->loop_adjust;
     }
-    else if (0==strcmp(key,"skip_samples")) {
+    else if (is_string(key,"skip_samples")) {
         if (!parse_num(txth->streamHead,txth,val, &txth->skip_samples)) goto fail;
         txth->skip_samples_set = 1;
         if (txth->sample_type==1)
@@ -756,15 +835,15 @@ static int parse_keyval(STREAMFILE * streamFile_, txth_header * txth, const char
         if (txth->sample_type==2)
             txth->skip_samples = get_bytes_to_samples(txth, txth->skip_samples * (txth->interleave*txth->channels));
     }
-    else if (0==strcmp(key,"loop_adjust")) {
+    else if (is_string(key,"loop_adjust")) {
         if (!parse_num(txth->streamHead,txth,val, &txth->loop_adjust)) goto fail;
         if (txth->sample_type==1)
             txth->loop_adjust = get_bytes_to_samples(txth, txth->loop_adjust);
         if (txth->sample_type==2)
             txth->loop_adjust = get_bytes_to_samples(txth, txth->loop_adjust * (txth->interleave*txth->channels));
     }
-    else if (0==strcmp(key,"loop_flag")) {
-        if (0==strcmp(val,"auto"))  {
+    else if (is_string(key,"loop_flag")) {
+        if (is_string(val,"auto"))  {
             txth->loop_flag_auto = 1;
         }
         else {
@@ -775,49 +854,65 @@ static int parse_keyval(STREAMFILE * streamFile_, txth_header * txth, const char
             }
         }
     }
-    else if (0==strcmp(key,"coef_offset")) {
+    else if (is_string(key,"coef_offset")) {
         if (!parse_num(txth->streamHead,txth,val, &txth->coef_offset)) goto fail;
     }
-    else if (0==strcmp(key,"coef_spacing")) {
+    else if (is_string(key,"coef_spacing")) {
         if (!parse_num(txth->streamHead,txth,val, &txth->coef_spacing)) goto fail;
     }
-    else if (0==strcmp(key,"coef_endianness")) {
-        if (val[0]=='B' && val[1]=='E')
+    else if (is_string(key,"coef_endianness")) {
+        if (is_string(val, "BE"))
             txth->coef_big_endian = 1;
-        else if (val[0]=='L' && val[1]=='E')
+        else if (is_string(val, "LE"))
             txth->coef_big_endian = 0;
         else if (!parse_num(txth->streamHead,txth,val, &txth->coef_big_endian)) goto fail;
     }
-    else if (0==strcmp(key,"coef_mode")) {
+    else if (is_string(key,"coef_mode")) {
         if (!parse_num(txth->streamHead,txth,val, &txth->coef_mode)) goto fail;
     }
-    else if (0==strcmp(key,"psx_loops")) {
+    else if (is_string(key,"coef_table")) {
+        if (!parse_coef_table(txth->streamHead,txth,val, txth->coef_table, sizeof(txth->coef_table))) goto fail;
+        txth->coef_table_set = 1;
+    }
+    else if (is_string(key,"psx_loops")) {
         if (!parse_num(txth->streamHead,txth,val, &txth->coef_mode)) goto fail;
     }
-    else if (0==strcmp(key,"subsong_count")) {
+    else if (is_string(key,"subsong_count")) {
         if (!parse_num(txth->streamHead,txth,val, &txth->subsong_count)) goto fail;
     }
-    else if (0==strcmp(key,"subsong_offset")) {
+    else if (is_string(key,"subsong_offset")) {
         if (!parse_num(txth->streamHead,txth,val, &txth->subsong_offset)) goto fail;
     }
-    else if (0==strcmp(key,"name_offset")) {
+    else if (is_string(key,"name_offset")) {
         if (!parse_num(txth->streamHead,txth,val, &txth->name_offset)) goto fail;
         txth->name_offset_set = 1;
         /* special subsong adjustment */
         if (txth->subsong_offset)
             txth->name_offset = txth->name_offset + txth->subsong_offset * (txth->target_subsong - 1);
     }
-    else if (0==strcmp(key,"name_size")) {
+    else if (is_string(key,"name_size")) {
         if (!parse_num(txth->streamHead,txth,val, &txth->name_size)) goto fail;
     }
-    else if (0==strcmp(key,"header_file")) {
+    else if (is_string(key,"subfile_offset")) {
+        if (!parse_num(txth->streamHead,txth,val, &txth->subfile_offset)) goto fail;
+        txth->subfile_set = 1;
+    }
+    else if (is_string(key,"subfile_size")) {
+        if (!parse_num(txth->streamHead,txth,val, &txth->subfile_size)) goto fail;
+        txth->subfile_set = 1;
+    }
+    else if (is_string(key,"subfile_extension")) {
+        if (!parse_string(txth->streamHead,txth,val, txth->subfile_extension)) goto fail;
+        txth->subfile_set = 1;
+    }
+    else if (is_string(key,"header_file")) {
         if (txth->streamhead_opened) {
             close_streamfile(txth->streamHead);
             txth->streamHead = NULL;
             txth->streamhead_opened = 0;
         }
 
-        if (0==strcmp(val,"null")) { /* reset */
+        if (is_string(val,"null")) { /* reset */
             if (!txth->streamfile_is_txth) {
                 txth->streamHead = txth->streamFile;
             }
@@ -835,14 +930,14 @@ static int parse_keyval(STREAMFILE * streamFile_, txth_header * txth, const char
             txth->streamhead_opened = 1;
         }
     }
-    else if (0==strcmp(key,"body_file")) {
+    else if (is_string(key,"body_file")) {
         if (txth->streambody_opened) {
             close_streamfile(txth->streamBody);
             txth->streamBody = NULL;
             txth->streambody_opened = 0;
         }
 
-        if (0==strcmp(val,"null")) { /* reset */
+        if (is_string(val,"null")) { /* reset */
             if (!txth->streamfile_is_txth) {
                 txth->streamBody = txth->streamFile;
             }
@@ -878,6 +973,72 @@ fail:
     return 0;
 }
 
+static int is_string(const char * val, const char * cmp) {
+    int len = is_substring(val, cmp);
+    if (!len) return 0;
+
+    /* also test that after string there aren't other values
+     * (comments are already removed but trailing spaces are allowed) */
+    while (val[len] != '\0') {
+        if (val[len] != ' ')
+            return 0;
+        len++;
+    }
+
+    return len;
+}
+
+static int is_substring(const char * val, const char * cmp) {
+    int len = strlen(cmp);
+    if (strncmp(val, cmp, len) != 0)
+        return 0;
+
+    /* string in val must be a full word (end with null or space) to
+     * avoid mistaking stuff like "interleave" with "interleave_last"
+     * (could also check , except when used for math */
+    if (val[len] != '\0' && val[len] != ' ')
+        return 0;
+
+    return len;
+}
+
+static int parse_string(STREAMFILE * streamFile, txth_header * txth, const char * val, char * str) {
+    int n = 0;
+
+    /* read string without trailing spaces */
+    if (sscanf(val, " %s%n[^ ]%n", str, &n, &n) != 1)
+        return 0;
+    return n;
+}
+
+static int parse_coef_table(STREAMFILE * streamFile, txth_header * txth, const char * val, uint8_t * out_value, size_t out_size) {
+    uint32_t byte;
+    int done = 0;
+
+    /* read 2 char pairs = 1 byte ('N' 'N' 'M' 'M' = 0xNN 0xMM )*/
+    while (val[0] != '\0') {
+        if (val[0] == ' ') {
+            val++;
+            continue;
+        }
+
+        if (val[0] == '0' && val[1] == 'x')  /* allow "0x" before values */
+            val += 2;
+        if (sscanf(val, " %2x", &byte) != 1)
+            goto fail;
+        if (done + 1 >= out_size)
+            goto fail;
+
+        out_value[done] = (uint8_t)byte;
+        done++;
+        val += 2;
+    }
+
+    return 1;
+fail:
+    return 0;
+}
+
 static int parse_num(STREAMFILE * streamFile, txth_header * txth, const char * val, uint32_t * out_value) {
     /* out_value can be these, save before modifying */
     uint32_t value_mul = txth->value_mul;
@@ -886,91 +1047,148 @@ static int parse_num(STREAMFILE * streamFile, txth_header * txth, const char * v
     uint32_t value_sub = txth->value_sub;
     uint32_t subsong_offset = txth->subsong_offset;
 
-    if (val[0] == '@') { /* offset */
-        uint32_t offset = 0;
-        char ed1 = 'L', ed2 = 'E';
-        int size = 4;
-        int big_endian = 0;
-        int hex = (val[1]=='0' && val[2]=='x');
+    char op = ' ';
+    int brackets = 0;
+    uint32_t result = 0;
 
-        /* can happen when loading .txth and not setting body/head */
-        if (!streamFile)
-            goto fail;
+    //;VGM_LOG("TXTH: initial val '%s'\n", val);
 
-        /* read exactly N fields in the expected format */
-        if (strchr(val,':') && strchr(val,'$')) {
-            if (sscanf(val, hex ? "@%x:%c%c$%i" : "@%u:%c%c$%i", &offset, &ed1,&ed2, &size) != 4) goto fail;
-        } else if (strchr(val,':')) {
-            if (sscanf(val, hex ? "@%x:%c%c" : "@%u:%c%c", &offset, &ed1,&ed2) != 3) goto fail;
-        } else if (strchr(val,'$')) {
-            if (sscanf(val, hex ? "@%x$%i" : "@%u$%i", &offset, &size) != 2) goto fail;
-        } else {
-            if (sscanf(val, hex ? "@%x" : "@%u", &offset) != 1) goto fail;
+
+    /* read "val" format: @(offset) (op) (field) (op) (number) ... */
+    while (val[0] != '\0') {
+        uint32_t value = 0;
+        char type = val[0];
+        int value_read = 0;
+        int n = 0;
+
+        if (type == ' ') { /* ignore */
+            n = 1;
+        }
+        else if (type == '(') { /* bracket */
+            brackets++;
+            n = 1;
+        }
+        else if (type == ')') { /* bracket */
+            if (brackets == 0) goto fail;
+            brackets--;
+            n = 1;
+        }
+        else if (type == '+' || type == '-' || type == '/' || type == '*') { /* op */
+            op = type;
+            n = 1;
+        }
+        else if (type == '@') { /* offset */
+            uint32_t offset = 0;
+            char ed1 = 'L', ed2 = 'E';
+            int size = 4;
+            int big_endian = 0;
+            int hex = (val[1]=='0' && val[2]=='x');
+
+            /* can happen when loading .txth and not setting body/head */
+            if (!streamFile)
+                goto fail;
+
+            /* read exactly N fields in the expected format */
+            if (strchr(val,':') && strchr(val,'$')) {
+                if (sscanf(val, hex ? "@%x:%c%c$%i%n" : "@%u:%c%c$%i%n", &offset, &ed1,&ed2, &size, &n) != 4) goto fail;
+            } else if (strchr(val,':')) {
+                if (sscanf(val, hex ? "@%x:%c%c%n" : "@%u:%c%c%n", &offset, &ed1,&ed2, &n) != 3) goto fail;
+            } else if (strchr(val,'$')) {
+                if (sscanf(val, hex ? "@%x$%i%n" : "@%u$%i%n", &offset, &size, &n) != 2) goto fail;
+            } else {
+                if (sscanf(val, hex ? "@%x%n" : "@%u%n", &offset, &n) != 1) goto fail;
+            }
+
+            if (/*offset < 0 ||*/ offset > get_streamfile_size(streamFile))
+                goto fail;
+
+            if (ed1 == 'B' && ed2 == 'E')
+                big_endian = 1;
+            else if (!(ed1 == 'L' && ed2 == 'E'))
+                goto fail;
+
+            if (subsong_offset)
+                offset = offset + subsong_offset * (txth->target_subsong - 1);
+
+            switch(size) {
+                case 1: value = read_8bit(offset,streamFile); break;
+                case 2: value = big_endian ? (uint16_t)read_16bitBE(offset,streamFile) : (uint16_t)read_16bitLE(offset,streamFile); break;
+                case 3: value = (big_endian ? (uint32_t)read_32bitBE(offset,streamFile) : (uint32_t)read_32bitLE(offset,streamFile)) & 0x00FFFFFF; break;
+                case 4: value = big_endian ? (uint32_t)read_32bitBE(offset,streamFile) : (uint32_t)read_32bitLE(offset,streamFile); break;
+                default: goto fail;
+            }
+            value_read = 1;
+        }
+        else if (type >= '0' && type <= '9') { /* unsigned constant */
+            int hex = (val[0]=='0' && val[1]=='x');
+
+            if (sscanf(val, hex ? "%x%n" : "%u%n", &value, &n) != 1)
+                goto fail;
+            value_read = 1;
+        }
+        else { /* known field */
+            if      ((n = is_substring(val,"interleave")))          value = txth->interleave;
+            if      ((n = is_substring(val,"interleave_last")))     value = txth->interleave_last;
+            else if ((n = is_substring(val,"channels")))            value = txth->channels;
+            else if ((n = is_substring(val,"sample_rate")))         value = txth->sample_rate;
+            else if ((n = is_substring(val,"start_offset")))        value = txth->start_offset;
+            else if ((n = is_substring(val,"data_size")))           value = txth->data_size;
+            else if ((n = is_substring(val,"num_samples")))         value = txth->num_samples;
+            else if ((n = is_substring(val,"loop_start_sample")))   value = txth->loop_start_sample;
+            else if ((n = is_substring(val,"loop_end_sample")))     value = txth->loop_end_sample;
+            else if ((n = is_substring(val,"subsong_count")))       value = txth->subsong_count;
+            else if ((n = is_substring(val,"subsong_offset")))      value = txth->subsong_offset;
+            else goto fail;
+            value_read = 1;
         }
 
-        if (/*offset < 0 ||*/ offset > get_streamfile_size(streamFile))
-            goto fail;
+        /* apply simple left-to-right math though, for now "(" ")" are counted and validated
+         * (could use good ol' shunting-yard algo but whatevs) */
+        if (value_read) {
+            //;VGM_ASSERT(op != ' ', "MIX: %i %c %i\n", result, op, value);
+            switch(op) {
+                case '+': value = result + value; break;
+                case '-': value = result - value; break;
+                case '*': value = result * value; break;
+                case '/': if (value == 0) goto fail; value = result / value; break;
+                default: break;
+            }
+            op = ' '; /* consume */
 
-        if (ed1 == 'B' && ed2 == 'E')
-            big_endian = 1;
-        else if (!(ed1 == 'L' && ed2 == 'E'))
-            goto fail;
-
-        if (subsong_offset)
-            offset = offset + subsong_offset * (txth->target_subsong - 1);
-
-        switch(size) {
-            case 1: *out_value = read_8bit(offset,streamFile); break;
-            case 2: *out_value = big_endian ? (uint16_t)read_16bitBE(offset,streamFile) : (uint16_t)read_16bitLE(offset,streamFile); break;
-            case 3: *out_value = (big_endian ? (uint32_t)read_32bitBE(offset,streamFile) : (uint32_t)read_32bitLE(offset,streamFile)) & 0x00FFFFFF; break;
-            case 4: *out_value = big_endian ? (uint32_t)read_32bitBE(offset,streamFile) : (uint32_t)read_32bitLE(offset,streamFile); break;
-            default: goto fail;
+            result = value;
         }
-    }
-    else if (val[0] >= '0' && val[0] <= '9') { /* unsigned constant */
-        int hex = (val[0]=='0' && val[1]=='x');
 
-        if (sscanf(val, hex ? "%x" : "%u", out_value)!=1)
-            goto fail;
-    }
-    else { /* known field */
-        if      (0==strcmp(val,"interleave"))           *out_value = txth->interleave;
-        if      (0==strcmp(val,"interleave_last"))      *out_value = txth->interleave_last;
-        else if (0==strcmp(val,"channels"))             *out_value = txth->channels;
-        else if (0==strcmp(val,"sample_rate"))          *out_value = txth->sample_rate;
-        else if (0==strcmp(val,"start_offset"))         *out_value = txth->start_offset;
-        else if (0==strcmp(val,"data_size"))            *out_value = txth->data_size;
-        else if (0==strcmp(val,"num_samples"))          *out_value = txth->num_samples;
-        else if (0==strcmp(val,"loop_start_sample"))    *out_value = txth->loop_start_sample;
-        else if (0==strcmp(val,"loop_end_sample"))      *out_value = txth->loop_end_sample;
-        else if (0==strcmp(val,"subsong_count"))        *out_value = txth->subsong_count;
-        else if (0==strcmp(val,"subsong_offset"))       *out_value = txth->subsong_offset;
-        else goto fail;
+        /* move to next field (if any) */
+        val += n;
+
+        //;VGM_LOG("TXTH: val='%s', n=%i, brackets=%i, result=%i\n", val, n, brackets, result);
     }
 
-    /* operators, but only if current value wasn't set to 0 right before */
+    /* unbalanced brackets */
+    if (brackets > 0)
+        goto fail;
+
+    /* global operators, but only if current value wasn't set to 0 right before */
     if (value_mul && txth->value_mul)
-        *out_value = (*out_value) * value_mul;
+        result = result * value_mul;
     if (value_div && txth->value_div)
-        *out_value = (*out_value) / value_div;
+        result = result / value_div;
     if (value_add && txth->value_add)
-        *out_value = (*out_value) + value_add;
+        result = result + value_add;
     if (value_sub && txth->value_sub)
-        *out_value = (*out_value) - value_sub;
+        result = result - value_sub;
 
-    //;VGM_LOG("TXTH: val=%s, read %u (0x%x)\n", val, *out_value, *out_value);
+    *out_value = result;
+
+    //;VGM_LOG("TXTH: final result %u (0x%x)\n", result, result);
     return 1;
 fail:
     return 0;
 }
 
 static int get_bytes_to_samples(txth_header * txth, uint32_t bytes) {
-    if (!txth->channels)
-        return 0; /* div-by-zero is no fun */
-
     switch(txth->codec) {
         case MS_IMA:
-            if (!txth->interleave) return 0;
             return ms_ima_bytes_to_samples(bytes, txth->interleave, txth->channels);
         case XBOX:
             return xbox_ima_bytes_to_samples(bytes, txth->channels);
@@ -990,23 +1208,22 @@ static int get_bytes_to_samples(txth_header * txth, uint32_t bytes) {
         case PCM4_U:
             return pcm_bytes_to_samples(bytes, txth->channels, 4);
         case MSADPCM:
-            if (!txth->interleave) return 0;
             return msadpcm_bytes_to_samples(bytes, txth->interleave, txth->channels);
         case ATRAC3:
-            if (!txth->interleave) return 0;
             return atrac3_bytes_to_samples(bytes, txth->interleave);
         case ATRAC3PLUS:
-            if (!txth->interleave) return 0;
             return atrac3plus_bytes_to_samples(bytes, txth->interleave);
+        case AAC:
+            return aac_get_samples(txth->streamBody, txth->start_offset, bytes);
+        case MPEG:
+            return mpeg_get_samples(txth->streamBody, txth->start_offset, bytes);
+        case AC3:
+            return ac3_bytes_to_samples(bytes, txth->interleave, txth->channels);
 
         /* XMA bytes-to-samples is done at the end as the value meanings are a bit different */
         case XMA1:
         case XMA2:
             return bytes; /* preserve */
-
-        case AC3:
-            if (!txth->interleave) return 0;
-            return bytes / txth->interleave * 256 * txth->channels;
 
         case IMA:
         case DVI_IMA:
@@ -1026,7 +1243,6 @@ static int get_bytes_to_samples(txth_header * txth, uint32_t bytes) {
             if (!txth->interleave) return 0;
             return (bytes / txth->interleave) * (txth->interleave - 2) * 2;
 
-        case MPEG: /* a bit complex */
         case FFMPEG: /* too complex, try after init */
         default:
             return 0;

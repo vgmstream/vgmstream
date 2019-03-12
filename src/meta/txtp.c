@@ -1,9 +1,61 @@
 #include "meta.h"
 #include "../coding/coding.h"
 #include "../layout/layout.h"
+#ifdef VGMSTREAM_MIXING
+#include "../mixing.h"
+#endif
 
 
 #define TXTP_LINE_MAX 1024
+#define TXTP_MIXING_MAX 128
+
+#ifdef VGMSTREAM_MIXING
+/* mixing info */
+typedef enum {
+    MIX_SWAP,
+    MIX_ADD,
+    MIX_ADD_VOLUME,
+    MIX_VOLUME,
+    MIX_LIMIT,
+    MIX_DOWNMIX,
+    MIX_KILLMIX,
+    MIX_UPMIX,
+    MIX_FADE,
+
+    MACRO_VOLUME,
+    MACRO_TRACK,
+    MACRO_LAYER,
+    MACRO_CROSSTRACK,
+    MACRO_CROSSLAYER,
+
+} txtp_mix_t;
+
+typedef struct {
+    txtp_mix_t command;
+    /* common */
+    int ch_dst;
+    int ch_src;
+    double vol;
+
+    /* fade envelope */
+    double vol_start;
+    double vol_end;
+    char shape;
+    int32_t sample_pre;
+    int32_t sample_start;
+    int32_t sample_end;
+    int32_t sample_post;
+    double time_pre;
+    double time_start;
+    double time_end;
+    double time_post;
+
+    /* macros */
+    int max;
+    uint32_t mask;
+    int overlap;
+} txtp_mix_data;
+#endif
 
 
 typedef struct {
@@ -16,7 +68,7 @@ typedef struct {
 #endif
 #ifdef VGMSTREAM_MIXING
     int mixing_count;
-    mix_config_data mixing[VGMSTREAM_MAX_MIXING];
+    txtp_mix_data mixing[TXTP_MIXING_MAX];
 #endif
 
     double config_loop_count;
@@ -55,7 +107,7 @@ static txtp_header* parse_txtp(STREAMFILE* streamFile);
 static void clean_txtp(txtp_header* txtp);
 static void apply_config(VGMSTREAM *vgmstream, txtp_entry *current);
 #ifdef VGMSTREAM_MIXING
-void add_mixing(txtp_entry* cfg, mix_config_data* mix, mix_command_t command);
+void add_mixing(txtp_entry* cfg, txtp_mix_data* mix, txtp_mix_t command);
 #endif
 
 /* TXTP - an artificial playlist-like format to play files with segments/layers/config */
@@ -232,10 +284,10 @@ static void apply_config(VGMSTREAM *vgmstream, txtp_entry *current) {
 
     if (current->loop_install) {
         if (current->loop_start_second > 0 || current->loop_end_second > 0) {
-            current->loop_start_sample = current->loop_start_second * (double)vgmstream->sample_rate;
-            current->loop_end_sample = current->loop_end_second * (double)vgmstream->sample_rate;
+            current->loop_start_sample = current->loop_start_second * vgmstream->sample_rate;
+            current->loop_end_sample = current->loop_end_second * vgmstream->sample_rate;
             if (current->loop_end_sample > vgmstream->num_samples &&
-                    current->loop_end_sample - vgmstream->num_samples <= 0.1 * (double)vgmstream->sample_rate)
+                    current->loop_end_sample - vgmstream->num_samples <= 0.1 * vgmstream->sample_rate)
                 current->loop_end_sample = vgmstream->num_samples; /* allow some rounding leeway */
         }
 
@@ -252,7 +304,7 @@ static void apply_config(VGMSTREAM *vgmstream, txtp_entry *current) {
         int ch;
         for (ch = 0; ch < vgmstream->channels; ch++) {
             if (!((current->channel_mask >> ch) & 1)) {
-                mix_config_data mix = {0};
+                txtp_mix_data mix = {0};
                 mix.ch_dst = ch;
                 mix.vol = 0.0f;
                 add_mixing(current, &mix, MIX_VOLUME);
@@ -262,10 +314,47 @@ static void apply_config(VGMSTREAM *vgmstream, txtp_entry *current) {
 
     /* copy mixing list (should be done last as some mixes depend on config) */
     if (current->mixing_count > 0) {
-        int i;
+        int m;
 
-        for (i = 0; i < current->mixing_count; i++) {
-            vgmstream_add_mixing(vgmstream, current->mixing[i]);
+        for (m = 0; m < current->mixing_count; m++) {
+            txtp_mix_data mix = current->mixing[m];
+
+            switch(mix.command) {
+                /* base mixes */
+                case MIX_SWAP:       mixing_push_swap(vgmstream, mix.ch_dst, mix.ch_src); break;
+                case MIX_ADD:        mixing_push_add(vgmstream, mix.ch_dst, mix.ch_src, 1.0); break;
+                case MIX_ADD_VOLUME: mixing_push_add(vgmstream, mix.ch_dst, mix.ch_src, mix.vol); break;
+                case MIX_VOLUME:     mixing_push_volume(vgmstream, mix.ch_dst, mix.vol); break;
+                case MIX_LIMIT:      mixing_push_limit(vgmstream, mix.ch_dst, mix.vol); break;
+                case MIX_UPMIX:      mixing_push_upmix(vgmstream, mix.ch_dst); break;
+                case MIX_DOWNMIX:    mixing_push_downmix(vgmstream, mix.ch_dst); break;
+                case MIX_KILLMIX:    mixing_push_killmix(vgmstream, mix.ch_dst); break;
+                case MIX_FADE:
+                    /* Convert from time to samples now that sample rate is final.
+                     * Samples and time values may be mixed though, so it's done for every
+                     * value (if one is 0 the other will be too, though) */
+                    if (mix.time_pre > 0.0)   mix.sample_pre = mix.time_pre * vgmstream->sample_rate;
+                    if (mix.time_start > 0.0) mix.sample_start = mix.time_start * vgmstream->sample_rate;
+                    if (mix.time_end > 0.0)   mix.sample_end = mix.time_end * vgmstream->sample_rate;
+                    if (mix.time_post > 0.0)  mix.sample_post = mix.time_post * vgmstream->sample_rate;
+                    /* convert special meaning too */
+                    if (mix.time_pre < 0.0)   mix.sample_pre = -1;
+                    if (mix.time_post < 0.0)  mix.sample_post = -1;
+
+                    mixing_push_fade(vgmstream, mix.ch_dst, mix.vol_start, mix.vol_end, mix.shape,
+                            mix.sample_pre, mix.sample_start, mix.sample_end, mix.sample_post);
+                    break;
+
+                /* macro mixes */
+                case MACRO_VOLUME:      mixing_macro_volume(vgmstream, mix.vol, mix.mask); break;
+                case MACRO_TRACK:       mixing_macro_track(vgmstream, mix.mask); break;
+                case MACRO_LAYER:       mixing_macro_layer(vgmstream, mix.max, mix.mask, mix.overlap); break;
+                case MACRO_CROSSTRACK:  mixing_macro_crosstrack(vgmstream, mix.max); break;
+                case MACRO_CROSSLAYER:  mixing_macro_crosslayer(vgmstream, mix.max); break;
+
+                default:
+                    break;
+            }
         }
     }
 #endif
@@ -357,13 +446,24 @@ static int get_time(const char * config, double *value_f, int32_t *value_i) {
         return n;
     }
 
+    /* test is format is hex samples: 0xN */
+    m = sscanf(config, " 0x%x%n", &temp_i1,&n);
+    if (m == 1) {
+        /* allow negative samples for special meanings */
+        //if (temp_i1 < 0)
+        //    return 0;
+
+        *value_i = temp_i1;
+        return n;
+    }
+
     /* assume format is samples: N */
     m = sscanf(config, " %i%n", &temp_i1,&n);
     if (m == 1) {
-        if (temp_i1 < 0)
-            return 0;
+        /* allow negative samples for special meanings */
+        //if (temp_i1 < 0)
+        //    return 0;
 
-        //*is_time_i = 1;
         *value_i = temp_i1;
         return n;
     }
@@ -431,31 +531,107 @@ static int get_mask(const char * config, uint32_t *value) {
 
 
 #ifdef VGMSTREAM_MIXING
-static int get_fade(const char * config, mix_config_data *mix, int *out_n) {
-    int n, m;
+static int get_fade(const char * config, txtp_mix_data *mix, int *out_n) {
+    int n, m, tn = 0;
+    char type, separator;
 
-    //todo add { } shortcuts / time / etc
+    m = sscanf(config, " %d %c%n", &mix->ch_dst, &type, &n);
+    if (n == 0 || m != 2) goto fail;
+    config += n;
+    tn += n;
 
-    m = sscanf(config, " %d ^ %f ~ %f = %c @ %f ~ %f + %f ~ %f%n",
-            &mix->ch_dst,
-            &mix->vol_start, &mix->vol_end, &mix->shape,
-            &mix->time_pre, &mix->time_start, &mix->time_end, &mix->time_post,
-            &n);
+    if (type == '^') {
+        /* full definition */
+        m = sscanf(config, " %lf ~ %lf = %c @%n", &mix->vol_start, &mix->vol_end, &mix->shape, &n);
+        if (n == 0 || m != 3) goto fail;
+        config += n;
+        tn += n;
 
-    VGM_LOG("curve m=%i, n=%i\n", m,n);
-    if (m == 8 && n != 0) {
-        mix->time_end += mix->time_start;
-        *out_n = n;
-        return 1;
+        n = get_time(config, &mix->time_pre, &mix->sample_pre);
+        if (n == 0) goto fail;
+        config += n;
+        tn += n;
+
+        m = sscanf(config, " %c%n", &separator, &n);
+        if (n == 0 || m != 1 || separator != '~') goto fail;
+        config += n;
+        tn += n;
+
+        n = get_time(config, &mix->time_start, &mix->sample_start);
+        if (n == 0) goto fail;
+        config += n;
+        tn += n;
+
+        m = sscanf(config, " %c%n", &separator, &n);
+        if (n == 0 || m != 1 || separator != '+') goto fail;
+        config += n;
+        tn += n;
+
+        n = get_time(config, &mix->time_end, &mix->sample_end);
+        if (n == 0) goto fail;
+        config += n;
+        tn += n;
+
+        m = sscanf(config, " %c%n", &separator, &n);
+        if (n == 0 || m != 1 || separator != '~') goto fail;
+        config += n;
+        tn += n;
+
+        n = get_time(config, &mix->time_post, &mix->sample_post);
+        if (n == 0) goto fail;
+        config += n;
+        tn += n;
+    }
+    else {
+        /* simplified definition */
+        if (type == '{' || type == '(') {
+            mix->vol_start = 0.0;
+            mix->vol_end = 1.0;
+        }
+        else if (type == '}' || type == ')') {
+            mix->vol_start = 1.0;
+            mix->vol_end = 0.0;
+        }
+        else {
+            goto fail;
+        }
+
+        mix->shape = type; /* internally converted */
+
+        mix->time_pre = -1.0;
+        mix->sample_pre = -1;
+
+        n = get_time(config, &mix->time_start, &mix->sample_start);
+        if (n == 0) goto fail;
+        config += n;
+        tn += n;
+
+        m = sscanf(config, " %c%n", &separator, &n);
+        if (n == 0 || m != 1 || separator != '+') goto fail;
+        config += n;
+        tn += n;
+
+        n = get_time(config, &mix->time_end, &mix->sample_end);
+        if (n == 0) goto fail;
+        config += n;
+        tn += n;
+
+        mix->time_post = -1.0;
+        mix->sample_post = -1;
     }
 
+    mix->time_end = mix->time_start + mix->time_end; /* defined as length */
+
+    *out_n = tn;
+    return 1;
+fail:
     return 0;
 }
 #endif
 
 #ifdef VGMSTREAM_MIXING
-void add_mixing(txtp_entry* cfg, mix_config_data* mix, mix_command_t command) {
-    if (cfg->mixing_count + 1 > VGMSTREAM_MAX_MIXING) {
+void add_mixing(txtp_entry* cfg, txtp_mix_data* mix, txtp_mix_t command) {
+    if (cfg->mixing_count + 1 > TXTP_MIXING_MAX) {
         VGM_LOG("TXTP: too many mixes\n");
         return;
     }
@@ -465,6 +641,7 @@ void add_mixing(txtp_entry* cfg, mix_config_data* mix, mix_command_t command) {
     mix->ch_dst--;
     mix->ch_src--;
     mix->command = command;
+
     cfg->mixing[cfg->mixing_count] = *mix; /* memcpy'ed */
     cfg->mixing_count++;
 }
@@ -516,7 +693,7 @@ static void add_config(txtp_entry* current, txtp_entry* cfg, const char* filenam
 }
 
 static int add_filename(txtp_header * txtp, char *filename, int is_default) {
-    int i, n, nc, mc;
+    int i, n, nc, nm, mc;
     txtp_entry cfg = {0};
     size_t range_start, range_end;
     char command[TXTP_LINE_MAX] = {0};
@@ -596,10 +773,11 @@ static int add_filename(txtp_header * txtp, char *filename, int is_default) {
                 char cmd;
 
                 while (config[0] != '\0') {
-                    mix_config_data mix = {0};
+                    txtp_mix_data mix = {0};
 
                     //;VGM_LOG("TXTP: subcommand='%s'\n", config);
 
+                    //todo use strchr instead?
                     if (sscanf(config, " %c%n", &cmd, &n) == 1 && n != 0 && cmd == ',') {
                         config += n;
                         continue;
@@ -612,8 +790,8 @@ static int add_filename(txtp_header * txtp, char *filename, int is_default) {
                         continue;
                     }
 
-                    if ((sscanf(config, " %d + %d * %f%n", &mix.ch_dst, &mix.ch_src, &mix.vol, &n) == 3 && n != 0) ||
-                        (sscanf(config, " %d + %d x %f%n", &mix.ch_dst, &mix.ch_src, &mix.vol, &n) == 3 && n != 0)) {
+                    if ((sscanf(config, " %d + %d * %lf%n", &mix.ch_dst, &mix.ch_src, &mix.vol, &n) == 3 && n != 0) ||
+                        (sscanf(config, " %d + %d x %lf%n", &mix.ch_dst, &mix.ch_src, &mix.vol, &n) == 3 && n != 0)) {
                         //;VGM_LOG("TXTP:   mix %i+%i*%f\n", mix.ch_dst, mix.ch_src, mix.vol);
                         add_mixing(&cfg, &mix, MIX_ADD_VOLUME); /* N+M*V: mixes M*volume to N */
                         config += n;
@@ -627,15 +805,15 @@ static int add_filename(txtp_header * txtp, char *filename, int is_default) {
                         continue;
                     }
 
-                    if ((sscanf(config, " %d * %f%n", &mix.ch_dst, &mix.vol, &n) == 2 && n != 0) ||
-                        (sscanf(config, " %d x %f%n", &mix.ch_dst, &mix.vol, &n) == 2 && n != 0)) {
+                    if ((sscanf(config, " %d * %lf%n", &mix.ch_dst, &mix.vol, &n) == 2 && n != 0) ||
+                        (sscanf(config, " %d x %lf%n", &mix.ch_dst, &mix.vol, &n) == 2 && n != 0)) {
                         //;VGM_LOG("TXTP:   mix %i*%f\n", mix.ch_dst, mix.vol);
                         add_mixing(&cfg, &mix, MIX_VOLUME); /* N*V: changes volume of N */
                         config += n;
                         continue;
                     }
 
-                    if ((sscanf(config, " %d = %f%n", &mix.ch_dst, &mix.vol, &n) == 2 && n != 0)) {
+                    if ((sscanf(config, " %d = %lf%n", &mix.ch_dst, &mix.vol, &n) == 2 && n != 0)) {
                         //;VGM_LOG("TXTP:   mix %i=%f\n", mix.ch_dst, mix.vol);
                         add_mixing(&cfg, &mix, MIX_LIMIT); /* N=V: limits volume of N */
                         config += n;
@@ -644,7 +822,7 @@ static int add_filename(txtp_header * txtp, char *filename, int is_default) {
 
                     if (sscanf(config, " %d%c%n", &mix.ch_dst, &cmd, &n) == 2 && n != 0 && cmd == 'D') {
                         //;VGM_LOG("TXTP:   mix %iD\n", mix.ch_dst);
-                        add_mixing(&cfg, &mix, MIX_DOWNMIX_REST); /* ND: downmix N and all following channels */
+                        add_mixing(&cfg, &mix, MIX_KILLMIX); /* ND: downmix N and all following channels */
                         config += n;
                         continue;
                     }
@@ -744,6 +922,58 @@ static int add_filename(txtp_header * txtp, char *filename, int is_default) {
                 //;VGM_LOG("TXTP:   loop_install %i (max=%i): %i %i / %f %f\n", cfg.loop_install, cfg.loop_end_max,
                 //        cfg.loop_start_sample, cfg.loop_end_sample, cfg.loop_start_second, cfg.loop_end_second);
             }
+#ifdef VGMSTREAM_MIXING
+            //todo cleanup
+            else if (strcmp(command,"@volume") == 0) {
+                txtp_mix_data mix = {0};
+
+                nm = get_double(config, &mix.vol);
+                config += nm;
+                if (nm == 0) continue;
+
+                nm = get_mask(config, &mix.mask);
+                config += nm;
+
+                add_mixing(&cfg, &mix, MACRO_VOLUME);
+            }
+            else if (strcmp(command,"@track") == 0) {
+                txtp_mix_data mix = {0};
+
+                nm = get_mask(config, &mix.mask);
+                config += nm;
+                if (nm == 0) continue;
+
+                add_mixing(&cfg, &mix, MACRO_TRACK);
+            }
+            else if (strcmp(command,"@layer") == 0 || strcmp(command,"@overlap") == 0) {
+                txtp_mix_data mix = {0};
+
+                nm = get_int(config, &mix.max);
+                config += nm;
+                if (nm == 0) continue;
+
+                nm = get_mask(config, &mix.mask);
+                config += nm;
+
+                mix.overlap = (strcmp(command,"@overlap") == 0);
+
+                add_mixing(&cfg, &mix, MACRO_LAYER);
+            }
+            else if (strcmp(command,"@crosslayer") == 0 || strcmp(command,"@crosstrack") == 0) {
+                txtp_mix_data mix = {0};
+                txtp_mix_t type;
+                if (strcmp(command,"@crosstrack") == 0)
+                    type = MACRO_CROSSTRACK;
+                else
+                    type = MACRO_CROSSLAYER;
+
+                nm = get_int(config, &mix.max);
+                config += nm;
+                if (nm == 0) continue;
+
+                add_mixing(&cfg, &mix, type);
+            }
+#endif
             else if (config[nc] == ' ') {
                 //;VGM_LOG("TXTP:   comment\n");
                 break; /* comment, ignore rest */

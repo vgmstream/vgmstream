@@ -19,6 +19,11 @@ VGMSTREAM * init_vgmstream_ffmpeg_offset(STREAMFILE *streamFile, uint64_t start,
     int32_t loop_start = 0, loop_end = 0, num_samples = 0;
     int total_subsongs, target_subsong = streamFile->stream_index;
 
+    /* no checks */
+    //if (!check_extensions(streamFile, "..."))
+    //    goto fail;
+
+
     /* init ffmpeg */
     ffmpeg_codec_data *data = init_ffmpeg_offset(streamFile, start, size);
     if (!data) return NULL;
@@ -41,6 +46,15 @@ VGMSTREAM * init_vgmstream_ffmpeg_offset(STREAMFILE *streamFile, uint64_t start,
         }
     }
 
+    if (!num_samples) {
+        num_samples = data->totalSamples;
+    }
+
+    /* hack for AAC files (will return 0 samples if not an actual .aac) */
+    if (!num_samples && check_extensions(streamFile, "aac,laac")) {
+        num_samples = aac_get_samples(streamFile, 0x00, get_streamfile_size(streamFile));
+    }
+
 
     /* build VGMSTREAM */
     vgmstream = allocate_vgmstream(data->channels, loop_flag);
@@ -52,11 +66,7 @@ VGMSTREAM * init_vgmstream_ffmpeg_offset(STREAMFILE *streamFile, uint64_t start,
     vgmstream->codec_data = data;
     vgmstream->layout_type = layout_none;
 
-    if (!num_samples) {
-        num_samples = data->totalSamples;
-    }
     vgmstream->num_samples = num_samples;
-
     if (loop_flag) {
         vgmstream->loop_start_sample = loop_start;
         vgmstream->loop_end_sample = loop_end;

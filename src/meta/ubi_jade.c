@@ -233,7 +233,7 @@ VGMSTREAM * init_vgmstream_ubi_jade(STREAMFILE *streamFile) {
             temp_streamFile = setup_subfile_streamfile(streamFile, start_offset, data_size, "msf");
             if (!temp_streamFile) goto fail;
 
-            temp_vgmstream = init_vgmstream_ps3_msf(temp_streamFile);
+            temp_vgmstream = init_vgmstream_msf(temp_streamFile);
             close_streamfile(temp_streamFile);
             if (!temp_vgmstream) goto fail;
 

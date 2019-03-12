@@ -9,6 +9,9 @@
 #include "meta/meta.h"
 #include "layout/layout.h"
 #include "coding/coding.h"
+#ifdef VGMSTREAM_MIXING
+#include "mixing.h"
+#endif
 
 static void try_dual_file_stereo(VGMSTREAM * opened_vgmstream, STREAMFILE *streamFile, VGMSTREAM* (*init_vgmstream_function)(STREAMFILE*));
 
@@ -37,7 +40,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_cstr,
     init_vgmstream_gcsw,
     init_vgmstream_ps2_ads,
-    init_vgmstream_ps2_npsf,
+    init_vgmstream_nps,
     init_vgmstream_rwsd,
     init_vgmstream_xa,
     init_vgmstream_ps2_rxws,
@@ -248,7 +251,6 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_ps2_ster,
     init_vgmstream_ps2_wb,
     init_vgmstream_bnsf,
-    init_vgmstream_s14_sss,
     init_vgmstream_ps2_gcm,
     init_vgmstream_ps2_smpl,
     init_vgmstream_ps2_msa,
@@ -279,7 +281,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_ngc_nst_dsp,
     init_vgmstream_baf,
     init_vgmstream_baf_badrip,
-    init_vgmstream_ps3_msf,
+    init_vgmstream_msf,
     init_vgmstream_nub_vag,
     init_vgmstream_ps3_past,
     init_vgmstream_sgxd,
@@ -298,7 +300,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_pc_adp_otns,
     init_vgmstream_eb_sfx,
     init_vgmstream_eb_sf0,
-    init_vgmstream_ps2_mtaf,
+    init_vgmstream_mtaf,
     init_vgmstream_tun,
     init_vgmstream_wpd,
     init_vgmstream_mn_str,
@@ -344,7 +346,8 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_ta_aac_mobile_vorbis,
     init_vgmstream_ta_aac_vita,
     init_vgmstream_va3,
-    init_vgmstream_ps3_mta2,
+    init_vgmstream_mta2,
+    init_vgmstream_mta2_container,
     init_vgmstream_ngc_ulw,
     init_vgmstream_pc_xa30,
     init_vgmstream_wii_04sw,
@@ -468,12 +471,18 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_dsp_ds2,
     init_vgmstream_ffdl,
     init_vgmstream_mus_vc,
+    init_vgmstream_strm_abylight,
+    init_vgmstream_sfh,
+    init_vgmstream_ea_schl_video,
+    init_vgmstream_msf_konami,
+    init_vgmstream_xwma_konami,
 
     /* lowest priority metas (should go after all metas, and TXTH should go before raw formats) */
     init_vgmstream_txth,            /* proper parsers should supersede TXTH, once added */
     init_vgmstream_ps2_int,         /* .int raw PS-ADPCM */
     init_vgmstream_ps_headerless,   /* tries to detect a bunch of PS-ADPCM formats */
     init_vgmstream_pc_snds,         /* .snds PC, after ps_headerless */
+    init_vgmstream_s14_sss,         /* .raw siren14 */
     init_vgmstream_raw,             /* .raw PCM */
 #ifdef VGM_USE_FFMPEG
     init_vgmstream_ffmpeg,          /* may play anything incorrectly, since FFmpeg doesn't check extensions */
@@ -545,8 +554,28 @@ static VGMSTREAM * init_vgmstream_internal(STREAMFILE *streamFile) {
         }
 #endif
 
+        /* some players are picky with incorrect channel layouts */
+        if (vgmstream->channel_layout > 0) {
+            int output_channels = vgmstream->channels;
+            int ch, count = 0, max_ch = 32;
+            for (ch = 0; ch < max_ch; ch++) {
+                int bit = (vgmstream->channel_layout >> ch) & 1;
+                if (ch > 17 && bit) {
+                    VGM_LOG("VGMSTREAM: wrong bit %i in channel_layout %x\n", ch, vgmstream->channel_layout);
+                    vgmstream->channel_layout = 0;
+                    break;
+                }
+                count += bit;
+            }
+
+            if (count > output_channels) {
+                VGM_LOG("VGMSTREAM: wrong totals %i in channel_layout %x\n", count, vgmstream->channel_layout);
+                vgmstream->channel_layout = 0;
+            }
+        }
+
         /* files can have thousands subsongs, but let's put a limit */
-        if (vgmstream->num_streams < 0 || vgmstream->num_streams > 65535) {
+        if (vgmstream->num_streams < 0 || vgmstream->num_streams > VGMSTREAM_MAX_SUBSONGS) {
             VGM_LOG("VGMSTREAM: wrong num_streams (ns=%i)\n", vgmstream->num_streams);
             close_vgmstream(vgmstream);
             continue;
@@ -569,15 +598,6 @@ static VGMSTREAM * init_vgmstream_internal(STREAMFILE *streamFile) {
 }
 
 void setup_vgmstream(VGMSTREAM * vgmstream) {
-
-#ifdef VGMSTREAM_MIXING
-    /* fill default config to simplify external code (mixing off will always happen
-     * initially, and if they contain values it means mixing must be enabled) */
-    if (!vgmstream->mixing_on || vgmstream->input_channels <= 0)
-        vgmstream->input_channels = vgmstream->channels;
-    if (!vgmstream->mixing_on || vgmstream->output_channels <= 0)
-        vgmstream->output_channels = vgmstream->channels;
-#endif
 
     /* save start things so we can restart when seeking */
     memcpy(vgmstream->start_ch, vgmstream->ch, sizeof(VGMSTREAMCHANNEL)*vgmstream->channels);
@@ -756,8 +776,7 @@ VGMSTREAM * allocate_vgmstream(int channel_count, int loop_flag) {
     vgmstream->loop_flag = loop_flag;
 
 #ifdef VGMSTREAM_MIXING
-    /* fixed arrays, for now */
-    vgmstream->mixing_size = VGMSTREAM_MAX_MIXING;
+    mixing_init(vgmstream); /* pre-init */
 #endif
     //vgmstream->stream_name_size = STREAM_NAME_SIZE;
     return vgmstream;
@@ -767,6 +786,9 @@ fail:
         free(vgmstream->start_ch);
         free(vgmstream->loop_ch);
         free(vgmstream->start_vgmstream);
+#ifdef VGMSTREAM_MIXING
+        mixing_close(vgmstream);
+#endif
     }
     free(vgmstream);
     return NULL;
@@ -905,7 +927,9 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
             }
         }
     }
-
+#ifdef VGMSTREAM_MIXING
+    mixing_close(vgmstream);
+#endif
     free(vgmstream->ch);
     free(vgmstream->start_ch);
     free(vgmstream->loop_ch);
@@ -2501,14 +2525,18 @@ static void try_dual_file_stereo(VGMSTREAM * opened_vgmstream, STREAMFILE *strea
     if (opened_vgmstream->channels != 1)
         return;
 
+    /* custom codec/layouts aren't designed for this (should never get here anyway) */
+    if (opened_vgmstream->codec_data || opened_vgmstream->layout_data)
+        return;
+
     /* vgmstream's layout stuff currently assumes a single file */
     // fastelbja : no need ... this one works ok with dual file
     //if (opened_vgmstream->layout != layout_none) return;
     //todo force layout_none if layout_interleave?
 
-    streamFile->get_name(streamFile,new_filename,sizeof(new_filename));
+    get_streamfile_name(streamFile,new_filename,sizeof(new_filename));
     if (strlen(new_filename) < 2) return; /* we need at least a base and a name ending to replace */
-    
+
     ext = (char *)filename_extension(new_filename);
     if (ext-new_filename >= 1 && ext[-1]=='.') ext--; /* including "." */
 
@@ -2545,7 +2573,7 @@ static void try_dual_file_stereo(VGMSTREAM * opened_vgmstream, STREAMFILE *strea
 
 
     /* try to init other channel (new_filename now has the opposite name) */
-    dual_streamFile = streamFile->open(streamFile,new_filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
+    dual_streamFile = open_streamfile(streamFile,new_filename);
     if (!dual_streamFile) goto fail;
 
     new_vgmstream = init_vgmstream_function(dual_streamFile); /* use the init that just worked, no other should work */
@@ -2630,6 +2658,10 @@ static void try_dual_file_stereo(VGMSTREAM * opened_vgmstream, STREAMFILE *strea
 
         /* discard the second VGMSTREAM */
         free(new_vgmstream);
+
+#ifdef VGMSTREAM_MIXING
+        mixing_update_channel(opened_vgmstream); /* notify of new channel hacked-in */
+#endif
     }
 
 fail:
@@ -2817,15 +2849,16 @@ int vgmstream_open_stream(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t s
     }
 
     /* stereo codecs interleave in 2ch pairs (interleave size should still be: full_block_size / channels) */
-    if (vgmstream->layout_type == layout_interleave && vgmstream->coding_type == coding_XBOX_IMA) {
+    if (vgmstream->layout_type == layout_interleave &&
+            (vgmstream->coding_type == coding_XBOX_IMA || vgmstream->coding_type == coding_MTAF)) {
         is_stereo_codec = 1;
     }
 
-    streamFile->get_name(streamFile,filename,sizeof(filename));
+    get_streamfile_name(streamFile,filename,sizeof(filename));
     /* open the file for reading by each channel */
     {
         if (!use_streamfile_per_channel) {
-            file = streamFile->open(streamFile,filename, STREAMFILE_DEFAULT_BUFFER_SIZE);
+            file = open_streamfile(streamFile,filename);
             if (!file) goto fail;
         }
 
@@ -2842,7 +2875,7 @@ int vgmstream_open_stream(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t s
 
             /* open new one if needed */
             if (use_streamfile_per_channel) {
-                file = streamFile->open(streamFile,filename, STREAMFILE_DEFAULT_BUFFER_SIZE);
+                file = open_streamfile(streamFile,filename);
                 if (!file) goto fail;
             }
 

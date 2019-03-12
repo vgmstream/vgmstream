@@ -257,6 +257,10 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\meta\mta2_streamfile.h"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\opus_interleave_streamfile.h"
                     >
                 </File>
@@ -266,6 +270,10 @@
                 </File>
                 <File
                     RelativePath=".\meta\vsv_streamfile.h"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\sfh_streamfile.h"
                     >
                 </File>
                 <File
@@ -286,6 +294,10 @@
                 </File>
                 <File
                     RelativePath=".\meta\xvag_streamfile.h"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\xwma_konami_streamfile.h"
                     >
                 </File>
                 <File
@@ -1123,6 +1135,10 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\meta\msf_konami.c"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\msf_tamasoft.c"
                     >
                 </File>
@@ -1131,11 +1147,11 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\ps2_mtaf.c"
+					RelativePath=".\meta\mtaf.c"
 					>
 				</File>
 				<File
-					RelativePath=".\meta\ps2_npsf.c"
+					RelativePath=".\meta\nps.c"
 					>
 				</File>
 				<File
@@ -1283,11 +1299,11 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\ps3_msf.c"
+					RelativePath=".\meta\msf.c"
 					>
 				</File>
                 <File
-                    RelativePath=".\meta\ps3_mta2.c"
+                    RelativePath=".\meta\mta2.c"
                     >
                 </File>
 				<File
@@ -1390,10 +1406,14 @@
 					RelativePath=".\meta\sdt.c"
 					>
 				</File>
-				<File
-					RelativePath=".\meta\seg.c"
-					>
-				</File>
+                <File
+                    RelativePath=".\meta\seg.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\sfh.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\sfl.c"
 					>
@@ -1456,6 +1476,10 @@
 				</File>
                 <File
                     RelativePath=".\meta\str_wav.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\strm_abylight.c"
                     >
                 </File>
 				<File
@@ -1688,6 +1712,10 @@
                 </File>
                 <File
                     RelativePath=".\meta\xwma.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\xwma_konami.c"
                     >
                 </File>
 				<File

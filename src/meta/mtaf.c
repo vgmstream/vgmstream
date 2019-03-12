@@ -2,19 +2,17 @@
 #include "../util.h"
 
 
-/* MTAF - found in Metal Gear Solid 3: Snake Eater (Subsistence and HD too) */
-VGMSTREAM * init_vgmstream_ps2_mtaf(STREAMFILE *streamFile) {
+/* MTAF - found in Metal Gear Solid 3: Snake Eater (PS2), Subsistence and HD too */
+VGMSTREAM * init_vgmstream_mtaf(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     off_t start_offset;
     int loop_flag, channel_count;
     int32_t loop_start, loop_end;
 
 
-    /* check extension */
+    /* checks */
     if ( !check_extensions(streamFile,"mtaf"))
         goto fail;
-
-    /* base header */
     if (read_32bitBE(0x00, streamFile) != 0x4d544146) /* "MTAF" */
         goto fail;
     /* 0x04(4): pseudo file size (close but smaller) */
@@ -51,11 +49,8 @@ VGMSTREAM * init_vgmstream_ps2_mtaf(STREAMFILE *streamFile) {
         goto fail;
     /* 0x7fc: data size (without blocks in case of blocked layout) */
 
-    /* without blocks it should start with 0x00000100 ("frame 1 from track 0") */
-    //is_blocked = read_32bitLE(0x800,streamFile) != 0x00000100 && read_32bitLE(0x810,streamFile) == 0x00000100;
-
-
     start_offset = 0x800;
+
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count, loop_flag);
@@ -68,23 +63,11 @@ VGMSTREAM * init_vgmstream_ps2_mtaf(STREAMFILE *streamFile) {
 
     vgmstream->coding_type = coding_MTAF;
     vgmstream->layout_type = layout_interleave;
-    vgmstream->interleave_block_size = 0x110/2; /* kinda hacky for MTAF track layout */
-    vgmstream->meta_type = meta_PS2_MTAF;
+    vgmstream->interleave_block_size = 0x110 / 2; /* kinda hacky for MTAF (stereo codec) track layout */
+    vgmstream->meta_type = meta_MTAF;
 
-
-    /* open the file for reading, in a specific way */
-    {
-        int i;
-        char filename[PATH_LIMIT];
-
-        streamFile->get_name(streamFile,filename,sizeof(filename));
-        for (i = 0; i < channel_count; i++) {
-            STREAMFILE * file = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-            if (!file) goto fail;
-            vgmstream->ch[i].streamfile = file;
-            vgmstream->ch[i].channel_start_offset = vgmstream->ch[i].offset = start_offset + vgmstream->interleave_block_size*2*(i/2);
-        }
-    }
+    if ( !vgmstream_open_stream(vgmstream, streamFile, start_offset) )
+        goto fail;
 
     return vgmstream;
 

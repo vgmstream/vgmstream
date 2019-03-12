@@ -19,7 +19,7 @@ static const int msadpcm_coefs[7][2] = {
     { 392, -232 }
 };
 
-void decode_msadpcm_stereo(VGMSTREAM * vgmstream, sample * outbuf, int32_t first_sample, int32_t samples_to_do) {
+void decode_msadpcm_stereo(VGMSTREAM * vgmstream, sample_t * outbuf, int32_t first_sample, int32_t samples_to_do) {
     VGMSTREAMCHANNEL *ch1,*ch2;
     STREAMFILE *streamfile;
     int i, frames_in;
@@ -97,7 +97,7 @@ void decode_msadpcm_stereo(VGMSTREAM * vgmstream, sample * outbuf, int32_t first
     }
 }
 
-void decode_msadpcm_mono(VGMSTREAM * vgmstream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
+void decode_msadpcm_mono(VGMSTREAM * vgmstream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
     VGMSTREAMCHANNEL *stream = &vgmstream->ch[channel];
     int i, frames_in;
     size_t bytes_per_frame, samples_per_frame;
@@ -160,7 +160,7 @@ void decode_msadpcm_mono(VGMSTREAM * vgmstream, sample * outbuf, int channelspac
 
 /* Cricket Audio's MSADPCM, same thing with reversed hist and nibble order
  * (their tools may convert to float/others but internally it's all PCM16, from debugging). */
-void decode_msadpcm_ck(VGMSTREAM * vgmstream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
+void decode_msadpcm_ck(VGMSTREAM * vgmstream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
     VGMSTREAMCHANNEL *stream = &vgmstream->ch[channel];
     int i, frames_in;
     size_t bytes_per_frame, samples_per_frame;
@@ -222,6 +222,7 @@ void decode_msadpcm_ck(VGMSTREAM * vgmstream, sample * outbuf, int channelspacin
 }
 
 long msadpcm_bytes_to_samples(long bytes, int block_size, int channels) {
+    if (block_size <= 0 || channels <= 0) return 0;
     return (bytes / block_size) * (block_size - (7-1)*channels) * 2 / channels
             + ((bytes % block_size) ? ((bytes % block_size) - (7-1)*channels) * 2 / channels : 0);
 }
