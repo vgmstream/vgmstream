@@ -170,6 +170,9 @@
     <ClInclude Include="meta\xvag_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="meta\xwma_konami_streamfile.h">
+      <Filter>meta\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="meta\zsnd_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>

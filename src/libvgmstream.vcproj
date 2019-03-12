@@ -297,6 +297,10 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\meta\xwma_konami_streamfile.h"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\zsnd_streamfile.h"
                     >
                 </File>

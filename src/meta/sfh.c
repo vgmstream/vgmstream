@@ -32,7 +32,7 @@ VGMSTREAM * init_vgmstream_sfh(STREAMFILE *streamFile) {
 
     temp_streamFile = setup_sfh_streamfile(streamFile, 0x00, block_size, clean_size, "at3");
     if (!temp_streamFile) goto fail;
-dump_streamfile(temp_streamFile, 0);
+
     vgmstream = init_vgmstream_riff(temp_streamFile);
     if (!vgmstream) goto fail;
 
