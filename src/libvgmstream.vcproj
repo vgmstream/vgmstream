@@ -225,6 +225,10 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\meta\9tav_streamfile.h"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\aix_streamfile.h"
                     >
                 </File>
@@ -310,6 +314,10 @@
 				>
                 <File
                     RelativePath=".\meta\208.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\9tav.c"
                     >
                 </File>
                 <File

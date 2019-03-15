@@ -845,4 +845,6 @@ VGMSTREAM * init_vgmstream_msf_konami(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_xwma_konami(STREAMFILE* streamFile);
 
+VGMSTREAM * init_vgmstream_9tav(STREAMFILE* streamFile);
+
 #endif /*_META_H*/

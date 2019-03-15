@@ -99,6 +99,7 @@
     <ClInclude Include="vgmstream.h" />
     <ClInclude Include="meta\adx_keys.h" />
     <ClInclude Include="meta\aax_utf.h" />
+    <ClInclude Include="meta\9tav_streamfile.h" />
     <ClInclude Include="meta\aix_streamfile.h" />
     <ClInclude Include="meta\awc_xma_streamfile.h" />
     <ClInclude Include="meta\bar_streamfile.h" />
@@ -207,6 +208,7 @@
     <ClCompile Include="util.c" />
     <ClCompile Include="vgmstream.c" />
     <ClCompile Include="meta\208.c" />
+    <ClCompile Include="meta\9tav.c" />
     <ClCompile Include="meta\2dx9.c" />
     <ClCompile Include="meta\a2m.c" />
     <ClCompile Include="meta\ahv.c" />

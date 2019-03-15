@@ -476,6 +476,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_ea_schl_video,
     init_vgmstream_msf_konami,
     init_vgmstream_xwma_konami,
+    init_vgmstream_9tav,
 
     /* lowest priority metas (should go after all metas, and TXTH should go before raw formats) */
     init_vgmstream_txth,            /* proper parsers should supersede TXTH, once added */
@@ -2343,20 +2344,20 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         seconds = (double)vgmstream->loop_start_sample / vgmstream->sample_rate;
         time_mm = (int)(seconds / 60.0);
         time_ss = seconds - time_mm * 60.0f;
-        snprintf(temp,TEMPSIZE, "loop start: %d samples (%1.0f:%2.3f seconds)\n", vgmstream->loop_start_sample, time_mm, time_ss);
+        snprintf(temp,TEMPSIZE, "loop start: %d samples (%1.0f:%06.3f seconds)\n", vgmstream->loop_start_sample, time_mm, time_ss);
         concatn(length,desc,temp);
 
         seconds = (double)vgmstream->loop_end_sample / vgmstream->sample_rate;
         time_mm = (int)(seconds / 60.0);
         time_ss = seconds - time_mm * 60.0f;
-        snprintf(temp,TEMPSIZE, "loop end: %d samples (%1.0f:%2.3f seconds)\n", vgmstream->loop_end_sample, time_mm, time_ss);
+        snprintf(temp,TEMPSIZE, "loop end: %d samples (%1.0f:%06.3f seconds)\n", vgmstream->loop_end_sample, time_mm, time_ss);
         concatn(length,desc,temp);
     }
 
     seconds = (double)vgmstream->num_samples / vgmstream->sample_rate;
     time_mm = (int)(seconds / 60.0);
     time_ss = seconds - time_mm * 60.0;
-    snprintf(temp,TEMPSIZE, "stream total samples: %d (%1.0f:%2.3f seconds)\n", vgmstream->num_samples, time_mm, time_ss);
+    snprintf(temp,TEMPSIZE, "stream total samples: %d (%1.0f:%06.3f seconds)\n", vgmstream->num_samples, time_mm, time_ss);
     concatn(length,desc,temp);
 
     snprintf(temp,TEMPSIZE, "encoding: ");

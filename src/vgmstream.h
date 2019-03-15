@@ -729,6 +729,7 @@ typedef enum {
     meta_STRM_ABYLIGHT,
     meta_MSF_KONAMI,
     meta_XWMA_KONAMI,
+    meta_9TAV,
 
 } meta_t;
 

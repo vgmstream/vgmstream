@@ -18,6 +18,7 @@ static const char* extension_list[] = {
     "2dx9",
     "2pfs",
     "800",
+    "9tav",
 
     //"aac", //common
     "aa3", //FFmpeg/not parsed (ATRAC3/ATRAC3PLUS/MP3/LPCM/WMA)
@@ -1177,6 +1178,7 @@ static const meta_info meta_info_list[] = {
         {meta_STRM_ABYLIGHT,        "Abylight STRM header"},
         {meta_MSF_KONAMI,           "Konami MSF header"},
         {meta_XWMA_KONAMI,          "Konami XWMA header"},
+        {meta_9TAV,                 "Konami 9TAV header"},
 
 };
 
