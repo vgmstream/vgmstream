@@ -777,8 +777,22 @@ static int parse_keyval(STREAMFILE * streamFile_, txth_header * txth, const char
     else if (is_string(key,"start_offset")) {
         if (!parse_num(txth->streamHead,txth,val, &txth->start_offset)) goto fail;
         if (!txth->data_size_set) {
-            txth->data_size = !txth->streamBody ? 0 :
-                    get_streamfile_size(txth->streamBody) - txth->start_offset; /* re-evaluate */
+            uint32_t body_size = !txth->streamBody ? 0 : get_streamfile_size(txth->streamBody);
+
+            /* with subsongs we want to clamp body_size from this subsong start to next subsong start */
+            if (txth->subsong_count > 1 && txth->target_subsong < txth->subsong_count) {
+                uint32_t next_offset;
+                /* temp move to next start_offset and move back*/
+                txth->target_subsong++;
+                parse_num(txth->streamHead,txth,val, &next_offset);
+                txth->target_subsong--;
+                if (next_offset > txth->start_offset) {
+                    body_size = next_offset;
+                }
+            }
+
+            if (body_size && body_size > txth->start_offset)
+                txth->data_size = body_size - txth->start_offset; /* re-evaluate */
         }
     }
     else if (is_string(key,"data_size")) {
