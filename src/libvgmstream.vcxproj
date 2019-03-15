@@ -92,6 +92,7 @@
     <ClInclude Include="meta\xvag_streamfile.h" />
     <ClInclude Include="meta\xwma_konami_streamfile.h" />
     <ClInclude Include="meta\zsnd_streamfile.h" />
+    <ClInclude Include="mixing.h" />
     <ClInclude Include="plugins.h" />
     <ClInclude Include="streamfile.h" />
     <ClInclude Include="streamtypes.h" />
@@ -202,6 +203,7 @@
     <ClCompile Include="meta\x360_cxs.c" />
     <ClCompile Include="meta\x360_tra.c" />
     <ClCompile Include="formats.c" />
+    <ClCompile Include="mixing.c" />
     <ClCompile Include="plugins.c" />
     <ClCompile Include="meta\ps2_va3.c" />
     <ClCompile Include="streamfile.c" />

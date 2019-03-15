@@ -1147,12 +1147,18 @@ typedef struct {
     int segment_count;
     VGMSTREAM **segments;
     int current_segment;
+    sample_t *buffer;
+    int input_channels;     /* internal buffer channels */
+    int output_channels;    /* resulting channels (after mixing, if applied) */
 } segmented_layout_data;
 
 /* for files made of "parallel" layers, one per group of channels (using a complete sub-VGMSTREAM) */
 typedef struct {
     int layer_count;
     VGMSTREAM **layers;
+    sample_t *buffer;
+    int input_channels;     /* internal buffer channels */
+    int output_channels;    /* resulting channels (after mixing, if applied) */
 } layered_layout_data;
 
 /* for compressed NWA */

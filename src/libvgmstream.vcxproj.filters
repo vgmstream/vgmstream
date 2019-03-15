@@ -47,6 +47,9 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="mixing.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="plugins.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -182,6 +185,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="formats.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="mixing.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="plugins.c">

@@ -1,45 +1,54 @@
 #include "layout.h"
 #include "../vgmstream.h"
+#ifdef VGMSTREAM_MIXING
+#include "../mixing.h"
+#endif
 
 
 /* NOTE: if loop settings change the layered vgmstreams must be notified (preferably using vgmstream_force_loop) */
-#define LAYER_BUF_SIZE 512
-#define LAYER_MAX_CHANNELS 6 /* at least 2, but let's be generous */
 #define VGMSTREAM_MAX_LAYERS 255
+#define VGMSTREAM_LAYER_SAMPLE_BUFFER 8192
 
 
 /* Decodes samples for layered streams.
  * Similar to interleave layout, but decodec samples are mixed from complete vgmstreams, each
  * with custom codecs and different number of channels, creating a single super-vgmstream.
  * Usually combined with custom streamfiles to handle data interleaved in weird ways. */
-void render_vgmstream_layered(sample_t * buffer, int32_t sample_count, VGMSTREAM * vgmstream) {
+void render_vgmstream_layered(sample_t * outbuf, int32_t sample_count, VGMSTREAM * vgmstream) {
     int samples_written = 0;
     layered_layout_data *data = vgmstream->layout_data;
-    sample_t interleave_buf[LAYER_BUF_SIZE*LAYER_MAX_CHANNELS];
 
 
     while (samples_written < sample_count) {
-        int samples_to_do = LAYER_BUF_SIZE;
+        int samples_to_do = VGMSTREAM_LAYER_SAMPLE_BUFFER;
         int layer, ch = 0;
 
         if (samples_to_do > sample_count - samples_written)
             samples_to_do = sample_count - samples_written;
 
         for (layer = 0; layer < data->layer_count; layer++) {
-            int s, layer_ch;
-            int layer_channels = data->layers[layer]->channels;
+            int s, layer_ch, layer_channels;
 
-            /* each layer will handle its own looping internally */
+            /* each layer will handle its own looping/mixing internally */
 
-            render_vgmstream(interleave_buf, samples_to_do, data->layers[layer]);
+#ifdef VGMSTREAM_MIXING
+            /* layers may have its own number of channels */
+            mixing_info(data->layers[layer], NULL, &layer_channels);
+#else
+            layer_channels = data->layers[layer]->channels;
+#endif
+            render_vgmstream(
+                    data->buffer,
+                    samples_to_do,
+                    data->layers[layer]);
 
             /* mix layer samples to main samples */
             for (layer_ch = 0; layer_ch < layer_channels; layer_ch++) {
                 for (s = 0; s < samples_to_do; s++) {
                     size_t layer_sample = s*layer_channels + layer_ch;
-                    size_t buffer_sample = (samples_written+s)*vgmstream->channels + ch;
+                    size_t buffer_sample = (samples_written+s)*data->output_channels + ch;
 
-                    buffer[buffer_sample] = interleave_buf[layer_sample];
+                    outbuf[buffer_sample] = data->buffer[layer_sample];
                 }
                 ch++;
             }
@@ -73,18 +82,29 @@ fail:
 }
 
 int setup_layout_layered(layered_layout_data* data) {
-    int i;
+    int i, max_input_channels = 0, max_output_channels = 0;
+    sample_t *outbuf_re = NULL;
+
 
     /* setup each VGMSTREAM (roughly equivalent to vgmstream.c's init_vgmstream_internal stuff) */
     for (i = 0; i < data->layer_count; i++) {
+        int layer_input_channels, layer_output_channels;
+
         if (!data->layers[i])
             goto fail;
 
         if (data->layers[i]->num_samples <= 0)
             goto fail;
 
-        if (data->layers[i]->channels > LAYER_MAX_CHANNELS)
-            goto fail;
+#ifdef VGMSTREAM_MIXING
+        /* different layers may have different input/output channels */
+        mixing_info(data->layers[i], &layer_input_channels, &layer_output_channels);
+#else
+        layer_input_channels = layer_output_channels = data->layers[i]->channels;
+#endif
+        max_output_channels += layer_output_channels;
+        if (max_input_channels < layer_input_channels)
+            max_input_channels = layer_input_channels;
 
         if (i > 0) {
             /* a bit weird, but no matter */
@@ -100,8 +120,23 @@ int setup_layout_layered(layered_layout_data* data) {
 
         /* loops and other values could be mismatched but hopefully not */
 
+
         setup_vgmstream(data->layers[i]); /* final setup in case the VGMSTREAM was created manually */
+#ifdef VGMSTREAM_MIXING
+        mixing_setup(data->layers[i], VGMSTREAM_LAYER_SAMPLE_BUFFER); /* init mixing */
+#endif
     }
+
+    if (max_output_channels > VGMSTREAM_MAX_CHANNELS || max_input_channels > VGMSTREAM_MAX_CHANNELS)
+        goto fail;
+
+    /* create internal buffer big enough for mixing */
+    outbuf_re = realloc(data->buffer, VGMSTREAM_LAYER_SAMPLE_BUFFER*max_input_channels*sizeof(sample_t));
+    if (!outbuf_re) goto fail;
+    data->buffer = outbuf_re;
+
+    data->input_channels = max_input_channels;
+    data->output_channels = max_output_channels;
 
     return 1;
 fail:
@@ -136,15 +171,13 @@ void reset_layout_layered(layered_layout_data *data) {
 
 /* helper for easier creation of layers */
 VGMSTREAM *allocate_layered_vgmstream(layered_layout_data* data) {
-    VGMSTREAM *vgmstream;
+    VGMSTREAM *vgmstream = NULL;
     int i, channels, loop_flag;
 
     /* get data */
-    channels = 0;
+    channels = data->output_channels;
     loop_flag = 1;
     for (i = 0; i < data->layer_count; i++) {
-        channels += data->layers[i]->channels;
-
         if (loop_flag && !data->layers[i]->loop_flag)
             loop_flag = 0;
     }
