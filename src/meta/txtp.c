@@ -151,7 +151,7 @@ VGMSTREAM * init_vgmstream_txtp(STREAMFILE *streamFile) {
         data_l = init_layout_layered(txtp->entry_count);
         if (!data_l) goto fail;
 
-        /* open each segment subfile */
+        /* open each layer subfile */
         for (i = 0; i < data_l->layer_count; i++) {
             STREAMFILE* temp_streamFile = open_streamfile_by_filename(streamFile, txtp->entry[i].filename);
             if (!temp_streamFile) goto fail;
@@ -192,6 +192,8 @@ VGMSTREAM * init_vgmstream_txtp(STREAMFILE *streamFile) {
         for (i = 0; i < data_s->segment_count; i++) {
             STREAMFILE* temp_streamFile = open_streamfile_by_filename(streamFile, txtp->entry[i].filename);
             if (!temp_streamFile) goto fail;
+
+            /* subsongs ranges also work for files without subsongs (as to repeat the same file), not sure if bug or feature */
             temp_streamFile->stream_index = txtp->entry[i].subsong;
 
             data_s->segments[i] = init_vgmstream_from_STREAMFILE(temp_streamFile);
@@ -253,8 +255,10 @@ VGMSTREAM * init_vgmstream_txtp(STREAMFILE *streamFile) {
 fail:
     clean_txtp(txtp);
     close_vgmstream(vgmstream);
-    free_layout_segmented(data_s);
-    free_layout_layered(data_l);
+    if (!vgmstream) {
+        free_layout_segmented(data_s);
+        free_layout_layered(data_l);
+    }
     return NULL;
 }
 
