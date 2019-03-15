@@ -1127,12 +1127,17 @@ void dump_streamfile(STREAMFILE *streamFile, int num) {
         if (!f) return;
     }
 
-    VGM_LOG("dump streamfile, size: %x\n", get_streamfile_size(streamFile));
+    VGM_LOG("dump streamfile: size %x\n", get_streamfile_size(streamFile));
     while (offset < get_streamfile_size(streamFile)) {
         uint8_t buffer[0x8000];
         size_t read;
 
         read = read_streamfile(buffer,offset,0x8000,streamFile);
+        if(!read) {
+            VGM_LOG("dump streamfile: can't read at %lx\n", offset);
+            break;
+        }
+
         if (f)
             fwrite(buffer,sizeof(uint8_t),read, f);
         else
