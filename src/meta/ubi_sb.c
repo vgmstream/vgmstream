@@ -57,6 +57,7 @@ typedef struct {
     off_t layer_stream_type;
     off_t layer_num_samples;
     size_t layer_entry_size;
+    size_t layer_hijack;
 
     off_t silence_duration_int;
     off_t silence_duration_float;
@@ -555,6 +556,9 @@ static VGMSTREAM * init_vgmstream_ubi_sb_base(ubi_sb_header *sb, STREAMFILE *str
             /* get XMA header from extra section */
             chunk_size = 0x20;
             header_offset = sb->xma_header_offset;
+            if (header_offset == 0)
+                header_offset = sb->extra_offset;
+
             bytes = ffmpeg_make_riff_xma_from_fmt_chunk(buf, 0x100, header_offset, chunk_size, sb->stream_size, streamHead, 1);
 
             ffmpeg_data = init_ffmpeg_header_offset(streamData, buf, bytes, start_offset, sb->stream_size);
@@ -661,7 +665,7 @@ static VGMSTREAM * init_vgmstream_ubi_sb_layer(ubi_sb_header *sb, STREAMFILE *st
     /* open all layers and mix */
     for (i = 0; i < sb->layer_count; i++) {
         /* prepare streamfile from a single layer section */
-        temp_streamFile = setup_ubi_sb_streamfile(streamData, sb->stream_offset, full_stream_size, i, sb->layer_count, sb->big_endian);
+        temp_streamFile = setup_ubi_sb_streamfile(streamData, sb->stream_offset, full_stream_size, i, sb->layer_count, sb->big_endian, sb->cfg.layer_hijack);
         if (!temp_streamFile) goto fail;
 
         sb->stream_size = get_streamfile_size(temp_streamFile);
@@ -1689,6 +1693,7 @@ static void config_sb_silence_f(ubi_sb_header * sb, off_t duration) {
 static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
     int is_bia_ps2 = 0, is_biadd_psp = 0;
     int is_sc2_ps2_gc = 0;
+    int is_sc4_pc_online = 0;
 
     /* Most of the format varies with almost every game + platform (struct serialization?).
      * Support is configured case-by-case as offsets/order/fields only change slightly,
@@ -2347,6 +2352,22 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         return 1;
     }
 
+    /* Tom Clancy's Ghost Recon Advanced Warfighter (2006)(X360)-bank */
+    if (sb->version == 0x00170001 && sb->platform == UBI_X360) {
+        config_sb_entry(sb, 0x68, 0x70);
+
+        config_sb_audio_fs(sb, 0x2c, 0x30, 0x34);
+        config_sb_audio_he(sb, 0x5c, 0x54, 0x40, 0x48, 0x64, 0x60);
+        sb->cfg.audio_xma_offset = 0; /* header is in the extra table */
+
+        config_sb_sequence(sb, 0x2c, 0x14);
+
+        config_sb_layer_he(sb, 0x20, 0x38, 0x3c, 0x48);
+        config_sb_layer_sh(sb, 0x30, 0x00, 0x08, 0x0c, 0x14);
+        sb->cfg.layer_hijack = 1; /* WTF!!! layer format different from other layers using same id!!! */
+        return 1;
+    }
+
     /* Open Season (2006)(PC)-map 0x00180003 */
     if (sb->version == 0x00180003 && sb->platform == UBI_PC) {
         config_sb_entry(sb, 0x68, 0x78);
@@ -2395,9 +2416,31 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         return 1;
     }
 
-    /* Splinter Cell: Double Agent (2006)(PC)-map */
+
+    /* two configs with same id; use project file as identifier */
     if (sb->version == 0x00180006 && sb->platform == UBI_PC) {
+        STREAMFILE * streamTest = open_streamfile_by_filename(streamFile, "Sc4_online_SoundProject.SP0");
+        if (streamTest) {
+            is_sc4_pc_online = 1;
+            close_streamfile(streamTest);
+        }
+    }
+
+    /* Splinter Cell: Double Agent (2006)(PC)-map (offline) */
+    if (sb->version == 0x00180006 && sb->platform == UBI_PC && !is_sc4_pc_online) {
         config_sb_entry(sb, 0x68, 0x7c);
+
+        config_sb_audio_fs(sb, 0x2c, 0x34, 0x30);
+        config_sb_audio_he(sb, 0x5c, 0x54, 0x40, 0x48, 0x64, 0x60);
+
+        config_sb_layer_he(sb, 0x20, 0x38, 0x3c, 0x44);
+        config_sb_layer_sh(sb, 0x34, 0x00, 0x08, 0x0c, 0x14);
+        return 1;
+    }
+
+    /* Splinter Cell: Double Agent (2006)(PC)-map (online) */
+    if (sb->version == 0x00180006 && sb->platform == UBI_PC && is_sc4_pc_online) {
+        config_sb_entry(sb, 0x68, 0x78);
 
         config_sb_audio_fs(sb, 0x2c, 0x34, 0x30);
         config_sb_audio_he(sb, 0x5c, 0x54, 0x40, 0x48, 0x64, 0x60);
