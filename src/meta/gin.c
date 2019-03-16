@@ -1,18 +1,32 @@
 #include "meta.h"
 #include "../coding/coding.h"
 
+VGMSTREAM * init_vgmstream_gin_header(STREAMFILE *streamFile, off_t offset);
+
 /* .gin - EA engine sounds [Need for Speed: Most Wanted (multi)] */
 VGMSTREAM * init_vgmstream_gin(STREAMFILE *streamFile) {
+    VGMSTREAM * vgmstream = NULL;
+
+    if (!check_extensions(streamFile, "gin"))
+        goto fail;
+
+    vgmstream = init_vgmstream_gin_header(streamFile, 0x00);
+    if (!vgmstream)
+        goto fail;
+
+    return vgmstream;
+
+fail:
+    return NULL;
+}
+
+VGMSTREAM * init_vgmstream_gin_header(STREAMFILE *streamFile, off_t offset) {
     VGMSTREAM * vgmstream = NULL;
     off_t start_offset;
     int loop_flag, channel_count, sample_rate, num_samples;
 
-
     /* checks */
-    if (!check_extensions(streamFile, "gin"))
-        goto fail;
-
-    if (read_32bitBE(0x00,streamFile) != 0x476E7375)    /* "Gnsu" */
+    if (read_32bitBE(offset + 0x00, streamFile) != 0x476E7375) /* "Gnsu" */
         goto fail;
 
     /* contains mapped values for engine RPM sounds but we'll just play the whole thing */
@@ -22,11 +36,11 @@ VGMSTREAM * init_vgmstream_gin(STREAMFILE *streamFile) {
     /* 0x14: RPM ??? table size */
     /* always LE even on X360/PS3 */
 
-    num_samples = read_32bitLE(0x18, streamFile);
-    sample_rate = read_32bitLE(0x1c, streamFile);
-    start_offset = 0x20 +
-            (read_32bitLE(0x10, streamFile) + 1) * 0x04 +
-            (read_32bitLE(0x14, streamFile) + 1) * 0x04;
+    num_samples = read_32bitLE(offset + 0x18, streamFile);
+    sample_rate = read_32bitLE(offset + 0x1c, streamFile);
+    start_offset = offset + 0x20 +
+        (read_32bitLE(offset + 0x10, streamFile) + 1) * 0x04 +
+        (read_32bitLE(offset + 0x14, streamFile) + 1) * 0x04;
     channel_count = 1;
     loop_flag = 0;
 
@@ -40,10 +54,12 @@ VGMSTREAM * init_vgmstream_gin(STREAMFILE *streamFile) {
     vgmstream->num_samples = num_samples;
 
     vgmstream->coding_type = coding_EA_XAS_V0;
-    vgmstream->layout_type = layout_interleave;
-    vgmstream->interleave_block_size = 0x13;
+    vgmstream->layout_type = layout_none;
 
-    if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
+    /* calculate size for TMX */
+    vgmstream->stream_size = (align_size_to_block(num_samples, 32) / 32) * 0x13;
+
+    if (!vgmstream_open_stream(vgmstream, streamFile, start_offset))
         goto fail;
     return vgmstream;
 

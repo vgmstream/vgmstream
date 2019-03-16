@@ -381,6 +381,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_ea_abk_eaac,
     init_vgmstream_ea_hdr_sth_dat,
     init_vgmstream_ea_mpf_mus_eaac,
+    init_vgmstream_ea_tmx,
     init_vgmstream_ea_sbr,
     init_vgmstream_ea_sbr_harmony,
     init_vgmstream_ngc_vid1,
@@ -1180,6 +1181,8 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_UBI_IMA:
         case coding_OKI16:
             return 1;
+        case coding_PCM4:
+        case coding_PCM4_U:
         case coding_IMA_int:
         case coding_DVI_IMA_int:
         case coding_3DS_IMA:
@@ -1357,6 +1360,8 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
         case coding_CIRCUS_ADPCM:
             return 0x01;
 
+        case coding_PCM4:
+        case coding_PCM4_U:
         case coding_IMA:
         case coding_IMA_int:
         case coding_DVI_IMA:

@@ -823,7 +823,7 @@ fail:
 static VGMSTREAM * parse_bnk_header(STREAMFILE *streamFile, off_t offset, int target_stream, int is_embedded) {
     uint32_t i;
     uint16_t num_sounds;
-    off_t header_offset, start_offset, test_offset, table_offset;
+    off_t header_offset, start_offset, test_offset, table_offset, entry_offset;
     size_t header_size;
     ea_header ea = { 0 };
     int32_t(*read_32bit)(off_t, STREAMFILE*) = NULL;
@@ -872,15 +872,17 @@ static VGMSTREAM * parse_bnk_header(STREAMFILE *streamFile, off_t offset, int ta
         if (target_stream < 0 || target_stream >= num_sounds)
             goto fail;
 
-        header_offset = read_32bit(offset + table_offset + 0x04 * target_stream, streamFile);
+        entry_offset = offset + table_offset + 0x04 * target_stream;
+        header_offset = entry_offset + read_32bit(offset + entry_offset, streamFile);
     } else {
         /* some of these are dummies with zero offset, skip them when opening standalone BNK */
         for (i = 0; i < num_sounds; i++) {
-            test_offset = read_32bit(offset + table_offset + 0x04 * i, streamFile);
+            entry_offset = offset + table_offset + 0x04 * i;
+            test_offset = read_32bit(entry_offset, streamFile);
 
             if (test_offset != 0) {
                 if (target_stream == real_bnk_sounds)
-                    header_offset = offset + table_offset + 0x04 * i + test_offset;
+                    header_offset = entry_offset + test_offset;
 
                 real_bnk_sounds++;
             }

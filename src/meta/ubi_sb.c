@@ -832,7 +832,7 @@ static VGMSTREAM * init_vgmstream_ubi_sb_silence(ubi_sb_header *sb, STREAMFILE *
     vgmstream->meta_type = meta_UBI_SB;
     vgmstream->sample_rate = sample_rate;
 
-    vgmstream->num_samples = sb->duration * sample_rate;
+    vgmstream->num_samples = (int32_t)(sb->duration * (float)sample_rate);
     vgmstream->num_streams = sb->total_subsongs;
     vgmstream->stream_size = vgmstream->num_samples * channel_count * 0x02; /* PCM size */
 
@@ -2348,7 +2348,6 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
     }
 
     /* Open Season (2006)(PC)-map 0x00180003 */
-    /* Shaun White Snowboarding (2008)(PC)-map 0x00180003 */
     if (sb->version == 0x00180003 && sb->platform == UBI_PC) {
         config_sb_entry(sb, 0x68, 0x78);
 
@@ -2359,6 +2358,8 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
 
         config_sb_layer_he(sb, 0x20, 0x38, 0x3c, 0x44);
         config_sb_layer_sh(sb, 0x34, 0x00, 0x08, 0x0c, 0x14);
+
+        config_sb_silence_f(sb, 0x1c);
         return 1;
     }
 
@@ -2373,6 +2374,8 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
 
         config_sb_layer_he(sb, 0x20, 0x2c, 0x30, 0x38);
         config_sb_layer_sh(sb, 0x34, 0x00, 0x08, 0x0c, 0x14);
+
+        config_sb_silence_f(sb, 0x1c);
         return 1;
     }
 
@@ -2387,6 +2390,8 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
 
         config_sb_layer_he(sb, 0x20, 0x38, 0x3c, 0x44);
         config_sb_layer_sh(sb, 0x34, 0x00, 0x08, 0x0c, 0x14);
+
+        config_sb_silence_f(sb, 0x1c);
         return 1;
     }
 
