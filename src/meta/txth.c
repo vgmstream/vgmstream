@@ -57,6 +57,7 @@ typedef struct {
     uint32_t data_size;
     int data_size_set;
     uint32_t start_offset;
+    uint32_t padding_size;
 
     int sample_type;
     uint32_t num_samples;
@@ -616,6 +617,7 @@ static int parse_coef_table(STREAMFILE * streamFile, txth_header * txth, const c
 static int is_string(const char * val, const char * cmp);
 static int is_substring(const char * val, const char * cmp);
 static int get_bytes_to_samples(txth_header * txth, uint32_t bytes);
+static int get_padding_size(txth_header * txth, int discard_empty);
 
 /* Simple text parser of "key = value" lines.
  * The code is meh and error handling not exactly the best. */
@@ -776,6 +778,8 @@ static int parse_keyval(STREAMFILE * streamFile_, txth_header * txth, const char
     }
     else if (is_string(key,"start_offset")) {
         if (!parse_num(txth->streamHead,txth,val, &txth->start_offset)) goto fail;
+
+        /* apply */
         if (!txth->data_size_set) {
             uint32_t body_size = !txth->streamBody ? 0 : get_streamfile_size(txth->streamBody);
 
@@ -793,6 +797,23 @@ static int parse_keyval(STREAMFILE * streamFile_, txth_header * txth, const char
 
             if (body_size && body_size > txth->start_offset)
                 txth->data_size = body_size - txth->start_offset; /* re-evaluate */
+        }
+    }
+    else if (is_string(key,"padding_size")) {
+        if (is_string(val,"auto")) {
+            txth->padding_size = get_padding_size(txth, 0);
+        }
+        else if (is_string(val,"auto-empty")) {
+            txth->padding_size = get_padding_size(txth, 1);
+        }
+        else {
+            if (!parse_num(txth->streamHead,txth,val, &txth->padding_size)) goto fail;
+        }
+
+        /* apply */
+        if (!txth->data_size_set) {
+            if (txth->padding_size < txth->data_size)
+                txth->data_size -= txth->padding_size;
         }
     }
     else if (is_string(key,"data_size")) {
@@ -1258,6 +1279,18 @@ static int get_bytes_to_samples(txth_header * txth, uint32_t bytes) {
             return (bytes / txth->interleave) * (txth->interleave - 2) * 2;
 
         case FFMPEG: /* too complex, try after init */
+        default:
+            return 0;
+    }
+}
+
+static int get_padding_size(txth_header * txth, int discard_empty) {
+    if (txth->data_size == 0 || txth->channels == 0)
+        return 0;
+
+    switch(txth->codec) {
+        case PSX:
+            return ps_find_padding(txth->streamBody, txth->start_offset, txth->data_size, txth->channels, txth->interleave, discard_empty);
         default:
             return 0;
     }

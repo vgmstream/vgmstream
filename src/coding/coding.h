@@ -84,6 +84,7 @@ void decode_psx(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing
 void decode_psx_configurable(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int frame_size);
 int ps_find_loop_offsets(STREAMFILE *streamFile, off_t start_offset, size_t data_size, int channels, size_t interleave, int32_t * out_loop_start, int32_t * out_loop_end);
 int ps_find_loop_offsets_full(STREAMFILE *streamFile, off_t start_offset, size_t data_size, int channels, size_t interleave, int32_t * out_loop_start, int32_t * out_loop_end);
+size_t ps_find_padding(STREAMFILE *streamFile, off_t start_offset, size_t data_size, int channels, size_t interleave, int discard_empty);
 size_t ps_bytes_to_samples(size_t bytes, int channels);
 size_t ps_cfg_bytes_to_samples(size_t bytes, size_t frame_size, int channels);
 

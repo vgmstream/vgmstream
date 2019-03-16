@@ -176,6 +176,9 @@ static int ps_find_loop_offsets_internal(STREAMFILE *streamFile, off_t start_off
     int detect_full_loops = config & 1;
 
 
+    if (data_size == 0 || channels == 0 || (channels > 0 && interleave == 0))
+        return 0;
+
     while (offset < max_offset) {
         uint8_t flag = (uint8_t)read_8bit(offset+0x01,streamFile) & 0x0F; /* lower nibble only (for HEVAG) */
 
@@ -267,6 +270,63 @@ int ps_find_loop_offsets(STREAMFILE *streamFile, off_t start_offset, size_t data
 int ps_find_loop_offsets_full(STREAMFILE *streamFile, off_t start_offset, size_t data_size, int channels, size_t interleave, int32_t * out_loop_start, int32_t * out_loop_end) {
     return ps_find_loop_offsets_internal(streamFile, start_offset, data_size, channels, interleave, out_loop_start, out_loop_end, 1);
 }
+
+size_t ps_find_padding(STREAMFILE *streamFile, off_t start_offset, size_t data_size, int channels, size_t interleave, int discard_empty) {
+    off_t min_offset, offset;
+    size_t frame_size = 0x10;
+    size_t padding_size = 0;
+    size_t interleave_consumed = 0;
+
+
+    if (data_size == 0 || channels == 0 || (channels > 0 && interleave == 0))
+        return 0;
+
+    offset = start_offset + data_size;
+    min_offset = 0; //offset - interleave; /* some files have padding spanning multiple interleave blocks */
+
+    while (offset > min_offset) {
+        uint32_t f1,f2,f3,f4;
+        uint8_t flag;
+        int is_empty = 0;
+
+        offset -= frame_size;
+
+        f1 = read_32bitBE(offset+0x00,streamFile);
+        f2 = read_32bitBE(offset+0x04,streamFile);
+        f3 = read_32bitBE(offset+0x08,streamFile);
+        f4 = read_32bitBE(offset+0x0c,streamFile);
+        flag = (f1 >> 16) & 0xFF;
+
+        if (f1 == 0 && f2 == 0 && f3 == 0 && f4 == 0)
+            is_empty = 1;
+
+        if (!is_empty && discard_empty) {
+            if (flag == 0x07 || flag == 0x77)
+                is_empty = 1; /* 'discard frame' flag */
+            else if ((f1 & 0xFF00FFFF) == 0 && f2 == 0 && f3 == 0 && f4 == 0)
+                is_empty = 1; /* silent with flags (typical for looping files) */
+            else if ((f1 & 0xFF00FFFF) == 0x0C000000 && f2 == 0 && f3 == 0 && f4 == 0)
+                is_empty = 1; /* silent (maybe shouldn't ignore flag 0x03?) */
+            else if ((f1 & 0x0000FFFF) == 0x00007777 && f2 == 0x77777777 && f3 ==0x77777777 && f4 == 0x77777777)
+                is_empty = 1; /* silent-ish */
+        }
+
+        if (!is_empty)
+            break;
+
+        padding_size += frame_size * channels;
+
+        /* skip other channels */
+        interleave_consumed += 0x10;
+        if (interleave_consumed == interleave) {
+            interleave_consumed = 0;
+            offset -= interleave*(channels - 1);
+        }
+    }
+
+    return padding_size;
+}
+
 
 size_t ps_bytes_to_samples(size_t bytes, int channels) {
     if (channels <= 0) return 0;
