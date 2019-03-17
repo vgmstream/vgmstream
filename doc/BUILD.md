@@ -260,3 +260,13 @@ To compile we'll use autotools with GCC preprocessor renaming:
   ```
 - take the .dlls from celt-x.x.x/libcelt/.libs, and rename libcelt.dll to libcelt-0061.dll and libcelt-0110.dll respectively.
 - Finally the includes. libcelt gives "celt.h" "celt_types.h" "celt_header.h", but since we renamed a few functions we have a simpler custom .h with minimal renamed symbols.
+
+
+### maiatrac3plus
+This lib was used as an alternate for ATRAC3PLUS decoding. Now this is handled by FFmpeg, though some code remains for now.
+
+It was a straight-up decompilation from Sony's libs, without any clean-up or actual reverse engineering, thus legally and morally dubious.
+
+It doesn't do encoder delay properly, but on the other hand decoding is 100% accurate unlike FFmpeg (probably inaudible though).
+
+So, don't use it unless you have a very good reason.
