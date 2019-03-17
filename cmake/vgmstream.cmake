@@ -121,7 +121,6 @@ macro(setup_target TARGET)
 			target_link_libraries(${TARGET}
 				${CMAKE_BINARY_DIR}/ext_libs/libcelt-0061.lib
 				${CMAKE_BINARY_DIR}/ext_libs/libcelt-0110.lib)
-			endif()
 		endif()
 	endif()
 endmacro()

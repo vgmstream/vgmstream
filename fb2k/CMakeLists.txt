@@ -1,10 +1,19 @@
 # NOTE: Although this does include a section for handling MinGW, it might not be possible to build the foobar2000 component using MinGW using only CMake, as foobar2000's SDK only includes Visual Studio projects
 
+set(RESOURCES ${CMAKE_CURRENT_SOURCE_DIR}/foo_input_vgmstream.rc)
+
+# Setup source groups, mainly for Visual Studio
+source_group("Resource Files" FILES ${RESOURCES})
+
 add_library(foo_input_vgmstream SHARED
+	foo_filetypes.h
+	foo_prefs.h
+	foo_vgmstream.h
+	resource.h
 	foo_prefs.cpp
 	foo_streamfile.cpp
 	foo_vgmstream.cpp
-	foo_input_vgmstream.rc)
+	${RESOURCES})
 
 setup_target(foo_input_vgmstream TRUE)
 

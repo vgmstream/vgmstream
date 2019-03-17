@@ -1,6 +1,15 @@
+file(GLOB WINAMP_SDK_HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/sdk/*.h")
+set(RESOURCES ${CMAKE_CURRENT_SOURCE_DIR}/resource.rc)
+
+# Setup source groups, mainly for Visual Studio
+source_group("Header Files\\sdk" FILES ${WINAMP_SDK_HEADERS})
+source_group("Resource Files" FILES ${RESOURCES})
+
 add_library(in_vgmstream SHARED
+	${WINAMP_SDK_HEADERS}
+	resource.h
 	in_vgmstream.c
-	resource.rc)
+	${RESOURCES})
 
 setup_target(in_vgmstream TRUE)
 
