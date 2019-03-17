@@ -374,6 +374,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_naac,
     init_vgmstream_ubi_sb,
     init_vgmstream_ubi_sm,
+    init_vgmstream_ubi_bnm,
     init_vgmstream_ezw,
     init_vgmstream_vxn,
     init_vgmstream_ea_snr_sns,
@@ -2902,6 +2903,7 @@ int vgmstream_open_stream(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t s
     return 1;
 
 fail:
+VGM_LOG("fail\n");
     /* open streams will be closed in close_vgmstream(), hopefully called by the meta */
     return 0;
 }

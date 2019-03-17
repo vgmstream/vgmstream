@@ -5,9 +5,9 @@
 
 
 #define SB_MAX_LAYER_COUNT 16  /* arbitrary max */
-#define SB_MAX_CHAIN_COUNT 64  /* arbitrary max */
+#define SB_MAX_CHAIN_COUNT 256 /* +150 exist in Tonic Trouble */
 
-typedef enum { UBI_IMA, UBI_ADPCM, RAW_PCM, RAW_PSX, RAW_DSP, RAW_XBOX, FMT_VAG, FMT_AT3, RAW_AT3, FMT_XMA1, RAW_XMA1, FMT_OGG, FMT_CWAV } ubi_sb_codec;
+typedef enum { UBI_IMA, UBI_ADPCM, RAW_PCM, RAW_PSX, RAW_DSP, RAW_XBOX, FMT_VAG, FMT_AT3, RAW_AT3, FMT_XMA1, RAW_XMA1, FMT_OGG, FMT_CWAV, FMT_APM } ubi_sb_codec;
 typedef enum { UBI_PC, UBI_PS2, UBI_XBOX, UBI_GC, UBI_X360, UBI_PSP, UBI_PS3, UBI_WII, UBI_3DS } ubi_sb_platform;
 typedef enum { UBI_NONE = 0, UBI_AUDIO, UBI_LAYER, UBI_SEQUENCE, UBI_SILENCE } ubi_sb_type;
 
@@ -62,6 +62,11 @@ typedef struct {
     off_t silence_duration_int;
     off_t silence_duration_float;
 
+    off_t random_extra_offset;
+    off_t random_sequence_count;
+    size_t random_entry_size;
+    int random_percent_int;
+
     int is_padded_section1_offset;
     int is_padded_section2_offset;
     int is_padded_section3_offset;
@@ -94,7 +99,9 @@ typedef struct {
     uint32_t map_unknown;
 
     /* SB info (some values are derived depending if it's standard sbX or map sbX) */
+    int is_bank;
     int is_map;
+    int is_bnm;
     uint32_t version;           /* 16b+16b major+minor version */
     uint32_t version_empty;     /* map sbX versions are empty */
     /* events (often share header_id/type with some descriptors,
@@ -141,6 +148,8 @@ typedef struct {
     int layer_channels[SB_MAX_LAYER_COUNT];
     int sequence_count;         /* number of segments in a sequence type */
     int sequence_chain[SB_MAX_CHAIN_COUNT]; /* sequence of entry numbers */
+    int sequence_banks[SB_MAX_CHAIN_COUNT]; /* sequence of bnk bank numbers */
+    int sequence_multibank;     /* info flag */
     int sequence_loop;          /* chain index to loop */
     int sequence_single;        /* if que sequence plays once (loops by default) */
 
@@ -154,6 +163,7 @@ typedef struct {
     int allowed_types[16];
 } ubi_sb_header;
 
+static int parse_bnm_header(ubi_sb_header * sb, STREAMFILE *streamFile);
 static int parse_header(ubi_sb_header * sb, STREAMFILE *streamFile, off_t offset, int index);
 static int parse_sb(ubi_sb_header * sb, STREAMFILE *streamFile, int target_subsong);
 static VGMSTREAM * init_vgmstream_ubi_sb_header(ubi_sb_header *sb, STREAMFILE* streamTest, STREAMFILE *streamFile);
@@ -193,7 +203,7 @@ VGMSTREAM * init_vgmstream_ubi_sb(STREAMFILE *streamFile) {
 
     /* SB HEADER */
     /* SBx layout: header, section1, section2, extra section, section3, data (all except header can be null) */
-    sb.is_map = 0;
+    sb.is_bank = 1;
     sb.version       = read_32bit(0x00, streamFile);
     sb.section1_num  = read_32bit(0x04, streamFile);
     sb.section2_num  = read_32bit(0x08, streamFile);
@@ -342,18 +352,85 @@ fail:
     return NULL;
 }
 
-#if 0
-/* .BNM - proto-sbX with map style format [Donald Duck: Goin' Quackers (PC), Tonic Trouble (PC)] */
-VGMSTREAM * init_vgmstream_ubi_bnm(STREAMFILE *streamFile) {
 
-    /* v0x00000000, header is somewhat like a map-style bank (offsets + sizes) but sectionX/3 fields
-     * are fixed/reserved (unused?). Header entry sizes and config looks the same as early games.
-     * Main codecs are 01=RAW_PCM and 04=FMT_APM (.apm if external, possibly Ubi IMA v0 but has a full header).
-     * The sound engine doesn't seem to be named DARE yet.
-     */
+/* .BNM - proto-sbX with map style format [Rayman 2 (PC), Donald Duck: Goin' Quackers (PC), Tonic Trouble (PC)] */
+VGMSTREAM * init_vgmstream_ubi_bnm(STREAMFILE *streamFile) {
+    VGMSTREAM* vgmstream = NULL;
+    STREAMFILE *streamTest = NULL;
+    ubi_sb_header sb = {0};
+    int target_subsong = streamFile->stream_index;
+
+    if (target_subsong <= 0) target_subsong = 1;
+
+
+    /* checks */
+    if (!check_extensions(streamFile, "bnm"))
+        goto fail;
+
+    /* v0, header is somewhat like a map-style bank (offsets + sizes) but sectionX/3 fields are
+     * fixed/reserved (unused?). Header entry sizes and config works the same, and type numbers are
+     * slightly different, but otherwise pretty much the same engine (not named DARE yet). Curiously
+     * it may stream RIFF .wav (stream_offset pointing to "data"), and also .raw (PCM) or .apm IMA. */
+
+    /* use smaller header buffer for performance */
+    streamTest = reopen_streamfile(streamFile, 0x100);
+    if (!streamTest) goto fail;
+
+    if (!parse_bnm_header(&sb, streamTest))
+        goto fail;
+
+    if (!parse_sb(&sb, streamTest, target_subsong))
+        goto fail;
+
+    /* CREATE VGMSTREAM */
+    vgmstream = init_vgmstream_ubi_sb_header(&sb, streamTest, streamFile);
+    close_streamfile(streamTest);
+    return vgmstream;
+
+fail:
+    close_streamfile(streamTest);
     return NULL;
 }
-#endif
+
+static int parse_bnm_header(ubi_sb_header * sb, STREAMFILE *streamFile) {
+    int32_t(*read_32bit)(off_t, STREAMFILE*) = NULL;
+
+    /* PLATFORM DETECTION */
+    sb->platform = UBI_PC;
+    read_32bit = sb->big_endian ? read_32bitBE : read_32bitLE;
+
+    /* SB HEADER */
+    /* SBx layout: header, section1, section2, extra section, section3, data (all except header can be null) */
+    sb->is_bnm = 1;
+    sb->version          = read_32bit(0x00, streamFile);
+    sb->section1_offset  = read_32bit(0x04, streamFile);
+    sb->section1_num     = read_32bit(0x08, streamFile);
+    sb->section2_offset  = read_32bit(0x0c, streamFile);
+    sb->section2_num     = read_32bit(0x10, streamFile);
+    /* next are data start offset x3 + data size offset x3 */
+    sb->section3_offset  = read_32bit(0x14, streamFile);
+    sb->section3_num     = 0;
+
+    if (!config_sb_version(sb, streamFile))
+        goto fail;
+
+    sb->sectionX_offset  = sb->section2_offset + sb->section2_num * sb->cfg.section2_entry_size;
+    sb->sectionX_size    = sb->section3_offset - sb->sectionX_offset;
+
+    return 1;
+fail:
+    return 0;
+}
+
+static int is_bnm_other_bank(STREAMFILE *streamFile, int bank_number) {
+    char current_name[PATH_LIMIT];
+    char bank_name[255];
+
+    get_streamfile_filename(streamFile, current_name, PATH_LIMIT);
+    sprintf(bank_name, "Bnk_%i.bnm", bank_number);
+
+    return strcmp(current_name, bank_name) != 0;
+}
 
 #if 0
 /* .BLK - maps in separate .blk chunks [Donald Duck: Goin' Quackers (PS2), The Jungle Book Rhythm N'Groove (PS2)] */
@@ -398,15 +475,15 @@ static VGMSTREAM * init_vgmstream_ubi_sb_base(ubi_sb_header *sb, STREAMFILE *str
             break;
 
         case UBI_ADPCM:
-            /* todo custom Ubi 4/6-bit ADPCM (4b for music/stereo and 6b for voices?)
-             * - ~0x30: block-like header (some versions may not have it).
-             *    Seems to contain frame size, channels, sometimes sample rate/samples/etc.
-             * - 0x34 per channel: channel header, starts with 0x02
-             * - 0x600: frame data (unknown interleave)
-             * - 0x02: ADPCM hist?
-             *
-             * frame data looks decoded in two passes (first may expand nibble somehow, other
-             * seems to calculate diffs)
+            /* todo custom Ubi 4/6-bit ADPCM (4b for music/stereo and 6b for voices)
+             * - ~0x30: stream header (varies with versions).
+             *    contains frame sizes (normal/last), channels, sometimes sample rate/samples/etc.
+             * - 0x34 per channel: channel header, starts with 0x02, contains ADPCM info
+             * - 0x602/902: frame data divided into 2 chunks (with a padding byte)
+             *   for each chunk frame data is read as LE int32, then divided into codes
+             *   (some 6b span two int32). stereo interleaves 4 codes per channel.
+             *   data is decoded using 3 tables and ops to adjust sample and calculate next step
+             *   (6b decoding is much simpler than 4b, that applies more extra ops).
              *
              * used in:
              * - Batman: Vengeance (PC)
@@ -422,6 +499,12 @@ static VGMSTREAM * init_vgmstream_ubi_sb_base(ubi_sb_header *sb, STREAMFILE *str
             vgmstream->coding_type = coding_PCM16LE; /* always LE */
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = 0x02;
+
+            if (vgmstream->num_samples == 0) { /* happens in .bnm */
+                //todo with external wav streams stream_size may be off?
+                vgmstream->num_samples       = pcm_bytes_to_samples(sb->stream_size, sb->channels, 16);
+                vgmstream->loop_end_sample   = vgmstream->num_samples;
+            }
             break;
 
         case RAW_PSX:
@@ -430,6 +513,7 @@ static VGMSTREAM * init_vgmstream_ubi_sb_base(ubi_sb_header *sb, STREAMFILE *str
             vgmstream->interleave_block_size =  (sb->cfg.audio_interleave) ?
                             sb->cfg.audio_interleave :
                             sb->stream_size / sb->channels;
+
             if (vgmstream->num_samples == 0) { /* early PS2 games may not set it for internal streams */
                 vgmstream->num_samples = ps_bytes_to_samples(sb->stream_size, sb->channels);
                 vgmstream->loop_end_sample = vgmstream->num_samples;
@@ -491,7 +575,7 @@ static VGMSTREAM * init_vgmstream_ubi_sb_base(ubi_sb_header *sb, STREAMFILE *str
 
             block_size = 0x98 * sb->channels;
             joint_stereo = 0;
-            encoder_delay = 0x00; /* TODO: this is incorrect */
+            encoder_delay = 0x00; /* TODO: this is may be incorrect */
 
             bytes = ffmpeg_make_riff_atrac3(buf, 0x100, sb->num_samples, sb->stream_size, sb->channels, sb->sample_rate, block_size, joint_stereo, encoder_delay);
             ffmpeg_data = init_ffmpeg_header_offset(streamData, buf, bytes, start_offset, sb->stream_size);
@@ -590,6 +674,53 @@ static VGMSTREAM * init_vgmstream_ubi_sb_base(ubi_sb_header *sb, STREAMFILE *str
 
             dsp_read_coefs_le(vgmstream,streamData,start_offset + 0x7c, 0x40);
             start_offset += 0xe0; /* skip CWAV header */
+            break;
+
+        case FMT_APM:
+            /* APM is a full format though most fields are repeated from .bnm
+             * (info from https://github.com/Synthesis/ray2get)
+             * 0x00(2): format tag (0x2000 for Ubisoft ADPCM)
+             * 0x02(2): channels
+             * 0x04(4): sample rate
+             * 0x08(4): byte rate? PCM samples?
+             * 0x0C(2): block align
+             * 0x0E(2): bits per sample
+             * 0x10(4): header size
+             * 0x14(4): "vs12"
+             * 0x18(4): file size
+             * 0x1C(4): nibble size
+             * 0x20(4): -1?
+             * 0x24(4): 0?
+             * 0x28(4): high/low nibble flag (when loaded in memory)
+             * 0x2C(N): ADPCM info per channel, last to first
+             * - 0x00(4): ADPCM hist
+             * - 0x04(4): ADPCM step index
+             * - 0x08(4): copy of ADPCM data (after interleave, ex. R from data + 0x01)
+             * 0x60(4): "DATA"
+             * 0x64(N): ADPCM data
+             */
+
+            vgmstream->coding_type = coding_DVI_IMA_int;
+            vgmstream->layout_type = layout_interleave;
+            vgmstream->interleave_block_size = 0x01;
+
+            /* read initial hist (last to first) */
+            {
+                int i;
+                for (i = 0; i < sb->channels; i++) {
+                    vgmstream->ch[i].adpcm_history1_32 = read_32bitLE(start_offset + 0x2c + 0x0c*(sb->channels - 1 - i) + 0x00, streamData);
+                    vgmstream->ch[i].adpcm_step_index  = read_32bitLE(start_offset + 0x2c + 0x0c*(sb->channels - 1 - i) + 0x04, streamData);
+                }
+            }
+            //todo supposedly APM IMA removes lower 3b after assigning step, but wave looks a bit off (Rayman 2 only?):
+            // ...; step = adpcm_table[step_index]; delta = (step >> 3); step &= (~7); ...
+
+            start_offset += 0x64; /* skip APM header (may be internal or external) */
+
+            if (vgmstream->num_samples == 0) {
+                vgmstream->num_samples       = ima_bytes_to_samples(sb->stream_size - 0x64, sb->channels);
+                vgmstream->loop_end_sample   = vgmstream->num_samples;
+            }
             break;
 
         default:
@@ -718,6 +849,8 @@ static VGMSTREAM * init_vgmstream_ubi_sb_sequence(ubi_sb_header *sb, STREAMFILE 
     VGMSTREAM * vgmstream = NULL;
     segmented_layout_data* data = NULL;
     int i;
+    STREAMFILE *streamBank = streamTest;
+
 
     //todo optimization: open streamData once / only if new name (doesn't change 99% of the time)
 
@@ -730,31 +863,59 @@ static VGMSTREAM * init_vgmstream_ubi_sb_sequence(ubi_sb_header *sb, STREAMFILE 
 
     /* open all segments and mix */
     for (i = 0; i < sb->sequence_count; i++) {
-        ubi_sb_header temp_sb = *sb; /* memcpy'ed */
+        ubi_sb_header temp_sb = {0};
+        off_t entry_offset;
         int entry_index = sb->sequence_chain[i];
-        off_t entry_offset = sb->section2_offset + sb->cfg.section2_entry_size * entry_index;
+
+
+        /* bnm sequences may use to entries from other banks, do some voodoo */
+        if (sb->is_bnm) {
+            /* see if *current* bank has changed (may use a different bank N times) */
+            if (is_bnm_other_bank(streamBank, sb->sequence_banks[i])) {
+                char bank_name[255];
+                sprintf(bank_name, "Bnk_%i.bnm", sb->sequence_banks[i]);
+
+                if (streamBank != streamTest)
+                    close_streamfile(streamBank);
+
+                streamBank = open_streamfile_by_filename(streamFile, bank_name);
+                if (!streamBank) goto fail;
+            }
+
+            /* re-parse the thing */
+            if (!parse_bnm_header(&temp_sb, streamBank))
+                goto fail;
+            temp_sb.total_subsongs = 1; /* eh... just to keep parse_header happy */
+        }
+        else {
+            temp_sb = *sb;  /* memcpy'ed */
+        }
 
         /* parse expected entry */
-        if (!parse_header(&temp_sb, streamTest, entry_offset, entry_index))
+        entry_offset = temp_sb.section2_offset + temp_sb.cfg.section2_entry_size * entry_index;
+        if (!parse_header(&temp_sb, streamBank, entry_offset, entry_index))
             goto fail;
 
         if (temp_sb.type == UBI_NONE || temp_sb.type == UBI_SEQUENCE) {
-            VGM_LOG("UBI SB: unexpected sequence entry type at %x\n", (uint32_t)entry_offset);
-            goto fail; /* technically ok but too much recursiveness? */
+            VGM_LOG("UBI SB: unexpected sequence %i entry type at %x\n", i, (uint32_t)entry_offset);
+            goto fail; /* not seen, technically ok but too much recursiveness? */
         }
 
         /* build the layer VGMSTREAM (current sb entry config) */
-        data->segments[i] = init_vgmstream_ubi_sb_header(&temp_sb, streamTest, streamFile);
+        data->segments[i] = init_vgmstream_ubi_sb_header(&temp_sb, streamBank, streamFile);
         if (!data->segments[i]) goto fail;
 
         if (i == sb->sequence_loop)
             sb->loop_start = sb->num_samples;
         sb->num_samples += data->segments[i]->num_samples;
 
-        /* save current (silences don't have values, so this unsures they know when memcpy'ed) */
+        /* save current (silences don't have values, so this ensures they know later, when memcpy'ed) */
         sb->channels = temp_sb.channels;
         sb->sample_rate = temp_sb.sample_rate;
     }
+
+    if (streamBank != streamTest)
+        close_streamfile(streamBank);
 
     if (!setup_layout_segmented(data))
         goto fail;
@@ -782,6 +943,8 @@ fail:
         close_vgmstream(vgmstream);
     else
         free_layout_segmented(data);
+    if (streamBank != streamTest)
+        close_streamfile(streamBank);
     return NULL;
 }
 
@@ -912,10 +1075,18 @@ static void build_readable_name(char * buf, size_t buf_size, ubi_sb_header * sb)
     int index;
 
     /* config */
-    if (sb->is_map)
+    if (sb->is_map) {
         grp_name = sb->map_name;
-    else
+    }
+    else if (sb->is_bnm) {
+        if (sb->sequence_multibank)
+            grp_name = "bnm-multi";
+        else
+            grp_name = "bnm";
+    }
+    else {
         grp_name = "bank";
+    }
     id = sb->header_id;
     type = sb->header_type;
     if (sb->is_map)
@@ -1056,7 +1227,7 @@ static int parse_type_sequence(ubi_sb_header * sb, off_t offset, STREAMFILE* str
     sb->sequence_count  = read_32bit(offset + sb->cfg.sequence_sequence_count, streamFile);
 
     if (sb->sequence_count > SB_MAX_CHAIN_COUNT) {
-        VGM_LOG("Ubi SB: incorrect layer count\n");
+        VGM_LOG("Ubi SB: incorrect sequence count %i vs %i\n", sb->sequence_count, SB_MAX_CHAIN_COUNT);
         goto fail;
     }
 
@@ -1065,14 +1236,29 @@ static int parse_type_sequence(ubi_sb_header * sb, off_t offset, STREAMFILE* str
     for (i = 0; i < sb->sequence_count; i++) {
         uint32_t entry_number = (uint32_t)read_32bit(table_offset+sb->cfg.sequence_entry_number, streamFile);
 
+        /* bnm sequences may refer to entries from different banks, whee */
+        if (sb->is_bnm) {
+            int16_t bank_number = (entry_number >> 16) & 0xFFFF;
+            entry_number        = (entry_number >> 00) & 0xFFFF;
+
+            //;VGM_LOG("UBI SB: bnm sequence entry=%i, bank=%i\n", entry_number, bank_number);
+            sb->sequence_banks[i] = bank_number;
+
+            /* info flag, does bank number point to another file? */
+            if (!sb->sequence_multibank) {
+                sb->sequence_multibank = is_bnm_other_bank(streamFile, bank_number);
+            }
+        }
+        else {
+            entry_number = entry_number & 0x3FFFFFFF;
+            if (entry_number > sb->section2_num) {
+                VGM_LOG("UBI SB: chain with wrong entry %i vs %i at %x\n", entry_number, sb->section2_num, (uint32_t)sb->extra_offset);
+                goto fail;
+            }
+        }
+
         /* some sequences have an upper bit (2 bits in Donald Duck voices) for some reason */
         //;VGM_ASSERT_ONCE(entry_number & 0xC0000000, "UBI SB: sequence bit entry found at %x\n", (uint32_t)sb->extra_offset);
-
-        entry_number = entry_number & 0x3FFFFFFF;
-        if (entry_number > sb->section2_num) {
-            VGM_LOG("UBI SB: chain with wrong entry %i vs %i at %x\n", entry_number, sb->section2_num, (uint32_t)sb->extra_offset);
-            goto fail;
-        }
 
         sb->sequence_chain[i] = entry_number;
 
@@ -1195,6 +1381,57 @@ fail:
     return 0;
 }
 
+// todo improve, only used in bnm sequences as sequence end (and may point to another bnm)
+static int parse_type_random(ubi_sb_header * sb, off_t offset, STREAMFILE* streamFile) {
+    int32_t (*read_32bit)(off_t,STREAMFILE*) = sb->big_endian ? read_32bitBE : read_32bitLE;
+
+    off_t sb_extra_offset, table_offset;
+    int i, sb_sequence_count;
+
+    /* sequence chain */
+    if (sb->cfg.random_entry_size == 0) {
+        VGM_LOG("Ubi SB: random entry size not configured at %x\n", (uint32_t)offset);
+        goto fail;
+    }
+
+    sb_extra_offset    = read_32bit(offset + sb->cfg.random_extra_offset, streamFile) + sb->sectionX_offset;
+    sb_sequence_count  = read_32bit(offset + sb->cfg.random_sequence_count, streamFile);
+
+
+    /* get chain in extra table */
+    table_offset = sb_extra_offset;
+    for (i = 0; i < sb_sequence_count; i++) {
+        uint32_t entry_number = (uint32_t)read_32bit(table_offset+0x00, streamFile);
+        //uint32_t entry_chance = (uint32_t)read_32bit(table_offset+0x04, streamFile);
+
+        if (sb->is_bnm) {
+            int16_t bank_number = (entry_number >> 16) & 0xFFFF;
+            entry_number        = (entry_number >> 00) & 0xFFFF;
+
+            ;VGM_LOG("UBI SB: bnm sequence entry=%i, bank=%i\n", entry_number, bank_number);
+            //sb->sequence_banks[i] = bank_number;
+
+            /* not seen */
+            if (is_bnm_other_bank(streamFile, bank_number)) {
+                VGM_LOG("UBI SB: random in other bank\n");
+                goto fail;
+            }
+        }
+
+        //todo make rand or stuff (old chance: int from 0 to 0x10000, new: float from 0.0 to 1.0)
+        { //if (entry_chance == ...)
+            off_t entry_offset = sb->section2_offset + sb->cfg.section2_entry_size * entry_number;
+            return parse_type_audio(sb, entry_offset, streamFile);
+        }
+
+        table_offset += sb->cfg.random_entry_size;
+    }
+
+    return 1;
+fail:
+    return 0;
+}
+
 
 /* find actual codec from type (as different games' stream_type can overlap) */
 static int parse_stream_codec(ubi_sb_header * sb) {
@@ -1286,6 +1523,10 @@ static int parse_stream_codec(ubi_sb_header * sb) {
 
         case 0x04:
             switch (sb->version) {
+                case 0x00000000: /* Rayman 2, Tonic Trouble */
+                    sb->codec = FMT_APM;
+                    break;
+
                 case 0x00000007: /* Splinter Cell, Splinter Cell: Pandora Tomorrow */
                     sb->codec = UBI_IMA;
                     break;
@@ -1461,6 +1702,7 @@ static int parse_header(ubi_sb_header * sb, STREAMFILE *streamFile, off_t offset
                 goto fail;
             break;
         case 0x05:
+        case 0x0b:
         case 0x0c:
             if (!parse_type_sequence(sb, offset, streamFile))
                 goto fail;
@@ -1475,8 +1717,12 @@ static int parse_header(ubi_sb_header * sb, STREAMFILE *streamFile, off_t offset
             if (!parse_type_silence(sb, offset, streamFile))
                 goto fail;
             break;
+        case 0x0a:
+            if (!parse_type_random(sb, offset, streamFile))
+                goto fail;
+            break;
         default:
-            VGM_LOG("UBI SB: unknown header type at %x\n", (uint32_t)offset);
+            VGM_LOG("UBI SB: unknown header type %x at %x\n", sb->header_type, (uint32_t)offset);
             goto fail;
     }
 
@@ -1509,7 +1755,7 @@ static int parse_sb(ubi_sb_header * sb, STREAMFILE *streamFile, int target_subso
       /*header_id =*/ read_32bit(offset + 0x00, streamFile); /* forces buffer read */
         header_type = read_32bit(offset + 0x04, streamFile);
 
-        if (header_type <= 0x00 || header_type >= 0x10 || header_type == 0x09 || header_type == 0x0b) {
+        if (header_type <= 0x00 || header_type >= 0x10 || header_type == 0x09) {
             VGM_LOG("UBI SB: unknown type %x at %x\n", header_type, (uint32_t)offset);
             goto fail;
         }
@@ -1658,6 +1904,10 @@ static void config_sb_sequence(ubi_sb_header * sb, off_t sequence_count, off_t e
     sb->cfg.sequence_sequence_count = sequence_count;
     sb->cfg.sequence_entry_size     = entry_size;
     sb->cfg.sequence_entry_number   = 0x00;
+    if (sb->is_bnm) {
+        sb->cfg.sequence_sequence_loop  = sequence_count - 0x0c;
+        sb->cfg.sequence_sequence_single= sequence_count - 0x08;
+    }
 }
 static void config_sb_layer_hs(ubi_sb_header * sb, off_t layer_count, off_t stream_size, off_t stream_offset, off_t stream_name) {
     /* layer headers with stream name */
@@ -1690,7 +1940,14 @@ static void config_sb_silence_f(ubi_sb_header * sb, off_t duration) {
     sb->cfg.silence_duration_float  = duration;
 }
 
+static void config_sb_random_old(ubi_sb_header * sb, off_t sequence_count, off_t entry_size) {
+    sb->cfg.random_sequence_count = sequence_count;
+    sb->cfg.random_entry_size = entry_size;
+    sb->cfg.random_percent_int = 1;
+}
+
 static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
+    int is_dino_pc = 0;
     int is_bia_ps2 = 0, is_biadd_psp = 0;
     int is_sc2_ps2_gc = 0;
     int is_sc4_pc_online = 0;
@@ -1762,24 +2019,25 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
 
     /* debug strings reference:
      * - TYPE_SAMPLE: should be 0x01 (also "sound resource")
-     * - TYPE_MULTITRACK: should be 0x06/0x0d (also "multilayer resource")
+     * - TYPE_MULTITRACK: should be 0x06/0x0d/0x0b (also "multilayer resource")
      * - TYPE_SILENCE: should be 0x08
      * sequences may be "theme resource"
-     * "class descryptor" is referenced too.
+     * "class descriptor" is referenced too.
      *
-     * Possible type names from .bnm (.sb's predecessor):
+     * Type names from .bnm (.sb's predecessor):
      * 0: TYPE_INVALID
      * 1: TYPE_SAMPLE
      * 2: TYPE_MIDI
      * 3: TYPE_CDAUDIO
-     * 4: TYPE_SEQUENCE
+     * 4: TYPE_SEQUENCE (sfx chain?)
      * 5: TYPE_SWITCH_OLD
      * 6: TYPE_SPLIT
      * 7: TYPE_THEME_OLD
      * 8: TYPE_SWITCH
      * 9: TYPE_THEME_OLD2
      * A: TYPE_RANDOM
-     * B: TYPE_THEME0
+     * B: TYPE_THEME0 (sequence)
+     * (only 1, 4, A and B are known)
      */
 
     /* All types may contain memory garbage, making it harder to identify fields (platforms
@@ -1804,7 +2062,22 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
 
     sb->cfg.map_entry_size = (sb->cfg.map_version < 2) ? 0x30 : 0x34;
 
-    if (sb->version <= 0x00000007) {
+    if (sb->version <= 0x00000200) {
+        sb->cfg.audio_stream_size       = 0x0c;
+        sb->cfg.audio_stream_offset     = 0x10;
+      //sb->cfg.audio_extra_offset      = 0x10;
+      //sb->cfg.audio_extra_size        = 0x0c;
+
+        sb->cfg.sequence_extra_offset   = 0x10;
+      //sb->cfg.sequence_extra_size     = 0x0c;
+
+        //sb->cfg.layer_extra_offset    = 0x10;
+        //sb->cfg.layer_extra_size      = 0x0c;
+
+        sb->cfg.random_extra_offset     = 0x10;
+      //sb->cfg.random_extra_size       = 0x0c;
+    }
+    else if (sb->version <= 0x00000007) {
         sb->cfg.audio_stream_size       = 0x0c;
         sb->cfg.audio_extra_offset      = 0x10;
         sb->cfg.audio_stream_offset     = 0x14;
@@ -1830,6 +2103,10 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
     sb->allowed_types[0x0d] = 1;
   //sb->allowed_types[0x08] = 1; /* only needed inside sequences */
   //sb->allowed_types[0x0f] = 1;
+    if (sb->is_bnm) {
+      //sb->allowed_types[0x0a] = 1; /* only needed inside sequences */
+        sb->allowed_types[0x0b] = 1;
+    }
 
 #if 0
     {
@@ -1844,6 +2121,43 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         if (streamTest) { sb->allowed_types[0x06] = sb->allowed_types[0x0d] = 0; close_streamfile(streamTest); }
     }
 #endif
+
+    /* two configs with same id; use SND file as identifier */
+    if (sb->version == 0x00000000 && sb->platform == UBI_PC) {
+        STREAMFILE * streamTest = open_streamfile_by_filename(streamFile, "Dino.lcb");
+        if (streamTest) {
+            is_dino_pc = 1;
+            close_streamfile(streamTest);
+        }
+    }
+
+    /* some files in Dinosaur */
+    if (sb->version == 0x00000200 && sb->platform == UBI_PC) {
+        sb->version = 0x00000000;
+        is_dino_pc = 1;
+    }
+
+    /* Rayman 2: The Great Escape (1999)(PC)-bnm */
+    /* Tonic Trouble (1999)(PC)-bnm */
+    /* Donald Duck: Goin' Quackers (2000)(PC)-bnm */
+    /* Disney's Dinosaur (2000)(PC)-bnm */
+    if (sb->version == 0x00000000 && sb->platform == UBI_PC) {
+        config_sb_entry(sb, 0x20, 0x5c);
+
+        config_sb_audio_fs(sb, 0x2c, 0x2c, 0x30); /* no group id */
+        config_sb_audio_hs(sb, 0x42, 0x3c, 0x34, 0x34, 0x48, 0x44);
+        sb->cfg.audio_has_internal_names = 1;
+
+        config_sb_sequence(sb, 0x24, 0x18);
+
+        config_sb_random_old(sb, 0x18, 0x0c); /* Rayman 2 needs it for rare sequence ends (ex. Bnk_31.bnm) */
+
+        /* no layers */
+
+        if (is_dino_pc)
+            config_sb_entry(sb, 0x20, 0x60);
+        return 1;
+    }
 
     /* Batman: Vengeance (2001)(PC)-map */
     if (sb->version == 0x00000003 && sb->platform == UBI_PC) {

@@ -91,6 +91,7 @@ static const char* extension_list[] = {
     "bmdx",
     "bms",
     "bnk",
+    "bnm",
     "bns",
     "bnsf",
     "bo2",
