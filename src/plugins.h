@@ -87,7 +87,7 @@ void vgmstream_tags_close(VGMSTREAM_TAGS* tags);
 void vgmstream_mixing_enable(VGMSTREAM* vgmstream, int32_t max_sample_count, int *input_channels, int *output_channels);
 
 /* sets automatic downmixing if vgmstream's channels are higher than max_channels */
-void vgmstream_mixing_downmix(VGMSTREAM *vgmstream, int max_channels);
+void vgmstream_mixing_autodownmix(VGMSTREAM *vgmstream, int max_channels);
 
 /* sets a fadeout */
 //void vgmstream_mixing_fadeout(VGMSTREAM *vgmstream, float start_second, float duration_seconds);

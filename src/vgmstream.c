@@ -2315,6 +2315,18 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
     snprintf(temp,TEMPSIZE, "channels: %d\n", vgmstream->channels);
     concatn(length,desc,temp);
 
+#ifdef VGMSTREAM_MIXING
+    {
+        int output_channels = 0;
+        mixing_info(vgmstream, NULL, &output_channels);
+
+        if (output_channels != vgmstream->channels) {
+            snprintf(temp,TEMPSIZE, "output channels: %d\n", output_channels);
+            concatn(length,desc,temp);
+        }
+    }
+#endif
+
     if (vgmstream->channel_layout) {
         int cl = vgmstream->channel_layout;
 
@@ -2903,7 +2915,6 @@ int vgmstream_open_stream(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t s
     return 1;
 
 fail:
-VGM_LOG("fail\n");
     /* open streams will be closed in close_vgmstream(), hopefully called by the meta */
     return 0;
 }

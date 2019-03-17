@@ -21,7 +21,7 @@
 #define VERSION "(unknown version)"
 #endif
 
-#define BUFFER_SAMPLES 0x8000
+#define SAMPLE_BUFFER_SIZE 0x8000
 
 /* getopt globals (the horror...) */
 extern char * optarg;
@@ -384,8 +384,16 @@ int main(int argc, char ** argv) {
     }
 
 
-    /* modify the VGMSTREAM if needed */
+    /* modify the VGMSTREAM if needed (before printing file info) */
     apply_config(vgmstream, &cfg);
+
+    channels = vgmstream->channels;
+    input_channels = vgmstream->channels;
+
+#ifdef VGMSTREAM_MIXING
+    /* enable after config but before outbuf */
+    vgmstream_mixing_enable(vgmstream, SAMPLE_BUFFER_SIZE, &input_channels, &channels);
+#endif
 
     if (cfg.play_forever && (!vgmstream->loop_flag || vgmstream->loop_target > 0)) {
         fprintf(stderr,"I could play a nonlooped track forever, but it wouldn't end well.");
@@ -462,15 +470,7 @@ int main(int argc, char ** argv) {
 
 
     /* last init */
-    channels = vgmstream->channels;
-    input_channels = vgmstream->channels;
-
-#ifdef VGMSTREAM_MIXING
-    /* enable after all config but before outbuf */
-    vgmstream_mixing_enable(vgmstream, BUFFER_SAMPLES, &input_channels, &channels);
-#endif
-
-    buf = malloc(BUFFER_SAMPLES * sizeof(sample_t) * input_channels);
+    buf = malloc(SAMPLE_BUFFER_SIZE * sizeof(sample_t) * input_channels);
     if (!buf) {
         fprintf(stderr,"failed allocating output buffer\n");
         goto fail;
@@ -492,7 +492,7 @@ int main(int argc, char ** argv) {
 
     /* decode forever */
     while (cfg.play_forever) {
-        int to_get = BUFFER_SAMPLES;
+        int to_get = SAMPLE_BUFFER_SIZE;
 
         render_vgmstream(buf, to_get, vgmstream);
 
@@ -508,9 +508,9 @@ int main(int argc, char ** argv) {
 
 
     /* decode */
-    for (i = 0; i < len_samples; i += BUFFER_SAMPLES) {
-        int to_get = BUFFER_SAMPLES;
-        if (i + BUFFER_SAMPLES > len_samples)
+    for (i = 0; i < len_samples; i += SAMPLE_BUFFER_SIZE) {
+        int to_get = SAMPLE_BUFFER_SIZE;
+        if (i + SAMPLE_BUFFER_SIZE > len_samples)
             to_get = len_samples - i;
 
         render_vgmstream(buf, to_get, vgmstream);
@@ -563,9 +563,9 @@ int main(int argc, char ** argv) {
         }
 
         /* decode */
-        for (i = 0; i < len_samples; i += BUFFER_SAMPLES) {
-            int to_get = BUFFER_SAMPLES;
-            if (i + BUFFER_SAMPLES > len_samples)
+        for (i = 0; i < len_samples; i += SAMPLE_BUFFER_SIZE) {
+            int to_get = SAMPLE_BUFFER_SIZE;
+            if (i + SAMPLE_BUFFER_SIZE > len_samples)
                 to_get = len_samples - i;
 
             render_vgmstream(buf, to_get, vgmstream);
