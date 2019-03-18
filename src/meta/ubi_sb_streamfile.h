@@ -11,6 +11,7 @@ typedef struct {
     int layer_count;
     int layer_max;
     int big_endian;
+    int layer_hijack;
 
     /* internal config */
     off_t header_next_start;    /* offset to header field */
@@ -148,6 +149,11 @@ static int ubi_sb_io_init(STREAMFILE *streamfile, ubi_sb_io_data* data) {
     /* Layers have a main header, then headered blocks with data.
      * We configure stuff to unify parsing of all variations. */
     version = (uint32_t)read_32bit(offset+0x00, streamfile);
+
+    /* it was bound to happen... orz */
+    if (data->layer_hijack == 1 && version == 0x000B0008)
+        version = 0xFFFF0007;
+
     switch(version) {
         case 0x00000002: /* Splinter Cell */
             /* - layer header
@@ -222,6 +228,35 @@ static int ubi_sb_io_init(STREAMFILE *streamfile, ubi_sb_io_data* data) {
             data->header_next_start     = 0x18;
             data->header_sizes_start    = 0x40;
             data->header_data_start     = 0x40 + data->layer_max*0x04;
+
+            data->block_next_start      = 0;
+            data->block_sizes_start     = 0x0c;
+            data->block_data_start      = 0x0c + data->layer_max*0x04;
+            break;
+
+        case 0xFFFF0007: /* Ghost Recon Advanced Warfighter (X360) */
+            /* - layer header
+             * 0x04: config?
+             * 0x08: layer count
+             * 0x0c: stream size
+             * 0x10: block count
+             * 0x14: block header size
+             * 0x18: block size (fixed)
+             * 0x1c+(04*11): min layer data? for 11 layers (-1 after layer count)
+             * 0x48: size of header sizes
+             * 0x4c+(04*N): header size per layer
+             * 0xNN: header data per layer
+             * - block header
+             * 0x00: block number
+             * 0x04: block offset
+             * 0x08: always 0x03
+             * 0x0c+(04*N): layer size per layer
+             * 0xNN: layer data per layer */
+            data->layer_max = read_32bit(offset+0x08, streamfile);
+
+            data->header_next_start     = 0x18;
+            data->header_sizes_start    = 0x4c;
+            data->header_data_start     = 0x4c + data->layer_max*0x04;
 
             data->block_next_start      = 0;
             data->block_sizes_start     = 0x0c;
@@ -326,7 +361,7 @@ fail:
 
 
 /* Handles deinterleaving of Ubisoft's headered+blocked 'multitrack' streams */
-static STREAMFILE* setup_ubi_sb_streamfile(STREAMFILE *streamFile, off_t stream_offset, size_t stream_size, int layer_number, int layer_count, int big_endian) {
+static STREAMFILE* setup_ubi_sb_streamfile(STREAMFILE *streamFile, off_t stream_offset, size_t stream_size, int layer_number, int layer_count, int big_endian, int layer_hijack) {
     STREAMFILE *temp_streamFile = NULL, *new_streamFile = NULL;
     ubi_sb_io_data io_data = {0};
     size_t io_data_size = sizeof(ubi_sb_io_data);
@@ -336,6 +371,7 @@ static STREAMFILE* setup_ubi_sb_streamfile(STREAMFILE *streamFile, off_t stream_
     io_data.layer_number = layer_number;
     io_data.layer_count = layer_count;
     io_data.big_endian = big_endian;
+    io_data.layer_hijack = layer_hijack;
 
     if (!ubi_sb_io_init(streamFile, &io_data))
         goto fail;

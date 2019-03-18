@@ -32,7 +32,7 @@ VGMSTREAM * init_vgmstream_mtaf(STREAMFILE *streamFile) {
 
     loop_start = read_32bitLE(0x58, streamFile);
     loop_end   = read_32bitLE(0x5c, streamFile);
-    loop_flag = (loop_start != loop_end);
+    loop_flag  = read_32bitLE(0x70, streamFile) & 1;
 
     /* check loop points vs frame counts */
     if (loop_start/0x100 != read_32bitLE(0x64, streamFile) ||

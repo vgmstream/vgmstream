@@ -148,6 +148,10 @@
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
             <File
+                RelativePath=".\mixing.h"
+                >
+            </File>
+            <File
                 RelativePath=".\plugins.h"
                 >
             </File>
@@ -175,6 +179,10 @@
 			>
             <File
                 RelativePath=".\formats.c"
+                >
+            </File>
+            <File
+                RelativePath=".\mixing.c"
                 >
             </File>
             <File
@@ -222,6 +230,10 @@
                 </File>
                 <File
                     RelativePath=".\meta\aax_utf.h"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\9tav_streamfile.h"
                     >
                 </File>
                 <File
@@ -310,6 +322,10 @@
 				>
                 <File
                     RelativePath=".\meta\208.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\9tav.c"
                     >
                 </File>
                 <File

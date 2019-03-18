@@ -193,14 +193,24 @@ channels = (number)|(offset)|(field)
 # MUSIC FREQUENCY [REQUIRED]
 sample_rate = (number)|(offset)|(field)
 
-# DATA START [OPTIONAL, default to 0]
+# DATA START [OPTIONAL, defaults to 0]
 start_offset = (number)|(offset)|(field)
 
 # DATA SIZE [OPTIONAL]
 # Special variable that can be used in sample values.
 # Defaults to (file_size - start_offset), re-calculated when start_offset
-# is set (won't recalculate if data_size is set then start_offset changes).
+# is set. With multiple subsongs or block_size are this it's recalculated as well.
+# When padding is set it's also adjusted.
+# If data_size is manually set it stays constant and won't be auto changed.
 data_size = (number)|(offset)|(field)
+
+# DATA PADDING [OPTIONAL, defaults to 0]
+# Some aligned files have some extra padding that is meant to be skipped.
+# This adjusts the padding in data_size, manually or auto-calculated.
+# Special values (for PS-ADPCM):
+# - auto: discards null frames
+# - auto-empty: discards null and 'empty' frames (for games with weird padding)
+padding_size = (number)|(offset)|(field)|auto|auto-empty
 
 # SAMPLE MEANINGS [OPTIONAL, defaults to samples]
 # Modifies the meaning of sample fields when set *before* them.
@@ -209,10 +219,10 @@ data_size = (number)|(offset)|(field)
 # - bytes: automatically converts bytes/offset to samples (applies after */+- modifiers)
 # - blocks: same as bytes, but value is given in blocks/frames
 #   Value is internally converted from blocks to bytes first: bytes = (value * interleave*channels)
-# Some codecs can't convert bytes-to-samples at the moment: MPEG/FFMPEG
+# Some codecs can't convert bytes-to-samples at the moment: FFMPEG
 # For XMA1/2 bytes does special parsing, with loop values being bit offsets within data.
 sample_type = samples|bytes|blocks
- 
+
 # SAMPLE VALUES [REQUIRED (num_samples) / OPTIONAL (rest)]
 # Special values:
 # - data_size: automatically converts bytes-to-samples
@@ -311,7 +321,11 @@ subfile_extension = (string)
 ## Usages
 
 ### Temporary values
-Most commands are evaluated and calculated immediatedly, every time they are found. This is by design, as it can be used to adjust and trick for certain calculations.
+Most commands are evaluated and calculated immediatedly, every time they are found. 
+This is by design, as it can be used to adjust and trick for certain calculations.
+
+It makes TXTHs a bit harder to follow, as they are order dependant, but otherwise it's hard to accomplish some things or others become ambiguous.
+
 
 For example, normally you are given a data_size in bytes, that can be used to calculate num_samples for all channels.
 ```
@@ -327,6 +341,29 @@ sample_type = bytes
 num_samples = @0x10     #calculated from channel_size
 channels = 2            #change once calculations are done
 ```
+You can also use:
+```
+channels = 2
+sample_type = bytes
+num_samples = @0x10 * channels  # resulting bytes is transformed to samples
+```
+
+Do note when using special values/strings like `data_size` in `num_samples` and `loop_end_samples` they must be alone to trigger.
+```
+data_size = @0x100
+num_samples = data_size * 2 # doesn't tranform bytes-to-samples (do it before? after?)
+```
+```
+data_size = @0x100 * 2
+num_samples = data_size     # ok
+```
+Also beware of order:
+```
+start_offset = 0x200        # recalculated data_size
+num_samples = data_size     # transforms bytes-to-samples
+data_size = @0x100          # useless as num_samples is already transformed
+```
+
 
 ### Redefining values
 Some commands alter the function of all next commands and can be redefined as needed:

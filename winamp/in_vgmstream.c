@@ -79,10 +79,13 @@ winamp_settings settings;
 winamp_song_config config;
 
 
+/* Winamp needs at least 576 16-bit samples, stereo, doubled in case DSP effects are active */
+#define SAMPLE_BUFFER_SIZE 576
+short sample_buffer[SAMPLE_BUFFER_SIZE*2 * VGMSTREAM_MAX_CHANNELS]; //todo maybe should be dynamic
+
 /* plugin state */
 VGMSTREAM * vgmstream = NULL;
 HANDLE decode_thread_handle = INVALID_HANDLE_VALUE;
-short sample_buffer[(576*2) * 2]; /* at least 576 16-bit samples, stereo, doubled in case Winamp's DSP is active */
 
 int paused = 0;
 int decode_abort = 0;
@@ -93,7 +96,7 @@ int stream_length_samples = 0;
 int fade_samples = 0;
 int output_channels = 0;
 
-const char* tagfile_name = "!tags.m3u"; //todo make configurable
+const char* tagfile_name = "!tags.m3u";
 
 in_char lastfn[PATH_LIMIT] = {0}; /* name of the currently playing file */
 
@@ -1051,9 +1054,15 @@ int winamp_Play(const in_char *fn) {
     set_config_defaults(&config);
     apply_config(vgmstream, &config);
 
+#ifdef VGMSTREAM_MIXING
+    /* enable after all config but before outbuf (though ATM outbuf is not dynamic so no need to read input_channels) */
+    vgmstream_mixing_autodownmix(vgmstream, settings.downmix_channels);
+    vgmstream_mixing_enable(vgmstream, SAMPLE_BUFFER_SIZE, NULL /*&input_channels*/, &output_channels);
+#else
     output_channels = vgmstream->channels;
     if (settings.downmix_channels > 0 && settings.downmix_channels < vgmstream->channels)
         output_channels = settings.downmix_channels;
+#endif
 
 
     /* save original name */
@@ -1191,6 +1200,10 @@ int winamp_InfoBox(const in_char *fn, HWND hwnd) {
 
         set_config_defaults(&infoconfig);
         apply_config(infostream, &infoconfig);
+#ifdef VGMSTREAM_MIXING
+        vgmstream_mixing_autodownmix(infostream, settings.downmix_channels);
+        //vgmstream_mixing_enable(infostream, SAMPLE_BUFFER_SIZE, NULL, NULL);
+#endif
 
         describe_vgmstream(infostream,description,description_size);
 
@@ -1242,6 +1255,10 @@ void winamp_GetFileInfo(const in_char *fn, in_char *title, int *length_in_ms) {
 
         set_config_defaults(&infoconfig);
         apply_config(infostream, &infoconfig);
+#ifdef VGMSTREAM_MIXING
+        vgmstream_mixing_autodownmix(infostream, settings.downmix_channels);
+        //vgmstream_mixing_enable(infostream, SAMPLE_BUFFER_SIZE, NULL, NULL);
+#endif
 
         if (title) {
             get_title(title,GETFILEINFO_TITLE_LENGTH, fn, infostream);
@@ -1267,7 +1284,7 @@ void winamp_EQSet(int on, char data[10], int preamp) {
 
 /* the decode thread */
 DWORD WINAPI __stdcall decode(void *arg) {
-    const int max_buffer_samples = sizeof(sample_buffer) / sizeof(sample_buffer[0]) / 2 / vgmstream->channels;
+    const int max_buffer_samples = SAMPLE_BUFFER_SIZE;
     const int max_samples = stream_length_samples;
 
     while (!decode_abort) {
@@ -1335,21 +1352,28 @@ DWORD WINAPI __stdcall decode(void *arg) {
 
             /* fade near the end */
             if (vgmstream->loop_flag && fade_samples > 0 && !settings.loop_forever) {
+                int fade_channels;
                 int samples_into_fade = decode_pos_samples - (stream_length_samples - fade_samples);
+#ifdef VGMSTREAM_MIXING
+                fade_channels = output_channels;
+#else
+                fade_channels = vgmstream->channels;
+#endif
                 if (samples_into_fade + samples_to_do > 0) {
                     int j, k;
                     for (j = 0; j < samples_to_do; j++, samples_into_fade++) {
                         if (samples_into_fade > 0) {
                             const double fadedness = (double)(fade_samples-samples_into_fade)/fade_samples;
-                            for (k = 0; k < vgmstream->channels; k++) {
-                                sample_buffer[j*vgmstream->channels+k] =
-                                    (short)(sample_buffer[j*vgmstream->channels+k]*fadedness);
+                            for (k = 0; k < fade_channels; k++) {
+                                sample_buffer[j*fade_channels+k] =
+                                    (short)(sample_buffer[j*fade_channels+k]*fadedness);
                             }
                         }
                     }
                 }
             }
 
+#ifndef VGMSTREAM_MIXING
             /* downmix enabled (useful when the stream's channels are too much for Winamp's output) */
             if (settings.downmix_channels > 0 && settings.downmix_channels < vgmstream->channels) {
                 short temp_buffer[(576*2) * 2];
@@ -1374,6 +1398,7 @@ DWORD WINAPI __stdcall decode(void *arg) {
                 /* copy back to global buffer... in case of multithreading stuff? */
                 memcpy(sample_buffer,temp_buffer, samples_to_do*settings.downmix_channels*sizeof(short));
             }
+#endif
 
             /* output samples */
             input_module.SAAddPCMData((char*)sample_buffer,output_channels,16,decode_pos_ms);

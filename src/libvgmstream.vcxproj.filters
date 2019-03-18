@@ -47,6 +47,9 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="mixing.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="plugins.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -66,6 +69,9 @@
       <Filter>meta\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="meta\aax_utf.h">
+      <Filter>meta\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="meta\9tav_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="meta\aix_streamfile.h">
@@ -181,6 +187,9 @@
     <ClCompile Include="formats.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="mixing.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="plugins.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -194,6 +203,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\208.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\9tav.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\2dx9.c">

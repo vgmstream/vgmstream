@@ -9,7 +9,7 @@ struct atrac9_codec_data {
     uint8_t *data_buffer;
     size_t data_buffer_size;
 
-    sample *sample_buffer;
+    sample_t *sample_buffer;
     size_t samples_filled; /* number of samples in the buffer */
     size_t samples_used; /* number of samples extracted from the buffer */
 
@@ -39,7 +39,7 @@ atrac9_codec_data *init_atrac9(atrac9_config *cfg) {
 
     status = Atrac9GetCodecInfo(data->handle, &data->info);
     if (status < 0) goto fail;
-    //;VGM_LOG("ATRAC9: config=%x, sf-size=%x, sub-frames=%i x %i samples\n", cfg->config_data, info.superframeSize, info.framesInSuperframe, info.frameSamples);
+    //;VGM_LOG("ATRAC9: config=%x, sf-size=%x, sub-frames=%i x %i samples\n", cfg->config_data, data->info.superframeSize, data->info.framesInSuperframe, data->info.frameSamples);
 
     if (cfg->channels && cfg->channels != data->info.channels) {
         VGM_LOG("ATRAC9: channels in header %i vs config %i don't match\n", cfg->channels, data->info.channels);
@@ -50,7 +50,7 @@ atrac9_codec_data *init_atrac9(atrac9_config *cfg) {
     /* must hold at least one superframe and its samples */
     data->data_buffer_size = data->info.superframeSize;
     data->data_buffer = calloc(sizeof(uint8_t), data->data_buffer_size);
-    data->sample_buffer = calloc(sizeof(sample), data->info.channels * data->info.frameSamples * data->info.framesInSuperframe);
+    data->sample_buffer = calloc(sizeof(sample_t), data->info.channels * data->info.frameSamples * data->info.framesInSuperframe);
 
     data->samples_to_discard = cfg->encoder_delay;
 
@@ -63,7 +63,7 @@ fail:
     return NULL;
 }
 
-void decode_atrac9(VGMSTREAM *vgmstream, sample * outbuf, int32_t samples_to_do, int channels) {
+void decode_atrac9(VGMSTREAM *vgmstream, sample_t * outbuf, int32_t samples_to_do, int channels) {
     VGMSTREAMCHANNEL *stream = &vgmstream->ch[0];
     atrac9_codec_data * data = vgmstream->codec_data;
     int samples_done = 0;
@@ -220,20 +220,20 @@ void free_atrac9(atrac9_codec_data *data) {
 }
 
 
-size_t atrac9_bytes_to_samples(size_t bytes, atrac9_codec_data *data) {
-    return bytes / data->info.superframeSize * (data->info.frameSamples * data->info.framesInSuperframe);
-}
-
-#if 0 //not needed (for now)
-int atrac9_parse_config(uint32_t atrac9_config, int *out_sample_rate, int *out_channels, size_t *out_frame_size) {
+static int atrac9_parse_config(uint32_t atrac9_config, int *out_sample_rate, int *out_channels, size_t *out_frame_size, size_t *out_samples_per_frame) {
     static const int sample_rate_table[16] = {
             11025, 12000, 16000, 22050, 24000, 32000, 44100, 48000,
             44100, 48000, 64000, 88200, 96000,128000,176400,192000
+    };
+    static const int samples_power_table[16] = {
+        6, 6, 7, 7, 7, 8, 8, 8,
+        6, 6, 7, 7, 7, 8, 8, 8
     };
     static const int channel_table[8] = {
             1, 2, 2, 6, 8, 4, 0, 0
     };
 
+    int superframe_size, frames_per_superframe, samples_per_frame, samples_per_superframe;
     uint32_t sync             = (atrac9_config >> 24) & 0xff; /* 8b */
     uint8_t sample_rate_index = (atrac9_config >> 20) & 0x0f; /* 4b */
     uint8_t channels_index    = (atrac9_config >> 17) & 0x07; /* 3b */
@@ -242,6 +242,11 @@ int atrac9_parse_config(uint32_t atrac9_config, int *out_sample_rate, int *out_c
     size_t superframe_index   = (atrac9_config >>  3) & 0x3; /* 2b */
     /* uint8_t unused         = (atrac9_config >>  0) & 0x7);*/ /* 3b */
 
+    superframe_size = ((frame_size+1) << superframe_index);
+    frames_per_superframe = (1 << superframe_index);
+    samples_per_frame = 1 << samples_power_table[sample_rate_index];
+    samples_per_superframe = samples_per_frame * frames_per_superframe;
+
     if (sync != 0xFE)
         goto fail;
     if (out_sample_rate)
@@ -249,11 +254,23 @@ int atrac9_parse_config(uint32_t atrac9_config, int *out_sample_rate, int *out_c
     if (out_channels)
         *out_channels = channel_table[channels_index];
     if (out_frame_size)
-        *out_frame_size = (frame_size+1) * (1 << superframe_index);
+        *out_frame_size = superframe_size;
+    if (out_samples_per_frame)
+        *out_samples_per_frame = samples_per_superframe;
 
     return 1;
 fail:
     return 0;
 }
-#endif
+
+size_t atrac9_bytes_to_samples(size_t bytes, atrac9_codec_data *data) {
+    return bytes / data->info.superframeSize * (data->info.frameSamples * data->info.framesInSuperframe);
+}
+
+size_t atrac9_bytes_to_samples_cfg(size_t bytes, uint32_t atrac9_config) {
+    size_t frame_size, samples_per_frame;
+    if (!atrac9_parse_config(atrac9_config, NULL, NULL, &frame_size, &samples_per_frame))
+        return 0;
+    return bytes / frame_size * samples_per_frame;
+}
 #endif

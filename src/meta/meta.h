@@ -673,6 +673,7 @@ VGMSTREAM * init_vgmstream_naac(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_ubi_sb(STREAMFILE * streamFile);
 VGMSTREAM * init_vgmstream_ubi_sm(STREAMFILE * streamFile);
+VGMSTREAM * init_vgmstream_ubi_bnm(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_ezw(STREAMFILE * streamFile);
 
@@ -845,5 +846,7 @@ VGMSTREAM * init_vgmstream_sfh(STREAMFILE * streamFile);
 VGMSTREAM * init_vgmstream_msf_konami(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_xwma_konami(STREAMFILE* streamFile);
+
+VGMSTREAM * init_vgmstream_9tav(STREAMFILE* streamFile);
 
 #endif /*_META_H*/
