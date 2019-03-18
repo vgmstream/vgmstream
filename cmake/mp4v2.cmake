@@ -109,3 +109,7 @@ target_include_directories(mp4v2 PRIVATE
 target_compile_features(mp4v2 PRIVATE
 	cxx_long_long_type
 	cxx_variadic_macros)
+
+# Set up position-independent code
+set_target_properties(mp4v2 PROPERTIES
+	POSITION_INDEPENDENT_CODE TRUE)

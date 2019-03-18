@@ -70,12 +70,12 @@ STREAMFILE *open_vfs_by_VFSFILE(VFSFile *file, const char *path) {
   // success, set our pointers
   memset(streamfile, 0, sizeof(VFSSTREAMFILE));
 
-  streamfile->sf.read = read_vfs;
-  streamfile->sf.get_size = get_size_vfs;
-  streamfile->sf.get_offset = get_offset_vfs;
-  streamfile->sf.get_name = get_name_vfs;
-  streamfile->sf.open = open_vfs_impl;
-  streamfile->sf.close = close_vfs;
+  streamfile->sf.read = (size_t (*)(STREAMFILE *, uint8_t *, off_t, size_t))read_vfs;
+  streamfile->sf.get_size = (size_t (*)(STREAMFILE *))get_size_vfs;
+  streamfile->sf.get_offset = (off_t (*)(STREAMFILE *))get_offset_vfs;
+  streamfile->sf.get_name = (void (*)(STREAMFILE *, char *, size_t))get_name_vfs;
+  streamfile->sf.open = (STREAMFILE *(*)(STREAMFILE *, const char *, size_t))open_vfs_impl;
+  streamfile->sf.close = (void (*)(STREAMFILE *))close_vfs;
 
   streamfile->vfsFile = file;
   streamfile->offset = 0;

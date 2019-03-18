@@ -24,7 +24,7 @@ public:
     //constexpr VgmstreamPlugin() : InputPlugin(info, iinfo) {}
     //constexpr VgmstreamPlugin() : InputPlugin (info, InputInfo().with_exts(exts)) {}
 
-    constexpr VgmstreamPlugin() : InputPlugin (info, NULL) {}
+    constexpr VgmstreamPlugin() : InputPlugin (info, InputInfo()) {}
 
     bool init();
     void cleanup();

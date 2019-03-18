@@ -77,3 +77,7 @@ target_include_directories(fdk-aac PRIVATE
 
 # Make sure that whatever compiler we use can handle these features
 target_compile_features(fdk-aac PRIVATE cxx_long_long_type)
+
+# Set up position-independent code
+set_target_properties(fdk-aac PROPERTIES
+	POSITION_INDEPENDENT_CODE TRUE)

@@ -54,7 +54,9 @@ add_dependencies(foo_input_vgmstream
 target_compile_features(foo_input_vgmstream PRIVATE
 	cxx_auto_type
 	cxx_nullptr
-	cxx_static_assert)
+	cxx_rvalue_references
+	cxx_static_assert
+	cxx_variadic_templates)
 
 # Include the version string
 if(MSVC)

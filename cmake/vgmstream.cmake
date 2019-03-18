@@ -17,6 +17,9 @@ macro(setup_target TARGET)
 	else()
 		target_include_directories(${TARGET} PRIVATE AFTER ${CMAKE_SOURCE_DIR}/ext_includes)
 	endif()
+	# Set up position-independent code for all targets
+	set_target_properties(${TARGET} PROPERTIES
+		POSITION_INDEPENDENT_CODE TRUE)
 
 	if(USE_FDKAAC)
 		target_compile_definitions(${TARGET} PRIVATE
