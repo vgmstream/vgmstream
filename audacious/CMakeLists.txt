@@ -65,3 +65,7 @@ target_compile_features(audacious_vgmstream PRIVATE
 	cxx_strong_enums
 	cxx_variadic_macros
 	cxx_variadic_templates)
+
+# Install the plugin
+install(TARGETS audacious_vgmstream
+	DESTINATION ${AUDACIOUS_PLUGIN_DIR}/Input)

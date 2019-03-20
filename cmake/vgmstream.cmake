@@ -127,3 +127,39 @@ macro(setup_target TARGET)
 		endif()
 	endif()
 endmacro()
+
+# Installs the DLLs to the given install prefix
+macro(install_dlls INSTALL_PREFIX)
+	# Paths to the DLLs
+	set(MPEG_DLL ${CMAKE_SOURCE_DIR}/ext_libs/libmpg123-0.dll)
+	set(VORBIS_DLL ${CMAKE_SOURCE_DIR}/ext_libs/libvorbis.dll)
+	set(G7221_DLL ${CMAKE_SOURCE_DIR}/ext_libs/libg7221_decode.dll)
+	set(G719_DLL ${CMAKE_SOURCE_DIR}/ext_libs/libg719_decode.dll)
+	set(FFMPEG_DLL
+		${CMAKE_SOURCE_DIR}/ext_libs/avcodec-vgmstream-58.dll
+		${CMAKE_SOURCE_DIR}/ext_libs/avformat-vgmstream-58.dll
+		${CMAKE_SOURCE_DIR}/ext_libs/avutil-vgmstream-56.dll
+		${CMAKE_SOURCE_DIR}/ext_libs/swresample-vgmstream-3.dll)
+	set(ATRAC9_DLL ${CMAKE_SOURCE_DIR}/ext_libs/libatrac9.dll)
+	set(CELT_DLL
+		${CMAKE_SOURCE_DIR}/ext_libs/libcelt-0061.dll
+		${CMAKE_SOURCE_DIR}/ext_libs/libcelt-0110.dll)
+
+	# List of DLLs to check for install
+	set(DLLS
+		MPEG
+		VORBIS
+		G7221
+		G719
+		FFMPEG
+		ATRAC9
+		CELT)
+
+	# Loop over DLLs and only install if the USE_* is set for that DLL
+	foreach(DLL ${DLLS})
+		if(${USE_${DLL}})
+			install(FILES ${${DLL}_DLL}
+				DESTINATION ${INSTALL_PREFIX})
+		endif()
+	endforeach()
+endmacro()

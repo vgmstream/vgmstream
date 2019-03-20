@@ -72,3 +72,10 @@ elseif(MINGW)
 			LINK_FLAGS "-static-libgcc -static-libstdc++")
 	endif()
 endif()
+
+# Install the DLLs
+install_dlls(${FB2K_COMPONENT_INSTALL_PREFIX}/foo_input_vgmstream)
+
+# Install the component
+install(TARGETS foo_input_vgmstream
+	DESTINATION ${FB2K_COMPONENT_INSTALL_PREFIX}/foo_input_vgmstream)

@@ -32,7 +32,14 @@ if(WIN32)
 				LINK_FLAGS "-static-libgcc -static-libstdc++")
 		endif()
 	endif()
+
+	# Install the DLLs
+	install_dlls(${CMAKE_INSTALL_PREFIX}/bin)
 elseif(VGMSTREAM_VERSION)
 	# Include the version string
 	target_compile_definitions(vgmstream_cli PRIVATE VERSION="${VGMSTREAM_VERSION}")
 endif()
+
+# Install the CLI program
+install(TARGETS vgmstream_cli
+	RUNTIME DESTINATION bin)

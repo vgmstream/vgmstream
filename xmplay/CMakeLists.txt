@@ -31,3 +31,10 @@ elseif(MINGW)
 			LINK_FLAGS "-static-libgcc -static-libstdc++")
 	endif()
 endif()
+
+# Install the DLLs
+install_dlls(${XMPLAY_INSTALL_PREFIX})
+
+# Install the plugin
+install(TARGETS xmp-vgmstream
+	DESTINATION ${XMPLAY_INSTALL_PREFIX})
