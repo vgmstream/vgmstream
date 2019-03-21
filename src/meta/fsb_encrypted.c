@@ -10,8 +10,10 @@ static STREAMFILE* setup_fsb_streamfile(STREAMFILE *streamFile, const uint8_t * 
 VGMSTREAM * init_vgmstream_fsb_encrypted(STREAMFILE * streamFile) {
     VGMSTREAM * vgmstream = NULL;
 
-    /* check extensions */
-    if ( !check_extensions(streamFile, "fsb") )
+    /* checks */
+    /* .fsb: standard
+     * .fsb.xen: various Guitar Hero (X360) */
+    if ( !check_extensions(streamFile, "fsb,xen") )
         goto fail;
 
     /* ignore non-encrypted FSB */
@@ -147,6 +149,10 @@ static STREAMFILE* setup_fsb_streamfile(STREAMFILE *streamFile, const uint8_t * 
     temp_streamFile = new_streamFile;
 
     new_streamFile = open_io_streamfile(temp_streamFile, &io_data,io_data_size, fsb_decryption_read,NULL);
+    if (!new_streamFile) goto fail;
+    temp_streamFile = new_streamFile;
+
+    new_streamFile = open_fakename_streamfile(temp_streamFile, NULL,"fsb");
     if (!new_streamFile) goto fail;
     temp_streamFile = new_streamFile;
 

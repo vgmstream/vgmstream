@@ -503,6 +503,7 @@ static const char* extension_list[] = {
     "xa30",
     "xag",
     "xau",
+    "xen",
     "xma",
     "xma2",
     "xmu",
