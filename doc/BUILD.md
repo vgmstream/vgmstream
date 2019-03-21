@@ -1,5 +1,7 @@
 # vgmstream build help
 
+If you wish to use CMake, see [CMAKE.md](CMAKE.md).
+
 ## Compilation requirements
 
 **GCC / Make**: In Windows this means one of these two somewhere in PATH:
