@@ -293,6 +293,10 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\meta\txth_streamfile.h"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\ubi_bao_streamfile.h"
                     >
                 </File>

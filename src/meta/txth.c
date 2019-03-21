@@ -1,6 +1,7 @@
 #include "meta.h"
 #include "../coding/coding.h"
 #include "../layout/layout.h"
+#include "txth_streamfile.h"
 
 #define TXT_LINE_MAX 0x2000
 
@@ -57,6 +58,7 @@ typedef struct {
     uint32_t data_size;
     int data_size_set;
     uint32_t start_offset;
+    uint32_t next_offset;
     uint32_t padding_size;
 
     int sample_type;
@@ -93,6 +95,14 @@ typedef struct {
     uint32_t subfile_size;
     char subfile_extension[32];
 
+    uint32_t chunk_number;
+    uint32_t chunk_start;
+    uint32_t chunk_size;
+    uint32_t chunk_count;
+    int chunk_start_set;
+    int chunk_size_set;
+    int chunk_count_set;
+
     /* original STREAMFILE and its type (may be an unsupported "base" file or a .txth) */
     STREAMFILE *streamFile;
     int streamfile_is_txth;
@@ -107,8 +117,9 @@ typedef struct {
 
 } txth_header;
 
-static STREAMFILE * open_txth(STREAMFILE * streamFile);
 static VGMSTREAM *init_subfile(txth_header * txth);
+static STREAMFILE * open_txth(STREAMFILE * streamFile);
+static void clean_txth(txth_header * txth);
 static int parse_txth(txth_header * txth);
 
 
@@ -134,8 +145,8 @@ VGMSTREAM * init_vgmstream_txth(STREAMFILE *streamFile) {
         txth.streambody_opened = 0;
     }
     else {
-        /* accept base file (no need for ID or ext checks --if a companion .TXTH exists all is good)
-         * (player still needs to accept the streamfile's ext, so at worst rename to .vgmstream) */
+        /* accept base file (no need for ID or ext checks --if a companion .TXTH exists all is good).
+         * player still needs to accept the streamfile's ext, so at worst rename to .vgmstream */
         STREAMFILE * streamText = open_txth(streamFile);
         if (!streamText) goto fail;
 
@@ -156,7 +167,9 @@ VGMSTREAM * init_vgmstream_txth(STREAMFILE *streamFile) {
 
     /* special case of parsing subfiles */
     if (txth.subfile_set) {
-        return init_subfile(&txth);
+        VGMSTREAM *subfile_vgmstream = init_subfile(&txth);
+        clean_txth(&txth);
+        return subfile_vgmstream;
     }
 
 
@@ -495,15 +508,11 @@ VGMSTREAM * init_vgmstream_txth(STREAMFILE *streamFile) {
     if ( !vgmstream_open_stream(vgmstream,txth.streamBody,txth.start_offset) )
         goto fail;
 
-    if (txth.streamtext_opened) close_streamfile(txth.streamText);
-    if (txth.streamhead_opened) close_streamfile(txth.streamHead);
-    if (txth.streambody_opened) close_streamfile(txth.streamBody);
+    clean_txth(&txth);
     return vgmstream;
 
 fail:
-    if (txth.streamtext_opened) close_streamfile(txth.streamText);
-    if (txth.streamhead_opened) close_streamfile(txth.streamHead);
-    if (txth.streambody_opened) close_streamfile(txth.streamBody);
+    clean_txth(&txth);
     close_vgmstream(vgmstream);
     return NULL;
 }
@@ -608,7 +617,57 @@ static STREAMFILE * open_txth(STREAMFILE * streamFile) {
     return NULL;
 }
 
+static void clean_txth(txth_header * txth) {
+    /* close stuff manually opened during parse */
+    if (txth->streamtext_opened) close_streamfile(txth->streamText);
+    if (txth->streamhead_opened) close_streamfile(txth->streamHead);
+    if (txth->streambody_opened) close_streamfile(txth->streamBody);
+}
+
 /* ****************************************************************** */
+
+static void set_body_chunk(txth_header * txth) {
+    STREAMFILE *temp_streamFile = NULL;
+
+    /* sets body "chunk" if all needed values are set
+     * (done inline for padding/get_samples/etc calculators to work) */
+    if (!txth->chunk_start_set || !txth->chunk_size_set || !txth->chunk_count_set)
+        return;
+    if (txth->chunk_size == 0 || txth->chunk_start > txth->data_size || txth->chunk_count == 0)
+        return;
+    if (!txth->streamBody)
+        return;
+
+    /* treat chunks as subsongs */
+    if (txth->subsong_count > 1)
+        txth->chunk_number = txth->target_subsong;
+    if (txth->chunk_number == 0)
+        txth->chunk_number = 1;
+    if (txth->chunk_number > txth->chunk_count)
+        return;
+
+    temp_streamFile = setup_txth_streamfile(txth->streamBody, txth->chunk_start, txth->chunk_size, txth->chunk_count, txth->chunk_number - 1);
+    if (!temp_streamFile) return;
+
+    if (txth->streambody_opened) {
+        close_streamfile(txth->streamBody);
+        txth->streamBody = NULL;
+        txth->streambody_opened = 0;
+    }
+
+    txth->streamBody = temp_streamFile;
+    txth->streambody_opened = 1;
+
+    /* cancel values once set, to avoid weirdness and possibly allow chunks-in-chunks? */
+    txth->chunk_start_set = 0;
+    txth->chunk_size_set = 0;
+    txth->chunk_count_set = 0;
+
+    /* re-apply */
+    if (!txth->data_size_set) {
+        txth->data_size = get_streamfile_size(txth->streamBody);
+    }
+}
 
 static int parse_keyval(STREAMFILE * streamFile, txth_header * txth, const char * key, char * val);
 static int parse_num(STREAMFILE * streamFile, txth_header * txth, const char * val, uint32_t * out_value);
@@ -668,7 +727,7 @@ static int parse_txth(txth_header * txth) {
     if (!txth->streamBody)
         goto fail;
 
-    if (txth->data_size > get_streamfile_size(txth->streamBody) - txth->start_offset || txth->data_size == 0)
+    if (txth->data_size > get_streamfile_size(txth->streamBody) - txth->start_offset || txth->data_size <= 0)
         txth->data_size = get_streamfile_size(txth->streamBody) - txth->start_offset;
 
     return 1;
@@ -679,6 +738,7 @@ fail:
 static int parse_keyval(STREAMFILE * streamFile_, txth_header * txth, const char * key, char * val) {
     //;VGM_LOG("TXTH: key=%s, val=%s\n", key, val);
 
+    /* CODEC */
     if (is_string(key,"codec")) {
         if      (is_string(val,"PSX"))          txth->codec = PSX;
         else if (is_string(val,"XBOX"))         txth->codec = XBOX;
@@ -732,6 +792,8 @@ static int parse_keyval(STREAMFILE * streamFile_, txth_header * txth, const char
     else if (is_string(key,"codec_mode")) {
         if (!parse_num(txth->streamHead,txth,val, &txth->codec_mode)) goto fail;
     }
+
+    /* VALUE MODIFIERS */
     else if (is_string(key,"value_mul") || is_string(key,"value_*")) {
         if (!parse_num(txth->streamHead,txth,val, &txth->value_mul)) goto fail;
     }
@@ -744,6 +806,8 @@ static int parse_keyval(STREAMFILE * streamFile_, txth_header * txth, const char
     else if (is_string(key,"value_sub") || is_string(key,"value_-")) {
         if (!parse_num(txth->streamHead,txth,val, &txth->value_sub)) goto fail;
     }
+
+    /* ID VALUES */
     else if (is_string(key,"id_value")) {
         if (!parse_num(txth->streamHead,txth,val, &txth->id_value)) goto fail;
     }
@@ -752,6 +816,8 @@ static int parse_keyval(STREAMFILE * streamFile_, txth_header * txth, const char
         if (txth->id_value != txth->id_offset) /* evaluate current ID */
             goto fail;
     }
+
+    /* INTERLEAVE / FRAME SIZE */
     else if (is_string(key,"interleave")) {
         if (is_string(val,"half_size")) {
             if (txth->channels == 0) goto fail;
@@ -770,33 +836,38 @@ static int parse_keyval(STREAMFILE * streamFile_, txth_header * txth, const char
             if (!parse_num(txth->streamHead,txth,val, &txth->interleave_last)) goto fail;
         }
     }
+
+    /* BASE CONFIG */
     else if (is_string(key,"channels")) {
         if (!parse_num(txth->streamHead,txth,val, &txth->channels)) goto fail;
     }
     else if (is_string(key,"sample_rate")) {
         if (!parse_num(txth->streamHead,txth,val, &txth->sample_rate)) goto fail;
     }
+
+    /* DATA CONFIG */
     else if (is_string(key,"start_offset")) {
         if (!parse_num(txth->streamHead,txth,val, &txth->start_offset)) goto fail;
 
+
         /* apply */
         if (!txth->data_size_set) {
-            uint32_t body_size = !txth->streamBody ? 0 : get_streamfile_size(txth->streamBody);
 
-            /* with subsongs we want to clamp body_size from this subsong start to next subsong start */
+            /* with subsongs we want to clamp data_size from this subsong start to next subsong start */
+            txth->next_offset = txth->data_size;
             if (txth->subsong_count > 1 && txth->target_subsong < txth->subsong_count) {
-                uint32_t next_offset;
                 /* temp move to next start_offset and move back*/
                 txth->target_subsong++;
-                parse_num(txth->streamHead,txth,val, &next_offset);
+                parse_num(txth->streamHead,txth,val, &txth->next_offset);
                 txth->target_subsong--;
-                if (next_offset > txth->start_offset) {
-                    body_size = next_offset;
-                }
+                if (txth->next_offset < txth->start_offset)
+                    txth->next_offset = 0;
             }
 
-            if (body_size && body_size > txth->start_offset)
-                txth->data_size = body_size - txth->start_offset; /* re-evaluate */
+            if (txth->data_size && txth->data_size > txth->next_offset && txth->next_offset)
+                txth->data_size = txth->next_offset;
+            if (txth->data_size && txth->data_size > txth->start_offset)
+                txth->data_size -= txth->start_offset;
         }
     }
     else if (is_string(key,"padding_size")) {
@@ -812,7 +883,7 @@ static int parse_keyval(STREAMFILE * streamFile_, txth_header * txth, const char
 
         /* apply */
         if (!txth->data_size_set) {
-            if (txth->padding_size < txth->data_size)
+            if (txth->data_size && txth->data_size > txth->padding_size)
                 txth->data_size -= txth->padding_size;
         }
     }
@@ -820,6 +891,8 @@ static int parse_keyval(STREAMFILE * streamFile_, txth_header * txth, const char
         if (!parse_num(txth->streamHead,txth,val, &txth->data_size)) goto fail;
         txth->data_size_set = 1;
     }
+
+    /* SAMPLES */
     else if (is_string(key,"sample_type")) {
         if (is_string(val,"samples")) txth->sample_type = 0;
         else if (is_string(val,"bytes")) txth->sample_type = 1;
@@ -889,6 +962,8 @@ static int parse_keyval(STREAMFILE * streamFile_, txth_header * txth, const char
             }
         }
     }
+
+    /* COEFS */
     else if (is_string(key,"coef_offset")) {
         if (!parse_num(txth->streamHead,txth,val, &txth->coef_offset)) goto fail;
     }
@@ -909,9 +984,8 @@ static int parse_keyval(STREAMFILE * streamFile_, txth_header * txth, const char
         if (!parse_coef_table(txth->streamHead,txth,val, txth->coef_table, sizeof(txth->coef_table))) goto fail;
         txth->coef_table_set = 1;
     }
-    else if (is_string(key,"psx_loops")) {
-        if (!parse_num(txth->streamHead,txth,val, &txth->coef_mode)) goto fail;
-    }
+
+    /* SUBSONGS */
     else if (is_string(key,"subsong_count")) {
         if (!parse_num(txth->streamHead,txth,val, &txth->subsong_count)) goto fail;
     }
@@ -928,6 +1002,8 @@ static int parse_keyval(STREAMFILE * streamFile_, txth_header * txth, const char
     else if (is_string(key,"name_size")) {
         if (!parse_num(txth->streamHead,txth,val, &txth->name_size)) goto fail;
     }
+
+    /* SUBFILES */
     else if (is_string(key,"subfile_offset")) {
         if (!parse_num(txth->streamHead,txth,val, &txth->subfile_offset)) goto fail;
         txth->subfile_set = 1;
@@ -940,6 +1016,8 @@ static int parse_keyval(STREAMFILE * streamFile_, txth_header * txth, const char
         if (!parse_string(txth->streamHead,txth,val, txth->subfile_extension)) goto fail;
         txth->subfile_set = 1;
     }
+
+    /* HEADER/BODY CONFIG */
     else if (is_string(key,"header_file")) {
         if (txth->streamhead_opened) {
             close_streamfile(txth->streamHead);
@@ -995,13 +1073,47 @@ static int parse_keyval(STREAMFILE * streamFile_, txth_header * txth, const char
             txth->streamHead = txth->streamBody;
         }
 
-        txth->data_size = !txth->streamBody ? 0 :
-                get_streamfile_size(txth->streamBody) - txth->start_offset; /* re-evaluate */
+        /* re-apply */
+        if (!txth->data_size_set) {
+            txth->data_size = get_streamfile_size(txth->streamBody);
+
+            /* maybe should be manually set again? */
+            if (txth->data_size && txth->data_size > txth->next_offset && txth->next_offset)
+                txth->data_size = txth->next_offset;
+            if (txth->data_size && txth->data_size > txth->start_offset)
+                txth->data_size -= txth->start_offset;
+            if (txth->data_size && txth->data_size > txth->padding_size)
+                txth->data_size -= txth->padding_size;
+        }
     }
+
+    /* CHUNKS */
+    else if (is_string(key,"chunk_number")) {
+        if (!parse_num(txth->streamHead,txth,val, &txth->chunk_number)) goto fail;
+    }
+    else if (is_string(key,"chunk_start")) {
+        if (!parse_num(txth->streamHead,txth,val, &txth->chunk_start)) goto fail;
+        txth->chunk_start_set = 1;
+        set_body_chunk(txth);
+    }
+    else if (is_string(key,"chunk_size")) {
+        if (!parse_num(txth->streamHead,txth,val, &txth->chunk_size)) goto fail;
+        txth->chunk_size_set = 1;
+        set_body_chunk(txth);
+    }
+    else if (is_string(key,"chunk_count")) {
+        if (!parse_num(txth->streamHead,txth,val, &txth->chunk_count)) goto fail;
+        txth->chunk_count_set = 1;
+        set_body_chunk(txth);
+    }
+
+    /* DEFAULT */
     else {
         VGM_LOG("TXTH: unknown key=%s, val=%s\n", key,val);
         goto fail;
     }
+
+    //;VGM_LOG("TXTH: data_size=%x, start=%x, next=%x, padding=%x\n", txth->data_size, txth->start_offset, txth->next_offset, txth->padding_size);
 
     return 1;
 fail:
