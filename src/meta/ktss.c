@@ -15,7 +15,7 @@ VGMSTREAM * init_vgmstream_ktss(STREAMFILE *streamFile) {
     if (read_32bitBE(0, streamFile) != 0x4B545353) /* "KTSS" */
         goto fail;
 
-    codec_id = read_32bitLE(0x20, streamFile);
+    codec_id = read_8bit(0x20, streamFile);
     loop_length = read_32bitLE(0x38, streamFile);
     loop_flag = loop_length > 0;
 
@@ -74,6 +74,10 @@ VGMSTREAM * init_vgmstream_ktss(STREAMFILE *streamFile) {
                 vgmstream->num_samples = switch_opus_get_samples(start_offset, data_size, streamFile) - skip;
             }
         }
+        break;
+    
+    case default:
+        goto fail;
         break;
 #endif
     }
