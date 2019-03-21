@@ -76,9 +76,8 @@ VGMSTREAM * init_vgmstream_ktss(STREAMFILE *streamFile) {
         }
         break;
     
-    case default:
+    default:
         goto fail;
-        break;
 #endif
     }
 
