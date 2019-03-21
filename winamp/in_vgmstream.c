@@ -30,7 +30,7 @@
 
 
 #ifndef VERSION
-#include "../version.h"
+#include "version.h"
 #endif
 #ifndef VERSION
 #define VERSION "(unknown version)"
