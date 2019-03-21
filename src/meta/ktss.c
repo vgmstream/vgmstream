@@ -4,7 +4,7 @@
 VGMSTREAM * init_vgmstream_ktss(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     int loop_flag, channel_count;
-    int8_t version, channelMultiplier, codec_id;
+    int8_t version, num_layers, codec_id;
     int32_t loop_length, coef_start_offset, coef_spacing;
     off_t start_offset;
     size_t data_size, skip = 0;
@@ -19,14 +19,14 @@ VGMSTREAM * init_vgmstream_ktss(STREAMFILE *streamFile) {
     loop_length = read_32bitLE(0x38, streamFile);
     loop_flag = loop_length > 0;
 
-    // For reasons unknown, a channel multiplier exists in Hyrule Warriors (Switch)
-    // It seems to be present in other Koei Tecmo KNS but the channel count was always
-    // explicitly defined in the 0x29 byte. Here, 10 channel files have '2' in 0x29*
-    // and '5' in 0x28 whereas previous titles usually contained '1'
+    // A layered stream/track model seems to be used in Hyrule Warriors (Switch).
+    // It's also present in other Koei Tecmo KNS but the channel count was always
+    // explicitly defined in the 0x29 byte and the number of layers was set to 1.
+    // Here, 10 channel files are set up with 2 channels in 5 layers.
     // Super hacky on KT's part and ours to implement but it works.
-    channelMultiplier = read_8bit(0x28, streamFile);
+    num_layers = read_8bit(0x28, streamFile);
 
-    channel_count = read_8bit(0x29, streamFile) * channelMultiplier;
+    channel_count = read_8bit(0x29, streamFile) * num_layers;
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count, loop_flag);
