@@ -13,10 +13,8 @@ macro(setup_target TARGET)
 		target_compile_definitions(${TARGET} PRIVATE
 			_WIN32_WINNT=0x501
 			_CRT_SECURE_NO_WARNINGS)
-		target_include_directories(${TARGET} PRIVATE ${CMAKE_SOURCE_DIR}/ext_includes)
-	else()
-		target_include_directories(${TARGET} PRIVATE AFTER ${CMAKE_SOURCE_DIR}/ext_includes)
 	endif()
+	target_include_directories(${TARGET} PRIVATE ${CMAKE_SOURCE_DIR}/ext_includes)
 	# Set up position-independent code for all targets
 	set_target_properties(${TARGET} PROPERTIES
 		POSITION_INDEPENDENT_CODE TRUE)
@@ -60,9 +58,9 @@ macro(setup_target TARGET)
 				target_link_libraries(${TARGET} ${CMAKE_BINARY_DIR}/ext_libs/libvorbis.lib)
 			endif()
 		else()
-			target_include_directories(${TARGET} PRIVATE ${VORBIS_INCLUDE_DIR})
+			target_include_directories(${TARGET} PRIVATE ${VORBISFILE_INCLUDE_DIRS})
 			if(LINK)
-				target_link_libraries(${TARGET} ${VORBIS_LIBRARIES})
+				target_link_libraries(${TARGET} Vorbis::VorbisFile)
 			endif()
 		endif()
 	endif()

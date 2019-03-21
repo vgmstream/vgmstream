@@ -5,6 +5,8 @@
 #  MPG123_LIBRARIES   - List of libraries when using mpg123.
 #  MPG123_FOUND       - True if mpg123 found.
 
+# Comes from https://github.com/coelckers/gzdoom/blob/master/cmake/FindMPG123.cmake
+
 if(MPG123_INCLUDE_DIR AND MPG123_LIBRARIES)
 	# Already in cache, be silent
 	set(MPG123_FIND_QUIETLY TRUE)

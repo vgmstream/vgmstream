@@ -33,12 +33,14 @@
 #else
 # include <signal.h>
 # include <unistd.h>
+# include <sys/wait.h>
 #endif
 
 #include "../src/vgmstream.h"
 
-#undef VERSION
-#include "../version.h"
+#ifndef VERSION
+# include "version.h"
+#endif
 #ifndef VERSION
 # define VERSION "(unknown version)"
 #endif

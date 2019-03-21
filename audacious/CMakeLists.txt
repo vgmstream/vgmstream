@@ -4,6 +4,12 @@ add_library(audacious_vgmstream SHARED
 	plugin.cc
 	vfs.cc)
 
+# Link to the vgmstream library and audacious library
+target_link_libraries(audacious_vgmstream
+	libvgmstream
+	${AUDACIOUS_LINK_LIBRARIES}
+	${GTK_LINK_LIBRARIES})
+
 setup_target(audacious_vgmstream TRUE)
 
 # Remove the prefix and set output name
@@ -45,12 +51,6 @@ target_include_directories(audacious_vgmstream PRIVATE
 	${CMAKE_BINARY_DIR}
 	${AUDACIOUS_INCLUDE_DIRS}
 	${GTK_INCLUDE_DIRS})
-
-# Link to the vgmstream library and audacious library
-target_link_libraries(audacious_vgmstream
-	libvgmstream
-	${AUDACIOUS_LINK_LIBRARIES}
-	${GTK_LINK_LIBRARIES})
 
 # Make sure that whatever compiler we use can handle these features
 target_compile_features(audacious_vgmstream PRIVATE

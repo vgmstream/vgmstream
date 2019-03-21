@@ -11,6 +11,9 @@ add_library(in_vgmstream SHARED
 	in_vgmstream.c
 	${RESOURCES})
 
+# Link to the vgmstream library
+target_link_libraries(in_vgmstream libvgmstream)
+
 setup_target(in_vgmstream TRUE)
 
 # Remove the prefix and set the suffix to .dll
@@ -27,9 +30,6 @@ target_compile_definitions(in_vgmstream PRIVATE
 
 # Make sure that the binary directory is included (for version.h)
 target_include_directories(in_vgmstream PRIVATE ${CMAKE_BINARY_DIR})
-
-# Link to the vgmstream library
-target_link_libraries(in_vgmstream libvgmstream)
 
 # Include the version string
 if(MSVC)

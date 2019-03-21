@@ -29,6 +29,8 @@
 # Redistribution and use is allowed according to the terms of the BSD license.
 # For details see the accompanying COPYING-CMAKE-SCRIPTS file.
 
+# Comes from https://github.com/snikulov/cmake-modules/blob/master/FindFFmpeg.cmake
+
 include(FindPackageHandleStandardArgs)
 
 # The default components were taken from a survey over other FindFFMPEG.cmake files
