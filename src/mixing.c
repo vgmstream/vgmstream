@@ -937,32 +937,4 @@ fail:
     return;
 }
 
-void vgmstream_mixing_enable(VGMSTREAM* vgmstream, int32_t max_sample_count, int *input_channels, int *output_channels) {
-    mixing_setup(vgmstream, max_sample_count);
-    mixing_info(vgmstream, input_channels, output_channels);
-}
-
-/* ********************************************************* */
-
-void vgmstream_mixing_autodownmix(VGMSTREAM *vgmstream, int max_channels) {
-    mixing_data *data = vgmstream->mixing_data;
-
-    if (!data) goto fail;
-
-    if (max_channels <= 0)
-        return;
-
-    /* guess mixing the best we can */
-
-    //todo: could use standard downmixing for known max_channels <> vgmstream->channels combos:
-    //  https://www.audiokinetic.com/library/edge/?source=Help&id=downmix_tables#tbl_mono
-    //  https://www.audiokinetic.com/library/edge/?source=Help&id=standard_configurations
-
-    mixing_macro_layer(vgmstream, max_channels, 0, 0);
-
-    return;
-fail:
-    return;
-}
-
 #endif
