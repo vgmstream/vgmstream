@@ -386,18 +386,20 @@ static void clean_filename(char * filename) {
 
 }
 
-/* sscanf 101:
- * - reads linearly and matches "%" commands to input parameters
- * - returns number of matched % parameters until stop
- * - reads until string end or not being able to match
- * - %n: number of chars consumed until that point (can appear and set multiple times)
- * - %d/f: reads number until end or *non-number* (so "%d" reads "5t" as "5")
- * - %[^(chars)] reads string with chars not in the list
- * - %*(command) is read but skipped (match not set to parameter)
- * - " ": ignores all spaces until next non-space
- * - other chars in string must exist: ("%dt t%dt" reads "5t  t5t" as "5" and "5", while "t5t 5t" matches only first "5")
- */
 
+/* sscanf 101: "matches = sscanf(string-from, string-commands, parameters...)"
+ * - reads linearly and matches "%" commands to input parameters as found
+ * - reads until string end (NULL) or not being able to match current parameter
+ * - returns number of matched % parameters until stop, or -1 if no matches and reached string end
+ * - must supply pointer param for every "%" in the string
+ * - %d/f: match number until end or *non-number* (so "%d" reads "5t" as "5")
+ * - %s: reads string (dangerous due to overflows and surprising as %s%d can't match numbers since string eats all chars)
+ * - %[^(chars)] match string with chars not in the list (stop reading at those chars)
+ * - %*(command) read but don't match (no need to supply parameterr)
+ * - " ": ignore all spaces until next non-space
+ * - other chars in string must exist: ("%dt t%dt" reads "5t  t5t" as "5" and "5", while "t5t 5t" matches only first "5")
+ * - %n: special match (not counted in return value), chars consumed until that point (can appear and be set multiple times)
+ */
 
 static int get_double(const char * config, double *value) {
     int n, m;
@@ -483,7 +485,8 @@ static int get_bool(const char * config, int *value) {
     if (m >= 1 && !(temp == '#' || temp == '\r' || temp == '\n'))
         return 0; /* ignore if anything non-space/comment matched */
 
-    if (temp == '#') n--; /* don't consume separator */
+    if (m >= 1 && temp == '#')
+        n--; /* don't consume separator when returning totals */
     *value = 1;
     return n;
 }
@@ -732,7 +735,7 @@ static int add_filename(txtp_header * txtp, char *filename, int is_default) {
             command[0] = '\0';
             mc = sscanf(config, "#%n%[^ #0-9\r\n]%n", &nc, command, &nc);
             //;VGM_LOG("TXTP:  command='%s', nc=%i, mc=%i\n", command, nc, mc);
-            if (mc == 0 && nc == 0) break;
+            if (mc <= 0 && nc == 0) break;
 
             config[0] = '\0'; //todo don't modify input string and properly calculate filename end
 
@@ -1031,7 +1034,7 @@ fail:
 
 static int parse_num(const char * val, uint32_t * out_value) {
     int hex = (val[0]=='0' && val[1]=='x');
-    if (sscanf(val, hex ? "%x" : "%u", out_value)!=1)
+    if (sscanf(val, hex ? "%x" : "%u", out_value) != 1)
         goto fail;
 
     return 1;
