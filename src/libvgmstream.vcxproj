@@ -376,7 +376,7 @@
     <ClCompile Include="meta\ps2_gbts.c" />
     <ClCompile Include="meta\ps2_gcm.c" />
     <ClCompile Include="meta\ps2_hgc1.c" />
-    <ClCompile Include="meta\ps2_ikm.c" />
+    <ClCompile Include="meta\ikm.c" />
     <ClCompile Include="meta\ps2_ild.c" />
     <ClCompile Include="meta\ps2_int.c" />
     <ClCompile Include="meta\ps2_joe.c" />

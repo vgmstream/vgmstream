@@ -679,7 +679,7 @@
     <ClCompile Include="meta\ps2_hgc1.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\ps2_ikm.c">
+    <ClCompile Include="meta\ikm.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ps2_ild.c">
