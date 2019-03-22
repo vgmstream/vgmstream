@@ -873,7 +873,7 @@ static VGMSTREAM * parse_bnk_header(STREAMFILE *streamFile, off_t offset, int ta
             goto fail;
 
         entry_offset = offset + table_offset + 0x04 * target_stream;
-        header_offset = entry_offset + read_32bit(offset + entry_offset, streamFile);
+        header_offset = entry_offset + read_32bit(entry_offset, streamFile);
     } else {
         /* some of these are dummies with zero offset, skip them when opening standalone BNK */
         for (i = 0; i < num_sounds; i++) {
