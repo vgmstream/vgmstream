@@ -378,7 +378,7 @@ typedef enum {
     meta_MUSX_V201,         /* Sphinx and the cursed Mummy */
     meta_LEG,               /* Legaia 2 [no header_id] */
     meta_FILP,              /* Resident Evil - Dead Aim */
-    meta_IKM,               /* Zwei! */
+    meta_IKM,
     meta_SFS,               /* Baroque */
     meta_BG00,              /* Ibara, Mushihimesama */
     meta_PS2_RSTM,          /* Midnight Club 3 */

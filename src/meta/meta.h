@@ -210,7 +210,9 @@ VGMSTREAM * init_vgmstream_leg(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_filp(STREAMFILE * streamFile);
 
-VGMSTREAM * init_vgmstream_ikm(STREAMFILE * streamFile);
+VGMSTREAM * init_vgmstream_ikm_ps2(STREAMFILE * streamFile);
+VGMSTREAM * init_vgmstream_ikm_pc(STREAMFILE * streamFile);
+VGMSTREAM * init_vgmstream_ikm_psp(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_sfs(STREAMFILE * streamFile);
 
