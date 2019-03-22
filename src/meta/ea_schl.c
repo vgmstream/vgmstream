@@ -377,7 +377,7 @@ VGMSTREAM * init_vgmstream_ea_abk(STREAMFILE *streamFile) {
             if (!bnk_offset)
                 goto fail;
 
-            bnk_target_stream = read_32bit(target_entry_offset + 0x04, streamFile) + 1;
+            bnk_target_stream = read_32bit(target_entry_offset + 0x04, streamFile);
             vgmstream = parse_bnk_header(streamFile, bnk_offset, bnk_target_stream, 1);
             if (!vgmstream)
                 goto fail;
