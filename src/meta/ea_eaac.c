@@ -314,7 +314,7 @@ VGMSTREAM * init_vgmstream_ea_sbr(STREAMFILE *streamFile) {
     uint32_t i, num_sounds, type_desc;
     uint16_t num_metas, meta_type;
     off_t table_offset, types_offset, entry_offset, metas_offset, data_offset, snr_offset, sns_offset;
-    STREAMFILE *sbsFile = NULL, *streamData = NULL;
+    STREAMFILE *sbsFile = NULL;
     VGMSTREAM *vgmstream = NULL;
     int target_stream = streamFile->stream_index;
 
@@ -359,13 +359,30 @@ VGMSTREAM * init_vgmstream_ea_sbr(STREAMFILE *streamFile) {
         }
     }
 
-    if (snr_offset == 0xFFFFFFFF)
+    if (snr_offset == 0xFFFFFFFF && sns_offset == 0xFFFFFFFF)
         goto fail;
 
-    if (sns_offset == 0xFFFFFFFF) {
+    if (snr_offset == 0xFFFFFFFF) {
+        /* SPS file */
+        sbsFile = open_streamfile_by_ext(streamFile, "sbs");
+        if (!sbsFile)
+            goto fail;
+
+        if (read_32bitBE(0x00, sbsFile) != 0x53424B53) /* "SBKS" */
+            goto fail;
+
+        snr_offset = sns_offset;
+        sns_offset = snr_offset + (read_32bitBE(snr_offset, sbsFile) & 0x00FFFFFF);
+        snr_offset += 0x04;
+        vgmstream = init_vgmstream_eaaudiocore_header(sbsFile, sbsFile, snr_offset, sns_offset, meta_EA_SNR_SNS);
+        if (!vgmstream)
+            goto fail;
+    } else if (sns_offset == 0xFFFFFFFF) {
         /* RAM asset */
-        streamData = streamFile;
         sns_offset = snr_offset + get_snr_size(streamFile, snr_offset);
+        vgmstream = init_vgmstream_eaaudiocore_header(streamFile, streamFile, snr_offset, sns_offset, meta_EA_SNR_SNS);
+        if (!vgmstream)
+            goto fail;
     } else {
         /* streamed asset */
         sbsFile = open_streamfile_by_ext(streamFile, "sbs");
@@ -375,12 +392,10 @@ VGMSTREAM * init_vgmstream_ea_sbr(STREAMFILE *streamFile) {
         if (read_32bitBE(0x00, sbsFile) != 0x53424B53) /* "SBKS" */
             goto fail;
 
-        streamData = sbsFile;
+        vgmstream = init_vgmstream_eaaudiocore_header(streamFile, sbsFile, snr_offset, sns_offset, meta_EA_SNR_SNS);
+        if (!vgmstream)
+            goto fail;
     }
-
-    vgmstream = init_vgmstream_eaaudiocore_header(streamFile, streamData, snr_offset, sns_offset, meta_EA_SNR_SNS);
-    if (!vgmstream)
-        goto fail;
 
     vgmstream->num_streams = num_sounds;
     close_streamfile(sbsFile);

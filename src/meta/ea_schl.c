@@ -377,7 +377,7 @@ VGMSTREAM * init_vgmstream_ea_abk(STREAMFILE *streamFile) {
             if (!bnk_offset)
                 goto fail;
 
-            bnk_target_stream = read_32bit(target_entry_offset + 0x04, streamFile) + 1;
+            bnk_target_stream = read_32bit(target_entry_offset + 0x04, streamFile);
             vgmstream = parse_bnk_header(streamFile, bnk_offset, bnk_target_stream, 1);
             if (!vgmstream)
                 goto fail;
@@ -873,7 +873,7 @@ static VGMSTREAM * parse_bnk_header(STREAMFILE *streamFile, off_t offset, int ta
             goto fail;
 
         entry_offset = offset + table_offset + 0x04 * target_stream;
-        header_offset = entry_offset + read_32bit(offset + entry_offset, streamFile);
+        header_offset = entry_offset + read_32bit(entry_offset, streamFile);
     } else {
         /* some of these are dummies with zero offset, skip them when opening standalone BNK */
         for (i = 0; i < num_sounds; i++) {
