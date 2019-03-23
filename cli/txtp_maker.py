@@ -44,6 +44,7 @@ def print_help(appname):
           " -d (dir): add dir in TXTP (if the file will reside in a subdir)\n"
           " -m: create mini-txtp\n"
           " -o: overwrite existing .txtp (beware when using with internal names)\n"
+          " -O: rename rather than overwritting\n"
           " -in: name TXTP using the subsong's internal name if found\n"
           " -ie: remove internal name's extension\n"
           " -ii: add subsong number when using internal name\n"
@@ -112,6 +113,8 @@ class ConfigHelper(object):
     subdir = ''
     mini_txtp = False
     overwrite = False
+    overwrite_rename = False
+    rename_map = {}
     layers = 0
 
     use_internal_name = False
@@ -193,6 +196,7 @@ class ConfigHelper(object):
 
             self.mini_txtp = self.read_bool('-m', self.mini_txtp)
             self.overwrite = self.read_bool('-o', self.overwrite)
+            self.overwrite_rename = self.read_bool('-O', self.overwrite_rename)
             self.layers = self.read_int('-l', self.layers)
 
             self.use_internal_name = self.read_bool('-in', self.use_internal_name)
@@ -370,6 +374,15 @@ class TxtpMaker(object):
         cfg = self.cfg
 
         outname += '.txtp'
+
+        if cfg.overwrite_rename and os.path.exists(outname):
+            if outname in cfg.rename_map:
+                rename_count = cfg.rename_map[outname]
+            else:
+                rename_count = 0
+            cfg.rename_map[outname] = rename_count + 1
+            outname = outname.replace(".txtp", "_{}.txtp".format(rename_count))
+
         if not cfg.overwrite and os.path.exists(outname):
             raise ValueError('TXTP exists in path: ' + outname)
         ftxtp = open(outname,"w+")
