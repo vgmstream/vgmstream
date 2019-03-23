@@ -55,6 +55,7 @@ class input_vgmstream : public input_stubs {
         VGMSTREAM * vgmstream;
         t_uint32 subsong;
         bool direct_subsong;
+        int output_channels;
 
         bool decoding;
         int paused;
@@ -63,7 +64,7 @@ class input_vgmstream : public input_stubs {
         int stream_length_samples;
         int fade_samples;
         int seek_pos_samples;
-        short sample_buffer[SAMPLE_BUFFER_SIZE];
+        short sample_buffer[SAMPLE_BUFFER_SIZE * VGMSTREAM_MAX_CHANNELS];
 
         /* settings */
         double fade_seconds;
