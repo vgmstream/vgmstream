@@ -313,6 +313,10 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\meta\xwb_xsb.h"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\xwma_konami_streamfile.h"
                     >
                 </File>

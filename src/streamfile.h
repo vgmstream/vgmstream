@@ -194,10 +194,10 @@ static inline int8_t read_8bit(off_t offset, STREAMFILE * streamfile) {
 /* alias of the above */
 static inline int8_t   read_s8(off_t offset, STREAMFILE * streamfile) { return read_8bit(offset, streamfile); }
 static inline uint8_t  read_u8(off_t offset, STREAMFILE * streamfile) { return (uint8_t)read_8bit(offset, streamfile); }
-static inline int32_t  read_s16le(off_t offset, STREAMFILE * streamfile) { return read_16bitLE(offset, streamfile); }
-static inline uint32_t read_u16le(off_t offset, STREAMFILE * streamfile) { return (uint16_t)read_16bitLE(offset, streamfile); }
-static inline int32_t  read_s16be(off_t offset, STREAMFILE * streamfile) { return read_16bitBE(offset, streamfile); }
-static inline uint32_t read_u16be(off_t offset, STREAMFILE * streamfile) { return (uint16_t)read_16bitBE(offset, streamfile); }
+static inline int16_t  read_s16le(off_t offset, STREAMFILE * streamfile) { return read_16bitLE(offset, streamfile); }
+static inline uint16_t read_u16le(off_t offset, STREAMFILE * streamfile) { return (uint16_t)read_16bitLE(offset, streamfile); }
+static inline int16_t  read_s16be(off_t offset, STREAMFILE * streamfile) { return read_16bitBE(offset, streamfile); }
+static inline uint16_t read_u16be(off_t offset, STREAMFILE * streamfile) { return (uint16_t)read_16bitBE(offset, streamfile); }
 static inline int32_t  read_s32le(off_t offset, STREAMFILE * streamfile) { return read_32bitLE(offset, streamfile); }
 static inline uint32_t read_u32le(off_t offset, STREAMFILE * streamfile) { return (uint32_t)read_32bitLE(offset, streamfile); }
 static inline int32_t  read_s32be(off_t offset, STREAMFILE * streamfile) { return read_32bitBE(offset, streamfile); }

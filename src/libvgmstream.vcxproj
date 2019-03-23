@@ -90,6 +90,7 @@
     <ClInclude Include="coding\vorbis_custom_data_wwise.h" />
     <ClInclude Include="coding\vorbis_custom_decoder.h" />
     <ClInclude Include="meta\xvag_streamfile.h" />
+    <ClInclude Include="meta\xwb_xsb.h" />
     <ClInclude Include="meta\xwma_konami_streamfile.h" />
     <ClInclude Include="meta\zsnd_streamfile.h" />
     <ClInclude Include="mixing.h" />
