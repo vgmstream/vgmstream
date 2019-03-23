@@ -1202,7 +1202,7 @@ int winamp_InfoBox(const in_char *fn, HWND hwnd) {
         apply_config(infostream, &infoconfig);
 #ifdef VGMSTREAM_MIXING
         vgmstream_mixing_autodownmix(infostream, settings.downmix_channels);
-        //vgmstream_mixing_enable(infostream, SAMPLE_BUFFER_SIZE, NULL, NULL);
+        vgmstream_mixing_enable(infostream, 0, NULL, NULL);
 #endif
 
         describe_vgmstream(infostream,description,description_size);

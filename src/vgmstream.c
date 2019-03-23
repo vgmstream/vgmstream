@@ -2323,6 +2323,8 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         mixing_info(vgmstream, NULL, &output_channels);
 
         if (output_channels != vgmstream->channels) {
+            snprintf(temp,TEMPSIZE, "input channels: %d\n", vgmstream->channels); /* repeated but mainly for plugins */
+            concatn(length,desc,temp);
             snprintf(temp,TEMPSIZE, "output channels: %d\n", output_channels);
             concatn(length,desc,temp);
         }

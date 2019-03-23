@@ -53,7 +53,7 @@ typedef struct {
     /* macros */
     int max;
     uint32_t mask;
-    int overlap;
+    char mode;
 } txtp_mix_data;
 #endif
 
@@ -352,9 +352,9 @@ static void apply_config(VGMSTREAM *vgmstream, txtp_entry *current) {
                 /* macro mixes */
                 case MACRO_VOLUME:      mixing_macro_volume(vgmstream, mix.vol, mix.mask); break;
                 case MACRO_TRACK:       mixing_macro_track(vgmstream, mix.mask); break;
-                case MACRO_LAYER:       mixing_macro_layer(vgmstream, mix.max, mix.mask, mix.overlap); break;
+                case MACRO_LAYER:       mixing_macro_layer(vgmstream, mix.max, mix.mask, mix.mode); break;
                 case MACRO_CROSSTRACK:  mixing_macro_crosstrack(vgmstream, mix.max); break;
-                case MACRO_CROSSLAYER:  mixing_macro_crosslayer(vgmstream, mix.max); break;
+                case MACRO_CROSSLAYER:  mixing_macro_crosslayer(vgmstream, mix.max, mix.mode); break;
 
                 default:
                     break;
@@ -712,15 +712,19 @@ static int add_filename(txtp_header * txtp, char *filename, int is_default) {
     {
         char *config;
 
-        /* find config start (filenames and config can contain multiple dots and #,
-         * so this may be fooled by certain patterns of . and #) */
-        config = strchr(filename, '.'); /* first dot (may be a false positive) */
-        if (!config) /* extensionless */
-            config = filename;
-        config = strchr(config, '#'); /* next should be config */
-        if (!config) /* no config */
-            config = filename; //todo if no config just exit?
-
+        if (is_default) {
+            config = filename; /* multiple commands without filename */
+        }
+        else {
+            /* find config start (filenames and config can contain multiple dots and #,
+             * so this may be fooled by certain patterns of . and #) */
+            config = strchr(filename, '.'); /* first dot (may be a false positive) */
+            if (!config) /* extensionless */
+                config = filename;
+            config = strchr(config, '#'); /* next should be config */
+            if (!config) /* no config */
+                config = filename; //todo if no config just exit?
+        }
 
         range_start = 0;
         range_end = 1;
@@ -936,6 +940,7 @@ static int add_filename(txtp_header * txtp, char *filename, int is_default) {
 
                 nm = get_double(config, &mix.vol);
                 config += nm;
+
                 if (nm == 0) continue;
 
                 nm = get_mask(config, &mix.mask);
@@ -952,7 +957,9 @@ static int add_filename(txtp_header * txtp, char *filename, int is_default) {
 
                 add_mixing(&cfg, &mix, MACRO_TRACK);
             }
-            else if (strcmp(command,"@layer") == 0 || strcmp(command,"@overlap") == 0) {
+            else if (strcmp(command,"@layer-v") == 0 ||
+                     strcmp(command,"@layer-b") == 0 ||
+                     strcmp(command,"@layer-e") == 0) {
                 txtp_mix_data mix = {0};
 
                 nm = get_int(config, &mix.max);
@@ -962,17 +969,22 @@ static int add_filename(txtp_header * txtp, char *filename, int is_default) {
                 nm = get_mask(config, &mix.mask);
                 config += nm;
 
-                mix.overlap = (strcmp(command,"@overlap") == 0);
-
+                mix.mode = command[7]; /* pass letter */
                 add_mixing(&cfg, &mix, MACRO_LAYER);
             }
-            else if (strcmp(command,"@crosslayer") == 0 || strcmp(command,"@crosstrack") == 0) {
+            else if (strcmp(command,"@crosslayer-v") == 0 ||
+                     strcmp(command,"@crosslayer-b") == 0 ||
+                     strcmp(command,"@crosslayer-e") == 0 ||
+                     strcmp(command,"@crosstrack") == 0) {
                 txtp_mix_data mix = {0};
                 txtp_mix_t type;
-                if (strcmp(command,"@crosstrack") == 0)
+                if (strcmp(command,"@crosstrack") == 0) {
                     type = MACRO_CROSSTRACK;
-                else
+                }
+                else {
                     type = MACRO_CROSSLAYER;
+                    mix.mode = command[12]; /* pass letter */
+                }
 
                 nm = get_int(config, &mix.max);
                 config += nm;

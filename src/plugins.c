@@ -1,6 +1,8 @@
 #include "vgmstream.h"
 #include "plugins.h"
+#ifdef VGMSTREAM_MIXING
 #include "mixing.h"
+#endif
 
 #define VGMSTREAM_TAGS_LINE_MAX 2048
 
@@ -225,7 +227,7 @@ void vgmstream_tags_reset(VGMSTREAM_TAGS* tags, const char* target_filename) {
     }
 }
 
-
+#ifdef VGMSTREAM_MIXING
 void vgmstream_mixing_enable(VGMSTREAM* vgmstream, int32_t max_sample_count, int *input_channels, int *output_channels) {
     mixing_setup(vgmstream, max_sample_count);
     mixing_info(vgmstream, input_channels, output_channels);
@@ -240,7 +242,8 @@ void vgmstream_mixing_autodownmix(VGMSTREAM *vgmstream, int max_channels) {
     //  https://www.audiokinetic.com/library/edge/?source=Help&id=downmix_tables#tbl_mono
     //  https://www.audiokinetic.com/library/edge/?source=Help&id=standard_configurations
 
-    mixing_macro_layer(vgmstream, max_channels, 0, 0);
+    mixing_macro_layer(vgmstream, max_channels, 0, 'e');
 
     return;
 }
+#endif

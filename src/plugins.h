@@ -83,6 +83,7 @@ void vgmstream_tags_close(VGMSTREAM_TAGS* tags);
 
 /* Enables mixing effects, with max outbuf samples as a hint. Once active, plugin
  * must use returned input_channels to create outbuf and output_channels to output audio.
+ * max_sample_count may be 0 if you only need to query values and not actually enable it.
  * Needs to be enabled last after adding effects. */
 void vgmstream_mixing_enable(VGMSTREAM* vgmstream, int32_t max_sample_count, int *input_channels, int *output_channels);
 

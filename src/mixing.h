@@ -33,9 +33,9 @@ void mixing_push_fade(VGMSTREAM* vgmstream, int ch_dst, double vol_start, double
 
 void mixing_macro_volume(VGMSTREAM* vgmstream, double volume, uint32_t mask);
 void mixing_macro_track(VGMSTREAM* vgmstream, uint32_t mask);
-void mixing_macro_layer(VGMSTREAM* vgmstream, int max, uint32_t mask, int overlap);
+void mixing_macro_layer(VGMSTREAM* vgmstream, int max, uint32_t mask, char mode);
 void mixing_macro_crosstrack(VGMSTREAM* vgmstream, int max);
-void mixing_macro_crosslayer(VGMSTREAM* vgmstream, int max);
+void mixing_macro_crosslayer(VGMSTREAM* vgmstream, int max, char mode);
 
 
 #endif /* _MIXING_H_ */

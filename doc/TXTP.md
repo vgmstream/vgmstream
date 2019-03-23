@@ -14,7 +14,11 @@ fileN
 
 mode = (mode)  # "segments" is the default if not set
 ```
-You can set commands to alter how files play (described later). Having a single file is ok too.
+You can set commands to alter how files play (described later). Having a single file is ok too, so are subdirs:
+```
+# set "subsong" command for single file inside subdir
+sounds/file#12
+``` 
 
 
 ### Segments mode
@@ -83,9 +87,9 @@ You can set file commands by adding multiple `#(command)` after the name. `# (an
 **Super Robot Taisen OG Saga - Masou Kishin III - Pride of Justice (Vita)**: *bgm_12.txtp*
 ```
 # select subsong 12
-bigfiles/bgm.sxd2#12 #relative paths are ok too for TXTP
+bgm.sxd2#12
 
-#bigfiles/bgm.sxd2#s12 # "sN" is alt for subsong
+#bgm.sxd2#s12 # "sN" is alt for subsong
 
 # single files loop normally by default
 # if loop segment is defined it forces a full loop (0..num_samples)
