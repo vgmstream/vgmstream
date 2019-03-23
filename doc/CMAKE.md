@@ -152,7 +152,7 @@ If building the Winamp plugin, the following path is required:
 
 If building the XMPlay plugin, the following path is required:
 
-- **XMPLAY_INSTALL_PLUGIN**: The path to the XMPlay installation. The required DLLs and the plugin will be installed in this directory.
+- **XMPLAY_INSTALL_PREFIX**: The path to the XMPlay installation. The required DLLs and the plugin will be installed in this directory.
 
 If building the Audacious plugin, no path needs to be given, it will be found by CMake.
 
