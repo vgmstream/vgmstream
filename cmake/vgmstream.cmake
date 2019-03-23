@@ -18,6 +18,10 @@ macro(setup_target TARGET)
 	# Set up position-independent code for all targets
 	set_target_properties(${TARGET} PROPERTIES
 		POSITION_INDEPENDENT_CODE TRUE)
+	if(NOT WIN32 AND LINK)
+		# Include libm on non-Windows systems
+		target_link_libraries(${TARGET} m)
+	endif()
 
 	if(USE_FDKAAC)
 		target_compile_definitions(${TARGET} PRIVATE
