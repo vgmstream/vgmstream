@@ -29,19 +29,9 @@ VGMSTREAM * init_vgmstream_imc(STREAMFILE *streamFile) {
     if (interleave*blocks + start_offset != file_size)
         goto fail;
 
-    /* remove padding (important to play gapless subsongs, happens even for mono) */
-    {
-        off_t min_offset = file_size - interleave;
-        off_t offset = file_size - 0x10;
+    data_size = file_size - start_offset;
+    data_size -= ps_find_padding(streamFile, start_offset, data_size, channel_count, interleave, 0);
 
-        data_size = file_size - start_offset;
-        while (offset > min_offset) {
-            if (read_32bitLE(offset, streamFile) != 0)
-                break;
-            data_size -= 0x10*channel_count;
-            offset -= 0x10;
-        }
-    }
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count, loop_flag);
