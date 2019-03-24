@@ -557,6 +557,12 @@ static VGMSTREAM *init_subfile(txth_header * txth) {
         vgmstream_force_loop(vgmstream, 0, 0, 0);
     }
 
+    if (txth->chunk_count && txth->subsong_count) {
+        vgmstream->num_streams = txth->subsong_count;
+    }
+    //todo: other combos with subsongs + subfile?
+
+
     close_streamfile(streamSubfile);
     return vgmstream;
 

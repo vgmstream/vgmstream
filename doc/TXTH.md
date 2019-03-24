@@ -512,7 +512,7 @@ num_samples = data_size
 ### Chunks
 Chunks affect some values (padding size, data size, etc) and are a bit sensitive to order at the moment, due to technical complexities:
 ```
-# Street Fighter EX3
+# Street Fighter EX3 (PS2)
 
 # base config is defined normally
 codec       = PSX
@@ -531,4 +531,20 @@ chunk_count = 26
 start_offset = 0x00
 padding_size = auto-empty   
 num_samples = data_size
+```
+
+Subfiles and chunks can coexist:
+```
+# Gitaroo Man (PSP)
+
+# 3 interleaved RIFF files
+subsong_count = 3
+chunk_start   = 0
+chunk_size    = 0x2800
+chunk_count   = 3
+
+# the 3 de-interleaved chunks are treated and parsed as a subsong
+subfile_offset = 0
+subfile_size = @0x04 + 0x08  #RIFF size
+subfile_extension = at3
 ```
