@@ -97,7 +97,7 @@ bgm.sxd2#12
 ```
 
 ### Play segmented subsong ranges as one
-**`#m(number)~(number)` or `#ms(number)~(number)`**: set multiple subsong segments at a time, to avoid so much C&P
+**`#(number)~(number)` or `#s(number)~(number)`**: set multiple subsong segments at a time, to avoid so much C&P
 
 **Prince of Persia Sands of Time**: *song_01.txtp*
 ```
@@ -202,6 +202,115 @@ bgm01.ogg#I32.231             # from ~1421387 samples to end
 Use this feature responsibly, though. If you find a format that should loop using internal values that vgmstream doesn't detect correctly, consider reporting the bug for the benefit of all users and other games using the same format, and don't throw out the original loop definitions (as sometimes they may not take into account "encoder delay" and must be carefully adjusted).
 
 Note that a few codecs may not work with arbitrary loop values since they weren't tested with loops. Misaligned loops will cause audible "clicks" at loop point too.
+
+
+### Channel mixing
+**`#m(op),(...),(op)`**: mix channels in various ways by specifying multiple comma-separated sub-commands:
+
+Possible operations:
+- `N-M`: swaps M with N
+- `N+M*(volume)`: mixes M * volume to N
+- `N+M`: mixes M to N
+- `N*(volume)`: changes volume of N
+- `N=(volume)`: limits volume of N
+- `Nu`: upmix (insert) N ('pushing' all following channels forward)
+- `Nd`: downmix (remove) N ('pulling' all following channels backward)
+- `ND`: downmix (remove) N and all following channels
+- `N(type)(time-start)+(time-length)`: defines a fade
+  * `type` can be `{` = fade-in, `}` = fade-out, `(` = crossfade-in, `)` = crossfade-out
+    * crossfades are better tuned to use when changing between tracks
+  * using multiple fades in the same channel will cancel previous fades
+    * may only cancel when fade is after previous one
+    * `}` then `{` makes sense, but `}` then `}` will make funny volume bumps
+- `N^(volume-start)~(volume-end)=(shape)@(time-pre)~(time-start)+(time-length)~(time-last)`: defines full fade envelope
+  * full definition of the above to allow precise volume changes over time
+    * not necessarily fades, as you could set length 0 for volume "bumps", or make volumes 1.0~0.5
+  * pre/post may be -1 to set "file start" and "file end", cancelled by next fade
+  * `(shape)` can be `{` = fade, `(` = crossfade, other values are reserved for internal testing and may change anytime
+
+Considering:
+- `N` and `M` are channels (*current* value after previous operators are applied)
+- channel 1 is first
+- channel 0 is shorthand for all channels where applicable (`0*V`, `0=V`, `0^...`)
+- may use `x` instead of `*` and `_` instead of `:` (for mini-TXTP)
+- `(volume)` is a `N.N` decimal value where 1.0 is 100% base volume
+  - negative volume inverts the waveform (for weird effects)
+- `(time)` can be `N:NN(.n)` (minutes:seconds), `N.N` (seconds) or `N` (samples)
+  - represents the file's global play time, so it may be set after N loops
+  - beware of `10.0` (ten seconds) vs `10` (ten samples)
+  - may not work with huge numbers (like several hours)
+- adding trailing channels must be done 1 by 1 at the end (for stereo: `3u,4u,(...)`
+- nonsensical values are ignored (like referencing channel 3 in a stereo file)
+
+Main usage would be creating stereo files for games that layer channels.
+```
+# quad to stereo: all layers must play at the same time
+# - mix 75% of channel 3/4 into channel 1/2, then drop channel 3 and 4
+song#m1+3*0.75,2+4*.75,3D
+
+# quad to stereo: only channel 3 and 4 should play
+# - swap channel 1/2 with 3/4, then drop channel 3/4
+song#m1-3,2-4,3D
+
+# also equivalent, but notice the order
+# - drop channel 1 then 2 (now 1)
+song#m1d,1d
+```
+Proper mixing requires some basic knowledge though, it's further explained later. Order matters and operations are applied sequentially, for extra flexibility at the cost of complexity and user-friendliness, and may result in surprising mixes. Try to stick to macros and simple combos, using later examples as a base.
+
+This can be applied to individual layers and segments, but normally you want to use `commands` to apply mixing to the resulting file (see examples). Per-segment mixing should be reserved to specific up/downmixings.
+
+Mixing must be supported by the plugin, otherwise it's ignored (there is a negligible performance penalty per mix operation though).
+
+
+### Macros
+**`#@(macro name and parameters)`**: adds a new macro
+
+Manually setting values gets old, so TXTP supports a bunch of simple macros. They automate some of the above commands (analyzing the file), and may be combined, so order still matters.
+- `volume N (channels)`: sets volume V to selected channels
+- `track (channels)`: makes a file of selected channels
+- `layer-v N (channels)`: mixes selected channels to N channels with default volume (for layered vocals)
+- `layer-b N (channels)`: same, but adjusts volume depending on layers (for layered bgm)
+- `layer-e N (channels)`: same, but adjusts volume equally for all layers (for generic downmixing)
+- `remix N (channels)`: same, but mixes selected channels to N channels properly adjusting volume (for layered bgm)
+- `crosstrack N`: crossfades between Nch tracks after every loop (loop count is adjusted as needed)
+- `crosslayer-v/b/e N`: crossfades Nch layers to the main track after every loop (loop count is adjusted as needed)
+
+`channels` can be multiple comma-separated channels or N~M ranges and may be ommited were applicable to mean "all channels" (channel order doesn't matter but it's internally fixed).
+
+Examples: 
+```
+# plays 2ch layer1 (base melody)
+okami-ryoshima_coast.aix#@track 1,2
+
+# plays 2ch layer1+2 (base melody+percussion)
+okami-ryoshima_coast.aix#@layer-b 2 1~4   #1~4 may be skipped
+
+# uses 2ch layer1 (base melody) in the first loop, adds 2ch layer2 (percussion) to layer1 in the second
+okami-ryoshima_coast.aix#@crosslayer-b 2
+
+# uses 2ch track1 (exploration) in the first loop, changes to 2ch track2 (combat) in the second
+ffxiii2-eclipse.scd#@crosstrack 2
+
+# plays 2ch from 4ch track1 (sneaking)
+mgs4-bgm_ee_alert_01.mta2#@layer-e 2 1~4
+
+# downmix bgm + vocals to stereo
+nier_automata-BGM_0_012_04.wem
+nier_automata-BGM_0_012_07.wem
+mode = layers
+commands = #@layer-v 2
+
+# can be combined with normal mixes too for creative results
+# (add channel clone of ch1, then 50% of range)
+song#m4u,4+1#@volume 0.5 2~4
+
+# equivalent to #@layer-e 2 1~4
+mgs4-bgm_ee_alert_01.mta2#@track 1~4#@layer-b 2
+
+# equivalent to #@track 1,2
+okami-ryoshima_coast.aix#@layer-b 2 1,2
+```
 
 
 ## OTHER FEATURES
@@ -326,3 +435,137 @@ To simplify TXTP creation, if the .txtp is empty (0 bytes) its filename is used 
 - *Ryoshima Coast 1 & 2.aix#c1,2.txtp*: channel mask
 - *boss2_3ningumi_ver6.adx#l2#F.txtp*: loop twice then play song end file normally
 - etc
+
+
+## MIXING
+Sometimes games use multiple channels in uncommon ways, for example as layered tracks for dynamic music (like main+vocals), or crossfading a stereo song to another stereo song. In those cases we normally would want a stereo track, but vgmstream can't guess how channels are used (since it's game-dependant). To solve this via TXTP you can set mixing output and volumes manually.
+
+A song file is just data that can contain a (sometimes unlimited) number of channels, that must play in physical speakers. Standard audio formats define how to "map" known channels to speakers:
+- `1.0: FC`
+- `2.0: FL, FR`
+- `2.1: FL, FR, LF`
+- `4.0: FL, FR, SL, SR`
+- `5.1: FL, FR, FC, LF, SL, SR`
+- ... (channels in order, where FL=front left, FC=front center, etc)
+
+If you only have stereo speakers, when playing a 5.1 file your player may silently transform to stereo, as otherwise you would miss some channels. But a game song's channels can be various things: standard mapped, per-format map, per-game, multilayers combined ("downmixed") to a final stereo file, music then all language tracks, etc. So you need to decide which channels drop or combine and their individual volumes via mixing.
+
+Say you want to mix 4ch to 2ch (ch3 to ch1, ch4 to ch2). Due to how audio signals work, mixing just combines (adds) sounds. So if channels 1/2 are LOUD, and channels 3/4 are LOUD, you get a LOUDER channel 1/2. To fix this we set mixing volume, for example: `mix channel 3/4 * 0.707 (-3db/30% lower volume) to channel 1/2`: the resulting stereo file is now more listenable. Those volumes are just for standard audio and may work ok for every game though.
+
+All this means there is no simple, standard way to mix, so you must experiment a bit.
+
+
+### MIXING EXAMPLES
+For most common usages you can stick with macros but actual mixing is quite flexible:
+```
+# boost volume of all channels by 30%
+song#m0*1.3
+
+# boost but limit volume (highs don't go too high, while lows sound louder)
+song#m0*1.3,0=0.9
+
+# downmix 4ch layers to stereo (this may sound too loud)
+song#m1+3,2+4,3D
+
+# downmix 4ch layers to stereo with adjusted volume for latter channels (common 4.0 to 2.0 mixdown)
+song#m1+3*0.7,2+4*0.7,3D
+
+# downmix 4ch layers to stereo with equal adjusted volume (common layer mixdown)
+song#m0*0.7,m1*0.7,1+3*0.7,2+4*0.7,3D
+
+# downmix stereo to mono (ignored if file is 1ch)
+zelda-cdi.xa#m1d
+
+# upmix mono to stereo by copying ch1 to ch2
+zelda-cdi.xa#m2*0.0,2+1
+
+# downmix 5.1 wav (FL FR FC LFE BL BR) to stereo
+# (uses common -3db mixing formula: Fx=Fx + FC*0.707 + Rx*0.707)
+song#m1+3*0.707,2+3*0.707,1+5*0.707,2+6*0.707,3D
+
+# mask sfx track ch3 in a 6ch file
+song#m3*0.0
+
+# add a fake silent channel to a 5ch file (FL FR FC BL BR) and move it to LFE position
+# "make ch6, swap BL with LFE (now FL FR FC LFE BR BL), swap BR with BL (now FL FR FC LFE BL BR)
+sf5.hca#m6u,4-6,5-6
+
+# mix 50% of channel 3 into 1 and 2, drop 3
+song#m1+3*0.5,2+3*0.5,3d
+
+# swap ch1 and 2 then change volume to the resulting swapped channel
+song#m1-2,2*0.5
+
+# fade-in ch3+4 percussion track layer into main track, downmix to stereo
+# (may be split in multiple lines, no difference)
+okami-ryoshima_coast.aix#l2
+commands = #m3(1:10~0:05         # loop happens after ~1:10
+commands = #m4(1:10~0:05         # ch3/4 are percussion tracks
+commands = #m1+3*0.707,2+4*0.707 # ch3/4 always mixed but silent until 1:10
+commands = #m3D                  # remove channels after all mixing
+
+# same but fade-out percussion after second loop
+okami-ryoshima_coast.aix#l3
+commands = #m3(1:10~0:05,3)2:20~0:05
+commands = #m4(1:10~0:05,4)2:20~0:05
+commands = #m1+3*0.707,2+4*0.707,3D
+
+# crossfade exploration and combat sections after loop
+ffxiii-2~eclipse.aix
+commands = #m1)1:50~0:10,m2)1:50~0:10
+commands = #m3(1:50~0:10,m4(1:50~0:10
+commands = #m1+3,2+4,3D  # won't play at the same time, no volume needed
+
+# ghetto voice removal (invert channel + other channel removes duplicated parts, and vocals are often layered)
+song
+commands = #m3u,3+1*-1.0,4u,4+2*-1.0
+commands = #m1+4,2+3,3d,3d
+
+# crosstrack 4ch file 3 times, going back to first track by creating a fake 3rd track with ch1 and 2:
+ffxiii2-eclipse.scd#m5u,6u,5+1,6+2#@crosstrack 2
+```
+
+Segment/layer downmixing is allowed but try to keep it simple, some mixes accomplish the same things but are a bit strange.
+```
+# mix one stereo segment with a mono segment
+intro-stereo.hca
+loop-mono.hca#m2u
+
+# this makes mono file
+intro-stereo.hca#m2u
+loop-stereo.hca#m2u
+
+# but you normally should do this instead as it's more natural
+intro-stereo.hca
+loop-stereo.hca
+commands = #m2u
+
+# fading segments work rather unexpectedly
+# fades out 1 minute into the _segment_  (could be 2 minutes into the resulting file)
+segment1.hca#m0{0:10+10.0
+segment2.hca#m0}1:00+10.0
+# better use: commands = #m0{0:10+10.0,0}2:00+10.0
+# it would work ok it they were layers, but still, better to use commands with the resulting file
+```
+
+Note how order subtly affects end results:
+```
+# after silencing channel 1 mixing is meaningless
+song#m1*0.0,2+1
+
+# allowed but useless or ignored
+song#m1u,1d,1-1,1*1.0,11d,7D
+
+# this creates a new ch1 with 50% of ch2 (actually old ch1), total 3ch
+song#m1u,1+2*0.5
+
+# so does this
+song#m3u,3+1*0.5,1-3,2-3
+
+# this may not be what you want
+# (result is a silent ch1, and ch2 with 50% of ch3)
+song#m1+2*0.5,1u
+
+# for a 2ch file 2nd command is ignored, since ch2 is removed after 1st command
+song#m1d,2+1*0.5
+```

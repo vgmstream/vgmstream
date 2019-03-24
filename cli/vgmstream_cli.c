@@ -407,10 +407,8 @@ int main(int argc, char ** argv) {
     channels = vgmstream->channels;
     input_channels = vgmstream->channels;
 
-#ifdef VGMSTREAM_MIXING
     /* enable after config but before outbuf */
     vgmstream_mixing_enable(vgmstream, SAMPLE_BUFFER_SIZE, &input_channels, &channels);
-#endif
 
     if (cfg.play_forever && (!vgmstream->loop_flag || vgmstream->loop_target > 0)) {
         fprintf(stderr,"I could play a nonlooped track forever, but it wouldn't end well.");

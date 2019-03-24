@@ -1,8 +1,6 @@
 #include "layout.h"
 #include "../vgmstream.h"
-#ifdef VGMSTREAM_MIXING
 #include "../mixing.h"
-#endif
 
 #define VGMSTREAM_MAX_SEGMENTS 255
 #define VGMSTREAM_SEGMENT_SAMPLE_BUFFER 8192
@@ -149,13 +147,9 @@ int setup_layout_segmented(segmented_layout_data* data) {
             data->segments[i]->loop_flag = 0;
         }
 
-#ifdef VGMSTREAM_MIXING
         /* different segments may have different input channels, though output should be
          * the same for all (ex. 2ch + 1ch segments, but 2ch segment is downmixed to 1ch) */
         mixing_info(data->segments[i], &segment_input_channels, &segment_output_channels);
-#else
-        segment_input_channels = segment_output_channels = data->segments[i]->channels;
-#endif
         if (max_input_channels < segment_input_channels)
             max_input_channels = segment_input_channels;
         if (max_output_channels < segment_output_channels)
@@ -164,11 +158,7 @@ int setup_layout_segmented(segmented_layout_data* data) {
         if (i > 0) {
             int prev_output_channels;
 
-#ifdef VGMSTREAM_MIXING
             mixing_info(data->segments[i-1], NULL, &prev_output_channels);
-#else
-            prev_output_channels = data->segments[i-1]->channels;
-#endif
             if (segment_output_channels != prev_output_channels)
                 goto fail;
 
@@ -184,9 +174,8 @@ int setup_layout_segmented(segmented_layout_data* data) {
 
 
         setup_vgmstream(data->segments[i]); /* final setup in case the VGMSTREAM was created manually */
-#ifdef VGMSTREAM_MIXING
+
         mixing_setup(data->segments[i], VGMSTREAM_SEGMENT_SAMPLE_BUFFER); /* init mixing */
-#endif
     }
 
     if (max_output_channels > VGMSTREAM_MAX_CHANNELS || max_input_channels > VGMSTREAM_MAX_CHANNELS)

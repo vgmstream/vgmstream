@@ -1,15 +1,12 @@
 #include "meta.h"
 #include "../coding/coding.h"
 #include "../layout/layout.h"
-#ifdef VGMSTREAM_MIXING
 #include "../mixing.h"
-#endif
 
 
 #define TXTP_LINE_MAX 1024
 #define TXTP_MIXING_MAX 128
 
-#ifdef VGMSTREAM_MIXING
 /* mixing info */
 typedef enum {
     MIX_SWAP,
@@ -55,21 +52,14 @@ typedef struct {
     uint32_t mask;
     char mode;
 } txtp_mix_data;
-#endif
 
 
 typedef struct {
     char filename[TXTP_LINE_MAX];
     int subsong;
     uint32_t channel_mask;
-#ifndef VGMSTREAM_MIXING
-    int channel_mappings_on;
-    int channel_mappings[32];
-#endif
-#ifdef VGMSTREAM_MIXING
     int mixing_count;
     txtp_mix_data mixing[TXTP_MIXING_MAX];
-#endif
 
     double config_loop_count;
     double config_fade_time;
@@ -106,9 +96,7 @@ typedef struct {
 static txtp_header* parse_txtp(STREAMFILE* streamFile);
 static void clean_txtp(txtp_header* txtp);
 static void apply_config(VGMSTREAM *vgmstream, txtp_entry *current);
-#ifdef VGMSTREAM_MIXING
 void add_mixing(txtp_entry* cfg, txtp_mix_data* mix, txtp_mix_t command);
-#endif
 
 /* TXTP - an artificial playlist-like format to play files with segments/layers/config */
 VGMSTREAM * init_vgmstream_txtp(STREAMFILE *streamFile) {
@@ -263,17 +251,6 @@ fail:
 }
 
 static void apply_config(VGMSTREAM *vgmstream, txtp_entry *current) {
-#ifndef VGMSTREAM_MIXING
-    vgmstream->channel_mask = current->channel_mask;
-
-    vgmstream->channel_mappings_on = current->channel_mappings_on;
-    if (vgmstream->channel_mappings_on) {
-        int ch;
-        for (ch = 0; ch < 32; ch++) {
-            vgmstream->channel_mappings[ch] = current->channel_mappings[ch];
-        }
-    }
-#endif
 
     vgmstream->config_loop_count = current->config_loop_count;
     vgmstream->config_fade_time = current->config_fade_time;
@@ -302,7 +279,6 @@ static void apply_config(VGMSTREAM *vgmstream, txtp_entry *current) {
         vgmstream_force_loop(vgmstream, current->loop_install, current->loop_start_sample, current->loop_end_sample);
     }
 
-#ifdef VGMSTREAM_MIXING
     /* add macro to mixing list */
     if (current->channel_mask) {
         int ch;
@@ -361,7 +337,6 @@ static void apply_config(VGMSTREAM *vgmstream, txtp_entry *current) {
             }
         }
     }
-#endif
 }
 
 /* ********************************** */
@@ -537,7 +512,6 @@ static int get_mask(const char * config, uint32_t *value) {
 }
 
 
-#ifdef VGMSTREAM_MIXING
 static int get_fade(const char * config, txtp_mix_data *mix, int *out_n) {
     int n, m, tn = 0;
     char type, separator;
@@ -634,9 +608,7 @@ static int get_fade(const char * config, txtp_mix_data *mix, int *out_n) {
 fail:
     return 0;
 }
-#endif
 
-#ifdef VGMSTREAM_MIXING
 void add_mixing(txtp_entry* cfg, txtp_mix_data* mix, txtp_mix_t command) {
     if (cfg->mixing_count + 1 > TXTP_MIXING_MAX) {
         VGM_LOG("TXTP: too many mixes\n");
@@ -652,7 +624,6 @@ void add_mixing(txtp_entry* cfg, txtp_mix_data* mix, txtp_mix_t command) {
     cfg->mixing[cfg->mixing_count] = *mix; /* memcpy'ed */
     cfg->mixing_count++;
 }
-#endif
 
 
 static void add_config(txtp_entry* current, txtp_entry* cfg, const char* filename) {
@@ -662,16 +633,6 @@ static void add_config(txtp_entry* current, txtp_entry* cfg, const char* filenam
 
     current->channel_mask = cfg->channel_mask;
 
-#ifndef VGMSTREAM_MIXING
-    if (cfg->channel_mappings_on) {
-        int ch;
-        current->channel_mappings_on = cfg->channel_mappings_on;
-        for (ch = 0; ch < 32; ch++) {
-            current->channel_mappings[ch] = cfg->channel_mappings[ch];
-        }
-    }
-#endif
-#ifdef VGMSTREAM_MIXING
     //*current = *cfg; /* don't memcopy to allow list additions */ //todo save list first then memcpy
 
     if (cfg->mixing_count > 0) {
@@ -681,7 +642,6 @@ static void add_config(txtp_entry* current, txtp_entry* cfg, const char* filenam
             current->mixing_count++;
         }
     }
-#endif
 
     current->config_loop_count = cfg->config_loop_count;
     current->config_fade_time = cfg->config_fade_time;
@@ -752,33 +712,6 @@ static int add_filename(txtp_header * txtp, char *filename, int is_default) {
                 config += get_mask(config, &cfg.channel_mask);
                 //;VGM_LOG("TXTP:   channel_mask ");{int i; for (i=0;i<16;i++)VGM_LOG("%i ",(cfg.channel_mask>>i)&1);}VGM_LOG("\n");
             }
-#ifndef VGMSTREAM_MIXING
-            else if (strcmp(command,"m") == 0) {
-                /* channel mappings: file.ext#m1-2,3-4 = swaps channels 1<>2 and 3<>4 */
-                int ch_from = 0, ch_to = 0;
-
-                cfg.channel_mappings_on = 1;
-                while (config[0] != '\0') {
-                    if (sscanf(config, " %d%n", &ch_from, &n) != 1)
-                        break;
-                    config += n;
-                    if (config[0]== ',' || config[0]== '-')
-                        config++;
-
-                    if (sscanf(config, " %d%n", &ch_to, &n) != 1)
-                        break;
-                    config += n;
-                    if (config[0]== ',' || config[0]== '-')
-                        config++;
-
-                    if (ch_from > 0 && ch_from <= 32 && ch_to > 0 && ch_to <= 32) {
-                        cfg.channel_mappings[ch_from-1] = ch_to-1;
-                    }
-                    //;VGM_LOG("TXTP:   channel_swap %i-%i\n", ch_from, ch_to);
-               }
-            }
-#endif
-#ifdef VGMSTREAM_MIXING
             else if (strcmp(command,"m") == 0) {
                 /* channel mixing: file.ext#m(sub-command),(sub-command),etc */
                 char cmd;
@@ -864,7 +797,6 @@ static int add_filename(txtp_header * txtp, char *filename, int is_default) {
                     break; /* unknown mix/new command/end */
                }
             }
-#endif
             else if (strcmp(command,"s") == 0 || (nc == 1 && config[0] >= '0' && config[0] <= '9')) {
                 /* subsongs: file.ext#s2 = play subsong 2, file.ext#2~10 = play subsong range */
                 int subsong_start = 0, subsong_end = 0;
@@ -933,7 +865,6 @@ static int add_filename(txtp_header * txtp, char *filename, int is_default) {
                 //;VGM_LOG("TXTP:   loop_install %i (max=%i): %i %i / %f %f\n", cfg.loop_install, cfg.loop_end_max,
                 //        cfg.loop_start_sample, cfg.loop_end_sample, cfg.loop_start_second, cfg.loop_end_second);
             }
-#ifdef VGMSTREAM_MIXING
             //todo cleanup
             else if (strcmp(command,"@volume") == 0) {
                 txtp_mix_data mix = {0};
@@ -992,7 +923,6 @@ static int add_filename(txtp_header * txtp, char *filename, int is_default) {
 
                 add_mixing(&cfg, &mix, type);
             }
-#endif
             else if (config[nc] == ' ') {
                 //;VGM_LOG("TXTP:   comment\n");
                 break; /* comment, ignore rest */

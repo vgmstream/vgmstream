@@ -269,13 +269,8 @@ bool input_vgmstream::decode_run(audio_chunk & p_chunk,abort_callback & p_abort)
 
         /* fade! */
         if (vgmstream->loop_flag && fade_samples > 0 && !loop_okay) {
-            int fade_channels;
+            int fade_channels = output_channels;
             int samples_into_fade = decode_pos_samples - (stream_length_samples - fade_samples);
-#ifdef VGMSTREAM_MIXING
-            fade_channels = output_channels;
-#else
-            fade_channels = vgmstream->channels;
-#endif
             if (samples_into_fade + samples_to_do > 0) {
                 int j,k;
                 for (j=0;j<samples_to_do;j++,samples_into_fade++) {
@@ -290,49 +285,11 @@ bool input_vgmstream::decode_run(audio_chunk & p_chunk,abort_callback & p_abort)
             }
         }
 
-#ifdef VGMSTREAM_MIXING
         unsigned channel_config = vgmstream->channel_layout;
         if (!channel_config)
             channel_config = audio_chunk::g_guess_channel_config(output_channels);
         bytes = (samples_to_do*output_channels * sizeof(sample_buffer[0]));
         p_chunk.set_data_fixedpoint((char*)sample_buffer, bytes, vgmstream->sample_rate, output_channels, 16, channel_config);
-#else
-        /* downmix enabled (foobar refuses to do more than 8 channels) */
-        if (downmix_channels > 0 && downmix_channels < vgmstream->channels) {
-            short temp_buffer[SAMPLE_BUFFER_SIZE * VGMSTREAM_MAX_CHANNELS];
-            int s, ch;
-
-            for (s = 0; s < samples_to_do; s++) {
-                /* copy channels up to max */
-                for (ch = 0; ch < downmix_channels; ch++) {
-                    temp_buffer[s*downmix_channels + ch] = sample_buffer[s*vgmstream->channels + ch];
-                }
-                /* then mix the rest */
-                for (ch = downmix_channels; ch < vgmstream->channels; ch++) {
-                    int downmix_ch = ch % downmix_channels;
-                    int new_sample = ((int)temp_buffer[s*downmix_channels + downmix_ch] + (int)sample_buffer[s*vgmstream->channels + ch]);
-                    new_sample = (int)(new_sample * 0.7); /* limit clipping without removing too much loudness... hopefully */
-                    if (new_sample > 32767) new_sample = 32767;
-                    else if (new_sample < -32768) new_sample = -32768;
-                    temp_buffer[s*downmix_channels + downmix_ch] = (short)new_sample;
-                }
-            }
-
-            /* copy back to global buffer... in case of multithreading stuff? */
-            memcpy(sample_buffer,temp_buffer, samples_to_do*downmix_channels*sizeof(short));
-
-            unsigned channel_config = audio_chunk::g_guess_channel_config(downmix_channels);
-            bytes = (samples_to_do*downmix_channels * sizeof(sample_buffer[0]));
-            p_chunk.set_data_fixedpoint((char*)sample_buffer, bytes, vgmstream->sample_rate, downmix_channels, 16, channel_config);
-        }
-        else {
-            unsigned channel_config = vgmstream->channel_layout;
-            if (!channel_config)
-                channel_config = audio_chunk::g_guess_channel_config(vgmstream->channels);
-            bytes = (samples_to_do*vgmstream->channels * sizeof(sample_buffer[0]));
-            p_chunk.set_data_fixedpoint((char*)sample_buffer, bytes, vgmstream->sample_rate, vgmstream->channels, 16, channel_config);
-        }
-#endif
 
         decode_pos_samples+=samples_to_do;
         decode_pos_ms=decode_pos_samples*1000LL/vgmstream->sample_rate;
@@ -471,13 +428,10 @@ void input_vgmstream::setup_vgmstream(abort_callback & p_abort) {
     set_config_defaults(&config);
     apply_config(vgmstream, &config);
 
-#ifdef VGMSTREAM_MIXING
     /* enable after all config but before outbuf (though ATM outbuf is not dynamic so no need to read input_channels) */
     vgmstream_mixing_autodownmix(vgmstream, downmix_channels);
     vgmstream_mixing_enable(vgmstream, SAMPLE_BUFFER_SIZE, NULL /*&input_channels*/, &output_channels);
-#else
-    output_channels = vgmstream->channels;
-#endif
+
     decode_pos_ms = 0;
     decode_pos_samples = 0;
     paused = 0;
@@ -503,12 +457,9 @@ void input_vgmstream::get_subsong_info(t_uint32 p_subsong, pfc::string_base & ti
         set_config_defaults(&infoconfig);
         apply_config(infostream,&infoconfig);
         is_infostream = true;
-#ifdef VGMSTREAM_MIXING
+
         vgmstream_mixing_autodownmix(infostream, downmix_channels);
         vgmstream_mixing_enable(infostream, 0, NULL /*&input_channels*/, &info_channels);
-#else
-        *channels = infostream->channels;
-#endif
     } else {
         // vgmstream ready as get_info is valid after open() with any reason
         infostream = vgmstream;

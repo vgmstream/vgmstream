@@ -4,8 +4,6 @@
 #include <math.h>
 
 
-#ifdef VGMSTREAM_MIXING
-
 /**
  * Mixing lets vgmstream modify the resulting sample buffer before final output.
  * This can be implemented in a number of ways but it's done like it is considering
@@ -978,5 +976,3 @@ void mixing_info(VGMSTREAM * vgmstream, int *out_input_channels, int *out_output
 fail:
     return;
 }
-
-#endif

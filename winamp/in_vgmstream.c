@@ -1054,15 +1054,9 @@ int winamp_Play(const in_char *fn) {
     set_config_defaults(&config);
     apply_config(vgmstream, &config);
 
-#ifdef VGMSTREAM_MIXING
     /* enable after all config but before outbuf (though ATM outbuf is not dynamic so no need to read input_channels) */
     vgmstream_mixing_autodownmix(vgmstream, settings.downmix_channels);
     vgmstream_mixing_enable(vgmstream, SAMPLE_BUFFER_SIZE, NULL /*&input_channels*/, &output_channels);
-#else
-    output_channels = vgmstream->channels;
-    if (settings.downmix_channels > 0 && settings.downmix_channels < vgmstream->channels)
-        output_channels = settings.downmix_channels;
-#endif
 
 
     /* save original name */
@@ -1200,10 +1194,9 @@ int winamp_InfoBox(const in_char *fn, HWND hwnd) {
 
         set_config_defaults(&infoconfig);
         apply_config(infostream, &infoconfig);
-#ifdef VGMSTREAM_MIXING
+
         vgmstream_mixing_autodownmix(infostream, settings.downmix_channels);
         vgmstream_mixing_enable(infostream, 0, NULL, NULL);
-#endif
 
         describe_vgmstream(infostream,description,description_size);
 
@@ -1255,10 +1248,9 @@ void winamp_GetFileInfo(const in_char *fn, in_char *title, int *length_in_ms) {
 
         set_config_defaults(&infoconfig);
         apply_config(infostream, &infoconfig);
-#ifdef VGMSTREAM_MIXING
+
         vgmstream_mixing_autodownmix(infostream, settings.downmix_channels);
-        //vgmstream_mixing_enable(infostream, SAMPLE_BUFFER_SIZE, NULL, NULL);
-#endif
+        vgmstream_mixing_enable(infostream, 0, NULL, NULL);
 
         if (title) {
             get_title(title,GETFILEINFO_TITLE_LENGTH, fn, infostream);
@@ -1352,13 +1344,8 @@ DWORD WINAPI __stdcall decode(void *arg) {
 
             /* fade near the end */
             if (vgmstream->loop_flag && fade_samples > 0 && !settings.loop_forever) {
-                int fade_channels;
+                int fade_channels = output_channels;
                 int samples_into_fade = decode_pos_samples - (stream_length_samples - fade_samples);
-#ifdef VGMSTREAM_MIXING
-                fade_channels = output_channels;
-#else
-                fade_channels = vgmstream->channels;
-#endif
                 if (samples_into_fade + samples_to_do > 0) {
                     int j, k;
                     for (j = 0; j < samples_to_do; j++, samples_into_fade++) {
@@ -1372,33 +1359,6 @@ DWORD WINAPI __stdcall decode(void *arg) {
                     }
                 }
             }
-
-#ifndef VGMSTREAM_MIXING
-            /* downmix enabled (useful when the stream's channels are too much for Winamp's output) */
-            if (settings.downmix_channels > 0 && settings.downmix_channels < vgmstream->channels) {
-                short temp_buffer[(576*2) * 2];
-                int s, ch;
-
-                for (s = 0; s < samples_to_do; s++) {
-                    /* copy channels up to max */
-                    for (ch = 0; ch < settings.downmix_channels; ch++) {
-                        temp_buffer[s*settings.downmix_channels + ch] = sample_buffer[s*vgmstream->channels + ch];
-                    }
-                    /* then mix the rest */
-                    for (ch = settings.downmix_channels; ch < vgmstream->channels; ch++) {
-                        int downmix_ch = ch % settings.downmix_channels;
-                        int new_sample = ((int)temp_buffer[s*settings.downmix_channels + downmix_ch] + (int)sample_buffer[s*vgmstream->channels + ch]);
-                        new_sample = (int)(new_sample * 0.7); /* limit clipping without removing too much loudness... hopefully */
-                        if (new_sample > 32767) new_sample = 32767;
-                        else if (new_sample < -32768) new_sample = -32768;
-                        temp_buffer[s*settings.downmix_channels + downmix_ch] = (short)new_sample;
-                    }
-                }
-
-                /* copy back to global buffer... in case of multithreading stuff? */
-                memcpy(sample_buffer,temp_buffer, samples_to_do*settings.downmix_channels*sizeof(short));
-            }
-#endif
 
             /* output samples */
             input_module.SAAddPCMData((char*)sample_buffer,output_channels,16,decode_pos_ms);

@@ -76,7 +76,6 @@ int vgmstream_tags_next_tag(VGMSTREAM_TAGS* tags, STREAMFILE* tagfile);
 void vgmstream_tags_close(VGMSTREAM_TAGS* tags);
 
 
-#ifdef VGMSTREAM_MIXING
 /* ****************************************** */
 /* MIXING: modifies vgmstream output          */
 /* ****************************************** */
@@ -92,6 +91,5 @@ void vgmstream_mixing_autodownmix(VGMSTREAM *vgmstream, int max_channels);
 
 /* sets a fadeout */
 //void vgmstream_mixing_fadeout(VGMSTREAM *vgmstream, float start_second, float duration_seconds);
-#endif
 
 #endif /* _PLUGINS_H_ */
