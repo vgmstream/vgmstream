@@ -639,12 +639,6 @@ int main(int argc, char **argv) {
 
     while ((opt = getopt(argc, argv, "-D:F:L:M:S:b:d:f:o:@:hrv")) != -1) {
         switch (opt) {
-            case 1:
-                if (play_file(optarg, &par)) {
-                    status = 1;
-                    goto done;
-                }
-                break;
             case '@':
                 if (play_playlist(optarg, &par)) {
                     status = 1;
@@ -696,6 +690,15 @@ int main(int argc, char **argv) {
                 break;
             default:
                 goto done;
+        }
+    }
+    argc -= optind;
+    argv += optind;
+
+    for (opt = 0; opt < argc; ++opt) {
+        if (play_file(argv[opt], &par)) {
+            status = 1;
+            goto done;
         }
     }
 
