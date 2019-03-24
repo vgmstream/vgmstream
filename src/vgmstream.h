@@ -931,6 +931,7 @@ typedef struct {
     int bitstream;
 
     ogg_vorbis_streamfile ov_streamfile;
+    int disable_reordering; /* Xiph reorder channels on output, except for some devs */
 } ogg_vorbis_codec_data;
 
 

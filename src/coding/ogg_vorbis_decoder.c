@@ -6,7 +6,7 @@
 #include <vorbis/vorbisfile.h>
 
 
-static void pcm_convert_float_to_16(int channels, sample_t * outbuf, int samples_to_do, float ** pcm);
+static void pcm_convert_float_to_16(int channels, sample_t * outbuf, int samples_to_do, float ** pcm, int disable_ordering);
 
 
 void decode_ogg_vorbis(ogg_vorbis_codec_data * data, sample_t * outbuf, int32_t samples_to_do, int channels) {
@@ -22,7 +22,7 @@ void decode_ogg_vorbis(ogg_vorbis_codec_data * data, sample_t * outbuf, int32_t 
                 &data->bitstream); /* bitstream*/
         if (rc <= 0) goto fail; /* rc is samples done */
 
-        pcm_convert_float_to_16(channels, outbuf, rc, pcm_channels);
+        pcm_convert_float_to_16(channels, outbuf, rc, pcm_channels, data->disable_reordering);
 
         outbuf += rc * channels;
         samples_done += rc;
@@ -69,7 +69,7 @@ static const int xiph_channel_map[8][8] = {
 };
 
 /* converts from internal Vorbis format to standard PCM and remaps (mostly from Xiph's decoder_example.c) */
-static void pcm_convert_float_to_16(int channels, sample_t * outbuf, int samples_to_do, float ** pcm) {
+static void pcm_convert_float_to_16(int channels, sample_t * outbuf, int samples_to_do, float ** pcm, int disable_ordering) {
     int ch, s, ch_map;
     sample_t *ptr;
     float *channel;
@@ -77,7 +77,9 @@ static void pcm_convert_float_to_16(int channels, sample_t * outbuf, int samples
     /* convert float PCM (multichannel float array, with pcm[0]=ch0, pcm[1]=ch1, pcm[2]=ch0, etc)
      * to 16 bit signed PCM ints (host order) and interleave + fix clipping */
     for (ch = 0; ch < channels; ch++) {
-        ch_map = (channels > 8) ? ch : xiph_channel_map[channels - 1][ch]; /* put Vorbis' ch to other outbuf's ch */
+        ch_map = disable_ordering ?
+                ch :
+                (channels > 8) ? ch : xiph_channel_map[channels - 1][ch]; /* put Vorbis' ch to other outbuf's ch */
         ptr = outbuf + ch;
         channel = pcm[ch_map];
         for (s = 0; s < samples_to_do; s++) {

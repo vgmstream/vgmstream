@@ -117,6 +117,7 @@ typedef struct {
 
     off_t stream_size;
     int total_subsongs;
+    int disable_reordering;
 
     /* decryption setup */
     void (*decryption_callback)(void *ptr, size_t size, size_t nmemb, void *datasource);

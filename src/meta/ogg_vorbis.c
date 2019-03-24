@@ -381,6 +381,7 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
             ovmi.xor_value = read_32bitBE(0x00,streamFile);
             ovmi.decryption_callback = sngw_ogg_decryption_callback;
         }
+        ovmi.disable_reordering = 1; /* must be an MT Framework thing */
         ovmi.meta_type = meta_OGG_encrypted;
     }
 
@@ -529,6 +530,9 @@ VGMSTREAM * init_vgmstream_ogg_vorbis_callbacks(STREAMFILE *streamFile, ov_callb
     /* get info from bitstream 0 */
     data->bitstream = OGG_DEFAULT_BITSTREAM;
     vi = ov_info(ovf,OGG_DEFAULT_BITSTREAM);
+
+    /* other settings */
+    data->disable_reordering = ovmi->disable_reordering;
 
     /* search for loop comments */
     {
