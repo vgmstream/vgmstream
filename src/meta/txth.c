@@ -652,14 +652,15 @@ static void set_body_chunk(txth_header * txth) {
     if (txth->chunk_number > txth->chunk_count)
         return;
 
-    temp_streamFile = setup_txth_streamfile(txth->streamBody, txth->chunk_start, txth->chunk_size, txth->chunk_count, txth->chunk_number - 1);
+    temp_streamFile = setup_txth_streamfile(txth->streamBody, txth->chunk_start, txth->chunk_size, txth->chunk_count, txth->chunk_number - 1, txth->streambody_opened);
     if (!temp_streamFile) return;
 
-    if (txth->streambody_opened) {
-        close_streamfile(txth->streamBody);
-        txth->streamBody = NULL;
-        txth->streambody_opened = 0;
-    }
+    /* closing is handled by temp_streamFile */
+    //if (txth->streambody_opened) {
+    //    close_streamfile(txth->streamBody);
+    //    txth->streamBody = NULL;
+    //    txth->streambody_opened = 0;
+    //}
 
     txth->streamBody = temp_streamFile;
     txth->streambody_opened = 1;
