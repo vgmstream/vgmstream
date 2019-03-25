@@ -44,7 +44,7 @@ def print_help(appname):
           " -d (dir): add dir in TXTP (if the file will reside in a subdir)\n"
           " -m: create mini-txtp\n"
           " -o: overwrite existing .txtp (beware when using with internal names)\n"
-          " -O: rename rather than overwritting\n"
+          " -O: rename rather than overwriting\n"
           " -in: name TXTP using the subsong's internal name if found\n"
           " -ie: remove internal name's extension\n"
           " -ii: add subsong number when using internal name\n"
