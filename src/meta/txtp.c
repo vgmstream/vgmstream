@@ -456,6 +456,7 @@ static int get_bool(const char * config, int *value) {
     int n,m;
     char temp;
 
+    n = 0; /* init as it's not matched if c isn't */
     m = sscanf(config, " %c%n", &temp, &n);
     if (m >= 1 && !(temp == '#' || temp == '\r' || temp == '\n'))
         return 0; /* ignore if anything non-space/comment matched */
