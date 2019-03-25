@@ -117,6 +117,7 @@ typedef struct {
 
     off_t stream_size;
     int total_subsongs;
+    int disable_reordering;
 
     /* decryption setup */
     void (*decryption_callback)(void *ptr, size_t size, size_t nmemb, void *datasource);
@@ -210,7 +211,9 @@ VGMSTREAM * init_vgmstream_leg(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_filp(STREAMFILE * streamFile);
 
-VGMSTREAM * init_vgmstream_ikm(STREAMFILE * streamFile);
+VGMSTREAM * init_vgmstream_ikm_ps2(STREAMFILE * streamFile);
+VGMSTREAM * init_vgmstream_ikm_pc(STREAMFILE * streamFile);
+VGMSTREAM * init_vgmstream_ikm_psp(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_sfs(STREAMFILE * streamFile);
 

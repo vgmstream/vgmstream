@@ -9,9 +9,7 @@
 #include "meta/meta.h"
 #include "layout/layout.h"
 #include "coding/coding.h"
-#ifdef VGMSTREAM_MIXING
 #include "mixing.h"
-#endif
 
 static void try_dual_file_stereo(VGMSTREAM * opened_vgmstream, STREAMFILE *streamFile, VGMSTREAM* (*init_vgmstream_function)(STREAMFILE*));
 
@@ -107,7 +105,9 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_musx_v201,
     init_vgmstream_leg,
     init_vgmstream_filp,
-    init_vgmstream_ikm,
+    init_vgmstream_ikm_ps2,
+    init_vgmstream_ikm_pc,
+    init_vgmstream_ikm_psp,
     init_vgmstream_sfs,
     init_vgmstream_bg00,
     init_vgmstream_sat_dvi,
@@ -778,20 +778,17 @@ VGMSTREAM * allocate_vgmstream(int channel_count, int loop_flag) {
     vgmstream->channels = channel_count;
     vgmstream->loop_flag = loop_flag;
 
-#ifdef VGMSTREAM_MIXING
     mixing_init(vgmstream); /* pre-init */
-#endif
+
     //vgmstream->stream_name_size = STREAM_NAME_SIZE;
     return vgmstream;
 fail:
     if (vgmstream) {
+        mixing_close(vgmstream);
         free(vgmstream->ch);
         free(vgmstream->start_ch);
         free(vgmstream->loop_ch);
         free(vgmstream->start_vgmstream);
-#ifdef VGMSTREAM_MIXING
-        mixing_close(vgmstream);
-#endif
     }
     free(vgmstream);
     return NULL;
@@ -930,9 +927,8 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
             }
         }
     }
-#ifdef VGMSTREAM_MIXING
+
     mixing_close(vgmstream);
-#endif
     free(vgmstream->ch);
     free(vgmstream->start_ch);
     free(vgmstream->loop_ch);
@@ -1082,44 +1078,7 @@ void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstre
             break;
     }
 
-#ifndef VGMSTREAM_MIXING
-    /* swap channels if set, to create custom channel mappings */
-    if (vgmstream->channel_mappings_on) {
-        int ch_from,ch_to,s;
-        sample_t temp;
-        for (s = 0; s < sample_count; s++) {
-            for (ch_from = 0; ch_from < vgmstream->channels; ch_from++) {
-                if (ch_from > 32)
-                    continue;
-
-                ch_to = vgmstream->channel_mappings[ch_from];
-                if (ch_to < 1 || ch_to > 32 || ch_to > vgmstream->channels-1 || ch_from == ch_to)
-                    continue;
-
-                temp = buffer[s*vgmstream->channels + ch_from];
-                buffer[s*vgmstream->channels + ch_from] = buffer[s*vgmstream->channels + ch_to];
-                buffer[s*vgmstream->channels + ch_to] = temp;
-            }
-        }
-    }
-
-    /* channel bitmask to silence non-set channels (up to 32)
-     * can be used for 'crossfading subsongs' or layered channels, where a set of channels make a song section */
-    if (vgmstream->channel_mask) {
-        int ch,s;
-        for (s = 0; s < sample_count; s++) {
-            for (ch = 0; ch < vgmstream->channels; ch++) {
-                if ((vgmstream->channel_mask >> ch) & 1)
-                    continue;
-                buffer[s*vgmstream->channels + ch] = 0;
-            }
-        }
-    }
-#endif
-
-#ifdef VGMSTREAM_MIXING
     mix_vgmstream(buffer, sample_count, vgmstream);
-#endif
 }
 
 /* Get the number of samples of a single frame (smallest self-contained sample group, 1/N channels) */
@@ -2315,17 +2274,17 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
     snprintf(temp,TEMPSIZE, "channels: %d\n", vgmstream->channels);
     concatn(length,desc,temp);
 
-#ifdef VGMSTREAM_MIXING
     {
         int output_channels = 0;
         mixing_info(vgmstream, NULL, &output_channels);
 
         if (output_channels != vgmstream->channels) {
+            snprintf(temp,TEMPSIZE, "input channels: %d\n", vgmstream->channels); /* repeated but mainly for plugins */
+            concatn(length,desc,temp);
             snprintf(temp,TEMPSIZE, "output channels: %d\n", output_channels);
             concatn(length,desc,temp);
         }
     }
-#endif
 
     if (vgmstream->channel_layout) {
         int cl = vgmstream->channel_layout;
@@ -2678,9 +2637,7 @@ static void try_dual_file_stereo(VGMSTREAM * opened_vgmstream, STREAMFILE *strea
         /* discard the second VGMSTREAM */
         free(new_vgmstream);
 
-#ifdef VGMSTREAM_MIXING
         mixing_update_channel(opened_vgmstream); /* notify of new channel hacked-in */
-#endif
     }
 
 fail:
@@ -2834,6 +2791,12 @@ int vgmstream_open_stream(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t s
     int is_stereo_codec = 0;
 
 
+    if (vgmstream == NULL) {
+        VGM_LOG("VGMSTREAM: buggy code (null vgmstream)\n");
+        goto fail;
+    }
+
+
     /* stream/offsets not needed, managed by layout */
     if (vgmstream->layout_type == layout_segmented ||
         vgmstream->layout_type == layout_layered)
@@ -2872,6 +2835,12 @@ int vgmstream_open_stream(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t s
             (vgmstream->coding_type == coding_XBOX_IMA || vgmstream->coding_type == coding_MTAF)) {
         is_stereo_codec = 1;
     }
+
+    if (streamFile == NULL || start_offset < 0) {
+        VGM_LOG("VGMSTREAM: buggy code (null streamfile / wrong start_offset)\n");
+        goto fail;
+    }
+
 
     get_streamfile_name(streamFile,filename,sizeof(filename));
     /* open the file for reading by each channel */

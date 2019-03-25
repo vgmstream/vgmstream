@@ -293,6 +293,10 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\meta\txth_streamfile.h"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\ubi_bao_streamfile.h"
                     >
                 </File>
@@ -306,6 +310,10 @@
                 </File>
                 <File
                     RelativePath=".\meta\xvag_streamfile.h"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\xwb_xsb.h"
                     >
                 </File>
                 <File
@@ -1087,7 +1095,7 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\ps2_ikm.c"
+					RelativePath=".\meta\ikm.c"
 					>
 				</File>
 				<File

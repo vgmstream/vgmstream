@@ -1174,9 +1174,10 @@ static size_t calculate_eaac_size(VGMSTREAM *vgmstream, STREAMFILE *streamFile, 
  *
  * We use the segmented layout, since the eaac_streamfile doesn't handle padding,
  * and the segments seem fully separate (so even skipping would probably decode wrong). */
+// todo reorganize code for more standard init
 static segmented_layout_data* build_segmented_eaaudiocore_looping(STREAMFILE *streamData, eaac_header *eaac) {
     segmented_layout_data *data = NULL;
-    STREAMFILE* temp_streamFile[2] = {0};
+    STREAMFILE* temp_streamFile = NULL;
     off_t offsets[2] = { eaac->stream_offset, eaac->loop_offset };
     off_t start_offset;
     int num_samples[2] = { eaac->loop_start, eaac->num_samples - eaac->loop_start};
@@ -1217,6 +1218,7 @@ static segmented_layout_data* build_segmented_eaaudiocore_looping(STREAMFILE *st
         case EAAC_CODEC_XAS:
         {
             start_offset = offsets[i];
+
             data->segments[i]->coding_type = coding_EA_XAS_V1;
             data->segments[i]->layout_type = layout_blocked_ea_sns;
             break;
@@ -1231,10 +1233,10 @@ static segmented_layout_data* build_segmented_eaaudiocore_looping(STREAMFILE *st
 
                 start_offset = 0x00; /* must point to the custom streamfile's beginning */
 
-                temp_streamFile[i] = setup_eaac_streamfile(streamData, eaac->version,eaac->codec,eaac->streamed,0,0, offsets[i]);
-                if (!temp_streamFile[i]) goto fail;
+                temp_streamFile = setup_eaac_streamfile(streamData, eaac->version,eaac->codec,eaac->streamed,0,0, offsets[i]);
+                if (!temp_streamFile) goto fail;
 
-                data->segments[i]->codec_data = init_mpeg_custom(temp_streamFile[i], 0x00, &data->segments[i]->coding_type, eaac->channels, type, &cfg);
+                data->segments[i]->codec_data = init_mpeg_custom(temp_streamFile, 0x00, &data->segments[i]->coding_type, eaac->channels, type, &cfg);
                 if (!data->segments[i]->codec_data) goto fail;
                 data->segments[i]->layout_type = layout_none;
                 break;
@@ -1244,11 +1246,14 @@ static segmented_layout_data* build_segmented_eaaudiocore_looping(STREAMFILE *st
                 goto fail;
         }
 
-        if (!vgmstream_open_stream(data->segments[i],temp_streamFile[i], start_offset))
+        if (!vgmstream_open_stream(data->segments[i],temp_streamFile == NULL ? streamData : temp_streamFile, start_offset))
             goto fail;
 
+        close_streamfile(temp_streamFile);
+        temp_streamFile = NULL;
+
         //todo temp_streamFile doesn't contain EAXMA's streamfile
-        data->segments[i]->stream_size = calculate_eaac_size(data->segments[i], temp_streamFile[i], eaac, start_offset);
+        data->segments[i]->stream_size = calculate_eaac_size(data->segments[i], temp_streamFile, eaac, start_offset);
     }
 
     if (!setup_layout_segmented(data))
@@ -1256,8 +1261,7 @@ static segmented_layout_data* build_segmented_eaaudiocore_looping(STREAMFILE *st
     return data;
 
 fail:
-    for (i = 0; i < segment_count; i++)
-        close_streamfile(temp_streamFile[i]);
+    close_streamfile(temp_streamFile);
     free_layout_segmented(data);
     return NULL;
 }

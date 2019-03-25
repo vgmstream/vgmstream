@@ -90,6 +90,7 @@
     <ClInclude Include="coding\vorbis_custom_data_wwise.h" />
     <ClInclude Include="coding\vorbis_custom_decoder.h" />
     <ClInclude Include="meta\xvag_streamfile.h" />
+    <ClInclude Include="meta\xwb_xsb.h" />
     <ClInclude Include="meta\xwma_konami_streamfile.h" />
     <ClInclude Include="meta\zsnd_streamfile.h" />
     <ClInclude Include="mixing.h" />
@@ -115,6 +116,7 @@
     <ClInclude Include="meta\opus_interleave_streamfile.h" />
     <ClInclude Include="meta\sfh_streamfile.h" />
     <ClInclude Include="meta\sqex_scd_streamfile.h" />
+    <ClInclude Include="meta\txth_streamfile.h" />
     <ClInclude Include="meta\ubi_bao_streamfile.h" />
     <ClInclude Include="meta\ubi_sb_streamfile.h" />
     <ClInclude Include="meta\ubi_lyn_ogg_streamfile.h" />
@@ -375,7 +377,7 @@
     <ClCompile Include="meta\ps2_gbts.c" />
     <ClCompile Include="meta\ps2_gcm.c" />
     <ClCompile Include="meta\ps2_hgc1.c" />
-    <ClCompile Include="meta\ps2_ikm.c" />
+    <ClCompile Include="meta\ikm.c" />
     <ClCompile Include="meta\ps2_ild.c" />
     <ClCompile Include="meta\ps2_int.c" />
     <ClCompile Include="meta\ps2_joe.c" />

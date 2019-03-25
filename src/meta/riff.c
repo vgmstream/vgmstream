@@ -92,6 +92,9 @@ typedef struct {
 
     int coding_type;
     int interleave;
+
+    int is_at3;
+    int is_at9;
 } riff_fmt_chunk;
 
 static int read_fmt(int big_endian, STREAMFILE * streamFile, off_t current_chunk, riff_fmt_chunk * fmt, int mwv) {
@@ -200,6 +203,7 @@ static int read_fmt(int big_endian, STREAMFILE * streamFile, off_t current_chunk
         case 0x270: /* ATRAC3 */
 #ifdef VGM_USE_FFMPEG
             fmt->coding_type = coding_FFmpeg;
+            fmt->is_at3 = 1;
             break;
 #else
             goto fail;
@@ -233,9 +237,11 @@ static int read_fmt(int big_endian, STREAMFILE * streamFile, off_t current_chunk
                 bztmp = (bztmp >> 8) | (bztmp << 8);
                 fmt->coding_type = coding_AT3plus;
                 fmt->block_size = (bztmp & 0x3FF) * 8 + 8; /* should match fmt->block_size */
+                fmt->is_at3 = 1;
                 break;
 #elif defined(VGM_USE_FFMPEG)
                 fmt->coding_type = coding_FFmpeg;
+                fmt->is_at3 = 1;
                 break;
 #else
                 goto fail;
@@ -246,6 +252,7 @@ static int read_fmt(int big_endian, STREAMFILE * streamFile, off_t current_chunk
             if (guid1 == 0x47E142D2 && guid2 == 0x36BA4D8D && guid3 == 0x88FC6165 && guid4 == 0x4F8C836C) {
 #ifdef VGM_USE_ATRAC9
                 fmt->coding_type = coding_ATRAC9;
+                fmt->is_at9 = 1;
                 break;
 #else
                 goto fail;
@@ -289,8 +296,6 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
     int mwv = 0; /* Level-5 .mwv (Dragon Quest VIII, Rogue Galaxy) */
     off_t mwv_pflt_offset = -1;
     off_t mwv_ctrl_offset = -1;
-    int at3 = 0; /* Sony ATRAC3 / ATRAC3plus */
-    int at9 = 0; /* Sony ATRAC9 */
 
 
     /* check extension */
@@ -310,21 +315,17 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
      * .wd: Genma Onimusha (Xbox) voices
      * (extensionless): Myst III (Xbox)
      * .sbv: Spongebob Squarepants - The Movie (PC)
-     * .wvx: Godzilla - Destroy All Monsters Melee (Xbox) */
-    if ( check_extensions(streamFile, "wav,lwav,xwav,da,dax,cd,med,snd,adx,adp,xss,xsew,adpcm,adw,wd,,sbv,wvx") ) {
+     * .wvx: Godzilla - Destroy All Monsters Melee (Xbox)
+     * .at3: standard ATRAC3
+     * .rws: Climax games (Silent Hill Origins PSP, Oblivion PSP) ATRAC3
+     * .aud: EA Replay ATRAC3
+     * .at9: standard ATRAC9
+     */
+    if ( check_extensions(streamFile, "wav,lwav,xwav,da,dax,cd,med,snd,adx,adp,xss,xsew,adpcm,adw,wd,,sbv,wvx,at3,rws,aud,at9") ) {
         ;
     }
     else if ( check_extensions(streamFile, "mwv") ) {
         mwv = 1;
-    }
-    /* .at3: standard
-     * .rws: Climax games (Silent Hill Origins PSP, Oblivion PSP)
-     * .aud: EA Replay */
-    else if ( check_extensions(streamFile, "at3,rws,aud") ) {
-        at3 = 1;
-    }
-    else if ( check_extensions(streamFile, "at9") ) {
-        at9 = 1;
     }
     else {
         goto fail;
@@ -438,10 +439,10 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
                         fact_sample_count = read_32bitLE(current_chunk+0x08, streamFile);
                     } else if (chunk_size == 0x10 && read_32bitBE(current_chunk+0x08+0x04, streamFile) == 0x4C794E20) { /* "LyN " */
                         goto fail; /* parsed elsewhere */
-                    } else if ((at3 || at9) && chunk_size == 0x08) {
+                    } else if ((fmt.is_at3 || fmt.is_at9) && chunk_size == 0x08) {
                         fact_sample_count = read_32bitLE(current_chunk+0x08, streamFile);
                         fact_sample_skip  = read_32bitLE(current_chunk+0x0c, streamFile);
-                    } else if ((at3 || at9) && chunk_size == 0x0c) {
+                    } else if ((fmt.is_at3 || fmt.is_at9) && chunk_size == 0x0c) {
                         fact_sample_count = read_32bitLE(current_chunk+0x08, streamFile);
                         fact_sample_skip  = read_32bitLE(current_chunk+0x10, streamFile);
                     }
@@ -509,6 +510,10 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
             read_32bitBE(start_offset+0x3c, streamFile) == 0xFFFFFFFF)
         goto fail;
 
+    /* ignore Gitaroo Man Live! (PSP) multi-RIFF (to allow chunked TXTH) */
+    if (fmt.is_at3 && get_streamfile_size(streamFile) > 0x2800 && read_32bitBE(0x2800, streamFile) == 0x52494646) { /* "RIFF" */
+        goto fail;
+    }
 
 #ifdef VGM_USE_VORBIS
     /* special case using init_vgmstream_ogg_vorbis */
@@ -596,7 +601,7 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
 
             vgmstream->num_samples = ffmpeg_data->totalSamples; /* fact_sample_count */
 
-            if (at3) {
+            if (fmt.is_at3) {
                 /* the encoder introduces some garbage (not always silent) samples to skip before the stream */
                 /* manually set skip_samples if FFmpeg didn't do it */
                 if (ffmpeg_data->skipSamples <= 0) {

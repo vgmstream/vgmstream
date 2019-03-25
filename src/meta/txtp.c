@@ -1,15 +1,12 @@
 #include "meta.h"
 #include "../coding/coding.h"
 #include "../layout/layout.h"
-#ifdef VGMSTREAM_MIXING
 #include "../mixing.h"
-#endif
 
 
 #define TXTP_LINE_MAX 1024
 #define TXTP_MIXING_MAX 128
 
-#ifdef VGMSTREAM_MIXING
 /* mixing info */
 typedef enum {
     MIX_SWAP,
@@ -53,23 +50,16 @@ typedef struct {
     /* macros */
     int max;
     uint32_t mask;
-    int overlap;
+    char mode;
 } txtp_mix_data;
-#endif
 
 
 typedef struct {
     char filename[TXTP_LINE_MAX];
     int subsong;
     uint32_t channel_mask;
-#ifndef VGMSTREAM_MIXING
-    int channel_mappings_on;
-    int channel_mappings[32];
-#endif
-#ifdef VGMSTREAM_MIXING
     int mixing_count;
     txtp_mix_data mixing[TXTP_MIXING_MAX];
-#endif
 
     double config_loop_count;
     double config_fade_time;
@@ -106,9 +96,7 @@ typedef struct {
 static txtp_header* parse_txtp(STREAMFILE* streamFile);
 static void clean_txtp(txtp_header* txtp);
 static void apply_config(VGMSTREAM *vgmstream, txtp_entry *current);
-#ifdef VGMSTREAM_MIXING
 void add_mixing(txtp_entry* cfg, txtp_mix_data* mix, txtp_mix_t command);
-#endif
 
 /* TXTP - an artificial playlist-like format to play files with segments/layers/config */
 VGMSTREAM * init_vgmstream_txtp(STREAMFILE *streamFile) {
@@ -263,17 +251,6 @@ fail:
 }
 
 static void apply_config(VGMSTREAM *vgmstream, txtp_entry *current) {
-#ifndef VGMSTREAM_MIXING
-    vgmstream->channel_mask = current->channel_mask;
-
-    vgmstream->channel_mappings_on = current->channel_mappings_on;
-    if (vgmstream->channel_mappings_on) {
-        int ch;
-        for (ch = 0; ch < 32; ch++) {
-            vgmstream->channel_mappings[ch] = current->channel_mappings[ch];
-        }
-    }
-#endif
 
     vgmstream->config_loop_count = current->config_loop_count;
     vgmstream->config_fade_time = current->config_fade_time;
@@ -302,7 +279,6 @@ static void apply_config(VGMSTREAM *vgmstream, txtp_entry *current) {
         vgmstream_force_loop(vgmstream, current->loop_install, current->loop_start_sample, current->loop_end_sample);
     }
 
-#ifdef VGMSTREAM_MIXING
     /* add macro to mixing list */
     if (current->channel_mask) {
         int ch;
@@ -352,16 +328,15 @@ static void apply_config(VGMSTREAM *vgmstream, txtp_entry *current) {
                 /* macro mixes */
                 case MACRO_VOLUME:      mixing_macro_volume(vgmstream, mix.vol, mix.mask); break;
                 case MACRO_TRACK:       mixing_macro_track(vgmstream, mix.mask); break;
-                case MACRO_LAYER:       mixing_macro_layer(vgmstream, mix.max, mix.mask, mix.overlap); break;
+                case MACRO_LAYER:       mixing_macro_layer(vgmstream, mix.max, mix.mask, mix.mode); break;
                 case MACRO_CROSSTRACK:  mixing_macro_crosstrack(vgmstream, mix.max); break;
-                case MACRO_CROSSLAYER:  mixing_macro_crosslayer(vgmstream, mix.max); break;
+                case MACRO_CROSSLAYER:  mixing_macro_crosslayer(vgmstream, mix.max, mix.mode); break;
 
                 default:
                     break;
             }
         }
     }
-#endif
 }
 
 /* ********************************** */
@@ -386,18 +361,20 @@ static void clean_filename(char * filename) {
 
 }
 
-/* sscanf 101:
- * - reads linearly and matches "%" commands to input parameters
- * - returns number of matched % parameters until stop
- * - reads until string end or not being able to match
- * - %n: number of chars consumed until that point (can appear and set multiple times)
- * - %d/f: reads number until end or *non-number* (so "%d" reads "5t" as "5")
- * - %[^(chars)] reads string with chars not in the list
- * - %*(command) is read but skipped (match not set to parameter)
- * - " ": ignores all spaces until next non-space
- * - other chars in string must exist: ("%dt t%dt" reads "5t  t5t" as "5" and "5", while "t5t 5t" matches only first "5")
- */
 
+/* sscanf 101: "matches = sscanf(string-from, string-commands, parameters...)"
+ * - reads linearly and matches "%" commands to input parameters as found
+ * - reads until string end (NULL) or not being able to match current parameter
+ * - returns number of matched % parameters until stop, or -1 if no matches and reached string end
+ * - must supply pointer param for every "%" in the string
+ * - %d/f: match number until end or *non-number* (so "%d" reads "5t" as "5")
+ * - %s: reads string (dangerous due to overflows and surprising as %s%d can't match numbers since string eats all chars)
+ * - %[^(chars)] match string with chars not in the list (stop reading at those chars)
+ * - %*(command) read but don't match (no need to supply parameterr)
+ * - " ": ignore all spaces until next non-space
+ * - other chars in string must exist: ("%dt t%dt" reads "5t  t5t" as "5" and "5", while "t5t 5t" matches only first "5")
+ * - %n: special match (not counted in return value), chars consumed until that point (can appear and be set multiple times)
+ */
 
 static int get_double(const char * config, double *value) {
     int n, m;
@@ -483,7 +460,8 @@ static int get_bool(const char * config, int *value) {
     if (m >= 1 && !(temp == '#' || temp == '\r' || temp == '\n'))
         return 0; /* ignore if anything non-space/comment matched */
 
-    if (temp == '#') n--; /* don't consume separator */
+    if (m >= 1 && temp == '#')
+        n--; /* don't consume separator when returning totals */
     *value = 1;
     return n;
 }
@@ -534,7 +512,6 @@ static int get_mask(const char * config, uint32_t *value) {
 }
 
 
-#ifdef VGMSTREAM_MIXING
 static int get_fade(const char * config, txtp_mix_data *mix, int *out_n) {
     int n, m, tn = 0;
     char type, separator;
@@ -631,9 +608,7 @@ static int get_fade(const char * config, txtp_mix_data *mix, int *out_n) {
 fail:
     return 0;
 }
-#endif
 
-#ifdef VGMSTREAM_MIXING
 void add_mixing(txtp_entry* cfg, txtp_mix_data* mix, txtp_mix_t command) {
     if (cfg->mixing_count + 1 > TXTP_MIXING_MAX) {
         VGM_LOG("TXTP: too many mixes\n");
@@ -649,7 +624,6 @@ void add_mixing(txtp_entry* cfg, txtp_mix_data* mix, txtp_mix_t command) {
     cfg->mixing[cfg->mixing_count] = *mix; /* memcpy'ed */
     cfg->mixing_count++;
 }
-#endif
 
 
 static void add_config(txtp_entry* current, txtp_entry* cfg, const char* filename) {
@@ -659,16 +633,6 @@ static void add_config(txtp_entry* current, txtp_entry* cfg, const char* filenam
 
     current->channel_mask = cfg->channel_mask;
 
-#ifndef VGMSTREAM_MIXING
-    if (cfg->channel_mappings_on) {
-        int ch;
-        current->channel_mappings_on = cfg->channel_mappings_on;
-        for (ch = 0; ch < 32; ch++) {
-            current->channel_mappings[ch] = cfg->channel_mappings[ch];
-        }
-    }
-#endif
-#ifdef VGMSTREAM_MIXING
     //*current = *cfg; /* don't memcopy to allow list additions */ //todo save list first then memcpy
 
     if (cfg->mixing_count > 0) {
@@ -678,7 +642,6 @@ static void add_config(txtp_entry* current, txtp_entry* cfg, const char* filenam
             current->mixing_count++;
         }
     }
-#endif
 
     current->config_loop_count = cfg->config_loop_count;
     current->config_fade_time = cfg->config_fade_time;
@@ -709,15 +672,19 @@ static int add_filename(txtp_header * txtp, char *filename, int is_default) {
     {
         char *config;
 
-        /* find config start (filenames and config can contain multiple dots and #,
-         * so this may be fooled by certain patterns of . and #) */
-        config = strchr(filename, '.'); /* first dot (may be a false positive) */
-        if (!config) /* extensionless */
-            config = filename;
-        config = strchr(config, '#'); /* next should be config */
-        if (!config) /* no config */
-            config = filename; //todo if no config just exit?
-
+        if (is_default) {
+            config = filename; /* multiple commands without filename */
+        }
+        else {
+            /* find config start (filenames and config can contain multiple dots and #,
+             * so this may be fooled by certain patterns of . and #) */
+            config = strchr(filename, '.'); /* first dot (may be a false positive) */
+            if (!config) /* extensionless */
+                config = filename;
+            config = strchr(config, '#'); /* next should be config */
+            if (!config) /* no config */
+                config = filename; //todo if no config just exit?
+        }
 
         range_start = 0;
         range_end = 1;
@@ -732,7 +699,7 @@ static int add_filename(txtp_header * txtp, char *filename, int is_default) {
             command[0] = '\0';
             mc = sscanf(config, "#%n%[^ #0-9\r\n]%n", &nc, command, &nc);
             //;VGM_LOG("TXTP:  command='%s', nc=%i, mc=%i\n", command, nc, mc);
-            if (mc == 0 && nc == 0) break;
+            if (mc <= 0 && nc == 0) break;
 
             config[0] = '\0'; //todo don't modify input string and properly calculate filename end
 
@@ -745,33 +712,6 @@ static int add_filename(txtp_header * txtp, char *filename, int is_default) {
                 config += get_mask(config, &cfg.channel_mask);
                 //;VGM_LOG("TXTP:   channel_mask ");{int i; for (i=0;i<16;i++)VGM_LOG("%i ",(cfg.channel_mask>>i)&1);}VGM_LOG("\n");
             }
-#ifndef VGMSTREAM_MIXING
-            else if (strcmp(command,"m") == 0) {
-                /* channel mappings: file.ext#m1-2,3-4 = swaps channels 1<>2 and 3<>4 */
-                int ch_from = 0, ch_to = 0;
-
-                cfg.channel_mappings_on = 1;
-                while (config[0] != '\0') {
-                    if (sscanf(config, " %d%n", &ch_from, &n) != 1)
-                        break;
-                    config += n;
-                    if (config[0]== ',' || config[0]== '-')
-                        config++;
-
-                    if (sscanf(config, " %d%n", &ch_to, &n) != 1)
-                        break;
-                    config += n;
-                    if (config[0]== ',' || config[0]== '-')
-                        config++;
-
-                    if (ch_from > 0 && ch_from <= 32 && ch_to > 0 && ch_to <= 32) {
-                        cfg.channel_mappings[ch_from-1] = ch_to-1;
-                    }
-                    //;VGM_LOG("TXTP:   channel_swap %i-%i\n", ch_from, ch_to);
-               }
-            }
-#endif
-#ifdef VGMSTREAM_MIXING
             else if (strcmp(command,"m") == 0) {
                 /* channel mixing: file.ext#m(sub-command),(sub-command),etc */
                 char cmd;
@@ -857,7 +797,6 @@ static int add_filename(txtp_header * txtp, char *filename, int is_default) {
                     break; /* unknown mix/new command/end */
                }
             }
-#endif
             else if (strcmp(command,"s") == 0 || (nc == 1 && config[0] >= '0' && config[0] <= '9')) {
                 /* subsongs: file.ext#s2 = play subsong 2, file.ext#2~10 = play subsong range */
                 int subsong_start = 0, subsong_end = 0;
@@ -926,13 +865,13 @@ static int add_filename(txtp_header * txtp, char *filename, int is_default) {
                 //;VGM_LOG("TXTP:   loop_install %i (max=%i): %i %i / %f %f\n", cfg.loop_install, cfg.loop_end_max,
                 //        cfg.loop_start_sample, cfg.loop_end_sample, cfg.loop_start_second, cfg.loop_end_second);
             }
-#ifdef VGMSTREAM_MIXING
             //todo cleanup
             else if (strcmp(command,"@volume") == 0) {
                 txtp_mix_data mix = {0};
 
                 nm = get_double(config, &mix.vol);
                 config += nm;
+
                 if (nm == 0) continue;
 
                 nm = get_mask(config, &mix.mask);
@@ -949,7 +888,9 @@ static int add_filename(txtp_header * txtp, char *filename, int is_default) {
 
                 add_mixing(&cfg, &mix, MACRO_TRACK);
             }
-            else if (strcmp(command,"@layer") == 0 || strcmp(command,"@overlap") == 0) {
+            else if (strcmp(command,"@layer-v") == 0 ||
+                     strcmp(command,"@layer-b") == 0 ||
+                     strcmp(command,"@layer-e") == 0) {
                 txtp_mix_data mix = {0};
 
                 nm = get_int(config, &mix.max);
@@ -959,17 +900,22 @@ static int add_filename(txtp_header * txtp, char *filename, int is_default) {
                 nm = get_mask(config, &mix.mask);
                 config += nm;
 
-                mix.overlap = (strcmp(command,"@overlap") == 0);
-
+                mix.mode = command[7]; /* pass letter */
                 add_mixing(&cfg, &mix, MACRO_LAYER);
             }
-            else if (strcmp(command,"@crosslayer") == 0 || strcmp(command,"@crosstrack") == 0) {
+            else if (strcmp(command,"@crosslayer-v") == 0 ||
+                     strcmp(command,"@crosslayer-b") == 0 ||
+                     strcmp(command,"@crosslayer-e") == 0 ||
+                     strcmp(command,"@crosstrack") == 0) {
                 txtp_mix_data mix = {0};
                 txtp_mix_t type;
-                if (strcmp(command,"@crosstrack") == 0)
+                if (strcmp(command,"@crosstrack") == 0) {
                     type = MACRO_CROSSTRACK;
-                else
+                }
+                else {
                     type = MACRO_CROSSLAYER;
+                    mix.mode = command[12]; /* pass letter */
+                }
 
                 nm = get_int(config, &mix.max);
                 config += nm;
@@ -977,7 +923,6 @@ static int add_filename(txtp_header * txtp, char *filename, int is_default) {
 
                 add_mixing(&cfg, &mix, type);
             }
-#endif
             else if (config[nc] == ' ') {
                 //;VGM_LOG("TXTP:   comment\n");
                 break; /* comment, ignore rest */
@@ -1031,7 +976,7 @@ fail:
 
 static int parse_num(const char * val, uint32_t * out_value) {
     int hex = (val[0]=='0' && val[1]=='x');
-    if (sscanf(val, hex ? "%x" : "%u", out_value)!=1)
+    if (sscanf(val, hex ? "%x" : "%u", out_value) != 1)
         goto fail;
 
     return 1;

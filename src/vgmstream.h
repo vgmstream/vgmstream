@@ -378,7 +378,7 @@ typedef enum {
     meta_MUSX_V201,         /* Sphinx and the cursed Mummy */
     meta_LEG,               /* Legaia 2 [no header_id] */
     meta_FILP,              /* Resident Evil - Dead Aim */
-    meta_IKM,               /* Zwei! */
+    meta_IKM,
     meta_SFS,               /* Baroque */
     meta_BG00,              /* Ibara, Mushihimesama */
     meta_PS2_RSTM,          /* Midnight Club 3 */
@@ -854,11 +854,6 @@ typedef struct {
 
     /* other config */
     int allow_dual_stereo;          /* search for dual stereo (file_L.ext + file_R.ext = single stereo file) */
-#ifndef VGMSTREAM_MIXING
-    uint32_t channel_mask;          /* to silence crossfading subsongs/layers */
-    int channel_mappings_on;        /* channel mappings are active */
-    int channel_mappings[32];       /* swap channel "i" with "[i]" */
-#endif
 
     /* config requests, players must read and honor these values */
     /* (ideally internally would work as a player, but for now player must do it manually) */
@@ -903,9 +898,7 @@ typedef struct {
     VGMSTREAMCHANNEL * loop_ch;     /* shallow copy of channels as they were at the loop point (for loops) */
     void* start_vgmstream;          /* shallow copy of the VGMSTREAM as it was at the beginning of the stream (for resets) */
 
-#ifdef VGMSTREAM_MIXING
     void * mixing_data;             /* state for mixing effects */
-#endif
 
     /* Optional data the codec needs for the whole stream. This is for codecs too
      * different from vgmstream's structure to be reasonably shoehorned.
@@ -938,6 +931,7 @@ typedef struct {
     int bitstream;
 
     ogg_vorbis_streamfile ov_streamfile;
+    int disable_reordering; /* Xiph reorder channels on output, except for some devs */
 } ogg_vorbis_codec_data;
 
 

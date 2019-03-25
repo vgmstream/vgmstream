@@ -38,6 +38,7 @@ typedef struct {
     int audio_group_and;
     int audio_has_internal_names;
     size_t audio_interleave;
+    int audio_fix_psx_samples;
 
     off_t sequence_extra_offset;
     off_t sequence_sequence_loop;
@@ -518,6 +519,15 @@ static VGMSTREAM * init_vgmstream_ubi_sb_base(ubi_sb_header *sb, STREAMFILE *str
                 vgmstream->num_samples = ps_bytes_to_samples(sb->stream_size, sb->channels);
                 vgmstream->loop_end_sample = vgmstream->num_samples;
             }
+
+            /* late PS3 SBs have double sample count here for who knows why
+             * (loops or not, PS-ADPCM only, possibly only when using codec 0x02 for RAW_PSX) */
+            if (sb->cfg.audio_fix_psx_samples) {
+                vgmstream->num_samples /= sb->channels;
+                vgmstream->loop_start_sample /= sb->channels;
+                vgmstream->loop_end_sample /= sb->channels;
+            }
+
             break;
 
         case RAW_XBOX:
@@ -1030,7 +1040,6 @@ static VGMSTREAM * init_vgmstream_ubi_sb_header(ubi_sb_header *sb, STREAMFILE* s
 
     //;VGM_LOG("UBI SB: target at %x + %x, extra=%x, name=%s, g=%i, t=%i\n",
     //    (uint32_t)sb->header_offset, sb->cfg.section2_entry_size, (uint32_t)sb->extra_offset, sb->resource_name, sb->group_id, sb->stream_type);
-
     //;VGM_LOG("UBI SB: stream offset=%x, size=%x, name=%s\n", (uint32_t)sb->stream_offset, sb->stream_size, sb->is_external ? sb->resource_name : "internal" );
 
     switch(sb->type) {
@@ -1314,14 +1323,11 @@ static int parse_type_layer(ubi_sb_header * sb, off_t offset, STREAMFILE* stream
         int sample_rate = read_32bit(table_offset + sb->cfg.layer_sample_rate, streamFile);
         int stream_type = read_32bit(table_offset + sb->cfg.layer_stream_type, streamFile);
         int num_samples = read_32bit(table_offset + sb->cfg.layer_num_samples, streamFile);
+
         if (sb->sample_rate != sample_rate || sb->stream_type != stream_type) {
             VGM_LOG("Ubi SB: %i layer headers don't match at %x\n", sb->layer_count, (uint32_t)table_offset);
-
-            if (sb->cfg.ignore_layer_error) {
-                continue;
-            }
-
-            goto fail;
+            if (!sb->cfg.ignore_layer_error) /* layers of different rates happens sometimes */
+                goto fail;
         }
 
         /* uncommonly channels may vary per layer [Brothers in Arms 2 (PS2) ex. MP_B01_NL.SB1] */
@@ -2676,7 +2682,7 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
 
         config_sb_sequence(sb, 0x2c, 0x14);
 
-        config_sb_layer_he(sb, 0x20, 0x38, 0x3c, 0x48);
+        config_sb_layer_he(sb, 0x20, 0x38, 0x40, 0x48);
         config_sb_layer_sh(sb, 0x30, 0x00, 0x08, 0x0c, 0x14);
         sb->cfg.layer_hijack = 1; /* WTF!!! layer format different from other layers using same id!!! */
         return 1;
@@ -2850,6 +2856,7 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         (sb->version == 0x00190005 && sb->platform == UBI_PS3) ||
         (sb->version == 0x00190005 && sb->platform == UBI_X360)) {
         config_sb_entry(sb, 0x68, 0x70);
+        sb->cfg.audio_fix_psx_samples = 1; /* ex. RSV PS3: 3n#10, SC DA PS3 */
 
         config_sb_audio_fs(sb, 0x28, 0x2c, 0x30);
         config_sb_audio_he(sb, 0x3c, 0x40, 0x48, 0x50, 0x58, 0x5c);
@@ -2861,8 +2868,6 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         config_sb_layer_he(sb, 0x20, 0x34, 0x38, 0x40);
         config_sb_layer_sh(sb, 0x30, 0x00, 0x04, 0x08, 0x10);
 
-        //todo Splinter Cell: Double Agent (PS3) #13214 (PS-ADPCM + looping) has double num_samples, may need a flag
-        //AC1 PS3 also does it for PS-ADPCM + looping only (not AT3 or non-looping) */
         return 1;
     }
 
@@ -2894,6 +2899,7 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         config_sb_audio_he(sb, 0x44, 0x48, 0x50, 0x58, 0x60, 0x64);
         sb->cfg.audio_xma_offset = 0x78;
         sb->cfg.audio_interleave = 0x10;
+        sb->cfg.audio_fix_psx_samples = 1;
 
         config_sb_sequence(sb, 0x2c, 0x14);
 
@@ -2915,6 +2921,7 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
     if (sb->version == 0x001D0000 && sb->platform == UBI_PS3) {
         config_sb_entry(sb, 0x5c, 0x80);
         sb->cfg.audio_interleave = 0x10;
+        sb->cfg.audio_fix_psx_samples = 1;
 
         config_sb_audio_fs(sb, 0x28, 0x30, 0x34);
         config_sb_audio_he(sb, 0x44, 0x4c, 0x54, 0x5c, 0x64, 0x68);

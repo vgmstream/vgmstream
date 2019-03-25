@@ -32,7 +32,7 @@ typedef struct {
     off_t audio_stream_type;
     off_t audio_prefetch_size;
     size_t audio_interleave;
-    int audio_channel_samples;
+    int audio_fix_psx_samples;
     int audio_external_and;
     int audio_loop_and;
 
@@ -1078,7 +1078,7 @@ static int parse_values(ubi_bao_header * bao, STREAMFILE *streamFile) {
         goto fail;
     }
 
-    if (bao->type == UBI_AUDIO && bao->codec == RAW_PSX && bao->loop_flag && bao->cfg.audio_channel_samples) {
+    if (bao->type == UBI_AUDIO && bao->codec == RAW_PSX && bao->cfg.audio_fix_psx_samples && bao->loop_flag) { //todo: loop flag only?
         bao->num_samples = bao->num_samples / bao->channels;
     }
 
@@ -1710,7 +1710,7 @@ static int config_bao_version(ubi_bao_header * bao, STREAMFILE *streamFile) {
             config_bao_audio_b(bao, 0x08, 0x1c, 0x28, 0x34, 1, 1); /* 0x2c: prefetch flag? */
             config_bao_audio_m(bao, 0x44, 0x48, 0x50, 0x58, 0x64, 0x74);
             bao->cfg.audio_interleave = 0x10;
-            bao->cfg.audio_channel_samples = 1; //todo check all looping ps-adpcm
+            bao->cfg.audio_fix_psx_samples = 1;
 
             config_bao_sequence(bao, 0x2c, 0x20, 0x1c, 0x14);
 

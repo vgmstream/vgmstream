@@ -282,7 +282,12 @@ size_t ps_find_padding(STREAMFILE *streamFile, off_t start_offset, size_t data_s
         return 0;
 
     offset = start_offset + data_size;
-    min_offset = 0; //offset - interleave; /* some files have padding spanning multiple interleave blocks */
+
+    /* in rare cases (ex. Gitaroo Man) channels have inconsistent empty padding, use first as guide */
+    offset = offset - interleave * (channels - 1);
+
+    /* some files have padding spanning multiple interleave blocks */
+    min_offset = start_offset; //offset - interleave;
 
     while (offset > min_offset) {
         uint32_t f1,f2,f3,f4;

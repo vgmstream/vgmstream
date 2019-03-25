@@ -1,8 +1,6 @@
 #include "layout.h"
 #include "../vgmstream.h"
-#ifdef VGMSTREAM_MIXING
 #include "../mixing.h"
-#endif
 
 
 /* NOTE: if loop settings change the layered vgmstreams must be notified (preferably using vgmstream_force_loop) */
@@ -31,12 +29,9 @@ void render_vgmstream_layered(sample_t * outbuf, int32_t sample_count, VGMSTREAM
 
             /* each layer will handle its own looping/mixing internally */
 
-#ifdef VGMSTREAM_MIXING
             /* layers may have its own number of channels */
             mixing_info(data->layers[layer], NULL, &layer_channels);
-#else
-            layer_channels = data->layers[layer]->channels;
-#endif
+
             render_vgmstream(
                     data->buffer,
                     samples_to_do,
@@ -96,12 +91,9 @@ int setup_layout_layered(layered_layout_data* data) {
         if (data->layers[i]->num_samples <= 0)
             goto fail;
 
-#ifdef VGMSTREAM_MIXING
         /* different layers may have different input/output channels */
         mixing_info(data->layers[i], &layer_input_channels, &layer_output_channels);
-#else
-        layer_input_channels = layer_output_channels = data->layers[i]->channels;
-#endif
+
         max_output_channels += layer_output_channels;
         if (max_input_channels < layer_input_channels)
             max_input_channels = layer_input_channels;
@@ -122,9 +114,8 @@ int setup_layout_layered(layered_layout_data* data) {
 
 
         setup_vgmstream(data->layers[i]); /* final setup in case the VGMSTREAM was created manually */
-#ifdef VGMSTREAM_MIXING
+
         mixing_setup(data->layers[i], VGMSTREAM_LAYER_SAMPLE_BUFFER); /* init mixing */
-#endif
     }
 
     if (max_output_channels > VGMSTREAM_MAX_CHANNELS || max_input_channels > VGMSTREAM_MAX_CHANNELS)

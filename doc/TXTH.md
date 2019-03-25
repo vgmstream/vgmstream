@@ -316,13 +316,30 @@ name_size = (number)|(offset)|(field)
 subfile_offset = (number)|(offset)|(field)
 subfile_size = (number)|(offset)|(field)
 subfile_extension = (string)
+
+# CHUNK DEINTERLEAVING [OPTIONAL]
+# Some files interleave raw data chunks, for example 3 stereo songs pasted together,
+# alternating 0x10000 bytes of data each. These settings allow vgmstream to play
+# one of the chunks while ignoring the rest (read 0x10000 data, skip 0x10000*2).
+# File is first "dechunked" then played with using other settings (start_offset
+# would points within the internal "dechunked" file).
+#
+# You need to set:
+# - start: where all chunk data start (normally 0x00)
+# - size: amount of data in a single chunk (ex. 0x10000).
+# - count: total number of interleaved chunks (ex. 3=3 interleaved songs)
+# - number: first chunk to start (ex. 1=0x00000, 2=0x10000, 3=0x20000...)
+# If you set subsong_count first chunk_number will be a set per subsong.
+chunk_start = (number)|(offset)|(field)
+chunk_size = (number)|(offset)|(field)
+chunk_count = (number)|(offset)|(field)
+chunk_number = (number)|(offset)|(field)
 ```
 
 ## Usages
 
 ### Temporary values
-Most commands are evaluated and calculated immediatedly, every time they are found. 
-This is by design, as it can be used to adjust and trick for certain calculations.
+Most commands are evaluated and calculated immediatedly, every time they are found. This is by design, as it can be used to adjust and trick for certain calculations.
 
 It makes TXTHs a bit harder to follow, as they are order dependant, but otherwise it's hard to accomplish some things or others become ambiguous.
 
@@ -482,4 +499,52 @@ num_samples = @0x10
 loop_start_sample = @0x14
 loop_end_sample = @0x18
 ```
-Most fields can't be changed after parsing since doesn't make much sense technically, as the parsed subfile should supply them.
+Most fields can't be changed after parsing since doesn't make much sense technically, as the parsed subfile should supply them. You can supply them when using bytes-to-samples conversions, though.
+```
+# parses subfile at start
+subfile_offset = 0x20
+# force recalculation of num_samples
+codec = PSX
+start_offset = 0x40
+num_samples = data_size
+```
+
+### Chunks
+Chunks affect some values (padding size, data size, etc) and are a bit sensitive to order at the moment, due to technical complexities:
+```
+# Street Fighter EX3 (PS2)
+
+# base config is defined normally
+codec       = PSX
+sample_rate = 44100
+channels    = 2
+interleave  = 0x8000
+
+# set subsong number instead of chunk_number for subsongs
+subsong_count = 26
+#chunk_number = 1
+chunk_start = 0
+chunk_size = 0x10000
+chunk_count = 26
+
+# after setting chunks (sizes vary when 'dechunking')
+start_offset = 0x00
+padding_size = auto-empty   
+num_samples = data_size
+```
+
+Subfiles and chunks can coexist:
+```
+# Gitaroo Man (PSP)
+
+# 3 interleaved RIFF files
+subsong_count = 3
+chunk_start   = 0
+chunk_size    = 0x2800
+chunk_count   = 3
+
+# the 3 de-interleaved chunks are treated and parsed as a subsong
+subfile_offset = 0
+subfile_size = @0x04 + 0x08  #RIFF size
+subfile_extension = at3
+```

@@ -53,7 +53,8 @@ static void usage(const char * name) {
             "    -g: decode and print oggenc command line to encode as OGG\n"
             "    -b: decode and print batch variable commands\n"
             "    -r: output a second file after resetting (for testing)\n"
-            "    -t file: print if tags are found in file\n"
+            "    -k N: seeks to N samples before decoding (for testing)\n"
+            "    -t file: print if tags are found in file (for testing)\n"
             , name);
 }
 
@@ -80,6 +81,7 @@ typedef struct {
     double fade_time;
     double fade_delay;
     int ignore_fade;
+    int seek_samples;
 
     /* not quite config but eh */
     int lwav_loop_start;
@@ -99,7 +101,7 @@ static int parse_config(cli_config *cfg, int argc, char ** argv) {
     opterr = 0;
 
     /* read config */
-    while ((opt = getopt(argc, argv, "o:l:f:d:ipPcmxeLEFrgb2:s:t:")) != -1) {
+    while ((opt = getopt(argc, argv, "o:l:f:d:ipPcmxeLEFrgb2:s:t:k:")) != -1) {
         switch (opt) {
             case 'o':
                 cfg->outfilename = optarg;
@@ -161,6 +163,9 @@ static int parse_config(cli_config *cfg, int argc, char ** argv) {
                 break;
             case 't':
                 cfg->tag_filename= optarg;
+                break;
+            case 'k':
+                cfg->seek_samples = atoi(optarg);
                 break;
             case '?':
                 fprintf(stderr, "Unknown option -%c found\n", optopt);
@@ -332,6 +337,18 @@ void apply_fade(sample_t * buf, VGMSTREAM * vgmstream, int to_get, int i, int le
     }
 }
 
+void apply_seek(sample_t * buf, VGMSTREAM * vgmstream, int len_samples) {
+    int i;
+
+    for (i = 0; i < len_samples; i += SAMPLE_BUFFER_SIZE) {
+        int to_get = SAMPLE_BUFFER_SIZE;
+        if (i + SAMPLE_BUFFER_SIZE > len_samples)
+            to_get = len_samples - i;
+
+        render_vgmstream(buf, to_get, vgmstream);
+    }
+}
+
 /* ************************************************************ */
 
 int main(int argc, char ** argv) {
@@ -390,10 +407,8 @@ int main(int argc, char ** argv) {
     channels = vgmstream->channels;
     input_channels = vgmstream->channels;
 
-#ifdef VGMSTREAM_MIXING
     /* enable after config but before outbuf */
     vgmstream_mixing_enable(vgmstream, SAMPLE_BUFFER_SIZE, &input_channels, &channels);
-#endif
 
     if (cfg.play_forever && (!vgmstream->loop_flag || vgmstream->loop_target > 0)) {
         fprintf(stderr,"I could play a nonlooped track forever, but it wouldn't end well.");
@@ -464,9 +479,19 @@ int main(int argc, char ** argv) {
     len_samples = get_vgmstream_play_samples(cfg.loop_count,cfg.fade_time,cfg.fade_delay,vgmstream);
     fade_samples = (int32_t)(cfg.fade_time < 0 ? 0 : cfg.fade_time * vgmstream->sample_rate);
 
+    if (cfg.seek_samples >= len_samples)
+        cfg.seek_samples = 0;
+    len_samples -= cfg.seek_samples;
+
     if (!cfg.play_sdtout && !cfg.print_adxencd && !cfg.print_oggenc && !cfg.print_batchvar) {
-        printf("samples to play: %d (%.4lf seconds)\n", len_samples, (double)len_samples / vgmstream->sample_rate);
+        double time_mm, time_ss, seconds;
+
+        seconds = (double)len_samples / vgmstream->sample_rate;
+        time_mm = (int)(seconds / 60.0);
+        time_ss = seconds - time_mm * 60.0f;
+        printf("samples to play: %d (%1.0f:%06.3f seconds)\n", len_samples, time_mm, time_ss);
     }
+
 
 
     /* last init */
@@ -506,6 +531,8 @@ int main(int argc, char ** argv) {
         }
     }
 
+
+    apply_seek(buf, vgmstream, cfg.seek_samples);
 
     /* decode */
     for (i = 0; i < len_samples; i += SAMPLE_BUFFER_SIZE) {
@@ -548,6 +575,7 @@ int main(int argc, char ** argv) {
         /* vgmstream manipulations are undone by reset */
         apply_config(vgmstream, &cfg);
 
+        apply_seek(buf, vgmstream, cfg.seek_samples);
 
         /* slap on a .wav header */
         {
