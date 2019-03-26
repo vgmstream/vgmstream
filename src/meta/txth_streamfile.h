@@ -95,7 +95,7 @@ static size_t txth_io_size(STREAMFILE *streamfile, txth_io_data* data) {
 }
 
 /* Handles deinterleaving of generic chunked streams */
-static STREAMFILE* setup_txth_streamfile(STREAMFILE *streamFile, off_t chunk_start, size_t chunk_size, int chunk_count, int chunk_number) {
+static STREAMFILE* setup_txth_streamfile(STREAMFILE *streamFile, off_t chunk_start, size_t chunk_size, int chunk_count, int chunk_number, int is_opened_streamfile) {
     STREAMFILE *temp_streamFile = NULL, *new_streamFile = NULL;
     txth_io_data io_data = {0};
     size_t io_data_size = sizeof(txth_io_data);
@@ -109,10 +109,16 @@ static STREAMFILE* setup_txth_streamfile(STREAMFILE *streamFile, off_t chunk_sta
     io_data.logical_offset = -1; /* force phys offset reset */
 
 
+    new_streamFile = streamFile;
+
     /* setup subfile */
-    new_streamFile = open_wrap_streamfile(streamFile);
-    if (!new_streamFile) goto fail;
-    temp_streamFile = new_streamFile;
+    if (!is_opened_streamfile) {
+        /* if streamFile was opened by txth code we MUST close it once done (as it's now "fused"),,
+         * otherwise it was external to txth and must be wrapped to avoid closing it */
+        new_streamFile = open_wrap_streamfile(new_streamFile);
+        if (!new_streamFile) goto fail;
+        temp_streamFile = new_streamFile;
+    }
 
     new_streamFile = open_io_streamfile(new_streamFile, &io_data,io_data_size, txth_io_read,txth_io_size);
     if (!new_streamFile) goto fail;
