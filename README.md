@@ -294,7 +294,9 @@ in foobar's preferences):
   
 If your player isn't picking tags make sure vgmstream is detecting the song
 (as other plugins can steal its extensions, see above), .m3u is properly
-named and that filenames inside match the song filename.
+named and that filenames inside match the song filename. For Winamp you need
+to make sure options > titles > advanced title formatting checkbox is set and
+the format defined.
 
 
 ## Supported codec types

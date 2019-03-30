@@ -285,7 +285,7 @@ static void apply_config(VGMSTREAM *vgmstream, txtp_entry *current) {
         for (ch = 0; ch < vgmstream->channels; ch++) {
             if (!((current->channel_mask >> ch) & 1)) {
                 txtp_mix_data mix = {0};
-                mix.ch_dst = ch;
+                mix.ch_dst = ch + 1;
                 mix.vol = 0.0f;
                 add_mixing(current, &mix, MIX_VOLUME);
             }
@@ -880,7 +880,8 @@ static int add_filename(txtp_header * txtp, char *filename, int is_default) {
 
                 add_mixing(&cfg, &mix, MACRO_VOLUME);
             }
-            else if (strcmp(command,"@track") == 0) {
+            else if (strcmp(command,"@track") == 0 ||
+                     strcmp(command,"C") == 0 ) {
                 txtp_mix_data mix = {0};
 
                 nm = get_mask(config, &mix.mask);
@@ -930,7 +931,9 @@ static int add_filename(txtp_header * txtp, char *filename, int is_default) {
             }
             else {
                 //;VGM_LOG("TXTP:   unknown command\n");
-                break; /* end, incorrect command, or possibly a comment or double ## comment too */
+                /* end, incorrect command, or possibly a comment or double ## comment too
+                 * (shouldn't fail for forward compatibility) */
+                break;
             }
         }
     }

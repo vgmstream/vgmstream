@@ -50,7 +50,9 @@ void render_vgmstream_layered(sample_t * outbuf, int32_t sample_count, VGMSTREAM
         }
 
         samples_written += samples_to_do;
-        vgmstream->current_sample = data->layers[0]->current_sample; /* just in case it's used for info */
+        /* needed for info (ex. for mixing) */
+        vgmstream->current_sample = data->layers[0]->current_sample;
+        vgmstream->loop_count = data->layers[0]->loop_count;
         //vgmstream->samples_into_block = 0; /* handled in each layer */
     }
 }

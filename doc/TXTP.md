@@ -134,6 +134,12 @@ music_Home.ps3.scd#c1~3
 ```
 Doesn't change the final number of channels though, just mutes non-selected channels.
 
+If you use **`C(number)`** it will remove non-selected channels (not done directly for backwards compatibility). This just a shortcut for macro `#@track` (described later):
+```
+#plays channels 3 and 4 = 2nd subsong and removes other channels
+music_Home.ps3.scd#C3 4
+```
+
 
 ### Custom play settings
 **`#l(loops)`**, **`#f(fade)`**, **`#d(fade-delay)`**, **`#i(ignore loop)`**, **`#F(ignore fade)`**, **`#E(end-to-end loop)`**

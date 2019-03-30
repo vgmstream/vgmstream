@@ -38,8 +38,9 @@ def print_help(appname):
     print("Options:\n"
           " -r: find recursive (writes files to current dir, with dir in TXTP)\n"
           " -c (name): set path to CLI (default: test.exe)\n"
-          " -n (name): use (name)_(subsong).txtp format\n"
-          "   You can put '{filename}' somewhere to get it substituted by the base name\n"
+          " -n (name): use (name).txtp, that can be formatted using:\n"
+          "   {filename}, {subsong}, {internal-name}\n"
+          "   ex. -n BGM_{subsong}, -n {subsong}__{internal-name} "
           " -z N: zero-fill subsong number (default: auto fill up to total subsongs)\n"
           " -d (dir): add dir in TXTP (if the file will reside in a subdir)\n"
           " -m: create mini-txtp\n"
@@ -436,18 +437,25 @@ class TxtpMaker(object):
                     pos = fname_base.rfind(".") #remove ext
                     if (pos != -1 and pos > 1):
                         fname_base = fname_base[:pos]
+                        
+                    internal_name = self.stream_name
                 
                     txt = cfg.base_name
                     txt = txt.replace("{filename}",fname_base)
-                    
+                    txt = txt.replace("{subsong}",index)
+                    txt = txt.replace("{internal-name}",internal_name)
+
+                    outname = "{}".format(txt)
+
                 else:
                     txt = fname_path
                     pos = txt.rfind(".") #remove ext
                     if (pos != -1 and pos > 1):
                         txt = txt[:pos]
-                outname = "{}".format(txt)
-                if index != "":
-                    outname += "_" + index
+
+                    outname = "{}".format(txt)
+                    if index != "":
+                        outname += "_" + index
 
             line = ''
             if cfg.subdir != '':

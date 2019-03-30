@@ -291,6 +291,7 @@ void free_ffmpeg(ffmpeg_codec_data *data);
 
 void ffmpeg_set_skip_samples(ffmpeg_codec_data * data, int skip_samples);
 uint32_t ffmpeg_get_channel_layout(ffmpeg_codec_data * data);
+void ffmpeg_set_channel_remapping(ffmpeg_codec_data * data, int *channels_remap);
 
 /* ffmpeg_decoder_custom_opus.c (helper-things) */
 ffmpeg_codec_data * init_ffmpeg_switch_opus(STREAMFILE *streamFile, off_t start_offset, size_t data_size, int channels, int skip, int sample_rate);
