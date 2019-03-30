@@ -203,6 +203,15 @@ VGMSTREAM * init_vgmstream_vag(STREAMFILE *streamFile) {
                 channel_size = channel_size / channel_count;
                 /* mono files also have channel/volume, but start at 0x30 and are probably named .vag */
             }
+            else if (read_32bitBE(0x30,streamFile) == 0x53544552   /* "STER" */
+                  && read_32bitBE(0x34,streamFile) == 0x454F5641   /* "EOVA" */
+                  && read_32bitBE(0x38,streamFile) == 0x47324B00){ /* "G2K " */
+                /* The Simpsons Skateboarding (PS2) */
+                start_offset = 0x800;
+                channel_count = 2;
+                interleave = 0x800;
+                loop_flag = 0;
+            }
             else {
                 /* standard PS1/PS2/PS3 .vag [Ecco the Dolphin (PS2), Legasista (PS3)] */
                 start_offset = 0x30;
