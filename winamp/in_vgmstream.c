@@ -51,6 +51,13 @@ DWORD WINAPI __stdcall decode(void *arg);
 /* fixed list to simplify but could also malloc/free on init/close */
 char working_extension_list[EXTENSION_LIST_SIZE] = {0};
 
+typedef enum
+{
+    REPLAYGAIN_NONE,
+    REPLAYGAIN_ALBUM,
+    REPLAYGAIN_TRACK
+} ReplayGainType;
+
 /* defaults */
 typedef struct {
     double fade_seconds;
@@ -62,6 +69,8 @@ typedef struct {
     int disable_subsongs;
     int downmix_channels;
     int tagfile_disable;
+    ReplayGainType gain_type;
+    ReplayGainType clip_type;
 } winamp_settings;
 
 /* current song settings */
@@ -95,6 +104,8 @@ int decode_pos_samples = 0;
 int stream_length_samples = 0;
 int fade_samples = 0;
 int output_channels = 0;
+
+double volume = 1.0;
 
 const char* tagfile_name = "!tags.m3u";
 
@@ -368,6 +379,8 @@ static void cfg_char_to_wchar(TCHAR *wdst, size_t wdstsize, const char *src) {
 #define DEFAULT_DISABLE_SUBSONGS  0
 #define DEFAULT_DOWNMIX_CHANNELS  0
 #define DEFAULT_TAGFILE_DISABLE  0
+#define DEFAULT_GAIN_TYPE 1
+#define DEFAULT_CLIP_TYPE 2
 
 #define INI_ENTRY_FADE_SECONDS  TEXT("fade_seconds")
 #define INI_ENTRY_FADE_DELAY_SECONDS  TEXT("fade_delay")
@@ -378,6 +391,8 @@ static void cfg_char_to_wchar(TCHAR *wdst, size_t wdstsize, const char *src) {
 #define INI_ENTRY_DISABLE_SUBSONGS  TEXT("disable_subsongs")
 #define INI_ENTRY_DOWNMIX_CHANNELS  TEXT("downmix_channels")
 #define INI_ENTRY_TAGFILE_DISABLE  TEXT("tagfile_disable")
+#define INI_ENTRY_GAIN_TYPE  TEXT("gain_type")
+#define INI_ENTRY_CLIP_TYPE  TEXT("clip_type")
 
 TCHAR *priority_strings[] = {
         TEXT("Idle"),
@@ -396,6 +411,11 @@ int priority_values[] = {
         THREAD_PRIORITY_ABOVE_NORMAL,
         THREAD_PRIORITY_HIGHEST,
         THREAD_PRIORITY_TIME_CRITICAL
+};
+TCHAR *replaygain_strings[] = {
+        TEXT("None"),
+        TEXT("Album"),
+        TEXT("Peak")
 };
 
 // todo finish UNICODE (requires IPC_GETINIDIRECTORYW from later SDKs to read the ini path properly)
@@ -492,6 +512,9 @@ static void load_config() {
     }
 
     settings.tagfile_disable = GetPrivateProfileInt(CONFIG_APP_NAME,INI_ENTRY_TAGFILE_DISABLE,DEFAULT_TAGFILE_DISABLE,iniFile);
+
+    settings.gain_type = GetPrivateProfileInt(CONFIG_APP_NAME, INI_ENTRY_GAIN_TYPE, DEFAULT_GAIN_TYPE, iniFile);
+    settings.clip_type = GetPrivateProfileInt(CONFIG_APP_NAME, INI_ENTRY_CLIP_TYPE, DEFAULT_CLIP_TYPE, iniFile);
 }
 
 /* config dialog handler */
@@ -500,7 +523,10 @@ INT_PTR CALLBACK configDlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
     TCHAR iniFile[PATH_LIMIT];
     static int mypri;
     HANDLE hSlider;
+    HANDLE hReplayGain;
+    HANDLE hClipProtect;
     size_t buf_size = 256;
+    int i;
 
     switch (uMsg) {
         case WM_CLOSE: /* hide dialog */
@@ -519,6 +545,15 @@ INT_PTR CALLBACK configDlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
                     (LPARAM) settings.thread_priority+1);
             mypri = settings.thread_priority;
             SetDlgItemText(hDlg,IDC_THREAD_PRIORITY_TEXT,priority_strings[settings.thread_priority]);
+
+            hReplayGain = GetDlgItem(hDlg, IDC_REPLAYGAIN);
+            hClipProtect = GetDlgItem(hDlg, IDC_CLIPPROTECT);
+            for (i = 0; i < 3; i++) {
+                SendMessage(hReplayGain, CB_ADDSTRING, 0, (LPARAM)replaygain_strings[i]);
+                SendMessage(hClipProtect, CB_ADDSTRING, 0, (LPARAM)replaygain_strings[i]);
+            }
+            SendMessage(hReplayGain, CB_SETCURSEL, settings.gain_type, 0);
+            SendMessage(hClipProtect, CB_SETCURSEL, settings.clip_type, 0);
 
             cfg_sprintf(buf, TEXT("%.2lf"),settings.fade_seconds);
             SetDlgItemText(hDlg,IDC_FADE_SECONDS,buf);
@@ -639,6 +674,16 @@ INT_PTR CALLBACK configDlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
                         settings.tagfile_disable = (IsDlgButtonChecked(hDlg,IDC_TAGFILE_DISABLE) == BST_CHECKED);
                         cfg_sprintf(buf, TEXT("%d"),settings.tagfile_disable);
                         WritePrivateProfileString(CONFIG_APP_NAME,INI_ENTRY_TAGFILE_DISABLE,buf,iniFile);
+
+                        hReplayGain = GetDlgItem(hDlg, IDC_REPLAYGAIN);
+                        settings.gain_type = SendMessage(hReplayGain, CB_GETCURSEL, 0, 0);
+                        cfg_sprintf(buf, TEXT("%d"), settings.gain_type);
+                        WritePrivateProfileString(CONFIG_APP_NAME, INI_ENTRY_GAIN_TYPE, buf, iniFile);
+
+                        hClipProtect = GetDlgItem(hDlg, IDC_CLIPPROTECT);
+                        settings.clip_type = SendMessage(hClipProtect, CB_GETCURSEL, 0, 0);
+                        cfg_sprintf(buf, TEXT("%d"), settings.clip_type);
+                        WritePrivateProfileString(CONFIG_APP_NAME, INI_ENTRY_CLIP_TYPE, buf, iniFile);
                     }
 
                     EndDialog(hDlg,TRUE);
@@ -658,6 +703,11 @@ INT_PTR CALLBACK configDlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
                             (LPARAM) DEFAULT_THREAD_PRIORITY+1);
                     mypri = DEFAULT_THREAD_PRIORITY;
                     SetDlgItemText(hDlg,IDC_THREAD_PRIORITY_TEXT,priority_strings[mypri]);
+
+                    hReplayGain = GetDlgItem(hDlg, IDC_REPLAYGAIN);
+                    SendMessage(hReplayGain, CB_SETCURSEL, DEFAULT_GAIN_TYPE, 0);
+                    hClipProtect = GetDlgItem(hDlg, IDC_CLIPPROTECT);
+                    SendMessage(hClipProtect, CB_SETCURSEL, DEFAULT_CLIP_TYPE, 0);
 
                     SetDlgItemText(hDlg,IDC_FADE_SECONDS,DEFAULT_FADE_SECONDS);
                     SetDlgItemText(hDlg,IDC_FADE_DELAY_SECONDS,DEFAULT_FADE_DELAY_SECONDS);
@@ -947,6 +997,36 @@ static void apply_config(VGMSTREAM * vgmstream, winamp_song_config *current) {
     }
 }
 
+static int winampGetExtendedFileInfo_common(in_char* filename, char *metadata, char* ret, int retlen);
+
+static double getAlbumGainVolume(const in_char *fn)
+{
+    char replaygain_gain[64], replaygain_peak[64];
+    double gain = 0.0;
+    int had_replaygain = 0;
+    if (settings.gain_type != REPLAYGAIN_NONE) {
+        if (settings.gain_type == REPLAYGAIN_ALBUM && winampGetExtendedFileInfo_common((in_char *)fn, "replaygain_album_gain", replaygain_gain, sizeof(replaygain_gain))) {
+            gain = atof(replaygain_gain);
+            had_replaygain = 1;
+        }
+        if (!had_replaygain && winampGetExtendedFileInfo_common((in_char *)fn, "replaygain_track_gain", replaygain_gain, sizeof(replaygain_gain))) {
+            gain = atof(replaygain_gain);
+            had_replaygain = 1;
+        }
+        if (had_replaygain) {
+            double vol = pow(10.0, gain / 20.0), peak = 1.0;
+            if (settings.clip_type == REPLAYGAIN_ALBUM && winampGetExtendedFileInfo_common((in_char *)fn, "replaygain_album_peak", replaygain_peak, sizeof(replaygain_peak))) {
+                peak = atof(replaygain_peak);
+            }
+            else if (settings.clip_type != REPLAYGAIN_NONE && winampGetExtendedFileInfo_common((in_char *)fn, "replaygain_track_peak", replaygain_peak, sizeof(replaygain_peak))) {
+                peak = atof(replaygain_peak);
+            }
+            return peak != 1.0 ? min(vol, 1.0 / peak) : vol;
+        }
+    }
+    return 1.0;
+}
+
 
 /* ***************************************** */
 /* IN_VGMSTREAM                              */
@@ -1085,6 +1165,7 @@ int winamp_Play(const in_char *fn) {
     paused = 0;
     stream_length_samples = get_vgmstream_play_samples(config.song_loop_count,config.song_fade_time,config.song_fade_delay,vgmstream);
     fade_samples = (int)(config.song_fade_time * vgmstream->sample_rate);
+    volume = getAlbumGainVolume(fn);
 
     /* start */
     decode_thread_handle = CreateThread(
@@ -1166,8 +1247,9 @@ void winamp_SetPan(int pan) {
 
 /* display info box (ALT+3) */
 int winamp_InfoBox(const in_char *fn, HWND hwnd) {
-    char description[1024] = {0};
+    char description[1024] = {0}, tmp[1024] = {0};
     size_t description_size = 1024;
+    double tmpVolume = 1.0;
 
     concatn(description_size,description,PLUGIN_DESCRIPTION "\n\n");
 
@@ -1202,12 +1284,16 @@ int winamp_InfoBox(const in_char *fn, HWND hwnd) {
 
         close_vgmstream(infostream);
         infostream = NULL;
+        tmpVolume = getAlbumGainVolume(fn);
     }
 
 
     {
         TCHAR buf[1024] = {0};
         size_t buf_size = 1024;
+
+        snprintf(tmp, sizeof(tmp), "\nvolume: %.6f", tmpVolume);
+        concatn(description_size, description, tmp);
 
         cfg_char_to_wchar(buf, buf_size, description);
         MessageBox(hwnd,buf,TEXT("Stream info"),MB_OK);
@@ -1342,6 +1428,17 @@ DWORD WINAPI __stdcall decode(void *arg) {
         else if (input_module.outMod->CanWrite() >= output_bytes) { /* decode */
             render_vgmstream(sample_buffer,samples_to_do,vgmstream);
 
+           /* apply ReplayGain, if needed */
+            if (volume != 1.0) {
+                int j, k;
+                for (j = 0; j < samples_to_do; j++) {
+                    for (k = 0; k < vgmstream->channels; k++) {
+                        sample_buffer[j*vgmstream->channels + k] =
+                            (short)(sample_buffer[j*vgmstream->channels + k] * volume);
+                    }
+                }
+            }
+
             /* fade near the end */
             if (vgmstream->loop_flag && fade_samples > 0 && !settings.loop_forever) {
                 int fade_channels = output_channels;
@@ -1398,7 +1495,7 @@ In_Module input_module = {
     0,  /* hDllInstance (filled in by Winamp) */
     working_extension_list,
     1, /* is_seekable flag  */
-    1, /* UsesOutputPlug flag */
+    9, /* UsesOutputPlug flag */
     winamp_Config,
     winamp_About,
     winamp_Init,
@@ -1575,7 +1672,7 @@ static int winampGetExtendedFileInfo_common(in_char* filename, char *metadata, c
     return 1;
 
 fail:
-    return 0;
+    return strcasecmp(metadata, "replaygain_track_gain") == 0 ? 1 : 0;
 }
 
 
@@ -1620,6 +1717,187 @@ __declspec (dllexport) int winampGetExtendedFileInfoW(wchar_t *filename, char *m
  * if returning 1, remember to implement winampGetExtendedFileInfo("formatinformation")! */
 __declspec(dllexport) int winampUseUnifiedFileInfoDlg(const wchar_t * fn) {
 	return 0;
+}
+
+winamp_song_config ext_config;
+
+short ext_sample_buffer[SAMPLE_BUFFER_SIZE*2 * VGMSTREAM_MAX_CHANNELS]; //todo maybe should be dynamic
+
+int ext_seek_needed_samples = -1;
+int ext_decode_pos_samples = 0;
+int ext_stream_length_samples = -1;
+int ext_fade_samples = 0;
+int ext_output_channels = 0;
+
+static void *winampGetExtendedRead_open_common(in_char *fn, int *size, int *bps, int *nch, int *srate)
+{
+    in_char filename[PATH_LIMIT];
+    int stream_index = 0;
+
+    /* check for info encoded in the filename */
+    parse_fn_string(fn, NULL, filename, PATH_LIMIT);
+    parse_fn_int(fn, wa_L("$s"), &stream_index);
+
+    /* open the stream */
+    VGMSTREAM *ext_vgmstream = init_vgmstream_winamp(filename, stream_index);
+    if (!ext_vgmstream) {
+        return NULL;
+    }
+
+    /* config */
+    set_config_defaults(&ext_config);
+    apply_config(ext_vgmstream, &ext_config);
+
+    /* enable after all config but before outbuf (though ATM outbuf is not dynamic so no need to read input_channels) */
+    vgmstream_mixing_autodownmix(ext_vgmstream, settings.downmix_channels);
+    vgmstream_mixing_enable(ext_vgmstream, SAMPLE_BUFFER_SIZE, NULL /*&input_channels*/, &ext_output_channels);
+
+    /* reset internals */
+    ext_seek_needed_samples = -1;
+    ext_decode_pos_samples = 0;
+    ext_stream_length_samples = get_vgmstream_play_samples(ext_config.song_loop_count, ext_config.song_fade_time, ext_config.song_fade_delay, ext_vgmstream);
+    ext_fade_samples = (int)(ext_config.song_fade_time * ext_vgmstream->sample_rate);
+
+    if (size) {
+        *size = ext_stream_length_samples * ext_output_channels * 2;
+    }
+    if (bps) {
+        *bps = 16;
+    }
+    if (nch) {
+        *nch = ext_output_channels;
+    }
+    if (srate) {
+        *srate = ext_vgmstream->sample_rate;
+    }
+    return ext_vgmstream;
+}
+
+__declspec(dllexport) void *winampGetExtendedRead_open(const char *fn, int *size, int *bps, int *nch, int *srate)
+{
+    in_char filename_wchar[PATH_LIMIT];
+
+    wa_char_to_ichar(filename_wchar, PATH_LIMIT, fn);
+
+    return winampGetExtendedRead_open_common(filename_wchar, size, bps, nch, srate);
+}
+
+__declspec(dllexport) void *winampGetExtendedRead_openW(const wchar_t *fn, int *size, int *bps, int *nch, int *srate)
+{
+    in_char filename_ichar[PATH_LIMIT];
+
+    wa_wchar_to_ichar(filename_ichar, PATH_LIMIT, fn);
+
+    return winampGetExtendedRead_open_common(filename_ichar, size, bps, nch, srate);
+}
+
+__declspec(dllexport) size_t winampGetExtendedRead_getData(void *handle, char *dest, size_t len, int *killswitch)
+{
+    const int max_buffer_samples = SAMPLE_BUFFER_SIZE;
+    const int max_samples = ext_stream_length_samples;
+    unsigned copied = 0;
+    int done = 0;
+
+    VGMSTREAM *ext_vgmstream = handle;
+    if (!ext_vgmstream) {
+        return 0;
+    }
+
+    while (copied + max_buffer_samples * ext_vgmstream->channels * 2 < len && !done) {
+        int samples_to_do;
+        if (ext_decode_pos_samples + max_buffer_samples > ext_stream_length_samples
+                && (!settings.loop_forever || !ext_vgmstream->loop_flag))
+            samples_to_do = ext_stream_length_samples - ext_decode_pos_samples;
+        else
+            samples_to_do = max_buffer_samples;
+
+        /* seek setup (max samples to skip if still seeking, mark done) */
+        if (ext_seek_needed_samples != -1) {
+            /* reset if we need to seek backwards */
+            if (ext_seek_needed_samples < ext_decode_pos_samples) {
+                reset_vgmstream(ext_vgmstream);
+                apply_config(ext_vgmstream, &ext_config); /* config is undone by reset */
+
+                ext_decode_pos_samples = 0;
+            }
+
+            /* adjust seeking past file, can happen using the right (->) key
+             * (should be done here and not in SetOutputTime due to threads/race conditions) */
+            if (ext_seek_needed_samples > max_samples && !settings.loop_forever) {
+                ext_seek_needed_samples = max_samples;
+            }
+
+            /* adjust max samples to seek */
+            if (ext_decode_pos_samples < ext_seek_needed_samples) {
+                samples_to_do = ext_seek_needed_samples - ext_decode_pos_samples;
+                if (samples_to_do > max_buffer_samples)
+                    samples_to_do = max_buffer_samples;
+            }
+            else {
+                ext_seek_needed_samples = -1;
+            }
+        }
+
+        if (!samples_to_do) { /* track finished */
+            break;
+        }
+        else if (ext_seek_needed_samples != -1) { /* seek */
+            render_vgmstream(ext_sample_buffer, samples_to_do, ext_vgmstream);
+
+            /* discard decoded samples and keep seeking */
+            ext_decode_pos_samples += samples_to_do;
+        }
+        else { /* decode */
+            render_vgmstream(ext_sample_buffer, samples_to_do, ext_vgmstream);
+
+            /* fade near the end */
+            if (ext_vgmstream->loop_flag && ext_fade_samples > 0 && !settings.loop_forever) {
+                int fade_channels = ext_output_channels;
+                int samples_into_fade = ext_decode_pos_samples - (ext_stream_length_samples - ext_fade_samples);
+                if (samples_into_fade + ext_decode_pos_samples > 0) {
+                    int j, k;
+                    for (j = 0; j < samples_to_do; j++, samples_into_fade++) {
+                        if (samples_into_fade > 0) {
+                            const double fadedness = (double)(ext_fade_samples-samples_into_fade)/ext_fade_samples;
+                            for (k = 0; k < fade_channels; k++) {
+                                ext_sample_buffer[j*fade_channels+k] =
+                                    (short)(ext_sample_buffer[j*fade_channels+k]*fadedness);
+                            }
+                        }
+                    }
+                }
+            }
+
+            /* output samples */
+            memcpy(&dest[copied], ext_sample_buffer, samples_to_do * ext_output_channels * 2);
+            copied += samples_to_do * ext_output_channels * 2;
+
+            ext_decode_pos_samples += samples_to_do;
+        }
+
+        if (killswitch && *killswitch) {
+            break;
+        }
+    }
+    return copied;
+}
+
+__declspec(dllexport) int winampGetExtendedRead_setTime(void *handle, int time_in_ms)
+{
+    VGMSTREAM *ext_vgmstream = handle;
+    if (ext_vgmstream) {
+        ext_seek_needed_samples = (long long)time_in_ms * ext_vgmstream->sample_rate / 1000LL;
+        return 1;
+    }
+    return 0;
+}
+
+__declspec(dllexport) void winampGetExtendedRead_close(void *handle)
+{
+    VGMSTREAM *ext_vgmstream = handle;
+    if (ext_vgmstream) {
+        close_vgmstream(ext_vgmstream);
+    }
 }
 
 __declspec(dllexport) int winampUninstallPlugin(HINSTANCE hDllInst, HWND hwndDlg, int param) {
