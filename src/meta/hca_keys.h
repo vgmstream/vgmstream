@@ -272,6 +272,9 @@ static const hcakey_info hcakey_list[] = {
 
         /* Kotodaman (Android) */
         {19850716},                 // 00000000012EE5DC
+		
+		/* Puchiguru Love Live! (Android) */
+		(355541041372),				// 00000052C7E5C0DC
 
 };
 
