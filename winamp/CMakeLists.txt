@@ -47,7 +47,7 @@ elseif(MINGW)
 endif()
 
 # Install the DLLs
-install_dlls(${XMPLAY_INSTALL_PREFIX})
+install_dlls(${WINAMP_INSTALL_PREFIX})
 
 # Install the plugin
 install(TARGETS in_vgmstream
