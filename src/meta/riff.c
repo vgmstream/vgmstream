@@ -608,6 +608,21 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
                     ffmpeg_set_skip_samples(ffmpeg_data, fact_sample_skip);
                 }
 
+                /* LFE channel should be reordered on decode, but FFmpeg doesn't do it automatically:
+                 * - 6ch: FL FR FC BL BR LFE > FL FR FC LFE BL BR
+                 * - 8ch: FL FR FC BL BR SL SR LFE > FL FR FC LFE BL BR SL SR
+                 * (ATRAC3Plus only, 5/7ch can't be encoded) */
+                if (ffmpeg_data->channels == 6) {
+                    /* LFE BR BL > LFE BL BR > same */
+                    int channel_remap[] = { 0, 1, 2, 5, 5, 5, };
+                    ffmpeg_set_channel_remapping(ffmpeg_data, channel_remap);
+                }
+                else if (ffmpeg_data->channels == 8) {
+                    /* LFE BR SL SR BL > LFE BL SL SR BR > LFE BL BR SR SL > LFE BL BR SL SR > same */
+                    int channel_remap[] = { 0, 1, 2, 7, 7, 7, 7, 7};
+                    ffmpeg_set_channel_remapping(ffmpeg_data, channel_remap);
+                }
+
                 /* RIFF loop/sample values are absolute (with skip samples), adjust */
                 if (loop_flag) {
                     loop_start_smpl -= (int32_t)ffmpeg_data->skipSamples;

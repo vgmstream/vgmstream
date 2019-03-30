@@ -28,6 +28,25 @@ static void g_init_ffmpeg() {
     }
 }
 
+static void remap_audio(sample_t *outbuf, int sample_count, int channels, int channel_mappings[]) {
+    int ch_from,ch_to,s;
+    sample_t temp;
+    for (s = 0; s < sample_count; s++) {
+        for (ch_from = 0; ch_from < channels; ch_from++) {
+            if (ch_from > 32)
+                continue;
+
+            ch_to = channel_mappings[ch_from];
+            if (ch_to < 1 || ch_to > 32 || ch_to > channels-1 || ch_from == ch_to)
+                continue;
+
+            temp = outbuf[s*channels + ch_from];
+            outbuf[s*channels + ch_from] = outbuf[s*channels + ch_to];
+            outbuf[s*channels + ch_to] = temp;
+        }
+    }
+}
+
 /* converts codec's samples (can be in any format, ex. Ogg's float32) to PCM16 */
 static void convert_audio_pcm16(sample_t *outbuf, const uint8_t *inbuf, int fullSampleCount, int bitsPerSample, int floatingPoint) {
     int s;
@@ -656,6 +675,8 @@ end:
     /* convert native sample format into PCM16 outbuf */
     samplesReadNow = bytesRead / (bytesPerSample * channels);
     convert_audio_pcm16(outbuf, data->sampleBuffer, samplesReadNow * channels, data->bitsPerSample, data->floatingPoint);
+    if (data->channel_remap_set)
+        remap_audio(outbuf, samplesReadNow, data->channels, data->channel_remap);
 
     /* clean buffer when requested more samples than possible */
     if (endOfAudio && samplesReadNow < samples_to_do) {
@@ -812,6 +833,21 @@ void ffmpeg_set_skip_samples(ffmpeg_codec_data * data, int skip_samples) {
 uint32_t ffmpeg_get_channel_layout(ffmpeg_codec_data * data) {
     if (!data || !data->codecCtx) return 0;
     return (uint32_t)data->codecCtx->channel_layout; /* uint64 but there ain't so many speaker mappings */
+}
+
+/* yet another hack to fix codecs that encode channels in different order and reorder on decoder
+ * but FFmpeg doesn't do it automatically
+ * (maybe should be done via mixing, but could clash with other stuff?) */
+void ffmpeg_set_channel_remapping(ffmpeg_codec_data * data, int *channel_remap) {
+    int i;
+
+    if (data->channels > 32)
+        return;
+
+    for (i = 0; i < data->channels; i++) {
+        data->channel_remap[i] = channel_remap[i];
+    }
+    data->channel_remap_set = 1;
 }
 
 #endif
