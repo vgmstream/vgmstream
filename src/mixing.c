@@ -468,6 +468,7 @@ void mixing_push_add(VGMSTREAM* vgmstream, int ch_dst, int ch_src, double volume
     mix.ch_src = ch_src;
     mix.vol = volume;
 
+    //;VGM_LOG("MIX: add %i+%i*%f\n", ch_dst,ch_src,volume);
     add_mixing(vgmstream, &mix);
 }
 
@@ -484,6 +485,7 @@ void mixing_push_volume(VGMSTREAM* vgmstream, int ch_dst, double volume) {
     mix.ch_dst = ch_dst;
     mix.vol = volume;
 
+    //;VGM_LOG("MIX: volume %i*%f\n", ch_dst,volume);
     add_mixing(vgmstream, &mix);
 }
 
@@ -648,7 +650,7 @@ void mixing_push_fade(VGMSTREAM* vgmstream, int ch_dst, double vol_start, double
         /* should only modify prev if add_mixing but meh */
     }
 
-    //;VGM_LOG("MIX: fade: %i^%f~%f=%c@%i~%i~%i~%i\n", ch_dst, vol_start, vol_end, shape, time_pre, time_start, time_end, time_post);
+    //;VGM_LOG("MIX: fade %i^%f~%f=%c@%i~%i~%i~%i\n", ch_dst, vol_start, vol_end, shape, time_pre, time_start, time_end, time_post);
     add_mixing(vgmstream, &mix);
 }
 
