@@ -192,7 +192,7 @@ VGMSTREAM * init_vgmstream_akb2(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     off_t start_offset, material_offset, extradata_offset;
     size_t material_size, extradata_size, stream_size;
-    int loop_flag = 0, channel_count, encryption_flag, codec, sample_rate, /*num_samples,*/ loop_start, loop_end;
+    int loop_flag = 0, channel_count, encryption_flag, codec, sample_rate, num_samples, loop_start, loop_end;
     int total_subsongs, target_subsong = streamFile->stream_index;
 
     /* check extensions */
@@ -237,7 +237,7 @@ VGMSTREAM * init_vgmstream_akb2(STREAMFILE *streamFile) {
     material_size   = read_16bitLE(material_offset+0x04,streamFile);
     sample_rate     = (uint16_t)read_16bitLE(material_offset+0x06,streamFile);
     stream_size     = read_32bitLE(material_offset+0x08,streamFile);
-  //num_samples     = read_32bitLE(material_offset+0x0c,streamFile);
+    num_samples     = read_32bitLE(material_offset+0x0c,streamFile);
 
     loop_start      = read_32bitLE(material_offset+0x10,streamFile);
     loop_end        = read_32bitLE(material_offset+0x14,streamFile);
@@ -263,6 +263,17 @@ VGMSTREAM * init_vgmstream_akb2(STREAMFILE *streamFile) {
     vgmstream->meta_type = meta_AKB;
 
     switch (codec) {
+        case 0x01: /* PCM16LE [Mobius: Final Fantasy (Android)] */
+            vgmstream->coding_type = coding_PCM16LE;
+            vgmstream->layout_type = layout_interleave;
+            vgmstream->interleave_block_size = 0x02;
+
+            vgmstream->num_samples       = num_samples;
+            vgmstream->loop_start_sample = loop_start;
+            vgmstream->loop_end_sample   = loop_end;
+            break;
+
+
         case 0x02: { /* MSADPCM [The Irregular at Magic High School Lost Zero (Android)] */
             vgmstream->coding_type = coding_MSADPCM;
             vgmstream->layout_type = layout_none;
@@ -323,7 +334,6 @@ VGMSTREAM * init_vgmstream_akb2(STREAMFILE *streamFile) {
         }
 #endif
 
-        case 0x01: /* PCM16LE */
         default:
             goto fail;
     }
