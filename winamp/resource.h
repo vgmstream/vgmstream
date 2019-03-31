@@ -11,3 +11,5 @@
 #define IDC_DISABLE_SUBSONGS            1009
 #define IDC_DOWNMIX_CHANNELS            1011
 #define IDC_TAGFILE_DISABLE             1012
+#define IDC_REPLAYGAIN                  1013
+#define IDC_CLIPPROTECT                 1014
