@@ -548,12 +548,13 @@ void mixing_push_killmix(VGMSTREAM* vgmstream, int ch_dst) {
     mix_command_data mix = {0};
     int ok;
 
-    if (ch_dst <= 1) return; /* can't kill from 1 */
+    if (ch_dst <= 0) return; /* can't kill from first channel */
     if (!data || ch_dst >= data->output_channels) return;
 
     mix.command = MIX_KILLMIX;
     mix.ch_dst = ch_dst;
 
+    //;VGM_LOG("MIX: killmix %i\n", ch_dst);
     ok = add_mixing(vgmstream, &mix);
     if (ok) {
         data->output_channels = ch_dst; /* clamp channels */
