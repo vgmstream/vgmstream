@@ -299,7 +299,8 @@ static int parse_awc_header(STREAMFILE* streamFile, awc_header* awc) {
                     if ((awc->num_samples && !(awc->num_samples >= num_samples - 10 && awc->num_samples <= num_samples + 10)) ||
                         (awc->sample_rate && awc->sample_rate != sample_rate) ||
                         (awc->codec && awc->codec != codec)) {
-                        VGM_LOG("AWC: found header diffs between channels\n");
+                        VGM_LOG("AWC: found header diffs in channel %i, ns=%i vs %i, sr=%i vs %i, c=%i vs %i\n",
+                                ch, awc->num_samples, num_samples, awc->sample_rate, sample_rate, awc->codec, codec);
                         goto fail;
                     }
 

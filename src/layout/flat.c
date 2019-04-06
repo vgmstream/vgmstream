@@ -23,9 +23,10 @@ void render_vgmstream_flat(sample_t * buffer, int32_t sample_count, VGMSTREAM * 
         samples_to_do = vgmstream_samples_to_do(samples_this_block, samples_per_frame, vgmstream);
         if (samples_to_do > sample_count - samples_written)
             samples_to_do = sample_count - samples_written;
-        
+
         if (samples_to_do == 0) {
-            VGM_LOG("layout_flat: wrong samples_to_do found\n");
+            VGM_LOG("layout_flat: wrong samples_to_do 0 found\n"); /* could happen when calling render at EOF? */
+            //VGM_LOG("layout_flat: tb=%i sib=%i, spf=%i\n", samples_this_block, vgmstream->samples_into_block, samples_per_frame);
             memset(buffer + samples_written*vgmstream->channels, 0, (sample_count - samples_written) * vgmstream->channels * sizeof(sample_t));
             break;
         }
