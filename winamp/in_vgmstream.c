@@ -874,7 +874,7 @@ static void add_extension(int length, char * dst, const char * ext) {
     ext_upp[j] = '\0';
 
     /* copy new extension + double null terminate */
-	/* ex: "vgmstream\0vgmstream Audio File (*.VGMSTREAM)\0" */
+    /* ex: "vgmstream\0vgmstream Audio File (*.VGMSTREAM)\0" */
     written = sprintf(buf, "%s%c%s Audio File (*.%s)%c", ext,'\0',ext_upp,ext_upp,'\0');
     for (j = 0; j < written; i++,j++)
         dst[i] = buf[j];
@@ -1716,7 +1716,7 @@ __declspec (dllexport) int winampGetExtendedFileInfoW(wchar_t *filename, char *m
 /* return 1 if you want winamp to show it's own file info dialogue, 0 if you want to show your own (via In_Module.InfoBox)
  * if returning 1, remember to implement winampGetExtendedFileInfo("formatinformation")! */
 __declspec(dllexport) int winampUseUnifiedFileInfoDlg(const wchar_t * fn) {
-	return 0;
+    return 0;
 }
 
 winamp_song_config ext_config;
@@ -1731,6 +1731,7 @@ int ext_output_channels = 0;
 
 static void *winampGetExtendedRead_open_common(in_char *fn, int *size, int *bps, int *nch, int *srate)
 {
+    VGMSTREAM *ext_vgmstream = NULL;
     in_char filename[PATH_LIMIT];
     int stream_index = 0;
 
@@ -1739,7 +1740,7 @@ static void *winampGetExtendedRead_open_common(in_char *fn, int *size, int *bps,
     parse_fn_int(fn, wa_L("$s"), &stream_index);
 
     /* open the stream */
-    VGMSTREAM *ext_vgmstream = init_vgmstream_winamp(filename, stream_index);
+    ext_vgmstream = init_vgmstream_winamp(filename, stream_index);
     if (!ext_vgmstream) {
         return NULL;
     }
@@ -1902,7 +1903,7 @@ __declspec(dllexport) void winampGetExtendedRead_close(void *handle)
 
 __declspec(dllexport) int winampUninstallPlugin(HINSTANCE hDllInst, HWND hwndDlg, int param) {
     /* may uninstall without restart as we aren't subclassing */
-	return IN_PLUGIN_UNINSTALL_NOW;
+    return IN_PLUGIN_UNINSTALL_NOW;
 }
 
 /* winamp sekrit exports: */
