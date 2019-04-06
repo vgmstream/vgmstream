@@ -67,20 +67,21 @@ VGMSTREAM * init_vgmstream_aifc(STREAMFILE *streamFile) {
 
     /* checks */
     /* .aif: common (AIFF or AIFC), .aiff: common AIFF, .aifc: common AIFC
+     * .laif/laifc/laiff: for plugins
+     * .aifcl/aiffl: for plugins?
      * .cbd2: M2 games
      * .bgm: Super Street Fighter II Turbo (3DO)
      * .acm: Crusader - No Remorse (SAT)
      * .adp: Sonic Jam (SAT)
-     * .ai: Dragon Force (SAT)
-     * .aifcl/aiffl: for plugins? */
-    if (check_extensions(streamFile, "aif")) {
+     * .ai: Dragon Force (SAT) */
+    if (check_extensions(streamFile, "aif,laif")) {
         is_aifc_ext = 1;
         is_aiff_ext = 1;
     }
-    else if (check_extensions(streamFile, "aifc,aifcl,afc,cbd2,bgm")) {
+    else if (check_extensions(streamFile, "aifc,laifc,aifcl,afc,cbd2,bgm")) {
         is_aifc_ext = 1;
     }
-    else if (check_extensions(streamFile, "aiff,acm,adp,ai,aiffl")) {
+    else if (check_extensions(streamFile, "aiff,laiff,acm,adp,ai,aiffl")) {
         is_aiff_ext = 1;
     }
     else {

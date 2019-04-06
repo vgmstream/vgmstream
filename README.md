@@ -131,7 +131,8 @@ like foobar or Winamp don't react well to that, they may be renamed to make
 them playable through vgmstream.
 - .aac to .laac (tri-Ace games)
 - .ac3 to .lac3 (standard AC3)
-- .aif to .aiffl or .aifcl (standard Mac AIF)
+- .aif to .laif or .aiffl or .aifcl (standard Mac AIF, Asobo AIF, Ogg)
+- .aiff/aifc to .aiffl/aifcl (standard Mac AIF)
 - .asf to .lasf (EA games, Argonaut ASF)
 - .flac to .lflac (standard FLAC)
 - .mp2 to .lmp2 (standard MP2)

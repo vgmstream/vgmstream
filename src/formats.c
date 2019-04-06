@@ -43,6 +43,7 @@ static const char* extension_list[] = {
     "ahv",
     "ai",
     //"aif", //common
+    "aif-Loop",
     "aifc", //common?
     "aifcl", //fake extension for .aif???
     //"aiff", //common
@@ -212,6 +213,9 @@ static const char* extension_list[] = {
 
     "l",
     "laac", //fake extension for .aac (tri-Ace)
+    "laif", //fake extension for .aif (various)
+    "laiff", //fake extension for .aiff
+    "laifc", //fake extension for .aifc
     "lac3", //fake extension for .ac3, FFmpeg/not parsed
     "lasf", //fake extension for .asf (various)
     "leg",
