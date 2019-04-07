@@ -2640,7 +2640,9 @@ static void try_dual_file_stereo(VGMSTREAM * opened_vgmstream, STREAMFILE *strea
         mixing_update_channel(opened_vgmstream); /* notify of new channel hacked-in */
     }
 
+    return;
 fail:
+    close_vgmstream(new_vgmstream);
     return;
 }
 
