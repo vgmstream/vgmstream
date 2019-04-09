@@ -79,9 +79,9 @@ def find_files(dir, pattern, recursive):
 
 def make_cmd(cfg, fname_in, fname_out, target_subsong):
     if (cfg.test_dupes):
-        cmd = "{} -s {} -i -o {} {}".format(cfg.cli, target_subsong, fname_out, fname_in)
+        cmd = "{} -s {} -i -o \"{}\" \"{}\"".format(cfg.cli, target_subsong, fname_out, fname_in)
     else:
-        cmd = "{} -s {} -m -i -o {} {}".format(cfg.cli, target_subsong, fname_out, fname_in)
+        cmd = "{} -s {} -m -i -o \"{}\" \"{}\"".format(cfg.cli, target_subsong, fname_out, fname_in)
     return cmd
 
 class LogHelper(object):

@@ -10,8 +10,8 @@ VGMSTREAM * init_vgmstream_aif_asobo(STREAMFILE *streamFile) {
 
 
     /* checks */
-    /* aif: standard, aiffl: for plugins? */
-    if ( !check_extensions(streamFile,"aif,aiffl") )
+    /* aif: standard, .laif/aiffl: for plugins */
+    if ( !check_extensions(streamFile,"aif,laif,aiffl") )
         goto fail;
     if ((uint16_t)read_16bitLE(0x00,streamFile) != 0x69) /* Xbox codec */
         goto fail;

@@ -87,11 +87,15 @@ int setup_layout_layered(layered_layout_data* data) {
     for (i = 0; i < data->layer_count; i++) {
         int layer_input_channels, layer_output_channels;
 
-        if (!data->layers[i])
+        if (data->layers[i] == NULL) {
+            VGM_LOG("layered: no vgmstream in %i\n", i);
             goto fail;
+        }
 
-        if (data->layers[i]->num_samples <= 0)
+        if (data->layers[i]->num_samples <= 0) {
+            VGM_LOG("layered: no samples in %i\n", i);
             goto fail;
+        }
 
         /* different layers may have different input/output channels */
         mixing_info(data->layers[i], &layer_input_channels, &layer_output_channels);
@@ -103,12 +107,12 @@ int setup_layout_layered(layered_layout_data* data) {
         if (i > 0) {
             /* a bit weird, but no matter */
             if (data->layers[i]->sample_rate != data->layers[i-1]->sample_rate) {
-                VGM_LOG("layered layout: layer %i has different sample rate\n", i);
+                VGM_LOG("layered: layer %i has different sample rate\n", i);
             }
 
             /* also weird */
             if (data->layers[i]->coding_type != data->layers[i-1]->coding_type) {
-                VGM_LOG("layered layout: layer %i has different coding type\n", i);
+                VGM_LOG("layered: layer %i has different coding type\n", i);
             }
         }
 

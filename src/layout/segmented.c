@@ -135,15 +135,21 @@ int setup_layout_segmented(segmented_layout_data* data) {
     for (i = 0; i < data->segment_count; i++) {
         int segment_input_channels, segment_output_channels;
 
-        if (!data->segments[i])
+        if (data->segments[i] == NULL) {
+            VGM_LOG("segmented: no vgmstream in segment %i\n", i);
             goto fail;
+        }
 
-        if (data->segments[i]->num_samples <= 0)
+
+        if (data->segments[i]->num_samples <= 0) {
+            VGM_LOG("segmented: no samples in segment %i\n", i);
             goto fail;
+        }
+
 
         /* disable so that looping is controlled by render_vgmstream_segmented */
         if (data->segments[i]->loop_flag != 0) {
-            VGM_LOG("segmented layout: segment %i is looped\n", i);
+            VGM_LOG("segmented: segment %i is looped\n", i);
             data->segments[i]->loop_flag = 0;
         }
 
@@ -159,12 +165,14 @@ int setup_layout_segmented(segmented_layout_data* data) {
             int prev_output_channels;
 
             mixing_info(data->segments[i-1], NULL, &prev_output_channels);
-            if (segment_output_channels != prev_output_channels)
+            if (segment_output_channels != prev_output_channels) {
+                VGM_LOG("segmented: segment %i has wrong channels %i vs prev channels %i\n", i, segment_output_channels, prev_output_channels);
                 goto fail;
+            }
 
             /* a bit weird, but no matter */
             if (data->segments[i]->sample_rate != data->segments[i-1]->sample_rate) {
-                VGM_LOG("segmented layout: segment %i has different sample rate\n", i);
+                VGM_LOG("segmented: segment %i has different sample rate\n", i);
             }
 
             /* perfectly acceptable */

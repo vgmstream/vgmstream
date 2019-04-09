@@ -18,6 +18,9 @@ You can set commands to alter how files play (described later). Having a single 
 ```
 # set "subsong" command for single file inside subdir
 sounds/file#12
+
+# will be ignored as none make sense here and is treated as "single" mode
+#mode = layers/segments/mixed
 ``` 
 
 
@@ -33,6 +36,7 @@ BGM01_LOOPED.VAG
 # segments must define loops
 loop_start_segment = 2 # 2nd file start
 loop_end_segment = 2 # optional, default is last
+mode = segments # optional, default is segments
 ```
 
 If your loop segment has proper loops you want to keep, you can use:
@@ -77,6 +81,87 @@ mode = layers
 ```
 Note that the number of channels is the sum of all layers, so three 2ch layers play as a 6ch file. If all layers share loop points they are automatically kept.
 
+### Mixed groups
+You can set "groups" to 'fold' various files into one, as layers or segments, to allow complex cases:
+```
+# commands to make two 6ch segments with layered intro + layered loop:
+
+# - set introA+B+C as layer (this group becomes position 1, and loopA_2ch position 2)
+introA_2ch.at3  #position 1
+introB_2ch.at3
+introC_2ch.at3
+group = 1L3
+
+# - set loopA+B+C as layer (this group becomes position 2)
+loopA_2ch.at3   #position 4
+loopB_2ch.at3
+loopC_2ch.at3
+group = 2L3
+
+# - play both as segments (this step is optional if using mode = segments)
+group = S2
+
+# - set loop start loopA+B+C (new position 2, not original position 4)
+loop_start_segment = 2
+
+# optional, to avoid "segments" default (for debugging)
+mode = mixed
+```
+From TXTP's perspective, it starts with N separate files and every command joins some files that are treated as a single new file, so positions are reassigned. End result will be a single "file" that may contain groups within groups. It's pretty flexible so you can express similar things in various ways:
+```
+# commands to make a 6ch with segmented intro + loop:
+introA_2ch.at3
+mainA_2ch.at3
+
+introB_2ch.at3
+mainB_2ch.at3
+
+introC_2ch.at3
+mainC_2ch.at3
+
+# - group intro/main pairs as segments, starting from 1 and repeating for A/B/C
+group = S2R
+
+# - play all as layer (can't set loop_start_segment in this case)
+mode = layers
+
+# you could also set: group = L and mode = mixed, same thing
+```
+
+`group` can go anywhere in the .txtp, as many times as needed (groups are read and kept in an list that is applied in order at the end). Format is `(position)(type)(count)(repeat)`:
+- `position`: file start (optional, default is 1 = first)
+- `type`: group as S=segments or L=layers
+- `count`: number of files in group (optional, default is all)
+- `repeat`: R=repeat group of `count` files until end (optional, default is no repeat)
+
+Examples:
+- `L`: take all files as layers (equivalent to `mode = layers`)
+- `S`: take all files as segments (equivalent to `mode = segments`)
+- `3L2`: layer 2 files starting from file 3
+- `2L3R`: group every 3 files from position 2 as layers
+- `1S1`: segment of one file (useless thus ignored)
+- `1L1`: layer of one file (same)
+- `9999L`: absurd values are ignored
+
+Segments and layer settings and rules still apply, so you can't make segments of files with different total channels. To do it you can use commands to "downmix" the group, as well as giving it some config (explained later):
+```
+# this doesn't need to be grouped
+intro_2ch.at3
+
+# this is grouped into a single 4ch file, then downmixed to stereo
+mainA_2ch.at3
+mainB_2ch.at3
+group = 2L2 #@layer-v 2
+
+# finally resulting layers are played as segments (2ch, 2ch)
+# (could set a group = S and ommit S here, too)
+mode = segments
+
+# if the last group joins all as segments you can use loop_start
+loop_start_segment = 3 #refers to final group at position 2
+loop_mode = keep
+```
+
 
 ## TXTP COMMANDS
 You can set file commands by adding multiple `#(command)` after the name. `# (anything)` is considered a comment and ignored, as well as any command not understood.
@@ -91,9 +176,7 @@ bgm.sxd2#12
 
 #bgm.sxd2#s12 # "sN" is alt for subsong
 
-# single files loop normally by default
-# if loop segment is defined it forces a full loop (0..num_samples)
-#loop_start_segment = 1
+# single files loop normally by default (see below to force looping)
 ```
 
 ### Play segmented subsong ranges as one
@@ -552,6 +635,19 @@ segment1.hca#m0{0:10+10.0
 segment2.hca#m0}1:00+10.0
 # better use: commands = #m0{0:10+10.0,0}2:00+10.0
 # it would work ok it they were layers, but still, better to use commands with the resulting file
+```
+
+Combine with groups or extra complex cases:
+```
+BGM_SUMMON_0001_02-Intro.hca    # 2ch file
+BGM_SUMMON_0001_02-Intro2.hca   # 2ch file
+
+BGM_SUMMON_0001_02.hca
+BGM_SUMMON_0001_02-Vocal.hca
+group = 3L2 #@layer-v 2     # layer Main+Vocal as 4ch then downmix to 2ch
+
+loop_start_segment = 3 #refers to new group at position 3
+loop_mode = keep
 ```
 
 Note how order subtly affects end results:
