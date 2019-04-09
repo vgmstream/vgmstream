@@ -536,10 +536,10 @@ void seek_mpeg(VGMSTREAM *vgmstream, int32_t num_sample) {
     mpeg_codec_data *data = vgmstream->codec_data;
     if (!data) return;
 
-    flush_mpeg(data);
 
     if (!data->custom) {
         off_t input_offset = 0;
+
         mpg123_feedseek(data->m, num_sample,SEEK_SET,&input_offset);
 
         /* adjust loop with mpg123's offset (useful?) */
@@ -548,6 +548,9 @@ void seek_mpeg(VGMSTREAM *vgmstream, int32_t num_sample) {
     }
     else {
         int i;
+
+        flush_mpeg(data);
+
         /* restart from 0 and manually discard samples, since we don't really know the correct offset */
         for (i = 0; i < data->streams_size; i++) {
             //mpg123_feedseek(data->streams[i]->m,0,SEEK_SET,&input_offset); /* already reset */
