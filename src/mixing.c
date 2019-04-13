@@ -2,6 +2,7 @@
 #include "mixing.h"
 #include "plugins.h"
 #include <math.h>
+#include <limits.h>
 
 
 /**
