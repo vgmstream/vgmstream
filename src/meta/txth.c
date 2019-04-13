@@ -1369,8 +1369,10 @@ static int get_bytes_to_samples(txth_header * txth, uint32_t bytes) {
             return atrac3plus_bytes_to_samples(bytes, txth->interleave);
         case AAC:
             return aac_get_samples(txth->streamBody, txth->start_offset, bytes);
+#ifdef VGM_USE_MPEG
         case MPEG:
             return mpeg_get_samples(txth->streamBody, txth->start_offset, bytes);
+#endif
         case AC3:
             return ac3_bytes_to_samples(bytes, txth->interleave, txth->channels);
 
