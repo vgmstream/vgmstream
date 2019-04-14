@@ -94,7 +94,7 @@ automatically. You need to manually refresh it by selecting songs and doing
 document.
 
 ### vgmstream123
-*Installation*: seeds to be manually built. Instructions can be found in the
+*Installation*: needs to be manually built. Instructions can be found in the
 BUILD document in vgmstream's source code.
 
 Usage: `vgmstream123 [options] INFILE ...`
