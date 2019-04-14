@@ -274,7 +274,7 @@ static void apply_config(VGMSTREAM * vgmstream, cli_config *cfg) {
     if (vgmstream->config_fade_delay) {
         cfg->fade_delay = vgmstream->config_fade_delay;
     }
-    if (vgmstream->config_fade_delay) {
+    if (vgmstream->config_fade_time) {
         cfg->fade_time = vgmstream->config_fade_time;
     }
     if (vgmstream->config_force_loop) {
