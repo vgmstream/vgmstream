@@ -1380,6 +1380,10 @@ static STREAMFILE * open_atomic_bao(ubi_bao_file file_type, uint32_t file_id, in
                 streamBAO = open_streamfile_by_filename(streamFile, buf);
                 if (streamBAO) return streamBAO;
 
+                snprintf(buf,buf_size, "Spanish_BAO_0x%08x", file_id);
+                streamBAO = open_streamfile_by_filename(streamFile, buf);
+                if (streamBAO) return streamBAO;
+
                 snprintf(buf,buf_size, "German_BAO_0x%08x", file_id);
                 streamBAO = open_streamfile_by_filename(streamFile, buf);
                 if (streamBAO) return streamBAO;
@@ -1388,7 +1392,11 @@ static STREAMFILE * open_atomic_bao(ubi_bao_file file_type, uint32_t file_id, in
                 streamBAO = open_streamfile_by_filename(streamFile, buf);
                 if (streamBAO) return streamBAO;
 
-                snprintf(buf,buf_size, "Spanish_BAO_0x%08x", file_id);
+                snprintf(buf,buf_size, "Japanese_BAO_0x%08x", file_id);
+                streamBAO = open_streamfile_by_filename(streamFile, buf);
+                if (streamBAO) return streamBAO;
+
+                snprintf(buf,buf_size, "Korean_BAO_0x%08x", file_id);
                 streamBAO = open_streamfile_by_filename(streamFile, buf);
                 if (streamBAO) return streamBAO;
 
@@ -1400,7 +1408,11 @@ static STREAMFILE * open_atomic_bao(ubi_bao_file file_type, uint32_t file_id, in
                 streamBAO = open_streamfile_by_filename(streamFile, buf);
                 if (streamBAO) return streamBAO;
 
-                /* there may be more per language */
+                snprintf(buf,buf_size, "Polish_BAO_0x%08x", file_id);
+                streamBAO = open_streamfile_by_filename(streamFile, buf);
+                if (streamBAO) return streamBAO;
+
+                /* these are all of the languages that were referenced in Assassin's Creed exe (out of each platform) */
             }
             else {
                 snprintf(buf,buf_size, "BAO_0x%08x", file_id);
