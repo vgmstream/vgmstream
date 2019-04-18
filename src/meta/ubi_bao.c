@@ -1412,7 +1412,7 @@ static STREAMFILE * open_atomic_bao(ubi_bao_file file_type, uint32_t file_id, in
                 streamBAO = open_streamfile_by_filename(streamFile, buf);
                 if (streamBAO) return streamBAO;
 
-                /* these are all of the languages that were referenced in Assassin's Creed exe (out of each platform) */
+                /* these are all of the languages that were referenced in Assassin's Creed exe (out of each platform), there may be more */
             }
             else {
                 snprintf(buf,buf_size, "BAO_0x%08x", file_id);
