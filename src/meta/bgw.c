@@ -114,6 +114,7 @@ fail:
 /* SPW (SEWave) - from  PlayOnline viewer for Final Fantasy XI (PC) */
 VGMSTREAM * init_vgmstream_spw(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
+    STREAMFILE *temp_streamFile = NULL;
     uint32_t codec, file_size, block_size, sample_rate, block_align;
     int32_t loop_start;
     off_t start_offset;
@@ -139,8 +140,8 @@ VGMSTREAM * init_vgmstream_spw(STREAMFILE *streamFile) {
     /*0x2c: unk (0x00?) */
     /*0x2d: unk (0x00/01?) */
     channel_count = read_8bit(0x2a,streamFile);
-    block_align = read_8bit(0x2b,streamFile);
-    /*0x2c: unk (0x01 when PCM, 0x10 when VAG?) */
+    /*0x2b: unk (0x01 when PCM, 0x10 when VAG?) */
+    block_align = read_8bit(0x2c,streamFile);
 
     if (file_size != get_streamfile_size(streamFile))
         goto fail;
@@ -181,6 +182,38 @@ VGMSTREAM * init_vgmstream_spw(STREAMFILE *streamFile) {
 
             break;
 
+#ifdef VGM_USE_FFMPEG
+        case 3: { /* ATRAC3 (encrypted) */
+            uint8_t buf[0x100];
+            int bytes, joint_stereo, skip_samples;
+            size_t data_size = file_size - start_offset;
+
+            vgmstream->num_samples = block_size; /* atrac3_bytes_to_samples gives the same value */
+            if (loop_flag) {
+                vgmstream->loop_start_sample = loop_start;
+                vgmstream->loop_end_sample = vgmstream->num_samples;
+            }
+
+            block_align  = 0xC0 * vgmstream->channels; /* 0x00 in header */
+            joint_stereo = 0;
+            skip_samples = 0;
+
+            bytes = ffmpeg_make_riff_atrac3(buf, 0x100, vgmstream->num_samples, data_size, vgmstream->channels, vgmstream->sample_rate, block_align, joint_stereo, skip_samples);
+            if (bytes <= 0) goto fail;
+
+            temp_streamFile = setup_bgw_atrac3_streamfile(streamFile, start_offset,data_size, 0xC0,channel_count);
+            if (!temp_streamFile) goto fail;
+
+            vgmstream->codec_data = init_ffmpeg_header_offset(temp_streamFile, buf,bytes, 0,data_size);
+            if (!vgmstream->codec_data) goto fail;
+            vgmstream->coding_type = coding_FFmpeg;
+            vgmstream->layout_type = layout_none;
+
+            close_streamfile(temp_streamFile);
+            break;
+        }
+#endif
+
         default:
             goto fail;
     }
@@ -193,6 +226,7 @@ VGMSTREAM * init_vgmstream_spw(STREAMFILE *streamFile) {
     return vgmstream;
 
 fail:
+    close_streamfile(temp_streamFile);
     close_vgmstream(vgmstream);
     return NULL;
 }
