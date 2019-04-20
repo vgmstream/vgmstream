@@ -428,6 +428,7 @@ static const char* extension_list[] = {
     "sx",
     "sxd",
     "sxd2",
+    "sxd3",
 
     "tec",
     "tgq",

@@ -5,32 +5,62 @@
 /* SXD - Sony/SCE's SNDX lib format (cousin of SGXD) [Gravity Rush, Freedom Wars, Soul Sacrifice PSV] */
 VGMSTREAM * init_vgmstream_sxd(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    STREAMFILE * streamHeader = NULL, *streamData = NULL;
+    STREAMFILE *streamHeader = NULL, *streamExternal = NULL, *streamData = NULL, *streamHead = NULL, *streamBody = NULL;
     off_t start_offset, chunk_offset, first_offset = 0x60, name_offset = 0;
     size_t chunk_size, stream_size = 0;
 
-    int is_dual = 0, is_external = 0;
+    int is_dual, is_external;
     int loop_flag, channels, codec, flags;
     int sample_rate, num_samples, loop_start_sample, loop_end_sample;
     uint32_t at9_config_data = 0;
     int total_subsongs, target_subsong = streamFile->stream_index;
 
 
-    /* check extension, case insensitive */
-    /* .sxd: header+data (SXDF), .sxd1: header (SXDF) + .sxd2 = data (SXDS) */
-    if (!check_extensions(streamFile,"sxd,sxd2")) goto fail;
-    is_dual = !check_extensions(streamFile,"sxd");
+    /* checks */
+    /* .sxd: header+data (SXDF)
+     * .sxd1: header (SXDF) + .sxd2 = data (SXDS)
+     * .sxd3: sxd1 + sxd2 pasted together (found in some PS4 games, ex. Fate Extella)*/
+    if (!check_extensions(streamFile,"sxd,sxd2,sxd3"))
+        goto fail;
 
-    /* sxd1+sxd2: use sxd1 as header; otherwise use the current file as header */
-    if (is_dual) {
-        if (read_32bitBE(0x00,streamFile) != 0x53584453) /* "SXDS" */
-            goto fail;
-        streamHeader = open_streamfile_by_ext(streamFile, "sxd1");
-        if (!streamHeader) goto fail;
-    } else {
-        streamHeader = streamFile;
+    /* setup head/body variations */
+    if (check_extensions(streamFile,"sxd2")) {
+        /* sxd1+sxd2: open sxd1 as header */
+
+        streamHead = open_streamfile_by_ext(streamFile, "sxd1");
+        if (!streamHead) goto fail;
+
+        streamHeader = streamHead;
+        streamExternal = streamFile;
+        is_dual = 1;
     }
-    if (read_32bitBE(0x00,streamHeader) != 0x53584446) /* "SXDF" */
+    else if (check_extensions(streamFile,"sxd3")) {
+        /* sxd3: make subfiles for head and body to simplify parsing */
+        off_t  sxd1_offset  = 0x00;
+        size_t sxd1_size    = read_32bitLE(0x08, streamFile);
+        off_t  sxd2_offset  = sxd1_size;
+        size_t sxd2_size    = get_streamfile_size(streamFile) - sxd1_size;
+
+        streamHead = setup_subfile_streamfile(streamFile, sxd1_offset, sxd1_size, "sxd1");
+        if (!streamHead) goto fail;
+
+        streamBody = setup_subfile_streamfile(streamFile, sxd2_offset, sxd2_size, "sxd2");
+        if (!streamBody) goto fail;
+
+        streamHeader = streamHead;
+        streamExternal = streamBody;
+        is_dual = 1;
+    }
+    else {
+        /* sxd: use the current file as header */
+        streamHeader = streamFile;
+        streamExternal = NULL;
+        is_dual = 0;
+    }
+
+    if (streamHeader && read_32bitBE(0x00,streamHeader) != 0x53584446) /* "SXDF" */
+        goto fail;
+    if (streamExternal && read_32bitBE(0x00,streamExternal) != 0x53584453) /* "SXDS" */
         goto fail;
 
 
@@ -132,8 +162,9 @@ VGMSTREAM * init_vgmstream_sxd(STREAMFILE *streamFile) {
         goto fail;
     }
 
+    /* even dual files may have some non-external streams */
     if (is_external) {
-        streamData = streamFile;
+        streamData = streamExternal;
     } else {
         streamData = streamHeader;
     }
@@ -196,11 +227,13 @@ VGMSTREAM * init_vgmstream_sxd(STREAMFILE *streamFile) {
     if (!vgmstream_open_stream(vgmstream,streamData,start_offset))
         goto fail;
 
-    if (is_dual) close_streamfile(streamHeader);
+    if (streamHead) close_streamfile(streamHead);
+    if (streamBody) close_streamfile(streamBody);
     return vgmstream;
 
 fail:
-    if (is_dual) close_streamfile(streamHeader);
+    if (streamHead) close_streamfile(streamHead);
+    if (streamBody) close_streamfile(streamBody);
     close_vgmstream(vgmstream);
     return NULL;
 }
