@@ -1325,7 +1325,7 @@ static int parse_type_layer(ubi_sb_header * sb, off_t offset, STREAMFILE* stream
         int num_samples = read_32bit(table_offset + sb->cfg.layer_num_samples, streamFile);
 
         if (sb->sample_rate != sample_rate || sb->stream_type != stream_type) {
-            VGM_LOG("Ubi SB: %i layer headers don't match at %x\n", sb->layer_count, (uint32_t)table_offset);
+            VGM_LOG("Ubi SB: %i layer headers don't match at %x > %x\n", sb->layer_count, (uint32_t)offset, (uint32_t)table_offset);
             if (!sb->cfg.ignore_layer_error) /* layers of different rates happens sometimes */
                 goto fail;
         }
@@ -1450,6 +1450,14 @@ static int parse_stream_codec(ubi_sb_header * sb) {
         //;VGM_LOG("UBI SB: garbage in stream_type\n");
         sb->stream_type = 0; /* probably ignored for non-stream types */
     }
+
+    /* Batman: Rise of Sin Tzu (Xbox)
+     * (similar but also for some streams, maybe uses a 'hardware flag' possibly at 0x20?) */
+    if ((sb->version == 0x000A0003 && sb->platform == UBI_XBOX) &&
+            (!sb->is_external || strncmp(sb->resource_name, "STREAMHW.", 9) == 0)) {
+        sb->stream_type = 0;
+    }
+
 
     /* guess codec */
     switch (sb->stream_type) {
@@ -2068,7 +2076,7 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
 
     sb->cfg.map_entry_size = (sb->cfg.map_version < 2) ? 0x30 : 0x34;
 
-    if (sb->version <= 0x00000200) {
+    if (sb->version == 0x00000000 || sb->version == 0x00000200) {
         sb->cfg.audio_stream_size       = 0x0c;
         sb->cfg.audio_stream_offset     = 0x10;
       //sb->cfg.audio_extra_offset      = 0x10;
@@ -2166,7 +2174,9 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
     }
 
     /* Batman: Vengeance (2001)(PC)-map */
-    if (sb->version == 0x00000003 && sb->platform == UBI_PC) {
+    /* Batman: Vengeance (2001)(Xbox)-map */
+    if ((sb->version == 0x00000003 && sb->platform == UBI_PC) ||
+        (sb->version == 0x00000003 && sb->platform == UBI_XBOX)) {
         config_sb_entry(sb, 0x40, 0x68);
 
         config_sb_audio_fs(sb, 0x30, 0x30, 0x34); /* no group id? use external flag */
@@ -2382,6 +2392,22 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         sb->cfg.is_padded_section3_offset = 1;
         sb->cfg.is_padded_sectionX_offset = 1;
         sb->cfg.is_padded_sounds_offset = 1;
+        return 1;
+    }
+
+    /* Batman: Rise of Sin Tzu (2003)(Xbox)-map 0x000A0003 */
+    if (sb->version == 0x000A0003 && sb->platform == UBI_XBOX) {
+        config_sb_entry(sb, 0x64, 0x80);
+
+        config_sb_audio_fs(sb, 0x24, 0x28, 0x2c);
+        config_sb_audio_hs(sb, 0x52, 0x4c, 0x38, 0x40, 0x58, 0x54); /* stream_type may contain garbage */
+        sb->cfg.audio_has_internal_names = 1;
+
+        config_sb_sequence(sb, 0x28, 0x14);
+
+        config_sb_layer_hs(sb, 0x20, 0x60, 0x58, 0x30);
+        config_sb_layer_sh(sb, 0x14, 0x00, 0x06, 0x08, 0x10);
+        //todo some sequences mix 1ch and 2ch (voices?)
         return 1;
     }
 
