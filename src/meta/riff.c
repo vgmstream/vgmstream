@@ -121,6 +121,11 @@ static int read_fmt(int big_endian, STREAMFILE * streamFile, off_t current_chunk
       //fmt->extra_samples  = read_16bit(current_chunk+0x1a,streamFile); /* valid_bits_per_sample or samples_per_block */
         fmt->channel_layout = read_32bit(current_chunk+0x1c,streamFile);
         /* 0x10 guid at 0x20 */
+
+        /* happens in .at3/at9, may be a bug in their encoder b/c MS's defs set mono as FC */
+        if (fmt->channel_count == 1 && fmt->channel_layout == speaker_FL) { /* other channels are fine */
+            fmt->channel_layout = speaker_FC;
+        }
     }
 
     switch (fmt->codec) {
@@ -146,7 +151,7 @@ static int read_fmt(int big_endian, STREAMFILE * streamFile, off_t current_chunk
             }
             break;
 
-        case 0x02: /* MS ADPCM */
+        case 0x02: /* MSADPCM */
             if (fmt->bps == 4) {
                 fmt->coding_type = coding_MSADPCM;
             }
@@ -158,7 +163,7 @@ static int read_fmt(int big_endian, STREAMFILE * streamFile, off_t current_chunk
             }
             break;
 
-        case 0x11:  /* MS IMA ADPCM [Layton Brothers: Mystery Room (iOS/Android)] */
+        case 0x11:  /* MS-IMA ADPCM [Layton Brothers: Mystery Room (iOS/Android)] */
             if (fmt->bps != 4) goto fail;
             fmt->coding_type = coding_MS_IMA;
             break;
@@ -209,10 +214,10 @@ static int read_fmt(int big_endian, STREAMFILE * streamFile, off_t current_chunk
             goto fail;
 #endif
 
-        case 0xFFFE: { /* WAVEFORMATEXTENSIBLE (see ksmedia.h for known GUIDs)*/
+        case 0xFFFE: { /* WAVEFORMATEXTENSIBLE (see ksmedia.h for known GUIDs) */
             uint32_t guid1 = (uint32_t)read_32bit  (current_chunk+0x20,streamFile);
-            uint32_t guid2 = ((uint16_t)read_16bit  (current_chunk+0x24,streamFile) << 16u) |
-                             ((uint16_t)read_16bit(current_chunk+0x26,streamFile));
+            uint32_t guid2 = ((uint16_t)read_16bit (current_chunk+0x24,streamFile) << 16u) |
+                             ((uint16_t)read_16bit (current_chunk+0x26,streamFile));
             uint32_t guid3 = (uint32_t)read_32bitBE(current_chunk+0x28,streamFile);
             uint32_t guid4 = (uint32_t)read_32bitBE(current_chunk+0x2c,streamFile);
             //;VGM_LOG("RIFF: guid %08x %08x %08x %08x\n", guid1, guid2, guid3, guid4);
