@@ -21,13 +21,13 @@ VGMSTREAM * init_vgmstream_vs_square(STREAMFILE *streamFile) {
     /* 0x08: block number */
     /* 0x0c: blocks left in the subfile */
     pitch = read_32bitLE(0x10,streamFile); /* usually 0x1000 = 48000 */
-    /* 0x14: volume, usually 0x64 = 100 but be bigger/smaller (up to 128?) */
+    /* 0x14: volume, usually 0x64 = 100 but may be bigger/smaller (up to 128?) */
     /* 0x18: null */
     /* 0x1c: null */
 
+    /* some Front Mission 4 voices have flag 0x100, no idea */
     if (flags != 0x00 && flags != 0x01) {
-        VGM_LOG("VS: unknown flags\n");
-        goto fail;
+        VGM_LOG("VS: unknown flags %x\n", flags);
     }
 
     loop_flag = 0;
