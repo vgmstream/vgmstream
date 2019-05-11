@@ -65,7 +65,7 @@ function Init
     Download "https://github.com/kode54/fdk-aac/archive/master.zip" "dependencies\fdk-aac.zip"
     Download "https://github.com/kode54/qaac/archive/master.zip" "dependencies\qaac.zip"
     Download "https://www.nuget.org/api/v2/package/wtl/9.1.1" "dependencies\wtl.zip"
-    Download "https://github.com/Microsoft/vswhere/releases/download/2.2.11/vswhere.exe" "dependencies\vswhere.exe"
+    Download "https://github.com/Microsoft/vswhere/releases/download/2.6.7/vswhere.exe" "dependencies\vswhere.exe"
 
     Download "https://www.foobar2000.org/SDK" "dependencies\SDK"
     $key = (Select-String -Path dependencies\SDK -Pattern "\/([a-f0-9]+)\/SDK-2018-01-11\.zip").matches.groups[1]
@@ -118,10 +118,7 @@ function Build
 
     if(!(Test-Path $vswhere)) { Init }
 
-    $msbuild = & $vswhere -latest -products * -requires Microsoft.Component.MSBuild -property installationPath
-    if ($msbuild) {
-      $msbuild = Join-Path $msbuild 'MSBuild\15.0\Bin\MSBuild.exe'
-    }
+    $msbuild = & $vswhere -latest -products * -requires Microsoft.Component.MSBuild -find MSBuild\**\Bin\MSBuild.exe
 
     if(!($msbuild -and $(Test-Path $msbuild))) {
         Write-Error "Unable to find MSBuild. Is Visual Studio installed?"
