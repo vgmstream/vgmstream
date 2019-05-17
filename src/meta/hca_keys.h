@@ -258,9 +258,6 @@ static const hcakey_info hcakey_list[] = {
         // Onsen Musume: Yunohana Kore Kushon (Android) voices
         {6667},                     // 0000000000001A0B
 
-        /* Dragalia Lost (Cygames) [iOS/Android] */
-        {2967411924141,         subkeys_dgl, sizeof(subkeys_dgl) / sizeof(subkeys_dgl[0]) },    // 000002B2E7889CAD
-
         /* Libra of Precatus (Android) */
         {0x6D8EFB700870FCD4},       // 6D8EFB700870FCD4
 
@@ -274,8 +271,16 @@ static const hcakey_info hcakey_list[] = {
         {19850716},                 // 00000000012EE5DC
 
         /* Puchiguru Love Live! (Android) */
-	{355541041372},             // 00000052C7E5C0DC
+        {355541041372},             // 00000052C7E5C0DC
 
+        /* Dolls Order (Android) */
+        {153438415134838},          // 00008B8D2A3AA076
+
+        /* Fantasy Life Online (Android) */
+        {123456789},                // 00000000075BCD15
+
+        /* Dragalia Lost (Cygames) [iOS/Android] */
+        {2967411924141,         subkeys_dgl, sizeof(subkeys_dgl) / sizeof(subkeys_dgl[0]) },    // 000002B2E7889CAD
 };
 
 #endif/*_HCA_KEYS_H_*/
