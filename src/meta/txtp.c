@@ -117,6 +117,7 @@ typedef struct {
 
     int is_segmented;
     int is_layered;
+    int is_single;
 } txtp_header;
 
 static txtp_header* parse_txtp(STREAMFILE* streamFile);
@@ -152,6 +153,14 @@ VGMSTREAM * init_vgmstream_txtp(STREAMFILE *streamFile) {
         if (!txtp->vgmstream) goto fail;
 
         txtp->vgmstream_count = txtp->entry_count;
+    }
+
+
+    /* detect single files before grouping */
+    if (txtp->group_count == 0 && txtp->vgmstream_count == 1) {
+        txtp->is_single = 1;
+        txtp->is_segmented = 0;
+        txtp->is_layered = 0;
     }
 
 
@@ -217,7 +226,7 @@ VGMSTREAM * init_vgmstream_txtp(STREAMFILE *streamFile) {
         apply_config(txtp->vgmstream[grp->position], &grp->group_config);
     }
 
-    /* final grouping (should be integrated with the above?) */
+    /* final tweaks (should be integrated with the above?) */
     if (txtp->is_layered) {
         if (!make_group_layer(txtp, 0, txtp->vgmstream_count))
             goto fail;
@@ -225,6 +234,13 @@ VGMSTREAM * init_vgmstream_txtp(STREAMFILE *streamFile) {
     if (txtp->is_segmented) {
         if (!make_group_segment(txtp, 0, txtp->vgmstream_count))
             goto fail;
+    }
+    if (txtp->is_single) {
+        /* special case of setting start_segment to force/overwrite looping
+         * (better to use #E but left for compatibility with older TXTPs) */
+        if (txtp->loop_start_segment == 1 && !txtp->loop_end_segment) {
+            vgmstream_force_loop(txtp->vgmstream[0], 1, txtp->vgmstream[0]->loop_start_sample, txtp->vgmstream[0]->num_samples);
+        }
     }
 
 

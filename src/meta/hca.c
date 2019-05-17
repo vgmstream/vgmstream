@@ -129,4 +129,6 @@ done:
 
     VGM_ASSERT(best_score > 1, "HCA: best key=%08x%08x (score=%i)\n",
             (uint32_t)((*out_keycode >> 32) & 0xFFFFFFFF), (uint32_t)(*out_keycode & 0xFFFFFFFF), best_score);
+
+    VGM_ASSERT(best_score < 0, "HCA: key not found\n");
 }
