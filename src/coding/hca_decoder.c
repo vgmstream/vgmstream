@@ -130,8 +130,18 @@ void reset_hca(hca_codec_data * data) {
     data->samples_to_discard = data->info.encoderDelay;
 }
 
-void loop_hca(hca_codec_data * data) {
+void loop_hca(hca_codec_data * data, int32_t num_sample) {
     if (!data) return;
+
+    /* manually calc loop values if not set (should only happen with installed/forced looping,
+     * as actual files usually pad encoder delay so earliest loopStartBlock becomes 1-2,
+     * probably for decoding cleanup so this may not be as exact) */
+    if (data->info.loopStartBlock == 0 && data->info.loopStartDelay == 0) {
+        int target_sample = num_sample + data->info.encoderDelay;
+
+        data->info.loopStartBlock = target_sample / data->info.samplesPerBlock;
+        data->info.loopStartDelay = target_sample - (data->info.loopStartBlock * data->info.samplesPerBlock);
+    }
 
     data->current_block = data->info.loopStartBlock;
     data->samples_filled = 0;

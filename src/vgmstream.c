@@ -2162,7 +2162,7 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream) {
         /* prepare certain codecs' internal state for looping */
 
         if (vgmstream->coding_type == coding_CRI_HCA) {
-            loop_hca(vgmstream->codec_data);
+            loop_hca(vgmstream->codec_data, vgmstream->loop_sample);
         }
 
         if (vgmstream->coding_type == coding_EA_MT) {

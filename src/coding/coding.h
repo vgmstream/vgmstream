@@ -193,7 +193,7 @@ void free_ea_mt(ea_mt_codec_data *data, int channels);
 hca_codec_data *init_hca(STREAMFILE *streamFile);
 void decode_hca(hca_codec_data * data, sample * outbuf, int32_t samples_to_do);
 void reset_hca(hca_codec_data * data);
-void loop_hca(hca_codec_data * data);
+void loop_hca(hca_codec_data * data, int32_t num_sample);
 void free_hca(hca_codec_data * data);
 int test_hca_key(hca_codec_data * data, unsigned long long keycode);
 
