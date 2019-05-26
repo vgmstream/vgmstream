@@ -275,6 +275,7 @@
     <ClCompile Include="meta\flx.c" />
     <ClCompile Include="meta\fsb.c" />
     <ClCompile Include="meta\fsb5.c" />
+    <ClCompile Include="meta\fsb5_fev.c" />
     <ClCompile Include="meta\fsb_encrypted.c" />
     <ClCompile Include="meta\gca.c" />
     <ClCompile Include="meta\gcsw.c" />

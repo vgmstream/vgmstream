@@ -35,7 +35,7 @@ VGMSTREAM * init_vgmstream_ps2_ads(STREAMFILE *streamFile) {
     {
         codec = read_32bitLE(0x08,streamFile);
         sample_rate = read_32bitLE(0x0C,streamFile);
-        channel_count = read_32bitLE(0x10,streamFile); /* up to 4 [Eve of Extinction (PS2)]*/
+        channel_count = read_32bitLE(0x10,streamFile); /* up to 4 [Eve of Extinction (PS2)] */
         interleave = read_32bitLE(0x14,streamFile); /* set even when mono */
 
 
@@ -150,7 +150,7 @@ VGMSTREAM * init_vgmstream_ps2_ads(STREAMFILE *streamFile) {
                 loop_start_sample = loop_start / 2 / channel_count;
                 is_loop_samples = 1;
             }
-            else if ((loop_start % 0x800 == 0) && loop_start > 0) {/* sector-aligned, min/0 is 0x800 */
+            else if ((loop_start % 0x800 == 0) && loop_start > 0) { /* sector-aligned, min/0 is 0x800 */
                 /* cavia games: loop_start is offset [Drakengard 1/2, GITS: Stand Alone Complex] */
                 /* offset is absolute from the "cavia stream format" container that adjusts ADS start */
                 loop_flag = 1;
@@ -192,11 +192,17 @@ VGMSTREAM * init_vgmstream_ps2_ads(STREAMFILE *streamFile) {
                 loop_start_offset = loop_start * 0x20;
                 loop_end_offset = loop_end * 0x20;
             }
-            else if (loop_end <= body_size / 0x20 && coding_type == coding_PSX) { /* close to body_size */
+            else if (loop_end <= body_size / 0x20 && coding_type == coding_PSX) {
                 /* various games: loops is address * 0x20 [Fire Pro Wrestling Returns, A.C.E. - Another Century's Episode] */
                 loop_flag = 1;
                 loop_start_offset = loop_start * 0x20;
                 loop_end_offset = loop_end * 0x20;
+            }
+            else if (loop_end <= body_size / 0x10 && coding_type == coding_PSX
+                    && (read_32bitBE(0x28 + loop_end*0x10 + 0x10 + 0x00, streamFile) == 0x00077777 ||
+                        read_32bitBE(0x28 + loop_end*0x10 + 0x20 + 0x00, streamFile) == 0x00077777)) {
+                /* not-quite-looping sfx, ending with a "non-looping PS-ADPCM end frame" [Kono Aozora ni Yakusoku, Chanter] */
+                loop_flag = 0;
             }
             else if ((loop_end > body_size / 0x20 && coding_type == coding_PSX) ||
                      (loop_end > body_size / 0x70 && coding_type == coding_PCM16LE)) {

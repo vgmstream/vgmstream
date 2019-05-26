@@ -391,6 +391,9 @@
     <ClCompile Include="meta\fsb5.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\fsb5_fev.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\fsb_encrypted.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>

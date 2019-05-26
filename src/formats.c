@@ -73,6 +73,7 @@ static const char* extension_list[] = {
     "b1s",
     "baf",
     "baka",
+    "bank",
     "bar",
     "bcstm",
     "bcwav",
