@@ -618,6 +618,13 @@ VGMSTREAM * init_vgmstream_ogg_vorbis_callbacks(STREAMFILE *streamFile, ov_callb
                 }
             }
 
+            /* Hatsune Miku Project DIVA games, though only 'Arcade Future Tone' has >4ch files
+             * ENCODER tag is common but ogg_vorbis_encode looks unique enough
+             * (arcade ends with "2010-11-26" while consoles have "2011-02-07" */
+            if (strstr(user_comment, "ENCODER=ogg_vorbis_encode/") == user_comment) {
+                data->disable_reordering = 1;
+            }
+
             ;VGM_LOG("OGG: user_comment=%s\n", user_comment);
         }
     }

@@ -466,6 +466,7 @@ static const char* extension_list[] = {
     "vig",
     "vis",
     "vms",
+    "vmu", //txth/reserved [Red Faction (PS2)]
     "voi",
     "vp6",
     "vpk",
