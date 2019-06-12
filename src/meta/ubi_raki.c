@@ -103,20 +103,20 @@ VGMSTREAM * init_vgmstream_ubi_raki(STREAMFILE *streamFile) {
         case 0x4361666561647063:    /* "Cafeadpc" (Cafe = WiiU) */
             /* chunks: "datS" (stereo), "datL" (mono or full interleave), "datR" (full interleave), "data" equivalents */
             vgmstream->coding_type = coding_NGC_DSP;
-            vgmstream->layout_type = channel_count==1 ? layout_none : layout_interleave;
-            vgmstream->interleave_block_size = 8;
+            vgmstream->layout_type = layout_interleave;
+            vgmstream->interleave_block_size = 0x8;
 
             /* we need to know if the file uses "datL" and is full-interleave */
             if (channel_count > 1) {
-                off_t chunk_off = offset+ 0x20 + 0xc; /* after "fmt" */
-                while (chunk_off < header_size) {
-                    if (read_32bitBE(chunk_off,streamFile) == 0x6461744C) { /*"datL" found */
-                        size_t chunk_size = read_32bit(chunk_off+0x8,streamFile);
+                off_t chunk_offset = offset+ 0x20 + 0xc; /* after "fmt" */
+                while (chunk_offset < header_size) {
+                    if (read_32bitBE(chunk_offset,streamFile) == 0x6461744C) { /* "datL" found */
+                        size_t chunk_size = read_32bit(chunk_offset+0x8,streamFile);
                         data_size = chunk_size * channel_count; /* to avoid counting the "datR" chunk */
                         vgmstream->interleave_block_size = (4+4) + chunk_size; /* don't forget to skip the "datR"+size chunk */
                         break;
                     }
-                    chunk_off += 0xc;
+                    chunk_offset += 0xc;
                 }
 
                 /* not found? probably "datS" (regular stereo interleave) */
@@ -131,6 +131,31 @@ VGMSTREAM * init_vgmstream_ubi_raki(STREAMFILE *streamFile) {
 
             vgmstream->num_samples = dsp_bytes_to_samples(data_size, channel_count);
             break;
+
+        case 0x4354520061647063:    /* "CTR\0adpc" (Citrus = 3DS) */
+            /* chunks: "dspL" (CWAV-L header), "dspR" (CWAV-R header), "cwav" ("data" equivalent) */
+            vgmstream->coding_type = coding_NGC_DSP;
+            vgmstream->layout_type = layout_interleave;
+            vgmstream->interleave_block_size = 0x8;
+
+            /* reading could be improved but should work with some luck since most values are semi-fixed */
+            {
+                off_t chunk_offset = offset+ 0x20 + 0xc; /* after "fmt" */
+                while (chunk_offset < header_size) {
+                    if (read_32bitBE(chunk_offset,streamFile) == 0x6473704C) { /* "dspL" found */
+                        off_t cwav_offset = read_32bit(chunk_offset+0x4,streamFile);
+                        size_t cwav_size  = read_32bit(chunk_offset+0x8,streamFile);
+
+                        dsp_read_coefs(vgmstream,streamFile, cwav_offset + 0x7c, cwav_size, big_endian);
+                        break;
+                    }
+                    chunk_offset += 0xc;
+                }
+            }
+
+            vgmstream->num_samples = dsp_bytes_to_samples(data_size, channel_count);
+            break;
+
 
 #ifdef VGM_USE_MPEG
         case 0x505333206D703320: {  /* "PS3 mp3 " */
