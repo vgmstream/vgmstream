@@ -44,8 +44,10 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
     int i;
 
 
-    /* check extension, case insensitive */
-    if (!check_extensions(streamFile,"fsb"))
+    /* checks */
+    /* .fsb: standard
+     * .snd: Alchemy engine (also Unity) */
+    if (!check_extensions(streamFile,"fsb,snd"))
         goto fail;
 
     if (read_32bitBE(0x00,streamFile) != 0x46534235) /* "FSB5" */
