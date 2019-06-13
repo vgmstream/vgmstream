@@ -139,7 +139,8 @@ VGMSTREAM * init_vgmstream_ubi_raki(STREAMFILE *streamFile) {
             vgmstream->interleave_block_size = 0x8;
 
             /* reading could be improved but should work with some luck since most values are semi-fixed */
-            {
+            if (channel_count > 1) {
+                /* find "dspL" pointing to "CWAV" header and read coefs (separate from data at start_offset) */
                 off_t chunk_offset = offset+ 0x20 + 0xc; /* after "fmt" */
                 while (chunk_offset < header_size) {
                     if (read_32bitBE(chunk_offset,streamFile) == 0x6473704C) { /* "dspL" found */
@@ -151,6 +152,12 @@ VGMSTREAM * init_vgmstream_ubi_raki(STREAMFILE *streamFile) {
                     }
                     chunk_offset += 0xc;
                 }
+            }
+            else {
+                /* CWAV at start (a full CWAV, unlike the above) */
+                dsp_read_coefs(vgmstream,streamFile, start_offset + 0x7c, 0x00, big_endian);
+                start_offset += 0xE0;
+                data_size = get_streamfile_size(streamFile) - start_offset;
             }
 
             vgmstream->num_samples = dsp_bytes_to_samples(data_size, channel_count);
