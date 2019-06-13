@@ -156,11 +156,8 @@ VGMSTREAM * init_vgmstream_xvag(STREAMFILE *streamFile) {
         case 0x08: { /* MPEG: The Last of Us (PS3), Uncharted 3 (PS3), Medieval Moves (PS3) */
             mpeg_custom_config cfg = {0};
 
-            if (xvag.subsongs > 1) goto fail;
-            if (xvag.subsongs > 1 && xvag.layers > 1) goto fail;
             /* often 2ch per MPEG and rarely 1ch (GoW3 PS4) */
             if (xvag.layers > 1 && !(xvag.layers*1 == vgmstream->channels || xvag.layers*2 == vgmstream->channels)) goto fail;
-            //todo rare test file in The Last of Us PS4 uses 6ch with one 2ch stream, surround MPEG/mp3pro? (decoded samples map to 6ch)
 
             /* "mpin": mpeg info */
             /*  0x00/04: mpeg version/layer?  other: unknown or repeats of "fmat" */
@@ -173,6 +170,14 @@ VGMSTREAM * init_vgmstream_xvag(STREAMFILE *streamFile) {
             vgmstream->codec_data = init_mpeg_custom(streamFile, start_offset, &vgmstream->coding_type, vgmstream->channels, MPEG_XVAG, &cfg);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->layout_type = layout_none;
+
+            /* interleaved subsongs, rarely [Sly Cooper: Thieves in Time (PS3)] */
+            if (xvag.subsongs > 1) {
+                temp_streamFile = setup_xvag_streamfile(streamFile, start_offset, cfg.interleave,cfg.chunk_size, (target_subsong-1), total_subsongs);
+                if (!temp_streamFile) goto fail;
+                start_offset = 0;
+            }
+
             break;
         }
 #endif
