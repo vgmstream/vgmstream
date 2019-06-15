@@ -256,7 +256,7 @@ formats.
 ## Tagging
 Some of vgmstream's plugins support simple read-only tagging via external files.
 
-Tags are loaded from a text/M3U-like file named _!tags.m3u_ in the song folder.
+Tags are loaded from a text/M3U-like file named *!tags.m3u* in the song folder.
 You don't have to load your songs with that M3U though (but you can, for pre-made
 ordering), the file itself just 'looks' like an M3U.
 
@@ -279,13 +279,20 @@ _filename_ though, so any @TAG below would be ignored.
 
 Playlist formatting should follow player's config. ASCII or UTF-8 tags work.
 
-GLOBAL_COMMANDs currently can be: 
+GLOBAL_COMMANDs currently can be:
 - AUTOTRACK: sets %TRACK% tag automatically (1..N as files are encountered
   in the tag file).
 - AUTOALBUM: sets %ALBUM% tag automatically using the containing dir as album.
 
-foobar2000 can apply the following replaygain tags (if ReplayGain is enabled
-in foobar's preferences):
+Note that since you can use global tags don't need to put all files inside.
+This would be a perfectly valid *!tags.m3u*:
+```
+# @ALBUM    Game
+# @ARTIST   Various Artists
+```
+
+foobar2000/Winamp can apply the following replaygain tags (if ReplayGain is
+enabled in preferences):
 ```
 # %replaygain_track_gain N.NN dB
 # %replaygain_track_peak N.NNN

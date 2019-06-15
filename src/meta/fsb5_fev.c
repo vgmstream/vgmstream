@@ -1,7 +1,7 @@
 #include "meta.h"
 #include "../coding/coding.h"
 
-/* FEV+FSB5 container [Shantae: Half-Genie Hero (Switch)] */
+/* FEV+FSB5 container [Just Cause 3 (PC), Shantae: Half-Genie Hero (Switch)] */
 VGMSTREAM * init_vgmstream_fsb5_fev_bank(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     STREAMFILE *temp_streamFile = NULL;
