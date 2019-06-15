@@ -5,7 +5,7 @@
 VGMSTREAM * init_vgmstream_ps2_vpk(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     int loop_flag, channel_count;
-    off_t start_offset;
+    off_t start_offset, loop_channel_offset;
     size_t channel_size;
 
 
@@ -16,13 +16,14 @@ VGMSTREAM * init_vgmstream_ps2_vpk(STREAMFILE *streamFile) {
     if (read_32bitBE(0x00,streamFile) != 0x204B5056) /* " KPV" */
         goto fail;
 
-    /* seems this consistently has 0x10-0x20 extra bytes, landing in garbage frames at the end */
+    /* seems this consistently has 0x10-0x20 extra bytes, landing in garbage 0xC00000..00 frames at the end */
     channel_size = read_32bitLE(0x04,streamFile) - 0x20; /* remove for cleaner ends */
 
     start_offset = read_32bitLE(0x08,streamFile);
     channel_count = read_32bitLE(0x14,streamFile);
-    /* 0x18+(per channel): channel config? */
-    loop_flag = (read_32bitLE(0x7FC,streamFile) != 0); /* used? */
+    /* 0x18+(per channel): channel config(?) */
+    loop_channel_offset = read_32bitLE(0x7FC,streamFile);
+    loop_flag = (loop_channel_offset != 0); /* found in Sly 2/3 */
 
 
     /* build the VGMSTREAM */
@@ -32,7 +33,7 @@ VGMSTREAM * init_vgmstream_ps2_vpk(STREAMFILE *streamFile) {
     vgmstream->sample_rate = read_32bitLE(0x10,streamFile);
     vgmstream->num_samples = ps_bytes_to_samples(channel_size*vgmstream->channels,vgmstream->channels);
     if (vgmstream->loop_flag) {
-        vgmstream->loop_start_sample = read_32bitLE(0x7FC,streamFile);
+        vgmstream->loop_start_sample = ps_bytes_to_samples(loop_channel_offset*vgmstream->channels,vgmstream->channels);
         vgmstream->loop_end_sample = vgmstream->num_samples;
     }
 
