@@ -318,25 +318,36 @@ subfile_size = (number)|(offset)|(field)
 subfile_extension = (string)
 
 # CHUNK DEINTERLEAVING [OPTIONAL]
-# Some files interleave raw data chunks, for example 3 stereo songs pasted together,
+# Some files interleave data chunks, for example 3 stereo songs pasted together,
 # alternating 0x10000 bytes of data each. These settings allow vgmstream to play
 # one of the chunks while ignoring the rest (read 0x10000 data, skip 0x10000*2).
 # File is first "dechunked" then played with using other settings (start_offset
 # would points within the internal "dechunked" file).
 #
 # You need to set:
-# - start: where all chunk data start (normally 0x00)
-# - size: amount of data in a single chunk (ex. 0x10000).
-# - count: total number of interleaved chunks (ex. 3=3 interleaved songs)
-# - number: first chunk to start (ex. 1=0x00000, 2=0x10000, 3=0x20000...)
-# If you set subsong_count first chunk_number will be a set per subsong.
-chunk_start = (number)|(offset)|(field)
-chunk_size = (number)|(offset)|(field)
+# - chunk_count: total number of interleaved chunks (ex. 3=3 interleaved songs)
+# - chunk_number: first chunk to start (ex. 1=0x00000, 2=0x10000, 3=0x20000...)
+#   If you set subsong_count first chunk_number will be auto-set per subsong.
+#   (subsong 1 starts from chunk number 1, subsong 2 from chunk 2, etc)
+# - chunk_start: absolute offset where chunks start (normally 0x00)
+# - chunk_size: amount of data in a single chunk (ex. 0x10000).
+# For fine-tuning you can optionally set (before chunk_size, for reasons):
+# - chunk_header_size: header to skip before chunk data (part of chunk_size)
+# - chunk_data_size: actual data size (part of chunk_size, rest is header/padding)
+# So, if you set size to 0x1000, header_size 0x100, data_size is implicitly 0xF00,
+# or if size is 0x1000 and data_size 0x800 last 0x200 is ignored padding.
+#
+# Use combinations of the above to make vgmstream "see" only actual codec data.
+#
 chunk_count = (number)|(offset)|(field)
 chunk_number = (number)|(offset)|(field)
+chunk_start = (number)|(offset)|(field)
+chunk_header_size = (number)|(offset)|(field)
+chunk_data_size = (number)|(offset)|(field)
+chunk_size = (number)|(offset)|(field)
 ```
 
-## Usages
+## Complex usages
 
 ### Temporary values
 Most commands are evaluated and calculated immediatedly, every time they are found. This is by design, as it can be used to adjust and trick for certain calculations.
@@ -547,4 +558,98 @@ chunk_count   = 3
 subfile_offset = 0
 subfile_size = @0x04 + 0x08  #RIFF size
 subfile_extension = at3
+```
+
+It can be used to make blocks with padding playable:
+```
+# Mortal Kombat: Deception (PS2)
+codec = PSX
+interleave = 0x3F40
+sample_rate = 32000
+channels = 2
+
+chunk_number    = 1
+chunk_count     = 1
+chunk_start     = 0x00
+chunk_data_size = interleave * channels
+chunk_size      = 0x8000
+
+num_samples = data_size
+```
+
+## Examples
+
+**Colin McRae DiRT (PC) .wip.txth**
+```
+id_value = 0x00000000
+id_offset = @0x00
+
+codec = PCM16LE
+channels = 2
+sample_rate = 32000
+start_offset = 0x04
+num_samples = data_size
+loop_start_sample = 0
+loop_end_sample = data_size
+```
+
+**Kim Possible: What's the Switch (PS2) .str.txth**
+```
+codec = PSX
+interleave = 0x2000
+channels = 2
+sample_rate = 48000
+num_samples = data_size
+interleave_last = auto
+```
+
+**Manhunt (Xbox) .rib.txth**
+```
+codec = XBOX
+codec_mode = 1 #interleaved XBOX
+interleave = 0xD800
+
+channels = 12
+sample_rate = 44100
+start_offset = 0x00
+num_samples = data_size
+```
+
+**Pitfall The Lost Expedition (PC) .txth**
+```
+codec = DVI_IMA
+interleave = 0x80
+start_offset = 0x00
+channels = 2
+sample_rate = 44100
+num_samples = data_size
+```
+
+**Spy Hunter (GC) .pcm.txth**
+```
+codec = PCM8
+sample_rate = 32000
+channels = 1
+start_offset = 0
+num_samples = data_size
+```
+
+**Ultimate Board Game Collection (Wii) .dsp.txth**
+```
+codec = NGC_DSP
+interleave = 0x10000
+
+channels = 2
+start_offset = 0x00
+
+num_samples = @0x00:BE
+sample_rate = @0x08:BE
+loop_flag   = @0x0C:BE$2
+sample_type = bytes
+loop_start_sample = @0x10:BE
+loop_end_sample   = @0x14:BE
+
+coef_offset = 0x1c
+coef_spacing = 0x10000
+coef_endianness = BE
 ```

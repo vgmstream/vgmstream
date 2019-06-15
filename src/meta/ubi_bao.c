@@ -1875,6 +1875,8 @@ static int config_bao_version(ubi_bao_header * bao, STREAMFILE *streamFile) {
              * - base varies per type (0xF0=audio), skip 0x20
              * - 0x74: type, 0x78: channels, 0x7c: sample rate, 0x80: num_samples
              * - 0x94: stream id? 0x9C: extra size */
+        case 0x002A0300: /* Watch Dogs (Wii U) */
+            /* similar to SC:B */
         default: /* others possibly using BAO: Just Dance, Watch_Dogs, Far Cry Primal, Far Cry 4 */
             VGM_LOG("UBI BAO: unknown BAO version %08x\n", bao->version);
             return 0;

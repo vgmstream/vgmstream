@@ -35,6 +35,8 @@ static int read_dsp_header_endian(struct dsp_header *header, off_t offset, STREA
     int i;
     uint8_t buf[0x4e];
 
+    if (offset > get_streamfile_size(streamFile))
+        return 1;
     if (read_streamfile(buf, offset, 0x4e, streamFile) != 0x4e)
         return 1;
     header->sample_count =      get_32bit(buf+0x00);
@@ -270,14 +272,29 @@ VGMSTREAM * init_vgmstream_ngc_dsp_std(STREAMFILE *streamFile) {
      * out thoroughly, we're probably not dealing with a genuine mono DSP.
      * In many cases these will pass all the other checks, including the
      * predictor/scale check if the first byte is 0 */
+    //todo maybe this meta should be after others, so they have a chance to detect >1ch .dsp
     {
+        int ko;
         struct dsp_header header2;
-        read_dsp_header(&header2, header_size, streamFile);
 
-        if (header.sample_count == header2.sample_count &&
-            header.nibble_count == header2.nibble_count &&
-            header.sample_rate == header2.sample_rate &&
-            header.loop_flag == header2.loop_flag) {
+        /* ignore headers one after another */
+        ko = read_dsp_header(&header2, header_size, streamFile);
+        if (!ko &&
+                header.sample_count == header2.sample_count &&
+                header.nibble_count == header2.nibble_count &&
+                header.sample_rate == header2.sample_rate &&
+                header.loop_flag == header2.loop_flag) {
+            goto fail;
+        }
+
+
+        /* ignore headers after interleave [Ultimate Board Collection (Wii)] */
+        ko = read_dsp_header(&header2, 0x10000, streamFile);
+        if (!ko &&
+                header.sample_count == header2.sample_count &&
+                header.nibble_count == header2.nibble_count &&
+                header.sample_rate == header2.sample_rate &&
+                header.loop_flag == header2.loop_flag) {
             goto fail;
         }
     }

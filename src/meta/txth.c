@@ -99,6 +99,8 @@ typedef struct {
     uint32_t chunk_start;
     uint32_t chunk_size;
     uint32_t chunk_count;
+    uint32_t chunk_header_size;
+    uint32_t chunk_data_size;
     int chunk_start_set;
     int chunk_size_set;
     int chunk_count_set;
@@ -637,6 +639,7 @@ static void set_body_chunk(txth_header * txth) {
 
     /* sets body "chunk" if all needed values are set
      * (done inline for padding/get_samples/etc calculators to work) */
+    //todo maybe should only be done once, or have some count to retrigger to simplify?
     if (!txth->chunk_start_set || !txth->chunk_size_set || !txth->chunk_count_set)
         return;
     if (txth->chunk_size == 0 || txth->chunk_start > txth->data_size || txth->chunk_count == 0)
@@ -652,8 +655,20 @@ static void set_body_chunk(txth_header * txth) {
     if (txth->chunk_number > txth->chunk_count)
         return;
 
-    temp_streamFile = setup_txth_streamfile(txth->streamBody, txth->chunk_start, txth->chunk_size, txth->chunk_count, txth->chunk_number - 1, txth->streambody_opened);
-    if (!temp_streamFile) return;
+    {
+        txth_io_config_data cfg = {0};
+
+        cfg.chunk_start = txth->chunk_start;
+        cfg.chunk_header_size = txth->chunk_header_size;
+        cfg.chunk_data_size = txth->chunk_data_size;
+        cfg.chunk_size = txth->chunk_size;
+        cfg.chunk_count = txth->chunk_count;
+        cfg.chunk_number = txth->chunk_number - 1; /* 1-index to 0-index */
+
+        temp_streamFile = setup_txth_streamfile(txth->streamBody, cfg, txth->streambody_opened);
+        if (!temp_streamFile) return;
+    }
+
 
     /* closing is handled by temp_streamFile */
     //if (txth->streambody_opened) {
@@ -1103,6 +1118,16 @@ static int parse_keyval(STREAMFILE * streamFile_, txth_header * txth, const char
         txth->chunk_start_set = 1;
         set_body_chunk(txth);
     }
+    else if (is_string(key,"chunk_header_size")) {
+        if (!parse_num(txth->streamHead,txth,val, &txth->chunk_header_size)) goto fail;
+        //txth->chunk_header_size_set = 1;
+        //set_body_chunk(txth); /* optional and should go before chunk_size */
+    }
+    else if (is_string(key,"chunk_data_size")) {
+        if (!parse_num(txth->streamHead,txth,val, &txth->chunk_data_size)) goto fail;
+        //txth->chunk_data_size_set = 1;
+        //set_body_chunk(txth); /* optional and should go before chunk_size */
+    }
     else if (is_string(key,"chunk_size")) {
         if (!parse_num(txth->streamHead,txth,val, &txth->chunk_size)) goto fail;
         txth->chunk_size_set = 1;
@@ -1282,7 +1307,7 @@ static int parse_num(STREAMFILE * streamFile, txth_header * txth, const char * v
         }
         else { /* known field */
             if      ((n = is_substring(val,"interleave")))          value = txth->interleave;
-            if      ((n = is_substring(val,"interleave_last")))     value = txth->interleave_last;
+            else if ((n = is_substring(val,"interleave_last")))     value = txth->interleave_last;
             else if ((n = is_substring(val,"channels")))            value = txth->channels;
             else if ((n = is_substring(val,"sample_rate")))         value = txth->sample_rate;
             else if ((n = is_substring(val,"start_offset")))        value = txth->start_offset;
