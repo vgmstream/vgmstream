@@ -432,6 +432,7 @@ static int parse_header(STREAMFILE* streamHeader, strwav_header* strwav) {
             read_32bitBE(0x04,streamHeader) == 0x00000700) && /* rare? */
          read_32bitLE(0x08,streamHeader) != 0x00000000 &&
          read_32bitBE(0x0c,streamHeader) == header_size && /* variable per DSP header */
+         read_32bitBE(0x7c,streamHeader) != 0 && /* has DSP header */
          read_32bitBE(0x38,streamHeader) == read_32bitBE(read_32bitBE(0x7c,streamHeader)+0x38,streamHeader) /* sample rate vs 1st DSP header */
          ) {
         strwav->loop_start  = 0; //read_32bitLE(0x24,streamHeader); //not ok?
@@ -446,10 +447,31 @@ static int parse_header(STREAMFILE* streamHeader, strwav_header* strwav) {
 
         strwav->coefs_table = 0x7c;
         strwav->codec = DSP;
-        //;VGM_LOG("STR+WAV: header Tak (Wii)\n");
+        //;VGM_LOG("STR+WAV: header Tak/HOTD:O (Wii)\n");
         return 1;
     }
 
+    /* The House of the Dead: Overkill (PS3)[2009] (not Blitz but still the same format) */
+    if ((read_32bitBE(0x04,streamHeader) == 0x00000800 ||
+            read_32bitBE(0x04,streamHeader) == 0x00000700) && /* rare? */
+         read_32bitLE(0x08,streamHeader) != 0x00000000 &&
+         read_32bitBE(0x0c,streamHeader) == header_size && /* variable per DSP header */
+         read_32bitBE(0x7c,streamHeader) == 0 /* not DSP header */
+         ) {
+        strwav->loop_start  = 0; //read_32bitLE(0x24,streamHeader); //not ok?
+        strwav->num_samples = read_32bitBE(0x30,streamHeader);
+        strwav->loop_end    = read_32bitBE(0x34,streamHeader);
+        strwav->sample_rate = read_32bitBE(0x38,streamHeader);
+        strwav->flags       = read_32bitBE(0x3c,streamHeader);
+
+        strwav->channels    = read_32bitBE(0x70,streamHeader); /* tracks of 1ch */
+        strwav->loop_flag   = strwav->flags & 0x01;
+        strwav->interleave  = strwav->channels > 4 ? 0x4000 : 0x8000;
+
+        strwav->codec = PSX;
+        //;VGM_LOG("STR+WAV: header HOTD:O (PS3)\n");
+        return 1;
+    }
 
     /* unknown */
     goto fail;
