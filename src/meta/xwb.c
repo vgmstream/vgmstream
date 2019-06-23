@@ -345,8 +345,10 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
     /* Oddworld OGG the data_size value is size of uncompressed bytes instead;  DSP uses some id/config as value */
     if (xwb.codec != OGG && xwb.codec != DSP && xwb.codec != ATRAC9_RIFF) {
         /* some low-q rips don't remove padding, relax validation a bit */
-        if (xwb.data_offset + xwb.data_size > get_streamfile_size(streamFile))
+        if (xwb.data_offset + xwb.stream_size > get_streamfile_size(streamFile))
             goto fail;
+        //if (xwb.data_offset + xwb.data_size > get_streamfile_size(streamFile)) /* badly split */
+        //    goto fail;
     }
 
 

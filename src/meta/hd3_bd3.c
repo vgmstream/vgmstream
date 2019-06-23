@@ -37,7 +37,7 @@ VGMSTREAM * init_vgmstream_hd3_bd3(STREAMFILE *streamFile) {
         section_size = read_32bitBE(section_offset+0x04,streamHeader); /* (not including first 0x08) */
         /* 0x08 always 0x10? */
         entries = read_32bitBE(section_offset+0x14,streamHeader) + 1;
-        if (entries != (section_size-0x18) / 0x10)
+        if (entries * 0x10 > section_size) /* just in case, padding after entries is possible */
             goto fail;
 
         /* autodetect use of N bank entries as channels [Elevator Action Deluxe (PS3)] */

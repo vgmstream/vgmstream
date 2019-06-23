@@ -19,7 +19,8 @@ static VGMSTREAM * init_vgmstream_opus(STREAMFILE *streamFile, meta_t meta_type,
     channel_count = read_8bit(offset + 0x09, streamFile);
     /* 0x0a: packet size if CBR, 0 if VBR */
     data_offset = offset + read_32bitLE(offset + 0x10, streamFile);
-    skip = read_32bitLE(offset + 0x1c, streamFile);
+    skip = read_16bitLE(offset + 0x1c, streamFile);
+    /* 0x1e: ? (seen in Lego Movie 2 (Switch)) */
 
     if ((uint32_t)read_32bitLE(data_offset, streamFile) != 0x80000004)
         goto fail;

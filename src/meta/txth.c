@@ -1290,7 +1290,7 @@ static int parse_num(STREAMFILE * streamFile, txth_header * txth, const char * v
                 offset = offset + subsong_offset * (txth->target_subsong - 1);
 
             switch(size) {
-                case 1: value = read_8bit(offset,streamFile); break;
+                case 1: value = (uint8_t)read_8bit(offset,streamFile); break;
                 case 2: value = big_endian ? (uint16_t)read_16bitBE(offset,streamFile) : (uint16_t)read_16bitLE(offset,streamFile); break;
                 case 3: value = (big_endian ? (uint32_t)read_32bitBE(offset,streamFile) : (uint32_t)read_32bitLE(offset,streamFile)) & 0x00FFFFFF; break;
                 case 4: value = big_endian ? (uint32_t)read_32bitBE(offset,streamFile) : (uint32_t)read_32bitLE(offset,streamFile); break;

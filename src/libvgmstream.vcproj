@@ -273,6 +273,10 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\meta\ogg_vorbis_streamfile.h"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\opus_interleave_streamfile.h"
                     >
                 </File>
