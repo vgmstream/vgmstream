@@ -265,7 +265,7 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
     }
 
     if (is_isd) { /* Inti Creates PC games */
-        //const char *isl_name = NULL;
+        const char *isl_name = NULL;
 
         /* check various encrypted "OggS" values */
         if (read_32bitBE(0x00,streamFile) == 0xAF678753) { /* Azure Striker Gunvolt (PC) */
@@ -274,7 +274,7 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
             };
             cfg.key_len = sizeof(isd_gv_key);
             memcpy(cfg.key, isd_gv_key, cfg.key_len);
-            //isl_name = "GV_steam.isl";
+            isl_name = "GV_steam.isl";
         }
         else if (read_32bitBE(0x00,streamFile) == 0x0FE787D3) { /* Mighty Gunvolt (PC) */
             static const uint8_t isd_mgv_key[120] = {
@@ -289,7 +289,7 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
             };
             cfg.key_len = sizeof(isd_mgv_key);
             memcpy(cfg.key, isd_mgv_key, cfg.key_len);
-            //isl_name = "MGV_steam.isl";
+            isl_name = "MGV_steam.isl";
         }
         else if (read_32bitBE(0x00,streamFile) == 0x0FA74753) { /* Blaster Master Zero (PC) */
             static const uint8_t isd_bmz_key[120] = {
@@ -304,7 +304,7 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
             };
             cfg.key_len = sizeof(isd_bmz_key);
             memcpy(cfg.key, isd_bmz_key, cfg.key_len);
-            //isl_name = "output.isl";
+            isl_name = "output.isl";
         }
         else {
             goto fail;
@@ -318,9 +318,44 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
          *   0x00(2): ?, 0x02(2): channels, 0x04: sample rate, 0x08: skip samples (in PCM bytes), always 32000
          *   0x0c(2): PCM block size, 0x0e(2): PCM bps, 0x10: null, 0x18: samples (in PCM bytes)
          * - .isl: looping table (encrypted like the files) */
-        //if (isl_name) {
-        //    ...
-        //}
+        if (isl_name) {
+            STREAMFILE *islFile = NULL;
+
+            //todo could try in ../(file) first since that's how the .isl is stored
+            islFile = open_streamfile_by_filename(streamFile, isl_name);
+            if (islFile) {
+                STREAMFILE *dec_sf = NULL;
+
+                dec_sf = setup_ogg_vorbis_streamfile(islFile, cfg);
+                if (dec_sf) {
+                    off_t loop_offset;
+                    char basename[PATH_LIMIT];
+
+                    /* has a bunch of tables then a list with file names without extension and loops */
+                    loop_offset = read_32bitLE(0x18, dec_sf);
+                    get_streamfile_basename(streamFile, basename, sizeof(basename));
+
+                    while (loop_offset < get_streamfile_size(dec_sf)) {
+                        char testname[0x20];
+
+                        read_string(testname, sizeof(testname), loop_offset+0x2c, dec_sf);
+                        if (strcmp(basename, testname) == 0) {
+                            ovmi.loop_start = read_32bitLE(loop_offset+0x1c, dec_sf);
+                            ovmi.loop_end   = read_32bitLE(loop_offset+0x20, dec_sf);
+                            ovmi.loop_end_found = 1;
+                            ovmi.loop_flag = (ovmi.loop_end != 0);
+                            break;
+                        }
+
+                        loop_offset += 0x50;
+                    }
+
+                    close_streamfile(dec_sf);
+                }
+
+                close_streamfile(islFile);
+            }
+        }
     }
 
     if (is_rpgmvo) { /* [RPG Maker MV (PC)] */
@@ -482,7 +517,7 @@ VGMSTREAM * init_vgmstream_ogg_vorbis_callbacks(STREAMFILE *streamFile, ov_callb
     data->disable_reordering = ovmi->disable_reordering;
 
     /* search for loop comments */
-    {
+    {//todo ignore if loop flag already set?
         int i;
         vorbis_comment *comment = ov_comment(ovf,OGG_DEFAULT_BITSTREAM);
 
