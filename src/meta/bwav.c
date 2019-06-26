@@ -19,7 +19,7 @@ VGMSTREAM * init_vgmstream_bwav(STREAMFILE *streamFile) {
 
     channel_count = read_16bitLE(0x0E, streamFile);
     start_offset = read_32bitLE(0x40, streamFile);
-    loop_flag = read_32bitLE(0x50, streamFile);
+    loop_flag = read_32bitLE(0x4C, streamFile);
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count, loop_flag);
