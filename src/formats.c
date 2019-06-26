@@ -101,6 +101,7 @@ static const char* extension_list[] = {
     "brstmspm",
     "btsnd",
     "bvg",
+    "bwav",
 
     "caf",
     "capdsp",
@@ -1189,6 +1190,7 @@ static const meta_info meta_info_list[] = {
         {meta_MSF_KONAMI,           "Konami MSF header"},
         {meta_XWMA_KONAMI,          "Konami XWMA header"},
         {meta_9TAV,                 "Konami 9TAV header"},
+        {meta_BWAV,                 "Nintendo BWAV header"},
 
 };
 
