@@ -1585,5 +1585,8 @@
     <ClCompile Include="meta\ps2_va3.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\bwav.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

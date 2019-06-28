@@ -854,4 +854,6 @@ VGMSTREAM * init_vgmstream_9tav(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_fsb5_fev_bank(STREAMFILE * streamFile);
 
+VGMSTREAM * init_vgmstream_bwav(STREAMFILE * streamFile);
+
 #endif /*_META_H*/

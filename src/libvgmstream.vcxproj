@@ -154,6 +154,7 @@
     <ClCompile Include="meta\bcstm.c" />
     <ClCompile Include="meta\bfstm.c" />
     <ClCompile Include="meta\bfwav.c" />
+    <ClCompile Include="meta\bwav.c" />
     <ClCompile Include="meta\excitebots.c" />
     <ClCompile Include="meta\ezw.c" />
     <ClCompile Include="meta\ffmpeg.c" />
