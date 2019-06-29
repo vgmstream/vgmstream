@@ -78,18 +78,23 @@ int mpeg_custom_setup_init_default(STREAMFILE *streamFile, off_t start_offset, m
 
     //todo: test more: this improves the output, but seems formats aren't usually prepared
     // (and/or the num_samples includes all possible samples in file, so by discarding some it'll reach EOF)
-#if 0
+
     /* set encoder delay (samples to skip at the beginning of a stream) if needed, which varies with encoder used */
     switch(data->type) {
-        case MPEG_AHX: data->skip_samples = 480; break; /* observed default */
-        case MPEG_P3D: data->skip_samples = info.frame_samples; break; /* matches Radical ADPCM (PC) output */
+        //case MPEG_AHX: data->skip_samples = 480; break; /* observed default */
+        //case MPEG_P3D: data->skip_samples = info.frame_samples; break; /* matches Radical ADPCM (PC) output */
+
         /* FSBs (with FMOD DLLs) don't seem to need it. Particularly a few games (all from Wayforward?)
          * contain audible garbage at the beginning, but it's actually there in-game too */
-        case MPEG_FSB: data->skip_samples = 0;
-        default: break;
+        //case MPEG_FSB: data->skip_samples = 0; break;
+
+        case MPEG_XVAG: /* set in header and needed for gapless looping */
+            data->skip_samples = data->config.skip_samples; break;
+        default:
+            break;
     }
     data->samples_to_discard = data->skip_samples;
-#endif
+
 
     return 1;
 fail:

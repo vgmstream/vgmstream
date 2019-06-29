@@ -160,11 +160,28 @@ VGMSTREAM * init_vgmstream_xvag(STREAMFILE *streamFile) {
             if (xvag.layers > 1 && !(xvag.layers*1 == vgmstream->channels || xvag.layers*2 == vgmstream->channels)) goto fail;
 
             /* "mpin": mpeg info */
-            /*  0x00/04: mpeg version/layer?  other: unknown or repeats of "fmat" */
             if (!find_chunk(streamFile, 0x6D70696E,first_offset,0, &chunk_offset,NULL, xvag.big_endian, 1)) /*"mpin"*/
                 goto fail;
 
-            cfg.chunk_size = read_32bit(chunk_offset+0x1c,streamFile); /* fixed frame size */
+            /* all layers/subsongs share the same config; not very useful but for posterity:
+             * - 0x00: mpeg version
+             * - 0x04: mpeg layer
+             * - 0x08: bit rate
+             * - 0x0c: sample rate
+             * - 0x10: some version? (0x01-0x03)?
+             * - 0x14: channels per stream?
+             * - 0x18: channels per stream or total channels?
+             * - 0x1c: fixed frame size (always CBR)
+             * - 0x20: encoder delay (usually but not always 1201)
+             * - 0x24: number of samples
+             * - 0x28: some size?
+             * - 0x2c: ? (0x02)
+             * - 0x30: ? (0x00, 0x80)
+             * - 0x34: data size
+             * (rest is padding)
+             * */
+            cfg.chunk_size = read_32bit(chunk_offset+0x1c,streamFile);
+            cfg.skip_samples = read_32bit(chunk_offset+0x20,streamFile);
             cfg.interleave = cfg.chunk_size * xvag.factor;
 
             vgmstream->codec_data = init_mpeg_custom(streamFile, start_offset, &vgmstream->coding_type, vgmstream->channels, MPEG_XVAG, &cfg);
