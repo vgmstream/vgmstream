@@ -35,8 +35,13 @@ VGMSTREAM * init_vgmstream_hd3_bd3(STREAMFILE *streamFile) {
         if (read_32bitBE(section_offset+0x00,streamHeader) != 0x50335641) /* "P3VA" */
             goto fail;
         section_size = read_32bitBE(section_offset+0x04,streamHeader); /* (not including first 0x08) */
-        /* 0x08 always 0x10? */
-        entries = read_32bitBE(section_offset+0x14,streamHeader) + 1;
+        /* 0x08 size of all subsong headers + 0x10 */
+
+        entries = read_32bitBE(section_offset+0x14,streamHeader);
+        /* often there is an extra subsong than written, but may be padding instead */
+        if (read_32bitBE(section_offset + 0x20 + entries*0x10 + 0x04,streamHeader)) /* has sample rate */
+            entries += 1;
+
         if (entries * 0x10 > section_size) /* just in case, padding after entries is possible */
             goto fail;
 

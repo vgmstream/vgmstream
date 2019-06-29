@@ -3,22 +3,20 @@
 TXTH is a simple text file that uses text commands to simulate a header for files unsupported by vgmstream, mainly headerless audio.
 
 When an unsupported file is loaded (for instance "bgm01.snd"), vgmstream tries to find a TXTH header in the same dir, in this order:
-- (filename.ext).txth
-- .(ext).txth
-- .txth
+- `(filename.ext).txth`
+- `.(ext).txth`
+- `.txth`
 
 If found and parsed correctly (the .txth may be rejected if incorrect commands are found) vgmstream will try to play the file as described. Extension must be accepted/added to vgmstream (plugins like foobar2000 only load extensions from a whitelist in formats.c), or one could rename to any supported extension (like .vgmstream), or leave the file extensionless.
 
-You can also use ".(sub).(ext).txth" (if the file is "filename.sub.ext"), to allow mixing slightly different files in the same folder. The "sub" part doesn't need to be an extension, for example:
-- 001.1ch.str, 001.1ch.str may use .1ch.txth
-- 003.2ch.str, 003.2ch.str may use .2ch.txth
+You can also use `.(sub).(ext).txth` (if the file is `filename.sub.ext`), to allow mixing slightly different files in the same folder. The `sub` part doesn't need to be an extension, for example:
+- `001.1ch.str`, `001.1ch.str` may use `.1ch.txth`
+- `003.2ch.str`, `003.2ch.str` may use `.2ch.txth`
 - etc
 
 ## Example of a TXTH file
-For an unsupported bgm01.vag this would be a simple TXTH for it:
+For an unsupported `bgm01.vag` this would be a simple TXTH for it:
 ```
-id_value = 0x534E4420       #test that file starts with "SND "
-id_offset = @0x00:BE        #test is done at offset 0, big endian value
 codec = PSX                 #data uses PS-ADPCM
 sample_rate = @0x10$2       #get sample rate at offset 0x10, 16 bit value
 channels = @0x14            #get number of channels at offset 14
@@ -27,38 +25,41 @@ start_offset = 0x100        #data starts after exactly this value
 num_samples = data_size     #find automatically number of samples in the file
 loop_flag = auto            #find loop points in PS-ADPCM
 ```
-A text file with the above commands must be saved as ".vag.txth" or ".txth", notice it starts with a "." (dot). On Windows files starting with a dot can be created by appending a dot at the end: ".txth."
+A text file with the above commands must be saved as `.vag.txth` or `.txth` (preferably the former), notice it starts with a "." (dot). On Windows files starting with a dot can be created by appending a dot at the end when renaming: `.txth.`
+
+While the main point is playing the file, many of TXTH's features are aimed towards keeping original data intact, for documentation and preservation purposes; try leaving data as untouched as possible and consider how the game plays the file, as there is a good chance some feature can mimic it.
 
 
 ## Available commands
 
 The file is made of lines with `key = value` commands describing a header. Commands are all case sensitive and spaces are optional: `key=value`, `key  =   value`, and so on are all ok. Comments start with # and can be inlined.
 
-The parser is fairly simple and may be buggy or unexpected in some cases. The order of keys is variable but some things won't work if others aren't defined (ex. bytes-to-samples may not work without channels or interleave).
+The parser is fairly simple and may be buggy or unexpected in some cases. The order of keys is variable but some things won't work if others aren't defined (ex. bytes-to-samples may not work without channels or interleave) or need to be done in a certain order (due to technical reasons) as explained below.
+
+To get a file playing you need to correctly set, at least: `codec` and sometimes `interleave`, `sample_rate`, `channels` and `num_samples`, or use the "subfile" feature.
+
+### VALUES
+The following can be used in place of `(value)` for `(key) = (value)` commands.
+- `(number)`: constant number in dec/hex, unsigned (no +10 or -10).
+  * Examples: `44100, 40, 0x40 (decimal=64)`
+- `(offset)`: read a value at offset inside the file, format being `@(number)[:LE|BE][$1|2|3|4]`
+  * `@(number)`: offset of the value (required)
+    * if `base_offset` is defined this value is modified (see later)
+  * `:LE|BE`: value is little/big endian (optional, defaults to LE)
+  * `$1|2|3|4`: value has size of 8/16/24/32 bit (optional, defaults to 4)
+  * Example: `@0x10:BE$2` means `get big endian 16b value at 0x10`
+- `(field)`: uses current value of some fields. Accepted strings:
+  - `interleave, interleave_last, channels, sample_rate, start_offset, data_size, num_samples, loop_start_sample,  loop_end_sample, subsong_count, subsong_offset`
+- `(other)`: other special values for certain keys, described per key
 
 
+The above may be combined with math operations (+-*/): `(key) = (number) (op) (offset) (op) (field) (...)`
 
+### KEYS
+
+#### CODEC [REQUIRED]
+Sets codec used to encode the data. Accepted codec strings:
 ```
-# COMMON VALUES
-# - (number): constant number in dec/hex, unsigned (no +10 or -10).
-#   Examples: 44100, 40, 0x40 (decimal=64)
-# - (offset): format is @(number)[:LE|BE][$1|2|3|4]
-#   * @(number): value at offset (required)
-#   * :LE|BE: value is little/big endian (optional, defaults to LE)
-#   * $1|2|3|4: value has size of 8/16/24/32 bit (optional, defaults to 4)
-#   Examples: @0x10:BE$2 (get big endian 16b value at 0x10)
-# - (field): uses current value of a field. Accepted strings:
-#   - interleave, interleave_last, channels, sample_rate
-#   - start_offset, data_size
-#   - num_samples, loop_start_sample, loop_end_sample
-#   - subsong_count, subsong_offset
-# - (string): other special values for certain keys, described below
-# Those may be combined with math operations (+-*/):
-#  "field = (number) (op) (offset) (op) (field) (...)"
-
-# CODEC [REQUIRED]
-# Sets codec used to encode the data.
-# Accepted codec strings:
 # - PSX            PlayStation ADPCM
 #   * For many PS1/PS2/PS3 games
 #   * Interleave is multiple of 0x10, often +0x1000
@@ -140,9 +141,11 @@ The parser is fairly simple and may be buggy or unexpected in some cases. The or
 #   * For some 3DS games and many iOS games
 #   * Should set skip_samples (around 1024 but varies)
 codec = (codec string)
+```
 
-# CODEC VARIATIONS [OPTIONAL, depends on codec]
-# Accepted values:
+#### CODEC VARIATIONS
+Changes the behavior of some codecs:
+```
 # - NGC_DSP: 0=normal interleave, 1=byte interleave, 2=no interleave
 # - ATRAC3: 0=autodetect joint stereo, 1=force joint stereo, 2=force normal stereo
 # - XMA1|XMA2: 0=dual multichannel (2ch xN), 1=single multichannel (1ch xN)
@@ -150,202 +153,261 @@ codec = (codec string)
 # - PCFX: 0=standard, 1='buggy encoder' mode, 2/3=same as 0/1 but with double volume
 # - PCM4|PCM4_U: 0=low nibble first, 1=high nibble first
 # - others: ignored
-codec_mode = (value)
+codec_mode = (variation)
+```
 
-# (deprecated) VALUE MODIFIERS [OPTIONAL]
-# Changes next read to: "(key) = (number)|(offset)|(field) */+- value_(op)"
-# Deprecated, should use inline math instead.
-# Set to 0 when done using, as it affects ANY value. Priority is as listed.
-value_mul|value_* = (number)|(offset)|(field)
-value_div|value_/ = (number)|(offset)|(field)
-value_add|value_+ = (number)|(offset)|(field)
-value_sub|value_- = (number)|(offset)|(field)
+#### (deprecated) VALUE MODIFIERS
+*Use inline math instead of this.*
 
-# INTERLEAVE / FRAME SIZE [REQUIRED/OPTIONAL, depends on codec]
-# For mono/interleaved codecs it's the amount of data between channels,
-# and while optional you'll often need to set it to get proper sound.
-# For codecs with custom frame sizes (MSADPCM, MS-IMA, ATRAC3/plus)
-# means frame size and it's required.
-# Interleave 0 means "stereo mode" for codecs marked as "mono/stereo",
-# and setting it will usually force mono-interleaved mode.
-# Special values:
-# - half_size: sets interleave as data_size / channels
-interleave = (number)|(offset)|(field)|half_size
+Changes next read to: `(key) = (value) */+- value_(op)`. Set to 0 when done using, as it affects ANY value. Priority is as listed.
+```
+value_mul|value_* = (value)
+value_div|value_/ = (value)
+value_add|value_+ = (value)
+value_sub|value_- = (value)
+```
 
-# INTERLEAVE IN THE LAST BLOCK [OPTIONAL]
-# In some files with interleaved data the last block is smaller than interleave,
-# so interleave must be smaller in the last block. This fixes decoding glitches
-# for those files. Note that this doesn't affect files with padding data in the
-# last block (as the interleave itself is constant).
-# Special values:
-# - auto: calculate based on channels, interleave and data_size/start_offset
-interleave_last = (number)|auto
+#### INTERLEAVE / FRAME SIZE [REQUIRED depending on codec]
+This value changes how data is read depending on the codec:
+- For mono/interleaved codecs it's the amount of data between channels, and while optional (defaults described in the "codec" section) you'll often need to set it to get proper sound.
+- For codecs with custom frame sizes (MSADPCM, MS-IMA, ATRAC3/plus) means frame size and is required.
+- Interleave 0 means "stereo mode" for codecs marked as "mono/stereo", and setting it will usually force mono-interleaved mode.
 
-# ID VALUES [OPTIONAL]
-# Validates that id_value (normally set as constant) matches value at id_offset.
-# Can be redefined several times, it's checked whenever a new id_offset is found.
-id_value = (number)|(offset)|(field)
-id_offset = (number)|(offset)|(field)
+Special values:
+- `half_size`: sets interleave as data_size / channels automatically
+```
+interleave = (value)|half_size
+```
 
-# NUMBER OF CHANNELS [REQUIRED]
-channels = (number)|(offset)|(field)
+#### INTERLEAVE IN THE LAST BLOCK
+In some files with interleaved data the last block (`interleave * channels`) of data is smaller than normal, so `interleave` is smaller for that block. Setting this fixes decoding glitches at the end.
 
-# MUSIC FREQUENCY [REQUIRED]
-sample_rate = (number)|(offset)|(field)
+Note that this doesn't affect files with padding data in the last block (as the `interleave` itself is constant).
 
-# DATA START [OPTIONAL, defaults to 0]
-start_offset = (number)|(offset)|(field)
+Special values:
+- `auto`: calculate based on channels, interleave and data_size/start_offset
+```
+interleave_last = (value)|auto
+```
 
-# DATA SIZE [OPTIONAL]
-# Special variable that can be used in sample values.
-# Defaults to (file_size - start_offset), re-calculated when start_offset
-# is set. With multiple subsongs or block_size are this it's recalculated as well.
-# When padding is set it's also adjusted.
-# If data_size is manually set it stays constant and won't be auto changed.
-data_size = (number)|(offset)|(field)
+#### ID VALUES
+Validates that `id_value` (normally set as constant value) matches value read at `id_offset`. The file will be rejected and won't play if values don't match.
 
-# DATA PADDING [OPTIONAL, defaults to 0]
-# Some aligned files have some extra padding that is meant to be skipped.
-# This adjusts the padding in data_size, manually or auto-calculated.
-# Special values (for PS-ADPCM):
-# - auto: discards null frames
-# - auto-empty: discards null and 'empty' frames (for games with weird padding)
-padding_size = (number)|(offset)|(field)|auto|auto-empty
+Can be redefined several times, it's checked whenever a new id_offset is found.
+```
+id_value = (value)
+id_offset = (value)
+```
 
-# SAMPLE MEANINGS [OPTIONAL, defaults to samples]
-# Modifies the meaning of sample fields when set *before* them.
-# Accepted values:
-# - samples: exact sample
-# - bytes: automatically converts bytes/offset to samples (applies after */+- modifiers)
-# - blocks: same as bytes, but value is given in blocks/frames
-#   Value is internally converted from blocks to bytes first: bytes = (value * interleave*channels)
-# Some codecs can't convert bytes-to-samples at the moment: FFMPEG
-# For XMA1/2 bytes does special parsing, with loop values being bit offsets within data.
+#### NUMBER OF CHANNELS [REQUIRED]
+```
+channels = (value)
+```
+
+#### MUSIC FREQUENCY [REQUIRED]
+```
+sample_rate = (value)
+```
+
+#### DATA START
+Where encoded data actually starts, after the header part. Defaults to 0.
+```
+start_offset = (value)
+```
+
+#### DATA SIZE
+Special variable that can be used in sample values. Defaults to `(file_size - start_offset)`, re-calculated when `start_offset` is set. With multiple subsongs, `block_size` or padding are set this it's recalculated as well.
+
+If data_size is manually set it stays constant and won't be auto changed.
+```
+data_size = (value)
+```
+
+#### DATA PADDING
+Some files have extra padding at the end that is meant to be ignored. This adjusts the padding in `data_size`, manually or auto-calculated.
+
+Special values (for PS-ADPCM only):
+- `auto`: discards null frames
+- `auto-empty`: discards null and 'empty' frames (for games with weird padding)
+```
+padding_size = (value)|auto|auto-empty
+```
+
+#### SAMPLE MEANINGS
+Modifies the meaning of sample fields when set *before* them.
+
+Accepted values:
+- `samples`: exact sample (default)
+- `bytes`: automatically converts bytes/offset to samples (applies after */+- modifiers)
+- `blocks`: same as bytes, but value is given in blocks/frames
+  * Value is internally converted from blocks to bytes first: `bytes = (value * interleave*channels)`
+
+Some codecs can't convert bytes-to-samples at the moment: `FFMPEG`. For XMA1/2, bytes does special parsing, with loop values being bit offsets within data (as XMA has a peculiar way to loop).
+```
 sample_type = samples|bytes|blocks
+```
 
-# SAMPLE VALUES [REQUIRED (num_samples) / OPTIONAL (rest)]
-# Special values:
-# - data_size: automatically converts bytes-to-samples
-num_samples         = (number)|(offset)|(field)|data_size
-loop_start_sample   = (number)|(offset)|(field)
-loop_end_sample     = (number)|(offset)|(field)|data_size
+#### SAMPLE VALUES [REQUIRED (num_samples)]
+Special values:
+- `data_size`: automatically converts bytes-to-samples
+```
+num_samples         = (value)|data_size
+loop_start_sample   = (value)
+loop_end_sample     = (value)|data_size
+```
 
-# LOOP SETTING [OPTIONAL]
-# Force loop, on (>0) or off (0), as loop start/end may be defined but not used.
-# Ignores values 0xFFFF/0xFFFFFFFF (-1) as they are often used to disable loops.
-# By default it loops when loop_end_sample is defined and less than num_samples.
-# Special values:
-# - auto: tries to autodetect loop points for PS-ADPCM data using data loop flags.
-loop_flag = (number)|(offset)|(field)|auto
+#### LOOP SETTING
+Force loop on or off, as loop start/end may be defined but not used. If not set, by default it loops when loop_end_sample is defined and less than num_samples.
 
-# LOOP START/END MODIFIER [OPTIONAL]
-# For XMA1/2 + sample_type=bytes it means loop subregion, if read after loop values.
-# For other codecs its added to loop start/end, if read before loop values
-# (a format may rarely have rough loop offset/bytes, then a loop adjust in samples).
-loop_adjust = (number)|(offset)|(field)
+Special values:
+- auto: tries to autodetect loop points for PS-ADPCM data using data loop flags.
 
-# ENCODER DELAY [OPTIONAL]
-# Beginning samples to skip, a.k.a. priming samples or encoder delay.
-# Only a few codecs use them (ATRAC3/ATRAC3PLUS/XMA/FFMPEG/AC3/AAC), since
-# they need to "warm up" with a number of skip_samples.
-skip_samples = (number)|(offset)|(field)
+Sometimes games give loop flags different meaning, so behavior can be tweaked by defining `loop_behavior` before `loop_flag`:
+- `default`: values 0 or 0xFFFF/0xFFFFFFFF (-1) disable looping, but not 0xFF (loop endlessly)
+- `negative`: values 0xFF/0xFFFF/0xFFFFFFFF (-1) enable looping
+- `positive`: values 0xFF/0xFFFF/0xFFFFFFFF (-1) disable looping
 
-# DSP DECODING COEFFICIENTS [REQUIRED for DSP]
-# These coefs are a list of 8*2 16-bit values per channel, starting from offset.
-coef_offset = (number)|(offset)|(field)
-# Offset separation per channel, usually 0x20 (16 values * 2 bytes)
-# Channel N coefs are read at coef_offset + coef_spacing * N
-coef_spacing = (number)|(offset)|(field)
-# Format, usually BE; with (offset): 0=LE, >0=BE
-coef_endianness = BE|LE|(offset)|(field)
-# Split/normal coefs [NOT IMPLEMENTED YET]
-#coef_mode = (number)|(offset)
-# Inline coefs, used over those found in coef_offset. Format is a long string
-# of bytes (optionally space-separated). It's interpreted like normal coefs
-# (byte array), meaning you still need to set coef_spacing and coef_endianness.
-# coef_table = 0x1E02DE01 3C0C0EFA ...
+```
+loop_negative = default|negative|positive
+loop_flag = (value)|auto
+```
+
+#### LOOP START/END MODIFIER
+For XMA1/2 + sample_type=bytes it means loop subregion, if read after loop values.
+
+For other codecs its added to loop start/end, if read before loop values (a format may rarely have rough loop offset/bytes, then a loop adjust in samples).
+
+```
+loop_adjust = (value)
+```
+
+#### ENCODER DELAY
+Beginning samples to skip, a.k.a. priming samples or encoder delay, that some codecs use to "warm up" the decoder. This is needed for proper gapless support.
+
+Supported codecs: `ATRAC3/ATRAC3PLUS/XMA/FFMPEG/AC3/AAC`
+```
+skip_samples = (value)
+```
+
+#### DSP DECODING COEFFICIENTS [REQUIRED for DSP]
+DSP needs a "coefs" list to decode correctly. These are 8*2 16-bit values per channel, starting from `coef_offset`.
+
+Usually each channel uses its own list, so we can set the separation per channel, usually 0x20 (16 values * 2 bytes). So channel N coefs are read at `coef_offset + coef_spacing * N`
+
+Those 16-bit coefs can be little or big endian (usually BE), set `coef_endianness` directly or in an offset value where ´0=LE, >0=BE´.
+
+While the coef table is almost always included per-file, some games have their coef table in the executable or precalculated somehow. You can set inline coefs instead of coef_offset. Format is a long string of bytes (optionally space-separated) like `coef_table = 0x1E02DE01 3C0C0EFA ...`. You still need to set `coef_spacing` and `coef_endianness` though.
+```
+coef_offset = (value)
+coef_spacing = (value)
+coef_endianness = BE|LE|(value)
 coef_table = (string)
+```
 
-# HEADER/BODY SETTINGS [OPTIONAL]
-# Changes internal header/body representation to external files.
-#
-# TXTH commands are done on a "header", and decoding on "body".
-# When loading an unsupported file it becomes the "base" file
-# that loads the .txth, and is both header and body.
-#
-# You can alter those, mainly for files that split header and body
-# in separate files (load base file and txth sets header on another file).
-# It's also possible to load the .txth directly with a set body, as a sort of
-# "reverse TXTH" (useful with bigfiles, as you could have one .txth per song).
-#
-# Allowed values:
-# - (filename): open any file, subdirs also work (dir/filename)
-# - *.(extension): opens with same name as the "base" file plus another extension
-# - null: unloads file and goes back to defaults (body/header = base file).
+#### HEADER/BODY SETTINGS
+Changes internal header/body representation to external files.
+
+TXTH commands are done on a "header", and decoding on "body". When loading an unsupported file it becomes the "base" file
+that loads the .txth, and is both header and body.
+
+You can alter those, mainly for files that split header and body in separate files (load base file and txth sets header on another file). It's also possible to load the .txth directly with a set body, as a sort of "reverse TXTH" (useful with bigfiles, as you could have one .txth per song).
+
+Allowed values:
+- (filename): open any file, subdirs also work (dir/filename)
+- *.(extension): opens with same name as the "base" file (the one you open, not the .txth) plus another extension
+- null: unloads file and goes back to defaults (body/header = base file).
+```
 header_file = (filename)|*.(extension)|null
 body_file = (filename)|*.(extension)|null
-
-# SUBSONGS [OPTIONAL]
-# Sets the number of subsongs in the file, adjusting reads per subsong N:
-# "value = @(offset) + subsong_offset*N". (number) values aren't adjusted
-# as they are seen as constants.
-# Mainly for bigfiles with consecutive headers per subsong, set subsong_offset
-# to 0 when done as it affects any reads.
-# The current subsong number is handled externally by plugins or TXTP.
-subsong_count = (number)|(offset)|(field)
-subsong_offset = (number)|(offset)|(field)
-
-# NAMES [OPTIONAL]
-# Sets the name of the stream, most useful when used with subsongs.
-# TXTH will read a string at name_offset, with name_size characters.
-# name_size defaults to 0, which reads until null-terminator or a
-# non-ascii character.
-# name_offset can be a (number) value, but being an offset it's also
-# adjusted by subsong_offset.
-name_offset = (number)|(offset)|(field)
-name_size = (number)|(offset)|(field)
-
-# SUBFILES [OPTIONAL]
-# Tells TXTH to parse a full file (ex. .ogg) at subfile_offset, with size
-# of subfile_size (defaults to file size - subfile_offset if not set).
-# Internal subfile extension can be changed to subfile_extension if needed,
-# as vgmstream won't accept unknown extensions (for example if your file 
-# uses .pogg you may need to set subfile_extension = ogg).
-# Setting any of those three will trigger this mode (it's ok to set offset 0).
-# Once triggered most fields are ignored, but not all, explained below.
-subfile_offset = (number)|(offset)|(field)
-subfile_size = (number)|(offset)|(field)
-subfile_extension = (string)
-
-# CHUNK DEINTERLEAVING [OPTIONAL]
-# Some files interleave data chunks, for example 3 stereo songs pasted together,
-# alternating 0x10000 bytes of data each. These settings allow vgmstream to play
-# one of the chunks while ignoring the rest (read 0x10000 data, skip 0x10000*2).
-# File is first "dechunked" then played with using other settings (start_offset
-# would points within the internal "dechunked" file).
-#
-# You need to set:
-# - chunk_count: total number of interleaved chunks (ex. 3=3 interleaved songs)
-# - chunk_number: first chunk to start (ex. 1=0x00000, 2=0x10000, 3=0x20000...)
-#   If you set subsong_count first chunk_number will be auto-set per subsong.
-#   (subsong 1 starts from chunk number 1, subsong 2 from chunk 2, etc)
-# - chunk_start: absolute offset where chunks start (normally 0x00)
-# - chunk_size: amount of data in a single chunk (ex. 0x10000).
-# For fine-tuning you can optionally set (before chunk_size, for reasons):
-# - chunk_header_size: header to skip before chunk data (part of chunk_size)
-# - chunk_data_size: actual data size (part of chunk_size, rest is header/padding)
-# So, if you set size to 0x1000, header_size 0x100, data_size is implicitly 0xF00,
-# or if size is 0x1000 and data_size 0x800 last 0x200 is ignored padding.
-#
-# Use combinations of the above to make vgmstream "see" only actual codec data.
-#
-chunk_count = (number)|(offset)|(field)
-chunk_number = (number)|(offset)|(field)
-chunk_start = (number)|(offset)|(field)
-chunk_header_size = (number)|(offset)|(field)
-chunk_data_size = (number)|(offset)|(field)
-chunk_size = (number)|(offset)|(field)
 ```
+
+#### SUBSONGS
+Sets the number of subsongs in the file, adjusting reads per subsong N: `value = @(offset) + subsong_offset*N`. number/constants values aren't adjusted though.
+
+Mainly for bigfiles with consecutive headers per subsong, set subsong_offset to 0 when done as it affects any reads. The current subsong number is handled externally by plugins or TXTP.
+```
+subsong_count = (value)
+subsong_offset = (value)
+```
+
+#### NAMES
+Sets the name of the stream, most useful when used with subsongs. TXTH will read a string at `name_offset`, with `name_size characters`.
+
+`name_size` defaults to 0, which reads until null-terminator or a non-ascii character is found.
+
+`name_offset` can be a (number) value, but being an offset it's also adjusted by subsong_offset.
+```
+name_offset = (value)
+name_size = (value)
+```
+
+#### SUBFILES
+Tells TXTH to parse a full file (ex. an Ogg) at `subfile_offset`, with size of `subfile_size` (defaults to `file size - subfile_offset` if not set). This is useful for files that are just container of other files, so you don't have to remove the extra data (since it could contain useful stuff like loop info).
+
+Internal subfile extension can be changed to `subfile_extension` if needed, as vgmstream won't accept unknown extensions (for example if your file uses .vgmstream or .pogg you may need to set subfile_extension = ogg).
+
+Setting any of those three will trigger this mode (it's ok to set offset 0). Once triggered most fields are ignored, but not all, explained later. This will also set some values like `channels` or `sample_rate` if not set for calculations/convenience.
+```
+subfile_offset = (value)
+subfile_size = (value)
+subfile_extension = (string)
+```
+
+#### CHUNK DEINTERLEAVING
+Some files interleave data chunks, for example 3 stereo songs pasted together, alternating 0x10000 bytes of data each. These settings allow vgmstream to play one of the chunks while ignoring the rest (read 0x10000 data, skip 0x10000*2).
+File is first "dechunked" then played with using other settings (`start_offset` would point within the internal  dechunked" file). It can be used to remove garbage data that affects decoding, too.
+
+
+You need to set:
+- `chunk_count`: total number of interleaved chunks (ex. 3=3 interleaved songs)
+- `chunk_number`: first chunk to start (ex. 1=0x00000, 2=0x10000, 3=0x20000...)
+  * If you set `subsong_count` first `chunk_number` will be auto-set per subsong (subsong 1 starts from chunk number 1, subsong 2 from chunk 2, etc)
+- `chunk_start`: absolute offset where chunks start (normally 0x00)
+- `chunk_size`: amount of data in a single chunk (ex. 0x10000)
+For fine-tuning you can optionally set (before `chunk_size`, for reasons):
+- `chunk_header_size`: header to skip before chunk data (part of chunk_size)
+- `chunk_data_size`: actual data size (part of chunk_size, rest is header/padding)
+
+So, if you set size to 0x1000, header_size 0x100, data_size is implicitly 0xF00, or if size is 0x1000 and data_size 0x800 last 0x200 is ignored padding. Use combinations of the above to make vgmstream "see" only actual codec data.
+```
+chunk_count = (value)
+chunk_number = (value)
+chunk_start = (value)
+chunk_header_size = (value)
+chunk_data_size = (value)
+chunk_size = (value)
+```
+
+#### NAME LIST
+Some games have headers for all files pasted together separate from the actual data, but this order may be hard-coded or even alphabetically ordered by filename. In those cases you can set a "name list" that assigns constant values (one or many) to filenames. This list is loaded from an external text file (for clarity) and can be set to any name, for example `name_list = .names.txt`
+```
+name_list = (filename)
+```
+
+Inside the list you define lines mapping a filename to a bunch of values, in this format:
+```
+# base definition
+(filename1): (value)
+...
+# may put multiple comma-separated values, spaces are ok
+(filenameN)    : (value1), (...)   ,   (valueN)
+
+# put no name before the : to set default values
+ : (value1), (...), (valueN)
+```
+Then I'll find your current file name, and you can then reference its numbers from the list as a `name_value` field, like `base_offset = name_value`, `start_offset = 0x1000 + name_value1`, `interleave = name_value5`, etc. `(filename)` can be with or without extension (like `bgm01.vag` or just `bgm01`), and if the file's name isn't found it'll use default values, and if those aren't defined you'll get 0 instead. Being "values" they can be use math or offsets too.
+
+While you can put anything in the numbers, this feature is meant to be used to store some number that points to the actual data inside a real multi-header, that could be set with `header_file`. If you need to store many constant values there is good chance this can be supported in some better way.
+
+
+#### BASE OFFSET MODIFIER
+You can set a default offset that affects next `@(offset)` reads making them `@(offset + base_offset)`, for cleaner parsing (particularly interesting when combined with the `name_list).
+
+For example instead of `channels = @0x714` you could set `base_offset = 0x710, channels = @0x04`. Set to 0 when you want to disable it.
+```
+base_offset = (value)
+```
+
 
 ## Complex usages
 
@@ -467,7 +529,7 @@ If a TXTH needs too many calculations it may be better to implement directly in 
 
 
 ### Modifiers
-Remnant of simpler math (priority is fixed to */+-), shouldn't be needed anymore.
+Remnant of simpler math (priority is fixed to */+-), *shouldn't be needed anymore*.
 
 ```
 value_multiply = 0x800
@@ -510,9 +572,9 @@ num_samples = @0x10
 loop_start_sample = @0x14
 loop_end_sample = @0x18
 ```
-Most fields can't be changed after parsing since doesn't make much sense technically, as the parsed subfile should supply them. You can supply them when using bytes-to-samples conversions, though.
+Most fields can't be changed after parsing since doesn't make much sense technically, as the parsed subfile should supply them. You can set them to use bytes-to-samples conversions, though.
 ```
-# parses subfile at start
+# parses subfile at start with some num_samples
 subfile_offset = 0x20
 # force recalculation of num_samples
 codec = PSX
@@ -581,8 +643,8 @@ num_samples = data_size
 
 **Colin McRae DiRT (PC) .wip.txth**
 ```
-id_value = 0x00000000
-id_offset = @0x00
+id_value = 0x00000000   #check that value at 0x00 is really 0x00000000
+id_offset = @0x00:BE
 
 codec = PCM16LE
 channels = 2
@@ -652,4 +714,89 @@ loop_end_sample   = @0x14:BE
 coef_offset = 0x1c
 coef_spacing = 0x10000
 coef_endianness = BE
+```
+**Aladdin in Nasira's Revenge (PS1) .cvs.txth**
+```
+codec = PSX
+interleave = 0x10
+sample_rate = 24000
+channels = 1
+padding_size = auto-empty
+num_samples = data_size
+```
+
+**Shikigami no Shiro - Nanayozuki Gensoukyoku (PS2) bgm.txth**
+```
+codec = PSX
+interleave = 0x1000
+
+# this .txth is meant to be loaded directly
+header_file = data/SLPM_660.69
+body_file = data/BGM.BIN
+
+channels = 2
+
+# subsong headers at 0x1A5A40, entry size 0x14, total 58 * 0x14 = 0x488
+subsong_count     = 58
+subsong_offset    = 0x14
+base_offset       = 0x1A5A40
+
+sample_rate       = @0x00
+start_offset      = @0x04 * 0x800  #in sectors
+
+sample_type       = bytes
+num_samples       = @0x08 * channels  #in 1ch sizes
+loop_start_sample = @0x0c * channels
+loop_end_sample   = @0x10 * channels
+
+data_size         = @0x08 * channels  #for bitrate
+```
+
+**Dragon Poker (Mobile) .snd.txth**
+```
+# parse MP3 inside the .snd
+subfile_extension = mp3
+subfile_offset = 0x14
+#subfile_size = @0x10
+
+# manually set looping
+codec = MPEG
+start_offset = 0x14
+num_samples = data_size
+loop_start_sample = 0
+loop_end_sample = data_size
+```
+
+**Simple 2000 Series Vol. 120 - The Saigo no Nihonhei (PS2) .xag.txth**
+```
+header_file = TSNDDRVC.IRX
+
+name_table = .names.txt
+base_offset = 0xAC3c + name_value
+
+codec = PSX
+interleave = @0x10
+sample_rate = @0x0A$2 * 48000 / 4096  #pitch value
+channels = @0x0D$1
+loop_start_sample = @0x0E$1 * interleave / 2 / 0x10 * 28
+loop_flag = @0x0F$1
+
+padding_size = auto-empty
+loop_end_sample = data_size
+num_samples = data_size
+```
+*.names.txt*
+```
+# offset-to-header within TSNDDRVC.IRX at around 0xAC3C + position * 0x18
+BGM001.XAG: 0x00
+BGM002.XAG: 0x18
+BGM000.XAG: 0x30
+BGM003.XAG: 0x48
+BGM008.XAG: 0xA8
+BGM010.XAG: 0xD8
+BGM011.XAG: 0xF0
+BGM012.XAG: 0x108
+PAD.XAG   : 0x150
+JIN002.XAG: 0x168
+JIN003.XAG: 0x180
 ```
