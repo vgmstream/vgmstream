@@ -70,6 +70,7 @@ typedef struct {
     uint32_t skip_samples;
 
     uint32_t loop_flag;
+    uint32_t loop_behavior;
     int loop_flag_set;
     int loop_flag_auto;
 
@@ -104,6 +105,8 @@ typedef struct {
     int chunk_start_set;
     int chunk_size_set;
     int chunk_count_set;
+
+    uint32_t base_offset;
 
     /* original STREAMFILE and its type (may be an unsupported "base" file or a .txth) */
     STREAMFILE *streamFile;
@@ -565,6 +568,19 @@ static VGMSTREAM *init_subfile(txth_header * txth) {
     //todo: other combos with subsongs + subfile?
 
 
+    /* load some fields for possible calcs */
+    if (!txth->channels)
+        txth->channels = vgmstream->channels;
+    if (!txth->sample_rate)
+        txth->sample_rate = vgmstream->sample_rate;
+    if (!txth->interleave)
+        txth->interleave = vgmstream->interleave_block_size;
+    if (!txth->interleave_last)
+        txth->interleave_last = vgmstream->interleave_last_block_size;
+    //if (!txth->loop_flag) //?
+    //    txth->loop_flag = vgmstream->loop_flag;
+
+
     close_streamfile(streamSubfile);
     return vgmstream;
 
@@ -696,7 +712,6 @@ static int parse_num(STREAMFILE * streamFile, txth_header * txth, const char * v
 static int parse_string(STREAMFILE * streamFile, txth_header * txth, const char * val, char * str);
 static int parse_coef_table(STREAMFILE * streamFile, txth_header * txth, const char * val, uint8_t * out_value, size_t out_size);
 static int is_string(const char * val, const char * cmp);
-static int is_substring(const char * val, const char * cmp);
 static int get_bytes_to_samples(txth_header * txth, uint32_t bytes);
 static int get_padding_size(txth_header * txth, int discard_empty);
 
@@ -979,10 +994,31 @@ static int parse_keyval(STREAMFILE * streamFile_, txth_header * txth, const char
         else {
             if (!parse_num(txth->streamHead,txth,val, &txth->loop_flag)) goto fail;
             txth->loop_flag_set = 1;
-            if (txth->loop_flag == 0xFFFF || txth->loop_flag == 0xFFFFFFFF) { /* normally -1 = no loop */
-                txth->loop_flag = 0;
+
+            if (txth->loop_behavior == 0) {
+                if ((txth->loop_flag == 0xFFFF || txth->loop_flag == 0xFFFFFFFF) )
+                    txth->loop_flag = 0;
+
+            }
+            else if (txth->loop_behavior == 1) {
+                if (txth->loop_flag == 0xFF || txth->loop_flag == 0xFFFF || txth->loop_flag == 0xFFFFFFFF)
+                    txth->loop_flag = 1;
+            }
+            else if (txth->loop_behavior == 2) {
+                if (txth->loop_flag == 0xFF || txth->loop_flag == 0xFFFF || txth->loop_flag == 0xFFFFFFFF)
+                    txth->loop_flag = 0;
             }
         }
+    }
+    else if (is_string(key,"loop_behavior")) {
+        if (is_string(val, "default"))
+            txth->loop_behavior = 0;
+        else if (is_string(val, "negative"))
+            txth->loop_behavior = 1;
+        else if (is_string(val, "positive"))
+            txth->loop_behavior = 2;
+        else
+            goto fail;
     }
 
     /* COEFS */
@@ -1139,6 +1175,12 @@ static int parse_keyval(STREAMFILE * streamFile_, txth_header * txth, const char
         set_body_chunk(txth);
     }
 
+    /* BASE OFFSET */
+    else if (is_string(key,"base_offset")) {
+        if (!parse_num(txth->streamHead,txth,val, &txth->base_offset)) goto fail;
+    }
+
+
     /* DEFAULT */
     else {
         VGM_LOG("TXTH: unknown key=%s, val=%s\n", key,val);
@@ -1152,8 +1194,28 @@ fail:
     return 0;
 }
 
+static int is_substring(const char * val, const char * cmp, int inline_field) {
+    char chr;
+    int len = strlen(cmp);
+    /* "val" must contain "cmp" entirely */
+    if (strncmp(val, cmp, len) != 0)
+        return 0;
+
+    chr = val[len];
+
+    /* "val" can end with math for inline fields (like interleave*0x10) */
+    if (inline_field && (chr == '+' || chr == '-' || chr == '*' || chr == '/'))
+        return len;
+
+    /* otherwise "val" ends in space or eof (to tell "interleave" and "interleave_last" apart) */
+    if (chr != '\0' && chr != ' ')
+        return 0;
+
+    return len;
+}
+
 static int is_string(const char * val, const char * cmp) {
-    int len = is_substring(val, cmp);
+    int len = is_substring(val, cmp, 0);
     if (!len) return 0;
 
     /* also test that after string there aren't other values
@@ -1166,19 +1228,8 @@ static int is_string(const char * val, const char * cmp) {
 
     return len;
 }
-
-static int is_substring(const char * val, const char * cmp) {
-    int len = strlen(cmp);
-    if (strncmp(val, cmp, len) != 0)
-        return 0;
-
-    /* string in val must be a full word (end with null or space) to
-     * avoid mistaking stuff like "interleave" with "interleave_last"
-     * (could also check , except when used for math */
-    if (val[len] != '\0' && val[len] != ' ')
-        return 0;
-
-    return len;
+static int is_string_field(const char * val, const char * cmp) {
+    return is_substring(val, cmp, 1);
 }
 
 static int parse_string(STREAMFILE * streamFile, txth_header * txth, const char * val, char * str) {
@@ -1278,6 +1329,9 @@ static int parse_num(STREAMFILE * streamFile, txth_header * txth, const char * v
                 if (sscanf(val, hex ? "@%x%n" : "@%u%n", &offset, &n) != 1) goto fail;
             }
 
+            /* adjust offset */
+            offset += txth->base_offset;
+
             if (/*offset < 0 ||*/ offset > get_streamfile_size(streamFile))
                 goto fail;
 
@@ -1306,17 +1360,17 @@ static int parse_num(STREAMFILE * streamFile, txth_header * txth, const char * v
             value_read = 1;
         }
         else { /* known field */
-            if      ((n = is_substring(val,"interleave")))          value = txth->interleave;
-            else if ((n = is_substring(val,"interleave_last")))     value = txth->interleave_last;
-            else if ((n = is_substring(val,"channels")))            value = txth->channels;
-            else if ((n = is_substring(val,"sample_rate")))         value = txth->sample_rate;
-            else if ((n = is_substring(val,"start_offset")))        value = txth->start_offset;
-            else if ((n = is_substring(val,"data_size")))           value = txth->data_size;
-            else if ((n = is_substring(val,"num_samples")))         value = txth->num_samples;
-            else if ((n = is_substring(val,"loop_start_sample")))   value = txth->loop_start_sample;
-            else if ((n = is_substring(val,"loop_end_sample")))     value = txth->loop_end_sample;
-            else if ((n = is_substring(val,"subsong_count")))       value = txth->subsong_count;
-            else if ((n = is_substring(val,"subsong_offset")))      value = txth->subsong_offset;
+            if      ((n = is_string_field(val,"interleave")))          value = txth->interleave;
+            else if ((n = is_string_field(val,"interleave_last")))     value = txth->interleave_last;
+            else if ((n = is_string_field(val,"channels")))            value = txth->channels;
+            else if ((n = is_string_field(val,"sample_rate")))         value = txth->sample_rate;
+            else if ((n = is_string_field(val,"start_offset")))        value = txth->start_offset;
+            else if ((n = is_string_field(val,"data_size")))           value = txth->data_size;
+            else if ((n = is_string_field(val,"num_samples")))         value = txth->num_samples;
+            else if ((n = is_string_field(val,"loop_start_sample")))   value = txth->loop_start_sample;
+            else if ((n = is_string_field(val,"loop_end_sample")))     value = txth->loop_end_sample;
+            else if ((n = is_string_field(val,"subsong_count")))       value = txth->subsong_count;
+            else if ((n = is_string_field(val,"subsong_offset")))      value = txth->subsong_offset;
             else goto fail;
             value_read = 1;
         }
