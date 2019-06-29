@@ -108,6 +108,9 @@ typedef struct {
 
     uint32_t base_offset;
 
+    uint32_t name_values[16];
+    int name_values_count;
+
     /* original STREAMFILE and its type (may be an unsupported "base" file or a .txth) */
     STREAMFILE *streamFile;
     int streamfile_is_txth;
@@ -711,6 +714,7 @@ static int parse_keyval(STREAMFILE * streamFile, txth_header * txth, const char 
 static int parse_num(STREAMFILE * streamFile, txth_header * txth, const char * val, uint32_t * out_value);
 static int parse_string(STREAMFILE * streamFile, txth_header * txth, const char * val, char * str);
 static int parse_coef_table(STREAMFILE * streamFile, txth_header * txth, const char * val, uint8_t * out_value, size_t out_size);
+static int parse_name_table(txth_header * txth, char * val);
 static int is_string(const char * val, const char * cmp);
 static int get_bytes_to_samples(txth_header * txth, uint32_t bytes);
 static int get_padding_size(txth_header * txth, int discard_empty);
@@ -1180,6 +1184,11 @@ static int parse_keyval(STREAMFILE * streamFile_, txth_header * txth, const char
         if (!parse_num(txth->streamHead,txth,val, &txth->base_offset)) goto fail;
     }
 
+    /* NAME TABLE */
+    else if (is_string(key,"name_table")) {
+        if (!parse_name_table(txth,val)) goto fail;
+    }
+
 
     /* DEFAULT */
     else {
@@ -1268,6 +1277,113 @@ static int parse_coef_table(STREAMFILE * streamFile, txth_header * txth, const c
 fail:
     return 0;
 }
+
+static int parse_name_table(txth_header * txth, char * name_list) {
+    STREAMFILE *nameFile = NULL;
+    off_t txt_offset, file_size;
+    char filename[PATH_LIMIT];
+    char basename[PATH_LIMIT];
+
+    /* just in case */
+    if (txth->streamfile_is_txth || !txth->streamText || !txth->streamFile)
+        goto fail;
+
+    /* trim name_list just in case */
+    {
+        int name_list_len = strlen(name_list);
+        int i;
+        for (i = name_list_len - 1; i >= 0; i--) {
+            if (name_list[i] != ' ')
+                break;
+            name_list[i] = '\0';
+        }
+    }
+
+    //;VGM_LOG("TXTH: name_list2='%s'\n", name_list);
+
+    /* open companion file near .txth */
+    nameFile = open_streamfile_by_filename(txth->streamText, name_list);
+    if (!nameFile) goto fail;
+
+    get_streamfile_filename(txth->streamFile, filename, sizeof(filename));
+    get_streamfile_basename(txth->streamFile, basename, sizeof(basename));
+    //;VGM_LOG("TXTH: filename=%s, basename=%s\n", filename, basename);
+
+    txt_offset = 0x00;
+    file_size = get_streamfile_size(nameFile);
+
+    /* skip BOM if needed */
+    if ((uint16_t)read_16bitLE(0x00, nameFile) == 0xFFFE ||
+        (uint16_t)read_16bitLE(0x00, nameFile) == 0xFEFF) {
+        txt_offset = 0x02;
+    }
+    else if (((uint32_t)read_32bitBE(0x00, nameFile) & 0xFFFFFF00) == 0xEFBBBF00) {
+        txt_offset = 0x03;
+    }
+
+    /* in case of repeated name_lists */
+    memset(txth->name_values, 0, sizeof(txth->name_values));
+    txth->name_values_count = 0;
+
+    /* read lines and find target filename, format is (filename): value1, ... valueN */
+    while (txt_offset < file_size) {
+        char line[TXT_LINE_MAX] = {0};
+        char key[TXT_LINE_MAX] = {0}, val[TXT_LINE_MAX] = {0};
+        int ok, bytes_read, line_done;
+
+        bytes_read = get_streamfile_text_line(TXT_LINE_MAX,line, txt_offset,nameFile, &line_done);
+        if (!line_done) goto fail;
+        //;VGM_LOG("TXTH: line=%s\n",line);
+
+        txt_offset += bytes_read;
+
+        /* get key/val (ignores lead spaces, stops at space/comment/separator) */
+        ok = sscanf(line, " %[^ \t#:] : %[^\t#\r\n] ", key,val);
+        if (ok != 2) { /* ignore line if no key=val (comment or garbage) */
+            /* try again with " (empty): (val)) */
+            key[0] = '\0';
+            ok = sscanf(line, " : %[^\t#\r\n] ", val);
+            if (ok != 1)
+                continue;
+        }
+
+
+        //;VGM_LOG("TXTH: compare name '%s'\n", key);
+        /* parse values if key (name) matches default ("") or filename with/without extension */
+        if (key[0]=='\0' || strcmpi(key, filename)==0 || strcmpi(key, basename)==0) {
+            int n;
+            char subval[TXT_LINE_MAX];
+            const char *current = val;
+
+            while (current[0] != '\0') {
+                ok = sscanf(current, " %[^\t#\r\n,]%n ", subval, &n);
+                if (ok != 1)
+                    goto fail;
+
+                current += n;
+                if (current[0] == ',')
+                    current++;
+
+                if (!parse_num(txth->streamHead,txth,subval, &txth->name_values[txth->name_values_count])) goto fail;
+                txth->name_values_count++;
+                if (txth->name_values_count >= 16) /* surely nobody needs that many */
+                    goto fail;
+            }
+
+            //;VGM_LOG("TXTH: found name '%s'\n", key);
+            break; /* target found */
+        }
+    }
+
+    /* ignore if name is not actually found (values will return 0) */
+
+    close_streamfile(nameFile);
+    return 1;
+fail:
+    close_streamfile(nameFile);
+    return 0;
+}
+
 
 static int parse_num(STREAMFILE * streamFile, txth_header * txth, const char * val, uint32_t * out_value) {
     /* out_value can be these, save before modifying */
@@ -1360,17 +1476,35 @@ static int parse_num(STREAMFILE * streamFile, txth_header * txth, const char * v
             value_read = 1;
         }
         else { /* known field */
-            if      ((n = is_string_field(val,"interleave")))          value = txth->interleave;
-            else if ((n = is_string_field(val,"interleave_last")))     value = txth->interleave_last;
-            else if ((n = is_string_field(val,"channels")))            value = txth->channels;
-            else if ((n = is_string_field(val,"sample_rate")))         value = txth->sample_rate;
-            else if ((n = is_string_field(val,"start_offset")))        value = txth->start_offset;
-            else if ((n = is_string_field(val,"data_size")))           value = txth->data_size;
-            else if ((n = is_string_field(val,"num_samples")))         value = txth->num_samples;
-            else if ((n = is_string_field(val,"loop_start_sample")))   value = txth->loop_start_sample;
-            else if ((n = is_string_field(val,"loop_end_sample")))     value = txth->loop_end_sample;
-            else if ((n = is_string_field(val,"subsong_count")))       value = txth->subsong_count;
-            else if ((n = is_string_field(val,"subsong_offset")))      value = txth->subsong_offset;
+            if      ((n = is_string_field(val,"interleave")))           value = txth->interleave;
+            else if ((n = is_string_field(val,"interleave_last")))      value = txth->interleave_last;
+            else if ((n = is_string_field(val,"channels")))             value = txth->channels;
+            else if ((n = is_string_field(val,"sample_rate")))          value = txth->sample_rate;
+            else if ((n = is_string_field(val,"start_offset")))         value = txth->start_offset;
+            else if ((n = is_string_field(val,"data_size")))            value = txth->data_size;
+            else if ((n = is_string_field(val,"num_samples")))          value = txth->num_samples;
+            else if ((n = is_string_field(val,"loop_start_sample")))    value = txth->loop_start_sample;
+            else if ((n = is_string_field(val,"loop_end_sample")))      value = txth->loop_end_sample;
+            else if ((n = is_string_field(val,"subsong_count")))        value = txth->subsong_count;
+            else if ((n = is_string_field(val,"subsong_offset")))       value = txth->subsong_offset;
+            //todo whatever, improve
+            else if ((n = is_string_field(val,"name_value")))           value = txth->name_values[0];
+            else if ((n = is_string_field(val,"name_value1")))          value = txth->name_values[0];
+            else if ((n = is_string_field(val,"name_value2")))          value = txth->name_values[1];
+            else if ((n = is_string_field(val,"name_value3")))          value = txth->name_values[2];
+            else if ((n = is_string_field(val,"name_value4")))          value = txth->name_values[3];
+            else if ((n = is_string_field(val,"name_value5")))          value = txth->name_values[4];
+            else if ((n = is_string_field(val,"name_value6")))          value = txth->name_values[5];
+            else if ((n = is_string_field(val,"name_value7")))          value = txth->name_values[6];
+            else if ((n = is_string_field(val,"name_value8")))          value = txth->name_values[7];
+            else if ((n = is_string_field(val,"name_value9")))          value = txth->name_values[8];
+            else if ((n = is_string_field(val,"name_value10")))         value = txth->name_values[9];
+            else if ((n = is_string_field(val,"name_value11")))         value = txth->name_values[10];
+            else if ((n = is_string_field(val,"name_value12")))         value = txth->name_values[11];
+            else if ((n = is_string_field(val,"name_value13")))         value = txth->name_values[12];
+            else if ((n = is_string_field(val,"name_value14")))         value = txth->name_values[13];
+            else if ((n = is_string_field(val,"name_value15")))         value = txth->name_values[14];
+            else if ((n = is_string_field(val,"name_value16")))         value = txth->name_values[15];
             else goto fail;
             value_read = 1;
         }
