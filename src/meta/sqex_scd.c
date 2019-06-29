@@ -154,6 +154,7 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
 
         ovmi.meta_type = meta_SQEX_SCD;
         ovmi.total_subsongs = total_subsongs;
+        ovmi.disable_reordering = 1; /* already ordered */
         /* loop values are in bytes, let init_vgmstream_ogg_vorbis find loop comments instead */
 
         ogg_version = read_8bit(extradata_offset + 0x00, streamFile);
