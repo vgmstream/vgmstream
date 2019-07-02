@@ -1350,7 +1350,7 @@ static int parse_name_table(txth_header * txth, char * name_list) {
 
         //;VGM_LOG("TXTH: compare name '%s'\n", key);
         /* parse values if key (name) matches default ("") or filename with/without extension */
-        if (key[0]=='\0' || strcmpi(key, filename)==0 || strcmpi(key, basename)==0) {
+        if (key[0]=='\0' || _stricmp(key, filename)==0 || _stricmp(key, basename)==0) {
             int n;
             char subval[TXT_LINE_MAX];
             const char *current = val;
