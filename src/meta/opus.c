@@ -341,3 +341,30 @@ VGMSTREAM * init_vgmstream_opus_opusx(STREAMFILE *streamFile) {
 fail:
     return NULL;
 }
+
+/* Prototype variation [Clannad (Switch)] */
+VGMSTREAM * init_vgmstream_opus_prototype(STREAMFILE *streamFile) {
+    off_t offset = 0;
+    int num_samples = 0, loop_start = 0, loop_end = 0, loop_flag;
+
+    /* checks */
+    if (!check_extensions(streamFile, "opus,lopus"))
+        goto fail;
+    if (read_32bitBE(0x00, streamFile) != 0x4F505553 || /* "OPUS" */
+        read_32bitBE(0x18, streamFile) != 0x01000080)
+        goto fail;
+
+    offset = 0x18;
+    num_samples = read_32bitLE(0x08, streamFile);
+
+    /* Check if there's a loop end value to determine loop_flag*/
+    loop_flag = read_32bitLE(0x10, streamFile);
+    if (loop_flag) {
+        loop_start = read_32bitLE(0x0C, streamFile);
+        loop_end = read_32bitLE(0x10, streamFile);
+    }
+
+    return init_vgmstream_opus(streamFile, meta_OPUS, offset, num_samples, loop_start, loop_end);
+fail:
+    return NULL;
+}
