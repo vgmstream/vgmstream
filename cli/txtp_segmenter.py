@@ -20,15 +20,18 @@ def parse():
         "%(prog)s files/bgm_*_all.ogg -s\n"
         "- create single .txtp per every bgm_(something)_all.ogg inside files dir\n"
         "%(prog)s **/*.ogg -l\n"
-        "- find all .ogg in all subdirs but list only"
+        "- find all .ogg in all subdirs but list only\n"
         "%(prog)s files/*.ogg -f .+(a|all)[.]ogg$\n"
         "- find all .ogg in files except those that end with 'a.ogg' or 'all.ogg'\n"
+        "%(prog)s files/*.ogg -f .+(00[01])[.]ogg$\n"
+        "- find all .ogg in files that end with '0.ogg' or '1.ogg'\n"
     )
 
     parser = argparse.ArgumentParser(description=description, epilog=epilog, formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument("files", help="files to match")
     parser.add_argument("-n","--name", help="generated txtp name (adapts 'files' by default)")
-    parser.add_argument("-f","--filter", help="filter matched files with regex")
+    parser.add_argument("-f","--filter", help="filter matched files with regex and keep rest")
+    parser.add_argument("-i","--include", help="include matched files with regex and ignore rest")
     parser.add_argument("-s","--single", help="generate single files per list match", action='store_true')
     parser.add_argument("-l","--list", help="list only results and don't write", action='store_true')
     parser.add_argument("-cls","--command-loop-start", help="sets loop start segment")
@@ -49,8 +52,15 @@ def is_file_ok(args, glob_file):
     if args.filter:
         filename_test = os.path.basename(glob_file)
         p = re.compile(args.filter)
-        if (p.match(filename_test) != None):
+        if p.match(filename_test) != None:
             return False
+
+    if args.include:
+        filename_test = os.path.basename(glob_file)
+        p = re.compile(args.include)
+        if p.match(filename_test) == None:
+            return False
+
     return True
 
 def get_txtp_name(args, segment):
