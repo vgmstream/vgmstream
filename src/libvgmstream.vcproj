@@ -452,6 +452,10 @@
                     RelativePath=".\meta\atx.c"
                     >
                 </File>
+                <File
+                    RelativePath=".\meta\awb.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\awc.c"
 					>

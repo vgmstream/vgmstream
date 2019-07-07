@@ -150,6 +150,7 @@
     <ClCompile Include="layout\layered.c" />
     <ClCompile Include="layout\blocked_tra.c" />
     <ClCompile Include="meta\akb.c" />
+    <ClCompile Include="meta\awb.c" />
     <ClCompile Include="meta\awc.c" />
     <ClCompile Include="meta\bcstm.c" />
     <ClCompile Include="meta\bfstm.c" />

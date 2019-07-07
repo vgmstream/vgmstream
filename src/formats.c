@@ -38,6 +38,7 @@ static const char* extension_list[] = {
     "adw",
     "adx",
     "afc",
+    "afs2",
     "agsc",
     "ahx",
     "ahv",
@@ -68,6 +69,7 @@ static const char* extension_list[] = {
     "atx",
     "aud",
     "aus",
+    "awb",
     "awc",
 
     "b1s",

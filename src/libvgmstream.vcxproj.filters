@@ -1567,6 +1567,9 @@
     <ClCompile Include="meta\sk_aud.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\awb.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\awc.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>

@@ -858,4 +858,6 @@ VGMSTREAM * init_vgmstream_bwav(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_opus_prototype(STREAMFILE * streamFile);
 
+VGMSTREAM * init_vgmstream_awb(STREAMFILE * streamFile);
+
 #endif /*_META_H*/
