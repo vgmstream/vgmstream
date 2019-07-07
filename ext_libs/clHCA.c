@@ -925,10 +925,11 @@ void clHCA_SetKey(clHCA *hca, unsigned long long keycode) {
 }
 
 int clHCA_TestBlock(clHCA *hca, void *data, unsigned int size) {
+    const int frame_samples = HCA_SUBFRAMES_PER_FRAME * HCA_SAMPLES_PER_SUBFRAME;
     const float scale = 32768.0f;
     unsigned int ch, sf, s;
     int status;
-    int clips = 0, blanks = 0;
+    int clips = 0, blanks = 0, channel_blanks[HCA_MAX_CHANNELS] = {0};
 
 
     /* first blocks can be empty/silent, check all bytes but sync/crc */
@@ -965,8 +966,10 @@ int clHCA_TestBlock(clHCA *hca, void *data, unsigned int size) {
                 }
                 else {
                     signed int psample = (signed int) (fsample * scale);
-                    if (psample == 0 || psample == -1)
+                    if (psample == 0 || psample == -1) {
                         blanks++;
+                        channel_blanks[ch]++;
+                    }
                 }
             }
         }
@@ -974,12 +977,21 @@ int clHCA_TestBlock(clHCA *hca, void *data, unsigned int size) {
 
     /* the more clips the less likely block was correctly decrypted */
     if (clips == 1)
-        clips++;
+        clips++; /* signal not full score */
     if (clips > 1)
         return clips;
+
     /* if block is silent result is not useful */
-    if (blanks == hca->channels * HCA_SUBFRAMES_PER_FRAME * HCA_SAMPLES_PER_SUBFRAME)
+    if (blanks == hca->channels * frame_samples)
         return 0;
+
+    /* some bad keys make left channel null and right normal enough (due to joint stereo stuff);
+     * it's possible real keys could do this but don't give full marks just in case */
+    if (hca->channels >= 2) {
+        /* only check main L/R, other channels like BL/BR are probably not useful */
+        if (channel_blanks[0] == frame_samples && channel_blanks[1] != frame_samples) /* maybe should check max/min values? */
+            return 3;
+    }
 
     /* block may be correct (but wrong keys can get this too and should test more blocks) */
     return 1;

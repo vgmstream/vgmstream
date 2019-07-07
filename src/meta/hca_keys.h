@@ -259,10 +259,10 @@ static const hcakey_info hcakey_list[] = {
         {6667},                     // 0000000000001A0B
 
         /* Libra of Precatus (Android) */
-        {0x6D8EFB700870FCD4},       // 6D8EFB700870FCD4
+        {7894523655423589588},      // 6D8EFB700870FCD4
 
         /* Mashiro Witch (Android) */
-        {0x55D11D3349495204},       // 55D11D3349495204
+        {6183755869466481156},      // 55D11D3349495204
 
         /* Iris Mysteria! (Android) */
         {62049655719861786},        // 00DC71D5479E1E1A
@@ -279,8 +279,21 @@ static const hcakey_info hcakey_list[] = {
         /* Fantasy Life Online (Android) */
         {123456789},                // 00000000075BCD15
 
+        /* Wonder Gravity (Android) */
+        {30623969886430861},        // 006CCC569EB1668D
+
+        /* Ryu ga Gotoku Online (Android) */
+        {59361939},                 // 000000000389CA93
+
+        /* Sengoku BASARA Battle Party (Android) */
+        {836575858265},             // 000000C2C7CE8E59
+
+        /* DAME x PRINCE (Android) */
+        {217019410378917901},       // 030302010100080D
+
         /* Dragalia Lost (Cygames) [iOS/Android] */
         {2967411924141,         subkeys_dgl, sizeof(subkeys_dgl) / sizeof(subkeys_dgl[0]) },    // 000002B2E7889CAD
+
 };
 
 #endif/*_HCA_KEYS_H_*/

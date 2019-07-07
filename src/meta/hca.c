@@ -2,12 +2,17 @@
 #include "hca_keys.h"
 #include "../coding/coding.h"
 
-static void find_hca_key(hca_codec_data * hca_data, unsigned long long * out_keycode);
+static void find_hca_key(hca_codec_data * hca_data, unsigned long long * out_keycode, uint16_t subkey);
 
 VGMSTREAM * init_vgmstream_hca(STREAMFILE *streamFile) {
+    return init_vgmstream_hca_subkey(streamFile, 0x0000);
+}
+
+VGMSTREAM * init_vgmstream_hca_subkey(STREAMFILE *streamFile, uint16_t subkey) {
     VGMSTREAM * vgmstream = NULL;
     hca_codec_data * hca_data = NULL;
     unsigned long long keycode = 0;
+
 
     /* checks */
     if ( !check_extensions(streamFile, "hca"))
@@ -34,7 +39,7 @@ VGMSTREAM * init_vgmstream_hca(STREAMFILE *streamFile) {
             keycode = key * ( ((uint64_t)sub << 16u) | ((uint16_t)~sub + 2u) );
         }
         else {
-            find_hca_key(hca_data, &keycode);
+            find_hca_key(hca_data, &keycode, subkey);
         }
 
         clHCA_SetKey(hca_data->handle, keycode); //maybe should be done through hca_decoder.c?
@@ -96,7 +101,7 @@ static inline void test_key(hca_codec_data * hca_data, uint64_t key, uint16_t su
 }
 
 /* Try to find the decryption key from a list. */
-static void find_hca_key(hca_codec_data * hca_data, unsigned long long * out_keycode) {
+static void find_hca_key(hca_codec_data * hca_data, unsigned long long * out_keycode, uint16_t subkey) {
     const size_t keys_length = sizeof(hcakey_list) / sizeof(hcakey_info);
     int best_score = -1;
     int i,j;
@@ -109,17 +114,18 @@ static void find_hca_key(hca_codec_data * hca_data, unsigned long long * out_key
         size_t subkeys_size = hcakey_list[i].subkeys_size;
         const uint16_t *subkeys = hcakey_list[i].subkeys;
 
-        if (subkeys_size > 0) {
+        /* try once with external subkey, if any */
+        test_key(hca_data, key, subkey, &best_score, out_keycode);
+        if (best_score == 1) /* best possible score */
+            goto done;
+
+        /* try subkey list */
+        if (subkeys_size > 0 && subkey == 0) {
             for (j = 0; j < subkeys_size; j++) {
                 test_key(hca_data, key, subkeys[j], &best_score, out_keycode);
                 if (best_score == 1) /* best possible score */
                     goto done;
             }
-        }
-        else {
-            test_key(hca_data, key, 0, &best_score, out_keycode);
-            if (best_score == 1) /* best possible score */
-                goto done;
         }
     }
 

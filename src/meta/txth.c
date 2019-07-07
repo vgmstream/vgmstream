@@ -296,6 +296,10 @@ VGMSTREAM * init_vgmstream_txth(STREAMFILE *streamFile) {
                 vgmstream->layout_type = layout_none;
             }
 
+            /* to avoid problems with dual stereo files (_L+_R) for codecs with stereo modes */
+            if (coding == coding_YAMAHA && txth.channels == 1)
+                coding = coding_YAMAHA_int;
+
             /* setup adpcm */
             if (coding == coding_YAMAHA || coding == coding_YAMAHA_int) {
                 int ch;
@@ -1241,6 +1245,76 @@ static int is_string_field(const char * val, const char * cmp) {
     return is_substring(val, cmp, 1);
 }
 
+static uint16_t get_string_wchar(const char * val, int pos, int *csize) {
+    uint16_t wchar = 0;
+
+    if ((val[pos] & 0x80) && val[pos+1] != '\0') {
+        wchar = (((val[pos] << 8u) & 0xFF00) | (val[pos+1] & 0xFF));
+        //wchar = ((((uint16_t)val[pos] << 8u)) | ((uint16_t)val[pos+1]));
+        if (csize) *csize = 2;
+
+        if (wchar >= 0xc380 && wchar <= 0xc39f) /* ghetto lowercase for common letters */
+            wchar += 0x20;
+    } else {
+        wchar = val[pos];
+        if (csize) *csize = 1;
+
+        if (wchar >= 0x41 && wchar <= 0x5a)
+            wchar += 0x20;
+    }
+
+    return wchar;
+}
+static int is_string_match(const char * text, const char * pattern) {
+    int t_pos = 0, p_pos = 0;
+    int p_size, t_size;
+    uint16_t p_char, t_char;
+    ;VGM_LOG("TXTH: match '%s' vs '%s'\n", text,pattern);
+
+    /* compares 2 strings (case insensitive, to a point) allowing wildcards
+     * ex. for "test": match = "Test*", "*est", "*teSt","T*ES*T"; fail = "tst", "teest"
+     *
+     * does some bleh UTF-8 handling, consuming dual bytes if needed (codepages set char's eighth bit).
+     * as such it's slower than standard funcs, but it's not like we need it to be ultra fast.
+     * */
+
+    while (text[t_pos] != '\0' && pattern[p_pos] != '\0') {
+        //;VGM_LOG("TXTH:  compare '%s' vs '%s'\n", (text+t_pos), (pattern+p_pos));
+
+        if (pattern[p_pos] == '*') {
+            /* consume text wchars until one matches next pattern char */
+            p_pos++;
+            p_char = get_string_wchar(pattern, p_pos, NULL); /* stop char, or null */
+
+            while(text[t_pos] != '\0') {
+                t_char = get_string_wchar(text, t_pos, &t_size);
+                ;VGM_LOG("TXTH:  consume %i '%s'\n", t_size, (text+t_pos)  );
+
+                if (t_char == p_char)
+                    break;
+                t_pos += t_size;
+            }
+        }
+        else if (pattern[p_pos] == '?') {
+            /* skip next text wchar */
+            get_string_wchar(text, t_pos, &t_size);
+            p_pos++;
+            t_pos += t_size;
+        }
+        else { /* must match 1:1 */
+            t_char = get_string_wchar(text, t_pos, &t_size);
+            p_char = get_string_wchar(pattern, p_pos, &p_size);
+            if (p_char != t_char)
+                break;
+            p_pos += p_size;
+            t_pos += t_size;
+        }
+    }
+
+    //;VGM_LOG("TXTH: match '%s' vs '%s' = %s\n", text,pattern, (text[t_pos] == '\0' && pattern[p_pos] == '\0') ? "true" : "false");
+    /* either all chars consumed/matched and both pos point to null, or one didn't so string didn't match */
+    return text[t_pos] == '\0' && pattern[p_pos] == '\0';
+}
 static int parse_string(STREAMFILE * streamFile, txth_header * txth, const char * val, char * str) {
     int n = 0;
 
@@ -1350,7 +1424,7 @@ static int parse_name_table(txth_header * txth, char * name_list) {
 
         //;VGM_LOG("TXTH: compare name '%s'\n", key);
         /* parse values if key (name) matches default ("") or filename with/without extension */
-        if (key[0]=='\0' || strcasecmp(key, filename)==0 || strcasecmp(key, basename)==0) {
+        if (key[0]=='\0' || is_string_match(filename, key) || is_string_match(basename, key)) {
             int n;
             char subval[TXT_LINE_MAX];
             const char *current = val;

@@ -131,6 +131,7 @@ VGMSTREAM * init_vgmstream_ogg_vorbis_callbacks(STREAMFILE *streamFile, ov_callb
 #endif
 
 VGMSTREAM * init_vgmstream_hca(STREAMFILE *streamFile);
+VGMSTREAM * init_vgmstream_hca_subkey(STREAMFILE *streamFile, uint16_t subkey);
 
 #ifdef VGM_USE_FFMPEG
 VGMSTREAM * init_vgmstream_ffmpeg(STREAMFILE *streamFile);
@@ -857,5 +858,7 @@ VGMSTREAM * init_vgmstream_fsb5_fev_bank(STREAMFILE * streamFile);
 VGMSTREAM * init_vgmstream_bwav(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_opus_prototype(STREAMFILE * streamFile);
+
+VGMSTREAM * init_vgmstream_awb(STREAMFILE * streamFile);
 
 #endif /*_META_H*/
