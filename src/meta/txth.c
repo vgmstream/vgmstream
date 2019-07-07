@@ -296,6 +296,10 @@ VGMSTREAM * init_vgmstream_txth(STREAMFILE *streamFile) {
                 vgmstream->layout_type = layout_none;
             }
 
+            /* to avoid problems with dual stereo files (_L+_R) for codecs with stereo modes */
+            if (coding == coding_YAMAHA && txth.channels == 1)
+                coding = coding_YAMAHA_int;
+
             /* setup adpcm */
             if (coding == coding_YAMAHA || coding == coding_YAMAHA_int) {
                 int ch;
