@@ -481,6 +481,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_9tav,
     init_vgmstream_fsb5_fev_bank,
     init_vgmstream_bwav,
+    init_vgmstream_opus_prototype,
 
     /* lowest priority metas (should go after all metas, and TXTH should go before raw formats) */
     init_vgmstream_txth,            /* proper parsers should supersede TXTH, once added */
