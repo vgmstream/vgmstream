@@ -378,13 +378,13 @@ chunk_data_size = (value)
 chunk_size = (value)
 ```
 
-#### NAME LIST
-Some games have headers for all files pasted together separate from the actual data, but this order may be hard-coded or even alphabetically ordered by filename. In those cases you can set a "name list" that assigns constant values (one or many) to filenames. This list is loaded from an external text file (for clarity) and can be set to any name, for example `name_list = .names.txt`
+#### NAME TABLE
+Some games have headers for all files pasted together separate from the actual data, but this order may be hard-coded or even alphabetically ordered by filename. In those cases you can set a "name table" that assigns constant values (one or many) to filenames. This table is loaded from an external text file (for clarity) and can be set to any name, for example `name_table = .names.txt`
 ```
-name_list = (filename)
+name_table = (filename)
 ```
 
-Inside the list you define lines mapping a filename to a bunch of values, in this format:
+Inside the table you define lines mapping a filename to a bunch of values, in this format:
 ```
 # base definition
 (filename1): (value)
@@ -396,6 +396,13 @@ Inside the list you define lines mapping a filename to a bunch of values, in thi
  : (value1), (...), (valueN)
 ```
 Then I'll find your current file name, and you can then reference its numbers from the list as a `name_value` field, like `base_offset = name_value`, `start_offset = 0x1000 + name_value1`, `interleave = name_value5`, etc. `(filename)` can be with or without extension (like `bgm01.vag` or just `bgm01`), and if the file's name isn't found it'll use default values, and if those aren't defined you'll get 0 instead. Being "values" they can be use math or offsets too.
+
+You can use wildcards to match multiple names too (it stops on first name that matches), and UTF-8 names should work, case insensitive even.
+```
+bgm_??_4: 4 # 4ch: files like bgm_00_4, bgm_01_4, etc
+bgm*_M: 1   # 1ch: some files end with _M for mono
+bgm*: 2     # 2ch: all other files, notice order matters
+```
 
 While you can put anything in the numbers, this feature is meant to be used to store some number that points to the actual data inside a real multi-header, that could be set with `header_file`. If you need to store many constant values there is good chance this can be supported in some better way.
 
