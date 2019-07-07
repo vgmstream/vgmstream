@@ -131,6 +131,7 @@ VGMSTREAM * init_vgmstream_ogg_vorbis_callbacks(STREAMFILE *streamFile, ov_callb
 #endif
 
 VGMSTREAM * init_vgmstream_hca(STREAMFILE *streamFile);
+VGMSTREAM * init_vgmstream_hca_subkey(STREAMFILE *streamFile, uint16_t subkey);
 
 #ifdef VGM_USE_FFMPEG
 VGMSTREAM * init_vgmstream_ffmpeg(STREAMFILE *streamFile);

@@ -11,7 +11,7 @@ VGMSTREAM * init_vgmstream_awb(STREAMFILE *streamFile) {
     size_t subfile_size;
     int total_subsongs, target_subsong = streamFile->stream_index;
     //uint32_t flags;
-    uint16_t alignment;//, derivation;
+    uint16_t alignment, subkey;
     awb_type type;
     char *extension = NULL;
 
@@ -26,8 +26,8 @@ VGMSTREAM * init_vgmstream_awb(STREAMFILE *streamFile) {
 
     //flags = read_32bitLE(0x08,streamFile);
     total_subsongs = read_32bitLE(0x08,streamFile);
-    alignment  = (uint16_t)read_16bitLE(0x0c,streamFile);
-    //derivation = (uint16_t)read_16bitLE(0x0e,streamFile);
+    alignment = (uint16_t)read_16bitLE(0x0c,streamFile);
+    subkey    = (uint16_t)read_16bitLE(0x0e,streamFile);
 
     if (target_subsong == 0) target_subsong = 1;
     if (target_subsong > total_subsongs || total_subsongs <= 0) goto fail;
@@ -86,7 +86,7 @@ VGMSTREAM * init_vgmstream_awb(STREAMFILE *streamFile) {
 
     switch(type) {
         case HCA: /* most common */
-            vgmstream = init_vgmstream_hca(temp_streamFile);
+            vgmstream = init_vgmstream_hca_subkey(temp_streamFile, subkey);
             if (!vgmstream) goto fail;
             break;
         case ADX: /* Okami HD (PS4) */
