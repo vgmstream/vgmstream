@@ -216,6 +216,7 @@ static const char* extension_list[] = {
     "kvs",
 
     "l",
+    "l00", //txth/reserved [Disney's Dinosaur (PS2)]
     "laac", //fake extension for .aac (tri-Ace)
     "laif", //fake extension for .aif (various)
     "laiff", //fake extension for .aiff
