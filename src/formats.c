@@ -333,6 +333,7 @@ static const char* extension_list[] = {
 
     "r",
     "rac", //txth/reserved [Manhunt (Xbox)]
+    "rad",
     "rak",
     "ras",
     "raw",
@@ -1195,6 +1196,7 @@ static const meta_info meta_info_list[] = {
         {meta_XWMA_KONAMI,          "Konami XWMA header"},
         {meta_9TAV,                 "Konami 9TAV header"},
         {meta_BWAV,                 "Nintendo BWAV header"},
+        {meta_RAD,                  "Traveller's Tales RAD header"},
 
 };
 
