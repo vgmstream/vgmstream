@@ -186,6 +186,7 @@
     <ClCompile Include="meta\mss.c" />
     <ClCompile Include="meta\mtaf.c" />
     <ClCompile Include="meta\ps2_spm.c" />
+    <ClCompile Include="meta\rad.c" />
     <ClCompile Include="meta\vs_str.c" />
     <ClCompile Include="meta\ps2_wmus.c" />
     <ClCompile Include="meta\ps3_ivag.c" />

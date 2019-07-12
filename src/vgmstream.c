@@ -483,6 +483,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_bwav,
     init_vgmstream_opus_prototype,
     init_vgmstream_awb,
+    init_vgmstream_rad,
 
     /* lowest priority metas (should go after all metas, and TXTH should go before raw formats) */
     init_vgmstream_txth,            /* proper parsers should supersede TXTH, once added */
