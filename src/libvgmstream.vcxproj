@@ -101,6 +101,7 @@
     <ClInclude Include="vgmstream.h" />
     <ClInclude Include="meta\adx_keys.h" />
     <ClInclude Include="meta\aax_utf.h" />
+    <ClInclude Include="meta\acb_utf.h" />
     <ClInclude Include="meta\9tav_streamfile.h" />
     <ClInclude Include="meta\aix_streamfile.h" />
     <ClInclude Include="meta\awc_xma_streamfile.h" />
@@ -231,6 +232,7 @@
     <ClCompile Include="meta\wv2.c" />
     <ClCompile Include="meta\xau_konami.c" />
     <ClCompile Include="meta\aax.c" />
+    <ClCompile Include="meta\acb.c" />
     <ClCompile Include="meta\acm.c" />
     <ClCompile Include="meta\adpcm_capcom.c" />
     <ClCompile Include="meta\ads.c" />

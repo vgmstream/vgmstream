@@ -26,6 +26,7 @@ static const char* extension_list[] = {
     "aax",
     "abk",
     //"ac3", //common, FFmpeg/not parsed (AC3)
+    "acb",
     "ace", //fake extension for tri-Ace's .aac (renamed, to be removed)
     "acm",
     "ad", //txth/reserved [Xenosaga Freaks (PS2)]

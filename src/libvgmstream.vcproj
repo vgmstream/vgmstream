@@ -233,6 +233,10 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\meta\acb_utf.h"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\9tav_streamfile.h"
                     >
                 </File>
@@ -396,6 +400,10 @@
 					RelativePath=".\meta\aax.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\meta\acb.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\acm.c"
 					>

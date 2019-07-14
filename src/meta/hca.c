@@ -65,6 +65,13 @@ VGMSTREAM * init_vgmstream_hca_subkey(STREAMFILE *streamFile, uint16_t subkey) {
     //if (vgmstream->loop_end_sample && vgmstream->num_samples > vgmstream->loop_end_sample)
     //    vgmstream->num_samples = vgmstream->loop_end_sample;
 
+    /* this can happen in preloading HCA from memory AWB */
+    if (hca_data->info.blockCount * hca_data->info.blockSize > get_streamfile_size(streamFile)) {
+        unsigned int max_block = get_streamfile_size(streamFile) / hca_data->info.blockSize;
+        vgmstream->num_samples = max_block * hca_data->info.samplesPerBlock -
+                hca_data->info.encoderDelay - hca_data->info.encoderPadding;
+    }
+
     vgmstream->coding_type = coding_CRI_HCA;
     vgmstream->layout_type = layout_none;
     vgmstream->codec_data = hca_data;
