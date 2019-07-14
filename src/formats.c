@@ -17,6 +17,7 @@ static const char* extension_list[] = {
     "208",
     "2dx9",
     "2pfs",
+    "8", //txth/reserved [Gungage (PS1)]
     "800",
     "9tav",
 
@@ -26,6 +27,7 @@ static const char* extension_list[] = {
     "aax",
     "abk",
     //"ac3", //common, FFmpeg/not parsed (AC3)
+    "acb",
     "ace", //fake extension for tri-Ace's .aac (renamed, to be removed)
     "acm",
     "ad", //txth/reserved [Xenosaga Freaks (PS2)]

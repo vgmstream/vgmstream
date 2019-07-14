@@ -291,6 +291,9 @@ static const hcakey_info hcakey_list[] = {
         /* DAME x PRINCE (Android) */
         {217019410378917901},       // 030302010100080D
 
+        /* Uta Macross SmaPho De Culture (Android) */
+        {396798934275978741},       // 0581B68744C5F5F5
+
         /* Dragalia Lost (Cygames) [iOS/Android] */
         {2967411924141,         subkeys_dgl, sizeof(subkeys_dgl) / sizeof(subkeys_dgl[0]) },    // 000002B2E7889CAD
 

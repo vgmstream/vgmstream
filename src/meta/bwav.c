@@ -6,7 +6,6 @@ VGMSTREAM * init_vgmstream_bwav(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     off_t start_offset;
     int channel_count, loop_flag;
-    size_t interleave = 0;
     int32_t coef_start_offset, coef_spacing;
 
     /* checks */
