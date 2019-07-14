@@ -17,6 +17,7 @@ static const char* extension_list[] = {
     "208",
     "2dx9",
     "2pfs",
+    "8", //txth/reserved [Gungage (PS1)]
     "800",
     "9tav",
 
