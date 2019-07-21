@@ -1237,6 +1237,9 @@ typedef struct {
     // Seeking is not ideal, so rollback is necessary
     int samplesToDiscard;
 
+    // Flags for special seeking in faulty formats
+    int force_seek;
+    int bad_init;
 
 } ffmpeg_codec_data;
 #endif
