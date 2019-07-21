@@ -253,8 +253,9 @@ VGMSTREAM * init_vgmstream_ngc_dsp_std(STREAMFILE *streamFile) {
 
     /* checks */
     /* .dsp: standard
-     * .adp: Dr. Muto/Battalion Wars (GC) mono files */
-    if (!check_extensions(streamFile, "dsp,adp"))
+     * .adp: Dr. Muto/Battalion Wars (GC) mono files
+     * (extensionless): Tony Hawk's Downhill Jam (Wii) */
+    if (!check_extensions(streamFile, "dsp,adp,"))
         goto fail;
 
     if (read_dsp_header(&header, 0x00, streamFile))

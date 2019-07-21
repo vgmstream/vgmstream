@@ -72,9 +72,16 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
     ww.file_size = streamFile->get_size(streamFile);
 
 #if 0
-    /* sometimes uses a RIFF size that doesn't count chunks/sizes, has LE size in RIFX, or is just wrong...? */
-    if (4+4+read_32bit(0x04,streamFile) != ww.file_size) {
-        VGM_LOG("WWISE: bad riff size (real=0x%x vs riff=0x%x)\n", 4+4+read_32bit(0x04,streamFile), ww.file_size);
+    /* Wwise's RIFF size is often wonky, seemingly depending on codec:
+     * - PCM, IMA, VORBIS, AAC, OPUS: correct
+     * - DSP, XWMA, ATRAC9: almost always slightly smaller (around 0x50)
+     * - HEVAG: very off
+     * - XMA2: exact file size
+     * - some RIFX have LE size
+     * (later we'll validate "data" which fortunately is correct)
+     */
+    if (read_32bit(0x04,streamFile)+0x04+0x04 != ww.file_size) {
+        VGM_LOG("WWISE: bad riff size (real=0x%x vs riff=0x%x)\n", read_32bit(0x04,streamFile)+0x04+0x04, ww.file_size);
         goto fail;
     }
 #endif
@@ -177,27 +184,39 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
             goto fail;
     }
 
-    /* fix for newer Wwise DSP with coefs: Epic Mickey 2 (Wii), Batman Arkham Origins Blackgate (3DS) */
-    if (ww.format == 0x0002 && ww.extra_size == 0x0c + ww.channels * 0x2e) {
-        ww.codec = DSP;
-    }
-    else if (ww.format == 0x0002 && ww.block_align == 0x104 * ww.channels) {
-        //ww.codec = SWITCH_ADPCM;
-        /* unknown codec, found in Bayonetta 2 (Switch)
-         * frames of 0x104 per ch, possibly frame header is hist1(2)/hist2(2)/index(1)
-         * (may write 2 header samples + FF*2 nibbles = 0x200 samples per block?)
-         * index only goes up to ~0xb, may be a shift/scale value */
-        goto fail;
+    /* identify system's ADPCM */
+    if (ww.format == 0x0002) {
+        if (ww.extra_size == 0x0c + ww.channels * 0x2e) {
+            /* newer Wwise DSP with coefs [Epic Mickey 2 (Wii), Batman Arkham Origins Blackgate (3DS)] */
+            ww.codec = DSP;
+        } else if (ww.extra_size == 0x0a && find_chunk(streamFile, 0x57696948, first_offset,0, NULL,NULL, ww.big_endian, 0)) { /* WiiH */
+            /* few older Wwise DSP with num_samples in extra_size [Tony Hawk: Shred (Wii)] */
+            ww.codec = DSP;
+        } else if (ww.block_align == 0x104 * ww.channels) {
+            //ww.codec = SWITCH_ADPCM;
+            /* unknown codec, found in Bayonetta 2 (Switch)
+             * frames of 0x104 per ch, possibly frame header is hist1(2)/hist2(2)/index(1)
+             * (may write 2 header samples + FF*2 nibbles = 0x200 samples per block?)
+             * index only goes up to ~0xb, may be a shift/scale value */
+            goto fail;
+        }
     }
 
 
     /* Some Wwise files (ex. Oddworld PSV, Bayonetta 2 WiiU, often in BGM.bnk) are truncated mirrors of another file.
      * They come in RAM banks, probably to play the beginning while the rest of the real stream loads.
      * We'll add basic support to avoid complaints of this or that .wem not playing */
-    if (ww.data_size > ww.file_size) {
+    if (ww.data_offset + ww.data_size > ww.file_size) {
         //VGM_LOG("WWISE: truncated data size (prefetch): (real=0x%x > riff=0x%x)\n", ww.data_size, ww.file_size);
-        if (ww.codec == IMA || ww.codec == VORBIS || ww.codec == XMA2) /* only seen those, probably others exist */
-            ww.truncated = 1;
+
+        /* catch wrong rips as truncated tracks' file_size should be much smaller than data_size */
+        if (ww.data_offset + ww.data_size - ww.file_size < 0x5000) {
+            VGM_LOG("WWISE: wrong expected data_size\n");
+            goto fail;
+        }
+
+        if (ww.codec == IMA || ww.codec == VORBIS || ww.codec == XMA2)
+            ww.truncated = 1; /* only seen those, probably others exist */
         else
             goto fail;
     }

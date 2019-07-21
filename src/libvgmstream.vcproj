@@ -1475,6 +1475,10 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\meta\smk.c"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\smp.c"
                     >
                 </File>

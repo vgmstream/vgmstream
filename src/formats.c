@@ -398,6 +398,7 @@ static const char* extension_list[] = {
     "slb", //txth/reserved [THE Nekomura no Hitobito (PS2)]
     "sli",
     "smc",
+    "smk",
     "smp",
     "smpl", //fake extension/header id for .v0/v1 (renamed, to be removed)
     "smv",
@@ -433,7 +434,7 @@ static const char* extension_list[] = {
     "swag",
     "swav",
     "swd",
-    "switch_audio"
+    "switch_audio",
     "sx",
     "sxd",
     "sxd2",
@@ -1198,7 +1199,8 @@ static const meta_info meta_info_list[] = {
         {meta_XWMA_KONAMI,          "Konami XWMA header"},
         {meta_9TAV,                 "Konami 9TAV header"},
         {meta_BWAV,                 "Nintendo BWAV header"},
-        {meta_RAD,                  "Traveller's Tales RAD header"},
+        {meta_RAD,                  "Traveller's Tales .RAD header"},
+        {meta_SMACKER,              "RAD Game Tools SMACKER header"},
 
 };
 

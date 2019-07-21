@@ -132,8 +132,7 @@ static int load_utf_subtable(STREAMFILE *acbFile, acb_header* acb, utf_context* 
     *Table = utf_open(acbFile, offset, rows, NULL);
     if (!*Table) goto fail;
 
-
-    ;VGM_LOG("ACB: loaded table %s\n", TableName);
+    //;VGM_LOG("ACB: loaded table %s\n", TableName);
     return 1;
 fail:
     return 0;
@@ -146,7 +145,7 @@ static int load_acb_cue_info(STREAMFILE *acbFile, acb_header* acb) {
         goto fail;
     if (!utf_query_string(acbFile, acb->CueNameTable, acb->CueNameIndex, "CueName", &acb->CueName))
         goto fail;
-    ;VGM_LOG("ACB: CueName[%i]: CueIndex=%i, CueName=%s\n", acb->CueNameIndex, acb->CueIndex, acb->CueName);
+    //;VGM_LOG("ACB: CueName[%i]: CueIndex=%i, CueName=%s\n", acb->CueNameIndex, acb->CueIndex, acb->CueName);
 
     /* read Cue[CueIndex] */
     if (!load_utf_subtable(acbFile, acb, &acb->CueTable, "CueTable", NULL))
@@ -155,7 +154,7 @@ static int load_acb_cue_info(STREAMFILE *acbFile, acb_header* acb) {
         goto fail;
     if (!utf_query_s16(acbFile, acb->CueTable, acb->CueIndex, "ReferenceIndex", &acb->ReferenceIndex))
         goto fail;
-    ;VGM_LOG("ACB: Cue[%i]: ReferenceType=%i, ReferenceIndex=%i\n", acb->CueIndex, acb->ReferenceType, acb->ReferenceIndex);
+    //;VGM_LOG("ACB: Cue[%i]: ReferenceType=%i, ReferenceIndex=%i\n", acb->CueIndex, acb->ReferenceType, acb->ReferenceIndex);
 
     return 1;
 fail:
@@ -171,7 +170,7 @@ static int load_acb_sequence(STREAMFILE *acbFile, acb_header* acb) {
         goto fail;
     if (!utf_query_data(acbFile, acb->SequenceTable, acb->ReferenceIndex, "TrackIndex", &acb->TrackIndex_offset, &acb->TrackIndex_size))
         goto fail;
-    ;VGM_LOG("ACB: Sequence[%i]: NumTracks=%i, TrackIndex={%x, %x}\n", acb->ReferenceIndex, acb->NumTracks, acb->TrackIndex_offset,acb->TrackIndex_size);
+    //;VGM_LOG("ACB: Sequence[%i]: NumTracks=%i, TrackIndex={%x, %x}\n", acb->ReferenceIndex, acb->NumTracks, acb->TrackIndex_offset,acb->TrackIndex_size);
 
     if (acb->NumTracks * 0x02 > acb->TrackIndex_size) { /* padding may exist */
         VGM_LOG("ACB: unknown TrackIndex size\n");
@@ -190,7 +189,7 @@ static int load_acb_track_command(STREAMFILE *acbFile, acb_header* acb) {
         goto fail;
     if (!utf_query_s16(acbFile, acb->TrackTable, acb->TrackIndex, "EventIndex", &acb->EventIndex))
         goto fail;
-    ;VGM_LOG("ACB: Track[%i]: EventIndex=%i\n", acb->TrackIndex, acb->EventIndex);
+    //;VGM_LOG("ACB: Track[%i]: EventIndex=%i\n", acb->TrackIndex, acb->EventIndex);
 
     /* depending on version next stuff varies a bit, check by table existence */
     if (acb->has_TrackEventTable) {
@@ -199,7 +198,7 @@ static int load_acb_track_command(STREAMFILE *acbFile, acb_header* acb) {
             goto fail;
         if (!utf_query_data(acbFile, acb->TrackEventTable, acb->EventIndex, "Command", &acb->Command_offset, &acb->Command_size))
             goto fail;
-        ;VGM_LOG("ACB: TrackEvent[%i]: Command={%x,%x}\n", acb->EventIndex, acb->Command_offset,acb->Command_size);
+        //;VGM_LOG("ACB: TrackEvent[%i]: Command={%x,%x}\n", acb->EventIndex, acb->Command_offset,acb->Command_size);
     }
     else if (acb->has_CommandTable) {
         /* read Command[EventIndex] */
@@ -207,7 +206,7 @@ static int load_acb_track_command(STREAMFILE *acbFile, acb_header* acb) {
             goto fail;
         if (!utf_query_data(acbFile, acb->CommandTable, acb->EventIndex, "Command", &acb->Command_offset, &acb->Command_size))
             goto fail;
-        ;VGM_LOG("ACB: Command[%i]: Command={%x,%x}\n", acb->EventIndex, acb->Command_offset,acb->Command_size);
+        //;VGM_LOG("ACB: Command[%i]: Command={%x,%x}\n", acb->EventIndex, acb->Command_offset,acb->Command_size);
     }
     else {
         VGM_LOG("ACB: unknown command table\n");
@@ -237,8 +236,10 @@ static int load_acb_track_command(STREAMFILE *acbFile, acb_header* acb) {
                 subindex = read_u16be(offset + 0x02, acbFile);
 
                 /* reference to Synth/Waveform like those in Synth? */
-                if (subcode != 0x02) { //todo some in Yakuza Kiwami 2 usen.acb use 03 (random? see Synth)
-                    VGM_LOG("ACB: subcommand with unknown subcode\n");
+                if (subcode != 0x02) {
+                    //todo some like Yakuza Kiwami 2 usen.acb/Yakuza 6 haichi_amb_siren.acb use 0x03
+                    // ('random' type pointing to Sequence, see Synth)
+                    VGM_LOG("ACB: subcommand with unknown subcode at %x\n", offset);
                     break;
                 }
 
@@ -247,7 +248,7 @@ static int load_acb_track_command(STREAMFILE *acbFile, acb_header* acb) {
                 if (acb->SynthIndex_count >= 254)
                     acb->ReferenceItems_count = 254; /* ??? */
 
-                ;VGM_LOG("ACB: subcommand index %i found\n", subindex);
+                //;VGM_LOG("ACB: subcommand index %i found\n", subindex);
             }
 
             /* 0x07D1 comes suspiciously often paired with 0x07D0 too */
@@ -271,7 +272,7 @@ static int load_acb_synth(STREAMFILE *acbFile, acb_header* acb) {
         goto fail;
     if (!utf_query_data(acbFile, acb->SynthTable, acb->SynthIndex, "ReferenceItems", &acb->ReferenceItems_offset, &acb->ReferenceItems_size))
         goto fail;
-    ;VGM_LOG("ACB: Synth[%i]: ReferenceItems={%x,%x}\n", acb->SynthIndex, acb->ReferenceItems_offset, acb->ReferenceItems_size);
+    //;VGM_LOG("ACB: Synth[%i]: ReferenceItems={%x,%x}\n", acb->SynthIndex, acb->ReferenceItems_offset, acb->ReferenceItems_size);
 
 
     acb->ReferenceItems_count = acb->ReferenceItems_size / 0x04;
@@ -298,7 +299,7 @@ static int load_acb_synth(STREAMFILE *acbFile, acb_header* acb) {
 
         type  = read_u16be(acb->ReferenceItems_offset + i*0x04 + 0x00, acbFile);
         index = read_u16be(acb->ReferenceItems_offset + i*0x04 + 0x02, acbFile);
-        ;VGM_LOG("ACB: Synth reference type=%x, index=%x\n", type, index);
+        //;VGM_LOG("ACB: Synth reference type=%x, index=%x\n", type, index);
 
         switch(type) {
             case 0x00: /* no reference */
@@ -329,19 +330,11 @@ static int load_acb_synth(STREAMFILE *acbFile, acb_header* acb) {
                 }
 
                 acb->ReferenceItems_list[i] = subindex;
-                ;VGM_LOG("ACB: Synth subreference type=%x, index=%x\n", subtype, subindex);
+                //;VGM_LOG("ACB: Synth subreference type=%x, index=%x\n", subtype, subindex);
                 break;
 
             case 0x03: /* random Synths with % in TrackValues (rare, found in Sonic Lost World with ReferenceType 2) */
-                //todo fix
-                /* this points to next? N Synths (in turn pointing to a Waveform), but I see no relation between
-                 * index value and pointed Synths plus those Synths don't seem referenced otherwise.
-                 * ex. se_phantom_asteroid.acb
-                 *  Synth[26] with index 7 points to Synth[27/28]
-                 *  Synth[26] with index 6 points to Synth[24/25]
-                 *  Synth[26] with index 8 points to Synth[29/30]
-                 *  Synth[26] with index 9 points to Synth[32/33] (Synth[30] is another random Type 3)
-                 */
+                //todo fix: points to N Sequences (in turn pointing to Tracks > Synths) ex. se_phantom_asteroid.acb
             default: /* undefined/crashes AtomViewer */
                 VGM_LOG("ACB: unknown Synth reference type\n");
                 acb->ReferenceItems_count = 0;
@@ -370,7 +363,7 @@ static int load_acb_waveform(STREAMFILE *acbFile, acb_header* acb, int waveid) {
                 goto fail;
         }
     }
-    ;VGM_LOG("ACB: Waveform[%i]: AwbId=%i, AwbStreaming=%i\n", acb->ReferenceItem, acb->AwbId, acb->AwbStreaming);
+    //;VGM_LOG("ACB: Waveform[%i]: AwbId=%i, AwbStreaming=%i\n", acb->ReferenceItem, acb->AwbId, acb->AwbStreaming);
 
     acb->is_wave_found = 0; /* reset */
 
@@ -418,7 +411,7 @@ static void add_acb_name(STREAMFILE *acbFile, acb_header* acb) {
     if (acb->AwbName_count >= 254)
         acb->AwbName_count = 254; /* ??? */
 
-    ;VGM_LOG("ACB: found cue for waveid=%i: %s\n", acb->AwbId, acb->CueName);
+    //;VGM_LOG("ACB: found cue for waveid=%i: %s\n", acb->AwbId, acb->CueName);
 }
 
 
@@ -450,7 +443,7 @@ void load_acb_wave_name(STREAMFILE *acbFile, VGMSTREAM* vgmstream, int waveid, i
      *   Atom Craft may only target certain .acb versions
      */
 
-    ;VGM_LOG("ACB: find waveid=%i\n", waveid);
+    //;VGM_LOG("ACB: find waveid=%i\n", waveid);
 
     acb.Header = utf_open(acbFile, 0x00, NULL, NULL);
     if (!acb.Header) goto done;
@@ -462,7 +455,7 @@ void load_acb_wave_name(STREAMFILE *acbFile, VGMSTREAM* vgmstream, int waveid, i
 
     /* read CueName[i] */
     if (!load_utf_subtable(acbFile, &acb, &acb.CueNameTable, "CueNameTable", &CueName_rows)) goto done;
-    ;VGM_LOG("ACB: CueNames=%i\n", CueName_rows);
+    //;VGM_LOG("ACB: CueNames=%i\n", CueName_rows);
 
     for (CueName_i = 0; CueName_i < CueName_rows; CueName_i++) {
         acb.CueNameIndex = CueName_i;

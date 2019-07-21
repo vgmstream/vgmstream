@@ -118,14 +118,15 @@ VGMSTREAM * init_vgmstream_ea_schl(STREAMFILE *streamFile) {
     /* they don't seem enforced by EA's tools but usually:
      * .asf: ~early (audio stream file?) [ex. Need for Speed II (PC)]
      * .lasf: fake for plugins
-     * .str: ~early [ex. FIFA 2002 (PS1)]
-     * .eam: ~mid (fake?)
+     * .str: ~early [ex. FIFA 98 (PS1), FIFA 2002 (PS1)]
+     * .eam: ~mid?
      * .exa: ~mid [ex. 007 - From Russia with Love]
      * .sng: ~late (FIFA games)
      * .aud: ~late [ex. FIFA 14 (3DS)]
      * .strm: MySims Kingdom (Wii)
      * .stm: FIFA 12 (3DS)
-     * .sx/xa: fake?
+     * .sx: FIFA 98 (SAT)
+     * .xa: ?
      * .hab: GoldenEye - Rogue Agent (inside .big)
      * .xsf: 007 - Agent Under Fire (Xbox)
      * .gsf: 007 - Everything or Nothing (GC)
