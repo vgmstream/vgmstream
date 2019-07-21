@@ -73,8 +73,9 @@ VGMSTREAM * init_vgmstream_aifc(STREAMFILE *streamFile) {
      * .bgm: Super Street Fighter II Turbo (3DO)
      * .acm: Crusader - No Remorse (SAT)
      * .adp: Sonic Jam (SAT)
-     * .ai: Dragon Force (SAT) */
-    if (check_extensions(streamFile, "aif,laif")) {
+     * .ai: Dragon Force (SAT)
+     * (extensionless: Doom (3DO) */
+    if (check_extensions(streamFile, "aif,laif,")) {
         is_aifc_ext = 1;
         is_aiff_ext = 1;
     }
