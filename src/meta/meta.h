@@ -867,4 +867,6 @@ void load_acb_wave_name(STREAMFILE *acbFile, VGMSTREAM* vgmstream, int waveid, i
 
 VGMSTREAM * init_vgmstream_rad(STREAMFILE * streamFile);
 
+VGMSTREAM * init_vgmstream_smk(STREAMFILE * streamFile);
+
 #endif /*_META_H*/

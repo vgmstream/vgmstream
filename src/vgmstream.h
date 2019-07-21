@@ -732,6 +732,7 @@ typedef enum {
     meta_9TAV,
     meta_BWAV,
     meta_RAD,
+    meta_SMACKER,
 
 } meta_t;
 
