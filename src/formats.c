@@ -433,7 +433,7 @@ static const char* extension_list[] = {
     "swag",
     "swav",
     "swd",
-    "switch_audio"
+    "switch_audio",
     "sx",
     "sxd",
     "sxd2",
