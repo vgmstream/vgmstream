@@ -13,7 +13,7 @@
  *   https://github.com/hcs64/ww2ogg
  */
 
-static size_t make_oggs_first(uint8_t * buf, int buf_size, int channels, int skip, int sample_rate);
+static size_t make_oggs_first(uint8_t * buf, int buf_size, opus_config *cfg);
 static size_t make_oggs_page(uint8_t * buf, int buf_size, size_t data_size, int page_sequence, int granule);
 static size_t opus_get_packet_samples(const uint8_t * buf, int len);
 static size_t get_xopus_packet_size(int packet, STREAMFILE * streamfile);
@@ -230,7 +230,7 @@ static size_t opus_io_size(STREAMFILE *streamfile, opus_io_data* data) {
 
 
 /* Prepares custom IO for custom Opus, that is converted to Ogg Opus on the fly */
-static STREAMFILE* setup_opus_streamfile(STREAMFILE *streamFile, int channels, int skip, int sample_rate, off_t stream_offset, size_t stream_size, opus_type_t type) {
+static STREAMFILE* setup_opus_streamfile(STREAMFILE *streamFile, opus_config *cfg, off_t stream_offset, size_t stream_size, opus_type_t type) {
     STREAMFILE *temp_streamFile = NULL, *new_streamFile = NULL;
     opus_io_data io_data = {0};
     size_t io_data_size = sizeof(opus_io_data);
@@ -239,7 +239,7 @@ static STREAMFILE* setup_opus_streamfile(STREAMFILE *streamFile, int channels, i
     io_data.stream_offset = stream_offset;
     io_data.stream_size = stream_size;
     io_data.physical_offset = stream_offset;
-    io_data.head_size = make_oggs_first(io_data.head_buffer, sizeof(io_data.head_buffer), channels, skip, sample_rate);
+    io_data.head_size = make_oggs_first(io_data.head_buffer, sizeof(io_data.head_buffer), cfg);
     if (!io_data.head_size) goto fail;
     io_data.sequence = 2;
     io_data.logical_size = opus_io_size(streamFile, &io_data); /* force init */
@@ -405,26 +405,16 @@ fail:
     return 0;
 }
 
-static size_t make_opus_header(uint8_t * buf, int buf_size, int channels, int skip, int sample_rate) {
+static size_t make_opus_header(uint8_t * buf, int buf_size, opus_config *cfg) {
     size_t header_size = 0x13;
-    int mapping_family = 0; /* channel config: 0=standard (single stream mono/stereo), 1=vorbis, 255: not defined */
-#if 0
-    int stream_count = 1; /* number of internal mono/stereo streams (N mono/stereo streams form M channels) */
-    int coupled_count = channels - 1; /* number of stereo streams (packet has which one is mono or stereo) */
+    int mapping_family = 0;
 
     /* special multichannel config */
-    if (channels > 2) {
-        header_size += 0x01+0x01+channels;
-        switch(type) {
-
-            case ...:
-                ...
-                break;
-            default:
-                goto fail;
-        }
+    if (cfg->channels > 2) {
+        /* channel config: 0=standard (single stream mono/stereo), 1=vorbis, 255: not defined */
+        mapping_family = 1;
+        header_size += 0x01+0x01+cfg->channels;
     }
-#endif
 
     if (header_size > buf_size) {
         VGM_LOG("OPUS: buffer can't hold header\n");
@@ -434,23 +424,24 @@ static size_t make_opus_header(uint8_t * buf, int buf_size, int channels, int sk
     put_32bitBE(buf+0x00, 0x4F707573); /* "Opus" header magic */
     put_32bitBE(buf+0x04, 0x48656164); /* "Head" header magic */
     put_8bit   (buf+0x08, 1); /* version */
-    put_8bit   (buf+0x09, channels);
-    put_16bitLE(buf+0x0A, skip);
-    put_32bitLE(buf+0x0c, sample_rate);
+    put_8bit   (buf+0x09, cfg->channels);
+    put_16bitLE(buf+0x0A, cfg->skip);
+    put_32bitLE(buf+0x0c, cfg->sample_rate);
     put_16bitLE(buf+0x10, 0); /* output gain */
     put_8bit   (buf+0x12, mapping_family);
 
-#if 0
     if (mapping_family > 0) {
-        int 0;
+        int i;
 
-        put_8bit(buf+0x13, stream_count);
-        put_8bit(buf+0x14, coupled_count);
-        for (i = 0; i < channels; i++) {
-            put_8bit(buf+0x15+i, i); /* channel mapping (may need to change per family) */
+        /* internal mono/stereo streams (N mono/stereo streams form M channels) */
+        put_8bit(buf+0x13, cfg->stream_count);
+        /* joint stereo streams (rest would be mono, so 6ch can be 2ch+2ch+1ch+1ch = 2 coupled */
+        put_8bit(buf+0x14, cfg->coupled_count);
+        /* mapping bits per channel? */
+        for (i = 0; i < cfg->channels; i++) {
+            put_8bit(buf+0x15+i, cfg->channel_mapping[i]);
         }
     }
-#endif
 
     return header_size;
 fail:
@@ -485,7 +476,7 @@ fail:
     return 0;
 }
 
-static size_t make_oggs_first(uint8_t * buf, int buf_size, int channels, int skip, int sample_rate) {
+static size_t make_oggs_first(uint8_t * buf, int buf_size, opus_config *cfg) {
     int buf_done = 0;
     size_t bytes;
 
@@ -493,7 +484,7 @@ static size_t make_oggs_first(uint8_t * buf, int buf_size, int channels, int ski
         goto fail;
 
     /* make header */
-    bytes = make_opus_header(buf+buf_done + 0x1c,buf_size, channels, skip, sample_rate);
+    bytes = make_opus_header(buf+buf_done + 0x1c,buf_size, cfg);
     make_oggs_page(buf+buf_done + 0x00,buf_size, bytes, 0, 0);
     buf_done += 0x1c + bytes;
 
@@ -613,11 +604,11 @@ size_t ea_opus_get_encoder_delay(off_t offset, STREAMFILE *streamFile) {
 
 /* ******************************************************* */
 
-static ffmpeg_codec_data * init_ffmpeg_custom_opus(STREAMFILE *streamFile, off_t start_offset, size_t data_size, int channels, int skip, int sample_rate, opus_type_t type) {
+static ffmpeg_codec_data * init_ffmpeg_custom_opus_config(STREAMFILE *streamFile, off_t start_offset, size_t data_size, opus_config *cfg, opus_type_t type) {
     ffmpeg_codec_data * ffmpeg_data = NULL;
     STREAMFILE *temp_streamFile = NULL;
 
-    temp_streamFile = setup_opus_streamfile(streamFile, channels, skip, sample_rate, start_offset, data_size, type);
+    temp_streamFile = setup_opus_streamfile(streamFile, cfg, start_offset, data_size, type);
     if (!temp_streamFile) goto fail;
 
     ffmpeg_data = init_ffmpeg_offset(temp_streamFile, 0x00,get_streamfile_size(temp_streamFile));
@@ -637,7 +628,18 @@ fail:
     close_streamfile(temp_streamFile);
     return NULL;
 }
+static ffmpeg_codec_data * init_ffmpeg_custom_opus(STREAMFILE *streamFile, off_t start_offset, size_t data_size, int channels, int skip, int sample_rate, opus_type_t type) {
+    opus_config cfg = {0};
+    cfg.channels = channels;
+    cfg.skip = skip;
+    cfg.sample_rate = sample_rate;
 
+    return init_ffmpeg_custom_opus_config(streamFile, start_offset, data_size, &cfg, type);
+}
+
+ffmpeg_codec_data * init_ffmpeg_switch_opus_config(STREAMFILE *streamFile, off_t start_offset, size_t data_size, opus_config* cfg) {
+    return init_ffmpeg_custom_opus_config(streamFile, start_offset, data_size, cfg, OPUS_SWITCH);
+}
 ffmpeg_codec_data * init_ffmpeg_switch_opus(STREAMFILE *streamFile, off_t start_offset, size_t data_size, int channels, int skip, int sample_rate) {
     return init_ffmpeg_custom_opus(streamFile, start_offset, data_size, channels, skip, sample_rate, OPUS_SWITCH);
 }
