@@ -415,7 +415,7 @@ VGMSTREAM * init_vgmstream_ngc_dsp_std_le(STREAMFILE *streamFile) {
     vgmstream->meta_type = meta_DSP_STD;
     vgmstream->coding_type = coding_NGC_DSP;
     vgmstream->layout_type = layout_none;
-	vgmstream->allow_dual_stereo = 1;
+    vgmstream->allow_dual_stereo = 1;
 
     {
         /* adpcm coeffs/history */
