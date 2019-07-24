@@ -9,7 +9,7 @@ static VGMSTREAM * init_vgmstream_opus(STREAMFILE *streamFile, meta_t meta_type,
     VGMSTREAM * vgmstream = NULL;
     off_t start_offset;
     int loop_flag = 0, channel_count;
-    off_t data_offset;
+    off_t data_offset, multichannel_offset = 0;
     size_t data_size, skip = 0;
 
 
@@ -21,6 +21,11 @@ static VGMSTREAM * init_vgmstream_opus(STREAMFILE *streamFile, meta_t meta_type,
     data_offset = offset + read_32bitLE(offset + 0x10, streamFile);
     skip = read_16bitLE(offset + 0x1c, streamFile);
     /* 0x1e: ? (seen in Lego Movie 2 (Switch)) */
+
+    /* recent >2ch info [Clannad (Switch)] */
+    if ((uint32_t)read_32bitLE(offset + 0x20, streamFile) == 0x80000005) {
+        multichannel_offset = offset + 0x20;
+    }
 
     if ((uint32_t)read_32bitLE(data_offset, streamFile) != 0x80000004)
         goto fail;
@@ -45,10 +50,26 @@ static VGMSTREAM * init_vgmstream_opus(STREAMFILE *streamFile, meta_t meta_type,
 
 #ifdef VGM_USE_FFMPEG
     {
-        vgmstream->codec_data = init_ffmpeg_switch_opus(streamFile, start_offset,data_size, vgmstream->channels, skip, vgmstream->sample_rate);
+        opus_config cfg = {0};
+
+        cfg.channels = vgmstream->channels;
+        cfg.skip = skip;
+        cfg.sample_rate = vgmstream->sample_rate;
+
+        if (multichannel_offset && vgmstream->channels <= 8) {
+            int i;
+            cfg.stream_count = read_8bit(multichannel_offset + 0x08,streamFile);
+            cfg.coupled_count = read_8bit(multichannel_offset + 0x09,streamFile);
+            for (i = 0; i < vgmstream->channels; i++) {
+                cfg.channel_mapping[i] = read_8bit(multichannel_offset + 0x0a + i,streamFile);
+            }
+        }
+
+        vgmstream->codec_data = init_ffmpeg_switch_opus_config(streamFile, start_offset,data_size, &cfg);
         if (!vgmstream->codec_data) goto fail;
         vgmstream->coding_type = coding_FFmpeg;
         vgmstream->layout_type = layout_none;
+        vgmstream->channel_layout = ffmpeg_get_channel_layout(vgmstream->codec_data);
 
         if (vgmstream->num_samples == 0) {
             vgmstream->num_samples = switch_opus_get_samples(start_offset, data_size, streamFile) - skip;
