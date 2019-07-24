@@ -2,10 +2,14 @@
 #include "../streamfile.h"
 #include <string.h>
 
+#ifdef VGM_USE_FFMPEG
+
 /**
  * Transmogrifies custom Opus (no Ogg layer and custom packet headers) into is Xiph Opus, creating
  * valid Ogg pages with single Opus packets.
  * Uses an intermediate buffer to make full Ogg pages, since checksums are calculated with the whole page.
+ *
+ * Mostly as an experiment/demonstration, until some details are sorted out before adding actual libopus.
  *
  * Info, CRC and stuff:
  *   https://www.opus-codec.org/docs/
@@ -512,8 +516,6 @@ static size_t get_xopus_packet_size(int packet, STREAMFILE * streamfile) {
 }
 
 
-#ifdef VGM_USE_FFMPEG
-
 static size_t custom_opus_get_samples(off_t offset, size_t stream_size, STREAMFILE *streamFile, opus_type_t type) {
     size_t num_samples = 0;
     off_t end_offset = offset + stream_size;
@@ -601,8 +603,10 @@ size_t ea_opus_get_encoder_delay(off_t offset, STREAMFILE *streamFile) {
 }
 
 
-
 /* ******************************************************* */
+
+/* actual FFmpeg only-code starts here (the above is universal enough but no point to compile) */
+//#ifdef VGM_USE_FFMPEG
 
 static ffmpeg_codec_data * init_ffmpeg_custom_opus_config(STREAMFILE *streamFile, off_t start_offset, size_t data_size, opus_config *cfg, opus_type_t type) {
     ffmpeg_codec_data * ffmpeg_data = NULL;
