@@ -2,7 +2,7 @@
 #include "../coding/coding.h"
 
 /* 04SW - found in Driver: Parallel Lines (Wii) */
-VGMSTREAM * init_vgmstream_wii_04sw(STREAMFILE *streamFile) {
+VGMSTREAM * init_vgmstream_xa_04sw(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     off_t start_offset;
     int loop_flag, channel_count;
@@ -44,7 +44,7 @@ VGMSTREAM * init_vgmstream_wii_04sw(STREAMFILE *streamFile) {
     dsp_read_coefs_be(vgmstream,streamFile,0x20, 0x60);
     /* the initial history offset seems different thatn standard DSP and possibly always zero */
 
-    vgmstream->meta_type = meta_WII_04SW;
+    vgmstream->meta_type = meta_XA_04SW;
     /* the rest of the header has unknown values (several repeats) and the filename */
 
 

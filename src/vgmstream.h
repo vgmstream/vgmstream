@@ -629,8 +629,8 @@ typedef enum {
     meta_TA_AAC_MOBILE,     /* tri-Ace AAC (Star Ocean Anamnesis, Heaven x Inferno) */
     meta_MTA2,
     meta_NGC_ULW,           /* Burnout 1 (GC only) */
-    meta_PC_XA30,           /* Driver - Parallel Lines (PC) */
-    meta_WII_04SW,          /* Driver - Parallel Lines (Wii) */
+    meta_XA_XA30,
+    meta_XA_04SW,
     meta_TXTH,              /* generic text header */
     meta_SK_AUD,            /* Silicon Knights .AUD (Eternal Darkness GC) */
     meta_AHX,               /* CRI AHX header */
@@ -1329,7 +1329,7 @@ void close_vgmstream(VGMSTREAM * vgmstream);
 int32_t get_vgmstream_play_samples(double looptimes, double fadeseconds, double fadedelayseconds, VGMSTREAM * vgmstream);
 
 /* Decode data into sample buffer */
-void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstream);
+void render_vgmstream(sample_t * buffer, int32_t sample_count, VGMSTREAM * vgmstream);
 
 /* Write a description of the stream into array pointed by desc, which must be length bytes long.
  * Will always be null-terminated if length > 0 */

@@ -269,6 +269,10 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\meta\jstm_streamfile.h"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\kma9_streamfile.h"
                     >
                 </File>
@@ -1131,7 +1135,7 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\ps2_jstm.c"
+					RelativePath=".\meta\jstm.c"
 					>
 				</File>
 				<File

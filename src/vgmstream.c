@@ -274,7 +274,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_bar,
     init_vgmstream_ffw,
     init_vgmstream_dsp_dspw,
-    init_vgmstream_ps2_jstm,
+    init_vgmstream_jstm,
     init_vgmstream_xvag,
     init_vgmstream_ps3_cps,
     init_vgmstream_sqex_scd,
@@ -349,8 +349,8 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_mta2,
     init_vgmstream_mta2_container,
     init_vgmstream_ngc_ulw,
-    init_vgmstream_pc_xa30,
-    init_vgmstream_wii_04sw,
+    init_vgmstream_xa_xa30,
+    init_vgmstream_xa_04sw,
     init_vgmstream_ea_bnk,
     init_vgmstream_ea_abk,
     init_vgmstream_ea_hdr_dat,
@@ -1027,7 +1027,7 @@ void vgmstream_set_loop_target(VGMSTREAM* vgmstream, int loop_target) {
 
 
 /* Decode data into sample buffer */
-void render_vgmstream(sample * buffer, int32_t sample_count, VGMSTREAM * vgmstream) {
+void render_vgmstream(sample_t * buffer, int32_t sample_count, VGMSTREAM * vgmstream) {
     switch (vgmstream->layout_type) {
         case layout_interleave:
             render_vgmstream_interleave(buffer,sample_count,vgmstream);

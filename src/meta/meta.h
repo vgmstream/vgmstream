@@ -503,7 +503,7 @@ VGMSTREAM * init_vgmstream_bar(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_ffw(STREAMFILE* streamFile);
 
-VGMSTREAM * init_vgmstream_ps2_jstm(STREAMFILE* streamFile);
+VGMSTREAM * init_vgmstream_jstm(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_xvag(STREAMFILE* streamFile);
 
@@ -637,9 +637,9 @@ VGMSTREAM * init_vgmstream_mta2_container(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_ngc_ulw(STREAMFILE * streamFile);
 
-VGMSTREAM * init_vgmstream_pc_xa30(STREAMFILE * streamFile);
+VGMSTREAM * init_vgmstream_xa_xa30(STREAMFILE * streamFile);
 
-VGMSTREAM * init_vgmstream_wii_04sw(STREAMFILE * streamFile);
+VGMSTREAM * init_vgmstream_xa_04sw(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_txth(STREAMFILE * streamFile);
 
