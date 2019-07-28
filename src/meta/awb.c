@@ -83,7 +83,7 @@ VGMSTREAM * init_vgmstream_awb_memory(STREAMFILE *streamFile, STREAMFILE *acbFil
         subfile_size = subfile_next - subfile_offset;
     }
 
-    ;VGM_LOG("AWB: subfile offset=%lx + %x\n", subfile_offset, subfile_size);
+    //;VGM_LOG("AWB: subfile offset=%lx + %x\n", subfile_offset, subfile_size);
 
     /* autodetect as there isn't anything, plus can mix types
      * (waveid<>codec info is usually in the companion .acb) */
@@ -109,7 +109,7 @@ VGMSTREAM * init_vgmstream_awb_memory(STREAMFILE *streamFile, STREAMFILE *acbFil
     }
     else if (read_u32be(subfile_offset + 0x08,streamFile) >= 8000 &&
              read_u32be(subfile_offset + 0x08,streamFile) <= 48000 &&
-             read_u16be(subfile_offset + 0x08,streamFile) == 0 &&
+             read_u16be(subfile_offset + 0x0e,streamFile) == 0 &&
              read_u32be(subfile_offset + 0x18,streamFile) == 2 &&
              read_u32be(subfile_offset + 0x50,streamFile) == 0) { /*  probably should call some check function (type 13) */
         type = DSP;
