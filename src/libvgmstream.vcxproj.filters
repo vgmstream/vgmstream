@@ -628,7 +628,7 @@
     <ClCompile Include="meta\sab.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\pc_xa30.c">
+    <ClCompile Include="meta\xa_xa30.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\pcm_sre.c">
@@ -1012,7 +1012,7 @@
     <ClCompile Include="meta\wavebatch.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\wii_04sw.c">
+    <ClCompile Include="meta\xa_04sw.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\wii_bns.c">

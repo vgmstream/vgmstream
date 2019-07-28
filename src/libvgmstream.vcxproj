@@ -362,7 +362,7 @@
     <ClCompile Include="meta\pc_al2.c" />
     <ClCompile Include="meta\pc_mxst.c" />
     <ClCompile Include="meta\sab.c" />
-    <ClCompile Include="meta\pc_xa30.c" />
+    <ClCompile Include="meta\xa_xa30.c" />
     <ClCompile Include="meta\pcm_sre.c" />
     <ClCompile Include="meta\scd_pcm.c" />
     <ClCompile Include="meta\pona.c" />
@@ -490,7 +490,7 @@
     <ClCompile Include="meta\wave_segmented.c" />
     <ClCompile Include="meta\wave.c" />
     <ClCompile Include="meta\wavebatch.c" />
-    <ClCompile Include="meta\wii_04sw.c" />
+    <ClCompile Include="meta\xa_04sw.c" />
     <ClCompile Include="meta\wii_bns.c" />
     <ClCompile Include="meta\wii_mus.c" />
     <ClCompile Include="meta\wii_sng.c" />
