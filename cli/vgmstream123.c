@@ -88,7 +88,7 @@ static ao_device *device = NULL;
 static ao_option *device_options = NULL;
 static ao_sample_format current_sample_format;
 
-static sample *buffer = NULL;
+static sample_t *buffer = NULL;
 static int buffer_size_kb = 16;
 
 static int repeat = 0;

@@ -269,6 +269,10 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\meta\jstm_streamfile.h"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\kma9_streamfile.h"
                     >
                 </File>
@@ -1011,7 +1015,7 @@
 					>
 				</File>
                 <File
-                    RelativePath=".\meta\pc_xa30.c"
+                    RelativePath=".\meta\xa_xa30.c"
                     >
                 </File>
                 <File
@@ -1131,7 +1135,7 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\ps2_jstm.c"
+					RelativePath=".\meta\jstm.c"
 					>
 				</File>
 				<File
@@ -1631,7 +1635,7 @@
                     >
                 </File>
                 <File
-                    RelativePath=".\meta\wii_04sw.c"
+                    RelativePath=".\meta\xa_04sw.c"
                     >
                 </File>
 				<File

@@ -110,6 +110,7 @@
     <ClInclude Include="meta\ea_schl_streamfile.h" />
     <ClInclude Include="meta\fsb_interleave_streamfile.h" />
     <ClInclude Include="meta\fsb5_interleave_streamfile.h" />
+    <ClInclude Include="meta\jstm_streamfile.h" />
     <ClInclude Include="meta\kma9_streamfile.h" />
     <ClInclude Include="meta\ppst_streamfile.h" />
     <ClInclude Include="meta\vsv_streamfile.h" />
@@ -361,7 +362,7 @@
     <ClCompile Include="meta\pc_al2.c" />
     <ClCompile Include="meta\pc_mxst.c" />
     <ClCompile Include="meta\sab.c" />
-    <ClCompile Include="meta\pc_xa30.c" />
+    <ClCompile Include="meta\xa_xa30.c" />
     <ClCompile Include="meta\pcm_sre.c" />
     <ClCompile Include="meta\scd_pcm.c" />
     <ClCompile Include="meta\pona.c" />
@@ -388,7 +389,7 @@
     <ClCompile Include="meta\ps2_ild.c" />
     <ClCompile Include="meta\ps2_int.c" />
     <ClCompile Include="meta\ps2_joe.c" />
-    <ClCompile Include="meta\ps2_jstm.c" />
+    <ClCompile Include="meta\jstm.c" />
     <ClCompile Include="meta\ps2_kces.c" />
     <ClCompile Include="meta\ps2_leg.c" />
     <ClCompile Include="meta\ps2_lpcm.c" />
@@ -489,7 +490,7 @@
     <ClCompile Include="meta\wave_segmented.c" />
     <ClCompile Include="meta\wave.c" />
     <ClCompile Include="meta\wavebatch.c" />
-    <ClCompile Include="meta\wii_04sw.c" />
+    <ClCompile Include="meta\xa_04sw.c" />
     <ClCompile Include="meta\wii_bns.c" />
     <ClCompile Include="meta\wii_mus.c" />
     <ClCompile Include="meta\wii_sng.c" />

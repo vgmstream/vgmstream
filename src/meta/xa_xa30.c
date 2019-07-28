@@ -2,7 +2,7 @@
 #include "../coding/coding.h"
 
 /* XA30 - found in Reflections games [Driver: Parallel Lines (PC), Driver 3 (PC)] */
-VGMSTREAM * init_vgmstream_pc_xa30(STREAMFILE *streamFile) {
+VGMSTREAM * init_vgmstream_xa_xa30(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     off_t start_offset;
     int loop_flag, channel_count, codec;
@@ -41,7 +41,7 @@ VGMSTREAM * init_vgmstream_pc_xa30(STREAMFILE *streamFile) {
     /* 0x20: always IMA=00016000, PCM=00056000 PCM?, rest of the header is null */
     vgmstream->num_streams = total_subsongs;
     vgmstream->stream_size = stream_size;
-    vgmstream->meta_type = meta_PC_XA30;
+    vgmstream->meta_type = meta_XA_XA30;
 
     switch(codec) {
         case 0x00:   /* PCM (rare, seen in Driver 3) */
