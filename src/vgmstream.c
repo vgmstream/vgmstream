@@ -2498,14 +2498,15 @@ static void try_dual_file_stereo(VGMSTREAM * opened_vgmstream, STREAMFILE *strea
         {"Left","Right"},
         {".V0",".V1"}, /* Homura (PS2) */
         {".L",".R"}, /* Crash Nitro Racing (PS2), Gradius V (PS2) */
-        {"_0","_1"}, //fake for Homura/unneeded?
+        {"_0","_1"}, /* fake for Homura/unneeded? */
+        {".adpcm","_NxEncoderOut_.adpcm"}, /* Kill la Kill: IF (Switch) */ //todo can't match R>L
     };
     char new_filename[PATH_LIMIT];
-    char * ext;
+    char * extension;
     int dfs_pair = -1; /* -1=no stereo, 0=opened_vgmstream is left, 1=opened_vgmstream is right */
     VGMSTREAM *new_vgmstream = NULL;
     STREAMFILE *dual_streamFile = NULL;
-    int i,j, dfs_pair_count;
+    int i,j, dfs_pair_count, extension_len, filename_len;
 
     if (opened_vgmstream->channels != 1)
         return;
@@ -2514,48 +2515,54 @@ static void try_dual_file_stereo(VGMSTREAM * opened_vgmstream, STREAMFILE *strea
     if (opened_vgmstream->codec_data || opened_vgmstream->layout_data)
         return;
 
-    /* vgmstream's layout stuff currently assumes a single file */
-    // fastelbja : no need ... this one works ok with dual file
+    //todo other layouts work but some stereo codecs do weird things
     //if (opened_vgmstream->layout != layout_none) return;
-    //todo force layout_none if layout_interleave?
 
     get_streamfile_name(streamFile,new_filename,sizeof(new_filename));
-    if (strlen(new_filename) < 2) return; /* we need at least a base and a name ending to replace */
+    filename_len = strlen(new_filename);
+    if (filename_len < 2)
+        return;
 
-    ext = (char *)filename_extension(new_filename);
-    if (ext-new_filename >= 1 && ext[-1]=='.') ext--; /* including "." */
+    extension = (char *)filename_extension(new_filename);
+    if (extension - new_filename >= 1 && extension[-1] == '.')
+        extension--; /* must include "." */
+    extension_len = strlen(extension);
 
-    /* find pair from base name and modify new_filename with the opposite */
+
+    /* find pair from base name and modify new_filename with the opposite (tries L>R then R>L) */
     dfs_pair_count = (sizeof(dfs_pairs)/sizeof(dfs_pairs[0]));
     for (i = 0; dfs_pair == -1 && i < dfs_pair_count; i++) {
         for (j = 0; dfs_pair == -1 && j < 2; j++) {
             const char * this_suffix = dfs_pairs[i][j];
+            const char * that_suffix = dfs_pairs[i][j^1];
             size_t this_suffix_len = strlen(dfs_pairs[i][j]);
-            const char * other_suffix = dfs_pairs[i][j^1];
-            size_t other_suffix_len = strlen(dfs_pairs[i][j^1]);
+            size_t that_suffix_len = strlen(dfs_pairs[i][j^1]);
 
-            /* if suffix matches copy opposite to ext pointer (thus to new_filename) */
-            if (this_suffix[0] == '.' && strlen(ext) == this_suffix_len) { /* dual extension (ex. Homura PS2) */
-                if ( !memcmp(ext,this_suffix,this_suffix_len) ) {
+            //;VGM_LOG("DFS: l=%s, r=%s\n", this_suffix,that_suffix);
+
+            /* is suffix matches paste opposite suffix (+ terminator) to extension pointer, thus to new_filename */
+            if (this_suffix[0] == '.' && extension_len == this_suffix_len) { /* same extension */
+                //;VGM_LOG("DFS: same ext %s vs %s len %i\n", extension, this_suffix, this_suffix_len);
+                if (memcmp(extension,this_suffix,this_suffix_len) == 0) {
                     dfs_pair = j;
-                    memcpy (ext, other_suffix,other_suffix_len); /* overwrite with new extension */
+                    memcpy (extension, that_suffix,that_suffix_len+1);
                 }
             }
-            else { /* dual suffix */
-                if ( !memcmp(ext - this_suffix_len,this_suffix,this_suffix_len) ) {
+            else if (filename_len > this_suffix_len) { /* same suffix (without extension) */
+                //;VGM_LOG("DFS: same suf %s vs %s len %i\n", extension - this_suffix_len, this_suffix, this_suffix_len);
+                if (memcmp(extension - this_suffix_len, this_suffix,this_suffix_len) == 0) {
                     dfs_pair = j;
-                    memmove(ext + other_suffix_len - this_suffix_len, ext,strlen(ext)+1); /* move the extension and terminator, too */
-                    memcpy (ext - this_suffix_len, other_suffix,other_suffix_len); /* overwrite with new suffix */
+                    memmove(extension + that_suffix_len - this_suffix_len, extension,extension_len+1); /* move old extension to end */
+                    memcpy (extension - this_suffix_len, that_suffix,that_suffix_len); /* overwrite with new suffix */
                 }
             }
-
         }
     }
 
     /* see if the filename had a suitable L/R-pair name */
     if (dfs_pair == -1)
         goto fail;
-
+    //;VGM_LOG("DFS: match %i filename=%s\n", dfs_pair, new_filename);
 
     /* try to init other channel (new_filename now has the opposite name) */
     dual_streamFile = open_streamfile(streamFile,new_filename);
