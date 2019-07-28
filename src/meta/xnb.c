@@ -18,7 +18,7 @@ VGMSTREAM * init_vgmstream_xnb(STREAMFILE *streamFile) {
         goto fail;
 
     /* XNA Studio platforms: 'w' = Windows, 'm' = Windows Phone 7, 'x' = X360
-     * MonoGame extensions: 'i' = iOS, 'a' = Android, 'X' = MacOSX, 'P': PS4, etc */
+     * MonoGame extensions: 'i' = iOS, 'a' = Android, 'X' = MacOSX, 'P' = PS4, 'S' = Switch, etc */
     platform = read_8bit(0x03,streamFile);
     big_endian = (platform == 'x');
 
@@ -58,7 +58,7 @@ VGMSTREAM * init_vgmstream_xnb(STREAMFILE *streamFile) {
         if ( strcmp(reader_name, type_sound) != 0 )
             goto fail;
         current_offset += reader_string_len + 1;
-        current_offset += 4; /* reader version */
+        current_offset += 0x04; /* reader version */
 
         /* shared resource count */
         if (read_8bit(current_offset++, streamFile) != 1)
@@ -66,13 +66,13 @@ VGMSTREAM * init_vgmstream_xnb(STREAMFILE *streamFile) {
 
         /* shared resource: partial "fmt" chunk */
         fmt_chunk_size = read_32bitLE(current_offset, streamFile);
-        current_offset += 4;
+        current_offset += 0x04;
 
         {
             int32_t (*read_32bit)(off_t,STREAMFILE*) = big_endian ? read_32bitBE : read_32bitLE;
             int16_t (*read_16bit)(off_t,STREAMFILE*) = big_endian ? read_16bitBE : read_16bitLE;
 
-            codec         = read_16bit(current_offset+0x00, streamFile);
+            codec         = (uint16_t)read_16bit(current_offset+0x00, streamFile);
             channel_count = read_16bit(current_offset+0x02, streamFile);
             sample_rate   = read_32bit(current_offset+0x04, streamFile);
             /* 0x08: byte rate */
@@ -83,12 +83,17 @@ VGMSTREAM * init_vgmstream_xnb(STREAMFILE *streamFile) {
                 xma2_parse_fmt_chunk_extra(streamFile, current_offset, &loop_flag, &num_samples, &loop_start, &loop_end, big_endian);
                 xma_chunk_offset = current_offset;
             }
+
+            if (codec == 0xFFFF) {
+                if (platform != 'S') goto fail;
+                sample_rate   = read_32bit(current_offset+fmt_chunk_size+0x04+0x08, streamFile);
+            }
         }
 
         current_offset += fmt_chunk_size;
 
         data_size = read_32bitLE(current_offset, streamFile);
-        current_offset += 4;
+        current_offset += 0x04;
 
         start_offset = current_offset;
     }
@@ -151,6 +156,16 @@ VGMSTREAM * init_vgmstream_xnb(STREAMFILE *streamFile) {
             break;
         }
 #endif
+        case 0xFFFF: /* Eagle Island (Switch) */
+            vgmstream->coding_type = coding_NGC_DSP;
+            vgmstream->layout_type = layout_interleave;
+            vgmstream->interleave_block_size = data_size / channel_count;
+            vgmstream->num_samples = read_32bitLE(start_offset + 0x00, streamFile);
+            //vgmstream->num_samples = dsp_bytes_to_samples(data_size - 0x60*channel_count, channel_count);
+
+            dsp_read_coefs(vgmstream,streamFile,start_offset + 0x1c,vgmstream->interleave_block_size,big_endian);
+            dsp_read_hist (vgmstream,streamFile,start_offset + 0x3c,vgmstream->interleave_block_size,big_endian);
+            break;
 
         default:
             VGM_LOG("XNB: unknown codec 0x%x\n", codec);
