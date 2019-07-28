@@ -326,8 +326,11 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
     }
     else if (xwb.version == XACT3_0_MAX && xwb.codec == XMA2
             && xwb.bits_per_sample == 0x01 && xwb.block_align == 0x04
-            && xwb.data_size == 0x55951c1c) { /* some kind of id? */
-        /* Stardew Valley (Switch), full interleaved DSPs (including headers) */
+            && read_32bitLE(xwb.stream_offset + 0x08, streamFile) == xwb.sample_rate /* DSP header */
+            && read_16bitLE(xwb.stream_offset + 0x0e, streamFile) == 0
+            && read_32bitLE(xwb.stream_offset + 0x18, streamFile) == 2
+            /*&& xwb.data_size == 0x55951c1c*/) { /* some kind of id in Stardew Valley? */
+        /* Stardew Valley (Switch), Skulls of the Shogun (Switch): full interleaved DSPs (including headers) */
         xwb.codec = DSP;
     }
     else if (xwb.version == XACT3_0_MAX && xwb.codec == XMA2
@@ -342,7 +345,7 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
     xwb.loop_flag = (xwb.loop_end > 0 || xwb.loop_end_sample > xwb.loop_start)
         && !(xwb.entry_flags & WAVEBANKENTRY_FLAGS_IGNORELOOP);
 
-    /* Oddworld OGG the data_size value is size of uncompressed bytes instead;  DSP uses some id/config as value */
+    /* Oddworld OGG the data_size value is size of uncompressed bytes instead; DSP uses some id/config as value */
     if (xwb.codec != OGG && xwb.codec != DSP && xwb.codec != ATRAC9_RIFF) {
         /* some low-q rips don't remove padding, relax validation a bit */
         if (xwb.data_offset + xwb.stream_size > get_streamfile_size(streamFile))
