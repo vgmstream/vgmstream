@@ -729,6 +729,8 @@ VGMSTREAM * init_vgmstream_ea_mpf_mus(STREAMFILE *streamFile) {
         /* we need to go through the first two sections to find the sound table */
         sec1_num = read_16bit(0x12, streamFile);
         sec2_num = read_8bit(0x0f, streamFile);
+        sec3_num = read_8bit(0x10, streamFile);
+        sec4_num = read_8bit(0x11, streamFile);
 
         /* get the last entry offset */
         section_offset = 0x20;
@@ -740,6 +742,7 @@ VGMSTREAM * init_vgmstream_ea_mpf_mus(STREAMFILE *streamFile) {
         }
 
         section_offset = entry_offset + 0x10 + subentry_num * 0x04;
+
         entry_offset = (uint16_t)read_16bit(section_offset + (sec2_num - 1) * 0x02, streamFile) * 0x04;
         if (big_endian) {
             subentry_num = (read_32bitBE(entry_offset + 0x0c, streamFile) >> 10) & 0xFF;
@@ -750,6 +753,9 @@ VGMSTREAM * init_vgmstream_ea_mpf_mus(STREAMFILE *streamFile) {
         section_offset = entry_offset + 0x10 + subentry_num * 0x10;
 
         entry_offset = read_32bit(section_offset, streamFile) * 0x04;
+        entry_offset += sec3_num * 0x04;
+        entry_offset += sec4_num * 0x04;
+
         section_offset = read_32bit(entry_offset + 0x00, streamFile) * 0x04;
         eof_offset = read_32bit(entry_offset + 0x04, streamFile) * 0x04;
         total_streams = (eof_offset - section_offset) / 0x08;
