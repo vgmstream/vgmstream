@@ -32,11 +32,14 @@ VGMSTREAM * init_vgmstream_hca_subkey(STREAMFILE *streamFile, uint16_t subkey) {
         keysize = read_key_file(keybuf, 0x08+0x04, streamFile);
         if (keysize == 0x08) { /* standard */
             keycode = (uint64_t)get_64bitBE(keybuf+0x00);
+            if (subkey) {
+                keycode = keycode * ( ((uint64_t)subkey << 16u) | ((uint16_t)~subkey + 2u) );
+            }
         }
         else if (keysize == 0x08+0x02) { /* seed key + AWB subkey */
-            uint64_t key = (uint64_t)get_64bitBE(keybuf+0x00);
-            uint16_t sub = (uint16_t)get_16bitBE(keybuf+0x08);
-            keycode = key * ( ((uint64_t)sub << 16u) | ((uint16_t)~sub + 2u) );
+            uint64_t file_key = (uint64_t)get_64bitBE(keybuf+0x00);
+            uint16_t file_sub = (uint16_t)get_16bitBE(keybuf+0x08);
+            keycode = file_key * ( ((uint64_t)file_sub << 16u) | ((uint16_t)~file_sub + 2u) );
         }
         else {
             find_hca_key(hca_data, &keycode, subkey);
