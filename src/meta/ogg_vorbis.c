@@ -172,6 +172,7 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
     int is_gwm = 0;
     int is_mus = 0;
     int is_lse = 0;
+    int is_bgm = 0;
 
 
     /* check extension */
@@ -201,6 +202,8 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
         is_mus = 1;
     } else if (check_extensions(streamFile,"lse")) { /* .lse: Labyrinth of Refrain: Coven of Dusk (PC) */
         is_lse = 1;
+    } else if (check_extensions(streamFile,"bgm")) { /* .bgm: Fortissimo (PC) */
+        is_bgm = 1;
     } else {
         goto fail;
     }
@@ -408,6 +411,23 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
             cfg.key_len = 256;
             for (i = 0; i < cfg.key_len; i++) {
                 cfg.key[i] = (uint8_t)(base_key + i);
+            }
+            cfg.is_encrypted = 1;
+        }
+    }
+
+    if (is_bgm) { /* [Fortissimo (PC)] */
+        size_t file_size = get_streamfile_size(streamFile);
+        uint8_t key[0x04];
+        uint32_t xor_be;
+
+        put_32bitLE(key, (uint32_t)file_size);
+        xor_be = (uint32_t)get_32bitBE(key);
+        if ((read_32bitBE(0x00,streamFile) ^ xor_be) == 0x4F676753) { /* "OggS" */
+            int i;
+            cfg.key_len = 4;
+            for (i = 0; i < cfg.key_len; i++) {
+                cfg.key[i] = key[i];
             }
             cfg.is_encrypted = 1;
         }
