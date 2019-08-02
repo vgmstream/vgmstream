@@ -771,12 +771,23 @@ STREAMFILE * open_streamfile(STREAMFILE *streamFile, const char * pathname) {
 }
 
 STREAMFILE * open_streamfile_by_ext(STREAMFILE *streamFile, const char * ext) {
-    char filename_ext[PATH_LIMIT];
+    char filename[PATH_LIMIT];
+    int filename_len, fileext_len;
 
-    streamFile->get_name(streamFile,filename_ext,sizeof(filename_ext));
-    strcpy(filename_ext + strlen(filename_ext) - strlen(filename_extension(filename_ext)), ext);
+    streamFile->get_name(streamFile,filename,sizeof(filename));
 
-    return streamFile->open(streamFile,filename_ext,STREAMFILE_DEFAULT_BUFFER_SIZE);
+    filename_len = strlen(filename);
+    fileext_len = strlen(filename_extension(filename));
+
+    if (fileext_len == 0) {/* extensionless */
+        strcat(filename,".");
+        strcat(filename,ext);
+    }
+    else {
+        strcpy(filename + filename_len - fileext_len, ext);
+    }
+
+    return streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
 }
 
 STREAMFILE * open_streamfile_by_filename(STREAMFILE *streamFile, const char * name) {
