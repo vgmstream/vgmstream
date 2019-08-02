@@ -281,6 +281,10 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\meta\mzrt_streamfile.h"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\ogg_vorbis_streamfile.h"
                     >
                 </File>
@@ -802,10 +806,14 @@
 					RelativePath=".\meta\musx.c"
 					>
 				</File>
-				<File
-					RelativePath=".\meta\myspd.c"
-					>
-				</File>
+                <File
+                    RelativePath=".\meta\myspd.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\mzrt.c"
+                    >
+                </File>
                 <File
                     RelativePath=".\meta\naac.c"
                     >

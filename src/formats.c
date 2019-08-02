@@ -189,9 +189,12 @@ static const char* extension_list[] = {
 
     "iab",
     "iadp",
+    "idmsf",
     "idsp",
     "idvi", //fake extension/header id for .pcm (renamed, to be removed)
+    "idwav",
     "idx",
+    "idxma",
     "ikm",
     "ild",
     "ilv", //txth/reserved [Star Wars Episode III (PS2)]
@@ -1202,6 +1205,7 @@ static const meta_info meta_info_list[] = {
         {meta_BWAV,                 "Nintendo BWAV header"},
         {meta_RAD,                  "Traveller's Tales .RAD header"},
         {meta_SMACKER,              "RAD Game Tools SMACKER header"},
+        {meta_MZRT,                 "id Software MZRT header"},
 
 };
 

@@ -871,6 +871,11 @@ void xma_fix_raw_samples_ch(VGMSTREAM *vgmstream, STREAMFILE*streamFile, off_t s
 #endif
 }
 
+void xma_fix_raw_samples_hb(VGMSTREAM *vgmstream, STREAMFILE *headerFile, STREAMFILE *bodyFile, off_t stream_offset, size_t stream_size, off_t chunk_offset, int fix_num_samples, int fix_loop_samples) {
+    int channels_per_stream = xma_get_channels_per_stream(headerFile, chunk_offset, vgmstream->channels);
+    xma_fix_raw_samples_ch(vgmstream, bodyFile, stream_offset, stream_size, channels_per_stream, fix_num_samples, fix_loop_samples);
+}
+
 void xma_fix_raw_samples(VGMSTREAM *vgmstream, STREAMFILE*streamFile, off_t stream_offset, size_t stream_size, off_t chunk_offset, int fix_num_samples, int fix_loop_samples) {
     int channels_per_stream = xma_get_channels_per_stream(streamFile, chunk_offset, vgmstream->channels);
     xma_fix_raw_samples_ch(vgmstream, streamFile, stream_offset, stream_size, channels_per_stream, fix_num_samples, fix_loop_samples);
