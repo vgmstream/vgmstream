@@ -125,6 +125,7 @@ static const char* extension_list[] = {
     "cxs",
 
     "da",
+    "data",
     "dax",
     "dbm",
     "dcs",
