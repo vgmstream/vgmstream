@@ -48,7 +48,8 @@ VGMSTREAM * init_vgmstream_dsp_mcadpcm(STREAMFILE *streamFile);
 VGMSTREAM * init_vgmstream_dsp_switch_audio(STREAMFILE *streamFile);
 VGMSTREAM * init_vgmstream_dsp_sps_n1(STREAMFILE *streamFile);
 VGMSTREAM * init_vgmstream_dsp_itl_ch(STREAMFILE *streamFile);
-VGMSTREAM * init_vgmstream_dsp_adpcmx(STREAMFILE *streamFile);
+VGMSTREAM * init_vgmstream_dsp_adpy(STREAMFILE *streamFile);
+VGMSTREAM * init_vgmstream_dsp_adpx(STREAMFILE *streamFile);
 VGMSTREAM * init_vgmstream_dsp_ds2(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_csmp(STREAMFILE *streamFile);

@@ -1187,8 +1187,8 @@ fail:
     return NULL;
 }
 
-/* .adpcmx - AQUASTYLE wrapper [Touhou Genso Wanderer -Reloaded- (Switch)] */
-VGMSTREAM * init_vgmstream_dsp_adpcmx(STREAMFILE *streamFile) {
+/* ADPY - AQUASTYLE wrapper [Touhou Genso Wanderer -Reloaded- (Switch)] */
+VGMSTREAM * init_vgmstream_dsp_adpy(STREAMFILE *streamFile) {
     dsp_meta dspm = {0};
 
     /* checks */
@@ -1196,6 +1196,7 @@ VGMSTREAM * init_vgmstream_dsp_adpcmx(STREAMFILE *streamFile) {
         goto fail;
     if (read_32bitBE(0x00,streamFile) != 0x41445059) /* "ADPY" */
         goto fail;
+
     /* 0x04(2): 1? */
     /* 0x08: some size? */
     /* 0x0c: null */
@@ -1209,7 +1210,36 @@ VGMSTREAM * init_vgmstream_dsp_adpcmx(STREAMFILE *streamFile) {
     dspm.start_offset = dspm.header_offset + dspm.header_spacing*dspm.channel_count;
     dspm.interleave = 0x08;
 
-    dspm.meta_type = meta_DSP_ADPCMX;
+    dspm.meta_type = meta_DSP_ADPY;
+    return init_vgmstream_dsp_common(streamFile, &dspm);
+fail:
+    return NULL;
+}
+
+/* ADPX - AQUASTYLE wrapper [Fushigi no Gensokyo: Lotus Labyrinth (Switch)] */
+VGMSTREAM * init_vgmstream_dsp_adpx(STREAMFILE *streamFile) {
+    dsp_meta dspm = {0};
+
+    /* checks */
+    if (!check_extensions(streamFile, "adpcmx"))
+        goto fail;
+    if (read_32bitBE(0x00,streamFile) != 0x41445058) /* "ADPX" */
+        goto fail;
+
+    /* from 0x04 *6 are probably channel sizes, so max would be 6ch; this assumes 2ch */
+    if (read_32bitLE(0x04,streamFile) != read_32bitLE(0x08,streamFile) &&
+        read_32bitLE(0x0c,streamFile) != 0)
+        goto fail;
+    dspm.channel_count = 2;
+    dspm.max_channels = 2;
+    dspm.little_endian = 1;
+
+    dspm.header_offset = 0x1c;
+    dspm.header_spacing = read_32bitLE(0x04,streamFile);
+    dspm.start_offset = dspm.header_offset + 0x60;
+    dspm.interleave = dspm.header_spacing;
+
+    dspm.meta_type = meta_DSP_ADPX;
     return init_vgmstream_dsp_common(streamFile, &dspm);
 fail:
     return NULL;
