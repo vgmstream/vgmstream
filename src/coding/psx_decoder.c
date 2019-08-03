@@ -342,3 +342,21 @@ size_t ps_cfg_bytes_to_samples(size_t bytes, size_t frame_size, int channels) {
     return bytes / channels / frame_size * 28;
 }
 
+/* test PS-ADPCM frames for correctness */
+int ps_check_format(STREAMFILE *streamFile, off_t offset, size_t max) {
+    off_t max_offset = offset + max;
+    if (max_offset > get_streamfile_size(streamFile))
+        max_offset = get_streamfile_size(streamFile);
+
+    while (offset < max_offset) {
+        uint8_t predictor = (read_8bit(offset+0x00,streamFile) >> 4) & 0x0f;
+        uint8_t flags     =  read_8bit(offset+0x01,streamFile);
+
+        if (predictor > 5 || flags > 7) {
+            return 0;
+        }
+        offset += 0x10;
+    }
+
+    return 1;
+}

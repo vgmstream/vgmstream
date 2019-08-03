@@ -371,11 +371,7 @@ typedef enum {
     meta_XWB,               /* Microsoft XACT framework (Xbox, X360, Windows) */
     meta_PS2_XA30,          /* Driver - Parallel Lines (PS2) */
     meta_MUSC,              /* Krome PS2 games */
-    meta_MUSX_V004,         /* Spyro Games, possibly more */
-    meta_MUSX_V005,         /* Spyro Games, possibly more */
-    meta_MUSX_V006,         /* Spyro Games, possibly more */
-    meta_MUSX_V010,         /* Spyro Games, possibly more */
-    meta_MUSX_V201,         /* Sphinx and the cursed Mummy */
+    meta_MUSX,
     meta_LEG,               /* Legaia 2 [no header_id] */
     meta_FILP,              /* Resident Evil - Dead Aim */
     meta_IKM,

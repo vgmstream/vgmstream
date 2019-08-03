@@ -203,11 +203,7 @@ VGMSTREAM * init_vgmstream_ps2_xa30(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_musc(STREAMFILE * streamFile);
 
-VGMSTREAM * init_vgmstream_musx_v004(STREAMFILE * streamFile);
-VGMSTREAM * init_vgmstream_musx_v005(STREAMFILE * streamFile);
-VGMSTREAM * init_vgmstream_musx_v006(STREAMFILE * streamFile);
-VGMSTREAM * init_vgmstream_musx_v010(STREAMFILE * streamFile);
-VGMSTREAM * init_vgmstream_musx_v201(STREAMFILE * streamFile);
+VGMSTREAM * init_vgmstream_musx(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_leg(STREAMFILE * streamFile);
 
