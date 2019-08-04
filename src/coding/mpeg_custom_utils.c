@@ -90,6 +90,8 @@ int mpeg_custom_setup_init_default(STREAMFILE *streamFile, off_t start_offset, m
 
         case MPEG_XVAG: /* set in header and needed for gapless looping */
             data->skip_samples = data->config.skip_samples; break;
+        case MPEG_STANDARD:
+            data->skip_samples = data->config.skip_samples; break;
         default:
             break;
     }

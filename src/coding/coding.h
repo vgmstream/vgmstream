@@ -42,6 +42,7 @@ void decode_h4m_ima(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspa
 size_t ima_bytes_to_samples(size_t bytes, int channels);
 size_t ms_ima_bytes_to_samples(size_t bytes, int block_align, int channels);
 size_t xbox_ima_bytes_to_samples(size_t bytes, int channels);
+size_t dat4_ima_bytes_to_samples(size_t bytes, int channels);
 size_t apple_ima4_bytes_to_samples(size_t bytes, int channels);
 
 /* ngc_dsp_decoder */
@@ -87,6 +88,7 @@ int ps_find_loop_offsets_full(STREAMFILE *streamFile, off_t start_offset, size_t
 size_t ps_find_padding(STREAMFILE *streamFile, off_t start_offset, size_t data_size, int channels, size_t interleave, int discard_empty);
 size_t ps_bytes_to_samples(size_t bytes, int channels);
 size_t ps_cfg_bytes_to_samples(size_t bytes, size_t frame_size, int channels);
+int ps_check_format(STREAMFILE *streamFile, off_t offset, size_t max);
 
 /* psv_decoder */
 void decode_hevag(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
@@ -361,6 +363,7 @@ void xma2_parse_fmt_chunk_extra(STREAMFILE *streamFile, off_t chunk_offset, int 
 void xma2_parse_xma2_chunk(STREAMFILE *streamFile, off_t chunk_offset, int * channels, int * sample_rate, int * loop_flag, int32_t * num_samples, int32_t * loop_start_sample, int32_t * loop_end_sample);
 
 void xma_fix_raw_samples(VGMSTREAM *vgmstream, STREAMFILE*streamFile, off_t stream_offset, size_t stream_size, off_t chunk_offset, int fix_num_samples, int fix_loop_samples);
+void xma_fix_raw_samples_hb(VGMSTREAM *vgmstream, STREAMFILE *headerFile, STREAMFILE *bodyFile, off_t stream_offset, size_t stream_size, off_t chunk_offset, int fix_num_samples, int fix_loop_samples);
 void xma_fix_raw_samples_ch(VGMSTREAM *vgmstream, STREAMFILE*streamFile, off_t stream_offset, size_t stream_size, int channel_per_stream, int fix_num_samples, int fix_loop_samples);
 
 int riff_get_fact_skip_samples(STREAMFILE * streamFile, off_t start_offset);

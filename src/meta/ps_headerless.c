@@ -1,7 +1,5 @@
 #include "meta.h"
-#include "../util.h"
-
-static int check_psadpcm(STREAMFILE *streamFile);
+#include "../coding/coding.h"
 
 
 /* headerless PS-ADPCM - from Katamary Damacy (PS2), Air (PS2), Aladdin: Nasira's Revenge (PS1)
@@ -51,7 +49,7 @@ VGMSTREAM * init_vgmstream_ps_headerless(STREAMFILE *streamFile) {
         goto fail;
 
     /* test if raw PS-ADPCM */
-    if (!check_psadpcm(streamFile))
+    if (!ps_check_format(streamFile, 0x00, 0x2000))
         goto fail;
 
 
@@ -285,27 +283,4 @@ VGMSTREAM * init_vgmstream_ps_headerless(STREAMFILE *streamFile) {
 fail:
     close_vgmstream(vgmstream);
     return NULL;
-}
-
-/* tests some PS-ADPCM frames */
-static int check_psadpcm(STREAMFILE *streamFile) {
-    off_t offset, max_offset;
-
-    max_offset = get_streamfile_size(streamFile);
-    if (max_offset > 0x2000)
-        max_offset = 0x2000;
-
-    offset = 0x00;
-    while (offset < max_offset) {
-        uint8_t predictor = (read_8bit(offset+0x00,streamFile) >> 4) & 0x0f;
-        uint8_t flags = read_8bit(offset+0x01,streamFile);
-
-        if (predictor > 5 || flags > 7)
-            goto fail;
-        offset += 0x10;
-    }
-
-    return 1;
-fail:
-    return 0;
 }

@@ -125,6 +125,7 @@ static const char* extension_list[] = {
     "cxs",
 
     "da",
+    "data",
     "dax",
     "dbm",
     "dcs",
@@ -188,9 +189,12 @@ static const char* extension_list[] = {
 
     "iab",
     "iadp",
+    "idmsf",
     "idsp",
     "idvi", //fake extension/header id for .pcm (renamed, to be removed)
+    "idwav",
     "idx",
+    "idxma",
     "ikm",
     "ild",
     "ilv", //txth/reserved [Star Wars Episode III (PS2)]
@@ -519,6 +523,7 @@ static const char* extension_list[] = {
     "xa30",
     "xag",
     "xau",
+    "xav",
     "xen",
     "xma",
     "xma2",
@@ -853,11 +858,7 @@ static const meta_info meta_info_list[] = {
         {meta_XWB,                  "Microsoft XWB header"},
         {meta_PS2_XA30,             "Reflections XA30 PS2 header"},
         {meta_MUSC,                 "Krome MUSC header"},
-        {meta_MUSX_V004,            "MUSX / Version 004 Header"},
-        {meta_MUSX_V005,            "MUSX / Version 005 Header"},
-        {meta_MUSX_V006,            "MUSX / Version 006 Header"},
-        {meta_MUSX_V010,            "MUSX / Version 010 Header"},
-        {meta_MUSX_V201,            "MUSX / Version 201 Header"},
+        {meta_MUSX,                 "Eurocom MUSX header"},
         {meta_LEG,                  "Legaia 2 - Duel Saga LEG Header"},
         {meta_FILP,                 "Bio Hazard - Gun Survivor FILp Header"},
         {meta_IKM,                  "MiCROViSiON IKM header"},
@@ -1186,7 +1187,8 @@ static const meta_info meta_info_list[] = {
         {meta_MSF_TAMASOFT,         "Tama-Soft MSF header"},
         {meta_XPS_DAT,              "From Software .XPS+DAT header"},
         {meta_ZSND,                 "Vicarious Visions ZSND header"},
-        {meta_DSP_ADPCMX,           "AQUASTYLE ADPY header"},
+        {meta_DSP_ADPY,             "AQUASTYLE ADPY header"},
+        {meta_DSP_ADPX,             "AQUASTYLE ADPX header"},
         {meta_OGG_OPUS,             "Ogg Opus header"},
         {meta_IMC,                  "iNiS .IMC header"},
         {meta_GIN,                  "Electronic Arts Gnsu header"},
@@ -1201,6 +1203,8 @@ static const meta_info meta_info_list[] = {
         {meta_BWAV,                 "Nintendo BWAV header"},
         {meta_RAD,                  "Traveller's Tales .RAD header"},
         {meta_SMACKER,              "RAD Game Tools SMACKER header"},
+        {meta_MZRT,                 "id Software MZRT header"},
+        {meta_XAVS,                 "Reflections XAVS header"},
 
 };
 

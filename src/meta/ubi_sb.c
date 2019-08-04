@@ -7,7 +7,7 @@
 #define SB_MAX_LAYER_COUNT 16  /* arbitrary max */
 #define SB_MAX_CHAIN_COUNT 256 /* +150 exist in Tonic Trouble */
 
-typedef enum { UBI_IMA, UBI_ADPCM, RAW_PCM, RAW_PSX, RAW_DSP, RAW_XBOX, FMT_VAG, FMT_AT3, RAW_AT3, FMT_XMA1, RAW_XMA1, FMT_OGG, FMT_CWAV, FMT_APM } ubi_sb_codec;
+typedef enum { UBI_IMA, UBI_ADPCM, RAW_PCM, RAW_PSX, RAW_DSP, RAW_XBOX, FMT_VAG, FMT_AT3, RAW_AT3, FMT_XMA1, RAW_XMA1, FMT_OGG, FMT_CWAV, FMT_APM, FMT_MPDX } ubi_sb_codec;
 typedef enum { UBI_PC, UBI_PS2, UBI_XBOX, UBI_GC, UBI_X360, UBI_PSP, UBI_PS3, UBI_WII, UBI_3DS } ubi_sb_platform;
 typedef enum { UBI_NONE = 0, UBI_AUDIO, UBI_LAYER, UBI_SEQUENCE, UBI_SILENCE } ubi_sb_type;
 
@@ -732,6 +732,15 @@ static VGMSTREAM * init_vgmstream_ubi_sb_base(ubi_sb_header *sb, STREAMFILE *str
                 vgmstream->loop_end_sample   = vgmstream->num_samples;
             }
             break;
+
+        case FMT_MPDX:
+            /* a custom, chunked MPEG format (sigh)
+             * 0x00: samples? (related to size)
+             * 0x04: "2RUS" (apparently "1RUS" for mono files)
+             * Rest is a MPEG-like sync but not an actual MPEG header? (DLLs do refer it as MPEG)
+             * Files may have multiple "2RUS" or just a big one
+             * A companion .csb has some not-too-useful info */
+            goto fail;
 
         default:
             VGM_LOG("UBI SB: unknown codec\n");
@@ -1520,6 +1529,9 @@ static int parse_stream_codec(ubi_sb_header * sb) {
 
         case 0x02:
             switch (sb->version) {
+                case 0x00000000: /* Tonic Trouble Special Edition */
+                    sb->codec = FMT_MPDX;
+                    break;
                 case 0x00000007: /* Splinter Cell, Splinter Cell: Pandora Tomorrow */
                 case 0x00120012: /* Myst IV: Exile */
                     //todo splinter Cell Essentials
@@ -1769,7 +1781,7 @@ static int parse_sb(ubi_sb_header * sb, STREAMFILE *streamFile, int target_subso
       /*header_id =*/ read_32bit(offset + 0x00, streamFile); /* forces buffer read */
         header_type = read_32bit(offset + 0x04, streamFile);
 
-        if (header_type <= 0x00 || header_type >= 0x10 || header_type == 0x09) {
+        if (header_type <= 0x00 || header_type >= 0x10) {
             VGM_LOG("UBI SB: unknown type %x at %x\n", header_type, (uint32_t)offset);
             goto fail;
         }
@@ -1962,6 +1974,7 @@ static void config_sb_random_old(ubi_sb_header * sb, off_t sequence_count, off_t
 
 static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
     int is_dino_pc = 0;
+    int is_ttse_pc = 0;
     int is_bia_ps2 = 0, is_biadd_psp = 0;
     int is_sc2_ps2_gc = 0;
     int is_sc4_pc_online = 0;
@@ -2051,7 +2064,10 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
      * 9: TYPE_THEME_OLD2
      * A: TYPE_RANDOM
      * B: TYPE_THEME0 (sequence)
-     * (only 1, 4, A and B are known)
+     * Only 1, 2, 4, 9, A and B are known.
+     * 2 is used rarely in Donald Duck's demo and point to a .mdx (midi?)
+     * 9 is used in Tonic Trouble Special Edition
+     * Others are common.
      */
 
     /* All types may contain memory garbage, making it harder to identify fields (platforms
@@ -2120,6 +2136,7 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
     if (sb->is_bnm) {
       //sb->allowed_types[0x0a] = 1; /* only needed inside sequences */
         sb->allowed_types[0x0b] = 1;
+        sb->allowed_types[0x09] = 1;
     }
 
 #if 0
@@ -2150,6 +2167,36 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         sb->version = 0x00000000;
         is_dino_pc = 1;
     }
+
+    /* Tonic Touble beta has garbage instead of version */
+    if (sb->is_bnm && sb->version > 0x00000000 && sb->platform == UBI_PC) {
+        STREAMFILE * streamTest = open_streamfile_by_filename(streamFile, "ED_MAIN.LCB");
+        if (streamTest) {
+            is_ttse_pc = 1;
+            sb->version = 0x00000000;
+            close_streamfile(streamTest);
+        }
+    }
+
+
+    /* Tonic Trouble Special Edition (1999)(PC)-bnm */
+    if (sb->version == 0x00000000 && sb->platform == UBI_PC && is_ttse_pc) {
+        config_sb_entry(sb, 0x20, 0x5c);
+
+        config_sb_audio_fs(sb, 0x2c, 0x2c, 0x30); /* no group id */
+        config_sb_audio_hs(sb, 0x42, 0x3c, 0x38, 0x38, 0x48, 0x44);
+        sb->cfg.audio_has_internal_names = 1;
+
+        config_sb_sequence(sb, 0x24, 0x18);
+
+        //config_sb_random_old(sb, 0x18, 0x0c);
+
+        /* no layers */
+        //todo type 9 needed
+        //todo MPX don't set stream size?
+        return 1;
+    }
+
 
     /* Rayman 2: The Great Escape (1999)(PC)-bnm */
     /* Tonic Trouble (1999)(PC)-bnm */

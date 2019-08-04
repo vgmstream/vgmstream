@@ -98,11 +98,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_xwb,
     init_vgmstream_ps2_xa30,
     init_vgmstream_musc,
-    init_vgmstream_musx_v004,
-    init_vgmstream_musx_v005,
-    init_vgmstream_musx_v006,
-    init_vgmstream_musx_v010,
-    init_vgmstream_musx_v201,
+    init_vgmstream_musx,
     init_vgmstream_leg,
     init_vgmstream_filp,
     init_vgmstream_ikm_ps2,
@@ -461,7 +457,8 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_xps,
     init_vgmstream_zsnd,
     init_vgmstream_opus_opusx,
-    init_vgmstream_dsp_adpcmx,
+    init_vgmstream_dsp_adpy,
+    init_vgmstream_dsp_adpx,
     init_vgmstream_ogg_opus,
     init_vgmstream_nus3audio,
     init_vgmstream_imc,
@@ -486,6 +483,8 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_acb,
     init_vgmstream_rad,
     init_vgmstream_smk,
+    init_vgmstream_mzrt,
+    init_vgmstream_xavs,
 
     /* lowest priority metas (should go after all metas, and TXTH should go before raw formats) */
     init_vgmstream_txth,            /* proper parsers should supersede TXTH, once added */

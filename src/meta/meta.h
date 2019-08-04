@@ -48,7 +48,8 @@ VGMSTREAM * init_vgmstream_dsp_mcadpcm(STREAMFILE *streamFile);
 VGMSTREAM * init_vgmstream_dsp_switch_audio(STREAMFILE *streamFile);
 VGMSTREAM * init_vgmstream_dsp_sps_n1(STREAMFILE *streamFile);
 VGMSTREAM * init_vgmstream_dsp_itl_ch(STREAMFILE *streamFile);
-VGMSTREAM * init_vgmstream_dsp_adpcmx(STREAMFILE *streamFile);
+VGMSTREAM * init_vgmstream_dsp_adpy(STREAMFILE *streamFile);
+VGMSTREAM * init_vgmstream_dsp_adpx(STREAMFILE *streamFile);
 VGMSTREAM * init_vgmstream_dsp_ds2(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_csmp(STREAMFILE *streamFile);
@@ -202,11 +203,7 @@ VGMSTREAM * init_vgmstream_ps2_xa30(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_musc(STREAMFILE * streamFile);
 
-VGMSTREAM * init_vgmstream_musx_v004(STREAMFILE * streamFile);
-VGMSTREAM * init_vgmstream_musx_v005(STREAMFILE * streamFile);
-VGMSTREAM * init_vgmstream_musx_v006(STREAMFILE * streamFile);
-VGMSTREAM * init_vgmstream_musx_v010(STREAMFILE * streamFile);
-VGMSTREAM * init_vgmstream_musx_v201(STREAMFILE * streamFile);
+VGMSTREAM * init_vgmstream_musx(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_leg(STREAMFILE * streamFile);
 
@@ -868,5 +865,9 @@ void load_acb_wave_name(STREAMFILE *acbFile, VGMSTREAM* vgmstream, int waveid, i
 VGMSTREAM * init_vgmstream_rad(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_smk(STREAMFILE * streamFile);
+
+VGMSTREAM * init_vgmstream_mzrt(STREAMFILE * streamFile);
+
+VGMSTREAM * init_vgmstream_xavs(STREAMFILE * streamFile);
 
 #endif /*_META_H*/
