@@ -868,4 +868,6 @@ VGMSTREAM * init_vgmstream_smk(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_mzrt(STREAMFILE * streamFile);
 
+VGMSTREAM * init_vgmstream_xavs(STREAMFILE * streamFile);
+
 #endif /*_META_H*/

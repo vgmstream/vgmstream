@@ -523,6 +523,7 @@ static const char* extension_list[] = {
     "xa30",
     "xag",
     "xau",
+    "xav",
     "xen",
     "xma",
     "xma2",
@@ -1203,6 +1204,7 @@ static const meta_info meta_info_list[] = {
         {meta_RAD,                  "Traveller's Tales .RAD header"},
         {meta_SMACKER,              "RAD Game Tools SMACKER header"},
         {meta_MZRT,                 "id Software MZRT header"},
+        {meta_XAVS,                 "Reflections XAVS header"},
 
 };
 

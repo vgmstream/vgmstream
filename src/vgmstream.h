@@ -731,6 +731,7 @@ typedef enum {
     meta_RAD,
     meta_SMACKER,
     meta_MZRT,
+    meta_XAVS,
 
 } meta_t;
 

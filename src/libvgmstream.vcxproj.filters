@@ -122,6 +122,9 @@
     <ClInclude Include="meta\vsv_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="meta\xavs_streamfile.h">
+      <Filter>meta\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="meta\sfh_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
@@ -1052,6 +1055,9 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\xau.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\xavs.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\xbox_hlwav.c">

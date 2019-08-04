@@ -301,6 +301,10 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\meta\xavs_streamfile.h"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\sfh_streamfile.h"
                     >
                 </File>
@@ -1708,6 +1712,10 @@
 				</File>
                 <File
                     RelativePath=".\meta\xau.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\xavs.c"
                     >
                 </File>
 				<File

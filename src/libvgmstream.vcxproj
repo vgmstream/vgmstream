@@ -114,6 +114,7 @@
     <ClInclude Include="meta\kma9_streamfile.h" />
     <ClInclude Include="meta\ppst_streamfile.h" />
     <ClInclude Include="meta\vsv_streamfile.h" />
+    <ClInclude Include="meta\xavs_streamfile.h" />
     <ClInclude Include="meta\mta2_streamfile.h" />
     <ClInclude Include="meta\mzrt_streamfile.h" />
     <ClInclude Include="meta\ogg_vorbis_streamfile.h" />
@@ -503,6 +504,7 @@
     <ClCompile Include="meta\wvs.c" />
     <ClCompile Include="meta\wwise.c" />
     <ClCompile Include="meta\xau.c" />
+    <ClCompile Include="meta\xavs.c" />
     <ClCompile Include="meta\xbox_hlwav.c" />
     <ClCompile Include="meta\xbox_ims.c" />
     <ClCompile Include="meta\xbox_wavm.c" />
