@@ -303,7 +303,7 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
                         cfg.setup_type = WWV_EXTERNAL_CODEBOOKS; /* setup_type will be corrected later */
                         break;
 
-                    case 0x2a:  /* uncommon (mid 2011) [inFamous 2 (PS3)] */
+                    case 0x2a:  /* uncommon (mid 2011) [inFamous 2 (PS3), Captain America: Super Soldier (X360)] */
                         data_offsets = 0x10;
                         block_offsets = 0x28;
                         cfg.header_type = WWV_TYPE_2;
@@ -324,6 +324,14 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
                     cfg.blocksize_0_exp = read_8bit(vorb_offset + block_offsets + 0x01, streamFile); /* big */
                 }
                 ww.data_size -= audio_offset;
+
+
+                /* detect normal packets */
+                if (vorb_size == 0x2a) {
+                    /* almost all blocksizes are 0x08+0x0B except a few with 0x0a+0x0a [Captain America: Super Soldier (X360) voices/sfx] */
+                    if (cfg.blocksize_0_exp == cfg.blocksize_1_exp)
+                        cfg.packet_type = WWV_STANDARD;
+                }
 
                 /* detect setup type:
                  * - full inline: ~2009, ex. The King of Fighters XII (X360), The Saboteur (PC)
@@ -378,11 +386,9 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
                 cfg.blocksize_0_exp = read_8bit(extra_offset + block_offsets + 0x01, streamFile); /* big */
                 ww.data_size -= audio_offset;
 
-                /* Normal packets are used rarely (ex. Oddworld New 'n' Tasty! (PSV)). They are hard to detect (decoding
-                 * will mostly work with garbage results) but we'll try. Setup size and "fmt" bitrate fields may matter too. */
+                /* detect normal packets */
                 if (ww.extra_size == 0x30) {
-                    /* all blocksizes I've seen are 0x08+0x0B except Oddworld (PSV), that uses 0x09+0x09
-                     * (maybe lower spec machines = needs simpler packets) */
+                    /* almost all blocksizes are 0x08+0x0B except some with 0x09+0x09 [Oddworld New 'n' Tasty! (PSV)] */
                     if (cfg.blocksize_0_exp == cfg.blocksize_1_exp)
                         cfg.packet_type = WWV_STANDARD;
                 }
