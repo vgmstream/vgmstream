@@ -635,7 +635,7 @@ static int get_xsb_name(char * buf, size_t maxsize, int target_subsong, xwb_head
     }
 
     //;VGM_LOG("XSB: name found=%i at %lx\n", xsb.parse_found, xsb.name_offset);
-    if (!xsb.parse_found || xsb.name[0] == '\0')
+    if (!xsb.name_len || xsb.name[0] == '\0')
         goto fail;
 
     strncpy(buf,xsb.name,maxsize);

@@ -55,7 +55,7 @@ static void xsb_check_stream(xsb_header * xsb, int stream_index, int wavebank_in
             int cat_len = 2;
 
             if (xsb->name_len + cat_len + name_size + 1 < STREAM_NAME_SIZE) {
-                strcat(xsb->name + xsb->name_len, "; ");
+                strcat(xsb->name + xsb->name_len, cat);
                 strcat(xsb->name + xsb->name_len, name);
             }
         }
