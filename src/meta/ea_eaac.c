@@ -338,8 +338,8 @@ VGMSTREAM * init_vgmstream_ea_sbr(STREAMFILE *streamFile) {
     num_metas = read_16bitBE(entry_offset + 0x04, streamFile);
     metas_offset = read_32bitBE(entry_offset + 0x06, streamFile);
 
-    snr_offset = 0xFFFFFFFF;
-    sns_offset = 0xFFFFFFFF;
+    snr_offset = 0;
+    sns_offset = 0;
 
     for (i = 0; i < num_metas; i++) {
         entry_offset = metas_offset + 0x06 * i;
@@ -360,10 +360,10 @@ VGMSTREAM * init_vgmstream_ea_sbr(STREAMFILE *streamFile) {
         }
     }
 
-    if (snr_offset == 0xFFFFFFFF && sns_offset == 0xFFFFFFFF)
+    if (snr_offset == 0 && sns_offset == 0)
         goto fail;
 
-    if (snr_offset == 0xFFFFFFFF) {
+    if (snr_offset == 0) {
         /* SPS file */
         sbsFile = open_streamfile_by_ext(streamFile, "sbs");
         if (!sbsFile)
@@ -378,7 +378,7 @@ VGMSTREAM * init_vgmstream_ea_sbr(STREAMFILE *streamFile) {
         vgmstream = init_vgmstream_eaaudiocore_header(sbsFile, sbsFile, snr_offset, sns_offset, meta_EA_SPS);
         if (!vgmstream)
             goto fail;
-    } else if (sns_offset == 0xFFFFFFFF) {
+    } else if (sns_offset == 0) {
         /* RAM asset */
         sns_offset = snr_offset + get_snr_size(streamFile, snr_offset);
         vgmstream = init_vgmstream_eaaudiocore_header(streamFile, streamFile, snr_offset, sns_offset, meta_EA_SNR_SNS);
@@ -697,7 +697,7 @@ VGMSTREAM * init_vgmstream_ea_sbr_harmony(STREAMFILE *streamFile) {
         goto fail;
 
     total_sounds = 0;
-    sound_offset = 0xFFFFFFFF;
+    sound_offset = 0;
 
     /* The bank is split into DSET sections each of which references one or multiple sounds. */
     /* Each set can contain RAM sounds (stored in SBR in data section) or streamed sounds (stored separately in SBS file). */
@@ -787,7 +787,7 @@ VGMSTREAM * init_vgmstream_ea_sbr_harmony(STREAMFILE *streamFile) {
         }
     }
 
-    if (sound_offset == 0xFFFFFFFF)
+    if (sound_offset == 0)
         goto fail;
 
     if (!is_streamed) {

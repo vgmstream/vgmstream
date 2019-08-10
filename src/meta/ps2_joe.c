@@ -52,7 +52,7 @@ VGMSTREAM * init_vgmstream_ps2_joe(STREAMFILE *streamFile) {
 
     /* the file's end is padded with either 0xcdcdcdcd or zeroes */
     padding_size = joe_find_padding(streamFile, start_offset, data_size, channel_count, interleave);
-    if (padding_size == 0xFFFFFFFF)
+    if (padding_size == SIZE_MAX)
         goto fail;
 
     data_size -= padding_size;
@@ -91,14 +91,14 @@ static size_t joe_find_padding(STREAMFILE *streamFile, off_t start_offset, size_
     size_t interleave_consumed = 0;
 
     if (data_size == 0 || channels == 0 || (channels > 0 && interleave == 0))
-        return 0;
+        return SIZE_MAX;
 
     offset = start_offset + data_size - interleave * (channels - 1);
     min_offset = start_offset;
 
     while (offset > min_offset) {
         offset -= frame_size;
-        flag = (read_32bitBE(offset + 0x00, streamFile) >> 16) & 0xFF;
+        flag = read_8bit(offset + 0x01, streamFile);
         if (flag == 0x03)
             break;
 
@@ -113,7 +113,7 @@ static size_t joe_find_padding(STREAMFILE *streamFile, off_t start_offset, size_
     }
 
     if (padding_size >= data_size)
-        return 0xFFFFFFFF;
+        return SIZE_MAX;
 
     return padding_size;
 }
