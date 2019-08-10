@@ -458,26 +458,35 @@ fail:
     return NULL;
 }
 
-/* EA HDR/DAT combo - seen in late 6th-gen games, used for storing speech and other streamed sounds (except for music) */
+/* EA HDR/DAT v1 (2004-2005) - used for storing speech and other streamed sounds (except for music) */
 VGMSTREAM * init_vgmstream_ea_hdr_dat(STREAMFILE *streamFile) {
     int target_stream = streamFile->stream_index;
     uint8_t userdata_size, total_sounds;
+    size_t dat_size;
     off_t schl_offset, offset_mult;
     STREAMFILE *datFile = NULL;
     VGMSTREAM *vgmstream;
 
-    /* main header's endianness is platform-native but we only care about one byte values */
+    /* main header is machine endian but it's not important here */
     /* 0x00: ID */
     /* 0x02: sub-ID (used for different police voices in NFS games) */
     /* 0x04: (low nibble) userdata size */
     /* 0x04: (high nibble) ??? */
     /* 0x05: number of files */
-    /* 0x06: ??? */
+    /* 0x06: alt number of files? */
     /* 0x07: offset multiplier flag */
     /* 0x08: combined size of all sounds without padding divided by offset mult */
-    /* 0x0C: table start */
+    /* 0x0a: zero */
+    /* 0x0c: table start */
 
     /* no nice way to validate these so we do what we can */
+    if (read_16bitBE(0x0a, streamFile) != 0)
+        goto fail;
+
+    /* first offset is always zero */
+    if (read_16bitBE(0x0c, streamFile) != 0)
+        goto fail;
+
     /* must be accompanied by DAT file with SCHl sounds */
     datFile = open_streamfile_by_ext(streamFile, "dat");
     if (!datFile)
@@ -490,12 +499,90 @@ VGMSTREAM * init_vgmstream_ea_hdr_dat(STREAMFILE *streamFile) {
     total_sounds = read_8bit(0x05, streamFile);
     offset_mult = (uint8_t)read_8bit(0x07, streamFile) * 0x0100 + 0x0100;
 
+    if (read_8bit(0x06, streamFile) > total_sounds)
+        goto fail;
+
+    dat_size = get_streamfile_size(datFile);
+    if ((uint16_t)read_16bitLE(0x08, streamFile) * offset_mult > dat_size &&
+        (uint16_t)read_16bitBE(0x08, streamFile) * offset_mult > dat_size)
+        goto fail;
+
     if (target_stream == 0) target_stream = 1;
     if (target_stream < 0 || total_sounds == 0 || target_stream > total_sounds)
         goto fail;
 
     /* offsets are always big endian */
-    schl_offset = (uint16_t)read_16bitBE(0x0C + (0x02+userdata_size) * (target_stream-1), streamFile) * offset_mult;
+    schl_offset = (uint16_t)read_16bitBE(0x0C + (0x02 + userdata_size) * (target_stream - 1), streamFile) * offset_mult;
+    if (read_32bitBE(schl_offset, datFile) != EA_BLOCKID_HEADER)
+        goto fail;
+
+    vgmstream = parse_schl_block(datFile, schl_offset, 0);
+    if (!vgmstream)
+        goto fail;
+
+    vgmstream->num_streams = total_sounds;
+    close_streamfile(datFile);
+    return vgmstream;
+
+fail:
+    close_streamfile(datFile);
+    return NULL;
+}
+
+/* EA HDR/DAT v2 (2006-2014) */
+VGMSTREAM * init_vgmstream_ea_hdr_dat_v2(STREAMFILE *streamFile) {
+    int target_stream = streamFile->stream_index;
+    uint8_t userdata_size, total_sounds;
+    size_t dat_size;
+    off_t schl_offset, offset_mult;
+    STREAMFILE *datFile = NULL;
+    VGMSTREAM *vgmstream;
+
+    /* main header is machine endian but it's not important here */
+    /* 0x00: ID */
+    /* 0x02: userdata size */
+    /* 0x03: number of files */
+    /* 0x04: sub-ID (used for different police voices in NFS games) */
+    /* 0x08: alt number of files? */
+    /* 0x09: offset mult */
+    /* 0x0a: DAT size divided by offset mult */
+    /* 0x0c: zero */
+    /* 0x10: table start */
+
+    /* no nice way to validate these so we do what we can */
+    if (read_32bitBE(0x0c, streamFile) != 0)
+        goto fail;
+
+    /* first offset is always zero */
+    if (read_16bitBE(0x10, streamFile) != 0)
+        goto fail;
+
+    /* must be accompanied by DAT file with SCHl sounds */
+    datFile = open_streamfile_by_ext(streamFile, "dat");
+    if (!datFile)
+        goto fail;
+
+    if (read_32bitBE(0x00, datFile) != EA_BLOCKID_HEADER)
+        goto fail;
+
+    userdata_size = read_8bit(0x02, streamFile);
+    total_sounds = read_8bit(0x03, streamFile);
+    offset_mult = (uint8_t)read_8bit(0x09, streamFile) * 0x0100 + 0x0100;
+
+    if (read_8bit(0x08, streamFile) > total_sounds)
+        goto fail;
+
+    dat_size = get_streamfile_size(datFile);
+    if ((uint16_t)read_16bitLE(0x0a, streamFile) * offset_mult != dat_size &&
+        (uint16_t)read_16bitBE(0x0a, streamFile) * offset_mult != dat_size)
+        goto fail;
+
+    if (target_stream == 0) target_stream = 1;
+    if (target_stream < 0 || total_sounds == 0 || target_stream > total_sounds)
+        goto fail;
+
+    /* offsets are always big endian */
+    schl_offset = (uint16_t)read_16bitBE(0x10 + (0x02 + userdata_size) * (target_stream - 1), streamFile) * offset_mult;
     if (read_32bitBE(schl_offset, datFile) != EA_BLOCKID_HEADER)
         goto fail;
 

@@ -338,8 +338,8 @@ VGMSTREAM * init_vgmstream_ea_sbr(STREAMFILE *streamFile) {
     num_metas = read_16bitBE(entry_offset + 0x04, streamFile);
     metas_offset = read_32bitBE(entry_offset + 0x06, streamFile);
 
-    snr_offset = 0xFFFFFFFF;
-    sns_offset = 0xFFFFFFFF;
+    snr_offset = 0;
+    sns_offset = 0;
 
     for (i = 0; i < num_metas; i++) {
         entry_offset = metas_offset + 0x06 * i;
@@ -360,10 +360,10 @@ VGMSTREAM * init_vgmstream_ea_sbr(STREAMFILE *streamFile) {
         }
     }
 
-    if (snr_offset == 0xFFFFFFFF && sns_offset == 0xFFFFFFFF)
+    if (snr_offset == 0 && sns_offset == 0)
         goto fail;
 
-    if (snr_offset == 0xFFFFFFFF) {
+    if (snr_offset == 0) {
         /* SPS file */
         sbsFile = open_streamfile_by_ext(streamFile, "sbs");
         if (!sbsFile)
@@ -375,10 +375,10 @@ VGMSTREAM * init_vgmstream_ea_sbr(STREAMFILE *streamFile) {
         snr_offset = sns_offset;
         sns_offset = snr_offset + (read_32bitBE(snr_offset, sbsFile) & 0x00FFFFFF);
         snr_offset += 0x04;
-        vgmstream = init_vgmstream_eaaudiocore_header(sbsFile, sbsFile, snr_offset, sns_offset, meta_EA_SNR_SNS);
+        vgmstream = init_vgmstream_eaaudiocore_header(sbsFile, sbsFile, snr_offset, sns_offset, meta_EA_SPS);
         if (!vgmstream)
             goto fail;
-    } else if (sns_offset == 0xFFFFFFFF) {
+    } else if (sns_offset == 0) {
         /* RAM asset */
         sns_offset = snr_offset + get_snr_size(streamFile, snr_offset);
         vgmstream = init_vgmstream_eaaudiocore_header(streamFile, streamFile, snr_offset, sns_offset, meta_EA_SNR_SNS);
@@ -410,12 +410,12 @@ fail:
 /* EA HDR/STH/DAT - seen in older 7th gen games, used for storing speech */
 VGMSTREAM * init_vgmstream_ea_hdr_sth_dat(STREAMFILE *streamFile) {
     int target_stream = streamFile->stream_index;
-    uint32_t i;
     uint8_t userdata_size, total_sounds, block_id;
-    off_t snr_offset, sns_offset;
-    size_t file_size, block_size;
+    off_t snr_offset, sns_offset, sth_offset, sth_offset2;
+    size_t dat_size, block_size;
     STREAMFILE *datFile = NULL, *sthFile = NULL;
     VGMSTREAM *vgmstream;
+    int32_t(*read_32bit)(off_t, STREAMFILE*);
 
     /* 0x00: ID */
     /* 0x02: userdata size */
@@ -423,9 +423,19 @@ VGMSTREAM * init_vgmstream_ea_hdr_sth_dat(STREAMFILE *streamFile) {
     /* 0x04: sub-ID (used for different police voices in NFS games) */
     /* 0x08: alt number of files? */
     /* 0x09: zero */
-    /* 0x0A: ??? */
+    /* 0x0A: related to size? */
     /* 0x0C: zero */
     /* 0x10: table start */
+
+    if (read_8bit(0x09, streamFile) != 0)
+        goto fail;
+
+    if (read_32bitBE(0x0c, streamFile) != 0)
+        goto fail;
+
+    /* first offset is always zero */
+    if (read_16bitBE(0x10, streamFile) != 0)
+        goto fail;
 
     sthFile = open_streamfile_by_ext(streamFile, "sth");
     if (!sthFile)
@@ -436,7 +446,7 @@ VGMSTREAM * init_vgmstream_ea_hdr_sth_dat(STREAMFILE *streamFile) {
         goto fail;
 
     /* STH always starts with the first offset of zero */
-    sns_offset = read_32bitLE(0x00, sthFile);
+    sns_offset = read_32bitBE(0x00, sthFile);
     if (sns_offset != 0)
         goto fail;
 
@@ -447,6 +457,7 @@ VGMSTREAM * init_vgmstream_ea_hdr_sth_dat(STREAMFILE *streamFile) {
 
     userdata_size = read_8bit(0x02, streamFile);
     total_sounds = read_8bit(0x03, streamFile);
+
     if (read_8bit(0x08, streamFile) > total_sounds)
         goto fail;
 
@@ -455,23 +466,25 @@ VGMSTREAM * init_vgmstream_ea_hdr_sth_dat(STREAMFILE *streamFile) {
         goto fail;
 
     /* offsets in HDR are always big endian */
-    //snr_offset = (off_t)read_16bitBE(0x10 + (0x02+userdata_size) * (target_stream-1), streamFile) + 0x04;
-    //sns_offset = read_32bit(snr_offset, sthFile);
+    sth_offset = (uint16_t)read_16bitBE(0x10 + (0x02 + userdata_size) * (target_stream - 1), streamFile);
 
+#if 0
+    snr_offset = sth_offset + 0x04;
+    sns_offset = read_32bit(sth_offset + 0x00, sthFile);
+#else
     /* we can't reliably detect byte endianness so we're going to find the sound the hacky way */
-    /* go through blocks until we reach the goal sound */
-    file_size = get_streamfile_size(datFile);
+    dat_size = get_streamfile_size(datFile);
     snr_offset = 0;
     sns_offset = 0;
 
-    for (i = 0; i < total_sounds; i++) {
-        snr_offset = (uint16_t)read_16bitBE(0x10 + (0x02+userdata_size) * i, streamFile) + 0x04;
-
-        if (i == target_stream - 1)
-            break;
-
+    if (total_sounds == 1) {
+        /* always 0 */
+        snr_offset = sth_offset + 0x04;
+        sns_offset = 0x00;
+    } else {
+        /* find the first sound size and match it up with the second sound offset to detect endianness */
         while (1) {
-            if (sns_offset >= file_size)
+            if (sns_offset >= dat_size)
                 goto fail;
 
             block_id = read_8bit(sns_offset, datFile);
@@ -487,7 +500,20 @@ VGMSTREAM * init_vgmstream_ea_hdr_sth_dat(STREAMFILE *streamFile) {
             if (block_id == EAAC_BLOCKID0_END)
                 break;
         }
+
+        sth_offset2 = (uint16_t)read_16bitBE(0x10 + (0x02 + userdata_size) * 1, streamFile);
+        if (sns_offset == read_32bitBE(sth_offset2, sthFile)) {
+            read_32bit = read_32bitBE;
+        } else if (sns_offset == read_32bitLE(sth_offset2, sthFile)) {
+            read_32bit = read_32bitLE;
+        } else {
+            goto fail;
+        }
+
+        snr_offset = sth_offset + 0x04;
+        sns_offset = read_32bit(sth_offset + 0x00, sthFile);
     }
+#endif
 
     block_id = read_8bit(sns_offset, datFile);
     if (block_id != EAAC_BLOCKID0_DATA && block_id != EAAC_BLOCKID0_END)
@@ -671,7 +697,7 @@ VGMSTREAM * init_vgmstream_ea_sbr_harmony(STREAMFILE *streamFile) {
         goto fail;
 
     total_sounds = 0;
-    sound_offset = 0xFFFFFFFF;
+    sound_offset = 0;
 
     /* The bank is split into DSET sections each of which references one or multiple sounds. */
     /* Each set can contain RAM sounds (stored in SBR in data section) or streamed sounds (stored separately in SBS file). */
@@ -761,7 +787,7 @@ VGMSTREAM * init_vgmstream_ea_sbr_harmony(STREAMFILE *streamFile) {
         }
     }
 
-    if (sound_offset == 0xFFFFFFFF)
+    if (sound_offset == 0)
         goto fail;
 
     if (!is_streamed) {
