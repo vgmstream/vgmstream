@@ -420,27 +420,7 @@ typedef enum {
     meta_NGC_PDT,           /* Mario Party 6 */
     meta_DC_ASD,            /* Miss Moonligh */
     meta_NAOMI_SPSD,        /* Guilty Gear X */
-    
-    meta_RSD2VAG,           /* RSD2VAG */
-    meta_RSD2PCMB,          /* RSD2PCMB */
-    meta_RSD2XADP,          /* RSD2XADP */
-    meta_RSD3VAG,           /* RSD3VAG */
-    meta_RSD3GADP,          /* RSD3GADP */
-    meta_RSD3PCM,           /* RSD3PCM */
-    meta_RSD3PCMB,          /* RSD3PCMB */
-    meta_RSD4PCMB,          /* RSD4PCMB */
-    meta_RSD4PCM,           /* RSD4PCM */
-    meta_RSD4RADP,          /* RSD4RADP */
-    meta_RSD4VAG,           /* RSD4VAG */
-    meta_RSD6VAG,           /* RSD6VAG */
-    meta_RSD6WADP,          /* RSD6WADP */
-    meta_RSD6XADP,          /* RSD6XADP */
-    meta_RSD6RADP,          /* RSD6RADP */
-    meta_RSD6OOGV,          /* RSD6OOGV */
-    meta_RSD6XMA,           /* RSD6XMA */
-    meta_RSD6AT3P,          /* RSD6AT3+ */
-    meta_RSD6WMA,           /* RSD6WMA */
-
+    meta_RSD,
     meta_PS2_ASS,           /* ASS */
     meta_SEG,               /* Eragon */
     meta_NDS_STRM_FFTA2,    /* Final Fantasy Tactics A2 */
