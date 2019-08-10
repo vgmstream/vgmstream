@@ -11,7 +11,8 @@ VGMSTREAM * init_vgmstream_adpcm_capcom(STREAMFILE *streamFile) {
 
 
     /* checks */
-    if (!check_extensions(streamFile,"adpcm"))
+    /* .mca: Monster Hunter Generations Ultimate / XX */
+    if (!check_extensions(streamFile,"adpcm,mca"))
         goto fail;
     if (read_32bitBE(0x00,streamFile) != 0x02000000)
         goto fail;
