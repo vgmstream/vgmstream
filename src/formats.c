@@ -883,7 +883,7 @@ static const meta_info meta_info_list[] = {
         {meta_SCD_PCM,              "Lunar: Eternal Blue .PCM header"},
         {meta_PS2_PCM,              "Konami KCEJ East .PCM header"},
         {meta_PS2_RKV,              "Legacy of Kain - Blood Omen 2 RKV PS2 header"},
-        {meta_PS2_VAS,              "Pro Baseball Spirits 5 VAS Header"},
+        {meta_PS2_VAS,              "Konami .VAS header"},
         {meta_PS2_TEC,              "assumed TECMO badflagged stream by .tec extension"},
         {meta_PS2_ENTH,             ".enth Header"},
         {meta_SDT,                  "High Voltage .sdt header"},
