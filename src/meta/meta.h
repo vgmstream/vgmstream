@@ -626,6 +626,7 @@ VGMSTREAM * init_vgmstream_ea_schl_video(STREAMFILE *streamFile);
 VGMSTREAM * init_vgmstream_ea_bnk(STREAMFILE * streamFile);
 VGMSTREAM * init_vgmstream_ea_abk(STREAMFILE * streamFile);
 VGMSTREAM * init_vgmstream_ea_hdr_dat(STREAMFILE * streamFile);
+VGMSTREAM * init_vgmstream_ea_hdr_dat_v2(STREAMFILE * streamFile);
 VGMSTREAM * init_vgmstream_ea_map_mus(STREAMFILE * steeamFile);
 VGMSTREAM * init_vgmstream_ea_mpf_mus(STREAMFILE * steeamFile);
 
