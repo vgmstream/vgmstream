@@ -221,6 +221,7 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
             goto fail;
     }
 
+
     start_offset = ww.data_offset;
 
     /* build the VGMSTREAM */
@@ -443,6 +444,15 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
             else {
                 goto fail;
             }
+
+            /* for some reason all(?) DSP .wem do full loops (even mono/jingles/etc) but
+             * several tracks do loop like this, so disable it for short-ish tracks */
+            if (ww.loop_flag && vgmstream->loop_start_sample == 0 &&
+                    vgmstream->loop_end_sample < 20*ww.sample_rate) { /* in seconds */
+                vgmstream->loop_flag = 0;
+            }
+
+
 
             /* get coefs and default history */
             dsp_read_coefs(vgmstream,streamFile,wiih_offset, 0x2e, ww.big_endian);
