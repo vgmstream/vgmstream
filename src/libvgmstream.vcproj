@@ -1366,10 +1366,14 @@
                     RelativePath=".\meta\mta2.c"
                     >
                 </File>
-				<File
-					RelativePath=".\meta\ps3_past.c"
-					>
-				</File>
+                <File
+                    RelativePath=".\meta\ps3_past.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\psf.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\sgxd.c"
 					>

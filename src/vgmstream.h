@@ -104,7 +104,8 @@ typedef enum {
     coding_XA,              /* CD-ROM XA */
     coding_PSX,             /* Sony PS ADPCM (VAG) */
     coding_PSX_badflags,    /* Sony PS ADPCM with custom flag byte */
-    coding_PSX_cfg,         /* Sony PS ADPCM with configurable frame size (FF XI, SGXD type 5, Bizarre Creations) */
+    coding_PSX_cfg,         /* Sony PS ADPCM with configurable frame size (int math) */
+    coding_PSX_pivotal,     /* Sony PS ADPCM with configurable frame size (float math) */
     coding_HEVAG,           /* Sony PSVita ADPCM */
 
     coding_EA_XA,           /* Electronic Arts EA-XA ADPCM v1 (stereo) aka "EA ADPCM" */
@@ -389,7 +390,6 @@ typedef enum {
     meta_PS2_ENTH,          /* Enthusia */
     meta_SDT,               /* Baldur's Gate - Dark Alliance */
     meta_NGC_TYDSP,         /* Ty - The Tasmanian Tiger */
-    meta_NGC_SWD,           /* Conflict - Desert Storm 1 & 2 */
     meta_CAPDSP,            /* Capcom DSP Header [no header_id] */
     meta_DC_STR,            /* SEGA Stream Asset Builder */
     meta_DC_STR_V2,         /* variant of SEGA Stream Asset Builder */
@@ -712,6 +712,7 @@ typedef enum {
     meta_SMACKER,
     meta_MZRT,
     meta_XAVS,
+    meta_PSF,
 
 } meta_t;
 

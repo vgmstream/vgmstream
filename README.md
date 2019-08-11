@@ -191,7 +191,7 @@ left together.
 
 Similarly some formats split header and/or data in separate files (.sgh+sgd,
 .wav.str+.wav, (file)_L.dsp+(file)_R.dsp, etc). vgmstream will also detect
-and use those as needed and must be tegether, even if only one of the two
+and use those as needed and must be together, even if only one of the two
 will be used to play.
 
 .pos is a small file with 32 bit little endian values: loop start sample
@@ -308,7 +308,7 @@ the format defined.
 
 
 ## Supported codec types
-Quick list of codecs vgmstream supports, including many obscure ones that 
+Quick list of codecs vgmstream supports, including many obscure ones that
 are used in few games.
 
 - PCM 16-bit
@@ -322,7 +322,7 @@ are used in few games.
 - Nintendo AFC ADPCM
 - ITU-T G.721
 - CD-ROM XA ADPCM
-- Sony PSX ADPCM a.k.a VAG (standard, badflags, configurable)
+- Sony PSX ADPCM a.k.a VAG (standard, badflags, configurable, Pivotal)
 - Sony HEVAG
 - Electronic Arts EA-XA (stereo, mono, Maxis)
 - Electronic Arts EA-XAS (v0, v1)

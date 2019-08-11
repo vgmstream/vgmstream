@@ -195,6 +195,7 @@
     <ClCompile Include="meta\ps2_wmus.c" />
     <ClCompile Include="meta\ps3_ivag.c" />
     <ClCompile Include="meta\ps3_past.c" />
+    <ClCompile Include="meta\psf.c" />
     <ClCompile Include="meta\sgxd.c" />
     <ClCompile Include="meta\sk_aud.c" />
     <ClCompile Include="meta\vawx.c" />

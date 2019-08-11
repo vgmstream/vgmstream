@@ -31,7 +31,6 @@ VGMSTREAM * init_vgmstream_ngc_dsp_std_int(STREAMFILE *streamFile);
 VGMSTREAM * init_vgmstream_idsp_nus3(STREAMFILE *streamFile);
 VGMSTREAM * init_vgmstream_sadb(STREAMFILE *streamFile);
 VGMSTREAM * init_vgmstream_sadf(STREAMFILE *streamFile);
-VGMSTREAM * init_vgmstream_ngc_swd(STREAMFILE * streamFile);
 VGMSTREAM * init_vgmstream_idsp_tt(STREAMFILE *streamFile);
 VGMSTREAM * init_vgmstream_idsp_nl(STREAMFILE * streamFile);
 VGMSTREAM * init_vgmstream_wii_wsd(STREAMFILE *streamFile);
@@ -851,5 +850,8 @@ VGMSTREAM * init_vgmstream_smk(STREAMFILE * streamFile);
 VGMSTREAM * init_vgmstream_mzrt(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_xavs(STREAMFILE * streamFile);
+
+VGMSTREAM * init_vgmstream_psf_single(STREAMFILE * streamFile);
+VGMSTREAM * init_vgmstream_psf_segmented(STREAMFILE * streamFile);
 
 #endif /*_META_H*/

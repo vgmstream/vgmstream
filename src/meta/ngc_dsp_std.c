@@ -690,33 +690,6 @@ fail:
     return NULL;
 }
 
-/* SWD - PSF chunks + interleaved dsps [Conflict: Desert Storm 1 & 2] */
-VGMSTREAM * init_vgmstream_ngc_swd(STREAMFILE *streamFile) {
-    dsp_meta dspm = {0};
-
-    /* checks */
-    if (!check_extensions(streamFile, "swd"))
-        goto fail;
-
-    //todo blocked layout when first chunk is 0x50534631 (count + table of 0x0c with offset/sizes)
-
-    if (read_32bitBE(0x00,streamFile) != 0x505346d1) /* PSF\0xd1 */
-        goto fail;
-
-    dspm.channel_count = 2;
-    dspm.max_channels = 2;
-
-    dspm.header_offset = 0x08;
-    dspm.header_spacing = 0x60;
-    dspm.start_offset = dspm.header_offset + 0x60 * dspm.channel_count;
-    dspm.interleave = 0x08;
-
-    dspm.meta_type = meta_NGC_SWD;
-    return init_vgmstream_dsp_common(streamFile, &dspm);
-fail:
-    return NULL;
-}
-
 /* IDSP - Traveller's Tales header + interleaved dsps [Lego Batman (Wii), Lego Dimensions (Wii U)] */
 VGMSTREAM * init_vgmstream_idsp_tt(STREAMFILE *streamFile) {
     dsp_meta dspm = {0};

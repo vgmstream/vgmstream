@@ -123,7 +123,6 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_sdt,
     init_vgmstream_aix,
     init_vgmstream_ngc_tydsp,
-    init_vgmstream_ngc_swd,
     init_vgmstream_capdsp,
     init_vgmstream_xbox_wvs,
     init_vgmstream_ngc_wvs,
@@ -467,6 +466,8 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_smk,
     init_vgmstream_mzrt,
     init_vgmstream_xavs,
+    init_vgmstream_psf_single,
+    init_vgmstream_psf_segmented,
 
     /* lowest priority metas (should go after all metas, and TXTH should go before raw formats) */
     init_vgmstream_txth,            /* proper parsers should supersede TXTH, once added */
@@ -1171,7 +1172,8 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_HEVAG:
             return 28;
         case coding_PSX_cfg:
-            return (vgmstream->interleave_block_size - 1) * 2; /* decodes 1 byte into 2 bytes */
+        case coding_PSX_pivotal:
+            return (vgmstream->interleave_block_size - 0x01) * 2; /* size 0x01 header */
 
         case coding_EA_XA:
         case coding_EA_XA_int:
@@ -1359,6 +1361,7 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
         case coding_HEVAG:
             return 0x10;
         case coding_PSX_cfg:
+        case coding_PSX_pivotal:
             return vgmstream->interleave_block_size;
 
         case coding_EA_XA:
@@ -1672,6 +1675,13 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
             for (ch = 0; ch < vgmstream->channels; ch++) {
                 decode_psx_configurable(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
                         vgmstream->channels,vgmstream->samples_into_block,samples_to_do, vgmstream->interleave_block_size);
+            }
+            break;
+        case coding_PSX_pivotal:
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_psx_pivotal(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do,
+                        vgmstream->interleave_block_size);
             }
             break;
         case coding_HEVAG:

@@ -333,6 +333,7 @@ static const char* extension_list[] = {
     "pona",
     "pos",
     "ps2stm", //fake extension for .stm (renamed? to be removed?)
+    "psf",
     "psh", //fake extension for .vsv (to be removed)
     "psnd",
     "psw", //fake extension for .wam (renamed, to be removed)
@@ -616,6 +617,7 @@ static const coding_info coding_info_list[] = {
         {coding_PSX,                "Playstation 4-bit ADPCM"},
         {coding_PSX_badflags,       "Playstation 4-bit ADPCM (bad flags)"},
         {coding_PSX_cfg,            "Playstation 4-bit ADPCM (configurable)"},
+        {coding_PSX_pivotal,        "Playstation 4-bit ADPCM (Pivotal)"},
         {coding_HEVAG,              "Sony HEVAG 4-bit ADPCM"},
 
         {coding_EA_XA,              "Electronic Arts EA-XA 4-bit ADPCM v1"},
@@ -963,7 +965,6 @@ static const meta_info meta_info_list[] = {
         {meta_PS2_VGV,              "Rune: Viking Warlord VGV Header"},
         {meta_NGC_GCUB,             "GCub Header"},
         {meta_NGC_SCK_DSP,          "The Scorpion King SCK Header"},
-        {meta_NGC_SWD,              "PSF + Standard DSP Headers"},
         {meta_CAFF,                 "Apple Core Audio Format File header"},
         {meta_PC_MXST,              "Lego Island MxSt Header"},
         {meta_SAB,                  "Team17 SAB header"},
@@ -1187,6 +1188,7 @@ static const meta_info meta_info_list[] = {
         {meta_SMACKER,              "RAD Game Tools SMACKER header"},
         {meta_MZRT,                 "id Software MZRT header"},
         {meta_XAVS,                 "Reflections XAVS header"},
+        {meta_PSF,                  "Pivotal PSF header"},
 
 };
 
