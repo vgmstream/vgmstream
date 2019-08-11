@@ -2816,6 +2816,12 @@ int vgmstream_open_stream(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t s
         vgmstream->coding_type == coding_CRI_HCA)
         return 1;
 
+#ifdef VGM_USE_VORBIS
+    /* stream/offsets not needed, managed by decoder */
+    if (vgmstream->coding_type == coding_OGG_VORBIS)
+        return 1;
+#endif
+
 #ifdef VGM_USE_FFMPEG
     /* stream/offsets not needed, managed by decoder */
     if (vgmstream->coding_type == coding_FFmpeg)
