@@ -118,12 +118,12 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_ps2_pcm,
     init_vgmstream_ps2_rkv,
     init_vgmstream_ps2_vas,
+    init_vgmstream_ps2_vas_container,
     init_vgmstream_ps2_tec,
     init_vgmstream_ps2_enth,
     init_vgmstream_sdt,
     init_vgmstream_aix,
     init_vgmstream_ngc_tydsp,
-    init_vgmstream_ngc_swd,
     init_vgmstream_capdsp,
     init_vgmstream_xbox_wvs,
     init_vgmstream_ngc_wvs,
@@ -157,21 +157,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_wii_mus,
     init_vgmstream_dc_asd,
     init_vgmstream_naomi_spsd,
-    init_vgmstream_rsd2vag,
-    init_vgmstream_rsd2pcmb,
-    init_vgmstream_rsd2xadp,
-    init_vgmstream_rsd3vag,
-    init_vgmstream_rsd3gadp,
-    init_vgmstream_rsd3pcm,
-    init_vgmstream_rsd3pcmb,
-    init_vgmstream_rsd4pcmb,
-    init_vgmstream_rsd4pcm,
-    init_vgmstream_rsd4radp,
-    init_vgmstream_rsd4vag,
-    init_vgmstream_rsd6vag,
-    init_vgmstream_rsd6wadp,
-    init_vgmstream_rsd6xadp,
-    init_vgmstream_rsd6radp,
+    init_vgmstream_rsd,
     init_vgmstream_bgw,
     init_vgmstream_spw,
     init_vgmstream_ps2_ass,
@@ -305,7 +291,6 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_ps3_ivag,
     init_vgmstream_ps2_2pfs,
     init_vgmstream_xnb,
-    init_vgmstream_rsd6oogv,
     init_vgmstream_ubi_ckd,
     init_vgmstream_ps2_vbk,
     init_vgmstream_otm,
@@ -335,7 +320,6 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_ogl,
     init_vgmstream_mc3,
     init_vgmstream_gtd,
-    init_vgmstream_rsd6xma,
     init_vgmstream_ta_aac_x360,
     init_vgmstream_ta_aac_ps3,
     init_vgmstream_ta_aac_mobile,
@@ -395,8 +379,6 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_waf,
     init_vgmstream_wave,
     init_vgmstream_wave_segmented,
-    init_vgmstream_rsd6at3p,
-    init_vgmstream_rsd6wma,
     init_vgmstream_smv,
     init_vgmstream_nxap,
     init_vgmstream_ea_wve_au00,
@@ -486,6 +468,9 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_smk,
     init_vgmstream_mzrt,
     init_vgmstream_xavs,
+    init_vgmstream_psf_single,
+    init_vgmstream_psf_segmented,
+    init_vgmstream_dsp_itl,
 
     /* lowest priority metas (should go after all metas, and TXTH should go before raw formats) */
     init_vgmstream_txth,            /* proper parsers should supersede TXTH, once added */
@@ -1190,7 +1175,8 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_HEVAG:
             return 28;
         case coding_PSX_cfg:
-            return (vgmstream->interleave_block_size - 1) * 2; /* decodes 1 byte into 2 bytes */
+        case coding_PSX_pivotal:
+            return (vgmstream->interleave_block_size - 0x01) * 2; /* size 0x01 header */
 
         case coding_EA_XA:
         case coding_EA_XA_int:
@@ -1378,6 +1364,7 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
         case coding_HEVAG:
             return 0x10;
         case coding_PSX_cfg:
+        case coding_PSX_pivotal:
             return vgmstream->interleave_block_size;
 
         case coding_EA_XA:
@@ -1691,6 +1678,13 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
             for (ch = 0; ch < vgmstream->channels; ch++) {
                 decode_psx_configurable(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
                         vgmstream->channels,vgmstream->samples_into_block,samples_to_do, vgmstream->interleave_block_size);
+            }
+            break;
+        case coding_PSX_pivotal:
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_psx_pivotal(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do,
+                        vgmstream->interleave_block_size);
             }
             break;
         case coding_HEVAG:
@@ -2429,6 +2423,11 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         snprintf(temp,TEMPSIZE, "interleave: %#x bytes\n", (int32_t)vgmstream->interleave_block_size);
         concatn(length,desc,temp);
 
+        if (vgmstream->interleave_first_block_size) {
+            snprintf(temp,TEMPSIZE, "interleave first block: %#x bytes\n", (int32_t)vgmstream->interleave_first_block_size);
+            concatn(length,desc,temp);
+        }
+
         if (vgmstream->interleave_last_block_size) {
             snprintf(temp,TEMPSIZE, "interleave last block: %#x bytes\n", (int32_t)vgmstream->interleave_last_block_size);
             concatn(length,desc,temp);
@@ -2823,6 +2822,12 @@ int vgmstream_open_stream(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t s
         vgmstream->coding_type == coding_ACM ||
         vgmstream->coding_type == coding_CRI_HCA)
         return 1;
+
+#ifdef VGM_USE_VORBIS
+    /* stream/offsets not needed, managed by decoder */
+    if (vgmstream->coding_type == coding_OGG_VORBIS)
+        return 1;
+#endif
 
 #ifdef VGM_USE_FFMPEG
     /* stream/offsets not needed, managed by decoder */

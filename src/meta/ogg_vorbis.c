@@ -108,12 +108,16 @@ static void kovs_ogg_decryption_callback(void *ptr, size_t size, size_t nmemb, v
 }
 
 static void psychic_ogg_decryption_callback(void *ptr, size_t size, size_t nmemb, void *datasource) {
+    ogg_vorbis_streamfile * const ov_streamfile = datasource;
     size_t bytes_read = size*nmemb;
+    uint8_t key[6] = { 0x23,0x31,0x20,0x2e,0x2e,0x28 };
     int i;
 
-    /* bytes add 0x23 ('#') */ //todo incorrect, add changes every 0x64 bytes
+    //todo incorrect, picked value changes (fixed order for all files), or key is bigger
+    /* bytes add key that changes every 0x64 bytes */
     for (i = 0; i < bytes_read; i++) {
-        ((uint8_t*)ptr)[i] += 0x23;
+        int pos = (ov_streamfile->offset + i) / 0x64;
+        ((uint8_t*)ptr)[i] += key[pos % sizeof(key)];
     }
 }
 
@@ -455,6 +459,7 @@ VGMSTREAM * init_vgmstream_ogg_vorbis_callbacks(STREAMFILE *streamFile, ov_callb
     ogg_vorbis_codec_data * data = NULL;
     OggVorbis_File *ovf = NULL;
     vorbis_info *vi;
+    char name[STREAM_NAME_SIZE] = {0};
 
     int loop_flag = ovmi->loop_flag;
     int32_t loop_start = ovmi->loop_start;
@@ -626,6 +631,10 @@ VGMSTREAM * init_vgmstream_ogg_vorbis_callbacks(STREAMFILE *streamFile, ov_callb
                 data->disable_reordering = 1;
             }
 
+            if (strstr(user_comment, "TITLE=") == user_comment) {
+                strncpy(name, user_comment + 6, sizeof(name) - 1);
+            }
+
             ;VGM_LOG("OGG: user_comment=%s\n", user_comment);
         }
     }
@@ -638,8 +647,13 @@ VGMSTREAM * init_vgmstream_ogg_vorbis_callbacks(STREAMFILE *streamFile, ov_callb
     vgmstream->codec_data = data; /* store our fun extra datas */
     vgmstream->channels = vi->channels;
     vgmstream->sample_rate = vi->rate;
-    vgmstream->num_streams = ovmi->total_subsongs;
     vgmstream->stream_size = stream_size;
+
+    if (ovmi->total_subsongs) /* not setting it has some effect when showing stream names */
+        vgmstream->num_streams = ovmi->total_subsongs;
+
+    if (name[0] != '\0')
+        strcpy(vgmstream->stream_name, name);
 
     vgmstream->num_samples = ov_pcm_total(ovf,-1); /* let libvorbisfile find total samples */
     if (loop_flag) {

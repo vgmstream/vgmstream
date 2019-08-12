@@ -2,7 +2,7 @@
 #include "../vgmstream.h"
 #include "../mixing.h"
 
-#define VGMSTREAM_MAX_SEGMENTS 255
+#define VGMSTREAM_MAX_SEGMENTS 512
 #define VGMSTREAM_SEGMENT_SAMPLE_BUFFER 8192
 
 

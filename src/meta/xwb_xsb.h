@@ -1,5 +1,6 @@
 #ifndef _XWB_XSB_H_
 #define _XWB_XSB_H_
+#include "meta.h"
 
 #define XSB_XACT1_0_MAX 5       /* Unreal Championship (Xbox) */
 #define XSB_XACT1_1_MAX 8       /* Die Hard: Vendetta (Xbox) */
@@ -30,9 +31,9 @@ typedef struct {
     off_t cue_names_offset;
 
     /* output */
-    int parse_found;
     int parse_done;
-    off_t name_offset;
+    char name[STREAM_NAME_SIZE];
+    int name_len;
 
 } xsb_header;
 
@@ -41,24 +42,30 @@ static void xsb_check_stream(xsb_header * xsb, int stream_index, int wavebank_in
     if (xsb->parse_done)
         return;
 
-    /* multiple names may correspond to a stream, so commenting parse_done
-     * will allow to search for other names instead of first only */
+    /* multiple names may correspond to a stream (ex. Blue Dragon), so we concat all */
     if (xsb->selected_stream == stream_index &&
             (xsb->selected_wavebank == wavebank_index || wavebank_index == -1 || wavebank_index == 255)) {
-        xsb->name_offset = name_offset;
-        xsb->parse_found = 1;
-        xsb->parse_done = 1;
+        char name[STREAM_NAME_SIZE];
+        size_t name_size;
+
+        name_size = read_string(name,sizeof(name), name_offset,sf); /* null-terminated */
+
+        if (xsb->name_len) {
+            const char *cat = "; ";
+            int cat_len = 2;
+
+            if (xsb->name_len + cat_len + name_size + 1 < STREAM_NAME_SIZE) {
+                strcat(xsb->name + xsb->name_len, cat);
+                strcat(xsb->name + xsb->name_len, name);
+            }
+        }
+        else {
+            strcpy(xsb->name, name);
+        }
+        xsb->name_len += name_size;
+        //xsb->parse_done = 1; /* uncomment this to stop reading after first name */
         //;VGM_LOG("XSB: parse found stream=%i, wavebank=%i, name_offset=%lx\n", stream_index, wavebank_index, name_offset);
     }
-
-#if 0 // for debugging purposes
-    {
-        char stream_name[255];
-        read_string(stream_name,255, name_offset,sf); /* null-terminated */
-        ;VGM_LOG("XSB: stream=%i, wavebank=%i, name=%lx=%s vs s=%i, w=%i\n", stream_index, wavebank_index, name_offset, stream_name, xsb->selected_stream, xsb->selected_wavebank);
-        xsb->parse_done = 0; /* keep parsing */
-    }
-#endif
 }
 
 /* old XACT1 is a bit different and much of it is unknown but this seems to work.

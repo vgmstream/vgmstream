@@ -104,7 +104,8 @@ typedef enum {
     coding_XA,              /* CD-ROM XA */
     coding_PSX,             /* Sony PS ADPCM (VAG) */
     coding_PSX_badflags,    /* Sony PS ADPCM with custom flag byte */
-    coding_PSX_cfg,         /* Sony PS ADPCM with configurable frame size (FF XI, SGXD type 5, Bizarre Creations) */
+    coding_PSX_cfg,         /* Sony PS ADPCM with configurable frame size (int math) */
+    coding_PSX_pivotal,     /* Sony PS ADPCM with configurable frame size (float math) */
     coding_HEVAG,           /* Sony PSVita ADPCM */
 
     coding_EA_XA,           /* Electronic Arts EA-XA ADPCM v1 (stereo) aka "EA ADPCM" */
@@ -389,7 +390,6 @@ typedef enum {
     meta_PS2_ENTH,          /* Enthusia */
     meta_SDT,               /* Baldur's Gate - Dark Alliance */
     meta_NGC_TYDSP,         /* Ty - The Tasmanian Tiger */
-    meta_NGC_SWD,           /* Conflict - Desert Storm 1 & 2 */
     meta_CAPDSP,            /* Capcom DSP Header [no header_id] */
     meta_DC_STR,            /* SEGA Stream Asset Builder */
     meta_DC_STR_V2,         /* variant of SEGA Stream Asset Builder */
@@ -420,27 +420,7 @@ typedef enum {
     meta_NGC_PDT,           /* Mario Party 6 */
     meta_DC_ASD,            /* Miss Moonligh */
     meta_NAOMI_SPSD,        /* Guilty Gear X */
-    
-    meta_RSD2VAG,           /* RSD2VAG */
-    meta_RSD2PCMB,          /* RSD2PCMB */
-    meta_RSD2XADP,          /* RSD2XADP */
-    meta_RSD3VAG,           /* RSD3VAG */
-    meta_RSD3GADP,          /* RSD3GADP */
-    meta_RSD3PCM,           /* RSD3PCM */
-    meta_RSD3PCMB,          /* RSD3PCMB */
-    meta_RSD4PCMB,          /* RSD4PCMB */
-    meta_RSD4PCM,           /* RSD4PCM */
-    meta_RSD4RADP,          /* RSD4RADP */
-    meta_RSD4VAG,           /* RSD4VAG */
-    meta_RSD6VAG,           /* RSD6VAG */
-    meta_RSD6WADP,          /* RSD6WADP */
-    meta_RSD6XADP,          /* RSD6XADP */
-    meta_RSD6RADP,          /* RSD6RADP */
-    meta_RSD6OOGV,          /* RSD6OOGV */
-    meta_RSD6XMA,           /* RSD6XMA */
-    meta_RSD6AT3P,          /* RSD6AT3+ */
-    meta_RSD6WMA,           /* RSD6WMA */
-
+    meta_RSD,
     meta_PS2_ASS,           /* ASS */
     meta_SEG,               /* Eragon */
     meta_NDS_STRM_FFTA2,    /* Final Fantasy Tactics A2 */
@@ -732,6 +712,8 @@ typedef enum {
     meta_SMACKER,
     meta_MZRT,
     meta_XAVS,
+    meta_PSF,
+    meta_DSP_ITL_i,
 
 } meta_t;
 
@@ -843,6 +825,8 @@ typedef struct {
 
     /* layouts/block config */
     size_t interleave_block_size;   /* interleave, or block/frame size (depending on the codec) */
+    size_t interleave_first_block_size; /* different interleave for first block */
+    size_t interleave_first_skip;   /* data skipped before interleave first (needed to skip other channels) */
     size_t interleave_last_block_size; /* smaller interleave for last block */
 
     /* subsong config */

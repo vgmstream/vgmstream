@@ -635,10 +635,11 @@ static int get_xsb_name(char * buf, size_t maxsize, int target_subsong, xwb_head
     }
 
     //;VGM_LOG("XSB: name found=%i at %lx\n", xsb.parse_found, xsb.name_offset);
-    if (!xsb.parse_found || xsb.name_offset == 0)
+    if (!xsb.name_len || xsb.name[0] == '\0')
         goto fail;
 
-    read_string(buf,maxsize, xsb.name_offset,streamFile); /* null-terminated */
+    strncpy(buf,xsb.name,maxsize);
+    buf[maxsize-1] = '\0';
     return 1;
 fail:
     return 0;
