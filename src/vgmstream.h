@@ -824,6 +824,8 @@ typedef struct {
 
     /* layouts/block config */
     size_t interleave_block_size;   /* interleave, or block/frame size (depending on the codec) */
+    size_t interleave_first_block_size; /* different interleave for first block */
+    size_t interleave_first_skip;   /* data skipped before interleave first (needed to skip other channels) */
     size_t interleave_last_block_size; /* smaller interleave for last block */
 
     /* subsong config */

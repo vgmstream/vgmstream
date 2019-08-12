@@ -6,7 +6,7 @@
 VGMSTREAM * init_vgmstream_vag(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     off_t start_offset;
-    size_t file_size, channel_size, interleave;
+    size_t file_size, channel_size, interleave, interleave_first = 0, interleave_first_skip = 0;
     meta_t meta_type;
     int channel_count = 0, loop_flag, sample_rate;
     uint32_t vag_id, version;
@@ -80,7 +80,7 @@ VGMSTREAM * init_vgmstream_vag(STREAMFILE *streamFile) {
 
         case 0x70474156: /* pGAV (little endian / stereo) [Jak 3 (PS2), Jak X (PS2)] */
             meta_type = meta_PS2_pGAV;
-            start_offset = 0x00; //todo 0x30, requires interleave_first
+            start_offset = 0x30;
 
             if (read_32bitBE(0x20,streamFile) == 0x53746572) { /* "Ster" */
                 channel_count = 2;
@@ -91,7 +91,8 @@ VGMSTREAM * init_vgmstream_vag(STREAMFILE *streamFile) {
                     interleave = 0x1000; /* Jak X interleave, includes header */
                 else
                     interleave = 0x2000; /* Jak 3 interleave in rare files, no header */
-                //todo interleave_first = interleave - start_offset; /* interleave includes header */
+                interleave_first = interleave - start_offset; /* interleave includes header */
+                interleave_first_skip = start_offset;
             }
             else {
                 channel_count = 1;
@@ -127,21 +128,21 @@ VGMSTREAM * init_vgmstream_vag(STREAMFILE *streamFile) {
             }
             else if (read_32bitBE(0x6000,streamFile) == 0x56414770) { /* "VAGp" */
                 /* The Simpsons Wrestling (PS1) */
-                start_offset = 0x00; //todo 0x30, requires interleave_first
+                start_offset = 0x30;
                 channel_count = 2;
                 interleave = 0x6000;
-                //todo interleave_first = interleave - start_offset; /* includes header */
-                channel_size += 0x30;
+                interleave_first = interleave - start_offset; /* includes header */
+                interleave_first_skip = start_offset;
 
                 loop_flag = 0;
             }
             else if (read_32bitBE(0x1000,streamFile) == 0x56414770) { /* "VAGp" */
                 /* Shikigami no Shiro (PS2) */
-                start_offset = 0x00; //todo 0x30, requires interleave_first
+                start_offset = 0x30;
                 channel_count = 2;
                 interleave = 0x1000;
-                //todo interleave_first = interleave - start_offset; /* includes header */
-                channel_size += 0x30;
+                interleave_first = interleave - start_offset; /* includes header */
+                interleave_first_skip = start_offset;
 
                 loop_flag = ps_find_loop_offsets(streamFile, start_offset, channel_size*channel_count, channel_count, interleave, &loop_start_sample, &loop_end_sample);
             }
@@ -244,6 +245,9 @@ VGMSTREAM * init_vgmstream_vag(STREAMFILE *streamFile) {
         vgmstream->coding_type = coding_HEVAG;
     vgmstream->layout_type = (channel_count == 1) ? layout_none : layout_interleave;
     vgmstream->interleave_block_size = interleave;
+    vgmstream->interleave_first_block_size = interleave_first;
+    vgmstream->interleave_first_skip = interleave_first_skip;
+
 
     read_string(vgmstream->stream_name,0x10+1, 0x20,streamFile); /* always, can be null */
 
