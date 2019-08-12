@@ -630,7 +630,7 @@ int main(int argc, char **argv) {
         goto done;
     }
 
-    again:
+again:
 
     {
         struct params default_par = DEFAULT_PARAMS;
@@ -639,6 +639,12 @@ int main(int argc, char **argv) {
 
     while ((opt = getopt(argc, argv, "-D:F:L:M:S:b:d:f:o:@:hrv")) != -1) {
         switch (opt) {
+            case 1:
+                if (play_file(optarg, &par)) {
+                    status = 1;
+                    goto done;
+                }
+                break;
             case '@':
                 if (play_playlist(optarg, &par)) {
                     status = 1;
@@ -689,9 +695,12 @@ int main(int argc, char **argv) {
                 verbose = 1;
                 break;
             default:
+                VGM_LOG("vgmstream123: unknown opt %x", opt);
                 goto done;
         }
     }
+
+    /* try to read infile here in case getopt didn't pass "1" to the above switch I guess */
     argc -= optind;
     argv += optind;
 
@@ -707,7 +716,7 @@ int main(int argc, char **argv) {
         goto again;
     }
 
-    done:
+done:
 
     if (device)
         ao_close(device);
