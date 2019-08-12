@@ -470,6 +470,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_xavs,
     init_vgmstream_psf_single,
     init_vgmstream_psf_segmented,
+    init_vgmstream_dsp_itl,
 
     /* lowest priority metas (should go after all metas, and TXTH should go before raw formats) */
     init_vgmstream_txth,            /* proper parsers should supersede TXTH, once added */
@@ -2422,8 +2423,8 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         snprintf(temp,TEMPSIZE, "interleave: %#x bytes\n", (int32_t)vgmstream->interleave_block_size);
         concatn(length,desc,temp);
 
-        if (vgmstream->interleave_first) {
-            snprintf(temp,TEMPSIZE, "interleave first block: %#x bytes\n", (int32_t)vgmstream->interleave_first);
+        if (vgmstream->interleave_first_block_size) {
+            snprintf(temp,TEMPSIZE, "interleave first block: %#x bytes\n", (int32_t)vgmstream->interleave_first_block_size);
             concatn(length,desc,temp);
         }
 

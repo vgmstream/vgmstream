@@ -29,7 +29,7 @@ void render_vgmstream_interleave(sample_t * buffer, int32_t sample_count, VGMSTR
         if (frame_size_f == 0 || samples_per_frame_f == 0) goto fail;
         samples_this_block_f = vgmstream->interleave_first_block_size / frame_size_f * samples_per_frame_f;
     }
-    else if (has_interleave_last) {
+    if (has_interleave_last) {
         int frame_size_l = get_vgmstream_shortframe_size(vgmstream);
         samples_per_frame_l = get_vgmstream_samples_per_shortframe(vgmstream);
         if (frame_size_l == 0 || samples_per_frame_l == 0) goto fail;

@@ -1189,6 +1189,7 @@ static const meta_info meta_info_list[] = {
         {meta_MZRT,                 "id Software MZRT header"},
         {meta_XAVS,                 "Reflections XAVS header"},
         {meta_PSF,                  "Pivotal PSF header"},
+        {meta_DSP_ITL_i,            "Infernal .ITL DSP header"},
 
 };
 

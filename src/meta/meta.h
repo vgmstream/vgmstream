@@ -50,6 +50,7 @@ VGMSTREAM * init_vgmstream_dsp_itl_ch(STREAMFILE *streamFile);
 VGMSTREAM * init_vgmstream_dsp_adpy(STREAMFILE *streamFile);
 VGMSTREAM * init_vgmstream_dsp_adpx(STREAMFILE *streamFile);
 VGMSTREAM * init_vgmstream_dsp_ds2(STREAMFILE *streamFile);
+VGMSTREAM * init_vgmstream_dsp_itl(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_csmp(STREAMFILE *streamFile);
 
