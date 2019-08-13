@@ -1541,6 +1541,8 @@ static int parse_stream_codec(ubi_sb_header * sb) {
                     break;
                 case 0x00000007: /* Splinter Cell, Splinter Cell: Pandora Tomorrow */
                 case 0x0000000D: /* Prince of Persia: The Sands of Time Demo */
+                case 0x000A0000:
+                case 0x000A0002:
                 case 0x00120012: /* Myst IV: Exile */
                     //todo splinter Cell Essentials
                     sb->codec = UBI_ADPCM;
