@@ -74,6 +74,7 @@ typedef struct {
     int is_padded_sectionX_offset;
     int is_padded_sounds_offset;
     int ignore_layer_error;
+    int default_codec_for_group0;
 } ubi_sb_config;
 
 typedef struct {
@@ -1460,19 +1461,10 @@ static int parse_stream_codec(ubi_sb_header * sb) {
     if (sb->type == UBI_SEQUENCE)
         return 1;
 
-    /* happens randomly in internal sounds in early Xbox games */
-    if (sb->stream_type > 0xFF) {
-        //;VGM_LOG("UBI SB: garbage in stream_type\n");
-        sb->stream_type = 0; /* probably ignored for non-stream types */
+    if (sb->cfg.default_codec_for_group0 && sb->type == UBI_AUDIO && sb->group_id == 0) {
+        /* early Xbox games contain garbage in stream_type field in this case, it seems that 0x00 is assumed */
+        sb->stream_type = 0x00;
     }
-
-    /* Batman: Rise of Sin Tzu (Xbox)
-     * (similar but also for some streams, maybe uses a 'hardware flag' possibly at 0x20?) */
-    if ((sb->version == 0x000A0003 && sb->platform == UBI_XBOX) &&
-            (!sb->is_external || strncmp(sb->resource_name, "STREAMHW.", 9) == 0)) {
-        sb->stream_type = 0;
-    }
-
 
     /* guess codec */
     switch (sb->stream_type) {
@@ -1562,7 +1554,6 @@ static int parse_stream_codec(ubi_sb_header * sb) {
                 case 0x00000000: /* Rayman 2, Tonic Trouble */
                     sb->codec = FMT_APM;
                     break;
-
                 case 0x00000007: /* Splinter Cell, Splinter Cell: Pandora Tomorrow */
                     sb->codec = UBI_IMA;
                     break;
@@ -2430,7 +2421,7 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         }
     }
 
-    /* Prince of Persia: The Sands of Time (2003)(PS2)-bank 0x000A0004 / 0x000A0002 (POP1 port) */
+    /* Prince of Persia: The Sands of Time (2003)(PS2)-bank 0x000A0004 / 0x000A0002 (POP1 port/Demo) */
     /* Tom Clancy's Rainbow Six 3 (2003)(PS2)-bank 0x000A0007 */
     /* Tom Clancy's Ghost Recon 2 (2004)(PS2)-bank 0x000A0007 */
     /* Splinter Cell: Pandora Tomorrow (2006)(PS2)-bank 0x000A0008 (separate banks from main map) */
@@ -2482,9 +2473,10 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
     if (sb->version == 0x000A0003 && sb->platform == UBI_XBOX) {
         config_sb_entry(sb, 0x64, 0x80);
 
-        config_sb_audio_fs(sb, 0x24, 0x28, 0x2c);
-        config_sb_audio_hs(sb, 0x52, 0x4c, 0x38, 0x40, 0x58, 0x54); /* stream_type may contain garbage */
+        config_sb_audio_fs(sb, 0x24, 0x28, 0x34);
+        config_sb_audio_hs(sb, 0x52, 0x4c, 0x38, 0x40, 0x58, 0x54);
         sb->cfg.audio_has_internal_names = 1;
+        sb->cfg.default_codec_for_group0 = 1;
 
         config_sb_sequence(sb, 0x28, 0x14);
 
@@ -2494,14 +2486,15 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         return 1;
     }
 
-    /* Prince of Persia: The Sands of Time (2003)(Xbox)-bank 0x000A0004 / 0x000A0002 (POP1 port) */
+    /* Prince of Persia: The Sands of Time (2003)(Xbox)-bank 0x000A0004 / 0x000A0002 (POP1 port/Demo) */
     if ((sb->version == 0x000A0002 && sb->platform == UBI_XBOX) ||
         (sb->version == 0x000A0004 && sb->platform == UBI_XBOX)) {
         config_sb_entry(sb, 0x64, 0x78);
 
         config_sb_audio_fs(sb, 0x24, 0x28, 0x2c);
-        config_sb_audio_hs(sb, 0x4a, 0x44, 0x30, 0x38, 0x50, 0x4c); /* stream_type may contain garbage */
+        config_sb_audio_hs(sb, 0x4a, 0x44, 0x30, 0x38, 0x50, 0x4c);
         sb->cfg.audio_has_internal_names = 1;
+        sb->cfg.default_codec_for_group0 = 1;
 
         config_sb_sequence(sb, 0x28, 0x14);
 
@@ -2535,8 +2528,9 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         config_sb_entry(sb, 0x64, 0x8c);
 
         config_sb_audio_fs(sb, 0x24, 0x28, 0x40);
-        config_sb_audio_hs(sb, 0x5e, 0x58, 0x44, 0x4c, 0x64, 0x60); /* stream_type may contain garbage */
+        config_sb_audio_hs(sb, 0x5e, 0x58, 0x44, 0x4c, 0x64, 0x60);
         sb->cfg.audio_has_internal_names = 1;
+        sb->cfg.default_codec_for_group0 = 1;
 
         config_sb_sequence(sb, 0x28, 0x14);
 
@@ -2576,8 +2570,9 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         config_sb_entry(sb, 0x6c, 0x90);
 
         config_sb_audio_fs(sb, 0x24, 0x28, 0x40);
-        config_sb_audio_hs(sb, 0x60, 0x58, 0x44, 0x4c, 0x68, 0x64); /* stream_type may contain garbage */
+        config_sb_audio_hs(sb, 0x60, 0x58, 0x44, 0x4c, 0x68, 0x64);
         sb->cfg.audio_has_internal_names = 1;
+        sb->cfg.default_codec_for_group0 = 1;
 
         config_sb_sequence(sb, 0x28, 0x14);
         return 1;
