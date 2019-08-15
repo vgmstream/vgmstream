@@ -441,7 +441,7 @@
     <ClCompile Include="meta\xa.c" />
     <ClCompile Include="meta\fag.c" />
     <ClCompile Include="meta\ffdl.c" />
-    <ClCompile Include="meta\psx_gms.c" />
+    <ClCompile Include="meta\seb.c" />
     <ClCompile Include="meta\ea_swvr.c" />
     <ClCompile Include="meta\raw.c" />
     <ClCompile Include="meta\redspark.c" />

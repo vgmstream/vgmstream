@@ -1399,7 +1399,7 @@
                     >
                 </File>
 				<File
-					RelativePath=".\meta\psx_gms.c"
+					RelativePath=".\meta\seb.c"
 					>
 				</File>
 				<File

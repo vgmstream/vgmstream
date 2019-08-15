@@ -859,7 +859,7 @@
     <ClCompile Include="meta\ffdl.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\psx_gms.c">
+    <ClCompile Include="meta\seb.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ea_swvr.c">
