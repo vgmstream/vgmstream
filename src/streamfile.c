@@ -890,7 +890,7 @@ size_t read_string(char * buf, size_t maxsize, off_t offset, STREAMFILE *streamF
             if (buf) buf[pos] = '\0';
             return maxsize;
         }
-        if (c < 0x20 || c > 0xA5)
+        if (c < 0x20 || (uint8_t)c > 0xA5)
             goto fail;
     }
 

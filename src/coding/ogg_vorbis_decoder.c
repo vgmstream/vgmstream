@@ -99,6 +99,7 @@ void reset_ogg_vorbis(VGMSTREAM *vgmstream) {
     ogg_vorbis_codec_data *data = vgmstream->codec_data;
     if (!data) return;
 
+    /* this seek cleans internal buffers */
     ov_pcm_seek(&data->ogg_vorbis_file, 0);
 }
 
@@ -106,6 +107,8 @@ void seek_ogg_vorbis(VGMSTREAM *vgmstream, int32_t num_sample) {
     ogg_vorbis_codec_data *data = vgmstream->codec_data;
     if (!data) return;
 
+    /* this seek crosslaps to avoid possible clicks, so seeking to 0 will
+     * decode a bit differently than ov_pcm_seek */
     ov_pcm_seek_lap(&data->ogg_vorbis_file, num_sample);
 }
 
