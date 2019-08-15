@@ -714,6 +714,7 @@ typedef enum {
     meta_XAVS,
     meta_PSF,
     meta_DSP_ITL_i,
+    meta_IMA,
 
 } meta_t;
 

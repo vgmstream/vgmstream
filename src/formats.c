@@ -198,6 +198,7 @@ static const char* extension_list[] = {
     "ikm",
     "ild",
     "ilv", //txth/reserved [Star Wars Episode III (PS2)]
+    "ima",
     "imc",
     "int",
     "isd",
@@ -1192,6 +1193,7 @@ static const meta_info meta_info_list[] = {
         {meta_XAVS,                 "Reflections XAVS header"},
         {meta_PSF,                  "Pivotal PSF header"},
         {meta_DSP_ITL_i,            "Infernal .ITL DSP header"},
+        {meta_IMA,                  "Blitz Games .IMA header"},
 
 };
 

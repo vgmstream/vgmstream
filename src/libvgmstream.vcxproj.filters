@@ -1447,6 +1447,9 @@
     <ClCompile Include="meta\ios_psnd.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\ima.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\imc.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
