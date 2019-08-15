@@ -925,6 +925,120 @@ void mixing_macro_crosslayer(VGMSTREAM* vgmstream, int max, char mode) {
     mixing_push_killmix(vgmstream, max);
 }
 
+
+typedef enum {
+    pos_FL  = 0,
+    pos_FR  = 1,
+    pos_FC  = 2,
+    pos_LFE = 3,
+    pos_BL  = 4,
+    pos_BR  = 5,
+    pos_FLC = 6,
+    pos_FRC = 7,
+    pos_BC  = 8,
+    pos_SL  = 9,
+    pos_SR  = 10,
+} mixing_position_t;
+
+void mixing_macro_downmix(VGMSTREAM* vgmstream, int max /*, mapping_t output_mapping*/) {
+    mixing_data *data = vgmstream->mixing_data;
+    int ch, output_channels, mp_in, mp_out, ch_in, ch_out;
+    mapping_t input_mapping, output_mapping;
+    const double vol_max = 1.0;
+    const double vol_sqrt = 1 / sqrt(2);
+    const double vol_half = 1 / 2;
+    double matrix[16][16] = {{0}};
+
+
+    if (!data)
+        return;
+    if (max <= 1 || data->output_channels <= max || max >= 8)
+        return;
+
+    /* assume WAV defaults if not set */
+    input_mapping = vgmstream->channel_layout;
+    if (input_mapping == 0) {
+        switch(data->output_channels) {
+            case 1: input_mapping = mapping_MONO; break;
+            case 2: input_mapping = mapping_STEREO; break;
+            case 3: input_mapping = mapping_2POINT1; break;
+            case 4: input_mapping = mapping_QUAD; break;
+            case 5: input_mapping = mapping_5POINT0; break;
+            case 6: input_mapping = mapping_5POINT1; break;
+            case 7: input_mapping = mapping_7POINT0; break;
+            case 8: input_mapping = mapping_7POINT1; break;
+            default: return;
+        }
+    }
+
+    /* build mapping matrix[input channel][output channel] = volume,
+     * using standard WAV/AC3 downmix formulas
+     * - https://www.audiokinetic.com/library/edge/?source=Help&id=downmix_tables
+     * - https://www.audiokinetic.com/library/edge/?source=Help&id=standard_configurations
+     */
+    switch(max) {
+        case 1:
+            output_mapping = mapping_MONO;
+            matrix[pos_FL][pos_FC] = vol_sqrt;
+            matrix[pos_FR][pos_FC] = vol_sqrt;
+            matrix[pos_FC][pos_FC] = vol_max;
+            matrix[pos_SL][pos_FC] = vol_half;
+            matrix[pos_SR][pos_FC] = vol_half;
+            matrix[pos_BL][pos_FC] = vol_half;
+            matrix[pos_BR][pos_FC] = vol_half;
+            break;
+        case 2:
+            output_mapping = mapping_STEREO;
+            matrix[pos_FL][pos_FL] = vol_max;
+            matrix[pos_FR][pos_FR] = vol_max;
+            matrix[pos_FC][pos_FL] = vol_sqrt;
+            matrix[pos_FC][pos_FR] = vol_sqrt;
+            matrix[pos_SL][pos_FL] = vol_sqrt;
+            matrix[pos_SR][pos_FR] = vol_sqrt;
+            matrix[pos_BL][pos_FL] = vol_sqrt;
+            matrix[pos_BR][pos_FR] = vol_sqrt;
+            break;
+        default:
+            /* not sure if +3ch would use FC/LFE, SL/BR and whatnot without passing extra config, so ignore for now */
+            return;
+    }
+
+    /* save and make N fake channels at the beginning for easier calcs */
+    output_channels = data->output_channels;
+    for (ch = 0; ch < max; ch++) {
+        mixing_push_upmix(vgmstream, 0);
+    }
+
+    /* downmix */
+    ch_in = 0;
+    for (mp_in = 0; mp_in < 16; mp_in++) {
+        /* read input mapping (ex. 5.1) and find channel */
+        if (!(input_mapping & (1<<mp_in)))
+            continue;
+
+        ch_out = 0;
+        for (mp_out = 0; mp_out < 16; mp_out++) {
+            /* read output mapping (ex. 2.0) and find channel */
+            if (!(output_mapping & (1<<mp_out)))
+                continue;
+
+            VGM_LOG("i=%i,j=%i, ch_out=%i, ch_in=%i + %i, %f\n", mp_in,mp_out,ch_out, max, ch_in, matrix[mp_out][mp_in]);
+            mixing_push_add(vgmstream, ch_out, max + ch_in, matrix[mp_in][mp_out]);
+
+            ch_out++;
+            if (ch_out > max)
+                break;
+        }
+
+        ch_in++;
+        if (ch_in >= output_channels)
+            break;
+    }
+
+    /* remove unneeded channels */
+    mixing_push_killmix(vgmstream, max);
+}
+
 /* ******************************************************************* */
 
 void mixing_setup(VGMSTREAM * vgmstream, int32_t max_sample_count) {

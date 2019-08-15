@@ -27,6 +27,7 @@ typedef enum {
     MACRO_LAYER,
     MACRO_CROSSTRACK,
     MACRO_CROSSLAYER,
+    MACRO_DOWNMIX,
 
 } txtp_mix_t;
 
@@ -498,6 +499,7 @@ static void apply_config(VGMSTREAM *vgmstream, txtp_entry *current) {
                 case MACRO_LAYER:       mixing_macro_layer(vgmstream, mix.max, mix.mask, mix.mode); break;
                 case MACRO_CROSSTRACK:  mixing_macro_crosstrack(vgmstream, mix.max); break;
                 case MACRO_CROSSLAYER:  mixing_macro_crosslayer(vgmstream, mix.max, mix.mode); break;
+                case MACRO_DOWNMIX:     mixing_macro_downmix(vgmstream, mix.max); break;
 
                 default:
                     break;
@@ -1070,6 +1072,16 @@ static void parse_config(txtp_entry *cfg, char *config) {
             if (nm == 0) continue;
 
             add_mixing(cfg, &mix, type);
+        }
+        else if (strcmp(command,"@downmix") == 0) {
+            txtp_mix_data mix = {0};
+
+            mix.max = 2; /* stereo only for now */
+            //nm = get_int(config, &mix.max);
+            //config += nm;
+            //if (nm == 0) continue;
+
+            add_mixing(cfg, &mix, MACRO_DOWNMIX);
         }
         else if (config[nc] == ' ') {
             //;VGM_LOG("TXTP:   comment\n");

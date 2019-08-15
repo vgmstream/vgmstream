@@ -234,12 +234,14 @@ void vgmstream_mixing_autodownmix(VGMSTREAM *vgmstream, int max_channels) {
     if (max_channels <= 0)
         return;
 
-    /* guess mixing the best we can */
-    //todo: could use standard downmixing for known max_channels <> vgmstream->channels combos:
-    //  https://www.audiokinetic.com/library/edge/?source=Help&id=downmix_tables#tbl_mono
-    //  https://www.audiokinetic.com/library/edge/?source=Help&id=standard_configurations
-
-    mixing_macro_layer(vgmstream, max_channels, 0, 'e');
+    /* guess mixing the best we can, using standard downmixing if possible
+     * (without mapping we can't be sure if format is using a standard layout) */
+    if (vgmstream->channel_layout && max_channels <= 2) {
+        mixing_macro_downmix(vgmstream, max_channels);
+    }
+    else {
+        mixing_macro_layer(vgmstream, max_channels, 0, 'e');
+    }
 
     return;
 }

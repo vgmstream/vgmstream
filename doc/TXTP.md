@@ -364,6 +364,7 @@ Manually setting values gets old, so TXTP supports a bunch of simple macros. The
 - `remix N (channels)`: same, but mixes selected channels to N channels properly adjusting volume (for layered bgm)
 - `crosstrack N`: crossfades between Nch tracks after every loop (loop count is adjusted as needed)
 - `crosslayer-v/b/e N`: crossfades Nch layers to the main track after every loop (loop count is adjusted as needed)
+- `downmix`: downmixes up to 8 channels (7.1, 5.1, etc) to stereo, using standard downmixing formulas.
 
 `channels` can be multiple comma-separated channels or N~M ranges and may be ommited were applicable to mean "all channels" (channel order doesn't matter but it's internally fixed).
 
