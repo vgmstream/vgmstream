@@ -321,6 +321,7 @@ static const char* extension_list[] = {
     "ovb",
 
     "p04", //txth/reserved [Psychic Force 2012 (DC)]
+    "p16", //txth/reserved [Astal (SAT)]
     "p1d", //txth/reserved [Farming Simulator 18 (3DS)]
     "p2a", //txth/reserved [Thunderhawk Operation Phoenix (PS2)]
     "p2bt",
