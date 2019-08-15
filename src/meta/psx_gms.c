@@ -1,76 +1,53 @@
 #include "meta.h"
-#include "../util.h"
 
-/* GMS
 
-   PSX GMS format has no recognition ID.
-   This format was used essentially in Grandia Games but 
-   can be easily used by other header format as the format of the header is very simple
-
-   known extensions : GMS 
-
-   2008-05-19 - Fastelbja : First version ...
-*/
-
-VGMSTREAM * init_vgmstream_psx_gms(STREAMFILE *streamFile) {
+/* .seb - Game Arts games [Grandia (PS1), Grandia II/III/X (PS2)] */
+VGMSTREAM * init_vgmstream_seb(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[PATH_LIMIT];
-
-    int loop_flag=0;
-	int channel_count;
     off_t start_offset;
-    int i;
+    int loop_flag, channel_count;
 
-    /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("gms",filename_extension(filename))) goto fail;
 
-    /* check loop */
-	loop_flag = (read_32bitLE(0x20,streamFile)==0);
-    
-	/* Always stereo files */
-	channel_count=read_32bitLE(0x00,streamFile);
-    
-	/* build the VGMSTREAM */
+    /* checks */
+    /* .seb: found in Grandia II (PS2) .idx */
+    /* .gms: fake? (.stz+idx bigfile without names, except in Grandia II) */
+    if (!check_extensions(streamFile, "seb,gms,"))
+        goto fail;
+
+    channel_count = read_32bitLE(0x00,streamFile);
+    if (channel_count > 2) goto fail; /* mono or stereo */
+    /* 0x08/0c: unknown count, possibly related to looping */
+
+    start_offset = 0x800;
+
+    if (read_32bitLE(0x10,streamFile) > get_streamfile_size(streamFile) ||  /* loop start offset */
+        read_32bitLE(0x18,streamFile) > get_streamfile_size(streamFile))    /* loop end offset */
+        goto fail;
+    /* in Grandia III sometimes there is a value at 0x24/34 */
+
+    loop_flag = (read_32bitLE(0x20,streamFile) == 0);
+
+
+    /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
-	/* fill in the vital statistics */
-	vgmstream->channels = channel_count;
+    vgmstream->meta_type = meta_SEB;
     vgmstream->sample_rate = read_32bitLE(0x04,streamFile);
 
-	vgmstream->coding_type = coding_PSX;
-    vgmstream->num_samples = read_32bitLE(0x1C,streamFile);
+    vgmstream->num_samples = read_32bitLE(0x1c,streamFile);
+    vgmstream->loop_start_sample = read_32bitLE(0x14,streamFile);
+    vgmstream->loop_end_sample = read_32bitLE(0x1c,streamFile);
 
-	/* Get loop point values */
-	if(vgmstream->loop_flag) {
-		vgmstream->loop_start_sample = read_32bitLE(0x14,streamFile);
-		vgmstream->loop_end_sample = read_32bitLE(0x1C,streamFile);
-	}
-
+    vgmstream->coding_type = coding_PSX;
     vgmstream->layout_type = layout_interleave;
-	vgmstream->interleave_block_size = 0x800;
-    vgmstream->meta_type = meta_PSX_GMS;
+    vgmstream->interleave_block_size = 0x800;
 
-	start_offset = 0x800;
-
-    /* open the file for reading by each channel */
-    {
-        for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-
-            if (!vgmstream->ch[i].streamfile) goto fail;
-
-            vgmstream->ch[i].channel_start_offset=
-                vgmstream->ch[i].offset=
-                (off_t)(start_offset+vgmstream->interleave_block_size*i);
-        }
-    }
-
+    if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
+        goto fail;
     return vgmstream;
 
-    /* clean up anything we may have opened */
 fail:
-    if (vgmstream) close_vgmstream(vgmstream);
+    close_vgmstream(vgmstream);
     return NULL;
 }
