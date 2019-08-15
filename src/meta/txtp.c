@@ -1317,29 +1317,12 @@ static txtp_header* parse_txtp(STREAMFILE* streamFile) {
     txtp->is_segmented = 1;
 
 
-    /* empty file: use filename with config (ex. "song.ext#3.txtp") */
-    if (get_streamfile_size(streamFile) == 0) {
-        char filename[PATH_LIMIT] = {0};
-        char* ext;
-        get_streamfile_filename(streamFile, filename,PATH_LIMIT);
-
-        /* remove ".txtp" */
-        ext = strrchr(filename,'.');
-        if (!ext) goto fail; /* ??? */
-        ext[0] = '\0';
-
-        if (!add_entry(txtp, filename, 0))
-            goto fail;
-
-        return txtp;
-    }
-
-
     /* skip BOM if needed */
-    if ((uint16_t)read_16bitLE(0x00, streamFile) == 0xFFFE || (uint16_t)read_16bitLE(0x00, streamFile) == 0xFEFF)
+    if (file_size > 0 &&
+            ((uint16_t)read_16bitLE(0x00, streamFile) == 0xFFFE || (uint16_t)read_16bitLE(0x00, streamFile) == 0xFEFF))
         txt_offset = 0x02;
 
-    /* normal file: read and parse lines */
+    /* read and parse lines */
     while (txt_offset < file_size) {
         char line[TXTP_LINE_MAX] = {0};
         char key[TXTP_LINE_MAX] = {0}, val[TXTP_LINE_MAX] = {0}; /* at least as big as a line to avoid overflows (I hope) */
@@ -1369,6 +1352,16 @@ static txtp_header* parse_txtp(STREAMFILE* streamFile) {
         /* filename with config */
         if (!add_entry(txtp, filename, 0))
             goto fail;
+    }
+
+    /* mini-txth: if no entries are set try with filename, ex. from "song.ext#3.txtp" use "song.ext#3"
+     * (it's possible to have default "commands" inside the .txtp plus filename+config) */
+    if (txtp->entry_count == 0) {
+        char filename[PATH_LIMIT] = {0};
+
+        get_streamfile_basename(streamFile, filename, sizeof(filename));
+
+        add_entry(txtp, filename, 0);
     }
 
 
