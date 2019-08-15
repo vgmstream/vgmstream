@@ -164,6 +164,7 @@
     <ClCompile Include="meta\ezw.c" />
     <ClCompile Include="meta\ffmpeg.c" />
     <ClCompile Include="meta\g1l.c" />
+    <ClCompile Include="meta\ima.c" />
     <ClCompile Include="meta\imc.c" />
     <ClCompile Include="meta\ios_psnd.c" />
     <ClCompile Include="meta\ktss.c" />
@@ -440,7 +441,7 @@
     <ClCompile Include="meta\xa.c" />
     <ClCompile Include="meta\fag.c" />
     <ClCompile Include="meta\ffdl.c" />
-    <ClCompile Include="meta\psx_gms.c" />
+    <ClCompile Include="meta\seb.c" />
     <ClCompile Include="meta\ea_swvr.c" />
     <ClCompile Include="meta\raw.c" />
     <ClCompile Include="meta\redspark.c" />

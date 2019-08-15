@@ -79,6 +79,23 @@ VGMSTREAM * init_vgmstream_hca_subkey(STREAMFILE *streamFile, uint16_t subkey) {
     vgmstream->layout_type = layout_none;
     vgmstream->codec_data = hca_data;
 
+    /* assumed mappings */
+    {
+        static const uint32_t hca_mappings[] = {
+                0,
+                mapping_MONO,
+                mapping_STEREO,
+                mapping_2POINT1,
+                mapping_QUAD,
+                mapping_5POINT0,
+                mapping_5POINT1,
+                mapping_7POINT0,
+                mapping_7POINT1,
+        };
+
+        vgmstream->channel_layout = hca_mappings[vgmstream->channels];
+    }
+
     return vgmstream;
 
 fail:

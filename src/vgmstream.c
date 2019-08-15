@@ -51,7 +51,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_ps2_mic,
     init_vgmstream_ngc_dsp_std_int,
     init_vgmstream_vag,
-    init_vgmstream_psx_gms,
+    init_vgmstream_seb,
     init_vgmstream_ps2_ild,
     init_vgmstream_ps2_pnb,
     init_vgmstream_xbox_wavm,
@@ -471,6 +471,8 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_psf_single,
     init_vgmstream_psf_segmented,
     init_vgmstream_dsp_itl,
+    init_vgmstream_sch,
+    init_vgmstream_ima,
 
     /* lowest priority metas (should go after all metas, and TXTH should go before raw formats) */
     init_vgmstream_txth,            /* proper parsers should supersede TXTH, once added */

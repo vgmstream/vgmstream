@@ -255,8 +255,8 @@ static void blitz_ima_expand_nibble(VGMSTREAMCHANNEL * stream, off_t byte_offset
     delta = (step >> 1) + delta * step; /* custom */
     sample_decoded += delta;
 
-    /* somehow the exe tries to clamp hist, but actually doesn't (bug?),
-     * not sure if pcm buffer would be clamped outside though */
+    /* in Zapper somehow the exe tries to clamp hist but actually doesn't (bug? not in Lilo & Stitch),
+     * seems the pcm buffer must be clamped outside though to fix some scratchiness */
     *hist1 = sample_decoded;//clamp16(sample_decoded);
     *step_index += IMA_IndexTable[sample_nibble];
     if (*step_index < 0) *step_index=0;
@@ -445,7 +445,7 @@ void decode_blitz_ima(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channels
         int nibble_shift = (i&1?4:0); //low nibble first
 
         blitz_ima_expand_nibble(stream, byte_offset,nibble_shift, &hist1, &step_index);
-        outbuf[sample_count] = (short)(hist1);
+        outbuf[sample_count] = (short)clamp16(hist1);
     }
 
     stream->adpcm_history1_32 = hist1;

@@ -364,6 +364,7 @@ Manually setting values gets old, so TXTP supports a bunch of simple macros. The
 - `remix N (channels)`: same, but mixes selected channels to N channels properly adjusting volume (for layered bgm)
 - `crosstrack N`: crossfades between Nch tracks after every loop (loop count is adjusted as needed)
 - `crosslayer-v/b/e N`: crossfades Nch layers to the main track after every loop (loop count is adjusted as needed)
+- `downmix`: downmixes up to 8 channels (7.1, 5.1, etc) to stereo, using standard downmixing formulas.
 
 `channels` can be multiple comma-separated channels or N~M ranges and may be ommited were applicable to mean "all channels" (channel order doesn't matter but it's internally fixed).
 
@@ -519,9 +520,11 @@ The parser is fairly simplistic and lax, and may be erratic with edge cases or b
 
 
 ## MINI-TXTP
-To simplify TXTP creation, if the .txtp is empty (0 bytes) its filename is used directly as a command. Note that extension is also included (since vgmstream needs a full filename).
+To simplify TXTP creation, if the .txtp doesn't set a name inside its filename is used directly including config. Note that extension must be included (since vgmstream needs a full filename). You can set `commands` inside the .txtp too:
 - *bgm.sxd2#12.txtp*: plays subsong 12
-- *Ryoshima Coast 1 & 2.aix#c1,2.txtp*: channel mask
+- *bgm.sxd2#12.txtp*, , inside has `commands = #@volume 0.5`: plays subsong 12 at half volume
+- *bgm.sxd2.txtp*, , inside has `commands =  #12 #@volume 0.5`: plays subsong 12 at half volume
+- *Ryoshima Coast 1 & 2.aix#C1,2.txtp*: channel downmix
 - *boss2_3ningumi_ver6.adx#l2#F.txtp*: loop twice then play song end file normally
 - etc
 

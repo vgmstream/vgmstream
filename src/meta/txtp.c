@@ -27,6 +27,7 @@ typedef enum {
     MACRO_LAYER,
     MACRO_CROSSTRACK,
     MACRO_CROSSLAYER,
+    MACRO_DOWNMIX,
 
 } txtp_mix_t;
 
@@ -498,6 +499,7 @@ static void apply_config(VGMSTREAM *vgmstream, txtp_entry *current) {
                 case MACRO_LAYER:       mixing_macro_layer(vgmstream, mix.max, mix.mask, mix.mode); break;
                 case MACRO_CROSSTRACK:  mixing_macro_crosstrack(vgmstream, mix.max); break;
                 case MACRO_CROSSLAYER:  mixing_macro_crosslayer(vgmstream, mix.max, mix.mode); break;
+                case MACRO_DOWNMIX:     mixing_macro_downmix(vgmstream, mix.max); break;
 
                 default:
                     break;
@@ -1071,6 +1073,16 @@ static void parse_config(txtp_entry *cfg, char *config) {
 
             add_mixing(cfg, &mix, type);
         }
+        else if (strcmp(command,"@downmix") == 0) {
+            txtp_mix_data mix = {0};
+
+            mix.max = 2; /* stereo only for now */
+            //nm = get_int(config, &mix.max);
+            //config += nm;
+            //if (nm == 0) continue;
+
+            add_mixing(cfg, &mix, MACRO_DOWNMIX);
+        }
         else if (config[nc] == ' ') {
             //;VGM_LOG("TXTP:   comment\n");
             break; /* comment, ignore rest */
@@ -1305,29 +1317,12 @@ static txtp_header* parse_txtp(STREAMFILE* streamFile) {
     txtp->is_segmented = 1;
 
 
-    /* empty file: use filename with config (ex. "song.ext#3.txtp") */
-    if (get_streamfile_size(streamFile) == 0) {
-        char filename[PATH_LIMIT] = {0};
-        char* ext;
-        get_streamfile_filename(streamFile, filename,PATH_LIMIT);
-
-        /* remove ".txtp" */
-        ext = strrchr(filename,'.');
-        if (!ext) goto fail; /* ??? */
-        ext[0] = '\0';
-
-        if (!add_entry(txtp, filename, 0))
-            goto fail;
-
-        return txtp;
-    }
-
-
     /* skip BOM if needed */
-    if ((uint16_t)read_16bitLE(0x00, streamFile) == 0xFFFE || (uint16_t)read_16bitLE(0x00, streamFile) == 0xFEFF)
+    if (file_size > 0 &&
+            ((uint16_t)read_16bitLE(0x00, streamFile) == 0xFFFE || (uint16_t)read_16bitLE(0x00, streamFile) == 0xFEFF))
         txt_offset = 0x02;
 
-    /* normal file: read and parse lines */
+    /* read and parse lines */
     while (txt_offset < file_size) {
         char line[TXTP_LINE_MAX] = {0};
         char key[TXTP_LINE_MAX] = {0}, val[TXTP_LINE_MAX] = {0}; /* at least as big as a line to avoid overflows (I hope) */
@@ -1357,6 +1352,16 @@ static txtp_header* parse_txtp(STREAMFILE* streamFile) {
         /* filename with config */
         if (!add_entry(txtp, filename, 0))
             goto fail;
+    }
+
+    /* mini-txth: if no entries are set try with filename, ex. from "song.ext#3.txtp" use "song.ext#3"
+     * (it's possible to have default "commands" inside the .txtp plus filename+config) */
+    if (txtp->entry_count == 0) {
+        char filename[PATH_LIMIT] = {0};
+
+        get_streamfile_basename(streamFile, filename, sizeof(filename));
+
+        add_entry(txtp, filename, 0);
     }
 
 

@@ -709,6 +709,10 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\meta\ima.c"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\imc.c"
                     >
                 </File>
@@ -1395,7 +1399,7 @@
                     >
                 </File>
 				<File
-					RelativePath=".\meta\psx_gms.c"
+					RelativePath=".\meta\seb.c"
 					>
 				</File>
 				<File
