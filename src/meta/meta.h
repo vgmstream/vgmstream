@@ -856,5 +856,6 @@ VGMSTREAM * init_vgmstream_xavs(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_psf_single(STREAMFILE * streamFile);
 VGMSTREAM * init_vgmstream_psf_segmented(STREAMFILE * streamFile);
+VGMSTREAM * init_vgmstream_sch(STREAMFILE * streamFile);
 
 #endif /*_META_H*/

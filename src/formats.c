@@ -388,6 +388,7 @@ static const char* extension_list[] = {
     "sbin",
     "sc",
     "scd",
+    "sch",
     "sd9",
     "sdf",
     "sdt",
