@@ -42,7 +42,8 @@ static VGMSTREAM * init_vgmstream_opus(STREAMFILE *streamFile, meta_t meta_type,
 
     vgmstream->meta_type = meta_type;
     vgmstream->sample_rate = read_32bitLE(offset + 0x0c,streamFile);
-
+    if (vgmstream->sample_rate == 16000)
+	    vgmstream->sample_rate = 48000; // Grandia HD Collection contains a false sample_rate in header
     vgmstream->num_samples = num_samples;
     vgmstream->loop_start_sample = loop_start;
     vgmstream->loop_end_sample = loop_end;
