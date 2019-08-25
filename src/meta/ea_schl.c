@@ -101,6 +101,8 @@ typedef struct {
     int big_endian;
     int loop_flag;
     int codec_config;
+
+    size_t stream_size;
 } ea_header;
 
 static VGMSTREAM * parse_schl_block(STREAMFILE *streamFile, off_t offset, int standalone);
@@ -1177,6 +1179,7 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE *streamFile, ea_
                 if (!temp_streamFile) goto fail;
 
                 start_offset = 0x00; /* must point to the custom streamfile's beginning */
+                ea->stream_size = get_streamfile_size(temp_streamFile);
 
                 ffmpeg_data = init_ffmpeg_offset(temp_streamFile, start_offset, get_streamfile_size(temp_streamFile));
                 close_streamfile(temp_streamFile);
@@ -1202,6 +1205,8 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE *streamFile, ea_
             VGM_LOG("EA SCHl: unknown codec2 0x%02x for platform 0x%02x\n", ea->codec2, ea->platform);
             goto fail;
     }
+
+    vgmstream->stream_size = ea->stream_size;
 
     /* open files; channel offsets are updated below */
     if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
@@ -1635,16 +1640,23 @@ fail:
 
 static void update_ea_stream_size_and_samples(STREAMFILE* streamFile, off_t start_offset, VGMSTREAM *vgmstream, int standalone) {
     uint32_t block_id;
-    int32_t num_samples;
-    size_t stream_size, file_size;
-    int multiple_schl;
+    int32_t num_samples = 0;
+    size_t stream_size = 0, file_size;
+    int multiple_schl = 0;
 
-    stream_size = 0, num_samples = 0, multiple_schl = 0;
     file_size = get_streamfile_size(streamFile);
-    vgmstream->next_block_offset = start_offset;
 
+    /* formats with custom codecs */
+    if (vgmstream->layout_type != layout_blocked_ea_schl) {
+        return;
+    }
+
+    /* manually read totals */
+    block_update(start_offset, vgmstream);
     while (vgmstream->next_block_offset < file_size) {
         block_update_ea_schl(vgmstream->next_block_offset, vgmstream);
+        if (vgmstream->current_block_samples < 0)
+            break;
 
         block_id = read_32bitBE(vgmstream->current_block_offset + 0x00, streamFile);
         if (block_id == EA_BLOCKID_END) { /* banks should never contain movie "SHxx" */
@@ -1678,7 +1690,8 @@ static void update_ea_stream_size_and_samples(STREAMFILE* streamFile, off_t star
         }
     }
 
-    vgmstream->stream_size = stream_size;
+    if (vgmstream->stream_size == 0)
+        vgmstream->stream_size = stream_size;
 }
 
 /* find data start offset inside the first SCDl; not very elegant but oh well */
