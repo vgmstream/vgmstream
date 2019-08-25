@@ -566,22 +566,17 @@ static VGMSTREAM * init_vgmstream_ubi_sb_base(ubi_sb_header *sb, STREAMFILE *str
 
 #ifdef VGM_USE_FFMPEG
         case FMT_AT3: {
-            ffmpeg_codec_data *ffmpeg_data;
-
-            /* skip weird value (3, 4) in Brothers in Arms: D-Day (PSP) */
+            /* skip weird value (3 or 4) in Brothers in Arms: D-Day (PSP) */
             if (read_32bitBE(start_offset+0x04,streamData) == 0x52494646) {
                 VGM_LOG("UBI SB: skipping unknown value 0x%x before RIFF\n", read_32bitBE(start_offset+0x00,streamData));
                 start_offset += 0x04;
                 sb->stream_size -= 0x04;
             }
 
-            ffmpeg_data = init_ffmpeg_offset(streamData, start_offset, sb->stream_size);
-            if ( !ffmpeg_data ) goto fail;
-            vgmstream->codec_data = ffmpeg_data;
+            vgmstream->codec_data = init_ffmpeg_atrac3_riff(streamData, start_offset, NULL);
+            if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
-            if (ffmpeg_data->skipSamples <= 0) /* in case FFmpeg didn't get them */
-                ffmpeg_set_skip_samples(ffmpeg_data, riff_get_fact_skip_samples(streamData, start_offset));
             break;
         }
 

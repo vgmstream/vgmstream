@@ -297,6 +297,11 @@ uint32_t ffmpeg_get_channel_layout(ffmpeg_codec_data * data);
 void ffmpeg_set_channel_remapping(ffmpeg_codec_data * data, int *channels_remap);
 
 
+/* ffmpeg_decoder_utils.c (helper-things) */
+ffmpeg_codec_data * init_ffmpeg_atrac3_riff(STREAMFILE *sf, off_t offset, int* out_samples);
+
+
+/* ffmpeg_decoder_custom_opus.c (helper-things) */
 typedef struct {
     int channels;
     int skip;
@@ -307,7 +312,6 @@ typedef struct {
     int channel_mapping[8];
 } opus_config;
 
-/* ffmpeg_decoder_custom_opus.c (helper-things) */
 ffmpeg_codec_data * init_ffmpeg_switch_opus_config(STREAMFILE *streamFile, off_t start_offset, size_t data_size, opus_config* cfg);
 ffmpeg_codec_data * init_ffmpeg_switch_opus(STREAMFILE *streamFile, off_t start_offset, size_t data_size, int channels, int skip, int sample_rate);
 ffmpeg_codec_data * init_ffmpeg_ue4_opus(STREAMFILE *streamFile, off_t start_offset, size_t data_size, int channels, int skip, int sample_rate);
@@ -319,7 +323,6 @@ size_t switch_opus_get_samples(off_t offset, size_t stream_size, STREAMFILE *str
 size_t switch_opus_get_encoder_delay(off_t offset, STREAMFILE *streamFile);
 size_t ue4_opus_get_encoder_delay(off_t offset, STREAMFILE *streamFile);
 size_t ea_opus_get_encoder_delay(off_t offset, STREAMFILE *streamFile);
-
 #endif
 
 
@@ -366,8 +369,6 @@ void xma2_parse_xma2_chunk(STREAMFILE *streamFile, off_t chunk_offset, int * cha
 void xma_fix_raw_samples(VGMSTREAM *vgmstream, STREAMFILE*streamFile, off_t stream_offset, size_t stream_size, off_t chunk_offset, int fix_num_samples, int fix_loop_samples);
 void xma_fix_raw_samples_hb(VGMSTREAM *vgmstream, STREAMFILE *headerFile, STREAMFILE *bodyFile, off_t stream_offset, size_t stream_size, off_t chunk_offset, int fix_num_samples, int fix_loop_samples);
 void xma_fix_raw_samples_ch(VGMSTREAM *vgmstream, STREAMFILE*streamFile, off_t stream_offset, size_t stream_size, int channel_per_stream, int fix_num_samples, int fix_loop_samples);
-
-int riff_get_fact_skip_samples(STREAMFILE * streamFile, off_t start_offset);
 
 size_t atrac3_bytes_to_samples(size_t bytes, int full_block_align);
 size_t atrac3plus_bytes_to_samples(size_t bytes, int full_block_align);

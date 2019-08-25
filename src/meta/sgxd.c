@@ -125,18 +125,13 @@ VGMSTREAM * init_vgmstream_sgxd(STREAMFILE *streamFile) {
 
 #ifdef VGM_USE_FFMPEG
         case 0x04: {    /* ATRAC3plus [Kurohyo 1/2 (PSP), BraveStory (PSP)] */
-            ffmpeg_codec_data *ffmpeg_data;
-
-            /* internally has a RIFF header; but the SGXD  header / sample rate has priority over it (may not match) */
-            ffmpeg_data = init_ffmpeg_offset(streamFile, start_offset, stream_size);
-            if ( !ffmpeg_data ) goto fail;
-            vgmstream->codec_data = ffmpeg_data;
+            vgmstream->codec_data = init_ffmpeg_atrac3_riff(streamFile, start_offset, NULL);
+            if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
 
-            if (ffmpeg_data->skipSamples <= 0) /* in case FFmpeg didn't get them */
-                ffmpeg_set_skip_samples(ffmpeg_data, riff_get_fact_skip_samples(streamFile, start_offset));
-            /* SGXD loop/sample values are relative (without skip samples) vs RIFF (with skip samples), no need to adjust */
+            /* SGXD's sample rate has priority over RIFF's sample rate (may not match) */
+            /* loop/sample values are relative (without skip) vs RIFF (with skip), matching "smpl" otherwise */
             break;
         }
 #endif

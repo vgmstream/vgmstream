@@ -1169,8 +1169,6 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE *streamFile, ea_
 
 #ifdef VGM_USE_FFMPEG
         case EA_CODEC2_ATRAC3PLUS: {
-            ffmpeg_codec_data *ffmpeg_data;
-
             /* regular ATRAC3plus chunked in SCxx blocks, including RIFF header [Medal of Honor Heroes 2 (PSP)] */
             if (!is_bnk) {
                 STREAMFILE* temp_streamFile = NULL;
@@ -1181,22 +1179,17 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE *streamFile, ea_
                 start_offset = 0x00; /* must point to the custom streamfile's beginning */
                 ea->stream_size = get_streamfile_size(temp_streamFile);
 
-                ffmpeg_data = init_ffmpeg_offset(temp_streamFile, start_offset, get_streamfile_size(temp_streamFile));
+                vgmstream->codec_data = init_ffmpeg_atrac3_riff(temp_streamFile, start_offset, NULL);
                 close_streamfile(temp_streamFile);
-                if (!ffmpeg_data) goto fail;
             }
             else {
-                size_t riff_size = read_32bitLE(start_offset + 0x04, streamFile) + 0x08;
-                ffmpeg_data = init_ffmpeg_offset(streamFile, start_offset, riff_size);
-                if (!ffmpeg_data) goto fail;
+                /* memory file without blocks */
+                vgmstream->codec_data = init_ffmpeg_atrac3_riff(streamFile, start_offset, NULL);
             }
 
-            vgmstream->codec_data = ffmpeg_data;
+            if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
-
-            if (ffmpeg_data->skipSamples <= 0) /* in case FFmpeg didn't get them */
-                ffmpeg_set_skip_samples(ffmpeg_data, riff_get_fact_skip_samples(streamFile, start_offset));
             break;
         }
 #endif

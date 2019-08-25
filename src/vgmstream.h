@@ -1193,11 +1193,13 @@ typedef struct {
     int64_t skipSamples; // number of start samples that will be skipped (encoder delay), for looping adjustments
     int streamCount; // number of FFmpeg audio streams
     
+    /*** internal state ***/
+    // config
     int channel_remap_set;
     int channel_remap[32]; /* map of channel > new position */
+    int invert_audio_set;
 
-    /*** internal state ***/
-    // Intermediate byte buffer
+    // intermediate byte buffer
     uint8_t *sampleBuffer;
     // max samples we can held (can be less or more than frameSize)
     size_t sampleBufferBlock;

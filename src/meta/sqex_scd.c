@@ -300,7 +300,7 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
                 vgmstream->num_samples = read_32bitBE(start_offset+0x00,streamFile);
                 if (loop_flag) {
                     vgmstream->loop_start_sample = loop_start;
-                    vgmstream->loop_end_sample = loop_end+1;
+                    vgmstream->loop_end_sample = loop_end + 1;
                 }
 
                 for (i = 1; i < channel_count; i++) {
@@ -349,29 +349,24 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
 
             vgmstream->num_samples = ffmpeg_data->totalSamples;
             vgmstream->loop_start_sample = loop_start;
-            vgmstream->loop_end_sample = loop_end;
+            vgmstream->loop_end_sample = loop_end; //todo +1?
 
             xma_fix_raw_samples(vgmstream, streamFile, start_offset,stream_size, 0, 0,0); /* samples are ok, loops? */
             break;
         }
 
         case 0x0E: {    /* ATRAC3/ATRAC3plus [Lord of Arcana (PSP), Final Fantasy Type-0] */
-            ffmpeg_codec_data *ffmpeg_data = NULL;
+            int fact_samples = 0;
 
-            /* full RIFF header at start_offset/extradata_offset (same) */
-            ffmpeg_data = init_ffmpeg_offset(streamFile, start_offset,stream_size);
-            if (!ffmpeg_data) goto fail;
-            vgmstream->codec_data = ffmpeg_data;
+            vgmstream->codec_data = init_ffmpeg_atrac3_riff(streamFile, start_offset, &fact_samples);
+            if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
 
-            vgmstream->num_samples = ffmpeg_data->totalSamples; /* fact samples */
+            vgmstream->num_samples = fact_samples;
             vgmstream->loop_start_sample = loop_start;
-            vgmstream->loop_end_sample = loop_end;
-
-            if (ffmpeg_data->skipSamples <= 0) /* in case FFmpeg didn't get them */
-                ffmpeg_set_skip_samples(ffmpeg_data, riff_get_fact_skip_samples(streamFile, start_offset));
-            /* SCD loop/sample values are relative (without skip samples) vs RIFF (with skip samples), no need to adjust */
+            vgmstream->loop_end_sample = loop_end + 1;
+            /* loop/sample values are relative (without skip) vs RIFF (with skip), matching "smpl" otherwise */
             break;
         }
 #endif
@@ -391,8 +386,12 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
             vgmstream->layout_type = layout_none;
 
             vgmstream->num_samples = read_32bit(extradata_offset+0x10,streamFile); /* loop values above are also weird and ignored */
-            vgmstream->loop_start_sample = read_32bit(extradata_offset+0x20, streamFile) - (loop_flag ? cfg.encoder_delay : 0); //loop_start
-            vgmstream->loop_end_sample   = read_32bit(extradata_offset+0x24, streamFile) - (loop_flag ? cfg.encoder_delay : 0); //loop_end
+            vgmstream->loop_start_sample = read_32bit(extradata_offset+0x20, streamFile);
+            vgmstream->loop_end_sample   = read_32bit(extradata_offset+0x24, streamFile) + 1;
+            if (loop_flag) {
+                vgmstream->loop_start_sample -= cfg.encoder_delay;
+                vgmstream->loop_end_sample   -= cfg.encoder_delay;
+            }
             break;
         }
 #endif

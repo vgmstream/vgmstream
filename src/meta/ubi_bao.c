@@ -376,16 +376,10 @@ static VGMSTREAM * init_vgmstream_ubi_bao_base(ubi_bao_header * bao, STREAMFILE 
         }
 
         case FMT_AT3: {
-            ffmpeg_codec_data *ffmpeg_data;
-
-            ffmpeg_data = init_ffmpeg_offset(streamData, start_offset, bao->stream_size);
-            if (!ffmpeg_data) goto fail;
-            vgmstream->codec_data = ffmpeg_data;
+            vgmstream->codec_data = init_ffmpeg_atrac3_riff(streamData, start_offset, NULL);
+            if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
-
-            if (ffmpeg_data->skipSamples <= 0) /* in case FFmpeg didn't get them */
-                ffmpeg_set_skip_samples(ffmpeg_data, riff_get_fact_skip_samples(streamData, start_offset));
             break;
         }
 
