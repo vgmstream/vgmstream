@@ -256,14 +256,44 @@ static int find_adx_key(STREAMFILE *streamFile, uint8_t type, uint16_t *xor_star
 
     /* try to find key in external file first */
     {
-        uint8_t keybuf[6];
+        uint8_t keybuf[0x20+1] = {0}; /* +1 extra null for keystrings */
+        size_t key_size;
 
-        if (read_key_file(keybuf, 6, streamFile) == 6) {
-            *xor_start = get_16bitBE(keybuf+0);
-            *xor_mult = get_16bitBE(keybuf+2);
-            *xor_add = get_16bitBE(keybuf+4);
-            return 1;
+        /* handle type8 keystrings, key9 keycodes and derived keys too */
+        key_size = read_key_file(keybuf,0x20, streamFile);
+
+        if (key_size > 0) {
+            int i, is_ascii = 0;
+
+            /* keystrings should be ASCII, also needed to tell apart 0x06 strings from derived keys */
+            if (type == 8) {
+                is_ascii = 1;
+                for (i = 0; i < key_size; i++) {
+                    if (keybuf[i] < 0x20 || keybuf[i] > 0x7f) {
+                        is_ascii = 0;
+                        break;
+                    }
+                }
+            }
+
+            if (key_size == 0x06 && !is_ascii) {
+                *xor_start = get_16bitBE(keybuf + 0x00);
+                *xor_mult  = get_16bitBE(keybuf + 0x02);
+                *xor_add   = get_16bitBE(keybuf + 0x04);
+                return 1;
+            }
+            else if (type == 8 && is_ascii) {
+                const char * keystring = (const char *)keybuf;
+                derive_adx_key8(keystring, xor_start, xor_mult, xor_add);
+                return 1;
+            }
+            else if (type == 9 && key_size == 0x08) {
+                uint64_t keycode = (uint64_t)get_64bitBE(keybuf);
+                derive_adx_key9(keycode, xor_start, xor_mult, xor_add);
+                return 1;
+            }
         }
+        /* no key set or unknown format, try list */
     }
 
     /* setup totals */

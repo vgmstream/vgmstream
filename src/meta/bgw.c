@@ -27,13 +27,13 @@ VGMSTREAM * init_vgmstream_bgw(STREAMFILE *streamFile) {
 
     codec = read_32bitLE(0x0c,streamFile);
     file_size = read_32bitLE(0x10,streamFile);
-    /*file_id = read_32bitLE(0x14,streamFile);*/
+    /* file_id = read_32bitLE(0x14,streamFile); */
     block_size = read_32bitLE(0x18,streamFile);
     loop_start = read_32bitLE(0x1c,streamFile);
     sample_rate = (read_32bitLE(0x20,streamFile) + read_32bitLE(0x24,streamFile)) & 0x7FFFFFFF; /* bizarrely obfuscated sample rate */
     start_offset = read_32bitLE(0x28,streamFile);
-    /*0x2c: unk (vol?) */
-    /*0x2d: unk (0x10?) */
+    /* 0x2c: unk (vol?) */
+    /* 0x2d: unk (0x10?) */
     channel_count = read_8bit(0x2e,streamFile);
     block_align = (uint8_t)read_8bit(0x2f,streamFile);
 
@@ -65,30 +65,25 @@ VGMSTREAM * init_vgmstream_bgw(STREAMFILE *streamFile) {
 
 #ifdef VGM_USE_FFMPEG
         case 3: { /* ATRAC3 (encrypted) */
-            uint8_t buf[0x100];
-            int bytes, joint_stereo, skip_samples;
             size_t data_size = file_size - start_offset;
+            int encoder_delay, block_align;
 
-            vgmstream->num_samples = block_size; /* atrac3_bytes_to_samples gives the same value */
-            if (loop_flag) {
-                vgmstream->loop_start_sample = loop_start;
-                vgmstream->loop_end_sample = vgmstream->num_samples;
-            }
-
-            block_align  = 0xC0 * vgmstream->channels; /* 0x00 in header */
-            joint_stereo = 0;
-            skip_samples = 0;
-
-            bytes = ffmpeg_make_riff_atrac3(buf, 0x100, vgmstream->num_samples, data_size, vgmstream->channels, vgmstream->sample_rate, block_align, joint_stereo, skip_samples);
-            if (bytes <= 0) goto fail;
+            encoder_delay = 1024*2 + 69*2; /* observed value, all files start at +2200 (PS-ADPCM also starts around 50-150 samples in) */
+            block_align = 0xC0 * vgmstream->channels; /* 0x00 in header */
+            vgmstream->num_samples = block_size - encoder_delay; /* atrac3_bytes_to_samples gives block_size */
 
             temp_streamFile = setup_bgw_atrac3_streamfile(streamFile, start_offset,data_size, 0xC0,channel_count);
             if (!temp_streamFile) goto fail;
 
-            vgmstream->codec_data = init_ffmpeg_header_offset(temp_streamFile, buf,bytes, 0,data_size);
+            vgmstream->codec_data = init_ffmpeg_atrac3_raw(temp_streamFile, 0x00,data_size, vgmstream->num_samples,vgmstream->channels,vgmstream->sample_rate, block_align, encoder_delay);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
+
+            if (loop_flag) {
+                vgmstream->loop_start_sample = loop_start - encoder_delay;
+                vgmstream->loop_end_sample = vgmstream->num_samples;
+            }
 
             close_streamfile(temp_streamFile);
             break;
@@ -132,13 +127,13 @@ VGMSTREAM * init_vgmstream_spw(STREAMFILE *streamFile) {
 
     file_size = read_32bitLE(0x08,streamFile);
     codec = read_32bitLE(0x0c,streamFile);
-    /*file_id = read_32bitLE(0x10,streamFile);*/
+    /* file_id = read_32bitLE(0x10,streamFile);*/
     block_size = read_32bitLE(0x14,streamFile);
     loop_start = read_32bitLE(0x18,streamFile);
     sample_rate = (read_32bitLE(0x1c,streamFile) + read_32bitLE(0x20,streamFile)) & 0x7FFFFFFF; /* bizarrely obfuscated sample rate */
     start_offset = read_32bitLE(0x24,streamFile);
-    /*0x2c: unk (0x00?) */
-    /*0x2d: unk (0x00/01?) */
+    /* 0x2c: unk (0x00?) */
+    /* 0x2d: unk (0x00/01?) */
     channel_count = read_8bit(0x2a,streamFile);
     /*0x2b: unk (0x01 when PCM, 0x10 when VAG?) */
     block_align = read_8bit(0x2c,streamFile);
@@ -184,30 +179,25 @@ VGMSTREAM * init_vgmstream_spw(STREAMFILE *streamFile) {
 
 #ifdef VGM_USE_FFMPEG
         case 3: { /* ATRAC3 (encrypted) */
-            uint8_t buf[0x100];
-            int bytes, joint_stereo, skip_samples;
             size_t data_size = file_size - start_offset;
+            int encoder_delay, block_align;
 
-            vgmstream->num_samples = block_size; /* atrac3_bytes_to_samples gives the same value */
-            if (loop_flag) {
-                vgmstream->loop_start_sample = loop_start;
-                vgmstream->loop_end_sample = vgmstream->num_samples;
-            }
-
-            block_align  = 0xC0 * vgmstream->channels; /* 0x00 in header */
-            joint_stereo = 0;
-            skip_samples = 0;
-
-            bytes = ffmpeg_make_riff_atrac3(buf, 0x100, vgmstream->num_samples, data_size, vgmstream->channels, vgmstream->sample_rate, block_align, joint_stereo, skip_samples);
-            if (bytes <= 0) goto fail;
+            encoder_delay = 1024*2 + 69*2; /* observed value, all files start at +2200 (PS-ADPCM also starts around 50-150 samples in) */
+            block_align = 0xC0 * vgmstream->channels; /* 0x00 in header */
+            vgmstream->num_samples = block_size - encoder_delay; /* atrac3_bytes_to_samples gives block_size */
 
             temp_streamFile = setup_bgw_atrac3_streamfile(streamFile, start_offset,data_size, 0xC0,channel_count);
             if (!temp_streamFile) goto fail;
 
-            vgmstream->codec_data = init_ffmpeg_header_offset(temp_streamFile, buf,bytes, 0,data_size);
+            vgmstream->codec_data = init_ffmpeg_atrac3_raw(temp_streamFile, 0x00,data_size, vgmstream->num_samples,vgmstream->channels,vgmstream->sample_rate, block_align, encoder_delay);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
+
+            if (loop_flag) {
+                vgmstream->loop_start_sample = loop_start - encoder_delay;
+                vgmstream->loop_end_sample = vgmstream->num_samples;
+            }
 
             close_streamfile(temp_streamFile);
             break;

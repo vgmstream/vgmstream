@@ -176,30 +176,20 @@ VGMSTREAM * init_vgmstream_ta_aac_ps3(STREAMFILE *streamFile) {
 
 #ifdef VGM_USE_FFMPEG
     {
-        ffmpeg_codec_data *ffmpeg_data = NULL;
-        uint8_t buf[100];
-        int32_t bytes, samples_size = 1024, block_size, encoder_delay, joint_stereo, max_samples;
-        block_size = (codec_id == 4 ? 0x60 : (codec_id == 5 ? 0x98 : 0xC0)) * vgmstream->channels;
-        max_samples = (data_size / block_size) * samples_size;
-        encoder_delay = 0x0;
-        joint_stereo = 0;
+        int block_align, encoder_delay;
 
-        /* make a fake riff so FFmpeg can parse the ATRAC3 */
-        bytes = ffmpeg_make_riff_atrac3(buf, 100, vgmstream->num_samples, data_size, vgmstream->channels, vgmstream->sample_rate, block_size, joint_stereo, encoder_delay);
-        if (bytes <= 0) goto fail;
+        block_align = (codec_id == 4 ? 0x60 : (codec_id == 5 ? 0x98 : 0xC0)) * vgmstream->channels;
+        encoder_delay = 1024 + 69; /* approximate, gets good loops */
+        vgmstream->num_samples = atrac3_bytes_to_samples(data_size, block_align) - encoder_delay;
 
-        ffmpeg_data = init_ffmpeg_header_offset(streamFile, buf, bytes, start_offset, data_size);
-        if (!ffmpeg_data) goto fail;
-        vgmstream->codec_data = ffmpeg_data;
+        vgmstream->codec_data = init_ffmpeg_atrac3_raw(streamFile, start_offset,data_size, vgmstream->num_samples,vgmstream->channels,vgmstream->sample_rate, block_align, encoder_delay);
+        if (!vgmstream->codec_data) goto fail;
         vgmstream->coding_type = coding_FFmpeg;
         vgmstream->layout_type = layout_none;
-        vgmstream->num_samples = max_samples;
 
-        if (loop_flag) {
-            vgmstream->loop_start_sample = (loop_start / block_size) * samples_size;
-            vgmstream->loop_end_sample = (loop_end / block_size) * samples_size;
-        }
-
+        /* set offset samples (offset 0 jumps to sample 0 > pre-applied delay, and offset end loops after sample end > adjusted delay) */
+        vgmstream->loop_start_sample = atrac3_bytes_to_samples(loop_start, block_align); // - encoder_delay
+        vgmstream->loop_end_sample = atrac3_bytes_to_samples(loop_end, block_align) - encoder_delay;
     }
 #endif
 

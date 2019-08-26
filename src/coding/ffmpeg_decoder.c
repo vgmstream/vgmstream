@@ -52,6 +52,14 @@ static void remap_audio(sample_t *outbuf, int sample_count, int channels, int ch
     }
 }
 
+static void invert_audio(sample_t *outbuf, int sample_count, int channels) {
+    int i;
+
+    for (i = 0; i < sample_count*channels; i++) {
+        outbuf[i] = -outbuf[i];
+    }
+}
+
 /* converts codec's samples (can be in any format, ex. Ogg's float32) to PCM16 */
 static void convert_audio_pcm16(sample_t *outbuf, const uint8_t *inbuf, int fullSampleCount, int bitsPerSample, int floatingPoint) {
     int s;
@@ -728,6 +736,8 @@ end:
     convert_audio_pcm16(outbuf, data->sampleBuffer, samplesReadNow * channels, data->bitsPerSample, data->floatingPoint);
     if (data->channel_remap_set)
         remap_audio(outbuf, samplesReadNow, data->channels, data->channel_remap);
+    if (data->invert_audio_set)
+        invert_audio(outbuf, samplesReadNow, data->channels);
 
     /* clean buffer when requested more samples than possible */
     if (endOfAudio && samplesReadNow < samples_to_do) {

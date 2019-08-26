@@ -48,17 +48,13 @@ VGMSTREAM * init_vgmstream_smp(STREAMFILE *streamFile) {
     switch(codec) {
 #ifdef VGM_USE_FFMPEG
         case 0x01: {
-            uint8_t buf[0x100];
-            int bytes, block_size, joint_stereo, skip_samples;
-
+            int block_align, encoder_delay;
             if (bps != 16) goto fail;
 
-            block_size = 0x98 * vgmstream->channels;
-            joint_stereo = 0;
-            skip_samples = 0; /* unknown */
+            block_align = 0x98 * vgmstream->channels;
+            encoder_delay = 0; /* 1024 looks ok, but num_samples needs to be adjusted too */
 
-            bytes = ffmpeg_make_riff_atrac3(buf,sizeof(buf), vgmstream->num_samples, data_size, vgmstream->channels, vgmstream->sample_rate, block_size, joint_stereo, skip_samples);
-            vgmstream->codec_data = init_ffmpeg_header_offset(streamFile, buf,bytes, start_offset,data_size);
+            vgmstream->codec_data = init_ffmpeg_atrac3_raw(streamFile, start_offset,data_size, vgmstream->num_samples,vgmstream->channels,vgmstream->sample_rate, block_align, encoder_delay);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;

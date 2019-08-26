@@ -158,19 +158,14 @@ VGMSTREAM * init_vgmstream_rsd(STREAMFILE *streamFile) {
         }
 
         case 0x4154332B: { /* "AT3+" [Crash of the Titans (PSP)] */
-            ffmpeg_codec_data *ffmpeg_data = NULL;
+            int fact_samples = 0;
 
-            /* full RIFF header at start_offset */
-            ffmpeg_data = init_ffmpeg_offset(streamFile, start_offset,data_size);
-            if (!ffmpeg_data) goto fail;
-            vgmstream->codec_data = ffmpeg_data;
+            vgmstream->codec_data = init_ffmpeg_atrac3_riff(streamFile, start_offset, &fact_samples);
+            if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
 
-            if (ffmpeg_data->skipSamples <= 0) /* in case FFmpeg didn't get them */
-                ffmpeg_set_skip_samples(ffmpeg_data, riff_get_fact_skip_samples(streamFile, start_offset));
-
-            vgmstream->num_samples = ffmpeg_data->totalSamples; /* fact samples */
+            vgmstream->num_samples = fact_samples;
             break;
         }
 

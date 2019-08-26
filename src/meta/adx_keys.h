@@ -10,186 +10,179 @@ typedef struct {
 
 /**
  * List of known keys, cracked from the sound files.
- * Keystrings (type 8) and keycodes (type 9) from VGAudio / game's executables / 2ch.net.
+ * Keystrings (type 8) and keycodes (type 9) from executables / VGAudio / game's executables / 2ch.net.
  * Multiple keys may work for a game due to how they are derived.
  * start/mult/add are optional (0,0,0) if key8/9 are provided, but take priority if given.
  */
 static const adxkey_info adxkey8_list[] = {
 
-        /* Clover Studio (GOD HAND, Okami) */
+        /* GOD HAND (PS2), Okami (PS2) [Clover Studio] */
         {0x49e1,0x4a57,0x553d, "karaage",0},
 
-        /* Grasshopper Manufacture 0 (Blood+) */
-        {0x5f5d,0x58bd,0x55ed, NULL,0},     // estimated (keystring not in ELF?)
+        /* Blood+ (PS2) [Grasshopper Manufacture] */
+        {0x5f5d,0x58bd,0x55ed, NULL,0},     // keystring not in ELF?
 
-        /* Grasshopper Manufacture 1 (Killer7) */
+        /* Killer7 (PS2) [Grasshopper Manufacture] */
         {0x50fb,0x5803,0x5701, "GHM",0},
 
-        /* Grasshopper Manufacture 2 (Samurai Champloo) */
+        /* Samurai Champloo (PS2) [Grasshopper Manufacture] */
         {0x4f3f,0x472f,0x562f, "GHMSC",0},
 
-        /* Moss Ltd (Raiden III) */
+        /* Raiden III (PS2) [Moss] */
         {0x66f5,0x58bd,0x4459, "(C)2005 MOSS LTD. BMW Z4",0},
 
-        /* Sonic Team 0 (Phantasy Star Universe) */
+        /* Phantasy Star Universe (PC), Phantasy Star Universe: Ambition of the Illuminus (PS2) [Sonic Team] */
         {0x5deb,0x5f27,0x673f, "3x5k62bg9ptbwy",0},
 
-        /* G.rev 0 (Senko no Ronde) */
+        /* Senko no Ronde [G.rev] */
         {0x46d3,0x5ced,0x474d, "ranatus",0},
 
-        /* Sonic Team 1 (NiGHTS: Journey of Dreams) */
+        /* NiGHTS: Journey of Dreams (Wii) [Sonic Team] */
         {0x440b,0x6539,0x5723, "sakakit4649",0},
 
         /* unknown source */
         {0x586d,0x5d65,0x63eb, NULL,0},     // from guessadx (unique?)
 
-        /* Navel (Shuffle! On the Stage (PS2)) */
+        /* Shuffle! On the Stage (PS2) [Navel] */
         {0x4969,0x5deb,0x467f, "SHUF",0},
 
-        /* Success (Aoishiro (PS2)) */
+        /* Aoishiro (PS2) [Success] */
         {0x4d65,0x5eb7,0x5dfd, "wakasugi",0},
 
-        /* Sonic Team 2 (Sonic and the Black Knight) */
+        /* Sonic and the Black Knight (Wii) [Sonic Team] */
         {0x55b7,0x6191,0x5a77, "morio",0},
 
-        /* Enterbrain (Amagami) */
+        /* Amagami (PS2) [Enterbrain] */
         {0x5a17,0x509f,0x5bfd, "mituba",0}, /* also AHX key */
 
-        /* Yamasa (Yamasa Digi Portable: Matsuri no Tatsujin) */
-        {0x4c01,0x549d,0x676f, NULL,0},     // confirmed unique with guessadx
+        /* Yamasa Digi Portable: Matsuri no Tatsujin (PSP) [Yamasa] */
+        {0x4c01,0x549d,0x676f, "7fa0xB9tw3",0},
 
-        /* Kadokawa Shoten (Fragments Blue) */
-        {0x5803,0x4555,0x47bf, NULL,0},     // confirmed unique with guessadx
+        /* Fragments Blue (PS2) [Kadokawa Shoten] */
+        {0x5803,0x4555,0x47bf, "PIETA",0},
 
-        /* Namco (Soulcalibur IV) */
-        {0x59ed,0x4679,0x46c9, NULL,0},     // confirmed unique with guessadx
+        /* Soulcalibur IV (PS3) [Namco] */
+        {0x59ed,0x4679,0x46c9, "SC4Test",0},
 
-        /* G.rev 1 (Senko no Ronde DUO) */
+        /* Senko no Ronde DUO (X360) [G.rev] */
         {0x6157,0x6809,0x4045, NULL,0},     // from guessadx
 
-        /* ASCII Media Works 0 (Nogizaka Haruka no Himitsu: Cosplay Hajimemashita) */
-        {0x45af,0x5f27,0x52b1, NULL,0},     // 2nd from guessadx, other was {0x45ad,0x5f27,0x10fd}
+        /* Nogizaka Haruka no Himitsu: Cosplay Hajimemashita (PS2) [Vridge] */
+        {0x45af,0x5f27,0x52b1, "SKFHSIA",0},
 
-        /* D3 Publisher 0 (Little Anchor) */
+        /* Little Anchor (PS2) [D3 Publisher] */
         {0x5f65,0x5b3d,0x5f65, NULL,0},     // confirmed unique with guessadx
 
-        /* Marvelous 0 (Hanayoi Romanesque: Ai to Kanashimi) */
+        /* Hanayoi Romanesque: Ai to Kanashimi (PS2) [Marvelous] */
         {0x5563,0x5047,0x43ed, NULL,0},     // 2nd from guessadx, other was {0x5562,0x5047,0x1433}
 
-        /* Capcom (Mobile Suit Gundam: Gundam vs. Gundam NEXT PLUS) */
+        /* Mobile Suit Gundam: Gundam vs. Gundam NEXT PLUS (PSP) [Capcom] */
         {0x4f7b,0x4fdb,0x5cbf, "CS-GGNX+",0},
 
-        /* Developer: Bridge NetShop
-         * Publisher: Kadokawa Shoten (Shoukan Shoujo: Elemental Girl Calling) */
-        {0x4f7b,0x5071,0x4c61, NULL,0},     // confirmed unique with guessadx
+        /* Shoukan Shoujo: Elemental Girl Calling (PS2) [Bridge NetShop] */
+        {0x4f7b,0x5071,0x4c61, "ELEMENGAL",0},
 
-        /* Developer: Net Corporation
-         * Publisher: Tecmo (Rakushou! Pachi-Slot Sengen 6: Rio 2 Cruising Vanadis) */
+        /* Rakushou! Pachi-Slot Sengen 6: Rio 2 Cruising Vanadis (PS2) [Net Corporation] */
         {0x53e9,0x586d,0x4eaf, NULL,0},     // confirmed unique with guessadx
 
-        /* Developer: Aquaplus
-         * Tears to Tiara Gaiden Avalon no Kagi (PS3) */
+        /* Tears to Tiara Gaiden Avalon no Nazo (PS3) [Aquaplus] */
         {0x47e1,0x60e9,0x51c1, NULL,0},     // confirmed unique with guessadx
 
-        /* Developer: Broccoli
-         * Neon Genesis Evangelion: Koutetsu no Girlfriend 2nd (PS2) */
-        {0x481d,0x4f25,0x5243, NULL,0},     // confirmed unique with guessadx
+        /* Neon Genesis Evangelion: Koutetsu no Girlfriend 2nd (PS2) [Broccoli] */
+        {0x481d,0x4f25,0x5243, "eva2",0},
 
-        /* Developer: Marvelous
-         * Futakoi Alternative (PS2) */
-        {0x413b,0x543b,0x57d1, NULL,0},     // confirmed unique with guessadx
+        /* Futakoi Alternative (PS2) [Marvelous] */
+        {0x413b,0x543b,0x57d1, "LOVLOV",0},
 
-        /* Developer: Marvelous
-         * Gakuen Utopia - Manabi Straight! KiraKira Happy Festa! (PS2) */
+        /* Gakuen Utopia: Manabi Straight! KiraKira Happy Festa! (PS2) [Marvelous] */
         {0x440b,0x4327,0x564b, "MANABIST",0},
 
-        /* Developer: Datam Polystar
-         * Soshite Kono Uchuu ni Kirameku Kimi no Shi XXX (PS2) */
-        {0x5f5d,0x552b,0x5507, NULL,0},     // confirmed unique with guessadx
+        /* Soshite Kono Uchuu ni Kirameku Kimi no Shi XXX (PS2) [Datam Polystar] */
+        {0x5f5d,0x552b,0x5507, "DATAM-KK2",0},
 
-        /* Developer: Sega
-         * Sakura Taisen: Atsuki Chishio Ni (PS2) */
+        /* Sakura Taisen: Atsuki Chishio Ni (PS2) [Sega] */
         {0x645d,0x6011,0x5c29, NULL,0},     // confirmed unique with guessadx
 
-        /* Developer: Sega
-         * Sakura Taisen 3 ~Paris wa Moeteiru ka~ (PS2) */
+        /* Sakura Taisen 3 ~Paris wa Moeteiru ka~ (PS2) [Sega] */
         {0x62ad,0x4b13,0x5957, NULL,0},     // confirmed unique with guessadx
 
-        /* Developer: Jinx
-         * Sotsugyou 2nd Generation (PS2) */
+        /* Sotsugyou 2nd Generation (PS2) [Jinx] */
         {0x6305,0x509f,0x4c01, NULL,0},     // First guess from guessadx, other was {0x6307,0x509f,0x2ac5}
 
-        /* La Corda d'Oro (2005)(-)(Koei)[PSP] */
-        {0x55b7,0x67e5,0x5387, NULL,0},     // confirmed unique with guessadx
+        /* La Corda d'Oro (PSP) [Koei] */
+        {0x55b7,0x67e5,0x5387, NULL,0},     // keystring not in ELF?
 
-        /* Nanatsuiro * Drops Pure!! (2007)(Media Works)[PS2] */
+        /* Nanatsuiro * Drops Pure!! (PS2) [Media Works] */
         {0x6731,0x645d,0x566b, NULL,0},     // confirmed unique with guessadx
 
-        /* Shakugan no Shana (2006)(Vridge)(Media Works)[PS2] */
+        /* Shakugan no Shana (PS2) [Vridge] */
         {0x5fc5,0x63d9,0x599f, "FUZETSU",0},
 
-        /* Uragiri wa Boku no Namae o Shitteiru (2010)(Kadokawa Shoten)[PS2] */
+        /* Uragiri wa Boku no Namae o Shitteiru (PS2) [Kadokawa Shoten] */
         {0x4c73,0x4d8d,0x5827, NULL,0},     // confirmed unique with guessadx
 
-        /* StormLover Kai!! (2012)(D3 Publisher)[PSP] */
-        {0x5a11,0x67e5,0x6751, NULL,0},     // confirmed unique with guessadx
+        /* StormLover!! (PSP), StormLover Kai!! (PSP) [Vridge] */
+        {0x5a11,0x67e5,0x6751, "HEXDPFMDKPQW",0}, /* unknown AHX key */
 
-        /* Sora no Otoshimono - DokiDoki Summer Vacation (2010)(Kadokawa Shoten)[PSP] */
-        {0x5e75,0x4a89,0x4c61, NULL,0},     // confirmed unique with guessadx
+        /* Sora no Otoshimono: DokiDoki Summer Vacation (PSP) [Kadokawa Shoten] */
+        {0x5e75,0x4a89,0x4c61, "funen-gomi",0},
 
-        /* Boku wa Koukuu Kanseikan - Airport Hero Naha (2006)(Sonic Powered)(Electronic Arts)[PSP] */
-        {0x64ab,0x5297,0x632f, NULL,0},     // confirmed unique with guessadx
+        /* Boku wa Koukuu Kanseikan: Airport Hero Naha (PSP) [Sonic Powered] */
+        {0x64ab,0x5297,0x632f, "sonic",0},
 
-        /* Lucky Star - Net Idol Meister (2009)(Kadokawa Shoten)[PSP] */
-        {0x4d82,0x5243,0x0685, NULL,0},      // confirmed unique with guessadx
+        /* Lucky Star: Net Idol Meister (PSP) [Vridge, Kadokawa Shoten] */
+        {0x4d81,0x5243,0x58c7, "JJOLIFJLE",0}, /* unknown AHX key */
 
-        /* Ishin Renka: Ryouma Gaiden (2010-11-25)(-)(D3 Publisher)[PSP] */
-        {0x54d1,0x526d,0x5e8b, NULL,0},     // ?
+        /* Ishin Renka: Ryouma Gaiden (PSP) [Vridge] */
+        {0x54d1,0x526d,0x5e8b, "LQAFJOIEJ",0}, /* unknown AHX key */
 
-        /* Lucky Star - Ryouou Gakuen Outousai Portable (2010-12-22)(-)(Kadokawa Shoten)[PSP] */
-        {0x4d06,0x663b,0x7d09, NULL,0},     // ?
+        /* Lucky Star: Ryouou Gakuen Outousai Portable (PSP) [Vridge] */
+        {0x4d05,0x663b,0x6343, "IUNOIRU",0}, /* unknown AHX key */
 
-        /* Marriage Royale - Prism Story (2010-04-28)(-)(ASCII Media Works)[PSP] */
-        {0x40a9,0x46b1,0x62ad, NULL,0},     // ?
+        /* Marriage Royale: Prism Story (PSP) [Vridge] */
+        {0x40a9,0x46b1,0x62ad, "ROYMAR",0}, /* unknown AHX key */
 
-        /* Nogizaka Haruka no Himitsu - Doujinshi Hajime Mashita (2010-10-28)(-)(ASCII Media Works)[PSP] */
-        {0x4601,0x671f,0x0455, NULL,0},     // ?
+        /* Nogizaka Haruka no Himitsu: Doujinshi Hajimemashita (PSP) [Vridge] */
+        {0x4609,0x671f,0x4b65, "CLKMEOUHFLIE",0}, /* unknown AHX key */
 
-        /* Slotter Mania P - Mach Go Go Go III (2011-01-06)(-)(Dorart)[PSP] */
-        {0x41ef,0x463d,0x5507, NULL,0},     // ?
+        /* Slotter Mania P: Mach Go Go Go III (PSP) [Dorart] */
+        {0x41ef,0x463d,0x5507, "SGGK",0},
 
-        /* Nichijou - Uchuujin (2011-07-28)(-)(Kadokawa Shoten)[PSP] */
-        {0x4369,0x486d,0x5461, NULL,0},     // ?
+        /* Nichijou: Uchuujin (PSP) [Vridge] */
+        {0x4369,0x486d,0x5461, "LJLOUHIU787",0}, /* unknown AHX key */
 
-        /* R-15 Portable (2011-10-27)(-)(Kadokawa Shoten)[PSP] */
-        {0x6809,0x5fd5,0x5bb1, NULL,0},		// ?
+        /* R-15 Portable (PSP) [Kadokawa Shoten] */
+        {0x6809,0x5fd5,0x5bb1, "R-15(Heart)Love",0},
 
-        /* Suzumiya Haruhi-chan no Mahjong (2011-07-07)(-)(Kadokawa Shoten)[PSP] */
-        {0x5c33,0x4133,0x4ce7, NULL,0},     // ?
+        /* Suzumiya Haruhi-chan no Mahjong (PSP) [Kadokawa Shoten] */
+        {0x5c33,0x4133,0x4ce7, "bi88a#fas",0},
 
-        /* Storm Lover Natsu Koi!! (2011-08-04)(Vridge)(D3 Publisher)[PSP] */
-        {0x4133,0x5a01,0x5723, NULL,0},     // ?
+        /* StormLover Natsu Koi!! (PSP) [Vridge] */
+        {0x4133,0x5a01,0x5723, "LIKDFJUIDJOQ",0}, /* unknown AHX key */
 
-        /* Shounen Onmyouji: Tsubasa yo Ima, Sora e Kaere [PS2] */
+        /* Shounen Onmyouji: Tsubasa yo Ima, Sora e Kaere (PS2) [Kadokawa Shoten] */
         {0x55d9,0x46d3,0x5b01, "SONMYOJI",0},
 
-        /* Girls Bravo: Romance 15's [PS2] */
+        /* Girls Bravo: Romance 15's (PS2) [Kadokawa Shoten] */
         {0x658f,0x4a89,0x5213, "GBRAVO",0},
 
-        /* Kashimashi! Girl Meets Girl - Hajimete no Natsu Monogatari (PS2) */
+        /* Kashimashi! Girl Meets Girl: Hajimete no Natsu Monogatari (PS2) [Vridge] */
         {0x6109,0x5135,0x673f, "KASHIM",0},
 
-        /* Bakumatsu Renka - Karyuu Kenshiden (PS2) */
+        /* Bakumatsu Renka: Karyuu Kenshiden (PS2) [Vridge] */
         {0x4919,0x612d,0x4919, "RENRENKA22",0},
 
-        /* Tensei Hakkenshi - Fuumaroku (PS2) */
+        /* Tensei Hakkenshi: Fuumaroku (PS2) [Vridge] */
         {0x5761,0x6283,0x4531, "HAKKEN",0},
 
-        /* Lucky Star - Ryouou Gakuen Outousai (PS2) */
+        /* Lucky Star: Ryouou Gakuen Outousai (PS2) [Vridge] */
         {0x481D,0x44F9,0x4E35, "LSTARPS2",0},
 
-        /* Bakumatsu Renka: Shinsengumi (PS2) */
+        /* Bakumatsu Renka: Shinsengumi (PS2) [Vridge] */
         {0x5381,0x5701,0x665B, "SHINN",0},
+
+        /* Gintama Gin-san to Issho! Boku no Kabukichou Nikki (PS2) [Bandai Namco?] */
+        {0x67CD,0x5CA7,0x655F, "gt25809",0},
 
 };
 
@@ -213,7 +206,7 @@ static const adxkey_info adxkey9_list[] = {
         /* Fallen Princess (iOS/Android) */
         {0x5e4b,0x190d,0x76bb, NULL,145552191146490718},    // 02051AF25990FB5E
 
-        /* Yuuki Yuuna wa Yuusha de aru - Hanayui no Kirameki / Yuyuyui (iOS/Android) */
+        /* Yuuki Yuuna wa Yuusha de aru: Hanayui no Kirameki / Yuyuyui (iOS/Android) */
         {0x3f10,0x3651,0x6d31, NULL,4867249871962584729},   // 438BF1F883653699
 
         /* Super Robot Wars X-Omega (iOS/Android) voices */

@@ -1919,7 +1919,7 @@
                     >
                 </File>
                 <File
-                    RelativePath=".\coding\ffmpeg_decoder_utils_ea_schl.c"
+                    RelativePath=".\coding\ffmpeg_decoder_utils.c"
                     >
                 </File>
                 <File

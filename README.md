@@ -202,8 +202,8 @@ have total samples after those.
 Certain formats have encrypted data, and need a key to decrypt. vgmstream
 will try to find the correct key from a list, but it can be provided by
 a companion file:
-- .adx: .adxkey (derived 6 byte key, in start/mult/add format)
-- .ahx: .ahxkey (derived 6 byte key, in start/mult/add format)
+- .adx: .adxkey (keystring, keycode, or derived 6 byte start/mult/add key)
+- .ahx: .ahxkey (derived 6 byte start/mult/add key)
 - .hca: .hcakey (8 byte decryption key, a 64-bit number)
   - May be followed by 2 byte AWB scramble key for newer HCA
 - .fsb: .fsbkey (decryption key, in hex)

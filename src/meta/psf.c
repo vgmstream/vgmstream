@@ -132,13 +132,19 @@ fail:
     return NULL;
 }
 
+
+
 /* PSF segmented - Pivotal games multiple segments (external in some PC/Xbox or inside bigfiles) [The Great Escape, Conflict series] */
 VGMSTREAM * init_vgmstream_psf_segmented(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     STREAMFILE* temp_streamFile = NULL;
     segmented_layout_data *data = NULL;
-    int i, segment_count, loop_flag = 0, loop_start = 0, loop_end = 0;
-    off_t offset;
+    int i,j, sequence_count = 0, loop_flag = 0, loop_start = 0, loop_end = 0;
+    int sequence[512] = {0};
+    off_t offsets[512] = {0};
+    int total_subsongs = 0, target_subsong = streamFile->stream_index;
+    char stream_name[STREAM_NAME_SIZE] = {0};
+    size_t stream_size = 0;
 
 
     /* checks */
@@ -151,43 +157,168 @@ VGMSTREAM * init_vgmstream_psf_segmented(STREAMFILE *streamFile) {
         read_32bitBE(0x00,streamFile) != 0x50534631)    /* "PSF\31" [Conflict: Desert Storm 2 (Xbox/GC/PS2), Conflict: Global Terror (Xbox)] */
         goto fail;
 
-    segment_count = read_32bitLE(0x04, streamFile);
-    loop_flag = 0;
 
-    offset = 0x08;
-    offset += 0x0c; /* first segment points to itself? */
-    segment_count--;
+    /* transition table info:
+     * 0x00: offset
+     * 0x04: 0x02*4 next segment points (one per track)
+     * (xN segments)
+     *
+     * There are 4 possible tracks, like: normal, tension, action, high action. Segment 0 has tracks'
+     * entry segments (where 1=first, right after segment 0), and each segment has a link point to next
+     * (or starting) segment of any of other tracks. Thus, follow point 1/2/3/4 to playtrack 1/2/3/4
+     * (points also loop back). It's designed to go smoothly between any tracks (1>3, 4>1, etc),
+     * so sometimes "step" segments (that aren't normally played) are used.
+     * If a track doesn't exist it may keep repeating silent segments, but still defines points.
+     *
+     * ex. sequence could go like this:
+     * (read segment 0 track1 entry): 1
+     * - track0: 1>2>3>4>5>6>7>8>1>2>3, then to track2 goes 3>15>9
+     * - track1: 9>10>11>12>13>14>9>10, then to track4 goes 10>33
+     * - track2: 33>34>35>36>30>31>32>33, then to track1 goes 33>3
+     * - track3: 3>4>5>6... (etc)
+     *
+     * Well make a sequence based on target subsong:
+     * - 1: tracks mixed with transitions, looping back to track1 (only first is used in .sch so we want all)
+     * - 2~5: track1~4 looping back to themselves
+     * - 6+: single segment (where 6=first segment) to allow free mixes
+     */
+    {
+        int track[4][255] = {0};
+        int count[4] = {0};
+        int current_track, current_point, next_point, repeat_point;
+        int transition_count = read_32bitLE(0x04, streamFile);
 
-    /* build segments */
-    data = init_layout_segmented(segment_count);
-    if (!data) goto fail;
+        total_subsongs = 1 + 4 + (transition_count - 1);
+        if (target_subsong == 0) target_subsong = 1;
+        if (target_subsong < 0 || target_subsong > total_subsongs || total_subsongs < 1) goto fail;
 
-    for (i = 0; i < segment_count; i++) {
-        off_t psf_offset;
-        size_t psf_size;
 
-        /* mini table */
-        psf_offset = read_32bitLE(offset + 0x00, streamFile);
-        psf_size = get_streamfile_size(streamFile) - psf_offset; /* not ok but meh */
-        /* 0x04-0c: 0x02*4 transition segments (possibly to 4 song variations) */
+        if (target_subsong == 1) {
+            current_track = 0; /* start from first track, will move to others automatically */
 
-        /* use last section transition as loop */
-        if (i + 1 == segment_count) {
-            loop_flag = 1;
-            loop_start = read_16bitLE(offset + 0x0a, streamFile) - 1; /* also ignore first segment */
-            loop_end = i;
+            snprintf(stream_name,sizeof(stream_name), "full");
+        }
+        else if (target_subsong <= 1+4) {
+            current_track = (target_subsong-1) - 1; /* where 0 = first track */
+
+            snprintf(stream_name,sizeof(stream_name), "track%i", (current_track+1));
+        }
+        else {
+            int segment = target_subsong - 1 - 4; /* where 1 = first segment */
+
+            sequence[0] = segment;
+            sequence_count = 1;
+            current_track = -1;
+
+            /* show transitions to help with ordering */
+            track[0][0] = read_16bitLE(0x08 + 0x0c*segment + 0x04, streamFile);
+            track[1][0] = read_16bitLE(0x08 + 0x0c*segment + 0x06, streamFile);
+            track[2][0] = read_16bitLE(0x08 + 0x0c*segment + 0x08, streamFile);
+            track[3][0] = read_16bitLE(0x08 + 0x0c*segment + 0x0a, streamFile);
+            snprintf(stream_name,sizeof(stream_name), "segment%03i to %03i/%03i/%03i/%03i", segment,track[0][0],track[1][0],track[2][0],track[3][0]);
         }
 
-        /* multiple segment  can point to the same PSF offset (for repeated song sections) */
-        //todo reuse repeated VGMSTREAMs to improve memory and bitrate calcs a bit
+        /* find target sequence */
+        current_point = 0; /* segment 0 has track entry points */
+        while (sequence_count < 512 && current_track >= 0) {
 
-        temp_streamFile = setup_subfile_streamfile(streamFile, psf_offset, psf_size, "psf");
-        if (!temp_streamFile) goto fail;
+            next_point = read_16bitLE(0x08 + 0x0c*current_point + 0x04 + 0x02*current_track, streamFile);
 
-        data->segments[i] = init_vgmstream_psf_single(temp_streamFile);
-        if (!data->segments[i]) goto fail;
+            /* find if next point repeats in our current track */
+            repeat_point = -1;
+            for (i = 0; i < count[current_track]; i++) {
 
-        offset += 0x0c;
+                if (track[current_track][i] == next_point) {
+                    repeat_point = i;
+                    break;
+                }
+            }
+
+            /* set loops and end sequence */
+            if (repeat_point >= 0) {
+                if (target_subsong == 1) {
+                    /* move to next track and change transition to next track too */
+                    current_track++;
+
+                    /* to loop properly we set loop end in track3 and loop start in track0
+                     * when track3 ends and move to track0 could have a transition segment
+                     * before actually looping track0, so we do this in 2 steps */
+
+                    if (loop_flag) { /* 2nd time repeat is found = loop start in track0 */
+                        loop_start = repeat_point;
+                        break; /* sequence fully done */
+                    }
+
+                    if (current_track > 3) { /* 1st time repeat is found = loop end in track3 */
+                        current_track = 0;
+                        loop_flag = 1;
+                    }
+
+                    next_point = read_16bitLE(0x08 + 0x0c*current_point + 0x04 + 0x02*current_track, streamFile);
+
+                    if (loop_flag) {
+                        loop_end = sequence_count; /* this points to the next_point that will be added below */
+                    }
+                }
+                else {
+                    /* end track N */
+                    loop_flag = 1;
+                    loop_start = repeat_point;
+                    loop_end = sequence_count - 1;
+                    break;
+                }
+            }
+
+
+            /* separate track info to find repeated points (since some transitions are common for all tracks) */
+            track[current_track][count[current_track]] = next_point;
+            count[current_track]++;
+
+            sequence[sequence_count] = next_point;
+            sequence_count++;
+
+            current_point = next_point;
+        }
+
+        if (sequence_count >= 512 || count[current_track] >=  512)
+            goto fail;
+    }
+
+
+    /* build segments */
+    data = init_layout_segmented(sequence_count);
+    if (!data) goto fail;
+
+    for (i = 0; i < sequence_count; i++) {
+        off_t psf_offset;
+        size_t psf_size;
+        int old_psf = -1;
+
+        psf_offset = read_32bitLE(0x08 + sequence[i]*0x0c + 0x00, streamFile);
+        psf_size = get_streamfile_size(streamFile) - psf_offset; /* not ok but meh */
+
+        /* find repeated sections (sequences often repeat PSFs) */
+        offsets[i] = psf_offset;
+        for (j = 0; j < i; j++) {
+            if (offsets[j] == psf_offset) {
+                old_psf = j;
+                break;
+            }
+        }
+
+        /* reuse repeated VGMSTREAMs to improve memory and bitrate calcs a bit */
+        if (old_psf >= 0) {
+            data->segments[i] = data->segments[old_psf];
+        }
+        else {
+            temp_streamFile = setup_subfile_streamfile(streamFile, psf_offset, psf_size, "psf");
+            if (!temp_streamFile) goto fail;
+
+            data->segments[i] = init_vgmstream_psf_single(temp_streamFile);
+            if (!data->segments[i]) goto fail;
+
+            stream_size += data->segments[i]->stream_size; /* only non-repeats */
+        }
     }
 
     /* setup VGMSTREAMs */
@@ -195,6 +326,10 @@ VGMSTREAM * init_vgmstream_psf_segmented(STREAMFILE *streamFile) {
         goto fail;
     vgmstream = allocate_segmented_vgmstream(data,loop_flag, loop_start, loop_end);
     if (!vgmstream) goto fail;
+
+    vgmstream->num_streams = total_subsongs;
+    vgmstream->stream_size = stream_size;
+    strcpy(vgmstream->stream_name, stream_name);
 
     return vgmstream;
 fail:

@@ -29,19 +29,19 @@
 typedef struct {
     /* EALayer3 v1 header */
     uint32_t v1_pcm_flag;
-    uint32_t v1_pcm_decode_discard;
-    uint32_t v1_pcm_number;
+    uint32_t v1_offset_samples;
+    uint32_t v1_pcm_samples;
     uint32_t v1_pcm_unknown;
 
     /* EALayer3 v2 header */
     uint32_t v2_extended_flag;
     uint32_t v2_stereo_flag;
-    uint32_t v2_unknown; /* unused? */
+    uint32_t v2_reserved;
     uint32_t v2_frame_size; /* full size including headers and pcm block */
-    uint32_t v2_mode; /* discard mode */
-    uint32_t v2_mode_value; /* samples to use depending on mode */
-    uint32_t v2_pcm_number;
-    uint32_t v2_common_size; /* common header+data size; can be zero */
+    uint32_t v2_offset_mode; /* discard mode */
+    uint32_t v2_offset_samples; /* use depends on mode */
+    uint32_t v2_pcm_samples;
+    uint32_t v2_common_size; /* granule size: common header+data size; can be zero */
 
     /* EALayer3 common header + side info */
     uint32_t version_index;
@@ -275,11 +275,11 @@ static int ealayer3_parse_frame_v1(vgm_bitstream *is, ealayer3_frame_info * eaf,
 
     /* check PCM block */
     if (eaf->v1_pcm_flag == 0xEE) {
-        r_bits(is, 16,&eaf->v1_pcm_decode_discard); /* samples to discard of the next decoded (not PCM block) samples */
-        r_bits(is, 16,&eaf->v1_pcm_number); /* number of PCM samples, can be 0 */
+        r_bits(is, 16,&eaf->v1_offset_samples); /* samples to discard of the next decoded (not PCM block) samples */
+        r_bits(is, 16,&eaf->v1_pcm_samples); /* number of PCM samples, can be 0 */
 
         eaf->pre_size += 2+2; /* 16b+16b */
-        eaf->pcm_size = (2*eaf->v1_pcm_number * channels_per_frame);
+        eaf->pcm_size = (2*eaf->v1_pcm_samples * channels_per_frame);
 
         if (is_v1b) { /* extra 32b in v1b */
             r_bits(is, 32,&eaf->v1_pcm_unknown);
@@ -303,15 +303,15 @@ static int ealayer3_parse_frame_v2(vgm_bitstream *is, ealayer3_frame_info * eaf)
     /* read EA-frame V2 header */
     r_bits(is,  1,&eaf->v2_extended_flag);
     r_bits(is,  1,&eaf->v2_stereo_flag);
-    r_bits(is,  2,&eaf->v2_unknown);
+    r_bits(is,  2,&eaf->v2_reserved);
     r_bits(is, 12,&eaf->v2_frame_size);
 
     eaf->pre_size = 2; /* 16b */
 
     if (eaf->v2_extended_flag) {
-        r_bits(is,  2,&eaf->v2_mode);
-        r_bits(is, 10,&eaf->v2_mode_value);
-        r_bits(is, 10,&eaf->v2_pcm_number);
+        r_bits(is,  2,&eaf->v2_offset_mode);
+        r_bits(is, 10,&eaf->v2_offset_samples);
+        r_bits(is, 10,&eaf->v2_pcm_samples);
         r_bits(is, 10,&eaf->v2_common_size);
 
         eaf->pre_size += 4; /* 32b */
@@ -323,10 +323,10 @@ static int ealayer3_parse_frame_v2(vgm_bitstream *is, ealayer3_frame_info * eaf)
         if (!ok) goto fail;
     }
     VGM_ASSERT(eaf->v2_extended_flag && eaf->v2_common_size == 0, "EA EAL3: v2 empty frame\n"); /* seen in V2S */
-    VGM_ASSERT(eaf->v2_extended_flag && eaf->v2_mode_value > 0, "EA EAL3: v2_mode=%x with value=0x%x\n", eaf->v2_mode, eaf->v2_mode_value);
-    //VGM_ASSERT(eaf->v2_pcm_number > 0, "EA EAL3: v2_pcm_number 0x%x\n", eaf->v2_pcm_number);
+    VGM_ASSERT(eaf->v2_extended_flag && eaf->v2_offset_samples > 0, "EA EAL3: v2_offset_mode=%x with value=0x%x\n", eaf->v2_offset_mode, eaf->v2_offset_samples);
+    //VGM_ASSERT(eaf->v2_pcm_samples > 0, "EA EAL3: v2_pcm_samples 0x%x\n", eaf->v2_pcm_samples);
 
-    eaf->pcm_size = (2*eaf->v2_pcm_number * eaf->channels);
+    eaf->pcm_size = (2*eaf->v2_pcm_samples * eaf->channels);
 
     eaf->eaframe_size = eaf->pre_size + eaf->common_size + eaf->pcm_size;
 
@@ -614,43 +614,44 @@ static int ealayer3_write_pcm_block(VGMSTREAMCHANNEL *stream, mpeg_codec_data *d
         goto fail;
     }
 
-    if (eaf->v1_pcm_number && !eaf->pcm_size) {
-        VGM_LOG("MPEG EAL3: pcm size without pcm number\n");
-        goto fail; //todo ??? first block?
+    if (eaf->v1_pcm_samples && !eaf->pcm_size) {
+        VGM_LOG("MPEG EAL3: pcm_size without pcm_samples\n");
+        goto fail;
     }
 
-    if (eaf->v1_pcm_number) {
+    if (eaf->v1_pcm_samples || eaf->v1_offset_samples) {
         uint8_t* outbuf = ms->output_buffer + bytes_filled;
         off_t pcm_offset = stream->offset + eaf->pre_size + eaf->common_size;
 
-        VGM_ASSERT(eaf->v1_pcm_decode_discard > 576, "MPEG EAL3: big discard %i at 0x%x\n", eaf->v1_pcm_decode_discard, (uint32_t)stream->offset);
-        VGM_ASSERT(eaf->v1_pcm_number > 0x100, "MPEG EAL3: big samples %i at 0x%x\n", eaf->v1_pcm_number, (uint32_t)stream->offset);
+        VGM_ASSERT(eaf->v1_offset_samples > 576, "MPEG EAL3: big discard %i at 0x%x\n", eaf->v1_offset_samples, (uint32_t)stream->offset);
+        VGM_ASSERT(eaf->v1_pcm_samples > 0x100, "MPEG EAL3: big samples %i at 0x%x\n", eaf->v1_pcm_samples, (uint32_t)stream->offset);
+        VGM_ASSERT(eaf->v1_offset_samples > 0 && eaf->v1_pcm_samples == 0, "EAL3: offset_samples without pcm_samples\n"); /* not seen but could work */
 
         //;VGM_LOG("EA EAL3 v1: off=%lx, discard=%x, pcm=%i, pcm_o=%lx\n",
-        //        stream->offset, eaf->v1_pcm_decode_discard, eaf->v1_pcm_number, pcm_offset);
+        //        stream->offset, eaf->v1_offset_samples, eaf->v1_pcm_samples, pcm_offset);
 
         /* V1 usually discards + copies samples at the same time
          * V1b PCM block is interleaved/'planar' format (ex. NFS:U PS3) */
-        ealayer3_copy_pcm_block(outbuf, pcm_offset, eaf->v1_pcm_number, channels_per_frame, (data->type == MPEG_EAL31), stream->streamfile);
-        ms->samples_filled += eaf->v1_pcm_number;
+        ealayer3_copy_pcm_block(outbuf, pcm_offset, eaf->v1_pcm_samples, channels_per_frame, (data->type == MPEG_EAL31), stream->streamfile);
+        ms->samples_filled += eaf->v1_pcm_samples;
 
         /* skip decoded samples as PCM block 'overwrites' them w/ special meanings */
         {
-            size_t decode_to_discard = eaf->v1_pcm_decode_discard;
+            size_t decode_to_discard = eaf->v1_offset_samples;
 
             if (data->type == MPEG_EAL31) {
-                //todo should also discard v1_pcm_number, but block layout samples may be exhausted
+                //todo should also discard v1_pcm_samples, but block layout samples may be exhausted
                 // and won't move (maybe new block if offset = new offset detected)
                 if (decode_to_discard == 576)
-                    decode_to_discard = data->samples_per_frame;//+ eaf->v1_pcm_number;
+                    decode_to_discard = data->samples_per_frame;//+ eaf->v1_pcm_samples;
             }
             else {
-                //todo maybe should be (576 or samples_per_frame - decode_to_discard) but V1b doesn't seem to set discard
+                VGM_ASSERT(decode_to_discard > 0, "EAL3: found offset_samples in V1b\n");
+                /* probably (576 or samples_per_frame - eaf->v1_offset_samples) but V1b seems to always use 0 and ~47 samples */
                 if (decode_to_discard == 0) /* seems ok (ex. comparing NFS:UC PS3 vs PC gets correct waveform this way) */
-                    decode_to_discard = data->samples_per_frame;//+ eaf->v1_pcm_number; /* musn't discard pcm_number */
-                else if (decode_to_discard == 576) //todo unsure
-                    decode_to_discard = data->samples_per_frame;//+ eaf->v1_pcm_number;
+                    decode_to_discard = data->samples_per_frame;//+ eaf->v1_pcm_samples; /* musn't discard pcm_number */
             }
+
             ms->decode_to_discard += decode_to_discard;
         }
     }
@@ -658,37 +659,56 @@ static int ealayer3_write_pcm_block(VGMSTREAMCHANNEL *stream, mpeg_codec_data *d
     if (eaf->v2_extended_flag) {
         uint8_t* outbuf = ms->output_buffer + bytes_filled;
         off_t pcm_offset = stream->offset + eaf->pre_size + eaf->common_size;
+        size_t usable_samples, decode_to_discard;
 
         /* V2P usually only copies big PCM, while V2S discards then copies few samples (similar to V1b).
          * Unlike V1b, both modes seem to use 'packed' PCM block */
-        ealayer3_copy_pcm_block(outbuf, pcm_offset, eaf->v2_pcm_number, channels_per_frame, 1, stream->streamfile);
-        ms->samples_filled += eaf->v2_pcm_number;
+        ealayer3_copy_pcm_block(outbuf, pcm_offset, eaf->v2_pcm_samples, channels_per_frame, 1, stream->streamfile);
+        ms->samples_filled += eaf->v2_pcm_samples;
 
         //;VGM_LOG("EA EAL3 v2: off=%lx, mode=%x, value=%i, pcm=%i, c-size=%x, pcm_o=%lx\n",
-        //        stream->offset, eaf->v2_mode, eaf->v2_mode_value, eaf->v2_pcm_number, eaf->v2_common_size, pcm_offset);
+        //        stream->offset, eaf->v2_offset_mode, eaf->v2_offset_samples, eaf->v2_pcm_samples, eaf->v2_common_size, pcm_offset);
 
-        /* modify decoded samples depending on flag (looks correct in V2P loops, ex. NFS:W) */
-        if (eaf->v2_mode == 0x00) {
-            size_t decode_to_discard = eaf->v2_mode_value; /* (usually 0 in V2P, varies in V2S) */
-            decode_to_discard = 576 - decode_to_discard;
+        //todo improve how discarding works since there could exists a subtle-but-unlikely PCM+granule usage
+        //todo test other modes (only seen IGNORE)
 
-            ms->decode_to_discard += decode_to_discard;
+        /* get how many samples we can use in this granule + pcm block (thus how many we can't) */
+        if (eaf->v2_offset_mode == 0x00) { /* IGNORE (looks correct in V2P loops, ex. NFS:W) */
+            /* offset_samples is usually 0 in V2P (no discard), varies in V2S and may be 576 (full discard).
+             * If block has pcm_samples then usable_samples will be at least that value (for all known files),
+             * and is assumed PCM isn't discarded so only discards the decoded granule. */
+            usable_samples = 576 - eaf->v2_offset_samples;
+            if (eaf->common_size == 0)
+                usable_samples = eaf->v2_pcm_samples;
+
+            if (usable_samples == eaf->v2_pcm_samples) {
+                decode_to_discard = 576;
+            }
+            else {
+                VGM_LOG("EAL3: unknown discard\n");
+                decode_to_discard = 0;
+            }
+        }
+        else if (eaf->v2_offset_mode == 0x01)  { /* PRESERVE */
+            usable_samples = 576;
+            if (eaf->common_size == 0)
+                usable_samples = eaf->v2_pcm_samples;
+            decode_to_discard = 0; /* all preserved */
+        }
+        else if (eaf->v2_offset_mode == 0x02)  { /* MUTE */
+            usable_samples = 576;
+            if (eaf->common_size == 0)
+                usable_samples = eaf->v2_pcm_samples * 2; // why 2?
+            decode_to_discard = 0; /* not discarded but muted */
+            //mute_samples = eaf->v2_offset_samples; //todo must 0 first N decoded samples
+        }
+        else {
+            VGM_LOG("EAL3: unknown mode\n"); /* not defined */
+            usable_samples = 576;
+            decode_to_discard = 0;
         }
 
-        /* todo supposed skip modes (only seen 0x00):
-         *
-         * AB00CCCC CCCCCCCC  if A is set:  DDEEEEEE EEEEFFFF FFFFFFGG GGGGGGGG
-         * D = BLOCKOFFSETMODE: IGNORE = 0x0, PRESERVE = 0x1, MUTE = 0x2, MAX = 0x3
-         * E = samples to discard (mode == 0) or skip (mode == 1 or 2) before outputting the uncompressed samples
-         *    (when mode == 3 this is ignored)
-         * F = number of uncompressed sample frames (pcm block)
-         * G = MPEG granule size (can be zero)
-         *
-         *   if 0: 576 - E if G == 0 then F
-         *   if 1: 576 if G == 0 then F
-         *   if 2: 576 if G == 0 then F * 2
-         *   if 3: 576
-         */
+        ms->decode_to_discard += decode_to_discard;
     }
 
     return 1;
