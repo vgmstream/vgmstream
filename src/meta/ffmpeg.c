@@ -15,6 +15,7 @@ VGMSTREAM * init_vgmstream_ffmpeg(STREAMFILE *streamFile) {
 
 VGMSTREAM * init_vgmstream_ffmpeg_offset(STREAMFILE *streamFile, uint64_t start, uint64_t size) {
     VGMSTREAM *vgmstream = NULL;
+    ffmpeg_codec_data *data = NULL;
     int loop_flag = 0;
     int32_t loop_start = 0, loop_end = 0, num_samples = 0;
     int total_subsongs, target_subsong = streamFile->stream_index;
@@ -23,9 +24,13 @@ VGMSTREAM * init_vgmstream_ffmpeg_offset(STREAMFILE *streamFile, uint64_t start,
     //if (!check_extensions(streamFile, "..."))
     //    goto fail;
 
+    /* don't try to open headers and other mini files */
+    if (get_streamfile_size(streamFile) <= 0x100)
+        goto fail;
+
 
     /* init ffmpeg */
-    ffmpeg_codec_data *data = init_ffmpeg_offset(streamFile, start, size);
+    data = init_ffmpeg_offset(streamFile, start, size);
     if (!data) return NULL;
 
     total_subsongs = data->streamCount;
