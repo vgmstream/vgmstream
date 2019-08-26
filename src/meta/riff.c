@@ -123,9 +123,14 @@ static int read_fmt(int big_endian, STREAMFILE * streamFile, off_t current_chunk
         fmt->channel_layout = read_32bit(current_chunk+0x1c,streamFile);
         /* 0x10 guid at 0x20 */
 
-        /* happens in .at3/at9, may be a bug in their encoder b/c MS's defs set mono as FC */
+        /* happens in various .at3/at9, may be a bug in their encoder b/c MS's defs set mono as FC */
         if (fmt->channel_count == 1 && fmt->channel_layout == speaker_FL) { /* other channels are fine */
             fmt->channel_layout = speaker_FC;
+        }
+
+        /* happens in few at3p, may be a bug in older tools as other games have ok flags [Ridge Racer 7 (PS3)] */
+        if (fmt->channel_count == 6 && fmt->channel_layout == 0x013f) {
+            fmt->channel_layout = 0x3f;
         }
     }
 
