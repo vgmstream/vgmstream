@@ -56,53 +56,85 @@ VGMSTREAM * init_vgmstream_ps2_vas_container(STREAMFILE *streamFile) {
     off_t subfile_offset = 0;
     size_t subfile_size = 0;
     int total_subsongs, target_subsong = streamFile->stream_index;
-    int has_table;
 
 
     /* checks */
     if (!check_extensions(streamFile, "vas"))
         goto fail;
 
-    if (read_32bitBE(0x00, streamFile) != 0xAB8A5A00) /* fixed value */
-        goto fail;
-    if (read_32bitLE(0x04, streamFile)*0x800 + 0x800 != get_streamfile_size(streamFile)) /* just in case */
-        goto fail;
+    if (read_32bitBE(0x00, streamFile) == 0xAB8A5A00) { /* fixed value */
 
-    /* offset table, 0x98 has table size */
-    has_table = read_32bitLE(0x94, streamFile);
+        /* just in case */
+        if (read_32bitLE(0x04, streamFile)*0x800 + 0x800 != get_streamfile_size(streamFile))
+            goto fail;
 
+        total_subsongs = read_32bitLE(0x08, streamFile); /* also at 0x10 */
+        if (target_subsong == 0) target_subsong = 1;
+        if (target_subsong < 0 || target_subsong > total_subsongs || total_subsongs < 1) goto fail;
 
-    total_subsongs = read_32bitLE(0x08, streamFile); /* also at 0x10 */
-    if (target_subsong == 0) target_subsong = 1;
-    if (target_subsong < 0 || target_subsong > total_subsongs || total_subsongs < 1) goto fail;
+        /* check offset table flag, 0x98 has table size */
+        if (read_32bitLE(0x94, streamFile)) {
+            off_t header_offset = 0x800 + 0x10*(target_subsong-1);
 
+            /* some values are repeats found in the file sub-header */
+            subfile_offset = read_32bitLE(header_offset + 0x00,streamFile) * 0x800;
+            subfile_size   = read_32bitLE(header_offset + 0x08,streamFile) + 0x800;
+        }
+        else {
+            /* a bunch of files */
+            off_t offset = 0x800;
+            int i;
 
-    if (has_table) {
-        off_t header_offset = 0x800 + 0x10*(target_subsong-1);
+            for (i = 0; i < total_subsongs; i++) {
+                size_t size = read_32bitLE(offset, streamFile) + 0x800;
 
-        /* some values are repeats found in the file sub-header */
-        subfile_offset = read_32bitLE(header_offset + 0x00,streamFile) * 0x800;
-        subfile_size   = read_32bitLE(header_offset + 0x08,streamFile) + 0x800;
+                if (i + 1 == target_subsong) {
+                    subfile_offset = offset;
+                    subfile_size = size;
+                    break;
+                }
+
+                offset += size;
+            }
+            if (i == total_subsongs)
+                goto fail;
+        }
     }
     else {
-        /* a bunch of files */
-        off_t offset = 0x800;
-        int i;
+        /* some .vas are just files pasted together, better extracted externally but whatevs */
+        size_t file_size = get_streamfile_size(streamFile);
+        off_t offset = 0;
 
-        for (i = 0; i < total_subsongs; i++) {
-            size_t size = read_32bitLE(offset, streamFile) + 0x800;
+        /* must have multiple .vas */
+        if (read_32bitLE(0x00,streamFile) + 0x800 >= file_size)
+           goto fail;
 
-            if (i + 1 == target_subsong) {
-                subfile_offset = offset;
-                subfile_size = size;
-                break;
+        total_subsongs = 0;
+        if (target_subsong == 0) target_subsong = 1;
+
+        while (offset < file_size) {
+            size_t size = read_32bitLE(offset,streamFile) + 0x800;
+
+            /* some files can be null, ignore */
+            if (size > 0x800) {
+                total_subsongs++;
+
+                if (total_subsongs == target_subsong) {
+                    subfile_offset = offset;
+                    subfile_size = size;
+                }
             }
 
             offset += size;
         }
-        if (i == total_subsongs)
+
+        /* should end exactly at file_size */
+        if (offset > file_size)
             goto fail;
+
+        if (target_subsong < 0 || target_subsong > total_subsongs || total_subsongs < 1) goto fail;
     }
+
 
     temp_streamFile = setup_subfile_streamfile(streamFile, subfile_offset,subfile_size, NULL);
     if (!temp_streamFile) goto fail;
