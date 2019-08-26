@@ -1147,11 +1147,11 @@ fail:
 }
 
 static size_t get_snr_size(STREAMFILE *streamFile, off_t offset) {
-    const int EAAC_FLAG_LOOPED = 0x02;
-    const int EAAC_FLAG_STREAMED = 0x04;
+    //const int EAAC_FLAG_LOOPED = 0x02;
+    //const int EAAC_FLAG_STREAMED = 0x04;
     switch (read_8bit(offset + 0x04, streamFile) >> 4 & 0x0F) { /* flags */ //todo improve
-        case EAAC_FLAG_LOOPED | EAAC_FLAG_STREAMED:     return 0x10;
-        case EAAC_FLAG_LOOPED:                          return 0x0C;
+        case 0x02 | 0x04:                               return 0x10;
+        case 0x02:                                      return 0x0C;
         default:                                        return 0x08;
     }
 }
