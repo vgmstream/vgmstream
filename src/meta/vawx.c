@@ -66,34 +66,28 @@ VGMSTREAM * init_vgmstream_vawx(STREAMFILE *streamFile) {
             vgmstream->loop_start_sample = read_32bitBE(0x44,streamFile);
             vgmstream->loop_end_sample = read_32bitBE(0x48,streamFile);
 
+            //todo fix loops/samples vs ATRAC3
             /* may be only applying end_skip to num_samples? */
             xma_fix_raw_samples(vgmstream, streamFile, start_offset,data_size, 0, 0,0);
             break;
         }
 
         case 7: { /* ATRAC3 */
-            uint8_t buf[0x100];
-            int32_t bytes, block_size, encoder_delay, joint_stereo, max_samples;
+            int block_align, encoder_delay;
 
             data_size = read_32bitBE(0x54,streamFile);
-            block_size = 0x98 * vgmstream->channels;
-            joint_stereo = 0;
-            max_samples = atrac3_bytes_to_samples(data_size, block_size);
-            encoder_delay = 0x0; //max_samples - vgmstream->num_samples; /* todo not correct */
-            vgmstream->num_samples = max_samples; /* use calc samples since loop points are too, breaks looping in some files otherwise */
+            block_align = 0x98 * vgmstream->channels;
+            encoder_delay = 1024 + 69*2; /* observed default, matches XMA (needed as many files start with garbage) */
+            vgmstream->num_samples = atrac3_bytes_to_samples(data_size, block_align) - encoder_delay; /* original samples break looping in some files otherwise */
 
-            /* make a fake riff so FFmpeg can parse the ATRAC3 */
-            bytes = ffmpeg_make_riff_atrac3(buf,0x100, vgmstream->num_samples, data_size, vgmstream->channels, vgmstream->sample_rate, block_size, joint_stereo, encoder_delay);
-            vgmstream->codec_data = init_ffmpeg_header_offset(streamFile, buf,bytes, start_offset,data_size);
+            vgmstream->codec_data = init_ffmpeg_atrac3_raw(streamFile, start_offset,data_size, vgmstream->num_samples,vgmstream->channels,vgmstream->sample_rate, block_align, encoder_delay);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
 
-            vgmstream->loop_start_sample = atrac3_bytes_to_samples(read_32bitBE(0x44,streamFile), block_size);
-            vgmstream->loop_end_sample   = atrac3_bytes_to_samples(read_32bitBE(0x48,streamFile), block_size);
-            //vgmstream->loop_start_sample -= encoder_delay;
-            //vgmstream->loop_end_sample   -= encoder_delay;
-
+            /* set offset samples (offset 0 jumps to sample 0 > pre-applied delay, and offset end loops after sample end > adjusted delay) */
+            vgmstream->loop_start_sample = atrac3_bytes_to_samples(read_32bitBE(0x44,streamFile), block_align); //- encoder_delay
+            vgmstream->loop_end_sample   = atrac3_bytes_to_samples(read_32bitBE(0x48,streamFile), block_align) - encoder_delay;
             break;
         }
 #endif

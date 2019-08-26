@@ -2,6 +2,77 @@
 
 #ifdef VGM_USE_FFMPEG
 
+static int ffmpeg_make_riff_atrac3(uint8_t * buf, size_t buf_size, size_t sample_count, size_t data_size, int channels, int sample_rate, int block_align, int joint_stereo, int encoder_delay) {
+    uint16_t codec_ATRAC3 = 0x0270;
+    size_t riff_size = 4+4+ 4 + 0x28 + 0x10 + 4+4;
+
+    if (buf_size < riff_size)
+        return -1;
+
+    memcpy(buf+0x00, "RIFF", 4);
+    put_32bitLE(buf+0x04, (int32_t)(riff_size-4-4 + data_size)); /* riff size */
+    memcpy(buf+0x08, "WAVE", 4);
+
+    memcpy(buf+0x0c, "fmt ", 4);
+    put_32bitLE(buf+0x10, 0x20);/*fmt size*/
+    put_16bitLE(buf+0x14, codec_ATRAC3);
+    put_16bitLE(buf+0x16, channels);
+    put_32bitLE(buf+0x18, sample_rate);
+    put_32bitLE(buf+0x1c, sample_rate*channels / sizeof(sample)); /* average bytes per second (wrong) */
+    put_32bitLE(buf+0x20, (int16_t)(block_align)); /* block align */
+
+    put_16bitLE(buf+0x24, 0x0e); /* extra data size */
+    put_16bitLE(buf+0x26, 1); /* unknown, always 1 */
+    put_16bitLE(buf+0x28, 0x0800 * channels); /* unknown (some size? 0x1000=2ch, 0x0800=1ch) */
+    put_16bitLE(buf+0x2a, 0); /* unknown, always 0 */
+    put_16bitLE(buf+0x2c, joint_stereo ? 0x0001 : 0x0000);
+    put_16bitLE(buf+0x2e, joint_stereo ? 0x0001 : 0x0000); /* repeated? */
+    put_16bitLE(buf+0x30, 1); /* unknown, always 1 (frame_factor?) */
+    put_16bitLE(buf+0x32, 0); /* unknown, always 0 */
+
+    memcpy(buf+0x34, "fact", 4);
+    put_32bitLE(buf+0x38, 0x8); /* fact size */
+    put_32bitLE(buf+0x3c, sample_count);
+    put_32bitLE(buf+0x40, encoder_delay);
+
+    memcpy(buf+0x44, "data", 4);
+    put_32bitLE(buf+0x48, data_size); /* data size */
+
+    return riff_size;
+}
+
+ffmpeg_codec_data * init_ffmpeg_atrac3_raw(STREAMFILE *sf, off_t offset, size_t data_size, int sample_count, int channels, int sample_rate, int block_align, int encoder_delay) {
+    ffmpeg_codec_data *ffmpeg_data = NULL;
+    uint8_t buf[0x100];
+    int bytes;
+    int joint_stereo = (block_align == 0x60*channels) && channels > 1; /* only lowest block size does joint stereo */
+    int is_at3 = 1; /* could detect using block size */
+
+    /* create fake header + init ffmpeg + apply fixes to FFmpeg decoding */
+    bytes = ffmpeg_make_riff_atrac3(buf,sizeof(buf), sample_count, data_size, channels, sample_rate, block_align, joint_stereo, encoder_delay);
+    ffmpeg_data = init_ffmpeg_header_offset(sf, buf,bytes, offset,data_size);
+    if (!ffmpeg_data) goto fail;
+
+    /* unlike with RIFF ATRAC3 we don't set implicit delay, as raw ATRAC3 headers often give loop/samples
+     * in offsets, so calcs are expected to be handled externally (presumably the game would call raw decoding API
+     * and any skips would be handled manually) */
+
+    /* FFmpeg reads this but just in case they fiddle with it in the future */
+    ffmpeg_data->totalSamples = sample_count;
+
+    /* encoder delay: encoder introduces some garbage (not always silent) samples to skip at the beginning (at least 1 frame)
+     * FFmpeg doesn't set this, and even if it ever does it's probably better to force it for the implicit skip. */
+    ffmpeg_set_skip_samples(ffmpeg_data, encoder_delay);
+
+    /* invert ATRAC3: waveform is inverted vs official tools (not noticeable but for accuracy) */
+    if (is_at3) {
+        ffmpeg_data->invert_audio_set = 1;
+    }
+
+    return ffmpeg_data;
+fail:
+    return NULL;
+}
 
 /* init ATRAC3/plus while adding some fixes */
 ffmpeg_codec_data * init_ffmpeg_atrac3_riff(STREAMFILE *sf, off_t offset, int* out_samples) {
@@ -26,7 +97,7 @@ ffmpeg_codec_data * init_ffmpeg_atrac3_riff(STREAMFILE *sf, off_t offset, int* o
     }
 
 
-    /* init file  + apply fixes to FFmpeg decoding (with these fixes should be
+    /* init ffmpeg + apply fixes to FFmpeg decoding (with these fixes should be
      * sample-accurate vs official tools, except usual +-1 float-to-pcm conversion) */
     ffmpeg_data = init_ffmpeg_offset(sf, offset, riff_size);
     if (!ffmpeg_data) goto fail;

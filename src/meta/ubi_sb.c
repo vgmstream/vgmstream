@@ -581,18 +581,13 @@ static VGMSTREAM * init_vgmstream_ubi_sb_base(ubi_sb_header *sb, STREAMFILE *str
         }
 
         case RAW_AT3: {
-            ffmpeg_codec_data *ffmpeg_data;
-            uint8_t buf[0x100];
-            int32_t bytes, block_size, encoder_delay, joint_stereo;
+            int block_align, encoder_delay;
 
-            block_size = 0x98 * sb->channels;
-            joint_stereo = 0;
-            encoder_delay = 0x00; /* TODO: this is may be incorrect */
+            block_align = 0x98 * sb->channels;
+            encoder_delay = 0; /* TODO: this is may be incorrect */
 
-            bytes = ffmpeg_make_riff_atrac3(buf, 0x100, sb->num_samples, sb->stream_size, sb->channels, sb->sample_rate, block_size, joint_stereo, encoder_delay);
-            ffmpeg_data = init_ffmpeg_header_offset(streamData, buf, bytes, start_offset, sb->stream_size);
-            if (!ffmpeg_data) goto fail;
-            vgmstream->codec_data = ffmpeg_data;
+            vgmstream->codec_data = init_ffmpeg_atrac3_raw(streamData, start_offset,sb->stream_size, sb->num_samples,sb->channels,sb->sample_rate, block_align, encoder_delay);
+            if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
             break;

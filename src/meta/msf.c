@@ -99,38 +99,27 @@ VGMSTREAM * init_vgmstream_msf(STREAMFILE *streamFile) {
         case 0x04:   /* ATRAC3 low (66 kbps, frame size 96, Joint Stereo) [Silent Hill HD (PS3)] */
         case 0x05:   /* ATRAC3 mid (105 kbps, frame size 152) [Atelier Rorona (PS3)] */
         case 0x06: { /* ATRAC3 high (132 kbps, frame size 192) [Tekken Tag Tournament HD (PS3)] */
-            ffmpeg_codec_data *ffmpeg_data = NULL;
-            uint8_t buf[100];
-            int32_t bytes, block_size, encoder_delay, joint_stereo;
-
-            block_size    = (codec==4 ? 0x60 : (codec==5 ? 0x98 : 0xC0)) * vgmstream->channels;
-            joint_stereo  = (codec==4); /* interleaved joint stereo (ch must be even) */
+            int block_align, encoder_delay;
 
             /* MSF skip samples: from tests with MSEnc and real files (ex. TTT2 eddy.msf v43, v01 demos) seems like 1162 is consistent.
              * Atelier Rorona bt_normal01 needs it to properly skip the beginning garbage but usually doesn't matter.
              * (note that encoder may add a fade-in with looping/resampling enabled but should be skipped) */
-            encoder_delay = 1162;
-            vgmstream->num_samples = atrac3_bytes_to_samples(data_size, block_size) - encoder_delay;
+            encoder_delay = 1024 + 69*2;
+            block_align   = (codec==4 ? 0x60 : (codec==5 ? 0x98 : 0xC0)) * vgmstream->channels;
+            vgmstream->num_samples = atrac3_bytes_to_samples(data_size, block_align) - encoder_delay;
             if (vgmstream->sample_rate == 0xFFFFFFFF) /* some MSFv1 (Digi World SP) */
                 vgmstream->sample_rate = 44100; /* voice tracks seems to use 44khz, not sure about other tracks */
 
-            bytes = ffmpeg_make_riff_atrac3(buf, 100, vgmstream->num_samples, data_size, vgmstream->channels, vgmstream->sample_rate, block_size, joint_stereo, encoder_delay);
-            ffmpeg_data = init_ffmpeg_header_offset(streamFile, buf,bytes, start_offset,data_size);
-            if (!ffmpeg_data) goto fail;
-            vgmstream->codec_data = ffmpeg_data;
+            vgmstream->codec_data = init_ffmpeg_atrac3_raw(streamFile, start_offset,data_size, vgmstream->num_samples,vgmstream->channels,vgmstream->sample_rate, block_align, encoder_delay);
+            if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
 
-
-            /* manually set skip_samples if FFmpeg didn't do it */
-            if (ffmpeg_data->skipSamples <= 0) {
-                ffmpeg_set_skip_samples(ffmpeg_data, encoder_delay);
-            }
-
-            /* MSF loop/sample values are offsets so trickier to adjust the skip_samples but this seems correct */
+            /* MSF loop/sample values are offsets so trickier to adjust but this seems correct */
             if (loop_flag) {
-                vgmstream->loop_start_sample = atrac3_bytes_to_samples(loop_start, block_size) /* - encoder_delay*/;
-                vgmstream->loop_end_sample   = atrac3_bytes_to_samples(loop_end, block_size) - encoder_delay;
+                /* set offset samples (offset 0 jumps to sample 0 > pre-applied delay, and offset end loops after sample end > adjusted delay) */
+                vgmstream->loop_start_sample = atrac3_bytes_to_samples(loop_start, block_align); //- encoder_delay
+                vgmstream->loop_end_sample   = atrac3_bytes_to_samples(loop_end, block_align) - encoder_delay;
             }
 
             break;
