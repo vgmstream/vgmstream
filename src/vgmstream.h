@@ -399,7 +399,7 @@ typedef enum {
     meta_KRAW,              /* Geometry Wars - Galaxies */
     meta_PS2_OMU,           /* PS2 Int file with Header */
     meta_PS2_XA2,           /* XG3 Extreme-G Racing */
-    meta_NUB_IDSP,          /* Soul Calibur Legends (Wii) */
+    meta_NUB,
     meta_IDSP_NL,           /* Mario Strikers Charged (Wii) */
     meta_IDSP_IE,           /* Defencer (GC) */
     meta_SPT_SPD,           /* Various (SPT+SPT DSP) */
@@ -545,7 +545,6 @@ typedef enum {
     meta_XVAG,              /* Ratchet & Clank Future: Quest for Booty (PS3) */
     meta_PS3_CPS,           /* Eternal Sonata (PS3) */
     meta_MSF,
-    meta_NUB_VAG,           /* Namco VAG from NUB archives */
     meta_PS3_PAST,          /* Bakugan Battle Brawlers (PS3) */
     meta_SGXD,              /* Sony: Folklore, Genji, Tokyo Jungle (PS3), Brave Story, Kurohyo (PSP) */
     meta_NGCA,              /* GoldenEye 007 (Wii) */
@@ -590,7 +589,6 @@ typedef enum {
     meta_FFMPEG,            /* any file supported by FFmpeg */
     meta_X360_CXS,          /* Eternal Sonata (Xbox 360) */
     meta_AKB,               /* SQEX iOS */
-    meta_NUB_XMA,           /* Namco XMA from NUB archives */
     meta_X360_PASX,         /* Namco PASX (Soul Calibur II HD X360) */
     meta_XMA_RIFF,          /* Microsoft RIFF XMA */
     meta_X360_AST,          /* Dead Rising (X360) */

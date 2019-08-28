@@ -144,7 +144,6 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_kraw,
     init_vgmstream_ps2_omu,
     init_vgmstream_ps2_xa2,
-    init_vgmstream_nub_idsp,
     init_vgmstream_idsp_nl,
     init_vgmstream_idsp_ie,
     init_vgmstream_ngc_ymf,
@@ -264,7 +263,6 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_baf,
     init_vgmstream_baf_badrip,
     init_vgmstream_msf,
-    init_vgmstream_nub_vag,
     init_vgmstream_ps3_past,
     init_vgmstream_sgxd,
     init_vgmstream_ngca,
@@ -314,7 +312,6 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_wwise,
     init_vgmstream_ubi_raki,
     init_vgmstream_x360_pasx,
-    init_vgmstream_nub_xma,
     init_vgmstream_xma,
     init_vgmstream_sxd,
     init_vgmstream_ogl,
@@ -473,6 +470,13 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_dsp_itl,
     init_vgmstream_sch,
     init_vgmstream_ima,
+    init_vgmstream_nub,
+    init_vgmstream_nub_wav,
+    init_vgmstream_nub_vag,
+    init_vgmstream_nub_at3,
+    init_vgmstream_nub_xma,
+    init_vgmstream_nub_idsp,
+    init_vgmstream_nub_is14,
 
     /* lowest priority metas (should go after all metas, and TXTH should go before raw formats) */
     init_vgmstream_txth,            /* proper parsers should supersede TXTH, once added */

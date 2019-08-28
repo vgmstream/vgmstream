@@ -705,7 +705,7 @@
                     >
                 </File>
                 <File
-                    RelativePath=".\meta\nub_idsp.c"
+                    RelativePath=".\meta\nub.c"
                     >
                 </File>
                 <File
@@ -940,14 +940,6 @@
 				</File>
                 <File
                     RelativePath=".\meta\opus.c"
-                    >
-                </File>
-				<File
-					RelativePath=".\meta\nub_vag.c"
-					>
-				</File>
-                <File
-                    RelativePath=".\meta\nub_xma.c"
                     >
                 </File>
                 <File
