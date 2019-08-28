@@ -144,7 +144,6 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_kraw,
     init_vgmstream_ps2_omu,
     init_vgmstream_ps2_xa2,
-    init_vgmstream_nub_idsp,
     init_vgmstream_idsp_nl,
     init_vgmstream_idsp_ie,
     init_vgmstream_ngc_ymf,
@@ -264,7 +263,6 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_baf,
     init_vgmstream_baf_badrip,
     init_vgmstream_msf,
-    init_vgmstream_nub_vag,
     init_vgmstream_ps3_past,
     init_vgmstream_sgxd,
     init_vgmstream_ngca,
@@ -314,7 +312,6 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_wwise,
     init_vgmstream_ubi_raki,
     init_vgmstream_x360_pasx,
-    init_vgmstream_nub_xma,
     init_vgmstream_xma,
     init_vgmstream_sxd,
     init_vgmstream_ogl,
@@ -473,6 +470,13 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_dsp_itl,
     init_vgmstream_sch,
     init_vgmstream_ima,
+    init_vgmstream_nub,
+    init_vgmstream_nub_wav,
+    init_vgmstream_nub_vag,
+    init_vgmstream_nub_at3,
+    init_vgmstream_nub_xma,
+    init_vgmstream_nub_idsp,
+    init_vgmstream_nub_is14,
 
     /* lowest priority metas (should go after all metas, and TXTH should go before raw formats) */
     init_vgmstream_txth,            /* proper parsers should supersede TXTH, once added */
@@ -1245,6 +1249,8 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
             return 14;  /* (0x08 - 0x1) * 2 */
         case coding_XMD:
             return (vgmstream->interleave_block_size - 0x06)*2 + 2;
+        case coding_PTADPCM:
+            return (vgmstream->interleave_block_size - 0x05)*2 + 2;
         case coding_EA_MT:
             return 0; /* 432, but variable in looped files */
         case coding_CRI_HCA:
@@ -1426,6 +1432,8 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
         case coding_DSA:
             return 0x08;
         case coding_XMD:
+            return vgmstream->interleave_block_size;
+        case coding_PTADPCM:
             return vgmstream->interleave_block_size;
         case coding_EA_MT:
             return 0; /* variable (frames of bit counts or PCM frames) */
@@ -2070,6 +2078,13 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
         case coding_XMD:
             for (ch = 0; ch < vgmstream->channels; ch++) {
                 decode_xmd(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do,
+                        vgmstream->interleave_block_size);
+            }
+            break;
+        case coding_PTADPCM:
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_ptadpcm(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
                         vgmstream->channels,vgmstream->samples_into_block,samples_to_do,
                         vgmstream->interleave_block_size);
             }

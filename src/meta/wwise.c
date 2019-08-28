@@ -8,7 +8,7 @@
  *
  * Some info: https://www.audiokinetic.com/en/library/edge/
  */
-typedef enum { PCM, IMA, VORBIS, DSP, XMA2, XWMA, AAC, HEVAG, ATRAC9, OPUS } wwise_codec;
+typedef enum { PCM, IMA, VORBIS, DSP, XMA2, XWMA, AAC, HEVAG, ATRAC9, OPUSNX, OPUS, PTADPCM } wwise_codec;
 typedef struct {
     int big_endian;
     size_t file_size;
@@ -73,7 +73,7 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
 
 #if 0
     /* Wwise's RIFF size is often wonky, seemingly depending on codec:
-     * - PCM, IMA, VORBIS, AAC, OPUS: correct
+     * - PCM, IMA/PTADPCM, VORBIS, AAC, OPUSNX/OPUS: correct
      * - DSP, XWMA, ATRAC9: almost always slightly smaller (around 0x50)
      * - HEVAG: very off
      * - XMA2: exact file size
@@ -172,14 +172,17 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
         case 0x0162: ww.codec = XWMA; break; /* WMAPro */
         case 0x0165: ww.codec = XMA2; break; /* always with the "XMA2" chunk, Wwise doesn't use XMA1 */
         case 0x0166: ww.codec = XMA2; break;
-        case 0x3039: ww.codec = OPUS; break; /* later renamed to "OPUSNX" */
-      //case 0x3040: ww.codec = OPUS; break; /* same for other platforms, supposedly */
         case 0xAAC0: ww.codec = AAC; break;
         case 0xFFF0: ww.codec = DSP; break;
         case 0xFFFB: ww.codec = HEVAG; break;
         case 0xFFFC: ww.codec = ATRAC9; break;
         case 0xFFFE: ww.codec = PCM; break; /* "PCM for Wwise Authoring" */
         case 0xFFFF: ww.codec = VORBIS; break;
+        case 0x3039: ww.codec = OPUSNX; break; /* later renamed from "OPUS" */
+#if 0
+        case 0x3040: ww.codec = OPUS; break;
+        case 0x8311: ww.codec = PTADPCM; break;
+#endif
         default:
             goto fail;
     }
@@ -193,12 +196,7 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
             /* few older Wwise DSP with num_samples in extra_size [Tony Hawk: Shred (Wii)] */
             ww.codec = DSP;
         } else if (ww.block_align == 0x104 * ww.channels) {
-            //ww.codec = SWITCH_ADPCM;
-            /* unknown codec, found in Bayonetta 2 (Switch)
-             * frames of 0x104 per ch, possibly frame header is hist1(2)/hist2(2)/index(1)
-             * (may write 2 header samples + FF*2 nibbles = 0x200 samples per block?)
-             * index only goes up to ~0xb, may be a shift/scale value */
-            goto fail;
+            ww.codec = PTADPCM; /* Bayonetta 2 (Switch) */
         }
     }
 
@@ -561,7 +559,7 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
             break;
         }
 
-        case OPUS: {  /* Switch */
+        case OPUSNX: {  /* Switch */
             size_t skip;
 
             /* values up to 0x14 seem fixed and similar to HEVAG's (block_align 0x02/04, bits_per_sample 0x10) */
@@ -587,6 +585,25 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
             vgmstream->layout_type = layout_none;
             break;
         }
+
+#if 0
+        case OPUS: {     /* PC/etc */
+            ffmpeg_codec_data * ffmpeg_data = NULL;
+            if (ww.block_align != 0 || ww.bits_per_sample != 0) goto fail;
+
+            /* extra: size 0x12, unknown values, maybe num_samples/etc */
+
+            ffmpeg_data = init_ffmpeg_offset(streamFile, ww.data_offset,ww.data_size);
+            if (!ffmpeg_data) goto fail;
+            vgmstream->codec_data = ffmpeg_data;
+            vgmstream->coding_type = coding_FFmpeg;
+            vgmstream->layout_type = layout_none;
+
+            vgmstream->num_samples = (int32_t)ffmpeg_data->totalSamples;
+            break;
+        }
+#endif
+
 #endif
         case HEVAG:     /* PSV */
             /* changed values, another bizarre Wwise quirk */
@@ -626,10 +643,22 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
             break;
         }
 #endif
+        case PTADPCM: /* substitutes IMA as default ADPCM codec */
+            if (ww.bits_per_sample != 4) goto fail;
+            if (ww.block_align != 0x24 * ww.channels && ww.block_align != 0x104 * ww.channels) goto fail;
+
+            vgmstream->coding_type = coding_PTADPCM;
+            vgmstream->layout_type = layout_interleave;
+            vgmstream->interleave_block_size = ww.block_align / ww.channels;
+          //vgmstream->codec_endian = ww.big_endian; //?
+
+            vgmstream->num_samples = ptadpcm_bytes_to_samples(ww.data_size, ww.channels, vgmstream->interleave_block_size);
+            break;
 
         default:
             goto fail;
     }
+
 
 
     if ( !vgmstream_open_stream(vgmstream,streamFile,start_offset) )

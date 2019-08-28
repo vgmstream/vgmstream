@@ -451,7 +451,7 @@
     <ClCompile Include="meta\his.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\nub_idsp.c">
+    <ClCompile Include="meta\nub.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\idsp_ie.c">
@@ -584,9 +584,6 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ngc_vid1.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="meta\nub_xma.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\nus3audio.c">
@@ -1213,6 +1210,9 @@
     <ClCompile Include="coding\psx_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="coding\ptadpcm_decoder.c">
+      <Filter>coding\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="coding\sassc_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
@@ -1362,9 +1362,6 @@
     </ClCompile>
     <ClCompile Include="layout\blocked_xvas.c">
       <Filter>layout\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="meta\nub_vag.c">
-      <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ps3_past.c">
       <Filter>meta\Source Files</Filter>
