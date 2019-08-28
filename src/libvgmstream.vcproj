@@ -2022,10 +2022,14 @@
                     RelativePath=".\coding\psv_decoder.c"
                     >
                 </File>
-				<File
-					RelativePath=".\coding\psx_decoder.c"
-					>
-				</File>
+                <File
+                    RelativePath=".\coding\psx_decoder.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\coding\ptadpcm_decoder.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\coding\sassc_decoder.c"
 					>

@@ -339,6 +339,7 @@ are used in few games.
 - Paradigm MC3 ADPCM
 - FMOD FADPCM 4-bit ADPCM
 - Konami XMD 4-bit ADPCM
+- Platinum 4-bit ADPCM
 - Argonaut ASF 4-bit ADPCM
 - Ocean DSA 4-bit ADPCM
 - Circus XPCM ADPCM

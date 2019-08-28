@@ -682,6 +682,7 @@ static const coding_info coding_info_list[] = {
         {coding_XMD,                "Konami XMD 4-bit ADPCM"},
         {coding_PCFX,               "PC-FX 4-bit ADPCM"},
         {coding_OKI16,              "OKI 4-bit ADPCM (16-bit output)"},
+        {coding_PTADPCM,            "Platinum 4-bit ADPCM"},
 
         {coding_SDX2,               "Squareroot-delta-exact (SDX2) 8-bit DPCM"},
         {coding_SDX2_int,           "Squareroot-delta-exact (SDX2) 8-bit DPCM with 1 byte interleave"},

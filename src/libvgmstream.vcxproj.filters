@@ -1210,6 +1210,9 @@
     <ClCompile Include="coding\psx_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="coding\ptadpcm_decoder.c">
+      <Filter>coding\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="coding\sassc_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
