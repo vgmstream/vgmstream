@@ -253,6 +253,10 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\meta\bgw_streamfile.h"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\ea_eaac_streamfile.h"
                     >
                 </File>

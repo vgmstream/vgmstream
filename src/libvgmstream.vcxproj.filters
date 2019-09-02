@@ -86,6 +86,9 @@
     <ClInclude Include="meta\bar_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="meta\bgw_streamfile.h">
+      <Filter>meta\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="meta\ea_eaac_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
