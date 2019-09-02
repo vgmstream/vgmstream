@@ -1,8 +1,8 @@
 #include "meta.h"
 #include "../coding/coding.h"
 
-/* XMU- found in Alter Echo (Xbox) */
-VGMSTREAM * init_vgmstream_xbox_xmu(STREAMFILE *streamFile) {
+/* XMU - found in Alter Echo (Xbox) */
+VGMSTREAM * init_vgmstream_xmu(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     size_t start_offset;
     int loop_flag, channel_count;
@@ -25,6 +25,7 @@ VGMSTREAM * init_vgmstream_xbox_xmu(STREAMFILE *streamFile) {
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
+    vgmstream->meta_type = meta_XMU;
     vgmstream->sample_rate = read_32bitLE(0x10,streamFile);
     vgmstream->num_samples = xbox_ima_bytes_to_samples(data_size, vgmstream->channels);
     vgmstream->loop_start_sample = 0;
@@ -32,7 +33,6 @@ VGMSTREAM * init_vgmstream_xbox_xmu(STREAMFILE *streamFile) {
 
     vgmstream->coding_type = coding_XBOX_IMA;
     vgmstream->layout_type = layout_none;
-    vgmstream->meta_type = meta_XBOX_XMU;
 
     if (!vgmstream_open_stream(vgmstream, streamFile, start_offset))
         goto fail;

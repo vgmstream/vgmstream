@@ -86,6 +86,9 @@
     <ClInclude Include="meta\bar_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="meta\bgw_streamfile.h">
+      <Filter>meta\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="meta\ea_eaac_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
@@ -709,7 +712,7 @@
     <ClCompile Include="meta\ps2_ild.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\ps2_int.c">
+    <ClCompile Include="meta\raw_int.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ps2_joe.c">
@@ -862,7 +865,7 @@
     <ClCompile Include="meta\ea_swvr.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\raw.c">
+    <ClCompile Include="meta\raw_pcm.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\redspark.c">
@@ -1063,13 +1066,13 @@
     <ClCompile Include="meta\xbox_ims.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\xbox_wavm.c">
+    <ClCompile Include="meta\raw_wavm.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\xbox_xmu.c">
+    <ClCompile Include="meta\xmu.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\xbox_xvas.c">
+    <ClCompile Include="meta\xvas.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\xss.c">
@@ -1217,6 +1220,9 @@
       <Filter>coding\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\sdx2_decoder.c">
+      <Filter>coding\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="coding\ubi_adpcm_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\ws_decoder.c">
@@ -1414,7 +1420,7 @@
     <ClCompile Include="meta\vawx.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\pc_snds.c">
+    <ClCompile Include="meta\raw_snds.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\sqex_scd.c">

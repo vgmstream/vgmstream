@@ -72,7 +72,7 @@ VGMSTREAM * init_vgmstream_xa(STREAMFILE *streamFile);
 VGMSTREAM * init_vgmstream_ps2_rxws(STREAMFILE *streamFile);
 VGMSTREAM * init_vgmstream_ps2_rxw(STREAMFILE *streamFile);
 
-VGMSTREAM * init_vgmstream_ps2_int(STREAMFILE *streamFile);
+VGMSTREAM * init_vgmstream_raw_int(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_ps2_exst(STREAMFILE *streamFile);
 
@@ -84,7 +84,7 @@ VGMSTREAM * init_vgmstream_mib_mih(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_ps2_mic(STREAMFILE *streamFile);
 
-VGMSTREAM * init_vgmstream_raw(STREAMFILE *streamFile);
+VGMSTREAM * init_vgmstream_raw_pcm(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_vag(STREAMFILE *streamFile);
 
@@ -94,7 +94,7 @@ VGMSTREAM * init_vgmstream_ps2_ild(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_ps2_pnb(STREAMFILE *streamFile);
 
-VGMSTREAM * init_vgmstream_xbox_wavm(STREAMFILE *streamFile);
+VGMSTREAM * init_vgmstream_raw_wavm(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_ngc_str(STREAMFILE *streamFile);
 
@@ -266,9 +266,9 @@ VGMSTREAM * init_vgmstream_dec(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_vs(STREAMFILE *streamFile);
 
-VGMSTREAM * init_vgmstream_xbox_xmu(STREAMFILE *streamFile);
+VGMSTREAM * init_vgmstream_xmu(STREAMFILE *streamFile);
 
-VGMSTREAM * init_vgmstream_xbox_xvas(STREAMFILE *streamFile);
+VGMSTREAM * init_vgmstream_xvas(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_ngc_bh2pcm(STREAMFILE *streamFile);
 
@@ -516,7 +516,7 @@ VGMSTREAM * init_vgmstream_lsf_n1nj4n(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_vawx(STREAMFILE* streamFile);
 
-VGMSTREAM * init_vgmstream_pc_snds(STREAMFILE* streamFile);
+VGMSTREAM * init_vgmstream_raw_snds(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_ps2_wmus(STREAMFILE* streamFile);
 

@@ -187,6 +187,13 @@ size_t oki_bytes_to_samples(size_t bytes, int channels);
 void decode_ptadpcm(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, size_t frame_size);
 size_t ptadpcm_bytes_to_samples(size_t bytes, int channels, size_t frame_size);
 
+/* ubi_adpcm_decoder */
+ubi_adpcm_codec_data *init_ubi_adpcm(STREAMFILE *streamFile, off_t offset, int channels);
+void decode_ubi_adpcm(VGMSTREAM * vgmstream, sample_t * outbuf, int32_t samples_to_do);
+void reset_ubi_adpcm(ubi_adpcm_codec_data *data);
+void seek_ubi_adpcm(ubi_adpcm_codec_data *data, int32_t num_sample);
+void free_ubi_adpcm(ubi_adpcm_codec_data *data);
+
 /* ea_mt_decoder*/
 ea_mt_codec_data *init_ea_mt(int channels, int type);
 ea_mt_codec_data *init_ea_mt_loops(int channels, int pcm_blocks, int loop_sample, off_t *loop_offsets);

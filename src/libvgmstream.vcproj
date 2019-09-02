@@ -253,6 +253,10 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\meta\bgw_streamfile.h"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\ea_eaac_streamfile.h"
                     >
                 </File>
@@ -1015,7 +1019,7 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\pc_snds.c"
+					RelativePath=".\meta\raw_snds.c"
 					>
 				</File>
 				<File
@@ -1135,7 +1139,7 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\ps2_int.c"
+					RelativePath=".\meta\raw_int.c"
 					>
 				</File>
 				<File
@@ -1399,7 +1403,7 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\raw.c"
+					RelativePath=".\meta\raw_pcm.c"
 					>
 				</File>
                 <File
@@ -1727,15 +1731,15 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\xbox_wavm.c"
+					RelativePath=".\meta\raw_wavm.c"
 					>
 				</File>
 				<File
-					RelativePath=".\meta\xbox_xmu.c"
+					RelativePath=".\meta\xmu.c"
 					>
 				</File>
 				<File
-					RelativePath=".\meta\xbox_xvas.c"
+					RelativePath=".\meta\xvas.c"
 					>
 				</File>
                 <File
@@ -2034,10 +2038,14 @@
 					RelativePath=".\coding\sassc_decoder.c"
 					>
 				</File>
-				<File
-					RelativePath=".\coding\sdx2_decoder.c"
-					>
-				</File>
+                <File
+                    RelativePath=".\coding\sdx2_decoder.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\coding\ubi_adpcm_decoder.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\coding\ws_decoder.c"
 					>

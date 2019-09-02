@@ -54,7 +54,6 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_seb,
     init_vgmstream_ps2_ild,
     init_vgmstream_ps2_pnb,
-    init_vgmstream_xbox_wavm,
     init_vgmstream_ngc_str,
     init_vgmstream_ea_schl,
     init_vgmstream_caf,
@@ -134,8 +133,8 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_vs,
     init_vgmstream_dc_str,
     init_vgmstream_dc_str_v2,
-    init_vgmstream_xbox_xmu,
-    init_vgmstream_xbox_xvas,
+    init_vgmstream_xmu,
+    init_vgmstream_xvas,
     init_vgmstream_ngc_bh2pcm,
     init_vgmstream_sat_sap,
     init_vgmstream_dc_idvi,
@@ -480,11 +479,12 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
 
     /* lowest priority metas (should go after all metas, and TXTH should go before raw formats) */
     init_vgmstream_txth,            /* proper parsers should supersede TXTH, once added */
-    init_vgmstream_ps2_int,         /* .int raw PS-ADPCM */
+    init_vgmstream_raw_int,         /* .int raw PCM */
     init_vgmstream_ps_headerless,   /* tries to detect a bunch of PS-ADPCM formats */
-    init_vgmstream_pc_snds,         /* .snds PC, after ps_headerless */
-    init_vgmstream_s14_sss,         /* .raw siren14 */
-    init_vgmstream_raw,             /* .raw PCM */
+    init_vgmstream_raw_snds,        /* .snds raw SNDS IMA (*after* ps_headerless) */
+    init_vgmstream_raw_wavm,        /* .wavm raw xbox */
+    init_vgmstream_raw_pcm,         /* .raw raw PCM */
+    init_vgmstream_s14_sss,         /* .s14/sss raw siren14 */
 #ifdef VGM_USE_FFMPEG
     init_vgmstream_ffmpeg,          /* may play anything incorrectly, since FFmpeg doesn't check extensions */
 #endif
@@ -650,6 +650,10 @@ void reset_vgmstream(VGMSTREAM * vgmstream) {
         reset_hca(vgmstream->codec_data);
     }
 
+    if (vgmstream->coding_type == coding_UBI_ADPCM) {
+        reset_ubi_adpcm(vgmstream->codec_data);
+    }
+
     if (vgmstream->coding_type == coding_EA_MT) {
         reset_ea_mt(vgmstream);
     }
@@ -811,6 +815,11 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
 
     if (vgmstream->coding_type == coding_CRI_HCA) {
         free_hca(vgmstream->codec_data);
+        vgmstream->codec_data = NULL;
+    }
+
+    if (vgmstream->coding_type == coding_UBI_ADPCM) {
+        free_ubi_adpcm(vgmstream->codec_data);
         vgmstream->codec_data = NULL;
     }
 
@@ -1251,6 +1260,8 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
             return (vgmstream->interleave_block_size - 0x06)*2 + 2;
         case coding_PTADPCM:
             return (vgmstream->interleave_block_size - 0x05)*2 + 2;
+        case coding_UBI_ADPCM:
+            return 0; /* varies per mode */
         case coding_EA_MT:
             return 0; /* 432, but variable in looped files */
         case coding_CRI_HCA:
@@ -1435,6 +1446,8 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
             return vgmstream->interleave_block_size;
         case coding_PTADPCM:
             return vgmstream->interleave_block_size;
+        case coding_UBI_ADPCM:
+            return 0; /* varies per mode? */
         case coding_EA_MT:
             return 0; /* variable (frames of bit counts or PCM frames) */
 #ifdef VGM_USE_ATRAC9
@@ -2102,6 +2115,10 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
             }
             break;
 
+        case coding_UBI_ADPCM:
+            decode_ubi_adpcm(vgmstream, buffer+samples_written*vgmstream->channels, samples_to_do);
+            break;
+
         case coding_EA_MT:
             for (ch = 0; ch < vgmstream->channels; ch++) {
                 decode_ea_mt(vgmstream, buffer+samples_written*vgmstream->channels+ch,
@@ -2181,6 +2198,10 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream) {
 
         if (vgmstream->coding_type == coding_CRI_HCA) {
             loop_hca(vgmstream->codec_data, vgmstream->loop_sample);
+        }
+
+        if (vgmstream->coding_type == coding_UBI_ADPCM) {
+            seek_ubi_adpcm(vgmstream->codec_data, vgmstream->loop_sample);
         }
 
         if (vgmstream->coding_type == coding_EA_MT) {
