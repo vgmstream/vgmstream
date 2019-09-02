@@ -712,7 +712,7 @@
     <ClCompile Include="meta\ps2_ild.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\ps2_int.c">
+    <ClCompile Include="meta\raw_int.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ps2_joe.c">
@@ -865,7 +865,7 @@
     <ClCompile Include="meta\ea_swvr.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\raw.c">
+    <ClCompile Include="meta\raw_pcm.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\redspark.c">
@@ -1066,13 +1066,13 @@
     <ClCompile Include="meta\xbox_ims.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\xbox_wavm.c">
+    <ClCompile Include="meta\raw_wavm.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\xbox_xmu.c">
+    <ClCompile Include="meta\xmu.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\xbox_xvas.c">
+    <ClCompile Include="meta\xvas.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\xss.c">
@@ -1420,7 +1420,7 @@
     <ClCompile Include="meta\vawx.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\pc_snds.c">
+    <ClCompile Include="meta\raw_snds.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\sqex_scd.c">

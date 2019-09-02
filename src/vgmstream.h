@@ -342,7 +342,7 @@ typedef enum {
     meta_PS2_SShd,          /* .ADS with SShd header */
     meta_NPS,
     meta_PS2_RXWS,          /* Sony games (Genji, Okage Shadow King, Arc The Lad Twilight of Spirits) */
-    meta_PS2_RAW,           /* RAW Interleaved Format */
+    meta_RAW_INT,
     meta_PS2_EXST,          /* Shadow of Colossus EXST */
     meta_PS2_SVAG,          /* Konami SVAG */
     meta_PS_HEADERLESS,     /* headerless PS-ADPCM */
@@ -441,24 +441,19 @@ typedef enum {
     meta_PS2_XA2_RRP,       /* RC Revenge Pro */
     meta_NGC_DSP_KONAMI,    /* Konami DSP header, found in various games */
     meta_UBI_CKD,           /* Ubisoft CKD RIFF header (Rayman Origins Wii) */
-
-    meta_XBOX_WAVM,         /* XBOX WAVM File */
+    meta_RAW_WAVM,
     meta_XBOX_WVS,          /* XBOX WVS */
     meta_NGC_WVS,           /* Metal Arms - Glitch in the System */
     meta_XBOX_MATX,         /* XBOX MATX */
-    meta_XBOX_XMU,          /* XBOX XMU */
-    meta_XBOX_XVAS,         /* XBOX VAS */
-    
+    meta_XMU,
+    meta_XVAS,
     meta_EA_SCHL,           /* Electronic Arts SCHl with variable header */
     meta_EA_SCHL_fixed,     /* Electronic Arts SCHl with fixed header */
     meta_EA_BNK,            /* Electronic Arts BNK */
     meta_EA_1SNH,           /* Electronic Arts 1SNh/EACS */
     meta_EA_EACS,
-
-    meta_RAW,               /* RAW PCM file */
-
+    meta_RAW_PCM,
     meta_GENH,              /* generic header */
-
     meta_AIFC,              /* Audio Interchange File Format AIFF-C */
     meta_AIFF,              /* Audio Interchange File Format */
     meta_STR_SNDS,          /* .str with SNDS blocks and SHDR header */
@@ -558,7 +553,7 @@ typedef enum {
     meta_VS_STR,            /* The Bouncer */
     meta_LSF_N1NJ4N,        /* .lsf n1nj4n Fastlane Street Racing (iPhone) */
     meta_VAWX,              /* feelplus: No More Heroes Heroes Paradise, Moon Diver */
-    meta_PC_SNDS,           /* Incredibles PC .snds */
+    meta_RAW_SNDS,
     meta_PS2_WMUS,          /* The Warriors (PS2) */
     meta_HYPERSCAN_KVAG,    /* Hyperscan KVAG/BVG */
     meta_IOS_PSND,          /* Crash Bandicoot Nitro Kart 2 (iOS) */

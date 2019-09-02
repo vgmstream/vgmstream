@@ -185,7 +185,7 @@
     <ClCompile Include="meta\pc_adp.c" />
     <ClCompile Include="meta\pc_adp_otns.c" />
     <ClCompile Include="meta\pc_ast.c" />
-    <ClCompile Include="meta\pc_snds.c" />
+    <ClCompile Include="meta\raw_snds.c" />
     <ClCompile Include="meta\ps2_2pfs.c" />
     <ClCompile Include="meta\ps2_hsf.c" />
     <ClCompile Include="meta\ps2_iab.c" />
@@ -392,7 +392,7 @@
     <ClCompile Include="meta\ps2_hgc1.c" />
     <ClCompile Include="meta\ikm.c" />
     <ClCompile Include="meta\ps2_ild.c" />
-    <ClCompile Include="meta\ps2_int.c" />
+    <ClCompile Include="meta\raw_int.c" />
     <ClCompile Include="meta\ps2_joe.c" />
     <ClCompile Include="meta\jstm.c" />
     <ClCompile Include="meta\ps2_kces.c" />
@@ -443,7 +443,7 @@
     <ClCompile Include="meta\ffdl.c" />
     <ClCompile Include="meta\seb.c" />
     <ClCompile Include="meta\ea_swvr.c" />
-    <ClCompile Include="meta\raw.c" />
+    <ClCompile Include="meta\raw_pcm.c" />
     <ClCompile Include="meta\redspark.c" />
     <ClCompile Include="meta\rfrm.c" />
     <ClCompile Include="meta\riff.c" />
@@ -509,9 +509,9 @@
     <ClCompile Include="meta\xavs.c" />
     <ClCompile Include="meta\xbox_hlwav.c" />
     <ClCompile Include="meta\xbox_ims.c" />
-    <ClCompile Include="meta\xbox_wavm.c" />
-    <ClCompile Include="meta\xbox_xmu.c" />
-    <ClCompile Include="meta\xbox_xvas.c" />
+    <ClCompile Include="meta\raw_wavm.c" />
+    <ClCompile Include="meta\xmu.c" />
+    <ClCompile Include="meta\xvas.c" />
     <ClCompile Include="meta\x360_pasx.c" />
     <ClCompile Include="meta\xma.c" />
     <ClCompile Include="meta\xnb.c" />

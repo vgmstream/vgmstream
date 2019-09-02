@@ -54,7 +54,6 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_seb,
     init_vgmstream_ps2_ild,
     init_vgmstream_ps2_pnb,
-    init_vgmstream_xbox_wavm,
     init_vgmstream_ngc_str,
     init_vgmstream_ea_schl,
     init_vgmstream_caf,
@@ -134,8 +133,8 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_vs,
     init_vgmstream_dc_str,
     init_vgmstream_dc_str_v2,
-    init_vgmstream_xbox_xmu,
-    init_vgmstream_xbox_xvas,
+    init_vgmstream_xmu,
+    init_vgmstream_xvas,
     init_vgmstream_ngc_bh2pcm,
     init_vgmstream_sat_sap,
     init_vgmstream_dc_idvi,
@@ -480,11 +479,12 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
 
     /* lowest priority metas (should go after all metas, and TXTH should go before raw formats) */
     init_vgmstream_txth,            /* proper parsers should supersede TXTH, once added */
-    init_vgmstream_ps2_int,         /* .int raw PS-ADPCM */
+    init_vgmstream_raw_int,         /* .int raw PCM */
     init_vgmstream_ps_headerless,   /* tries to detect a bunch of PS-ADPCM formats */
-    init_vgmstream_pc_snds,         /* .snds PC, after ps_headerless */
-    init_vgmstream_s14_sss,         /* .raw siren14 */
-    init_vgmstream_raw,             /* .raw PCM */
+    init_vgmstream_raw_snds,        /* .snds raw SNDS IMA (*after* ps_headerless) */
+    init_vgmstream_raw_wavm,        /* .wavm raw xbox */
+    init_vgmstream_raw_pcm,         /* .raw raw PCM */
+    init_vgmstream_s14_sss,         /* .s14/sss raw siren14 */
 #ifdef VGM_USE_FFMPEG
     init_vgmstream_ffmpeg,          /* may play anything incorrectly, since FFmpeg doesn't check extensions */
 #endif

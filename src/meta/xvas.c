@@ -3,7 +3,7 @@
 #include "../coding/coding.h"
 
 /* XVAS - found in TMNT 2 & TMNT 3 (Xbox) */
-VGMSTREAM * init_vgmstream_xbox_xvas(STREAMFILE *streamFile) {
+VGMSTREAM * init_vgmstream_xvas(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     off_t start_offset;
     int loop_flag, channel_count;
@@ -28,7 +28,7 @@ VGMSTREAM * init_vgmstream_xbox_xvas(STREAMFILE *streamFile) {
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
-    vgmstream->meta_type = meta_XBOX_XVAS;
+    vgmstream->meta_type = meta_XVAS;
     vgmstream->sample_rate = read_32bitLE(0x0c,streamFile);
     vgmstream->num_samples = xbox_ima_bytes_to_samples(data_size, vgmstream->channels);
     if(loop_flag) {
