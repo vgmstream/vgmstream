@@ -1021,8 +1021,6 @@ void mixing_macro_downmix(VGMSTREAM* vgmstream, int max /*, mapping_t output_map
             /* read output mapping (ex. 2.0) and find channel */
             if (!(output_mapping & (1<<mp_out)))
                 continue;
-
-            VGM_LOG("i=%i,j=%i, ch_out=%i, ch_in=%i + %i, %f\n", mp_in,mp_out,ch_out, max, ch_in, matrix[mp_out][mp_in]);
             mixing_push_add(vgmstream, ch_out, max + ch_in, matrix[mp_in][mp_out]);
 
             ch_out++;

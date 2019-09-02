@@ -62,9 +62,9 @@ static inline int get_low_nibble_signed(uint8_t n) {
 }
 
 static inline int clamp16(int32_t val) {
-    if (val>32767) return 32767;
-    if (val<-32768) return -32768;
-    return val;
+    if (val > 32767) return 32767;
+    else if (val < -32768) return -32768;
+    else return val;
 }
 
 static inline int round10(int val) {

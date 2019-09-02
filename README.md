@@ -247,7 +247,7 @@ recent versions (1.4.x) you can configure plugin priority.
 ### Channel issues
 Some games layer a huge number of channels, that are disabled or downmixed
 during gameplay. The player may be unable to play those files (for example
-foobar can only play up to 8 channels, and Winamp depends the your sound
+foobar can only play up to 8 channels, and Winamp depends on your sound
 card). For those files you can set the "downmix" option in vgmstream, that
 can reduce the number of channels to a playable amount. Note that this type
 of downmixing is very generic, not meant to be used when converting to other
