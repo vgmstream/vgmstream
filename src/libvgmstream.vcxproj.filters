@@ -1219,6 +1219,9 @@
     <ClCompile Include="coding\sdx2_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="coding\ubi_adpcm_decoder.c">
+      <Filter>coding\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="coding\ws_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>

@@ -483,25 +483,24 @@ static VGMSTREAM * init_vgmstream_ubi_sb_base(ubi_sb_header *sb, STREAMFILE *str
             break;
 
         case UBI_ADPCM:
-            /* todo custom Ubi 4/6-bit ADPCM (4b for music/stereo and 6b for voices)
-             * - ~0x30: stream header (varies with versions).
-             *    contains frame sizes (normal/last), channels, sometimes sample rate/samples/etc.
-             * - 0x34 per channel: channel header, starts with 0x02, contains ADPCM info
-             * - 0x602/902: frame data divided into 2 chunks (with a padding byte)
-             *   for each chunk frame data is read as LE int32, then divided into codes
-             *   (some 6b span two int32). stereo interleaves 4 codes per channel.
-             *   data is decoded using 3 tables and ops to adjust sample and calculate next step
-             *   (6b decoding is much simpler than 4b, that applies more extra ops).
-             *
-             * used in:
-             * - Batman: Vengeance (PC)
-             * - Splinter Cell (PC)
-             * - some Myst IV (PC/Xbox) banks (ex. puzzle_si_splintercell.sb2)
-             * - Splinter Cell Essentials (PSP) voices (header has extra 0x08 with fixed value)
-             */
+            /* custom Ubi 4/6-bit ADPCM used in early games:
+             * - Splinter Cell (PC): 4-bit w/ 2ch (music), 6-bit w/ 1ch (sfx)
+             * - Batman: Vengeance (PC): 4-bit w/ 2ch (music), 6-bit w/ 1ch (sfx)
+             * - Myst IV (PC/Xbox): 4bit-1ch (amb), some files only (ex. sfx_si_puzzle_stream.sb2)
+             * - possibly others */
 
-            VGM_LOG("UBI SB: unsupported Ubi ADPCM found\n");
-            goto fail;
+            /* skip extra header (some kind of id?) found in Myst IV */
+            if (read_32bitBE(start_offset + 0x00, streamData) != 0x08000000 &&
+                read_32bitBE(start_offset + 0x08, streamData) == 0x08000000) {
+                start_offset += 0x08;
+                sb->stream_size -= 0x08;
+            }
+
+            vgmstream->codec_data = init_ubi_adpcm(streamData, start_offset, vgmstream->channels);
+            if (!vgmstream->codec_data) goto fail;
+            vgmstream->coding_type = coding_UBI_ADPCM;
+            vgmstream->layout_type = layout_none;
+            break;
 
         case RAW_PCM:
             vgmstream->coding_type = coding_PCM16LE; /* always LE */
@@ -1044,9 +1043,9 @@ static VGMSTREAM * init_vgmstream_ubi_sb_header(ubi_sb_header *sb, STREAMFILE* s
         goto fail;
     }
 
-    //;VGM_LOG("UBI SB: target at %x + %x, extra=%x, name=%s, g=%i, t=%i\n",
-    //    (uint32_t)sb->header_offset, sb->cfg.section2_entry_size, (uint32_t)sb->extra_offset, sb->resource_name, sb->group_id, sb->stream_type);
-    //;VGM_LOG("UBI SB: stream offset=%x, size=%x, name=%s\n", (uint32_t)sb->stream_offset, sb->stream_size, sb->is_external ? sb->resource_name : "internal" );
+    ;VGM_LOG("UBI SB: target at %x + %x, extra=%x, name=%s, g=%i, t=%i\n",
+        (uint32_t)sb->header_offset, sb->cfg.section2_entry_size, (uint32_t)sb->extra_offset, sb->resource_name, sb->group_id, sb->stream_type);
+    ;VGM_LOG("UBI SB: stream offset=%x, size=%x, name=%s\n", (uint32_t)sb->stream_offset, sb->stream_size, sb->is_external ? sb->resource_name : "internal" );
 
     switch(sb->type) {
         case UBI_AUDIO:

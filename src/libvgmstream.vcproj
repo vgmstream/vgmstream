@@ -2034,10 +2034,14 @@
 					RelativePath=".\coding\sassc_decoder.c"
 					>
 				</File>
-				<File
-					RelativePath=".\coding\sdx2_decoder.c"
-					>
-				</File>
+                <File
+                    RelativePath=".\coding\sdx2_decoder.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\coding\ubi_adpcm_decoder.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\coding\ws_decoder.c"
 					>

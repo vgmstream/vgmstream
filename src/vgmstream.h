@@ -177,6 +177,7 @@ typedef enum {
     coding_ACM,             /* InterPlay ACM */
     coding_NWA,             /* VisualArt's NWA */
     coding_CIRCUS_ADPCM,    /* Circus 8-bit ADPCM */
+    coding_UBI_ADPCM,       /* Ubisoft 4/6-bit ADPCM */
 
     coding_EA_MT,           /* Electronic Arts MicroTalk (linear-predictive speech codec) */
 
@@ -1251,6 +1252,8 @@ typedef struct {
 } mp4_aac_codec_data;
 #endif
 #endif
+
+typedef struct ubi_adpcm_codec_data ubi_adpcm_codec_data;
 
 typedef struct ea_mt_codec_data ea_mt_codec_data;
 

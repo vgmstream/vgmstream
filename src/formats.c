@@ -693,6 +693,7 @@ static const coding_info coding_info_list[] = {
         {coding_ACM,                "InterPlay ACM"},
         {coding_NWA,                "VisualArt's NWA DPCM"},
         {coding_CIRCUS_ADPCM,       "Circus 8-bit ADPCM"},
+        {coding_UBI_ADPCM,          "Ubisoft 4/6-bit ADPCM"},
 
         {coding_EA_MT,              "Electronic Arts MicroTalk"},
 
