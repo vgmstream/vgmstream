@@ -1,4 +1,11 @@
 #!/bin/sh
-DIR="`dirname "$0"`"
-VERSION="`git describe --always | tr : _`"
-echo "$VERSION"
+
+# get current git version, redirect stderr to stdin, change : to _
+VERSION=$(git describe --always  --tag 2>&1 | tr : _ )
+
+# ignore git stderr "fatal: 
+if case $VERSION in fatal*) ;; *) false;; esac; then
+    echo ""
+else
+    echo "$VERSION"
+fi;
