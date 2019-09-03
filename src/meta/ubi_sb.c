@@ -1508,7 +1508,7 @@ static int parse_stream_codec(ubi_sb_header * sb) {
                 break;
 
             default:
-                VGM_LOG("Unknown stream_type %02x for version %08x", sb->stream_type, sb->version);
+                VGM_LOG("Unknown stream_type %02x for version %08x\n", sb->stream_type, sb->version);
                 goto fail;
         }
     } else if (sb->version < 0x000A0000) {
@@ -1522,7 +1522,7 @@ static int parse_stream_codec(ubi_sb_header * sb) {
                 break;
 
             default:
-                VGM_LOG("Unknown stream_type %02x for version %08x", sb->stream_type, sb->version);
+                VGM_LOG("Unknown stream_type %02x for version %08x\n", sb->stream_type, sb->version);
                 goto fail;
         }
     } else { 
@@ -1536,6 +1536,10 @@ static int parse_stream_codec(ubi_sb_header * sb) {
                     case UBI_PS3:
                         sb->codec = RAW_PSX; /* PS3 */
                         break;
+                    case UBI_PSP:
+                        /* TODO: IMA using Ubisoft ADPCM frame layout [Splinter Cell: Essentials (PSP)] */
+                        VGM_LOG("Unimplemented custom IMA codec.\n");
+                        goto fail;
                     default:
                         sb->codec = UBI_ADPCM;
                         break;
@@ -1578,7 +1582,7 @@ static int parse_stream_codec(ubi_sb_header * sb) {
                 break;
 
             default:
-                VGM_LOG("Unknown stream_type %02x", sb->stream_type);
+                VGM_LOG("Unknown stream_type %02x\n", sb->stream_type);
                 goto fail;
         }
     }
