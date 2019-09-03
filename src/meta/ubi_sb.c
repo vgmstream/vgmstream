@@ -1498,6 +1498,12 @@ static int parse_stream_codec(ubi_sb_header * sb) {
                 goto fail;
         }
     } else if (sb->version == 0x00000000) {
+        /* really old version predating SBx and SMx formats */
+        /* Rayman 2: The Great Escape */
+        /* Tonic Trouble */
+        /* Donald Duck: Goin' Quackers */
+        /* Disney's Dinosaur */
+
         switch (sb->stream_type) {
             case 0x01:
                 sb->codec = FMT_MPDX;
