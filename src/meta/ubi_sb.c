@@ -1611,11 +1611,6 @@ static int parse_offsets(ubi_sb_header * sb, STREAMFILE *streamFile) {
 
     VGM_ASSERT(!sb->is_map && sb->section3_num > 2, "UBI SB: section3 > 2 found\n");
 
-    if (!(sb->cfg.audio_group_id || sb->is_map) && sb->section3_num > 1) {
-        VGM_LOG("UBI SB: unexpected number of internal stream groups %i\n", sb->section3_num);
-        goto fail;
-    }
-
     if (sb->is_external)
         return 1;
 
@@ -1652,11 +1647,6 @@ static int parse_offsets(ubi_sb_header * sb, STREAMFILE *streamFile) {
                 int index = read_32bit(table_offset + 0x08 * j + 0x00, streamFile) & 0x0000FFFF;
 
                 if (index == sb->header_index) {
-                    if (!sb->cfg.audio_group_id && table2_num > 1) {
-                        VGM_LOG("UBI SB: unexpected number of internal stream map groups %i at %x\n", table2_num, (uint32_t)table2_offset);
-                        goto fail;
-                    }
-
                     sb->stream_offset = read_32bit(table_offset + 0x08 * j + 0x04, streamFile);
                     for (k = 0; k < table2_num; k++) {
                         uint32_t id = read_32bit(table2_offset + 0x10 * k + 0x00, streamFile);
@@ -1682,7 +1672,7 @@ static int parse_offsets(ubi_sb_header * sb, STREAMFILE *streamFile) {
             sounds_offset = align_size_to_block(sounds_offset, 0x10);
         sb->stream_offset = sounds_offset + sb->stream_offset;
 
-        if (sb->cfg.audio_group_id && sb->section3_num > 1) { /* maybe should always test this? */
+        if (sb->section3_num > 1) { /* maybe should always test this? */
             for (i = 0; i < sb->section3_num; i++) {
                 off_t offset = sb->section3_offset + sb->cfg.section3_entry_size * i;
 
