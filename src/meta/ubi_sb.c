@@ -36,7 +36,7 @@ typedef struct {
     int audio_external_and;
     int audio_loop_and;
     int audio_group_and;
-    int audio_stream_type_rsh;
+    int num_codec_flags;
     int audio_has_internal_names;
     size_t audio_interleave;
     int audio_fix_psx_samples;
@@ -1167,22 +1167,25 @@ static int parse_type_audio(ubi_sb_header * sb, off_t offset, STREAMFILE* stream
         goto fail;
     }
 
-    if (sb->cfg.audio_external_flag) {
+    if (sb->cfg.audio_external_flag && sb->cfg.audio_external_and) {
         sb->is_external = (read_32bit(offset + sb->cfg.audio_external_flag, streamFile) & sb->cfg.audio_external_and);
     }
 
-    if (sb->cfg.audio_group_id) {
-        sb->group_id   = read_32bit(offset + sb->cfg.audio_group_id, streamFile);
-        if (sb->cfg.audio_group_and) sb->group_id  &= sb->cfg.audio_group_and;
-        if (sb->cfg.audio_stream_type_rsh) sb->group_id = (int)!sb->group_id; /* old group flag */
+    if (sb->cfg.audio_group_id && sb->cfg.audio_group_and) {
+        /* probably means "SW decoded" */
+        sb->group_id = read_32bit(offset + sb->cfg.audio_group_id, streamFile);
+        if (sb->cfg.audio_group_and) sb->group_id &= sb->cfg.audio_group_and;
 
         /* normalize bitflag, known groups are only id 0/1 (if needed could calculate
          * shift-right value here, based on cfg.audio_group_and first 1-bit) */
         if (sb->group_id > 1)
             sb->group_id = 1;
+    } else {
+        /* old group flag (HW decoded?) */
+        sb->group_id = (int)!(sb->stream_type & 0x01);
     }
 
-    if (sb->cfg.audio_loop_flag) {
+    if (sb->cfg.audio_loop_flag && sb->cfg.audio_loop_and) {
         sb->loop_flag = (read_32bit(offset + sb->cfg.audio_loop_flag, streamFile) & sb->cfg.audio_loop_and);
     }
 
@@ -1453,7 +1456,7 @@ static int parse_stream_codec(ubi_sb_header * sb) {
         return 1;
 
     /* in early versions, this is a bitfield with either 1 or 2 rightmost bits being flags */
-    sb->stream_type >>= sb->cfg.audio_stream_type_rsh;
+    sb->stream_type >>= sb->cfg.num_codec_flags;
 
     if (sb->cfg.default_codec_for_group0 && sb->type == UBI_AUDIO && sb->group_id == 0) {
         /* early Xbox games contain garbage in stream_type field in this case, it seems that 0x00 is assumed */
@@ -1889,15 +1892,6 @@ static void config_sb_audio_fb(ubi_sb_header * sb, off_t flag_bits, int external
     sb->cfg.audio_group_and         = group_and;
     sb->cfg.audio_loop_and          = loop_and;
 }
-static void config_sb_audio_fbc(ubi_sb_header * sb, off_t flag_bits, int external_and, int loop_and, off_t codec_flag_bits, int group_and) {
-    /* audio header with bit flags and separate codec flags */
-    sb->cfg.audio_external_flag = flag_bits;
-    sb->cfg.audio_group_id = codec_flag_bits;
-    sb->cfg.audio_loop_flag = flag_bits;
-    sb->cfg.audio_external_and = external_and;
-    sb->cfg.audio_group_and = group_and;
-    sb->cfg.audio_loop_and = loop_and;
-}
 static void config_sb_audio_hs(ubi_sb_header * sb, off_t channels, off_t sample_rate, off_t num_samples, off_t num_samples2, off_t stream_name, off_t stream_type) {
     /* audio header with stream name */
     sb->cfg.audio_channels          = channels;
@@ -2118,11 +2112,11 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
     }
 
     if (sb->version == 0x00000000 || sb->version == 0x00000200) {
-        sb->cfg.audio_stream_type_rsh = 1;
+        sb->cfg.num_codec_flags = 1;
     } else if (sb->version <= 0x00000004) {
-        sb->cfg.audio_stream_type_rsh = 2;
+        sb->cfg.num_codec_flags = 2;
     } else if (sb->version < 0x000A0000) {
-        sb->cfg.audio_stream_type_rsh = 1;
+        sb->cfg.num_codec_flags = 1;
     }
 
     sb->allowed_types[0x01] = 1;
@@ -2182,7 +2176,7 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
     if (sb->version == 0x00000000 && sb->platform == UBI_PC && is_ttse_pc) {
         config_sb_entry(sb, 0x20, 0x5c);
 
-        config_sb_audio_fs(sb, 0x2c, 0x44, 0x30);
+        config_sb_audio_fs(sb, 0x2c, 0x00, 0x30);
         config_sb_audio_hs(sb, 0x42, 0x3c, 0x38, 0x38, 0x48, 0x44);
         sb->cfg.audio_has_internal_names = 1;
 
@@ -2204,7 +2198,7 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
     if (sb->version == 0x00000000 && sb->platform == UBI_PC) {
         config_sb_entry(sb, 0x20, 0x5c);
 
-        config_sb_audio_fs(sb, 0x2c, 0x44, 0x30);
+        config_sb_audio_fs(sb, 0x2c, 0x00, 0x30);
         config_sb_audio_hs(sb, 0x42, 0x3c, 0x34, 0x34, 0x48, 0x44);
         sb->cfg.audio_has_internal_names = 1;
 
@@ -2225,7 +2219,7 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         (sb->version == 0x00000003 && sb->platform == UBI_XBOX)) {
         config_sb_entry(sb, 0x40, 0x68);
 
-        config_sb_audio_fs(sb, 0x30, 0x54, 0x34);
+        config_sb_audio_fs(sb, 0x30, 0x00, 0x34);
         config_sb_audio_hs(sb, 0x52, 0x4c, 0x38, 0x40, 0x58, 0x54);
         sb->cfg.audio_has_internal_names = 1;
 
@@ -2242,7 +2236,7 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
     if (sb->version == 0x00000003 && sb->platform == UBI_GC) {
         config_sb_entry(sb, 0x40, 0x6c);
 
-        config_sb_audio_fs(sb, 0x30, 0x58, 0x34);
+        config_sb_audio_fs(sb, 0x30, 0x00, 0x34);
         config_sb_audio_hs(sb, 0x56, 0x50, 0x48, 0x48, 0x5c, 0x58); /* 0x38 may be num samples too? */
 
         config_sb_sequence(sb, 0x2c, 0x1c);
@@ -2292,7 +2286,7 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
     if (sb->version == 0x00000007 && sb->platform == UBI_PC) {
         config_sb_entry(sb, 0x58, 0x80);
 
-        config_sb_audio_fs(sb, 0x28, 0x4c, 0x2c);
+        config_sb_audio_fs(sb, 0x28, 0x00, 0x2c);
         config_sb_audio_hs(sb, 0x4a, 0x44, 0x30, 0x38, 0x50, 0x4c);
         sb->cfg.audio_has_internal_names = 1;
 
@@ -2308,7 +2302,7 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
     if (sb->version == 0x00000007 && sb->platform == UBI_XBOX) {
         config_sb_entry(sb, 0x58, 0x78);
 
-        config_sb_audio_fs(sb, 0x28, 0x4c, 0x2c);
+        config_sb_audio_fs(sb, 0x28, 0x00, 0x2c);
         config_sb_audio_hs(sb, 0x4a, 0x44, 0x30, 0x38, 0x50, 0x4c);
         sb->cfg.audio_has_internal_names = 1;
 
@@ -2336,7 +2330,7 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
     if (sb->version == 0x00000007 && sb->platform == UBI_PS2) {
         config_sb_entry(sb, 0x40, 0x70);
 
-        config_sb_audio_fbc(sb, 0x1c, (1 << 2), (1 << 4), 0x6c, (1 << 0));
+        config_sb_audio_fb(sb, 0x1c, (1 << 2), 0, (1 << 4));
         config_sb_audio_hs(sb, 0x24, 0x28, 0x34, 0x3c, 0x44, 0x6c); /* num_samples may be null */
 
         config_sb_sequence(sb, 0x2c, 0x30);
@@ -2357,7 +2351,7 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
     if (sb->version == 0x00000007 && sb->platform == UBI_GC) {
         config_sb_entry(sb, 0x58, 0x78);
 
-        config_sb_audio_fs(sb, 0x24, 0x4c, 0x28);
+        config_sb_audio_fs(sb, 0x24, 0x00, 0x28);
         config_sb_audio_hs(sb, 0x4a, 0x44, 0x2c, 0x34, 0x50, 0x4c);
 
         config_sb_sequence(sb, 0x2c, 0x34);
@@ -2376,7 +2370,7 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
     if (sb->version == 0x0000000D && sb->platform == UBI_XBOX) {
         config_sb_entry(sb, 0x5c, 0x74);
 
-        config_sb_audio_fs(sb, 0x24, 0x48, 0x28);
+        config_sb_audio_fs(sb, 0x24, 0x00, 0x28);
         config_sb_audio_hs(sb, 0x46, 0x40, 0x2c, 0x34, 0x4c, 0x48);
         sb->cfg.audio_has_internal_names = 1;
         return 1;
