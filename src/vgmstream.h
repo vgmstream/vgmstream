@@ -1365,8 +1365,8 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream);
 int vgmstream_open_stream(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t start_offset);
 
 /* Get description info */
-const char * get_vgmstream_coding_description(coding_t coding_type);
-const char * get_vgmstream_layout_description(layout_t layout_type);
-const char * get_vgmstream_meta_description(meta_t meta_type);
+void get_vgmstream_coding_description(VGMSTREAM *vgmstream, char *out, size_t out_size);
+void get_vgmstream_layout_description(VGMSTREAM *vgmstream, char *out, size_t out_size);
+void get_vgmstream_meta_description(VGMSTREAM *vgmstream, char *out, size_t out_size);
 
 #endif
