@@ -2,7 +2,8 @@
 
 
 /* Defines the list of accepted extensions. vgmstream doesn't use it internally so it's here
- * to inform plugins that need it. Common extensions are commented out to avoid stealing them. */
+ * to inform plugins that need it. Common extensions are commented out to avoid stealing them
+ * and possibly adding an unwanted association to the player. */
 
 /* Some extensions require external libraries and could be #ifdef, not worth. */
 
@@ -93,6 +94,7 @@ static const char* extension_list[] = {
     "bik",
     "bika",
     "bik2",
+  //"bin", //common
     "bk2",
     "bmdx",
     "bms",
@@ -237,6 +239,7 @@ static const char* extension_list[] = {
     "laifc", //fake extension for .aifc
     "lac3", //fake extension for .ac3, FFmpeg/not parsed
     "lasf", //fake extension for .asf (various)
+    "lbin", //fake extension for .bin (various)
     "leg",
     "lflac", //fake extension for .flac, FFmpeg/not parsed
     "lin",
@@ -688,6 +691,7 @@ static const coding_info coding_info_list[] = {
         {coding_XMD,                "Konami XMD 4-bit ADPCM"},
         {coding_PCFX,               "PC-FX 4-bit ADPCM"},
         {coding_OKI16,              "OKI 4-bit ADPCM (16-bit output)"},
+        {coding_OKI4S,              "OKI 4-bit ADPCM (4-shift)"},
         {coding_PTADPCM,            "Platinum 4-bit ADPCM"},
 
         {coding_SDX2,               "Squareroot-delta-exact (SDX2) 8-bit DPCM"},
@@ -1205,6 +1209,7 @@ static const meta_info meta_info_list[] = {
         {meta_IMA,                  "Blitz Games .IMA header"},
         {meta_XMV_VALVE,            "Valve XMV header"},
         {meta_UBI_HX,               "Ubisoft HXx header"},
+        {meta_BMP_KONAMI,           "Konami BMP header"},
 
 };
 

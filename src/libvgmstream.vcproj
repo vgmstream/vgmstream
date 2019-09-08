@@ -509,6 +509,10 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\meta\bmp_konami.c"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\bnk_sony.c"
                     >
                 </File>
