@@ -95,20 +95,18 @@ ubi_adpcm_codec_data *init_ubi_adpcm(STREAMFILE *sf, off_t offset, int channels)
     data = calloc(1, sizeof(ubi_adpcm_codec_data));
     if (!data) goto fail;
 
-    if (!parse_header(sf, data, offset))
+    if (!parse_header(sf, data, offset)) {
+        VGM_LOG("UBI ADPCM: wrong header\n");
         goto fail;
+    }
 
-    if (data->header.channels != channels)
+    if (data->header.channels != channels) {
+        VGM_LOG("UBI ADPCM: wrong number of channels: %i vs %i\n", data->header.channels, channels);
         goto fail;
+    }
 
     data->start_offset = offset + 0x30;
     data->offset = data->start_offset;
-
-    //todo untested
-    if (data->header.bits_per_sample == 6 && data->header.channels == 2) {
-        VGM_LOG("UBI ADPCM: found 6-bit stereo\n");
-        goto fail;
-    }
 
     return data;
 fail:
@@ -296,11 +294,11 @@ static int32_t clamp_val(int32_t val, int32_t min, int32_t max) {
 
 static int16_t expand_code_6bit(uint8_t code, ubi_adpcm_channel_data* state) {
     int step0_index;
-    int32_t step0_next, step0, delta0;
+    int32_t code_signed, step0_next, step0, delta0;
     int32_t sample_new;
 
-
-    step0_index = abs(code - 31); /* 0..32, but should only go up to 31 */
+    code_signed = (int32_t)code - 31; /* convert coded 0..63 value to signed value, where 0=-31 .. 31=0 .. 63=32 */
+    step0_index = abs(code_signed); /* 0..32, but should only go up to 31 */
     step0_next = adpcm6_table1[step0_index] + state->step1;
     step0 = (state->step1 & 0xFFFF) * 246;
     step0 = (step0 + adpcm6_table2[step0_index]) >> 8;
@@ -308,7 +306,7 @@ static int16_t expand_code_6bit(uint8_t code, ubi_adpcm_channel_data* state) {
 
     delta0 = 0;
     if (!(((step0_next & 0xFFFFFF00) - 1) & (1 << 31))) {
-        int delta0_index = ((step0_next >> 3) & 0x1F) + (code < 31 ? 33 : 0);
+        int delta0_index = ((step0_next >> 3) & 0x1F) + (code_signed < 0 ? 33 : 0);
         int delta0_shift = clamp_val((step0_next >> 8) & 0xFF, 0,31);
         delta0 = (delta_table[delta0_index] << delta0_shift) >> 10;
     }
@@ -325,15 +323,15 @@ static int16_t expand_code_6bit(uint8_t code, ubi_adpcm_channel_data* state) {
     return sample_new;
 }
 
-
 /* may be simplified (masks, saturation, etc) as some values should never happen in the encoder */
 static int16_t expand_code_4bit(uint8_t code, ubi_adpcm_channel_data* state) {
     int step0_index;
-    int32_t step0_next, step0, delta0, next0, coef1_next, coef2_next;
+    int32_t code_signed, step0_next, step0, delta0, next0, coef1_next, coef2_next;
     int32_t sample_new;
 
 
-    step0_index = abs(code - 7); /* 0..8, but should only go up to 7 */
+    code_signed = (int32_t)code - 7; /* convert coded 0..15 value to signed value, where 0=-7 .. 7=0 .. 15=8 */
+    step0_index = abs(code_signed); /*  0..8, but should only go up to 7 */
     step0_next = adpcm4_table1[step0_index] + state->step1;
     step0 = (state->step1 & 0xFFFF) * 246;
     step0 = (step0 + adpcm4_table2[step0_index]) >> 8;
@@ -341,7 +339,7 @@ static int16_t expand_code_4bit(uint8_t code, ubi_adpcm_channel_data* state) {
 
     delta0 = 0;
     if (!(((step0_next & 0xFFFFFF00) - 1) & (1 << 31))) {
-        int delta0_index = ((step0_next >> 3) & 0x1F) + (code < 7 ? 33 : 0);
+        int delta0_index = ((step0_next >> 3) & 0x1F) + (code_signed < 0 ? 33 : 0);
         int delta0_shift = clamp_val((step0_next >> 8) & 0xFF, 0,31);
         delta0 = (delta_table[delta0_index] << delta0_shift) >> 10;
     }
@@ -454,8 +452,8 @@ static void decode_subframe_stereo(ubi_adpcm_channel_data* ch0_state, ubi_adpcm_
  *    ex. uint8_t 0x98576787DB5725A8... becomes 0x87675798 LE = 8 7 6 7 5 7 9 8 ...
  * - for 6-bit, 32b contain ~5 codes with leftover bits used in following 32b
  *    ex. uint8_t 0x98576787DB5725A8... becomes 0x87675798 LE = 100001 110110 011101 010111 100110 00,
- *    0xA82557DB LE = 1010 100000 100101 010101 111101 1011.. (where last 00 | 1010 = 001010), etc
- * Codes aren't signed but rather part of an index
+ *    0xA82557DB LE = 1010 100000 100101 010101 111101 1011 ... (where last 00 | first 1010 = 001010), etc
+ * Codes aren't signed but rather have a particular meaning (see decoding).
  */
 void unpack_codes(uint8_t *data, uint8_t* codes, int code_count, int bps) {
     int i;
@@ -579,4 +577,12 @@ static void decode_frame(STREAMFILE* sf, ubi_adpcm_codec_data *data) {
     data->subframe_number += 2;
     data->samples_consumed = 0;
     data->samples_filled = (code_count_a + code_count_b) / channels;
+}
+
+
+int ubi_adpcm_get_samples(ubi_adpcm_codec_data *data) {
+    if (!data)
+        return 0;
+
+    return data->header.sample_count / data->header.channels;
 }
