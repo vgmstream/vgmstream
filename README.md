@@ -134,6 +134,7 @@ them playable through vgmstream.
 - .aif to .laif or .aiffl or .aifcl (standard Mac AIF, Asobo AIF, Ogg)
 - .aiff/aifc to .aiffl/aifcl (standard Mac AIF)
 - .asf to .lasf (EA games, Argonaut ASF)
+- .bin to .lbin (various)
 - .flac to .lflac (standard FLAC)
 - .mp2 to .lmp2 (standard MP2)
 - .mp3 to .lmp3 (standard MP3)
@@ -343,8 +344,8 @@ are used in few games.
 - Argonaut ASF 4-bit ADPCM
 - Ocean DSA 4-bit ADPCM
 - Circus XPCM ADPCM
-- OKI 4-bit ADPCM (16-bit output, PC-FX)
-- Ocean DSA 4-bit ADPCM
+- OKI 4-bit ADPCM (16-bit output, 4-shift, PC-FX)
+- Ubisoft 4/6-bit ADPCM
 - SDX2 2:1 Squareroot-Delta-Exact compression DPCM
 - CBD2 2:1 Cuberoot-Delta-Exact compression DPCM
 - Activision EXAKT SASSC DPCM

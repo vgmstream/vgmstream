@@ -1685,8 +1685,8 @@ static int parse_offsets(ubi_sb_header * sb, STREAMFILE *streamFile) {
     }
 
     return 1;
-fail:
-    return 0;
+//fail:
+//    return 0;
 }
 
 /* parse a single known header resource at offset (see config_sb for info) */
