@@ -1030,26 +1030,28 @@ int check_extensions(STREAMFILE *streamFile, const char * cmp_exts) {
  *
  * returns 0 on failure
  */
-int find_chunk_be(STREAMFILE *streamFile, uint32_t chunk_id, off_t start_offset, int full_chunk_size, off_t *out_chunk_offset, size_t *out_chunk_size) {
-    return find_chunk(streamFile, chunk_id, start_offset, full_chunk_size, out_chunk_offset, out_chunk_size, 1, 0);
-}
-int find_chunk_le(STREAMFILE *streamFile, uint32_t chunk_id, off_t start_offset, int full_chunk_size, off_t *out_chunk_offset, size_t *out_chunk_size) {
-    return find_chunk(streamFile, chunk_id, start_offset, full_chunk_size, out_chunk_offset, out_chunk_size, 0, 0);
-}
-int find_chunk(STREAMFILE *streamFile, uint32_t chunk_id, off_t start_offset, int full_chunk_size, off_t *out_chunk_offset, size_t *out_chunk_size, int size_big_endian, int zero_size_end) {
-    size_t filesize;
-    off_t current_chunk = start_offset;
+static int find_chunk_internal(STREAMFILE *streamFile, uint32_t chunk_id, off_t start_offset, size_t max_size, int full_chunk_size, off_t *out_chunk_offset, size_t *out_chunk_size, int big_endian_type, int big_endian_size, int zero_size_end) {
+    int32_t (*read_32bit_type)(off_t,STREAMFILE*) = big_endian_type ? read_32bitBE : read_32bitLE;
+    int32_t (*read_32bit_size)(off_t,STREAMFILE*) = big_endian_size ? read_32bitBE : read_32bitLE;
+    off_t offset, max_offset;
+    size_t file_size = get_streamfile_size(streamFile);
 
-    filesize = get_streamfile_size(streamFile);
+    if (max_size == 0)
+        max_size = file_size;
+
+    offset = start_offset;
+    max_offset = offset + max_size;
+    if (max_offset > file_size)
+        max_offset = file_size;
+
+
     /* read chunks */
-    while (current_chunk < filesize) {
-        uint32_t chunk_type = read_32bitBE(current_chunk,streamFile);
-        off_t chunk_size = size_big_endian ?
-                read_32bitBE(current_chunk+4,streamFile) :
-                read_32bitLE(current_chunk+4,streamFile);
+    while (offset < max_offset) {
+        uint32_t chunk_type = read_32bit_type(offset + 0x00,streamFile);
+        uint32_t chunk_size = read_32bit_size(offset + 0x04,streamFile);
 
         if (chunk_type == chunk_id) {
-            if (out_chunk_offset) *out_chunk_offset = current_chunk+8;
+            if (out_chunk_offset) *out_chunk_offset = offset + 0x08;
             if (out_chunk_size) *out_chunk_size = chunk_size;
             return 1;
         }
@@ -1058,10 +1060,22 @@ int find_chunk(STREAMFILE *streamFile, uint32_t chunk_id, off_t start_offset, in
         if (chunk_size == 0 && zero_size_end)
             return 0;
 
-        current_chunk += full_chunk_size ? chunk_size : 4+4+chunk_size;
+        offset += full_chunk_size ? chunk_size : 0x08 + chunk_size;
     }
 
     return 0;
+}
+int find_chunk_be(STREAMFILE *streamFile, uint32_t chunk_id, off_t start_offset, int full_chunk_size, off_t *out_chunk_offset, size_t *out_chunk_size) {
+    return find_chunk(streamFile, chunk_id, start_offset, full_chunk_size, out_chunk_offset, out_chunk_size, 1, 0);
+}
+int find_chunk_le(STREAMFILE *streamFile, uint32_t chunk_id, off_t start_offset, int full_chunk_size, off_t *out_chunk_offset, size_t *out_chunk_size) {
+    return find_chunk(streamFile, chunk_id, start_offset, full_chunk_size, out_chunk_offset, out_chunk_size, 0, 0);
+}
+int find_chunk(STREAMFILE *streamFile, uint32_t chunk_id, off_t start_offset, int full_chunk_size, off_t *out_chunk_offset, size_t *out_chunk_size, int big_endian_size, int zero_size_end) {
+    return find_chunk_internal(streamFile, chunk_id, start_offset, 0, full_chunk_size, out_chunk_offset, out_chunk_size, 1, big_endian_size, zero_size_end);
+}
+int find_chunk_riff_ve(STREAMFILE *streamFile, uint32_t chunk_id, off_t start_offset, size_t max_size, off_t *out_chunk_offset, size_t *out_chunk_size, int big_endian) {
+    return find_chunk_internal(streamFile, chunk_id, start_offset, max_size, 0, out_chunk_offset, out_chunk_size, big_endian, big_endian, 0);
 }
 
 /* copies name as-is (may include full path included) */
